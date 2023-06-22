@@ -141,6 +141,7 @@ boolean PESerializerTestTask::SlaveProcess()
 	ALString sLargeString;
 	ALString sSimpleString;
 	CharVector* cvCharVector;
+	const IntVector* ivIntvector;
 	boolean bOk;
 	int i;
 	int nCount;
@@ -249,6 +250,7 @@ boolean PESerializerTestTask::SlaveProcess()
 	}
 	if (bOk)
 	{
+		ivIntvector = input_ivIntVector.GetConstIntVector();
 		bOk = input_ivIntVector.GetConstIntVector()->GetSize() == 100000;
 		assert(bOk);
 		for (i = 0; i < 100000; i++)

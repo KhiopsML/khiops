@@ -1461,22 +1461,6 @@ KWAttributeSubsetStats* PLShared_AttributeSubsetStats::GetAttributeSubset()
 	return cast(KWAttributeSubsetStats*, GetObject());
 }
 
-void PLShared_AttributeSubsetStats::DeserializeObject(PLSerializer* serializer, Object* o) const
-{
-	KWAttributeSubsetStats* attributeSubsetStats;
-
-	require(serializer->IsOpenForRead());
-
-	// Appel de la methode ancetre
-	PLShared_DataPreparationStats::DeserializeObject(serializer, o);
-
-	// Deserialisation des attributs specifiques
-	attributeSubsetStats = cast(KWAttributeSubsetStats*, o);
-	serializer->GetStringVector(&attributeSubsetStats->svAttributeNames);
-	attributeSubsetStats->SetTargetAttributePartitioned(serializer->GetBoolean());
-	attributeSubsetStats->nMaxCellNumberConstraint = serializer->GetInt();
-}
-
 void PLShared_AttributeSubsetStats::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
 	KWAttributeSubsetStats* attributeSubsetStats;
@@ -1493,6 +1477,22 @@ void PLShared_AttributeSubsetStats::SerializeObject(PLSerializer* serializer, co
 	serializer->PutStringVector(&attributeSubsetStats->svAttributeNames);
 	serializer->PutBoolean(attributeSubsetStats->GetTargetAttributePartitioned());
 	serializer->PutInt(attributeSubsetStats->nMaxCellNumberConstraint);
+}
+
+void PLShared_AttributeSubsetStats::DeserializeObject(PLSerializer* serializer, Object* o) const
+{
+	KWAttributeSubsetStats* attributeSubsetStats;
+
+	require(serializer->IsOpenForRead());
+
+	// Appel de la methode ancetre
+	PLShared_DataPreparationStats::DeserializeObject(serializer, o);
+
+	// Deserialisation des attributs specifiques
+	attributeSubsetStats = cast(KWAttributeSubsetStats*, o);
+	serializer->GetStringVector(&attributeSubsetStats->svAttributeNames);
+	attributeSubsetStats->SetTargetAttributePartitioned(serializer->GetBoolean());
+	attributeSubsetStats->nMaxCellNumberConstraint = serializer->GetInt();
 }
 
 Object* PLShared_AttributeSubsetStats::Create() const
@@ -1518,16 +1518,16 @@ KWAttributePairStats* PLShared_AttributePairStats::GetAttributePair()
 	return cast(KWAttributePairStats*, GetObject());
 }
 
-void PLShared_AttributePairStats::DeserializeObject(PLSerializer* serializer, Object* o) const
-{
-	// Appel de la methode ancetre
-	PLShared_AttributeSubsetStats::DeserializeObject(serializer, o);
-}
-
 void PLShared_AttributePairStats::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
 	// Appel de la methode ancetre
 	PLShared_AttributeSubsetStats::SerializeObject(serializer, o);
+}
+
+void PLShared_AttributePairStats::DeserializeObject(PLSerializer* serializer, Object* o) const
+{
+	// Appel de la methode ancetre
+	PLShared_AttributeSubsetStats::DeserializeObject(serializer, o);
 }
 
 Object* PLShared_AttributePairStats::Create() const

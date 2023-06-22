@@ -414,12 +414,14 @@ void UIQuestionCard::OK()
 ////////////////////////////////////////////////////////////////////////
 // Classe UIFileChooserCard
 
+ALString UIFileChooserCard::sDefaultStyle = "FileChooser";
+
 UIFileChooserCard::UIFileChooserCard()
 {
 	// Initialisation
 	SetIdentifier("FileChooser");
 	SetLabel("File chooser");
-	SetStyle("FileChooser");
+	SetStyle(GetDefaultStyle());
 	bConfirmed = false;
 
 	// Ajout d'un champ file chooser
@@ -438,6 +440,17 @@ UIFileChooserCard::UIFileChooserCard()
 }
 
 UIFileChooserCard::~UIFileChooserCard() {}
+
+void UIFileChooserCard::SetDefaultStyle(const ALString& sValue)
+{
+	require(sValue == "FileChooser" or sValue == "");
+	sDefaultStyle = sValue;
+}
+
+const ALString& UIFileChooserCard::GetDefaultStyle()
+{
+	return sDefaultStyle;
+}
 
 const ALString UIFileChooserCard::ChooseFile(const ALString& sDialogBoxTitle, const ALString& sApproveActionLabel,
 					     const ALString& sChooseType, const ALString& sChooseParameters,

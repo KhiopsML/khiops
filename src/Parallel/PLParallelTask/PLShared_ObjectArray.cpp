@@ -167,17 +167,6 @@ PLShared_StringObject::PLShared_StringObject() {}
 
 PLShared_StringObject::~PLShared_StringObject() {}
 
-void PLShared_StringObject::DeserializeObject(PLSerializer* serializer, Object* o) const
-{
-	StringObject* so;
-
-	require(serializer->IsOpenForRead());
-	require(o != NULL);
-
-	so = cast(StringObject*, o);
-	so->SetString(serializer->GetString());
-}
-
 void PLShared_StringObject::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
 	StringObject* so;
@@ -189,23 +178,22 @@ void PLShared_StringObject::SerializeObject(PLSerializer* serializer, const Obje
 	serializer->PutString(so->GetString());
 }
 
+void PLShared_StringObject::DeserializeObject(PLSerializer* serializer, Object* o) const
+{
+	StringObject* so;
+
+	require(serializer->IsOpenForRead());
+	require(o != NULL);
+
+	so = cast(StringObject*, o);
+	so->SetString(serializer->GetString());
+}
 ///////////////////////////////////////////////////////////////////////
 // Implementation de  PLShared_DoubleObject
 
 PLShared_DoubleObject::PLShared_DoubleObject() {}
 
 PLShared_DoubleObject::~PLShared_DoubleObject() {}
-
-void PLShared_DoubleObject::DeserializeObject(PLSerializer* serializer, Object* o) const
-{
-	DoubleObject* hr;
-
-	require(serializer->IsOpenForRead());
-	require(o != NULL);
-
-	hr = cast(DoubleObject*, o);
-	hr->SetDouble(serializer->GetDouble());
-}
 
 void PLShared_DoubleObject::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
@@ -218,23 +206,23 @@ void PLShared_DoubleObject::SerializeObject(PLSerializer* serializer, const Obje
 	serializer->PutDouble(hr->GetDouble());
 }
 
+void PLShared_DoubleObject::DeserializeObject(PLSerializer* serializer, Object* o) const
+{
+	DoubleObject* hr;
+
+	require(serializer->IsOpenForRead());
+	require(o != NULL);
+
+	hr = cast(DoubleObject*, o);
+	hr->SetDouble(serializer->GetDouble());
+}
+
 ///////////////////////////////////////////////////////////////////////
 // Implementation de  PLShared_IntObject
 
 PLShared_IntObject::PLShared_IntObject() {}
 
 PLShared_IntObject::~PLShared_IntObject() {}
-
-void PLShared_IntObject::DeserializeObject(PLSerializer* serializer, Object* o) const
-{
-	IntObject* io;
-
-	require(serializer->IsOpenForRead());
-	require(o != NULL);
-
-	io = cast(IntObject*, o);
-	io->SetInt(serializer->GetInt());
-}
 
 void PLShared_IntObject::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
@@ -247,23 +235,23 @@ void PLShared_IntObject::SerializeObject(PLSerializer* serializer, const Object*
 	serializer->PutInt(io->GetInt());
 }
 
+void PLShared_IntObject::DeserializeObject(PLSerializer* serializer, Object* o) const
+{
+	IntObject* io;
+
+	require(serializer->IsOpenForRead());
+	require(o != NULL);
+
+	io = cast(IntObject*, o);
+	io->SetInt(serializer->GetInt());
+}
+
 ///////////////////////////////////////////////////////////////////////
 // Implementation de  PLShared_LongintObject
 
 PLShared_LongintObject::PLShared_LongintObject() {}
 
 PLShared_LongintObject::~PLShared_LongintObject() {}
-
-void PLShared_LongintObject::DeserializeObject(PLSerializer* serializer, Object* o) const
-{
-	LongintObject* lo;
-
-	require(serializer->IsOpenForRead());
-	require(o != NULL);
-
-	lo = cast(LongintObject*, o);
-	lo->SetLongint(serializer->GetLongint());
-}
 
 void PLShared_LongintObject::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
@@ -274,4 +262,15 @@ void PLShared_LongintObject::SerializeObject(PLSerializer* serializer, const Obj
 
 	lo = cast(LongintObject*, o);
 	serializer->PutLongint(lo->GetLongint());
+}
+
+void PLShared_LongintObject::DeserializeObject(PLSerializer* serializer, Object* o) const
+{
+	LongintObject* lo;
+
+	require(serializer->IsOpenForRead());
+	require(o != NULL);
+
+	lo = cast(LongintObject*, o);
+	lo->SetLongint(serializer->GetLongint());
 }

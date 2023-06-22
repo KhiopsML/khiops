@@ -58,6 +58,8 @@ PLMPITaskDriver::~PLMPITaskDriver()
 	FileBuffer::SetReleaseIOFunction(NULL);
 	FileBuffer::SetRequestIOFunction(NULL);
 	MPI_Finalize();
+
+	odFileServers.DeleteAll();
 }
 
 void PLMPITaskDriver::StartSlave()
@@ -103,9 +105,7 @@ void PLMPITaskDriver::StartFileServers()
 				 (bFileServerOnSingleHost and
 				  RMResourceManager::GetResourceSystem()->GetLogicalProcessNumber() > 1));
 
-		// Construction de la liste des serveurs de fichiers
-		if (bFileServerOn)
-			SelectFileServerRanks();
+		assert(not bFileServerOn or ivFileServers->GetSize() != 0);
 
 		// Lancement des serveurs de fichiers
 		for (i = 1; i < RMResourceManager::GetLogicalProcessNumber(); i++)
@@ -155,10 +155,6 @@ void PLMPITaskDriver::StopFileServers()
 				cast(PLMPITracer*, GetTracerMPI())->AddSend(i, MASTER_STOP_FILE_SERVERS);
 			MPI_Send(NULL, 0, MPI_CHAR, i, MASTER_STOP_FILE_SERVERS, MPI_COMM_WORLD);
 		}
-
-		// Nettoyage
-		PLMPITaskDriver::GetDriver()->odFileServers.DeleteAll();
-		ivFileServers->SetSize(0);
 
 		// Remise en place des drivers : acces aux fichiers uniquement en local
 		if (bFileServerOn)
@@ -284,35 +280,48 @@ void PLMPITaskDriver::SelectFileServerRanks()
 	int j;
 	int nRank;
 	IntObject* ioRank;
+	boolean bNeedFileServer;
 
-	// Reinitialisation de la liste des serveurs
-	ivFileServers->SetSize(0);
+	// On active les serveurs de fichier seulement si il y a plus d'un host
+	// Ou si bFileServerOnSingleHost est actif ET qu'on a lance khiops avec mpi
+	bNeedFileServer =
+	    (RMResourceManager::GetResourceSystem()->GetHostNumber() > 1 or
+	     (bFileServerOnSingleHost and RMResourceManager::GetResourceSystem()->GetLogicalProcessNumber() > 1));
 
-	// Parcours des hosts
-	for (i = 0; i < RMResourceManager::GetResourceSystem()->GetHostNumber(); i++)
+	if (bNeedFileServer)
 	{
-		// Pour chaque rang du host
-		for (j = 0; j < RMResourceManager::GetResourceSystem()->GetHostResourceAt(i)->GetRanks()->GetSize();
-		     j++)
-		{
-			// On prend le premier different de 0 (le maitre)
-			nRank = RMResourceManager::GetResourceSystem()->GetHostResourceAt(i)->GetRanks()->GetAt(j);
-			if (nRank != 0)
-			{
-				ivFileServers->Add(nRank);
+		// Reinitialisation de la liste des serveurs
+		ivFileServers->SetSize(0);
+		odFileServers.DeleteAll();
 
-				// Construction du dictionnaire host / rang du serveur
-				ioRank = new IntObject;
-				ioRank->SetInt(nRank);
-				odFileServers.SetAt(
-				    RMResourceManager::GetResourceSystem()->GetHostResourceAt(i)->GetHostName(),
-				    ioRank);
-				break;
+		// Parcours des hosts
+		for (i = 0; i < RMResourceManager::GetResourceSystem()->GetHostNumber(); i++)
+		{
+			// Pour chaque rang du host
+			for (j = 0;
+			     j < RMResourceManager::GetResourceSystem()->GetHostResourceAt(i)->GetRanks()->GetSize();
+			     j++)
+			{
+				// On prend le premier different de 0 (le maitre)
+				nRank =
+				    RMResourceManager::GetResourceSystem()->GetHostResourceAt(i)->GetRanks()->GetAt(j);
+				if (nRank != 0)
+				{
+					ivFileServers->Add(nRank);
+
+					// Construction du dictionnaire host / rang du serveur
+					ioRank = new IntObject;
+					ioRank->SetInt(nRank);
+					odFileServers.SetAt(
+					    RMResourceManager::GetResourceSystem()->GetHostResourceAt(i)->GetHostName(),
+					    ioRank);
+					break;
+				}
 			}
 		}
+		ivFileServers->Sort();
+		ensure(ivFileServers->GetSize() == RMResourceManager::GetResourceSystem()->GetHostNumber());
 	}
-	ivFileServers->Sort();
-	ensure(ivFileServers->GetSize() == RMResourceManager::GetResourceSystem()->GetHostNumber());
 }
 
 PLIncrementalStats* PLMPITaskDriver::GetIOReadDurationStats()
@@ -384,6 +393,9 @@ void PLMPITaskDriver::InitializeResourceSystem()
 	PLSerializer serializer;
 	longint lSlaveHeap;
 	PLMPIMsgContext context;
+	boolean bIsCluster;
+	ALString sLastHostName;
+	ALString sKhiopsTmpDirEnv;
 
 	oaSharedResource = new PLShared_ObjectArray(new PLShared_HostResource);
 	oaSharedResource->bIsDeclared = true;
@@ -411,11 +423,29 @@ void PLMPITaskDriver::InitializeResourceSystem()
 		DisplayErrorFunction errorFunction = Error::GetDisplayErrorFunction();
 		Error::SetDisplayErrorFunction(NULL);
 
+		// Envoi du nom de la machine
+		context.Send(privateCommunicator, 0, RESOURCE_HOST);
+		serializer.OpenForWrite(&context);
+		serializer.PutString(sHostName);
+		serializer.Close();
+
+		// Est-ce qu'on est sur un systeme multi-machines
+		context.Bcast(privateCommunicator);
+		serializer.OpenForRead(&context);
+		bIsCluster = serializer.GetBoolean();
+		serializer.Close();
+
 		// Reception du repertoire temporaire (qui a un impact sur le calcul de l'espace disque)
 		context.Bcast(MPI_COMM_WORLD);
 		serializer.OpenForRead(&context);
 		FileService::SetUserTmpDir(serializer.GetString());
 		serializer.Close();
+
+		// Sur cluster la variable KhiopsTmpDir est prioritaire par rapport a ce qui est renseigne dans le
+		// scenario Ce qui permet d'avoir un repertoire temporaire different sur chaque machine
+		sKhiopsTmpDirEnv = p_getenv("KHIOPS_TMP_DIR");
+		if (bIsCluster and not sKhiopsTmpDirEnv.IsEmpty())
+			FileService::SetUserTmpDir(sKhiopsTmpDirEnv);
 
 		// Creation du repertoire temporaire si necessaire
 		FileService::CreateApplicationTmpDir();
@@ -453,6 +483,27 @@ void PLMPITaskDriver::InitializeResourceSystem()
 	{
 		// Nettoyage prealable des ressources
 		RMResourceManager::GetResourceSystem()->Reset();
+
+		// Reception du nom de chaque machine pour determiner si on se trouve sur un cluster
+		nMessageNumber = 0;
+		bIsCluster = false;
+		while (nMessageNumber != nProcessNumber - 1)
+		{
+			context.Recv(privateCommunicator, MPI_ANY_SOURCE, RESOURCE_HOST);
+			serializer.OpenForRead(&context);
+			sHostName = serializer.GetString();
+			serializer.Close();
+			if (sLastHostName != "" and sLastHostName != sHostName)
+				bIsCluster = true;
+			sLastHostName = sHostName;
+			nMessageNumber++;
+		}
+
+		// Envoi du type de systeme (clsuter ou mono machine)
+		context.Bcast(privateCommunicator);
+		serializer.OpenForWrite(&context);
+		serializer.PutBoolean(bIsCluster);
+		serializer.Close();
 
 		// Envoi du repertoire temporaire
 		context.Bcast(MPI_COMM_WORLD);
@@ -581,13 +632,21 @@ void PLMPITaskDriver::MasterInitializeResourceSystem()
 		context.Send(MPI_COMM_WORLD, i, MASTER_RESOURCES);
 		serializer.OpenForWrite(&context);
 		serializer.PutInt(RMResourceConstraints::GetMemoryLimit());
-		serializer.PutInt(RMResourceConstraints::GetMemoryLimitPerProc());
 		serializer.PutInt(RMResourceConstraints::GetDiskLimit());
 		serializer.Close();
 	}
 
 	// Initialisation des ressources
 	InitializeResourceSystem();
+
+	// Choix des serveurs de fichiers parmi tous les processus esclaves
+	// On le fait apres avoir decouvert les ressources et une fois pour toute dans le programme.
+	// Historiquement, on le faisait a chaque lancement des serveurs de fichiers. L'effet de bord etait
+	// que lors de l'appel de la methode ComputeGrantedResources en dehors d'une tache, les serveurs
+	// de fichiers n'etaient pas lances et n'etaitent pas pris en compte dans le calcul des ressources
+	// (il y avait un process en trop par machine)
+	if (odFileServers.GetCount() == 0)
+		SelectFileServerRanks();
 }
 
 void PLMPITaskDriver::CheckVersion()

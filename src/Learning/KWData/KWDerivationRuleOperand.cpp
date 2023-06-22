@@ -633,6 +633,12 @@ void KWDerivationRuleOperand::ComputeUpperScopeValue(const KWObject* kwoObject)
 		else
 			kwvConstant.SetTimestamp(GetDerivationRule()->ComputeTimestampResult(kwoObject));
 		break;
+	case KWType::Text:
+		if (GetOrigin() == OriginAttribute)
+			kwvConstant.SetText(kwoObject->ComputeTextValueAt(liDataItemLoadIndex));
+		else
+			kwvConstant.SetText(GetDerivationRule()->ComputeTextResult(kwoObject));
+		break;
 	case KWType::Object:
 		if (GetOrigin() == OriginAttribute)
 			kwvConstant.SetObject(kwoObject->ComputeObjectValueAt(liDataItemLoadIndex));

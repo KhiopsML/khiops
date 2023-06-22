@@ -193,11 +193,22 @@ protected:
 	KWDatabase* trainDatabase;
 	KWDatabase* testDatabase;
 
+	// Dernier mode de specification utilise pour la base de test
+	ALString sLastTestDatabaseSpecificationMode;
+
+	// Dernier classe utilisee pour la base de test
+	ALString sLastTestDatabaseClassName;
+
 	// Vue sur la base de test
 	KWDatabaseView* testDatabaseView;
 
 	// Administration des KWDatabaseView
 	static ObjectDictionary* odDatabaseTechnologyViews;
+
+#ifdef DEPRECATED_V10
+	friend class KWLearningProblemView;
+	boolean bDeprecatedTestDataViewUsed;
+#endif // DEPRECATED_V10
 
 	// ##
 };

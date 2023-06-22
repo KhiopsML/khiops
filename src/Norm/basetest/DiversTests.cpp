@@ -63,6 +63,7 @@ void TestBigFile()
 	boolean bTestIO = true;
 	int i;
 	char* sField;
+	int nFieldLength;
 	int nFieldError;
 	longint lBeginPos;
 	int nBufferNumber;
@@ -122,7 +123,7 @@ void TestBigFile()
 			// Analyse du buffer
 			while (not inputFile1.IsBufferEnd())
 			{
-				bEol = inputFile1.GetNextField(sField, nFieldError);
+				bEol = inputFile1.GetNextField(sField, nFieldLength, nFieldError);
 				outputFile.Write(sField);
 				if (bEol)
 					outputFile.Write('\n');
@@ -143,7 +144,7 @@ void TestBigFile()
 			// Analyse du buffer
 			while (not inputFile2.IsBufferEnd())
 			{
-				bEol = inputFile2.GetNextField(sField, nFieldError);
+				bEol = inputFile2.GetNextField(sField, nFieldLength, nFieldError);
 				outputFile.Write(sField);
 				if (bEol)
 					outputFile.Write('\n');
@@ -163,14 +164,130 @@ void TestBigFile()
 	cin >> cIn;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// Test avec des caracteres non ascii
+//   . Ansi: e accent aigu
+//   . AnsiAsUtf8: e accent aigu code utf8
+//   . Utf8: theta
+//
+//  Ecriture dans un fichier binaire: ok
+//
+// Test d'affichage dans la fenetre de log java (ca plante avec cout):
+//   . l'affichage dans java est correct: on voit le deux e accent aigu identiquement, et le theta correctement
+//
+// Test de creation de fichier
+//   . avec le code page de la machine (ansi): creation des trois fichiers avec affichage des caractere en utf8
+//      . le e accent aigu ansi s'affiche correctement
+//      . les caracteres utf8 s'afficage avec deux caracteres ansi
+//   . avec le code page utf8 (en commentant le code de p_SetApplicationLocale)
+//      . plante avec le nom de fichier ansi
+//         . devrait etre re-encode en utf8?
+//      . si on supprime le nom ansi du test
+//         . cree correctement les deux fichiers utf8, qui s'affichent correctement dans le file explorer
+//         . par contre, le GetDirectoryContent renvoie un reencodage ansi des noms de fichier, en echouant
+//         potentiellement
+//           (Utf8?.txt pour le theta, au lieun des deux octets attendus)
+//         . les api microsoft (de type FindNextFileA) sont delicates a utiliser, sans lien avec la gestion du code page
+//           cf. https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-findnextfilea
+//           "The fileapi.h header defines FindNextFile as an alias which automatically selects the ANSI or Unicode
+//           version
+//            of this function based on the definition of the UNICODE preprocessor constant.
+//           "The fileapi.h header defines FindNextFile as an alias which automatically selects the ANSI or Unicode
+//           version
+//            of this function based on the definition of the UNICODE preprocessor constant. Mixing usage of the
+//            encoding-neutral alias with code that not encoding-neutral can lead to mismatches that result in
+//            compilation or runtime errors."
+void StudyCharacterEncodings()
+{
+	const ALString sRootPath = "C:\\temp";
+	OutputBufferedFile logFile;
+	OutputBufferedFile outputFile;
+	StringVector svDirectoryNames;
+	StringVector svFileNames;
+	ALString sPathName;
+	UICard testCard;
+	ALString sAnsi;
+	ALString sAnsiAsUtf8;
+	ALString sUtf8;
+	StringVector svEncodings;
+	int i;
+	ALString sTmp;
+
+	// Initialisation des chaines de caracteres
+	sAnsi = sTmp + "Ansi_" + (char)(0xE9) + "_";
+	sAnsiAsUtf8 = sTmp + "AnsiAsUtf8" + char(0xC3) + char(0xA9) + "_";
+	sUtf8 = sTmp + "Utf8" + char(0xCE) + char(0xB8) + "_";
+	svEncodings.Add(sAnsi);
+	svEncodings.Add(sAnsiAsUtf8);
+	svEncodings.Add(sUtf8);
+
+	// Ecriture des caracteres dans un fichier de log
+	logFile.SetFileName(FileService::BuildFilePathName(sRootPath, "LogEncodings.txt"));
+	logFile.Open();
+	if (logFile.IsOpened())
+	{
+		for (i = 0; i < svEncodings.GetSize(); i++)
+			logFile.Write("Write chars: " + svEncodings.GetAt(i) + "\n");
+	}
+
+	// Affichage dans la fenetre de log java
+	// (cela ne marche pas avec un "cout <<" dans la fenetre de console)
+	UIObject::SetUIMode(UIObject::Graphic);
+	for (i = 0; i < svEncodings.GetSize(); i++)
+		Global::AddSimpleMessage(svEncodings.GetAt(i));
+
+	// Affichage dans une boite de dialogue
+	testCard.SetIdentifier("Encodings");
+	testCard.SetLabel("Encodings");
+	testCard.AddStringField("Text", "Chaine de caracteres", "");
+	for (i = 0; i < svEncodings.GetSize(); i++)
+	{
+		testCard.SetStringValueAt("Text", svEncodings.GetAt(i));
+		testCard.Open();
+		logFile.Write("Show chars: " + svEncodings.GetAt(i) + " -> " + testCard.GetStringValueAt("Text") +
+			      "\n");
+	}
+
+	// Creation de fichiers dont le nom comporte ces caracteres
+	for (i = 0; i < svEncodings.GetSize(); i++)
+	{
+		// Creation du fichier
+		outputFile.SetFileName(FileService::BuildFilePathName(sRootPath, svEncodings.GetAt(i) + ".txt"));
+		outputFile.Open();
+		if (outputFile.IsOpened())
+		{
+			outputFile.Write(svEncodings.GetAt(i) + "\n");
+			outputFile.Close();
+		}
+
+		// Test si le fichier existe
+		logFile.Write("Is file  " + outputFile.GetFileName() + ": ");
+		logFile.Write(BooleanToString(FileService::IsFile(outputFile.GetFileName())));
+		logFile.Write("\n");
+	}
+
+	// Parcours des fichiers
+	FileService::GetDirectoryContent(sRootPath, &svDirectoryNames, &svFileNames);
+	for (i = 0; i < svFileNames.GetSize(); i++)
+	{
+		if (svFileNames.GetAt(i).Find(".txt") != -1)
+			logFile.Write("Found file: " + svFileNames.GetAt(i) + "\n");
+	}
+
+	// Fermeture du fichier de log
+	if (logFile.IsOpened())
+		logFile.Close();
+}
+
 ///////////////////////////////////////////////////////
-// Classe avec ses propre methode d'allocation
+// Classe avec ses propres methode d'allocation
 class MemoryTest
 {
 public:
 	// Constructeur
 	MemoryTest()
 	{
+		nTest = 0;
 		cout << "MemoryTest()\n";
 	};
 	~MemoryTest()

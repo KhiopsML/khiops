@@ -143,23 +143,6 @@ KWPreprocessingSpec* PLShared_PreprocessingSpec::GetPreprocessingSpec()
 	return cast(KWPreprocessingSpec*, GetObject());
 }
 
-void PLShared_PreprocessingSpec::DeserializeObject(PLSerializer* serializer, Object* o) const
-{
-	KWPreprocessingSpec* preprocessingSpec;
-	PLShared_DiscretizerSpec sharedDiscretizerSpec;
-	PLShared_GrouperSpec sharedGrouperSpec;
-	PLShared_DataGridOptimizerParameters sharedDataGridOptimizerParameters;
-
-	require(serializer->IsOpenForRead());
-
-	preprocessingSpec = cast(KWPreprocessingSpec*, o);
-	preprocessingSpec->SetTargetGrouped(serializer->GetBoolean());
-	sharedDiscretizerSpec.DeserializeObject(serializer, preprocessingSpec->GetDiscretizerSpec());
-	sharedGrouperSpec.DeserializeObject(serializer, preprocessingSpec->GetGrouperSpec());
-	sharedDataGridOptimizerParameters.DeserializeObject(serializer,
-							    preprocessingSpec->GetDataGridOptimizerParameters());
-}
-
 void PLShared_PreprocessingSpec::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
 	KWPreprocessingSpec* preprocessingSpec;
@@ -175,6 +158,23 @@ void PLShared_PreprocessingSpec::SerializeObject(PLSerializer* serializer, const
 	sharedGrouperSpec.SerializeObject(serializer, preprocessingSpec->GetGrouperSpec());
 	sharedDataGridOptimizerParameters.SerializeObject(serializer,
 							  preprocessingSpec->GetDataGridOptimizerParameters());
+}
+
+void PLShared_PreprocessingSpec::DeserializeObject(PLSerializer* serializer, Object* o) const
+{
+	KWPreprocessingSpec* preprocessingSpec;
+	PLShared_DiscretizerSpec sharedDiscretizerSpec;
+	PLShared_GrouperSpec sharedGrouperSpec;
+	PLShared_DataGridOptimizerParameters sharedDataGridOptimizerParameters;
+
+	require(serializer->IsOpenForRead());
+
+	preprocessingSpec = cast(KWPreprocessingSpec*, o);
+	preprocessingSpec->SetTargetGrouped(serializer->GetBoolean());
+	sharedDiscretizerSpec.DeserializeObject(serializer, preprocessingSpec->GetDiscretizerSpec());
+	sharedGrouperSpec.DeserializeObject(serializer, preprocessingSpec->GetGrouperSpec());
+	sharedDataGridOptimizerParameters.DeserializeObject(serializer,
+							    preprocessingSpec->GetDataGridOptimizerParameters());
 }
 
 Object* PLShared_PreprocessingSpec::Create() const

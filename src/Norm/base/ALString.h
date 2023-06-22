@@ -86,8 +86,8 @@ public:
 	// Estimation de la memoire utilisee
 	longint GetUsedMemory() const;
 
-	// Access a l'implementation (buffer) sous forme d'une tableau "C" de caracteres
-	// Si nNewLength vaut -1, on positionne la taille sur celle de la string (terminee par '\0'=
+	// Acces a l'implementation (buffer) sous forme d'une tableau "C" de caracteres
+	// Si nNewLength vaut -1, on positionne la taille sur celle de la string (terminee par '\0')
 	char* GetBuffer(int nMinBufLength);
 	void ReleaseBuffer(int nNewLength = -1);
 	char* GetBufferSetLength(int nNewLength);
@@ -98,6 +98,7 @@ public:
 	////////////////////////////////////////////////////////////////////
 	// Implementation
 public:
+	// Longueur allouee
 	int GetAllocLength() const;
 
 	// Constructeur et affectation de deplacement, pour l'optimisation de la
@@ -108,7 +109,7 @@ public:
 #endif // not defined __UNIX__ or defined __C11__
 
 protected:
-	// Longueur/tailles en caracteres (note: un caractere supplementaire est toujours alloue)
+	// Longueur/taille en caracteres (note: un caractere supplementaire est toujours alloue)
 	// En principe, la longueur d'un string est de type size_t (impact notamment en 64 bits)
 	// On impose neanmoins qu'elle soit toujours inferieure a INT_MAX, ce qui d'une part permet
 	// des chaines de tres grandes taille, d'autre part permet d'utiliser le type int de facon
@@ -297,7 +298,8 @@ inline int operator>=(const char* s1, const ALString& s2)
 extern char ALSCHARNIL;
 inline void ALString::Init()
 {
-	nDataLength = nAllocLength = 0;
+	nDataLength = 0;
+	nAllocLength = 0;
 	pchData = (char*)&ALSCHARNIL;
 }
 inline ALString::ALString()

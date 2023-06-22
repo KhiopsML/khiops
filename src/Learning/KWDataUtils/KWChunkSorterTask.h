@@ -147,10 +147,10 @@ protected:
 	// En entree des taches
 	// Pour des raisons d'optimisation, le chunk a trier peut etre constitue
 	// d'un ou plusieurs fichiers constitues par une tache precedente
-	PLShared_Int input_nBucketIndex;            // Index du bucket a trier
-	PLShared_InputBufferedFile input_inputFile; // Fichier a trier
-	PLShared_StringVector input_svFileNames;    // Liste des noms des fichier contituant le chunk a trier
-	PLShared_Char input_cOutputSeparator;       // Separateur du fichier de sortie
+	PLShared_Int input_nBucketIndex;         // Index du bucket a trier
+	PLShared_StringVector input_svFileNames; // Liste des noms des fichier contituant le chunk a trier
+	PLShared_Char input_cOutputSeparator;    // Separateur du fichier de sortie
+	PLShared_Char input_cInputSeparator;     // Separetur du fichier d'entree
 
 	// En sortie des taches
 	PLShared_Int output_nBucketIndex; // Index du bucket trie (recopie d'apres la variable correspondante en entree)
@@ -173,6 +173,7 @@ protected:
 
 	// Saut d'un champ a partir de l'indice i
 	// Prend en compte les double-quotes (Utilise dans la methode ReplaceSeparator)
+	// On reproduit ici le comportement de InputBufferedFile::SkipField
 	void SkipField(CharVector* cvLineToWrite, char cOriginalSeparator, int& nPos) const;
 };
 

@@ -21,6 +21,8 @@ const ALString KWType::ToString(int nType)
 		return "Time";
 	case Timestamp:
 		return "Timestamp";
+	case Text:
+		return "Text";
 	case Object:
 		return "Entity";
 	case ObjectArray:
@@ -54,6 +56,8 @@ int KWType::ToType(const ALString& sType)
 		return Time;
 	else if (sType == "Timestamp")
 		return Timestamp;
+	else if (sType == "Text")
+		return Text;
 	else if (sType == "Entity")
 		return Object;
 	else if (sType == "Table")
@@ -130,6 +134,7 @@ void KWValue::Test()
 	cout << "\tDate      \t" << sizeof(Date) << "\n";
 	cout << "\tTime      \t" << sizeof(Time) << "\n";
 	cout << "\tTimestamp      \t" << sizeof(Timestamp) << "\n";
+	cout << "\tText      \t" << sizeof(ALString*) << "\n";
 	cout << "\tEntity   \t" << sizeof(KWObject*) << "\n";
 	cout << "\tTable\t" << sizeof(ObjectArray*) << "\n";
 	cout << "\tStructure   \t" << sizeof(Object*) << "\n";
@@ -154,6 +159,8 @@ void KWValue::Test()
 			cout << values[nType].GetTime() << endl;
 		else if (nType == KWType::Timestamp)
 			cout << values[nType].GetTimestamp() << endl;
+		else if (nType == KWType::Text)
+			cout << values[nType].GetText() << endl;
 		else if (nType == KWType::Object)
 			cout << values[nType].GetObject() << endl;
 		else if (nType == KWType::ObjectArray)
@@ -191,8 +198,14 @@ void KWValue::Test()
 	value.time.Init(12, 30, 45);
 	cout << value.GetTime() << endl;
 	//
-	cout << "\tDate\t";
+	cout << "\tTimestamp\t";
 	value.Init();
 	value.timestamp.Init(2000, 1, 1, 12, 30, 45);
 	cout << value.GetTimestamp() << endl;
+	//
+	cout << "\tText\t";
+	value.Init();
+	value.SetText(Symbol("Hello world"));
+	cout << value.GetText() << endl;
+	value.SetText("");
 }

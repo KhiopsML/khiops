@@ -336,6 +336,8 @@ public:
 	// Mode d'affichage des libelles utilisateurs d'URI (defaut: true)
 	// Si true, on ne rend la partie HostName de l'URI que si le HostName n'est pas local
 	// Si false, on rend l'URI complete avec son hostname
+	// TODO dans les taches paralleles, il faudrait initialiser automatiquement le smartlabel suivant le type de
+	// systeme (cluster ou machine)
 	static boolean GetURISmartLabels();
 	static void SetURISmartLabels(boolean bValue);
 

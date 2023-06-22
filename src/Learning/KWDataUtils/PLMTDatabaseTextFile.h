@@ -58,9 +58,14 @@ public:
 	// Nombre de mapping effectivement utilises, c'est a dire non NULL dans le tableau precedent
 	int GetUsedMappingNumber() const;
 
-	// Acces aux tailles des fichiers pour les mapping effectivement utilises en lecture (0 sinon)
-	const LongintVector* GetInputFileSizes() const;
-	longint GetTotalInputFileSize() const;
+	// Acces aux tailles des fichiers
+	const LongintVector* GetFileSizes() const;
+
+	// Taille cumulee de tous les fichiers en lecture (0 sinon)
+	longint GetTotalFileSize() const;
+
+	// Taille cumulee des fichiers pour les mapping effectivement utilises en lecture
+	longint GetTotalUsedFileSize() const;
 
 	// Memoire minimum necessaire pour ouvrir la base sans tenir compte des buffers
 	longint GetEmptyOpenNecessaryMemory() const;
@@ -143,8 +148,9 @@ protected:
 
 	// Resultat de l'appel de la methode ComputeOpenInformation
 	mutable ObjectArray oaUsedMappings;
-	LongintVector lvInputFileSizes;
-	longint lTotalInputFileSize;
+	LongintVector lvFileSizes;
+	longint lTotalFileSize;
+	longint lTotalUsedFileSize;
 	longint lOutputNecessaryDiskSpace;
 	longint lEmptyOpenNecessaryMemory;
 	longint lMinOpenNecessaryMemory;
@@ -180,8 +186,8 @@ public:
 
 	// Reimplementation des methodes virtuelles, avec transfer des specification de la base ainsi que des index
 	// d'attribut par mapping
-	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation

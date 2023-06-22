@@ -285,6 +285,7 @@ boolean KWDataTableDriverTextFile::IsOpenedForWrite() const
 KWObject* KWDataTableDriverTextFile::Read()
 {
 	char* sField;
+	int nFieldLength;
 	int nFieldError;
 	boolean bEndOfLine;
 	ALString sTmp;
@@ -328,6 +329,7 @@ KWObject* KWDataTableDriverTextFile::Read()
 	bEndOfLine = false;
 	nField = 0;
 	sField = NULL;
+	nFieldLength = 0;
 	nFieldError = inputBuffer->FieldNoError;
 	lRecordIndex++;
 	kwoObject = new KWObject(kwcClass, lRecordIndex);
@@ -341,7 +343,7 @@ KWObject* KWDataTableDriverTextFile::Read()
 		// On ne retient que les attributs ou blocs reconnus et non calcules
 		// On lit toujours le premier champ pour detecter les lignes vides
 		if (liLoadIndex.IsValid() or nField == 0)
-			bEndOfLine = inputBuffer->GetNextField(sField, nFieldError);
+			bEndOfLine = inputBuffer->GetNextField(sField, nFieldLength, nFieldError);
 		else
 			bEndOfLine = inputBuffer->SkipField();
 
@@ -377,7 +379,7 @@ KWObject* KWDataTableDriverTextFile::Read()
 			{
 				// Les champs cles sont necessairement lu dans le cas d'un driver physique de classe
 				assert(liLoadIndex.IsValid());
-				lastReadRootKey.SetAt(ivRootKeyIndexes.GetAt(nField), Symbol(sField));
+				lastReadRootKey.SetAt(ivRootKeyIndexes.GetAt(nField), Symbol(sField, nFieldLength));
 			}
 		}
 
@@ -403,7 +405,27 @@ KWObject* KWDataTableDriverTextFile::Read()
 				// Cas attribut Symbol
 				if (attribute->GetType() == KWType::Symbol)
 				{
-					kwoObject->SetSymbolValueAt(liLoadIndex, Symbol(sField));
+					// Troncature si necessaire des champs trop longs
+					if (GetLearningTextVariableMode())
+					{
+						if (nFieldLength > KWValue::nMaxSymbolFieldSize)
+						{
+							if (bOverlengthyFieldsVerboseMode)
+							{
+								AddWarning(
+								    sTmp + dataItem->GetClassLabel() + " " +
+								    dataItem->GetObjectLabel() + " with value <" +
+								    InputBufferedFile::GetDisplayValue(sField) +
+								    "> : " + "categorical field too long (" +
+								    IntToString(nFieldLength) + "), truncated to " +
+								    IntToString(KWValue::nMaxSymbolFieldSize) +
+								    " characters");
+							}
+							nFieldLength = KWValue::nMaxSymbolFieldSize;
+							sField[nFieldLength] = '\0';
+						}
+					}
+					kwoObject->SetSymbolValueAt(liLoadIndex, Symbol(sField, nFieldLength));
 				}
 				// Cas attribut Continuous
 				else if (attribute->GetType() == KWType::Continuous)
@@ -464,6 +486,11 @@ KWObject* KWDataTableDriverTextFile::Read()
 							   ": value <" + InputBufferedFile::GetDisplayValue(sField) +
 							   "> converted to <> (invalid timestamp " +
 							   attribute->GetTimestampFormat()->GetFormatString() + ")");
+				}
+				// Cas attribut Text
+				else if (attribute->GetType() == KWType::Text)
+				{
+					kwoObject->SetTextValueAt(liLoadIndex, Symbol(sField, nFieldLength));
 				}
 			}
 			// Cas d'un bloc d'attributs
@@ -1179,12 +1206,25 @@ int KWDataTableDriverTextFile::ComputeBufferNecessaryMemory(boolean bRead, int n
 	return nNecessaryMemory;
 }
 
+boolean KWDataTableDriverTextFile::bOverlengthyFieldsVerboseMode = true;
+
+void KWDataTableDriverTextFile::SetOverlengthyFieldsVerboseMode(boolean bValue)
+{
+	bOverlengthyFieldsVerboseMode = bValue;
+}
+
+boolean KWDataTableDriverTextFile::GetOverlengthyFieldsVerboseMode()
+{
+	return bOverlengthyFieldsVerboseMode;
+}
+
 void KWDataTableDriverTextFile::SkipRootRecord()
 {
 	char* sField;
 	int nRootKeyIndex;
 	int nKeyFieldNumber;
 	boolean bEndOfLine;
+	int nFieldLength;
 	int nFieldError;
 	int nField;
 
@@ -1207,6 +1247,7 @@ void KWDataTableDriverTextFile::SkipRootRecord()
 		bEndOfLine = false;
 		nField = 0;
 		sField = NULL;
+		nFieldLength = 0;
 		nKeyFieldNumber = 0;
 		while (not bEndOfLine)
 		{
@@ -1218,7 +1259,7 @@ void KWDataTableDriverTextFile::SkipRootRecord()
 			// On ne retient que les attributs ou blocs reconnus et non calcules
 			// On lit toujours le premier champ pour detecter les lignes vides
 			if (nRootKeyIndex >= 0 or nField == 0)
-				bEndOfLine = inputBuffer->GetNextField(sField, nFieldError);
+				bEndOfLine = inputBuffer->GetNextField(sField, nFieldLength, nFieldError);
 			else
 				bEndOfLine = inputBuffer->SkipField();
 
@@ -1229,7 +1270,7 @@ void KWDataTableDriverTextFile::SkipRootRecord()
 			// Alimentation des champs de la derniere cle lue si necessaire
 			if (nRootKeyIndex >= 0)
 			{
-				lastReadRootKey.SetAt(ivRootKeyIndexes.GetAt(nField), Symbol(sField));
+				lastReadRootKey.SetAt(ivRootKeyIndexes.GetAt(nField), Symbol(sField, nFieldLength));
 				nKeyFieldNumber++;
 
 				// Arret si on a lu tous les chmaps de la cle

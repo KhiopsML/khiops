@@ -799,6 +799,10 @@ void FileReaderCard::OpenFile()
 			SetStringValueAt("FileName", sFileName);
 		}
 	}
+
+	// Test d'existence du fichier
+	sFileName = GetStringValueAt("FileName");
+	AddSimpleMessage("Is file " + sFileName + ": " + BooleanToString(FileService::IsFile(sFileName)));
 }
 
 void FileReaderCard::CreateFiles()
@@ -808,6 +812,8 @@ void FileReaderCard::CreateFiles()
 	ALString sRootDir;
 	ALString sFileName;
 	ALString sTmp;
+	StringVector svDirectoryNames;
+	StringVector svFileNames;
 	boolean bOk;
 
 	// Creation de fichiers avec tous les caracteres ANSI possibles
@@ -819,14 +825,38 @@ void FileReaderCard::CreateFiles()
 		sFileName = sTmp + '_' + IntToString(i) + "_" + c + "_.txt";
 		bOk = FileService::CreateEmptyFile(FileService::BuildFilePathName(sRootDir, sFileName));
 		AddMessage(sFileName + " " + c + " (" + IntToString(i) + "): " + BooleanToString(bOk));
-		cout << sFileName << " " << c << " (" << i << "): " << bOk << endl;
 	}
 
-	// Creation d'un fichier avec un caractere UTF_8 special (GREEK CAPITAL LETTER THETA (U+0398) ce98)
-	sFileName = sTmp + "_theta" + "_" + (char)0xce + (char)0x98 + "_.txt";
+	// Creation d'un fichier avec un caractere UTF_8 special (GREEK CAPITAL LETTER THETA (U+0398) ceb8)
+	sFileName = sTmp + "_theta" + "_" + (char)0xce + (char)0xb8 + "_.txt";
 	bOk = FileService::CreateEmptyFile(FileService::BuildFilePathName(sRootDir, sFileName));
-	AddMessage(sFileName + " " + c + " (" + IntToString(i) + "): " + BooleanToString(bOk));
-	cout << sFileName << " " << c << " (" << i << "): " << bOk << endl;
+	AddMessage(sFileName + " " + BooleanToString(bOk));
+
+	// Creation d'un fichier avec un caractere e accent aigu code UTF8l (c3a9)
+	sFileName = sTmp + "_233_utf8" + "_" + (char)0xc3 + (char)0xa9 + "_.txt";
+	bOk = FileService::CreateEmptyFile(FileService::BuildFilePathName(sRootDir, sFileName));
+	AddMessage(sFileName + " " + BooleanToString(bOk));
+
+	// Parcours des fichiers existants
+	bOk = FileService::GetDirectoryContent(sRootDir, &svDirectoryNames, &svFileNames);
+	for (i = 0; i < svFileNames.GetSize(); i++)
+	{
+		sFileName = svFileNames.GetAt(i);
+		bOk = FileService::IsFile(FileService::BuildFilePathName(sRootDir, sFileName));
+		AddMessage("-> " + sFileName + " " + IntToString(sFileName.GetLength()) + " " + BooleanToString(bOk));
+		if (i > svFileNames.GetSize() - 2 or sFileName.Find("233") >= 0)
+		{
+			int j;
+			cout << "-> " + sTmp + " " + IntToString(sFileName.GetLength()) + " " + BooleanToString(bOk)
+			     << endl;
+			for (j = 0; j < sFileName.GetLength(); j++)
+			{
+				cout << "\t" << j << "\t" << int(sFileName.GetAt(j)) << endl;
+				AddMessage(sTmp + "\t" + IntToString(j) + "\t" + sFileName.GetAt(j) + "\t" +
+					   IntToString(int(sFileName.GetAt(j))));
+			}
+		}
+	}
 }
 
 void FileReaderCard::TestFileServices()

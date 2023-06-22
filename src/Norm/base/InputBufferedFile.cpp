@@ -4,63 +4,9 @@
 
 #include "InputBufferedFile.h"
 #include "SystemFileDriver.h"
+#include "HugeBuffer.h"
 
 int InputBufferedFile::nMaxLineLength = 8 * lMB;
-
-///////////////////////////////////////////////////////////////////////////////
-// Buffer unique de grande taille pour la gestion des champs dans la methode
-// InputBufferedFile::GetNextField
-// Pour eviter les problemes avec les DLL:
-//  . on utilise un methode statique, dans un unnamed namespace,
-//    pour forcer un acces local uniquement depuis ce fichier,
-//  . le buffer est lui-meme une variable statique de cette methode statique
-
-namespace
-{
-// Declaration du buffer
-static char* sInputBufferedFileHugeBuffer = NULL;
-
-// Destruction du buffer
-static void InputBufferedFileHugeBufferDelete()
-{
-	if (sInputBufferedFileHugeBuffer != NULL)
-	{
-		SystemObject::DeleteCharArray(sInputBufferedFileHugeBuffer);
-		sInputBufferedFileHugeBuffer = NULL;
-	}
-}
-
-// Creation du buffer
-static void InputBufferedFileHugeBufferNew()
-{
-	int i;
-	int nSize;
-
-	if (sInputBufferedFileHugeBuffer == NULL)
-	{
-		// Creation et initialisation du buffer
-		// On n'utilise pas max car sur linux on a une reference indefinie vers
-		// « InputBufferedFile::nHugeBufferSize »
-		nSize = InputBufferedFile::nHugeBufferSize;
-		if (nSize < InputBufferedFile::nMaxFieldSize + 1)
-			nSize = InputBufferedFile::nMaxFieldSize + 1;
-		sInputBufferedFileHugeBuffer = SystemObject::NewCharArray(nSize);
-		for (i = 0; i <= InputBufferedFile::nMaxFieldSize; i++)
-			sInputBufferedFileHugeBuffer[i] = '\0';
-
-		// Enregistrement de sa destruction en fin de programme
-		atexit(InputBufferedFileHugeBufferDelete);
-	}
-}
-
-// Acces au buffer
-static inline char* InputBufferedFileGetHugeBuffer()
-{
-	if (sInputBufferedFileHugeBuffer == NULL)
-		InputBufferedFileHugeBufferNew();
-	return sInputBufferedFileHugeBuffer;
-}
-} // namespace
 
 InputBufferedFile::InputBufferedFile()
 {
@@ -231,13 +177,6 @@ boolean InputBufferedFile::Fill(longint lBeginPos)
 		if (FileService::LogIOStats())
 			MemoryStatsManager::AddLog(GetClassLabel() + " Remote Fill End");
 	}
-	if (bOk)
-	{
-		// Si on est arrive a la fin du fichier sans avoir lu le separateur fin de fichier
-		// on position la fin de fichier
-		if (lBufferBeginPos + nCurrentBufferSize == lFileSize)
-			bEof = true;
-	}
 
 	return bOk;
 }
@@ -248,7 +187,6 @@ boolean InputBufferedFile::BasicFill(longint lBeginPos)
 	boolean bOk;
 
 	// Initialisations
-	bIsHeadOfFile = (lBeginPos == 0);
 	lBufferBeginPos = lBeginPos;
 	nPositionInBuffer = 0;
 	nReadLineNumber = 0;
@@ -307,7 +245,8 @@ boolean InputBufferedFile::BasicFill(longint lBeginPos)
 boolean InputBufferedFile::FillLocal(longint lBeginPos)
 {
 	boolean bEolFound;
-	boolean bBolFound;    // Debut de ligne trouve
+	boolean bBolFound; // Debut de ligne trouve
+	boolean bEof;
 	int nBeginLinePos;    // Premier debut de ligne dans le buffer
 	int nBufferSizeLimit; // Taille limite du buffer pour ne pas detecter des lignes plus grandes que
 			      // GetMaxLineLength
@@ -323,7 +262,6 @@ boolean InputBufferedFile::FillLocal(longint lBeginPos)
 	boolean bVerbose = false;
 	boolean bHaveToSearchEol;
 	longint lNewBeginPos; // Permet d'optimiser le remplissage lorsque lBeginPos est superieur a lLastEndBufferPos
-	bEof = false;
 	char* sHugeBuffer;
 
 	require(nBufferSize >= 0);
@@ -338,7 +276,9 @@ boolean InputBufferedFile::FillLocal(longint lBeginPos)
 	nReadLineNumber = 0;
 	nCurrentBufferSize = 0;
 	lCumulatedRead = 0;
-	sHugeBuffer = InputBufferedFileGetHugeBuffer();
+	bLastFieldReachEol = false;
+	bEof = false;
+	sHugeBuffer = GetHugeBuffer();
 
 	// Effet de bord
 	if (lBeginPos >= lFileSize)
@@ -346,6 +286,8 @@ boolean InputBufferedFile::FillLocal(longint lBeginPos)
 		nCurrentBufferSize = 0;
 		bEof = true;
 		lNextFilePos = -1;
+
+		lBufferBeginPos = lFileSize;
 		return true;
 	}
 
@@ -359,6 +301,7 @@ boolean InputBufferedFile::FillLocal(longint lBeginPos)
 	{
 		lNewBeginPos = lBeginPos;
 	}
+
 	// Positionnement de la lecture sur lNewBeginPos et
 	// Recherche du debut de la premiere ligne
 	bOk = FindBol(lNewBeginPos, nBufferSize, lFileSize, fileHandle, nBeginLinePos, bBolFound);
@@ -593,9 +536,8 @@ boolean InputBufferedFile::FillLocal(longint lBeginPos)
 
 longint InputBufferedFile::FindEolPosition(longint lBeginPos, boolean& bEolFound)
 {
-
-	// TODO est-ce que cette methode est utilisee ???
 	boolean bOk;
+	boolean bEof;
 	bEolFound = false;
 	char c;
 	Timer tTimer;
@@ -693,6 +635,8 @@ longint InputBufferedFile::FindEolPosition(longint lBeginPos, boolean& bEolFound
 
 const ALString InputBufferedFile::GetFieldErrorLabel(int nFieldError)
 {
+	ALString sTmp;
+
 	require(FieldNoError < nFieldError and nFieldError <= FieldTooLong);
 
 	if (nFieldError == FieldTabReplaced)
@@ -706,11 +650,11 @@ const ALString InputBufferedFile::GetFieldErrorLabel(int nFieldError)
 	else
 	{
 		assert(nFieldError == FieldTooLong);
-		return "field too long";
+		return sTmp + "field too long, truncated to " + IntToString(nMaxFieldSize) + " characters";
 	}
 }
 
-boolean InputBufferedFile::GetNextField(char*& sField, int& nFieldError)
+boolean InputBufferedFile::GetNextField(char*& sField, int& nFieldLength, int& nFieldError)
 {
 	const char cCtrlZ = char(26);
 	boolean bUnconditionalLoop = true; // Pour eviter un warning dans la boucle
@@ -720,7 +664,7 @@ boolean InputBufferedFile::GetNextField(char*& sField, int& nFieldError)
 	int iStart;
 
 	// Acces au buffer
-	sField = InputBufferedFileGetHugeBuffer();
+	sField = GetHugeBuffer();
 	assert(sField != NULL);
 
 	// Si le dernier champ lu etait sur une fin de ligne,
@@ -835,6 +779,10 @@ boolean InputBufferedFile::GetNextField(char*& sField, int& nFieldError)
 		iStart--;
 	}
 
+	// Memorisation de la longueur du champ
+	nFieldLength = i;
+	assert((int)strlen(sField) == nFieldLength);
+
 	// Retour du fin de ligne
 	return bEndOfLine;
 }
@@ -896,6 +844,13 @@ void InputBufferedFile::GetNextLine(CharVector* cvLine)
 	char c;
 
 	require(cvLine != NULL);
+
+	// Incrementation du numero de ligne si on avait atteint la fin de ligne par un GetNextField
+	if (not IsBufferEnd() and bLastFieldReachEol)
+	{
+		nReadLineNumber++;
+		bLastFieldReachEol = false;
+	}
 
 	// Lecture caractere a caractere
 	cvLine->SetSize(0);
@@ -1260,9 +1215,11 @@ boolean InputBufferedFile::CheckEncoding(const Object* errorSender) const
 	const unsigned char cUTF16LittleEndianBom[2] = {0xFF, 0xFE};
 	const unsigned char cUTF32BigEndianBom[4] = {0x00, 0x00, 0xFE, 0xFF};
 	const unsigned char cUTF32LittleEndianBom[4] = {0xFF, 0xFE, 0x00, 0x00};
-	const ALString sMessage = "; try convert the file to ANSI or UTF-8 (without BOM) format";
+	const ALString sConversionMessage = "; try convert the file to ANSI or UTF-8 (without BOM) format";
 	int i;
 	char c;
+	int nCarriageReturnNumber;
+	ALString sMacMessage;
 	ALString sTmp;
 
 	// Test si encodage UTF8 avec BOM
@@ -1271,7 +1228,8 @@ boolean InputBufferedFile::CheckEncoding(const Object* errorSender) const
 	{
 		bOk = false;
 		if (errorSender != NULL)
-			errorSender->AddError(sTmp + "Encoding type cannot be handled (UTF-8 with BOM)" + sMessage);
+			errorSender->AddError(sTmp + "Encoding type cannot be handled (UTF-8 with BOM)" +
+					      sConversionMessage);
 	}
 	// Test si encodage UTF32 big endian
 	else if (nCurrentBufferSize >= 4 and (unsigned char) fbBuffer.GetAt(0) == cUTF32BigEndianBom[0] and
@@ -1281,7 +1239,8 @@ boolean InputBufferedFile::CheckEncoding(const Object* errorSender) const
 	{
 		bOk = false;
 		if (errorSender != NULL)
-			errorSender->AddError(sTmp + "Encoding type cannot be handled (UTF-16 big endian)" + sMessage);
+			errorSender->AddError(sTmp + "Encoding type cannot be handled (UTF-16 big endian)" +
+					      sConversionMessage);
 	}
 	// Test si encodage UTF32 little endian
 	else if (nCurrentBufferSize >= 4 and (unsigned char) fbBuffer.GetAt(0) == cUTF32LittleEndianBom[0] and
@@ -1292,7 +1251,7 @@ boolean InputBufferedFile::CheckEncoding(const Object* errorSender) const
 		bOk = false;
 		if (errorSender != NULL)
 			errorSender->AddError(sTmp + "Encoding type cannot be handled (UTF-16 little endian)" +
-					      sMessage);
+					      sConversionMessage);
 	}
 	// Test si encodage UTF16 big endian
 	else if (nCurrentBufferSize >= 2 and (unsigned char) fbBuffer.GetAt(0) == cUTF16BigEndianBom[0] and
@@ -1300,7 +1259,8 @@ boolean InputBufferedFile::CheckEncoding(const Object* errorSender) const
 	{
 		bOk = false;
 		if (errorSender != NULL)
-			errorSender->AddError(sTmp + "Encoding type cannot be handled (UTF-16 big endian)" + sMessage);
+			errorSender->AddError(sTmp + "Encoding type cannot be handled (UTF-16 big endian)" +
+					      sConversionMessage);
 	}
 	// Test si encodage UTF16 little endian
 	else if (nCurrentBufferSize >= 2 and (unsigned char) fbBuffer.GetAt(0) == cUTF16LittleEndianBom[0] and
@@ -1309,7 +1269,7 @@ boolean InputBufferedFile::CheckEncoding(const Object* errorSender) const
 		bOk = false;
 		if (errorSender != NULL)
 			errorSender->AddError(sTmp + "Encoding type cannot be handled (UTF-16 little endian)" +
-					      sMessage);
+					      sConversionMessage);
 	}
 
 	// Recherche de caracteres NULL
@@ -1324,11 +1284,46 @@ boolean InputBufferedFile::CheckEncoding(const Object* errorSender) const
 				if (errorSender != NULL)
 					errorSender->AddError(
 					    sTmp + "Encoding type cannot be handled (null char detected at offset " +
-					    IntToString(i + 1) + ")" + sMessage);
+					    IntToString(i + 1) + ")" + sConversionMessage);
 				break;
 			}
 			if (i > 1000)
 				break;
+		}
+	}
+
+	// Recherche d'un eventuel format Mac anterieur a Mac OS 10 si une seule ligne dans le buffer
+	if (bOk and GetBufferLineNumber() == 1)
+	{
+		nCarriageReturnNumber = 0;
+		for (i = 0; i < nCurrentBufferSize; i++)
+		{
+			c = fbBuffer.GetAt(i);
+			if (c == '\r')
+				nCarriageReturnNumber++;
+			if (nCarriageReturnNumber > 1)
+			{
+				bOk = false;
+				if (errorSender != NULL)
+				{
+					sMacMessage = "Only one line detected in";
+					if (nCurrentBufferSize == GetFileSize())
+						sMacMessage += sTmp + " all file (" +
+							       LongintToReadableString(nCurrentBufferSize) +
+							       " characters)";
+					else
+						sMacMessage += sTmp + " the first " +
+							       LongintToReadableString(nCurrentBufferSize) +
+							       " characters read";
+					sMacMessage += ", with several CR (Carriage Return) characters used";
+					sMacMessage += "; it could be a Mac OS Classic format (now deprecated, since "
+						       "Mac OS X in 2001)";
+					sMacMessage +=
+					    "; try to convert the file to recent Mac, linux or windows format";
+					errorSender->AddError(sMacMessage);
+				}
+				break;
+			}
 		}
 	}
 	return bOk;
@@ -1352,6 +1347,7 @@ boolean InputBufferedFile::GetFirstLineFields(const ALString& sInputFileName, ch
 	boolean bEndOfLine;
 	char* sField;
 	int nField;
+	int nFieldLength;
 	int nFieldError;
 	boolean bCloseOk;
 
@@ -1403,7 +1399,7 @@ boolean InputBufferedFile::GetFirstLineFields(const ALString& sInputFileName, ch
 		nField = 0;
 		while (not bEndOfLine)
 		{
-			bEndOfLine = inputFile.GetNextField(sField, nFieldError);
+			bEndOfLine = inputFile.GetNextField(sField, nFieldLength, nFieldError);
 			nField++;
 
 			// Erreur sur le nom du champ
@@ -1450,6 +1446,7 @@ boolean InputBufferedFile::TestCountLines(const ALString& sFileName, int nFileTy
 {
 	InputBufferedFile inputFile;
 	char* sField;
+	int nFieldLength;
 	int nFieldError;
 	longint lFileSize;
 	int nChunkSize;
@@ -1536,7 +1533,7 @@ boolean InputBufferedFile::TestCountLines(const ALString& sFileName, int nFileTy
 					bEol = false;
 					while (not bEol)
 					{
-						bEol = inputFile.GetNextField(sField, nFieldError);
+						bEol = inputFile.GetNextField(sField, nFieldLength, nFieldError);
 					}
 					lLinesCountWithNextField++;
 				}
@@ -1840,6 +1837,85 @@ boolean InputBufferedFile::TestCount(const ALString& sFileName, int nChunkSize)
 	return bOk;
 }
 
+boolean InputBufferedFile::TestStats(const ALString& sFileName)
+{
+	InputBufferedFile ibFile;
+	longint lFilePos;
+	boolean bOk;
+	boolean bEndOfLine;
+	longint lFileSize;
+	longint lLineNumber;
+	longint lLineNumberFromFields;
+	longint lFieldNumber;
+	longint lCumulatedFieldSize;
+	char* sField;
+	int nFieldLength;
+	int nFieldError;
+	ALString sTmp;
+
+	lFilePos = 0;
+	lFileSize = 0;
+	lLineNumber = 0;
+	lLineNumberFromFields = 0;
+	lFieldNumber = 0;
+	lCumulatedFieldSize = 0;
+	ibFile.SetFileName(sFileName);
+	bOk = ibFile.Open();
+	if (bOk)
+	{
+		lFileSize = ibFile.GetFileSize();
+		lFilePos = 0;
+		while (lFilePos < ibFile.GetFileSize())
+		{
+			// Remplissage du buffer
+			bOk = ibFile.Fill(lFilePos);
+			if (not bOk)
+			{
+				ibFile.AddError("Error while reading file");
+				break;
+			}
+
+			// Comptage des lignes
+			lLineNumber += ibFile.GetBufferLineNumber();
+			if (ibFile.GetBufferSkippedLine())
+			{
+				ibFile.AddWarning(sTmp + "line " + LongintToString(lLineNumber + 1) + " is skipped");
+				lLineNumber++;
+				lLineNumberFromFields++;
+			}
+
+			// Traitement du buffer
+			while (not ibFile.IsBufferEnd())
+			{
+				bEndOfLine = false;
+				while (not bEndOfLine)
+				{
+					bEndOfLine = ibFile.GetNextField(sField, nFieldLength, nFieldError);
+					lFieldNumber++;
+					lCumulatedFieldSize += nFieldLength;
+				}
+				lLineNumberFromFields++;
+			}
+			lFilePos += ibFile.GetBufferSize();
+		}
+		ibFile.Close();
+	}
+	if (bOk)
+	{
+		cout << "file size: " << LongintToReadableString(lFileSize) << endl;
+		cout << "line number: " << LongintToReadableString(lLineNumber) << endl;
+		cout << "line number from fields: " << LongintToReadableString(lLineNumberFromFields) << endl;
+		cout << "field number: " << LongintToReadableString(lFieldNumber) << endl;
+		cout << "cumulated field size: " << LongintToReadableString(lCumulatedFieldSize) << endl;
+	}
+	else
+	{
+		cout << "------------------- BUG ---------------------------" << endl;
+	}
+
+	return bOk;
+}
+
 boolean InputBufferedFile::FillWithHeaderLine()
 {
 	char c;
@@ -1895,7 +1971,6 @@ boolean InputBufferedFile::FillWithHeaderLine()
 			lRead = fileHandle->Read(cBuffer, sizeof(char), nSmallBufferSize);
 			lTotalRead += lRead;
 			bOk = lRead != 0;
-			bEof = lTotalRead == GetFileSize();
 
 			// Analyse du buffer
 			if (bOk)
@@ -1998,10 +2073,8 @@ void InputBufferedFile::AddCharsInFileBuffer(FileBuffer* fileBuffer, char c, int
 
 void InputBufferedFile::Reset()
 {
-	bEof = false;
 	nPositionInBuffer = 0;
 	nCurrentBufferSize = 0;
-	bIsHeadOfFile = false;
 	nReadLineNumber = 0;
 	lBufferBeginPos = -1;
 	bLastFieldReachEol = false;
@@ -2050,7 +2123,7 @@ boolean InputBufferedFile::FindBol(longint lBeginPos, int nChunkSize, longint lF
 			if (nSmallBufferSize > nChunkSize)
 				nSmallBufferSize = nChunkSize;
 			assert(InputBufferedFile::nHugeBufferSize >= nSmallBufferSize);
-			cBuffer = InputBufferedFileGetHugeBuffer();
+			cBuffer = GetHugeBuffer();
 			lTotalRead = 0;
 
 			lRead = nSmallBufferSize;

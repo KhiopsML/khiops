@@ -211,13 +211,22 @@ void PLDatabaseTextFile::CleanOpenInformation()
 		return plstDatabaseTextFile->CleanOpenInformation();
 }
 
-longint PLDatabaseTextFile::GetTotalInputFileSize() const
+longint PLDatabaseTextFile::GetTotalFileSize() const
 {
 	require(IsInitialized());
 	if (IsMultiTableTechnology())
-		return plmtDatabaseTextFile->GetTotalInputFileSize();
+		return plmtDatabaseTextFile->GetTotalFileSize();
 	else
-		return plstDatabaseTextFile->GetTotalInputFileSize();
+		return plstDatabaseTextFile->GetTotalFileSize();
+}
+
+longint PLDatabaseTextFile::GetTotalUsedFileSize() const
+{
+	require(IsInitialized());
+	if (IsMultiTableTechnology())
+		return plmtDatabaseTextFile->GetTotalUsedFileSize();
+	else
+		return plstDatabaseTextFile->GetTotalUsedFileSize();
 }
 
 longint PLDatabaseTextFile::GetEmptyOpenNecessaryMemory() const
@@ -383,29 +392,6 @@ PLMTDatabaseTextFile* PLShared_DatabaseTextFile::GetMTDatabase()
 	return cast(PLDatabaseTextFile*, GetObject())->GetMTDatabase();
 }
 
-void PLShared_DatabaseTextFile::DeserializeObject(PLSerializer* serializer, Object* o) const
-{
-	PLDatabaseTextFile* database;
-	boolean bIsMultiTableTechnology;
-	PLShared_STDatabaseTextFile shared_stDatabase;
-	PLShared_MTDatabaseTextFile shared_mtDatabase;
-
-	require(serializer != NULL);
-	require(serializer->IsOpenForRead());
-
-	database = cast(PLDatabaseTextFile*, o);
-
-	// Recherche du type de base
-	bIsMultiTableTechnology = serializer->GetBoolean();
-
-	// Deserialisation selon le type de base
-	database->Initialize(bIsMultiTableTechnology);
-	if (bIsMultiTableTechnology)
-		shared_mtDatabase.DeserializeObject(serializer, database->GetMTDatabase());
-	else
-		shared_stDatabase.DeserializeObject(serializer, database->GetSTDatabase());
-}
-
 void PLShared_DatabaseTextFile::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
 	PLDatabaseTextFile* database;
@@ -427,6 +413,29 @@ void PLShared_DatabaseTextFile::SerializeObject(PLSerializer* serializer, const 
 		shared_mtDatabase.SerializeObject(serializer, database->GetMTDatabase());
 	else
 		shared_stDatabase.SerializeObject(serializer, database->GetSTDatabase());
+}
+
+void PLShared_DatabaseTextFile::DeserializeObject(PLSerializer* serializer, Object* o) const
+{
+	PLDatabaseTextFile* database;
+	boolean bIsMultiTableTechnology;
+	PLShared_STDatabaseTextFile shared_stDatabase;
+	PLShared_MTDatabaseTextFile shared_mtDatabase;
+
+	require(serializer != NULL);
+	require(serializer->IsOpenForRead());
+
+	database = cast(PLDatabaseTextFile*, o);
+
+	// Recherche du type de base
+	bIsMultiTableTechnology = serializer->GetBoolean();
+
+	// Deserialisation selon le type de base
+	database->Initialize(bIsMultiTableTechnology);
+	if (bIsMultiTableTechnology)
+		shared_mtDatabase.DeserializeObject(serializer, database->GetMTDatabase());
+	else
+		shared_stDatabase.DeserializeObject(serializer, database->GetSTDatabase());
 }
 
 Object* PLShared_DatabaseTextFile::Create() const

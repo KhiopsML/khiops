@@ -151,7 +151,7 @@ void RMResourceRequirement::CopyFrom(const RMResourceRequirement* requirement)
 
 RMPhysicalResource* RMResourceRequirement::GetResource(int nResourceIndex) const
 {
-	require(nResourceIndex < UNKNOWN);
+	require(nResourceIndex < RESOURCES_NUMBER);
 	return cast(RMPhysicalResource*, oaResources.GetAt(nResourceIndex));
 }
 
@@ -178,10 +178,16 @@ boolean RMResourceRequirement::Check() const
 
 void RMResourceRequirement::Write(ostream& ost) const
 {
-	ost << "\t"
-	    << "Mem " << *oaResources.GetAt(MEMORY) << endl
-	    << "\t"
-	    << "Disk " << *oaResources.GetAt(DISK) << endl;
+	ost << "\t" << ResourceToString(MEMORY) << " " << *oaResources.GetAt(MEMORY) << endl
+	    << "\t" << ResourceToString(DISK) << " " << *oaResources.GetAt(DISK) << endl;
+}
+void RMResourceRequirement::WriteDetails(ostream& ost) const
+{
+	ost << "\t" << ResourceToString(MEMORY) << " ";
+	cast(RMPhysicalResource*, oaResources.GetAt(MEMORY))->WriteDetails(ost);
+	ost << endl << "\t" << ResourceToString(DISK) << " ";
+	cast(RMPhysicalResource*, oaResources.GetAt(DISK))->WriteDetails(ost);
+	ost << endl;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -261,6 +267,15 @@ void RMPhysicalResource::Write(ostream& ost) const
 		ost << "INF";
 	else
 		ost << LongintToHumanReadableString(lMax);
+}
+
+void RMPhysicalResource::WriteDetails(ostream& ost) const
+{
+	ost << "min : " << lMin << " max : ";
+	if (lMax == LLONG_MAX)
+		ost << "INF";
+	else
+		ost << lMax;
 }
 
 boolean RMPhysicalResource::Check() const

@@ -420,6 +420,7 @@ void KWClass::IndexClass()
 	oaLoadedDenseAttributes.SetSize(0);
 	oaLoadedAttributeBlocks.SetSize(0);
 	oaLoadedDenseSymbolAttributes.SetSize(0);
+	oaLoadedTextAttributes.SetSize(0);
 	oaLoadedRelationAttributes.SetSize(0);
 	oaUnloadedNativeRelationAttributes.SetSize(0);
 	oaLoadedDataItems.SetSize(0);
@@ -566,6 +567,9 @@ void KWClass::IndexClass()
 				// Memorisation des attribut de type relation, hors bloc
 				else if (KWType::IsRelation(attribute->GetType()) and not attribute->IsInBlock())
 					oaLoadedRelationAttributes.Add(attribute);
+				// Memorisation des attributs Text
+				else if (attribute->GetType() == KWType::Text)
+					oaLoadedTextAttributes.Add(attribute);
 			}
 		}
 
@@ -1725,6 +1729,7 @@ longint KWClass::GetUsedMemory() const
 	lUsedMemory += oaLoadedDenseAttributes.GetUsedMemory();
 	lUsedMemory += oaLoadedAttributeBlocks.GetUsedMemory();
 	lUsedMemory += oaLoadedDenseSymbolAttributes.GetUsedMemory();
+	lUsedMemory += oaLoadedTextAttributes.GetUsedMemory();
 	lUsedMemory += oaLoadedRelationAttributes.GetUsedMemory();
 	lUsedMemory += oaUnloadedNativeRelationAttributes.GetUsedMemory();
 	lUsedMemory += oaLoadedDataItems.GetUsedMemory();
@@ -2047,7 +2052,6 @@ boolean KWClass::CheckLabelWithMessage(const ALString& sValue, ALString& sMessag
 ALString KWClass::BuildUTF8SubString(const ALString sValue)
 {
 	ALString sUTF8SubString;
-	char c;
 	int i;
 	int nLength;
 	int nValidUTF8CharNumber;
@@ -2057,7 +2061,7 @@ ALString KWClass::BuildUTF8SubString(const ALString sValue)
 	i = nLength - 1;
 	while (i > 0)
 	{
-		nValidUTF8CharNumber = JSONFile::GetValidUTF8CharNumberAt(sValue, i);
+		nValidUTF8CharNumber = JSONFile::GetValidUTF8CharLengthAt(sValue, i);
 		if (nValidUTF8CharNumber > 0)
 		{
 			nLength = i + nValidUTF8CharNumber;
@@ -2155,9 +2159,9 @@ ALString KWClass::GetExternalContinuousConstant(Continuous cValue)
 }
 
 KWClass* KWClass::CreateClass(const ALString& sClassName, int nKeySize, int nSymbolNumber, int nContinuousNumber,
-			      int nDateNumber, int nTimeNumber, int nTimestampNumber, int nObjectNumber,
-			      int nObjectArrayNumber, int nStructureNumber, boolean bCreateAttributeBlocks,
-			      KWClass* attributeClass)
+			      int nDateNumber, int nTimeNumber, int nTimestampNumber, int nTextNumber,
+			      int nObjectNumber, int nObjectArrayNumber, int nStructureNumber,
+			      boolean bCreateAttributeBlocks, KWClass* attributeClass)
 {
 	KWClass* kwcClass;
 	int i;
@@ -2173,6 +2177,7 @@ KWClass* KWClass::CreateClass(const ALString& sClassName, int nKeySize, int nSym
 	require(nDateNumber >= 0);
 	require(nTimeNumber >= 0);
 	require(nTimestampNumber >= 0);
+	require(nTextNumber >= 0);
 	require(nObjectNumber >= 0);
 	require(nObjectArrayNumber >= 0);
 	require(nStructureNumber >= 0);
@@ -2294,6 +2299,16 @@ KWClass* KWClass::CreateClass(const ALString& sClassName, int nKeySize, int nSym
 		kwcClass->InsertAttribute(attribute);
 	}
 
+	// Creation des attributs Text
+	for (i = 0; i < nTimestampNumber; i++)
+	{
+		attribute = new KWAttribute;
+		attribute->SetName(sPrefix + KWType::ToString(KWType::Text) + IntToString(i + 1));
+		attribute->SetLabel("Label of " + attribute->GetName());
+		attribute->SetType(KWType::Text);
+		kwcClass->InsertAttribute(attribute);
+	}
+
 	// Creation des attributs Object
 	for (i = 0; i < nObjectNumber; i++)
 	{
@@ -2388,6 +2403,12 @@ void KWClass::TestAttributeBrowsings(boolean bList, boolean bInverseList, boolea
 				attribute = GetLoadedDenseSymbolAttributeAt(i);
 				cout << "\t" << *attribute << "\n";
 			}
+			AddMessage("Text variables");
+			for (i = 0; i < GetLoadedTextAttributeNumber(); i++)
+			{
+				attribute = GetLoadedTextAttributeAt(i);
+				cout << "\t" << *attribute << "\n";
+			}
 			AddMessage("Dense relation variables");
 			for (i = 0; i < GetLoadedRelationAttributeNumber(); i++)
 			{
@@ -2409,8 +2430,8 @@ void KWClass::Test()
 	int nIndex;
 
 	// Creation d'une classe de test
-	attributeClass = CreateClass("AttributeClass", 1, 2, 2, 0, 0, 0, 0, 0, 0, true, NULL);
-	testClass = CreateClass("TestClass", 1, 3, 3, 1, 1, 1, 2, 2, 0, true, attributeClass);
+	attributeClass = CreateClass("AttributeClass", 1, 2, 2, 0, 0, 0, 0, 0, 0, 0, true, NULL);
+	testClass = CreateClass("TestClass", 1, 3, 3, 1, 1, 1, 1, 2, 2, 0, true, attributeClass);
 	testClass->SetRoot(true);
 	KWClassDomain::GetCurrentDomain()->InsertClass(attributeClass);
 	KWClassDomain::GetCurrentDomain()->InsertClass(testClass);

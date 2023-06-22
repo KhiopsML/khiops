@@ -73,8 +73,8 @@ public class GUITable extends JTable
                 addMouseListener(new MouseAdapter() {
                         public void mouseClicked(MouseEvent e)
                         {
-                                // Si on clique a droite
-                                if (e.getButton() == 3) {
+                                // Si on clique a droite et que le composant est enabled
+                                if (e.getButton() == 3 && isEnabled()) {
                                         // On recupere la ligne sous le curseur
                                         int row = rowAtPoint(e.getPoint());
                                         // On met a jour la selection graphique
@@ -123,8 +123,7 @@ public class GUITable extends JTable
                         // Pour chaque action
                         for (int i = 0; i < guiList.vectorOfGUIActions.size(); i++) {
                                 GUIAction action = (GUIAction)guiList.vectorOfGUIActions.get(i);
-                                // Si l'action n'est pas un exit ni un refresh (actions standards des
-                                // unites)
+                                // Si l'action n'est pas un exit ni un refresh (actions standards des unites)
                                 if (action.getVisible() && action.getStyle().equals("") &&
                                     !action.getIdentifier().equals(GUIUnit.Exit) &&
                                     !action.getIdentifier().equals(GUIUnit.Refresh)) {
@@ -184,8 +183,8 @@ public class GUITable extends JTable
                         // On affecte le rendu a la colonne
                         getColumnModel().getColumn(i).setCellRenderer(guiElement.getCellElement());
 
-                        // On prend en compte la largeur preferee des composants, avec un max sauf
-                        // pour la derniere colonne
+                        // On prend en compte la largeur preferee des composants, avec un max sauf pour
+                        // la derniere colonne
                         nColumnWidth = (int)guiElement.buildComponent().getPreferredSize().getWidth();
                         getColumnModel().getColumn(i).setPreferredWidth(nColumnWidth);
                         getColumnModel().getColumn(i).setMinWidth(nColumnWidth / 2);

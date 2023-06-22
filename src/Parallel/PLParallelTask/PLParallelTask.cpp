@@ -376,40 +376,43 @@ boolean PLParallelTask::Run()
 
 			// Nombre de processus qui travaillent
 			nWorkingProcessNumber = RMParallelResourceDriver::grantedResources->GetSlaveNumber();
-		}
 
-		if (PLParallelTask::GetVerbose())
-		{
-			// TODO passer ça dans le if du dessus
-			// Affichage des exigences
-			AddMessage(sTmp + "requirements (min) for slave : memory " +
-				   LongintToHumanReadableString(
-				       GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->GetMin()) +
-				   "   disk " +
-				   LongintToHumanReadableString(
-				       GetResourceRequirements()->GetSlaveRequirement()->GetDisk()->GetMin()));
-			if (GetResourceRequirements()->GetGlobalSlaveRequirement()->GetDisk()->GetMin() > 0 or
-			    GetResourceRequirements()->GetGlobalSlaveRequirement()->GetMemory()->GetMin() > 0)
+			if (PLParallelTask::GetVerbose())
+			{
+				// Affichage des exigences
 				AddMessage(
-				    sTmp + "global requirement for slave : memory " +
+				    sTmp + "requirements (min) for slave : memory " +
 				    LongintToHumanReadableString(
-					GetResourceRequirements()->GetGlobalSlaveRequirement()->GetMemory()->GetMin()) +
+					GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->GetMin()) +
 				    "   disk " +
 				    LongintToHumanReadableString(
-					GetResourceRequirements()->GetGlobalSlaveRequirement()->GetDisk()->GetMin()));
-			if (GetResourceRequirements()->GetMaxSlaveProcessNumber() != INT_MAX)
-				AddMessage(sTmp + "requirement : max SlaveProcess number " +
-					   IntToString(GetResourceRequirements()->GetMaxSlaveProcessNumber()));
+					GetResourceRequirements()->GetSlaveRequirement()->GetDisk()->GetMin()));
+				if (GetResourceRequirements()->GetGlobalSlaveRequirement()->GetDisk()->GetMin() > 0 or
+				    GetResourceRequirements()->GetGlobalSlaveRequirement()->GetMemory()->GetMin() > 0)
+					AddMessage(sTmp + "global requirement for slave : memory " +
+						   LongintToHumanReadableString(GetResourceRequirements()
+										    ->GetGlobalSlaveRequirement()
+										    ->GetMemory()
+										    ->GetMin()) +
+						   "   disk " +
+						   LongintToHumanReadableString(GetResourceRequirements()
+										    ->GetGlobalSlaveRequirement()
+										    ->GetDisk()
+										    ->GetMin()));
+				if (GetResourceRequirements()->GetMaxSlaveProcessNumber() != INT_MAX)
+					AddMessage(sTmp + "requirement : max SlaveProcess number " +
+						   IntToString(GetResourceRequirements()->GetMaxSlaveProcessNumber()));
 
-			// Affichage des ressources allouees
-			AddMessage(sTmp + "granted : slave number " +
-				   IntToString(RMParallelResourceDriver::grantedResources->GetSlaveNumber()));
-			AddMessage(sTmp + "granted : slave (min) memory " +
-				   LongintToHumanReadableString(
-				       RMParallelResourceDriver::grantedResources->GetMinSlaveMemory()) +
-				   "   disk " +
-				   LongintToHumanReadableString(
-				       RMParallelResourceDriver::grantedResources->GetMinSlaveDisk()));
+				// Affichage des ressources allouees
+				AddMessage(sTmp + "granted : slave number " +
+					   IntToString(RMParallelResourceDriver::grantedResources->GetSlaveNumber()));
+				AddMessage(sTmp + "granted : slave (min) memory " +
+					   LongintToHumanReadableString(
+					       RMParallelResourceDriver::grantedResources->GetMinSlaveMemory()) +
+					   "   disk " +
+					   LongintToHumanReadableString(
+					       RMParallelResourceDriver::grantedResources->GetMinSlaveDisk()));
+			}
 		}
 	}
 
@@ -1901,6 +1904,11 @@ void PLParallelTask::PrintSlavesStates() const
 
 PLSlaveState* PLParallelTask::GetReadySlave()
 {
+	// TODO actuellement on parcourt la liste des hosts et le premier host sera le plus utilise
+	// Il faudrait avoir une option pour que le travail soit reparti sur tous les hosts
+	// Cette option sera sans doute couplee avec la politique du gestionnaire de resources qui
+	// decide de la parallelisation horizontale ou verticale
+
 	PLSlaveState* readySlave;
 	ALString sHost;
 	Object* oaSlavesOnHost;
@@ -2097,7 +2105,7 @@ void PLParallelTask::TestComputeStairBufferSize(int nBufferSizeMin, int nBufferS
 	int nBufferSize;
 
 	require(nBufferSizeMin > 0);
-	require(nBufferSizeMax > nBufferSizeMin);
+	require(nBufferSizeMax >= nBufferSizeMin);
 	require(lFileSize > 0);
 	require(nProcessNumber > 0);
 

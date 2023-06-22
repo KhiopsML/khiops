@@ -16,6 +16,8 @@ KWSystemParametersView::KWSystemParametersView()
 	int nMaxProcNumber;
 	ALString sMemoryLimit;
 	longint lEnvMemoryLimit;
+	int nRound;
+	int i;
 
 	SetIdentifier("KWSystemParameters");
 	SetLabel("System parameters");
@@ -70,14 +72,35 @@ KWSystemParametersView::KWSystemParametersView()
 	cast(UIIntElement*, GetFieldAt("OptimizationTime"))
 	    ->SetDefaultValue(RMResourceConstraints::GetOptimizationTime());
 
-	// Limites de la taille memoire en MB
+	// Limites de la taille memoire en MB de chaque machine
 	// Par defaut, on utilise 90% de la memoire max (notamment pour les machines n'ayant pas de fichier swap)
+	// Sur un cluster c'est la max alloue a chaque machine (et non la memoire de tout le cluster)
+
+	// Caclul du min avec un arrondi a la dizaine ou a la centaine selon la presence ou l'absence de la GUI java
 	nMinMemory = int(RMResourceManager::GetSystemMemoryReserve() * (1 + MemGetAllocatorOverhead()) / lMB);
-	nMinMemory = 100 * int(ceil(nMinMemory / 100.0));
-	nMaxMemory = (int)(min(MemGetAvailablePhysicalMemory(), MemGetAdressablePhysicalMemory()) / lMB);
+	if (UIObject::IsBatchMode())
+		nRound = 10;
+	else
+		nRound = 100;
+	nMinMemory = nRound * int(ceil(nMinMemory / (nRound * 1.0)));
+
+	// Calcul du max : c'est la maximum de la memoire disponible sur chaque machine
+	nMaxMemory = 0;
+	for (i = 0; i < RMResourceManager::GetResourceSystem()->GetHostNumber(); i++)
+	{
+		const RMHostResource* hr = RMResourceManager::GetResourceSystem()->GetHostResourceAt(i);
+		nMaxMemory = max(nMaxMemory, int(hr->GetPhysicalMemory() / lMB));
+	}
+	nMaxMemory = min(nMaxMemory, int(MemGetAdressablePhysicalMemory() / lMB));
 
 	// Valeur par defaut de la memoire (variable d'environement ou 90% de le memoire max)
-	sMemoryLimit = p_getenv("KhiopsMemoryLimit");
+	sMemoryLimit = p_getenv("KHIOPS_MEMORY_LIMIT");
+	if (sMemoryLimit == "")
+	{
+		sMemoryLimit = p_getenv("KhiopsMemoryLimit"); // DEPRECATED
+		if (sMemoryLimit != "")
+			AddWarning("'KhiopsMemoryLimit' is deprecated and is now replaced by 'KHIOPS_MEMORY_LIMIT'");
+	}
 	lEnvMemoryLimit = 0;
 	if (sMemoryLimit != "")
 	{
@@ -109,7 +132,7 @@ KWSystemParametersView::KWSystemParametersView()
 	cast(UIIntElement*, GetFieldAt("MaxCoreNumber"))->SetDefaultValue(nMaxProcNumber);
 
 	// Calcul du nombre effectif de processus qu'on utilise (en general DefaultValue +1)
-	RMResourceConstraints::SetMaxCoreNumber(
+	RMResourceConstraints::SetMaxCoreNumberOnCluster(
 	    ComputeCoreNumber(cast(UIIntElement*, GetFieldAt("MaxCoreNumber"))->GetDefaultValue()));
 
 	// On ne peut pas editer le nombre de process a utiliser le mode parallel n'est pas disponible
@@ -183,7 +206,7 @@ void KWSystemParametersView::EventUpdate(Object* object)
 
 	// Calcul du nombre de processus utilises
 	nRequestedCore = GetIntValueAt("MaxCoreNumber");
-	RMResourceConstraints::SetMaxCoreNumber(ComputeCoreNumber(nRequestedCore));
+	RMResourceConstraints::SetMaxCoreNumberOnCluster(ComputeCoreNumber(nRequestedCore));
 	PLParallelTask::SetParallelSimulated(GetBooleanValueAt("ParallelSimulated"));
 	PLParallelTask::SetParallelLogFileName(GetStringValueAt("ParallelLogFileName"));
 	FileService::SetUserTmpDir(GetStringValueAt("TemporaryDirectoryName"));
@@ -198,7 +221,7 @@ void KWSystemParametersView::EventRefresh(Object* object)
 	SetIntValueAt("OptimizationTime", RMResourceConstraints::GetOptimizationTime());
 	SetIntValueAt("MemoryLimit", RMResourceConstraints::GetMemoryLimit());
 	SetBooleanValueAt("IgnoreMemoryLimit", RMResourceConstraints::GetIgnoreMemoryLimit());
-	SetIntValueAt("MaxCoreNumber", ComputeRequestedCoreNumber(RMResourceConstraints::GetMaxCoreNumber()));
+	SetIntValueAt("MaxCoreNumber", ComputeRequestedCoreNumber(RMResourceConstraints::GetMaxCoreNumberOnCluster()));
 	SetBooleanValueAt("ParallelSimulated", PLParallelTask::GetParallelSimulated());
 	SetStringValueAt("ParallelLogFileName", PLParallelTask::GetParallelLogFileName());
 	SetStringValueAt("TemporaryDirectoryName", FileService::GetUserTmpDir());

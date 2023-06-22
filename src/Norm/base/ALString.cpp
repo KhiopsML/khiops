@@ -5,7 +5,7 @@
 #include "ALString.h"
 
 // Pour une chaine vide, les donnees vont pointer ici
-// Cela permet d'eviter de nombreuxtest de pointeur à NULL lors de
+// Cela permet d'eviter de nombreuxtest de pointeur ï¿½ NULL lors de
 // l'appel des fonction de la librairie C standard
 char ALSCHARNIL = '\0';
 

@@ -100,6 +100,10 @@ public:
 	// lecture
 	static int ComputeBufferNecessaryMemory(boolean bRead, int nBufferSize, longint lFileSize);
 
+	// Mode verbeux pour la detection des champs trop long (defaut: true)
+	static void SetOverlengthyFieldsVerboseMode(boolean bValue);
+	static boolean GetOverlengthyFieldsVerboseMode();
+
 	/////////////////////////////////////////////////
 	///// Implementation
 protected:
@@ -172,6 +176,9 @@ protected:
 
 	// Taille par defaut des buffers
 	static const int nDefaultBufferSize = InputBufferedFile::nDefaultBufferSize;
+
+	// Mode verbeux pour la detection des champs trop long
+	static boolean bOverlengthyFieldsVerboseMode;
 };
 
 ////////////////////////////////////////

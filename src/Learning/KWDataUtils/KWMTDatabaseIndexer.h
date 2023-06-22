@@ -65,6 +65,9 @@ public:
 	// Derniere cle racine du chunk
 	const KWKey* GetChunkLastRootKeyAt(int nChunkIndex) const;
 
+	// Ecriture
+	void Write(ostream& ost) const override;
+
 	// Libelles utilisateurs
 	const ALString GetClassLabel() const override;
 	const ALString GetObjectLabel() const override;

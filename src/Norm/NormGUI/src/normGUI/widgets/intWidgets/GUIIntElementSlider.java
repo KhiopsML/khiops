@@ -32,8 +32,7 @@ public class GUIIntElementSlider extends GUIIntElement
                 int min = getMinValue();
                 int max = getMaxValue();
 
-                // Calcul de l'intervalle entre les ticks, en arrondissant a une puissance
-                // de 10
+                // Calcul de l'intervalle entre les ticks, en arrondissant a une puissance de 10
                 int major = (max - min) / 4;
                 if (major < 1)
                         major = 1;
@@ -58,8 +57,7 @@ public class GUIIntElementSlider extends GUIIntElement
         }
 
         /**
-         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite
-         * mere
+         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite mere
          *
          * @param panel       Panneau de l'unite mere dans lequel sera ajoute le
          *                    composant d'affichage

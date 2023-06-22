@@ -119,19 +119,6 @@ PLIncrementalStats* PLSharedIncrementalStats::GetStats()
 	return cast(PLIncrementalStats*, GetObject());
 }
 
-void PLSharedIncrementalStats::DeserializeObject(PLSerializer* serializer, Object* o) const
-{
-	PLIncrementalStats* stat = cast(PLIncrementalStats*, o);
-
-	require(serializer->IsOpenForRead());
-
-	stat->dMin = serializer->GetDouble();
-	stat->dMax = serializer->GetDouble();
-	stat->dTotal = serializer->GetDouble();
-	stat->nValueNumber = serializer->GetInt();
-	stat->dTotalSquare = serializer->GetDouble();
-	stat->sDescription = serializer->GetString();
-}
 void PLSharedIncrementalStats::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
 	PLIncrementalStats* stat = cast(PLIncrementalStats*, o);
@@ -144,6 +131,20 @@ void PLSharedIncrementalStats::SerializeObject(PLSerializer* serializer, const O
 	serializer->PutInt(stat->nValueNumber);
 	serializer->PutDouble(stat->dTotalSquare);
 	serializer->PutString(stat->sDescription);
+}
+
+void PLSharedIncrementalStats::DeserializeObject(PLSerializer* serializer, Object* o) const
+{
+	PLIncrementalStats* stat = cast(PLIncrementalStats*, o);
+
+	require(serializer->IsOpenForRead());
+
+	stat->dMin = serializer->GetDouble();
+	stat->dMax = serializer->GetDouble();
+	stat->dTotal = serializer->GetDouble();
+	stat->nValueNumber = serializer->GetInt();
+	stat->dTotalSquare = serializer->GetDouble();
+	stat->sDescription = serializer->GetString();
 }
 
 Object* PLSharedIncrementalStats::Create() const

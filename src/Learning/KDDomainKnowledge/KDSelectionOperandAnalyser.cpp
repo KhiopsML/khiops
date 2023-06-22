@@ -11,6 +11,8 @@ KDSelectionOperandAnalyser::KDSelectionOperandAnalyser()
 {
 	nMaxAnalysedObjectNumber = 0;
 	domainKnowlege = NULL;
+	// DDD
+	bPTIsParallel = false;
 }
 
 KDSelectionOperandAnalyser::~KDSelectionOperandAnalyser()
@@ -85,7 +87,7 @@ boolean KDSelectionOperandAnalyser::ComputeStats(const ObjectArray* oaAllConstru
 		AddMessage(RMResourceManager::BuildMemoryLimitMessage());
 	}
 
-	// Analyse de la base en pour le pretraitement des partitions de valeurs, si necessaire et possible
+	// Analyse de la base pour le pretraitement des partitions de valeurs, si necessaire et possible
 	if (bIsStatsComputed and GetClassSelectionStats()->GetSize() > 0 and nMaxAnalysedObjectNumber > 0)
 		bIsStatsComputed = ExtractSelectionOperandPartitions();
 
@@ -345,7 +347,7 @@ boolean KDSelectionOperandAnalyser::ComputeMaxAnalysedObjectNumber()
 	lPartileNecessaryMemory =
 	    nSymbolSelectionOperandNumber *
 		(sizeof(KDSelectionValue) + sizeof(Symbol) + sizeof(KWObject*) + 2 * sizeof(void*)) +
-	    nSymbolSelectionOperandNumber * (sizeof(KDSelectionInterval) + sizeof(KWObject*) + 2 * sizeof(void*));
+	    nContinuousSelectionOperandNumber * (sizeof(KDSelectionInterval) + sizeof(KWObject*) + 2 * sizeof(void*));
 
 	// Calcul nombre max d'objets dont on peut memoriser les valeurs
 	// Le nombre de partiles les plus fins a memoriser est au plus le nombre de valeur divise par
@@ -388,7 +390,6 @@ boolean KDSelectionOperandAnalyser::ExtractSelectionOperandPartitions()
 	KDClassSelectionStats* classSelectionStats;
 	int nOperand;
 	KDClassSelectionOperandStats* classSelectionOperandStats;
-	KDSelectionOperandExtractionTask selectionOperandExtractionTask;
 	int nReadObjectNumber;
 
 	// Construction d'un domaine de lecture de la base oriente operandes de selection
@@ -411,11 +412,13 @@ boolean KDSelectionOperandAnalyser::ExtractSelectionOperandPartitions()
 	KWClassDomain::SetCurrentDomain(selectionDomain);
 	selectionDomain->Compile();
 
-	// Lecture de la base pour collecter un echantillon de valeurs par variable secondaire de selection
-	bOk = CollectSelectionOperandSamples(nReadObjectNumber);
-
-	// DDD En cours de developpementn a brancher une fois mis au point
-	//  bOk = selectionOperandExtractionTask.CollectSelectionOperandSamples(this, GetDatabase(), nReadObjectNumber);
+	// En cours de developpement a brancher une fois mis au point
+	// DDD
+	if (bPTIsParallel)
+		bOk = TaskCollectSelectionOperandSamples(nReadObjectNumber);
+	else
+		// Lecture de la base pour collecter un echantillon de valeurs par variable secondaire de selection
+		bOk = CollectSelectionOperandSamples(nReadObjectNumber);
 
 	// Analyse des partitions de chaque operande de selection si ok, et nettoyage
 	for (nClass = 0; nClass < oaClassSelectionStats.GetSize(); nClass++)
@@ -459,6 +462,206 @@ boolean KDSelectionOperandAnalyser::ExtractSelectionOperandPartitions()
 	return bOk;
 }
 
+boolean KDSelectionOperandAnalyser::TaskCollectSelectionOperandSamples(int& nReadObjectNumber)
+{
+	boolean bOk = true;
+	KDSelectionOperandDataSampler* selectionOperandDataSampler;
+	KDSelectionOperandSamplingTask selectionOperandSamplingTask;
+
+	// Construction de specifications d'echantillonnage des donnees par operande
+	selectionOperandDataSampler = BuildSelectionOperandDataSamplerSpec();
+
+	// Lancement de la tache de collecte de l'echantillon si necessaire
+	if (selectionOperandDataSampler->GetClassSelectionData()->GetSize() > 0)
+	{
+		// Lancement de la tache
+		bOk = selectionOperandSamplingTask.CollectSelectionOperandSamples(selectionOperandDataSampler,
+										  GetDatabase(), nReadObjectNumber);
+
+		// Prise en compte des donnees collectees par un echantilonneur de donnees
+		if (bOk)
+			CollectClassSelectionData(selectionOperandDataSampler);
+	}
+
+	// Nettoyage
+	delete selectionOperandDataSampler;
+	return bOk;
+}
+
+KDSelectionOperandDataSampler* KDSelectionOperandAnalyser::BuildSelectionOperandDataSamplerSpec() const
+{
+	KDSelectionOperandDataSampler* selectionOperandDataSampler;
+	KDClassSelectionData* classSelectionData;
+	KDClassSelectionOperandData* classSelectionOperandData;
+	KDClassSelectionStats* classSelectionStats;
+	KDClassSelectionOperandStats* classSelectionOperandStats;
+	int nClass;
+	int nOperand;
+
+	// Creation du sampler
+	selectionOperandDataSampler = new KDSelectionOperandDataSampler;
+
+	// Parametrage du nom de la base
+	selectionOperandDataSampler->SetDatabaseName(GetDatabase()->GetDatabaseName());
+
+	// Ajout des classes de selection
+	for (nClass = 0; nClass < GetClassSelectionStats()->GetSize(); nClass++)
+	{
+		classSelectionStats = cast(KDClassSelectionStats*, GetClassSelectionStats()->GetAt(nClass));
+
+		// Creation d'une classe de collecte de donnees
+		classSelectionData = new KDClassSelectionData;
+		classSelectionData->sClassName = classSelectionStats->GetClassName();
+
+		// Parametrage de la granularite max de tous les operandes de selection utilisees en dimension d'une
+		// partition
+		classSelectionData->nMaxOperandGranularity = classSelectionStats->ComputeMaxOperandGranularity();
+
+		// Ajout des operandes de selection
+		for (nOperand = 0; nOperand < classSelectionStats->GetClassSelectionOperandStats()->GetSize();
+		     nOperand++)
+		{
+			classSelectionOperandStats =
+			    cast(KDClassSelectionOperandStats*,
+				 classSelectionStats->GetClassSelectionOperandStats()->GetAt(nOperand));
+
+			// Ajout d'une operande de collecte de donnees si necessaire
+			if (classSelectionOperandStats->GetSelectionAttribute() != NULL)
+			{
+				classSelectionOperandData = new KDClassSelectionOperandData;
+				classSelectionOperandData->sSelectionAttributeName =
+				    classSelectionOperandStats->GetSelectionAttribute()->GetName();
+				classSelectionOperandData->selectionAttribute =
+				    classSelectionOperandStats->GetSelectionAttribute();
+				classSelectionData->oaClassSelectionOperandData.Add(classSelectionOperandData);
+			}
+		}
+
+		// Ajout de cette classe s'il a au moins une operande de selection
+		if (classSelectionData->GetClassSelectionOperandData()->GetSize() > 0)
+			selectionOperandDataSampler->oaClassSelectionData.Add(classSelectionData);
+		// Nettoyage sinon
+		else
+			delete classSelectionData;
+	}
+
+	// Mise en phase du dictionnaire des classes
+	selectionOperandDataSampler->RefreshClassSelectionData();
+	ensure(selectionOperandDataSampler->Check());
+	return selectionOperandDataSampler;
+}
+
+void KDSelectionOperandAnalyser::CollectClassSelectionData(
+    KDSelectionOperandDataSampler* sourceSelectionOperandDataSampler)
+{
+	KDClassSelectionStats* classSelectionStats;
+	KDClassSelectionOperandStats* selectionOperandStats;
+	KDClassSymbolSelectionOperandStats* symbolSelectionOperandStats;
+	KDClassContinuousSelectionOperandStats* continuousSelectionOperandStats;
+	KDClassSelectionData* sourceClassSelectionData;
+	KDClassSelectionOperandData* sourceSelectionOperandData;
+	int nClass;
+	int nStatClass;
+	int nOperand;
+	int nStatsOperand;
+	KWAttribute* selectionAttribute;
+
+	require(Check());
+	require(sourceSelectionOperandDataSampler != NULL);
+	require(sourceSelectionOperandDataSampler->Check());
+	require(sourceSelectionOperandDataSampler->GetClassSelectionData()->GetSize() <=
+		GetClassSelectionStats()->GetSize());
+
+	// Nettoyage prealable des references aux objets selectionnes de l'echantionneur, pour liberer de la memoire
+	for (nClass = 0; nClass < sourceSelectionOperandDataSampler->GetClassSelectionData()->GetSize(); nClass++)
+	{
+		sourceClassSelectionData = cast(
+		    KDClassSelectionData*, sourceSelectionOperandDataSampler->GetClassSelectionData()->GetAt(nClass));
+		sourceClassSelectionData->GetSelectionObjects()->DeleteAll();
+	}
+
+	// Parcours des classes de selection
+	nStatClass = 0;
+	for (nClass = 0; nClass < sourceSelectionOperandDataSampler->GetClassSelectionData()->GetSize(); nClass++)
+	{
+		sourceClassSelectionData = cast(
+		    KDClassSelectionData*, sourceSelectionOperandDataSampler->GetClassSelectionData()->GetAt(nClass));
+
+		// Parcours des classes cote stats jusqu'a trouver la classe correspondante
+		classSelectionStats = NULL;
+		while (nStatClass < GetClassSelectionStats()->GetSize())
+		{
+			classSelectionStats = cast(KDClassSelectionStats*, GetClassSelectionStats()->GetAt(nStatClass));
+			nStatClass++;
+
+			// On s'arrete quand on a trouve la classe correspondante
+			if (sourceClassSelectionData->GetClassName() == classSelectionStats->GetClassName())
+				break;
+		}
+		assert(nStatClass <= GetClassSelectionStats()->GetSize());
+		assert(classSelectionStats != NULL);
+		assert(sourceClassSelectionData->GetClassName() == classSelectionStats->GetClassName());
+		assert(sourceClassSelectionData->GetClassSelectionOperandData()->GetSize() <=
+		       classSelectionStats->GetClassSelectionOperandStats()->GetSize());
+
+		// Parcours des operandes de selection cote donnee et synchornisation avec les operandes cotes stats
+		nStatsOperand = 0;
+		for (nOperand = 0; nOperand < sourceClassSelectionData->GetClassSelectionOperandData()->GetSize();
+		     nOperand++)
+		{
+			sourceSelectionOperandData =
+			    cast(KDClassSelectionOperandData*,
+				 sourceClassSelectionData->GetClassSelectionOperandData()->GetAt(nOperand));
+
+			// Acces a l'attribut de selection
+			selectionAttribute = sourceSelectionOperandData->GetSelectionAttribute();
+			check(selectionAttribute);
+			assert(KWType::IsSimple(selectionAttribute->GetType()));
+
+			// Parcours des operandes cote stats jusqu'a trouver l'operande correspondant
+			selectionOperandStats = NULL;
+			while (nStatsOperand < classSelectionStats->GetClassSelectionOperandStats()->GetSize())
+			{
+				selectionOperandStats =
+				    cast(KDClassSelectionOperandStats*,
+					 classSelectionStats->GetClassSelectionOperandStats()->GetAt(nStatsOperand));
+				nStatsOperand++;
+
+				// On saute les operandes non utilises, sans attribut de selection
+				if (selectionOperandStats->GetSelectionAttribute() != NULL)
+					break;
+			}
+			assert(nStatsOperand <= classSelectionStats->GetClassSelectionOperandStats()->GetSize());
+			assert(selectionOperandStats != NULL);
+			assert(selectionOperandStats->GetSelectionAttribute() == selectionAttribute);
+
+			// Mise a jour des valeurs de selection selon le type de l'operande de selection
+			if (selectionAttribute->GetType() == KWType::Symbol)
+			{
+				symbolSelectionOperandStats =
+				    cast(KDClassSymbolSelectionOperandStats*, selectionOperandStats);
+
+				// Recopie des valeurs collectees, puis nettoyage
+				assert(symbolSelectionOperandStats->GetInputData()->GetSize() == 0);
+				symbolSelectionOperandStats->GetInputData()->CopyFrom(
+				    sourceSelectionOperandData->GetSymbolInputData());
+				sourceSelectionOperandData->GetSymbolInputData()->SetSize(0);
+			}
+			else
+			{
+				continuousSelectionOperandStats =
+				    cast(KDClassContinuousSelectionOperandStats*, selectionOperandStats);
+
+				// Recopie des valeurs collectees, puis nettoyage
+				assert(continuousSelectionOperandStats->GetInputData()->GetSize() == 0);
+				continuousSelectionOperandStats->GetInputData()->CopyFrom(
+				    sourceSelectionOperandData->GetContinuousInputData());
+				sourceSelectionOperandData->GetContinuousInputData()->SetSize(0);
+			}
+		}
+	}
+}
+
 boolean KDSelectionOperandAnalyser::CollectSelectionOperandSamples(int& nReadObjectNumber)
 {
 	boolean bOk = true;
@@ -480,7 +683,7 @@ boolean KDSelectionOperandAnalyser::CollectSelectionOperandSamples(int& nReadObj
 	nObjectNumber = 0;
 	if (bOk)
 	{
-		// Memorisation des objet references globaux
+		// Memorisation des objets references globaux
 		RegisterAllReferencedObjects();
 
 		// Analyse des objet de la base
@@ -561,6 +764,7 @@ KWClassDomain* KDSelectionOperandAnalyser::BuildSelectionDomain()
 	KWAttribute* attribute;
 	boolean bIsClassToLoad;
 	ObjectDictionary odClassesToLoad;
+	NumericKeyDictionary nkdAttributesToLoad;
 	ObjectArray oaAttributesToLoad;
 	boolean bNewClasses;
 	KDClassSelectionStats* classSelectionStats;
@@ -600,23 +804,15 @@ KWClassDomain* KDSelectionOperandAnalyser::BuildSelectionDomain()
 							 KWType::IsRelation(attribute->GetType()) and
 							 attribute->GetClass() != NULL;
 					if (bIsClassToLoad)
-					{
 						bIsClassToLoad =
-						    (odClassesToLoad.Lookup(attribute->GetClass()->GetName()) !=
-						     NULL) or
-						    (attribute->GetType() == KWType::ObjectArray and
-						     LookupClassSelectionStats(attribute->GetClass()->GetName()) !=
-							 NULL);
-					}
+						    odClassesToLoad.Lookup(attribute->GetClass()->GetName()) != NULL or
+						    LookupClassSelectionStats(attribute->GetClass()->GetName()) != NULL;
 
 					// Memorisation si classe a charger
 					if (bIsClassToLoad)
 					{
 						// Enregistrement de la classe a charger
 						odClassesToLoad.SetAt(kwcClass->GetName(), kwcClass);
-
-						// Memorisation de l'attribut a charger
-						oaAttributesToLoad.Add(attribute);
 
 						// Memorisation du flag d'insertion
 						bNewClasses = true;
@@ -626,6 +822,31 @@ KWClassDomain* KDSelectionOperandAnalyser::BuildSelectionDomain()
 					kwcClass->GetNextAttribute(attribute);
 				}
 			}
+		}
+	}
+
+	// Identification des attributs utilisant (potentiellement recursivement) une classe de selection
+	for (nClass = 0; nClass < selectionDomain->GetClassNumber(); nClass++)
+	{
+		kwcClass = selectionDomain->GetClassAt(nClass);
+
+		// Parcours des attributs utilises pour identifier les attributs ObjectArray des classes de selection
+		attribute = kwcClass->GetHeadAttribute();
+		while (attribute != NULL)
+		{
+			// Determination si l'attribut est a charger
+			bIsClassToLoad = attribute->GetUsed() and KWType::IsRelation(attribute->GetType()) and
+					 attribute->GetClass() != NULL;
+			if (bIsClassToLoad)
+				bIsClassToLoad = odClassesToLoad.Lookup(attribute->GetClass()->GetName()) != NULL or
+						 LookupClassSelectionStats(attribute->GetClass()->GetName()) != NULL;
+
+			// Memorisation de l'attribut a charger
+			if (bIsClassToLoad)
+				oaAttributesToLoad.Add(attribute);
+
+			// Attribut suivant
+			kwcClass->GetNextAttribute(attribute);
 		}
 	}
 
@@ -1207,6 +1428,33 @@ void KDClassSelectionStats::AddPartition(KDConstructedPartition* partition)
 	// Memorisation de la partition
 	oaConstructedPartitions.Add(partition);
 	slConstructedPartitions.Add(partition);
+}
+
+int KDClassSelectionStats::ComputeMaxOperandGranularity() const
+{
+	int nMaxOperandGranularity;
+	const KDConstructedPartition* partition;
+	int nPartition;
+	int i;
+
+	// Parcours des partition pour trouver la plus fine utilisee
+	nMaxOperandGranularity = 0;
+	for (nPartition = 0; nPartition < GetPartitions()->GetSize(); nPartition++)
+	{
+		partition = cast(const KDConstructedPartition*, GetPartitions()->GetAt(nPartition));
+
+		// On ne prend en compte que les partition utilisees
+		if (partition->GetUseCount() > 0)
+		{
+			// Parcours de dimension de la partition
+			for (i = 0; i < partition->GetDimensionNumber(); i++)
+			{
+				// Granularite max
+				nMaxOperandGranularity = max(nMaxOperandGranularity, partition->GetGranularityAt(i));
+			}
+		}
+	}
+	return nMaxOperandGranularity;
 }
 
 void KDClassSelectionStats::SetDatabaseObjectNumber(int nValue)

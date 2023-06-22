@@ -11,12 +11,15 @@ void KWDRRegisterStandardRules()
 	KWDerivationRule::RegisterDerivationRule(new KWDRCopyDate);
 	KWDerivationRule::RegisterDerivationRule(new KWDRCopyTime);
 	KWDerivationRule::RegisterDerivationRule(new KWDRCopyTimestamp);
+	KWDerivationRule::RegisterDerivationRule(new KWDRTextCopy);
 	KWDerivationRule::RegisterDerivationRule(new KWDRCopySymbolValueBlock);
 	KWDerivationRule::RegisterDerivationRule(new KWDRCopyContinuousValueBlock);
 	KWDerivationRule::RegisterDerivationRule(new KWDRAsContinuous);
 	KWDerivationRule::RegisterDerivationRule(new KWDRAsContinuousError);
 	KWDerivationRule::RegisterDerivationRule(new KWDRRecodeMissing);
 	KWDerivationRule::RegisterDerivationRule(new KWDRAsSymbol);
+	KWDerivationRule::RegisterDerivationRule(new KWDRFromText);
+	KWDerivationRule::RegisterDerivationRule(new KWDRToText);
 	KWDerivationRule::RegisterDerivationRule(new KWDRAsDate);
 	KWDerivationRule::RegisterDerivationRule(new KWDRFormatDate);
 	KWDerivationRule::RegisterDerivationRule(new KWDRAsTime);
@@ -162,6 +165,31 @@ Timestamp KWDRCopyTimestamp::ComputeTimestampResult(const KWObject* kwoObject) c
 	require(IsCompiled());
 
 	return GetFirstOperand()->GetTimestampValue(kwoObject);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+
+KWDRTextCopy::KWDRTextCopy()
+{
+	SetName("TextCopy");
+	SetLabel("Copy of a text value");
+	SetType(KWType::Text);
+	SetOperandNumber(1);
+	GetFirstOperand()->SetType(KWType::Text);
+}
+
+KWDRTextCopy::~KWDRTextCopy() {}
+
+KWDerivationRule* KWDRTextCopy::Create() const
+{
+	return new KWDRTextCopy;
+}
+
+Symbol KWDRTextCopy::ComputeTextResult(const KWObject* kwoObject) const
+{
+	require(IsCompiled());
+
+	return GetFirstOperand()->GetTextValue(kwoObject);
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -600,6 +628,56 @@ Symbol KWDRAsSymbol::ComputeSymbolResult(const KWObject* kwoObject) const
 	require(IsCompiled());
 
 	return Symbol(KWContinuous::ContinuousToString(GetFirstOperand()->GetContinuousValue(kwoObject)));
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+
+KWDRFromText::KWDRFromText()
+{
+	SetName("FromText");
+	SetLabel("Conversion of a text value to a categorical value");
+	SetType(KWType::Symbol);
+	SetOperandNumber(1);
+	GetFirstOperand()->SetType(KWType::Text);
+}
+
+KWDRFromText::~KWDRFromText() {}
+
+KWDerivationRule* KWDRFromText::Create() const
+{
+	return new KWDRFromText;
+}
+
+Symbol KWDRFromText::ComputeSymbolResult(const KWObject* kwoObject) const
+{
+	require(IsCompiled());
+
+	return GetFirstOperand()->GetTextValue(kwoObject);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+
+KWDRToText::KWDRToText()
+{
+	SetName("ToText");
+	SetLabel("Conversion of a categorical value to a text value");
+	SetType(KWType::Text);
+	SetOperandNumber(1);
+	GetFirstOperand()->SetType(KWType::Symbol);
+}
+
+KWDRToText::~KWDRToText() {}
+
+KWDerivationRule* KWDRToText::Create() const
+{
+	return new KWDRToText;
+}
+
+Symbol KWDRToText::ComputeTextResult(const KWObject* kwoObject) const
+{
+	require(IsCompiled());
+
+	return GetFirstOperand()->GetSymbolValue(kwoObject);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////

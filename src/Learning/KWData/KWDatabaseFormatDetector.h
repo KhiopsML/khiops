@@ -120,7 +120,7 @@ protected:
 	// Liste de caracteres dont la presence est obligatoire en au moins un exemplaire danbs une ligne d'entete
 	const ALString GetHeaderLineMandatoryChars() const;
 
-	// Calcul d'un indicateur d'homegenite vis a vis des types des lignes d'un fichier
+	// Calcul d'un indicateur d'homogeneite vis a vis des types des lignes d'un fichier
 	// On n'exploite que les lignes ayant le bon nombre de champs et on calcul le type des champs de chaque ligne
 	// On en deduit les types les plus frequents par champ, et l'indicateur et celui qui conduit a miximiser le
 	// nombre total de champs reconnus dans leur type
@@ -181,25 +181,26 @@ protected:
 	KWCharFrequencyVector cfvInvalidSeparators;
 
 	// Solution courante
+	// Les criteres d'evaluation sont geres de facon lexicographique
 	char cCurrentSeparator;
-	int nCurrentMatchedFieldNumber;
-	int nCurrentUnknownFieldNumber;
-	int nCurrentFieldNumber;
-	int nCurrentCorrectLineNumber;
-	int nCurrentAnalysedLineNumber;
-	int nCurrentTypeConsistency;
-	int nCurrentSeparatorPriority;
+	int nCurrentMatchedFieldNumber; // Nombre de champ reconnu de la ligne d'entete, a maximiser
+	int nCurrentUnknownFieldNumber; // Nombre de champ surnumeraire de la ligne d'entete, a minimiser
+	int nCurrentCorrectLineNumber;  // Nombre de lignes compatible avec le separateur, a maximiser
+	int nCurrentTypeConsistency;    // Nombre de champs coherent avec leur type, a maximiser
+	int nCurrentFieldNumber;        // Nombre de champ de la premiere ligne, a minimiser
+	int nCurrentSeparatorPriority;  // Priorite du separateur, a minimiser
+	int nCurrentAnalysedLineNumber; // Nombre de lignes analysees, hors critere
 
 	// Meilleure solution
 	CharVector cvBestSeparatorList;
 	char cBestSeparator;
 	int nBestMatchedFieldNumber;
 	int nBestUnknownFieldNumber;
-	int nBestFieldNumber;
 	int nBestCorrectLineNumber;
-	int nBestAnalysedLineNumber;
 	int nBestTypeConsistency;
+	int nBestFieldNumber;
 	int nBestSeparatorPriority;
+	int nBestAnalysedLineNumber;
 
 	// Indicateur d'affichage des details d'optimisation
 	boolean bShowDetails;

@@ -535,7 +535,7 @@ public:
 	KWDerivationRule* Create() const override;
 
 	////////////////////////////////////////////////////////////////////
-	// Application  de la regle a une objet, et services associes
+	// Application  de la regle a un objet, et services associes
 
 	// Calcul de l'attribut derive
 	// L'index de la partie source est alors mise a jour et

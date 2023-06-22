@@ -169,7 +169,6 @@ void PLMPISlaveLauncher::SlaveInitializeResourceSystem()
 		context.Recv(MPI_COMM_WORLD, 0, MASTER_RESOURCES);
 		serializer.OpenForRead(&context);
 		RMResourceConstraints::SetMemoryLimit(serializer.GetInt());
-		RMResourceConstraints::SetMemoryLimitPerProc(serializer.GetInt());
 		RMResourceConstraints::SetDiskLimit(serializer.GetInt());
 		serializer.Close();
 

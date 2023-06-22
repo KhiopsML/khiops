@@ -30,10 +30,10 @@ Symbol KWDREncrypt::ComputeSymbolResult(const KWObject* kwoObject) const
 	require(IsCompiled());
 
 	// Recherche des parametres
-	sStringToEncrypt = GetFirstOperand()->GetSymbolValue(kwoObject);
+	sStringToEncrypt = GetFirstOperandGenericSymbolValue(kwoObject);
 	sKey = GetSecondOperand()->GetSymbolValue(kwoObject);
 
-	return (Symbol)EncryptString(sStringToEncrypt, sKey);
+	return StringToSymbol(EncryptString(sStringToEncrypt, sKey));
 }
 
 const ALString KWDREncrypt::EncryptString(ALString& sStringToEncrypt, const Symbol& sKey) const

@@ -10,8 +10,11 @@ KWKeySizeEvaluatorTask::KWKeySizeEvaluatorTask()
 	lTotalLineNumber = 0;
 	lTotalKeySize = 0;
 	lCummulatedBufferSize = 0;
-	DeclareSharedParameter(&shared_inputFile);
+	DeclareSharedParameter(&shared_sInputFileName);
+	DeclareSharedParameter(&shared_cInputFieldSeparator);
+	DeclareSharedParameter(&shared_bInputHeaderLineUsed);
 	DeclareSharedParameter(&shared_ivKeyFieldIndexes);
+	DeclareSharedParameter(&shared_nBufferSize);
 	DeclareTaskInput(&input_lBufferStartPosition);
 	DeclareTaskOutput(&output_nTotalKeySize);
 	DeclareTaskOutput(&output_nLineNumber);
@@ -30,9 +33,9 @@ boolean KWKeySizeEvaluatorTask::EvaluateKeySize(const IntVector* ivKeyIndexes, c
 	require(ivKeyIndexes->GetSize() > 0);
 
 	// Parametrage du fichier en entree
-	shared_inputFile.GetBufferedFile()->SetFileName(sFileName);
-	shared_inputFile.GetBufferedFile()->SetHeaderLineUsed(bIsHeaderLineUsed);
-	shared_inputFile.GetBufferedFile()->SetFieldSeparator(cFieldSeparator);
+	shared_sInputFileName.SetValue(sFileName);
+	shared_bInputHeaderLineUsed = bIsHeaderLineUsed;
+	shared_cInputFieldSeparator.SetValue(cFieldSeparator);
 
 	// Parametrage des index des cles
 	shared_ivKeyFieldIndexes.GetIntVector()->CopyFrom(ivKeyIndexes);
@@ -118,13 +121,12 @@ boolean KWKeySizeEvaluatorTask::ComputeResourceRequirements()
 	boolean bOk = true;
 
 	// Un buffer de lecture est necessaire
-	GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->Set(
-	    shared_inputFile.GetBufferedFile()->GetBufferSize());
+	GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->Set(BufferedFile::nDefaultBufferSize);
 
 	// Il n'y aura pas plus de slaveProcess que de buffer a lire
-	lInputFileSize = PLRemoteFileService::GetFileSize(shared_inputFile.GetBufferedFile()->GetFileName());
+	lInputFileSize = PLRemoteFileService::GetFileSize(shared_sInputFileName.GetValue());
 	GetResourceRequirements()->SetMaxSlaveProcessNumber(
-	    (int)ceil(lInputFileSize * 1.0 / shared_inputFile.GetBufferedFile()->GetBufferSize()));
+	    (int)ceil(lInputFileSize * 1.0 / BufferedFile::nDefaultBufferSize));
 
 	return bOk;
 }
@@ -145,15 +147,15 @@ boolean KWKeySizeEvaluatorTask::MasterInitialize()
 	lCummulatedBufferSize = 0;
 
 	// Erreur si fichier inexistant ou vide
-	if (not PLRemoteFileService::Exist(shared_inputFile.GetBufferedFile()->GetFileName()))
+	if (not PLRemoteFileService::Exist(shared_sInputFileName.GetValue()))
 	{
-		AddError("File " + shared_inputFile.GetBufferedFile()->GetFileName() + " is missing");
+		AddError("File " + shared_sInputFileName.GetValue() + " is missing");
 		return false;
 	}
-	assert(lInputFileSize == PLRemoteFileService::GetFileSize(shared_inputFile.GetBufferedFile()->GetFileName()));
+	assert(lInputFileSize == PLRemoteFileService::GetFileSize(shared_sInputFileName.GetValue()));
 	if (lInputFileSize == 0)
 	{
-		AddError("File " + shared_inputFile.GetBufferedFile()->GetFileName() + " is empty");
+		AddError("File " + shared_sInputFileName.GetValue() + " is empty");
 		return false;
 	}
 
@@ -166,7 +168,7 @@ boolean KWKeySizeEvaluatorTask::MasterInitialize()
 		nBufferNumber = nMinBufferNumber;
 
 	// Calcul de la taille des buffers, en fonction des contraintes et des ressources
-	nBufferSize = shared_inputFile.GetBufferedFile()->GetBufferSize();
+	nBufferSize = BufferedFile::nDefaultBufferSize;
 	if (lInputFileSize < nBufferNumber * nBufferSize)
 	{
 		nBufferSize = (int)(lInputFileSize / nMinBufferNumber);
@@ -179,7 +181,7 @@ boolean KWKeySizeEvaluatorTask::MasterInitialize()
 				nBufferNumber = (int)ceil(lInputFileSize * 1.0 / nBufferSize);
 		}
 	}
-	shared_inputFile.GetBufferedFile()->SetBufferSize(nBufferSize);
+	shared_nBufferSize = nBufferSize;
 	assert(nBufferNumber >= 1);
 
 	// Calcul de l'espace dans lequel on tire les positions de depart des buffers
@@ -257,7 +259,12 @@ boolean KWKeySizeEvaluatorTask::SlaveProcess()
 
 	// Creation du fichier d'entree a analyser pour la tache
 	inputFile = new InputBufferedFile;
-	inputFile->CopyFrom(shared_inputFile.GetBufferedFile());
+	inputFile->SetFieldSeparator(shared_cInputFieldSeparator.GetValue());
+	inputFile->SetFileName(shared_sInputFileName.GetValue());
+	inputFile->SetBufferSize(shared_nBufferSize);
+	inputFile->SetHeaderLineUsed(shared_bInputHeaderLineUsed);
+	// TODO le fichier ne change pas, il faudrait peut etre mieux l'ouvrir dans le SlaveInitialize et le fermer dans
+	// le SlaveFinalize
 
 	// Ouverture
 	bOk = inputFile->Open();

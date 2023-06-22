@@ -76,7 +76,7 @@ void PLBufferedFileDriverRemote::Fill(InputBufferedFile* buffer, longint lBeginP
 				      longint& lRealBeginPos)
 {
 	longint lNewBeginPos; // Permet d'optimiser le remplissage lorsque lBeginPos est superieur a lLastEndBufferPos
-
+	boolean bEof;
 	ALString sFileName;
 	ALString sHostName;
 	int nRead;
@@ -112,10 +112,11 @@ void PLBufferedFileDriverRemote::Fill(InputBufferedFile* buffer, longint lBeginP
 	      assert(not nPendingMessage););
 
 	// Si on demande une position trop grande, inutile de passer par les serveurs de fichiers
+	bEof = false;
 	if (lBeginPos >= buffer->lFileSize)
 	{
-		buffer->bEof = true;
-		lRealBeginPos = lBeginPos;
+		bEof = true;
+		lRealBeginPos = buffer->lFileSize;
 		return;
 	}
 
@@ -233,7 +234,7 @@ void PLBufferedFileDriverRemote::Fill(InputBufferedFile* buffer, longint lBeginP
 		bBolFound = serializer.GetBoolean();
 		bEolFound = serializer.GetBoolean();
 		bSkippedLine = serializer.GetBoolean();
-		buffer->bEof = serializer.GetBoolean();
+		bEof = serializer.GetBoolean();
 		lRealBeginPos = serializer.GetLongint();
 		nRealBufferSize = serializer.GetInt();
 	}
@@ -247,7 +248,7 @@ void PLBufferedFileDriverRemote::Fill(InputBufferedFile* buffer, longint lBeginP
 		nRealBufferSize = 0;
 	}
 
-	if (buffer->bEof)
+	if (bEof)
 		buffer->lNextFilePos = -1;
 	else
 	{
@@ -273,10 +274,6 @@ void PLBufferedFileDriverRemote::Fill(InputBufferedFile* buffer, longint lBeginP
 	if (not bBolFound)
 	{
 		buffer->nCurrentBufferSize = 0;
-
-		// Si on n'a pas trouve le debut de ligne on n'a pas necessairement lu tout le fichier
-		if (lNewBeginPos + buffer->nAllocatedBufferSize >= buffer->lFileSize)
-			buffer->bEof = true;
 	}
 
 	buffer->nAllocatedBufferSize = buffer->nCurrentBufferSize;
@@ -317,7 +314,6 @@ void PLBufferedFileDriverRemote::Read(InputBufferedFile* buffer, longint lBeginP
 	// Si on demande une position trop grande, inutile de passer par les serveurs de fichiers
 	if (lBeginPos >= buffer->lFileSize)
 	{
-		buffer->bEof = true;
 		return;
 	}
 
@@ -359,7 +355,7 @@ void PLBufferedFileDriverRemote::Read(InputBufferedFile* buffer, longint lBeginP
 	i = 0;
 	nSizeRead = 0;
 	nRead = buffer->InternalGetBlockSize();
-	while (nRead == buffer->InternalGetBlockSize())
+	while (nRead == buffer->InternalGetBlockSize() and nSizeRead != buffer->nBufferSize)
 	{
 		// Allocation supplementaire si on recoit plus que prevu
 		if (buffer->nAllocatedBufferSize == nSizeRead)

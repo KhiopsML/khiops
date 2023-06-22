@@ -1108,6 +1108,7 @@ double KWDataGridClassificationCosts::ComputeDataGridCost(const KWDataGrid* data
 		dDataGridCost += GetModelFamilySelectionCost();
 		dDataGridCost += KWStat::NaturalNumbersUniversalCodeLength(nInformativeAttributeNumber);
 		dDataGridCost -= KWStat::LnFactorial(nInformativeAttributeNumber);
+
 		// Cout de la granularite
 		dDataGridCost += KWStat::BoundedNaturalNumbersUniversalCodeLength(nGranularity, nGranularityMax);
 	}
@@ -1887,8 +1888,25 @@ double KWDataGridRegressionCosts::ComputeCellCost(const KWDGCell* cell) const
 double KWDataGridRegressionCosts::ComputeDataGridConstructionCost(const KWDataGrid* dataGrid, double dLnGridSize,
 								  int nInformativeAttributeNumber) const
 {
-	// Le cout de construction est egal au cout total
-	return ComputeDataGridCost(dataGrid, dLnGridSize, nInformativeAttributeNumber);
+	double dGranularityCost;
+	int nGranularity;
+	int nGranularityMax;
+
+	// Prise en compte du cout de granularite en cas de variable informatives
+	dGranularityCost = 0;
+	if (nInformativeAttributeNumber > 0)
+	{
+		// calcul du cout a partir de la granularite courante et maximale
+		nGranularity = dataGrid->GetGranularity();
+		if (nGranularity > 0)
+			nGranularityMax = (int)ceil(log(dataGrid->GetGridFrequency() * 1.0) / log(2.0));
+		else
+			nGranularityMax = 0;
+		dGranularityCost = KWStat::BoundedNaturalNumbersUniversalCodeLength(nGranularity, nGranularityMax);
+	}
+
+	// Le cout de construction est egal au cout total moins le cout du choix de la granularite
+	return ComputeDataGridCost(dataGrid, dLnGridSize, nInformativeAttributeNumber) - dGranularityCost;
 }
 
 double KWDataGridRegressionCosts::ComputeAttributeConstructionCost(const KWDGAttribute* attribute,
@@ -2293,8 +2311,25 @@ double KWDataGridGeneralizedClassificationCosts::ComputeDataGridConstructionCost
 										 double dLnGridSize,
 										 int nInformativeAttributeNumber) const
 {
-	// Le cout de construction est egal au cout total
-	return ComputeDataGridCost(dataGrid, dLnGridSize, nInformativeAttributeNumber);
+	double dGranularityCost;
+	int nGranularity;
+	int nGranularityMax;
+
+	// Prise en compte du cout de granularite en cas de variable informatives
+	dGranularityCost = 0;
+	if (nInformativeAttributeNumber > 0)
+	{
+		// calcul du cout a partir de la granularite courante et maximale
+		nGranularity = dataGrid->GetGranularity();
+		if (nGranularity > 0)
+			nGranularityMax = (int)ceil(log(dataGrid->GetGridFrequency() * 1.0) / log(2.0));
+		else
+			nGranularityMax = 0;
+		dGranularityCost = KWStat::BoundedNaturalNumbersUniversalCodeLength(nGranularity, nGranularityMax);
+	}
+
+	// Le cout de construction est egal au cout total moins le cout du choix de la granularite
+	return ComputeDataGridCost(dataGrid, dLnGridSize, nInformativeAttributeNumber) - dGranularityCost;
 }
 
 double KWDataGridGeneralizedClassificationCosts::ComputeAttributeConstructionCost(const KWDGAttribute* attribute,

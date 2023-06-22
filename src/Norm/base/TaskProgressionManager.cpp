@@ -34,6 +34,11 @@ void FileTaskProgressionManager::SetTaskProgressionFileName(const ALString& sFil
 		// Creation si necessaire des repertoires intermediaires
 		FileService::MakeDirectories(FileService::GetPathName(sTaskProgressionFileName));
 
+		// Fermeture du fichier si celui-ci est deja ouvert
+		// Ce cas peut arriver si on appelle plusieurs fois ParseParameters (notamment via MODL_dll)
+		if (fstTaskProgression.is_open())
+			fstTaskProgression.close();
+
 		// Ouverture du fichier en ecriture
 		// Ici, on ne passe pas par la classe FileService pour ne pas
 		// entrainer une boucle entre FileService et Global

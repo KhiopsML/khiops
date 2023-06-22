@@ -88,7 +88,7 @@ boolean KDDomainKnowledge::ComputeStats()
 					 " (no constructed variables)");
 		}
 	}
-	// Cas ou tente de construire des variable
+	// Cas ou tente de construire des variables
 	else
 	{
 		// Calcul de la classe en sortie
@@ -478,6 +478,7 @@ boolean KDDomainKnowledge::ConstructClass(KWClass*& constructedClass)
 	int nInitialMaxRuleNumber;
 	int nRequiredMaxRuleNumber;
 	int nExistingDerivedAttributeNumber;
+	boolean bSelectionBasedRulesFiltered;
 
 	require(Check());
 
@@ -516,6 +517,19 @@ boolean KDDomainKnowledge::ConstructClass(KWClass*& constructedClass)
 	MemoryStatsManager::AddLog(GetClassLabel() + " " + GetObjectLabel() +
 				   " BuildMainClassRequestedConstructedRules 1 End");
 
+	// Filtrage des regles construites inutiles, sauf dans le cas avec des attributs existants potentiellement
+	// construits Si aucune regle construite utilisant la regle de selection n'est neccssaire pour attendre le
+	// nombre demande, il n'est pas utile de "provisionner" des regles suplementaires
+	bSelectionBasedRulesFiltered = false;
+	if (nExistingDerivedAttributeNumber == 0)
+		bSelectionBasedRulesFiltered =
+		    classDomainCompliantRules->IsSelectionRuleUsed() and
+		    FilterUselessSelectionBasedRules(&oaAllConstructedRules, nInitialMaxRuleNumber);
+
+	// Nettoyage des spec du l'analyseur d'operande de selection si on les a toutes supprimees
+	if (bSelectionBasedRulesFiltered)
+		selectionOperandAnalyser->CleanAll();
+
 	// Affichage des regles en premiere passe
 	if (bDisplay)
 	{
@@ -525,7 +539,7 @@ boolean KDDomainKnowledge::ConstructClass(KWClass*& constructedClass)
 
 	// Cas de l'utilisation d'une regle de selection, si necessaire
 	if (classDomainCompliantRules->IsSelectionRuleUsed() and oaAllConstructedRules.GetSize() > 0 and
-	    not bConstructOnlyForProfiling)
+	    not bSelectionBasedRulesFiltered and not bConstructOnlyForProfiling)
 	{
 		// Analyse des regles de derivation
 		selectionOperandAnalyser->ComputeStats(&oaAllConstructedRules);
@@ -619,6 +633,46 @@ void KDDomainKnowledge::DisplayConstructedRuleArray(const ObjectArray* oaConstru
 		cout << *rule;
 		cout << "\n";
 	}
+}
+
+boolean KDDomainKnowledge::FilterUselessSelectionBasedRules(ObjectArray* oaConstructedRules, int nMaxRules)
+{
+	boolean bFilter;
+	int nRule;
+	KDConstructedRule* rule;
+
+	require(oaConstructedRules != NULL);
+	require(nMaxRules > 0);
+
+	// Cas ou il n'y a pas assez de regle
+	if (oaConstructedRules->GetSize() <= nMaxRules)
+		bFilter = false;
+	// Analyse des regles sinon
+	else
+	{
+		// On determine si une regle de selection est utilisee parmi les plus probables
+		bFilter = true;
+		for (nRule = 0; nRule < nMaxRules; nRule++)
+		{
+			rule = cast(KDConstructedRule*, oaConstructedRules->GetAt(nRule));
+			assert(nRule == 0 or rule->GetCost() >=
+						 cast(KDConstructedRule*, oaConstructedRules->GetAt(nRule))->GetCost());
+			if (rule->UsesSelectionRule())
+			{
+				bFilter = false;
+				break;
+			}
+		}
+
+		// Filtrage des regles inutiles si la regle de selection n'est pas utilisee parmi les premieres regles
+		if (bFilter)
+		{
+			for (nRule = nMaxRules; nRule < oaConstructedRules->GetSize(); nRule++)
+				delete oaConstructedRules->GetAt(nRule);
+			oaConstructedRules->SetSize(nMaxRules);
+		}
+	}
+	return bFilter;
 }
 
 void KDDomainKnowledge::BuildMainClassRequestedConstructedRules(ObjectArray* oaAllConstructedRules,

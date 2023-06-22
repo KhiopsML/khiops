@@ -9,26 +9,25 @@ int RMResourceConstraints::nMaxCoreNumberOnHost = INT_MAX;
 int RMResourceConstraints::nMaxProcessNumber = INT_MAX;
 int RMResourceConstraints::nOptimizationTime = 0;
 int RMResourceConstraints::nResourceLimit[2] = {INT_MAX, INT_MAX};
-int RMResourceConstraints::nResourceLimitPerProc[2] = {INT_MAX, INT_MAX};
 boolean RMResourceConstraints::bIgnoreMemoryLimit = false;
 ALString RMResourceConstraints::sUserTmpDir = "";
 
-ALString ResourceToString(int nRessource)
+ALString ResourceToString(int nResource)
 {
 	ALString sRes;
 
-	require(nRessource <= UNKNOWN);
+	require(nResource <= RESOURCES_NUMBER);
 
-	switch (nRessource)
+	switch (nResource)
 	{
 	case MEMORY:
 		sRes = "Memory";
 		break;
 	case DISK:
-		sRes = "Disk";
+		sRes = "Disk  ";
 		break;
-	case UNKNOWN:
-		sRes = "UNKNOWN";
+	case RESOURCES_NUMBER:
+		sRes = "RESOURCES_NUMBER";
 		break;
 	default:
 		sRes = "ERROR";
@@ -40,13 +39,13 @@ RMResourceConstraints::RMResourceConstraints() {}
 
 RMResourceConstraints::~RMResourceConstraints() {}
 
-void RMResourceConstraints::SetMaxCoreNumber(int nCoreNumber)
+void RMResourceConstraints::SetMaxCoreNumberOnCluster(int nCoreNumber)
 {
 	require(nCoreNumber > 0);
 	nMaxCoreNumber = nCoreNumber;
 }
 
-int RMResourceConstraints::GetMaxCoreNumber()
+int RMResourceConstraints::GetMaxCoreNumberOnCluster()
 {
 	return nMaxCoreNumber;
 }
@@ -60,17 +59,6 @@ void RMResourceConstraints::SetMaxCoreNumberPerHost(int nCoreNumber)
 int RMResourceConstraints::GetMaxCoreNumberPerHost()
 {
 	return nMaxCoreNumberOnHost;
-}
-
-void RMResourceConstraints::SetMaxProcessNumber(int nProcessNumber)
-{
-	require(nProcessNumber > 0);
-	nMaxProcessNumber = nProcessNumber;
-}
-
-int RMResourceConstraints::GetMaxProcessNumber()
-{
-	return nMaxProcessNumber;
 }
 
 void RMResourceConstraints::SetOptimizationTime(int nValue)
@@ -94,26 +82,6 @@ int RMResourceConstraints::GetMemoryLimit()
 	return GetResourceLimit(MEMORY);
 }
 
-void RMResourceConstraints::SetMemoryLimitPerProc(int nMemory)
-{
-	SetResourceLimitPerProc(MEMORY, nMemory);
-}
-
-int RMResourceConstraints::GetMemoryLimitPerProc()
-{
-	return GetResourceLimitPerProc(MEMORY);
-}
-
-void RMResourceConstraints::SetDiskLimitPerProc(int nValue)
-{
-	SetResourceLimitPerProc(DISK, nValue);
-}
-
-int RMResourceConstraints::GetDiskLimitPerProc()
-{
-	return GetResourceLimitPerProc(DISK);
-}
-
 void RMResourceConstraints::SetDiskLimit(int nValue)
 {
 	SetResourceLimit(DISK, nValue);
@@ -121,33 +89,20 @@ void RMResourceConstraints::SetDiskLimit(int nValue)
 
 int RMResourceConstraints::GetDiskLimit()
 {
-	return GetResourceLimitPerProc(DISK);
+	return GetResourceLimit(DISK);
 }
 
 void RMResourceConstraints::SetResourceLimit(int nResourceType, int nValue)
 {
-	require(nResourceType < UNKNOWN);
+	require(nResourceType < RESOURCES_NUMBER);
 	require(nValue >= 0);
 	nResourceLimit[nResourceType] = nValue;
 }
 
 int RMResourceConstraints::GetResourceLimit(int nResourceType)
 {
-	require(nResourceType < UNKNOWN);
+	require(nResourceType < RESOURCES_NUMBER);
 	return nResourceLimit[nResourceType];
-}
-
-void RMResourceConstraints::SetResourceLimitPerProc(int nResourceType, int nValue)
-{
-	require(nResourceType < UNKNOWN);
-	require(nValue >= 0);
-	nResourceLimitPerProc[nResourceType] = nValue;
-}
-
-int RMResourceConstraints::GetResourceLimitPerProc(int nResourceType)
-{
-	require(nResourceType < UNKNOWN);
-	return nResourceLimitPerProc[nResourceType];
 }
 
 ALString RMResourceConstraints::ToString()
@@ -177,16 +132,6 @@ ALString RMResourceConstraints::ToString()
 	if (nResourceLimit[DISK] != INT_MAX)
 	{
 		sRes += sTmp + "nResourceLimit[DISK] " + LongintToHumanReadableString(nResourceLimit[DISK]) + "\n";
-	}
-	if (nResourceLimitPerProc[MEMORY] != INT_MAX)
-	{
-		sRes += sTmp + "nResourceLimitPerProc[MEMORY] " +
-			LongintToHumanReadableString(nResourceLimitPerProc[MEMORY] * lMB) + "\n";
-	}
-	if (nResourceLimitPerProc[DISK] != INT_MAX)
-	{
-		sRes += sTmp + "nResourceLimitPerProc[DISK] " +
-			LongintToHumanReadableString(nResourceLimitPerProc[DISK]) + "\n";
 	}
 	if (bIgnoreMemoryLimit)
 	{

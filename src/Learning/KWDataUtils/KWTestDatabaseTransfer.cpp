@@ -96,7 +96,7 @@ void KWTestDatabaseTransfer::STTest()
 	// Creation du dictionnaire
 	sClassName = sClassNamePrefix + sSuffix;
 	kwcCreationClass =
-	    KWClass::CreateClass(sClassName, 0, nSymbolNumber, nContinuousNumber, 0, 0, 0, 0, 0, 0, false, NULL);
+	    KWClass::CreateClass(sClassName, 0, nSymbolNumber, nContinuousNumber, 0, 0, 0, 0, 0, 0, 0, false, NULL);
 	KWClassDomain::GetCurrentDomain()->InsertClass(kwcCreationClass);
 	kwcCreationClass->Compile();
 
@@ -257,7 +257,7 @@ boolean KWTestDatabaseTransfer::STTestTransfer()
 					sClassName = sClassNamePrefix + sSuffix;
 					kwcCreationClass =
 					    KWClass::CreateClass(sClassName, 0, nSymbolNumber, nContinuousNumber, 0, 0,
-								 0, 0, 0, 0, false, NULL);
+								 0, 0, 0, 0, 0, false, NULL);
 					KWClassDomain::GetCurrentDomain()->InsertClass(kwcCreationClass);
 					kwcCreationClass->Compile();
 

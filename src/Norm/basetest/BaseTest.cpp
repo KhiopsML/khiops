@@ -394,20 +394,19 @@ void TestBaseComponents::RandomTest()
 	int nStopClock;
 	int nNumber = 100000000;
 	int i;
-	double dRandom;
+	longint lRandomMean;
 	double dMeanRandom;
 
 	SetRandomSeed(1);
 
 	// Random int standard
 	nStartClock = clock();
-	dMeanRandom = 0;
+	lRandomMean = 0;
 	for (i = 0; i < nNumber; i++)
 	{
-		dRandom = RandomInt(1000000000);
-		dMeanRandom += dRandom;
+		lRandomMean += RandomInt(1000000000);
 	}
-	dMeanRandom /= nNumber;
+	dMeanRandom = lRandomMean * 1.0 / nNumber;
 	nStopClock = clock();
 	cout << "Standard random int mean\t" << dMeanRandom << "\n";
 	cout << "SYS TIME\tStandard random int\t" << (nStopClock - nStartClock) * 1.0 / CLOCKS_PER_SEC << "\n\n";
@@ -417,34 +416,44 @@ void TestBaseComponents::RandomTest()
 	dMeanRandom = 0;
 	for (i = 0; i < nNumber; i++)
 	{
-		dRandom = RandomDouble();
-		dMeanRandom += dRandom;
+		dMeanRandom += RandomDouble();
 	}
-	dMeanRandom /= nNumber;
+	dMeanRandom = dMeanRandom / nNumber;
 	nStopClock = clock();
 	cout << "Standard random double mean\t" << dMeanRandom << "\n";
 	cout << "SYS TIME\tStandard random double\t" << (nStopClock - nStartClock) * 1.0 / CLOCKS_PER_SEC << "\n\n";
 
 	// Ith random int
 	nStartClock = clock();
-	dMeanRandom = 0;
+	lRandomMean = 0;
 	for (i = 0; i < nNumber; i++)
 	{
-		dRandom = IthRandomInt(i, 1000000000);
-		dMeanRandom += dRandom;
+		lRandomMean += IthRandomInt(i, 1000000000);
 	}
-	dMeanRandom /= nNumber;
+	dMeanRandom = lRandomMean * 1.0 / nNumber;
 	nStopClock = clock();
 	cout << "Standard ith random int mean\t" << dMeanRandom << "\n";
 	cout << "SYS TIME\tStandard ith random int\t" << (nStopClock - nStartClock) * 1.0 / CLOCKS_PER_SEC << "\n\n";
+
+	// Ith random longint
+	nStartClock = clock();
+	lRandomMean = 0;
+	for (i = 0; i < nNumber; i++)
+	{
+		lRandomMean += abs(IthRandomLongint(i)) % 1000000000;
+	}
+	lRandomMean /= nNumber;
+	nStopClock = clock();
+	cout << "Standard ith random longint mean\t" << dMeanRandom << "\n";
+	cout << "SYS TIME\tStandard ith random longint\t" << (nStopClock - nStartClock) * 1.0 / CLOCKS_PER_SEC
+	     << "\n\n";
 
 	// Ith random double
 	nStartClock = clock();
 	dMeanRandom = 0;
 	for (i = 0; i < nNumber; i++)
 	{
-		dRandom = IthRandomDouble(i);
-		dMeanRandom += dRandom;
+		dMeanRandom += IthRandomDouble(i);
 	}
 	dMeanRandom /= nNumber;
 	nStopClock = clock();

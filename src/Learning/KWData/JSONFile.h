@@ -10,6 +10,7 @@
 #include "FileService.h"
 #include "MemoryStatsManager.h"
 #include "PLRemoteFileService.h"
+#include "KWSortableIndex.h"
 
 //////////////////////////////////////////
 // Fichier JSON
@@ -28,7 +29,26 @@ public:
 	boolean OpenForWrite();
 	boolean IsOpened();
 
-	// fermeture du fichier (precede de la fin de l'objet global et d'un flush)
+	// Fermeture du fichier (precede de la fin de l'objet global et d'un flush)
+	//
+	// Le fichier json est au format utf8, ce qui pose des problemes potentiels pour
+	// les caracteres ansi (128 a 255) sui sont alors recodes en utf8 avec windows1252/iso8859-1.
+	// Ces caracteres ansi sont encodes sous leur forme unicode \uXXXX dans le fichier json, ce qui
+	// permet de les distinguer des caracteres utf8 latins initiaux
+	// L'encodage du fichier est ecrit avant la fermeture au moyen d'un champ "khiops_encoding"
+	// pouvant prendre les valeurs suivantes:
+	//  . ascii: ascii uniquement
+	//  . ansi: ansi, sans utf8
+	//  . utf8: utf8, sans ansi
+	//  . mixed_ansi_utf8: ansi et utf8, sans utf8 provenant de windows1252/iso8859-1
+	//  . colliding_ansi_utf8: ansi et utf8, avec utf8 provenant de windows1252/iso8859-1
+	// Seul le dernier cas pose probleme, car un fois lu depuis un json reader, il y a des collisions
+	// potentielles entres les caracteres ansi initiaux recodes en utf8 avec windows1252/iso8859-1
+	// et les caracteres utf8 initiaux presents dans windows1252/iso8859-1.
+	// En cas de collision, les deux champs supplementaires sont ajoutes dans le json pour aide
+	// au diagnostique:
+	//   . ansi_chars: tableau des caracteres ansi utilises
+	//   . colliding_utf8_chars: tableau des caracteres utf8 initiaux utilises dans windows1252/iso8859-1.
 	boolean Close();
 
 	////////////////////////////////////////////////////
@@ -74,7 +94,7 @@ public:
 	void EndList();
 
 	////////////////////////////////////////////////////
-	// Methodes avancees
+	// Options avancees
 
 	// Passage de toutes les cles au format camel case (defaut: false)
 	void SetCamelCaseKeys(boolean bValue);
@@ -84,18 +104,33 @@ public:
 	// Les blancs sont supprimes, les mots commencent par une minuscule, sauf le premier
 	static const ALString ToCamelCase(const ALString& sKey);
 
-	// Nombre de caracteres UTF8 valides a partir d'une position donnees
-	// Retourne 1 a 4 dans le cas d'un caractere valides, 0 sinon pour un caractere ANSI non encodable directement
-	static int GetValidUTF8CharNumberAt(const ALString& sValue, int nStart);
+	// Parametrage global du mode verbeux pour les messages d'erreur ou de warning (defaut: true)
+	// Ces messages sont emis notamment pour les probleme potentiels d'encodage
+	static void SetVerboseMode(boolean bValue);
+	static boolean GetVerboseMode();
 
-	// Conversion d'un caractere asci windows-1252 vers un caractere unicode pour les caractere ascii etendus non
-	// ansi Les caracteres speciaux ansi 0x20 a 0x7F sont encodes tels quel avec un caracteres Tous les autres
-	// caracteres sont encode sont 4 caracteres hexas en unicode
-	static void Windows1252ToUnicode(int nCode, ALString& sUnicodeChars);
+	///////////////////////////////////////////////////////////////////////////////
+	// Gestion de l'encodage des chaines ansi en utf8, le format supporte par json
+	// Les caracteres ansi 128 a 255 sont encodes avec iso-8859-1/windows-1252
+	// L'encodage dans le json se fait avec le caractere d'echapement \uHHHH
 
-	// Tentative de conversion inverse
-	// Renvoie un code entre 0 et 255 si ok, -1 sinon
-	static int UnicodeToWindows1252(const ALString& sUnicodeChars);
+	// Encodage d'un chaine de caracteres C au format json, sans les double-quotes de debut et fin
+	static void CStringToJsonString(const ALString& sCString, ALString& sJsonString);
+
+	// Encodage d'une chaine de caracteres C au format ansi en re-encodant les caracteres utf8
+	// endodes avec iso-8859-1/windows-1252 vers ansi
+	static void CStringToCAnsiString(const ALString& sCString, ALString& sCAnsiString);
+
+	// Longueur en bytes d'un caractere UTF8 valide a partir d'une position donnees
+	// Retourne 1 a 4 dans le cas d'un caractere valide, 0 sinon pour un caractere ANSI non encodable directement
+	static int GetValidUTF8CharLengthAt(const ALString& sValue, int nStart);
+
+	// Conversion d'un caractere ansi windows-1252 vers un caractere unicode au format hexa
+	static void Windows1252ToUnicodeHex(int nAnsiCode, ALString& sUnicodeHexChars);
+
+	// Conversion d'un caractere unicode au format hexa vers le code ansi windows-1252
+	// Renvoie un code ansi entre 0 et 255 si ok, -1 sinon
+	static int UnicodeHexToWindows1252(const ALString& sUnicodeHexChars);
 
 	////////////////////////////////////////////////////
 	// Divers
@@ -132,14 +167,65 @@ protected:
 	void Indent();
 	void Unindent();
 
-	// Initialisation de la table de transcodage entre les caracteres asci windows-1252 et les caracteres unicode
-	// Les caracteres speciaux 0x00 a 0x1F sont encodes en 0x00HH (4 caractere hexa)
-	// Les caracteres ansi 0x20 a 0x7F sont encodes tels quels avec un seul caractere (par de sequence unicode)
-	// Les caracteres speciaux 0x80 a 0x9F sont encodes de facon speciale pour avoir le meme
-	// caractere imprimable qu'avec l'encodage windows-1252 (4 caractere hexa).
-	// Cf. https://www.i18nqa.com/debug/table-iso8859-1-vs-windows-1252.html
+	// Initialisation des statistiques d'encodage par type de caracteres
+	void InitializeEncodingStats();
+
+	// Mise a jour des stats d'encodage
+	void UpdateEncodingStats(const ALString& sCString);
+
+	// Exploitation des stats d'encodage: memorisation dans le fichier json et message utilisateur
+	void ExploitEncodingStats();
+
+	//////////////////////////////////////////////////////////////////////////////////////
+	// Conversion entre caracteres hexa et bytes
+
+	// Test si un caractere est un caractere hexe (0 a 9 ou A a F)
+	static boolean IsHexChar(char c);
+
+	// Code entre 0 et 15 associe a un caractere hexa
+	static int GetHexCharCode(char c);
+
+	// Transformation d'une chaine de code hexa en chaines de bytes
+	static void HexCharStringToByteString(const ALString& sHexCharString, ALString& sByteString);
+
+	//////////////////////////////////////////////////////////////////////////////////////
+	// Gestion des encodages windows-1252 vers unicode et UFT8
+
+	// Code d'une chaine de caracteres hexa encodant un caractere unicode ou utf8
+	static int GetHexStringCode(const ALString& sHexString);
+
+	// Conversion d'un caractere ansi windows-1252 vers un caractere utf8 au format hexa
+	static void Windows1252ToUtf8Hex(int nAnsiCode, ALString& sUtf8HexChars);
+
+	// Recherche du code ansi d'un code de caracteres utf8 dans la page de code Windows-1252
+	// Renvoie un code ansi entre 0 et 255 si ok, -1 sinon
+	static int Windows1252Utf8CodeToWindows1252(int nWindows1252Utf8Code);
+
+	// Initialisation de l'ensemble des structures d'encodages
+	static void InitializeEncodingStructures();
+
+	// Indique que l'initialisation est effectuee
+	static boolean AreEncodingStructuresInitialized();
+
+	// Verification de l'ensemble des structures d'encodages
+	static boolean CheckEncodingStructures();
+
+	// Initialisation de la table de transcodage entre les caracteres asci Windows-1252 et les caracteres unicode ou
+	// utf8 Les caracteres speciaux 0x00 a 0x1F sont encodes en 0x00HH (4 caractere hexa en unicode) Les caracteres
+	// ansi 0x20 a 0x7F sont encodes tels quels avec un seul caractere Les caracteres speciaux 0x80 a 0x9F sont
+	// encodes de facon speciale pour avoir le meme caractere imprimable qu'avec l'encodage windows-1252 (4
+	// caractere hexa en unicode). Cf. https://www.i18nqa.com/debug/table-iso8859-1-vs-windows-1252.html
+	// 	   https://www.charset.org/utf-8
 	// Les caracteres latin etendus speciaux 0xA0 a 0xEF sont encodes en 0x00HH (4 caractere hexa)
-	static void InitializeWindows1252UnicodeSequences();
+	static void InitializeWindows1252UnicodeHexEncoding();
+	static void InitializeWindows1252Utf8HexEncoding();
+
+	// Initialisation des structure de decodage des caracteres Windows-1252, pour retrouver leur index en fonction
+	// de leur code utf8
+	static void InitializeWindows1252Utf8DecodingStructures();
+
+	///////////////////////////////////////////////////////////////////////////////////
+	// Variable d'instance
 
 	// Nom du fichier
 	ALString sFileName;      // URI specifiee par l'utilisateur (hdfs ou locale)
@@ -148,7 +234,7 @@ protected:
 	// Fichier en cours
 	fstream fstJSON;
 
-	// Niveau de list courant
+	// Niveau de liste courant
 	int nCurrentListLevel;
 
 	// Nombre d'elements dans la structure (objet au tableau) par niveau
@@ -157,7 +243,36 @@ protected:
 	// Parametrage des cles en mode camel case
 	boolean bCamelCaseKeys;
 
-	// Table de transcodage entre les caracteres asci windows-1252 et les caracteres unicode
-	// pour les caracteres de controle entre 128 et 159
-	static StringVector svWindows1252UnicodeSequences;
+	// Vecteurs de collecte de stats pour les caracteres ansi etendus (128 a 255) encodes soit en unicode, soit
+	// directement presents avec leur encodage. Les vecteurs sont de taille 256, mais seul les index 128 a 255 sont
+	// collectes
+	LongintVector lvWindows1252AnsiCharNumbers;
+	LongintVector lvWindows1252Utf8CharNumbers;
+
+	// Stats par caracteres ascii, ansi etendu, et utf8 (hors ascii)
+	longint lAsciiCharNumber;
+	longint lAnsiCharNumber;
+	longint lUtf8CharNumber;
+
+	// Buffer de travail pour les encodages CString vers UTF8, pour eviter de reallouer sans arret les chaines de
+	// caracteres
+	ALString sStringBuffer;
+
+	///////////////////////////////////////////////////////////////////////////////////
+	// Gestion des encodage windows-1252 vers l'unicode et l'UTF8, en caracteres hexa
+
+	// Mode verbeux
+	static boolean bVerboseMode;
+
+	// Table de transcodage de taille 256 entre les caracteres asci windows-1252 et les caracteres unicode, ou utf8,
+	// sous forme de chaines de caracteres en hexa (0-9 et A-F)
+	static StringVector svWindows1252UnicodeHexEncoding;
+	static StringVector svWindows1252Utf8HexEncoding;
+
+	// Vecteur des codes UTF8 pour les 32 caracteres de controles Windows-1252 (128 à 159), et leur index
+	static KWIntVectorSorter ivsWindows1252ControlCharUtf8CodeSorter;
+
+	// Instance statique de JSONFile, permettant de forcer l'initialisation des structure d'encodage une fois
+	// pour toute lors de l'appel du constructuer de cette instance
+	static JSONFile jsonFileGlobalInitializer;
 };

@@ -144,6 +144,9 @@ public:
 	boolean IsBlockRule() const;
 	boolean IsStandardRule() const;
 
+	// Test si une regle utilise directement ou indirectement une regle de selection
+	boolean UsesSelectionRule() const;
+
 	// Acces a la partie concernee dans le cas d'une regle de selection ou de bloc
 	// Renvoie NULL dans le cas d'une regle standard
 	const KDConstructedPart* GetUsedPart() const;

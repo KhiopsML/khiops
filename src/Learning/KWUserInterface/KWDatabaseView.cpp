@@ -77,6 +77,10 @@ KWDatabaseView::KWDatabaseView()
 			  "\n when the value of their selection variable is equal to the selection value.");
 	GetFieldAt("SelectionValue")->SetHelpText("Selection value used when a selection variable is specified.");
 
+#ifdef DEPRECATED_V10
+	bDeprecatedTestDataViewUsed = false;
+#endif // DEPRECATED_V10
+
 	// ##
 }
 
@@ -204,6 +208,8 @@ KWDatabase* KWDatabaseView::GetTrainDatabase()
 void KWDatabaseView::SetTestDatabase(KWDatabase* testDatabaseSettings)
 {
 	testDatabase = testDatabaseSettings;
+	sLastTestDatabaseSpecificationMode = "";
+	sLastTestDatabaseClassName = "";
 }
 
 KWDatabase* KWDatabaseView::GetTestDatabase()
@@ -326,13 +332,41 @@ void KWDatabaseView::UpdateTestDatabase()
 		// Cas d'une base avec specification particuliere
 		else if (GetStringValueAt("TestDatabaseSpecificationMode") == "Specific")
 		{
-			// On garde la base en cours, sauf s'il n'y a pas de specification pour la base courante
-			// Dans ce cas, on force le taux d'echantillonnage a 100%
-			if (testDatabase->GetDatabaseName() == "")
+
+#ifdef DEPRECATED_V10
+			if (bDeprecatedTestDataViewUsed)
 			{
-				testDatabase->SetSampleNumberPercentage(100);
-				testDatabase->SetModeExcludeSample(false);
+				// On garde la base en cours, sauf s'il n'y a pas de specification pour la base courante
+				// Dans ce cas, on force le taux d'echantillonnage a 100%
+				if (testDatabase->GetDatabaseName() == "")
+				{
+					testDatabase->SetSampleNumberPercentage(100);
+					testDatabase->SetModeExcludeSample(false);
+				}
 			}
+			else
+#endif // DEPRECATED_V10
+
+				// On garde la base en cours, sauf si on vient juste de passer au mode specific ou que
+				// l'on a change de classe
+				if (sLastTestDatabaseSpecificationMode != "Specific" or
+				    sLastTestDatabaseClassName != editedTrainDatabase->GetClassName())
+				{
+					// Creation d'une base vide de meme technologie que la base d'apprentissage
+					emptyDatabase = KWDatabase::CloneDatabaseTechnology(
+					    editedTrainDatabase->GetTechnologyName());
+
+					// On l'initialise avec le bon dictionnaire, en supposant qu'elle est
+					// multi-table
+					emptyDatabase->SetClassName(editedTrainDatabase->GetClassName());
+					cast(KWMTDatabase*, emptyDatabase)->UpdateMultiTableMappings();
+
+					// On recopie la base vide avec son taux d'echantillonnage a 100 par defaut
+					testDatabase->CopyFrom(emptyDatabase);
+
+					// Nettoyage
+					delete emptyDatabase;
+				}
 		}
 		// Cas sans base de test
 		else if (GetStringValueAt("TestDatabaseSpecificationMode") == "None")
@@ -351,6 +385,12 @@ void KWDatabaseView::UpdateTestDatabase()
 			// Nettoyage
 			delete emptyDatabase;
 		}
+
+		// Memorisation du dernier mode de specification utilise
+		sLastTestDatabaseSpecificationMode = GetStringValueAt("TestDatabaseSpecificationMode");
+
+		// Derniere classe utilisee pour la base de test
+		sLastTestDatabaseClassName = editedTrainDatabase->GetClassName();
 
 		// On force un Refresh de la base de test, ce va synchroniser ses mappings vi la methode
 		// ResfreshMultiTableMapping

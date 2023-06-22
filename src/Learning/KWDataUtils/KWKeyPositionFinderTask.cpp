@@ -946,9 +946,11 @@ boolean KWKeyPositionFinderTask::SlaveProcess()
 					// Memorisation de la cle d'entree correspondante
 					recordKeyPosition->GetKey()->CopyFrom(inputKey);
 
-					// Memorisation de l'index de la ligne predecent la cle secondaire, qui sera
-					// traite avec la ligne de la cle d'entre correspondante
-					recordKeyPosition->SetLineIndex(inputFile.GetCurrentLineNumber() - 1);
+					// Memorisation de l'index de la ligne precedant la cle secondaire, qui sera
+					// traitee avec la ligne de la cle d'entree correspondante On utilise le numero
+					// de ligne du buufer, qui commence a zero et correspond a la ligne sur laquelle
+					// la cle vient d'etre parsee
+					recordKeyPosition->SetLineIndex(inputFile.GetCurrentLineNumber());
 
 					// Memorisation du debut de ligne suivant (avant parsing de la cle secondaire)
 					recordKeyPosition->SetLinePosition(lLinePosition);

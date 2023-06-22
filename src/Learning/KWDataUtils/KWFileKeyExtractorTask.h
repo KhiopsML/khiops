@@ -122,16 +122,17 @@ protected:
 	// Parametres partages par le maitre et les esclaves
 	// tout au long du programme
 
-	// Fichier de sortie
-	PLShared_OutputBufferedFile shared_outputFile;
-
 	// Tableau des index des clefs
 	PLShared_IntVector shared_ivKeyFieldIndexes;
 
 	// Attributs du fichier d'entree
 	PLShared_String shared_sInputFileName;
-	PLShared_Boolean shared_bHeaderLineUsed;
-	PLShared_Char shared_cFieldSeparator;
+	PLShared_Boolean shared_bInputHeaderLineUsed;
+	PLShared_Char shared_cInputFieldSeparator;
+
+	// Attributs du fichier de sortie
+	PLShared_String shared_sOutputFileName;
+	PLShared_Char shared_cOutputFieldSeparator;
 
 	//////////////////////////////////////////////////////
 	// Input de la tache parallelisee

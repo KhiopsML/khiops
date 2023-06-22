@@ -120,7 +120,7 @@ int KWLearningReport::CompareValue(const KWLearningReport* otherReport) const
 	// Comparaison par
 	nCompare = -CompareLongint(lSortValue1, lSortValue2);
 
-	// En cas d'égalite, on se base sur le nom
+	// En cas d'egalite, on se base sur le nom
 	if (nCompare == 0)
 		nCompare = CompareName(otherReport);
 	return nCompare;
@@ -615,18 +615,6 @@ KWLearningReport* PLShared_LearningReport::GetLearningReport()
 	return cast(KWLearningReport*, GetObject());
 }
 
-void PLShared_LearningReport::DeserializeObject(PLSerializer* serializer, Object* o) const
-{
-	KWLearningReport* learningReport;
-
-	require(serializer->IsOpenForRead());
-	require(o != NULL);
-
-	learningReport = cast(KWLearningReport*, o);
-	learningReport->bIsStatsComputed = serializer->GetBoolean();
-	learningReport->sIdentifier = serializer->GetString();
-}
-
 void PLShared_LearningReport::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
 	KWLearningReport* learningReport;
@@ -637,6 +625,18 @@ void PLShared_LearningReport::SerializeObject(PLSerializer* serializer, const Ob
 	learningReport = cast(KWLearningReport*, o);
 	serializer->PutBoolean(learningReport->bIsStatsComputed);
 	serializer->PutString(learningReport->sIdentifier);
+}
+
+void PLShared_LearningReport::DeserializeObject(PLSerializer* serializer, Object* o) const
+{
+	KWLearningReport* learningReport;
+
+	require(serializer->IsOpenForRead());
+	require(o != NULL);
+
+	learningReport = cast(KWLearningReport*, o);
+	learningReport->bIsStatsComputed = serializer->GetBoolean();
+	learningReport->sIdentifier = serializer->GetString();
 }
 
 Object* PLShared_LearningReport::Create() const
@@ -662,6 +662,28 @@ KWDataPreparationStats* PLShared_DataPreparationStats::GetDataPreparationStats()
 	return cast(KWDataPreparationStats*, GetObject());
 }
 
+void PLShared_DataPreparationStats::SerializeObject(PLSerializer* serializer, const Object* o) const
+{
+	KWDataPreparationStats* dataPreparationStats;
+	PLShared_DataGridStats shared_dataGrid;
+
+	require(serializer->IsOpenForWrite());
+	require(o != NULL);
+
+	// Appel de la methode ancetre
+	PLShared_LearningReport::SerializeObject(serializer, o);
+
+	// Serialisation specifique
+	dataPreparationStats = cast(KWDataPreparationStats*, o);
+	AddNull(serializer, dataPreparationStats->preparedDataGridStats);
+	if (dataPreparationStats->preparedDataGridStats != NULL)
+		shared_dataGrid.SerializeObject(serializer, dataPreparationStats->preparedDataGridStats);
+	serializer->PutDouble(dataPreparationStats->dPreparedLevel);
+	serializer->PutDouble(dataPreparationStats->dPreparationCost);
+	serializer->PutDouble(dataPreparationStats->dConstructionCost);
+	serializer->PutDouble(dataPreparationStats->dDataCost);
+}
+
 void PLShared_DataPreparationStats::DeserializeObject(PLSerializer* serializer, Object* o) const
 {
 	KWDataPreparationStats* dataPreparationStats;
@@ -685,26 +707,4 @@ void PLShared_DataPreparationStats::DeserializeObject(PLSerializer* serializer, 
 	dataPreparationStats->dPreparationCost = serializer->GetDouble();
 	dataPreparationStats->dConstructionCost = serializer->GetDouble();
 	dataPreparationStats->dDataCost = serializer->GetDouble();
-}
-
-void PLShared_DataPreparationStats::SerializeObject(PLSerializer* serializer, const Object* o) const
-{
-	KWDataPreparationStats* dataPreparationStats;
-	PLShared_DataGridStats shared_dataGrid;
-
-	require(serializer->IsOpenForWrite());
-	require(o != NULL);
-
-	// Appel de la methode ancetre
-	PLShared_LearningReport::SerializeObject(serializer, o);
-
-	// Serialisation specifique
-	dataPreparationStats = cast(KWDataPreparationStats*, o);
-	AddNull(serializer, dataPreparationStats->preparedDataGridStats);
-	if (dataPreparationStats->preparedDataGridStats != NULL)
-		shared_dataGrid.SerializeObject(serializer, dataPreparationStats->preparedDataGridStats);
-	serializer->PutDouble(dataPreparationStats->dPreparedLevel);
-	serializer->PutDouble(dataPreparationStats->dPreparationCost);
-	serializer->PutDouble(dataPreparationStats->dConstructionCost);
-	serializer->PutDouble(dataPreparationStats->dDataCost);
 }

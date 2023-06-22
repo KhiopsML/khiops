@@ -96,7 +96,7 @@ inline longint SystemFile::Read(void* pBuffer, size_t size, size_t count)
 	require(bIsOpenForRead);
 	if (FileService::LogIOStats())
 		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] fread Begin");
-	lRes = fileDriver->fread(pBuffer, size, count, fileHandle);
+	lRes = fileDriver->Fread(pBuffer, size, count, fileHandle);
 	if (FileService::LogIOStats())
 		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] fread End");
 	return lRes;
@@ -137,7 +137,7 @@ inline longint SystemFile::Write(const void* pBuffer, size_t size, size_t count)
 	if (FileService::LogIOStats())
 		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] fwrite Begin");
 
-	lRes = fileDriver->fwrite(pBuffer, size, count, fileHandle);
+	lRes = fileDriver->Fwrite(pBuffer, size, count, fileHandle);
 	if (FileService::LogIOStats())
 		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] fwrite End");
 
@@ -154,7 +154,7 @@ inline boolean SystemFile::Flush()
 	require(bIsOpenForWrite);
 	if (FileService::LogIOStats())
 		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] flush Begin");
-	bRes = fileDriver->flush(fileHandle);
+	bRes = fileDriver->Flush(fileHandle);
 	if (FileService::LogIOStats())
 		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] flush End");
 	return bRes;

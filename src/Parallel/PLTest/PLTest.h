@@ -18,5 +18,4 @@
 #include "PLSharedVector.h"
 #include "PLSharedObject.h"
 #include "PLShared_TaskResourceGrant.h"
-#include "PLKnapsackProblem.h"
 #include "PLShared_ResourceRequirement.h"

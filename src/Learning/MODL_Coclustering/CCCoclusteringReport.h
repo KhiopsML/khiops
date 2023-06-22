@@ -92,8 +92,10 @@ protected:
 		None
 	};
 
-	// Methode de detection du format d'un fichier, avec emission de message d'erreur
-	int DetectFileFormat(const ALString& sFileName) const;
+	// Methode de detection du format et de l'encodage d'un fichier, avec emission de message d'erreur si format
+	// invalide et de warning si l'encodage pose probleme Le format est renvoye en code retour L'encodage correspond
+	// au champ "khiops_encoding" du fichier json (cf. classe JSONFile), ou vide si non trouve ou non valide
+	int DetectFileFormatAndEncoding(const ALString& sFileName, ALString& sKhiopsEncoding) const;
 
 	/////////////////////////////////////////////////////////////////////////////////////
 	// Methode interne pour la gestion des rapports au format khc

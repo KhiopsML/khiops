@@ -424,9 +424,9 @@ public:
 
 	// Creation d'un dictionnaire
 	static KWClass* CreateClass(const ALString& sClassName, int nKeySize, int nSymbolNumber, int nContinuousNumber,
-				    int nDateNumber, int nTimeNumber, int nTimestampNumber, int nObjectNumber,
-				    int nObjectArrayNumber, int nStructureNumber, boolean bCreateAttributeBlocks,
-				    KWClass* attributeClass);
+				    int nDateNumber, int nTimeNumber, int nTimestampNumber, int nTextNumber,
+				    int nObjectNumber, int nObjectArrayNumber, int nStructureNumber,
+				    boolean bCreateAttributeBlocks, KWClass* attributeClass);
 
 	// Test des parcours des attributs avec affichage
 	void TestAttributeBrowsings(boolean bList, boolean bInverseList, boolean bUsed, boolean bLoaded,
@@ -491,6 +491,10 @@ protected:
 	// faisant partie de bloc de type SymbolValueBlock sont geres par leur bloc
 	int GetLoadedDenseSymbolAttributeNumber() const;
 	KWAttribute* GetLoadedDenseSymbolAttributeAt(int nIndex) const;
+
+	// Attributs Text charges en memoire, pour optimiser leur destruction et mutation
+	int GetLoadedTextAttributeNumber() const;
+	KWAttribute* GetLoadedTextAttributeAt(int nIndex) const;
 
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	// Methodes internes utilises en particulier dans les KWObject, pour s'assurer de la
@@ -562,6 +566,7 @@ protected:
 	ObjectArray oaLoadedDenseAttributes;
 	ObjectArray oaLoadedAttributeBlocks;
 	ObjectArray oaLoadedDenseSymbolAttributes;
+	ObjectArray oaLoadedTextAttributes;
 	ObjectArray oaLoadedRelationAttributes;
 	ObjectArray oaUnloadedNativeRelationAttributes;
 
@@ -783,6 +788,18 @@ inline KWAttribute* KWClass::GetLoadedDenseSymbolAttributeAt(int nIndex) const
 {
 	require(IsIndexed());
 	return cast(KWAttribute*, oaLoadedDenseSymbolAttributes.GetAt(nIndex));
+}
+
+inline int KWClass::GetLoadedTextAttributeNumber() const
+{
+	require(IsIndexed());
+	return oaLoadedTextAttributes.GetSize();
+}
+
+inline KWAttribute* KWClass::GetLoadedTextAttributeAt(int nIndex) const
+{
+	require(IsIndexed());
+	return cast(KWAttribute*, oaLoadedTextAttributes.GetAt(nIndex));
 }
 
 inline int KWClass::GetLoadedDataItemNumber() const

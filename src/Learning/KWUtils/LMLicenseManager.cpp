@@ -43,7 +43,9 @@ void LMLicenseManager::DeclareLicense(int nLicenseId, const ALString& sLicenseLa
 				      const ALString& sLicenseVersion)
 {
 	LMLicense* license;
-
+#ifdef __ANDROID__
+	return;
+#endif // __ANDROID
 	require(singleton.GetLicense() == NULL);
 
 	// Creation, initialisation et memorisation de la licence

@@ -66,7 +66,7 @@ void PEIOParallelTestTask::TestCountTotalLines(int nSlaveNumber, const StringVec
 		TaskProgression::SetDisplayedLevelNumber(1);
 
 	// Utilisation du nombre maximum de coeurs : coeurs  du systeme -1
-	RMResourceConstraints::SetMaxCoreNumber(nSlaveNumber + 1);
+	RMResourceConstraints::SetMaxCoreNumberOnCluster(nSlaveNumber + 1);
 
 	// Lancement de la tache avec gestion de l'avancement
 	TaskProgression::SetTitle("Parallel IO test");
@@ -216,6 +216,7 @@ boolean PEIOParallelTestTask::SlaveProcess()
 	double dProgression;
 	longint lPosition;
 	char* sField;
+	int nFieldLength;
 	int nFieldError;
 	boolean bEol;
 	ALString sTmp;
@@ -269,7 +270,7 @@ boolean PEIOParallelTestTask::SlaveProcess()
 			while (not inputFile->IsBufferEnd())
 			{
 				// Lecture du prochain champs
-				bEol = inputFile->GetNextField(sField, nFieldError);
+				bEol = inputFile->GetNextField(sField, nFieldLength, nFieldError);
 				assert(nFieldError == InputBufferedFile::FieldNoError);
 				output_lFieldNumber += 1;
 

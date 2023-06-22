@@ -223,6 +223,7 @@ boolean KWDataTableDriverStream::ReadHeaderLineFields(StringVector* svFirstLineF
 	boolean bOk;
 	boolean bEndOfLine;
 	int nField;
+	int nFieldLength;
 	int nFieldError;
 	char* sField;
 	ALString sTmp;
@@ -241,7 +242,7 @@ boolean KWDataTableDriverStream::ReadHeaderLineFields(StringVector* svFirstLineF
 		nField = 0;
 		while (not bEndOfLine)
 		{
-			bEndOfLine = inputBuffer->GetNextField(sField, nFieldError);
+			bEndOfLine = inputBuffer->GetNextField(sField, nFieldLength, nFieldError);
 			nField++;
 
 			// Erreur sur le nom du champ

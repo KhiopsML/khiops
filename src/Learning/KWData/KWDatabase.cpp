@@ -249,7 +249,6 @@ KWClass* KWDatabase::ComputeClass()
 	boolean bBuildClassOk;
 	boolean bRefVerboseMode;
 	KWClass* kwcComputedClass;
-	const KWDataTableDriver refDataTableDriver;
 	const double dMaxTime = 20.0;
 	const int nMinObjectNumber = 100;
 	Timer timerComputeClass;
@@ -424,6 +423,12 @@ KWClass* KWDatabase::ComputeClass()
 				ivTypeAttributeNumbers.UpgradeAt(KWType::Timestamp, 1);
 				attribute->SetType(KWType::Timestamp);
 				AddFormatMetaData(attribute, typeAutomaticRecognition);
+			}
+			// Cas du type Text
+			else if (typeAutomaticRecognition->GetMainMatchingType() == KWType::Text)
+			{
+				ivTypeAttributeNumbers.UpgradeAt(KWType::Text, 1);
+				attribute->SetType(KWType::Text);
 			}
 			// Par defaut: type Symbol: on se contente de memoriser le nombre d'attribut pour ce type
 			else
@@ -1252,7 +1257,7 @@ void KWDatabase::TestCreateObjects(int nNumber)
 	if (kwcCreationClass == NULL)
 	{
 		cout << "Create dictionary " << GetClassName() << endl;
-		kwcCreationClass = KWClass::CreateClass(GetClassName(), 0, 4, 4, 0, 0, 0, 0, 0, 0, true, NULL);
+		kwcCreationClass = KWClass::CreateClass(GetClassName(), 0, 4, 4, 0, 0, 0, 0, 0, 0, 0, true, NULL);
 		KWClassDomain::GetCurrentDomain()->InsertClass(kwcCreationClass);
 		kwcCreationClass->Compile();
 	}

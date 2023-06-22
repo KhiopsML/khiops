@@ -20,8 +20,8 @@ KWChunkSorterTask::KWChunkSorterTask()
 
 	// Variables en entree des taches
 	DeclareTaskInput(&input_nBucketIndex);
-	DeclareTaskInput(&input_inputFile);
 	DeclareTaskInput(&input_cOutputSeparator);
+	DeclareTaskInput(&input_cInputSeparator);
 	DeclareTaskInput(&input_svFileNames);
 
 	// Variables en sortie des taches
@@ -343,7 +343,7 @@ boolean KWChunkSorterTask::MasterPrepareTaskInput(double& dTaskPercent, boolean&
 		assert(bucketToSort != NULL);
 		assert(not bucketToSort->GetSorted());
 		input_svFileNames.GetStringVector()->CopyFrom(bucketToSort->GetChunkFileNames());
-		input_inputFile.GetBufferedFile()->SetFieldSeparator(cInputSeparator);
+		input_cInputSeparator.SetValue(cInputSeparator);
 		input_cOutputSeparator.SetValue(cOutputSeparator);
 
 		// Calcul de l'avancement
@@ -485,8 +485,8 @@ boolean KWChunkSorterTask::SlaveProcess()
 			// Construction et initialisation du buffer
 			sFileURI = input_svFileNames.GetConstStringVector()->GetAt(i);
 			inputFile = new InputBufferedFile;
-			inputFile->CopyFrom(input_inputFile.GetBufferedFile());
 			inputFile->SetFileName(sFileURI);
+			inputFile->SetFieldSeparator(input_cInputSeparator.GetValue());
 
 			// Stockage du buffer
 			oaBufferedFiles.Add(inputFile);
@@ -616,9 +616,8 @@ boolean KWChunkSorterTask::SlaveProcess()
 			{
 
 				// Test pour savoir si on doit copier la ligne pour effectuer un traitement dessus
-				// (changement du sparateur) Ou si on peut ecrire directement le buffer lu
-				if (input_inputFile.GetBufferedFile()->GetFieldSeparator() !=
-				    input_cOutputSeparator.GetValue())
+				// (changement du separateur) Ou si on peut ecrire directement le buffer lu
+				if (input_cInputSeparator.GetValue() != input_cOutputSeparator.GetValue())
 					bSameSeparator = false;
 				else
 					bSameSeparator = true;
@@ -657,8 +656,7 @@ boolean KWChunkSorterTask::SlaveProcess()
 								// ReplaceAll : separateur d'entree -> separateur de
 								// sortie
 								ReplaceSeparator(&cvLineToWrite,
-										 input_inputFile.GetBufferedFile()
-										     ->GetFieldSeparator(),
+										 input_cInputSeparator.GetValue(),
 										 input_cOutputSeparator.GetValue());
 							}
 
@@ -677,8 +675,7 @@ boolean KWChunkSorterTask::SlaveProcess()
 								// ReplaceAll : separateur d'entree -> separateur de
 								// sortie
 								ReplaceSeparator(&cvLineToWrite,
-										 input_inputFile.GetBufferedFile()
-										     ->GetFieldSeparator(),
+										 input_cInputSeparator.GetValue(),
 										 input_cOutputSeparator.GetValue());
 
 								// Ecriture de la ligne
@@ -712,10 +709,9 @@ boolean KWChunkSorterTask::SlaveProcess()
 							    nLineBeginPos, nLineEndPos, &cvLineToWrite);
 
 							// ReplaceAll : separateur d'entree -> separateur de sortie
-							ReplaceSeparator(
-							    &cvLineToWrite,
-							    input_inputFile.GetBufferedFile()->GetFieldSeparator(),
-							    input_cOutputSeparator.GetValue());
+							ReplaceSeparator(&cvLineToWrite,
+									 input_cInputSeparator.GetValue(),
+									 input_cOutputSeparator.GetValue());
 
 							// Ecriture de la ligne
 							outputFile->Write(&cvLineToWrite);
@@ -798,15 +794,26 @@ void KWChunkSorterTask::SkipField(CharVector* cvLineToWrite, char cOriginalSepar
 				if (nPos < cvLineToWrite->GetSize())
 				{
 					c = cvLineToWrite->GetAt(nPos);
-					// Double quote double on continue de chercher un double quote
-					if (c == '"')
-						continue;
 
-					// Sinon on s'attend a trouver un separateur = fin de champ
-					// Si ca n'est pas le cas on continue meme si le format du champ n'est pas
-					// correct
-					if (c == cOriginalSeparator)
+					// Double quote interne double: on continue de chercher un double quote
+					if (c == '"')
+					{
+						nPos++;
+						continue;
+					}
+					// Sinon, ok si caractere separateur
+					// Sinon, KO si on trouve un double-quote isole au milieu du champ:
+					//  on continue quand-meme a parser pour recuperer l'erreur
+					else
+					{
+						while (c != cOriginalSeparator)
+						{
+							nPos++;
+							if (nPos < cvLineToWrite->GetSize())
+								c = cvLineToWrite->GetAt(nPos);
+						}
 						return;
+					}
 				}
 			}
 			nPos++;

@@ -377,7 +377,8 @@ void KWGrouperMODLTwoClasses::DiscretizeFrequencyTable(KWFrequencyTable* kwftSou
 			kwftTargetWithGarbage->SetGranularity(kwftSource->GetGranularity());
 
 			// On doit recalculer la taille de la poubelle qui pourrait avoir change suite a la
-			// post-optimisation nGarbageModalityNumber = ComputeGarbageModalityNumberFromTables(kwftSource,
+			// post-optimisation
+			// nGarbageModalityNumber = ComputeGarbageModalityNumberFromTables(kwftSource,
 			// kwftTargetWithGarbage);
 			nGarbageModalityNumber = ComputeGarbageModalityNumberFromTable(kwftTargetWithGarbage);
 			kwftTargetWithGarbage->SetGarbageModalityNumber(nGarbageModalityNumber);
@@ -1787,7 +1788,8 @@ void KWGrouperMODLTwoClasses::IntervalListMergeOptimizationWithGarbagePartitionC
 			if (bDisplayResults and nIntervalNumber == 3)
 			{
 				// Affichage de la partition obtenue pour I=3 i.e. derniere partition avec groupe
-				// poubelle cout << "Table courante " << endl;
+				// poubelle
+				// cout << "Table courante " << endl;
 				interval = headInterval;
 				while (interval != NULL)
 				{

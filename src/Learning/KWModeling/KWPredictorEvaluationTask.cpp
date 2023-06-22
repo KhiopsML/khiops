@@ -83,6 +83,19 @@ boolean KWPredictorEvaluationTask::MasterAggregateResults()
 	return bOk;
 }
 
+boolean KWPredictorEvaluationTask::MasterFinalize(boolean bProcessEndedCorrectly)
+{
+	boolean bOk;
+
+	// Appel a la methode ancetre
+	bOk = KWDatabaseTask::MasterFinalize(bProcessEndedCorrectly);
+
+	// Warning si la base est vide
+	if (bOk and predictorEvaluation->GetEvaluationInstanceNumber() == 0)
+		AddWarning("Empty evaluation database");
+	return bOk;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Classe KWClassifierEvaluationTask
 
@@ -388,8 +401,8 @@ boolean KWClassifierEvaluationTask::MasterFinalize(boolean bProcessEndedCorrectl
 				classifierEvaluation->dCompressionRate = 0;
 		}
 
-		// Calcul de l'AUC
-		if (bIsAucEvaluated)
+		// Calcul de l'AUC s'il y y a des instances en evaluation
+		if (bIsAucEvaluated and instanceEvaluationSampler->GetSampledObjects()->GetSize() > 0)
 		{
 			aucEvaluation->SetInstanceEvaluations(instanceEvaluationSampler->GetSampledObjects());
 			if (shared_livProbAttributes.GetSize() > 0 and aucEvaluation->GetTargetValueNumber() > 0)
@@ -2140,34 +2153,34 @@ KWClassifierInstanceEvaluation* PLShared_ClassifierInstanceEvaluation::GetClassi
 	return cast(KWClassifierInstanceEvaluation*, GetObject());
 }
 
-void PLShared_ClassifierInstanceEvaluation::DeserializeObject(PLSerializer* serializer, Object* object) const
-{
-	KWClassifierInstanceEvaluation* evaluation;
-	PLShared_ContinuousVector scvHelper;
-
-	require(serializer != NULL);
-	require(serializer->IsOpenForRead());
-	require(object != NULL);
-
-	// Deserialisation du nombre de modalites cibles, l'index de la reelle et les probas de chacune
-	evaluation = cast(KWClassifierInstanceEvaluation*, object);
-	scvHelper.DeserializeObject(serializer, &(evaluation->cvTargetProbs));
-	evaluation->SetActualTargetIndex(serializer->GetInt());
-}
-
-void PLShared_ClassifierInstanceEvaluation::SerializeObject(PLSerializer* serializer, const Object* object) const
+void PLShared_ClassifierInstanceEvaluation::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
 	KWClassifierInstanceEvaluation* evaluation;
 	PLShared_ContinuousVector scvHelper;
 
 	require(serializer != NULL);
 	require(serializer->IsOpenForWrite());
-	require(object != NULL);
+	require(o != NULL);
 
 	// Serialisation du nombre de modalites cibles, l'index de la reelle et les probas de chacune
-	evaluation = cast(KWClassifierInstanceEvaluation*, object);
+	evaluation = cast(KWClassifierInstanceEvaluation*, o);
 	scvHelper.SerializeObject(serializer, &(evaluation->cvTargetProbs));
 	serializer->PutInt(evaluation->GetActualTargetIndex());
+}
+
+void PLShared_ClassifierInstanceEvaluation::DeserializeObject(PLSerializer* serializer, Object* o) const
+{
+	KWClassifierInstanceEvaluation* evaluation;
+	PLShared_ContinuousVector scvHelper;
+
+	require(serializer != NULL);
+	require(serializer->IsOpenForRead());
+	require(o != NULL);
+
+	// Deserialisation du nombre de modalites cibles, l'index de la reelle et les probas de chacune
+	evaluation = cast(KWClassifierInstanceEvaluation*, o);
+	scvHelper.DeserializeObject(serializer, &(evaluation->cvTargetProbs));
+	evaluation->SetActualTargetIndex(serializer->GetInt());
 }
 
 Object* PLShared_ClassifierInstanceEvaluation::Create() const

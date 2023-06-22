@@ -203,8 +203,8 @@ public:
 
 	// Reimplementation des methodes virtuelles, avec transfer des specifications de la base ainsi que des index
 	// d'attribut par mapping
-	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation

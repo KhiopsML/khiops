@@ -19,10 +19,10 @@
 //	-Mu: la limite utilisateur (RMResourceConstraints::GetResourceLimit())
 // On garde une reserve de securite R qui est soustraite a la limite utilisateur (MemGetPhysicalMemoryReserve()+
 // MemGetAllocatorReserve()+ GetUserInterfaceMemoryReserve()) D'autre part on prend egalement en compte la heap utilisee
-// au lancement de l'application, notée Mc. En effet si l'utilisateur veut utiliser 2Go, il faut que l'application
-// puisse allouer 2Go + Mc. La memoire allouee a un processus (resultat de la methode ComputeGrantedResources)  notée Mg
+// au lancement de l'application, notee Mc. En effet si l'utilisateur veut utiliser 2Go, il faut que l'application
+// puisse allouer 2Go + Mc. La memoire allouee a un processus (resultat de la methode ComputeGrantedResources)  notee Mg
 // tient compte de ces bornes, de la reserve et de la memoire courante (Mg + Mc < min(Mu,Ma,Ms)-R) Dans une tache
-// parallele ola memoire disponible est simplement obtenue par Mg-HeapCourante (Mg tient compte de la memoire au
+// parallele la memoire disponible est simplement obtenue par Mg-HeapCourante (Mg tient compte de la memoire au
 // demarrage Mc et de la reserve)
 //
 // En dehors des taches paralleles, la memoire disponible est obtenue par min(Ms,Mu) - R - HeapCourante

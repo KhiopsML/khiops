@@ -50,19 +50,59 @@ boolean CCCoclusteringReport::ReadGenericReport(const ALString& sFileName, CCHie
 {
 	boolean bOk;
 	int nFileFormat;
+	ALString sKhiopsEncoding;
+	boolean bForceAnsi;
 
 	require(sFileName != "");
 	require(coclusteringDataGrid != NULL);
 
 	// On determine le format du fichier
-	nFileFormat = DetectFileFormat(sFileName);
+	nFileFormat = DetectFileFormatAndEncoding(sFileName, sKhiopsEncoding);
 	bOk = nFileFormat != None;
 
 	// Lecture selon le format du fichier
 	if (nFileFormat == KHC)
 		bOk = ReadReport(sFileName, coclusteringDataGrid);
 	else if (nFileFormat == JSON)
+	{
+		// Analyse du type d'encodage pour determiner si on doit recoder les caracteres utf8 du fichier json en
+		// ansi
+		if (sKhiopsEncoding == "")
+		{
+			bForceAnsi = false;
+			AddWarning("The \"khiops_encoding\" field is missing in the read coclustering file. "
+				   "The coclustering file is deprecated, and may raise encoding problems "
+				   "in case of mixed ansi and utf8 chars "
+				   ": see the Khiops guide for more information.");
+		}
+		else if (sKhiopsEncoding == "ascii" or sKhiopsEncoding == "utf8")
+			bForceAnsi = false;
+		else if (sKhiopsEncoding == "ansi" or sKhiopsEncoding == "mixed_ansi_utf8")
+			bForceAnsi = true;
+		else if (sKhiopsEncoding == "colliding_ansi_utf8")
+		{
+			bForceAnsi = false;
+			AddWarning("The \"khiops_encoding\" field is \"" + sKhiopsEncoding +
+				   "\" in the read coclustering file. "
+				   "This may raise encoding problems if the file has been modified outside of Khiops "
+				   ": see the Khiops guide for more information.");
+		}
+		else
+		{
+			bForceAnsi = false;
+			AddWarning(
+			    "The value of the \"khiops_encoding\" field is \"" + sKhiopsEncoding +
+			    "\" in the read coclustering file. "
+			    "This encoding type is unknown and will be ignored, which may raise encoding problems "
+			    "in case of mixed ansi and utf8 chars "
+			    ": see the Khiops guide for more information.");
+		}
+
+		// Lecture du fichier en parametrant le json tokeniser correctement
+		JSONTokenizer::SetForceAnsi(bForceAnsi);
 		bOk = ReadJSONReport(sFileName, coclusteringDataGrid);
+		JSONTokenizer::SetForceAnsi(false);
+	}
 	return bOk;
 }
 
@@ -70,17 +110,16 @@ boolean CCCoclusteringReport::ReadGenericReportHeader(const ALString& sFileName,
 						      CCHierarchicalDataGrid* coclusteringDataGrid,
 						      int& nInstanceNumber, int& nCellNumber)
 {
-	require(sFileName != "");
-	require(coclusteringDataGrid != NULL);
-
 	boolean bOk;
 	int nFileFormat;
+	ALString sKhiopsEncoding;
+	boolean bForceAnsi;
 
 	require(sFileName != "");
 	require(coclusteringDataGrid != NULL);
 
 	// On determine le format du fichier
-	nFileFormat = DetectFileFormat(sFileName);
+	nFileFormat = DetectFileFormatAndEncoding(sFileName, sKhiopsEncoding);
 	bOk = nFileFormat != None;
 
 	// Lecture selon le format du fichier
@@ -89,7 +128,16 @@ boolean CCCoclusteringReport::ReadGenericReportHeader(const ALString& sFileName,
 	if (nFileFormat == KHC)
 		bOk = ReadReportHeader(sFileName, coclusteringDataGrid, nInstanceNumber, nCellNumber);
 	else if (nFileFormat == JSON)
+	{
+		// Analyse du type d'encodage pour determiner si on doit recoder les caracteres utf8 du fichier json en
+		// ansi Pas de message pour cette lecture rapide
+		bForceAnsi = (sKhiopsEncoding == "ansi" or sKhiopsEncoding == "mixed_ansi_utf8");
+
+		// Lecture de l'entete du fichier en parametrant le json tokeniser correctement
+		JSONTokenizer::SetForceAnsi(bForceAnsi);
 		bOk = ReadJSONReportHeader(sFileName, coclusteringDataGrid, nInstanceNumber, nCellNumber);
+		JSONTokenizer::SetForceAnsi(false);
+	}
 	return bOk;
 }
 
@@ -282,44 +330,68 @@ const ALString CCCoclusteringReport::GetObjectLabel() const
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 // Lecture des sections d'un rapport de coclustering
 
-int CCCoclusteringReport::DetectFileFormat(const ALString& sFileName) const
+int CCCoclusteringReport::DetectFileFormatAndEncoding(const ALString& sFileName, ALString& sKhiopsEncoding) const
 {
+	boolean bOk = true;
 	int nFileFormat;
-	boolean bOk;
-	FILE* fFile;
-	char cFirstChar;
-	ALString sLocalTempFileName;
+	int nTokenType;
+	ALString sTokenValue;
 
-	require(sFileName != "");
+	require(not JSONTokenizer::IsOpened());
+
+	// Initialisation du tokenizer pour analiser le rapport
 	nFileFormat = None;
-
-	// Copie depuis HDFS si necessaire
-	bOk = PLRemoteFileService::BuildInputWorkingFile(sFileName, sLocalTempFileName);
-
-	// Ouverture du fichier
-	fFile = NULL;
-	if (bOk)
-		bOk = FileService::OpenInputBinaryFile(sLocalTempFileName, fFile);
+	bOk = JSONTokenizer::OpenForRead(GetClassLabel(), sFileName);
 	if (bOk)
 	{
-		// Lecture du premier caractere du fichier
-		cFirstChar = (char)fgetc(fFile);
+		// Detection du format en lisant le premier token
+		nTokenType = JSONTokenizer::ReadNextToken();
 
 		// Choix du format en fonction du de ce caractere
-		if (cFirstChar == '#')
-			nFileFormat = KHC;
-		else if (cFirstChar == '{')
+		if (nTokenType == '{')
 			nFileFormat = JSON;
-		// Message d'erreur sinon
-		else
+		else if (nTokenType == JSONTokenizer::Error)
+		{
+			if (JSONTokenizer::GetTokenStringValue() == "#")
+				nFileFormat = KHC;
+		}
+
+		// Message d'erreur si pas de format reconnu
+		if (nFileFormat == None)
 			AddError("Format of file " + sFileName + " should either khc or " +
 				 CCCoclusteringReport::GetJSONReportSuffix());
 
-		// Fermeture du fichier
-		FileService::CloseInputBinaryFile(sFileName, fFile);
+		// Recherche de l'encodage dans le cas json
+		if (nFileFormat == JSON)
+		{
+			assert(nTokenType == '{');
+			while (nTokenType != 0)
+			{
+				nTokenType = JSONTokenizer::ReadNextToken();
+				if (nTokenType == JSONTokenizer::String and
+				    JSONTokenizer::GetTokenStringValue() == "khiops_encoding")
+				{
+					// Les deux tokens suivant doivent etre ':', puis la chaine contenant le type
+					// d'encodage
+					nTokenType = JSONTokenizer::ReadNextToken();
+					if (nTokenType == ':')
+					{
+						nTokenType = JSONTokenizer::ReadNextToken();
+						if (nTokenType == JSONTokenizer::String)
+						{
+							sKhiopsEncoding = JSONTokenizer::GetTokenStringValue();
 
-		// Si le fichier est sur HDFS, on supprime la copie locale
-		PLRemoteFileService::CleanInputWorkingFile(sFileName, sLocalTempFileName);
+							// On arrete car on a trouve la syntaxe correcte:
+							// "khiops_encoding" : <string>
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		// Fermeture du tokenizer
+		JSONTokenizer::Close();
 	}
 	return nFileFormat;
 }
@@ -2808,6 +2880,8 @@ boolean CCCoclusteringReport::ReadJSONDimensionSummaries(CCHierarchicalDataGrid*
 boolean CCCoclusteringReport::ReadJSONDimensionPartitions(CCHierarchicalDataGrid* coclusteringDataGrid)
 {
 	boolean bOk = true;
+	ObjectDictionary odChekedParts;
+	ALString sPartName;
 	boolean bIsAttributeEnd;
 	boolean bIsPartEnd;
 	int nAttributeIndex;
@@ -2910,6 +2984,20 @@ boolean CCCoclusteringReport::ReadJSONDimensionPartitions(CCHierarchicalDataGrid
 						bOk = bOk and ReadJSONValueGroups(dgAttribute, dgPart);
 				}
 
+				// Test si identifiabnt de partie unique
+				if (bOk)
+				{
+					sPartName = cast(CCHDGPart*, dgPart)->GetPartName();
+					if (odChekedParts.Lookup(sPartName) != NULL)
+					{
+						JSONTokenizer::AddParseError("\"cluster\" " + sPartName +
+									     " used twice");
+						bOk = false;
+					}
+					else
+						odChekedParts.SetAt(sPartName, dgPart);
+				}
+
 				// Test si nouvelle partie
 				bOk = bOk and JSONTokenizer::ReadArrayNext(bIsPartEnd);
 
@@ -3009,7 +3097,7 @@ boolean CCCoclusteringReport::ReadJSONDimensionPartitions(CCHierarchicalDataGrid
 	}
 
 	// Erreur si pas assez de variables
-	if (nAttributeIndex <= coclusteringDataGrid->GetAttributeNumber() - 1)
+	if (bOk and nAttributeIndex <= coclusteringDataGrid->GetAttributeNumber() - 1)
 	{
 		JSONTokenizer::AddParseError(sTmp +
 					     "Too few variables in section \"dimensionPartitions\" (expected number: " +
@@ -3085,6 +3173,7 @@ boolean CCCoclusteringReport::ReadJSONInterval(CCHDGAttribute* dgAttribute, KWDG
 boolean CCCoclusteringReport::ReadJSONValueGroups(CCHDGAttribute* dgAttribute, KWDGPart* dgPart)
 {
 	boolean bOk = true;
+	ObjectDictionary odChekedValues;
 	boolean bIsEnd;
 	CCHDGValueSet* dgValueSet;
 	CCHDGValue* dgValue;
@@ -3105,6 +3194,11 @@ boolean CCCoclusteringReport::ReadJSONValueGroups(CCHDGAttribute* dgAttribute, K
 	// Nom du cluster
 	bIsEnd = false;
 	bOk = bOk and JSONTokenizer::ReadKeyStringValue("cluster", sClusterName, bIsEnd);
+	if (bOk and sClusterName == "")
+	{
+		JSONTokenizer::AddParseError("\"cluster\" should have a non empty value");
+		bOk = false;
+	}
 
 	// Tableau des valeurs
 	bOk = bOk and JSONTokenizer::ReadKeyArray("values");
@@ -3114,7 +3208,17 @@ boolean CCCoclusteringReport::ReadJSONValueGroups(CCHDGAttribute* dgAttribute, K
 		bOk = bOk and JSONTokenizer::ReadStringValue(sValue);
 		bOk = bOk and JSONTokenizer::ReadArrayNext(bIsEnd);
 		if (bOk)
-			svValues.Add(sValue);
+		{
+			if (odChekedValues.Lookup(sValue) != NULL)
+			{
+				JSONTokenizer::AddParseError("\"values\" contains a duplicate values (" + sValue + ")");
+				bOk = false;
+			}
+			else
+			{
+				odChekedValues.SetAt(sValue, &odChekedValues), svValues.Add(sValue);
+			}
+		}
 	}
 	bOk = bOk and JSONTokenizer::ReadExpectedToken(',');
 
@@ -3486,7 +3590,7 @@ boolean CCCoclusteringReport::ReadJSONDimensionHierarchies(CCHierarchicalDataGri
 	}
 
 	// Erreur si pas assez de variables
-	if (nAttributeIndex <= coclusteringDataGrid->GetAttributeNumber() - 1)
+	if (bOk and nAttributeIndex <= coclusteringDataGrid->GetAttributeNumber() - 1)
 	{
 		JSONTokenizer::AddParseError(sTmp +
 					     "Too few variables in section \"dimensionPartitions\" (expected number: " +

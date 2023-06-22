@@ -126,7 +126,7 @@ protected:
 
 	// Specification du decoupage de la base en tranches
 	// La specification des dictionnaires par tranche est partagee entre le maitre et les esclaves
-	// Par contre, la specification des fichiers par tranche, initialement vide, et completee
+	// Par contre, la specification des fichiers par tranche, initialement vide, est completee
 	// par le maitre au fur et a mesure des agregations des resultats des esclaves
 	PLShared_DataTableSliceSet shared_DataTableSliceSet;
 

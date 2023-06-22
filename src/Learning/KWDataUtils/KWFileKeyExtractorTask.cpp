@@ -19,10 +19,11 @@ KWFileKeyExtractorTask::KWFileKeyExtractorTask()
 
 	// Parametres du programme
 	DeclareSharedParameter(&shared_ivKeyFieldIndexes);
-	DeclareSharedParameter(&shared_outputFile);
 	DeclareSharedParameter(&shared_sInputFileName);
-	DeclareSharedParameter(&shared_bHeaderLineUsed);
-	DeclareSharedParameter(&shared_cFieldSeparator);
+	DeclareSharedParameter(&shared_bInputHeaderLineUsed);
+	DeclareSharedParameter(&shared_cInputFieldSeparator);
+	DeclareSharedParameter(&shared_sOutputFileName);
+	DeclareSharedParameter(&shared_cOutputFieldSeparator);
 
 	// Input des esclaves : lecture du fichier d'entree
 	DeclareTaskInput(&input_nBufferSize);
@@ -321,13 +322,12 @@ boolean KWFileKeyExtractorTask::MasterInitialize()
 
 	// Initialisation du fichier en entree
 	shared_sInputFileName.SetValue(sInputFileName);
-	shared_bHeaderLineUsed = bInputHeaderLineUsed;
-	shared_cFieldSeparator.SetValue(cInputFieldSeparator);
+	shared_bInputHeaderLineUsed = bInputHeaderLineUsed;
+	shared_cInputFieldSeparator.SetValue(cInputFieldSeparator);
 
 	// Parametrage du fichier en sortie
-	shared_outputFile.GetBufferedFile()->SetFileName(sOutputFileName);
-	shared_outputFile.GetBufferedFile()->SetHeaderLineUsed(bOutputHeaderLineUsed);
-	shared_outputFile.GetBufferedFile()->SetFieldSeparator(cOutputFieldSeparator);
+	shared_sOutputFileName.SetValue(sOutputFileName);
+	shared_cOutputFieldSeparator.SetValue(cOutputFieldSeparator);
 
 	// Parametrage du fichier en entree (pour les messages d'erreur)
 	shared_sInputFileName.SetValue(sInputFileName);
@@ -387,6 +387,7 @@ boolean KWFileKeyExtractorTask::MasterFinalize(boolean bProcessEndedCorrectly)
 	ALString sKeyName;
 	PLFileConcatenater concatenater;
 	int nBufferToConcatenate;
+	StringVector svHeader;
 
 	// Concatenation des fichiers
 	bOk = bProcessEndedCorrectly;
@@ -415,8 +416,9 @@ boolean KWFileKeyExtractorTask::MasterFinalize(boolean bProcessEndedCorrectly)
 		if (nBufferToConcatenate > lInputFileSize)
 			nBufferToConcatenate = (int)lInputFileSize;
 
-		bOk = ConcatenateFilesWithoutDuplicateKeys(&svChunkFileNames, nBufferToConcatenate,
-							   GetKeyAttributeNames());
+		if (bOutputHeaderLineUsed)
+			svHeader.CopyFrom(GetKeyAttributeNames());
+		bOk = ConcatenateFilesWithoutDuplicateKeys(&svChunkFileNames, nBufferToConcatenate, &svHeader);
 	}
 
 	// Suppression des fichiers intermediaires
@@ -430,7 +432,7 @@ boolean KWFileKeyExtractorTask::MasterFinalize(boolean bProcessEndedCorrectly)
 		PLRemoteFileService::RemoveFile(sOutputFileName);
 
 	// Nombre total de lignes lues par les esclaves
-	if (shared_bHeaderLineUsed)
+	if (shared_bInputHeaderLineUsed)
 		lReadLineNumber--;
 	return bOk;
 }
@@ -468,8 +470,8 @@ boolean KWFileKeyExtractorTask::SlaveProcess()
 
 	// Initialisation du buffer de lecture
 	inputBufferedFile.SetFileName(shared_sInputFileName.GetValue());
-	inputBufferedFile.SetFieldSeparator(shared_cFieldSeparator.GetValue());
-	inputBufferedFile.SetHeaderLineUsed(shared_bHeaderLineUsed);
+	inputBufferedFile.SetFieldSeparator(shared_cInputFieldSeparator.GetValue());
+	inputBufferedFile.SetHeaderLineUsed(shared_bInputHeaderLineUsed);
 	inputBufferedFile.SetBufferSize(input_nBufferSize);
 
 	// Lecture du fichier
@@ -482,12 +484,12 @@ boolean KWFileKeyExtractorTask::SlaveProcess()
 	{
 		// Creation et initialisation du buffer de sortie
 		outputBufferedFile = new OutputBufferedFile;
-		outputBufferedFile->CopyFrom(shared_outputFile.GetBufferedFile());
+		outputBufferedFile->SetFileName(shared_sOutputFileName.GetValue());
+		outputBufferedFile->SetFieldSeparator(shared_cOutputFieldSeparator.GetValue());
 
 		// Construction d'un nom de chunk specifique a l'esclave
 		sChunkFileName = FileService::CreateUniqueTmpFile(
-		    FileService::GetFilePrefix(shared_outputFile.GetBufferedFile()->GetFileName()) + "_" +
-			IntToString(GetTaskIndex()),
+		    FileService::GetFilePrefix(outputBufferedFile->GetFileName()) + "_" + IntToString(GetTaskIndex()),
 		    this);
 		bOk = not sChunkFileName.IsEmpty();
 	}
@@ -517,7 +519,7 @@ boolean KWFileKeyExtractorTask::SlaveProcess()
 				{
 					AddLocalError(sTmp + "key " + currentKey.GetObjectLabel() +
 							  " inferior to previous key " + oldKey.GetObjectLabel(),
-						      inputBufferedFile.GetCurrentLineNumber());
+						      inputBufferedFile.GetCurrentLineNumber() + 1);
 					bOk = false;
 					break;
 				}
@@ -644,6 +646,7 @@ boolean KWFileKeyExtractorTask::ConcatenateFilesWithoutDuplicateKeys(StringVecto
 					     << LongintToHumanReadableString(
 						    PLRemoteFileService::GetFileSize(sChunkFileURI))
 					     << endl;
+
 				// Ouverture du chunk en lecture
 				inputFile.SetFileName(sChunkFileURI);
 				bOk = inputFile.Open();
@@ -731,7 +734,11 @@ boolean KWFileKeyExtractorTask::ConcatenateFilesWithoutDuplicateKeys(StringVecto
 			}
 			else
 			{
-				AddError("Missing chunk file : " + PLRemoteFileService::URItoUserString(sChunkFileURI));
+				// TODO verifier si l'on peut factoriser un service dans FileService?
+				if (RMResourceManager::GetResourceSystem()->GetHostNumber() > 1)
+					FileService::SetURISmartLabels(false);
+				AddError("Missing chunk file : " + FileService::GetURIUserLabel(sChunkFileURI));
+				FileService::SetURISmartLabels(true);
 				bOk = false;
 				break;
 			}

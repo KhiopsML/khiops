@@ -433,9 +433,14 @@ void CCCoclusteringBuilder::HandleOptimizationStep(const KWDataGrid* optimizedDa
 
 		// Sauvegarde au format JSON si necessaire
 		if (bWriteOk and GetExportJSON())
+		{
+			// On supprime le mode verbeux pour les sauvegardes intermediaires
+			JSONFile::SetVerboseMode(bIsLastSaving);
 			coclusteringReport.WriteJSONReport(
 			    FileService::SetFileSuffix(sReportFileName, CCCoclusteringReport::GetJSONReportSuffix()),
 			    coclusteringDataGrid);
+			JSONFile::SetVerboseMode(true);
+		}
 
 		// Destruction de la precedente sauvegarde
 		if (not bKeepIntermediateReports and bWriteOk)

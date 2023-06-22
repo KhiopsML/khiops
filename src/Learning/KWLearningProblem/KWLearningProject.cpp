@@ -12,20 +12,22 @@ void KWLearningProject::Start(int argc, char** argv)
 {
 	ALString sTmp;
 
-	if (GetParallelTraceMode() < 3)
-	{
-		if (PLParallelTask::GetTracerResources() == 0)
-			PLParallelTask::SetTracerResources(GetParallelTraceMode());
-	}
-	else
-	{
-		if (GetParallelTraceMode() == 3)
-		{
-			PLParallelTask::SetTracerResources(2);
-			PLParallelTask::SetTracerProtocolActive(true);
-		}
-	}
+	// Parametrage si necessaire d'un mode de fonctionnement basique des boites de dialogue de type FileChooser
+	if (GetLearningFileChooserBasicMode())
+		UIFileChooserCard::SetDefaultStyle("");
 
+	// Parametrage de la gestion des traces paralleles
+	if (GetParallelTraceMode() >= 1)
+		PLParallelTask::SetTracerResources(1);
+	if (GetParallelTraceMode() >= 2)
+	{
+		PLParallelTask::SetTracerResources(2);
+		PLParallelTask::SetTracerProtocolActive(true);
+	}
+	if (GetParallelTraceMode() >= 3)
+	{
+		PLParallelTask::SetTracerMPIActive(true);
+	}
 	// Ajout du nom du host dans les logs
 	if (MemoryStatsManager::IsOpened())
 		MemoryStatsManager::AddLog(
@@ -130,6 +132,10 @@ void KWLearningProject::StartMaster(int argc, char** argv)
 	// lies a la compilation croisee, pour le portage vers les plate-formes linux
 	KWValueBlock::CheckPacking();
 
+	// Suppression des options car dans le cas d'appeles successifs a StartMaster
+	// Les options s'accumulent (on a ce cas notamment dans MODL_dll)
+	UIObject::GetCommandLineOptions()->DeleteAllOptions();
+
 	// Ajout d'options a l'interface
 	UIObject::GetCommandLineOptions()->SetCommandName(GetLearningCommandName());
 
@@ -177,9 +183,18 @@ void KWLearningProject::StartMaster(int argc, char** argv)
 
 	// Parametrage du repertoire temporaire via les variables d'environnement
 	// (la valeur du repertoire temporaire peut etre modifiee par l'IHM)
-	sTmpDirFromEnv = p_getenv("KhiopsTmpDir");
+	sTmpDirFromEnv = p_getenv("KHIOPS_TMP_DIR");
+	if (sTmpDirFromEnv == "")
+	{
+		sTmpDirFromEnv = p_getenv("KhiopsTmpDir"); // DEPRECATED
+		if (sTmpDirFromEnv != "")
+			AddWarning("'KhiopsTmpDir' is deprecated and is now replaced by 'KHIOPS_TMP_DIR'");
+	}
 	if (sTmpDirFromEnv != "")
 		FileService::SetUserTmpDir(sTmpDirFromEnv);
+
+	// Evaluation des ressources disponibles
+	PLParallelTask::GetDriver()->MasterInitializeResourceSystem();
 
 	// Acces au projet et a sa vue
 	learningProblem = CreateGenericLearningProblem();
@@ -326,7 +341,7 @@ void KWLearningProject::OpenLearningEnvironnement()
 		PLParallelTask::RegisterTask(new SNBPredictorSNBDirectTrainingTask);
 		PLParallelTask::RegisterTask(new SNBPredictorSNBEnsembleTrainingTask);
 	}
-	PLParallelTask::RegisterTask(new KDSelectionOperandExtractionTask);
+	PLParallelTask::RegisterTask(new KDSelectionOperandSamplingTask);
 }
 
 void KWLearningProject::CloseLearningEnvironnement()
@@ -412,32 +427,3 @@ boolean KWLearningProject::ShowVersion(const ALString&)
 	cout << GetLearningVersion() << endl;
 	return true;
 }
-
-#ifdef KWLearningBatchMode
-#ifndef __ANDROID__
-/********************************************************************
- * Le source suivant permet de compiler des sources developpes avec *
- * l'environnement Norm, d'utiliser le mode UIObject::Textual et    *
- * de ne pas linker avec jvm.lib (a eviter absoluement).            *
- * Moyennant ces conditions, on peut livrer un executable en mode   *
- * textuel ne necessitant pas l'intallation prealable du JRE Java   *
- ********************************************************************/
-
-extern "C"
-{
-#ifdef _MSC_VER
-	int __stdcall _imp__JNI_CreateJavaVM(void** pvm, void** penv, void* args)
-	{
-		exit(0);
-	}
-#endif // _MSC_VER
-
-#ifdef __UNIX__
-	int JNI_CreateJavaVM(void** pvm, void** penv, void* args)
-	{
-		exit(0);
-	}
-#endif // __UNIX__
-}
-#endif // __ANDROID__
-#endif // KWLearningBatchMode

@@ -25,7 +25,7 @@ PEPiView::PEPiView()
 
 	// Limites du nombre de processor
 	nMaxCores = max(RMResourceManager::GetLogicalProcessNumber() - 1, 1);
-	RMResourceConstraints::SetMaxCoreNumber(nMaxCores);
+	RMResourceConstraints::SetMaxCoreNumberOnCluster(nMaxCores);
 	cast(UIIntElement*, GetFieldAt("ProcessusNumber"))->SetMinValue(1);
 	cast(UIIntElement*, GetFieldAt("ProcessusNumber"))->SetMaxValue(nMaxCores);
 	cast(UIIntElement*, GetFieldAt("ProcessusNumber"))->SetDefaultValue(1);
@@ -56,7 +56,7 @@ void PEPiView::EventUpdate(Object* object)
 
 	editedObject = cast(PEPi*, object);
 	editedObject->SetIterationNumber(GetIntValueAt("IterationNumber"));
-	RMResourceConstraints::SetMaxCoreNumber(GetIntValueAt("ProcessusNumber"));
+	RMResourceConstraints::SetMaxCoreNumberOnCluster(GetIntValueAt("ProcessusNumber"));
 	editedObject->SetPi(GetStringValueAt("Pi"));
 	editedObject->SetElapsedTime(GetDoubleValueAt("ElapsedTime"));
 
@@ -73,7 +73,7 @@ void PEPiView::EventRefresh(Object* object)
 
 	editedObject = cast(PEPi*, object);
 	SetIntValueAt("IterationNumber", editedObject->GetIterationNumber());
-	SetIntValueAt("ProcessusNumber", RMResourceConstraints::GetMaxCoreNumber());
+	SetIntValueAt("ProcessusNumber", RMResourceConstraints::GetMaxCoreNumberOnCluster());
 	SetStringValueAt("Pi", editedObject->GetPi());
 	SetDoubleValueAt("ElapsedTime", editedObject->GetElapsedTime());
 
@@ -98,7 +98,7 @@ void PEPiView::ComputePi()
 
 	// Calcul de Pi
 	pi->ComputePi();
-	AddMessage(IntToString(RMResourceConstraints::GetMaxCoreNumber()));
+	AddMessage(IntToString(RMResourceConstraints::GetMaxCoreNumberOnCluster()));
 	AddMessage("Pi = " + pi->GetPi());
 	AddMessage(SecondsToString(pi->GetElapsedTime()));
 }

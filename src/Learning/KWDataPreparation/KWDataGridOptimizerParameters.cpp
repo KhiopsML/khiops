@@ -193,23 +193,6 @@ KWDataGridOptimizerParameters* PLShared_DataGridOptimizerParameters::GetDataGrid
 	return cast(KWDataGridOptimizerParameters*, GetObject());
 }
 
-void PLShared_DataGridOptimizerParameters::DeserializeObject(PLSerializer* serializer, Object* o) const
-{
-	KWDataGridOptimizerParameters* dataGridOptimizerParameters;
-
-	require(serializer->IsOpenForRead());
-
-	dataGridOptimizerParameters = cast(KWDataGridOptimizerParameters*, o);
-	dataGridOptimizerParameters->SetOptimizationAlgorithm(serializer->GetString());
-	dataGridOptimizerParameters->SetOptimizationTime(serializer->GetInt());
-	dataGridOptimizerParameters->SetOptimizationLevel(serializer->GetInt());
-	dataGridOptimizerParameters->SetUnivariateInitialization(serializer->GetBoolean());
-	dataGridOptimizerParameters->SetPreOptimize(serializer->GetBoolean());
-	dataGridOptimizerParameters->SetOptimize(serializer->GetBoolean());
-	dataGridOptimizerParameters->SetPostOptimize(serializer->GetBoolean());
-	dataGridOptimizerParameters->SetDisplayDetails(serializer->GetBoolean());
-}
-
 void PLShared_DataGridOptimizerParameters::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
 	KWDataGridOptimizerParameters* dataGridOptimizerParameters;
@@ -225,6 +208,23 @@ void PLShared_DataGridOptimizerParameters::SerializeObject(PLSerializer* seriali
 	serializer->PutBoolean(dataGridOptimizerParameters->GetOptimize());
 	serializer->PutBoolean(dataGridOptimizerParameters->GetPostOptimize());
 	serializer->PutBoolean(dataGridOptimizerParameters->GetDisplayDetails());
+}
+
+void PLShared_DataGridOptimizerParameters::DeserializeObject(PLSerializer* serializer, Object* o) const
+{
+	KWDataGridOptimizerParameters* dataGridOptimizerParameters;
+
+	require(serializer->IsOpenForRead());
+
+	dataGridOptimizerParameters = cast(KWDataGridOptimizerParameters*, o);
+	dataGridOptimizerParameters->SetOptimizationAlgorithm(serializer->GetString());
+	dataGridOptimizerParameters->SetOptimizationTime(serializer->GetInt());
+	dataGridOptimizerParameters->SetOptimizationLevel(serializer->GetInt());
+	dataGridOptimizerParameters->SetUnivariateInitialization(serializer->GetBoolean());
+	dataGridOptimizerParameters->SetPreOptimize(serializer->GetBoolean());
+	dataGridOptimizerParameters->SetOptimize(serializer->GetBoolean());
+	dataGridOptimizerParameters->SetPostOptimize(serializer->GetBoolean());
+	dataGridOptimizerParameters->SetDisplayDetails(serializer->GetBoolean());
 }
 
 Object* PLShared_DataGridOptimizerParameters::Create() const

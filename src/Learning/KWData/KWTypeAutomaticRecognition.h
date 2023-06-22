@@ -46,6 +46,10 @@ public:
 	// Nombre de valeurs vides rencontrees
 	int GetMissingValueNumber() const;
 
+	// Nombre de valeurs "0" ou "1" rencontrees
+	int GetValue0Number() const;
+	int GetValue1Number() const;
+
 	// Longueur max des valeurs analysees
 	int GetMaxValueLength() const;
 
@@ -124,18 +128,26 @@ protected:
 	int nValueNumber;
 	int nMissingValueNumber;
 
+	// Nombre de valeurs 0 ou 1 analysees
+	int nValue0Number;
+	int nValue1Number;
+
 	// Longueur de la valeur la plus longue
 	int nMaxValueLength;
+
+	// Nombre de types compatibles avec les valeurs analysees, sans compter le type Text,
+	// gere au premier abord comme le type Symbol
+	int nMatchingTypeNumber;
 
 	// Valeur la plus petite du permier caractere
 	// Sert a verifier si un format HHMM correspond en fait a une annee (de type 1999, 2000)
 	char cMinFirstChar;
 
-	// Nombre de types compatibles avec les valeurs analysees
-	int nMatchingTypeNumber;
-
 	// Indicateur de compatibilite du type Continuous
 	boolean bMatchingContinuous;
+
+	// Indicateur de compatibilite du type Text
+	boolean bMatchingText;
 
 	// Indicateur de finalisation
 	boolean bIsFinalized;
@@ -145,7 +157,12 @@ protected:
 	ObjectArray oaMatchingTimeFormats;
 	ObjectArray oaMatchingTimestampFormats;
 
-	// Taille maximum des champs de type cContinuous
+	// Taille minimum des champs de type Text
+	// Une variable de type Symbol comportant au moins une valeur de taille superieure sera consideree comme de type
+	// Text
+	static const unsigned int nMinTextFieldSize = 100;
+
+	// Taille maximum des champs de type Continuous
 	// On se limite a une taille plus petit que la taille max des champs de tous types pour
 	// pouvoir gerer des variables de travail dans la stack sans depassement memoire de celle-ci
 	static const unsigned int nMaxContinuousFieldSize = 1000;

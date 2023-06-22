@@ -11,7 +11,6 @@
 #include "PLSharedVariable.h"
 #include "PLSharedObject.h"
 #include "PLSharedVector.h"
-#include "PLShared_BufferedFile.h"
 #include "PLShared_ResourceRequirement.h"
 #include "PLSlaveState.h"
 #include "PLTaskDriver.h"
@@ -399,11 +398,11 @@ protected:
 	// Methode utilitaire pour l'affectation de la taille du buffer de lecture pour eviter que les esclaves accedent
 	// au fichier tous en meme temps. La taille est comprise entre nBufferSizeMin et nBufferSizeMax
 	// - pour les GetProcessNumber() premiers chunks, on fait une marche d'escalier reguliere de nBufferSizeMin a
-	// nBufferSizeMax
+	//   nBufferSizeMax
 	// - pour le milieu du fichier on renvoie une valeur aleatoire entre 0.8*nBufferSizeMax et nBufferSizeMax
 	// - pour la fin on donne nBufferSizeMin (c'est la fin du traitement quand on peut donner 2 nBufferSizeMin a
-	// chaque esclave ou 							quand il n'y a plus que la moitie des
-	// esclaves qui vont travailler) La valeur retournee est un multiple de la taille d'un bloc et plus petite que
+	//   chaque esclave ou quand il n'y a plus que la moitie des esclaves qui vont travailler)
+	// La valeur retournee est un multiple de la taille d'un bloc et plus petite que
 	// InputBufferedFile::GetMaxBufferSize()
 	//
 	// Ne peut etre appele que dans MasterPrepareTaskInput
@@ -541,6 +540,7 @@ private:
 	PLSlaveState* GetReadySlave();
 
 	// Renvoie un slave dont le status est READY parmi ceux passes en parametre
+	// Les esclaves deja initialises sont privilegies
 	PLSlaveState* GetReadySlaveOnHost(ObjectArray* oaSlaves);
 
 	// Renvoie le slave dont le rang est rank
@@ -916,6 +916,7 @@ inline boolean PLParallelTask::GetTracerProtocolActive()
 
 inline void PLParallelTask::SetTracerResources(int nTraceOn)
 {
+	// TODO 2 n'a plus aucun effet
 	nTracerResources = nTraceOn;
 }
 

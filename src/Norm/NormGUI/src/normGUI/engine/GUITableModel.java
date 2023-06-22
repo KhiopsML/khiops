@@ -216,10 +216,10 @@ public class GUITableModel extends AbstractTableModel
         }
 
         /**
-         * Liste des valeurs de la table, permettant de bufferiser les valeurs
-         * provenant du C++ Ces valeur sont collectees en fonction des besoins
-         * d'affichage, et utilisees pour // les reaffichage pour ne pas rentrer en
-         * conflit avec les acces C++
+         * Liste des valeurs de la table, permettant de bufferiser les valeurs provenant
+         * du C++ Ces valeur sont collectees en fonction des besoins d'affichage, et
+         * utilisees pour // les reaffichage pour ne pas rentrer en conflit avec les
+         * acces C++
          */
         private Vector<Object> vectorOfBufferValues;
         private int nBufferRowNumber;

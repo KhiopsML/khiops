@@ -48,6 +48,7 @@ class KWDatabase;
 //				 GetDateValue
 //				 GetTimeValue
 //				 GetTimestampValue
+//				 GetTextValue
 //				 GetObjectValue
 //				 GetObjectArrayValue
 //				 GetStructureValue
@@ -329,7 +330,8 @@ public:
 	// doit etre reimplementee
 	// Gestion memoire (cf classe KWObject)
 	//  - type simple (Continuous et Symbol): ce sont des valeurs, et cela ne pose pas de probleme
-	//  - type complex (Date, Time et Timestamp): ce sont egalement des valeurs, et cela ne pose pas de probleme
+	//  - type complex (Date, Time, Timestamp): ce sont egalement des valeurs, et cela ne pose pas de probleme
+	//  - type Text: ce sont egalement des valeurs, et cela ne pose pas de probleme
 	//  - type object (Object et ObjectArray): selon qu'il soient internes ou references, ils appartiennent
 	//    a leur KWObject englobant et seront detruits par celui ci, ou sont simplement reference et sont
 	//    censes appartenir a un autre objet ou etre extrait d'un autre attribut
@@ -358,6 +360,7 @@ public:
 	virtual Date ComputeDateResult(const KWObject* kwoObject) const;
 	virtual Time ComputeTimeResult(const KWObject* kwoObject) const;
 	virtual Timestamp ComputeTimestampResult(const KWObject* kwoObject) const;
+	virtual Symbol ComputeTextResult(const KWObject* kwoObject) const;
 	virtual KWObject* ComputeObjectResult(const KWObject* kwoObject) const;
 	virtual ObjectArray* ComputeObjectArrayResult(const KWObject* kwoObject) const;
 	virtual Object* ComputeStructureResult(const KWObject* kwoObject) const;
@@ -747,6 +750,7 @@ public:
 	Date GetDateValue(const KWObject* kwoObject) const;
 	Time GetTimeValue(const KWObject* kwoObject) const;
 	Timestamp GetTimestampValue(const KWObject* kwoObject) const;
+	Symbol GetTextValue(const KWObject* kwoObject) const;
 	KWObject* GetObjectValue(const KWObject* kwoObject) const;
 	ObjectArray* GetObjectArrayValue(const KWObject* kwoObject) const;
 	Object* GetStructureValue(const KWObject* kwoObject) const;
@@ -1328,6 +1332,18 @@ inline Timestamp KWDerivationRuleOperand::GetTimestampValue(const KWObject* kwoO
 		    ? kwoObject->ComputeTimestampValueAt(liDataItemLoadIndex)
 		    : (cCompiledOrigin == CompiledOriginRule ? GetDerivationRule()->ComputeTimestampResult(kwoObject)
 							     : kwvConstant.GetTimestamp()));
+}
+
+inline Symbol KWDerivationRuleOperand::GetTextValue(const KWObject* kwoObject) const
+{
+	debug(require(IsCompiled());) require(kwoObject != NULL);
+	require(kwoObject->GetClass() == kwcClass or GetScopeLevel() > 0);
+	require(GetType() == KWType::Text);
+
+	return (cCompiledOrigin == CompiledOriginAttribute
+		    ? kwoObject->ComputeTextValueAt(liDataItemLoadIndex)
+		    : (cCompiledOrigin == CompiledOriginRule ? GetDerivationRule()->ComputeTextResult(kwoObject)
+							     : kwvConstant.GetText()));
 }
 
 inline KWObject* KWDerivationRuleOperand::GetObjectValue(const KWObject* kwoObject) const

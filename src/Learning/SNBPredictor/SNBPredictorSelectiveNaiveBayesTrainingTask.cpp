@@ -143,21 +143,8 @@ void SNBPredictorSNBTrainingTask::InternalTrain(SNBPredictorSelectiveNaiveBayes*
 			shared_bIsPreparationCostEnabled =
 			    masterSnbPredictor->GetSelectionParameters()->GetPreparationCost();
 
-			// DDD
-			// Backdoor trace de ressources
-			// if (getenv("TempKhiopsTraceResources") != NULL and
-			// StringToBoolean(getenv("empKhiopsTraceResources")))
-			//{
-			//	cout << "BACKDOOR: TempKhiopsTraceResources ! \n";
-			//	PLParallelTask::SetTracerResources(true);
-			// PLParallelTask::SetTracerProtocolActive(true);
-			//}
-
 			// Execution de la tache
 			Run();
-
-			// DDD
-			// PLParallelTask::SetTracerResources(false);
 
 			// Nettoyage des variables partagees
 			shared_learningSpec.RemoveObject();
@@ -649,77 +636,84 @@ SNBPredictorSNBTrainingTask::ComputeDataPreparationAttributeNecessaryMemory(cons
 	const KWDGSAttributeGrouping* attributeGrouping;
 	const KWDGSAttributeSymbolValues* attributeSymbolValues;
 
-	// Memoire propre de l'objet
-	lDataPreparationAttributeMemory = sizeof(KWDataPreparationAttribute*) + sizeof(KWDataPreparationAttribute);
+	// Memoire du pointeur
+	lDataPreparationAttributeMemory = sizeof(KWDataPreparationAttribute*);
 
-	// Memoire de l'attribut associe
-	lDataPreparationAttributeMemory += sizeof(KWAttribute*) + sizeof(KWAttribute) +
-					   dataGridStats->ExportVariableNames().GetUsedMemory() +
-					   sizeof(KWKeyValuePair*) + sizeof(KWKeyValuePair);
-
-	// Memoire pour la regle "DataGrid" du attribut et l'attribut de recodage "CellIndex" associe
-	lDataPreparationAttributeMemory +=
-	    sizeof(KWDRDataGrid*) + sizeof(KWDRDataGrid) + sizeof(KWDRCellIndex*) + sizeof(KWDRCellIndex);
-	for (nAttribute = 0; nAttribute < dataGridStats->GetAttributeNumber(); nAttribute++)
+	if (dataGridStats != NULL)
 	{
-		attributePartition = dataGridStats->GetAttributeAt(nAttribute);
+		// Memoire propre de l'objet
+		lDataPreparationAttributeMemory = sizeof(KWDataPreparationAttribute);
 
-		// Memoire des operands (1 pour la regle datagrid et 1 pour l'attribut de recodage)
+		// Memoire de l'attribut associe
+		lDataPreparationAttributeMemory += sizeof(KWAttribute*) + sizeof(KWAttribute) +
+						   dataGridStats->ExportVariableNames().GetUsedMemory() +
+						   sizeof(KWKeyValuePair*) + sizeof(KWKeyValuePair);
+
+		// Memoire pour la regle "DataGrid" du attribut et l'attribut de recodage "CellIndex" associe
 		lDataPreparationAttributeMemory +=
-		    2 * (sizeof(KWDerivationRuleOperand*) + sizeof(KWDerivationRuleOperand));
-
-		// Memoire de l'attribut pour la regle de recodage
-		lDataPreparationAttributeMemory +=
-		    dataGridStats->GetAttributeAt(nAttribute)->GetAttributeName().GetUsedMemory();
-
-		// Cas de la discretisation
-		if (attributePartition->GetAttributeType() == KWType::Continuous and
-		    not attributePartition->ArePartsSingletons())
+		    sizeof(KWDRDataGrid*) + sizeof(KWDRDataGrid) + sizeof(KWDRCellIndex*) + sizeof(KWDRCellIndex);
+		for (nAttribute = 0; nAttribute < dataGridStats->GetAttributeNumber(); nAttribute++)
 		{
-			attributeDiscretization = cast(const KWDGSAttributeDiscretization*, attributePartition);
+			attributePartition = dataGridStats->GetAttributeAt(nAttribute);
+
+			// Memoire des operands (1 pour la regle datagrid et 1 pour l'attribut de recodage)
 			lDataPreparationAttributeMemory +=
-			    sizeof(KWDRIntervalBounds*) + sizeof(KWDRIntervalBounds) +
-			    (longint)attributeDiscretization->GetIntervalBoundNumber() * sizeof(Continuous);
-		}
-		// Cas d'un ensemble des singletons de valeurs continues
-		else if (attributePartition->GetAttributeType() == KWType::Continuous and
-			 attributePartition->ArePartsSingletons())
-		{
-			attributeContinuousValues = cast(const KWDGSAttributeContinuousValues*, attributePartition);
-			lDataPreparationAttributeMemory +=
-			    sizeof(KWDRContinuousValueSet*) + sizeof(KWDRContinuousValueSet) +
-			    (longint)attributeContinuousValues->GetValueNumber() * sizeof(Continuous);
-		}
-		// Cas d'un groupement de symboles
-		else if (attributePartition->GetAttributeType() == KWType::Symbol and
-			 not attributePartition->ArePartsSingletons())
-		{
-			attributeGrouping = cast(KWDGSAttributeGrouping*, attributePartition);
-			lDataPreparationAttributeMemory += sizeof(KWDRValueGroups*) + sizeof(KWDRValueGroups);
+			    2 * (sizeof(KWDerivationRuleOperand*) + sizeof(KWDerivationRuleOperand));
 
-			for (nGroup = 0; nGroup < attributeGrouping->GetGroupNumber(); nGroup++)
+			// Memoire de l'attribut pour la regle de recodage
+			lDataPreparationAttributeMemory +=
+			    dataGridStats->GetAttributeAt(nAttribute)->GetAttributeName().GetUsedMemory();
+
+			// Cas de la discretisation
+			if (attributePartition->GetAttributeType() == KWType::Continuous and
+			    not attributePartition->ArePartsSingletons())
 			{
+				attributeDiscretization = cast(const KWDGSAttributeDiscretization*, attributePartition);
 				lDataPreparationAttributeMemory +=
-				    sizeof(KWDRValueGroup*) + sizeof(KWDRValueGroup) +
-				    sizeof(KWDerivationRuleOperand*) + sizeof(KWDerivationRuleOperand) +
-				    (longint)attributeGrouping->GetGroupValueNumberAt(nGroup) * sizeof(Symbol);
+				    sizeof(KWDRIntervalBounds*) + sizeof(KWDRIntervalBounds) +
+				    (longint)attributeDiscretization->GetIntervalBoundNumber() * sizeof(Continuous);
+			}
+			// Cas d'un ensemble des singletons de valeurs continues
+			else if (attributePartition->GetAttributeType() == KWType::Continuous and
+				 attributePartition->ArePartsSingletons())
+			{
+				attributeContinuousValues =
+				    cast(const KWDGSAttributeContinuousValues*, attributePartition);
+				lDataPreparationAttributeMemory +=
+				    sizeof(KWDRContinuousValueSet*) + sizeof(KWDRContinuousValueSet) +
+				    (longint)attributeContinuousValues->GetValueNumber() * sizeof(Continuous);
+			}
+			// Cas d'un groupement de symboles
+			else if (attributePartition->GetAttributeType() == KWType::Symbol and
+				 not attributePartition->ArePartsSingletons())
+			{
+				attributeGrouping = cast(KWDGSAttributeGrouping*, attributePartition);
+				lDataPreparationAttributeMemory += sizeof(KWDRValueGroups*) + sizeof(KWDRValueGroups);
+
+				for (nGroup = 0; nGroup < attributeGrouping->GetGroupNumber(); nGroup++)
+				{
+					lDataPreparationAttributeMemory +=
+					    sizeof(KWDRValueGroup*) + sizeof(KWDRValueGroup) +
+					    sizeof(KWDerivationRuleOperand*) + sizeof(KWDerivationRuleOperand) +
+					    (longint)attributeGrouping->GetGroupValueNumberAt(nGroup) * sizeof(Symbol);
+				}
+			}
+			// Cas d'un ensemble de singletons de symboles
+			else if (attributePartition->GetAttributeType() == KWType::Symbol and
+				 attributePartition->ArePartsSingletons())
+			{
+				attributeSymbolValues = cast(const KWDGSAttributeSymbolValues*, attributePartition);
+				lDataPreparationAttributeMemory +=
+				    sizeof(KWDRSymbolValueSet*) + sizeof(KWDRSymbolValueSet) +
+				    (longint)attributeSymbolValues->GetPartNumber() * sizeof(Symbol);
 			}
 		}
-		// Cas d'un ensemble de singletons de symboles
-		else if (attributePartition->GetAttributeType() == KWType::Symbol and
-			 attributePartition->ArePartsSingletons())
-		{
-			attributeSymbolValues = cast(const KWDGSAttributeSymbolValues*, attributePartition);
-			lDataPreparationAttributeMemory +=
-			    sizeof(KWDRSymbolValueSet*) + sizeof(KWDRSymbolValueSet) +
-			    (longint)attributeSymbolValues->GetPartNumber() * sizeof(Symbol);
-		}
-	}
 
-	// Memoire de la regle des effectifs des cellules
-	lDataPreparationAttributeMemory += sizeof(KWDRFrequencies*) + sizeof(KWDRFrequencies) +
-					   sizeof(KWDerivationRuleOperand*) + sizeof(KWDerivationRuleOperand) +
-					   (longint)dataGridStats->ComputeTotalGridSize() * sizeof(int);
+		// Memoire de la regle des effectifs des cellules
+		lDataPreparationAttributeMemory += sizeof(KWDRFrequencies*) + sizeof(KWDRFrequencies) +
+						   sizeof(KWDerivationRuleOperand*) + sizeof(KWDerivationRuleOperand) +
+						   (longint)dataGridStats->ComputeTotalGridSize() * sizeof(int);
+	}
 
 	return lDataPreparationAttributeMemory;
 }
@@ -756,8 +750,9 @@ boolean SNBPredictorSNBTrainingTask::MasterInitialize()
 {
 	boolean bOk = true;
 
-	// TODO: Activer ou eliminer apres plus de tests
-	SetBoostMode(false);
+	// Activation du mode boost
+	// Amelioration faible en pratique, de l'ordre de 10% dans les cas favorables
+	SetBoostMode(true);
 
 	// Initialisation du SNBDataTableBinarySliceSet du maitre
 	bOk = MasterInitializeDataTableBinarySliceSet();
@@ -817,16 +812,6 @@ boolean SNBPredictorSNBTrainingTask::MasterInitializeDataTableBinarySliceSet()
 			break;
 		}
 	}
-
-	// DDD
-	// Backdoor nombre de slices
-	// if (getenv("TempKhiopsForceSliceNumber") != NULL)
-	//{
-	//	cout << "BACKDOOR: TempKhiopsForceSliceNumber = ";
-	//	nSliceNumber = min(masterSnbPredictor->GetTrainingAttributeNumber(),
-	// StringToInt(getenv("TempKhiopsForceSliceNumber"))); 	cout << nSliceNumber << endl;
-	//}
-	// nSliceNumber = 2;
 
 	// Si le nombre de slices a ete trouve : Initialisation
 	if (bOk)
@@ -1199,6 +1184,8 @@ void SNBPredictorSNBTrainingTask::InitializeNextFastRun()
 
 void SNBPredictorSNBTrainingTask::ComputeEmptySelectionScoreAndPrecisionEpsilon()
 {
+	const boolean bLocalTrace = false;
+
 	require(not IsPrecisionEpsilonCalculated());
 
 	// Mise a jour du score de la selection vide
@@ -1216,6 +1203,16 @@ void SNBPredictorSNBTrainingTask::ComputeEmptySelectionScoreAndPrecisionEpsilon(
 	dMasterCurrentDataCost = dMasterEmptySelectionDataCost;
 	dMasterPreviousRunScore = dMasterEmptySelectionScore;
 	dMasterMapScore = dMasterEmptySelectionScore;
+
+	// Trace de debbogage
+	if (bLocalTrace)
+	{
+		cout << "Empty selection model cost = " << dMasterEmptySelectionModelCost << "\n";
+		cout << "Empty selection data cost  = " << dMasterEmptySelectionDataCost << "\n";
+		cout << "Precision Epsilon          = " << dMasterPrecisionEpsilon << "\n";
+		cout << "----------------------------------------------\n";
+		cout << "Variable\tModif\tWeight\tModelCost\tDataCost\tDecision\tNewCost\n";
+	}
 
 	ensure(IsPrecisionEpsilonCalculated());
 }
@@ -2263,6 +2260,8 @@ void SNBPredictorSNBDirectTrainingTask::UpdateTaskProgressionLabel() const
 
 void SNBPredictorSNBDirectTrainingTask::UpdateSelection()
 {
+	const boolean bLocalTrace = false;
+
 	require(IsMasterProcess());
 
 	// Passe FastForward
@@ -2314,6 +2313,18 @@ void SNBPredictorSNBDirectTrainingTask::UpdateSelection()
 			masterWeightedSelectionScorer->UndoLastModification();
 			bMasterUndoLastModification = true;
 		}
+	}
+
+	// Trace de deboggage
+	if (bLocalTrace)
+	{
+		cout << masterRandomAttribute->GetNativeAttributeName() << "\t"
+		     << (IsOnFastForwardRun() ? "increase" : "decrease") << "\t" << dMasterModificationDeltaWeight
+		     << "\t" << dMasterModificationModelCost << "\t" << dMasterModificationDataCost << "\t"
+		     << (bMasterUndoLastModification ? "rejected" : "accepted");
+		if (not bMasterUndoLastModification)
+			cout << "\t" << dMasterCurrentScore;
+		cout << "\n";
 	}
 }
 

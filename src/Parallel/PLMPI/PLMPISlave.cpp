@@ -172,8 +172,8 @@ void PLMPISlave::RecvEndProcessing(MPI_Comm comm)
 	{
 		context.Recv(MPI_COMM_WORLD, 0, MASTER_STOP_ORDER);
 		serializer.OpenForRead(&context);
-		serializer.Close();
 	}
+	serializer.Close();
 
 	if (GetTracerMPI()->GetActiveMode())
 		GetTracerMPI()->AddRecv(0, MASTER_STOP_ORDER);
@@ -182,13 +182,12 @@ void PLMPISlave::RecvEndProcessing(MPI_Comm comm)
 void PLMPISlave::SendResults()
 {
 	PLMPIMsgContext context;
-	context.Send(MPI_COMM_WORLD, 0, SLAVE_END_PROCESSING);
-	serializer.OpenForWrite(&context);
-	GetTask()->SerializeSharedVariables(&serializer, &GetTask()->oaOutputVariables, true);
-
 	// Envoi du resultat de la serialisation
 	if (GetTracerMPI()->GetActiveMode())
 		GetTracerMPI()->AddSend(0, SLAVE_END_PROCESSING);
+	context.Send(MPI_COMM_WORLD, 0, SLAVE_END_PROCESSING);
+	serializer.OpenForWrite(&context);
+	GetTask()->SerializeSharedVariables(&serializer, &GetTask()->oaOutputVariables, true);
 	serializer.Close();
 }
 
@@ -217,7 +216,8 @@ void PLMPISlave::Process()
 	{
 		if (bBoostedMode)
 		{
-			// Reception du message
+			// Initialise la reception du message (bloc par bloc)
+			// la reception est complete seulement apres deserialisation
 			context.Recv(MPI_COMM_WORLD, 0, MPI_ANY_TAG);
 			serializer.OpenForRead(&context);
 			nMessageTag = context.GetTag();
@@ -236,22 +236,23 @@ void PLMPISlave::Process()
 			{
 			case MASTER_TASK_INPUT:
 
-				if (GetTracerMPI()->GetActiveMode())
-					GetTracerMPI()->AddRecv(0, MASTER_TASK_INPUT);
-
 				// On recoit les inputs de la tache
-				task->SetSharedVariablesRW(&task->oaInputVariables);
 				if (not bBoostedMode)
 				{
 					context.Recv(MPI_COMM_WORLD, 0, MASTER_TASK_INPUT);
 					serializer.OpenForRead(&context);
-					task->DeserializeSharedVariables(&serializer, &GetTask()->oaInputVariables);
-					serializer.Close();
 				}
+				task->SetSharedVariablesRW(&task->oaInputVariables);
+				task->DeserializeSharedVariables(&serializer, &GetTask()->oaInputVariables);
+				serializer.Close();
+
+				if (GetTracerMPI()->GetActiveMode())
+					GetTracerMPI()->AddRecv(0, MASTER_TASK_INPUT);
 
 				if (not task->bIsSlaveInitialized)
 				{
 					progressionManager->SetSlaveState(PLSlaveState::INIT);
+
 					// Initialisation
 					bOk = task->CallSlaveInitialize();
 

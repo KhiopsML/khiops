@@ -42,6 +42,7 @@ public:
 		Date,                  // Type date (valeur de type Date (cf. KWDate))
 		Time,                  // Type time (valeur de type Time (cf. KWTime))
 		Timestamp,             // Type timestamp (valeur de type Timestamp (cf. KWTimestamp))
+		Text,                  // Type text (valeur de type Tetx (cf. AString))
 		Object,                // Type object (objet de type KWObject, gere par une KWClass)
 		ObjectArray,           // Type tableau d'objects (tableau d'objets de type KWObject)
 		Structure,             // Type algorithmique (objet de d'une classe specialisee, heritant de Object)
@@ -64,10 +65,10 @@ public:
 	// Verification si un type est simple (Continuous ou Symbol)
 	static boolean IsSimple(int nType);
 
-	// Verification si un type est complexe (Date, Time ou Timestamp)
+	// Verification si un type est complexe (Date, Time, Timestamp)
 	static boolean IsComplex(int nType);
 
-	// Verification si un type est stocke (Simple ou Complex)
+	// Verification si un type est stocke (Simple, Complex ou Text)
 	static boolean IsStored(int nType);
 
 	// Verification si un type correspond a une relation (Object ou ObjectArray)
@@ -134,7 +135,7 @@ public:
 	void SetSymbol(const Symbol& sValue);
 	Symbol& GetSymbol() const;
 
-	// Reinitialisation d'une cvaleur Symbol
+	// Reinitialisation d'une valeur Symbol
 	void ResetSymbol();
 
 	// Date
@@ -148,6 +149,14 @@ public:
 	// Timestamp
 	void SetTimestamp(Timestamp tsValue);
 	Timestamp GetTimestamp() const;
+
+	// Text
+	// Les valeurs de type Text sont gerees comme celle de type Symbol
+	void SetText(const Symbol& sValue);
+	Symbol& GetText() const;
+
+	// Reinitialisation d'une valeur Text
+	void ResetText();
 
 	// Object
 	void SetObject(KWObject* kwoValue);
@@ -193,6 +202,7 @@ public:
 	boolean IsDateForbidenValue() const;
 	boolean IsTimeForbidenValue() const;
 	boolean IsTimestampForbidenValue() const;
+	boolean IsTextForbidenValue() const;
 	boolean IsObjectForbidenValue() const;
 	boolean IsObjectArrayForbidenValue() const;
 	boolean IsStructureForbidenValue() const;
@@ -202,6 +212,9 @@ public:
 
 	// Initialisation a la valeur interdite
 	void SetTypeForbidenValue(int nType);
+
+	// Taille maximum des champs de type Symbol
+	static const unsigned int nMaxSymbolFieldSize = 1000;
 
 	// Test des fonctionnalites
 	static void Test();
@@ -219,6 +232,7 @@ protected:
 	Date date;
 	Time time;
 	Timestamp timestamp;
+	KWSymbolData* text;
 	KWObject* object;
 	ObjectArray* objectArray;
 	KWSymbolValueBlock* symbolValueBlock;
@@ -233,12 +247,13 @@ protected:
 // essentiellement a des fins de controle
 static const Continuous KWValueForbiddenContinuous = KWContinuous::GetForbiddenValue();
 static KWSymbolData* const KWValueForbiddenSymbol = (KWSymbolData*)0x0001;
-static KWObject* const KWValueForbiddenObject = (KWObject*)0x0002;
-static ObjectArray* const KWValueForbiddenObjectArray = (ObjectArray*)0x0003;
-static Object* const KWValueForbiddenStructure = (Object*)0x0004;
-static KWSymbolValueBlock* const KWValueForbiddenSymbolValueBlock = (KWSymbolValueBlock*)0x0005;
-static KWContinuousValueBlock* const KWValueForbiddenContinuousValueBlock = (KWContinuousValueBlock*)0x0006;
-static KWObjectArrayValueBlock* const KWValueForbiddenObjectArrayValueBlock = (KWObjectArrayValueBlock*)0x0007;
+static KWSymbolData* const KWValueForbiddenText = (KWSymbolData*)0x0002;
+static KWObject* const KWValueForbiddenObject = (KWObject*)0x0003;
+static ObjectArray* const KWValueForbiddenObjectArray = (ObjectArray*)0x0004;
+static Object* const KWValueForbiddenStructure = (Object*)0x0005;
+static KWSymbolValueBlock* const KWValueForbiddenSymbolValueBlock = (KWSymbolValueBlock*)0x0006;
+static KWContinuousValueBlock* const KWValueForbiddenContinuousValueBlock = (KWContinuousValueBlock*)0x0007;
+static KWObjectArrayValueBlock* const KWValueForbiddenObjectArrayValueBlock = (KWObjectArrayValueBlock*)0x0008;
 
 ////////////////////////////////////////////////////////
 // Methodes en inline
@@ -260,7 +275,10 @@ inline boolean KWType::IsComplex(int nType)
 
 inline boolean KWType::IsStored(int nType)
 {
-	return (nType >= 0 and nType <= Timestamp);
+	if (GetLearningTextVariableMode())
+		return (nType >= 0 and nType <= Text);
+	else
+		return (nType >= 0 and nType <= Timestamp);
 }
 
 inline boolean KWType::IsRelation(int nType)
@@ -377,7 +395,7 @@ inline void KWValue::SetTime(Time tmValue)
 
 inline Time KWValue::GetTime() const
 {
-	ensure(not date.IsForbiddenValue());
+	ensure(not time.IsForbiddenValue());
 	return time;
 }
 
@@ -389,8 +407,33 @@ inline void KWValue::SetTimestamp(Timestamp tmValue)
 
 inline Timestamp KWValue::GetTimestamp() const
 {
-	ensure(not date.IsForbiddenValue());
+	ensure(not timestamp.IsForbiddenValue());
 	return timestamp;
+}
+
+inline void KWValue::SetText(const Symbol& sValue)
+{
+	// Analogue a la methode operator=(const Symbol& sSymbol) de la classe Symbol
+	if (sValue.symbolData)
+		++sValue.symbolData->lRefCount;
+	// Attention: gestion de la valeur interdite
+	if (text != KWValueForbiddenText and text and --text->lRefCount == 0)
+		Symbol::sdSharedSymbols.RemoveSymbol(text);
+	text = sValue.symbolData;
+}
+
+inline Symbol& KWValue::GetText() const
+{
+	ensure(text != KWValueForbiddenText);
+	return *(Symbol*)&text;
+}
+
+inline void KWValue::ResetText()
+{
+	// Attention: gestion de la valeur interdite
+	if (text != KWValueForbiddenText and text and --text->lRefCount == 0)
+		Symbol::sdSharedSymbols.RemoveSymbol(text);
+	text = NULL;
 }
 
 inline void KWValue::SetObject(KWObject* kwoValue)
@@ -526,6 +569,11 @@ inline boolean KWValue::IsTimestampForbidenValue() const
 	return timestamp.IsForbiddenValue();
 }
 
+inline boolean KWValue::IsTextForbidenValue() const
+{
+	return text == KWValueForbiddenText;
+}
+
 inline boolean KWValue::IsObjectForbidenValue() const
 {
 	return object == KWValueForbiddenObject;
@@ -580,6 +628,14 @@ inline void KWValue::SetTypeForbidenValue(int nType)
 		break;
 	case KWType::Timestamp:
 		timestamp.SetForbiddenValue();
+		break;
+	case KWType::Text:
+		// Attention a la valeur speciale, qui n'est pas vraiment un Symbol gere
+		if (text != KWValueForbiddenText)
+		{
+			ResetText();
+			text = KWValueForbiddenText;
+		}
 		break;
 	case KWType::Object:
 		object = KWValueForbiddenObject;

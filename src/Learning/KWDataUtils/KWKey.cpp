@@ -90,19 +90,19 @@ PLShared_Key::PLShared_Key() {}
 
 PLShared_Key::~PLShared_Key() {}
 
+void PLShared_Key::SerializeObject(PLSerializer* serializer, const Object* o) const
+{
+	KWKey* key = cast(KWKey*, o);
+	require(serializer->IsOpenForWrite());
+	serializer->PutStringVector(&key->svFields);
+}
+
 void PLShared_Key::DeserializeObject(PLSerializer* serializer, Object* o) const
 {
 	KWKey* key = cast(KWKey*, o);
 	require(serializer->IsOpenForRead());
 	require(key->svFields.GetSize() == 0);
 	serializer->GetStringVector(&key->svFields);
-}
-
-void PLShared_Key::SerializeObject(PLSerializer* serializer, const Object* o) const
-{
-	KWKey* key = cast(KWKey*, o);
-	require(serializer->IsOpenForWrite());
-	serializer->PutStringVector(&key->svFields);
 }
 
 //////////////////////////////////
@@ -211,21 +211,6 @@ PLShared_KeyPosition::PLShared_KeyPosition() {}
 
 PLShared_KeyPosition::~PLShared_KeyPosition() {}
 
-void PLShared_KeyPosition::DeserializeObject(PLSerializer* serializer, Object* o) const
-{
-	PLShared_Key shared_key;
-	KWKeyPosition* keyPosition = cast(KWKeyPosition*, o);
-
-	require(serializer->IsOpenForRead());
-
-	// On sous-traite la deserialisation de la cle
-	shared_key.DeserializeObject(serializer, keyPosition->GetKey());
-
-	// Deserialisation du reste des attributs
-	keyPosition->lLinePosition = serializer->GetLongint();
-	keyPosition->lLineIndex = serializer->GetLongint();
-}
-
 void PLShared_KeyPosition::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
 	PLShared_Key shared_key;
@@ -239,4 +224,19 @@ void PLShared_KeyPosition::SerializeObject(PLSerializer* serializer, const Objec
 	// Serialisation du reste des attributs
 	serializer->PutLongint(keyPosition->lLinePosition);
 	serializer->PutLongint(keyPosition->lLineIndex);
+}
+
+void PLShared_KeyPosition::DeserializeObject(PLSerializer* serializer, Object* o) const
+{
+	PLShared_Key shared_key;
+	KWKeyPosition* keyPosition = cast(KWKeyPosition*, o);
+
+	require(serializer->IsOpenForRead());
+
+	// On sous-traite la deserialisation de la cle
+	shared_key.DeserializeObject(serializer, keyPosition->GetKey());
+
+	// Deserialisation du reste des attributs
+	keyPosition->lLinePosition = serializer->GetLongint();
+	keyPosition->lLineIndex = serializer->GetLongint();
 }

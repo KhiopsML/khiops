@@ -256,72 +256,76 @@ void DTDiscretizerMODL::DiscretizeNEW(KWFrequencyTable* kwftSource, KWFrequencyT
 			nPreviousPartileNumber = nCurrentPartileNumber;
 			nGranularity++;
 		}
-		StartTimer(DTTimerDiscretizeGFT);
-		if (bDisplayResults2)
+		// libere la memoire si il n y a pas d interuption utilisateur
+		if (not TaskProgression::IsInterruptionRequested())
 		{
-			for (nSourceIndex = 0; nSourceIndex < kwftSource->GetFrequencyVectorNumber(); nSourceIndex++)
+			StartTimer(DTTimerDiscretizeGFT);
+			if (bDisplayResults2)
 			{
-				cout << "ivGranularityMinByValues : " << nSourceIndex << " / "
-				     << ivGranularityMinByValues.GetAt(nSourceIndex) << endl;
+				for (nSourceIndex = 0; nSourceIndex < kwftSource->GetFrequencyVectorNumber();
+				     nSourceIndex++)
+				{
+					cout << "ivGranularityMinByValues : " << nSourceIndex << " / "
+					     << ivGranularityMinByValues.GetAt(nSourceIndex) << endl;
+				}
 			}
-		}
 
-		for (nSourceIndex = 0; nSourceIndex < ivGranularityMinByValues.GetSize(); nSourceIndex++)
-		{
-
-			if (ivGranularityMinByValues.GetAt(nSourceIndex) == 0)
+			for (nSourceIndex = 0; nSourceIndex < ivGranularityMinByValues.GetSize(); nSourceIndex++)
 			{
-				ivGranularityMinByValues.SetAt(nSourceIndex, nGranularityMax);
-				ivGranularizedValueNumber.SetAt(nSourceIndex, kwftSource->GetFrequencyVectorNumber());
+
+				if (ivGranularityMinByValues.GetAt(nSourceIndex) == 0)
+				{
+					ivGranularityMinByValues.SetAt(nSourceIndex, nGranularityMax);
+					ivGranularizedValueNumber.SetAt(nSourceIndex,
+									kwftSource->GetFrequencyVectorNumber());
+				}
 			}
+			// Discretisation de la table granularisee
+			DiscretizeGranularizedFrequencyTableNEW(kwftGranularizedTable, kwftDiscretizedGranularizedTable,
+								&ivGranularityMinByValues, &ivGranularizedValueNumber);
+
+			// Memorisation du meilleur cout avec ComputeDiscretizationCost et de la granularite associee
+			dCost = ComputeDiscretizationCost(kwftDiscretizedGranularizedTable);
+
+			StopTimer(DTTimerDiscretizeGFT);
+			// SecondsToString(timerDiscretizeGFT.GetElapsedTime()));
+			//  Nettoyage
+			// delete kwftMergedTable;
+			// kwftMergedTable = NULL;
+
+			if (dCost < dBestCost)
+			{
+				dBestCost = dCost;
+				// Destruction de l'optimum precedent
+				if (kwftTarget != NULL)
+					delete kwftTarget;
+				// Memorisation du nouvel optimum
+				kwftTarget = new KWFrequencyTable;
+				kwftTarget->CopyFrom(kwftDiscretizedGranularizedTable);
+			}
+			if (bDisplayResults)
+			{
+				cout << "Granularite\tConstr. cost\tPrep. cost\tData cost\tTotal cost\tGroups" << endl;
+				cout << nGranularity << "\t"
+				     << ComputeDiscretizationConstructionCost(kwftDiscretizedGranularizedTable) << "\t"
+				     << ComputeDiscretizationPreparationCost(kwftDiscretizedGranularizedTable) << "\t"
+				     << ComputeDiscretizationDataCost(kwftDiscretizedGranularizedTable) << "\t"
+				     << ComputeDiscretizationCost(kwftDiscretizedGranularizedTable) << "\t"
+				     << kwftDiscretizedGranularizedTable->GetFrequencyVectorNumber() << endl;
+			}
+			// Nettoyage
+			delete kwftGranularizedTable;
+			kwftGranularizedTable = NULL;
+			delete kwftDiscretizedGranularizedTable;
+			kwftDiscretizedGranularizedTable = NULL;
 		}
-		// Discretisation de la table granularisee
-		DiscretizeGranularizedFrequencyTableNEW(kwftGranularizedTable, kwftDiscretizedGranularizedTable,
-							&ivGranularityMinByValues, &ivGranularizedValueNumber);
-
-		// Memorisation du meilleur cout avec ComputeDiscretizationCost et de la granularite associee
-		dCost = ComputeDiscretizationCost(kwftDiscretizedGranularizedTable);
-
-		StopTimer(DTTimerDiscretizeGFT);
-		// SecondsToString(timerDiscretizeGFT.GetElapsedTime()));
-		//  Nettoyage
-		// delete kwftMergedTable;
-		// kwftMergedTable = NULL;
-
-		if (dCost < dBestCost)
-		{
-			dBestCost = dCost;
-			// Destruction de l'optimum precedent
-			if (kwftTarget != NULL)
-				delete kwftTarget;
-			// Memorisation du nouvel optimum
-			kwftTarget = new KWFrequencyTable;
-			kwftTarget->CopyFrom(kwftDiscretizedGranularizedTable);
-		}
-		if (bDisplayResults)
-		{
-			cout << "Granularite\tConstr. cost\tPrep. cost\tData cost\tTotal cost\tGroups" << endl;
-			cout << nGranularity << "\t"
-			     << ComputeDiscretizationConstructionCost(kwftDiscretizedGranularizedTable) << "\t"
-			     << ComputeDiscretizationPreparationCost(kwftDiscretizedGranularizedTable) << "\t"
-			     << ComputeDiscretizationDataCost(kwftDiscretizedGranularizedTable) << "\t"
-			     << ComputeDiscretizationCost(kwftDiscretizedGranularizedTable) << "\t"
-			     << kwftDiscretizedGranularizedTable->GetFrequencyVectorNumber() << endl;
-		}
-		// Nettoyage
-		delete kwftGranularizedTable;
-		kwftGranularizedTable = NULL;
-		delete kwftDiscretizedGranularizedTable;
-		kwftDiscretizedGranularizedTable = NULL;
-
 		if (bDisplayResults)
 			cout << "Meilleure granularite discretisation " << kwftTarget->GetGranularity() << " sur  "
 			     << nGranularityMax << endl;
 	}
 	ensure(kwftTarget != NULL);
 	StopTimer(DTTimerDiscretize);
-	// if (kwftTarget->GetGranularity() == 1 && kwftTarget->GetFrequencyVectorNumber() == 1)
-	//	kwftTarget->SetGranularizedValueNumber(kwftSource->GetGranularizedValueNumber());
+
 	if (ntest == 1)
 	{
 		cout << "kwftTarget->GetFrequencyVectorNumber()" << kwftTarget->GetFrequencyVectorNumber() << endl;

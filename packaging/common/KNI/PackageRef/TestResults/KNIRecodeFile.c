@@ -1,7 +1,6 @@
-/******************************************************************************
- * Khiops Native Interface (KNI)
- * Copyright (c) 2021 Orange Labs. All rights reserved.
- *****************************************************************************/
+// Copyright (c) 2023 Orange. All rights reserved.
+// This software is distributed under the BSD 3-Clause-clear License, the text of which is available
+// at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #ifdef _MSC_VER
 // To disable fopen warnings (Visual C++ deprecated method)

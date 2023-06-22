@@ -43,7 +43,7 @@ void PEPiTask::ComputePi()
 	// Preparation d'une barre de progression de la tache, avec titre dependant du
 	// mode d'execution
 	if (not PLParallelTask::GetDriver()->IsParallelModeAvailable() or
-	    RMResourceConstraints::GetMaxCoreNumber() == 1)
+	    RMResourceConstraints::GetMaxCoreNumberOnCluster() == 1)
 	{
 		TaskProgression::SetTitle("Pi estimator (Sequential mode)");
 

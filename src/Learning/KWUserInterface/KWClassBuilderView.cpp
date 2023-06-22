@@ -7,7 +7,9 @@
 KWClassBuilderView::KWClassBuilderView()
 {
 	KWSTDatabaseTextFileView* sourceDataTableView;
+	ALString sStoredTypesLabel;
 	int i;
+	ALString sTmp;
 
 	// Initialisation
 	nBuildClassNumber = 0;
@@ -48,14 +50,32 @@ KWClassBuilderView::KWClassBuilderView()
 	AddListField("Classes", "Existing dictionaries", classNameList);
 	GetFieldAt("Classes")->SetEditable(false);
 
+	// Liste des types stockes pour les info-bulles
+	for (i = 0; i < KWType::None; i++)
+	{
+		if (KWType::IsStored(i))
+		{
+			if (sStoredTypesLabel != "")
+				sStoredTypesLabel += ", ";
+		}
+		sStoredTypesLabel += KWType::ToString(i);
+	}
+
 	// Info-bulles
 	sourceDataTableView->GetFieldAt("DatabaseName")->SetHelpText("Name of the data table file");
 	classNameList->GetFieldAt("Name")->SetHelpText("Name of dictionary.");
 	GetActionAt("BuildClassDef")
-	    ->SetHelpText("Start the analysis of the data table file to build a dictionary."
-			  "\n The first lines of the file are analyzed in order to determine the type of the variables:"
-			  "\n Categorical, Numerical, Date, Time or Timestamp."
-			  "\n After analysis, the user can choose the name of the dictionary.");
+	    ->SetHelpText(
+		sTmp + "Start the analysis of the data table file to build a dictionary." +
+		"\n The first lines of the file are analyzed in order to determine the type of the variables:" + "\n " +
+		sStoredTypesLabel + "\n After analysis, the user can choose the name of the dictionary.");
+	if (GetLearningTextVariableMode())
+		GetActionAt("BuildClassDef")
+		    ->SetHelpText(
+			"Start the analysis of the data table file to build a dictionary."
+			"\n The first lines of the file are analyzed in order to determine the type of the variables:"
+			"\n Categorical, Numerical, Date, Time, Timestamp, Text."
+			"\n After analysis, the user can choose the name of the dictionary.");
 	GetActionAt("Exit")->SetHelpText("Close the dialog box."
 					 "\n If dictionaries have been built,"
 					 "\n proposes to save them in a dictionary file.");
@@ -130,10 +150,17 @@ void KWClassBuilderView::BuildClass()
 		TaskProgression::SetTitle("Build dictionary fom data table");
 		TaskProgression::Start();
 
+		// Parametrage du driver la base source pour qu'il n'emette pas de warning pour des champs categoriels
+		// trop long Cela permet d'identifier des champs Text via des champs categoriel
+		KWDataTableDriverTextFile::SetOverlengthyFieldsVerboseMode(false);
+
 		// Construction effective de la classe
 		sourceDataTable.SetClassName(sClassName);
 		kwcClass = sourceDataTable.ComputeClass();
 		bOk = (kwcClass != NULL);
+
+		// Restitutuion du parametrage initial du driver
+		KWDataTableDriverTextFile::SetOverlengthyFieldsVerboseMode(true);
 
 		// Fin du suivi de la tache
 		TaskProgression::Stop();

@@ -1,13 +1,3 @@
-Rank;
-Name;
-Type;
-Style;
-Label 1;
-FirstName;
-ALString;
-;
-First name 2;
-SecondName;
-ALString;
-;
-Second name
+Rank;Name;Type;Style;Label
+1;FirstName  ;ALString;                ;First name
+2;SecondName ;ALString;                ;Second name

@@ -138,7 +138,8 @@ public class GUIList extends GUIUnit
                 jsp.getViewport().addMouseListener(new MouseAdapter() {
                         public void mouseClicked(MouseEvent e)
                         {
-                                if (e.getButton() == 3)
+                                // Si on clique a droite et que le composant est enabled
+                                if (e.getButton() == 3 && guiTable.isEnabled())
                                         guiTable.getPopMenu().show(e.getComponent(), e.getX(), e.getY());
                         }
                 });
@@ -190,9 +191,9 @@ public class GUIList extends GUIUnit
 
                 if (hasActionButton()) {
 
-                        // S'il n'y a aucune action ou bien s'il ne s'agit pas d'une fenetre (dans
-                        // ce cas les boutons apparaissent deja dans le panel sud grace a
-                        // addToolBar() de GUIUnit)
+                        // S'il n'y a aucune action ou bien s'il ne s'agit pas d'une fenetre (dans ce
+                        // cas les
+                        // boutons apparaissent deja dans le panel sud grace a addToolBar() de GUIUnit)
                         if (getActionCount() == 0 || frame != null)
                                 return;
 

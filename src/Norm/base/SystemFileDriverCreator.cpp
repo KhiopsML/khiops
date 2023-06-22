@@ -140,7 +140,7 @@ SystemFileDriver* SystemFileDriverCreator::LookupDriver(const ALString& sURIFile
 	// Si aucun driver n'est trouve c'est que le schema de l'URI n'est pas connue
 	if (driver == NULL)
 	{
-		sMessage = "there is no driver avalaible for the scheme '" + sScheme + "://'";
+		sMessage = "there is no driver available for the scheme '" + sScheme + "://'";
 		if (errorSender != NULL)
 			errorSender->AddError(sMessage);
 		else

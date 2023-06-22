@@ -1,41 +1,10 @@
-Rank;
-Name;
-Type;
-Style;
-Label 1;
-OptimizationAlgorithm;
-ALString;
-ComboBox;
-Algorithm 2;
-OptimizationTime;
-int;
-Spinner;
-Optimization time 3;
-OptimizationLevel;
-int;
-Spinner;
-Level 4;
-UnivariateInitialization;
-boolean;
-CheckBox;
-Univariate initialization 5;
-PreOptimize;
-boolean;
-CheckBox;
-Pre - optimize each solution 6;
-Optimize;
-boolean;
-CheckBox;
-Optimize each solution 7;
-PostOptimize;
-boolean;
-CheckBox;
-Post - optimize each solution 8;
-InternalParameter;
-ALString;
-;
-Internal parameter 9;
-DisplayDetails;
-boolean;
-CheckBox;
-Display details
+Rank;Name;Type;Style;Label
+1;OptimizationAlgorithm   ;ALString;ComboBox;Algorithm
+2;OptimizationTime        ;int     ;Spinner ;Optimization time
+3;OptimizationLevel       ;int     ;Spinner ;Level
+4;UnivariateInitialization;boolean ;CheckBox;Univariate initialization
+5;PreOptimize             ;boolean ;CheckBox;Pre-optimize each solution
+6;Optimize                ;boolean ;CheckBox;Optimize each solution
+7;PostOptimize            ;boolean ;CheckBox;Post-optimize each solution
+8;InternalParameter       ;ALString;        ;Internal parameter
+9;DisplayDetails          ;boolean ;CheckBox;Display details

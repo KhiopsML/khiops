@@ -992,6 +992,18 @@ public:
 	UIFileChooserCard();
 	~UIFileChooserCard();
 
+	// Style: valeurs possibles
+	//  FileChooser: ouverture directe du FileChooser (defaut)
+	//  vide: ouverture d'une boite de dialogue ne comportant qu'un seul champ
+	// Le style vide est utile pur des environnement de type cloud, pour permettre de specifier un path dans
+	// le systeme de gestion de fichier du cloud. Ainsi, le champ de la boite de dialogue peut etre saisi soit
+	// directement avec un URI, soit via un bouton FileChooser
+
+	// Style par defaut (par defaut: FileChooser)
+	// Permet de changer le style utilise lors de la creation des objets UIFileChooserCard
+	static void SetDefaultStyle(const ALString& sValue);
+	static const ALString& GetDefaultStyle();
+
 	// Ouverture d'une boite de dialogue permettant de choisir un nom de fichier ou de repertoire
 	// Entree:
 	//   . DialogBoxTitle: titre de la boite de dialogue
@@ -1035,6 +1047,9 @@ protected:
 
 	// Resultat de confirmation
 	boolean bConfirmed;
+
+	// Style par defaut
+	static ALString sDefaultStyle;
 };
 
 ///////////////////////////////////////////////////////////////////

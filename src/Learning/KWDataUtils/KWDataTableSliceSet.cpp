@@ -1781,55 +1781,59 @@ void KWDataTableSliceSet::Write(ostream& ost) const
 	ost << "Slices\t" << GetSliceNumber() << "\n";
 	ost << "Chunks\t" << GetChunkNumber() << "\n";
 
-	// Nombre total des nombres de valeur par blocs d'attribut
-	ost << "Total block value number\t" << GetTotalAttributeBlockValueNumber() << "\n";
-
-	// Taille totale occupee sur disque par les attributs denses Symbol
-	ost << "Total dense cat variable disk size\t" << GetTotalDenseSymbolAttributeDiskSize() << "\n";
-
-	// Taille totale des fichiers
-	ost << "Total data file size\t" << GetTotalDataFileSize() << "\n";
-
-	// Descriptif detaille par tranches
-	ost << "Slice\tDictionary\tVars\tDense vars\tVar blocks\t"
-	    << "Max block size\tMax block values\tTotal block values\t"
-	    << "Cat vars le disk size\tData file size\n";
-	for (nSlice = 0; nSlice < oaSlices.GetSize(); nSlice++)
+	// Statistique detaillee si elles sont disponibles
+	if (ivChunkInstanceNumbers.GetSize() > 0)
 	{
-		dataTableSlice = cast(KWDataTableSlice*, oaSlices.GetAt(nSlice));
-		ost << nSlice + 1 << "\t";
-		ost << dataTableSlice->GetClass()->GetName() << "\t";
-		ost << dataTableSlice->GetClass()->GetUsedAttributeNumber() << "\t";
-		ost << dataTableSlice->GetClass()->GetLoadedDenseAttributeNumber() << "\t";
-		ost << dataTableSlice->GetClass()->GetLoadedAttributeBlockNumber() << "\t";
-		ost << dataTableSlice->GetMaxBlockAttributeNumber() << "\t";
-		ost << dataTableSlice->GetMaxAttributeBlockValueNumber() << "\t";
-		ost << dataTableSlice->GetTotalAttributeBlockValueNumber() << "\t";
-		ost << dataTableSlice->GetTotalDenseSymbolAttributeDiskSize() << "\t";
-		ost << dataTableSlice->GetTotalDataFileSize() << "\n";
-	}
+		// Nombre total des nombres de valeur par blocs d'attribut
+		ost << "Total block value number\t" << GetTotalAttributeBlockValueNumber() << "\n";
 
-	// Descriptif detaille par chunk
-	ost << "Chunk\tInstances\tTotal instances\tData file size\n";
-	nInstanceNumber = 0;
-	for (nChunk = 0; nChunk < GetChunkNumber(); nChunk++)
-	{
-		// Calcul de la taille totale des fichiers de chunk
-		lTotalChunkFileSize = 0;
-		for (nSlice = 0; nSlice < GetSliceNumber(); nSlice++)
+		// Taille totale occupee sur disque par les attributs denses Symbol
+		ost << "Total dense cat variable disk size\t" << GetTotalDenseSymbolAttributeDiskSize() << "\n";
+
+		// Taille totale des fichiers
+		ost << "Total data file size\t" << GetTotalDataFileSize() << "\n";
+
+		// Descriptif detaille par tranches
+		ost << "Slice\tDictionary\tVars\tDense vars\tVar blocks\t"
+		    << "Max block size\tMax block values\tTotal block values\t"
+		    << "Cat vars le disk size\tData file size\n";
+		for (nSlice = 0; nSlice < oaSlices.GetSize(); nSlice++)
 		{
 			dataTableSlice = cast(KWDataTableSlice*, oaSlices.GetAt(nSlice));
-			lTotalChunkFileSize += dataTableSlice->GetDataFileSizes()->GetAt(nChunk);
+			ost << nSlice + 1 << "\t";
+			ost << dataTableSlice->GetClass()->GetName() << "\t";
+			ost << dataTableSlice->GetClass()->GetUsedAttributeNumber() << "\t";
+			ost << dataTableSlice->GetClass()->GetLoadedDenseAttributeNumber() << "\t";
+			ost << dataTableSlice->GetClass()->GetLoadedAttributeBlockNumber() << "\t";
+			ost << dataTableSlice->GetMaxBlockAttributeNumber() << "\t";
+			ost << dataTableSlice->GetMaxAttributeBlockValueNumber() << "\t";
+			ost << dataTableSlice->GetTotalAttributeBlockValueNumber() << "\t";
+			ost << dataTableSlice->GetTotalDenseSymbolAttributeDiskSize() << "\t";
+			ost << dataTableSlice->GetTotalDataFileSize() << "\n";
 		}
 
-		// Affichage
-		ost << nChunk + 1 << "\t";
-		ost << ivChunkInstanceNumbers.GetAt(nChunk) << "\t";
-		ost << nInstanceNumber << "\t";
-		ost << lTotalChunkFileSize << "\n";
+		// Descriptif detaille par chunk
+		ost << "Chunk\tInstances\tTotal instances\tData file size\n";
+		nInstanceNumber = 0;
+		for (nChunk = 0; nChunk < GetChunkNumber(); nChunk++)
+		{
+			// Calcul de la taille totale des fichiers de chunk
+			lTotalChunkFileSize = 0;
+			for (nSlice = 0; nSlice < GetSliceNumber(); nSlice++)
+			{
+				dataTableSlice = cast(KWDataTableSlice*, oaSlices.GetAt(nSlice));
+				lTotalChunkFileSize += dataTableSlice->GetDataFileSizes()->GetAt(nChunk);
+			}
 
-		// Mise a jour du nombre total d'instances lus
-		nInstanceNumber += ivChunkInstanceNumbers.GetAt(nChunk);
+			// Affichage
+			ost << nChunk + 1 << "\t";
+			ost << ivChunkInstanceNumbers.GetAt(nChunk) << "\t";
+			ost << nInstanceNumber << "\t";
+			ost << lTotalChunkFileSize << "\n";
+
+			// Mise a jour du nombre total d'instances lus
+			nInstanceNumber += ivChunkInstanceNumbers.GetAt(nChunk);
+		}
 	}
 }
 
@@ -2043,7 +2047,7 @@ void KWDataTableSliceSet::Test()
 	// Creation d'une classe
 	sTestClassName = KWClassDomain::GetCurrentDomain()->BuildClassName("TestClass");
 	kwcTestClass = KWClass::CreateClass(sTestClassName, 0, nAttributeNumber / 2, nAttributeNumber / 2, 0, 0, 0, 0,
-					    0, 0, true, NULL);
+					    0, 0, 0, true, NULL);
 	KWClassDomain::GetCurrentDomain()->InsertClass(kwcTestClass);
 	kwcTestClass->Compile();
 
@@ -2743,6 +2747,9 @@ KWObject* KWDataTableSliceSet::PhysicalRead()
 					break;
 				case KWType::Timestamp:
 					kwoObject->ComputeTimestampValueAt(liLoadIndex);
+					break;
+				case KWType::Text:
+					kwoObject->ComputeTextValueAt(liLoadIndex);
 					break;
 				case KWType::Structure:
 					kwoObject->ComputeStructureValueAt(liLoadIndex);
@@ -3794,6 +3801,7 @@ boolean KWDataTableDriverSlice::ReadObject(KWObject* kwoObject)
 {
 	boolean bOk = true;
 	char* sField;
+	int nFieldLength;
 	int nFieldError;
 	boolean bEndOfLine;
 	ALString sTmp;
@@ -3829,6 +3837,7 @@ boolean KWDataTableDriverSlice::ReadObject(KWObject* kwoObject)
 	bEndOfLine = false;
 	nField = 0;
 	sField = NULL;
+	nFieldLength = 0;
 	nFieldError = inputBuffer->FieldNoError;
 	lRecordIndex++;
 	while (not bEndOfLine)
@@ -3842,7 +3851,7 @@ boolean KWDataTableDriverSlice::ReadObject(KWObject* kwoObject)
 
 		// On lit toujours le champ ou oon le saute selon que le champ soit traite ou non
 		if (liLoadIndex.IsValid())
-			bEndOfLine = inputBuffer->GetNextField(sField, nFieldError);
+			bEndOfLine = inputBuffer->GetNextField(sField, nFieldLength, nFieldError);
 		else
 			bEndOfLine = inputBuffer->SkipField();
 
@@ -3885,7 +3894,7 @@ boolean KWDataTableDriverSlice::ReadObject(KWObject* kwoObject)
 				// Cas attribut Symbol
 				if (attribute->GetType() == KWType::Symbol)
 				{
-					kwoObject->SetSymbolValueAt(liLoadIndex, Symbol(sField));
+					kwoObject->SetSymbolValueAt(liLoadIndex, Symbol(sField, nFieldLength));
 				}
 				// Cas attribut Continuous
 				else
@@ -4173,6 +4182,27 @@ KWDataTableSliceSet* PLShared_DataTableSliceSet::GetDataTableSliceSet()
 	return cast(KWDataTableSliceSet*, GetObject());
 }
 
+void PLShared_DataTableSliceSet::SerializeObject(PLSerializer* serializer, const Object* o) const
+{
+	KWDataTableSliceSet* dataTableSliceSet;
+	PLShared_ObjectArray shared_oa(new PLShared_DataTableSlice);
+
+	require(serializer != NULL);
+	require(serializer->IsOpenForWrite());
+	require(o != NULL);
+
+	// Acces a l'objet a serialiser
+	dataTableSliceSet = cast(KWDataTableSliceSet*, o);
+
+	// Serialisation
+	serializer->PutBoolean(dataTableSliceSet->GetDeleteFilesAtClean());
+	serializer->PutString(dataTableSliceSet->GetClassName());
+	serializer->PutString(dataTableSliceSet->GetTargetAttributeName());
+	serializer->PutInt(dataTableSliceSet->GetTotalInstanceNumber());
+	serializer->PutIntVector(&(dataTableSliceSet->ivChunkInstanceNumbers));
+	shared_oa.SerializeObject(serializer, &dataTableSliceSet->oaSlices);
+}
+
 void PLShared_DataTableSliceSet::DeserializeObject(PLSerializer* serializer, Object* o) const
 {
 	KWDataTableSliceSet* dataTableSliceSet;
@@ -4193,27 +4223,6 @@ void PLShared_DataTableSliceSet::DeserializeObject(PLSerializer* serializer, Obj
 	dataTableSliceSet->nTotalInstanceNumber = serializer->GetInt();
 	serializer->GetIntVector(&(dataTableSliceSet->ivChunkInstanceNumbers));
 	shared_oa.DeserializeObject(serializer, &dataTableSliceSet->oaSlices);
-}
-
-void PLShared_DataTableSliceSet::SerializeObject(PLSerializer* serializer, const Object* o) const
-{
-	KWDataTableSliceSet* dataTableSliceSet;
-	PLShared_ObjectArray shared_oa(new PLShared_DataTableSlice);
-
-	require(serializer != NULL);
-	require(serializer->IsOpenForWrite());
-	require(o != NULL);
-
-	// Acces a l'objet a serialiser
-	dataTableSliceSet = cast(KWDataTableSliceSet*, o);
-
-	// Serialisation
-	serializer->PutBoolean(dataTableSliceSet->GetDeleteFilesAtClean());
-	serializer->PutString(dataTableSliceSet->GetClassName());
-	serializer->PutString(dataTableSliceSet->GetTargetAttributeName());
-	serializer->PutInt(dataTableSliceSet->GetTotalInstanceNumber());
-	serializer->PutIntVector(&(dataTableSliceSet->ivChunkInstanceNumbers));
-	shared_oa.SerializeObject(serializer, &dataTableSliceSet->oaSlices);
 }
 
 Object* PLShared_DataTableSliceSet::Create() const
@@ -4237,6 +4246,79 @@ void PLShared_DataTableSlice::SetDataTableSlice(KWDataTableSlice* dataTableSlice
 KWDataTableSlice* PLShared_DataTableSlice::GetDataTableSlice()
 {
 	return cast(KWDataTableSlice*, GetObject());
+}
+
+void PLShared_DataTableSlice::SerializeObject(PLSerializer* serializer, const Object* o) const
+{
+	KWDataTableSlice* dataTableSlice;
+	KWClass* kwcDataTableClass;
+	PLShared_MetaData shared_MetaData;
+	PLShared_LoadIndexVector shared_livDataItemLoadIndexes;
+	KWAttribute* attribute;
+	int nBlockNumber;
+	KWAttributeBlock* attributeBlock;
+
+	require(serializer != NULL);
+	require(serializer->IsOpenForWrite());
+	require(o != NULL);
+
+	// Acces a l'objet a serialiser
+	dataTableSlice = cast(KWDataTableSlice*, o);
+	assert(dataTableSlice->GetObjects()->GetSize() == 0);
+
+	// Serialisation de l'index lexicographique
+	serializer->PutIntVector(&(dataTableSlice->ivLexicographicIndex));
+
+	// Serialisation de la classe
+	kwcDataTableClass = &(dataTableSlice->kwcClass);
+	serializer->PutString(kwcDataTableClass->GetName());
+	shared_MetaData.SerializeObject(serializer, kwcDataTableClass->GetConstMetaData());
+
+	// Serialisation des attributs de la classe
+	serializer->PutInt(kwcDataTableClass->GetAttributeNumber());
+	attribute = kwcDataTableClass->GetHeadAttribute();
+	while (attribute != NULL)
+	{
+		serializer->PutString(attribute->GetName());
+		serializer->PutInt(attribute->GetType());
+		serializer->PutDouble(attribute->GetCost());
+		shared_MetaData.SerializeObject(serializer, attribute->GetConstMetaData());
+		kwcDataTableClass->GetNextAttribute(attribute);
+	}
+
+	// Comptage du nombre de blocks
+	nBlockNumber = 0;
+	attributeBlock = kwcDataTableClass->GetHeadAttributeBlock();
+	while (attributeBlock != NULL)
+	{
+		nBlockNumber++;
+		kwcDataTableClass->GetNextAttributeBlock(attributeBlock);
+	}
+
+	// Serialisation des blocs d'attributs de la classe
+	serializer->PutInt(nBlockNumber);
+	attributeBlock = kwcDataTableClass->GetHeadAttributeBlock();
+	while (attributeBlock != NULL)
+	{
+		serializer->PutString(attributeBlock->GetName());
+		serializer->PutString(attributeBlock->GetFirstAttribute()->GetName());
+		serializer->PutString(attributeBlock->GetLastAttribute()->GetName());
+		shared_MetaData.SerializeObject(serializer, attributeBlock->GetConstMetaData());
+		kwcDataTableClass->GetNextAttributeBlock(attributeBlock);
+	}
+
+	// Serialisation des noms et tailles de fichier
+	serializer->PutStringVector(&(dataTableSlice->svDataFileNames));
+	serializer->PutLongintVector(&(dataTableSlice->lvDataFileSizes));
+
+	// Serialisation des vecteurs de statistique sur les valeurs
+	serializer->PutLongintVector(&(dataTableSlice->lvAttributeBlockValueNumbers));
+	serializer->PutLongintVector(&(dataTableSlice->lvDenseSymbolAttributeDiskSizes));
+
+	// Serialisation des vecteurs d'index
+	shared_livDataItemLoadIndexes.SerializeObject(serializer, dataTableSlice->GetDataItemLoadIndexes());
+	serializer->PutIntVector(dataTableSlice->GetValueBlockFirstSparseIndexes());
+	serializer->PutIntVector(dataTableSlice->GetValueBlockLastSparseIndexes());
 }
 
 void PLShared_DataTableSlice::DeserializeObject(PLSerializer* serializer, Object* o) const
@@ -4312,79 +4394,6 @@ void PLShared_DataTableSlice::DeserializeObject(PLSerializer* serializer, Object
 	shared_livDataItemLoadIndexes.DeserializeObject(serializer, dataTableSlice->GetDataItemLoadIndexes());
 	serializer->GetIntVector(dataTableSlice->GetValueBlockFirstSparseIndexes());
 	serializer->GetIntVector(dataTableSlice->GetValueBlockLastSparseIndexes());
-}
-
-void PLShared_DataTableSlice::SerializeObject(PLSerializer* serializer, const Object* o) const
-{
-	KWDataTableSlice* dataTableSlice;
-	KWClass* kwcDataTableClass;
-	PLShared_MetaData shared_MetaData;
-	PLShared_LoadIndexVector shared_livDataItemLoadIndexes;
-	KWAttribute* attribute;
-	int nBlockNumber;
-	KWAttributeBlock* attributeBlock;
-
-	require(serializer != NULL);
-	require(serializer->IsOpenForWrite());
-	require(o != NULL);
-
-	// Acces a l'objet a serialiser
-	dataTableSlice = cast(KWDataTableSlice*, o);
-	assert(dataTableSlice->GetObjects()->GetSize() == 0);
-
-	// Serialisation de l'index lexicographique
-	serializer->PutIntVector(&(dataTableSlice->ivLexicographicIndex));
-
-	// Serialisation de la classe
-	kwcDataTableClass = &(dataTableSlice->kwcClass);
-	serializer->PutString(kwcDataTableClass->GetName());
-	shared_MetaData.SerializeObject(serializer, kwcDataTableClass->GetConstMetaData());
-
-	// Serialisation des attributs de la classe
-	serializer->PutInt(kwcDataTableClass->GetAttributeNumber());
-	attribute = kwcDataTableClass->GetHeadAttribute();
-	while (attribute != NULL)
-	{
-		serializer->PutString(attribute->GetName());
-		serializer->PutInt(attribute->GetType());
-		serializer->PutDouble(attribute->GetCost());
-		shared_MetaData.SerializeObject(serializer, attribute->GetConstMetaData());
-		kwcDataTableClass->GetNextAttribute(attribute);
-	}
-
-	// Comptage du nombre de blocks
-	nBlockNumber = 0;
-	attributeBlock = kwcDataTableClass->GetHeadAttributeBlock();
-	while (attributeBlock != NULL)
-	{
-		nBlockNumber++;
-		kwcDataTableClass->GetNextAttributeBlock(attributeBlock);
-	}
-
-	// Serialisation des blocs d'attributs de la classe
-	serializer->PutInt(nBlockNumber);
-	attributeBlock = kwcDataTableClass->GetHeadAttributeBlock();
-	while (attributeBlock != NULL)
-	{
-		serializer->PutString(attributeBlock->GetName());
-		serializer->PutString(attributeBlock->GetFirstAttribute()->GetName());
-		serializer->PutString(attributeBlock->GetLastAttribute()->GetName());
-		shared_MetaData.SerializeObject(serializer, attributeBlock->GetConstMetaData());
-		kwcDataTableClass->GetNextAttributeBlock(attributeBlock);
-	}
-
-	// Serialisation des noms et tailles de fichier
-	serializer->PutStringVector(&(dataTableSlice->svDataFileNames));
-	serializer->PutLongintVector(&(dataTableSlice->lvDataFileSizes));
-
-	// Serialisation des vecteurs de statistique sur les valeurs
-	serializer->PutLongintVector(&(dataTableSlice->lvAttributeBlockValueNumbers));
-	serializer->PutLongintVector(&(dataTableSlice->lvDenseSymbolAttributeDiskSizes));
-
-	// Serialisation des vecteurs d'index
-	shared_livDataItemLoadIndexes.SerializeObject(serializer, dataTableSlice->GetDataItemLoadIndexes());
-	serializer->PutIntVector(dataTableSlice->GetValueBlockFirstSparseIndexes());
-	serializer->PutIntVector(dataTableSlice->GetValueBlockLastSparseIndexes());
 }
 
 Object* PLShared_DataTableSlice::Create() const

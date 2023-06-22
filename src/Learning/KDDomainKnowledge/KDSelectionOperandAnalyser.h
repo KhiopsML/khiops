@@ -23,7 +23,8 @@ class KDSelectionValue;
 #include "KDClassBuilder.h"
 #include "KDClassCompliantRules.h"
 #include "KDDomainKnowledge.h"
-#include "KDSelectionOperandExtractionTask.h"
+#include "KDSelectionOperandDataSampler.h"
+#include "KDSelectionOperandSamplingTask.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Classe KDSelectionOperandAnalyser
@@ -139,6 +140,8 @@ public:
 	/////////////////////////////////////////////////////////////////
 	//// Implementation
 protected:
+	// Calcul des exigence en memoire pour le calcul
+
 	// Calcul du nombre max d'objet analysables pour limiter l'empreinte memoire des
 	// algorithmes et des resultats d'analyse
 	// Le probleme se pose notament dans le cas de table secondaire de tres gros volumes.
@@ -155,12 +158,25 @@ protected:
 	// Renvoie true si OK (false si par exemple tache interrompue)
 	boolean ExtractSelectionOperandPartitions();
 
+	// Tache de lecture de la base pour collecter un echantillon de valeurs par variable secondaire de selection
+	// On renvoie le nombre d'objets lus dans la base
+	boolean TaskCollectSelectionOperandSamples(int& nReadObjectNumber);
+
+	// Construction de specifications d'echantillonnage des donnees par operande a partit des specification
+	// d'analyse en entrees Seules les classes et les operandes effectivement utilisees, ayant un attribut de
+	// selection, sont prises en compte Memoire: l'objet construit appartient a l'appelant
+	KDSelectionOperandDataSampler* BuildSelectionOperandDataSamplerSpec() const;
+
+	// Prise en compte des donnees collectees par un echantilonneur de donnees
+	// Les donnees sources sont transferees depuis l'echantillonneur, puis nettoyees de celui-ci
+	void CollectClassSelectionData(KDSelectionOperandDataSampler* sourceSelectionOperandDataSampler);
+
 	// Lecture de la base pour collecter un echantillon de valeurs par variable secondaire de selection
 	// On renvoie le nombre d'objets lus dans la base
 	boolean CollectSelectionOperandSamples(int& nReadObjectNumber);
 
 	// Construction d'un domain de lecture de la base oriente operandes de selection,
-	// c'est a dire ayant tout en Unused, suaf l'acces aux classes de selection et
+	// c'est a dire ayant tout en Unused, sauf l'acces aux classes de selection et
 	// avec des variables creee par operande de selection
 	// Memoire: le domaine et son contenu appartiennt a l'appelant
 	KWClassDomain* BuildSelectionDomain();
@@ -175,14 +191,14 @@ protected:
 	void ExtractSelectionObjectValues(KDClassSelectionStats* classSelectionStats, const KWObject* kwoObject);
 
 	//////////////////////////////////////////////////////////////////////////////////////
-	// Gestion des objet references
+	// Gestion des objets references
 	// Les objet references sont memorises dans un dictionnaire global une fois pour toute
 	// apres ouverture de la base
 	// On verifie ensuite qu'ils ne sont analyses qu'une seule fois globalement, alors
 	// que la verification est locale a chaque arborescence d'objet pour les objets
 	// de la classe a analyser
 
-	// Enregistrement de tous les objet references globaux
+	// Enregistrement de tous les objets references globaux
 	void RegisterAllReferencedObjects();
 
 	// Enregistrement recursif d'un objet et de sa composition
@@ -205,6 +221,9 @@ protected:
 
 	// Effectif minimum par partile
 	static const int nMinPartileFrequency = 4;
+
+	// Parametrage de l'implementation en parallel
+	boolean bPTIsParallel;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -226,8 +245,8 @@ public:
 
 	////////////////////////////////////////////////////////////////////////////////////////
 	// Gestion des operandes de selection
-	// Ces operandes de selection appartiennent toutes a l'appele, et contiennent chcune une dimension
-	// de partition; d=ce dimensions de partition seront mutualisee par l'ensemble des partitions
+	// Ces operandes de selection appartiennent toutes a l'appele, et contiennent chacune une dimension
+	// de partition; ces dimensions de partition seront mutualisees par l'ensemble des partitions
 
 	// Acces aux operandes de selection
 	const ObjectArray* GetClassSelectionOperandStats() const;
@@ -276,9 +295,12 @@ public:
 	// Memoire: la partition appartient a l'appele
 	void AddPartition(KDConstructedPartition* partition);
 
+	// Calcul de la granularite max de tous les operandes de selection utilises en dimension d'une partition
+	int ComputeMaxOperandGranularity() const;
+
 	//////////////////////////////////////////////////////////////////////////////////////..
 	// Gestion des resultats d'analyse
-	// Aopres calcul des stats, chaque operande de selection contient les resultats d'analyse
+	// Apres calcul des stats, chaque operande de selection contient les resultats d'analyse
 
 	// Memorisation du nombre d'objet de la base pour la classe d'objet, a mettre a jour conjointement avec les
 	// stats par operande

@@ -718,8 +718,8 @@ public:
 	KWDataTableSliceSet* GetDataTableSliceSet();
 
 	// Reimplementation des methodes virtuelles, avec transfer des specifications des bases
-	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation
@@ -742,8 +742,8 @@ public:
 	KWDataTableSlice* GetDataTableSlice();
 
 	// Reimplementation des methodes virtuelles, avec transfer des specifications de la base
-	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation

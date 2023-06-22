@@ -169,6 +169,35 @@ void SetLearningReportHeaderLine(const ALString& sNewReportHeaderLine)
 	bKWLearningReporHeaderLineModified = true;
 }
 
+boolean GetLearningFileChooserBasicMode()
+{
+	static boolean bIsInitialized = false;
+	static boolean bLearningFileChooserBasicMode = false;
+
+	// Determination du mode expert au premier appel
+	if (not bIsInitialized)
+	{
+		ALString sLearningFileChooserBasicMode;
+
+		// Recherche des variables d'environnement
+		sLearningFileChooserBasicMode = p_getenv("KhiopsFileChooserBasicMode");
+		sLearningFileChooserBasicMode.MakeLower();
+
+		// Determination du mode du file chooser
+		if (sLearningFileChooserBasicMode == "true")
+			bLearningFileChooserBasicMode = true;
+		else if (sLearningFileChooserBasicMode == "false")
+			bLearningFileChooserBasicMode = false;
+		// Par defaut: false
+		else
+			bLearningFileChooserBasicMode = false;
+
+		// Memorisation du flag d'initialisation
+		bIsInitialized = true;
+	}
+	return bLearningFileChooserBasicMode;
+}
+
 boolean GetLearningMultiTableMode()
 {
 	static boolean bIsInitialized = false;
@@ -226,6 +255,37 @@ boolean GetLearningExpertMode()
 		bIsInitialized = true;
 	}
 	return bLearningExpertMode;
+}
+
+boolean GetLearningTextVariableMode()
+{
+	static boolean bIsInitialized = false;
+	static boolean bLearningTextVariableMode = false;
+
+	// Determination du mode au premier appel
+	if (not bIsInitialized)
+	{
+		ALString sUserName;
+		ALString sLearningTextVariableMode;
+
+		// Recherche des variables d'environnement
+		sUserName = p_getenv("USERNAME");
+		sUserName.MakeLower();
+		sLearningTextVariableMode = p_getenv("KhiopsTextVariableMode");
+		sLearningTextVariableMode.MakeLower();
+
+		// Determination du mode (en debug)
+		// DDD
+		debug(bLearningTextVariableMode = (sUserName == "miib6422"));
+		if (sLearningTextVariableMode == "true")
+			bLearningTextVariableMode = true;
+		else if (sLearningTextVariableMode == "false")
+			bLearningTextVariableMode = false;
+
+		// Memorisation du flag d'initialisation
+		bIsInitialized = true;
+	}
+	return bLearningTextVariableMode;
 }
 
 boolean GetPreparationTraceMode()

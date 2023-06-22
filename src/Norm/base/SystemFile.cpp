@@ -43,13 +43,15 @@ boolean SystemFile::OpenInputFile(const ALString& sFilePathName)
 	// Tentative d'ouverture du fichier
 	else
 	{
-		p_SetMachineLocale();
 		if (FileService::LogIOStats())
 			MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] Open Begin");
+
+		p_SetMachineLocale();
 		fileHandle = fileDriver->Open(sFilePathName, 'r');
+		p_SetApplicationLocale();
+
 		if (FileService::LogIOStats())
 			MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] Open End");
-		p_SetApplicationLocale();
 		bOk = fileHandle != NULL;
 		if (not bOk)
 			Global::AddError("File", sFilePathName,
@@ -91,15 +93,16 @@ boolean SystemFile::OpenOutputFile(const ALString& sFilePathName)
 	// Tentative d'ouverture du fichier
 	else
 	{
-		p_SetMachineLocale();
 		if (FileService::LogIOStats())
 			MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] Open Begin");
 
+		p_SetMachineLocale();
 		fileHandle = fileDriver->Open(sFilePathName, 'w');
+		p_SetApplicationLocale();
+
 		if (FileService::LogIOStats())
 			MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] Open End");
 
-		p_SetApplicationLocale();
 		bOk = fileHandle != NULL;
 		if (not bOk)
 			Global::AddError("File", sFilePathName,
@@ -142,15 +145,16 @@ boolean SystemFile::OpenOutputFileForAppend(const ALString& sFilePathName)
 	// Tentative d'ouverture du fichier
 	else
 	{
-		p_SetMachineLocale();
 		if (FileService::LogIOStats())
 			MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] Open Begin");
 
+		p_SetMachineLocale();
 		fileHandle = fileDriver->Open(sFilePathName, 'a');
+		p_SetApplicationLocale();
+
 		if (FileService::LogIOStats())
 			MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] Open End");
 
-		p_SetApplicationLocale();
 		bOk = fileHandle != NULL;
 		if (not bOk)
 			Global::AddError("File", sFilePathName,
@@ -212,7 +216,7 @@ boolean SystemFile::CloseOutputFile(const ALString& sFilePathName)
 	}
 
 	// Flush du contenu du rapport juste avant la fermeture pour detecter une erreur en ecriture
-	bOk = fileDriver->flush(fileHandle);
+	bOk = fileDriver->Flush(fileHandle);
 	if (not bOk)
 		Global::AddError("File", sFilePathName,
 				 sTmp + "Physical error when writing data to file (" +
@@ -241,15 +245,16 @@ longint SystemFile::GetFileSize(const ALString& sFilePathName)
 	driver = SystemFileDriverCreator::LookupDriver(sFilePathName, NULL);
 	if (driver != NULL)
 	{
-		p_SetMachineLocale();
+
 		if (FileService::LogIOStats())
 			MemoryStatsManager::AddLog(sTmp + "driver [" + driver->GetDriverName() + "] GetFileSize Begin");
 
+		p_SetMachineLocale();
 		lFileSize = driver->GetFileSize(sFilePathName);
+		p_SetApplicationLocale();
+
 		if (FileService::LogIOStats())
 			MemoryStatsManager::AddLog(sTmp + "driver [" + driver->GetDriverName() + "] GetFileSize End");
-
-		p_SetApplicationLocale();
 	}
 	return lFileSize;
 }
@@ -265,7 +270,6 @@ boolean SystemFile::Exist(const ALString& sFilePathName)
 		if (FileService::LogIOStats())
 			MemoryStatsManager::AddLog(sTmp + "driver [" + driver->GetDriverName() + "] Exist Begin");
 		p_SetMachineLocale();
-		// TODO le setMachineLocale est fait ici est mais il est aussi fait dans FileService
 		bOk = driver->Exist(sFilePathName);
 		p_SetApplicationLocale();
 		if (FileService::LogIOStats())
@@ -395,11 +399,13 @@ boolean SystemFile::CopyFileFromLocal(const ALString& sSourceFilePathName, const
 	// Copie
 	if (FileService::LogIOStats())
 		MemoryStatsManager::AddLog(sTmp + "driver [" + driver->GetDriverName() + "] CopyFileFromLocal Begin");
+
 	p_SetMachineLocale();
 	bOk = driver->CopyFileFromLocal(sSourceFilePathName, sDestFilePathName);
+	p_SetApplicationLocale();
+
 	if (not bOk)
 		Global::AddError("file", "", sTmp + "Unable to copy file to " + driver->GetScheme());
-	p_SetApplicationLocale();
 	if (FileService::LogIOStats())
 		MemoryStatsManager::AddLog(sTmp + "driver [" + driver->GetDriverName() + "] CopyFileFromLocal End");
 
@@ -420,11 +426,13 @@ boolean SystemFile::CopyFileToLocal(const ALString& sSourceFilePathName, const A
 	// Copie
 	if (FileService::LogIOStats())
 		MemoryStatsManager::AddLog(sTmp + "driver [" + driver->GetDriverName() + "] CopyFileToLocal Begin");
+
 	p_SetMachineLocale();
 	bOk = driver->CopyFileToLocal(sSourceFilePathName, sDestFilePathName);
+	p_SetApplicationLocale();
+
 	if (not bOk)
 		Global::AddError("file", "", sTmp + "Unable to copy file from " + driver->GetScheme());
-	p_SetApplicationLocale();
 	if (FileService::LogIOStats())
 		MemoryStatsManager::AddLog(sTmp + "driver [" + driver->GetDriverName() + "] CopyFileToLocal End");
 	return bOk;

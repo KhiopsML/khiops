@@ -67,6 +67,7 @@ void KWAttributePairsSpec::ImportAttributePairs(const ALString& sFileName)
 	KWAttributePairName* attributePairName;
 	int i;
 	char* sField;
+	int nFieldLength;
 	int nFieldError;
 	boolean bEndOfLine;
 	ALString sTmp;
@@ -120,7 +121,7 @@ void KWAttributePairsSpec::ImportAttributePairs(const ALString& sFileName)
 				// Lecture du premier champ de la ligne
 				bRecordOk = false;
 				nContextAttributeIndex = 1;
-				bEndOfLine = inputFile.GetNextField(sField, nFieldError);
+				bEndOfLine = inputFile.GetNextField(sField, nFieldLength, nFieldError);
 
 				// Warning pour certaines erreurs sur le champ
 				if (nFieldError == InputBufferedFile::FieldTabReplaced or
@@ -146,7 +147,7 @@ void KWAttributePairsSpec::ImportAttributePairs(const ALString& sFileName)
 				// Warning si champs trop long: attention, on le gere specifiquement sans passer par la
 				// methode check de KWClass, pour eviter d'allouer implicitement une ALString
 				// potentiellement de tres grande taille
-				else if ((int)strlen(sField) > KWClass::GetNameMaxLength())
+				else if (nFieldLength > KWClass::GetNameMaxLength())
 					AddWarning("Name too long, ignored record");
 				// Warning si nom d'attribut present et invalide
 				else if (sField[0] != '\0' and not KWClass::CheckNameWithMessage(sField, sMessage))
@@ -163,7 +164,7 @@ void KWAttributePairsSpec::ImportAttributePairs(const ALString& sFileName)
 				{
 					bRecordOk = false;
 					nContextAttributeIndex = 2;
-					bEndOfLine = inputFile.GetNextField(sField, nFieldError);
+					bEndOfLine = inputFile.GetNextField(sField, nFieldLength, nFieldError);
 
 					// Warning pour certaines erreurs sur le champ
 					if (nFieldError == InputBufferedFile::FieldTabReplaced or
@@ -187,7 +188,7 @@ void KWAttributePairsSpec::ImportAttributePairs(const ALString& sFileName)
 							AddWarning("Two many fields in line, ignored record");
 					}
 					// Warning si champs trop long
-					else if ((int)strlen(sField) > KWClass::GetNameMaxLength())
+					else if (nFieldLength > KWClass::GetNameMaxLength())
 						AddWarning("Name too long, ignored record");
 					// Warning si nom d'attribut present et invalide
 					else if (sField[0] != '\0' and
@@ -254,9 +255,9 @@ void KWAttributePairsSpec::ImportAttributePairs(const ALString& sFileName)
 					// Memorisation dans la liste triee permettant de detecter les doublons
 					slSpecificPairs.Add(attributePairName);
 				}
-				// Sauf de ligne si necessaire sinon
+				// On va jusqu'au bout de la ligne si necessaire sinon
 				else if (not bEndOfLine)
-					inputFile.SkipLine();
+					inputFile.SkipLastFields();
 			}
 
 			// Arret si le maximum de paires est atteint

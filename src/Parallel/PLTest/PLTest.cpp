@@ -29,16 +29,14 @@ int main(int argv, char** argc)
 	PLParallelTask::SetParallelSimulated(false);
 	PLParallelTask::SetSimulatedSlaveNumber(4);
 
-	longint lMax = 1 * lMB;
-	while (lMax <= 1 * lGB)
-	{
-		PLParallelTask::TestComputeStairBufferSize((int)lMB, (int)lMax, 1 * lGB, 8);
-		lMax = lMax * 2;
-	}
+	// longint lMax = 1 * lMB;
+	// while (lMax <= 1 * lGB)
+	// {
+	// 	PLParallelTask::TestComputeStairBufferSize((int)lMB, (int)lMax, 1 * lGB, 8);
+	// 	lMax = lMax * 2;
+	// }
 
 	// PLTaskDriver::SetFileServerOnSingleHost(true);
-
-	// RMParallelResourceManager::Test();
 
 	// Nombre de process qui vont etre lances
 	// RMResourceConstraints::SetMaxCoreNumber(25);
@@ -48,7 +46,7 @@ int main(int argv, char** argc)
 	if (PLParallelTask::IsMasterProcess())
 	{
 
-		// MemSetAllocIndexExit(798);
+		// MemSetAllocIndexExit(1382);
 
 		// Utilisation d'un stream dedie au batch
 		// ofstream
@@ -69,6 +67,15 @@ int main(int argv, char** argc)
 		// Mode maitre
 		UIObject::SetUIMode(UIObject::Textual);
 
+		PLTaskDriver::SetFileServerOnSingleHost(true);
+		PLParallelTask::GetDriver()->MasterInitializeResourceSystem();
+		PLParallelTask::GetDriver()->StartFileServers();
+		// InputBufferedFile::Test(1);
+		InputBufferedFile::TestCount("/home/boeg7312/Documents/LearningTest/datasets/Census/BigCensus.txt",
+					     8 * lMB);
+		PLParallelTask::GetDriver()->StopFileServers();
+
+		//	InputBufferedFile::Test(0);
 		// Parametrage du nom du module applicatif
 
 		// Parametrage de l'arret de l'allocateur
@@ -77,11 +84,11 @@ int main(int argv, char** argc)
 		// MemSetAllocBlockExit((void*)0x00F42044);
 
 		// Analyse de la ligne de commande
-		UIObject::ParseMainParameters(argv, argc);
-		if (UIObject::IsBatchMode())
-			UIObject::SetUIMode(UIObject::Textual);
-		else
-			UIObject::SetUIMode(UIObject::Graphic);
+		// UIObject::ParseMainParameters(argv, argc);
+		// if (UIObject::IsBatchMode())
+		// 	UIObject::SetUIMode(UIObject::Textual);
+		// else
+		// 	UIObject::SetUIMode(UIObject::Graphic);
 
 		// Lancement de l'outil
 
@@ -120,7 +127,7 @@ int main(int argv, char** argc)
 
 		// PEPiView::Test(argv, argc);
 		//  PEIOParallelTestTask::Test();
-		PEProtocolTestTask::Test();
+		// PEProtocolTestTask::Test();
 		// PEProtocolTestTask::TestFatalError(5);
 		// PELullabyTask::Test();
 		//  PEFileSearchTask::Test();

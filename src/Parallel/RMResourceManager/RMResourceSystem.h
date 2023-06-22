@@ -96,6 +96,7 @@ public:
 	// - 2 elles sont de taille decroissante (nCoresNumber pour le maitre)
 	static RMResourceSystem* CreateSyntheticCluster(int nHostNumber, int nProcNumber, longint lPhysicalMemory,
 							longint lDiskFreeSpace, int nSystemConfig);
+	static RMResourceSystem* CreateAdhocCluster();
 
 	//////////////////////////////////////////////////////////////////
 	///// Implementation

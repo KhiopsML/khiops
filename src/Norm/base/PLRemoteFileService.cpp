@@ -196,19 +196,6 @@ longint PLRemoteFileService::GetDiskFreeSpace(const ALString& sPathName)
 	return lFreeSpace;
 }
 
-const ALString PLRemoteFileService::URItoUserString(const ALString& sURI)
-{
-	ALString sUserFileName;
-	// require(FileService::IsURI(sURI));
-
-	/*if (RMResourceManager::GetResourceSystem()->GetHostNumber() > 1)
-		sUserFileName = sURI;
-		else
-		sUserFileName = FileService::GetURIFileName(sURI);*/
-	// TODO on n'a pas acces a RMResourceManager::GetResourceSystem()->GetHostNumber()
-	return sURI;
-}
-
 boolean PLRemoteFileService::BuildOutputWorkingFile(const ALString& sPathName, ALString& sWorkingFileName)
 {
 	ALString sTmpDir;
@@ -321,6 +308,7 @@ boolean PLRemoteFileService::TestCount(const ALString& sFileURI, int nBufferSize
 	longint lLinesCountNumberWithSkip;
 	boolean bEol;
 	char* sField;
+	int nFieldLength;
 	int nFieldError;
 
 	lLinesCountNumberWithSkip = 0;
@@ -358,7 +346,7 @@ boolean PLRemoteFileService::TestCount(const ALString& sFileURI, int nBufferSize
 				int nField = 0;
 				while (not bEol)
 				{
-					bEol = inputFile.GetNextField(sField, nFieldError);
+					bEol = inputFile.GetNextField(sField, nFieldLength, nFieldError);
 					nField++;
 				}
 				cout << "# fields " << nField << endl;

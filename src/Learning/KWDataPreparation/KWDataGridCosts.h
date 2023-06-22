@@ -36,7 +36,7 @@ public:
 	// C'est utile si les grilles sont une famille de modeles parmi d'autres, et qu'il faut
 	// alors prendre en compte ce cout en cas de modele non null
 	// C'est le cas pour les grilles en classification supervisee, qui sont une facon de produire
-	// des variables e complement de la construction de variables multitable et des arbres
+	// des variables en complement de la construction de variables multi-table et des arbres
 	// Ce cout est a prendre en compte dans la methode ComputeDataGridCost
 	// Parametrage d'un cout de selection de famille de modele (defaut: 0)
 	void SetModelFamilySelectionCost(double dValue);

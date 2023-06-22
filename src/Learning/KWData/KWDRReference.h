@@ -86,7 +86,7 @@ public:
 	// Renvoie NULL si classe absente
 	KWClass* LookupClass(const ALString& sClassName) const;
 
-	// Export des classes dans un tableau
+	// Export des classes dans un tableau, triees par nom
 	void ExportClasses(ObjectArray* oaClasses) const;
 
 	//////////////////////////////////////////////////////////////////

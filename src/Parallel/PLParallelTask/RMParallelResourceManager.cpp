@@ -4,19 +4,39 @@
 
 #include "RMParallelResourceManager.h"
 
+// Somme de de longint en gerant le depassement
+static longint lsum(longint l1, longint l2)
+{
+	if (l1 > LLONG_MAX - l2)
+		return LLONG_MAX;
+	return l1 + l2;
+}
+static longint lsum(longint l1, longint l2, longint l3)
+{
+	return lsum(l1, lsum(l2, l3));
+}
+
+static longint lsum(longint l1, longint l2, longint l3, longint l4)
+{
+	return lsum(l1, lsum(l2, l3, l4));
+}
+
+static longint lsum(longint l1, longint l2, longint l3, longint l4, longint l5)
+{
+	return lsum(lsum(l1, l2, l3, l4), l5);
+}
 ///////////////////////////////////////////////////////////////////////
-// Implementation de  RMParallelResourceManager
+// Implementation de RMParallelResourceManager
 
 RMParallelResourceManager::RMParallelResourceManager()
 {
-	resourceSystem = NULL;
-	resourceRequirement = NULL;
+	clusterResources = NULL;
+	taskRequirements = NULL;
 }
 
-RMParallelResourceManager::~RMParallelResourceManager()
+RMParallelResourceManager ::~RMParallelResourceManager()
 {
-	resourceSystem = NULL;
-	resourceRequirement = NULL;
+	Clean();
 }
 
 boolean RMParallelResourceManager::ComputeGrantedResources(const RMTaskResourceRequirement* resourceRequirement,
@@ -36,10 +56,264 @@ boolean RMParallelResourceManager::ComputeGrantedResources(const RMTaskResourceR
 	newSystem->RemoveProcesses(PLTaskDriver::GetDriver()->GetFileServers());
 
 	// Calcul des ressources
-	bRet = ComputeGrantedResourcesForSystem(newSystem, resourceRequirement, grantedResource);
+	bRet = ComputeGrantedResourcesForCluster(newSystem, resourceRequirement, grantedResource);
 	delete newSystem;
 
 	return bRet;
+}
+
+boolean
+RMParallelResourceManager::ComputeGrantedResourcesForCluster(const RMResourceSystem* resourceSystem,
+							     const RMTaskResourceRequirement* resourceRequirement,
+							     RMTaskResourceGrant* grantedResource)
+{
+	require(grantedResource != NULL);
+
+	RMParallelResourceManager manager;
+	const PLClusterSolution* solution;
+
+	if (PLParallelTask::GetTracerResources() > 0)
+	{
+		if (PLParallelTask::GetCurrentTaskName() != "")
+			cout << endl << "Task " << PLParallelTask::GetCurrentTaskName() << endl;
+		else
+			cout << endl << "Outside task" << endl;
+
+		cout << endl << endl << *resourceSystem;
+		cout << "\tSlave reserve  " << LongintToHumanReadableString(PLHostSolution::GetSlaveReserve(MEMORY))
+		     << endl;
+		cout << "\tMaster reserve " << LongintToHumanReadableString(PLHostSolution::GetMasterReserve(MEMORY))
+		     << endl
+		     << endl;
+		cout << *resourceRequirement << endl;
+		cout << RMResourceConstraints::ToString();
+	}
+
+	// Initialisation du gestionnaire de ressources
+	manager.SetRequirement(resourceRequirement);
+	manager.SetResourceCluster(resourceSystem);
+
+	// Calcul des ressources pour le systeme
+	solution = manager.Solve();
+	// cout << *solution << endl;
+	RMParallelResourceManager::BuildGrantedResources(solution, resourceRequirement, grantedResource);
+
+	if (PLParallelTask::GetTracerResources() > 0)
+	{
+		cout << *grantedResource << endl;
+	}
+
+	// Verification des resultats
+	debug(manager.Check(grantedResource));
+	return not grantedResource->IsEmpty();
+}
+
+void RMParallelResourceManager::BuildGrantedResources(const PLClusterSolution* solution,
+						      const RMTaskResourceRequirement* resourceRequirement,
+						      RMTaskResourceGrant* grantedResource)
+{
+	POSITION position;
+	ALString sHostName;
+	Object* oElement;
+	PLHostSolution* hostSolution;
+	int nProcNumber;
+	RMResourceGrant* resourceGrant;
+	int nRank;
+	int nRT;
+
+	require(grantedResource != NULL);
+
+	// Recopie des ressources allouees
+	for (nRT = 0; nRT < RESOURCES_NUMBER; nRT++)
+	{
+		grantedResource->SetMasterResource(nRT, solution->GetMasterResource(nRT));
+		grantedResource->SetSharedResource(nRT, solution->GetSharedResource(nRT));
+		grantedResource->SetGlobalResource(nRT, solution->GetGlobalResource(nRT));
+		grantedResource->SetSlaveResource(nRT, solution->GetSlaveResource(nRT));
+	}
+
+	// Construction des RMResourceGrant
+	if (solution->GetProcessSolutionNumber() > 0)
+	{
+		if (solution->GetProcessSolutionNumber() > 1)
+		{
+			position = solution->GetHostSolutions()->GetStartPosition();
+			while (position != NULL)
+			{
+				solution->GetHostSolutions()->GetNextAssoc(position, sHostName, oElement);
+				hostSolution = cast(PLHostSolution*, oElement);
+
+				grantedResource->SetHostCoreNumber(sHostName, hostSolution->GetProcNumber());
+				if (hostSolution->GetHost()->IsMasterHost())
+				{
+					// Cas particulier du master : on s'assure qu'il y ait le processus de rang 0
+					// sur la machine
+					assert(hostSolution->GetProcNumber() != 0);
+					resourceGrant = new RMResourceGrant;
+					resourceGrant->SetRank(0);
+					resourceGrant->SetDiskSpace(solution->GetMasterResource(DISK));
+					resourceGrant->SetMemory(solution->GetMasterResource(MEMORY));
+					resourceGrant->SetSharedDisk(solution->GetSharedResource(DISK));
+					resourceGrant->SetSharedMemory(solution->GetSharedResource(MEMORY));
+					grantedResource->AddResource(resourceGrant);
+				}
+
+				// On construit autant de solutions qu'il y a de processus sur la machine
+				// (sauf pour le rang 0 cf ci-dessus)
+				for (nProcNumber = 0; nProcNumber < hostSolution->GetProcNumber(); nProcNumber++)
+				{
+					if (PLParallelTask::GetParallelSimulated())
+						nRank = nProcNumber;
+					else
+						nRank = hostSolution->GetHost()->GetRanks()->GetAt(nProcNumber);
+					if (nRank != 0)
+					{
+						resourceGrant = new RMResourceGrant;
+						resourceGrant->SetRank(nRank);
+						resourceGrant->SetDiskSpace(lsum(solution->GetSlaveResource(DISK),
+										 solution->GetGlobalResource(DISK)));
+						resourceGrant->SetMemory(lsum(solution->GetSlaveResource(MEMORY),
+									      solution->GetGlobalResource(MEMORY)));
+						resourceGrant->SetSharedDisk(solution->GetSharedResource(DISK));
+						resourceGrant->SetSharedMemory(solution->GetSharedResource(MEMORY));
+						grantedResource->AddResource(resourceGrant);
+					}
+				}
+			}
+		}
+		else
+		{
+			// Cas sequentiel
+			// Ajout du maitre
+			resourceGrant = new RMResourceGrant;
+			resourceGrant->SetRank(0);
+			resourceGrant->SetDiskSpace(solution->GetMasterResource(DISK));
+			resourceGrant->SetMemory(solution->GetMasterResource(MEMORY));
+			resourceGrant->SetSharedDisk(solution->GetSharedResource(DISK));
+			resourceGrant->SetSharedMemory(solution->GetSharedResource(MEMORY));
+			grantedResource->AddResource(resourceGrant);
+
+			// Ajout de l'esclave (virtuel)
+			resourceGrant = new RMResourceGrant;
+			resourceGrant->SetRank(1);
+			resourceGrant->SetDiskSpace(
+			    lsum(solution->GetSlaveResource(DISK), solution->GetGlobalResource(DISK)));
+			resourceGrant->SetMemory(
+			    lsum(solution->GetSlaveResource(MEMORY), solution->GetGlobalResource(MEMORY)));
+			resourceGrant->SetSharedDisk(0);
+			resourceGrant->SetSharedMemory(0);
+			grantedResource->AddResource(resourceGrant);
+
+			position = solution->GetHostSolutions()->GetStartPosition();
+			while (position != NULL)
+			{
+				solution->GetHostSolutions()->GetNextAssoc(position, sHostName, oElement);
+				hostSolution = cast(PLHostSolution*, oElement);
+				grantedResource->SetHostCoreNumber(sHostName, hostSolution->GetProcNumber());
+				assert(hostSolution->GetProcNumber() == 1);
+			}
+		}
+	}
+	else
+	{
+		// Cas sans solution
+		grantedResource->sHostMissingResource = solution->GetHostNameMissingResources();
+		grantedResource->rcMissingResources.SetValue(MEMORY, solution->GetMissingResources(MEMORY));
+		grantedResource->rcMissingResources.SetValue(DISK, solution->GetMissingResources(DISK));
+	}
+}
+
+void RMParallelResourceManager::SetRequirement(const RMTaskResourceRequirement* requirements)
+{
+	taskRequirements = requirements;
+}
+
+const RMTaskResourceRequirement* RMParallelResourceManager::GetRequirements() const
+{
+	return taskRequirements;
+}
+
+void RMParallelResourceManager::SetResourceCluster(const RMResourceSystem* cluster)
+{
+	clusterResources = cluster;
+}
+
+const RMResourceSystem* RMParallelResourceManager::GetResourceCluster() const
+{
+	return clusterResources;
+}
+
+const PLClusterSolution* RMParallelResourceManager::Solve()
+{
+	PLClusterSolution* sequentialSolution;
+	boolean bIsSequential;
+
+	require(taskRequirements->Check());
+
+	bIsSequential = false;
+	if (clusterResources->GetLogicalProcessNumber() == 1 and not PLParallelTask::GetParallelSimulated())
+		bIsSequential = true;
+
+	bestSolution.SetRequirement(taskRequirements);
+	if (not bIsSequential or PLParallelTask::GetParallelSimulated())
+	{
+		GreedySolve();
+		PostOptimize();
+	}
+
+	// Cas particuliers ou on preferera une solution sequentielle
+	if (bestSolution.GetHostSolutionNumber() == 1)
+	{
+		// Si il y a une seule machine
+		if (bestSolution.GetProcessSolutionNumber() == 1 or // et un seul processus
+		    (bestSolution.GetProcessSolutionNumber() == 2 and
+		     not PLParallelTask::GetParallelSimulated())) // ou 2 processus en dehors du simule
+			bIsSequential = true;
+	}
+
+	// Si il n'y a pas de solutions valide avec plusieurs machine ou si il n'y a qu'un coeur
+	// On cherche une solution sequentielle
+	if (bestSolution.GetHostSolutionNumber() == 0 or bIsSequential)
+	{
+		// Calcul d'une solution sequentielle
+		SequentialSolve();
+		bIsSequential = true;
+	}
+	else
+	{
+		// Si il y a 2 machines et un seul esclave, on preferera une solution sequentielle si elle existe
+		// Sinon on gardera la solution avec 2 machines (qui est tres inefficace mais qui a le merite d'exister)
+		if (bestSolution.GetHostSolutionNumber() == 2 and bestSolution.GetProcessSolutionNumber() == 2)
+		{
+			// Copie de la meilleure solution pour la restituer si besoin
+			sequentialSolution = bestSolution.Clone();
+
+			// Calcul d'une solution sequentielle
+			SequentialSolve();
+
+			// Restitution de la solution initiale si solution sequentielle n'est pas valide
+			if (bestSolution.GetProcessSolutionNumber() == 0)
+			{
+				bestSolution.CopyFrom(sequentialSolution);
+			}
+			else
+			{
+				bIsSequential = true;
+			}
+			delete sequentialSolution;
+		}
+	}
+
+	// Saturation de la solution pour avoir le max des ressources possible
+	bestSolution.SaturateResources(bIsSequential);
+	return &bestSolution;
+}
+
+void RMParallelResourceManager::Clean()
+{
+	bestSolution.Clean();
+	clusterResources = NULL;
+	taskRequirements = NULL;
 }
 
 void RMParallelResourceManager::Test()
@@ -50,1261 +324,845 @@ void RMParallelResourceManager::Test()
 	PLParallelTask::SetSimulatedSlaveNumber(50);
 	PLParallelTask::SetParallelSimulated(false);
 
-	PLParallelTask::SetTracerResources(2);
-
 	// Test sans contraintes
+	test.Reset();
 	test.SetTestLabel("100 process");
-	test.SetHostNumber(1);
-	test.SetHostMemory(1000 * lGB);
-	test.SetHostDisk(1000 * lGB);
-	test.SetHostCores(100);
+	test.SetCluster(RMResourceSystem::CreateSyntheticCluster(1, 100, 1000 * lGB, 1000 * lGB, 0));
 	test.Solve();
 
 	// Test avec la contrainte globale
 	test.Reset();
 	test.SetTestLabel("100 process");
-	test.SetHostNumber(1);
-	test.SetHostMemory(1000 * lGB);
-	test.SetHostDisk(1000 * lGB);
-	test.SetHostCores(100);
-	test.SetSlaveGlobalMemoryMin(100 * lGB);
+	test.SetCluster(RMResourceSystem::CreateSyntheticCluster(1, 100, 1000 * lGB, 1000 * lGB, 0));
+	test.GetTaskRequirement()->GetGlobalSlaveRequirement()->GetMemory()->Set(100 * lGB);
 	test.Solve();
 
 	// Test avec les contraintes de reserves
 	test.Reset();
+	test.SetCluster(RMResourceSystem::CreateSyntheticCluster(1, 1000, 1 * lGB, 1 * lGB, 0));
 	test.SetTestLabel("Max proc with 1 Gb");
-	test.SetHostNumber(1);
-	test.SetHostMemory(1 * lGB);
-	test.SetHostDisk(1 * lGB);
-	test.SetHostCores(1000);
 	test.Solve();
 
 	// Test avec les contraintes de reserves
 	test.Reset();
 	test.SetTestLabel("Max proc with 2 Gb");
-	test.SetHostNumber(1);
-	test.SetHostMemory(2 * lGB);
-	test.SetHostDisk(1 * lGB);
-	test.SetHostCores(1000);
+	test.SetCluster(RMResourceSystem::CreateSyntheticCluster(1, 1000, 2 * lGB, 1 * lGB, 0));
 	test.Solve();
 
 	// Test avec les contraintes de reserves
 	test.Reset();
 	test.SetTestLabel("Max proc with 10 Gb on host");
-	test.SetHostNumber(1);
-	test.SetHostMemory(10 * lGB);
-	test.SetHostDisk(1 * lGB);
-	test.SetHostCores(1000);
+	test.SetCluster(RMResourceSystem::CreateSyntheticCluster(1, 1000, 10 * lGB, 1 * lGB, 0));
 	test.Solve();
 
 	// Test avec les contraintes utilisateurs
 	// On aura le memes resultats que le test precedent
 	test.Reset();
 	test.SetTestLabel("Max proc with 10 Gb on constraint");
-	test.SetHostNumber(1);
-	test.SetHostMemory(100 * lGB);
-	test.SetHostDisk(100 * lGB);
-	test.SetHostCores(1000);
+	test.SetCluster(RMResourceSystem::CreateSyntheticCluster(1, 1000, 100 * lGB, 100 * lGB, 0));
 	test.SetDiskLimitPerHost(1 * lGB);
 	test.SetMemoryLimitPerHost(10 * lGB);
-	test.Solve();
-
-	// Test avec les contraintes utilisateurs
-	test.Reset();
-	test.SetTestLabel("Max proc with constraint : 400 MB RAM per proc");
-	test.SetHostNumber(1);
-	test.SetHostMemory(100 * lGB);
-	test.SetHostDisk(100 * lGB);
-	test.SetHostCores(1000);
-	test.SetMemoryLimitPerProc(400 * lMB);
-	test.Solve();
-
-	test.Reset();
-	test.SetTestLabel("Max proc with constraint : 500 MB RAM per proc");
-	test.SetHostNumber(1);
-	test.SetHostMemory(100 * lGB);
-	test.SetHostDisk(100 * lGB);
-	test.SetHostCores(1000);
-	test.SetMemoryLimitPerProc(500 * lMB);
 	test.Solve();
 
 	// Test avec les contraintes de reserves
 	test.Reset();
 	test.SetTestLabel("2 Gb on host and 200 Mo disk per salve");
-	test.SetHostNumber(1);
-	test.SetHostMemory(2 * lGB);
-	test.SetHostDisk(1 * lGB);
-	test.SetHostCores(1000);
-	test.SetConstraintSlaveDisk(200 * lMB, LLONG_MAX);
+	test.SetCluster(RMResourceSystem::CreateSyntheticCluster(1, 1000, 2 * lGB, 1 * lGB, 0));
+	test.GetTaskRequirement()->GetSlaveRequirement()->GetDisk()->Set(200 * lMB);
 	test.Solve();
 
 	// Test de non rgeression, en 32 Bits (2 Gb allouables)
 	test.Reset();
 	test.SetTestLabel("Non regression 32 bits");
-	test.SetHostNumber(1);
-	test.SetHostCores(4);
-	test.SetHostMemory(2 * lGB);
+	test.SetCluster(RMResourceSystem::CreateSyntheticCluster(1, 4, 2 * lGB, 0, 0));
 	test.SetMemoryLimitPerHost(1998 * lMB); // En 32 bits il faut ajouter ca
-	test.SetConstraintSlaveMemory(1 * lGB, 1 * lGB);
-	test.SetConstraintMasterMemory(8 * lMB, 8 * lMB);
+	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->Set(1 * lGB);
+	test.GetTaskRequirement()->GetMasterRequirement()->GetMemory()->Set(1 * lGB);
 	test.Solve();
 
 	// Plusiuers machines, sans contrainte
 	test.Reset();
 	test.SetTestLabel("multi machines : 100 process config 0");
-	test.SetHostNumber(10);
-	test.SetSystemConfig(0);
-	test.SetHostMemory(100 * lGB);
-	test.SetHostDisk(100 * lGB);
-	test.SetHostCores(100);
+	test.SetCluster(RMResourceSystem::CreateSyntheticCluster(10, 100, 100 * lGB, 100 * lGB, 0));
 	test.Solve();
 
 	// Plusiuers machines, sans contrainte
 	test.Reset();
 	test.SetTestLabel("multi machines : 100 process config 1");
-	test.SetHostNumber(10);
-	test.SetSystemConfig(1);
-	test.SetHostMemory(100 * lGB);
-	test.SetHostDisk(100 * lGB);
-	test.SetHostCores(100);
+	test.SetCluster(RMResourceSystem::CreateSyntheticCluster(10, 100, 100 * lGB, 100 * lGB, 1));
 	test.Solve();
 
 	// Plusiuers machines, sans contrainte
 	test.Reset();
 	test.SetTestLabel("multi machines : 100 process config 2");
-	test.SetHostNumber(10);
-	test.SetSystemConfig(2);
-	test.SetHostMemory(100 * lGB);
-	test.SetHostDisk(100 * lGB);
-	test.SetHostCores(100);
+	test.SetCluster(RMResourceSystem::CreateSyntheticCluster(10, 100, 100 * lGB, 100 * lGB, 2));
 	test.Solve();
 
 	// Plusiuers machines, avec contrainte memoire pour le sesclaves
 	test.Reset();
 	test.SetTestLabel("multi machines : 10 GB per slave, config 0");
-	test.SetHostNumber(10);
-	test.SetSystemConfig(0);
-	test.SetHostMemory(100 * lGB);
-	test.SetHostDisk(100 * lGB);
-	test.SetHostCores(100);
-	test.SetConstraintSlaveMemory(1 * lGB, LLONG_MAX);
+	test.SetCluster(RMResourceSystem::CreateSyntheticCluster(10, 100, 100 * lGB, 100 * lGB, 0));
+	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMin(1 * lGB);
 	test.Solve();
 
 	// Plusiuers machines, avec contrainte memoire pour les esclaves
 	test.Reset();
 	test.SetTestLabel("multi machines : 10 GB per slave, config 1");
-	test.SetHostNumber(10);
-	test.SetSystemConfig(1);
-	test.SetHostMemory(100 * lGB);
-	test.SetHostDisk(100 * lGB);
-	test.SetHostCores(100);
+	test.SetCluster(RMResourceSystem::CreateSyntheticCluster(10, 100, 100 * lGB, 100 * lGB, 1));
 	test.SetMasterSystemAtStart(4000000);
-	test.SetConstraintSlaveMemory(1 * lGB, LLONG_MAX);
+	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMin(1 * lGB);
 	test.Solve();
 
 	// Plusiuers machines, avec contrainte memoire pour les esclaves
 	test.Reset();
 	test.SetTestLabel("multi machines : 10 GB per slave, config 2");
-	test.SetHostNumber(10);
-	test.SetSystemConfig(2);
-	test.SetHostMemory(100 * lGB);
-	test.SetHostDisk(100 * lGB);
-	test.SetHostCores(100);
-	test.SetConstraintSlaveMemory(1 * lGB, LLONG_MAX);
+	test.SetCluster(RMResourceSystem::CreateSyntheticCluster(10, 100, 100 * lGB, 100 * lGB, 2));
+	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMin(1 * lGB);
 	test.Solve();
 
 	// Une seule machine programme sequentiel
 	test.Reset();
 	test.SetTestLabel("mono machines : sequential");
-	test.SetHostNumber(1);
-	test.SetHostMemory(10 * lGB);
-	test.SetHostDisk(100 * lGB);
-	test.SetHostCores(100);
-	test.SetConstraintSlaveMemory(4 * lGB, LLONG_MAX);
-	test.SetConstraintMasterMemory(1 * lGB, LLONG_MAX);
+	test.SetCluster(RMResourceSystem::CreateSyntheticCluster(1, 100, 10 * lGB, 100 * lGB, 0));
+	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMin(4 * lGB);
+	test.GetTaskRequirement()->GetMasterRequirement()->GetMemory()->SetMin(1 * lGB);
 	test.Solve();
 
 	// Une seule machine, un seul slaveProcess
 	test.Reset();
 	test.SetTestLabel("mono machines : 1 slave process");
-	test.SetHostNumber(1);
-	test.SetHostMemory(10 * lGB);
-	test.SetHostDisk(100 * lGB);
-	test.SetHostCores(1);
-	test.SetConstraintSlaveMemory(25 * lMB, 25 * lMB);
-	test.SetConstraintMasterMemory(16 * lMB, 16 * lMB);
-	test.SetSlaveProcessNumber(1);
+	test.SetCluster(RMResourceSystem::CreateSyntheticCluster(1, 1, 10 * lGB, 100 * lGB, 0));
+	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->Set(25 * lMB);
+	test.GetTaskRequirement()->GetMasterRequirement()->GetMemory()->Set(16 * lMB);
+	test.GetTaskRequirement()->SetMaxSlaveProcessNumber(1);
 	test.Solve();
 
 	// Une seule machine, un seul processeur, l'esclave demande plus que ce qu'il y a sur le host
 	UIObject::SetUIMode(UIObject::Graphic);
 	test.Reset();
 	test.SetTestLabel("mono machines : 1 core + Graphical");
-	test.SetHostNumber(1);
-	test.SetHostCores(1);
+	test.SetCluster(RMResourceSystem::CreateSyntheticCluster(1, 1, 2 * lGB, 0, 0));
 	test.SetMasterSystemAtStart(8931728);
 	test.SetSlaveSystemAtStart(8 * lMB);
 	test.SetMemoryLimitPerHost(1998 * lMB); // En 32 bits il faut ajouter ca
-
-	test.SetConstraintSlaveMemory(1 * lGB, 1717986918); // 1.6 Gb
-	test.SetConstraintMasterMemory(16 * lMB, 16 * lMB);
-	test.SetHostMemory(2 * lGB);
+	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMin(1 * lGB);
+	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMax(1717986918); // 1.6 Gb
+	test.GetTaskRequirement()->GetMasterRequirement()->GetMemory()->Set(16 * lMB);
 	test.Solve();
 
 	// Idem en batch cette fois on peut allouer
 	UIObject::SetUIMode(UIObject::Textual);
 	test.Reset();
 	test.SetTestLabel("mono machines : 1 core + Textual");
-	test.SetHostNumber(1);
-	test.SetHostCores(1);
+	test.SetCluster(RMResourceSystem::CreateSyntheticCluster(1, 1, 2 * lGB, 0, 0));
 	test.SetMasterSystemAtStart(8931728);
 	test.SetSlaveSystemAtStart(8 * lMB);
-	test.SetMemoryLimitPerHost(1998 * lMB);             // En 32 bits il faut ajouter ca
-	test.SetConstraintSlaveMemory(1 * lGB, 1717986918); // 1.6 Gb
-	test.SetConstraintMasterMemory(16 * lMB, 16 * lMB);
-	test.SetHostMemory(2 * lGB);
+	test.SetMemoryLimitPerHost(1998 * lMB); // En 32 bits il faut ajouter ca
+	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMin(1 * lGB);
+	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMax(1717986918); // 1.6 Gb
+	test.GetTaskRequirement()->GetMasterRequirement()->GetMemory()->Set(16 * lMB);
 	test.Solve();
 	UIObject::SetUIMode(UIObject::Graphic);
 
 	// Regression
 	test.Reset();
 	test.SetTestLabel("regression : Master requirement 300 KB and granted 0");
-	test.SetHostNumber(1);
-	test.SetHostCores(16);
-	test.SetHostMemory(1153433600);
+	test.SetCluster(RMResourceSystem::CreateSyntheticCluster(1, 16, 1153433600, 0, 0));
 	test.SetMasterSystemAtStart(8539455);
 	test.SetSlaveSystemAtStart(7228835);
 	test.SetMemoryLimitPerHost(1153433600);
-	test.SetConstraintSlaveMemory(16474230, LLONG_MAX);
-	test.SetConstraintMasterMemory(358692, 358692);
+	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMin(16474230);
+	test.GetTaskRequirement()->GetMasterRequirement()->GetMemory()->Set(358692);
 	test.Solve();
 
 	// Regression
 	test.Reset();
 	test.SetTestLabel("regression : slave is low");
-	test.SetHostNumber(1);
-	test.SetHostCores(4);
-	test.SetHostMemory(2147483648);
+	test.SetCluster(RMResourceSystem::CreateSyntheticCluster(1, 4, 2147483648, 0, 0));
 	test.SetMasterSystemAtStart(19417088);
 	test.SetSlaveSystemAtStart(5436608);
-	test.SetConstraintSlaveMemory(3 * lMB, 23 * lMB);
-	test.SetConstraintMasterMemory(17 * lMB, 17 * lMB);
+	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMin(3 * lMB);
+	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMax(23 * lMB);
+	test.GetTaskRequirement()->GetMasterRequirement()->GetMemory()->Set(17 * lMB);
 	test.Solve();
 
 	// Regression : shared variable
 	test.Reset();
 	test.SetTestLabel("regression");
-	test.SetHostNumber(1);
-	test.SetHostCores(1);
-	test.SetHostMemory(2147483648);
+	test.SetCluster(RMResourceSystem::CreateSyntheticCluster(1, 1, 2147483648, 0, 0));
 	test.SetMasterSystemAtStart(90018512);
 	test.SetSlaveSystemAtStart(0);
-	test.SetConstraintSlaveMemory(8553561, LLONG_MAX);
-	test.SetConstraintMasterMemory(391500000, LLONG_MAX);
-	test.SetConstraintSharedMemory(136259321, LLONG_MAX);
+	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMin(8553561);
+	test.GetTaskRequirement()->GetMasterRequirement()->GetMemory()->SetMin(391500000);
+	test.GetTaskRequirement()->GetSharedRequirement()->GetMemory()->Set(136259321);
 	test.Solve();
 
 	// Contrainte globale
 	test.Reset();
 	test.SetTestLabel("Global Constraint");
-	test.SetHostNumber(1);
-	test.SetHostCores(100);
-	test.SetHostMemory(10 * lGB);
-	test.SetConstraintSlaveMemory(1 * lGB, 1 * lGB);
-	test.SetConstraintMasterMemory(1 * lGB, 1 * lGB);
-	test.SetSlaveGlobalMemoryMin(1 * lGB);
-	test.SetSlaveGlobalMemoryMax(100 * lGB);
+	test.SetCluster(RMResourceSystem::CreateSyntheticCluster(1, 100, 10 * lGB, 0, 0));
+	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->Set(1 * lGB);
+	test.GetTaskRequirement()->GetMasterRequirement()->GetMemory()->Set(1 * lGB);
+	test.GetTaskRequirement()->GetGlobalSlaveRequirement()->GetMemory()->SetMin(1 * lGB);
+	test.GetTaskRequirement()->GetGlobalSlaveRequirement()->GetMemory()->SetMax(100 * lGB);
 	test.Solve();
 
-	// Plusiuers machines, avec contrainte memoire pour le sesclaves + contrainte globale
+	// Plusiuers machines, avec contrainte memoire pour les esclaves + contrainte globale
 	test.Reset();
 	test.SetTestLabel("multi machines : 10 GB per slave, config 0 - Global Constraint");
-	test.SetHostNumber(10);
-	test.SetSystemConfig(0);
-	test.SetHostMemory(100 * lGB);
-	test.SetHostDisk(100 * lGB);
-	test.SetHostCores(100);
-	test.SetConstraintSlaveMemory(1 * lGB, LLONG_MAX);
-	test.SetSlaveGlobalMemoryMin(10 * lGB);
+	test.SetCluster(RMResourceSystem::CreateSyntheticCluster(10, 100, 100 * lGB, 100 * lGB, 0));
+	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMin(1 * lGB);
+	test.GetTaskRequirement()->GetGlobalSlaveRequirement()->GetMemory()->Set(10 * lGB);
 	test.Solve();
 
 	// Plusiuers machines, avec contrainte memoire pour les esclaves + contrainte globale
 	test.Reset();
 	test.SetTestLabel("multi machines : 10 GB per slave, config 1 - Global Constraint");
-	test.SetHostNumber(10);
-	test.SetSystemConfig(1);
-	test.SetHostMemory(100 * lGB);
-	test.SetHostDisk(100 * lGB);
-	test.SetHostCores(100);
+	test.SetCluster(RMResourceSystem::CreateSyntheticCluster(10, 100, 100 * lGB, 100 * lGB, 1));
 	test.SetMasterSystemAtStart(4000000);
-	test.SetConstraintSlaveMemory(1 * lGB, LLONG_MAX);
-	test.SetSlaveGlobalMemoryMin(1 * lGB);
+	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMin(1 * lGB);
+	test.GetTaskRequirement()->GetGlobalSlaveRequirement()->GetMemory()->Set(1 * lGB);
 	test.Solve();
 
 	// Plusiuers machines, avec contrainte memoire pour les esclaves + contrainte globale
 	test.Reset();
 	test.SetTestLabel("multi machines : 10 GB per slave, config 2 - Global Constraint");
-	test.SetHostNumber(10);
-	test.SetSystemConfig(2);
-	test.SetHostMemory(100 * lGB);
-	test.SetHostDisk(100 * lGB);
-	test.SetHostCores(100);
-	test.SetConstraintSlaveMemory(1 * lGB, LLONG_MAX);
-	test.SetSlaveGlobalMemoryMin(1 * lGB);
+	test.SetCluster(RMResourceSystem::CreateSyntheticCluster(10, 100, 100 * lGB, 100 * lGB, 2));
+	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMin(1 * lGB);
+	test.GetTaskRequirement()->GetGlobalSlaveRequirement()->GetMemory()->Set(1 * lGB);
 	test.Solve();
 
 	// Bug de Felipe : contrainte globale max
 	test.Reset();
 	test.SetTestLabel("1 machine : global constraint with min and max on slaves");
-	test.SetHostNumber(1);
-	test.SetHostMemory(2 * lGB);
-	test.SetHostDisk(40 * lGB);
-	test.SetHostCores(2);
-	test.SetConstraintSlaveMemory(30 * lKB, 36 * lKB);
-	test.SetConstraintMasterMemory(30 * lKB, 30 * lKB);
-	test.SetConstraintSharedMemory(650 * lMB, 650 * lMB);
-	test.SetSlaveGlobalMemoryMin(1 * lMB);
-	test.SetSlaveGlobalMemoryMax(22 * lMB);
+	test.SetCluster(RMResourceSystem::CreateSyntheticCluster(1, 2, 2 * lGB, 40 * lGB, 0));
+	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMin(30 * lKB);
+	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMax(36 * lKB);
+	test.GetTaskRequirement()->GetSharedRequirement()->GetMemory()->Set(650 * lMB);
+	test.GetTaskRequirement()->GetGlobalSlaveRequirement()->GetMemory()->SetMin(1 * lMB);
+	test.GetTaskRequirement()->GetGlobalSlaveRequirement()->GetMemory()->SetMax(22 * lMB);
 	test.Solve();
+
+	test.Reset();
+	test.SetMemoryLimitPerHost(longint(56.3 * lGB));
+	test.SetTestLabel("1 machine : global constraint with min and max on slaves");
+	test.SetCluster(RMResourceSystem::CreateSyntheticCluster(3, 6, 135089496064, 20122406912, 0));
+	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->Set(510268);
+	test.GetTaskRequirement()->GetSlaveRequirement()->GetDisk()->Set(90374169);
+	test.GetTaskRequirement()->GetMasterRequirement()->GetMemory()->Set(404331);
+	test.GetTaskRequirement()->GetMasterRequirement()->GetDisk()->Set(90374169);
+	test.GetTaskRequirement()->GetSharedRequirement()->GetMemory()->Set(277892739);
+	test.GetTaskRequirement()->GetGlobalSlaveRequirement()->GetMemory()->SetMin(36 * lMB);
+	test.GetTaskRequirement()->GetGlobalSlaveRequirement()->GetMemory()->SetMax(longint(2.9 * lGB));
+	test.GetTaskRequirement()->GetGlobalSlaveRequirement()->GetDisk()->SetMin(longint(2.9 * lGB));
+	test.GetTaskRequirement()->GetGlobalSlaveRequirement()->GetDisk()->SetMax(longint(2.9 * lGB));
+	test.GetTaskRequirement()->SetMaxSlaveProcessNumber(11);
+	test.SetMaxCoreNumberOnSystem(21);
+	test.SetMasterSystemAtStart(80 * lMB);
+	test.SetSlaveSystemAtStart(10546335);
+	test.Solve();
+
+	// Bug sur dbdne avec cluster(avec cluster adhoc)
+	test.Reset();
+	test.SetTestLabel("1 machine : adhoc cluster with global requirement");
+	test.SetCluster(RMResourceSystem::CreateAdhocCluster());
+	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMin(longint(579.6 * lMB));
+	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMax(5 * lGB);
+	test.GetTaskRequirement()->GetMasterRequirement()->GetMemory()->Set(1 * lMB);
+	test.GetTaskRequirement()->GetSharedRequirement()->GetMemory()->Set(longint(134.5 * lMB));
+	test.GetTaskRequirement()->GetGlobalSlaveRequirement()->GetDisk()->Set(longint(28.5 * lGB));
+	test.Solve();
+
+	// Contrainte globale avec 10 grosses machines et un petite
+	// on doit avoir un esclave sur la petite
+	test.Reset();
+	test.SetTestLabel("Global with 100 hosts plus 1 mini host");
+	RMResourceSystem* cluster = RMResourceSystem::CreateSyntheticCluster(10, 10, 100 * lGB, 100 * lGB, 0);
+	RMHostResource* miniHost = new RMHostResource;
+	miniHost->AddProcessusRank(100);
+	miniHost->SetPhysicalCoresNumber(1);
+	miniHost->SetPhysicalMemory(10 * lGB);
+	miniHost->SetHostName("mini");
+	cluster->AddHostResource(miniHost);
+	test.SetCluster(cluster);
+	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMin(6 * lGB);
+	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMax(8 * lGB);
+	test.GetTaskRequirement()->GetMasterRequirement()->GetMemory()->Set(1 * lGB);
+	test.GetTaskRequirement()->GetGlobalSlaveRequirement()->GetMemory()->Set(4 * lGB);
+	test.Solve();
+
+	// Plusiuers machines, avec contrainte memoire pour les esclaves + contrainte globale
+	// Test de performance
+	test.Reset();
+	test.SetTestLabel("multi machines : 10 GB per slave, config 0 - Global Constraint - 100 hosts");
+	test.SetCluster(RMResourceSystem::CreateSyntheticCluster(100, 20, 100 * lGB, 100 * lGB, 0));
+	test.SetMasterSystemAtStart(4000000);
+	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMin(1 * lGB);
+	test.GetTaskRequirement()->GetGlobalSlaveRequirement()->GetMemory()->Set(1 * lGB);
+	test.Solve();
+
+	// Test de la politique de parallelisation
+	test.Reset();
+	test.SetTestLabel("10 machines : 9 slaves max - horizontal");
+	test.SetCluster(RMResourceSystem::CreateSyntheticCluster(10, 100, 100 * lGB, 100 * lGB, 0));
+	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMin(1 * lGB);
+	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMax(5 * lGB);
+	test.GetTaskRequirement()->GetMasterRequirement()->GetMemory()->Set(1 * lGB);
+	test.GetTaskRequirement()->GetSharedRequirement()->GetMemory()->Set(5 * lGB);
+	test.GetTaskRequirement()->SetParallelisationPolicy(RMTaskResourceRequirement::horizontal);
+	test.GetTaskRequirement()->SetMaxSlaveProcessNumber(9);
+	test.Solve();
+
+	test.Reset();
+	test.SetTestLabel("10 machines : 9 slaves max - vertical");
+	test.SetCluster(RMResourceSystem::CreateSyntheticCluster(10, 100, 100 * lGB, 100 * lGB, 0));
+	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMin(1 * lGB);
+	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMax(5 * lGB);
+	test.GetTaskRequirement()->GetMasterRequirement()->GetMemory()->Set(1 * lGB);
+	test.GetTaskRequirement()->GetSharedRequirement()->GetMemory()->Set(5 * lGB);
+	test.GetTaskRequirement()->SetParallelisationPolicy(RMTaskResourceRequirement::vertical);
+	test.GetTaskRequirement()->SetMaxSlaveProcessNumber(9);
+	test.Solve();
+
+	// int nHost = 0;
+	// while (nHost < 1000)
+	// {
+	// 	nHost += 10;
+	// 	Timer t;
+	// 	t.Start();
+
+	// 	test.Reset();
+	// 	//	test.SetTestLabel("multi machines : 10 GB per slave, config 0 - Global Constraint");
+	// 	test.SetCluster(RMResourceSystem::CreateSyntheticCluster(nHost, 8, 100 * lGB, 100 * lGB, 0));
+	// 	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMin(1 * lGB);
+	// 	test.GetTaskRequirement()->GetGlobalSlaveRequirement()->GetMemory()->Set(10 * lGB);
+	// 	test.Solve();
+	// 	t.Stop();
+
+	// 	cout << nHost << "\t" << 8 << "\t" << t.GetElapsedTime() << endl;
+	// }
 }
 
-void RMParallelResourceManager::SetRequirement(const RMTaskResourceRequirement* rq)
+void RMParallelResourceManager::GreedySolve()
 {
-	require(rq != NULL);
-	resourceRequirement = rq;
-}
-
-void RMParallelResourceManager::SetSystem(const RMResourceSystem* rs)
-{
-	require(rs != NULL);
-	resourceSystem = rs;
-}
-
-boolean
-RMParallelResourceManager::ComputeGrantedResourcesForSystem(const RMResourceSystem* resourceSystem,
-							    const RMTaskResourceRequirement* resourceRequirement,
-							    RMTaskResourceGrant* grantedResource)
-{
-	require(grantedResource != NULL);
-
-	RMParallelResourceManager manager;
-
-	if (PLParallelTask::GetTracerResources() > 0)
-	{
-		if (PLParallelTask::GetCurrentTaskName() != "")
-			cout << endl << "Task " << PLParallelTask::GetCurrentTaskName() << endl;
-		else
-			cout << endl << "Outside task" << endl;
-
-		cout << endl << endl << *resourceSystem;
-		cout << "\tSlave reserve  " << LongintToHumanReadableString(GetSlaveReserve(0)) << endl;
-		cout << "\tMaster reserve " << LongintToHumanReadableString(GetMasterReserve(0)) << endl << endl;
-		cout << *resourceRequirement << endl;
-		cout << RMResourceConstraints::ToString();
-	}
-
-	// Initialisation du gestionnaire de ressources
-	manager.SetRequirement(resourceRequirement);
-	manager.SetSystem(resourceSystem);
-
-	// Calcul des ressources pour le systeme
-	manager.KnapsackSolve(false, grantedResource);
-
-	// TODO sur un cluster a priori il ne faudra pas essaye de lancer en sequentiel.... par contre lancer un maitre
-	// et un esclave !!!
-	if (grantedResource->IsEmpty())
-	{
-		// Si il n'y a pas de ressources pour le systeme courant, on essaye d'allouer le programme en sequentiel
-		manager.KnapsackSolve(true, grantedResource);
-	}
-
-	if (PLParallelTask::GetTracerResources() > 0)
-	{
-		cout << *grantedResource << endl;
-	}
-
-	// Verification des resultats
-	require(manager.Check(grantedResource));
-	return not grantedResource->IsEmpty();
-}
-
-void RMParallelResourceManager::KnapsackSolve(boolean bSequential, RMTaskResourceGrant* grantedResources) const
-{
-	boolean bVerbose;
-	ObjectArray oaClasses;
-	ObjectArray oaHosts; // Tablerau de HostResource, bijection entre ce tableau et le tableau des classes oaClasses
-	PLClass* plClass;
-	int nRT;
-	int nProcNumber;
-	int nBegin;
-	ObjectArray oaItems;
-	PLItem* item;
+	POSITION position;
+	ALString sHostName;
+	Object* oElement;
+	PLClusterSolution* currentSolution;
+	PLClusterSolution* newSolution;
+	boolean bOk;
+	int nProcMax;
+	const boolean bSequential = false;
+	RMResourceContainer rcMissingResource;
+	PLHostSolution* hostSolution;
 	const RMHostResource* hostResource;
-	int nMaxProcResource;
-	int nMaxProc;
-	int nHostIndex;
-	int nHostNumber;
-	double dEtalement;
-	PLKnapsackResources problemSolver;
-	int nWeight;
-	longint lAvailableHostResource;
-	longint lMissingResource;
-	longint lUsedResourceOnHost;
+	int nExtraProc;
 	int i;
-	longint lSlaveResource;
-	longint lMasterResource;
+	const boolean bVerbose = false;
+	int nRT;
+	longint lMasterHiddenResource;
+	longint lSlaveHiddenResource;
+	longint lLogicalHostResource;
+	PLClusterSolution* bestLocalSolution;
 
-	require(resourceRequirement != NULL);
-	require(resourceSystem != NULL);
-	require(grantedResources != NULL);
+	bestLocalSolution = NULL;
+	bestSolution.Clean();
+	currentSolution = new PLClusterSolution;
+	currentSolution->SetRequirement(taskRequirements);
 
-	// Initialisation
-	bVerbose = false;
-	grantedResources->Initialize();
+	if (bVerbose)
+		cout << "max proc number for : " << endl;
+	if (PLParallelTask::GetTracerResources() == 3)
+	{
+		taskRequirements->WriteDetails(cout);
+		cout << endl;
+		lMasterHiddenResource = PLHostSolution::GetMasterHiddenResource(bSequential, MEMORY);
+		lSlaveHiddenResource = PLHostSolution::GetSlaveHiddenResource(bSequential, MEMORY);
+		cout << ResourceToString(MEMORY) << " master hidden resource: \t" << lMasterHiddenResource << "\t"
+		     << LongintToHumanReadableString(lMasterHiddenResource) << endl;
+		cout << ResourceToString(MEMORY) << " slave  hidden resource: \t" << lSlaveHiddenResource << "\t"
+		     << LongintToHumanReadableString(lSlaveHiddenResource) << endl;
+		cout << "Host Name\tmax procs\tmemory(B)\tmemory(MB)\tdisk(B)\tdisk(MB)" << endl;
+	}
+	// Initialisation de la solution avec 0 processeurs par host
+	for (i = 0; i < clusterResources->GetHostNumber(); i++)
+	{
+		hostResource = clusterResources->GetHostResourceAt(i);
+		sHostName = hostResource->GetHostName();
 
-	// On force le nombre de host a 1 en simule
-	if (PLParallelTask::GetParallelSimulated() or bSequential)
-		nHostNumber = 1;
+		// Creation d'une solution pour cette machine
+		hostSolution = new PLHostSolution;
+		hostSolution->SetHost(hostResource);
+		hostSolution->SetRequirement(taskRequirements);
+		hostSolution->SetProcNumber(0);
+		hostSolution->SetClusterResources(clusterResources);
+
+		if (bVerbose)
+			cout << "\t" << sHostName << " : \t"
+			     << IntToString(hostSolution->ComputeMaxProcessNumber(bSequential)) << endl;
+
+		// Ajout dans la solution globale
+		currentSolution->AddHostSolution(hostSolution);
+
+		// Traces
+		if (PLParallelTask::GetTracerResources() == 3)
+		{
+			cout << sHostName << "\t\t" << IntToString(hostSolution->ComputeMaxProcessNumber(bSequential))
+			     << "\t";
+			for (nRT = 0; nRT < RESOURCES_NUMBER; nRT++)
+			{
+				lLogicalHostResource = min(hostResource->GetResourceFree(nRT),
+							   RMResourceConstraints::GetResourceLimit(nRT) * lMB);
+				lLogicalHostResource =
+				    RMStandardResourceDriver::PhysicalToLogical(nRT, lLogicalHostResource);
+				cout << "\t" << lLogicalHostResource << "\t"
+				     << LongintToHumanReadableString(lLogicalHostResource);
+			}
+			if (hostResource->IsMasterHost())
+				cout << "\t"
+				     << "MASTER";
+			cout << endl;
+		}
+	}
+	if (PLParallelTask::GetTracerResources() == 3)
+	{
+		cout << endl;
+	}
+
+	// Au depart le meilleure solution est la solution nulle
+	bestSolution.CopyFrom(currentSolution);
+
+	// Evaluation de la solution pour les comparaisons futures
+	bestSolution.GetQuality()->Evaluate();
+
+	// Calcul du nombre de processus max sur tout le cluster
+	nProcMax = INT_MAX;
+	nProcMax = min(nProcMax, taskRequirements->GetMaxSlaveProcessNumber() + 1);
+
+	if (PLParallelTask::GetParallelSimulated())
+		nProcMax = min(nProcMax, PLParallelTask::GetSimulatedSlaveNumber() + 1);
 	else
-		nHostNumber = resourceSystem->GetHostNumber();
+		nProcMax = min(nProcMax, RMResourceConstraints::GetMaxCoreNumberOnCluster());
 
-	// Initialisation du probleme du sac a dos : classe PLKnapsackProblem
-	for (nHostIndex = 0; nHostIndex < nHostNumber; nHostIndex++)
+	assert(nProcMax >= 0);
+
+	// Algorithme glouton : a chaque iteration, on ajoute un processus.
+	while (currentSolution->GetProcessSolutionNumber() <= nProcMax)
 	{
-		// En simule, il n'y a qu'un seul host et c'est le master
-		if (PLParallelTask::GetParallelSimulated() or bSequential)
-			hostResource = resourceSystem->GetMasterHostResource();
-		else
-			hostResource = resourceSystem->GetHostResourceAt(nHostIndex);
-		nMaxProc = INT_MAX;
-
-		if (PLParallelTask::GetTracerResources() == 2)
-			cout << "host " << nHostIndex << endl;
-
-		// Pour chaque ressource
-		for (nRT = 0; nRT < UNKNOWN; nRT++)
+		if (bVerbose)
 		{
-			if (PLParallelTask::GetTracerResources() == 2)
-			{
-				cout << ResourceToString((Resource)nRT) << " (physical)  free  "
-				     << LongintToHumanReadableString(hostResource->GetResourceFree(nRT)) << "\t->\t"
-				     << hostResource->GetResourceFree(nRT) << endl;
-				cout << ResourceToString((Resource)nRT) << " (physical) limit "
-				     << LongintToHumanReadableString(RMResourceConstraints::GetResourceLimit(nRT) * lMB)
-				     << "\t->\t" << RMResourceConstraints::GetResourceLimit(nRT) * lMB << endl;
-			}
 
-			// Ressource disponible sur le host
-			lAvailableHostResource =
-			    min(hostResource->GetResourceFree(nRT), RMResourceConstraints::GetResourceLimit(nRT) * lMB);
-
-			// Passage de cette resource en logique
-			lAvailableHostResource =
-			    RMStandardResourceDriver::PhysicalToLogical(nRT, lAvailableHostResource);
-
-			if (PLParallelTask::GetTracerResources() == 2)
-			{
-				cout << ResourceToString((Resource)nRT) << " (logical)  available  "
-				     << LongintToHumanReadableString(lAvailableHostResource) << "\t->\t"
-				     << lAvailableHostResource << endl;
-			}
-
-			// Nombre de processus max en respectant les contraintes memoires
-			nMaxProcResource = ComputeProcessNumber(bSequential, nRT, lAvailableHostResource,
-								hostResource->IsMasterHost(), lMissingResource);
-
-			// La ressource manquante qui interesse l'utilisateur est celle du master host
-			if (hostResource->IsMasterHost())
-				grantedResources->lvMissingResources.SetAt(nRT, lMissingResource);
-
-			// Est-ce que les exigences de la taches sont coherentes avec les contraintes par processus
-			// Test pour le processus maitre
-			lMissingResource = RMStandardResourceDriver::PhysicalToLogical(
-					       nRT, RMResourceConstraints::GetResourceLimitPerProc(nRT) * lMB) -
-					   GetMasterMin(nRT) - GetMasterHiddenResource(bSequential, nRT);
-			if (lMissingResource < 0)
-			{
-				nMaxProcResource = 0;
-				grantedResources->bMissingResourceForProcConstraint = true;
-				grantedResources->lvMissingResources.SetAt(nRT, -lMissingResource);
-			}
-			else
-			{
-				// Test pour le processus esclave
-				lMissingResource = RMStandardResourceDriver::PhysicalToLogical(
-						       nRT, RMResourceConstraints::GetResourceLimitPerProc(nRT) * lMB) -
-						   GetSlaveMin(nRT) - GetSlaveHiddenResource(bSequential, nRT);
-				if (lMissingResource < 0)
-				{
-					nMaxProcResource = 0;
-					grantedResources->bMissingResourceForProcConstraint = true;
-					grantedResources->lvMissingResources.SetAt(nRT, -lMissingResource);
-				}
-			}
-
-			// Nombre de processus max en respectant les contraintes memoire par processus
-			if (nMaxProcResource != 0)
-				while (min(hostResource->GetResourceFree(nRT),
-					   RMResourceConstraints::GetResourceLimit(nRT) * lMB) /
-					   nMaxProcResource >
-				       RMResourceConstraints::GetResourceLimitPerProc(nRT) * lMB)
-					nMaxProcResource--;
-
-			// On prend le minimum sur toutes les ressources
-			nMaxProc = min(nMaxProc, nMaxProcResource);
-
-			if (PLParallelTask::GetTracerResources() == 2)
-			{
-				cout << "Sequential mode " << bSequential << endl;
-				cout << "Slave reserve " << LongintToHumanReadableString(GetSlaveReserve(nRT))
-				     << "\t->\t" << LongintToReadableString(GetSlaveReserve(nRT)) << endl;
-				cout << "Master reserve " << LongintToHumanReadableString(GetMasterReserve(nRT))
-				     << "\t->\t" << LongintToReadableString(GetMasterReserve(nRT)) << endl;
-				cout << "User Interface Memory Reserve "
-				     << LongintToHumanReadableString(UIObject::GetUserInterfaceMemoryReserve())
-				     << "\t->\t" << LongintToReadableString(UIObject::GetUserInterfaceMemoryReserve())
-				     << endl;
-				cout << "Physical Memory Reserve "
-				     << LongintToHumanReadableString(MemGetPhysicalMemoryReserve()) << "\t->\t"
-				     << LongintToReadableString(UIObject::GetUserInterfaceMemoryReserve()) << endl;
-				cout << "Allocator Reserve " << LongintToHumanReadableString(MemGetAllocatorReserve())
-				     << "\t->\t" << LongintToReadableString(MemGetAllocatorReserve()) << endl;
-				cout << "Mem for serialization " << LongintToHumanReadableString(2 * MemSegmentByteSize)
-				     << "\t->\t" << LongintToReadableString(2 * MemSegmentByteSize) << endl;
-				cout << "Is master host " << hostResource->IsMasterHost() << endl;
-				cout << "Violating proc limit " << grantedResources->bMissingResourceForProcConstraint
-				     << endl;
-				cout << "Resource limit per proc "
-				     << LongintToHumanReadableString(
-					    RMResourceConstraints::GetResourceLimitPerProc(nRT) * lMB)
-				     << endl;
-				cout << "Master requirement " << LongintToHumanReadableString(GetMasterMin(nRT))
-				     << "\t->\t" << LongintToReadableString(GetMasterMin(nRT)) << endl;
-				cout << "Slave requirement " << LongintToHumanReadableString(GetSlaveMin(nRT))
-				     << "\t->\t" << LongintToReadableString(GetSlaveMin(nRT)) << endl;
-				cout << "Shared requirement " << LongintToHumanReadableString(GetSharedMin(nRT))
-				     << "\t->\t" << LongintToReadableString(GetSharedMin(nRT)) << endl;
-				cout << "Slave System at start "
-				     << LongintToHumanReadableString(
-					    resourceRequirement->GetSlaveSystemAtStart()->GetResource(nRT)->GetMin())
-				     << "\t->\t"
-				     << LongintToReadableString(
-					    resourceRequirement->GetSlaveSystemAtStart()->GetResource(nRT)->GetMin())
-				     << endl;
-				cout << "Master System at start "
-				     << LongintToHumanReadableString(
-					    resourceRequirement->GetMasterSystemAtStart()->GetResource(nRT)->GetMin())
-				     << "\t->\t"
-				     << LongintToReadableString(
-					    resourceRequirement->GetMasterSystemAtStart()->GetResource(nRT)->GetMin())
-				     << endl;
-				cout << "Missing ressource "
-				     << LongintToHumanReadableString(grantedResources->lvMissingResources.GetAt(nRT))
-				     << "\t->\t"
-				     << LongintToReadableString(grantedResources->lvMissingResources.GetAt(nRT)) << endl
-				     << endl;
-			}
+			cout << endl << "**current solution" << endl;
+			cout << *currentSolution << endl;
 		}
 
-		// On borne ...
-		if (not bSequential)
+		// Pour chaque machine, on cree une nouvelle solution a partir de la solution
+		// courante, en ajoutant un processus. On garde la meilleure de ces solutions.
+		// Si aucune solution n'est valide, c'est qu'on ne peut plus ajouter de processus
+		position = currentSolution->GetHostSolutions()->GetStartPosition();
+		newSolution = NULL;
+		bestLocalSolution = NULL;
+		while (position != NULL)
 		{
-			// ... par le nombre de processus logique de la machine
-			if (not PLParallelTask::GetParallelSimulated())
-				nMaxProc = min(nMaxProc, hostResource->GetLogicalProcessNumber());
-
-			// et par la contrainte utilisateur du nombre de pocessus par machine
-			nMaxProc = min(nMaxProc, RMResourceConstraints::GetMaxCoreNumberPerHost());
-		}
-
-		if (PLParallelTask::GetParallelSimulated())
-		{
-			nMaxProc = min(nMaxProc, PLParallelTask::GetSimulatedSlaveNumber() + 1);
-		}
-
-		// En sequentiel on a 2 processus : le maitre et l'esclave
-		if (bSequential)
-		{
-			nMaxProc = min(2, nMaxProc);
-			nBegin = 2;
-		}
-		else
-		{
-			nBegin = 1;
-		}
-
-		// Construction d'une solution pour chaque nombre possible de processus
-		dEtalement = 0;
-		plClass = new PLClass;
-		oaItems.SetSize(0);
-		for (nProcNumber = nBegin; nProcNumber <= nMaxProc; nProcNumber++)
-		{
-			item = new PLItem;
-			item->SetWeight(nProcNumber);
-
-			// Ajout d'une valeur fictive pour forcer a prendre la premiere solution dans la classe du
-			// master
-			if (hostResource->IsMasterHost())
-				item->Add(1);
-			else
-				item->Add(0);
-
-			// Construction de l'item a partir des ressources consommees
-			for (nRT = 0; nRT < UNKNOWN; nRT++)
+			currentSolution->GetHostSolutions()->GetNextAssoc(position, sHostName, oElement);
+			newSolution = currentSolution->Clone();
+			bOk = newSolution->AddProcessorAt(sHostName);
+			if (bOk)
 			{
-				// Calcul des ressouces consommes pour les exigences minimales pour le maitre, chaque
-				// esclave et sur la machine
-				lUsedResourceOnHost = MinimumAllocation(bSequential, nRT, nProcNumber, hostResource,
-									lSlaveResource, lMasterResource);
-				item->Add(lUsedResourceOnHost);
-			}
-
-			dEtalement += 1.0 / nProcNumber;
-			item->Add((longint)(dEtalement * 100000)); // Multiplication par 1000 pour etre entier (On garde
-								   // une bonne precision pour 128 processeurs)
-			oaItems.Add(item);
-		}
-		// Ajout de la classe au probleme du sac a dos
-		if (oaItems.GetSize() > 0)
-		{
-			plClass->SetItems(&oaItems);
-			problemSolver.AddClass(plClass);
-			oaClasses.Add(plClass);
-			oaHosts.Add(hostResource->Clone());
-		}
-		else
-		{
-			delete plClass;
-
-			// Si c'est le master et qu'il n'y a pas de solution sur ce host, il n'y a aucune solution
-			// possible
-			if (hostResource->IsMasterHost())
-			{
-				oaClasses.DeleteAll();
-				problemSolver.RemoveClasses();
-				oaHosts.RemoveAll();
-				break;
-			}
-		}
-	} // for (nHostIndex = 0; nHostIndex < nHostNumber; nHostIndex++)
-
-	// Poids max du sac a dos = nombre de processus max sur le systeme
-	nWeight = INT_MAX;
-	nWeight = min(nWeight, resourceRequirement->GetMaxSlaveProcessNumber() + 1);
-
-	if (not PLParallelTask::GetParallelSimulated())
-	{
-		nWeight = min(nWeight, resourceSystem->GetLogicalProcessNumber());
-		nWeight = min(nWeight, RMResourceConstraints::GetMaxCoreNumber());
-		nWeight = min(nWeight, RMResourceConstraints::GetMaxProcessNumber());
-	}
-	assert(nWeight >= 0);
-	if (bSequential and nWeight != 0)
-		nWeight = 2;
-	problemSolver.SetWeight(nWeight);
-
-	// Affichage du probleme
-	if (bVerbose)
-		cout << problemSolver << endl;
-
-	// Resolution
-	problemSolver.SetHostResources(&oaHosts);
-	problemSolver.SetGrantedResource(grantedResources);
-	problemSolver.SetRequirement(resourceRequirement);
-	problemSolver.Solve();
-
-	// Affichage des resultats
-	if (bVerbose)
-	{
-		cout << "Solutions " << endl;
-		for (i = 0; i < oaClasses.GetSize(); i++)
-			cout << *oaClasses.GetAt(i) << endl << endl;
-	}
-
-	// Construction des grantedResources a partir des classes du sac a dos
-	// Ajout des ressources en extra
-	TransformClassesToResources(bSequential, &oaClasses, &oaHosts, grantedResources);
-
-	// Nettoyage
-	oaClasses.DeleteAll();
-	oaHosts.DeleteAll();
-}
-
-void RMParallelResourceManager::TransformClassesToResources(boolean bSequential, const ObjectArray* oaClasses,
-							    const ObjectArray* oaHosts,
-							    RMTaskResourceGrant* grantedResources) const
-{
-	RMResourceGrant* resourceGrant;
-	RMResourceGrant* masterResourceGrant;
-	RMResourceGrant* slaveResourceGrant;
-	RMResourceContainer extraSlaveResource;
-	RMResourceContainer extraMasterResource;
-	RMResourceContainer rcSlaveResource;
-	RMResourceContainer rcMasterResource;
-	int nProcNumber;
-	PLItem* item;
-	const RMHostResource* hostResource;
-	int i;
-	int j;
-	int nRT;
-	longint lMasterResource;
-	longint lSlaveResource;
-	longint lExtraSlaveResource;
-	longint lExtraMasterResource;
-
-	require(grantedResources != NULL);
-
-	// Calcul du nombre de processus total
-	nProcNumber = 0;
-	for (i = 0; i < oaClasses->GetSize(); i++)
-	{
-		item = cast(PLClass*, oaClasses->GetAt(i))->GetValidItem();
-		if (item != NULL)
-			nProcNumber += item->GetWeight();
-	}
-
-	ensure(bSequential or nProcNumber <= RMResourceConstraints::GetMaxProcessNumber());
-	ensure(PLParallelTask::GetParallelSimulated() or bSequential or
-	       nProcNumber <= RMResourceConstraints::GetMaxCoreNumber());
-	ensure(bSequential or nProcNumber <= resourceRequirement->GetMaxSlaveProcessNumber() + 1);
-
-	// Si on est en parallele on doit avoir plus de 2 processus
-	if (nProcNumber <= 2 and not bSequential)
-		return;
-
-	// Si plus d'un processus (en sequentiel on a 2 processus)
-	if (nProcNumber > 1)
-	{
-		// Affectation des resultats dans les ressources
-		for (i = 0; i < oaClasses->GetSize(); i++)
-		{
-			// Acces au host
-			hostResource = cast(RMHostResource*, oaHosts->GetAt(i));
-
-			// et a la solution corresondante
-			item = cast(PLClass*, oaClasses->GetAt(i))->GetValidItem();
-
-			// Si il y a une solution sur ce host
-			if (item != NULL)
-			{
-				//////////////////////////////////////////////////////////////////
-				// Calcul des ressources diponibles apres avoir alloue le min sur cette machine
-				for (nRT = 0; nRT < UNKNOWN; nRT++)
-				{
-					// Allocation du minimum pour respecter les exigences
-					MinimumAllocation(bSequential, nRT, item->GetWeight(), hostResource,
-							  lSlaveResource, lMasterResource);
-
-					// Ajout des ressources de la contrainte globale
-					lSlaveResource += resourceRequirement->GetGlobalSlaveRequirement()
-							      ->GetResource(nRT)
-							      ->GetMin() /
-							  (nProcNumber - 1);
-					rcSlaveResource.SetValue(nRT, lSlaveResource);
-					rcMasterResource.SetValue(nRT, lMasterResource);
-
-					// Calcul des ressources en extra
-					ComputeExtraResource(nRT, bSequential, item->GetWeight(), nProcNumber,
-							     hostResource, lSlaveResource, lMasterResource,
-							     lExtraSlaveResource, lExtraMasterResource);
-					extraSlaveResource.SetValue(nRT, lExtraSlaveResource);
-					extraMasterResource.SetValue(nRT, lExtraMasterResource);
-				}
-
-				//////////////////////////////////////////////////////////////
-				// Construction d'un resourceGrant par processus (par rang MPI)
-				if (bSequential)
-				{
-					masterResourceGrant = new RMResourceGrant;
-					slaveResourceGrant = new RMResourceGrant;
-					masterResourceGrant->SetRank(0);
-					slaveResourceGrant->SetRank(1);
-
-					// Allocation de chaque ressource
-					for (nRT = 0; nRT < UNKNOWN; nRT++)
-					{
-						masterResourceGrant->SetResource(
-						    nRT, rcMasterResource.GetValue(nRT) +
-							     extraMasterResource.GetValue(nRT) -
-							     GetMasterHiddenResource(bSequential, nRT));
-						masterResourceGrant->SetSharedResource(nRT, GetSharedMin(nRT));
-						slaveResourceGrant->SetResource(nRT,
-										rcSlaveResource.GetValue(nRT) +
-										    extraSlaveResource.GetValue(nRT));
-						slaveResourceGrant->SetSharedResource(nRT, 0);
-					}
-
-					grantedResources->AddResource(masterResourceGrant);
-					grantedResources->AddResource(slaveResourceGrant);
-				}
+				// Evaluation de la solution pour pouvoir la comparer ensuite (dans la liste triee)
+				newSolution->GetQuality()->Evaluate();
+				if (bestLocalSolution == NULL)
+					bestLocalSolution = newSolution->Clone();
 				else
 				{
-					// Pour chaque rang
-					for (j = 0; j < item->GetWeight(); j++)
-					{
-						resourceGrant = new RMResourceGrant;
-						if (PLParallelTask::GetParallelSimulated())
-							resourceGrant->SetRank(j);
-						else
-							resourceGrant->SetRank(hostResource->GetRanks()->GetAt(j));
-
-						// Pour chaque ressource
-						for (nRT = 0; nRT < UNKNOWN; nRT++)
-						{
-							if (resourceGrant->GetRank() == 0)
-							{
-								resourceGrant->SetResource(
-								    nRT, rcMasterResource.GetValue(nRT) +
-									     extraMasterResource.GetValue(nRT) -
-									     GetMasterHiddenResource(bSequential, nRT));
-								resourceGrant->SetSharedResource(nRT,
-												 GetSharedMin(nRT));
-							}
-							else
-							{
-								resourceGrant->SetResource(
-								    nRT, rcSlaveResource.GetValue(nRT) +
-									     extraSlaveResource.GetValue(nRT) -
-									     GetSlaveHiddenResource(bSequential, nRT));
-								resourceGrant->SetSharedResource(nRT,
-												 GetSharedMin(nRT));
-							}
-						}
-						grantedResources->AddResource(resourceGrant);
-					}
+					if (newSolution->GetQuality()->Compare(bestLocalSolution->GetQuality()) > 0)
+						bestLocalSolution->CopyFrom(newSolution);
 				}
 			}
+
+			delete newSolution;
+			newSolution = NULL;
+		}
+
+		// Si il y a au moins une solution valide, on met a jour la solution courante et la meilleure solution
+		if (bestLocalSolution != NULL)
+		{
+			currentSolution->CopyFrom(bestLocalSolution);
+			if (currentSolution->FitGlobalConstraint(&rcMissingResource, nExtraProc) and
+			    currentSolution->GetQuality()->Compare(bestSolution.GetQuality()) > 0)
+			{
+				bestSolution.CopyFrom(currentSolution);
+			}
+			delete bestLocalSolution;
+			bestLocalSolution = NULL;
+		}
+		else
+		{
+			// Sortie de l'algo si il n'y a plus de solutions valides en ajoutant des processus
+			break;
 		}
 	}
+	if (bestLocalSolution != NULL)
+		delete bestLocalSolution;
+	delete currentSolution;
 }
 
-// Somme de de longint en gerant le depassement
-static longint lsum(longint l1, longint l2)
+void RMParallelResourceManager::PostOptimize()
 {
-	if (l1 > LLONG_MAX - l2)
-		return LLONG_MAX;
-	return l1 + l2;
+	// Si aucune solution n'a etet trouvee par l'algorithme glouton
+	// il n'y a rien a optimiser
+	if (bestSolution.GetProcessSolutionNumber() == 0)
+		return;
+
+	// TODO
+}
+
+void RMParallelResourceManager::SequentialSolve()
+{
+	const RMHostResource* masterHost;
+	PLHostSolution* sequentialSolution;
+	longint lResourceRequired;
+	longint lFreeResource;
+	longint lMissingResource;
+	int nRT;
+
+	// Identification du master host
+	masterHost = clusterResources->GetMasterHostResource();
+
+	assert(masterHost != NULL);
+
+	// Netoyage de la solution
+	bestSolution.Clean();
+
+	for (nRT = 0; nRT < RESOURCES_NUMBER; nRT++)
+	{
+
+		// Calcul des ressources necessaires pour la tache en sequentiel
+		lResourceRequired = lsum(taskRequirements->GetMasterMin(nRT), taskRequirements->GetSharedMin(nRT),
+					 taskRequirements->GetSlaveMin(nRT), taskRequirements->GetSlaveGlobalMin(nRT),
+					 PLHostSolution::GetMasterHiddenResource(true, nRT));
+
+		// Calcul des ressources disponibles sur le host
+		lFreeResource =
+		    min(masterHost->GetResourceFree(nRT), RMResourceConstraints::GetResourceLimit(nRT) * lMB);
+		lFreeResource = RMStandardResourceDriver::PhysicalToLogical(nRT, lFreeResource);
+
+		lMissingResource = lResourceRequired - lFreeResource;
+		if (lMissingResource > 0)
+		{
+			bestSolution.SetMissingResource(nRT, lMissingResource);
+			bestSolution.SetMissingHostName(masterHost->GetHostName());
+		}
+	}
+
+	// Construction de la solution si il y a assez de ressources
+	if (bestSolution.GetMissingResources(MEMORY) == 0 and bestSolution.GetMissingResources(DISK) == 0)
+	{
+		// Ajout du master host a la solution
+		sequentialSolution = new PLHostSolution;
+		sequentialSolution->SetHost(masterHost);
+		sequentialSolution->SetRequirement(taskRequirements);
+		sequentialSolution->SetProcNumber(1);
+		sequentialSolution->SetClusterResources(clusterResources);
+
+		bestSolution.AddHostSolution(sequentialSolution);
+	}
+	else
+	{
+		bestSolution.SetMissingHostName(masterHost->GetHostName());
+	}
 }
 
 boolean RMParallelResourceManager::Check(RMTaskResourceGrant* taskResourceGrant) const
 {
-	boolean bOk;
-	longint lSlaveMemory;
-	longint lSlaveDisk;
-	int nProcNumberOnSystem;
-	longint lGlobalMemoryForSlaveMin;
-	longint lGlobalDiskForSlaveMin;
-	longint lGlobalMemoryForSlaveMax;
-	longint lGlobalDiskForSlaveMax;
+	int nRT;
+	boolean bOK = true;
 
-	require(taskResourceGrant != NULL);
-	require(resourceRequirement != NULL);
-
-	bOk = true;
-
-	if (taskResourceGrant->IsEmpty())
-		return true;
-
-	nProcNumberOnSystem = taskResourceGrant->GetProcessNumber();
-	lGlobalMemoryForSlaveMin = 0;
-	lGlobalDiskForSlaveMin = 0;
-	lGlobalMemoryForSlaveMax = 0;
-	lGlobalDiskForSlaveMax = 0;
-	if (nProcNumberOnSystem > 1)
+	for (nRT = 0; nRT < RESOURCES_NUMBER; nRT++)
 	{
-		lGlobalMemoryForSlaveMin =
-		    resourceRequirement->GetGlobalSlaveRequirement()->GetResource(MEMORY)->GetMin() /
-		    (nProcNumberOnSystem - 1);
-		lGlobalMemoryForSlaveMax =
-		    resourceRequirement->GetGlobalSlaveRequirement()->GetResource(MEMORY)->GetMax() /
-		    (nProcNumberOnSystem - 1);
-		lGlobalDiskForSlaveMin = resourceRequirement->GetGlobalSlaveRequirement()->GetResource(DISK)->GetMin() /
-					 (nProcNumberOnSystem - 1);
-		lGlobalDiskForSlaveMax = resourceRequirement->GetGlobalSlaveRequirement()->GetResource(DISK)->GetMax() /
-					 (nProcNumberOnSystem - 1);
-	}
-	else
-	{
-		lGlobalMemoryForSlaveMin =
-		    resourceRequirement->GetGlobalSlaveRequirement()->GetResource(MEMORY)->GetMin();
-		lGlobalMemoryForSlaveMax =
-		    resourceRequirement->GetGlobalSlaveRequirement()->GetResource(MEMORY)->GetMax();
-		lGlobalDiskForSlaveMin = resourceRequirement->GetGlobalSlaveRequirement()->GetResource(DISK)->GetMin();
-		lGlobalDiskForSlaveMax = resourceRequirement->GetGlobalSlaveRequirement()->GetResource(DISK)->GetMax();
-	}
-
-	// Verification des ressources allouees au maitre
-	// Memoire
-	bOk = bOk and resourceRequirement->GetMasterRequirement()->GetMemory()->GetMin() <=
-			  taskResourceGrant->GetMasterMemory();
-	require(bOk);
-	bOk = bOk and resourceRequirement->GetMasterRequirement()->GetMemory()->GetMax() >=
-			  taskResourceGrant->GetMasterMemory();
-	require(bOk);
-
-	bOk = bOk and
-	      RMStandardResourceDriver::PhysicalToLogical(MEMORY, RMResourceConstraints::GetMemoryLimitPerProc() *
-								      lMB) >= taskResourceGrant->GetMasterMemory();
-	require(bOk);
-
-	// Disque
-	bOk = bOk and
-	      resourceRequirement->GetMasterRequirement()->GetDisk()->GetMin() <= taskResourceGrant->GetMasterDisk();
-	require(bOk);
-	bOk = bOk and
-	      resourceRequirement->GetMasterRequirement()->GetDisk()->GetMax() >= taskResourceGrant->GetMasterDisk();
-	require(bOk);
-	bOk = bOk and RMStandardResourceDriver::PhysicalToLogical(DISK, RMResourceConstraints::GetDiskLimitPerProc() *
-									    lMB) >= taskResourceGrant->GetMasterDisk();
-	require(bOk);
-
-	// Verification des ressources allouees a chaque esclave
-
-	// Exigences Memoire
-	lSlaveMemory = taskResourceGrant->GetMinSlaveMemory();
-	bOk = bOk and resourceRequirement->GetSlaveRequirement()->GetMemory()->GetMin() + lGlobalMemoryForSlaveMin <=
-			  lSlaveMemory;
-	require(bOk);
-	bOk = bOk and lsum(resourceRequirement->GetSlaveRequirement()->GetMemory()->GetMax(),
-			   lGlobalMemoryForSlaveMax) >= lSlaveMemory;
-	require(bOk);
-
-	// Exigences Disque
-	lSlaveDisk = taskResourceGrant->GetMinSlaveDisk();
-	bOk = bOk and lsum(resourceRequirement->GetSlaveRequirement()->GetDisk()->GetMin(), lGlobalDiskForSlaveMin) <=
-			  lSlaveDisk;
-	require(bOk);
-	bOk = bOk and lsum(resourceRequirement->GetSlaveRequirement()->GetDisk()->GetMax(), lGlobalDiskForSlaveMax) >=
-			  lSlaveDisk;
-	require(bOk);
-
-	// Contrainte memoire
-	bOk = bOk and RMStandardResourceDriver::PhysicalToLogical(
-			  MEMORY, RMResourceConstraints::GetMemoryLimitPerProc() * lMB) >= lSlaveMemory;
-	require(bOk);
-
-	// Contrainte disque
-	bOk = bOk and RMStandardResourceDriver::PhysicalToLogical(DISK, RMResourceConstraints::GetDiskLimitPerProc() *
-									    lMB) >= lSlaveDisk;
-	require(bOk);
-
-	// Nombre de slaveProcess
-	bOk = bOk and taskResourceGrant->GetSlaveNumber() <= resourceRequirement->GetMaxSlaveProcessNumber();
-	require(bOk);
-
-	// Nombre de processus
-	bOk = bOk and taskResourceGrant->GetProcessNumber() <= RMResourceConstraints::GetMaxProcessNumber();
-	require(bOk);
-
-	// Cas sequentiel
-	if (taskResourceGrant->IsSequentialTask())
-	{
-		bOk = bOk and taskResourceGrant->GetMasterDisk() + taskResourceGrant->GetMinSlaveDisk() <
-				  RMStandardResourceDriver::PhysicalToLogical(
-				      DISK, RMResourceConstraints::GetDiskLimitPerProc() * lMB);
-		require(bOk);
-
-		bOk = bOk and taskResourceGrant->GetMasterMemory() + taskResourceGrant->GetMinSlaveMemory() <
-				  RMStandardResourceDriver::PhysicalToLogical(
-				      MEMORY, RMResourceConstraints::GetMemoryLimitPerProc() * lMB);
-		require(bOk);
-	}
-	return bOk;
-}
-
-void RMParallelResourceManager::ComputeExtraResource(int nRT, boolean bSequential, int nProcNumberOnHost,
-						     int nProcNumberOnSystem, const RMHostResource* hostResource,
-						     longint lSlaveResource, longint lMasterResource,
-						     longint& lExtraSlaveResource, longint& lExtraMasterResource) const
-{
-	boolean bAnySlave;
-	boolean bAnyMaster;
-	int nSlaveNumber;
-	int nMasterNumber;
-	longint lRemainingOnHost;
-	longint lHostResource;
-
-	require(not bSequential or (bSequential and nProcNumberOnSystem == 2));
-
-	// Y a-t-il un maitre et/ou des esclaves sur la machine
-	hostResource->IsMasterHost() ? bAnyMaster = true : bAnyMaster = false;
-	nProcNumberOnHost == 1 and hostResource->IsMasterHost() ? bAnySlave = false : bAnySlave = true;
-
-	// Nombre d'esclaves et de maitre sur la machine
-	bAnyMaster ? nSlaveNumber = nProcNumberOnHost - 1 : nSlaveNumber = nProcNumberOnHost;
-	bAnyMaster ? nMasterNumber = 1 : nMasterNumber = 0;
-
-	// Ressources disponibles sur le host
-	lHostResource = min(hostResource->GetResourceFree(nRT), RMResourceConstraints::GetResourceLimit(nRT) * lMB);
-	lHostResource = RMStandardResourceDriver::PhysicalToLogical(nRT, lHostResource);
-
-	// Calcul du surplus de ressources
-	lRemainingOnHost = lHostResource - GetUsedResource(nProcNumberOnHost, hostResource->IsMasterHost(),
-							   lMasterResource, lSlaveResource);
-
-	assert(lRemainingOnHost >= 0);
-	switch (resourceRequirement->GetResourceAllocationPolicy(nRT))
-	{
-	case RMTaskResourceRequirement::slavePreferred:
-
-		// Allocation du max pour les esclaves
-		if (not bAnySlave)
-			lExtraSlaveResource = 0;
-		else
+		if (PLParallelTask::GetParallelSimulated() or taskResourceGrant->GetSlaveNumber() > 1)
 		{
-			// Max allouable avec ce qui reste
-			lExtraSlaveResource = lRemainingOnHost / nSlaveNumber;
-
-			// Reduction sous les contraintes
-			ShrinkForSlaveUnderConstraints(bSequential, nRT, nSlaveNumber, nProcNumberOnSystem - 1,
-						       nMasterNumber, lExtraSlaveResource);
-		}
-
-		// Allocation du restant au maitre
-		lExtraMasterResource = lRemainingOnHost - nSlaveNumber * lExtraSlaveResource;
-		if (lExtraMasterResource > 0 and bAnyMaster)
-		{
-			// Reduction sous les contraintes
-			ShrinkForMasterUnderConstraints(bSequential, nRT, nSlaveNumber, nMasterNumber,
-							lExtraMasterResource);
+			bOK = bOK and taskResourceGrant->GetMasterResource(nRT) >= taskRequirements->GetMasterMin(nRT);
+			assert(bOK);
+			bOK =
+			    bOK and taskResourceGrant->GetMinSlaveResource(nRT) >=
+					lsum(taskRequirements->GetSlaveMin(nRT),
+					     taskRequirements->GetGlobalSlaveRequirement()->GetResource(nRT)->GetMin() /
+						 taskResourceGrant->GetSlaveNumber());
+			bOK = bOK and taskResourceGrant->GetMasterResource(nRT) <= taskRequirements->GetMasterMax(nRT);
+			assert(bOK);
+			bOK =
+			    bOK and taskResourceGrant->GetMinSlaveResource(nRT) <=
+					lsum(taskRequirements->GetSlaveMax(nRT),
+					     taskRequirements->GetGlobalSlaveRequirement()->GetResource(nRT)->GetMax() /
+						 taskResourceGrant->GetSlaveNumber());
+			assert(bOK);
 		}
 		else
-			lExtraMasterResource = 0;
-		break;
-	case RMTaskResourceRequirement::masterPreferred:
-		if (not bAnyMaster)
-			lExtraMasterResource = 0;
-		else
 		{
-			lExtraMasterResource = lRemainingOnHost;
+			assert(taskResourceGrant->GetSlaveNumber() == 1);
 
-			// Reduction sous les contraintes
-			ShrinkForMasterUnderConstraints(bSequential, nRT, nSlaveNumber, nMasterNumber,
-							lExtraMasterResource);
+			// Sequentiel
+			bOK = bOK and taskResourceGrant->GetMasterResource(nRT) >= taskRequirements->GetMasterMin(nRT);
+			assert(bOK);
+			bOK =
+			    bOK and taskResourceGrant->GetMinSlaveResource(nRT) >=
+					lsum(taskRequirements->GetSlaveMin(nRT),
+					     taskRequirements->GetGlobalSlaveRequirement()->GetResource(nRT)->GetMin());
+			assert(bOK);
+			bOK = bOK and taskResourceGrant->GetMasterResource(nRT) <= taskRequirements->GetMasterMax(nRT);
+			assert(bOK);
+			bOK =
+			    bOK and taskResourceGrant->GetMinSlaveResource(nRT) <=
+					lsum(taskRequirements->GetSlaveMax(nRT),
+					     taskRequirements->GetGlobalSlaveRequirement()->GetResource(nRT)->GetMax());
+			assert(bOK);
 		}
-
-		// Allocation du restant aux esclaves
-		if (bAnySlave)
-		{
-			lExtraSlaveResource = (lRemainingOnHost - lExtraMasterResource) / nSlaveNumber;
-			if (lExtraSlaveResource > 0)
-			{
-				// Reduction sous les contraintes
-				ShrinkForSlaveUnderConstraints(bSequential, nRT, nSlaveNumber, nProcNumberOnSystem - 1,
-							       nMasterNumber, lExtraSlaveResource);
-			}
-		}
-		else
-			lExtraSlaveResource = 0;
-
-		break;
-	default:
-		assert(false);
 	}
-	assert(lExtraSlaveResource >= 0);
-	assert(lExtraMasterResource >= 0);
+	return bOK;
 }
 
-void RMParallelResourceManager::ShrinkForSlaveUnderConstraints(boolean bIsSequential, int nRT, int nSlaveNumberOnHost,
-							       int nSlaveNumberOnSystem, int nMasterNumber,
-							       longint& lRemainingResource) const
+///////////////////////////////////////////////////////////////////////
+// Implementation de PLHostSolution
+
+PLHostSolution::PLHostSolution()
 {
-	longint lResourceLimit;
-	longint lResourceLimitPerProc;
-	longint lSlaveResource;
-	longint lMasterResource;
-
-	require(lRemainingResource >= 0);
-	lResourceLimit =
-	    RMStandardResourceDriver::PhysicalToLogical(nRT, RMResourceConstraints::GetResourceLimit(nRT) * lMB);
-	lResourceLimitPerProc =
-	    RMStandardResourceDriver::PhysicalToLogical(nRT, RMResourceConstraints::GetResourceLimitPerProc(nRT) * lMB);
-
-	lSlaveResource = GetSlaveMin(nRT) + GetSlaveHiddenResource(bIsSequential, nRT);
-	lMasterResource = GetMasterMin(nRT) + GetMasterHiddenResource(bIsSequential, nRT);
-
-	// Max allouable pour les exigences de la tache
-	lRemainingResource =
-	    min(lRemainingResource, lsum(GetSlaveMax(nRT) - GetSlaveMin(nRT),
-					 (GetSlaveGlobalMax(nRT) - GetSlaveGlobalMin(nRT)) / nSlaveNumberOnSystem));
-
-	// Max allouable pour les contraintes sur le processus
-	lRemainingResource = min(lRemainingResource, lResourceLimitPerProc - lSlaveResource);
-
-	// Max allouable pour les contraintes sur la machine
-	lRemainingResource =
-	    min(lRemainingResource,
-		(lResourceLimit - nMasterNumber * lMasterResource) / nSlaveNumberOnHost - lSlaveResource);
-	require(lRemainingResource >= 0);
+	nProcNumber = 0;
+	host = NULL;
+	taskRequirements = NULL;
+	clusterResources = NULL;
 }
 
-void RMParallelResourceManager::ShrinkForMasterUnderConstraints(boolean bIsSequential, int nRT, int nSlaveNumber,
-								int nMasterNumber, longint& lRemainingResource) const
+PLHostSolution::~PLHostSolution()
 {
-	longint lResourceLimit;
-	longint lResourceLimitPerProc;
-	longint lSlaveResource;
-	longint lMasterResource;
-
-	require(lRemainingResource >= 0);
-
-	lResourceLimit =
-	    RMStandardResourceDriver::PhysicalToLogical(nRT, RMResourceConstraints::GetResourceLimit(nRT) * lMB);
-	lResourceLimitPerProc =
-	    RMStandardResourceDriver::PhysicalToLogical(nRT, RMResourceConstraints::GetResourceLimitPerProc(nRT) * lMB);
-
-	lSlaveResource = GetSlaveMin(nRT) + GetSlaveHiddenResource(bIsSequential, nRT);
-	lMasterResource = GetMasterMin(nRT) + GetMasterHiddenResource(bIsSequential, nRT);
-
-	// Max allouable pour les exigences de la tache
-	lRemainingResource = min(lRemainingResource, GetMasterMax(nRT) - GetMasterMin(nRT));
-
-	// Max allouable pour les contraintes sur le processus
-	lRemainingResource = min(lRemainingResource, lResourceLimitPerProc - lMasterResource);
-
-	// Max allouable pour les contraintes sur la machine
-	lRemainingResource = min(lRemainingResource, lResourceLimit - nSlaveNumber * lSlaveResource - lMasterResource);
-
-	require(lRemainingResource >= 0);
+	host = NULL;
+	taskRequirements = NULL;
+	clusterResources = NULL;
 }
 
-longint RMParallelResourceManager::MinimumAllocation(boolean bIsSequential, int nRT, int nProcNumber,
-						     const RMHostResource* hostResource, longint& lSlaveResource,
-						     longint& lMasterResource) const
+void PLHostSolution::CopyFrom(const PLHostSolution* clusterSolution)
 {
-	longint lResourceMin;
-
-	require(nRT < UNKNOWN);
-
-	require(nProcNumber > 0);
-	require(not bIsSequential or (bIsSequential and nProcNumber == 2));
-
-	// Allocation des ressources minimales necessaires au maitre et aux esclaves
-	lSlaveResource = GetSlaveMin(nRT) + GetSlaveHiddenResource(bIsSequential, nRT);
-	lMasterResource = GetMasterMin(nRT) + GetMasterHiddenResource(bIsSequential, nRT);
-
-	// Memoire utilise sur le host pour les resources minimales
-	lResourceMin = GetUsedResource(nProcNumber, hostResource->IsMasterHost(), lMasterResource, lSlaveResource);
-
-	assert(lResourceMin >= 0);
-	return lResourceMin;
+	nProcNumber = clusterSolution->nProcNumber;
+	host = clusterSolution->host;
+	taskRequirements = clusterSolution->taskRequirements;
+	clusterResources = clusterSolution->clusterResources;
 }
 
-int RMParallelResourceManager::ComputeProcessNumber(boolean bSequential, int nRT, longint lLogicalHostResource,
-						    boolean bIsMasterHost, longint& lMissingResource) const
+PLHostSolution* PLHostSolution::Clone() const
+{
+	PLHostSolution* solution;
+	solution = new PLHostSolution;
+	solution->CopyFrom(this);
+	return solution;
+}
+
+void PLHostSolution::SetHost(const RMHostResource* h)
+{
+	host = h;
+}
+const RMHostResource* PLHostSolution::GetHost() const
+{
+	return host;
+}
+void PLHostSolution::SetRequirement(const RMTaskResourceRequirement* requirements)
+{
+	taskRequirements = requirements;
+}
+
+const RMTaskResourceRequirement* PLHostSolution::GetRequirements() const
+{
+	return taskRequirements;
+}
+
+void PLHostSolution::SetClusterResources(const RMResourceSystem* cluster)
+{
+	clusterResources = cluster;
+}
+
+const RMResourceSystem* PLHostSolution::GetClusterResources() const
+{
+	return clusterResources;
+}
+
+void PLHostSolution::Write(ostream& ost) const
+{
+	assert(host != NULL);
+	ost << "Host: " << GetHost()->GetHostName() << " #procs: " << nProcNumber << endl;
+}
+
+int PLHostSolution::ComputeMaxProcessNumber(boolean bSequential) const
 {
 	longint lProc;
 	int nMaster;
-	longint lSlaveRequirements;
-	longint lMasterRequirements;
+	longint lMasterHiddenResource;
+	longint lSlaveHidenResource;
 	longint lRemainingResource;
-	longint lMasterAtStart;
-	longint lSlaveAtStart;
+	longint lLogicalHostResource;
+	longint lSlaveMin;
+	longint lMasterMin;
+	longint lSharedMin;
+	int nHostNumber;
+	boolean bIsMasterHost;
+	int nProcMax;
+	int nRT;
 
-	lMissingResource = 0;
-
-	if (bIsMasterHost)
-		nMaster = 1;
-	else
-		nMaster = 0;
-
-	lMasterRequirements = GetMasterMin(nRT) + GetSharedMin(nRT);
-	lSlaveRequirements = GetSlaveMin(nRT);
-	if (not bSequential)
-		lSlaveRequirements += GetSharedMin(nRT);
-
-	// Ressources requises au demarrage
-	lMasterAtStart =
-	    resourceRequirement->GetMasterSystemAtStart()->GetResource(nRT)->GetMin() + GetMasterReserve(nRT);
-	if (bSequential)
-		// En sequentiel la reserve et la ressource au demarage sont deja pris en compte chez le maitre
-		lSlaveAtStart = 0;
-	else
-		lSlaveAtStart =
-		    resourceRequirement->GetSlaveSystemAtStart()->GetResource(nRT)->GetMin() + GetSlaveReserve(nRT);
-
-	// On test si il y a assez de place pour le master sur le host
-	if (bIsMasterHost)
+	nProcMax = INT_MAX;
+	for (nRT = 0; nRT < RESOURCES_NUMBER; nRT++)
 	{
-		if (bSequential)
-		{
-			// En sequentiel il y a les ressources du maitre et d'un esclave
-			lRemainingResource =
-			    lLogicalHostResource - lMasterAtStart - lMasterRequirements - lSlaveRequirements;
-		}
+		lMasterHiddenResource = GetMasterHiddenResource(bSequential, nRT);
+		lSlaveHidenResource = GetSlaveHiddenResource(bSequential, nRT);
+		lSlaveMin = taskRequirements->GetSlaveMin(nRT);
+		lSharedMin = taskRequirements->GetSharedMin(nRT);
+		lMasterMin = taskRequirements->GetMasterMin(nRT);
+		nHostNumber = clusterResources->GetHostNumber();
+		bIsMasterHost = host->IsMasterHost();
+
+		// Resource disponible sur le host
+		lLogicalHostResource =
+		    min(host->GetResourceFree(nRT), RMResourceConstraints::GetResourceLimit(nRT) * lMB);
+		lLogicalHostResource = RMStandardResourceDriver::PhysicalToLogical(nRT, lLogicalHostResource);
+
+		if (host->IsMasterHost())
+			nMaster = 1;
 		else
-		{
-			// En parallele, la machine peut contenir un maitre sans esclaves (cluster)
-			lRemainingResource = lLogicalHostResource - lMasterAtStart - lMasterRequirements;
-		}
-		if (lRemainingResource < 0)
-		{
-			lMissingResource = -lRemainingResource;
-			return 0;
-		}
-	}
+			nMaster = 0;
 
-	// Calcul du nombre de proc a partir de la contrainte issue de la tache (9)
-	if (lSlaveRequirements + lSlaveAtStart != 0) // Test pour eviter la division par 0
-	{
-		// Si les ressources consommees par un esclave sont plus grandes que celles du systeme
-		if (lSlaveRequirements + lSlaveAtStart >=
-		    lLogicalHostResource - nMaster * (lMasterRequirements + lMasterAtStart))
+		// On test si il y a assez de place pour le master sur le host
+		if (host->IsMasterHost())
 		{
-			if (bIsMasterHost and not bSequential)
+			if (bSequential)
 			{
-				// Si on est sur la machine du maitre, on n'alloue qu'un seul proc : le maitre
-				lProc = 1;
+				// En sequentiel il y a les ressources du maitre et d'un esclave
+				lRemainingResource =
+				    lLogicalHostResource - lMasterHiddenResource - lSharedMin - lMasterMin - lSlaveMin;
 			}
 			else
 			{
-				// Si on n'est pas sur la machine du maitre, on ne peut pas allouer d'esclaves : calcule
-				// des ressources manquantes
-				lMissingResource = nMaster * (lMasterRequirements + lMasterAtStart) +
-						   lSlaveRequirements + lSlaveAtStart - lLogicalHostResource;
-				lProc = 0;
+				// En parallele, la machine peut contenir un maitre sans esclaves (cluster)
+				if (nHostNumber > 1)
+					lRemainingResource =
+					    lLogicalHostResource - lMasterHiddenResource - lSharedMin - lMasterMin;
+				else
+					// ou un maitre et 2 esclaves (mono machine)
+					lRemainingResource = lLogicalHostResource - lMasterHiddenResource - lMasterMin -
+							     lSharedMin -
+							     2 * (lSlaveHidenResource + lSharedMin + lSlaveMin);
+			}
+			if (lRemainingResource < 0)
+			{
+				return 0;
+			}
+		}
+
+		// Calcul du nombre de proc a partir de la contrainte issue de la tache (9)
+		if (lSlaveMin + lSlaveHidenResource + lSharedMin != 0) // Test pour eviter la division par 0
+		{
+			// Si les ressources consommees par un esclave sont plus grandes que celles du systeme
+			if (lSlaveMin + lSlaveHidenResource + lSharedMin >=
+			    lLogicalHostResource - nMaster * (lMasterMin + lMasterHiddenResource + lSharedMin))
+			{
+				if (bIsMasterHost and not bSequential and nHostNumber > 1)
+				{
+					// Si on est sur la machine du maitre, on n'alloue qu'un seul proc : le maitre
+					lProc = 1;
+				}
+				else
+				{
+					// Si on n'est pas sur la machine du maitre, on ne peut pas allouer d'esclaves
+					lProc = 0;
+				}
+			}
+			else
+			{
+				lProc = (lLogicalHostResource -
+					 nMaster * (lMasterMin + lMasterHiddenResource + lSharedMin)) /
+					    (lSlaveMin + lSlaveHidenResource + lSharedMin) +
+					nMaster;
 			}
 		}
 		else
 		{
-			lProc = (lLogicalHostResource - nMaster * (lMasterRequirements + lMasterAtStart)) /
-				    (lSlaveRequirements + lSlaveAtStart) +
-				nMaster;
+			// On peut allouer autant d'esclaves que l'on veut
+			lProc = INT_MAX;
 		}
+
+		// Bornage de la solution
+		if (lProc < 0)
+			lProc = 0;
+		if (lProc > INT_MAX)
+			lProc = INT_MAX;
+
+		// Affectation des resultats
+		nProcMax = min(nProcMax, (int)lProc);
+
+		debug(; if (lProc > 0 and not bSequential) {
+			int nInitialProcNumber = nProcNumber;
+			nProcNumber = (int)lProc;
+			longint lUsedResourceOnHost = ComputeAllocation(
+			    false, nRT, taskRequirements->GetSlaveMin(nRT) + taskRequirements->GetSharedMin(nRT),
+			    taskRequirements->GetMasterMin(nRT) + taskRequirements->GetSharedMin(nRT));
+			nProcNumber = nInitialProcNumber;
+			assert(lUsedResourceOnHost <= lLogicalHostResource);
+		});
+	}
+
+	if (PLParallelTask::GetParallelSimulated())
+		nProcMax = min(nProcMax, PLParallelTask::GetSimulatedSlaveNumber() + 1);
+	else
+		nProcMax = min(nProcMax, host->GetLogicalProcessNumber());
+
+	return nProcMax;
+}
+
+longint PLHostSolution::ComputeAllocation(boolean bIsSequential, int nRT, longint lSlaveAllocatedResource,
+					  longint lMasterAllocatedResource) const
+{
+	longint lResourceUsed;
+	longint lSlaveResourceUsed;
+	longint lMasterResourceUsed;
+	int nMaster;
+
+	require(nRT < RESOURCES_NUMBER);
+
+	if (bIsSequential)
+	{
+		if (host->IsMasterHost())
+		{
+			require(nProcNumber == 1);
+			lResourceUsed =
+			    lMasterAllocatedResource + lSlaveAllocatedResource + GetMasterHiddenResource(true, nRT);
+		}
+		else
+			lResourceUsed = 0;
 	}
 	else
 	{
-		// On peut allouer autant d'esclaves que l'on veut
-		return INT_MAX;
+		if (nProcNumber == 0)
+		{
+			lSlaveResourceUsed = 0;
+			lMasterResourceUsed = 0;
+		}
+		else
+		{
+			// Allocation des ressources minimales necessaires au maitre et aux esclaves
+			lSlaveResourceUsed = lSlaveAllocatedResource + GetSlaveHiddenResource(bIsSequential, nRT);
+			lMasterResourceUsed = lMasterAllocatedResource + GetMasterHiddenResource(bIsSequential, nRT);
+		}
+
+		// Memoire utilisee sur le host pour les resources minimales
+		if (host->IsMasterHost())
+			nMaster = 1;
+		else
+			nMaster = 0;
+		lResourceUsed = lsum(nMaster * lMasterResourceUsed, (nProcNumber - nMaster) * lSlaveResourceUsed);
 	}
-
-	// Bornage de la solution
-	if (lProc < 0)
-		lProc = 0;
-	if (lProc > INT_MAX)
-		lProc = INT_MAX;
-	return (int)lProc;
+	assert(lResourceUsed >= 0);
+	return lResourceUsed;
 }
 
-longint RMParallelResourceManager::GetUsedResource(int nProcNumber, boolean bIsMasterHost, longint lMasterUse,
-						   longint lSlaveUse) const
+longint PLHostSolution::GetMasterReserve(int nResourceType)
 {
-	int nMaster;
-	longint lUsedResource;
-
-	if (bIsMasterHost)
-		nMaster = 1;
-	else
-		nMaster = 0;
-
-	lUsedResource = nMaster * lMasterUse + (nProcNumber - nMaster) * lSlaveUse;
-	assert(lUsedResource >= 0);
-	return lUsedResource;
-}
-
-longint RMParallelResourceManager::GetMasterReserve(int nResourceType)
-{
-	require(nResourceType < UNKNOWN);
+	require(nResourceType < RESOURCES_NUMBER);
 	if (nResourceType == MEMORY)
 		return RMStandardResourceDriver::PhysicalToLogical(MEMORY, UIObject::GetUserInterfaceMemoryReserve() +
 									       MemGetPhysicalMemoryReserve() +
@@ -1313,9 +1171,9 @@ longint RMParallelResourceManager::GetMasterReserve(int nResourceType)
 		return 0;
 }
 
-longint RMParallelResourceManager::GetSlaveReserve(int nResourceType)
+longint PLHostSolution::GetSlaveReserve(int nResourceType)
 {
-	require(nResourceType < UNKNOWN);
+	require(nResourceType < RESOURCES_NUMBER);
 	if (nResourceType == MEMORY)
 		return RMStandardResourceDriver::PhysicalToLogical(MEMORY, MemGetPhysicalMemoryReserve() +
 									       MemGetAllocatorReserve());
@@ -1323,11 +1181,11 @@ longint RMParallelResourceManager::GetSlaveReserve(int nResourceType)
 		return 0;
 }
 
-longint RMParallelResourceManager::GetMasterHiddenResource(boolean bIsSequential, int nRT) const
+longint PLHostSolution::GetMasterHiddenResource(boolean bIsSequential, int nRT)
 {
 	longint lHiddenResource;
-	lHiddenResource = resourceRequirement->GetMasterSystemAtStart()->GetResource(nRT)->GetMin() +
-			  GetMasterReserve(nRT) + GetSharedMin(nRT);
+	lHiddenResource = RMTaskResourceRequirement::GetMasterSystemAtStart()->GetResource(nRT)->GetMin() +
+			  GetMasterReserve(nRT) /*+ taskRequirements->GetSharedMin(nRT)*/;
 
 	// On ajoute 2 tailles de blocs pour la serialisation
 	if (not bIsSequential and nRT == MEMORY)
@@ -1335,15 +1193,15 @@ longint RMParallelResourceManager::GetMasterHiddenResource(boolean bIsSequential
 	return lHiddenResource;
 }
 
-longint RMParallelResourceManager::GetSlaveHiddenResource(boolean bIsSequential, int nRT) const
+longint PLHostSolution::GetSlaveHiddenResource(boolean bIsSequential, int nRT)
 {
 	longint lHiddenResource;
 	if (bIsSequential)
 		lHiddenResource = 0;
 	else
 	{
-		lHiddenResource = resourceRequirement->GetSlaveSystemAtStart()->GetResource(nRT)->GetMin() +
-				  GetSlaveReserve(nRT) + GetSharedMin(nRT);
+		lHiddenResource = RMTaskResourceRequirement::GetSlaveSystemAtStart()->GetResource(nRT)->GetMin() +
+				  GetSlaveReserve(nRT) /*+ taskRequirements->GetSharedMin(nRT)*/;
 
 		// On ajoute 2 tailles de blocs pour la serialisation
 		if (nRT == MEMORY)
@@ -1351,54 +1209,911 @@ longint RMParallelResourceManager::GetSlaveHiddenResource(boolean bIsSequential,
 	}
 	return lHiddenResource;
 }
+///////////////////////////////////////////////////////////////////////
+// Implementation de PLClusterSolution
 
-longint RMParallelResourceManager::GetSlaveMin(int nRT) const
+PLClusterSolution::PLClusterSolution()
 {
-	require(nRT < UNKNOWN);
-	require(resourceRequirement != NULL);
-	return resourceRequirement->GetSlaveRequirement()->GetResource(nRT)->GetMin();
+	taskRequirements = NULL;
+	quality = new PLClusterResourceQuality;
+	quality->SetSolution(this);
+	bGlobalConstraintIsEvaluated = false;
+	bGlobalConstraintIsValid = false;
+	nHostNumber = 0;
+	nProcessNumber = 0;
 }
 
-longint RMParallelResourceManager::GetSlaveMax(int nRT) const
+PLClusterSolution::~PLClusterSolution()
 {
-	require(nRT < UNKNOWN);
-	require(resourceRequirement != NULL);
-	return resourceRequirement->GetSlaveRequirement()->GetResource(nRT)->GetMax();
+	Clean();
+	delete quality;
 }
 
-longint RMParallelResourceManager::GetMasterMin(int nRT) const
+void PLClusterSolution::CopyFrom(const PLClusterSolution* clusterSolution)
 {
-	require(nRT < UNKNOWN);
-	require(resourceRequirement != NULL);
-	return resourceRequirement->GetMasterRequirement()->GetResource(nRT)->GetMin();
+	POSITION position;
+	ALString sHostName;
+	Object* oElement;
+	PLHostSolution* hostSolution;
+
+	Clean();
+
+	position = clusterSolution->odHostSolution.GetStartPosition();
+	while (position != NULL)
+	{
+		clusterSolution->odHostSolution.GetNextAssoc(position, sHostName, oElement);
+		hostSolution = cast(PLHostSolution*, oElement);
+		odHostSolution.SetAt(sHostName, hostSolution->Clone());
+	}
+	taskRequirements = clusterSolution->taskRequirements;
+	quality->CopyFrom(clusterSolution->quality);
+	quality->SetSolution(this);
+	bGlobalConstraintIsEvaluated = clusterSolution->bGlobalConstraintIsEvaluated;
+	bGlobalConstraintIsValid = clusterSolution->bGlobalConstraintIsValid;
+	nHostNumber = clusterSolution->nHostNumber;
+	nProcessNumber = clusterSolution->nProcessNumber;
 }
 
-longint RMParallelResourceManager::GetMasterMax(int nRT) const
+PLClusterSolution* PLClusterSolution::Clone() const
 {
-	require(nRT < UNKNOWN);
-	require(resourceRequirement != NULL);
-	return resourceRequirement->GetMasterRequirement()->GetResource(nRT)->GetMax();
+	PLClusterSolution* newSolution;
+	newSolution = new PLClusterSolution;
+	newSolution->CopyFrom(this);
+	return newSolution;
 }
 
-longint RMParallelResourceManager::GetSharedMin(int nRT) const
+const ObjectDictionary* PLClusterSolution::GetHostSolutions() const
 {
-	require(nRT < UNKNOWN);
-	require(resourceRequirement != NULL);
-	return resourceRequirement->GetSharedRequirement()->GetResource(nRT)->GetMin();
+	return &odHostSolution;
 }
 
-longint RMParallelResourceManager::GetSlaveGlobalMin(int nRT) const
+void PLClusterSolution::AddHostSolution(PLHostSolution* hostSolution)
 {
-	require(nRT < UNKNOWN);
-	require(resourceRequirement != NULL);
-	return resourceRequirement->GetGlobalSlaveRequirement()->GetResource(nRT)->GetMin();
+	assert(odHostSolution.Lookup(hostSolution->GetHost()->GetHostName()) == NULL);
+	odHostSolution.SetAt(hostSolution->GetHost()->GetHostName(), hostSolution);
+	if (hostSolution->GetProcNumber() != 0)
+	{
+		nHostNumber++;
+		nProcessNumber += hostSolution->GetProcNumber();
+	}
 }
 
-longint RMParallelResourceManager::GetSlaveGlobalMax(int nRT) const
+boolean PLClusterSolution::AddProcessorAt(const ALString& sHostName)
 {
-	require(nRT < UNKNOWN);
-	require(resourceRequirement != NULL);
-	return resourceRequirement->GetGlobalSlaveRequirement()->GetResource(nRT)->GetMax();
+	PLHostSolution* hostSolution;
+	int nProcNumber;
+	int nMaxProcNumber;
+	boolean bOk;
+	boolean bSequential = false;
+
+	// Acces a la solution actuelle
+	hostSolution = cast(PLHostSolution*, GetHostSolutions()->Lookup(sHostName));
+	nProcNumber = hostSolution->GetProcNumber();
+
+	// Calcul du nombre de process max sur ce host
+	nMaxProcNumber = hostSolution->ComputeMaxProcessNumber(bSequential);
+	if (nMaxProcNumber >= nProcNumber + 1)
+	{
+		bOk = true;
+		hostSolution->SetProcNumber(nProcNumber + 1);
+		nProcessNumber++;
+		if (nProcessNumber == 1)
+			nHostNumber++;
+		bGlobalConstraintIsEvaluated = false;
+		GetQuality()->bIsEvaluated = false;
+	}
+	else
+	{
+		bOk = false;
+	}
+
+	return bOk;
+}
+
+boolean PLClusterSolution::RemoveProcessorAt(const ALString& sHostName)
+{
+	PLHostSolution* hostSolution;
+	int nProcNumber;
+	boolean bOk;
+
+	// Acces a la solution actuelle
+	hostSolution = cast(PLHostSolution*, GetHostSolutions()->Lookup(sHostName));
+	nProcNumber = hostSolution->GetProcNumber();
+
+	// On ne peut pas avoir un nombre de processeurs negatif
+	if (nProcNumber > 0)
+	{
+		bOk = true;
+		hostSolution->SetProcNumber(nProcNumber - 1);
+		nProcessNumber--;
+		if (nProcessNumber == 0)
+			nHostNumber--;
+		bGlobalConstraintIsEvaluated = false;
+		GetQuality()->bIsEvaluated = false;
+	}
+	else
+	{
+		bOk = false;
+	}
+	return bOk;
+}
+
+boolean PLClusterSolution::SwitchProcessor(const ALString& sHostNameFrom, const ALString& sHostNameTo)
+{
+	boolean bOk;
+
+	bOk = RemoveProcessorAt(sHostNameFrom);
+	if (bOk)
+	{
+		bOk = AddProcessorAt(sHostNameTo);
+
+		// Si on ne peut pas ajouter de processeur dans le deuxieme,
+		// Il faut revenir en arriere pour le premier
+		if (not bOk)
+		{
+			AddProcessorAt(sHostNameFrom);
+			bGlobalConstraintIsEvaluated = true;
+			GetQuality()->bIsEvaluated = true;
+		}
+	}
+	return bOk;
+}
+
+void PLClusterSolution::SetRequirement(const RMTaskResourceRequirement* requirements)
+{
+	taskRequirements = requirements;
+}
+
+const RMTaskResourceRequirement* PLClusterSolution::GetRequirements() const
+{
+	return taskRequirements;
+}
+
+void PLClusterSolution::SaturateResources(boolean bIsSequential)
+{
+	double dPercentage;
+	POSITION position;
+	ALString sHostName;
+	Object* oElement;
+	PLHostSolution* hostSolution;
+	longint lAvailableResource;
+	longint lFreeResource;
+	int nRT;
+	longint lSharedMin, lSharedMax;
+	longint lGlobalMin, lGlobalMax;
+	longint lMasterMin, lMasterMax;
+	longint lSlaveMin, lSlaveMax;
+	longint lMasterResource;
+	longint lSlaveResource;
+	longint lSharedResource;
+	longint lGlobalResource;
+	longint lSumMax;
+	longint lSumMin;
+	int nMasterNumberOnHost;
+	int nSlaveNumberOnHost;
+	int nSlaveNumberOnCluster;
+	boolean bBalanced;
+	boolean bMasterPreferred;
+	boolean bSlavePreferred;
+	boolean bGlobalPreferred;
+	const boolean bVerbose = false;
+
+	bBalanced = false;
+	bMasterPreferred = false;
+	bSlavePreferred = false;
+	bGlobalPreferred = false;
+	nMasterNumberOnHost = 0;
+	nSlaveNumberOnHost = 0;
+	nSlaveNumberOnCluster = max(GetProcessSolutionNumber() - 1, 1);
+	rcSlaveResource.SetValue(MEMORY, LLONG_MAX);
+	rcSharedResource.SetValue(MEMORY, LLONG_MAX);
+	rcGlobalResource.SetValue(MEMORY, LLONG_MAX);
+	rcSlaveResource.SetValue(DISK, LLONG_MAX);
+	rcSharedResource.SetValue(DISK, LLONG_MAX);
+	rcGlobalResource.SetValue(DISK, LLONG_MAX);
+	position = odHostSolution.GetStartPosition();
+	if (bVerbose)
+	{
+		cout << endl << "*** Saturate resources for " << GetProcessSolutionNumber() << " processes" << endl;
+	}
+
+	while (position != NULL)
+	{
+		odHostSolution.GetNextAssoc(position, sHostName, oElement);
+		hostSolution = cast(PLHostSolution*, oElement);
+
+		if (hostSolution->GetHost()->IsMasterHost())
+		{
+			nMasterNumberOnHost = 1;
+			nSlaveNumberOnHost = hostSolution->GetProcNumber() - 1;
+		}
+		else
+		{
+			nMasterNumberOnHost = 0;
+			nSlaveNumberOnHost = hostSolution->GetProcNumber();
+		}
+		if (bIsSequential)
+		{
+			nMasterNumberOnHost = 1;
+			nSlaveNumberOnHost = 1;
+		}
+		if (bVerbose)
+		{
+			cout << endl;
+			cout << "Host " << hostSolution->GetHost()->GetHostName() << endl;
+			cout << "Process Number " << hostSolution->GetProcNumber() << endl << endl;
+		}
+		if (hostSolution->GetProcNumber() != 0)
+		{
+
+			for (nRT = 0; nRT < RESOURCES_NUMBER; nRT++)
+			{
+
+				if (bVerbose)
+				{
+					if (nRT == 0)
+						cout << "MEMORY" << endl;
+					else
+						cout << "DISK" << endl;
+				}
+
+				lSharedMin = taskRequirements->GetSharedMin(nRT);
+				lGlobalMin = taskRequirements->GetSlaveGlobalMin(nRT);
+				lMasterMin = taskRequirements->GetMasterMin(nRT);
+				lSlaveMin = taskRequirements->GetSlaveMin(nRT);
+				lSharedMax = taskRequirements->GetSharedMax(nRT);
+				lGlobalMax = taskRequirements->GetSlaveGlobalMax(nRT);
+				lMasterMax = taskRequirements->GetMasterMax(nRT);
+				lSlaveMax = taskRequirements->GetSlaveMax(nRT);
+				bBalanced = taskRequirements->GetResourceAllocationPolicy(nRT) ==
+					    RMTaskResourceRequirement::globalPreferred;
+				bMasterPreferred = taskRequirements->GetResourceAllocationPolicy(nRT) ==
+						       RMTaskResourceRequirement::masterPreferred and
+						   nMasterNumberOnHost > 0;
+				bSlavePreferred = taskRequirements->GetResourceAllocationPolicy(nRT) ==
+						      RMTaskResourceRequirement::slavePreferred and
+						  nSlaveNumberOnHost > 0;
+				bGlobalPreferred = taskRequirements->GetResourceAllocationPolicy(nRT) ==
+						       RMTaskResourceRequirement::globalPreferred and
+						   nSlaveNumberOnHost > 0;
+				lMasterResource = 0;
+				lSlaveResource = 0;
+				lSharedResource = 0;
+				lGlobalResource = 0;
+
+				// Calcul des ressources disponibles sur le host
+				lFreeResource = min(hostSolution->GetHost()->GetResourceFree(nRT),
+						    RMResourceConstraints::GetResourceLimit(nRT) * lMB);
+				lFreeResource = RMStandardResourceDriver::PhysicalToLogical(nRT, lFreeResource);
+
+				// On enleve les reserves
+				lFreeResource =
+				    lFreeResource -
+				    nSlaveNumberOnHost * PLHostSolution::GetSlaveHiddenResource(bIsSequential, nRT) -
+				    nMasterNumberOnHost * PLHostSolution::GetMasterHiddenResource(bIsSequential, nRT);
+
+				// Pour eviter les problemes d'infini dans les calculs (INF+INF=INF)
+				// On borne les max par la memoire disonible
+				if (lSharedMax == LLONG_MAX)
+					lSharedMax = lFreeResource;
+				if (lGlobalMax == LLONG_MAX)
+					lGlobalMax = lFreeResource;
+				if (lMasterMax == LLONG_MAX)
+					lMasterMax = lFreeResource;
+				if (lSlaveMax == LLONG_MAX)
+					lSlaveMax = lFreeResource;
+
+				// Calcul de la somme ressources min et max
+				if (bIsSequential)
+				{
+
+					lSumMax = lsum(lSharedMax, lGlobalMax, lMasterMax, lSlaveMax);
+					lSumMin = lsum(lSharedMin, lGlobalMin, lMasterMin, lSlaveMin);
+				}
+				else
+				{
+					lSumMax =
+					    lsum((nSlaveNumberOnHost + nMasterNumberOnHost) * lSharedMax,
+						 nSlaveNumberOnHost * lGlobalMax / nSlaveNumberOnCluster,
+						 nMasterNumberOnHost * lMasterMax, nSlaveNumberOnHost * lSlaveMax);
+					lSumMin =
+					    lsum((nSlaveNumberOnHost + nMasterNumberOnHost) * lSharedMin,
+						 nSlaveNumberOnHost * lGlobalMin / nSlaveNumberOnCluster,
+						 nMasterNumberOnHost * lMasterMin, nSlaveNumberOnHost * lSlaveMin);
+				}
+
+				// On borne les ressources disponibles par le max qu'on veut allouer
+				lAvailableResource = min(lFreeResource, lSumMax);
+				if (bVerbose)
+					cout << "Available resource on host "
+					     << LongintToHumanReadableString(lFreeResource) << " ("
+					     << LongintToHumanReadableString(lAvailableResource) << ") needed" << endl;
+
+				// On sature completement une exigence suivant les preferences
+				// Le min et max sont alors mis a 0 pour le calcul du pourcentage
+				if (not bBalanced)
+				{
+					if (bGlobalPreferred and nSlaveNumberOnHost > 0)
+					{
+						longint lResourceAfterMin = lAvailableResource - lSumMin;
+						lGlobalResource =
+						    min((lGlobalMin + lResourceAfterMin) / nSlaveNumberOnHost,
+							lGlobalMax / nSlaveNumberOnCluster);
+						lAvailableResource =
+						    lAvailableResource - nSlaveNumberOnHost * lGlobalResource;
+						lGlobalMin = 0;
+						lGlobalMax = 0;
+					}
+
+					if (bMasterPreferred and nMasterNumberOnHost > 0)
+					{
+						longint lResourceAfterMin = lAvailableResource - lSumMin;
+						lMasterResource = min(lMasterMin + lResourceAfterMin, lMasterMax);
+						lAvailableResource = lAvailableResource - lMasterResource;
+						lMasterMin = 0;
+						lMasterMax = 0;
+					}
+					if (bSlavePreferred and nSlaveNumberOnHost > 0)
+					{
+						longint lResourceAfterMin = lAvailableResource - lSumMin;
+						lSlaveResource =
+						    min(lSlaveMin + lResourceAfterMin / nSlaveNumberOnHost, lSlaveMax);
+						lAvailableResource =
+						    lAvailableResource - nSlaveNumberOnHost * lSlaveResource;
+						lSlaveMin = 0;
+						lSlaveMax = 0;
+					}
+
+					// Re-calcul de la somme ressources min et max pour prendre en comte les mises a
+					// 0
+					if (bIsSequential)
+					{
+
+						lSumMax = lsum(lSharedMax, lGlobalMax, lMasterMax, lSlaveMax);
+						lSumMin = lsum(lSharedMin, lGlobalMin, lMasterMin, lSlaveMin);
+					}
+					else
+					{
+						lSumMax = lsum((nSlaveNumberOnHost + nMasterNumberOnHost) * lSharedMax,
+							       nSlaveNumberOnHost * lGlobalMax / nSlaveNumberOnCluster,
+							       nMasterNumberOnHost * lMasterMax,
+							       nSlaveNumberOnHost * lSlaveMax);
+						lSumMin = lsum((nSlaveNumberOnHost + nMasterNumberOnHost) * lSharedMin,
+							       nSlaveNumberOnHost * lGlobalMin / nSlaveNumberOnCluster,
+							       nMasterNumberOnHost * lMasterMin,
+							       nSlaveNumberOnHost * lSlaveMin);
+					}
+				}
+
+				assert(lAvailableResource >= 0);
+				assert(lAvailableResource >= lSumMin);
+
+				// Calcul du pourcentage de repartition : on cherche a attribuer une saturation
+				// proportionnelle aux exigences et donner le meme pourcentage a toutes les exigences
+				if (lSumMax == lSumMin)
+				{
+					// Dans le cas ou les max == les mins, la saturation n'est pas necessaire
+					dPercentage = 0;
+				}
+				else
+					dPercentage = (lAvailableResource - lSumMin) * 1.0 / (lSumMax - lSumMin);
+
+				assert(dPercentage <= 1 and dPercentage >= 0);
+
+				if (not bMasterPreferred)
+				{
+					lMasterResource = 0;
+					if (nMasterNumberOnHost == 1)
+						lMasterResource =
+						    lsum(lMasterMin, longint(dPercentage * (lMasterMax - lMasterMin)));
+				}
+				if (not bSlavePreferred)
+				{
+					lSlaveResource = 0;
+					if (nSlaveNumberOnHost > 0)
+					{
+						lSlaveResource =
+						    lsum(lSlaveMin, longint(dPercentage * (lSlaveMax - lSlaveMin)));
+					}
+				}
+				if (not bGlobalPreferred)
+				{
+					lGlobalResource = 0;
+					if (nSlaveNumberOnHost > 0)
+					{
+						lGlobalResource =
+						    lsum(lGlobalMin, longint(dPercentage * (lGlobalMax - lGlobalMin))) /
+						    nSlaveNumberOnCluster;
+					}
+				}
+
+				lSharedResource = lsum(lSharedMin, longint(dPercentage * (lSharedMax - lSharedMin)));
+				if (bVerbose)
+				{
+					cout << "Resource allocated on host "
+					     << LongintToHumanReadableString(
+						    lsum(nMasterNumberOnHost * lMasterResource,
+							 nSlaveNumberOnHost * lSlaveResource,
+							 (nSlaveNumberOnHost + nMasterNumberOnHost) * lSharedResource,
+							 nSlaveNumberOnHost * lGlobalResource))
+					     << endl;
+					cout << "Sequential\t" << BooleanToString(bIsSequential) << endl;
+					cout << "Simulated\t" << BooleanToString(PLParallelTask::GetParallelSimulated())
+					     << endl;
+					cout << "Percentage allocation\t" << DoubleToString(dPercentage) << endl;
+					cout << "For each slave\t" << LongintToHumanReadableString(lSlaveResource)
+					     << endl;
+					cout << "For each global\t" << LongintToHumanReadableString(lGlobalResource)
+					     << endl;
+					cout << "For each shared\t" << LongintToHumanReadableString(lSharedResource)
+					     << endl;
+					cout << "For master\t"
+					     << LongintToHumanReadableString(nMasterNumberOnHost * lMasterResource)
+					     << endl
+					     << endl;
+				}
+
+				// Affectation de la ressource au maitre
+				if (hostSolution->GetHost()->IsMasterHost())
+				{
+					assert(lMasterResource >= lMasterMin);
+					assert(lMasterResource <= lMasterMax or bMasterPreferred);
+					rcMasterResource.SetValue(nRT, lMasterResource);
+				}
+
+				// On ne garde que le minimum sur tous les hosts pour avoir les memes ressources allouee
+				// a tous les esclaves
+				if (nSlaveNumberOnHost > 0)
+				{
+					assert(lSlaveResource >= lSlaveMin or bSlavePreferred);
+					assert(lSlaveResource <= lSlaveMax or bSlavePreferred);
+
+					// On borne par le min a cause de problemes d'arrondi
+					lGlobalResource = max(lGlobalResource, lGlobalMin / nSlaveNumberOnCluster);
+					assert(lGlobalResource <= lGlobalMax / nSlaveNumberOnCluster or
+					       bGlobalPreferred);
+
+					rcSlaveResource.SetValue(nRT,
+								 min(rcSlaveResource.GetValue(nRT), lSlaveResource));
+					rcGlobalResource.SetValue(nRT,
+								  min(rcGlobalResource.GetValue(nRT), lGlobalResource));
+				}
+				rcSharedResource.SetValue(nRT, min(rcSharedResource.GetValue(nRT), lSharedResource));
+			}
+		}
+	}
+}
+
+longint PLClusterSolution::GetResourceUsed(int nRT) const
+{
+	POSITION position;
+	ALString sHostName;
+	Object* oElement;
+	PLHostSolution* hostSolution;
+	longint lMemory;
+	boolean bIsSequential;
+
+	bIsSequential = false;
+	if (GetProcessSolutionNumber() == 1)
+		bIsSequential = true;
+
+	// Parcours des tous les hosts pour trouver les solutions qui font intervenir au moins un processeur
+	lMemory = 0;
+	position = odHostSolution.GetStartPosition();
+	while (position != NULL)
+	{
+		odHostSolution.GetNextAssoc(position, sHostName, oElement);
+		hostSolution = cast(PLHostSolution*, oElement);
+		lMemory += hostSolution->ComputeAllocation(
+		    bIsSequential, nRT,
+		    rcSlaveResource.GetValue(nRT) + rcSharedResource.GetValue(nRT) + rcGlobalResource.GetValue(nRT),
+		    rcMasterResource.GetValue(nRT) + rcSharedResource.GetValue(nRT));
+	}
+	return lMemory;
+}
+void PLClusterSolution::SetMissingResource(int nRT, longint lMissingResource)
+{
+	rcMissingResource.SetValue(nRT, lMissingResource);
+}
+
+longint PLClusterSolution::GetMissingResources(int nRT) const
+{
+	return rcMissingResource.GetValue(nRT);
+}
+
+void PLClusterSolution::SetMissingHostName(const ALString& sHostName)
+{
+	sHostMissingResource = sHostName;
+}
+
+ALString PLClusterSolution::GetHostNameMissingResources() const
+{
+	return sHostMissingResource;
+}
+
+void PLClusterSolution::Clean()
+{
+	odHostSolution.DeleteAll();
+	quality->Clean();
+	nProcessNumber = 0;
+	nHostNumber = 0;
+}
+
+boolean PLClusterSolution::FitMinimalRequirements(int nRT, longint& lMissingResource) const
+{
+	POSITION position;
+	ALString sHostName;
+	Object* oElement;
+	PLHostSolution* hostSolution;
+	longint lHostResource;
+	boolean bResourceIsMissing;
+	longint lSharedMin;
+	longint lGlobalMin;
+	longint lMasterMin;
+	longint lSlaveMin;
+	longint lSumMin;
+	longint lMasterHiddenResource;
+	longint lSlaveHidenResource;
+	int nSlaveNumberOnHost;
+	int nMasterNumberOnHost;
+	int nSlaveNumberOnCluster;
+
+	lSharedMin = taskRequirements->GetSharedMin(nRT);
+	lGlobalMin = taskRequirements->GetSlaveGlobalMin(nRT);
+	lMasterMin = taskRequirements->GetMasterMin(nRT);
+	lSlaveMin = taskRequirements->GetSlaveMin(nRT);
+	lMasterHiddenResource = PLHostSolution::GetMasterHiddenResource(false, nRT);
+	lSlaveHidenResource = PLHostSolution::GetSlaveHiddenResource(false, nRT);
+	nSlaveNumberOnCluster = this->GetProcessSolutionNumber();
+
+	if (nSlaveNumberOnCluster > 1)
+		nSlaveNumberOnCluster--;
+
+	// TODO lMissingResource contient les ressources manquantes de la premiere machine
+	// est-ce qu'on souhaite avoir la somme des ressources manquantes ou la liste des
+	// ressources manquantes (peut etre le nom de la machine)
+	lMissingResource = 0;
+	bResourceIsMissing = false;
+
+	position = odHostSolution.GetStartPosition();
+	while (position != NULL and not bResourceIsMissing)
+	{
+		odHostSolution.GetNextAssoc(position, sHostName, oElement);
+		hostSolution = cast(PLHostSolution*, oElement);
+
+		// Nombre d'esclave
+		nSlaveNumberOnHost = hostSolution->GetProcNumber();
+		if (hostSolution->GetHost()->IsMasterHost())
+		{
+			nSlaveNumberOnHost--;
+			nMasterNumberOnHost = 1;
+		}
+		else
+			nMasterNumberOnHost = 0;
+
+		// Resources necessaires sur ce host
+		lSumMin = lsum((nSlaveNumberOnHost + nMasterNumberOnHost) * lSharedMin,
+			       nSlaveNumberOnHost * lGlobalMin / nSlaveNumberOnCluster,
+			       nMasterNumberOnHost * (lMasterMin + lMasterHiddenResource),
+			       nSlaveNumberOnHost * (lSlaveMin + lSlaveHidenResource));
+
+		// Ressources disponibles sur le host
+		lHostResource = min(hostSolution->GetHost()->GetResourceFree(nRT),
+				    RMResourceConstraints::GetResourceLimit(nRT) * lMB);
+		lHostResource = RMStandardResourceDriver::PhysicalToLogical(nRT, lHostResource);
+
+		lMissingResource = lSumMin - lHostResource;
+		if (lMissingResource > 0)
+			bResourceIsMissing = true;
+	}
+
+	// On ne renvoie que les ressources manquantes (pas les ressources disponibles)
+	if (not bResourceIsMissing)
+		lMissingResource = 0;
+	return not bResourceIsMissing;
+}
+
+boolean PLClusterSolution::FitGlobalConstraint(RMResourceContainer* rcMissingResourceForGlobalConstraint,
+					       int& nExtraProcNumber) const
+{
+	longint lMissingResource;
+	int nRT;
+	int nExtraProcessNumber1;
+	int nExtraProcessNumber2;
+	POSITION position;
+	ALString sHostName;
+	Object* oElement;
+	PLHostSolution* hostSolution;
+
+	if (not bGlobalConstraintIsEvaluated)
+	{
+		bGlobalConstraintIsEvaluated = true;
+		bGlobalConstraintIsValid = true;
+
+		// Verification qu'il y a au moins un processus sur la machine maitre
+		position = odHostSolution.GetStartPosition();
+		while (position != NULL)
+		{
+			odHostSolution.GetNextAssoc(position, sHostName, oElement);
+			hostSolution = cast(PLHostSolution*, oElement);
+			if (hostSolution->GetHost()->IsMasterHost())
+			{
+				if (hostSolution->GetProcNumber() == 0)
+					bGlobalConstraintIsValid = false;
+				break;
+			}
+		}
+
+		// Verification des contraintes sur le nombre de processus
+		if (bGlobalConstraintIsValid)
+		{
+			if (PLParallelTask::GetParallelSimulated())
+				nExtraProcessNumber1 =
+				    GetProcessSolutionNumber() - PLParallelTask::GetSimulatedSlaveNumber() - 1;
+			else
+				nExtraProcessNumber1 =
+				    GetProcessSolutionNumber() - RMResourceConstraints::GetMaxCoreNumberOnCluster();
+			nExtraProcessNumber2 =
+			    GetProcessSolutionNumber() - 1 - taskRequirements->GetMaxSlaveProcessNumber();
+			nExtraProcNumber = max(nExtraProcessNumber1, nExtraProcessNumber2);
+
+			if (nExtraProcNumber > 0)
+				bGlobalConstraintIsValid = false;
+			else
+				nExtraProcNumber = 0;
+		}
+
+		// Verification de l'exigence GetGlobalSlaveRequirement
+		if (bGlobalConstraintIsValid)
+		{
+			for (nRT = 0; nRT < RESOURCES_NUMBER; nRT++)
+			{
+
+				// Verification, qu'il y a assez de ressource sur chaque host
+				bGlobalConstraintIsValid = FitMinimalRequirements(nRT, lMissingResource);
+
+				// de plus la methode CheckAvailableResourceForMaster n'est jamais utilisee
+				rcMissingResourceForGlobalConstraint->AddValue(nRT, lMissingResource);
+				if (not bGlobalConstraintIsValid)
+					break;
+			}
+
+			assert(bGlobalConstraintIsValid or rcMissingResourceForGlobalConstraint->GetValue(MEMORY) > 0 or
+			       rcMissingResourceForGlobalConstraint->GetValue(DISK) > 0);
+		}
+	}
+	return bGlobalConstraintIsValid;
+}
+
+void PLClusterSolution::Write(ostream& ost) const
+{
+	POSITION position;
+	ALString sHostName;
+	Object* oElement;
+	PLHostSolution* hostSolution;
+	longint lMemoryAllocated;
+	longint lDiskAllocated;
+	boolean bIsSequential;
+	int nExtraProcForWrite;
+	RMResourceContainer rcMissingResourceForWrite;
+
+	bIsSequential = GetProcessSolutionNumber() == 1;
+
+	ost << "#procs:\t" << IntToString(GetProcessSolutionNumber()) << endl;
+
+	if (FitGlobalConstraint(&rcMissingResourceForWrite, nExtraProcForWrite))
+	{
+		if (odHostSolution.GetCount() > 0)
+		{
+			ost << "master:\t" << rcMasterResource << endl;
+			ost << "slave:\t" << rcSlaveResource << endl;
+			ost << "shared:\t" << rcSharedResource << endl;
+			ost << "global:\t" << rcGlobalResource << endl;
+			ost << endl;
+
+			// Affichage de l'entete
+			ost << "hostname"
+			    << "\t"
+			    << "procs"
+			    << "\t"
+			    << "memory"
+			    << "\t"
+			    << "disk" << endl;
+
+			// Parcours des tous les hosts
+			position = odHostSolution.GetStartPosition();
+			while (position != NULL)
+			{
+				odHostSolution.GetNextAssoc(position, sHostName, oElement);
+				hostSolution = cast(PLHostSolution*, oElement);
+				lMemoryAllocated = 0;
+				lDiskAllocated = 0;
+
+				if (hostSolution->GetProcNumber() != 0)
+				{
+					lMemoryAllocated = hostSolution->ComputeAllocation(
+					    bIsSequential, MEMORY,
+					    rcSlaveResource.GetValue(MEMORY) + rcSharedResource.GetValue(MEMORY) +
+						rcGlobalResource.GetValue(MEMORY),
+					    rcMasterResource.GetValue(MEMORY) + rcSharedResource.GetValue(MEMORY));
+					lDiskAllocated = hostSolution->ComputeAllocation(
+					    bIsSequential, DISK,
+					    rcSlaveResource.GetValue(DISK) + rcSharedResource.GetValue(DISK) +
+						rcGlobalResource.GetValue(DISK),
+					    rcMasterResource.GetValue(DISK) + rcSharedResource.GetValue(DISK));
+				}
+				ost << sHostName << "\t" << hostSolution->GetProcNumber() << "\t"
+				    << LongintToHumanReadableString(lMemoryAllocated) << "\t"
+				    << LongintToHumanReadableString(lDiskAllocated) << endl;
+			}
+		}
+		else
+		{
+			ost << "Missing resources on " << sHostMissingResource << "\t" << rcMissingResourceForWrite
+			    << endl;
+		}
+	}
+	else
+	{
+		ost << "not valid" << endl;
+	}
+}
+
+int CompareClusterSolution(const void* elem1, const void* elem2)
+{
+	PLClusterSolution* solution1;
+	PLClusterSolution* solution2;
+	require(elem1 != NULL and elem2 != NULL);
+	solution1 = cast(PLClusterSolution*, *(Object**)elem1);
+	solution2 = cast(PLClusterSolution*, *(Object**)elem2);
+	solution1->quality->Evaluate();
+	solution1->quality->Evaluate();
+	return solution1->quality->Compare(solution2->quality);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Implementation de PLClusterResourceQuality
+PLClusterResourceQuality::PLClusterResourceQuality()
+{
+	Clean();
+}
+
+PLClusterResourceQuality ::~PLClusterResourceQuality() {}
+void PLClusterResourceQuality::CopyFrom(const PLClusterResourceQuality* quality)
+{
+	nProcNumber = quality->nProcNumber;
+	nSpread = quality->nSpread;
+	rcMissingResource.CopyFrom(&quality->rcMissingResource);
+	nExtraProcessNumber = quality->nExtraProcessNumber;
+	bIsEvaluated = quality->bIsEvaluated;
+	bGlobalConstraintIsValid = quality->bGlobalConstraintIsValid;
+	solution = quality->solution;
+}
+
+PLClusterResourceQuality* PLClusterResourceQuality::Clone() const
+{
+	PLClusterResourceQuality* otherQuality;
+	otherQuality = new PLClusterResourceQuality;
+	otherQuality->CopyFrom(this);
+	return otherQuality;
+}
+
+void PLClusterResourceQuality::Evaluate()
+{
+	if (not bIsEvaluated)
+	{
+		bIsEvaluated = true;
+		bGlobalConstraintIsValid = solution->FitGlobalConstraint(&rcMissingResource, nExtraProcessNumber);
+		if (bGlobalConstraintIsValid)
+		{
+			nProcNumber = solution->GetProcessSolutionNumber();
+			nSpread = solution->GetHostSolutionNumber();
+			solution->SaturateResources(false);
+		}
+	}
+}
+
+void PLClusterResourceQuality::SetSolution(PLClusterSolution* s)
+{
+	solution = s;
+}
+PLClusterSolution* PLClusterResourceQuality::GetSolution() const
+{
+	return solution;
+}
+
+void PLClusterResourceQuality::Write(ostream& ost) const
+{
+	if (bIsEvaluated)
+	{
+		ost << BooleanToString(bGlobalConstraintIsValid) << "\t" << IntToString(nProcNumber) << "\t"
+		    << IntToString(nSpread) << "\t" << GetSolution()->GetResourceUsed(MEMORY) << "\t"
+		    << GetSolution()->GetResourceUsed(DISK) << "\t" << rcMissingResource << "\t"
+		    << IntToString(nExtraProcessNumber) << "\t" << endl;
+	}
+	else
+		ost << "NOT EVALUATED" << endl;
+}
+
+int PLClusterResourceQuality::Compare(const PLClusterResourceQuality* otherResourceQuality)
+{
+	int nCompare;
+	require(bIsEvaluated);
+	require(otherResourceQuality->bIsEvaluated);
+
+	if (bGlobalConstraintIsValid)
+	{
+		if (otherResourceQuality->bGlobalConstraintIsValid)
+		{
+			// Nombre de processus utilises
+			nCompare = nProcNumber - otherResourceQuality->nProcNumber;
+
+			// Etalement : on privilegie la paralellisation horizontale
+			if (nCompare == 0)
+			{
+				nCompare = nSpread - otherResourceQuality->nSpread;
+
+				// Sauf si la politique de paralelisation est vertical
+				if (solution->GetRequirements()->GetParallelisationPolicy() ==
+				    RMTaskResourceRequirement::vertical)
+				{
+					nCompare = -nCompare;
+				}
+			}
+
+			// La memoire (arrondi au lUsedResourcePrecision)
+			if (nCompare == 0)
+				nCompare =
+				    CompareLongint(lUsedResourcePrecision * (GetSolution()->GetResourceUsed(MEMORY) /
+									     lUsedResourcePrecision),
+						   lUsedResourcePrecision *
+						       (otherResourceQuality->GetSolution()->GetResourceUsed(MEMORY) /
+							lUsedResourcePrecision));
+
+			// le disque (arrondi au lUsedResourcePrecision)
+			if (nCompare == 0)
+				nCompare =
+				    CompareLongint(lUsedResourcePrecision *
+						       (GetSolution()->GetResourceUsed(DISK) / lUsedResourcePrecision),
+						   lUsedResourcePrecision *
+						       (otherResourceQuality->GetSolution()->GetResourceUsed(DISK) /
+							lUsedResourcePrecision));
+		}
+		else
+		{
+			nCompare = 1;
+		}
+	}
+	else
+	{
+		if (otherResourceQuality->bGlobalConstraintIsValid)
+			nCompare = -1;
+		else
+		{
+			// Nombre de processus en trop
+			nCompare = otherResourceQuality->nExtraProcessNumber - nExtraProcessNumber;
+
+			// Memoire manquante
+			if (nCompare == 0)
+				nCompare = CompareLongint(otherResourceQuality->rcMissingResource.GetValue(MEMORY),
+							  rcMissingResource.GetValue(MEMORY));
+
+			// Disque manquant
+			if (nCompare == 0)
+				nCompare = CompareLongint(otherResourceQuality->rcMissingResource.GetValue(DISK),
+							  rcMissingResource.GetValue(DISK));
+		}
+	}
+	return nCompare;
+}
+
+void PLClusterResourceQuality::Clean()
+{
+	bGlobalConstraintIsValid = false;
+	nProcNumber = 0;
+	nSpread = 0;
+	nExtraProcessNumber = 0;
+	bIsEvaluated = false;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -1406,27 +2121,61 @@ longint RMParallelResourceManager::GetSlaveGlobalMax(int nRT) const
 
 RMResourceContainer::RMResourceContainer()
 {
-	lvResources.SetSize(UNKNOWN);
+	lvResources.SetSize(RESOURCES_NUMBER);
 }
 RMResourceContainer::~RMResourceContainer() {}
+
+void RMResourceContainer::CopyFrom(const RMResourceContainer* container)
+{
+	lvResources.CopyFrom(&container->lvResources);
+}
 
 RMResourceContainer* RMResourceContainer::Clone() const
 {
 	RMResourceContainer* clone;
 	clone = new RMResourceContainer;
-	clone->lvResources.CopyFrom(&lvResources);
+	clone->CopyFrom(this);
 	return clone;
 }
 
 longint RMResourceContainer::GetValue(int nResourceType) const
 {
-	require(nResourceType < UNKNOWN);
+	require(nResourceType < RESOURCES_NUMBER);
 	return lvResources.GetAt(nResourceType);
 }
 void RMResourceContainer::SetValue(int nResourceType, longint lValue)
 {
-	require(nResourceType < UNKNOWN);
+	require(nResourceType < RESOURCES_NUMBER);
 	lvResources.SetAt(nResourceType, lValue);
+}
+
+void RMResourceContainer::AddValue(int nResourceType, longint lValue)
+{
+	longint lValue1;
+	require(nResourceType < RESOURCES_NUMBER);
+	lValue1 = lvResources.GetAt(nResourceType);
+	if (lValue1 > LLONG_MAX - lValue)
+		lvResources.SetAt(nResourceType, LLONG_MAX);
+	else
+		lvResources.SetAt(nResourceType, lValue1 + lValue);
+}
+void RMResourceContainer::Initialize()
+{
+	lvResources.Initialize();
+}
+
+void RMResourceContainer::Write(ostream& ost) const
+{
+	int nRT;
+	for (nRT = 0; nRT < RESOURCES_NUMBER; nRT++)
+	{
+		if (GetValue(nRT) == LLONG_MAX)
+			ost << "MAX";
+		else
+			ost << LongintToHumanReadableString(GetValue(nRT));
+		if (nRT != RESOURCES_NUMBER - 1)
+			ost << "\t";
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -1435,38 +2184,32 @@ void RMResourceContainer::SetValue(int nResourceType, longint lValue)
 // Constructeur
 PLTestCluster::PLTestCluster()
 {
+	cluster = NULL;
 	Reset();
 }
 
-PLTestCluster::~PLTestCluster() {}
+PLTestCluster::~PLTestCluster()
+{
+	if (cluster != NULL)
+	{
+		delete cluster;
+		cluster = NULL;
+	}
+}
+
+void PLTestCluster::SetCluster(RMResourceSystem* clusterValue)
+{
+	cluster = clusterValue;
+}
+
+RMResourceSystem* PLTestCluster::GetCluster() const
+{
+	return cluster;
+}
 
 void PLTestCluster::SetTestLabel(const ALString& sValue)
 {
 	sName = sValue;
-}
-
-void PLTestCluster::SetHostNumber(int nValue)
-{
-	require(nValue > 0);
-	nHostNumber = nValue;
-}
-
-void PLTestCluster::SetHostCores(int nCoresNumber)
-{
-	require(nCoresNumber > 0);
-	nCoresNumberPerHost = nCoresNumber;
-}
-
-void PLTestCluster::SetHostMemory(longint lMemory)
-{
-	require(lMemory > 0);
-	lMemoryPerHost = lMemory;
-}
-
-void PLTestCluster::SetHostDisk(longint lDisk)
-{
-	require(lDisk > 0);
-	lDiskPerHost = lDisk;
 }
 
 void PLTestCluster::SetMasterSystemAtStart(longint lMemory)
@@ -1481,78 +2224,30 @@ void PLTestCluster::SetSlaveSystemAtStart(longint lMemory)
 	lSlaveSystemAtStart = lMemory;
 }
 
-void PLTestCluster::SetSystemConfig(int nConfig)
-{
-	require(nConfig >= 0);
-	require(nConfig <= 2);
-	nSystemConfig = nConfig;
-}
-
 void PLTestCluster::Reset()
 {
-	nHostNumber = -1;
-	nCoresNumberPerHost = -1;
+	if (cluster != NULL)
+	{
+		delete cluster;
+		cluster = NULL;
+	}
+
 	nMaxCoreNumberPerHost = -1;
 	nMaxCoreNumberOnSystem = -1;
-	lMemoryPerHost = 0;
-	lDiskPerHost = 0;
-	lMinMasterMemory = 0;
-	lMaxMasterMemory = LLONG_MAX;
-	lMinSlaveMemory = 0;
-	lMaxSlaveMemory = LLONG_MAX;
-	lMinMasterDisk = 0;
-	lMaxMasterDisk = LLONG_MAX;
-	lMinSlaveDisk = 0;
-	lMaxSlaveDisk = LLONG_MAX;
-	lMinSharedMemory = 0;
-	lMaxSharedMemory = LLONG_MAX;
-	nProcessNumber = INT_MAX - 1;
 	lMemoryLimitPerHost = LLONG_MAX;
 	lDiskLimitPerHost = LLONG_MAX;
-	lMemoryLimitPerProc = LLONG_MAX;
-	lDiskLimitPerProc = LLONG_MAX;
-	nSystemConfig = 0;
 	lMasterSystemAtStart = 8 * lMB;
 	lSlaveSystemAtStart = 8 * lMB;
-	lMinSlaveGlobalMemory = 0;
-	lMaxSlaveGlobalMemory = LLONG_MAX;
-	lMinGlobalConstraintDisk = 0;
+
+	RMTaskResourceRequirement emptyRequirements;
+	taskRequirement.CopyFrom(&emptyRequirements);
+
 	sName = "Test Cluster";
 }
 
-void PLTestCluster::SetConstraintMasterMemory(longint lMin, longint lMax)
+RMTaskResourceRequirement* PLTestCluster::GetTaskRequirement()
 {
-	require(lMin <= lMax);
-	lMinMasterMemory = lMin;
-	lMaxMasterMemory = lMax;
-}
-
-void PLTestCluster::SetConstraintSlaveMemory(longint lMin, longint lMax)
-{
-	require(lMin <= lMax);
-	lMinSlaveMemory = lMin;
-	lMaxSlaveMemory = lMax;
-}
-
-void PLTestCluster::SetConstraintMasterDisk(longint lMin, longint lMax)
-{
-	require(lMin <= lMax);
-	lMinMasterDisk = lMin;
-	lMaxMasterDisk = lMax;
-}
-
-void PLTestCluster::SetConstraintSlaveDisk(longint lMin, longint lMax)
-{
-	require(lMin <= lMax);
-	lMinSlaveDisk = lMin;
-	lMaxSlaveDisk = lMax;
-}
-
-void PLTestCluster::SetConstraintSharedMemory(longint lMin, longint lMax)
-{
-	require(lMin <= lMax);
-	lMinSharedMemory = lMin;
-	lMaxSharedMemory = lMax;
+	return &taskRequirement;
 }
 
 void PLTestCluster::SetMemoryLimitPerHost(longint lMemory)
@@ -1565,42 +2260,6 @@ void PLTestCluster::SetDiskLimitPerHost(longint lDisk)
 {
 	require(lDisk >= 0);
 	lDiskLimitPerHost = lDisk;
-}
-
-void PLTestCluster::SetSlaveProcessNumber(int nSlaveProcess)
-{
-	require(nSlaveProcess > 0);
-	nProcessNumber = nSlaveProcess;
-}
-
-void PLTestCluster::SetSlaveGlobalMemoryMin(longint lMin)
-{
-	require(lMin >= 0);
-	lMinSlaveGlobalMemory = lMin;
-}
-
-void PLTestCluster::SetSlaveGlobalMemoryMax(longint lMax)
-{
-	require(lMax >= 0);
-	lMaxSlaveGlobalMemory = lMax;
-}
-
-void PLTestCluster::SetSlaveGlobalDiskMin(longint lMin)
-{
-	require(lMin >= 0);
-	lMinGlobalConstraintDisk = lMin;
-}
-
-void PLTestCluster::SetMemoryLimitPerProc(longint lMax)
-{
-	require(lMax >= 0);
-	lMemoryLimitPerProc = lMax;
-}
-
-void PLTestCluster::SetDiskLimitPerProc(longint lMax)
-{
-	require(lMax >= 0);
-	lDiskLimitPerProc = lMax;
 }
 
 void PLTestCluster::SetMaxCoreNumberPerHost(int nMax)
@@ -1617,45 +2276,26 @@ void PLTestCluster::SetMaxCoreNumberOnSystem(int nMax)
 
 void PLTestCluster::Solve()
 {
-	RMResourceSystem* cluster;
-	RMTaskResourceRequirement taskRequirement;
 	RMTaskResourceGrant* resources;
 	const int nCurrentMemoryLimit = RMResourceConstraints::GetMemoryLimit();
 	const int nCurrentDiskLimit = RMResourceConstraints::GetDiskLimit();
-	const int nCurrentCoreLimit = RMResourceConstraints::GetMaxCoreNumber();
+	const int nCurrentCoreLimit = RMResourceConstraints::GetMaxCoreNumberOnCluster();
 	const int nCurrentCoreLimitOnHost = RMResourceConstraints::GetMaxCoreNumberPerHost();
 	const longint lCurrentSlaveAtStart =
 	    RMTaskResourceRequirement::GetSlaveSystemAtStart()->GetResource(MEMORY)->GetMin();
 	const longint lCurrentMasterAtStart =
 	    RMTaskResourceRequirement::GetMasterSystemAtStart()->GetResource(MEMORY)->GetMin();
 	const boolean bCurrentTracer = PLParallelTask::GetTracerResources();
+	int nRT;
 
-	require(nHostNumber > 0);
-	require(nCoresNumberPerHost > 0);
-	require(lMemoryPerHost >= 0);
-	require(lDiskPerHost >= 0);
-	require(lMinMasterMemory != -1);
-	require(lMaxMasterMemory != -1);
-	require(lMinSlaveMemory != -1);
-	require(lMaxSlaveMemory != -1);
-	require(lMinMasterDisk != -1);
-	require(lMaxMasterDisk != -1);
-	require(lMinSlaveDisk != -1);
-	require(lMaxSlaveDisk != -1);
-	require(nProcessNumber != -1);
 	require(lMemoryLimitPerHost != -1);
 	require(lDiskLimitPerHost != -1);
-	require(lMemoryLimitPerProc != -1);
-	require(lDiskLimitPerProc != -1);
+	require(cluster != NULL);
 
 	resources = new RMTaskResourceGrant;
 
 	// Affichage des traces de l'allocation des ressources
 	PLParallelTask::SetTracerResources(2);
-
-	// Creation d'un systeme synthetique
-	cluster = RMResourceSystem::CreateSyntheticCluster(nHostNumber, nCoresNumberPerHost, lMemoryPerHost,
-							   lDiskPerHost, nSystemConfig);
 
 	// Modification des ressources au lancement
 	RMTaskResourceRequirement::GetSlaveSystemAtStart()->GetResource(MEMORY)->Set(lSlaveSystemAtStart);
@@ -1665,30 +2305,6 @@ void PLTestCluster::Solve()
 	cout << endl << "----------------------------------" << endl;
 	cout << "\t\t" << sName << endl;
 	cout << endl;
-
-	// Construction des contraintes du programme
-	// Du maitre
-	taskRequirement.GetMasterRequirement()->GetMemory()->SetMin(lMinMasterMemory);
-	taskRequirement.GetMasterRequirement()->GetMemory()->SetMax(lMaxMasterMemory);
-	taskRequirement.GetMasterRequirement()->GetDisk()->SetMin(lMinMasterDisk);
-	taskRequirement.GetMasterRequirement()->GetDisk()->SetMax(lMaxMasterDisk);
-
-	// Des esclaves
-	taskRequirement.GetSlaveRequirement()->GetMemory()->SetMin(lMinSlaveMemory);
-	taskRequirement.GetSlaveRequirement()->GetMemory()->SetMax(lMaxSlaveMemory);
-	taskRequirement.GetSlaveRequirement()->GetDisk()->SetMin(lMinSlaveDisk);
-	taskRequirement.GetSlaveRequirement()->GetDisk()->SetMax(lMaxSlaveDisk);
-	taskRequirement.GetGlobalSlaveRequirement()->GetMemory()->SetMin(lMinSlaveGlobalMemory);
-	taskRequirement.GetGlobalSlaveRequirement()->GetMemory()->SetMax(lMaxSlaveGlobalMemory);
-	taskRequirement.GetGlobalSlaveRequirement()->GetDisk()->SetMin(lMinGlobalConstraintDisk);
-
-	// Des shared
-	taskRequirement.GetSharedRequirement()->GetMemory()->SetMin(lMinSharedMemory);
-	taskRequirement.GetSharedRequirement()->GetMemory()->SetMax(lMaxSharedMemory);
-
-	// Nb de slaveProcess
-	taskRequirement.SetMaxSlaveProcessNumber(nProcessNumber);
-	taskRequirement.GetMasterSystemAtStart();
 
 	// Contraintes de l'utilisateur
 	// Memoire par machine
@@ -1703,18 +2319,6 @@ void PLTestCluster::Solve()
 	else
 		RMResourceConstraints::SetDiskLimit((int)(lDiskLimitPerHost / lMB));
 
-	// Disque par processus
-	if (lDiskLimitPerProc == LLONG_MAX)
-		RMResourceConstraints::SetDiskLimitPerProc(INT_MAX);
-	else
-		RMResourceConstraints::SetDiskLimitPerProc((int)(lDiskLimitPerProc / lMB));
-
-	// Memoire par processus
-	if (lMemoryLimitPerProc == LLONG_MAX)
-		RMResourceConstraints::SetMemoryLimitPerProc(INT_MAX);
-	else
-		RMResourceConstraints::SetMemoryLimitPerProc((int)(lMemoryLimitPerProc / lMB));
-
 	// Nombre de coeurs par machine
 	if (nMaxCoreNumberPerHost == -1)
 		RMResourceConstraints::SetMaxCoreNumberPerHost(INT_MAX);
@@ -1723,35 +2327,59 @@ void PLTestCluster::Solve()
 
 	// Nombre de coeurs sur le systeme
 	if (nMaxCoreNumberOnSystem == -1)
-		RMResourceConstraints::SetMaxCoreNumber(INT_MAX);
+		RMResourceConstraints::SetMaxCoreNumberOnCluster(INT_MAX);
 	else
-		RMResourceConstraints::SetMaxCoreNumber(nMaxCoreNumberOnSystem);
+		RMResourceConstraints::SetMaxCoreNumberOnCluster(nMaxCoreNumberOnSystem);
 
 	// Resolution
-	RMParallelResourceManager::ComputeGrantedResourcesForSystem(cluster, &taskRequirement, resources);
+	RMParallelResourceManager::ComputeGrantedResourcesForCluster(cluster, &taskRequirement, resources);
 
-	// Affichage des ressource smanquantes
+	// Affichage des ressources manquantes
 	if (resources->IsEmpty())
 		cout << resources->GetMissingResourceMessage() << endl;
 
-	// On verifie que les esclaves ont dans les bornes
-	assert(resources->IsEmpty() or resources->GetMinSlaveMemory() >=
-					   taskRequirement.GetSlaveRequirement()->GetMemory()->GetMin() +
-					       taskRequirement.GetGlobalSlaveRequirement()->GetMemory()->GetMin() /
-						   resources->GetSlaveNumber());
-	assert(resources->IsEmpty() or resources->GetMinSlaveMemory() <=
-					   lsum(taskRequirement.GetSlaveRequirement()->GetMemory()->GetMax(),
-						taskRequirement.GetGlobalSlaveRequirement()->GetMemory()->GetMax() /
-						    resources->GetSlaveNumber()));
+	// On verifie que les esclaves sont dans les bornes
+	for (nRT = 0; nRT < RESOURCES_NUMBER; nRT++)
+	{
+		// cout << endl;
+		// cout << "resources->GetMinSlaveResource(nRT) " <<
+		// LongintToHumanReadableString(resources->GetMinSlaveResource(nRT)) << endl; cout <<
+		// "taskRequirement.GetSlaveRequirement()->GetResource(nRT)->GetMin() " <<
+		// LongintToHumanReadableString(taskRequirement.GetSlaveRequirement()->GetResource(nRT)->GetMin()) <<
+		// endl; cout << "taskRequirement.GetGlobalSlaveRequirement()->GetResource(nRT)->GetMin() " <<
+		// LongintToHumanReadableString(taskRequirement.GetGlobalSlaveRequirement()->GetResource(nRT)->GetMin())
+		// << endl; cout << "resources->GetSlaveNumber() " << resources->GetSlaveNumber() << endl; cout <<
+		// "taskRequirement.GetGlobalSlaveRequirement()->GetResource(nRT)->GetMin() /
+		// resources->GetSlaveNumber() " <<
+		// LongintToHumanReadableString(taskRequirement.GetGlobalSlaveRequirement()->GetResource(nRT)->GetMin()
+		// / resources->GetSlaveNumber()) << endl;
+		assert(resources->IsEmpty() or resources->GetSlaveNumber() == 0 or
+		       resources->GetMinSlaveResource(nRT) >=
+			   lsum(taskRequirement.GetSlaveRequirement()->GetResource(nRT)->GetMin(),
+				taskRequirement.GetGlobalSlaveRequirement()->GetResource(nRT)->GetMin() /
+				    resources->GetSlaveNumber()));
+		// cout << endl;
+		// cout << "resources->GetMinSlaveResource(nRT) " <<
+		// LongintToHumanReadableString(resources->GetMinSlaveResource(nRT)) << endl; cout <<
+		// "taskRequirement.GetSlaveRequirement()->GetResource(nRT)->GetMax() " <<
+		// LongintToHumanReadableString(taskRequirement.GetSlaveRequirement()->GetResource(nRT)->GetMax()) <<
+		// endl; cout << "taskRequirement.GetGlobalSlaveRequirement()->GetResource(nRT)->GetMax() " <<
+		// LongintToHumanReadableString(taskRequirement.GetGlobalSlaveRequirement()->GetResource(nRT)->GetMax())
+		// << endl; cout << "resources->GetSlaveNumber() " << resources->GetSlaveNumber() << endl;
+		assert(resources->IsEmpty() or resources->GetSlaveNumber() == 0 or
+		       resources->GetMinSlaveResource(nRT) <=
+			   lsum(taskRequirement.GetSlaveRequirement()->GetResource(nRT)->GetMax(),
+				taskRequirement.GetGlobalSlaveRequirement()->GetResource(nRT)->GetMax() /
+				    resources->GetSlaveNumber()));
+	}
 
 	// Nettoyage
 	delete resources;
-	delete cluster;
 
 	// Restitution des contraintes du systeme courant
 	RMResourceConstraints::SetMemoryLimit(nCurrentMemoryLimit);
 	RMResourceConstraints::SetDiskLimit(nCurrentDiskLimit);
-	RMResourceConstraints::SetMaxCoreNumber(nCurrentCoreLimit);
+	RMResourceConstraints::SetMaxCoreNumberOnCluster(nCurrentCoreLimit);
 	RMResourceConstraints::SetMaxCoreNumberPerHost(nCurrentCoreLimitOnHost);
 	RMTaskResourceRequirement::GetSlaveSystemAtStart()->GetResource(MEMORY)->Set(lCurrentSlaveAtStart);
 	RMTaskResourceRequirement::GetMasterSystemAtStart()->GetResource(MEMORY)->Set(lCurrentMasterAtStart);
@@ -1785,11 +2413,14 @@ RMTaskResourceRequirement::RMTaskResourceRequirement()
 	sharedRequirement->GetMemory()->Set(0);
 
 	// Politiques d'allocation
-	ivResourcesPolicy.SetSize(UNKNOWN);
-	for (nResourceType = 0; nResourceType < UNKNOWN; nResourceType++)
+	ivResourcesPolicy.SetSize(RESOURCES_NUMBER);
+	for (nResourceType = 0; nResourceType < RESOURCES_NUMBER; nResourceType++)
 	{
 		ivResourcesPolicy.SetAt(nResourceType, slavePreferred);
 	}
+
+	// Politiques de parallelisation
+	parallelisationPolicy = horizontal;
 
 	// Initialisation des ressources au demarrage avec des valeurs par defaut si necessaire
 	// Ca devrait etre la taille de la heap lors de l'initialisation des ressources
@@ -1832,34 +2463,72 @@ void RMTaskResourceRequirement::CopyFrom(const RMTaskResourceRequirement* trRequ
 
 	// Recopie des politiques
 	ivResourcesPolicy.CopyFrom(&trRequirement->ivResourcesPolicy);
+	parallelisationPolicy = trRequirement->parallelisationPolicy;
 }
 
 void RMTaskResourceRequirement::Write(ostream& ost) const
 {
 	ost << "--   Task requirements    --" << endl;
-	ost << "Slave requirement :" << endl << *slaveRequirement;
-	ost << "Master requirement :" << endl << *masterRequirement;
-	ost << "Shared variables requirement :" << endl << *sharedRequirement;
-	ost << "Slave global requirement :" << endl << *globalSlaveRequirement;
-	ost << "Slave system at start :" << endl << slaveSystemAtStart;
-	ost << "Master system at start :" << endl << masterSystemAtStart;
-	ost << "Number of slaves processes : ";
-	if (nSlaveProcessNumber == INT_MAX)
+	ost << "Slave requirement: " << endl << *slaveRequirement;
+	ost << "Master requirement: " << endl << *masterRequirement;
+	ost << "Shared variables requirement: " << endl << *sharedRequirement;
+	ost << "Slave global requirement: " << endl << *globalSlaveRequirement;
+	ost << "Slave system at start: " << endl << slaveSystemAtStart;
+	ost << "Master system at start: " << endl << masterSystemAtStart;
+	ost << "Number of slaves processes: ";
+	if (nSlaveProcessNumber >= INT_MAX - 1)
 		ost << "INF" << endl;
 	else
 		ost << IntToString(nSlaveProcessNumber) << endl;
+	ost << "memory policy: " << ResourcePolicyToString(ivResourcesPolicy.GetAt(0)) << endl;
+	ost << "disk   policy: " << ResourcePolicyToString(ivResourcesPolicy.GetAt(1)) << endl;
+	ost << "paral. policy: " << ParallelisationPolicyToString(parallelisationPolicy) << endl;
 }
 
-ALString RMTaskResourceRequirement::PolicyToString(POLICY policy)
+void RMTaskResourceRequirement::WriteDetails(ostream& ost) const
+{
+	ost << "--   Task requirements (B)    --" << endl;
+
+	ost << "Slave requirement: " << endl;
+	slaveRequirement->WriteDetails(ost);
+	ost << "Master requirement: " << endl;
+	masterRequirement->WriteDetails(ost);
+	ost << "Shared variables requirement: " << endl;
+	sharedRequirement->WriteDetails(ost);
+	ost << "Slave global requirement: " << endl;
+	globalSlaveRequirement->WriteDetails(ost);
+	ost << "Slave system at start: " << endl;
+	slaveSystemAtStart.WriteDetails(ost);
+	ost << "Master system at start: " << endl;
+	masterSystemAtStart.WriteDetails(ost);
+}
+
+ALString RMTaskResourceRequirement::ResourcePolicyToString(int policy)
 {
 	switch (policy)
 	{
 	case masterPreferred:
-		return "Master Preferred";
-		break;
+		return "master first";
 	case slavePreferred:
-		return "Slave Preferred";
-		break;
+		return "slave first";
+	case globalPreferred:
+		return "global first";
+	case balanced:
+		return "balanced";
+	default:
+		assert(false);
+		return "Undefined";
+	}
+}
+
+ALString RMTaskResourceRequirement::ParallelisationPolicyToString(int policy)
+{
+	switch (policy)
+	{
+	case horizontal:
+		return "horizontal";
+	case vertical:
+		return "vertical  ";
 	default:
 		assert(false);
 		return "Undefined";
@@ -1894,12 +2563,128 @@ boolean RMTaskResourceRequirement::Check() const
 	return bOk;
 }
 
+void RMTaskResourceRequirement::SetResourceAllocationPolicy(int nResourceType, ALLOCATION_POLICY policy)
+{
+	require(nResourceType < RESOURCES_NUMBER);
+	ivResourcesPolicy.SetAt(nResourceType, policy);
+}
+
+RMTaskResourceRequirement::ALLOCATION_POLICY
+RMTaskResourceRequirement::GetResourceAllocationPolicy(int nResourceType) const
+{
+	require(nResourceType < RESOURCES_NUMBER);
+	return (ALLOCATION_POLICY)ivResourcesPolicy.GetAt(nResourceType);
+}
+
+void RMTaskResourceRequirement::SetMemoryAllocationPolicy(ALLOCATION_POLICY policy)
+{
+	SetResourceAllocationPolicy(MEMORY, policy);
+}
+
+RMTaskResourceRequirement::ALLOCATION_POLICY RMTaskResourceRequirement::GetMemoryAllocationPolicy() const
+{
+	return GetResourceAllocationPolicy(MEMORY);
+}
+
+void RMTaskResourceRequirement::SetDiskAllocationPolicy(ALLOCATION_POLICY policy)
+{
+	SetResourceAllocationPolicy(DISK, policy);
+}
+
+RMTaskResourceRequirement::ALLOCATION_POLICY RMTaskResourceRequirement::GetDiskAllocationPolicy() const
+{
+	return GetResourceAllocationPolicy(DISK);
+}
+
+void RMTaskResourceRequirement::SetParallelisationPolicy(PARALLELISATION_POLICY policy)
+{
+	parallelisationPolicy = policy;
+}
+
+RMTaskResourceRequirement::PARALLELISATION_POLICY RMTaskResourceRequirement::GetParallelisationPolicy() const
+{
+	return parallelisationPolicy;
+}
+
+RMResourceRequirement* RMTaskResourceRequirement::GetMasterRequirement() const
+{
+	return masterRequirement;
+}
+
+RMResourceRequirement* RMTaskResourceRequirement::GetSlaveRequirement() const
+{
+	return slaveRequirement;
+}
+
+RMResourceRequirement* RMTaskResourceRequirement::GetGlobalSlaveRequirement() const
+{
+	return globalSlaveRequirement;
+}
+
+RMResourceRequirement* RMTaskResourceRequirement::GetSharedRequirement() const
+{
+	return sharedRequirement;
+}
+
+RMResourceRequirement* RMTaskResourceRequirement::GetMasterSystemAtStart()
+{
+	return &masterSystemAtStart;
+}
+
+RMResourceRequirement* RMTaskResourceRequirement::GetSlaveSystemAtStart()
+{
+	return &slaveSystemAtStart;
+}
+
+void RMTaskResourceRequirement::SetMaxSlaveProcessNumber(int nValue)
+{
+	require(nValue >= 0);
+	nSlaveProcessNumber = nValue;
+}
+
+int RMTaskResourceRequirement::GetMaxSlaveProcessNumber() const
+{
+	return nSlaveProcessNumber;
+}
+
+longint RMTaskResourceRequirement::GetSlaveMin(int nResourceType) const
+{
+	return slaveRequirement->GetResource(nResourceType)->GetMin();
+}
+longint RMTaskResourceRequirement::GetSlaveMax(int nResourceType) const
+{
+	return slaveRequirement->GetResource(nResourceType)->GetMax();
+}
+longint RMTaskResourceRequirement::GetMasterMin(int nResourceType) const
+{
+	return masterRequirement->GetResource(nResourceType)->GetMin();
+}
+longint RMTaskResourceRequirement::GetMasterMax(int nResourceType) const
+{
+	return masterRequirement->GetResource(nResourceType)->GetMax();
+}
+longint RMTaskResourceRequirement::GetSharedMin(int nResourceType) const
+{
+	return sharedRequirement->GetResource(nResourceType)->GetMin();
+}
+longint RMTaskResourceRequirement::GetSharedMax(int nResourceType) const
+{
+	return sharedRequirement->GetResource(nResourceType)->GetMax();
+}
+longint RMTaskResourceRequirement::GetSlaveGlobalMin(int nResourceType) const
+{
+	return globalSlaveRequirement->GetResource(nResourceType)->GetMin();
+}
+longint RMTaskResourceRequirement::GetSlaveGlobalMax(int nResourceType) const
+{
+	return globalSlaveRequirement->GetResource(nResourceType)->GetMax();
+}
+
 ///////////////////////////////////////////////////////////////////////
 // Implementation de RMTaskResourceGrant
 
 RMTaskResourceGrant::RMTaskResourceGrant()
 {
-	lvMissingResources.SetSize(UNKNOWN);
 	bMissingResourceForProcConstraint = false;
 	bMissingResourceForGlobalConstraint = false;
 }
@@ -1908,6 +2693,7 @@ RMTaskResourceGrant::~RMTaskResourceGrant()
 {
 	oaResourceGrantWithRankIndex.RemoveAll();
 	oaResourceGrant.DeleteAll();
+	odHostProcNumber.DeleteAll();
 }
 
 int RMTaskResourceGrant::GetProcessNumber() const
@@ -1939,14 +2725,18 @@ boolean RMTaskResourceGrant::IsEmpty() const
 
 longint RMTaskResourceGrant::GetMasterMemory() const
 {
-	require(oaResourceGrant.GetSize() > 1);
-	return (cast(RMResourceGrant*, oaResourceGrantWithRankIndex.GetAt(0))->GetMemory());
+	return GetMasterResource(MEMORY);
 }
 
 longint RMTaskResourceGrant::GetMasterDisk() const
 {
+	return GetMasterResource(DISK);
+}
+
+longint RMTaskResourceGrant::GetMasterResource(int nResourceType) const
+{
 	require(oaResourceGrant.GetSize() > 1);
-	return (cast(RMResourceGrant*, oaResourceGrantWithRankIndex.GetAt(0))->GetDiskSpace());
+	return (cast(RMResourceGrant*, oaResourceGrantWithRankIndex.GetAt(0))->GetResource(nResourceType));
 }
 
 longint RMTaskResourceGrant::GetSlaveMemoryOf(int i) const
@@ -1998,11 +2788,11 @@ longint RMTaskResourceGrant::GetMinSlaveResource(int nRT) const
 
 longint RMTaskResourceGrant::GetMissingMemory()
 {
-	return lvMissingResources.GetAt(MEMORY);
+	return rcMissingResources.GetValue(MEMORY);
 }
 longint RMTaskResourceGrant::GetMissingDisk()
 {
-	return lvMissingResources.GetAt(DISK);
+	return rcMissingResources.GetValue(DISK);
 }
 
 ALString RMTaskResourceGrant::GetMissingResourceMessage()
@@ -2096,16 +2886,45 @@ void RMTaskResourceGrant::ReindexRank()
 
 void RMTaskResourceGrant::Initialize()
 {
-	lvMissingResources.Initialize();
+	rcMissingResources.Initialize();
 	bMissingResourceForProcConstraint = false;
 	oaResourceGrantWithRankIndex.RemoveAll();
 	oaResourceGrant.DeleteAll();
 }
 
+void RMTaskResourceGrant::SetMasterResource(int nRT, longint lResource)
+{
+	rmMasterResource.SetValue(nRT, lResource);
+}
+
+void RMTaskResourceGrant::SetSharedResource(int nRT, longint lResource)
+{
+	rmSharedResource.SetValue(nRT, lResource);
+}
+
+void RMTaskResourceGrant::SetGlobalResource(int nRT, longint lResource)
+{
+	rmGlobalResource.SetValue(nRT, lResource);
+}
+
+void RMTaskResourceGrant::SetSlaveResource(int nRT, longint lResource)
+{
+	rmSlaveResource.SetValue(nRT, lResource);
+}
+
+void RMTaskResourceGrant::SetHostCoreNumber(const ALString& sHostName, int nProcNumber)
+{
+	IntObject* io;
+	io = new IntObject;
+	io->SetInt(nProcNumber);
+	odHostProcNumber.SetAt(sHostName, io);
+}
 void RMTaskResourceGrant::Write(ostream& ost) const
 {
-	int i;
-	RMResourceGrant* resource;
+	POSITION position;
+	ALString sHostName;
+	Object* oElement;
+	IntObject* ioProcNumber;
 
 	ost << "--    Granted resources    --" << endl;
 	if (IsEmpty())
@@ -2114,37 +2933,18 @@ void RMTaskResourceGrant::Write(ostream& ost) const
 	}
 	else
 	{
-		ost << "Rank"
-		    << "\t"
-		    << "Mem "
-		    << "\t"
-		    << "Disk "
-		    << "\t"
-		    << "Shared" << endl;
+		ost << "#procs " << GetProcessNumber() << endl;
+		ost << "master " << rmMasterResource << endl;
+		ost << "slave  " << rmSlaveResource << endl;
+		ost << "shared " << rmSharedResource << endl;
+		ost << "global " << rmGlobalResource << endl;
 
-		// Affichage de la ressource de rang 0  : la maitre
-		resource = cast(RMResourceGrant*, oaResourceGrantWithRankIndex.GetAt(0));
-		ost << resource->GetRank() << "\t" << LongintToHumanReadableString(resource->GetMemory()) << "\t"
-		    << LongintToHumanReadableString(resource->GetDiskSpace()) << "\t"
-		    << LongintToHumanReadableString(resource->GetSharedMemory()) << endl;
-
-		for (i = 0; i < oaResourceGrant.GetSize(); i++)
+		position = odHostProcNumber.GetStartPosition();
+		while (position != NULL)
 		{
-			resource = cast(RMResourceGrant*, oaResourceGrant.GetAt(i));
-			if (resource->GetRank() != 0)
-			{
-				ost << resource->GetRank() << "\t"
-				    << LongintToHumanReadableString(resource->GetMemory()) << "\t"
-				    << LongintToHumanReadableString(resource->GetDiskSpace()) << "\t"
-				    << LongintToHumanReadableString(resource->GetSharedMemory()) << endl;
-
-				if (i == 9 and oaResourceGrant.GetSize() > 11)
-				{
-					cout << "... " << oaResourceGrant.GetSize() - 10 << " remaining resources"
-					     << endl;
-					break;
-				}
-			}
+			odHostProcNumber.GetNextAssoc(position, sHostName, oElement);
+			ioProcNumber = cast(IntObject*, oElement);
+			ost << sHostName << "\t" << ioProcNumber->GetInt() << " procs" << endl;
 		}
 	}
 }
@@ -2157,11 +2957,11 @@ RMResourceGrant::RMResourceGrant()
 	int nResource;
 
 	nRank = -1;
-	lvResource.SetSize(UNKNOWN);
-	lvSharedResource.SetSize(UNKNOWN);
+	lvResource.SetSize(RESOURCES_NUMBER);
+	lvSharedResource.SetSize(RESOURCES_NUMBER);
 
 	// Initialisation de toutes les ressources a -1
-	for (nResource = 0; nResource < UNKNOWN; nResource++)
+	for (nResource = 0; nResource < RESOURCES_NUMBER; nResource++)
 	{
 		lvResource.SetAt(nResource, -1);
 		lvSharedResource.SetAt(nResource, -1);
@@ -2222,34 +3022,34 @@ longint RMResourceGrant::GetSharedDisk() const
 
 void RMResourceGrant::SetSharedResource(int nResource, longint lValue)
 {
-	require(nResource < UNKNOWN);
+	require(nResource < RESOURCES_NUMBER);
 	require(lValue >= 0);
 	lvSharedResource.SetAt(nResource, lValue);
 }
 
 longint RMResourceGrant::GetSharedResource(int nResource) const
 {
-	require(nResource < UNKNOWN);
+	require(nResource < RESOURCES_NUMBER);
 	return lvSharedResource.GetAt(nResource);
 }
 
 void RMResourceGrant::SetResource(int nResource, longint lValue)
 {
-	require(nResource < UNKNOWN);
+	require(nResource < RESOURCES_NUMBER);
 	require(lValue >= 0);
 	lvResource.SetAt(nResource, lValue);
 }
 
 longint RMResourceGrant::GetResource(int nResource) const
 {
-	require(nResource < UNKNOWN);
+	require(nResource < RESOURCES_NUMBER);
 	return lvResource.GetAt(nResource);
 }
 
 boolean RMResourceGrant::Check() const
 {
 	int nResource;
-	for (nResource = 0; nResource < UNKNOWN; nResource++)
+	for (nResource = 0; nResource < RESOURCES_NUMBER; nResource++)
 	{
 		if (GetResource(nResource) == -1 or GetSharedResource(nResource) == -1)
 			return false;
@@ -2289,113 +3089,4 @@ void RMResourceGrant::Write(ostream& ost) const
 		ost << "NOT INITIALIZED !" << endl;
 	else
 		ost << LongintToHumanReadableString(GetSharedDisk()) << endl;
-}
-
-////////////////////////////////////////////////////
-// Implementation de la classe PLKnapsackResources
-
-PLKnapsackResources::PLKnapsackResources()
-{
-	resourceRequirement = NULL;
-	grantedResource = NULL;
-	oaHostResources = NULL;
-}
-
-PLKnapsackResources::~PLKnapsackResources()
-{
-	oaHostResources = NULL;
-}
-
-void PLKnapsackResources::SetRequirement(const RMTaskResourceRequirement* rq)
-{
-	require(rq != NULL);
-	resourceRequirement = rq;
-}
-
-void PLKnapsackResources::SetGrantedResource(RMTaskResourceGrant* resource)
-{
-	require(resource != NULL);
-	grantedResource = resource;
-}
-
-void PLKnapsackResources::SetHostResources(const ObjectArray* oaHosts)
-{
-	require(oaHosts != NULL);
-	oaHostResources = oaHosts;
-}
-
-boolean PLKnapsackResources::DoesSolutionFitGlobalConstraint()
-{
-	PLClass* myClass;
-	PLItem* item;
-	int i;
-	int nRT;
-	int nProcNumberOnSystem;
-	int nProcNumberOnHost;
-	RMHostResource* resource;
-	longint lRemainingResource;
-	boolean bIsMissingResources;
-	longint lGlobalResourceForSlave;
-	longint lHostResource;
-
-	require(oaHostResources != NULL);
-	require(resourceRequirement != NULL);
-	require(oaClasses.GetSize() == oaHostResources->GetSize());
-
-	// Calcul du poids de la solution courante
-	nProcNumberOnSystem = 0;
-	for (i = 0; i < oaClasses.GetSize(); i++)
-	{
-		item = cast(PLItem*, cast(PLClass*, oaClasses.GetAt(i))->GetCurrentItem());
-		if (item != NULL)
-			nProcNumberOnSystem += item->GetWeight();
-	}
-	bIsMissingResources = false;
-
-	// Pour chaque classe et ressource de Host correspondante
-	for (i = 0; i < oaClasses.GetSize(); i++)
-	{
-		myClass = cast(PLClass*, oaClasses.GetAt(i));
-		resource = cast(RMHostResource*, oaHostResources->GetAt(i));
-		assert(myClass != NULL);
-		item = myClass->GetCurrentItem();
-
-		if (item != NULL)
-		{
-			nProcNumberOnHost = item->GetWeight();
-			if (item->GetValueAt(0) == 1)
-				nProcNumberOnHost--;
-
-			for (nRT = 0; nRT < UNKNOWN; nRT++)
-			{
-				// Resource a ajouter a chaque esclave  pour prendre en compte la contrainte globale
-				lGlobalResourceForSlave = 0;
-				if (nProcNumberOnSystem > 1)
-					lGlobalResourceForSlave = resourceRequirement->GetGlobalSlaveRequirement()
-								      ->GetResource(nRT)
-								      ->GetMin() /
-								  (nProcNumberOnSystem - 1);
-
-				// Ressources disponibles sur le host
-				lHostResource = min(resource->GetResourceFree(nRT),
-						    RMResourceConstraints::GetResourceLimit(nRT) * lMB);
-				lHostResource = RMStandardResourceDriver::PhysicalToLogical(nRT, lHostResource);
-
-				// Ressource restante
-				lRemainingResource = lHostResource - (item->GetValueAt(nRT + 1) +
-								      nProcNumberOnHost * lGlobalResourceForSlave);
-				if (lRemainingResource < 0)
-				{
-					grantedResource->lvMissingResources.SetAt(nRT, -lRemainingResource);
-					grantedResource->bMissingResourceForGlobalConstraint = true;
-					grantedResource->sHostMissingResource = resource->GetHostName();
-					bIsMissingResources = true;
-				}
-			}
-		}
-		if (bIsMissingResources)
-			break;
-	}
-
-	return not bIsMissingResources;
 }
