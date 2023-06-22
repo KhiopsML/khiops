@@ -529,12 +529,13 @@ const ALString KWLearningProblem::BuildOutputPathName() const
 	sResultPathName = analysisResults->GetResultFilesDirectory();
 	if (sResultPathName == "")
 		sOutputPathName = sDatabasePathName;
-	// S'il est absolu, on le prend tel quel
-	else if (FileService::IsAbsoluteFilePathName(sResultPathName))
+	// S'il est absolu ou si c'est une URI, on le prend tel quel
+	else if (FileService::IsAbsoluteFilePathName(sResultPathName) or
+		 (FileService::GetURIScheme(sResultPathName) != ""))
 		sOutputPathName = sResultPathName;
-	// S'il commence par "./", on le traite comme un chemin absolu
+	// S'il commence par "./" ou ".\", on le traite comme un chemin absolu
 	else if (sResultPathName.GetLength() > 2 and sResultPathName.GetAt(0) == '.' and
-		 sResultPathName.GetAt(1) != '.')
+		 (sResultPathName.GetAt(1) == '/' or sResultPathName.GetAt(1) == '\\'))
 		sOutputPathName = sResultPathName;
 	// s'il est relatif, on le concatene a celui de la base d'apprentissage
 	else
@@ -912,11 +913,8 @@ void KWLearningProblem::DeleteAllOutputFiles()
 
 void KWLearningProblem::DeleteOutputFile(const ALString& sOutputFilePathName)
 {
-	if (sOutputFilePathName != "" and FileService::Exist(sOutputFilePathName))
-	{
-		FileService::SetFileMode(sOutputFilePathName, false);
-		FileService::RemoveFile(sOutputFilePathName);
-	}
+	if (sOutputFilePathName != "")
+		PLRemoteFileService::RemoveFile(sOutputFilePathName);
 }
 
 void KWLearningProblem::WritePreparationReports(KWClassStats* classStats)
