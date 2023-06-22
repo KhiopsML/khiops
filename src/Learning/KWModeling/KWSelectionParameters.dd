@@ -1,0 +1,11 @@
+Rank;Name;Type;Style;Label
+1;MaxSelectedAttributeNumber         ;int     ;Spinner ;Max number of selected variables
+2;SelectionCriterion                 ;ALString;ComboBox;Selection criterion
+3;OptimizationAlgorithm              ;ALString;ComboBox;Optimization algorithm
+4;OptimizationLevel                  ;int     ;Spinner ;Optimization level
+5;PriorWeight                        ;double  ;        ;Prior weight (expert)
+6;PriorExponent                      ;double  ;        ;Prior exponent (expert)
+7;ConstructionCost                   ;boolean ;CheckBox;Construction cost (expert)
+8;PreparationCost                    ;boolean ;CheckBox;Preparation cost (expert)
+9;TraceLevel                         ;int     ;Spinner ;Trace level
+10;TraceSelectedAttributes           ;Boolean ;CheckBox;Trace selected variables

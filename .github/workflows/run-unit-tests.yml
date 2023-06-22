@@ -1,0 +1,53 @@
+name: Run Unit Tests
+
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  run-unit-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        build-setup: [
+          {os: windows-2022, cmake-preset: windows-msvc-debug},
+          {os: ubuntu-latest, cmake-preset: linux-gcc-debug}]
+
+    runs-on: ${{ matrix.build-setup.os }}
+
+    permissions:
+      id-token: write
+      contents: read
+      checks: write
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Build Khiops
+        uses: ./.github/actions/build-khiops
+        with:
+          preset-name: ${{ matrix.build-setup.cmake-preset }}
+
+      - name: Run Unit Tests for the Norm Module
+        if: success() || failure()
+        run: build/${{ matrix.build-setup.cmake-preset }}/bin/norm_test --gtest_output="xml:${{github.workspace}}/reports/report-norm.xml"
+
+      - name: Run Unit Tests for the Parallel Module
+        if: success() || failure()
+        run: build/${{ matrix.build-setup.cmake-preset }}/bin/Parallel_test --gtest_output="xml:${{github.workspace}}/reports/report-parallel.xml"
+
+      - name: Run Unit Tests for the Learning Module
+        if: success() || failure()
+        run: build/${{ matrix.build-setup.cmake-preset }}/bin/learning_test --gtest_output="xml:${{github.workspace}}/reports/report-learning.xml"
+
+      - name: Create Unit Test Report
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+            name: Unit Tests
+            path: ${{github.workspace}}/reports/report-*.xml
+            reporter: jest-junit
+
+
+

@@ -1,0 +1,25 @@
+Rank;
+Name;
+Type;
+Style;
+Label 1;
+MaxConstructedAttributeNumber;
+int;
+Spinner;
+Max number of constructed variables 2;
+MaxTreeNumber;
+int;
+Spinner;
+Max number of trees 3;
+MaxAttributePairNumber;
+int;
+Spinner;
+Max number of variable pairs 4;
+MandatoryAttributeInPairs;
+ALString;
+;
+Only pairs with variable(deprecated) 5;
+RecodingClass;
+boolean;
+CheckBox;
+Build recoding dictionary(deprecated)

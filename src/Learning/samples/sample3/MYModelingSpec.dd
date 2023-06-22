@@ -1,0 +1,13 @@
+Rank;
+Name;
+Type;
+Style;
+Label 1;
+SelectiveNaiveBayesPredictor;
+boolean;
+CheckBox;
+Selective Naive Bayes predictor 2;
+NaiveBayesPredictor;
+boolean;
+CheckBox;
+Naive Bayes predictor

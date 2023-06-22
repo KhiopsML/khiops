@@ -1,0 +1,25 @@
+Rank;
+Name;
+Type;
+Style;
+Label 1;
+ClassName;
+ALString;
+;
+Dictionary 2;
+SampleNumberPercentage;
+int;
+Spinner;
+Sample percentage 3;
+SamplingMode;
+ALString;
+ComboBox;
+Sampling mode 4;
+SelectionAttribute;
+ALString;
+;
+Selection variable 5;
+SelectionValue;
+ALString;
+;
+Selection value

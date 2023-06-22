@@ -1,0 +1,21 @@
+Rank;
+Name;
+Type;
+Style;
+Label 1;
+Type;
+ALString;
+;
+Type 2;
+Name;
+ALString;
+;
+Name 3;
+PartNumber;
+int;
+;
+Part number 4;
+MaxPartNumber;
+int;
+Spinner;
+Max part number

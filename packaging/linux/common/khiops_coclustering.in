@@ -1,0 +1,64 @@
+#!/bin/bash
+
+# Run Khiops Coclustering tool
+
+# If they are not already defined, these variables are set :
+#
+# KHIOPS_LAST_RUN_DIR : directory where Khiops writes output command file and log (when not define with -e and -o)
+# KHIOPS_LICENSE_FILE_DIR : directory of the Khiops license file
+# KHIOPS_LICENSE_FILE_NAME : name of the Khiops license file
+# JAVA_HOME : Java directory
+
+#############################
+# Setting Khiops environment
+#############################
+
+if [[ -z $KHIOPS_LAST_RUN_DIR ]]; then
+    KHIOPS_LAST_RUN_DIR=/tmp/khiops/$USER
+fi
+
+if [[ ! -d $KHIOPS_LAST_RUN_DIR ]]; then
+    mkdir -p "$KHIOPS_LAST_RUN_DIR"
+fi
+
+# Java configuration
+# JAVA_HOME automatic setting
+
+if [[ -n $JAVA_HOME ]]; then
+    export CLASSPATH=/usr/share/khiops/norm.jar:/usr/share/khiops/khiops.jar
+    LIBJVM=$(find -L "$JAVA_HOME" -name libjvm.so | xargs dirname)
+fi
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$LIBJVM
+
+###############################
+# Licence management parameters
+###############################
+
+# Licence directory
+if [[ -z $KHIOPS_LICENSE_FILE_DIR ]]; then
+    export KHIOPS_LICENSE_FILE_DIR=@LICENSE_DIR@
+fi
+
+# Licence file
+if [[ -z "$KHIOPS_LICENSE_FILE_NAME" ]]
+then
+    export KHIOPS_LICENSE_FILE_NAME=khiops-license-@LICENSE_NUMBER@.lic
+fi
+
+##############################################
+# Run Khiops coclustering (with or without parameters)
+##############################################
+
+
+if [[  $# -eq 0  ]]
+then
+    # run without parameters
+    # run and save scenario and log files in directory KHIOPS_LAST_RUN_DIR
+    MODL_Coclustering -o "$KHIOPS_LAST_RUN_DIR/scenario._kh" -e "$KHIOPS_LAST_RUN_DIR/log.txt"
+else
+    # run with parameters
+    MODL_Coclustering "$@"
+fi
+
+exit $?

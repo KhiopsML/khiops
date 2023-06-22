@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# setting JAVA_HOME
+if [ -e /usr/bin/java ]; then
+    export JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:bin/java::")
+    sed -i -e "s|# JAVA_HOME automatic setting|[[ -z \"\$JAVA_HOME\" ]] \&\& JAVA_HOME=$JAVA_HOME|g" /usr/bin/khiops-env
+    echo "JAVA_HOME is automatically set to $JAVA_HOME"
+    echo "You can modify it in /usr/bin/khiops-env"
+else
+    echo "You have to set JAVA_HOME according to java directory"
+    echo "Edit /usr/bin/khiops-env"
+    sed -i -e "s|# JAVA_HOME automatic setting|[[ -z \$JAVA_HOME ]] \&\& echo \"JAVA_HOME is not set\"|g" /usr/bin/khiops-env
+fi

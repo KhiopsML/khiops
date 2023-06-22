@@ -1,0 +1,33 @@
+ClassManagement.OpenFile
+ClassFileName Stulong.kdic
+OK
+ClassManagement.ClassName Entry
+
+TrainDatabase.DatabaseFiles.List.Key Entry
+TrainDatabase.DatabaseFiles.DataTableName Entry.txt
+TrainDatabase.DatabaseFiles.List.Key Entry`ListContr
+TrainDatabase.DatabaseFiles.DataTableName Contr.txt
+TrainDatabase.DatabaseFiles.List.Key Entry`Letter
+TrainDatabase.DatabaseFiles.DataTableName Letter.txt
+TrainDatabase.DatabaseFiles.List.Key Entry`Death
+TrainDatabase.DatabaseFiles.DataTableName Death.txt
+TrainDatabase.SampleNumberPercentage 70
+TrainDatabase.FillTestDatabaseSettings
+
+AnalysisSpec.TargetAttributeName CHOLRISK
+AnalysisSpec.ModelingSpec.NaiveBayesPredictor true
+AnalysisSpec.ModelingSpec.SelectiveNaiveBayesPredictor true
+AnalysisSpec.ModelingSpec.BaselinePredictor true
+AnalysisSpec.ModelingSpec.UnivariatePredictorNumber 1
+
+AnalysisResults.ResultFilesDirectory ./results
+AnalysisResults.ResultFilesPrefix Std_
+AnalysisResults.ComputeBasicSecondaryStats false
+ComputeStats
+
+AnalysisResults.ResultFilesPrefix MT_
+AnalysisResults.ComputeBasicSecondaryStats true
+ComputeStats
+
+// Exit
+// OK

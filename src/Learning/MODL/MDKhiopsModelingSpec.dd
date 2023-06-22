@@ -1,0 +1,21 @@
+Rank;
+Name;
+Type;
+Style;
+Label 1;
+SelectiveNaiveBayesPredictor;
+boolean;
+CheckBox;
+Selective Naive Bayes predictor 2;
+MAPNaiveBayesPredictor;
+boolean;
+CheckBox;
+MAP Naive Bayes predictor 3;
+NaiveBayesPredictor;
+boolean;
+CheckBox;
+Naive Bayes predictor 4;
+DataGridPredictor;
+boolean;
+CheckBox;
+Data Grid predictor

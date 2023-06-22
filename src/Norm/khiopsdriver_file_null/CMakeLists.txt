@@ -1,0 +1,3 @@
+add_library(khiopsdriver_file_null SHARED khiopsdriver_file_null.cpp)
+set_khiops_options(khiopsdriver_file_null)
+target_include_directories(khiopsdriver_file_null PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

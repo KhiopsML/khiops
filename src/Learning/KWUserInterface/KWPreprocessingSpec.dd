@@ -1,0 +1,16 @@
+Rank;
+Name;
+Type;
+Status;
+Style;
+Label 1;
+ObjectLabel;
+ALString;
+Derived;
+;
+Preprocessing 2;
+TargetGrouped;
+boolean;
+;
+CheckBox;
+Group target values

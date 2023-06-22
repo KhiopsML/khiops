@@ -1,0 +1,15 @@
+Rank ; Name ; Type ; Style ; Invisible ; Label
+0 ; Label1  ;   ;   ;   ; Attributs de base
+1 ; First  ; ALString ;   ;   ; Key first field 
+2 ; Second  ; int  ;   ;   ; Key second field
+3 ; String  ; ALString ;   ;   ; String 
+4 ; Integer  ; int  ;   ;   ; Integer 
+5 ; Label2  ;   ;   ;   ; Attributs de tests
+6 ; Transient1  ; int  ;   ;   ; Transient 1 
+7 ; Transient2  ; int  ;   ; true ; Transient 2 
+8 ; Double  ; double  ;   ;   ; Double 
+9 ; Char  ; char  ;   ; true ; Char 
+10 ; Boolean  ; boolean  ; CheckBox ;   ;  
+11 ; Transient3 ; int  ;   ; true ; Transient 3 
+12 ; Derived1  ; int  ;   ;   ; Derived 1 
+13 ; Derived2  ; ALString ;   ;   ; Derived 2 

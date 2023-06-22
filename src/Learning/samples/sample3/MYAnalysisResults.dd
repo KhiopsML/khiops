@@ -1,0 +1,9 @@
+Rank;
+Name;
+Type;
+Style;
+Label 3;
+ComputeBasicSecondaryStats;
+boolean;
+;
+Compute basic secondary stats

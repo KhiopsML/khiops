@@ -1,0 +1,46 @@
+name: Create Debian package
+
+on:
+  workflow_dispatch:
+
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  package:
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-20.04]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: install dependencies
+      run: |
+        sudo apt-get -y --no-install-recommends install libmpich-dev  
+
+    - name : set environment variables
+      run : |
+        source /etc/os-release 
+        echo "ID=$ID" >> "$GITHUB_ENV"
+        echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
+        set KHIOPS_VERSION=$(grep "KHIOPS_VERSION" src/Learning/KWUtils/KWKhiopsVersion.h | cut -d"(" -f2 | cut -d")" -f1)
+        echo "KHIOPS_VERSION=$KHIOPS_VERSION" >> "$GITHUB_ENV"
+
+    - name: Configure CMake
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DMPI=ON -DTESTING=OFF -DFULL=OFF -DBUILD_JARS=ON
+
+    - name: Build
+      run: time cmake --build ${{github.workspace}}/build --parallel
+    
+    - name: Pack
+      run: cd ${{github.workspace}}/build && cpack -G DEB
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ env.ID }}-${{ env.VERSION_CODENAME }}
+        path: build/packages/*.deb
+
