@@ -744,7 +744,7 @@ ObjectArray* DTDecisionTreeCreationTask::BuildRootAttributeStats(KWLearningSpec*
 		bcomputestat = true;
 	}
 
-	if (bcomputestat == true)
+	if (bcomputestat)
 	{
 		KWDataPreparationUnivariateTask dataPreparationUnivariateTask;
 		dataPreparationUnivariateTask.CollectInputAttributes(learningSpec, learningSpec->GetClass(),
@@ -1069,6 +1069,7 @@ int DTDecisionTreeCreationTask::ComputeMaxLoadableAttributeNumber(
 	// Memoire de travail pour gerer un arbre
 	// Objet a vide, plus un pointeur dans tous les noeuds de l'arbre, le tout par enregistrement
 	lTreeWorkingMemory = sizeof(KWObject) * nDatabaseObjectNumber;
+	// lTreeWorkingMemory += (sizeof(KWObject*) * nNodeVariableNumber) * nDatabaseObjectNumber;
 	lTreeWorkingMemory += (sizeof(KWObject*) * nMaxAttributesSelectionNumber) * nDatabaseObjectNumber;
 
 	// Memoire pour stocker un valeur d'attribut, pour tous les objets
@@ -1123,6 +1124,9 @@ int DTDecisionTreeCreationTask::ComputeMaxLoadableAttributeNumber(
 		cout << "lAvailableMemory = \t" << lAvailableMemory << endl;
 		cout << "ComputeMeanTreeSpecMemory = \t" << ComputeMeanTreeSpecMemory(odInputAttributeStats) << endl;
 		cout << "lNecessaryMemory = \t" << lNecessaryMemory << endl;
+		cout << "lOneAttributeValueMemory = \t" << lOneAttributeValueMemory << endl;
+		cout << "nNodeVariableNumber = \t" << nNodeVariableNumber << endl;
+		cout << "lTreeWorkingMemory = \t" << lTreeWorkingMemory << endl;
 	}
 
 	// Message d'erreur si pas assez de memoire

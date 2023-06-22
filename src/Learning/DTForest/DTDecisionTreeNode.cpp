@@ -273,8 +273,8 @@ void DTDecisionTreeNode::SetUpAttributeAndHypotheticalSons(KWAttributeStats* att
 	if (splitAttributeStats->GetPreparedDataGridStats()->GetAttributeNumber() == 1)
 	{
 		// a partir de learningEnv v8, les attributs a level nul ne sont plus prepares. Le seul attribut prepare
-		// correspond ici a l'attribut cible NVDELL
-		// AddWarning("SetUpAttributeAndHypotheticalSons :
+		// correspond ici a l'attribut cible
+		// NVDELL AddWarning("SetUpAttributeAndHypotheticalSons :
 		// GetPreparedDataGridStats()->GetAttributeNumber() == 1");
 		return;
 	}
@@ -371,8 +371,8 @@ DTDecisionTreeNode::ComputeSonNodeTargetModalitiesCount(int nSonIndex,
 		if (splitAttributeStats->GetPreparedDataGridStats()->GetAttributeNumber() == 1)
 		{
 			// a partir de learningEnv v8, les attributs a level nul ne sont plus prepares. Le seul attribut
-			// prepare correspond ici a l'attribut cible NVDELL
-			// AddWarning("ComputeSonNodeTargetModalitiesCountOutOfBag :
+			// prepare correspond ici a l'attribut cible
+			// NVDELL AddWarning("ComputeSonNodeTargetModalitiesCountOutOfBag :
 			// GetPreparedDataGridStats()->GetAttributeNumber() == 1");
 			continue;
 		}
@@ -859,15 +859,6 @@ boolean DTDecisionTreeNode::ComputeAttributesStat()
 	// calcul de la preparation du noeud
 	KWDataPreparationUnivariateTask dataPreparationUnivariateTask;
 
-	// TODO MB: attention, certains require de la methode appeles BasicCollectPreparationStats ont du etre commentes
-	//  Il y a ici incoherence entre les stats descriptives et cibles au niveau de chaque noeud de l'arbre
-	///////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// DDD TREE: les require suivants sont actuellement commentes, car ils ne passent pas avec la construction des
-	// arbres
-	//  require(learningSpec->GetInstanceNumber() == tupleTableLoader->GetInputDatabaseObjects()->GetSize());
-	//  require(learningSpec->GetTargetDescriptiveStats()->GetInstanceNumber() ==
-	//  tupleTableLoader->GetInputDatabaseObjects()->GetSize());
-	///////////////////////////////////////////////////////////////////////////////////////////////////////////
 	baseloaderTrain->GetTupleLoader()->SetInputDatabaseObjects(baseloaderTrain->GetDatabaseObjects());
 	dataPreparationUnivariateTask.BasicCollectPreparationStats(
 	    nodeLearningSpec, baseloaderTrain->GetTupleLoader(), GetNodeSelectedAttributes(), false, oaAttributeStats);

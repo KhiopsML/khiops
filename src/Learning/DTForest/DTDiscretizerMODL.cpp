@@ -313,19 +313,22 @@ void DTDiscretizerMODL::DiscretizeNEW(KWFrequencyTable* kwftSource, KWFrequencyT
 				     << ComputeDiscretizationCost(kwftDiscretizedGranularizedTable) << "\t"
 				     << kwftDiscretizedGranularizedTable->GetFrequencyVectorNumber() << endl;
 			}
+
 			// Nettoyage
 			delete kwftGranularizedTable;
 			kwftGranularizedTable = NULL;
 			delete kwftDiscretizedGranularizedTable;
 			kwftDiscretizedGranularizedTable = NULL;
 		}
+
 		if (bDisplayResults)
 			cout << "Meilleure granularite discretisation " << kwftTarget->GetGranularity() << " sur  "
 			     << nGranularityMax << endl;
 	}
 	ensure(kwftTarget != NULL);
 	StopTimer(DTTimerDiscretize);
-
+	// if (kwftTarget->GetGranularity() == 1 && kwftTarget->GetFrequencyVectorNumber() == 1)
+	//	kwftTarget->SetGranularizedValueNumber(kwftSource->GetGranularizedValueNumber());
 	if (ntest == 1)
 	{
 		cout << "kwftTarget->GetFrequencyVectorNumber()" << kwftTarget->GetFrequencyVectorNumber() << endl;

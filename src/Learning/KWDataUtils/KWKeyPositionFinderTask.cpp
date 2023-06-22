@@ -87,6 +87,8 @@ boolean KWKeyPositionFinderTask::FindKeyPositions(const ObjectArray* oaInputKeys
 {
 	boolean bOk = true;
 
+	require(oaInputKeys != NULL);
+	require(CheckKeys(oaInputKeys));
 	require(oaFoundKeyPositions != NULL);
 	require(sFileName != ""); // Le fichier d'entree doit etre renseigne
 	require(shared_ivKeyFieldIndexes.GetSize() > 0);
@@ -116,7 +118,98 @@ boolean KWKeyPositionFinderTask::FindKeyPositions(const ObjectArray* oaInputKeys
 		oaResultKeyPositions.DeleteAll();
 		bOk = false;
 	}
+	ensure(not bOk or CheckKeyPositionsConsistency(oaInputKeys, oaFoundKeyPositions));
 	return bOk;
+}
+
+boolean KWKeyPositionFinderTask::CheckKeys(const ObjectArray* oaKeys) const
+{
+	boolean bOk = true;
+	KWKey* previousKey;
+	KWKey* key;
+	int i;
+
+	require(oaKeys != NULL);
+
+	for (i = 1; i < oaKeys->GetSize(); i++)
+	{
+		previousKey = cast(KWKey*, oaKeys->GetAt(i - 1));
+		key = cast(KWKey*, oaKeys->GetAt(i));
+		bOk = bOk and previousKey->Compare(key) < 0;
+	}
+	return bOk;
+}
+
+boolean KWKeyPositionFinderTask::CheckKeyPositions(const ObjectArray* oaKeyPositions) const
+{
+	boolean bOk = true;
+	KWKeyPosition* previousKeyPosition;
+	KWKeyPosition* keyPosition;
+	int i;
+
+	require(oaKeyPositions != NULL);
+
+	for (i = 1; i < oaKeyPositions->GetSize(); i++)
+	{
+		previousKeyPosition = cast(KWKeyPosition*, oaKeyPositions->GetAt(i - 1));
+		keyPosition = cast(KWKeyPosition*, oaKeyPositions->GetAt(i));
+		bOk = bOk and previousKeyPosition->Compare(keyPosition) < 0;
+		bOk = bOk and previousKeyPosition->GetLineIndex() <= keyPosition->GetLineIndex();
+		bOk = bOk and previousKeyPosition->GetLinePosition() <= keyPosition->GetLinePosition();
+		assert(bOk);
+	}
+	return bOk;
+}
+
+boolean KWKeyPositionFinderTask::CheckKeyPositionsConsistency(const ObjectArray* oaKeys,
+							      const ObjectArray* oaKeyPositions) const
+{
+	boolean bOk = true;
+	KWKey* key;
+	KWKeyPosition* keyPosition;
+	int i;
+
+	require(oaKeys != NULL);
+	require(oaKeyPositions != NULL);
+
+	// Test globaux
+	bOk = bOk and oaKeys->GetSize() == oaKeyPositions->GetSize();
+	bOk = bOk and CheckKeys(oaKeys);
+	bOk = bOk and CheckKeyPositions(oaKeyPositions);
+
+	// Verification de la coherence des cle entre les deux tableaux
+	if (bOk)
+	{
+		for (i = 0; i < oaKeys->GetSize(); i++)
+		{
+			key = cast(KWKey*, oaKeys->GetAt(i));
+			keyPosition = cast(KWKeyPosition*, oaKeyPositions->GetAt(i));
+			bOk = bOk and keyPosition->GetKey()->Compare(key) == 0;
+		}
+	}
+	return bOk;
+}
+
+void KWKeyPositionFinderTask::WriteKeys(const ObjectArray* oaKeys, ostream& ost) const
+{
+	int i;
+
+	require(oaKeys != NULL);
+
+	ost << "Key positions\t" << oaKeys->GetSize() << "\n";
+	for (i = 0; i < oaKeys->GetSize(); i++)
+		ost << "\t" << i << "\t" << *oaKeys->GetAt(i) << endl;
+}
+
+void KWKeyPositionFinderTask::WriteKeyPositions(const ObjectArray* oaKeyPositions, ostream& ost) const
+{
+	int i;
+
+	require(oaKeyPositions != NULL);
+
+	ost << "Found key positions\t" << oaKeyPositions->GetSize() << "\n";
+	for (i = 0; i < oaKeyPositions->GetSize(); i++)
+		ost << "\t" << i << "\t" << *oaKeyPositions->GetAt(i) << endl;
 }
 
 const ALString KWKeyPositionFinderTask::GetObjectLabel() const
@@ -318,8 +411,6 @@ boolean KWKeyPositionFinderTask::MasterInitialize()
 {
 	boolean bOk = true;
 	boolean bTrace = false;
-	int i;
-	KWKey* key;
 
 	require(oaAllKeyPositionSubsets.GetSize() == 0);
 	require(oaResultKeyPositions.GetSize() == 0);
@@ -329,12 +420,8 @@ boolean KWKeyPositionFinderTask::MasterInitialize()
 	// Affichage des cle en entree
 	if (bTrace)
 	{
-		cout << "Input keys" << endl;
-		for (i = 0; i < shared_oaInputKeys->GetObjectArray()->GetSize(); i++)
-		{
-			key = cast(KWKey*, shared_oaInputKeys->GetObjectArray()->GetAt(i));
-			cout << "\t" << i << "\t" << *key << endl;
-		}
+		cout << GetTaskName() << "\tInput keys" << endl;
+		WriteKeys(shared_oaInputKeys->GetObjectArray(), cout);
 	}
 
 	// Parametrage du fichier en lecture
@@ -404,6 +491,7 @@ boolean KWKeyPositionFinderTask::MasterPrepareTaskInput(double& dTaskPercent, bo
 boolean KWKeyPositionFinderTask::MasterAggregateResults()
 {
 	boolean bOk = true;
+	boolean bTrace = false;
 	ObjectArray* oaKeyPositionSample;
 	KWKeyPosition* keyPosition1;
 	KWKeyPosition* keyPosition2;
@@ -416,6 +504,15 @@ boolean KWKeyPositionFinderTask::MasterAggregateResults()
 	// Integration des cles de l'esclave
 	if (bOk)
 	{
+		// Affichage
+		if (bTrace)
+		{
+			cout << "KWKeyPositionFinderTask::MasterAggregateResults\t" << GetTaskIndex() << endl;
+			cout << "Lines\t" << output_lLineNumber << endl;
+			WriteKeyPositions(output_oaKeyPositionSubset->GetObjectArray(), cout);
+			cout << endl;
+		}
+
 		// Memorisation du nombre de ligne
 		lvLineCountPerTaskIndex.SetAt(GetTaskIndex(), output_lLineNumber);
 
@@ -455,12 +552,12 @@ boolean KWKeyPositionFinderTask::MasterAggregateResults()
 			{
 				if (keyPosition1->Compare(keyPosition2) > 0)
 				{
-					// On renonce a preciser le numeroid de ligne, car il faudrait cimuler les
-					// nombre de lignes lues pour les esclaves precedents, et tous n'ont peut-etre
-					// pas termine
+					// On renonce a preciser le numero de ligne, car il faudrait cumuler les nombre
+					// de lignes lues pour les esclaves precedents, et tous n'ont peut-etre pas
+					// termine
 					AddError(sTmp + "Record with key " + keyPosition2->GetKey()->GetObjectLabel() +
 						 " inferior to key " + keyPosition1->GetKey()->GetObjectLabel() +
-						 " found for preceding record");
+						 " of a record found previously");
 					bOk = false;
 				}
 			}
@@ -492,7 +589,7 @@ boolean KWKeyPositionFinderTask::MasterAggregateResults()
 					// pas termine
 					AddError(sTmp + "Record with key " + keyPosition2->GetKey()->GetObjectLabel() +
 						 " inferior to key " + keyPosition1->GetKey()->GetObjectLabel() +
-						 " found for preceding record");
+						 " of a record found previously");
 					bOk = false;
 				}
 			}
@@ -549,11 +646,11 @@ boolean KWKeyPositionFinderTask::MasterFinalize(boolean bProcessEndedCorrectly)
 					keyPosition->SetLineIndex(keyPosition->GetLineIndex() + lLineCountToAdd);
 				}
 			}
-			lLineCountToAdd = lvLineCountPerTaskIndex.GetAt(i);
-
-			// Incrementation du nombre total de lignes
-			lTotalLineNumber += lLineCountToAdd;
+			lLineCountToAdd += lvLineCountPerTaskIndex.GetAt(i);
 		}
+
+		// Memorisation du nombre total de lignes du fichier
+		lTotalLineNumber = lLineCountToAdd;
 	}
 	lvLineCountPerTaskIndex.SetSize(0);
 
@@ -597,12 +694,12 @@ boolean KWKeyPositionFinderTask::MasterFinalize(boolean bProcessEndedCorrectly)
 					if (nCompareKey > 0)
 					{
 						// On connait la position du probleme, la cle recherchee correspondant,
-						// mais pas la la cle touvee (non memorisee), d'ou un message pas
+						// mais pas la la cle touvee (non memorisee), d'ou un message
 						// entierement explicite
 						AddError(sTmp + "Record " +
 							 LongintToString(firstNextKeyPosition->GetLineIndex()) +
 							 " : key " + firstNextKeyPosition->GetKey()->GetObjectLabel() +
-							 " inferior to key found previously, beyond record " +
+							 " inferior to a key found previously, beyond record " +
 							 LongintToString(lastPreviousKeyPosition->GetLineIndex()));
 						bOk = false;
 						break;
@@ -824,12 +921,6 @@ boolean KWKeyPositionFinderTask::SlaveProcess()
 	// Initialisations
 	if (bOk)
 	{
-		// Envoi du nombre de lignes au master
-		SetLocalLineNumber(inputFile.GetBufferLineNumber());
-
-		// Collecte du nombre de lignes du buffer
-		output_lLineNumber = inputFile.GetBufferLineNumber();
-
 		// Saut du Header
 		if (inputFile.GetPositionInFile() == 0 and shared_bHeaderLineUsed)
 			inputFile.SkipLine();
@@ -995,6 +1086,12 @@ boolean KWKeyPositionFinderTask::SlaveProcess()
 		output_SlaveLastKeyPosition.GetKeyPosition()->SetLineIndex(inputFile.GetCurrentLineNumber());
 		output_SlaveLastKeyPosition.GetKeyPosition()->SetLinePosition(lLinePosition);
 	}
+
+	// Envoi du nombre de lignes au master, en fin de SlaveProcess
+	SetLocalLineNumber(inputFile.GetBufferLineNumber());
+
+	// Collecte du nombre de lignes du buffer
+	output_lLineNumber = inputFile.GetBufferLineNumber();
 
 	// Nettoyage si KO
 	if (not bOk)

@@ -106,11 +106,13 @@ protected:
 	// ligne
 	int ComputeCorrectLineNumber(IntVector* ivLineFieldNumbers, int nExpectedFieldNumber) const;
 
-	// Collecte des nombre de champs par ligne d'un fichier ouvert en lecture pour les lignes suivantes du buffer
+	// Collecte du nombre de champs par ligne d'un fichier ouvert en lecture pour les lignes suivantes du buffer
+	// warning quelque soit le format du fichier. On ignore les lignes vides.
 	void CollectLineFieldNumbers(RewindableInputBufferedFile* inputFile, int nMaxLineNumber,
 				     IntVector* ivLineFieldNumbers) const;
 
 	// Calcul du nombre de champs de la prochaine ligne d'un fichier ouvert en lecture
+	// On compte 0 champs dans le cas particulier de lignes vides
 	// On renvoie le nombre de champs lus si pas d'erreur, -1 sinon
 	int ComputeLineFieldNumber(RewindableInputBufferedFile* inputFile) const;
 
@@ -139,7 +141,8 @@ protected:
 
 	// Collecte de stats sur les caracteres utilisees dans les premieres lignes d'un fichier
 	// On alimente un vecteur d'effectif par caractere, contenant pour chaque caractere le min et le max des
-	// utilisations par ligne On renvoie le nombre de lignes non vides effectivement analysees
+	// utilisations par ligne en ignorant les lignes vides (qui sont ignoree avec un warning lors des lecture de
+	// table, quelque soit le format) On renvoie le nombre de lignes non vides effectivement analysees
 	int CollectCharFrequenciesLineStats(RewindableInputBufferedFile* inputFile, int nMaxLineNumber,
 					    KWCharFrequencyVector* cfvLineMinCharFrequencies,
 					    KWCharFrequencyVector* cfvLineMaxCharFrequencies) const;

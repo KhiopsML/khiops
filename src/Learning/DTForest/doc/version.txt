@@ -1,5 +1,31 @@
 DTForest library
 
+version 0.0.11
+
+	- Correction stabilité des traitement dasn les cas sequentiel et parralle
+	Préparation des class à la parallélisation : 
+	- ajout de PLShared_DecisionTreeNodeSpec
+	- ajout de PLShared_DecisionTreeSpec
+	- ajout de PLShared_DecisionTreeParameter
+	- ajout de PLShared_ForestParameter
+	- ajout de PLShared_TargetModalityCount
+	- ajout de  ...
+	
+	
+	
+version 0.0.10
+
+	- bug Marc sur le calcul de cout de structure 
+	- bug sur le rapport des arbres
+
+
+version 0.0.9
+
+	- nomage des arbres identique indépendement des ressources
+	- passage du Min du nombre de variabale pour une selection à 6
+	- Modifications cosmétiques mineures
+
+
 version 0.0.8.i2
 
 	- Correction de la formule de mémoire disponible prenant en compte les longint(cf ComputeMaxLoadableAttributeNumber)

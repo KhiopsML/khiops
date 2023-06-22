@@ -16,7 +16,7 @@ class KWSortedKeySample;
 // Extraction d'une liste ordonnee de K cles et de leur position a partir d'un fichier deja trie
 //
 //	En entree : principalement le fichier, l'index des champs de la cle a extraire,
-//              et le nombre de cle a extraire
+//              et le taux d'echantillonnage des cles a extraire
 //	En sortie : un tableau ordonne de cles et de leur positions
 class KWKeyPositionSampleExtractorTask : public PLParallelTask
 {
@@ -65,8 +65,12 @@ public:
 	/////////////////////////////////////////////////////
 	// Methode principale
 
-	// Extraction de l'ensemble des cles avec leur position (KWKeyPosition)
+	// Extraction de l'ensemble des cles avec leur position (KWKeyPosition), en garantissant
+	// l'unicite des cle extraites par supressions des doublons potentiel de l'echantillon
 	// Le resultat est stocke dans le tableau passe en parametre et appartient a l'appelant
+	// Il peut y avoir des erreurs detectees si par exemple les cles ne sont pas ordonnees
+	// parmi les cles echantillonnees
+	// En cas d'erreur, on renvoie un tableau vide
 	boolean ExtractSample(ObjectArray* oaKeyPositions);
 
 	///////////////////////////////////////////////////////////////

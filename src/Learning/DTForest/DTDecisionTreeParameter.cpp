@@ -206,3 +206,73 @@ void DTDecisionTreeParameter::Write(ostream& ost)
 	    << "\t" << GetMinInstancesPerLeaveNumber();
 	ost << "\n\n";
 }
+
+////////////////  classe PLShared_DecisionTreeParameter
+
+PLShared_DecisionTreeParameter::PLShared_DecisionTreeParameter() {}
+
+PLShared_DecisionTreeParameter::~PLShared_DecisionTreeParameter() {}
+
+void PLShared_DecisionTreeParameter::DeserializeObject(PLSerializer* serializer, Object* object) const
+{
+	DTDecisionTreeParameter* param;
+	require(serializer != NULL);
+	require(serializer->IsOpenForRead());
+	require(object != NULL);
+
+	param = cast(DTDecisionTreeParameter*, object);
+
+	param->sTreeCost = serializer->GetString();
+	param->nMaxChildren = serializer->GetInt();
+	param->nMaxDepth = serializer->GetInt();
+	param->nMaxLeavesNumber = serializer->GetInt();
+	param->nMaxInternalNodesNumber = serializer->GetInt();
+	param->nMinInstancesPerLeaveNumber = serializer->GetInt();
+	param->bUnloadNonInformativeAttributes = serializer->GetBoolean();
+	param->sNodeVariablesSelection = serializer->GetString();
+	param->sAttributesSplitSelection = serializer->GetString();
+	param->sPruningMode = serializer->GetString();
+	param->sDiscretizationMethod = serializer->GetString();
+	param->sGroupingMethod = serializer->GetString();
+	param->bVerboseMode = serializer->GetBoolean();
+}
+
+void PLShared_DecisionTreeParameter::SerializeObject(PLSerializer* serializer, const Object* object) const
+{
+	DTDecisionTreeParameter* param;
+	require(serializer != NULL);
+	require(serializer->IsOpenForWrite());
+	require(object != NULL);
+
+	param = cast(DTDecisionTreeParameter*, object);
+
+	serializer->PutString(param->sTreeCost);
+	serializer->PutInt(param->nMaxChildren);
+	serializer->PutInt(param->nMaxDepth);
+	serializer->PutInt(param->nMaxLeavesNumber);
+	serializer->PutInt(param->nMaxInternalNodesNumber);
+	serializer->PutInt(param->nMinInstancesPerLeaveNumber);
+	serializer->PutBoolean(param->bUnloadNonInformativeAttributes);
+	serializer->PutString(param->sNodeVariablesSelection);
+	serializer->PutString(param->sAttributesSplitSelection);
+	serializer->PutString(param->sPruningMode);
+	serializer->PutString(param->sDiscretizationMethod);
+	serializer->PutString(param->sGroupingMethod);
+	serializer->PutBoolean(param->bVerboseMode);
+}
+
+Object* PLShared_DecisionTreeParameter::Create() const
+{
+	return new DTDecisionTreeParameter;
+}
+
+void PLShared_DecisionTreeParameter::SetDecisionTreeParameter(DTDecisionTreeParameter* r)
+{
+	require(r != NULL);
+	SetObject(r);
+}
+
+DTDecisionTreeParameter* PLShared_DecisionTreeParameter::GetDecisionTreeParameter() const
+{
+	return cast(DTDecisionTreeParameter*, GetObject());
+}

@@ -260,20 +260,11 @@ void DTCreationReport::WriteJSONSonNodes(JSONFile* fJSON, DTDecisionTreeNodeSpec
 				// Extraction du noeud fils courant
 				DTDecisionTreeNodeSpec* sonNode =
 				    cast(DTDecisionTreeNodeSpec*, treeNodeSpec->GetChildNodes().GetAt(iNodeIndex));
-				if (sonNode->GetVariableName() == "")
-					continue;
+				// if (sonNode->GetVariableName() == "")
+				//	continue;
 
 				WriteJSONSonNodes(fJSON, sonNode, oaLeavesNodes);
 			}
-		}
-
-		// chercher les noeuds feuilles dont ce noeud est le pere
-		for (int i = 0; i < oaLeavesNodes.GetSize(); i++)
-		{
-			DTDecisionTreeNodeSpec* sonNode = cast(DTDecisionTreeNodeSpec*, oaLeavesNodes.GetAt(i));
-
-			if (sonNode->GetFatherNode() == treeNodeSpec)
-				WriteJSONSonNodes(fJSON, sonNode, oaLeavesNodes);
 		}
 
 		fJSON->EndArray();
@@ -348,13 +339,21 @@ void DTCreationReport::ComputeRankIdentifiers()
 
 int DTTreeSpecsCompareLevels(const void* elem1, const void* elem2)
 {
+	longint lLevel1;
+	longint lLevel2;
+	int nCompare;
+
 	DTDecisionTreeSpec* s1 = (DTDecisionTreeSpec*)*(Object**)elem1;
 	DTDecisionTreeSpec* s2 = (DTDecisionTreeSpec*)*(Object**)elem2;
 
-	if (s1->GetLevel() == s2->GetLevel())
-		return 0;
-	else if (s1->GetLevel() > s2->GetLevel())
-		return -1;
-	else
-		return 1;
+	// Comparaison des levels des attributs (ramenes a longint)
+	lLevel1 = longint(floor(s1->GetLevel() * 1e10));
+	lLevel2 = longint(floor(s2->GetLevel() * 1e10));
+	nCompare = -CompareLongint(lLevel1, lLevel2);
+
+	// Comparaison par nom d'arbre, si match nul
+	if (nCompare == 0)
+		nCompare = s1->GetTreeVariableName().Compare(s2->GetTreeVariableName());
+
+	return nCompare;
 }

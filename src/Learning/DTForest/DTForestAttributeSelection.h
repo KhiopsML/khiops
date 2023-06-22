@@ -10,6 +10,7 @@
 #include "DTConfig.h"
 
 class DTAttributeSelectionsSlices;
+class PLShared_AttributeSelectionsSlices;
 
 /////////////////////////////////////////////////////////////////////
 /// Classe DTForestAttributeSelection
@@ -20,6 +21,9 @@ public:
 	DTForestAttributeSelection();
 	~DTForestAttributeSelection();
 
+	/** entree : tableau de KWAttributeStats
+	Ensemble des attributs pour faire les selections
+	*/
 	virtual void Initialization(const ObjectDictionary* odInputAttributeStats);
 
 	void BuildForestSelections(int nMaxSelectionNumber, int nvariableNumberMin);
@@ -33,7 +37,6 @@ public:
 	void BuildForestUniformSelections(int nmaxselectionnumber, const ALString& sSelectionType, double dPct);
 
 	int GetMaxAttributesNumber();
-	void SetMaxAttributesNumber(int nmax);
 
 	// virtual ObjectArray* NextSelection();
 
@@ -71,11 +74,6 @@ protected:
 	static ObjectArray* GetAttributesFromLevels(const int nMaxAttributesNumber, DoubleVector& vLevels,
 						    ObjectArray& oaListAttributes);
 
-	// ClassStat general a partir duquel sera chargee la database
-	// Initialisee par le constructeur, elle soit etre a l'etat "computed"
-	// ObjectArray* oaAttributeStats;
-
-	int nMaxAttributesNumber;
 	int nMaxSelectionNumber;
 	int nOriginalAttributesNumber;
 	ALString sDrawingType;
@@ -90,12 +88,7 @@ protected:
 	IntVector ivSelectionAttributeNumberInf;
 	IntVector ivSelectionAttributeNumberNull;
 	IntVector ivSeedselection;
-	ObjectArray oaSelectionAttributes;
-
-	// ObjectArray *oaAttributesShuffled;
-	// ObjectArray oaAttributesUsed;
-	// DoubleVector vLevels;
-	// ObjectArray oaOriginalAttributesUsed;
+	ObjectArray oaSelectionAttributes; // tableau de pointeurs sur objets DTAttributeSelection
 };
 
 ////////////////////////////////////////////////////////////////////
@@ -113,10 +106,10 @@ public:
 	////////////////////////////////////////////////
 	// Parametrage du contenu
 
-	// Parametrage des selections d'attributs (KWAttributePairStats)
+	// Parametrage des selections d'attributs (tableau de pointeurs sur objets DTAttributeSelection)
 	ObjectArray* GetAttributeSelections();
 
-	// Parametrage des attributs des selections (KWAttribute)
+	// Parametrage des attributs des selections (tableau de pointeurs sur DTTreeAttribute)
 	ObjectArray* GetTreeAttributes();
 
 	// Parametrage de slices contenant les attributs (KWDataTableSlice)
@@ -128,7 +121,7 @@ public:
 	// Ajout du contenu d'un autre ensemble de selections
 	void AddAttributeSelectionsSlices(const DTAttributeSelectionsSlices* otherAttributePairsSlices);
 	void AddAttributeSelection(const DTAttributeSelection* otherAttributeselection,
-				   ObjectDictionary* odSliceAttributes);
+				   const ObjectDictionary* odSliceAttributes);
 	int UnionAttributesCount(const DTAttributeSelection* otherAttributeselection);
 
 	// Comparaison selon les slices utilisees
@@ -168,15 +161,22 @@ public:
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
+	friend PLShared_AttributeSelectionsSlices;
+
 	// Methode utilitaire de fusion du contenu de deux tableaux, suppose tries de la meme facon, en
 	// produisant un tableau resultat trie avec elimination des doublons
 	// On suppose que chaque tableau initial est trie, sans doublons
 	void MergeArrayContent(const ObjectArray* oaFirst, const ObjectArray* oaSecond, CompareFunction fCompare,
 			       ObjectArray* oaMergedResult) const;
 	void AddNumericDictionaryContent(NumericKeyDictionary* oaFirst, const NumericKeyDictionary* oaSecond);
+
 	// Attributs de la classe
+
+	// tableau de pointeurs DTAttributeSelection*
 	ObjectArray oaAttributeSelections;
+
 	ObjectArray oaTreeAttributes;
+
 	// ObjectArray oaSlices;
 	NumericKeyDictionary nkdSlices;
 

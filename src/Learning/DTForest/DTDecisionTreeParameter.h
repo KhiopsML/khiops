@@ -79,6 +79,8 @@ public:
 	////////////////////////////////////////////////////////
 	//// Implementation
 protected:
+	friend class PLShared_DecisionTreeParameter;
+
 	/// Critere de cout de l'arbre
 	ALString sTreeCost;
 
@@ -113,4 +115,24 @@ protected:
 	ALString sGroupingMethod;
 
 	boolean bVerboseMode;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+// Classe PLShared_DecisionTreeParameter
+// Serialisation de la classe DTDecisionTreeParameter
+class PLShared_DecisionTreeParameter : public PLSharedObject
+{
+public:
+	// Constructor
+	PLShared_DecisionTreeParameter();
+	~PLShared_DecisionTreeParameter();
+
+	void SetDecisionTreeParameter(DTDecisionTreeParameter*);
+	DTDecisionTreeParameter* GetDecisionTreeParameter() const;
+
+	void DeserializeObject(PLSerializer* serializer, Object* object) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* object) const override;
+
+protected:
+	Object* Create() const override;
 };

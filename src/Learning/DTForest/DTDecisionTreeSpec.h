@@ -9,6 +9,8 @@
 
 class DTDecisionTreeSpec;
 class DTDecisionTreeNodeSpec;
+class PLShared_DecisionTreeNodeSpec;
+
 int DTDecisionTreeNodesModalitiesCountCompare(const void* elem1, const void* elem2);
 
 ///////////////////////////////////////////////////////////////////////////
@@ -64,6 +66,8 @@ public:
 	void WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) const;
 
 protected:
+	friend class PLShared_DecisionTreeSpec;
+
 	// fonction pour ajouter un nodespec a la structure d'arbre a partir d'un DTDecisionTreeNode
 	DTDecisionTreeNodeSpec* AddNodeSpec(const DTDecisionTreeNode* nNode, DTDecisionTreeNodeSpec* nsFather);
 
@@ -94,6 +98,34 @@ inline const ObjectArray& DTDecisionTreeSpec::GetTreeNodes() const
 {
 	return oaTreeNodes;
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// Classe PLShared_DecisionTreeSpec
+// Serialisation de la classe DTDecisionTreeSpec
+class PLShared_DecisionTreeSpec : public PLSharedObject
+{
+public:
+	// Constructor
+	PLShared_DecisionTreeSpec();
+	~PLShared_DecisionTreeSpec();
+
+	void SetDecisionTreeSpec(DTDecisionTreeSpec*);
+	DTDecisionTreeSpec* GetDecisionTreeSpec() const;
+
+	void DeserializeObject(PLSerializer* serializer, Object* object) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* object) const override;
+
+protected:
+	void AddNode(ObjectArray& oaTreeNodes, DTDecisionTreeNodeSpec*) const;
+
+	// noeud racine
+	PLShared_DecisionTreeNodeSpec* shared_nsRootNode;
+
+	// liste d'objets PLShared_DecisionTreeNodeSpec
+	// PLShared_ObjectArray* shared_oaTreeNodes;
+
+	Object* Create() const override;
+};
 
 ///////////////////////////////////////////////////////////////////////////
 // Specification d'une coupure d'un noued interne de l'arbre
@@ -152,6 +184,7 @@ public:
 
 protected:
 	friend class DTDecisionTreeSpec;
+	friend PLShared_DecisionTreeNodeSpec;
 
 	longint ComputeHashOfGroupIndexRule() const;
 	longint ComputeHashOfIntervalIndexRule() const;
@@ -243,3 +276,28 @@ inline void DTDecisionTreeSpec::SetConstructionCost(double d)
 {
 	dConstructionCost = d;
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// Classe PLShared_DecisionTreeNodeSpec
+// Serialisation de la classe DTDecisionTreeNodeSpec
+class PLShared_DecisionTreeNodeSpec : public PLSharedObject
+{
+public:
+	// Constructor
+	PLShared_DecisionTreeNodeSpec();
+	~PLShared_DecisionTreeNodeSpec();
+
+	void SetDecisionTreeNodeSpec(DTDecisionTreeNodeSpec*);
+	DTDecisionTreeNodeSpec* GetDecisionTreeNodeSpec() const;
+
+	void DeserializeObject(PLSerializer* serializer, Object* object) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* object) const override;
+
+protected:
+	Object* Create() const override;
+
+	mutable PLShared_ObjectArray* shared_oaChildrenNode;
+	PLShared_ObjectArray* shared_oaTargetModalitiesCountTrain;
+	PLShared_DGSAttributeDiscretization* shared_dgsAttributeDiscretization;
+	PLShared_DGSAttributeGrouping* shared_dgsAttributeGrouping;
+};

@@ -921,7 +921,7 @@ shared 0 B	0 B
 global 0 B	0 B
 host_0	1 procs
 
-error : Java : Unable to load libjvm.so (libjvm.so: Ne peut ouvrir le fichier d'objet partagÃ©: Aucun fichier ou dossier de ce type), install java JRE or check the LD_LIBRARY_PATH variable
+error : Java : Unable to load libjvm.so (libjvm.so: Ne peut ouvrir le fichier d'objet partagé: Aucun fichier ou dossier de ce type), install java JRE or check the LD_LIBRARY_PATH variable
 
 ----------------------------------
 		mono machines : 1 core + Graphical
@@ -1026,7 +1026,7 @@ shared 0 B	0 B
 global 0 B	0 B
 host_0	1 procs
 
-error : Java : Unable to load libjvm.so (libjvm.so: Ne peut ouvrir le fichier d'objet partagÃ©: Aucun fichier ou dossier de ce type), install java JRE or check the LD_LIBRARY_PATH variable
+error : Java : Unable to load libjvm.so (libjvm.so: Ne peut ouvrir le fichier d'objet partagé: Aucun fichier ou dossier de ce type), install java JRE or check the LD_LIBRARY_PATH variable
 
 ----------------------------------
 		regression : Master requirement 300 KB and granted 0

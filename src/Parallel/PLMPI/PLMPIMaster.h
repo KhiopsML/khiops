@@ -159,9 +159,10 @@ private:
 	// Liste ordonnee des travailleurs en cours
 	// le premier qui a commence a travailler est le premier de la liste
 	// utilisee pour
-	// - savoir qui peut travailler
-	// - l'envoi des warnings (seul le premier envoie directement vers l'utilisateur)
-	// - savoir si il y a des esclaves en train de travailler
+	//					- savoir qui peut travailler
+	//					- l'envoi des warnings (seul le premier envoie directement vers
+	// l'utilisateur)
+	//					- savoir si il y a des esclaves en train de travailler
 	ObjectList workers;
 
 	// pour n'envoyer l'arret qu'une seule fois
