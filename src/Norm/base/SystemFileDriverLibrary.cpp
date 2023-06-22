@@ -112,7 +112,7 @@ boolean SystemFileDriverLibrary::Close(void* stream)
 	return bOk;
 }
 
-longint SystemFileDriverLibrary::fread(void* ptr, size_t size, size_t count, void* stream)
+longint SystemFileDriverLibrary::Fread(void* ptr, size_t size, size_t count, void* stream)
 {
 	require(IsConnected());
 	require(stream != NULL);
@@ -136,7 +136,7 @@ const char* SystemFileDriverLibrary::GetLastErrorMessage() const
 	return ptr_driver_getlasterror();
 }
 
-longint SystemFileDriverLibrary::fwrite(const void* ptr, size_t size, size_t count, void* stream)
+longint SystemFileDriverLibrary::Fwrite(const void* ptr, size_t size, size_t count, void* stream)
 {
 	require(IsConnected());
 	require(not IsReadOnly());
@@ -144,7 +144,7 @@ longint SystemFileDriverLibrary::fwrite(const void* ptr, size_t size, size_t cou
 	return ptr_driver_fwrite(ptr, size, count, stream);
 }
 
-boolean SystemFileDriverLibrary::flush(void* stream)
+boolean SystemFileDriverLibrary::Flush(void* stream)
 {
 	require(IsConnected());
 	require(not IsReadOnly());

@@ -1,31 +1,6 @@
-Rank;
-Name;
-Type;
-Style;
-Status;
-Label 1;
-DataPath;
-ALString;
-;
-Derived;
-Data path 2;
-DataPathClassName;
-ALString;
-;
-;
-Data root 3;
-DataPathAttributeNames;
-ALString;
-;
-;
-Path 4;
-ClassName;
-ALString;
-;
-;
-Dictionary 5;
-DataTableName;
-ALString;
-FileChooser;
-;
-Data table file
+Rank;Name;Type;Style;Status;Label
+1;DataPath              ;ALString;           ;Derived;Data path
+2;DataPathClassName     ;ALString;           ;       ;Data root
+3;DataPathAttributeNames;ALString;           ;       ;Path
+4;ClassName             ;ALString;           ;       ;Dictionary
+5;DataTableName         ;ALString;FileChooser;       ;Data table file

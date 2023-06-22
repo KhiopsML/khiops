@@ -10,6 +10,18 @@ PLShared_ResourceRequirement::PLShared_ResourceRequirement() {}
 
 PLShared_ResourceRequirement::~PLShared_ResourceRequirement() {}
 
+void PLShared_ResourceRequirement::SerializeObject(PLSerializer* serializer, const Object* o) const
+{
+	RMResourceRequirement* r;
+	PLShared_ObjectArray shared_oa(new PLShared_PhysicalResource);
+
+	require(serializer->IsOpenForWrite());
+	require(o != NULL);
+
+	r = cast(RMResourceRequirement*, o);
+	shared_oa.SerializeObject(serializer, &r->oaResources);
+}
+
 void PLShared_ResourceRequirement::DeserializeObject(PLSerializer* serializer, Object* o) const
 {
 	RMResourceRequirement* r;
@@ -21,18 +33,6 @@ void PLShared_ResourceRequirement::DeserializeObject(PLSerializer* serializer, O
 	r = cast(RMResourceRequirement*, o);
 	r->oaResources.DeleteAll();
 	shared_oa.DeserializeObject(serializer, &r->oaResources);
-}
-
-void PLShared_ResourceRequirement::SerializeObject(PLSerializer* serializer, const Object* o) const
-{
-	RMResourceRequirement* r;
-	PLShared_ObjectArray shared_oa(new PLShared_PhysicalResource);
-
-	require(serializer->IsOpenForWrite());
-	require(o != NULL);
-
-	r = cast(RMResourceRequirement*, o);
-	shared_oa.SerializeObject(serializer, &r->oaResources);
 }
 
 Object* PLShared_ResourceRequirement::Create() const
@@ -95,18 +95,6 @@ PLShared_PhysicalResource::PLShared_PhysicalResource() {}
 
 PLShared_PhysicalResource::~PLShared_PhysicalResource() {}
 
-void PLShared_PhysicalResource::DeserializeObject(PLSerializer* serializer, Object* o) const
-{
-	RMPhysicalResource* pr;
-
-	require(serializer->IsOpenForRead());
-	require(o != NULL);
-
-	pr = cast(RMPhysicalResource*, o);
-	pr->SetMin(serializer->GetLongint());
-	pr->SetMax(serializer->GetLongint());
-}
-
 void PLShared_PhysicalResource::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
 	RMPhysicalResource* pr;
@@ -117,6 +105,18 @@ void PLShared_PhysicalResource::SerializeObject(PLSerializer* serializer, const 
 	pr = cast(RMPhysicalResource*, o);
 	serializer->PutLongint(pr->GetMin());
 	serializer->PutLongint(pr->GetMax());
+}
+
+void PLShared_PhysicalResource::DeserializeObject(PLSerializer* serializer, Object* o) const
+{
+	RMPhysicalResource* pr;
+
+	require(serializer->IsOpenForRead());
+	require(o != NULL);
+
+	pr = cast(RMPhysicalResource*, o);
+	pr->SetMin(serializer->GetLongint());
+	pr->SetMax(serializer->GetLongint());
 }
 
 Object* PLShared_PhysicalResource::Create() const

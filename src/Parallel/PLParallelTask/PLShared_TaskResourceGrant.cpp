@@ -8,19 +8,6 @@ PLShared_ResourceGrant::PLShared_ResourceGrant() {}
 
 PLShared_ResourceGrant::~PLShared_ResourceGrant() {}
 
-void PLShared_ResourceGrant::DeserializeObject(PLSerializer* serializer, Object* o) const
-{
-	RMResourceGrant* rg;
-
-	require(serializer->IsOpenForRead());
-	require(o != NULL);
-
-	rg = cast(RMResourceGrant*, o);
-	rg->nRank = serializer->GetInt();
-	serializer->GetLongintVector(&rg->lvResource);
-	serializer->GetLongintVector(&rg->lvSharedResource);
-}
-
 void PLShared_ResourceGrant::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
 	RMResourceGrant* rg;
@@ -34,9 +21,34 @@ void PLShared_ResourceGrant::SerializeObject(PLSerializer* serializer, const Obj
 	serializer->PutLongintVector(&rg->lvSharedResource);
 }
 
+void PLShared_ResourceGrant::DeserializeObject(PLSerializer* serializer, Object* o) const
+{
+	RMResourceGrant* rg;
+
+	require(serializer->IsOpenForRead());
+	require(o != NULL);
+
+	rg = cast(RMResourceGrant*, o);
+	rg->nRank = serializer->GetInt();
+	serializer->GetLongintVector(&rg->lvResource);
+	serializer->GetLongintVector(&rg->lvSharedResource);
+}
+
 PLShared_TaskResourceGrant::PLShared_TaskResourceGrant() {}
 
 PLShared_TaskResourceGrant::~PLShared_TaskResourceGrant() {}
+
+void PLShared_TaskResourceGrant::SerializeObject(PLSerializer* serializer, const Object* o) const
+{
+	RMTaskResourceGrant* trg;
+	PLShared_ObjectArray shared_oa(new PLShared_ResourceGrant);
+
+	require(serializer->IsOpenForWrite());
+	require(o != NULL);
+
+	trg = cast(RMTaskResourceGrant*, o);
+	shared_oa.SerializeObject(serializer, &trg->oaResourceGrant);
+}
 
 void PLShared_TaskResourceGrant::DeserializeObject(PLSerializer* serializer, Object* o) const
 {
@@ -51,17 +63,6 @@ void PLShared_TaskResourceGrant::DeserializeObject(PLSerializer* serializer, Obj
 
 	// Reindexation des ressources
 	trg->ReindexRank();
-}
-void PLShared_TaskResourceGrant::SerializeObject(PLSerializer* serializer, const Object* o) const
-{
-	RMTaskResourceGrant* trg;
-	PLShared_ObjectArray shared_oa(new PLShared_ResourceGrant);
-
-	require(serializer->IsOpenForWrite());
-	require(o != NULL);
-
-	trg = cast(RMTaskResourceGrant*, o);
-	shared_oa.SerializeObject(serializer, &trg->oaResourceGrant);
 }
 
 void PLShared_TaskResourceGrant::Test()
@@ -84,7 +85,7 @@ void PLShared_TaskResourceGrant::Test()
 
 	// Resolution
 	resourcesIn = new RMTaskResourceGrant;
-	RMParallelResourceManager::ComputeGrantedResourcesForSystem(cluster, &taskRequirement, resourcesIn);
+	RMParallelResourceManager::ComputeGrantedResourcesForCluster(cluster, &taskRequirement, resourcesIn);
 
 	// Affichage des resources
 	cout << *resourcesIn;

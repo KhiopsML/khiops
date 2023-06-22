@@ -50,18 +50,18 @@ public class GUIIntElementSpinner extends GUIIntElement
                 setComponentPreferredSize(js, 10);
 
                 // Ajout de focusListener sur le Spinner
-                // pour etre sur de capturer la perte de focus en toutes circonstances,
-                // celle-ci etant critique pour le declenchement de la mise a jour de la
-                // valeur vers le C++
+                // pour etre sur de capturer la perte de focus en toutes circonstances, celle-ci
+                // etant critique
+                // pour le declenchement de la mise a jour de la valeur vers le C++
                 js.addFocusListener(this);
 
                 return js;
         }
 
         /**
-         * Appelee lorsque le composant charge de l'edition perd le focus, l'edition
-         * est stoppee, la methode setValueAt() de GUITableModel est appelee pour
-         * sauver les valeurs
+         * Appelee lorsque le composant charge de l'edition perd le focus, l'edition est
+         * stoppee, la methode setValueAt() de GUITableModel est appelee pour sauver les
+         * valeurs
          */
         public void focusLost(FocusEvent e)
         {
@@ -74,8 +74,8 @@ public class GUIIntElementSpinner extends GUIIntElement
                         JTextField spinnerEditor = ((JSpinner.NumberEditor)js.getEditor()).getTextField();
                         String strInitialValue = spinnerEditor.getText();
 
-                        // On supprime tous les blancs, y compris internes, potentiellement
-                        // rajoutes par le composant spinner
+                        // On supprime tous les blancs, y compris internes, potentiellement rajoutes par
+                        // le composant spinner
                         String strValue = "";
                         for (Character c : strInitialValue.toCharArray()) {
                                 if (!Character.isSpaceChar(c))
@@ -113,8 +113,8 @@ public class GUIIntElementSpinner extends GUIIntElement
         {
                 return new CellElement() {
                         /**
-                         * Renvoie la valeur contenue dans l'editeur Attention : utilisation de
-                         * l'objet editorComponent, en prenant sa partie texte (idem pour
+                         * Renvoie la valeur contenue dans l'editeur Attention : utilisation de l'objet
+                         * editorComponent, en prenant sa partie texte (idem pour
                          * getTableCellEditorComponent())
                          *
                          * @return La valeur contenue dans l'editeur
@@ -128,9 +128,9 @@ public class GUIIntElementSpinner extends GUIIntElement
                         }
 
                         /**
-                         * Renvoie le composant graphique d'edition du tableau, sa valeur doit
-                         * etre initialisee avec l'objet o Attention : utilisation de l'objet
-                         * editorComponent (idem pour getCellEditorValue())
+                         * Renvoie le composant graphique d'edition du tableau, sa valeur doit etre
+                         * initialisee avec l'objet o Attention : utilisation de l'objet editorComponent
+                         * (idem pour getCellEditorValue())
                          *
                          * @param table      La table qui contient l'editeur
                          * @param o          La valeur a editer
@@ -148,8 +148,8 @@ public class GUIIntElementSpinner extends GUIIntElement
 
                         /**
                          * Renvoie le rendu du composant graphique du tableau, sa valeur doit etre
-                         * initialisee avec l'objet o Attention : Creation d'un nouvel objet
-                         * composant graphique obligatoire
+                         * initialisee avec l'objet o Attention : Creation d'un nouvel objet composant
+                         * graphique obligatoire
                          *
                          * @param table      La table qui contient la cellule
                          * @param o          La valeur de la cellule
@@ -174,8 +174,7 @@ public class GUIIntElementSpinner extends GUIIntElement
         }
 
         /**
-         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite
-         * mere
+         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite mere
          *
          * @param panel       Panneau de l'unite mere dans lequel sera ajoute le
          *                    composant d'affichage

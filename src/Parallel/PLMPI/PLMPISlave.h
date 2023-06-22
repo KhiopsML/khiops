@@ -72,7 +72,7 @@ protected:
 	// Acces au driver MPI
 	const PLMPITaskDriver* GetDriver() const;
 
-	// Serializer utilise pdans le mode boost
+	// Serializer pour l'envoi et la reception de messages
 	PLSerializer serializer;
 
 private:

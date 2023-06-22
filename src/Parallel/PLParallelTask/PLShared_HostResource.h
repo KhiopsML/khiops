@@ -22,8 +22,8 @@ public:
 	RMHostResource* GetHostResource();
 
 	// Reimplementation des methodes virtuelles
-	void DeserializeObject(PLSerializer*, Object*) const override;
-	void SerializeObject(PLSerializer*, const Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 	//////////////////////////////////////////////////////////////////
 	///// Implementation

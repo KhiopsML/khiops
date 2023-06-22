@@ -774,6 +774,58 @@ void PLShared_LearningSpec::FinalizeSpecification(KWClass* kwcValue, KWDatabase*
 	ensure(learningSpec->Check());
 }
 
+void PLShared_LearningSpec::SerializeObject(PLSerializer* serializer, const Object* o) const
+{
+	KWLearningSpec* learningSpec;
+	PLShared_Symbol sharedSymbol;
+	PLShared_PreprocessingSpec sharedPreprocessingSpec;
+	PLShared_DescriptiveContinuousStats sharedDescriptiveContinuousStats;
+	PLShared_DescriptiveSymbolStats sharedDescriptiveSymbolStats;
+	PLShared_DataGridStats sharedDataGridStats;
+
+	require(serializer->IsOpenForWrite());
+
+	learningSpec = cast(KWLearningSpec*, o);
+
+	// Serialisation des donnees de base
+	serializer->PutString(learningSpec->sShortDescription);
+	serializer->PutString(learningSpec->sTargetAttributeName);
+	serializer->PutInt(learningSpec->nTargetAttributeType);
+	sharedSymbol = learningSpec->sMainTargetModality;
+	sharedSymbol.Serialize(serializer);
+	serializer->PutBoolean(learningSpec->bIsTargetStatsComputed);
+	serializer->PutInt(learningSpec->nInstanceNumber);
+	serializer->PutDouble(learningSpec->dNullConstructionCost);
+	serializer->PutDouble(learningSpec->dNullPreparationCost);
+	serializer->PutDouble(learningSpec->dNullDataCost);
+	serializer->PutInt(learningSpec->nInitialAttributeNumber);
+	serializer->PutBoolean(learningSpec->bMultiTableConstruction);
+	serializer->PutBoolean(learningSpec->bTrees);
+	serializer->PutBoolean(learningSpec->bAttributePairs);
+	serializer->PutInt(learningSpec->nConstructionFamilyNumber);
+	serializer->PutInt(learningSpec->nMainTargetModalityIndex);
+	serializer->PutInt(learningSpec->nMaxModalityNumber);
+	serializer->PutBoolean(learningSpec->bCheckTargetAttribute);
+
+	// Serialisation des specification de preprocessing
+	sharedPreprocessingSpec.SerializeObject(serializer, &(learningSpec->preprocessingSpec));
+
+	// Serialisation des statistiques sur l'attribut cible
+	AddNull(serializer, learningSpec->targetDescriptiveStats);
+	if (learningSpec->targetDescriptiveStats != NULL)
+	{
+		// Serialisation selon le type d'attribut
+		if (learningSpec->nTargetAttributeType == KWType::Continuous)
+			sharedDescriptiveContinuousStats.SerializeObject(serializer,
+									 learningSpec->targetDescriptiveStats);
+		else if (learningSpec->nTargetAttributeType == KWType::Symbol)
+			sharedDescriptiveSymbolStats.SerializeObject(serializer, learningSpec->targetDescriptiveStats);
+	}
+	AddNull(serializer, learningSpec->targetValueStats);
+	if (learningSpec->targetValueStats != NULL)
+		sharedDataGridStats.SerializeObject(serializer, learningSpec->targetValueStats);
+}
+
 void PLShared_LearningSpec::DeserializeObject(PLSerializer* serializer, Object* o) const
 {
 	KWLearningSpec* learningSpec;
@@ -835,58 +887,6 @@ void PLShared_LearningSpec::DeserializeObject(PLSerializer* serializer, Object* 
 		learningSpec->targetValueStats = new KWDataGridStats;
 		sharedDataGridStats.DeserializeObject(serializer, learningSpec->targetValueStats);
 	}
-}
-
-void PLShared_LearningSpec::SerializeObject(PLSerializer* serializer, const Object* o) const
-{
-	KWLearningSpec* learningSpec;
-	PLShared_Symbol sharedSymbol;
-	PLShared_PreprocessingSpec sharedPreprocessingSpec;
-	PLShared_DescriptiveContinuousStats sharedDescriptiveContinuousStats;
-	PLShared_DescriptiveSymbolStats sharedDescriptiveSymbolStats;
-	PLShared_DataGridStats sharedDataGridStats;
-
-	require(serializer->IsOpenForWrite());
-
-	learningSpec = cast(KWLearningSpec*, o);
-
-	// Serialisation des donnees de base
-	serializer->PutString(learningSpec->sShortDescription);
-	serializer->PutString(learningSpec->sTargetAttributeName);
-	serializer->PutInt(learningSpec->nTargetAttributeType);
-	sharedSymbol = learningSpec->sMainTargetModality;
-	sharedSymbol.Serialize(serializer);
-	serializer->PutBoolean(learningSpec->bIsTargetStatsComputed);
-	serializer->PutInt(learningSpec->nInstanceNumber);
-	serializer->PutDouble(learningSpec->dNullConstructionCost);
-	serializer->PutDouble(learningSpec->dNullPreparationCost);
-	serializer->PutDouble(learningSpec->dNullDataCost);
-	serializer->PutInt(learningSpec->nInitialAttributeNumber);
-	serializer->PutBoolean(learningSpec->bMultiTableConstruction);
-	serializer->PutBoolean(learningSpec->bTrees);
-	serializer->PutBoolean(learningSpec->bAttributePairs);
-	serializer->PutInt(learningSpec->nConstructionFamilyNumber);
-	serializer->PutInt(learningSpec->nMainTargetModalityIndex);
-	serializer->PutInt(learningSpec->nMaxModalityNumber);
-	serializer->PutBoolean(learningSpec->bCheckTargetAttribute);
-
-	// Serialisation des specification de preprocessing
-	sharedPreprocessingSpec.SerializeObject(serializer, &(learningSpec->preprocessingSpec));
-
-	// Serialisation des statistiques sur l'attribut cible
-	AddNull(serializer, learningSpec->targetDescriptiveStats);
-	if (learningSpec->targetDescriptiveStats != NULL)
-	{
-		// Serialisation selon le type d'attribut
-		if (learningSpec->nTargetAttributeType == KWType::Continuous)
-			sharedDescriptiveContinuousStats.SerializeObject(serializer,
-									 learningSpec->targetDescriptiveStats);
-		else if (learningSpec->nTargetAttributeType == KWType::Symbol)
-			sharedDescriptiveSymbolStats.SerializeObject(serializer, learningSpec->targetDescriptiveStats);
-	}
-	AddNull(serializer, learningSpec->targetValueStats);
-	if (learningSpec->targetValueStats != NULL)
-		sharedDataGridStats.SerializeObject(serializer, learningSpec->targetValueStats);
 }
 
 Object* PLShared_LearningSpec::Create() const

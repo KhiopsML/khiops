@@ -1,33 +1,8 @@
-Rank;
-Name;
-Type;
-Style;
-Label 1;
-ShortDescription;
-ALString;
-;
-ShortDescription 2;
-InstanceNumber;
-int;
-;
-Instance number 3;
-NonEmptyCellNumber;
-int;
-;
-Non empty cell number 4;
-CellNumber;
-int;
-;
-Cell number 5;
-MaxCellNumber;
-int;
-;
-Max cell number 6;
-MaxPreservedInformation;
-int;
-Spinner;
-Max preserved information 7;
-FrequencyAttribute;
-ALString;
-;
-Frequency variable
+Rank;Name;Type;Style;Label
+1;ShortDescription         ;ALString;    ;ShortDescription
+2;InstanceNumber           ;int;         ;Instance number
+3;NonEmptyCellNumber       ;int;         ;Non empty cell number
+4;CellNumber               ;int;         ;Cell number
+5;MaxCellNumber            ;int;         ;Max cell number
+6;MaxPreservedInformation  ;int;Spinner  ;Max preserved information
+7;FrequencyAttribute       ;ALString;    ;Frequency variable

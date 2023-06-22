@@ -16,6 +16,7 @@ PLMPIMaster::PLMPIMaster(PLParallelTask* t)
 	bSpawnedDone = false;
 	nFirstSlaveInitializeMessageRank = -1;
 	nFirstSlaveFinalizeMessageRank = -1;
+	bInterruptionRequestedIsSent = false;
 }
 
 PLMPIMaster::~PLMPIMaster()
@@ -401,46 +402,44 @@ boolean PLMPIMaster::Process()
 		// Test si le nombre de messages utilisateur est arrive a saturation
 		UpdateMaxErrorFlow();
 
-		// Lancement d'un nouveau job par un esclave
-		if (not bInterruptionRequested and not task->bJobIsTerminated)
+		// Boucle de lancement de tous les esclaves disponibles
+		theWorker = GetTask()->GetReadySlave();
+		while (theWorker != NULL and not bInterruptionRequested and not task->bJobIsTerminated)
 		{
-			theWorker = GetTask()->GetReadySlave();
+			dTaskPercentage = 0;
 
-			// Si un esclave est disponible
-			if (theWorker != NULL)
+			// Preparation des donnees
+			bMasterPrepareTaskInputOk =
+			    task->CallMasterPrepareTaskInput(dTaskPercentage, task->bJobIsTerminated, theWorker);
+
+			// Arret des esclaves en cas de probleme
+			if (not bMasterPrepareTaskInputOk)
 			{
-				dTaskPercentage = 0;
-
-				// Preparation des donnees
-				bMasterPrepareTaskInputOk = task->CallMasterPrepareTaskInput(
-				    dTaskPercentage, task->bJobIsTerminated, theWorker);
-
-				// Arret des esclaves en cas de probleme
-				if (not bMasterPrepareTaskInputOk)
-				{
-					NotifyInterruptionRequested();
-					bInterruptionRequested = true;
-				}
-				assert(not(task->bJobIsTerminated and task->bSlaveAtRestWithoutProcessing));
-
-				// On donne l'ordre de lancer l'esclave si il n'a pas ete mis en sommeil
-				if (not task->bJobIsTerminated and not bInterruptionRequested and
-				    not task->bSlaveAtRestWithoutProcessing)
-				{
-					// Reception de tous les messages de progression issus de l'esclave
-					DischargePendingCommunication(theWorker->GetRank(), SLAVE_PROGRESSION);
-
-					// Lancement de l'eclave
-					GiveNewJob(theWorker, dTaskPercentage);
-				}
-
-				// Reinitialisation du flag qui est mis a jour dans MasterPrepareTaskInput
-				task->bSlaveAtRestWithoutProcessing = false;
+				NotifyInterruptionRequested();
+				bInterruptionRequested = true;
 			}
+			assert(not(task->bJobIsTerminated and task->bSlaveAtRestWithoutProcessing));
+
+			// On donne l'ordre de lancer l'esclave si il n'a pas ete mis en sommeil
+			if (not task->bJobIsTerminated and not bInterruptionRequested and
+			    not task->bSlaveAtRestWithoutProcessing)
+			{
+				// Reception de tous les messages de progression issus de l'esclave
+				DischargePendingCommunication(theWorker->GetRank(), SLAVE_PROGRESSION);
+
+				// Lancement de l'eclave
+				GiveNewJob(theWorker, dTaskPercentage);
+			}
+
+			// Reinitialisation du flag qui est mis a jour dans MasterPrepareTaskInput
+			task->bSlaveAtRestWithoutProcessing = false;
+
+			// Prochain esclave disponible
+			theWorker = GetTask()->GetReadySlave();
 		}
 
 		// Reception et traitement d'un message
-		if (task->shared_bBoostedMode)
+		if (task->shared_bBoostedMode and not task->bJobIsTerminated)
 			ReceiveAndProcessMessage(MPI_ANY_TAG, MPI_ANY_SOURCE);
 		else
 		{
@@ -535,7 +534,7 @@ boolean PLMPIMaster::Process()
 	return not bInterruptionRequested and bMasterFinalizeOk and bMasterInitializeOk;
 }
 
-int PLMPIMaster::ReceiveAndProcessMessage(int nTag, int nSource)
+int PLMPIMaster::ReceiveAndProcessMessage(int nAnyTag, int nAnySource)
 {
 	ALString sTmp;
 	PLSlaveState* aSlave;
@@ -552,8 +551,10 @@ int PLMPIMaster::ReceiveAndProcessMessage(int nTag, int nSource)
 	boolean bFinalizeOk;
 	boolean bSlaveProcessOnce;
 	boolean bOk;
+	int nSource;
+	int nTag;
 
-	context.Recv(MPI_COMM_WORLD, nSource, nTag);
+	context.Recv(MPI_COMM_WORLD, nAnySource, nAnyTag);
 	serializer.OpenForRead(&context);
 	nSource = context.GetRank();
 	nTag = context.GetTag();
@@ -594,8 +595,6 @@ int PLMPIMaster::ReceiveAndProcessMessage(int nTag, int nSource)
 		aSlave = GetTask()->GetSlaveWithRank(nSource);
 		assert(aSlave->GetState() == PLSlaveState::PROCESSING);
 
-		require(aSlave->IsProcessing());
-
 		// Mise a jour de la progression globale
 		dGlobalProgression += aSlave->GetTaskPercent() * 100;
 
@@ -614,14 +613,14 @@ int PLMPIMaster::ReceiveAndProcessMessage(int nTag, int nSource)
 		// Decrementation du nombre d'esclaves qui travaillent
 		nWorkingSlaves--;
 
-		// Reception des variables partagees
-		if (GetTracerMPI()->GetActiveMode())
-			GetTracerMPI()->AddRecv(nSource, nTag);
-
 		// Autorisation de lecture pour les output variables
 		task->SetSharedVariablesRW(&task->oaOutputVariables);
 		task->DeserializeSharedVariables(&serializer, &task->oaOutputVariables);
 		serializer.Close();
+
+		// Reception des variables partagees
+		if (GetTracerMPI()->GetActiveMode())
+			GetTracerMPI()->AddRecv(nSource, nTag);
 
 		// Si le slaveProcess a echoue on demande l'arret
 		if (task->output_bSlaveProcessOk == false)
@@ -778,7 +777,7 @@ int PLMPIMaster::ReceiveAndProcessMessage(int nTag, int nSource)
 
 	case SLAVE_DONE:
 		// Message de terminaison
-		// envoye par les esclaves apres le SlaveFinalize: TOUT est finni
+		// envoye par les esclaves apres le SlaveFinalize: TOUT est fini
 		bFinalizeOk = serializer.GetBoolean();
 		serializer.Close();
 		if (GetTracerMPI()->GetActiveMode())
@@ -788,7 +787,7 @@ int PLMPIMaster::ReceiveAndProcessMessage(int nTag, int nSource)
 		assert(nFinalisationCount <= nInitialisationCount);
 
 		aSlave = GetTask()->GetSlaveWithRank(nSource);
-		assert(aSlave->GetState() == PLSlaveState::FINALIZE);
+		assert(bInterruptionRequestedIsSent or aSlave->GetState() == PLSlaveState::FINALIZE);
 		aSlave->SetState(PLSlaveState::DONE);
 		aSlave->SetProgression(0);
 
@@ -962,6 +961,7 @@ void PLMPIMaster::SetInterruptionRequested(boolean isInteruptionRequested)
 		MPI_Put(&isInteruptionRequested, 1, MPI_INT, i, 0, 1, MPI_INT, winForInterruption);
 		MPI_Win_unlock(i, winForInterruption);
 	}
+	bInterruptionRequestedIsSent = true;
 }
 
 const ALString PLMPIMaster::GetClassLabel() const

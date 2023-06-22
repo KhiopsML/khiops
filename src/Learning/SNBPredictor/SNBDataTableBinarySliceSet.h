@@ -14,9 +14,6 @@ class SNBDataTableBinarySliceSet;
 
 #include "KWDataPreparationClass.h"
 
-// DDD
-#include "SNBPredictorSelectionDataCostCalculator.h"
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 // Layout logique du SNBDataTableBinarySliceSet
 // Repond aux queries sur les dimensions, offsets du tableau et de slices et chunks
@@ -79,7 +76,7 @@ public:
 	int GetRelativeIndexAtAttribute(int nAttribute) const;
 
 	// Nombre de `int`s contenus dans un bloc
-	int GetBlockSizeAt(int nChunk, int nSlice) const;
+	longint GetBlockSizeAt(int nChunk, int nSlice) const;
 
 	// Offset en bytes d'un bloc dans son fichier de chunk
 	longint GetBlockOffsetAt(int nChunk, int nSlice) const;
@@ -133,7 +130,7 @@ protected:
 	// Indexes des attributs relatifs a ses slices
 	IntVector ivAttributeRelativeIndexes;
 
-	// Tableau de IntVector's contenant les tailles des des blocs
+	// Tableau de LongintVectors's contenant les tailles des des blocs
 	ObjectArray oaBlockSizes;
 
 	// Tableau de LongintVector's contenant les offsets des blocs
@@ -264,8 +261,8 @@ public:
 
 protected:
 	// Reimplementation des methodes de PLSharedObject
-	void DeserializeObject(PLSerializer* serializer, Object* object) const override;
-	void SerializeObject(PLSerializer* serializer, const Object* object) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 	Object* Create() const override;
 };
 

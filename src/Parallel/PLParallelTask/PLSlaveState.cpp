@@ -128,6 +128,8 @@ const ALString PLSlaveState::GetStateAsString(State nState)
 void PLSlaveState::Write(ostream& ost) const
 {
 	ost << nRank << " on " << sHostName << " " << PrintState() << " progression : " << IntToString(GetProgression())
-	    << "Task% : " << DoubleToString(dPercentOfTheJob * 100) << endl;
-	;
+	    << " Task% : " << DoubleToString(dPercentOfTheJob * 100);
+	if (bMustRest)
+		cout << " AT REST";
+	cout << endl;
 }

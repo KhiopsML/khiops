@@ -6,7 +6,8 @@
 
 PLMTDatabaseTextFile::PLMTDatabaseTextFile()
 {
-	lTotalInputFileSize = 0;
+	lTotalFileSize = 0;
+	lTotalUsedFileSize = 0;
 	lOutputNecessaryDiskSpace = 0;
 	lEmptyOpenNecessaryMemory = 0;
 	lMinOpenNecessaryMemory = 0;
@@ -90,7 +91,7 @@ boolean PLMTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 	oaIndexedMappingsDataItemLoadIndexes.SetSize(GetMultiTableMappings()->GetSize());
 	oaIndexedMappingsRootKeyIndexes.SetSize(GetMultiTableMappings()->GetSize());
 	oaUsedMappings.SetSize(GetMultiTableMappings()->GetSize());
-	lvInputFileSizes.SetSize(GetMultiTableMappings()->GetSize());
+	lvFileSizes.SetSize(GetMultiTableMappings()->GetSize());
 	for (i = 0; i < GetMultiTableMappings()->GetSize(); i++)
 	{
 		mapping = cast(KWMTDatabaseMapping*, GetMultiTableMappings()->GetAt(i));
@@ -104,11 +105,11 @@ boolean PLMTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 		}
 
 		// Memorisation de la taille du fichier d'entree
+		lvFileSizes.SetAt(i, PLRemoteFileService::GetFileSize(mapping->GetDataTableName()));
+		if (bRead)
+			lTotalFileSize += lvFileSizes.GetAt(i);
 		if (bRead and driver != NULL)
-		{
-			lvInputFileSizes.SetAt(i, PLRemoteFileService::GetFileSize(driver->GetDataTableName()));
-			lTotalInputFileSize += lvInputFileSizes.GetAt(i);
-		}
+			lTotalUsedFileSize += lvFileSizes.GetAt(i);
 
 		// Si driver present, on calcule et memorise le vecteur d'index des champs de la table en entree
 		if (bRead and driver != NULL)
@@ -163,7 +164,7 @@ boolean PLMTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 		lOutputNecessaryDiskSpace = (lOutputNecessaryDiskSpace * GetSampleNumberPercentage()) / 100;
 
 	// S'il y a un critere de selection, on ne peut prevoir la place necessaire
-	// On se plase alors de facon heuristique sur 5% (pour ne pas sur-estimer cette place et interdire la tache)
+	// On se place alors de facon heuristique sur 5% (pour ne pas sur-estimer cette place et interdire la tache)
 	// De toutes facon, il faudra que la tache suive regulierement la place restante en ecriture
 	if (GetSelectionAttribute() != "")
 		lOutputNecessaryDiskSpace /= 20;
@@ -198,8 +199,9 @@ boolean PLMTDatabaseTextFile::IsOpenInformationComputed() const
 void PLMTDatabaseTextFile::CleanOpenInformation()
 {
 	oaUsedMappings.SetSize(0);
-	lvInputFileSizes.SetSize(0);
-	lTotalInputFileSize = 0;
+	lvFileSizes.SetSize(0);
+	lTotalFileSize = 0;
+	lTotalUsedFileSize = 0;
 	lOutputNecessaryDiskSpace = 0;
 	lEmptyOpenNecessaryMemory = 0;
 	lMinOpenNecessaryMemory = 0;
@@ -243,16 +245,22 @@ int PLMTDatabaseTextFile::GetUsedMappingNumber() const
 	return nUsedMappingNumber;
 }
 
-const LongintVector* PLMTDatabaseTextFile::GetInputFileSizes() const
+const LongintVector* PLMTDatabaseTextFile::GetFileSizes() const
 {
 	require(IsOpenInformationComputed());
-	return &lvInputFileSizes;
+	return &lvFileSizes;
 }
 
-longint PLMTDatabaseTextFile::GetTotalInputFileSize() const
+longint PLMTDatabaseTextFile::GetTotalFileSize() const
 {
 	require(IsOpenInformationComputed());
-	return lTotalInputFileSize;
+	return lTotalFileSize;
+}
+
+longint PLMTDatabaseTextFile::GetTotalUsedFileSize() const
+{
+	require(IsOpenInformationComputed());
+	return lTotalUsedFileSize;
 }
 
 longint PLMTDatabaseTextFile::GetEmptyOpenNecessaryMemory() const
@@ -282,7 +290,7 @@ longint PLMTDatabaseTextFile::GetOutputNecessaryDiskSpace() const
 int PLMTDatabaseTextFile::GetMaxSlaveProcessNumber() const
 {
 	require(IsOpenInformationComputed());
-	return (int)ceil((lTotalInputFileSize + 1.0) / nMinOpenBufferSize);
+	return (int)ceil((lTotalUsedFileSize + 1.0) / nMinOpenBufferSize);
 }
 
 int PLMTDatabaseTextFile::ComputeOpenBufferSize(boolean bRead, longint lOpenGrantedMemory) const
@@ -727,7 +735,7 @@ longint PLMTDatabaseTextFile::ComputeBufferNecessaryMemory(boolean bRead, int nB
 		{
 			// Mise a jour de la de memoire necessaire, en tenant compte des tailles de fichier
 			lNecessaryMemory += PLDataTableDriverTextFile::ComputeBufferNecessaryMemory(
-			    bRead, nBufferSize, lvInputFileSizes.GetAt(i));
+			    bRead, nBufferSize, lvFileSizes.GetAt(i));
 		}
 	}
 	return lNecessaryMemory;
@@ -868,8 +876,9 @@ void PLShared_MTDatabaseTextFile::SerializeObject(PLSerializer* serializer, cons
 	serializer->PutIntVector(&ivUsedMappingFlags);
 
 	// Ecriture des informations d'ouverture de la base
-	serializer->PutLongintVector(&database->lvInputFileSizes);
-	serializer->PutLongint(database->lTotalInputFileSize);
+	serializer->PutLongintVector(&database->lvFileSizes);
+	serializer->PutLongint(database->lTotalFileSize);
+	serializer->PutLongint(database->lTotalUsedFileSize);
 	serializer->PutLongint(database->lOutputNecessaryDiskSpace);
 	serializer->PutLongint(database->lEmptyOpenNecessaryMemory);
 	serializer->PutLongint(database->lMinOpenNecessaryMemory);
@@ -953,8 +962,9 @@ void PLShared_MTDatabaseTextFile::DeserializeObject(PLSerializer* serializer, Ob
 	}
 
 	// Lecture des informations d'ouverture de la base
-	serializer->GetLongintVector(&database->lvInputFileSizes);
-	database->lTotalInputFileSize = serializer->GetLongint();
+	serializer->GetLongintVector(&database->lvFileSizes);
+	database->lTotalFileSize = serializer->GetLongint();
+	database->lTotalUsedFileSize = serializer->GetLongint();
 	database->lOutputNecessaryDiskSpace = serializer->GetLongint();
 	database->lEmptyOpenNecessaryMemory = serializer->GetLongint();
 	database->lMinOpenNecessaryMemory = serializer->GetLongint();

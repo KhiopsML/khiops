@@ -11,13 +11,13 @@ void KWDRRegisterAllRules()
 	KWDRRegisterStandardRules();
 	KWDRRegisterMathRules();
 	KWDRRegisterStringRules();
+	if (GetLearningTextVariableMode())
+		KWDRRegisterTextRules();
 	KWDRRegisterCompareRules();
 	KWDRRegisterLogicalRules();
 	KWDRRegisterDateTimeRules();
 	KWDRRegisterVectorRules();
 	KWDRRegisterHashMapRules();
 	KWDRRegisterMultiTableRules();
-	KWDerivationRule::RegisterDerivationRule(new KWDRTokenCounts);
-	KWDerivationRule::RegisterDerivationRule(new KWDRTokenize);
-	KWDerivationRule::RegisterDerivationRule(new KWDRCharNGramCounts);
+	KWDRRegisterTextAdvancedRules();
 }

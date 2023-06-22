@@ -176,10 +176,9 @@ public abstract class GUIUnit extends GUIData implements ActionListener
         public Vector<GUIData> vectorOfGUIDatas;
 
         /**
-         * Renvoie l'indicateur qu'une action est en cours d'execution/ Permet
-         * d'inhiber certains rafraichissements d'interface pendant l'execution de
-         * l'action. L'indicateur est disponible pour toutes les unites d'interface en
-         * cours
+         * Renvoie l'indicateur qu'une action est en cours d'execution/ Permet d'inhiber
+         * certains rafraichissements d'interface pendant l'execution de l'action.
+         * L'indicateur est disponible pour toutes les unites d'interface en cours
          *
          * @return L'indicateur d'action
          */
@@ -258,9 +257,9 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                         isModal = false;
                         addTrace("modal lock created: " + isModal);
 
-                        // On envoie un evenement qui sera execute dans l'EDT apres le passage en
-                        // modal de la fenetre. Cela garantit que laction C++ ne sera declenchee
-                        // qu'apres le traitement de tous les evenements de l'EDT en cours
+                        // On envoie un evenement qui sera execute dans l'EDT apres le passage en modal
+                        // de la fenetre. Cela garantit que l'action C++ ne sera declenchee qu'apres
+                        // le traitement de tous les evenements de l'EDT en cours
                         SwingUtilities.invokeLater(new Runnable() {
                                 public void run()
                                 {
@@ -340,8 +339,8 @@ public abstract class GUIUnit extends GUIData implements ActionListener
         }
 
         /**
-         * Ajoute un element de type booleen : recherche la classe, instancie
-         * l'element, et ajoute l'element dans le tableau de donnees
+         * Ajoute un element de type booleen : recherche la classe, instancie l'element,
+         * et ajoute l'element dans le tableau de donnees
          *
          * @param sFieldId      L'identifiant de l'element a ajouter
          * @param sLabel        Le libelle de l'element a ajouter
@@ -433,8 +432,8 @@ public abstract class GUIUnit extends GUIData implements ActionListener
         }
 
         /**
-         * Ajoute un element de type reel : recherche la classe, instancie l'element,
-         * et ajoute l'element dans le tableau de donnees
+         * Ajoute un element de type reel : recherche la classe, instancie l'element, et
+         * ajoute l'element dans le tableau de donnees
          *
          * @param sFieldId      L'identifiant de l'element a ajouter
          * @param sLabel        Le libelle de l'element a ajouter
@@ -459,8 +458,8 @@ public abstract class GUIUnit extends GUIData implements ActionListener
         }
 
         /**
-         * Ajoute un element de type entier : recherche la classe, instancie
-         * l'element, et ajoute l'element dans le tableau de donnees
+         * Ajoute un element de type entier : recherche la classe, instancie l'element,
+         * et ajoute l'element dans le tableau de donnees
          *
          * @param sFieldId      L'identifiant de l'element a ajouter
          * @param sLabel        Le libelle de l'element a ajouter
@@ -484,8 +483,8 @@ public abstract class GUIUnit extends GUIData implements ActionListener
         }
 
         /**
-         * Ajoute un element de type reel : recherche la classe, instancie l'element,
-         * et ajoute l'element dans le tableau de donnees
+         * Ajoute un element de type reel : recherche la classe, instancie l'element, et
+         * ajoute l'element dans le tableau de donnees
          *
          * @param sFieldId      L'identifiant de l'element a ajouter
          * @param sLabel        Le libelle de l'element a ajouter
@@ -540,8 +539,8 @@ public abstract class GUIUnit extends GUIData implements ActionListener
         }
 
         /**
-         * Ajoute un element de type entier : recherche la classe, instancie
-         * l'element, et ajoute l'element dans le tableau de donnees
+         * Ajoute un element de type entier : recherche la classe, instancie l'element,
+         * et ajoute l'element dans le tableau de donnees
          *
          * @param sFieldId      L'identifiant de l'element a ajouter
          * @param sLabel        Le libelle de l'element a ajouter
@@ -1013,8 +1012,8 @@ public abstract class GUIUnit extends GUIData implements ActionListener
         private long getUIObjectHandle() { return uiObjectHandle; }
 
         /**
-         * Indique si l'unite possede au moins une action (rexcursivement) a
-         * representer sous la forme de bouton
+         * Indique si l'unite possede au moins une action (rexcursivement) a representer
+         * sous la forme de bouton
          *
          * @return Un booleen indiquant si l'unite possede au moins une action a
          *         representer sous la forme de bouton
@@ -1078,8 +1077,8 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                         }
                 }
 
-                // On ne considere que l'aide sur les unites, l'aide sur les elements
-                // terminaux etant fournie par les info-bulles
+                // On ne considere que l'aide sur les unites, l'aide sur les elements terminaux
+                // etant fournie par les info-bulles
                 return (getHelpText().length() > 0 || hasDataUnitHelpText);
         }
 
@@ -1094,9 +1093,8 @@ public abstract class GUIUnit extends GUIData implements ActionListener
         Object closeLock = null;
 
         /**
-         * Initialise et ouvre l'unite Gestion de la synchronisation entre Java et
-         * C++, en attendant la fermeture de la fenetre via le verrou de gestion des
-         * fenetres
+         * Initialise et ouvre l'unite Gestion de la synchronisation entre Java et C++,
+         * en attendant la fermeture de la fenetre via le verrou de gestion des fenetres
          */
         public void open()
         {
@@ -1132,8 +1130,8 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                         return;
                 }
 
-                // Gestion directe par une boite de dialogue des fiches elementaires de
-                // style "QuestionDialog"
+                // Gestion directe par une boite de dialogue des fiches elementaires de style
+                // "QuestionDialog"
                 boolean directDialog = true;
                 if (directDialog && GUIDialog.isDialogCard(this)) {
                         // Mancement de la boite de dialogue
@@ -1161,8 +1159,8 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                 assert (frame != null);
                 openedGUIUnitsStack.push(this);
 
-                // Creation d'un thread de synchronisation, permettant d'attendre la
-                // fermeture de la fenetre
+                // Creation d'un thread de synchronisation, permettant d'attendre la fermeture
+                // de la fenetre
                 Thread closeThread = new Thread() {
                         public void run()
                         {
@@ -1205,9 +1203,9 @@ public abstract class GUIUnit extends GUIData implements ActionListener
         }
 
         /**
-         * Creation de la fenetre principale et ouverture Enregistrement d'une action
-         * de fermeture pour gerer le verrou de synchronisation permettant d'attendre
-         * la fermeture de la fenetre au programme appelant la methode Open
+         * Creation de la fenetre principale et ouverture Enregistrement d'une action de
+         * fermeture pour gerer le verrou de synchronisation permettant d'attendre la
+         * fermeture de la fenetre au programme appelant la methode Open
          *
          * @param parentFrame Frame parent du FileChooser
          */
@@ -1298,8 +1296,8 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                 };
                 frame.addWindowListener(windowClosingListener);
 
-                // Position de la fenetre par rapport a la fenetre parente si elle est est
-                // cree par GUIUnit, au centre de l'ecran sinon
+                // Position de la fenetre par rapport a la fenetre parente si elle est est cree
+                // par GUIUnit, au centre de l'ecran sinon
                 frame.setLocationRelativeTo(parentFrame);
 
                 // Dans le cas d'un frame null, on regarde si l'on dispose d'une derniere
@@ -1322,12 +1320,12 @@ public abstract class GUIUnit extends GUIData implements ActionListener
         }
 
         /**
-         * Fermeture de la fenetre principal Gestion de la perte de focus et mise a
-         * jour des valeur cote C++ par celles de l'interface
+         * Fermeture de la fenetre principal Gestion de la perte de focus et mise a jour
+         * des valeur cote C++ par celles de l'interface
          *
          * @param guiAction: action declenchant la fermeture, d'identifiant ou de
-         *                   parametre Exit, ou null s'il s'agit d'une fermeture par
-         * le menu systeme
+         *                   parametre Exit, ou null s'il s'agit d'une fermeture par le
+         *                   menu systeme
          */
         private void closeGUI(GUIAction guiAction)
         {
@@ -1356,8 +1354,7 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                 focusManager = KeyboardFocusManager.getCurrentKeyboardFocusManager();
                 focusOwner = focusManager.getFocusOwner();
                 try {
-                        // On memorise le composant possedant le focus et on simule une perte de
-                        // focus
+                        // On memorise le composant possedant le focus et on simule une perte de focus
                         if (focusOwner != null) {
                                 FocusEvent focusEvent =
                                   new FocusEvent(focusOwner, FocusEvent.FOCUS_LOST, false, parentRoot.frame);
@@ -1381,8 +1378,8 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                 SwingUtilities.invokeLater(new Runnable() {
                         public void run()
                         {
-                                // On execute l'action de sortie pour forcer la mise a jour des valeurs
-                                // C++ par celle de l'interface
+                                // On execute l'action de sortie pour forcer la mise a jour des valeurs C++ par
+                                // celle de l'interface
                                 addTrace("windowClosing before execute " + exitAction);
                                 try {
                                         executeUserActionAt(exitAction);
@@ -1416,15 +1413,14 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                 Window parentWindow = null;
                 JFrame parentFrame = null;
 
-                // On recupere la fenetre active, qui n'est pas necessairement une frame
-                // gere par NormGUI
+                // On recupere la fenetre active, qui n'est pas necessairement une frame gere
+                // par NormGUI
                 try {
                         KeyboardFocusManager focusManager = KeyboardFocusManager.getCurrentKeyboardFocusManager();
                         parentWindow = focusManager.getActiveWindow();
                         parentFrame = (JFrame)parentWindow;
 
-                        // Test si le nom de la frame correspond a celui des frames crees par
-                        // GUIUnit
+                        // Test si le nom de la frame correspond a celui des frames crees par GUIUnit
                         if (parentFrame != null &&
                             (parentFrame.getTitle() == null || !parentFrame.getName().equals(frameUniqueName)))
                                 parentFrame = null;
@@ -1449,10 +1445,9 @@ public abstract class GUIUnit extends GUIData implements ActionListener
 
         /**
          * Parametrage de l'etat enable d'un Frame et de son contenu, de facon a
-         * permettre l'acces au menu systeme (iconiser, maximiser...) L'etat de la
-         * Frame est propage recursivement a tout son contenu, sauf a la frame
-         * elle-meme (son parametrage simple se propage aux menus systemes) et aux
-         * exceptions
+         * permettre l'acces au menu systeme (iconiser, maximiser...) L'etat de la Frame
+         * est propage recursivement a tout son contenu, sauf a la frame elle-meme (son
+         * parametrage simple se propage aux menus systemes) et aux exceptions
          */
         void setDescendantsEnabled(Component c, boolean value, Hashtable<Component, Component> exceptionComponents)
         {
@@ -1473,8 +1468,8 @@ public abstract class GUIUnit extends GUIData implements ActionListener
         }
 
         /**
-         * Recherche de tous les descendants disable Permet de memoriser les
-         * composants initialement disable, pour restituer leur etat initial
+         * Recherche de tous les descendants disable Permet de memoriser les composants
+         * initialement disable, pour restituer leur etat initial
          */
         void searchAllDisabledComponents(Component c, Hashtable<Component, Component> disabledComponents)
         {
@@ -1539,8 +1534,7 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                 assert (!guiAction.getIdentifier().equals(Exit));
                 addTrace("startModal " + guiAction.getIdentifier() + " (" + guiAction.getParameters() + ") start");
 
-                // Recherche de la frame courante, qui peut etre celle d'une fenetre
-                // englobante
+                // Recherche de la frame courante, qui peut etre celle d'une fenetre englobante
                 currentFrame = getParentRoot().frame;
 
                 // On recupere la fenetre active
@@ -1584,13 +1578,11 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                 currentFrame.setIgnoreRepaint(true);
 
                 // On restitue le caractere actif des composants pour qu'il se repeignent
-                // correctement selon lors caractere editable, en laissant la fenetre non
-                // active
+                // correctement selon lors caractere editable, en laissant la fenetre non active
                 setDescendantsEnabled(currentFrame, true, currentDisabledComponents);
                 currentFrame.setEnabled(false);
 
-                // On rafraichit les composants graphiques de l'unite avec les donnees
-                // logiques
+                // On rafraichit les composants graphiques de l'unite avec les donnees logiques
                 try {
                         getParentRoot().graphicRefreshAll();
                 } catch (Exception ex) {
@@ -1600,8 +1592,7 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                 } catch (Exception ex) {
                 }
 
-                // On retabli le comportement initial des demandes de fermeture de la
-                // fenetre
+                // On retabli le comportement initial des demandes de fermeture de la fenetre
                 currentFrame.setDefaultCloseOperation(currentDefaultCloseOperation);
 
                 // On restitue l'etat de la fenetre au moment de l'action
@@ -1827,9 +1818,8 @@ public abstract class GUIUnit extends GUIData implements ActionListener
         // (EDT: Event Dispatching Thread) et le programme C++ appelant
         // risque de continuer et de se terminer
         // . cree un thread de mise en attente de femeture de la fenetre
-        // .. il fait une boucle d'attente sur la fermeture de la fenetre (non
-        // visible), synchronisee avec le verrou closeLock, en faisant des wait() sur
-        // le verrou
+        // .. il fait une boucle d'attente sur la fermeture de la fenetre (non visible),
+        // synchronisee avec le verrou closeLock, en faisant des wait() sur le verrou
         // .. il est lance par start(), puis on attend sa fin par join()
         // .. le programme C++ appelant est en attente de la fermeture de la fenetre
         // . cas specifique de gestion des UIFileChoosedrCard
@@ -1847,8 +1837,7 @@ public abstract class GUIUnit extends GUIData implements ActionListener
         // - sinon
         // . appel de startModal() pour rendre la fenetre inactive
         // . creation et lancement d'un thread de traitement de l'action
-        // .. appel de la methode C++ correspondant a l'action par
-        // executeUserActionAt()
+        // .. appel de la methode C++ correspondant a l'action par executeUserActionAt()
         // .. si action de parametre "Exit": appel de closeGUI()
         // .. sinon, appel de stopModal() pour rendre la fenetre active
         //
@@ -1857,8 +1846,7 @@ public abstract class GUIUnit extends GUIData implements ActionListener
         // . currentFrame, currentFrameState, currentDefaultCloseOperation,
         // - on provoque une perte de focus pour forcer la mise a jour des donnees C++
         // par les donnees de l'interface java avant execution de l'action
-        // - desactivation de la fenetre et de ses composant (par des
-        // setEnabled(false))
+        // - desactivation de la fenetre et de ses composant (par des setEnabled(false))
         //
         // f) stopModal()
         // - recherche du contexte, et restitution de ce contexte

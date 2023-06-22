@@ -76,8 +76,8 @@ public:
 	KWKey* GetKey();
 
 	// Reimplementation des methodes virtuelles
-	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation
@@ -162,8 +162,8 @@ public:
 	KWKeyPosition* GetKeyPosition();
 
 	// Reimplementation des methodes virtuelles
-	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation

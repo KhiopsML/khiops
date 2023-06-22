@@ -16,21 +16,6 @@ PLShared_HostResource::PLShared_HostResource()
 
 PLShared_HostResource::~PLShared_HostResource() {}
 
-void PLShared_HostResource::DeserializeObject(PLSerializer* serializer, Object* o) const
-{
-	RMHostResource* hr;
-
-	require(serializer->IsOpenForRead());
-	require(o != NULL);
-
-	hr = cast(RMHostResource*, o);
-	hr->SetHostName(serializer->GetString());
-	hr->SetPhysicalMemory(serializer->GetLongint());
-	hr->SetDiskFreeSpace(serializer->GetLongint());
-	hr->SetPhysicalCoresNumber(serializer->GetInt());
-	serializer->GetIntVector(&hr->ivRanks);
-}
-
 void PLShared_HostResource::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
 	RMHostResource* hr;
@@ -44,4 +29,19 @@ void PLShared_HostResource::SerializeObject(PLSerializer* serializer, const Obje
 	serializer->PutLongint(hr->GetDiskFreeSpace());
 	serializer->PutInt(hr->GetPhysicalCoreNumber());
 	serializer->PutIntVector(&hr->ivRanks);
+}
+
+void PLShared_HostResource::DeserializeObject(PLSerializer* serializer, Object* o) const
+{
+	RMHostResource* hr;
+
+	require(serializer->IsOpenForRead());
+	require(o != NULL);
+
+	hr = cast(RMHostResource*, o);
+	hr->SetHostName(serializer->GetString());
+	hr->SetPhysicalMemory(serializer->GetLongint());
+	hr->SetDiskFreeSpace(serializer->GetLongint());
+	hr->SetPhysicalCoresNumber(serializer->GetInt());
+	serializer->GetIntVector(&hr->ivRanks);
 }

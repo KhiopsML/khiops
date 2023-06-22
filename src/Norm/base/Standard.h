@@ -159,8 +159,9 @@ int RandomInt(int nMax);
 // Acces directement au ieme nombre aleatoire
 // Fonctions independantes des precedentes, sans graine initiale
 // L'index est un entier long
-double IthRandomDouble(longint lIndex);
-int IthRandomInt(longint lIndex, int nMax);
+double IthRandomDouble(longint lIndex);     // Entre 0 et 1
+longint IthRandomLongint(longint lIndex);   // Longint quelconque
+int IthRandomInt(longint lIndex, int nMax); // Entre 0 et nMax inclus
 
 // Hashage d'une chaine de caracteres
 int HashValue(const char* sString);

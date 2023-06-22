@@ -65,8 +65,8 @@ public abstract class GUIObject
         {
                 if (!debug)
                         messageWindow.displayMessageChars(sMessage);
-                // En mode debug, on passe directement par la console pour eviter le
-                // probleme des erreurs de la fenetre de message elle-meme (boucle infinie)
+                // En mode debug, on passe directement par la console pour eviter le probleme
+                // des erreurs de la fenetre de message elle-meme (boucle infinie)
                 else
                         System.out.println(sMessage);
         }
@@ -129,8 +129,8 @@ public abstract class GUIObject
 
         /**
          * Renvoie le chemin d'un fichier de ressource se trouvant soit dans le
-         * repertoire courant, soit dans le CLASSPATH, soit dans repertoire de nom
-         * "dat" frere d'un repertoire du CLASSPATH
+         * repertoire courant, soit dans le CLASSPATH, soit dans repertoire de nom "dat"
+         * frere d'un repertoire du CLASSPATH
          *
          * @param sRessourceFileName Le nom du fichier de ressource
          * @return Le chemin complet de la ressource, ou chaine vide si non trouve
@@ -215,8 +215,7 @@ public abstract class GUIObject
                         GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
                         GraphicsDevice[] gd = ge.getScreenDevices();
 
-                        // Recherche de l'ecran contenant la plus grande proportion de la fenetre
-                        // active
+                        // Recherche de l'ecran contenant la plus grande proportion de la fenetre active
                         double bestCommonSurface = -1;
                         double commonSurface = -1;
                         for (screen = 0; screen < gd.length; screen++) {
@@ -341,8 +340,8 @@ public abstract class GUIObject
                 int charWidth;
 
                 // Recherche de la dimension preferee d'un textfield
-                // Solution bidulique pour avoir la taille moyenne par caractere, en prenant
-                // la taille moyenne entre 'n' et 'm'
+                // Solution bidulique pour avoir la taille moyenne par caractere, en prenant la taille moyenne entre 'n'
+                // et 'm'
                 JTextField textFieldEmpty = new JTextField("");
                 JTextField textFieldMN = new JTextField("mn");
                 charWidth =
@@ -401,8 +400,8 @@ public abstract class GUIObject
         public String[] getParametersAsArray()
         {
                 if (sParameters != null) {
-                        // On ajoute un blanc en fin des parametres pour forcer la methode split a
-                        // cree un dernier token
+                        // On ajoute un blanc en fin des parametres pour forcer la methode split a cree
+                        // un dernier token
                         String[] params = (sParameters + " ").split("\n");
                         // On supprime le blan du dernier token
                         String lastToken = params[params.length - 1];

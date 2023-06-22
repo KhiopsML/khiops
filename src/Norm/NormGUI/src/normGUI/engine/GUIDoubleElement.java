@@ -108,9 +108,9 @@ public abstract class GUIDoubleElement extends GUIElement
                 // Appel de la methode native
                 // Remarque: on utilise Float plutot que Double pour limiter le nombre
                 // de chiffres apres la virgule a l'affichage
-                // C'est le seul endroit on on accede a la methode getDoubleValueAt, mais
-                // cela reste une solution "bricolo" pour controler le formatage de
-                // l'afficahge des reels
+                // C'est le seul endroit on on accede a la methode getDoubleValueAt, mais cela
+                // reste une solution "bricolo" pour controler le formatage de l'afficahge des
+                // reels
                 return new Float(unit.getDoubleValueAt(getIdentifier()));
         }
 
@@ -177,8 +177,7 @@ class GUIDoubleElementTextField extends GUIDoubleElement
         protected JComponent buildComponent() { return getDefaultComponent(); }
 
         /**
-         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite
-         * mere
+         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite mere
          *
          * @param panel       Panneau de l'unite mere dans lequel sera ajoute le
          *                    composant d'affichage

@@ -56,6 +56,19 @@ void KWObject::DeleteAttributes()
 				GetAt(liLoadIndex.GetDenseIndex()).ResetSymbol();
 		}
 
+		// Dereferencement des valeurs de type Text
+		// (pour assurer la gestion correcte du compteur de reference des Text)
+		for (i = 0; i < kwcClass->GetLoadedTextAttributeNumber(); i++)
+		{
+			attribute = kwcClass->GetLoadedTextAttributeAt(i);
+
+			// Dereferencement sauf si valeur interdite
+			liLoadIndex = attribute->GetLoadIndex();
+			assert(liLoadIndex.IsDense());
+			if (not GetAt(liLoadIndex.GetDenseIndex()).IsTextForbidenValue())
+				GetAt(liLoadIndex.GetDenseIndex()).ResetText();
+		}
+
 		// Destruction des blocs de valeurs
 		for (i = 0; i < kwcClass->GetLoadedAttributeBlockNumber(); i++)
 		{
@@ -278,6 +291,9 @@ void KWObject::ComputeAllValues()
 				case KWType::Timestamp:
 					ComputeTimestampValueAt(attribute->GetLoadIndex());
 					break;
+				case KWType::Text:
+					ComputeTextValueAt(attribute->GetLoadIndex());
+					break;
 				case KWType::Object:
 					ComputeObjectValueAt(attribute->GetLoadIndex());
 					break;
@@ -499,6 +515,9 @@ void KWObject::Write(ostream& ost) const
 			// Valeur Timestamp
 			else if (attribute->GetType() == KWType::Timestamp)
 				ost << ComputeTimestampValueAt(attribute->GetLoadIndex()) << "\n";
+			// Valeur Text
+			else if (attribute->GetType() == KWType::Text)
+				ost << ComputeTextValueAt(attribute->GetLoadIndex()) << "\n";
 			// Valeur Object
 			else if (attribute->GetType() == KWType::Object)
 			{
@@ -786,6 +805,7 @@ const ALString KWObject::GetObjectLabel() const
 KWObject* KWObject::CreateObject(KWClass* refClass, longint lObjectIndex)
 {
 	const ALString sSymbolPrefix = "S";
+	const ALString sTextPrefix = "Text";
 	KWObject* kwoObject;
 	KWAttribute* attribute;
 	KWAttributeBlock* attributeBlock;
@@ -830,6 +850,10 @@ KWObject* KWObject::CreateObject(KWClass* refClass, longint lObjectIndex)
 			else if (attribute->GetType() == KWType::Symbol)
 				kwoObject->SetSymbolValueAt(attribute->GetLoadIndex(),
 							    Symbol(sSymbolPrefix + LongintToString(lValue)));
+			// Valeur Text
+			else if (attribute->GetType() == KWType::Text)
+				kwoObject->SetTextValueAt(attribute->GetLoadIndex(),
+							  Symbol(sTextPrefix + LongintToString(lValue)));
 			// Valeur Object
 			else if (attribute->GetType() == KWType::Object)
 			{
@@ -937,8 +961,8 @@ void KWObject::Test()
 	KWObject* kwoObject;
 
 	// Creation d'une classe de test
-	attributeClass = KWClass::CreateClass("AttributeClass", 1, 1, 1, 0, 0, 0, 0, 0, 0, false, NULL);
-	testClass = KWClass::CreateClass("TestClass", 1, 2, 2, 1, 1, 1, 2, 2, 0, false, attributeClass);
+	attributeClass = KWClass::CreateClass("AttributeClass", 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, false, NULL);
+	testClass = KWClass::CreateClass("TestClass", 1, 2, 2, 1, 1, 1, 1, 2, 2, 0, false, attributeClass);
 	testClass->SetRoot(true);
 	KWClassDomain::GetCurrentDomain()->InsertClass(attributeClass);
 	KWClassDomain::GetCurrentDomain()->InsertClass(testClass);
@@ -1013,6 +1037,23 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 		// Dereferencement sauf si valeur interdite
 		if (not GetAt(liLoadIndex.GetDenseIndex()).IsSymbolForbidenValue())
 			GetAt(liLoadIndex.GetDenseIndex()).ResetSymbol();
+	}
+
+	// Dereferencement des valeurs de type Text
+	// (pour assurer la gestion correcte du compteur de references des Text)
+	nNumber = kwcClass->GetLoadedTextAttributeNumber();
+	nNewNumber = kwcNewClass->GetLoadedTextAttributeNumber();
+	for (i = nNewNumber; i < nNumber; i++)
+	{
+		attribute = kwcClass->GetLoadedTextAttributeAt(i);
+
+		// Si attribut non garde
+		liLoadIndex = attribute->GetLoadIndex();
+		assert(liLoadIndex.IsDense());
+
+		// Dereferencement sauf si valeur interdite
+		if (not GetAt(liLoadIndex.GetDenseIndex()).IsTextForbidenValue())
+			GetAt(liLoadIndex.GetDenseIndex()).ResetText();
 	}
 
 	// Destruction des valeurs de type Object ou ObjectArray inclus non gardees
@@ -1461,4 +1502,19 @@ void KWObject::DeleteValueVector(ObjectValues valuesToDelete, int nSize)
 			DeleteMemoryBlock(valuesToDelete.attributeValueArrays[i]);
 		DeleteMemoryBlock(valuesToDelete.attributeValueArrays);
 	}
+}
+
+int KWObjectCompareCreationIndex(const void* elem1, const void* elem2)
+{
+	int nResult;
+	KWObject* object1;
+	KWObject* object2;
+
+	// Acces aux partitions
+	object1 = cast(KWObject*, *(Object**)elem1);
+	object2 = cast(KWObject*, *(Object**)elem2);
+
+	// Comparaison
+	nResult = CompareLongint(object1->GetCreationIndex(), object2->GetCreationIndex());
+	return nResult;
 }

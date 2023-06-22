@@ -461,7 +461,8 @@ void DTDecisionTreeGlobalCost::ComputeHypotheticalAugmentedTreeCost(DTDecisionTr
 	if (nodeSplit->GetAttributeStats()->GetPreparedDataGridStats()->GetAttributeNumber() == 1)
 	{
 		// a partir de learningEnv v8, les attributs a level nul ne sont plus prepares. Le seul attribut prepare
-		// correspond ici a l'attribut cible NVDELL AddWarning("ComputeHypotheticalAugmentedTreeCost :
+		// correspond ici a l'attribut cible
+		// NVDELL AddWarning("ComputeHypotheticalAugmentedTreeCost :
 		// GetPreparedDataGridStats()->GetAttributeNumber() == 1");
 		return;
 	}

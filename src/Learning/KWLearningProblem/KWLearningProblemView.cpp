@@ -215,12 +215,14 @@ void KWLearningProblemView::EventUpdate(Object* object)
 		// On detecte si la base de test a fait l'objet de saisies utilisateur via un scenario
 		if (deprecatedTestDatabase->Compare(deprecatedEmptyDatabase) != 0 or bDeprecatedTestDataViewUsed)
 		{
-			// On recopie les specification de la base de test obsolete vers la vrai base de test
+			// On recopie les specification de la base de test obsolete vers la vraie base de test
 			editedObject->GetTestDatabase()->CopyFrom(deprecatedTestDatabase);
 
 			// On positionne les interfaces en mode "Specific"
 			trainDatabaseView->SetStringValueAt("TestDatabaseSpecificationMode", "Specific");
 			testDatabaseView->SetStringValueAt("TestDatabaseSpecificationMode", "Specific");
+			trainDatabaseView->bDeprecatedTestDataViewUsed = true;
+			testDatabaseView->bDeprecatedTestDataViewUsed = true;
 
 			// On emet un warning
 			if (not bDeprecatedTestDataViewWarningEmited)

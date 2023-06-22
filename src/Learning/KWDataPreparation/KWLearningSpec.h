@@ -240,7 +240,7 @@ public:
 
 	// Cout du choix d'un attribut pour les methodes avancee de construction, par arbres ou paires.
 	// Ces methodes ne peuevent utiliser que des attributs initiaux ou issus de la construction
-	// de variables multi-table: ln(n) ou ln(n+1) si construction multi-tabke
+	// de variables multi-table: ln(n) ou ln(n+1) si construction multi-table
 	double GetBasicSelectionCost() const;
 
 	////////////////////////////////////////////////////////////////////
@@ -375,8 +375,8 @@ public:
 	void FinalizeSpecification(KWClass* kwcValue, KWDatabase* databaseObjects);
 
 	// Reimplementation des methodes virtuelles
-	void DeserializeObject(PLSerializer*, Object*) const override;
-	void SerializeObject(PLSerializer*, const Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation

@@ -204,8 +204,14 @@ void KWTrainedPredictor::PrepareDeploymentClass(boolean bMandatoryAttributes, bo
 			if (attribute != NULL and KWType::IsSimple(attribute->GetType()))
 			{
 				assert(predictorClass->LookupAttribute(attribute->GetName()) == attribute);
-				attribute->SetUsed(true);
-				attribute->SetLoaded(true);
+
+				// On met l'attribut en Used, sauf pour l'attribut cible si l'evaluation n'est pas
+				// demandee
+				if (bEvaluationAttributes or attribute != GetTargetAttribute())
+				{
+					attribute->SetUsed(true);
+					attribute->SetLoaded(true);
+				}
 			}
 		}
 	}

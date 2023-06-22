@@ -104,7 +104,7 @@ boolean SystemFileDriverANSI::Close(void* stream)
 	return fclose((FILE*)stream) == 0;
 }
 
-longint SystemFileDriverANSI::fread(void* ptr, size_t size, size_t count, void* stream)
+longint SystemFileDriverANSI::Fread(void* ptr, size_t size, size_t count, void* stream)
 {
 	longint lRes;
 
@@ -125,7 +125,7 @@ const char* SystemFileDriverANSI::GetLastErrorMessage() const
 	return strerror(errno);
 }
 
-longint SystemFileDriverANSI::fwrite(const void* ptr, size_t size, size_t count, void* stream)
+longint SystemFileDriverANSI::Fwrite(const void* ptr, size_t size, size_t count, void* stream)
 {
 	longint lWrite;
 
@@ -136,7 +136,7 @@ longint SystemFileDriverANSI::fwrite(const void* ptr, size_t size, size_t count,
 	return lWrite;
 }
 
-boolean SystemFileDriverANSI::flush(void* stream)
+boolean SystemFileDriverANSI::Flush(void* stream)
 {
 	int nRet;
 	nRet = std::fflush((FILE*)stream);

@@ -147,6 +147,7 @@ public:
 
 	// Affichage
 	void Write(ostream& ost) const override;
+	void WriteDetails(ostream& ost) const;
 
 	//////////////////////////////////////////////////////////////////
 	///// Implementation
@@ -167,7 +168,7 @@ public:
 
 	// Copie et duplication
 	RMPhysicalResource* Clone() const;
-	void CopyFrom(const RMPhysicalResource* ressource);
+	void CopyFrom(const RMPhysicalResource* resource);
 
 	// Ressource maximum
 	void SetMax(longint lMax);
@@ -187,6 +188,7 @@ public:
 
 	// Affichage
 	void Write(ostream& ost) const override;
+	void WriteDetails(ostream& ost) const;
 
 	// Verifie que le min est plus petit que le max
 	boolean Check() const override;

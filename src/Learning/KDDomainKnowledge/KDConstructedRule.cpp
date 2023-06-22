@@ -357,6 +357,30 @@ boolean KDConstructedRule::IsStandardRule() const
 	return not IsSelectionRule() and not IsBlockRule();
 }
 
+boolean KDConstructedRule::UsesSelectionRule() const
+{
+	boolean bUsesSelectionRule;
+	int i;
+
+	// Test si la regle est une regle de selection
+	bUsesSelectionRule = IsSelectionRule();
+
+	// Test sur les oiperande si necessaire
+	if (not bUsesSelectionRule)
+	{
+		for (i = 0; i < GetOperandNumber(); i++)
+		{
+			if (GetOperandOriginAt(i) == KDConstructedRule::Rule)
+			{
+				bUsesSelectionRule = GetRuleOperandAt(i)->UsesSelectionRule();
+				if (bUsesSelectionRule)
+					break;
+			}
+		}
+	}
+	return bUsesSelectionRule;
+}
+
 const KDConstructedPart* KDConstructedRule::GetUsedPart() const
 {
 	// Cas d'une regle de selection

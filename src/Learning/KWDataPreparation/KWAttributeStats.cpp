@@ -1917,6 +1917,38 @@ KWAttributeStats* PLShared_AttributeStats::GetAttributeStats()
 	return cast(KWAttributeStats*, GetObject());
 }
 
+void PLShared_AttributeStats::SerializeObject(PLSerializer* serializer, const Object* o) const
+{
+	KWAttributeStats* attributeStats;
+	PLShared_DescriptiveContinuousStats sharedDescriptiveContinuousStats;
+	PLShared_DescriptiveSymbolStats sharedDescriptiveSymbolStats;
+	PLShared_DataGridStats shared_dataGridStat;
+
+	require(serializer->IsOpenForWrite());
+	require(o != NULL);
+
+	// Appel de la methode ancetre
+	PLShared_DataPreparationStats::SerializeObject(serializer, o);
+
+	// Serialisation des attributs specifiques
+	attributeStats = cast(KWAttributeStats*, o);
+	assert(attributeStats->GetAttributeType() != KWType::Unknown);
+	serializer->PutString(attributeStats->GetAttributeName());
+	serializer->PutInt(attributeStats->GetAttributeType());
+
+	// Serialisation des stats descriptive suivant le type de l'attribut
+	assert(attributeStats->GetDescriptiveStats() != NULL);
+	if (attributeStats->GetAttributeType() == KWType::Symbol)
+		sharedDescriptiveSymbolStats.SerializeObject(serializer, attributeStats->GetDescriptiveStats());
+	else if (attributeStats->GetAttributeType() == KWType::Continuous)
+		sharedDescriptiveContinuousStats.SerializeObject(serializer, attributeStats->GetDescriptiveStats());
+
+	// Serialisation des stats par valeur dans le cas Symbol
+	assert(attributeStats->GetAttributeType() != KWType::Symbol or attributeStats->symbolValueStats != NULL);
+	if (attributeStats->GetAttributeType() == KWType::Symbol)
+		shared_dataGridStat.SerializeObject(serializer, attributeStats->symbolValueStats);
+}
+
 void PLShared_AttributeStats::DeserializeObject(PLSerializer* serializer, Object* o) const
 {
 	KWAttributeStats* attributeStats;
@@ -1951,38 +1983,6 @@ void PLShared_AttributeStats::DeserializeObject(PLSerializer* serializer, Object
 	assert(attributeStats->GetAttributeType() != KWType::Symbol or attributeStats->symbolValueStats != NULL);
 	if (attributeStats->GetAttributeType() == KWType::Symbol)
 		shared_dataGridStat.DeserializeObject(serializer, attributeStats->symbolValueStats);
-}
-
-void PLShared_AttributeStats::SerializeObject(PLSerializer* serializer, const Object* o) const
-{
-	KWAttributeStats* attributeStats;
-	PLShared_DescriptiveContinuousStats sharedDescriptiveContinuousStats;
-	PLShared_DescriptiveSymbolStats sharedDescriptiveSymbolStats;
-	PLShared_DataGridStats shared_dataGridStat;
-
-	require(serializer->IsOpenForWrite());
-	require(o != NULL);
-
-	// Appel de la methode ancetre
-	PLShared_DataPreparationStats::SerializeObject(serializer, o);
-
-	// Serialisation des attributs specifiques
-	attributeStats = cast(KWAttributeStats*, o);
-	assert(attributeStats->GetAttributeType() != KWType::Unknown);
-	serializer->PutString(attributeStats->GetAttributeName());
-	serializer->PutInt(attributeStats->GetAttributeType());
-
-	// Serialisation des stats descriptive suivant le type de l'attribut
-	assert(attributeStats->GetDescriptiveStats() != NULL);
-	if (attributeStats->GetAttributeType() == KWType::Symbol)
-		sharedDescriptiveSymbolStats.SerializeObject(serializer, attributeStats->GetDescriptiveStats());
-	else if (attributeStats->GetAttributeType() == KWType::Continuous)
-		sharedDescriptiveContinuousStats.SerializeObject(serializer, attributeStats->GetDescriptiveStats());
-
-	// Serialisation des stats par valeur dans le cas Symbol
-	assert(attributeStats->GetAttributeType() != KWType::Symbol or attributeStats->symbolValueStats != NULL);
-	if (attributeStats->GetAttributeType() == KWType::Symbol)
-		shared_dataGridStat.SerializeObject(serializer, attributeStats->symbolValueStats);
 }
 
 Object* PLShared_AttributeStats::Create() const

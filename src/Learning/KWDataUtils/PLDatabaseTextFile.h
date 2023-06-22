@@ -64,8 +64,11 @@ public:
 	// Nettoyage des informations d'ouverture
 	void CleanOpenInformation();
 
-	// Acces a la taille du fichier en lecture (0 sinon)
-	longint GetTotalInputFileSize() const;
+	// Acces a la taille des fichiers en lecture (0 sinon)
+	longint GetTotalFileSize() const;
+
+	// Acces a la taille des fichiers effectivement utilises en lecture (0 sinon)
+	longint GetTotalUsedFileSize() const;
 
 	// Memoire minimum necessaire pour ouvrir la base sans tenir compte des buffers
 	longint GetEmptyOpenNecessaryMemory() const;
@@ -139,8 +142,8 @@ public:
 	PLMTDatabaseTextFile* GetMTDatabase();
 
 	// Reimplementation des methodes virtuelles
-	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation

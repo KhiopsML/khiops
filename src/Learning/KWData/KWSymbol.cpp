@@ -481,6 +481,7 @@ KWSymbolData* KWSymbolData::InitStarValue()
 
 	KWSymbolDataStarValue.lRefCount = 1;
 	KWSymbolDataStarValue.nHashValue = 0;
+	KWSymbolDataStarValue.nLength = nStarValueLength;
 	KWSymbolDataStarValue.pNext = NULL;
 	assert(strlen(sStar) == nStarValueLength);
 	assert(nStarValueLength < KWSymbolData::nMinStringSize);
@@ -489,31 +490,29 @@ KWSymbolData* KWSymbolData::InitStarValue()
 	return &KWSymbolDataStarValue;
 }
 
-inline KWSymbolData* KWSymbolData::NewSymbolData(const char* sValue)
+inline KWSymbolData* KWSymbolData::NewSymbolData(const char* sValue, int nLength)
 {
 	KWSymbolData* pSymbolData;
-	int nValueLength;
 	int nMemorySize;
 
 	require(sValue != NULL);
-
-	// Calcul de la taille de la chaine
-	nValueLength = (int)strlen(sValue);
+	require(nLength == (int)strlen(sValue));
 
 	// Calcul de la taille a allouer (en prevoyant le '\0' de fin de chaine de caracteres)
-	if (nValueLength < KWSymbolData::nMinStringSize)
+	if (nLength < KWSymbolData::nMinStringSize)
 		nMemorySize = sizeof(KWSymbolData);
 	else
-		nMemorySize = sizeof(KWSymbolData) + nValueLength + 1 - KWSymbolData::nMinStringSize;
+		nMemorySize = sizeof(KWSymbolData) + nLength + 1 - KWSymbolData::nMinStringSize;
 
 	// Creation des donnees d'un symbol
 	// On alloue le nombre de caracteres necessaire pour stocker la chaine de caracateres
 	// en plus des donnees du symbol (le caractere fin de chaine '\0' est deja prevu)
 	pSymbolData = (KWSymbolData*)NewMemoryBlock(nMemorySize);
 	pSymbolData->lRefCount = 0;
+	pSymbolData->nLength = nLength;
 
 	// Recopie de la chaine de caracteres ('\0' en fin de chaine)
-	memcpy(&(pSymbolData->cFirstStringChar), sValue, nValueLength + 1);
+	memcpy(&(pSymbolData->cFirstStringChar), sValue, nLength + 1);
 	return pSymbolData;
 }
 
@@ -740,13 +739,14 @@ KWSymbolDataPtr KWSymbolDictionary::Lookup(const char* key) const
 	return pSymbolData;
 }
 
-KWSymbolDataPtr KWSymbolDictionary::AsSymbol(const char* key)
+KWSymbolDataPtr KWSymbolDictionary::AsSymbol(const char* key, int nLength)
 {
 	UINT nHash;
 	int nHashPosition;
 	KWSymbolDataPtr pSymbolData;
 
 	require(key != NULL);
+	require(nLength >= 0);
 
 	pSymbolData = GetSymbolDataAt(key, nHash);
 	if (pSymbolData == NULL)
@@ -758,7 +758,7 @@ KWSymbolDataPtr KWSymbolDictionary::AsSymbol(const char* key)
 		}
 
 		// Creation d'un nouveau Symbol
-		pSymbolData = KWSymbolData::NewSymbolData(key);
+		pSymbolData = KWSymbolData::NewSymbolData(key, nLength);
 		pSymbolData->nHashValue = nHash;
 		m_nCount++;
 		assert(m_nCount > 0);
@@ -866,7 +866,7 @@ longint KWSymbolDictionary::GetUsedMemory() const
 	while (current != NULL)
 	{
 		GetNextSymbolData(current, sElement);
-		lUsedMemory += sizeof(KWSymbolDataPtr) + sizeof(KWSymbolData) + strlen(sElement->GetString());
+		lUsedMemory += sizeof(KWSymbolDataPtr) + sizeof(KWSymbolData) + sElement->GetLength();
 	}
 	return lUsedMemory;
 }
@@ -927,7 +927,7 @@ void KWSymbolDictionary::Test()
 	cout << "\tInsertion of 10 KWSymbolDataPtrs\n";
 	for (nI = 0; nI < 10; nI++)
 	{
-		sSymbol = sdTest.AsSymbol(svArray.GetAt(nI));
+		sSymbol = sdTest.AsSymbol(svArray.GetAt(nI), svArray.GetAt(nI).GetLength());
 	}
 
 	//
@@ -948,7 +948,7 @@ void KWSymbolDictionary::Test()
 		for (int nInsert = 0; nInsert < nMaxSize; nInsert++)
 		{
 			sPerf = IntToString(RandomInt(nMaxSize));
-			sdPerf.AsSymbol(sPerf);
+			sdPerf.AsSymbol(sPerf, sPerf.GetLength());
 		}
 		tStopClock = clock();
 		cout << "TIME\tIteration " << nI << "\tSize = " << sdPerf.GetCount() << "\t"
@@ -964,7 +964,7 @@ void KWSymbolDictionary::Test()
 	for (nI = 0; nI < nMaxSize; nI++)
 	{
 		sPerf = IntToString(nI);
-		sSymbol = sdTest.AsSymbol(sPerf);
+		sSymbol = sdTest.AsSymbol(sPerf, sPerf.GetLength());
 	}
 	tStopClock = clock();
 	cout << "TIME\t" << (tStopClock - tStartClock) * 1.0 / CLOCKS_PER_SEC << "\n";
@@ -976,7 +976,7 @@ void KWSymbolDictionary::Test()
 	sPerf = IntToString(1);
 	for (nI = 0; nI < nNbIter; nI++)
 	{
-		sSymbol = sdTest.AsSymbol("1");
+		sSymbol = sdTest.AsSymbol("1", 1);
 	}
 	tStopClock = clock();
 	cout << "TIME\t" << (tStopClock - tStartClock) * 1.0 / CLOCKS_PER_SEC << "\n";
@@ -986,7 +986,7 @@ void KWSymbolDictionary::Test()
 	sPerf = IntToString(1);
 	for (nI = 0; nI < nNbIter; nI++)
 	{
-		sSymbol = sdTest.AsSymbol(sPerf);
+		sSymbol = sdTest.AsSymbol(sPerf, sPerf.GetLength());
 	}
 	tStopClock = clock();
 	cout << "TIME\t" << (tStopClock - tStartClock) * 1.0 / CLOCKS_PER_SEC << "\n";

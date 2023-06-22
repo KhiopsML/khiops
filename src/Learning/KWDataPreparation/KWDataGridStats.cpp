@@ -4159,6 +4159,69 @@ boolean PLShared_DataGridStats::Test()
 	return bTest;
 }
 
+void PLShared_DataGridStats::SerializeObject(PLSerializer* serializer, const Object* o) const
+{
+	KWDataGridStats* dataGrid;
+	int i;
+	KWDGSAttributePartition* attribute;
+	PLShared_DGSAttributeDiscretization sharedAttributeDiscretization;
+	PLShared_DGSAttributeGrouping sharedAttributeGrouping;
+	PLShared_DGSAttributeContinuousValues sharedAttributeContinuousValues;
+	PLShared_DGSAttributeSymbolValues sharedAttributeSymbolValues;
+
+	require(serializer->IsOpenForWrite());
+
+	dataGrid = cast(KWDataGridStats*, o);
+
+	serializer->PutInt(dataGrid->GetSourceAttributeNumber());
+	serializer->PutIntVector(&dataGrid->ivCellFrequencies);
+	serializer->PutInt(dataGrid->GetMainTargetModalityIndex());
+
+	// Serialization de la Granularite
+	serializer->PutInt(dataGrid->GetGranularity());
+
+	// Serialisation du nombre d'attributs
+	serializer->PutInt(dataGrid->oaAttributes.GetSize());
+
+	// Serialisation de chaque attribut
+	for (i = 0; i < dataGrid->oaAttributes.GetSize(); i++)
+	{
+		attribute = cast(KWDGSAttributePartition*, dataGrid->oaAttributes.GetAt(i));
+		serializer->PutInt(attribute->GetAttributeType());
+		serializer->PutBoolean(attribute->ArePartsSingletons());
+
+		// Serialisation de l'attribut.
+		// On determine son type grace au type (continu ou symbique) et a la nature de ses parties (singleton ou
+		// non)
+		if (attribute->GetAttributeType() == KWType::Symbol)
+		{
+			if (attribute->ArePartsSingletons())
+			{
+				// type KWDGSAttributeSymbolValues
+				sharedAttributeSymbolValues.SerializeObject(serializer, attribute);
+			}
+			else
+			{
+				// type KWDGSAttributeGrouping
+				sharedAttributeGrouping.SerializeObject(serializer, attribute);
+			}
+		}
+		else
+		{
+			if (attribute->ArePartsSingletons())
+			{
+				// type KWDGSAttributeContinuousValues
+				sharedAttributeContinuousValues.SerializeObject(serializer, attribute);
+			}
+			else
+			{
+				// type KWDGSAttributeDiscretization
+				sharedAttributeDiscretization.SerializeObject(serializer, attribute);
+			}
+		}
+	}
+}
+
 void PLShared_DataGridStats::DeserializeObject(PLSerializer* serializer, Object* o) const
 {
 	KWDataGridStats* dataGrid;
@@ -4231,69 +4294,6 @@ void PLShared_DataGridStats::DeserializeObject(PLSerializer* serializer, Object*
 	}
 }
 
-void PLShared_DataGridStats::SerializeObject(PLSerializer* serializer, const Object* o) const
-{
-	KWDataGridStats* dataGrid;
-	int i;
-	KWDGSAttributePartition* attribute;
-	PLShared_DGSAttributeDiscretization sharedAttributeDiscretization;
-	PLShared_DGSAttributeGrouping sharedAttributeGrouping;
-	PLShared_DGSAttributeContinuousValues sharedAttributeContinuousValues;
-	PLShared_DGSAttributeSymbolValues sharedAttributeSymbolValues;
-
-	require(serializer->IsOpenForWrite());
-
-	dataGrid = cast(KWDataGridStats*, o);
-
-	serializer->PutInt(dataGrid->GetSourceAttributeNumber());
-	serializer->PutIntVector(&dataGrid->ivCellFrequencies);
-	serializer->PutInt(dataGrid->GetMainTargetModalityIndex());
-
-	// Serialization de la Granularite
-	serializer->PutInt(dataGrid->GetGranularity());
-
-	// Serialisation du nombre d'attributs
-	serializer->PutInt(dataGrid->oaAttributes.GetSize());
-
-	// Serialisation de chaque attribut
-	for (i = 0; i < dataGrid->oaAttributes.GetSize(); i++)
-	{
-		attribute = cast(KWDGSAttributePartition*, dataGrid->oaAttributes.GetAt(i));
-		serializer->PutInt(attribute->GetAttributeType());
-		serializer->PutBoolean(attribute->ArePartsSingletons());
-
-		// Serialisation de l'attribut.
-		// On determine son type grace au type (continu ou symbique) et a la nature de ses parties (singleton ou
-		// non)
-		if (attribute->GetAttributeType() == KWType::Symbol)
-		{
-			if (attribute->ArePartsSingletons())
-			{
-				// type KWDGSAttributeSymbolValues
-				sharedAttributeSymbolValues.SerializeObject(serializer, attribute);
-			}
-			else
-			{
-				// type KWDGSAttributeGrouping
-				sharedAttributeGrouping.SerializeObject(serializer, attribute);
-			}
-		}
-		else
-		{
-			if (attribute->ArePartsSingletons())
-			{
-				// type KWDGSAttributeContinuousValues
-				sharedAttributeContinuousValues.SerializeObject(serializer, attribute);
-			}
-			else
-			{
-				// type KWDGSAttributeDiscretization
-				sharedAttributeDiscretization.SerializeObject(serializer, attribute);
-			}
-		}
-	}
-}
-
 Object* PLShared_DataGridStats::Create() const
 {
 	return new KWDataGridStats;
@@ -4305,21 +4305,6 @@ Object* PLShared_DataGridStats::Create() const
 PLShared_DGSAttributePartition::PLShared_DGSAttributePartition() {}
 
 PLShared_DGSAttributePartition::~PLShared_DGSAttributePartition() {}
-
-void PLShared_DGSAttributePartition::DeserializeObject(PLSerializer* serializer, Object* o) const
-{
-	KWDGSAttributePartition* attribute;
-	PLShared_ContinuousVector sharedVector;
-
-	require(serializer->IsOpenForRead());
-
-	attribute = cast(KWDGSAttributePartition*, o);
-
-	// Deserialization des attributs de la classe
-	attribute->SetAttributeName(serializer->GetString());
-	attribute->SetInitialValueNumber(serializer->GetInt());
-	attribute->SetGranularizedValueNumber(serializer->GetInt());
-}
 
 void PLShared_DGSAttributePartition::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
@@ -4334,6 +4319,21 @@ void PLShared_DGSAttributePartition::SerializeObject(PLSerializer* serializer, c
 	serializer->PutString(attribute->GetAttributeName());
 	serializer->PutInt(attribute->GetInitialValueNumber());
 	serializer->PutInt(attribute->GetGranularizedValueNumber());
+}
+
+void PLShared_DGSAttributePartition::DeserializeObject(PLSerializer* serializer, Object* o) const
+{
+	KWDGSAttributePartition* attribute;
+	PLShared_ContinuousVector sharedVector;
+
+	require(serializer->IsOpenForRead());
+
+	attribute = cast(KWDGSAttributePartition*, o);
+
+	// Deserialization des attributs de la classe
+	attribute->SetAttributeName(serializer->GetString());
+	attribute->SetInitialValueNumber(serializer->GetInt());
+	attribute->SetGranularizedValueNumber(serializer->GetInt());
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -4387,22 +4387,6 @@ boolean PLShared_DGSAttributeDiscretization::Test()
 	return bTest;
 }
 
-void PLShared_DGSAttributeDiscretization::DeserializeObject(PLSerializer* serializer, Object* o) const
-{
-	KWDGSAttributeDiscretization* attribute;
-	PLShared_ContinuousVector sharedVector;
-
-	require(serializer->IsOpenForRead());
-
-	attribute = cast(KWDGSAttributeDiscretization*, o);
-
-	// Appel de la methode ancetre
-	PLShared_DGSAttributePartition::DeserializeObject(serializer, attribute);
-
-	// Deserialization du vecteur de continus
-	sharedVector.DeserializeObject(serializer, &attribute->cvIntervalBounds);
-}
-
 void PLShared_DGSAttributeDiscretization::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
 	KWDGSAttributeDiscretization* attribute;
@@ -4417,6 +4401,22 @@ void PLShared_DGSAttributeDiscretization::SerializeObject(PLSerializer* serializ
 
 	// Serialization du vecteur de continus
 	sharedVector.SerializeObject(serializer, &attribute->cvIntervalBounds);
+}
+
+void PLShared_DGSAttributeDiscretization::DeserializeObject(PLSerializer* serializer, Object* o) const
+{
+	KWDGSAttributeDiscretization* attribute;
+	PLShared_ContinuousVector sharedVector;
+
+	require(serializer->IsOpenForRead());
+
+	attribute = cast(KWDGSAttributeDiscretization*, o);
+
+	// Appel de la methode ancetre
+	PLShared_DGSAttributePartition::DeserializeObject(serializer, attribute);
+
+	// Deserialization du vecteur de continus
+	sharedVector.DeserializeObject(serializer, &attribute->cvIntervalBounds);
 }
 
 Object* PLShared_DGSAttributeDiscretization::Create() const
@@ -4475,6 +4475,25 @@ boolean PLShared_DGSAttributeGrouping::Test()
 	return bTest;
 }
 
+void PLShared_DGSAttributeGrouping::SerializeObject(PLSerializer* serializer, const Object* o) const
+{
+	KWDGSAttributeGrouping* attribute;
+	PLShared_SymbolVector sharedVector;
+	require(serializer->IsOpenForWrite());
+
+	attribute = cast(KWDGSAttributeGrouping*, o);
+
+	// Appel de la methode ancetre
+	PLShared_DGSAttributePartition::SerializeObject(serializer, attribute);
+
+	// serialisation des attributs
+	sharedVector.SerializeObject(serializer, &attribute->svValues);
+	serializer->PutIntVector(&attribute->ivGroupFirstValueIndexes);
+	serializer->PutInt(attribute->GetGarbageGroupIndex());
+	serializer->PutInt(attribute->GetGarbageModalityNumber());
+	serializer->PutInt(attribute->GetCatchAllValueNumber());
+}
+
 void PLShared_DGSAttributeGrouping::DeserializeObject(PLSerializer* serializer, Object* o) const
 {
 	KWDGSAttributeGrouping* attribute;
@@ -4493,25 +4512,6 @@ void PLShared_DGSAttributeGrouping::DeserializeObject(PLSerializer* serializer, 
 	attribute->SetGarbageGroupIndex(serializer->GetInt());
 	attribute->SetGarbageModalityNumber(serializer->GetInt());
 	attribute->SetCatchAllValueNumber(serializer->GetInt());
-}
-
-void PLShared_DGSAttributeGrouping::SerializeObject(PLSerializer* serializer, const Object* o) const
-{
-	KWDGSAttributeGrouping* attribute;
-	PLShared_SymbolVector sharedVector;
-	require(serializer->IsOpenForWrite());
-
-	attribute = cast(KWDGSAttributeGrouping*, o);
-
-	// Appel de la methode ancetre
-	PLShared_DGSAttributePartition::SerializeObject(serializer, attribute);
-
-	// serialisation des attributs
-	sharedVector.SerializeObject(serializer, &attribute->svValues);
-	serializer->PutIntVector(&attribute->ivGroupFirstValueIndexes);
-	serializer->PutInt(attribute->GetGarbageGroupIndex());
-	serializer->PutInt(attribute->GetGarbageModalityNumber());
-	serializer->PutInt(attribute->GetCatchAllValueNumber());
 }
 
 Object* PLShared_DGSAttributeGrouping::Create() const
@@ -4570,22 +4570,6 @@ boolean PLShared_DGSAttributeContinuousValues::Test()
 	return bTest;
 }
 
-void PLShared_DGSAttributeContinuousValues::DeserializeObject(PLSerializer* serializer, Object* o) const
-{
-	KWDGSAttributeContinuousValues* attribute;
-	PLShared_ContinuousVector sharedVector;
-
-	require(serializer->IsOpenForRead());
-
-	attribute = cast(KWDGSAttributeContinuousValues*, o);
-
-	// Appel de la methode ancetre
-	PLShared_DGSAttributePartition::DeserializeObject(serializer, attribute);
-
-	// Deserialization des attributs
-	sharedVector.DeserializeObject(serializer, &attribute->cvValues);
-}
-
 void PLShared_DGSAttributeContinuousValues::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
 	KWDGSAttributeContinuousValues* attribute;
@@ -4600,6 +4584,22 @@ void PLShared_DGSAttributeContinuousValues::SerializeObject(PLSerializer* serial
 
 	// Serialisation des attributs
 	sharedVector.SerializeObject(serializer, &attribute->cvValues);
+}
+
+void PLShared_DGSAttributeContinuousValues::DeserializeObject(PLSerializer* serializer, Object* o) const
+{
+	KWDGSAttributeContinuousValues* attribute;
+	PLShared_ContinuousVector sharedVector;
+
+	require(serializer->IsOpenForRead());
+
+	attribute = cast(KWDGSAttributeContinuousValues*, o);
+
+	// Appel de la methode ancetre
+	PLShared_DGSAttributePartition::DeserializeObject(serializer, attribute);
+
+	// Deserialization des attributs
+	sharedVector.DeserializeObject(serializer, &attribute->cvValues);
 }
 
 Object* PLShared_DGSAttributeContinuousValues::Create() const
@@ -4658,22 +4658,6 @@ boolean PLShared_DGSAttributeSymbolValues::Test()
 	return bTest;
 }
 
-void PLShared_DGSAttributeSymbolValues::DeserializeObject(PLSerializer* serializer, Object* o) const
-{
-	KWDGSAttributeSymbolValues* attribute;
-	PLShared_SymbolVector sharedVector;
-
-	require(serializer->IsOpenForRead());
-
-	attribute = cast(KWDGSAttributeSymbolValues*, o);
-
-	// Appel de la methode ancetre
-	PLShared_DGSAttributePartition::DeserializeObject(serializer, attribute);
-
-	// Deserialization des attributs
-	sharedVector.DeserializeObject(serializer, &attribute->svValues);
-}
-
 void PLShared_DGSAttributeSymbolValues::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
 	KWDGSAttributeSymbolValues* attribute;
@@ -4688,6 +4672,22 @@ void PLShared_DGSAttributeSymbolValues::SerializeObject(PLSerializer* serializer
 
 	// Serialisation des attributs
 	sharedVector.SerializeObject(serializer, &attribute->svValues);
+}
+
+void PLShared_DGSAttributeSymbolValues::DeserializeObject(PLSerializer* serializer, Object* o) const
+{
+	KWDGSAttributeSymbolValues* attribute;
+	PLShared_SymbolVector sharedVector;
+
+	require(serializer->IsOpenForRead());
+
+	attribute = cast(KWDGSAttributeSymbolValues*, o);
+
+	// Appel de la methode ancetre
+	PLShared_DGSAttributePartition::DeserializeObject(serializer, attribute);
+
+	// Deserialization des attributs
+	sharedVector.DeserializeObject(serializer, &attribute->svValues);
 }
 
 Object* PLShared_DGSAttributeSymbolValues::Create() const

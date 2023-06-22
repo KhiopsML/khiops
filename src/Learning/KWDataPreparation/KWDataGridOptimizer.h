@@ -72,14 +72,13 @@ protected:
 	double OptimizeGranularizedDataGrid(const KWDataGrid* initialDataGrid, KWDataGrid* optimizedDataGrid,
 					    boolean bIsLastGranularity, double& dTotalComputeTime) const;
 
+	// Post-optimisation de la granularite de la grille optimisee afin de lui attribuer la plus petite granularite
+	// avec laquelle la partition est compatible
+	void PostOptimizeGranularity(const KWDataGrid* initialDataGrid, KWDataGrid* optimizedDataGrid,
+				     ObjectDictionary& odQuantileBuilders, int nLastExploredGranularity) const;
+
 	// Initialisation avec une grille terminale
 	double InitializeWithTerminalDataGrid(const KWDataGrid* initialDataGrid, KWDataGrid* optimizedDataGrid) const;
-
-	// Recherche d'une amelioration par la meilleure partition univariee
-	// Cette (ancienne) methode est utilisee hors mode granularite.
-	// Elle utilise la meilleure partition stockee dans classStats
-	double OptimizeWithBestUnivariatePartition(const KWDataGrid* initialDataGrid,
-						   KWDataGrid* optimizedDataGrid) const;
 
 	// Cette methode calcule pour chaque attribut de la grille initialDataGrid
 	// le partitionnement univarie optimal associe au partitionnement obtenu par projection univarie de la grille

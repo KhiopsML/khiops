@@ -189,7 +189,7 @@ protected:
 	// Parametres partages par le maitre et les esclaves
 
 	// Specification d'apprentissage
-	// Ces specification sont partagee pour parametrer le pretraitement des variables
+	// Ces specifications sont partagee pour parametrer le pretraitement des variables
 	// par tranche de la base
 	// Localement a chaque esclave, elles doivent etre reparametrees avec la classe et
 	// la dabase locale a chaque tranche

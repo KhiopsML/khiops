@@ -54,6 +54,7 @@ protected:
 	const ALString GetTaskName() const override;
 	PLParallelTask* Create() const override;
 	boolean MasterAggregateResults() override;
+	boolean MasterFinalize(boolean bProcessEndedCorrectly) override;
 
 	// Objet d'evaluation demandeur de la tache et ou l'on stocke les resultats
 	KWPredictorEvaluation* predictorEvaluation;
@@ -535,11 +536,11 @@ public:
 	// Obtient le CleanPredictorSharedVariables enveloppe
 	KWClassifierInstanceEvaluation* GetClassifierInstanceEvaluation();
 
-	// Deserialisation d'un ClassifierEvaluationInstance (reimplementation)
-	void DeserializeObject(PLSerializer* serializer, Object* object) const override;
-
 	// Serialisation d'un ClassifierEvaluationInstance (reimplementation)
-	void SerializeObject(PLSerializer* serializer, const Object* object) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+
+	// Deserialisation d'un ClassifierEvaluationInstance (reimplementation)
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 protected:
 	// Wrapper generique du constructeur de ClassifierEvaluationInstance

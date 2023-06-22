@@ -477,6 +477,8 @@ void KWPredictorEvaluator::WriteJSONReport(const ALString& sJSONReportName, cons
 		{
 			// Outil et version
 			fJSON.WriteKeyString("tool", GetLearningApplicationName());
+			if (GetLearningModuleName() != "")
+				fJSON.WriteKeyString("sub_tool", GetLearningModuleName());
 			fJSON.WriteKeyString("version", GetLearningVersion());
 
 			// Liste des messages d'erreur potentiellement detectees pendant l'analyse

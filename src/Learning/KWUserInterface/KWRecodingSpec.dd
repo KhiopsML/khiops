@@ -1,37 +1,9 @@
-Rank;
-Name;
-Type;
-Style;
-Label 1;
-FilterAttributes;
-boolean;
-CheckBox;
-Keep informative variables only 2;
-MaxFilteredAttributeNumber;
-int;
-Spinner;
-Max number of filtered variables 3;
-KeepInitialSymbolAttributes;
-boolean;
-CheckBox;
-Keep initial categorical variables 4;
-KeepInitialContinuousAttributes;
-boolean;
-CheckBox;
-Keep initial numerical variables 5;
-RecodeSymbolAttributes;
-ALString;
-ComboBox;
-Categorical recoding method 6;
-RecodeContinuousAttributes;
-ALString;
-ComboBox;
-Numerical recoding method 7;
-RecodeBivariateAttributes;
-ALString;
-ComboBox;
-Pairs recoding method 8;
-RecodeProbabilisticDistance;
-boolean;
-CheckBox;
-Recode using probabilistic distance(expert mode)
+Rank;Name;Type;Style;Label
+1;FilterAttributes               ;boolean ;CheckBox   ;Keep informative variables only
+2;MaxFilteredAttributeNumber     ;int     ;Spinner    ;Max number of filtered variables
+3;KeepInitialSymbolAttributes    ;boolean ;CheckBox   ;Keep initial categorical variables
+4;KeepInitialContinuousAttributes;boolean ;CheckBox   ;Keep initial numerical variables
+5;RecodeSymbolAttributes         ;ALString;ComboBox   ;Categorical recoding method
+6;RecodeContinuousAttributes     ;ALString;ComboBox   ;Numerical recoding method
+7;RecodeBivariateAttributes      ;ALString;ComboBox   ;Pairs recoding method
+8;RecodeProbabilisticDistance    ;boolean ;CheckBox   ;Recode using probabilistic distance (expert mode)

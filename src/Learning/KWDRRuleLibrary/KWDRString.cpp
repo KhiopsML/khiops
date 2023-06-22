@@ -31,6 +31,47 @@ void KWDRRegisterStringRules()
 
 //////////////////////////////////////////////////////////////////////////////////////
 
+Symbol KWDRStringRule::ComputeTextResult(const KWObject* kwoObject) const
+{
+	return ComputeSymbolResult(kwoObject);
+}
+
+void KWDRStringRule::TransformSymbolToTextRule()
+{
+	const ALString sTextLabel = "Text";
+	ALString sLowerSymbolLabel;
+	ALString sLowerTextLabel;
+	int nSymbolLabelPos;
+
+	require(GetOperandNumber() >= 1);
+	require(GetFirstOperand()->GetType() == KWType::Symbol);
+	require(GetName().Find(sTextLabel) == -1);
+
+	// Changement du nom de la methode
+	SetName(sTextLabel + GetName());
+
+	// Changement du libelle de la methode
+	sLowerSymbolLabel = KWType::ToString(KWType::Symbol);
+	sLowerSymbolLabel.MakeLower();
+	nSymbolLabelPos = GetLabel().Find(sLowerSymbolLabel);
+	if (nSymbolLabelPos != -1)
+	{
+		sLowerTextLabel = KWType::ToString(KWType::Text);
+		sLowerTextLabel.MakeLower();
+		SetLabel(GetLabel().Left(nSymbolLabelPos) + sLowerTextLabel +
+			 GetLabel().Right(GetLabel().GetLength() - nSymbolLabelPos - sLowerSymbolLabel.GetLength()));
+	}
+
+	// Changement en Text du type du premier operande
+	GetFirstOperand()->SetType(KWType::Text);
+
+	// Changement en Text du type retour si necessaire
+	if (GetType() == KWType::Symbol)
+		SetType(KWType::Text);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+
 KWDRLength::KWDRLength()
 {
 	SetName("Length");
@@ -50,7 +91,7 @@ KWDerivationRule* KWDRLength::Create() const
 Continuous KWDRLength::ComputeContinuousResult(const KWObject* kwoObject) const
 {
 	require(IsCompiled());
-	return (Continuous)GetFirstOperand()->GetSymbolValue(kwoObject).GetLength();
+	return (Continuous)GetFirstOperandGenericSymbolValue(kwoObject).GetLength();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -58,7 +99,7 @@ Continuous KWDRLength::ComputeContinuousResult(const KWObject* kwoObject) const
 KWDRLeft::KWDRLeft()
 {
 	SetName("Left");
-	SetLabel("Extraction of the left substring of a categorical value");
+	SetLabel("Extraction of the left characters of a categorical value");
 	SetType(KWType::Symbol);
 	SetOperandNumber(2);
 	GetFirstOperand()->SetType(KWType::Symbol);
@@ -75,23 +116,24 @@ KWDerivationRule* KWDRLeft::Create() const
 Symbol KWDRLeft::ComputeSymbolResult(const KWObject* kwoObject) const
 {
 	Symbol sValue;
-	ALString sTmp;
 	int nCharNumber;
 
 	require(IsCompiled());
 
 	// Recherche des parametres
-	sValue = GetFirstOperand()->GetSymbolValue(kwoObject);
-	sTmp = sValue;
+	sValue = GetFirstOperandGenericSymbolValue(kwoObject);
 	nCharNumber = (int)floor(GetSecondOperand()->GetContinuousValue(kwoObject) + 0.5);
 
 	// Extraction de la sous-chaine
 	if (nCharNumber <= 0)
 		return "";
-	else if (nCharNumber >= sTmp.GetLength())
+	else if (nCharNumber >= sValue.GetLength())
 		return sValue;
 	else
-		return (Symbol)sTmp.Left(nCharNumber);
+	{
+		const KWSymbolAsString sTmpValue(sValue);
+		return StringToSymbol(sTmpValue.Left(nCharNumber));
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -99,7 +141,7 @@ Symbol KWDRLeft::ComputeSymbolResult(const KWObject* kwoObject) const
 KWDRRight::KWDRRight()
 {
 	SetName("Right");
-	SetLabel("Extraction of the right substring of a categorical value");
+	SetLabel("Extraction of the right characters of a categorical value");
 	SetType(KWType::Symbol);
 	SetOperandNumber(2);
 	GetFirstOperand()->SetType(KWType::Symbol);
@@ -116,23 +158,24 @@ KWDerivationRule* KWDRRight::Create() const
 Symbol KWDRRight::ComputeSymbolResult(const KWObject* kwoObject) const
 {
 	Symbol sValue;
-	ALString sTmp;
 	int nCharNumber;
 
 	require(IsCompiled());
 
 	// Recherche des parametres
-	sValue = GetFirstOperand()->GetSymbolValue(kwoObject);
-	sTmp = sValue;
+	sValue = GetFirstOperandGenericSymbolValue(kwoObject);
 	nCharNumber = (int)floor(GetSecondOperand()->GetContinuousValue(kwoObject) + 0.5);
 
 	// Extraction de la sous-chaine
 	if (nCharNumber <= 0)
 		return "";
-	else if (nCharNumber >= sTmp.GetLength())
+	else if (nCharNumber >= sValue.GetLength())
 		return sValue;
 	else
-		return (Symbol)sTmp.Right(nCharNumber);
+	{
+		const KWSymbolAsString sTmpValue(sValue);
+		return StringToSymbol(sTmpValue.Right(nCharNumber));
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -140,7 +183,7 @@ Symbol KWDRRight::ComputeSymbolResult(const KWObject* kwoObject) const
 KWDRMiddle::KWDRMiddle()
 {
 	SetName("Middle");
-	SetLabel("Extraction of the middle substring of a categorical value");
+	SetLabel("Extraction of the middle characters of a categorical value");
 	SetType(KWType::Symbol);
 	SetOperandNumber(3);
 	GetOperandAt(0)->SetType(KWType::Symbol);
@@ -158,27 +201,31 @@ KWDerivationRule* KWDRMiddle::Create() const
 Symbol KWDRMiddle::ComputeSymbolResult(const KWObject* kwoObject) const
 {
 	Symbol sValue;
-	ALString sTmp;
 	int nBegin;
 	int nCharNumber;
 
 	require(IsCompiled());
 
 	// Recherche des parametres
-	sValue = GetOperandAt(0)->GetSymbolValue(kwoObject);
-	sTmp = sValue;
+	sValue = GetFirstOperandGenericSymbolValue(kwoObject);
 	nBegin = (int)floor(GetOperandAt(1)->GetContinuousValue(kwoObject) + 0.5);
 	nCharNumber = (int)floor(GetOperandAt(2)->GetContinuousValue(kwoObject) + 0.5);
 
 	// Extraction de la sous-chaine
-	if (nBegin < 1 or nBegin > sTmp.GetLength())
+	if (nBegin < 1 or nBegin > sValue.GetLength())
 		return "";
 	else if (nCharNumber <= 0)
 		return "";
-	else if (nBegin + nCharNumber > sTmp.GetLength())
-		return (Symbol)sTmp.Right(sTmp.GetLength() - nBegin + 1);
+	else if (nBegin + nCharNumber > sValue.GetLength())
+	{
+		const KWSymbolAsString sTmpValue(sValue);
+		return StringToSymbol(sTmpValue.Right(sTmpValue.GetLength() - nBegin + 1));
+	}
 	else
-		return (Symbol)sTmp.Mid(nBegin - 1, nCharNumber);
+	{
+		const KWSymbolAsString sTmpValue(sValue);
+		return Symbol(sTmpValue.Mid(nBegin - 1, nCharNumber));
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -203,7 +250,7 @@ KWDerivationRule* KWDRTokenLength::Create() const
 Continuous KWDRTokenLength::ComputeContinuousResult(const KWObject* kwoObject) const
 {
 	Symbol sValue;
-	ALString sDelimiters;
+	Symbol sDelimiters;
 	int nTokenLength;
 	int nLength;
 	int i;
@@ -213,7 +260,7 @@ Continuous KWDRTokenLength::ComputeContinuousResult(const KWObject* kwoObject) c
 	require(IsCompiled());
 
 	// Recherche des parametres
-	sValue = GetFirstOperand()->GetSymbolValue(kwoObject);
+	sValue = GetFirstOperandGenericSymbolValue(kwoObject);
 	nLength = sValue.GetLength();
 	sDelimiters = GetSecondOperand()->GetSymbolValue(kwoObject);
 
@@ -225,19 +272,23 @@ Continuous KWDRTokenLength::ComputeContinuousResult(const KWObject* kwoObject) c
 		return 1;
 	else
 	{
+		const KWSymbolAsString sTmpDelimiters(sDelimiters);
+
 		// Recherche des separateurs en tenant compte des caracteres speciaux
 		nTokenLength = 0;
 		bInToken = false;
 		for (i = 0; i < nLength; i++)
 		{
 			// Si caractere delimiteur, on est dans un delimiteur, sinon dans un token
-			bNewCharInToken = (sDelimiters.Find(sValue.GetAt(i)) == -1);
+			bNewCharInToken = (sTmpDelimiters.Find(sValue.GetAt(i)) == -1);
 
 			// Un token supplementaire si on rentre dans un token
 			if (not bInToken and bNewCharInToken)
 				nTokenLength++;
 			bInToken = bNewCharInToken;
 		}
+
+		// Nettoyage
 		return (Continuous)nTokenLength;
 	}
 }
@@ -265,8 +316,7 @@ KWDerivationRule* KWDRTokenLeft::Create() const
 Symbol KWDRTokenLeft::ComputeSymbolResult(const KWObject* kwoObject) const
 {
 	Symbol sValue;
-	ALString sTmp;
-	ALString sDelimiters;
+	Symbol sDelimiters;
 	int nTokenIndex;
 	int nTokenNumber;
 	int nLength;
@@ -279,9 +329,8 @@ Symbol KWDRTokenLeft::ComputeSymbolResult(const KWObject* kwoObject) const
 	require(IsCompiled());
 
 	// Recherche des parametres
-	sValue = GetOperandAt(0)->GetSymbolValue(kwoObject);
-	sTmp = sValue;
-	nLength = sTmp.GetLength();
+	sValue = GetFirstOperandGenericSymbolValue(kwoObject);
+	nLength = sValue.GetLength();
 	sDelimiters = GetOperandAt(1)->GetSymbolValue(kwoObject);
 	nTokenNumber = (int)floor(GetOperandAt(2)->GetContinuousValue(kwoObject) + 0.5);
 
@@ -296,6 +345,9 @@ Symbol KWDRTokenLeft::ComputeSymbolResult(const KWObject* kwoObject) const
 		return sValue;
 	else
 	{
+		KWSymbolAsString sTmpValue(sValue);
+		KWSymbolAsString sTmpDelimiters(sDelimiters);
+
 		// Recherche des separateurs en tenant compte des caracteres speciaux
 		nTokenIndex = 0;
 		bInToken = false;
@@ -304,7 +356,7 @@ Symbol KWDRTokenLeft::ComputeSymbolResult(const KWObject* kwoObject) const
 		for (i = 0; i < nLength; i++)
 		{
 			// Si caractere delimiteur, on est dans un delimiteur, sinon dans un token
-			bNewCharInToken = (sDelimiters.Find(sValue.GetAt(i)) == -1);
+			bNewCharInToken = (sTmpDelimiters.Find(sValue.GetAt(i)) == -1);
 
 			// Un token supplementaire si on rentre dans un token
 			if (not bInToken and bNewCharInToken)
@@ -334,7 +386,7 @@ Symbol KWDRTokenLeft::ComputeSymbolResult(const KWObject* kwoObject) const
 			// sous-chaine contenant les tokens
 			if (nFirstChar >= 0 and (nLastChar == i or i == nLength - 1) and
 			    (nTokenIndex == nTokenNumber or i == nLength - 1))
-				return (Symbol)sTmp.Mid(nFirstChar, nLastChar + 1 - nFirstChar);
+				return StringToSymbol(sTmpValue.Mid(nFirstChar, nLastChar + 1 - nFirstChar));
 
 			// Memorisation de l'etat suivant
 			bInToken = bNewCharInToken;
@@ -369,8 +421,7 @@ KWDerivationRule* KWDRTokenRight::Create() const
 Symbol KWDRTokenRight::ComputeSymbolResult(const KWObject* kwoObject) const
 {
 	Symbol sValue;
-	ALString sTmp;
-	ALString sDelimiters;
+	Symbol sDelimiters;
 	int nTokenIndex;
 	int nTokenNumber;
 	int nLength;
@@ -383,9 +434,8 @@ Symbol KWDRTokenRight::ComputeSymbolResult(const KWObject* kwoObject) const
 	require(IsCompiled());
 
 	// Recherche des parametres
-	sValue = GetOperandAt(0)->GetSymbolValue(kwoObject);
-	sTmp = sValue;
-	nLength = sTmp.GetLength();
+	sValue = GetFirstOperandGenericSymbolValue(kwoObject);
+	nLength = sValue.GetLength();
 	sDelimiters = GetOperandAt(1)->GetSymbolValue(kwoObject);
 	nTokenNumber = (int)floor(GetOperandAt(2)->GetContinuousValue(kwoObject) + 0.5);
 
@@ -400,6 +450,9 @@ Symbol KWDRTokenRight::ComputeSymbolResult(const KWObject* kwoObject) const
 		return sValue;
 	else
 	{
+		KWSymbolAsString sTmpValue(sValue);
+		KWSymbolAsString sTmpDelimiters(sDelimiters);
+
 		// Recherche des separateurs en tenant compte des caracteres speciaux
 		// On parcours la chaine a l'envers pour extraire les tokens a droite
 		nTokenIndex = 0;
@@ -409,7 +462,7 @@ Symbol KWDRTokenRight::ComputeSymbolResult(const KWObject* kwoObject) const
 		for (i = nLength - 1; i >= 0; i--)
 		{
 			// Si caractere delimiteur, on est dans un delimiteur, sinon dans un token
-			bNewCharInToken = (sDelimiters.Find(sValue.GetAt(i)) == -1);
+			bNewCharInToken = (sTmpDelimiters.Find(sValue.GetAt(i)) == -1);
 
 			// Un token supplementaire si on rentre dans un token
 			if (not bInToken and bNewCharInToken)
@@ -439,7 +492,7 @@ Symbol KWDRTokenRight::ComputeSymbolResult(const KWObject* kwoObject) const
 			// la sous-chaine contenant les tokens
 			if (nLastChar >= 0 and (nFirstChar == i + 1 or i == 0) and
 			    (nTokenIndex == nTokenNumber or i == 0))
-				return (Symbol)sTmp.Mid(nFirstChar, nLastChar + 1 - nFirstChar);
+				return StringToSymbol(sTmpValue.Mid(nFirstChar, nLastChar + 1 - nFirstChar));
 
 			// Memorisation de l'etat suivant
 			bInToken = bNewCharInToken;
@@ -475,8 +528,7 @@ KWDerivationRule* KWDRTokenMiddle::Create() const
 Symbol KWDRTokenMiddle::ComputeSymbolResult(const KWObject* kwoObject) const
 {
 	Symbol sValue;
-	ALString sTmp;
-	ALString sDelimiters;
+	Symbol sDelimiters;
 	int nTokenIndex;
 	int nTokenBegin;
 	int nTokenNumber;
@@ -490,9 +542,8 @@ Symbol KWDRTokenMiddle::ComputeSymbolResult(const KWObject* kwoObject) const
 	require(IsCompiled());
 
 	// Recherche des parametres
-	sValue = GetOperandAt(0)->GetSymbolValue(kwoObject);
-	sTmp = sValue;
-	nLength = sTmp.GetLength();
+	sValue = GetFirstOperandGenericSymbolValue(kwoObject);
+	nLength = sValue.GetLength();
 	sDelimiters = GetOperandAt(1)->GetSymbolValue(kwoObject);
 	nTokenBegin = (int)floor(GetOperandAt(2)->GetContinuousValue(kwoObject) + 0.5);
 	nTokenNumber = (int)floor(GetOperandAt(3)->GetContinuousValue(kwoObject) + 0.5);
@@ -511,6 +562,9 @@ Symbol KWDRTokenMiddle::ComputeSymbolResult(const KWObject* kwoObject) const
 		return sValue;
 	else
 	{
+		KWSymbolAsString sTmpValue(sValue);
+		KWSymbolAsString sTmpDelimiters(sDelimiters);
+
 		// Recherche des separateurs en tenant compte des caracteres speciaux
 		nTokenIndex = 0;
 		bInToken = false;
@@ -519,7 +573,7 @@ Symbol KWDRTokenMiddle::ComputeSymbolResult(const KWObject* kwoObject) const
 		for (i = 0; i < nLength; i++)
 		{
 			// Si caractere delimiteur, on est dans un delimiteur, sinon dans un token
-			bNewCharInToken = (sDelimiters.Find(sValue.GetAt(i)) == -1);
+			bNewCharInToken = (sTmpDelimiters.Find(sValue.GetAt(i)) == -1);
 
 			// Un token supplementaire si on rentre dans un token
 			if (not bInToken and bNewCharInToken)
@@ -550,7 +604,7 @@ Symbol KWDRTokenMiddle::ComputeSymbolResult(const KWObject* kwoObject) const
 			// la sous-chaine contenant les tokens
 			if (nFirstChar >= 0 and (nLastChar == i or i == nLength - 1) and
 			    (nTokenIndex + 1 - nTokenBegin == nTokenNumber or i == nLength - 1))
-				return (Symbol)sTmp.Mid(nFirstChar, nLastChar + 1 - nFirstChar);
+				return StringToSymbol(sTmpValue.Mid(nFirstChar, nLastChar + 1 - nFirstChar));
 
 			// Memorisation de l'etat suivant
 			bInToken = bNewCharInToken;
@@ -605,14 +659,14 @@ Symbol KWDRTranslate::ComputeSymbolResult(const KWObject* kwoObject) const
 	require(IsCompiled());
 
 	// On ne fait rien si la chaine est vide
-	sValue = GetOperandAt(0)->GetSymbolValue(kwoObject);
+	sValue = GetFirstOperandGenericSymbolValue(kwoObject);
 	if (sValue.IsEmpty())
 		return sValue;
 	// Remplacement en sequence des valeurs sinon
 	else
 	{
 		// Recherche des parametres
-		sValue = GetOperandAt(0)->GetSymbolValue(kwoObject);
+		sValue = GetFirstOperandGenericSymbolValue(kwoObject);
 		searchStrings = cast(KWDRSymbolVector*, GetOperandAt(1)->GetDerivationRule());
 		replaceStrings = cast(KWDRSymbolVector*, GetOperandAt(2)->GetDerivationRule());
 
@@ -648,7 +702,7 @@ Symbol KWDRTranslate::ComputeSymbolResult(const KWObject* kwoObject) const
 			// On memorise le resultat, et on prepare les remplacements suivants
 			sStringValue = sOutputString;
 		}
-		return (Symbol)sStringValue;
+		return StringToSymbol(sStringValue);
 	}
 }
 boolean KWDRTranslate::CheckCompletness(const KWClass* kwcOwnerClass) const
@@ -700,7 +754,6 @@ KWDerivationRule* KWDRSearch::Create() const
 Continuous KWDRSearch::ComputeContinuousResult(const KWObject* kwoObject) const
 {
 	Symbol sValue;
-	ALString sTmp;
 	int nBegin;
 	Symbol sSearchString;
 	int nFoundPos;
@@ -708,17 +761,18 @@ Continuous KWDRSearch::ComputeContinuousResult(const KWObject* kwoObject) const
 	require(IsCompiled());
 
 	// Recherche des parametres
-	sValue = GetOperandAt(0)->GetSymbolValue(kwoObject);
-	sTmp = sValue;
+	sValue = GetFirstOperandGenericSymbolValue(kwoObject);
 	nBegin = (int)floor(GetOperandAt(1)->GetContinuousValue(kwoObject) + 0.5);
 	sSearchString = GetOperandAt(2)->GetSymbolValue(kwoObject);
 
 	// Recherche de la sous-chaine
-	if (nBegin < 1 or nBegin > sTmp.GetLength())
+	if (nBegin < 1 or nBegin > sValue.GetLength())
 		return -1;
 	else if (nBegin == 1)
 	{
-		nFoundPos = sTmp.Find(sSearchString);
+		const KWSymbolAsString sTmpValue(sValue);
+
+		nFoundPos = sTmpValue.Find(sSearchString);
 		if (nFoundPos == -1)
 			return -1;
 		else
@@ -726,7 +780,9 @@ Continuous KWDRSearch::ComputeContinuousResult(const KWObject* kwoObject) const
 	}
 	else
 	{
-		nFoundPos = sTmp.Right(sTmp.GetLength() + 1 - nBegin).Find(sSearchString);
+		const KWSymbolAsString sTmpValue(sValue);
+
+		nFoundPos = sTmpValue.Right(sTmpValue.GetLength() + 1 - nBegin).Find(sSearchString);
 		if (nFoundPos == -1)
 			return -1;
 		else
@@ -758,8 +814,6 @@ KWDerivationRule* KWDRReplace::Create() const
 Symbol KWDRReplace::ComputeSymbolResult(const KWObject* kwoObject) const
 {
 	Symbol sValue;
-	ALString sStringValue;
-	ALString sReplaceValue;
 	int nBegin;
 	Symbol sSearchString;
 	Symbol sReplaceString;
@@ -768,38 +822,41 @@ Symbol KWDRReplace::ComputeSymbolResult(const KWObject* kwoObject) const
 	require(IsCompiled());
 
 	// Recherche des parametres
-	sValue = GetOperandAt(0)->GetSymbolValue(kwoObject);
-	sStringValue = sValue;
+	sValue = GetFirstOperandGenericSymbolValue(kwoObject);
 	nBegin = (int)floor(GetOperandAt(1)->GetContinuousValue(kwoObject) + 0.5);
 	sSearchString = GetOperandAt(2)->GetSymbolValue(kwoObject);
 	sReplaceString = GetOperandAt(3)->GetSymbolValue(kwoObject);
 
 	// Recherche de la sous-chaine
-	if (nBegin < 1 or nBegin > sStringValue.GetLength() or sSearchString.IsEmpty())
+	if (nBegin < 1 or nBegin > sValue.GetLength() or sSearchString.IsEmpty())
 		return sValue;
 	else if (nBegin == 1)
 	{
+		const KWSymbolAsString sTmpValue(sValue);
+
 		// Recherche a partir du debut de la chaine
-		nReplacePos = sStringValue.Find(sSearchString);
+		nReplacePos = sTmpValue.Find(sSearchString);
 		if (nReplacePos == -1)
 			return sValue;
 		else
-			return (Symbol)(sStringValue.Left(nReplacePos) + sReplaceString +
-					sStringValue.Right(sStringValue.GetLength() - nReplacePos -
-							   sSearchString.GetLength()));
+			return StringToSymbol(
+			    sTmpValue.Left(nReplacePos) + sReplaceString +
+			    sTmpValue.Right(sTmpValue.GetLength() - nReplacePos - sSearchString.GetLength()));
 	}
 	else
 	{
+		const KWSymbolAsString sTmpValue(sValue);
+
 		// Recherche a partir d'une position de depart
-		nReplacePos = sStringValue.Right(sStringValue.GetLength() + 1 - nBegin).Find(sSearchString);
+		nReplacePos = sTmpValue.Right(sTmpValue.GetLength() + 1 - nBegin).Find(sSearchString);
 		if (nReplacePos == -1)
 			return sValue;
 		else
 		{
 			nReplacePos += nBegin - 1;
-			return (Symbol)(sStringValue.Left(nReplacePos) + sReplaceString +
-					sStringValue.Right(sStringValue.GetLength() - nReplacePos -
-							   sSearchString.GetLength()));
+			return StringToSymbol(
+			    sTmpValue.Left(nReplacePos) + sReplaceString +
+			    sTmpValue.Right(sTmpValue.GetLength() - nReplacePos - sSearchString.GetLength()));
 		}
 	}
 }
@@ -828,7 +885,6 @@ KWDerivationRule* KWDRReplaceAll::Create() const
 Symbol KWDRReplaceAll::ComputeSymbolResult(const KWObject* kwoObject) const
 {
 	Symbol sValue;
-	ALString sStringValue;
 	int nBegin;
 	Symbol sSearchString;
 	Symbol sReplaceString;
@@ -840,21 +896,22 @@ Symbol KWDRReplaceAll::ComputeSymbolResult(const KWObject* kwoObject) const
 	require(IsCompiled());
 
 	// Recherche des parametres
-	sValue = GetOperandAt(0)->GetSymbolValue(kwoObject);
-	sStringValue = sValue;
+	sValue = GetFirstOperandGenericSymbolValue(kwoObject);
 	nBegin = (int)floor(GetOperandAt(1)->GetContinuousValue(kwoObject) + 0.5);
 	sSearchString = GetOperandAt(2)->GetSymbolValue(kwoObject);
 	sReplaceString = GetOperandAt(3)->GetSymbolValue(kwoObject);
 
 	// Recherche de la sous-chaine
-	if (nBegin < 1 or nBegin > sStringValue.GetLength() or sSearchString.IsEmpty())
+	if (nBegin < 1 or nBegin > sValue.GetLength() or sSearchString.IsEmpty())
 		return sValue;
 	else
 	{
+		const KWSymbolAsString sTmpValue(sValue);
+
 		// Remplacement iteratif des pattern trouves a partir de la chaine pretraitee precedente
 		nReplacePos = nBegin - 1;
-		sBeginString = sStringValue.Left(nReplacePos);
-		sEndString = sStringValue.Right(sStringValue.GetLength() - nReplacePos);
+		sBeginString = sTmpValue.Left(nReplacePos);
+		sEndString = sTmpValue.Right(sTmpValue.GetLength() - nReplacePos);
 		sOutputString = sBeginString;
 		while (nReplacePos >= 0 and sEndString.GetLength() > 0)
 		{
@@ -873,7 +930,7 @@ Symbol KWDRReplaceAll::ComputeSymbolResult(const KWObject* kwoObject) const
 				sOutputString += sReplaceString;
 			}
 		}
-		return (Symbol)sOutputString;
+		return StringToSymbol(sOutputString);
 	}
 }
 
@@ -935,7 +992,7 @@ Continuous KWDRRegexMatch::ComputeContinuousResult(const KWObject* kwoObject) co
 	require(IsCompiled());
 
 	// Recherche des parametres
-	sValue = GetFirstOperand()->GetSymbolValue(kwoObject);
+	sValue = GetFirstOperandGenericSymbolValue(kwoObject);
 
 	// Test si on a un match
 	bResult = regEx.Match(sValue);
@@ -975,7 +1032,7 @@ Continuous KWDRRegexSearch::ComputeContinuousResult(const KWObject* kwoObject) c
 	require(IsCompiled());
 
 	// Recherche des parametres
-	sValue = GetFirstOperand()->GetSymbolValue(kwoObject);
+	sValue = GetFirstOperandGenericSymbolValue(kwoObject);
 	nBegin = (int)floor(GetOperandAt(1)->GetContinuousValue(kwoObject) + 0.5);
 
 	// Recherche a partir du debut dans la cas standard
@@ -1030,21 +1087,20 @@ KWDerivationRule* KWDRRegexReplace::Create() const
 Symbol KWDRRegexReplace::ComputeSymbolResult(const KWObject* kwoObject) const
 {
 	Symbol sValue;
-	ALString sStringValue;
 	int nBegin;
 	Symbol sReplaceString;
 
 	require(IsCompiled());
 
 	// Recherche des parametres
-	sValue = GetFirstOperand()->GetSymbolValue(kwoObject);
+	sValue = GetFirstOperandGenericSymbolValue(kwoObject);
 	nBegin = (int)floor(GetOperandAt(1)->GetContinuousValue(kwoObject) + 0.5);
 	sReplaceString = GetOperandAt(3)->GetSymbolValue(kwoObject);
 
 	// Recherche a partir du debut dans la cas standard
 	if (nBegin == 1)
 	{
-		return (Symbol)regEx.Replace(sValue, sReplaceString);
+		return StringToSymbol(regEx.Replace(sValue, sReplaceString));
 	}
 	// Recherche a partir de la position de depart
 	else
@@ -1055,9 +1111,10 @@ Symbol KWDRRegexReplace::ComputeSymbolResult(const KWObject* kwoObject) const
 		// Cas avec position de depart valide
 		else
 		{
-			sStringValue = sValue;
-			return (Symbol)(sStringValue.Left(nBegin - 1) +
-					regEx.Replace(sValue + nBegin - 1, sReplaceString));
+			const KWSymbolAsString sTmpValue(sValue);
+
+			return StringToSymbol(sTmpValue.Left(nBegin - 1) +
+					      regEx.Replace(sValue + nBegin - 1, sReplaceString));
 		}
 	}
 }
@@ -1087,21 +1144,20 @@ KWDerivationRule* KWDRRegexReplaceAll::Create() const
 Symbol KWDRRegexReplaceAll::ComputeSymbolResult(const KWObject* kwoObject) const
 {
 	Symbol sValue;
-	ALString sStringValue;
 	int nBegin;
 	Symbol sReplaceString;
 
 	require(IsCompiled());
 
 	// Recherche des parametres
-	sValue = GetFirstOperand()->GetSymbolValue(kwoObject);
+	sValue = GetFirstOperandGenericSymbolValue(kwoObject);
 	nBegin = (int)floor(GetOperandAt(1)->GetContinuousValue(kwoObject) + 0.5);
 	sReplaceString = GetOperandAt(3)->GetSymbolValue(kwoObject);
 
 	// Recherche a partir du debut dans la cas standard
 	if (nBegin == 1)
 	{
-		return (Symbol)regEx.ReplaceAll(sValue, sReplaceString);
+		return StringToSymbol(regEx.ReplaceAll(sValue, sReplaceString));
 	}
 	// Recherche a partir de la position de depart
 	else
@@ -1112,9 +1168,10 @@ Symbol KWDRRegexReplaceAll::ComputeSymbolResult(const KWObject* kwoObject) const
 		// Cas avec position de depart valide
 		else
 		{
-			sStringValue = sValue;
-			return (Symbol)(sStringValue.Left(nBegin - 1) +
-					regEx.ReplaceAll(sValue + nBegin - 1, sReplaceString));
+			const KWSymbolAsString sTmpValue(sValue);
+
+			return StringToSymbol(sTmpValue.Left(nBegin - 1) +
+					      regEx.ReplaceAll(sValue + nBegin - 1, sReplaceString));
 		}
 	}
 }
@@ -1143,9 +1200,9 @@ Symbol KWDRToUpper::ComputeSymbolResult(const KWObject* kwoObject) const
 
 	require(IsCompiled());
 
-	sResult = GetFirstOperand()->GetSymbolValue(kwoObject);
+	sResult = GetFirstOperandGenericSymbolValue(kwoObject);
 	sResult.MakeUpper();
-	return (Symbol)sResult;
+	return StringToSymbol(sResult);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -1172,9 +1229,9 @@ Symbol KWDRToLower::ComputeSymbolResult(const KWObject* kwoObject) const
 
 	require(IsCompiled());
 
-	sResult = GetFirstOperand()->GetSymbolValue(kwoObject);
+	sResult = GetFirstOperandGenericSymbolValue(kwoObject);
 	sResult.MakeLower();
-	return (Symbol)sResult;
+	return StringToSymbol(sResult);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -1205,8 +1262,8 @@ Symbol KWDRConcat::ComputeSymbolResult(const KWObject* kwoObject) const
 
 	// Calcul de la concatenation
 	for (i = 0; i < GetOperandNumber(); i++)
-		sResult += GetOperandAt(i)->GetSymbolValue(kwoObject);
-	return Symbol(sResult);
+		sResult += GetGenericSymbolValue(GetOperandAt(i), kwoObject);
+	return StringToSymbol(sResult);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -1237,7 +1294,7 @@ Continuous KWDRHash::ComputeContinuousResult(const KWObject* kwoObject) const
 	require(IsCompiled());
 
 	// Recherche des parametres
-	sValue = GetOperandAt(0)->GetSymbolValue(kwoObject);
+	sValue = GetFirstOperandGenericSymbolValue(kwoObject);
 	nSize = (int)floor(GetOperandAt(1)->GetContinuousValue(kwoObject) + 0.5);
 
 	// Calcul de la cle de hashage

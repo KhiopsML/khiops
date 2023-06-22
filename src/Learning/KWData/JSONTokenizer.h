@@ -20,12 +20,17 @@ public:
 	//////////////////////////////////////////////////////////////////////////////
 	// Parametrage du fichier a analyser
 
+	// Parametrage de la lecture, en forcant ou non la conversion des caracteres utf8 de windows1252/iso8859-1 vers
+	// l'ansi (defaut: false) Cf class JSONFile
+	static void SetForceAnsi(boolean bValue);
+	static boolean GetForceAnsi();
+
 	// Ouverture du fichier pour analyse
 	// Le premier parametre sera utilise si necessaire pour parametrer les messages d'erreur
 	static boolean OpenForRead(const ALString& sErrorFamilyName, const ALString& sInputFileName);
 	static boolean IsOpened();
 
-	// Famiille d'erreur et nom du fichier, si un fichier est ouvert
+	// Famille d'erreur et nom du fichier, si un fichier est ouvert
 	static const ALString& GetErrorFamilyName();
 	static const ALString& GetFileName();
 
@@ -149,4 +154,7 @@ protected:
 
 	// Type du dernier token, pour les assertions
 	static int nLastToken;
+
+	// Parametrage de la conversion vers l'ansi
+	static boolean bForceAnsi;
 };

@@ -43,8 +43,8 @@ public:
 	void RemoveObject();
 
 	// Methodes de serialisation / deserialisation d'un objet non null
-	virtual void DeserializeObject(PLSerializer*, Object*) const = 0;
-	virtual void SerializeObject(PLSerializer*, const Object*) const = 0;
+	virtual void SerializeObject(PLSerializer* serializer, const Object* o) const = 0;
+	virtual void DeserializeObject(PLSerializer* serializer, Object* o) const = 0;
 
 	// Ajout de null dans le serializer, si l'objet passe en parametre est null
 	void AddNull(PLSerializer* serializer, const Object*) const;
@@ -113,8 +113,8 @@ public:
 	ObjectArray* GetObjectArray();
 
 	// Reimplementation des methodes virtuelles
-	void SerializeObject(PLSerializer*, const Object*) const override;
-	void DeserializeObject(PLSerializer*, Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 	void Clean() override;
 
 	// Methodes de test
@@ -154,8 +154,8 @@ public:
 	ObjectList* GetObjectList();
 
 	// Reimplementation des methodes virtuelles
-	void DeserializeObject(PLSerializer*, Object*) const override;
-	void SerializeObject(PLSerializer*, const Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 	void Clean() override;
 
 	// Methode de test
@@ -193,8 +193,8 @@ public:
 	ObjectDictionary* GetObjectDictionary();
 
 	// Reimplementation des methodes virtuelles
-	void DeserializeObject(PLSerializer*, Object*) const override;
-	void SerializeObject(PLSerializer*, const Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 	void Clean() override;
 
 	// Methode de test
@@ -226,8 +226,8 @@ public:
 	StringObject* GetStringObject();
 
 	// Reimplementation des methodes virtuelles
-	void DeserializeObject(PLSerializer*, Object*) const override;
-	void SerializeObject(PLSerializer*, const Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 	//////////////////////////////////////////////////////////////////
 	///// Implementation
@@ -251,8 +251,8 @@ public:
 	DoubleObject* GetDoubleObject();
 
 	// Reimplementation des methodes virtuelles
-	void DeserializeObject(PLSerializer*, Object*) const override;
-	void SerializeObject(PLSerializer*, const Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 	//////////////////////////////////////////////////////////////////
 	///// Implementation
@@ -276,8 +276,8 @@ public:
 	IntObject* GetIntObject();
 
 	// Reimplementation des methodes virtuelles
-	void DeserializeObject(PLSerializer*, Object*) const override;
-	void SerializeObject(PLSerializer*, const Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 	//////////////////////////////////////////////////////////////////
 	///// Implementation
@@ -301,8 +301,8 @@ public:
 	LongintObject* GetHostResource();
 
 	// Reimplementation des methodes virtuelles
-	void DeserializeObject(PLSerializer*, Object*) const override;
-	void SerializeObject(PLSerializer*, const Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 	//////////////////////////////////////////////////////////////////
 	///// Implementation

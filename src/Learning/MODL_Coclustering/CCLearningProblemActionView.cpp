@@ -7,7 +7,7 @@
 CCLearningProblemActionView::CCLearningProblemActionView()
 {
 	// Ajout d'actions
-	AddAction("BuildCoclustering", "Build coclustering",
+	AddAction("BuildCoclustering", "Train coclustering",
 		  (ActionMethod)(&CCLearningProblemActionView::BuildCoclustering));
 	AddAction("PostProcessCoclustering", "Simplify coclustering...",
 		  (ActionMethod)(&CCLearningProblemActionView::PostProcessCoclustering));
@@ -19,7 +19,7 @@ CCLearningProblemActionView::CCLearningProblemActionView()
 		  (ActionMethod)(&CCLearningProblemActionView::PostOptimizeCoclustering));
 
 	// Ajout d'accelateurs sur les actions principales
-	GetActionAt("BuildCoclustering")->SetAccelKey("control B");
+	GetActionAt("BuildCoclustering")->SetAccelKey("control T");
 	GetActionAt("PostProcessCoclustering")->SetAccelKey("control I");
 	GetActionAt("ExtractClusters")->SetAccelKey("control E");
 	GetActionAt("PrepareDeployment")->SetAccelKey("control P");
@@ -37,7 +37,7 @@ CCLearningProblemActionView::CCLearningProblemActionView()
 
 	// Info-bulles
 	GetActionAt("BuildCoclustering")
-	    ->SetHelpText("Build a coclustering model given the coclustering parameters."
+	    ->SetHelpText("Train a coclustering model given the coclustering parameters."
 			  "\n This action is anytime: coclustering models are computed and continuously improved,"
 			  "\n with new solutions saved as soon as improvements are reached."
 			  "\n The intermediate solutions can be used without waiting for the final solution,"
@@ -58,7 +58,7 @@ CCLearningProblemActionView::CCLearningProblemActionView()
 
 	// Short cuts
 	SetShortCut('T');
-	GetActionAt("BuildCoclustering")->SetShortCut('B');
+	GetActionAt("BuildCoclustering")->SetShortCut('T');
 	GetActionAt("PostProcessCoclustering")->SetShortCut('S');
 	GetActionAt("ExtractClusters")->SetShortCut('E');
 	GetActionAt("PrepareDeployment")->SetShortCut('P');

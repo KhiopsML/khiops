@@ -30,20 +30,6 @@ PLSharedErrorWithIndex::PLSharedErrorWithIndex() {}
 
 PLSharedErrorWithIndex::~PLSharedErrorWithIndex() {}
 
-void PLSharedErrorWithIndex::DeserializeObject(PLSerializer* serializer, Object* o) const
-{
-	PLErrorWithIndex* errorWithIndex = cast(PLErrorWithIndex*, o);
-	Error* error;
-	require(serializer->IsOpenForRead());
-	error = new Error;
-	error->SetCategory(serializer->GetString());
-	error->SetGravity(serializer->GetInt());
-	error->SetLabel(serializer->GetString());
-	error->SetLocalisation(serializer->GetString());
-	errorWithIndex->SetError(error);
-	errorWithIndex->SetIndex(serializer->GetLongint());
-}
-
 void PLSharedErrorWithIndex::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
 	assert(o != NULL);
@@ -58,4 +44,18 @@ void PLSharedErrorWithIndex::SerializeObject(PLSerializer* serializer, const Obj
 
 	// et de l'index
 	serializer->PutLongint(e->GetIndex());
+}
+
+void PLSharedErrorWithIndex::DeserializeObject(PLSerializer* serializer, Object* o) const
+{
+	PLErrorWithIndex* errorWithIndex = cast(PLErrorWithIndex*, o);
+	Error* error;
+	require(serializer->IsOpenForRead());
+	error = new Error;
+	error->SetCategory(serializer->GetString());
+	error->SetGravity(serializer->GetInt());
+	error->SetLabel(serializer->GetString());
+	error->SetLocalisation(serializer->GetString());
+	errorWithIndex->SetError(error);
+	errorWithIndex->SetIndex(serializer->GetLongint());
 }

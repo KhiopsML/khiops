@@ -276,20 +276,6 @@ KWDiscretizerSpec* PLShared_DiscretizerSpec::GetDiscretizerSpec()
 	return cast(KWDiscretizerSpec*, GetObject());
 }
 
-void PLShared_DiscretizerSpec::DeserializeObject(PLSerializer* serializer, Object* o) const
-{
-	KWDiscretizerSpec* discretizerSpec;
-
-	require(serializer->IsOpenForRead());
-
-	discretizerSpec = cast(KWDiscretizerSpec*, o);
-	discretizerSpec->SetSupervisedMethodName(serializer->GetString());
-	discretizerSpec->SetUnsupervisedMethodName(serializer->GetString());
-	discretizerSpec->SetParam(serializer->GetDouble());
-	discretizerSpec->SetMinIntervalFrequency(serializer->GetInt());
-	discretizerSpec->SetMaxIntervalNumber(serializer->GetInt());
-}
-
 void PLShared_DiscretizerSpec::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
 	KWDiscretizerSpec* discretizerSpec;
@@ -302,6 +288,20 @@ void PLShared_DiscretizerSpec::SerializeObject(PLSerializer* serializer, const O
 	serializer->PutDouble(discretizerSpec->GetParam());
 	serializer->PutInt(discretizerSpec->GetMinIntervalFrequency());
 	serializer->PutInt(discretizerSpec->GetMaxIntervalNumber());
+}
+
+void PLShared_DiscretizerSpec::DeserializeObject(PLSerializer* serializer, Object* o) const
+{
+	KWDiscretizerSpec* discretizerSpec;
+
+	require(serializer->IsOpenForRead());
+
+	discretizerSpec = cast(KWDiscretizerSpec*, o);
+	discretizerSpec->SetSupervisedMethodName(serializer->GetString());
+	discretizerSpec->SetUnsupervisedMethodName(serializer->GetString());
+	discretizerSpec->SetParam(serializer->GetDouble());
+	discretizerSpec->SetMinIntervalFrequency(serializer->GetInt());
+	discretizerSpec->SetMaxIntervalNumber(serializer->GetInt());
 }
 
 Object* PLShared_DiscretizerSpec::Create() const

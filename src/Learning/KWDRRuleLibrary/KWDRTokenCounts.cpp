@@ -4,13 +4,34 @@
 
 #include "KWDRTokenCounts.h"
 
+class KWDRTokenize;
+class KWDRTokenCounts;
+class KWDRCharNGramCounts;
+class KWDRStudyCharNGramCounts;
+class KWDRTextInit;
+
+void KWDRRegisterTextAdvancedRules()
+{
+	KWDerivationRule::RegisterDerivationRule(new KWDRTokenCounts);
+	KWDerivationRule::RegisterDerivationRule(new KWDRTokenize);
+	if (GetLearningTextVariableMode())
+	{
+		KWDerivationRule::RegisterDerivationRule(new KWDRMultipleCharNGramCounts);
+		KWDerivationRule::RegisterDerivationRule(new KWDRCharNGramCounts);
+		KWDerivationRule::RegisterDerivationRule(new KWDRStudyCharNGramCounts);
+		KWDerivationRule::RegisterDerivationRule(new KWDRTextInit);
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+
 KWDRTokenize::KWDRTokenize()
 {
 	SetName("Tokenize");
 	SetLabel("Recode a catagorical value with tokens separated by blank chars");
-	SetType(KWType::Symbol);
+	SetType(KWType::Text);
 	SetOperandNumber(1);
-	GetFirstOperand()->SetType(KWType::Symbol);
+	GetFirstOperand()->SetType(KWType::Text);
 }
 
 KWDRTokenize::~KWDRTokenize() {}
@@ -30,7 +51,7 @@ Symbol KWDRTokenize::ComputeSymbolResult(const KWObject* kwoObject) const
 	boolean bNewToken;
 
 	// Recherche des parametres
-	sInputValue = GetFirstOperand()->GetSymbolValue(kwoObject);
+	sInputValue = GetFirstOperand()->GetTextValue(kwoObject);
 
 	// Acces a la chaine de caractere a analyser
 	sStringValue = sInputValue.GetValue();
@@ -195,7 +216,12 @@ void KWDRTokenCounts::TestCount(const ALString& sInputValue, const KWIndexedKeyB
 	cout << sInputValue << "\n";
 	valueBlock = ComputeTokenCounts(Symbol(sInputValue), indexedKeyBlock);
 	cout << "\t" << *valueBlock << endl;
+	delete valueBlock;
 }
+
+//////////////////////////////////////////////////////////////////////////////////////
+
+LongintVector KWDRCharNGramCounts::lvNGramMasks;
 
 KWDRCharNGramCounts::KWDRCharNGramCounts()
 {
@@ -203,7 +229,7 @@ KWDRCharNGramCounts::KWDRCharNGramCounts()
 	SetLabel("Char n-gram counts from a text value");
 	SetType(KWType::ContinuousValueBlock);
 	SetOperandNumber(3);
-	GetFirstOperand()->SetType(KWType::Symbol);
+	GetFirstOperand()->SetType(KWType::Text);
 	GetOperandAt(1)->SetType(KWType::Continuous);
 	GetOperandAt(2)->SetType(KWType::Continuous);
 
@@ -212,10 +238,11 @@ KWDRCharNGramCounts::KWDRCharNGramCounts()
 	GetOperandAt(2)->SetOrigin(KWDerivationRuleOperand::OriginConstant);
 
 	// Initialisation par defaut des caracteristique des n-grammes
-	nNGramLength = 0;
+	nFirstNGramLength = 0;
+	nLastNGramLength = 0;
 	nNGramNumber = 0;
-	lNGramMask = 0;
 	lRandomOffset = 0;
+	bWithRandomSign = false;
 }
 
 KWDRCharNGramCounts::~KWDRCharNGramCounts() {}
@@ -240,7 +267,7 @@ KWDRCharNGramCounts::ComputeContinuousValueBlockResult(const KWObject* kwoObject
 	require(IsCompiled());
 	require(indexedKeyBlock != NULL);
 
-	sInputValue = GetFirstOperand()->GetSymbolValue(kwoObject);
+	sInputValue = GetFirstOperand()->GetTextValue(kwoObject);
 	cvbTokenCounts = ComputeCharNgramCounts(sInputValue, indexedKeyBlock);
 	return cvbTokenCounts;
 }
@@ -254,18 +281,24 @@ KWContinuousValueBlock* KWDRCharNGramCounts::ComputeCharNgramCounts(const Symbol
 								    const KWIndexedKeyBlock* indexedKeyBlock) const
 {
 	const boolean bDisplay = false;
+	static const int nDefaultCount = -INT_MAX;
 	KWContinuousValueBlock* cvbTokenCounts;
 	IntVector ivUsedSparseIndexes;
 	const char* sStringValue;
-	int nLength;
+	int nTextLength;
 	int n;
 	int nMax;
+	int nNGramLength;
+	longint lNGramMask;
 	longint lNgramValue;
 	longint lIndex;
+	int nRandom;
 	int nNKey;
+	int nRandomSign;
 	int nSparseIndex;
 	char* sIndex;
 	int i;
+	int nPreviousSize;
 
 	require(indexedKeyBlock != NULL);
 
@@ -276,16 +309,23 @@ KWContinuousValueBlock* KWDRCharNGramCounts::ComputeCharNgramCounts(const Symbol
 
 	// Retaillage si necessaire du tableau sparse des parties
 	if (ivSparseCounts.GetSize() < indexedKeyBlock->GetKeyNumber())
+	{
+		nPreviousSize = ivSparseCounts.GetSize();
 		ivSparseCounts.SetSize(indexedKeyBlock->GetKeyNumber());
+
+		// Initialisation des nouvelles valeur avec la valeur par defaut
+		for (i = nPreviousSize; i < indexedKeyBlock->GetKeyNumber(); i++)
+			ivSparseCounts.SetAt(i, nDefaultCount);
+	}
 
 	// Parcours des caracteres de la chaines pour en calculer les ngrammes
 	// En debut de chaine et en fin de chaine, on ne prend qu'une sous-partie
 	// des caracteres du n-gramme
 	// Par exemple, pour les 3-grammes de la chaine "Bonjour", on considere
 	// "..B", ".Bo", "Bon", "onj", "njo", "jou", "our", "ur.", "r.."
-	nLength = (int)strlen(sStringValue);
+	nTextLength = sValue.GetLength();
 	// Cas ou la chaine est vide: aucun n-gramme
-	if (nLength == 0)
+	if (nTextLength == 0)
 	{
 		cvbTokenCounts = KWContinuousValueBlock::NewValueBlock(0);
 	}
@@ -297,75 +337,94 @@ KWContinuousValueBlock* KWDRCharNGramCounts::ComputeCharNgramCounts(const Symbol
 	// (windows et linux sont en little endian, mais ARM et android pas forcement)
 	else
 	{
-		lNgramValue = 0;
-		nMax = nLength + nNGramLength - 1;
-		for (n = 0; n < nMax; n++)
+		// On boucle sur les longueurs de nGrammes
+		nRandomSign = 1;
+		for (nNGramLength = nFirstNGramLength; nNGramLength <= nLastNGramLength; nNGramLength++)
 		{
-			// On multiplie l'index courant par 256
-			lNgramValue <<= 8;
-
-			// On rajoute la valeur du caractere courant, sauf apres la fin de chaine
-			if (n < nLength)
-				lNgramValue += (unsigned char)sStringValue[n];
-
-			// On tronque a la longueur du pattern en appliquant le masque
-			lNgramValue &= lNGramMask;
-
-			// On calcul un index a partir de la valeur du n-gramme, en ajoutant un offset pseudo-aleatoire
-			lIndex = lNgramValue + lRandomOffset;
-
-			// On bascule en index positif, necessaire pour l'appel a IthRandomInt
-			// N'est en principe necessaire que dans de rare cas, uniquement pour les longueurs
-			// maximum des n-grammes qui atteignent la limite de taille des longint
-			assert(lIndex >= 0 or nNGramLength == sizeof(longint));
-			if (lIndex < 0)
-				lIndex = -lIndex;
-
-			// Calcul d'une cle de n-gram projete aleatoiremenent sur [1; nNGrammNumber]
-			nNKey = 1 + IthRandomInt(lIndex, nNGramNumber - 1);
-
-			// Recherche de l'index sparse correspondant
-			nSparseIndex = cast(KWIndexedNKeyBlock*, indexedKeyBlock)->GetKeyIndex(nNKey);
-
-			// Test s'il faut memoriser le compte du n-gramme
-			if (nSparseIndex != -1)
+			lNgramValue = 0;
+			nMax = nTextLength + nNGramLength - 1;
+			lNGramMask = lvNGramMasks.GetAt(nNGramLength);
+			for (n = 0; n < nMax; n++)
 			{
-				// Memorisation si necessaire  de l'index sparse utilise
-				if (ivSparseCounts.GetAt(nSparseIndex) == 0)
-					ivUsedSparseIndexes.Add(nSparseIndex);
+				// On multiplie l'index courant par 256
+				lNgramValue <<= 8;
 
-				// Mise a jour du compte du ngramme
-				ivSparseCounts.UpgradeAt(nSparseIndex, 1);
-			}
+				// On rajoute la valeur du caractere courant, sauf apres la fin de chaine
+				if (n < nTextLength)
+					lNgramValue += (unsigned char)sStringValue[n];
 
-			// Affichage des resultats intermediaires, pour la mise au point
-			if (bDisplay)
-			{
-				cout << "\t" << n << "\t";
+				// On tronque a la longueur du pattern en appliquant le masque
+				lNgramValue &= lNGramMask;
 
-				// Affichage du n-gramme collecte dans la valeur lNgramValue
-				sIndex = (char*)&lNgramValue;
-				cout << "\t";
-				for (i = 7; i >= 0; i--)
+				// On calcul un index a partir de la valeur du n-gramme, en ajoutant un offset
+				// pseudo-aleatoire
+				lIndex = lNgramValue + lRandomOffset;
+
+				// On bascule en index positif, necessaire pour l'appel a IthRandomInt
+				// N'est en principe necessaire que dans de rare cas, uniquement pour les longueurs
+				// maximum des n-grammes qui atteignent la limite de taille des longint
+				assert(lIndex >= 0 or nNGramLength == sizeof(longint));
+				if (lIndex < 0)
+					lIndex = -lIndex;
+
+				// Calcul d'une cle de n-gram projete aleatoiremenent sur [1; nNGrammNumber]
+				nRandom = IthRandomInt(lIndex, 2 * (nNGramNumber - 1));
+				nNKey = 1 + nRandom / 2;
+				assert(1 <= nNKey and nNKey <= nNGramNumber);
+
+				// Prise en compte d'un signe aleatoire
+				if (bWithRandomSign)
 				{
-					if (sIndex[i] != 0)
-						cout << sIndex[i];
+					nRandomSign = 2 * (nRandom % 2) - 1;
+					assert(nRandomSign == -1 or nRandomSign == 1);
 				}
 
-				// Affichage des varaiables de calcul
-				cout << "\t" << lNgramValue << "\t" << lIndex << "\t" << nNKey << "\t" << nSparseIndex
-				     << endl;
+				// Recherche de l'index sparse correspondant
+				nSparseIndex = cast(KWIndexedNKeyBlock*, indexedKeyBlock)->GetKeyIndex(nNKey);
+
+				// Test s'il faut memoriser le compte du n-gramme
+				if (nSparseIndex != -1)
+				{
+					// Memorisation si necessaire de l'index sparse utilise
+					if (ivSparseCounts.GetAt(nSparseIndex) == nDefaultCount)
+					{
+						ivSparseCounts.SetAt(nSparseIndex, 0);
+						ivUsedSparseIndexes.Add(nSparseIndex);
+					}
+
+					// Mise a jour du compte du ngramme
+					ivSparseCounts.UpgradeAt(nSparseIndex, nRandomSign);
+				}
+
+				// Affichage des resultats intermediaires, pour la mise au point
+				if (bDisplay)
+				{
+					cout << "\t" << n << "\t";
+
+					// Affichage du n-gramme collecte dans la valeur lNgramValue
+					sIndex = (char*)&lNgramValue;
+					cout << "\t";
+					for (i = 7; i >= 0; i--)
+					{
+						if (sIndex[i] != 0)
+							cout << sIndex[i];
+					}
+
+					// Affichage des varaiables de calcul
+					cout << "\t" << lNgramValue << "\t" << lIndex << "\t" << nNKey << "\t"
+					     << nSparseIndex << endl;
+				}
 			}
 		}
 
-		// Tri des index sparses de partie utilises
+		// Tri des index sparses de parties utilisees
 		ivUsedSparseIndexes.Sort();
 
 		// Construction du bloc de compte de la bonne taille
 		cvbTokenCounts = KWContinuousValueBlock::NewValueBlock(ivUsedSparseIndexes.GetSize());
 
 		// Initialisation du vecteur sparse
-		// On exploite ici le fait que les index sparse sont necessairment ordonnes de la
+		// On exploite ici le fait que les index sparse sont necessairement ordonnes de la
 		// meme facon que les index de parties (NKey)
 		for (n = 0; n < ivUsedSparseIndexes.GetSize(); n++)
 		{
@@ -378,35 +437,50 @@ KWContinuousValueBlock* KWDRCharNGramCounts::ComputeCharNgramCounts(const Symbol
 					     cvbTokenCounts->GetAttributeSparseIndexAt(n - 1));
 
 			// Reinitialisation du tableau de travail
-			ivSparseCounts.SetAt(nSparseIndex, 0);
+			ivSparseCounts.SetAt(nSparseIndex, nDefaultCount);
 		}
 	}
-	ensure(cvbTokenCounts->SearchValueIndex(0) == -1);
+	ensure(cvbTokenCounts->SearchValueIndex(nDefaultCount) == -1);
 	return cvbTokenCounts;
 }
 
 void KWDRCharNGramCounts::Compile(KWClass* kwcOwnerClass)
 {
 	int i;
+	int nLength;
+	longint lNGramMask;
 
 	// Appel de la methode ancetre
 	KWDerivationRule::Compile(kwcOwnerClass);
 
 	// Memorisation des caracteristiques des n-grammes
-	nNGramLength = int(floor(GetOperandAt(1)->GetContinuousConstant() + 0.5));
-	nNGramNumber = int(floor(GetOperandAt(2)->GetContinuousConstant() + 0.5));
-	assert(nNGramLength <= sizeof(longint));
+	nNGramNumber = int(floor(GetOperandAt(1)->GetContinuousConstant() + 0.5));
+	nFirstNGramLength = 1;
+	if (GetOperandNumber() >= 2)
+		nFirstNGramLength = int(floor(GetOperandAt(2)->GetContinuousConstant() + 0.5));
+	assert(1 <= nFirstNGramLength and nFirstNGramLength <= nMaxNGramLength);
 
-	// Calcul du masque: on met tous les bits a 1 partout sur la longueur des n-grammes
-	lNGramMask = 0;
-	for (i = 0; i < nNGramLength; i++)
+	// Premiere taille de n-gramme a prendre en compte
+	nLastNGramLength = nFirstNGramLength;
+
+	// Calcul des masques par nGramme: on met tous les bits a 1 partout sur la longueur des n-grammes
+	if (lvNGramMasks.GetSize() == 0)
 	{
-		lNGramMask <<= 8;
-		lNGramMask += 255;
+		lvNGramMasks.SetSize(nMaxNGramLength + 1);
+		for (nLength = 1; nLength <= nMaxNGramLength; nLength++)
+		{
+			lNGramMask = 0;
+			for (i = 0; i < nLength; i++)
+			{
+				lNGramMask <<= 8;
+				lNGramMask += 255;
+			}
+			lvNGramMasks.SetAt(nLength, lNGramMask);
+		}
 	}
 
-	// Clcul du decallage pour generer des hashage differents selon les caracteristiques des nGrammes
-	lRandomOffset = nNGramLength;
+	// Calcul du decallage pour generer des hashages differents selon les caracteristiques des nGrammes
+	lRandomOffset = nLastNGramLength;
 	lRandomOffset *= 1000000000;
 	lRandomOffset += nNGramNumber;
 	lRandomOffset *= 1000000000;
@@ -430,42 +504,20 @@ boolean KWDRCharNGramCounts::CheckOperandsCompletness(const KWClass* kwcOwnerCla
 	// Verification des operandes
 	if (bOk)
 	{
-		assert(GetOperandNumber() == 3);
+		assert(GetOperandNumber() >= 2);
 
-		// Operande de longueur des n-grammes
+		// Operande de la taille de la table de hashage, en deuxieme operande
 		dValue = GetOperandAt(1)->GetContinuousConstant();
 		nValue = int(floor(dValue + 0.5));
 		if (fabs(dValue - nValue) > 1e-5)
 		{
-			AddError(sTmp + "Length of n-grams (" + KWContinuous::ContinuousToString(dValue) +
-				 ") in operand 1 must be an integer");
-			bOk = false;
-		}
-		else if (nValue < 1)
-		{
-			AddError(sTmp + "Length of n-grams (" + IntToString(nValue) +
-				 ") in operand 1  must be at least 1");
-			bOk = false;
-		}
-		else if (nValue > 8)
-		{
-			AddError(sTmp + "Length of n-grams (" + IntToString(nValue) +
-				 ") in operand 1 must be at most 8");
-			bOk = false;
-		}
-
-		// Operande du nombre de  n-grammes
-		dValue = GetOperandAt(2)->GetContinuousConstant();
-		nValue = int(floor(dValue + 0.5));
-		if (fabs(dValue - nValue) > 1e-5)
-		{
-			AddError(sTmp + "Number of n-grams (" + KWContinuous::ContinuousToString(dValue) +
+			AddError(sTmp + "Size of hashtable (" + KWContinuous::ContinuousToString(dValue) +
 				 ") in operand 2 must be an integer");
 			bOk = false;
 		}
 		else if (nValue < 1)
 		{
-			AddError(sTmp + "Number of n-grams (" + IntToString(nValue) +
+			AddError(sTmp + "Size of hashtable (" + IntToString(nValue) +
 				 ") in operand 2 must be at least 1");
 			bOk = false;
 		}
@@ -474,6 +526,31 @@ boolean KWDRCharNGramCounts::CheckOperandsCompletness(const KWClass* kwcOwnerCla
 			AddError(sTmp + "Number of n-grams (" + IntToString(nValue) +
 				 ") in operand 2 must be at most 1000000");
 			bOk = false;
+		}
+
+		// Operande de longueur des n-grammes, si present en troisieme operande
+		if (GetOperandNumber() >= 3)
+		{
+			dValue = GetOperandAt(2)->GetContinuousConstant();
+			nValue = int(floor(dValue + 0.5));
+			if (fabs(dValue - nValue) > 1e-5)
+			{
+				AddError(sTmp + "Length of n-grams (" + KWContinuous::ContinuousToString(dValue) +
+					 ") in operand 3 must be an integer");
+				bOk = false;
+			}
+			else if (nValue < 1)
+			{
+				AddError(sTmp + "Length of n-grams (" + IntToString(nValue) +
+					 ") in operand 3  must be at least 1");
+				bOk = false;
+			}
+			else if (nValue > nMaxNGramLength)
+			{
+				AddError(sTmp + "Length of n-grams (" + IntToString(nValue) +
+					 ") in operand 3 must be at most " + IntToString(nMaxNGramLength));
+				bOk = false;
+			}
 		}
 	}
 	return bOk;
@@ -501,8 +578,10 @@ boolean KWDRCharNGramCounts::CheckBlockAttributes(const KWClass* kwcOwnerClass,
 	// Analyse des cles du bloc d'attribut par rapport a la partition
 	if (bResult)
 	{
-		// Acces au nombre de ngrammes
-		nNumber = int(floor(GetOperandAt(2)->GetContinuousConstant() + 0.5));
+		assert(GetOperandNumber() >= 2);
+
+		// Acces au nombre de ngrammes, en deuxieme operande
+		nNumber = int(floor(GetOperandAt(1)->GetContinuousConstant() + 0.5));
 
 		// Parcours des attributs du bloc pour verifier leur VarKey par rapport a la taille de la partition
 		checkedAttribute = attributeBlock->GetFirstAttribute();
@@ -544,31 +623,776 @@ longint KWDRCharNGramCounts::GetUsedMemory() const
 	return lUsedMemory;
 }
 
-void KWDRCharNGramCounts::Test()
-{
-	KWDRCharNGramCounts charNgramCounts;
-	KWIndexedCKeyBlock indexedKeyBlock;
+////////////////////////////////////////////////////////////////////////////
 
-	// Initialisation des tokens a compter, dans l'ordre alphabetique impose
-	indexedKeyBlock.AddKey("bonjour");
-	indexedKeyBlock.AddKey("le");
-	indexedKeyBlock.AddKey("monde");
-	indexedKeyBlock.AddKey("tout");
-	cout << "Tokens: " << indexedKeyBlock << endl;
+IntVector KWDRMultipleCharNGramCounts::ivNGramLengths;
+IntVector KWDRMultipleCharNGramCounts::ivHashTableSizes;
+LongintVector KWDRMultipleCharNGramCounts::lvNGramMasks;
+
+KWDRMultipleCharNGramCounts::KWDRMultipleCharNGramCounts()
+{
+	SetName("MultipleCharNGramCounts");
+	SetLabel("Multiple char n-gram counts from a text value");
+	SetType(KWType::ContinuousValueBlock);
+	SetOperandNumber(2);
+
+	// Premier operande de type texte
+	GetFirstOperand()->SetType(KWType::Text);
+
+	// Deuxieme operande: taille du block
+	GetOperandAt(1)->SetType(KWType::Continuous);
+	GetOperandAt(1)->SetOrigin(KWDerivationRuleOperand::OriginConstant);
+
+	// Parametres de la regle
+	nHashTableNumber = 0;
+
+	// Initialisation des variables globales
+	InitializeGlobalVariables();
+}
+
+KWDRMultipleCharNGramCounts::~KWDRMultipleCharNGramCounts() {}
+
+int KWDRMultipleCharNGramCounts::GetVarKeyType() const
+{
+	return KWType::Continuous;
+}
+
+KWDerivationRule* KWDRMultipleCharNGramCounts::Create() const
+{
+	return new KWDRMultipleCharNGramCounts;
+}
+
+KWContinuousValueBlock*
+KWDRMultipleCharNGramCounts::ComputeContinuousValueBlockResult(const KWObject* kwoObject,
+							       const KWIndexedKeyBlock* indexedKeyBlock) const
+{
+	KWContinuousValueBlock* cvbTokenCounts;
+	Symbol sInputValue;
+
+	require(IsCompiled());
+	require(indexedKeyBlock != NULL);
+
+	sInputValue = GetFirstOperand()->GetTextValue(kwoObject);
+	cvbTokenCounts = ComputeAllTablesCharNgramCounts(sInputValue, indexedKeyBlock);
+	return cvbTokenCounts;
+}
+
+Continuous KWDRMultipleCharNGramCounts::GetValueBlockContinuousDefaultValue() const
+{
+	return 0;
+}
+
+KWContinuousValueBlock*
+KWDRMultipleCharNGramCounts::ComputeAllTablesCharNgramCounts(const Symbol& sValue,
+							     const KWIndexedKeyBlock* indexedKeyBlock) const
+{
+	const boolean bDisplay = false;
+	int nBlockSize;
+	KWContinuousValueBlock* cvbTokenCounts;
+	IntVector ivUsedSparseIndexes;
+	const char* sStringValue;
+	int nTextLength;
+	int nLastNGramLength;
+	int nHashTableIndex;
+	int nHashTableFirstIndex;
+	int nHashTableLastIndex;
+	int n;
+	int nNGramLength;
+	longint lNGramMask;
+	longint lNgramValue;
+	longint lRandom;
+	longint lCukooHash;
+	int nNGramStartNKey;
+	int nStartNKey;
+	int nNKey;
+	int nSparseIndex;
+	char* sIndex;
+	int i;
+
+	require(AreGlobalVariablesInitialized());
+	require(indexedKeyBlock != NULL);
+
+	// Acces a la chaine de caractere a analyser
+	sStringValue = sValue.GetValue();
+	if (bDisplay)
+	{
+		cout << GetName() << "\t" << sStringValue << endl;
+		cout << "\tLength\tSize\tn\tngram\tindex\thash\nkey\tsparse index\tcount" << endl;
+	}
+
+	// Taille du texte
+	nTextLength = sValue.GetLength();
+
+	// Acces a la taille du block de variable
+	nBlockSize = int(floor(GetOperandAt(1)->GetContinuousConstant() + 0.5));
+
+	// Retaillage si necessaire du tableau sparse des parties
+	if (ivSparseCounts.GetSize() < indexedKeyBlock->GetKeyNumber())
+		ivSparseCounts.SetSize(indexedKeyBlock->GetKeyNumber());
+
+	// Cas ou la chaine est vide: aucun n-gramme
+	if (nTextLength == 0)
+	{
+		cvbTokenCounts = KWContinuousValueBlock::NewValueBlock(0);
+	}
+	// Cas general ou la chaine est non vide
+	// On prend les caractere un a un pour composer un index, en multipliant par 256 (<<8) apres chaque caractere
+	// On aurait pu utiliser des memcpy pour recopier directement les caracteres dans l'index (longint)
+	// traite comme un tableau de 8 caracteres. Le probleme est que cela depend de l'ordre des octets utilise
+	// par le systeme pour stocker les entiers (endianness), ce qui rendrait la solution non portable
+	// (windows et linux sont en little endian, mais ARM et android pas forcement)
+	else
+	{
+		// On boucle sur les longueurs de n-grammes
+		nHashTableLastIndex = -1;
+		nLastNGramLength = 0;
+		if (nHashTableNumber > 0)
+			nLastNGramLength = ivNGramLengths.GetAt(nHashTableNumber - 1);
+		for (nNGramLength = 1; nNGramLength <= nLastNGramLength; nNGramLength++)
+		{
+			// Arret si texte trop court
+			if (nTextLength < nNGramLength)
+				break;
+
+			// Calcul des index de tables de hashage concernees
+			nHashTableFirstIndex = nHashTableLastIndex + 1;
+			nHashTableLastIndex = nHashTableFirstIndex;
+			while (nHashTableLastIndex + 1 < nHashTableNumber and
+			       ivNGramLengths.GetAt(nHashTableLastIndex + 1) == nNGramLength)
+				nHashTableLastIndex++;
+
+			// Verifications
+			assert(ivNGramLengths.GetAt(nHashTableFirstIndex) == nNGramLength);
+			assert(nHashTableFirstIndex == 0 or
+			       ivNGramLengths.GetAt(nHashTableFirstIndex - 1) < nNGramLength);
+			assert(ivNGramLengths.GetAt(nHashTableLastIndex) == nNGramLength);
+
+			// Cle de depart pour les tables pour cette longueur de ngramms
+			nNGramStartNKey = ivHashTableSizes.GetAt(nHashTableFirstIndex);
+
+			// Analyse du texte pour une longueur de n-grammes donnee
+			lNGramMask = lvNGramMasks.GetAt(nNGramLength);
+
+			// Initialisation du debut premier n-gramme
+			lNgramValue = 0;
+			for (n = 0; n < nNGramLength - 1; n++)
+			{
+				// On multiplie l'index courant par 256
+				lNgramValue <<= 8;
+
+				// On rajoute la valeur du caractere courant, sauf apres la fin de chaine
+				lNgramValue += (unsigned char)sStringValue[n];
+			}
+
+			// Parcours des n-grammes jusqu'a la fin du texte
+			for (n = nNGramLength - 1; n < nTextLength; n++)
+			{
+				// On multiplie l'index courant par 256
+				lNgramValue <<= 8;
+
+				// On rajoute la valeur du caractere courant, sauf apres la fin de chaine
+				lNgramValue += (unsigned char)sStringValue[n];
+
+				// On tronque a la longueur du pattern en appliquant le masque
+				lNgramValue &= lNGramMask;
+				assert(lNgramValue >= 0);
+
+				// On prend un nombre aleatoire a partir de la valeur de ngramme
+				lRandom = IthRandomLongint(lNgramValue);
+
+				// Alimentation des tables hashage pour cette longieur de ngramme
+				lCukooHash = lRandom;
+				nStartNKey = nNGramStartNKey;
+				for (nHashTableIndex = nHashTableFirstIndex; nHashTableIndex <= nHashTableLastIndex;
+				     nHashTableIndex++)
+				{
+					// Calcul d'une cle de n-gram projetee aleatoirement sur sa table a partir de
+					// nStartNKey
+					nNKey = abs(lCukooHash) % ivHashTableSizes.GetAt(nHashTableIndex);
+					nNKey += nStartNKey;
+
+					// Recherche de l'index sparse correspondant
+					nSparseIndex = cast(KWIndexedNKeyBlock*, indexedKeyBlock)->GetKeyIndex(nNKey);
+
+					// Test s'il faut memoriser le compte du n-gramme
+					if (nSparseIndex != -1)
+					{
+						assert(nSparseIndex < ivSparseCounts.GetSize());
+
+						// Memorisation si necessaire de l'index sparse utilise
+						if (ivSparseCounts.GetAt(nSparseIndex) == 0)
+							ivUsedSparseIndexes.Add(nSparseIndex);
+
+						// Mise a jour du compte du ngramme
+						ivSparseCounts.UpgradeAt(nSparseIndex, 1);
+					}
+
+					// Affichage des resultats intermediaires, pour la mise au point
+					if (bDisplay)
+					{
+						cout << "\t" << nNGramLength << "\t"
+						     << ivHashTableSizes.GetAt(nHashTableIndex) << "\t" << n << "\t";
+
+						// Affichage du n-gramme collecte dans la valeur lNgramValue
+						sIndex = (char*)&lNgramValue;
+						for (i = 7; i >= 0; i--)
+						{
+							if (sIndex[i] != 0)
+								cout << sIndex[i];
+						}
+
+						// Affichage des variables de calcul
+						cout << "\t" << lNgramValue << "\t#" << lCukooHash << "\t" << nNKey
+						     << "\t" << nSparseIndex << "\t";
+						if (nSparseIndex != -1)
+							cout << ivSparseCounts.GetAt(nSparseIndex);
+						cout << "\n";
+					}
+
+					// Position de depart pour la table suivante
+					nStartNKey += ivHashTableSizes.GetAt(nHashTableIndex);
+
+					// Variante de la valeur hashage pour la table suivante, pour eviter les
+					// collisions
+					lCukooHash += lNgramValue;
+				}
+			}
+		}
+
+		// Tri des index sparses de parties utilisees
+		ivUsedSparseIndexes.Sort();
+
+		// Construction du bloc de compte de la bonne taille
+		cvbTokenCounts = KWContinuousValueBlock::NewValueBlock(ivUsedSparseIndexes.GetSize());
+
+		// Initialisation du vecteur sparse
+		// On exploite ici le fait que les index sparse sont necessairement ordonnes de la
+		// meme facon que les index de parties (NKey)
+		for (n = 0; n < ivUsedSparseIndexes.GetSize(); n++)
+		{
+			nSparseIndex = ivUsedSparseIndexes.GetAt(n);
+
+			// Memorisation de la paire (index sparse, compte)
+			cvbTokenCounts->SetAttributeSparseIndexAt(n, nSparseIndex);
+			cvbTokenCounts->SetValueAt(n, ivSparseCounts.GetAt(nSparseIndex));
+			assert(n == 0 or cvbTokenCounts->GetAttributeSparseIndexAt(n) >
+					     cvbTokenCounts->GetAttributeSparseIndexAt(n - 1));
+
+			// Reinitialisation du vecteur de travail
+			ivSparseCounts.SetAt(nSparseIndex, 0);
+		}
+	}
+
+	// Affichage du resultat
+	if (bDisplay)
+	{
+		cout << "Result block:\n";
+		for (n = 0; n < cvbTokenCounts->GetValueNumber(); n++)
+		{
+			cout << "\t " << cvbTokenCounts->GetAttributeSparseIndexAt(n) << "\t";
+			cout << KWContinuous::ContinuousToString(cvbTokenCounts->GetValueAt(n)) << "\n";
+			if (n > 1000)
+			{
+				cout << "\t...\n";
+				break;
+			}
+		}
+		cout << "\n";
+	}
+	ensure(cvbTokenCounts->SearchValueIndex(0) == -1);
+	ensure(CheckCharNgramCountsValueBlock(sValue, indexedKeyBlock, cvbTokenCounts));
+	return cvbTokenCounts;
+}
+
+boolean KWDRMultipleCharNGramCounts::CheckCharNgramCountsValueBlock(const Symbol& sValue,
+								    const KWIndexedKeyBlock* indexedKeyBlock,
+								    const KWContinuousValueBlock* valueBlock) const
+{
+	boolean bOk = true;
+	int nTextLength;
+	int nBlockSize;
+	boolean bIsFullBlock;
+	IntVector ivCumulatedNGramCounts;
+	int i;
+	int nSparseIndex;
+	int nNKey;
+	int nHashTableIndex;
+	int nNGramLength;
+
+	require(AreGlobalVariablesInitialized());
+	require(indexedKeyBlock != NULL);
+	require(valueBlock != NULL);
+
+	// Taille du texte
+	nTextLength = sValue.GetLength();
+
+	// Cas particulier d'un chaine vide
+	if (nTextLength == 0)
+		bOk = valueBlock->GetValueNumber() == 0;
+	// Cas d'une chaine non vide
+	else
+	{
+		// Acces a la taille du block de variable
+		nBlockSize = int(floor(GetOperandAt(1)->GetContinuousConstant() + 0.5));
+
+		// Test si si le block est plein
+		bIsFullBlock = (indexedKeyBlock->GetKeyNumber() == nBlockSize);
+		assert(not bIsFullBlock or cast(KWIndexedNKeyBlock*, indexedKeyBlock)->IsKeyPresent(1));
+		assert(not bIsFullBlock or cast(KWIndexedNKeyBlock*, indexedKeyBlock)->IsKeyPresent(nBlockSize));
+
+		// Initialisation d'un vecteur de comptes de n-grammes par taille de table hashage
+		ivCumulatedNGramCounts.SetSize(nHashTableNumber);
+
+		// Comptage du nombre cumule de n-grammes par taille de block
+		for (i = 0; i < valueBlock->GetValueNumber(); i++)
+		{
+			// Acces a la cle de n-gramme
+			nSparseIndex = valueBlock->GetAttributeSparseIndexAt(i);
+			nNKey = cast(KWIndexedNKeyBlock*, indexedKeyBlock)->GetKeyAt(nSparseIndex);
+
+			// Recherche de l'index de la table de hashage correspondante
+			nHashTableIndex = int(floor(log(nNKey + 0.5) / log(2.0)));
+
+			// Mise a jour du compte dans cette table de hashage
+			ivCumulatedNGramCounts.UpgradeAt(nHashTableIndex, (int)valueBlock->GetValueAt(i));
+		}
+
+		// Verification des comptes cumules de n-grammes
+		for (nHashTableIndex = 0; nHashTableIndex < nHashTableNumber; nHashTableIndex++)
+		{
+			nNGramLength = ivNGramLengths.GetAt(nHashTableIndex);
+
+			// Cas de texte de longueur inferieure aux n-grammes
+			if (nTextLength < nNGramLength)
+				bOk = bOk and ivCumulatedNGramCounts.GetAt(nHashTableIndex) == 0;
+			// Cas d'un comptage exhaustif si le block est plein avant la derniere table
+			else if (bIsFullBlock and nHashTableIndex < nHashTableNumber - 1)
+				bOk = bOk and
+				      ivCumulatedNGramCounts.GetAt(nHashTableIndex) == nTextLength + 1 - nNGramLength;
+			// Cas d'un comptage exhaustif si le block est plein pour la derniere table
+			else if (bIsFullBlock and nHashTableIndex == nHashTableNumber - 1 and
+				 indexedKeyBlock->GetKeyNumber() == (int)(pow(2, nHashTableIndex + 1) - 1))
+				bOk = bOk and
+				      ivCumulatedNGramCounts.GetAt(nHashTableIndex) == nTextLength + 1 - nNGramLength;
+			// Cas general
+			else
+				bOk = bOk and
+				      ivCumulatedNGramCounts.GetAt(nHashTableIndex) <= nTextLength + 1 - nNGramLength;
+		}
+	}
+	return bOk;
+}
+
+void KWDRMultipleCharNGramCounts::Compile(KWClass* kwcOwnerClass)
+{
+	// Appel de la methode ancetre
+	KWDerivationRule::Compile(kwcOwnerClass);
+
+	// Optimisation de la regle
+	Optimize();
+
+	// Reinitialisation du vecteur de travail sparse des comptes
+	// Ce dernier sera retaille dynamiquement lors de l'execution de la regle
+	ivSparseCounts.SetSize(0);
+}
+
+boolean KWDRMultipleCharNGramCounts::CheckOperandsCompletness(const KWClass* kwcOwnerClass) const
+{
+	boolean bOk;
+	double dValue;
+	int nValue;
+	ALString sTmp;
+
+	// Appel de la methode ancetre
+	bOk = KWDerivationRule::CheckOperandsCompletness(kwcOwnerClass);
+
+	// Verification des operandes
+	if (bOk)
+	{
+		assert(GetOperandNumber() >= 2);
+
+		// Acces a la taille du block, en deuxieme operande
+		dValue = GetOperandAt(1)->GetContinuousConstant();
+		nValue = int(floor(dValue + 0.5));
+		if (fabs(dValue - nValue) > 1e-5)
+		{
+			AddError(sTmp + "Size of variable block (" + KWContinuous::ContinuousToString(dValue) +
+				 ") in operand 2 must be an integer");
+			bOk = false;
+		}
+		else if (nValue < 1)
+		{
+			AddError(sTmp + "Size of variable block (" + IntToString(nValue) +
+				 ") in operand 2 must be at least 1");
+			bOk = false;
+		}
+		else if (nValue > 1000000)
+		{
+			AddError(sTmp + "Size of variable block (" + IntToString(nValue) +
+				 ") in operand 2 must be at most 1000000");
+			bOk = false;
+		}
+	}
+	return bOk;
+}
+
+boolean KWDRMultipleCharNGramCounts::CheckBlockAttributes(const KWClass* kwcOwnerClass,
+							  const KWAttributeBlock* attributeBlock) const
+{
+	boolean bResult = true;
+	int nBlockSize;
+	KWAttribute* checkedAttribute;
+	int nVarKey;
+	ALString sTmp;
+
+	require(kwcOwnerClass != NULL);
+	require(kwcOwnerClass->GetDomain() != NULL);
+	require(attributeBlock != NULL);
+	require(attributeBlock->GetFirstAttribute()->GetParentClass()->GetDomain() == kwcOwnerClass->GetDomain());
+	require(CheckOperandsCompletness(kwcOwnerClass));
+	require(attributeBlock->GetVarKeyType() == KWType::Continuous);
+
+	// Appel de la methode ancetre
+	bResult = KWDerivationRule::CheckBlockAttributes(kwcOwnerClass, attributeBlock);
+
+	// Analyse des cles du bloc d'attribut par rapport a la partition
+	if (bResult)
+	{
+		assert(GetOperandNumber() >= 2);
+
+		// Acces a la taille du block, en deuxieme operande
+		nBlockSize = int(floor(GetOperandAt(1)->GetContinuousConstant() + 0.5));
+
+		// Parcours des attributs du bloc pour verifier leur VarKey par rapport a la taille de la partition
+		checkedAttribute = attributeBlock->GetFirstAttribute();
+		while (checkedAttribute != NULL)
+		{
+			// VarKey de l'attribut
+			nVarKey = attributeBlock->GetContinuousVarKey(checkedAttribute);
+			assert(nVarKey >= 1);
+
+			// Erreur si VarKey plus grand que le nombre de n-grammes
+			if (nVarKey > nBlockSize)
+			{
+				// Messages d'erreur
+				attributeBlock->AddError(sTmp + "Variable " + checkedAttribute->GetName() +
+							 " has its VarKey=" + IntToString(nVarKey) +
+							 " greater than the size of the variable block (" +
+							 IntToString(nBlockSize) + ") obtained using rule " +
+							 GetName());
+				bResult = false;
+				break;
+			}
+
+			// Arret si derniere variable du bloc trouvee
+			if (checkedAttribute == attributeBlock->GetLastAttribute())
+				break;
+			// Sinon, attribut suivant
+			else
+				checkedAttribute->GetParentClass()->GetNextAttribute(checkedAttribute);
+		}
+	}
+	return bResult;
+}
+
+longint KWDRMultipleCharNGramCounts::GetUsedMemory() const
+{
+	longint lUsedMemory;
+	lUsedMemory = sizeof(KWDRMultipleCharNGramCounts);
+	lUsedMemory += ivSparseCounts.GetUsedMemory() - sizeof(IntVector);
+	return lUsedMemory;
+}
+
+void KWDRMultipleCharNGramCounts::Test()
+{
+	const int nBlockSize = 100000;
+	KWDRMultipleCharNGramCounts charNgramCounts;
+	KWIndexedNKeyBlock indexedKeyBlock;
+	int i;
+
+	// Initialisation de la regle
+	charNgramCounts.GetSecondOperand()->SetContinuousConstant(nBlockSize);
+	charNgramCounts.Optimize();
+
+	// Initialisation des ngrammes a compter
+	for (i = 1; i <= nBlockSize; i++)
+		indexedKeyBlock.AddKey(i);
+	cout << "NGrams: " << indexedKeyBlock << endl;
 
 	// Test avec plusieurs chaines
 	indexedKeyBlock.IndexKeys();
+	charNgramCounts.TestCount("", &indexedKeyBlock);
+	charNgramCounts.TestCount("le", &indexedKeyBlock);
 	charNgramCounts.TestCount("bonjour", &indexedKeyBlock);
 	charNgramCounts.TestCount("le monde est grand", &indexedKeyBlock);
 	charNgramCounts.TestCount("coucou", &indexedKeyBlock);
 	charNgramCounts.TestCount("le soir et le matin", &indexedKeyBlock);
 }
 
-void KWDRCharNGramCounts::TestCount(const ALString& sInputValue, const KWIndexedKeyBlock* indexedKeyBlock)
+void KWDRMultipleCharNGramCounts::TestCount(const ALString& sInputValue, const KWIndexedKeyBlock* indexedKeyBlock)
 {
 	KWContinuousValueBlock* valueBlock;
 
 	cout << sInputValue << "\n";
-	valueBlock = ComputeCharNgramCounts(Symbol(sInputValue), indexedKeyBlock);
+	valueBlock = ComputeAllTablesCharNgramCounts(Symbol(sInputValue), indexedKeyBlock);
 	cout << "\t" << *valueBlock << endl;
+	delete valueBlock;
+}
+
+void KWDRMultipleCharNGramCounts::Optimize()
+{
+	int nBlockSize;
+	int nCumulatedSize;
+
+	require(lvNGramMasks.GetSize() > 0);
+
+	// Acces a la taille du block, en deuxieme operande
+	nBlockSize = int(floor(GetOperandAt(1)->GetContinuousConstant() + 0.5));
+
+	// Calcul des caracteristiques specifiques a la regle
+	nHashTableNumber = 0;
+	nCumulatedSize = 0;
+	while (nCumulatedSize < nBlockSize)
+	{
+		nCumulatedSize += ivHashTableSizes.GetAt(nHashTableNumber);
+		nHashTableNumber++;
+	}
+}
+
+void KWDRMultipleCharNGramCounts::InitializeGlobalVariables()
+{
+	boolean bDisplay = false;
+	int nLength;
+	int nGramLength;
+	int nHashTableSize;
+	longint lNGramMask;
+	int i;
+
+	// Calcul des specifications globales communes a toutes les regles, une fois pour toutes
+	if (lvNGramMasks.GetSize() == 0)
+	{
+		// Calcul des longueurs de ngrammes et tailles de tables de hashage
+		assert(ivNGramLengths.GetSize() == 0);
+		assert(ivHashTableSizes.GetSize() == 0);
+		nGramLength = 1;
+		nHashTableSize = 1;
+		for (i = 0; i < 8; i++)
+		{
+			ivNGramLengths.Add(nGramLength);
+			ivHashTableSizes.Add(nHashTableSize);
+			nHashTableSize *= 2;
+		}
+		for (nGramLength = 2; nGramLength <= nMaxNGramLength; nGramLength++)
+		{
+			for (i = 0; i < 3; i++)
+			{
+				ivNGramLengths.Add(nGramLength);
+				ivHashTableSizes.Add(nHashTableSize);
+				nHashTableSize *= 2;
+			}
+		}
+
+		// Calcul des masques par nGramme: on met tous les bits a 1 partout sur la longueur des n-grammes
+		lvNGramMasks.SetSize(nMaxNGramLength + 1);
+		for (nLength = 1; nLength <= nMaxNGramLength; nLength++)
+		{
+			lNGramMask = 0;
+			for (i = 0; i < nLength; i++)
+			{
+				lNGramMask <<= 8;
+				lNGramMask += 255;
+			}
+			lvNGramMasks.SetAt(nLength, lNGramMask);
+		}
+
+		// Affichage
+		if (bDisplay)
+		{
+			cout << "N-Gram\tHash table size\n";
+			for (i = 0; i < ivNGramLengths.GetSize(); i++)
+				cout << ivNGramLengths.GetAt(i) << "\t" << ivHashTableSizes.GetAt(i) << "\n";
+			cout << "N-Gram\tMask\n";
+			for (nLength = 1; nLength <= nMaxNGramLength; nLength++)
+				cout << nLength << "\t" << lvNGramMasks.GetAt(nLength) << "\n";
+		}
+	}
+	ensure(AreGlobalVariablesInitialized());
+}
+
+boolean KWDRMultipleCharNGramCounts::AreGlobalVariablesInitialized()
+{
+	return lvNGramMasks.GetSize() >= 0;
+}
+
+////////////////////////////////////////////////////////////////////////////
+
+KWDRStudyCharNGramCounts::KWDRStudyCharNGramCounts()
+{
+	SetName("StudyCharNGramCounts");
+	SetLabel("Study char n-gram counts from a text value");
+	AddOperand(new KWDerivationRuleOperand);
+	AddOperand(new KWDerivationRuleOperand);
+	GetOperandAt(3)->SetType(KWType::Continuous);
+	GetOperandAt(4)->SetType(KWType::Continuous);
+
+	// On impose que les deux derniers operandes soient des constantes
+	GetOperandAt(3)->SetOrigin(KWDerivationRuleOperand::OriginConstant);
+	GetOperandAt(4)->SetOrigin(KWDerivationRuleOperand::OriginConstant);
+}
+
+KWDRStudyCharNGramCounts::~KWDRStudyCharNGramCounts() {}
+
+KWDerivationRule* KWDRStudyCharNGramCounts::Create() const
+{
+	return new KWDRStudyCharNGramCounts;
+}
+
+void KWDRStudyCharNGramCounts::Compile(KWClass* kwcOwnerClass)
+{
+	// Appel de la methode ancetre
+	KWDRCharNGramCounts::Compile(kwcOwnerClass);
+
+	// Parametrage avance
+	nLastNGramLength = int(floor(GetOperandAt(3)->GetContinuousConstant() + 0.5));
+	bWithRandomSign = GetOperandAt(4)->GetContinuousConstant() != 0;
+}
+
+boolean KWDRStudyCharNGramCounts::CheckOperandsCompletness(const KWClass* kwcOwnerClass) const
+{
+	boolean bOk;
+	double dValue;
+	int nValue;
+	ALString sTmp;
+
+	// Appel de la methode ancetre
+	bOk = KWDerivationRule::CheckOperandsCompletness(kwcOwnerClass);
+
+	// Verification des operandes
+	if (bOk)
+	{
+		assert(GetOperandNumber() == 5);
+
+		// Operande de longueur max des n-grammes
+		dValue = GetOperandAt(3)->GetContinuousConstant();
+		nValue = int(floor(dValue + 0.5));
+		if (fabs(dValue - nValue) > 1e-5)
+		{
+			AddError(sTmp + "Max length of n-grams (" + KWContinuous::ContinuousToString(dValue) +
+				 ") in operand 4 must be an integer");
+			bOk = false;
+		}
+		else if (nValue < 1)
+		{
+			AddError(sTmp + "Max length of n-grams (" + IntToString(nValue) +
+				 ") in operand 4  must be at least 1");
+			bOk = false;
+		}
+		else if (nValue > nMaxNGramLength)
+		{
+			AddError(sTmp + "Max length of n-grams (" + IntToString(nValue) +
+				 ") in operand 4 must be at most " + IntToString(nMaxNGramLength));
+			bOk = false;
+		}
+		else if (dValue < GetOperandAt(2)->GetContinuousConstant())
+		{
+			AddError(sTmp + "Max length of n-grams (" + IntToString(nValue) +
+				 ") in operand 4 must be greater than min length of n-grams in operand 3");
+			bOk = false;
+		}
+
+		// Operande de l'utilisation d'un signe pour l'ajout dans la table de hash
+		dValue = GetOperandAt(4)->GetContinuousConstant();
+		if (dValue != 0 and dValue != 1)
+		{
+			AddError(sTmp + "Operand 5 (" + KWContinuous::ContinuousToString(dValue) +
+				 ") for using a sign to update the hahtable must be 0 or 1");
+			bOk = false;
+		}
+	}
+	return bOk;
+}
+
+////////////////////////////////////////////////////////////////////////////
+
+KWDRTextInit::KWDRTextInit()
+{
+	SetName("TextInit");
+	SetLabel("Initialization of a text variable");
+	SetType(KWType::Text);
+	SetOperandNumber(2);
+	GetFirstOperand()->SetType(KWType::Continuous);
+	GetSecondOperand()->SetType(KWType::Symbol);
+
+	// On impose que les deux derniers operandes soient des constantes
+	GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginConstant);
+	GetSecondOperand()->SetOrigin(KWDerivationRuleOperand::OriginConstant);
+}
+
+KWDRTextInit::~KWDRTextInit() {}
+
+KWDerivationRule* KWDRTextInit::Create() const
+{
+	return new KWDRTextInit;
+}
+
+Symbol KWDRTextInit::ComputeTextResult(const KWObject* kwoObject) const
+{
+	ALString sResult;
+	int nSize;
+	char cValue;
+
+	// Construction d'un chaine de la longueur souhaitee
+	nSize = int(floor(GetFirstOperand()->GetContinuousConstant() + 0.5));
+	cValue = GetSecondOperand()->GetSymbolConstant().GetAt(0);
+	sResult = ALString(cValue, nSize);
+	return Symbol(sResult, nSize);
+}
+
+boolean KWDRTextInit::CheckOperandsCompletness(const KWClass* kwcOwnerClass) const
+{
+	boolean bOk;
+	Continuous cValue;
+	int nValue;
+	Symbol sValue;
+	ALString sTmp;
+
+	// Appel de la methode ancetre
+	bOk = KWDerivationRule::CheckOperandsCompletness(kwcOwnerClass);
+
+	// Verification des operandes
+	if (bOk)
+	{
+		assert(GetOperandNumber() == 2);
+
+		// Taille du texe a generer
+		cValue = GetFirstOperand()->GetContinuousConstant();
+		nValue = int(floor(cValue + 0.5));
+		if (fabs(cValue - nValue) > 1e-5)
+		{
+			AddError(sTmp + "Size of text (" + KWContinuous::ContinuousToString(cValue) +
+				 ") in first operand must be an integer");
+			bOk = false;
+		}
+		else if (nValue < 0)
+		{
+			AddError(sTmp + "Size of text (" + KWContinuous::ContinuousToString(cValue) +
+				 ") in first operand must be positive");
+			bOk = false;
+		}
+		else if (nValue > InputBufferedFile::nMaxFieldSize)
+		{
+			AddError(sTmp + "Size of text (" + KWContinuous::ContinuousToString(cValue) +
+				 ") in first operand must less than " + IntToString(InputBufferedFile::nMaxFieldSize));
+			bOk = false;
+		}
+
+		// Operande de l'utilisation d'un signe pour l'ajout dans la table de hash
+		sValue = GetSecondOperand()->GetSymbolConstant();
+		if (sValue.GetLength() != 1)
+		{
+			AddError(sTmp + "Second operand (" + sValue + ") must contain one singkle character");
+			bOk = false;
+		}
+	}
+	return bOk;
 }

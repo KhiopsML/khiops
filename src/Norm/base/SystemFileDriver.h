@@ -53,13 +53,13 @@ public:
 	virtual boolean Close(void* stream) = 0;
 
 	// Renvoie le nombre d'octets lus, -1 si il y a eu une erreur
-	virtual longint fread(void* ptr, size_t size, size_t count, void* stream) = 0;
+	virtual longint Fread(void* ptr, size_t size, size_t count, void* stream) = 0;
 
 	// Positionnement dans un fichier ouvert en lecture
 	virtual boolean SeekPositionInFile(longint lPosition, void* stream) = 0;
 
 	// Copie du systeme de fichier courant vers le systeme de fichier standard
-	// L'implementation par defaut utilise fread et fwrite
+	// L'implementation par defaut utilise Fread et Fwrite
 	virtual boolean CopyFileToLocal(const char* sSourceFilePathName, const char* sDestFilePathName);
 
 	// Renvoie le dernier message d'erreur
@@ -70,11 +70,10 @@ public:
 	// Ces methodes sont implementees par defaut avec des assert(false)
 
 	// Renvoie le nombre d'octets ecrits, 0 si il y a eu une erreur
-	// TODO renommer fwrite flush et fread avec des majuscule spour ne pas les confondre avec l'API C
-	virtual longint fwrite(const void* ptr, size_t size, size_t count, void* stream) = 0;
+	virtual longint Fwrite(const void* ptr, size_t size, size_t count, void* stream) = 0;
 
 	// Flush les donnees, renvoie true si OK
-	virtual boolean flush(void* stream) = 0;
+	virtual boolean Flush(void* stream) = 0;
 
 	// Supression d'un fichier
 	virtual boolean RemoveFile(const char* sFilePathName) const = 0;
@@ -106,6 +105,10 @@ public:
 	// Copie du systeme de fichier courant vers le systeme de fichier standard et inversement
 	// L'implementation par defaut utilise fread et fwrite
 	virtual boolean CopyFileFromLocal(const char* sSourceFilePathName, const char* sDestFilePathName);
+
+	// TODO: verifier la coherence avec la methode GetHugeBuffer
+	//  Taille du buffer necessaire a la copie local vers distant
+	const static int nBufferSizeForCopying = 1 * lMB;
 
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation

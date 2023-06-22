@@ -67,8 +67,7 @@ public class GUIBooleanElementRadioButton extends GUIBooleanElement
         }
 
         /**
-         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite
-         * mere
+         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite mere
          *
          * @param panel       Panneau de l'unite mere dans lequel sera ajoute le
          *                    composant d'affichage
@@ -81,8 +80,8 @@ public class GUIBooleanElementRadioButton extends GUIBooleanElement
                 JLabel label = new JLabel(getLabel());
                 setComponentHelpText(label);
 
-                // On met le label a la premiere ligne d'un panel a 2 lignes pour l'aligner
-                // avec le true
+                // On met le label a la premiere ligne d'un panel a 2 lignes pour l'aligner avec
+                // le true
                 JPanel labelPanel = new JPanel(new GridLayout(2, 1));
                 labelPanel.add(label);
 

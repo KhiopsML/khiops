@@ -1312,6 +1312,14 @@ Timestamp KWDerivationRule::ComputeTimestampResult(const KWObject* kwoObject) co
 	return tsValue;
 }
 
+Symbol KWDerivationRule::ComputeTextResult(const KWObject* kwoObject) const
+{
+	// Doit etre reimplemente si le type est Text
+	kwoObject = NULL; // Pour eviter le warning
+	assert(false);
+	return Symbol();
+}
+
 KWObject* KWDerivationRule::ComputeObjectResult(const KWObject* kwoObject) const
 {
 	// Doit etre reimplemente si le type est Object
@@ -2053,7 +2061,7 @@ void KWDerivationRule::Test()
 	if (rule->CheckDefinition())
 	{
 		// Creation d'une classe
-		testClass = KWClass::CreateClass("TestClass", 0, 2, 0, 0, 0, 0, 0, 0, 0, false, NULL);
+		testClass = KWClass::CreateClass("TestClass", 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, false, NULL);
 		testClass->IndexClass();
 		KWClassDomain::GetCurrentDomain()->InsertClass(testClass);
 		KWClassDomain::GetCurrentDomain()->Compile();

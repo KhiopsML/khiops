@@ -60,8 +60,8 @@ public class GUIManager extends GUIObject
                                         }
 
                                         // Pour parametrer les fontes de tous les composants
-                                        // Apparement, la seule solution est de parametrer la fonte de tous
-                                        // les compsants
+                                        // Apparement, la seule solution est de parametrer la fonte de tous les
+                                        // compsants
                                         if (defaultFont != null) {
                                                 UIManager.put("Button.font", defaultFont);
                                                 UIManager.put("CheckBox.font", defaultFont);
@@ -118,8 +118,8 @@ public class GUIManager extends GUIObject
                                         // Delai avant apparition de l'infobulle 0.5 secondes (defaut: 0.75 s)
                                         ToolTipManager.sharedInstance().setInitialDelay(500);
 
-                                        // Delai en deca duquel il n'y plus de delai initial si on change de
-                                        // composant: 0.15 secondes (defaut: 0.5 s)
+                                        // Delai en deca duquel il n'y plus de delai initial si on change de composant:
+                                        // 0.15 secondes (defaut: 0.5 s)
                                         ToolTipManager.sharedInstance().setReshowDelay(150);
 
                                         // Initialisation effectuee

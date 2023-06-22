@@ -1069,7 +1069,7 @@ int DTDecisionTreeCreationTask::ComputeMaxLoadableAttributeNumber(
 	// Memoire de travail pour gerer un arbre
 	// Objet a vide, plus un pointeur dans tous les noeuds de l'arbre, le tout par enregistrement
 	lTreeWorkingMemory = sizeof(KWObject) * nDatabaseObjectNumber;
-	lTreeWorkingMemory += (sizeof(KWObject*) * nNodeVariableNumber) * nDatabaseObjectNumber;
+	lTreeWorkingMemory += (sizeof(KWObject*) * nMaxAttributesSelectionNumber) * nDatabaseObjectNumber;
 
 	// Memoire pour stocker un valeur d'attribut, pour tous les objets
 	// Attention, il faudra prendre en compte le cas sparse de facon plus fine
@@ -1128,7 +1128,7 @@ int DTDecisionTreeCreationTask::ComputeMaxLoadableAttributeNumber(
 	// Message d'erreur si pas assez de memoire
 	if (lMaxAttributeNumber < forestAttributeSelection.GetMaxAttributesNumber())
 	{
-		sMessage = "No enough memory to build trees";
+		sMessage = "Not enough memory to build trees";
 		AddWarning(sMessage + RMResourceManager::BuildMissingMemoryMessage(lNecessaryMemory));
 		return 0;
 	}

@@ -92,6 +92,48 @@ const KWKey* KWMTDatabaseIndexer::GetChunkLastRootKeyAt(int nChunkIndex) const
 	return cast(const KWKey*, oaAllChunksLastRootKeys.GetAt(nChunkIndex));
 }
 
+void KWMTDatabaseIndexer::Write(ostream& ost) const
+{
+	int nChunk;
+	int nTable;
+	int nTableNumber;
+
+	ost << GetClassLabel() << "\n";
+	if (IsComputed())
+	{
+		cout << "Chunks\t" << GetChunkNumber() << "\n";
+		nTableNumber = 0;
+		if (GetChunkNumber() > 0)
+		{
+			nTableNumber = GetChunkBeginPositionsAt(0)->GetSize();
+			cout << "Tables\t" << nTableNumber << endl;
+
+			// En tete
+			ost << "Chunk\t";
+			for (nTable = 0; nTable < nTableNumber; nTable++)
+			{
+				ost << "Record" << nTable + 1 << "\t";
+				ost << "Begin" << nTable + 1 << "\t";
+				ost << "End" << nTable + 1 << "\t";
+			}
+			ost << "LastKey\n";
+		}
+
+		// Detail par chunk
+		for (nChunk = 0; nChunk < GetChunkNumber(); nChunk++)
+		{
+			ost << nChunk << "\t";
+			for (nTable = 0; nTable < nTableNumber; nTable++)
+			{
+				ost << GetChunkBeginRecordIndexesAt(nChunk)->GetAt(nTable) << "\t";
+				ost << GetChunkBeginPositionsAt(nChunk)->GetAt(nTable) << "\t";
+				ost << GetChunkEndPositionsAt(nChunk)->GetAt(nTable) << "\t";
+			}
+			ost << GetChunkLastRootKeyAt(nChunk)->GetObjectLabel() << "\n";
+		}
+	}
+}
+
 const ALString KWMTDatabaseIndexer::GetClassLabel() const
 {
 	return "Database indexer";
@@ -160,7 +202,7 @@ boolean KWMTDatabaseIndexer::ComputeAllDataTableIndexation(int nSlaveNumber,
 			if (mapping != NULL)
 				cout << "    " << mapping->GetDataPath() << " "
 				     << FileService::GetFileName(mapping->GetDataTableName()) << " ("
-				     << sourceDatabase->GetInputFileSizes()->GetAt(nMapping) << ")" << endl;
+				     << sourceDatabase->GetFileSizes()->GetAt(nMapping) << ")" << endl;
 		}
 	}
 
@@ -179,11 +221,10 @@ boolean KWMTDatabaseIndexer::ComputeAllDataTableIndexation(int nSlaveNumber,
 			(lSlaveGrantedMemoryForSourceDatabase - sourceDatabase->GetEmptyOpenNecessaryMemory()) / 2);
 
 		// On limite le nombre de process par esclave en cas de base trop petite
-		if (lMaxFileSizePerProcess * nSlaveNumber * nMaxProcessBySlave >
-		    sourceDatabase->GetTotalInputFileSize())
+		if (lMaxFileSizePerProcess * nSlaveNumber * nMaxProcessBySlave > sourceDatabase->GetTotalUsedFileSize())
 			lMaxFileSizePerProcess =
 			    max((longint)BufferedFile::nDefaultBufferSize,
-				sourceDatabase->GetTotalInputFileSize() / (nSlaveNumber * nMaxProcessBySlave));
+				sourceDatabase->GetTotalUsedFileSize() / (nSlaveNumber * nMaxProcessBySlave));
 
 		// On peut imposer la taille du buffer pour raison de tests
 		if (lForcedMaxTotalFileSizePerProcess > 0)
@@ -264,7 +305,7 @@ boolean KWMTDatabaseIndexer::ComputeAllDataTableIndexation(int nSlaveNumber,
 			// On utilise (lMaxFileSizePerProcess/8) pour la gestion de la fin des taches (cf.
 			// ComputeAllChunksInformations)
 			lMaxSlaveProcessNumber =
-			    1 + sourceDatabase->GetTotalInputFileSize() / (lMaxFileSizePerProcess / 8);
+			    1 + sourceDatabase->GetTotalUsedFileSize() / (lMaxFileSizePerProcess / 8);
 			if (lMaxKeyNumber > 10 * lMaxSlaveProcessNumber)
 				lMaxKeyNumber = 10 * lMaxSlaveProcessNumber;
 
@@ -274,11 +315,11 @@ boolean KWMTDatabaseIndexer::ComputeAllDataTableIndexation(int nSlaveNumber,
 				dSamplingRate = 1;
 			if (dSamplingRate * lRootLineNumber < 10)
 				dSamplingRate = 0;
-			if (lMaxFileSizePerProcess >= sourceDatabase->GetTotalInputFileSize())
+			if (lMaxFileSizePerProcess >= sourceDatabase->GetTotalUsedFileSize())
 				dSamplingRate = 0;
 			if (bDisplay)
 			{
-				cout << "  All tables size: " << sourceDatabase->GetTotalInputFileSize() << endl;
+				cout << "  All tables size: " << sourceDatabase->GetTotalUsedFileSize() << endl;
 				cout << "  Max file size per process: " << lMaxFileSizePerProcess << endl;
 				cout << "  Max slave process number: " << lMaxSlaveProcessNumber << endl;
 				cout << "  Max key number: " << lMaxKeyNumber << endl;
@@ -359,7 +400,7 @@ boolean KWMTDatabaseIndexer::ComputeAllDataTableIndexation(int nSlaveNumber,
 			       oaAllTableFoundKeyPositions.GetSize() == sourceDatabase->GetUsedMappings()->GetSize());
 			bOk = ComputeAllChunksInformations(
 			    &oaRootKeys, &oaAllTableFoundKeyPositions, sourceDatabase->GetUsedMappings(),
-			    sourceDatabase->GetInputFileSizes(), nSlaveNumber, lMaxFileSizePerProcess);
+			    sourceDatabase->GetFileSizes(), nSlaveNumber, lMaxFileSizePerProcess);
 		}
 		if (bShowTime)
 			cout << GetClassLabel() << "\tCompute chunk information\t" << timer.GetElapsedTime() << endl;
@@ -671,7 +712,7 @@ boolean KWMTDatabaseIndexer::ComputeAllChunksInformations(const ObjectArray* oaR
 	// Cas ou il y a des donnees d'indexation: on cree des coupures intermediaires
 	if (oaRootKeys->GetSize() > 0)
 	{
-		// Calcul de la taille totale des fichier a traiter
+		// Calcul de la taille totale des fichiers a traiter
 		lTotalFileSize = 0;
 		for (nMapping = 0; nMapping < oaUsedReadMappings->GetSize(); nMapping++)
 		{

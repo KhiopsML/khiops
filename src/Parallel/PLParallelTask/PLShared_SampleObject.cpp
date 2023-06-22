@@ -64,20 +64,6 @@ void PLShared_SampleObject::Test()
 	delete soOut;
 }
 
-void PLShared_SampleObject::DeserializeObject(PLSerializer* serializer, Object* o) const
-{
-	SampleObject* so = cast(SampleObject*, o);
-
-	require(serializer->IsOpenForRead());
-	require(o != NULL);
-
-	// Deserialisation de la chaine de caracteres
-	so->SetString(serializer->GetString());
-
-	// Deserialisation de l'entier
-	so->SetInt(serializer->GetInt());
-}
-
 void PLShared_SampleObject::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
 	SampleObject* so = cast(SampleObject*, o);
@@ -90,4 +76,18 @@ void PLShared_SampleObject::SerializeObject(PLSerializer* serializer, const Obje
 
 	// Serialisation de l'entier
 	serializer->PutInt(so->GetInt());
+}
+
+void PLShared_SampleObject::DeserializeObject(PLSerializer* serializer, Object* o) const
+{
+	SampleObject* so = cast(SampleObject*, o);
+
+	require(serializer->IsOpenForRead());
+	require(o != NULL);
+
+	// Deserialisation de la chaine de caracteres
+	so->SetString(serializer->GetString());
+
+	// Deserialisation de l'entier
+	so->SetInt(serializer->GetInt());
 }

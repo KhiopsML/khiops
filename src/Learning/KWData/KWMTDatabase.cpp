@@ -182,6 +182,33 @@ int KWMTDatabase::GetTableNumber() const
 	return oaMultiTableMappings.GetSize();
 }
 
+int KWMTDatabase::GetMainTableNumber() const
+{
+	int nMainTableNumber;
+	KWMTDatabaseMapping* mapping;
+	int i;
+
+	// Parcours de la table de mapping
+	nMainTableNumber = 0;
+	for (i = 0; i < oaMultiTableMappings.GetSize(); i++)
+	{
+		mapping = cast(KWMTDatabaseMapping*, oaMultiTableMappings.GetAt(i));
+
+		// On s'arrete a la premiere table referencee
+		if (IsReferencedClassMapping(mapping))
+			break;
+		// Sinon, on incremente le nombre de tables principales
+		else
+			nMainTableNumber++;
+	}
+	return nMainTableNumber;
+}
+
+int KWMTDatabase::GetReferencedTableNumber() const
+{
+	return GetTableNumber() - GetMainTableNumber();
+}
+
 KWMTDatabaseMapping* KWMTDatabase::LookupMultiTableMapping(const ALString& sDataPath) const
 {
 	KWMTDatabaseMapping* mapping;
@@ -402,6 +429,14 @@ boolean KWMTDatabase::CheckPartially(boolean bWriteOnly) const
 						 mapping->GetDataTableName() + " already used");
 				}
 				odDataTableNames.SetAt(mapping->GetDataTableName(), mapping);
+			}
+
+			// En mode ecriture, les tables externes ne doivent pas etre renseignees
+			if (bWriteOnly and mapping->GetDataTableName() != "" and IsReferencedClassMapping(mapping))
+			{
+				bOk = false;
+				AddError("Data path " + mapping->GetObjectLabel() + " : External data table " +
+					 mapping->GetDataTableName() + " should not be specified for output database");
 			}
 
 			// Recherche de la classe racine du chemin de mapping

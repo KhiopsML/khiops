@@ -1,49 +1,12 @@
-Rank;
-Name;
-Type;
-Style;
-Label 1;
-ResultFilesDirectory;
-ALString;
-DirectoryChooser;
-Result files directory 2;
-ResultFilesPrefix;
-ALString;
-;
-Result files prefix 3;
-ShortDescription;
-ALString;
-;
-Short description 4;
-PreparationFileName;
-ALString;
-;
-Preparation report 5;
-Preparation2DFileName;
-ALString;
-;
-2D preparation report 6;
-ModelingDictionaryFileName;
-ALString;
-;
-Modeling dictionary file 7;
-ModelingFileName;
-ALString;
-;
-Modeling report 8;
-TrainEvaluationFileName;
-ALString;
-;
-Train evaluation report 9;
-TestEvaluationFileName;
-ALString;
-;
-Test evaluation report 10;
-VisualizationFileName;
-ALString;
-;
-Visualization report 11;
-JSONFileName;
-ALString;
-;
-JSON report
+Rank;Name;Type;Style;Label
+1;ResultFilesDirectory         ;ALString;DirectoryChooser;Result files directory
+2;ResultFilesPrefix            ;ALString;                ;Result files prefix
+3;ShortDescription             ;ALString;                ;Short description
+4;PreparationFileName          ;ALString;                ;Preparation report
+5;Preparation2DFileName        ;ALString;                ;2D preparation report
+6;ModelingDictionaryFileName   ;ALString;                ;Modeling dictionary file
+7;ModelingFileName             ;ALString;                ;Modeling report
+8;TrainEvaluationFileName      ;ALString;                ;Train evaluation report
+9;TestEvaluationFileName       ;ALString;                ;Test evaluation report
+10;VisualizationFileName       ;ALString;                ;Visualization report
+11;JSONFileName                ;ALString;                ;JSON report

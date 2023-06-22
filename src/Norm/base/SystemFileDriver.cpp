@@ -4,6 +4,7 @@
 
 #include "SystemFileDriver.h"
 #include "InputBufferedFile.h"
+#include "HugeBuffer.h"
 
 SystemFileDriver::SystemFileDriver()
 {
@@ -85,8 +86,7 @@ boolean SystemFileDriver::CopyFileFromLocal(const char* sSourceFilePathName, con
 
 	require(IsManaged(sDestFilePathName));
 
-	// TODO utiliser le meme buffer que celui de InputBufferedFile
-	cBuffer = NewCharArray(nBufferSize);
+	cBuffer = GetHugeBuffer();
 
 	bOk = FileService::OpenInputBinaryFile(sSourceFilePathName, fSource);
 	if (bOk)
@@ -100,7 +100,7 @@ boolean SystemFileDriver::CopyFileFromLocal(const char* sSourceFilePathName, con
 			{
 				nRead = (int)std::fread(cBuffer, sizeof(char), nBufferSize, fSource);
 				if (nRead != -1)
-					this->fwrite(cBuffer, sizeof(char), nRead, fDest);
+					this->Fwrite(cBuffer, sizeof(char), nRead, fDest);
 			}
 			bOk = this->Close(fDest);
 		}
@@ -108,7 +108,6 @@ boolean SystemFileDriver::CopyFileFromLocal(const char* sSourceFilePathName, con
 	}
 	if (nRead == -1)
 		bOk = false;
-	DeleteCharArray(cBuffer);
 	return bOk;
 }
 
@@ -136,7 +135,7 @@ boolean SystemFileDriver::CopyFileToLocal(const char* sSourceFilePathName, const
 			nRead = nBufferSize;
 			while (nRead == nBufferSize)
 			{
-				nRead = (int)this->fread(cBuffer, sizeof(char), nBufferSize, fSource);
+				nRead = (int)this->Fread(cBuffer, sizeof(char), nBufferSize, fSource);
 				if (nRead != -1)
 					std::fwrite(cBuffer, sizeof(char), nRead, fDest);
 			}

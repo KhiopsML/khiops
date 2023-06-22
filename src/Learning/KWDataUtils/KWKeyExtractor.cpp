@@ -77,11 +77,11 @@ void KWKeyExtractor::ParseNextKey(PLParallelTask* taskErrorSender)
 	int nKeyIndex;
 	ALString sSubKey;
 	char* sField;
-	int nErrNo;
+	int nFieldLength;
+	int nFieldError;
 	boolean bEol;
 	KWFieldIndex* fieldIndex;
 	int nLineFieldNumber;
-	ALString sDisplayedField;
 	ALString sTmp;
 
 	require(iBuffer != NULL);
@@ -113,19 +113,15 @@ void KWKeyExtractor::ParseNextKey(PLParallelTask* taskErrorSender)
 		sField = NULL;
 		if (not bEol)
 		{
-			bEol = iBuffer->GetNextField(sField, nErrNo);
+			bEol = iBuffer->GetNextField(sField, nFieldLength, nFieldError);
 			nLineFieldNumber++;
 			j++;
-			if (nErrNo != InputBufferedFile::FieldNoError and taskErrorSender != NULL)
+			if (nFieldError != InputBufferedFile::FieldNoError and taskErrorSender != NULL)
 			{
-				// On tronque le champ s'il est trop long
-				sDisplayedField = sField;
-				if (sDisplayedField.GetLength() > 20)
-					sDisplayedField = sDisplayedField.Left(20) + "...";
-
 				// Affichage du warning
-				taskErrorSender->AddLocalWarning("key field <" + sDisplayedField +
-								     "> : " + iBuffer->GetFieldErrorLabel(nErrNo),
+				taskErrorSender->AddLocalWarning("key field <" +
+								     InputBufferedFile::GetDisplayValue(sField) +
+								     "> : " + iBuffer->GetFieldErrorLabel(nFieldError),
 								 1 + iBuffer->GetCurrentLineNumber());
 			}
 		}
@@ -149,9 +145,9 @@ void KWKeyExtractor::ParseNextKey(PLParallelTask* taskErrorSender)
 			fieldIndex->SetField("");
 	}
 
-	// On va jusqu'au bout de la ligne
+	// On va jusqu'au bout de la ligne si necessaire, sans incrementer le numero de ligne dans le buffer
 	if (not bEol)
-		iBuffer->SkipLine();
+		iBuffer->SkipLastFields();
 }
 
 void KWKeyExtractor::ExtractKey(KWKey* key) const

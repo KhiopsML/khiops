@@ -25,6 +25,17 @@ ALString JSONTokenizer::sFileName;
 ALString JSONTokenizer::sLocalFileName;
 FILE* JSONTokenizer::fJSON = NULL;
 int JSONTokenizer::nLastToken = 0;
+boolean JSONTokenizer::bForceAnsi = false;
+
+void JSONTokenizer::SetForceAnsi(boolean bValue)
+{
+	bForceAnsi = bValue;
+}
+
+boolean JSONTokenizer::GetForceAnsi()
+{
+	return bForceAnsi;
+}
 
 boolean JSONTokenizer::OpenForRead(const ALString& sErrorFamilyName, const ALString& sInputFileName)
 {
@@ -376,7 +387,7 @@ void JSONTokenizer::JsonToCString(const char* sJsonString, ALString& sCString)
 				sUnicodeChars.SetAt(3, sInputString[nEnd + 3]);
 
 				// On tente d'abord le decodgage d'un caractere windows-1252 encode avec unicode
-				nCode = JSONFile::UnicodeToWindows1252(sUnicodeChars);
+				nCode = JSONFile::UnicodeHexToWindows1252(sUnicodeChars);
 				if (nCode != -1)
 				{
 					nEnd += 3;

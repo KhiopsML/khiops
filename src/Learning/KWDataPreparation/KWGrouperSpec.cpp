@@ -280,20 +280,6 @@ KWGrouperSpec* PLShared_GrouperSpec::GetGrouperSpec()
 	return cast(KWGrouperSpec*, GetObject());
 }
 
-void PLShared_GrouperSpec::DeserializeObject(PLSerializer* serializer, Object* o) const
-{
-	KWGrouperSpec* grouperSpec;
-
-	require(serializer->IsOpenForRead());
-
-	grouperSpec = cast(KWGrouperSpec*, o);
-	grouperSpec->SetSupervisedMethodName(serializer->GetString());
-	grouperSpec->SetUnsupervisedMethodName(serializer->GetString());
-	grouperSpec->SetParam(serializer->GetDouble());
-	grouperSpec->SetMinGroupFrequency(serializer->GetInt());
-	grouperSpec->SetMaxGroupNumber(serializer->GetInt());
-}
-
 void PLShared_GrouperSpec::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
 	KWGrouperSpec* grouperSpec;
@@ -306,6 +292,20 @@ void PLShared_GrouperSpec::SerializeObject(PLSerializer* serializer, const Objec
 	serializer->PutDouble(grouperSpec->GetParam());
 	serializer->PutInt(grouperSpec->GetMinGroupFrequency());
 	serializer->PutInt(grouperSpec->GetMaxGroupNumber());
+}
+
+void PLShared_GrouperSpec::DeserializeObject(PLSerializer* serializer, Object* o) const
+{
+	KWGrouperSpec* grouperSpec;
+
+	require(serializer->IsOpenForRead());
+
+	grouperSpec = cast(KWGrouperSpec*, o);
+	grouperSpec->SetSupervisedMethodName(serializer->GetString());
+	grouperSpec->SetUnsupervisedMethodName(serializer->GetString());
+	grouperSpec->SetParam(serializer->GetDouble());
+	grouperSpec->SetMinGroupFrequency(serializer->GetInt());
+	grouperSpec->SetMaxGroupNumber(serializer->GetInt());
 }
 
 Object* PLShared_GrouperSpec::Create() const

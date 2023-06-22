@@ -10,7 +10,6 @@
 #include "PEPiView.h"
 #include "PEProtocolTestTask.h"
 
-#include "PLKnapsackProblem.h"
 #include "PLSharedObject.h"
 #include "PLSharedVariable.h"
 #include "PLSharedVector.h"

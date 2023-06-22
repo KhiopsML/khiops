@@ -58,7 +58,10 @@ protected:
 	// Elles correspondent principalement aux champs de saisie de l'IHM
 
 	// Fichier d'entree
-	PLShared_InputBufferedFile shared_inputFile;
+	PLShared_String shared_sInputFileName;
+	PLShared_Char shared_cInputFieldSeparator;
+	PLShared_Boolean shared_bInputHeaderLineUsed;
+	PLShared_Int shared_nBufferSize;
 
 	// Index des clefs
 	PLShared_IntVector shared_ivKeyFieldIndexes;

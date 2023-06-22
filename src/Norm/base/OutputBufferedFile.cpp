@@ -60,7 +60,6 @@ boolean OutputBufferedFile::OpenForAppend()
 {
 	boolean bOk;
 
-	// TODO require que le fichier est local
 	require(not IsOpened());
 	require(GetFileName() != "");
 

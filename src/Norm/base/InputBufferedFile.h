@@ -10,18 +10,18 @@
 #include "PLRemoteFileService.h"
 #include "MemoryStatsManager.h"
 
-class InputBufferedFile;
-
 ///////////////////////////////////////////////////////////////////////////
 // Fichier bufferise en lecture
 // TODO dans chaque methode qui fait avancer la position courante, il faut tester
 // si on n'a pas une ligne trop longue et l'indiquer a l'utilisateur
 // Il ya au moins les methode suivantes :
-// 			boolean GetNextField(char* sField, int& nFieldError); // nouvelle valeur de nFieldError quand la
-// ligne est trop longue 			boolean SkipField(); 			void GetNextLine(CharVector*
-// cvLine); renvoie vide si la ligne est trops longue 			void SkipLine(); revoie false si la ligne est
-// trop longue Il faut memoriser la position du debut de la ligne courante et  comparer nCurrentPos avec le debut de la
-// ligne pour evaluer si la ligne en cours est trop longue
+// - boolean GetNextField(char* sField, int& nFieldError);
+//   nouvelle valeur de nFieldError quand la ligne est trop longue
+// - boolean SkipField();
+// - void GetNextLine(CharVector* cvLine); renvoie vide si la ligne est trops longue
+// - void SkipLine(); renvoie false si la ligne est trop longue
+// Il faut memoriser la position du debut de la ligne courante et comparer nCurrentPos
+// avec le debut de la ligne pour evaluer si la ligne en cours est trop longue
 class InputBufferedFile : public BufferedFile
 {
 public:
@@ -177,16 +177,20 @@ public:
 	// mais a ne pas memoriser son pointeur, dont le contenu change apres chaque appel.
 	// Le flag nFieldError est positionne en cas d'erreur de parsing du champ
 	// Code retour a true si le token est le dernier de la ligne, du buffer ou du fichier
-	boolean GetNextField(char*& sField, int& nFieldError);
+	boolean GetNextField(char*& sField, int& nFieldLength, int& nFieldError);
 
 	// Saut d'un champ
 	// Code retour a true si le token est le dernier de la ligne, du buffer ou du fichier
 	boolean SkipField();
 
+	// Saut de tous les champs jusqu'a la fin de la ligne
+	// Sans effet si on est deja sur le dernier champ d'une ligne
+	void SkipLastFields();
+
 	// Lecture de la prochaine ligne a partir de la position courante
 	void GetNextLine(CharVector* cvLine);
 
-	// Saut d'une ligne
+	// Saut d'une ligne a partir de la position courante
 	void SkipLine();
 
 	// Extrait une sous-chaine allant de nBeginPos (inclus) a nEndPos (exclu) dans le buffer
@@ -223,8 +227,9 @@ public:
 	longint GetPositionInFile() const;
 
 	// Verification d'un encodage gerable par la classe
-	// Notamment, l'absence d'un BOM en tete de fichier UTF8, UTF16, ou de caracteres null '\0' dans le buffer en
-	// cours est verifie Les messages d'erreur sont emis par le errorSender (pas de message si NULL)
+	// Verification de l'absence d'un BOM en tete de fichier UTF8, UTF16, de l'absence de caracteres null '\0' dans
+	// le buffer en cours Verification egalement d'un eventuel format Mac anterieur a Mac OS 10 (1998) Les messages
+	// d'erreur sont emis par le errorSender (pas de message si NULL)
 	boolean CheckEncoding(const Object* errorSender) const;
 
 	// Taille max des ligne : par defaut 8 MB
@@ -282,6 +287,9 @@ public:
 	// Compte le nombre de lignes du fichier passe en parametre
 	// La lecture est effectuee par bloc de taille fixe : nChunkSize
 	static boolean TestCount(const ALString& sFileName, int nChunkSize);
+
+	// Compte le nombre de lignes, de valeurs, et de taille cumulee des valeur, du fichier passe en parametre
+	static boolean TestStats(const ALString& sFileName);
 
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation
@@ -360,12 +368,6 @@ protected:
 	// Indicateur de saut de ligne
 	boolean bIsSkippedLine;
 
-	// Fin de fichier en remplissant le buffer
-	boolean bEof;
-
-	// Debut du fichier
-	boolean bIsHeadOfFile;
-
 	// Est-ce que le dernier champ lu etait a la fin d'une ligne
 	boolean bLastFieldReachEol;
 
@@ -441,8 +443,34 @@ inline boolean InputBufferedFile::IsBufferEnd() const
 	return nPositionInBuffer == nCurrentBufferSize;
 }
 
+inline void InputBufferedFile::SkipLastFields()
+{
+	// Saut des champs restant sauf si on est deja sur le dernier champs de la ligne en cours
+	if (not bLastFieldReachEol)
+	{
+		bLastFieldReachEol = true;
+
+		// Recherche de la fin de ligne sans incrementer le numero de ligne
+		while (not IsBufferEnd())
+		{
+			if (GetNextChar() == '\n')
+				return;
+		}
+	}
+}
+
 inline void InputBufferedFile::SkipLine()
 {
+	// Incrementation du numero de ligne si on avait atteint la fin de ligne par un GetNextField
+	// En effet, le GetNextField modifie l'etat (bLastFieldReachEol), qui est correctement gere
+	// par l'appel suivant a GetNextField, et doit l'etre egalement par un appel a SkipLine
+	if (not IsBufferEnd() and bLastFieldReachEol)
+	{
+		nReadLineNumber++;
+		bLastFieldReachEol = false;
+	}
+
+	// Recherche de la fin de ligne
 	while (not IsBufferEnd())
 	{
 		if (GetNextChar() == '\n')
@@ -510,5 +538,5 @@ inline void InputBufferedFile::SetAllocatedBufferSize(int nValue)
 
 inline boolean InputBufferedFile::IsLastBuffer() const
 {
-	return bEof;
+	return GetBufferStartFilePos() + GetCurrentBufferSize() == GetFileSize();
 }

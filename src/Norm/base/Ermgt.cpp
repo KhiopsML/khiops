@@ -256,6 +256,11 @@ boolean Global::SetErrorLogFileName(const ALString& sValue)
 		// Creation si necessaire des repertoires intermediaires
 		FileService::MakeDirectories(FileService::GetPathName(sErrorLogFileName));
 
+		// Fermeture du fichier si celui-ci est deja ouvert
+		// Ce cas peut arriver si on appelle plusieurs fois ParseParameters (notamment via MODL_dll)
+		if (fstError.is_open())
+			fstError.close();
+
 		// Ici, on ne passe pas par la classe FileService pour ne pas
 		// entrainer une boucle entre FileService et Global
 		p_SetMachineLocale();

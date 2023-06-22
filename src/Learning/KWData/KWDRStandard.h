@@ -12,12 +12,15 @@ class KWDRCopyContinuous;
 class KWDRCopyDate;
 class KWDRCopyTime;
 class KWDRCopyTimestamp;
+class KWDRTextCopy;
 class KWDRCopySymbolValueBlock;
 class KWDRCopyContinuousValueBlock;
 class KWDRAsContinuous;
 class KWDRAsContinuousError;
 class KWDRRecodeMissing;
 class KWDRAsSymbol;
+class KWDRFromText;
+class KWDRToText;
 class KWDRAsDate;
 class KWDRFormatDate;
 class KWDRAsTime;
@@ -132,6 +135,23 @@ public:
 
 	// Calcul de l'attribut derive
 	Timestamp ComputeTimestampResult(const KWObject* kwoObject) const override;
+};
+
+////////////////////////////////////////////////////////////////////////////
+// Classe KWDRTextCopy
+// Copie d'un attribut Text. Permet son renommage
+class KWDRTextCopy : public KWDerivationRule
+{
+public:
+	// Constructeur
+	KWDRTextCopy();
+	~KWDRTextCopy();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	Symbol ComputeTextResult(const KWObject* kwoObject) const override;
 };
 
 ////////////////////////////////////////////////////////////////////////////
@@ -309,6 +329,40 @@ public:
 
 	// Calcul de l'attribut derive
 	Symbol ComputeSymbolResult(const KWObject* kwoObject) const override;
+};
+
+////////////////////////////////////////////////////////////////////////////
+// Classe KWDRFromText
+// Transformation d'un attribut Text en attribut Symbol
+class KWDRFromText : public KWDRConversionRule
+{
+public:
+	// Constructeur
+	KWDRFromText();
+	~KWDRFromText();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	Symbol ComputeSymbolResult(const KWObject* kwoObject) const override;
+};
+
+////////////////////////////////////////////////////////////////////////////
+// Classe KWDRToText
+// Transformation d'un attribut Symbol en attribut Text
+class KWDRToText : public KWDRConversionRule
+{
+public:
+	// Constructeur
+	KWDRToText();
+	~KWDRToText();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	Symbol ComputeTextResult(const KWObject* kwoObject) const override;
 };
 
 ////////////////////////////////////////////////////////////////////////////

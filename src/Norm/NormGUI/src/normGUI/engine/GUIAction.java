@@ -29,8 +29,8 @@ public class GUIAction extends GUIObject
         {
                 JButton actionButton;
                 if (getStyle().equals("SmallButton")) {
-                        // On utilise un bouton de reference, dont on reduit ensuite la taille de
-                        // la police
+                        // On utilise un bouton de reference, dont on reduit ensuite la taille de la
+                        // police
                         actionButton = new JButton("");
                         Font buttonFont = actionButton.getFont();
                         Font smallButtonFont =

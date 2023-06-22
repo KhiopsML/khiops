@@ -14,10 +14,13 @@ KWTypeAutomaticRecognition::KWTypeAutomaticRecognition()
 {
 	nValueNumber = 0;
 	nMissingValueNumber = 0;
+	nValue0Number = 0;
+	nValue1Number = 0;
 	nMaxValueLength = 0;
-	cMinFirstChar = '\0';
 	nMatchingTypeNumber = 1;
+	cMinFirstChar = '\0';
 	bMatchingContinuous = false;
+	bMatchingText = false;
 	bIsFinalized = false;
 
 	// Creation si necessaire des formats de references
@@ -46,10 +49,13 @@ void KWTypeAutomaticRecognition::Initialize()
 	// Reinitialisation
 	nValueNumber = 0;
 	nMissingValueNumber = 0;
+	nValue0Number = 0;
+	nValue1Number = 0;
 	nMaxValueLength = 0;
-	cMinFirstChar = '\0';
 	nMatchingTypeNumber = 1;
+	cMinFirstChar = '\0';
 	bMatchingContinuous = false;
+	bMatchingText = false;
 	bIsFinalized = false;
 	oaMatchingDateFormats.SetSize(0);
 	oaMatchingTimeFormats.SetSize(0);
@@ -77,6 +83,15 @@ void KWTypeAutomaticRecognition::AddStringValue(const char* const sValue)
 	// Analyse si valeur non vide
 	else
 	{
+		// Comptage des valeurs 0 et 1
+		if (sValue[1] == '\0')
+		{
+			if (sValue[0] == '0')
+				nValue0Number++;
+			else if (sValue[0] == '1')
+				nValue1Number++;
+		}
+
 		// Traitement de la longueur de la chaine
 		nValueLength = (int)strlen(sValue);
 		if (nValueLength > nMaxValueLength)
@@ -512,6 +527,16 @@ int KWTypeAutomaticRecognition::GetMissingValueNumber() const
 	return nMissingValueNumber;
 }
 
+int KWTypeAutomaticRecognition::GetValue0Number() const
+{
+	return nValue0Number;
+}
+
+int KWTypeAutomaticRecognition::GetValue1Number() const
+{
+	return nValue1Number;
+}
+
 int KWTypeAutomaticRecognition::GetMaxValueLength() const
 {
 	return nMaxValueLength;
@@ -525,6 +550,21 @@ void KWTypeAutomaticRecognition::Finalize()
 	const KWTimeFormat* timeFormat;
 
 	require(not bIsFinalized);
+	assert(nMinTextFieldSize < KWValue::nMaxSymbolFieldSize);
+
+	// Detection du type Text
+	if (GetLearningTextVariableMode())
+		bMatchingText = (nMaxValueLength >= nMinTextFieldSize);
+
+	// Invalidation du type Continuous s'il n'y a des 0 et des 1, plus eventuellement des Missing
+	if (bMatchingContinuous)
+	{
+		if (nValue0Number + nValue1Number + nMissingValueNumber == nValueNumber)
+		{
+			bMatchingContinuous = false;
+			nMatchingTypeNumber--;
+		}
+	}
 
 	// Nettoyage des formats time
 	if (oaMatchingTimeFormats.GetSize() > 0)
@@ -579,7 +619,12 @@ int KWTypeAutomaticRecognition::GetMainMatchingType() const
 	if (bMatchingContinuous)
 		return KWType::Continuous;
 	else if (nMatchingTypeNumber == 1)
-		return KWType::Symbol;
+	{
+		if (bMatchingText)
+			return KWType::Text;
+		else
+			return KWType::Symbol;
+	}
 	else if (GetMatchingDateFormatNumber() > 0)
 		return KWType::Date;
 	else if (GetMatchingTimestampFormatNumber() > 0)
@@ -592,17 +637,23 @@ int KWTypeAutomaticRecognition::GetMainMatchingType() const
 
 int KWTypeAutomaticRecognition::GetMatchingTypeNumber() const
 {
-	return nMatchingTypeNumber;
+	return nMatchingTypeNumber + bMatchingText;
 }
 
 int KWTypeAutomaticRecognition::GetMatchingTypeAt(int nIndex) const
 {
 	require(0 <= nIndex and nIndex < GetMatchingTypeNumber());
 
+	// On renvoie d'abord le type principal
 	if (nIndex == 0)
 		return GetMainMatchingType();
+	// Le type Symbol arrive forcement en dernier
 	else if (nIndex == GetMatchingTypeNumber() - 1)
 		return KWType::Symbol;
+	// Le type Text, s'il est disponible, arrive forcement en avant dernier
+	else if (nIndex == GetMatchingTypeNumber() - 2 and bMatchingText)
+		return KWType::Text;
+	// Les types Complex arrivent en fin
 	else
 	{
 		assert(nIndex == 1 and GetMatchingTypeNumber() == 3);

@@ -44,10 +44,6 @@ protected:
 	// Si le fichier n'existe pas, envoie -1 comme taille et le message systeme
 	void OpenFile(int nRank) const;
 
-	// Remplissage de buffer a la demande de l'esclave de rang nRank (dans GlobalCom)
-	// Le fichier est colocaliser a l'esclave
-	void FillLocal(int nRank) const;
-
 	// Recherche de fin de lignea la demande de l'esclave de rang nRank (dans GlobalCom)
 	// Envoi du resultat et des warning vers l'esclave
 	void FindEOL(int nRank) const;

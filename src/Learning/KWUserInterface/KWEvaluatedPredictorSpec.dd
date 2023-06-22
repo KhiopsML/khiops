@@ -1,25 +1,6 @@
-Rank;
-Name;
-Type;
-Style;
-Label 1;
-Evaluated;
-boolean;
-CheckBox;
-Evaluated 2;
-PredictorType;
-ALString;
-;
-Predictor 3;
-PredictorName;
-ALString;
-;
-Name 4;
-ClassName;
-ALString;
-;
-Dictionary 5;
-TargetAttributeName;
-ALString;
-;
-Target variable
+Rank;Name;Type;Style;Label
+1;Evaluated          ;boolean ;CheckBox;Evaluated
+2;PredictorType      ;ALString;        ;Predictor
+3;PredictorName      ;ALString;        ;Name
+4;ClassName          ;ALString;        ;Dictionary
+5;TargetAttributeName;ALString;        ;Target variable

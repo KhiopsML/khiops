@@ -180,8 +180,8 @@ public class GUICardTabbedPanes extends GUICard implements ChangeListener, Focus
                                 tabbedPanes.addChangeListener(this);
                                 tabbedPanes.addFocusListener(this);
 
-                                // On agrandit un peut la largeur preferee, trop juste avec la methode
-                                // par defaut
+                                // On agrandit un peut la largeur preferee, trop juste avec la methode par
+                                // defaut
                                 Dimension preferredDimension = tabbedPanes.getPreferredSize();
                                 preferredDimension.setSize(preferredDimension.getWidth() + 25,
                                                            preferredDimension.getHeight());
@@ -191,9 +191,9 @@ public class GUICardTabbedPanes extends GUICard implements ChangeListener, Focus
 
                 if (hasActionButton()) {
 
-                        // S'il n'y a aucune action ou bien s'il ne s'agit pas d'une fenetre (dans
-                        // ce cas les boutons apparaissent deja dans le panel sud grace a
-                        // addToolBar() de GUIUnit)
+                        // S'il n'y a aucune action ou bien s'il ne s'agit pas d'une fenetre (dans ce
+                        // cas les
+                        // boutons apparaissent deja dans le panel sud grace a addToolBar() de GUIUnit)
                         if (getActionCount() == 0 || frame != null)
                                 return;
 

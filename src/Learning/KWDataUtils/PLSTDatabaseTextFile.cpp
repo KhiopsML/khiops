@@ -6,7 +6,7 @@
 
 PLSTDatabaseTextFile::PLSTDatabaseTextFile()
 {
-	lTotalInputFileSize = 0;
+	lTotalFileSize = 0;
 	lOutputNecessaryDiskSpace = 0;
 	lEmptyOpenNecessaryMemory = 0;
 	lMinOpenNecessaryMemory = 0;
@@ -57,7 +57,7 @@ boolean PLSTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 		bOk = cast(PLDataTableDriverTextFile*, dataTableDriverCreator)->ComputeDataItemLoadIndexes(kwcClass);
 
 		// Calcul de la taille du fichier
-		lTotalInputFileSize = PLRemoteFileService::GetFileSize(sDatabaseName);
+		lTotalFileSize = PLRemoteFileService::GetFileSize(sDatabaseName);
 
 		// Calcul de la taille memoire en sortie
 		if (outputDatabaseTextFile != NULL)
@@ -130,7 +130,7 @@ boolean PLSTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 
 void PLSTDatabaseTextFile::CleanOpenInformation()
 {
-	lTotalInputFileSize = 0;
+	lTotalFileSize = 0;
 	lOutputNecessaryDiskSpace = 0;
 	lEmptyOpenNecessaryMemory = 0;
 	lMinOpenNecessaryMemory = 0;
@@ -154,10 +154,16 @@ KWLoadIndexVector* PLSTDatabaseTextFile::GetDataItemLoadIndexes()
 	return cast(PLDataTableDriverTextFile*, dataTableDriverCreator)->GetDataItemLoadIndexes();
 }
 
-longint PLSTDatabaseTextFile::GetTotalInputFileSize() const
+longint PLSTDatabaseTextFile::GetTotalFileSize() const
 {
 	require(IsOpenInformationComputed());
-	return lTotalInputFileSize;
+	return lTotalFileSize;
+}
+
+longint PLSTDatabaseTextFile::GetTotalUsedFileSize() const
+{
+	require(IsOpenInformationComputed());
+	return lTotalFileSize;
 }
 
 longint PLSTDatabaseTextFile::GetEmptyOpenNecessaryMemory() const
@@ -187,7 +193,7 @@ longint PLSTDatabaseTextFile::GetOutputNecessaryDiskSpace() const
 int PLSTDatabaseTextFile::GetMaxSlaveProcessNumber() const
 {
 	require(IsOpenInformationComputed());
-	return (int)ceil((lTotalInputFileSize + 1.0) / nMinOpenBufferSize);
+	return (int)ceil((lTotalFileSize + 1.0) / nMinOpenBufferSize);
 }
 
 int PLSTDatabaseTextFile::ComputeOpenBufferSize(boolean bRead, longint lOpenGrantedMemory) const
@@ -220,19 +226,19 @@ int PLSTDatabaseTextFile::ComputeOpenBufferSize(boolean bRead, longint lOpenGran
 		cout << "\tMaxOpenNecessaryMemory\t" << lMaxOpenNecessaryMemory << endl;
 		cout << "\tOpenGrantedMemory\t" << lOpenGrantedMemory << endl;
 		cout << "\tBufferSize\t" << lBufferSize << endl;
-		cout << "\tTotalInputFileSize\t" << lTotalInputFileSize << endl;
+		cout << "\tTotalFileSize\t" << lTotalFileSize << endl;
 	}
 
 	// On ajuste si necessaire la taille du buffer pour eviter le cas d'un dernier buffer de lecture tres peu rempli
-	if (bRead and lBufferSize <= lTotalInputFileSize)
+	if (bRead and lBufferSize <= lTotalFileSize)
 	{
 		// Retaillage si le dernier chunk est trop petit
-		lChunkNumber = lTotalInputFileSize / lBufferSize;
-		if (lTotalInputFileSize - lChunkNumber * lBufferSize < lBufferSize / 2)
+		lChunkNumber = lTotalFileSize / lBufferSize;
+		if (lTotalFileSize - lChunkNumber * lBufferSize < lBufferSize / 2)
 		{
 			// On calcul la taille du buffer avec un chunk supplemenatire
 			lChunkNumber++;
-			lBufferSize = 1 + longint(ceil(lTotalInputFileSize * 1.0) / lChunkNumber);
+			lBufferSize = 1 + longint(ceil(lTotalFileSize * 1.0) / lChunkNumber);
 
 			// On ajuste a un nombre entier de segments superieur
 			lBufferSize = MemSegmentByteSize * (longint)ceil(lBufferSize * 1.0 / MemSegmentByteSize);
@@ -247,12 +253,12 @@ int PLSTDatabaseTextFile::ComputeOpenBufferSize(boolean bRead, longint lOpenGran
 		lBufferSize = nMaxOpenBufferSize;
 
 	// Retaillage en lecture si on depasse la taille du fichier
-	if (bRead and lBufferSize > lTotalInputFileSize)
-		lBufferSize = lTotalInputFileSize + 1;
+	if (bRead and lBufferSize > lTotalFileSize)
+		lBufferSize = lTotalFileSize + 1;
 
 	// Passage en entier court
 	assert((nMinOpenBufferSize <= lBufferSize and lBufferSize <= lMaxOpenNecessaryMemory) or
-	       lTotalInputFileSize < nMinOpenBufferSize);
+	       lTotalFileSize < nMinOpenBufferSize);
 	assert(lBufferSize <= INT_MAX);
 	nBufferSize = (int)lBufferSize;
 	ensure(nBufferSize > 0);
@@ -341,7 +347,7 @@ void PLShared_STDatabaseTextFile::SerializeObject(PLSerializer* serializer, cons
 	serializer->PutChar(database->GetFieldSeparator());
 
 	// Ecriture des informations d'ouverture de la base
-	serializer->PutLongint(database->lTotalInputFileSize);
+	serializer->PutLongint(database->lTotalFileSize);
 	serializer->PutLongint(database->lOutputNecessaryDiskSpace);
 	serializer->PutLongint(database->lEmptyOpenNecessaryMemory);
 	serializer->PutLongint(database->lMinOpenNecessaryMemory);
@@ -376,7 +382,7 @@ void PLShared_STDatabaseTextFile::DeserializeObject(PLSerializer* serializer, Ob
 	database->SetFieldSeparator(serializer->GetChar());
 
 	// Lecture des informations d'ouverture de la base
-	database->lTotalInputFileSize = serializer->GetLongint();
+	database->lTotalFileSize = serializer->GetLongint();
 	database->lOutputNecessaryDiskSpace = serializer->GetLongint();
 	database->lEmptyOpenNecessaryMemory = serializer->GetLongint();
 	database->lMinOpenNecessaryMemory = serializer->GetLongint();

@@ -128,7 +128,7 @@ void Test(int argc, char** argv)
 	// KWContinuousValueBlock::Test();
 	// KWSymbolValueBlock::Test();
 	// KWObjectArrayValueBlock::Test();
-	KWCDUniqueString::Test();
+	// KWCDUniqueString::Test();
 }
 
 void KWTestAllComponents(boolean bLong)

@@ -28,8 +28,8 @@ public class GUIDialog extends GUIObject
          * Test si on est une fiche avec un seul champ texte de type dialog
          *
          * @param guiUnit L'unite d'interface a tester Ce type de fiche permet d'une
-         *                part un parametrage complet d'une Dialogr, d'autre part
-         * assure une compatibilite ascendante par rapport aux anciennes fiches
+         *                part un parametrage complet d'une Dialogr, d'autre part assure
+         *                une compatibilite ascendante par rapport aux anciennes fiches
          *                utilises auparavant de type UIConfirmationCard avec deux
          *                bouton d'acceptation et d'annulation pour les versions de
          *                Khiops jusqu'a V9
@@ -105,8 +105,8 @@ public class GUIDialog extends GUIObject
                 final JDialog dialog = new JDialog(parentFrame, guiDialogCard.getLabel(), true);
                 dialog.setContentPane(optionPane);
 
-                // Pour interdire de sortie autrement que par les boutons: on ne le fait pas
-                // par homogeneite par rapport au reste du comportement de l'interface
+                // Pour interdire de sortie autrement que par les boutons: on ne le fait pas par
+                // homogeneite par rapport au reste du comportement de l'interface
                 boolean defaultCloseForbidden = false;
                 if (defaultCloseForbidden)
                         dialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
@@ -116,8 +116,7 @@ public class GUIDialog extends GUIObject
                 dialog.addWindowListener(new WindowAdapter() {
                         public void windowClosing(WindowEvent we)
                         {
-                                // Mise a vide de la valeur a vide, pour signaler un "No", sans
-                                // l'enregistrer
+                                // Mise a vide de la valeur a vide, pour signaler un "No", sans l'enregistrer
                                 questionField.setValueIn(guiDialogCard, "");
 
                                 // Enregistrement de la commande de sortie dans le scenartio
@@ -144,8 +143,7 @@ public class GUIDialog extends GUIObject
 
                 // Parametrage specifique dans le cas d'une fenetre parentre nul
                 if (parentFrame == null) {
-                        // Positionnement si possible en fonction d'un position passee en
-                        // parametre
+                        // Positionnement si possible en fonction d'un position passee en parametre
                         if (lastVisibleLocationX >= 0 && lastVisibleLocationY >= 0)
                                 dialog.setLocation(lastVisibleLocationX - dialog.getWidth() / 2,
                                                    lastVisibleLocationY - dialog.getHeight() / 2);
@@ -180,8 +178,7 @@ public class GUIDialog extends GUIObject
                 }
                 // Choix du No, ou sortie de la boite (esc)
                 else {
-                        // Mise a vide de la valeur a vide, pour signaler un "No", sans
-                        // l'enregistrer
+                        // Mise a vide de la valeur a vide, pour signaler un "No", sans l'enregistrer
                         questionField.setValueIn(guiDialogCard, "");
 
                         // Enregistrement de la commande de sortie dans le scenartio

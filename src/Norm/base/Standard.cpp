@@ -573,9 +573,8 @@ int RandomInt(int nMax)
 // Reference: Numerical recipes: the art of scientific computing THIRD EDITION
 // Chapter 7: Random numbers, p 352
 // Generateur sans etat et sans graine
-inline unsigned long long int InternalIthRandomLongint(unsigned long long int n, int nMax)
+inline unsigned long long int InternalIthRandomLongint(unsigned long long int n)
 {
-	require(nMax <= 2147483646);
 	unsigned long long int v = n * 3935559000370003845LL + 2691343689449507681LL;
 	v ^= v >> 21;
 	v ^= v << 37;
@@ -584,7 +583,7 @@ inline unsigned long long int InternalIthRandomLongint(unsigned long long int n,
 	v ^= v << 20;
 	v ^= v >> 41;
 	v ^= v << 5;
-	return v % (nMax + 1);
+	return v;
 }
 
 double IthRandomDouble(longint lIndex)
@@ -592,15 +591,22 @@ double IthRandomDouble(longint lIndex)
 	static const int nMaxInt = 2147483646;
 	static const double dMaxInt = 2147483646.0;
 	require(lIndex >= 0);
-	return (InternalIthRandomLongint((unsigned long long int)lIndex, nMaxInt) / dMaxInt);
+	// Alternative plus precise (et un peu plus rapide):
+	//  return 5.42101086242752217E-20 * InternalIthRandomLongint((unsigned long long int)lIndex);
+	return (InternalIthRandomLongint((unsigned long long int)lIndex) % (nMaxInt + 1)) / dMaxInt;
+}
+
+longint IthRandomLongint(longint lIndex)
+{
+	require(lIndex >= 0);
+	return (longint)(InternalIthRandomLongint((unsigned long long int)lIndex));
 }
 
 int IthRandomInt(longint lIndex, int nMax)
 {
 	require(lIndex >= 0);
-	require(nMax >= 0);
-	require(nMax <= 2147483646);
-	return (int)InternalIthRandomLongint((unsigned long long int)lIndex, nMax);
+	require(nMax > 0);
+	return (int)(InternalIthRandomLongint((unsigned long long int)lIndex) % ((unsigned long long int)nMax + 1));
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -711,6 +717,16 @@ void GlobalExit()
 		// Flag de sortie brutale
 		nStandardGlobalExit = 1;
 
+		// Appel des methodes de sortie utilisateur
+		// On execute les dernieres methodes enregistrees en premier
+		// Attention a appeller ces methodes avant les flushall et closeall
+		for (i = nUserExitHandlerNumber - 1; i >= 0; i--)
+		{
+			fUserExitHandler = arrayUserExitHandler[i];
+			assert(fUserExitHandler != NULL);
+			fUserExitHandler(nExitCode);
+		}
+
 		// Flush des streams standard C et C++
 		fflush(stdout);
 		fflush(stderr);
@@ -725,15 +741,6 @@ void GlobalExit()
 		_fcloseall();
 #endif
 
-		// Appel des methodes de sortie utilisateur
-		// On execute les derniere methode enregistree en premier
-		for (i = nUserExitHandlerNumber - 1; i >= 0; i--)
-		{
-			fUserExitHandler = arrayUserExitHandler[i];
-			assert(fUserExitHandler != NULL);
-			fUserExitHandler(nExitCode);
-		}
-
 		// Sortie fatale (seul exit de toutes)
 		// les librairies NORM)
 		exit(nExitCode);
@@ -742,9 +749,18 @@ void GlobalExit()
 
 void AddUserExitHandler(UserExitHandler fUserExit)
 {
+	int i;
+	boolean bDebug = false;
 	require(fUserExit != NULL);
 	require(nUserExitHandlerNumber < nMaxUserExitHandlerNumber);
 
+	// On verifie que la fonction n'a pas deja ete ajoutee
+	debug(bDebug = true);
+	if (bDebug)
+	{
+		for (i = nUserExitHandlerNumber - 1; i >= 0; i--)
+			require(fUserExit != arrayUserExitHandler[i]);
+	}
 	arrayUserExitHandler[nUserExitHandlerNumber] = fUserExit;
 	nUserExitHandlerNumber++;
 }

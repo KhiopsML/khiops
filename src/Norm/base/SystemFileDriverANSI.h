@@ -29,11 +29,11 @@ public:
 	longint GetFileSize(const char* sFilePathName) const override;
 	void* Open(const char* sFilePathName, char cMode) override;
 	boolean Close(void* stream) override;
-	longint fread(void* ptr, size_t size, size_t count, void* stream) override;
+	longint Fread(void* ptr, size_t size, size_t count, void* stream) override;
 	boolean SeekPositionInFile(longint lPosition, void* stream) override;
 	const char* GetLastErrorMessage() const override;
-	longint fwrite(const void* ptr, size_t size, size_t count, void* stream) override;
-	boolean flush(void* stream) override;
+	longint Fwrite(const void* ptr, size_t size, size_t count, void* stream) override;
+	boolean Flush(void* stream) override;
 	boolean RemoveFile(const char* sFilePathName) const override;
 	boolean MakeDirectory(const char* sPathName) const override;
 	boolean RemoveDirectory(const char* sFilePathName) const override;

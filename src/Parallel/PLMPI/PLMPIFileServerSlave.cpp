@@ -99,7 +99,7 @@ void PLMPIFileServerSlave::Run(boolean& bOrderToQuit)
 				// Reception du message
 				context.Recv(MPI_COMM_WORLD, 0, MASTER_RESOURCES);
 				serializer.OpenForRead(&context);
-				debug(serializer.GetInt(); serializer.GetInt(); serializer.GetInt(););
+				debug(serializer.GetInt(); serializer.GetInt(););
 
 				serializer.Close();
 
@@ -123,16 +123,6 @@ void PLMPIFileServerSlave::Run(boolean& bOrderToQuit)
 				timer.Reset();
 				timer.Start();
 				Fill(status.MPI_SOURCE);
-				timer.Stop();
-				break;
-
-			case FILE_SERVER_REQUEST_FILL_LOCAL:
-
-				// Remplissage du buffer local :
-				// Reponse a la methode  RemoteHandlers::Fill
-				timer.Reset();
-				timer.Start();
-				FillLocal(status.MPI_SOURCE);
 				timer.Stop();
 				break;
 
@@ -728,24 +718,6 @@ void PLMPIFileServerSlave::FillHeader(int nRank) const
 		bufferedFile.Close();
 }
 
-void PLMPIFileServerSlave::FillLocal(int nRank) const
-{
-	char sBuff[1];
-	MPI_Status status;
-
-	// Cette methode a pour objectif de mettre les esclaves qui sont sur le meme disque que le serveur de fichier
-	// Dans la file d'attente avec les autres esclaves
-
-	// Reception de la demande d'acces
-	MPI_Recv(sBuff, 1, MPI_CHAR, nRank, FILE_SERVER_REQUEST_FILL_LOCAL, MPI_COMM_WORLD, &status);
-
-	// Envoi le jeton
-	MPI_Send(NULL, 0, MPI_CHAR, nRank, FILE_SERVER_REQUEST_FILL_LOCAL, MPI_COMM_WORLD);
-
-	// Retour du jeton
-	MPI_Recv(sBuff, 1, MPI_CHAR, nRank, FILE_SERVER_REQUEST_FILL_LOCAL, MPI_COMM_WORLD, &status);
-}
-
 void PLMPIFileServerSlave::FindEOL(int nRank) const
 {
 	ALString sFileName;
@@ -770,6 +742,7 @@ void PLMPIFileServerSlave::FindEOL(int nRank) const
 	// Initialisation de l'InputBufferedFile local
 	bufferedFile.SetFileName(sFileName);
 	AddPerformanceTrace("<< Start IO read : FindEOL");
+
 	// Ouverture du fichier en lecture et remplissage du buffer
 	bIsError = not bufferedFile.Open();
 	if (not bIsError)

@@ -1772,7 +1772,7 @@ boolean UIObject::CheckOptions(const ObjectArray& oaOptions)
 
 void UIObject::ParseMainParameters(int argc, char** argv)
 {
-	static int nCallNumber = 0;
+	static boolean bIsUserExitHandlerSet = false;
 	CommandLineOption* oInputScenario;
 	CommandLineOption* oError;
 	CommandLineOption* oOutputScenario;
@@ -1853,17 +1853,16 @@ void UIObject::ParseMainParameters(int argc, char** argv)
 	commandLineOptions.SetGlobalHelp(sGlobalHelp);
 	commandLineOptions.SetGlobalCheckMethod(CheckOptions);
 
-	// On doit appeler cette methode au plus une fois
-	assert(nCallNumber == 0);
-
-	nCallNumber++;
-
 	// Nettoyage initial
 	CloseCommandFiles();
 	DeleteAllInputSearchReplaceValues();
 
 	// Fermeture des fichiers en cas d'erreur fatale
-	AddUserExitHandler(ExitHandlerCloseCommandFiles);
+	if (not bIsUserExitHandlerSet)
+	{
+		AddUserExitHandler(ExitHandlerCloseCommandFiles);
+		bIsUserExitHandlerSet = true;
+	}
 
 	// Parsing de la ligne de commande existante
 	// pour detecter les options
@@ -1929,8 +1928,15 @@ boolean UIObject::OpenInputCommandFile(const ALString& sFileName)
 	sInputCommandFileName = sFileName;
 
 	// Copie depuis HDFS si necessaire
-	assert(FileService::GetApplicationTmpDir().IsEmpty());
 	bOk = PLRemoteFileService::BuildInputWorkingFile(sInputCommandFileName, sLocalInputCommandsFileName);
+
+	// Fermeture du fichier si celui-ci est deja ouvert
+	// Ce cas peut arriver si on appelle plusieurs fois ParseParameters (notamment via MODL_dll)
+	if (fInputCommands != NULL)
+	{
+		fclose(fInputCommands);
+		fInputCommands = NULL;
+	}
 
 	// Ouverture du fichier en lecture
 	if (bOk)
@@ -1954,6 +1960,14 @@ boolean UIObject::OpenOutputCommandFile(const ALString& sFileName)
 
 	assert(FileService::GetApplicationTmpDir().IsEmpty());
 	bOk = PLRemoteFileService::BuildOutputWorkingFile(sOutputCommandFileName, sLocalOutputCommandsFileName);
+
+	// Fermeture du fichier si celui-ci est deja ouvert
+	// Ce cas peut arriver si on appelle plusieurs fois ParseParameters (notamment via MODL_dll)
+	if (fOutputCommands != NULL)
+	{
+		fclose(fOutputCommands);
+		fOutputCommands = NULL;
+	}
 
 	// Ouverture du fichier en ecriture
 	if (bOk)
@@ -1987,7 +2001,12 @@ boolean UIObject::ReplaceCommand(const ALString& sSearchReplacePattern)
 		AddInputSearchReplaceValues(sSearchValue, sReplaceValue);
 	}
 	else
+	{
 		bOk = false;
+		Global::AddError("flag", "-r",
+				 "Missing separator ':' between search and replace values in '" +
+				     sSearchReplacePattern + "'");
+	}
 
 	return bOk;
 }
@@ -2004,7 +2023,6 @@ boolean UIObject::ErrorCommand(const ALString& sErrorLog)
 {
 	boolean bOk;
 	sErrorLogFileName = sErrorLog;
-	assert(FileService::GetApplicationTmpDir().IsEmpty());
 	bOk = PLRemoteFileService::BuildOutputWorkingFile(sErrorLogFileName, sLocalErrorLogFileName);
 	if (bOk)
 	{

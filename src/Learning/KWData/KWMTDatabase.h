@@ -53,6 +53,10 @@ public:
 	// Nombre de tables utilises
 	int GetTableNumber() const override;
 
+	// Nombre de table principales et referencees
+	int GetMainTableNumber() const;
+	int GetReferencedTableNumber() const;
+
 	// Acces a un maping par son chemin (nom d'attribut)
 	KWMTDatabaseMapping* LookupMultiTableMapping(const ALString& sDataPath) const;
 

@@ -110,7 +110,7 @@ void CommandLine::ParseMainParameters(int argc, char** argv) const
 		arg = argv[i];
 		if ((arg.GetLength() != 2) or (arg.GetAt(0) != '-'))
 		{
-			cout << "Unexpected argument" << endl;
+			cout << "Unexpected argument (" << arg << ")" << endl;
 			bParsingError = true;
 			break;
 		}

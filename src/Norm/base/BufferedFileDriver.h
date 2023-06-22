@@ -142,7 +142,7 @@ inline BufferedFileDriver* BufferedFileDriverCreator::CreateBufferedFileDriver(c
 	// Si aucun driver n'est trouve c'est que le schema de l'URI n'est pas connu
 	if (driver == NULL)
 	{
-		sMessage = "there is no driver avalaible for the URI '" + sScheme + "://'";
+		sMessage = "there is no driver available for the URI '" + sScheme + "://'";
 		if (errorSender != NULL)
 			errorSender->AddError(sMessage);
 		else

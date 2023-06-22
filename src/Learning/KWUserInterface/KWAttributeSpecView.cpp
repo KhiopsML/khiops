@@ -27,32 +27,39 @@ KWAttributeSpecView::KWAttributeSpecView()
 
 	// ## Custom constructor
 
-	// Liste des types d'attributs
-	ALString sTypeValues;
-	int nType;
+	// Liste des types d'attributs stockes
+	ALString sStoredTypesParameter;
+	ALString sStoredTypesLabel;
+	int i;
+	ALString sTmp;
 
-	// Complements de parametrage
-	for (nType = 0; nType < KWType::None; nType++)
+	// Liste des types stockes pour le parametrage et les info-bulles
+	for (i = 0; i < KWType::None; i++)
 	{
-		if (KWType::IsStored(nType))
+		if (KWType::IsStored(i))
 		{
-			if (sTypeValues != "")
-				sTypeValues += "\n";
-			sTypeValues += KWType::ToString(nType);
+			if (sStoredTypesParameter != "")
+			{
+				sStoredTypesParameter += "\n";
+				sStoredTypesLabel += ", ";
+			}
+			sStoredTypesParameter += KWType::ToString(i);
+			sStoredTypesLabel += KWType::ToString(i);
 		}
 	}
-	GetFieldAt("Type")->SetParameters(sTypeValues);
+
+	// Liste des valeurs de la combo
+	GetFieldAt("Type")->SetParameters(sStoredTypesParameter);
 
 	// Info-bulles
 	GetFieldAt("Used")->SetHelpText("Indicate whether the variable is used in the analysis.");
-	GetFieldAt("Type")->SetHelpText("Type of the variable."
-					"\n   Standard types: Categorical, Numerical, Date, Time, Timestamp,"
-					"\n   Multi-table types: Entity (0-1) relationship, Table (0-n) relationship,"
-					"\n   Algorithmic types: Structure."
-					"\n"
-					"\n Type can be changed only for standard types, if the related variable is not"
-					"\n   an input or output of a derivation rule, and has no meta-data format."
-					"\n The dictionary file must be edited directly for complex modifications.");
+	GetFieldAt("Type")->SetHelpText(
+	    sTmp + "Type of the variable." + "\n   Standard types: " + sStoredTypesLabel +
+	    "\n   Multi-table types: Entity (0-1) relationship, Table (0-n) relationship," +
+	    "\n   Algorithmic types: Structure." + "\n" +
+	    "\n Type can be changed only for standard types, if the related variable is not" +
+	    "\n   an input or output of a derivation rule, and has no meta-data format." +
+	    "\n The dictionary file must be edited directly for complex modifications.");
 	GetFieldAt("Name")->SetHelpText("Name of variable.");
 	GetFieldAt("Derived")->SetHelpText("Indicate whether the variable if native (in the file)"
 					   "\n or derived (computed using a formula).");

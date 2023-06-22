@@ -48,7 +48,7 @@ public:
 	// Le nombre de regles a construire (au plus) est passe en parametre
 	// Renvoie true s'il n'y a eu ni erreur ni interruption utilisateur,
 	// qu'une classe ait etre construite ou non
-	// Une nouvelle classe est cree uniquement si des variable ont pu etre construites
+	// Une nouvelle classe est cree uniquement si des variables ont pu etre construites
 	boolean ComputeStats() override;
 
 	// Nettoyage des specifications de construction de variable, avec ou sans destruction
@@ -83,7 +83,7 @@ public:
 
 	//////////////////////////////////////////////////////////////////////////
 	// Exploitation des regles de construction pour calculer des indicateurs
-	// sur les regles de derivations construites
+	// sur les regles de derivation construites
 
 	// Nombre de regles de construction utilisees
 	int RuleComputeUsedConstructionRuleNumber(const KWDerivationRule* constructedRule) const;
@@ -204,6 +204,13 @@ protected:
 
 	// Affichage d'un ensemble de regles construites (KDConstructedRule)
 	void DisplayConstructedRuleArray(const ObjectArray* oaConstructedRules, ostream& ost) const;
+
+	// Filtrage des regles construites inutiles, car les MaxRules regles les plus probables
+	// n'utilisent pas le regle de selection
+	// Cela permet une optimisation en evitant une potentielle passe sur les donnees de collecte
+	// des partiles dedies au regles de selection
+	// Renvoie true si des regles ont ete filtrees
+	boolean FilterUselessSelectionBasedRules(ObjectArray* oaConstructedRules, int nMaxRules);
 
 	///////////////////////////////////////////////////////////////////////////////
 	// Construction recursive des regles de derivation

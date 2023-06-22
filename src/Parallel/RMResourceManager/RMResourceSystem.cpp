@@ -321,6 +321,86 @@ void RMResourceSystem::Write(ostream& ost) const
 	//	ost << endl;
 }
 
+RMResourceSystem* RMResourceSystem::CreateAdhocCluster()
+{
+	RMHostResource* host1;
+	RMHostResource* host2;
+	RMHostResource* host3;
+	RMHostResource* host4;
+	RMHostResource* host5;
+	RMHostResource* host6;
+	RMResourceSystem* cluster;
+
+	cluster = new RMResourceSystem;
+	cluster->Reset();
+
+	host1 = new RMHostResource;
+	host2 = new RMHostResource;
+	host3 = new RMHostResource;
+	host4 = new RMHostResource;
+	host5 = new RMHostResource;
+	host6 = new RMHostResource;
+
+	for (int i = 9; i < 15; i++)
+		host1->AddProcessusRank(i);
+
+	host2->AddProcessusRank(0);
+	for (int i = 2; i < 7; i++)
+		host2->AddProcessusRank(i);
+
+	for (int i = 33; i < 39; i++)
+		host3->AddProcessusRank(i);
+
+	for (int i = 25; i < 31; i++)
+		host4->AddProcessusRank(i);
+
+	for (int i = 17; i < 23; i++)
+		host5->AddProcessusRank(i);
+
+	for (int i = 41; i < 47; i++)
+		host6->AddProcessusRank(i);
+
+	host1->SetDiskFreeSpace(longint(18.8 * lGB));
+	host1->SetPhysicalMemory(longint(39.1 * lGB));
+	host1->SetHostName("l-neobi-3");
+	host1->SetPhysicalCoresNumber(100);
+
+	host2->SetDiskFreeSpace(longint(18.9 * lGB));
+	host2->SetPhysicalMemory(longint(78.6 * lGB));
+	host2->SetHostName("l-neobi-8");
+	host2->SetPhysicalCoresNumber(100);
+
+	host3->SetDiskFreeSpace(longint(18.8 * lGB));
+	host3->SetPhysicalMemory(longint(39.1 * lGB));
+	host3->SetHostName("l-neobi-2");
+	host3->SetPhysicalCoresNumber(100);
+
+	host4->SetDiskFreeSpace(longint(18.8 * lGB));
+	host4->SetPhysicalMemory(longint(78.4 * lGB));
+	host4->SetHostName("l-neobi-10");
+	host4->SetPhysicalCoresNumber(100);
+
+	host5->SetDiskFreeSpace(longint(26.5 * lGB));
+	host5->SetPhysicalMemory(longint(39.2 * lGB));
+	host5->SetHostName("l-neobi-1");
+	host5->SetPhysicalCoresNumber(100);
+
+	host6->SetDiskFreeSpace(longint(18.9 * lGB));
+	host6->SetPhysicalMemory(longint(39.1 * lGB));
+	host6->SetHostName("l-neobi-4");
+	host6->SetPhysicalCoresNumber(100);
+
+	cluster->AddHostResource(host1);
+	cluster->AddHostResource(host2);
+	cluster->AddHostResource(host3);
+	cluster->AddHostResource(host4);
+	cluster->AddHostResource(host5);
+	cluster->AddHostResource(host6);
+
+	cluster->SetInitialized();
+	return cluster;
+}
+
 RMResourceSystem* RMResourceSystem::CreateSyntheticCluster(int nHostNumber, int nProcNumber, longint lPhysicalMemory,
 							   longint lDiskFreeSpace, int nSystemConfig)
 {
@@ -425,14 +505,14 @@ void RMHostResource::SetHostName(const ALString& sValue)
 
 void RMHostResource::SetResourceFree(int nResourceType, longint nValue)
 {
-	require(nResourceType < UNKNOWN);
+	require(nResourceType < RESOURCES_NUMBER);
 	require(nValue >= 0);
 	lvResources.SetAt(nResourceType, nValue);
 }
 
 longint RMHostResource::GetResourceFree(int nResourceType) const
 {
-	require(nResourceType < UNKNOWN);
+	require(nResourceType < RESOURCES_NUMBER);
 	return lvResources.GetAt(nResourceType);
 }
 
@@ -464,7 +544,7 @@ const IntVector* RMHostResource::GetRanks() const
 RMHostResource::RMHostResource()
 {
 	sHostName = "";
-	lvResources.SetSize(UNKNOWN);
+	lvResources.SetSize(RESOURCES_NUMBER);
 	lvResources.Initialize();
 	nPhysicalCoresNumber = 0;
 }

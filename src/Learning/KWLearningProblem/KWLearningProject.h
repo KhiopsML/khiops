@@ -45,7 +45,7 @@
 #include "KWDataPreparationUnivariateTask.h"
 #include "KWDataPreparationBivariateTask.h"
 #include "KWDatabaseSlicerTask.h"
-#include "KDSelectionOperandExtractionTask.h"
+#include "KDSelectionOperandSamplingTask.h"
 #include "KDDataPreparationAttributeCreationTask.h"
 #include "KDDataPreparationAttributeCreationTaskView.h"
 #include "InputBufferedFile.h"

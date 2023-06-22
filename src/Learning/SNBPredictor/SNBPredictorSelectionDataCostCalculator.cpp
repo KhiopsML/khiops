@@ -261,9 +261,9 @@ double SNBClassifierSelectionDataCostCalculator::ComputeSelectionDataCost()
 	// Pour le calcul, d'abord on ecrit la "vraisemblance ponderee" (voir nota ci-dessous)
 	//  de l'instance i via un softmax :
 	//
-	//   P( Y = C_m | X ) ~  P(Y = C_m) * Prod_k P( X_ik | Y = C_m)^w_k
-	//        (regress)   ~  P(Rang(Y) = R_m) * Prod_k P( X_ik | Y = R_m)^w_k
-	//                    ~  P(Y in Part(R_m)) * Prod_k P( X_ik | Y in Part(R_m) )
+	//   P( Y = C_m | X ) ~  P(Y = C_m) * Prod_k P(X_ik | Y = C_m)^w_k
+	//        (regress)   ~  P(Rang(Y) = R_m) * Prod_k P(X_ik | Y = R_m)^w_k
+	//                    ~  P(Y in Part(R_m)) * Prod_k P(X_ik | Y in Part(R_m))
 
 	//        (group)     ~  P(Y = C_m | Y in G_l) P( Y in G_l ) * Prod_k P( X_ik | Y in G_l)
 
@@ -431,7 +431,7 @@ boolean SNBClassifierSelectionDataCostCalculator::Check() const
 
 	if (bOk and GetLearningSpec()->GetTargetAttributeType() != KWType::Symbol)
 	{
-		AddError("Type of the targe variable is not 'Symbol'");
+		AddError("Type of the targe variable is not 'Categorical'");
 		bOk = false;
 	}
 
@@ -482,7 +482,8 @@ boolean SNBClassifierSelectionDataCostCalculator::CheckParts() const
 		{
 			AddError(sTmp + "Size of target part probability vector (" +
 				 IntToString(targetPart->GetScores()->GetSize()) +
-				 ") is not equal to the sub-database size (" + IntToString(GetInstanceNumber()) + ")");
+				 ") is not equal to the sub-database size (" +
+				 IntToString(GetDataTableBinarySliceSet()->GetActiveInstanceNumber()) + ")");
 			bOk = false;
 		}
 	}
@@ -612,7 +613,7 @@ void SNBRegressorSelectionDataCostCalculator::Initialize()
 	require(GetTargetAttributeType() == KWType::Continuous);
 	require(olTargetPartition.GetCount() >= 1);
 	require(oaTargetPartition.GetSize() >= 1);
-	require(ivTargetPartIndexes.GetSize() == GetDataTableBinarySliceSet()->GetActiveInstanceNumber());
+	require(ivTargetPartIndexes.GetSize() == GetInstanceNumber());
 
 	// Calcul d'un epsilon de Laplace pour la gestion des petites probabilites
 	// En effet, cette normalisation est faite en univarie, mais le probleme peut
@@ -651,7 +652,7 @@ void SNBRegressorSelectionDataCostCalculator::Initialize()
 	intervalTargetPart->SetRefCount(1);
 
 	// Initialisation des probabilites conditionnelles a 1 (Ln(prob) a 0)
-	assert(intervalTargetPart->GetScores()->GetSize() == GetInstanceNumber());
+	assert(intervalTargetPart->GetScores()->GetSize() == GetDataTableBinarySliceSet()->GetActiveInstanceNumber());
 	intervalTargetPart->GetScores()->Initialize();
 }
 
@@ -688,7 +689,7 @@ double SNBRegressorSelectionDataCostCalculator::ComputeSelectionDataCost()
 	{
 		targetPart = cast(SNBIntervalTargetPart*, oaTargetPartition.GetAt(nTargetPart));
 
-		// Tous les removedAttributeIndex de valeurs de la partie sont associee a cette partie
+		// Tous les valeurs de la cible sont associees a cette partie
 		while (nInstance < targetPart->GetCumulativeFrequency())
 		{
 			ivTargetPartIndexes.SetAt(nInstance, nTargetPart);
@@ -779,12 +780,12 @@ double SNBRegressorSelectionDataCostCalculator::ComputeSelectionDataCost()
 void SNBRegressorSelectionDataCostCalculator::UpdateTargetPartitionWithAddedAttribute(
     SNBDataTableBinarySliceSetAttribute* attribute)
 {
+	POSITION position;
+	POSITION targetPosition;
 	IntVector ivTargetPartFrequencies;
 	int nTarget;
 	int nTargetFrequency;
 	int nTargetCumulativeFrequency;
-	POSITION position;
-	POSITION targetPosition;
 	SNBIntervalTargetPart* targetPart;
 	SNBIntervalTargetPart* newTargetPart;
 
@@ -794,18 +795,16 @@ void SNBRegressorSelectionDataCostCalculator::UpdateTargetPartitionWithAddedAttr
 	GetDataTableBinarySliceSet()->ExportTargetPartFrequencies(attribute, &ivTargetPartFrequencies);
 
 	// Acces la premiere partie de l'attribut
-	nTargetCumulativeFrequency = 0;
-	nTarget = 0;
 	position = olTargetPartition.GetHeadPosition();
 	targetPosition = position;
 	targetPart = cast(SNBIntervalTargetPart*, olTargetPartition.GetNext(position));
+	nTargetFrequency = ivTargetPartFrequencies.GetAt(0);
 	assert(olTargetPartition.GetAt(targetPosition) == targetPart);
-	nTargetFrequency = ivTargetPartFrequencies.GetAt(nTarget);
-	nTargetCumulativeFrequency += nTargetFrequency;
-	nTarget++;
 
 	// Parcours synchronise de la partition cible courante et de la partition cible de l'attribut
 	// pour determiner les parties a ajouter
+	nTarget = 1;
+	nTargetCumulativeFrequency = nTargetFrequency;
 	while (nTarget < ivTargetPartFrequencies.GetSize())
 	{
 		// Cas ou la partie de l'attribut finit avant celle de la partition multivarie:
@@ -1031,7 +1030,7 @@ boolean SNBRegressorSelectionDataCostCalculator::Check() const
 
 	bOk = bOk and olTargetPartition.GetCount() >= 1;
 	bOk = bOk and oaTargetPartition.GetSize() >= 1;
-	bOk = bOk and ivTargetPartIndexes.GetSize() == GetDataTableBinarySliceSet()->GetActiveInstanceNumber();
+	bOk = bOk and ivTargetPartIndexes.GetSize() == GetInstanceNumber();
 
 	if (bOk)
 	{
@@ -1074,14 +1073,18 @@ boolean SNBRegressorSelectionDataCostCalculator::Check() const
 				{
 					AddError(sTmp + "Target part reference counter (" +
 						 IntToString(targetPart->GetRefCount()) + ") should be at least 1");
+					cout << "\n";
 					bOk = false;
 				}
-				if (targetPart->GetScores()->GetSize() != GetInstanceNumber())
+				if (targetPart->GetScores()->GetSize() !=
+				    GetDataTableBinarySliceSet()->GetActiveInstanceNumber())
 				{
-					AddError(sTmp + "Size of target part probability vector (" +
-						 IntToString(targetPart->GetScores()->GetSize()) +
-						 ") is inconsistent with the database size (" +
-						 IntToString(GetInstanceNumber()) + ")");
+					AddError(sTmp + "Size of score vector (" +
+						 IntToString(targetPart->GetScores()->GetSize()) + ") " +
+						 "is inconsistent with the number active instances of the binary slice "
+						 "set (" +
+						 IntToString(GetDataTableBinarySliceSet()->GetActiveInstanceNumber()) +
+						 ")");
 					bOk = false;
 				}
 				if (not bOk)
@@ -1967,10 +1970,12 @@ boolean SNBGeneralizedClassifierSelectionDataCostCalculator::Check() const
 				if (groupTargetPart->GetScores()->GetSize() !=
 				    GetDataTableBinarySliceSet()->GetActiveInstanceNumber())
 				{
-					AddError(sTmp + "Size of target part probability vector (" +
-						 IntToString(groupTargetPart->GetScores()->GetSize()) +
-						 ") is inconsistent with the database size (" +
-						 IntToString(GetInstanceNumber()) + ")");
+					AddError(sTmp + "Size of score vector (" +
+						 IntToString(groupTargetPart->GetScores()->GetSize()) + ") " +
+						 "is inconsistent with the number active instances of the binary slice "
+						 "set (" +
+						 IntToString(GetDataTableBinarySliceSet()->GetActiveInstanceNumber()) +
+						 ")");
 					bOk = false;
 				}
 				if (not bOk)

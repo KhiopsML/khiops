@@ -9,11 +9,11 @@ enum Resource
 {
 	MEMORY,
 	DISK,
-	UNKNOWN
+	RESOURCES_NUMBER
 };
 
-// Affichage human readable du type de resource
-ALString ResourceToString(int nRessource);
+// Affichage human readable du type de ressource
+ALString ResourceToString(int nResource);
 
 /////////////////////////////////////////////////////////////////////////////
 // Classe RMResourceConstraints
@@ -28,16 +28,12 @@ public:
 	~RMResourceConstraints();
 
 	// Nombre maximum de coeurs utilisable sur l'ensemble du systeme (par defaut a l'infini)
-	static void SetMaxCoreNumber(int nCoreNumber);
-	static int GetMaxCoreNumber();
+	static void SetMaxCoreNumberOnCluster(int nCoreNumber);
+	static int GetMaxCoreNumberOnCluster();
 
 	// Nombre maximum de coeurs utilisable sur chaque machine (par defaut a l'infini)
 	static void SetMaxCoreNumberPerHost(int nCoreNumber);
 	static int GetMaxCoreNumberPerHost();
-
-	// Nombre maximum de processus sur le systeme (par defaut a l'infini)
-	static void SetMaxProcessNumber(int nProcessNumber);
-	static int GetMaxProcessNumber();
 
 	// Parametrage du temps utilisable en secondes (0 si pas de contrainte)
 	static void SetOptimizationTime(int nValue);
@@ -47,17 +43,9 @@ public:
 	static void SetMemoryLimit(int nMemory);
 	static int GetMemoryLimit();
 
-	// Memoire physique maximale utilisee par chaque processus en MB (par defaut a l'infini)
-	static void SetMemoryLimitPerProc(int nMemory);
-	static int GetMemoryLimitPerProc();
-
 	// Parametrage de l'espace disque utilisable par chaque machine en MB (par defaut a l'infini)
 	static void SetDiskLimit(int nValue);
 	static int GetDiskLimit();
-
-	// Parametrage de l'espace disque utilisable par chaque processus en MB (par defaut a l'infini)
-	static void SetDiskLimitPerProc(int nValue);
-	static int GetDiskLimitPerProc();
 
 	// Indicateur pour ignorer la gestion preventive des probleme memoire (aux risque de planter le programme!)
 	// (par defaut: false)
@@ -71,8 +59,6 @@ public:
 	// Parametrage generique des ressources physiques
 	static void SetResourceLimit(int nResourceType, int nValue);
 	static int GetResourceLimit(int nResourceType);
-	static void SetResourceLimitPerProc(int nResourceType, int nValue);
-	static int GetResourceLimitPerProc(int nResourceType);
 
 	// Affichage des contraintes
 	static ALString ToString();
@@ -87,8 +73,6 @@ protected:
 	static int nMaxProcessNumber;
 
 	static int nResourceLimit[2];
-	static int nResourceLimitPerProc[2];
-
 	static boolean bIgnoreMemoryLimit;
 	static ALString sUserTmpDir;
 };

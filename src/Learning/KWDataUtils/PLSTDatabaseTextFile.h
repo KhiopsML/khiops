@@ -52,7 +52,8 @@ public:
 	KWLoadIndexVector* GetDataItemLoadIndexes();
 
 	// Acces a la taille du fichier en lecture (0 sinon)
-	longint GetTotalInputFileSize() const;
+	longint GetTotalFileSize() const;
+	longint GetTotalUsedFileSize() const;
 
 	// Memoire minimum necessaire pour ouvrir la base sans tenir compte des buffers
 	longint GetEmptyOpenNecessaryMemory() const;
@@ -101,7 +102,7 @@ protected:
 	static const int nMaxOpenBufferSize = BufferedFile::nDefaultBufferSize * 8;
 
 	// Resultat de l'appel de la methode ComputeOpenInformation
-	longint lTotalInputFileSize;
+	longint lTotalFileSize;
 	longint lOutputNecessaryDiskSpace;
 	longint lEmptyOpenNecessaryMemory;
 	longint lMinOpenNecessaryMemory;
@@ -124,8 +125,8 @@ public:
 	PLSTDatabaseTextFile* GetDatabase();
 
 	// Reimplementation des methodes virtuelles
-	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation

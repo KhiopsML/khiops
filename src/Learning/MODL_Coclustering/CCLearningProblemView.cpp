@@ -86,12 +86,12 @@ CCLearningProblemView::CCLearningProblemView()
 	SetStyle("TabbedPanes");
 
 	// Ajout d'actions sous formes de boutons
-	AddAction("BuildCoclustering", "Build coclustering", (ActionMethod)(&CCLearningProblemView::BuildCoclustering));
+	AddAction("BuildCoclustering", "Train coclustering", (ActionMethod)(&CCLearningProblemView::BuildCoclustering));
 	GetActionAt("BuildCoclustering")->SetStyle("Button");
 
 	// Info-bulles
 	GetActionAt("BuildCoclustering")
-	    ->SetHelpText("Build a coclustering model given the coclustering parameters."
+	    ->SetHelpText("Train a coclustering model given the coclustering parameters."
 			  "\n This action is anytime: coclustering models are computed and continuously improved,"
 			  "\n with new solutions saved as soon as improvements are reached."
 			  "\n The intermediate solutions can be used without waiting for the final solution,"

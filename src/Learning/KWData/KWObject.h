@@ -105,17 +105,22 @@ public:
 	/// Gestion des valeurs de type Date
 	Date ComputeDateValueAt(KWLoadIndex liLoadIndex) const;
 	Date GetDateValueAt(KWLoadIndex liLoadIndex) const;
-	void SetDateValueAt(KWLoadIndex liLoadIndex, Date sValue);
+	void SetDateValueAt(KWLoadIndex liLoadIndex, Date dValue);
 
 	/// Gestion des valeurs de type Time
 	Time ComputeTimeValueAt(KWLoadIndex liLoadIndex) const;
 	Time GetTimeValueAt(KWLoadIndex liLoadIndex) const;
-	void SetTimeValueAt(KWLoadIndex liLoadIndex, Time sValue);
+	void SetTimeValueAt(KWLoadIndex liLoadIndex, Time tValue);
 
 	/// Gestion des valeurs de type Timestamp
 	Timestamp ComputeTimestampValueAt(KWLoadIndex liLoadIndex) const;
 	Timestamp GetTimestampValueAt(KWLoadIndex liLoadIndex) const;
-	void SetTimestampValueAt(KWLoadIndex liLoadIndex, Timestamp sValue);
+	void SetTimestampValueAt(KWLoadIndex liLoadIndex, Timestamp tsValue);
+
+	/// Gestion des valeurs de type Text
+	const Symbol& ComputeTextValueAt(KWLoadIndex liLoadIndex) const;
+	const Symbol& GetTextValueAt(KWLoadIndex liLoadIndex) const;
+	void SetTextValueAt(KWLoadIndex liLoadIndex, const Symbol& sValue);
 
 	/// Gestion des valeurs de type Object (KWObject*)
 	KWObject* ComputeObjectValueAt(KWLoadIndex liLoadIndex) const;
@@ -271,6 +276,9 @@ protected:
 	debug(int nObjectLoadedDataItemNumber);
 	debug(int nFreshness);
 };
+
+// Methode de comparaison entre deux objet sur le index de creation
+int KWObjectCompareCreationIndex(const void* elem1, const void* elem2);
 
 ////////////////////////////////////////////////////////
 // Gestion des attributs derives
@@ -537,14 +545,14 @@ inline Date KWObject::GetDateValueAt(KWLoadIndex liLoadIndex) const
 	return GetAt(liLoadIndex.GetDenseIndex()).GetDate();
 }
 
-inline void KWObject::SetDateValueAt(KWLoadIndex liLoadIndex, Date sValue)
+inline void KWObject::SetDateValueAt(KWLoadIndex liLoadIndex, Date dValue)
 {
 	debug(require(nObjectLoadedDataItemNumber == kwcClass->GetTotalInternallyLoadedDataItemNumber()));
 	debug(require(nFreshness == kwcClass->GetFreshness()));
 	require(kwcClass->CheckTypeAtLoadIndex(liLoadIndex, KWType::Date));
 	require(kwcClass->GetAttributeAtLoadIndex(liLoadIndex)->GetDerivationRule() == NULL);
 
-	GetAt(liLoadIndex.GetDenseIndex()).SetDate(sValue);
+	GetAt(liLoadIndex.GetDenseIndex()).SetDate(dValue);
 }
 
 inline Time KWObject::ComputeTimeValueAt(KWLoadIndex liLoadIndex) const
@@ -579,14 +587,14 @@ inline Time KWObject::GetTimeValueAt(KWLoadIndex liLoadIndex) const
 	return GetAt(liLoadIndex.GetDenseIndex()).GetTime();
 }
 
-inline void KWObject::SetTimeValueAt(KWLoadIndex liLoadIndex, Time sValue)
+inline void KWObject::SetTimeValueAt(KWLoadIndex liLoadIndex, Time tValue)
 {
 	debug(require(nObjectLoadedDataItemNumber == kwcClass->GetTotalInternallyLoadedDataItemNumber()));
 	debug(require(nFreshness == kwcClass->GetFreshness()));
 	require(kwcClass->CheckTypeAtLoadIndex(liLoadIndex, KWType::Time));
 	require(kwcClass->GetAttributeAtLoadIndex(liLoadIndex)->GetDerivationRule() == NULL);
 
-	GetAt(liLoadIndex.GetDenseIndex()).SetTime(sValue);
+	GetAt(liLoadIndex.GetDenseIndex()).SetTime(tValue);
 }
 
 inline Timestamp KWObject::ComputeTimestampValueAt(KWLoadIndex liLoadIndex) const
@@ -622,14 +630,56 @@ inline Timestamp KWObject::GetTimestampValueAt(KWLoadIndex liLoadIndex) const
 	return GetAt(liLoadIndex.GetDenseIndex()).GetTimestamp();
 }
 
-inline void KWObject::SetTimestampValueAt(KWLoadIndex liLoadIndex, Timestamp sValue)
+inline void KWObject::SetTimestampValueAt(KWLoadIndex liLoadIndex, Timestamp tsValue)
 {
 	debug(require(nObjectLoadedDataItemNumber == kwcClass->GetTotalInternallyLoadedDataItemNumber()));
 	debug(require(nFreshness == kwcClass->GetFreshness()));
 	require(kwcClass->CheckTypeAtLoadIndex(liLoadIndex, KWType::Timestamp));
 	require(kwcClass->GetAttributeAtLoadIndex(liLoadIndex)->GetDerivationRule() == NULL);
 
-	GetAt(liLoadIndex.GetDenseIndex()).SetTimestamp(sValue);
+	GetAt(liLoadIndex.GetDenseIndex()).SetTimestamp(tsValue);
+}
+
+inline const Symbol& KWObject::ComputeTextValueAt(KWLoadIndex liLoadIndex) const
+{
+	debug(require(nObjectLoadedDataItemNumber == kwcClass->GetTotalInternallyLoadedDataItemNumber()));
+	debug(require(nFreshness == kwcClass->GetFreshness()));
+	require(kwcClass->CheckTypeAtLoadIndex(liLoadIndex, KWType::Text));
+
+	// Calcul eventuel de l'attribut derive
+	if (GetAt(liLoadIndex.GetDenseIndex()).IsTextForbidenValue())
+	{
+		// Verification que l'attribut est derive
+		assert(kwcClass->GetAttributeAtLoadIndex(liLoadIndex)->GetDerivationRule() != NULL);
+
+		// Derivation
+		GetAt(liLoadIndex.GetDenseIndex())
+		    .SetText(
+			kwcClass->GetAttributeAtLoadIndex(liLoadIndex)->GetDerivationRule()->ComputeTextResult(this));
+
+		// Verification de la valeur de l'attribut derive
+		assert(not GetAt(liLoadIndex.GetDenseIndex()).IsTextForbidenValue());
+	}
+	return GetAt(liLoadIndex.GetDenseIndex()).GetText();
+}
+
+inline const Symbol& KWObject::GetTextValueAt(KWLoadIndex liLoadIndex) const
+{
+	debug(require(nObjectLoadedDataItemNumber == kwcClass->GetTotalInternallyLoadedDataItemNumber()));
+	debug(require(nFreshness == kwcClass->GetFreshness()));
+	require(kwcClass->CheckTypeAtLoadIndex(liLoadIndex, KWType::Text));
+
+	return GetAt(liLoadIndex.GetDenseIndex()).GetText();
+}
+
+inline void KWObject::SetTextValueAt(KWLoadIndex liLoadIndex, const Symbol& sValue)
+{
+	debug(require(nObjectLoadedDataItemNumber == kwcClass->GetTotalInternallyLoadedDataItemNumber()));
+	debug(require(nFreshness == kwcClass->GetFreshness()));
+	require(kwcClass->CheckTypeAtLoadIndex(liLoadIndex, KWType::Text));
+	require(kwcClass->GetAttributeAtLoadIndex(liLoadIndex)->GetDerivationRule() == NULL);
+
+	GetAt(liLoadIndex.GetDenseIndex()).SetText(sValue);
 }
 
 inline KWObject* KWObject::ComputeObjectValueAt(KWLoadIndex liLoadIndex) const
@@ -1070,6 +1120,10 @@ inline const char* KWObject::ValueToString(const KWAttribute* attribute) const
 	{
 		return attribute->GetTimestampFormat()->TimestampToString(
 		    GetTimestampValueAt(attribute->GetLoadIndex()));
+	}
+	else if (attribute->GetType() == KWType::Text)
+	{
+		return GetTextValueAt(attribute->GetLoadIndex());
 	}
 	else
 	{

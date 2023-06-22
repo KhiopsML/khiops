@@ -12,6 +12,7 @@
 #include "KWDRLogical.h"
 #include "KWDRDateTime.h"
 #include "KWDRString.h"
+#include "KWDRText.h"
 #include "KWDRVector.h"
 #include "KWDRHashMap.h"
 #include "KWDRMultiTable.h"

@@ -58,8 +58,7 @@ public class GUIIntElementRadioButton extends GUIIntElement
         }
 
         /**
-         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite
-         * mere
+         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite mere
          *
          * @param panel       Panneau de l'unite mere dans lequel sera ajoute le
          *                    composant d'affichage
@@ -72,9 +71,10 @@ public class GUIIntElementRadioButton extends GUIIntElement
                 JLabel label = new JLabel(getLabel());
                 setComponentHelpText(label);
 
-                // On met le label a la premiere ligne d'un panel avec un gridlayout
-                // comportant le meme nombre de lignes que le nombre de boutons afin de
-                // d'aligner le label avec le premier bouton
+                // On met le label a la premiere ligne d'un panel avec un gridlayout comportant
+                // le meme
+                // nombre de lignes que le nombre de boutons afin de d'aligner le label avec le
+                // premier bouton
                 JPanel labelPanel = new JPanel(new GridLayout(getParametersAsArray().length, 1));
                 labelPanel.add(label);
 

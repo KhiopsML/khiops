@@ -980,6 +980,8 @@ void KWLearningProblem::WriteJSONAnalysisReport(KWClassStats* classStats, Object
 		{
 			// Outil et version
 			fJSON.WriteKeyString("tool", GetLearningApplicationName());
+			if (GetLearningModuleName() != "")
+				fJSON.WriteKeyString("sub_tool", GetLearningModuleName());
 			fJSON.WriteKeyString("version", GetLearningVersion());
 
 			// Description courte

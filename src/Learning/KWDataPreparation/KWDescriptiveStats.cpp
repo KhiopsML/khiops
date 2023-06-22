@@ -561,21 +561,6 @@ PLShared_DescriptiveStats::PLShared_DescriptiveStats() {}
 
 PLShared_DescriptiveStats::~PLShared_DescriptiveStats() {}
 
-void PLShared_DescriptiveStats::DeserializeObject(PLSerializer* serializer, Object* o) const
-{
-	KWDescriptiveStats* decriptiveStats;
-
-	require(serializer->IsOpenForRead());
-
-	// Appel de la methode ancetre
-	PLShared_LearningReport::DeserializeObject(serializer, o);
-
-	// Deserialization des attributs specifiques
-	decriptiveStats = cast(KWDescriptiveStats*, o);
-	decriptiveStats->SetAttributeName(serializer->GetString());
-	decriptiveStats->nValueNumber = serializer->GetInt();
-}
-
 void PLShared_DescriptiveStats::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
 	KWDescriptiveStats* decriptiveStats;
@@ -589,6 +574,21 @@ void PLShared_DescriptiveStats::SerializeObject(PLSerializer* serializer, const 
 	decriptiveStats = cast(KWDescriptiveStats*, o);
 	serializer->PutString(decriptiveStats->sAttributeName);
 	serializer->PutInt(decriptiveStats->nValueNumber);
+}
+
+void PLShared_DescriptiveStats::DeserializeObject(PLSerializer* serializer, Object* o) const
+{
+	KWDescriptiveStats* decriptiveStats;
+
+	require(serializer->IsOpenForRead());
+
+	// Appel de la methode ancetre
+	PLShared_LearningReport::DeserializeObject(serializer, o);
+
+	// Deserialization des attributs specifiques
+	decriptiveStats = cast(KWDescriptiveStats*, o);
+	decriptiveStats->SetAttributeName(serializer->GetString());
+	decriptiveStats->nValueNumber = serializer->GetInt();
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -607,6 +607,31 @@ void PLShared_DescriptiveContinuousStats::SetDescriptiveStats(KWDescriptiveConti
 KWDescriptiveContinuousStats* PLShared_DescriptiveContinuousStats::GetDescriptiveStats()
 {
 	return cast(KWDescriptiveContinuousStats*, GetObject());
+}
+
+void PLShared_DescriptiveContinuousStats::SerializeObject(PLSerializer* serializer, const Object* o) const
+{
+	PLShared_Continuous cMin;
+	PLShared_Continuous cMax;
+	PLShared_Continuous cMean;
+	PLShared_Continuous cStandardDeviation;
+	KWDescriptiveContinuousStats* decriptiveStats;
+	require(serializer->IsOpenForWrite());
+
+	// Appel de la methode ancetre
+	PLShared_DescriptiveStats::SerializeObject(serializer, o);
+
+	// Serialization des attributs specifiques
+	decriptiveStats = cast(KWDescriptiveContinuousStats*, o);
+	cMin = decriptiveStats->GetMin();
+	cMin.Serialize(serializer);
+	cMax = decriptiveStats->GetMax();
+	cMax.Serialize(serializer);
+	cMean = decriptiveStats->GetMean();
+	cMean.Serialize(serializer);
+	cStandardDeviation = decriptiveStats->GetStandardDeviation();
+	cStandardDeviation.Serialize(serializer);
+	serializer->PutInt(decriptiveStats->GetMissingValueNumber());
 }
 
 void PLShared_DescriptiveContinuousStats::DeserializeObject(PLSerializer* serializer, Object* o) const
@@ -635,31 +660,6 @@ void PLShared_DescriptiveContinuousStats::DeserializeObject(PLSerializer* serial
 	decriptiveStats->nMissingValueNumber = serializer->GetInt();
 }
 
-void PLShared_DescriptiveContinuousStats::SerializeObject(PLSerializer* serializer, const Object* o) const
-{
-	PLShared_Continuous cMin;
-	PLShared_Continuous cMax;
-	PLShared_Continuous cMean;
-	PLShared_Continuous cStandardDeviation;
-	KWDescriptiveContinuousStats* decriptiveStats;
-	require(serializer->IsOpenForWrite());
-
-	// Appel de la methode ancetre
-	PLShared_DescriptiveStats::SerializeObject(serializer, o);
-
-	// Serialization des attributs specifiques
-	decriptiveStats = cast(KWDescriptiveContinuousStats*, o);
-	cMin = decriptiveStats->GetMin();
-	cMin.Serialize(serializer);
-	cMax = decriptiveStats->GetMax();
-	cMax.Serialize(serializer);
-	cMean = decriptiveStats->GetMean();
-	cMean.Serialize(serializer);
-	cStandardDeviation = decriptiveStats->GetStandardDeviation();
-	cStandardDeviation.Serialize(serializer);
-	serializer->PutInt(decriptiveStats->GetMissingValueNumber());
-}
-
 Object* PLShared_DescriptiveContinuousStats::Create() const
 {
 	return new KWDescriptiveContinuousStats;
@@ -683,24 +683,6 @@ KWDescriptiveSymbolStats* PLShared_DescriptiveSymbolStats::GetDescriptiveStats()
 	return cast(KWDescriptiveSymbolStats*, GetObject());
 }
 
-void PLShared_DescriptiveSymbolStats::DeserializeObject(PLSerializer* serializer, Object* o) const
-{
-	KWDescriptiveSymbolStats* decriptiveStats;
-	PLShared_Symbol sharedSymbol;
-	require(serializer->IsOpenForRead());
-
-	// Appel de la methode ancetre
-	PLShared_DescriptiveStats::DeserializeObject(serializer, o);
-
-	// Deserialization des attributs specifiques
-	decriptiveStats = cast(KWDescriptiveSymbolStats*, o);
-	decriptiveStats->dEntropy = serializer->GetDouble();
-	sharedSymbol.Deserialize(serializer);
-	decriptiveStats->sMode = sharedSymbol;
-	decriptiveStats->nModeFrequency = serializer->GetInt();
-	decriptiveStats->nTotalFrequency = serializer->GetInt();
-}
-
 void PLShared_DescriptiveSymbolStats::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
 	KWDescriptiveSymbolStats* decriptiveStats;
@@ -718,6 +700,24 @@ void PLShared_DescriptiveSymbolStats::SerializeObject(PLSerializer* serializer, 
 	sharedSymbol.Serialize(serializer);
 	serializer->PutInt(decriptiveStats->nModeFrequency);
 	serializer->PutInt(decriptiveStats->nTotalFrequency);
+}
+
+void PLShared_DescriptiveSymbolStats::DeserializeObject(PLSerializer* serializer, Object* o) const
+{
+	KWDescriptiveSymbolStats* decriptiveStats;
+	PLShared_Symbol sharedSymbol;
+	require(serializer->IsOpenForRead());
+
+	// Appel de la methode ancetre
+	PLShared_DescriptiveStats::DeserializeObject(serializer, o);
+
+	// Deserialization des attributs specifiques
+	decriptiveStats = cast(KWDescriptiveSymbolStats*, o);
+	decriptiveStats->dEntropy = serializer->GetDouble();
+	sharedSymbol.Deserialize(serializer);
+	decriptiveStats->sMode = sharedSymbol;
+	decriptiveStats->nModeFrequency = serializer->GetInt();
+	decriptiveStats->nTotalFrequency = serializer->GetInt();
 }
 
 Object* PLShared_DescriptiveSymbolStats::Create() const

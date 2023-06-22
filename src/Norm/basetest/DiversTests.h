@@ -41,3 +41,6 @@ void TestBigFile();
 
 // Etude sur la gestion de la memoire
 void StudyMemoryManagement();
+
+// Etude sur les encodages ansi et utf8
+void StudyCharacterEncodings();

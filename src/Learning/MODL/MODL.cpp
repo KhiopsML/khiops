@@ -11,10 +11,11 @@ int main(int argc, char** argv)
 	MDKhiopsLearningProject learningProject;
 
 	// Pour desactiver l'interception du signal "segmentation fault", pour permettre au debugger d'identifier le
-	// probleme debug(signal(SIGSEGV, NULL));
+	// probleme
+	// debug(signal(SIGSEGV, NULL));
 
 	// Parametrage de l'arret pour la memoire ou les interruptions utilisateurs
-	// MemSetAllocSizeExit(62181);
+	// MemSetAllocIndexExit(244861);
 	// TaskProgression::SetExternalInterruptionRequestIndex();
 	// TaskProgression::SetInterruptionRequestIndex(75);
 
@@ -23,7 +24,7 @@ int main(int argc, char** argv)
 	PLParallelTask::UseMPI(GetLearningVersion());
 #endif // defined(USE_MPI)
 
-	// Possibilite de parametrage des log memoire depuis les variable d'environnement
+	// Possibilite de parametrage des log memoire depuis les variables d'environnement
 	// p_setenv("KhiopsExpertMode", "true");
 	if (GetLearningExpertMode())
 	{

@@ -48,11 +48,6 @@ public:
 	// Renvoie 0 si erreur ou pas de place disponible
 	static longint GetDiskFreeSpace(const ALString& sFileURI);
 
-	// Renvoie l'URI telle quelle sur un cluster
-	// Renvoie le nom du fichier sur une machine
-	// TODO a verifier Cf. SmartLabel de FileService
-	static const ALString URItoUserString(const ALString& sFileURI);
-
 	// Creation d'un nom de fichier temporaire en ecriture si necessaire,
 	// dans le cas ou le fichier est sur un systeme de fichier non standard (ex/ HDFS)
 	// Dans le Clean, le WorkingFileName est remis a vide
@@ -70,8 +65,12 @@ protected:
 	// Copie le fichier local/hdfs vers local/hdfs
 	static boolean CopyFileLocal(const ALString& sSourceURI, const ALString& sDestPath);
 
-	// Numero des noms de fichiers temporaires HDFS
-	// TODO BG: mieux commenter
+	// Index des noms de fichiers temporaires HDFS
+	// Utiliser pour évtiter d'avoir 2 fois le meme nom de fichier. C'est problematique car HDFS genere un fichier
+	// CRC a partir du non de fichier initial. Ce fichier CRC n'est pas automatiquement efface par HDFS. Par contre
+	// on ne peut pas creer un fichier dont le CRC existe deja. i.e. si on cree A.txt, on aura A.txt.crc, si on
+	// supprime A.txt, àa ne supprime pas A.txt.crc. Et si on cree a nouveau A.txt, HDFS ne pourra pas cree
+	// A.txt.crc car il existe deja et il y aura un bug
 	static int nFileHdfsIndex;
 
 	friend class PLBufferedFileDriverRemote; // Acces a CopyFileLocal
