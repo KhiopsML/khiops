@@ -1,0 +1,160 @@
+
+Root	Dictionary	SNB_SpliceJunction	(SampleId)
+<InitialDictionary="SpliceJunction"> <PredictorLabel="Selective Naive Bayes"> <PredictorType="Classifier">
+{
+	Categorical	SampleId		; <Cost=0.693147> <Level=0>	
+	Categorical	Class		; <TargetVariable>	
+Unused	Table(SNB_SpliceJunctionDNA)	DNA		;	
+Unused	Categorical	`Mode(DNA.Char) where Pos <= 30.5`	 = TableMode(`DNA where Pos <= 30.5`, Char)	; <Cost=7.07503> <Importance=0.197765> <Level=0.104296> <Weight=0.375>	
+Unused	Numerical	`Median(DNA.Pos) where Char = A`	 = TableMedian(`DNA where Char = A`, Pos)	; <Cost=10.0205> <Importance=0.132431> <Level=0.0707047> <Weight=0.248047>	
+Unused	Table(SNB_SpliceJunctionDNA)	`DNA where Pos <= 30.5`	 = TableSelection(DNA, LE(Pos, 30.5))	;	
+Unused	Table(SNB_SpliceJunctionDNA)	`DNA where Char = A`	 = TableSelection(DNA, EQc(Char, "A"))	;	
+	{
+Unused	Categorical	`Mode(DNA.Char) where Pos in ]15.5, 30.5]`		; <Cost=8.46132> <Importance=0.0751672> <Level=0.103316> <VarKey=2> <Weight=0.0546875>	
+	}	`Mode(DNA.Char) per Pos(4)`	 = TablePartitionMode(`TablePartition(DNA) per Pos(4)`, Char)	;	
+	{
+Unused	Numerical	`CountDistinct(DNA.Char) where Pos in ]15.5, 22.5]`		; <Cost=10.0205> <Importance=0.0447358> <Level=0.0320207> <VarKey=3> <Weight=0.0625>	
+	}	`CountDistinct(DNA.Char) per Pos(8)`	 = TablePartitionCountDistinct(`TablePartition(DNA) per Pos(8)`, Char)	;	
+	{
+Unused	Numerical	`Count(DNA) where Char = G and Pos <= 30.5`		; <Cost=10.9002> <Importance=0.178657> <Level=0.0851152> <VarKey=2> <Weight=0.375>	
+Unused	Numerical	`Count(DNA) where Char = G and Pos > 30.5`		; <Cost=10.9002> <Importance=0.095425> <Level=0.0495983> <VarKey=5> <Weight=0.183594>	
+Unused	Numerical	`Count(DNA) where Char not in {C, G} and Pos > 30.5`		; <Cost=10.9002> <Importance=0.0894283> <Level=0.0341224> <VarKey=6> <Weight=0.234375>	
+	}	`Count(DNA) per Char(4) and Pos(2)`	 = TablePartitionCount(`TablePartition(DNA) per Char(4) and Pos(2)`)	;	
+	{
+Unused	Numerical	`Max(DNA.Pos) where Char = C and Pos <= 30.5`		; <Cost=10.9002> <Importance=0.287988> <Level=0.197048> <VarKey=1> <Weight=0.420898>	
+Unused	Numerical	`Max(DNA.Pos) where Char not in {C, G} and Pos <= 30.5`		; <Cost=10.9002> <Importance=0.115995> <Level=0.215277> <VarKey=3> <Weight=0.0625>	
+	}	`Max(DNA.Pos) per Char(4) and Pos(2)`	 = TablePartitionMax(`TablePartition(DNA) per Char(4) and Pos(2)`, Pos)	;	
+	{
+Unused	Numerical	`Min(DNA.Pos) where Char = G and Pos > 30.5`		; <Cost=10.9002> <Importance=0.29209> <Level=0.195009> <VarKey=5> <Weight=0.4375>	
+Unused	Numerical	`Min(DNA.Pos) where Char not in {C, G} and Pos > 30.5`		; <Cost=10.9002> <Importance=0.298755> <Level=0.190409> <VarKey=6> <Weight=0.46875>	
+	}	`Min(DNA.Pos) per Char(4) and Pos(2)`	 = TablePartitionMin(`TablePartition(DNA) per Char(4) and Pos(2)`, Pos)	;	
+	{
+Unused	Numerical	`CountDistinct(DNA.Char) where Pos in ]22.5, 26.5]`		; <Cost=11.2339> <Importance=0.100496> <Level=0.0340195> <VarKey=7> <Weight=0.296875>	
+Unused	Numerical	`CountDistinct(DNA.Char) where Pos in ]26.5, 30.5]`		; <Cost=11.2339> <Importance=0.110517> <Level=0.0781694> <VarKey=8> <Weight=0.15625>	
+Unused	Numerical	`CountDistinct(DNA.Char) where Pos in ]30.5, 34.5]`		; <Cost=11.2339> <Importance=0.116071> <Level=0.0431123> <VarKey=9> <Weight=0.3125>	
+	}	`CountDistinct(DNA.Char) per Pos(16)`	 = TablePartitionCountDistinct(`TablePartition(DNA) per Pos(16)`, Char)	;	
+	{
+Unused	Categorical	`Mode(DNA.Char) where Pos in ]19.5, 22.5]`		; <Cost=11.2339> <Importance=0.11929> <Level=0.0650523> <VarKey=6> <Weight=0.21875>	
+Unused	Categorical	`Mode(DNA.Char) where Pos in ]22.5, 26.5]`		; <Cost=11.2339> <Importance=0.189519> <Level=0.0957798> <VarKey=7> <Weight=0.375>	
+	}	`Mode(DNA.Char) per Pos(16)`	 = TablePartitionMode(`TablePartition(DNA) per Pos(16)`, Char)	;	
+	{
+Unused	Numerical	`Max(DNA.Pos) where Char = G and Pos in ]15.5, 30.5]`		; <Cost=12.2865> <Importance=0.38331> <Level=0.247659> <VarKey=5> <Weight=0.593262>	
+	}	`Max(DNA.Pos) per Char(4) and Pos(4)`	 = TablePartitionMax(`TablePartition(DNA) per Char(4) and Pos(4)`, Pos)	;	
+	{
+Unused	Numerical	`Median(DNA.Pos) where Char = G and Pos in ]15.5, 30.5]`		; <Cost=12.2865> <Importance=0.115963> <Level=0.107579> <VarKey=5> <Weight=0.125>	
+	}	`Median(DNA.Pos) per Char(4) and Pos(4)`	 = TablePartitionMedian(`TablePartition(DNA) per Char(4) and Pos(4)`, Pos)	;	
+	{
+Unused	Categorical	`Mode(DNA.Char) where Char not in {C, G} and Pos in ]15.5, 30.5]`		; <Cost=12.2865> <Importance=0.184775> <Level=0.0780387> <VarKey=6> <Weight=0.4375>	
+	}	`Mode(DNA.Char) per Char(4) and Pos(4)`	 = TablePartitionMode(`TablePartition(DNA) per Char(4) and Pos(4)`, Char)	;	
+	{
+Unused	Numerical	`Max(DNA.Pos) where Char = T and Pos <= 30.5`		; <Cost=12.4594> <Importance=0.144254> <Level=0.110983> <VarKey=1> <Weight=0.1875>	
+Unused	Numerical	`Max(DNA.Pos) where Char = A and Pos <= 30.5`		; <Cost=12.4594> <Importance=0.381038> <Level=0.258115> <VarKey=2> <Weight=0.5625>	
+	}	`Max(DNA.Pos) per Char(8) and Pos(2)`	 = TablePartitionMax(`TablePartition(DNA) per Char(8) and Pos(2)`, Pos)	;	
+	{
+Unused	Numerical	`Min(DNA.Pos) where Char = T and Pos > 30.5`		; <Cost=12.4594> <Importance=0.0622733> <Level=0.248189> <VarKey=5> <Weight=0.015625>	
+Unused	Numerical	`Min(DNA.Pos) where Char = A and Pos > 30.5`		; <Cost=12.4594> <Importance=0.234507> <Level=0.1676> <VarKey=6> <Weight=0.328125>	
+	}	`Min(DNA.Pos) per Char(8) and Pos(2)`	 = TablePartitionMin(`TablePartition(DNA) per Char(8) and Pos(2)`, Pos)	;	
+	{
+Unused	Numerical	`StdDev(DNA.Pos) where Char = A and Pos <= 30.5`		; <Cost=12.4594> <Importance=0.0750345> <Level=0.0514759> <VarKey=2> <Weight=0.109375>	
+	}	`StdDev(DNA.Pos) per Char(8) and Pos(2)`	 = TablePartitionStdDev(`TablePartition(DNA) per Char(8) and Pos(2)`, Pos)	;	
+	{
+Unused	Numerical	`CountDistinct(DNA.Char) where Pos in ]30.5, 32.5]`		; <Cost=12.4945> <Importance=0.143475> <Level=0.0487943> <VarKey=17> <Weight=0.421875>	
+	}	`CountDistinct(DNA.Char) per Pos(32)`	 = TablePartitionCountDistinct(`TablePartition(DNA) per Pos(32)`, Char)	;	
+	{
+Unused	Categorical	`Mode(DNA.Char) where Pos in ]30.5, 32.5]`		; <Cost=12.4945> <Importance=0.340078> <Level=0.231306> <VarKey=17> <Weight=0.5>	
+Unused	Categorical	`Mode(DNA.Char) where Pos in ]32.5, 34.5]`		; <Cost=12.4945> <Importance=0.155528> <Level=0.0774043> <VarKey=18> <Weight=0.3125>	
+Unused	Categorical	`Mode(DNA.Char) where Pos in ]34.5, 36.5]`		; <Cost=12.4945> <Importance=0.141305> <Level=0.0532457> <VarKey=19> <Weight=0.375>	
+	}	`Mode(DNA.Char) per Pos(32)`	 = TablePartitionMode(`TablePartition(DNA) per Pos(32)`, Char)	;	
+	{
+Unused	Categorical	`Mode(DNA.Char) where Pos in ]34.5, 35.5]`		; <Cost=13.5971> <Importance=0.316044> <Level=0.133178> <VarKey=35> <Weight=0.75>	
+	}	`Mode(DNA.Char) per Pos(64)`	 = TablePartitionMode(`TablePartition(DNA) per Pos(64)`, Char)	;	
+Unused	Structure(Partition)	`Partition(SpliceJunctionDNA) per Pos(4)`	 = Partition(IntervalBounds(15.5, 30.5, 45.5))	;	
+	{
+Unused	Table(SNB_SpliceJunctionDNA)	`DNA where Pos in ]15.5, 30.5]`		; <VarKey=2>	
+	}	`TablePartition(DNA) per Pos(4)`	 = TablePartition(DNA, `Partition(SpliceJunctionDNA) per Pos(4)`, Pos)	;	
+Unused	Structure(Partition)	`Partition(SpliceJunctionDNA) per Pos(8)`	 = Partition(IntervalBounds(7.5, 15.5, 22.5, 30.5, 38.5, 45.5, 53.5))	;	
+	{
+Unused	Table(SNB_SpliceJunctionDNA)	`DNA where Pos in ]15.5, 22.5]`		; <VarKey=3>	
+	}	`TablePartition(DNA) per Pos(8)`	 = TablePartition(DNA, `Partition(SpliceJunctionDNA) per Pos(8)`, Pos)	;	
+Unused	Structure(Partition)	`Partition(SpliceJunctionDNA) per Pos(16)`	 = Partition(IntervalBounds(4.5, 7.5, 11.5, 15.5, 19.5, 22.5, 26.5, 30.5, 34.5, 38.5, 41.5, 45.5, 49.5, 53.5, 56.5))	;	
+	{
+Unused	Table(SNB_SpliceJunctionDNA)	`DNA where Pos in ]19.5, 22.5]`		; <VarKey=6>	
+Unused	Table(SNB_SpliceJunctionDNA)	`DNA where Pos in ]22.5, 26.5]`		; <VarKey=7>	
+Unused	Table(SNB_SpliceJunctionDNA)	`DNA where Pos in ]26.5, 30.5]`		; <VarKey=8>	
+Unused	Table(SNB_SpliceJunctionDNA)	`DNA where Pos in ]30.5, 34.5]`		; <VarKey=9>	
+	}	`TablePartition(DNA) per Pos(16)`	 = TablePartition(DNA, `Partition(SpliceJunctionDNA) per Pos(16)`, Pos)	;	
+Unused	Structure(Partition)	`Partition(SpliceJunctionDNA) per Pos(32)`	 = Partition(IntervalBounds(2.5, 4.5, 6.5, 7.5, 9.5, 11.5, 13.5, 15.5, 17.5, 19.5, 21.5, 22.5, 24.5, 26.5, 28.5, 30.5, 32.5, 34.5, 36.5, 38.5, 39.5, 41.5, 43.5, 45.5, 47.5, 49.5, 51.5, 53.5, 54.5, 56.5, 58.5))	;	
+	{
+Unused	Table(SNB_SpliceJunctionDNA)	`DNA where Pos in ]30.5, 32.5]`		; <VarKey=17>	
+Unused	Table(SNB_SpliceJunctionDNA)	`DNA where Pos in ]32.5, 34.5]`		; <VarKey=18>	
+Unused	Table(SNB_SpliceJunctionDNA)	`DNA where Pos in ]34.5, 36.5]`		; <VarKey=19>	
+	}	`TablePartition(DNA) per Pos(32)`	 = TablePartition(DNA, `Partition(SpliceJunctionDNA) per Pos(32)`, Pos)	;	
+Unused	Structure(Partition)	`Partition(SpliceJunctionDNA) per Pos(64)`	 = Partition(IntervalBounds(1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5, 9.5, 10.5, 11.5, 12.5, 13.5, 14.5, 15.5, 16.5, 17.5, 18.5, 19.5, 20.5, 21.5, 22.5, 23.5, 24.5, 25.5, 26.5, 27.5, 28.5, 29.5, 30.5, 31.5, 32.5, 33.5, 34.5, 35.5, 36.5, 37.5, 38.5, 39.5, 40.5, 41.5, 42.5, 43.5, 44.5, 45.5, 46.5, 47.5, 48.5, 49.5, 50.5, 51.5, 52.5, 53.5, 54.5, 55.5, 56.5, 57.5, 58.5, 59.5))	;	
+	{
+Unused	Table(SNB_SpliceJunctionDNA)	`DNA where Pos in ]34.5, 35.5]`		; <VarKey=35>	
+	}	`TablePartition(DNA) per Pos(64)`	 = TablePartition(DNA, `Partition(SpliceJunctionDNA) per Pos(64)`, Pos)	;	
+Unused	Structure(Partition)	`Partition(SpliceJunctionDNA) per Char(4) and Pos(2)`	 = Partition(ValueGroups(ValueGroup("C"), ValueGroup("G"), ValueGroup("T", " * ")), IntervalBounds(30.5))	;	
+	{
+Unused	Table(SNB_SpliceJunctionDNA)	`DNA where Char = C and Pos <= 30.5`		; <VarKey=1>	
+Unused	Table(SNB_SpliceJunctionDNA)	`DNA where Char = G and Pos <= 30.5`		; <VarKey=2>	
+Unused	Table(SNB_SpliceJunctionDNA)	`DNA where Char not in {C, G} and Pos <= 30.5`		; <VarKey=3>	
+Unused	Table(SNB_SpliceJunctionDNA)	`DNA where Char = G and Pos > 30.5`		; <VarKey=5>	
+Unused	Table(SNB_SpliceJunctionDNA)	`DNA where Char not in {C, G} and Pos > 30.5`		; <VarKey=6>	
+	}	`TablePartition(DNA) per Char(4) and Pos(2)`	 = TablePartition(DNA, `Partition(SpliceJunctionDNA) per Char(4) and Pos(2)`, Char, Pos)	;	
+Unused	Structure(Partition)	`Partition(SpliceJunctionDNA) per Char(4) and Pos(4)`	 = Partition(ValueGroups(ValueGroup("C"), ValueGroup("G"), ValueGroup("T", " * ")), IntervalBounds(15.5, 30.5, 45.5))	;	
+	{
+Unused	Table(SNB_SpliceJunctionDNA)	`DNA where Char = G and Pos in ]15.5, 30.5]`		; <VarKey=5>	
+Unused	Table(SNB_SpliceJunctionDNA)	`DNA where Char not in {C, G} and Pos in ]15.5, 30.5]`		; <VarKey=6>	
+	}	`TablePartition(DNA) per Char(4) and Pos(4)`	 = TablePartition(DNA, `Partition(SpliceJunctionDNA) per Char(4) and Pos(4)`, Char, Pos)	;	
+Unused	Structure(Partition)	`Partition(SpliceJunctionDNA) per Char(8) and Pos(2)`	 = Partition(ValueGroups(ValueGroup("T"), ValueGroup("A"), ValueGroup("N", " * "), ValueGroup("C", "G")), IntervalBounds(30.5))	;	
+	{
+Unused	Table(SNB_SpliceJunctionDNA)	`DNA where Char = T and Pos <= 30.5`		; <VarKey=1>	
+Unused	Table(SNB_SpliceJunctionDNA)	`DNA where Char = A and Pos <= 30.5`		; <VarKey=2>	
+Unused	Table(SNB_SpliceJunctionDNA)	`DNA where Char = T and Pos > 30.5`		; <VarKey=5>	
+Unused	Table(SNB_SpliceJunctionDNA)	`DNA where Char = A and Pos > 30.5`		; <VarKey=6>	
+	}	`TablePartition(DNA) per Char(8) and Pos(2)`	 = TablePartition(DNA, `Partition(SpliceJunctionDNA) per Char(8) and Pos(2)`, Char, Pos)	;	
+Unused	Structure(DataGrid)	VClass	 = DataGrid(ValueSetC("EI", "IE", "N"), Frequencies(516, 515, 1150))	; <TargetValues>	
+Unused	Structure(DataGrid)	`PMode(DNA.Char) where Pos <= 30.5`	 = DataGrid(ValueGroups(ValueGroup("G", "A", "N", " * "), ValueGroup("C"), ValueGroup("T")), ValueSetC("EI", "IE", "N"), Frequencies(317, 158, 41, 35, 292, 188, 645, 296, 209))	; <Level=0.104296>	// DataGrid(`Mode(DNA.Char) where Pos <= 30.5`, Class)
+Unused	Structure(DataGrid)	`PMedian(DNA.Pos) where Char = A`	 = DataGrid(IntervalBounds(28.75, 29.25, 30.75, 31.75, 32.75, 34.25), ValueSetC("EI", "IE", "N"), Frequencies(297, 32, 16, 28, 1, 68, 74, 54, 46, 17, 22, 29, 57, 290, 472, 43, 83, 44, 76, 85, 347))	; <Level=0.0707047>	// DataGrid(`Median(DNA.Pos) where Char = A`, Class)
+Unused	Structure(DataGrid)	`PMode(DNA.Char) where Pos in ]15.5, 30.5]`	 = DataGrid(ValueGroups(ValueGroup("A", "G", "N", " * "), ValueGroup("C"), ValueGroup("T")), ValueSetC("EI", "IE", "N"), Frequencies(334, 141, 41, 34, 298, 183, 616, 316, 218))	; <Level=0.103316>	// DataGrid(`Mode(DNA.Char) where Pos in ]15.5, 30.5]`, Class)
+Unused	Structure(DataGrid)	`PCountDistinct(DNA.Char) where Pos in ]15.5, 22.5]`	 = DataGrid(IntervalBounds(2.5, 3.5), ValueSetC("EI", "IE", "N"), Frequencies(42, 248, 226, 142, 300, 73, 110, 580, 460))	; <Level=0.0320207>	// DataGrid(`CountDistinct(DNA.Char) where Pos in ]15.5, 22.5]`, Class)
+Unused	Structure(DataGrid)	`PCount(DNA) where Char = G and Pos <= 30.5`	 = DataGrid(IntervalBounds(5.5, 7.5), ValueSetC("EI", "IE", "N"), Frequencies(59, 140, 317, 337, 106, 72, 296, 263, 591))	; <Level=0.0851152>	// DataGrid(`Count(DNA) where Char = G and Pos <= 30.5`, Class)
+Unused	Structure(DataGrid)	`PCount(DNA) where Char = G and Pos > 30.5`	 = DataGrid(IntervalBounds(6.5, 11.5, 14.5), ValueSetC("EI", "IE", "N"), Frequencies(102, 199, 121, 94, 123, 335, 54, 3, 468, 533, 116, 33))	; <Level=0.0495983>	// DataGrid(`Count(DNA) where Char = G and Pos > 30.5`, Class)
+Unused	Structure(DataGrid)	`PCount(DNA) where Char not in {C, G} and Pos > 30.5`	 = DataGrid(IntervalBounds(8.5, 10.5, 14.5, 21.5), ValueSetC("EI", "IE", "N"), Frequencies(73, 107, 185, 118, 33, 11, 56, 273, 175, 0, 71, 100, 379, 526, 74))	; <Level=0.0341224>	// DataGrid(`Count(DNA) where Char not in {C, G} and Pos > 30.5`, Class)
+Unused	Structure(DataGrid)	`PMax(DNA.Pos) where Char = C and Pos <= 30.5`	 = DataGrid(IntervalBounds(22.5, 27.5, 28.5, 29.5), ValueSetC("EI", "IE", "N"), Frequencies(86, 174, 188, 51, 17, 14, 83, 417, 1, 0, 162, 340, 151, 207, 290))	; <Level=0.197048>	// DataGrid(`Max(DNA.Pos) where Char = C and Pos <= 30.5`, Class)
+Unused	Structure(DataGrid)	`PMax(DNA.Pos) where Char not in {C, G} and Pos <= 30.5`	 = DataGrid(IntervalBounds(28.5, 29.5), ValueSetC("EI", "IE", "N"), Frequencies(101, 336, 79, 1, 513, 1, 287, 306, 557))	; <Level=0.215277>	// DataGrid(`Max(DNA.Pos) where Char not in {C, G} and Pos <= 30.5`, Class)
+Unused	Structure(DataGrid)	`PMin(DNA.Pos) where Char = G and Pos > 30.5`	 = DataGrid(IntervalBounds(31.5), ValueSetC("EI", "IE", "N"), Frequencies(515, 1, 252, 263, 334, 816))	; <Level=0.195009>	// DataGrid(`Min(DNA.Pos) where Char = G and Pos > 30.5`, Class)
+Unused	Structure(DataGrid)	`PMin(DNA.Pos) where Char not in {C, G} and Pos > 30.5`	 = DataGrid(IntervalBounds(31.5, 32.5), ValueSetC("EI", "IE", "N"), Frequencies(1, 511, 4, 191, 193, 131, 536, 331, 283))	; <Level=0.190409>	// DataGrid(`Min(DNA.Pos) where Char not in {C, G} and Pos > 30.5`, Class)
+Unused	Structure(DataGrid)	`PCountDistinct(DNA.Char) where Pos in ]22.5, 26.5]`	 = DataGrid(IntervalBounds(2.5, 3.5), ValueSetC("EI", "IE", "N"), Frequencies(192, 299, 25, 378, 133, 4, 476, 581, 93))	; <Level=0.0340195>	// DataGrid(`CountDistinct(DNA.Char) where Pos in ]22.5, 26.5]`, Class)
+Unused	Structure(DataGrid)	`PCountDistinct(DNA.Char) where Pos in ]26.5, 30.5]`	 = DataGrid(IntervalBounds(2.5, 3.5), ValueSetC("EI", "IE", "N"), Frequencies(169, 301, 46, 5, 399, 111, 471, 601, 78))	; <Level=0.0781694>	// DataGrid(`CountDistinct(DNA.Char) where Pos in ]26.5, 30.5]`, Class)
+Unused	Structure(DataGrid)	`PCountDistinct(DNA.Char) where Pos in ]30.5, 34.5]`	 = DataGrid(IntervalBounds(2.5), ValueSetC("EI", "IE", "N"), Frequencies(37, 479, 191, 324, 463, 687))	; <Level=0.0431123>	// DataGrid(`CountDistinct(DNA.Char) where Pos in ]30.5, 34.5]`, Class)
+Unused	Structure(DataGrid)	`PMode(DNA.Char) where Pos in ]19.5, 22.5]`	 = DataGrid(ValueGroups(ValueGroup("A", "G", "N", " * "), ValueGroup("C"), ValueGroup("T")), ValueSetC("EI", "IE", "N"), Frequencies(299, 151, 66, 82, 199, 234, 672, 302, 176))	; <Level=0.0650523>	// DataGrid(`Mode(DNA.Char) where Pos in ]19.5, 22.5]`, Class)
+Unused	Structure(DataGrid)	`PMode(DNA.Char) where Pos in ]22.5, 26.5]`	 = DataGrid(ValueGroups(ValueGroup("C", "T"), ValueGroup("A", "G", "N", " * ")), ValueSetC("EI", "IE", "N"), Frequencies(206, 310, 473, 42, 473, 677))	; <Level=0.0957798>	// DataGrid(`Mode(DNA.Char) where Pos in ]22.5, 26.5]`, Class)
+Unused	Structure(DataGrid)	`PMax(DNA.Pos) where Char = G and Pos in ]15.5, 30.5]`	 = DataGrid(IntervalBounds(29.5), ValueSetC("EI", "IE", "N"), Frequencies(96, 420, 1, 514, 847, 303))	; <Level=0.247659>	// DataGrid(`Max(DNA.Pos) where Char = G and Pos in ]15.5, 30.5]`, Class)
+Unused	Structure(DataGrid)	`PMedian(DNA.Pos) where Char = G and Pos in ]15.5, 30.5]`	 = DataGrid(IntervalBounds(17.25, 23.25, 26.25, 27.25, 28.25, 28.75, 29.75), ValueSetC("EI", "IE", "N"), Frequencies(3, 200, 229, 37, 23, 2, 16, 6, 0, 110, 134, 68, 9, 43, 1, 150, 60, 578, 366, 66, 43, 7, 23, 7))	; <Level=0.107579>	// DataGrid(`Median(DNA.Pos) where Char = G and Pos in ]15.5, 30.5]`, Class)
+Unused	Structure(DataGrid)	`PMode(DNA.Char) where Char not in {C, G} and Pos in ]15.5, 30.5]`	 = DataGrid(ValueGroups(ValueGroup("A"), ValueGroup("T", " * ")), ValueSetC("EI", "IE", "N"), Frequencies(371, 145, 86, 429, 682, 468))	; <Level=0.0780387>	// DataGrid(`Mode(DNA.Char) where Char not in {C, G} and Pos in ]15.5, 30.5]`, Class)
+Unused	Structure(DataGrid)	`PMax(DNA.Pos) where Char = T and Pos <= 30.5`	 = DataGrid(IntervalBounds(21.5, 25.5, 26.5, 28.5), ValueSetC("EI", "IE", "N"), Frequencies(94, 128, 86, 110, 98, 28, 175, 139, 172, 1, 147, 176, 76, 266, 485))	; <Level=0.110983>	// DataGrid(`Max(DNA.Pos) where Char = T and Pos <= 30.5`, Class)
+Unused	Structure(DataGrid)	`PMax(DNA.Pos) where Char = A and Pos <= 30.5`	 = DataGrid(IntervalBounds(28.5, 29.5), ValueSetC("EI", "IE", "N"), Frequencies(184, 292, 40, 2, 512, 1, 672, 201, 277))	; <Level=0.258115>	// DataGrid(`Max(DNA.Pos) where Char = A and Pos <= 30.5`, Class)
+Unused	Structure(DataGrid)	`PMin(DNA.Pos) where Char = T and Pos > 30.5`	 = DataGrid(IntervalBounds(31.5, 32.5), ValueSetC("EI", "IE", "N"), Frequencies(1, 509, 6, 53, 154, 308, 289, 215, 646))	; <Level=0.248189>	// DataGrid(`Min(DNA.Pos) where Char = T and Pos > 30.5`, Class)
+Unused	Structure(DataGrid)	`PMin(DNA.Pos) where Char = A and Pos > 30.5`	 = DataGrid(IntervalBounds(32.5, 34.5), ValueSetC("EI", "IE", "N"), Frequencies(3, 454, 59, 223, 114, 178, 481, 261, 408))	; <Level=0.1676>	// DataGrid(`Min(DNA.Pos) where Char = A and Pos > 30.5`, Class)
+Unused	Structure(DataGrid)	`PStdDev(DNA.Pos) where Char = A and Pos <= 30.5`	 = DataGrid(IntervalBounds(2.675, 7.6903, 9.904, 10.765), ValueSetC("EI", "IE", "N"), Frequencies(6, 179, 286, 36, 9, 20, 49, 257, 95, 94, 42, 454, 547, 74, 33))	; <Level=0.0514759>	// DataGrid(`StdDev(DNA.Pos) where Char = A and Pos <= 30.5`, Class)
+Unused	Structure(DataGrid)	`PCountDistinct(DNA.Char) where Pos in ]30.5, 32.5]`	 = DataGrid(IntervalBounds(1.5), ValueSetC("EI", "IE", "N"), Frequencies(2, 514, 130, 385, 320, 830))	; <Level=0.0487943>	// DataGrid(`CountDistinct(DNA.Char) where Pos in ]30.5, 32.5]`, Class)
+Unused	Structure(DataGrid)	`PMode(DNA.Char) where Pos in ]30.5, 32.5]`	 = DataGrid(ValueGroups(ValueGroup("A", "C", "T"), ValueGroup("G", "N", " * ")), ValueSetC("EI", "IE", "N"), Frequencies(5, 511, 366, 149, 901, 249))	; <Level=0.231306>	// DataGrid(`Mode(DNA.Char) where Pos in ]30.5, 32.5]`, Class)
+Unused	Structure(DataGrid)	`PMode(DNA.Char) where Pos in ]32.5, 34.5]`	 = DataGrid(ValueGroups(ValueGroup("A"), ValueGroup("C", " * ")), ValueSetC("EI", "IE", "N"), Frequencies(455, 61, 203, 312, 487, 663))	; <Level=0.0774043>	// DataGrid(`Mode(DNA.Char) where Pos in ]32.5, 34.5]`, Class)
+Unused	Structure(DataGrid)	`PMode(DNA.Char) where Pos in ]34.5, 36.5]`	 = DataGrid(ValueGroups(ValueGroup("A", "C"), ValueGroup("G", "N", " * "), ValueGroup("T")), ValueSetC("EI", "IE", "N"), Frequencies(203, 308, 5, 390, 108, 17, 845, 224, 81))	; <Level=0.0532457>	// DataGrid(`Mode(DNA.Char) where Pos in ]34.5, 36.5]`, Class)
+Unused	Structure(DataGrid)	`PMode(DNA.Char) where Pos in ]34.5, 35.5]`	 = DataGrid(ValueGroups(ValueGroup("C", " * "), ValueGroup("G")), ValueSetC("EI", "IE", "N"), Frequencies(84, 432, 406, 109, 882, 268))	; <Level=0.133178>	// DataGrid(`Mode(DNA.Char) where Pos in ]34.5, 35.5]`, Class)
+Unused	Structure(Classifier)	SNBClass	 = SNBClassifier(Vector(0.375, 0.248046875, 0.0546875, 0.0625, 0.375, 0.18359375, 0.234375, 0.4208984375, 0.0625, 0.4375, 0.46875, 0.296875, 0.15625, 0.3125, 0.21875, 0.375, 0.5932617188, 0.125, 0.4375, 0.1875, 0.5625, 0.015625, 0.328125, 0.109375, 0.421875, 0.5, 0.3125, 0.375, 0.75), DataGridStats(`PMode(DNA.Char) where Pos <= 30.5`, `Mode(DNA.Char) where Pos <= 30.5`), DataGridStats(`PMedian(DNA.Pos) where Char = A`, `Median(DNA.Pos) where Char = A`), DataGridStats(`PMode(DNA.Char) where Pos in ]15.5, 30.5]`, `Mode(DNA.Char) where Pos in ]15.5, 30.5]`), DataGridStats(`PCountDistinct(DNA.Char) where Pos in ]15.5, 22.5]`, `CountDistinct(DNA.Char) where Pos in ]15.5, 22.5]`), DataGridStats(`PCount(DNA) where Char = G and Pos <= 30.5`, `Count(DNA) where Char = G and Pos <= 30.5`), DataGridStats(`PCount(DNA) where Char = G and Pos > 30.5`, `Count(DNA) where Char = G and Pos > 30.5`), DataGridStats(`PCount(DNA) where Char not in {C, G} and Pos > 30.5`, `Count(DNA) where Char not in {C, G} and Pos > 30.5`), DataGridStats(`PMax(DNA.Pos) where Char = C and Pos <= 30.5`, `Max(DNA.Pos) where Char = C and Pos <= 30.5`), DataGridStats(`PMax(DNA.Pos) where Char not in {C, G} and Pos <= 30.5`, `Max(DNA.Pos) where Char not in {C, G} and Pos <= 30.5`), DataGridStats(`PMin(DNA.Pos) where Char = G and Pos > 30.5`, `Min(DNA.Pos) where Char = G and Pos > 30.5`), DataGridStats(`PMin(DNA.Pos) where Char not in {C, G} and Pos > 30.5`, `Min(DNA.Pos) where Char not in {C, G} and Pos > 30.5`), DataGridStats(`PCountDistinct(DNA.Char) where Pos in ]22.5, 26.5]`, `CountDistinct(DNA.Char) where Pos in ]22.5, 26.5]`), DataGridStats(`PCountDistinct(DNA.Char) where Pos in ]26.5, 30.5]`, `CountDistinct(DNA.Char) where Pos in ]26.5, 30.5]`), DataGridStats(`PCountDistinct(DNA.Char) where Pos in ]30.5, 34.5]`, `CountDistinct(DNA.Char) where Pos in ]30.5, 34.5]`), DataGridStats(`PMode(DNA.Char) where Pos in ]19.5, 22.5]`, `Mode(DNA.Char) where Pos in ]19.5, 22.5]`), DataGridStats(`PMode(DNA.Char) where Pos in ]22.5, 26.5]`, `Mode(DNA.Char) where Pos in ]22.5, 26.5]`), DataGridStats(`PMax(DNA.Pos) where Char = G and Pos in ]15.5, 30.5]`, `Max(DNA.Pos) where Char = G and Pos in ]15.5, 30.5]`), DataGridStats(`PMedian(DNA.Pos) where Char = G and Pos in ]15.5, 30.5]`, `Median(DNA.Pos) where Char = G and Pos in ]15.5, 30.5]`), DataGridStats(`PMode(DNA.Char) where Char not in {C, G} and Pos in ]15.5, 30.5]`, `Mode(DNA.Char) where Char not in {C, G} and Pos in ]15.5, 30.5]`), DataGridStats(`PMax(DNA.Pos) where Char = T and Pos <= 30.5`, `Max(DNA.Pos) where Char = T and Pos <= 30.5`), DataGridStats(`PMax(DNA.Pos) where Char = A and Pos <= 30.5`, `Max(DNA.Pos) where Char = A and Pos <= 30.5`), DataGridStats(`PMin(DNA.Pos) where Char = T and Pos > 30.5`, `Min(DNA.Pos) where Char = T and Pos > 30.5`), DataGridStats(`PMin(DNA.Pos) where Char = A and Pos > 30.5`, `Min(DNA.Pos) where Char = A and Pos > 30.5`), DataGridStats(`PStdDev(DNA.Pos) where Char = A and Pos <= 30.5`, `StdDev(DNA.Pos) where Char = A and Pos <= 30.5`), DataGridStats(`PCountDistinct(DNA.Char) where Pos in ]30.5, 32.5]`, `CountDistinct(DNA.Char) where Pos in ]30.5, 32.5]`), DataGridStats(`PMode(DNA.Char) where Pos in ]30.5, 32.5]`, `Mode(DNA.Char) where Pos in ]30.5, 32.5]`), DataGridStats(`PMode(DNA.Char) where Pos in ]32.5, 34.5]`, `Mode(DNA.Char) where Pos in ]32.5, 34.5]`), DataGridStats(`PMode(DNA.Char) where Pos in ]34.5, 36.5]`, `Mode(DNA.Char) where Pos in ]34.5, 36.5]`), DataGridStats(`PMode(DNA.Char) where Pos in ]34.5, 35.5]`, `Mode(DNA.Char) where Pos in ]34.5, 35.5]`), VClass)	;	
+	Categorical	PredictedClass	 = TargetValue(SNBClass)	; <Prediction>	
+Unused	Numerical	ScoreClass	 = TargetProb(SNBClass)	; <Score>	
+	Numerical	ProbClassEI	 = TargetProbAt(SNBClass, "EI")	; <TargetProb1="EI">	
+	Numerical	ProbClassIE	 = TargetProbAt(SNBClass, "IE")	; <TargetProb2="IE">	
+	Numerical	ProbClassN	 = TargetProbAt(SNBClass, "N")	; <TargetProb3="N">	
+};
+
+Dictionary	SNB_SpliceJunctionDNA	(SampleId)
+<InitialDictionary="SpliceJunctionDNA">
+{
+	Categorical	SampleId		;	
+	Numerical	Pos		;	
+	Categorical	Char		;	
+};

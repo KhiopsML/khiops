@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Khiops Coclustering
+Comment=Khiops Coclustering Tool
+Exec=khiops_coclustering
+Icon=khiops_coclustering
+Terminal=false
+Type=Application

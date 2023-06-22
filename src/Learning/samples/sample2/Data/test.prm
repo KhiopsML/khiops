@@ -1,0 +1,41 @@
+// Mon Mar 29 10:06:17 2010
+// sample2.exe
+// Output command file
+//
+// This file contains recorded commands, that can be replayed.
+// Commands are based on user interactions:
+//	field update
+//	list item selection
+//	menu action
+// Every command can be commented, using //.
+// For example, commenting the last Exit command will allow other
+// user interactions, after the commands have been replayed.
+//
+//
+
+// -> Majoritary Classifier
+ClassManagement.OpenFile // Open...
+
+	// -> Open
+	ClassFileName iris.kdic // Dictionary file
+	    OK                  // Open
+		// <- Open
+
+		ClassManagement.ClassName Iris                             // Analysis dictionary
+		    TrainDatabase.DatabaseFiles.List.Key Iris              // List item selection
+			TrainDatabase.DatabaseFiles.DataTableName iris.txt // Data table file
+			    TrainDatabase.FillTestDatabaseSettings         // Fill test database settings
+
+				AnalysisSpec.TargetAttributeName Class // Target variable
+
+				    AnalysisResults.ResultFilesDirectory./
+    results // Result files directory
+
+	ComputeStats // Analyse database
+
+    // Exit                           // Close
+    //  <- Majoritary Classifier
+
+    // -> Majoritary Classifier
+    // OK                             // Close
+    // <- Majoritary Classifier

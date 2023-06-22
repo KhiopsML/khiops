@@ -1,0 +1,73 @@
+DTForest library
+
+	version 0.0.8.i2
+
+    - Correction de la formule de mémoire disponible prenant en compte les longint(cf ComputeMaxLoadableAttributeNumber) - Modifications cosmétiques mineures
+    - Modification des barres d’avancement
+    - Remplacement de tous les prototypes de méthode  « (void) » en « () » - modifications mineures des warnings utilisateurs et retrait de wraning technique
+
+    version 0.0.8.i1
+
+    - Nouvelle formule de mémoire disponible(cf ComputeMaxLoadableAttributeNumber) - Trie des sélection de variable selon leur appartenance au bloc sparse
+    - Modifications cosmétiques mineures
+    - Modification des barres d’avancement
+    - Filtrage des arbre dont la variable à un level null
+
+    version 0.0.8
+
+    - Mise en place de critere MODL d'arbre de seconde generation prenant en compte les évolutions du critére (cf. DTDecisionBinaryTreeCost) - Mise en place d 'un politique de création d' arbre qui ne dépend pas des resources matériel préparation à la parallelisation(cf.DTDecisionTreeCreationTask) - on a redéfinit les classe de selecion la classe de sélection
+    - DTAttributeSelection selection des valariables pour un arbres
+    - DTForestAttributeSelection création des DTAttributeSelectionpour l'ensemble des arbres - DTAttributeSelectionsSlices : regroupement des DTAttributeSelection permetant de tenir en mémoire
+															     -
+															     Modifications cosmétiques mineures et prise en compte des évolutions de Norm,
+    Parallel et Learning
+	    - nétoyage de code inutile ou obsolete
+	    - Prise en compte des remontés warning de Linux(option - Wall de gcc) - Faire hériter DTStat de KWStat
+	    - Faire un rapport dédier arbree en JSON(cf.DTCreationReport et DTDecisionTreeSpec)
+
+		  version 0.0.7i
+
+	    - Mise en place de critere MODL d'arbre de seconde generation prenant en compte les évolutions du critére  - mise en place de critère MODL de dicscretisation et groupage dédier au arbre binaires : DTMODLDiscretizationCosts et DTMODLGroupingCosts
+																										 -
+																										 Dévelopement algorithme de discretisation binaire pour les arbres
+
+																										 version 0.0.6
+
+																										 -
+																										 correction bug1 : la mémoire nécessaire est sur -évaluée : modification du calcul de la mémoire necessaire : utilisation de la median de la taille necaaire pour stoker les stats
+																																							      -
+																																							      correction bug2 : quand le nombre de variable prise en compte pour la construction des arbres
+	== 0 precence d 'un message d' erreur : corrigé.
+
+						version 0.0.5
+
+	       - stabilisation des run et des test
+	       - mise en place d 'un epsilon pour la detection de l' arbre à meilleur cout 10 - 6 - warning quand les arbres ne sont pas crées ou que l 'on a reduction de l' espace des variables
+	       - modification label des feuilles "LXXX"
+
+	       version 0.0.4
+
+	       - prise en compe du level pour la selection des variables et choix de la coupure en fonction du level
+	       - Gérer une barre d’avancement pour le calcul des stats et la cretation ds attributs
+	       - ajouter « sTmp + » dans le AddError ligne 1712 - installation de codeMaid
+	       - modification du message : AddSimpleMessage(sTmp + "Computation of " + IntToString(oaCreatedAttributes.GetSize()) + " distinct decision trees");
+
+version 0.0.3
+
+	- prise en compte de la mémoire disponible pour construire des arbres : ne prend en compte que les varibles stockable en mémoire, si pas de place pour au moins 2 variables pas de contruction d'arbre. 
+	- correction sur les bares de progressions
+	- supprime les arbres n'ayant pas de profondeur >=3 (c'est à dire ayant 2 niveau de décision)
+	- ajout d'un metag <Tree> pour les varibles arbres
+
+
+version 0.0.2
+
+	- utilise la nouvelle regle KWDRSymbolSwitch, et supprimer les anciennes regles 
+	- gere correctement une demande d'interruption de la construction des arbres
+	- supprime les doublons potentiels (arbres identiques de la foret)
+
+
+version 0.0.1
+
+	- Premiere version de l'integration des forets d'arbre de 
+	- integration minimale, reperee par des commentaires

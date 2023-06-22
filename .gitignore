@@ -1,0 +1,18 @@
+# Mac OS
+.DS_Store
+
+# Visual Studio
+.vs/
+.vscode/
+
+# Build directory
+build/
+
+# Cmake exceptions
+CMakeFiles/
+
+# Test exceptions
+test/*/results/
+LearningTest/*/*/*/results/
+LearningTest/*/*/*/results.ref/time.log
+

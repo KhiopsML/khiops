@@ -1,0 +1,21 @@
+Rank;
+Name;
+Type;
+Style;
+Label 1;
+SupervisedMethodName;
+ALString;
+ComboBox;
+Supervised method 2;
+UnsupervisedMethodName;
+ALString;
+ComboBox;
+Unsupervised method 3;
+MinIntervalFrequency;
+int;
+Spinner;
+Min interval frequency 4;
+MaxIntervalNumber;
+int;
+Spinner;
+Max interval number

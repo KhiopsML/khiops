@@ -1,0 +1,300 @@
+Khiops 10.0.4 release notes
+===========================
+. bug fix in sort algorithm : the field separator in the output file was not correct 
+  for files with a huge number of identical lines.
+  
+
+Khiops 10.0.3 release notes
+===========================
+. fix an edge-case bug in multi-table schemas, in case of a root table of moderate size
+  and several subtables, some of them very small and some very large, and duplicate records
+  in the root table
+
+. fix a problem of wrong line numbers reported in case or warning or errors occuring
+  with very large data files
+
+. fix a bug in json reports for trees
+
+. the file format detector is now more resilient to empty lines in the analyzed data files
+
+
+Khiops 10.0.2 release notes
+===========================
+. fix a bug for file systems with URI schemes (s3 or hdfs) for correct managment
+   of the "result files directory"
+
+
+Khiops 10.0.1 release notes
+===========================
+Improvements:
+. better handling of database encodings (ascii, ansi, utf8) for json report files,
+  to make it easier to manipulate reports from pykhiops:
+  cf. "Character encodings" section in the Khiops guide
+
+. the "Detect file format" feature now displays a message in the log window
+  with the recognized format: used header line and field sepatator
+
+. the "Build dictionary" function now proposes a categorical format for fields 
+  that only contain the values "", "0", or "1"
+  
+. in modeling dictionaries, the target variable is now set as "Unused" by default
+  to facilitate the deployment of predictors in the case of deployment databases 
+  where the target variable is missing
+
+. the Accidents sample database is now translated into English, with interpretable 
+  variable names and values; a simpler version called AccidentsSummary is available
+ 
+. the khiops and khiops_coclustering shell commands now exploit a common shell command
+  khiops_env which defines all env variables required by Khiops.
+  This new command is self-documented and can be used from a wrapper, such as pykhiops
+   
+. better messages and documentation in case of unsupported data formats, such as the 
+  "classic" Mac OS line endings, deprecated since Max OS X in 1998, or a UTF-8 file
+  with BOM (byte order mark) start characters
+
+. slight improvement of the level criterion for the preparation of univariate and
+  bivariate data in some edge cases
+  
+. the "Build coclustering" button is renamed to "Train coclustering" in the Khiops coclustering tool
+
+. the environment variables for managing external resources are now KHIOPS_MEMORY_LIMIT and KHIOPS_TMP_DIR, 
+  instead of the now obsolete KhiopsTmpDir.
+    
+. AUC is now 0 in the case of an empty test database.
+
+. the "Specific test database" dialog is now reset when the test database mode has changed.
+
+. other minor improvements
+
+
+Issues:
+. fix a bug in the "Extract keys" function, when the output file is specified without a header line
+
+. fix an overestimation of the memory requirement for building the trees in the case of large databases
+
+. fix a edge case bug that freezes parallel processes when learning a multi-table scheme
+
+. fix a edge case bug in the SNB classifier, in the case of a very large matrix instances x variables beyond two billion values
+
+. fix a edge case bug in the sorting functionality, when the input files contain fields between double quotes with internal quotes
+  double quotes and/or an input field separator, and when the output field separator is different from the input one
+
+. fix a bug in te user interface, when the "Inspect dictionary" action could be called twice simultaneously, resulting in a crash
+
+. fix several resource management issues in the case of a cluster with several heteregeneous machines
+
+. Other minor corrections
+
+
+Khiops 10.0 - what 's new
+=========================
+  (c) 2021 Orange Labs - All rights reserved.
+
+Khiops is a fully automatic tool for mining large multi-table databases,
+winner of several data mining challenges.
+
+Khiops components
+  - Khiops: supervised analysis (classification, regression) and correlation study
+  - Khiops Visualization: to visualize data preparation, modeling and evaluation results of Khiops
+  - Khiops Coclustering: exploratory analysis using hierarchical coclustering
+  - Khiops Covisualization: to visualize, explore and annotate coclustering results
+
+Main features
+  - fully automatic data preparation (variable construction and preprocessing) and modeling
+  - mining of data with single table and multi-table schemas
+  - data preparation and modeling for classification, irrespective of the number of classes
+  - data preparation and modeling for regression
+  - descriptive statistics as well as correlation analysis for unsupervised data exploration
+  - advanced unsupervised analysis via coclustering
+  - enhanced recoding capabilities for data preparation
+  - post-evaluation of trained predictors
+  - robustness and scalability, with multi-gigabytes train datasets and no deployment limit
+  - parallelization of data management, data preparation, modeling and deployment tasks
+  - ease of use via simple user interface
+  - interactive visualization tools for easily interpretable results
+  - easy integration in information systems via batch mode, python library and
+    online deployment library
+
+Khiops 10.0 - what's new
+    - New algorithm for Selective Naive Bayes predictor
+        . improved accuracy using a direct optimization of variable weights,
+        . improved interpretability and faster deployment time, with less variables selected,
+        . faster training time, using the new algorithm and exploiting parallelization,
+    - Improved random forests
+        . faster and more accurate preprocessing,
+        . biased random selection of variable to better deal with large numbers of variables,
+    - Management of sparse data
+        . fully automatic,
+        . potentially faster algorithms in case of many constructed variables,
+    - New visualization tool
+        . available on any platform: windows, linux, mac, both in standalone and using a browser
+    - Parallelization on clusters of machine
+        . available on Hadoop (Yarn, HDFS)
+    - New version of pykhiops
+        . more compliant with python PEP8 standard, using snake case
+        . distributed as a python package
+        . new features are available: see pykhiops release notes
+
+Upward compatibility with Khiops 9
+  - dictionaries of Khiops 9 are readable with Khiops 10
+  - visualization reports of Khiops 9 are usable with the former visualization tool
+  - python scripts using pykhiops 9 are running, with warnings for the deprecated features
+  - scenarios of Khiops 9 are compatible, with warnings for the deprecated features
+  - removed features in Khiops 10, that still work when used from former python scripts or scenarios:
+    . MAP Naive Bayes is removed
+    . Naive Bayes predictor is removed
+    . Mandatory variable in pairs
+    . Preprocessing options MODLEqualWidth, MODLEqualFrequency and MODLBasic are removed
+  - deprecated features, that still work but will be removed in next versions:
+    . pykhiops 9 is replaced by pykhiops 10 (see migration guide within pykhiops release notes)
+Warning: 
+  - all Khiops 9 deprecated features will be removed after Khiops 10, without upward compatibility
+  - in future version, compatibility will no longer be maintained at the scenario level:
+    it is preferable to use python scripts using pykhiops
+
+
+Detailed evolutions
+===================
+Predictor
+  . the new SNB algorithm directly optimizes the variable weights instead of computing
+    them as a weighted sum over an ensemble of models,
+  . the new SNB algorithm selects far less variables than previously
+     . the MAP Naive Bayes predictor is no longer available
+     . the Naive Bayes predictor is no longer available
+  . in the SNB modeling report, each selected variable comes with three indicators
+     . level: univariate evaluation
+     . weight: multivariate evaluation
+     . importance (new indicator): geometric mean of the weight and the level
+     . the MAP indicator is no longer available
+  . regression: predictors can now deal with missing target values
+     . modeling: predictor are trained on the subset of the train database,
+       containing the records related to actual target values
+     . evaluation: the evaluation criteria are computed using only the
+       the records related to actual target values
+
+Management of sparse data:
+  . user impacts, in the user interface
+    . in the deployment dialog box, the user can choose the output format for the output database:
+       . tabular (default): standard tabular format
+       . sparse: extended tabular format, with sparse fields in case of sparse data
+  . technical impacts, most of them for internal purpose only,
+    sparse data is managed throughout the data mining process, 
+    from feature construction to model deployment
+    . dictionaries: variables can be organized in blocks of sparse variables
+    . file format: sparse format is exploited in case of blocks of variables
+    . derivation rules: many internal sparse derivation rules have been added 
+    . automatic variable construction: sparse derivation rules are generated when necessary
+
+Khiops file suffix:
+  . new
+     .khj: Khiops report under the json format
+     .khcj: Khiops Coclustering report under the json format
+  . existing
+     .kdic: data dictionary
+     .kdicj: data dictionary under the json format
+     .khc: Khiops Covisualisation report, for the Covisualization tool
+     ._kh: Khiops script
+     ._khc: Khiops coclustering script
+  . deprecated
+     .khv: Khiops visualisation report, for the former Visualization tool
+     .json: used by Khiops 9, deprecated
+
+Khiops Visualization
+  . new visualization tool available to visualize the .khj files or the Khiops 9 .json files
+    on any platform (not windows only as in former tool)
+  . former visualization tool is still delivered to visualize the deprecated Khiops 9 .khv files
+  . Khiops Covisualization tool is unchanged in this version
+
+Parallelization on clusters of machines
+  . available on Hadoop (Yarn, HDFS)
+  . delivered as an opened generic package, that needs potential adaptations for any 
+    specific Haddop distribution
+  
+Derivation rules
+  . Translate rule: to replace a list of search values with the corresponding replacement values;
+    useful for example to replace all accented characters
+  . Regex rules: RegexMatch, RegexSearch, RegexReplace, RegexReplaceAll
+  . Sparse rules (internal use only)
+
+Pairs of variables:
+  . extended parameters to specify either to analyse all or specific variable pairs
+
+KNI: Khiops Native Interface
+  . KNIGetFullVersion: new fonction in API, to get full version of KNI
+  . information on version available by right click on the KNI DLL on Windows
+
+Parallelization
+  . now exploits up to n+1 processes on a machine with n cores,
+    and usable on machines with only 2 cores
+
+Samples:
+  . new sample 'Accident' from the open data, using a snowflake multi-table schema
+
+User interface
+  . refactored panes and new default values
+     . Train database pane:
+        . Sample percentage: 70% by default
+     	. Test pane: removed
+        . Inspect or edit the specification of the test database from the train database pane
+     . Parameters pane: fields and actions from the former Preditors and Variable construction panes 
+       have been moved to new panes
+        . Predictor pane
+           . Feature engineering: new sub-pane
+              . Max number of constructed variable: 100 by default
+              . Max number of trees: 10 by default
+              . Max number of variable pairs: 0 by default
+           . Advanced predictor parameters: new sub-pane
+              . Baseline predictor
+              . Number of univariate predictors
+              . Button Selective naive bayes parameters
+              . Button Variable construction parameters
+                 . date and time construction rules are no longer selected by default
+              . Button Variable pairs parameters
+                 . new parameters to specify either all or specific variable pairs to analyse
+        . Recoders pane: new pane with all recoding parameters
+        . Variable construction pane: removed
+  . new helper button "Detect file format" in each database pane, 
+    to detect whether there is a header line and what the field separator is 
+  . new menu Help, with documentation, licence management and about sub-menus
+  . removed options
+    . Pane Parameters/Predictors
+      . MAP Naive Bayes and Naive Bayes predictors are removed
+    . Pane Parameters/Preprocessing
+      . Preprocessing options MODLEqualWdth, MODLEqualFrequency and MODLBasic are removed
+  . renamed labels: some field or action labels have been renamed to for better understandability
+  . improved fluidity, ergonomy and robustness
+
+Reports
+  . new fields are stored in reports, to get a better description of the current analysis
+    . shortDescription: new field in the Results pane
+    . logs: section in all json reports, with the warnings and errors that occurred during the tasks
+    . samplePercentage, sampleMode, selectionVariable, selectionValue: from the database panes
+    . featureEngineering: section in preparationReport,
+      with maxNumberOfConstructedVariables, maxNumberOfTrees, maxNumberOfVariablePairs
+    . evaluatedVariablePairs, informativeVariablePairs in summary of bivariatePreparationReport
+  . tree reports in the json report
+    . treePreparationReport: similar to preparationReports, for the tree-based variables
+    . treeDetails: specific json section that described the structure of each tree
+  . json files produced by Khiops, for analysis reports and dictionaries, are now encoded using
+    iso8859-1/windows-1252 unicode for extended ascii characters
+  . evolutions taken into account into pykhiops 10
+
+Khiops Coclustering
+  . post-processing functionalities can now select an input coclustering model in any format
+   (.khc, .json, .khcj)
+
+Command line options
+  . new options: -l, -u, -v to manage the license using the command line
+
+Packaging
+  . light versions of Khiops can be installed without java as prerequisite
+  . platforms: see web site
+
+Performance
+  . tuned resource management, for better use of available RAM and cores
+  . improved scalability, evaluated on huge datasets
+
+Khiops web site
+  . the www.khiops.com web site has been redesigned
+
+Many minor corrections and improvements

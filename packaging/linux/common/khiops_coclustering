@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# Run Khiops Coclustering tool
+# see the khiops_env script for full documentation on the environment variables used by Khiops Coclustering
+
+if [[ ! -f /usr/bin/khiops-env ]]; then
+    echo "/usr/bin/khiops-env is missing"
+    exit 1
+fi
+
+# initialize Khiops env variables
+source /usr/bin/khiops-env --env > /dev/null
+
+export CLASSPATH=$CLASSPATH:$KHIOPS_CLASSPATH
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$KHIOPS_JAVA_PATH
+
+if [[  $# -eq 0  ]]; then
+    # run without parameters
+    # run and save scenario and log files in directory KHIOPS_LAST_RUN_DIR
+    mpiexec -n 1 MODL_Coclustering -o "${KHIOPS_LAST_RUN_DIR}"/scenario._kh -e "${KHIOPS_LAST_RUN_DIR}"/log.txt
+else
+    # run with parameters
+    mpiexec -n 1 MODL_Coclustering "$@"
+fi
+
+exit $?

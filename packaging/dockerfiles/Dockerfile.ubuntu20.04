@@ -1,0 +1,15 @@
+# Ready to build and package Khiops
+FROM ubuntu:20.04
+LABEL maintainer="bruno.guerraz@orange.com"
+LABEL description="Contains all packages to build and package Khiops"
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN  true \
+    && apt-get -y update \
+    && apt-get -y --no-install-recommends install cmake build-essential devscripts fakeroot debhelper \
+    && apt-get -y --no-install-recommends install libmpich-dev coreutils nano  \
+    && apt-get -y --no-install-recommends install default-jdk \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean \
+    && true

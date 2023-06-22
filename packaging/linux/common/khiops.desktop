@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Khiops
+Comment=Khiops Tool
+Exec=khiops
+Icon=khiops
+Terminal=false
+Type=Application

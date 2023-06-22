@@ -1,0 +1,95 @@
+Khiops 10.1
+===========
+  (c) 2022 Orange Labs - All rights reserved.
+  www.khiops.com
+
+1   Windows users
+1.1 Installation process on Windows
+1.2 Known problems on Windows
+2   Linux users
+2.1 Important Warnings for Linux users
+2.2 Installation Process on Linux
+2.3 Known problems on Linux
+
+
+
+1 Windows users
+---------------
+
+1.1 Installation process on Windows
+----------------------------------
+
+The steps to download and use Khiops are summarized below.
+
+Step 1 - On www.khiops.com
+. Go to the "Login" page and log in
+
+Step 2 - On www.khiops.com
+. Go to the "Install" page
+. Download the Khiops version that you need (Windows or Linux)
+
+Step 3 - On your computer: install Khiops in administrator mode
+  
+1.2 Known problems on Windows
+-----------------------------
+The Khiops installer relies on embedded installers for Java and MPI.
+  - Windows Defender or any other antivirus software may remove excutable files (.exe, .jar) during installation.
+    In this case, you should add exceptions to your antivirus or disable it during installation.
+  - The java installer results in a system reboot on some systems (eg. on Windows Server 2008)
+  - The MPI installer is Microsoft MPI 10, which is not compliant with too old Windows OS.
+    If necessary, the khiops.cmd command file can be edited to start Khiops without MPI
+    (see khiops_coclustering.cmd)
+ 
+
+
+2 Linux Users
+-------------
+
+Khiops comes with three packages: khiops-core, khiops and khiops-samples. khiops-core is a lightweight package without GUI, 
+documentation or samples. It is intended to be used on servers and dockers. The khiops package requires 
+khiops-core and contains the full version of Khiops: GUI, documentation. The khiops-samples contains several datasets used in 
+Khiops tutorial. These samples are located in /opt/khiops/samples. This directory is write protected, therefore,
+in order to work with it, it is recommended to copy it to your home directory (or /tmp).
+
+In the same way, KNI comes with two packages: kni and kni-doc. kni contains only the header and the shared 
+library of Khiops native interface. And kni-doc contains the documentation and samples.
+
+2.1 Important Warnings for Linux users
+---------------------------------------
+With khiops-core or on remote machines without X tunneling, khiops and khiops_coclustering must 
+be executed with the "-b" option. Otherwise, Khiops tries to launch a Java GUI, causing a Java error 
+("fatal error : Java GUI : No GUI (X server) available under current environment").
+ 
+2.2 Installation process on Linux
+----------------------------------
+The installation process is the same as on Windows (see section 1.1). There are nevertheless some 
+differences. If you are using a linux repository, the installation of the khiops package will 
+automatically install khiops-core and khiops-samples packages. It is more complicated if you download the packages: 
+you have to install khiops-core before khiops. 
+
+On debian :
+
+sudo dpkg -i khiops-core_10.1-0+focal_amd64.deb
+sudo dpkg -i khiops-samples_10.1-0+focal_amd64.deb
+sudo dpkg -i khiops_10.1-0+focal_amd64.deb
+sudo apt-get -f install
+
+On redhat :
+
+sudo yum localinstall khiops-core-10.1-0.el7.x86_64.rpm
+sudo yum localinstall khiops-samples-10.1-0.el7.x86_64.rpm
+sudo yum localinstall khiops-10.1-0.el7.x86_64.rpm
+
+2.3 Known problems on Linux
+---------------------------
+ - A bug on openjdk on Ubuntu 18.04 causes a java exception. 
+   To fix this problem, you have to edit the file 
+   /etc/java-11-openjdk/accessibility.properties and comment the line 
+   "assistive_technologies=org.GNOME.Accessibility.AtkWrapper"
+ - When there is a problem resolving localhost, khiops fails with an MPICH error endind with :
+   ckpt_restart(379)..................: gethostbyname failed, YOUR_LOCAL_HOST_NAME (errno 1)
+   This issue appears when the command "localhost" and the file /etc/hosts are not consistent
+   To solve this issue, type "sudo hostnamectl set-hostname NEW-NAME" where NEW-NAME is 
+   the hostname of /etc/hosts
+ - On some Raspbian release, the java GUI is freezing. However, you can use Khiops in
+   batch mode (khiops -b) or with the python library.

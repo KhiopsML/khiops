@@ -1,0 +1,14 @@
+FROM rockylinux:8
+LABEL maintainer="bruno.guerraz@orange.com"
+LABEL description="Contains all packages to build and package Khiops"
+
+RUN true \
+    && dnf upgrade -y \
+    && dnf install -y cmake gcc-c++ \
+    && dnf install -y mpich-devel \
+    && dnf install -y java-17-openjdk-devel \
+    && dnf install -y rpm-build \
+    && dnf install -y nano \
+    && dnf clean all \
+    && rm -rf /var/cache/dnf/ \
+    && true

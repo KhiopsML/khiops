@@ -1,0 +1,48 @@
+{% set version_match = load_file_regex(load_file="src/Learning/KWUtils/KWKhiopsVersion.h", regex_pattern="(\\d+\\.\\d+\\.\\d+)") %}
+{% set name = "khiops-bin" %}
+
+package:
+  name: "{{ name }}"
+  version: "{{ version_match.groups()[0] }}"
+
+source:
+  path: ../../
+
+build:
+  number: 0
+  include_test: False
+
+requirements:
+  build:
+    - mpich # [not win]
+    - msmpi # [win]
+    - cmake
+    - ninja
+    - {{ compiler('cxx') }}
+  host:
+    - mpich # [not win]
+    - msmpi # [win]
+  run:
+    - mpich # [not win]
+    - msmpi # [win]
+
+outputs:
+ - name: "{{ name }}"
+   build:
+     activate_in_script: True
+   script: install-khiops.sh   # [not win]
+   script: install-khiops.bat  # [win]
+
+test:
+  commands:
+    # MODL_* processes fail (return 9009) in windows
+    - MODL -v # [not win]
+    - MODL_Coclustering -v # [not win]
+
+about:
+  home: www.khiops.org
+  license: BSD+3-clause
+  license_file: LICENSE
+  summary: "Khiops is a data preparation and scoring tool for supervised learning and unsupervised learning"
+  doc_url: "https://www.khiops.com"
+  dev_url: "https://gitlab.com/khiops/khiops"

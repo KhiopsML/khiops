@@ -1,0 +1,6 @@
+Boolean	Transient 1	First	Second	String	Integer
+Boolean	Toto	First	Second	String	Integer	Double	Char
+true	1	MB	1	Marc	33	1.77	M	
+true	2	KB	2	Kitty	33	1.60	F	
+		NB	3	Nicolas	2	0.90	M			
+		OB	4	Olivier	1	0.66	M

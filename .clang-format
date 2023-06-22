@@ -1,0 +1,19 @@
+---
+BasedOnStyle: LLVM
+Language: Cpp
+ColumnLimit: 120
+IndentWidth: 8
+AccessModifierOffset: -8
+BreakBeforeBraces: Allman
+PointerAlignment: Left
+MaxEmptyLinesToKeep: 1
+AlignTrailingComments: true
+AlignOperands: true
+SortIncludes: false
+UseTab: ForContinuationAndIndentation
+AllowShortFunctionsOnASingleLine: Empty
+---
+BasedOnStyle: Mozilla
+Language: Java
+ColumnLimit: 120
+IndentWidth: 8

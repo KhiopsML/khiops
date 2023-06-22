@@ -1,0 +1,1 @@
+..\release\sample1 - i test.prm - e log.txt

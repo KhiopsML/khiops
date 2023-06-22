@@ -1,0 +1,3 @@
+Rank;Name;Type;Style;Label
+1;ZipCode  ;ALString;  ;Code postal
+2;City     ;ALString;  ;Ville

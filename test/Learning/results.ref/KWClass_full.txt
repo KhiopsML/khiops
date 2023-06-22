@@ -1,0 +1,270 @@
+
+// Label of AttributeClass
+Dictionary	AttributeClass	(Key1)
+{
+	Categorical	Key1		;	// Label of Key1
+	Categorical	AttC1		;	// Label of AttC1
+	{
+	Categorical	SAttC2		; <VarKey="2">	// Label of SAttC2
+	}	SAttCategoricalBlock		;	
+	Numerical	AttN1		;	// Label of AttN1
+	{
+	Numerical	SAttN2		; <VarKey="2">	// Label of SAttN2
+	}	SAttNumericalBlock		; <DefaultNumericalValue=0>	
+};
+
+
+// Label of TestClass
+Root	Dictionary	TestClass	(Key1)
+{
+	Categorical	Key1		;	// Label of Key1
+	Categorical	AttC1		;	// Label of AttC1
+	{
+	Categorical	SAttC2		; <VarKey="2">	// Label of SAttC2
+	Categorical	SAttC3		; <VarKey="3">	// Label of SAttC3
+	}	SAttCategoricalBlock		;	
+	Numerical	AttN1		;	// Label of AttN1
+	{
+	Numerical	SAttN2		; <VarKey="2">	// Label of SAttN2
+	Numerical	SAttN3		; <VarKey="3">	// Label of SAttN3
+	}	SAttNumericalBlock		; <DefaultNumericalValue=0>	
+	Date	SAttDate1		;	// Label of SAttDate1
+	Time	SAttTime1		;	// Label of SAttTime1
+	Timestamp	SAttTimestamp1		;	// Label of SAttTimestamp1
+	TimestampTZ	SAttTimestampTZ1		;	// Label of SAttTimestampTZ1
+	Text	SAttText1		;	// Label of SAttText1
+	Entity(AttributeClass)	SAttEntity1		;	// Label of SAttEntity1
+	Entity(AttributeClass)	SAttEntity2		;	// Label of SAttEntity2
+	Table(AttributeClass)	SAttTable1		;	// Label of SAttTable1
+	Table(AttributeClass)	SAttTable2		;	// Label of SAttTable2
+};
+
+Dictionary TestClass : List iteration
+		Categorical	Key1		;	// Label of Key1
+		Categorical	AttC1		;	// Label of AttC1
+		Categorical	SAttC2		; <VarKey="2">	// Label of SAttC2
+		Categorical	SAttC3		; <VarKey="3">	// Label of SAttC3
+		Numerical	AttN1		;	// Label of AttN1
+		Numerical	SAttN2		; <VarKey="2">	// Label of SAttN2
+		Numerical	SAttN3		; <VarKey="3">	// Label of SAttN3
+		Date	SAttDate1		;	// Label of SAttDate1
+		Time	SAttTime1		;	// Label of SAttTime1
+		Timestamp	SAttTimestamp1		;	// Label of SAttTimestamp1
+		TimestampTZ	SAttTimestampTZ1		;	// Label of SAttTimestampTZ1
+		Text	SAttText1		;	// Label of SAttText1
+		Entity(AttributeClass)	SAttEntity1		;	// Label of SAttEntity1
+		Entity(AttributeClass)	SAttEntity2		;	// Label of SAttEntity2
+		Table(AttributeClass)	SAttTable1		;	// Label of SAttTable1
+		Table(AttributeClass)	SAttTable2		;	// Label of SAttTable2
+Dictionary TestClass : Inverse list iteration
+		Table(AttributeClass)	SAttTable2		;	// Label of SAttTable2
+		Table(AttributeClass)	SAttTable1		;	// Label of SAttTable1
+		Entity(AttributeClass)	SAttEntity2		;	// Label of SAttEntity2
+		Entity(AttributeClass)	SAttEntity1		;	// Label of SAttEntity1
+		Text	SAttText1		;	// Label of SAttText1
+		TimestampTZ	SAttTimestampTZ1		;	// Label of SAttTimestampTZ1
+		Timestamp	SAttTimestamp1		;	// Label of SAttTimestamp1
+		Time	SAttTime1		;	// Label of SAttTime1
+		Date	SAttDate1		;	// Label of SAttDate1
+		Numerical	SAttN3		; <VarKey="3">	// Label of SAttN3
+		Numerical	SAttN2		; <VarKey="2">	// Label of SAttN2
+		Numerical	AttN1		;	// Label of AttN1
+		Categorical	SAttC3		; <VarKey="3">	// Label of SAttC3
+		Categorical	SAttC2		; <VarKey="2">	// Label of SAttC2
+		Categorical	AttC1		;	// Label of AttC1
+		Categorical	Key1		;	// Label of Key1
+Dictionary TestClass : Used variables
+		Categorical	Key1		;	// Label of Key1
+		Categorical	AttC1		;	// Label of AttC1
+		Categorical	SAttC2		; <VarKey="2">	// Label of SAttC2
+		Categorical	SAttC3		; <VarKey="3">	// Label of SAttC3
+		Numerical	AttN1		;	// Label of AttN1
+		Numerical	SAttN2		; <VarKey="2">	// Label of SAttN2
+		Numerical	SAttN3		; <VarKey="3">	// Label of SAttN3
+		Date	SAttDate1		;	// Label of SAttDate1
+		Time	SAttTime1		;	// Label of SAttTime1
+		Timestamp	SAttTimestamp1		;	// Label of SAttTimestamp1
+		TimestampTZ	SAttTimestampTZ1		;	// Label of SAttTimestampTZ1
+		Text	SAttText1		;	// Label of SAttText1
+		Entity(AttributeClass)	SAttEntity1		;	// Label of SAttEntity1
+		Entity(AttributeClass)	SAttEntity2		;	// Label of SAttEntity2
+		Table(AttributeClass)	SAttTable1		;	// Label of SAttTable1
+		Table(AttributeClass)	SAttTable2		;	// Label of SAttTable2
+Dictionary TestClass : Loaded variables
+		Categorical	Key1		;	// Label of Key1
+		Categorical	AttC1		;	// Label of AttC1
+		Categorical	SAttC2		; <VarKey="2">	// Label of SAttC2
+		Categorical	SAttC3		; <VarKey="3">	// Label of SAttC3
+		Numerical	AttN1		;	// Label of AttN1
+		Numerical	SAttN2		; <VarKey="2">	// Label of SAttN2
+		Numerical	SAttN3		; <VarKey="3">	// Label of SAttN3
+		Date	SAttDate1		;	// Label of SAttDate1
+		Time	SAttTime1		;	// Label of SAttTime1
+		Timestamp	SAttTimestamp1		;	// Label of SAttTimestamp1
+		TimestampTZ	SAttTimestampTZ1		;	// Label of SAttTimestampTZ1
+		Text	SAttText1		;	// Label of SAttText1
+		Entity(AttributeClass)	SAttEntity1		;	// Label of SAttEntity1
+		Entity(AttributeClass)	SAttEntity2		;	// Label of SAttEntity2
+		Table(AttributeClass)	SAttTable1		;	// Label of SAttTable1
+		Table(AttributeClass)	SAttTable2		;	// Label of SAttTable2
+Dictionary TestClass : Dense categorical variables
+		Categorical	Key1		;	// Label of Key1
+		Categorical	AttC1		;	// Label of AttC1
+Dictionary TestClass : Text variables
+		Text	SAttText1		;	// Label of SAttText1
+Dictionary TestClass : TextList variables
+Dictionary TestClass : Dense relation variables
+		Entity(AttributeClass)	SAttEntity1		;	// Label of SAttEntity1
+		Entity(AttributeClass)	SAttEntity2		;	// Label of SAttEntity2
+		Table(AttributeClass)	SAttTable1		;	// Label of SAttTable1
+		Table(AttributeClass)	SAttTable2		;	// Label of SAttTable2
+
+
+Modification of variables specs
+
+Dictionary TestClass : List iteration
+		Categorical	Key1		;	// Label of Key1
+		Categorical	AttC1		; <_NotLoaded>	// Label of AttC1
+	Unused	Categorical	SAttC2		; <VarKey="2">	// Label of SAttC2
+		Categorical	SAttC3		; <_NotLoaded> <VarKey="3">	// Label of SAttC3
+		Numerical	AttN1		;	// Label of AttN1
+	Unused	Numerical	SAttN2		; <VarKey="2">	// Label of SAttN2
+		Numerical	SAttN3		; <VarKey="3">	// Label of SAttN3
+		Date	SAttDate1		; <_NotLoaded>	// Label of SAttDate1
+	Unused	Time	SAttTime1		;	// Label of SAttTime1
+		Timestamp	SAttTimestamp1		; <_NotLoaded>	// Label of SAttTimestamp1
+		TimestampTZ	SAttTimestampTZ1		;	// Label of SAttTimestampTZ1
+	Unused	Text	SAttText1		;	// Label of SAttText1
+		Entity(AttributeClass)	SAttEntity1		;	// Label of SAttEntity1
+		Entity(AttributeClass)	SAttEntity2		; <_NotLoaded>	// Label of SAttEntity2
+	Unused	Table(AttributeClass)	SAttTable1		;	// Label of SAttTable1
+		Table(AttributeClass)	SAttTable2		; <_NotLoaded>	// Label of SAttTable2
+Dictionary TestClass : Inverse list iteration
+		Table(AttributeClass)	SAttTable2		; <_NotLoaded>	// Label of SAttTable2
+	Unused	Table(AttributeClass)	SAttTable1		;	// Label of SAttTable1
+		Entity(AttributeClass)	SAttEntity2		; <_NotLoaded>	// Label of SAttEntity2
+		Entity(AttributeClass)	SAttEntity1		;	// Label of SAttEntity1
+	Unused	Text	SAttText1		;	// Label of SAttText1
+		TimestampTZ	SAttTimestampTZ1		;	// Label of SAttTimestampTZ1
+		Timestamp	SAttTimestamp1		; <_NotLoaded>	// Label of SAttTimestamp1
+	Unused	Time	SAttTime1		;	// Label of SAttTime1
+		Date	SAttDate1		; <_NotLoaded>	// Label of SAttDate1
+		Numerical	SAttN3		; <VarKey="3">	// Label of SAttN3
+	Unused	Numerical	SAttN2		; <VarKey="2">	// Label of SAttN2
+		Numerical	AttN1		;	// Label of AttN1
+		Categorical	SAttC3		; <_NotLoaded> <VarKey="3">	// Label of SAttC3
+	Unused	Categorical	SAttC2		; <VarKey="2">	// Label of SAttC2
+		Categorical	AttC1		; <_NotLoaded>	// Label of AttC1
+		Categorical	Key1		;	// Label of Key1
+Dictionary TestClass : Used variables
+		Categorical	Key1		;	// Label of Key1
+		Categorical	AttC1		; <_NotLoaded>	// Label of AttC1
+		Categorical	SAttC3		; <_NotLoaded> <VarKey="3">	// Label of SAttC3
+		Numerical	AttN1		;	// Label of AttN1
+		Numerical	SAttN3		; <VarKey="3">	// Label of SAttN3
+		Date	SAttDate1		; <_NotLoaded>	// Label of SAttDate1
+		Timestamp	SAttTimestamp1		; <_NotLoaded>	// Label of SAttTimestamp1
+		TimestampTZ	SAttTimestampTZ1		;	// Label of SAttTimestampTZ1
+		Entity(AttributeClass)	SAttEntity1		;	// Label of SAttEntity1
+		Entity(AttributeClass)	SAttEntity2		; <_NotLoaded>	// Label of SAttEntity2
+		Table(AttributeClass)	SAttTable2		; <_NotLoaded>	// Label of SAttTable2
+Dictionary TestClass : Loaded variables
+		Categorical	Key1		;	// Label of Key1
+		Numerical	AttN1		;	// Label of AttN1
+		Numerical	SAttN3		; <VarKey="3">	// Label of SAttN3
+		TimestampTZ	SAttTimestampTZ1		;	// Label of SAttTimestampTZ1
+		Entity(AttributeClass)	SAttEntity1		;	// Label of SAttEntity1
+Dictionary TestClass : Dense categorical variables
+		Categorical	Key1		;	// Label of Key1
+Dictionary TestClass : Text variables
+Dictionary TestClass : TextList variables
+Dictionary TestClass : Dense relation variables
+		Entity(AttributeClass)	SAttEntity1		;	// Label of SAttEntity1
+
+// Label of TestClass
+Root	Dictionary	TestClass	(Key1)
+{
+	Categorical	Key1		;	// Label of Key1
+	Categorical	AttC1		; <_NotLoaded>	// Label of AttC1
+	{
+Unused	Categorical	SAttC2		; <VarKey="2">	// Label of SAttC2
+	Categorical	SAttC3		; <_NotLoaded> <VarKey="3">	// Label of SAttC3
+	}	SAttCategoricalBlock		;	
+	Numerical	AttN1		;	// Label of AttN1
+	{
+Unused	Numerical	SAttN2		; <VarKey="2">	// Label of SAttN2
+	Numerical	SAttN3		; <VarKey="3">	// Label of SAttN3
+	}	SAttNumericalBlock		; <DefaultNumericalValue=0>	
+	Date	SAttDate1		; <_NotLoaded>	// Label of SAttDate1
+Unused	Time	SAttTime1		;	// Label of SAttTime1
+	Timestamp	SAttTimestamp1		; <_NotLoaded>	// Label of SAttTimestamp1
+	TimestampTZ	SAttTimestampTZ1		;	// Label of SAttTimestampTZ1
+Unused	Text	SAttText1		;	// Label of SAttText1
+	Entity(AttributeClass)	SAttEntity1		;	// Label of SAttEntity1
+	Entity(AttributeClass)	SAttEntity2		; <_NotLoaded>	// Label of SAttEntity2
+Unused	Table(AttributeClass)	SAttTable1		;	// Label of SAttTable1
+	Table(AttributeClass)	SAttTable2		; <_NotLoaded>	// Label of SAttTable2
+};
+
+
+
+Duplication and selection of loaded variables
+
+
+// Label of TestClass (Clone)
+Root	Dictionary	TestClassClone	(Key1)
+{
+	Categorical	Key1		;	// Label of Key1
+	Numerical	AttN1		;	// Label of AttN1
+	{
+	Numerical	SAttN3		; <VarKey="3">	// Label of SAttN3
+	}	SAttNumericalBlock		; <DefaultNumericalValue=0>	
+	TimestampTZ	SAttTimestampTZ1		;	// Label of SAttTimestampTZ1
+	Entity(AttributeClass)	SAttEntity1		;	// Label of SAttEntity1
+};
+
+
+
+Insertion around the borders
+
+
+// Label of TestClass (Clone)
+Root	Dictionary	TestClassClone	(Key1)
+{
+	Categorical	Key1		;	
+	Numerical	FirstAtt_1		;	// Label of Key1
+	Categorical	FirstAtt		;	// Label of Key1
+	Categorical	FirstAtt_2		;	// Label of Key1
+	Numerical	AttN1		;	// Label of AttN1
+	{
+	Numerical	SAttN3		; <VarKey="3">	// Label of SAttN3
+	}	SAttNumericalBlock		; <DefaultNumericalValue=0>	
+	TimestampTZ	SAttTimestampTZ1		;	// Label of SAttTimestampTZ1
+	Numerical	LastAtt_1		;	// Label of SAttEntity1
+	Entity(AttributeClass)	LastAtt		;	// Label of SAttEntity1
+	Categorical	LastAtt_2		;	// Label of SAttEntity1
+};
+
+Dictionary TestClassClone : List iteration
+		Categorical	Key1		;	
+		Numerical	FirstAtt_1		;	// Label of Key1
+		Categorical	FirstAtt		;	// Label of Key1
+		Categorical	FirstAtt_2		;	// Label of Key1
+		Numerical	AttN1		;	// Label of AttN1
+		Numerical	SAttN3		; <VarKey="3">	// Label of SAttN3
+		TimestampTZ	SAttTimestampTZ1		;	// Label of SAttTimestampTZ1
+		Numerical	LastAtt_1		;	// Label of SAttEntity1
+		Entity(AttributeClass)	LastAtt		;	// Label of SAttEntity1
+		Categorical	LastAtt_2		;	// Label of SAttEntity1
+Dictionary TestClassClone : Loaded variables
+		Categorical	Key1		;	
+		Numerical	FirstAtt_1		;	// Label of Key1
+		Categorical	FirstAtt		;	// Label of Key1
+		Categorical	FirstAtt_2		;	// Label of Key1
+		Numerical	AttN1		;	// Label of AttN1
+		Numerical	SAttN3		; <VarKey="3">	// Label of SAttN3
+		TimestampTZ	SAttTimestampTZ1		;	// Label of SAttTimestampTZ1
+		Numerical	LastAtt_1		;	// Label of SAttEntity1
+		Entity(AttributeClass)	LastAtt		;	// Label of SAttEntity1
+		Categorical	LastAtt_2		;	// Label of SAttEntity1
+
