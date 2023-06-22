@@ -21,8 +21,12 @@ const ALString KWType::ToString(int nType)
 		return "Time";
 	case Timestamp:
 		return "Timestamp";
+	case TimestampTZ:
+		return "TimestampTZ";
 	case Text:
 		return "Text";
+	case TextList:
+		return "TextList";
 	case Object:
 		return "Entity";
 	case ObjectArray:
@@ -56,8 +60,12 @@ int KWType::ToType(const ALString& sType)
 		return Time;
 	else if (sType == "Timestamp")
 		return Timestamp;
+	else if (sType == "TimestampTZ")
+		return TimestampTZ;
 	else if (sType == "Text")
 		return Text;
+	else if (sType == "TextList")
+		return TextList;
 	else if (sType == "Entity")
 		return Object;
 	else if (sType == "Table")
@@ -125,6 +133,7 @@ void KWValue::Test()
 	KWValue value;
 	KWValue values[KWType::Unknown];
 	ObjectArray oaTest;
+	Timestamp tsValue;
 
 	// Verification de la taille de l'union
 	cout << "Taille de l'union (differ in 32 and 64 bits)\n";
@@ -134,7 +143,9 @@ void KWValue::Test()
 	cout << "\tDate      \t" << sizeof(Date) << "\n";
 	cout << "\tTime      \t" << sizeof(Time) << "\n";
 	cout << "\tTimestamp      \t" << sizeof(Timestamp) << "\n";
-	cout << "\tText      \t" << sizeof(ALString*) << "\n";
+	cout << "\tTimestampTZ      \t" << sizeof(TimestampTZ) << "\n";
+	cout << "\tText      \t" << sizeof(Symbol) << "\n";
+	cout << "\tTextList      \t" << sizeof(SymbolVector*) << "\n";
 	cout << "\tEntity   \t" << sizeof(KWObject*) << "\n";
 	cout << "\tTable\t" << sizeof(ObjectArray*) << "\n";
 	cout << "\tStructure   \t" << sizeof(Object*) << "\n";
@@ -149,30 +160,51 @@ void KWValue::Test()
 		value.Init();
 		values[nType] = value;
 		cout << "\t" << KWType::ToString(nType) << "\t";
-		if (nType == KWType::Symbol)
+		switch (nType)
+		{
+		case KWType::Symbol:
 			cout << values[nType].GetSymbol() << endl;
-		else if (nType == KWType::Continuous)
+			break;
+		case KWType::Continuous:
 			cout << values[nType].GetContinuous() << endl;
-		else if (nType == KWType::Date)
+			break;
+		case KWType::Date:
 			cout << values[nType].GetDate() << endl;
-		else if (nType == KWType::Time)
+			break;
+		case KWType::Time:
 			cout << values[nType].GetTime() << endl;
-		else if (nType == KWType::Timestamp)
+			break;
+		case KWType::Timestamp:
 			cout << values[nType].GetTimestamp() << endl;
-		else if (nType == KWType::Text)
+			break;
+		case KWType::TimestampTZ:
+			cout << values[nType].GetTimestampTZ() << endl;
+			break;
+		case KWType::Text:
 			cout << values[nType].GetText() << endl;
-		else if (nType == KWType::Object)
+			break;
+		case KWType::TextList:
+			cout << values[nType].GetTextList() << endl;
+			break;
+		case KWType::Object:
 			cout << values[nType].GetObject() << endl;
-		else if (nType == KWType::ObjectArray)
+			break;
+		case KWType::ObjectArray:
 			cout << values[nType].GetObjectArray() << endl;
-		else if (nType == KWType::Structure)
+			break;
+		case KWType::Structure:
 			cout << values[nType].GetStructure() << endl;
-		else if (nType == KWType::SymbolValueBlock)
+			break;
+		case KWType::SymbolValueBlock:
 			cout << values[nType].GetSymbolValueBlock() << endl;
-		else if (nType == KWType::ContinuousValueBlock)
+			break;
+		case KWType::ContinuousValueBlock:
 			cout << values[nType].GetContinuousValueBlock() << endl;
-		else if (nType == KWType::ObjectArrayValueBlock)
+			break;
+		case KWType::ObjectArrayValueBlock:
 			cout << values[nType].GetObjectArrayValueBlock() << endl;
+			break;
+		}
 	}
 
 	// Test avec accesseurs types
@@ -202,6 +234,12 @@ void KWValue::Test()
 	value.Init();
 	value.timestamp.Init(2000, 1, 1, 12, 30, 45);
 	cout << value.GetTimestamp() << endl;
+	//
+	cout << "\tTimestampTZ\t";
+	value.Init();
+	tsValue.Init(2000, 1, 1, 12, 30, 45);
+	value.timestampTZ.Init(tsValue, 13 * 60);
+	cout << value.GetTimestampTZ() << endl;
 	//
 	cout << "\tText\t";
 	value.Init();

@@ -16,10 +16,10 @@ void MDKhiopsLearningProject::OpenLearningEnvironnement()
 	KWLearningProject::OpenLearningEnvironnement();
 
 	// Declaration des licences
-	LMLicenseManager::DeclarePredefinedLicense(LMLicenseManager::Khiops);
+	if (LMLicenseManager::IsEnabled())
+		LMLicenseManager::DeclarePredefinedLicense(LMLicenseManager::Khiops);
 
-	// Enregistrement des regles pour les outils de l'eco-systeme Khiops: Enneade: Interpretation
-	ISDRRegisterAllRules();
+	// Enregistrement des regles pour les outils de l'eco-systeme Khiops: Enneade
 	KMDRRegisterAllRules();
 
 	// Enregistrement de methodes de pretraitement specifiques aux arbres de decision
@@ -58,14 +58,13 @@ void MDKhiopsLearningProject::OpenLearningEnvironnement()
 	sDocumentation +=
 	    "<p> The modeling results of Khiops (.khj) and Khiops coclustrering (.khcj) are stored using </p> "
 	    "<p> the json format. Dictionaries (.kdic) can also be exported under the json format (.kdicj). </p> "
-	    "<p> All these json files can be exploited from external tools, like pykhiops or khiops4j.</p> ";
+	    "<p> All these json files can be exploited from external tools, like pykhiops.</p> ";
 	sDocumentation += "<h4> Visualization tools </h4> ";
 	sDocumentation += "<p> All modeling results can be visualized using the Khiops visualization or Khiops "
 			  "covisualization tools.</p> ";
 	sDocumentation += "<h4> Scripting libraries </h4> ";
 	sDocumentation += "<p> Full API to run the tool and to inspect its modeling results </p> ";
 	sDocumentation += "<p> pykhiops: python library </p> ";
-	sDocumentation += "<p> khiops4j: java library </p> ";
 	sDocumentation += "<h4> KNI: Khiops Native Interface </h4> ";
 	sDocumentation += "<p> DLL for online deployment of models </p> ";
 	sDocumentation += "<h4> Web site </h4> ";

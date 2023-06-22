@@ -158,7 +158,7 @@ public:
 	// des taches. Cette "indirection" entre la classe TaskProgression et un
 	// manager permet d'implementer les algorithmes en les rendant independant
 	// de l'interface utilisateur.
-	// Le TaskManager UITaskManager est automatiquementassocie des qu'un objet d'interface est utilise.
+	// Le TaskManager UITaskManager est automatiquement associe des qu'un objet d'interface est utilise.
 
 	// Memoire: le manager appartient a l'appelant
 	static void SetManager(TaskProgressionManager* manager);
@@ -196,6 +196,10 @@ public:
 	// Methode de test
 	// Batch de comptage, avec suivi de progression
 	static void Test();
+
+	// Methode avancee, permet de declencher l'interruption utilisateur
+	// par programe
+	static void ForceInterruptionRequested();
 
 	///////////////////////////////////////////////////////////
 	////// Implementation

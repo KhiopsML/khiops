@@ -14,8 +14,8 @@ boolean Date::Init(int nYear, int nMonth, int nDay)
 	// Initialisation a invalide
 	Reset();
 
-	// L'annee doit etre comprise entre 1 et 9999
-	if (nYear < 1 or nYear > 9999)
+	// L'annee doit etre comprise entre 1 et 4000
+	if (nYear < 1 or nYear > 4000)
 		bOk = false;
 	// Le mois doit etre compris entre 1 et 12
 	else if (nMonth < 1 or nMonth > 12)
@@ -299,6 +299,35 @@ void Date::UnitTest(int nYear, int nMonth, int nDay)
 	cout << endl;
 }
 
+const char* const Date::TimeZoneToString(boolean bExtended) const
+{
+	char* sTimeZone = StandardGetBuffer();
+	char cSign;
+
+	if (not CheckTimeZone())
+		sTimeZone[0] = '\0';
+	else
+	{
+		if (GetTimeZoneHour() == 0 and GetTimeZoneMinute() == 0)
+		{
+			sTimeZone[0] = 'Z';
+			sTimeZone[1] = '\0';
+		}
+		else
+		{
+			if (GetTimeZoneSign() == 1)
+				cSign = '+';
+			else
+				cSign = '-';
+			if (bExtended)
+				sprintf(sTimeZone, "%c%02d:%02d", cSign, GetTimeZoneHour(), GetTimeZoneMinute());
+			else
+				sprintf(sTimeZone, "%c%02d%02d", cSign, GetTimeZoneHour(), GetTimeZoneMinute());
+		}
+	}
+	return sTimeZone;
+}
+
 void Date::Test()
 {
 	Date dtOrigin;
@@ -376,6 +405,7 @@ void Date::Test()
 	UnitTest(2003, 12, 31);
 	UnitTest(2004, 12, 31);
 	UnitTest(2013, 4, 5);
+	UnitTest(4000, 1, 1);
 	UnitTest(9999, 1, 1);
 }
 
@@ -384,13 +414,7 @@ void Date::Test()
 
 KWDateFormat::KWDateFormat()
 {
-	nTotalCharNumber = 0;
-	cSeparatorChar = '\0';
-	nSeparatorOffset1 = 0;
-	nSeparatorOffset2 = 0;
-	nYearOffset = 0;
-	nMonthOffset = 0;
-	nDayOffset = 0;
+	Reset();
 }
 
 KWDateFormat::~KWDateFormat() {}
@@ -467,21 +491,25 @@ boolean KWDateFormat::SetFormatString(const ALString& sValue)
 
 	// Reinitialisation des caracteristiques du format si invalide
 	if (not bCheck)
-	{
-		nTotalCharNumber = 0;
-		cSeparatorChar = '\0';
-		nSeparatorOffset1 = 0;
-		nSeparatorOffset2 = 0;
-		nYearOffset = 0;
-		nMonthOffset = 0;
-		nDayOffset = 0;
-	}
+		Reset();
 	return bCheck;
 }
 
 const ALString& KWDateFormat::GetFormatString() const
 {
 	return sFormatString;
+}
+
+void KWDateFormat::Reset()
+{
+	sFormatString = "";
+	nTotalCharNumber = 0;
+	cSeparatorChar = '\0';
+	nSeparatorOffset1 = 0;
+	nSeparatorOffset2 = 0;
+	nYearOffset = 0;
+	nMonthOffset = 0;
+	nDayOffset = 0;
 }
 
 boolean KWDateFormat::IsConsistentWith(const KWDateFormat* otherFormat) const
@@ -699,6 +727,7 @@ void KWDateFormat::UnitTest(const ALString& sInputValue, KWDateFormat* inputForm
 	require(outputFormat != NULL);
 
 	dtInputValue.Reset();
+	dtOutputValue.Reset();
 	if (inputFormat->Check())
 		dtInputValue = inputFormat->StringToDate(sInputValue);
 	if (outputFormat->Check())

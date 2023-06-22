@@ -73,7 +73,7 @@ void RMResourceSystem::AddHostResource(RMHostResource* resource)
 	oaHostResources.Add(resource);
 }
 
-const RMHostResource* RMResourceSystem::GetHostResourceAt(int ith) const
+RMHostResource* RMResourceSystem::GetHostResourceAt(int ith) const
 {
 	require(ith < oaHostResources.GetSize());
 	return cast(RMHostResource*, oaHostResources.GetAt(ith));
@@ -316,9 +316,13 @@ void RMResourceSystem::Write(ostream& ost) const
 	for (i = 0; i < oaHostResources.GetSize(); i++)
 	{
 		ost << "\t";
+		if (i == 20)
+		{
+			ost << "..." << endl;
+			break;
+		}
 		cast(RMHostResource*, oaHostResources.GetAt(i))->Write(ost);
 	}
-	//	ost << endl;
 }
 
 RMResourceSystem* RMResourceSystem::CreateAdhocCluster()
@@ -341,23 +345,23 @@ RMResourceSystem* RMResourceSystem::CreateAdhocCluster()
 	host5 = new RMHostResource;
 	host6 = new RMHostResource;
 
-	for (int i = 9; i < 15; i++)
-		host1->AddProcessusRank(i);
-
 	host2->AddProcessusRank(0);
 	for (int i = 2; i < 7; i++)
 		host2->AddProcessusRank(i);
 
-	for (int i = 33; i < 39; i++)
-		host3->AddProcessusRank(i);
+	for (int i = 8; i < 14; i++)
+		host1->AddProcessusRank(i);
 
-	for (int i = 25; i < 31; i++)
-		host4->AddProcessusRank(i);
-
-	for (int i = 17; i < 23; i++)
+	for (int i = 15; i < 21; i++)
 		host5->AddProcessusRank(i);
 
-	for (int i = 41; i < 47; i++)
+	for (int i = 22; i < 28; i++)
+		host4->AddProcessusRank(i);
+
+	for (int i = 29; i < 35; i++)
+		host3->AddProcessusRank(i);
+
+	for (int i = 36; i < 42; i++)
 		host6->AddProcessusRank(i);
 
 	host1->SetDiskFreeSpace(longint(18.8 * lGB));
@@ -396,6 +400,54 @@ RMResourceSystem* RMResourceSystem::CreateAdhocCluster()
 	cluster->AddHostResource(host4);
 	cluster->AddHostResource(host5);
 	cluster->AddHostResource(host6);
+
+	cluster->SetInitialized();
+	return cluster;
+}
+
+RMResourceSystem* RMResourceSystem::CreateUnbalancedCluster()
+{
+
+	RMHostResource* host1;
+	RMHostResource* host2;
+	RMHostResource* host3;
+	RMResourceSystem* cluster;
+
+	cluster = new RMResourceSystem;
+	cluster->Reset();
+
+	host1 = new RMHostResource;
+	host2 = new RMHostResource;
+	host3 = new RMHostResource;
+
+	host1->AddProcessusRank(0);
+	for (int i = 1; i < 8; i++)
+		host1->AddProcessusRank(i);
+
+	for (int i = 8; i < 16; i++)
+		host2->AddProcessusRank(i);
+
+	for (int i = 16; i < 24; i++)
+		host3->AddProcessusRank(i);
+
+	host1->SetDiskFreeSpace(8 * lGB);
+	host1->SetPhysicalMemory(8 * lGB);
+	host1->SetHostName("master-host");
+	host1->SetPhysicalCoresNumber(8);
+
+	host2->SetDiskFreeSpace(32 * lGB);
+	host2->SetPhysicalMemory(32 * lGB);
+	host2->SetHostName("std-host");
+	host2->SetPhysicalCoresNumber(8);
+
+	host3->SetDiskFreeSpace(100 * lGB);
+	host3->SetPhysicalMemory(100 * lGB);
+	host3->SetHostName("big-host");
+	host3->SetPhysicalCoresNumber(8);
+
+	cluster->AddHostResource(host3);
+	cluster->AddHostResource(host2);
+	cluster->AddHostResource(host1);
 
 	cluster->SetInitialized();
 	return cluster;
@@ -472,6 +524,61 @@ RMResourceSystem* RMResourceSystem::CreateSyntheticCluster(int nHostNumber, int 
 
 		// Ajout au cluster
 		cluster->AddHostResource(hostResource);
+	}
+	cluster->SetInitialized();
+	return cluster;
+}
+
+RMResourceSystem* RMResourceSystem::CreateSyntheticClusterWithClasses(int nHostNumber, int nProcNumber,
+								      longint lPhysicalMemory, longint lDiskFreeSpace,
+								      int nClassNumber)
+{
+	RMHostResource* hostResource;
+	int i, j, k, nRank;
+	ALString sTmp;
+	RMResourceSystem* cluster;
+	int nProcNumberPerClass;
+	int nHostCount;
+	int nHostPerClass;
+
+	require(nHostNumber > 0);
+	require(nProcNumber > 0);
+	require(lPhysicalMemory >= 0);
+	require(lDiskFreeSpace >= 0);
+	require(nClassNumber <= nHostNumber);
+
+	cluster = new RMResourceSystem;
+	cluster->Reset();
+
+	nRank = 0;
+	nHostCount = 0;
+	nHostPerClass = nHostNumber / nClassNumber;
+
+	for (k = 0; k < nClassNumber; k++)
+	{
+		nProcNumberPerClass = nProcNumber + k;
+
+		// Creation de chaque host
+		for (i = 0; i < nHostPerClass; i++)
+		{
+			hostResource = new RMHostResource;
+
+			// Meme nombre de coeurs pour toutes les machines
+			for (j = nRank; j < nRank + nProcNumberPerClass; j++)
+				hostResource->AddProcessusRank(j);
+			nRank = j;
+			hostResource->SetPhysicalCoresNumber(nProcNumberPerClass);
+
+			hostResource->SetDiskFreeSpace(lDiskFreeSpace);
+			hostResource->SetPhysicalMemory(lPhysicalMemory);
+
+			// Nom de host
+			hostResource->SetHostName(sTmp + "host_" + IntToString(nHostCount));
+
+			// Ajout au cluster
+			cluster->AddHostResource(hostResource);
+			nHostCount++;
+		}
 	}
 	cluster->SetInitialized();
 	return cluster;

@@ -506,7 +506,7 @@ const ALString LMLicenseService::FindLicenseFilePath(boolean bSilent)
 		{
 			// Test d'existence
 			sLicenseFilePath = FileService::BuildFilePathName(sLicenseFileDir, sLicenseFileName);
-			bFileExist = FileService::IsFile(sLicenseFilePath);
+			bFileExist = FileService::FileExists(sLicenseFilePath);
 
 			// Tentative de creation si le fichier n'existe pas
 			if (not bFileExist)
@@ -517,7 +517,7 @@ const ALString LMLicenseService::FindLicenseFilePath(boolean bSilent)
 			}
 
 			// Erreur si fichier n'existe pas
-			bFileExist = FileService::IsFile(sLicenseFilePath);
+			bFileExist = FileService::FileExists(sLicenseFilePath);
 			if (not bFileExist)
 			{
 				if (not bSilent)
@@ -550,7 +550,7 @@ const ALString LMLicenseService::FindLicenseFileDir(boolean bSilent)
 	// Test du repertoire sinon
 	else
 	{
-		bDirExist = FileService::IsDirectory(sLicenseFileDir);
+		bDirExist = FileService::DirExists(sLicenseFileDir);
 		if (not bDirExist)
 		{
 			if (not bSilent)

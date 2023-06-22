@@ -300,13 +300,10 @@ void KDClassCompliantRules::CollectConstructedAttributesAndBlocks()
 	const KWDRPartition refPartitionRule;
 	const KWDRTablePartition refTablePartitionRule;
 	KDConstructionRule* constructionRule;
-	ObjectDictionary odConstructionRules;
+	ObjectDictionary odConstructionDerivationRules;
 	int nRule;
-	KWAttribute* attribute;
-	KWAttributeBlock* currentAttributeBlock;
-	SortedList slNonRedundantAttributes(KDAttributeDerivationRuleCompare);
-	POSITION position;
 
+	require(GetClass() != NULL);
 	require(slDerivedAttributes->GetCount() == 0);
 	require(slDerivedAttributeBlocks->GetCount() == 0);
 	require(odRedundantAttributes.GetCount() == 0);
@@ -319,20 +316,43 @@ void KDClassCompliantRules::CollectConstructedAttributesAndBlocks()
 		// Ajout des regles predefinies de gestion des partition
 		if (constructionRule->IsSelectionRule())
 		{
-			odConstructionRules.SetAt(refPartitionRule.GetName(), constructionRule);
-			odConstructionRules.SetAt(refTablePartitionRule.GetName(), constructionRule);
+			odConstructionDerivationRules.SetAt(refPartitionRule.GetName(),
+							    cast(Object*, &refPartitionRule));
+			odConstructionDerivationRules.SetAt(refTablePartitionRule.GetName(),
+							    cast(Object*, &refTablePartitionRule));
 		}
 
 		// Ajout de la regle de derivation associee a la regle de construction
-		odConstructionRules.SetAt(constructionRule->GetDerivationRule()->GetName(), constructionRule);
+		odConstructionDerivationRules.SetAt(constructionRule->GetDerivationRule()->GetName(),
+						    cast(Object*, constructionRule->GetDerivationRule()));
 
 		// Ajout egalement des regle de type bloc, si elles existent
 		if (constructionRule->GetPartitionStatsRule() != NULL)
-			odConstructionRules.SetAt(constructionRule->GetPartitionStatsRule()->GetName(),
-						  constructionRule);
+			odConstructionDerivationRules.SetAt(constructionRule->GetPartitionStatsRule()->GetName(),
+							    cast(Object*, constructionRule->GetDerivationRule()));
 		if (constructionRule->GetValueBlockRule() != NULL)
-			odConstructionRules.SetAt(constructionRule->GetValueBlockRule()->GetName(), constructionRule);
+			odConstructionDerivationRules.SetAt(constructionRule->GetValueBlockRule()->GetName(),
+							    cast(Object*, constructionRule->GetDerivationRule()));
 	}
+
+	// Collecte de tous les attributs et blocs derives de la classe avec le dictionnaire des regles de derivation
+	// utilisables
+	CollectConstructedAttributesAndBlocksUsingDerivationRules(&odConstructionDerivationRules);
+}
+
+void KDClassCompliantRules::CollectConstructedAttributesAndBlocksUsingDerivationRules(
+    const ObjectDictionary* odUsableDerivationRules)
+{
+	KWAttribute* attribute;
+	KWAttributeBlock* currentAttributeBlock;
+	SortedList slNonRedundantAttributes(KDAttributeDerivationRuleCompare);
+	POSITION position;
+
+	require(odUsableDerivationRules != NULL);
+	require(GetClass() != NULL);
+	require(slDerivedAttributes->GetCount() == 0);
+	require(slDerivedAttributeBlocks->GetCount() == 0);
+	require(odRedundantAttributes.GetCount() == 0);
 
 	// Parcours des attributs de la classe pour en analyser les regles
 	attribute = GetClass()->GetHeadAttribute();
@@ -345,7 +365,7 @@ void KDClassCompliantRules::CollectConstructedAttributesAndBlocks()
 		{
 			// Ajout de l'attribut dans la liste s'il correspond a une regle de construction
 			// Si deux attributs sont associes
-			if (odConstructionRules.Lookup(attribute->GetAnyDerivationRule()->GetName()) != NULL)
+			if (odUsableDerivationRules->Lookup(attribute->GetAnyDerivationRule()->GetName()) != NULL)
 			{
 				// Enregistrement de l'attribut si la regle n'a pas ete enregistree
 				position = slDerivedAttributes->Find(attribute);
@@ -364,8 +384,8 @@ void KDClassCompliantRules::CollectConstructedAttributesAndBlocks()
 			{
 				// Ajout du bloc d'attribut dans la liste s'il correspond a une regle de construction
 				// Si deux attributs sont associes
-				if (odConstructionRules.Lookup(currentAttributeBlock->GetDerivationRule()->GetName()) !=
-				    NULL)
+				if (odUsableDerivationRules->Lookup(
+					currentAttributeBlock->GetDerivationRule()->GetName()) != NULL)
 				{
 					// Enregistrement de l'attribut si la regle n'a pas ete enregistree
 					position = slDerivedAttributeBlocks->Find(currentAttributeBlock);
@@ -519,7 +539,7 @@ KDClassCompliantRules::LookupConstructedAttribute(const KDConstructedRule* searc
 			// Completion de ses infos par rapport a sa classe
 			kwcRuleClass = classDomain->LookupClass(searchedConstructedRule->GetClassName());
 			searchedDerivationRule->CompleteTypeInfo(kwcRuleClass);
-			assert(searchedDerivationRule->CheckCompletness(kwcRuleClass));
+			assert(searchedDerivationRule->CheckCompleteness(kwcRuleClass));
 
 			// Recherche de l'attribut derive correspondant
 			usedAttribute = LookupDerivedAttribute(searchedDerivationRule);
@@ -626,7 +646,7 @@ const KWAttribute* KDClassCompliantRules::LookupDerivedAttribute(const KWDerivat
 	static KWAttribute searchedAttribute;
 
 	require(searchedDerivationRule != NULL);
-	require(searchedDerivationRule->CheckCompletness(searchedDerivationRule->GetOwnerClass()));
+	require(searchedDerivationRule->CheckCompleteness(searchedDerivationRule->GetOwnerClass()));
 
 	// Recherche de la regle utilisee
 	searchedAttribute.SetDerivationRule(cast(KWDerivationRule*, searchedDerivationRule));
@@ -646,7 +666,7 @@ KDClassCompliantRules::LookupDerivedAttributeBlock(const KWDerivationRule* searc
 	static KWAttributeBlock searchedAttributeBlock;
 
 	require(searchedDerivationRule != NULL);
-	require(searchedDerivationRule->CheckCompletness(searchedDerivationRule->GetOwnerClass()));
+	require(searchedDerivationRule->CheckCompleteness(searchedDerivationRule->GetOwnerClass()));
 
 	// Recherche de la regle utilisee
 	searchedAttributeBlock.SetDerivationRule(cast(KWDerivationRule*, searchedDerivationRule));

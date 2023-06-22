@@ -70,6 +70,8 @@ void KWAttributePairsSpec::ImportAttributePairs(const ALString& sFileName)
 	int nFieldLength;
 	int nFieldError;
 	boolean bEndOfLine;
+	boolean bLineTooLong;
+	longint lBeginPos;
 	ALString sTmp;
 
 	require(sFileName != "");
@@ -98,19 +100,19 @@ void KWAttributePairsSpec::ImportAttributePairs(const ALString& sFileName)
 		while (bOk and not inputFile.IsError() and not inputFile.IsFileEnd())
 		{
 			// Remplissage d'un buffer
-			bOk = inputFile.Fill(inputFile.GetPositionInFile());
+			lBeginPos = inputFile.GetPositionInFile();
+			bOk = inputFile.FillInnerLines(lBeginPos);
 			if (not bOk)
 				AddError("Error while reading file");
 
-			// Erreur si ligne trop longue
-			if (bOk)
-				bOk = inputFile.GetBufferSkippedLine() == 0;
-			if (not bOk)
+			// Erreur si ligne trop longue: on n'a besoin que de lignes tres courtes pour lire des paires
+			// d'identifiant
+			if (bOk and inputFile.GetCurrentBufferSize() == 0)
 			{
-				// On modifie localement l'index de ligne pour le warning
-				lContextLineIndex += inputFile.GetBufferLineNumber() + 1;
-				AddWarning("Line too long, ignored record");
-				lContextLineIndex -= inputFile.GetBufferLineNumber();
+				assert(inputFile.GetBufferSize() > 5 * KWClass::GetNameMaxLength());
+				AddError(sTmp + "Line too long for a file of variable pairs (beyond " +
+					 LongintToHumanReadableString(inputFile.GetBufferSize()) + ")");
+				bOk = false;
 			}
 
 			// Traitement du buffer
@@ -121,12 +123,15 @@ void KWAttributePairsSpec::ImportAttributePairs(const ALString& sFileName)
 				// Lecture du premier champ de la ligne
 				bRecordOk = false;
 				nContextAttributeIndex = 1;
-				bEndOfLine = inputFile.GetNextField(sField, nFieldLength, nFieldError);
+				bEndOfLine = inputFile.GetNextField(sField, nFieldLength, nFieldError, bLineTooLong);
 
+				// Warning si ligne trop longue
+				if (bLineTooLong)
+					AddWarning(InputBufferedFile::GetLineTooLongErrorLabel() + ", ignored record");
 				// Warning pour certaines erreurs sur le champ
-				if (nFieldError == InputBufferedFile::FieldTabReplaced or
-				    nFieldError == InputBufferedFile::FieldCtrlZReplaced or
-				    nFieldError == InputBufferedFile::FieldTooLong)
+				else if (nFieldError == InputBufferedFile::FieldTabReplaced or
+					 nFieldError == InputBufferedFile::FieldCtrlZReplaced or
+					 nFieldError == InputBufferedFile::FieldTooLong)
 					AddWarning(InputBufferedFile::GetFieldErrorLabel(nFieldError) +
 						   ", ignored record");
 				// Warning si un seul champ
@@ -164,12 +169,17 @@ void KWAttributePairsSpec::ImportAttributePairs(const ALString& sFileName)
 				{
 					bRecordOk = false;
 					nContextAttributeIndex = 2;
-					bEndOfLine = inputFile.GetNextField(sField, nFieldLength, nFieldError);
+					bEndOfLine =
+					    inputFile.GetNextField(sField, nFieldLength, nFieldError, bLineTooLong);
 
+					// Warning si ligne trop longue
+					if (bLineTooLong)
+						AddWarning(InputBufferedFile::GetLineTooLongErrorLabel() +
+							   ", ignored record");
 					// Warning pour certaines erreurs sur le champ
-					if (nFieldError == InputBufferedFile::FieldTabReplaced or
-					    nFieldError == InputBufferedFile::FieldCtrlZReplaced or
-					    nFieldError == InputBufferedFile::FieldTooLong)
+					else if (nFieldError == InputBufferedFile::FieldTabReplaced or
+						 nFieldError == InputBufferedFile::FieldCtrlZReplaced or
+						 nFieldError == InputBufferedFile::FieldTooLong)
 						AddWarning(InputBufferedFile::GetFieldErrorLabel(nFieldError));
 					// Warning si strictement plus de deux champs
 					else if (not bEndOfLine)
@@ -256,8 +266,9 @@ void KWAttributePairsSpec::ImportAttributePairs(const ALString& sFileName)
 					slSpecificPairs.Add(attributePairName);
 				}
 				// On va jusqu'au bout de la ligne si necessaire sinon
+				// On a deja ignore la ligne si on arrive la
 				else if (not bEndOfLine)
-					inputFile.SkipLastFields();
+					inputFile.SkipLastFields(bLineTooLong);
 			}
 
 			// Arret si le maximum de paires est atteint

@@ -381,14 +381,14 @@ void KWArtificialDataset::DisplayFileFirstLines(const ALString& sFilePathName, i
 	cout << "File " << FileService::GetFileName(sFilePathName);
 
 	// Test si fichier manquant
-	if (not FileService::Exist(sFilePathName))
+	if (not FileService::FileExists(sFilePathName))
 		cout << " : missing file";
 	else
 		cout << " (size=" << FileService::GetFileSize(sFilePathName) << ")";
 	cout << endl;
 
 	// Lecture des premieres lignes du fichier de cle
-	if (FileService::Exist(sFilePathName))
+	if (FileService::FileExists(sFilePathName))
 	{
 		sTmpBuffer = NewCharArray(nTmpBufferSize);
 		FileService::OpenInputFile(sFilePathName, fst);
@@ -448,8 +448,9 @@ boolean KWArtificialDataset::AddLinesInFile(const ALString& sFileName, const ALS
 	boolean bOk;
 	longint lBeginPos;
 	CharVector cvLine;
+	boolean bLineTooLong;
 
-	require(FileService::Exist(sFileName));
+	require(FileService::FileExists(sFileName));
 	require(ivLines != NULL);
 	require(ivLines->GetSize() != 0);
 
@@ -461,6 +462,7 @@ boolean KWArtificialDataset::AddLinesInFile(const ALString& sFileName, const ALS
 		Global::AddError("", "", "unable to open " + sFileName);
 		return false;
 	}
+
 	// Ouverture en ecriture du fichier de sortie
 	outputFile.SetFileName(sDestFileName);
 	bOk = outputFile.Open();
@@ -474,14 +476,16 @@ boolean KWArtificialDataset::AddLinesInFile(const ALString& sFileName, const ALS
 		index = 0;
 		nLineIndexToInsert = ivLines->GetAt(index);
 		lBeginPos = 0;
-		while (not inputFile.IsFileEnd())
+		while (bOk and not inputFile.IsFileEnd())
 		{
 			// Lecture d'un buffer
-			inputFile.Fill(lBeginPos);
-			lBeginPos += inputFile.GetBufferSize();
+			bOk = inputFile.FillInnerLines(lBeginPos);
+			assert(not bOk or
+			       inputFile.GetCurrentBufferSize()); // Il ne devrait pas y avoir de lignes trop longues
+			lBeginPos += inputFile.GetCurrentBufferSize();
 			while (not inputFile.IsBufferEnd())
 			{
-				inputFile.GetNextLine(&cvLine);
+				inputFile.GetNextLine(&cvLine, bLineTooLong);
 
 				// Insertion si on a numero de ligne recherche
 				if (nLineIndexToInsert == nLineIndex)
@@ -509,7 +513,7 @@ boolean KWArtificialDataset::AddLinesInFile(const ALString& sFileName, const ALS
 		Global::AddError("", "", "unable to open " + sDestFileName);
 	}
 	inputFile.Close();
-	assert(FileService::Exist(sDestFileName));
+	assert(FileService::FileExists(sDestFileName));
 	return bOk;
 }
 

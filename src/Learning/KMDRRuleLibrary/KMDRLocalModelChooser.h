@@ -17,7 +17,7 @@
 ///////////////////////////////////////////////////////////////
 // Classe KMDRLocalModelChooser
 // le role de cette regle de derivation est de choisir le bon classifieur local pour
-// une instance donnée, afin de le transmettre ensuite aux attributs de prediction
+// une instance donnee, afin de le transmettre ensuite aux attributs de prediction
 
 class KMDRLocalModelChooser : public KWDerivationRule
 {
@@ -30,7 +30,7 @@ public:
 	boolean CheckOperandsFamily(const KWDerivationRule* ruleFamily) const;
 
 	/** Verification que la regle est completement renseignee */
-	boolean CheckOperandsCompletness(KWClass* kwcOwnerClass) const;
+	boolean CheckOperandsCompleteness(KWClass* kwcOwnerClass) const;
 
 	// Calcul de l'attribut derive
 	Object* ComputeStructureResult(const KWObject* kwoObject) const;
@@ -57,7 +57,7 @@ protected:
 
 inline boolean KMDRLocalModelChooser::IsOptimized() const
 {
-	return IsCompiled() and nOptimizationFreshness == nCompileFreshness;
+	return IsCompiled() and nOptimizationFreshness == GetOwnerClass()->GetCompileFreshness();
 }
 
 #endif // KMDRLocalModelChooser_H

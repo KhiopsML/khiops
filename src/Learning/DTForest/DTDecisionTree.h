@@ -258,7 +258,7 @@ protected:
 	// sinon.
 
 	boolean SetUpInternalNode(const double dNewCost, const Symbol sNodeKey, KWAttributeStats*,
-				  const int nValueNumber);
+				  const int nValueNumber, const boolean bIsRegression);
 
 	/// transformer un noeud interne en feuille
 	void PruneInternalNode(DTDecisionTreeNode*);
@@ -266,6 +266,7 @@ protected:
 	void RegisterAttributeNameAndOccurenceNumber(const ALString& sAttributeName);
 
 	void UpdateDatabaseObjectsTargetModalities();
+	void UpdateDatabaseObjectsNodeIds(DTDecisionTreeNode*);
 
 	int GetDatabaseInstanceId(const NumericKeyDictionary* randomForestDatabaseObjects, KWObject*) const;
 
@@ -421,7 +422,7 @@ public:
 	void SetTreeCost(double);
 
 	// ObjectArray & GetSamplingFrequenciesContingencyTables();
-	int CompareName(const DTDecisionTreeNodeSplit* otherReport);
+	int CompareName(const DTDecisionTreeNodeSplit* otherReport) const;
 
 protected:
 	// boolean HasValidDistribution(IntVector & sonDistributionS1, IntVector & sonDistributionS0, double
@@ -509,7 +510,7 @@ inline void DTDecisionTree::SetAttributeSelection(DTAttributeSelection* generato
 	SelectedAttributes = generator;
 }
 
-inline int DTDecisionTreeNodeSplit::CompareName(const DTDecisionTreeNodeSplit* otherReport)
+inline int DTDecisionTreeNodeSplit::CompareName(const DTDecisionTreeNodeSplit* otherReport) const
 {
 	require(GetAttributeStats() != NULL);
 	require(otherReport->GetAttributeStats() != NULL);

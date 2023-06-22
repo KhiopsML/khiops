@@ -25,6 +25,7 @@ int KWDataPreparationTask::ComputeMaxLoadableAttributeNumber(const KWLearningSpe
 							     int nAttributePairNumber) const
 {
 	boolean bDisplayMemoryStats = GetPreparationTraceMode();
+	const int nMaxProcessBySlave = 2;
 	RMTaskResourceRequirement resourceRequirement;
 	RMTaskResourceGrant grantedResources;
 	KWClass* kwcClass;
@@ -93,24 +94,24 @@ int KWDataPreparationTask::ComputeMaxLoadableAttributeNumber(const KWLearningSpe
 	// Pour minimiser le nombre de tranches, on impose un nombre minimum de variables par tranches
 	// Pour les petits nombres de variables utilise, on peut faire des tranches petites, mais pour les
 	// grands nombre de variables, il faut minimiser le nombre de tranches
-	// On utilise la fonction suivante, qui tend vers 2 sqrt(n) pour n grand)
-	//  2*sqrt(n * tanh(n/1000))
-	//   n 	Att
-	//   1	1
-	//   10	1
-	//   100	7
-	//   1000	56
-	//   10000	200
-	//   100000	663
-	//   1000000	2000
-	nMinAttributeNumber = 2 * (int)ceil(sqrt(nUsedAttributeNumber * (1 - exp(-nUsedAttributeNumber / 1000.0)) /
-						 (1 + exp(-nUsedAttributeNumber / 1000.0))));
+	// On utilise la fonction suivante, qui augmente plus lentement que sqrt(n)
+	//  sqrt(n /(1+ln(n))
+	// 	n	Att
+	// 	1	1
+	// 	10	2
+	// 	100	4
+	// 	1000	11
+	// 	10000	31
+	// 	100000	89
+	nMinAttributeNumber = (int)ceil(sqrt(nUsedAttributeNumber / (1 + log(nUsedAttributeNumber + 1))));
 
 	// Pour le maitre: stockage des dictionnaires de specification des tranches de la KWDataTableSliceSet
 	// et de tous les resultats d'analyse
 	resourceRequirement.GetMasterRequirement()->GetMemory()->SetMin(
 	    lClassAttributeMemory * nUsedAttributeNumber + lNecessaryUnivariateStatsMemory * nUsedAttributeNumber +
 	    lNecessaryBivariateStatsMemory * nAttributePairNumber);
+	resourceRequirement.GetMasterRequirement()->GetMemory()->SetMax(
+	    2 * resourceRequirement.GetMasterRequirement()->GetMemory()->GetMin());
 
 	// Evaluation de la memoire necessaire de travail pour tenir compte des eventuels blocs a charger
 	lNecessaryMaxBlockWorkingMemory = 0;
@@ -123,6 +124,9 @@ int KWDataPreparationTask::ComputeMaxLoadableAttributeNumber(const KWLearningSpe
 	resourceRequirement.GetSlaveRequirement()->GetMemory()->SetMin(
 	    lNecessaryWorkingMemory + lNecessaryMaxBlockWorkingMemory +
 	    lDatabaseAttributeAverageMemory * nMinAttributeNumber);
+	resourceRequirement.GetSlaveRequirement()->GetMemory()->SetMax(
+	    lNecessaryWorkingMemory + lNecessaryMaxBlockWorkingMemory +
+	    lDatabaseAttributeAverageMemory * nUsedAttributeNumber);
 
 	// Memoire partagee, en prenant en compte la classes et les stats a transferer pour le minimum d'attributs
 	resourceRequirement.GetSharedRequirement()->GetMemory()->Set(
@@ -151,14 +155,13 @@ int KWDataPreparationTask::ComputeMaxLoadableAttributeNumber(const KWLearningSpe
 		nSlaveNumber = grantedResources.GetSlaveNumber();
 
 		// Calcul de la memoire disponible pour les attributs supplementaires
-		lSlaveMemory = grantedResources.GetMinSlaveMemory() -
+		lSlaveMemory = grantedResources.GetSlaveMemory() -
 			       resourceRequirement.GetSlaveRequirement()->GetMemory()->GetMin();
-		assert(lSlaveMemory >= lDatabaseAttributeAverageMemory * nMinAttributeNumber);
 
 		// Calcul du nombre max d'attributs gerable par esclave
 		lInitialMaxAttributeNumber =
 		    nMinAttributeNumber + lSlaveMemory / lDatabaseAttributeOverallAverageMemory;
-		assert(lInitialMaxAttributeNumber >= 1);
+		assert(lInitialMaxAttributeNumber >= 1 or nMinAttributeNumber == 0);
 	}
 
 	// Ajustement du nombre max d'attribut par esclave
@@ -167,16 +170,18 @@ int KWDataPreparationTask::ComputeMaxLoadableAttributeNumber(const KWLearningSpe
 	lMaxAttributeNumber = lInitialMaxAttributeNumber;
 	if (lInitialMaxAttributeNumber > 0)
 	{
-		// On diminue le nombre d'attributs max par precaution, et pour gerer directement le cas des paires
-		// d'attributs, pour lequel il faudra potentiellement charger deux paquet d'attributs simultanement
-		lMaxAttributeNumber = (1 + lMaxAttributeNumber) / 2;
+		// On diminue le nombre d'attributs max dans le cas des paires d'attributs,
+		// pour lequel il faudra potentiellement charger deux paquet d'attributs simultanement
+		if (nAttributePairNumber > 0)
+			lMaxAttributeNumber = (1 + lMaxAttributeNumber) / 2;
 		if (lMaxAttributeNumber >= nUsedAttributeNumber)
 			lMaxAttributeNumber = max(1, nUsedAttributeNumber);
 
 		// On diminue potentiellement le nombre d'attributs par esclave pour pouvoir utiliser au mieux les
-		// esclaves
-		if (lMaxAttributeNumber * 3 * nSlaveNumber > nUsedAttributeNumber)
-			lMaxAttributeNumber = 1 + nUsedAttributeNumber / (nSlaveNumber * 3);
+		// esclaves en les faisant travailler plusieurs fois chacun, de facon a minimer l'attente du dernier
+		// esclave
+		if (lMaxAttributeNumber * nMaxProcessBySlave * nSlaveNumber > nUsedAttributeNumber)
+			lMaxAttributeNumber = 1 + nUsedAttributeNumber / (nSlaveNumber * nMaxProcessBySlave);
 
 		// On ajuste le nombre d'attribut pour qu'il soit si possible equilibre par process esclave
 		nMaxAttributeNumber = (int)lMaxAttributeNumber;
@@ -187,7 +192,7 @@ int KWDataPreparationTask::ComputeMaxLoadableAttributeNumber(const KWLearningSpe
 	// Affichage des stats
 	if (bDisplayMemoryStats)
 	{
-		cout << "KWDataPreparation::ComputeMaxLoadableAttributeNumber" << endl;
+		cout << "KWDataPreparationTask::ComputeMaxLoadableAttributeNumber" << endl;
 		cout << "\tObject number\t" << nDatabaseObjectNumber << endl;
 		cout << "\tAttribute number\t" << nUsedAttributeNumber << endl;
 		if (targetTupleTable->GetAttributeNumber() > 0)
@@ -199,7 +204,7 @@ int KWDataPreparationTask::ComputeMaxLoadableAttributeNumber(const KWLearningSpe
 		cout << "\tNecessary working memory\t" << LongintToHumanReadableString(lNecessaryWorkingMemory) << endl;
 		cout << "\tNecessary database all values memory\t"
 		     << LongintToHumanReadableString(lNecessaryDatabaseAllValuesMemory) << endl;
-		cout << "\tNecessary block working memory\t"
+		cout << "\tNecessary max block working memory\t"
 		     << LongintToHumanReadableString(lNecessaryMaxBlockWorkingMemory) << endl;
 		cout << "\tNecessary univariate stats memory\t"
 		     << LongintToHumanReadableString(lNecessaryUnivariateStatsMemory) << endl;
@@ -893,6 +898,7 @@ longint KWDataPreparationTask::ComputeDatabaseMinimumAllValuesMemory(int nDenseS
 								     longint lTotalBlockValueNumber,
 								     int nObjectNumber) const
 {
+	boolean bDisplayMemoryStats = GetPreparationTraceMode();
 	longint lDatabaseAllValuesMemory;
 
 	require(nDenseSymbolAttributeNumber >= 0);
@@ -915,6 +921,23 @@ longint KWDataPreparationTask::ComputeDatabaseMinimumAllValuesMemory(int nDenseS
 
 	// Memoire necessaire pour stocker  les valeurs denses
 	lDatabaseAllValuesMemory += lTotalBlockValueNumber * GetNecessaryMemoryPerSparseValue();
+
+	// Affichage des details de dimensionnement
+	if (bDisplayMemoryStats)
+	{
+		cout << "\t  ComputeDatabaseMinimumAllValuesMemory" << endl;
+		cout << "\t\tDense symbol attribute number\t" << nDenseSymbolAttributeNumber << endl;
+		cout << "\t\tDense continuous attribute number\t" << nDenseContinuousAttributeNumber << endl;
+		cout << "\t\tAttribute block number\t" << nAttributeBlocNumber << endl;
+		cout << "\t\tTotal block value number\t" << lTotalBlockValueNumber << endl;
+		cout << "\t\tObject number\t" << nObjectNumber << endl;
+		cout << "\t\tNecessaryMemoryPerDenseValue\t" << GetNecessaryMemoryPerDenseValue() << endl;
+		cout << "\t\tExpectedMeanSymbolValueLength\t" << GetExpectedMeanSymbolValueLength() << endl;
+		cout << "\t\tNecessaryMemoryPerEmptyValueBlock\t" << GetNecessaryMemoryPerEmptyValueBlock() << endl;
+		cout << "\t\tNecessaryMemoryPerSparseValue\t" << GetNecessaryMemoryPerSparseValue() << endl;
+		cout << "\t\tDatabase all values memory\t" << LongintToHumanReadableString(lDatabaseAllValuesMemory)
+		     << endl;
+	}
 	return lDatabaseAllValuesMemory;
 }
 
@@ -975,6 +998,7 @@ longint KWDataPreparationTask::ComputeEstimatedMaxBlockWorkingMemory(const KWLea
 								     const KWClass* kwcPartialClass,
 								     int nMaxAttributeNumberPerBlock) const
 {
+	boolean bDisplayMemoryStats = GetPreparationTraceMode();
 	longint lEstimatedMaxBlockWorkingMemory;
 	int nMaxBlockAttributeNumber;
 	longint lEstimatedMaxValueNumberPerBlock;
@@ -995,7 +1019,7 @@ longint KWDataPreparationTask::ComputeEstimatedMaxBlockWorkingMemory(const KWLea
 	lEstimatedMaxValueNumberPerBlock = ComputeEstimatedMaxValueNumberPerBlock(
 	    learningSpec, targetTupleTable, kwcCompleteClass, kwcPartialClass, nMaxAttributeNumberPerBlock);
 
-	// Parcours de tous les blocs pour identifier celui de plus grand taille
+	// Parcours de tous les blocs pour identifier celui de plus grande taille
 	nMaxBlockAttributeNumber = 0;
 	for (i = 0; i < kwcPartialClass->GetLoadedAttributeBlockNumber(); i++)
 	{
@@ -1011,6 +1035,19 @@ longint KWDataPreparationTask::ComputeEstimatedMaxBlockWorkingMemory(const KWLea
 	// Calcul de la memoire de travail necessaire pour traiter le bloc
 	lEstimatedMaxBlockWorkingMemory = ComputeBlockWorkingMemory(
 	    nMaxBlockAttributeNumber, lEstimatedMaxValueNumberPerBlock, nDatabaseObjectNumber);
+
+	// Affichage des details de dimensionnement
+	if (bDisplayMemoryStats)
+	{
+		cout << "\t  ComputeEstimatedMaxBlockWorkingMemory" << endl;
+		cout << "\t\tMax attribute number per block\t" << nMaxAttributeNumberPerBlock << endl;
+
+		cout << "\t\tObjectNumber\t" << nDatabaseObjectNumber << endl;
+		cout << "\t\tEstimated max value number per block\t" << lEstimatedMaxValueNumberPerBlock << endl;
+		cout << "\t\tMax block attribute number\t" << nMaxBlockAttributeNumber << endl;
+		cout << "\t\tEstimated max block working memory\t"
+		     << LongintToHumanReadableString(lEstimatedMaxBlockWorkingMemory) << endl;
+	}
 	return lEstimatedMaxBlockWorkingMemory;
 }
 

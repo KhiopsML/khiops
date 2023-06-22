@@ -13,6 +13,7 @@ class SNBDataTableBinarySliceSetBuffer;
 class SNBDataTableBinarySliceSet;
 
 #include "KWDataPreparationClass.h"
+#include "HugeBuffer.h"
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 // Layout logique du SNBDataTableBinarySliceSet
@@ -524,14 +525,16 @@ protected:
 	// File pointer pour la lecture/ecriture de fichiers
 	FILE* fChunkDataFile;
 
-	// Buffer pour la lecture/ecriture de fichiers
-	int* buffer;
+	// TODO FOR FELIPE: a supprimer
+	//// Buffer pour la lecture/ecriture de fichiers
+	// int* buffer;
 
 	// Indice du fichier ouvert pendant l'initialisation
 	int nOpenFileChunkIndex;
 
-	// Taille du buffer en nombre de int's
-	static const int nIntBufferSize = MemSegmentByteSize / sizeof(int);
+	// TODO FOR FELIPE: a supprimer
+	//// Taille du buffer en nombre de int's
+	// static const int nIntBufferSize = MemSegmentByteSize / sizeof(int);
 
 	// La tache parallele d'apprentissage est friend pour faire des initialisations partielles
 	friend class SNBPredictorSNBTrainingTask;

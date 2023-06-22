@@ -12,6 +12,7 @@ class KWDRCopyContinuous;
 class KWDRCopyDate;
 class KWDRCopyTime;
 class KWDRCopyTimestamp;
+class KWDRCopyTimestampTZ;
 class KWDRTextCopy;
 class KWDRCopySymbolValueBlock;
 class KWDRCopyContinuousValueBlock;
@@ -25,8 +26,8 @@ class KWDRAsDate;
 class KWDRFormatDate;
 class KWDRAsTime;
 class KWDRFormatTime;
-class KWDRAsTimestamp;
-class KWDRFormatTimestamp;
+class KWDRAsTimestampTZ;
+class KWDRFormatTimestampTZ;
 
 #include "KWDerivationRule.h"
 
@@ -138,6 +139,23 @@ public:
 };
 
 ////////////////////////////////////////////////////////////////////////////
+// Classe KWDRCopyTimestampTZ
+// Copie d'un attribut TimestampTZ. Permet son renommage
+class KWDRCopyTimestampTZ : public KWDerivationRule
+{
+public:
+	// Constructeur
+	KWDRCopyTimestampTZ();
+	~KWDRCopyTimestampTZ();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	TimestampTZ ComputeTimestampTZResult(const KWObject* kwoObject) const override;
+};
+
+////////////////////////////////////////////////////////////////////////////
 // Classe KWDRTextCopy
 // Copie d'un attribut Text. Permet son renommage
 class KWDRTextCopy : public KWDerivationRule
@@ -156,7 +174,7 @@ public:
 
 ////////////////////////////////////////////////////////////////////////////
 // Classe KWDRValueBlockRule
-// Regle generique de type ValueBlock, dont le bloc en retour est de mme
+// Regle generique de type ValueBlock, dont le bloc en retour est de meme
 // nature que celui d'un operande (a specifier): meme VarKeyType,
 // sous ensemble des VarKey
 class KWDRValueBlockRule : public KWDerivationRule
@@ -170,7 +188,7 @@ public:
 	Symbol& GetValueBlockSymbolDefaultValue() const override;
 
 	// Reimplementation de la verification qu'une regle est completement renseignee et compilable
-	boolean CheckCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckCompleteness(const KWClass* kwcOwnerClass) const override;
 
 	// Recopie des attributs de definition de la regle
 	void CopyFrom(const KWDerivationRule* kwdrSource) override;
@@ -189,7 +207,7 @@ protected:
 				      NumericKeyDictionary* nkdCompletedAttributes) override;
 
 	// Compilation de la regle, a appeler en debut de l'implementation du calcul de l'attribut derive
-	// Permet de parametrer correctement quels attributs du blocs sources sont a utiliser pour
+	// Permet de parametrer correctement quels attributs du bloc source sont a utiliser pour
 	// fabriquer le bloc cible
 	// En theorie, on pourrait effectuer cette compilation des la compilation, mais on a ici besoin a la fois
 	// de la regle a compiler, mais egalement du bloc resultat de la regle (et son indexedKeyBlock).
@@ -197,7 +215,7 @@ protected:
 	// il est ici plus pratique (et peu couteux) d'effectuer cette optimisation via DynamicCompile
 	void DynamicCompile(const KWIndexedKeyBlock* indexedKeyBlock) const;
 
-	// Memorisation du type de cle du block
+	// Memorisation du type de cle du bloc
 	int nVarKeyType;
 
 	// Index de l'operande source de type bloc
@@ -217,7 +235,7 @@ protected:
 
 	// Vecteur des nouveaux index de valeurs, contenant pour chaque index de valeur source l'index de valeur cible
 	// si elle est gardee, -1 sinon
-	// Ce vecteur est calcule
+	// Ce vecteur est calcule lors du DynamicCompile
 	mutable IntVector ivNewValueIndexes;
 
 	// Fraicheur de compilation dynamique
@@ -384,7 +402,7 @@ public:
 	Date ComputeDateResult(const KWObject* kwoObject) const override;
 
 	// Verification de la validite du format de date
-	boolean CheckOperandsCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
 
 	// Compilation pour optimiser la gestion du format
 	void Compile(KWClass* kwcOwnerClass) override;
@@ -414,7 +432,7 @@ public:
 	Symbol ComputeSymbolResult(const KWObject* kwoObject) const override;
 
 	// Verification de la validite du format de date
-	boolean CheckOperandsCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
 
 	// Compilation pour optimiser la gestion du format
 	void Compile(KWClass* kwcOwnerClass) override;
@@ -447,7 +465,7 @@ public:
 	Time ComputeTimeResult(const KWObject* kwoObject) const override;
 
 	// Verification de la validite du format de time
-	boolean CheckOperandsCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
 
 	// Compilation pour optimiser la gestion du format
 	void Compile(KWClass* kwcOwnerClass) override;
@@ -477,7 +495,7 @@ public:
 	Symbol ComputeSymbolResult(const KWObject* kwoObject) const override;
 
 	// Verification de la validite du format de time
-	boolean CheckOperandsCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
 
 	// Compilation pour optimiser la gestion du format
 	void Compile(KWClass* kwcOwnerClass) override;
@@ -510,7 +528,7 @@ public:
 	Timestamp ComputeTimestampResult(const KWObject* kwoObject) const override;
 
 	// Verification de la validite du format de timestamp
-	boolean CheckOperandsCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
 
 	// Compilation pour optimiser la gestion du format
 	void Compile(KWClass* kwcOwnerClass) override;
@@ -540,7 +558,7 @@ public:
 	Symbol ComputeSymbolResult(const KWObject* kwoObject) const override;
 
 	// Verification de la validite du format de timestamp
-	boolean CheckOperandsCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
 
 	// Compilation pour optimiser la gestion du format
 	void Compile(KWClass* kwcOwnerClass) override;
@@ -552,4 +570,67 @@ public:
 	///// Implementation
 protected:
 	KWTimestampFormat tsfTimestampFormat;
+};
+
+////////////////////////////////////////////////////////////////////////////
+// Classe KWDRAsTimestampTZ
+// Recodage d'un Symbol en timestampTZ, selon un format passe en parametre
+// Le format doit etre valide
+// La timestampTZ resultante est potentiellement non valide
+class KWDRAsTimestampTZ : public KWDRConversionRule
+{
+public:
+	// Constructeur
+	KWDRAsTimestampTZ();
+	~KWDRAsTimestampTZ();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	TimestampTZ ComputeTimestampTZResult(const KWObject* kwoObject) const override;
+
+	// Verification de la validite du format de timestampTZ
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
+
+	// Compilation pour optimiser la gestion du format
+	void Compile(KWClass* kwcOwnerClass) override;
+
+	//////////////////////////////////////////////////////////////
+	///// Implementation
+protected:
+	KWTimestampTZFormat tstzfTimestampTZFormat;
+};
+
+////////////////////////////////////////////////////////////////////////////
+// Classe KWDRFormatTimestampTZ
+// Recodage d'un timestampTZ en symbol selon un format passe en parametre
+// Le format doit etre valide
+// Renvoie chaine vide si timestampTZ non valide
+class KWDRFormatTimestampTZ : public KWDerivationRule
+{
+public:
+	// Constructeur
+	KWDRFormatTimestampTZ();
+	~KWDRFormatTimestampTZ();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	Symbol ComputeSymbolResult(const KWObject* kwoObject) const override;
+
+	// Verification de la validite du format de timestampTZ
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
+
+	// Compilation pour optimiser la gestion du format
+	void Compile(KWClass* kwcOwnerClass) override;
+
+	// Memoire utilisee
+	longint GetUsedMemory() const override;
+
+	//////////////////////////////////////////////////////////////
+	///// Implementation
+protected:
+	KWTimestampTZFormat tstzfTimestampTZFormat;
 };

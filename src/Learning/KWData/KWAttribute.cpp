@@ -149,6 +149,17 @@ void KWAttribute::BuildAdvancedTypeSpecification()
 		bOk = advancedTypeSpecification.timestampFormat->SetFormatString(sFormat);
 		assert(bOk);
 	}
+	// Construction d'un objet de format TimestampTZ
+	else if (GetType() == KWType::TimestampTZ)
+	{
+		sFormatMetaDataKey = GetFormatMetaDataKey(KWType::TimestampTZ);
+		sFormat = metaData.GetStringValueAt(sFormatMetaDataKey);
+		if (sFormat == "")
+			sFormat = KWTimestampTZFormat::GetDefaultFormatString();
+		advancedTypeSpecification.timestampTZFormat = new KWTimestampTZFormat;
+		bOk = advancedTypeSpecification.timestampTZFormat->SetFormatString(sFormat);
+		assert(bOk);
+	}
 }
 
 KWAttribute* KWAttribute::Clone() const
@@ -179,6 +190,7 @@ boolean KWAttribute::Check() const
 	KWDateFormat dateFormat;
 	KWTimeFormat timeFormat;
 	KWTimestampFormat timestampFormat;
+	KWTimestampTZFormat timestampTZFormat;
 	ALString sFormat;
 	int nComplexType;
 
@@ -205,9 +217,9 @@ boolean KWAttribute::Check() const
 	if (bOk)
 	{
 		// Parcours des types complexes
-		for (nComplexType = KWType::Date; nComplexType <= KWType::Timestamp; nComplexType++)
+		for (nComplexType = KWType::Date; nComplexType <= KWType::TimestampTZ; nComplexType++)
 		{
-			// Verification pour les types Date, Type et Timestamp
+			// Verification pour les types complexes
 			if (KWType::IsComplex(nComplexType))
 			{
 				// Verification du format
@@ -237,6 +249,8 @@ boolean KWAttribute::Check() const
 							bOk = timeFormat.SetFormatString(sFormat);
 						else if (GetType() == KWType::Timestamp)
 							bOk = timestampFormat.SetFormatString(sFormat);
+						else if (GetType() == KWType::TimestampTZ)
+							bOk = timestampTZFormat.SetFormatString(sFormat);
 						if (not bOk)
 							AddError("Invalid " + KWType::ToString(GetType()) + " format " +
 								 sFormat + " in meta-data " + sFormatMetaDataKey);
@@ -361,7 +375,7 @@ boolean KWAttribute::Check() const
 		}
 
 		// Verification de la regle de derivation elle-meme
-		if (bOk and parentClass != NULL and not kwdrRule->CheckCompletness(parentClass))
+		if (bOk and parentClass != NULL and not kwdrRule->CheckCompleteness(parentClass))
 		{
 			AddError(kwdrRule->GetClassLabel() + " " + GetDerivationRule()->GetName() +
 				 " incorrectly specified");

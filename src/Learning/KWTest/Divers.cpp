@@ -2312,17 +2312,17 @@ void StudyHanoi()
 	int nIterNumber = 10;
 	IntVector ivIndexes;
 	DoubleVector dvTimes;
-	LongintVector livOperations;
+	LongintVector lvOperations;
 	int i;
 	int nIter;
 	int nIndex;
-	longint liOperations;
+	longint lOperations;
 	Timer timer;
 
 	// Initialisation des index
 	ivIndexes.SetSize(nMax);
 	dvTimes.SetSize(nMax);
-	livOperations.SetSize(nMax);
+	lvOperations.SetSize(nMax);
 	for (i = 0; i < nMax; i++)
 		ivIndexes.SetAt(i, i);
 
@@ -2338,10 +2338,10 @@ void StudyHanoi()
 			nIndex = ivIndexes.GetAt(i);
 			timer.Reset();
 			timer.Start();
-			liOperations = ComputeHanoi(nIndex + 1, 'A', 'C', 'B');
+			lOperations = ComputeHanoi(nIndex + 1, 'A', 'C', 'B');
 			timer.Stop();
 			dvTimes.UpgradeAt(nIndex, timer.GetElapsedTime());
-			livOperations.UpgradeAt(nIndex, liOperations);
+			lvOperations.UpgradeAt(nIndex, lOperations);
 		}
 	}
 
@@ -2349,12 +2349,12 @@ void StudyHanoi()
 	for (i = 0; i < nMax; i++)
 	{
 		dvTimes.SetAt(i, dvTimes.GetAt(i) / nIter);
-		livOperations.SetAt(i, livOperations.GetAt(i) / nIter);
+		lvOperations.SetAt(i, lvOperations.GetAt(i) / nIter);
 	}
 
 	// Affichage des resultats
 	cout << "N\tRatio\tOperations\tTime\n";
 	for (i = 1; i < nMax; i++)
-		cout << i + 1 << "\t" << dvTimes.GetAt(i) / dvTimes.GetAt(i - 1) << "\t" << livOperations.GetAt(i)
+		cout << i + 1 << "\t" << dvTimes.GetAt(i) / dvTimes.GetAt(i - 1) << "\t" << lvOperations.GetAt(i)
 		     << "\t" << dvTimes.GetAt(i) << endl;
 }

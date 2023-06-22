@@ -12,6 +12,8 @@ void KWDRRegisterMultiTableRules()
 	KWDerivationRule::RegisterDerivationRule(new KWDRGetDateValue);
 	KWDerivationRule::RegisterDerivationRule(new KWDRGetTimeValue);
 	KWDerivationRule::RegisterDerivationRule(new KWDRGetTimestampValue);
+	KWDerivationRule::RegisterDerivationRule(new KWDRGetTimestampTZValue);
+	KWDerivationRule::RegisterDerivationRule(new KWDRGetTextValue);
 	KWDerivationRule::RegisterDerivationRule(new KWDRGetObjectValue);
 	KWDerivationRule::RegisterDerivationRule(new KWDRGetObjectArrayValue);
 	KWDerivationRule::RegisterDerivationRule(new KWDRTableAt);
@@ -326,6 +328,100 @@ Timestamp KWDRGetTimestampValue::ComputeTimestampResult(const KWObject* kwoObjec
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
+// Classe KWDRGetTimestampTZValue
+
+KWDRGetTimestampTZValue::KWDRGetTimestampTZValue()
+{
+	SetName("GetValueTSTZ");
+	SetLabel("TimestampTZ value in a sub-entity");
+	SetType(KWType::TimestampTZ);
+	SetMultipleScope(true);
+	SetOperandNumber(2);
+	GetFirstOperand()->SetType(KWType::Object);
+	GetSecondOperand()->SetType(KWType::TimestampTZ);
+}
+
+KWDRGetTimestampTZValue::~KWDRGetTimestampTZValue() {}
+
+KWDerivationRule* KWDRGetTimestampTZValue::Create() const
+{
+	return new KWDRGetTimestampTZValue;
+}
+
+TimestampTZ KWDRGetTimestampTZValue::ComputeTimestampTZResult(const KWObject* kwoObject) const
+{
+	KWDerivationRuleOperand* valueOperand;
+	KWObject* kwoContainedObject;
+	TimestampTZ tstzResult;
+
+	require(IsCompiled());
+
+	// Evaluation des operandes secondaires de scope principal
+	EvaluateMainScopeSecondaryOperands(kwoObject);
+
+	// Recherche de la valeur TimestampTZ dans le sous-objet
+	kwoContainedObject = GetFirstOperand()->GetObjectValue(kwoObject);
+	if (kwoContainedObject == NULL)
+	{
+		tstzResult.Reset();
+	}
+	else
+	{
+		valueOperand = GetSecondOperand();
+		tstzResult = valueOperand->GetTimestampTZValue(kwoContainedObject);
+	}
+
+	// Nettoyage des operandes secondaires de scope principal
+	CleanMainScopeSecondaryOperands();
+	return tstzResult;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+// Classe KWDRGetTextValue
+
+KWDRGetTextValue::KWDRGetTextValue()
+{
+	SetName("GetText");
+	SetLabel("Text value in a sub-entity");
+	SetType(KWType::Text);
+	SetMultipleScope(true);
+	SetOperandNumber(2);
+	GetFirstOperand()->SetType(KWType::Object);
+	GetSecondOperand()->SetType(KWType::Text);
+}
+
+KWDRGetTextValue::~KWDRGetTextValue() {}
+
+KWDerivationRule* KWDRGetTextValue::Create() const
+{
+	return new KWDRGetTextValue;
+}
+
+Symbol KWDRGetTextValue::ComputeTextResult(const KWObject* kwoObject) const
+{
+	KWDerivationRuleOperand* valueOperand;
+	KWObject* kwoContainedObject;
+	Symbol sResult;
+
+	require(IsCompiled());
+
+	// Evaluation des operandes secondaires de scope principal
+	EvaluateMainScopeSecondaryOperands(kwoObject);
+
+	// Recherche de la valeur Symbol dans le sous-objet
+	kwoContainedObject = GetFirstOperand()->GetObjectValue(kwoObject);
+	if (kwoContainedObject != NULL)
+	{
+		valueOperand = GetSecondOperand();
+		sResult = valueOperand->GetTextValue(kwoContainedObject);
+	}
+
+	// Nettoyage des operandes secondaires de scope principal
+	CleanMainScopeSecondaryOperands();
+	return sResult;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
 // Classe KWDRGetContinuousValueBlock
 
 KWDRGetContinuousValueBlock::KWDRGetContinuousValueBlock()
@@ -452,7 +548,7 @@ KWDRGetSymbolValueBlock::ComputeSymbolValueBlockResult(const KWObject* kwoObject
 ////////////////////////////////////////////////////////////////////////////
 // Classe KWDRObjectRule
 
-boolean KWDRObjectRule::CheckCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDRObjectRule::CheckCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
 	KWDerivationRuleOperand* valueOperand;
@@ -460,7 +556,7 @@ boolean KWDRObjectRule::CheckCompletness(const KWClass* kwcOwnerClass) const
 	require(kwcOwnerClass != NULL);
 
 	// Methode ancetre
-	bOk = KWDerivationRule::CheckCompletness(kwcOwnerClass);
+	bOk = KWDerivationRule::CheckCompleteness(kwcOwnerClass);
 
 	// On verifie en plus la coherence avec le type de l'attribut retourne
 	if (bOk and GetOperandNumber() >= 1)
@@ -527,7 +623,7 @@ boolean KWDRObjectArrayRule::CheckObjectArray(const ObjectArray* oaObjects) cons
 ////////////////////////////////////////////////////////////////////////////
 // Classe KWDRObjectSetRule
 
-boolean KWDRObjectSetRule::CheckCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDRObjectSetRule::CheckCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
 	KWDerivationRuleOperand* valueOperandRef;
@@ -537,7 +633,7 @@ boolean KWDRObjectSetRule::CheckCompletness(const KWClass* kwcOwnerClass) const
 	require(kwcOwnerClass != NULL);
 
 	// Methode ancetre
-	bOk = KWDerivationRule::CheckCompletness(kwcOwnerClass);
+	bOk = KWDerivationRule::CheckCompleteness(kwcOwnerClass);
 
 	// On verifie en plus la coherence avec le type de l'attribut retourne
 	if (bOk and GetOperandNumber() >= 1)
@@ -599,7 +695,7 @@ int KWSortableObjectCompareKeyIndex(const void* elem1, const void* elem2)
 ////////////////////////////////////////////////////////////////////////////
 // Classe KWDRSubObjectRule
 
-boolean KWDRSubObjectRule::CheckCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDRSubObjectRule::CheckCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
 	KWDerivationRuleOperand* valueOperand;
@@ -607,7 +703,7 @@ boolean KWDRSubObjectRule::CheckCompletness(const KWClass* kwcOwnerClass) const
 	require(kwcOwnerClass != NULL);
 
 	// Methode ancetre
-	bOk = KWDerivationRule::CheckCompletness(kwcOwnerClass);
+	bOk = KWDerivationRule::CheckCompleteness(kwcOwnerClass);
 
 	// On verifie en plus la coherence avec le type de l'attribut retourne
 	if (bOk and GetOperandNumber() >= 2)
@@ -849,7 +945,7 @@ KWObject* KWDRTableAtKey::ComputeObjectResult(const KWObject* kwoObject) const
 	return NULL;
 }
 
-boolean KWDRTableAtKey::CheckCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDRTableAtKey::CheckCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
 	KWDerivationRuleOperand* tableOperand;
@@ -860,7 +956,7 @@ boolean KWDRTableAtKey::CheckCompletness(const KWClass* kwcOwnerClass) const
 	require(kwcOwnerClass != NULL);
 
 	// Methode ancetre
-	bOk = KWDRObjectRule::CheckCompletness(kwcOwnerClass);
+	bOk = KWDRObjectRule::CheckCompleteness(kwcOwnerClass);
 
 	// Test du nombre d'operande de la cle
 	if (bOk)
@@ -1756,6 +1852,10 @@ int KWDRTableSortCompareObjects(const void* elem1, const void* elem2)
 			nDiff =
 			    sortOperand->GetTimestampValue(object1).Compare(sortOperand->GetTimestampValue(object2));
 			break;
+		case KWType::TimestampTZ:
+			nDiff = sortOperand->GetTimestampTZValue(object1).Compare(
+			    sortOperand->GetTimestampTZValue(object2));
+			break;
 		default:
 			nDiff = 0;
 			assert(false);
@@ -1985,7 +2085,7 @@ Continuous KWDRTableCount::ComputeContinuousResult(const KWObject* kwoObject) co
 
 	require(IsCompiled());
 
-	// Calcul du nombre d'instance verifiant la selection
+	// Calcul du nombre d'instances verifiant la selection
 	oaObjects = GetFirstOperand()->GetObjectArrayValue(kwoObject);
 	if (oaObjects == NULL)
 		return 0;

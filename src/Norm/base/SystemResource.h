@@ -58,3 +58,6 @@ const char* GetLocalHostName();
 
 // Identifiant unique de la machine
 const char* GetMachineGUID();
+
+// Nombre maximum de fichier ouverts en meme temps par un processus
+int GetMaxOpenedFileNumber();

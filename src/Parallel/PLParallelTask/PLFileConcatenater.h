@@ -5,15 +5,12 @@
 #pragma once
 #include "Object.h"
 #include "Vector.h"
-#include "FileBuffer.h"
+#include "FileCache.h"
 #include "OutputBufferedFile.h"
 #include "InputBufferedFile.h"
 #include "TaskProgression.h"
 #include "PLRemoteFileService.h"
 #include "PLParallelTask.h"
-#include "BufferedFileDriver.h"
-
-class PLFileConcatenater;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Classe PLFileConcatenater
@@ -32,8 +29,9 @@ public:
 	// Concatenation des chunks avec envoi des erreurs vers errorSender (facultatif)
 	// L'ordre des chunks dans fichier final sera conforme a l'ordre donne par le vecteur
 	// Si bRemoveChunks est a true, les chunks sont effaces au fur et a mesure (et en cas d'erreur)
-	// Seul le processus maitre peut invoquer cette methode
-	// Renvoi true si tout s'est bien passe
+	// Si il y a assez de ressources, pour la lecture on utilise entre 1 et 8 preferred size
+	// et pour l'ecriture on utilise 1 preferred size. Sinon on utilise une taille de bloc (64Ko) pour la lecture et
+	// l'ecriture. Seul le processus maitre peut invoquer cette methode Renvoi true si tout s'est bien passe
 	boolean Concatenate(const StringVector* svChunkURIs, const Object* errorSender, boolean bRemoveChunks) const;
 
 	// Suppression des fichiers chunks (avec la meme specification de progression que la concatenation)
@@ -52,12 +50,6 @@ public:
 	void SetFieldSeparator(char cSep);
 	char GetFieldSeparator() const;
 
-	// Taille du buffer utilise pour l'ecriture du fichier (par defaut 8Mo)
-	// Il est recommande d'utilise un tres gros buffer pour minimser les allers-retours entre la lecture et
-	// l'ecritrure fichier
-	void SetBufferSize(int nBufferSize);
-	int GetBufferSize() const;
-
 	// Activation de la progression (inactive par defaut)
 	// On peut specifier la debut et la fin de la plage de progression (entre 0 et 1)
 	// Si la concatenation represente la premiere moitie du travail par exemple,
@@ -71,15 +63,20 @@ public:
 	void SetProgressionEnd(double dProgressionEnd);
 	double GetProgressionEnd() const;
 
+	void SetVerbose(boolean bVerbose);
+	boolean GetVerbose() const;
+
+	const ALString GetClassLabel() const override;
+
 	////////////////////////////////////////////////////////
 	//// Implementation
 
 protected:
-	ALString sFileName;
+	ALString sOutputFileName;
 	StringVector svHeaderLine;
 	char cSep;
 	double dProgressionBegin;
 	double dProgressionEnd;
 	boolean bDisplayProgression;
-	int nBufferSize;
+	boolean bVerbose;
 };

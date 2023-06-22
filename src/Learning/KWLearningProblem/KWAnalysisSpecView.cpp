@@ -3,8 +3,7 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 ////////////////////////////////////////////////////////////
-// 2021-04-06 18:11:58
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "KWAnalysisSpecView.h"
@@ -23,6 +22,10 @@ KWAnalysisSpecView::KWAnalysisSpecView()
 	AddCardField("RecodersSpec", "Recoders", new KWRecoderSpecView);
 	AddCardField("PreprocessingSpec", "Preprocessing", new KWPreprocessingSpecView);
 	AddCardField("SystemParameters", "System parameters", new KWSystemParametersView);
+	AddCardField("CrashTestParameters", "Crash test parameters", new KWCrashTestParametersView);
+
+	// Parametrage de la visibilite de l'onglet des crash tests
+	GetFieldAt("CrashTestParameters")->SetVisible(GetLearningCrashTestMode());
 
 #ifdef DEPRECATED_V10
 	{
@@ -56,6 +59,7 @@ KWAnalysisSpecView::KWAnalysisSpecView()
 	GetFieldAt("RecodersSpec")->SetShortCut('O');
 	GetFieldAt("PreprocessingSpec")->SetShortCut('G');
 	GetFieldAt("SystemParameters")->SetShortCut('S');
+	GetFieldAt("CrashTestParameters")->SetShortCut('C');
 
 	// ##
 }
@@ -254,6 +258,9 @@ void KWAnalysisSpecView::SetObject(Object* object)
 	// On lui passe neanmoins en parametre un objet quelconque non NUL pour forcer les mises a jour
 	// entre donnees et interface
 	cast(KWSystemParametersView*, GetFieldAt("SystemParameters"))->SetObject(object);
+
+	// Idem pour les parametre de crash test
+	cast(KWCrashTestParametersView*, GetFieldAt("CrashTestParameters"))->SetObject(object);
 
 	// Memorisation de l'objet pour la fiche courante
 	UIObjectView::SetObject(object);

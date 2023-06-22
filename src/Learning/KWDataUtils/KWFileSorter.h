@@ -146,4 +146,10 @@ protected:
 	// Taille maximale d'un chunk pour qu'il tienne en memoire
 	// C'est la taille des CharVector : 2 Go - 1
 	static const longint lChunkSizeLimit;
+
+	// Pour la taille de chunk qui est calculee (censee etre optimale), on essaye de construire des chunks
+	// plus petits. Car avec l'alogo de DeWitt on n'est pas certain d'avoir des chunks de la bonen taille et
+	// en cas de depassement, il faut redecouper les chunks ce qui est couteux, on prefere donc avoir des chunks
+	// plus petits, sans appeler SplitDatabase plusieurs fois.
+	const double dDeWittRatio = 0.8;
 };

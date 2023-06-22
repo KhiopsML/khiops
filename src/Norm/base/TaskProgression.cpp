@@ -100,22 +100,33 @@ boolean TaskProgression::IsInterruptionRequested()
 		}
 
 		// Test d'interruption utilisateur
-		DifferedStart();
-		if (bIsManagerStarted)
+		// Si le TaskProgressionManager courant est reactif, on test immediatement si il
+		// y a interruption. Dans le cas contraire (i.e. java), on temporise pour ne pas tester
+		// trop souvent.
+		if (currentManager->IsInterruptionResponsive())
 		{
-			tTime = clock();
-			dElapsedTime = ((double)(tTime - tLastInterruptionTest)) / CLOCKS_PER_SEC;
-			if (tLastInterruptionTest == 0 or dElapsedTime > dMinElapsedTime)
+			bIsInterruptionRequested = currentManager->IsInterruptionRequested();
+			return bIsInterruptionRequested;
+		}
+		else
+		{
+			DifferedStart();
+			if (bIsManagerStarted)
 			{
-				tLastInterruptionTest = tTime;
-				bIsInterruptionRequested = currentManager->IsInterruptionRequested();
-				return bIsInterruptionRequested;
+				tTime = clock();
+				dElapsedTime = ((double)(tTime - tLastInterruptionTest)) / CLOCKS_PER_SEC;
+				if (tLastInterruptionTest == 0 or dElapsedTime > dMinElapsedTime)
+				{
+					tLastInterruptionTest = tTime;
+					bIsInterruptionRequested = currentManager->IsInterruptionRequested();
+					return bIsInterruptionRequested;
+				}
+				else
+					return false;
 			}
 			else
 				return false;
 		}
-		else
-			return false;
 	}
 	else
 		return false;
@@ -579,4 +590,9 @@ void TaskProgression::Test()
 	// Message sur le taux de progression final
 	Global::AddSimpleMessage(sTmp +
 				 "Pourcentage effectue: " + IntToString(int(nOuterLoop * 100.0 / nMaxOuterLoop)) + "%");
+}
+
+void TaskProgression::ForceInterruptionRequested()
+{
+	bIsInterruptionRequested = true;
 }

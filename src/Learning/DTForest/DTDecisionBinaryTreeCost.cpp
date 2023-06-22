@@ -70,7 +70,6 @@ double DTDecisionBinaryTreeCost::ComputeTotalTreeCost(DTDecisionTree* tree)
 
 double DTDecisionBinaryTreeCost::ComputeTreeConstructionCost(DTDecisionTree* tree)
 {
-
 	DoubleVector dvCost;
 	POSITION position;
 	Object* object;

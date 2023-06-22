@@ -6,6 +6,7 @@
 
 #include "Object.h"
 #include "KDConstructionDomain.h"
+#include "KDTextFeatureSpec.h"
 #include "KDDataPreparationAttributeCreationTask.h"
 #include "KWAttributePairsSpec.h"
 
@@ -34,6 +35,10 @@ public:
 	int GetMaxConstructedAttributeNumber() const;
 	void SetMaxConstructedAttributeNumber(int nValue);
 
+	// Max number of text features
+	int GetMaxTextFeatureNumber() const;
+	void SetMaxTextFeatureNumber(int nValue);
+
 	// Max number of trees
 	int GetMaxTreeNumber() const;
 	void SetMaxTreeNumber(int nValue);
@@ -45,6 +50,9 @@ public:
 	// Parametres de construction de variables
 	KDConstructionDomain* GetConstructionDomain();
 
+	// Parametres des variables de type texte
+	KDTextFeatureSpec* GetTextFeatureSpec();
+
 	// Parametres de creation de variables (eg trees)
 	// Peut renvoyer NULL
 	KDDataPreparationAttributeCreationTask* GetAttributeCreationParameters();
@@ -53,11 +61,12 @@ public:
 	KWAttributePairsSpec* GetAttributePairsSpec();
 
 	// Parametrage des familles de construction de variable dans les learningSpec
-	// On parametre les famille non seulement specifiees, mais egalement effectiveent utilisables
-	// Pour la construction multi-table, cela necessite un parametre specifique
+	// On parametre les familles non seulement specifiees, mais egalement effectivement utilisables
+	// Pour la construction multi-table ou texte cela necessite un parametre specifique
 	// Sinon, il suffit qu'il y ait au moins deux variables (construites ou non) pour les arbres ou les paires
 	void SpecifyLearningSpecConstructionFamilies(KWLearningSpec* learningSpec,
-						     boolean bIsMultiTableConstructionPossible);
+						     boolean bIsMultiTableConstructionPossible,
+						     boolean bIsTextConstructionPossible);
 
 #ifdef DEPRECATED_V10
 	// Only pairs with variable (deprecated)
@@ -83,8 +92,11 @@ public:
 	void WriteHeaderLineReport(ostream& ost);
 	void WriteLineReport(ostream& ost);
 
-	// Borne du nombre max de variables construite
+	// Borne du nombre max de variables construites
 	static const int nLargestMaxConstructedAttributeNumber = 100000;
+
+	// Borne du nombre max de variables de type texte
+	static const int nLargestMaxTextFeatureNumber = 200000;
 
 	// Borne du nombre max d'arbres
 	static const int nLargestMaxTreeNumber = 1000;
@@ -104,10 +116,14 @@ public:
 protected:
 	// Attributs de la classe
 	int nMaxConstructedAttributeNumber;
+	int nMaxTextFeatureNumber;
 	int nMaxTreeNumber;
 
 	// Parametres de construction de variable
 	KDConstructionDomain constructionDomain;
+
+	// Parametres des variables de type texte
+	KDTextFeatureSpec textFeatureSpec;
 
 	// Parametres de creation de variable (eg trees)
 	KDDataPreparationAttributeCreationTask* attributeCreationTask;
@@ -140,6 +156,16 @@ inline int KWAttributeConstructionSpec::GetMaxConstructedAttributeNumber() const
 inline void KWAttributeConstructionSpec::SetMaxConstructedAttributeNumber(int nValue)
 {
 	nMaxConstructedAttributeNumber = nValue;
+}
+
+inline int KWAttributeConstructionSpec::GetMaxTextFeatureNumber() const
+{
+	return nMaxTextFeatureNumber;
+}
+
+inline void KWAttributeConstructionSpec::SetMaxTextFeatureNumber(int nValue)
+{
+	nMaxTextFeatureNumber = nValue;
 }
 
 inline int KWAttributeConstructionSpec::GetMaxTreeNumber() const

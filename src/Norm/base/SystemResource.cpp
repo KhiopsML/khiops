@@ -477,6 +477,11 @@ const char* GetMachineGUID()
 	return res;
 }
 
+int GetMaxOpenedFileNumber()
+{
+	return _getmaxstdio();
+}
+
 #endif // defined _MSC_VER || defined __MSVCRT_VERSION__
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -864,7 +869,7 @@ longint MemGetFreePhysicalMemory()
 	if (pagesize == -1 or pagepurge == -1 or pagefree == -1)
 		return 0;
 	return pagesize * (pagepurge + pagefree);
-#else  // __APPLE__
+#else  // __APPLE_
        // Lecture du fichier /proc/meminfo pour extraire la memoire dispoible et la memoire en cache
        // On additionne la memoire disponible et 80% de la memoire cache (borne a 2Go)
 	FILE* file;
@@ -1279,4 +1284,10 @@ const char* GetMachineGUID()
 #endif // __APPLE__
 }
 
+int GetMaxOpenedFileNumber()
+{
+	struct rlimit lim;
+	getrlimit(RLIMIT_NOFILE, &lim);
+	return lim.rlim_cur;
+}
 #endif // __UNIX__

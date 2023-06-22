@@ -5,105 +5,98 @@
 #include "PLRemoteFileService.h"
 
 int PLRemoteFileService::nFileHdfsIndex = 0;
+boolean PLRemoteFileService::bRemoteIsNeverLocal = true;
 
-boolean PLRemoteFileService::Exist(const ALString& sFileURI)
+boolean PLRemoteFileService::FileExists(const ALString& sFileURI)
 {
-	BufferedFileDriver* bufferedfileDriver;
-	boolean bExists;
-	bExists = false;
-	if (BufferedFile::GetFileDriverCreator()->IsLocal(sFileURI))
-	{
-		bExists = SystemFile::Exist(sFileURI);
-	}
+	ALString sLocalFileName;
+	SystemFile fileHandle;
+
+	// Si c'est un fichier remote sur le localhost, on extrait le path pour le traiter en  ficher local
+	if (PLRemoteFileService::RemoteIsLocal(sFileURI))
+		sLocalFileName = FileService::GetURIFilePathName(sFileURI);
 	else
-	{
-		bufferedfileDriver = BufferedFile::GetFileDriverCreator()->CreateBufferedFileDriver(sFileURI, NULL);
-		if (bufferedfileDriver != NULL)
-		{
-			bExists = bufferedfileDriver->Exist(sFileURI);
-			delete bufferedfileDriver;
-		}
-	}
-	return bExists;
+		sLocalFileName = sFileURI;
+
+	return fileHandle.FileExists(sLocalFileName);
+}
+
+boolean PLRemoteFileService::DirExists(const ALString& sFileURI)
+{
+	ALString sLocalFileName;
+	SystemFile fileHandle;
+
+	// Si c'est un fichier remote sur le localhost, on extrait le path pour le traiter en  ficher local
+	if (PLRemoteFileService::RemoteIsLocal(sFileURI))
+		sLocalFileName = FileService::GetURIFilePathName(sFileURI);
+	else
+		sLocalFileName = sFileURI;
+
+	return fileHandle.DirExists(sLocalFileName);
 }
 
 longint PLRemoteFileService::GetFileSize(const ALString& sFileURI)
 {
-	BufferedFileDriver* bufferedfileDriver;
-	longint lFileSize;
+	ALString sLocalFileName;
+	SystemFile fileHandle;
 
-	lFileSize = 0;
-	if (BufferedFile::GetFileDriverCreator()->IsLocal(sFileURI))
-	{
-		lFileSize = SystemFile::GetFileSize(sFileURI);
-	}
+	// Si c'est un fichier remote sur le localhost, on extrait le path pour le traiter en  ficher local
+	if (PLRemoteFileService::RemoteIsLocal(sFileURI))
+		sLocalFileName = FileService::GetURIFilePathName(sFileURI);
 	else
-	{
-		bufferedfileDriver =
-		    InputBufferedFile::GetFileDriverCreator()->CreateBufferedFileDriver(sFileURI, NULL);
-		if (bufferedfileDriver != NULL)
-		{
-			lFileSize = bufferedfileDriver->GetFileSize(sFileURI);
-			delete bufferedfileDriver;
-		}
-	}
-	return lFileSize;
+		sLocalFileName = sFileURI;
+
+	return fileHandle.GetFileSize(sLocalFileName);
 }
 
 boolean PLRemoteFileService::RemoveFile(const ALString& sFileURI)
 {
-	BufferedFileDriver* bufferedfileDriver;
-	boolean bOk;
-	ALString sScheme;
+	ALString sLocalFileName;
+	SystemFile fileHandle;
 
-	bOk = false;
-	if (BufferedFile::GetFileDriverCreator()->IsLocal(sFileURI))
-	{
-
-		bOk = SystemFile::RemoveFile(sFileURI);
-	}
+	// Si c'est un fichier remote sur le localhost, on extrait le path pour le traiter en  ficher local
+	if (PLRemoteFileService::RemoteIsLocal(sFileURI))
+		sLocalFileName = FileService::GetURIFilePathName(sFileURI);
 	else
-	{
-		bufferedfileDriver = BufferedFile::GetFileDriverCreator()->CreateBufferedFileDriver(sFileURI, NULL);
-		if (bufferedfileDriver != NULL)
-		{
-			bOk = bufferedfileDriver->RemoveFile(sFileURI);
-			delete bufferedfileDriver;
-		}
-	}
-	return bOk;
+		sLocalFileName = sFileURI;
+
+	return fileHandle.RemoveFile(sLocalFileName);
 }
 
 boolean PLRemoteFileService::CopyFile(const ALString& sSourceURI, const ALString& sDestPath)
 {
 	boolean bOk = false;
-	BufferedFileDriver* bufferedFileDriver;
+	boolean bIsSourceANSI;
+	boolean bIsDestANSI;
 
 	// Le cas fichier distant en destination n'est pas traite
 	assert(FileService::GetURIScheme(sDestPath) != FileService::sRemoteScheme);
+	bIsSourceANSI = false;
+	bIsDestANSI = false;
 
-	if (BufferedFile::GetFileDriverCreator()->IsLocal(sSourceURI))
+	if (RemoteIsLocal(sSourceURI) or FileService::GetURIScheme(sSourceURI) == "")
+		bIsSourceANSI = true;
+
+	if (RemoteIsLocal(sDestPath) or FileService::GetURIScheme(sDestPath) == "")
+		bIsDestANSI = true;
+
+	// Pour les copie vers ou depuis ANSI, on utilise les methodes implementees dans les drivers
+	if (bIsSourceANSI and not bIsDestANSI)
 	{
-		// Le fichier source est local ou distant avec un host local
-		if (FileService::GetURIScheme(sSourceURI) == FileService::sRemoteScheme)
-		{
-			assert(FileService::GetURIHostName(sSourceURI) == GetLocalHostName());
-			bOk = CopyFileLocal(FileService::GetURIFilePathName(sSourceURI), sDestPath);
-		}
-		else
-		{
-			bOk = CopyFileLocal(sSourceURI, sDestPath);
-		}
+		// ANSI vers HDFS
+		bOk = SystemFile::CopyFileFromLocal(FileService::GetURIFilePathName(sSourceURI), sDestPath);
 	}
 	else
 	{
-		// Le fichier source est distant
-		assert(FileService::GetURIScheme(sSourceURI) == FileService::sRemoteScheme);
-		bufferedFileDriver = BufferedFile::GetFileDriverCreator()->CreateBufferedFileDriver(sSourceURI, NULL);
-		if (bufferedFileDriver != NULL)
+		if (not bIsSourceANSI and bIsDestANSI)
 		{
-			bOk = bufferedFileDriver->CopyFile(sSourceURI, sDestPath);
-			delete bufferedFileDriver;
+			// HDFS vers ANSI
+			bOk = SystemFile::CopyFileToLocal(sSourceURI, FileService::GetURIFilePathName(sDestPath));
+		}
+		else
+		{
+			// Cas generique : copie de HDFS vers S3, REMOTE vers HDFS, REMOTE vers ANSI
+			bOk = CopyFileGeneric(sSourceURI, sDestPath);
 		}
 	}
 	return bOk;
@@ -111,102 +104,61 @@ boolean PLRemoteFileService::CopyFile(const ALString& sSourceURI, const ALString
 
 boolean PLRemoteFileService::CreateEmptyFile(const ALString& sFilePathName)
 {
-	BufferedFileDriver* bufferedfileDriver;
-
-	boolean bOk = false;
-
-	if (BufferedFile::GetFileDriverCreator()->IsLocal(sFilePathName))
-	{
-		bOk = SystemFile::CreateEmptyFile(sFilePathName);
-	}
-	else
-	{
-		bufferedfileDriver =
-		    BufferedFile::GetFileDriverCreator()->CreateBufferedFileDriver(sFilePathName, NULL);
-		if (bufferedfileDriver != NULL)
-		{
-			bOk = bufferedfileDriver->CreateEmptyFile(sFilePathName);
-			delete bufferedfileDriver;
-		}
-	}
-	return bOk;
+	return SystemFile::CreateEmptyFile(sFilePathName);
 }
 
 boolean PLRemoteFileService::MakeDirectory(const ALString& sPathName)
 {
-	BufferedFileDriver* bufferedfileDriver;
-	boolean bOk = false;
-
-	if (BufferedFile::GetFileDriverCreator()->IsLocal(sPathName))
-	{
-		bOk = SystemFile::MakeDirectory(sPathName);
-	}
-	else
-	{
-		bufferedfileDriver = BufferedFile::GetFileDriverCreator()->CreateBufferedFileDriver(sPathName, NULL);
-		if (bufferedfileDriver != NULL)
-		{
-			bOk = bufferedfileDriver->MakeDirectory(sPathName);
-			delete bufferedfileDriver;
-		}
-	}
-	return bOk;
+	return SystemFile::MakeDirectory(sPathName);
 }
 
 boolean PLRemoteFileService::MakeDirectories(const ALString& sPathName)
 {
-	BufferedFileDriver* bufferedfileDriver;
-	boolean bOk = false;
-
-	if (BufferedFile::GetFileDriverCreator()->IsLocal(sPathName))
-	{
-		bOk = SystemFile::MakeDirectories(sPathName);
-	}
-	else
-	{
-		bufferedfileDriver = BufferedFile::GetFileDriverCreator()->CreateBufferedFileDriver(sPathName, NULL);
-		if (bufferedfileDriver != NULL)
-		{
-			bOk = bufferedfileDriver->MakeDirectories(sPathName);
-			delete bufferedfileDriver;
-		}
-	}
-	return bOk;
+	return SystemFile::MakeDirectories(sPathName);
 }
 
 longint PLRemoteFileService::GetDiskFreeSpace(const ALString& sPathName)
 {
-	BufferedFileDriver* bufferedfileDriver;
-	longint lFreeSpace;
+	return SystemFile::GetDiskFreeSpace(sPathName);
+}
 
-	lFreeSpace = 0;
-	if (BufferedFile::GetFileDriverCreator()->IsLocal(sPathName))
-	{
-		lFreeSpace = SystemFile::GetDiskFreeSpace(sPathName);
-	}
+int PLRemoteFileService::GetPreferredBufferSize(const ALString& sFileURI)
+{
+	SystemFileDriver* driver;
+	ALString sLocalFileName;
+	longint lPreferredSize;
+
+	// Si c'est un fichier remote sur le localhost, on extrait le path pour le traiter en  ficher local
+	if (PLRemoteFileService::RemoteIsLocal(sFileURI))
+		sLocalFileName = FileService::GetURIFilePathName(sFileURI);
+	else
+		sLocalFileName = sFileURI;
+
+	driver = SystemFileDriverCreator::LookupDriver(sLocalFileName, NULL);
+	if (driver == NULL)
+		return SystemFile::nDefaultPreferredBufferSize;
 	else
 	{
-		bufferedfileDriver = BufferedFile::GetFileDriverCreator()->CreateBufferedFileDriver(sPathName, NULL);
-		if (bufferedfileDriver != NULL)
-		{
-			lFreeSpace = bufferedfileDriver->GetDiskFreeSpace(sPathName);
-			delete bufferedfileDriver;
-		}
+		lPreferredSize = driver->GetSystemPreferredBufferSize();
+
+		// On borne par les min et max
+		lPreferredSize = min(lPreferredSize, (longint)SystemFile::nMaxPreferredBufferSize);
+		lPreferredSize = max(lPreferredSize, (longint)SystemFile::nMinPreferredBufferSize);
+		return (int)lPreferredSize;
 	}
-	return lFreeSpace;
 }
 
 boolean PLRemoteFileService::BuildOutputWorkingFile(const ALString& sPathName, ALString& sWorkingFileName)
 {
 	ALString sTmpDir;
 	boolean bOk = true;
-	ALString sCheme;
+	ALString sScheme;
 	ALString sFileName;
 
-	sCheme = FileService::GetURIScheme(sPathName);
+	sScheme = FileService::GetURIScheme(sPathName);
 
 	// Si le fichier est sur hdfs, on le cree d'abord en local et on le copiera ensuite sur HDFS
-	if (sCheme != FileService::sRemoteScheme and sCheme != "")
+	if (sScheme != FileService::sRemoteScheme and sScheme != "")
 	{
 		// On n'utilise pas forcement le repertoire applicatif car il n'a pas encore ete renseigne par
 		// l'utilisateur
@@ -298,118 +250,173 @@ void PLRemoteFileService::CleanInputWorkingFile(const ALString& sPathName, ALStr
 	sWorkingFileName = "";
 }
 
-boolean PLRemoteFileService::TestCount(const ALString& sFileURI, int nBufferSize)
+boolean PLRemoteFileService::RemoteIsLocal(const ALString& sURI)
 {
-	InputBufferedFile inputFile;
-	boolean bOk;
-	longint lBeginPos;
-	longint lLinesCountWithNextField;
-	longint lLinesCountWithBuffer;
-	longint lLinesCountNumberWithSkip;
-	boolean bEol;
-	char* sField;
-	int nFieldLength;
-	int nFieldError;
+	ALString sScheme;
+	boolean bIsLocal;
+	sScheme = FileService::GetURIScheme(sURI);
 
-	lLinesCountNumberWithSkip = 0;
-	lLinesCountWithNextField = 0;
-	lLinesCountWithBuffer = 0;
+	bIsLocal = false;
 
-	cout << "File name " << sFileURI << endl;
-	cout << "Exist " << PLRemoteFileService::Exist(sFileURI) << endl;
-	cout << "File size " << PLRemoteFileService::GetFileSize(sFileURI) << endl;
-
-	inputFile.SetFileName(sFileURI);
-	assert(nBufferSize > 0);
-	cout << "Buffer Size " << LongintToHumanReadableString(nBufferSize) << endl;
-	inputFile.SetBufferSize(nBufferSize);
-	bOk = inputFile.Open();
-	if (bOk)
+	// Si le scheme est file://
+	if (sScheme == FileService::sRemoteScheme)
 	{
-
-		assert(inputFile.IsOpened());
-		cout << "Input file size " << inputFile.GetFileSize() << endl;
-		lBeginPos = 0;
-		while (not inputFile.IsLastBuffer())
+		// Si le driver distant est present
+		if (SystemFileDriverCreator::IsDriverRegisteredForScheme(FileService::sRemoteScheme))
 		{
-			// Lecture d'un buffer
-			inputFile.Fill(lBeginPos);
-			lBeginPos += nBufferSize;
-			if (inputFile.GetBufferSkippedLine())
-				lLinesCountWithNextField++;
-			lLinesCountWithBuffer += inputFile.GetBufferLineNumber();
-
-			// Analyse du buffer
-			while (not inputFile.IsBufferEnd())
-			{
-				bEol = false;
-				int nField = 0;
-				while (not bEol)
-				{
-					bEol = inputFile.GetNextField(sField, nFieldLength, nFieldError);
-					nField++;
-				}
-				cout << "# fields " << nField << endl;
-				lLinesCountWithNextField++;
-			}
+			// on bypasse le driver si le fichier est sur le host courant
+			// (sauf si la constante bRemoteIsNeverLocal est a true)
+			if (not bRemoteIsNeverLocal and FileService::GetURIHostName(sURI) == GetLocalHostName())
+				bIsLocal = true;
 		}
-		assert(inputFile.IsLastBuffer());
-		// Fermeture
-		inputFile.Close();
-	}
-
-	inputFile.SetBufferSize(nBufferSize);
-	inputFile.Open();
-	lLinesCountNumberWithSkip = 0;
-	if (inputFile.IsOpened())
-	{
-		lBeginPos = 0;
-		while (not inputFile.IsLastBuffer())
+		else
 		{
-			// Lecture d'un buffer
-			inputFile.Fill(lBeginPos);
-			lBeginPos += nBufferSize;
-			if (inputFile.GetBufferSkippedLine())
-				lLinesCountNumberWithSkip++;
-
-			// Analyse du buffer
-			while (not inputFile.IsBufferEnd())
-			{
-				inputFile.SkipLine();
-				lLinesCountNumberWithSkip++;
-			}
+			// Si le driver n'est pas present, si le fichier est sur le host courant, il faut passer par le
+			// driver ANSI
+			if (FileService::GetURIHostName(sURI) == GetLocalHostName())
+				bIsLocal = true;
 		}
-		assert(inputFile.IsLastBuffer());
-
-		// Fermeture
-		inputFile.Close();
 	}
-
-	cout << "lLinesCountNumberWithSkip " << lLinesCountNumberWithSkip << endl;
-	cout << "lLinesCountWithNextField " << lLinesCountWithNextField << endl;
-	cout << "lLinesCountWithBuffer " << lLinesCountWithBuffer << endl;
-	cout << endl;
-	bOk =
-	    lLinesCountNumberWithSkip == lLinesCountWithNextField and lLinesCountWithNextField == lLinesCountWithBuffer;
-	return bOk;
+	return bIsLocal;
 }
 
-boolean PLRemoteFileService::CopyFileLocal(const ALString& sSourceURI, const ALString& sDestURI)
+void PLRemoteFileService::SetRemoteIsNeverLocal(boolean bValue)
 {
+	bRemoteIsNeverLocal = bValue;
+}
+
+boolean PLRemoteFileService::GetRemoteIsNeverLocal()
+{
+	return bRemoteIsNeverLocal;
+}
+
+boolean PLRemoteFileService::FileCompare(const ALString& sFileName1, const ALString& sFileName2)
+{
+	SystemFile fileHandle1;
+	SystemFile fileHandle2;
+	longint lFileSize;
+	longint lPos;
+	char c1;
+	char c2;
+	boolean bSame;
 	boolean bOk;
-	assert(FileService::GetURIScheme(sDestURI) != FileService::sRemoteScheme);
-	assert(FileService::GetURIScheme(sSourceURI) != FileService::sRemoteScheme);
+	char* sBuffer1;
+	char* sBuffer2;
+	const int nBufferSize = 8 * lMB;
+	int i;
+	longint lRead1;
+	longint lRead2;
 
-	if (FileService::GetURIScheme(sSourceURI) != "")
+	require(PLRemoteFileService::FileExists(sFileName1));
+	require(PLRemoteFileService::FileExists(sFileName2));
+
+	// Test sur la taille
+	lFileSize = PLRemoteFileService::GetFileSize(sFileName1);
+	if (PLRemoteFileService::GetFileSize(sFileName2) != lFileSize)
+		return false;
+
+	///////////////////////////////////////
+	// Test caractere par caractere
+
+	// Ouverture des fichiers
+	bOk = fileHandle1.OpenInputFile(sFileName1);
+	if (bOk)
 	{
-		// Fichier source sur hdfs
-		bOk = SystemFile::CopyFileToLocal(sSourceURI, sDestURI);
-	}
-	else
-	{
-		// Fichier destination sur hdfs
-		bOk = SystemFile::CopyFileFromLocal(sSourceURI, sDestURI);
+		bOk = fileHandle2.OpenInputFile(sFileName2);
+		if (not bOk)
+			fileHandle2.CloseInputFile(sFileName2);
 	}
 
+	// Comparaison
+	bSame = bOk;
+	if (bSame)
+	{
+		sBuffer1 = new char[nBufferSize];
+		sBuffer2 = new char[nBufferSize];
+
+		lPos = 0;
+		// On parcours tout le fichier, sans se baser sur feof
+		// En cas d'erreur, on est ainsi sur de s'arreter sur
+		// le premier fichier en erreur (fgetc retourne EOF),
+		// et au pire, on arrete apres la taille du fichier
+		while (lPos < lFileSize)
+		{
+			lRead1 = fileHandle1.Read(sBuffer1, 1, nBufferSize);
+			lRead2 = fileHandle2.Read(sBuffer2, 1, nBufferSize);
+			ensure(lRead1 == lRead2);
+			lPos += lRead1;
+			for (i = 0; i < lRead1; i++)
+			{
+				c1 = sBuffer1[i];
+				c2 = sBuffer2[i];
+				if (c1 != c2)
+				{
+					bSame = false;
+					break;
+				}
+			}
+		}
+		delete[] sBuffer1;
+		delete[] sBuffer2;
+	}
+
+	// Fermeture des fichiers
+	fileHandle1.CloseInputFile(sFileName1);
+	fileHandle2.CloseInputFile(sFileName2);
+
+	return bSame;
+}
+
+boolean PLRemoteFileService::CopyFileGeneric(const ALString& sSourceURI, const ALString& sDestURI)
+{
+	SystemFile fileInput;
+	SystemFile fileOutput;
+	char* sBuffer;
+	int nRead;
+	int nWrite;
+	const int nBufferSize = 8 * lMB; // TODO adapter la taille du buffer en fonction du preferedSize
+	ALString sTmp;
+	boolean bOk;
+
+	errno = 0;
+	bOk = fileInput.OpenInputFile(sSourceURI);
+	if (bOk)
+	{
+		bOk = fileOutput.OpenOutputFile(sDestURI);
+		if (bOk)
+		{
+			sBuffer = GetHugeBuffer(8 * lMB);
+			nRead = nBufferSize;
+			while (nRead == nBufferSize)
+			{
+				nRead = (int)fileInput.Read(sBuffer, 1, nBufferSize);
+				if (nRead == 0 and errno != 0)
+					Global::AddError("File", sSourceURI,
+							 sTmp + "Unable to read file (" +
+							     fileInput.GetLastErrorMessage() + ")");
+
+				if (nRead != 0)
+				{
+					nWrite = (int)fileOutput.Write(sBuffer, 1, nRead);
+					if (nWrite == 0)
+					{
+						Global::AddError("File", sDestURI,
+								 sTmp + "Unable to write file (" +
+								     fileOutput.GetLastErrorMessage() + ")");
+						bOk = false;
+						break;
+					}
+				}
+			}
+			if (not fileOutput.CloseOutputFile(sDestURI))
+			{
+				bOk = false;
+				Global::AddError("File", sDestURI,
+						 sTmp + "Unable to close file (" + fileOutput.GetLastErrorMessage() +
+						     ")");
+			}
+		}
+		fileInput.CloseInputFile(sSourceURI);
+	}
 	return bOk;
 }

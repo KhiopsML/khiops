@@ -299,7 +299,7 @@ void KWPredictorEvaluator::EvaluatePredictorSpecs()
 	if (bOk)
 	{
 		sOutputPathName = FileService::GetPathName(GetEvaluationFilePathName());
-		if (sOutputPathName != "" and not FileService::Exist(sOutputPathName))
+		if (sOutputPathName != "" and not FileService::DirExists(sOutputPathName))
 		{
 			bOk = FileService::MakeDirectories(sOutputPathName);
 			if (not bOk)
@@ -328,10 +328,11 @@ void KWPredictorEvaluator::EvaluatePredictorSpecs()
 	oaEvaluatedTrainedPredictors.DeleteAll();
 }
 
-void KWPredictorEvaluator::EvaluatePredictors(ObjectArray* oaPredictors, KWDatabase* database,
-					      const ALString& sEvaluationLabel,
-					      ObjectArray* oaOutputPredictorEvaluations)
+boolean KWPredictorEvaluator::EvaluatePredictors(ObjectArray* oaPredictors, KWDatabase* database,
+						 const ALString& sEvaluationLabel,
+						 ObjectArray* oaOutputPredictorEvaluations)
 {
+	boolean bOk = true;
 	ALString sLowerEvaluationLabel;
 	KWPredictor* predictor;
 	KWPredictorEvaluation* predictorEvaluation;
@@ -359,7 +360,8 @@ void KWPredictorEvaluator::EvaluatePredictors(ObjectArray* oaPredictors, KWDatab
 	}
 
 	// Ecriture du rapport d'evaluation
-	if (bComputeEvaluation and not TaskProgression::IsInterruptionRequested())
+	bOk = bComputeEvaluation and not TaskProgression::IsInterruptionRequested();
+	if (bOk)
 	{
 		// Suivi de tache
 		TaskProgression::BeginTask();
@@ -379,13 +381,18 @@ void KWPredictorEvaluator::EvaluatePredictors(ObjectArray* oaPredictors, KWDatab
 				predictorEvaluation = EvaluatePredictor(predictor, database, sEvaluationLabel);
 				if (not TaskProgression::IsInterruptionRequested() and predictorEvaluation != NULL)
 					oaOutputPredictorEvaluations->Add(predictorEvaluation);
-				else if (predictorEvaluation != NULL)
-					delete predictorEvaluation;
+				else
+				{
+					bOk = false;
+					if (predictorEvaluation != NULL)
+						delete predictorEvaluation;
+				}
 			}
 
 			// Suivi de progression
 			TaskProgression::DisplayProgression(((i + 1) * 100) / oaPredictors->GetSize());
-			if (TaskProgression::IsInterruptionRequested())
+			bOk = bOk and not TaskProgression::IsInterruptionRequested();
+			if (not bOk)
 				break;
 		}
 		assert(oaPredictors->GetSize() >= oaOutputPredictorEvaluations->GetSize());
@@ -396,6 +403,7 @@ void KWPredictorEvaluator::EvaluatePredictors(ObjectArray* oaPredictors, KWDatab
 		    sTmp + "Evaluated predictors: " + IntToString(oaOutputPredictorEvaluations->GetSize()));
 		TaskProgression::EndTask();
 	}
+	return bOk;
 }
 
 void KWPredictorEvaluator::WriteEvaluationReport(const ALString& sEvaluationReportName,
@@ -418,7 +426,7 @@ void KWPredictorEvaluator::WriteEvaluationReport(const ALString& sEvaluationRepo
 	// Pour etre compatible avec les fichiers de rapport existant, qui sont en read-only
 	if (FileService::GetURIScheme(sEvaluationReportName) == "")
 	{
-		if (FileService::Exist(sEvaluationReportName))
+		if (FileService::FileExists(sEvaluationReportName))
 			FileService::SetFileMode(sEvaluationReportName, false);
 	}
 
@@ -431,7 +439,6 @@ void KWPredictorEvaluator::WriteEvaluationReport(const ALString& sEvaluationRepo
 		    "", "", sEvaluationLabel + " evaluation report is not written since no predictor was evaluated");
 	else
 	{
-		AddSimpleMessage("Write " + sLowerEvaluationLabel + " evaluation report " + sEvaluationReportName);
 		predictorEvaluation = cast(KWPredictorEvaluation*, oaPredictorEvaluations->GetAt(0));
 		predictorEvaluation->WriteFullReportFile(sEvaluationReportName, sEvaluationLabel,
 							 oaPredictorEvaluations);
@@ -464,9 +471,11 @@ void KWPredictorEvaluator::WriteJSONReport(const ALString& sJSONReportName, cons
 				   sEvaluationLabel + " JSON report is not written since no predictor was evaluated");
 	else
 	{
-		AddSimpleMessage("Write " + sLowerEvaluationLabel + " JSON report " + sJSONReportName);
 		predictorEvaluation = cast(KWPredictorEvaluation*, oaPredictorEvaluations->GetAt(0));
 		predictorEvaluation->WriteFullReportFile(sJSONReportName, sEvaluationLabel, oaPredictorEvaluations);
+
+		// Message synthetique
+		AddSimpleMessage("Write " + sLowerEvaluationLabel + " evaluation report " + sJSONReportName);
 
 		// Ouverture du fichier JSON
 		fJSON.SetFileName(sJSONReportName);

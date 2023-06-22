@@ -802,12 +802,10 @@ longint SNBDataTableBinarySliceSetSchema::GetUsedMemory() const
 
 longint SNBDataTableBinarySliceSetSchema::ComputeNecessaryMemory(KWClassStats* classStats)
 {
-	int nAttribute;
 	longint lSchemaMemory;
-	ObjectArray* oaAllAttributeStats;
-	ObjectArray* oaAllAttributePairStats;
-	KWAttributeStats* attributeStats;
-	KWAttributePairStats* attributePairStats;
+	ObjectArray* oaAllPreparedStats;
+	int nAttribute;
+	KWDataPreparationStats* dataPreparationStats;
 	longint lTargetValueNumber;
 	longint lSourceValueNumber;
 	longint lCellNumber;
@@ -819,48 +817,27 @@ longint SNBDataTableBinarySliceSetSchema::ComputeNecessaryMemory(KWClassStats* c
 	lSchemaMemory = sizeof(SNBDataTableBinarySliceSetSchema);
 
 	// Memoire des noms des attributs et des contenus des tables de probabilites pour les attributs informatifs
-	oaAllAttributeStats = classStats->GetAttributeStats();
-	for (nAttribute = 0; nAttribute < oaAllAttributeStats->GetSize(); nAttribute++)
+	oaAllPreparedStats = classStats->GetAllPreparedStats();
+	for (nAttribute = 0; nAttribute < oaAllPreparedStats->GetSize(); nAttribute++)
 	{
-		attributeStats = cast(KWAttributeStats*, oaAllAttributeStats->GetAt(nAttribute));
+		dataPreparationStats = cast(KWDataPreparationStats*, oaAllPreparedStats->GetAt(nAttribute));
 
-		if (attributeStats->GetLevel() > 0)
+		if (dataPreparationStats->IsInformative())
 		{
-			lSourceValueNumber = attributeStats->GetPreparedDataGridStats()->ComputeSourceGridSize();
-			lTargetValueNumber = attributeStats->GetPreparedDataGridStats()->ComputeTargetGridSize();
+			lSourceValueNumber = dataPreparationStats->GetPreparedDataGridStats()->ComputeSourceGridSize();
+			lTargetValueNumber = dataPreparationStats->GetPreparedDataGridStats()->ComputeTargetGridSize();
 			lCellNumber = lSourceValueNumber * lTargetValueNumber;
 			lSchemaMemory += sizeof(SNBDataTableBinarySliceSetAttribute) +
-					 3 * (attributeStats->GetAttributeName().GetUsedMemory() + lB) +
-					 lSourceValueNumber * sizeof(int) + lTargetValueNumber * sizeof(int) +
-					 lCellNumber * sizeof(Continuous);
-		}
-	}
-
-	// Memoire des noms des attributs et des contenus des tables de probabilites pour les paires d'attributs
-	// informatifs
-	oaAllAttributePairStats = classStats->GetAttributePairStats();
-	for (nAttribute = 0; nAttribute < oaAllAttributePairStats->GetSize(); nAttribute++)
-	{
-		attributePairStats = cast(KWAttributePairStats*, oaAllAttributePairStats->GetAt(nAttribute));
-
-		if (attributePairStats->GetLevel() > 0)
-		{
-			lSourceValueNumber = attributePairStats->GetPreparedDataGridStats()->ComputeSourceGridSize();
-			lTargetValueNumber = attributePairStats->GetPreparedDataGridStats()->ComputeTargetGridSize();
-			lCellNumber = lSourceValueNumber * lTargetValueNumber;
-			lSchemaMemory += sizeof(SNBDataTableBinarySliceSetAttribute) +
-					 3 * (attributePairStats->GetSortName().GetUsedMemory() + lB) +
+					 3 * (dataPreparationStats->GetSortName().GetUsedMemory() + lB) +
 					 lSourceValueNumber * sizeof(int) + lTargetValueNumber * sizeof(int) +
 					 lCellNumber * sizeof(Continuous);
 		}
 	}
 
 	// Memoire des conteneurs des attributs
-	lTotalInformativeAttributeNumber = (longint)classStats->GetInformativeAttributeNumber() +
-					   (longint)classStats->GetInformativeCreatedAttributeNumber();
+	lTotalInformativeAttributeNumber = (longint)classStats->GetTotalInformativeAttributeNumber();
 	lSchemaMemory += lTotalInformativeAttributeNumber *
 			 (dummyArray.GetUsedMemoryPerElement() + 2 * dummyDictionary.GetUsedMemoryPerElement());
-
 	return lSchemaMemory;
 }
 
@@ -1056,7 +1033,8 @@ longint SNBDataTableBinarySliceSetRandomizedAttributeIterator::ComputeNecessaryM
 SNBDataTableBinarySliceSetBuffer::SNBDataTableBinarySliceSetBuffer()
 {
 	layout = NULL;
-	buffer = NewIntArray(nIntBufferSize);
+	// TODO FOR FELIPE: a supprimer
+	// buffer = NewIntArray(nIntBufferSize);
 	fChunkDataFile = NULL;
 	nOpenFileChunkIndex = -1;
 	nLoadedBlockChunkIndex = -1;
@@ -1068,7 +1046,8 @@ SNBDataTableBinarySliceSetBuffer::SNBDataTableBinarySliceSetBuffer()
 SNBDataTableBinarySliceSetBuffer::~SNBDataTableBinarySliceSetBuffer()
 {
 	CleanWorkingData();
-	DeleteIntArray(buffer);
+	// TODO FOR FELIPE: a supprimer
+	// DeleteIntArray(buffer);
 }
 
 void SNBDataTableBinarySliceSetBuffer::SetLayout(const SNBDataTableBinarySliceSetLayout* someLayout)
@@ -1208,6 +1187,10 @@ boolean SNBDataTableBinarySliceSetBuffer::InitializeDataFileAtChunk(int nChunk, 
 	int nAttribute;
 	IntVector* ivAttributeIndexes;
 	KWLoadIndexVector livLoadedRecodedAttributeIndexes;
+	longint lValueNumber;
+	int nRequestedBufferSize;
+	int* buffer;
+	int nIntBufferSize;
 
 	require(0 <= nChunk and nChunk < layout->GetChunkNumber());
 
@@ -1219,6 +1202,20 @@ boolean SNBDataTableBinarySliceSetBuffer::InitializeDataFileAtChunk(int nChunk, 
 	// Ecriture des indices des blocs correspondant au chunk
 	if (bOk)
 	{
+		// TODO FOR FELIPE: a optimiser en fonction de la taille utile ici, et a adapter aux donnees sparse
+		//  Nombre total de valeurs du binary slice set
+		lValueNumber = layout->GetInstanceNumber() * (longint)layout->GetAttributeNumber();
+		nRequestedBufferSize = max((int)BufferedFile::nDefaultBufferSize, GetHugeBufferSize());
+		if (lValueNumber * sizeof(int) < nRequestedBufferSize)
+			nRequestedBufferSize = int(lValueNumber * sizeof(int));
+		assert(nRequestedBufferSize % sizeof(int) == 0);
+
+		// TODO FELIPE
+		//  Demande d'un buffer de grande taille
+		buffer = (int*)GetHugeBuffer(nRequestedBufferSize);
+		nIntBufferSize = nRequestedBufferSize / sizeof(int);
+
+		// Boucle sur les slices pour ecriture du fichier de chunk
 		Global::ActivateErrorFlowControl();
 		nChunkInstanceNumber = layout->GetInstanceNumberAtChunk(nChunk);
 		for (nSlice = 0; nSlice < layout->GetSliceNumber(); nSlice++)
@@ -1226,7 +1223,7 @@ boolean SNBDataTableBinarySliceSetBuffer::InitializeDataFileAtChunk(int nChunk, 
 			// Chargmement en memoire de la slice du binary slice set depuis le slice set
 			bOk = bOk and LoadBlockFromSliceSetAt(nChunk, nSlice, recoderClass, sliceSet, schema);
 
-			// Ecriture colonnaire (trasposee) du bloc vers le fichier binaire du chunk
+			// Ecriture colonnaire (transposee) du bloc vers le fichier binaire du chunk
 			if (bOk)
 			{
 				nBuffer = 0;
@@ -1582,6 +1579,11 @@ boolean SNBDataTableBinarySliceSetBuffer::LoadBlockAt(int nChunk, int nSlice)
 	IntVector* ivAttributeIndexes;
 	longint lReadIndexesNumber;
 	int nIndex;
+	longint lValueNumber;
+	int nRequestedBufferSize;
+	int* buffer;
+	int nIntBufferSize;
+	int nSizeToRead;
 
 	require(0 <= nChunk and nChunk < layout->GetChunkNumber());
 	require(0 <= nSlice and nSlice < layout->GetSliceNumber());
@@ -1598,6 +1600,19 @@ boolean SNBDataTableBinarySliceSetBuffer::LoadBlockAt(int nChunk, int nSlice)
 
 	if (bOk)
 	{
+		// TODO FOR FELIPE: a optimiser en fonction de la taille utile ici, et a adapter aux donnees sparse
+		//  Nombre total de valeurs du binary slice set
+		lValueNumber = layout->GetInstanceNumber() * (longint)layout->GetAttributeNumber();
+		nRequestedBufferSize = max((int)BufferedFile::nDefaultBufferSize, GetHugeBufferSize());
+		if (lValueNumber * sizeof(int) < nRequestedBufferSize)
+			nRequestedBufferSize = int(lValueNumber * sizeof(int));
+		assert(nRequestedBufferSize % sizeof(int) == 0);
+
+		// TODO FELIPE
+		//  Demande d'un buffer de grande taille
+		buffer = (int*)GetHugeBuffer(nRequestedBufferSize);
+		nIntBufferSize = nRequestedBufferSize / sizeof(int);
+
 		// Lecture par colonne du bloc defini par le chunk et la slice
 		nInstance = 0;
 		nAttribute = -1;
@@ -1605,19 +1620,13 @@ boolean SNBDataTableBinarySliceSetBuffer::LoadBlockAt(int nChunk, int nSlice)
 		lRemainingIndexNumber = layout->GetBlockSizeAt(nChunk, nSlice);
 		while (lRemainingIndexNumber > 0 and not ferror(fChunkDataFile) and not feof(fChunkDataFile))
 		{
-			// Lecture des indexes depuis le fichier
-			lReadIndexesNumber = (longint)fread(buffer, sizeof(int), nIntBufferSize, fChunkDataFile);
-
-			// Calcul du nombre de indexes lus qui appartient au bloc
-			// Cas ou on a lu quelques indexes de la slice suivante
-			if (lRemainingIndexNumber < lReadIndexesNumber)
-			{
-				lReadIndexesNumber = lRemainingIndexNumber;
-				lRemainingIndexNumber = 0;
-			}
-			// Cas normal
+			// Lecture selon la taille necessaire, selon que l'on soit arrive ou non a la fin de la slice
+			if (lRemainingIndexNumber >= nIntBufferSize)
+				nSizeToRead = nIntBufferSize;
 			else
-				lRemainingIndexNumber -= lReadIndexesNumber;
+				nSizeToRead = (int)lRemainingIndexNumber;
+			lReadIndexesNumber = (longint)fread(buffer, sizeof(int), nSizeToRead, fChunkDataFile);
+			lRemainingIndexNumber -= lReadIndexesNumber;
 
 			// Transfer des indexes vers les vecteurs du buffer
 			for (nIndex = 0; nIndex < lReadIndexesNumber; nIndex++)
@@ -1855,7 +1864,8 @@ longint SNBDataTableBinarySliceSetBuffer::ComputeNecessaryMemory(int nInstanceNu
 	//   Vecteur de nAttributes KWLoadIndex's (livLoadedRecodedAttributeIndexes dans InitializeDataFileAtChunk) +
 	//   Tableau de nMaxAttributesPerSlice IntVectors de taille nMaxInstancesPerChunk (oaLoadedBlock)
 	return sizeof(SNBDataTableBinarySliceSetBuffer) + sizeof(FILE) +
-	       (longint)SNBDataTableBinarySliceSetBuffer::nIntBufferSize * sizeof(int) +
+	       // TODO FOR FELIPE: a supprimer
+	       //(longint)SNBDataTableBinarySliceSetBuffer::nIntBufferSize * sizeof(int) +
 	       (longint)nAttributeNumber * sizeof(KWLoadIndex) +
 	       nMaxAttributesPerSlice * (oaDummy.GetUsedMemoryPerElement() + sizeof(IntVector) +
 					 (longint)nMaxInstancesPerChunk * sizeof(int));

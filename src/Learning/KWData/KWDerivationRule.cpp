@@ -315,8 +315,7 @@ void KWDerivationRule::BuildAllUsedAttributes(const KWAttribute* derivedAttribut
 					if (nkdAllUsedAttributes->Lookup((NUMERIC)originAttribute) == NULL)
 					{
 						// Memorisation de l'attribut dans le dictionnaire
-						nkdAllUsedAttributes->SetAt((NUMERIC)originAttribute,
-									    cast(Object*, originAttribute));
+						nkdAllUsedAttributes->SetAt((NUMERIC)originAttribute, originAttribute);
 
 						// Acces a la regle d'attribut ou de bloc
 						originRule = originAttribute->GetAnyDerivationRule();
@@ -367,7 +366,7 @@ void KWDerivationRule::BuildAllUsedAttributes(const KWAttribute* derivedAttribut
 						{
 							// Memorisation de l'attribut dans le dictionnaire
 							nkdAllUsedAttributes->SetAt((NUMERIC)originAttribute,
-										    cast(Object*, originAttribute));
+										    originAttribute);
 
 							// Acces a la regle d'attribut ou de bloc
 							if (originAttributeBlock->GetDerivationRule() != NULL)
@@ -628,10 +627,10 @@ boolean KWDerivationRule::CheckOperandsFamily(const KWDerivationRule* ruleFamily
 	return bResult;
 }
 
-boolean KWDerivationRule::CheckCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDerivationRule::CheckCompleteness(const KWClass* kwcOwnerClass) const
 {
 	// On test d'abord les operandes, qui peuvent etre a l'origine d'erreur sur la regle elle-meme
-	return CheckOperandsCompletness(kwcOwnerClass) and CheckRuleCompletness(kwcOwnerClass);
+	return CheckOperandsCompleteness(kwcOwnerClass) and CheckRuleCompletness(kwcOwnerClass);
 }
 
 boolean KWDerivationRule::CheckRuleCompletness(const KWClass* kwcOwnerClass) const
@@ -710,7 +709,7 @@ boolean KWDerivationRule::CheckRuleCompletness(const KWClass* kwcOwnerClass) con
 	return bResult;
 }
 
-boolean KWDerivationRule::CheckOperandsCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDerivationRule::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bResult = true;
 	KWDerivationRuleOperand* operand;
@@ -730,7 +729,7 @@ boolean KWDerivationRule::CheckOperandsCompletness(const KWClass* kwcOwnerClass)
 			operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(i));
 
 			// Verification de l'operande
-			if (not operand->CheckCompletness(kwcOwnerClass))
+			if (not operand->CheckCompleteness(kwcOwnerClass))
 			{
 				AddError(sTmp + "Incomplete operand " + IntToString(i + 1));
 				bResult = false;
@@ -747,7 +746,7 @@ boolean KWDerivationRule::CheckOperandsCompletness(const KWClass* kwcOwnerClass)
 			operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(i));
 
 			// Verification de l'operande
-			if (not operand->CheckCompletness(scopeClass))
+			if (not operand->CheckCompleteness(scopeClass))
 			{
 				AddError(sTmp + "Incomplete operand " + IntToString(i + 1));
 				bResult = false;
@@ -1179,7 +1178,7 @@ void KWDerivationRule::Compile(KWClass* kwcOwnerClass)
 	KWClass* scopeClass;
 
 	require(kwcOwnerClass != NULL);
-	require(CheckCompletness(kwcOwnerClass));
+	require(CheckCompleteness(kwcOwnerClass));
 	require(kwcOwnerClass->IsIndexed());
 	require(kwcOwnerClass->GetName() == GetClassName());
 
@@ -1312,12 +1311,31 @@ Timestamp KWDerivationRule::ComputeTimestampResult(const KWObject* kwoObject) co
 	return tsValue;
 }
 
+TimestampTZ KWDerivationRule::ComputeTimestampTZResult(const KWObject* kwoObject) const
+{
+	TimestampTZ tstzValue;
+
+	// Doit etre reimplemente si le type est Timestamp
+	kwoObject = NULL; // Pour eviter le warning
+	tstzValue.Reset();
+	assert(false);
+	return tstzValue;
+}
+
 Symbol KWDerivationRule::ComputeTextResult(const KWObject* kwoObject) const
 {
 	// Doit etre reimplemente si le type est Text
 	kwoObject = NULL; // Pour eviter le warning
 	assert(false);
 	return Symbol();
+}
+
+SymbolVector* KWDerivationRule::ComputeTextListResult(const KWObject* kwoObject) const
+{
+	// Doit etre reimplemente si le type est TextList
+	kwoObject = NULL; // Pour eviter le warning
+	assert(false);
+	return NULL;
 }
 
 KWObject* KWDerivationRule::ComputeObjectResult(const KWObject* kwoObject) const
@@ -1485,9 +1503,9 @@ int KWDerivationRule::FullCompare(const KWDerivationRule* rule) const
 
 	require(rule != NULL);
 	require(rule->kwcClass != NULL);
-	require(rule->CheckCompletness(rule->kwcClass));
+	require(rule->CheckCompleteness(rule->kwcClass));
 	require(kwcClass != NULL);
-	require(CheckCompletness(kwcClass));
+	require(CheckCompleteness(kwcClass));
 
 	// Comparaison sur la classe sur laquelle la regle est applicable
 	nDiff = GetClassName().Compare(rule->GetClassName());
@@ -2061,7 +2079,7 @@ void KWDerivationRule::Test()
 	if (rule->CheckDefinition())
 	{
 		// Creation d'une classe
-		testClass = KWClass::CreateClass("TestClass", 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, false, NULL);
+		testClass = KWClass::CreateClass("TestClass", 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, false, NULL);
 		testClass->IndexClass();
 		KWClassDomain::GetCurrentDomain()->InsertClass(testClass);
 		KWClassDomain::GetCurrentDomain()->Compile();
@@ -2074,7 +2092,7 @@ void KWDerivationRule::Test()
 		// Verification de la regle
 		refRule = LookupDerivationRule(refCopySymbolRule.GetName());
 		rule->CheckFamily(refRule);
-		rule->CheckCompletness(testClass);
+		rule->CheckCompleteness(testClass);
 
 		// Compilation
 		rule->Compile(testClass);

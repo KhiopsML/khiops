@@ -66,11 +66,9 @@ public:
 	const KWMetaData* GetConstMetaData() const;
 	KWMetaData* GetMetaData();
 
-	// Cle de meta-donnee predefinie pour stocker le format des types Date, Time et Timestamps
-	// Les attributs de type Date, Time, Timestamp sont selon les formats par defaut des
-	// types correspondant.
-	// On peut cependant sppecifier un format specifique au moyen d'une meta donnee
-	// (par exemple: <DateFormat="DDMMYYYY").
+	// Cle de meta-donnee predefinie pour stocker le format des types complexes: Date, Time; Timestamp et
+	// TimestampTZ Les attributs de type complexe sont selon les formats par defaut des types correspondant. On peut
+	// cependant sppecifier un format specifique au moyen d'une meta donnee (par exemple: <DateFormat="DDMMYYYY").
 	// Dans ce cas, les lectures/ecritures dans les bases de donnees se feront au moyen du format specifie
 	// Cette meta-donnee de format ne doit etre utilisee qu'avec un format valide, pour les attributs
 	// du type correspondant
@@ -81,6 +79,7 @@ public:
 	const KWDateFormat* GetDateFormat() const;
 	const KWTimeFormat* GetTimeFormat() const;
 	const KWTimestampFormat* GetTimestampFormat() const;
+	const KWTimestampTZFormat* GetTimestampTZFormat() const;
 
 	// Libelle
 	const ALString& GetLabel() const;
@@ -98,7 +97,7 @@ public:
 	boolean GetLoaded() const;
 	void SetLoaded(boolean bValue);
 
-	// Index de chargement de l'attribut parmi les atributs charges en memoire
+	// Index de chargement de l'attribut parmi les attributs charges en memoire
 	// Permet l'acces a la valeur dans les KWObjets
 	// Attention: toute modification de la classe englobante ou
 	// d'un de ses attributs invalide la classe, qui doit
@@ -223,13 +222,14 @@ protected:
 	KWAttributeBlock* attributeBlock;
 
 	// Specification avancee pour certains types d'attributs
-	//   . format pour la conversion des types Date, Time, Timestamp
+	//   . format pour la conversion des types complexe
 	// Un seul objet sert a stocker toutes ces specification avancee (gain memoire)
 	union
 	{
 		KWDateFormat* dateFormat;
 		KWTimeFormat* timeFormat;
 		KWTimestampFormat* timestampFormat;
+		KWTimestampTZFormat* timestampTZFormat;
 		Object* genericSpecification;
 	} advancedTypeSpecification;
 
@@ -377,6 +377,12 @@ inline const KWTimestampFormat* KWAttribute::GetTimestampFormat() const
 {
 	require(GetType() == KWType::Timestamp and advancedTypeSpecification.timestampFormat != NULL);
 	return advancedTypeSpecification.timestampFormat;
+}
+
+inline const KWTimestampTZFormat* KWAttribute::GetTimestampTZFormat() const
+{
+	require(GetType() == KWType::TimestampTZ and advancedTypeSpecification.timestampTZFormat != NULL);
+	return advancedTypeSpecification.timestampTZFormat;
 }
 
 inline const ALString& KWAttribute::GetLabel() const

@@ -13,6 +13,7 @@
 #include "PESerializerTestTask.h"
 #include "PESerializerLongTestTask.h"
 #include "PELullabyTask.h"
+#include "PEProgressionTask.h"
 
 #include "PLSharedVariable.h"
 #include "PLSharedVector.h"

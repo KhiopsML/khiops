@@ -50,6 +50,8 @@ void Test(int argc, char** argv)
 	// KWTimeFormat::Test();
 	// Timestamp::Test();
 	// KWTimestampFormat::Test();
+	// TimestampTZ::Test();
+	// KWTimestampTZFormat::Test();
 	// KWTypeAvailableFormats::Test();
 	// KWTypeAutomaticRecognition::Test();
 	// KWClass::Test();
@@ -70,7 +72,7 @@ void Test(int argc, char** argv)
 	// ObjectKey::Test();
 	// KDMultinomialSamplingStudy::Test();
 	// KDMultinomialSampleGenerator::Test();
-	// FileBuffer::TestCountLines("C:\\Users\\boullema\\LearningTest\\datasets\\Census\\Census.txt", false);
+	// FileCache::TestCountLines("C:\\Users\\boullema\\LearningTest\\datasets\\Census\\Census.txt", false);
 	// InputBufferedFile::Test();
 	// InputBufferedFile::TestCountLines("C:\\Users\\boullema\\LearningTest\\datasets\\Census\\Census.txt");
 	// OutputBufferedFile::TestWriteFile("C:\\Users\\boullema\\LearningTest\\datasets\\Census\\Census.txt",
@@ -129,6 +131,7 @@ void Test(int argc, char** argv)
 	// KWSymbolValueBlock::Test();
 	// KWObjectArrayValueBlock::Test();
 	// KWCDUniqueString::Test();
+	SNBIndexVector::Test();
 }
 
 void KWTestAllComponents(boolean bLong)
@@ -313,7 +316,7 @@ int main(int argc, char** argv)
 		// Lancement des tests classiques
 		else
 		{
-			UIObject::ParseMainParameters(argc, argv);
+			// UIObject::ParseMainParameters(argc, argv);
 			Test(argc, argv);
 		}
 	}

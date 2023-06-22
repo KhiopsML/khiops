@@ -393,7 +393,7 @@ ObjectArray* DTAttributeSelection::GetAttributesFromLevels(const int nMaxAttribu
 	return SortObjectArrayFromContinuous(nMaxAttributesNumber, vLevels, oaListAttributes);
 }
 
-int DTAttributeSelection::CompareBlocks(const DTAttributeSelection* otherAttributePair)
+int DTAttributeSelection::CompareBlocks(const DTAttributeSelection* otherAttributePair) const
 {
 	const KWAttributeBlock* firstAttributeBlock;
 	const KWAttributeBlock* secondAttributeBlock;
@@ -466,7 +466,6 @@ void DTAttributeSelection::SortByBlocks()
 
 longint DTAttributeSelection::GetUsedMemory() const
 {
-
 	longint lUsedMemory;
 
 	lUsedMemory = sizeof(nIndex) + sizeof(nUsableAttributesNumber) + sizeof(nRandomSeed) + sizeof(sDrawingType) +
@@ -538,6 +537,25 @@ int DTAttributeSelectionCompareAttributesNumber(const void* elem1, const void* e
 		return 0;
 }
 
+int DTAttributeSelectionCompareAttributesIndex(const void* elem1, const void* elem2)
+{
+	DTAttributeSelection* as1;
+	DTAttributeSelection* as2;
+
+	require(elem1 != NULL);
+	require(elem2 != NULL);
+
+	as1 = cast(DTAttributeSelection*, *(Object**)elem1);
+	as2 = cast(DTAttributeSelection*, *(Object**)elem2);
+
+	if (as1->GetIndex() > as2->GetIndex())
+		return 1;
+	else if (as1->GetIndex() < as2->GetIndex())
+		return -1;
+	else
+		return 0;
+}
+
 const ALString& DTAttributeSelection::GetDrawingType() const
 {
 	return sDrawingType;
@@ -559,7 +577,6 @@ void DTAttributeSelection::SetUsableAttributesNumber(int nmax)
 
 void DTAttributeSelection::WriteReport(ostream& ost)
 {
-
 	int nAttribute;
 	DTTreeAttribute* taAttribute;
 

@@ -179,12 +179,20 @@ protected:
 	// de derivation pour resoudre les references aux object racines des autres classes
 
 	// Lecture et chargement en memoire des tables des objets references
-	boolean PhysicalReadAllReferenceObjects();
+	// En mode ouverture de la base, on doit lire tous les objets (dSamplePercentage=1).
+	// En mode dimensionnement des ressources, on charge un echantillon des objets references pour
+	// estimer de facon realiste la place memoire occupee par les objets references
+	boolean PhysicalReadAllReferenceObjects(double dSamplePercentage);
 
 	// Destruction des objets references
 	void PhysicalDeleteAllReferenceObjects();
 
 	// Calcul de la memoire necessaire pour le chargement des objets references
+	// Calcul realiste en chargeant un echantillon des objet references
+	longint ComputeSamplingBasedNecessaryMemoryForReferenceObjects();
+
+	// Calcul de la memoire necessaire pour le chargement des objets references
+	// Calcul heuristique sans acces aux donnees, donnant uniquement un ordre de grandeur
 	longint ComputeNecessaryMemoryForReferenceObjects();
 
 	/////////////////////////////////////////////////////////////////////////////////

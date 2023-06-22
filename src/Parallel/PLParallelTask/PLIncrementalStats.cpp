@@ -121,7 +121,7 @@ PLIncrementalStats* PLSharedIncrementalStats::GetStats()
 
 void PLSharedIncrementalStats::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
-	PLIncrementalStats* stat = cast(PLIncrementalStats*, o);
+	const PLIncrementalStats* stat = cast(PLIncrementalStats*, o);
 
 	require(serializer->IsOpenForWrite());
 

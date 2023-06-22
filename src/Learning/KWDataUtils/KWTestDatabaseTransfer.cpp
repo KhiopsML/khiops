@@ -95,8 +95,8 @@ void KWTestDatabaseTransfer::STTest()
 
 	// Creation du dictionnaire
 	sClassName = sClassNamePrefix + sSuffix;
-	kwcCreationClass =
-	    KWClass::CreateClass(sClassName, 0, nSymbolNumber, nContinuousNumber, 0, 0, 0, 0, 0, 0, 0, false, NULL);
+	kwcCreationClass = KWClass::CreateClass(sClassName, 0, nSymbolNumber, nContinuousNumber, 0, 0, 0, 0, 0, 0, 0, 0,
+						0, false, NULL);
 	KWClassDomain::GetCurrentDomain()->InsertClass(kwcCreationClass);
 	kwcCreationClass->Compile();
 
@@ -257,7 +257,7 @@ boolean KWTestDatabaseTransfer::STTestTransfer()
 					sClassName = sClassNamePrefix + sSuffix;
 					kwcCreationClass =
 					    KWClass::CreateClass(sClassName, 0, nSymbolNumber, nContinuousNumber, 0, 0,
-								 0, 0, 0, 0, 0, false, NULL);
+								 0, 0, 0, 0, 0, 0, 0, false, NULL);
 					KWClassDomain::GetCurrentDomain()->InsertClass(kwcCreationClass);
 					kwcCreationClass->Compile();
 
@@ -466,7 +466,7 @@ boolean KWTestDatabaseTransfer::STIsTransferOk(KWSTDatabaseTextFile* databaseSou
 	databaseTransfer.Transfer(databaseSource, &databaseTarget, lWrittenRecordNumber);
 
 	// Indicateurs de succes du transfer
-	bTransferDone = PLRemoteFileService::Exist(sTransferFileName);
+	bTransferDone = PLRemoteFileService::FileExists(sTransferFileName);
 	bTestSucceed = true;
 	if (not bTransferDone)
 	{

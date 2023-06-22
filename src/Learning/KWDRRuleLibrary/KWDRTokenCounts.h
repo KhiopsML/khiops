@@ -143,12 +143,27 @@ public:
 
 	// Redefinition de methodes virtuelles
 	void Compile(KWClass* kwcOwnerClass) override;
-	boolean CheckOperandsCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
 	boolean CheckBlockAttributes(const KWClass* kwcOwnerClass,
 				     const KWAttributeBlock* attributeBlock) const override;
 
 	// Estimation de la memoire utilisee
 	longint GetUsedMemory() const override;
+
+	//////////////////////////////////////////////////////////////////
+	// Information sur la structure des tables de hashages utilisees
+
+	// Nombre total de tables de hashages successives potentielles
+	static int GetMaxHashTableNumber();
+
+	// Longueur de n-gramme gere parr table de hashage
+	static int GetHashTableNGramLengthAt(int nIndex);
+
+	// Taille par table de hashage
+	static int GetHashTableSizeAt(int nIndex);
+
+	///////////////////////////////////////////////////////
+	// Methodes de test
 
 	// Methode de test
 	static void Test();
@@ -164,6 +179,7 @@ protected:
 
 	// Initialisation des variable globales
 	static void InitializeGlobalVariables();
+	static void DEPRECATEDInitializeGlobalVariables(); // DDD
 	static boolean AreGlobalVariablesInitialized();
 
 	// Vecteur de travail des ngrammes utilises
@@ -178,7 +194,7 @@ protected:
 	mutable IntVector ivSparseCounts;
 
 	// Nombre de tables de hashage utilisees
-	int nHashTableNumber;
+	int nUsedHashTableNumber;
 
 	// Longueur max de n-grammes pris en compte
 	static const int nMaxNGramLength = 8;
@@ -186,6 +202,9 @@ protected:
 	// Vecteur des longueurs de n-grammes et de taille de table de hashage par index de table de hashage
 	static IntVector ivNGramLengths;
 	static IntVector ivHashTableSizes;
+
+	// Taille cumulee des tables de hashage, en commencant a 0
+	static IntVector ivHashTableCumulatedSizes;
 
 	// Masques a utiliser pour ne garder que la partie utile du n-gramme, par longueur de n-gramme
 	static LongintVector lvNGramMasks;
@@ -228,7 +247,7 @@ public:
 
 	// Redefinition de methodes virtuelles
 	void Compile(KWClass* kwcOwnerClass) override;
-	boolean CheckOperandsCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
 	boolean CheckBlockAttributes(const KWClass* kwcOwnerClass,
 				     const KWAttributeBlock* attributeBlock) const override;
 
@@ -291,7 +310,7 @@ public:
 
 	// Redefinition de methodes virtuelles
 	void Compile(KWClass* kwcOwnerClass) override;
-	boolean CheckOperandsCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
 };
 
 ////////////////////////////////////////////////////////////////////////////
@@ -311,5 +330,5 @@ public:
 	Symbol ComputeTextResult(const KWObject* kwoObject) const override;
 
 	// Redefinition de methodes virtuelles
-	boolean CheckOperandsCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
 };

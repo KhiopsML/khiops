@@ -111,8 +111,9 @@ void CCLearningProblemPostOptimizationView::SelectInputCoclustering()
 	boolean bOk;
 
 	// Execution controlee par licence
-	if (not LMLicenseManager::RequestLicenseKey())
-		return;
+	if (LMLicenseManager::IsEnabled())
+		if (not LMLicenseManager::RequestLicenseKey())
+			return;
 
 	// Ouverture du FileChooser
 	sCoclusteringReportFileName =
@@ -174,8 +175,9 @@ void CCLearningProblemPostOptimizationView::PostOptimize()
 	ALString sTmp;
 
 	// Execution controlee par licence
-	if (not LMLicenseManager::RequestLicenseKey())
-		return;
+	if (LMLicenseManager::IsEnabled())
+		if (not LMLicenseManager::RequestLicenseKey())
+			return;
 
 	// Arret si fichiers non corrects
 	if (not GetLearningProblem()->CheckResultFileNames(CCLearningProblem::TaskBuildCoclustering) or

@@ -76,6 +76,9 @@ public:
 	///////////////////////////////////////////////////////////////
 	// Services divers
 
+	// Affichage d'un tableau de positions de cles
+	void WriteKeyPositions(const ObjectArray* oaKeyPositions, ostream& ost) const;
+
 	// Libelles utilisateurs
 	const ALString GetObjectLabel() const override;
 
@@ -124,6 +127,11 @@ protected:
 	longint lKeyUsedMemory;
 	longint lInputFileSize;
 
+	// Definition des exigences pour la taille du buffer
+	int nReadSizeMin;
+	int nReadSizeMax;
+	int nReadBufferSize;
+
 	// Table d'echantillons de cle (ObjectArray de KWKeyPosition)
 	// Memorisation des resultats d'analyse des esclaves
 	ObjectArray oaAllKeyPositionSamples;
@@ -171,6 +179,9 @@ protected:
 
 	// Extracteur de cle
 	KWKeyExtractor keyExtractor;
+
+	// Fichier de travail pour l'esclave
+	InputBufferedFile inputFile;
 };
 
 int KWSortedKeyPositionArrayCompare(const void* elem1, const void* elem2);

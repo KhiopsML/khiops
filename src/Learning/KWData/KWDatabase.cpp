@@ -9,7 +9,7 @@ KWDatabase::KWDatabase()
 	kwcClass = NULL;
 	kwcPhysicalClass = NULL;
 	nClassFreshness = 0;
-	nSampleNumberPercentage = 100;
+	dSampleNumberPercentage = 100;
 	bModeExcludeSample = false;
 	nSelectionAttributeType = KWType::Unknown;
 	cSelectionContinuous = 0;
@@ -23,6 +23,7 @@ KWDatabase::KWDatabase()
 	dateDefaultConverter.SetFormatString(KWDateFormat::GetDefaultFormatString());
 	timeDefaultConverter.SetFormatString(KWTimeFormat::GetDefaultFormatString());
 	timestampDefaultConverter.SetFormatString(KWTimestampFormat::GetDefaultFormatString());
+	timestampTZDefaultConverter.SetFormatString(KWTimestampTZFormat::GetDefaultFormatString());
 }
 
 KWDatabase::~KWDatabase()
@@ -56,7 +57,7 @@ void KWDatabase::CopyFrom(const KWDatabase* kwdSource)
 	kwcClass = NULL;
 	kwcPhysicalClass = NULL;
 	nClassFreshness = 0;
-	nSampleNumberPercentage = 100;
+	dSampleNumberPercentage = 100;
 	bModeExcludeSample = false;
 	liSelectionAttributeLoadIndex.Reset();
 	nSelectionAttributeType = KWType::Unknown;
@@ -121,7 +122,7 @@ int KWDatabase::Compare(const KWDatabase* kwdSource) const
 	if (nCompare == 0)
 		nCompare = GetClassName().Compare(kwdSource->GetClassName());
 	if (nCompare == 0)
-		nCompare = GetSampleNumberPercentage() - kwdSource->GetSampleNumberPercentage();
+		nCompare = CompareDouble(GetSampleNumberPercentage(), kwdSource->GetSampleNumberPercentage());
 	if (nCompare == 0)
 		nCompare = CompareBoolean(GetModeExcludeSample(), kwdSource->GetModeExcludeSample());
 	if (nCompare == 0)
@@ -278,25 +279,25 @@ KWClass* KWDatabase::ComputeClass()
 	// Creation d'une classe vide
 	kwcComputedClass = new KWClass;
 	kwcComputedClass->SetName(GetClassName());
-	KWClassDomain::GetCurrentDomain()->InsertClass(kwcComputedClass);
 
 	// Initialisation a partir du schema de la base, en ne montrant que les erreurs
 	bRefVerboseMode = GetVerboseMode();
 	SetVerboseMode(false);
 	bBuildClassOk = BuildDatabaseClass(kwcComputedClass);
 	SetVerboseMode(bRefVerboseMode);
-	assert(not bBuildClassOk or kwcComputedClass->Check());
 
 	// Compilation si classe correcte
 	if (bBuildClassOk)
 	{
+		KWClassDomain::GetCurrentDomain()->InsertClass(kwcComputedClass);
+		assert(kwcComputedClass->Check());
 		kwcComputedClass->Compile();
 		assert(kwcComputedClass->GetAttributeNumber() == kwcComputedClass->GetLoadedAttributeNumber());
 	}
 	// Destruction sinon
 	else
 	{
-		KWClassDomain::GetCurrentDomain()->DeleteClass(kwcComputedClass->GetName());
+		delete kwcComputedClass;
 		kwcComputedClass = NULL;
 	}
 
@@ -424,6 +425,13 @@ KWClass* KWDatabase::ComputeClass()
 				attribute->SetType(KWType::Timestamp);
 				AddFormatMetaData(attribute, typeAutomaticRecognition);
 			}
+			// Cas du type TimestampTZ
+			else if (typeAutomaticRecognition->GetMainMatchingType() == KWType::TimestampTZ)
+			{
+				ivTypeAttributeNumbers.UpgradeAt(KWType::TimestampTZ, 1);
+				attribute->SetType(KWType::TimestampTZ);
+				AddFormatMetaData(attribute, typeAutomaticRecognition);
+			}
 			// Cas du type Text
 			else if (typeAutomaticRecognition->GetMainMatchingType() == KWType::Text)
 			{
@@ -498,6 +506,9 @@ boolean KWDatabase::OpenForRead()
 	assert(not bOpenedForRead);
 	bOpenedForRead = PhysicalOpenForRead();
 
+	// Installation du handler specifique pour ignorer le flow des erreur dans le cas du memory guard
+	KWDatabaseMemoryGuard::InstallMemoryGuardErrorFlowIgnoreFunction();
+
 	// Fermeture si echec
 	if (not bOpenedForRead)
 	{
@@ -505,9 +516,6 @@ boolean KWDatabase::OpenForRead()
 		bOpenedForRead = true;
 		Close();
 		assert(bOpenedForRead == false);
-
-		// Message synthetique
-		AddError("Unable to open input database due to previous errors");
 	}
 	return bOpenedForRead;
 }
@@ -554,7 +562,7 @@ KWObject* KWDatabase::Read()
 	KWObject* kwoObject = NULL;
 	boolean bKeepRecord;
 	longint lPhysicalRecordIndex;
-	int nRandom;
+	double dRandom;
 
 	require(GetClassName() != "");
 	require(kwcClass != NULL);
@@ -562,6 +570,9 @@ KWObject* KWDatabase::Read()
 	require(IsOpenedForRead());
 	require(kwcPhysicalClass != NULL);
 	require(kwcClass->GetName() == kwcPhysicalClass->GetName());
+
+	// Initialisation du memory guard
+	memoryGuard.Init();
 
 	// Lecture d'un objet physique valide
 	if (not IsPhysicalEnd())
@@ -572,9 +583,17 @@ KWObject* KWDatabase::Read()
 		// Permet de paralleliser la lecture des bases tout en preservant
 		// les echantillons tires
 		lPhysicalRecordIndex = GetPhysicalRecordIndex();
-		nRandom = 1 + IthRandomInt(lPhysicalRecordIndex, 99);
-		bKeepRecord = (nRandom <= GetSampleNumberPercentage() and not GetModeExcludeSample()) or
-			      (nRandom > GetSampleNumberPercentage() and GetModeExcludeSample());
+
+		// Effet de bord ou on selectionne 0%
+		if (GetSampleNumberPercentage() == 0)
+			bKeepRecord = GetModeExcludeSample();
+		// Cas general
+		else
+		{
+			dRandom = IthRandomDouble(lPhysicalRecordIndex) * 100;
+			bKeepRecord = (dRandom <= GetSampleNumberPercentage() and not GetModeExcludeSample()) or
+				      (dRandom > GetSampleNumberPercentage() and GetModeExcludeSample());
+		}
 
 		// On teste si on garde ou non l'exemple selon les
 		// parametres d'echantillonnage
@@ -622,6 +641,20 @@ KWObject* KWDatabase::Read()
 	}
 	assert(kwoObject == NULL or kwoObject->GetClass() == kwcClass);
 
+	// Warning selon l'etat du memory guard
+	// On emet que des warning, car on est toujours capable de "rattaper" l'erreur
+	// Par controle, on passe par handler des gestion des flow d'erreur pour emmetre ces warning meme
+	// en cas de depassement du flow. Ce handler est parametre lors des ouverture-fermeture de base
+	if (kwoObject != NULL)
+	{
+		// Cas du depassement memoire, avec fonctionnement degrade (variables calculees mises a missing)
+		if (memoryGuard.IsSingleInstanceMemoryLimitReached())
+			AddWarning(memoryGuard.GetSingleInstanceMemoryLimitLabel());
+		// Cas  du seuil de nombre d'enregistrements secondaires depasse, ou d'un temps de calcul
+		// potentiellement allonge
+		else if (memoryGuard.IsSingleInstanceVeryLarge())
+			AddWarning(memoryGuard.GetSingleInstanceVeryLargeLabel());
+	}
 	return kwoObject;
 }
 
@@ -647,6 +680,11 @@ boolean KWDatabase::Close()
 	require(GetClassName() != "");
 	require(kwcClass != NULL);
 	require(kwcClass->GetFreshness() == nClassFreshness);
+
+	// Desinstallation du handler specifique pour ignorer le flow des erreur dans le cas du memory guard
+	// Uniquement dans le cas des bases ouvertes en lecture
+	if (IsOpenedForRead())
+		KWDatabaseMemoryGuard::UninstallMemoryGuardErrorFlowIgnoreFunction();
 
 	// Fermeture physique
 	bOk = PhysicalClose();
@@ -1052,6 +1090,37 @@ void KWDatabase::AddFormatMetaData(KWAttribute* sourceAttribute,
 				   " but other incompatible formats are possible (e.g.: " + sIncompatibleFormat + ")");
 		}
 	}
+	// Cas d'un attribut TimestampTZ
+	else if (typeAutomaticRecognition->GetMainMatchingType() == KWType::TimestampTZ)
+	{
+		// Ajout de meta-donnee de format si necessaire
+		if (not typeAutomaticRecognition->GetMatchingTimestampTZFormatAt(0)->IsConsistentWith(
+			&timestampTZDefaultConverter))
+			sourceAttribute->GetMetaData()->SetStringValueAt(
+			    sFormatMetaDataKey,
+			    typeAutomaticRecognition->GetMatchingTimestampTZFormatAt(0)->GetFormatString());
+
+		// Emission d'un warning si type incoherents
+		if (not typeAutomaticRecognition->AreMatchingTimestampTZFormatConsistent())
+		{
+			sIncompatibleFormat = "";
+			for (i = 1; i < typeAutomaticRecognition->GetMatchingTimestampTZFormatNumber(); i++)
+			{
+				if (not typeAutomaticRecognition->GetMatchingTimestampTZFormatAt(0)->IsConsistentWith(
+					typeAutomaticRecognition->GetMatchingTimestampTZFormatAt(i)))
+				{
+					sIncompatibleFormat =
+					    typeAutomaticRecognition->GetMatchingTimestampTZFormatAt(i)
+						->GetFormatString();
+					break;
+				}
+			}
+			AddWarning("Variable " + sourceAttribute->GetName() + " recognized as type " +
+				   KWType::ToString(KWType::TimestampTZ) + " with format " +
+				   typeAutomaticRecognition->GetMatchingTimestampTZFormatAt(0)->GetFormatString() +
+				   " but other incompatible formats are possible (e.g.: " + sIncompatibleFormat + ")");
+		}
+	}
 	else
 	{
 		assert(typeAutomaticRecognition->GetMainMatchingType() == KWType::Continuous);
@@ -1204,6 +1273,7 @@ longint KWDatabase::ComputeOpenNecessaryMemory(boolean bRead, boolean bIncluding
 		}
 		lNecessaryMemory += lPhysicalClassNecessaryMemory;
 	}
+	ensure(lNecessaryMemory >= 0);
 	return lNecessaryMemory;
 }
 
@@ -1212,7 +1282,7 @@ void KWDatabase::WriteJSONFields(JSONFile* fJSON)
 	fJSON->WriteKeyString("database", GetDatabaseName());
 
 	// Taux d'echantillonnage
-	fJSON->WriteKeyInt("samplePercentage", GetSampleNumberPercentage());
+	fJSON->WriteKeyDouble("samplePercentage", GetSampleNumberPercentage());
 	fJSON->WriteKeyString("samplingMode", GetSamplingMode());
 
 	// Variable de selection
@@ -1230,9 +1300,10 @@ const ALString KWDatabase::GetObjectLabel() const
 	ALString sLabel;
 	longint lPhysicalRecordIndex;
 
+	// On ne met l'index de record que si la base est ouverte
 	sLabel = GetDatabaseName();
 	lPhysicalRecordIndex = GetPhysicalRecordIndex();
-	if (lPhysicalRecordIndex > 0 and ((IsOpenedForRead() and not IsEnd()) or IsOpenedForWrite()) and not IsError())
+	if (lPhysicalRecordIndex > 0 and (IsOpenedForRead() or IsOpenedForWrite()))
 	{
 		sLabel += " : Record ";
 		sLabel += LongintToString(lPhysicalRecordIndex);
@@ -1257,7 +1328,7 @@ void KWDatabase::TestCreateObjects(int nNumber)
 	if (kwcCreationClass == NULL)
 	{
 		cout << "Create dictionary " << GetClassName() << endl;
-		kwcCreationClass = KWClass::CreateClass(GetClassName(), 0, 4, 4, 0, 0, 0, 0, 0, 0, 0, true, NULL);
+		kwcCreationClass = KWClass::CreateClass(GetClassName(), 0, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, true, NULL);
 		KWClassDomain::GetCurrentDomain()->InsertClass(kwcCreationClass);
 		kwcCreationClass->Compile();
 	}
@@ -1325,6 +1396,7 @@ void KWDatabase::BuildPhysicalClass()
 	boolean bPhysicalDomainNeeded;
 	KWAttribute* attribute;
 	KWAttributeBlock* attributeBlock;
+	KWDataItem* dataItem;
 	KWDerivationRule* currentDerivationRule;
 	int i;
 	KWAttribute* keyAttribute;
@@ -1571,6 +1643,7 @@ void KWDatabase::BuildPhysicalClass()
 	{
 		DeletePhysicalClass();
 		kwcPhysicalClass = kwcClass;
+		kwcdPhysicalDomain = kwcClass->GetDomain();
 	}
 	// Sinon, construction des classes physiques necessaires
 	else
@@ -1896,6 +1969,97 @@ void KWDatabase::BuildPhysicalClass()
 		}
 	}
 
+	// Parametrage des classes pour gerer les elements de donnees a calculer
+	assert(not bPhysicalDomainNeeded or kwcdPhysicalDomain != kwcClass->GetDomain());
+	for (nClass = 0; nClass < kwcdPhysicalDomain->GetClassNumber(); nClass++)
+	{
+		kwcCurrentPhysicalClass = kwcdPhysicalDomain->GetClassAt(nClass);
+
+		// Reinitialisation du parametrage
+		kwcCurrentPhysicalClass->GetDatabaseDataItemsToCompute()->SetSize(0);
+		kwcCurrentPhysicalClass->GetDatabaseTemporayDataItemsToComputeAndClean()->SetSize(0);
+
+		// Recherche de la classe initiale correspondante
+		kwcInitialClass = kwcClass->GetDomain()->LookupClass(kwcCurrentPhysicalClass->GetName());
+		assert(kwcInitialClass != NULL);
+
+		// Affichage
+		if (bDisplay)
+			cout << "Specify data items to compute\t" << kwcCurrentPhysicalClass->GetName() << "\n";
+
+		// Parcours des elements de donnees de la classe physique pour determiner ceux qui sont a calculer
+		for (nAttribute = 0; nAttribute < kwcCurrentPhysicalClass->GetLoadedDataItemNumber(); nAttribute++)
+		{
+			dataItem = kwcCurrentPhysicalClass->GetLoadedDataItemAt(nAttribute);
+			if (dataItem->IsAttribute())
+			{
+				attribute = cast(KWAttribute*, dataItem);
+
+				// Prise en compte des attributs a calculer
+				if (attribute->GetDerivationRule() != NULL)
+				{
+					// Ajout dans les attributs a calculer
+					kwcCurrentPhysicalClass->GetDatabaseDataItemsToCompute()->Add(dataItem);
+
+					// Ajout dans les attributs temporaires nettoyable si absent de la classe
+					// logique et dont le nettoyage peut liberer significativement de la memoire
+					initialAttribute = kwcInitialClass->LookupAttribute(attribute->GetName());
+					check(initialAttribute);
+					if (not initialAttribute->GetLoaded() and
+					    (attribute->GetType() == KWType::Symbol or
+					     attribute->GetType() == KWType::Text or
+					     attribute->GetType() == KWType::TextList or
+					     attribute->GetType() == KWType::ObjectArray))
+						kwcCurrentPhysicalClass->GetDatabaseTemporayDataItemsToComputeAndClean()
+						    ->Add(dataItem);
+
+					// Affichage
+					if (bDisplay)
+					{
+						cout << "\t", cout << KWType::ToString(attribute->GetType()) << "\t";
+						cout << attribute->GetName() << "\t";
+						cout << initialAttribute->GetLoaded() << "\n";
+					}
+				}
+				// Prise en compte des attribut de type relation natif, pour propagation des calcul
+				else if (KWType::IsRelation(attribute->GetType()))
+				{
+					// Ajout dans les attributs a calculer
+					kwcCurrentPhysicalClass->GetDatabaseDataItemsToCompute()->Add(dataItem);
+				}
+			}
+			else
+			{
+				attributeBlock = cast(KWAttributeBlock*, dataItem);
+
+				// Prise en compte des blocs d'attributs a calculer
+				if (attributeBlock->GetDerivationRule() != NULL)
+				{
+					// Ajout dans les blocs d'attribut a calculer
+					kwcCurrentPhysicalClass->GetDatabaseDataItemsToCompute()->Add(dataItem);
+
+					// Ajout dans les attributs temporaires nettoyable si absent de la classe
+					// logique et dont le nettoyage peut liberer significativement de la memoire
+					initialAttributeBlock =
+					    kwcInitialClass->LookupAttributeBlock(attributeBlock->GetName());
+					check(initialAttributeBlock);
+					if (not initialAttributeBlock->GetLoaded())
+						kwcCurrentPhysicalClass->GetDatabaseTemporayDataItemsToComputeAndClean()
+						    ->Add(dataItem);
+
+					// Affichage
+					if (bDisplay)
+					{
+						cout << "\t",
+						    cout << KWType::ToString(attributeBlock->GetType()) << "\t";
+						cout << attributeBlock->GetName() << "\t";
+						cout << initialAttributeBlock->GetLoaded() << "\n";
+					}
+				}
+			}
+		}
+	}
+
 	ensure(kwcPhysicalClass != NULL);
 	ensure(kwcPhysicalClass->GetName() == GetClassName());
 	ensure(kwcPhysicalClass->Check());
@@ -1904,14 +2068,27 @@ void KWDatabase::BuildPhysicalClass()
 
 void KWDatabase::DeletePhysicalClass()
 {
+	int nClass;
+	KWClass* kwcCurrentClass;
+
 	// Destruction de la classe physique et de son domaine si necessaire
 	if (kwcPhysicalClass != NULL and kwcPhysicalClass != kwcClass)
 		delete kwcPhysicalClass->GetDomain();
 	kwcPhysicalClass = NULL;
+
+	// Nettoyage des specifications d'attributs a calculer
+	for (nClass = 0; nClass < kwcClass->GetDomain()->GetClassNumber(); nClass++)
+	{
+		kwcCurrentClass = kwcClass->GetDomain()->GetClassAt(nClass);
+		kwcCurrentClass->GetDatabaseDataItemsToCompute()->SetSize(0);
+		kwcCurrentClass->GetDatabaseTemporayDataItemsToComputeAndClean()->SetSize(0);
+	}
 }
 
 void KWDatabase::MutatePhysicalObject(KWObject* kwoPhysicalObject) const
 {
+	KWObjectKey objectKey;
+
 	require(kwcPhysicalClass != NULL);
 	require(kwcPhysicalClass->GetName() == GetClassName());
 	require(kwcPhysicalClass->IsCompiled());
@@ -1920,7 +2097,23 @@ void KWDatabase::MutatePhysicalObject(KWObject* kwoPhysicalObject) const
 	require(kwcPhysicalClass->GetLoadedAttributeNumber() >= kwcClass->GetLoadedAttributeNumber());
 
 	// Calcul de toutes les valeurs a transferer
-	kwoPhysicalObject->ComputeAllValues();
+	kwoPhysicalObject->ComputeAllValues(&memoryGuard);
+
+	// Memorisation de la cle de l'objet en cas de depassement memoire
+	// Il faut le faire sur l'objet physique avant sa mutation, car il contient
+	// necessairement les champs de la cle en multi-table, alors qu'ils sont potentiellement
+	// absent de l'objet logique si les champs de la cle sont en unused
+	if (memoryGuard.IsSingleInstanceMemoryLimitReached() or memoryGuard.IsMaxSecondaryRecordNumberReached())
+	{
+		// On se base sur la cle de l'objet s'il y en a une
+		if (kwoPhysicalObject->GetClass()->IsKeyLoaded())
+		{
+			objectKey.InitializeFromObject(kwoPhysicalObject);
+			memoryGuard.SetMainObjectKey(objectKey.GetObjectLabel());
+		}
+
+		kwoPhysicalObject->GetObjectLabel();
+	}
 
 	// Mutation si necessaire
 	if (kwcPhysicalClass != kwcClass)
@@ -1986,6 +2179,41 @@ boolean KWDatabase::CheckSelectionValue(const ALString& sValue) const
 		}
 	}
 	return bOk;
+}
+
+void KWDatabase::ResetMemoryGuard()
+{
+	require(not IsOpenedForRead());
+	require(not IsOpenedForWrite());
+	memoryGuard.Reset();
+}
+
+void KWDatabase::SetMemoryGuardMaxSecondaryRecordNumber(longint lValue)
+{
+	require(not IsOpenedForRead());
+	require(not IsOpenedForWrite());
+	memoryGuard.SetMaxSecondaryRecordNumber(lValue);
+}
+
+longint KWDatabase::GetMemoryGuardMaxSecondaryRecordNumber() const
+{
+	require(not IsOpenedForRead());
+	require(not IsOpenedForWrite());
+	return memoryGuard.GetMaxSecondaryRecordNumber();
+}
+
+void KWDatabase::SetMemoryGuardSingleInstanceMemoryLimit(longint lValue)
+{
+	require(not IsOpenedForRead());
+	require(not IsOpenedForWrite());
+	memoryGuard.SetSingleInstanceMemoryLimit(lValue);
+}
+
+longint KWDatabase::GetMemoryGuardSingleInstanceMemoryLimit() const
+{
+	require(not IsOpenedForRead());
+	require(not IsOpenedForWrite());
+	return memoryGuard.GetSingleInstanceMemoryLimit();
 }
 
 boolean KWDatabase::Check() const

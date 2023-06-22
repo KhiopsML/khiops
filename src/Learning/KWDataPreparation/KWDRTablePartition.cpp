@@ -496,7 +496,7 @@ boolean KWDRTablePartition::CheckOperandsFamily(const KWDerivationRule* ruleFami
 	return bOk;
 }
 
-boolean KWDRTablePartition::CheckOperandsCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDRTablePartition::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk = true;
 	int nPartitionAttributeNumber;
@@ -512,7 +512,7 @@ boolean KWDRTablePartition::CheckOperandsCompletness(const KWClass* kwcOwnerClas
 	require(kwcOwnerClass != NULL);
 
 	// Methode ancetre
-	bOk = KWDerivationRule::CheckOperandsCompletness(kwcOwnerClass);
+	bOk = KWDerivationRule::CheckOperandsCompleteness(kwcOwnerClass);
 
 	// Verification que le premier operande reference une regle de type partition
 	if (bOk)
@@ -586,7 +586,7 @@ boolean KWDRTablePartition::CheckBlockAttributes(const KWClass* kwcOwnerClass,
 	require(kwcOwnerClass->GetDomain() != NULL);
 	require(attributeBlock != NULL);
 	require(attributeBlock->GetFirstAttribute()->GetParentClass()->GetDomain() == kwcOwnerClass->GetDomain());
-	require(CheckOperandsCompletness(kwcOwnerClass));
+	require(CheckOperandsCompleteness(kwcOwnerClass));
 	require(attributeBlock->GetVarKeyType() == KWType::Continuous);
 
 	// Appel de la methode ancetre

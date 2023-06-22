@@ -42,7 +42,7 @@ public:
 	// avec controles sur le type etc...
 	// appelle les methodes SerializeValue() et DeserializeValue()
 	// Le serializer doit etre ouvert en lecture/ecriture
-	void Serialize(PLSerializer*);
+	void Serialize(PLSerializer*) const;
 	void Deserialize(PLSerializer*);
 
 	// Nettoyage : liberation de la memoire, utile pour les variable partagee complexes

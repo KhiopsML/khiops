@@ -14,6 +14,7 @@ class DTTreeAttribute;
 int DTTreeAttributeLevelCompare(const void* elem1, const void* elem2);
 int DTTreeAttributeRankCompare(const void* elem1, const void* elem2);
 int DTAttributeSelectionCompareAttributesNumber(const void* elem1, const void* elem2);
+int DTAttributeSelectionCompareAttributesIndex(const void* elem1, const void* elem2);
 
 ////////////////////////////////////////////////////////////////////
 // Classe DTAttributeSelection
@@ -25,7 +26,6 @@ class DTAttributeSelection : public Object
 public:
 	// Constructeur
 	DTAttributeSelection();
-	// DTAttributeSelection(const ObjectArray* oaAttributeStats);
 	~DTAttributeSelection();
 
 	// copie / clonage
@@ -82,7 +82,7 @@ public:
 	// table de tuples par groupes pour beneficier de la represenattion sparse
 	// des attribut, dans le cas de l'analyse bivariee
 	// L'ensemble des 4 criteres assure la reproductibilite des traitement
-	int CompareBlocks(const DTAttributeSelection* otherAttributePair);
+	int CompareBlocks(const DTAttributeSelection* otherAttributePair) const;
 
 	void SortByBlocks();
 
@@ -109,7 +109,7 @@ public:
 
 	void WriteReport(ostream& ost);
 
-	virtual longint GetUsedMemory() const;
+	virtual longint GetUsedMemory() const override;
 
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation

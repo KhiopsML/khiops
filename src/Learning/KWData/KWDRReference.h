@@ -44,7 +44,7 @@ public:
 	static KWObjectReferenceResolver* GetObjectReferenceResolver();
 
 	// Verification de la compatibilite des operandes avec la cle de la classe referencee
-	boolean CheckOperandsCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
 
 	// Affichage, ecriture dans un fichier, de l'usage de la regle
 	void WriteUsedRule(ostream& ost) const override;

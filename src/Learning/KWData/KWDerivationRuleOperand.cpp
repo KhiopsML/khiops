@@ -279,7 +279,7 @@ boolean KWDerivationRuleOperand::CheckFamily(const KWDerivationRuleOperand* oper
 	return bResult;
 }
 
-boolean KWDerivationRuleOperand::CheckCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDerivationRuleOperand::CheckCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bResult = true;
 	KWAttribute* attribute;
@@ -452,7 +452,7 @@ boolean KWDerivationRuleOperand::CheckCompletness(const KWClass* kwcOwnerClass) 
 			bResult = false;
 		}
 		// Regle correcte
-		else if (not GetDerivationRule()->CheckCompletness(scopeClass))
+		else if (not GetDerivationRule()->CheckCompleteness(scopeClass))
 		{
 			AddError("Incomplete rule for the operand");
 			bResult = false;
@@ -633,11 +633,23 @@ void KWDerivationRuleOperand::ComputeUpperScopeValue(const KWObject* kwoObject)
 		else
 			kwvConstant.SetTimestamp(GetDerivationRule()->ComputeTimestampResult(kwoObject));
 		break;
+	case KWType::TimestampTZ:
+		if (GetOrigin() == OriginAttribute)
+			kwvConstant.SetTimestampTZ(kwoObject->ComputeTimestampTZValueAt(liDataItemLoadIndex));
+		else
+			kwvConstant.SetTimestampTZ(GetDerivationRule()->ComputeTimestampTZResult(kwoObject));
+		break;
 	case KWType::Text:
 		if (GetOrigin() == OriginAttribute)
 			kwvConstant.SetText(kwoObject->ComputeTextValueAt(liDataItemLoadIndex));
 		else
 			kwvConstant.SetText(GetDerivationRule()->ComputeTextResult(kwoObject));
+		break;
+	case KWType::TextList:
+		if (GetOrigin() == OriginAttribute)
+			kwvConstant.SetTextList(kwoObject->ComputeTextListValueAt(liDataItemLoadIndex));
+		else
+			kwvConstant.SetTextList(GetDerivationRule()->ComputeTextListResult(kwoObject));
 		break;
 	case KWType::Object:
 		if (GetOrigin() == OriginAttribute)
@@ -746,7 +758,7 @@ void KWDerivationRuleOperand::Compile(KWClass* kwcOwnerClass)
 	KWDerivationRule* scopeRule;
 
 	require(kwcOwnerClass != NULL);
-	require(CheckCompletness(kwcOwnerClass));
+	require(CheckCompleteness(kwcOwnerClass));
 
 	///////////////////////////////////////////////////////
 	// Compilation systematique

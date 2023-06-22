@@ -50,7 +50,8 @@ longint RMResourceManager::GetHeapLogicalMemory()
 
 longint RMResourceManager::GetSystemMemoryReserve()
 {
-	return RMStandardResourceDriver::PhysicalToLogical(MEMORY, UIObject::GetUserInterfaceMemoryReserve() +
+	return SystemFileDriverCreator::GetMaxPreferredBufferSize() +
+	       RMStandardResourceDriver::PhysicalToLogical(MEMORY, UIObject::GetUserInterfaceMemoryReserve() +
 								       MemGetPhysicalMemoryReserve() +
 								       MemGetAllocatorReserve());
 }
@@ -149,12 +150,6 @@ void RMResourceRequirement::CopyFrom(const RMResourceRequirement* requirement)
 	}
 }
 
-RMPhysicalResource* RMResourceRequirement::GetResource(int nResourceIndex) const
-{
-	require(nResourceIndex < RESOURCES_NUMBER);
-	return cast(RMPhysicalResource*, oaResources.GetAt(nResourceIndex));
-}
-
 RMPhysicalResource* RMResourceRequirement::GetMemory() const
 {
 	return GetResource(MEMORY);
@@ -196,7 +191,7 @@ void RMResourceRequirement::WriteDetails(ostream& ost) const
 RMPhysicalResource::RMPhysicalResource()
 {
 	lMin = 0;
-	lMax = LLONG_MAX;
+	lMax = 0;
 }
 
 RMPhysicalResource::~RMPhysicalResource() {}
@@ -221,19 +216,9 @@ void RMPhysicalResource::SetMax(longint lValue)
 	lMax = lValue;
 }
 
-longint RMPhysicalResource::GetMax() const
-{
-	return lMax;
-}
-
 void RMPhysicalResource::SetMin(longint lValue)
 {
 	lMin = lValue;
-}
-
-longint RMPhysicalResource::GetMin() const
-{
-	return lMin;
 }
 
 void RMPhysicalResource::UpgradeMin(longint lDeltaMin)

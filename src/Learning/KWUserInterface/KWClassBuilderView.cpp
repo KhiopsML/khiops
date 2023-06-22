@@ -74,7 +74,7 @@ KWClassBuilderView::KWClassBuilderView()
 		    ->SetHelpText(
 			"Start the analysis of the data table file to build a dictionary."
 			"\n The first lines of the file are analyzed in order to determine the type of the variables:"
-			"\n Categorical, Numerical, Date, Time, Timestamp, Text."
+			"\n Categorical, Numerical, Date, Time, Timestamp, TimestampTZ, Text."
 			"\n After analysis, the user can choose the name of the dictionary.");
 	GetActionAt("Exit")->SetHelpText("Close the dialog box."
 					 "\n If dictionaries have been built,"

@@ -30,7 +30,7 @@ public:
 	// Pour un effectif N donne et un vecteur de proba dvProbs donne (potentiellement partiel),
 	// il s'agit de tirer l'echantillon (ivFrequencies) le plus probable
 
-	// Meilleur echantillon pour un effectif donne et une distribution multinomiale donnees
+	// Meilleur echantillon pour un effectif donne et une distribution multinomiale donnee
 	// On choisit l'echantillon le plus probable (calcul "presque" exact)
 	void ComputeBestSample(double dTotalFrequency, const DoubleVector* dvProbs, DoubleVector* dvFrequencies) const;
 

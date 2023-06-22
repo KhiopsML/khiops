@@ -170,17 +170,7 @@ void Time::Test()
 
 KWTimeFormat::KWTimeFormat()
 {
-	bMandatoryFirstDigit = true;
-	nTotalCharNumber = 0;
-	cSeparatorChar = '\0';
-	nSeparatorOffset1 = 0;
-	nSeparatorOffset2 = 0;
-	nHourOffset = 0;
-	nMinuteOffset = 0;
-	nSecondOffset = 0;
-	nDecimalPointOffset = 0;
-	nMinCharNumber = 0;
-	nMaxCharNumber = 0;
+	Reset();
 }
 
 KWTimeFormat::~KWTimeFormat() {}
@@ -200,7 +190,7 @@ boolean KWTimeFormat::SetFormatString(const ALString& sValue)
 	// Test de la longueur
 	if (bCheck)
 	{
-		// Longueur peut aller de 4 (HHMM) a 9 ((H)H:(M)M:(S)S.) en passant par tous
+		// Longueur peut aller de 4 (HHMM) a 15 ((H)H:(M)M:(S)S.) en passant par tous
 		// les intermediaires
 		bCheck = (4 <= nTotalCharNumber and nTotalCharNumber <= 15);
 	}
@@ -287,10 +277,8 @@ boolean KWTimeFormat::SetFormatString(const ALString& sValue)
 				assert(nTotalMainCharNumber == 6 or nSecondOffset == -1);
 			}
 			// Cas avec separateur
-			else
+			else if (nTotalMainCharNumber == 5 or nTotalMainCharNumber == 8)
 			{
-				assert(nTotalMainCharNumber == 5 or nTotalMainCharNumber == 8);
-
 				// Le separateur doit apparaitre en positions 2 et 5
 				nSeparatorOffset1 = 2;
 				nSeparatorOffset2 = 5;
@@ -305,6 +293,9 @@ boolean KWTimeFormat::SetFormatString(const ALString& sValue)
 				if (nSeparatorOffset2 != -1)
 					bCheck = bCheck and sValue.GetAt(nSeparatorOffset2) == cSeparatorChar;
 			}
+			// Erreur sinon
+			else
+				bCheck = false;
 		}
 	}
 
@@ -348,20 +339,24 @@ boolean KWTimeFormat::SetFormatString(const ALString& sValue)
 
 	// Reinitialisation des caracteristiques du format si invalide
 	if (not bCheck)
-	{
-		bMandatoryFirstDigit = true;
-		nTotalCharNumber = 0;
-		cSeparatorChar = '\0';
-		nSeparatorOffset1 = 0;
-		nSeparatorOffset2 = 0;
-		nHourOffset = 0;
-		nMinuteOffset = 0;
-		nSecondOffset = 0;
-		nDecimalPointOffset = 0;
-		nMinCharNumber = 0;
-		nMaxCharNumber = 0;
-	}
+		Reset();
 	return bCheck;
+}
+
+void KWTimeFormat::Reset()
+{
+	sFormatString = "";
+	bMandatoryFirstDigit = true;
+	nTotalCharNumber = 0;
+	cSeparatorChar = '\0';
+	nSeparatorOffset1 = 0;
+	nSeparatorOffset2 = 0;
+	nHourOffset = 0;
+	nMinuteOffset = 0;
+	nSecondOffset = 0;
+	nDecimalPointOffset = 0;
+	nMinCharNumber = 0;
+	nMaxCharNumber = 0;
 }
 
 boolean KWTimeFormat::IsConsistentWith(const KWTimeFormat* otherFormat) const
@@ -798,6 +793,7 @@ void KWTimeFormat::UnitTest(const ALString& sInputValue, KWTimeFormat* inputForm
 	require(outputFormat != NULL);
 
 	tmInputValue.Reset();
+	tmOutputValue.Reset();
 	if (inputFormat->Check())
 		tmInputValue = inputFormat->StringToTime(sInputValue);
 	if (outputFormat->Check())

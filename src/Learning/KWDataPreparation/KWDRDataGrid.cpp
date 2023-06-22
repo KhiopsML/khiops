@@ -9,6 +9,7 @@ void KWDRRegisterDataGridRules()
 	KWDerivationRule::RegisterDerivationRule(new KWDRDataGrid);
 	KWDerivationRule::RegisterDerivationRule(new KWDRFrequencies);
 	KWDerivationRule::RegisterDerivationRule(new KWDRCellIndex);
+	KWDerivationRule::RegisterDerivationRule(new KWDRCellIndexWithMissing);
 	KWDerivationRule::RegisterDerivationRule(new KWDRCellLabel);
 	KWDerivationRule::RegisterDerivationRule(new KWDRCellId);
 	KWDerivationRule::RegisterDerivationRule(new KWDRValueIndex);
@@ -458,12 +459,11 @@ void KWDRDataGrid::Compile(KWClass* kwcOwnerClass)
 	// Appel de la methode ancetre
 	KWDerivationRule::Compile(kwcOwnerClass);
 
-	// Optimisation si necessaire
-	// Compilation dynamique si necessaire
-	if (nOptimizationFreshness < nCompileFreshness)
+	// Optimisation si necessaire, en comparant a la fraicheur de la classe entiere
+	if (nOptimizationFreshness < kwcOwnerClass->GetCompileFreshness())
 	{
 		// Memorisation de la fraicheur
-		nOptimizationFreshness = nCompileFreshness;
+		nOptimizationFreshness = kwcOwnerClass->GetCompileFreshness();
 
 		// Optimisation
 		Optimize(kwcOwnerClass);
@@ -828,7 +828,7 @@ void KWDRDataGrid::Optimize(KWClass* kwcOwnerClass)
 
 boolean KWDRDataGrid::IsOptimized() const
 {
-	return IsCompiled() and nOptimizationFreshness == nCompileFreshness;
+	return IsCompiled() and nOptimizationFreshness == GetOwnerClass()->GetCompileFreshness();
 }
 
 ///////////////////////////////////////////////////////////////
@@ -937,10 +937,10 @@ boolean KWDRFrequencies::CheckOperandsDefinition() const
 
 			// Verification de la valeur entiere de l'operande
 			cValue = operand->GetContinuousConstant();
-			nValue = (int)floor(cValue + 0.5);
-			if (fabs(cValue - nValue) > 1e-5)
+			bOk = KWContinuous::ContinuousToInt(cValue, nValue);
+			if (not bOk)
 			{
-				bOk = false;
+				assert(bOk == false);
 				AddError(sTmp + "Operand " + IntToString(nOperand + 1) + " (" +
 					 KWContinuous::ContinuousToString(cValue) + ")" +
 					 ": operand must be an integer");
@@ -1079,12 +1079,106 @@ KWDRDataGridRule::KWDRDataGridRule()
 	// Index de la partie source, calcule pour le dernier objet
 	nCellIndex = -1;
 
+	// Indication de valeur manquante pour le dernier objet
+	bIsMissingValue = false;
+
 	// Gestion de la compilation dynamique
 	dataGridRule = NULL;
 	nOptimizationFreshness = 0;
 }
 
 KWDRDataGridRule::~KWDRDataGridRule() {}
+
+void KWDRDataGridRule::ComputeCellIndex(const KWObject* kwoObject) const
+{
+	int nOperand;
+	int nAttributeIndex;
+	int nPartIndex;
+	int nFactor;
+	Continuous cValue;
+	Symbol sValue;
+
+	require(Check());
+	require(IsOptimized());
+
+	// Calcul de l'index de la cellule
+	nCellIndex = 0;
+	bIsMissingValue = false;
+	nFactor = 1;
+	for (nOperand = 1; nOperand < GetOperandNumber(); nOperand++)
+	{
+		nAttributeIndex = nOperand - 1;
+
+		// Recherche de l'index de la partie selon son type, et mise a jour de l'indication de valeur manquante
+		if (dataGridRule->GetAttributeTypeAt(nAttributeIndex) == KWType::Continuous)
+		{
+			assert(GetOperandAt(nOperand)->GetType() == KWType::Continuous);
+			cValue = GetOperandAt(nOperand)->GetContinuousValue(kwoObject);
+			bIsMissingValue = bIsMissingValue or cValue == KWContinuous::GetMissingValue();
+			nPartIndex = dataGridRule->GetContinuousAttributePartIndexAt(nAttributeIndex, cValue);
+		}
+		else
+		{
+			assert(dataGridRule->GetAttributeTypeAt(nAttributeIndex) == KWType::Symbol);
+			assert(GetOperandAt(nOperand)->GetType() == KWType::Symbol);
+			sValue = GetOperandAt(nOperand)->GetSymbolValue(kwoObject);
+			bIsMissingValue = bIsMissingValue or sValue.IsEmpty();
+			nPartIndex = dataGridRule->GetSymbolAttributePartIndexAt(nAttributeIndex, sValue);
+		}
+
+		// Calcul de l'index de cellule
+		nCellIndex += nFactor * nPartIndex;
+		nFactor *= dataGridRule->GetAttributePartNumberAt(nAttributeIndex);
+	}
+}
+
+const ALString KWDRDataGridRule::ComputeCellLabel(const KWObject* kwoObject) const
+{
+	ALString sCellLabel;
+	int nOperand;
+	int nAttributeIndex;
+	int nPartIndex;
+	int nFactor;
+	Continuous cValue;
+	Symbol sValue;
+
+	require(Check());
+	require(IsOptimized());
+
+	// Calcul de l'index de la cellule
+	nCellIndex = 0;
+	bIsMissingValue = false;
+	nFactor = 1;
+	for (nOperand = 1; nOperand < GetOperandNumber(); nOperand++)
+	{
+		nAttributeIndex = nOperand - 1;
+
+		// Recherche de l'index de la partie selon son type
+		if (dataGridRule->GetAttributeTypeAt(nAttributeIndex) == KWType::Continuous)
+		{
+			assert(GetOperandAt(nOperand)->GetType() == KWType::Continuous);
+			cValue = GetOperandAt(nOperand)->GetContinuousValue(kwoObject);
+			bIsMissingValue = bIsMissingValue or cValue == KWContinuous::GetMissingValue();
+			nPartIndex = dataGridRule->GetContinuousAttributePartIndexAt(nAttributeIndex, cValue);
+		}
+		else
+		{
+			assert(dataGridRule->GetAttributeTypeAt(nAttributeIndex) == KWType::Symbol);
+			assert(GetOperandAt(nOperand)->GetType() == KWType::Symbol);
+			sValue = GetOperandAt(nOperand)->GetSymbolValue(kwoObject);
+			bIsMissingValue = bIsMissingValue or sValue.IsEmpty();
+			nPartIndex = dataGridRule->GetSymbolAttributePartIndexAt(nAttributeIndex, sValue);
+		}
+
+		// Prise en compte du livelle de la partie
+		if (nOperand > 1)
+			sCellLabel += " x ";
+		sCellLabel +=
+		    cast(KWDRUnivariatePartition*, dataGridRule->GetOperandAt(nAttributeIndex)->GetDerivationRule())
+			->GetPartLabelAt(nPartIndex);
+	}
+	return sCellLabel;
+}
 
 boolean KWDRDataGridRule::CheckOperandsFamily(const KWDerivationRule* ruleFamily) const
 {
@@ -1138,7 +1232,7 @@ boolean KWDRDataGridRule::CheckOperandsFamily(const KWDerivationRule* ruleFamily
 	return bOk;
 }
 
-boolean KWDRDataGridRule::CheckOperandsCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDRDataGridRule::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk = true;
 	int nDataGridAttributeNumber;
@@ -1154,7 +1248,7 @@ boolean KWDRDataGridRule::CheckOperandsCompletness(const KWClass* kwcOwnerClass)
 	require(kwcOwnerClass != NULL);
 
 	// Methode ancetre
-	bOk = KWDerivationRule::CheckOperandsCompletness(kwcOwnerClass);
+	bOk = KWDerivationRule::CheckOperandsCompleteness(kwcOwnerClass);
 
 	// Verification que le premier operande reference une regle de type grille
 	if (bOk)
@@ -1318,101 +1412,15 @@ void KWDRDataGridRule::Compile(KWClass* kwcOwnerClass)
 	// Appel de la methode ancetre
 	KWDerivationRule::Compile(kwcOwnerClass);
 
-	// Optimisation si necessaire
-	// Compilation dynamique si necessaire
-	if (nOptimizationFreshness < nCompileFreshness)
+	// Optimisation si necessaire, en comparant a la fraicheur de la classe entiere
+	if (nOptimizationFreshness < kwcOwnerClass->GetCompileFreshness())
 	{
 		// Memorisation de la fraicheur
-		nOptimizationFreshness = nCompileFreshness;
+		nOptimizationFreshness = kwcOwnerClass->GetCompileFreshness();
 
 		// Optimisation
 		Optimize(kwcOwnerClass);
 	}
-}
-
-void KWDRDataGridRule::ComputeCellIndex(const KWObject* kwoObject) const
-{
-	int nOperand;
-	int nAttributeIndex;
-	int nPartIndex;
-	int nFactor;
-	Continuous cValue;
-	Symbol sValue;
-
-	require(Check());
-	require(IsOptimized());
-
-	// Calcul de l'index de la cellule
-	nCellIndex = 0;
-	nFactor = 1;
-	for (nOperand = 1; nOperand < GetOperandNumber(); nOperand++)
-	{
-		nAttributeIndex = nOperand - 1;
-
-		// Recherche de l'index de la partie selon son type
-		if (dataGridRule->GetAttributeTypeAt(nAttributeIndex) == KWType::Continuous)
-		{
-			assert(GetOperandAt(nOperand)->GetType() == KWType::Continuous);
-			cValue = GetOperandAt(nOperand)->GetContinuousValue(kwoObject);
-			nPartIndex = dataGridRule->GetContinuousAttributePartIndexAt(nAttributeIndex, cValue);
-		}
-		else
-		{
-			assert(dataGridRule->GetAttributeTypeAt(nAttributeIndex) == KWType::Symbol);
-			assert(GetOperandAt(nOperand)->GetType() == KWType::Symbol);
-			sValue = GetOperandAt(nOperand)->GetSymbolValue(kwoObject);
-			nPartIndex = dataGridRule->GetSymbolAttributePartIndexAt(nAttributeIndex, sValue);
-		}
-
-		// Calcul de l'index de cellule
-		nCellIndex += nFactor * nPartIndex;
-		nFactor *= dataGridRule->GetAttributePartNumberAt(nAttributeIndex);
-	}
-}
-
-const ALString KWDRDataGridRule::ComputeCellLabel(const KWObject* kwoObject) const
-{
-	ALString sCellLabel;
-	int nOperand;
-	int nAttributeIndex;
-	int nPartIndex;
-	int nFactor;
-	Continuous cValue;
-	Symbol sValue;
-
-	require(Check());
-	require(IsOptimized());
-
-	// Calcul de l'index de la cellule
-	nCellIndex = 0;
-	nFactor = 1;
-	for (nOperand = 1; nOperand < GetOperandNumber(); nOperand++)
-	{
-		nAttributeIndex = nOperand - 1;
-
-		// Recherche de l'index de la partie selon son type
-		if (dataGridRule->GetAttributeTypeAt(nAttributeIndex) == KWType::Continuous)
-		{
-			assert(GetOperandAt(nOperand)->GetType() == KWType::Continuous);
-			cValue = GetOperandAt(nOperand)->GetContinuousValue(kwoObject);
-			nPartIndex = dataGridRule->GetContinuousAttributePartIndexAt(nAttributeIndex, cValue);
-		}
-		else
-		{
-			assert(dataGridRule->GetAttributeTypeAt(nAttributeIndex) == KWType::Symbol);
-			assert(GetOperandAt(nOperand)->GetType() == KWType::Symbol);
-			sValue = GetOperandAt(nOperand)->GetSymbolValue(kwoObject);
-			nPartIndex = dataGridRule->GetSymbolAttributePartIndexAt(nAttributeIndex, sValue);
-		}
-
-		// Prise en compte du livelle de la partie
-		if (nOperand > 1)
-			sCellLabel += " x ";
-		sCellLabel +=
-		    cast(KWDRUnivariatePartition*, dataGridRule->GetOperandAt(nAttributeIndex)->GetDerivationRule())
-			->GetPartLabelAt(nPartIndex);
-	}
-	return sCellLabel;
 }
 
 longint KWDRDataGridRule::GetUsedMemory() const
@@ -1432,7 +1440,7 @@ void KWDRDataGridRule::Optimize(KWClass* kwcOwnerClass)
 
 boolean KWDRDataGridRule::IsOptimized() const
 {
-	return IsCompiled() and nOptimizationFreshness == nCompileFreshness;
+	return IsCompiled() and nOptimizationFreshness == GetOwnerClass()->GetCompileFreshness();
 }
 
 ///////////////////////////////////////////////////////////////
@@ -1462,6 +1470,39 @@ Continuous KWDRCellIndex::ComputeContinuousResult(const KWObject* kwoObject) con
 
 	// On renvoie l'index de la cellule
 	return (Continuous)(nCellIndex + 1);
+}
+
+///////////////////////////////////////////////////////////////
+// Classe KWDRCellIndexWithMissing
+
+KWDRCellIndexWithMissing::KWDRCellIndexWithMissing()
+{
+	SetName("CellIndexWithMissing");
+	SetLabel("Cell index of an instance or missing value index");
+	SetType(KWType::Continuous);
+}
+
+KWDRCellIndexWithMissing::~KWDRCellIndexWithMissing() {}
+
+KWDerivationRule* KWDRCellIndexWithMissing::Create() const
+{
+	return new KWDRCellIndexWithMissing;
+}
+
+Continuous KWDRCellIndexWithMissing::ComputeContinuousResult(const KWObject* kwoObject) const
+{
+	require(Check());
+	require(IsOptimized());
+
+	// Calcul et memorisation de l'index de cellule
+	ComputeCellIndex(kwoObject);
+
+	// On renvoie -1 en cas de valeur manquante
+	if (bIsMissingValue)
+		return -1;
+	else
+		// Sinon, on renvoie l'index de la cellule
+		return (Continuous)(nCellIndex + 1);
 }
 
 ///////////////////////////////////////////////////////////////
@@ -1563,12 +1604,12 @@ KWDerivationRule* KWDRValueIndex::Create() const
 	return new KWDRValueIndex;
 }
 
-boolean KWDRValueIndex::CheckOperandsCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDRValueIndex::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk = true;
 
 	// Methode ancetre
-	bOk = KWDerivationRule::CheckOperandsCompletness(kwcOwnerClass);
+	bOk = KWDerivationRule::CheckOperandsCompleteness(kwcOwnerClass);
 
 	// Verification que l'on a une regle de type statistique univariee
 	bOk = bOk and CheckTargetAttributeCompletness(kwcOwnerClass);
@@ -1663,12 +1704,12 @@ KWDerivationRule* KWDRValueRank::Create() const
 	return new KWDRValueRank;
 }
 
-boolean KWDRValueRank::CheckOperandsCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDRValueRank::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk = true;
 
 	// Methode ancetre
-	bOk = KWDerivationRule::CheckOperandsCompletness(kwcOwnerClass);
+	bOk = KWDerivationRule::CheckOperandsCompleteness(kwcOwnerClass);
 
 	// Verification que l'on a une regle de type statistique univariee
 	bOk = bOk and CheckTargetAttributeCompletness(kwcOwnerClass);
@@ -1852,7 +1893,7 @@ KWDerivationRule* KWDRInverseValueRank::Create() const
 	return new KWDRInverseValueRank;
 }
 
-boolean KWDRInverseValueRank::CheckOperandsCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDRInverseValueRank::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk = true;
 	KWDRContinuousValueSet continuousValueSet;
@@ -1860,7 +1901,7 @@ boolean KWDRInverseValueRank::CheckOperandsCompletness(const KWClass* kwcOwnerCl
 	KWDRUnivariatePartition* univariatePartitionRule;
 
 	// Methode ancetre
-	bOk = KWDRValueRank::CheckOperandsCompletness(kwcOwnerClass);
+	bOk = KWDRValueRank::CheckOperandsCompleteness(kwcOwnerClass);
 
 	// Verification que l'on a une partition simple de type continu
 	if (bOk)
@@ -2018,7 +2059,7 @@ Object* KWDRDataGridStats::ComputeStructureResult(const KWObject* kwoObject) con
 	require(Check());
 	require(IsOptimized());
 
-	// Calcul et memorisation de l'index de cellule
+	// Calcul de l'index de cellule, pour avoir acces a l'index et a l'indication de valeur manquante
 	ComputeCellIndex(kwoObject);
 
 	// On retourne l'objet

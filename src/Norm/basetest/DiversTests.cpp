@@ -49,121 +49,6 @@ void TestMemAdvanced()
 	MemPrintHeapStats(stdout);
 }
 
-void TestBigFile()
-{
-	CharVector cvTest;
-	InputBufferedFile inputFile1;
-	OutputBufferedFile outputFile1;
-	InputBufferedFile inputFile2;
-	OutputBufferedFile outputFile2;
-	OutputBufferedFile outputFile;
-	char cIn;
-	Timer timer;
-	boolean bTestCreate = true;
-	boolean bTestIO = true;
-	int i;
-	char* sField;
-	int nFieldLength;
-	int nFieldError;
-	longint lBeginPos;
-	int nBufferNumber;
-	boolean bEol;
-
-	if (bTestCreate)
-	{
-		cvTest.SetSize(1024);
-		for (i = 0; i < cvTest.GetSize(); i++)
-		{
-			if (i % 1024 == 0)
-				cvTest.SetAt(i, '\n');
-			else if (i % 8 == 0)
-				cvTest.SetAt(i, '\t');
-			else
-				cvTest.SetAt(i, '.');
-		}
-
-		// Creation du fichier
-		timer.Start();
-		outputFile1.SetFileName("c:/temp/BigFileIn1.txt");
-		outputFile1.Open();
-		outputFile2.SetFileName("c:/temp/BigFileIn2.txt");
-		outputFile2.Open();
-		for (i = 0; i < 1048576; i++)
-		{
-			outputFile1.Write(&cvTest);
-			outputFile2.Write(&cvTest);
-		}
-		outputFile1.Close();
-		outputFile2.Close();
-		timer.Stop();
-		cout << "Creation time: " << timer.GetElapsedTime() << endl;
-	}
-
-	if (bTestIO)
-	{
-		// Lecture/ecriture du fichier
-		timer.Start();
-		inputFile1.SetFileName("c:/temp/BigFileIn1.txt");
-		inputFile2.SetFileName("c:/temp/BigFileIn2.txt");
-		outputFile.SetFileName("c:/temp/BigFileOut.txt");
-		inputFile1.Open();
-		inputFile2.Open();
-		outputFile.Open();
-		nBufferNumber = 0;
-
-		//
-		lBeginPos = 0;
-		while (not inputFile1.IsLastBuffer())
-		{
-			// Lecture d'un buffer
-			inputFile1.Fill(lBeginPos);
-			lBeginPos += inputFile1.GetBufferSize();
-			nBufferNumber++;
-
-			// Analyse du buffer
-			while (not inputFile1.IsBufferEnd())
-			{
-				bEol = inputFile1.GetNextField(sField, nFieldLength, nFieldError);
-				outputFile.Write(sField);
-				if (bEol)
-					outputFile.Write('\n');
-				else
-					outputFile.Write('\t');
-			}
-		}
-
-		//
-		lBeginPos = 0;
-		while (not inputFile2.IsLastBuffer())
-		{
-			// Lecture d'un buffer
-			inputFile2.Fill(lBeginPos);
-			lBeginPos += inputFile2.GetBufferSize();
-			nBufferNumber++;
-
-			// Analyse du buffer
-			while (not inputFile2.IsBufferEnd())
-			{
-				bEol = inputFile2.GetNextField(sField, nFieldLength, nFieldError);
-				outputFile.Write(sField);
-				if (bEol)
-					outputFile.Write('\n');
-				else
-					outputFile.Write('\t');
-			}
-		}
-
-		//
-		inputFile1.Close();
-		inputFile2.Close();
-		outputFile.Close();
-		timer.Stop();
-		cout << "Buffers: " << nBufferNumber << endl;
-		cout << "Read/write time: " << timer.GetElapsedTime() << endl;
-	}
-	cin >> cIn;
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 // Test avec des caracteres non ascii
 //   . Ansi: e accent aigu
@@ -213,6 +98,11 @@ void StudyCharacterEncodings()
 	int i;
 	ALString sTmp;
 
+#ifdef _MSC_VER
+// C4310: le cast tronque la valeur constante
+#pragma warning(disable : 4310) // disable 4310 warning
+#endif
+
 	// Initialisation des chaines de caracteres
 	sAnsi = sTmp + "Ansi_" + (char)(0xE9) + "_";
 	sAnsiAsUtf8 = sTmp + "AnsiAsUtf8" + char(0xC3) + char(0xA9) + "_";
@@ -220,6 +110,11 @@ void StudyCharacterEncodings()
 	svEncodings.Add(sAnsi);
 	svEncodings.Add(sAnsiAsUtf8);
 	svEncodings.Add(sUtf8);
+
+#ifdef _MSC_VER
+// C4310: le cast tronque la valeur constante
+#pragma warning(default : 4310) // enable 4310 warning
+#endif
 
 	// Ecriture des caracteres dans un fichier de log
 	logFile.SetFileName(FileService::BuildFilePathName(sRootPath, "LogEncodings.txt"));
@@ -262,7 +157,7 @@ void StudyCharacterEncodings()
 
 		// Test si le fichier existe
 		logFile.Write("Is file  " + outputFile.GetFileName() + ": ");
-		logFile.Write(BooleanToString(FileService::IsFile(outputFile.GetFileName())));
+		logFile.Write(BooleanToString(FileService::FileExists(outputFile.GetFileName())));
 		logFile.Write("\n");
 	}
 

@@ -50,7 +50,7 @@ protected:
 	int ComputeMaxSliceNumber() const;
 
 	// Estimation de la memoire partagee
-	longint ComputeSharedNecessaryMemory();
+	longint ComputeSharedNecessaryMemory(longint lSliceSetReadBufferMemory);
 
 	// Estimation de la memoire du maitre
 	virtual longint ComputeMasterNecessaryMemory() const = 0;
@@ -58,8 +58,11 @@ protected:
 	// Estimation de la memoire necessaire pour le recodage
 	longint ComputeDataPreparationClassNecessaryMemory();
 
-	// Estimation de l'empreinte memoire des objets pour le recodage du slice set
-	longint ComputeRecodingObjectsNecessaryMemory();
+	// Estimation de la memoire des objets pour le recodage du slice set
+	longint ComputeRecodingObjectsNecessaryMemory(longint lSliceSetReadBufferMemory);
+
+	// Estimation de la memoire total des buffer de lecture pour le KWDataTableBinarySliceSet en entree
+	longint ComputeSliceSetTotalReadBufferNecessaryMemory(longint lSliceSetReadBufferMemory);
 
 	// Estimation de la memoire utilisee par les KWAttributeStats
 	longint ComputeOverallAttributeStatsNecessaryMemory();
@@ -68,7 +71,7 @@ protected:
 	longint ComputeDataPreparationAttributeNecessaryMemory(const KWDataGridStats* dataGridStats) const;
 
 	// Estimation de la memoire globale necessaire pour tous les esclaves
-	virtual longint ComputeGlobalSlaveNecessaryMemory(int nSliceNumber);
+	virtual longint ComputeGlobalSlaveNecessaryMemory(int nSliceNumber, longint lSliceSetReadBufferMemory);
 
 	// Estimation de la memoire globale des scores de tous les esclaves
 	virtual longint ComputeGlobalSlaveScorerNecessaryMemory() const = 0;

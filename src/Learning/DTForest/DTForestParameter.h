@@ -51,6 +51,14 @@ public:
 	void SetWeightedClassifier(ALString sValue);
 	ALString GetWeightedClassifier() const;
 
+	// discretisation d'une cible continue
+	void SetDiscretizationTargetMethod(ALString sValue);
+	ALString GetDiscretizationTargetMethod() const;
+
+	// nbre max d'intervalles pour discretisation Eq Freq d'une target continue
+	void SetMaxIntervalsNumberForTarget(int i);
+	int GeMaxIntervalsNumberForTarget() const;
+
 	boolean IsWriteDetailedStatistics() const;
 	void SetWriteDetailedStatistics(boolean);
 
@@ -73,7 +81,9 @@ public:
 	static const ALString DRAWING_TYPE_NO_REPLACEMENT_LABEL;
 	static const ALString DRAWING_TYPE_USE_OUT_OF_BAG_LABEL;
 	static const ALString DRAWING_TYPE_ADABOOST_REPLACEMENT_LABEL;
-	static const ALString Heuristic_NODRAW_LABEL;
+	static const ALString HEURISTIC_NODRAW_LABEL;
+	static const ALString DISCRETIZATION_EQUAL_FREQUENCY;
+	static const ALString DISCRETIZATION_MODL;
 
 	////////////////////////////////////////////////////////
 	//// Implementation
@@ -106,6 +116,12 @@ protected:
 
 	/// Ponderation ou pas du predicteur moyen
 	ALString sWeightedClassifier;
+
+	/// type de discretisation d'une target continue
+	ALString sDiscretizationTargetMethod;
+
+	// nbre max d'intervalles pour discretisation Eq Freq d'une target continue
+	int nMaxIntervalsNumberForTarget;
 
 	boolean bWriteDetailedStatistics;
 

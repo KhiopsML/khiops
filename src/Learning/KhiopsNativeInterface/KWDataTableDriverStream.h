@@ -66,7 +66,7 @@ public:
 	boolean IsEnd() const override;
 	longint GetEstimatedObjectNumber() override;
 	longint ComputeNecessaryMemoryForFullExternalRead(const KWClass* kwcLogicalClass) override;
-	longint ComputeNecessaryDiskSpaceForFullWrite(const KWClass* kwcLogicalClass) override;
+	longint ComputeNecessaryDiskSpaceForFullWrite(const KWClass* kwcLogicalClass, longint lInputFileSize) override;
 	double GetReadPercentage() override;
 	longint GetUsedMemory() const override;
 
@@ -77,7 +77,7 @@ protected:
 	// Reimplementation de methodes virtuelles de KWDataTableDriverTextFile
 	// principalement pour desactiver le lien aux fichiers
 	boolean UpdateInputBuffer() override;
-	boolean FillInputBufferWithFullLines() override;
+	boolean FillInputBufferWithFullLines(longint lBeginPos, longint lMaxEndPos) override;
 	boolean CheckInputBuffer() override;
 	boolean OpenInputDatabaseFile() override;
 	boolean OpenOutputDatabaseFile() override;

@@ -46,13 +46,11 @@ boolean KWDatabaseTransferTask::Transfer(const KWDatabase* sourceDatabase, const
 	shared_targetDatabase.GetPLDatabase()->InitializeFrom(targetDatabase);
 
 	// Lancement de la tache
+	// On utilise un DatabaseIndexer local a la tache, car il n'y pas ici d'indexation de base a partager
 	lWrittenObjectNumber = 0;
 	bOk = RunDatabaseTask(sourceDatabase);
 	if (bOk)
 		lWrittenObjectNumber = lWrittenObjects;
-
-	// Messages de fin de tache
-	DisplayTaskMessage();
 	return bOk;
 }
 
@@ -78,7 +76,7 @@ boolean KWDatabaseTransferTask::ComputeDatabaseOpenInformation()
 	boolean bOk = true;
 	const boolean bIncludingClassMemory = true;
 
-	// Calcul de la memoire necessaire et collecte des informations permettant d'ouvir les bases dans les esclaves
+	// Calcul de la memoire necessaire et collecte des informations permettant d'ouvrir les bases dans les esclaves
 	// Attention: on ne prend en compte qu'une seule fois le dictionaire de la base, qui est partage entre
 	// les bases en lecture et en ecriture
 	bOk = bOk and shared_sourceDatabase.GetPLDatabase()->ComputeOpenInformation(
@@ -86,33 +84,6 @@ boolean KWDatabaseTransferTask::ComputeDatabaseOpenInformation()
 	bOk = bOk and
 	      shared_targetDatabase.GetPLDatabase()->ComputeOpenInformation(false, not bIncludingClassMemory, NULL);
 	return bOk;
-}
-
-void KWDatabaseTransferTask::InitializeConcatenaterBufferSize(PLFileConcatenater* concatenater,
-							      const KWClass* dictionary, longint lRecordNumber)
-{
-	longint lEstimatedRecordSize;
-	longint lEstimatedFileSize;
-	longint lConcatenerBufferSize;
-
-	require(concatenater != NULL);
-	require(dictionary != NULL);
-	require(lRecordNumber >= -1);
-
-	// Estimation de la taille d'un record
-	lEstimatedRecordSize = dictionary->GetLoadedDataItemNumber() * 10;
-	lEstimatedRecordSize +=
-	    int(sqrt(dictionary->GetLoadedAttributeNumber() - dictionary->GetLoadedDenseAttributeNumber())) * 10;
-
-	// Estimation de la taille du fichier
-	lEstimatedFileSize = lEstimatedRecordSize * (lRecordNumber + 1);
-
-	// Parametrage de la tailler du buffer du concatenater
-	lConcatenerBufferSize = RMResourceManager::GetRemainingAvailableMemory();
-	lConcatenerBufferSize = min(lConcatenerBufferSize, lEstimatedFileSize);
-	lConcatenerBufferSize = max(lConcatenerBufferSize, longint(2 * BufferedFile::nDefaultBufferSize));
-	lConcatenerBufferSize = min(lConcatenerBufferSize, lGB);
-	concatenater->SetBufferSize((int)lConcatenerBufferSize);
 }
 
 const ALString KWDatabaseTransferTask::GetTaskName() const
@@ -134,6 +105,8 @@ boolean KWDatabaseTransferTask::ComputeResourceRequirements()
 	longint lOutputNecessaryDiskSpace;
 	ALString sOutputPath;
 	longint lOutputAvailableDiskSpace;
+	longint lInputPreferredSize;
+	longint lOutputPreferredSize;
 	ALString sTmp;
 
 	// Acces aux bases
@@ -146,6 +119,7 @@ boolean KWDatabaseTransferTask::ComputeResourceRequirements()
 
 	// Specialisation de la methode
 	lOutputNecessaryDiskSpace = 0;
+	lOutputAvailableDiskSpace = 0;
 	if (bOk)
 	{
 		// Calcul des ressources pour les esclave: prise en compte additionnelle de la base en ecriture
@@ -155,9 +129,18 @@ boolean KWDatabaseTransferTask::ComputeResourceRequirements()
 		    targetDatabase->GetMaxOpenNecessaryMemory());
 
 		// Calcul des resources pour le maitre: concatenation des fichiers resultats
-		GetResourceRequirements()->GetMasterRequirement()->GetMemory()->UpgradeMin(
-		    2 * BufferedFile::nDefaultBufferSize);
-		GetResourceRequirements()->GetMasterRequirement()->GetMemory()->UpgradeMax(lGB);
+		lInputPreferredSize = PLRemoteFileService::GetPreferredBufferSize(FileService::GetTmpDir());
+		lOutputPreferredSize =
+		    PLRemoteFileService::GetPreferredBufferSize(targetDatabase->GetDatabase()->GetDatabaseName());
+
+		// On prendre le max de l'existant et de ce qu'il faut pour la concatenation, car la concatenation se
+		// fait en toute fin, quand on a plus besoin des ressources de depart
+		GetResourceRequirements()->GetMasterRequirement()->GetMemory()->SetMin(
+		    max(GetResourceRequirements()->GetMasterRequirement()->GetMemory()->GetMin(),
+			lInputPreferredSize + lOutputPreferredSize));
+		GetResourceRequirements()->GetMasterRequirement()->GetMemory()->SetMax(
+		    max(GetResourceRequirements()->GetMasterRequirement()->GetMemory()->GetMax(),
+			8 * lInputPreferredSize + lOutputPreferredSize));
 
 		// Les besoins en disque pour les esclaves permettent de stocker les fichiers temporaires de transfer
 		// sur l'ensemble de tous les esclaves (et non par esclave)
@@ -187,6 +170,8 @@ boolean KWDatabaseTransferTask::ComputeResourceRequirements()
 		     << LongintToHumanReadableString(targetDatabase->GetMaxOpenNecessaryMemory()) << endl;
 		cout << "KWDatabaseTransferTask::ComputeResourceRequirements, target disk\t"
 		     << LongintToHumanReadableString(lOutputNecessaryDiskSpace) << endl;
+		cout << "KWDatabaseTransferTask::ComputeResourceRequirements, available disk\t"
+		     << LongintToHumanReadableString(lOutputAvailableDiskSpace) << endl;
 	}
 	return bOk;
 }
@@ -230,6 +215,60 @@ boolean KWDatabaseTransferTask::MasterInitialize()
 	// Par defaut, on stocke -1 pour indique que les tables ne sont pas traitees
 	for (i = 0; i < lvMappingWrittenRecords.GetSize(); i++)
 		lvMappingWrittenRecords.SetAt(i, -1);
+	return bOk;
+}
+
+boolean KWDatabaseTransferTask::MasterInitializeDatabase()
+{
+	boolean bOk = true;
+	ALString sClassName;
+	PLDatabaseTextFile* targetDatabase;
+	longint lTargetDatabaseGrantedMemory;
+	int nTargetBufferSize;
+
+	// Appel de la methode ancetre
+	bOk = KWDatabaseTask::MasterInitializeDatabase();
+
+	///////////////////////////////////////////////////////////////////////////////////////
+	// Gestion des ressources pour determiner la taille des buffers
+
+	// Acces a la base cible
+	targetDatabase = shared_targetDatabase.GetPLDatabase();
+
+	// Parametrage de l'ouverture a la demande dans le cas multi-tables
+	if (bOk and shared_sourceDatabase.GetDatabase()->IsMultiTableTechnology())
+	{
+		assert(shared_sourceDatabase.GetMTDatabase()->GetMainLocalTableNumber() + 10 <=
+			   GetMaxOpenedFileNumber() or
+		       shared_sourceDatabase.GetMTDatabase()->GetOpenOnDemandMode());
+
+		// On passe en mode ouverture a la demande s'il y a trop de tables locales (avec un petite marge)
+		if (shared_sourceDatabase.GetMTDatabase()->GetMainLocalTableNumber() +
+			shared_targetDatabase.GetMTDatabase()->GetMainLocalTableNumber() + 10 >
+		    GetMaxOpenedFileNumber())
+			shared_targetDatabase.GetMTDatabase()->SetOpenOnDemandMode(true);
+	}
+
+	// Calcul des tailles de buffer
+	nTargetBufferSize = 0;
+	if (bOk)
+	{
+		// Calcul de la memoire allouee pour la base cible
+		lTargetDatabaseGrantedMemory = ComputeSlaveGrantedMemory(GetSlaveResourceRequirement(),
+									 GetSlaveResourceGrant()->GetMemory(), false);
+
+		// Calcul des tailles de buffer permises par ces memoire allouees
+		nTargetBufferSize =
+		    targetDatabase->ComputeOpenBufferSize(false, lTargetDatabaseGrantedMemory, GetProcessNumber());
+
+		// On peut imposer la taille du buffer pour raison de tests
+		if (nForcedBufferSize > 0)
+			nTargetBufferSize = nForcedBufferSize;
+	}
+
+	// Parametrage des tailles de buffer
+	if (bOk)
+		targetDatabase->SetBufferSize(nTargetBufferSize);
 	return bOk;
 }
 
@@ -368,10 +407,6 @@ boolean KWDatabaseTransferTask::MasterFinalize(boolean bProcessEndedCorrectly)
 						dictionary->ExportStoredFieldNames(concatenater.GetHeaderLine());
 					concatenater.SetFieldSeparator(targetDatabase->GetFieldSeparator());
 
-					// Parametrage d'une grosse taille de buffer du concatener
-					InitializeConcatenaterBufferSize(&concatenater, dictionary,
-									 lvMappingWrittenRecords.GetAt(i));
-
 					// Concatenation des chunks
 					concatenater.SetFileName(sOutputFileName);
 					bOk = bOk and not TaskProgression::IsInterruptionRequested();
@@ -413,9 +448,6 @@ boolean KWDatabaseTransferTask::MasterFinalize(boolean bProcessEndedCorrectly)
 			concatenater.SetFileName(sOutputFileName);
 			concatenater.SetFieldSeparator(shared_targetDatabase.GetSTDatabase()->GetFieldSeparator());
 
-			// Parametrage d'une grosse taille de buffer du concatener
-			InitializeConcatenaterBufferSize(&concatenater, dictionary, lWrittenObjects);
-
 			// Concatenation des chunks
 			TaskProgression::DisplayLabel("concatenation");
 			bOk = concatenater.Concatenate(svChunkFileNames, this, true);
@@ -450,8 +482,6 @@ boolean KWDatabaseTransferTask::SlaveInitializePrepareDatabase()
 	boolean bOk = true;
 	ALString sClassName;
 	PLDatabaseTextFile* targetDatabase;
-	longint lTargetDatabaseGrantedMemory;
-	int nTargetBufferSize;
 
 	// Appel de la methode ancetre
 	bOk = KWDatabaseTask::SlaveInitializePrepareDatabase();
@@ -469,29 +499,6 @@ boolean KWDatabaseTransferTask::SlaveInitializePrepareDatabase()
 			assert(shared_targetDatabase.GetDatabase()->CheckPartially(true));
 		}
 	}
-
-	///////////////////////////////////////////////////////////////////////////////////////
-	// Gestion des ressources pour determiner la taille des buffers
-
-	// Calcul des tailles de buffer
-	nTargetBufferSize = 0;
-	if (bOk)
-	{
-		// Calcul de la memoire allouee pour la base cible
-		lTargetDatabaseGrantedMemory = ComputeSlaveGrantedMemory(GetSlaveResourceRequirement(),
-									 GetSlaveResourceGrant()->GetMemory(), false);
-
-		// Calcul des tailles de buffer permises par ces memoire allouees
-		nTargetBufferSize = targetDatabase->ComputeOpenBufferSize(false, lTargetDatabaseGrantedMemory);
-
-		// On peut imposer la taille du buffer pour raison de tests
-		if (nForcedBufferSize > 0)
-			nTargetBufferSize = nForcedBufferSize;
-	}
-
-	// Parametrage des tailles de buffer
-	if (bOk)
-		targetDatabase->SetBufferSize(nTargetBufferSize);
 	return bOk;
 }
 
@@ -581,7 +588,7 @@ boolean KWDatabaseTransferTask::SlaveProcessStartDatabase()
 		sChunkBaseName = sTmp + IntToString(GetTaskIndex()) + "_" +
 				 FileService::GetFileName(targetSTDatabase->GetDatabaseName());
 		sChunkFileName = FileService::CreateUniqueTmpFile(sChunkBaseName, this);
-		bOk = not sChunkFileName.IsEmpty();
+		bOk = sChunkFileName != "";
 
 		// Ouverture du buffer en sortie
 		if (bOk)
@@ -605,6 +612,10 @@ boolean KWDatabaseTransferTask::SlaveProcessStartDatabase()
 		if (bOk)
 			targetSTDatabase->SetOutputBuffer(outputBuffer);
 	}
+
+	// Memorisation des fichiers temporaires cree par l'esclave
+	if (bOk)
+		SlaveRegisterUniqueTmpFiles(output_svOutputChunkFileNames.GetConstStringVector());
 	return bOk;
 }
 

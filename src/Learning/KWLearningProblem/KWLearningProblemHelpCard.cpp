@@ -15,8 +15,9 @@ KWLearningProblemHelpCard::KWLearningProblemHelpCard()
 	// Declaration des actions
 	AddAction("ShowDocumentation", "Documentation...",
 		  (ActionMethod)(&KWLearningProblemHelpCard::ShowDocumentation));
-	AddAction("LicenseManagement", "License management...",
-		  (ActionMethod)(&KWLearningProblemHelpCard::LicenseManagement));
+	if (LMLicenseManager::IsEnabled())
+		AddAction("LicenseManagement", "License management...",
+			  (ActionMethod)(&KWLearningProblemHelpCard::LicenseManagement));
 	AddAction("ShowAbout", "About " + GetLearningFullApplicationName() + "... ",
 		  (ActionMethod)(&KWLearningProblemHelpCard::ShowAbout));
 
@@ -24,14 +25,16 @@ KWLearningProblemHelpCard::KWLearningProblemHelpCard()
 	GetActionAt("ShowDocumentation")->SetVisible(sDocumentationText != "");
 
 	// Info-bulles
-	GetActionAt("LicenseManagement")
-	    ->SetHelpText("Open a dialog box that displays the information relative to license management"
-			  "\n and describes the process to obtain or renew a license.");
+	if (LMLicenseManager::IsEnabled())
+		GetActionAt("LicenseManagement")
+		    ->SetHelpText("Open a dialog box that displays the information relative to license management"
+				  "\n and describes the process to obtain or renew a license.");
 
 	// Short cuts
 	SetShortCut('H');
 	GetActionAt("ShowAbout")->SetShortCut('A');
-	GetActionAt("LicenseManagement")->SetShortCut('L');
+	if (LMLicenseManager::IsEnabled())
+		GetActionAt("LicenseManagement")->SetShortCut('L');
 	GetActionAt("ShowDocumentation")->SetShortCut('D');
 }
 
@@ -74,7 +77,8 @@ void KWLearningProblemHelpCard::ShowDocumentation()
 
 void KWLearningProblemHelpCard::LicenseManagement()
 {
-	LMLicenseManager::OpenLicenseManagementCard();
+	if (LMLicenseManager::IsEnabled())
+		LMLicenseManager::OpenLicenseManagementCard();
 }
 
 void KWLearningProblemHelpCard::ShowAbout()

@@ -144,6 +144,10 @@ protected:
 	// On rend l'index de la plus grande valeur inferieure ou egale a la valeur recherchee
 	int SearchValueIndex(Continuous cSearchedValue, int nLowerIndex, int nUpperIndex) const;
 
+	// Indicateur d'initialisation
+	boolean bIsFrequencyInitialized;
+	boolean bIsValueInitialized;
+
 	// Statistiques sur les valeurs en entrees
 	int nInstanceNumber;
 	int nValueNumber;
@@ -257,6 +261,10 @@ protected:
 	// On rend 0 si meme la premiere valeur n'atteint pas l'effectif recherche
 	int SearchFrequencyIndex(int nSearchedFrequency, int nLowerIndex, int nUpperIndex) const;
 
+	// Indicateur d'initialisation
+	boolean bIsFrequencyInitialized;
+	boolean bIsValueInitialized;
+
 	// Statistiques sur les valeurs en entrees
 	int nInstanceNumber;
 	int nValueNumber;
@@ -273,13 +281,13 @@ protected:
 
 inline boolean KWQuantileIntervalBuilder::IsFrequencyInitialized() const
 {
-	return (nInstanceNumber > 0);
+	return bIsFrequencyInitialized;
 }
 
 inline boolean KWQuantileIntervalBuilder::IsValueInitialized() const
 {
 	assert(cvValues.GetSize() == 0 or cvValues.GetSize() == nValueNumber);
-	return (cvValues.GetSize() > 0);
+	return bIsValueInitialized;
 }
 
 inline int KWQuantileIntervalBuilder::GetInstanceNumber() const
@@ -409,13 +417,13 @@ inline int KWQuantileIntervalBuilder::GetIntervalQuantileIndexAt(int nIntervalIn
 
 inline boolean KWQuantileGroupBuilder::IsFrequencyInitialized() const
 {
-	return (nInstanceNumber > 0);
+	return bIsFrequencyInitialized;
 }
 
 inline boolean KWQuantileGroupBuilder::IsValueInitialized() const
 {
 	assert(svValues.GetSize() == 0 or svValues.GetSize() == nValueNumber);
-	return (svValues.GetSize() > 0);
+	return bIsFrequencyInitialized;
 }
 
 inline int KWQuantileGroupBuilder::GetInstanceNumber() const

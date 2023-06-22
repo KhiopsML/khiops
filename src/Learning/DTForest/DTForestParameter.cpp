@@ -20,8 +20,10 @@ DTForestParameter::DTForestParameter()
 	sTreesVariablesSelection = DTGlobalTag::RANK_WITH_REPLACEMENT_LABEL;
 	// sTreesVariablesSelection = DTGlobalTag::LEVEL_SAMPLING_WITH_REPLACEMENT_LABEL;
 	bWriteDetailedStatistics = false;
-	//	sHeuristicCreation = DTForestParameter::Heuristic_NODRAW_LABEL;
+	//	sHeuristicCreation = DTForestParameter::HEURISTIC_NODRAW_LABEL;
 	nVariableNumberMin = MIN_VARIABLE_2_BUILTREE;
+	sDiscretizationTargetMethod = DISCRETIZATION_MODL; // DISCRETIZATION_EQUAL_FREQUENCY
+	nMaxIntervalsNumberForTarget = 2;
 }
 
 DTForestParameter::~DTForestParameter() {}
@@ -98,6 +100,24 @@ ALString DTForestParameter::GetWeightedClassifier() const
 {
 	return sWeightedClassifier;
 }
+void DTForestParameter::SetDiscretizationTargetMethod(ALString sValue)
+{
+	sDiscretizationTargetMethod = sValue;
+}
+
+ALString DTForestParameter::GetDiscretizationTargetMethod() const
+{
+	return sDiscretizationTargetMethod;
+}
+void DTForestParameter::SetMaxIntervalsNumberForTarget(int i)
+{
+	nMaxIntervalsNumberForTarget = i;
+}
+
+int DTForestParameter::GeMaxIntervalsNumberForTarget() const
+{
+	return nMaxIntervalsNumberForTarget;
+}
 
 void DTForestParameter::SetInitRFOptimisation(ALString sValue)
 {
@@ -135,6 +155,8 @@ void DTForestParameter::CopyFrom(const DTForestParameter* dtParam)
 	nVariableNumberMin = dtParam->nVariableNumberMin;
 	// sHeuristicCreation = dtParam->sHeuristicCreation;
 	pDecisionTreeParameter.CopyFrom(&dtParam->pDecisionTreeParameter);
+	sDiscretizationTargetMethod = dtParam->sDiscretizationTargetMethod;
+	nMaxIntervalsNumberForTarget = dtParam->nMaxIntervalsNumberForTarget;
 }
 
 void DTForestParameter::SetTreesVariablesSelection(ALString sValue)
@@ -224,7 +246,9 @@ void DTForestParameter::WriteReport(ostream& ost)
 const ALString DTForestParameter::DRAWING_TYPE_NO_REPLACEMENT_LABEL = "No draw, use all data";
 const ALString DTForestParameter::DRAWING_TYPE_USE_OUT_OF_BAG_LABEL = "Random draw, use out-of-bag data";
 const ALString DTForestParameter::DRAWING_TYPE_ADABOOST_REPLACEMENT_LABEL = "AdaBoost draw";
-const ALString DTForestParameter::Heuristic_NODRAW_LABEL = "No draw";
+const ALString DTForestParameter::HEURISTIC_NODRAW_LABEL = "No draw";
+const ALString DTForestParameter::DISCRETIZATION_EQUAL_FREQUENCY = "EFDiscretization";
+const ALString DTForestParameter::DISCRETIZATION_MODL = "MODLDiscretization";
 
 ////////////////  classe PLShared_ForestParameter
 
@@ -257,6 +281,8 @@ void PLShared_ForestParameter::DeserializeObject(PLSerializer* serializer, Objec
 	param->sWeightedClassifier = serializer->GetString();
 	param->bWriteDetailedStatistics = serializer->GetBoolean();
 	shared_DecisionTreeParameter->DeserializeObject(serializer, &param->pDecisionTreeParameter);
+	param->sDiscretizationTargetMethod = serializer->GetString();
+	param->nMaxIntervalsNumberForTarget = serializer->GetInt();
 }
 
 void PLShared_ForestParameter::SerializeObject(PLSerializer* serializer, const Object* object) const
@@ -278,6 +304,8 @@ void PLShared_ForestParameter::SerializeObject(PLSerializer* serializer, const O
 	serializer->PutString(param->sWeightedClassifier);
 	serializer->PutBoolean(param->bWriteDetailedStatistics);
 	shared_DecisionTreeParameter->SerializeObject(serializer, &param->pDecisionTreeParameter);
+	serializer->PutString(param->sDiscretizationTargetMethod);
+	serializer->PutInt(param->nMaxIntervalsNumberForTarget);
 }
 
 Object* PLShared_ForestParameter::Create() const

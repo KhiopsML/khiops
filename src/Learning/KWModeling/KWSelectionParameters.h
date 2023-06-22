@@ -5,8 +5,7 @@
 #pragma once
 
 ////////////////////////////////////////////////////////////
-// 2018-07-19 14:35:54
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "Object.h"
@@ -29,7 +28,7 @@ public:
 	void CopyFrom(const KWSelectionParameters* aSource);
 	KWSelectionParameters* Clone() const;
 
-	////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
 	// Acces aux attributs
 
 	// Max number of selected variables
@@ -72,7 +71,7 @@ public:
 	boolean GetTraceSelectedAttributes() const;
 	void SetTraceSelectedAttributes(boolean bValue);
 
-	////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
 	// Divers
 
 	// Ecriture
@@ -136,7 +135,7 @@ public:
 	// ##
 
 	////////////////////////////////////////////////////////
-	//// Implementation
+	///// Implementation
 protected:
 	// Attributs de la classe
 	int nMaxSelectedAttributeNumber;

@@ -562,6 +562,12 @@ DoubleList::DoubleList()
 	GetFieldAt("doubleEditableComboBox")->SetStyle("EditableComboBox");
 	GetFieldAt("doubleEditableComboBox")->SetHelpText("EditableComboBox contenant un reel");
 
+	// Reel dans Spinner
+	AddRangedDoubleField("doubleSpinner", "Reel dans Spinner", 1.75, 1.00, 2.00);
+	GetFieldAt("doubleSpinner")->SetParameters("1");
+	GetFieldAt("doubleSpinner")->SetStyle("Spinner");
+	GetFieldAt("doubleSpinner")->SetHelpText("Spinner contenant un reel");
+
 	AddItem();
 	AddItem();
 }
@@ -582,26 +588,32 @@ DoubleCard::DoubleCard()
 	// Reel dans TextField
 	AddRangedDoubleField("doubleTextField", "Reel dans TextField", 1.75, 1.00, 2.00);
 	GetFieldAt("doubleTextField")->SetStyle("TextField");
-	GetFieldAt("doubleTextField")->SetHelpText("TextField contenant un entier");
+	GetFieldAt("doubleTextField")->SetHelpText("TextField contenant un reel");
 
 	// Reel dans ComboBox
 	AddRangedDoubleField("doubleComboBox", "Reel dans ComboBox", 1.75, 1.00, 2.00);
 	GetFieldAt("doubleComboBox")->SetParameters("1.50\n1.55\n1.60\n1.65\n1.70\n1.75\n1.80\n1.85\n1.90\n1.95\n2.00");
 	GetFieldAt("doubleComboBox")->SetStyle("ComboBox");
-	GetFieldAt("doubleComboBox")->SetHelpText("ComboBox contenant un entier");
+	GetFieldAt("doubleComboBox")->SetHelpText("ComboBox contenant un reel");
 
 	// Reel dans RadioButton
 	AddRangedDoubleField("doubleRadioButton", "Reel dans RadioButton", 1.70, 1.00, 2.00);
 	GetFieldAt("doubleRadioButton")->SetParameters("1.50\n1.60\n1.70\n1.80\n1.90\n2.00");
 	GetFieldAt("doubleRadioButton")->SetStyle("RadioButton");
-	GetFieldAt("doubleRadioButton")->SetHelpText("RadioButton contenant un entier");
+	GetFieldAt("doubleRadioButton")->SetHelpText("RadioButton contenant un reel");
 
 	// Reel dans EditableComboBox
 	AddRangedDoubleField("doubleEditableComboBox", "Reel dans EditableComboBox", 1.75, 1.00, 2.00);
 	GetFieldAt("doubleEditableComboBox")
 	    ->SetParameters("1.50\n1.55\n1.60\n1.65\n1.70\n1.75\n1.80\n1.85\n1.90\n1.95\n2.00");
 	GetFieldAt("doubleEditableComboBox")->SetStyle("EditableComboBox");
-	GetFieldAt("doubleEditableComboBox")->SetHelpText("EditableComboBox contenant un entier");
+	GetFieldAt("doubleEditableComboBox")->SetHelpText("EditableComboBox contenant un reel");
+
+	// Reel dans Spinner
+	AddRangedDoubleField("doubleSpinner", "Reel dans Spinner", 1.75, 1.00, 2.00);
+	GetFieldAt("doubleSpinner")->SetParameters("1");
+	GetFieldAt("doubleSpinner")->SetStyle("Spinner");
+	GetFieldAt("doubleSpinner")->SetHelpText("Spinner contenant un reel");
 
 	DoubleList* doubleList = new DoubleList();
 	AddListField("doubleList", "sous liste double", doubleList);
@@ -802,7 +814,7 @@ void FileReaderCard::OpenFile()
 
 	// Test d'existence du fichier
 	sFileName = GetStringValueAt("FileName");
-	AddSimpleMessage("Is file " + sFileName + ": " + BooleanToString(FileService::IsFile(sFileName)));
+	AddSimpleMessage("Is file " + sFileName + ": " + BooleanToString(FileService::FileExists(sFileName)));
 }
 
 void FileReaderCard::CreateFiles()
@@ -842,7 +854,7 @@ void FileReaderCard::CreateFiles()
 	for (i = 0; i < svFileNames.GetSize(); i++)
 	{
 		sFileName = svFileNames.GetAt(i);
-		bOk = FileService::IsFile(FileService::BuildFilePathName(sRootDir, sFileName));
+		bOk = FileService::FileExists(FileService::BuildFilePathName(sRootDir, sFileName));
 		AddMessage("-> " + sFileName + " " + IntToString(sFileName.GetLength()) + " " + BooleanToString(bOk));
 		if (i > svFileNames.GetSize() - 2 or sFileName.Find("233") >= 0)
 		{
@@ -878,7 +890,7 @@ void FileReaderCard::TestFileServices()
 	AddMessage("Test des services pour le fichier " + sFileName);
 
 	// Existence du fichier
-	bOk = FileService::Exist(sFileName);
+	bOk = FileService::FileExists(sFileName);
 	AddMessage("Existence de " + sFileName + ": " + IntToString(bOk) + " " +
 		   FileService::GetLastSystemIOErrorMessage());
 

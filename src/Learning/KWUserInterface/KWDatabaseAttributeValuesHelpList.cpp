@@ -41,6 +41,7 @@ void KWDatabaseAttributeValuesHelpList::FillAttributeValues(const KWDatabase* in
 	ContinuousVector cvHelpValues;
 	int nValue;
 	KWDatabase* helpDatabase;
+	boolean bGlobalSilentMode;
 
 	require(inputDatabase != NULL);
 	require(uilAttributeValueHelpList != NULL);
@@ -93,7 +94,7 @@ void KWDatabaseAttributeValuesHelpList::FillAttributeValues(const KWDatabase* in
 	if (bOk)
 	{
 		bOk = inputDatabase->GetDatabaseName() != "" and
-		      PLRemoteFileService::Exist(inputDatabase->GetDatabaseName());
+		      PLRemoteFileService::FileExists(inputDatabase->GetDatabaseName());
 	}
 
 	// Si tout est OK, on va faire une passe de lecture sur la base pour
@@ -136,6 +137,8 @@ void KWDatabaseAttributeValuesHelpList::FillAttributeValues(const KWDatabase* in
 		}
 
 		// Passage en mode silencieux
+		bGlobalSilentMode = Global::GetSilentMode();
+		Global::SetSilentMode(true);
 		helpDatabase->SetSilentMode(true);
 
 		// Test si base ouvrable
@@ -234,6 +237,7 @@ void KWDatabaseAttributeValuesHelpList::FillAttributeValues(const KWDatabase* in
 			helpDatabase->Close();
 		}
 		helpDatabase->SetSilentMode(false);
+		Global::SetSilentMode(bGlobalSilentMode);
 
 		// Destruction de la base, desormais inutile
 		delete helpDatabase;

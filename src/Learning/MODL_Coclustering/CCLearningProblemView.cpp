@@ -145,8 +145,9 @@ void CCLearningProblemView::EventRefresh(Object* object)
 void CCLearningProblemView::BuildCoclustering()
 {
 	// Execution controlee par licence
-	if (not LMLicenseManager::RequestLicenseKey())
-		return;
+	if (LMLicenseManager::IsEnabled())
+		if (not LMLicenseManager::RequestLicenseKey())
+			return;
 
 	// OK si nom du fichier renseigne et classe correcte
 	if (GetLearningProblem()->CheckClass() and GetLearningProblem()->CheckDatabaseName() and

@@ -9,6 +9,7 @@
 #include "KWPredictorSelectiveNaiveBayesView.h"
 #include "SNBPredictorSelectiveNaiveBayesView.h"
 #include "KDConstructionDomainView.h"
+#include "KDTextFeatureSpecView.h"
 #include "KWAttributePairsSpecView.h"
 
 ////////////////////////////////////////////////////////////
@@ -43,6 +44,9 @@ public:
 
 	// Inspection des parametres de construction de variable
 	void InspectConstructionDomain();
+
+	// Inspection des parametres de construction de variables de type texte
+	void InspectTextFeaturesParameters();
 
 	// Inspection des parametres de construction des arbres
 	void InspectAttributeCreationParameters();

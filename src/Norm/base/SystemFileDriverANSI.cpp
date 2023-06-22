@@ -43,9 +43,19 @@ boolean SystemFileDriverANSI::IsConnected() const
 	return true;
 }
 
-boolean SystemFileDriverANSI::Exist(const char* sFilePathName) const
+longint SystemFileDriverANSI::GetSystemPreferredBufferSize() const
 {
-	return FileService::Exist(FileService::GetURIFilePathName(sFilePathName));
+	return 1 * lMB;
+}
+
+boolean SystemFileDriverANSI::FileExists(const char* sFilePathName) const
+{
+	return FileService::FileExists(FileService::GetURIFilePathName(sFilePathName));
+}
+
+boolean SystemFileDriverANSI::DirExists(const char* sFilePathName) const
+{
+	return FileService::DirExists(FileService::GetURIFilePathName(sFilePathName));
 }
 
 longint SystemFileDriverANSI::GetFileSize(const char* sFilePathName) const
@@ -86,6 +96,7 @@ void* SystemFileDriverANSI::Open(const char* sFilePathName, char cMode)
 			// Fermeture du fichier si erreur
 			if (not bOk)
 			{
+				// TODO virer le message
 				Global::AddError("File", sFilePathName,
 						 sTmp + "Unable to call fseek to end of file (" +
 						     GetLastErrorMessage() + ")");

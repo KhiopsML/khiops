@@ -13,11 +13,13 @@ void KWDRRegisterAllRules()
 	KWDRRegisterStringRules();
 	if (GetLearningTextVariableMode())
 		KWDRRegisterTextRules();
+	if (GetLearningTextVariableMode())
+		KWDRRegisterTextListRules();
 	KWDRRegisterCompareRules();
 	KWDRRegisterLogicalRules();
 	KWDRRegisterDateTimeRules();
 	KWDRRegisterVectorRules();
 	KWDRRegisterHashMapRules();
 	KWDRRegisterMultiTableRules();
-	KWDRRegisterTextAdvancedRules();
+	KWDRRegisterTextualAnalysisRules();
 }

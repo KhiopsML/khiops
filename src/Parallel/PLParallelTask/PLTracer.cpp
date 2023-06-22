@@ -23,6 +23,14 @@ void PLTracer::CopyFrom(const PLTracer* source)
 	bShortDescription = source->bShortDescription;
 }
 
+PLTracer* PLTracer::Clone() const
+{
+	PLTracer* clone;
+	clone = new PLTracer;
+	clone->CopyFrom(this);
+	return clone;
+}
+
 void PLTracer::SetActiveMode(boolean bValue)
 {
 	bActive = bValue;
@@ -68,7 +76,7 @@ void PLTracer::PrintTracesToFile() const
 
 	// Construction du repertoire si necessaire
 	sDirectoryPath = FileService::GetPathName(sFileName);
-	if (not FileService::IsDirectory(sDirectoryPath))
+	if (not FileService::DirExists(sDirectoryPath))
 		FileService::MakeDirectories(sDirectoryPath);
 
 	// Ouverture du fichier
@@ -92,7 +100,7 @@ void PLTracer::SetFileName(const ALString& sLogFileName)
 {
 	require(not sLogFileName.IsEmpty());
 
-	if (FileService::Exist(sLogFileName))
+	if (FileService::FileExists(sLogFileName))
 	{
 		FileService::RemoveFile(sLogFileName);
 	}
@@ -114,4 +122,57 @@ void PLTracer::PrintTraces() const
 void PLTracer::Clean()
 {
 	traces.SetSize(0);
+}
+
+////////////////////////////////////////////////
+// Implementation de la classe  PLShared_Tracer
+
+PLShared_Tracer::PLShared_Tracer() {}
+
+PLShared_Tracer::~PLShared_Tracer() {}
+
+void PLShared_Tracer::SetTracer(PLTracer* tracer)
+{
+	require(tracer != NULL);
+	SetObject(tracer);
+}
+
+PLTracer* PLShared_Tracer::GetTracer()
+{
+	return cast(PLTracer*, GetObject());
+}
+
+void PLShared_Tracer::SerializeObject(PLSerializer* serializer, const Object* o) const
+{
+	const PLTracer* tracer;
+	require(serializer->IsOpenForWrite());
+	require(o != NULL);
+
+	tracer = cast(PLTracer*, o);
+
+	serializer->PutBoolean(tracer->GetActiveMode());
+	serializer->PutBoolean(tracer->GetSynchronousMode());
+	serializer->PutBoolean(tracer->GetTimeDecorationMode());
+	serializer->PutBoolean(tracer->GetShortDescription());
+	serializer->PutString(tracer->sFileName);
+}
+
+void PLShared_Tracer::DeserializeObject(PLSerializer* serializer, Object* o) const
+{
+	PLTracer* tracer;
+
+	require(serializer->IsOpenForRead());
+	require(o != NULL);
+
+	tracer = cast(PLTracer*, o);
+	tracer->SetActiveMode(serializer->GetBoolean());
+	tracer->SetSynchronousMode(serializer->GetBoolean());
+	tracer->SetTimeDecorationMode(serializer->GetBoolean());
+	tracer->SetShortDescription(serializer->GetBoolean());
+	tracer->sFileName = serializer->GetString();
+}
+
+Object* PLShared_Tracer::Create() const
+{
+	return new PLTracer;
 }

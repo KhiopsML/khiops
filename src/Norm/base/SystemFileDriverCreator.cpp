@@ -6,22 +6,25 @@
 
 ObjectArray* SystemFileDriverCreator::oaSystemFileDriver = NULL;
 SystemFileDriverANSI SystemFileDriverCreator::driverANSI;
-boolean SystemFileDriverCreator::bIsRegistered = false;
+int SystemFileDriverCreator::nExternalDriverNumber = 0;
 
 /////////////////////////////////////////////
 // Implementation de la classe SystemFileDriverCreator
 
-void SystemFileDriverCreator::RegisterDrivers()
+int SystemFileDriverCreator::RegisterExternalDrivers()
 {
-
 	ALString sLibraryPath;
 	StringVector svDirectoryNames;
 	StringVector svFileNames;
 	ALString sLibraryName;
 	SystemFileDriverLibrary* driverLibrary;
+	ALString sLibraryScheme;
+	SystemFileDriver* registeredDriver;
 	boolean bOk;
 	int i;
-	boolean bVerbose = false;
+	int nDriver;
+	ALString sTmp;
+	static boolean bIsRegistered = false;
 
 	require(not bIsRegistered);
 
@@ -31,9 +34,11 @@ void SystemFileDriverCreator::RegisterDrivers()
 #ifdef __UNIX__
 	sLibraryPath = "/usr/lib/";
 #else
-	sLibraryPath = p_getenv("KhiopsRoot");
+	sLibraryPath = p_getenv("KHIOPS_HOME");
+	sLibraryPath += "\\bin";
 #endif //__UNIX__
-	bOk = FileService::GetDirectoryContent(sLibraryPath, &svDirectoryNames, &svFileNames);
+	bOk = FileService::GetDirectoryContentExtended(sLibraryPath, &svDirectoryNames, &svFileNames);
+	nExternalDriverNumber = 0;
 	if (bOk)
 	{
 		// Parcours du repertoire et chargement de tous les fichiers qui ont un nom de la forme
@@ -44,50 +49,107 @@ void SystemFileDriverCreator::RegisterDrivers()
 			if (IsKhiopsDriverName(sLibraryName))
 			{
 				driverLibrary = new SystemFileDriverLibrary;
-				bOk = driverLibrary->LoadLibrary(sLibraryName);
-				if (bVerbose)
-					cout << "load " << sLibraryName << " " << BooleanToString(bOk) << endl;
+				bOk = driverLibrary->LoadLibrary(
+				    FileService::BuildFilePathName(sLibraryPath, sLibraryName));
 
-				assert(bOk);
-				if (bOk)
-					oaSystemFileDriver->Add(driverLibrary);
+				// Nettoyage si erreur
+				if (not bOk)
+				{
+					delete driverLibrary;
+
+					// Message signalant uniquement si process maitre
+					if (GetProcessId() == 0)
+						Global::AddSimpleMessage("Failed to load file driver " + sLibraryName +
+									 " from directory " + sLibraryPath);
+				}
+				// On continue sinon
+				else
+				{
+					// On teste si le driver n'existe pas deja sinon
+					sLibraryScheme = driverLibrary->GetScheme();
+					for (nDriver = 0; nDriver < oaSystemFileDriver->GetSize(); nDriver++)
+					{
+						assert(oaSystemFileDriver->GetAt(nDriver) != NULL);
+						registeredDriver =
+						    cast(SystemFileDriver*, oaSystemFileDriver->GetAt(nDriver));
+
+						// Erreur si schema existant deja gere
+						// On passe par la variable sLibraryScheme pour faire les comparaisons
+						// avec GetScheme, qui renvoie un char*
+						bOk = sLibraryScheme != registeredDriver->GetScheme();
+						if (not bOk)
+						{
+							delete driverLibrary;
+							if (GetProcessId() == 0)
+								Global::AddSimpleMessage(
+								    "Failed to load file driver " + sLibraryName +
+								    " from directory " + sLibraryPath +
+								    " because of previously loaded file driver '" +
+								    registeredDriver->GetDriverName() +
+								    "' for URI scheme '" +
+								    registeredDriver->GetScheme() + "'");
+							break;
+						}
+					}
+
+					// Enregistrement du driver si oK
+					if (bOk)
+					{
+						nExternalDriverNumber++;
+						oaSystemFileDriver->Add(driverLibrary);
+
+						// Message d'information du bon chargement du driver
+						if (GetProcessId() == 0)
+							Global::AddSimpleMessage(
+							    sTmp + "Completed loading of file driver '" +
+							    driverLibrary->GetDriverName() + "' for URI scheme '" +
+							    driverLibrary->GetScheme() + "'");
+					}
+				}
 			}
 		}
 	}
 	bIsRegistered = true;
+	return nExternalDriverNumber;
+}
+
+int SystemFileDriverCreator::GetExternalDriverNumber()
+{
+	return nExternalDriverNumber;
+}
+
+void SystemFileDriverCreator::RegisterDriver(SystemFileDriver* driver)
+{
+	if (oaSystemFileDriver == NULL)
+		oaSystemFileDriver = new ObjectArray;
+	oaSystemFileDriver->Add(driver);
 }
 
 void SystemFileDriverCreator::UnregisterDrivers()
 {
 	int i;
 	SystemFileDriver* driver;
-	ALString sEmpty;
-	boolean bIsANSI;
 
-	require(bIsRegistered);
-
-	for (i = 0; i < oaSystemFileDriver->GetSize(); i++)
+	if (oaSystemFileDriver != NULL)
 	{
-		driver = cast(SystemFileDriver*, oaSystemFileDriver->GetAt(i));
-		bIsANSI = sEmpty.Compare(driver->GetScheme()) == 0;
+		for (i = 0; i < oaSystemFileDriver->GetSize(); i++)
+		{
+			driver = cast(SystemFileDriver*, oaSystemFileDriver->GetAt(i));
 
-		// Deconnexion et dechargement (on ne pourra plus appeler de methodes du driver)
-		if (driver->IsConnected())
-			driver->Disconnect();
+			// Deconnexion et dechargement (on ne pourra plus appeler de methodes du driver)
+			if (driver->IsConnected())
+				driver->Disconnect();
+		}
 
-		// Cas particulier du driver ANSI qui n'est pas un pointeur
-		if (bIsANSI)
-			delete driver;
+		oaSystemFileDriver->DeleteAll();
+		delete oaSystemFileDriver;
+		oaSystemFileDriver = NULL;
 	}
-	bIsRegistered = false;
-	oaSystemFileDriver->DeleteAll();
-	delete oaSystemFileDriver;
-	oaSystemFileDriver = NULL;
+	nExternalDriverNumber = 0;
 }
 
 SystemFileDriver* SystemFileDriverCreator::LookupDriver(const ALString& sURIFilePathName, const Object* errorSender)
 {
-	debug(boolean bStrongAssert = false);
 	ALString sScheme;
 	ALString sMessage;
 	SystemFileDriver* driver;
@@ -102,9 +164,6 @@ SystemFileDriver* SystemFileDriverCreator::LookupDriver(const ALString& sURIFile
 	// S'il le fait depuis l'interface, on cherchera le fichier en local avec un driver ansi, et cela provoquera un
 	// message d'erreur On laisse neanmoins cette assertion en mode debug pour verifier que l'on n'utilisera pas de
 	// remote scheme en fonctionnement "normal"
-	debug(bStrongAssert = true);
-	assert(not bStrongAssert or sScheme != FileService::sRemoteScheme or
-	       FileService::GetURIHostName(sURIFilePathName) == GetLocalHostName());
 
 	// Verification que l'URI a une forme attendue
 	if (not FileService::IsURIWellFormed(sURIFilePathName))
@@ -120,10 +179,10 @@ SystemFileDriver* SystemFileDriverCreator::LookupDriver(const ALString& sURIFile
 
 	// Si le scheme est vide: c'est le driver ANSI
 	driver = NULL;
-	if (sScheme.IsEmpty() or sScheme == FileService::sRemoteScheme)
+	if (sScheme.IsEmpty())
 		driver = &driverANSI;
-	// Sinon, on recherche parmi les driver s'ils ont ete enregistres
-	else if (bIsRegistered)
+	// Sinon, on recherche parmi les driver qui ont ete enregistres
+	else
 	{
 		// On parcourt tous les drivers pour trouver celui qui traite le scheme
 		for (i = 0; i < oaSystemFileDriver->GetSize(); i++)
@@ -137,10 +196,10 @@ SystemFileDriver* SystemFileDriverCreator::LookupDriver(const ALString& sURIFile
 		}
 	}
 
-	// Si aucun driver n'est trouve c'est que le schema de l'URI n'est pas connue
+	// Si aucun driver n'est trouve c'est que le schema de l'URI n'est pas connu
 	if (driver == NULL)
 	{
-		sMessage = "there is no driver available for the scheme '" + sScheme + "://'";
+		sMessage = "there is no driver available for the URI scheme '" + sScheme + "://'";
 		if (errorSender != NULL)
 			errorSender->AddError(sMessage);
 		else
@@ -149,7 +208,7 @@ SystemFileDriver* SystemFileDriverCreator::LookupDriver(const ALString& sURIFile
 	}
 	else
 	{
-		// TODO charger la library a  ce moment la
+		// TODO charger la library a ce moment la
 		if (not driver->IsConnected())
 			driver->Connect();
 		if (not driver->IsConnected())
@@ -160,6 +219,42 @@ SystemFileDriver* SystemFileDriverCreator::LookupDriver(const ALString& sURIFile
 	}
 
 	return driver;
+}
+
+boolean SystemFileDriverCreator::IsDriverRegisteredForScheme(const ALString& sScheme)
+{
+	int i;
+	SystemFileDriver* registeredDriver;
+
+	// On parcourt tous les drivers pour trouver celui qui traite le scheme
+	for (i = 0; i < oaSystemFileDriver->GetSize(); i++)
+	{
+		registeredDriver = cast(SystemFileDriver*, oaSystemFileDriver->GetAt(i));
+		if (sScheme.Compare(registeredDriver->GetScheme()) == 0)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+longint SystemFileDriverCreator::GetMaxPreferredBufferSize()
+{
+	longint lMaxPrefferedSize;
+	int i;
+
+	lMaxPrefferedSize = driverANSI.GetSystemPreferredBufferSize();
+	if (oaSystemFileDriver != NULL)
+	{
+		// Parcours des drivers externes
+		for (i = 0; i < oaSystemFileDriver->GetSize(); i++)
+		{
+			lMaxPrefferedSize =
+			    max(lMaxPrefferedSize,
+				cast(SystemFileDriver*, oaSystemFileDriver->GetAt(i))->GetSystemPreferredBufferSize());
+		}
+	}
+	return lMaxPrefferedSize;
 }
 
 boolean SystemFileDriverCreator::IsKhiopsDriverName(const ALString& sFileName)

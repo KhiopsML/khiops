@@ -646,7 +646,7 @@ boolean CCLearningProblem::CheckResultFileNames(int nTaskId) const
 			specInputCoclustering.AddError("Missing file name");
 		}
 		// Test d'existence du fichier
-		else if (not PLRemoteFileService::Exist(analysisResults->GetInputCoclusteringFileName()))
+		else if (not PLRemoteFileService::FileExists(analysisResults->GetInputCoclusteringFileName()))
 		{
 			bOk = false;
 			specInputCoclustering.AddError("File does not exist");
@@ -776,7 +776,7 @@ boolean CCLearningProblem::CheckResultFileNames(int nTaskId) const
 	if (bOk)
 	{
 		sOutputPathName = BuildOutputPathName((nTaskId != TaskBuildCoclustering));
-		if (sOutputPathName != "" and not FileService::Exist(sOutputPathName))
+		if (sOutputPathName != "" and not FileService::DirExists(sOutputPathName))
 		{
 			bOk = PLRemoteFileService::MakeDirectories(sOutputPathName);
 			if (not bOk)

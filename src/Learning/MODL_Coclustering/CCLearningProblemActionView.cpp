@@ -31,7 +31,8 @@ CCLearningProblemActionView::CCLearningProblemActionView()
 	{
 		// DEPRECATED V10: fonctionnalite obsolete, conservee de facon cachee en V10 pour compatibilite
 		// ascendante des scenarios
-		LMLicenseManager::DEPRECATEDAddLicenseManagementMenu(this);
+		if (LMLicenseManager::IsEnabled())
+			LMLicenseManager::DEPRECATEDAddLicenseManagementMenu(this);
 	}
 #endif // DEPRECATED_V10
 

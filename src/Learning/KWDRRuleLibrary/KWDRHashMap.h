@@ -45,7 +45,7 @@ public:
 	Symbol LookupValue(const Symbol& sKey);
 
 	// Verification de la validite: les cles doivent etre toutes differentes
-	boolean CheckCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckCompleteness(const KWClass* kwcOwnerClass) const override;
 
 	// Compilation
 	void Compile(KWClass* kwcOwnerClass) override;
@@ -86,7 +86,7 @@ public:
 	Continuous LookupValue(const Symbol& sKey);
 
 	// Verification de la validite: les cles doivent etre toutes differentes
-	boolean CheckCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckCompleteness(const KWClass* kwcOwnerClass) const override;
 
 	// Compilation
 	void Compile(KWClass* kwcOwnerClass) override;

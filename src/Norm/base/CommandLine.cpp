@@ -309,7 +309,6 @@ int CommandLine::GetMaxUsedPriority() const
 
 CommandLineOption* CommandLine::GetOptionForFlag(char c) const
 {
-
 	CommandLineOption* option;
 	int i;
 

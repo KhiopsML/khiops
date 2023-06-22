@@ -25,7 +25,7 @@ KWDiscretizerMODL::KWDiscretizerMODL()
 	nMergeSplitNumber = 0;
 	nMergeMergeSplitNumber = 0;
 	discretizationCosts = new KWMODLDiscretizationCosts;
-	dEpsilon = 1e-8;
+	dEpsilon = 1e-6;
 }
 
 KWDiscretizerMODL::~KWDiscretizerMODL()
@@ -1745,10 +1745,8 @@ void KWDiscretizerMODL::IntervalListBoundaryPostOptimization(const KWFrequencyTa
 	SortedList mergeSplitList(KWMODLLineDeepOptimizationCompareMergeSplitDeltaCost);
 	boolean bContinue;
 	KWMODLLineDeepOptimization* mergeSplitInterval;
-	double dMergeSplitDeltaCost;
 	double dBestDeltaCost;
 	int nIntervalNumber;
-	int nSurnumerousIntervalNumber;
 	int nStepNumber;
 	PeriodicTest periodicTestOptimize;
 
@@ -1791,41 +1789,24 @@ void KWDiscretizerMODL::IntervalListBoundaryPostOptimization(const KWFrequencyTa
 		if (periodicTestOptimize.IsTestAllowed(0) and TaskProgression::IsInterruptionRequested())
 			break;
 
-		// Calcul du nombre d'inetrvalles surnumeraires pour la prise en compte de
-		// la contrainte de nombre max d'intervalles
-		nSurnumerousIntervalNumber = -1;
-		if (GetMaxIntervalNumber() > 0)
-			nSurnumerousIntervalNumber = nIntervalNumber - GetMaxIntervalNumber();
-
 		// Recherche du meilleur MergeSplit et de son cout
 		if (mergeSplitList.GetCount() > 0)
 		{
 			mergeSplitInterval = cast(KWMODLLineDeepOptimization*, mergeSplitList.GetHead());
-			dMergeSplitDeltaCost = mergeSplitInterval->GetMergeSplit()->GetDeltaCost();
+			dBestDeltaCost = mergeSplitInterval->GetMergeSplit()->GetDeltaCost();
 		}
 		else
 		{
 			mergeSplitInterval = NULL;
-			dMergeSplitDeltaCost = dInfiniteCost;
+			dBestDeltaCost = dInfiniteCost;
 		}
 
 		// Gestion des problemes numeriques pour les valeur proches de zero
-		if (fabs(dMergeSplitDeltaCost) < dEpsilon)
-			dMergeSplitDeltaCost = 0;
+		if (fabs(dBestDeltaCost) < dEpsilon)
+			dBestDeltaCost = 0;
 
-		// Calcul de la plus petite variation de cout, en privilegiant les
-		// optimisation diminuant le nombre d'intervalles
-		// Initialisation avec un cout infini, pour gestion de la contrainte
-		// de nombre max d'intervalles
-		dBestDeltaCost = dInfiniteCost;
-
-		// Prise en compte des MergeSplit si la contrainte de nombre max d'intervalles
-		// est respectee
-		if (nSurnumerousIntervalNumber <= 0 and dMergeSplitDeltaCost < dBestDeltaCost + dEpsilon)
-			dBestDeltaCost = dMergeSplitDeltaCost;
-
-		// Pas d'optimisation si la variation de cout est strictement positive
-		if (dBestDeltaCost > 0)
+		// Pas d'optimisation si la variation de cout est positive ou nulle
+		if (dBestDeltaCost >= 0)
 		{
 			bContinue = false;
 
@@ -1839,20 +1820,8 @@ void KWDiscretizerMODL::IntervalListBoundaryPostOptimization(const KWFrequencyTa
 				cout << nIntervalNumber << endl;
 			}
 		}
-		// En cas de variation nulle, arret si pas de diminution du nombre d'intervalles
-		else if (dBestDeltaCost == 0)
-		{
-			bContinue = false;
-
-			// Affichage d'un message
-			if (bPrintOptimisationDetails)
-			{
-				cout << dBestDeltaCost << "\t" << ComputePartitionDeltaCost(nIntervalNumber) << "\t"
-				     << nIntervalNumber << endl;
-			}
-		}
 		// Test si MergeSplit
-		else if (dBestDeltaCost == dMergeSplitDeltaCost)
+		else
 		{
 			// Affichage d'un message
 			if (bPrintOptimisationDetails)

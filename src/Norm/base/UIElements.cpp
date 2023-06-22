@@ -1235,7 +1235,7 @@ boolean UIDoubleElement::Check() const
 
 	// Verification du style
 	if (GetStyle() != "" and GetStyle() != "TextField" and GetStyle() != "ComboBox" and
-	    GetStyle() != "EditableComboBox" and GetStyle() != "RadioButton")
+	    GetStyle() != "EditableComboBox" and GetStyle() != "RadioButton" and GetStyle() != "Spinner")
 		AddWarning("Le style " + GetStyle() + " est inconnu");
 
 	// Verification des valeurs min et max
@@ -1253,6 +1253,27 @@ boolean UIDoubleElement::Check() const
 		bOk = false;
 	}
 
+	// Verification du parametre dans le cas spinner
+	if (bOk and GetStyle() == "Spinner")
+	{
+		if (GetParameters() != "")
+		{
+			if (GetParameters().GetLength() > 1)
+			{
+				AddError(
+				    sTmp +
+				    "Le parametre pour un style Spinner doit etre specifie avec un seul caractere (" +
+				    GetParameters() + ")");
+				bOk = false;
+			}
+			else if (not isdigit(GetParameters().GetAt(0)))
+			{
+				AddError(sTmp + "Le parametre pour un style Spinner doit etre un chiffre (" +
+					 GetParameters() + ")");
+				bOk = false;
+			}
+		}
+	}
 	return bOk;
 }
 

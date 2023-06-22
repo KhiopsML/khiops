@@ -735,6 +735,7 @@ boolean CCCoclusteringReport::ReadCoclusteringStats(CCHierarchicalDataGrid* cocl
 	char* sField;
 	ALString sTmp;
 	int nNumber;
+	double dNumber;
 	double dNullCost;
 	double dCost;
 
@@ -952,14 +953,14 @@ boolean CCCoclusteringReport::ReadCoclusteringStats(CCHierarchicalDataGrid* cocl
 					bOk = false;
 				}
 				sField = ReadNextField();
-				nNumber = StringToInt(sField);
-				if (bOk and (nNumber < 0 or nNumber > 100))
+				dNumber = StringToDouble(sField);
+				if (bOk and (dNumber < 0 or dNumber > 100))
 				{
 					AddError(sTmp + "Invalid " + sKeyWordSamplePercentage + " (" + sField + ")");
 					bOk = false;
 				}
 				if (bOk)
-					coclusteringDataGrid->GetDatabaseSpec()->SetSampleNumberPercentage(nNumber);
+					coclusteringDataGrid->GetDatabaseSpec()->SetSampleNumberPercentage(dNumber);
 				SkipLine();
 				if (bReadDebug)
 					cout << sKeyWordSamplePercentage << "\t" << sField << endl;
@@ -2663,7 +2664,7 @@ boolean CCCoclusteringReport::ReadJSONSummary(CCHierarchicalDataGrid* coclusteri
 	ALString sFrequencyVariable;
 	ALString sDictionary;
 	ALString sDatabase;
-	int nSamplePercentage;
+	double dSamplePercentage;
 	ALString sSamplingMode;
 	ALString sSelectionAttribute;
 	ALString sSelectionValue;
@@ -2680,7 +2681,7 @@ boolean CCCoclusteringReport::ReadJSONSummary(CCHierarchicalDataGrid* coclusteri
 	dNullCost = 0;
 	dLevel = 0;
 	nInitialAttributeNumber = 0;
-	nSamplePercentage = 100;
+	dSamplePercentage = 100;
 	coclusteringDataGrid->GetDatabaseSpec()->SetModeExcludeSample(false);
 	sSamplingMode = coclusteringDataGrid->GetDatabaseSpec()->GetSamplingMode();
 
@@ -2699,17 +2700,17 @@ boolean CCCoclusteringReport::ReadJSONSummary(CCHierarchicalDataGrid* coclusteri
 	if (not bIsEnd)
 	{
 		// Lecture des champs
-		bOk = bOk and JSONTokenizer::ReadKeyIntValue("samplePercentage", true, nSamplePercentage, bIsEnd);
+		bOk = bOk and JSONTokenizer::ReadKeyDoubleValue("samplePercentage", true, dSamplePercentage, bIsEnd);
 		bOk = bOk and JSONTokenizer::ReadKeyStringValue("samplingMode", sSamplingMode, bIsEnd);
 		bOk = bOk and JSONTokenizer::ReadKeyStringValue("selectionVariable", sSelectionAttribute, bIsEnd);
 		bOk = bOk and JSONTokenizer::ReadKeyStringValue("selectionValue", sSelectionValue, bIsEnd);
 
 		// Verification de l'integrite
-		if (bOk and nSamplePercentage > 100)
+		if (bOk and dSamplePercentage > 100)
 		{
-			assert(nSamplePercentage >= 0);
+			assert(dSamplePercentage >= 0);
 			AddError(sTmp + "Invalid value of JSON key 'samplePercentage' (" +
-				 IntToString(nSamplePercentage) + ")");
+				 DoubleToString(dSamplePercentage) + ")");
 			bOk = false;
 		}
 		if (bOk and not KWDatabase::CheckSamplingMode(sSamplingMode))
@@ -2728,7 +2729,7 @@ boolean CCCoclusteringReport::ReadJSONSummary(CCHierarchicalDataGrid* coclusteri
 		coclusteringDataGrid->SetFrequencyAttributeName(sFrequencyVariable);
 		coclusteringDataGrid->GetDatabaseSpec()->SetClassName(sDictionary);
 		coclusteringDataGrid->GetDatabaseSpec()->SetDatabaseName(sDatabase);
-		coclusteringDataGrid->GetDatabaseSpec()->SetSampleNumberPercentage(nSamplePercentage);
+		coclusteringDataGrid->GetDatabaseSpec()->SetSampleNumberPercentage(dSamplePercentage);
 		coclusteringDataGrid->GetDatabaseSpec()->SetSamplingMode(sSamplingMode);
 		coclusteringDataGrid->GetDatabaseSpec()->SetSelectionAttribute(sSelectionAttribute);
 		coclusteringDataGrid->GetDatabaseSpec()->SetSelectionValue(sSelectionValue);
@@ -3817,8 +3818,8 @@ void CCCoclusteringReport::WriteJSONSummary(const CCHierarchicalDataGrid* coclus
 	fJSON->WriteKeyString(sKeyWordDatabase, coclusteringDataGrid->GetConstDatabaseSpec()->GetDatabaseName());
 
 	// Specification completes de la base
-	fJSON->WriteKeyInt(sKeyWordSamplePercentage,
-			   coclusteringDataGrid->GetConstDatabaseSpec()->GetSampleNumberPercentage());
+	fJSON->WriteKeyDouble(sKeyWordSamplePercentage,
+			      coclusteringDataGrid->GetConstDatabaseSpec()->GetSampleNumberPercentage());
 	fJSON->WriteKeyString(sKeyWordSamplingMode, coclusteringDataGrid->GetConstDatabaseSpec()->GetSamplingMode());
 	fJSON->WriteKeyString(sKeyWordSelectionVariable,
 			      coclusteringDataGrid->GetConstDatabaseSpec()->GetSelectionAttribute());

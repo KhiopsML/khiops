@@ -153,10 +153,15 @@ void DTCreationReport::WriteJSONSonNodes(JSONFile* fJSON, DTDecisionTreeNodeSpec
 {
 	// methode appelee recursivement
 	int nPart;
+	int nDefaultPartIndex;
+	int nValue;
+	int nFirstValue;
+	int nLastValue;
 	ContinuousVector cvAttributeMinValues;
 	ContinuousVector cvAttributeMaxValues;
 	KWDGSAttributePartition* attributePartition;
 	KWDGSAttributeDiscretization* numericalAttributePartition;
+	KWDGSAttributeGrouping* categoricalAttributePartition;
 
 	if (treeNodeSpec->GetFatherNode() != NULL)
 		fJSON->BeginObject();
@@ -168,11 +173,9 @@ void DTCreationReport::WriteJSONSonNodes(JSONFile* fJSON, DTDecisionTreeNodeSpec
 	{
 		if (treeNodeSpec->GetTargetModalitiesCountTrain() != NULL)
 		{
-
 			fJSON->BeginKeyObject("targetValues");
 			fJSON->BeginKeyList("values");
-			for (int nValue = 0; nValue < treeNodeSpec->GetTargetModalitiesCountTrain()->GetSize();
-			     nValue++)
+			for (nValue = 0; nValue < treeNodeSpec->GetTargetModalitiesCountTrain()->GetSize(); nValue++)
 			{
 				DTDecisionTree::TargetModalityCount* tmc =
 				    cast(DTDecisionTree::TargetModalityCount*,
@@ -183,8 +186,7 @@ void DTCreationReport::WriteJSONSonNodes(JSONFile* fJSON, DTDecisionTreeNodeSpec
 
 			// Ecriture des effectifs
 			fJSON->BeginKeyList("frequencies");
-			for (int nValue = 0; nValue < treeNodeSpec->GetTargetModalitiesCountTrain()->GetSize();
-			     nValue++)
+			for (nValue = 0; nValue < treeNodeSpec->GetTargetModalitiesCountTrain()->GetSize(); nValue++)
 			{
 				DTDecisionTree::TargetModalityCount* tmc =
 				    cast(DTDecisionTree::TargetModalityCount*,
@@ -224,6 +226,11 @@ void DTCreationReport::WriteJSONSonNodes(JSONFile* fJSON, DTDecisionTreeNodeSpec
 			// cas categorical
 			// attributePartition->WriteJSONFields(fJSON);
 			//  Entete
+
+			// cas numerical
+			categoricalAttributePartition =
+			    cast(KWDGSAttributeGrouping*, treeNodeSpec->GetAttributePartitionSpec());
+
 			fJSON->WriteKeyString("variable", attributePartition->GetAttributeName());
 			fJSON->WriteKeyString("type", KWType::ToString(attributePartition->GetAttributeType()));
 
@@ -242,6 +249,29 @@ void DTCreationReport::WriteJSONSonNodes(JSONFile* fJSON, DTDecisionTreeNodeSpec
 					attributePartition->WriteJSONPartFieldsAt(fJSON, nPart);
 				fJSON->EndArray();
 			}
+
+			// ecriture de la partie par defaut
+			// Recherche de l'index de la partie par defaut
+			nDefaultPartIndex = -1;
+
+			for (nPart = 0; nPart < categoricalAttributePartition->GetPartNumber(); nPart++)
+			{
+				// Recherche dans la partie courante
+				nFirstValue = categoricalAttributePartition->GetGroupFirstValueIndexAt(nPart);
+				nLastValue = categoricalAttributePartition->GetGroupLastValueIndexAt(nPart);
+				for (nValue = nFirstValue; nValue <= nLastValue; nValue++)
+				{
+					if (categoricalAttributePartition->GetValueAt(nValue) == Symbol::GetStarValue())
+					{
+						nDefaultPartIndex = nPart;
+						break;
+					}
+				}
+			}
+			assert(nDefaultPartIndex != -1);
+
+			// Indication de groupe par defaut
+			fJSON->WriteKeyInt("defaultGroupIndex", nDefaultPartIndex);
 		}
 	}
 
@@ -249,12 +279,10 @@ void DTCreationReport::WriteJSONSonNodes(JSONFile* fJSON, DTDecisionTreeNodeSpec
 
 	if (!treeNodeSpec->IsLeaf())
 	{
-
 		fJSON->BeginKeyArray("childNodes");
 
 		if (treeNodeSpec->GetChildNodes().GetSize())
 		{
-
 			for (int iNodeIndex = 0; iNodeIndex < treeNodeSpec->GetChildNodes().GetSize(); iNodeIndex++)
 			{
 				// Extraction du noeud fils courant

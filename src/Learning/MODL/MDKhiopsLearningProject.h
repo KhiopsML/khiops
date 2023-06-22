@@ -10,7 +10,7 @@
 #include "KWDRDataGridDeployment.h"
 
 // Regles pour les outils de l'eco-systeme Khiops: Enneade: Interpretation
-#include "ISDRRegisterAllRules.h"
+#include "KIDRRegisterAllRules.h"
 #include "KMDRRegisterAllRules.h"
 
 // DTFOREST

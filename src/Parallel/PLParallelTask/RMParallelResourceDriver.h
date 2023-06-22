@@ -5,6 +5,7 @@
 #pragma once
 #include "RMStandardResourceDriver.h"
 #include "RMParallelResourceManager.h"
+#include "RMTaskResourceGrant.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // Classe RMParallelResourceDriver

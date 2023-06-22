@@ -141,6 +141,15 @@ protected:
 	boolean bHeaderLineUsed;
 	char cFieldSeparator;
 
+	// Memoire utilisee pour le stckage des cle
+	longint lInputKeysUsedMemory;
+	longint lOutputKeysUsedMemory;
+
+	// Definition des exigences pour la taille du buffer
+	int nReadSizeMin;
+	int nReadSizeMax;
+	int nReadBufferSize;
+
 	// Table d'echantillons de cle (ObjectArray de KWKeyPosition)
 	// Memorisation des resultats d'analyse des esclaves
 	ObjectArray oaAllKeyPositionSubsets;
@@ -203,4 +212,7 @@ protected:
 
 	// Extracteur de cle
 	KWKeyExtractor keyExtractor;
+
+	// Fichier de travail pour l'esclave
+	InputBufferedFile inputFile;
 };

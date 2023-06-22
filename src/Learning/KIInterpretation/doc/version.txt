@@ -1,0 +1,6 @@
+KIInterpretation library
+
+version 0.0.0
+
+	version du 01/07/2022: première version
+

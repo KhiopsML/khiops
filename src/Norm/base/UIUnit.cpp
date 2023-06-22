@@ -100,7 +100,7 @@ void UIUnit::Open()
 					bActionExit = true;
 				if (bVerboseCommandReplay)
 					AddSimpleMessage("Replay user action\t: " + sCommand);
-				WriteOutputCommand(sCommand, sValue, uiAction->GetLabel());
+				WriteOutputCommand(sCommand, sValue, uiAction->GetUnformattedLabel());
 				uiUnit->ExecuteUserActionAt(uiAction->GetIdentifier());
 				break;
 			}
@@ -123,7 +123,7 @@ void UIUnit::Open()
 						if (bVerboseCommandReplay)
 							AddSimpleMessage("Replay field update\t: " + sCommand + " " +
 									 sValue);
-						WriteOutputCommand(sCommand, sValue, uiField->GetLabel());
+						WriteOutputCommand(sCommand, sValue, uiField->GetUnformattedLabel());
 						uiField->SetFieldStringValue(values, uiUnit->nCurrentItemIndex, sValue);
 						uiUnit->nFreshness++;
 
@@ -1244,7 +1244,7 @@ boolean UIUnit::TextualDealWithActions()
 			sActionLabel = "\t";
 			sActionLabel += IntToString(nAction);
 			sActionLabel += ": ";
-			sActionLabel += uiAction->GetLabel();
+			sActionLabel += uiAction->GetUnformattedLabel();
 			sActionLabel += "\n";
 			TextualDisplayOutput(sActionLabel);
 		}

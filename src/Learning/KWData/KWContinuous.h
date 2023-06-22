@@ -52,6 +52,13 @@ public:
 	// des Continuous indiscernables
 	static Continuous DoubleToContinuous(double dValue);
 
+	// Conversion vers un int
+	// Renvoie true si la conversion est un succes
+	static boolean ContinuousToInt(Continuous cValue, int& nValue);
+
+	// Test si une valeur est entiere
+	static boolean IsInt(Continuous cValue);
+
 	// Test si une chaine contient un Continuous (avec tolerance sur les underflow et overflow)
 	static boolean IsStringContinuous(const char* const sValue);
 
@@ -384,6 +391,27 @@ inline Continuous KWContinuous::StringToContinuous(const char* const sValue)
 inline boolean KWContinuous::CheckError(int nValue)
 {
 	return (NoError <= nValue and nValue <= ErrorBadEndString);
+}
+
+inline boolean KWContinuous::ContinuousToInt(Continuous cValue, int& nValue)
+{
+	// Recherche de l'entier le plus proche
+	nValue = int(floor(cValue + 0.5));
+
+	// Ok si presque egale, avec tolerance par rapport au nombre max de digits GetDigitNumber
+	if (fabs(cValue - nValue) < 1e-8)
+		return true;
+	else
+	{
+		nValue = 0;
+		return false;
+	}
+}
+
+inline boolean KWContinuous::IsInt(Continuous cValue)
+{
+	int nValue;
+	return ContinuousToInt(cValue, nValue);
 }
 
 inline boolean KWContinuous::IsStringContinuous(const char* const sValue)

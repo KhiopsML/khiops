@@ -556,8 +556,7 @@ boolean KWMTDatabase::CheckPartially(boolean bWriteOnly) const
 			checkMapping = checkDatabase.LookupMultiTableMapping(mapping->GetDataPath());
 			if (checkMapping == NULL)
 			{
-				AddError("Unexpected data table file specified for data path " +
-					 mapping->GetObjectLabel());
+				AddError("No data table file specified for data path " + mapping->GetObjectLabel());
 				bOk = false;
 				break;
 			}
@@ -733,7 +732,8 @@ longint KWMTDatabase::ComputeOpenNecessaryMemory(boolean bRead, boolean bIncludi
 
 	// En lecture, ajout de la place necessaire pour le chargement des tables externes
 	if (bRead)
-		lNecessaryMemory += ComputeNecessaryMemoryForReferenceObjects();
+		lNecessaryMemory += ComputeSamplingBasedNecessaryMemoryForReferenceObjects();
+	ensure(lNecessaryMemory >= 0);
 	return lNecessaryMemory;
 }
 
@@ -925,7 +925,7 @@ boolean KWMTDatabase::PhysicalOpenForRead()
 
 		// Ouverture des tables referencees
 		if (bOk)
-			bOk = PhysicalReadAllReferenceObjects();
+			bOk = PhysicalReadAllReferenceObjects(1);
 	}
 	return bOk;
 }
@@ -960,6 +960,14 @@ KWObject* KWMTDatabase::PhysicalRead()
 
 	// Lecture d'un enregistrement de la table principale
 	kwoObject = DMTMPhysicalRead(rootMultiTableMapping);
+
+	// Prise en compte dans le memory guard
+	if (kwoObject != NULL)
+	{
+		// Nettoyage des objets natifs inclus si le memory guard a detecte un depassement de limite memoire
+		if (memoryGuard.IsSingleInstanceMemoryLimitReached())
+			kwoObject->CleanNativeRelationAttributes();
+	}
 
 	// Lecture apres la fin de la base pour effectuer des controles
 	if (rootMultiTableMapping->GetDataTableDriver()->IsEnd())
@@ -1025,6 +1033,8 @@ void KWMTDatabase::PhysicalReadAfterEndOfDatabase()
 					break;
 
 				// Lecture d'un enregistrement de la table principale
+				// On ne prend pas la lecture en compte dans le memory guard, car les objet lus sont
+				// immediatement detruits
 				kwoSubObject = componentMapping->GetDataTableDriver()->Read();
 
 				// Positionnement du flag d'erreur
@@ -1146,14 +1156,18 @@ longint KWMTDatabase::GetPhysicalEstimatedObjectNumber()
 
 	require(rootMultiTableMapping->GetDataTableDriver() == NULL);
 
-	// Parametrage du mapping racine (uniquement le nom de la base)
+	// Parametrage du mapping racine
 	rootMultiTableMapping->SetDataTableDriver(CreateDataTableDriver(rootMultiTableMapping));
 	rootMultiTableMapping->GetDataTableDriver()->SetDataTableName(rootMultiTableMapping->GetDataTableName());
+	rootMultiTableMapping->GetDataTableDriver()->SetClass(
+	    KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName()));
 
 	// Appel de la methode du driver
 	lPhysicalEstimatedObjectNumber = rootMultiTableMapping->GetDataTableDriver()->GetEstimatedObjectNumber();
 
-	// Nettoyage
+	// Nettoyage (attention a nettoyer le driver avant de le detruire)
+	rootMultiTableMapping->GetDataTableDriver()->SetDataTableName("");
+	rootMultiTableMapping->GetDataTableDriver()->SetClass(NULL);
 	delete rootMultiTableMapping->GetDataTableDriver();
 	rootMultiTableMapping->SetDataTableDriver(NULL);
 	return lPhysicalEstimatedObjectNumber;
@@ -1529,7 +1543,7 @@ KWMTDatabaseMapping* KWMTDatabase::CreateMapping(ObjectDictionary* odReferenceCl
 	return mapping;
 }
 
-boolean KWMTDatabase::PhysicalReadAllReferenceObjects()
+boolean KWMTDatabase::PhysicalReadAllReferenceObjects(double dSamplePercentage)
 {
 	boolean bOk = true;
 	int nReference;
@@ -1545,10 +1559,20 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects()
 	ALString sTmp;
 	ALString sMessage;
 	boolean bIsInTask;
+	longint lCurrentMemoryGuardMaxSecondaryRecordNumber;
+	longint lCurrentMemoryGuardSingleInstanceMemoryLimit;
 
 	require(objectReferenceResolver.GetClassNumber() == 0);
 	require(kwcPhysicalClass != NULL);
 	require(kwcPhysicalClass->GetName() == GetClassName());
+	require(0 <= dSamplePercentage and dSamplePercentage <= 1);
+
+	// On desactive temporairement le memory guard, le temps de la lecture des objets references
+	// En effet, le dimensionnement est calcule pour pouvoir charger en memoire l'ensemble de toutes
+	// les tables extertnes, et il n'y a pas a se soucier de la gestion des instances "elephants"
+	lCurrentMemoryGuardMaxSecondaryRecordNumber = memoryGuard.GetMaxSecondaryRecordNumber();
+	lCurrentMemoryGuardSingleInstanceMemoryLimit = memoryGuard.GetSingleInstanceMemoryLimit();
+	memoryGuard.Reset();
 
 	// On teste si on en en cours de suivi de tache
 	bIsInTask = TaskProgression::IsInTask();
@@ -1639,6 +1663,12 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects()
 						break;
 					}
 
+					// Arret si pourcentage atteint
+					if (dSamplePercentage < 1 and
+					    referenceMapping->GetDataTableDriver()->GetReadPercentage() >
+						dSamplePercentage)
+						break;
+
 					// Suivi de la tache
 					if (bIsInTask and periodicTestInterruption.IsTestAllowed(lRecordNumber))
 					{
@@ -1719,7 +1749,7 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects()
 					assert(kwoObject->GetClass() == kwcReferencePhysicalClass);
 
 					// Calcul recursif de toutes les valeurs des objets
-					kwoObject->ComputeAllValues();
+					kwoObject->ComputeAllValues(&memoryGuard);
 
 					// Suivi de la tache
 					lRecordNumber++;
@@ -1746,6 +1776,10 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects()
 
 	// Desactivation du controle d'erreur
 	Global::DesactivateErrorFlowControl();
+
+	// On reactive le memory guard
+	memoryGuard.SetMaxSecondaryRecordNumber(lCurrentMemoryGuardMaxSecondaryRecordNumber);
+	memoryGuard.SetSingleInstanceMemoryLimit(lCurrentMemoryGuardSingleInstanceMemoryLimit);
 	return bOk;
 }
 
@@ -1754,11 +1788,85 @@ void KWMTDatabase::PhysicalDeleteAllReferenceObjects()
 	objectReferenceResolver.DeleteAll();
 }
 
+longint KWMTDatabase::ComputeSamplingBasedNecessaryMemoryForReferenceObjects()
+{
+	boolean bDisplay = false;
+	longint lSamplingBasedNecessaryMemory;
+	longint lHeapMemory;
+	longint lReadBasedNecessaryMemory;
+	longint lDeleteBasedNecessaryMemory;
+	longint lNecessaryMemory;
+	longint lRemainingMemory;
+	longint lUsableMemory;
+	double dSamplePercentage;
+	boolean bCurrentSilentMode;
+
+	require(Check());
+	require(kwcClass != NULL);
+	require(kwcPhysicalClass != NULL);
+	require(not IsOpenedForRead());
+	require(not IsOpenedForWrite());
+
+	// Premiere passe basique d'estimation de la memoire necessaire, sans acces aux donnees
+	lNecessaryMemory = ComputeNecessaryMemoryForReferenceObjects();
+	if (bDisplay)
+	{
+		cout << "Necessary memory for reference objects for database " << GetDatabaseName() << endl;
+		cout << "\tIn memory estimation\t" << LongintToHumanReadableString(lNecessaryMemory) << endl;
+	}
+
+	// Estimation de la memoire totale restante pour en donner au max la moitie au maitre
+	lRemainingMemory = RMResourceManager::GetRemainingAvailableMemory();
+	if (bDisplay)
+		cout << "\tRemaining memory: " << LongintToHumanReadableString(lRemainingMemory) << endl;
+
+	// Calcul du taux d'echantillonnage des objets references a utiliser
+	// On prend de la marge au cas ou l'estimation initiale serait tres mauvaise
+	lUsableMemory = min(lRemainingMemory / 4, (longint)SystemFile::nMaxPreferredBufferSize);
+	lUsableMemory = max(lUsableMemory, (longint)InputBufferedFile::nDefaultBufferSize);
+	if (lNecessaryMemory > lUsableMemory)
+		dSamplePercentage = min(0.1, double(lUsableMemory) / lNecessaryMemory);
+	else
+		dSamplePercentage = 0.1;
+	if (bDisplay)
+		cout << "\tSampling rate\t" << DoubleToString(dSamplePercentage) << endl;
+
+	// Ouverture et lecture des tables referencees, sans emission d'erreur
+	// ce qui permet de calculer la memoire necessaire a leur lecture
+	lHeapMemory = MemGetHeapMemory();
+	bCurrentSilentMode = Global::GetSilentMode();
+	Global::SetSilentMode(true);
+	PhysicalReadAllReferenceObjects(dSamplePercentage);
+	Global::SetSilentMode(bCurrentSilentMode);
+	lReadBasedNecessaryMemory = MemGetHeapMemory() - lHeapMemory;
+
+	// Destruction des objets references
+	// ce qui permet de calculer la memoire necessaire a leur destruction
+	lHeapMemory = MemGetHeapMemory();
+	PhysicalDeleteAllReferenceObjects();
+	lDeleteBasedNecessaryMemory = lHeapMemory - MemGetHeapMemory();
+
+	// Memoire dediee aux objets references
+	// On prend le max des deux, car il peut y avoir des effet de bord dans l'allocateur, avec la gestion des
+	// segments memoire
+	lSamplingBasedNecessaryMemory = max(lReadBasedNecessaryMemory, lDeleteBasedNecessaryMemory);
+	assert(lSamplingBasedNecessaryMemory >= 0);
+	lSamplingBasedNecessaryMemory = (longint)(lSamplingBasedNecessaryMemory / dSamplePercentage);
+
+	// On passe de la memoire physique a la memoire logique en tenant compte de l'ovehead d'(allocation
+	lSamplingBasedNecessaryMemory = longint(lSamplingBasedNecessaryMemory / (1 + MemGetAllocatorOverhead()));
+	if (bDisplay)
+		cout << "\tSampling based estimation\t" << LongintToHumanReadableString(lSamplingBasedNecessaryMemory)
+		     << endl;
+	ensure(lSamplingBasedNecessaryMemory >= 0);
+	return lSamplingBasedNecessaryMemory;
+}
+
 longint KWMTDatabase::ComputeNecessaryMemoryForReferenceObjects()
 {
 	boolean bDisplay = false;
-	longint lNecessaryMemory;
 	longint lTotalNecessaryMemory;
+	longint lNecessaryMemory;
 	int nReference;
 	KWMTDatabaseMapping* referenceMapping;
 	KWClass* kwcReferenceClass;
@@ -1772,8 +1880,11 @@ longint KWMTDatabase::ComputeNecessaryMemoryForReferenceObjects()
 	require(Check());
 	require(kwcClass != NULL);
 	require(kwcPhysicalClass != NULL);
+	require(not IsOpenedForRead());
+	require(not IsOpenedForWrite());
 
-	// Ouverture de chaque table secondaire pour le calcul de la memoire necessaire
+	// Ouverture de chaque table secondaire pour une premiere estimation basique de la memoire necessaire, sans
+	// acces aux donnees
 	lTotalNecessaryMemory = 0;
 	for (nReference = 0; nReference < oaRootRefTableMappings.GetSize(); nReference++)
 	{
@@ -1816,13 +1927,16 @@ longint KWMTDatabase::ComputeNecessaryMemoryForReferenceObjects()
 			}
 			lTotalNecessaryMemory += lNecessaryMemory;
 			if (bDisplay)
-				cout << "Necessary memory for " << mapping->GetObjectLabel() << ": " << lNecessaryMemory
-				     << endl;
+				cout << "Necessary memory for " << mapping->GetObjectLabel() << ": "
+				     << LongintToHumanReadableString(lNecessaryMemory) << endl;
 		}
 
 		// Nettoyage final
 		DMTMPhysicalTerminateMapping(referenceMapping);
 	}
+	if (bDisplay)
+		cout << "Necessary memory for reference objects for database " << GetDatabaseName() << ": "
+		     << LongintToHumanReadableString(lTotalNecessaryMemory) << endl;
 	return lTotalNecessaryMemory;
 }
 
@@ -2186,6 +2300,7 @@ KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 	ALString sTmp;
 
 	require(mapping != NULL);
+	require(not mapping->GetDataTableDriver()->IsEnd());
 
 	// Lecture d'un enregistrement de la table principale
 	kwoObject = mapping->GetDataTableDriver()->Read();
@@ -2328,14 +2443,24 @@ KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 						// La cle est identique aux premiers champs du sous-objets
 						if (objectKey.SubCompare(&subObjectKey) == 0)
 						{
+							// Prise en compte dans le memory guard
+							memoryGuard.AddReadSecondaryRecord();
+
 							// Le sous-objet etant traite, on peut le dereferencer du
 							// mapping
 							componentMapping->SetLastReadObject(NULL);
 
+							// Nettoyage si le memory guard a detecte un depassement de
+							// limite memoire
+							if (memoryGuard.IsSingleInstanceMemoryLimitReached())
+							{
+								// Destruction du sous-objet non utilisable
+								delete kwoSubObject;
+							}
 							// Pour un attribut de type Object, on associe le sous-objet a
 							// son incluant et c'est fini
-							if (componentMapping->GetMappedAttributeType() ==
-							    KWType::Object)
+							else if (componentMapping->GetMappedAttributeType() ==
+								 KWType::Object)
 							{
 								kwoObject->SetObjectValueAt(
 								    componentMapping->GetMappedAttributeLoadIndex(),

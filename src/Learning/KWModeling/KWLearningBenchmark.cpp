@@ -851,6 +851,8 @@ void KWLearningBenchmark::EvaluateExperiment(int nBenchmark, int nPredictor, int
 	KWPredictor* predictor;
 	KWPredictorEvaluation* predictorEvaluation;
 	KWClass* constructedClass;
+	ObjectDictionary odMultiTableConstructedAttributes;
+	ObjectDictionary odTextConstructedAttributes;
 	KWClassDomain* initialDomain;
 	KWClassStats* classStats;
 	int nRun;
@@ -912,13 +914,18 @@ void KWLearningBenchmark::EvaluateExperiment(int nBenchmark, int nPredictor, int
 	// Parametrage des instances a garder en apprentissage
 	benchmarkSpec->ComputeDatabaseSelectedInstance(ivFoldIndexes, nFold, true);
 
+	// Creation d'un objet de calcul des stats
+	classStats = new KWClassStats;
+
 	// Parametrage du nombre initial d'attributs
 	learningSpec->SetInitialAttributeNumber(
 	    learningSpec->GetClass()->ComputeInitialAttributeNumber(GetTargetAttributeType() != KWType::None));
 
 	// Construction d'une classe avec de nouvelles variables si necessaire
 	initialDomain = KWClassDomain::GetCurrentDomain();
-	constructedClass = BuildLearningSpecConstructedClass(learningSpec, predictorSpec);
+	constructedClass =
+	    BuildLearningSpecConstructedClass(learningSpec, predictorSpec, classStats->GetMultiTableConstructionSpec(),
+					      classStats->GetTextConstructionSpec());
 
 	// On prend le domaine de construction comme domaine de travail
 	if (constructedClass != NULL)
@@ -935,9 +942,6 @@ void KWLearningBenchmark::EvaluateExperiment(int nBenchmark, int nPredictor, int
 		    KWClassDomain::GetCurrentDomain()->LookupClass(learningSpec->GetClass()->GetName()));
 	}
 	assert(learningSpec->Check());
-
-	// Creation d'un objet de calcul des stats
-	classStats = new KWClassStats;
 
 	// Prise en compte des specification de construction d'arbres
 	if (KDDataPreparationAttributeCreationTask::GetGlobalCreationTask())
@@ -1047,10 +1051,14 @@ void KWLearningBenchmark::EvaluateExperiment(int nBenchmark, int nPredictor, int
 }
 
 KWClass* KWLearningBenchmark::BuildLearningSpecConstructedClass(KWLearningSpec* learningSpec,
-								KWPredictorSpec* predictorSpec)
+								KWPredictorSpec* predictorSpec,
+								ObjectDictionary* odMultiTableConstructedAttributes,
+								ObjectDictionary* odTextConstructedAttributes)
 {
-	boolean bOk;
-	KDDomainKnowledge domainKnowledge;
+	boolean bOk = true;
+	KDMultiTableFeatureConstruction multiTableFeatureConstruction;
+	KDTextFeatureConstruction textFeatureConstruction;
+	boolean bIsTextConstructionPossible;
 	KWClassDomain* constructedDomain;
 	KWClass* constructedClass;
 
@@ -1058,15 +1066,32 @@ KWClass* KWLearningBenchmark::BuildLearningSpecConstructedClass(KWLearningSpec* 
 	require(learningSpec->GetInitialAttributeNumber() ==
 		learningSpec->GetClass()->ComputeInitialAttributeNumber(learningSpec->GetTargetAttributeName() != ""));
 	require(predictorSpec != NULL);
+	require(odMultiTableConstructedAttributes != NULL);
+	require(odMultiTableConstructedAttributes->GetCount() == 0);
+	require(odTextConstructedAttributes != NULL);
+	require(odTextConstructedAttributes->GetCount() == 0);
 
-	// Parametrage des familles de construction de variables
-	predictorSpec->GetAttributeConstructionSpec()->SpecifyLearningSpecConstructionFamilies(learningSpec, true);
+	//////////////////////////////////////////////////////////////////////////////////////
+	// Le code suivant est largement inspire de  KWLearningProblem::BuildConstructedClass
 
 	// Initialisation du domaine de connaissance
-	domainKnowledge.SetLearningSpec(learningSpec);
-	domainKnowledge.SetConstructionDomain(predictorSpec->GetAttributeConstructionSpec()->GetConstructionDomain());
-	domainKnowledge.SetMaxRuleNumber(
+	multiTableFeatureConstruction.SetLearningSpec(learningSpec);
+	multiTableFeatureConstruction.SetConstructionDomain(
+	    predictorSpec->GetAttributeConstructionSpec()->GetConstructionDomain());
+	multiTableFeatureConstruction.SetMaxRuleNumber(
 	    predictorSpec->GetAttributeConstructionSpec()->GetMaxConstructedAttributeNumber());
+
+	// Initialisation de la construction de variables a base de textes
+	textFeatureConstruction.SetLearningSpec(learningSpec);
+	textFeatureConstruction.SetConstructionDomain(
+	    predictorSpec->GetAttributeConstructionSpec()->GetConstructionDomain());
+
+	// Detection si des variable de type texte peuvent etre construites
+	bIsTextConstructionPossible = textFeatureConstruction.ContainsTextAttributes(learningSpec->GetClass());
+
+	// Parametrage des familles de construction de variables
+	predictorSpec->GetAttributeConstructionSpec()->SpecifyLearningSpecConstructionFamilies(
+	    learningSpec, true, bIsTextConstructionPossible);
 
 	// Calcul de la nouvelle classe si demande
 	constructedDomain = NULL;
@@ -1074,16 +1099,16 @@ KWClass* KWLearningBenchmark::BuildLearningSpecConstructedClass(KWLearningSpec* 
 	if (predictorSpec->GetAttributeConstructionSpec()->GetMaxConstructedAttributeNumber() > 0)
 	{
 		// Construction de variable
-		domainKnowledge.ComputeStats();
-		bOk = domainKnowledge.IsStatsComputed();
+		multiTableFeatureConstruction.ComputeStats();
+		bOk = multiTableFeatureConstruction.IsStatsComputed();
 		if (bOk)
 		{
 			// Acces a la classe construite si la construction est effective
-			if (domainKnowledge.IsClassConstructed())
+			if (multiTableFeatureConstruction.IsClassConstructed())
 			{
-				constructedClass = domainKnowledge.GetConstructedClass();
+				constructedClass = multiTableFeatureConstruction.GetConstructedClass();
 				constructedDomain = constructedClass->GetDomain();
-				domainKnowledge.RemoveConstructedClass();
+				multiTableFeatureConstruction.RemoveConstructedClass();
 
 				// Restitution des couts initiaux si aucune variable n'a ete effectivement construite
 				assert(constructedClass->GetAttributeNumber() >=
@@ -1092,20 +1117,52 @@ KWClass* KWLearningBenchmark::BuildLearningSpecConstructedClass(KWLearningSpec* 
 				    learningSpec->GetClass()->GetAttributeNumber())
 				{
 					predictorSpec->GetAttributeConstructionSpec()
-					    ->SpecifyLearningSpecConstructionFamilies(learningSpec, false);
-					domainKnowledge.ComputeInitialAttributeCosts(constructedClass);
+					    ->SpecifyLearningSpecConstructionFamilies(learningSpec, false,
+										      bIsTextConstructionPossible);
+					multiTableFeatureConstruction.ComputeInitialAttributeCosts(constructedClass);
 				}
+
+				// Collecte des attributs construits en multi-tables
+				multiTableFeatureConstruction.CollectConstructedAttributes(
+				    learningSpec->GetClass(), constructedClass, odMultiTableConstructedAttributes);
 			}
 			// Mise a jour des familles de construction de variable sinon
 			else
 				predictorSpec->GetAttributeConstructionSpec()->SpecifyLearningSpecConstructionFamilies(
-				    learningSpec, false);
+				    learningSpec, false, bIsTextConstructionPossible);
+		}
+	}
+
+	// Construction de variable en mode texte si necessaire
+	if (bOk)
+	{
+		if (predictorSpec->GetAttributeConstructionSpec()->GetMaxTextFeatureNumber() > 0 and
+		    bIsTextConstructionPossible)
+		{
+			// Duplication de la classe initiale si pas de construction demandee ou pas de classe
+			// constructible
+			if (bOk and constructedDomain == NULL)
+			{
+				assert(constructedDomain == NULL);
+				constructedDomain =
+				    learningSpec->GetClass()->GetDomain()->CloneFromClass(learningSpec->GetClass());
+				constructedDomain->Compile();
+				constructedClass = constructedDomain->LookupClass(learningSpec->GetClass()->GetName());
+
+				// Calcul des couts de variable de facon standard
+				multiTableFeatureConstruction.ComputeInitialAttributeCosts(constructedClass);
+			}
+
+			// Construction de variables de type texte
+			textFeatureConstruction.ConstructTextFeatures(
+			    constructedClass, predictorSpec->GetAttributeConstructionSpec()->GetMaxTextFeatureNumber(),
+			    odTextConstructedAttributes);
 		}
 	}
 
 	// Calcul uniquement des couts de construction des variables natives si pas de classe construite
 	if (constructedClass == NULL)
-		domainKnowledge.ComputeInitialAttributeCosts(learningSpec->GetClass());
+		multiTableFeatureConstruction.ComputeInitialAttributeCosts(learningSpec->GetClass());
 	return constructedClass;
 }
 

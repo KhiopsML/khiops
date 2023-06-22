@@ -309,9 +309,9 @@ boolean KDDPBivariateCrossProductsCreationTask::CreatePreparedAttributes(KWLearn
 	if (not bOk)
 	{
 		if (TaskProgression::IsInterruptionRequested())
-			AddSimpleMessage("Variable construction interrupted by user");
+			AddWarning("Interrupted by user");
 		else
-			AddSimpleMessage("Variable construction interrupted because of errors");
+			AddError("Interrupted because of errors");
 	}
 
 	// Fin de tache

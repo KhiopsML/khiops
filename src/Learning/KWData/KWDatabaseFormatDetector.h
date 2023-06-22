@@ -68,7 +68,7 @@ protected:
 	// Affichage de l'entete d'un fichier
 	void ShowHeadLines(RewindableInputBufferedFile* inputFile);
 
-	// Affichage parametrable de lignes d'un fichier ouverte en lecture
+	// Affichage parametrable de lignes d'un fichier ouvert en lecture
 	void ShowCurrentLines(InputBufferedFile* inputFile, const ALString& sTitle, boolean bEmptyLineBefore,
 			      boolean bEmptyLineAfter, int nMaxLineNumber);
 
@@ -98,8 +98,9 @@ protected:
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 	// Methode d'analyse du format du fichier
 
-	// Recherche de noms de tous les attributs obligatoire, natifs et utilises de facon directe ou indirecte
-	void BuildMandatoryAttributeNames(const KWClass* kwcClass, StringVector* svMandatoryAttributeNames) const;
+	// Recherche de noms de tous les attributs ou blocs d'attributs obligatoires, natifs et utilises de facon
+	// directe ou indirecte
+	void BuildMandatoryDataItemNames(const KWClass* kwcClass, StringVector* svMandatoryDataItemNames) const;
 
 	// Calcul du nombre de lignes dont le nombre de champ est celui attendu
 	// Attention, nExpectedFieldNumber peut etre egal a -1 s'il y avait eu une erreur lors du parsing de la premiere
@@ -141,8 +142,9 @@ protected:
 
 	// Collecte de stats sur les caracteres utilisees dans les premieres lignes d'un fichier
 	// On alimente un vecteur d'effectif par caractere, contenant pour chaque caractere le min et le max des
-	// utilisations par ligne en ignorant les lignes vides (qui sont ignoree avec un warning lors des lecture de
-	// table, quelque soit le format) On renvoie le nombre de lignes non vides effectivement analysees
+	// utilisations par ligne en ignorant les lignes vides ou trop longues (qui sont ignoree avec un warning lors
+	// des lectures de table, quelque soit le format) On renvoie le nombre de lignes non vides effectivement
+	// analysees
 	int CollectCharFrequenciesLineStats(RewindableInputBufferedFile* inputFile, int nMaxLineNumber,
 					    KWCharFrequencyVector* cfvLineMinCharFrequencies,
 					    KWCharFrequencyVector* cfvLineMaxCharFrequencies) const;

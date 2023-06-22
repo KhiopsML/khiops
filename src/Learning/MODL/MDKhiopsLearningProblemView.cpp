@@ -48,8 +48,9 @@ void MDKhiopsLearningProblemView::ClassifierBenchmark()
 	KWLearningBenchmarkView view;
 
 	// Execution controlee par licence
-	if (not LMLicenseManager::RequestLicenseKey())
-		return;
+	if (LMLicenseManager::IsEnabled())
+		if (not LMLicenseManager::RequestLicenseKey())
+			return;
 
 	// Acces au parametrage du benchmark
 	classifierBenchmark = GetKhiopsLearningProblem()->GetClassifierBenchmark();
@@ -66,8 +67,9 @@ void MDKhiopsLearningProblemView::RegressorBenchmark()
 	KWLearningBenchmarkView view;
 
 	// Execution controlee par licence
-	if (not LMLicenseManager::RequestLicenseKey())
-		return;
+	if (LMLicenseManager::IsEnabled())
+		if (not LMLicenseManager::RequestLicenseKey())
+			return;
 
 	// Acces au parametrage du benchmark
 	regressorBenchmark = GetKhiopsLearningProblem()->GetRegressorBenchmark();
@@ -84,8 +86,9 @@ void MDKhiopsLearningProblemView::ClassifierBenchmarkUnivariate()
 	KWLearningBenchmarkView view;
 
 	// Execution controlee par licence
-	if (not LMLicenseManager::RequestLicenseKey())
-		return;
+	if (LMLicenseManager::IsEnabled())
+		if (not LMLicenseManager::RequestLicenseKey())
+			return;
 
 	// Acces au parametrage du benchmark
 	classifierBenchmarkUnivariate = GetKhiopsLearningProblem()->GetClassifierBenchmarkUnivariate();
@@ -101,8 +104,9 @@ void MDKhiopsLearningProblemView::ClassifierBenchmarkBivariate()
 	KWLearningBenchmarkView view;
 
 	// Execution controlee par licence
-	if (not LMLicenseManager::RequestLicenseKey())
-		return;
+	if (LMLicenseManager::IsEnabled())
+		if (not LMLicenseManager::RequestLicenseKey())
+			return;
 
 	// Acces au parametrage du benchmark
 	classifierBenchmarkBivariate = GetKhiopsLearningProblem()->GetClassifierBenchmarkBivariate();

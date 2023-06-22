@@ -10,6 +10,7 @@
 #include "KWDRDataGridDeployment.h"
 #include "KWDRTablePartition.h"
 #include "KWDRTableBlock.h"
+#include "KWDRDataGridBlock.h"
 #include "KWClassStats.h"
 #include "KWPredictorBaseline.h"
 #include "KWPredictorUnivariate.h"
@@ -49,6 +50,8 @@
 #include "KDDataPreparationAttributeCreationTask.h"
 #include "KDDataPreparationAttributeCreationTaskView.h"
 #include "InputBufferedFile.h"
+#include "DTDecisionTreeCreationTask.h"
+#include "KIDRRegisterAllRules.h"
 
 // Service de lancement d'un projet d'apprentissage, defini
 // par un probleme d'apprentissage et sa vue

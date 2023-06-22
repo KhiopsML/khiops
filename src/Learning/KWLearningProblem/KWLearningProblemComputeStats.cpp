@@ -6,9 +6,9 @@
 
 void KWLearningProblem::ComputeStats()
 {
+	boolean bStatsOk;
 	KWLearningSpec learningSpec;
 	KWClassStats* classStats;
-	boolean bStatsOk;
 	KWClass* kwcClass;
 	KWClass* constructedClass;
 	KWClassDomain* constructedClassDomain;
@@ -60,12 +60,15 @@ void KWLearningProblem::ComputeStats()
 	////////////////////////////////////////////////////////////////////////////////////////////
 	// Initialisations
 
+	// Creation d'un objet de calcul des stats
+	classStats = new KWClassStats;
+
 	// Initialisation des specifications d'apprentissage avec la classe de depart
 	InitializeLearningSpec(&learningSpec, KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName()));
 
 	// Debut de la gestion des erreurs dediees a l'apprentissage
 	KWLearningErrorManager::BeginErrorCollection();
-	KWLearningErrorManager::AddTask("Data preparation");
+	KWLearningErrorManager::AddTask("Variable construction");
 
 	// Destruction de tous les rapports potentiels
 	DeleteAllOutputFiles();
@@ -82,7 +85,9 @@ void KWLearningProblem::ComputeStats()
 		bStatsOk = ImportAttributeMetaDataCosts(&learningSpec, constructedClass);
 	// Creation d'une classe avec prise en compte eventuelle de construction de variables
 	else
-		bStatsOk = BuildConstructedClass(&learningSpec, constructedClass);
+		bStatsOk =
+		    BuildConstructedClass(&learningSpec, constructedClass, classStats->GetMultiTableConstructionSpec(),
+					  classStats->GetTextConstructionSpec());
 	constructedClassDomain = NULL;
 	if (bStatsOk)
 	{
@@ -104,18 +109,21 @@ void KWLearningProblem::ComputeStats()
 	//////////////////////////////////////////////////////////////////////////////////////////////
 	// Calcul des statistiques et ecriture des rapports de preparation
 
-	// Creation d'un objet de calcul des stats
-	classStats = new KWClassStats;
+	// Demarrage de la tache de preparation
+	KWLearningErrorManager::AddTask("Data preparation");
 
 	// Initialisation des objets de calculs des statistiques
-	if (bStatsOk and not TaskProgression::IsInterruptionRequested())
+	bStatsOk = bStatsOk and not TaskProgression::IsInterruptionRequested();
+	if (bStatsOk)
 		InitializeClassStats(classStats, &learningSpec);
 
 	// Calcul des statistiques
-	if (bStatsOk and not TaskProgression::IsInterruptionRequested())
+	bStatsOk = bStatsOk and not TaskProgression::IsInterruptionRequested();
+	if (bStatsOk)
 		classStats->ComputeStats();
 
 	// Memorisation de l'eventuelle selection en cours, dont on a besoin potentiellement par la suite
+	bStatsOk = bStatsOk and not TaskProgression::IsInterruptionRequested();
 	if (bStatsOk)
 	{
 		initialDatabase.CopySamplingAndSelectionFrom(learningSpec.GetDatabase());
@@ -126,10 +134,13 @@ void KWLearningProblem::ComputeStats()
 	// Dans ce cas, la variable cible est disponible, mais on a pas pu calcule les stats, et
 	// on va le faire cette fois en filtrant les valeur cible manquantes
 	bIsSpecificRegressionLearningSpecNecessary = false;
-	if (bStatsOk and not classStats->IsStatsComputed() and not TaskProgression::IsInterruptionRequested())
+	bStatsOk = bStatsOk and not TaskProgression::IsInterruptionRequested();
+	if (bStatsOk and not classStats->IsStatsComputed())
 		bIsSpecificRegressionLearningSpecNecessary = IsSpecificRegressionLearningSpecNecessary(&learningSpec);
 	if (bIsSpecificRegressionLearningSpecNecessary)
 	{
+		assert(bStatsOk);
+
 		// Parametrage des learning spec en creant un attribut de filtrage
 		PrepareLearningSpecForRegression(&learningSpec);
 		specificRegressionDatabase.CopySamplingAndSelectionFrom(learningSpec.GetDatabase());
@@ -152,16 +163,18 @@ void KWLearningProblem::ComputeStats()
 
 	// On conditionne la suite par la validite des classStats, maintenant que l'on a essaye de le calcule deux fois
 	// si necessaire
+	bStatsOk = bStatsOk and not TaskProgression::IsInterruptionRequested();
 	if (bStatsOk)
 		bStatsOk = classStats->IsStatsComputed();
 
 	// Ecriture des rapports de preparation
-	if (bStatsOk and not TaskProgression::IsInterruptionRequested())
+	bStatsOk = bStatsOk and not TaskProgression::IsInterruptionRequested();
+	if (bStatsOk)
 		WritePreparationReports(classStats);
 
 	// Creation d'une classe de recodage
-	if (bStatsOk and analysisSpec->GetRecoderSpec()->GetRecoder() and
-	    not TaskProgression::IsInterruptionRequested())
+	bStatsOk = bStatsOk and not TaskProgression::IsInterruptionRequested();
+	if (bStatsOk and analysisSpec->GetRecoderSpec()->GetRecoder())
 		BuildRecodingClass(initialClassDomain, classStats, &trainedClassDomain);
 
 	// Cas particulier de la regression: on remet la selection de base specific si necessaire, le temps de
@@ -174,14 +187,15 @@ void KWLearningProblem::ComputeStats()
 
 	// Apprentissage
 	KWLearningErrorManager::AddTask("Modeling");
-	if (bStatsOk and not TaskProgression::IsInterruptionRequested())
+	bStatsOk = bStatsOk and not TaskProgression::IsInterruptionRequested();
+	if (bStatsOk)
 	{
 		// Base vide
 		if (classStats->GetInstanceNumber() == 0)
 			Global::AddWarning("", "", sTmp + "No training: database is empty");
 		// Apprentissage non supervise
 		else if (classStats->GetTargetAttributeType() == KWType::None)
-			TrainPredictors(initialClassDomain, classStats, &oaTrainedPredictors);
+			bStatsOk = TrainPredictors(initialClassDomain, classStats, &oaTrainedPredictors);
 		// L'attribut cible n'a qu'une seule valeur
 		else if (classStats->GetTargetDescriptiveStats()->GetValueNumber() < 2)
 		{
@@ -195,10 +209,10 @@ void KWLearningProblem::ComputeStats()
 		}
 		// Apprentissage en classification
 		else if (classStats->GetTargetAttributeType() == KWType::Symbol)
-			TrainPredictors(initialClassDomain, classStats, &oaTrainedPredictors);
+			bStatsOk = TrainPredictors(initialClassDomain, classStats, &oaTrainedPredictors);
 		// Apprentissage en regression
 		else if (classStats->GetTargetAttributeType() == KWType::Continuous)
-			TrainPredictors(initialClassDomain, classStats, &oaTrainedPredictors);
+			bStatsOk = TrainPredictors(initialClassDomain, classStats, &oaTrainedPredictors);
 	}
 
 	// Cas particulier de la regression: restitution des learning spec initiales si necessaire
@@ -206,8 +220,8 @@ void KWLearningProblem::ComputeStats()
 		RestoreInitialLearningSpec(&learningSpec, &initialDatabase);
 
 	// Ecriture du rapport de modelisation
-	if (bStatsOk and not TaskProgression::IsInterruptionRequested() and
-	    analysisResults->GetModelingFileName() != "" and oaTrainedPredictors.GetSize() > 0)
+	bStatsOk = bStatsOk and not TaskProgression::IsInterruptionRequested();
+	if (bStatsOk and analysisResults->GetModelingFileName() != "" and oaTrainedPredictors.GetSize() > 0)
 	{
 		// Collecte des rapports d'apprentissage
 		for (i = 0; i < oaTrainedPredictors.GetSize(); i++)
@@ -223,7 +237,6 @@ void KWLearningProblem::ComputeStats()
 		else
 		{
 			sModelingReportName = BuildOutputFilePathName(analysisResults->GetModelingFileName());
-			AddSimpleMessage("Write modeling report " + sModelingReportName);
 			predictorReport = cast(KWPredictorReport*, oaTrainedPredictorReports.GetAt(0));
 			predictorReport->WriteFullReportFile(sModelingReportName, &oaTrainedPredictorReports);
 		}
@@ -233,35 +246,37 @@ void KWLearningProblem::ComputeStats()
 	// Evaluation
 
 	// Evaluation dans le cas supervise
-	if (bStatsOk and not TaskProgression::IsInterruptionRequested() and
-	    classStats->GetTargetAttributeType() != KWType::None and oaTrainedPredictors.GetSize() > 0)
+	bStatsOk = bStatsOk and not TaskProgression::IsInterruptionRequested();
+	if (bStatsOk and classStats->GetTargetAttributeType() != KWType::None and oaTrainedPredictors.GetSize() > 0)
 	{
 		// Evaluation des predicteurs sur la base d'apprentissage
-		if (analysisResults->GetTrainEvaluationFileName() != "" and
+		if (bStatsOk and analysisResults->GetTrainEvaluationFileName() != "" and
 		    GetTrainDatabase()->GetDatabaseName() != "" and not GetTrainDatabase()->IsEmptySampling())
 		{
 			KWLearningErrorManager::AddTask("Train evaluation");
-			localPredictorEvaluator.EvaluatePredictors(&oaTrainedPredictors, GetTrainDatabase(), "Train",
-								   &oaTrainPredictorEvaluations);
+			bStatsOk = localPredictorEvaluator.EvaluatePredictors(&oaTrainedPredictors, GetTrainDatabase(),
+									      "Train", &oaTrainPredictorEvaluations);
 
 			// Ecriture du rapport d'evaluation
-			localPredictorEvaluator.WriteEvaluationReport(
-			    BuildOutputFilePathName(analysisResults->GetTrainEvaluationFileName()), "Train",
-			    &oaTrainPredictorEvaluations);
+			if (bStatsOk)
+				localPredictorEvaluator.WriteEvaluationReport(
+				    BuildOutputFilePathName(analysisResults->GetTrainEvaluationFileName()), "Train",
+				    &oaTrainPredictorEvaluations);
 		}
 
 		// Evaluation des predicteurs sur la base de test
-		if (analysisResults->GetTestEvaluationFileName() != "" and
+		if (bStatsOk and analysisResults->GetTestEvaluationFileName() != "" and
 		    GetTestDatabase()->GetDatabaseName() != "" and not GetTestDatabase()->IsEmptySampling())
 		{
 			KWLearningErrorManager::AddTask("Test evaluation");
-			localPredictorEvaluator.EvaluatePredictors(&oaTrainedPredictors, GetTestDatabase(), "Test",
-								   &oaTestPredictorEvaluations);
+			bStatsOk = localPredictorEvaluator.EvaluatePredictors(&oaTrainedPredictors, GetTestDatabase(),
+									      "Test", &oaTestPredictorEvaluations);
 
 			// Ecriture du rapport d'evaluation
-			localPredictorEvaluator.WriteEvaluationReport(
-			    BuildOutputFilePathName(analysisResults->GetTestEvaluationFileName()), "Test",
-			    &oaTestPredictorEvaluations);
+			if (bStatsOk)
+				localPredictorEvaluator.WriteEvaluationReport(
+				    BuildOutputFilePathName(analysisResults->GetTestEvaluationFileName()), "Test",
+				    &oaTestPredictorEvaluations);
 		}
 	}
 
@@ -274,26 +289,34 @@ void KWLearningProblem::ComputeStats()
 	CollectTrainedPredictorClasses(&oaTrainedPredictors, &trainedClassDomain);
 
 	// Sauvegarde du fichier des dictionnaires appris si necessaire
-	if (trainedClassDomain.GetClassNumber() > 0)
+	bStatsOk = bStatsOk and not TaskProgression::IsInterruptionRequested();
+	if (bStatsOk)
 	{
-		// Ecriture du fichier des dictionnaires de modelisation
-		if (GetAnalysisResults()->GetModelingDictionaryFileName() != "" and
-		    not TaskProgression::IsInterruptionRequested())
+		if (trainedClassDomain.GetClassNumber() > 0)
 		{
-			KWLearningErrorManager::AddTask("Write modeling dictionary file");
-			sModelingDictionaryFileName =
-			    BuildOutputFilePathName(GetAnalysisResults()->GetModelingDictionaryFileName());
-			AddSimpleMessage("Write modeling dictionary file " + sModelingDictionaryFileName);
+			// Ecriture du fichier des dictionnaires de modelisation
+			if (GetAnalysisResults()->GetModelingDictionaryFileName() != "" and
+			    not TaskProgression::IsInterruptionRequested())
+			{
+				KWLearningErrorManager::AddTask("Write modeling dictionary file");
+				sModelingDictionaryFileName =
+				    BuildOutputFilePathName(GetAnalysisResults()->GetModelingDictionaryFileName());
 
-			// Sauvegarde des dictionnaires de modelisation
-			trainedClassDomain.WriteFile(sModelingDictionaryFileName);
+				// Sauvegarde des dictionnaires de modelisation
+				trainedClassDomain.WriteFile(sModelingDictionaryFileName);
+			}
 		}
 	}
 
 	// Ecriture du rapport JSON
-	if (bStatsOk and not TaskProgression::IsInterruptionRequested())
+	bStatsOk = bStatsOk and not TaskProgression::IsInterruptionRequested();
+	if (bStatsOk)
 		WriteJSONAnalysisReport(classStats, &oaTrainedPredictorReports, &oaTrainPredictorEvaluations,
 					&oaTestPredictorEvaluations);
+	// Sinon, nettoyage de tous les rapports, dont certains ont peut-etre ete ecrits avant l'interruption
+	// utilisateur
+	else
+		DeleteAllOutputFiles();
 
 	// Ajout de log memoire
 	MemoryStatsManager::AddLog("ComputeStats .Clean Begin");
@@ -331,6 +354,8 @@ void KWLearningProblem::BuildConstructedDictionary()
 	boolean bStatsOk;
 	KWClass* constructedClass;
 	KWClassDomain* constructedClassDomain;
+	ObjectDictionary odMultiTableConstructedAttributes;
+	ObjectDictionary odTextConstructedAttributes;
 	KWLearningSpec learningSpec;
 	ALString sConstructedDictionaryFileName;
 	int nRefMaxTreeNumber;
@@ -368,7 +393,8 @@ void KWLearningProblem::BuildConstructedDictionary()
 	InitializeLearningSpec(&learningSpec, KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName()));
 
 	// Prise en compte eventuelle de construction de variables
-	bStatsOk = BuildConstructedClass(&learningSpec, constructedClass);
+	bStatsOk = BuildConstructedClass(&learningSpec, constructedClass, &odMultiTableConstructedAttributes,
+					 &odTextConstructedAttributes);
 	constructedClassDomain = NULL;
 	if (bStatsOk and constructedClass != NULL)
 		constructedClassDomain = constructedClass->GetDomain();

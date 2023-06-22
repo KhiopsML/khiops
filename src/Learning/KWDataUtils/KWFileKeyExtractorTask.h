@@ -103,7 +103,7 @@ protected:
 
 	// Concatenation de chunks en evitant de dupliquer les lignes de fin de chunk et de debut de chunks suivants
 	// (chaque esclave peut avoir une cle en commun avec l'esclave suivant)
-	boolean ConcatenateFilesWithoutDuplicateKeys(StringVector* svFileURIs, int nBufferSize, StringVector* svHeader);
+	boolean ConcatenateFilesWithoutDuplicateKeys(StringVector* svFileURIs, StringVector* svHeader);
 
 	// Nom des champs de cle et natifs, memorises au moyen KWKeyFieldsIndexer
 	KWKeyFieldsIndexer keyFieldsIndexer;
@@ -182,9 +182,18 @@ protected:
 	// Position dans le fichier d'entree
 	longint lFilePos;
 
+	// Gestion des exigences
+	int nReadSizeMin;
+	int nReadSizeMax;
+	int nWriteSizeMin;
+	int nWriteSizeMax;
+
 	//////////////////////////////////////////////////////////
 	// Variables du slave
 
 	// Parser de cles
 	KWKeyExtractor keyExtractor;
+
+	// Fichier de travail pour l'esclave
+	InputBufferedFile inputFile;
 };

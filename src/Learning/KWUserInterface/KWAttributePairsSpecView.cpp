@@ -3,8 +3,7 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 ////////////////////////////////////////////////////////////
-// 2021-04-25 11:10:58
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "KWAttributePairsSpecView.h"
@@ -123,6 +122,7 @@ void KWAttributePairsSpecView::EventUpdate(Object* object)
 	editedObject = cast(KWAttributePairsSpec*, object);
 	editedObject->SetMaxAttributePairNumber(GetIntValueAt("MaxAttributePairNumber"));
 	editedObject->SetAllAttributePairs(GetBooleanValueAt("AllAttributePairs"));
+	editedObject->SetMandatoryAttributeInPairs(GetStringValueAt("MandatoryAttributeInPairs"));
 
 	// ## Custom update
 
@@ -142,6 +142,7 @@ void KWAttributePairsSpecView::EventRefresh(Object* object)
 	editedObject = cast(KWAttributePairsSpec*, object);
 	SetIntValueAt("MaxAttributePairNumber", editedObject->GetMaxAttributePairNumber());
 	SetBooleanValueAt("AllAttributePairs", editedObject->GetAllAttributePairs());
+	SetStringValueAt("MandatoryAttributeInPairs", editedObject->GetMandatoryAttributeInPairs());
 
 	// ## Custom refresh
 

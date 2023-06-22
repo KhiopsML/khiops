@@ -5,8 +5,7 @@
 #pragma once
 
 ////////////////////////////////////////////////////////////
-// 2019-10-29 15:14:06
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "UserInterface.h"
@@ -31,7 +30,7 @@ public:
 	// Acces a l'objet edite
 	PRChild* GetPRChild();
 
-	////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
 	// Redefinition des methodes a reimplementer obligatoirement
 
 	// Mise a jour de l'objet par les valeurs de l'interface

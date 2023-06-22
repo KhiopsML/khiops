@@ -60,7 +60,7 @@ void KWDRStructureRule::WriteStructureUsedRule(ostream& ost) const
 void KWDRStructureRule::Compile(KWClass* kwcOwnerClass)
 {
 	require(kwcOwnerClass != NULL);
-	require(CheckCompletness(kwcOwnerClass));
+	require(CheckCompleteness(kwcOwnerClass));
 	require(kwcOwnerClass->IsIndexed());
 
 	// Compilation uniquement si necessaire
@@ -142,8 +142,8 @@ boolean KWDRStructureRule::CheckDefinition() const
 		KWDRStructureRule* temporaryRule = NULL;
 		const KWDRStructureRule* checkedRule;
 
-		// Soi on est deja en interface de structure,
-		// soi on utilise une regle tempooraire permettant d'effectuer les tests
+		// Soit on est deja en interface de structure,
+		// soit on utilise une regle tempooraire permettant d'effectuer les tests
 		checkedRule = this;
 		if (not bStructureInterface)
 		{

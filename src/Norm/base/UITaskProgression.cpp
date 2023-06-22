@@ -285,6 +285,11 @@ void UITaskProgression::SetProgression(int nValue)
 	}
 }
 
+boolean UITaskProgression::IsInterruptionResponsive() const
+{
+	return false;
+}
+
 jobject UITaskProgression::GetGuiTaskProgressionManager()
 {
 	JNIEnv* env;

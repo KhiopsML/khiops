@@ -12,7 +12,7 @@ PLShared_ResourceRequirement::~PLShared_ResourceRequirement() {}
 
 void PLShared_ResourceRequirement::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
-	RMResourceRequirement* r;
+	const RMResourceRequirement* r;
 	PLShared_ObjectArray shared_oa(new PLShared_PhysicalResource);
 
 	require(serializer->IsOpenForWrite());
@@ -97,7 +97,7 @@ PLShared_PhysicalResource::~PLShared_PhysicalResource() {}
 
 void PLShared_PhysicalResource::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
-	RMPhysicalResource* pr;
+	const RMPhysicalResource* pr;
 
 	require(serializer->IsOpenForWrite());
 	require(o != NULL);

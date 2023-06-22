@@ -103,6 +103,12 @@ public:
 
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation
+
+	// Remplacement de tous les separateur de champ cOriginalSeparator par cNewSeparator dans cvLineToWrite
+	// Prend en compte les double-quotes. Ils delimitent un champ qui contient un separateur (celui-ci ne sera pas
+	// remplace). C'est egalement le caracter d'echapement pour le double-quote
+	static void ReplaceSeparator(CharVector* cvLineToWrite, char cOriginalSeparator, char cNewSeparator);
+
 protected:
 	// Algorithme
 	// Le maitre parcourt les fichiers des buckets, les fait trier par les esclaves,
@@ -125,8 +131,6 @@ protected:
 
 	// Specification de la tache
 	boolean bIsInputHeaderLineUsed;
-	char cInputSeparator;
-	char cOutputSeparator;
 	KWSortBuckets* buckets;
 	longint lLineNumber;
 	longint lKeySize;
@@ -141,6 +145,10 @@ protected:
 	// Resultat en plus du fichier trie
 	longint lSortedLinesNumber;
 
+	/////////////////////////////////////////////////////////////////
+	// Variables du Slave
+	boolean bSameSeparator;
+
 	///////////////////////////////////////////////////////////
 	// Parametres partages
 
@@ -149,8 +157,6 @@ protected:
 	// d'un ou plusieurs fichiers constitues par une tache precedente
 	PLShared_Int input_nBucketIndex;         // Index du bucket a trier
 	PLShared_StringVector input_svFileNames; // Liste des noms des fichier contituant le chunk a trier
-	PLShared_Char input_cOutputSeparator;    // Separateur du fichier de sortie
-	PLShared_Char input_cInputSeparator;     // Separetur du fichier d'entree
 
 	// En sortie des taches
 	PLShared_Int output_nBucketIndex; // Index du bucket trie (recopie d'apres la variable correspondante en entree)
@@ -162,19 +168,16 @@ protected:
 	PLShared_Boolean shared_bHeaderLineUsed;
 	PLShared_Boolean shared_bOnlyOneBucket;
 	PLShared_Longint shared_lBucketSize;
+	PLShared_Char shared_cOutputSeparator; // Separateur du fichier de sortie
+	PLShared_Char shared_cInputSeparator;  // Separetur du fichier d'entree
 
 	/////////////////////////////////////////////////////////////////
 	// Methodes techniques
 
-	// Remplacement de tous les separateur de champ cOriginalSeparator par cNewSeparator dans cvLineToWrite
-	// Prend en compte les double-quotes. Ils delimitent un champ qui contient un separateur (celui-ci ne sera pas
-	// remplace). C'est egalement le caracter d'echapement pour le double-quote
-	void ReplaceSeparator(CharVector* cvLineToWrite, char cOriginalSeparator, char cNewSeparator) const;
-
 	// Saut d'un champ a partir de l'indice i
 	// Prend en compte les double-quotes (Utilise dans la methode ReplaceSeparator)
 	// On reproduit ici le comportement de InputBufferedFile::SkipField
-	void SkipField(CharVector* cvLineToWrite, char cOriginalSeparator, int& nPos) const;
+	static void SkipField(CharVector* cvLineToWrite, char cOriginalSeparator, int& nPos);
 };
 
 ////////////////////////////////////////////////////////////

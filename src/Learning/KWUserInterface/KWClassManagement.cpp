@@ -3,8 +3,7 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 ////////////////////////////////////////////////////////////
-// 2021-04-25 11:10:56
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "KWClassManagement.h"
@@ -89,7 +88,9 @@ boolean KWClassManagement::ReadClasses()
 	// Si probleme: annulation de la lecture
 	if (bOk and not readDomain->Check())
 	{
-		AddError("Read cancelled because of errors");
+		// En cas d'erreur, ajout d'une ligne blanche pour separer des autres logs
+		AddError("Read cancelled because of integrity errors");
+		AddSimpleMessage("");
 		bOk = false;
 	}
 	// Sinon: compilation des classes
@@ -126,7 +127,7 @@ boolean KWClassManagement::WriteClasses()
 
 	// Creation si necessaire du repertoire cible
 	sOutputPathName = FileService::GetPathName(GetClassFileName());
-	if (sOutputPathName != "" and not PLRemoteFileService::Exist(sOutputPathName))
+	if (sOutputPathName != "" and not PLRemoteFileService::DirExists(sOutputPathName))
 	{
 		bOk = PLRemoteFileService::MakeDirectories(sOutputPathName);
 		if (not bOk)
@@ -146,9 +147,9 @@ boolean KWClassManagement::ExportJSONClasses(const ALString& sJSONFileName)
 
 	// Creation si necessaire du repertoire cible
 	sOutputPathName = FileService::GetPathName(sJSONFileName);
-	if (sOutputPathName != "" and not PLRemoteFileService::Exist(sOutputPathName))
+	if (sOutputPathName != "" and not PLRemoteFileService::DirExists(sOutputPathName))
 	{
-		bOk = FileService::MakeDirectories(sOutputPathName);
+		bOk = PLRemoteFileService::MakeDirectories(sOutputPathName);
 		if (not bOk)
 			AddError("Unable to create directory (" + sOutputPathName + ") for dictionary JSON file");
 	}
@@ -244,7 +245,7 @@ const ALString KWClassManagement::SearchDefaultClassName() const
 			sDefaultClassName = kwcClass->GetName();
 
 		// On arrete si on a trouve un dictionnaire racine
-		if (kwcClass->GetRoot() == true)
+		if (kwcClass->GetRoot())
 		{
 			sDefaultClassName = kwcClass->GetName();
 			break;

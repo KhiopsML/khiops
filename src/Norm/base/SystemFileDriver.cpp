@@ -13,6 +13,11 @@ SystemFileDriver::SystemFileDriver()
 
 SystemFileDriver::~SystemFileDriver() {}
 
+longint SystemFileDriver::GetSystemPreferredBufferSize() const
+{
+	return 0;
+}
+
 boolean SystemFileDriver::CreateEmptyFile(const char* sPathName)
 {
 	boolean bOk = false;
@@ -58,14 +63,14 @@ boolean SystemFileDriver::MakeDirectories(const char* pathName) const
 			nEnd++;
 
 			// Creation du directory
-			if (sDirectory != "" and not Exist(sDirectory))
+			if (sDirectory != "" and not DirExists(sDirectory))
 			{
 				bOk = MakeDirectory(sDirectory);
 				if (not bOk)
 					return false;
 			}
 		}
-		bOk = Exist(sPathName);
+		bOk = DirExists(sPathName);
 	}
 	return bOk;
 }
@@ -80,20 +85,25 @@ boolean SystemFileDriver::CopyFileFromLocal(const char* sSourceFilePathName, con
 	FILE* fSource;
 	void* fDest;
 	boolean bOk;
-	const int nBufferSize = 1 * lMB;
 	char* cBuffer;
 	int nRead = -1;
 	int nWrite;
 	ALString sTmp;
+	int nBufferSize;
 
 	require(IsManaged(sDestFilePathName));
 
-	cBuffer = GetHugeBuffer();
+	// On caste en int dans le min car sinon avec gcc on a "undefined reference to
+	// SysteFileDriver::nMaxBufferSizeForCopying
+	nBufferSize =
+	    min(PLRemoteFileService::GetPreferredBufferSize(sDestFilePathName), (int)nMaxBufferSizeForCopying);
+	cBuffer = GetHugeBuffer(nBufferSize);
 	errno = 0;
+
 	bOk = FileService::OpenInputBinaryFile(sSourceFilePathName, fSource);
 	if (bOk)
 	{
-		fDest = this->Open(sDestFilePathName, 'w');
+		fDest = Open(sDestFilePathName, 'w');
 		bOk = fDest != NULL;
 		if (bOk)
 		{
@@ -103,12 +113,12 @@ boolean SystemFileDriver::CopyFileFromLocal(const char* sSourceFilePathName, con
 				nRead = (int)std::fread(cBuffer, sizeof(char), nBufferSize, fSource);
 				if (ferror(fSource) == 0)
 				{
-					nWrite = this->Fwrite(cBuffer, sizeof(char), nRead, fDest);
+					nWrite = (int)Fwrite(cBuffer, sizeof(char), nRead, fDest);
 					if (nWrite == 0)
 					{
 						Global::AddError("File", sDestFilePathName,
 								 sTmp + "Unable to write file (" +
-								     this->GetLastErrorMessage() + ")");
+								     GetLastErrorMessage() + ")");
 						bOk = false;
 						break;
 					}
@@ -118,21 +128,22 @@ boolean SystemFileDriver::CopyFileFromLocal(const char* sSourceFilePathName, con
 					bOk = false;
 					Global::AddError("File", sSourceFilePathName,
 							 sTmp + "Unable to read file (" + GetLastErrorMessage() + ")");
+					break;
 				}
 			}
-			if (not this->Close(fDest))
+			if (not Close(fDest))
 			{
 				bOk = false;
 				Global::AddError("File", sDestFilePathName,
-						 sTmp + "Unable to close file (" + this->GetLastErrorMessage() + ")");
+						 sTmp + "Unable to close file (" + GetLastErrorMessage() + ")");
 			}
 		}
 		else
 		{
 			Global::AddError("File", sDestFilePathName,
-					 sTmp + "Unable to open file (" + this->GetLastErrorMessage() + ")");
+					 sTmp + "Unable to open output file (" + GetLastErrorMessage() + ")");
 		}
-		FileService::CloseInputBinaryFile(sSourceFilePathName, fSource);
+		bOk = FileService::CloseInputBinaryFile(sSourceFilePathName, fSource) and bOk;
 	}
 	return bOk;
 }
@@ -142,46 +153,60 @@ boolean SystemFileDriver::CopyFileToLocal(const char* sSourceFilePathName, const
 	void* fSource;
 	FILE* fDest;
 	boolean bOk;
-	const int nBufferSize = 1 * lMB;
 	char* cBuffer;
 	int nRead;
 	int nWrite;
 	ALString sTmp;
+	int nBufferSize;
 
 	require(IsManaged(sSourceFilePathName));
 
 	errno = 0;
-	cBuffer = GetHugeBuffer();
+
+	// On caste en int dans le min car sinon avec gcc on a "undefined reference to
+	// SysteFileDriver::nMaxBufferSizeForCopying
+	nBufferSize =
+	    min(PLRemoteFileService::GetPreferredBufferSize(sSourceFilePathName), (int)nMaxBufferSizeForCopying);
+	cBuffer = GetHugeBuffer(nBufferSize);
 
 	bOk = FileService::OpenOutputBinaryFile(sDestFilePathName, fDest);
 	if (bOk)
 	{
-		fSource = this->Open(sSourceFilePathName, 'r');
+		fSource = Open(sSourceFilePathName, 'r');
 		bOk = fSource != NULL;
 		if (bOk)
 		{
 			nRead = nBufferSize;
 			while (nRead == nBufferSize)
 			{
-				nRead = (int)this->Fread(cBuffer, sizeof(char), nBufferSize, fSource);
+				nRead = (int)Fread(cBuffer, sizeof(char), nBufferSize, fSource);
 				if (nRead != -1)
 				{
-					nWrite = std::fwrite(cBuffer, sizeof(char), nRead, fDest);
+					nWrite = (int)std::fwrite(cBuffer, sizeof(char), nRead, fDest);
 					if (nWrite != nRead and ferror(fDest) != 0)
+					{
 						Global::AddError("File", sDestFilePathName,
 								 sTmp + "Unable to write file (" +
 								     GetLastErrorMessage() + ")");
+						bOk = false;
+						break;
+					}
 				}
 				else
+				{
 					Global::AddError("File", sSourceFilePathName,
-							 sTmp + "Unable to read file (" + this->GetLastErrorMessage() +
-							     ")");
+							 sTmp + "Unable to read file (" + GetLastErrorMessage() + ")");
+					bOk = false;
+					break;
+				}
 			}
-			this->Close(fSource);
+			bOk = Close(fSource) and bOk;
 		}
 		else
+		{
 			Global::AddError("File", sDestFilePathName,
-					 sTmp + "Unable to open file (" + this->GetLastErrorMessage() + ")");
+					 sTmp + "Unable to open output file (" + GetLastErrorMessage() + ")");
+		}
 
 		bOk = FileService::CloseOutputBinaryFile(sDestFilePathName, fDest) and bOk;
 	}

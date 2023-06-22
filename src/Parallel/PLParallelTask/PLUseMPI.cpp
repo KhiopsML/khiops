@@ -2,22 +2,24 @@
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
+#include "PLParallelTask.h"
+#ifdef USE_MPI
+#include "PLMPITaskDriver.h"
+#include "PLMPISystemFileDriverRemote.h"
+#endif // USE_MPI
+
 #ifndef __UNIX__
 
-// Sous linux, la methode UseMPI est definie dans le fichier PLUseMPI de PLMPI
-// Car l'appel de PLMPITaskDriver cree une dependance cyclique qui est bien gere sous windows
-// mais n'est pas tolere sous linux.
-// Lorsqu'on modifie cette methode, il faut egalement la modifier dans l'autre fichier
-
-#include "PLParallelTask.h"
-#include "PLMPITaskDriver.h"
-
+#ifdef USE_MPI
 // Bibliotheques necessaires a l'execution parallele
 #pragma comment(lib, "msmpi")
 #pragma comment(lib, "PLMPI")
+#endif // USE_MPI
+#endif //__UNIX__
 
 void PLParallelTask::UseMPI(const ALString& sCurrentVersion)
 {
+#ifdef USE_MPI
 	require(sCurrentVersion != "");
 
 	// Version du logiciel
@@ -31,7 +33,11 @@ void PLParallelTask::UseMPI(const ALString& sCurrentVersion)
 	// Initialisation locale des ressources systeme
 	PLParallelTask::GetDriver()->InitializeResourceSystem();
 
+	// Chargement du driver pour l'acces aux fichiers distants (file://)
+	if (RMResourceManager::GetResourceSystem()->GetHostNumber() > 1 or PLTaskDriver::GetFileServerOnSingleHost())
+		SystemFileDriverCreator::RegisterDriver(new PLMPISystemFileDriverRemote);
+
 	// Verification des versions de chaque processus
 	PLMPITaskDriver::CheckVersion();
+#endif // USE_MPI
 }
-#endif // __UNIX__

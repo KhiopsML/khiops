@@ -16,6 +16,10 @@ KWFileKeyExtractorTask::KWFileKeyExtractorTask()
 	lEstimatedLineNumber = 0;
 	lMeanKeySize = 0;
 	lFilePos = 0;
+	nReadSizeMin = 0;
+	nReadSizeMax = 0;
+	nWriteSizeMin = 0;
+	nWriteSizeMax = 0;
 
 	// Parametres du programme
 	DeclareSharedParameter(&shared_ivKeyFieldIndexes);
@@ -118,7 +122,7 @@ boolean KWFileKeyExtractorTask::ExtractKeys(boolean bDisplayUserMessage)
 	require(GetKeyAttributeNames()->GetSize() > 0);
 
 	// Extraction des champs de  la premiere ligne du fichier d'entree
-	bOk = InputBufferedFile::GetFirstLineFields(sInputFileName, cInputFieldSeparator, &svFirstLine, this);
+	bOk = InputBufferedFile::GetFirstLineFields(sInputFileName, cInputFieldSeparator, false, false, &svFirstLine);
 
 	// Calcul des index des champs de la cle
 	if (bOk)
@@ -130,9 +134,9 @@ boolean KWFileKeyExtractorTask::ExtractKeys(boolean bDisplayUserMessage)
 	if (bOk)
 	{
 		// Evaluation de la taille de clefs pour estimer les ressources necessaires
-		keySizeEvaluator.EvaluateKeySize(keyFieldsIndexer.GetConstKeyFieldIndexes(), sInputFileName,
-						 bInputHeaderLineUsed, cInputFieldSeparator, lMeanKeySize,
-						 lEstimatedLineNumber);
+		bOk = keySizeEvaluator.EvaluateKeySize(keyFieldsIndexer.GetConstKeyFieldIndexes(), sInputFileName,
+						       bInputHeaderLineUsed, cInputFieldSeparator, lMeanKeySize,
+						       lEstimatedLineNumber);
 
 		// On enleve l'espace necessaire a la structure objet (on abesoin de la tailel sur le fichier)
 		lMeanKeySize = lMeanKeySize - sizeof(KWKey) - sizeof(KWKey*) - sizeof(StringVector);
@@ -157,7 +161,7 @@ boolean KWFileKeyExtractorTask::ExtractKeys(boolean bDisplayUserMessage)
 	if (bDisplayUserMessage)
 	{
 		// Message d'erreur si necessaire
-		if (IsTaskInterruptedByUser())
+		if (IsTaskInterruptedByUser() or keySizeEvaluator.IsTaskInterruptedByUser())
 			AddWarning("Interrupted by user");
 		else if (not bOk)
 			AddError("Interrupted because of errors");
@@ -296,18 +300,33 @@ PLParallelTask* KWFileKeyExtractorTask::Create() const
 boolean KWFileKeyExtractorTask::ComputeResourceRequirements()
 {
 	boolean bOk = true;
+	longint lInputPreferredSize;
+	longint lOutputPreferredSize;
 
 	// Exigences sur les ressources de la tache
-	GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->Set(
-	    2 * BufferedFile::nDefaultBufferSize); // lecture + ecriture
+	nReadSizeMin = PLRemoteFileService::GetPreferredBufferSize(sInputFileName);
+	nWriteSizeMin = PLRemoteFileService::GetPreferredBufferSize(FileService::GetTmpDir());
+
+	GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->SetMin(nReadSizeMin + nWriteSizeMin);
+	GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->SetMax(SystemFile::nMaxPreferredBufferSize +
+									      nWriteSizeMin);
+	assert(GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->GetMax() < INT_MAX);
 
 	// Espace utilise par les clefs sur l'ensemble des esclaves
 	GetResourceRequirements()->GetGlobalSlaveRequirement()->GetDisk()->Set(lMeanKeySize * lEstimatedLineNumber);
 
 	// Nombre max de slaveProcess
 	lInputFileSize = PLRemoteFileService::GetFileSize(sInputFileName);
-	GetResourceRequirements()->SetMaxSlaveProcessNumber(
-	    (int)ceil(lInputFileSize * 1.0 / BufferedFile::nDefaultBufferSize));
+	GetResourceRequirements()->SetMaxSlaveProcessNumber((int)ceil(lInputFileSize * 1.0 / nReadSizeMin));
+
+	// Concatenation du fichier dans le master, 1 buffer d'ecriture et 1 buffer de lecture
+	// Au minimum 1Mo pour chaque buffer
+	// Au maximum 8 * preferred Size pour la lectur et preferred Size pour l'ecriture
+	lInputPreferredSize = PLRemoteFileService::GetPreferredBufferSize(FileService::GetTmpDir());
+	lOutputPreferredSize = PLRemoteFileService::GetPreferredBufferSize(sOutputFileName);
+	GetResourceRequirements()->GetMasterRequirement()->GetMemory()->SetMin(2 * lMB);
+	GetResourceRequirements()->GetMasterRequirement()->GetMemory()->SetMax(8 * lInputPreferredSize +
+									       lOutputPreferredSize);
 	return bOk;
 }
 
@@ -315,6 +334,7 @@ boolean KWFileKeyExtractorTask::MasterInitialize()
 {
 	boolean bOk = true;
 	StringVector svFirstLine;
+	ALString sTmp;
 
 	// Initialisation des variables aggregees
 	lExtractedKeyNumber = 0;
@@ -338,10 +358,35 @@ boolean KWFileKeyExtractorTask::MasterInitialize()
 		shared_ivKeyFieldIndexes.GetIntVector()->CopyFrom(keyFieldsIndexer.GetConstKeyFieldIndexes());
 
 		// La taille du fichier d'entree est necessaire pour estimer la progression
-		// Elle doit avoir ete initialisee dans le ComputeRequirements
+		// Elle doit avoir ete initialisee dans le ComputeResourceRequirements
 		assert(lInputFileSize == PLRemoteFileService::GetFileSize(sInputFileName));
 	}
 	lFilePos = 0;
+
+	//	Calcule de la taille maximale du buffer de lecture
+	if (GetTaskResourceGrant()->GetSlaveMemory() > nReadSizeMin + nWriteSizeMin)
+	{
+		assert(GetTaskResourceGrant()->GetSlaveMemory() <= INT_MAX);
+		nReadSizeMax = int(GetTaskResourceGrant()->GetSlaveMemory() - nWriteSizeMin);
+
+		// Chaque esclave doit lire au moins 5 buffers (pour que le travail soit bien reparti entre les
+		// esclaves)
+		if (lInputFileSize / (GetProcessNumber() * 5) < nReadSizeMax)
+		{
+			nReadSizeMax = InputBufferedFile::FitBufferSize(lInputFileSize / (GetProcessNumber() * 5));
+			nReadSizeMax = max(nReadSizeMax, nReadSizeMin);
+		}
+	}
+	else
+	{
+		nReadSizeMax = nReadSizeMin;
+	}
+	if (GetVerbose())
+	{
+		AddMessage(sTmp + "read buffer size min " + LongintToHumanReadableString(nReadSizeMin));
+		AddMessage(sTmp + "read buffer size max " + LongintToHumanReadableString(nReadSizeMax));
+	}
+
 	return bOk;
 }
 
@@ -353,8 +398,9 @@ boolean KWFileKeyExtractorTask::MasterPrepareTaskInput(double& dTaskPercent, boo
 	else
 	{
 		// Initialisation de l'input buffer
-		input_nBufferSize =
-		    ComputeStairBufferSize(lMB, BufferedFile::nDefaultBufferSize, lFilePos, lInputFileSize);
+		input_nBufferSize = ComputeStairBufferSize(nReadSizeMin, nReadSizeMax,
+							   PLRemoteFileService::GetPreferredBufferSize(sInputFileName),
+							   lFilePos, lInputFileSize);
 		input_lFilePos = lFilePos;
 		lFilePos += input_nBufferSize;
 		// Calcul de la progression
@@ -394,7 +440,7 @@ boolean KWFileKeyExtractorTask::MasterFinalize(boolean bProcessEndedCorrectly)
 	if (bProcessEndedCorrectly and not TaskProgression::IsInterruptionRequested())
 	{
 		// Suppression du fichier de sortie
-		if (PLRemoteFileService::Exist(sOutputFileName))
+		if (PLRemoteFileService::FileExists(sOutputFileName))
 			PLRemoteFileService::RemoveFile(sOutputFileName);
 
 		// Concatenation des fichiers de sortie
@@ -418,7 +464,7 @@ boolean KWFileKeyExtractorTask::MasterFinalize(boolean bProcessEndedCorrectly)
 
 		if (bOutputHeaderLineUsed)
 			svHeader.CopyFrom(GetKeyAttributeNames());
-		bOk = ConcatenateFilesWithoutDuplicateKeys(&svChunkFileNames, nBufferToConcatenate, &svHeader);
+		bOk = ConcatenateFilesWithoutDuplicateKeys(&svChunkFileNames, &svHeader);
 	}
 
 	// Suppression des fichiers intermediaires
@@ -439,6 +485,8 @@ boolean KWFileKeyExtractorTask::MasterFinalize(boolean bProcessEndedCorrectly)
 
 boolean KWFileKeyExtractorTask::SlaveInitialize()
 {
+	boolean bOk = true;
+
 	require(shared_ivKeyFieldIndexes.GetSize() > 0);
 
 	// Recopie du nom de la base (pour les messages d'erreur)
@@ -446,135 +494,234 @@ boolean KWFileKeyExtractorTask::SlaveInitialize()
 
 	// Parametrage de l'esclave par les index des cle a extraire
 	keyExtractor.SetKeyFieldIndexes(shared_ivKeyFieldIndexes.GetConstIntVector());
-	return true;
+
+	// Parametrage du fichier d'entree a analyser pour la tache
+	inputFile.SetFileName(shared_sInputFileName.GetValue());
+	inputFile.SetFieldSeparator(shared_cInputFieldSeparator.GetValue());
+	inputFile.SetHeaderLineUsed(shared_bInputHeaderLineUsed);
+
+	// Ouverture du fichier en entree
+	bOk = inputFile.Open();
+	return bOk;
 }
 
 boolean KWFileKeyExtractorTask::SlaveProcess()
 {
-	KWKey currentKey;
-	KWKey oldKey;
-	InputBufferedFile inputBufferedFile;
-	OutputBufferedFile* outputBufferedFile;
+	boolean bOk = true;
+	KWKey* previousKey;
+	KWKey* key;
+	int nCompareKey;
+	KWKey keyStore1;
+	KWKey keyStore2;
+	OutputBufferedFile outputFile;
 	ALString sChunkFileName;
 	int i;
 	double dProgression;
-	boolean bOk;
 	boolean bCloseOk;
+	longint lBeginPos;
+	longint lMaxEndPos;
+	longint lNextLinePos;
+	boolean bLineTooLong;
+	int nCumulatedLineNumber;
+	PeriodicTest periodicTestInterruption;
+	boolean bIsLineOK;
 	ALString sTmp;
-	boolean bIsOpen;
-
-	outputBufferedFile = NULL;
 
 	// Initialisation du resultat
 	output_lExtractedKeyNumber = 0;
 
-	// Initialisation du buffer de lecture
-	inputBufferedFile.SetFileName(shared_sInputFileName.GetValue());
-	inputBufferedFile.SetFieldSeparator(shared_cInputFieldSeparator.GetValue());
-	inputBufferedFile.SetHeaderLineUsed(shared_bInputHeaderLineUsed);
-	inputBufferedFile.SetBufferSize(input_nBufferSize);
+	// Specification de la portion du fichier a traiter
+	// On la termine sur la derniere ligne commencant dans le chunk, donc dans le '\n' se trouve potentiellement
+	// sur le debut de chunk suivant, un octet au dela de la fin
+	lBeginPos = input_lFilePos;
+	lMaxEndPos = min(input_lFilePos + input_nBufferSize + 1, inputFile.GetFileSize());
 
-	// Lecture du fichier
-	bIsOpen = inputBufferedFile.Open();
-	if (bIsOpen)
-		bOk = inputBufferedFile.Fill(input_lFilePos);
-	else
-		bOk = false;
+	// Parametrage de la taille du buffer
+	inputFile.SetBufferSize(input_nBufferSize);
+
+	// On commence par se caller sur un debut de ligne, sauf si on est en debut de fichier
+	// On ne compte pas la ligne sautee en debut de chunk, car elle est traitee en fin du chunk precedent
+	nCumulatedLineNumber = 0;
+	if (lBeginPos > 0)
+	{
+		bOk = inputFile.SearchNextLineUntil(lBeginPos, lMaxEndPos, lNextLinePos);
+		if (bOk)
+		{
+			// On se positionne sur le debut de la ligne suivante si elle est trouvee
+			if (lNextLinePos != -1)
+				lBeginPos = lNextLinePos;
+			// Si non trouvee, on se place en fin de chunk
+			else
+				lBeginPos = lMaxEndPos;
+		}
+	}
+
 	if (bOk)
 	{
-		// Creation et initialisation du buffer de sortie
-		outputBufferedFile = new OutputBufferedFile;
-		outputBufferedFile->SetFileName(shared_sOutputFileName.GetValue());
-		outputBufferedFile->SetFieldSeparator(shared_cOutputFieldSeparator.GetValue());
+		// Initialisation du buffer de sortie
+		outputFile.SetFieldSeparator(shared_cOutputFieldSeparator.GetValue());
 
 		// Construction d'un nom de chunk specifique a l'esclave
 		sChunkFileName = FileService::CreateUniqueTmpFile(
-		    FileService::GetFilePrefix(outputBufferedFile->GetFileName()) + "_" + IntToString(GetTaskIndex()),
+		    FileService::GetFilePrefix(shared_sOutputFileName.GetValue()) + "_" + IntToString(GetTaskIndex()),
 		    this);
 		bOk = not sChunkFileName.IsEmpty();
 	}
 	if (bOk)
 	{
 		output_sChunkFileName.SetValue(FileService::BuildLocalURI(sChunkFileName));
-		outputBufferedFile->SetFileName(sChunkFileName);
-		bOk = outputBufferedFile->Open();
+		outputFile.SetFileName(sChunkFileName);
+		bOk = outputFile.Open();
 	}
-	if (bOk)
+
+	// Initialisation des variables de travail
+	keyExtractor.SetBufferedFile(&inputFile);
+	nCompareKey = -1;
+	previousKey = NULL;
+	key = &keyStore1;
+
+	// Remplissage du buffer avec des lignes entieres dans la limite de la taille du buffer
+	// On reitere tant que l'on a pas atteint la derniere position pour lire toutes les ligne, y compris la derniere
+	while (bOk and lBeginPos < lMaxEndPos)
 	{
-		// Saut de ligne si c'est le header
-		if (inputBufferedFile.GetHeaderLineUsed() and input_lFilePos == (longint)0)
-			inputBufferedFile.SkipLine();
+		bOk = inputFile.FillOuterLinesUntil(lBeginPos, lMaxEndPos, bLineTooLong);
+		if (not bOk)
+			break;
 
-		// Extraction des cles
-		keyExtractor.SetBufferedFile(&inputBufferedFile);
-
-		while (not inputBufferedFile.IsBufferEnd())
+		// Cas d'un ligne trop longue: on se deplace a la ligne suivante ou a la fin de la portion a traite
+		if (bLineTooLong)
 		{
-			// Extraction de la clef
-			keyExtractor.ParseNextKey(this);
-			keyExtractor.ExtractKey(&currentKey);
-			if (oldKey.GetSize() == 0 or currentKey.Compare(&oldKey) != 0)
-			{
-				if (oldKey.GetSize() != 0 and currentKey.Compare(&oldKey) < 0)
-				{
-					AddLocalError(sTmp + "key " + currentKey.GetObjectLabel() +
-							  " inferior to previous key " + oldKey.GetObjectLabel(),
-						      inputBufferedFile.GetCurrentLineNumber() + 1);
-					bOk = false;
-					break;
-				}
-				output_lExtractedKeyNumber++;
+			lBeginPos = inputFile.GetPositionInFile();
 
-				// Ecriture de la clef dans le fichier
-				for (i = 0; i < currentKey.GetSize(); i++)
-				{
-					if (i > 0)
-						outputBufferedFile->Write(outputBufferedFile->GetFieldSeparator());
-					outputBufferedFile->Write(currentKey.GetAt(i));
-				}
-
-				outputBufferedFile->WriteEOL();
-			}
-			oldKey.CopyFrom(&currentKey);
-
-			// Gestion de la progesssion
-			if (inputBufferedFile.GetCurrentLineNumber() % 100 == 0)
-			{
-				dProgression = 1.0 * inputBufferedFile.GetCurrentLineNumber() /
-					       inputBufferedFile.GetBufferLineNumber();
-				TaskProgression::DisplayProgression((int)floor(dProgression * 100));
-				if (TaskProgression::IsInterruptionRequested())
-				{
-					bOk = false;
-					break;
-				}
-			}
+			// Ajout d'un ligne si elle termine dans la portion traitee
+			if (lBeginPos < lMaxEndPos)
+				nCumulatedLineNumber++;
 		}
+		// Cas general
+		else
+		{
+			// Saut du Header
+			if (inputFile.GetHeaderLineUsed() and inputFile.IsFirstPositionInFile())
+			{
+				inputFile.SkipLine(bLineTooLong);
+				if (bLineTooLong)
+				{
+					AddLocalError("Header line, " + InputBufferedFile::GetLineTooLongErrorLabel(),
+						      nCumulatedLineNumber + inputFile.GetCurrentLineIndex());
+					bOk = false;
+				}
+			}
 
-		// Fermeture et destruction du buffer de sortie
-		bCloseOk = outputBufferedFile->Close();
+			// Parcours du buffer d'entree
+			while (bOk and not inputFile.IsBufferEnd())
+			{
+				// Gestion de la progresssion
+				if (periodicTestInterruption.IsTestAllowed(nCumulatedLineNumber +
+									   inputFile.GetCurrentLineIndex()))
+				{
+					// Calcul de la progression par rapport a la proportion de la portion du fichier
+					// traitee parce que l'on ne sait pas le nombre total de ligne que l'on va
+					// traiter
+					dProgression = (inputFile.GetPositionInFile() - input_lFilePos) * 1.0 /
+						       (lMaxEndPos - input_lFilePos);
+					TaskProgression::DisplayProgression((int)floor(dProgression * 100));
+					if (TaskProgression::IsInterruptionRequested())
+					{
+						bOk = false;
+						break;
+					}
+				}
+
+				// Extraction et comparaison de la cle
+				bIsLineOK = keyExtractor.ParseNextKey(key, this);
+				if (bIsLineOK)
+				{
+					nCompareKey = 0;
+					if (previousKey != NULL)
+						nCompareKey = previousKey->Compare(key);
+
+					// Si la clef extraite est plus petite que la precedente => erreur
+					if (nCompareKey > 0)
+					{
+						AddLocalError(sTmp + "key " + key->GetObjectLabel() +
+								  " inferior to previous key " +
+								  previousKey->GetObjectLabel(),
+							      nCumulatedLineNumber + inputFile.GetCurrentLineIndex());
+						bOk = false;
+						break;
+					}
+
+					// Ecriture de la clef dans le fichier si elle est superieure a la precedente
+					if (previousKey == NULL or nCompareKey < 0)
+					{
+						output_lExtractedKeyNumber++;
+						for (i = 0; i < key->GetSize(); i++)
+						{
+							if (i > 0)
+								outputFile.Write(outputFile.GetFieldSeparator());
+							outputFile.Write(key->GetAt(i));
+						}
+						outputFile.WriteEOL();
+					}
+
+					// Memorisation de la cle precedente
+					previousKey = key;
+
+					// Utilisation de l'autre "cle de stockage" pour la cle courante
+					// (optimisation de la memoire pour eviter les recopies entre cle et cle
+					// precedente)
+					if (key == &keyStore1)
+						key = &keyStore2;
+					else
+						key = &keyStore1;
+				}
+			}
+
+			// On se deplace de la taille du buffer analyse
+			lBeginPos += inputFile.GetCurrentBufferSize();
+			nCumulatedLineNumber += inputFile.GetBufferLineNumber();
+		}
+	}
+
+	// Fermeture et destruction du buffer de sortie
+	if (outputFile.IsOpened())
+	{
+		bCloseOk = outputFile.Close();
 		if (not bCloseOk)
 		{
 			bOk = false;
-			AddError("Cannot close file " + outputBufferedFile->GetFileName());
+			AddError("Cannot close file " + outputFile.GetFileName());
 		}
 	}
+
+	// On ajoute un test sur l'interruption car pour les petits fichiers IsTestAllowed n'est jamais declenchee dans
+	// la boucle precedente et l'interruption n'est pas detectee, il faut neanmoins detruire les fichiers
+	// temporaires
+	if (TaskProgression::IsInterruptionRequested())
+		bOk = false;
+
 	if (sChunkFileName != "" and not bOk)
 		FileService::RemoveFile(sChunkFileName);
-	delete outputBufferedFile;
-	output_nReadLineCount = inputBufferedFile.GetBufferLineNumber();
-	SetLocalLineNumber(inputBufferedFile.GetBufferLineNumber());
-	if (bIsOpen)
-		inputBufferedFile.Close();
+
+	if (bOk)
+	{
+		output_nReadLineCount = nCumulatedLineNumber;
+		SetLocalLineNumber(nCumulatedLineNumber);
+	}
 	return bOk;
 }
 
 boolean KWFileKeyExtractorTask::SlaveFinalize(boolean bProcessEndedCorrectly)
 {
+	boolean bOk = true;
+
 	// Nettoyage
 	keyExtractor.Clean();
 
-	return true;
+	// Fermeture du fichier
+	if (inputFile.IsOpened())
+		bOk = inputFile.Close();
+	return bOk;
 }
 
 boolean CharVectorCompare(const CharVector* cv1, const CharVector* cv2)
@@ -592,29 +739,70 @@ boolean CharVectorCompare(const CharVector* cv1, const CharVector* cv2)
 	return true;
 }
 
-boolean KWFileKeyExtractorTask::ConcatenateFilesWithoutDuplicateKeys(StringVector* svFileURIs, int nBufferSize,
-								     StringVector* svHeader)
+boolean KWFileKeyExtractorTask::ConcatenateFilesWithoutDuplicateKeys(StringVector* svFileURIs, StringVector* svHeader)
 {
 	boolean bOk;
 	boolean bDisplay = false;
 	int nChunk;
-	InputBufferedFile inputFile;
+	InputBufferedFile chunkFile;
 	OutputBufferedFile outputFile;
 	ALString sChunkFileURI;
 	longint lYetToRead;
-	int nReadSize;
 	int i;
 	longint lPos;
 	CharVector cvFirstLine;
 	CharVector cvLastLine;
+	boolean bLineTooLong;
 	boolean bFirstChunk;
 	boolean bFirstBuffer;
+	longint lMaxEndPos;
+	longint lInputBufferSize;
+	longint lOutputBufferSize;
+	longint lRemainingMemory;
+	longint lInputPreferredSize;
+	longint lOutputPreferredSize;
 
 	require(svFileURIs != NULL);
 	require(svFileURIs->GetSize() > 0);
-	require(nBufferSize > 0);
+
+	// Memoire disponible sur la machine
+	lRemainingMemory = RMResourceManager::GetRemainingAvailableMemory();
+	lInputPreferredSize = PLRemoteFileService::GetPreferredBufferSize(svFileURIs->GetAt(0));
+	lOutputPreferredSize = PLRemoteFileService::GetPreferredBufferSize(sOutputFileName);
+
+	if (lRemainingMemory >= lInputPreferredSize + lOutputPreferredSize)
+	{
+		lOutputBufferSize = lOutputPreferredSize;
+		lInputBufferSize = lRemainingMemory - lOutputBufferSize;
+
+		// Ajustement de la  taille a un multiple de preferred size
+		if (lInputBufferSize > lInputPreferredSize)
+			lInputBufferSize = (lInputBufferSize / lInputPreferredSize) * lInputPreferredSize;
+
+		// On n'utilise pas plus de 8 preferred size
+		if (lInputBufferSize > 8 * lOutputPreferredSize)
+			lInputBufferSize = 8 * lOutputPreferredSize;
+	}
+	else
+	{
+		// On fait au mieux avec les ressources disponibles
+		lInputBufferSize = lRemainingMemory / 2;
+		lOutputBufferSize = lRemainingMemory - lInputBufferSize;
+	}
+
+	if (bDisplay)
+	{
+		cout << "Available memory on the host " << LongintToHumanReadableString(lRemainingMemory) << endl;
+		cout << "Dispatched for input " << LongintToHumanReadableString(lInputBufferSize) << " and output "
+		     << LongintToHumanReadableString(lOutputBufferSize) << endl;
+	}
+
+	// Ajustement a des tailles raisonables
+	lOutputBufferSize = InputBufferedFile::FitBufferSize(lOutputBufferSize);
+	lInputBufferSize = InputBufferedFile::FitBufferSize(lInputBufferSize);
 
 	outputFile.SetFileName(sOutputFileName);
+	outputFile.SetBufferSize((int)lOutputBufferSize);
 	bOk = outputFile.Open();
 	if (bOk)
 	{
@@ -639,7 +827,7 @@ boolean KWFileKeyExtractorTask::ConcatenateFilesWithoutDuplicateKeys(StringVecto
 				break;
 
 			// Concatenation d'un nouveau chunk
-			if (PLRemoteFileService::Exist(sChunkFileURI))
+			if (PLRemoteFileService::FileExists(sChunkFileURI))
 			{
 				if (bDisplay)
 					cout << "Read " << sChunkFileURI << " size "
@@ -648,55 +836,39 @@ boolean KWFileKeyExtractorTask::ConcatenateFilesWithoutDuplicateKeys(StringVecto
 					     << endl;
 
 				// Ouverture du chunk en lecture
-				inputFile.SetFileName(sChunkFileURI);
-				bOk = inputFile.Open();
+				chunkFile.SetFileName(sChunkFileURI);
+				bOk = chunkFile.Open();
 				if (bOk)
 				{
+					chunkFile.SetBufferSize((int)min(lInputBufferSize, chunkFile.GetFileSize()));
+
 					// Initialisation de la taille restant a lire avec la taille du chunk
-					lYetToRead = inputFile.GetFileSize();
+					lYetToRead = chunkFile.GetFileSize();
 
 					// Lecture du chunk par blocs et ecriture dans le fichier de sortie
 					lPos = 0;
 					bFirstBuffer = true;
-					while (lPos < inputFile.GetFileSize())
+					while (lYetToRead != 0)
 					{
-						// Calcul de la taille a lire, de facon a ce que le premier et le
-						// dernier block soit assez grand pour contenir des lignes
-						if (lYetToRead <= inputFile.GetBufferSize() or
-						    lYetToRead > 2 * inputFile.GetBufferSize())
-							nReadSize = nBufferSize;
-						else
-							nReadSize = nBufferSize / 2;
-
-						// On n'a pas besoin d'un buffer trop grand
-						if (nReadSize > inputFile.GetFileSize())
-							nReadSize = (int)inputFile.GetFileSize();
-
-						inputFile.SetBufferSize(inputFile.FitBufferSize(nReadSize));
-						if (bDisplay)
-						{
-							cout << "\t"
-							     << "Buffer size " << LongintToReadableString(nReadSize)
-							     << " => " << LongintToHumanReadableString(nReadSize)
-							     << endl;
-							cout << "\t"
-							     << "Position " << LongintToReadableString(lPos) << endl;
-						}
+						lMaxEndPos = min(lPos + lInputBufferSize + 1, chunkFile.GetFileSize());
 
 						// Lecture dans le fichier
-						inputFile.Fill(lPos);
-						lPos += inputFile.GetBufferSize();
-						if (inputFile.IsError())
+						chunkFile.FillOuterLinesUntil(lPos, lMaxEndPos, bLineTooLong);
+						assert(not bLineTooLong);
+						lPos += chunkFile.GetCurrentBufferSize();
+						if (chunkFile.IsError())
 						{
 							bOk = false;
 							break;
 						}
 
-						lYetToRead -= inputFile.GetCurrentBufferSize();
+						lYetToRead -= chunkFile.GetCurrentBufferSize();
 						assert(lYetToRead >= 0);
 
 						// Extraction de la premiere ligne
-						inputFile.GetNextLine(&cvFirstLine);
+						// A ce stade, les lignes trop longues doivent etre filtrees
+						chunkFile.GetNextLine(&cvFirstLine, bLineTooLong);
+						assert(not bLineTooLong);
 
 						// On l'ecrit si elle est differente de la derniere ligne du chunk
 						// precedent
@@ -714,9 +886,10 @@ boolean KWFileKeyExtractorTask::ConcatenateFilesWithoutDuplicateKeys(StringVecto
 						cvLastLine.CopyFrom(&cvFirstLine);
 
 						// Ecriture de la fin du chunk
-						while (not inputFile.IsBufferEnd())
+						while (not chunkFile.IsBufferEnd())
 						{
-							inputFile.GetNextLine(&cvLastLine);
+							chunkFile.GetNextLine(&cvLastLine, bLineTooLong);
+							assert(not bLineTooLong);
 							outputFile.Write(&cvLastLine);
 							if (outputFile.IsError())
 							{
@@ -728,7 +901,7 @@ boolean KWFileKeyExtractorTask::ConcatenateFilesWithoutDuplicateKeys(StringVecto
 					}
 
 					// Fermeture du chunk
-					bOk = inputFile.Close() and bOk;
+					bOk = chunkFile.Close() and bOk;
 					TaskProgression::DisplayProgression((nChunk + 1) * 100 / svFileURIs->GetSize());
 				}
 			}
@@ -744,7 +917,7 @@ boolean KWFileKeyExtractorTask::ConcatenateFilesWithoutDuplicateKeys(StringVecto
 			}
 			bFirstChunk = false;
 		}
-		bOk = outputFile.Close();
+		bOk = outputFile.Close() and bOk;
 	}
 	return bOk;
 }

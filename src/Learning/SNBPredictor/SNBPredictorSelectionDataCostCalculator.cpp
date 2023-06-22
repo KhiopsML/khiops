@@ -464,9 +464,9 @@ boolean SNBClassifierSelectionDataCostCalculator::Check() const
 boolean SNBClassifierSelectionDataCostCalculator::CheckParts() const
 {
 	boolean bOk = true;
-	ALString sTmp = "";
 	int nTarget;
 	SNBTargetPart* targetPart;
+	ALString sTmp;
 
 	for (nTarget = 0; nTarget < GetTargetDescriptiveStats()->GetValueNumber(); nTarget++)
 	{

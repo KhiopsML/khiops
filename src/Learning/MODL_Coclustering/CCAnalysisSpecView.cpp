@@ -3,8 +3,7 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 ////////////////////////////////////////////////////////////
-// 2021-02-05 18:19:44
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "CCAnalysisSpecView.h"
@@ -22,6 +21,10 @@ CCAnalysisSpecView::CCAnalysisSpecView()
 	cast(KWSystemParametersView*, GetFieldAt("SystemParameters"))
 	    ->GetFieldAt("MaxItemNumberInReports")
 	    ->SetVisible(false);
+	AddCardField("CrashTestParameters", "Crash test parameters", new KWCrashTestParametersView);
+
+	// Parametrage de la visibilite de l'onglet des crash tests
+	GetFieldAt("CrashTestParameters")->SetVisible(GetLearningCrashTestMode());
 
 	// Passage en ergonomie onglets
 	SetStyle("TabbedPanes");

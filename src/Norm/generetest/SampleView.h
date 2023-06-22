@@ -5,8 +5,7 @@
 #pragma once
 
 ////////////////////////////////////////////////////////////
-// 2021-01-21 16:48:22
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "UserInterface.h"
@@ -47,7 +46,7 @@ public:
 
 	// ##
 	////////////////////////////////////////////////////////
-	//// Implementation
+	///// Implementation
 protected:
 	// ## Custom implementation
 

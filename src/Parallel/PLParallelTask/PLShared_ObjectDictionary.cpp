@@ -19,7 +19,7 @@ PLShared_ObjectDictionary::~PLShared_ObjectDictionary()
 
 void PLShared_ObjectDictionary::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
-	ObjectDictionary* odToSerialize;
+	const ObjectDictionary* odToSerialize;
 	Object* oToSerialize;
 	POSITION position;
 	ALString sKeyToSerialize;

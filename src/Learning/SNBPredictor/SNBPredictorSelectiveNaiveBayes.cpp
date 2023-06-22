@@ -56,8 +56,7 @@ int SNBPredictorSelectiveNaiveBayes::GetTrainingAttributeNumber()
 	require(GetClassStats()->Check());
 	require(GetTrainParameters()->GetMaxEvaluatedAttributeNumber() >= 0);
 
-	nTotalInformativeAttributeNumber =
-	    GetClassStats()->GetInformativeAttributeNumber() + GetClassStats()->GetInformativeCreatedAttributeNumber();
+	nTotalInformativeAttributeNumber = GetClassStats()->GetTotalInformativeAttributeNumber();
 
 	if (GetTrainParameters()->GetMaxEvaluatedAttributeNumber() > 0)
 		nTrainingAttributeNumber =

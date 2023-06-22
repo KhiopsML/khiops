@@ -169,33 +169,45 @@ void SetLearningReportHeaderLine(const ALString& sNewReportHeaderLine)
 	bKWLearningReporHeaderLineModified = true;
 }
 
-boolean GetLearningFileChooserBasicMode()
+static boolean bLearningDefaultRawGuiModeMode = false;
+
+void SetLearningDefaultRawGuiModeMode(boolean bValue)
+{
+	bLearningDefaultRawGuiModeMode = bValue;
+}
+
+boolean GetLearningDefaultRawGuiModeMode()
+{
+	return bLearningDefaultRawGuiModeMode;
+}
+
+boolean GetLearningRawGuiModeMode()
 {
 	static boolean bIsInitialized = false;
-	static boolean bLearningFileChooserBasicMode = false;
+	static boolean bLearningRawGuiMode;
 
 	// Determination du mode expert au premier appel
 	if (not bIsInitialized)
 	{
-		ALString sLearningFileChooserBasicMode;
+		ALString sLearningRawGuiMode;
 
 		// Recherche des variables d'environnement
-		sLearningFileChooserBasicMode = p_getenv("KhiopsFileChooserBasicMode");
-		sLearningFileChooserBasicMode.MakeLower();
+		sLearningRawGuiMode = p_getenv("KHIOPS_RAW_GUI");
+		sLearningRawGuiMode.MakeLower();
 
-		// Determination du mode du file chooser
-		if (sLearningFileChooserBasicMode == "true")
-			bLearningFileChooserBasicMode = true;
-		else if (sLearningFileChooserBasicMode == "false")
-			bLearningFileChooserBasicMode = false;
-		// Par defaut: false
+		// Determination du mode d'interface
+		if (sLearningRawGuiMode == "true")
+			bLearningRawGuiMode = true;
+		else if (sLearningRawGuiMode == "false")
+			bLearningRawGuiMode = false;
+		// Par defaut sinon
 		else
-			bLearningFileChooserBasicMode = false;
+			bLearningRawGuiMode = GetLearningDefaultRawGuiModeMode();
 
 		// Memorisation du flag d'initialisation
 		bIsInitialized = true;
 	}
-	return bLearningFileChooserBasicMode;
+	return bLearningRawGuiMode;
 }
 
 boolean GetLearningMultiTableMode()
@@ -257,6 +269,36 @@ boolean GetLearningExpertMode()
 	return bLearningExpertMode;
 }
 
+boolean GetLearningCrashTestMode()
+{
+	static boolean bIsInitialized = false;
+	static boolean bLearningCrashTestMode = false;
+
+	// Determination du mode CrashTest au premier appel
+	if (not bIsInitialized)
+	{
+		ALString sUserName;
+		ALString sLearningCrashTestMode;
+
+		// Recherche des variables d'environnement
+		sUserName = p_getenv("USERNAME");
+		sUserName.MakeLower();
+		sLearningCrashTestMode = p_getenv("KhiopsCrashTestMode");
+		sLearningCrashTestMode.MakeLower();
+
+		// Determination du mode CrashTest (en debug pour Marc ou Carine)
+		debug(bLearningCrashTestMode = (sUserName == "miib6422") or (sUserName == "mgtt5712"));
+		if (sLearningCrashTestMode == "true")
+			bLearningCrashTestMode = true;
+		else if (sLearningCrashTestMode == "false")
+			bLearningCrashTestMode = false;
+
+		// Memorisation du flag d'initialisation
+		bIsInitialized = true;
+	}
+	return bLearningCrashTestMode;
+}
+
 boolean GetLearningTextVariableMode()
 {
 	static boolean bIsInitialized = false;
@@ -275,8 +317,7 @@ boolean GetLearningTextVariableMode()
 		sLearningTextVariableMode.MakeLower();
 
 		// Determination du mode (en debug)
-		// DDD
-		debug(bLearningTextVariableMode = (sUserName == "miib6422"));
+		// DDD		debug(bLearningTextVariableMode = (sUserName == "miib6422"));
 		if (sLearningTextVariableMode == "true")
 			bLearningTextVariableMode = true;
 		else if (sLearningTextVariableMode == "false")
@@ -288,12 +329,42 @@ boolean GetLearningTextVariableMode()
 	return bLearningTextVariableMode;
 }
 
+boolean GetLearningInterpretationMode()
+{
+	static boolean bIsInitialized = false;
+	static boolean bLearningInterpretationMode = false;
+
+	// Determination du mode au premier appel
+	if (not bIsInitialized)
+	{
+		ALString sUserName;
+		ALString sLearningInterpretationMode;
+
+		// Recherche des variables d'environnement
+		sUserName = p_getenv("USERNAME");
+		sUserName.MakeLower();
+		sLearningInterpretationMode = p_getenv("KhiopsInterpretationMode");
+		sLearningInterpretationMode.MakeLower();
+
+		// Determination du mode (en debug)
+		// DDD 		debug(bLearningInterpretationMode = (sUserName == "miib6422"));
+		if (sLearningInterpretationMode == "true")
+			bLearningInterpretationMode = true;
+		else if (sLearningInterpretationMode == "false")
+			bLearningInterpretationMode = false;
+
+		// Memorisation du flag d'initialisation
+		bIsInitialized = true;
+	}
+	return bLearningInterpretationMode;
+}
+
 boolean GetPreparationTraceMode()
 {
 	static boolean bIsInitialized = false;
 	static boolean bPreparationTraceMode = false;
 
-	// Determination du mode expert au premier appel
+	// Determination du mode au premier appel
 	if (not bIsInitialized)
 	{
 		ALString sPreparationTraceMode;

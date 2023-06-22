@@ -280,7 +280,7 @@ KWDGCell* KWDataGrid::AddCell(ObjectArray* oaParts)
 	int nAttribute;
 	KWDGPart* part;
 
-	require(GetCellUpdateMode() == true);
+	require(GetCellUpdateMode());
 	require(CheckCellParts(oaParts));
 	require(LookupCell(oaParts) == NULL);
 
@@ -337,7 +337,7 @@ KWDGCell* KWDataGrid::LookupCell(ObjectArray* oaParts) const
 	KWDGCell* cell;
 	POSITION position;
 
-	require(GetCellUpdateMode() == true);
+	require(GetCellUpdateMode());
 	require(CheckCellParts(oaParts));
 
 	// Recopie des criteres de trie dans la cellule cle
@@ -402,7 +402,7 @@ void KWDataGrid::DeleteCell(KWDGCell* cell)
 	}
 
 	// Suppression de la structure d'indexation
-	if (GetCellUpdateMode() == true)
+	if (GetCellUpdateMode())
 	{
 		position = slCells->Find(cell);
 		assert(position != NULL);
@@ -420,7 +420,7 @@ boolean KWDataGrid::CheckCell(KWDGCell* cell) const
 	int nAttribute;
 	KWDGPart* part;
 
-	require(GetCellUpdateMode() == true);
+	require(GetCellUpdateMode());
 	require(cell != NULL);
 	require(cell->GetAttributeNumber() == GetAttributeNumber());
 	require(cell->GetTargetValueNumber() == GetTargetValueNumber());

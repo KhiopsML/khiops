@@ -868,11 +868,10 @@ int CCHDGPartCompareLeafRank(const void* elem1, const void* elem2)
 	return nCompare;
 }
 
-int CCHDGPartCompareHierarchicalLevel(const void* elem1, const void* elem2)
+int CCHDGPartCompareHierarchicalRank(const void* elem1, const void* elem2)
 {
 	CCHDGPart* part1;
 	CCHDGPart* part2;
-	double dCompare;
 	int nCompare;
 
 	require(elem1 != NULL);
@@ -884,13 +883,12 @@ int CCHDGPartCompareHierarchicalLevel(const void* elem1, const void* elem2)
 	part2 = cast(CCHDGPart*, *(Object**)elem2);
 
 	// Comparaison du niveau hierarchique
-	dCompare = part1->GetHierarchicalLevel() - part2->GetHierarchicalLevel();
-	if (dCompare == 0)
-		nCompare = 0;
-	else if (dCompare > 0)
-		nCompare = -1;
-	else
-		nCompare = 1;
+	nCompare = -(part1->GetHierarchicalRank() - part2->GetHierarchicalRank());
+
+	// Dans le cas des anciennes versions n'ayant pas de HierarchicalRank (a zero dans ce cas),
+	// comparaison sur le niveau hierarchique pour compatibilite ascendante
+	if (nCompare == 0 and part1->GetHierarchicalRank() == 0)
+		nCompare = -CompareDouble(part1->GetHierarchicalLevel(), part2->GetHierarchicalLevel());
 
 	// Puis on compare l'index de l'attribut
 	if (nCompare == 0)

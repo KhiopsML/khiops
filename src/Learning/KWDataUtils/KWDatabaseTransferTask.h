@@ -34,11 +34,6 @@ protected:
 	void CleanAllDataTableIndexation() override;
 	boolean ComputeDatabaseOpenInformation() override;
 
-	// Parametrage de la taille du buffer d'un concatenater en fonction d'une taille estimee et des ressources
-	// disponibles
-	void InitializeConcatenaterBufferSize(PLFileConcatenater* concatenater, const KWClass* dictionary,
-					      longint lRecordNumber);
-
 	///////////////////////////////////////////////////////////////////////////////////////////////////
 	// Reimplementation des methodes virtuelles de tache
 
@@ -47,6 +42,7 @@ protected:
 	PLParallelTask* Create() const override;
 	boolean ComputeResourceRequirements() override;
 	boolean MasterInitialize() override;
+	boolean MasterInitializeDatabase() override;
 	boolean MasterPrepareTaskInput(double& dTaskPercent, boolean& bIsTaskFinished) override;
 	boolean MasterAggregateResults() override;
 	boolean MasterFinalize(boolean bProcessEndedCorrectly) override;

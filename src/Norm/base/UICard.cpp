@@ -523,6 +523,15 @@ const ALString UIFileChooserCard::GetClassLabel() const
 	return "UI file chooser dialog box";
 }
 
+void UIFileChooserCard::EventExit()
+{
+	bConfirmed = false;
+
+	// On reinitialise le premier champ qui contient le nom du fichier
+	assert(GetFieldNumber() > 0);
+	SetStringValueAt(GetFieldAtIndex(0)->GetIdentifier(), "");
+}
+
 void UIFileChooserCard::OK()
 {
 	bConfirmed = true;

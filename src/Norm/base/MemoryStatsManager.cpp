@@ -8,10 +8,20 @@
 #include "FileService.h"
 #include "Ermgt.h"
 
+boolean MemoryStatsManager::bIsOpened = false;
+ALString MemoryStatsManager::sStatsLogFileName;
+ALString MemoryStatsManager::sLocalFileName;
+longint MemoryStatsManager::lAutomaticLogFrequency = 0;
+int MemoryStatsManager::nCollectedStats = NoStats;
+Timer MemoryStatsManager::timer;
+int MemoryStatsManager::nStatsFieldNumber = 0;
+int MemoryStatsManager::nStatsFieldIndex = 0;
+FILE* MemoryStatsManager::fMemoryStats = NULL;
+
+// Handler d'ajout d'un log sans libelle pour les traces memoires
 void MemoryStatsHandlerLogWriter()
 {
-	static const ALString sEmpty;
-	MemoryStatsManager::AddLog(sEmpty);
+	MemoryStatsManager::AddLog("");
 }
 
 inline void MemoryStatsManager::WriteString(const char* sValue)
@@ -30,11 +40,25 @@ inline void MemoryStatsManager::WriteLongint(longint lValue)
 	nStatsFieldIndex++;
 }
 
-inline void MemoryStatsManager::WriteDouble(double dValue)
+inline void MemoryStatsManager::WriteTime(double dValue)
 {
+	longint lTotalMicroSeconds;
+	int nSeconds;
+	int nMicroSeconds;
+
+	require(dValue >= 0);
+
 	if (nStatsFieldIndex > 0)
 		fprintf(fMemoryStats, "\t");
-	fprintf(fMemoryStats, "%.6f", dValue);
+
+	// Extraction des secondes et Micro-secondes
+	lTotalMicroSeconds = longint(floor(dValue * 1000000));
+	nSeconds = int(lTotalMicroSeconds / 1000000);
+	nMicroSeconds = lTotalMicroSeconds % 1000000;
+	assert(0 <= nMicroSeconds and nMicroSeconds < 1000000);
+
+	// Ecriture des secondes et Micro-secondes
+	fprintf(fMemoryStats, "%d.%06d", nSeconds, nMicroSeconds);
 	nStatsFieldIndex++;
 }
 
@@ -50,7 +74,7 @@ boolean MemoryStatsManager::OpenLogFile(const char* sFileName, longint lLogFrequ
 	require(not IsOpened());
 
 	// Creation si necessaire des repertoires intermediaires
-	FileService::MakeDirectories(FileService::GetPathName(sFileName));
+	PLRemoteFileService::MakeDirectories(FileService::GetPathName(sFileName));
 
 	// Calcul d'un nom de fichier en fonction du procesId
 	sActualFileName = sFileName;
@@ -129,7 +153,7 @@ boolean MemoryStatsManager::OpenLogFile(const char* sFileName, longint lLogFrequ
 		// Parametrage du handler si necessaire
 		if (lAutomaticLogFrequency > 0 or (nCollectedStats & AllocStats))
 		{
-			// Parametrage du handeler si frequence strictement positive
+			// Parametrage du handler si frequence strictement positive
 			if (lAutomaticLogFrequency > 0)
 				MemSetStatsHandler(MemoryStatsHandlerLogWriter, lAutomaticLogFrequency);
 			// Si pas de rafraichissement, mais besoin de collecter les stats,
@@ -215,6 +239,8 @@ boolean MemoryStatsManager::CloseLogFile()
 		bOk = FileService::CloseOutputBinaryFile(sLocalFileName, fMemoryStats);
 
 		// Copie vers HDFS si necessaire
+		// TODO BUG cette methode est appelee apres SystemFileDriverCreator::UnregisterDrivers();
+		// donc on aura toujour bOk==false
 		if (bOk)
 			bOk = PLRemoteFileService::CleanOutputWorkingFile(sStatsLogFileName, sLocalFileName);
 
@@ -255,7 +281,7 @@ void MemoryStatsManager::AddLog(const char* sLabel)
 	{
 		nStatsFieldIndex = 0;
 		if (nCollectedStats & LogTime)
-			WriteDouble(timer.GetElapsedTime());
+			WriteTime(timer.GetElapsedTime());
 		if (nCollectedStats & HeapMemory)
 			WriteLongint(MemGetHeapMemory());
 		if (nCollectedStats & MaxHeapRequestedMemory)
@@ -288,13 +314,3 @@ void MemoryStatsManager::AddLog(const char* sLabel)
 		fprintf(fMemoryStats, "\n");
 	}
 }
-
-boolean MemoryStatsManager::bIsOpened = false;
-ALString MemoryStatsManager::sStatsLogFileName;
-ALString MemoryStatsManager::sLocalFileName;
-longint MemoryStatsManager::lAutomaticLogFrequency = 0;
-int MemoryStatsManager::nCollectedStats = NoStats;
-Timer MemoryStatsManager::timer;
-int MemoryStatsManager::nStatsFieldNumber = 0;
-int MemoryStatsManager::nStatsFieldIndex = 0;
-FILE* MemoryStatsManager::fMemoryStats = NULL;

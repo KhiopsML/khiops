@@ -164,9 +164,9 @@ void SNBPredictorSNBTrainingTask::InternalTrain(SNBPredictorSelectiveNaiveBayes*
 		if (IsTrainingSuccessful())
 			AddSimpleMessage(masterSnbPredictor->GetPrefix() + " train time: " + sTimeString);
 		else if (TaskProgression::IsInterruptionRequested())
-			AddSimpleMessage(GetTaskName() + " interrupted by user after " + sTimeString);
+			AddWarning("Interrupted by user after " + sTimeString);
 		else
-			AddSimpleMessage(GetTaskName() + " interrupted because of errors");
+			AddError("Interrupted because of errors");
 	}
 	// S'il n'y a pas d'attribut informatif on entraine un predicteur vide
 	else
@@ -194,7 +194,8 @@ boolean SNBPredictorSNBTrainingTask::ComputeResourceRequirements()
 	const int nAbsoluteMaxSlaveProcessNumber = 10000;
 	int nMaxSlaveProcessNumber;
 	int nMaxSliceNumber;
-	longint lSharedMemory;
+	longint lSharedMinMemory;
+	longint lSharedMaxMemory;
 	longint lMasterMemory;
 	longint lGlobalSlaveMinMemory;
 	longint lGlobalSlaveMaxMemory;
@@ -216,14 +217,17 @@ boolean SNBPredictorSNBTrainingTask::ComputeResourceRequirements()
 	nMaxSliceNumber = ComputeMaxSliceNumber();
 
 	// Estimation de la memoire partagee
-	lSharedMemory = ComputeSharedNecessaryMemory();
+	// Elle est croissant avec la taille du buffer du sliceSet
+	lSharedMinMemory = ComputeSharedNecessaryMemory(MemSegmentByteSize);
+	lSharedMaxMemory = ComputeSharedNecessaryMemory(BufferedFile::nDefaultBufferSize);
 
 	// Estimation de la memoire pour le maitre
 	lMasterMemory = ComputeMasterNecessaryMemory();
 
 	// Estimation de la memoire globale des esclaves
-	lGlobalSlaveMinMemory = ComputeGlobalSlaveNecessaryMemory(nMaxSliceNumber);
-	lGlobalSlaveMaxMemory = ComputeGlobalSlaveNecessaryMemory(1);
+	// Elle est decroissante avec le nombre de slices et avec la taille du buffer du sliceSet
+	lGlobalSlaveMinMemory = ComputeGlobalSlaveNecessaryMemory(nMaxSliceNumber, BufferedFile::nDefaultBufferSize);
+	lGlobalSlaveMaxMemory = ComputeGlobalSlaveNecessaryMemory(1, MemSegmentByteSize);
 
 	// Estimation de la memoire marginal pour chaque esclave
 	lSlaveMinProcessesMinSlicesMemory = ComputeSlaveNecessaryMemory(1, 1);
@@ -241,7 +245,8 @@ boolean SNBPredictorSNBTrainingTask::ComputeResourceRequirements()
 
 	// Mise a jour des demandes de resources
 	GetResourceRequirements()->SetMaxSlaveProcessNumber(nMaxSlaveProcessNumber);
-	GetResourceRequirements()->GetSharedRequirement()->GetMemory()->Set(lSharedMemory);
+	GetResourceRequirements()->GetSharedRequirement()->GetMemory()->SetMin(lSharedMinMemory);
+	GetResourceRequirements()->GetSharedRequirement()->GetMemory()->SetMax(lSharedMaxMemory);
 	GetResourceRequirements()->GetMasterRequirement()->GetMemory()->Set(lMasterMemory);
 	GetResourceRequirements()->GetGlobalSlaveRequirement()->GetMemory()->SetMin(lGlobalSlaveMinMemory);
 	GetResourceRequirements()->GetGlobalSlaveRequirement()->GetMemory()->SetMax(lGlobalSlaveMaxMemory);
@@ -255,7 +260,8 @@ boolean SNBPredictorSNBTrainingTask::ComputeResourceRequirements()
 	{
 		cout << "proc max                   = " << nMaxSlaveProcessNumber << "\n";
 		cout << "slice max                  = " << nMaxSliceNumber << "\n";
-		cout << "shared                 mem = " << LongintToHumanReadableString(lSharedMemory) << "\n";
+		cout << "shared min             mem = " << LongintToHumanReadableString(lSharedMinMemory) << "\n";
+		cout << "shared max             mem = " << LongintToHumanReadableString(lSharedMaxMemory) << "\n";
 		cout << "master                 mem = " << LongintToHumanReadableString(lMasterMemory) << "\n";
 		cout << "global slave min       mem = " << LongintToHumanReadableString(lGlobalSlaveMinMemory) << "\n";
 		cout << "global slave max       mem = " << LongintToHumanReadableString(lGlobalSlaveMaxMemory) << "\n";
@@ -367,7 +373,7 @@ int SNBPredictorSNBTrainingTask::ComputeMaxSliceNumber() const
 	return max(1, int(sqrt(masterSnbPredictor->GetTrainingAttributeNumber())));
 }
 
-longint SNBPredictorSNBTrainingTask::ComputeSharedNecessaryMemory()
+longint SNBPredictorSNBTrainingTask::ComputeSharedNecessaryMemory(longint lSliceSetBufferMemory)
 {
 	const boolean bLocalTrace = false;
 	longint lBinarySliceSetSchemaMemory;
@@ -383,14 +389,16 @@ longint SNBPredictorSNBTrainingTask::ComputeSharedNecessaryMemory()
 	lOverallAttributeStatsMemory = ComputeOverallAttributeStatsNecessaryMemory();
 
 	// Memoire des objets de recodage
-	lRecodingObjectsMemory = ComputeRecodingObjectsNecessaryMemory();
+	lRecodingObjectsMemory = ComputeRecodingObjectsNecessaryMemory(lSliceSetBufferMemory);
 
+	// Total de memoire partagee
 	lSharedMemory = lBinarySliceSetSchemaMemory + lOverallAttributeStatsMemory + lRecodingObjectsMemory;
 
 	// Trace de deboggage
 	if (bLocalTrace)
 	{
-		cout << "Shared memory estimation:\n";
+		cout << "Shared memory estimation (s.set buffer size "
+		     << LongintToHumanReadableString(lSliceSetBufferMemory) << ") :\n";
 		cout << "b.slice set schema        mem = " << LongintToHumanReadableString(lBinarySliceSetSchemaMemory)
 		     << "\n";
 		cout << "attribute stats           mem = " << LongintToHumanReadableString(lOverallAttributeStatsMemory)
@@ -404,7 +412,7 @@ longint SNBPredictorSNBTrainingTask::ComputeSharedNecessaryMemory()
 	return lSharedMemory;
 }
 
-longint SNBPredictorSNBTrainingTask::ComputeGlobalSlaveNecessaryMemory(int nSliceNumber)
+longint SNBPredictorSNBTrainingTask::ComputeGlobalSlaveNecessaryMemory(int nSliceNumber, longint lSliceSetBufferMemory)
 {
 	const boolean bLocalTrace = false;
 	int nInstanceNumber;
@@ -425,7 +433,7 @@ longint SNBPredictorSNBTrainingTask::ComputeGlobalSlaveNecessaryMemory(int nSlic
 	    nInstanceNumber, 1, nAttributeNumber, nSliceNumber);
 
 	// Estimation de la memoire necessaire pour le recodage
-	lRecodingObjectsMemory = ComputeRecodingObjectsNecessaryMemory();
+	lRecodingObjectsMemory = ComputeRecodingObjectsNecessaryMemory(lSliceSetBufferMemory);
 
 	// Rationale de l'estimation : d'abord deux faits
 	//   1) La memoire pour le recodage est deja demandee en shared
@@ -436,8 +444,9 @@ longint SNBPredictorSNBTrainingTask::ComputeGlobalSlaveNecessaryMemory(int nSlic
 
 	// NB: Cette chiffre est sur-estimee dans le cas de plus d'un esclave. La vraie quantite necessaire est
 	//
-	//   lTrueGlobalSlaveMemory = lGlobalBinarySliceSetBufferMemory + max(lGlobalDataCostCalculatorMemory -
-	//   nSlaveNumber * lRecodingObjectsMemory, 0ll)
+	//   lTrueGlobalSlaveMemory = lGlobalBinarySliceSetBufferMemory
+	//                            + max(lGlobalDataCostCalculatorMemory - nSlaveNumber * lRecodingObjectsMemory,
+	//                            0ll)
 	//
 	// car chaque esclave demande un dictionnaire.
 	// Neanmoins, si l'on prends notre l'estimation avec M slices en tant demande minimal de memoire on a la
@@ -450,7 +459,8 @@ longint SNBPredictorSNBTrainingTask::ComputeGlobalSlaveNecessaryMemory(int nSlic
 	// Trace de deboggage
 	if (bLocalTrace)
 	{
-		cout << "Global slave memory estimation (" << nSliceNumber << " slices):\n";
+		cout << "Global slave memory estimation (" << nSliceNumber << " slices, s.set buffer "
+		     << LongintToHumanReadableString(lSliceSetBufferMemory) << "):\n";
 		cout << "binary slice set buffer   mem = "
 		     << LongintToHumanReadableString(lGlobalBinarySliceSetBufferMemory) << "\n";
 		cout << "data cost calculator      mem = "
@@ -512,41 +522,24 @@ longint SNBPredictorSNBTrainingTask::ComputeSlaveNecessaryMemory(int nSlaveProce
 
 longint SNBPredictorSNBTrainingTask::ComputeOverallAttributeStatsNecessaryMemory()
 {
-	longint lOverallAttributeStatsMemory;
+	longint lOverallDataPreparatrionStatsMemory;
 	ObjectDictionary dummyDictionary;
-	ObjectArray* oaAllAttributeStats;
+	ObjectArray* oaAllPreparedStats;
 	int nAttribute;
-	KWAttributeStats* attributeStats;
-	ObjectArray* oaAllAttributePairStats;
-	KWAttributePairStats* attributePairStats;
-
-	// Memoire des conteneurs
-	lOverallAttributeStatsMemory =
-	    (longint)(masterSnbPredictor->GetClassStats()->GetInformativeAttributeNumber() +
-		      masterSnbPredictor->GetClassStats()->GetInformativeCreatedAttributeNumber()) *
-	    dummyDictionary.GetUsedMemoryPerElement();
+	KWDataPreparationStats* dataPreparationStats;
 
 	// Memoire des KWAttributeStats's informatifs
-	oaAllAttributeStats = masterSnbPredictor->GetClassStats()->GetAttributeStats();
-	for (nAttribute = 0; nAttribute < oaAllAttributeStats->GetSize(); nAttribute++)
+	lOverallDataPreparatrionStatsMemory = 0;
+	oaAllPreparedStats = masterSnbPredictor->GetClassStats()->GetAllPreparedStats();
+	for (nAttribute = 0; nAttribute < oaAllPreparedStats->GetSize(); nAttribute++)
 	{
-		attributeStats = cast(KWAttributeStats*, oaAllAttributeStats->GetAt(nAttribute));
+		dataPreparationStats = cast(KWDataPreparationStats*, oaAllPreparedStats->GetAt(nAttribute));
 
-		if (attributeStats->GetLevel() > 0)
-			lOverallAttributeStatsMemory += attributeStats->GetUsedMemory();
+		if (dataPreparationStats->IsInformative())
+			lOverallDataPreparatrionStatsMemory +=
+			    dataPreparationStats->GetUsedMemory() + dummyDictionary.GetUsedMemoryPerElement();
 	}
-
-	// Memoire des KWAttributePairStats's informatifs
-	oaAllAttributePairStats = masterSnbPredictor->GetClassStats()->GetAttributePairStats();
-	for (nAttribute = 0; nAttribute < oaAllAttributePairStats->GetSize(); nAttribute++)
-	{
-		attributePairStats = cast(KWAttributePairStats*, oaAllAttributePairStats->GetAt(nAttribute));
-
-		if (attributePairStats->GetLevel() > 0)
-			lOverallAttributeStatsMemory += attributePairStats->GetUsedMemory();
-	}
-
-	return lOverallAttributeStatsMemory;
+	return lOverallDataPreparatrionStatsMemory;
 }
 
 longint SNBPredictorSNBTrainingTask::ComputeDataPreparationClassNecessaryMemory()
@@ -571,57 +564,50 @@ longint SNBPredictorSNBTrainingTask::ComputeDataPreparationClassNecessaryMemory(
 	return lDataPreparationClassMemory;
 }
 
-longint SNBPredictorSNBTrainingTask::ComputeRecodingObjectsNecessaryMemory()
+longint SNBPredictorSNBTrainingTask::ComputeRecodingObjectsNecessaryMemory(longint lSliceSetBufferMemory)
 {
 	const boolean bLocalTrace = false;
 	const double dCompilationFactor = 1.5;
 	const double dPhysicalClassFactor = 2.0;
 	longint lDataPreparationClassMemory;
-	KWDataTableSliceSet* sliceSet;
-	longint lLargestSliceSetFileSize;
-	KWDataTableSlice* slice;
-	int nSlice;
-	int nDataFile;
-	longint lSliceSetReadBufferMemory;
+	longint lSliceSetTotalReadBufferMemory;
 	longint lRecodingObjectsMemory;
 
 	// Memoire de la KWDataPreparationClass
 	lDataPreparationClassMemory = ComputeDataPreparationClassNecessaryMemory();
 
-	// Buffers pour la lecture depuis KWDataTableSliceSet
-	sliceSet = shared_dataTableSliceSet.GetDataTableSliceSet();
-	lLargestSliceSetFileSize = 0;
-	for (nSlice = 0; nSlice < sliceSet->GetSliceNumber(); nSlice++)
-	{
-		slice = cast(KWDataTableSlice*, sliceSet->GetSlices()->GetAt(nSlice));
-		for (nDataFile = 0; nDataFile < slice->GetDataFileSizes()->GetSize(); nDataFile++)
-		{
-			if (lLargestSliceSetFileSize < slice->GetDataFileSizes()->GetAt(nDataFile))
-				lLargestSliceSetFileSize = slice->GetDataFileSizes()->GetAt(nDataFile);
-		}
-	}
-	lSliceSetReadBufferMemory = min((longint)BufferedFile::nDefaultBufferSize, lLargestSliceSetFileSize);
+	// Memoire total pour les buffer du KWDataTableSliceSet en entree
+	lSliceSetTotalReadBufferMemory = ComputeSliceSetTotalReadBufferNecessaryMemory(lSliceSetBufferMemory);
 
 	// Total objets de recodage (avec des facteurs de slackness pour la compilation et la classe physique)
 	lRecodingObjectsMemory = (longint)(lDataPreparationClassMemory * dCompilationFactor * dPhysicalClassFactor) +
-				 lSliceSetReadBufferMemory;
+				 lSliceSetTotalReadBufferMemory;
 
 	// Trace de deboggage
 	if (bLocalTrace)
 	{
-		cout << "Recoding objects memory estimation\n";
+		cout << "Recoding objects memory  (s.set buffer " << LongintToHumanReadableString(lSliceSetBufferMemory)
+		     << "):\n";
 		cout << "data prep class           mem = " << LongintToHumanReadableString(lDataPreparationClassMemory)
 		     << "\n";
-		cout << "slice set buffer          mem = " << LongintToHumanReadableString(lSliceSetReadBufferMemory)
-		     << "\n";
+		cout << "slice set tot buffer      mem = "
+		     << LongintToHumanReadableString(lSliceSetTotalReadBufferMemory) << "\n";
 		cout << "compilation factor            = " << dCompilationFactor << "\n";
 		cout << "physical class factor         = " << dPhysicalClassFactor << "\n";
-		cout << "recoding objects total    mem = " << LongintToHumanReadableString(lRecodingObjectsMemory)
+		cout << "total recoding objects    mem = " << LongintToHumanReadableString(lRecodingObjectsMemory)
 		     << "\n";
 		cout << "\n";
 	}
 
 	return lRecodingObjectsMemory;
+}
+longint SNBPredictorSNBTrainingTask::ComputeSliceSetTotalReadBufferNecessaryMemory(longint lSliceSetBufferMemory)
+{
+	// Sur-estimation donnee pour le max de:
+	//   - taille du buffer * nombre de slices du KWDataTableSliceSet en entree
+	//   - taille par defaut d'un buffer de lecture
+	return max((longint)BufferedFile::nDefaultBufferSize,
+		   shared_dataTableSliceSet.GetDataTableSliceSet()->GetSliceNumber() * lSliceSetBufferMemory);
 }
 
 longint
@@ -764,7 +750,7 @@ boolean SNBPredictorSNBTrainingTask::MasterInitialize()
 		MasterInitializeOptimizationVariables();
 
 	// Estimation de l'unite de progression
-	// Le nombre de taches est estme comme ceci :
+	// Le nombre de taches est estime comme ceci :
 	//   [#iterations externes] x [# max passes FFWBW] x [2 x #attributs] x [#eslaves]
 	//                                                        ^^^^^
 	//                                                (1 passe FFW et 1 FBW)
@@ -790,30 +776,59 @@ boolean SNBPredictorSNBTrainingTask::MasterInitializeDataTableBinarySliceSet()
 	int nMaxSliceNumber;
 	longint lGrantedSlaveMemory;
 	longint lSlaveNecessaryMemory;
+	longint lSlaveExtraMemory;
+	longint lDataTableSliceSetTotalReadBufferMemory;
+	int nDataTableSliceSetSliceNumber;
 	KWClass* recoderClass;
 
 	require(masterBinarySliceSet == NULL);
 
 	// Initialisation des variables locaux
 	nSlaveProcessNumber = GetTaskResourceGrant()->GetSlaveNumber();
-	lGrantedSlaveMemory = GetTaskResourceGrant()->GetMinSlaveMemory();
+	lGrantedSlaveMemory = GetTaskResourceGrant()->GetSlaveMemory() + GetTaskResourceGrant()->GetSharedMemory();
 	nMaxSliceNumber = ComputeMaxSliceNumber();
+	lSlaveNecessaryMemory = 0;
+	lSlaveExtraMemory = -1;
+	lDataTableSliceSetTotalReadBufferMemory = 0;
+	nDataTableSliceSetSliceNumber = 0;
 	recoderClass = NULL;
-	lSlaveNecessaryMemory = 0ll;
 
-	// On recherche le moindre nombre de slices qui permet d'executer la tache
+	// Recherche d'un nombre de slices qui permet d'executer la tache avec le minimum pour les buffer du
+	// KWDataTableSliceSet
 	for (nSliceNumber = 1; nSliceNumber <= nMaxSliceNumber; nSliceNumber++)
 	{
-		lSlaveNecessaryMemory = ComputeGlobalSlaveNecessaryMemory(nSliceNumber) / nSlaveProcessNumber +
-					ComputeSlaveNecessaryMemory(nSlaveProcessNumber, nSliceNumber);
+		lSlaveNecessaryMemory =
+		    ComputeGlobalSlaveNecessaryMemory(nSliceNumber, MemSegmentByteSize) / nSlaveProcessNumber +
+		    ComputeSlaveNecessaryMemory(nSlaveProcessNumber, nSliceNumber) +
+		    ComputeSharedNecessaryMemory(MemSegmentByteSize);
 		if (lGrantedSlaveMemory >= lSlaveNecessaryMemory)
 		{
 			bOk = true;
+			lSlaveExtraMemory = lGrantedSlaveMemory - lSlaveNecessaryMemory;
 			break;
 		}
 	}
 
-	// Si le nombre de slices a ete trouve : Initialisation
+	// Calcul et parametrage de la memoire necessaire pour les buffer de lecture du KWDataTableSliceSet
+	//
+	// En gros on rajoute a la memoire deja pris en compte (config avec buffer de taille minimale) le minimum entre:
+	//   - l'excedant entre la memoire necessaire avec un buffer de taille par defaut et celle avec un de taille
+	//   minimale
+	//   - l'excedant entre la memoire attribuee et la memoire necessaire avec un buffer de taille minimale
+	//
+	if (bOk)
+	{
+		nDataTableSliceSetSliceNumber = shared_dataTableSliceSet.GetDataTableSliceSet()->GetSliceNumber();
+		lDataTableSliceSetTotalReadBufferMemory =
+		    ComputeSliceSetTotalReadBufferNecessaryMemory(MemSegmentByteSize) +
+		    min(lSlaveExtraMemory,
+			ComputeSliceSetTotalReadBufferNecessaryMemory(BufferedFile::nDefaultBufferSize) -
+			    ComputeSliceSetTotalReadBufferNecessaryMemory(MemSegmentByteSize));
+		shared_dataTableSliceSet.GetDataTableSliceSet()->SetTotalBufferSize(
+		    lDataTableSliceSetTotalReadBufferMemory);
+	}
+
+	// Si une configuration de memoire a ete trouve : Initialisation du binary slice set
 	if (bOk)
 	{
 		// Initialisation du SNBDataTableBinarySliceSet du maitre
@@ -842,22 +857,26 @@ boolean SNBPredictorSNBTrainingTask::MasterInitializeDataTableBinarySliceSet()
 	if (bLocalTrace)
 	{
 		cout << "-------------------------------------------------------\n";
-		cout << "status                 = " << (bOk ? "OK" : "KO") << "\n";
-		cout << "granted slave proc     = " << GetTaskResourceGrant()->GetSlaveNumber() << "\n";
-		cout << "granted master     mem = "
+		cout << "status                    = " << (bOk ? "OK" : "KO") << "\n";
+		cout << "granted slave proc        = " << GetTaskResourceGrant()->GetSlaveNumber() << "\n";
+		cout << "slice set tot buffer  mem = "
+		     << LongintToHumanReadableString(lDataTableSliceSetTotalReadBufferMemory) << " = "
+		     << lDataTableSliceSetTotalReadBufferMemory << " bytes\n";
+		cout << "granted master        mem = "
 		     << LongintToHumanReadableString(GetTaskResourceGrant()->GetMasterMemory()) << " = "
 		     << GetTaskResourceGrant()->GetMasterMemory() << " bytes\n";
-		cout << "granted shared     mem = "
+		cout << "granted shared        mem = "
 		     << LongintToHumanReadableString(GetTaskResourceGrant()->GetSharedMemory()) << " = "
 		     << GetTaskResourceGrant()->GetSharedMemory() << " bytes\n";
-		cout << "granted slave      mem = "
-		     << LongintToHumanReadableString(GetTaskResourceGrant()->GetMinSlaveMemory()) << " = "
-		     << GetTaskResourceGrant()->GetMinSlaveMemory() << " bytes\n";
+		cout << "granted slave         mem = "
+		     << LongintToHumanReadableString(GetTaskResourceGrant()->GetSlaveMemory()) << " = "
+		     << GetTaskResourceGrant()->GetSlaveMemory() << " bytes\n";
 		if (bOk)
 		{
-			cout << "reco dict real     mem = "
+			cout << "reco dict real        mem = "
 			     << LongintToHumanReadableString(recoderClass->GetUsedMemory()) << " = "
 			     << recoderClass->GetUsedMemory() << " bytes\n";
+			cout << "-------\n";
 			cout << masterBinarySliceSet->layout << "\n";
 		}
 		cout << "-------------------------------------------------------\n";
@@ -1810,7 +1829,6 @@ void SNBPredictorSNBEnsembleTrainingTask::UpdateSelection()
 		// Mise a jour de la selection si le score est ameliore
 		if (dMasterModificationScore < dMasterCurrentScore + dMasterPrecisionEpsilon)
 		{
-
 			dMasterCurrentScore = dMasterModificationScore;
 			dMasterCurrentModelCost = dMasterModificationModelCost;
 			dMasterCurrentDataCost = dMasterModificationDataCost;
@@ -2484,7 +2502,7 @@ void SNBPredictorSNBDirectTrainingTask::MasterFinalizeTrainingAndReports()
 		oaSelectedAttributes.SetAt(nAttribute, attribute);
 	}
 
-	// Tri des SNBDataTableBinarySliceSetAtribute's par index de la classe de preparation
+	// Tri des SNBDataTableBinarySliceSetAttribute's par index de la classe de preparation
 	oaSelectedAttributes.SetCompareFunction(SNBDataTableBinarySliceSetAttributeCompareDataPreparationClassIndex);
 	oaSelectedAttributes.Sort();
 
@@ -2591,11 +2609,14 @@ boolean SNBPredictorSNBDirectTrainingTask::SlaveFinalize(boolean bProcessEndedCo
 {
 	boolean bOk;
 
-	require(slaveWeightedSelectionScorer != NULL);
+	require(slaveWeightedSelectionScorer != NULL or not bProcessEndedCorrectly);
 
-	// Nettoyage du scorer de l'esclave
-	delete slaveWeightedSelectionScorer;
-	slaveWeightedSelectionScorer = NULL;
+	// Nettoyage du scorer de l'esclave, qui peut etre nul s'il y a eu un probleme d'initialisation
+	if (slaveWeightedSelectionScorer != NULL)
+	{
+		delete slaveWeightedSelectionScorer;
+		slaveWeightedSelectionScorer = NULL;
+	}
 
 	// Appel a la methode ancetre
 	bOk = SNBPredictorSNBTrainingTask::SlaveFinalize(bProcessEndedCorrectly);

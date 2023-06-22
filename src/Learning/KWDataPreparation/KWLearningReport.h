@@ -169,7 +169,14 @@ public:
 	void SetLevel(double dValue);
 	double GetLevel() const;
 
+	// Indique si la variable est informative
+	// Base sur le SortValue plutot que sur le Level, pour pouvoir etre utilisable
+	// de facon generique, comme pour les paires de variables
+	boolean IsInformative() const;
+
 	// Criteres de tri a redefinir dans les sous-classe
+	// Il s'agit par defaut du Level par defaut, mais cela peut etre specialise
+	// comme dans le cas du DeltaLevel pour les paires
 	double GetSortValue() const override;
 
 	/////////////////////////////////////////////////////////
@@ -208,6 +215,10 @@ public:
 	/////////////////////////////////////////////////
 	///// Implementation
 protected:
+	// Seuil pour passer les valeur de cout ou de level a zero, pour ameliorer
+	// la lisibilite des rapports
+	const double dEpsilonCost = 1e-10;
+
 	// Nettoyage des resultats de preparation de donnees
 	virtual void CleanDataPreparationResults();
 

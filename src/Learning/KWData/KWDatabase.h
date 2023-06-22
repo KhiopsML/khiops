@@ -16,6 +16,7 @@ class KWDatabase;
 #include "Timer.h"
 #include "RMResourceManager.h"
 #include "KWLoadIndex.h"
+#include "KWDatabaseMemoryGuard.h"
 
 ///////////////////////////////////////////////////////////
 // Gestion d'une base de donnees de KWObject
@@ -204,7 +205,7 @@ public:
 	// Nombre approximatif d'objets presents dans la base de donnees
 	// Permet une evaluation du volume memoire d'un chargement global
 	// L'interet de cette methode est sa rapidite, car elle opere sur un
-	// echantillon d'objets, sans charger toute la base
+	// echantillon d'objets
 	// Renvoie 0 si on ne sait pas
 	longint GetEstimatedObjectNumber();
 
@@ -229,8 +230,8 @@ public:
 	// d'echantillonnage
 
 	// Pourcentage des exemples a garder ou ignorer (defaut: 100)
-	void SetSampleNumberPercentage(int nValue);
-	int GetSampleNumberPercentage() const;
+	void SetSampleNumberPercentage(double dValue);
+	double GetSampleNumberPercentage() const;
 
 	// Indique si on est en mode exclusion des exemples pour l'echantillonage
 	void SetModeExcludeSample(boolean bValue);
@@ -281,6 +282,25 @@ public:
 
 	// Parametrage avance: index de record du dernier enregistrement lu, pour le marquer
 	longint GetLastReadMarkIndex() const;
+
+	////////////////////////////////////////////////////////////////////////////////
+	// Pametrage de la protection memoire des acces en lecture
+	// Permet d'eviter de depasser la memoire en cas d'instance volumineuse a lire et traiter
+	// Ce parametrage est a effectuer avant ouverture de la base
+
+	// Reinitialisation des parametres la protection memoire
+	void ResetMemoryGuard();
+
+	// Nombre d'enregistrements secondaires au dela duquel une alerte est declenchee
+	// Cela ne declenche qu'un warning informatif en cas de depassement
+	// Parametrage inactif si 0
+	void SetMemoryGuardMaxSecondaryRecordNumber(longint lValue);
+	longint GetMemoryGuardMaxSecondaryRecordNumber() const;
+
+	// Limite a ne pas depasser de la memoire utilisable dans la heap pour gerer l'ensemble de la lecture et du
+	// calcul des attributs derivee Parametrage inactif si 0
+	void SetMemoryGuardSingleInstanceMemoryLimit(longint lValue);
+	longint GetMemoryGuardSingleInstanceMemoryLimit() const;
 
 	////////////////////////////////////////////////////////////////////////////////
 	// Fonctionnalites de base
@@ -487,7 +507,8 @@ protected:
 	// Utile en cas d'erreur d'ecriture, pour tout nettoyer correctement
 	virtual void PhysicalDeleteDatabase();
 
-	// Nombre approximatif d'objet present dans la base de donnees
+	// Nombre approximatif d'objets presents dans la base de donnees
+	// Potentiellement base sur une estimation heuristique, sans lecture du fichier
 	// Peut ne pas etre reimplementee (par defaut: 0)
 	virtual longint GetPhysicalEstimatedObjectNumber();
 
@@ -532,7 +553,7 @@ protected:
 	// Objets charges en memoire
 	ObjectArray oaAllObjects;
 
-	// Attributs
+	// Attributs principaux
 	ALString sClassName;
 	ALString sDatabaseName;
 	boolean bOpenedForRead;
@@ -543,7 +564,7 @@ protected:
 
 	// Gestion des echantillons
 	boolean bModeExcludeSample;
-	int nSampleNumberPercentage;
+	double dSampleNumberPercentage;
 	ALString sSelectionAttribute;
 	ALString sSelectionValue;
 	KWLoadIndex liSelectionAttributeLoadIndex;
@@ -560,6 +581,11 @@ protected:
 	KWDateFormat dateDefaultConverter;
 	KWTimeFormat timeDefaultConverter;
 	KWTimestampFormat timestampDefaultConverter;
+	KWTimestampTZFormat timestampTZDefaultConverter;
+
+	// Service de protection memoire pour gerer les enregistrement trop volumineux, notamment dans le cas
+	// multi-tables ou le nombre d'enregistrements secondaires peut etre tres important
+	mutable KWDatabaseMemoryGuard memoryGuard;
 
 	// Administration des technologies de bases de donnees (objets KWDatabase)
 	static ALString* sDefaultTechnologyName;
@@ -633,8 +659,8 @@ inline longint KWDatabase::GetSampleEstimatedObjectNumber()
 	require(not IsOpenedForRead());
 	require(not IsOpenedForWrite());
 	lEstimatedObjectNumber = GetEstimatedObjectNumber();
-	return (GetModeExcludeSample() ? ((100 - GetSampleNumberPercentage()) * lEstimatedObjectNumber / 100)
-				       : (GetSampleNumberPercentage() * lEstimatedObjectNumber / 100));
+	return (GetModeExcludeSample() ? (longint)(lEstimatedObjectNumber * (100 - GetSampleNumberPercentage()) / 100)
+				       : (longint)(lEstimatedObjectNumber * GetSampleNumberPercentage() / 100));
 }
 
 inline double KWDatabase::GetReadPercentage()
@@ -644,16 +670,16 @@ inline double KWDatabase::GetReadPercentage()
 	return GetPhysicalReadPercentage();
 }
 
-inline void KWDatabase::SetSampleNumberPercentage(int nValue)
+inline void KWDatabase::SetSampleNumberPercentage(double dValue)
 {
-	require(0 <= nValue and nValue <= 100);
+	require(0 <= dValue and dValue <= 100);
 
-	nSampleNumberPercentage = nValue;
+	dSampleNumberPercentage = dValue;
 }
 
-inline int KWDatabase::GetSampleNumberPercentage() const
+inline double KWDatabase::GetSampleNumberPercentage() const
 {
-	return nSampleNumberPercentage;
+	return dSampleNumberPercentage;
 }
 
 inline void KWDatabase::SetModeExcludeSample(boolean bValue)

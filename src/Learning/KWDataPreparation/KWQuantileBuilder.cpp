@@ -9,6 +9,8 @@
 
 KWQuantileIntervalBuilder::KWQuantileIntervalBuilder()
 {
+	bIsFrequencyInitialized = false;
+	bIsValueInitialized = false;
 	nInstanceNumber = 0;
 	nValueNumber = 0;
 	nRequestedQuantileNumber = 0;
@@ -23,9 +25,10 @@ void KWQuantileIntervalBuilder::InitializeValues(const ContinuousVector* cvInput
 	int i;
 
 	require(cvInputValues != NULL);
-	require(cvInputValues->GetSize() > 0);
 
 	// Reinitialisation des resultats
+	bIsValueInitialized = true;
+	bIsFrequencyInitialized = true;
 	nRequestedQuantileNumber = 0;
 	bIsEqualWidth = false;
 	ivIntervalQuantileIndexes.SetSize(0);
@@ -74,9 +77,10 @@ void KWQuantileIntervalBuilder::InitializeFrequencies(const IntVector* ivInputFr
 	int i;
 
 	require(ivInputFrequencies != NULL);
-	require(ivInputFrequencies->GetSize() > 0);
 
 	// Reinitialisation des resultats
+	bIsValueInitialized = false;
+	bIsFrequencyInitialized = true;
 	nRequestedQuantileNumber = 0;
 	bIsEqualWidth = false;
 	ivIntervalQuantileIndexes.SetSize(0);
@@ -605,6 +609,8 @@ int KWQuantileIntervalBuilder::SearchValueIndex(Continuous cSearchedValue, int n
 
 KWQuantileGroupBuilder::KWQuantileGroupBuilder()
 {
+	bIsFrequencyInitialized = false;
+	bIsValueInitialized = false;
 	nInstanceNumber = 0;
 	nValueNumber = 0;
 	nRequestedQuantileNumber = 0;
@@ -622,9 +628,10 @@ void KWQuantileGroupBuilder::InitializeValues(const SymbolVector* svInputValues)
 	int i;
 
 	require(svInputValues != NULL);
-	require(svInputValues->GetSize() > 0);
 
 	// Reinitialisation des resultats
+	bIsValueInitialized = true;
+	bIsFrequencyInitialized = true;
 	nRequestedQuantileNumber = 0;
 	nGroupNumber = 0;
 
@@ -686,12 +693,13 @@ void KWQuantileGroupBuilder::InitializeFrequencies(const IntVector* ivInputFrequ
 	int i;
 
 	require(ivInputFrequencies != NULL);
-	require(ivInputFrequencies->GetSize() > 0);
 
 	// Reinitialisation des resultats
 	nRequestedQuantileNumber = 0;
 
 	// Calcul et memorisation des efefctifs cumules
+	bIsValueInitialized = false;
+	bIsFrequencyInitialized = true;
 	nInstanceNumber = 0;
 	nValueNumber = ivInputFrequencies->GetSize();
 	svValues.SetSize(0);

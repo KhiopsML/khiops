@@ -603,7 +603,7 @@ boolean KWDRContinuousValueSet::CheckStructureDefinition() const
 		if (cvContinuousValueSet.GetAt(i - 1) > cvContinuousValueSet.GetAt(i))
 		{
 			bOk = false;
-			AddError("Value are not correctly ordered");
+			AddError("Values are not correctly ordered");
 			break;
 		}
 		else if (cvContinuousValueSet.GetAt(i - 1) == cvContinuousValueSet.GetAt(i))
@@ -1703,13 +1703,13 @@ Continuous KWDRInInterval::ComputeContinuousResult(const KWObject* kwoObject) co
 		return 0;
 }
 
-boolean KWDRInInterval::CheckOperandsCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDRInInterval::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
 	KWDRIntervalBounds* intervalBounds;
 
 	// Verification de la classe mere
-	bOk = KWDerivationRule::CheckOperandsCompletness(kwcOwnerClass);
+	bOk = KWDerivationRule::CheckOperandsCompleteness(kwcOwnerClass);
 
 	// Verification des bornes
 	if (bOk)
@@ -1728,7 +1728,7 @@ void KWDRInInterval::Compile(KWClass* kwcOwnerClass)
 {
 	KWDRIntervalBounds* intervalBounds;
 
-	require(CheckCompletness(kwcOwnerClass));
+	require(CheckCompleteness(kwcOwnerClass));
 
 	// Compilation ancetre
 	KWDerivationRule::Compile(kwcOwnerClass);
@@ -1837,7 +1837,7 @@ void KWDRInGroup::Compile(KWClass* kwcOwnerClass)
 {
 	KWDRValueGroup* valueGroup;
 
-	require(CheckCompletness(kwcOwnerClass));
+	require(CheckCompleteness(kwcOwnerClass));
 
 	// Compilation ancetre
 	KWDerivationRule::Compile(kwcOwnerClass);

@@ -30,6 +30,8 @@ KWModelingAdvancedSpecView::KWModelingAdvancedSpecView()
 	AddAction("InspectConstructionDomain",
 		  "<html> <center> Variable construction <br> parameters </center> </html>",
 		  (ActionMethod)(&KWModelingAdvancedSpecView::InspectConstructionDomain));
+	AddAction("InspectTextFeaturesParameters", "<html> <center> Text feature <br> parameters </center> </html>",
+		  (ActionMethod)(&KWModelingAdvancedSpecView::InspectTextFeaturesParameters));
 	AddAction("InspectAttributePairsParameters", "<html> <center> Variable pairs <br> parameters </center> </html>",
 		  (ActionMethod)(&KWModelingAdvancedSpecView::InspectAttributePairsParameters));
 	AddAction("InspectAttributeCreationParameters",
@@ -37,10 +39,14 @@ KWModelingAdvancedSpecView::KWModelingAdvancedSpecView()
 		  (ActionMethod)(&KWModelingAdvancedSpecView::InspectAttributeCreationParameters));
 	GetActionAt("InspectSelectiveNaiveBayesParameters")->SetStyle("Button");
 	GetActionAt("InspectConstructionDomain")->SetStyle("Button");
+	GetActionAt("InspectTextFeaturesParameters")->SetStyle("Button");
 	GetActionAt("InspectAttributePairsParameters")->SetStyle("Button");
 	GetActionAt("InspectAttributeCreationParameters")->SetStyle("Button");
 
-	// Action d'edition des parametre ders arbres disponible uniquement en mode avance
+	// Parametrage des paramtres expert pour les variables de type texte
+	GetActionAt("InspectTextFeaturesParameters")->SetVisible(GetLearningTextVariableMode());
+
+	// Action d'edition des parametre des arbres disponible uniquement en mode avance
 	GetActionAt("InspectAttributeCreationParameters")
 	    ->SetVisible(KDDataPreparationAttributeCreationTask::GetGlobalCreationTask() != NULL and
 			 KDDataPreparationAttributeCreationTaskView::GetGlobalCreationTaskView() != NULL);
@@ -56,15 +62,19 @@ KWModelingAdvancedSpecView::KWModelingAdvancedSpecView()
 			  "\n which is assessed during the analysis of the train database.");
 	GetActionAt("InspectSelectiveNaiveBayesParameters")
 	    ->SetHelpText(
-		"Inspect parameters for the Selective Naive Bayes predictor."
+		"Advanced parameters for the Selective Naive Bayes predictor."
 		"\n These parameters are user constraints that allow to control the variable selection process."
 		"\n Their use might decrease the performance, compared to the default mode (without user "
 		"constraints).");
 	GetActionAt("InspectConstructionDomain")
 	    ->SetHelpText(
 		"Advanced parameters to select the construction rules used for automatic variable construction.");
+	GetActionAt("InspectTextFeaturesParameters")
+	    ->SetHelpText("Advanced parameters for the construction of text features.");
 	GetActionAt("InspectAttributePairsParameters")
 	    ->SetHelpText("Advanced parameters to select the variable pairs to analyze.");
+	GetActionAt("InspectAttributeCreationParameters")
+	    ->SetHelpText("Advanced parameters for the constuction of tree based variables.");
 }
 
 KWModelingAdvancedSpecView::~KWModelingAdvancedSpecView() {}
@@ -136,6 +146,20 @@ void KWModelingAdvancedSpecView::InspectConstructionDomain()
 	// Ouverture de la sous-fiche
 	constructionDomainView.SetObject(modelingSpec->GetAttributeConstructionSpec()->GetConstructionDomain());
 	constructionDomainView.Open();
+}
+
+void KWModelingAdvancedSpecView::InspectTextFeaturesParameters()
+{
+	KWModelingSpec* modelingSpec;
+	KDTextFeatureSpecView textFeatureSpecView;
+
+	// Acces a l'objet edite
+	modelingSpec = cast(KWModelingSpec*, GetObject());
+	check(modelingSpec);
+
+	// Ouverture de la sous-fiche
+	textFeatureSpecView.SetObject(modelingSpec->GetAttributeConstructionSpec()->GetTextFeatureSpec());
+	textFeatureSpecView.Open();
 }
 
 void KWModelingAdvancedSpecView::InspectAttributeCreationParameters()

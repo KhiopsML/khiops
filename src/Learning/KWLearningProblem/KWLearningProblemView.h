@@ -52,6 +52,7 @@ public:
 	void ComputeStats();
 	void TransferDatabase();
 	void EvaluatePredictors();
+	void InterpretPredictor();
 
 	// Acces au probleme d'apprentissage
 	void SetObject(Object* object) override;

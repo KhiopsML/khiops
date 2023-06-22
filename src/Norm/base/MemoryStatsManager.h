@@ -3,6 +3,7 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #pragma once
+
 #include "Object.h"
 #include "MemoryManager.h"
 #include "Longint.h"
@@ -55,6 +56,7 @@ public:
 
 	// Fermeture du fichier de log
 	// Methode toujours appelable, mais sans effet si le fichier de log n'est pas ouvert
+	// La methode est appelee systematiquement apres la fin du programme, si le fichier n'est pas deja ferme
 	static boolean CloseLogFile();
 
 	// Nom du fichier de log ouvert, vide sinon
@@ -130,7 +132,7 @@ protected:
 	// champ
 	static void WriteString(const char* sValue);
 	static void WriteLongint(longint lValue);
-	static void WriteDouble(double dValue);
+	static void WriteTime(double dValue);
 
 	// Parametrage utilisateur du handler
 	static boolean bIsOpened;
@@ -140,7 +142,9 @@ protected:
 	static int nCollectedStats;
 
 	// Gestion du fichier de log
-	// Utilisation de FILE plutot que de stream, pour diminuer l'emprunte memoire
+	// Utilisation de FILE plutot que de stream, pour diminuer l'empreinte memoire
+	// On ne peut pas non plus utiliser un OutputBufferedFile, car cela entraine
+	// un boucle infinie quand le OutputBufferedFile qui emet des logs memoires
 	static Timer timer;
 	static int nStatsFieldNumber;
 	static int nStatsFieldIndex;

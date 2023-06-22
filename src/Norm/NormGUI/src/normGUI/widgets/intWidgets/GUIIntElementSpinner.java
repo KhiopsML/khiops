@@ -35,11 +35,11 @@ public class GUIIntElementSpinner extends GUIIntElement
          */
         protected JComponent buildComponent()
         {
-                // Creation d'un model d'edition des nombre
-                Integer initValue = new Integer(getMinValue());
-                Integer min = new Integer(getMinValue());
-                Integer max = new Integer(getMaxValue());
-                Integer step = new Integer(1);
+                // Creation d'un model d'edition des nombres
+                int initValue = getMinValue();
+                int min = getMinValue();
+                int max = getMaxValue();
+                int step = 1;
                 SpinnerNumberModel model = new SpinnerNumberModel(initValue, min, max, step);
 
                 // Creation du composant
@@ -123,8 +123,13 @@ public class GUIIntElementSpinner extends GUIIntElement
                         {
                                 JSpinner js = (JSpinner)editorComponent;
                                 JTextField spinnerEditor = ((JSpinner.NumberEditor)js.getEditor()).getTextField();
-
-                                return new Integer(spinnerEditor.getText());
+                                int iValue;
+                                try {
+                                        iValue = Integer.parseInt(spinnerEditor.getText());
+                                } catch (Exception ex) {
+                                        iValue = getMinValue();
+                                }
+                                return iValue;
                         }
 
                         /**

@@ -281,8 +281,8 @@ protected:
 // Comparaison de deux parties, en mettant les feuilles en tete, puis le rank
 int CCHDGPartCompareLeafRank(const void* elem1, const void* elem2);
 
-// Comparaison de deux parties selon leur niveau hierarchique, index d'attribut et partie (pointeur)
-int CCHDGPartCompareHierarchicalLevel(const void* elem1, const void* elem2);
+// Comparaison de deux parties selon leur rang hierarchique, index d'attribut et partie (pointeur)
+int CCHDGPartCompareHierarchicalRank(const void* elem1, const void* elem2);
 
 //////////////////////////////////////////////////////////////////////////////
 // Classe CCHDGValueSet

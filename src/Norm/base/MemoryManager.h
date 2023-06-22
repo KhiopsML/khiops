@@ -166,7 +166,9 @@ public:
 	static void operator delete(void* pBlock);
 
 	// Redefinition de l'allocateur pour le placement new (usage avance)
-	static inline void* operator new(size_t nSize, void* where);
+	// Le destructeur n'est specifie que pour eviter un warning sur certains compilateurs
+	static void* operator new(size_t nSize, void* where);
+	static void operator delete(void* pBlock, void* where);
 #endif // !defined NOMEMCONTROL || defined RELEASENEWMEM
 
 	///////////////////////////////////////////////////////////////////////
@@ -291,5 +293,10 @@ longint MemGetTotalFreeSize();      // taille totale liberee
 inline void* SystemObject::operator new(size_t nSize, void* where)
 {
 	return where;
+}
+
+inline void SystemObject::operator delete(void* pBlock, void* where)
+{
+	delete (char*)pBlock;
 }
 #endif // !defined NOMEMCONTROL || defined RELEASENEWMEM

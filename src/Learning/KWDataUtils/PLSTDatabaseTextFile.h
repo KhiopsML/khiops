@@ -27,11 +27,14 @@ public:
 	PLSTDatabaseTextFile();
 	~PLSTDatabaseTextFile();
 
+	// Remise dans l'etat non initialise
+	void Reset();
+
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Calculs prealables a l'utilisation de la base, avant son utilisation en
 	// lecture ou en ecriture
 
-	// Calcul d'informations necessaires a l'ouverture de la base en lecture ou ecriture
+	// Calcul des informations necessaires a l'ouverture de la base en lecture ou ecriture
 	// Cette methode est a appeler dans le maitre, essentiellement pour permettre un
 	// dimensionnment fin des ressources
 	// Le parametre outputDatabaseTextFile est optionnel, et n'est utilise que pour l'estimation
@@ -55,6 +58,9 @@ public:
 	longint GetTotalFileSize() const;
 	longint GetTotalUsedFileSize() const;
 
+	// Taille de buffer preferee pour l'ensemble de la base
+	int GetDatabasePreferredBuferSize() const;
+
 	// Memoire minimum necessaire pour ouvrir la base sans tenir compte des buffers
 	longint GetEmptyOpenNecessaryMemory() const;
 
@@ -68,15 +74,15 @@ public:
 	// Nombre maximum de taches elementaires qui devront etre traitees par les esclaves
 	int GetMaxSlaveProcessNumber() const;
 
-	// Calcul de la memoire par buffer pour une memoire allouee pour l'ouverture
-	int ComputeOpenBufferSize(boolean bRead, longint lOpenGrantedMemory) const;
+	// Calcul de la memoire par buffer pour une memoire allouee pour l'ouverture et un nombre de process
+	int ComputeOpenBufferSize(boolean bRead, longint lOpenGrantedMemory, int nProcessNumber) const;
 
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Parametrage des buffers
 
 	// Taille du buffer du driver : a manipuler avec precaution
 	// Taille du buffer lors de la prochaine ouverture
-	void SetBufferSize(int nBufferSize);
+	void SetBufferSize(int nSize);
 	int GetBufferSize() const;
 
 	// Referencement des buffers, ils sont geres en dehors de la classe
@@ -97,17 +103,21 @@ public:
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
-	// Memoire minimum par buffer pour l'ouverture de la base
-	static const int nMinOpenBufferSize = BufferedFile::nDefaultBufferSize / 2;
-	static const int nMaxOpenBufferSize = BufferedFile::nDefaultBufferSize * 8;
+	friend class PLShared_STDatabaseTextFile;
 
 	// Resultat de l'appel de la methode ComputeOpenInformation
+	KWClass kwcHeaderLineClass;
 	longint lTotalFileSize;
+	int nDatabasePreferredBufferSize;
 	longint lOutputNecessaryDiskSpace;
 	longint lEmptyOpenNecessaryMemory;
 	longint lMinOpenNecessaryMemory;
 	longint lMaxOpenNecessaryMemory;
-	friend class PLShared_STDatabaseTextFile;
+
+	// Definition des exigences pour la taille du buffer
+	// La taille de buffer est porte par le driver
+	int nReadSizeMin;
+	int nReadSizeMax;
 };
 
 ///////////////////////////////////////////////////

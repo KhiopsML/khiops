@@ -75,7 +75,7 @@ public:
 	virtual void RecvBlock(PLSerializer* serializer, PLMsgContext*);
 
 	// Retourne la liste des serveurs de fichiers
-	const IntVector* GetFileServers();
+	const IntVector* GetFileServers() const;
 
 	// Retourne True si c'est un processus de rang nRank dans MPI_COMM_WORLD est "serveur de fichiers"
 	boolean IsFileServer(int nRank) const;
@@ -123,7 +123,6 @@ protected:
 	PLIncrementalStats statsIORemoteReadDuration;
 
 	friend class PLParallelTask;
-	friend class PLShared_Tracer;
 };
 
 ////////////////////////////////////////////////////////////
@@ -135,9 +134,7 @@ inline PLTaskDriver* PLTaskDriver::GetDriver()
 }
 
 inline void PLTaskDriver::StopSlaves() {}
-
 inline void PLTaskDriver::StartSlave() {}
-
 inline void PLTaskDriver::StartFileServers() {}
 inline void PLTaskDriver::StopFileServers() {}
 
@@ -156,7 +153,7 @@ inline void PLTaskDriver::SendBlock(PLSerializer* serializer, PLMsgContext*) {}
 inline void PLTaskDriver::BCastBlock(PLSerializer* serializer, PLMsgContext*) {}
 inline void PLTaskDriver::RecvBlock(PLSerializer* serializer, PLMsgContext*) {}
 
-inline const IntVector* PLTaskDriver::GetFileServers()
+inline const IntVector* PLTaskDriver::GetFileServers() const
 {
 	return ivFileServers;
 }

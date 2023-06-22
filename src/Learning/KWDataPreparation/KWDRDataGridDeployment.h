@@ -44,7 +44,7 @@ public:
 	boolean CheckOperandsFamily(const KWDerivationRule* ruleFamily) const override;
 
 	// Verification que la regle est completement renseignee et compilable
-	boolean CheckOperandsCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
 
 	// Compilation redefinie pour optimisation
 	void Compile(KWClass* kwcOwnerClass) override;
@@ -68,7 +68,7 @@ protected:
 	KWDRDataGrid* dataGridRule;
 
 	// Index de l'attribut de deploiement (index interne entre 0 et K-1)
-	int nDeploymentAtributeIndex;
+	int nDeploymentAttributeIndex;
 
 	// Fraicheur d'optimisation
 	int nOptimizationFreshness;
@@ -108,7 +108,7 @@ public:
 	const KWDataGridDeployment* GetDeploymentResults() const;
 
 	// Verification que la regle est completement renseignee et compilable
-	boolean CheckOperandsCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
 
 	// Memoire utilisee
 	longint GetUsedMemory() const override;
@@ -227,7 +227,7 @@ public:
 	Object* ComputeStructureResult(const KWObject* kwoObject) const override;
 
 	// Verification que la regle est completement renseignee et compilable
-	boolean CheckOperandsCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
 
 	// Memoire utilisee
 	longint GetUsedMemory() const override;
@@ -256,7 +256,7 @@ public:
 	~KWDRDataGridDeploymentDistributionRule();
 
 	// Verification que la regle est completement renseignee et compilable
-	boolean CheckOperandsCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
 
 	// Compilation redefinie pour optimisation
 	void Compile(KWClass* kwcOwnerClass) override;
@@ -289,7 +289,7 @@ public:
 	Continuous ComputeContinuousResult(const KWObject* kwoObject) const override;
 
 	// Verification que la regle est completement renseignee et compilable
-	boolean CheckOperandsCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
 
 	//////////////////////////////////////////////////////////
 	///// Implementation

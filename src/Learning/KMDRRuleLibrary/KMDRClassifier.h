@@ -31,7 +31,7 @@ public:
 	boolean CheckOperandsFamily(const KWDerivationRule* ruleFamily) const;
 
 	/** Verification que la regle est completement renseignee */
-	boolean CheckOperandsCompletness(KWClass* kwcOwnerClass) const;
+	boolean CheckOperandsCompleteness(KWClass* kwcOwnerClass) const;
 
 	////////////////////////////////////////////////////////////////////
 	// Application  de la regle a une objet, et services associes
@@ -91,7 +91,7 @@ protected:
 
 inline boolean KMDRClassifier::IsOptimized() const
 {
-	return IsCompiled() and nOptimizationFreshness == nCompileFreshness;
+	return IsCompiled() and nOptimizationFreshness == GetOwnerClass()->GetCompileFreshness();
 }
 
 #endif // KMDRCLASSIFIER_H

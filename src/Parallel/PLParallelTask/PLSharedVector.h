@@ -275,7 +275,6 @@ inline DoubleVector* PLShared_DoubleVector::GetDoubleVector()
 	require(bIsDeclared);
 
 	return cast(DoubleVector*, GetObject());
-	;
 }
 
 inline char PLShared_CharVector::GetAt(int nIndex) const

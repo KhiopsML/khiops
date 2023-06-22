@@ -50,7 +50,7 @@
                 sTestPath = FileService::GetPathName(__FILE__);                            \
                                                                                            \
                 /*Creation du repertoire results si necessaire */                          \
-                if (not FileService::IsDirectory(sTestPath + "results"))                     \
+                if (not FileService::DirExists(sTestPath + "results"))                     \
                         FileService::CreateNewDirectory(sTestPath + "results");            \
                 sTestFileName =                                                            \
                     sTestPath + "results" + FileService::GetFileSeparator() + sFileName;   \
@@ -146,13 +146,13 @@ inline boolean FileCompareForTest(const ALString& sFileName1, const ALString& sF
 	char line1[sizeMax];
 	char line2[sizeMax];
 
-	if (not FileService::Exist(sFileName1))
+	if (not FileService::FileExists(sFileName1))
 	{
 		cout << "File " << sFileName1 << " is missing" << endl;
 		return false;
 	}
 
-	if (not FileService::Exist(sFileName2))
+	if (not FileService::FileExists(sFileName2))
 	{
 		cout << "File " << sFileName2 << " is missing" << endl;
 		return false;

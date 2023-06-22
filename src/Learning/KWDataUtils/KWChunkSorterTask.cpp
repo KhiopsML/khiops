@@ -9,8 +9,6 @@
 KWChunkSorterTask::KWChunkSorterTask()
 {
 	bIsInputHeaderLineUsed = false;
-	cInputSeparator = '\t';
-	cOutputSeparator = '\t';
 	buckets = NULL;
 	nCurrentBucketIndexToSort = 0;
 	lSortedLinesNumber = 0;
@@ -20,8 +18,6 @@ KWChunkSorterTask::KWChunkSorterTask()
 
 	// Variables en entree des taches
 	DeclareTaskInput(&input_nBucketIndex);
-	DeclareTaskInput(&input_cOutputSeparator);
-	DeclareTaskInput(&input_cInputSeparator);
 	DeclareTaskInput(&input_svFileNames);
 
 	// Variables en sortie des taches
@@ -34,6 +30,11 @@ KWChunkSorterTask::KWChunkSorterTask()
 	DeclareSharedParameter(&shared_bOnlyOneBucket);
 	DeclareSharedParameter(&shared_ivKeyFieldIndexes);
 	DeclareSharedParameter(&shared_lBucketSize);
+	DeclareSharedParameter(&shared_cInputSeparator);
+	DeclareSharedParameter(&shared_cOutputSeparator);
+
+	shared_cInputSeparator.SetValue('\t');
+	shared_cOutputSeparator.SetValue('\t');
 }
 
 KWChunkSorterTask::~KWChunkSorterTask() {}
@@ -50,12 +51,12 @@ boolean KWChunkSorterTask::GetInputHeaderLineUsed() const
 
 void KWChunkSorterTask::SetInputFieldSeparator(char cValue)
 {
-	cInputSeparator = cValue;
+	shared_cInputSeparator.SetValue(cValue);
 }
 
 char KWChunkSorterTask::GetInputFieldSeparator() const
 {
-	return cInputSeparator;
+	return shared_cInputSeparator.GetValue();
 }
 
 IntVector* KWChunkSorterTask::GetKeyFieldIndexes()
@@ -70,12 +71,12 @@ const IntVector* KWChunkSorterTask::GetConstKeyFieldIndexes() const
 
 void KWChunkSorterTask::SetOutputFieldSeparator(char cValue)
 {
-	cOutputSeparator = cValue;
+	shared_cOutputSeparator.SetValue(cValue);
 }
 
 char KWChunkSorterTask::GetOutputFieldSeparator() const
 {
-	return cOutputSeparator;
+	return shared_cOutputSeparator.GetValue();
 }
 
 const StringVector* KWChunkSorterTask::GetSortedFiles() const
@@ -125,10 +126,26 @@ longint KWChunkSorterTask::GetBucketSize() const
 
 boolean KWChunkSorterTask::Sort()
 {
+	boolean bOk;
+	KWSortBucket* sortedBucket;
+	int i;
+
 	require(shared_ivKeyFieldIndexes.GetSize() > 0);
 	require(lLineNumber > 0 and lKeySize > 0);
 	require(lBucketSize > 0);
-	return Run();
+	bOk = Run();
+
+	// Nettoyage des fihiers de sortie en cas d'erreur
+	if (not bOk)
+	{
+		for (i = 0; i < GetBuckets()->GetBucketNumber(); i++)
+		{
+			sortedBucket = GetBuckets()->GetBucketAt(i);
+			if (sortedBucket->GetSorted() or sortedBucket->IsSingleton())
+				PLRemoteFileService::RemoveFile(sortedBucket->GetOutputFileName());
+		}
+	}
+	return bOk;
 }
 
 longint KWChunkSorterTask::GetSortedLinesNumber()
@@ -343,8 +360,6 @@ boolean KWChunkSorterTask::MasterPrepareTaskInput(double& dTaskPercent, boolean&
 		assert(bucketToSort != NULL);
 		assert(not bucketToSort->GetSorted());
 		input_svFileNames.GetStringVector()->CopyFrom(bucketToSort->GetChunkFileNames());
-		input_cInputSeparator.SetValue(cInputSeparator);
-		input_cOutputSeparator.SetValue(cOutputSeparator);
 
 		// Calcul de l'avancement
 		dTaskPercent = nTreatedBucketNumber * 1.0 / buckets->GetBucketNumber();
@@ -418,20 +433,28 @@ boolean KWChunkSorterTask::MasterFinalize(boolean bProcessEndedCorrectly)
 
 boolean KWChunkSorterTask::SlaveInitialize()
 {
+	// Test pour savoir si on doit copier la ligne pour effectuer un traitement dessus (changement du separateur)
+	// Ou si on peut ecrire directement le buffer lu
+	if (shared_cInputSeparator.GetValue() != shared_cOutputSeparator.GetValue())
+		bSameSeparator = false;
+	else
+		bSameSeparator = true;
 	return true;
 }
 
 boolean KWChunkSorterTask::SlaveProcess()
 {
+	boolean bOk;
 	ALString sOutputFileName;
 	int nObjectNumer;
-	boolean bOk;
 	KWKeyExtractor keysExtractor;
 	ObjectArray oaKeyLines;
 	KWKeyLinePair* keyLine;
 	KWKey* key;
+	longint lBeginPos;
 	int nLineBeginPos;
 	int nLineEndPos;
+	boolean bLineTooLong;
 	int i;
 	CharVector cvLineToWrite;
 	InputBufferedFile* inputFile;
@@ -441,12 +464,12 @@ boolean KWChunkSorterTask::SlaveProcess()
 	double dLocalProgression;
 	ALString sInputFileName;
 	boolean bSkipFirstLine;
-	ALString sTmp;
 	ALString sFileURI;
 	PLParallelTask* errorSender;
 	longint lOneBucketFileSize;
 	longint lCumulatedFileSize;
-	boolean bSameSeparator;
+	boolean bIsLineOK;
+	ALString sTmp;
 
 	// Initialisations
 	outputFile = NULL;
@@ -470,9 +493,11 @@ boolean KWChunkSorterTask::SlaveProcess()
 	sOutputFileName =
 	    FileService::CreateUniqueTmpFile(sTmp + "bucket_sorted_" + IntToString(GetTaskIndex()) + ".txt", this);
 	bOk = not sOutputFileName.IsEmpty();
-
 	if (bOk)
 	{
+		// Fichier a supprimer en cas d'echec du programme
+		SlaveRegisterUniqueTmpFile(sOutputFileName);
+
 		// Suivi de la tache
 		TaskProgression::DisplayProgression(0);
 
@@ -486,7 +511,12 @@ boolean KWChunkSorterTask::SlaveProcess()
 			sFileURI = input_svFileNames.GetConstStringVector()->GetAt(i);
 			inputFile = new InputBufferedFile;
 			inputFile->SetFileName(sFileURI);
-			inputFile->SetFieldSeparator(input_cInputSeparator.GetValue());
+			inputFile->SetFieldSeparator(shared_cInputSeparator.GetValue());
+
+			// Pas de gestion du BOM du fichier (interne), sauf dans le cas cas shared_bOnlyOneBucket
+			// (fichier utilisateur)
+			if (not shared_bOnlyOneBucket)
+				inputFile->SetUTF8BomManagement(false);
 
 			// Stockage du buffer
 			oaBufferedFiles.Add(inputFile);
@@ -496,19 +526,25 @@ boolean KWChunkSorterTask::SlaveProcess()
 			if (not bOk)
 				break;
 
+			// Parametrage de la taille du buffer
 			inputFile->SetBufferSize(InputBufferedFile::FitBufferSize(inputFile->GetFileSize()));
-			lCumulatedFileSize += inputFile->GetFileSize();
 			assert(inputFile->GetFileSize() <= shared_lBucketSize);
 
-			// Remplissage du buffer
-			inputFile->Fill(0);
-			bOk = not inputFile->IsError();
+			// Remplissage du buffer avec la totalite du fichier
+			lBeginPos = 0;
+			bOk = inputFile->FillBytes(lBeginPos);
 			if (not bOk)
 			{
 				inputFile->Close();
 				break;
 			}
+
+			// Prise en compte du nombre de lignes
 			nObjectNumer += inputFile->GetBufferLineNumber();
+
+			// Prise en compte de la taille du buffer courante, qui peut etre plus petite que la taille du
+			// fichier si un BOM est saute
+			lCumulatedFileSize += inputFile->GetCurrentBufferSize();
 
 			// Tout le fichier doit tenir en memoire
 			assert(inputFile->IsLastBuffer());
@@ -540,7 +576,7 @@ boolean KWChunkSorterTask::SlaveProcess()
 			if (i == 0 and bSkipFirstLine)
 			{
 				assert(GetTaskIndex() == 0);
-				inputFile->SkipLine();
+				inputFile->SkipLine(bLineTooLong);
 				nObjectNumer--;
 
 				// Ne pas oublier de retirer la longueur de la ligne d'entete
@@ -548,24 +584,34 @@ boolean KWChunkSorterTask::SlaveProcess()
 			}
 
 			// Extraction des cles et lignes en vue de leur tri
+			// On garde les fichiers ouverts en lecture, car on a besoin de leur buffer
 			keysExtractor.SetBufferedFile(inputFile);
 			while (not inputFile->IsBufferEnd())
 			{
 				// Ajout d'une nouvel enregistrement dans la liste des lignes
-				keyLine = new KWKeyLinePair;
 				key = new KWKey;
-				keyLine->SetKey(key);
-				keyLine->SetInputBuffer(inputFile);
-				oaKeyLines.Add(keyLine);
-
-				// Alimentation de cet enregistrement en parsant la cle
-				keysExtractor.ParseNextKey(errorSender);
-				keysExtractor.ExtractKey(key);
+				bIsLineOK = keysExtractor.ParseNextKey(key, errorSender);
 				keysExtractor.ExtractLine(nLineBeginPos, nLineEndPos);
-				keyLine->SetLinePosition(nLineBeginPos, nLineEndPos);
+				if (bIsLineOK)
+				{
+
+					keyLine = new KWKeyLinePair;
+					keyLine->SetKey(key);
+					keyLine->SetInputBuffer(inputFile);
+					oaKeyLines.Add(keyLine);
+					keyLine->SetLinePosition(nLineBeginPos, nLineEndPos);
+				}
+				else
+				{
+					delete key;
+					nObjectNumer--;
+
+					// Ne pas oublier de retirer la longueur de la ligne trop longue
+					lCumulatedFileSize -= nLineEndPos - nLineBeginPos;
+				}
 
 				// Gestion de l'avancement (entre 0 et 25 pour cette partie)
-				if (inputFile->GetCurrentLineNumber() % 100 == 0)
+				if (inputFile->GetCurrentLineIndex() % 100 == 0)
 				{
 					dLocalProgression =
 					    inputFile->GetPositionInBuffer() / inputFile->GetCurrentBufferSize();
@@ -584,14 +630,8 @@ boolean KWChunkSorterTask::SlaveProcess()
 				SetLocalLineNumber(inputFile->GetBufferLineNumber());
 				errorSender = NULL;
 			}
-			bOk = inputFile->Close();
 			dTotalProgression = i * 1.0 / oaBufferedFiles.GetSize();
 		}
-
-		// TODO MB: Question
-		//   Pourquoi ne pas entrelacer les lectures de fichier, parsing des lignes, et destruction des fichiers
-		//   En parallele, cela permettrait de partager les lectures un peu plus tot avec les autres esclaves
-		// => OK ligne 503
 
 		// Tri des lignes extraites
 		if (bOk and not TaskProgression::IsInterruptionRequested())
@@ -614,14 +654,6 @@ boolean KWChunkSorterTask::SlaveProcess()
 			outputFile->ReserveExtraSize(lCumulatedFileSize);
 			if (bOk)
 			{
-
-				// Test pour savoir si on doit copier la ligne pour effectuer un traitement dessus
-				// (changement du separateur) Ou si on peut ecrire directement le buffer lu
-				if (input_cInputSeparator.GetValue() != input_cOutputSeparator.GetValue())
-					bSameSeparator = false;
-				else
-					bSameSeparator = true;
-
 				for (i = 0; i < oaKeyLines.GetSize(); i++)
 				{
 					// Extraction de la ligne a partir de ses offsets
@@ -656,12 +688,12 @@ boolean KWChunkSorterTask::SlaveProcess()
 								// ReplaceAll : separateur d'entree -> separateur de
 								// sortie
 								ReplaceSeparator(&cvLineToWrite,
-										 input_cInputSeparator.GetValue(),
-										 input_cOutputSeparator.GetValue());
+										 shared_cInputSeparator.GetValue(),
+										 shared_cOutputSeparator.GetValue());
 							}
 
 							// Ecriture de la ligne
-							outputFile->Write(&cvLineToWrite);
+							bOk = outputFile->Write(&cvLineToWrite);
 						}
 						else
 						{
@@ -675,47 +707,33 @@ boolean KWChunkSorterTask::SlaveProcess()
 								// ReplaceAll : separateur d'entree -> separateur de
 								// sortie
 								ReplaceSeparator(&cvLineToWrite,
-										 input_cInputSeparator.GetValue(),
-										 input_cOutputSeparator.GetValue());
+										 shared_cInputSeparator.GetValue(),
+										 shared_cOutputSeparator.GetValue());
 
 								// Ecriture de la ligne
-								outputFile->Write(&cvLineToWrite);
+								bOk = outputFile->Write(&cvLineToWrite);
 							}
 							else
 							{
 								// Si il n'y a rien a changer, on ecrit directement,
 								// sans recopie
-								outputFile->WriteSubPart(
-								    keyLine->GetInputBuffer()->GetBuffer(),
-								    nLineBeginPos, nLineEndPos - nLineBeginPos);
+								bOk = outputFile->WriteSubPart(
+								    keyLine->GetInputBuffer()->GetCache(),
+								    keyLine->GetInputBuffer()->GetBufferStartInCache() +
+									nLineBeginPos,
+								    nLineEndPos - nLineBeginPos);
 							}
 						}
 					}
 					else
-					// Cas standard : si les separateurs sont differents, il faut extraire le buffer
-					// et remplacer les separateurs Sinon on ecrit directement sans recopie
+					// Cas standard : le separateur de sortie a ete modifie si necessaire dans le
+					// chunk builder On ecrit directement sans recopie
 					{
-						if (bSameSeparator)
-						{
-							outputFile->WriteSubPart(keyLine->GetInputBuffer()->GetBuffer(),
-										 nLineBeginPos,
-										 nLineEndPos - nLineBeginPos);
-						}
-						else
-						{
-							// Si les separateurs d'entree et de sortie sont differents, on
-							// modifie la ligne avant ecriture
-							keyLine->GetInputBuffer()->ExtractSubBuffer(
-							    nLineBeginPos, nLineEndPos, &cvLineToWrite);
-
-							// ReplaceAll : separateur d'entree -> separateur de sortie
-							ReplaceSeparator(&cvLineToWrite,
-									 input_cInputSeparator.GetValue(),
-									 input_cOutputSeparator.GetValue());
-
-							// Ecriture de la ligne
-							outputFile->Write(&cvLineToWrite);
-						}
+						assert(bSameSeparator);
+						bOk = outputFile->WriteSubPart(
+						    keyLine->GetInputBuffer()->GetCache(),
+						    keyLine->GetInputBuffer()->GetBufferStartInCache() + nLineBeginPos,
+						    nLineEndPos - nLineBeginPos);
 					}
 
 					// Gestion de l'avancement (entre 75 et 100 pour cette partie)
@@ -727,10 +745,18 @@ boolean KWChunkSorterTask::SlaveProcess()
 							break;
 					}
 				}
-				bOk = outputFile->Close();
+				bOk = outputFile->Close() and bOk;
 			}
 			delete outputFile;
 		}
+	}
+
+	// Fermeture des fichiers ouverts en lecture
+	for (i = 0; i < oaBufferedFiles.GetSize(); i++)
+	{
+		inputFile = cast(InputBufferedFile*, oaBufferedFiles.GetAt(i));
+		if (inputFile->IsOpened())
+			inputFile->Close();
 	}
 
 	// Nettoyage
@@ -758,7 +784,7 @@ boolean KWChunkSorterTask::SlaveFinalize(boolean bProcessEndedCorrectly)
 	return true;
 }
 
-void KWChunkSorterTask::SkipField(CharVector* cvLineToWrite, char cOriginalSeparator, int& nPos) const
+void KWChunkSorterTask::SkipField(CharVector* cvLineToWrite, char cOriginalSeparator, int& nPos)
 {
 	char c;
 
@@ -821,7 +847,7 @@ void KWChunkSorterTask::SkipField(CharVector* cvLineToWrite, char cOriginalSepar
 	}
 }
 
-void KWChunkSorterTask::ReplaceSeparator(CharVector* cvLineToWrite, char cOriginalSeparator, char cNewSeparator) const
+void KWChunkSorterTask::ReplaceSeparator(CharVector* cvLineToWrite, char cOriginalSeparator, char cNewSeparator)
 {
 	int i;
 	require(cvLineToWrite != NULL);

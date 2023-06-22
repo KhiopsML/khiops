@@ -8,7 +8,6 @@ int main(int argc, char** argv)
 {
 	KNITransferProject learningProject;
 
-	// #define USE_MPI
 #if defined(USE_MPI)
 	PLParallelTask::UseMPI(GetLearningVersion());
 #endif // defined(USE_MPI)

@@ -11,6 +11,7 @@
 #include "PLParallelTask.h"
 #include "PLErrorWithIndex.h"
 #include "InputBufferedFile.h"
+#include "HugeBuffer.h"
 
 ////////////////////////////////////////////////////////////////////////////
 // Classe PLMPIFileServerSlave
@@ -28,31 +29,17 @@ public:
 	void Run(boolean& bOrderToQuit);
 
 protected:
-	// Remplissage de buffer avec des lignes entieres a la demande de l'esclave de rang nRank (dans GlobalCom)
-	// Envoi du buffer et des warning vers l'esclave
-	void Fill(int nRank) const;
+	// lit et envoi un buffer
+	void Fread(int nRank) const;
 
-	// Remplissage (simple) du buffer a la demande de l'esclave de rang nRank (dans GlobalCom)
-	// Envoi du buffer et des warning vers l'esclave
-	void Read(int nRank) const;
-
-	// Remplissage du buffer avec la premiere ligne du fichier de l'esclave de rang nRank (dans GlobalCom)
-	// Envoi du buffer et de bLineTooLong
-	void FillHeader(int nRank) const;
-
-	// Ouverture virtuelle : envoie la taille du fichier
-	// Si le fichier n'existe pas, envoie -1 comme taille et le message systeme
-	void OpenFile(int nRank) const;
-
-	// Recherche de fin de lignea la demande de l'esclave de rang nRank (dans GlobalCom)
-	// Envoi du resultat et des warning vers l'esclave
-	void FindEOL(int nRank) const;
-
-	// Envoi de la taille du fichier vers l'esclave de rang nRank
+	// Envoie de la taille du fichier vers l'esclave de rang nRank
 	void GetFileSize(int nRank) const;
 
-	// Envoi true si le fichier existe
+	// Envoie true si le fichier existe
 	void GetFileExist(int nRank) const;
+
+	// Envoie true si le repertoir existe
+	void GetDirExist(int nRank) const;
 
 	// Suppression du fichier
 	void RemoveFile(int nrank) const;

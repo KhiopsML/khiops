@@ -70,7 +70,7 @@ void KWKeyExtractor::Clean()
 	oaKeyFieldsOrderedByFile.SetSize(0);
 }
 
-void KWKeyExtractor::ParseNextKey(PLParallelTask* taskErrorSender)
+boolean KWKeyExtractor::ParseNextKey(KWKey* key, PLParallelTask* taskErrorSender)
 {
 	int i;
 	int j;
@@ -80,16 +80,19 @@ void KWKeyExtractor::ParseNextKey(PLParallelTask* taskErrorSender)
 	int nFieldLength;
 	int nFieldError;
 	boolean bEol;
+	boolean bLineTooLong;
 	KWFieldIndex* fieldIndex;
 	int nLineFieldNumber;
 	ALString sTmp;
 
+	require(key != NULL);
 	require(iBuffer != NULL);
 	require(iBuffer->IsOpened());
 
 	// Initialisations
 	j = 0;
 	bEol = false;
+	bLineTooLong = false;
 	nLastStartPos = iBuffer->GetPositionInBuffer();
 
 	// Parcours d'une ligne pour extraire la clef
@@ -104,7 +107,7 @@ void KWKeyExtractor::ParseNextKey(PLParallelTask* taskErrorSender)
 		// Saut des separateurs jusqu'au bon champ
 		while (j < nKeyIndex and not bEol)
 		{
-			bEol = iBuffer->SkipField();
+			bEol = iBuffer->SkipField(bLineTooLong);
 			nLineFieldNumber++;
 			j++;
 		}
@@ -113,7 +116,7 @@ void KWKeyExtractor::ParseNextKey(PLParallelTask* taskErrorSender)
 		sField = NULL;
 		if (not bEol)
 		{
-			bEol = iBuffer->GetNextField(sField, nFieldLength, nFieldError);
+			bEol = iBuffer->GetNextField(sField, nFieldLength, nFieldError, bLineTooLong);
 			nLineFieldNumber++;
 			j++;
 			if (nFieldError != InputBufferedFile::FieldNoError and taskErrorSender != NULL)
@@ -122,19 +125,20 @@ void KWKeyExtractor::ParseNextKey(PLParallelTask* taskErrorSender)
 				taskErrorSender->AddLocalWarning("key field <" +
 								     InputBufferedFile::GetDisplayValue(sField) +
 								     "> : " + iBuffer->GetFieldErrorLabel(nFieldError),
-								 1 + iBuffer->GetCurrentLineNumber());
+								 iBuffer->GetCurrentLineIndex());
 			}
 		}
-		// Warning s'il manque des champ pour alimenter la cle
+		// Warning s'il manque des champs pour alimenter la cle
 		else
 		{
-			if (taskErrorSender != NULL)
+			// Pas de message si ligne trop longue, pour eviter de l'emettre deux fois
+			if (not bLineTooLong and taskErrorSender != NULL)
 			{
 				// Affichage du warning
 				taskErrorSender->AddLocalWarning(sTmp + "key field " + IntToString(i + 1) +
 								     " empty because line contains only " +
 								     IntToString(nLineFieldNumber) + " fields",
-								 1 + iBuffer->GetCurrentLineNumber());
+								 iBuffer->GetCurrentLineIndex());
 			}
 		}
 
@@ -147,15 +151,15 @@ void KWKeyExtractor::ParseNextKey(PLParallelTask* taskErrorSender)
 
 	// On va jusqu'au bout de la ligne si necessaire, sans incrementer le numero de ligne dans le buffer
 	if (not bEol)
-		iBuffer->SkipLastFields();
-}
+		iBuffer->SkipLastFields(bLineTooLong);
 
-void KWKeyExtractor::ExtractKey(KWKey* key) const
-{
-	int i;
-	KWFieldIndex* fieldIndex;
-
-	require(key != NULL);
+	// Warning si ligne trop longue
+	if (bLineTooLong and taskErrorSender != NULL)
+	{
+		taskErrorSender->AddLocalWarning(sTmp + "Ignored record, " +
+						     InputBufferedFile::GetLineTooLongErrorLabel(),
+						 iBuffer->GetCurrentLineIndex());
+	}
 
 	// Parcours de oaKeyFieldsOrderedByKey pour avoir les champs dans l'ordre de la clef
 	key->SetSize(oaKeyFieldsOrderedByKey.GetSize());
@@ -164,6 +168,8 @@ void KWKeyExtractor::ExtractKey(KWKey* key) const
 		fieldIndex = cast(KWFieldIndex*, oaKeyFieldsOrderedByKey.GetAt(i));
 		key->SetAt(i, fieldIndex->GetField());
 	}
+
+	return not bLineTooLong;
 }
 
 void KWKeyExtractor::ExtractLine(int& nBeginPos, int& nEndPos) const
@@ -175,6 +181,24 @@ void KWKeyExtractor::ExtractLine(int& nBeginPos, int& nEndPos) const
 	nEndPos = iBuffer->GetPositionInBuffer();
 
 	ensure(nBeginPos < nEndPos);
+}
+
+void KWKeyExtractor::WriteLine(int nBeginPos, int nEndPos, ostream& ost) const
+{
+	CharVector cvLine;
+	int i;
+
+	check(iBuffer);
+	require(iBuffer->IsOpened());
+
+	// Extraction du sous-buffer
+	iBuffer->ExtractSubBuffer(nBeginPos, nEndPos, &cvLine);
+
+	// Affichage des caracteres de la ligne
+	ost << "line[" << nBeginPos << ", " << nEndPos << "] <";
+	for (i = 0; i < cvLine.GetSize(); i++)
+		ost << cvLine.GetAt(i);
+	ost << ">\n";
 }
 
 const ALString KWKeyExtractor::GetClassLabel() const

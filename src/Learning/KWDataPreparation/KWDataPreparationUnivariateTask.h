@@ -155,7 +155,7 @@ protected:
 
 	// Redecoupage d'une tranche en un ensemble de tranches plus petites, de facon a respecter les contraintes
 	// memoire Entree:
-	//   . slice: tranche avec son dictionnaire comportant tous les atributs utilises
+	//   . slice: tranche avec son dictionnaire comportant tous les attributs utilises
 	//   . lAvailableWorkingMemory: taille memoire disponible pour le chargement des valeurs ainsi que pour la
 	//   preparation du
 	//                              du pus gand bloc de la tranche, ce qui definit la contrainte memoire par
@@ -170,7 +170,7 @@ protected:
 	// Partitionnement des attributs d'une tranche a charger selon une contrainte de taille memoire maximum
 	// pour le stockage de l'ensemble des valeurs denses ou sparse (cf.
 	// KWDataPreparationTask::ComputeDatabaseAllValuesMemory) Entree:
-	//   . slice: tranche avec son dictionnaire comportant tous les atributs utilises
+	//   . slice: tranche avec son dictionnaire comportant tous les attributs utilises
 	//   . nObjectNumber: nombre d'instances
 	//   . lAvailableWorkingMemory: taille memoire disponible pour le chargement des valeurs ainsi que pour la
 	//   preparation du
@@ -206,7 +206,7 @@ protected:
 	// Variables partagees pour le indiquer aux esclaves les elements
 	// de dimensionnement concernant la plus grande tranche
 	// Ces elements de dimensionnement ont ete evalues selon les
-	// heuristique dinitiales d'evaluation du taux de sparsite des blocs
+	// heuristique initiales d'evaluation du taux de sparsite des blocs
 	// Chaque esclave, connaissant les taux de sparsite reel, aura ainsi
 	// les informations utiles pour evaluer si les ressources disponible
 	// permettent de tout traiter en une seule passe, ou si plusieurs

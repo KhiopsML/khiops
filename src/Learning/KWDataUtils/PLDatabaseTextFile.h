@@ -39,7 +39,7 @@ public:
 	// Remise dans l'etat non initialise
 	void Reset();
 
-	// Indique si l'on est en technologie multi-tables
+	// Indique si l'on est en technologie multi-tables, avec plusieurs table ou une seule table avec des champs cle
 	boolean IsMultiTableTechnology() const;
 
 	// Acces a la version speciale parallelisation, mono-table ou multi-tables selon le type d'initialisation
@@ -49,6 +49,11 @@ public:
 	// Acces generique pour beneficier des services standard de KWDatabase
 	KWDatabase* GetDatabase();
 
+	// Acces en version const
+	const PLSTDatabaseTextFile* GetSTDatabase() const;
+	const PLMTDatabaseTextFile* GetMTDatabase() const;
+	const KWDatabase* GetDatabase() const;
+
 	// Libelles utilisateurs
 	const ALString GetClassLabel() const override;
 	const ALString GetObjectLabel() const override;
@@ -57,18 +62,33 @@ public:
 	// Services dedies au dimensionnement pour la gestion des taches paralleles
 
 	// Calcul d'informations necessaires a l'ouverture de la base en lecture ou ecriture
+	//
+	// Cette methode peut etre appelee plusieurs fois, notament si une meme base est exploitee avec des
+	// des variantes de dictionnaire. Les resultats de cette methode sont bufferises dans la mesure du possible,
+	// notamment en ce qui concerne la taille des fichiers, tous pris en compte des le premier appel,
+	// ainsi que les lignes d'entete. Dans le cas multi-table, les operations sont effectuees sur les sous-tables
+	// non encore prises en compte dans les appels precedents.
+	// Cela permet de minimiser les operations d'entrees-sorties sur les fichiers.
+	// Les elements de dimensionnement sont eux re-effectues systematiquement, car ils dependent des dictionnaires.
 	boolean ComputeOpenInformation(boolean bRead, boolean bIncludingClassMemory,
 				       PLDatabaseTextFile* outputDatabaseTextFile);
 	boolean IsOpenInformationComputed() const;
 
-	// Nettoyage des informations d'ouverture
+	// Nettoyage des informations d'ouverture, sauf la partie bufferisee sur les tailles des fichiers et leurs
+	// entete
 	void CleanOpenInformation();
 
-	// Acces a la taille des fichiers en lecture (0 sinon)
+	// Acces a la taille cumulee de tous les fichiers en lecture, y compris les tables externes (0 sinon)
 	longint GetTotalFileSize() const;
 
-	// Acces a la taille des fichiers effectivement utilises en lecture (0 sinon)
+	// Acces a la taille cumulee des fichiers effectivement utilises en lecture, hors tables externes (0 sinon)
 	longint GetTotalUsedFileSize() const;
+
+	// Taille des fichiers de chaque table, index 0 uniquement en mono-table
+	longint GetFileSizeAt(int nTableIndex) const;
+
+	// Taille de buffer preferee pour l'ensemble de la base
+	int GetDatabasePreferredBuferSize() const;
 
 	// Memoire minimum necessaire pour ouvrir la base sans tenir compte des buffers
 	longint GetEmptyOpenNecessaryMemory() const;
@@ -83,11 +103,11 @@ public:
 	// Nombre maximum de taches elementaires qui devront etre traitees par les esclaves
 	int GetMaxSlaveProcessNumber() const;
 
-	// Calcul de la memoire par buffer pour une memoire allouee pour l'ouverture
-	int ComputeOpenBufferSize(boolean bRead, longint lOpenGrantedMemory) const;
+	// Calcul de la memoire par buffer pour une memoire allouee pour l'ouverture et un nombre de process
+	int ComputeOpenBufferSize(boolean bRead, longint lOpenGrantedMemory, int nProcessNumber) const;
 
 	// Taille du buffer du driver : a manipuler avec precaution
-	void SetBufferSize(int nBufferSize);
+	void SetBufferSize(int nSize);
 	int GetBufferSize() const;
 
 	// Affichage des messages de bilan d'un traitement de base

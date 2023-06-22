@@ -81,6 +81,18 @@ DoubleVector* DoubleVector::Clone() const
 	return dvClone;
 }
 
+void DoubleVector::ImportBuffer(int nIndex, int nElementNumber, const char* cByteBuffer)
+{
+	MemVector::ImportBuffer(pData.hugeVector, nSize, nAllocSize, nBlockSize, nElementSize, nIndex, nElementNumber,
+				cByteBuffer);
+}
+
+void DoubleVector::ExportBuffer(int nIndex, int nElementNumber, char* cByteBuffer) const
+{
+	MemVector::ExportBuffer(pData.hugeVector, nSize, nAllocSize, nBlockSize, nElementSize, nIndex, nElementNumber,
+				cByteBuffer);
+}
+
 boolean DoubleVector::SetLargeSize(int nValue)
 {
 	return MemVector::SetLargeSize(pData.hugeVector, nSize, nAllocSize, nBlockSize, nElementSize, nValue);
@@ -172,6 +184,57 @@ void DoubleVector::Test()
 	delete dvTest;
 }
 
+void DoubleVector::Test2()
+{
+	const longint lSizeMono = 100;
+	const longint lSizeMulti = 8 * lKB + 1;
+
+	cout << "Test mono bloc" << endl;
+	TestImportExport(lSizeMono, 0, 0);
+	cout << endl << "Test multi bloc" << endl;
+	TestImportExport(lSizeMulti, 0, 0);
+	cout << endl << "Test mono bloc, export from index 4" << endl;
+	TestImportExport(lSizeMono, 4, 0);
+	cout << endl << "Test multi bloc, export from index 4" << endl;
+	TestImportExport(lSizeMulti, 4, 0);
+	cout << endl << "Test mono bloc, export at index 4" << endl;
+	TestImportExport(lSizeMono, 0, 4);
+	cout << endl << "Test multi bloc, export at index 4" << endl;
+	TestImportExport(lSizeMulti, 0, 4);
+}
+
+void DoubleVector::TestImportExport(int nVectorSize, int nIndexSource, int nIndexDest)
+{
+	DoubleVector dvSource;
+	DoubleVector dvDest;
+	char* cBuffer;
+	int i;
+
+	// Test mono bloc
+	for (i = 0; i < nVectorSize + nIndexSource; i++)
+	{
+		dvSource.Add(1.0 * i);
+	}
+	cBuffer = new char[nVectorSize * sizeof(double)];
+	dvSource.ExportBuffer(nIndexSource, nVectorSize, cBuffer);
+
+	dvDest.SetSize(nVectorSize + nIndexDest);
+	dvDest.ImportBuffer(nIndexDest, nVectorSize, cBuffer);
+	delete[] cBuffer;
+
+	for (i = 0; i < nVectorSize; i++)
+	{
+		cout << dvDest.GetAt(i) << " ";
+
+		if (i > 100)
+		{
+			cout << "...";
+			break;
+		}
+	}
+	cout << endl;
+}
+
 /////////////////////////////////////////////
 // Implementation de la classe IntVector
 
@@ -236,6 +299,18 @@ IntVector* IntVector::Clone() const
 	// Recopie
 	ivClone->CopyFrom(this);
 	return ivClone;
+}
+
+void IntVector::ImportBuffer(int nIndex, int nElementNumber, const char* cByteBuffer)
+{
+	MemVector::ImportBuffer(pData.hugeVector, nSize, nAllocSize, nBlockSize, nElementSize, nIndex, nElementNumber,
+				cByteBuffer);
+}
+
+void IntVector::ExportBuffer(int nIndex, int nElementNumber, char* cByteBuffer) const
+{
+	MemVector::ExportBuffer(pData.hugeVector, nSize, nAllocSize, nBlockSize, nElementSize, nIndex, nElementNumber,
+				cByteBuffer);
 }
 
 boolean IntVector::SetLargeSize(int nValue)
@@ -551,6 +626,18 @@ LongintVector* LongintVector::Clone() const
 	// Recopie
 	dvClone->CopyFrom(this);
 	return dvClone;
+}
+
+void LongintVector::ImportBuffer(int nIndex, int nElementNumber, const char* cByteBuffer)
+{
+	MemVector::ImportBuffer(pData.hugeVector, nSize, nAllocSize, nBlockSize, nElementSize, nIndex, nElementNumber,
+				cByteBuffer);
+}
+
+void LongintVector::ExportBuffer(int nIndex, int nElementNumber, char* cByteBuffer) const
+{
+	MemVector::ExportBuffer(pData.hugeVector, nSize, nAllocSize, nBlockSize, nElementSize, nIndex, nElementNumber,
+				cByteBuffer);
 }
 
 boolean LongintVector::SetLargeSize(int nValue)

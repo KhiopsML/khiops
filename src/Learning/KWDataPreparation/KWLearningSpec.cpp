@@ -50,6 +50,7 @@ const ALString KWLearningService::GetObjectLabel() const
 
 //////////////////////////////////////////////////
 
+boolean KWLearningSpec::bTextConstructionUsedByTrees = false;
 int KWLearningSpec::nMaxModalityNumber = 1000000;
 
 KWLearningSpec::KWLearningSpec()
@@ -67,6 +68,7 @@ KWLearningSpec::KWLearningSpec()
 	dNullDataCost = 0;
 	nInitialAttributeNumber = -1;
 	bMultiTableConstruction = false;
+	bTextConstruction = false;
 	bTrees = false;
 	bAttributePairs = false;
 	nConstructionFamilyNumber = 0;
@@ -239,8 +241,10 @@ boolean KWLearningSpec::ComputeContinuousValueStats(const ALString& sAttributeNa
 	int nTuple;
 
 	require(Check());
-	require(GetClass()->LookupAttribute(sAttributeName) != NULL);
-	require(GetClass()->LookupAttribute(sAttributeName)->GetType() == KWType::Continuous);
+	require((not GetCheckTargetAttribute() and sAttributeName == GetTargetAttributeName()) or
+		GetClass()->LookupAttribute(sAttributeName) != NULL);
+	require((not GetCheckTargetAttribute() and sAttributeName == GetTargetAttributeName()) or
+		GetClass()->LookupAttribute(sAttributeName)->GetType() == KWType::Continuous);
 	require(tupleTable != NULL);
 	require(tupleTable->GetAttributeNameAt(0) == sAttributeName);
 	require(valueStats != NULL);
@@ -292,8 +296,10 @@ boolean KWLearningSpec::ComputeSymbolValueStats(const ALString& sAttributeName, 
 	int nStarValueFrequency;
 
 	require(Check());
-	require(GetClass()->LookupAttribute(sAttributeName) != NULL);
-	require(GetClass()->LookupAttribute(sAttributeName)->GetType() == KWType::Symbol);
+	require((not GetCheckTargetAttribute() and sAttributeName == GetTargetAttributeName()) or
+		GetClass()->LookupAttribute(sAttributeName) != NULL);
+	require((not GetCheckTargetAttribute() and sAttributeName == GetTargetAttributeName()) or
+		GetClass()->LookupAttribute(sAttributeName)->GetType() == KWType::Symbol);
 	require(tupleTable != NULL);
 	require(tupleTable->GetAttributeNameAt(0) == sAttributeName);
 	require(valueStats != NULL);
@@ -411,6 +417,7 @@ void KWLearningSpec::CopyFrom(const KWLearningSpec* kwlsSource)
 	dNullDataCost = kwlsSource->dNullDataCost;
 	nInitialAttributeNumber = kwlsSource->nInitialAttributeNumber;
 	bMultiTableConstruction = kwlsSource->bMultiTableConstruction;
+	bTextConstruction = kwlsSource->bTextConstruction;
 	bTrees = kwlsSource->bTrees;
 	bAttributePairs = kwlsSource->bAttributePairs;
 	bIsTargetStatsComputed = kwlsSource->bIsTargetStatsComputed;
@@ -508,7 +515,7 @@ boolean KWLearningSpec::Check() const
 		}
 	}
 
-	// Verificatiopn des algorithmes de pretraitement selon le type de la cible
+	// Verification des algorithmes de pretraitement selon le type de la cible
 	if (not preprocessingSpec.CheckForTargetType(GetTargetAttributeType()))
 	{
 		bOk = false;
@@ -800,6 +807,7 @@ void PLShared_LearningSpec::SerializeObject(PLSerializer* serializer, const Obje
 	serializer->PutDouble(learningSpec->dNullDataCost);
 	serializer->PutInt(learningSpec->nInitialAttributeNumber);
 	serializer->PutBoolean(learningSpec->bMultiTableConstruction);
+	serializer->PutBoolean(learningSpec->bTextConstruction);
 	serializer->PutBoolean(learningSpec->bTrees);
 	serializer->PutBoolean(learningSpec->bAttributePairs);
 	serializer->PutInt(learningSpec->nConstructionFamilyNumber);
@@ -852,6 +860,7 @@ void PLShared_LearningSpec::DeserializeObject(PLSerializer* serializer, Object* 
 	learningSpec->dNullDataCost = serializer->GetDouble();
 	learningSpec->nInitialAttributeNumber = serializer->GetInt();
 	learningSpec->bMultiTableConstruction = serializer->GetBoolean();
+	learningSpec->bTextConstruction = serializer->GetBoolean();
 	learningSpec->bTrees = serializer->GetBoolean();
 	learningSpec->bAttributePairs = serializer->GetBoolean();
 	learningSpec->nConstructionFamilyNumber = serializer->GetInt();

@@ -10,69 +10,62 @@ boolean FileService::bIOStats = false;
 ////////////////////////////////////////////
 // Implementation de la classe FileService
 
-boolean FileService::Exist(const ALString& sPathName)
+boolean FileService::FileExists(const ALString& sPathName)
 {
-	boolean bOk;
-
-	p_SetMachineLocale();
-// Pour UNIX ou wgpp
-#if defined __UNIX__ or defined __WGPP__
-	bOk = access(sPathName, 00) != -1;
-	// Pour Visual C++ 2005, 2008
-#elif _MSC_VER >= 1400
-	bOk = _access(sPathName, 0) != -1; // 00=existence only
-	// Pour Visual C++ 2003
-#else
-	bOk = access(sPathName, _IOREAD) != -1;
-#endif
-	p_SetApplicationLocale();
-	return bOk;
-}
-
-boolean FileService::IsFile(const ALString& sPathName)
-{
-	boolean bIsFile;
+	boolean bIsFile = false;
 
 	p_SetMachineLocale();
 #if defined _MSC_VER || defined __MSVCRT_VERSION__
+
 	struct __stat64 fileStat;
-	int nError = _stat64(sPathName, &fileStat);
-	if (nError != 0)
-		bIsFile = false;
-	else
+	if (_stat64(sPathName, &fileStat) == 0)
 		bIsFile = ((fileStat.st_mode & S_IFMT) == S_IFREG);
+
 #else
+
 	struct stat s;
-	int nError = stat(sPathName, &s);
-	if (nError != 0)
-		bIsFile = false;
-	else
+	if (stat(sPathName, &s) == 0)
 		bIsFile = ((s.st_mode & S_IFMT) == S_IFREG);
 
-#endif
+#endif // defined _MSC_VER || defined __MSVCRT_VERSION__
 	p_SetApplicationLocale();
+
 	return bIsFile;
 }
 
-boolean FileService::IsDirectory(const ALString& sPathName)
+boolean FileService::DirExists(const ALString& sPathName)
 {
-	boolean bIsDirectory;
+	boolean bIsDirectory = false;
 
 	p_SetMachineLocale();
 #if defined _MSC_VER || defined __MSVCRT_VERSION__
-	// On passe par Exist(), car sous Windows, la racine ("C:") existe mais n'est
-	// consideree par l'API _stat64 ni comme une fichier ni comme un repertoire
-	bIsDirectory = Exist(sPathName);
-	if (bIsDirectory)
-		bIsDirectory = not IsFile(sPathName);
+	boolean bExist;
+
+#if _MSC_VER >= 1400
+	bExist = _access(sPathName, 0) != -1; // 00=existence only
+					      // Pour Visual C++ 2003
 #else
+	bExist = access(sPathName, _IOREAD) != -1;
+#endif // _MSC_VER >= 1400
+	if (bExist)
+	{
+		// On test si ca n'est pas un fichier, car sous Windows, la racine ("C:") existe mais n'est
+		// consideree par l'API _stat64 ni comme une fichier ni comme un repertoire
+		boolean bIsFile = false;
+		struct __stat64 fileStat;
+		if (_stat64(sPathName, &fileStat) == 0)
+			bIsFile = ((fileStat.st_mode & S_IFMT) == S_IFREG);
+		bIsDirectory = not bIsFile;
+	}
+#else // defined _MSC_VER || defined __MSVCRT_VERSION__
+
 	struct stat s;
-	int nError = stat(sPathName, &s);
-	if (nError != 0)
-		return false;
-	bIsDirectory = ((s.st_mode & S_IFMT) == S_IFDIR);
-#endif
+	if (stat(sPathName, &s) == 0)
+		bIsDirectory = ((s.st_mode & S_IFMT) == S_IFDIR);
+
+#endif // defined _MSC_VER || defined __MSVCRT_VERSION__
 	p_SetApplicationLocale();
+
 	return bIsDirectory;
 }
 
@@ -468,6 +461,66 @@ const ALString FileService::GetLastSystemIOErrorMessage()
 	return sMessage;
 }
 
+boolean FileService::GetDirectoryContentExtended(const ALString& sPathName, StringVector* svDirectoryNames,
+						 StringVector* svFileNames)
+{
+#if defined _MSC_VER || defined __MSVCRT_VERSION__
+	return GetDirectoryContent(sPathName, svDirectoryNames, svFileNames);
+#else
+	boolean bOk = true;
+	DIR* dir;
+	struct dirent* ent;
+	int nRet;
+
+	require(svDirectoryNames != NULL);
+	require(svDirectoryNames->GetSize() == 0);
+	require(svFileNames != NULL);
+	require(svFileNames->GetSize() == 0);
+
+	p_SetMachineLocale();
+	if ((dir = opendir(sPathName)) != NULL)
+	{
+		/* print all the files and directories within directory */
+		while ((ent = readdir(dir)) != NULL)
+		{
+			// On traite tous les fichiers, sauf les fichiers predefinis "." et ".."
+			if (strcmp(ent->d_name, ".") != 0 and strcmp(ent->d_name, "..") != 0)
+			{
+				if (ent->d_type == DT_DIR)
+					svDirectoryNames->Add(ent->d_name);
+				if (ent->d_type == DT_REG)
+					svFileNames->Add(ent->d_name);
+				if (ent->d_type == DT_LNK)
+				{
+					struct stat sb;
+
+					nRet = stat(BuildFilePathName(sPathName, ent->d_name), &sb);
+					if (nRet != -1)
+					{
+						switch (sb.st_mode & S_IFMT)
+						{
+						case S_IFDIR:
+							svDirectoryNames->Add(ent->d_name);
+							break;
+						case S_IFREG:
+							svFileNames->Add(ent->d_name);
+							break;
+						default:
+							break;
+						}
+					}
+				}
+			}
+		}
+		closedir(dir);
+	}
+	else
+		bOk = false;
+	p_SetApplicationLocale();
+	return bOk;
+#endif
+}
+
 boolean FileService::GetDirectoryContent(const ALString& sPathName, StringVector* svDirectoryNames,
 					 StringVector* svFileNames)
 {
@@ -581,14 +634,14 @@ boolean FileService::MakeDirectories(const ALString& sPathName)
 		nEnd++;
 
 		// Creation du directory
-		if (sDirectory != "" and not IsDirectory(sDirectory))
+		if (sDirectory != "" and not DirExists(sDirectory))
 		{
 			bOk = MakeDirectory(sDirectory);
 			if (not bOk)
 				return false;
 		}
 	}
-	return IsDirectory(sPathName);
+	return DirExists(sPathName);
 }
 
 boolean FileService::RemoveDirectory(const ALString& sPathName)
@@ -867,7 +920,7 @@ const ALString FileService::GetFilePath(const ALString& sFileName, const ALStrin
 	int nEnd;
 
 	// Test d'existance dans le directory courant
-	if (IsFile(sFileName))
+	if (FileExists(sFileName))
 		return sFileName;
 
 	// Parcours des directories
@@ -884,7 +937,7 @@ const ALString FileService::GetFilePath(const ALString& sFileName, const ALStrin
 
 		// Recherche si le fichier existe dans le directory
 		sFilePath = BuildFilePathName(sDirectory, sFileName);
-		if (IsFile(sFilePath))
+		if (FileExists(sFilePath))
 		{
 			return sFilePath;
 		}
@@ -909,7 +962,7 @@ const ALString FileService::CreateNewFile(const ALString& sBaseFilePathName)
 
 	// Test d'existence avec le fichier de base
 	sNewFileName = sBaseFilePathName;
-	bNewFile = not Exist(sNewFileName);
+	bNewFile = not FileExists(sNewFileName);
 
 	// Tentative de creation si possible
 	if (bNewFile)
@@ -933,7 +986,7 @@ const ALString FileService::CreateNewFile(const ALString& sBaseFilePathName)
 		    BuildFilePathName(sPathName, BuildFileName(sFilePrefix + "_" + IntToString(nId), sFileSuffix));
 
 		// Test d'existence avec le nouveau nom
-		bNewFile = not Exist(sNewFileName);
+		bNewFile = not FileExists(sNewFileName);
 
 		// Si nouveau nom de fichier, on tente de creer le fichier
 		if (bNewFile)
@@ -959,7 +1012,7 @@ const ALString FileService::CreateNewDirectory(const ALString& sBasePathName)
 
 	// Test d'existence avec le repertoire de base
 	sNewDirectoryName = sBasePathName;
-	bNewDirectory = not Exist(sNewDirectoryName);
+	bNewDirectory = not DirExists(sNewDirectoryName);
 
 	// Tentative de creation si possible
 	if (bNewDirectory)
@@ -983,7 +1036,7 @@ const ALString FileService::CreateNewDirectory(const ALString& sBasePathName)
 		    sPathName, BuildFileName(sDirectoryPrefix + "_" + IntToString(nId), sDirectorySuffix));
 
 		// Test d'existence avec le nouveau nom
-		bNewDirectory = not Exist(sNewDirectoryName);
+		bNewDirectory = not DirExists(sNewDirectoryName);
 
 		// Si nouveau nom de fichier, on tente de creer le repertoire
 		if (bNewDirectory)
@@ -1009,7 +1062,7 @@ const ALString FileService::GetSystemTmpDir()
 	sTmpDir = p_getenv("TEMP");
 
 	// Test si directory inexistant
-	if (sTmpDir != "" and not IsDirectory(sTmpDir))
+	if (sTmpDir != "" and not DirExists(sTmpDir))
 		sTmpDir = "";
 
 	// Recherche de directory temporaire dans TMP
@@ -1018,7 +1071,7 @@ const ALString FileService::GetSystemTmpDir()
 		sTmpDir = p_getenv("TMP");
 
 		// Test si directory inexistant
-		if (sTmpDir != "" and not IsDirectory(sTmpDir))
+		if (sTmpDir != "" and not DirExists(sTmpDir))
 			sTmpDir = "";
 	}
 
@@ -1028,7 +1081,7 @@ const ALString FileService::GetSystemTmpDir()
 		sTmpDir = p_getenv("TMPDIR");
 
 		// Test si directory inexistant
-		if (sTmpDir != "" and not IsDirectory(sTmpDir))
+		if (sTmpDir != "" and not DirExists(sTmpDir))
 			sTmpDir = "";
 	}
 
@@ -1041,7 +1094,7 @@ const ALString FileService::GetSystemTmpDir()
 		sTmpDir += "temp";
 
 		// Test si directory inexistant
-		if (not IsDirectory(sTmpDir))
+		if (not DirExists(sTmpDir))
 			sTmpDir = "";
 	}
 #else
@@ -1052,7 +1105,7 @@ const ALString FileService::GetSystemTmpDir()
 		sTmpDir += "tmp";
 
 		// Test si directory inexistant
-		if (not IsDirectory(sTmpDir))
+		if (not DirExists(sTmpDir))
 			sTmpDir = "";
 	}
 #endif // #ifndef __UNIX__
@@ -1108,11 +1161,12 @@ boolean FileService::CreateApplicationTmpDir()
 
 	// Si deja cree, on sort
 	if (nApplicationTmpDirCreationFreshness == nApplicationTmpDirFreshness and sApplicationTmpDir != "" and
-	    FileService::Exist(sApplicationTmpDir) and
-	    FileService::Exist(BuildFilePathName(sApplicationTmpDir, GetAnchorFileName())))
+	    FileService::DirExists(sApplicationTmpDir) and
+	    FileService::FileExists(BuildFilePathName(sApplicationTmpDir, GetAnchorFileName())))
 		return true;
 
 	// Enregistrement de la fonction de destruction des fichiers temporaires
+	// Ce n'est fait qu'une seule fois grace a la variable booleenne
 	if (not bApplicationTmpDirAutomaticRemove)
 	{
 		atexit(FileServiceApplicationTmpDirAutomaticRemove);
@@ -1131,7 +1185,7 @@ boolean FileService::CreateApplicationTmpDir()
 
 	// Nettoyage des repertoires inactifs precedents
 	// On le fait a chaque fois, mais en fait cela ne devrait se passer que s'il y a un changement
-	// dans le nom de repertoire temporaire ouy dans le nom de l'application
+	// dans le nom de repertoire temporaire ou dans le nom de l'application
 	CleanExpiredApplicationTmpDirs(sApplicationTmpDir);
 
 	// Creation du repertoire temporaire utilisateur si different de la valeur par defaut (vide)
@@ -1145,11 +1199,11 @@ boolean FileService::CreateApplicationTmpDir()
 					 "Temp file directory must be an absolute path");
 		}
 		// Tentative de creation si necessaire
-		else if (not IsDirectory(sUserTmpDir))
+		else if (not DirExists(sUserTmpDir))
 		{
 			bOk = MakeDirectories(sUserTmpDir);
 			if (bOk)
-				bOk = IsDirectory(sUserTmpDir);
+				bOk = DirExists(sUserTmpDir);
 			if (not bOk)
 				Global::AddError("Temp file directory", sUserTmpDir,
 						 "Unable to create temp file directory");
@@ -1179,7 +1233,7 @@ boolean FileService::CreateApplicationTmpDir()
 	}
 
 	// Test l'existence du repertoire temporaire (le repertoire systeme peut avoir disparu)
-	if (bOk and not Exist(GetTmpDir()))
+	if (bOk and not DirExists(GetTmpDir()))
 	{
 		// Emission du message d'erreur
 		// (emis uniquement pour cette cause)
@@ -1226,7 +1280,7 @@ boolean FileService::CreateApplicationTmpDir()
 		nApplicationTmpDirCreationFreshness = nApplicationTmpDirFreshness;
 
 	// On initialise la date d'expiration avec une heure de delai
-	// Cela ne peut etre fait que tout s'est passe avec succes
+	// Cela ne peut etre fait que si tout s'est passe avec succes
 	if (bOk)
 		TouchApplicationTmpDir(3600);
 	return bOk;
@@ -1256,7 +1310,7 @@ boolean FileService::CheckApplicationTmpDir()
 	// Test d'existence du repertoire utilisateur
 	if (bOk)
 	{
-		bOk = FileService::Exist(sTmpDir);
+		bOk = FileService::DirExists(sTmpDir);
 		if (not bOk)
 			Global::AddError(sCategoryLabel, sTmpDir, "Directory does not exist");
 	}
@@ -1266,7 +1320,7 @@ boolean FileService::CheckApplicationTmpDir()
 	{
 		bOk = FileService::GetDiskFreeSpace(sTmpDir) >= lMB;
 		if (not bOk)
-			Global::AddError(sCategoryLabel, sTmpDir, "Less than 1 MB available");
+			Global::AddError(sCategoryLabel, sTmpDir, "Less than one MB available");
 	}
 
 	// Test d'existence du repertoire applicatif
@@ -1275,7 +1329,7 @@ boolean FileService::CheckApplicationTmpDir()
 		Global::AddError("Application temp directory", "", "Directory not created");
 		bOk = false;
 	}
-	if (bOk and not FileService::Exist(sApplicationTmpDir))
+	if (bOk and not FileService::DirExists(sApplicationTmpDir))
 	{
 		Global::AddError("Application temp directory", sApplicationTmpDir, "Directory does not exist");
 		bOk = false;
@@ -1363,7 +1417,7 @@ const ALString FileService::CreateUniqueTmpFile(const ALString& sBaseName, const
 		sFilePathName = BuildFilePathName(GetApplicationTmpDir(), GetTmpPrefix() + sBaseName);
 
 		// Erreur si fichier deja existant
-		if (Exist(sFilePathName))
+		if (FileExists(sFilePathName))
 		{
 			sFilePathName = "";
 			if (errorSender != NULL)
@@ -1408,7 +1462,7 @@ const ALString FileService::CreateUniqueTmpDirectory(const ALString& sBaseName, 
 		sDirPathName = BuildFilePathName(GetApplicationTmpDir(), GetTmpPrefix() + sBaseName);
 
 		// Erreur si fichier deja existant
-		if (Exist(sDirPathName))
+		if (FileExists(sDirPathName))
 		{
 			sDirPathName = "";
 			if (errorSender != NULL)
@@ -1549,7 +1603,6 @@ boolean FileService::IsURIWellFormed(const ALString& sURI)
 
 const ALString FileService::BuildURI(const ALString& sScheme, const ALString& sHostName, const ALString& sFileName)
 {
-
 	ALString sRelativePath;
 
 	require(GetURIScheme(sFileName) == "");
@@ -1609,6 +1662,13 @@ const ALString FileService::GetURIHostName(const ALString& sFileURI)
 			sHostName = sFileURI.Mid(sScheme.GetLength() + 3, nNextSlashPos - (sScheme.GetLength() + 3));
 	}
 	return sHostName;
+}
+
+boolean FileService::IsLocalURI(const ALString& sFileURI)
+{
+	return FileService::GetURIScheme(sFileURI) == "" or
+	       (FileService::GetURIScheme(sFileURI) == sRemoteScheme and
+		FileService::GetURIHostName(sFileURI) == GetLocalHostName());
 }
 
 const ALString FileService::GetURIFilePathName(const ALString& sFileURI)
@@ -1721,8 +1781,8 @@ boolean FileService::FileCompare(const ALString& sFileName1, const ALString& sFi
 	char c2;
 	boolean bSame;
 
-	require(FileService::IsFile(sFileName1));
-	require(FileService::IsFile(sFileName2));
+	require(FileService::FileExists(sFileName1));
+	require(FileService::FileExists(sFileName2));
 
 	// Test sur la taille
 	lFileSize = FileService::GetFileSize(sFileName1);
@@ -1771,7 +1831,7 @@ longint FileService::GetDiskFreeSpace(const ALString& sPathName)
 {
 	longint lFreeDiskSpace = 0;
 
-	require(not IsFile(sPathName));
+	require(not FileExists(sPathName));
 	if (sPathName == "")
 		lFreeDiskSpace = DiskGetFreeSpace(".");
 	else
@@ -1944,22 +2004,20 @@ void FileService::Test()
 	cout << endl
 	     << "Test d'existence du fichier existant " << GetPortableTmpFilePathName(GetFileName(sFilePathName2))
 	     << endl;
-	if (Exist(sFilePathName2))
+	if (FileExists(sFilePathName2))
 		cout << "OK " << GetPortableTmpFilePathName(GetFileName(sFilePathName2)) << " exists" << endl;
 	else
 		cout << "KO " << GetPortableTmpFilePathName(GetFileName(sFilePathName2)) << " not exists" << endl;
-	cout << "\tIsFile: " << IsFile(sFilePathName2) << "\tIsDir: " << IsDirectory(sFilePathName2) << endl;
 
 	// Test d'existence d'un fichier inexistant
 	sFilePathName3 = sFilePathName2 + ".unknown";
 	cout << endl
 	     << "Test d'existence du fichier inexistant " << GetPortableTmpFilePathName(GetFileName(sFilePathName3))
 	     << endl;
-	if (Exist(sFilePathName3))
+	if (FileExists(sFilePathName3))
 		cout << "KO " << GetPortableTmpFilePathName(GetFileName(sFilePathName3)) << " exists" << endl;
 	else
 		cout << "OK " << GetPortableTmpFilePathName(GetFileName(sFilePathName3)) << " not exists" << endl;
-	cout << "\tIsFile: " << IsFile(sFilePathName3) << "\tIsDir: " << IsDirectory(sFilePathName3) << endl;
 
 	// Recherche d'un fichier
 	cout << endl
@@ -1996,7 +2054,6 @@ void FileService::Test()
 	sFullDirName = BuildFilePathName(GetTmpDir(), sNewDirName);
 	bOk = MakeDirectory(sFullDirName);
 	cout << "Test de creation de repertoire " << GetPortableTmpFilePathName(sFullDirName) << ": " << bOk << endl;
-	cout << "\tIsFile: " << IsFile(sFullDirName) << "\tIsDir: " << IsDirectory(sFullDirName) << endl;
 	bOk = RemoveDirectory(sFullDirName);
 	cout << "Test de supression de repertoire " << GetPortableTmpFilePathName(sFullDirName) << ": " << bOk << endl;
 
@@ -2187,7 +2244,7 @@ boolean FileService::DeleteApplicationTmpDir()
 	boolean bOk = true;
 
 	// Destruction uniquement si necessaire
-	if (sApplicationTmpDir != "" and Exist(sApplicationTmpDir))
+	if (sApplicationTmpDir != "" and DirExists(sApplicationTmpDir))
 	{
 		// Nettoyage prealable, en gardant le fichier anchor ouvert pour laisser
 		// le repertoire actif vis a vis des autres applications le temps de sa destruction
@@ -2287,11 +2344,11 @@ void FileService::CleanExpiredApplicationTmpDirs(const ALString& sExpiredApplica
 		// Test si le repertoire correspond a un repertoire temporaire applicatif inactif
 		// C'est le cas s'il contient un fichier anchor contenant une date d'exprimeation valide
 		// et si cette date est expiree
-		bIsExpiredDirectory = IsDirectory(sTestedDirectoryName);
+		bIsExpiredDirectory = DirExists(sTestedDirectoryName);
 		fAnchor = NULL;
 		sAnchorPathName = BuildFilePathName(sTestedDirectoryName, GetAnchorFileName());
 		if (bIsExpiredDirectory)
-			bIsExpiredDirectory = IsFile(sAnchorPathName);
+			bIsExpiredDirectory = FileExists(sAnchorPathName);
 		if (bIsExpiredDirectory)
 		{
 			// La fonction p_fopen gere deja les locale correctement

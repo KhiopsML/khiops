@@ -23,12 +23,11 @@ public:
 	// Informations sur les fichiers
 	// Pas d'emission de messages d'erreur dans ces methodes
 
-	// Test d'existence d'un fichier (ou d'un directory)
-	static boolean Exist(const ALString& sPathName);
+	// Test d'existence d'un fichier
+	static boolean FileExists(const ALString& sPathName);
 
-	// Test si fichier ou repertoire
-	static boolean IsFile(const ALString& sPathName);
-	static boolean IsDirectory(const ALString& sPathName);
+	// Test d'existence d'un repertoire
+	static boolean DirExists(const ALString& sPathName);
 
 	// Changement du mode d'un fichier en lecture seulement ou lecture/ecriture sinon
 	// Renvoie false si changement non effectue
@@ -102,6 +101,10 @@ public:
 	// Renvoie true si OK
 	static boolean GetDirectoryContent(const ALString& sPathName, StringVector* svDirectoryNames,
 					   StringVector* svFileNames);
+
+	// Idem GetDirectoryContent avec prise en compte des symlinks sur linux
+	static boolean GetDirectoryContentExtended(const ALString& sPathName, StringVector* svDirectoryNames,
+						   StringVector* svFileNames);
 
 	// Creation d'un repertoire
 	// Indique en sortie si le repertoire existe, sans message d'erreur
@@ -332,6 +335,10 @@ public:
 	// Extraction du nom du fichier a partir de l'URI
 	// Renvoie le chemin en entree si l'URI est mal formee
 	static const ALString GetURIFilePathName(const ALString& sFileURI);
+
+	// Renvoie true si le fichier est local. Rend local si c'est un fichier standard
+	// ou si c'est un fichier distant (file) sur le localhost
+	static boolean IsLocalURI(const ALString& sFileURI);
 
 	// Mode d'affichage des libelles utilisateurs d'URI (defaut: true)
 	// Si true, on ne rend la partie HostName de l'URI que si le HostName n'est pas local

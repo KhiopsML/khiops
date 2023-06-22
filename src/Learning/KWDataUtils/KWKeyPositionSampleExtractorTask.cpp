@@ -14,6 +14,9 @@ KWKeyPositionSampleExtractorTask::KWKeyPositionSampleExtractorTask()
 	lFileLineNumber = 0;
 	lKeyUsedMemory = 0;
 	lInputFileSize = 0;
+	nReadSizeMin = 0;
+	nReadSizeMax = 0;
+	nReadBufferSize = 0;
 
 	// Variables partagees
 	DeclareSharedParameter(&shared_ivKeyFieldIndexes);
@@ -114,6 +117,7 @@ longint KWKeyPositionSampleExtractorTask::GetKeyUsedMemory() const
 boolean KWKeyPositionSampleExtractorTask::ExtractSample(ObjectArray* oaKeyPositions)
 {
 	boolean bOk = true;
+	boolean bDisplay = false;
 
 	require(oaKeyPositions != NULL);
 	require(sFileName != ""); // Le fichier d'entree doit etre renseigne
@@ -126,7 +130,7 @@ boolean KWKeyPositionSampleExtractorTask::ExtractSample(ObjectArray* oaKeyPositi
 	bOk = Run();
 
 	// Collecte des resultats
-	if (bOk and not TaskProgression::IsInterruptionRequested())
+	if (bOk and not IsTaskInterruptedByUser())
 	{
 		oaKeyPositions->CopyFrom(&oaResultKeyPositions);
 		oaResultKeyPositions.RemoveAll();
@@ -138,7 +142,26 @@ boolean KWKeyPositionSampleExtractorTask::ExtractSample(ObjectArray* oaKeyPositi
 		oaResultKeyPositions.DeleteAll();
 		bOk = false;
 	}
+
+	// Affichage
+	if (bDisplay)
+	{
+		cout << GetClassLabel() << "\t" << bOk << "\n";
+		WriteKeyPositions(oaKeyPositions, cout);
+		cout << endl;
+	}
 	return bOk;
+}
+
+void KWKeyPositionSampleExtractorTask::WriteKeyPositions(const ObjectArray* oaKeyPositions, ostream& ost) const
+{
+	int i;
+
+	require(oaKeyPositions != NULL);
+
+	ost << "Key positions\t" << oaKeyPositions->GetSize() << "\n";
+	for (i = 0; i < oaKeyPositions->GetSize(); i++)
+		ost << "\t" << i << "\t" << *oaKeyPositions->GetAt(i) << endl;
 }
 
 const ALString KWKeyPositionSampleExtractorTask::GetObjectLabel() const
@@ -228,9 +251,24 @@ PLParallelTask* KWKeyPositionSampleExtractorTask::Create() const
 boolean KWKeyPositionSampleExtractorTask::ComputeResourceRequirements()
 {
 	boolean bOk = true;
-	int nBufferLineNumber;
 	longint lKeyPositionUsedMemory;
-	int nBufferSize;
+	int nPreferredSize;
+	int nMinBufferLineNumber;
+	int nMaxBufferLineNumber;
+
+	// Taille du fichier en entree
+	lInputFileSize = PLRemoteFileService::GetFileSize(sFileName);
+
+	// Exigences sur la taille du buffer de lecture
+	// On neglige la memoire necessaire pour la gestion du cache, dans ce cas de traitement mono-fichier
+	nPreferredSize = PLRemoteFileService::GetPreferredBufferSize(sFileName);
+	nReadSizeMin = nPreferredSize;
+	nReadSizeMax = (SystemFile::nMaxPreferredBufferSize / nPreferredSize) * nPreferredSize;
+	nReadSizeMax = max(nReadSizeMax, nReadSizeMin);
+	if (nReadSizeMin > lInputFileSize)
+		nReadSizeMin = (int)lInputFileSize;
+	if (nReadSizeMax > lInputFileSize)
+		nReadSizeMax = (int)lInputFileSize;
 
 	// Memoire necessaire pour stocker une cle et sa position
 	lKeyPositionUsedMemory = lKeyUsedMemory + sizeof(KWKeyPosition) - sizeof(KWKey) + sizeof(Object*);
@@ -242,25 +280,28 @@ boolean KWKeyPositionSampleExtractorTask::ComputeResourceRequirements()
 			  2)); // Taille du sample (*2 pour etre tranquille)
 
 	// Estimation du nombre de clefs dans un buffer
-	lInputFileSize = PLRemoteFileService::GetFileSize(sFileName);
-	nBufferSize = BufferedFile::nDefaultBufferSize;
-	if (nBufferSize > lInputFileSize)
-	{
-		assert(lInputFileSize < INT_MAX);
-		nBufferSize = (int)(lInputFileSize + 1);
-	}
-	nBufferLineNumber = (int)ceil(lFileLineNumber * 1.0 * nBufferSize / (lInputFileSize + 1));
-	GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->Set(
-	    nBufferSize + nBufferLineNumber * lKeyPositionUsedMemory * 2);
+	nMinBufferLineNumber = (int)ceil(lFileLineNumber * (1.0 * nReadSizeMin) / (lInputFileSize + 1));
+	nMaxBufferLineNumber = (int)ceil(lFileLineNumber * (1.0 * nReadSizeMax) / (lInputFileSize + 1));
+
+	// Memoire par esclave: le buffer, plus les cle par buffer traite, au prorata de la taille du buffer
+	GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->SetMin(
+	    nReadSizeMin + (2 * lKeyPositionUsedMemory * nMinBufferLineNumber));
+	GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->SetMax(
+	    nReadSizeMax + (2 * lKeyPositionUsedMemory * nMaxBufferLineNumber));
 
 	// Nombre max de slaveProcess
-	GetResourceRequirements()->SetMaxSlaveProcessNumber((int)ceil(lInputFileSize * 1.0 / nBufferSize));
+	GetResourceRequirements()->SetMaxSlaveProcessNumber((int)ceil(lInputFileSize * 1.0 / (nReadSizeMin + 1)));
 	return bOk;
 }
 
 boolean KWKeyPositionSampleExtractorTask::MasterInitialize()
 {
 	boolean bOk = true;
+	longint lKeyPositionUsedMemory;
+	longint lSlaveGrantedMemory;
+	longint lReadBufferSize;
+	int nPreferredBufferSize;
+	ALString sTmp;
 
 	require(oaAllKeyPositionSamples.GetSize() == 0);
 	require(oaResultKeyPositions.GetSize() == 0);
@@ -271,10 +312,8 @@ boolean KWKeyPositionSampleExtractorTask::MasterInitialize()
 	shared_bHeaderLineUsed = bHeaderLineUsed;
 	shared_cFieldSeparator.SetValue(cFieldSeparator);
 
-	lFilePos = 0;
-
 	// Test si fichier d'entree present
-	if (not PLRemoteFileService::Exist(sFileName))
+	if (not PLRemoteFileService::FileExists(sFileName))
 	{
 		AddError("Input file " + FileService::GetURIUserLabel(sFileName) + " does not exist");
 		bOk = false;
@@ -286,6 +325,48 @@ boolean KWKeyPositionSampleExtractorTask::MasterInitialize()
 		AddError("Input file " + FileService::GetURIUserLabel(sFileName) + " is empty");
 		bOk = false;
 	}
+
+	// Memoire necessaire pour stocker une cle et sa position
+	lKeyPositionUsedMemory = lKeyUsedMemory + sizeof(KWKeyPosition) - sizeof(KWKey) + sizeof(Object*);
+
+	// Calcul de la taille du buffer en fonction de la memoire disponible pour les esclaves, selon la formule
+	// suivante similaire aux exigences min et max
+	//   lSlaveGrantedMemory = nReadBufferSize + (2 * lKeyPositionUsedMemory * lFileLineNumber * nReadBufferSize /
+	//   (lInputFileSize + 1))
+	// Soit
+	//   lSlaveGrantedMemory = nReadBufferSize * (1 + (2 * lKeyPositionUsedMemory * lFileLineNumber) /
+	//   (lInputFileSize + 1) nReadBufferSize = lSlaveGrantedMemory / (1 + (2 * lKeyPositionUsedMemory *
+	//   lFileLineNumber) / (lInputFileSize + 1)
+	lSlaveGrantedMemory = GetSlaveResourceGrant()->GetMemory();
+	lReadBufferSize = longint(lSlaveGrantedMemory /
+				  (1 + (2.0 * lKeyPositionUsedMemory * lFileLineNumber) / (lInputFileSize + 1)));
+
+	// Chaque esclave doit lire au moins 5 buffer (pour que le travail soit bien reparti entre les esclaves)
+	if (lInputFileSize / (GetProcessNumber() * 5) < lReadBufferSize)
+	{
+		lReadBufferSize = lInputFileSize / (GetProcessNumber() * 5);
+		if (GetVerbose())
+			AddMessage(sTmp + "Read buffer size reduced to " +
+				   LongintToHumanReadableString(lReadBufferSize));
+	}
+	nReadBufferSize = InputBufferedFile::FitBufferSize(lReadBufferSize);
+
+	// Arrondi a un multiple de preferredBufferSize du buffer de lecture
+	nPreferredBufferSize = PLRemoteFileService::GetPreferredBufferSize(sFileName);
+	if (nReadBufferSize > nPreferredBufferSize)
+	{
+		nReadBufferSize = (nReadBufferSize / nPreferredBufferSize) * nPreferredBufferSize;
+		if (GetVerbose())
+			AddMessage(sTmp + "Read buffer size shrunk to preferred size multiple " +
+				   LongintToHumanReadableString(nReadBufferSize));
+	}
+
+	// Projection sur les exigences min et max
+	nReadBufferSize = max(nReadBufferSize, nReadSizeMin);
+	nReadBufferSize = min(nReadBufferSize, nReadSizeMax);
+
+	// Initialisation de la position du fichier a traiter
+	lFilePos = 0;
 	return bOk;
 }
 
@@ -301,8 +382,9 @@ boolean KWKeyPositionSampleExtractorTask::MasterPrepareTaskInput(double& dTaskPe
 		lvLineCountPerTaskIndex.Add(0);
 
 		// Parametrage de la taille du buffer
-		input_nBufferSize =
-		    ComputeStairBufferSize(lMB, BufferedFile::nDefaultBufferSize, lFilePos, lInputFileSize);
+		input_nBufferSize = ComputeStairBufferSize(nReadSizeMin, nReadBufferSize,
+							   PLRemoteFileService::GetPreferredBufferSize(sFileName),
+							   lFilePos, lInputFileSize);
 
 		// Parametrage de l'offset de lecture
 		input_lFilePos = lFilePos;
@@ -466,6 +548,8 @@ boolean KWKeyPositionSampleExtractorTask::MasterFinalize(boolean bProcessEndedCo
 
 boolean KWKeyPositionSampleExtractorTask::SlaveInitialize()
 {
+	boolean bOk = true;
+
 	require(shared_ivKeyFieldIndexes.GetSize() > 0);
 
 	// Recopie du nom de la base (pour les messages d'erreur)
@@ -473,138 +557,178 @@ boolean KWKeyPositionSampleExtractorTask::SlaveInitialize()
 
 	// Initialisation de l'extracteur de clef a partir du tableau d'index envoye par le master
 	keyExtractor.SetKeyFieldIndexes(shared_ivKeyFieldIndexes.GetConstIntVector());
-	return true;
+
+	// Parametrage du fichier d'entree a analyser pour la tache
+	inputFile.SetFileName(shared_sInputFileName.GetValue());
+	inputFile.SetHeaderLineUsed(shared_bHeaderLineUsed);
+	inputFile.SetFieldSeparator(shared_cFieldSeparator.GetValue());
+
+	// Ouverture du fichier en entree
+	bOk = inputFile.Open();
+	return bOk;
 }
 
 boolean KWKeyPositionSampleExtractorTask::SlaveProcess()
 {
 	boolean bOk = true;
-	InputBufferedFile inputFile;
 	ObjectArray* oaKeyPositionSample;
 	KWKeyPosition* previousRecordKeyPosition;
 	KWKeyPosition* recordKeyPosition;
-	int nLineIndex;
 	PeriodicTest periodicTestInterruption;
 	double dProgression;
-	boolean bIsOpen;
 	int nCompareKey;
+	longint lBeginPos;
+	longint lMaxEndPos;
+	longint lNextLinePos;
+	boolean bLineTooLong;
+	int nCumulatedLineNumber;
+	boolean bIsLineOK;
 	ALString sTmp;
 
-	// Initialisation du buffer de lecture
-	inputFile.SetFileName(shared_sInputFileName.GetValue());
-	inputFile.SetHeaderLineUsed(shared_bHeaderLineUsed);
-	inputFile.SetFieldSeparator(shared_cFieldSeparator.GetValue());
+	// Specification de la portion du fichier a traiter
+	lBeginPos = input_lFilePos;
+	lMaxEndPos = min(input_lFilePos + input_nBufferSize, inputFile.GetFileSize());
+
+	// Parametrage de la taille du buffer
 	inputFile.SetBufferSize(input_nBufferSize);
 
-	// Index des lignes traitees localement
-	nLineIndex = 0;
-
-	// Ouverture et remplissage du buffer de lecture
-	bIsOpen = inputFile.Open();
-	if (bIsOpen)
+	// On commence par se caller sur un debut de ligne, sauf si on est en debut de fichier
+	nCumulatedLineNumber = 0;
+	if (lBeginPos > 0)
 	{
-		bOk = inputFile.Fill(input_lFilePos);
-	}
-	else
-		bOk = false;
-	if (bOk)
-	{
-		// Index des lignes traitees localement
-		nLineIndex = 0;
-
-		// Saut du Header
-		if (input_lFilePos == (longint)0 and shared_bHeaderLineUsed)
+		bOk = inputFile.SearchNextLineUntil(lBeginPos, lMaxEndPos, lNextLinePos);
+		if (bOk)
 		{
-			inputFile.SkipLine();
-			nLineIndex++;
+			// On se positionne sur le debut de la ligne suivante si elle est trouvee
+			if (lNextLinePos != -1)
+			{
+				lBeginPos = lNextLinePos;
+				nCumulatedLineNumber = 1;
+			}
+			// Si non trouvee, on se place en fin de chunk
+			else
+				lBeginPos = lMaxEndPos;
 		}
 	}
-	// Parcours du buffer d'entree
+	assert(inputFile.GetCurrentBufferSize() == 0);
+
+	// Remplissage du buffer avec des lignes entieres dans la limite de la taille du buffer
+	// On ignorera ainsi le debut de la derniere ligne commencee avant lMaxEndPos
+	// Ce n'est pas grave d'ignorer au plus une ligne par buffer, puisque l'on est ici dans une optique
+	// d'echantillonnage
+	if (bOk and lBeginPos < lMaxEndPos)
+		bOk = inputFile.FillInnerLinesUntil(lBeginPos, lMaxEndPos);
+
+	// Initialisation des variables de travail
+	keyExtractor.SetBufferedFile(&inputFile);
 	oaKeyPositionSample = output_oaKeyPositionSample->GetObjectArray();
 	previousRecordKeyPosition = NULL;
-	keyExtractor.SetBufferedFile(&inputFile);
-	while (bOk and not inputFile.IsBufferEnd())
+
+	// Analyse des lignes du buffer
+	if (bOk and inputFile.GetCurrentBufferSize() > 0)
 	{
-		nLineIndex++;
+		assert(inputFile.GetCurrentBufferSize() <= input_nBufferSize);
 
-		// Gestion de la progesssion
-		if (periodicTestInterruption.IsTestAllowed(nLineIndex))
+		// Saut du Header
+		// Il n'est pas utile ici d'avoir un warning en cas de ligne trop longue
+		if (input_lFilePos == (longint)0 and shared_bHeaderLineUsed)
+			inputFile.SkipLine(bLineTooLong);
+
+		// Parcours du buffer d'entree
+		while (bOk and not inputFile.IsBufferEnd())
 		{
-			dProgression = inputFile.GetCurrentLineNumber() * 1.0 / inputFile.GetBufferLineNumber();
-			TaskProgression::DisplayProgression((int)floor(dProgression * 100));
-			if (TaskProgression::IsInterruptionRequested())
+			// Gestion de la progresssion
+			if (periodicTestInterruption.IsTestAllowed(nCumulatedLineNumber +
+								   inputFile.GetCurrentLineIndex()))
 			{
-				bOk = false;
-				break;
+				// Calcul de la progression par rapport a la proportion de la portion du fichier traitee
+				// parce que l'on ne sait pas le nombre total de ligne que l'on va traiter
+				dProgression = (inputFile.GetPositionInFile() - input_lFilePos) * 1.0 /
+					       (lMaxEndPos - input_lFilePos);
+				TaskProgression::DisplayProgression((int)floor(dProgression * 100));
+				if (TaskProgression::IsInterruptionRequested())
+				{
+					bOk = false;
+					break;
+				}
 			}
-		}
 
-		// Tirage aleatoire pour decider si on garde chaque record
-		if (IthRandomDouble(inputFile.GetPositionInFile()) <= shared_dSamplingRate)
-		{
-			// Extraction de la cle
-			keyExtractor.ParseNextKey(NULL);
-			recordKeyPosition = new KWKeyPosition;
-			keyExtractor.ExtractKey(recordKeyPosition->GetKey());
+			// Tirage aleatoire pour decider si on garde chaque record
+			if (IthRandomDouble(inputFile.GetPositionInFile()) <= shared_dSamplingRate)
+			{
+				// Extraction de la cle, que la ligne soit valide ou non
+				recordKeyPosition = new KWKeyPosition;
+				bIsLineOK = keyExtractor.ParseNextKey(recordKeyPosition->GetKey(), NULL);
 
-			// Memorisation du numero de ligne pour la cle
-			recordKeyPosition->SetLineIndex(nLineIndex);
+				// Memorisation du numero de ligne pour la cle
+				recordKeyPosition->SetLineIndex(nCumulatedLineNumber + inputFile.GetCurrentLineIndex());
 
-			// Memorisation de la position pour le debut de ligne suivant
-			recordKeyPosition->SetLinePosition(inputFile.GetPositionInFile());
+				// Memorisation de la position pour le debut de ligne suivant
+				recordKeyPosition->SetLinePosition(inputFile.GetPositionInFile());
 
-			// Comparaison de la cle avec la precedente si elle existe
-			nCompareKey = -1;
-			if (previousRecordKeyPosition != NULL)
-				nCompareKey = previousRecordKeyPosition->Compare(recordKeyPosition);
+				// Comparaison de la cle avec la precedente si elle existe
+				nCompareKey = -1;
+				if (previousRecordKeyPosition != NULL)
+					nCompareKey = previousRecordKeyPosition->Compare(recordKeyPosition);
 
-			// Memorisation de la cle si nouvelle cle
-			if (nCompareKey < 0)
-				oaKeyPositionSample->Add(recordKeyPosition);
-			// Destruction si egalite
-			else if (nCompareKey == 0)
-				delete recordKeyPosition;
-			// Erreur si cles non ordonnees
+				// Memorisation de la cle si nouvelle cle
+				if (nCompareKey < 0)
+				{
+					oaKeyPositionSample->Add(recordKeyPosition);
+					previousRecordKeyPosition = recordKeyPosition;
+				}
+				// Destruction si egalite
+				else if (nCompareKey == 0)
+					delete recordKeyPosition;
+				// Erreur si cles non ordonnees
+				else
+				{
+					AddLocalError(
+					    "unsorted key " + recordKeyPosition->GetKey()->GetObjectLabel() +
+						" inferior to preceding key " +
+						previousRecordKeyPosition->GetKey()->GetObjectLabel() + " found " +
+						LongintToReadableString(recordKeyPosition->GetLineIndex() -
+									previousRecordKeyPosition->GetLineIndex()) +
+						" lines before",
+					    nCumulatedLineNumber + inputFile.GetCurrentLineIndex() - 1);
+					delete recordKeyPosition;
+					bOk = false;
+					break;
+				}
+			}
+			// Saut de ligne sinon
 			else
-			{
-				AddLocalError("unsorted key " + recordKeyPosition->GetKey()->GetObjectLabel() +
-						  " inferior to preceding key " +
-						  previousRecordKeyPosition->GetKey()->GetObjectLabel() + " found " +
-						  LongintToReadableString(recordKeyPosition->GetLineIndex() -
-									  previousRecordKeyPosition->GetLineIndex()) +
-						  " lines before",
-					      nLineIndex);
-				delete recordKeyPosition;
-				bOk = false;
-				break;
-			}
-
-			// Memorisation de la cle precedente
-			previousRecordKeyPosition = recordKeyPosition;
+				inputFile.SkipLine(bLineTooLong);
 		}
-		// Saut de ligne sinon
-		else
-			inputFile.SkipLine();
+
+		// Prise en compte des lignes du buffer
+		nCumulatedLineNumber += inputFile.GetBufferLineNumber();
 	}
 
 	// On indique le nombre de lignes traitees, en fin de SlaveProcess
-	SetLocalLineNumber(nLineIndex);
-	output_lReadLineCount = nLineIndex;
+	if (bOk)
+	{
+		SetLocalLineNumber(nCumulatedLineNumber);
+		output_lReadLineCount = nCumulatedLineNumber;
+	}
 
 	// Nettoyage si KO
 	if (not bOk)
 		oaKeyPositionSample->DeleteAll();
-	if (bIsOpen)
-		inputFile.Close();
 	return bOk;
 }
 
 boolean KWKeyPositionSampleExtractorTask::SlaveFinalize(boolean bProcessEndedCorrectly)
 {
+	boolean bOk = true;
+
 	// Nettoyage
 	keyExtractor.Clean();
 
-	return true;
+	// Fermeture du fichier
+	if (inputFile.IsOpened())
+		bOk = inputFile.Close();
+	return bOk;
 }
 
 int KWSortedKeyPositionArrayCompare(const void* elem1, const void* elem2)

@@ -169,7 +169,7 @@ PLShared_StringObject::~PLShared_StringObject() {}
 
 void PLShared_StringObject::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
-	StringObject* so;
+	const StringObject* so;
 
 	require(serializer->IsOpenForWrite());
 	require(o != NULL);
@@ -197,7 +197,7 @@ PLShared_DoubleObject::~PLShared_DoubleObject() {}
 
 void PLShared_DoubleObject::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
-	DoubleObject* hr;
+	const DoubleObject* hr;
 
 	require(serializer->IsOpenForWrite());
 	require(o != NULL);
@@ -226,7 +226,7 @@ PLShared_IntObject::~PLShared_IntObject() {}
 
 void PLShared_IntObject::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
-	IntObject* io;
+	const IntObject* io;
 
 	require(serializer->IsOpenForWrite());
 	require(o != NULL);
@@ -255,7 +255,7 @@ PLShared_LongintObject::~PLShared_LongintObject() {}
 
 void PLShared_LongintObject::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
-	LongintObject* lo;
+	const LongintObject* lo;
 
 	require(serializer->IsOpenForWrite());
 	require(o != NULL);

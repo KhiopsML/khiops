@@ -103,6 +103,7 @@ extern "C"
 	/*
 	 * Version of KNI
 	 */
+#define KNI_VERSION_10_1 110
 #define KNI_VERSION_10_0 100
 #define KNI_VERSION_9_0 90
 #define KNI_VERSION_8_0 80

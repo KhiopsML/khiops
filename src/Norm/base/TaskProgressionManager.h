@@ -17,12 +17,13 @@ class FileTaskProgressionManager;
 /////////////////////////////////////////////////////////////////////////
 // Classe TaskProgressionManager
 // Definition d'une classe ancetre des managers.
-// Toutes les methodes, calquant les methodes de pilotage de la classe
+// Toutes les methodes, similaires aux methodes de pilotage de la classe
 // TaskProgression, sont virtuelles et doivent etre reimplementees
 // dans les sous-classes.
 class TaskProgressionManager : public Object
 {
 public:
+	// Methodes similaires a celles de TaskProgression
 	virtual void Start() = 0;
 	virtual boolean IsInterruptionRequested() = 0;
 	virtual void Stop() = 0;
@@ -32,6 +33,10 @@ public:
 	virtual void SetMainLabel(const ALString& sValue) = 0;
 	virtual void SetLabel(const ALString& sValue) = 0;
 	virtual void SetProgression(int nValue) = 0;
+
+	// Doit renvoyer true ou false sans aucun calcul pour indiquer si on doit
+	// temporiser ou non le test des interruptions (false pour temporiser).
+	virtual boolean IsInterruptionResponsive() const = 0;
 };
 
 /////////////////////////////////////////////////////////////////////////
@@ -62,6 +67,7 @@ public:
 	void SetMainLabel(const ALString& sValue) override;
 	void SetLabel(const ALString& sValue) override;
 	void SetProgression(int nValue) override;
+	boolean IsInterruptionResponsive() const override;
 
 	/////////////////////////////////////////////////////////////
 	///// Implementation
@@ -81,6 +87,7 @@ protected:
 	int nCurrentLevel;
 	StringVector svMainLabels;
 	IntVector ivProgressions;
+	int nTaskIndex;
 
 	// Bufferisation des derniers messages
 	Timer tLastProgressionMessage;
@@ -90,4 +97,9 @@ protected:
 	ALString sLastProgressionMessage;
 	static int nMaxCompletedTaskMessageNumber;
 	static double dMinInterMessageSeconds;
+	ALString sStartTimeStamp;
+
+	// Sortie dans la console
+	boolean bPrintProgressionInConsole;
+	const ALString sLinePrefix = "Khiops.progression";
 };

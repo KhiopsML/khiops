@@ -65,7 +65,7 @@ public:
 	static int GetLastToken();
 
 	// Numero de ligne courante
-	static int GetCurrentLineNumber();
+	static int GetCurrentLineIndex();
 
 	// Acces a la valeur associee a un token
 	static const ALString& GetTokenStringValue();
@@ -89,7 +89,7 @@ public:
 	static boolean ReadBooleanValue(boolean& bValue);
 	static boolean ReadNullValue();
 
-	// Specialisation dans le cas d'un nombre, en verifiant si necessairte que la valeur est positive ou nul
+	// Specialisation dans le cas d'un nombre, en verifiant si necessaire que la valeur est positive ou nul
 	static boolean ReadDoubleValue(boolean bIsPositive, double& dValue);
 	static boolean ReadContinuousValue(boolean bIsPositive, Continuous& cValue);
 	static boolean ReadIntValue(boolean bIsPositive, int& nValue);

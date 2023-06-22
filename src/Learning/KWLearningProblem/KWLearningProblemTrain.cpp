@@ -4,9 +4,10 @@
 
 #include "KWLearningProblem.h"
 
-void KWLearningProblem::TrainPredictors(const KWClassDomain* initialDomain, KWClassStats* classStats,
-					ObjectArray* oaTrainedPredictors)
+boolean KWLearningProblem::TrainPredictors(const KWClassDomain* initialDomain, KWClassStats* classStats,
+					   ObjectArray* oaTrainedPredictors)
 {
+	boolean bOk = true;
 	ObjectArray oaPredictors;
 	ObjectArray oaUnivariatePredictors;
 	int i;
@@ -29,8 +30,11 @@ void KWLearningProblem::TrainPredictors(const KWClassDomain* initialDomain, KWCl
 	for (i = 0; i < oaTrainedPredictors->GetSize(); i++)
 	{
 		predictor = cast(KWPredictor*, oaTrainedPredictors->GetAt(i));
-		TrainPredictor(initialDomain, classStats, predictor);
+		bOk = bOk and TrainPredictor(initialDomain, classStats, predictor);
+		if (not bOk)
+			break;
 	}
+	return bOk;
 }
 
 void KWLearningProblem::CollectTrainedPredictorClasses(ObjectArray* oaTrainedPredictors,
@@ -159,9 +163,10 @@ void KWLearningProblem::CollectUnivariatePredictors(KWClassStats* classStats, Ob
 	}
 }
 
-void KWLearningProblem::TrainPredictor(const KWClassDomain* initialDomain, KWClassStats* classStats,
-				       KWPredictor* predictor)
+boolean KWLearningProblem::TrainPredictor(const KWClassDomain* initialDomain, KWClassStats* classStats,
+					  KWPredictor* predictor)
 {
+	boolean bOk = true;
 	KWLearningSpec* learningSpec;
 
 	require(initialDomain != NULL);
@@ -170,7 +175,8 @@ void KWLearningProblem::TrainPredictor(const KWClassDomain* initialDomain, KWCla
 	require(classStats->IsStatsComputed());
 	require(predictor != NULL);
 
-	if (not TaskProgression::IsInterruptionRequested())
+	bOk = not TaskProgression::IsInterruptionRequested();
+	if (bOk)
 	{
 		// Debut de tache
 		TaskProgression::BeginTask();
@@ -198,5 +204,9 @@ void KWLearningProblem::TrainPredictor(const KWClassDomain* initialDomain, KWCla
 		else
 			TaskProgression::DisplayLabel("Ko");
 		TaskProgression::EndTask();
+
+		// Indicateur de succes
+		bOk = predictor->IsTrained() and not TaskProgression::IsInterruptionRequested();
 	}
+	return bOk;
 }

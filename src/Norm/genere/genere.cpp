@@ -6,16 +6,23 @@
 
 void CommandLineError()
 {
-	cout << "  Genere [options] <ClassName> <ClassLabel> <Attribute FileName>\n";
+	cout << "Genere [options] <ClassName> <ClassLabel> <AttributeFileName>\n";
+	cout << "\t  <ClassName>: base name for generated classes\n";
+	cout << "\t  <ClassLabel>: label for generated classes\n";
+	cout << "\t  <AttributeFileName>: name of the file (.dd) containing the attribute specifications\n";
 	cout << "\tOptions:\n";
+	cout << "\t  -nomodel\n";
+	cout << "\t      no generation of class <ClassName>\n";
 	cout << "\t  -noarrayview\n";
-	cout << "\t      pas de generation la classe <ClassName>ArrayView\n";
+	cout << "\t      no generation of class <ClassName>ArrayView\n";
 	cout << "\t  -noview\n";
-	cout << "\t      pas de generation des classes <ClassName>View et <ClassName>ArrayView\n";
+	cout << "\t      no generation of classes <ClassName>View and <ClassName>ArrayView\n";
 	cout << "\t  -nousersection\n";
-	cout << "\t      pas de generation de sections utilisateurs\n";
+	cout << "\t      no generation of user sections\n";
 	cout << "\t  -super <SuperClassName>\n";
-	cout << "\t      parametrage (optionnel) du nom de la classe mere";
+	cout << "\t      parameter (optionnal) of the name of the parent class\n";
+	cout << "\t  -outputdir <DirName>\n";
+	cout << "\t      ouput directory for generation (default: current directory)";
 	cout << endl;
 	exit(0);
 }
@@ -34,10 +41,8 @@ void Genere(int argc, char** argv)
 		for (int i = 1; i < argc - 3; i++)
 		{
 			sOption = argv[i];
-			if (sOption == "-nomanagement")
-			{
-				cout << "option -nomanagement is deprecated" << endl;
-			}
+			if (sOption == "-nomodel")
+				tgTest.SetGenereModel(false);
 			else if (sOption == "-noarrayview")
 				tgTest.SetGenereArrayView(false);
 			else if (sOption == "-noview")
@@ -53,9 +58,24 @@ void Genere(int argc, char** argv)
 					sSuperClassName = argv[i];
 				}
 			}
+			else if (sOption == "-outputdir")
+			{
+				// Acces si possible au nom de la classe mere
+				if (i + 1 < argc - 3)
+				{
+					i++;
+					tgTest.SetOutputDir(argv[i]);
+					if (not FileService::DirExists(tgTest.GetOutputDir()))
+					{
+						cout << "ouputdir <" << tgTest.GetOutputDir()
+						     << "> is not a valid directory\n";
+						CommandLineError();
+					}
+				}
+			}
 			else
 			{
-				cout << sOption << " n'est pas une option valide\n";
+				cout << sOption << " is not a valid option\n";
 				CommandLineError();
 			}
 		}

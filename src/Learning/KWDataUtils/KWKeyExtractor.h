@@ -37,16 +37,16 @@ public:
 
 	// Construit la prochaine clef a partir de la position courante
 	// positionne le curseur en debut de ligne suivante
-	// Emet eventuellement des warning, mais fait au mieux, sans erreurs
+	// Emet eventuellement des warning, et renvoie false en cas d'erreur ou de ligne trop longue
 	// Les messages de warning sont emis par la classe PLParallelTask passee en parametre (pas de message si NULL)
 	// Si c'est le cas, La methode PLParallelTask::SetLocalLineNumber doit etre appelee
-	void ParseNextKey(PLParallelTask* taskErrorSender);
-
-	// Alimente la cle suite au parsing
-	void ExtractKey(KWKey* key) const;
+	boolean ParseNextKey(KWKey* key, PLParallelTask* taskErrorSender);
 
 	// Donne les adresses de debut (inclus) et de fin (exclue) de la ligne (a appeler apres avoir parse la cle)
 	void ExtractLine(int& nBeginPos, int& nEndPos) const;
+
+	// Affichage d'une plage de caracteres
+	void WriteLine(int nBeginPos, int nEndPos, ostream& ost) const;
 
 	// Libelles utilisateurs
 	const ALString GetClassLabel() const override;

@@ -147,7 +147,8 @@ boolean DTBaseLoaderSplitter::CreateDaughterBaseloaderFromSplitAttribute(KWAttri
 			oaDaughter = cast(ObjectArray*, oaTrainDaughterObjects.GetAt(nPartIndex));
 			svDaughter = cast(SymbolVector*, oaTrainDaughterTargetVector.GetAt(nPartIndex));
 			tlDaughter = new KWTupleTableLoader;
-
+			tlDaughter->SetCheckDatabaseObjectClass(
+			    databaseloaderOrigine->GetTupleLoader()->GetCheckDatabaseObjectClass());
 			tlDaughter->SetInputClass(databaseloaderOrigine->GetLearningSpec()->GetClass());
 			tlDaughter->SetInputExtraAttributeName(
 			    databaseloaderOrigine->GetLearningSpec()->GetTargetAttributeName());
@@ -213,7 +214,8 @@ boolean DTBaseLoaderSplitter::CreateDaughterBaseloaderFromSplitAttribute(KWAttri
 			oaDaughter = cast(ObjectArray*, oaTrainDaughterObjects.GetAt(nPartIndex));
 			svDaughter = cast(SymbolVector*, oaTrainDaughterTargetVector.GetAt(nPartIndex));
 			tlDaughter = new KWTupleTableLoader;
-
+			tlDaughter->SetCheckDatabaseObjectClass(
+			    databaseloaderOrigine->GetTupleLoader()->GetCheckDatabaseObjectClass());
 			tlDaughter->SetInputClass(databaseloaderOrigine->GetLearningSpec()->GetClass());
 			tlDaughter->SetInputExtraAttributeName(
 			    databaseloaderOrigine->GetLearningSpec()->GetTargetAttributeName());

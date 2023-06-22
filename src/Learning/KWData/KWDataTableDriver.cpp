@@ -216,9 +216,10 @@ longint KWDataTableDriver::ComputeNecessaryMemoryForFullExternalRead(const KWCla
 	return 0;
 }
 
-longint KWDataTableDriver::ComputeNecessaryDiskSpaceForFullWrite(const KWClass* kwcLogicalClass)
+longint KWDataTableDriver::ComputeNecessaryDiskSpaceForFullWrite(const KWClass* kwcLogicalClass, longint lInputFileSize)
 {
 	require(kwcLogicalClass != NULL);
+	require(lInputFileSize >= 0);
 	return 0;
 }
 

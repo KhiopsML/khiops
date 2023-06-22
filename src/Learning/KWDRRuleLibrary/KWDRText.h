@@ -15,9 +15,9 @@
 //  . le type du premier operande est Text au lieu de Symbol
 //  . le type de la valeur retour est Text au lieu de Symbol, si necessaire
 //
-// Toutes les regles de KWDRString sont implementee de facon generique en sous-classe
-// de la classe KWDRStringRule, ce qui permet de redéfinir tres simplement chaque
-// regle correspondantes pour le type Text
+// Toutes les regles de KWDRString sont implementees de facon generique en sous-classes
+// de la classe KWDRStringRule, ce qui permet de redefinir tres simplement chaque
+// regle correspondante pour le type Text
 
 class KWDRTextLength;
 class KWDRTextLeft;

@@ -302,9 +302,8 @@ void KWLearningBenchmarkBivariate::EvaluateExperiment(int nBenchmark, int nPredi
 	// Calcul des stats descriptives
 	classStats.SetLearningSpec(learningSpec);
 	attributePairsSpec.SetClassName(learningSpec->GetClass()->GetName());
+	attributePairsSpec.SetMaxAttributePairNumber(ivBenchmarkExplanatoryAttributePairNumbers.GetAt(nBenchmark));
 	classStats.SetAttributePairsSpec(&attributePairsSpec);
-	classStats.GetAttributePairsSpec()->SetMaxAttributePairNumber(
-	    ivBenchmarkExplanatoryAttributePairNumbers.GetAt(nBenchmark));
 	classStats.ComputeStats();
 
 	// Parametrage de l'apprentissage

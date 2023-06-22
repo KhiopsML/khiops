@@ -7,6 +7,10 @@
 ///////////////////////////////////////
 // Implementation de la classe Global
 
+boolean Global::bPrintMessagesInConsole = false;
+
+ErrorFlowIgnoreFunction Global::fErrorFlowIgnoreFunction = NULL;
+
 void Global::AddSimpleMessage(const ALString& sLabelValue)
 {
 	AddErrorObjectValued(Error::GravityMessage, "", "", sLabelValue);
@@ -24,6 +28,7 @@ void Global::AddWarning(const ALString& sCategoryValue, const ALString& sLocalis
 
 void Global::AddError(const ALString& sCategoryValue, const ALString& sLocalisationValue, const ALString& sLabelValue)
 {
+	bIsAtLeastOneError = true;
 	AddErrorObjectValued(Error::GravityError, sCategoryValue, sLocalisationValue, sLabelValue);
 }
 
@@ -52,6 +57,15 @@ Global::Global()
 }
 
 Global::~Global() {}
+
+boolean Global::IgnoreErrorFlowForDisplay(const Error* e)
+{
+	require(e != NULL);
+	if (fErrorFlowIgnoreFunction == NULL)
+		return false;
+	else
+		return fErrorFlowIgnoreFunction(e, true);
+}
 
 void Global::SignalHandler(int nSigNum)
 {
@@ -117,7 +131,8 @@ void Global::AddErrorObjectValued(int nGravityValue, const ALString& sCategoryVa
 		}
 
 		// Affichage si autorise
-		if (nErrorFlowControlLevel == 0 or lErrorFlowNumber <= nMaxErrorFlowNumber)
+		if (nErrorFlowControlLevel == 0 or lErrorFlowNumber <= nMaxErrorFlowNumber or
+		    IgnoreErrorFlowForDisplay(&e))
 			ShowError(e);
 
 		// Affichage special si depassement du nombre max autorise
@@ -156,7 +171,14 @@ void Global::ShowError(Error e)
 	{
 		// Ecriture dans le fichier de log
 		if (fstError.is_open())
+		{
+			// Si c'est une redirection dans la console, on prefixe le message
+			// pour qu'il soit facilement identifiable parmi les autres types de messages
+			// (progression, output etc...)
+			if (bPrintMessagesInConsole)
+				fstError << "Khiops.log\t";
 			fstError << e << flush;
+		}
 
 		// Affichage avec interface utilisateur
 		e.Display();
@@ -220,6 +242,25 @@ boolean Global::IsMaxErrorFlowReachedPerGravity(int nErrorGravity)
 		return false;
 }
 
+boolean Global::IgnoreErrorFlow(const Error* e)
+{
+	require(e != NULL);
+	if (fErrorFlowIgnoreFunction == NULL)
+		return false;
+	else
+		return fErrorFlowIgnoreFunction(e, false);
+}
+
+void Global::SetErrorFlowIgnoreFunction(ErrorFlowIgnoreFunction fErrorFlowIgnore)
+{
+	fErrorFlowIgnoreFunction = fErrorFlowIgnore;
+}
+
+ErrorFlowIgnoreFunction Global::GetErrorFlowIgnoreFunction()
+{
+	return fErrorFlowIgnoreFunction;
+}
+
 void Global::SetSilentMode(boolean bValue)
 {
 	bSilentMode = bValue;
@@ -273,6 +314,14 @@ boolean Global::SetErrorLogFileName(const ALString& sValue)
 			AddError("File", sErrorLogFileName, "Unable to open log file");
 			bOk = false;
 		}
+
+		// Si le fichier de log est /dev/stdout ou /dev/stderr
+		// C'est une redirection des messages vers la console
+		// (on ajoutera un prefix a chaque ligne)
+#ifdef __UNIX__
+		if (sValue == "/dev/stdout" or sValue == "/dev/stderr")
+			bPrintMessagesInConsole = true;
+#endif // __UNIX__
 	}
 	return bOk;
 }
@@ -280,6 +329,11 @@ boolean Global::SetErrorLogFileName(const ALString& sValue)
 const ALString Global::GetErrorLogFileName()
 {
 	return sErrorLogFileName;
+}
+
+boolean Global::IsAtLeastOneError()
+{
+	return bIsAtLeastOneError;
 }
 
 int Global::nErrorFlowControlLevel = 0;
@@ -295,6 +349,8 @@ boolean Global::bSilentMode = false;
 ALString Global::sErrorLogFileName;
 
 fstream Global::fstError;
+
+boolean Global::bIsAtLeastOneError = false;
 
 //////////////////////////////////////////////////////////////
 //            Implementation de la classe Error

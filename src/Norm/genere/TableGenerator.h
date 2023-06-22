@@ -26,7 +26,8 @@ public:
 	TableGenerator();
 	~TableGenerator();
 
-	//// Attributs
+	///////////////////////////////////////////////////////////
+	// Attributs
 
 	// Nom de la classe a generer
 	const ALString& GetClassName() const;
@@ -40,12 +41,12 @@ public:
 	const ALString& GetClassUserLabel() const;
 	void SetClassUserLabel(const ALString& sValue);
 
-	//// Parametrage de ce qui est a generer (true par defaut)
+	///////////////////////////////////////////////////////////
+	// Parametrage de ce qui est a generer (true par defaut)
 
-	// Generation des fonctionnalites de gestion des objets
-	// (possible si aucun attribut n'est stocke)
-	void SetGenereManagement(boolean bValue);
-	boolean GetGenereManagement() const;
+	// Generation de la classe principale
+	void SetGenereModel(boolean bValue);
+	boolean GetGenereModel() const;
 
 	// Generation des fonctionnalites d'interface graphique
 	// (GenereView==false => genereArrayView== false)
@@ -57,20 +58,25 @@ public:
 	void SetGenereArrayView(boolean bValue);
 	boolean GetGenereArrayView() const;
 
-	// Generation de sections utilisateurs
+	// Generation des sections utilisateurs
 	void SetGenereUserSection(boolean bValue);
 	boolean GetGenereUserSection() const;
 
-	//// Methodes de generation
+	// Repertoire en sortie de generation (defaut: "", repertoire courant)
+	void SetOutputDir(const ALString& sValue);
+	const ALString& GetOutputDir() const;
+
+	// Methodes de generation
 	void Genere() const;
 	void GenereWith(const ALString& sName, const ALString& sSuperName, const ALString& sLabel,
 			const ALString& sAttributeFileName);
 
-	// Generation de doc (provisoire)
-	void GenereDoc(ostream& ost) const;
-
+	//////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
+	// Verification de la syntaxe d'un nom de classe
+	boolean CheckClassName(const ALString& sValue) const;
+
 	// Acces aux attributs de type Field, dans le bon ordre
 	int GetFieldNumber() const;
 	Attribute* GetFieldAt(int i) const;
@@ -83,6 +89,41 @@ protected:
 	AttributeTable* GetAttributeTable() const;
 	void SetAttributeTable(AttributeTable* attTable);
 
+	// Gestion des erreurs
+	void Error(const ALString& sMessage) const;
+
+	// Nom des fichiers de backup
+	const ALString BuildBackupFileName(const ALString& sFileName, const ALString& sWhich) const;
+
+	// Gestion de la consolidation des fichiers utilisateurs et generes
+	void ConsolidateFiles(const ALString& sFileName) const;
+
+	///////////////////////////////////////////////////////////
+	// Methodes de generation
+
+	// Utilitaires de generation
+	void GenerateFileHeader(ostream& ost) const;
+	void GenereClassHeaderComment(ostream& ost, const ALString& sClassFamily) const;
+	void GenereTitledComment(ostream& ost, const ALString& sIndent, const ALString& sComment) const;
+	void GenereImplementationComment(ostream& ost) const;
+	void GenerateUserCodeSection(ostream& ost, const ALString& sIndent, const ALString& sIdentifier) const;
+	void GenerateUserCodeHeader(ostream& ost, const ALString& sIndent, const ALString& sIdentifier) const;
+	void GenerateUserCodeTrailer(ostream& ost, const ALString& sIndent, const ALString& sIdentifier,
+				     boolean bNewLine) const;
+
+	// Generation des tables d'attribut
+	void GenerateAttributeH(ostream& ost) const;
+	void GenerateAttributeC(ostream& ost) const;
+
+	// Generation des composants d'interface utilisateur et du menu de query
+	void GenerateAttributeViewH(ostream& ost) const;
+	void GenerateAttributeViewC(ostream& ost) const;
+	void GenerateAttributeArrayViewH(ostream& ost) const;
+	void GenerateAttributeArrayViewC(ostream& ost) const;
+
+	///////////////////////////////////////////////////////////
+	// Attributs
+
 	// Attributs de base
 	ALString sClassName;
 	ALString sClassUserLabel;
@@ -93,46 +134,9 @@ protected:
 	QueryServices* qsFieldRangServices;
 
 	// Parametrage de la generation
-	boolean bGenereManagement;
+	boolean bGenereModel;
 	boolean bGenereView;
 	boolean bGenereArrayView;
 	boolean bGenereUserSection;
-
-	// Gestion des erreurs
-	void Error(const ALString& sMessage) const;
-
-	// Nom des fichiers de backup
-	const ALString Backup(const ALString& sFileName, const ALString& sWhich) const;
-
-	// Gestion de la consolidation des fichiers utilisateurs et generes
-	void ConsolidateFiles(const ALString& sFileName) const;
-
-	//// Methodes de generation
-
-	// Utilitaires de generation
-	void GenerateFileHeader(ostream& ost) const;
-	void GenereClassHeaderComment(ostream& ost, const ALString& sClassFamily) const;
-	void GenereTitledComment(ostream& ost, const ALString& sIndent, const ALString& sComment) const;
-	void GenereImplementationComment(ostream& ost) const;
-	void GenerateUserCodeSection(ostream& ost, const ALString& sIndent, const ALString& sIdentifier) const;
-	void GenerateUserCodeHeader(ostream& ost, const ALString& sIndent, const ALString& sIdentifier) const;
-	void GenerateUserCodeTrailer(ostream& ost, const ALString& sIndent, const ALString& sIdentifier) const;
-
-	// Generation des tables d'attribut
-	void GenerateAttributeH(ostream& ost) const;
-	void GenerateAttributeC(ostream& ost) const;
-	void GenerateAttributeTableH(ostream& ost) const;
-	void GenerateAttributeTableC(ostream& ost) const;
-
-	// Generation des composants d'interface utilisateur et du menu de query
-	void GenerateAttributeViewH(ostream& ost) const;
-	void GenerateAttributeViewC(ostream& ost) const;
-	void GenerateAttributeArrayViewH(ostream& ost) const;
-	void GenerateAttributeArrayViewC(ostream& ost) const;
-
-	// Generation des services de statistiques sur les attributs des tables
-	void GenerateAttributeTableHStats(ostream& ost) const;
-	void GenerateAttributeTableHStatsImp(ostream& ost) const;
-	void GenerateAttributeTableHStatsCompare(ostream& ost) const;
-	void GenerateAttributeTableCStats(ostream& ost) const;
+	ALString sOutputDir;
 };

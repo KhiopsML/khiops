@@ -64,7 +64,7 @@ KWDatabaseTransferView::KWDatabaseTransferView()
 	targetDatabaseView->AddStringField("OutputFormat", "Output format", "tabular");
 
 	// On indique que le champ de parametrage du dictionnaire declenche une action de rafraichissement
-	// de l'interface immediatement apres une mise a jour, pour pouvouir rafraichir les mapping des databases
+	// de l'interface immediatement apres une mise a jour, pour pouvoir rafraichir les mapping des databases
 	cast(UIElement*, GetFieldAt("ClassName"))->SetTriggerRefresh(true);
 
 	// Parametrage de liste d'aide l'attribut de format de sortie
@@ -253,8 +253,9 @@ void KWDatabaseTransferView::TransferDatabase()
 	longint lRecordNumber;
 
 	// Execution controlee par licence
-	if (not LMLicenseManager::RequestLicenseKey())
-		return;
+	if (LMLicenseManager::IsEnabled())
+		if (not LMLicenseManager::RequestLicenseKey())
+			return;
 
 	// Verification du directory des fichiers temporaires
 	if (not FileService::CreateApplicationTmpDir())
@@ -366,10 +367,6 @@ void KWDatabaseTransferView::TransferDatabase()
 			}
 		}
 
-		// Erreur agregee
-		if (not bOk)
-			AddError("The transferred database file name should differ from that of the input database");
-
 		// Creation si necessaire des repertoires des fichiers a transferer
 		if (bOk)
 		{
@@ -379,7 +376,7 @@ void KWDatabaseTransferView::TransferDatabase()
 
 				// Acces au repertoire du fichier a transferer
 				sOutputPathName = FileService::GetPathName(specTarget->GetFilePathName());
-				if (sOutputPathName != "" and not PLRemoteFileService::Exist(sOutputPathName))
+				if (sOutputPathName != "" and not PLRemoteFileService::DirExists(sOutputPathName))
 				{
 					bOk = PLRemoteFileService::MakeDirectories(sOutputPathName);
 					if (not bOk)
@@ -452,7 +449,6 @@ void KWDatabaseTransferView::BuildTransferredClass()
 	KWClass* transferClass;
 	ALString sTmp;
 	UIFileChooserCard registerCard;
-	ALString sChosenFileName;
 	ObjectArray oaSourceDatabaseFileSpecs;
 	ObjectArray oaTargetDatabaseFileSpecs;
 	int nRef;
@@ -465,8 +461,9 @@ void KWDatabaseTransferView::BuildTransferredClass()
 	ALString sOutputPathName;
 
 	// Execution controlee par licence
-	if (not LMLicenseManager::RequestLicenseKey())
-		return;
+	if (LMLicenseManager::IsEnabled())
+		if (not LMLicenseManager::RequestLicenseKey())
+			return;
 
 	// Memorisation des donnees modifies (non geres par les View)
 	sClassName = GetStringValueAt("ClassName");
@@ -495,15 +492,14 @@ void KWDatabaseTransferView::BuildTransferredClass()
 			sTargetPath = FileService::GetPathName(sourceDatabase->GetDatabaseName());
 		sTransferredClassFileName = FileService::BuildFilePathName(sTargetPath, "Transfer.kdic");
 
-		// Ouverture du FileChooser
-		sChosenFileName =
-		    registerCard.ChooseFile("Save under", "Save", "FileChooser", "Dictionary\nkdic", "ClassFileName",
+		// Ouverture du FileChooser pour obtenir le nom du fichier a transfere, ou vide si annulation
+		sTransferredClassFileName =
+		    registerCard.ChooseFile("Save as", "Save", "FileChooser", "Dictionary\nkdic", "ClassFileName",
 					    "Transferred dictionary file", sTransferredClassFileName);
 
 		// Verification du nom du fichier de dictionnaire
-		if (sChosenFileName != "")
+		if (sTransferredClassFileName != "")
 		{
-			sTransferredClassFileName = sChosenFileName;
 			specTransferredDictionaryFile.SetLabel("transferred dictionary");
 			specTransferredDictionaryFile.SetFilePathName(sTransferredClassFileName);
 
@@ -545,14 +541,14 @@ void KWDatabaseTransferView::BuildTransferredClass()
 		}
 
 		// Construction et sauvegarde du dictionnaire
-		if (bOk)
+		if (bOk and sTransferredClassFileName != "")
 		{
 			AddSimpleMessage("Write transferred dictionary file " + sTransferredClassFileName);
 			transferredClass = InternalBuildTransferredClass(&transferredClassDomain, transferClass);
 
 			// Creation si necessaire du repertoire cible
 			sOutputPathName = FileService::GetPathName(sTransferredClassFileName);
-			if (sOutputPathName != "" and not FileService::Exist(sOutputPathName))
+			if (sOutputPathName != "" and not FileService::DirExists(sOutputPathName))
 			{
 				bOk = PLRemoteFileService::MakeDirectories(sOutputPathName);
 				if (not bOk)

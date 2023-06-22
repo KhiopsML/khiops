@@ -155,7 +155,7 @@ int JSONTokenizer::GetLastToken()
 	return nLastToken;
 }
 
-int JSONTokenizer::GetCurrentLineNumber()
+int JSONTokenizer::GetCurrentLineIndex()
 {
 	require(IsOpened());
 	return jsonlineno;
@@ -195,7 +195,6 @@ void JSONTokenizer::TestReadJsonFile(int argc, char** argv)
 	// Test de conversion elementaire
 	if (bTestConversion)
 	{
-
 		sTest = "aa\\u221Ebb\\u00e9cc\\/\\\\dd\\tee";
 		cout << "Json string\t" << sTest << "\t";
 		JsonToCString(sTest, sCString);
@@ -236,7 +235,7 @@ void JSONTokenizer::TestReadJsonFile(int argc, char** argv)
 				}
 				else if (nToken == Error)
 				{
-					cout << "<ERROR line " << GetCurrentLineNumber() << ": " << sJsonTokenString
+					cout << "<ERROR line " << GetCurrentLineIndex() << ": " << sJsonTokenString
 					     << " > " << endl;
 					break;
 				}
@@ -580,12 +579,12 @@ boolean JSONTokenizer::ReadIntValue(boolean bIsPositive, int& nValue)
 	// Lecture puis conversion en entier
 	bOk = ReadDoubleValue(bIsPositive, dValue);
 	if (bOk)
-		nValue = int(floor(dValue + 0.5));
+		bOk = KWContinuous::ContinuousToInt(dValue, nValue);
 	else
 		nValue = 0;
-	if (bOk and fabs(nValue - dValue) > 1e-5)
+	if (not bOk)
 	{
-		AddParseError(sTmp + "Invalid integer value (" + DoubleToString(dValue) + ")");
+		AddParseError(sTmp + "Invalid integer value (" + KWContinuous::ContinuousToString(dValue) + ")");
 		bOk = false;
 	}
 	return bOk;
@@ -722,12 +721,12 @@ boolean JSONTokenizer::ReadKeyIntValue(const ALString& sKey, boolean bIsPositive
 	// Lecture puis conversion en entier
 	bOk = ReadKeyDoubleValue(sKey, bIsPositive, dValue, bIsEnd);
 	if (bOk)
-		nValue = int(floor(dValue + 0.5));
+		bOk = KWContinuous::ContinuousToInt(dValue, nValue);
 	else
 		nValue = 0;
-	if (bOk and fabs(nValue - dValue) > 1e-5)
+	if (not bOk)
 	{
-		AddParseError("Invalid " + sKey + " (" + DoubleToString(dValue) + ")");
+		AddParseError("Invalid " + sKey + " (" + KWContinuous::ContinuousToString(dValue) + ")");
 		bOk = false;
 	}
 	return bOk;
@@ -866,5 +865,5 @@ void JSONTokenizer::AppendSubString(ALString& sString, const char* sAddedString,
 
 void JSONTokenizer::AddParseError(const ALString& sLabel)
 {
-	Global::AddError(sErrorFamily, sFileName + " line " + IntToString(GetCurrentLineNumber()), sLabel);
+	Global::AddError(sErrorFamily, sFileName + " line " + IntToString(GetCurrentLineIndex()), sLabel);
 }

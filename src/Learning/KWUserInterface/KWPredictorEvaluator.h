@@ -93,9 +93,10 @@ public:
 
 	// Evaluation d'un ensemble de predicteurs
 	// Le libelle d'evaluation vaut typiquement Train ou Test
+	// Renvoie false en cas d'erreur ou d'interruption utilisateur
 	// Memoire: le contenu du tableau en sortie est a liberer par l'appelant
-	void EvaluatePredictors(ObjectArray* oaPredictors, KWDatabase* database, const ALString& sEvaluationLabel,
-				ObjectArray* oaOutputPredictorEvaluations);
+	boolean EvaluatePredictors(ObjectArray* oaPredictors, KWDatabase* database, const ALString& sEvaluationLabel,
+				   ObjectArray* oaOutputPredictorEvaluations);
 
 	// Ecriture d'un rapport d'evaluation
 	void WriteEvaluationReport(const ALString& sEvaluationReportName, const ALString& sEvaluationLabel,

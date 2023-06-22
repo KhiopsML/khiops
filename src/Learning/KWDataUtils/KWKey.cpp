@@ -152,6 +152,26 @@ void KWKeyPosition::CollectKeys(const ObjectArray* oaKeyPositions, ObjectArray* 
 	ensure(oaKeys->GetSize() == oaKeyPositions->GetSize());
 }
 
+void KWKeyPosition::CollectClonedKeys(const ObjectArray* oaKeyPositions, ObjectArray* oaClonedKeys)
+{
+	int i;
+	KWKeyPosition* keyPosition;
+	KWKey* key;
+
+	require(oaKeyPositions != NULL);
+	require(oaClonedKeys != NULL);
+	require(oaClonedKeys->GetSize() == 0);
+
+	for (i = 0; i < oaKeyPositions->GetSize(); i++)
+	{
+		keyPosition = cast(KWKeyPosition*, oaKeyPositions->GetAt(i));
+		key = keyPosition->GetKey();
+		check(key);
+		oaClonedKeys->Add(key->Clone());
+	}
+	ensure(oaClonedKeys->GetSize() == oaKeyPositions->GetSize());
+}
+
 void KWKeyPosition::CleanKeys(const ObjectArray* oaKeyPositions)
 {
 	int i;
@@ -182,7 +202,6 @@ const ALString KWKeyPosition::GetObjectLabel() const
 
 	sLabel = key.GetObjectLabel();
 	sLabel = sLabel + " at line " + LongintToString(lLineIndex);
-	sLabel = sLabel + ", position " + LongintToString(lLinePosition);
 	return sLabel;
 }
 

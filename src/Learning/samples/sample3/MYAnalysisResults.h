@@ -5,8 +5,7 @@
 #pragma once
 
 ////////////////////////////////////////////////////////////
-// 2017-08-09 17:12:25
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "Object.h"
@@ -30,14 +29,14 @@ public:
 	void CopyFrom(const MYAnalysisResults* aSource);
 	MYAnalysisResults* Clone() const;
 
-	////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
 	// Acces aux attributs
 
 	// Compute basic secondary stats
 	boolean GetComputeBasicSecondaryStats() const;
 	void SetComputeBasicSecondaryStats(boolean bValue);
 
-	////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
 	// Divers
 
 	// Ecriture
@@ -52,7 +51,7 @@ public:
 	// ##
 
 	////////////////////////////////////////////////////////
-	//// Implementation
+	///// Implementation
 protected:
 	// Attributs de la classe
 	boolean bComputeBasicSecondaryStats;

@@ -15,13 +15,28 @@ class SystemFileDriverCreator : public Object
 {
 public:
 	// Instanciation des drivers a partir de bibliotheques dynamiques
-	static void RegisterDrivers();
+	// Retourne le nombre de drivers correctement instancies
+	static int RegisterExternalDrivers();
+
+	// Retourne le nombre de drivers instancies a partir de bibliotheques dynamiques
+	static int GetExternalDriverNumber();
+
+	// Enregistrement d'un driver a partir d'un objet
+	static void RegisterDriver(SystemFileDriver* driver);
+
+	// Nettoyage de tous les drivers (objet ou DLL)
 	static void UnregisterDrivers();
 
 	// Acces au driver adapte a l'URI passee en parametre
-	// La detection de la technologie est automatique et basse sur les schema de l'URI
+	// La detection de la technologie est automatique et basee sur les schema de l'URI
 	// Renvoie NULL en cas d'echec
-	static SystemFileDriver* LookupDriver(const ALString& sScheme, const Object* errorSender);
+	static SystemFileDriver* LookupDriver(const ALString& sURI, const Object* errorSender);
+
+	// Renvoie true si il ya un driver disponible pour le scheme passe en parametre
+	static boolean IsDriverRegisteredForScheme(const ALString& sScheme);
+
+	// Renvoie le plus grand preferred buffer size de tous les drivers (y compris le driver ANSI)
+	static longint GetMaxPreferredBufferSize();
 
 protected:
 	// Renvoie true si le nom du fichier en parametre corresepond aux nom des drivers
@@ -32,8 +47,11 @@ protected:
 	// La liste des types d'URI gerees correspond a celle definies par FileService::IsURITypeManaged
 	// On la gere "en dur" plutot que de facon generique, car leur nombre ne va pas augmenter
 	static ObjectArray* oaSystemFileDriver;
-	static boolean bIsRegistered;
 
 	// Driver pour les fichiers locaux, toujours disponible
 	static SystemFileDriverANSI driverANSI;
+
+	// Nombre de drivers externes, different de la taille de oaSystemFileDriver car ce tableau
+	// contient egalement le drivers objets
+	static int nExternalDriverNumber;
 };

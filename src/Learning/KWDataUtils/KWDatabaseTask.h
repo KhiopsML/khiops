@@ -6,7 +6,8 @@
 
 #include "PLDatabaseTextFile.h"
 #include "PLParallelTask.h"
-#include "KWMTDatabaseIndexer.h"
+#include "KWDatabaseChunkBuilder.h"
+#include "KWDatabaseIndexer.h"
 #include "KWFileIndexerTask.h"
 #include "MemoryStatsManager.h"
 
@@ -23,6 +24,15 @@ public:
 	// Constructeur
 	KWDatabaseTask();
 	~KWDatabaseTask();
+
+	// Parametrage par un DatabaseIndexer, qui permet de reutiliser l'indexation d'une base
+	// entre plusieurs taches paralleles, pour peut que la base soit de meme structure
+	// (cf methode CompareDatabaseStructure de KWDatabaseIndexer).
+	// La tache sait comment utiliser et reutiliser ce parametre, qui n'a pas besoin d'etre initialise
+	// par l'appelant. Si ce parametre n'est aps specifie, la tache utilise sont propre DatabaseIndexer.
+	// Memoire: appatient a l'appelant
+	void SetReusableDatabaseIndexer(KWDatabaseIndexer* databaseIndexer);
+	KWDatabaseIndexer* GetReusableDatabaseIndexer() const;
 
 	// Parametrage de l'affichage des messages specifiques a la tache (nombre d'enregistrements lus...) a l'issue de
 	// la tache (defaut: true)
@@ -67,9 +77,9 @@ protected:
 	// Methode principale a appeler pour lancer la tache pilotee par la base d'entree
 	// Dans une sous-classe, il faut avoir initialisee les eventuelles variables partagees
 	// specifiques, puis apres la tache collecter les resultats de la taches
-	// On peut appeler ensuiite la methode d'affichage des messages utilisateurs
+	// On peut appeler ensuite la methode d'affichage des messages utilisateurs
 	// La base source doit etre mono ou multi-tables en fichiers textes
-	// Methode interruptible, retourne false si erreur ou interruption (avec message), true sinon
+	// La methode interruptible, retourne false si erreur ou interruption (avec message), true sinon
 	virtual boolean RunDatabaseTask(const KWDatabase* sourceDatabase);
 
 	// Methode a appeler apres l'execution de la tache
@@ -89,9 +99,8 @@ protected:
 	// Calcul du plan d'indexation des tables du schema, a partir de la variable partagee de la base en entree
 	// On calcule d'abord les index de champ de chaque table en entree, ce qui permet de savoir quelle table doit
 	// etre lue. On collecte un echantillon de cle de la table principale, ainsi que leur position pour chaque table
-	// On determine alors un decoupage des tables pour les traitement par esclave
-	// En sortie, si OK, on a donc initialise les tableaux oaAllChunksBeginPos, oaAllChunksBeginRecordIndex, et
-	// oaAllChunksLastRootKeys
+	// secondaire On determine alors un decoupage des tables pour les traitement par esclave En sortie, si OK, on a
+	// donc initialise les tableaux oaAllChunksBeginPos, oaAllChunksBeginRecordIndex, et oaAllChunksLastRootKeys
 
 	// Calcul du plan d'indexation global des bases pour le pilotage de la parallelisation
 	// Erreur possible si pas assez de ressource par exemple
@@ -115,8 +124,13 @@ protected:
 	// Dimensionnement des ressources
 	boolean ComputeResourceRequirements() override;
 
-	// Initialisation du maitre
+	// Initialisation du maitre, qui appel l'initialisation de la base en fin de methode
+	//  MasterInitializeDatabase
 	boolean MasterInitialize() override;
+
+	// Initialisation de la base via sa variable partagee, notamment pour le dimensionnement de ses ressources
+	// propres
+	virtual boolean MasterInitializeDatabase();
 
 	// Preparation de la tache d'un esclave
 	boolean MasterPrepareTaskInput(double& dTaskPercent, boolean& bIsTaskFinished) override;
@@ -135,11 +149,9 @@ protected:
 	boolean SlaveInitialize() override;
 
 	// Debut de l'initialisation de l'esclave: preparation du dictionnaire
-	// Gestion du dictionnaire, mise a jour des bases et dimensionnement des ressources
 	virtual boolean SlaveInitializePrepareDictionary();
 
-	// Milieu de l'initialisation de l'esclave: preparation et dimensionnement de la base en utilisant les
-	// ressources
+	// Milieu de l'initialisation de l'esclave: preparation de la base
 	virtual boolean SlaveInitializePrepareDatabase();
 
 	// Fin de l'initialisation de l'esclave: ouverture de la base
@@ -218,27 +230,27 @@ protected:
 
 	// Vecteur des positions de depart des fichiers de la base multi-table en entree
 	// Cf. variable oaAllChunksBeginPos du maitre
-	PLShared_LongintVector input_lvChunkBeginPos;
+	PLShared_LongintVector input_lvChunkBeginPositions;
 
 	// Vecteur des positions de fin (non compris) des fichiers de la base multi-table en entree
-	PLShared_LongintVector input_lvChunkEndPos;
+	PLShared_LongintVector input_lvChunkEndPositions;
 
 	// Vecteur des index de record de depart des fichiers de la base multi-table en entree
-	// Permet une gestion correcte des message d'erreurs
+	// Permet une gestion correcte des messages d'erreurs
 	// Cf. variable oaAllChunksBeginRecordIndex du maitre
-	PLShared_LongintVector input_lvChunkBeginRecordIndex;
+	PLShared_LongintVector input_lvChunkPreviousRecordIndexes;
 
 	// Cles racine de depart pour le traitement de l'esclave
 	PLShared_Key input_ChunkLastRootKey;
 
-	// Position pour le pilotage de la lecture du fichier dans le cas mono-table
+	// Position de depart pour le pilotage de la lecture du fichier dans le cas mono-table
 	PLShared_Longint input_lFileBeginPosition;
 
-	// Nombre de lignes deja lues dans le cas mono-table
-	PLShared_Longint input_lFileBeginRecordIndex;
+	// Position de fin pour le pilotage de la lecture du fichier dans le cas mono-table
+	PLShared_Longint input_lFileEndPosition;
 
-	// Taille du buffer de lecture
-	PLShared_Int input_nBufferSize;
+	// Nombre de lignes deja lues dans le cas mono-table
+	PLShared_Longint input_lFilePreviousRecordIndex;
 
 	//////////////////////////////////////////////////////
 	// Resultats de la tache executee par un esclave
@@ -264,8 +276,14 @@ protected:
 	// La valeur -1 est utilisee pour les tables non ouvertes
 	LongintVector lvMappingReadRecords;
 
-	// Indexer de base de donnees
-	KWMTDatabaseIndexer mtDatabaseIndexer;
+	// Indexeur de base de donnee reutilisable par plusieurs taches
+	KWDatabaseIndexer* reusableDatabaseIndexer;
+
+	// Indexeur de base de donnee specifique a la tache, a utiliser s'il n'y en a pas de reutilisable parametre
+	KWDatabaseIndexer taskDatabaseIndexer;
+
+	// Service de construction de chunks pour le traitement en parallel d'une base de donnees
+	KWDatabaseChunkBuilder databaseChunkBuilder;
 
 	// Duree d'indexation
 	double dDatabaseIndexerTime;
@@ -277,19 +295,6 @@ protected:
 	boolean bDisplaySpecificTaskMessage;
 	boolean bDisplayEndTaskMessage;
 	boolean bDisplayTaskTime;
-
-	//////////////////////////////////////////////////////
-	// Variables du Master dans le cas mono-table
-	// Pilotage de la lecture par des troncons de fichier
-	// definis par une position de depart, une position d'arrivee et
-	// nombre de lignes lues precedemment, pour calculer le numero
-	// de ligne global par rapport au  numero de ligne local a un esclave
-
-	// Vecteur des positions de lectures du fichier, de 0  a la taille du fichier
-	LongintVector lvFileBeginPositions;
-
-	// Vecteur des nombre de lignes lues, de 0 au nombre total de lignes du fichier
-	LongintVector lvFileBeginRecordIndexes;
 
 	//////////////////////////////////////////////////////
 	// Variables des esclaves

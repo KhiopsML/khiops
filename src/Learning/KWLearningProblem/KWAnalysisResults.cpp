@@ -3,8 +3,7 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 ////////////////////////////////////////////////////////////
-// 2021-04-06 18:11:58
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "KWAnalysisResults.h"
@@ -14,6 +13,8 @@ KWAnalysisResults::KWAnalysisResults()
 	// ## Custom constructor
 
 	sPreparationFileName = "PreparationReport.xls";
+	sTextPreparationFileName = "TextPreparationReport.xls";
+	sTreePreparationFileName = "TreePreparationReport.xls";
 	sPreparation2DFileName = "Preparation2DReport.xls";
 	sModelingDictionaryFileName = "Modeling.kdic";
 	sModelingFileName = "ModelingReport.xls";
@@ -39,6 +40,8 @@ void KWAnalysisResults::CopyFrom(const KWAnalysisResults* aSource)
 	sResultFilesPrefix = aSource->sResultFilesPrefix;
 	sShortDescription = aSource->sShortDescription;
 	sPreparationFileName = aSource->sPreparationFileName;
+	sTextPreparationFileName = aSource->sTextPreparationFileName;
+	sTreePreparationFileName = aSource->sTreePreparationFileName;
 	sPreparation2DFileName = aSource->sPreparation2DFileName;
 	sModelingDictionaryFileName = aSource->sModelingDictionaryFileName;
 	sModelingFileName = aSource->sModelingFileName;
@@ -71,6 +74,8 @@ void KWAnalysisResults::Write(ostream& ost) const
 	ost << "Result files prefix\t" << GetResultFilesPrefix() << "\n";
 	ost << "Short description\t" << GetShortDescription() << "\n";
 	ost << "Preparation report\t" << GetPreparationFileName() << "\n";
+	ost << "Text preparation report\t" << GetTextPreparationFileName() << "\n";
+	ost << "Tree preparation report\t" << GetTreePreparationFileName() << "\n";
 	ost << "2D preparation report\t" << GetPreparation2DFileName() << "\n";
 	ost << "Modeling dictionary file\t" << GetModelingDictionaryFileName() << "\n";
 	ost << "Modeling report\t" << GetModelingFileName() << "\n";

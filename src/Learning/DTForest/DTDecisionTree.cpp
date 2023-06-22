@@ -182,6 +182,8 @@ boolean DTDecisionTree::Build()
 
 	boolean bContinue = true;
 	boolean bpostmode = true;
+	const boolean bIsRegression =
+	    (GetOrigineBaseLoader()->GetTupleLoader()->GetInputExtraAttributeContinuousValues() != NULL ? true : false);
 
 	// Debut de suivi des taches
 	TaskProgression::BeginTask();
@@ -278,7 +280,7 @@ boolean DTDecisionTree::Build()
 			StartTimer(DTTimerTree1);
 			bContinue = SetUpInternalNode(bestSplit->GetTreeCost(),
 						      bestSplit->GetSplittableNode()->GetNodeIdentifier(),
-						      bestSplit->GetAttributeStats(), nPartNumber);
+						      bestSplit->GetAttributeStats(), nPartNumber, bIsRegression);
 			StopTimer(DTTimerTree1);
 
 			if (bContinue == false)
@@ -525,7 +527,8 @@ NumericKeyDictionary* DTDecisionTree::SelectPossibleSplits()
 				if (bOk == false)
 					continue;
 
-				if (attributeStats->GetPreparedDataGridStats()->GetAttributeNumber() == 1)
+				if (attributeStats->GetPreparedDataGridStats() == NULL or
+				    attributeStats->GetPreparedDataGridStats()->GetAttributeNumber() == 1)
 					continue; // a partir de learningEnv v8, les attributs a level nul ne sont plus
 						  // prepares. Le seul attribut prepare correspond ici a l'attribut
 						  // cible
@@ -800,7 +803,8 @@ DTDecisionTreeNode* DTDecisionTree::GetRootNode() const
 }
 
 boolean DTDecisionTree::SetUpInternalNode(const double dNewCost, const Symbol sFatherNodeKey,
-					  KWAttributeStats* fatherNodeBestAttributeStats, const int nValueNumber)
+					  KWAttributeStats* fatherNodeBestAttributeStats, const int nValueNumber,
+					  const boolean bIsRegression)
 {
 	DTBaseLoaderSplitter* databaseSplitterTrain;
 	DTBaseLoaderSplitter* databaseSplitterOutOfBag;
@@ -1088,6 +1092,11 @@ boolean DTDecisionTree::SetUpInternalNode(const double dNewCost, const Symbol sF
 
 		// calcul du level de la regle de la feuille
 		// GetCostClass()->ComputeNodeCost(sonNode, this);
+
+		// En cas de regression ayant ete transformee "artificiellement" en classification : mise a jour du
+		// dictionnaire des instances de base, associant chaque KWObject a l'id de noeud
+		if (bIsRegression)
+			UpdateDatabaseObjectsNodeIds(sonNode);
 	}
 
 	// Mise a jour du cout de l'arbre ainsi augmente
@@ -2569,6 +2578,25 @@ void DTDecisionTree::UpdateDatabaseObjectsTargetModalities()
 				break;
 			}
 		}
+	}
+}
+
+void DTDecisionTree::UpdateDatabaseObjectsNodeIds(DTDecisionTreeNode* node)
+{
+	assert(nkdDatabaseObjects != NULL);
+	assert(nkdDatabaseObjects->GetCount() > 0);
+
+	Object* obj;
+	ObjectArray* oaDatabaseObjects = cast(ObjectArray*, node->GetTrainBaseLoader()->GetDatabaseObjects());
+
+	for (int i = 0; i < oaDatabaseObjects->GetSize(); i++)
+	{
+		KWObject* kwo = cast(KWObject*, oaDatabaseObjects->GetAt(i));
+
+		obj = nkdDatabaseObjects->Lookup(kwo);
+		assert(obj != NULL);
+		DTDecisionTreeDatabaseObject* dbo = cast(DTDecisionTreeDatabaseObject*, obj);
+		dbo->SetNodeIdentifier(node->GetNodeIdentifier());
 	}
 }
 

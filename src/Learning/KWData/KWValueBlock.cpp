@@ -2290,7 +2290,7 @@ void KWObjectArrayValueBlock::Test()
 	cout << indexedKeyBlock << endl;
 
 	// Creation d'une classe de test
-	attributeClass = KWClass::CreateClass("AttributeClass", 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, true, NULL);
+	attributeClass = KWClass::CreateClass("AttributeClass", 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, true, NULL);
 	KWClassDomain::GetCurrentDomain()->InsertClass(attributeClass);
 	KWClassDomain::GetCurrentDomain()->Compile();
 

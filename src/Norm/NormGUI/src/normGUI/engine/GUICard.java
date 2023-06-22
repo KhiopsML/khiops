@@ -195,8 +195,8 @@ public class GUICard extends GUIUnit
                 if (hasActionButton()) {
 
                         // S'il n'y a aucune action ou bien s'il ne s'agit pas d'une fenetre (dans ce
-                        // cas les boutons apparaissent deja dans le panel sud grace a addToolBar()
-                        // de GUIUnit)
+                        // cas les
+                        // boutons apparaissent deja dans le panel sud grace a addToolBar() de GUIUnit)
                         if (getActionCount() == 0 || frame != null)
                                 return;
 

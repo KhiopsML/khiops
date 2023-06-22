@@ -5,8 +5,7 @@
 #pragma once
 
 ////////////////////////////////////////////////////////////
-// 2019-10-29 15:14:06
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "UserInterface.h"
@@ -29,7 +28,7 @@ public:
 	PRChildArrayView();
 	~PRChildArrayView();
 
-	////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
 	// Redefinition des methodes a reimplementer obligatoirement
 
 	// Creation d'un objet (du bon type), suite a une demande d'insertion utilisateur
