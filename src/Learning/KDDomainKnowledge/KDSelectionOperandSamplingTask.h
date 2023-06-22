@@ -14,7 +14,7 @@ class KDSelectionOperandSamplingTask;
 // Classe technique utilise par la classe KDSelectionOperandAnalyser
 //
 // Analyse de la base pour transformer toute extraire toutes les bornes ou valeur
-// des operandes de selection basees sur des données de la base, a partir d'une
+// des operandes de selection basees sur des donnï¿½es de la base, a partir d'une
 // specification conceptuelle de ces operandes de collection
 class KDSelectionOperandSamplingTask : public KWDatabaseTask
 {
@@ -36,14 +36,13 @@ public:
 	///// Implementation
 protected:
 	//////////////////////////////////////////////////////////////////////////////
-	// Reproductibilité des resultats
+	// Reproductibilitï¿½ des resultats
 	// Dans un premier temps, on va associer chaque instance secondaire
 	// a une paire d'index (i1, i2) de facon reproductible.
 	//  . dossiers principaux :
 	//    .	i1:	la phase prealable d'indexation de la base pour la parallelisation permet de connaitre l'index
-	//    i1 de
-	//      la ligne du fichier contenant les instances principales des dossiers,
-	//    . i2:	localement a chaque dossier, on initialise i2 = 0 et on incremente ce second index pour chaque
+	//    i1 	de la ligne du fichier contenant les instances principales des dossiers, . i2:	localement a
+	//    chaque dossier, on initialise i2 = 0 et on incremente ce second index pour chaque
 	//      nouvelle instance secondaire du dossier rencontree lors de son parcours,
 	//  . tables externes:
 	//    . i1: on utilise l'index i1 = 0 pour l'ensemble de toutes les instances des tables externes,

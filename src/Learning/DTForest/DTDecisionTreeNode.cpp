@@ -273,7 +273,8 @@ void DTDecisionTreeNode::SetUpAttributeAndHypotheticalSons(KWAttributeStats* att
 	if (splitAttributeStats->GetPreparedDataGridStats()->GetAttributeNumber() == 1)
 	{
 		// a partir de learningEnv v8, les attributs a level nul ne sont plus prepares. Le seul attribut prepare
-		// correspond ici a l'attribut cible NVDELL AddWarning("SetUpAttributeAndHypotheticalSons :
+		// correspond ici a l'attribut cible NVDELL
+		// AddWarning("SetUpAttributeAndHypotheticalSons :
 		// GetPreparedDataGridStats()->GetAttributeNumber() == 1");
 		return;
 	}

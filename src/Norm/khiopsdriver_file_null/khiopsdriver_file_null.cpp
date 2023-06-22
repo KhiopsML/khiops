@@ -91,14 +91,11 @@ int isManaged(const char* sFilePathName)
 
 	assert(sFilePathName != NULL);
 
-	// Le debut du nom de fichier doit etre de la forme 'scheme:'
+	// Le debut du nom de fichier doit etre de la forme 'scheme://' ou 'scheme:///'
 	ok = strncmp(sFilePathName, driver_getScheme(), getSchemeCharNumber()) == 0;
 	ok = ok && sFilePathName[getSchemeCharNumber()] == ':';
-
-	// Sous linux, on doit ensuite commencer par un '/'
-#ifndef _MSC_VER
-	ok = ok && sFilePathName[getSchemeCharNumber()] == '/';
-#endif // _MSC_VER
+	ok = ok && sFilePathName[getSchemeCharNumber() + 1] == '/';
+	ok = ok && sFilePathName[getSchemeCharNumber() + 2] == '/';
 	return ok;
 }
 
@@ -202,8 +199,13 @@ void* driver_fopen(const char* filename, char mode)
 
 int driver_fclose(void* stream)
 {
+	int nRet;
 	assert(stream != NULL);
-	return fclose((FILE*)stream) == 0;
+	nRet = fclose((FILE*)stream);
+	if (nRet == 0)
+		return 0;
+	else
+		return EOF;
 }
 
 long long int driver_fread(void* ptr, size_t size, size_t count, void* stream)
@@ -230,7 +232,10 @@ int driver_fseek(void* stream, long long int offset, int whence)
 #else
 	fseeko64((FILE*)stream, offset, whence);
 #endif
-	ok = (ferror((FILE*)stream) == 0);
+	if (ferror((FILE*)stream) == 0)
+		ok = 0;
+	else
+		ok = -1;
 	return ok;
 }
 

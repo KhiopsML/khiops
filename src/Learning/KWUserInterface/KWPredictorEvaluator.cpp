@@ -60,7 +60,7 @@ const ALString KWPredictorEvaluator::GetEvaluationFilePathName() const
 	ALString sEvaluationPathName;
 	ALString sEvaluationFilePathName;
 
-	// Acces au repertoire du fichier d'avaluation
+	// Acces au repertoire du fichier d'evaluation
 	sEvaluationPathName = FileService::GetPathName(GetEvaluationFileName());
 
 	// On prend celui de la base si celui-ci est vide
@@ -414,12 +414,16 @@ void KWPredictorEvaluator::WriteEvaluationReport(const ALString& sEvaluationRepo
 	sLowerEvaluationLabel = sEvaluationLabel;
 	sLowerEvaluationLabel.MakeLower();
 
-	// Destruction du rapport d'evaluation existant
-	if (FileService::Exist(sEvaluationReportName))
+	// DEPRECATED
+	// Pour etre compatible avec les fichiers de rapport existant, qui sont en read-only
+	if (FileService::GetURIScheme(sEvaluationReportName) == "")
 	{
-		FileService::SetFileMode(sEvaluationReportName, false);
-		FileService::RemoveFile(sEvaluationReportName);
+		if (FileService::Exist(sEvaluationReportName))
+			FileService::SetFileMode(sEvaluationReportName, false);
 	}
+
+	// Destruction du rapport d'evaluation existant
+	PLRemoteFileService::RemoveFile(sEvaluationReportName);
 
 	// Ecriture du rapport d'evaluation
 	if (oaPredictorEvaluations->GetSize() == 0)
@@ -431,9 +435,6 @@ void KWPredictorEvaluator::WriteEvaluationReport(const ALString& sEvaluationRepo
 		predictorEvaluation = cast(KWPredictorEvaluation*, oaPredictorEvaluations->GetAt(0));
 		predictorEvaluation->WriteFullReportFile(sEvaluationReportName, sEvaluationLabel,
 							 oaPredictorEvaluations);
-
-		// Passage du rapport d'evaluation en read-only, car potentiellement utilise par Khiops Visualization
-		FileService::SetFileMode(sEvaluationReportName, true);
 	}
 
 	// Ajout de log memoire
@@ -455,8 +456,7 @@ void KWPredictorEvaluator::WriteJSONReport(const ALString& sJSONReportName, cons
 	sLowerEvaluationLabel.MakeLower();
 
 	// Destruction du rapport JSON existant
-	if (FileService::Exist(sJSONReportName))
-		FileService::RemoveFile(sJSONReportName);
+	PLRemoteFileService::RemoveFile(sJSONReportName);
 
 	// Ecriture du rapport d'evaluation
 	if (oaPredictorEvaluations->GetSize() == 0)
