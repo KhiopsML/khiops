@@ -225,3 +225,73 @@ const ALString DTForestParameter::DRAWING_TYPE_NO_REPLACEMENT_LABEL = "No draw, 
 const ALString DTForestParameter::DRAWING_TYPE_USE_OUT_OF_BAG_LABEL = "Random draw, use out-of-bag data";
 const ALString DTForestParameter::DRAWING_TYPE_ADABOOST_REPLACEMENT_LABEL = "AdaBoost draw";
 const ALString DTForestParameter::Heuristic_NODRAW_LABEL = "No draw";
+
+////////////////  classe PLShared_ForestParameter
+
+PLShared_ForestParameter::PLShared_ForestParameter()
+{
+	shared_DecisionTreeParameter = new PLShared_DecisionTreeParameter;
+}
+
+PLShared_ForestParameter::~PLShared_ForestParameter()
+{
+	delete shared_DecisionTreeParameter;
+}
+
+void PLShared_ForestParameter::DeserializeObject(PLSerializer* serializer, Object* object) const
+{
+	DTForestParameter* param;
+	require(serializer != NULL);
+	require(serializer->IsOpenForRead());
+	require(object != NULL);
+
+	param = cast(DTForestParameter*, object);
+
+	param->sTreesVariablesSelection = serializer->GetString();
+	param->cInstancePercentage = serializer->GetDouble();
+	param->cKeptAttributePercentage = serializer->GetDouble();
+	param->bRecodeRFDictionary = serializer->GetBoolean();
+	param->nVariableNumberMin = serializer->GetInt();
+	param->sInitRFOptimisation = serializer->GetString();
+	param->nOptimizationLoopNumber = serializer->GetInt();
+	param->sWeightedClassifier = serializer->GetString();
+	param->bWriteDetailedStatistics = serializer->GetBoolean();
+	shared_DecisionTreeParameter->DeserializeObject(serializer, &param->pDecisionTreeParameter);
+}
+
+void PLShared_ForestParameter::SerializeObject(PLSerializer* serializer, const Object* object) const
+{
+	DTForestParameter* param;
+	require(serializer != NULL);
+	require(serializer->IsOpenForWrite());
+	require(object != NULL);
+
+	param = cast(DTForestParameter*, object);
+
+	serializer->PutString(param->sTreesVariablesSelection);
+	serializer->PutDouble(param->cInstancePercentage);
+	serializer->PutDouble(param->cKeptAttributePercentage);
+	serializer->PutBoolean(param->bRecodeRFDictionary);
+	serializer->PutInt(param->nVariableNumberMin);
+	serializer->PutString(param->sInitRFOptimisation);
+	serializer->PutInt(param->nOptimizationLoopNumber);
+	serializer->PutString(param->sWeightedClassifier);
+	serializer->PutBoolean(param->bWriteDetailedStatistics);
+	shared_DecisionTreeParameter->SerializeObject(serializer, &param->pDecisionTreeParameter);
+}
+
+Object* PLShared_ForestParameter::Create() const
+{
+	return new DTForestParameter;
+}
+
+void PLShared_ForestParameter::SetForestParameter(DTForestParameter* r)
+{
+	require(r != NULL);
+	SetObject(r);
+}
+
+DTForestParameter* PLShared_ForestParameter::GetForestParameter() const
+{
+	return cast(DTForestParameter*, GetObject());
+}

@@ -4,16 +4,14 @@
 
 #include "DTForestAttributeSelection.h"
 
-int DTTreeAttributeLevelCampare(const void* elem1, const void* elem2);
-int DTTreeAttributeRankCampare(const void* elem1, const void* elem2);
+int DTTreeAttributeLevelCompare(const void* elem1, const void* elem2);
+int DTTreeAttributeRankCompare(const void* elem1, const void* elem2);
 
 ////////////////////////////////////////////////////////////////////
 // Classe DTForestAttributeSelection
 
 DTForestAttributeSelection::DTForestAttributeSelection()
 {
-
-	nMaxAttributesNumber = 0;
 	sDrawingType = DTGlobalTag::UNIFORM_SAMPLING_WITH_REPLACEMENT_LABEL;
 }
 
@@ -33,8 +31,6 @@ void DTForestAttributeSelection::CleanAll()
 
 void DTForestAttributeSelection::Clean()
 {
-	nMaxAttributesNumber = 0;
-
 	ivSelectionAttributeNumber.Initialize();
 	ivSeedselection.Initialize();
 	oaSelectionAttributes.DeleteAll();
@@ -80,6 +76,7 @@ void DTForestAttributeSelection::Initialization(const ObjectDictionary* odInputA
 			taAttribute = new DTTreeAttribute;
 			svAttributeNames.Add(attributeStats->GetAttributeName());
 			taAttribute->aAttribute = attribute;
+			taAttribute->sAttributeName = attributeStats->GetAttributeName();
 			taAttribute->dLevel = attributeStats->GetLevel(); //  + 1.0 / nNbInstence);
 			oaOriginalAttributesUsed.Add(
 			    taAttribute); //			cout << "les attibut " << attribute->GetName() << " : "
@@ -87,7 +84,7 @@ void DTForestAttributeSelection::Initialization(const ObjectDictionary* odInputA
 			odOriginalAttributesUsed.SetAt(attribute->GetName(), taAttribute);
 		}
 	}
-	oaOriginalAttributesUsed.SetCompareFunction(DTTreeAttributeLevelCampare);
+	oaOriginalAttributesUsed.SetCompareFunction(DTTreeAttributeLevelCompare);
 	oaOriginalAttributesUsed.Sort();
 
 	for (nAttribute = 0; nAttribute < oaOriginalAttributesUsed.GetSize(); nAttribute++)
@@ -170,7 +167,7 @@ void DTForestAttributeSelection::BuildForestUniformSelections(int nmaxselectionn
 			ivSelectionAttributeNumber.Add(nAttributesNumber);
 			if (sSelectionType == DTGlobalTag::LEVEL_SAMPLING_WITH_REPLACEMENT_LABEL)
 			{
-				oaOriginalAttributesUsed.SetCompareFunction(DTTreeAttributeLevelCampare);
+				oaOriginalAttributesUsed.SetCompareFunction(DTTreeAttributeLevelCompare);
 				oaOriginalAttributesUsed.Sort();
 			}
 			else
@@ -195,7 +192,6 @@ void DTForestAttributeSelection::BuildForestUniformSelections(int nmaxselectionn
 			}
 			svRandattibuteselection->SetUsableAttributesNumber(nusableAttributesNumber);
 			oaSelectionAttributes.Add(svRandattibuteselection);
-			svRandattibuteselection->SetIndex(nSelection);
 			ivSelectionAttributeNumberInf.Add(nTinf);
 			ivSelectionAttributeNumberNull.Add(nTnull);
 		}
@@ -431,11 +427,6 @@ int DTForestAttributeSelection::GetMaxAttributesNumber()
 	return nMax;
 }
 
-void DTForestAttributeSelection::SetMaxAttributesNumber(int nmax)
-{
-	nMaxAttributesNumber = nmax;
-}
-
 ObjectArray* DTForestAttributeSelection::GetAttributeSelections()
 {
 	return &oaSelectionAttributes;
@@ -542,7 +533,6 @@ ObjectArray* DTForestAttributeSelection::GetAttributesFromLevels(const int maxAt
 DTAttributeSelectionsSlices::DTAttributeSelectionsSlices()
 {
 	oaTreeAttributes.SetCompareFunction(DTTreeAttributeCompareName);
-	// oaSlices.SetCompareFunction(KWDataTableSliceCompareLexicographicIndex);
 }
 
 DTAttributeSelectionsSlices::~DTAttributeSelectionsSlices() {}
@@ -590,7 +580,7 @@ void DTAttributeSelectionsSlices::AddAttributeSelectionsSlices(
 }
 
 void DTAttributeSelectionsSlices::AddAttributeSelection(const DTAttributeSelection* otherAttributeselection,
-							ObjectDictionary* odSliceAttributes)
+							const ObjectDictionary* odSliceAttributes)
 {
 	int nattribute;
 	ObjectArray oaTmpFirstArray;
@@ -921,7 +911,7 @@ void DTAttributeSelectionsSlices::Write(ostream& ost) const
 
 const ALString DTAttributeSelectionsSlices::GetClassLabel() const
 {
-	return "Variable pair slices";
+	return "Tree attributes slices";
 }
 
 const ALString DTAttributeSelectionsSlices::GetObjectLabel() const

@@ -13,22 +13,23 @@
 //////////////////////////////////////////////////////////////////////
 // Classe KWFileSorter
 //
-// L'algorithme de tri a 3 parametres qui interviennent dans differentes classes.
-// La taille maximale des chunks est determinee automatiquement. Les bornes de chaque chunks sont determinees en
-// realisant un sample de la base (methode  KWFileSorter::SplitDatabase). e calcul de la taille du sample est basee sur
-// le papier de DeWitt 1991 "Parallel sorting on a shared-nothing architecture using probabilistic splitting". Ce calcul
-// fait intervenir le parametre dSkew (deviation). Il represente la taille maximale / la moyenne des tailles, plus il
-// est proche de 1 plus les chunks auront la taille attendue et plus l'echantillon necessaire sera grand. On a choisi
+//	L'algorithme de tri a 3 parametres qui interviennent dans differentes classes.
+//	La taille maximale des chunks est determinee automatiquement. Les bornes de chaque chunks sont determinees en
+// realisant un sample de la base (methode  KWFileSorter::SplitDatabase). 	Le calcul de la taille du sample est
+// basee sur le papier de DeWitt 1991 "Parallel sorting on a shared-nothing architecture using probabilistic splitting".
+// Ce calcul fait intervenir le parametre dSkew (deviation). Il represente la taille maximale / la moyenne des tailles,
+// plus il est
+// proche de 1 plus les chunks 	auront la taille attendue et plus l'echantillon necessaire sera grand. On a choisi
 // dSkew=1.1, ceci permet d'avoir une bonne estimation de la distribution, 	le temps pour trier le sample n'est
 // quant a lui pas problematique.
 //
-// Si des chunks construits sont plus gros que la taille maximale il faut les recouper. Pour eviter de recouper
+//	Si des chunks construits sont plus gros que la taille maximale il faut les recouper. Pour eviter de recouper
 // trop souvent on donne pour cible a l'algo de DeWitt 70% 	de la taille maximale (appel de SplitDatabase dans
 // KWFileSorter::Sort). Les chunks seront recoupes si ils sont plus grands que la taille maximale.
 //
-// Si il y a beaucoup d'esclaves et beaucoup de chunks, chaque esclave ecrit une toute petite partie de chaque
-// chunk ce qui conduit a fragmenter le disque. On impose une taille minimale de segment contigu a 2 Mo
-// (lMinFragmentSize dans la methode KWFileSorter::ComputeChunkSize). Cette valeur a une influence sur le nombre max de
+//	Si il y a beaucoup d'esclaves et beaucoup de chunks, chaque esclave ecrit une toute petite partie de chaque
+// chunk ce qui conduit a fragmenter le disque. 	On impose une taille minimale de segment contigu a 2 Mo
+// (lMinFragmentSize dans la methode KWFileSorter::ComputeChunkSize). Cette valeur a une influence sur 	le nombre max de
 // chunks.
 
 const longint KWFileSorter::lChunkSizeLimit = (longint)INT_MAX;

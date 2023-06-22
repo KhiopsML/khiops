@@ -68,6 +68,21 @@ public:
 	///////////////////////////////////////////////////////////////
 	// Services divers
 
+	// Verification de l'integrite d'un tableau de cles
+	boolean CheckKeys(const ObjectArray* oaKeys) const;
+
+	// Verification de l'integrite d'un tableau de positions
+	boolean CheckKeyPositions(const ObjectArray* oaKeyPositions) const;
+
+	// Verification de la coherence d'un tableau de positions avec un tableau de cles
+	boolean CheckKeyPositionsConsistency(const ObjectArray* oaKeys, const ObjectArray* oaKeyPositions) const;
+
+	// Affichage d'un tableau de cles
+	void WriteKeys(const ObjectArray* oaKeys, ostream& ost) const;
+
+	// Affichage d'un tableau de positions de cles
+	void WriteKeyPositions(const ObjectArray* oaKeyPositions, ostream& ost) const;
+
 	// Libelles utilisateurs
 	const ALString GetObjectLabel() const override;
 

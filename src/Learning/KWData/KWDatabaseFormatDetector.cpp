@@ -749,7 +749,7 @@ boolean KWDatabaseFormatDetector::DetectFileFormatWithoutClass(RewindableInputBu
 			{
 				sMessage += "the first ";
 				sMessage += LongintToHumanReadableString(inputFile->GetCurrentBufferSize());
-				sMessage += " of the file ";
+				sMessage += " bytes of the file ";
 			}
 			if (not bErrorDisplayed)
 			{
@@ -813,7 +813,7 @@ boolean KWDatabaseFormatDetector::DetectFileFormatWithoutClass(RewindableInputBu
 			if (cfvCandidateSeparators.GetFrequencyAt(cSeparator) > 0)
 			{
 				if (bShowDetails)
-					cout << "Test line separator for field number consistency'"
+					cout << "Test line separator for field number consistency: '"
 					     << CharToString(cSeparator) << "'\n";
 
 				// Initialisation de la solution courante
@@ -1335,6 +1335,8 @@ int KWDatabaseFormatDetector::ComputeCorrectLineNumber(IntVector* ivLineFieldNum
 void KWDatabaseFormatDetector::CollectLineFieldNumbers(RewindableInputBufferedFile* inputFile, int nMaxLineNumber,
 						       IntVector* ivLineFieldNumbers) const
 {
+	int nLineFieldNumber;
+
 	require(inputFile != NULL);
 	require(inputFile->IsOpened());
 	require(not inputFile->IsBufferEnd());
@@ -1344,7 +1346,14 @@ void KWDatabaseFormatDetector::CollectLineFieldNumbers(RewindableInputBufferedFi
 	// Boucle de lecture sur le fichier, au plus jusqu'a la fin du buffer
 	ivLineFieldNumbers->SetSize(0);
 	while (not inputFile->IsBufferEnd() and ivLineFieldNumbers->GetSize() < nMaxLineNumber)
-		ivLineFieldNumbers->Add(ComputeLineFieldNumber(inputFile));
+	{
+		nLineFieldNumber = ComputeLineFieldNumber(inputFile);
+
+		// On prend en compte les lignes non vide uniquement
+		// Les ligne erronnees (retour -1) ou non vides sont prise en compte
+		if (nLineFieldNumber != 0)
+			ivLineFieldNumbers->Add(nLineFieldNumber);
+	}
 }
 
 int KWDatabaseFormatDetector::ComputeLineFieldNumber(RewindableInputBufferedFile* inputFile) const
@@ -1372,8 +1381,17 @@ int KWDatabaseFormatDetector::ComputeLineFieldNumber(RewindableInputBufferedFile
 		if (nFieldError != InputBufferedFile::FieldNoError and
 		    nFieldError != InputBufferedFile::FieldTabReplaced)
 			bIsError = true;
+
+		// On compte 0 champ dans le cas particulier d'une ligne vide
+		if (bEndOfLine and nFieldNumber == 0 and sField[0] == '\0' and
+		    nFieldError == InputBufferedFile::FieldNoError)
+			break;
+
+		// Incrementation du nombre de champs trouves
 		nFieldNumber++;
 	}
+
+	// On renvoie -1 si une erreur a ete detectee
 	if (bIsError)
 		nFieldNumber = -1;
 	return nFieldNumber;
@@ -1425,7 +1443,7 @@ int KWDatabaseFormatDetector::ComputeTypeConsistency(RewindableInputBufferedFile
 	nAnalysedLineNumber = 0;
 	while (not inputFile->IsBufferEnd() and nLine < nMaxLineNumber)
 	{
-		// Lecture des champ d'un ligne
+		// Lecture des champs d'un ligne
 		bOk = ReadLineFields(inputFile, nExpectedFieldNumber, &svFields);
 		nAnalysedLineNumber++;
 
@@ -1570,6 +1588,7 @@ int KWDatabaseFormatDetector::CollectCharFrequenciesLineStats(RewindableInputBuf
 							      KWCharFrequencyVector* cfvLineMaxCharFrequencies) const
 {
 	int nAnalysedLineNumber;
+	boolean bIsEmptyLine;
 	CharVector cvLine;
 	KWCharFrequencyVector cfvLineCharFrequencies;
 
@@ -1587,24 +1606,36 @@ int KWDatabaseFormatDetector::CollectCharFrequenciesLineStats(RewindableInputBuf
 	while (not inputFile->IsBufferEnd() and nAnalysedLineNumber < nMaxLineNumber)
 	{
 		inputFile->GetNextLine(&cvLine);
-		if (cvLine.GetSize() > 0)
+
+		// Detection de ligne vide
+		bIsEmptyLine = false;
+		if (cvLine.GetSize() <= 2)
 		{
-			// On ne compte pas les caracteres fin de ligne
-			if ((cvLine.GetAt(0) != '\n' and cvLine.GetAt(0) != '\r') or cvLine.GetSize() > 2)
-				nAnalysedLineNumber++;
+			if (cvLine.GetSize() == 0)
+				bIsEmptyLine = true;
+			else if (cvLine.GetSize() == 1)
+				bIsEmptyLine = cvLine.GetAt(0) == '\n';
+			else
+				bIsEmptyLine = (cvLine.GetAt(0) == '\r' and cvLine.GetAt(1) == '\n');
 		}
 
-		// Collecte des stats d'utilisation de caractere de la ligne
-		cfvLineCharFrequencies.InitializeFromBuffer(&cvLine);
+		// Analyse uniquement des liugnes non vides
+		if (not bIsEmptyLine)
+		{
+			nAnalysedLineNumber++;
 
-		// On prend le minimum par rapport aux stats precedentes, sauf pour la premiere fois
-		if (nAnalysedLineNumber == 1)
-			cfvLineMinCharFrequencies->CopyFrom(&cfvLineCharFrequencies);
-		else
-			cfvLineMinCharFrequencies->Min(&cfvLineCharFrequencies);
+			// Collecte des stats d'utilisation de caractere de la ligne
+			cfvLineCharFrequencies.InitializeFromBuffer(&cvLine);
 
-		// On prend le maximum dirctement
-		cfvLineMaxCharFrequencies->Max(&cfvLineCharFrequencies);
+			// On prend le minimum par rapport aux stats precedentes, sauf pour la premiere fois
+			if (nAnalysedLineNumber == 1)
+				cfvLineMinCharFrequencies->CopyFrom(&cfvLineCharFrequencies);
+			else
+				cfvLineMinCharFrequencies->Min(&cfvLineCharFrequencies);
+
+			// On prend le maximum directement
+			cfvLineMaxCharFrequencies->Max(&cfvLineCharFrequencies);
+		}
 	}
 	return nAnalysedLineNumber;
 }

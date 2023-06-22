@@ -37,11 +37,3 @@ spécialiser les règles de dérivation dans le cas binaire pour qu’elles soient be
 •         LE(variable, value) pour un test numérique
 •         InGroup(ValueGroup(value1, value2, …), variable) pour une variable catégorielle
 
-10/11/2021
-apprendre des arbres dédiés régression
-
-10/11/2021
-ouvrir le chantier du boosting des arbres
-
-10/11/2021
-ouvrir le chantier de l'interprétabilité

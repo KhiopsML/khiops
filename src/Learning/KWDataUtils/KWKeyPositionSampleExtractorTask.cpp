@@ -346,13 +346,14 @@ boolean KWKeyPositionSampleExtractorTask::MasterAggregateResults()
 boolean KWKeyPositionSampleExtractorTask::MasterFinalize(boolean bProcessEndedCorrectly)
 {
 	boolean bOk = true;
-	int i, j;
 	ObjectArray* oaKeyPositionSample;
 	KWKeyPosition* lastPreviousKeyPosition;
 	KWKeyPosition* firstNextKeyPosition;
 	KWKeyPosition* recordKeyPosition;
 	int nCompareKey;
 	longint lLineCountToAdd;
+	int i;
+	int j;
 	ALString sTmp;
 
 	// Test si arret utilisateur
@@ -384,8 +385,8 @@ boolean KWKeyPositionSampleExtractorTask::MasterFinalize(boolean bProcessEndedCo
 	lvLineCountPerTaskIndex.SetSize(0);
 
 	// On fabrique le tableau de cle global renvoye par la tache
-	// Chaque sample est deja trie, et les sample sont range dans l'ordre des rang des esclaves, donc dans l'odre du
-	// fichier
+	// Chaque sample est deja trie, et les samples sont ranges dans l'ordre des rangs des esclaves, donc dans
+	// l'ordre du fichier
 	if (bOk)
 	{
 		// Creation du tableau resultat global par concatenation des tableaux des esclaves
@@ -416,10 +417,17 @@ boolean KWKeyPositionSampleExtractorTask::MasterFinalize(boolean bProcessEndedCo
 				{
 					nCompareKey = lastPreviousKeyPosition->Compare(firstNextKeyPosition);
 
-					// Erreur si cles non ordonnees
-					if (nCompareKey > 0)
+					// Supression de la derniere cle du tableau global si egalite, pour ne garder
+					// que la cle suivante
+					if (nCompareKey == 0)
 					{
-						AddError(sTmp + "Record " +
+						oaResultKeyPositions.SetSize(oaResultKeyPositions.GetSize() - 1);
+						delete lastPreviousKeyPosition;
+					}
+					// Erreur si cles non ordonnees
+					else if (nCompareKey > 0)
+					{
+						AddError(sTmp + "Unsorted record " +
 							 LongintToString(firstNextKeyPosition->GetLineIndex()) +
 							 " : key " + firstNextKeyPosition->GetKey()->GetObjectLabel() +
 							 " inferior to preceding key " +
@@ -478,8 +486,9 @@ boolean KWKeyPositionSampleExtractorTask::SlaveProcess()
 	int nLineIndex;
 	PeriodicTest periodicTestInterruption;
 	double dProgression;
-	ALString sTmp;
 	boolean bIsOpen;
+	int nCompareKey;
+	ALString sTmp;
 
 	// Initialisation du buffer de lecture
 	inputFile.SetFileName(shared_sInputFileName.GetValue());
@@ -500,9 +509,6 @@ boolean KWKeyPositionSampleExtractorTask::SlaveProcess()
 		bOk = false;
 	if (bOk)
 	{
-		SetLocalLineNumber(inputFile.GetBufferLineNumber());
-		output_lReadLineCount = inputFile.GetBufferLineNumber();
-
 		// Index des lignes traitees localement
 		nLineIndex = 0;
 
@@ -547,26 +553,43 @@ boolean KWKeyPositionSampleExtractorTask::SlaveProcess()
 			// Memorisation de la position pour le debut de ligne suivant
 			recordKeyPosition->SetLinePosition(inputFile.GetPositionInFile());
 
-			// Memorisation de la cle
-			oaKeyPositionSample->Add(recordKeyPosition);
+			// Comparaison de la cle avec la precedente si elle existe
+			nCompareKey = -1;
+			if (previousRecordKeyPosition != NULL)
+				nCompareKey = previousRecordKeyPosition->Compare(recordKeyPosition);
 
-			// Test si les cle etaient ordonnees
-			if (previousRecordKeyPosition != NULL and
-			    previousRecordKeyPosition->Compare(recordKeyPosition) > 0)
+			// Memorisation de la cle si nouvelle cle
+			if (nCompareKey < 0)
+				oaKeyPositionSample->Add(recordKeyPosition);
+			// Destruction si egalite
+			else if (nCompareKey == 0)
+				delete recordKeyPosition;
+			// Erreur si cles non ordonnees
+			else
 			{
-				AddLocalError("key " + recordKeyPosition->GetObjectLabel() +
+				AddLocalError("unsorted key " + recordKeyPosition->GetKey()->GetObjectLabel() +
 						  " inferior to preceding key " +
-						  previousRecordKeyPosition->GetObjectLabel(),
+						  previousRecordKeyPosition->GetKey()->GetObjectLabel() + " found " +
+						  LongintToReadableString(recordKeyPosition->GetLineIndex() -
+									  previousRecordKeyPosition->GetLineIndex()) +
+						  " lines before",
 					      nLineIndex);
+				delete recordKeyPosition;
 				bOk = false;
 				break;
 			}
+
+			// Memorisation de la cle precedente
 			previousRecordKeyPosition = recordKeyPosition;
 		}
 		// Saut de ligne sinon
 		else
 			inputFile.SkipLine();
 	}
+
+	// On indique le nombre de lignes traitees, en fin de SlaveProcess
+	SetLocalLineNumber(nLineIndex);
+	output_lReadLineCount = nLineIndex;
 
 	// Nettoyage si KO
 	if (not bOk)

@@ -78,6 +78,8 @@ public:
 	////////////////////////////////////////////////////////
 	//// Implementation
 protected:
+	friend class PLShared_ForestParameter;
+
 	ALString sTreesVariablesSelection;
 	// ALString sHeuristicCreation;
 
@@ -125,3 +127,25 @@ inline void DTForestParameter::SetDecisionTreeParameter(DTDecisionTreeParameter*
 {
 	pDecisionTreeParameter.CopyFrom(decisiontreeparameter);
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// Classe PLShared_ForestParameter
+// Serialisation de la classe DTTForestParameter
+class PLShared_ForestParameter : public PLSharedObject
+{
+public:
+	// Constructor
+	PLShared_ForestParameter();
+	~PLShared_ForestParameter();
+
+	void SetForestParameter(DTForestParameter*);
+	DTForestParameter* GetForestParameter() const;
+
+	void DeserializeObject(PLSerializer* serializer, Object* object) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* object) const override;
+
+protected:
+	PLShared_DecisionTreeParameter* shared_DecisionTreeParameter;
+
+	Object* Create() const override;
+};

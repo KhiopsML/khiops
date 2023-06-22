@@ -9,6 +9,7 @@
 
 const ALString GetDisplayString(const double d);
 const ALString GetDisplayString(const int);
+const ALString GetDisplayString(const ALString&);
 
 boolean bVerbatim = false;
 
@@ -312,7 +313,12 @@ boolean DTDecisionTree::Build()
 
 			if (dtPredictorParameter->GetVerboseMode())
 				AddSimpleMessage(GetDisplayString(nDownStepNumber) +
-						 bestSplit->GetSplittableNode()->GetNodeIdentifier() + "\t" +
+						 ALString(bestSplit->GetSplittableNode()->GetNodeIdentifier()) + "\t" +
+						 (bestSplit->GetSplittableNode()->GetSplitAttributeStats() == NULL
+						      ? "\t\t"
+						      : GetDisplayString(bestSplit->GetSplittableNode()
+									     ->GetSplitAttributeStats()
+									     ->GetAttributeName())) +
 						 GetDisplayString(dPreviousCost) + GetDisplayString(dOptimalCost) +
 						 GetDisplayString(dBestDecreasedCost) +
 						 GetDisplayString(dTrainingAccuracy) +
@@ -1021,12 +1027,11 @@ boolean DTDecisionTree::SetUpInternalNode(const double dNewCost, const Symbol sF
 		    sonNode->GetTrainBaseLoader()->GetDatabaseObjects());
 		// attribute = kwclass->LookupAttribute(attributeStats->GetAttributeName());
 		// attribute->SetLoaded(false);
-		// attribute =
-		// sonNode->GetNodeLearningSpec()->GetClass()->LookupAttribute(learningSpec->GetTargetAttributeName());
 		// attribute->SetLoaded(true);
 		sonNode->GetNodeLearningSpec()->GetClass()->Compile();
 		// sonNode->GetTrainBaseLoader()->GetTupleLoader()->LoadUnivariate(learningSpec->GetTargetAttributeName(),
 		// &targetTupleTable);
+		sonNode->GetNodeLearningSpec()->SetCheckTargetAttribute(false);
 		sonNode->GetNodeLearningSpec()->ComputeTargetStats(
 		    sonNode->GetTrainBaseLoader()->GetTupleLoader()->GetInputExtraAttributeTupleTable());
 		// attribute->SetLoaded(false);
@@ -1053,9 +1058,6 @@ boolean DTDecisionTree::SetUpInternalNode(const double dNewCost, const Symbol sF
 
 		// Initialisation de l'effectif de la classe majoritaire
 		int nMajoritarySize = 0;
-
-		assert(sonNode->GetClass()->LookupAttribute(sonNode->GetLearningSpec()->GetTargetAttributeName()) !=
-		       NULL);
 
 		NumericKeyDictionary* targetModalitiesCountTrain =
 		    ComputeTargetModalitiesCount(sonNode->GetTrainBaseLoader());
@@ -1622,8 +1624,8 @@ void DTDecisionTree::InitializeRootNode(const NumericKeyDictionary* randomForest
 	// database de train
 	UpdateDatabaseObjectsTargetModalities();
 
-	assert(GetRootNode()->GetClass()->LookupAttribute(GetRootNode()->GetLearningSpec()->GetTargetAttributeName()) !=
-	       NULL);
+	// assert(GetRootNode()->GetClass()->LookupAttribute(GetRootNode()->GetLearningSpec()->GetTargetAttributeName())
+	// != NULL);
 
 	NumericKeyDictionary* targetModalitiesCountTrain =
 	    ComputeTargetModalitiesCount(GetRootNode()->GetTrainBaseLoader());
@@ -3115,7 +3117,6 @@ const ALString GetDisplayString(const double d)
 {
 	ALString s(DoubleToString(d));
 
-	// return s + (s.GetLength() < 12 ? "\t\t" : "\t");
 	return s + "\t";
 }
 
@@ -3124,4 +3125,9 @@ const ALString GetDisplayString(const int d)
 	ALString s(IntToString(d));
 
 	return s + "\t";
+}
+
+const ALString GetDisplayString(const ALString& s)
+{
+	return s + (s.GetLength() < 13 ? "\t\t" : "\t");
 }

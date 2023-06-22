@@ -169,22 +169,16 @@ void DTBaseLoader::BuildTrainOutOfBagBaseLoader(DTBaseLoader* blTrain, DTBaseLoa
 void DTBaseLoader::LoadTupleTableFromSymbolValues(KWClass* kwcInputClass, const ALString& sAttributeName,
 						  const SymbolVector* svInputValues, KWTupleTable* outputTupleTable)
 {
-	KWAttribute* attribute;
 	int nValue;
 	KWTuple* inputTuple;
 
 	require(svInputValues != NULL);
 	require(outputTupleTable != NULL);
 
-	// Acces aux caracteristique de l'attribut
-	attribute = kwcInputClass->LookupAttribute(sAttributeName);
-	check(attribute);
-	assert(KWType::IsSimple(attribute->GetType()));
-	// assert(attribute->GetLoaded());
-
 	// Specification de la table de tuples
+	// NB. la presence et le type de l'attribut cible ont deja ete verifie en amont
 	outputTupleTable->CleanAll();
-	outputTupleTable->AddAttribute(attribute->GetName(), attribute->GetType());
+	outputTupleTable->AddAttribute(sAttributeName, KWType::Symbol);
 
 	// Passage de la table de tuples en mode edition
 	outputTupleTable->SetUpdateMode(true);

@@ -76,12 +76,13 @@ protected:
 //		- comme politique, une preference pour les esclaves
 //
 // Notes sur les exigences Globales et Shared:
-// 	- 	Ces exigences sont condiderees comme optionnelles c'est pourquoi le max est initialise a 0
-//		Il faudra donc veiller a initialiser le min ET le max (pour eviter que min > max ).
-//		On peu utiliser la methode Set() qui affecte le min et le max en meme temps
-//	-	Les exigences GetSlaveRequirement et GetGlobalSlaveRequirement sont prises en compte en meme
-//		temps dans les ressources allouees, c'est a dire que la methode RMTaskResourceGrant::GetMinSlaveMemory()
-// 		renvoie la memoire dediee a l'esclave + la memoire globale (ou repartie)
+// 		- 	Ces exigences sont condiderees comme optionnelles c'est pourquoi le max est initialise a 0
+//			Il faudra donc veiller a initialiser le min ET le max (pour eviter que min > max ).
+//			On peu utiliser la methode Set() qui affecte le min et le max en meme temps
+//		-	Les exigences GetSlaveRequirement et GetGlobalSlaveRequirement sont prises en compte en meme
+//			temps dans les ressources allouees, c'est a dire que la methode
+//			RMTaskResourceGrant::GetMinSlaveMemory() renvoie la memoire dediee a l'esclave + la memoire
+//          globale (ou repartie)
 
 class RMTaskResourceRequirement : public Object
 {

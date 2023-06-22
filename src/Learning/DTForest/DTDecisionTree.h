@@ -576,6 +576,7 @@ inline int DTSplitCompareSortValue(const void* elem1, const void* elem2)
 	report2 = cast(DTDecisionTreeNodeSplit*, *(Object**)elem2);
 
 	// Evaluation de la valeur de tri des objets
+
 	// dSortValue1 = report1->GetTreeCost();
 	// dSortValue2 = report2->GetTreeCost();
 	sSortValue1 = report1->GetSplittableNode()->GetNodeIdentifier();
@@ -590,12 +591,31 @@ inline int DTSplitCompareSortValue(const void* elem1, const void* elem2)
 	// Comparaison si necessaire sur le nom
 	if (nCompare == 0)
 	{
+		// comparaison sur le nom de l'attribut du KWAttributeStats
 		nCompare = DTSplitCompareSortName(elem1, elem2);
 		if (nCompare == 0)
 		{
+			// comparaison sur l'id de noeud de l'arbre
 			nCompare = DTSplitCompareSortNameID(elem1, elem2);
 		}
 	}
 
 	return nCompare;
 }
+
+class PLShared_TargetModalityCount : public PLSharedObject
+{
+public:
+	// Constructor
+	PLShared_TargetModalityCount();
+	~PLShared_TargetModalityCount();
+
+	void SetTargetModalityCount(DTDecisionTree::TargetModalityCount*);
+	DTDecisionTree::TargetModalityCount* GetTargetModalityCount() const;
+
+	void DeserializeObject(PLSerializer* serializer, Object* object) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* object) const override;
+
+protected:
+	Object* Create() const override;
+};
