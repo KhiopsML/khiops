@@ -179,5 +179,7 @@ void TableGenerator::GenerateAttributeArrayViewC(ostream& ost) const
 
 	ost << ""
 	    << "\n";
-	GenerateUserCodeSection(ost, "", "Method implementation");
+	GenerateUserCodeHeader(ost, "", "Method implementation");
+	ost << "\n";
+	GenerateUserCodeTrailer(ost, "", "Method implementation", false);
 }

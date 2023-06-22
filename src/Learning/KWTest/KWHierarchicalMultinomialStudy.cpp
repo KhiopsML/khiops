@@ -203,6 +203,7 @@ void KWHierarchicalMultinomialStudy::StudyDatasetBivariate(const ALString& sClas
 	classStatsS.SetLearningSpec(&learningSpec);
 	classStatsH.SetLearningSpec(&learningSpec);
 	attributePairsSpec.SetClassName(learningSpec.GetClass()->GetName());
+	attributePairsSpec.SetMaxAttributePairNumber(nPairNumber);
 	classStatsS.SetAttributePairsSpec(&attributePairsSpec);
 	classStatsH.SetAttributePairsSpec(&attributePairsSpec);
 	if (not learningSpec.IsTargetStatsComputed())
@@ -210,8 +211,6 @@ void KWHierarchicalMultinomialStudy::StudyDatasetBivariate(const ALString& sClas
 		classStatsS.ComputeStats();
 		classStatsH.ComputeStats();
 	}
-	classStatsS.GetAttributePairsSpec()->SetMaxAttributePairNumber(nPairNumber);
-	classStatsH.GetAttributePairsSpec()->SetMaxAttributePairNumber(nPairNumber);
 
 	// Lecture de la base
 	database.ReadAll();
@@ -415,8 +414,8 @@ void KWHierarchicalMultinomialStudy::StudyBivariateSample(int nSize, double dSig
 	{
 		classStats.SetLearningSpec(&learningSpec);
 		attributePairsSpec.SetClassName(learningSpec.GetClass()->GetName());
+		attributePairsSpec.SetMaxAttributePairNumber(1);
 		classStats.SetAttributePairsSpec(&attributePairsSpec);
-		classStats.GetAttributePairsSpec()->SetMaxAttributePairNumber(1);
 		classStats.ComputeStats();
 		if (bWriteReport)
 			classStats.WriteReportFile(

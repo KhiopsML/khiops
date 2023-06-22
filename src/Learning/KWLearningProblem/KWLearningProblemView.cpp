@@ -268,8 +268,9 @@ void KWLearningProblemView::EventRefresh(Object* object)
 void KWLearningProblemView::CheckData()
 {
 	// Execution controlee par licence
-	if (not LMLicenseManager::RequestLicenseKey())
-		return;
+	if (LMLicenseManager::IsEnabled())
+		if (not LMLicenseManager::RequestLicenseKey())
+			return;
 
 	// OK si nom du fichier renseigne et classe correcte
 	if (FileService::CreateApplicationTmpDir() and GetLearningProblem()->CheckTrainDatabaseName() and
@@ -320,8 +321,9 @@ void KWLearningProblemView::ExtractKeysFromDataTable()
 void KWLearningProblemView::BuildConstructedDictionary()
 {
 	// Execution controlee par licence
-	if (not LMLicenseManager::RequestLicenseKey())
-		return;
+	if (LMLicenseManager::IsEnabled())
+		if (not LMLicenseManager::RequestLicenseKey())
+			return;
 
 	// OK si prerequis corrects
 	if (FileService::CreateApplicationTmpDir() and GetLearningProblem()->CheckTrainDatabaseName() and
@@ -349,8 +351,9 @@ void KWLearningProblemView::BuildConstructedDictionary()
 void KWLearningProblemView::ComputeStats()
 {
 	// Execution controlee par licence
-	if (not LMLicenseManager::RequestLicenseKey())
-		return;
+	if (LMLicenseManager::IsEnabled())
+		if (not LMLicenseManager::RequestLicenseKey())
+			return;
 
 	// OK si prerequis corrects
 	if (FileService::CreateApplicationTmpDir() and GetLearningProblem()->CheckTrainDatabaseName() and
@@ -382,6 +385,20 @@ void KWLearningProblemView::ComputeStats()
 			Global::AddError("", "",
 					 "Max number of constructed variables must be 0 when variable costs are "
 					 "imported from dictionary");
+		else if (GetLearningProblem()
+				 ->GetAnalysisSpec()
+				 ->GetModelingSpec()
+				 ->GetAttributeConstructionSpec()
+				 ->GetMaxTextFeatureNumber() > 0 and
+			 GetLearningProblem()
+			     ->GetAnalysisSpec()
+			     ->GetModelingSpec()
+			     ->GetAttributeConstructionSpec()
+			     ->GetConstructionDomain()
+			     ->GetImportAttributeConstructionCosts())
+			Global::AddError(
+			    "", "",
+			    "Max number of text features must be 0 when variable costs are imported from dictionary");
 		else
 		{
 			// Calcul des stats
@@ -425,6 +442,16 @@ void KWLearningProblemView::EvaluatePredictors()
 
 	// Ouverture
 	predictorEvaluatorView.Open(predictorEvaluator);
+}
+
+void KWLearningProblemView::InterpretPredictor()
+{
+	KIPredictorInterpretationView view;
+
+	// Initialisation a partir de la base d'apprentissage
+	view.InitializeSourceDatabase(GetLearningProblem()->GetTrainDatabase());
+
+	view.Open();
 }
 
 void KWLearningProblemView::SetObject(Object* object)

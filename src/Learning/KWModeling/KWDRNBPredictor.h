@@ -43,7 +43,7 @@ public:
 
 	// Verification que la regle est completement renseignee et compilable
 	boolean CheckOperandsFamily(const KWDerivationRule* ruleFamily) const override;
-	boolean CheckOperandsCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
 
 	////////////////////////////////////////////////////////////////////
 	// Application  de la regle a une objet, et services associes
@@ -153,7 +153,7 @@ public:
 	KWDerivationRule* Create() const override;
 
 	// Verification que la regle est completement renseignee et compilable
-	boolean CheckOperandsCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
 
 	////////////////////////////////////////////////////////////////////
 	// Application  de la regle a une objet, et services associes
@@ -287,7 +287,7 @@ public:
 	KWDerivationRule* Create() const override;
 
 	// Verification que la regle est completement renseignee et compilable
-	boolean CheckOperandsCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
 
 	// Compilation redefinie pour optimisation
 	void Compile(KWClass* kwcOwnerClass) override;
@@ -436,7 +436,7 @@ inline int KWDRNBClassifier::GetDataGridSetTargetIndexAt(int nDataGridIndex, int
 
 inline boolean KWDRNBClassifier::IsOptimized() const
 {
-	return IsCompiled() and nOptimizationFreshness == nCompileFreshness;
+	return IsCompiled() and nOptimizationFreshness == GetOwnerClass()->GetCompileFreshness();
 }
 
 inline int KWDRNBRegressor::GetTargetValueIndex(Continuous cValue) const
@@ -462,6 +462,11 @@ inline int KWDRNBRegressor::GetSingleTargetValueFrequencyAt(int nIndex) const
 inline int KWDRNBRegressor::GetSingleTargetValueCumulativeFrequencyAt(int nIndex) const
 {
 	return ivSingleTargetValueCumulativeInstanceNumbers.GetAt(nIndex);
+}
+
+inline boolean KWDRNBRegressor::IsOptimized() const
+{
+	return IsCompiled() and nOptimizationFreshness == GetOwnerClass()->GetCompileFreshness();
 }
 
 inline int KWDRNBRankRegressor::GetDataGridStatsNumber() const
@@ -508,5 +513,5 @@ inline int KWDRNBRankRegressor::GetDataGridSetTargetIndexAt(int nDataGridIndex, 
 
 inline boolean KWDRNBRankRegressor::IsOptimized() const
 {
-	return IsCompiled() and nOptimizationFreshness == nCompileFreshness;
+	return IsCompiled() and nOptimizationFreshness == GetOwnerClass()->GetCompileFreshness();
 }

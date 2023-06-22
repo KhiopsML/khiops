@@ -29,6 +29,7 @@ KWDataTableSliceSet::KWDataTableSliceSet()
 	bDeleteFilesAtClean = true;
 
 	// Initialisation des variables de gestion de lecture
+	lTotalBufferSize = 0;
 	read_Class = NULL;
 	read_PhysicalClass = NULL;
 	read_CurrentDomain = NULL;
@@ -994,14 +995,27 @@ const KWClass* KWDataTableSliceSet::GetReadClass() const
 	return read_Class;
 }
 
+void KWDataTableSliceSet::SetTotalBufferSize(longint lValue)
+{
+	require(lValue >= 0);
+	lTotalBufferSize = lValue;
+}
+
+longint KWDataTableSliceSet::GetTotalBufferSize() const
+{
+	return lTotalBufferSize;
+}
+
 boolean KWDataTableSliceSet::OpenForRead()
 {
 	boolean bOk = true;
+	boolean bOpenOnDemandMode;
 	int nSlice;
 	KWDataTableSlice* slice;
 	KWAttributeBlock* attributeBlock;
 	KWAttribute* attribute;
 	KWDataItem* dataItem;
+	longint lSliceBufferSize;
 	int i;
 
 	require(read_Class != NULL);
@@ -1014,6 +1028,13 @@ boolean KWDataTableSliceSet::OpenForRead()
 	// Calcul des informations necessaire a la lecture
 	ComputeReadInformation(read_Class, read_PhysicalClass, &read_oaPhysicalSlices);
 	read_FirstPhysicalSlice = cast(KWDataTableSlice*, read_oaPhysicalSlices.GetAt(0));
+
+	// S'il y a un probleme de nombre de fichiers ouverts simultanement trop important,
+	// on passe en mode ouverture a la demande
+	// Au plus un fichier par tranche est ouvert simultanement, mais toutes les tranches necessaires
+	// peuvent etre ouvertes simultanement. On se base ici sur le nombre total de tranches, meme
+	// si certaines d'entres elles peuvent impliquer des fichiers distants
+	bOpenOnDemandMode = read_oaPhysicalSlices.GetSize() + 10 > GetMaxOpenedFileNumber();
 
 	// Parametrage d'un domaine de classe physique
 	read_CurrentDomain = KWClassDomain::GetCurrentDomain();
@@ -1054,6 +1075,28 @@ boolean KWDataTableSliceSet::OpenForRead()
 		}
 	}
 
+	// Calcul de la taille de buffer par slice, en fonction de la taille totale de buffer disponible
+	lSliceBufferSize = 0;
+	if (read_oaPhysicalSlices.GetSize() > 0 and lTotalBufferSize > 0)
+	{
+		// On divise la taille totale par le nombre de slices
+		lSliceBufferSize = max((longint)1, lTotalBufferSize / read_oaPhysicalSlices.GetSize());
+
+		// On se ramene a un nombre entier de segments
+		lSliceBufferSize =
+		    MemSegmentByteSize * ((lSliceBufferSize + MemSegmentByteSize - 1) / MemSegmentByteSize);
+		assert(lSliceBufferSize >= MemSegmentByteSize);
+
+		// On limite la taille max
+		lSliceBufferSize = min((longint)(SystemFile::nMaxPreferredBufferSize), lSliceBufferSize);
+	}
+
+	// Parametrage par defaut si pas de parametrage disponible
+	// On utilise la taille de buffer par defaut, qui pourrait être trop grrande dans les cas
+	// patholgiques avec de tres grands nombres de slices a lire
+	if (lSliceBufferSize == 0)
+		lSliceBufferSize = BufferedFile::nDefaultBufferSize;
+
 	// Creation et initialisation des drivers des tranches impliquees
 	// Il est a note que toutes les tranches sont parametrees par la meme classe physique,
 	// ce qui permettra d'un avoir un seul objet dont l'alimentation sera completee au fur et
@@ -1066,7 +1109,7 @@ boolean KWDataTableSliceSet::OpenForRead()
 	for (nSlice = 0; nSlice < read_oaPhysicalSlices.GetSize(); nSlice++)
 	{
 		slice = cast(KWDataTableSlice*, read_oaPhysicalSlices.GetAt(nSlice));
-		bOk = bOk and slice->PhysicalOpenForRead(read_PhysicalClass);
+		bOk = bOk and slice->PhysicalOpenForRead(read_PhysicalClass, bOpenOnDemandMode, (int)lSliceBufferSize);
 	}
 
 	// Fermeture en cas de probleme
@@ -1252,6 +1295,7 @@ boolean KWDataTableSliceSet::ReadAllObjectsWithClass(const KWClass* kwcInputClas
 	require(kwcInputClass->IsCompiled());
 	require(oaReadObjects != NULL);
 	require(oaReadObjects->GetSize() == 0);
+	require(Check());
 
 	// Demarrage des serveurs de fichiers : les slices peuvent etre sur des machines distantes
 	if (GetProcessId() == 0)
@@ -1300,10 +1344,10 @@ boolean KWDataTableSliceSet::ReadAllObjectsWithClass(const KWClass* kwcInputClas
 
 			// Warning ou erreur selon le cas
 			if (IsError())
-				Object::AddError("Read using dictionary " + read_Class->GetName() +
+				Object::AddError("Read slices using dictionary " + read_Class->GetName() +
 						 " interrupted because of errors");
 			else
-				Object::AddWarning("Read using dictionary " + read_Class->GetName() +
+				Object::AddWarning("Read slices using dictionary " + read_Class->GetName() +
 						   " interrupted by user");
 		}
 
@@ -1354,9 +1398,7 @@ KWClass* KWDataTableSliceSet::BuildClassFromAttributeNames(const ALString& sInpu
 	require(sInputClassName != "");
 	require(svInputAttributeNames != NULL);
 	require(svInputAttributeNames->GetSize() > 0);
-
-	// Memoirsation du nom de la classe
-	sClassName = sInputClassName;
+	require(Check());
 
 	// Creation de la classe
 	kwcNewClass = new KWClass;
@@ -1654,7 +1696,7 @@ boolean KWDataTableSliceSet::Check() const
 			{
 				// Recherche de l'attribut de tranche correspondant, et verifications de type et de bloc
 				sliceAttribute = cast(KWAttribute*, odSliceAttributes.Lookup(attribute->GetName()));
-				bOk = bOk and (sliceAttribute != NULL or attribute->GetDerivationRule() != NULL);
+				bOk = bOk and (sliceAttribute != NULL or attribute->GetAnyDerivationRule() != NULL);
 				if (sliceAttribute != NULL)
 				{
 					nCheckedAttributeNumber++;
@@ -2047,7 +2089,7 @@ void KWDataTableSliceSet::Test()
 	// Creation d'une classe
 	sTestClassName = KWClassDomain::GetCurrentDomain()->BuildClassName("TestClass");
 	kwcTestClass = KWClass::CreateClass(sTestClassName, 0, nAttributeNumber / 2, nAttributeNumber / 2, 0, 0, 0, 0,
-					    0, 0, 0, true, NULL);
+					    0, 0, 0, 0, 0, true, NULL);
 	KWClassDomain::GetCurrentDomain()->InsertClass(kwcTestClass);
 	kwcTestClass->Compile();
 
@@ -2492,7 +2534,7 @@ void KWDataTableSliceSet::ComputeReadInformation(const KWClass* kwcInputClass, K
 	assert(physicalClass->GetAttributeNumber() ==
 	       kwcInputClass->GetLoadedAttributeNumber() + oaNeededAttributes.GetSize());
 
-	// Export des tranches a utilisees, selon leur ordre initial
+	// Export des tranches a utiliser, selon leur ordre initial
 	for (nSlice = 0; nSlice < GetSliceNumber(); nSlice++)
 	{
 		slice = cast(KWDataTableSlice*, oaSlices.GetAt(nSlice));
@@ -2748,8 +2790,14 @@ KWObject* KWDataTableSliceSet::PhysicalRead()
 				case KWType::Timestamp:
 					kwoObject->ComputeTimestampValueAt(liLoadIndex);
 					break;
+				case KWType::TimestampTZ:
+					kwoObject->ComputeTimestampTZValueAt(liLoadIndex);
+					break;
 				case KWType::Text:
 					kwoObject->ComputeTextValueAt(liLoadIndex);
+					break;
+				case KWType::TextList:
+					kwoObject->ComputeTextListValueAt(liLoadIndex);
 					break;
 				case KWType::Structure:
 					kwoObject->ComputeStructureValueAt(liLoadIndex);
@@ -2990,7 +3038,9 @@ longint KWDataTableSlice::GetTotalAttributeBlockValueNumber() const
 
 boolean KWDataTableSlice::OpenForRead()
 {
-	return PhysicalOpenForRead(GetClass());
+	// Ici, on ne lit qu'une tranche a la fois, et il n'y a pas de risque de depassement
+	// du nombre total de fichiers ouverts, ni de buffer trop gros
+	return PhysicalOpenForRead(GetClass(), false, 0);
 }
 
 boolean KWDataTableSlice::IsOpenedForRead() const
@@ -3298,7 +3348,6 @@ DoubleVector* KWDataTableSlice::GetLexicographicSortCriterion()
 
 int KWDataTableSlice::CompareLexicographicSortCriterion(KWDataTableSlice* otherSlice) const
 {
-
 	int nCompare;
 	int nMaxSize;
 	int i;
@@ -3517,7 +3566,7 @@ const ALString KWDataTableSlice::GetObjectLabel() const
 	return kwcClass.GetName();
 }
 
-boolean KWDataTableSlice::PhysicalOpenForRead(KWClass* driverClass)
+boolean KWDataTableSlice::PhysicalOpenForRead(KWClass* driverClass, boolean bOpenOnDemandMode, int nBufferSize)
 {
 	require(Check());
 	require(GetClass()->IsCompiled());
@@ -3525,10 +3574,16 @@ boolean KWDataTableSlice::PhysicalOpenForRead(KWClass* driverClass)
 	require(svDataFileNames.GetSize() > 0);
 	require(read_nDataFileIndex == 0);
 	require(driverClass != NULL);
+	require(nBufferSize >= 0);
 
 	// Parametrage du driver dedie a la gestion des tranches
 	read_SliceDataTableDriver = new KWDataTableDriverSlice;
 	read_SliceDataTableDriver->SetClass(driverClass);
+	read_SliceDataTableDriver->SetOpenOnDemandMode(bOpenOnDemandMode);
+	if (nBufferSize > 0)
+		read_SliceDataTableDriver->SetBufferSize(nBufferSize);
+
+	// Calcul des informations d'ouverture du driver
 	read_SliceDataTableDriver->ComputeOpenInformation(GetClass());
 
 	// On saute les eventuels fichiers vides
@@ -3600,9 +3655,6 @@ boolean KWDataTableSlice::PhysicalOpenCurrentChunk()
 
 	bOk = read_SliceDataTableDriver->OpenChunkForRead(svDataFileNames.GetAt(read_nDataFileIndex),
 							  lvDataFileSizes.GetAt(read_nDataFileIndex));
-	if (not bOk)
-		AddError("Unable to open slice file " +
-			 FileService::GetURIUserLabel(svDataFileNames.GetAt(read_nDataFileIndex)));
 	return bOk;
 }
 
@@ -3681,6 +3733,7 @@ KWDataTableDriverSlice::KWDataTableDriverSlice()
 {
 	bHeaderLineUsed = false;
 	assert(cFieldSeparator == '\t');
+	bOpenOnDemandMode = false;
 }
 
 KWDataTableDriverSlice::~KWDataTableDriverSlice() {}
@@ -3700,7 +3753,8 @@ void KWDataTableDriverSlice::ComputeOpenInformation(const KWClass* kwcSliceClass
 	inputBuffer = new InputBufferedFile;
 	inputBuffer->SetFieldSeparator(cFieldSeparator);
 	inputBuffer->SetHeaderLineUsed(bHeaderLineUsed);
-	inputBuffer->SetBufferSize(nBufferedFileSize);
+	inputBuffer->SetBufferSize(nBufferSize);
+	inputBuffer->SetOpenOnDemandMode(GetOpenOnDemandMode());
 }
 
 boolean KWDataTableDriverSlice::IsOpenInformationComputed() const
@@ -3719,11 +3773,21 @@ void KWDataTableDriverSlice::CleanOpenInformation()
 	inputBuffer = NULL;
 }
 
+void KWDataTableDriverSlice::SetOpenOnDemandMode(boolean bValue)
+{
+	bOpenOnDemandMode = bValue;
+}
+
+boolean KWDataTableDriverSlice::GetOpenOnDemandMode() const
+{
+	return bOpenOnDemandMode;
+}
+
 boolean KWDataTableDriverSlice::OpenChunkForRead(const ALString& sDataFileName, longint lDataFileSize)
 {
 	boolean bOk;
 	longint lInputFileSize;
-	int nInputBufferSize;
+	int nPreferredBufferSize;
 	ALString sTmp;
 
 	require(IsOpenInformationComputed());
@@ -3737,20 +3801,33 @@ boolean KWDataTableDriverSlice::OpenChunkForRead(const ALString& sDataFileName, 
 	// Parametrage du nom du fichier
 	SetDataTableName(sDataFileName);
 	inputBuffer->SetFileName(GetDataTableName());
+	assert(FileService::IsLocalURI(GetDataTableName()) or FileService::GetURIScheme(GetDataTableName()) == "file");
 
-	// Parametrage de la taille du buffer
-	if (lDataFileSize > BufferedFile::nDefaultBufferSize)
-		nInputBufferSize = BufferedFile::nDefaultBufferSize;
+	// Ajustement de la taille du buffer en fonction de la taille du fichier
+	// Inspire de l'implementation disponible dans KWDataTableDriverTextFile::OpenInputDatabaseFile
+	if (lDataFileSize < nBufferSize)
+	{
+		inputBuffer->SetBufferSize((int)lDataFileSize);
+		inputBuffer->SetCacheOn(false);
+	}
+	// Prise en compte du cache selon lma taille disponible pour le buffer
 	else
 	{
-		nInputBufferSize = (int)lDataFileSize;
-		nInputBufferSize =
-		    MemSegmentByteSize * ((nInputBufferSize + MemSegmentByteSize - 1) / MemSegmentByteSize);
-		nInputBufferSize = min((int)BufferedFile::nDefaultBufferSize, nInputBufferSize);
+		nPreferredBufferSize = PLRemoteFileService::GetPreferredBufferSize(GetDataTableName());
+		if (nBufferSize >= nPreferredBufferSize + SystemFile::nMinPreferredBufferSize)
+		{
+			inputBuffer->SetBufferSize(nBufferSize - nPreferredBufferSize);
+			inputBuffer->SetCacheOn(true);
+		}
+		else
+		{
+			inputBuffer->SetBufferSize(nBufferSize);
+			inputBuffer->SetCacheOn(false);
+		}
 	}
-	inputBuffer->SetBufferSize(nInputBufferSize);
 
-	// Ouverture du fichier
+	// Ouverture du fichier sans gestion du BOM (fichier interne)
+	inputBuffer->SetUTF8BomManagement(false);
 	bOk = inputBuffer->Open();
 
 	// Verification de la taille du fichier
@@ -3804,6 +3881,7 @@ boolean KWDataTableDriverSlice::ReadObject(KWObject* kwoObject)
 	int nFieldLength;
 	int nFieldError;
 	boolean bEndOfLine;
+	boolean bLineTooLong;
 	ALString sTmp;
 	int nField;
 	int nError;
@@ -3835,6 +3913,7 @@ boolean KWDataTableDriverSlice::ReadObject(KWObject* kwoObject)
 
 	// Lecture des champs de la ligne
 	bEndOfLine = false;
+	bLineTooLong = false;
 	nField = 0;
 	sField = NULL;
 	nFieldLength = 0;
@@ -3851,9 +3930,9 @@ boolean KWDataTableDriverSlice::ReadObject(KWObject* kwoObject)
 
 		// On lit toujours le champ ou oon le saute selon que le champ soit traite ou non
 		if (liLoadIndex.IsValid())
-			bEndOfLine = inputBuffer->GetNextField(sField, nFieldLength, nFieldError);
+			bEndOfLine = inputBuffer->GetNextField(sField, nFieldLength, nFieldError, bLineTooLong);
 		else
-			bEndOfLine = inputBuffer->SkipField();
+			bEndOfLine = inputBuffer->SkipField(bLineTooLong);
 
 		// Analyse des attributs a traiter
 		if (liLoadIndex.IsValid())
@@ -3994,7 +4073,7 @@ boolean KWDataTableDriverSlice::ReadObject(KWObject* kwoObject)
 					}
 				}
 
-				// Warning si erreur de parsing des valeurs du bloc de variables
+				// Erreur si erreur de parsing des valeurs du bloc de variables
 				if (not bValueBlockOk)
 				{
 					AddError(sTmp + "Field " + IntToString(nField) + ", " +
@@ -4010,9 +4089,14 @@ boolean KWDataTableDriverSlice::ReadObject(KWObject* kwoObject)
 	// Verification du nombre de champs
 	if (nField != livDataItemLoadIndexes.GetSize())
 	{
-		// Emission d'un warning
 		AddError(sTmp + " Incorrect record, with bad field number (" + IntToString(nField) +
 			 " read fields for " + IntToString(livDataItemLoadIndexes.GetSize()) + " expected fields)");
+		bOk = false;
+	}
+	// Erreur a ce niveau en cas de ligne trop longue
+	else if (bLineTooLong)
+	{
+		AddError("Incorrect record, " + InputBufferedFile::GetLineTooLongErrorLabel());
 		bOk = false;
 	}
 

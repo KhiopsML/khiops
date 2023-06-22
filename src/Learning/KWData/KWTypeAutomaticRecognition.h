@@ -102,10 +102,21 @@ public:
 	int GetMatchingTimestampFormatNumber() const;
 	const KWTimestampFormat* GetMatchingTimestampFormatAt(int nIndex) const;
 
+	// Formats de TimestampTZ compatibles avec les valeurs analysees
+	int GetMatchingTimestampTZFormatNumber() const;
+	const KWTimestampTZFormat* GetMatchingTimestampTZFormatAt(int nIndex) const;
+
 	// Test si tous les formats sont coherents avec le premier de la liste
 	boolean AreMatchingDateFormatConsistent() const;
 	boolean AreMatchingTimeFormatConsistent() const;
 	boolean AreMatchingTimestampFormatConsistent() const;
+	boolean AreMatchingTimestampTZFormatConsistent() const;
+
+	// Test si le foprmat en parametre se trouve parmi les format reconnus
+	boolean IsMatchingDateFormat(const KWDateFormat* format) const;
+	boolean IsMatchingTimeFormat(const KWTimeFormat* format) const;
+	boolean IsMatchingTimestampFormat(const KWTimestampFormat* format) const;
+	boolean IsMatchingTimestampTZFormat(const KWTimestampTZFormat* format) const;
 
 	// Affichage des resultats de reconnaissance
 	void Write(ostream& ost) const override;
@@ -156,6 +167,7 @@ protected:
 	ObjectArray oaMatchingDateFormats;
 	ObjectArray oaMatchingTimeFormats;
 	ObjectArray oaMatchingTimestampFormats;
+	ObjectArray oaMatchingTimestampTZFormats;
 
 	// Taille minimum des champs de type Text
 	// Une variable de type Symbol comportant au moins une valeur de taille superieure sera consideree comme de type
@@ -200,6 +212,10 @@ public:
 	int GetAvailableTimestampFormatNumber() const;
 	const KWTimestampFormat* GetAvailableTimestampFormatAt(int nIndex) const;
 
+	// Formats de TimestampTZ disponibles
+	int GetAvailableTimestampTZFormatNumber() const;
+	const KWTimestampTZFormat* GetAvailableTimestampTZFormatAt(int nIndex) const;
+
 	////////////////////////////////////////////////////////////////
 	// Statistiques sur les formats
 
@@ -212,10 +228,13 @@ public:
 	int GetTimeMinCharNumber() const;
 	int GetTimeMaxCharNumber() const;
 
-	// Tailles minimum et maximum d'une valeur pour etre compatible avec un des formats Timestamp
+	// Tailles minimum et maximum d'une valeur pour etre compatible avec un des formats Timestamp ou TimestampTZ
 	// en ignorant la partie decimale des secondes
 	int GetTimestampMinCharNumber() const;
 	int GetTimestampMaxCharNumber() const;
+
+	// Taille et maximum de la partie time zone des formats Timestamp ou TimestampTZ
+	int GetTimezoneMaxCharNumber() const;
 
 	// Test si un charactere peut etre utilise comme separateur
 	boolean IsDateSeparator(char cValue) const;
@@ -235,6 +254,7 @@ protected:
 	int nTimeMaxCharNumber;
 	int nTimestampMinCharNumber;
 	int nTimestampMaxCharNumber;
+	int nTimezoneMaxCharNumber;
 	ALString sDateSeparators;
 	ALString sTimeSeparators;
 	ALString sTimestampSeparators;
@@ -243,4 +263,5 @@ protected:
 	ObjectArray oaAvailableDateFormats;
 	ObjectArray oaAvailableTimeFormats;
 	ObjectArray oaAvailableTimestampFormats;
+	ObjectArray oaAvailableTimestampTZFormats;
 };

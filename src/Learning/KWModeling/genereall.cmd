@@ -1,17 +1,11 @@
 @echo off
 
-if exist ..\KWUserInterface\KWTrainParametersView.h copy ..\KWUserInterface\KWTrainParametersView.h
-if exist ..\KWUserInterface\KWTrainParametersView.cpp copy ..\KWUserInterface\KWTrainParametersView.cpp
-genere -noarrayview KWTrainParameters "Train parameters" KWTrainParameters.dd
-copy KWTrainParametersView.h ..\KWUserInterface
-copy KWTrainParametersView.cpp ..\KWUserInterface
-del KWTrainParametersView.h
-del KWTrainParametersView.cpp 
+echo. > genere.log
 
-if exist ..\KWUserInterface\KWSelectionParametersView.h copy ..\KWUserInterface\KWSelectionParametersView.h
-if exist ..\KWUserInterface\KWSelectionParametersView.cpp copy ..\KWUserInterface\KWSelectionParametersView.cpp
-genere -noarrayview KWSelectionParameters "Selection parameters" KWSelectionParameters.dd
-copy KWSelectionParametersView.h ..\KWUserInterface
-copy KWSelectionParametersView.cpp ..\KWUserInterface
-del KWSelectionParametersView.h
-del KWSelectionParametersView.cpp 
+rem La partie vue est geree dans la librairie KWUserInterface
+genere -noview KWTrainParameters "Train parameters" KWTrainParameters.dd >> genere.log
+genere -outputdir ..\KWUserInterface -nomodel -noarrayview KWTrainParameters "Train parameters" KWTrainParameters.dd >> genere.log
+
+rem La partie vue est geree dans la librairie KWUserInterface
+genere -noview KWSelectionParameters "Selection parameters" KWSelectionParameters.dd >> genere.log
+genere -outputdir ..\KWUserInterface -nomodel -noarrayview KWSelectionParameters "Selection parameters" KWSelectionParameters.dd >> genere.log

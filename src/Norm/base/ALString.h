@@ -84,6 +84,7 @@ public:
 	int Find(const char* pszSub) const; // cf. "C" strstr
 
 	// Estimation de la memoire utilisee
+	// C'est la taille utilisee et non la taille allouee qui peut etre plus grande
 	longint GetUsedMemory() const;
 
 	// Acces a l'implementation (buffer) sous forme d'une tableau "C" de caracteres
@@ -331,7 +332,7 @@ inline ALString& ALString::operator=(ALString&& stringSrc) noexcept
 #endif // not defined __UNIX__ or defined __C11__
 inline longint ALString::GetUsedMemory() const
 {
-	return sizeof(ALString) + nAllocLength;
+	return sizeof(ALString) + nDataLength + 1;
 }
 
 // Redefinition de l'operateur << de ostream

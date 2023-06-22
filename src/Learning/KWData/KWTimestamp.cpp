@@ -292,6 +292,7 @@ void Timestamp::Test()
 	UnitTest(2013, 4, 5, 23, 59, 59.9999);
 	UnitTest(2013, 4, 5, 23, 59, 59.99999);
 	UnitTest(2013, 4, 5, 23, 59, 60);
+	UnitTest(4000, 1, 1, 0, 0, 0);
 	UnitTest(9999, 1, 1, 0, 0, 0);
 	UnitTest(9999, 12, 30, 23, 59, 59.9999);
 }
@@ -301,13 +302,7 @@ void Timestamp::Test()
 
 KWTimestampFormat::KWTimestampFormat()
 {
-	nTotalCharNumber = 0;
-	cSeparatorChar = '\0';
-	nSeparatorOffset = 0;
-	nDateOffset = 0;
-	nTimeOffset = 0;
-	nMinCharNumber = 0;
-	nMaxCharNumber = 0;
+	Reset();
 }
 
 KWTimestampFormat::~KWTimestampFormat() {}
@@ -333,7 +328,6 @@ boolean KWTimestampFormat::SetFormatString(const ALString& sValue)
 	// Recherche des motifs dans la chaine
 	if (bCheck)
 	{
-		nDateOffset = 0;
 		nTimeOffset = sValue.Find("HH");
 		if (nTimeOffset == -1)
 			nTimeOffset = sValue.Find("(H)H");
@@ -361,7 +355,8 @@ boolean KWTimestampFormat::SetFormatString(const ALString& sValue)
 			cSeparatorChar = sValue.GetAt(nSeparatorOffset);
 
 			// Test de validite
-			bCheck = (cSeparatorChar == ' ' or cSeparatorChar == '-' or cSeparatorChar == '_');
+			bCheck = (cSeparatorChar == ' ' or cSeparatorChar == '-' or cSeparatorChar == '_' or
+				  cSeparatorChar == 'T');
 		}
 	}
 
@@ -390,7 +385,7 @@ boolean KWTimestampFormat::SetFormatString(const ALString& sValue)
 			bCheck = (cSeparatorChar != '\0');
 	}
 
-	// Calcul des nombre min et max de caracteres
+	// Calcul des nombres min et max de caracteres
 	if (bCheck)
 	{
 		nMinCharNumber = GetDateFormat()->GetMinCharNumber() + GetTimeFormat()->GetMinCharNumber();
@@ -403,21 +398,26 @@ boolean KWTimestampFormat::SetFormatString(const ALString& sValue)
 
 	// Reinitialisation des caracteristiques du format si invalide
 	if (not bCheck)
-	{
-		nTotalCharNumber = 0;
-		cSeparatorChar = '\0';
-		nSeparatorOffset = 0;
-		nDateOffset = 0;
-		nTimeOffset = 0;
-		nMinCharNumber = 0;
-		nMaxCharNumber = 0;
-	}
+		Reset();
 	return bCheck;
 }
 
 const ALString& KWTimestampFormat::GetFormatString() const
 {
 	return sFormatString;
+}
+
+void KWTimestampFormat::Reset()
+{
+	sFormatString = "";
+	dateFormat.Reset();
+	timeFormat.Reset();
+	nTotalCharNumber = 0;
+	cSeparatorChar = '\0';
+	nSeparatorOffset = 0;
+	nTimeOffset = 0;
+	nMinCharNumber = 0;
+	nMaxCharNumber = 0;
 }
 
 boolean KWTimestampFormat::IsConsistentWith(const KWTimestampFormat* otherFormat) const
@@ -551,7 +551,7 @@ void KWTimestampFormat::GetAllAvailableFormats(ObjectArray* oaAvailableFormats)
 	require(oaAvailableFormats != NULL);
 	require(oaAvailableFormats->GetSize() == 0);
 
-	// Recherche de tous les format de Date et Time
+	// Recherche de tous les formats de Date et Time
 	KWDateFormat::GetAllAvailableFormats(&oaAllAvailableDateFormats);
 	KWTimeFormat::GetAllAvailableFormats(&oaAllAvailableTimeFormats);
 
@@ -573,6 +573,8 @@ void KWTimestampFormat::GetAllAvailableFormats(ObjectArray* oaAvailableFormats)
 				  dateFormat->GetFormatString() + '-' + timeFormat->GetFormatString());
 			AddFormat(oaAvailableFormats,
 				  dateFormat->GetFormatString() + '_' + timeFormat->GetFormatString());
+			AddFormat(oaAvailableFormats,
+				  dateFormat->GetFormatString() + 'T' + timeFormat->GetFormatString());
 		}
 	}
 
@@ -606,6 +608,7 @@ void KWTimestampFormat::UnitTest(const ALString& sInputValue, KWTimestampFormat*
 	require(outputFormat != NULL);
 
 	tsInputValue.Reset();
+	tsOutputValue.Reset();
 	if (inputFormat->Check())
 		tsInputValue = inputFormat->StringToTimestamp(sInputValue);
 	if (outputFormat->Check())
@@ -667,6 +670,7 @@ void KWTimestampFormat::Test()
 	svStringTimestamps.Add("20031231235959.9");
 	svStringTimestamps.Add("20041231235959.9");
 	svStringTimestamps.Add("20130405235959.9");
+	svStringTimestamps.Add("40000101235959.9");
 	svStringTimestamps.Add("99990101235959.9");
 
 	// Affichages des timestamps testees

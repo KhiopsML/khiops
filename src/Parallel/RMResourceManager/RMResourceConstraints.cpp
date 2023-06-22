@@ -114,24 +114,24 @@ ALString RMResourceConstraints::ToString()
 	sRes = "";
 	if (nMaxCoreNumber != INT_MAX)
 	{
-		sRes = sTmp + "nMaxCoreNumber " + IntToString(nMaxCoreNumber) + "\n";
+		sRes = sTmp + "nMaxCoreNumber: " + IntToString(nMaxCoreNumber) + "\n";
 	}
 	if (nMaxCoreNumberOnHost != INT_MAX)
 	{
-		sRes += sTmp + "nMaxCoreNumberOnHost " + IntToString(nMaxCoreNumberOnHost) + "\n";
+		sRes += sTmp + "nMaxCoreNumberOnHost: " + IntToString(nMaxCoreNumberOnHost) + "\n";
 	}
 	if (nMaxProcessNumber != INT_MAX)
 	{
-		sRes += sTmp + "nMaxProcessNumber " + IntToString(nMaxProcessNumber) + "\n";
+		sRes += sTmp + "nMaxProcessNumber: " + IntToString(nMaxProcessNumber) + "\n";
 	}
 	if (nResourceLimit[MEMORY] != INT_MAX)
 	{
-		sRes += sTmp + "nResourceLimit[MEMORY] " + LongintToHumanReadableString(nResourceLimit[MEMORY] * lMB) +
+		sRes += sTmp + "nResourceLimit[MEMORY]: " + LongintToHumanReadableString(nResourceLimit[MEMORY] * lMB) +
 			"\n";
 	}
 	if (nResourceLimit[DISK] != INT_MAX)
 	{
-		sRes += sTmp + "nResourceLimit[DISK] " + LongintToHumanReadableString(nResourceLimit[DISK]) + "\n";
+		sRes += sTmp + "nResourceLimit[DISK]: " + LongintToHumanReadableString(nResourceLimit[DISK]) + "\n";
 	}
 	if (bIgnoreMemoryLimit)
 	{

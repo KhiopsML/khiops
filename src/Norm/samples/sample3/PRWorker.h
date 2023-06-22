@@ -5,8 +5,7 @@
 #pragma once
 
 ////////////////////////////////////////////////////////////
-// 2019-10-29 15:14:06
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "Object.h"
@@ -33,7 +32,7 @@ public:
 	void CopyFrom(const PRWorker* aSource);
 	PRWorker* Clone() const;
 
-	////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
 	// Acces aux attributs
 
 	// Prenom
@@ -47,8 +46,7 @@ public:
 	// Rapport
 	const ALString& GetReportFileName() const;
 	void SetReportFileName(const ALString& sValue);
-
-	////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
 	// Divers
 
 	// Ecriture

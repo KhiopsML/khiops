@@ -21,6 +21,11 @@ class LMLicense;
 class LMLicenseManager : public Object
 {
 public:
+	// Indique s'il faut tester les licences
+	// A utiliser pour conditionner les traitement de verification de la licence
+	// La licence est deactivee a partir de la version 10.1 de Khiops
+	static boolean IsEnabled();
+
 	//////////////////////////////////////////////////////////////////////
 	// Initialisation et terminaison, a faire une seule fois
 	// en debut et fin de programme

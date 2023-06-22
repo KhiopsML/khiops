@@ -56,6 +56,13 @@ public:
 	// Duplication
 	DoubleVector* Clone() const;
 
+	// Import de nElementNumber elements du tableau cByteBuffer vers l'index nIndex du vecteur
+	void ImportBuffer(int nIndex, int nElementNumber, const char* cByteBuffer);
+
+	// Export de nElementNumber elements vers le tableau cByteBuffer depuis l'index nIndex du vecteur
+	// Le tableau cByteBuffer doit etre alloue et de taille nElementNumber*sizeof(double)
+	void ExportBuffer(int nIndex, int nElementNumber, char* cByteBuffer) const;
+
 	// Affichage
 	void Write(ostream& ost) const override;
 
@@ -71,6 +78,9 @@ public:
 
 	// Test
 	static void Test();
+
+	// Test ImportBuffer et ExportBuffer
+	static void Test2();
 
 	///////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
@@ -93,6 +103,9 @@ protected:
 		MemHugeVector hugeVector;
 	} pData;
 	friend class PLSerializer;
+
+	// Test des methodes ImportBuffer et ExportBuffer
+	static void TestImportExport(int nVectorSize, int nIndexSource, int nIndexDest);
 };
 
 //////////////////////////////////////////////////////////
@@ -137,6 +150,13 @@ public:
 
 	// Duplication
 	IntVector* Clone() const;
+
+	// Import de nElementNumber elements du tableau cByteBuffer vers l'index nIndex du vecteur
+	void ImportBuffer(int nIndex, int nElementNumber, const char* cByteBuffer);
+
+	// Export de nElementNumber elements vers le tableau cByteBuffer depuis l'index nIndex du vecteur
+	// Le tableau cByteBuffer doit etre alloue et de taille nElementNumber*sizeof(int)
+	void ExportBuffer(int nIndex, int nElementNumber, char* cByteBuffer) const;
 
 	// Retaillage avec potentiellement une grande taille, sans risque d'erreur d'allocation
 	// Renvoie false si echec de retaillage (et le vecteur garde sa taille initiale)
@@ -219,6 +239,13 @@ public:
 
 	// Duplication
 	LongintVector* Clone() const;
+
+	// Import de nElementNumber elements du tableau cByteBuffer vers l'index nIndex du vecteur
+	void ImportBuffer(int nIndex, int nElementNumber, const char* cByteBuffer);
+
+	// Export de nElementNumber elements vers le tableau cByteBuffer depuis l'index nIndex du vecteur
+	// Le tableau cByteBuffer doit etre alloue et de taille nElementNumber*sizeof(longint)
+	void ExportBuffer(int nIndex, int nElementNumber, char* cByteBuffer) const;
 
 	// Affichage
 	void Write(ostream& ost) const override;

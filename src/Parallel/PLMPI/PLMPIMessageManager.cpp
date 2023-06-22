@@ -36,6 +36,7 @@ PLMPIMessageManager::PLMPIMessageManager()
 	nIsMaxErrorFlowReachedPerGravity[0] = 0;
 	nIsMaxErrorFlowReachedPerGravity[1] = 0;
 	nIsMaxErrorFlowReachedPerGravity[2] = 0;
+	nTaskIndexError = -1;
 }
 
 PLMPIMessageManager::~PLMPIMessageManager()
@@ -81,6 +82,7 @@ void PLMPIMessageManager::PrintMessages()
 	int nMessageTaskIndex;
 	longint lTaskLineNumber;
 	int nMessageGravity;
+	boolean bHideMessage;
 
 	// Parcours des messages ordonnes par le taskIndex
 	while (slMessages.GetCount() > 0)
@@ -110,8 +112,26 @@ void PLMPIMessageManager::PrintMessages()
 			{
 				nMessageGravity = message->GetMessage()->GetError()->GetGravity();
 
+				// Dans le cas des erreurs on n'envoie que les messages du premier esclave
+				// les messages des autres esclaves sont ignores
+				bHideMessage = false;
+				if (nMessageGravity == Error::GravityError)
+				{
+					if (nTaskIndexError == -1)
+						nTaskIndexError = message->GetTaskIndex();
+
+					if (nTaskIndexError != message->GetTaskIndex())
+						bHideMessage = true;
+				}
+
 				// On affiche seulement si le max n'est pas atteint
-				if (nIsMaxErrorFlowReachedPerGravity[nMessageGravity] <= 1)
+				// TODO pourquoi est-ce qu'on gere le max ici, c'est deja gere par Ermgt
+				// c'est probablement pour affichier les ... Du coup, il faut modifier
+				// la methode boolean Global::IsMaxErrorFlowReachedPerGravity(int nErrorGravity)
+				// en remplacant >= par > et enlver le if ci-dessous
+				if ((nIsMaxErrorFlowReachedPerGravity[nMessageGravity] <= 1 or
+				     Global::IgnoreErrorFlow(message->GetMessage()->GetError())) and
+				    not bHideMessage)
 				{
 					message->Print(lGlobalLineNumber);
 

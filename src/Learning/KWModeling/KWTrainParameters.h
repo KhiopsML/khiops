@@ -5,8 +5,7 @@
 #pragma once
 
 ////////////////////////////////////////////////////////////
-// 2018-07-19 14:35:54
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "Object.h"
@@ -29,7 +28,7 @@ public:
 	void CopyFrom(const KWTrainParameters* aSource);
 	KWTrainParameters* Clone() const;
 
-	////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
 	// Acces aux attributs
 
 	// Max number of evaluated variables
@@ -40,7 +39,7 @@ public:
 	const ALString& GetClassifierCriterion() const;
 	void SetClassifierCriterion(const ALString& sValue);
 
-	////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
 	// Divers
 
 	// Ecriture
@@ -74,7 +73,7 @@ public:
 	// ##
 
 	////////////////////////////////////////////////////////
-	//// Implementation
+	///// Implementation
 protected:
 	// Attributs de la classe
 	int nMaxEvaluatedAttributeNumber;

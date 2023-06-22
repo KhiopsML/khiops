@@ -11,7 +11,6 @@
 #include "PLMPITaskDriver.h"
 #include "PLMPIMessageManager.h"
 #include "PLShared_TaskResourceGrant.h"
-#include "PLBufferedFileDriverRemote.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // Classe PLMPISlave
@@ -50,9 +49,6 @@ public:
 	static PLMPITracer* GetTracerPerformance();
 	static PLMPITracer* GetTracerProtocol();
 
-	// Reception du message de fin de traitement (ordre du Master de s'arreter : il n'y a plus rien a traiter...)
-	void RecvEndProcessing(MPI_Comm);
-
 	// Acces a la tache
 	PLParallelTask* GetTask() const;
 
@@ -72,9 +68,6 @@ protected:
 	// Acces au driver MPI
 	const PLMPITaskDriver* GetDriver() const;
 
-	// Serializer pour l'envoi et la reception de messages
-	PLSerializer serializer;
-
 private:
 	// Traitement principal
 	// Boucle de traitement :
@@ -83,8 +76,9 @@ private:
 	// Sortie de la boucle sur reception de l'ordre d'arret du maitre (c'est le seul moyen de sortir de cette
 	// methode) Les resultats envoyes au maitre contiennent un booleen (output_bSlaveProcessOk), en cas d'erreur
 	// sans le SlaveProcess, celui-ci est mis a False et lors de sa reception le maitre donne l'ordre a tous les
-	// esclaves de s'arreter
-	void Process();
+	// esclaves de s'arreter Renvoie true si tout s'est bien passe dans l'ensemble du traitement (maitre + ensemble
+	// des esclaves)
+	boolean Process();
 
 	// Notifie qu'on a fini (apres finalize)
 	void NotifyDone(boolean bOk);
@@ -133,14 +127,15 @@ private:
 	// Pas de SystemSleep et pas de Probe
 	boolean bBoostedMode;
 
-	// Fenetres RMA pour signifier aux esclavequ'il est inutile d'envoyer de nouveaux messages
-	//  i.e. quand IsMaxErrorFlowReachedPerGravity == true
-	static MPI_Win winMaxError;
-	static int nWinMaxError[3];
+	// Tableau qui pour chaque type d'erreur, indique aux esclaves qu'il est
+	// inutile d'envoyer de nouveaux messages i.e. quand IsMaxErrorFlowReachedPerGravity == true
+	static IntVector* ivGravityReached;
 
 	// Buffer utilise pour la methode DischargePendingCommunication
 	// on sait que la taille des messages ne depasse pas celel d'un bloc
 	char sBufferDischarge[MemSegmentByteSize];
+
+	static DisplayErrorFunction currentDisplayErrorFunction;
 };
 
 ////////////////////////////////////////////////////////////

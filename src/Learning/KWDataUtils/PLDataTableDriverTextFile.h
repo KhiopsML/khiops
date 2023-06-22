@@ -81,8 +81,8 @@ protected:
 	/////////////////////////////////////////////////////////////////////
 	// Gestion des index des data items (attributs ou blocs d'attributs)
 
-	// Calcul des index a partir du dictionaire
-	boolean ComputeDataItemLoadIndexes(const KWClass* kwcLogicalClass);
+	// Re-immplementation du calcul des index a partir du dictionaire
+	boolean ComputeDataItemLoadIndexes(const KWClass* kwcLogicalClass, const KWClass* kwcHeaderLineClass) override;
 
 	// Acces en lecture et ecriture aux index des data items
 	const KWLoadIndexVector* GetConstDataItemLoadIndexes() const;

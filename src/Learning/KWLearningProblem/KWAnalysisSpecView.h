@@ -5,8 +5,7 @@
 #pragma once
 
 ////////////////////////////////////////////////////////////
-// 2021-04-06 18:11:58
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "UserInterface.h"
@@ -20,6 +19,7 @@
 #include "KWAttributeConstructionSpecView.h"
 #include "KWPreprocessingSpecView.h"
 #include "KWSystemParametersView.h"
+#include "KWCrashTestParametersView.h"
 #include "KWVersion.h"
 
 // ##
@@ -57,7 +57,7 @@ public:
 
 	// ##
 	////////////////////////////////////////////////////////
-	//// Implementation
+	///// Implementation
 protected:
 	// ## Custom implementation
 

@@ -102,7 +102,7 @@ public:
 	// Prerequis: la classe doit etre compilee
 	boolean IsKeyLoaded() const;
 
-	// Rang d'un attribut cle parmi les atributs charges en memoire (-1 si non charge)
+	// Rang d'un attribut cle parmi les attributs charges en memoire (-1 si non charge)
 	// Permet l'acces a la valeur de la cle dans les KWObjets
 	// Prerequis: la classe doit etre compilee
 	KWLoadIndex GetKeyAttributeLoadIndexAt(int nIndex) const;
@@ -302,6 +302,9 @@ public:
 	void Compile();
 	boolean IsCompiled() const;
 
+	// Fraicheur de compilation
+	int GetCompileFreshness() const;
+
 	// Mise a jour de la fraicheur de la classe
 	// (provoque la necessite de recompiler)
 	int GetFreshness() const;
@@ -424,9 +427,9 @@ public:
 
 	// Creation d'un dictionnaire
 	static KWClass* CreateClass(const ALString& sClassName, int nKeySize, int nSymbolNumber, int nContinuousNumber,
-				    int nDateNumber, int nTimeNumber, int nTimestampNumber, int nTextNumber,
-				    int nObjectNumber, int nObjectArrayNumber, int nStructureNumber,
-				    boolean bCreateAttributeBlocks, KWClass* attributeClass);
+				    int nDateNumber, int nTimeNumber, int nTimestampNumber, int nTimestampTZNumber,
+				    int nTextNumber, int nTextListNumber, int nObjectNumber, int nObjectArrayNumber,
+				    int nStructureNumber, boolean bCreateAttributeBlocks, KWClass* attributeClass);
 
 	// Test des parcours des attributs avec affichage
 	void TestAttributeBrowsings(boolean bList, boolean bInverseList, boolean bUsed, boolean bLoaded,
@@ -459,7 +462,21 @@ public:
 
 protected:
 	///////////////////////////////////////////////////////////////////////////////////////////////
-	// Service interne de gestion de la classe
+	// Services pour l'optimisation des la gestion des KWObjet par les KWDatabase
+
+	// Seule la classe KWDatabase a l'usage des deux listes ci-dessous
+	friend class KWDatabase;
+
+	// Liste des elements de donnees devant etre calcules
+	ObjectArray* GetDatabaseDataItemsToCompute();
+	const ObjectArray* GetConstDatabaseDataItemsToCompute() const;
+
+	// Liste des elements de donnees temporaires à calculer, pouvant etre nettoyes et recalcules plusieurs fois
+	ObjectArray* GetDatabaseTemporayDataItemsToComputeAndClean();
+	const ObjectArray* GetConstDatabaseTemporayDataItemsToComputeAndClean() const;
+
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	// Services internes de gestion de la classe
 
 	// Seule la classe KWClassDomain peut modifier
 	// le domaine de classe gerant la classe
@@ -495,6 +512,10 @@ protected:
 	// Attributs Text charges en memoire, pour optimiser leur destruction et mutation
 	int GetLoadedTextAttributeNumber() const;
 	KWAttribute* GetLoadedTextAttributeAt(int nIndex) const;
+
+	// Attributs TextList charges en memoire, pour optimiser leur destruction et mutation
+	int GetLoadedTextListAttributeNumber() const;
+	KWAttribute* GetLoadedTextListAttributeAt(int nIndex) const;
 
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	// Methodes internes utilises en particulier dans les KWObject, pour s'assurer de la
@@ -567,6 +588,7 @@ protected:
 	ObjectArray oaLoadedAttributeBlocks;
 	ObjectArray oaLoadedDenseSymbolAttributes;
 	ObjectArray oaLoadedTextAttributes;
+	ObjectArray oaLoadedTextListAttributes;
 	ObjectArray oaLoadedRelationAttributes;
 	ObjectArray oaUnloadedNativeRelationAttributes;
 
@@ -579,6 +601,10 @@ protected:
 	IntVector ivUsedAttributeNumbers;
 	IntVector ivUsedDenseAttributeNumbers;
 	IntVector ivUsedSparseAttributeNumbers;
+
+	// Listes d'attributs dont l'usage est reserve a la classe KWDatabase
+	ObjectArray oaDatabaseDataItemsToCompute;
+	ObjectArray oaDatabaseTemporayDataItemsToComputeAndClean;
 
 	// Valeur de hash de la classe, bufferise avec une fraicheur
 	// Ces variables sont mutable, car modifiee par ComputeHashValue()
@@ -606,7 +632,6 @@ inline const ALString& KWClass::GetName() const
 inline void KWClass::SetName(const ALString& sValue)
 {
 	require(domain == NULL);
-	require(CheckName(sValue, this));
 
 	usName.SetValue(sValue);
 	UpdateFreshness();
@@ -802,6 +827,18 @@ inline KWAttribute* KWClass::GetLoadedTextAttributeAt(int nIndex) const
 	return cast(KWAttribute*, oaLoadedTextAttributes.GetAt(nIndex));
 }
 
+inline int KWClass::GetLoadedTextListAttributeNumber() const
+{
+	require(IsIndexed());
+	return oaLoadedTextListAttributes.GetSize();
+}
+
+inline KWAttribute* KWClass::GetLoadedTextListAttributeAt(int nIndex) const
+{
+	require(IsIndexed());
+	return cast(KWAttribute*, oaLoadedTextListAttributes.GetAt(nIndex));
+}
+
 inline int KWClass::GetLoadedDataItemNumber() const
 {
 	require(IsIndexed());
@@ -833,6 +870,26 @@ inline KWDataItem* KWClass::GetDataItemAtLoadIndex(KWLoadIndex liIndex) const
 	return cast(KWDataItem*, oaLoadedDataItems.GetAt(liIndex.GetDenseIndex()));
 }
 
+inline ObjectArray* KWClass::GetDatabaseDataItemsToCompute()
+{
+	return &oaDatabaseDataItemsToCompute;
+}
+
+inline const ObjectArray* KWClass::GetConstDatabaseDataItemsToCompute() const
+{
+	return &oaDatabaseDataItemsToCompute;
+}
+
+inline ObjectArray* KWClass::GetDatabaseTemporayDataItemsToComputeAndClean()
+{
+	return &oaDatabaseTemporayDataItemsToComputeAndClean;
+}
+
+inline const ObjectArray* KWClass::GetConstDatabaseTemporayDataItemsToComputeAndClean() const
+{
+	return &oaDatabaseTemporayDataItemsToComputeAndClean;
+}
+
 inline int KWClass::GetTotalInternallyLoadedDataItemNumber() const
 {
 	require(IsIndexed());
@@ -853,6 +910,11 @@ inline KWAttribute* KWClass::GetUnloadedNativeRelationAttributeAt(int nIndex) co
 inline boolean KWClass::IsCompiled() const
 {
 	return nFreshness == nCompileFreshness;
+}
+
+inline int KWClass::GetCompileFreshness() const
+{
+	return nCompileFreshness;
 }
 
 inline int KWClass::GetFreshness() const

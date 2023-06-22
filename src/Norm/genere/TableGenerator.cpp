@@ -10,7 +10,7 @@ TableGenerator::TableGenerator()
 	qsAttributeRangServices = NULL;
 	attFieldTable = NULL;
 	qsFieldRangServices = NULL;
-	bGenereManagement = false;
+	bGenereModel = true;
 	bGenereView = true;
 	bGenereArrayView = true;
 	bGenereUserSection = true;
@@ -57,14 +57,14 @@ void TableGenerator::SetClassUserLabel(const ALString& sValue)
 	sClassUserLabel = sValue;
 }
 
-void TableGenerator::SetGenereManagement(boolean bValue)
+void TableGenerator::SetGenereModel(boolean bValue)
 {
-	bGenereManagement = bValue;
+	bGenereModel = bValue;
 }
 
-boolean TableGenerator::GetGenereManagement() const
+boolean TableGenerator::GetGenereModel() const
 {
-	return bGenereManagement;
+	return bGenereModel;
 }
 
 void TableGenerator::SetGenereView(boolean bValue)
@@ -101,6 +101,43 @@ void TableGenerator::SetGenereUserSection(boolean bValue)
 boolean TableGenerator::GetGenereUserSection() const
 {
 	return bGenereUserSection;
+}
+
+void TableGenerator::SetOutputDir(const ALString& sValue)
+{
+	sOutputDir = sValue;
+}
+
+const ALString& TableGenerator::GetOutputDir() const
+{
+	return sOutputDir;
+}
+
+boolean TableGenerator::CheckClassName(const ALString& sValue) const
+{
+	boolean bOk = true;
+	int i;
+	char c;
+
+	require(sClassName != "");
+
+	for (i = 0; i < sValue.GetLength(); i++)
+	{
+		c = sValue.GetAt(i);
+		if (i == 0 and isdigit(c))
+		{
+			bOk = false;
+			Error("Class name <" + sValue + "> must not start with a digit");
+			break;
+		}
+		if (not isalnum(c) and c != '_')
+		{
+			bOk = false;
+			Error("Class name <" + sValue + "> must contain alphanumeric chracters only");
+			break;
+		}
+	}
+	return bOk;
 }
 
 int TableGenerator::GetFieldNumber() const
@@ -171,15 +208,16 @@ void TableGenerator::SetAttributeTable(AttributeTable* attTable)
 
 void TableGenerator::Error(const ALString& sMessage) const
 {
-	cout << "erreur: " << sMessage << endl;
+	cout << "error: " << sMessage << endl;
 }
 
-const ALString TableGenerator::Backup(const ALString& sFileName, const ALString& sWhich) const
+const ALString TableGenerator::BuildBackupFileName(const ALString& sFileName, const ALString& sWhich) const
 {
-	const ALString sTmpDir = "C:\\temp\\";
-
+	require(FileService::GetPathName(sFileName) == "");
 	require(sWhich == "U" or sWhich == "G");
-	return sTmpDir + sFileName + "." + sWhich;
+	return FileService::BuildFilePathName(
+	    FileService::GetTmpDir(), FileService::BuildFileName(FileService::GetFilePrefix(sFileName),
+								 sWhich + "." + FileService::GetFileSuffix(sFileName)));
 }
 
 void TableGenerator::ConsolidateFiles(const ALString& sFileName) const
@@ -190,50 +228,44 @@ void TableGenerator::ConsolidateFiles(const ALString& sFileName) const
 	fstream fstBackup;
 	fstream fstGenerated;
 	fstream fstFinal;
+	ALString sInitialFilePathName;
+	ALString sGeneratedFileName;
 
-	// Ouverture du fichier utilisateur et chargement de ses sections
-	FileService::OpenInputFile(sFileName, fstUser);
-	if (not fstUser.is_open())
-		; // (s'il n'y a pas de fichier utilisateur, stUser est vide)
-	else
+	// Nom du fichier genere
+	sGeneratedFileName = BuildBackupFileName(sFileName, "G");
+
+	// Path complet du fichier initial
+	sInitialFilePathName = FileService::BuildFilePathName(GetOutputDir(), sFileName);
+
+	// Ouverture du fichier initial et chargement de ses sections
+	if (FileService::FileExists(sInitialFilePathName))
 	{
-		// On le charge
-		stUser.SetFileName(sFileName);
-		stUser.Load(fstUser);
-		if (not stUser.IsValid())
-			Error("Les sections du fichier utilisateur sont incoherentes");
-		FileService::CloseInputFile(sFileName, fstUser);
-
-		// On en fait un backup
-		FileService::RemoveFile(Backup(sFileName, "U"));
-		FileService::OpenOutputFile(Backup(sFileName, "U"), fstBackup);
-		if (not fstBackup.is_open())
+		FileService::OpenInputFile(sInitialFilePathName, fstUser);
+		if (fstUser.is_open())
 		{
-			Error("Impossible d'ouvrir le fichier " + Backup(sFileName, "U"));
-			return;
-		}
-		else
-		{
-			stUser.SetFileName(Backup(sFileName, "U"));
-			stUser.Unload(fstBackup);
-			FileService::CloseOutputFile(Backup(sFileName, "U"), fstBackup);
+			// On charge les sections
+			stUser.SetFileName(sInitialFilePathName);
+			stUser.Load(fstUser);
+			if (not stUser.IsValid())
+				Error("Les sections du fichier utilisateur sont incoherentes");
+			FileService::CloseInputFile(sInitialFilePathName, fstUser);
 		}
 	}
 
 	// Ouverture du fichier de backup du genere et chargement de ses sections
-	FileService::OpenInputFile(Backup(sFileName, "G"), fstGenerated);
+	FileService::OpenInputFile(sGeneratedFileName, fstGenerated);
 	if (not fstGenerated.is_open())
 	{
-		Error("Impossible d'ouvrir le fichier " + Backup(sFileName, "G"));
+		Error("Impossible d'ouvrir le fichier " + sGeneratedFileName);
 		return;
 	}
 	else
 	{
-		stGenerated.SetFileName(Backup(sFileName, "G"));
+		stGenerated.SetFileName(sGeneratedFileName);
 		stGenerated.Load(fstGenerated);
 		if (not stGenerated.IsValid())
 			Error("Les sections du fichier genere sont incoherentes");
-		FileService::CloseInputFile(Backup(sFileName, "G"), fstGenerated);
+		FileService::CloseInputFile(sGeneratedFileName, fstGenerated);
 	}
 
 	// Consolidation
@@ -242,104 +274,122 @@ void TableGenerator::ConsolidateFiles(const ALString& sFileName) const
 		Error("Arret a cause des erreurs");
 		return;
 	}
-	stGenerated.SetFileName(sFileName);
+	stGenerated.SetFileName(sInitialFilePathName);
 	stGenerated.ImportSectionsFrom(&stUser);
-	FileService::RemoveFile(sFileName);
-	FileService::OpenOutputFile(sFileName, fstFinal);
+	FileService::OpenOutputFile(sInitialFilePathName, fstFinal);
 	if (not fstFinal.is_open())
-		Error("Impossible d'ouvrir le fichier " + sFileName);
+		Error("Impossible d'ouvrir le fichier " + sInitialFilePathName);
 	else
 	{
 		stGenerated.Unload(fstFinal);
-		FileService::CloseOutputFile(sFileName, fstFinal);
+		FileService::CloseOutputFile(sInitialFilePathName, fstFinal);
 	}
+
+	// Nettoyage des fichiers intermediaires
+	FileService::RemoveFile(sGeneratedFileName);
 }
 
 void TableGenerator::Genere() const
 {
 	ALString sFileName;
+	ALString sGeneratedFileName;
 	fstream fstFile;
 
-	// Generation du header de la classe
-	sFileName = GetClassName() + ".h";
-	FileService::RemoveFile(Backup(sFileName, "G"));
-	FileService::OpenOutputFile(Backup(sFileName, "G"), fstFile);
-	if (not fstFile.is_open())
-		Error("Impossible d'ouvrir le fichier " + Backup(sFileName, "G"));
-	else
+	require(GetClassName() != "" and CheckClassName(GetClassName()));
+	require(GetSuperClassName() == "" or CheckClassName(GetSuperClassName()));
+
+	// Generation de la classe <ClassName>
+	if (GetGenereModel())
 	{
-		GenerateAttributeH(fstFile);
-		FileService::CloseOutputFile(Backup(sFileName, "G"), fstFile);
-		ConsolidateFiles(sFileName);
+		// Generation du header de la classe
+		sFileName = GetClassName() + ".h";
+		sGeneratedFileName = BuildBackupFileName(sFileName, "G");
+		FileService::RemoveFile(sGeneratedFileName);
+		FileService::OpenOutputFile(sGeneratedFileName, fstFile);
+		if (not fstFile.is_open())
+			Error("Impossible d'ouvrir le fichier " + sGeneratedFileName);
+		else
+		{
+			GenerateAttributeH(fstFile);
+			FileService::CloseOutputFile(sGeneratedFileName, fstFile);
+			ConsolidateFiles(sFileName);
+		}
+
+		// Generation du source de la classe
+		sFileName = GetClassName() + ".cpp";
+		sGeneratedFileName = BuildBackupFileName(sFileName, "G");
+		FileService::RemoveFile(sGeneratedFileName);
+		FileService::OpenOutputFile(sGeneratedFileName, fstFile);
+		if (not fstFile.is_open())
+			Error("Impossible d'ouvrir le fichier " + sGeneratedFileName);
+		else
+		{
+			GenerateAttributeC(fstFile);
+			FileService::CloseOutputFile(sGeneratedFileName, fstFile);
+			ConsolidateFiles(sFileName);
+		}
 	}
 
-	// Generation du source de la classe
-	sFileName = GetClassName() + ".cpp";
-	FileService::RemoveFile(Backup(sFileName, "G"));
-	FileService::OpenOutputFile(Backup(sFileName, "G"), fstFile);
-	if (not fstFile.is_open())
-		Error("Impossible d'ouvrir le fichier " + Backup(sFileName, "G"));
-	else
-	{
-		GenerateAttributeC(fstFile);
-		FileService::CloseOutputFile(Backup(sFileName, "G"), fstFile);
-		ConsolidateFiles(sFileName);
-	}
-
+	// Generation de la classe <ClassName>View
 	if (GetGenereView())
 	{
 		// Generation du header de la vue fiche
 		sFileName = GetClassName() + "View.h";
-		FileService::RemoveFile(Backup(sFileName, "G"));
-		FileService::OpenOutputFile(Backup(sFileName, "G"), fstFile);
+		sGeneratedFileName = BuildBackupFileName(sFileName, "G");
+		FileService::RemoveFile(sGeneratedFileName);
+		FileService::OpenOutputFile(sGeneratedFileName, fstFile);
 		if (not fstFile.is_open())
-			Error("Impossible d'ouvrir le fichier " + Backup(sFileName, "G"));
+			Error("Impossible d'ouvrir le fichier " + sGeneratedFileName);
 		else
 		{
 			GenerateAttributeViewH(fstFile);
-			FileService::CloseOutputFile(Backup(sFileName, "G"), fstFile);
+			FileService::CloseOutputFile(sGeneratedFileName, fstFile);
 			ConsolidateFiles(sFileName);
 		}
 
 		// Generation du source de la vue fiche
 		sFileName = GetClassName() + "View.cpp";
-		FileService::RemoveFile(Backup(sFileName, "G"));
-		FileService::OpenOutputFile(Backup(sFileName, "G"), fstFile);
+		sGeneratedFileName = BuildBackupFileName(sFileName, "G");
+		FileService::RemoveFile(sGeneratedFileName);
+		FileService::OpenOutputFile(sGeneratedFileName, fstFile);
 		if (not fstFile.is_open())
-			Error("Impossible d'ouvrir le fichier " + Backup(sFileName, "G"));
+			Error("Impossible d'ouvrir le fichier " + sGeneratedFileName);
 		else
 		{
 			GenerateAttributeViewC(fstFile);
-			FileService::CloseOutputFile(Backup(sFileName, "G"), fstFile);
+			FileService::CloseOutputFile(sGeneratedFileName, fstFile);
 			ConsolidateFiles(sFileName);
 		}
 	}
 
+	// Generation de la classe <ClassName>ArrayView
 	if (GetGenereArrayView())
 	{
 		// Generation du header de la vue liste
 		sFileName = GetClassName() + "ArrayView.h";
-		FileService::RemoveFile(Backup(sFileName, "G"));
-		FileService::OpenOutputFile(Backup(sFileName, "G"), fstFile);
+		sGeneratedFileName = BuildBackupFileName(sFileName, "G");
+		FileService::RemoveFile(sGeneratedFileName);
+		FileService::OpenOutputFile(sGeneratedFileName, fstFile);
 		if (not fstFile.is_open())
-			Error("Impossible d'ouvrir le fichier " + Backup(sFileName, "G"));
+			Error("Impossible d'ouvrir le fichier " + sGeneratedFileName);
 		else
 		{
 			GenerateAttributeArrayViewH(fstFile);
-			FileService::CloseOutputFile(Backup(sFileName, "G"), fstFile);
+			FileService::CloseOutputFile(sGeneratedFileName, fstFile);
 			ConsolidateFiles(sFileName);
 		}
 
 		// Generation du source de la vue liste
 		sFileName = GetClassName() + "ArrayView.cpp";
-		FileService::RemoveFile(Backup(sFileName, "G"));
-		FileService::OpenOutputFile(Backup(sFileName, "G"), fstFile);
+		sGeneratedFileName = BuildBackupFileName(sFileName, "G");
+		FileService::RemoveFile(sGeneratedFileName);
+		FileService::OpenOutputFile(sGeneratedFileName, fstFile);
 		if (not fstFile.is_open())
-			Error("Impossible d'ouvrir le fichier " + Backup(sFileName, "G"));
+			Error("Impossible d'ouvrir le fichier " + sGeneratedFileName);
 		else
 		{
 			GenerateAttributeArrayViewC(fstFile);
-			FileService::CloseOutputFile(Backup(sFileName, "G"), fstFile);
+			FileService::CloseOutputFile(sGeneratedFileName, fstFile);
 			ConsolidateFiles(sFileName);
 		}
 	}
@@ -380,15 +430,13 @@ void TableGenerator::GenereWith(const ALString& sName, const ALString& sSuperNam
 	if (qsAttributeRangServices->CheckDoubles() == false)
 	{
 		bOk = false;
-		GetAttributeTable()->AddError("Les attributs doivent avoir des rangs differents");
+		GetAttributeTable()->AddError("The attributes must have distinct ranks");
 	}
 
-	// Test de compatibilite de l'option de generation
-	// des fonctionnalites de gestion
-	if (attTable->GetPermanentFieldsNumber() > 0 and GetGenereManagement() == false)
-	{
-		GetAttributeTable()->AddWarning("stored attribute is deprecated");
-	}
+	// Verification de la syntaxe des nom de classe
+	bOk = bOk and CheckClassName(GetClassName());
+	if (GetSuperClassName() != "")
+		bOk = bOk and CheckClassName(GetSuperClassName());
 
 	// Generation
 	if (bOk)
@@ -414,8 +462,7 @@ void TableGenerator::GenerateFileHeader(ostream& ost) const
 		return;
 
 	ost << sCommentLign << "\n";
-	ost << "// " << CurrentTimestamp() << "\n";
-	ost << "// File generated  with GenereTable"
+	ost << "// File generated with Genere tool"
 	    << "\n";
 	ost << "// Insert your specific code inside \"//## \" sections"
 	    << "\n";
@@ -444,7 +491,7 @@ void TableGenerator::GenereImplementationComment(ostream& ost) const
 	ALString sCommentLign('/', 56);
 
 	ost << "\t" << sCommentLign << "\n";
-	ost << "\t//// Implementation"
+	ost << "\t///// Implementation"
 	    << "\n";
 }
 
@@ -468,25 +515,13 @@ void TableGenerator::GenerateUserCodeHeader(ostream& ost, const ALString& sInden
 	ost << sIndent << "//## " << sIdentifier << "\n";
 }
 
-void TableGenerator::GenerateUserCodeTrailer(ostream& ost, const ALString& sIndent, const ALString& sIdentifier) const
+void TableGenerator::GenerateUserCodeTrailer(ostream& ost, const ALString& sIndent, const ALString& sIdentifier,
+					     boolean bNewLine) const
 {
 	if (not GetGenereUserSection())
 		return;
 
-	ost << sIndent << "//##"
-	    << "\n";
-}
-
-void TableGenerator::GenereDoc(ostream& ost) const
-{
-	int nCurrent;
-	Attribute* att;
-
-	for (nCurrent = 0; nCurrent < GetFieldNumber(); nCurrent++)
-	{
-		att = GetFieldAt(nCurrent);
-
-		ost << att->GetType() << "\t" << att->GetName() << "\t" << att->GetStorageName() << "\t"
-		    << att->GetLabel() << "\n";
-	}
+	ost << sIndent << "//##";
+	if (bNewLine)
+		ost << "\n";
 }

@@ -44,20 +44,20 @@ public:
 	// Test si valide
 	boolean Check() const;
 
-	// Annee
+	// Heure
 	int GetHour() const;
 
-	// Mois
+	// Minute
 	int GetMinute() const;
 
-	// Jour
+	// Seconde
 	double GetSecond() const;
 
 	////////////////////////////////////////////////
 	// Servives avances
 	// La Time doit etre valide
 
-	// Nombre total  de secondes de la journee
+	// Nombre total  de secondes de la journee; avec une precision potentielle jusqu'au 1/10000 de seconde
 	double GetDaySecond() const;
 
 	// Heure decimale, entre 0 et 23.99...
@@ -152,6 +152,9 @@ public:
 
 	// Test si format valide
 	boolean Check() const override;
+
+	// Reinitialisation du format
+	void Reset();
 
 	// Test si le format est compatible avec un autre format, c'est a dire si cet autre format
 	// peut prendre en compte les meme valeurs sans erreur

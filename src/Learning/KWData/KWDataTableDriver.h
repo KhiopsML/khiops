@@ -79,7 +79,7 @@ public:
 	boolean GetVerboseMode() const;
 
 	// Mode silencieux, pour inhiber tout affichage de message, verbeux ou non (defaut: false)
-	void SetSilentMode(boolean bValue);
+	virtual void SetSilentMode(boolean bValue);
 	boolean GetSilentMode() const;
 
 	// Redefinition des methodes de gestion des erreurs pour tenir compte du mode d'affichage
@@ -109,6 +109,9 @@ public:
 	// doivent etre initialises par la methode.
 	// Si cette fonctionnalite n'est pas disponible, la methode n'est pas a
 	// reimplementer (par defaut: ne fait rien et renvoie false).
+	// La classe ne doit pas faire partie d'un domaine en entree.
+	// En sortie, elle est indexe si ok, et videe de ses champs avec son nom
+	// a vide si ko.
 	// Retourne true si la classe a ete construite sans erreurs
 	virtual boolean BuildDataTableClass(KWClass* kwcDataTableClass);
 
@@ -196,12 +199,10 @@ public:
 
 	// Estimation de la taille disque necessaire pour l'ecriture complet de la table (en octets)
 	// La classe (logique) en parametre permet d'avoir acces a la definition logique des objets a ecrire
-	// Le fichier d'entree doit etre present pour pouvoir estime le nombre de records si necessaire.
-	// Si le le nombre de records est specifie en entree, il est utilise pour l'estimation.
-	// Sinon, il vaut -1, et l'estimation se fera grace ua fichier d'entree
+	// La taille du fichier en entree doit etre specifiee pour pouvoir estime le nombre de records si necessaire.
 	// Attention, les ecriture se font au niveau logique et l'estimation memoire se base sur ce niveau
 	// Peut ne pas etre reimplementee (par defaut: 0)
-	virtual longint ComputeNecessaryDiskSpaceForFullWrite(const KWClass* kwcLogicalClass);
+	virtual longint ComputeNecessaryDiskSpaceForFullWrite(const KWClass* kwcLogicalClass, longint lInputFileSize);
 
 	// Estimation du pourcentage d'avancement de la lecture d'un fichier
 	// Methode a priori rapide, sans effet important sur le temps de lecture

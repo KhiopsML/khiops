@@ -3,10 +3,12 @@ Rank;Name;Type;Style;Label
 2;ResultFilesPrefix            ;ALString;                ;Result files prefix
 3;ShortDescription             ;ALString;                ;Short description
 4;PreparationFileName          ;ALString;                ;Preparation report
-5;Preparation2DFileName        ;ALString;                ;2D preparation report
-6;ModelingDictionaryFileName   ;ALString;                ;Modeling dictionary file
-7;ModelingFileName             ;ALString;                ;Modeling report
-8;TrainEvaluationFileName      ;ALString;                ;Train evaluation report
-9;TestEvaluationFileName       ;ALString;                ;Test evaluation report
-10;VisualizationFileName       ;ALString;                ;Visualization report
-11;JSONFileName                ;ALString;                ;JSON report
+5;TextPreparationFileName      ;ALString;                ;Text preparation report
+6;TreePreparationFileName      ;ALString;                ;Tree preparation report
+7;Preparation2DFileName        ;ALString;                ;2D preparation report
+8;ModelingDictionaryFileName   ;ALString;                ;Modeling dictionary file
+9;ModelingFileName             ;ALString;                ;Modeling report
+10;TrainEvaluationFileName     ;ALString;                ;Train evaluation report
+11;TestEvaluationFileName      ;ALString;                ;Test evaluation report
+12;VisualizationFileName       ;ALString;                ;Visualization report
+13;JSONFileName                ;ALString;                ;JSON report

@@ -26,26 +26,11 @@ public:
 	//////////////////////////////////////////
 	// Methodes utilitaires de generation
 
-	// Test de la presence de champs cles
-	boolean NoKeyFields();
-
-	// Nombre de champs de champs cles
-	int GetKeyFieldsNumber();
-
-	// Test s'il est necessaire de fabriquer la cle
-	boolean IsKeyBuilt();
-
-	// Nombre de champs permanents
-	int GetPermanentFieldsNumber();
-
 	// Nombre de champs visibles
 	int GetVisibleFieldsNumber();
 
 	// Nombre de champs ayant un style defini
 	int GetStyleFieldsNumber();
-
-	// Test de la presence de champs avec statistiques
-	boolean NoStats();
 
 	///// Implementation
 protected:

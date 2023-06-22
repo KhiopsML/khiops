@@ -379,11 +379,11 @@ protected:
 	virtual void SortSourceCells(ObjectArray* oaSourceCells, int nTargetAttributeIndex) const;
 
 	// Services d'indexation des cellules avec un nombre quelconque d'attributs
-	boolean InternalCheckPartIndexes(const IntVector* ivPartIndexes, int nFirstAtributeIndex,
+	boolean InternalCheckPartIndexes(const IntVector* ivPartIndexes, int nFirstAttributeIndex,
 					 int nLastAttributeIndex) const;
-	int InternalComputeCellIndex(const IntVector* ivPartIndexes, int nFirstAtributeIndex,
+	int InternalComputeCellIndex(const IntVector* ivPartIndexes, int nFirstAttributeIndex,
 				     int nLastAttributeIndex) const;
-	void InternalComputePartIndexes(int nCellIndex, IntVector* ivPartIndexes, int nFirstAtributeIndex,
+	void InternalComputePartIndexes(int nCellIndex, IntVector* ivPartIndexes, int nFirstAttributeIndex,
 					int nLastAttributeIndex) const;
 
 	// Nombre max d'item dans les rapports (redirige sur KWLearningReport)
@@ -1212,18 +1212,18 @@ inline int KWDataGridStats::ComputeMaxWrittenItemNumber(int nItemNumber) const
 		return GetMaxModalityNumber();
 }
 
-inline int KWDataGridStats::InternalComputeCellIndex(const IntVector* ivPartIndexes, int nFirstAtributeIndex,
+inline int KWDataGridStats::InternalComputeCellIndex(const IntVector* ivPartIndexes, int nFirstAttributeIndex,
 						     int nLastAttributeIndex) const
 {
 	int nCellIndex;
 	int nAttribute;
 	const KWDGSAttributePartition* attribute;
 
-	require(InternalCheckPartIndexes(ivPartIndexes, nFirstAtributeIndex, nLastAttributeIndex));
+	require(InternalCheckPartIndexes(ivPartIndexes, nFirstAttributeIndex, nLastAttributeIndex));
 
 	// Calcul de l'index de la cellule dans la grille
 	nCellIndex = 0;
-	for (nAttribute = nLastAttributeIndex; nAttribute >= nFirstAtributeIndex; nAttribute--)
+	for (nAttribute = nLastAttributeIndex; nAttribute >= nFirstAttributeIndex; nAttribute--)
 	{
 		attribute = GetAttributeAt(nAttribute);
 		if (nAttribute < nLastAttributeIndex)
@@ -1236,7 +1236,7 @@ inline int KWDataGridStats::InternalComputeCellIndex(const IntVector* ivPartInde
 }
 
 inline void KWDataGridStats::InternalComputePartIndexes(int nCellIndex, IntVector* ivPartIndexes,
-							int nFirstAtributeIndex, int nLastAttributeIndex) const
+							int nFirstAttributeIndex, int nLastAttributeIndex) const
 {
 	int nIndex;
 	int nPartIndex;
@@ -1244,13 +1244,13 @@ inline void KWDataGridStats::InternalComputePartIndexes(int nCellIndex, IntVecto
 	const KWDGSAttributePartition* attribute;
 
 	require(0 <= nCellIndex and nCellIndex < ComputeTotalGridSize());
-	require(0 <= nFirstAtributeIndex and nFirstAtributeIndex <= nLastAttributeIndex);
+	require(0 <= nFirstAttributeIndex and nFirstAttributeIndex <= nLastAttributeIndex);
 	require(0 <= nLastAttributeIndex and nLastAttributeIndex < GetAttributeNumber());
 	require(nLastAttributeIndex < ivPartIndexes->GetSize());
 
 	// Calcul de l'index de la cellule dans la grille
 	nIndex = nCellIndex;
-	for (nAttribute = nFirstAtributeIndex; nAttribute <= nLastAttributeIndex; nAttribute++)
+	for (nAttribute = nFirstAttributeIndex; nAttribute <= nLastAttributeIndex; nAttribute++)
 	{
 		attribute = GetAttributeAt(nAttribute);
 		nPartIndex = nIndex % attribute->GetPartNumber();
@@ -1258,7 +1258,7 @@ inline void KWDataGridStats::InternalComputePartIndexes(int nCellIndex, IntVecto
 		if (nAttribute < nLastAttributeIndex)
 			nIndex /= attribute->GetPartNumber();
 	}
-	ensure(nCellIndex == InternalComputeCellIndex(ivPartIndexes, nFirstAtributeIndex, nLastAttributeIndex));
+	ensure(nCellIndex == InternalComputeCellIndex(ivPartIndexes, nFirstAttributeIndex, nLastAttributeIndex));
 }
 
 inline KWDGSCell::KWDGSCell()

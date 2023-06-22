@@ -559,14 +559,16 @@ double RandomDouble()
 
 int RandomInt(int nMax)
 {
+	double dRandom;
 	int nRand;
 
 	require(nMax >= 0);
-	require(nMax < INT_MAX);
 
-	nRand = (int)floor((nMax + 1) * RandomDouble());
-	if (nRand > nMax)
-		nRand--;
+	dRandom = RandomDouble();
+	if (dRandom == 1)
+		nRand = nMax;
+	else
+		nRand = (int)floor((double(nMax) + 1) * dRandom);
 	return nRand;
 }
 
@@ -588,12 +590,9 @@ inline unsigned long long int InternalIthRandomLongint(unsigned long long int n)
 
 double IthRandomDouble(longint lIndex)
 {
-	static const int nMaxInt = 2147483646;
-	static const double dMaxInt = 2147483646.0;
 	require(lIndex >= 0);
-	// Alternative plus precise (et un peu plus rapide):
-	//  return 5.42101086242752217E-20 * InternalIthRandomLongint((unsigned long long int)lIndex);
-	return (InternalIthRandomLongint((unsigned long long int)lIndex) % (nMaxInt + 1)) / dMaxInt;
+	// Version de Numerical Recipes
+	return 5.42101086242752217E-20 * InternalIthRandomLongint((unsigned long long int)lIndex);
 }
 
 longint IthRandomLongint(longint lIndex)
@@ -605,7 +604,7 @@ longint IthRandomLongint(longint lIndex)
 int IthRandomInt(longint lIndex, int nMax)
 {
 	require(lIndex >= 0);
-	require(nMax > 0);
+	require(nMax >= 0);
 	return (int)(InternalIthRandomLongint((unsigned long long int)lIndex) % ((unsigned long long int)nMax + 1));
 }
 
@@ -717,21 +716,23 @@ void GlobalExit()
 		// Flag de sortie brutale
 		nStandardGlobalExit = 1;
 
+		// Flush des streams standard C et C++
+		// Permet de forcer la sotie standard, en particulier pour les assertions
+		fflush(stdout);
+		fflush(stderr);
+		cout << flush;
+		cerr << flush;
+
 		// Appel des methodes de sortie utilisateur
 		// On execute les dernieres methodes enregistrees en premier
 		// Attention a appeller ces methodes avant les flushall et closeall
+		// pour pouvoir continuer a exploiter les fichiers de log ou trace
 		for (i = nUserExitHandlerNumber - 1; i >= 0; i--)
 		{
 			fUserExitHandler = arrayUserExitHandler[i];
 			assert(fUserExitHandler != NULL);
 			fUserExitHandler(nExitCode);
 		}
-
-		// Flush des streams standard C et C++
-		fflush(stdout);
-		fflush(stderr);
-		cout << flush;
-		cerr << flush;
 
 		// Flush et fermeture de tous les fichiers
 #if defined __UNIX__ or defined __WGPP__
@@ -777,4 +778,19 @@ void SetProcessId(int nValue)
 {
 	require(nValue >= 0);
 	nProcessId = nValue;
+}
+
+void TraceMaster(const char* sTrace)
+{
+	if (GetProcessId() == 0)
+		TraceWithRank(sTrace);
+}
+void TraceSlave(const char* sTrace)
+{
+	if (GetProcessId() != 0)
+		TraceWithRank(sTrace);
+}
+void TraceWithRank(const char* sTrace)
+{
+	cout << "[" << GetProcessId() << "] " << sTrace << endl;
 }

@@ -36,9 +36,6 @@ KWDerivationRule* KMDRLocalModelChooser::Create() const
 boolean KMDRLocalModelChooser::CheckOperandsFamily(const KWDerivationRule* ruleFamily) const
 {
 	boolean bOk = true;
-	KWDRContinuousVector continuousVectorRule;
-	KWDRDataGridStats dataGridStatsRule;
-	KWDRDataGrid dataGridRule;
 	ALString sTmp;
 
 	require(ruleFamily != NULL);
@@ -54,12 +51,12 @@ boolean KMDRLocalModelChooser::CheckOperandsFamily(const KWDerivationRule* ruleF
 	return bOk;
 }
 
-boolean KMDRLocalModelChooser::CheckOperandsCompletness(KWClass* kwcOwnerClass) const
+boolean KMDRLocalModelChooser::CheckOperandsCompleteness(KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
 
 	//	// Methode ancetre
-	bOk = KWDerivationRule::CheckOperandsCompletness(kwcOwnerClass);
+	bOk = KWDerivationRule::CheckOperandsCompleteness(kwcOwnerClass);
 
 	return bOk;
 }
@@ -96,12 +93,11 @@ void KMDRLocalModelChooser::Compile(KWClass* kwcOwnerClass)
 	// Appel de la methode ancetre
 	KWDerivationRule::Compile(kwcOwnerClass);
 
-	// Optimisation si necessaire
-	// Compilation dynamique si necessaire
-	if (nOptimizationFreshness < nCompileFreshness)
+	// Optimisation si necessaire, en comparant a la fraicheur de la classe entiere
+	if (nOptimizationFreshness < kwcOwnerClass->GetCompileFreshness())
 	{
 		// Memorisation de la fraicheur
-		nOptimizationFreshness = nCompileFreshness;
+		nOptimizationFreshness = kwcOwnerClass->GetCompileFreshness();
 	}
 
 	idClusterAttribute = NULL;

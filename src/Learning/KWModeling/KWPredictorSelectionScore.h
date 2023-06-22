@@ -24,7 +24,7 @@ class KWPSTargetValueSetScore;
 //////////////////////////////////////////////////////////////////////////////
 // Evaluation d'une selection de variables d'un predicteur Bayesien naif selectif
 // La classe est parametree par un KWLearningService et une KWDataPreparationBase,
-// permettant d'evaluer les ajout ou supression de variables (KWDataPreparationAtribute)
+// permettant d'evaluer les ajout ou supression de variables (KWDataPreparationAttribute)
 //
 // Rappel:
 // Le predicteur Bayesien naif selectif s'ecrit

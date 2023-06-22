@@ -677,6 +677,10 @@ Symbol KWDRTranslate::ComputeSymbolResult(const KWObject* kwoObject) const
 			sSearchString = searchStrings->GetValueAt(i);
 			sReplaceString = replaceStrings->GetValueAt(i);
 
+			// On ignore les chaines a rechercher vides, qui provoqueraient une boucle infinie
+			if (sSearchString.IsEmpty())
+				continue;
+
 			// Remplacement iteratif des pattern trouves a partir de la chaine pretraitee precedente
 			nReplacePos = 0;
 			sEndString = sStringValue;
@@ -705,7 +709,7 @@ Symbol KWDRTranslate::ComputeSymbolResult(const KWObject* kwoObject) const
 		return StringToSymbol(sStringValue);
 	}
 }
-boolean KWDRTranslate::CheckCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDRTranslate::CheckCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
 	ALString sTmp;
@@ -713,7 +717,7 @@ boolean KWDRTranslate::CheckCompletness(const KWClass* kwcOwnerClass) const
 	int nReplaceValueNumber;
 
 	// Methode ancetre
-	bOk = KWDerivationRule::CheckCompletness(kwcOwnerClass);
+	bOk = KWDerivationRule::CheckCompleteness(kwcOwnerClass);
 
 	// Verification de la longueur des listes
 	if (bOk)
@@ -940,13 +944,13 @@ KWDRRegex::KWDRRegex() {}
 
 KWDRRegex::~KWDRRegex() {}
 
-boolean KWDRRegex::CheckCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDRRegex::CheckCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
 	int nRegexOperandIndex;
 
 	// Appel de la methode ancetre
-	bOk = KWDerivationRule::CheckCompletness(kwcOwnerClass);
+	bOk = KWDerivationRule::CheckCompleteness(kwcOwnerClass);
 
 	// Verification si necessaire de la regex
 	if (bOk)

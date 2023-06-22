@@ -235,9 +235,18 @@ longint KWSTDatabase::GetPhysicalEstimatedObjectNumber()
 {
 	longint lNumber;
 
+	require(dataTableDriverCreator->GetDataTableName() == "");
+	require(dataTableDriverCreator->GetClass() == NULL);
+
+	// Parametrage du driver pour estimer le nombre d'objets
 	dataTableDriverCreator->SetDataTableName(GetDatabaseName());
+	dataTableDriverCreator->SetClass(KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName()));
 	lNumber = dataTableDriverCreator->GetEstimatedObjectNumber();
 	dataTableDriverCreator->SetDataTableName("");
+	dataTableDriverCreator->SetClass(NULL);
+
+	ensure(dataTableDriverCreator->GetDataTableName() == "");
+	ensure(dataTableDriverCreator->GetClass() == NULL);
 	return lNumber;
 }
 

@@ -129,6 +129,7 @@ inline void Timer::Start()
 {
 	require(not bIsStarted);
 	bIsStarted = true;
+	lStartNumber++;
 	tLastStartNanoTime = std::chrono::steady_clock::now();
 }
 
@@ -172,6 +173,7 @@ inline void Timer::Start()
 	assert(bRet == 0);
 	tLastStartTime = tv.tv_sec * 1e6 + tv.tv_usec;
 	bIsStarted = true;
+	lStartNumber++;
 }
 
 inline void Timer::Stop()

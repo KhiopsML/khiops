@@ -107,7 +107,7 @@ boolean KWDRNBClassifier::CheckOperandsFamily(const KWDerivationRule* ruleFamily
 	return bOk;
 }
 
-boolean KWDRNBClassifier::CheckOperandsCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDRNBClassifier::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
 	int nOperand;
@@ -134,7 +134,7 @@ boolean KWDRNBClassifier::CheckOperandsCompletness(const KWClass* kwcOwnerClass)
 	NumericKeyDictionary nkdCheckedValues;
 
 	// Methode ancetre
-	bOk = KWDerivationRule::CheckOperandsCompletness(kwcOwnerClass);
+	bOk = KWDerivationRule::CheckOperandsCompleteness(kwcOwnerClass);
 
 	// Analyse du dernier operande qui fournit la distribution des valeurs cibles
 	if (bOk)
@@ -517,12 +517,11 @@ void KWDRNBClassifier::Compile(KWClass* kwcOwnerClass)
 	// Appel de la methode ancetre
 	KWDerivationRule::Compile(kwcOwnerClass);
 
-	// Optimisation si necessaire
-	// Compilation dynamique si necessaire
-	if (nOptimizationFreshness < nCompileFreshness)
+	// Optimisation si necessaire, en comparant a la fraicheur de la classe entiere
+	if (nOptimizationFreshness < kwcOwnerClass->GetCompileFreshness())
 	{
 		// Memorisation de la fraicheur
-		nOptimizationFreshness = nCompileFreshness;
+		nOptimizationFreshness = kwcOwnerClass->GetCompileFreshness();
 
 		// Memorisation des statistiques des grilles
 		// (le dernier operandes ne doit pas etre pris: il s'agit de la distribution des valeurs cibles)
@@ -790,7 +789,7 @@ KWDerivationRule* KWDRNBRankRegressor::Create() const
 	return new KWDRNBRankRegressor;
 }
 
-boolean KWDRNBRankRegressor::CheckOperandsCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDRNBRankRegressor::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
 	int nOperand;
@@ -803,7 +802,7 @@ boolean KWDRNBRankRegressor::CheckOperandsCompletness(const KWClass* kwcOwnerCla
 	ALString sTmp;
 
 	// Methode ancetre
-	bOk = KWDerivationRule::CheckOperandsCompletness(kwcOwnerClass);
+	bOk = KWDerivationRule::CheckOperandsCompleteness(kwcOwnerClass);
 
 	// Verification de la compatibilite des arguments avec la regression
 	if (bOk)
@@ -948,12 +947,11 @@ void KWDRNBRankRegressor::Compile(KWClass* kwcOwnerClass)
 	// Appel de la methode ancetre
 	KWDerivationRule::Compile(kwcOwnerClass);
 
-	// Optimisation si necessaire
-	// Compilation dynamique si necessaire
-	if (nOptimizationFreshness < nCompileFreshness)
+	// Optimisation si necessaire, en comparant a la fraicheur de la classe entiere
+	if (nOptimizationFreshness < kwcOwnerClass->GetCompileFreshness())
 	{
 		// Memorisation de la fraicheur
-		nOptimizationFreshness = nCompileFreshness;
+		nOptimizationFreshness = kwcOwnerClass->GetCompileFreshness();
 
 		// Memorisation des statistiques des grilles
 		oaDataGridStats.SetSize(GetOperandNumber() - nFirstDataGridOperand);
@@ -997,8 +995,7 @@ void KWDRNBRankRegressor::Compile(KWClass* kwcOwnerClass)
 		nTarget = 0;
 		for (i = 0; i < cvAllCumulativeFrequencies.GetSize(); i++)
 		{
-			assert(fabs(cvAllCumulativeFrequencies.GetAt(i) -
-				    floor(cvAllCumulativeFrequencies.GetAt(i) + 0.5)) < 1e-5);
+			assert(KWContinuous::IsInt(cvAllCumulativeFrequencies.GetAt(i)));
 			if (i == 0 or
 			    cvAllCumulativeFrequencies.GetAt(i) > cvAllCumulativeFrequencies.GetAt(i - 1) + 0.5)
 				cvDataGridSetTargetCumulativeFrequencies.Add(cvAllCumulativeFrequencies.GetAt(i));
@@ -1437,7 +1434,7 @@ KWDerivationRule* KWDRNBRegressor::Create() const
 	return new KWDRNBRegressor;
 }
 
-boolean KWDRNBRegressor::CheckOperandsCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDRNBRegressor::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
 	KWDerivationRule* firstRule;
@@ -1446,7 +1443,7 @@ boolean KWDRNBRegressor::CheckOperandsCompletness(const KWClass* kwcOwnerClass) 
 	ALString sExpectedRuleName;
 
 	// Methode ancetre
-	bOk = KWDRRegressor::CheckOperandsCompletness(kwcOwnerClass);
+	bOk = KWDRRegressor::CheckOperandsCompleteness(kwcOwnerClass);
 
 	// Verifications supplementaires
 	if (bOk)
@@ -1477,12 +1474,11 @@ void KWDRNBRegressor::Compile(KWClass* kwcOwnerClass)
 	// Appel de la methode ancetre
 	KWDerivationRule::Compile(kwcOwnerClass);
 
-	// Optimisation si necessaire
-	// Compilation dynamique si necessaire
-	if (nOptimizationFreshness < nCompileFreshness)
+	// Optimisation si necessaire, en comparant a la fraicheur de la classe entiere
+	if (nOptimizationFreshness < kwcOwnerClass->GetCompileFreshness())
 	{
 		// Memorisation de la fraicheur
-		nOptimizationFreshness = nCompileFreshness;
+		nOptimizationFreshness = kwcOwnerClass->GetCompileFreshness();
 
 		// Memorisation des operandes
 		rankRegressorRule =
@@ -2093,11 +2089,6 @@ int KWDRNBRegressor::ComputeMissingValueNumber() const
 			nResult++;
 	}
 	return nResult;
-}
-
-boolean KWDRNBRegressor::IsOptimized() const
-{
-	return IsCompiled() and nOptimizationFreshness == nCompileFreshness;
 }
 
 ///////////////////////////////////////////////////////////////

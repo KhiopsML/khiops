@@ -18,7 +18,7 @@ PLShared_HostResource::~PLShared_HostResource() {}
 
 void PLShared_HostResource::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
-	RMHostResource* hr;
+	const RMHostResource* hr;
 
 	require(serializer->IsOpenForWrite());
 	require(o != NULL);

@@ -81,6 +81,15 @@ public:
 			     const int nElementSize, const MemHugeVector& memSourceHugeVector, const int& nSourceSize,
 			     const int& nSourceAllocSize);
 
+	// Import de nElementNumber elements du tableau cByteBuffer vers l'index nIndex du MemHugeVector
+	static void ImportBuffer(MemHugeVector& memHugeVector, int nSize, int nAllocSize, int nBlockSize,
+				 int nElementSize, int nIndex, int nElementNumber, const char* cByteBuffer);
+
+	// Export de nElementNumber elements vers le tableau cByteBuffer depuis l'index nIndex du MemHugeVector
+	// Le tableau cByteBuffer doit etre alloue et de taille nElementNumber*nElementSize
+	static void ExportBuffer(const MemHugeVector& memHugeVector, int nSize, int nAllocSize, int nBlockSize,
+				 int nElementSize, int nIndex, int nElementNumber, char* cByteBuffer);
+
 	// Retaillage avec potentiellement une grande taille, sans risque d'erreur d'allocation (a appeler par
 	// SetLargeSize) Renvoie false si echec de retaillage (et le vecteur garde sa taille initiale)
 	static boolean SetLargeSize(MemHugeVector& memHugeVector, int& nSize, int& nAllocSize, const int nBlockSize,

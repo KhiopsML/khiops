@@ -61,6 +61,11 @@ boolean KDSelectionOperandSamplingTask::CollectSelectionOperandSamples(
 	// Memorisation de l'echantillonneur de donnees pour le maitre
 	masterSelectionOperandDataSampler = selectionOperandDataSampler;
 
+	// On ne souhaite que les messages de fin de tache en cas d'arret
+	SetDisplaySpecificTaskMessage(false);
+	SetDisplayTaskTime(false);
+	SetDisplayEndTaskMessage(true);
+
 	// Lancement de la tache
 	bOk = RunDatabaseTask(sourceDatabase);
 	masterSelectionOperandDataSampler = NULL;
@@ -92,11 +97,19 @@ PLParallelTask* KDSelectionOperandSamplingTask::Create() const
 boolean KDSelectionOperandSamplingTask::ComputeResourceRequirements()
 {
 	boolean bOk;
+	boolean bDisplay = false;
 	const SortedList slSample;
 	longint lSelectionOperandDataSamplerSpecUsedMemory;
 	longint lAllSamplesNecessaryMemory;
 	longint lMaxSampleSize;
 	longint lTotalValueNumber;
+	PLMTDatabaseTextFile* sourceMTDatabase;
+	int nClass;
+	KDClassSelectionData* classSelectionData;
+	int nMapping;
+	KWMTDatabaseMapping* mapping;
+	longint lClassEstimatedObjectNumber;
+	longint lMaxClassEstimatedObjectNumber;
 
 	require(masterSelectionOperandDataSampler != NULL);
 
@@ -109,10 +122,49 @@ boolean KDSelectionOperandSamplingTask::ComputeResourceRequirements()
 		// Taille des specifications de l'echantillonneur
 		lSelectionOperandDataSamplerSpecUsedMemory = masterSelectionOperandDataSampler->GetUsedMemory();
 
-		// Acces a la taille des echantillon et au nombre total de valeurs a collecter
+		// Estimation heuristique du max des nombres totaux d'objets dans les fichiers, sur l'ensemble des
+		// classes de selection
+		lMaxClassEstimatedObjectNumber = 0;
+		sourceMTDatabase = shared_sourceDatabase.GetMTDatabase();
+		for (nClass = 0; nClass < masterSelectionOperandDataSampler->GetClassSelectionData()->GetSize();
+		     nClass++)
+		{
+			classSelectionData =
+			    cast(KDClassSelectionData*,
+				 masterSelectionOperandDataSampler->GetClassSelectionData()->GetAt(nClass));
+
+			// Estimation heuristique du nombre total d'objet dans les fichiers pour uner classe de
+			// selection
+			if (classSelectionData->GetClassSelectionOperandData()->GetSize() > 0)
+			{
+				// Analyse des mappings utilises de la bonne classe
+				lClassEstimatedObjectNumber = 0;
+				for (nMapping = 0; nMapping < sourceMTDatabase->GetTableNumber(); nMapping++)
+				{
+					mapping = sourceMTDatabase->GetUsedMappingAt(nMapping);
+					if (mapping != NULL and
+					    mapping->GetClassName() == classSelectionData->GetClassName())
+						lClassEstimatedObjectNumber +=
+						    sourceMTDatabase->GetInMemoryEstimatedFileObjectNumbers()->GetAt(
+							nMapping);
+				}
+				lMaxClassEstimatedObjectNumber =
+				    max(lMaxClassEstimatedObjectNumber, lClassEstimatedObjectNumber);
+			}
+		}
+
+		// Acces a la taille des echantillons et au nombre total de valeurs a collecter
+		// On utilise le min de la taille d'echantillon souhaitee et du nombre total d'objets effectifs dans les
+		// fichier de donnees Cela permet de limiter si necessaire la memoire necessaire en se basant sur les
+		// donnees disponibles, notamment dans les cas ou on genere beaucoup de variables a partir de petites
+		// bases de donnees Notons que c'est une estimation heuristique macroscopique, qui pourrait etre affinee
+		// dans le cas de schemas multi-tables complexes comprenant plusieurs type de tables avec des variations
+		// d'une part sur le nombre de variables a generer par type de dictionnaire et le nombre d'objets dans
+		// les fichiers de donnees. Cette affinage est plus complexe a implementer, probablement utile
+		// uniquement dans certains cas "extremes": il n'est pas prevu de le prendre en compte
 		lMaxSampleSize = masterSelectionOperandDataSampler->GetMaxSampleSize();
-		lTotalValueNumber =
-		    lMaxSampleSize * masterSelectionOperandDataSampler->GetTotalSelectionOperandNumber();
+		lTotalValueNumber = min(lMaxSampleSize, lMaxClassEstimatedObjectNumber) *
+				    masterSelectionOperandDataSampler->GetTotalSelectionOperandNumber();
 
 		// Taille memoire necessaire pour collecter l'ensemble des references aux objet, plus les echantillons
 		// de valeurs On ignore le probleme des variables Symbol qui potentiellement exigent de la memoire
@@ -137,14 +189,34 @@ boolean KDSelectionOperandSamplingTask::ComputeResourceRequirements()
 		GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->UpgradeMax(
 		    lSelectionOperandDataSamplerSpecUsedMemory + lAllSamplesNecessaryMemory);
 
-		// En variable du maitre: deux fois l'echantillon, clui du maitre est celui local de l'esclave en cours
+		// En variable du maitre: deux fois l'echantillon, celui du maitre est celui local de l'esclave en cours
 		// d'agregation Apres la fin de la tache, il n'y en aura plus qu'un, mais on estime qu'il y a aura assez
 		// de memoire pour construire les partiles a partir des echantillons, puis les variables construites
 		GetResourceRequirements()->GetMasterRequirement()->GetMemory()->UpgradeMin(
 		    lSelectionOperandDataSamplerSpecUsedMemory + lAllSamplesNecessaryMemory);
 		GetResourceRequirements()->GetMasterRequirement()->GetMemory()->UpgradeMax(
 		    lSelectionOperandDataSamplerSpecUsedMemory + lAllSamplesNecessaryMemory);
+
+		// Affichage des ressources
+		if (bDisplay)
+		{
+			cout << "KDSelectionOperandSamplingTask::ComputeResourceRequirements\n";
+			cout << "\tSelectionOperandDataSamplerSpecUsedMemory\t"
+			     << lSelectionOperandDataSamplerSpecUsedMemory << "\n";
+			cout << "\tMaxClassEstimatedObjectNumber\t" << lMaxClassEstimatedObjectNumber << "\n";
+			cout << "\tMaxSampleSize\t" << lMaxSampleSize << "\n";
+			cout << "\tTotalValueNumber\t" << lTotalValueNumber << "\n";
+			cout << "\tClassSelectionDataNumber\t"
+			     << masterSelectionOperandDataSampler->GetClassSelectionData()->GetSize() << "\n";
+			cout << "\tTotalSelectionOperandNumber\t"
+			     << masterSelectionOperandDataSampler->GetTotalSelectionOperandNumber() << "\n";
+			cout << "\tMemoryPerElement\t"
+			     << (slSample.GetUsedMemoryPerElement() + sizeof(KDClassSelectionObjectRef)) << "\n";
+			cout << "\tAllSamplesNecessaryMemory\t" << lAllSamplesNecessaryMemory << "\n";
+			cout << *GetResourceRequirements() << "\n";
+		}
 	}
+
 	return bOk;
 }
 

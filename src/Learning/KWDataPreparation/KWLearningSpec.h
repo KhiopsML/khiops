@@ -13,6 +13,7 @@ class PLShared_LearningSpec;
 #include "KWClass.h"
 #include "KWObject.h"
 #include "KWDatabase.h"
+#include "KWDatabaseIndexer.h"
 #include "KWTupleTable.h"
 #include "KWPreprocessingSpec.h"
 #include "KWDataGridStats.h"
@@ -199,6 +200,19 @@ public:
 	double GetNullPreparationCost() const;
 	double GetNullDataCost() const;
 
+	/////////////////////////////////////////////////////////////////////////
+	// Parametrage avance pour reutiliser l'indexation d'une base, prealable
+	// aux taches paralleles traitant les base de donnees.
+	// Cet objet est ici juste memorise pour y avoir acces en permanence,
+	// et de le reutiliser partout ou c'est nceessaire.
+	// Aucune synchronisation avec la Database des LearningSpec n'est effectuee.
+	// Cette synchronisation est effectuée dans la classe KWDatabaseTask qui
+	// prend en parametre la database et le DatabaseIndexer dans sa methode
+	// principale RunDatabaseTask
+
+	// Acces au service d'indexation d'une base
+	KWDatabaseIndexer* GetDatabaseIndexer();
+
 	///////////////////////////////////////////////////////////////////////
 	// Parametrage des familles de construction de variables
 	// Une variable peut-etre initialement presente dans la classe de depart,
@@ -207,9 +221,9 @@ public:
 	// initiales ou construites en multi-table.
 	// On parametre ici l'utilisation de chaque famille de construction de variable,
 	// si elle est a la fois specifiee par l'utilisateur et possible en theorie/
-	// Par exemple, meme si on veut des arbre, ce n'est pas possibkle en regression,
+	// Par exemple, meme si on veut des arbres, ce n'est pas possible en regression,
 	// ou si il n'y a qu'une variable initiale et pas de construction de variables.
-	// Cela permet d'avoir ensuite acces au nombre de famille effectivement utilisees,
+	// Cela permet d'avoir ensuite acces au nombre de familles effectivement utilisees,
 	// et aux cout de construction a utiliser:
 	//   . n: nombre de variable initiales
 	//   . F: nombre de variable construites
@@ -222,6 +236,10 @@ public:
 	// Construction de variable en multi-table
 	void SetMultiTableConstruction(boolean bValue);
 	boolean GetMultiTableConstruction() const;
+
+	// Construction de variable poour le texte
+	void SetTextConstruction(boolean bValue);
+	boolean GetTextConstruction() const;
 
 	// Construction de variables de type arbres, uniquement en classification
 	void SetTrees(boolean bValue);
@@ -239,12 +257,27 @@ public:
 	double GetSelectionCost() const;
 
 	// Cout du choix d'un attribut pour les methodes avancee de construction, par arbres ou paires.
-	// Ces methodes ne peuevent utiliser que des attributs initiaux ou issus de la construction
-	// de variables multi-table: ln(n) ou ln(n+1) si construction multi-table
-	double GetBasicSelectionCost() const;
+	// Ces methodes ne peuvent utiliser que des attributs initiaux ou issus de la construction
+	// de variables multi-table.
+	// Valeur du parametre a utiliser:
+	//   . pour les arbres: methode GetTextConstructionUsedByTrees
+	//   . pour les paires: true
+	double GetBasicSelectionCost(boolean bUsingTextConstruction) const;
 
 	////////////////////////////////////////////////////////////////////
 	// Parametrage avance
+
+	// Indique si les arbres peuvent utiliser les variables construites a partir des texte (defaut: false)
+	// Attention: n'appeler cette methode si necessaire qu'une seule fois, dans le main du programme
+	//
+	// Les variables de type arbre n’utilisent que des variables construites, au moins dans un premier temps.
+	// De fait, les variables de type texte sont en general très nombreuses et impliquent un tres grand nombre
+	// de variables individuellement tres peu informatives (faible level).Les arbres sont moins performants
+	// sur ce type de distribution de variables, et il ne semble pas raisonnable de risquer de degrader leur
+	// performance pour un gain potentiel probablement negligeable. La combinaison de plusieurs variables de type
+	// texte, ou de variable de type texte et multi-table, ne présente probablement pas d’apport significatif.
+	static void SetTextConstructionUsedByTrees(boolean bValue);
+	static boolean GetTextConstructionUsedByTrees();
 
 	// Nombre max de valeurs prise en comptes dans les rapports (defaut: 1000000)
 	// notament pour les dimensions des grilles de preparation des donnees
@@ -285,7 +318,7 @@ public:
 	void CopyFrom(const KWLearningSpec* kwlsSource);
 
 	// Recopie uniquement des statistiques sur la cible
-	// Attention, methode avancee pouvant entraibner des incoherence
+	// Attention, methode avancee pouvant entrainer des incoherences
 	// Permet de rappatrier ces infos, si elles ont ete invalidee par parametrage du dictionnaire ou de la database
 	void CopyTargetStatsFrom(const KWLearningSpec* kwlsSource);
 
@@ -329,6 +362,9 @@ protected:
 	KWDataGridStats* targetValueStats;
 	int nMainTargetModalityIndex;
 
+	// Service d'indexation d'une base
+	KWDatabaseIndexer databaseIndexer;
+
 	// Couts du modele null
 	double dNullConstructionCost;
 	double dNullPreparationCost;
@@ -337,12 +373,14 @@ protected:
 	// Parametrage des cout de selection, via les familles de construction de variables utilisees
 	int nInitialAttributeNumber;
 	boolean bMultiTableConstruction;
+	boolean bTextConstruction;
 	boolean bTrees;
 	boolean bAttributePairs;
 	int nConstructionFamilyNumber;
 
 	// Parametres avances
 	boolean bCheckTargetAttribute;
+	static boolean bTextConstructionUsedByTrees;
 	static int nMaxModalityNumber;
 
 	friend class PLShared_LearningSpec;
@@ -575,6 +613,11 @@ inline double KWLearningSpec::GetNullDataCost() const
 	return dNullDataCost;
 }
 
+inline KWDatabaseIndexer* KWLearningSpec::GetDatabaseIndexer()
+{
+	return &databaseIndexer;
+}
+
 inline void KWLearningSpec::SetInitialAttributeNumber(int nValue)
 {
 	require(nValue >= 0);
@@ -599,6 +642,20 @@ inline void KWLearningSpec::SetMultiTableConstruction(boolean bValue)
 inline boolean KWLearningSpec::GetMultiTableConstruction() const
 {
 	return bMultiTableConstruction;
+}
+
+inline void KWLearningSpec::SetTextConstruction(boolean bValue)
+{
+	if (bTextConstruction)
+		nConstructionFamilyNumber--;
+	bTextConstruction = bValue;
+	if (bTextConstruction)
+		nConstructionFamilyNumber++;
+}
+
+inline boolean KWLearningSpec::GetTextConstruction() const
+{
+	return bTextConstruction;
 }
 
 inline void KWLearningSpec::SetTrees(boolean bValue)
@@ -633,7 +690,7 @@ inline int KWLearningSpec::GetConstructionFamilyNumber() const
 {
 	require(not bTrees or GetTargetAttributeType() == KWType::Symbol);
 	require(not bAttributePairs or GetTargetAttributeType() == KWType::Symbol);
-	ensure(nConstructionFamilyNumber == bMultiTableConstruction + bTrees + bAttributePairs);
+	ensure(nConstructionFamilyNumber == bMultiTableConstruction + bTextConstruction + bTrees + bAttributePairs);
 	return nConstructionFamilyNumber;
 }
 
@@ -642,9 +699,22 @@ inline double KWLearningSpec::GetSelectionCost() const
 	return log(max(1, GetInitialAttributeNumber() + GetConstructionFamilyNumber()));
 }
 
-inline double KWLearningSpec::GetBasicSelectionCost() const
+inline double KWLearningSpec::GetBasicSelectionCost(boolean bUsingTextConstruction) const
 {
-	return log(max(1, GetInitialAttributeNumber() + bMultiTableConstruction));
+	if (bUsingTextConstruction)
+		return log(max(1, GetInitialAttributeNumber() + bMultiTableConstruction + bTextConstruction));
+	else
+		return log(max(1, GetInitialAttributeNumber() + bMultiTableConstruction));
+}
+
+inline void KWLearningSpec::SetTextConstructionUsedByTrees(boolean bValue)
+{
+	bTextConstructionUsedByTrees = bValue;
+}
+
+inline boolean KWLearningSpec::GetTextConstructionUsedByTrees()
+{
+	return bTextConstructionUsedByTrees;
 }
 
 inline void KWLearningSpec::SetMaxModalityNumber(int nValue)

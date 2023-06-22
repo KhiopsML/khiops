@@ -37,6 +37,9 @@ static longint MemHeapCurrentSegmentNumber = 0; // Nombre courant de segments sy
 // Taille max de la heap a ne pas depasser
 static longint lMemMaxHeapSize = 0;
 
+// Gestion des erreurs fatales: declaration de la methode
+static void MemFatalError(const char* sAllocErrorMessage);
+
 // Mise a jour des statiques globales
 inline void MemHeapUpdateAlloc(size_t nSize)
 {
@@ -49,7 +52,9 @@ inline void MemHeapUpdateAlloc(size_t nSize)
 	// test de depassement memoire
 	if (lMemMaxHeapSize > 0 && MemHeapMemory > lMemMaxHeapSize)
 	{
-		fprintf(stdout, "Memory user overflow: heap size beyond user limit (%lld)\n", lMemMaxHeapSize);
+		char sMessage[100];
+		sprintf(sMessage, "Memory user overflow: heap size beyond user limit (%lld)\n", lMemMaxHeapSize);
+		MemFatalError(sMessage);
 		GlobalExit();
 	}
 }
@@ -1712,7 +1717,7 @@ inline void MemFree(void* pBlock)
 				// libere, mais ce n'est pas grave
 				if (pHeap->nFreeSegmentNumber > 1 + MemHeapCurrentSegmentNumber / 8)
 				{
-					// On recupere le segment en te de liste des segments libvres
+					// On recupere le segment en te de liste des segments libres
 					psegCurrent = pHeap->headFreeSegments;
 					pHeap->headFreeSegments = psegCurrent->nextSegment;
 					pHeap->nFreeSegmentNumber--;

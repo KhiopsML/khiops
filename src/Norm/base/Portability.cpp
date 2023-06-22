@@ -246,6 +246,7 @@ void* LoadSharedLibrary(const char* sLibraryPath, char* sErrorMessage)
 	}
 
 #if defined(_MSC_VER)
+	UINT nCurrentErrorMode;
 	wchar_t* wString = NULL;
 	int nBufferSize;
 
@@ -258,9 +259,16 @@ void* LoadSharedLibrary(const char* sLibraryPath, char* sErrorMessage)
 
 	MultiByteToWideChar(CP_ACP, 0, sLibraryPath, -1, wString, nBufferSize);
 
+	// Parametrage du mode de gestion des erreurs pour eviter d'avoir des boite de dialogues systemes bloquantes
+	nCurrentErrorMode = GetErrorMode();
+	SetErrorMode(SEM_FAILCRITICALERRORS);
+
 	// Chargement de la librairie
 	handle = (void*)LoadLibrary(wString);
 	SystemObject::DeleteMemoryBlock(wString);
+
+	// Restitution du mode courant de gestion des erreurs
+	SetErrorMode(nCurrentErrorMode);
 
 	// Traitement des erreures
 	if (handle == NULL)

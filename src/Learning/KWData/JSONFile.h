@@ -191,7 +191,8 @@ protected:
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Gestion des encodages windows-1252 vers unicode et UFT8
 
-	// Code d'une chaine de caracteres hexa encodant un caractere unicode ou utf8
+	// Code d'une chaine de caracteres hexa encodant un caractere unicode ou utf8,
+	// pour une longueur d'au plus trois byte correspondant aux besoins d'encodage de la page de code Windows-1252
 	static int GetHexStringCode(const ALString& sHexString);
 
 	// Conversion d'un caractere ansi windows-1252 vers un caractere utf8 au format hexa
@@ -219,6 +220,9 @@ protected:
 	// Les caracteres latin etendus speciaux 0xA0 a 0xEF sont encodes en 0x00HH (4 caractere hexa)
 	static void InitializeWindows1252UnicodeHexEncoding();
 	static void InitializeWindows1252Utf8HexEncoding();
+
+	// Nombre max de bytes de l'encodage windows-1252
+	const static int nWindows1252EncodingMaxByteNumber = 3;
 
 	// Initialisation des structure de decodage des caracteres Windows-1252, pour retrouver leur index en fonction
 	// de leur code utf8

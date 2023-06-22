@@ -16,6 +16,7 @@ ALString UIObject::sLocalErrorLogFileName;
 ALString UIObject::sErrorLogFileName;
 ALString UIObject::sTaskProgressionLogFileName;
 CommandLine UIObject::commandLineOptions;
+boolean UIObject::bPrintOutputInConsole = false;
 
 const ALString UIObject::GetClassLabel() const
 {
@@ -1188,7 +1189,6 @@ void UIObject::FreeJNIEnv()
 
 JNIEnv* UIObject::GraphicGetJNIEnv()
 {
-
 	JNIEnv* env;
 	static ALString sLastIconImageJarPath;
 	ALString sCurrentLocale;
@@ -1672,6 +1672,7 @@ CommandLine* UIObject::GetCommandLineOptions()
 
 boolean UIObject::CheckOptions(const ObjectArray& oaOptions)
 {
+	boolean bOk = true;
 	int nCurrentUIMode;
 	CommandLineOption* option;
 	FileSpec* fsInputFile;
@@ -1681,12 +1682,10 @@ boolean UIObject::CheckOptions(const ObjectArray& oaOptions)
 	FileSpec* fsFile;
 	FileSpec* fsFileToCompare;
 	ObjectArray oaSpecFiles;
-	boolean bOk;
 	boolean bIsbFlag;
 	boolean bIsiFlag;
 	int i;
 	int nRef;
-
 	bIsbFlag = false;
 	bIsiFlag = false;
 
@@ -1696,6 +1695,10 @@ boolean UIObject::CheckOptions(const ObjectArray& oaOptions)
 		SetUIMode(Textual);
 
 	// Acces aux fichiers passes en parametre
+	fsInputFile = NULL;
+	fsProgressionFile = NULL;
+	fsOutputFile = NULL;
+	fsErrorFile = NULL;
 	for (i = 0; i < oaOptions.GetSize(); i++)
 	{
 		option = cast(CommandLineOption*, oaOptions.GetAt(i));
@@ -1737,8 +1740,18 @@ boolean UIObject::CheckOptions(const ObjectArray& oaOptions)
 		}
 	}
 
+	// Test que le fichier d'entree n'est pas une sortie
+#ifdef __UNIX__
+	if (fsInputFile != NULL and
+	    (fsInputFile->GetFilePathName() == "/dev/stdout" or fsInputFile->GetFilePathName() == "/dev/stderr"))
+	{
+		bOk = false;
+		Global::AddError("Command line parameters", "",
+				 "wrong input command file " + fsInputFile->GetFilePathName());
+	}
+#endif // __UNIX__
+
 	// Test de conflit entre les noms de fichiers : les fichiers doivent tous etre differents
-	bOk = true;
 	for (i = 0; i < oaSpecFiles.GetSize(); i++)
 	{
 		fsFile = cast(FileSpec*, oaSpecFiles.GetAt(i));
@@ -1748,8 +1761,16 @@ boolean UIObject::CheckOptions(const ObjectArray& oaOptions)
 		{
 			fsFileToCompare = cast(FileSpec*, oaSpecFiles.GetAt(nRef));
 
-			// Test de difference
+// Test de difference
+#ifdef __UNIX__
+			bOk = bOk and (fsFileToCompare->CheckReferenceFileSpec(fsFile) or
+				       (fsFileToCompare->GetFilePathName() == "/dev/stdout" and
+					fsFile->GetFilePathName() == "/dev/stdout") or
+				       (fsFileToCompare->GetFilePathName() == "/dev/stderr" and
+					fsFile->GetFilePathName() == "/dev/stderr"));
+#else  // __UNIX__
 			bOk = bOk and fsFileToCompare->CheckReferenceFileSpec(fsFile);
+#endif // __UNIX__
 			if (not bOk)
 				break;
 		}
@@ -1877,18 +1898,21 @@ void UIObject::ParseMainParameters(int argc, char** argv)
 	// Ecriture d'un en-tete dans le fichier des commandes
 	WriteOutputCommand("", "", CurrentTimestamp());
 	WriteOutputCommand("", "", commandLineOptions.GetCommandName());
-	sMessage = "Output command file\n";
-	sMessage += "//\n";
-	sMessage += "//This file contains recorded commands, that can be replayed.\n";
-	sMessage += "//Commands are based on user interactions:\n";
-	sMessage += "//\tfield update\n";
-	sMessage += "//\tlist item selection\n";
-	sMessage += "//\tmenu action\n";
-	sMessage += "//Every command can be commented, using //.\n";
-	sMessage += "//For example, commenting the last Exit command will allow other\n";
-	sMessage += "//user interactions, after the commands have been replayed.\n";
-	sMessage += "//\n";
-	sMessage += "//";
+	if (not bPrintOutputInConsole)
+	{
+		sMessage = "Output command file\n";
+		sMessage += "//\n";
+		sMessage += "//This file contains recorded commands, that can be replayed.\n";
+		sMessage += "//Commands are based on user interactions:\n";
+		sMessage += "//\tfield update\n";
+		sMessage += "//\tlist item selection\n";
+		sMessage += "//\tmenu action\n";
+		sMessage += "//Every command can be commented, using //.\n";
+		sMessage += "//For example, commenting the last Exit command will allow other\n";
+		sMessage += "//user interactions, after the commands have been replayed.\n";
+		sMessage += "//\n";
+		sMessage += "//";
+	}
 	WriteOutputCommand("", "", sMessage);
 
 	// Choix de l'interface
@@ -1977,6 +2001,12 @@ boolean UIObject::OpenOutputCommandFile(const ALString& sFileName)
 		Global::AddError("Output command file", sOutputCommandFileName, "Unable to open file");
 		bOk = false;
 	}
+
+// Si les fichier de sortie est /dev/stdout ou /dev/stderr, c'est un eredirection vers la console
+#ifdef __UNIX__
+	if (sLocalOutputCommandsFileName == "/dev/stdout" or sLocalOutputCommandsFileName == "/dev/stderr")
+		bPrintOutputInConsole = true;
+#endif // __UNIX__
 
 	// En mode Graphic on renvoie systematiquement true : on permet de lancer l'outil meme si on ne peut
 	// pas ecrire dans le fichier output (les options -e et -o sont passees par defaut a l'outil dans les scripts de
@@ -2229,6 +2259,9 @@ void UIObject::WriteOutputCommand(const ALString& sIdentifierPath, const ALStrin
 			nCommandLength = 30;
 
 		// Impression
+		if (bPrintOutputInConsole)
+			// Si redirection vers la console, on ajoute un prefixe
+			fprintf(fOutputCommands, "Khiops.command\t");
 		if (sCommand == "" and sLabel == "")
 			fprintf(fOutputCommands, "\n");
 		else if (sCommand == "")

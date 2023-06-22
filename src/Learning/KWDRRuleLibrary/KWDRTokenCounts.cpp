@@ -491,7 +491,7 @@ void KWDRCharNGramCounts::Compile(KWClass* kwcOwnerClass)
 	ivSparseCounts.SetSize(0);
 }
 
-boolean KWDRCharNGramCounts::CheckOperandsCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDRCharNGramCounts::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
 	double dValue;
@@ -499,7 +499,7 @@ boolean KWDRCharNGramCounts::CheckOperandsCompletness(const KWClass* kwcOwnerCla
 	ALString sTmp;
 
 	// Appel de la methode ancetre
-	bOk = KWDerivationRule::CheckOperandsCompletness(kwcOwnerClass);
+	bOk = KWDerivationRule::CheckOperandsCompleteness(kwcOwnerClass);
 
 	// Verification des operandes
 	if (bOk)
@@ -508,12 +508,12 @@ boolean KWDRCharNGramCounts::CheckOperandsCompletness(const KWClass* kwcOwnerCla
 
 		// Operande de la taille de la table de hashage, en deuxieme operande
 		dValue = GetOperandAt(1)->GetContinuousConstant();
-		nValue = int(floor(dValue + 0.5));
-		if (fabs(dValue - nValue) > 1e-5)
+		bOk = KWContinuous::ContinuousToInt(dValue, nValue);
+		if (not bOk)
 		{
 			AddError(sTmp + "Size of hashtable (" + KWContinuous::ContinuousToString(dValue) +
 				 ") in operand 2 must be an integer");
-			bOk = false;
+			assert(bOk == false);
 		}
 		else if (nValue < 1)
 		{
@@ -529,15 +529,15 @@ boolean KWDRCharNGramCounts::CheckOperandsCompletness(const KWClass* kwcOwnerCla
 		}
 
 		// Operande de longueur des n-grammes, si present en troisieme operande
-		if (GetOperandNumber() >= 3)
+		if (bOk and GetOperandNumber() >= 3)
 		{
 			dValue = GetOperandAt(2)->GetContinuousConstant();
-			nValue = int(floor(dValue + 0.5));
-			if (fabs(dValue - nValue) > 1e-5)
+			bOk = KWContinuous::ContinuousToInt(dValue, nValue);
+			if (not bOk)
 			{
 				AddError(sTmp + "Length of n-grams (" + KWContinuous::ContinuousToString(dValue) +
 					 ") in operand 3 must be an integer");
-				bOk = false;
+				assert(bOk == false);
 			}
 			else if (nValue < 1)
 			{
@@ -569,7 +569,7 @@ boolean KWDRCharNGramCounts::CheckBlockAttributes(const KWClass* kwcOwnerClass,
 	require(kwcOwnerClass->GetDomain() != NULL);
 	require(attributeBlock != NULL);
 	require(attributeBlock->GetFirstAttribute()->GetParentClass()->GetDomain() == kwcOwnerClass->GetDomain());
-	require(CheckOperandsCompletness(kwcOwnerClass));
+	require(CheckOperandsCompleteness(kwcOwnerClass));
 	require(attributeBlock->GetVarKeyType() == KWType::Continuous);
 
 	// Appel de la methode ancetre
@@ -627,6 +627,7 @@ longint KWDRCharNGramCounts::GetUsedMemory() const
 
 IntVector KWDRMultipleCharNGramCounts::ivNGramLengths;
 IntVector KWDRMultipleCharNGramCounts::ivHashTableSizes;
+IntVector KWDRMultipleCharNGramCounts::ivHashTableCumulatedSizes;
 LongintVector KWDRMultipleCharNGramCounts::lvNGramMasks;
 
 KWDRMultipleCharNGramCounts::KWDRMultipleCharNGramCounts()
@@ -644,7 +645,7 @@ KWDRMultipleCharNGramCounts::KWDRMultipleCharNGramCounts()
 	GetOperandAt(1)->SetOrigin(KWDerivationRuleOperand::OriginConstant);
 
 	// Parametres de la regle
-	nHashTableNumber = 0;
+	nUsedHashTableNumber = 0;
 
 	// Initialisation des variables globales
 	InitializeGlobalVariables();
@@ -717,7 +718,7 @@ KWDRMultipleCharNGramCounts::ComputeAllTablesCharNgramCounts(const Symbol& sValu
 	if (bDisplay)
 	{
 		cout << GetName() << "\t" << sStringValue << endl;
-		cout << "\tLength\tSize\tn\tngram\tindex\thash\nkey\tsparse index\tcount" << endl;
+		cout << "\tLength\tSize\tn\tngram\tindex\thash\tkey\tsparse index\tcount" << endl;
 	}
 
 	// Taille du texte
@@ -746,8 +747,8 @@ KWDRMultipleCharNGramCounts::ComputeAllTablesCharNgramCounts(const Symbol& sValu
 		// On boucle sur les longueurs de n-grammes
 		nHashTableLastIndex = -1;
 		nLastNGramLength = 0;
-		if (nHashTableNumber > 0)
-			nLastNGramLength = ivNGramLengths.GetAt(nHashTableNumber - 1);
+		if (nUsedHashTableNumber > 0)
+			nLastNGramLength = ivNGramLengths.GetAt(nUsedHashTableNumber - 1);
 		for (nNGramLength = 1; nNGramLength <= nLastNGramLength; nNGramLength++)
 		{
 			// Arret si texte trop court
@@ -757,7 +758,7 @@ KWDRMultipleCharNGramCounts::ComputeAllTablesCharNgramCounts(const Symbol& sValu
 			// Calcul des index de tables de hashage concernees
 			nHashTableFirstIndex = nHashTableLastIndex + 1;
 			nHashTableLastIndex = nHashTableFirstIndex;
-			while (nHashTableLastIndex + 1 < nHashTableNumber and
+			while (nHashTableLastIndex + 1 < nUsedHashTableNumber and
 			       ivNGramLengths.GetAt(nHashTableLastIndex + 1) == nNGramLength)
 				nHashTableLastIndex++;
 
@@ -768,7 +769,7 @@ KWDRMultipleCharNGramCounts::ComputeAllTablesCharNgramCounts(const Symbol& sValu
 			assert(ivNGramLengths.GetAt(nHashTableLastIndex) == nNGramLength);
 
 			// Cle de depart pour les tables pour cette longueur de ngramms
-			nNGramStartNKey = ivHashTableSizes.GetAt(nHashTableFirstIndex);
+			nNGramStartNKey = 1 + ivHashTableCumulatedSizes.GetAt(nHashTableFirstIndex);
 
 			// Analyse du texte pour une longueur de n-grammes donnee
 			lNGramMask = lvNGramMasks.GetAt(nNGramLength);
@@ -800,7 +801,7 @@ KWDRMultipleCharNGramCounts::ComputeAllTablesCharNgramCounts(const Symbol& sValu
 				// On prend un nombre aleatoire a partir de la valeur de ngramme
 				lRandom = IthRandomLongint(lNgramValue);
 
-				// Alimentation des tables hashage pour cette longieur de ngramme
+				// Alimentation des tables de hashage pour cette longueur de ngramme
 				lCukooHash = lRandom;
 				nStartNKey = nNGramStartNKey;
 				for (nHashTableIndex = nHashTableFirstIndex; nHashTableIndex <= nHashTableLastIndex;
@@ -918,6 +919,7 @@ boolean KWDRMultipleCharNGramCounts::CheckCharNgramCountsValueBlock(const Symbol
 	int nNKey;
 	int nHashTableIndex;
 	int nNGramLength;
+	int nHashTableCumulatedSize;
 
 	require(AreGlobalVariablesInitialized());
 	require(indexedKeyBlock != NULL);
@@ -941,7 +943,7 @@ boolean KWDRMultipleCharNGramCounts::CheckCharNgramCountsValueBlock(const Symbol
 		assert(not bIsFullBlock or cast(KWIndexedNKeyBlock*, indexedKeyBlock)->IsKeyPresent(nBlockSize));
 
 		// Initialisation d'un vecteur de comptes de n-grammes par taille de table hashage
-		ivCumulatedNGramCounts.SetSize(nHashTableNumber);
+		ivCumulatedNGramCounts.SetSize(nUsedHashTableNumber);
 
 		// Comptage du nombre cumule de n-grammes par taille de block
 		for (i = 0; i < valueBlock->GetValueNumber(); i++)
@@ -951,14 +953,20 @@ boolean KWDRMultipleCharNGramCounts::CheckCharNgramCountsValueBlock(const Symbol
 			nNKey = cast(KWIndexedNKeyBlock*, indexedKeyBlock)->GetKeyAt(nSparseIndex);
 
 			// Recherche de l'index de la table de hashage correspondante
-			nHashTableIndex = int(floor(log(nNKey + 0.5) / log(2.0)));
+			nHashTableCumulatedSize = 0;
+			nHashTableIndex = -1;
+			while (nNKey > nHashTableCumulatedSize)
+			{
+				nHashTableIndex++;
+				nHashTableCumulatedSize += ivHashTableSizes.GetAt(nHashTableIndex);
+			}
 
 			// Mise a jour du compte dans cette table de hashage
 			ivCumulatedNGramCounts.UpgradeAt(nHashTableIndex, (int)valueBlock->GetValueAt(i));
 		}
 
 		// Verification des comptes cumules de n-grammes
-		for (nHashTableIndex = 0; nHashTableIndex < nHashTableNumber; nHashTableIndex++)
+		for (nHashTableIndex = 0; nHashTableIndex < nUsedHashTableNumber; nHashTableIndex++)
 		{
 			nNGramLength = ivNGramLengths.GetAt(nHashTableIndex);
 
@@ -966,11 +974,11 @@ boolean KWDRMultipleCharNGramCounts::CheckCharNgramCountsValueBlock(const Symbol
 			if (nTextLength < nNGramLength)
 				bOk = bOk and ivCumulatedNGramCounts.GetAt(nHashTableIndex) == 0;
 			// Cas d'un comptage exhaustif si le block est plein avant la derniere table
-			else if (bIsFullBlock and nHashTableIndex < nHashTableNumber - 1)
+			else if (bIsFullBlock and nHashTableIndex < nUsedHashTableNumber - 1)
 				bOk = bOk and
 				      ivCumulatedNGramCounts.GetAt(nHashTableIndex) == nTextLength + 1 - nNGramLength;
 			// Cas d'un comptage exhaustif si le block est plein pour la derniere table
-			else if (bIsFullBlock and nHashTableIndex == nHashTableNumber - 1 and
+			else if (bIsFullBlock and nHashTableIndex == nUsedHashTableNumber - 1 and
 				 indexedKeyBlock->GetKeyNumber() == (int)(pow(2, nHashTableIndex + 1) - 1))
 				bOk = bOk and
 				      ivCumulatedNGramCounts.GetAt(nHashTableIndex) == nTextLength + 1 - nNGramLength;
@@ -996,7 +1004,7 @@ void KWDRMultipleCharNGramCounts::Compile(KWClass* kwcOwnerClass)
 	ivSparseCounts.SetSize(0);
 }
 
-boolean KWDRMultipleCharNGramCounts::CheckOperandsCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDRMultipleCharNGramCounts::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
 	double dValue;
@@ -1004,7 +1012,7 @@ boolean KWDRMultipleCharNGramCounts::CheckOperandsCompletness(const KWClass* kwc
 	ALString sTmp;
 
 	// Appel de la methode ancetre
-	bOk = KWDerivationRule::CheckOperandsCompletness(kwcOwnerClass);
+	bOk = KWDerivationRule::CheckOperandsCompleteness(kwcOwnerClass);
 
 	// Verification des operandes
 	if (bOk)
@@ -1013,12 +1021,12 @@ boolean KWDRMultipleCharNGramCounts::CheckOperandsCompletness(const KWClass* kwc
 
 		// Acces a la taille du block, en deuxieme operande
 		dValue = GetOperandAt(1)->GetContinuousConstant();
-		nValue = int(floor(dValue + 0.5));
-		if (fabs(dValue - nValue) > 1e-5)
+		bOk = KWContinuous::ContinuousToInt(dValue, nValue);
+		if (not bOk)
 		{
 			AddError(sTmp + "Size of variable block (" + KWContinuous::ContinuousToString(dValue) +
 				 ") in operand 2 must be an integer");
-			bOk = false;
+			assert(bOk == false);
 		}
 		else if (nValue < 1)
 		{
@@ -1049,7 +1057,7 @@ boolean KWDRMultipleCharNGramCounts::CheckBlockAttributes(const KWClass* kwcOwne
 	require(kwcOwnerClass->GetDomain() != NULL);
 	require(attributeBlock != NULL);
 	require(attributeBlock->GetFirstAttribute()->GetParentClass()->GetDomain() == kwcOwnerClass->GetDomain());
-	require(CheckOperandsCompletness(kwcOwnerClass));
+	require(CheckOperandsCompleteness(kwcOwnerClass));
 	require(attributeBlock->GetVarKeyType() == KWType::Continuous);
 
 	// Appel de la methode ancetre
@@ -1103,6 +1111,21 @@ longint KWDRMultipleCharNGramCounts::GetUsedMemory() const
 	return lUsedMemory;
 }
 
+int KWDRMultipleCharNGramCounts::GetMaxHashTableNumber()
+{
+	return ivNGramLengths.GetSize();
+}
+
+int KWDRMultipleCharNGramCounts::GetHashTableNGramLengthAt(int nIndex)
+{
+	return ivNGramLengths.GetAt(nIndex);
+}
+
+int KWDRMultipleCharNGramCounts::GetHashTableSizeAt(int nIndex)
+{
+	return ivHashTableSizes.GetAt(nIndex);
+}
+
 void KWDRMultipleCharNGramCounts::Test()
 {
 	const int nBlockSize = 100000;
@@ -1150,19 +1173,21 @@ void KWDRMultipleCharNGramCounts::Optimize()
 	nBlockSize = int(floor(GetOperandAt(1)->GetContinuousConstant() + 0.5));
 
 	// Calcul des caracteristiques specifiques a la regle
-	nHashTableNumber = 0;
+	nUsedHashTableNumber = 0;
 	nCumulatedSize = 0;
 	while (nCumulatedSize < nBlockSize)
 	{
-		nCumulatedSize += ivHashTableSizes.GetAt(nHashTableNumber);
-		nHashTableNumber++;
+		nCumulatedSize += ivHashTableSizes.GetAt(nUsedHashTableNumber);
+		nUsedHashTableNumber++;
 	}
+
+	// DDD
+	//  On peut optimiser en fonction de la valeur de la premiere et de la derniere cle utilisee du bloc
 }
 
 void KWDRMultipleCharNGramCounts::InitializeGlobalVariables()
 {
 	boolean bDisplay = false;
-	int nLength;
 	int nGramLength;
 	int nHashTableSize;
 	longint lNGramMask;
@@ -1171,38 +1196,82 @@ void KWDRMultipleCharNGramCounts::InitializeGlobalVariables()
 	// Calcul des specifications globales communes a toutes les regles, une fois pour toutes
 	if (lvNGramMasks.GetSize() == 0)
 	{
-		// Calcul des longueurs de ngrammes et tailles de tables de hashage
 		assert(ivNGramLengths.GetSize() == 0);
-		assert(ivHashTableSizes.GetSize() == 0);
-		nGramLength = 1;
-		nHashTableSize = 1;
-		for (i = 0; i < 8; i++)
+
+		///////////////////////////////////////////////////////////////////////
+		// Choix d'une serie de tables de hashage de taille croissante par
+		// longueur de ngrammes
+		// On n'en prend que deux par longueur de n-gramme, pour eviter les collision
+		// tout en evitant une redondance effective
+		// Les longueurs choisies ont ete ajustee empiriquement pour avoir un bon
+		// compromis entre le nombre de variables global et la performance predictive
+
+		// Table de hashage de taille 1 pour les 1-gramme: correspond a la longueur des texte
+		ivNGramLengths.Add(1);
+		ivHashTableSizes.Add(1);
+
+		// Pour les 1-grammes, il y au plus 256 1-grammes distincts
+		// On commence a des tailles de 16 au minimum, par puissance de 2, jusqu'a 128
+		nHashTableSize = 16;
+		while (nHashTableSize <= 128)
 		{
-			ivNGramLengths.Add(nGramLength);
+			ivNGramLengths.Add(1);
 			ivHashTableSizes.Add(nHashTableSize);
 			nHashTableSize *= 2;
 		}
-		for (nGramLength = 2; nGramLength <= nMaxNGramLength; nGramLength++)
+		assert(nHashTableSize == 256);
+
+		// Pour les 2-grammes, on prend les trois tailles successives suivantes
+		nHashTableSize = 256;
+		while (nHashTableSize <= 1024)
 		{
-			for (i = 0; i < 3; i++)
-			{
-				ivNGramLengths.Add(nGramLength);
-				ivHashTableSizes.Add(nHashTableSize);
-				nHashTableSize *= 2;
-			}
+			ivNGramLengths.Add(2);
+			ivHashTableSizes.Add(nHashTableSize);
+			nHashTableSize *= 2;
 		}
+
+		// Pour les 3-grammes, on prend les trois tailles successives suivantes
+		nHashTableSize = 2048;
+		while (nHashTableSize <= 8192)
+		{
+			ivNGramLengths.Add(3);
+			ivHashTableSizes.Add(nHashTableSize);
+			nHashTableSize *= 2;
+		}
+
+		// Par longeur de n-gramme a partir de 4, on ne prend plus que deux tailles, toujours les memes
+		for (nGramLength = 4; nGramLength <= nMaxNGramLength; nGramLength++)
+		{
+			ivNGramLengths.Add(nGramLength);
+			ivHashTableSizes.Add(16384);
+			ivNGramLengths.Add(nGramLength);
+			ivHashTableSizes.Add(32768);
+		}
+
+		// DDD
+		DEPRECATEDInitializeGlobalVariables();
+
+		///////////////////////////////////////////////////////////////////////
+		// Finalisation de l'initialisation
+
+		// Calcul des tailles cumulees des tables de hashages
+		ivHashTableCumulatedSizes.Add(0);
+		for (i = 0; i < ivNGramLengths.GetSize(); i++)
+			ivHashTableCumulatedSizes.Add(
+			    ivHashTableCumulatedSizes.GetAt(ivHashTableCumulatedSizes.GetSize() - 1) +
+			    ivHashTableSizes.GetAt(i));
 
 		// Calcul des masques par nGramme: on met tous les bits a 1 partout sur la longueur des n-grammes
 		lvNGramMasks.SetSize(nMaxNGramLength + 1);
-		for (nLength = 1; nLength <= nMaxNGramLength; nLength++)
+		for (nGramLength = 1; nGramLength <= nMaxNGramLength; nGramLength++)
 		{
 			lNGramMask = 0;
-			for (i = 0; i < nLength; i++)
+			for (i = 0; i < nGramLength; i++)
 			{
 				lNGramMask <<= 8;
 				lNGramMask += 255;
 			}
-			lvNGramMasks.SetAt(nLength, lNGramMask);
+			lvNGramMasks.SetAt(nGramLength, lNGramMask);
 		}
 
 		// Affichage
@@ -1210,13 +1279,114 @@ void KWDRMultipleCharNGramCounts::InitializeGlobalVariables()
 		{
 			cout << "N-Gram\tHash table size\n";
 			for (i = 0; i < ivNGramLengths.GetSize(); i++)
-				cout << ivNGramLengths.GetAt(i) << "\t" << ivHashTableSizes.GetAt(i) << "\n";
+			{
+				cout << ivNGramLengths.GetAt(i) << "\t" << ivHashTableSizes.GetAt(i) << "\t"
+				     << ivHashTableCumulatedSizes.GetAt(i + 1) << "\n";
+			}
 			cout << "N-Gram\tMask\n";
-			for (nLength = 1; nLength <= nMaxNGramLength; nLength++)
-				cout << nLength << "\t" << lvNGramMasks.GetAt(nLength) << "\n";
+			for (nGramLength = 1; nGramLength <= nMaxNGramLength; nGramLength++)
+				cout << nGramLength << "\t" << lvNGramMasks.GetAt(nGramLength) << "\n";
 		}
 	}
 	ensure(AreGlobalVariablesInitialized());
+}
+
+void KWDRMultipleCharNGramCounts::DEPRECATEDInitializeGlobalVariables()
+{
+	ALString sLearningTextVariableNgramPolicy;
+	int nGramLength;
+	int nHashTableSize;
+	int nCumulatedSize;
+	const double dSizeRatio = 2 * sqrt(2);
+	int i;
+
+	assert(ivHashTableCumulatedSizes.GetSize() == 0);
+
+	// Recherche d'un parametre externe sur la politiques de getsion des tables de hashage par longueur de n-gramme
+	sLearningTextVariableNgramPolicy = p_getenv("KhiopsTextVariableNGramPolicy");
+	sLearningTextVariableNgramPolicy.MakeLower();
+
+	// Pise en compte si necessaire
+	if (sLearningTextVariableNgramPolicy != "")
+	{
+		// Message utilisateur
+		Global::AddSimpleMessage("KhiopsTextVariableNGramPolicy: " + sLearningTextVariableNgramPolicy);
+
+		// Premiere politique (V10.0.1)
+		if (sLearningTextVariableNgramPolicy == "first")
+		{
+			ivNGramLengths.SetSize(0);
+			ivHashTableSizes.SetSize(0);
+
+			// Calcul des longueurs de ngrammes et tailles de tables de hashage
+			nGramLength = 1;
+			nHashTableSize = 1;
+			for (i = 0; i < 8; i++)
+			{
+				ivNGramLengths.Add(nGramLength);
+				ivHashTableSizes.Add(nHashTableSize);
+				nHashTableSize *= 2;
+			}
+			for (nGramLength = 2; nGramLength <= nMaxNGramLength; nGramLength++)
+			{
+				for (i = 0; i < 3; i++)
+				{
+					ivNGramLengths.Add(nGramLength);
+					ivHashTableSizes.Add(nHashTableSize);
+					nHashTableSize *= 2;
+				}
+			}
+		}
+
+		// Seconde politique (V10.0.1)
+		if (sLearningTextVariableNgramPolicy == "second")
+		{
+			ivNGramLengths.SetSize(0);
+			ivHashTableSizes.SetSize(0);
+
+			///////////////////////////////////////////////////////////////////////
+			// Choix d'une serie de tables de hashage de taille croissante par
+			// longueur de ngrammes
+			// On n'en prend que deux par longueur de n-gramme, pour eviter les collision
+			// tout en evitant une redondance effective
+			// Les longueurs choisies ont ete ajustee empiriquement pour avoir un bon
+			// compromis entre le nombre de variables global et la performance predictive
+
+			// Table de hashage de taille 1 pour les 1-gramme: correspond a la longueur des texte
+			nCumulatedSize = 0;
+			ivNGramLengths.Add(1);
+			ivHashTableSizes.Add(1);
+			nCumulatedSize += ivHashTableSizes.GetAt(ivHashTableSizes.GetSize() - 1);
+
+			// Il y au plus 256 1-grammes distincts
+			// Choix d'une premiere table de tres petite taille
+			ivNGramLengths.Add(1);
+			ivHashTableSizes.Add(16);
+			nCumulatedSize += ivHashTableSizes.GetAt(ivHashTableSizes.GetSize() - 1);
+
+			// Choix d'une second table de grande taille
+			// Le nombre est choisi a environ 128, de telle facon que tous les n-grammes de longueur
+			// inferieure a 4 puissent tenir dans un bloc de longueur inferieure a 100000,
+			// ce qui correspond a un nombre max de variable constryuites pour les textes
+			ivNGramLengths.Add(1);
+			ivHashTableSizes.Add(126);
+			nCumulatedSize += ivHashTableSizes.GetAt(ivHashTableSizes.GetSize() - 1);
+
+			// Par longeur de n-gramme, on prend deux taille successives selon le meme ratio
+			for (nGramLength = 2; nGramLength <= nMaxNGramLength; nGramLength++)
+			{
+				for (i = 0; i < 2; i++)
+				{
+					ivNGramLengths.Add(nGramLength);
+					nHashTableSize =
+					    int(ivHashTableSizes.GetAt(ivHashTableSizes.GetSize() - 1) * dSizeRatio);
+					ivHashTableSizes.Add(nHashTableSize);
+					nCumulatedSize += ivHashTableSizes.GetAt(ivHashTableSizes.GetSize() - 1);
+					assert(nCumulatedSize <= 100000 or nGramLength > 4);
+				}
+			}
+		}
+	}
 }
 
 boolean KWDRMultipleCharNGramCounts::AreGlobalVariablesInitialized()
@@ -1257,7 +1427,7 @@ void KWDRStudyCharNGramCounts::Compile(KWClass* kwcOwnerClass)
 	bWithRandomSign = GetOperandAt(4)->GetContinuousConstant() != 0;
 }
 
-boolean KWDRStudyCharNGramCounts::CheckOperandsCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDRStudyCharNGramCounts::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
 	double dValue;
@@ -1265,7 +1435,7 @@ boolean KWDRStudyCharNGramCounts::CheckOperandsCompletness(const KWClass* kwcOwn
 	ALString sTmp;
 
 	// Appel de la methode ancetre
-	bOk = KWDerivationRule::CheckOperandsCompletness(kwcOwnerClass);
+	bOk = KWDerivationRule::CheckOperandsCompleteness(kwcOwnerClass);
 
 	// Verification des operandes
 	if (bOk)
@@ -1274,12 +1444,12 @@ boolean KWDRStudyCharNGramCounts::CheckOperandsCompletness(const KWClass* kwcOwn
 
 		// Operande de longueur max des n-grammes
 		dValue = GetOperandAt(3)->GetContinuousConstant();
-		nValue = int(floor(dValue + 0.5));
-		if (fabs(dValue - nValue) > 1e-5)
+		bOk = KWContinuous::ContinuousToInt(dValue, nValue);
+		if (not bOk)
 		{
 			AddError(sTmp + "Max length of n-grams (" + KWContinuous::ContinuousToString(dValue) +
 				 ") in operand 4 must be an integer");
-			bOk = false;
+			assert(bOk == false);
 		}
 		else if (nValue < 1)
 		{
@@ -1348,7 +1518,7 @@ Symbol KWDRTextInit::ComputeTextResult(const KWObject* kwoObject) const
 	return Symbol(sResult, nSize);
 }
 
-boolean KWDRTextInit::CheckOperandsCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDRTextInit::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
 	Continuous cValue;
@@ -1357,7 +1527,7 @@ boolean KWDRTextInit::CheckOperandsCompletness(const KWClass* kwcOwnerClass) con
 	ALString sTmp;
 
 	// Appel de la methode ancetre
-	bOk = KWDerivationRule::CheckOperandsCompletness(kwcOwnerClass);
+	bOk = KWDerivationRule::CheckOperandsCompleteness(kwcOwnerClass);
 
 	// Verification des operandes
 	if (bOk)
@@ -1366,12 +1536,12 @@ boolean KWDRTextInit::CheckOperandsCompletness(const KWClass* kwcOwnerClass) con
 
 		// Taille du texe a generer
 		cValue = GetFirstOperand()->GetContinuousConstant();
-		nValue = int(floor(cValue + 0.5));
-		if (fabs(cValue - nValue) > 1e-5)
+		bOk = KWContinuous::ContinuousToInt(cValue, nValue);
+		if (not bOk)
 		{
 			AddError(sTmp + "Size of text (" + KWContinuous::ContinuousToString(cValue) +
 				 ") in first operand must be an integer");
-			bOk = false;
+			assert(bOk == false);
 		}
 		else if (nValue < 0)
 		{
@@ -1386,11 +1556,11 @@ boolean KWDRTextInit::CheckOperandsCompletness(const KWClass* kwcOwnerClass) con
 			bOk = false;
 		}
 
-		// Operande de l'utilisation d'un signe pour l'ajout dans la table de hash
+		// Longuer du deuxieme operande, qui doit etre reduit a un seul caractere
 		sValue = GetSecondOperand()->GetSymbolConstant();
 		if (sValue.GetLength() != 1)
 		{
-			AddError(sTmp + "Second operand (" + sValue + ") must contain one singkle character");
+			AddError(sTmp + "Second operand (" + sValue + ") must contain one single character");
 			bOk = false;
 		}
 	}

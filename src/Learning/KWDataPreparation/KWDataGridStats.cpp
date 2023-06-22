@@ -2388,7 +2388,7 @@ void KWDataGridStats::WriteUnsupervisedCellArrayLineReport(ostream& ost) const
 	oaCells.DeleteAll();
 }
 
-boolean KWDataGridStats::InternalCheckPartIndexes(const IntVector* ivPartIndexes, int nFirstAtributeIndex,
+boolean KWDataGridStats::InternalCheckPartIndexes(const IntVector* ivPartIndexes, int nFirstAttributeIndex,
 						  int nLastAttributeIndex) const
 {
 	int nPartIndex;
@@ -2396,12 +2396,12 @@ boolean KWDataGridStats::InternalCheckPartIndexes(const IntVector* ivPartIndexes
 	const KWDGSAttributePartition* attribute;
 
 	require(ivPartIndexes != NULL);
-	require(0 <= nFirstAtributeIndex and nFirstAtributeIndex <= GetAttributeNumber());
-	require(nFirstAtributeIndex <= nLastAttributeIndex or nLastAttributeIndex == -1);
+	require(0 <= nFirstAttributeIndex and nFirstAttributeIndex <= GetAttributeNumber());
+	require(nFirstAttributeIndex <= nLastAttributeIndex or nLastAttributeIndex == -1);
 	require(nLastAttributeIndex < ivPartIndexes->GetSize() and ivPartIndexes->GetSize() <= GetAttributeNumber());
 
 	// Verification des index de chaque partie
-	for (nAttribute = nFirstAtributeIndex; nAttribute <= nLastAttributeIndex; nAttribute++)
+	for (nAttribute = nFirstAttributeIndex; nAttribute <= nLastAttributeIndex; nAttribute++)
 	{
 		attribute = GetAttributeAt(nAttribute);
 		nPartIndex = ivPartIndexes->GetAt(nAttribute);

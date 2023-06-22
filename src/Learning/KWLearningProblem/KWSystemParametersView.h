@@ -6,8 +6,8 @@
 
 #include "UserInterface.h"
 #include "KWLearningSpec.h"
-#include "KWVersion.h"
 #include "RMResourceSystem.h"
+#include "KWVersion.h"
 
 ////////////////////////////////////////////////////////////
 // Classe KWSystemParametersView

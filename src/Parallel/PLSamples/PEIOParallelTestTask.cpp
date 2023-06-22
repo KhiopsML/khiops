@@ -21,7 +21,7 @@ PEIOParallelTestTask::~PEIOParallelTestTask() {}
 
 void PEIOParallelTestTask::AddFileName(const ALString& sName)
 {
-	require(FileService::Exist(sName));
+	require(FileService::FileExists(sName));
 
 	// Ajout au tableau des variables partagees
 	svFileName.Add(sName);
@@ -213,14 +213,19 @@ boolean PEIOParallelTestTask::SlaveInitialize()
 boolean PEIOParallelTestTask::SlaveProcess()
 {
 	InputBufferedFile* inputFile;
-	double dProgression;
-	longint lPosition;
 	char* sField;
 	int nFieldLength;
 	int nFieldError;
 	boolean bEol;
 	ALString sTmp;
 	boolean bOk;
+	longint lBeginChunk;
+	longint lEndChunk;
+	longint lFilePos;
+	longint lMaxEndPos;
+	boolean bLineTooLong;
+	longint lNextLinePos;
+	longint lLineNumberUsingCurrentBuffer;
 
 	// Initialisation des resultats
 	output_lFieldNumber = 0;
@@ -243,53 +248,101 @@ boolean PEIOParallelTestTask::SlaveProcess()
 	}
 	else
 	{
-		// Parcours du fichier par buffers
-		// (les lectures de buffer sont gerees de facon a eviter les conflits
-		// d'acces au disque en mode parallele)
-		lPosition = 0;
-		dProgression = 0;
-		while (not inputFile->IsLastBuffer())
+		lBeginChunk = 0;
+		lLineNumberUsingCurrentBuffer = 0;
+		lEndChunk = inputFile->GetBufferSize();
+
+		// Parcours du fichier par chunk
+		while (bOk and lBeginChunk < inputFile->GetFileSize())
 		{
-			// Lecture d'un buffer constitue de ligne entieres
-			bOk = inputFile->Fill(lPosition);
-			lPosition += inputFile->GetBufferSize();
+			// On commence l'analyse au debut du chunk
+			lFilePos = lBeginChunk;
 
-			if (not bOk)
-				break;
+			// On la termine sur la derniere ligne commencant dans le chunk, donc dans le '\n' se trouve
+			// potentiellement sur le debut de chunk suivant
+			lMaxEndPos = min(lEndChunk + 1, inputFile->GetFileSize());
 
-			// Message si une ligne etait trop longue pour tenir dans un buffer
-			if (inputFile->GetBufferSkippedLine())
+			// On commence par rechercher un debut de ligne, sauf si on est en debut de fichier
+			if (lFilePos > 0)
 			{
-				// On n'oublie pas de compter cette ligne (pour le nombre de champ, on
-				// se contente de compter 1 champ par ligne sautee)
-				output_lFieldNumber++;
-				output_lLineNumber++;
+				bOk = inputFile->SearchNextLineUntil(lFilePos, lMaxEndPos, lNextLinePos);
+				if (not bOk)
+					break;
+
+				// On se positionne sur le debut de la ligne suivante si elle est trouvee
+				if (lNextLinePos != -1)
+					lFilePos = lNextLinePos;
+				// Si non trouvee, on se place en fin de chunk
+				else
+					lFilePos = lMaxEndPos;
 			}
 
-			// Analyse du buffer champs par champs
-			while (not inputFile->IsBufferEnd())
+			// Analyse du chunk si on a y trouve un debut de ligne
+			if (bOk and lFilePos < lMaxEndPos)
 			{
-				// Lecture du prochain champs
-				bEol = inputFile->GetNextField(sField, nFieldLength, nFieldError);
-				assert(nFieldError == InputBufferedFile::FieldNoError);
-				output_lFieldNumber += 1;
-
-				// Incrementation du nombre de lignes
-				if (bEol)
-					output_lLineNumber += 1;
-
-				// Suivi de la tache
-				if (TaskProgression::IsInterruptionRequested())
-					break;
-				if ((int)output_lLineNumber % 100 == 0)
+				// Parcours du chunk par paquets de lignes
+				while (bOk and lFilePos < lMaxEndPos)
 				{
-					dProgression = lPosition * 1.0 / inputFile->GetFileSize();
-					TaskProgression::DisplayProgression((int)floor(dProgression * 100));
+					// Remplissage du buffer avec des ligne
+					bOk = inputFile->FillOuterLinesUntil(lFilePos, lMaxEndPos, bLineTooLong);
+					if (not bOk)
+						break;
+
+					// Comptage des lignes du buffer si pas de ligne trop longue
+					if (not bLineTooLong)
+					{
+						while (not inputFile->IsBufferEnd())
+						{
+							// Lecture du prochain champs
+							bEol = inputFile->GetNextField(sField, nFieldLength,
+										       nFieldError, bLineTooLong);
+
+							// Memorisation des erreurs, en considerant qu'un tabulation
+							// remplacee par un blanc n'est pas une erreur
+							if (bLineTooLong)
+							{
+								// On saute les champ jusqu'a la fin de ligne
+								if (not bEol)
+								{
+									inputFile->SkipLastFields(bLineTooLong);
+									bEol = true;
+								}
+								break;
+							}
+							assert(nFieldError == InputBufferedFile::FieldNoError);
+							output_lFieldNumber += 1;
+
+							// Incrementation du nombre de lignes
+							if (bEol)
+								output_lLineNumber += 1;
+						}
+						lFilePos += inputFile->GetCurrentBufferSize();
+						lLineNumberUsingCurrentBuffer += inputFile->GetBufferLineNumber();
+
+						assert(inputFile->GetCurrentLineIndex() ==
+							   inputFile->GetBufferLineNumber() - 1 or
+						       inputFile->GetCurrentBufferSize() == 0);
+						assert(output_lLineNumber == lLineNumberUsingCurrentBuffer);
+					}
+					// Sinon, on se positionne sur la fin de la ligne suivante ou la a derniere
+					// position
+					else
+					{
+						assert(bLineTooLong);
+						assert(inputFile->GetCurrentBufferSize() == 0);
+						assert(inputFile->GetPositionInFile() - lFilePos >
+							   inputFile->GetMaxLineLength() or
+						       inputFile->GetPositionInFile() == lMaxEndPos);
+						output_lLineNumber++;
+						lLineNumberUsingCurrentBuffer++;
+						lFilePos = inputFile->GetPositionInFile();
+					}
 				}
 			}
-			// Suivi de la tache
-			if (TaskProgression::IsInterruptionRequested())
-				break;
+
+			// Passage au chunk suivant
+			lBeginChunk += inputFile->GetBufferSize();
+			lEndChunk += inputFile->GetBufferSize();
 		}
 
 		// Nettoyage

@@ -37,11 +37,18 @@ public:
 	virtual boolean Disconnect() = 0;
 	virtual boolean IsConnected() const = 0;
 
+	// Renvoie la taille de buffer a privilegier lors de l'acces I/O (en octets)
+	// Par defaut cette methode renvoie 0
+	virtual longint GetSystemPreferredBufferSize() const;
+
 	///////////////////////////////////////////////////////////////////////
 	// Methodes a implementer en mode read-only
 
-	// Test d'existence d'un fichier ou d'un repertoire
-	virtual boolean Exist(const char* sFilePathName) const = 0;
+	// Test d'existence d'un fichier
+	virtual boolean FileExists(const char* sFilePathName) const = 0;
+
+	// Test d'existence d'un repertoire
+	virtual boolean DirExists(const char* sFilePathName) const = 0;
 
 	// Taile d'un fichier
 	virtual longint GetFileSize(const char* sFilePathName) const = 0;
@@ -106,9 +113,8 @@ public:
 	// L'implementation par defaut utilise fread et fwrite
 	virtual boolean CopyFileFromLocal(const char* sSourceFilePathName, const char* sDestFilePathName);
 
-	// TODO: verifier la coherence avec la methode GetHugeBuffer
-	//  Taille du buffer necessaire a la copie local vers distant
-	const static int nBufferSizeForCopying = 1 * lMB;
+	// Taille maximum du buffer utilise pour la copie
+	const static int nMaxBufferSizeForCopying = 64 * lMB;
 
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation

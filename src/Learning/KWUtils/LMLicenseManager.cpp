@@ -7,6 +7,11 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // Classe LMLicenseManager
 
+boolean LMLicenseManager::IsEnabled()
+{
+	return false;
+}
+
 boolean LMLicenseManager::Initialize()
 {
 	ALString sErrorMessage;
@@ -264,7 +269,7 @@ boolean LMLicenseManager::UpdateLicenseFromFile(const ALString& sSourceLicenseFi
 	boolean bUpdatedLicences;
 
 	// Test prealable d'existence du fichier de license
-	bOk = (FileService::Exist(sSourceLicenseFilePath));
+	bOk = (FileService::FileExists(sSourceLicenseFilePath));
 	if (not bOk)
 		singleton.AddError("License file " + sSourceLicenseFilePath + " not found");
 

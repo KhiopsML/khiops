@@ -6,9 +6,21 @@
 
 #include "Standard.h"
 
-// TODO: passer une taiile en parametre pour que l'ilmplementation ne depende plus de InputBufferedFile
-//  Et retiallier le HugeBuffer si necessaire (appel avec une taille plus grande)
+/////////////////////////////////////////////////////////////////////////////
+// Gestion d'un buffer de grande taille
+// Ce buffer est cree a la demande, retaille uniquement si necessaire, par agrandissement,
+// ou detruit a la demande.
+// Il est egalement automatiquement detruit en fin de programme
+//
+// Services reserves aux classes InputBufferedFile et SystemFileDriver
 
-// Acces a un buffer de grande taille
-// methode reservee aux classes InputBufferedFile et SystemFileDriver
-char* GetHugeBuffer();
+// Acces a un buffer de grande taille, cree automatiquement si necessaire
+char* GetHugeBuffer(unsigned int nHugeSize);
+
+// Taille du buffer en cours
+int GetHugeBufferSize();
+
+// Destruction du HugeBuffer
+// Cette methode, appelee automatiquement en fin de programme, peut etre appelee a tout momemt pour liberer de la
+// memoire
+void DeleteHugeBuffer();

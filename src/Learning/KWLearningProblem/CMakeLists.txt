@@ -8,5 +8,12 @@ add_library(KWLearningProblem STATIC "${cppfiles}")
 set_khiops_options(KWLearningProblem)
 
 target_include_directories(KWLearningProblem PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(KWLearningProblem PUBLIC KDDomainKnowledge DTForest KWDRRuleLibrary KWDataPreparation
-                                               KWUserInterface SNBPredictor)
+target_link_libraries(
+  KWLearningProblem
+  PUBLIC KDDomainKnowledge
+         DTForest
+         KIInterpretation
+         KWDRRuleLibrary
+         KWDataPreparation
+         KWUserInterface
+         SNBPredictor)

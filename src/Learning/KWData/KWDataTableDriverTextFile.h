@@ -71,9 +71,25 @@ public:
 	longint GetEstimatedObjectNumber() override;
 	longint ComputeOpenNecessaryMemory(boolean bRead) override;
 	longint ComputeNecessaryMemoryForFullExternalRead(const KWClass* kwcLogicalClass) override;
-	longint ComputeNecessaryDiskSpaceForFullWrite(const KWClass* kwcLogicalClass) override;
+	longint ComputeNecessaryDiskSpaceForFullWrite(const KWClass* kwcLogicalClass, longint lInputFileSize) override;
 	double GetReadPercentage() override;
 	longint GetUsedMemory() const override;
+
+	// Variante de l'estimation du nombre d'objets dans la base, en memoire et sans acces disque,
+	// en analysant la structure du dictionnaire avec dimensionnement heuristique
+	longint GetInMemoryEstimatedObjectNumber(longint lInputFileSize);
+
+	// Estimation heuristique de la place disque par record d'un fichier a lire en se basant sur les variable native
+	// du dictionnaire
+	longint GetEstimatedUsedInputDiskSpacePerObject() const;
+
+	// Estimation heuristique de la memoire utilise par KWObject en se basant sur les variables utilisee du
+	// dictionnaire, natives ou calculees
+	longint GetEstimatedUsedMemoryPerObject() const;
+
+	// Estimation heuristique de la place disque par record d'un fichier a ecrire en se basant sur les variables
+	// utilisees du dictionnaire logique
+	longint GetEstimatedUsedOutputDiskSpacePerObject(const KWClass* kwcLogicalClass) const;
 
 	// Lecture des champs de la ligne d'entete
 	virtual boolean ReadHeaderLineFields(StringVector* svFirstLineFields);
@@ -89,7 +105,6 @@ public:
 
 	// Taille du buffer lors de la prochaine ouverture
 	// Initialisement a la valeur par defaut
-	// N'a aucun effet dans la classe fille PLDataTableDriverTextFileParallel
 	void SetBufferSize(int nSize);
 	int GetBufferSize() const;
 
@@ -104,6 +119,9 @@ public:
 	static void SetOverlengthyFieldsVerboseMode(boolean bValue);
 	static boolean GetOverlengthyFieldsVerboseMode();
 
+	// Redefinition du parametrage du mode silencieux, pour le synchroniser avec celui du buffer
+	void SetSilentMode(boolean bValue) override;
+
 	/////////////////////////////////////////////////
 	///// Implementation
 protected:
@@ -117,10 +135,10 @@ protected:
 	// Remplissage du buffer a partir de la position courante dans le fichier jusqu'a
 	// remplir completement le buffer avec des lignes entieres.
 	// En cas de lignes trop longues, le remplissage du buffer continue jusqu'a obtenir
-	// des lignes entieres ou jusqu'a la fin du fichier
-	// Si une ligne ne tient pas dans la taille max elle n'est pas prise en compte, le
-	// buffer commence au debut de la suivante
-	virtual boolean FillInputBufferWithFullLines();
+	// des lignes entieres ou jusqu'a la position de fin max en parametre
+	// Dans le cas d'une ligne trop longue en fin de buffer, on emet un warning, et on
+	// continue a lire jusqu'a ce que le buffer soit vide ou contienne le debut de la ligne suivante
+	virtual boolean FillInputBufferWithFullLines(longint lBeginPos, longint lMaxEndPos);
 
 	// Verification du buffer pour tester s'il y a des caracteres null
 	// Si echec, renvoie, false, emet des messages d'erreur, et met le buffer a NULL
@@ -172,13 +190,17 @@ protected:
 	boolean bWriteMode;
 
 	// Taille des buffers (taille allouee a la prochaine ouverture)
-	int nBufferedFileSize;
-
-	// Taille par defaut des buffers
-	static const int nDefaultBufferSize = InputBufferedFile::nDefaultBufferSize;
+	int nBufferSize;
 
 	// Mode verbeux pour la detection des champs trop long
 	static boolean bOverlengthyFieldsVerboseMode;
+
+	// Constantes pour l'estimation heuristique conservatrice de la taille des champs sur fichier
+	static const int nMinRecordSize = 5;
+	static const int nDenseValueSize = 2;
+	static const int nSparseValueSize = 7;
+	static const int nTextValueSize = 200;
+	static const int nKeyFieldSize = 5;
 };
 
 ////////////////////////////////////////
@@ -223,12 +245,12 @@ inline boolean KWDataTableDriverTextFile::IsEnd() const
 inline boolean KWDataTableDriverTextFile::UpdateInputBuffer()
 {
 	if (inputBuffer->IsBufferEnd() and not inputBuffer->IsFileEnd())
-		return FillInputBufferWithFullLines();
+		return FillInputBufferWithFullLines(inputBuffer->GetPositionInFile(), inputBuffer->GetFileSize());
 	else
 		return true;
 }
 
 inline int KWDataTableDriverTextFile::GetDefaultBufferSize()
 {
-	return nDefaultBufferSize;
+	return InputBufferedFile::nDefaultBufferSize;
 }

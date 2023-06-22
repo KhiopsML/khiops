@@ -472,7 +472,7 @@ boolean CCCoclusteringBuilder::CheckMemoryForDatabaseRead(KWDatabase* database) 
 	longint lInitialDataGridSize;
 	longint lWorkingDataGridSize;
 	longint lSizeOfCell;
-	int nDatabasePercentage;
+	double dDatabasePercentage;
 
 	require(database != NULL);
 	require(database->GetObjects()->GetSize() == 0);
@@ -500,17 +500,17 @@ boolean CCCoclusteringBuilder::CheckMemoryForDatabaseRead(KWDatabase* database) 
 
 		// Pourcentage de la base traite
 		if (database->GetModeExcludeSample())
-			nDatabasePercentage = 100 - database->GetSampleNumberPercentage();
+			dDatabasePercentage = 100 - database->GetSampleNumberPercentage();
 		else
-			nDatabasePercentage = database->GetSampleNumberPercentage();
+			dDatabasePercentage = database->GetSampleNumberPercentage();
 
 		// Calcul des caracteristiques memoires disponibles et necessaires pour les enregistrements du fichier
-		lEstimatedRecordNumber = database->GetEstimatedObjectNumber() * nDatabasePercentage / 100;
+		lEstimatedRecordNumber = (longint)(database->GetEstimatedObjectNumber() * dDatabasePercentage / 100);
 		lFileMemory = lEstimatedRecordNumber * lRecordSize;
-		lFileMemory += lSourceFileSize *
-			       (GetClass()->GetUsedAttributeNumberForType(KWType::Symbol) /
-				GetClass()->GetNativeDataItemNumber()) *
-			       nDatabasePercentage / 100;
+		lFileMemory += (longint)(lSourceFileSize *
+					 (GetClass()->GetUsedAttributeNumberForType(KWType::Symbol) /
+					  GetClass()->GetNativeDataItemNumber()) *
+					 dDatabasePercentage / 100);
 		lNecessaryMemory += lFileMemory;
 
 		// Prise en compte d'une grille initiale "minimale" estimee de facon heuristique

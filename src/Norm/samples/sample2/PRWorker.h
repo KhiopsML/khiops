@@ -5,8 +5,7 @@
 #pragma once
 
 ////////////////////////////////////////////////////////////
-// 2019-10-29 15:12:24
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "Object.h"
@@ -29,7 +28,7 @@ public:
 	void CopyFrom(const PRWorker* aSource);
 	PRWorker* Clone() const;
 
-	////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
 	// Acces aux attributs
 
 	// Prenom
@@ -39,8 +38,7 @@ public:
 	// Nom
 	const ALString& GetFamilyName() const;
 	void SetFamilyName(const ALString& sValue);
-
-	////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
 	// Divers
 
 	// Ecriture

@@ -170,8 +170,9 @@ void KWDataTableKeyExtractorView::ExtractKeysFromDataTable()
 	require(workingTargetDataTable.GetObjects()->GetSize() == 0);
 
 	// Execution controlee par licence
-	if (not LMLicenseManager::RequestLicenseKey())
-		return;
+	if (LMLicenseManager::IsEnabled())
+		if (not LMLicenseManager::RequestLicenseKey())
+			return;
 
 	// Verification du directory des fichiers temporaires
 	if (not FileService::CreateApplicationTmpDir())
@@ -188,7 +189,7 @@ void KWDataTableKeyExtractorView::ExtractKeysFromDataTable()
 	// On tente de cree le repertoire cible, et on sort en cas d'echec
 	sOutputPathName = FileService::GetPathName(workingTargetDataTable.GetDatabaseName());
 	bOk = true;
-	if (sOutputPathName != "" and not PLRemoteFileService::Exist(sOutputPathName))
+	if (sOutputPathName != "" and not PLRemoteFileService::DirExists(sOutputPathName))
 	{
 		bOk = PLRemoteFileService::MakeDirectories(sOutputPathName);
 		if (not bOk)

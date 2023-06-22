@@ -11,6 +11,7 @@ class KWDRDataGrid;
 class KWDRFrequencies;
 class KWDRCellId;
 class KWDRCellIndex;
+class KWDRCellIndexWithMissing;
 class KWDRCellLabel;
 class KWDRValueIndex;
 class KWDRValueRank;
@@ -48,8 +49,8 @@ public:
 	//      dimension de la grille
 	//      - Structure(IntervalBounds) pour les discretisations
 	//      - Structure(ValueGroups) pour les groupements de valeur
-	//      - Structure(ContinuousValueSet) pour les ensembles de valeurs Continuous
-	//      - Structure(SymbolValueSet) pour les ensembles de valeurs Symbol
+	//      - Structure(ValueSet) pour les ensembles de valeurs Continuous
+	//      - Structure(ValueSetC) pour les ensembles de valeurs Symbol
 	//    . le parametrage des effectifs des cellules de la grille
 	//      au moyen d'une Structure(Frequencies)
 	// Optionnellement, la Structure(DataGrid) comporte un parametrage supplementaire
@@ -116,16 +117,17 @@ public:
 	// Effectif d'une cellule
 	int GetCellFrequencyAt(int nCellIndex) const;
 
+	/////////////////////////////////////////////////////
+	// Services specifiques disponibles, en mode non checke
+	// (plus lents, mais utiles pour le check d'autre regles)
+
 	// Nombre d'attributs de la grille, en mode non checke
-	// (lent, mais utile pour le check d'autre regles)
 	int GetUncheckedAttributeNumber() const;
 
-	// Type d'un attribut, en mode non checke
-	// (lent, mais utile pour le check d'autre regles)
+	// Type d'un attribut, en mode non checke (renvoie KWType::Unknown si erreur)
 	int GetUncheckedAttributeTypeAt(int nAttributeIndex) const;
 
 	// Nombre de parties d'un attribut, en mode non checke
-	// (lent, mais utile pour le check d'autre regles)
 	int GetUncheckedAttributePartNumberAt(int nAttributeIndex) const;
 
 	//////////////////////////////////////////////////////
@@ -245,11 +247,32 @@ public:
 	KWDRDataGridRule();
 	~KWDRDataGridRule();
 
+	//////////////////////////////////////////////////////
+	// Service a utiliser dans les sous-classes
+
+	// Calcul de l'index de cellule
+	void ComputeCellIndex(const KWObject* kwoObject) const;
+
+	// Acces a l'index de cellule une fois calcule
+	// Il s'agit d'un index "interne" compris entre 0 et N-1
+	// Attention a la regle de derivation CellIndex, qui elle expose un index "utilisateur" entre 1 et N
+	int GetCellIndex() const;
+
+	// Acces a l'indication de valeur manquante de l'objet pour une des dimensions, une fois l'index calcule
+	// Les valeurs manquantes sont Missing dans le cas numérique et "" dans le cas categoriel
+	boolean IsMissingValue() const;
+
+	// Calcul d'un libelle de cellule
+	const ALString ComputeCellLabel(const KWObject* kwoObject) const;
+
+	//////////////////////////////////////////////////////
+	// Redefinition des methodes standard
+
 	// Verification des operandes d'une regle basee sur une grille
 	boolean CheckOperandsFamily(const KWDerivationRule* ruleFamily) const override;
 
 	// Verification que la regle est completement renseignee et compilable
-	boolean CheckOperandsCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
 
 	// Verification que le nombre d'arguments est egal a la dimension
 	// (moins un de la grille), pour la prediction de la derniere dimension
@@ -263,13 +286,6 @@ public:
 
 	// Compilation redefinie pour optimisation
 	void Compile(KWClass* kwcOwnerClass) override;
-
-	// Calcul et memorisation de l'index de cellule
-	void ComputeCellIndex(const KWObject* kwoObject) const;
-	int GetCellIndex() const;
-
-	// Calcul d'un libelle de cellule
-	const ALString ComputeCellLabel(const KWObject* kwoObject) const;
 
 	// Memoire utilisee
 	longint GetUsedMemory() const override;
@@ -289,6 +305,9 @@ protected:
 	// Index de la partie source
 	mutable int nCellIndex;
 
+	// Indication de valeur manquante dans l'objet
+	mutable boolean bIsMissingValue;
+
 	// Acces a la regle de grille de donnees (referencee uniquement)
 	KWDRDataGrid* dataGridRule;
 
@@ -306,6 +325,24 @@ public:
 	// Constructeur
 	KWDRCellIndex();
 	~KWDRCellIndex();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	// Renvoie un index compris entre 1 et N (nombre de cellules)
+	Continuous ComputeContinuousResult(const KWObject* kwoObject) const override;
+};
+
+///////////////////////////////////////////////////////////////
+// Classe KWDRCellIndexWithMissing
+// Comme KWDRCellIndex, en renvoyant -1 dans le cas ou l'objet indexe contient une valeur manquante
+class KWDRCellIndexWithMissing : public KWDRDataGridRule
+{
+public:
+	// Constructeur
+	KWDRCellIndexWithMissing();
+	~KWDRCellIndexWithMissing();
 
 	// Creation
 	KWDerivationRule* Create() const override;
@@ -387,7 +424,7 @@ public:
 	KWDerivationRule* Create() const override;
 
 	// Verification que la regle est completement renseignee et compilable
-	boolean CheckOperandsCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
 
 	// Calcul de l'attribut derive
 	Continuous ComputeContinuousResult(const KWObject* kwoObject) const override;
@@ -426,7 +463,7 @@ public:
 	KWDerivationRule* Create() const override;
 
 	// Verification que la regle est completement renseignee et compilable
-	boolean CheckOperandsCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
 
 	// Calcul de l'attribut derive
 	Continuous ComputeContinuousResult(const KWObject* kwoObject) const override;
@@ -495,7 +532,7 @@ public:
 	KWDerivationRule* Create() const override;
 
 	// Verification que la regle est completement renseignee et compilable
-	boolean CheckOperandsCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
 
 	// Calcul de l'attribut derive
 	Continuous ComputeContinuousResult(const KWObject* kwoObject) const override;
@@ -695,6 +732,13 @@ inline int KWDRDataGridRule::GetCellIndex() const
 	require(IsOptimized());
 	assert(nCellIndex != -1);
 	return nCellIndex;
+}
+
+inline boolean KWDRDataGridRule::IsMissingValue() const
+{
+	require(IsOptimized());
+	assert(nCellIndex != -1);
+	return bIsMissingValue;
 }
 
 inline int KWDRDataGridStats::GetPredictionType() const

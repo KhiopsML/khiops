@@ -41,9 +41,9 @@ public:
 	// Services divers
 
 	// Comparaison d'une valeur entre deux tuple
-	int CompareContinuousAt(const KWTuple* tuple, int nAttributeIndex);
-	int CompareSymbolAt(const KWTuple* tuple, int nAttributeIndex);
-	int CompareSymbolValueAt(const KWTuple* tuple, int nAttributeIndex);
+	int CompareContinuousAt(const KWTuple* tuple, int nAttributeIndex) const;
+	int CompareSymbolAt(const KWTuple* tuple, int nAttributeIndex) const;
+	int CompareSymbolValueAt(const KWTuple* tuple, int nAttributeIndex) const;
 
 	// Affichage detaille, a l'aide de la structure du tuple definie par sa table
 	void FullWrite(const KWTupleTable* ownerTupleTable, ostream& ost) const;
@@ -395,7 +395,7 @@ inline int KWTuple::GetFrequency() const
 	return nFrequency;
 }
 
-inline int KWTuple::CompareContinuousAt(const KWTuple* tuple, int nAttributeIndex)
+inline int KWTuple::CompareContinuousAt(const KWTuple* tuple, int nAttributeIndex) const
 {
 	require(tuple != NULL);
 	debug(require(tupleTable == tuple->tupleTable));
@@ -405,7 +405,7 @@ inline int KWTuple::CompareContinuousAt(const KWTuple* tuple, int nAttributeInde
 	return tupleValues[nAttributeIndex].CompareContinuous(tuple->tupleValues[nAttributeIndex]);
 }
 
-inline int KWTuple::CompareSymbolAt(const KWTuple* tuple, int nAttributeIndex)
+inline int KWTuple::CompareSymbolAt(const KWTuple* tuple, int nAttributeIndex) const
 {
 	require(tuple != NULL);
 	debug(require(tupleTable == tuple->tupleTable));
@@ -415,7 +415,7 @@ inline int KWTuple::CompareSymbolAt(const KWTuple* tuple, int nAttributeIndex)
 	return tupleValues[nAttributeIndex].CompareSymbol(tuple->tupleValues[nAttributeIndex]);
 }
 
-inline int KWTuple::CompareSymbolValueAt(const KWTuple* tuple, int nAttributeIndex)
+inline int KWTuple::CompareSymbolValueAt(const KWTuple* tuple, int nAttributeIndex) const
 {
 	require(tuple != NULL);
 	debug(require(tupleTable == tuple->tupleTable));

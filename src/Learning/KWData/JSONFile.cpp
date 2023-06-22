@@ -320,7 +320,7 @@ boolean JSONFile::GetVerboseMode()
 void JSONFile::CStringToJsonString(const ALString& sCString, ALString& sJsonString)
 {
 	boolean bTrace = false;
-	boolean bContrainsUtf8Chars;
+	int nMaxValidUTF8CharLength;
 	int i;
 	unsigned char c;
 	const char* cHexMap = "0123456789ABCDEF";
@@ -332,11 +332,12 @@ void JSONFile::CStringToJsonString(const ALString& sCString, ALString& sJsonStri
 
 	// Encodage de la chaine au format json
 	i = 0;
-	bContrainsUtf8Chars = false;
+	nMaxValidUTF8CharLength = false;
 	while (i < sCString.GetLength())
 	{
 		// Recherche du nombre de caracteres UTF8 consecutifs valides
 		nUTF8CharLength = GetValidUTF8CharLengthAt(sCString, i);
+		nMaxValidUTF8CharLength = max(nMaxValidUTF8CharLength, nUTF8CharLength);
 
 		// Cas avec 0 ou un caractere valide
 		if (nUTF8CharLength <= 1)
@@ -398,7 +399,6 @@ void JSONFile::CStringToJsonString(const ALString& sCString, ALString& sJsonStri
 			sJsonString += (unsigned char)sCString.GetAt(i);
 			sJsonString += (unsigned char)sCString.GetAt(i + 1);
 			i += 2;
-			bContrainsUtf8Chars = true;
 		}
 		else if (nUTF8CharLength == 3)
 		{
@@ -406,7 +406,6 @@ void JSONFile::CStringToJsonString(const ALString& sCString, ALString& sJsonStri
 			sJsonString += (unsigned char)sCString.GetAt(i + 1);
 			sJsonString += (unsigned char)sCString.GetAt(i + 2);
 			i += 3;
-			bContrainsUtf8Chars = true;
 		}
 		else if (nUTF8CharLength == 4)
 		{
@@ -415,16 +414,15 @@ void JSONFile::CStringToJsonString(const ALString& sCString, ALString& sJsonStri
 			sJsonString += (unsigned char)sCString.GetAt(i + 2);
 			sJsonString += (unsigned char)sCString.GetAt(i + 3);
 			i += 4;
-			bContrainsUtf8Chars = true;
 		}
 	}
 
 	// Trace
 	if (bTrace)
 	{
-		if (bContrainsUtf8Chars or sCString.GetLength() != sJsonString.GetLength())
+		if (nMaxValidUTF8CharLength > 1 or sCString.GetLength() != sJsonString.GetLength())
 			cout << sCString.GetLength() << "\t" << sJsonString.GetLength() << "\t" << sCString << "\t"
-			     << sJsonString << "\tutf8:" << bContrainsUtf8Chars << endl;
+			     << sJsonString << "\tutf8 max length:" << nMaxValidUTF8CharLength << endl;
 	}
 }
 
@@ -454,9 +452,22 @@ void JSONFile::CStringToCAnsiString(const ALString& sCString, ALString& sCAnsiSt
 			i++;
 			sCAnsiString += c;
 		}
-		// Cas d'un caractere UTF8 multi-byte
-		else if (2 <= nUTF8CharLength and nUTF8CharLength <= 4)
+		// Cas d'un caractere UTF8 multi-byte trop long pour la plage windows-1252
+		else if (nUTF8CharLength == 4)
 		{
+			// On memorise les bytes du carectere utf8 tels quels
+			for (j = 0; j < nUTF8CharLength; j++)
+			{
+				c = (unsigned char)sCString.GetAt(i);
+				i++;
+				sCAnsiString += c;
+			}
+		}
+		// Cas d'un caractere UTF8 multi-byte pouvant etre encode sur la plage windows-1252
+		else
+		{
+			assert(2 <= nUTF8CharLength and nUTF8CharLength <= nWindows1252EncodingMaxByteNumber);
+
 			// Calcul du code utf8 et deplacement dans la chaine
 			nUtf8Code = 0;
 			for (j = 0; j < nUTF8CharLength; j++)
@@ -476,7 +487,7 @@ void JSONFile::CStringToCAnsiString(const ALString& sCString, ALString& sCAnsiSt
 				assert(128 <= nAnsiCodeFromUtf8 and nAnsiCodeFromUtf8 < 256);
 				sCAnsiString += char(nAnsiCodeFromUtf8);
 			}
-			// Sinon, on remet les caracteres de l'encodage utf8 tels quels
+			// Sinon, on remet les bytes de l'encodage utf8 tels quels
 			else
 			{
 				for (j = i - nUTF8CharLength; j < i; j++)
@@ -821,9 +832,17 @@ void JSONFile::UpdateEncodingStats(const ALString& sCString)
 			else
 				lAsciiCharNumber++;
 		}
-		// Cas d'un caractere UTF8 multi-byte
-		else if (2 <= nUTF8CharLength and nUTF8CharLength <= 4)
+		// Cas d'un caractere UTF8 multi-byte trop long pour la plage windows-1252
+		else if (nUTF8CharLength == 4)
 		{
+			lUtf8CharNumber++;
+			i += nUTF8CharLength;
+		}
+		// Cas d'un caractere UTF8 multi-byte pouvant etre encode sur la plage windows-1252
+		else
+		{
+			assert(2 <= nUTF8CharLength and nUTF8CharLength <= nWindows1252EncodingMaxByteNumber);
+
 			lUtf8CharNumber++;
 
 			// Calcul du code utf8 et deplacement dans la chaine
@@ -1015,6 +1034,7 @@ int JSONFile::GetHexStringCode(const ALString& sHexString)
 		nCode *= 16;
 		nCode += GetHexCharCode(sHexString.GetAt(i));
 	}
+	ensure(0 <= nCode and nCode < pow(256, nWindows1252EncodingMaxByteNumber));
 	return nCode;
 }
 
@@ -1024,6 +1044,7 @@ void JSONFile::Windows1252ToUtf8Hex(int nAnsiCode, ALString& sUtf8HexChars)
 	require(AreEncodingStructuresInitialized());
 
 	sUtf8HexChars = svWindows1252Utf8HexEncoding.GetAt(nAnsiCode);
+	ensure(sUtf8HexChars.GetLength() <= nWindows1252EncodingMaxByteNumber);
 }
 
 int JSONFile::Windows1252Utf8CodeToWindows1252(int nWindows1252Utf8Code)
@@ -1035,6 +1056,7 @@ int JSONFile::Windows1252Utf8CodeToWindows1252(int nWindows1252Utf8Code)
 	int nIndex;
 
 	require(nWindows1252Utf8Code >= 0);
+	require(nWindows1252Utf8Code < pow(256, nWindows1252EncodingMaxByteNumber));
 	require(AreEncodingStructuresInitialized());
 
 	// Verification
@@ -1153,13 +1175,13 @@ int JSONFile::GetValidUTF8CharLengthAt(const ALString& sValue, int nStart)
 		else
 			nUtf8CharLength = 0;
 	}
-	// Debut d'un caractere UTF8 sur trois octets 11110bbb
+	// Debut d'un caractere UTF8 sur quatre octets 11110bbb
 	else if ((c & 0xF8) == 0xF0)
 	{
 		if (nStart + 3 < nLength and ((unsigned char)sValue.GetAt(nStart + 1) & 0xC0) == 0x80 and
 		    ((unsigned char)sValue.GetAt(nStart + 2) & 0xC0) == 0x80 and
 		    ((unsigned char)sValue.GetAt(nStart + 3) & 0xC0) == 0x80)
-			nUtf8CharLength = 3;
+			nUtf8CharLength = 4;
 		else
 			nUtf8CharLength = 0;
 	}
@@ -1298,7 +1320,6 @@ void JSONFile::InitializeWindows1252Utf8HexEncoding()
 		assert(svWindows1252Utf8HexEncoding.GetSize() == 128);
 		if (bWindows1252HexEncoding)
 		{
-
 			svWindows1252Utf8HexEncoding.Add("E282AC"); // Euro Sign
 			svWindows1252Utf8HexEncoding.Add("C281");   // UNASSIGNED
 			svWindows1252Utf8HexEncoding.Add("E2809A"); // Single Low-9 Quotation Mark

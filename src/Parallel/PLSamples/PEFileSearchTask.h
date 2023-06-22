@@ -23,10 +23,7 @@ public:
 
 	// Lance la recherche de la chaine dans le fichier d'entree
 	// Renvoie le nombre d'occurrences trouvees
-	// Le fichier resultat contient une ligne de type <no line\tline> par ligne
-	// trouvee
-	longint SeachString(const ALString& sInputFileName, const ALString& sSeachedString,
-			    const ALString& sResultFileName);
+	longint SeachString(const ALString& sInputFileName, const ALString& sSeachedString);
 
 	// Methode de test
 	static void Test();
@@ -54,10 +51,7 @@ protected:
 	// Chaine recherchee
 	PLShared_String shared_sSearchedString;
 
-	// Fichier de sortie
-	PLShared_String shared_sResultFileName;
-
-	// Nom du fichier d'entree (les esclave sen ont besoin mais il ne change pas,
+	// Nom du fichier d'entree (les esclaves en ont besoin mais il ne change pas,
 	// on ne l'envoie qu'une fois)
 	PLShared_String shared_sFileName;
 

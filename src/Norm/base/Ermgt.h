@@ -11,6 +11,14 @@
 
 class Error;
 
+// Prototype d'une fonction d'affichage d'une erreur a l'utilisateur
+// Doit renvoyer true s'il faut afficher le message d'erreur,
+// meme si le nombre d'erreur max est atteint
+// Le parametre bDisplay indique si la fonction est appelee au moment de l'affichage,
+// ou uniquement pour raison de tests, ce qui permet de gerer un contexte dedie
+// a l'affichage effectif des erreur.
+typedef boolean (*ErrorFlowIgnoreFunction)(const Error* e, boolean bDisplay);
+
 /////////////////////////////////////////////////////////////////////////
 // Gestion centralisee des erreurs                                     //
 // Cette centralisation de la gestion des erreurs, et particulierement //
@@ -89,6 +97,21 @@ public:
 	static boolean IsMaxErrorFlowReached();
 	static boolean IsMaxErrorFlowReachedPerGravity(int nErrorGravity);
 
+	//////////////////////////////////////////////////////////////////////
+	// Parametrage avance pour ignorer le controle de flux d'erreur
+	// pour une objet Error specifique
+	// Permet d'afficher une erreur, meme si le nombre max d'erreur a afficher est atteint
+
+	// Indique s'il faut ignorer le controle de flow des erreurs
+	// Renvoie false si pas de parametrage specifique (par defaut)
+	// Sinon, renvoie le code retour de la fonction specifique parametree dans SetErrorFlowIgnoreFunction
+	static boolean IgnoreErrorFlow(const Error* e);
+
+	// Definition d'une methode specifique pour ignorer le controle de flow des erreurs
+	// Par defaut: NUL, pas de parametrage
+	static void SetErrorFlowIgnoreFunction(ErrorFlowIgnoreFunction fErrorFlowIgnore);
+	static ErrorFlowIgnoreFunction GetErrorFlowIgnoreFunction();
+
 	//////////////////////////////////////////////////////////
 	// Parametrages globaux
 
@@ -107,12 +130,20 @@ public:
 	static boolean SetErrorLogFileName(const ALString& sValue);
 	static const ALString GetErrorLogFileName();
 
+	// Est-ce qu'il y a eu au moins une erreur
+	static boolean IsAtLeastOneError();
+
 	///////////////////////////////////////////////////////////
 	///// Implementation
 protected:
-	// Constructeur, qui au premeir appel positionne les handlers de gestion des signaux
+	// Constructeur, qui au premier appel positionne les handlers de gestion des signaux
 	Global();
 	~Global();
+
+	// Indique s'il faut ignorer le controle de flow des erreurs, au moment de l'affichage
+	// A la difference de IgnoreErrorFlow qui n'effectue qu'un test, on peut exploiter un contexte
+	// d'usage pour l'affichage pour controler finement les erreurs a afficher effectivement
+	static boolean IgnoreErrorFlowForDisplay(const Error* e);
 
 	// Handler de signal
 	static void SignalHandler(int nSigNum);
@@ -145,6 +176,16 @@ protected:
 	// Gestion du fichier d'erreur
 	static ALString sErrorLogFileName;
 	static fstream fstError;
+
+	// Vrai si il y a eu au moins une erreur
+	static boolean bIsAtLeastOneError;
+
+	// Affichage des messages dans la console
+	// Avec l'utilisation de /dev/stdout comme fichier
+	static boolean bPrintMessagesInConsole;
+
+	// Methode pour ignorer le controle de flow des erreurs
+	static ErrorFlowIgnoreFunction fErrorFlowIgnoreFunction;
 };
 
 // Prototype d'une fonction d'affichage d'une erreur a l'utilisateur
@@ -157,6 +198,10 @@ typedef void (*DisplayErrorFunction)(const Error* e);
 class Error : public Object
 {
 public:
+	// Constructeur
+	Error();
+	~Error();
+
 	// Gravite des erreurs
 	enum
 	{
@@ -248,6 +293,13 @@ void ErrorDefaultDisplayErrorFunction(const Error* e);
 void AllocErrorDisplayMessageFunction(const char* sAllocErrorMessage);
 
 // Methodes en inline
+
+inline Error::Error()
+{
+	nGravity = GravityMessage;
+}
+
+inline Error::~Error() {}
 
 inline int Error::GetGravity() const
 {

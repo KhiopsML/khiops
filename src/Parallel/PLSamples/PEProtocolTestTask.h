@@ -62,6 +62,7 @@ public:
 
 	// Interruption utilisateur au bout de nSeconds secondes
 	// 0 secondes = pas d'interruption
+	// Doit etre utilise en mode graphic sinon il n'y a pas d'interruption utilisateur
 	void SetInterruptionByUser(int nSeconds);
 	boolean GetInterruptionByUser() const;
 

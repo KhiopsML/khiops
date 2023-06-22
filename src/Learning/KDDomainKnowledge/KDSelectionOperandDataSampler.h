@@ -69,7 +69,7 @@ public:
 	// l'estimation des partiles
 	int ComputeMaxSampleSize();
 
-	// Nombre total d'operande sur l'ensmeble des classes
+	// Nombre total d'operande sur l'ensemble des classes
 	int GetTotalSelectionOperandNumber() const;
 
 	// Duplication de la partie specification

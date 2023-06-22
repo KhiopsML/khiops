@@ -13,16 +13,10 @@ void PLMPISlaveLauncher::Launch()
 {
 	boolean bOrderToQuit;
 	ALString sTaskName;
-	PLParallelTask* taskToLaunch;
-	PLParallelTask* clonedTaskToLaunch;
 	PLMPIMsgContext context;
-
 	IntVector ivExcludeSlaves;
 	PLSerializer serializer;
-	MPI_Errhandler errHandler;
 	IntVector ivServerRanks;
-	int nColor;
-	boolean bIsWorkingSlave;
 
 	require(GetProcessId() != 0);
 	require(MPI_COMM_WORLD != MPI_COMM_NULL);
@@ -30,89 +24,132 @@ void PLMPISlaveLauncher::Launch()
 	// Pas d'appel a la JVM dans les esclaves
 	UIObject::SetUIMode(UIObject::Textual);
 
-	// Boucle principale : les exe attendent les ordres du master : lancer une nouvelle tache (instantiation d'une
-	// tache) ou fin du programme
+	// Boucle principale : les processus attendent les ordres du master : lancer une nouvelle tache (instantiation
+	// d'une tache) ou fin du programme
 	bOrderToQuit = false;
+	MPI_Status status;
+	int nFlag;
+	ivServerRanks.SetSize(0);
 	while (not bOrderToQuit)
 	{
 		SystemSleep(0.001);
-
-		// Initialisation des ressources a la demande du maitre, au lancement du programme
-		SlaveInitializeResourceSystem();
-
-		// Lancement des serveurs de fichiers
-		if (IsTimeToLaunchFileServer(&ivServerRanks))
+		MPI_Iprobe(0, MPI_ANY_TAG, MPI_COMM_WORLD, &nFlag, &status);
+		if (nFlag == 1)
 		{
-			LaunchFileServer(&ivServerRanks, bOrderToQuit);
-		}
-
-		if (IsFileServerEnd())
-		{
-
-			// Deconnexion du communicateur Process, appel de cette methode chez le maitre et chez les
-			// esclaves
-			MPI_Barrier(*PLMPITaskDriver::GetProcessComm());        // Necessaire pour MPICH
-			MPI_Comm_disconnect(PLMPITaskDriver::GetProcessComm()); // DISCONNECT COMM_PROCESS
-		}
-
-		// Instantiation d'une tache parallele, a la demande du maitre
-		if (IsSlaveToLaunch(sTaskName))
-		{
-
-			assert(*PLMPITaskDriver::GetProcessComm() != MPI_COMM_NULL);
-
-			// Bcast des exclus
-			context.Bcast(*PLMPITaskDriver::GetProcessComm());
-			serializer.OpenForRead(&context);
-			serializer.GetIntVector(&ivExcludeSlaves);
-			serializer.Close();
-
-			// Est-ce que cet esclave travaille ?
-			bIsWorkingSlave = not ivExcludeSlaves.GetAt(GetProcessId());
-
-			// Creation d'un nouveau comminicateur qui contient le maitre et les eaclaves qui travaillent
-			bIsWorkingSlave ? nColor = 1 : nColor = 0;
-			MPI_Comm_split(*PLMPITaskDriver::GetProcessComm(), nColor, GetProcessId(),
-				       PLMPITaskDriver::GetTaskComm());
-
-			// Si l'esclave fait partie du groupe
-			if (bIsWorkingSlave)
+			assert(status.MPI_SOURCE == 0);
+			switch (status.MPI_TAG)
 			{
-				ensure(*PLMPITaskDriver::GetTaskComm() != MPI_COMM_NULL);
-
-				// Modification du error handler
-				MPI_Comm_create_errhandler(PLMPITaskDriver::ErrorHandler, &errHandler);
-				MPI_Comm_set_errhandler(*PLMPITaskDriver::GetTaskComm(), errHandler);
-
-				// Envoi du nom de la machine
-				context.Send(MPI_COMM_WORLD, 0, SLAVE_RANKS_HOSTNAME);
-				serializer.OpenForWrite(&context);
-				serializer.PutString(GetLocalHostName());
+			case MASTER_RESOURCES:
+				context.Recv(MPI_COMM_WORLD, 0, MASTER_RESOURCES);
+				serializer.OpenForRead(&context);
+				RMResourceConstraints::SetMemoryLimit(serializer.GetInt());
+				RMResourceConstraints::SetDiskLimit(serializer.GetInt());
 				serializer.Close();
 
-				// Recherche de la tache a lancer
-				taskToLaunch = PLParallelTask::LookupTask(sTaskName);
-				if (taskToLaunch == NULL)
-				{
-					Global::AddFatalError("SlaveLauncher", "", "Task " + sTaskName + " not found");
-					MPI_Abort(MPI_COMM_WORLD, 1);
-				}
+				// Initialisation des ressources
+				PLMPITaskDriver::GetDriver()->InitializeResourceSystem();
+				break;
 
-				// Creation et lancement de la tache
-				clonedTaskToLaunch = taskToLaunch->Create();
-				clonedTaskToLaunch->SetToSlaveMode();
-				clonedTaskToLaunch->Run();
-				delete clonedTaskToLaunch;
+			case MASTER_LAUNCH_FILE_SERVERS:
+				context.Recv(MPI_COMM_WORLD, 0, MASTER_LAUNCH_FILE_SERVERS);
+				serializer.OpenForRead(&context);
+				serializer.GetIntVector(&ivServerRanks);
+				serializer.Close();
+				LaunchFileServer(&ivServerRanks, bOrderToQuit);
+				break;
 
-				// Deconnexion
-				// PLMPISlave::Disconnect();// BARRIER DISCONNECTION
-				MPI_Barrier(*PLMPITaskDriver::GetTaskComm());
-				MPI_Comm_disconnect(PLMPITaskDriver::GetTaskComm());
+			case MASTER_STOP_FILE_SERVERS:
+
+				MPI_Recv(NULL, 0, MPI_CHAR, 0, MASTER_STOP_FILE_SERVERS, MPI_COMM_WORLD, &status);
+
+				// Deconnexion du communicateur Process, appel de cette methode chez le maitre et chez
+				// les esclaves
+				MPI_Barrier(*PLMPITaskDriver::GetProcessComm());        // Necessaire pour MPICH
+				MPI_Comm_disconnect(PLMPITaskDriver::GetProcessComm()); // DISCONNECT COMM_PROCESS
+				break;
+
+			case MASTER_LAUNCH_WORKERS:
+				context.Recv(MPI_COMM_WORLD, 0, MASTER_LAUNCH_WORKERS);
+				serializer.OpenForRead(&context);
+				sTaskName = serializer.GetString();
+				serializer.Close();
+				LaunchSlave(&ivExcludeSlaves, sTaskName);
+				break;
+
+			case MASTER_QUIT:
+				if (PLMPITaskDriver::GetDriver()->GetTracerMPI()->GetActiveMode())
+					cast(PLMPITracer*, PLMPITaskDriver::GetDriver()->GetTracerMPI())
+					    ->AddRecv(0, MASTER_QUIT);
+				MPI_Recv(NULL, 0, MPI_CHAR, 0, MASTER_QUIT, MPI_COMM_WORLD, &status);
+				bOrderToQuit = true;
+				break;
+
+			default:
+				Global::AddError("", "",
+						 "Unexpected message in the master slave protocol " +
+						     GetTagAsString(status.MPI_TAG));
+				assert(false);
+				break;
 			}
 		}
+	}
+}
 
-		// Test si on a un ordre de fin de programme (bOrderToQuit peu etre mis a jour dans FileServer)
-		bOrderToQuit = bOrderToQuit or ReceiveOrderToQuit();
+void PLMPISlaveLauncher::LaunchSlave(IntVector* ivExcludeSlaves, const ALString& sTaskName)
+{
+	PLMPIMsgContext context;
+	PLSerializer serializer;
+	PLParallelTask* taskToLaunch;
+	PLParallelTask* clonedTaskToLaunch;
+	boolean bIsWorkingSlave;
+	MPI_Errhandler errHandler;
+	int nColor;
+	assert(*PLMPITaskDriver::GetProcessComm() != MPI_COMM_NULL);
+
+	// Bcast des exclus
+	context.Bcast(*PLMPITaskDriver::GetProcessComm());
+	serializer.OpenForRead(&context);
+	serializer.GetIntVector(ivExcludeSlaves);
+	serializer.Close();
+
+	// Est-ce que cet esclave travaille ?
+	bIsWorkingSlave = not ivExcludeSlaves->GetAt(GetProcessId());
+
+	// Creation d'un nouveau comminicateur qui contient le maitre et les esclaves qui travaillent
+	bIsWorkingSlave ? nColor = 1 : nColor = 0;
+	MPI_Comm_split(*PLMPITaskDriver::GetProcessComm(), nColor, GetProcessId(), PLMPITaskDriver::GetTaskComm());
+
+	// Si l'esclave fait partie du groupe
+	if (bIsWorkingSlave)
+	{
+		ensure(*PLMPITaskDriver::GetTaskComm() != MPI_COMM_NULL);
+
+		// Modification du error handler
+		MPI_Comm_create_errhandler(PLMPITaskDriver::ErrorHandler, &errHandler);
+		MPI_Comm_set_errhandler(*PLMPITaskDriver::GetTaskComm(), errHandler);
+
+		// Envoi du nom de la machine
+		context.Send(MPI_COMM_WORLD, 0, SLAVE_RANKS_HOSTNAME);
+		serializer.OpenForWrite(&context);
+		serializer.PutString(GetLocalHostName());
+		serializer.Close();
+
+		// Recherche de la tache a lancer
+		taskToLaunch = PLParallelTask::LookupTask(sTaskName);
+		if (taskToLaunch == NULL)
+		{
+			Global::AddFatalError("SlaveLauncher", "", "Task " + sTaskName + " not found");
+			MPI_Abort(MPI_COMM_WORLD, 1);
+		}
+
+		// Creation et lancement de la tache
+		clonedTaskToLaunch = taskToLaunch->Create();
+		clonedTaskToLaunch->SetToSlaveMode();
+		clonedTaskToLaunch->Run();
+		delete clonedTaskToLaunch;
+
+		// Deconnexion
+		MPI_Comm_disconnect(PLMPITaskDriver::GetTaskComm());
 	}
 }
 
@@ -150,118 +187,4 @@ void PLMPISlaveLauncher::LaunchFileServer(IntVector* ivServerRanks, boolean& bOr
 		fileServer->Run(bOrderToQuit);
 		delete fileServer;
 	}
-}
-
-void PLMPISlaveLauncher::SlaveInitializeResourceSystem()
-{
-	PLSerializer serializer;
-	int flag;
-	MPI_Status status;
-	PLMPIMsgContext context;
-
-	require(GetProcessId() != 0);
-
-	// Est-ce que le maitre demande une initialisation
-	MPI_Iprobe(0, MASTER_RESOURCES, MPI_COMM_WORLD, &flag, &status);
-	if (flag)
-	{
-		// Reception du message
-		context.Recv(MPI_COMM_WORLD, 0, MASTER_RESOURCES);
-		serializer.OpenForRead(&context);
-		RMResourceConstraints::SetMemoryLimit(serializer.GetInt());
-		RMResourceConstraints::SetDiskLimit(serializer.GetInt());
-		serializer.Close();
-
-		// Initialisation des ressources
-		PLMPITaskDriver::GetDriver()->InitializeResourceSystem();
-	}
-}
-
-boolean PLMPISlaveLauncher::IsSlaveToLaunch(ALString& sTaskName)
-{
-	int flag;
-	MPI_Status status;
-	PLSerializer serializer;
-	PLMPIMsgContext context;
-
-	require(GetProcessId() != 0);
-
-	MPI_Iprobe(0, MASTER_LAUNCH_WORKERS, MPI_COMM_WORLD, &flag, &status);
-	if (flag)
-	{
-		context.Recv(MPI_COMM_WORLD, 0, MASTER_LAUNCH_WORKERS);
-		serializer.OpenForRead(&context);
-		sTaskName = serializer.GetString();
-		serializer.Close();
-
-		ensure(sTaskName != "");
-		return true;
-	}
-	else
-	{
-		sTaskName = "";
-		return false;
-	}
-}
-
-boolean PLMPISlaveLauncher::IsTimeToLaunchFileServer(IntVector* serverRanks)
-{
-	int flag;
-	MPI_Status status;
-	PLSerializer serializer;
-	PLMPIMsgContext context;
-
-	require(GetProcessId() != 0);
-	require(serverRanks != NULL);
-
-	MPI_Iprobe(0, MASTER_LAUNCH_FILE_SERVERS, MPI_COMM_WORLD, &flag, &status);
-	if (flag)
-	{
-		context.Recv(MPI_COMM_WORLD, 0, MASTER_LAUNCH_FILE_SERVERS);
-		serializer.OpenForRead(&context);
-		serializer.GetIntVector(serverRanks);
-		serializer.Close();
-		return true;
-	}
-	else
-	{
-		serverRanks->SetSize(0);
-		return false;
-	}
-}
-
-boolean PLMPISlaveLauncher::IsFileServerEnd()
-{
-	int flag;
-	MPI_Status status;
-
-	require(GetProcessId() != 0);
-
-	MPI_Iprobe(0, MASTER_STOP_FILE_SERVERS, MPI_COMM_WORLD, &flag, &status);
-	if (flag)
-	{
-		MPI_Recv(NULL, 0, MPI_CHAR, 0, MASTER_STOP_FILE_SERVERS, MPI_COMM_WORLD, &status);
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-boolean PLMPISlaveLauncher::ReceiveOrderToQuit()
-{
-	MPI_Status status;
-	int nOngoingMessage;
-
-	require(GetProcessId() != 0);
-
-	MPI_Iprobe(0, MASTER_QUIT, MPI_COMM_WORLD, &nOngoingMessage, &status);
-	if (nOngoingMessage)
-	{
-		if (PLMPITaskDriver::GetDriver()->GetTracerMPI()->GetActiveMode())
-			cast(PLMPITracer*, PLMPITaskDriver::GetDriver()->GetTracerMPI())->AddRecv(0, MASTER_QUIT);
-		MPI_Recv(NULL, 0, MPI_CHAR, 0, MASTER_QUIT, MPI_COMM_WORLD, &status);
-		return true;
-	}
-	return false;
 }

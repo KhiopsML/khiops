@@ -53,8 +53,9 @@ void CCLearningProblemToolView::SelectInputCoclustering()
 	ALString sCoclusteringReportFileName;
 
 	// Execution controlee par licence
-	if (not LMLicenseManager::RequestLicenseKey())
-		return;
+	if (LMLicenseManager::IsEnabled())
+		if (not LMLicenseManager::RequestLicenseKey())
+			return;
 
 	// Ouverture du FileChooser
 	sCoclusteringReportFileName =

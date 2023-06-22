@@ -11,6 +11,7 @@
 #include "KWKeySampleExtractorTask.h"
 #include "KWArtificialDataset.h"
 #include "PLFileConcatenater.h"
+#include "KWChunkSorterTask.h"
 
 /////////////////////////////////////////////////////////////////////////////////
 // Classe KWSortedChunkBuilderTask
@@ -37,8 +38,11 @@ public:
 	boolean GetHeaderLineUsed() const;
 
 	// Separateur de champs utilise (par defaut: '\t')
-	void SetFieldSeparator(char cValue);
-	char GetFieldSeparator() const;
+	void SetInputFieldSeparator(char cValue);
+	char GetInputFieldSeparator() const;
+
+	void SetOutputFieldSeparator(char cValue);
+	char GetOutputFieldSeparator() const;
 
 	/////////////////////////////////////////////////////
 	// Parametres du tri des chunks
@@ -97,13 +101,19 @@ protected:
 	// Specifications en entree de la tache
 	ALString sFileURI;
 	boolean bHeaderLineUsed;
-	char cFieldSeparator;
 	boolean bLastSlaveProcessDone;
 	ObjectDictionary
 	    odBucketsFiles; // Dictionnaire qui pour chaque bucketId donne la liste (StringVector) de ses fichiers
 	ObjectDictionary odIdBucketsSize_master; // Dictionnaire qui pour chaque bucketId donne sa taille
 	longint lInputFileSize;
 	longint lFilePos;
+
+	// Definition des exigences
+	longint lBucketsSizeMin;
+	longint lBucketsSizeMax;
+	int nReadSizeMin;
+	int nReadSizeMax;
+	int nReadBufferSize;
 
 	//////////////////////////////////////////////////////
 	// Variables du Slave
@@ -120,6 +130,12 @@ protected:
 	// Dictionnaire bucket ID / bucket size
 	ObjectDictionary odIdBucketsSize_slave;
 
+	// Est-ce que les fichiers d'input et d'output ont les memes separateur de champs
+	boolean bSameFieldSeparator;
+
+	// Fichier en lecture
+	InputBufferedFile inputFile;
+
 	///////////////////////////////////////////////////////////
 	// Parametres partages par le maitre et les esclaves
 	// tout au long du programme
@@ -131,12 +147,13 @@ protected:
 	PLShared_ObjectArray* shared_oaBuckets;
 
 	// Taille memoire max pour la gestion memoire des buckets de chaque esclave
-	PLShared_Longint input_lMaxSlaveBucketMemory;
+	PLShared_Longint shared_lMaxSlaveBucketMemory;
 
 	// Attributs du fichier d'entree
 	PLShared_String shared_sFileName;
 	PLShared_Boolean shared_bHeaderLineUsed;
-	PLShared_Char shared_cFieldSeparator;
+	PLShared_Char shared_cOutputFieldSeparator;
+	PLShared_Char shared_cInputFieldSeparator;
 	PLShared_Longint shared_lFileSize;
 
 	///////////////////////////////////////////////////////////

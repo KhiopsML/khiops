@@ -3,8 +3,7 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 ////////////////////////////////////////////////////////////
-// 2021-04-25 11:10:56
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "KWClassManagementView.h"
@@ -35,7 +34,7 @@ KWClassManagementView::KWClassManagementView()
 	AddAction("OpenFile", "Open...", (ActionMethod)(&KWClassManagementView::OpenFile));
 	AddAction("CloseFile", "Close", (ActionMethod)(&KWClassManagementView::CloseFile));
 	AddAction("SaveFile", "Save", (ActionMethod)(&KWClassManagementView::SaveFile));
-	AddAction("SaveFileUnder", "Save under...", (ActionMethod)(&KWClassManagementView::SaveFileUnder));
+	AddAction("SaveFileUnder", "Save as...", (ActionMethod)(&KWClassManagementView::SaveFileUnder));
 	AddAction("ExportAsJSON", "Export as JSON...", (ActionMethod)(&KWClassManagementView::ExportAsJSON));
 	AddAction("BuildClassDefButton", "Build dictionary from data table...",
 		  (ActionMethod)(&KWClassManagementView::BuildClassDef));
@@ -167,8 +166,9 @@ void KWClassManagementView::OpenFile()
 	ALString sChosenFileName;
 
 	// Execution controlee par licence
-	if (not LMLicenseManager::RequestLicenseKey())
-		return;
+	if (LMLicenseManager::IsEnabled())
+		if (not LMLicenseManager::RequestLicenseKey())
+			return;
 
 	// Recherche de la derniere valeur utilisee
 	sClassFileName = GetClassManagement()->GetClassFileName();
@@ -195,8 +195,9 @@ void KWClassManagementView::OpenFile()
 void KWClassManagementView::CloseFile()
 {
 	// Execution controlee par licence
-	if (not LMLicenseManager::RequestLicenseKey())
-		return;
+	if (LMLicenseManager::IsEnabled())
+		if (not LMLicenseManager::RequestLicenseKey())
+			return;
 
 	// Supression des dictionnaires
 	GetClassManagement()->DropClasses();
@@ -209,8 +210,9 @@ void KWClassManagementView::CloseFile()
 void KWClassManagementView::SaveFile()
 {
 	// Execution controlee par licence
-	if (not LMLicenseManager::RequestLicenseKey())
-		return;
+	if (LMLicenseManager::IsEnabled())
+		if (not LMLicenseManager::RequestLicenseKey())
+			return;
 
 	// Sauvegarde
 	if (GetClassManagement()->GetClassFileName() != "")
@@ -222,8 +224,9 @@ void KWClassManagementView::SaveFile()
 void KWClassManagementView::SaveFileUnder()
 {
 	// Execution controlee par licence
-	if (not LMLicenseManager::RequestLicenseKey())
-		return;
+	if (LMLicenseManager::IsEnabled())
+		if (not LMLicenseManager::RequestLicenseKey())
+			return;
 
 	// Sauvegarde
 	SaveFileUnderName(GetClassManagement()->GetClassFileName());
@@ -234,8 +237,9 @@ void KWClassManagementView::ExportAsJSON()
 	ALString sJSONFileName;
 
 	// Execution controlee par licence
-	if (not LMLicenseManager::RequestLicenseKey())
-		return;
+	if (LMLicenseManager::IsEnabled())
+		if (not LMLicenseManager::RequestLicenseKey())
+			return;
 
 	// Sauvegarde
 	sJSONFileName = GetClassManagement()->GetClassFileName();
@@ -251,8 +255,9 @@ void KWClassManagementView::BuildClassDef()
 	ALString sClassFileName;
 
 	// Execution controlee par licence
-	if (not LMLicenseManager::RequestLicenseKey())
-		return;
+	if (LMLicenseManager::IsEnabled())
+		if (not LMLicenseManager::RequestLicenseKey())
+			return;
 
 	// On remet le nom de la base a vide, pour ne garder que les specification de format
 	// d'une utilisation a l'autre
@@ -290,8 +295,9 @@ void KWClassManagementView::BuildClassDef()
 void KWClassManagementView::ReloadFile()
 {
 	// Execution controlee par licence
-	if (not LMLicenseManager::RequestLicenseKey())
-		return;
+	if (LMLicenseManager::IsEnabled())
+		if (not LMLicenseManager::RequestLicenseKey())
+			return;
 
 	// On lit le dictionnaire
 	if (GetClassManagement()->GetClassFileName() != "")
@@ -306,8 +312,8 @@ void KWClassManagementView::SaveFileUnderName(const ALString& sFileName)
 	ALString sChosenFileName;
 
 	// Ouverture du FileChooser
-	sChosenFileName = registerCard.ChooseFile("Save under", "Save", "FileChooser", "Dictionary\nkdic",
-						  "ClassFileName", "Dictionary file", sFileName);
+	sChosenFileName = registerCard.ChooseFile("Save as", "Save", "FileChooser", "Dictionary\nkdic", "ClassFileName",
+						  "Dictionary file", sFileName);
 
 	// Sauvegarde du fichier des dictionnaires
 	if (sChosenFileName != "")

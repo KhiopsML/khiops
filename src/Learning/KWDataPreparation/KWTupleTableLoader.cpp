@@ -12,6 +12,7 @@ KWTupleTableLoader::KWTupleTableLoader()
 	svInputExtraAttributeSymbolValues = NULL;
 	cvInputExtraAttributeContinuousValues = NULL;
 	inputExtraAttributeTupleTable = NULL;
+	bCheckDatabaseObjectsClass = true;
 }
 
 KWTupleTableLoader::~KWTupleTableLoader() {}
@@ -74,7 +75,7 @@ boolean KWTupleTableLoader::CheckInputs() const
 	// Verification du dictionnaire et de la base
 	bOk = bOk and (kwcInputClass != NULL);
 	bOk = bOk and (oaInputDatabaseObjects != NULL);
-	bOk = bOk and (oaInputDatabaseObjects->GetSize() == 0 or
+	bOk = bOk and (oaInputDatabaseObjects->GetSize() == 0 or not bCheckDatabaseObjectsClass or
 		       cast(KWObject*, oaInputDatabaseObjects->GetAt(0))->GetClass() == kwcInputClass);
 
 	// Verification si specification d'attribut supplementaire (meme vide)
@@ -130,6 +131,16 @@ boolean KWTupleTableLoader::CheckInputs() const
 		}
 	}
 	return bOk;
+}
+
+void KWTupleTableLoader::SetCheckDatabaseObjectClass(boolean bValue)
+{
+	bCheckDatabaseObjectsClass = bValue;
+}
+
+boolean KWTupleTableLoader::GetCheckDatabaseObjectClass() const
+{
+	return bCheckDatabaseObjectsClass;
 }
 
 void KWTupleTableLoader::RemoveAllInputs()
@@ -693,7 +704,7 @@ void KWTupleTableLoader::BlockLoadUnivariateFinalize(const ALString& sInputAttri
 
 	require(outputTupleTable != NULL);
 	require(kwcInputClass->LookupAttribute(outputTupleTable->GetAttributeNameAt(0)) != NULL);
-	require(outputTupleTable->GetUpdateMode() == true);
+	require(outputTupleTable->GetUpdateMode());
 
 	// Comptage du nombre d'objets
 	nObjectNumber = oaInputDatabaseObjects->GetSize();

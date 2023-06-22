@@ -5,8 +5,8 @@ if(NOT MODL_SO)
     MODL${MPI_SUFFIX} MDKhiopsLearningProblem.cpp MDKhiopsLearningProblemView.cpp MDKhiopsLearningProject.cpp
                       MDKhiopsModelingSpec.cpp MDKhiopsModelingSpecView.cpp MODL.cpp)
 
-  target_link_libraries(MODL${MPI_SUFFIX} PUBLIC DTForest ISDRRuleLibrary KMDRRuleLibrary KWLearningProblem
-                                                 $<$<BOOL:${MPI}>:PLMPI> PLParallelTask)
+  target_link_libraries(MODL${MPI_SUFFIX} PUBLIC DTForest KMDRRuleLibrary KWLearningProblem $<$<BOOL:${MPI}>:PLMPI>
+                                                 PLParallelTask)
 
   set_khiops_options(MODL${MPI_SUFFIX})
 
@@ -14,7 +14,7 @@ else()
   add_library(MODL_dll SHARED MDKhiopsLearningProblem.cpp MDKhiopsLearningProblemView.cpp MDKhiopsLearningProject.cpp
                               MDKhiopsModelingSpec.cpp MDKhiopsModelingSpecView.cpp MODL_dll.cpp)
 
-  target_link_libraries(MODL_dll PUBLIC DTForest ISDRRuleLibrary KMDRRuleLibrary KWLearningProblem)
+  target_link_libraries(MODL_dll PUBLIC DTForest KMDRRuleLibrary KWLearningProblem)
 
   set_target_properties(
     MODL_dll

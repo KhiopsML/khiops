@@ -103,9 +103,7 @@ void PLTaskDriver::InitializeResourceSystem()
 
 void PLTaskDriver::MasterInitializeResourceSystem()
 {
-	RMResourceManager::GetResourceSystem()->InitializeFromLocaleHost();
-	RMTaskResourceRequirement::GetMasterSystemAtStart()->GetMemory()->Set(
-	    RMResourceManager::GetHeapLogicalMemory());
+	InitializeResourceSystem();
 }
 
 boolean PLTaskDriver::IsFileServer(int nRank) const
@@ -132,8 +130,10 @@ PLIncrementalStats* PLTaskDriver::GetIORemoteReadingStats()
 
 void PLTaskDriver::SetFileServerOnSingleHost(boolean bValue)
 {
+	PLRemoteFileService::SetRemoteIsNeverLocal(true);
 	bFileServerOnSingleHost = bValue;
 }
+
 boolean PLTaskDriver::GetFileServerOnSingleHost()
 {
 	return bFileServerOnSingleHost;

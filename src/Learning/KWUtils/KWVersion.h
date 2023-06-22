@@ -82,12 +82,18 @@ void SetLearningReportHeaderLine(const ALString& sNewReportHeaderLine);
 ///////////////////////////////////////////////////////////////////////////////////////
 // Modes avances pour le controle de mise a disposition de certaines fonctionnalites
 
-// Indicateur du mode basique des fiches de saisie d'un nom de fichier: defaut=false
+// Parametrage par du type d'interface par defaut (defaut: false)
 // Le mode basique est utile pur des environnements de type cloud, pour permettre de specifier un path dans
 // le systeme de gestion de fichier du cloud. Ainsi, le champ de la boite de dialogue peut etre saisi soit
 // directement avec un URI, soit via un bouton FileChooser
-// Ce mode est controlable par la variable d'environnement KhiopsFileChooserBasicMode a true ou false
-boolean GetLearningFileChooserBasicMode();
+void SetLearningDefaultRawGuiModeMode(boolean bValue);
+boolean GetLearningDefaultRawGuiModeMode();
+
+// Indicateur du mode d'interface basique des fiches de saisie d'un nom de fichier
+// Par defaut, on prend le comportement indique par GetLearningDefaultRawGuiModeMode()
+// Ce mode est controlable par la variable d'environnement KhiopsRawGuidMode a true ou false
+// pour forcer un comportement different
+boolean GetLearningRawGuiModeMode();
 
 // Indicateur du mode base de donnees multi-table de l'outil
 // Ce mode est controlable par la variable d'environnement KhiopsMultiTableMode a true ou false
@@ -97,9 +103,17 @@ boolean GetLearningMultiTableMode();
 // Ce mode expert est controlable par la variable d'environnement KhiopsExpertMode a true ou false
 boolean GetLearningExpertMode();
 
-// Indicateur du mode de l'outil avec gestion des variable de type Text
+// Indicateur du mode de l'outil avec gestion des parametre de crash test
+// Ce mode expert est controlable par la variable d'environnement KhiopsCrashTestMode a true ou false
+boolean GetLearningCrashTestMode();
+
+// Indicateur du mode de l'outil avec gestion des variables de type Text
 // Ce mode expert est controlable par la variable d'environnement KhiopsTextVariableMode a true ou false
 boolean GetLearningTextVariableMode();
+
+// Indicateur du mode de l'outil avec gestion de l'interpretation des model
+// Ce mode expert est controlable par la variable d'environnement KhiopsInterpretationMode a true ou false
+boolean GetLearningInterpretationMode();
 
 // Indicateur du mode trace pour le dimensionnement des taches de preparation
 // Ce mode expert est controlable par la variable d'environnement KhiopsPreparationTraceMode a true ou false

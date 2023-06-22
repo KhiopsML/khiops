@@ -10,12 +10,22 @@ int main(int argc, char** argv)
 {
 	MDKhiopsLearningProject learningProject;
 
+	// Parametrage des logs memoires depuis les variables d'environnement, pris en compte dans KWLearningProject
+	//   KhiopsMemStatsLogFileName, KhiopsMemStatsLogFrequency, KhiopsMemStatsLogToCollect
+	// On ne tente d'ouvrir le fichier que si ces trois variables sont presentes et valides
+	// Sinon, on ne fait rien, sans message d'erreur
+	// Pour avoir toutes les stats: KhiopsMemStatsLogToCollect=16383
+	// Pour la trace des IO: KhiopsIOTraceMode
+	// FileService::SetIOStatsActive(true);
+	// MemoryStatsManager::OpenLogFile("D:\\temp\\KhiopsMemoryStats\\Test\\KhiopsMemoryStats.log", 10000,
+	// MemoryStatsManager::AllStats);
+
 	// Pour desactiver l'interception du signal "segmentation fault", pour permettre au debugger d'identifier le
 	// probleme
-	// debug(signal(SIGSEGV, NULL));
+	debug(signal(SIGSEGV, NULL));
 
 	// Parametrage de l'arret pour la memoire ou les interruptions utilisateurs
-	// MemSetAllocIndexExit(244861);
+	// MemSetAllocIndexExit(1674366);
 	// TaskProgression::SetExternalInterruptionRequestIndex();
 	// TaskProgression::SetInterruptionRequestIndex(75);
 
@@ -24,24 +34,9 @@ int main(int argc, char** argv)
 	PLParallelTask::UseMPI(GetLearningVersion());
 #endif // defined(USE_MPI)
 
-	// Possibilite de parametrage des log memoire depuis les variables d'environnement
-	// p_setenv("KhiopsExpertMode", "true");
-	if (GetLearningExpertMode())
-	{
-		//   KhiopsMemStatsLogFileName, KhiopsMemStatsLogFrequency, KhiopsMemStatsLogToCollect
-		// On ne tente d'ouvrir le fichier que si ces trois variables sont presentes et valides
-		// Sinon, on ne fait rien, sans message d'erreur
-		// Pour avoir toutes les stats: KhiopsMemStatsLogToCollect=16383
-		if (GetIOTraceMode())
-			FileService::SetIOStatsActive(true);
-		MemoryStatsManager::OpenLogFileFromEnvVars(true);
-		// MemoryStatsManager::OpenLogFile("D:\\temp\\KhiopsMemoryStats\\Test\\KhiopsMemoryStats.log", 10000,
-		// MemoryStatsManager::AllStats);
-	}
-
 	// Simulation du mode parallele pour le debuggage
 	// PLParallelTask::SetParallelSimulated(true);
-	// PLParallelTask::SetSimulatedSlaveNumber(3);
+	// PLParallelTask::SetSimulatedSlaveNumber(7);
 	// PLParallelTask::SetTracerResources(1);
 	// PLParallelTask::SetTracerProtocolActive(true);
 	// PLParallelTask::SetTracerMPIActive(true);
@@ -62,8 +57,13 @@ int main(int argc, char** argv)
 
 	// Nombre total d'interruptions utilisateurs
 	// cout << "Interruption request number: " << TaskProgression::GetInterruptionRequestNumber() << endl;
-	MemoryStatsManager::CloseLogFile();
-	return EXIT_SUCCESS;
+
+	// On renvoie 0 si tout s'est bien passe, 1 en cas de FatalError (dans Standard.cpp) et 2 si il y eu au moins
+	// une erreur
+	if (GetProcessId() == 0 and Global::IsAtLeastOneError())
+		return EXIT_FAILURE + 1;
+	else
+		return EXIT_SUCCESS;
 }
 
 #endif // __ANDROID__

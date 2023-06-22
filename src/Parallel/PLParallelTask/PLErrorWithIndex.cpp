@@ -33,7 +33,7 @@ PLSharedErrorWithIndex::~PLSharedErrorWithIndex() {}
 void PLSharedErrorWithIndex::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
 	assert(o != NULL);
-	PLErrorWithIndex* e = cast(PLErrorWithIndex*, o);
+	const PLErrorWithIndex* e = cast(PLErrorWithIndex*, o);
 	require(serializer->IsOpenForWrite());
 
 	// Serialisation de l'erreur

@@ -66,7 +66,7 @@ void PEShared_SampleObject::Test()
 
 void PEShared_SampleObject::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
-	SampleObject* so = cast(SampleObject*, o);
+	const SampleObject* so = cast(SampleObject*, o);
 
 	require(serializer->IsOpenForWrite());
 	require(o != NULL);

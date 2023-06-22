@@ -113,8 +113,10 @@ boolean KWDescriptiveContinuousStats::ComputeStats(const KWTupleTable* tupleTabl
 	int nFilledValueNumber;
 
 	require(Check());
-	require(GetClass()->LookupAttribute(sAttributeName) != NULL);
-	require(GetClass()->LookupAttribute(sAttributeName)->GetType() == KWType::Continuous);
+	require(not GetLearningSpec()->GetCheckTargetAttribute() or
+		GetClass()->LookupAttribute(sAttributeName) != NULL);
+	require(not GetLearningSpec()->GetCheckTargetAttribute() or
+		GetClass()->LookupAttribute(sAttributeName)->GetType() == KWType::Continuous);
 	require(tupleTable != NULL);
 	require(tupleTable->GetAttributeNameAt(0) == sAttributeName);
 
@@ -364,8 +366,10 @@ boolean KWDescriptiveSymbolStats::ComputeStats(const KWTupleTable* tupleTable)
 	double dProba;
 
 	require(Check());
-	require(GetClass()->LookupAttribute(sAttributeName) != NULL);
-	require(GetClass()->LookupAttribute(sAttributeName)->GetType() == KWType::Symbol);
+	require(not GetLearningSpec()->GetCheckTargetAttribute() or
+		GetClass()->LookupAttribute(sAttributeName) != NULL);
+	require(not GetLearningSpec()->GetCheckTargetAttribute() or
+		GetClass()->LookupAttribute(sAttributeName)->GetType() == KWType::Symbol);
 	require(tupleTable != NULL);
 	require(tupleTable->GetAttributeNameAt(0) == sAttributeName);
 

@@ -3,8 +3,6 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #include "KWSystemParametersView.h"
-#include "PLParallelTask.h"
-#include "FileService.h"
 
 KWSystemParametersView::KWSystemParametersView()
 {
@@ -195,6 +193,7 @@ KWSystemParametersView::~KWSystemParametersView() {}
 void KWSystemParametersView::EventUpdate(Object* object)
 {
 	int nRequestedCore;
+	ALString sTestFunctionality;
 
 	// On parametre directement les variables statiques correspondantes
 	// en ignorant l'objet passe en parametres

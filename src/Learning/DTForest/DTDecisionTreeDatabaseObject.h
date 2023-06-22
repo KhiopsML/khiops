@@ -6,6 +6,7 @@
 #define DTDATABASE_INSTANCE_H
 
 #include "Object.h"
+#include "KWSymbol.h"
 #include "Vector.h"
 #include "KWContinuous.h"
 
@@ -16,6 +17,9 @@ public:
 	~DTDecisionTreeDatabaseObject();
 
 	int GetId() const;
+
+	const Symbol& GetNodeIdentifier() const;
+	void SetNodeIdentifier(const Symbol&);
 
 	void IncrementFrequency();
 
@@ -51,6 +55,9 @@ public:
 protected:
 	// no d'ordre de l'instance en base de donnees
 	int iId;
+
+	// identifiant du noeud de l'arbre associe a cette instance de base
+	Symbol sNodeIdentifier;
 
 	int iFrequency; // nbre de fois ou le meme KWObject est reference (si tirage avec remise)
 
@@ -142,5 +149,14 @@ inline Continuous DTDecisionTreeDatabaseObject::GetAdaBoostBGErrorRate() const
 inline void DTDecisionTreeDatabaseObject::SetAdaBoostBGErrorRate(Continuous c)
 {
 	cAdaBoostBGErrorRate = c;
+}
+
+inline const Symbol& DTDecisionTreeDatabaseObject::GetNodeIdentifier() const
+{
+	return sNodeIdentifier;
+}
+inline void DTDecisionTreeDatabaseObject::SetNodeIdentifier(const Symbol& s)
+{
+	sNodeIdentifier = s;
 }
 #endif

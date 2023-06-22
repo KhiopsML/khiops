@@ -3,8 +3,7 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 ////////////////////////////////////////////////////////////
-// 2021-04-06 18:11:58
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "KWAnalysisResultsView.h"
@@ -17,6 +16,8 @@ KWAnalysisResultsView::KWAnalysisResultsView()
 	AddStringField("ResultFilesPrefix", "Result files prefix", "");
 	AddStringField("ShortDescription", "Short description", "");
 	AddStringField("PreparationFileName", "Preparation report", "");
+	AddStringField("TextPreparationFileName", "Text preparation report", "");
+	AddStringField("TreePreparationFileName", "Tree preparation report", "");
 	AddStringField("Preparation2DFileName", "2D preparation report", "");
 	AddStringField("ModelingDictionaryFileName", "Modeling dictionary file", "");
 	AddStringField("ModelingFileName", "Modeling report", "");
@@ -39,6 +40,12 @@ KWAnalysisResultsView::KWAnalysisResultsView()
 	}
 #endif // DEPRECATED_V10
 
+	// Parametrage du rapport des variables de type texte
+	GetFieldAt("TextPreparationFileName")->SetVisible(GetLearningTextVariableMode());
+
+	// Parametrage du rapport des variables de type arbres
+	GetFieldAt("TreePreparationFileName")->SetVisible(GetForestExpertMode());
+
 	// Info-bulles
 	GetFieldAt("ResultFilesDirectory")
 	    ->SetHelpText("Name of the directory where the results files are stored."
@@ -50,6 +57,12 @@ KWAnalysisResultsView::KWAnalysisResultsView()
 	GetFieldAt("PreparationFileName")
 	    ->SetHelpText(
 		"Name of the data report file produced after the univariate data analysis on the train database.");
+	GetFieldAt("TextPreparationFileName")
+	    ->SetHelpText("Name of the data report file produced after the univariate data analysis of the text "
+			  "features on the train database.");
+	GetFieldAt("TextPreparationFileName")
+	    ->SetHelpText("Name of the data report file produced after the univariate data analysis of the tree "
+			  "variables on the train database.");
 	GetFieldAt("Preparation2DFileName")
 	    ->SetHelpText("Name of the report file produced after the bivariate data analysis on the train database.");
 	GetFieldAt("ModelingDictionaryFileName")
@@ -94,6 +107,8 @@ void KWAnalysisResultsView::EventUpdate(Object* object)
 	editedObject->SetResultFilesPrefix(GetStringValueAt("ResultFilesPrefix"));
 	editedObject->SetShortDescription(GetStringValueAt("ShortDescription"));
 	editedObject->SetPreparationFileName(GetStringValueAt("PreparationFileName"));
+	editedObject->SetTextPreparationFileName(GetStringValueAt("TextPreparationFileName"));
+	editedObject->SetTreePreparationFileName(GetStringValueAt("TreePreparationFileName"));
 	editedObject->SetPreparation2DFileName(GetStringValueAt("Preparation2DFileName"));
 	editedObject->SetModelingDictionaryFileName(GetStringValueAt("ModelingDictionaryFileName"));
 	editedObject->SetModelingFileName(GetStringValueAt("ModelingFileName"));
@@ -118,6 +133,8 @@ void KWAnalysisResultsView::EventRefresh(Object* object)
 	SetStringValueAt("ResultFilesPrefix", editedObject->GetResultFilesPrefix());
 	SetStringValueAt("ShortDescription", editedObject->GetShortDescription());
 	SetStringValueAt("PreparationFileName", editedObject->GetPreparationFileName());
+	SetStringValueAt("TextPreparationFileName", editedObject->GetTextPreparationFileName());
+	SetStringValueAt("TreePreparationFileName", editedObject->GetTreePreparationFileName());
 	SetStringValueAt("Preparation2DFileName", editedObject->GetPreparation2DFileName());
 	SetStringValueAt("ModelingDictionaryFileName", editedObject->GetModelingDictionaryFileName());
 	SetStringValueAt("ModelingFileName", editedObject->GetModelingFileName());

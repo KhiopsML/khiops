@@ -11,7 +11,7 @@ class KDSelectionOperandSamplingTask;
 
 /////////////////////////////////////////////////////////////////////////////////
 // Classe KDSelectionOperandSamplingTask
-// Classe technique utilise par la classe KDSelectionOperandAnalyser
+// Classe technique utilisee par la classe KDSelectionOperandAnalyser
 //
 // Analyse de la base pour transformer toute extraire toutes les bornes ou valeur
 // des operandes de selection basees sur des données de la base, a partir d'une
@@ -26,8 +26,8 @@ public:
 	// Lecture de la base pour collecter un echantillon de valeurs par variable secondaire de selection
 	// Entree:
 	//   . selectionOperandAnalyser: parametrage des operandes a analyser
-	// 	 . sourceDatabase: base a analyser, correction parametree par un dictionnaire permettant de lire chaque
-	// variable secondaire et ses operandes Sortie: 	 . nombre d'enregistrement lus dans la base Methode
+	// 	 . sourceDatabase: base a analyser, correctement parametree par un dictionnaire permettant de lire
+	// chaque variable secondaire et ses operandes Sortie: 	 . nombre d'enregistrement lus dans la base Methode
 	// interruptible, retourne false si erreur ou interruption (avec message), true sinon
 	boolean CollectSelectionOperandSamples(KDSelectionOperandDataSampler* selectionOperandDataSampler,
 					       const KWDatabase* sourceDatabase, int& nReadObjectNumber);
@@ -54,7 +54,8 @@ protected:
 	// d'instances principales de la base suite a la phase prealable d'indexation, on peut utiliser la technique des
 	// leapfrogs en utilisant IthRandomNumber(n) avec n = i1 + S1 x i2. En pratique, on va utilise un majorant de
 	// n1: la taille du fichier en octets, et on va prendre nombre premier P1 au dessus de ce majorant, pour
-	// minimiser les regularites si on depasse la capacite des entiers longs
+	// minimiser les regularites si on depasse la capacite des entiers longs Reference documentaire:
+	// LearningDoc\TechnicalStudy\Parallelisation\BenchPreparation\ParallelQuantileExtraction.pdf
 
 	// Reimplementation des methodes virtuelles de tache
 	const ALString GetTaskName() const override;

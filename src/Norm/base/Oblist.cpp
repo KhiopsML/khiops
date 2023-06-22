@@ -376,7 +376,7 @@ longint ObjectList::GetOverallUsedMemory() const
 
 longint ObjectList::GetUsedMemoryPerElement() const
 {
-	return sizeof(ListNode) + 1;
+	return sizeof(ListNode);
 }
 
 const ALString ObjectList::GetClassLabel() const

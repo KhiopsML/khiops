@@ -22,6 +22,7 @@ class KWObjectArrayValueBlock;
 #include "KWType.h"
 #include "KWLoadIndex.h"
 #include "KWValueBlock.h"
+#include "KWDatabaseMemoryGuard.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // Structure de donnees pour les connaissances
@@ -87,10 +88,7 @@ public:
 	// Get*ValueAt beaucoup plus efficace (dans ce cas, l'attribut derive
 	// doit imperativement avoir ete calcule auparavent)
 	// Les attributs non derives sont modifiables en ecriture par des methodes
-	// de type Set*ValueAt, mais cela est en reserve au methodes d'entre-sorties
-
-	// Calcul de tous les attributs derives, recursivement sur les objets de la composition
-	void ComputeAllValues();
+	// de type Set*ValueAt, mais cela est en reserve aux methodes d'entre-sorties
 
 	/// Gestion des valeurs de type Continuous
 	Continuous ComputeContinuousValueAt(KWLoadIndex liLoadIndex) const;
@@ -117,10 +115,20 @@ public:
 	Timestamp GetTimestampValueAt(KWLoadIndex liLoadIndex) const;
 	void SetTimestampValueAt(KWLoadIndex liLoadIndex, Timestamp tsValue);
 
+	/// Gestion des valeurs de type TimestampTS
+	TimestampTZ ComputeTimestampTZValueAt(KWLoadIndex liLoadIndex) const;
+	TimestampTZ GetTimestampTZValueAt(KWLoadIndex liLoadIndex) const;
+	void SetTimestampTZValueAt(KWLoadIndex liLoadIndex, TimestampTZ tstzValue);
+
 	/// Gestion des valeurs de type Text
 	const Symbol& ComputeTextValueAt(KWLoadIndex liLoadIndex) const;
 	const Symbol& GetTextValueAt(KWLoadIndex liLoadIndex) const;
 	void SetTextValueAt(KWLoadIndex liLoadIndex, const Symbol& sValue);
+
+	/// Gestion des valeurs de type TextList
+	SymbolVector* ComputeTextListValueAt(KWLoadIndex liLoadIndex) const;
+	SymbolVector* GetTextListValueAt(KWLoadIndex liLoadIndex) const;
+	void SetTextListValueAt(KWLoadIndex liLoadIndex, SymbolVector* svValue);
 
 	/// Gestion des valeurs de type Object (KWObject*)
 	KWObject* ComputeObjectValueAt(KWLoadIndex liLoadIndex) const;
@@ -198,13 +206,36 @@ protected:
 	boolean CheckAttributeObjectClass(KWAttribute* attribute, KWObject* kwoValue) const;
 	boolean CheckAttributeObjectArrayClass(KWAttribute* attribute, ObjectArray* oaValue) const;
 
+	// Calcul de tous les attributs derives, recursivement sur les objets de la composition
+	// Le memory guard permet de controler l'utilisation de la memoire au cours du calcul des attributs derives.
+	// En cas de depassement de la limite memoire, l'objet est nettoye, et on ne garde que les attributs natifs,
+	// les autres etant mis a Missing.
+	void ComputeAllValues(KWDatabaseMemoryGuard* memoryGuard);
+
 	// Destruction des attributs (recursive pour les objet inclus)
 	void DeleteAttributes();
+
+	// Nettoyage des elements de donnees attributs temporaires à calculer, pouvant etre nettoyes et recalcules
+	// plusieurs fois
+	void CleanTemporayDataItemsToComputeAndClean();
+
+	// Nettoyage des donnees non natives, a utiliser pour nettoyer une instance
+	//  dont on a pas pu calculer tous les attributs derives
+	// Les attribut de type natif de type Relation sont nettoyes
+	// Tous les attributs calcule sont mis a leur valeur par defaut ("", Missing...)
+	// Seuls les attributs natifs sont gardes
+	void CleanAllNonNativeAttributes();
+
+	// Nettoyage des attributs natifs de type Relation charges en memoire (nettoyage recursif)
+	// L'objet reste utilisable: seuls ses attribut de type Relation sont detruits et mis a NULL
+	friend class KWMTDatabase;
+	void CleanNativeRelationAttributes();
 
 	// Methode de mutation specifique a destination des classes KWDatabase et KWDataTableSliceSet
 	// La nouvelle classe doit avoir moins d'attributs Loaded que la classe
 	// precedente, et ces attributs doivent coincider (meme type, meme nom).
 	// Elle doit provenir d'un autre domaine, mais avoir meme nom.
+	//
 	// Lors de la mutation, on a les operations suivantes:
 	//    attributs commun gardes
 	//    attributs en trop detruits
@@ -212,6 +243,7 @@ protected:
 	//    objets internes inclus ou multi-inclus soit mutes egalement si gardes
 	//      (si possible, sinon detruits), soit detruits s'ils sont a supprimer
 	//    objets references laisses tels quels (ni mutes, ni detruits)
+	//
 	// Le dictionnaire des attributs a garder (dans la nouvelle classe) indique
 	// les attributs natifs non utilises object inclus ou multi-inclus a garder
 	// lors de la mutation, car referencable par de regles de derivation
@@ -262,7 +294,7 @@ protected:
 	void DeleteValueVector(ObjectValues valuesToDelete, int nSize);
 
 	// Acces a une valeur par index
-	// Une veleur peut etre une valeur dense ou un block
+	// Une valeur peut etre une valeur dense ou un block
 	KWValue& GetAt(int nValueIndex) const;
 	KWValue& GetValueAt(ObjectValues valuesToGet, boolean bSmallSize, int nValueIndex) const;
 
@@ -640,6 +672,49 @@ inline void KWObject::SetTimestampValueAt(KWLoadIndex liLoadIndex, Timestamp tsV
 	GetAt(liLoadIndex.GetDenseIndex()).SetTimestamp(tsValue);
 }
 
+inline TimestampTZ KWObject::ComputeTimestampTZValueAt(KWLoadIndex liLoadIndex) const
+{
+	debug(require(nObjectLoadedDataItemNumber == kwcClass->GetTotalInternallyLoadedDataItemNumber()));
+	debug(require(nFreshness == kwcClass->GetFreshness()));
+	require(kwcClass->CheckTypeAtLoadIndex(liLoadIndex, KWType::TimestampTZ));
+
+	// Calcul eventuel de l'attribut derive
+	if (GetAt(liLoadIndex.GetDenseIndex()).IsTimestampTZForbidenValue())
+	{
+		// Verification que l'attribut est derive
+		assert(kwcClass->GetAttributeAtLoadIndex(liLoadIndex)->GetDerivationRule() != NULL);
+
+		// Derivation
+		GetAt(liLoadIndex.GetDenseIndex())
+		    .SetTimestampTZ(kwcClass->GetAttributeAtLoadIndex(liLoadIndex)
+					->GetDerivationRule()
+					->ComputeTimestampTZResult(this));
+
+		// Verification de la valeur de l'attribut derive
+		assert(not GetAt(liLoadIndex.GetDenseIndex()).IsTimestampTZForbidenValue());
+	}
+	return GetAt(liLoadIndex.GetDenseIndex()).GetTimestampTZ();
+}
+
+inline TimestampTZ KWObject::GetTimestampTZValueAt(KWLoadIndex liLoadIndex) const
+{
+	debug(require(nObjectLoadedDataItemNumber == kwcClass->GetTotalInternallyLoadedDataItemNumber()));
+	debug(require(nFreshness == kwcClass->GetFreshness()));
+	require(kwcClass->CheckTypeAtLoadIndex(liLoadIndex, KWType::TimestampTZ));
+
+	return GetAt(liLoadIndex.GetDenseIndex()).GetTimestampTZ();
+}
+
+inline void KWObject::SetTimestampTZValueAt(KWLoadIndex liLoadIndex, TimestampTZ tstzValue)
+{
+	debug(require(nObjectLoadedDataItemNumber == kwcClass->GetTotalInternallyLoadedDataItemNumber()));
+	debug(require(nFreshness == kwcClass->GetFreshness()));
+	require(kwcClass->CheckTypeAtLoadIndex(liLoadIndex, KWType::TimestampTZ));
+	require(kwcClass->GetAttributeAtLoadIndex(liLoadIndex)->GetDerivationRule() == NULL);
+
+	GetAt(liLoadIndex.GetDenseIndex()).SetTimestampTZ(tstzValue);
+}
+
 inline const Symbol& KWObject::ComputeTextValueAt(KWLoadIndex liLoadIndex) const
 {
 	debug(require(nObjectLoadedDataItemNumber == kwcClass->GetTotalInternallyLoadedDataItemNumber()));
@@ -680,6 +755,53 @@ inline void KWObject::SetTextValueAt(KWLoadIndex liLoadIndex, const Symbol& sVal
 	require(kwcClass->GetAttributeAtLoadIndex(liLoadIndex)->GetDerivationRule() == NULL);
 
 	GetAt(liLoadIndex.GetDenseIndex()).SetText(sValue);
+}
+
+inline SymbolVector* KWObject::ComputeTextListValueAt(KWLoadIndex liLoadIndex) const
+{
+	SymbolVector* svTextList;
+
+	debug(require(nObjectLoadedDataItemNumber == kwcClass->GetTotalInternallyLoadedDataItemNumber()));
+	debug(require(nFreshness == kwcClass->GetFreshness()));
+	require(kwcClass->CheckTypeAtLoadIndex(liLoadIndex, KWType::TextList));
+
+	// Calcul eventuel de l'attribut derive
+	if (GetAt(liLoadIndex.GetDenseIndex()).IsTextListForbidenValue())
+	{
+		// Verification que l'attribut est derive
+		assert(kwcClass->GetAttributeAtLoadIndex(liLoadIndex)->GetDerivationRule() != NULL);
+
+		// Derivation
+		// Le vecteur de textes rendu par la regle est duplique, et appartient desormais a l'objet
+		svTextList =
+		    kwcClass->GetAttributeAtLoadIndex(liLoadIndex)->GetDerivationRule()->ComputeTextListResult(this);
+		if (svTextList != NULL)
+			svTextList = svTextList->Clone();
+		GetAt(liLoadIndex.GetDenseIndex()).SetTextList(svTextList);
+
+		// Verification de la valeur de l'attribut derive
+		assert(not GetAt(liLoadIndex.GetDenseIndex()).IsTextListForbidenValue());
+	}
+	return GetAt(liLoadIndex.GetDenseIndex()).GetTextList();
+}
+
+inline SymbolVector* KWObject::GetTextListValueAt(KWLoadIndex liLoadIndex) const
+{
+	debug(require(nObjectLoadedDataItemNumber == kwcClass->GetTotalInternallyLoadedDataItemNumber()));
+	debug(require(nFreshness == kwcClass->GetFreshness()));
+	require(kwcClass->CheckTypeAtLoadIndex(liLoadIndex, KWType::TextList));
+
+	return GetAt(liLoadIndex.GetDenseIndex()).GetTextList();
+}
+
+inline void KWObject::SetTextListValueAt(KWLoadIndex liLoadIndex, SymbolVector* sValue)
+{
+	debug(require(nObjectLoadedDataItemNumber == kwcClass->GetTotalInternallyLoadedDataItemNumber()));
+	debug(require(nFreshness == kwcClass->GetFreshness()));
+	require(kwcClass->CheckTypeAtLoadIndex(liLoadIndex, KWType::TextList));
+	require(kwcClass->GetAttributeAtLoadIndex(liLoadIndex)->GetDerivationRule() == NULL);
+
+	GetAt(liLoadIndex.GetDenseIndex()).SetTextList(sValue);
 }
 
 inline KWObject* KWObject::ComputeObjectValueAt(KWLoadIndex liLoadIndex) const
@@ -1121,12 +1243,18 @@ inline const char* KWObject::ValueToString(const KWAttribute* attribute) const
 		return attribute->GetTimestampFormat()->TimestampToString(
 		    GetTimestampValueAt(attribute->GetLoadIndex()));
 	}
+	else if (attribute->GetType() == KWType::TimestampTZ)
+	{
+		return attribute->GetTimestampTZFormat()->TimestampTZToString(
+		    GetTimestampTZValueAt(attribute->GetLoadIndex()));
+	}
 	else if (attribute->GetType() == KWType::Text)
 	{
 		return GetTextValueAt(attribute->GetLoadIndex());
 	}
 	else
 	{
+		assert(not KWType::IsStored(attribute->GetType()));
 		char* sBuffer = StandardGetBuffer();
 		sBuffer[0] = '\0';
 		return sBuffer;

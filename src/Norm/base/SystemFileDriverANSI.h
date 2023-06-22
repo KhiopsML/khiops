@@ -25,7 +25,9 @@ public:
 	boolean Connect() override;
 	boolean Disconnect() override;
 	boolean IsConnected() const override;
-	boolean Exist(const char* sFilePathName) const override;
+	longint GetSystemPreferredBufferSize() const override;
+	boolean FileExists(const char* sFilePathName) const override;
+	boolean DirExists(const char* sFilePathName) const override;
 	longint GetFileSize(const char* sFilePathName) const override;
 	void* Open(const char* sFilePathName, char cMode) override;
 	boolean Close(void* stream) override;

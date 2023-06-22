@@ -3,8 +3,7 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 ////////////////////////////////////////////////////////////
-// 2021-04-25 11:10:56
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "KWDatabaseView.h"
@@ -14,7 +13,7 @@ KWDatabaseView::KWDatabaseView()
 	SetIdentifier("KWDatabase");
 	SetLabel("Database");
 	AddStringField("ClassName", "Dictionary", "");
-	AddIntField("SampleNumberPercentage", "Sample percentage", 0);
+	AddDoubleField("SampleNumberPercentage", "Sample percentage", 0);
 	AddStringField("SamplingMode", "Sampling mode", "");
 	AddStringField("SelectionAttribute", "Selection variable", "");
 	AddStringField("SelectionValue", "Selection value", "");
@@ -32,9 +31,12 @@ KWDatabaseView::KWDatabaseView()
 	// Initialisation des specifications de classe
 	bModeWriteOnly = false;
 
+	// Precision a 1 chiffre apres la virgule pour le pourcentage
+	GetFieldAt("SampleNumberPercentage")->SetParameters("1");
+
 	// Plage de valeur pour le champ pourcentage des exemples
-	cast(UIIntElement*, GetFieldAt("SampleNumberPercentage"))->SetMinValue(0);
-	cast(UIIntElement*, GetFieldAt("SampleNumberPercentage"))->SetMaxValue(100);
+	cast(UIDoubleElement*, GetFieldAt("SampleNumberPercentage"))->SetMinValue(0);
+	cast(UIDoubleElement*, GetFieldAt("SampleNumberPercentage"))->SetMaxValue(100);
 
 	// Valeurs pour le mode d'echantillonnage
 	GetFieldAt("SamplingMode")->SetParameters("Include sample\nExclude sample");
@@ -105,7 +107,7 @@ void KWDatabaseView::EventUpdate(Object* object)
 
 	editedObject = cast(KWDatabase*, object);
 	editedObject->SetClassName(GetStringValueAt("ClassName"));
-	editedObject->SetSampleNumberPercentage(GetIntValueAt("SampleNumberPercentage"));
+	editedObject->SetSampleNumberPercentage(GetDoubleValueAt("SampleNumberPercentage"));
 	editedObject->SetSamplingMode(GetStringValueAt("SamplingMode"));
 	editedObject->SetSelectionAttribute(GetStringValueAt("SelectionAttribute"));
 	editedObject->SetSelectionValue(GetStringValueAt("SelectionValue"));
@@ -123,7 +125,7 @@ void KWDatabaseView::EventRefresh(Object* object)
 
 	editedObject = cast(KWDatabase*, object);
 	SetStringValueAt("ClassName", editedObject->GetClassName());
-	SetIntValueAt("SampleNumberPercentage", editedObject->GetSampleNumberPercentage());
+	SetDoubleValueAt("SampleNumberPercentage", editedObject->GetSampleNumberPercentage());
 	SetStringValueAt("SamplingMode", editedObject->GetSamplingMode());
 	SetStringValueAt("SelectionAttribute", editedObject->GetSelectionAttribute());
 	SetStringValueAt("SelectionValue", editedObject->GetSelectionValue());
@@ -332,7 +334,6 @@ void KWDatabaseView::UpdateTestDatabase()
 		// Cas d'une base avec specification particuliere
 		else if (GetStringValueAt("TestDatabaseSpecificationMode") == "Specific")
 		{
-
 #ifdef DEPRECATED_V10
 			if (bDeprecatedTestDataViewUsed)
 			{

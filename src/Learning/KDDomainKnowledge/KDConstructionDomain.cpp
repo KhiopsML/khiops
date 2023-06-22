@@ -127,6 +127,9 @@ void KDConstructionDomain::InitializeStandardConstructionRules()
 	InitializeConstructionRule("Timestamp", new KWDRGetTime, NULL, NULL);
 	InitializeConstructionRule("Timestamp", new KWDRDecimalWeekDay, NULL, NULL);
 	InitializeConstructionRule("Timestamp", new KWDRDecimalYearTS, NULL, NULL);
+
+	// Regles portant sur les timestampTZ
+	InitializeConstructionRule("TimestampTZ", new KWDRLocalTimestamp, NULL, NULL);
 }
 
 void KDConstructionDomain::SelectDefaultConstructionRules()
@@ -143,7 +146,8 @@ void KDConstructionDomain::SelectDefaultConstructionRules()
 		constructionRule->SetPriority(0);
 		constructionRule->SetUsed(true);
 		if (constructionRule->GetFamilyName() == "Time" or constructionRule->GetFamilyName() == "Date" or
-		    constructionRule->GetFamilyName() == "Timestamp")
+		    constructionRule->GetFamilyName() == "Timestamp" or
+		    constructionRule->GetFamilyName() == "TimestampTZ")
 		{
 			constructionRule->SetPriority(1);
 			constructionRule->SetUsed(false);

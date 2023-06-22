@@ -72,7 +72,7 @@ KWObjectReferenceResolver* KWDRReference::GetObjectReferenceResolver()
 
 KWObjectReferenceResolver* KWDRReference::objectReferenceResolver = NULL;
 
-boolean KWDRReference::CheckOperandsCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDRReference::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk = true;
 	KWClass* kwcReferenceClass;
@@ -82,7 +82,7 @@ boolean KWDRReference::CheckOperandsCompletness(const KWClass* kwcOwnerClass) co
 	require(kwcOwnerClass->GetDomain() != NULL);
 
 	// Methode ancetre
-	bOk = KWDerivationRule::CheckOperandsCompletness(kwcOwnerClass);
+	bOk = KWDerivationRule::CheckOperandsCompleteness(kwcOwnerClass);
 
 	// Verification de la compatibilite des operandes avec la cle de la classe referencee
 	if (bOk)

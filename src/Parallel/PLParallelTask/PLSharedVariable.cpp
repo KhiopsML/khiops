@@ -16,7 +16,7 @@ PLSharedVariable::PLSharedVariable()
 
 PLSharedVariable::~PLSharedVariable() {}
 
-void PLSharedVariable::Serialize(PLSerializer* serializer)
+void PLSharedVariable::Serialize(PLSerializer* serializer) const
 {
 	check(serializer);
 	require(serializer->IsOpenForWrite());
@@ -349,7 +349,6 @@ void PLShared_Int::Test()
 	// Affichage des resultats
 	cout << "Initial value " << nInitialValue << endl;
 	cout << "Serialized value " << shared_valueOut << endl;
-	;
 	cout << "Serialized form " << serializer << endl;
 
 	// Deserialisation une deuxieme fois sur le meme objet

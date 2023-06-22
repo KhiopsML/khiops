@@ -85,7 +85,9 @@ extern char   *yyptok(int i);
 %token DATETYPE
 %token TIMETYPE
 %token TIMESTAMPTYPE
+%token TIMESTAMPTZTYPE
 %token TEXTTYPE
+%token TEXTLISTTYPE
 %token STRUCTURETYPE
 
 %type <nValue> CLASS 
@@ -184,9 +186,17 @@ SIMPLEIDENTIFIER:
 		{
           $$ = new ALString("Timestamp");
 		}
+	|	TIMESTAMPTZTYPE
+		{
+          $$ = new ALString("TimestampTZ");
+		}
 	|	TEXTTYPE
 		{
           $$ = new ALString("Text");
+		}
+	|	TEXTLISTTYPE
+		{
+          $$ = new ALString("TextList");
 		}
 	|	STRUCTURETYPE
 		{
@@ -804,6 +814,11 @@ kwattributeDeclaration:
 		        yyerrorWithLineCorrection("Type of variable " + attribute->GetName() + " (" + 
                 KWType::ToString(attribute->GetType()) + ") inconsistent with that returned by derivation rule " +
                 attribute->GetDerivationRule()->GetName() + " (" + KWType::ToString(attribute->GetDerivationRule()->GetType()) + ")", -1);
+            // Erreur dans le cas du type Structure
+            else if (attribute->GetType() == KWType::Structure and attribute->GetStructureName() != rule->GetStructureName())
+		        yyerrorWithLineCorrection("Type of variable " + attribute->GetName() + " (" + 
+                KWType::ToString(attribute->GetType()) + "(" + attribute->GetStructureName() + ")) inconsistent with that returned by derivation rule " +
+                attribute->GetDerivationRule()->GetName() + " (" + KWType::ToString(attribute->GetDerivationRule()->GetType()) + "(" + rule->GetStructureName() + "))", -1);
 		  }
 
 		  /* Meta-donnees de l'attribut */
@@ -909,11 +924,21 @@ typeDeclaration:
         {
           $$ = KWType::Timestamp;
         }
+    | TIMESTAMPTZTYPE
+        {
+          $$ = KWType::TimestampTZ;
+        }
     | TEXTTYPE
         {
 		  if (not GetLearningTextVariableMode())
 		  	yyerror("Type Text is unknown");
           $$ = KWType::Text;
+        }
+    | TEXTLISTTYPE
+        {
+		  if (not GetLearningTextVariableMode())
+		  	yyerror("Type TextList is unknown");
+          $$ = KWType::TextList;
         }
     | OBJECTTYPE
         {
@@ -1098,15 +1123,13 @@ derivationRule: derivationRuleBody closeparenthesis
 			  if (not ruleBodyOperand->CheckDefinition())
 			  {
 			    bRuleOk = false;
-				yyerror(sTmp + "Incorrect operand " + IntToString(1+i) + " for rule " +
-				  rule->GetName());
+				yyerror(sTmp + "Incorrect operand " + IntToString(1+i) + " for rule " + rule->GetName());
 			  }
 			  /* Test de compatibilite avec la regle enregistree, sauf si regle avec operande de type indetermine */
 			  else if (ruleOperand->GetType() != KWType::Unknown and not ruleBodyOperand->CheckFamily(ruleOperand))
 			  {
 			    bRuleOk = false;
-				yyerror(sTmp + "Operand " + IntToString(1+i) + 
-				  " inconsistent with that of rule " + rule->GetName());
+				yyerror(sTmp + "Operand " + IntToString(1+i) + " inconsistent with that of rule " + rule->GetName());
 				break;
 			  }
 			  /* Transfert de l'origine de l'operande */
@@ -1151,6 +1174,13 @@ derivationRule: derivationRuleBody closeparenthesis
 				}
 			  }
             }
+
+			/* Verification de la definition de la regle */
+			if (bRuleOk and not rule->CheckDefinition())
+			{
+			  bRuleOk = false;
+			  yyerror(sTmp + "Derivation rule "  + rule->GetName() + " incorrectly specified");
+			}
 
 			/* Test si erreur dans le transfert des operandes */
 			if (not bRuleOk)
@@ -1482,7 +1512,7 @@ boolean KWClassDomain::ReadFile(const ALString& sFileName)
 	  for (i = 0; i < oaReferencedUncreatedClasses.GetSize(); i++)
 	  {
 	    kwcClass = cast(KWClass*, oaReferencedUncreatedClasses.GetAt(i));
-        AddError("Error detected during parsing " + sFileName + ": dictionary " + kwcClass->GetName() + " used, but not declared");
+        AddError("Dictionary " + kwcClass->GetName() + " used, but not declared");
 	  }
 	}
 
@@ -1493,7 +1523,9 @@ boolean KWClassDomain::ReadFile(const ALString& sFileName)
 	/* ou au moins une classe referencee non cree                               */
 	if (nFileParsingErrorNumber > 0 or odReferencedUncreatedClasses->GetCount() > 0)
     {
-      AddError("Error detected during parsing " + sFileName + ": read operation cancelled");
+	  /* En cas d'erreur, ajout d'une ligne blanche pour separer des autres logs */
+      AddError("Errors detected during parsing " + sFileName + ": read operation cancelled");
+	  AddSimpleMessage("");
 	  bOk = false;
 
  	  /* Recherche des nouvelles classes crees */

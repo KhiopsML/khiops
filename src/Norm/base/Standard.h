@@ -332,5 +332,11 @@ int GetProcessId();
 // Attention: usage reserve a la bibliotheque parallele
 void SetProcessId(int nValue);
 
+// Traces pour debugger les applications paralleles
+// Ajoute la rang devant la trace et l'ecrit dans la sortie standard
+void TraceMaster(const char* sTrace);
+void TraceSlave(const char* sTrace);
+void TraceWithRank(const char* sTrace);
+
 // Gestion de la memoire
 #include "MemoryManager.h"

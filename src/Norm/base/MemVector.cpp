@@ -860,6 +860,82 @@ void MemVector::CopyFrom(MemHugeVector& memHugeVector, int& nSize, int& nAllocSi
 	ensure(Check(memHugeVector, nSize, nAllocSize, nBlockSize, nElementSize));
 }
 
+void MemVector::ImportBuffer(MemHugeVector& memHugeVector, int nSize, int nAllocSize, int nBlockSize, int nElementSize,
+			     int nIndex, int nElementNumber, const char* cByteBuffer)
+{
+	int nSizeToCopy;
+	int nLocalCopy;
+	int nSourcePos;
+	int nDestPos;
+
+	require(0 <= nIndex and nIndex < nSize);
+	require(nIndex + nElementNumber <= nSize);
+	require(cByteBuffer != NULL);
+	require(nElementSize * longint(nElementNumber) <= INT_MAX);
+
+	// Cas mono-bloc
+	if (nAllocSize <= nBlockSize)
+		memcpy(&memHugeVector.pValues[nIndex * nElementSize], cByteBuffer,
+		       (size_t)nElementNumber * nElementSize);
+	else
+	// Cas multi-blocs
+	{
+		nSizeToCopy = nElementNumber;
+		nDestPos = nIndex * nElementSize;
+		nSourcePos = 0;
+		while (nSizeToCopy > 0)
+		{
+			// On ne copie pas plus que ce que le bloc courant peut contenir
+			nLocalCopy = min(nBlockSize - (nDestPos % nBlockSize), nSizeToCopy);
+
+			// Copie memoire
+			memcpy(&memHugeVector.pValueBlocks[nDestPos / nBlockSize][nDestPos % nBlockSize],
+			       &cByteBuffer[nSourcePos], (size_t)nLocalCopy * nElementSize);
+			nSizeToCopy -= nLocalCopy;
+			nSourcePos += nLocalCopy;
+			nDestPos += nLocalCopy;
+		}
+	}
+}
+
+void MemVector::ExportBuffer(const MemHugeVector& memHugeVector, int nSize, int nAllocSize, int nBlockSize,
+			     int nElementSize, int nIndex, int nElementNumber, char* cByteBuffer)
+{
+	require(cByteBuffer != NULL);
+	require(nIndex + nElementNumber <= nSize);
+	int nSizeToCopy;
+	int nLocalCopy;
+	int nSourcePos;
+	int nDestPos;
+
+	require(0 <= nIndex and nIndex < nSize);
+	require(nIndex + nElementNumber <= nSize);
+	require(cByteBuffer != NULL);
+	require(nElementSize * longint(nElementNumber) <= INT_MAX);
+
+	// Cas mono-bloc
+	if (nAllocSize <= nBlockSize)
+		memcpy(cByteBuffer, &memHugeVector.pValues[nIndex * nElementSize],
+		       (size_t)nElementNumber * nElementSize);
+	else
+	{
+		nSourcePos = nIndex * nElementSize;
+		nSizeToCopy = nElementNumber;
+		nDestPos = 0;
+		while (nSizeToCopy > 0)
+		{
+			// On ne copie pas plus que ce que contient le bloc courant
+			nLocalCopy = min(nSizeToCopy, nBlockSize - (nSourcePos % nBlockSize));
+			memcpy(&cByteBuffer[nDestPos],
+			       &memHugeVector.pValueBlocks[nSourcePos / nBlockSize][nSourcePos % nBlockSize],
+			       (size_t)nLocalCopy * nElementSize);
+			nSourcePos += nLocalCopy;
+			nSizeToCopy -= nLocalCopy;
+			nDestPos += nLocalCopy;
+		}
+	}
+}
+
 boolean MemVector::SetLargeSize(MemHugeVector& memHugeVector, int& nSize, int& nAllocSize, const int nBlockSize,
 				const int nElementSize, int nNewSize)
 {

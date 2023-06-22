@@ -866,7 +866,7 @@ void PLShared_TupleTable::SerializeObject(PLSerializer* serializer, const Object
 		nSortFunctionIndex = 2;
 	else if (tupleTable->oaTuples.GetCompareFunction() == tupleTable->GetCompareDecreasingFrequenciesFunction())
 		nSortFunctionIndex = 3;
-	assert(nSortFunctionIndex != 0);
+	assert(nSortFunctionIndex != 0 or tupleTable->GetSize() == 0);
 	serializer->PutInt(nSortFunctionIndex);
 }
 
@@ -927,7 +927,7 @@ void PLShared_TupleTable::DeserializeObject(PLSerializer* serializer, Object* o)
 
 	// Deserialisation de la fonction de tri, et tri seulement si necessaire
 	nSortFunctionIndex = serializer->GetInt();
-	assert(nSortFunctionIndex != 0);
+	assert(nSortFunctionIndex != 0 or tupleTable->GetSize() == 0);
 	if (nSortFunctionIndex == 1)
 	{
 		// Le tri est necessaire en cas de presence d'attributs Symbol, dont la valeur

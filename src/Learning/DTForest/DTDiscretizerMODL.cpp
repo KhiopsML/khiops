@@ -199,7 +199,6 @@ void DTDiscretizerMODL::DiscretizeNEW(KWFrequencyTable* kwftSource, KWFrequencyT
 				for (nSourceIndex = 0; nSourceIndex < quantileBuilder.GetIntervalNumber();
 				     nSourceIndex++)
 				{
-
 					if (ivGranularityMinByValues.GetAt(
 						quantileBuilder.GetIntervalLastValueIndexAt(nSourceIndex)) == 0)
 					{
@@ -238,7 +237,6 @@ void DTDiscretizerMODL::DiscretizeNEW(KWFrequencyTable* kwftSource, KWFrequencyT
 					     << quantileBuilder.GetInstanceNumber() << endl;
 					for (int i = 0; i < quantileBuilder.GetIntervalNumber(); i++)
 					{
-
 						cout << "partile : " << i << " / "
 						     << quantileBuilder.GetIntervalQuantileIndexAt(i) << " / "
 						     << quantileBuilder.GetIntervalFirstValueIndexAt(i) << " / "
@@ -272,7 +270,6 @@ void DTDiscretizerMODL::DiscretizeNEW(KWFrequencyTable* kwftSource, KWFrequencyT
 
 			for (nSourceIndex = 0; nSourceIndex < ivGranularityMinByValues.GetSize(); nSourceIndex++)
 			{
-
 				if (ivGranularityMinByValues.GetAt(nSourceIndex) == 0)
 				{
 					ivGranularityMinByValues.SetAt(nSourceIndex, nGranularityMax);
@@ -656,7 +653,6 @@ void DTDiscretizerMODL::DiscretizeGranularizedFrequencyTableNEW(KWFrequencyTable
 		}
 		else
 		{
-
 			delete kwftnull;
 			// si plus petit alors affectation de la cible
 			kwftTarget->SetGranularity(ivGranularityValues->GetAt(nvfmax));

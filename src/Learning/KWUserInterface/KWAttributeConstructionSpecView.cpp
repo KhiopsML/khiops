@@ -3,8 +3,7 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 ////////////////////////////////////////////////////////////
-// 2021-04-25 11:10:58
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "KWAttributeConstructionSpecView.h"
@@ -14,6 +13,7 @@ KWAttributeConstructionSpecView::KWAttributeConstructionSpecView()
 	SetIdentifier("KWAttributeConstructionSpec");
 	SetLabel("Feature engineering parameters");
 	AddIntField("MaxConstructedAttributeNumber", "Max number of constructed variables", 0);
+	AddIntField("MaxTextFeatureNumber", "Max number of text features", 0);
 	AddIntField("MaxTreeNumber", "Max number of trees", 0);
 	AddIntField("MaxAttributePairNumber", "Max number of variable pairs", 0);
 	AddStringField("MandatoryAttributeInPairs", "Only pairs with variable (deprecated)", "");
@@ -21,6 +21,7 @@ KWAttributeConstructionSpecView::KWAttributeConstructionSpecView()
 
 	// Parametrage des styles;
 	GetFieldAt("MaxConstructedAttributeNumber")->SetStyle("Spinner");
+	GetFieldAt("MaxTextFeatureNumber")->SetStyle("Spinner");
 	GetFieldAt("MaxTreeNumber")->SetStyle("Spinner");
 	GetFieldAt("MaxAttributePairNumber")->SetStyle("Spinner");
 	GetFieldAt("RecodingClass")->SetStyle("CheckBox");
@@ -31,6 +32,9 @@ KWAttributeConstructionSpecView::KWAttributeConstructionSpecView()
 	cast(UIIntElement*, GetFieldAt("MaxConstructedAttributeNumber"))->SetMinValue(0);
 	cast(UIIntElement*, GetFieldAt("MaxConstructedAttributeNumber"))
 	    ->SetMaxValue(KWAttributeConstructionSpec::nLargestMaxConstructedAttributeNumber);
+	cast(UIIntElement*, GetFieldAt("MaxTextFeatureNumber"))->SetMinValue(0);
+	cast(UIIntElement*, GetFieldAt("MaxTextFeatureNumber"))
+	    ->SetMaxValue(KWAttributeConstructionSpec::nLargestMaxTextFeatureNumber);
 	cast(UIIntElement*, GetFieldAt("MaxTreeNumber"))->SetMinValue(0);
 	cast(UIIntElement*, GetFieldAt("MaxTreeNumber"))
 	    ->SetMaxValue(KWAttributeConstructionSpec::nLargestMaxTreeNumber);
@@ -54,6 +58,9 @@ KWAttributeConstructionSpecView::KWAttributeConstructionSpecView()
 	}
 #endif // DEPRECATED_V10
 
+	// Parametrage de la construction des variables de type texte
+	GetFieldAt("MaxTextFeatureNumber")->SetVisible(GetLearningTextVariableMode());
+
 	// Parametrage de la construction des arbres
 	GetFieldAt("MaxTreeNumber")
 	    ->SetVisible(KDDataPreparationAttributeCreationTask::GetGlobalCreationTask() != NULL);
@@ -62,8 +69,16 @@ KWAttributeConstructionSpecView::KWAttributeConstructionSpecView()
 	GetFieldAt("MaxConstructedAttributeNumber")
 	    ->SetHelpText("Max number of variables to construct."
 			  "\n The constructed variables allow to extract numerical or categorical values"
-			  "\n resulting from computing formula applied to existing variables"
+			  "\n resulting from computing formula applied to existing variables in secondary tables"
 			  "\n (e.g. YearDay of a Date variable, Mean of a Numerical variable from a Table Variable).");
+	GetFieldAt("MaxTextFeatureNumber")
+	    ->SetHelpText("Max number of text features to construct."
+			  "\n Text features are constructed from variables of type Text or TextList available in "
+			  "either the main table or"
+			  "\n a secondary table. The features are constructed by default using n-grams of bytes "
+			  "randomly projected on hash tables,"
+			  "\n the lengths of the n-grams and the size of the hash tables increasing with the number of "
+			  "features constructed.");
 	GetFieldAt("MaxTreeNumber")
 	    ->SetHelpText("Max number of trees to construct."
 			  "\n The constructed trees allow to combine variables, either native or constructed."
@@ -131,8 +146,11 @@ void KWAttributeConstructionSpecView::EventUpdate(Object* object)
 
 	editedObject = cast(KWAttributeConstructionSpec*, object);
 	editedObject->SetMaxConstructedAttributeNumber(GetIntValueAt("MaxConstructedAttributeNumber"));
+	editedObject->SetMaxTextFeatureNumber(GetIntValueAt("MaxTextFeatureNumber"));
 	editedObject->SetMaxTreeNumber(GetIntValueAt("MaxTreeNumber"));
 	editedObject->SetMaxAttributePairNumber(GetIntValueAt("MaxAttributePairNumber"));
+	editedObject->SetMandatoryAttributeInPairs(GetStringValueAt("MandatoryAttributeInPairs"));
+	editedObject->SetRecodingClass(GetBooleanValueAt("RecodingClass"));
 
 	// ## Custom update
 
@@ -152,8 +170,11 @@ void KWAttributeConstructionSpecView::EventRefresh(Object* object)
 
 	editedObject = cast(KWAttributeConstructionSpec*, object);
 	SetIntValueAt("MaxConstructedAttributeNumber", editedObject->GetMaxConstructedAttributeNumber());
+	SetIntValueAt("MaxTextFeatureNumber", editedObject->GetMaxTextFeatureNumber());
 	SetIntValueAt("MaxTreeNumber", editedObject->GetMaxTreeNumber());
 	SetIntValueAt("MaxAttributePairNumber", editedObject->GetMaxAttributePairNumber());
+	SetStringValueAt("MandatoryAttributeInPairs", editedObject->GetMandatoryAttributeInPairs());
+	SetBooleanValueAt("RecodingClass", editedObject->GetRecodingClass());
 
 	// ## Custom refresh
 

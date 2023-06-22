@@ -53,8 +53,9 @@ CCLearningProblemPostProcessingView::~CCLearningProblemPostProcessingView() {}
 void CCLearningProblemPostProcessingView::PostProcessCoclustering()
 {
 	// Execution controlee par licence
-	if (not LMLicenseManager::RequestLicenseKey())
-		return;
+	if (LMLicenseManager::IsEnabled())
+		if (not LMLicenseManager::RequestLicenseKey())
+			return;
 
 	// OK si fichiers corrects
 	if (GetLearningProblem()->CheckResultFileNames(CCLearningProblem::TaskPostProcessCoclustering))

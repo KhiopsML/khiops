@@ -13,6 +13,8 @@ int DTTreeAttributeRankCompare(const void* elem1, const void* elem2);
 DTForestAttributeSelection::DTForestAttributeSelection()
 {
 	sDrawingType = DTGlobalTag::UNIFORM_SAMPLING_WITH_REPLACEMENT_LABEL;
+	nMaxSelectionNumber = 0;
+	nOriginalAttributesNumber = 0;
 }
 
 DTForestAttributeSelection::~DTForestAttributeSelection()
@@ -22,7 +24,6 @@ DTForestAttributeSelection::~DTForestAttributeSelection()
 
 void DTForestAttributeSelection::CleanAll()
 {
-
 	svAttributeNames.Initialize();
 	odOriginalAttributesUsed.RemoveAll();
 	oaOriginalAttributesUsed.DeleteAll();
@@ -328,7 +329,6 @@ void DTForestAttributeSelection::BuildForestSelections(int nmaxselectionnumber, 
 
 void DTForestAttributeSelection::WriteReport(ostream& ost)
 {
-
 	int nSelection, nAttribute;
 	ObjectArray oaVariablesNull;
 	ObjectArray oaVariablesInf;
@@ -651,7 +651,6 @@ int DTAttributeSelectionsSlices::UnionAttributesCount(const DTAttributeSelection
 
 int DTAttributeSelectionsSlices::CompareSlices(const DTAttributeSelectionsSlices* otherAttributePairsSlices) const
 {
-
 	int nSliceIdentique;
 	int nCompare;
 
@@ -683,7 +682,6 @@ DoubleVector* DTAttributeSelectionsSlices::GetLexicographicSortCriterion()
 int DTAttributeSelectionsSlices::CompareLexicographicSortCriterion(
     const DTAttributeSelectionsSlices* otherAttributePairsSlices) const
 {
-
 	int nCompare;
 	int nMaxSize;
 	int i;

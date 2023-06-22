@@ -39,69 +39,6 @@ boolean AttributeTable::Check() const
 	return bOk;
 }
 
-boolean AttributeTable::NoStats()
-{
-	for (int i = 0; i < GetSize(); i++)
-	{
-		if (cast(Attribute*, GetAt(i))->IsField() and cast(Attribute*, GetAt(i))->GetStats() == true)
-			return false;
-	}
-	return true;
-}
-
-boolean AttributeTable::NoKeyFields()
-{
-	for (int i = 0; i < GetSize(); i++)
-	{
-		if (cast(Attribute*, GetAt(i))->IsField() and cast(Attribute*, GetAt(i))->GetKeyField() == true)
-			return false;
-	}
-	return true;
-}
-
-int AttributeTable::GetKeyFieldsNumber()
-{
-	int nResult = 0;
-
-	for (int i = 0; i < GetSize(); i++)
-	{
-		if (cast(Attribute*, GetAt(i))->IsField() and cast(Attribute*, GetAt(i))->GetKeyField() == true)
-			nResult++;
-	}
-	return nResult;
-}
-
-boolean AttributeTable::IsKeyBuilt()
-{
-	Attribute* att;
-	int nResult = 0;
-	boolean bBuildNeed = false;
-
-	for (int i = 0; i < GetSize(); i++)
-	{
-		att = cast(Attribute*, GetAt(i));
-		if (att->IsField() and att->GetKeyField() == true)
-		{
-			nResult++;
-			if (att->GetType() != "ALString")
-				bBuildNeed = true;
-		}
-	}
-	return nResult > 1 or bBuildNeed == true;
-}
-
-int AttributeTable::GetPermanentFieldsNumber()
-{
-	int nResult = 0;
-
-	for (int i = 0; i < GetSize(); i++)
-	{
-		if (cast(Attribute*, GetAt(i))->IsField() and cast(Attribute*, GetAt(i))->GetPermanent() == true)
-			nResult++;
-	}
-	return nResult;
-}
-
 int AttributeTable::GetVisibleFieldsNumber()
 {
 	int nResult = 0;

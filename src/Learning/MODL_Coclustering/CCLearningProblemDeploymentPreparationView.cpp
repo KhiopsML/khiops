@@ -117,8 +117,9 @@ void CCLearningProblemDeploymentPreparationView::EventRefresh(Object* object)
 void CCLearningProblemDeploymentPreparationView::PrepareDeployment()
 {
 	// Execution controlee par licence
-	if (not LMLicenseManager::RequestLicenseKey())
-		return;
+	if (LMLicenseManager::IsEnabled())
+		if (not LMLicenseManager::RequestLicenseKey())
+			return;
 
 	// OK si classe correcte et fichiers corrects
 	if (GetLearningProblem()->CheckResultFileNames(CCLearningProblem::TaskPrepareDeployment))

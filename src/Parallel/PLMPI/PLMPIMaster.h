@@ -85,7 +85,9 @@ protected:
 	// A surcharger pour ajouter les deconnections des classe filles
 	void Disconnect();
 
-	void SendStop();
+	// Demande d'arret aux esclave, le booleen en parametre indique aux esclaves
+	// si c'est un arret normal (bok=true) ou un arret cause par un echec (bok=false)
+	void SendStop(boolean bOk);
 
 	// Modifie les fenetres RMA si le quota de message est depasse
 	void UpdateMaxErrorFlow();
@@ -125,8 +127,7 @@ private:
 	////////////////////////////////////////////////////////
 	// Communication avec l'esclave (ordres)
 
-	// Met a jour la feneter RMA de demande d'arret
-	// equivalent a SetInterruptionRequested(true)
+	// Envoi un message non bloquant de demand d'arret a chaque esclave de la tache
 	void NotifyInterruptionRequested();
 
 	////////////////////////////////////////////////////////
@@ -148,9 +149,6 @@ private:
 	// utilise lors de la reception de fin de traitement pour decharger toutes les progressions
 	void DischargePendingCommunication(int nRank, int nTag);
 
-	// Met a jour la feneter RMA de demande d'arret
-	void SetInterruptionRequested(boolean isInteruptionRequested);
-
 	boolean FindPosOfRank(ObjectList& slavesList, int nValue, POSITION&);
 
 	////////////////////////////////////////////////////////
@@ -165,11 +163,17 @@ private:
 	//					- savoir si il y a des esclaves en train de travailler
 	ObjectList workers;
 
-	// pour n'envoyer l'arret qu'une seule fois
+	// Pour n'envoyer l'arret qu'une seule fois
 	boolean bStopOrderDone;
 
-	// Arret du programme : damande d'arret utilisateur
+	// Demande d'arret utilisateur
 	boolean bInterruptionRequested;
+
+	// Un esclave a rencontre une erreur
+	boolean bSlaveError;
+
+	// Le maitre a rencontre une erreur
+	boolean bMasterError;
 
 	boolean bIsMaxErrorReached;
 	boolean bIsMaxWarningReached;
@@ -198,23 +202,9 @@ private:
 	// Nombre d'esclaves qui ont lances SlaveFinalize
 	int nFinalisationCount;
 
-	////////////////////////////////////////////////////////
-	// Attributs MPI
-
-	// Fenetre RMA pour la demande d'arret
-	MPI_Win winForInterruption;
-
-	// Fenetres RMA pour signifier aux esclave qu'il est inutile d'envoyer de nouveaux messages
-	//  i.e. quand IsMaxErrorFlowReachedPerGravity == true
-	MPI_Win winMaxError;
-
 	// Rang du premier esclave qui envoie un message pendant les SlaveInitialize
 	int nFirstSlaveInitializeMessageRank;
 	int nFirstSlaveFinalizeMessageRank;
-
-	// Mis a true si l'interruprion requested a ete envoyee aux esclaves
-	// sert uniquement dans les assert
-	boolean bInterruptionRequestedIsSent;
 
 	PLMPIMessageManager messageManager;
 };

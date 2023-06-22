@@ -1,15 +1,15 @@
 @echo off
 
-genere -noarrayview CCAnalysisSpec "Parameters" CCAnalysisSpec.dd
+echo. > genere.log
 
-genere -noarrayview CCCoclusteringSpec "Coclustering parameters" CCCoclusteringSpec.dd
+genere -noarrayview CCAnalysisSpec "Parameters" CCAnalysisSpec.dd >> genere.log
 
-genere -noarrayview CCPostProcessingSpec "Simplification parameters" CCPostProcessingSpec.dd
-genere CCPostProcessedAttribute "Coclustering variable" CCPostProcessedAttribute.dd
+genere -noarrayview CCCoclusteringSpec "Coclustering parameters" CCCoclusteringSpec.dd >> genere.log
 
-genere -noarrayview CCDeploymentSpec "Deployment parameters" CCDeploymentSpec.dd
+genere -noarrayview CCPostProcessingSpec "Simplification parameters" CCPostProcessingSpec.dd >> genere.log
 
-genere -noarrayview CCAnalysisResults "Results" CCAnalysisResults.dd
+genere CCPostProcessedAttribute "Coclustering variable" CCPostProcessedAttribute.dd >> genere.log
 
+genere -noarrayview CCDeploymentSpec "Deployment parameters" CCDeploymentSpec.dd >> genere.log
 
-
+genere -noarrayview CCAnalysisResults "Results" CCAnalysisResults.dd >> genere.log

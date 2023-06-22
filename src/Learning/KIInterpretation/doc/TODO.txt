@@ -1,0 +1,3 @@
+01/07/2022
+- poursuivre les tests avec d'autres datasets (notamment multi-tables)
+- Repasser en revue tout le code, ajouter des commentaires lorsque nécessaire

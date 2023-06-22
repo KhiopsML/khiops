@@ -62,11 +62,11 @@ boolean PLDataTableDriverTextFile::IsOpenedForWrite() const
 
 longint PLDataTableDriverTextFile::GetEstimatedObjectNumber()
 {
-	// En parallele :   on remplace le buffer courant par un autre buffer
-	//					pour que le buffer courant ne soit pas modifier
-
 	longint lObjectNumber;
 	InputBufferedFile* currentInputBuffer;
+
+	// En parallele :   on remplace le buffer courant par un autre buffer
+	//					pour que le buffer courant ne soit pas modifier
 
 	// Sauvegarde du buffer courant avant l'appel a la fonction
 	currentInputBuffer = inputBuffer;
@@ -123,44 +123,33 @@ boolean PLDataTableDriverTextFile::OpenInputDatabaseFile()
 boolean PLDataTableDriverTextFile::FillFirstInputBuffer()
 {
 	boolean bOk;
-	longint lOverallSize;
 
 	require(not bWriteMode);
 	require(inputBuffer != NULL);
 	require(lBeginPosition <= lEndPosition);
 
-	// Retaillage eventuel du buffer
-	lOverallSize = lEndPosition - lBeginPosition;
-	assert(lOverallSize >= 0);
-	if (lOverallSize < inputBuffer->GetBufferSize())
-		inputBuffer->SetBufferSize((int)lOverallSize);
-
-	// Alimentation du buffer
-	bOk = inputBuffer->Fill(lBeginPosition);
-	ensure(inputBuffer->IsFileEnd() or inputBuffer->IsError() or inputBuffer->IsBufferEnd() or lOverallSize > 0);
+	// Alimentation du buffer en forcant le debut du chunk parametre dans le driver
+	bOk = FillInputBufferWithFullLines(lBeginPosition, lEndPosition);
 	return bOk;
 }
 
 boolean PLDataTableDriverTextFile::UpdateInputBuffer()
 {
 	boolean bOk = true;
-	longint lRemainingSize;
 
+	require(not bWriteMode);
+	require(inputBuffer != NULL);
 	require(lBeginPosition <= lEndPosition);
 	require(lBeginPosition <= inputBuffer->GetPositionInFile());
 
 	if (inputBuffer->IsBufferEnd() and not IsEnd())
 	{
+		// On est ici strictement au milieu du chunk
+		assert(lBeginPosition < inputBuffer->GetPositionInFile());
 		assert(inputBuffer->GetPositionInFile() < lEndPosition);
 
-		// Retaillage du buffer s'il ne reste pas beaucoup a lire
-		lRemainingSize = lEndPosition - inputBuffer->GetPositionInFile();
-		assert(lRemainingSize > 0);
-		if (lRemainingSize < inputBuffer->GetBufferSize())
-			inputBuffer->SetBufferSize((int)lRemainingSize);
-
-		// Alimentation du buffer
-		bOk = FillInputBufferWithFullLines();
+		// Alimentation du buffer par rapport a la position en cours dans le fichier
+		bOk = FillInputBufferWithFullLines(inputBuffer->GetPositionInFile(), lEndPosition);
 	}
 	return bOk;
 }
@@ -213,31 +202,17 @@ OutputBufferedFile* PLDataTableDriverTextFile::GetOutputBuffer()
 	return outputBuffer;
 }
 
-boolean PLDataTableDriverTextFile::ComputeDataItemLoadIndexes(const KWClass* kwcLogicalClass)
+boolean PLDataTableDriverTextFile::ComputeDataItemLoadIndexes(const KWClass* kwcLogicalClass,
+							      const KWClass* kwcHeaderLineClass)
 {
 	// En parallele : Idem methode ancetre sans l'ouverture du fichier
 	boolean bOk = true;
-	KWClass kwcHeaderLineClass;
-	KWClass* kwcUsedHeaderLineClass;
 
 	// Reinitialisation du fichier de la base de donnees
 	ResetDatabaseFile();
 
-	// Creation d'une classe fictive basee sur l'analyse de la premiere ligne du fichier, dans le cas d'une ligne
-	// d'entete pour obtenir le nombre de champs et leur eventuels nom et position (sans se soucier de leur type)
-	kwcUsedHeaderLineClass = NULL;
-	if (GetHeaderLineUsed())
-	{
-		kwcHeaderLineClass.SetName(kwcClass->GetDomain()->BuildClassName(GetClassName() + "HeaderLine"));
-		kwcClass->GetDomain()->InsertClass(&kwcHeaderLineClass);
-		bOk = BuildDataTableClass(&kwcHeaderLineClass);
-		kwcClass->GetDomain()->RemoveClass(kwcHeaderLineClass.GetName());
-		kwcUsedHeaderLineClass = &kwcHeaderLineClass;
-	}
-
 	// Calcul des index des champs de la classe physique
-	if (bOk)
-		bOk = KWDataTableDriverTextFile::ComputeDataItemLoadIndexes(kwcLogicalClass, kwcUsedHeaderLineClass);
+	bOk = KWDataTableDriverTextFile::ComputeDataItemLoadIndexes(kwcLogicalClass, kwcHeaderLineClass);
 	return bOk;
 }
 

@@ -548,7 +548,7 @@ public:
 	Continuous ComputeContinuousResult(const KWObject* kwoObject) const override;
 
 	// Verification que le premier operande est bien un intervalle avec deux bornes
-	boolean CheckOperandsCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
 
 	// Compilation
 	void Compile(KWClass* kwcOwnerClass) override;

@@ -134,7 +134,7 @@ public:
 	//////////////////////////////////////////////////////////////////
 	// Alimentation des cles
 
-	// Ajout d'une cle (entier superieur ou egal a 1)
+	// Ajout d'une cle (entier valide entre MinKey et MaxKey)
 	// Les cles doivent etre inserees dans le bon ordre
 	void AddKey(int nKey);
 
@@ -143,6 +143,10 @@ public:
 
 	// Nombre total de cles
 	int GetKeyNumber() const override;
+
+	// Valeurr min et max des cles numerique
+	static int GetMinKey();
+	static int GetMaxKey();
 
 	///////////////////////////////////////////////////////////////////
 	// Acces aux cle et a leur index
@@ -406,7 +410,7 @@ inline KWIndexedNKeyBlock::~KWIndexedNKeyBlock() {}
 
 inline void KWIndexedNKeyBlock::AddKey(int nKey)
 {
-	require(nKey >= 1);
+	require(GetMinKey() <= nKey and nKey <= GetMaxKey());
 	require(ivKeys.GetSize() == 0 or nKey > ivKeys.GetAt(ivKeys.GetSize() - 1));
 	ivKeys.Add(nKey);
 }
@@ -419,6 +423,16 @@ inline boolean KWIndexedNKeyBlock::IsKeyPresent(int nKey) const
 inline int KWIndexedNKeyBlock::GetKeyNumber() const
 {
 	return ivKeys.GetSize();
+}
+
+inline int KWIndexedNKeyBlock::GetMinKey()
+{
+	return 1;
+}
+
+inline int KWIndexedNKeyBlock::GetMaxKey()
+{
+	return 1000000000;
 }
 
 inline int KWIndexedNKeyBlock::GetKeyAt(int nIndex) const

@@ -9,10 +9,7 @@
 
 KDSelectionOperandAnalyser::KDSelectionOperandAnalyser()
 {
-	nMaxAnalysedObjectNumber = 0;
-	domainKnowlege = NULL;
-	// DDD
-	bPTIsParallel = false;
+	multiTableFeatureConstruction = NULL;
 }
 
 KDSelectionOperandAnalyser::~KDSelectionOperandAnalyser()
@@ -20,21 +17,22 @@ KDSelectionOperandAnalyser::~KDSelectionOperandAnalyser()
 	CleanAll();
 }
 
-void KDSelectionOperandAnalyser::SetDomainKnowledge(KDDomainKnowledge* domainKnowledgeParam)
+void KDSelectionOperandAnalyser::SetMultiTableFeatureConstruction(
+    KDMultiTableFeatureConstruction* featureConstructionParam)
 {
-	domainKnowlege = domainKnowledgeParam;
+	multiTableFeatureConstruction = featureConstructionParam;
 }
 
-KDDomainKnowledge* KDSelectionOperandAnalyser::GetDomainKnowledge() const
+KDMultiTableFeatureConstruction* KDSelectionOperandAnalyser::GetMultiTableFeatureConstruction() const
 {
-	require(domainKnowlege != NULL);
-	return domainKnowlege;
+	require(multiTableFeatureConstruction != NULL);
+	return multiTableFeatureConstruction;
 }
 
 KDConstructionDomain* KDSelectionOperandAnalyser::GetConstructionDomain() const
 {
-	require(domainKnowlege != NULL);
-	return domainKnowlege->GetConstructionDomain();
+	require(multiTableFeatureConstruction != NULL);
+	return multiTableFeatureConstruction->GetConstructionDomain();
 }
 
 KDClassSelectionStats*
@@ -42,7 +40,7 @@ KDSelectionOperandAnalyser::AddClassSelectionStats(const KDClassCompliantRules* 
 {
 	KDClassSelectionStats* classSelectionStats;
 
-	require(domainKnowlege != NULL);
+	require(multiTableFeatureConstruction != NULL);
 	require(classCompliantRulesParam != NULL);
 	require(LookupClassSelectionStats(classCompliantRulesParam->GetClassName()) == NULL);
 
@@ -79,16 +77,8 @@ boolean KDSelectionOperandAnalyser::ComputeStats(const ObjectArray* oaAllConstru
 		constructedRule->IncrementUseCounts();
 	}
 
-	// Calcul du nombre max d'objet utilisables pour l'analyse
-	bIsStatsComputed = ComputeMaxAnalysedObjectNumber();
-	if (not bIsStatsComputed)
-	{
-		AddError("Not enough memory to analyse database for selection operand stats");
-		AddMessage(RMResourceManager::BuildMemoryLimitMessage());
-	}
-
-	// Analyse de la base pour le pretraitement des partitions de valeurs, si necessaire et possible
-	if (bIsStatsComputed and GetClassSelectionStats()->GetSize() > 0 and nMaxAnalysedObjectNumber > 0)
+	// Analyse de la base pour le pretraitement des partitions de valeurs, si necessaire
+	if (bIsStatsComputed and GetClassSelectionStats()->GetSize() > 0)
 		bIsStatsComputed = ExtractSelectionOperandPartitions();
 
 	// Affichage des results
@@ -122,7 +112,6 @@ void KDSelectionOperandAnalyser::CleanStats()
 	}
 
 	// Reinitialisation du flag d'analyse des stats
-	nMaxAnalysedObjectNumber = 0;
 	bIsStatsComputed = false;
 }
 
@@ -285,100 +274,6 @@ const ALString KDSelectionOperandAnalyser::GetObjectLabel() const
 	return "";
 }
 
-boolean KDSelectionOperandAnalyser::ComputeMaxAnalysedObjectNumber()
-{
-	boolean bOk = true;
-	boolean bDisplay = false;
-	int nContinuousSelectionOperandNumber;
-	int nSymbolSelectionOperandNumber;
-	int nClass;
-	int nOperand;
-	KDClassSelectionStats* classSelectionStats;
-	KDClassSelectionOperandStats* selectionOperandStats;
-	const longint lMinUsableMemory = 10 * lMB;
-	const longint lMaxUsableMemory = 2 * lGB;
-	const longint lMaxObject = 100000000;
-	longint lAvailableMemory;
-	longint lUsableMemory;
-	longint lOperandNecessaryMemory;
-	longint lValueNecessaryMemory;
-	longint lPartileNecessaryMemory;
-	longint lMaxAnalysedObjectNumber;
-
-	// Memoire disponible
-	lAvailableMemory = RMResourceManager::GetRemainingAvailableMemory();
-
-	// Memoire utilisable
-	lUsableMemory = lAvailableMemory / 4;
-	if (lUsableMemory < lMinUsableMemory)
-		lUsableMemory = lMinUsableMemory;
-	if (lUsableMemory > lMaxUsableMemory)
-		lUsableMemory = lMaxUsableMemory;
-
-	// Calcul du nombre total d'operande de selection de type Continuous et Symbol
-	nContinuousSelectionOperandNumber = 0;
-	nSymbolSelectionOperandNumber = 0;
-	for (nClass = 0; nClass < GetClassSelectionStats()->GetSize(); nClass++)
-	{
-		classSelectionStats = cast(KDClassSelectionStats*, GetClassSelectionStats()->GetAt(nClass));
-
-		// Parcours des operandes de selection
-		for (nOperand = 0; nOperand < classSelectionStats->GetClassSelectionOperandStats()->GetSize();
-		     nOperand++)
-		{
-			selectionOperandStats =
-			    cast(KDClassSelectionOperandStats*,
-				 classSelectionStats->GetClassSelectionOperandStats()->GetAt(nOperand));
-			if (selectionOperandStats->GetOperandType() == KWType::Symbol)
-				nSymbolSelectionOperandNumber++;
-			if (selectionOperandStats->GetOperandType() == KWType::Continuous)
-				nContinuousSelectionOperandNumber++;
-		}
-	}
-
-	// Memoire necessaire pour stocker l'ensemble des valeurs, et des resultats par partiles
-	lOperandNecessaryMemory =
-	    nSymbolSelectionOperandNumber *
-		(sizeof(KDClassSymbolSelectionOperandStats) + sizeof(Symbol) + sizeof(KWObject*) + 2 * sizeof(void*)) +
-	    nContinuousSelectionOperandNumber *
-		(sizeof(KDClassContinuousSelectionOperandStats) + sizeof(KWObject*) + 2 * sizeof(void*));
-	lValueNecessaryMemory =
-	    nSymbolSelectionOperandNumber * (sizeof(Symbol)) + nContinuousSelectionOperandNumber * sizeof(Continuous);
-	lPartileNecessaryMemory =
-	    nSymbolSelectionOperandNumber *
-		(sizeof(KDSelectionValue) + sizeof(Symbol) + sizeof(KWObject*) + 2 * sizeof(void*)) +
-	    nContinuousSelectionOperandNumber * (sizeof(KDSelectionInterval) + sizeof(KWObject*) + 2 * sizeof(void*));
-
-	// Calcul nombre max d'objets dont on peut memoriser les valeurs
-	// Le nombre de partiles les plus fins a memoriser est au plus le nombre de valeur divise par
-	// MinPartileFrequency. Le nombre de partile total est au plus deux fois le nombre de partile le plus fin On a
-	// alors NecessaryMemory = MaxValueNumber*size(value) + 2*MaxValueNumber/MinPartileFrequency*size(partile)
-	lMaxAnalysedObjectNumber = 0;
-	if (lOperandNecessaryMemory + 2 * (lValueNecessaryMemory + lPartileNecessaryMemory) < lUsableMemory)
-		lMaxAnalysedObjectNumber =
-		    (lUsableMemory - lOperandNecessaryMemory) /
-		    (1 + lValueNecessaryMemory + 2 * lPartileNecessaryMemory / nMinPartileFrequency);
-	if (lMaxAnalysedObjectNumber > lMaxObject)
-		lMaxAnalysedObjectNumber = lMaxObject;
-	nMaxAnalysedObjectNumber = (int)lMaxAnalysedObjectNumber;
-	bOk = (nSymbolSelectionOperandNumber + nContinuousSelectionOperandNumber) == 0 or nMaxAnalysedObjectNumber > 0;
-
-	// Affichage des stats
-	if (bDisplay)
-	{
-		cout << "Necessary memory to analyse selection operands fom database\n";
-		cout << "\tAvailable memory\t" << lAvailableMemory << endl;
-		cout << "\tUsable memory\t" << lUsableMemory << endl;
-		cout << "\tSelection classes\t" << GetClassSelectionStats()->GetSize() << endl;
-		cout << "\tCategorical operands\t" << nSymbolSelectionOperandNumber << endl;
-		cout << "\tNumerical operands\t" << nContinuousSelectionOperandNumber << endl;
-		cout << "\tValue necessary memory\t" << lValueNecessaryMemory << endl;
-		cout << "\tPartile necessary memory\t" << lPartileNecessaryMemory << endl;
-		cout << "\tMax analysed entity number\t" << nMaxAnalysedObjectNumber << endl;
-	}
-	return bOk;
-}
-
 boolean KDSelectionOperandAnalyser::ExtractSelectionOperandPartitions()
 {
 	boolean bOk = true;
@@ -398,6 +293,10 @@ boolean KDSelectionOperandAnalyser::ExtractSelectionOperandPartitions()
 	// Affichage du domaine construit
 	if (bDisplay)
 	{
+		cout << "\nKDSelectionOperandAnalyser::ExtractSelectionOperandPartitions\n";
+		cout << "Main class\n";
+		kwcClass = selectionDomain->LookupClass(GetClass()->GetName());
+		cout << *kwcClass << endl;
 		cout << "Selection classes\n";
 		for (nClass = 0; nClass < GetClassSelectionStats()->GetSize(); nClass++)
 		{
@@ -412,13 +311,11 @@ boolean KDSelectionOperandAnalyser::ExtractSelectionOperandPartitions()
 	KWClassDomain::SetCurrentDomain(selectionDomain);
 	selectionDomain->Compile();
 
-	// En cours de developpement a brancher une fois mis au point
-	// DDD
-	if (bPTIsParallel)
-		bOk = TaskCollectSelectionOperandSamples(nReadObjectNumber);
-	else
-		// Lecture de la base pour collecter un echantillon de valeurs par variable secondaire de selection
-		bOk = CollectSelectionOperandSamples(nReadObjectNumber);
+	// Lecture de la base pour collecter un echantillon de valeurs par variable secondaire de selection
+	// On passe par une tache pour paralleliser cette lecture de la base
+	// On fait l'hypothese que le dimensionnement de la tache qui doit collecter un echantillon de valeur
+	// globalement pour le maitre et par esclave est suffisant pour le resume de cet echantillon en partiles
+	bOk = TaskCollectSelectionOperandSamples(nReadObjectNumber);
 
 	// Analyse des partitions de chaque operande de selection si ok, et nettoyage
 	for (nClass = 0; nClass < oaClassSelectionStats.GetSize(); nClass++)
@@ -475,6 +372,7 @@ boolean KDSelectionOperandAnalyser::TaskCollectSelectionOperandSamples(int& nRea
 	if (selectionOperandDataSampler->GetClassSelectionData()->GetSize() > 0)
 	{
 		// Lancement de la tache
+		selectionOperandSamplingTask.SetReusableDatabaseIndexer(GetLearningSpec()->GetDatabaseIndexer());
 		bOk = selectionOperandSamplingTask.CollectSelectionOperandSamples(selectionOperandDataSampler,
 										  GetDatabase(), nReadObjectNumber);
 
@@ -572,7 +470,7 @@ void KDSelectionOperandAnalyser::CollectClassSelectionData(
 	require(sourceSelectionOperandDataSampler->GetClassSelectionData()->GetSize() <=
 		GetClassSelectionStats()->GetSize());
 
-	// Nettoyage prealable des references aux objets selectionnes de l'echantionneur, pour liberer de la memoire
+	// Nettoyage prealable des references aux objets selectionnes de l'echantillonneur, pour liberer de la memoire
 	for (nClass = 0; nClass < sourceSelectionOperandDataSampler->GetClassSelectionData()->GetSize(); nClass++)
 	{
 		sourceClassSelectionData = cast(
@@ -604,7 +502,7 @@ void KDSelectionOperandAnalyser::CollectClassSelectionData(
 		assert(sourceClassSelectionData->GetClassSelectionOperandData()->GetSize() <=
 		       classSelectionStats->GetClassSelectionOperandStats()->GetSize());
 
-		// Parcours des operandes de selection cote donnee et synchornisation avec les operandes cotes stats
+		// Parcours des operandes de selection cote donnee et synchronisation avec les operandes cotes stats
 		nStatsOperand = 0;
 		for (nOperand = 0; nOperand < sourceClassSelectionData->GetClassSelectionOperandData()->GetSize();
 		     nOperand++)
@@ -662,97 +560,6 @@ void KDSelectionOperandAnalyser::CollectClassSelectionData(
 	}
 }
 
-boolean KDSelectionOperandAnalyser::CollectSelectionOperandSamples(int& nReadObjectNumber)
-{
-	boolean bOk = true;
-	NumericKeyDictionary nkdAllSubObjects;
-	KWObject* kwoObject;
-	longint lRecordNumber;
-	int nObjectNumber;
-	PeriodicTest periodicTestInterruption;
-
-	// Debut de suivi de tache
-	TaskProgression::BeginTask();
-	TaskProgression::DisplayMainLabel("Extract selection values from database");
-
-	// Ouverture de la base en lecture
-	bOk = GetDatabase()->OpenForRead();
-
-	// Lecture d'objets dans la base
-	lRecordNumber = 0;
-	nObjectNumber = 0;
-	if (bOk)
-	{
-		// Memorisation des objets references globaux
-		RegisterAllReferencedObjects();
-
-		// Analyse des objet de la base
-		Global::ActivateErrorFlowControl();
-		while (not GetDatabase()->IsEnd())
-		{
-			kwoObject = GetDatabase()->Read();
-			lRecordNumber++;
-			if (kwoObject != NULL)
-			{
-				nObjectNumber++;
-
-				// Analyse de l'objet pour enregistrer les objets des classes de selection
-				ExtractSelectionObjects(kwoObject, &nkdAllSubObjects);
-
-				// Nettoyage
-				nkdAllSubObjects.RemoveAll();
-				delete kwoObject;
-			}
-			// Arret si interruption utilisateur
-			else if (TaskProgression::IsInterruptionRequested())
-			{
-				assert(kwoObject == NULL);
-				bOk = false;
-				break;
-			}
-
-			// Arret si erreur de lecture
-			if (GetDatabase()->IsError())
-			{
-				bOk = false;
-				Object::AddError("Read database interrupted because of errors");
-				break;
-			}
-
-			// Suivi de la tache
-			if (periodicTestInterruption.IsTestAllowed(lRecordNumber))
-			{
-				TaskProgression::DisplayProgression((int)(100 * GetDatabase()->GetReadPercentage()));
-			}
-		}
-		Global::DesactivateErrorFlowControl();
-
-		// Test si interruption sans qu'il y ait d'erreur
-		if (not GetDatabase()->IsError() and TaskProgression::IsInterruptionRequested())
-		{
-			bOk = false;
-			Object::AddWarning("Read database interrupted by user");
-		}
-
-		// Fermeture
-		bOk = GetDatabase()->Close() and bOk;
-
-		// Nettoyage des objets globaux references
-		nkdAllAnalyzedReferencedObjects.RemoveAll();
-		nkdAllReferencedObjects.RemoveAll();
-	}
-
-	// Valeur en sortie
-	if (bOk)
-		nReadObjectNumber = nObjectNumber;
-	else
-		nReadObjectNumber = 0;
-
-	// Fin de suivi de tache
-	TaskProgression::EndTask();
-	return bOk;
-}
-
 KWClassDomain* KDSelectionOperandAnalyser::BuildSelectionDomain()
 {
 	KDClassBuilder classBuilder;
@@ -769,11 +576,12 @@ KWClassDomain* KDSelectionOperandAnalyser::BuildSelectionDomain()
 	boolean bNewClasses;
 	KDClassSelectionStats* classSelectionStats;
 	KDClassSelectionOperandStats* classSelectionOperandStats;
+	boolean bIsSelectionAttributeUsed;
 
-	require(GetDomainKnowledge() != NULL);
+	require(GetMultiTableFeatureConstruction() != NULL);
 
 	// Parametrage du service de construction de classe
-	classBuilder.SetDomainKnowledge(GetDomainKnowledge());
+	classBuilder.SetMultiTableFeatureConstruction(GetMultiTableFeatureConstruction());
 
 	// Construction de la classe
 	selectionClass = classBuilder.BuildClassFromSelectionRules(GetClass(), this);
@@ -888,337 +696,31 @@ KWClassDomain* KDSelectionOperandAnalyser::BuildSelectionDomain()
 			}
 		}
 	}
+
+	/////////////////////////////////////////////////////////////////////////////////////
+	// Simplification de la classe en supprimant tous les attributs calcules en Unused,
+	// sauf l'eventuel attribut de selection
+
+	// On met en used l'eventuel attribut de selection, car ils peut avoir une regle de calcul
+	bIsSelectionAttributeUsed = false;
+	if (GetDatabase()->GetSelectionAttribute() != "")
+	{
+		attribute = selectionClass->LookupAttribute(GetDatabase()->GetSelectionAttribute());
+		bIsSelectionAttributeUsed = attribute->GetUsed();
+		attribute->SetUsed(true);
+	}
+
+	// Nettoyage du domaine apres la necessaire compilation
+	selectionClass->GetDomain()->Compile();
+	selectionClass->DeleteUnusedDerivedAttributes(NULL);
+
+	// On remet l'eventuel attribut de selection dans son etat used initial
+	if (GetDatabase()->GetSelectionAttribute() != "")
+	{
+		attribute = selectionClass->LookupAttribute(GetDatabase()->GetSelectionAttribute());
+		attribute->SetUsed(bIsSelectionAttributeUsed);
+	}
 	return selectionDomain;
-}
-
-void KDSelectionOperandAnalyser::ExtractSelectionObjects(const KWObject* kwoObject,
-							 NumericKeyDictionary* nkdAllSubObjects)
-{
-	const KWClass* kwcClass;
-	int nAttribute;
-	KWAttribute* attribute;
-	KWObject* kwoSubObject;
-	ObjectArray* oaSubObjects;
-	int i;
-	int nAttributeBlock;
-	KWAttributeBlock* attributeBlock;
-	KWObjectArrayValueBlock* valueBlock;
-	int nValue;
-	KDClassSelectionStats* classSelectionStats;
-
-	require(kwoObject != NULL);
-	require(nkdAllSubObjects != NULL);
-	require(nkdAllSubObjects->Lookup((NUMERIC)kwoObject) == NULL);
-
-	// Si objet reference, memorisation de l'objet dans liste des objet references analyses
-	if (nkdAllReferencedObjects.Lookup((NUMERIC)kwoObject) != NULL)
-	{
-		// Arret si objet enregistre dans les objets references deja analyses
-		if (nkdAllAnalyzedReferencedObjects.Lookup((NUMERIC)kwoObject) != NULL)
-			return;
-
-		// Enregistrement sinon
-		nkdAllAnalyzedReferencedObjects.SetAt((NUMERIC)kwoObject, cast(Object*, kwoObject));
-	}
-	// Sinon, memorisation de l'objet dans la liste des sous-objets explores
-	else
-		nkdAllSubObjects->SetAt((NUMERIC)kwoObject, cast(Object*, kwoObject));
-
-	// Acces a la classe
-	kwcClass = kwoObject->GetClass();
-	check(kwcClass);
-
-	// On determine s'il s'agit d'une classe de selection
-	classSelectionStats = cast(KDClassSelectionStats*, odClassSelectionStats.Lookup(kwcClass->GetName()));
-
-	// Extraction des valeurs de selection du sous-objets
-	if (classSelectionStats != NULL)
-		ExtractSelectionObjectValues(classSelectionStats, kwoObject);
-
-	// Parcours de la structure Object et ObjectArray de l'objet
-	for (nAttribute = 0; nAttribute < kwcClass->GetLoadedRelationAttributeNumber(); nAttribute++)
-	{
-		attribute = kwcClass->GetLoadedRelationAttributeAt(nAttribute);
-
-		// Cas Object
-		if (attribute->GetType() == KWType::Object)
-		{
-			kwoSubObject = kwoObject->GetObjectValueAt(attribute->GetLoadIndex());
-
-			// Propagation au sous-objet
-			if (kwoSubObject != NULL and nkdAllSubObjects->Lookup((NUMERIC)kwoSubObject) == NULL)
-				ExtractSelectionObjects(kwoSubObject, nkdAllSubObjects);
-		}
-		// Cas ObjectArray
-		else
-		{
-			assert(attribute->GetType() == KWType::ObjectArray);
-
-			// Propagation au sous-objet
-			oaSubObjects = kwoObject->GetObjectArrayValueAt(attribute->GetLoadIndex());
-			if (oaSubObjects != NULL)
-			{
-				// Propagation aux sous-objets
-				for (i = 0; i < oaSubObjects->GetSize(); i++)
-				{
-					kwoSubObject = cast(KWObject*, oaSubObjects->GetAt(i));
-
-					// Propagation au sous-objet
-					if (kwoSubObject != NULL and
-					    nkdAllSubObjects->Lookup((NUMERIC)kwoSubObject) == NULL)
-						ExtractSelectionObjects(kwoSubObject, nkdAllSubObjects);
-				}
-			}
-		}
-	}
-
-	// Parcours des blocs de type ObjectArray
-	for (nAttributeBlock = 0; nAttributeBlock < kwcClass->GetLoadedAttributeBlockNumber(); nAttributeBlock++)
-	{
-		attributeBlock = kwcClass->GetLoadedAttributeBlockAt(nAttributeBlock);
-
-		// Traitement des blocs de de type ObjectArray
-		if (attributeBlock->GetType() == KWType::ObjectArray)
-		{
-			valueBlock = kwoObject->GetObjectArrayValueBlockAt(attributeBlock->GetLoadIndex());
-
-			// Parcours des valeurs du bloc
-			for (nValue = 0; nValue < valueBlock->GetValueNumber(); nValue++)
-			{
-				// Propagation au sous-objet
-				oaSubObjects = valueBlock->GetValueAt(nValue);
-				check(oaSubObjects);
-
-				// Propagation aux sous-objets
-				for (i = 0; i < oaSubObjects->GetSize(); i++)
-				{
-					kwoSubObject = cast(KWObject*, oaSubObjects->GetAt(i));
-
-					// Propagation au sous-objet
-					if (kwoSubObject != NULL and
-					    nkdAllSubObjects->Lookup((NUMERIC)kwoSubObject) == NULL)
-						ExtractSelectionObjects(kwoSubObject, nkdAllSubObjects);
-				}
-			}
-		}
-	}
-}
-
-void KDSelectionOperandAnalyser::ExtractSelectionObjectValues(KDClassSelectionStats* classSelectionStats,
-							      const KWObject* kwoObject)
-{
-	int nOperand;
-	KDClassSelectionOperandStats* selectionOperandStats;
-	KDClassSymbolSelectionOperandStats* symbolSelectionOperandStats;
-	KDClassContinuousSelectionOperandStats* continuousSelectionOperandStats;
-	KWAttribute* selectionAttribute;
-	int nValueIndex;
-	int nRandomIndex;
-	int nAnalysedObjectNumber;
-
-	require(classSelectionStats != NULL);
-	require(kwoObject != NULL);
-	require(kwoObject->GetClass()->GetName() == classSelectionStats->GetClassName());
-
-	// Incrementation du nombre d'objets de la base
-	classSelectionStats->SetDatabaseObjectNumber(classSelectionStats->GetDatabaseObjectNumber() + 1);
-
-	// Utilisation de l'algorithme de Reservoir Sampling (Vitter, 1985) pour garder au plus nMaxAnalysedObjectNumber
-	// selon un echantillonnage i.i.d. de l'ensemble des objets traites L'algo est applique par objet, pour toutes
-	// les valeurs de l'objet
-	//
-	// 1) si on atteint pas le nombre max d'objets analyses, on on ajoute une valeur d'analyse (nValueIndex=Size)
-	nValueIndex = -2;
-	nAnalysedObjectNumber = classSelectionStats->GetAnalysedObjectNumber();
-	if (nAnalysedObjectNumber < nMaxAnalysedObjectNumber)
-	{
-		nValueIndex = nAnalysedObjectNumber;
-
-		// Incrementation du nombre d'objets analyses
-		nAnalysedObjectNumber++;
-		classSelectionStats->SetAnalysedObjectNumber(nAnalysedObjectNumber);
-	}
-	// 2) sinon, on tire au hasard une position d'insertion (RandomIndex) de la valeur
-	else
-	{
-		nRandomIndex = RandomInt(classSelectionStats->GetDatabaseObjectNumber() - 1);
-
-		// 2.a) on la memorise si cela rentre dans le tableau (nValueIndex=nRandomIndex)
-		if (nRandomIndex < nMaxAnalysedObjectNumber)
-			nValueIndex = nRandomIndex;
-		// 2.b) on l'ignore sinon
-		else
-			nValueIndex = -1;
-	}
-	assert(-1 <= nValueIndex and nValueIndex < nAnalysedObjectNumber);
-
-	// Parcours des operandes de selection si les valeurs de l'objets doivent etre memorises
-	if (nValueIndex >= 0)
-	{
-		for (nOperand = 0; nOperand < classSelectionStats->GetClassSelectionOperandStats()->GetSize();
-		     nOperand++)
-		{
-			// Acces a l'operande de selection
-			selectionOperandStats =
-			    cast(KDClassSelectionOperandStats*,
-				 classSelectionStats->GetClassSelectionOperandStats()->GetAt(nOperand));
-
-			// Acces a l'attribut de selection pour les operandes de selection effectivement utilises
-			assert(selectionOperandStats->GetPartitionDimension()->GetUseCount() > 0 or
-			       selectionOperandStats->GetSelectionAttribute() == NULL);
-			if (selectionOperandStats->GetSelectionAttribute() != NULL)
-			{
-				selectionAttribute = selectionOperandStats->GetSelectionAttribute();
-				check(selectionAttribute);
-				assert(selectionAttribute->GetParentClass()->GetName() ==
-				       kwoObject->GetClass()->GetName());
-				assert(KWType::IsSimple(selectionAttribute->GetType()));
-				assert(selectionAttribute->GetUsed());
-
-				// Mise a jour des valeurs de selection selon le type de l'operande de selection
-				if (selectionAttribute->GetType() == KWType::Symbol)
-				{
-					symbolSelectionOperandStats =
-					    cast(KDClassSymbolSelectionOperandStats*, selectionOperandStats);
-
-					// Remplacement ou ajout de la valeur selon son index
-					if (nValueIndex == symbolSelectionOperandStats->GetInputData()->GetSize())
-						symbolSelectionOperandStats->GetInputData()->Add(
-						    kwoObject->GetSymbolValueAt(selectionAttribute->GetLoadIndex()));
-					else
-						symbolSelectionOperandStats->GetInputData()->SetAt(
-						    nValueIndex,
-						    kwoObject->GetSymbolValueAt(selectionAttribute->GetLoadIndex()));
-					assert(symbolSelectionOperandStats->GetInputData()->GetSize() ==
-					       nAnalysedObjectNumber);
-				}
-				else
-				{
-					continuousSelectionOperandStats =
-					    cast(KDClassContinuousSelectionOperandStats*, selectionOperandStats);
-
-					// Remplacement ou ajout de la valeur selon son index
-					if (nValueIndex == continuousSelectionOperandStats->GetInputData()->GetSize())
-						continuousSelectionOperandStats->GetInputData()->Add(
-						    kwoObject->GetContinuousValueAt(
-							selectionAttribute->GetLoadIndex()));
-					else
-						continuousSelectionOperandStats->GetInputData()->SetAt(
-						    nValueIndex, kwoObject->GetContinuousValueAt(
-								     selectionAttribute->GetLoadIndex()));
-					assert(continuousSelectionOperandStats->GetInputData()->GetSize() ==
-					       nAnalysedObjectNumber);
-				}
-			}
-		}
-	}
-}
-
-void KDSelectionOperandAnalyser::RegisterAllReferencedObjects()
-{
-	boolean bDisplay = false;
-	KWMTDatabase* inputDatabase;
-	const KWObjectReferenceResolver* objectReferenceSolver;
-	ObjectArray oaRootClasses;
-	int nClass;
-	KWClass* rootClass;
-	ObjectArray oaRootObjects;
-	int nObject;
-	KWObject* rootObject;
-
-	require(GetDatabase()->IsMultiTableTechnology());
-	require(GetDatabase()->IsOpenedForRead());
-	require(nkdAllReferencedObjects.GetCount() == 0);
-	require(nkdAllAnalyzedReferencedObjects.GetCount() == 0);
-
-	// Acces a la base en mode multitable
-	inputDatabase = cast(KWMTDatabase*, GetDatabase());
-
-	// Acces au container des objet references
-	objectReferenceSolver = inputDatabase->GetObjectReferenceSolver();
-
-	// Parcours des classes des objet references
-	objectReferenceSolver->ExportClasses(&oaRootClasses);
-	for (nClass = 0; nClass < oaRootClasses.GetSize(); nClass++)
-	{
-		rootClass = cast(KWClass*, oaRootClasses.GetAt(nClass));
-
-		// Affichage
-		if (bDisplay)
-			cout << "\t" << rootClass->GetName() << "\t"
-			     << objectReferenceSolver->GetObjectNumber(rootClass) << endl;
-
-		// Acces aux objet references pour cette classe
-		objectReferenceSolver->ExportObjects(rootClass, &oaRootObjects);
-		for (nObject = 0; nObject < oaRootObjects.GetSize(); nObject++)
-		{
-			rootObject = cast(KWObject*, oaRootObjects.GetAt(nObject));
-
-			// Enregistrement de l'objet racine et de sa composition
-			RegisterReferencedObject(rootObject);
-		}
-	}
-
-	// Affichage
-	if (bDisplay)
-		cout << "AllReferencedEntities\t" << nkdAllReferencedObjects.GetCount() << endl;
-}
-
-void KDSelectionOperandAnalyser::RegisterReferencedObject(KWObject* kwoObject)
-{
-	const KWClass* kwcClass;
-	int nAttribute;
-	KWAttribute* attribute;
-	KWObject* kwoSubObject;
-	ObjectArray* oaSubObjects;
-	int i;
-
-	require(kwoObject != NULL);
-
-	// Arret si objet null ou deja enregistre
-	if (kwoObject == NULL or nkdAllReferencedObjects.Lookup((NUMERIC)kwoObject) != NULL)
-		return;
-
-	// Memorisation de l'objet
-	nkdAllReferencedObjects.SetAt((NUMERIC)kwoObject, kwoObject);
-
-	// Acces a la classe
-	kwcClass = kwoObject->GetClass();
-	check(kwcClass);
-
-	// Parcours de la structure Object et ObjectArray de l'objet
-	for (nAttribute = 0; nAttribute < kwcClass->GetLoadedRelationAttributeNumber(); nAttribute++)
-	{
-		attribute = kwcClass->GetLoadedRelationAttributeAt(nAttribute);
-
-		// Cas Object
-		if (attribute->GetType() == KWType::Object)
-		{
-			kwoSubObject = kwoObject->GetObjectValueAt(attribute->GetLoadIndex());
-
-			// Propagation au sous-objet
-			RegisterReferencedObject(kwoSubObject);
-		}
-		// Cas ObjectArray
-		else
-		{
-			assert(attribute->GetType() == KWType::ObjectArray);
-
-			// Propagation aux sous-objets
-			oaSubObjects = kwoObject->GetObjectArrayValueAt(attribute->GetLoadIndex());
-			if (oaSubObjects != NULL)
-			{
-				// Propagation aux sous-objets
-				for (i = 0; i < oaSubObjects->GetSize(); i++)
-				{
-					kwoSubObject = cast(KWObject*, oaSubObjects->GetAt(i));
-
-					// Propagation au sous-objet
-					RegisterReferencedObject(kwoSubObject);
-				}
-			}
-		}
-	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1409,7 +911,7 @@ KDConstructedPartition* KDClassSelectionStats::LookupPartition(const KDConstruct
 	POSITION searchedPosition;
 
 	require(partition != NULL);
-	require(partition->GetClass()->GetName() == GetClassName());
+	require(partition->GetPartitionClass()->GetName() == GetClassName());
 	require(partition->Check());
 
 	searchedPartition = NULL;
@@ -1422,7 +924,7 @@ KDConstructedPartition* KDClassSelectionStats::LookupPartition(const KDConstruct
 void KDClassSelectionStats::AddPartition(KDConstructedPartition* partition)
 {
 	require(partition != NULL);
-	require(partition->GetClass()->GetName() == GetClassName());
+	require(partition->GetPartitionClass()->GetName() == GetClassName());
 	require(LookupPartition(partition) == NULL);
 
 	// Memorisation de la partition

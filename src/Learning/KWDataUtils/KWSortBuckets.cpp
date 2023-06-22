@@ -748,7 +748,7 @@ longint KWSortBucket::GetChunkSize()
 		}
 		else
 		{
-			ensure(GetSorted() == true);
+			ensure(GetSorted());
 			lFileSize = PLRemoteFileService::GetFileSize(sOutputFileName);
 		}
 	}

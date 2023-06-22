@@ -182,7 +182,11 @@ name      {letter}({letter}|{digit})*
 
 "Timestamp"               return TIMESTAMPTYPE;
 
+"TimestampTZ"             return TIMESTAMPTZTYPE;
+
 "Text"                    return TEXTTYPE;
+
+"TextList"                return TEXTLISTTYPE;
 
 "Entity"                  return OBJECTTYPE;
 

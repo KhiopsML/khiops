@@ -5,8 +5,7 @@
 #pragma once
 
 ////////////////////////////////////////////////////////////
-// 2017-08-09 17:11:48
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "Object.h"
@@ -30,7 +29,7 @@ public:
 	void CopyFrom(const MDKhiopsModelingSpec* aSource);
 	MDKhiopsModelingSpec* Clone() const;
 
-	////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
 	// Acces aux attributs
 
 	// Selective Naive Bayes predictor
@@ -49,7 +48,7 @@ public:
 	boolean GetDataGridPredictor() const;
 	void SetDataGridPredictor(boolean bValue);
 
-	////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
 	// Divers
 
 	// Ecriture
@@ -70,7 +69,7 @@ public:
 	// ##
 
 	////////////////////////////////////////////////////////
-	//// Implementation
+	///// Implementation
 protected:
 	// Attributs de la classe
 	boolean bSelectiveNaiveBayesPredictor;

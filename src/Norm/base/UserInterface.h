@@ -32,10 +32,10 @@ class UIAction;
 #include "CommandLine.h"
 
 // Directive de compilation dediee au developpement des composants UI
-// Seul la librairie Base a besoin effectivement de <jni.h> pour etre compilee
+// Seule la librairie Base a besoin effectivement de <jni.h> pour etre compilee
 // (donc du define UIDEV)
 // Les sources utilisant la librairie Base n'ont besoin que du header et des
-// psuedo-declaration a des pointeurs JNI qui ne sont jamais accedes
+// pseudo-declarations a des pointeurs JNI qui ne sont jamais accedes
 #ifdef UIDEV
 #include "jni_wrapper.h"
 // Pointeur vers les fonctions java
@@ -456,6 +456,9 @@ protected:
 	static FILE* fInputCommands;
 	static FILE* fOutputCommands;
 
+	// Redirection de la sortie outputCommand vers la console
+	static boolean bPrintOutputInConsole;
+
 	// Gestion des chaines des patterns a remplacer par des valeurs dans les fichiers d'input de scenario
 	static StringVector svInputCommandSearchValues;
 	static StringVector svInputCommandReplaceValues;
@@ -501,6 +504,7 @@ public:
 	void SetMainLabel(const ALString& sValue) override;
 	void SetLabel(const ALString& sValue) override;
 	void SetProgression(int nValue) override;
+	boolean IsInterruptionResponsive() const override;
 
 	// Acces au gestion de suivi global
 	static UITaskProgression* GetManager();
@@ -1042,6 +1046,9 @@ protected:
 	// d'ouvrir le FileChooser. Dans cette version, on ouvre directement le FileChooser du systeme, ce  qui
 	// simplifie l'ergonomie en faisant economiser deux clics, pour ouvir et fermer le FileChooser
 
+	// Redefinition de l'action de sortie, associee au choix No
+	void EventExit() override;
+
 	// Action OK, pour compatibilite ascendante avec les anciennes boite de dialogue
 	void OK();
 
@@ -1562,6 +1569,9 @@ public:
 
 	// Style: par defaut TextField (ou vide)
 	// Valeurs possibles: TextField, ComboBox, EditableComboBox, RadioButton
+	//
+	// Pour le style ComboBox, EditableComboBox ou RadioButton, les Parameters contiennent
+	//   la liste des valeurs separees par des '\n' (exemple: "R\nG\nB")
 
 	// Valeur par defaut
 	void SetDefaultValue(char cValue);
@@ -1604,8 +1614,10 @@ public:
 	~UIIntElement();
 
 	// Style: par defaut TextField (ou vide)
-	// Valeurs possibles: TextField, ComboBox, EditableComboBox, RadioButton,
-	//                    Spinner, Slider
+	// Valeurs possibles: TextField, ComboBox, EditableComboBox, RadioButton, Spinner, Slider
+	//
+	// Pour le style ComboBox, EditableComboBox ou RadioButton, les Parameters contiennent
+	//   la liste des valeurs separees par des '\n' (exemple: "1\n2\n3")
 
 	// Valeur par defaut
 	void SetDefaultValue(int nValue);
@@ -1661,7 +1673,14 @@ public:
 	~UIDoubleElement();
 
 	// Style: par defaut TextField (ou vide)
-	// Valeurs possibles: TextField, ComboBox, EditableComboBox, RadioButton
+	// Valeurs possibles: TextField, ComboBox, EditableComboBox, RadioButton, Spinner
+	//
+	// Pour le style ComboBox, EditableComboBox ou RadioButton, les Parameters contiennent
+	//   la liste des valeurs separees par des '\n' (exemple: "1\n2\n3")
+	//
+	// Pour le style Spinner, les Parameters contiennent le nombre de chiffre apres la virgule a a afficher (defaut:
+	// 0) Par exemple, si on precise 2, les reel seront affiches au 1/100 pres et on pourra les choisir avec cette
+	// precision
 
 	// Valeur par defaut
 	void SetDefaultValue(double dValue);

@@ -14,7 +14,8 @@ void KNITransferProject::OpenLearningEnvironnement()
 	KWLearningProject::OpenLearningEnvironnement();
 
 	// Declaration des licences
-	LMLicenseManager::DeclarePredefinedLicense(LMLicenseManager::Khiops);
+	if (LMLicenseManager::IsEnabled())
+		LMLicenseManager::DeclarePredefinedLicense(LMLicenseManager::Khiops);
 
 	// Parametrage du nom du module applicatif
 	SetLearningModuleName("KNI Transfer");

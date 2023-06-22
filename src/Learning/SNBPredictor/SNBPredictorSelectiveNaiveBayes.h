@@ -68,7 +68,7 @@ protected:
 
 	// Finalisation de l'entrainement du MAP a partir d'une selection
 	void InternalTrainMAP(KWDataPreparationClass* dataPreparationClass,
-			      SNBHardAttributeSelection* mapAtributeSelection);
+			      SNBHardAttributeSelection* mapAttributeSelection);
 
 	// Finalisation de l'entrainement quand il n'y a pas d'attribut informatif
 	void InternalTrainEmptyPredictor();

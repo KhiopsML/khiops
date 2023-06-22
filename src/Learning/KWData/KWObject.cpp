@@ -26,10 +26,159 @@ KWObject::~KWObject()
 	DeleteAttributes();
 }
 
+void KWObject::ComputeAllValues(KWDatabaseMemoryGuard* memoryGuard)
+{
+	int nAttribute;
+	KWDataItem* dataItem;
+	KWAttribute* attribute;
+	KWAttributeBlock* attributeBlock;
+	KWObject* kwoUsedObject;
+	ObjectArray* oaUsedObjects;
+	int nObject;
+
+	require(kwcClass->IsCompiled());
+	require(memoryGuard != NULL);
+
+	debug(require(nObjectLoadedDataItemNumber == kwcClass->GetTotalInternallyLoadedDataItemNumber()));
+	debug(require(nFreshness == kwcClass->GetFreshness()));
+
+	// Calcul de toutes les valeurs a transferer
+	for (nAttribute = 0; nAttribute < kwcClass->GetConstDatabaseDataItemsToCompute()->GetSize(); nAttribute++)
+	{
+		dataItem = cast(KWDataItem*, kwcClass->GetConstDatabaseDataItemsToCompute()->GetAt(nAttribute));
+
+		// Arret du calcul si la limite memoire est depasseee
+		if (memoryGuard->IsSingleInstanceMemoryLimitReached())
+		{
+			// On continue a enregistrer les attributs a calculer pour affiner les message d'erreur
+			// utilisateurs
+			memoryGuard->AddComputedAttribute();
+			continue;
+		}
+
+		// Calcul des attributs derives
+		if (dataItem->IsAttribute())
+		{
+			attribute = cast(KWAttribute*, dataItem);
+			if (attribute->GetDerivationRule() != NULL)
+			{
+				// Calcul selon le type
+				switch (attribute->GetType())
+				{
+				case KWType::Symbol:
+					ComputeSymbolValueAt(attribute->GetLoadIndex());
+					break;
+				case KWType::Continuous:
+					ComputeContinuousValueAt(attribute->GetLoadIndex());
+					break;
+				case KWType::Date:
+					ComputeDateValueAt(attribute->GetLoadIndex());
+					break;
+				case KWType::Time:
+					ComputeTimeValueAt(attribute->GetLoadIndex());
+					break;
+				case KWType::Timestamp:
+					ComputeTimestampValueAt(attribute->GetLoadIndex());
+					break;
+				case KWType::TimestampTZ:
+					ComputeTimestampTZValueAt(attribute->GetLoadIndex());
+					break;
+				case KWType::Text:
+					ComputeTextValueAt(attribute->GetLoadIndex());
+					break;
+				case KWType::TextList:
+					ComputeTextListValueAt(attribute->GetLoadIndex());
+					break;
+				case KWType::Object:
+					ComputeObjectValueAt(attribute->GetLoadIndex());
+					break;
+				case KWType::ObjectArray:
+					ComputeObjectArrayValueAt(attribute->GetLoadIndex());
+					break;
+				case KWType::Structure:
+					ComputeStructureValueAt(attribute->GetLoadIndex());
+					break;
+				}
+			}
+
+			// Propagation aux sous-objets de la composition
+			if (attribute->GetType() == KWType::Object)
+
+			{
+				if (not attribute->GetReference())
+				{
+					kwoUsedObject = GetObjectValueAt(attribute->GetLoadIndex());
+					if (kwoUsedObject != NULL)
+						kwoUsedObject->ComputeAllValues(memoryGuard);
+				}
+			}
+			// Propagation aux tableaux de sous-objets de la composition
+			else if (attribute->GetType() == KWType::ObjectArray)
+			{
+				if (not attribute->GetReference())
+				{
+					oaUsedObjects = GetObjectArrayValueAt(attribute->GetLoadIndex());
+					if (oaUsedObjects != NULL)
+					{
+						for (nObject = 0; nObject < oaUsedObjects->GetSize(); nObject++)
+						{
+							kwoUsedObject = cast(KWObject*, oaUsedObjects->GetAt(nObject));
+							if (kwoUsedObject != NULL)
+								kwoUsedObject->ComputeAllValues(memoryGuard);
+						}
+					}
+				}
+			}
+		}
+		// Calcul des blocs d'attributs derives
+		else
+		{
+			attributeBlock = cast(KWAttributeBlock*, dataItem);
+			if (attributeBlock->GetDerivationRule() != NULL)
+			{
+				// Calcul selon le type
+				switch (attributeBlock->GetBlockType())
+				{
+				case KWType::SymbolValueBlock:
+					ComputeSymbolValueBlockAt(attributeBlock->GetLoadIndex());
+					break;
+				case KWType::ContinuousValueBlock:
+					ComputeContinuousValueBlockAt(attributeBlock->GetLoadIndex());
+					break;
+				case KWType::ObjectArrayValueBlock:
+					ComputeObjectArrayValueBlockAt(attributeBlock->GetLoadIndex());
+					break;
+				}
+			}
+		}
+
+		// Enregistrer de l'attribut a calculer
+		memoryGuard->AddComputedAttribute();
+
+		// Tentative de nettoyage si memoire limite depasse
+		if (memoryGuard->IsSingleInstanceMemoryLimitReached())
+		{
+			// Nettoyage des donnees de travail temporaire, pouvant etre recalculees
+			CleanTemporayDataItemsToComputeAndClean();
+
+			// Actualisation de la detetcion de depassement memoire
+			memoryGuard->UpdateAfterMemoryCleaning();
+		}
+	}
+
+	// Nettoyage si limite memoire depassee
+	if (memoryGuard->IsSingleInstanceMemoryLimitReached())
+	{
+		CleanAllNonNativeAttributes();
+		CleanNativeRelationAttributes();
+	}
+}
+
 void KWObject::DeleteAttributes()
 {
 	int i;
 	KWAttribute* attribute;
+	SymbolVector* svTextList;
 	KWAttributeBlock* attributeBlock;
 	KWObject* kwoUsedObject;
 	ObjectArray* oaUsedObjectArray;
@@ -69,12 +218,30 @@ void KWObject::DeleteAttributes()
 				GetAt(liLoadIndex.GetDenseIndex()).ResetText();
 		}
 
+		// Destruction des valeurs de type TextList
+		// (pour assurer la gestion correcte du compteur de reference des Text)
+		for (i = 0; i < kwcClass->GetLoadedTextListAttributeNumber(); i++)
+		{
+			attribute = kwcClass->GetLoadedTextListAttributeAt(i);
+
+			// Destruction sauf si NULL ou derive mais non calcule
+			liLoadIndex = attribute->GetLoadIndex();
+			if (not GetAt(liLoadIndex.GetDenseIndex()).IsTextListForbidenValue())
+			{
+				svTextList = GetAt(liLoadIndex.GetDenseIndex()).GetTextList();
+				if (svTextList != NULL)
+					delete svTextList;
+			}
+		}
+
 		// Destruction des blocs de valeurs
 		for (i = 0; i < kwcClass->GetLoadedAttributeBlockNumber(); i++)
 		{
 			attributeBlock = kwcClass->GetLoadedAttributeBlockAt(i);
 
 			// Destruction du bloc, sauf si valeur interdite
+			// S'il sont natifs ou calcules, les blocs sont necessairement non NULL,
+			// et on peut les detruire directement
 			liLoadIndex = attributeBlock->GetLoadIndex();
 			assert(liLoadIndex.IsDense());
 			if (attributeBlock->GetType() == KWType::Continuous)
@@ -187,6 +354,324 @@ void KWObject::DeleteAttributes()
 	}
 }
 
+void KWObject::CleanTemporayDataItemsToComputeAndClean()
+{
+	int nAttribute;
+	KWDataItem* dataItem;
+	KWAttribute* attribute;
+	KWAttributeBlock* attributeBlock;
+	KWLoadIndex liLoadIndex;
+	SymbolVector* svTextList;
+	ObjectArray* oaUsedObjects;
+
+	require(kwcClass->IsCompiled());
+
+	debug(require(nObjectLoadedDataItemNumber == kwcClass->GetTotalInternallyLoadedDataItemNumber()));
+	debug(require(nFreshness == kwcClass->GetFreshness()));
+
+	// Nettoyage de tous les attrributs temporaires pour gagner de la place en memoire
+	for (nAttribute = 0; nAttribute < kwcClass->GetConstDatabaseTemporayDataItemsToComputeAndClean()->GetSize();
+	     nAttribute++)
+	{
+		dataItem = cast(KWDataItem*,
+				kwcClass->GetConstDatabaseTemporayDataItemsToComputeAndClean()->GetAt(nAttribute));
+
+		// Nettoyage des attributs derives
+		if (dataItem->IsAttribute())
+		{
+			attribute = cast(KWAttribute*, dataItem);
+			assert(attribute->GetDerivationRule() != NULL);
+			assert(attribute->GetType() == KWType::Symbol or attribute->GetType() == KWType::Text or
+			       attribute->GetType() == KWType::TextList or attribute->GetType() == KWType::ObjectArray);
+
+			// Calcul selon le type
+			liLoadIndex = attribute->GetLoadIndex();
+			switch (attribute->GetType())
+			{
+			case KWType::Symbol:
+				if (not GetAt(liLoadIndex.GetDenseIndex()).IsSymbolForbidenValue())
+				{
+					GetAt(liLoadIndex.GetDenseIndex()).ResetSymbol();
+					GetAt(liLoadIndex.GetDenseIndex()).SetTypeForbidenValue(KWType::Symbol);
+				}
+				break;
+			case KWType::Text:
+				if (not GetAt(liLoadIndex.GetDenseIndex()).IsSymbolForbidenValue())
+				{
+					GetAt(liLoadIndex.GetDenseIndex()).ResetText();
+					GetAt(liLoadIndex.GetDenseIndex()).SetTypeForbidenValue(KWType::Text);
+				}
+				break;
+			case KWType::TextList:
+				if (not GetAt(liLoadIndex.GetDenseIndex()).IsTextListForbidenValue())
+				{
+					svTextList = GetAt(liLoadIndex.GetDenseIndex()).GetTextList();
+					if (svTextList != NULL)
+						delete svTextList;
+					GetAt(liLoadIndex.GetDenseIndex()).SetTypeForbidenValue(KWType::TextList);
+				}
+				break;
+			case KWType::ObjectArray:
+				// Destruction sauf si NULL ou derive mais non calcule
+				if (not GetAt(liLoadIndex.GetDenseIndex()).IsObjectArrayForbidenValue())
+				{
+					oaUsedObjects = GetAt(liLoadIndex.GetDenseIndex()).GetObjectArray();
+					if (oaUsedObjects != NULL)
+					{
+						// Destruction du contenu si multi-inclu
+						if (not attribute->GetReference())
+							oaUsedObjects->DeleteAll();
+
+						// Destruction du container
+						// Les containers appartiennent a l'objet, qu'ils soient natifs ou
+						// proviennent d'une regle, auquel cas ils ont ete dupliques
+						delete oaUsedObjects;
+					}
+					GetAt(liLoadIndex.GetDenseIndex()).SetTypeForbidenValue(KWType::ObjectArray);
+				}
+				break;
+			}
+		}
+		// Nettoyage des blocs d'attributs derives
+		else
+		{
+			attributeBlock = cast(KWAttributeBlock*, dataItem);
+			liLoadIndex = attributeBlock->GetLoadIndex();
+			assert(attributeBlock->GetDerivationRule() != NULL);
+
+			// Nettoyage selon le type
+			switch (attributeBlock->GetBlockType())
+			{
+			case KWType::SymbolValueBlock:
+				if (not GetAt(liLoadIndex.GetDenseIndex()).IsSymbolValueBlockForbidenValue())
+				{
+					delete GetAt(liLoadIndex.GetDenseIndex()).GetSymbolValueBlock();
+					GetAt(liLoadIndex.GetDenseIndex())
+					    .SetTypeForbidenValue(KWType::SymbolValueBlock);
+				}
+				break;
+			case KWType::ContinuousValueBlock:
+				if (not GetAt(liLoadIndex.GetDenseIndex()).IsContinuousValueBlockForbidenValue())
+				{
+					delete GetAt(liLoadIndex.GetDenseIndex()).GetContinuousValueBlock();
+					GetAt(liLoadIndex.GetDenseIndex())
+					    .SetTypeForbidenValue(KWType::ContinuousValueBlock);
+				}
+				break;
+			case KWType::ObjectArrayValueBlock:
+				assert(attributeBlock->GetType() == KWType::ObjectArray);
+				// Il ne faut pas detruire le contenu des ObjectArray du bloc, qui sont necessairement
+				// calcules
+				assert(attributeBlock->GetDerivationRule()->GetReference());
+				if (not GetAt(liLoadIndex.GetDenseIndex()).IsObjectArrayValueBlockForbidenValue())
+				{
+					delete GetAt(liLoadIndex.GetDenseIndex()).GetObjectArrayValueBlock();
+					GetAt(liLoadIndex.GetDenseIndex())
+					    .SetTypeForbidenValue(KWType::ObjectArrayValueBlock);
+				}
+				break;
+			}
+		}
+	}
+}
+
+void KWObject::CleanAllNonNativeAttributes()
+{
+	int nAttribute;
+	KWDataItem* dataItem;
+	KWAttribute* attribute;
+	KWAttributeBlock* attributeBlock;
+	KWLoadIndex liLoadIndex;
+	KWObject* kwoUsedObject;
+	ObjectArray* oaUsedObjects;
+
+	require(kwcClass->IsCompiled());
+	debug(require(nObjectLoadedDataItemNumber == kwcClass->GetTotalInternallyLoadedDataItemNumber()));
+	debug(require(nFreshness == kwcClass->GetFreshness()));
+
+	// Nettoyage des valeur non natives
+	for (nAttribute = 0; nAttribute < kwcClass->GetLoadedDataItemNumber(); nAttribute++)
+	{
+		dataItem = kwcClass->GetLoadedDataItemAt(nAttribute);
+
+		// Calcul des attributs derives
+		if (dataItem->IsAttribute())
+		{
+			attribute = cast(KWAttribute*, dataItem);
+			if (attribute->GetDerivationRule() != NULL)
+			{
+				liLoadIndex = attribute->GetLoadIndex();
+
+				// Nettoyage selon le type
+				if (attribute->GetType() == KWType::Symbol)
+				{
+					if (not GetAt(liLoadIndex.GetDenseIndex()).IsSymbolForbidenValue())
+						GetAt(liLoadIndex.GetDenseIndex()).ResetSymbol();
+				}
+				else if (attribute->GetType() == KWType::Symbol)
+				{
+					if (not GetAt(liLoadIndex.GetDenseIndex()).IsTextForbidenValue())
+						GetAt(liLoadIndex.GetDenseIndex()).ResetText();
+				}
+				else if (attribute->GetType() == KWType::Object)
+				{
+					// Si attribut inclu
+					if (not attribute->GetReference())
+					{
+						// Destruction sauf si NULL ou derive mais non calcule
+						if (not GetAt(liLoadIndex.GetDenseIndex()).IsObjectForbidenValue())
+						{
+							kwoUsedObject = GetAt(liLoadIndex.GetDenseIndex()).GetObject();
+							if (kwoUsedObject != NULL)
+								delete kwoUsedObject;
+						}
+					}
+				}
+				else if (attribute->GetType() == KWType::ObjectArray)
+				{
+					// Destruction sauf si NULL ou derive mais non calcule
+					if (not GetAt(liLoadIndex.GetDenseIndex()).IsObjectArrayForbidenValue())
+					{
+						oaUsedObjects = GetAt(liLoadIndex.GetDenseIndex()).GetObjectArray();
+						if (oaUsedObjects != NULL)
+						{
+							// Destruction du contenu si multi-inclu
+							if (not attribute->GetReference())
+								oaUsedObjects->DeleteAll();
+
+							// Destruction du container
+							// Les containers appartiennent a l'objet, qu'ils soient natifs
+							// ou proviennent d'une regle, auquel cas ils ont ete dupliques
+							delete oaUsedObjects;
+						}
+					}
+				}
+
+				// Reinitialisation a la valeur par defaut ("", Missing, NULL...), sauf si structure
+				if (attribute->GetType() != KWType::Structure)
+				{
+					if (attribute->GetType() == KWType::Continuous)
+						GetAt(liLoadIndex.GetDenseIndex())
+						    .SetContinuous(KWContinuous::GetMissingValue());
+					else
+						GetAt(liLoadIndex.GetDenseIndex()).Init();
+				}
+			}
+		}
+		// Calcul des blocs d'attributs derives
+		else
+		{
+			attributeBlock = cast(KWAttributeBlock*, dataItem);
+			if (attributeBlock->GetDerivationRule() != NULL)
+			{
+				liLoadIndex = attributeBlock->GetLoadIndex();
+				assert(liLoadIndex.IsDense());
+
+				// Nettoyage puis reinitialisation avec un bloc vide
+				if (attributeBlock->GetType() == KWType::Continuous)
+				{
+					if (not GetAt(liLoadIndex.GetDenseIndex())
+						    .IsContinuousValueBlockForbidenValue())
+						delete GetAt(liLoadIndex.GetDenseIndex()).GetContinuousValueBlock();
+					GetAt(liLoadIndex.GetDenseIndex())
+					    .SetContinuousValueBlock(KWContinuousValueBlock::NewValueBlock(0));
+				}
+				else if (attributeBlock->GetType() == KWType::Symbol)
+				{
+					if (not GetAt(liLoadIndex.GetDenseIndex()).IsSymbolValueBlockForbidenValue())
+						delete GetAt(liLoadIndex.GetDenseIndex()).GetSymbolValueBlock();
+					GetAt(liLoadIndex.GetDenseIndex())
+					    .SetSymbolValueBlock(KWSymbolValueBlock::NewValueBlock(0));
+				}
+				else
+				{
+					assert(attributeBlock->GetType() == KWType::ObjectArray);
+					// Il ne faut pas detruire le contenu des ObjectArray du bloc, qui sont
+					// necessairement calcules
+					assert(attributeBlock->GetDerivationRule() != NULL);
+					assert(attributeBlock->GetDerivationRule()->GetReference());
+					if (not GetAt(liLoadIndex.GetDenseIndex())
+						    .IsObjectArrayValueBlockForbidenValue())
+						delete GetAt(liLoadIndex.GetDenseIndex()).GetObjectArrayValueBlock();
+					GetAt(liLoadIndex.GetDenseIndex())
+					    .SetObjectArrayValueBlock(KWObjectArrayValueBlock::NewValueBlock(0));
+				}
+			}
+		}
+	}
+}
+
+void KWObject::CleanNativeRelationAttributes()
+{
+	int i;
+	KWAttribute* attribute;
+	KWObject* kwoUsedObject;
+	ObjectArray* oaUsedObjectArray;
+	KWLoadIndex liLoadIndex;
+
+	debug(require(nObjectLoadedDataItemNumber == kwcClass->GetTotalInternallyLoadedDataItemNumber()));
+	debug(require(nFreshness == kwcClass->GetFreshness()));
+
+	require(kwcClass->IsCompiled());
+	require(kwcClass->GetUnloadedNativeRelationAttributeNumber() == 0);
+	require(values.attributeValues != NULL);
+
+	// Destruction des valeurs de type Object ou ObjectArray inclus
+	for (i = 0; i < kwcClass->GetLoadedRelationAttributeNumber(); i++)
+	{
+		attribute = kwcClass->GetLoadedRelationAttributeAt(i);
+		liLoadIndex = attribute->GetLoadIndex();
+		assert(liLoadIndex.IsDense());
+
+		// Cas des Object
+		if (attribute->GetType() == KWType::Object)
+		{
+			// Si attribut inclu
+			if (attribute->GetDerivationRule() == NULL)
+			{
+				assert(not attribute->GetReference());
+				assert(not GetAt(liLoadIndex.GetDenseIndex()).IsObjectForbidenValue());
+
+				// Destruction sauf si NULL
+				kwoUsedObject = GetAt(liLoadIndex.GetDenseIndex()).GetObject();
+				if (kwoUsedObject != NULL)
+				{
+					delete kwoUsedObject;
+
+					// Remise a NULL
+					GetAt(liLoadIndex.GetDenseIndex()).SetObject(NULL);
+				}
+			}
+		}
+		// Cas des ObjectArray
+		else
+		{
+			assert(attribute->GetType() == KWType::ObjectArray);
+
+			// Si attribut inclu
+			if (attribute->GetDerivationRule() == NULL)
+			{
+				assert(not attribute->GetReference());
+				assert(not GetAt(liLoadIndex.GetDenseIndex()).IsObjectArrayForbidenValue());
+
+				// Destruction sauf si NULL
+				oaUsedObjectArray = GetAt(liLoadIndex.GetDenseIndex()).GetObjectArray();
+				if (oaUsedObjectArray != NULL)
+				{
+					// Destruction du contenu
+					oaUsedObjectArray->DeleteAll();
+
+					// Destruction du container
+					delete oaUsedObjectArray;
+
+					// Remise a NULL
+					GetAt(liLoadIndex.GetDenseIndex()).SetObjectArray(NULL);
+				}
+			}
+		}
+	}
+}
+
 void KWObject::Init()
 {
 	int i;
@@ -246,117 +731,6 @@ void KWObject::Init()
 	// Memorisation des informations de coherence
 	debug(nObjectLoadedDataItemNumber = kwcClass->GetTotalInternallyLoadedDataItemNumber());
 	debug(nFreshness = kwcClass->GetFreshness());
-}
-
-void KWObject::ComputeAllValues()
-{
-	int nAttribute;
-	KWDataItem* dataItem;
-	KWAttribute* attribute;
-	KWAttributeBlock* attributeBlock;
-	KWObject* kwoUsedObject;
-	ObjectArray* oaUsedObjects;
-	int nObject;
-
-	require(kwcClass->IsCompiled());
-	debug(require(nObjectLoadedDataItemNumber == kwcClass->GetTotalInternallyLoadedDataItemNumber()));
-	debug(require(nFreshness == kwcClass->GetFreshness()));
-
-	// Calcul de toutes les valeurs a transferer
-	for (nAttribute = kwcClass->GetLoadedDataItemNumber() - 1; nAttribute >= 0; nAttribute--)
-	{
-		dataItem = kwcClass->GetLoadedDataItemAt(nAttribute);
-
-		// Calcul des attributs derives
-		if (dataItem->IsAttribute())
-		{
-			attribute = cast(KWAttribute*, dataItem);
-			if (attribute->GetDerivationRule() != NULL)
-			{
-				// Calcul selon le type
-				switch (attribute->GetType())
-				{
-				case KWType::Symbol:
-					ComputeSymbolValueAt(attribute->GetLoadIndex());
-					break;
-				case KWType::Continuous:
-					ComputeContinuousValueAt(attribute->GetLoadIndex());
-					break;
-				case KWType::Date:
-					ComputeDateValueAt(attribute->GetLoadIndex());
-					break;
-				case KWType::Time:
-					ComputeTimeValueAt(attribute->GetLoadIndex());
-					break;
-				case KWType::Timestamp:
-					ComputeTimestampValueAt(attribute->GetLoadIndex());
-					break;
-				case KWType::Text:
-					ComputeTextValueAt(attribute->GetLoadIndex());
-					break;
-				case KWType::Object:
-					ComputeObjectValueAt(attribute->GetLoadIndex());
-					break;
-				case KWType::ObjectArray:
-					ComputeObjectArrayValueAt(attribute->GetLoadIndex());
-					break;
-				case KWType::Structure:
-					ComputeStructureValueAt(attribute->GetLoadIndex());
-					break;
-				}
-			}
-
-			// Propagation aux sous-objets de la composition
-			if (attribute->GetType() == KWType::Object)
-
-			{
-				if (not attribute->GetReference())
-				{
-					kwoUsedObject = GetObjectValueAt(attribute->GetLoadIndex());
-					if (kwoUsedObject != NULL)
-						kwoUsedObject->ComputeAllValues();
-				}
-			}
-			// Propagation aux tableaux de sous-objets de la composition
-			else if (attribute->GetType() == KWType::ObjectArray)
-			{
-				if (not attribute->GetReference())
-				{
-					oaUsedObjects = GetObjectArrayValueAt(attribute->GetLoadIndex());
-					if (oaUsedObjects != NULL)
-					{
-						for (nObject = 0; nObject < oaUsedObjects->GetSize(); nObject++)
-						{
-							kwoUsedObject = cast(KWObject*, oaUsedObjects->GetAt(nObject));
-							if (kwoUsedObject != NULL)
-								kwoUsedObject->ComputeAllValues();
-						}
-					}
-				}
-			}
-		}
-		// Calcul des blocks d'attributs derives
-		else
-		{
-			attributeBlock = cast(KWAttributeBlock*, dataItem);
-			if (attributeBlock->GetDerivationRule() != NULL)
-			{
-				// Calcul selon le type
-				switch (attributeBlock->GetBlockType())
-				{
-				case KWType::SymbolValueBlock:
-					ComputeSymbolValueBlockAt(attributeBlock->GetLoadIndex());
-					break;
-				case KWType::ContinuousValueBlock:
-					ComputeContinuousValueBlockAt(attributeBlock->GetLoadIndex());
-					break;
-				case KWType::ObjectArrayValueBlock:
-					ComputeObjectArrayValueBlockAt(attributeBlock->GetLoadIndex());
-					break;
-				}
-			}
-		}
-	}
 }
 
 boolean KWObject::Check() const
@@ -498,29 +872,45 @@ void KWObject::Write(ostream& ost) const
 			// Nom de l'attribut
 			ost << attribute->GetName() << ": ";
 
+			// Ecriture selon le type
+			switch (attribute->GetType())
+			{
 			// Valeur Continuous
-			if (attribute->GetType() == KWType::Continuous)
+			case KWType::Continuous:
 				ost << KWContinuous::ContinuousToString(
 					   ComputeContinuousValueAt(attribute->GetLoadIndex()))
 				    << "\n";
+				break;
 			// Valeur Symbol
-			else if (attribute->GetType() == KWType::Symbol)
+			case KWType::Symbol:
 				ost << ComputeSymbolValueAt(attribute->GetLoadIndex()) << "\n";
-			// Valeur Date
-			else if (attribute->GetType() == KWType::Date)
+				break;
+				// Valeur Date
+			case KWType::Date:
 				ost << ComputeDateValueAt(attribute->GetLoadIndex()) << "\n";
+				break;
 			// Valeur Time
-			else if (attribute->GetType() == KWType::Time)
+			case KWType::Time:
 				ost << ComputeTimeValueAt(attribute->GetLoadIndex()) << "\n";
+				break;
 			// Valeur Timestamp
-			else if (attribute->GetType() == KWType::Timestamp)
+			case KWType::Timestamp:
 				ost << ComputeTimestampValueAt(attribute->GetLoadIndex()) << "\n";
+				break;
+			// Valeur TimestampTZ
+			case KWType::TimestampTZ:
+				ost << ComputeTimestampTZValueAt(attribute->GetLoadIndex()) << "\n";
+				break;
 			// Valeur Text
-			else if (attribute->GetType() == KWType::Text)
+			case KWType::Text:
 				ost << ComputeTextValueAt(attribute->GetLoadIndex()) << "\n";
+				break;
+			// Valeur TextList
+			case KWType::TextList:
+				ost << ComputeTextListValueAt(attribute->GetLoadIndex()) << "\n";
+				break;
 			// Valeur Object
-			else if (attribute->GetType() == KWType::Object)
-			{
+			case KWType::Object:
 				kwoUsedObject = ComputeObjectValueAt(attribute->GetLoadIndex());
 				if (kwoUsedObject == NULL)
 					ost << "[NULL]\n";
@@ -530,10 +920,9 @@ void KWObject::Write(ostream& ost) const
 					if (not attribute->GetReference())
 						ost << *kwoUsedObject;
 				}
-			}
+				break;
 			// Valeur ObjectArray
-			else if (attribute->GetType() == KWType::ObjectArray)
-			{
+			case KWType::ObjectArray:
 				oaUsedObjectArray = ComputeObjectArrayValueAt(attribute->GetLoadIndex());
 				if (oaUsedObjectArray == NULL)
 					ost << "[NULL]\n";
@@ -558,11 +947,10 @@ void KWObject::Write(ostream& ost) const
 						}
 					}
 					ost << "}\n";
+					break;
 				}
-			}
 			// Valeur Structure
-			else if (attribute->GetType() == KWType::Structure)
-			{
+			case KWType::Structure:
 				oUsedStructure = ComputeStructureValueAt(attribute->GetLoadIndex());
 				if (oUsedStructure == NULL)
 					ost << "[NULL]\n";
@@ -571,6 +959,7 @@ void KWObject::Write(ostream& ost) const
 					ost << "[" << oUsedStructure << "]\n";
 					ost << *oUsedStructure;
 				}
+				break;
 			}
 		}
 		// Cas des blocs d'attributs
@@ -783,7 +1172,6 @@ const ALString KWObject::GetClassLabel() const
 
 const ALString KWObject::GetObjectLabel() const
 {
-	char sPointer[20];
 	KWObjectKey objectKey;
 	ALString sObjectLabel;
 
@@ -793,11 +1181,12 @@ const ALString KWObject::GetObjectLabel() const
 		objectKey.InitializeFromObject(this);
 		sObjectLabel = objectKey.GetObjectLabel();
 	}
-	// Sinon, sur prend son adresse memoire
+	// Sinon, sur prend son index de creation
 	else
 	{
-		sprintf(sPointer, "[%p]", this);
-		sObjectLabel = sPointer;
+		sObjectLabel = '(';
+		sObjectLabel += LongintToString(GetCreationIndex());
+		sObjectLabel += ')';
 	}
 	return GetClass()->GetName() + " " + sObjectLabel;
 }
@@ -812,6 +1201,7 @@ KWObject* KWObject::CreateObject(KWClass* refClass, longint lObjectIndex)
 	int i;
 	longint lValue;
 	longint lStartValue;
+	SymbolVector* svTextList;
 	KWObject* kwoUsedObject;
 	ObjectArray* oaUsedObjectArray;
 	KWContinuousValueBlock* cvbValue;
@@ -843,30 +1233,40 @@ KWObject* KWObject::CreateObject(KWClass* refClass, longint lObjectIndex)
 		// Alimentation si attribut non derive
 		if (attribute->GetDerivationRule() == NULL)
 		{
+			// Initialisation selon le type
+			switch (attribute->GetType())
+			{
 			// Valeur Continuous
-			if (attribute->GetType() == KWType::Continuous)
+			case KWType::Continuous:
 				kwoObject->SetContinuousValueAt(attribute->GetLoadIndex(), (Continuous)lValue);
-			// Valeur Symbol
-			else if (attribute->GetType() == KWType::Symbol)
+				break;
+				// Valeur Symbol
+			case KWType::Symbol:
 				kwoObject->SetSymbolValueAt(attribute->GetLoadIndex(),
 							    Symbol(sSymbolPrefix + LongintToString(lValue)));
+				break;
 			// Valeur Text
-			else if (attribute->GetType() == KWType::Text)
+			case KWType::Text:
 				kwoObject->SetTextValueAt(attribute->GetLoadIndex(),
 							  Symbol(sTextPrefix + LongintToString(lValue)));
+				break;
+			// Valeur TextList
+			case KWType::TextList:
+				svTextList = new SymbolVector;
+				svTextList->Add(Symbol(sTextPrefix + LongintToString(lValue)));
+				kwoObject->SetTextListValueAt(attribute->GetLoadIndex(), svTextList);
+				break;
 			// Valeur Object
-			else if (attribute->GetType() == KWType::Object)
-			{
+			case KWType::Object:
 				// Ajout d'un sous objet dans le cas inclus
 				if (not attribute->GetReference())
 				{
 					kwoUsedObject = CreateObject(attribute->GetClass(), lObjectIndex);
 					kwoObject->SetObjectValueAt(attribute->GetLoadIndex(), kwoUsedObject);
 				}
-			}
+				break;
 			// Valeur ObjectArray
-			else if (attribute->GetType() == KWType::ObjectArray)
-			{
+			case KWType::ObjectArray:
 				// Ajout de deux objets dans le cas multi-inclus
 				if (not attribute->GetReference())
 				{
@@ -876,11 +1276,11 @@ KWObject* KWObject::CreateObject(KWClass* refClass, longint lObjectIndex)
 					oaUsedObjectArray->Add(CreateObject(attribute->GetClass(), 2 * lObjectIndex));
 					kwoObject->SetObjectArrayValueAt(attribute->GetLoadIndex(), oaUsedObjectArray);
 				}
-			}
+				break;
 			// Valeur Structure
-			else if (attribute->GetType() == KWType::Structure)
-			{
+			case KWType::Structure:
 				kwoObject->SetStructureValueAt(attribute->GetLoadIndex(), NULL);
+				break;
 			}
 		}
 		lValue++;
@@ -901,7 +1301,7 @@ KWObject* KWObject::CreateObject(KWClass* refClass, longint lObjectIndex)
 				sBlockField = "";
 				for (j = 0; j < attributeBlock->GetLoadedAttributeNumber(); j++)
 				{
-					if ((lObjectIndex + j) % (2 << j) != 0)
+					if ((lObjectIndex + j) % ((longint)2 << j) != 0)
 						continue;
 					attribute = attributeBlock->GetLoadedAttributeAt(j);
 					if (sBlockField.GetLength() > 0)
@@ -928,7 +1328,7 @@ KWObject* KWObject::CreateObject(KWClass* refClass, longint lObjectIndex)
 				sBlockField = "";
 				for (j = 0; j < attributeBlock->GetLoadedAttributeNumber(); j++)
 				{
-					if ((lObjectIndex + j) % (2 << j) != 0)
+					if ((lObjectIndex + j) % ((longint)2 << j) != 0)
 						continue;
 					attribute = attributeBlock->GetLoadedAttributeAt(j);
 					if (sBlockField.GetLength() > 0)
@@ -961,8 +1361,8 @@ void KWObject::Test()
 	KWObject* kwoObject;
 
 	// Creation d'une classe de test
-	attributeClass = KWClass::CreateClass("AttributeClass", 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, false, NULL);
-	testClass = KWClass::CreateClass("TestClass", 1, 2, 2, 1, 1, 1, 1, 2, 2, 0, false, attributeClass);
+	attributeClass = KWClass::CreateClass("AttributeClass", 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, false, NULL);
+	testClass = KWClass::CreateClass("TestClass", 1, 2, 2, 1, 1, 1, 1, 1, 1, 2, 2, 0, false, attributeClass);
 	testClass->SetRoot(true);
 	KWClassDomain::GetCurrentDomain()->InsertClass(attributeClass);
 	KWClassDomain::GetCurrentDomain()->InsertClass(testClass);
@@ -991,6 +1391,7 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 	int nLoadedDataItemNumber;
 	int nTotalInternallyLoadedDataItemNumber;
 	KWAttribute* attribute;
+	SymbolVector* svTextList;
 	KWAttributeBlock* attributeBlock;
 	KWAttributeBlock* newAttributeBlock;
 	KWContinuousValueBlock* continuousValueBlock;
@@ -1054,6 +1455,27 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 		// Dereferencement sauf si valeur interdite
 		if (not GetAt(liLoadIndex.GetDenseIndex()).IsTextForbidenValue())
 			GetAt(liLoadIndex.GetDenseIndex()).ResetText();
+	}
+
+	// Destruction des valeurs de type TextList
+	nNumber = kwcClass->GetLoadedTextListAttributeNumber();
+	nNewNumber = kwcNewClass->GetLoadedTextListAttributeNumber();
+	for (i = nNewNumber; i < nNumber; i++)
+	{
+		attribute = kwcClass->GetLoadedTextListAttributeAt(i);
+
+		// Si attribut non garde
+		liLoadIndex = attribute->GetLoadIndex();
+		assert(liLoadIndex.IsDense());
+		assert(attribute->GetDerivationRule() != NULL);
+
+		// Destruction sauf si valeur interdite
+		if (not GetAt(liLoadIndex.GetDenseIndex()).IsTextListForbidenValue())
+		{
+			svTextList = GetAt(liLoadIndex.GetDenseIndex()).GetTextList();
+			if (svTextList != NULL)
+				delete svTextList;
+		}
 	}
 
 	// Destruction des valeurs de type Object ou ObjectArray inclus non gardees
@@ -1134,24 +1556,37 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 		// Destruction du bloc non garde
 		if (attributeBlock->GetType() == KWType::Continuous)
 		{
-			continuousValueBlock = GetAt(liLoadIndex.GetDenseIndex()).GetContinuousValueBlock();
-			check(continuousValueBlock);
-			delete continuousValueBlock;
+			// Destruction sauf si non calcule
+			if (not GetAt(liLoadIndex.GetDenseIndex()).IsContinuousValueBlockForbidenValue())
+			{
+				continuousValueBlock = GetAt(liLoadIndex.GetDenseIndex()).GetContinuousValueBlock();
+				check(continuousValueBlock);
+				delete continuousValueBlock;
+			}
 		}
 		else if (attributeBlock->GetType() == KWType::Symbol)
 		{
-			symbolValueBlock = GetAt(liLoadIndex.GetDenseIndex()).GetSymbolValueBlock();
-			check(symbolValueBlock);
-			delete symbolValueBlock;
+			// Destruction sauf si non calcule
+			if (not GetAt(liLoadIndex.GetDenseIndex()).IsSymbolValueBlockForbidenValue())
+			{
+				symbolValueBlock = GetAt(liLoadIndex.GetDenseIndex()).GetSymbolValueBlock();
+				check(symbolValueBlock);
+				delete symbolValueBlock;
+			}
 		}
 		else if (attributeBlock->GetType() == KWType::ObjectArray)
 		{
-			objectArrayValueBlock = GetAt(liLoadIndex.GetDenseIndex()).GetObjectArrayValueBlock();
-			check(objectArrayValueBlock);
-			// Il ne faut pas detruire le contenu des ObjectArray du bloc, qui sont necessairement calcules
-			assert(attributeBlock->GetDerivationRule() != NULL);
-			assert(attributeBlock->GetDerivationRule()->GetReference());
-			delete objectArrayValueBlock;
+			// Destruction sauf si non calcule
+			if (not GetAt(liLoadIndex.GetDenseIndex()).IsObjectArrayValueBlockForbidenValue())
+			{
+				objectArrayValueBlock = GetAt(liLoadIndex.GetDenseIndex()).GetObjectArrayValueBlock();
+				check(objectArrayValueBlock);
+				// Il ne faut pas detruire le contenu des ObjectArray du bloc, qui sont necessairement
+				// calcules
+				assert(attributeBlock->GetDerivationRule() != NULL);
+				assert(attributeBlock->GetDerivationRule()->GetReference());
+				delete objectArrayValueBlock;
+			}
 		}
 	}
 

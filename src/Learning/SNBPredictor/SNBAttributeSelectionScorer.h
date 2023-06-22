@@ -177,7 +177,7 @@ protected:
 // OBSOLETE (mais cela sert de base a la doc future)
 // Evaluation d'une selection de variables d'un predicteur Bayesien naif selectif La classe est
 // parametree par un KWLearningService et une KWNewDataPreparationBase, permettant d'evaluer les
-// ajouts ou supressiosn de variables (KWDataPreparationAtribute)
+// ajouts ou supressions de variables (KWDataPreparationAttribute)
 //
 // Rappel:
 // Le predicteur Bayesien naif selectif s'ecrit

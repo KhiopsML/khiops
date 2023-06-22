@@ -54,7 +54,7 @@ public:
 	// Mise a jour des valeurs de l'interface par l'objet
 	void EventRefresh(Object* object) override;
 
-	// Actions de menu
+	// Actions de menu en mode expert
 	void ClassifierBenchmark();
 	void RegressorBenchmark();
 	void ClassifierBenchmarkUnivariate();

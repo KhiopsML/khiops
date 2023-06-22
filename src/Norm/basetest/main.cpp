@@ -11,7 +11,7 @@ int main(int argc, char** argv)
 	// debug(signal(SIGSEGV, NULL));
 
 	// MemSetAllocIndexExit(435);
-	// MemoryStatsManager::OpenLogFile("d:\\temp\\MemoryStats.log", 10000, MemoryStatsManager::AllStats);
+	MemoryStatsManager::OpenLogFile("d:\\temp\\MemoryStats.log", 10000, MemoryStatsManager::AllStats);
 	// MemoryStatsManager::OpenLogFileFromEnvVars();
 
 	// Execution des tests en mode batch si option -batch sur la ligne de commande
@@ -58,6 +58,6 @@ int main(int argc, char** argv)
 
 	// Affichage des stats sur la heap
 	// MemPrintHeapStats(stdout);
-	MemoryStatsManager::CloseLogFile();
+	// MemoryStatsManager::CloseLogFile();
 	return 0;
 }

@@ -44,6 +44,16 @@ class KWDRAddSeconds;
 class KWDRIsTimestampValid;
 class KWDRBuildTimestamp;
 
+// TimestampTZ
+class KWDRUtcTimestamp;
+class KWDRLocalTimestamp;
+class KWDRSetTimeZoneMinutes;
+class KWDRGetTimeZoneMinutes;
+class KWDRDiffTimestampTZ;
+class KWDRAddSecondsTZ;
+class KWDRIsTimestampValidTZ;
+class KWDRBuildTimestampTZ;
+
 #include "KWDerivationRule.h"
 #include "KWDate.h"
 #include "KWTime.h"
@@ -551,7 +561,7 @@ public:
 ////////////////////////////////////////////////////////////////////////////
 // Classe KWDRBuildTimestamp
 // Construction d'un timestamp a partir de date et time
-// La timestamp resultante est potentiellement non valide
+// Le timestamp resultant est potentiellement non valide
 class KWDRBuildTimestamp : public KWDerivationRule
 {
 public:
@@ -564,4 +574,148 @@ public:
 
 	// Calcul de l'attribut derive
 	Timestamp ComputeTimestampResult(const KWObject* kwoObject) const override;
+};
+
+////////////////////////////////////////////////////////////////////////////
+// Classe KWDRUtcTimestamp
+// Passage a la time zone UTC, en supprimant les informations de time zone
+// Le timestamp resultane est potentiellement non valide
+class KWDRUtcTimestamp : public KWDerivationRule
+{
+public:
+	// Constructeur
+	KWDRUtcTimestamp();
+	~KWDRUtcTimestamp();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	Timestamp ComputeTimestampResult(const KWObject* kwoObject) const override;
+};
+
+////////////////////////////////////////////////////////////////////////////
+// Classe KWDRLocalTimestamp
+// Passage a la time zone locale, en supprimant les informations de time zone
+// Le timestamp resultant est potentiellement non valide
+class KWDRLocalTimestamp : public KWDerivationRule
+{
+public:
+	// Constructeur
+	KWDRLocalTimestamp();
+	~KWDRLocalTimestamp();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	Timestamp ComputeTimestampResult(const KWObject* kwoObject) const override;
+};
+
+////////////////////////////////////////////////////////////////////////////
+// Classe KWDRSetTimeZoneMinutes
+// Initialisation de la partie time zone d'un timestamp valide par son nombre total de minutes
+// Nombre total de minutes de la time zone (+- (hh*60 + mm)
+// Le timestamp resultant est potentiellement non valide
+class KWDRSetTimeZoneMinutes : public KWDerivationRule
+{
+public:
+	// Constructeur
+	KWDRSetTimeZoneMinutes();
+	~KWDRSetTimeZoneMinutes();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	TimestampTZ ComputeTimestampTZResult(const KWObject* kwoObject) const override;
+};
+
+////////////////////////////////////////////////////////////////////////////
+// Classe KWDRGetTimeZoneMinutes
+// Renvoie le nombre de minutes de la time zone d'un timestamp
+// Le resultat est potentiellement Missing
+class KWDRGetTimeZoneMinutes : public KWDerivationRule
+{
+public:
+	// Constructeur
+	KWDRGetTimeZoneMinutes();
+	~KWDRGetTimeZoneMinutes();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	Continuous ComputeContinuousResult(const KWObject* kwoObject) const override;
+};
+
+////////////////////////////////////////////////////////////////////////////
+// Classe KWDRDiffTimestampTZ
+// Difference entre deux timestampTZ en nombre de secondes
+// Renvoie MissingValue si une des timestampTZ n'est pas valide
+class KWDRDiffTimestampTZ : public KWDerivationRule
+{
+public:
+	// Constructeur
+	KWDRDiffTimestampTZ();
+	~KWDRDiffTimestampTZ();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	Continuous ComputeContinuousResult(const KWObject* kwoObject) const override;
+};
+
+////////////////////////////////////////////////////////////////////////////
+// Classe KWDRAddSeconds
+// Ajout de secondes a un timestampTZ
+// Renvoie un timestampTZ invalide si le timestampTZs est invalide ou si les secondes sont missing
+class KWDRAddSecondsTSTZ : public KWDerivationRule
+{
+public:
+	// Constructeur
+	KWDRAddSecondsTSTZ();
+	~KWDRAddSecondsTSTZ();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	TimestampTZ ComputeTimestampTZResult(const KWObject* kwoObject) const override;
+};
+
+////////////////////////////////////////////////////////////////////////////
+// Classe KWDRIsTimestampTZValid
+// Renvoie entre 1 si timestampTZ valide, 0 sinon
+class KWDRIsTimestampTZValid : public KWDerivationRule
+{
+public:
+	// Constructeur
+	KWDRIsTimestampTZValid();
+	~KWDRIsTimestampTZValid();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	Continuous ComputeContinuousResult(const KWObject* kwoObject) const override;
+};
+
+////////////////////////////////////////////////////////////////////////////
+// Classe KWDRBuildTimestampTZ
+// Construction d'un timestampTZ a partir d'un time stamp et d'un nombretotal de minutes de time zone
+// Le timestampTZ resultant est potentiellement non valide
+class KWDRBuildTimestampTZ : public KWDerivationRule
+{
+public:
+	// Constructeur
+	KWDRBuildTimestampTZ();
+	~KWDRBuildTimestampTZ();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	TimestampTZ ComputeTimestampTZResult(const KWObject* kwoObject) const override;
 };

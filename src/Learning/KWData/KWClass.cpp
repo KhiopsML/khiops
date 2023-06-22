@@ -421,6 +421,7 @@ void KWClass::IndexClass()
 	oaLoadedAttributeBlocks.SetSize(0);
 	oaLoadedDenseSymbolAttributes.SetSize(0);
 	oaLoadedTextAttributes.SetSize(0);
+	oaLoadedTextListAttributes.SetSize(0);
 	oaLoadedRelationAttributes.SetSize(0);
 	oaUnloadedNativeRelationAttributes.SetSize(0);
 	oaLoadedDataItems.SetSize(0);
@@ -570,6 +571,9 @@ void KWClass::IndexClass()
 				// Memorisation des attributs Text
 				else if (attribute->GetType() == KWType::Text)
 					oaLoadedTextAttributes.Add(attribute);
+				// Memorisation des attributs TextList
+				else if (attribute->GetType() == KWType::TextList)
+					oaLoadedTextListAttributes.Add(attribute);
 			}
 		}
 
@@ -1235,76 +1239,73 @@ void KWClass::DeleteUnusedDerivedAttributes(const KWClassDomain* referenceDomain
 	require(Check());
 	require(IsCompiled());
 
-	// Parcours des attributs pour identifier toutes les operandes necessaires
-	// dans le calcul des attributs derives utilises, pour la classe analysee
-	attribute = GetHeadAttribute();
-	while (attribute != NULL)
-	{
-		// Analyse de la regle de derivation
-		// Dans le cas d'un bloc, il faut en effet la reanalyser pour chaque attribut du bloc
-		// pour detecter les attributs utilises des blocs potentiellement en operande
-		currentDerivationRule = attribute->GetAnyDerivationRule();
-		if (attribute->GetUsed() and currentDerivationRule != NULL)
-			currentDerivationRule->BuildAllUsedAttributes(attribute, &nkdAllUsedAttributes);
-		GetNextAttribute(attribute);
-	}
+	// Enregistrement de la classe a analyser
+	odImpactedClasses.SetAt(GetName(), this);
+	oaImpactedClasses.Add(this);
 
-	// On parcours egalement toutes les classe impactees du domaine de reference pour garder
-	// tous les attributs initiaux et les attributs necessaires a leur calcul
-	// Attention, la formule de calcul utilisee est celle du domaine courant, pas celle du domaine initial
-	if (referenceDomain != NULL)
+	// Parcours de toutes les classe en partant de la classe analysee avec analyse des attributs
+	// pour identifier toutes les operandes necessaire dans le calcul des attributs derives utilises.
+	// Dans le cas d'un domaine de reference, on analyse egalement les classe impactees de ce domaine
+	// de reference pour garder tous les attributs initiaux et les attributs necessaires a leur calcul
+	// Attention, les formules de calcul sont utilisees est celles du domaine courant, pas celle du domaine initial
+	for (nClass = 0; nClass < oaImpactedClasses.GetSize(); nClass++)
 	{
-		// Enregistrement de la classe a analyser
-		odImpactedClasses.SetAt(GetName(), this);
-		oaImpactedClasses.Add(this);
+		kwcImpactedClass = cast(KWClass*, oaImpactedClasses.GetAt(nClass));
 
-		// Parcours des classes
-		for (nClass = 0; nClass < oaImpactedClasses.GetSize(); nClass++)
+		// Parcours des attributs pour identifier les attributs a detruire
+		attribute = kwcImpactedClass->GetHeadAttribute();
+		while (attribute != NULL)
 		{
-			kwcImpactedClass = cast(KWClass*, oaImpactedClasses.GetAt(nClass));
-
-			// Parcours des attributs pour identifier les attributs a detruire
-			attribute = kwcImpactedClass->GetHeadAttribute();
-			while (attribute != NULL)
+			// Recherche si necessaire de l'attribut de reference correspondant
+			referenceAttribute = NULL;
+			if (referenceDomain != NULL)
 			{
-				// Recherche de l'attribut de reference correspondant
-				referenceAttribute = NULL;
 				referenceClass = referenceDomain->LookupClass(attribute->GetParentClass()->GetName());
 				if (referenceClass != NULL)
 					referenceAttribute = referenceClass->LookupAttribute(attribute->GetName());
+			}
 
-				// Analyse de la regle de derivation
-				// Dans le cas d'un bloc, il faut en effet la reanalyser pour chaque attribut du bloc
-				// pour detecter les attributs utilises des blocs potentiellement en operande
-				currentDerivationRule = attribute->GetAnyDerivationRule();
-				if (referenceAttribute != NULL and currentDerivationRule != NULL)
+			// Analyse de la regle de derivation si l'attribut est utilise, ou present dans le domaine de
+			// reference, ou s'il s'agit d'une regle de reference necessaire a la structure du schema
+			// multi-table Dans le cas d'un bloc, il faut en effet la reanalyser pour chaque attribut du
+			// bloc pour detecter les attributs utilises des blocs potentiellement en operande
+			currentDerivationRule = attribute->GetAnyDerivationRule();
+			if (currentDerivationRule != NULL)
+			{
+				if (attribute->GetUsed() or referenceAttribute != NULL)
+					currentDerivationRule->BuildAllUsedAttributes(attribute, &nkdAllUsedAttributes);
+				else if (currentDerivationRule->GetName() == KWDerivationRule::GetReferenceRuleName())
+				{
 					currentDerivationRule->BuildAllUsedAttributes(attribute, &nkdAllUsedAttributes);
 
-				// Si attribut avec classe referencee, enregistrement de la classe impactee
-				// correspondante
-				if (KWType::IsRelation(attribute->GetType()))
+					// Memorisation de l'attribut porteur de la reference vers une table externe
+					nkdAllUsedAttributes.SetAt((NUMERIC)attribute, attribute);
+				}
+			}
+
+			// Si attribut avec classe referencee, enregistrement de la classe impactee correspondante
+			if (KWType::IsRelation(attribute->GetType()))
+			{
+				if (attribute->GetClass() != NULL)
 				{
-					if (attribute->GetClass() != NULL)
+					// Prise en compte si necessaire d'une nouvelle classe
+					if (odImpactedClasses.Lookup(attribute->GetClass()->GetName()) == NULL)
 					{
-						// Prise en compte si necessaire d'une nouvelle classe
-						if (odImpactedClasses.Lookup(attribute->GetClass()->GetName()) == NULL)
-						{
-							odImpactedClasses.SetAt(attribute->GetClass()->GetName(),
-										attribute->GetClass());
-							oaImpactedClasses.Add(attribute->GetClass());
-						}
+						odImpactedClasses.SetAt(attribute->GetClass()->GetName(),
+									attribute->GetClass());
+						oaImpactedClasses.Add(attribute->GetClass());
 					}
 				}
-
-				// Attribut suivant
-				kwcImpactedClass->GetNextAttribute(attribute);
 			}
-		}
 
-		// Nettoyage
-		odImpactedClasses.RemoveAll();
-		oaImpactedClasses.SetSize(0);
+			// Attribut suivant
+			kwcImpactedClass->GetNextAttribute(attribute);
+		}
 	}
+
+	// Nettoyage
+	odImpactedClasses.RemoveAll();
+	oaImpactedClasses.SetSize(0);
 
 	// Enregistrement de la classe a analyser
 	odImpactedClasses.SetAt(GetName(), this);
@@ -1433,7 +1434,6 @@ void KWClass::ExportNativeFieldNames(StringVector* svNativeFieldNames) const
 {
 	KWAttribute* attribute;
 
-	require(IsCompiled());
 	require(svNativeFieldNames != NULL);
 
 	svNativeFieldNames->SetSize(0);
@@ -1465,7 +1465,6 @@ void KWClass::ExportStoredFieldNames(StringVector* svStoredFieldNames) const
 	KWAttribute* attribute;
 	KWAttributeBlock* attributeBlock;
 
-	require(IsCompiled());
 	require(svStoredFieldNames != NULL);
 
 	// Parcours de tous les dataItems Loaded
@@ -1495,7 +1494,6 @@ void KWClass::ExportKeyAttributeNames(StringVector* svAttributeNames) const
 	int i;
 	KWAttribute* attribute;
 
-	require(IsCompiled());
 	require(svAttributeNames != NULL);
 
 	svAttributeNames->SetSize(GetKeyAttributeNumber());
@@ -1683,7 +1681,7 @@ boolean KWClass::Check() const
 			// Un meme attribut ne doit pas etre utilise plusieurs fois pour la cle
 			else
 			{
-				// Test d'utilisation de l'atribut pour la cle
+				// Test d'utilisation de l'attribut pour la cle
 				if (nkdKeyAttributes.Lookup(attribute) != NULL)
 				{
 					bResult = false;
@@ -1730,6 +1728,7 @@ longint KWClass::GetUsedMemory() const
 	lUsedMemory += oaLoadedAttributeBlocks.GetUsedMemory();
 	lUsedMemory += oaLoadedDenseSymbolAttributes.GetUsedMemory();
 	lUsedMemory += oaLoadedTextAttributes.GetUsedMemory();
+	lUsedMemory += oaLoadedTextListAttributes.GetUsedMemory();
 	lUsedMemory += oaLoadedRelationAttributes.GetUsedMemory();
 	lUsedMemory += oaUnloadedNativeRelationAttributes.GetUsedMemory();
 	lUsedMemory += oaLoadedDataItems.GetUsedMemory();
@@ -2159,9 +2158,9 @@ ALString KWClass::GetExternalContinuousConstant(Continuous cValue)
 }
 
 KWClass* KWClass::CreateClass(const ALString& sClassName, int nKeySize, int nSymbolNumber, int nContinuousNumber,
-			      int nDateNumber, int nTimeNumber, int nTimestampNumber, int nTextNumber,
-			      int nObjectNumber, int nObjectArrayNumber, int nStructureNumber,
-			      boolean bCreateAttributeBlocks, KWClass* attributeClass)
+			      int nDateNumber, int nTimeNumber, int nTimestampNumber, int nTimestampTZNumber,
+			      int nTextNumber, int nTextListNumber, int nObjectNumber, int nObjectArrayNumber,
+			      int nStructureNumber, boolean bCreateAttributeBlocks, KWClass* attributeClass)
 {
 	KWClass* kwcClass;
 	int i;
@@ -2177,6 +2176,7 @@ KWClass* KWClass::CreateClass(const ALString& sClassName, int nKeySize, int nSym
 	require(nDateNumber >= 0);
 	require(nTimeNumber >= 0);
 	require(nTimestampNumber >= 0);
+	require(nTimestampTZNumber >= 0);
 	require(nTextNumber >= 0);
 	require(nObjectNumber >= 0);
 	require(nObjectArrayNumber >= 0);
@@ -2299,13 +2299,33 @@ KWClass* KWClass::CreateClass(const ALString& sClassName, int nKeySize, int nSym
 		kwcClass->InsertAttribute(attribute);
 	}
 
+	// Creation des attributs TimestampTZ
+	for (i = 0; i < nTimestampTZNumber; i++)
+	{
+		attribute = new KWAttribute;
+		attribute->SetName(sPrefix + KWType::ToString(KWType::TimestampTZ) + IntToString(i + 1));
+		attribute->SetLabel("Label of " + attribute->GetName());
+		attribute->SetType(KWType::TimestampTZ);
+		kwcClass->InsertAttribute(attribute);
+	}
+
 	// Creation des attributs Text
-	for (i = 0; i < nTimestampNumber; i++)
+	for (i = 0; i < nTextNumber; i++)
 	{
 		attribute = new KWAttribute;
 		attribute->SetName(sPrefix + KWType::ToString(KWType::Text) + IntToString(i + 1));
 		attribute->SetLabel("Label of " + attribute->GetName());
 		attribute->SetType(KWType::Text);
+		kwcClass->InsertAttribute(attribute);
+	}
+
+	// Creation des attributs TextList
+	for (i = 0; i < nTextListNumber; i++)
+	{
+		attribute = new KWAttribute;
+		attribute->SetName(sPrefix + KWType::ToString(KWType::Text) + IntToString(i + 1));
+		attribute->SetLabel("Label of " + attribute->GetName());
+		attribute->SetType(KWType::TextList);
 		kwcClass->InsertAttribute(attribute);
 	}
 
@@ -2409,6 +2429,12 @@ void KWClass::TestAttributeBrowsings(boolean bList, boolean bInverseList, boolea
 				attribute = GetLoadedTextAttributeAt(i);
 				cout << "\t" << *attribute << "\n";
 			}
+			AddMessage("TextList variables");
+			for (i = 0; i < GetLoadedTextListAttributeNumber(); i++)
+			{
+				attribute = GetLoadedTextListAttributeAt(i);
+				cout << "\t" << *attribute << "\n";
+			}
 			AddMessage("Dense relation variables");
 			for (i = 0; i < GetLoadedRelationAttributeNumber(); i++)
 			{
@@ -2430,8 +2456,8 @@ void KWClass::Test()
 	int nIndex;
 
 	// Creation d'une classe de test
-	attributeClass = CreateClass("AttributeClass", 1, 2, 2, 0, 0, 0, 0, 0, 0, 0, true, NULL);
-	testClass = CreateClass("TestClass", 1, 3, 3, 1, 1, 1, 1, 2, 2, 0, true, attributeClass);
+	attributeClass = CreateClass("AttributeClass", 1, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, true, NULL);
+	testClass = CreateClass("TestClass", 1, 3, 3, 1, 1, 1, 1, 1, 1, 2, 2, 0, true, attributeClass);
 	testClass->SetRoot(true);
 	KWClassDomain::GetCurrentDomain()->InsertClass(attributeClass);
 	KWClassDomain::GetCurrentDomain()->InsertClass(testClass);

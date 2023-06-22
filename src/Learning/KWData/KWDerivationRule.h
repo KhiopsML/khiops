@@ -48,6 +48,7 @@ class KWDatabase;
 //				 GetDateValue
 //				 GetTimeValue
 //				 GetTimestampValue
+//				 GetTimestampTZValue
 //				 GetTextValue
 //				 GetObjectValue
 //				 GetObjectArrayValue
@@ -225,8 +226,8 @@ public:
 	// Construction du dictionnaire de tous les attributs utilises
 	// directement ou recursivement via d'autres regles de derivation
 	//  . derivedAttribute: attribut a l'origine de la regle
-	//     permet, si l'attribut est dans un bloc, de recherche les attributs
-	//     potentiellement impactes dans les bloc en operandes de la regles
+	//     permet, si l'attribut est dans un bloc, de recherche les attributs de
+	//     meme VarKey potentiellement impactes dans les bloc en operandes de la regles
 	//  . nkdAllUsedAttributes: le dictionnaire est complete par la methode
 	//     et evitera les eventuels cycles de derivation
 	virtual void BuildAllUsedAttributes(const KWAttribute* derivedAttribute,
@@ -281,9 +282,9 @@ public:
 	virtual boolean CheckOperandsFamily(const KWDerivationRule* ruleFamily) const;
 
 	// Verification qu'une regle est completement renseignee et compilable
-	virtual boolean CheckCompletness(const KWClass* kwcOwnerClass) const;
+	virtual boolean CheckCompleteness(const KWClass* kwcOwnerClass) const;
 	virtual boolean CheckRuleCompletness(const KWClass* kwcOwnerClass) const;
-	virtual boolean CheckOperandsCompletness(const KWClass* kwcOwnerClass) const;
+	virtual boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const;
 
 	// Verification que les attributs d'un bloc sont tous presents via leur VarKey
 	// dans les blocs en operandes de la regle
@@ -330,8 +331,12 @@ public:
 	// doit etre reimplementee
 	// Gestion memoire (cf classe KWObject)
 	//  - type simple (Continuous et Symbol): ce sont des valeurs, et cela ne pose pas de probleme
-	//  - type complex (Date, Time, Timestamp): ce sont egalement des valeurs, et cela ne pose pas de probleme
-	//  - type Text: ce sont egalement des valeurs, et cela ne pose pas de probleme
+	//  - type complex (Date, Time, Timestamp, TimestampTZ): ce sont egalement des valeurs, et cela ne pose pas de
+	//  probleme
+	//  - type Text: ce sont egalement des valeurs (comme les Symbol), et cela ne pose pas de probleme
+	//  - type TextList: vecteur de valeurs, detruit avec les KWObjet le contenant
+	//    Une regle de calcul produisant un result TextList doit en garder la copie.
+	//    Le KWObjet memorisant un TextLits fera une copie des TextList renvoyes par les regles
 	//  - type object (Object et ObjectArray): selon qu'il soient internes ou references, ils appartiennent
 	//    a leur KWObject englobant et seront detruits par celui ci, ou sont simplement reference et sont
 	//    censes appartenir a un autre objet ou etre extrait d'un autre attribut
@@ -360,7 +365,9 @@ public:
 	virtual Date ComputeDateResult(const KWObject* kwoObject) const;
 	virtual Time ComputeTimeResult(const KWObject* kwoObject) const;
 	virtual Timestamp ComputeTimestampResult(const KWObject* kwoObject) const;
+	virtual TimestampTZ ComputeTimestampTZResult(const KWObject* kwoObject) const;
 	virtual Symbol ComputeTextResult(const KWObject* kwoObject) const;
+	virtual SymbolVector* ComputeTextListResult(const KWObject* kwoObject) const;
 	virtual KWObject* ComputeObjectResult(const KWObject* kwoObject) const;
 	virtual ObjectArray* ComputeObjectArrayResult(const KWObject* kwoObject) const;
 	virtual Object* ComputeStructureResult(const KWObject* kwoObject) const;
@@ -718,7 +725,7 @@ public:
 	boolean CheckFamily(const KWDerivationRuleOperand* operandFamily) const;
 
 	// Verification qu'une regle est completement renseignee et compilable
-	boolean CheckCompletness(const KWClass* kwcOwnerClass) const;
+	boolean CheckCompleteness(const KWClass* kwcOwnerClass) const;
 
 	/////////////////////////////////////////////////////////
 	// Compilation de l'operande et acces a la valeur
@@ -750,7 +757,9 @@ public:
 	Date GetDateValue(const KWObject* kwoObject) const;
 	Time GetTimeValue(const KWObject* kwoObject) const;
 	Timestamp GetTimestampValue(const KWObject* kwoObject) const;
+	TimestampTZ GetTimestampTZValue(const KWObject* kwoObject) const;
 	Symbol GetTextValue(const KWObject* kwoObject) const;
+	SymbolVector* GetTextListValue(const KWObject* kwoObject) const;
 	KWObject* GetObjectValue(const KWObject* kwoObject) const;
 	ObjectArray* GetObjectArrayValue(const KWObject* kwoObject) const;
 	Object* GetStructureValue(const KWObject* kwoObject) const;
@@ -1334,6 +1343,18 @@ inline Timestamp KWDerivationRuleOperand::GetTimestampValue(const KWObject* kwoO
 							     : kwvConstant.GetTimestamp()));
 }
 
+inline TimestampTZ KWDerivationRuleOperand::GetTimestampTZValue(const KWObject* kwoObject) const
+{
+	debug(require(IsCompiled());) require(kwoObject != NULL);
+	require(kwoObject->GetClass() == kwcClass or GetScopeLevel() > 0);
+	require(GetType() == KWType::TimestampTZ);
+
+	return (cCompiledOrigin == CompiledOriginAttribute
+		    ? kwoObject->ComputeTimestampTZValueAt(liDataItemLoadIndex)
+		    : (cCompiledOrigin == CompiledOriginRule ? GetDerivationRule()->ComputeTimestampTZResult(kwoObject)
+							     : kwvConstant.GetTimestampTZ()));
+}
+
 inline Symbol KWDerivationRuleOperand::GetTextValue(const KWObject* kwoObject) const
 {
 	debug(require(IsCompiled());) require(kwoObject != NULL);
@@ -1344,6 +1365,18 @@ inline Symbol KWDerivationRuleOperand::GetTextValue(const KWObject* kwoObject) c
 		    ? kwoObject->ComputeTextValueAt(liDataItemLoadIndex)
 		    : (cCompiledOrigin == CompiledOriginRule ? GetDerivationRule()->ComputeTextResult(kwoObject)
 							     : kwvConstant.GetText()));
+}
+
+inline SymbolVector* KWDerivationRuleOperand::GetTextListValue(const KWObject* kwoObject) const
+{
+	debug(require(IsCompiled());) require(kwoObject != NULL);
+	require(kwoObject->GetClass() == kwcClass or GetScopeLevel() > 0);
+	require(GetType() == KWType::TextList);
+
+	return (cCompiledOrigin == CompiledOriginAttribute
+		    ? kwoObject->ComputeTextListValueAt(liDataItemLoadIndex)
+		    : (cCompiledOrigin == CompiledOriginRule ? GetDerivationRule()->ComputeTextListResult(kwoObject)
+							     : kwvConstant.GetTextList()));
 }
 
 inline KWObject* KWDerivationRuleOperand::GetObjectValue(const KWObject* kwoObject) const
@@ -1427,7 +1460,7 @@ debug(inline int KWDerivationRuleOperand::GetFreshness() const { return nFreshne
 {
 	require(kwcClass != NULL);
 	require(KWType::IsValue(GetType()));
-	debug(require(IsCompiled() or CheckCompletness(kwcClass)));
+	debug(require(IsCompiled() or CheckCompleteness(kwcClass)));
 
 	if (cOrigin == OriginAttribute)
 		return kwcClass->LookupAttribute(GetAttributeName());
@@ -1439,7 +1472,7 @@ inline KWAttributeBlock* KWDerivationRuleOperand::GetOriginAttributeBlock()
 {
 	require(kwcClass != NULL);
 	require(KWType::IsValueBlock(GetType()));
-	debug(require(IsCompiled() or CheckCompletness(kwcClass)));
+	debug(require(IsCompiled() or CheckCompleteness(kwcClass)));
 
 	if (cOrigin == OriginAttribute)
 		return kwcClass->LookupAttributeBlock(GetAttributeBlockName());

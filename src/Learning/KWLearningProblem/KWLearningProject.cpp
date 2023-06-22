@@ -12,8 +12,25 @@ void KWLearningProject::Start(int argc, char** argv)
 {
 	ALString sTmp;
 
+	// Enregistrements des drivers pour l'acces au fichiers (hdfs,s3 ...)
+	// On doit le faire ici, avant la gestion des options de ligne de commandes, qui peuvent
+	// concerner des fichiers sur un systeme de fichier distant
+	// Note: en cas d'erreur, les messages sont dans la console
+	// Et avant l'ouverture du fichier du MemoryStatsManager
+	SystemFileDriverCreator::RegisterExternalDrivers();
+
+	// Parametrage des logs memoires depuis les variables d'environnement
+	//   KhiopsMemStatsLogFileName, KhiopsMemStatsLogFrequency, KhiopsMemStatsLogToCollect
+	// On ne tente d'ouvrir le fichier que si ces trois variables sont presentes et valides
+	// Sinon, on ne fait rien, sans message d'erreur
+	// Pour avoir toutes les stats: KhiopsMemStatsLogToCollect=16383
+	// Pour la trace des IO: KhiopsIOTraceMode
+	if (GetIOTraceMode())
+		FileService::SetIOStatsActive(true);
+	MemoryStatsManager::OpenLogFileFromEnvVars(true);
+
 	// Parametrage si necessaire d'un mode de fonctionnement basique des boites de dialogue de type FileChooser
-	if (GetLearningFileChooserBasicMode())
+	if (GetLearningRawGuiModeMode())
 		UIFileChooserCard::SetDefaultStyle("");
 
 	// Parametrage de la gestion des traces paralleles
@@ -26,6 +43,7 @@ void KWLearningProject::Start(int argc, char** argv)
 	}
 	if (GetParallelTraceMode() >= 3)
 	{
+		PLParallelTask::SetTracerResources(3);
 		PLParallelTask::SetTracerMPIActive(true);
 	}
 	// Ajout du nom du host dans les logs
@@ -43,8 +61,8 @@ void KWLearningProject::Start(int argc, char** argv)
 	// (le LearningApplicationName peut avoir ete modifie dans une sous classe)
 	FileService::SetApplicationName(GetLearningApplicationName());
 
-	// Enregsitrements des drivers pour l'acces au fichiers (hdfs,s3 ...)
-	SystemFileDriverCreator::RegisterDrivers();
+	// Parametrage du mode d'interface graphique en fonction des drivers de fichiers enregistres
+	SetLearningDefaultRawGuiModeMode(SystemFileDriverCreator::GetExternalDriverNumber());
 
 	// Seul endroit ou on capture les exceptions, pour le lancement du projet principal
 	try
@@ -58,7 +76,7 @@ void KWLearningProject::Start(int argc, char** argv)
 	// Pour rappel, la bibliotheque Norm gere deja les cas suivant:
 	//   . memory overflow pour les allocations gerees par SystemObject et ses sous classe par l'allocateur de Norm
 	//   . signal (de type segmentation fault, ou ctrl break par l'utilisateur), capturees dans la classe Global
-	// Les exceptions capturees ci-dessous ici sont par exemple celle de l'allocateur standard pour les allocations
+	// Les exceptions capturees ci-dessous ici sont par exemple celles de l'allocateur standard pour les allocations
 	// depuis les classes systeme, comme les stream.
 	//
 	// Les erreurs arithmetiques de type divide by zero sont en principe capturees par un signal, mais ce
@@ -69,22 +87,25 @@ void KWLearningProject::Start(int argc, char** argv)
 	// n'utilise pas non plus la possibilite de capturer toutes les exceptions par un "catch(...)", car cela entre
 	// en competition avec la gestion par signal, et on perd alors les informations precises sur la cause des
 	// problemes, notamment le message de "segmentation fault" gere par un signal. Le "divide by zero" n'est pas
-	// capture pasous windows, mais on prefere ce compromis plutot que d'utiliser le "catch(...)" qui le capture,
-	// mais sans aucune information sur la nature du probleme Enin, des tests avec la methode set_terminate
-	// permettant de positionner un handler de gestion des exceptions non captures se sont montres non concluants:
-	// on ne fait que perdre des informations traitees sinon.
+	// capture sous windows, mais on prefere ce compromis plutot que d'utiliser le "catch(...)" qui le capture, mais
+	// sans aucune information sur la nature du probleme Enfin, des tests avec la methode set_terminate permettant
+	// de positionner un handler de gestion des exceptions non captures se sont montres non concluants : on ne fait
+	// que perdre des informations traitees sinon.
 	catch (std::exception& e)
 	{
 		Global::AddFatalError("Global exception", "", e.what());
 	}
 
-	// Liberation des drivers de fichier
-	SystemFileDriverCreator::UnregisterDrivers();
-
 	// Terminaison de l'environnment d'apprentissage
 	MemoryStatsManager::AddLog(GetClassLabel() + " CloseLearningEnvironnement Begin");
 	CloseLearningEnvironnement();
 	MemoryStatsManager::AddLog(GetClassLabel() + " CloseLearningEnvironnement End");
+
+	// Fermeture du fichier de stats memoire
+	MemoryStatsManager::CloseLogFile();
+
+	// Liberation des drivers de fichier
+	SystemFileDriverCreator::UnregisterDrivers();
 }
 
 void KWLearningProject::Begin()
@@ -139,28 +160,35 @@ void KWLearningProject::StartMaster(int argc, char** argv)
 	// Ajout d'options a l'interface
 	UIObject::GetCommandLineOptions()->SetCommandName(GetLearningCommandName());
 
-	optionLicenceInfo = new CommandLineOption;
-	optionLicenceInfo->SetFlag('l');
-	optionLicenceInfo->AddDescriptionLine(
-	    "print information to get a license: Computer name, Machine ID and remaining days");
-	optionLicenceInfo->AddDescriptionLine("exit with code 0 if khiops finds an active license (code 1 otherwise)");
-	optionLicenceInfo->SetSingle(true);
-	optionLicenceInfo->SetFinal(true);
-	optionLicenceInfo->SetGroup(1);
-	optionLicenceInfo->SetMethod(ShowLicenseInfo);
-	UIObject::GetCommandLineOptions()->AddOption(optionLicenceInfo);
+	if (LMLicenseManager::IsEnabled())
+	{
+		optionLicenceInfo = new CommandLineOption;
+		optionLicenceInfo->SetFlag('l');
+		optionLicenceInfo->AddDescriptionLine(
+		    "print information to get a license: Computer name, Machine ID and remaining days");
+		optionLicenceInfo->AddDescriptionLine(
+		    "exit with code 0 if khiops finds an active license (code 1 otherwise)");
+		optionLicenceInfo->SetSingle(true);
+		optionLicenceInfo->SetFinal(true);
+		optionLicenceInfo->SetGroup(1);
+		optionLicenceInfo->SetMethod(ShowLicenseInfo);
+		UIObject::GetCommandLineOptions()->AddOption(optionLicenceInfo);
+	}
 
-	optionLicenceUpdate = new CommandLineOption;
-	optionLicenceUpdate->SetFlag('u');
-	optionLicenceUpdate->AddDescriptionLine("update license");
-	optionLicenceUpdate->AddDescriptionLine(
-	    "exit with code 0 if the license is successfully updated (code 1 otherwise)");
-	optionLicenceUpdate->SetGroup(1);
-	optionLicenceUpdate->SetFinal(true);
-	optionLicenceUpdate->SetMethod(UpdateLicense);
-	optionLicenceUpdate->SetParameterRequired(true);
-	optionLicenceUpdate->SetParameterDescription(CommandLineOption::sParameterFile);
-	UIObject::GetCommandLineOptions()->AddOption(optionLicenceUpdate);
+	if (LMLicenseManager::IsEnabled())
+	{
+		optionLicenceUpdate = new CommandLineOption;
+		optionLicenceUpdate->SetFlag('u');
+		optionLicenceUpdate->AddDescriptionLine("update license");
+		optionLicenceUpdate->AddDescriptionLine(
+		    "exit with code 0 if the license is successfully updated (code 1 otherwise)");
+		optionLicenceUpdate->SetGroup(1);
+		optionLicenceUpdate->SetFinal(true);
+		optionLicenceUpdate->SetMethod(UpdateLicense);
+		optionLicenceUpdate->SetParameterRequired(true);
+		optionLicenceUpdate->SetParameterDescription(CommandLineOption::sParameterFile);
+		UIObject::GetCommandLineOptions()->AddOption(optionLicenceUpdate);
+	}
 
 	optionGetVersion = new CommandLineOption;
 	optionGetVersion->SetFlag('v');
@@ -179,7 +207,8 @@ void KWLearningProject::StartMaster(int argc, char** argv)
 		cout << GetLearningShellBanner() << endl;
 
 	// Affichage du start des licences
-	LMLicenseManager::ShowLicenseStatus();
+	if (LMLicenseManager::IsEnabled())
+		LMLicenseManager::ShowLicenseStatus();
 
 	// Parametrage du repertoire temporaire via les variables d'environnement
 	// (la valeur du repertoire temporaire peut etre modifiee par l'IHM)
@@ -244,8 +273,9 @@ void KWLearningProject::OpenLearningEnvironnement()
 
 	// Initialisation de la gestion des licences
 	// Fonctionnalites de Modeling et de Scoring
-	if (GetProcessId() == 0)
-		LMLicenseManager::Initialize();
+	if (LMLicenseManager::IsEnabled())
+		if (GetProcessId() == 0)
+			LMLicenseManager::Initialize();
 
 	// Parametrage du nom du module applicatif
 	SetLearningModuleName("");
@@ -275,8 +305,10 @@ void KWLearningProject::OpenLearningEnvironnement()
 	KWDRRegisterDataGridRules();
 	KWDRRegisterTablePartitionRules();
 	KWDRRegisterTableBlockRules();
+	KWDRRegisterDataGridBlockRules();
 	KWDRRegisterDataGridDeploymentRules();
 	KWDRRegisterNBPredictorRules();
+	KIDRRegisterAllRules();
 
 	// Enregistrement des methodes de pretraitement
 	KWDiscretizer::RegisterDiscretizer(new KWDiscretizerMODL);
@@ -331,7 +363,6 @@ void KWLearningProject::OpenLearningEnvironnement()
 	PLParallelTask::RegisterTask(new KWDatabaseSlicerTask);
 	PLParallelTask::RegisterTask(new KWDataPreparationUnivariateTask);
 	PLParallelTask::RegisterTask(new KWDataPreparationBivariateTask);
-	PLParallelTask::RegisterTask(new KWPredictorEvaluationTask);
 	PLParallelTask::RegisterTask(new KWClassifierEvaluationTask);
 	PLParallelTask::RegisterTask(new KWRegressorEvaluationTask);
 	PLParallelTask::RegisterTask(new KWClassifierUnivariateEvaluationTask);
@@ -342,6 +373,7 @@ void KWLearningProject::OpenLearningEnvironnement()
 		PLParallelTask::RegisterTask(new SNBPredictorSNBEnsembleTrainingTask);
 	}
 	PLParallelTask::RegisterTask(new KDSelectionOperandSamplingTask);
+	PLParallelTask::RegisterTask(new DTDecisionTreeCreationTask);
 }
 
 void KWLearningProject::CloseLearningEnvironnement()
@@ -350,7 +382,8 @@ void KWLearningProject::CloseLearningEnvironnement()
 	PLParallelTask::GetDriver()->StopSlaves();
 
 	// Terminaison de la gestion des licences
-	LMLicenseManager::Close();
+	if (LMLicenseManager::IsEnabled())
+		LMLicenseManager::Close();
 
 	// Nettoyage de l'administration des classifieurs
 	KWPredictorView::DeleteAllPredictorViews();

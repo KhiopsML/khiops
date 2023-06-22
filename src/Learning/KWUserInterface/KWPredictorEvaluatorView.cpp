@@ -170,8 +170,9 @@ void KWPredictorEvaluatorView::EvaluatePredictors()
 	ObjectArray oaEvaluatedPredictors;
 
 	// Execution controlee par licence
-	if (not LMLicenseManager::RequestLicenseKey())
-		return;
+	if (LMLicenseManager::IsEnabled())
+		if (not LMLicenseManager::RequestLicenseKey())
+			return;
 
 	// Recherche de l'objet edite
 	predictorEvaluator = cast(KWPredictorEvaluator*, GetObject());

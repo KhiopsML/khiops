@@ -124,6 +124,10 @@ public:
 	// Memoire: les cles collectees appartiennent toujours a leur position appelante
 	static void CollectKeys(const ObjectArray* oaKeyPositions, ObjectArray* oaKeys);
 
+	// Collecte d'un clone des cles (KWKey) d'un tableau de KWKeyPosition
+	// Memoire: les cles collectees appartiennent a l'appele
+	static void CollectClonedKeys(const ObjectArray* oaKeyPositions, ObjectArray* oaClonedKeys);
+
 	// Reinitialisation des cle d'un tableau de KWKeyPosition
 	// Permet ainsi d'economiser de la memoire en ne gardant que les positions
 	static void CleanKeys(const ObjectArray* oaKeyPositions);

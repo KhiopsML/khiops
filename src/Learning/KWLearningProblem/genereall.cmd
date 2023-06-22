@@ -1,5 +1,9 @@
 @echo off
 
-genere -noarrayview KWAnalysisSpec "Parameters" KWAnalysisSpec.dd
-genere -noarrayview KWRecoderSpec "Recoders" KWRecoderSpec.dd
-genere -noarrayview KWAnalysisResults "Results" KWAnalysisResults.dd
+echo. > genere.log
+
+genere -noarrayview KWAnalysisSpec "Parameters" KWAnalysisSpec.dd >> genere.log
+
+genere -noarrayview KWRecoderSpec "Recoders" KWRecoderSpec.dd >> genere.log
+
+genere -noarrayview KWAnalysisResults "Results" KWAnalysisResults.dd >> genere.log

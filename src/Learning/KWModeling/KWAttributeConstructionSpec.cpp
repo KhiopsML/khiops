@@ -7,6 +7,7 @@
 KWAttributeConstructionSpec::KWAttributeConstructionSpec()
 {
 	nMaxConstructedAttributeNumber = 0;
+	nMaxTextFeatureNumber = 0;
 	nMaxTreeNumber = 0;
 
 	// On initialise la tache de creation de variable par rapport au parametrage global
@@ -34,6 +35,7 @@ void KWAttributeConstructionSpec::CopyFrom(const KWAttributeConstructionSpec* aS
 	require(aSource != NULL);
 
 	nMaxConstructedAttributeNumber = aSource->nMaxConstructedAttributeNumber;
+	nMaxTextFeatureNumber = aSource->nMaxTextFeatureNumber;
 	nMaxTreeNumber = aSource->nMaxTreeNumber;
 	SetMaxAttributePairNumber(aSource->GetMaxAttributePairNumber());
 #ifdef DEPRECATED_V10
@@ -65,6 +67,11 @@ KDConstructionDomain* KWAttributeConstructionSpec::GetConstructionDomain()
 	return &constructionDomain;
 }
 
+KDTextFeatureSpec* KWAttributeConstructionSpec::GetTextFeatureSpec()
+{
+	return &textFeatureSpec;
+}
+
 KDDataPreparationAttributeCreationTask* KWAttributeConstructionSpec::GetAttributeCreationParameters()
 {
 #ifdef DEPRECATED_V10
@@ -83,7 +90,8 @@ KWAttributePairsSpec* KWAttributeConstructionSpec::GetAttributePairsSpec()
 }
 
 void KWAttributeConstructionSpec::SpecifyLearningSpecConstructionFamilies(KWLearningSpec* learningSpec,
-									  boolean bIsMultiTableConstructionPossible)
+									  boolean bIsMultiTableConstructionPossible,
+									  boolean bIsTextConstructionPossible)
 {
 	require(learningSpec->Check());
 	require(learningSpec->GetInitialAttributeNumber() != -1);
@@ -91,12 +99,15 @@ void KWAttributeConstructionSpec::SpecifyLearningSpecConstructionFamilies(KWLear
 	// En non supervise, on ne compte pas les paires de variables comme une famille
 	learningSpec->SetMultiTableConstruction(GetMaxConstructedAttributeNumber() > 0 and
 						bIsMultiTableConstructionPossible);
+	learningSpec->SetTextConstruction(GetMaxTextFeatureNumber() > 0 and bIsTextConstructionPossible);
 	learningSpec->SetTrees(
 	    GetMaxTreeNumber() > 0 and learningSpec->GetTargetAttributeType() == KWType::Symbol and
 	    (learningSpec->GetInitialAttributeNumber() + learningSpec->GetMultiTableConstruction() >= 2));
 	learningSpec->SetAttributePairs(
 	    GetMaxAttributePairNumber() > 0 and learningSpec->GetTargetAttributeType() == KWType::Symbol and
-	    (learningSpec->GetInitialAttributeNumber() + learningSpec->GetMultiTableConstruction() >= 2));
+	    (learningSpec->GetInitialAttributeNumber() + learningSpec->GetMultiTableConstruction() +
+		 learningSpec->GetTextConstruction() >=
+	     2));
 }
 
 #ifdef DEPRECATED_V10
@@ -119,6 +130,8 @@ void KWAttributeConstructionSpec::DEPRECATEDSetSourceSubObjets(KWAttributeConstr
 void KWAttributeConstructionSpec::WriteHeaderLineReport(ostream& ost)
 {
 	ost << "Constr. vars\t";
+	if (GetLearningTextVariableMode())
+		ost << "Text vars\t";
 	ost << "Tree vars\t";
 	ost << "Var pairs\t";
 }
@@ -126,6 +139,8 @@ void KWAttributeConstructionSpec::WriteHeaderLineReport(ostream& ost)
 void KWAttributeConstructionSpec::WriteLineReport(ostream& ost)
 {
 	ost << GetMaxConstructedAttributeNumber() << "\t";
+	if (GetLearningTextVariableMode())
+		ost << GetMaxTextFeatureNumber() << "\t";
 	ost << GetMaxTreeNumber() << "\t";
 	ost << GetMaxAttributePairNumber() << "\t";
 }
@@ -133,6 +148,7 @@ void KWAttributeConstructionSpec::WriteLineReport(ostream& ost)
 void KWAttributeConstructionSpec::Write(ostream& ost) const
 {
 	ost << "Max number of constructed variables\t" << GetMaxConstructedAttributeNumber() << "\n";
+	ost << "Max number of text features\t" << GetMaxTextFeatureNumber() << "\n";
 	ost << "Max number of trees\t" << GetMaxTreeNumber() << "\n";
 	ost << "Max number of variable pairs\t" << GetMaxAttributePairNumber() << "\n";
 #ifdef DEPRECATED_V10

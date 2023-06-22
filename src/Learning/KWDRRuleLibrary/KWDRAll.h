@@ -13,10 +13,11 @@
 #include "KWDRDateTime.h"
 #include "KWDRString.h"
 #include "KWDRText.h"
+#include "KWDRTextList.h"
 #include "KWDRVector.h"
 #include "KWDRHashMap.h"
 #include "KWDRMultiTable.h"
-#include "KWDRTokenCounts.h"
+#include "KWDRTextualAnalysis.h"
 
 // Enregistrement de toutes les regles de derivation
 void KWDRRegisterAllRules();

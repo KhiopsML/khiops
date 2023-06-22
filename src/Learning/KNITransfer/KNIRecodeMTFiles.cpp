@@ -616,7 +616,7 @@ int KNIRecodeMTFiles(KNIMTRecodingOperands* recodingOperands)
 							    sSecondaryRecords[nFileIndex]);
 							if (nVerbose >= 2)
 							{
-								char* sSigns = "<=>";
+								const char* sSigns = "<=>";
 								printf("  %c %.20s: %.20s\n", sSigns[nCompare + 1],
 								       recodingOperands->SecondaryFiles[nFileIndex]
 									   .DataPath,

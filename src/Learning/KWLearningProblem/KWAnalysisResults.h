@@ -5,8 +5,7 @@
 #pragma once
 
 ////////////////////////////////////////////////////////////
-// 2021-04-06 18:11:58
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "Object.h"
@@ -49,6 +48,14 @@ public:
 	// Preparation report
 	const ALString& GetPreparationFileName() const;
 	void SetPreparationFileName(const ALString& sValue);
+
+	// Text preparation report
+	const ALString& GetTextPreparationFileName() const;
+	void SetTextPreparationFileName(const ALString& sValue);
+
+	// Tree preparation report
+	const ALString& GetTreePreparationFileName() const;
+	void SetTreePreparationFileName(const ALString& sValue);
 
 	// 2D preparation report
 	const ALString& GetPreparation2DFileName() const;
@@ -93,13 +100,15 @@ public:
 	// ##
 
 	////////////////////////////////////////////////////////
-	//// Implementation
+	///// Implementation
 protected:
 	// Attributs de la classe
 	ALString sResultFilesDirectory;
 	ALString sResultFilesPrefix;
 	ALString sShortDescription;
 	ALString sPreparationFileName;
+	ALString sTextPreparationFileName;
+	ALString sTreePreparationFileName;
 	ALString sPreparation2DFileName;
 	ALString sModelingDictionaryFileName;
 	ALString sModelingFileName;
@@ -154,6 +163,26 @@ inline const ALString& KWAnalysisResults::GetPreparationFileName() const
 inline void KWAnalysisResults::SetPreparationFileName(const ALString& sValue)
 {
 	sPreparationFileName = sValue;
+}
+
+inline const ALString& KWAnalysisResults::GetTextPreparationFileName() const
+{
+	return sTextPreparationFileName;
+}
+
+inline void KWAnalysisResults::SetTextPreparationFileName(const ALString& sValue)
+{
+	sTextPreparationFileName = sValue;
+}
+
+inline const ALString& KWAnalysisResults::GetTreePreparationFileName() const
+{
+	return sTreePreparationFileName;
+}
+
+inline void KWAnalysisResults::SetTreePreparationFileName(const ALString& sValue)
+{
+	sTreePreparationFileName = sValue;
 }
 
 inline const ALString& KWAnalysisResults::GetPreparation2DFileName() const

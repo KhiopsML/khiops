@@ -29,20 +29,20 @@ public:
 	boolean Close() override;
 
 	// Ecriture dans le buffer et ecriture dans le fichier si depassement de la taille du buffer
-	void Write(const ALString& sValue);
-	void Write(const CharVector* cvValue);
-	void Write(const char* sValue);
-	void Write(const char* sValue, int nCharNumber);
-	void Write(char c);
-	void WriteEOL();
+	boolean Write(const ALString& sValue);
+	boolean Write(const CharVector* cvValue);
+	boolean Write(const char* sValue);
+	boolean Write(const char* sValue, int nCharNumber);
+	boolean Write(char c);
+	boolean WriteEOL();
 
 	// Ecriture d'une sous-partie d'un buffer, a partir d'un point de depart
-	void WriteSubPart(const CharVector* cvValue, int nBeginOffset, int nLength);
+	boolean WriteSubPart(const CharVector* cvValue, int nBeginOffset, int nLength);
 
 	// Ecriture dans le buffer du contenu d'un champ entier
 	// Tout champ contenant un separateur de champ ou un double-quote est entoure de doubles-quotes
 	// Dans ce cas, les double-quotes sont doubles
-	void WriteField(const char* sValue);
+	boolean WriteField(const char* sValue);
 
 	// Memoire utilisee
 	longint GetUsedMemory() const override;
@@ -51,31 +51,76 @@ public:
 	// d'eviter de la fragmentation lors de l'ecriture de ce fichier
 	void ReserveExtraSize(longint lSize);
 
+	////////////////////////////////////////////////////////////////////////
+	// Statistiques sur les ecritures physiques
+	// Ces statistiques sont reinitialisees apres chaque ouverture du fichier
+	// et disponibles en permanence, y compris apres la fermeture du fichier
+
+	// Nombre total de ecritures physiques
+	longint GetTotalPhysicalWriteCalls() const;
+
+	// Nombre total d'octets lus
+	longint GetTotalPhysicalWriteBytes() const;
+
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// Test de la classe
+
 	// Methode de test
 	// Lecture du fichier d'entree et ecriture du fichier de sortie en utilisant plusieurs tailles de buffer
+	// Les fichiers sont compares pour chaque taille de buffer
 	// En entree STD et HDFS, en sortie STD et HDFS
-	static void TestWriteFile(const ALString& sInputFileURI, const ALString& sOutputFileURI);
+	static void TestWriteFile(const ALString& sInputFileURI, const ALString& sOutputFileURI, boolean bOpenOnDemand);
+
+	// Methode avancee pour avoir acces au cache en read-only
+	const CharVector* GetCache() const;
 
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
 	// Ecriture du contenu du buffer dans le fichier
 	// Peut provoquer une erreur
-	virtual void Flush();
+	// Lorsque la taille du cache est plus grande que GetPreferredBufferSize,
+	// seule un multiple de GetPreferredBufferSize est ecrit, le reste a ecrire est recopier
+	// au debut du cache
+	virtual boolean FlushCache();
+
+	// Ecriture des premiers caracteres du cache par tranche de GetPreferredBufferSize
+	// Ouvre le fichier si necessaire (mode OpenOnDemand) mais ne le ferme pas
+	// Met a jour bIsError en cas d'erreur
+	boolean WriteToFile(int nSizeToWrite);
 
 	// Espace non rempli dans le buffer
 	int GetAvailableSpace();
+
+	// Ouverture et fermeture physiques du fihcier
+	boolean IsPhysycalOpen() const;
+	boolean PhysicalOpen();
+	boolean PhysicalClose();
+
+	// Est-ce que le fichier est physiquement ouvert ?
+	boolean bIsPhysicalOpen;
+
+	// Utilise dans le mode OpenOnDemand : est-ce que la prochaien ouverture doit etre en append ?
+	// Lors des ouvertures successives on utilse le Open en mode append.C'est lors de la premiere
+	// ouverture que c'est delicat car il faut ouvrir en append seulement si c'est la methode
+	// OpenForAppend qui a ete utilisee.
+	// On commence avec bNextOpenOnAppend=false, il passe a true dans le PhysycalOpen et dans le OpenForAppend
+	boolean bNextOpenOnAppend;
+
+	///////////////////////////////////////////
+	// Statistiques sur les ecritures physiques
+
+	// Nombre total de ecritures physiques
+	longint lTotalPhysicalWriteCalls;
+
+	// Nombre total d'octets lus
+	longint lTotalPhysicalWriteBytes;
 };
 
 ///////////////////////
 /// Methodes en inline
 
-inline int OutputBufferedFile::GetAvailableSpace()
-{
-	return nBufferSize - nCurrentBufferSize;
-}
-
-inline void OutputBufferedFile::Write(char c)
+inline boolean OutputBufferedFile::Write(char c)
 {
 	require(IsOpened());
 	require(c != '\0');
@@ -83,38 +128,46 @@ inline void OutputBufferedFile::Write(char c)
 	// Si le vecteur est plein, on le vide
 	if (GetAvailableSpace() == 0)
 	{
-		Flush();
-		if (IsError())
-			return;
+		FlushCache();
+		if (GetOpenOnDemandMode())
+			PhysicalClose();
 	}
-	fbBuffer.SetAt(nCurrentBufferSize, c);
-	nCurrentBufferSize++;
+	if (not IsError())
+	{
+		fcCache.SetAt(nCurrentBufferSize, c);
+		nCurrentBufferSize++;
+	}
+	return not bIsError;
 }
 
-inline void OutputBufferedFile::WriteEOL()
+inline boolean OutputBufferedFile::WriteEOL()
 {
 #ifndef __UNIX__
 	Write('\r');
 #endif // __UNIX__
 	Write('\n');
+	return not bIsError;
 }
 
-inline void OutputBufferedFile::Write(const char* sValue)
+inline boolean OutputBufferedFile::Write(const char* sValue)
 {
 	Write(sValue, (int)strlen(sValue));
+	return not bIsError;
 }
 
-inline void OutputBufferedFile::Write(const ALString& sValue)
+inline boolean OutputBufferedFile::Write(const ALString& sValue)
 {
 	Write(sValue, sValue.GetLength());
+	return not bIsError;
 }
 
-inline void OutputBufferedFile::Write(const CharVector* cvValue)
+inline boolean OutputBufferedFile::Write(const CharVector* cvValue)
 {
 	WriteSubPart(cvValue, 0, cvValue->GetSize());
+	return not bIsError;
 }
 
-inline void OutputBufferedFile::WriteField(const char* sValue)
+inline boolean OutputBufferedFile::WriteField(const char* sValue)
 {
 	int nLength;
 	boolean bWithDoubleQuote;
@@ -153,4 +206,15 @@ inline void OutputBufferedFile::WriteField(const char* sValue)
 	// Ecriture sans double-quotes
 	else
 		Write(sValue, nLength);
+	return not bIsError;
+}
+
+inline int OutputBufferedFile::GetAvailableSpace()
+{
+	return nBufferSize - nCurrentBufferSize;
+}
+
+inline boolean OutputBufferedFile::IsPhysycalOpen() const
+{
+	return bIsPhysicalOpen;
 }

@@ -481,10 +481,17 @@ double KWDataPreparationStats::GetLevel() const
 	return dPreparedLevel;
 }
 
+boolean KWDataPreparationStats::IsInformative() const
+{
+	return GetSortValue() > 0;
+}
+
 void KWDataPreparationStats::SetConstructionCost(double dValue)
 {
 	require(dValue >= 0);
 	dConstructionCost = dValue;
+	if (dConstructionCost < dEpsilonCost)
+		dConstructionCost = 0;
 }
 
 double KWDataPreparationStats::GetConstructionCost() const
@@ -496,6 +503,8 @@ void KWDataPreparationStats::SetPreparationCost(double dValue)
 {
 	require(dValue >= 0);
 	dPreparationCost = dValue;
+	if (dPreparationCost < dEpsilonCost)
+		dPreparationCost = 0;
 }
 
 double KWDataPreparationStats::GetPreparationCost() const
@@ -512,6 +521,8 @@ void KWDataPreparationStats::SetDataCost(double dValue)
 {
 	require(dValue >= 0);
 	dDataCost = dValue;
+	if (dDataCost < dEpsilonCost)
+		dDataCost = 0;
 }
 
 double KWDataPreparationStats::GetDataCost() const
@@ -544,7 +555,7 @@ void KWDataPreparationStats::ComputeLevel()
 			dPreparedLevel = 0;
 
 		// On met a zero si negatif (ou tres proche de zero)
-		if (dPreparedLevel < 1e-10)
+		if (dPreparedLevel < dEpsilonCost)
 		{
 			dPreparedLevel = 0;
 

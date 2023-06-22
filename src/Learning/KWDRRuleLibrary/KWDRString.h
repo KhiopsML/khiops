@@ -258,7 +258,7 @@ public:
 	Symbol ComputeSymbolResult(const KWObject* kwoObject) const override;
 
 	// Verification de la validite: les listes de valeurs doivent etre de meme taille
-	boolean CheckCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckCompleteness(const KWClass* kwcOwnerClass) const override;
 };
 
 ////////////////////////////////////////////////////////////////////////////
@@ -334,7 +334,7 @@ public:
 	KWDerivationRule* Create() const override = 0;
 
 	// Verification qu'une regle est completement renseignee et compilable
-	boolean CheckCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckCompleteness(const KWClass* kwcOwnerClass) const override;
 
 	///////////////////////////////////////////
 	///// Implementation

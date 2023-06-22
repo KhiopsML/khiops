@@ -12,21 +12,15 @@ int main(int argc, char** argv)
 
 	// MemSetAllocIndexExit(1290133);
 
-	// Possibilite de parametrage des log memoire depuis les variable d'environnement
-	if (GetLearningExpertMode())
-	{
-		//   KhiopsMemStatsLogFileName, KhiopsMemStatsLogFrequency, KhiopsMemStatsLogToCollect
-		// On ne tente d'ouvrir le fichier que si ces trois variables sont presentes et valides
-		// Sinon, on ne fait rien, sans message d'erreur
-		// Pour avoir toutes les stats: KhiopsMemStatsLogToCollect=16383
-		MemoryStatsManager::OpenLogFileFromEnvVars(true);
-		// MemoryStatsManager::OpenLogFile("D:\\temp\\KhiopsMemoryStats\\Test\\KhiopsMemoryStats.log", 10000,
-		// MemoryStatsManager::AllStats);
-	}
-
 	// Lancement du projet
 	learningProject.Start(argc, argv);
-	return EXIT_SUCCESS;
+
+	// On renvoie 0 si tout s'est bien passe, 1 en cas de FatalError (dans Standard.cpp) et 2 si il y eu au moins
+	// une erreur
+	if (GetProcessId() == 0 and Global::IsAtLeastOneError())
+		return EXIT_FAILURE + 1;
+	else
+		return EXIT_SUCCESS;
 }
 
 #endif // __ANDROID__

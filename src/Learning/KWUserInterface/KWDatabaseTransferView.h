@@ -44,7 +44,7 @@ public:
 	void BuildTransferredClass();
 
 	// Redefinition de la methode de mise a jour des donnees, pour synchroniser
-	// le dictionnaire associe aux bases source et cibles
+	// le dictionnaire associe aux bases source et cible
 	void EventUpdate() override;
 	void EventRefresh() override;
 

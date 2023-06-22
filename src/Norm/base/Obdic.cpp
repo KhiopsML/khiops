@@ -515,7 +515,7 @@ longint ObjectDictionary::GetOverallUsedMemory() const
 
 longint ObjectDictionary::GetUsedMemoryPerElement() const
 {
-	return sizeof(void*) + sizeof(ODAssoc) + 1;
+	return sizeof(void*) + sizeof(ODAssoc);
 }
 
 const ALString ObjectDictionary::GetClassLabel() const
@@ -1103,7 +1103,7 @@ longint NumericKeyDictionary::GetOverallUsedMemory() const
 
 longint NumericKeyDictionary::GetUsedMemoryPerElement() const
 {
-	return sizeof(void*) + sizeof(NKDAssoc) + 1;
+	return sizeof(void*) + sizeof(NKDAssoc);
 }
 
 const ALString NumericKeyDictionary::GetClassLabel() const

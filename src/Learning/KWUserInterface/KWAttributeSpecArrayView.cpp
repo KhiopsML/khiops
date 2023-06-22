@@ -3,8 +3,7 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 ////////////////////////////////////////////////////////////
-// 2021-04-25 11:10:57
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "KWAttributeSpecArrayView.h"
@@ -136,7 +135,7 @@ void KWAttributeSpecArrayView::EventUpdate(Object* object)
 						    " (accepted initial types are: " + sStoredTypes + ")");
 				bTypeError = true;
 			}
-			// Erreur si attribut de type Date, Time ou Timestamp, avec specification de format
+			// Erreur si attribut de type complexe, avec specification de format
 			else if (KWType::IsComplex(attribute->GetType()) and
 				 attribute->GetConstMetaData()->GetStringValueAt(
 				     attribute->GetFormatMetaDataKey(attribute->GetType())) != "")

@@ -78,11 +78,33 @@ boolean SystemFileDriverLibrary::IsConnected() const
 	return (ptr_driver_isConnected() == 1);
 }
 
-boolean SystemFileDriverLibrary::Exist(const char* sFilePathName) const
+longint SystemFileDriverLibrary::GetSystemPreferredBufferSize() const
+{
+	longint lPrefferedSize;
+	require(IsLibraryLoaded());
+	if (ptr_driver_getSystemPreferredBufferSize == NULL)
+		return 0;
+	else
+	{
+		lPrefferedSize = ptr_driver_getSystemPreferredBufferSize();
+		if (lPrefferedSize < 0)
+			AddFatalError("The preferred size of the buffer must be positive");
+		return lPrefferedSize;
+	}
+}
+
+boolean SystemFileDriverLibrary::FileExists(const char* sFilePathName) const
 {
 	require(IsConnected());
 	require(IsManaged(sFilePathName));
-	return (ptr_driver_exist(sFilePathName) == 1);
+	return (ptr_driver_fileExists(sFilePathName) == 1);
+}
+
+boolean SystemFileDriverLibrary::DirExists(const char* sFilePathName) const
+{
+	require(IsConnected());
+	require(IsManaged(sFilePathName));
+	return (ptr_driver_dirExists(sFilePathName) == 1);
 }
 
 longint SystemFileDriverLibrary::GetFileSize(const char* sFilePathName) const
@@ -216,28 +238,27 @@ boolean SystemFileDriverLibrary::CopyFileToLocal(const char* sSourceFilePathName
 		return ptr_driver_copyToLocal(sSourceFilePathName, sDestFilePathName);
 }
 
-boolean SystemFileDriverLibrary::LoadLibrary(const ALString& sValue)
+boolean SystemFileDriverLibrary::LoadLibrary(const ALString& sLibraryFilePathName)
 {
 	ALString sTmp;
 	char sErrorMessage[SHARED_LIBRARY_MESSAGE_LENGTH + 1];
 
-	require(not IsLibraryLoaded() or sLibraryName == sValue);
+	require(not IsLibraryLoaded());
 
 	// On ne recharge pas la librairie si elle est deja chargee
 	if (IsLibraryLoaded())
 		return true;
 
 	// Chargement de la librairie
-	sLibraryName = sValue;
+	sLibraryName = FileService::GetFileName(sLibraryFilePathName);
 
 	if (MemoryStatsManager::IsOpened())
 		MemoryStatsManager::AddLog(sTmp + "driver [" + sLibraryName + "] LoadLibrary Begin");
 
-	handleLibrary = LoadSharedLibrary(sLibraryName, sErrorMessage);
+	handleLibrary = LoadSharedLibrary(sLibraryFilePathName, sErrorMessage);
 	if (handleLibrary == NULL)
 	{
-		Global::AddError("", "", "Error while loading " + sLibraryName);
-		Global::AddError("", "", sErrorMessage);
+		AddError(sTmp + "Library loading error (" + sErrorMessage + ")");
 		return false;
 	}
 
@@ -250,7 +271,8 @@ boolean SystemFileDriverLibrary::LoadLibrary(const ALString& sValue)
 	*(void**)(&ptr_driver_connect) = BindToLibrary("driver_connect", true);
 	*(void**)(&ptr_driver_disconnect) = BindToLibrary("driver_disconnect", true);
 	*(void**)(&ptr_driver_isConnected) = BindToLibrary("driver_isConnected", true);
-	*(void**)(&ptr_driver_exist) = BindToLibrary("driver_exist", true);
+	*(void**)(&ptr_driver_fileExists) = BindToLibrary("driver_fileExists", true);
+	*(void**)(&ptr_driver_dirExists) = BindToLibrary("driver_dirExists", true);
 	*(void**)(&ptr_driver_getFileSize) = BindToLibrary("driver_getFileSize", true);
 	*(void**)(&ptr_driver_fopen) = BindToLibrary("driver_fopen", true);
 	*(void**)(&ptr_driver_fclose) = BindToLibrary("driver_fclose", true);
@@ -272,6 +294,8 @@ boolean SystemFileDriverLibrary::LoadLibrary(const ALString& sValue)
 	// Methodes optionnelles
 	*(void**)(&ptr_driver_copyToLocal) = BindToLibrary("driver_copyToLocal", false);
 	*(void**)(&ptr_driver_copyFromLocal) = BindToLibrary("driver_copyFromLocal", false);
+	*(void**)(&ptr_driver_getSystemPreferredBufferSize) =
+	    BindToLibrary("driver_getSystemPreferredBufferSize", false);
 
 	if (MemoryStatsManager::IsOpened())
 		MemoryStatsManager::AddLog(sTmp + "driver [" + sLibraryName + "] LoadLibrary End");
@@ -299,6 +323,16 @@ boolean SystemFileDriverLibrary::IsLibraryLoaded() const
 	return handleLibrary != NULL;
 }
 
+const ALString SystemFileDriverLibrary::GetClassLabel() const
+{
+	return "File driver";
+}
+
+const ALString SystemFileDriverLibrary::GetObjectLabel() const
+{
+	return sLibraryName;
+}
+
 void SystemFileDriverLibrary::Clean()
 {
 	bIsError = false;
@@ -310,7 +344,9 @@ void SystemFileDriverLibrary::Clean()
 	*(void**)(&ptr_driver_connect) = NULL;
 	*(void**)(&ptr_driver_disconnect) = NULL;
 	*(void**)(&ptr_driver_isConnected) = NULL;
-	*(void**)(&ptr_driver_exist) = NULL;
+	*(void**)(&ptr_driver_getSystemPreferredBufferSize) = NULL;
+	*(void**)(&ptr_driver_fileExists) = NULL;
+	*(void**)(&ptr_driver_dirExists) = NULL;
 	*(void**)(&ptr_driver_getFileSize) = NULL;
 	*(void**)(&ptr_driver_fopen) = NULL;
 	*(void**)(&ptr_driver_fclose) = NULL;
@@ -340,7 +376,7 @@ void* SystemFileDriverLibrary::BindToLibrary(const ALString& sMethodName, boolea
 		if (pFunction == NULL and bMandatory)
 		{
 			bIsError = true;
-			Global::AddError("", "", "Unable to load " + sMethodName + "from " + sLibraryName);
+			AddError("Unable to load function " + sMethodName + " from library");
 		}
 	}
 	return pFunction;

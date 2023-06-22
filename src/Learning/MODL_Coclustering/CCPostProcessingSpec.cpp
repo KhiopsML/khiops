@@ -3,8 +3,7 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 ////////////////////////////////////////////////////////////
-// 2021-02-05 18:19:44
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "CCPostProcessingSpec.h"
@@ -16,6 +15,8 @@ CCPostProcessingSpec::CCPostProcessingSpec()
 	nCellNumber = 0;
 	nMaxCellNumber = 0;
 	nMaxPreservedInformation = 0;
+	nTotalPartNumber = 0;
+	nMaxTotalPartNumber = 0;
 
 	// ## Custom constructor
 
@@ -41,6 +42,8 @@ void CCPostProcessingSpec::CopyFrom(const CCPostProcessingSpec* aSource)
 	nCellNumber = aSource->nCellNumber;
 	nMaxCellNumber = aSource->nMaxCellNumber;
 	nMaxPreservedInformation = aSource->nMaxPreservedInformation;
+	nTotalPartNumber = aSource->nTotalPartNumber;
+	nMaxTotalPartNumber = aSource->nMaxTotalPartNumber;
 	sFrequencyAttribute = aSource->sFrequencyAttribute;
 
 	// ## Custom copyfrom
@@ -81,6 +84,8 @@ void CCPostProcessingSpec::Write(ostream& ost) const
 	ost << "Cell number\t" << GetCellNumber() << "\n";
 	ost << "Max cell number\t" << GetMaxCellNumber() << "\n";
 	ost << "Max preserved information\t" << GetMaxPreservedInformation() << "\n";
+	ost << "Total part number\t" << GetTotalPartNumber() << "\n";
+	ost << "Max total part number\t" << GetMaxTotalPartNumber() << "\n";
 	ost << "Frequency variable\t" << GetFrequencyAttribute() << "\n";
 }
 
@@ -109,13 +114,14 @@ boolean CCPostProcessingSpec::PostProcessCoclustering(CCHierarchicalDataGrid* po
 	boolean bDisplay = false;
 	const double dEpsilon = 1e-6;
 	CCCoclusteringReport coclusteringReport;
-	SortedList slSortedMergeableParts(CCHDGPartCompareHierarchicalLevel);
+	SortedList slSortedMergeableParts(CCHDGPartCompareHierarchicalRank);
 	int nAttribute;
 	CCHDGAttribute* hdgAttribute;
 	KWDGPart* dgPart;
 	CCHDGPart* hdgPart;
 	CCHDGPart* hdgMergedPart;
 	double dActualCellNumber;
+	int nActualTotalPartNumber;
 	CCPostProcessedAttribute* postProcessedAttribute;
 	IntVector ivAttributMaxPartNumbers;
 	int nMaxPartViolationNumber;
@@ -150,12 +156,14 @@ boolean CCPostProcessingSpec::PostProcessCoclustering(CCHierarchicalDataGrid* po
 		}
 	}
 
-	// Calcul du nombre de cellules
+	// Calcul du nombre de cellules et de partie
 	dActualCellNumber = 1;
+	nActualTotalPartNumber = 0;
 	for (nAttribute = 0; nAttribute < postProcessedCoclusteringDataGrid->GetAttributeNumber(); nAttribute++)
 	{
 		hdgAttribute = cast(CCHDGAttribute*, postProcessedCoclusteringDataGrid->GetAttributeAt(nAttribute));
 		dActualCellNumber *= hdgAttribute->GetPartNumber();
+		nActualTotalPartNumber += hdgAttribute->GetPartNumber();
 	}
 
 	// Initialisation des contraintes en nombre de parties par attributs
@@ -182,6 +190,10 @@ boolean CCPostProcessingSpec::PostProcessCoclustering(CCHierarchicalDataGrid* po
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	// Execution du post-traitement en verifiant les contraintes
 
+	// Affichage de l'entete
+	if (bDisplay)
+		cout << "Variable\tPart\tHierarchical rank\tHierarchical level\n";
+
 	// Merges des parties de la grille tant que les contraintes ne sont pas verifiees
 	postProcessedCoclusteringDataGrid->SetCellUpdateMode(true);
 	while (slSortedMergeableParts.GetCount() > 0)
@@ -195,6 +207,10 @@ boolean CCPostProcessingSpec::PostProcessCoclustering(CCHierarchicalDataGrid* po
 		    hdgPart->GetHierarchicalLevel() * 100 > GetMaxPreservedInformation())
 			bMerge = true;
 		if (GetMaxCellNumber() > 0 and dActualCellNumber > GetMaxCellNumber() + dEpsilon)
+			bMerge = true;
+		if (GetMaxTotalPartNumber() > 0 and
+		    nActualTotalPartNumber >
+			max(GetMaxTotalPartNumber(), postProcessedCoclusteringDataGrid->GetAttributeNumber()))
 			bMerge = true;
 		if (nMaxPartViolationNumber > 0)
 			bMerge = true;
@@ -219,18 +235,21 @@ boolean CCPostProcessingSpec::PostProcessCoclustering(CCHierarchicalDataGrid* po
 			// Actualisation des parametres de contraintes
 			dActualCellNumber /= hdgAttribute->GetPartNumber() + 1;
 			dActualCellNumber *= hdgAttribute->GetPartNumber();
+			nActualTotalPartNumber--;
 			if (ivAttributMaxPartNumbers.GetAt(hdgAttribute->GetAttributeIndex()) > 0 and
 			    ivAttributMaxPartNumbers.GetAt(hdgAttribute->GetAttributeIndex()) ==
 				hdgAttribute->GetPartNumber())
 				nMaxPartViolationNumber--;
 			assert(dActualCellNumber > 1 - dEpsilon);
+			assert(nActualTotalPartNumber >= oaPostProcessedAttributes.GetSize());
 			assert(nMaxPartViolationNumber >= 0);
 
 			// Affichage de la partie fusionnees
 			if (bDisplay)
 			{
 				cout << hdgAttribute->GetAttributeName() << "\t" << hdgMergedPart->GetObjectLabel()
-				     << "\t" << hdgMergedPart->GetHierarchicalLevel() << "\n";
+				     << "\t" << hdgMergedPart->GetHierarchicalRank() << "\t"
+				     << hdgMergedPart->GetHierarchicalLevel() << "\n";
 			}
 		}
 	}
@@ -259,6 +278,7 @@ void CCPostProcessingSpec::UpdateCoclusteringSpec(const ALString& sCoclusteringR
 	nCellNumber = 0;
 	nMaxCellNumber = 0;
 	nMaxPreservedInformation = 0;
+	nTotalPartNumber = 0;
 	sFrequencyAttribute = "";
 	oaPostProcessedAttributes.DeleteAll();
 
@@ -281,6 +301,7 @@ void CCPostProcessingSpec::UpdateCoclusteringSpec(const ALString& sCoclusteringR
 
 		// Information sur les attributs de coclustering
 		nCellNumber = 1;
+		nTotalPartNumber = 0;
 		for (nAttribute = 0; nAttribute < coclusteringDataGrid.GetAttributeNumber(); nAttribute++)
 		{
 			dgAttribute = coclusteringDataGrid.GetAttributeAt(nAttribute);
@@ -291,6 +312,7 @@ void CCPostProcessingSpec::UpdateCoclusteringSpec(const ALString& sCoclusteringR
 			postProcessedAttribute->SetType(KWType::ToString(dgAttribute->GetAttributeType()));
 			postProcessedAttribute->SetPartNumber(dgAttribute->GetPartNumber());
 			nCellNumber *= dgAttribute->GetPartNumber();
+			nTotalPartNumber += dgAttribute->GetPartNumber();
 			oaPostProcessedAttributes.Add(postProcessedAttribute);
 		}
 	}

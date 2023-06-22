@@ -92,6 +92,10 @@ public:
 	KWAttribute* GetFirstAttribute() const;
 	KWAttribute* GetLastAttribute() const;
 
+	// Calcul du nombre total d'attributs du bloc, qui n'a pas besoin d'etre indexe
+	// a la difference du cas de la methode GetAttributeNumber
+	int ComputeAttributeNumber() const;
+
 	// Type de block
 	int GetBlockType() const;
 
@@ -114,7 +118,7 @@ public:
 	// Bloc charge en memoire
 	boolean GetLoaded() const;
 
-	// Index de chargement du bloc dans la classe parmi les atributs charges en memoire
+	// Index de chargement du bloc dans la classe parmi les attributs charges en memoire
 	// Permet l'acces a la valeur du bloc dans les KWObjets
 	KWLoadIndex GetLoadIndex() const;
 
@@ -158,6 +162,12 @@ public:
 	// Recherche d'un attribut du bloc par VarKey, pour un bloc d'une classe indexee
 	KWAttribute* LookupAttributeByContinuousVarKey(int nVarKey) const;
 	KWAttribute* LookupAttributeBySymbolVarKey(Symbol sVarKey) const;
+
+	// Construction d'un bloc de cle pour tous les attributs du bloc, que la classe soit indexee ou non
+	// Seules les cles valides sont memorisees
+	// Utile pour les check avant indexation de la classe
+	// Memoire: le bloc de cle en retour appartient a l'appelant
+	KWIndexedKeyBlock* BuildAttributesIndexedKeyBlock() const;
 
 	/////////////////////////////////////////
 	// Services divers
@@ -215,7 +225,7 @@ protected:
 
 	/////////////////////////////////////////
 	// Service avances lies aux VarKey
-	// A n'utiliser que pour se servir d'un bloc pour gerer temporaire les attribut par VarKey,
+	// A n'utiliser que pour se servir d'un bloc pour gerer temporaire les attributs par VarKey,
 	// hors indexation de la classe
 	friend class KDClassBuilder;
 
@@ -434,6 +444,7 @@ inline KWAttribute* KWAttributeBlock::GetLoadedAttributeAt(int nIndex) const
 
 inline const KWIndexedKeyBlock* KWAttributeBlock::GetLoadedAttributesIndexedKeyBlock() const
 {
+	require(GetParentClass()->IsIndexed());
 	require(GetVarKeyType() != KWType::None);
 	ensure(oaLoadedAttributes.GetSize() == loadedAttributesIndexedKeyBlock->GetKeyNumber());
 	return loadedAttributesIndexedKeyBlock;

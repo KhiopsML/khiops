@@ -743,6 +743,7 @@ boolean KWDRExtractWords::CheckOperandsDefinition() const
 	int nAdditionnalCharNumber;
 	int i;
 	unsigned char nChar;
+	boolean bIsInt;
 	ALString sTmp;
 
 	// Verification de base
@@ -755,8 +756,8 @@ boolean KWDRExtractWords::CheckOperandsDefinition() const
 		operand = GetOperandAt(1);
 		assert(operand->GetOrigin() == KWDerivationRuleOperand::OriginConstant);
 		cValue = operand->GetContinuousConstant();
-		nValue = (int)floor(cValue + 0.5);
-		if (fabs(cValue - nValue) > 1e-5 or (nValue != 0 and nValue != 1))
+		bIsInt = KWContinuous::ContinuousToInt(cValue, nValue);
+		if (not bIsInt or (nValue != 0 and nValue != 1))
 		{
 			bOk = false;
 			AddError(sTmp + "ToLower parameter (operand 2) " + "(" +
@@ -767,8 +768,8 @@ boolean KWDRExtractWords::CheckOperandsDefinition() const
 		operand = GetOperandAt(2);
 		assert(operand->GetOrigin() == KWDerivationRuleOperand::OriginConstant);
 		cValue = operand->GetContinuousConstant();
-		nValue = (int)floor(cValue + 0.5);
-		if (fabs(cValue - nValue) > 1e-5 or (nValue != 0 and nValue != 1))
+		bIsInt = KWContinuous::ContinuousToInt(cValue, nValue);
+		if (not bIsInt or (nValue != 0 and nValue != 1))
 		{
 			bOk = false;
 			AddError(sTmp + "KeepNumerical parameter (operand 3) " + "(" +
@@ -811,8 +812,8 @@ boolean KWDRExtractWords::CheckOperandsDefinition() const
 		operand = GetOperandAt(5);
 		assert(operand->GetOrigin() == KWDerivationRuleOperand::OriginConstant);
 		cValue = operand->GetContinuousConstant();
-		nValue = (int)floor(cValue + 0.5);
-		if (fabs(cValue - nValue) > 1e-5 or nValue <= 0)
+		bIsInt = KWContinuous::ContinuousToInt(cValue, nValue);
+		if (not bIsInt or nValue <= 0)
 		{
 			bOk = false;
 			AddError(sTmp + "MaxLength parameter (operand 6) " + "(" +

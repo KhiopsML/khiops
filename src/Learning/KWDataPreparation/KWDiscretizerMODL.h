@@ -214,7 +214,7 @@ protected:
 						  KWMODLLineDeepOptimization*& headInterval) const;
 
 	// Post-optimisation basee sur une recherche locale des ameliorations
-	// baseee sur des MergeSplit, c'est a dire uniquement sur des deplacement de frontieres entre intervalles
+	// baseee sur des MergeSplit, c'est a dire uniquement sur des deplacements de frontieres entre intervalles
 	// La liste (dont la tete est passee en parametre) est modifiee par la methode
 	virtual void IntervalListBoundaryPostOptimization(const KWFrequencyTable* kwftSource,
 							  KWMODLLineDeepOptimization*& headInterval) const;

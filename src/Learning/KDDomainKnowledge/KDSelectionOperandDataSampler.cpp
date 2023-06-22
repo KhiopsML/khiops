@@ -71,6 +71,7 @@ int KDSelectionOperandDataSampler::GetMaxSampleSize() const
 int KDSelectionOperandDataSampler::ComputeMaxSampleSize()
 {
 	const int nMinObjectNumberPerPartile = lKB;
+	const int nMaxSize = lMB;
 	const longint lMinTotalValueNumber = 128 * lKB;
 	int nSampleSize;
 	int nSelectionOperandNumber;
@@ -79,7 +80,7 @@ int KDSelectionOperandDataSampler::ComputeMaxSampleSize()
 	int i;
 	longint lTotalValueNumber;
 
-	// Calcul de stats sur les operande de selection utilises
+	// Calcul de stats sur les operandes de selection utilises
 	nSelectionOperandNumber = 0;
 	nMaxSelectionOperandGranularity = 0;
 	for (i = 0; i < GetClassSelectionData()->GetSize(); i++)
@@ -95,8 +96,9 @@ int KDSelectionOperandDataSampler::ComputeMaxSampleSize()
 	// Nombre minimum d'objets a garder dans les echantillons pour avoir une estimation suffisament fine des
 	// partiles
 	nSampleSize = nMaxSelectionOperandGranularity * nMinObjectNumberPerPartile;
+	nSampleSize = min(nSampleSize, nMaxSize);
 
-	// On augmente ce nombre pour avoir des echantillon avec 2 partiles seulement ou avec quelques dizaines de
+	// On augmente ce nombre pour avoir des echantillons avec 2 partiles seulement ou avec quelques dizaines de
 	// partiles Cela permet de stabiliser les resultats dans le cas de petits nombres de patiles par operande de
 	// selection
 	lTotalValueNumber = nSampleSize * nSelectionOperandNumber;

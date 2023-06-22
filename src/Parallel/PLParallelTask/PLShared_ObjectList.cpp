@@ -19,7 +19,7 @@ PLShared_ObjectList::~PLShared_ObjectList()
 
 void PLShared_ObjectList::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
-	ObjectList* olToSerialize;
+	const ObjectList* olToSerialize;
 	Object* oToSerialize;
 	POSITION position;
 

@@ -36,11 +36,11 @@ public:
 	boolean operator==(const Timestamp& tsValue) const;
 	boolean operator!=(const Timestamp& tsValue) const;
 
-	////////////////////////////////////////////////
-	// Acces aux champs de la Timestamp par valeur
-
 	// Test si valide
 	boolean Check() const;
+
+	////////////////////////////////////////////////
+	// Acces aux champs de la Timestamp par valeur
 
 	// Date
 	const Date GetDate() const;
@@ -102,8 +102,12 @@ protected:
 	unsigned int nDate;
 	unsigned int nTime;
 
+	// Classes en friend pour acceder aux informations interne de Date et Time
+	friend class KWTimestampFormat;
+	friend class TimestampTZ;
+
 	// Acces aux attributs en mode mise a jour
-	// L'acces par reference permet de les utilisateur en affectation
+	// L'acces par reference permet de les utilisater en affectation
 	// Exemple: GetInternalDate() = myDate, ou GetInternalDate().Reset()
 	Date& GetInternalDate() const;
 	Time& GetInternalTime() const;
@@ -141,8 +145,11 @@ public:
 	// Test si format valide
 	boolean Check() const override;
 
+	// Reinitialisation du format
+	void Reset();
+
 	// Test si le format est compatible avec un autre format, c'est a dire si cet autre format
-	// peut prendre en compte les meme valeurs sans erreur
+	// peut prendre en compte les memes valeurs sans erreur
 	boolean IsConsistentWith(const KWTimestampFormat* otherFormat) const;
 
 	//////////////////////////////////////////////////////////
@@ -163,8 +170,7 @@ public:
 	// Position du separateur (-1 si pas de separateur)
 	int GetSeparatorOffset() const;
 
-	// Position des separateurs
-	int GetDateOffset() const;
+	// Position du format time
 	int GetTimeOffset() const;
 
 	// Tailles minimum et maximum d'une valeur pour etre compatible avec le format
@@ -219,7 +225,6 @@ protected:
 	int nTotalCharNumber;
 	char cSeparatorChar;
 	int nSeparatorOffset;
-	int nDateOffset;
 	int nTimeOffset;
 	int nMinCharNumber;
 	int nMaxCharNumber;
@@ -375,12 +380,6 @@ inline int KWTimestampFormat::GetSeparatorOffset() const
 {
 	require(Check());
 	return nSeparatorOffset;
-}
-
-inline int KWTimestampFormat::GetDateOffset() const
-{
-	require(Check());
-	return nDateOffset;
 }
 
 inline int KWTimestampFormat::GetTimeOffset() const

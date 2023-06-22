@@ -259,7 +259,7 @@ boolean KWDataTableSorterView::Check(const ObjectArray* oaCheckedSortAttributeNa
 				// Un meme attribut ne doit pas etre utilise plusieurs fois pour la cle
 				else
 				{
-					// Test d'utilisation de l'atribut pour la cle
+					// Test d'utilisation de l'attribut pour la cle
 					if (nkdSortAttributes.Lookup(attribute) != NULL)
 					{
 						bOk = false;
@@ -307,8 +307,9 @@ void KWDataTableSorterView::SortDataTableByKey()
 	int nAttributes;
 
 	// Execution controlee par licence
-	if (not LMLicenseManager::RequestLicenseKey())
-		return;
+	if (LMLicenseManager::IsEnabled())
+		if (not LMLicenseManager::RequestLicenseKey())
+			return;
 
 	// Verification du directory des fichiers temporaires
 	if (not FileService::CreateApplicationTmpDir())
@@ -359,7 +360,7 @@ void KWDataTableSorterView::SortDataTableByKey()
 	{
 		// Acces au repertoire du fichier resultat du tri
 		sOutputPathName = FileService::GetPathName(workingTargetDataTable.GetDatabaseName());
-		if (sOutputPathName != "" and not PLRemoteFileService::Exist(sOutputPathName))
+		if (sOutputPathName != "" and not PLRemoteFileService::DirExists(sOutputPathName))
 		{
 			bOk = PLRemoteFileService::MakeDirectories(sOutputPathName);
 			if (not bOk)

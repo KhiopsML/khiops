@@ -11,6 +11,7 @@ void KWDRRegisterStandardRules()
 	KWDerivationRule::RegisterDerivationRule(new KWDRCopyDate);
 	KWDerivationRule::RegisterDerivationRule(new KWDRCopyTime);
 	KWDerivationRule::RegisterDerivationRule(new KWDRCopyTimestamp);
+	KWDerivationRule::RegisterDerivationRule(new KWDRCopyTimestampTZ);
 	KWDerivationRule::RegisterDerivationRule(new KWDRTextCopy);
 	KWDerivationRule::RegisterDerivationRule(new KWDRCopySymbolValueBlock);
 	KWDerivationRule::RegisterDerivationRule(new KWDRCopyContinuousValueBlock);
@@ -26,6 +27,8 @@ void KWDRRegisterStandardRules()
 	KWDerivationRule::RegisterDerivationRule(new KWDRFormatTime);
 	KWDerivationRule::RegisterDerivationRule(new KWDRAsTimestamp);
 	KWDerivationRule::RegisterDerivationRule(new KWDRFormatTimestamp);
+	KWDerivationRule::RegisterDerivationRule(new KWDRAsTimestampTZ);
+	KWDerivationRule::RegisterDerivationRule(new KWDRFormatTimestampTZ);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -169,6 +172,31 @@ Timestamp KWDRCopyTimestamp::ComputeTimestampResult(const KWObject* kwoObject) c
 
 //////////////////////////////////////////////////////////////////////////////////////
 
+KWDRCopyTimestampTZ::KWDRCopyTimestampTZ()
+{
+	SetName("CopyTSTZ");
+	SetLabel("Copy of a timestampTZ value");
+	SetType(KWType::TimestampTZ);
+	SetOperandNumber(1);
+	GetFirstOperand()->SetType(KWType::TimestampTZ);
+}
+
+KWDRCopyTimestampTZ::~KWDRCopyTimestampTZ() {}
+
+KWDerivationRule* KWDRCopyTimestampTZ::Create() const
+{
+	return new KWDRCopyTimestampTZ;
+}
+
+TimestampTZ KWDRCopyTimestampTZ::ComputeTimestampTZResult(const KWObject* kwoObject) const
+{
+	require(IsCompiled());
+
+	return GetFirstOperand()->GetTimestampTZValue(kwoObject);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+
 KWDRTextCopy::KWDRTextCopy()
 {
 	SetName("TextCopy");
@@ -216,7 +244,7 @@ Symbol& KWDRValueBlockRule::GetValueBlockSymbolDefaultValue() const
 	return GetOperandAt(nSourceValueBlockOperandIndex)->GetOriginAttributeBlock()->GetSymbolDefaultValue();
 }
 
-boolean KWDRValueBlockRule::CheckCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDRValueBlockRule::CheckCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
 
@@ -225,7 +253,7 @@ boolean KWDRValueBlockRule::CheckCompletness(const KWClass* kwcOwnerClass) const
 	require(KWType::IsValueBlock(GetType()));
 
 	// Methode ancetre
-	bOk = KWDerivationRule::CheckCompletness(kwcOwnerClass);
+	bOk = KWDerivationRule::CheckCompleteness(kwcOwnerClass);
 
 	// On verifie en plus la coherence avec le type de l'attribut retourne
 	if (bReturnTypeSameAsOperandType)
@@ -726,7 +754,7 @@ Date KWDRAsDate::ComputeDateResult(const KWObject* kwoObject) const
 	return dtDate;
 }
 
-boolean KWDRAsDate::CheckOperandsCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDRAsDate::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
 	Symbol sDateFormat;
@@ -734,7 +762,7 @@ boolean KWDRAsDate::CheckOperandsCompletness(const KWClass* kwcOwnerClass) const
 	ALString sTmp;
 
 	// Appel de la methode ancetre
-	bOk = KWDerivationRule::CheckOperandsCompletness(kwcOwnerClass);
+	bOk = KWDerivationRule::CheckOperandsCompleteness(kwcOwnerClass);
 
 	// Verification de l'operande de format
 	if (bOk)
@@ -798,7 +826,7 @@ Symbol KWDRFormatDate::ComputeSymbolResult(const KWObject* kwoObject) const
 	return sDate;
 }
 
-boolean KWDRFormatDate::CheckOperandsCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDRFormatDate::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
 	Symbol sDateFormat;
@@ -806,7 +834,7 @@ boolean KWDRFormatDate::CheckOperandsCompletness(const KWClass* kwcOwnerClass) c
 	ALString sTmp;
 
 	// Appel de la methode ancetre
-	bOk = KWDerivationRule::CheckOperandsCompletness(kwcOwnerClass);
+	bOk = KWDerivationRule::CheckOperandsCompleteness(kwcOwnerClass);
 
 	// Verification de l'operande de format
 	if (bOk)
@@ -889,7 +917,7 @@ Time KWDRAsTime::ComputeTimeResult(const KWObject* kwoObject) const
 	return tmTime;
 }
 
-boolean KWDRAsTime::CheckOperandsCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDRAsTime::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
 	Symbol sTimeFormat;
@@ -897,7 +925,7 @@ boolean KWDRAsTime::CheckOperandsCompletness(const KWClass* kwcOwnerClass) const
 	ALString sTmp;
 
 	// Appel de la methode ancetre
-	bOk = KWDerivationRule::CheckOperandsCompletness(kwcOwnerClass);
+	bOk = KWDerivationRule::CheckOperandsCompleteness(kwcOwnerClass);
 
 	// Verification de l'operande de format
 	if (bOk)
@@ -961,7 +989,7 @@ Symbol KWDRFormatTime::ComputeSymbolResult(const KWObject* kwoObject) const
 	return sTime;
 }
 
-boolean KWDRFormatTime::CheckOperandsCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDRFormatTime::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
 	Symbol sTimeFormat;
@@ -969,7 +997,7 @@ boolean KWDRFormatTime::CheckOperandsCompletness(const KWClass* kwcOwnerClass) c
 	ALString sTmp;
 
 	// Appel de la methode ancetre
-	bOk = KWDerivationRule::CheckOperandsCompletness(kwcOwnerClass);
+	bOk = KWDerivationRule::CheckOperandsCompleteness(kwcOwnerClass);
 
 	// Verification de l'operande de format
 	if (bOk)
@@ -1047,12 +1075,12 @@ Timestamp KWDRAsTimestamp::ComputeTimestampResult(const KWObject* kwoObject) con
 					 "(" + GetOperandAt(0)->GetAttributeName() + ", \"" +
 					 GetOperandAt(1)->GetSymbolConstant() + "\")" + ": value <" +
 					 InputBufferedFile::GetDisplayValue(sTimestamp.GetValue()) +
-					 "> converted to <> (invalid time)");
+					 "> converted to <> (invalid timestamp)");
 	}
 	return tsTimestamp;
 }
 
-boolean KWDRAsTimestamp::CheckOperandsCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDRAsTimestamp::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
 	Symbol sTimestampFormat;
@@ -1060,7 +1088,7 @@ boolean KWDRAsTimestamp::CheckOperandsCompletness(const KWClass* kwcOwnerClass) 
 	ALString sTmp;
 
 	// Appel de la methode ancetre
-	bOk = KWDerivationRule::CheckOperandsCompletness(kwcOwnerClass);
+	bOk = KWDerivationRule::CheckOperandsCompleteness(kwcOwnerClass);
 
 	// Verification de l'operande de format
 	if (bOk)
@@ -1124,7 +1152,7 @@ Symbol KWDRFormatTimestamp::ComputeSymbolResult(const KWObject* kwoObject) const
 	return sTimestamp;
 }
 
-boolean KWDRFormatTimestamp::CheckOperandsCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDRFormatTimestamp::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
 	Symbol sTimestampFormat;
@@ -1132,7 +1160,7 @@ boolean KWDRFormatTimestamp::CheckOperandsCompletness(const KWClass* kwcOwnerCla
 	ALString sTmp;
 
 	// Appel de la methode ancetre
-	bOk = KWDerivationRule::CheckOperandsCompletness(kwcOwnerClass);
+	bOk = KWDerivationRule::CheckOperandsCompleteness(kwcOwnerClass);
 
 	// Verification de l'operande de format
 	if (bOk)
@@ -1166,5 +1194,168 @@ longint KWDRFormatTimestamp::GetUsedMemory() const
 	longint lUsedMemory;
 	lUsedMemory = KWDerivationRule::GetUsedMemory();
 	lUsedMemory += sizeof(KWDRFormatTimestamp) - sizeof(KWDerivationRule);
+	return lUsedMemory;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+
+KWDRAsTimestampTZ::KWDRAsTimestampTZ()
+{
+	SetName("AsTimestampTZ");
+	SetLabel("Recode a categorical value into a timestampTZ using a timestampTZ format");
+	SetType(KWType::TimestampTZ);
+	SetOperandNumber(2);
+	GetOperandAt(0)->SetType(KWType::Symbol);
+	GetOperandAt(1)->SetType(KWType::Symbol);
+	GetOperandAt(1)->SetOrigin(KWDerivationRuleOperand::OriginConstant);
+}
+
+KWDRAsTimestampTZ::~KWDRAsTimestampTZ() {}
+
+KWDerivationRule* KWDRAsTimestampTZ::Create() const
+{
+	return new KWDRAsTimestampTZ;
+}
+
+TimestampTZ KWDRAsTimestampTZ::ComputeTimestampTZResult(const KWObject* kwoObject) const
+{
+	Symbol sTimestampTZ;
+	TimestampTZ tsTimestampTZ;
+
+	require(IsCompiled());
+
+	// Acces a l'operande valeur de timestampTZ
+	sTimestampTZ = GetOperandAt(0)->GetSymbolValue(kwoObject);
+
+	// Conversion en timestampTZ
+	tsTimestampTZ = tstzfTimestampTZFormat.StringToTimestampTZ(sTimestampTZ);
+
+	// Emission d'une erreur si demande et si transcodage d'un attribut natif
+	if (oErrorSender != NULL and GetOperandAt(0)->GetOrigin() == KWDerivationRuleOperand::OriginAttribute and
+	    GetOperandAt(0)->GetDerivationRule() == NULL and not sTimestampTZ.IsEmpty() and not tsTimestampTZ.Check())
+	{
+		oErrorSender->AddWarning("Dictionary " + kwoObject->GetClass()->GetName() + ", rule " + GetName() +
+					 "(" + GetOperandAt(0)->GetAttributeName() + ", \"" +
+					 GetOperandAt(1)->GetSymbolConstant() + "\")" + ": value <" +
+					 InputBufferedFile::GetDisplayValue(sTimestampTZ.GetValue()) +
+					 "> converted to <> (invalid timestampTZ)");
+	}
+	return tsTimestampTZ;
+}
+
+boolean KWDRAsTimestampTZ::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
+{
+	boolean bOk;
+	Symbol sTimestampTZFormat;
+	KWTimestampTZFormat tsfTimestampTZFormatCheck;
+	ALString sTmp;
+
+	// Appel de la methode ancetre
+	bOk = KWDerivationRule::CheckOperandsCompleteness(kwcOwnerClass);
+
+	// Verification de l'operande de format
+	if (bOk)
+	{
+		// Parametrage d'un format de timestampTZ
+		sTimestampTZFormat = GetSecondOperand()->GetSymbolConstant();
+		tsfTimestampTZFormatCheck.SetFormatString(sTimestampTZFormat.GetValue());
+
+		// Erreur si invalide
+		if (not tsfTimestampTZFormatCheck.Check())
+		{
+			AddError(sTmp + "Invalid timestampTZ format parameter (" + sTimestampTZFormat + ")");
+			bOk = false;
+		}
+	}
+	return bOk;
+}
+
+void KWDRAsTimestampTZ::Compile(KWClass* kwcOwnerClass)
+{
+	// Appel de la methode ancetre
+	KWDerivationRule::Compile(kwcOwnerClass);
+
+	// Memorisation du format de timestampTZ
+	tstzfTimestampTZFormat.SetFormatString(GetSecondOperand()->GetSymbolConstant().GetValue());
+	assert(tstzfTimestampTZFormat.Check());
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+
+KWDRFormatTimestampTZ::KWDRFormatTimestampTZ()
+{
+	SetName("FormatTimestampTZ");
+	SetLabel("Format a timestampTZ into a categorical value using a timestampTZ format");
+	SetType(KWType::Symbol);
+	SetOperandNumber(2);
+	GetOperandAt(0)->SetType(KWType::TimestampTZ);
+	GetOperandAt(1)->SetType(KWType::Symbol);
+	GetOperandAt(1)->SetOrigin(KWDerivationRuleOperand::OriginConstant);
+}
+
+KWDRFormatTimestampTZ::~KWDRFormatTimestampTZ() {}
+
+KWDerivationRule* KWDRFormatTimestampTZ::Create() const
+{
+	return new KWDRFormatTimestampTZ;
+}
+
+Symbol KWDRFormatTimestampTZ::ComputeSymbolResult(const KWObject* kwoObject) const
+{
+	Symbol sTimestampTZ;
+	TimestampTZ tsTimestampTZ;
+
+	require(IsCompiled());
+
+	// Acces a l'operande valeur de timestampTZ
+	tsTimestampTZ = GetOperandAt(0)->GetTimestampTZValue(kwoObject);
+
+	// Formatage de la timestampTZ
+	sTimestampTZ = tstzfTimestampTZFormat.TimestampTZToString(tsTimestampTZ);
+	return sTimestampTZ;
+}
+
+boolean KWDRFormatTimestampTZ::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
+{
+	boolean bOk;
+	Symbol sTimestampTZFormat;
+	KWTimestampTZFormat tsfTimestampTZFormatCheck;
+	ALString sTmp;
+
+	// Appel de la methode ancetre
+	bOk = KWDerivationRule::CheckOperandsCompleteness(kwcOwnerClass);
+
+	// Verification de l'operande de format
+	if (bOk)
+	{
+		// Parametrage d'un format de timestampTZ
+		sTimestampTZFormat = GetSecondOperand()->GetSymbolConstant();
+		tsfTimestampTZFormatCheck.SetFormatString(sTimestampTZFormat.GetValue());
+
+		// Erreur si invalide
+		if (not tsfTimestampTZFormatCheck.Check())
+		{
+			AddError(sTmp + "Invalid timestampTZ format parameter (" + sTimestampTZFormat + ")");
+			bOk = false;
+		}
+	}
+	return bOk;
+}
+
+void KWDRFormatTimestampTZ::Compile(KWClass* kwcOwnerClass)
+{
+	// Appel de la methode ancetre
+	KWDerivationRule::Compile(kwcOwnerClass);
+
+	// Memorisation du format de timestampTZ
+	tstzfTimestampTZFormat.SetFormatString(GetSecondOperand()->GetSymbolConstant().GetValue());
+	assert(tstzfTimestampTZFormat.Check());
+}
+
+longint KWDRFormatTimestampTZ::GetUsedMemory() const
+{
+	longint lUsedMemory;
+	lUsedMemory = KWDerivationRule::GetUsedMemory();
+	lUsedMemory += sizeof(KWDRFormatTimestampTZ) - sizeof(KWDerivationRule);
 	return lUsedMemory;
 }

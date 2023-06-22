@@ -100,7 +100,7 @@ void KNICreateEnv()
 		Error::SetDisplayErrorFunction(NULL);
 
 		// Affectation des handlers pour l'acces au fichiers
-		SystemFileDriverCreator::RegisterDrivers();
+		SystemFileDriverCreator::RegisterExternalDrivers();
 	}
 }
 
@@ -246,7 +246,7 @@ static void KNIAddInternalError(const ALString& sLabel)
 
 KNI_API int KNIGetVersion()
 {
-	return KNI_VERSION_10_0;
+	return KNI_VERSION_10_1;
 }
 
 KNI_API const char* KNIGetFullVersion()
@@ -471,7 +471,7 @@ KNI_API int KNIOpenStream(const char* sDictionaryFileName, const char* sDictiona
 		else if (not KNICheckString(sDictionaryName, KNI_MaxDictionaryNameLength))
 			nRetCode = KNI_ErrorDictionaryName;
 		// Erreur si fichier dictionnaire inexistant
-		else if (not FileService::Exist(sDictionaryFileName))
+		else if (not FileService::FileExists(sDictionaryFileName))
 			nRetCode = KNI_ErrorDictionaryMissingFile;
 		// Erreur si pas de header line
 		else if (not KNICheckString(sStreamHeaderLine, KNI_MaxRecordLength))

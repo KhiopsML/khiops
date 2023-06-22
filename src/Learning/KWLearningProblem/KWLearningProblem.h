@@ -24,7 +24,8 @@
 #include "KWPredictorUnivariate.h"
 #include "KWPredictorEvaluation.h"
 #include "KWDataPreparationClass.h"
-#include "KDDomainKnowledge.h"
+#include "KDMultiTableFeatureConstruction.h"
+#include "KDTextFeatureConstruction.h"
 #include "KDDataPreparationAttributeCreationTask.h"
 #include "KWLearningErrorManager.h"
 #include "JSONFile.h"
@@ -161,8 +162,11 @@ protected:
 	// dans la classe initiale si rien n'a ete construit
 	// Les specifications d'apprentissage sont mis a jour avec la nouvelle classe et la specification des
 	// familles de construction de variables
+	// En sortie, on fournit les attributs utilises construits references par leur nom, par type de construction
 	// Code retour a false si un probleme ou une interruption utilisateur est survenue (et classe construite NULL)
-	virtual boolean BuildConstructedClass(KWLearningSpec* learningSpec, KWClass*& constructedClass);
+	virtual boolean BuildConstructedClass(KWLearningSpec* learningSpec, KWClass*& constructedClass,
+					      ObjectDictionary* odMultiTableConstructedAttributes,
+					      ObjectDictionary* odTextConstructedAttributes);
 
 	// Creation d'une classe en important les couts specifie dans les meta-donnees
 	// Code retour a false si un probleme ou une interruption utilisateur est survenue (et classe construite NULL)
@@ -202,9 +206,10 @@ protected:
 	// Apprentissage
 
 	// Methode principale: apprentissage des predicteurs et memorisation de leur dictionnaire dans le domaine
-	// courant Memoire: les objets du tableau en sortie sont a liberer par l'appelant
-	virtual void TrainPredictors(const KWClassDomain* initialDomain, KWClassStats* classStats,
-				     ObjectArray* oaTrainedPredictors);
+	// courant Renvoie en cas d'erreur ou d'interruption utilisateur Memoire: les objets du tableau en sortie sont a
+	// liberer par l'appelant
+	virtual boolean TrainPredictors(const KWClassDomain* initialDomain, KWClassStats* classStats,
+					ObjectArray* oaTrainedPredictors);
 
 	// Collecte des classes de prediction de predicteurs dans un domaine de classe
 	// Les classes des predicteurs sont transferees dans le domaine de classe en sortie, et dereferencees des
@@ -221,8 +226,9 @@ protected:
 	// Le domaine initial permet apres apprentissage de nettoyer la classe du predicteurs de ses attributs
 	// construction ou preparation) inutiles
 	// Les stats permettent de reutiliser la preparation pour chaque predicteur
-	virtual void TrainPredictor(const KWClassDomain* initialDomain, KWClassStats* classStats,
-				    KWPredictor* predictor);
+	// Renvoie en cas d'erreur ou d'interruption utilisateur
+	virtual boolean TrainPredictor(const KWClassDomain* initialDomain, KWClassStats* classStats,
+				       KWPredictor* predictor);
 
 	// Sous-parties du probleme d'apprentissage
 	KWClassManagement* classManagement;

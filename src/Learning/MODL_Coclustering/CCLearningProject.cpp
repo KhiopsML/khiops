@@ -16,7 +16,8 @@ void CCLearningProject::OpenLearningEnvironnement()
 	KWLearningProject::OpenLearningEnvironnement();
 
 	// Declaration des licences
-	LMLicenseManager::DeclarePredefinedLicense(LMLicenseManager::KhiopsCoclustering);
+	if (LMLicenseManager::IsEnabled())
+		LMLicenseManager::DeclarePredefinedLicense(LMLicenseManager::KhiopsCoclustering);
 
 	// Parametrage du nom du module applicatif
 	SetLearningModuleName("Coclustering");

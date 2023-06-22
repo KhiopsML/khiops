@@ -10,7 +10,7 @@ ObjectDictionary* PLParallelTask::odTasks = NULL;
 ALString PLParallelTask::sParallelLogFileName = "";
 boolean PLParallelTask::bParallelSimulated = false;
 int PLParallelTask::nSimulatedSlaveNumber = 8;
-PLParallelTask::METHOD PLParallelTask::method = PLParallelTask::NONE;
+PLParallelTask::Method PLParallelTask::method = Method::NONE;
 ALString PLParallelTask::sVersion = "";
 boolean PLParallelTask::bVerbose = false;
 int PLParallelTask::nInstanciatedTaskNumber = 0;
@@ -20,6 +20,10 @@ boolean PLParallelTask::bTracerProtocolActive = false;
 int PLParallelTask::nTracerResources = 0;
 ALString PLParallelTask::sCurrentTaskName = "";
 ObjectArray* PLParallelTask::oaUserMessages = NULL;
+PLParallelTask::TestType PLParallelTask::nCrashTestType = TestType::NO_TEST;
+PLParallelTask::Method PLParallelTask::nCrashTestMethod = Method::NONE;
+int PLParallelTask::nCrashTestCallIndex = 1;
+ALString PLParallelTask::sCrashTestTaskSignature;
 
 PLParallelTask::PLParallelTask()
 {
@@ -56,10 +60,17 @@ PLParallelTask::PLParallelTask()
 	DeclareSharedParameter(&shared_sApplicationName);
 	DeclareSharedParameter(&input_bVerbose);
 	DeclareSharedParameter(&shared_nMaxErrorFlowNumber);
-	DeclareSharedParameter(&shared_nCrashTestMode);
+	DeclareSharedParameter(&shared_nMaxLineLength);
+	DeclareSharedParameter(&shared_lMaxHeapSize);
 	DeclareSharedParameter(&shared_slaveResourceRequirement);
 	DeclareSharedParameter(&shared_sTaskUserLabel);
 	DeclareSharedParameter(&shared_bBoostedMode);
+	DeclareSharedParameter(&shared_nCrashTestType);
+	DeclareSharedParameter(&shared_nCrashTestMethod);
+	DeclareSharedParameter(&shared_nCrashTestCallIndex);
+	DeclareSharedParameter(&shared_tracerMPI);
+	DeclareSharedParameter(&shared_tracerPerformance);
+	DeclareSharedParameter(&shared_tracerProtocol);
 	DeclareTaskInput(&input_bSilentMode);
 	DeclareTaskInput(&input_nTaskProcessedNumber);
 	DeclareTaskOutput(&output_statsIOReadDuration);
@@ -72,7 +83,8 @@ PLParallelTask::PLParallelTask()
 	shared_sUserTmpDir.SetValue(FileService::GetUserTmpDir());
 	shared_sApplicationName.SetValue(FileService::GetApplicationName());
 	shared_nMaxErrorFlowNumber = Global::GetMaxErrorFlowNumber();
-	shared_nCrashTestMode = CRASH_NONE;
+	shared_nMaxLineLength = InputBufferedFile::GetMaxLineLength();
+	shared_lMaxHeapSize = MemGetMaxHeapSize();
 	shared_bBoostedMode = false;
 
 	PLParallelTask::GetDriver()->GetIOReadingStats()->Reset();
@@ -169,7 +181,7 @@ boolean PLParallelTask::IsParallelModeAvailable()
 
 boolean PLParallelTask::IsTaskInterruptedByUser() const
 {
-	require(bIsJobDone);
+	require(not bIsRunning);
 	return bIsTaskInterruptedByUser;
 }
 
@@ -274,6 +286,23 @@ void PLParallelTask::DeleteAllTasks()
 	ensure(odTasks == NULL);
 }
 
+void PLParallelTask::GetRegisteredTaskSignatures(StringVector& svSignatures)
+{
+	POSITION position;
+	Object* oElement;
+	ALString sKey;
+
+	if (odTasks == NULL)
+		return;
+
+	position = odTasks->GetStartPosition();
+	while (position != NULL)
+	{
+		odTasks->GetNextAssoc(position, sKey, oElement);
+		svSignatures.Add(sKey);
+	}
+}
+
 void PLParallelTask::SetParallelLogFileName(const ALString& sValue)
 {
 	sParallelLogFileName = sValue;
@@ -284,10 +313,126 @@ const ALString& PLParallelTask::GetParallelLogFileName()
 	return sParallelLogFileName;
 }
 
-void PLParallelTask::SetCrashTestMode(int nMode)
+ALString PLParallelTask::MethodToString(Method nMethod)
 {
-	require(nMode < PLParallelTask::CRASH_TEST_NUMBER);
-	shared_nCrashTestMode = nMode;
+	ALString sMethod;
+	assert(nMethod < METHODS_NUMBER);
+	switch (nMethod)
+	{
+	case NONE:
+		sMethod = "none";
+		break;
+	case SLAVE_INITIALIZE:
+		sMethod = "SlaveInitialize";
+		break;
+	case SLAVE_PROCESS:
+		sMethod = "SlaveProcess";
+		break;
+	case SLAVE_FINALIZE:
+		sMethod = "SlaveFinalize";
+		break;
+	case MASTER_INITIALIZE:
+		sMethod = "MasterInitialize";
+		break;
+	case MASTER_PREPARE_INPUT:
+		sMethod = "MasterPrepareTaskInput";
+		break;
+	case MASTER_AGGREGATE:
+		sMethod = "MasterAggregateResults";
+		break;
+	case MASTER_FINALIZE:
+		sMethod = "MasterFinalize";
+		break;
+	default:
+		sMethod = "none";
+		break;
+	}
+	return sMethod;
+}
+
+PLParallelTask::Method PLParallelTask::StringToMethod(const ALString& sMethod)
+{
+	if (sMethod == "SlaveInitialize")
+		return SLAVE_INITIALIZE;
+
+	if (sMethod == "SlaveProcess")
+		return SLAVE_PROCESS;
+
+	if (sMethod == "SlaveFinalize")
+		return SLAVE_FINALIZE;
+
+	if (sMethod == "MasterInitialize")
+		return MASTER_INITIALIZE;
+
+	if (sMethod == "MasterPrepareTaskInput")
+		return MASTER_PREPARE_INPUT;
+
+	if (sMethod == "MasterAggregateResults")
+		return MASTER_AGGREGATE;
+
+	if (sMethod == "MasterFinalize")
+		return MASTER_FINALIZE;
+
+	if (sMethod == "none")
+		return NONE;
+
+	assert(false);
+	return NONE;
+}
+
+ALString PLParallelTask::CrashTestToString(TestType nTest)
+{
+	ALString sTest;
+	require(nTest < TESTS_NUMBER);
+
+	switch (nTest)
+	{
+	case NO_TEST:
+		sTest = "none";
+		break;
+	case IO_FAILURE_OPEN:
+		sTest = "I/O failure on Open";
+		break;
+	case IO_FAILURE_READ:
+		sTest = "I/O failure on Read";
+		break;
+	case IO_FAILURE_WRITE:
+		sTest = "I/O failure on Write";
+		break;
+	case USER_INTERRUPTION:
+		sTest = "user interruption";
+		break;
+	default:
+		sTest = "none";
+	}
+	return sTest;
+}
+PLParallelTask::TestType PLParallelTask::StringToCrashTest(const ALString& sTest)
+{
+	if (sTest == "none")
+		return NO_TEST;
+	if (sTest == "I/O failure on Open")
+		return IO_FAILURE_OPEN;
+	if (sTest == "I/O failure on Read")
+		return IO_FAILURE_READ;
+	if (sTest == "I/O failure on Write")
+		return IO_FAILURE_WRITE;
+	if (sTest == "user interruption")
+		return USER_INTERRUPTION;
+	assert(false);
+	return NO_TEST;
+}
+
+void PLParallelTask::CrashTest(TestType nTestType, const ALString& sTaskSignature, Method nMethod, int nCallIndex)
+{
+	require(nTestType < TESTS_NUMBER);
+	require(nMethod < METHODS_NUMBER);
+	require(nCallIndex > 0);
+
+	nCrashTestCallIndex = nCallIndex;
+	nCrashTestMethod = nMethod;
+	nCrashTestType = nTestType;
+	sCrashTestTaskSignature = sTaskSignature;
 }
 
 boolean PLParallelTask::Run()
@@ -326,6 +471,8 @@ boolean PLParallelTask::Run()
 	sCurrentTaskName = GetTaskName();
 	bSlaveAtRestWithoutProcessing = false;
 	input_bVerbose = bVerbose;
+	nPrepareTaskInputCount = 0;
+	nMasterAggregateCount = 0;
 
 	// Controle du flux des erreurs
 	Global::ActivateErrorFlowControl();
@@ -381,15 +528,15 @@ boolean PLParallelTask::Run()
 			{
 				// Affichage des exigences
 				AddMessage(
-				    sTmp + "requirements (min) for slave : memory " +
-				    LongintToHumanReadableString(
-					GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->GetMin()) +
-				    "   disk " +
-				    LongintToHumanReadableString(
-					GetResourceRequirements()->GetSlaveRequirement()->GetDisk()->GetMin()));
+				    sTmp + "requirements for slave memory: " +
+				    GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->WriteString());
+				AddMessage(
+				    sTmp + "requirements for slave disk  : " +
+				    GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->WriteString());
+
 				if (GetResourceRequirements()->GetGlobalSlaveRequirement()->GetDisk()->GetMin() > 0 or
 				    GetResourceRequirements()->GetGlobalSlaveRequirement()->GetMemory()->GetMin() > 0)
-					AddMessage(sTmp + "global requirement for slave : memory " +
+					AddMessage(sTmp + "global requirement for slave memory: " +
 						   LongintToHumanReadableString(GetResourceRequirements()
 										    ->GetGlobalSlaveRequirement()
 										    ->GetMemory()
@@ -406,29 +553,57 @@ boolean PLParallelTask::Run()
 				// Affichage des ressources allouees
 				AddMessage(sTmp + "granted : slave number " +
 					   IntToString(RMParallelResourceDriver::grantedResources->GetSlaveNumber()));
-				AddMessage(sTmp + "granted : slave (min) memory " +
+				AddMessage(sTmp + "granted : slave memory " +
 					   LongintToHumanReadableString(
-					       RMParallelResourceDriver::grantedResources->GetMinSlaveMemory()) +
+					       RMParallelResourceDriver::grantedResources->GetGrantedResourceForSlave()
+						   ->GetMemory()) +
 					   "   disk " +
 					   LongintToHumanReadableString(
-					       RMParallelResourceDriver::grantedResources->GetMinSlaveDisk()));
+					       RMParallelResourceDriver::grantedResources->GetGrantedResourceForSlave()
+						   ->GetDiskSpace()));
+			}
+
+			// Initialisation des variables pour les tests IO, tmp ou user interruption
+			if (sCrashTestTaskSignature != "" and LookupTask(sCrashTestTaskSignature) == NULL)
+				AddError("the task \'" + sCrashTestTaskSignature +
+					 "\' used for the crash test is not registered");
+			if (sCrashTestTaskSignature == GetTaskSignature() and nCrashTestMethod != Method::NONE and
+			    nCrashTestType != TestType::NO_TEST and nCrashTestCallIndex != 0)
+			{
+				shared_nCrashTestType = nCrashTestType;
+				shared_nCrashTestMethod = nCrashTestMethod;
+				shared_nCrashTestCallIndex = nCrashTestCallIndex;
+
+				// cout << "CRASH TEST for  " << MethodToString(nCrashTestMethod) << " " <<
+				// CrashTestToString(nCrashTestType) << endl;
+			}
+			else
+			{
+				shared_nCrashTestType = TestType::NO_TEST;
+				shared_nCrashTestMethod = Method::NONE;
+				shared_nCrashTestCallIndex = 0;
 			}
 		}
+
+		// Parametrage des tracers
+		// MPI
+		GetDriver()->GetTracerMPI()->SetActiveMode(GetTracerMPIActive());
+		GetDriver()->GetTracerMPI()->SetSynchronousMode(true);
+		GetDriver()->GetTracerMPI()->SetTimeDecorationMode(true);
+		GetDriver()->GetTracerMPI()->SetShortDescription(false);
+
+		// Protocole
+		GetDriver()->GetTracerProtocol()->SetActiveMode(GetTracerProtocolActive());
+		GetDriver()->GetTracerProtocol()->SetSynchronousMode(true);
+
+		// Perf
+		GetDriver()->GetTracerPerformance()->SetActiveMode(false);
+
+		// Serialisation de l'etat des tracers
+		shared_tracerMPI.SetTracer(GetDriver()->GetTracerMPI()->Clone());
+		shared_tracerProtocol.SetTracer(GetDriver()->GetTracerProtocol()->Clone());
+		shared_tracerPerformance.SetTracer(GetDriver()->GetTracerPerformance()->Clone());
 	}
-
-	// Parametrage des tracers
-	// MPI
-	GetDriver()->GetTracerMPI()->SetActiveMode(GetTracerMPIActive());
-	GetDriver()->GetTracerMPI()->SetSynchronousMode(true);
-	GetDriver()->GetTracerMPI()->SetTimeDecorationMode(true);
-	GetDriver()->GetTracerMPI()->SetShortDescription(false);
-
-	// Protocole
-	GetDriver()->GetTracerProtocol()->SetActiveMode(GetTracerProtocolActive());
-	GetDriver()->GetTracerProtocol()->SetSynchronousMode(true);
-
-	// Perf
-	GetDriver()->GetTracerPerformance()->SetActiveMode(false);
 
 	// interdiction d'acces aux output et input variables
 	// l'acces est declare pour chaque methode publique
@@ -496,6 +671,14 @@ boolean PLParallelTask::Run()
 		case PLParallelTask::SEQUENTIAL:
 			tJob.Start();
 
+			if (GetDriver()->GetTracerProtocol()->GetActiveMode())
+			{
+				GetDriver()->GetTracerProtocol()->AddTrace(
+				    "Run task " + GetTaskLabel() + " (signature \'" + GetTaskSignature() + "\')");
+			}
+			else if (GetTracerResources() > 0)
+				cout << "Run task " + GetTaskLabel() << endl;
+
 			// Execution en sequentiel
 			bOk = RunAsSequential();
 
@@ -544,7 +727,8 @@ boolean PLParallelTask::Run()
 			}
 			else if (GetDriver()->GetTracerProtocol()->GetActiveMode())
 			{
-				GetDriver()->GetTracerProtocol()->AddTrace("Run task " + GetTaskLabel());
+				GetDriver()->GetTracerProtocol()->AddTrace(
+				    "Run task " + GetTaskLabel() + " (signature \'" + GetTaskSignature() + "\')");
 			}
 			else if (GetTracerResources() > 0)
 				cout << "Run task " + GetTaskLabel() << endl;
@@ -681,54 +865,28 @@ void PLParallelTask::DeclareTaskOutput(PLSharedVariable* variable)
 
 const RMResourceGrant* PLParallelTask::GetSlaveResourceGrant() const
 {
-	RMResourceGrant* resource;
+	const RMResourceGrant* resource;
 
-	// Cas du maitre
-	if (IsInMasterMethod())
-	{
-		require(method == MASTER_PREPARE_INPUT);
+	resource = RMParallelResourceDriver::grantedResources->GetGrantedResourceForSlave();
+	assert(resource != NULL);
 
-		resource = RMParallelResourceDriver::grantedResources->GetResourceAtRank(nNextWorkingSlaveRank);
-		assert(resource != NULL);
-		ensure(resource->GetRank() == nNextWorkingSlaveRank);
-	}
-	// Cas de l'esclave
-	else
-	{
-		require(IsInSlaveMethod());
-
-		// En parallele
-		if (IsParallel())
-		{
-			resource = RMParallelResourceDriver::grantedResources->GetResourceAtRank(GetProcessId());
-			assert(resource != NULL);
-			ensure(resource->GetRank() == GetProcessId());
-		}
-		// En sequentiel et simule
-		else
-		{
-			resource = RMParallelResourceDriver::grantedResources->GetResourceAtRank(1);
-			assert(resource != NULL);
-		}
-	}
 	return resource;
 }
 
 const RMResourceGrant* PLParallelTask::GetMasterResourceGrant() const
 {
-	RMResourceGrant* resource;
+	const RMResourceGrant* resource;
 
 	require(IsInMasterMethod());
 
-	resource = RMParallelResourceDriver::grantedResources->GetResourceAtRank(0);
+	resource = RMParallelResourceDriver::grantedResources->GetGrantedResourceForMaster();
 	assert(resource != NULL);
-	ensure(resource->GetRank() == 0);
 	return resource;
 }
 
 const RMResourceRequirement* PLParallelTask::GetSlaveResourceRequirement() const
 {
-	require(IsInSlaveMethod());
+	require(IsInMasterMethod() or IsInSlaveMethod());
 	return shared_slaveResourceRequirement.GetRequirement();
 }
 
@@ -813,22 +971,73 @@ void PLParallelTask::SetAllSlavesAtWork()
 	}
 }
 
-int PLParallelTask::ComputeStairBufferSize(int nBufferSizeMin, int nBufferSizeMax, longint lFileProcessed,
-					   longint lFileSize) const
+void PLParallelTask::SlaveRegisterUniqueTmpFile(const ALString& sFileName)
+{
+	ALString sScheme;
+	require(IsSlaveProcess());
+
+	sScheme = FileService::GetURIScheme(sFileName);
+	require(sScheme == "" or (sScheme == "file" and FileService::GetURIHostName(sFileName) == GetLocalHostName()));
+
+	if (sFileName != "")
+		svSlaveRegisteredUniqueTmpFiles.Add(FileService::GetURIFilePathName(sFileName));
+}
+
+void PLParallelTask::SlaveRegisterUniqueTmpFiles(const StringVector* svFileNames)
+{
+	int i;
+	ALString sScheme;
+
+	require(IsSlaveProcess());
+	require(svFileNames != NULL);
+
+	for (i = 0; i < svFileNames->GetSize(); i++)
+	{
+		sScheme = FileService::GetURIScheme(svFileNames->GetAt(i));
+		require(sScheme == "" or (sScheme == "file" and
+					  FileService::GetURIHostName(svFileNames->GetAt(i)) == GetLocalHostName()));
+		if (svFileNames->GetAt(i) != "")
+			svSlaveRegisteredUniqueTmpFiles.Add(FileService::GetURIFilePathName(svFileNames->GetAt(i)));
+	}
+}
+
+void PLParallelTask::SlaveInitializeRegisteredUniqueTmpFiles()
+{
+	require(IsSlaveProcess());
+	svSlaveRegisteredUniqueTmpFiles.SetSize(0);
+}
+
+void PLParallelTask::SlaveDeleteRegisteredUniqueTmpFiles()
+{
+	int i;
+
+	require(IsSlaveProcess());
+
+	for (i = 0; i < svSlaveRegisteredUniqueTmpFiles.GetSize(); i++)
+	{
+		assert(svSlaveRegisteredUniqueTmpFiles.GetAt(i) != "");
+		assert(FileService::GetURIScheme(svSlaveRegisteredUniqueTmpFiles.GetAt(i)) == "");
+		FileService::RemoveFile(svSlaveRegisteredUniqueTmpFiles.GetAt(i));
+	}
+}
+
+int PLParallelTask::ComputeStairBufferSize(int nBufferSizeMin, int nBufferSizeMax, int nBufferSizeStep,
+					   longint lFileProcessed, longint lFileSize) const
 {
 	int nStepSize;
 	ALString sTmp;
-
 	require(method == PLParallelTask::MASTER_PREPARE_INPUT);
-	nStepSize = InternalComputeStairBufferSize(nBufferSizeMin, nBufferSizeMax, lFileProcessed, lFileSize,
-						   GetProcessNumber(), GetTaskIndex());
-	GetDriver()->GetTracerMPI()->AddTrace(sTmp + "Buffer step size = " + LongintToHumanReadableString(nStepSize));
+	nStepSize = InternalComputeStairBufferSize(nBufferSizeMin, nBufferSizeMax, nBufferSizeStep, lFileProcessed,
+						   lFileSize, GetProcessNumber(), GetTaskIndex());
+	if (GetDriver()->GetTracerProtocol()->GetActiveMode())
+		GetDriver()->GetTracerProtocol()->AddTrace(
+		    sTmp + "Buffer step size = " + LongintToHumanReadableString(nStepSize));
 	return nStepSize;
 }
 
 const IntVector* PLParallelTask::GetGrantedSlaveProcessIds() const
 {
-	require(method == METHOD::MASTER_INITIALIZE);
+	require(method == Method::MASTER_INITIALIZE);
 	assert(ivGrantedSlaveIds.GetSize() == nWorkingProcessNumber);
 	return &ivGrantedSlaveIds;
 }
@@ -887,6 +1096,7 @@ boolean PLParallelTask::RunAsSequential()
 	bSlaveFinalizeOk = true;
 	bProcessingOk = true;
 	nNextWorkingSlaveRank = 1;
+	lGlobalLineNumber = 0;
 
 	// Creation du repertoire temporaire
 	bOk = FileService::CreateApplicationTmpDir();
@@ -926,7 +1136,6 @@ boolean PLParallelTask::RunAsSequential()
 
 		SetProcessId(1);
 		bSlaveFinalizeOk = CallSlaveFinalize(bProcessingOk and bSlaveInitializeOk);
-
 	} // if (bMasterInitializeOk)
 
 	SetProcessId(0);
@@ -1006,7 +1215,7 @@ boolean PLParallelTask::RunAsSimulatedParallel(int nSlavesNumber)
 	{
 		// Creation d'une nouvelle tache pour l'esclave
 		// elle n'est pas initialisee par les setters comme this
-		slaveInstance = Create(); // TODO CopyFrom(this);
+		slaveInstance = Create();
 		slaveInstance->runningMode = PARALLEL_SIMULATED;
 		oaSlaveInstances.Add(slaveInstance);
 
@@ -1014,7 +1223,7 @@ boolean PLParallelTask::RunAsSimulatedParallel(int nSlavesNumber)
 		slaveState = new PLSlaveState;
 		slaveState->SetRank(i + 1);
 		slaveState->SetHostName("simulated host");
-		slaveState->SetState(PLSlaveState::READY);
+		slaveState->SetState(State::READY);
 		slaveState->SetProgression(0);
 		oaSlaves.Add(slaveState);
 		oaSlavesByRank.Add(slaveState);
@@ -1114,15 +1323,13 @@ boolean PLParallelTask::RunAsSimulatedParallel(int nSlavesNumber)
 				//////////////////////////////////////////////
 				// Traitement principal : appel de SlaveProcess
 				slaveState->SetTaskIndex(nTaskProcessedNumber);
-				slaveState->SetState(PLSlaveState::PROCESSING);
+				slaveState->SetState(State::PROCESSING);
 
 				SetProcessId(slaveState->GetRank());
-				bSlaveProcessOk =
-				    slaveInstance
-					->CallSlaveProcess(); // TODO il faut passer le crashtest au slaveinstance
+				bSlaveProcessOk = slaveInstance->CallSlaveProcess();
 
 				nSlaveTaskIndex = slaveState->GetTaskIndex();
-				slaveState->SetState(PLSlaveState::READY);
+				slaveState->SetState(State::READY);
 				SetSharedVariablesRW(&oaInputVariables);
 
 				// Suivi de tache
@@ -1176,7 +1383,6 @@ boolean PLParallelTask::RunAsSimulatedParallel(int nSlavesNumber)
 
 			// Reinitialisation du flag qui est mis a jour dans MasterPrepareTaskInput
 			bSlaveAtRestWithoutProcessing = false;
-
 		} // while (not bInterruptionRequested)
 		TaskProgression::EndTask();
 
@@ -1243,7 +1449,7 @@ boolean PLParallelTask::SequentialLoop()
 	// On ajoute le seul esclave a la liste des esclaves
 	slave = new PLSlaveState();
 	slave->SetRank(1);
-	slave->SetState(PLSlaveState::READY);
+	slave->SetState(State::READY);
 	oaSlaves.Add(slave);
 	oaSlavesByRank.Add(NULL);
 	oaSlavesByRank.Add(slave);
@@ -1329,7 +1535,7 @@ boolean PLParallelTask::CallSlaveInitialize()
 	// Fermeture des droits en ecriture pour les shared et les input variables
 	SetSharedVariablesRO(&oaSharedParameters);
 	SetSharedVariablesRO(&oaInputVariables);
-	require(method == NONE);
+	require(method == Method::NONE);
 	method = SLAVE_INITIALIZE;
 	if (GetDriver()->GetTracerProtocol()->GetActiveMode())
 		GetDriver()->GetTracerProtocol()->AddTrace("In SlaveInitialize");
@@ -1339,22 +1545,43 @@ boolean PLParallelTask::CallSlaveInitialize()
 	TaskProgression::DisplayMainLabel(GetTaskLabel());
 	TaskProgression::DisplayLabel(PROGRESSION_MSG_SLAVE_INITIALIZE);
 
+	// Crash test
+	if (shared_nCrashTestMethod == SLAVE_INITIALIZE)
+	{
+		switch (shared_nCrashTestType)
+		{
+		case TestType::USER_INTERRUPTION:
+			TaskProgression::ForceInterruptionRequested();
+			break;
+		case TestType::IO_FAILURE_OPEN:
+			SystemFile::SetAlwaysErrorOnOpen(true);
+			break;
+		case TestType::IO_FAILURE_WRITE:
+			SystemFile::SetAlwaysErrorOnFlush(true);
+			break;
+		case TestType::IO_FAILURE_READ:
+			SystemFile::SetAlwaysErrorOnRead(true);
+			break;
+		}
+	}
+
 	// Lancement de la methode applicative
 	bOk = SlaveInitialize();
+
+	// On renvoie false systematiquement si il y a interruption utilisateur
+	bOk = bOk and not TaskProgression::IsInterruptionRequested();
+
+	// Reinitialisation du crash test
+	SystemFile::SetAlwaysErrorOnOpen(false);
+	SystemFile::SetAlwaysErrorOnFlush(false);
+	SystemFile::SetAlwaysErrorOnRead(false);
 
 	TaskProgression::EndTask();
 	if (MemoryStatsManager::IsOpened())
 		MemoryStatsManager::AddLog("Task " + GetTaskName() + " .SlaveInitialize End");
 	if (GetDriver()->GetTracerProtocol()->GetActiveMode())
 		GetDriver()->GetTracerProtocol()->AddTrace("Out SlaveInitialize", bOk);
-	method = NONE;
-
-	// CrashTest
-	if (GetCrashTestMode() == CRASH_SLAVE_INITIALIZE)
-	{
-		cout << "Crash test ON !!" << endl;
-		RemoveTempDirContent();
-	}
+	method = Method::NONE;
 
 	if (bVerbose and not bOk and not TaskProgression::IsInterruptionRequested())
 		AddError("An error occurred in worker initialization");
@@ -1379,10 +1606,12 @@ boolean PLParallelTask::CallSlaveProcess()
 	method = SLAVE_PROCESS;
 	bAddLocalGenericErrorCall = false;
 	bSetLocalLineNumberCall = false;
-	lGlobalLineNumber = 0;
 
 	TaskProgression::BeginTask();
 	TaskProgression::DisplayProgression(0);
+
+	// Purge de la liste des fichiers a nettoyer
+	SlaveInitializeRegisteredUniqueTmpFiles();
 
 	// Mise a jour de la duree de vie du repertoire temporaire
 	TouchTmpDir();
@@ -1401,7 +1630,37 @@ boolean PLParallelTask::CallSlaveProcess()
 		MemoryStatsManager::AddLog("Task " + GetTaskName() + " .SlaveProcess " + IntToString(GetTaskIndex()) +
 					   " Begin");
 
+	// Crash test
+	if (shared_nCrashTestMethod == SLAVE_PROCESS and shared_nCrashTestCallIndex <= GetTaskIndex() + 1)
+	{
+		switch (shared_nCrashTestType)
+		{
+		case TestType::USER_INTERRUPTION:
+
+			TaskProgression::ForceInterruptionRequested();
+			break;
+		case TestType::IO_FAILURE_OPEN:
+			SystemFile::SetAlwaysErrorOnOpen(true);
+			break;
+		case TestType::IO_FAILURE_WRITE:
+			SystemFile::SetAlwaysErrorOnFlush(true);
+			break;
+		case TestType::IO_FAILURE_READ:
+			SystemFile::SetAlwaysErrorOnRead(true);
+			break;
+		}
+	}
+
 	bOk = SlaveProcess();
+
+	// On renvoie false systematiquement si il y a interruption utilisateur
+	bOk = bOk and not TaskProgression::IsInterruptionRequested();
+
+	// Reinitialisation du crash test
+	SystemFile::SetAlwaysErrorOnOpen(false);
+	SystemFile::SetAlwaysErrorOnFlush(false);
+	SystemFile::SetAlwaysErrorOnRead(false);
+
 	if (MemoryStatsManager::IsOpened())
 		MemoryStatsManager::AddLog("Task " + GetTaskName() + " .SlaveProcess " + IntToString(GetTaskIndex()) +
 					   " End");
@@ -1411,15 +1670,8 @@ boolean PLParallelTask::CallSlaveProcess()
 
 	// Si on appelle AddLocalGenericErrorCall il faut appeler
 	// SetLocalLineNumberCall a la fin du SlaveProcess
-	assert(not bAddLocalGenericErrorCall or bSetLocalLineNumberCall);
-	method = NONE;
-
-	// CrashTest
-	if (GetCrashTestMode() == CRASH_SLAVE_PROCESS and GetTaskIndex() == 0)
-	{
-		cout << "Crash test ON !!" << endl;
-		RemoveTempDirContent();
-	}
+	assert(not bAddLocalGenericErrorCall or bSetLocalLineNumberCall or not bOk);
+	method = Method::NONE;
 
 	if (bVerbose and not bOk and not TaskProgression::IsInterruptionRequested())
 		AddError(sTmp + "An error occurred in worker while processing (subtask " + IntToString(GetTaskIndex()) +
@@ -1439,14 +1691,27 @@ boolean PLParallelTask::CallSlaveFinalize(boolean bProcessOk)
 	boolean bOk;
 	require(method == NONE);
 
-	// CrashTest
-	if (GetCrashTestMode() == CRASH_SLAVE_FINALIZE)
-	{
-		cout << "Crash test ON !!" << endl;
-		RemoveTempDirContent();
-	}
-
 	method = SLAVE_FINALIZE;
+
+	// Crash test
+	if (shared_nCrashTestMethod == SLAVE_FINALIZE)
+	{
+		switch (shared_nCrashTestType)
+		{
+		case TestType::USER_INTERRUPTION:
+			TaskProgression::ForceInterruptionRequested();
+			break;
+		case TestType::IO_FAILURE_OPEN:
+			SystemFile::SetAlwaysErrorOnOpen(true);
+			break;
+		case TestType::IO_FAILURE_WRITE:
+			SystemFile::SetAlwaysErrorOnFlush(true);
+			break;
+		case TestType::IO_FAILURE_READ:
+			SystemFile::SetAlwaysErrorOnRead(true);
+			break;
+		}
+	}
 
 	if (GetDriver()->GetTracerPerformance()->GetActiveMode())
 		GetDriver()->GetTracerPerformance()->AddTrace("<< Begin SlaveFinalize");
@@ -1458,6 +1723,23 @@ boolean PLParallelTask::CallSlaveFinalize(boolean bProcessOk)
 	TaskProgression::DisplayMainLabel(GetTaskLabel());
 	TaskProgression::DisplayLabel(PROGRESSION_MSG_SLAVE_FINALIZE);
 	bOk = SlaveFinalize(bProcessOk);
+
+	// On renvoie false systematiquement si il y a interruption utilisateur
+	bOk = bOk and not TaskProgression::IsInterruptionRequested();
+
+	// Nettoyage en cas d'erreur
+	if (bOk and bProcessOk)
+		// Purge de la liste des fichiers a nettoyer si aucun pbm n'a ete rencontre
+		SlaveInitializeRegisteredUniqueTmpFiles();
+	else
+		// Dans le cas contraire on supprime ces fichiers du disque
+		SlaveDeleteRegisteredUniqueTmpFiles();
+
+	// Reinitialisation du crash test
+	SystemFile::SetAlwaysErrorOnOpen(false);
+	SystemFile::SetAlwaysErrorOnFlush(false);
+	SystemFile::SetAlwaysErrorOnRead(false);
+
 	TaskProgression::EndTask();
 	if (MemoryStatsManager::IsOpened())
 		MemoryStatsManager::AddLog("Task " + GetTaskName() + " .SlaveFinalize End");
@@ -1465,7 +1747,7 @@ boolean PLParallelTask::CallSlaveFinalize(boolean bProcessOk)
 		GetDriver()->GetTracerProtocol()->AddTrace("Out SlaveFinalize", bOk);
 	if (GetDriver()->GetTracerPerformance()->GetActiveMode())
 		GetDriver()->GetTracerPerformance()->AddTrace("<< End SlaveFinalize");
-	method = NONE;
+	method = Method::NONE;
 
 	if (bVerbose and not bOk and not TaskProgression::IsInterruptionRequested())
 		AddError("An error occurred in worker finalization");
@@ -1479,6 +1761,7 @@ boolean PLParallelTask::CallMasterInitialize()
 	tMasterInitialize.Start();
 	require(method == NONE);
 	method = MASTER_INITIALIZE;
+
 	if (GetDriver()->GetTracerPerformance()->GetActiveMode())
 		GetDriver()->GetTracerPerformance()->AddTrace("<< Job start [" + sPerformanceTaskName + "," +
 							      GetLocalHostName() + "," +
@@ -1491,7 +1774,37 @@ boolean PLParallelTask::CallMasterInitialize()
 	TaskProgression::DisplayLabel(PROGRESSION_MSG_MASTER_INITIALIZE);
 	if (MemoryStatsManager::IsOpened())
 		MemoryStatsManager::AddLog("Task " + GetTaskName() + " .MasterInitialize Begin");
+
+	// Crash test
+	if (shared_nCrashTestMethod == MASTER_INITIALIZE)
+	{
+		switch (shared_nCrashTestType)
+		{
+		case TestType::USER_INTERRUPTION:
+			TaskProgression::ForceInterruptionRequested();
+			break;
+		case TestType::IO_FAILURE_OPEN:
+			SystemFile::SetAlwaysErrorOnOpen(true);
+			break;
+		case TestType::IO_FAILURE_WRITE:
+			SystemFile::SetAlwaysErrorOnFlush(true);
+			break;
+		case TestType::IO_FAILURE_READ:
+			SystemFile::SetAlwaysErrorOnRead(true);
+			break;
+		}
+	}
+
+	// Appel de la methode utilisateur
 	bOk = MasterInitialize();
+
+	// On renvoie false systematiquement si il y a interruption utilisateur
+	bOk = bOk and not TaskProgression::IsInterruptionRequested();
+
+	// Reinitialisation du crash test
+	SystemFile::SetAlwaysErrorOnOpen(false);
+	SystemFile::SetAlwaysErrorOnFlush(false);
+	SystemFile::SetAlwaysErrorOnRead(false);
 
 	// Fin de l'autorisation d'ecriture des shared parameters
 	SetSharedVariablesRO(&oaSharedParameters);
@@ -1500,15 +1813,8 @@ boolean PLParallelTask::CallMasterInitialize()
 	TaskProgression::EndTask();
 	if (GetDriver()->GetTracerProtocol()->GetActiveMode())
 		GetDriver()->GetTracerProtocol()->AddTrace("Out MasterInitialize", bOk);
-	method = NONE;
+	method = Method::NONE;
 	tMasterInitialize.Stop();
-
-	// CrashTest
-	if (GetCrashTestMode() == CRASH_MASTER_INITIALIZE)
-	{
-		cout << "Crash test ON !!" << endl;
-		RemoveTempDirContent();
-	}
 
 	if (bVerbose and not bOk and not TaskProgression::IsInterruptionRequested())
 		AddError("An error occurred in task initialisation");
@@ -1520,17 +1826,30 @@ boolean PLParallelTask::CallMasterFinalize(boolean bProcessOk)
 {
 	boolean bOk;
 
-	// CrashTest
-	if (GetCrashTestMode() == CRASH_MASTER_FINALIZE)
+	// Crash test
+	if (shared_nCrashTestMethod == MASTER_FINALIZE)
 	{
-		cout << "Crash test ON !!" << endl;
-		RemoveTempDirContent();
+		switch (shared_nCrashTestType)
+		{
+		case TestType::USER_INTERRUPTION:
+			TaskProgression::ForceInterruptionRequested();
+			break;
+		case TestType::IO_FAILURE_OPEN:
+			SystemFile::SetAlwaysErrorOnOpen(true);
+			break;
+		case TestType::IO_FAILURE_WRITE:
+			SystemFile::SetAlwaysErrorOnFlush(true);
+			break;
+		case TestType::IO_FAILURE_READ:
+			SystemFile::SetAlwaysErrorOnRead(true);
+			break;
+		}
 	}
 
 	if (GetDriver()->GetTracerProtocol()->GetActiveMode())
 		GetDriver()->GetTracerProtocol()->AddTrace("In MasterFinalize", bProcessOk);
 	tMasterFinalize.Start();
-	require(method == NONE);
+	require(method == Method::NONE);
 	method = MASTER_FINALIZE;
 	TaskProgression::BeginTask();
 	TaskProgression::DisplayMainLabel(GetTaskLabel());
@@ -1539,11 +1858,20 @@ boolean PLParallelTask::CallMasterFinalize(boolean bProcessOk)
 		MemoryStatsManager::AddLog("Task " + GetTaskName() + " .MasterFinalize Begin");
 	SetSharedVariablesRW(&oaSharedParameters);
 	bOk = MasterFinalize(bProcessOk);
+
+	// On renvoie false systematiquement si il y a interruption utilisateur
+	bOk = bOk and not TaskProgression::IsInterruptionRequested();
+
+	// Reinitialisation du crash test
+	SystemFile::SetAlwaysErrorOnOpen(false);
+	SystemFile::SetAlwaysErrorOnFlush(false);
+	SystemFile::SetAlwaysErrorOnRead(false);
+
 	SetSharedVariablesRO(&oaSharedParameters);
 	if (MemoryStatsManager::IsOpened())
 		MemoryStatsManager::AddLog("Task " + GetTaskName() + " .MasterFinalize End");
 	TaskProgression::EndTask();
-	method = NONE;
+	method = Method::NONE;
 	tMasterFinalize.Stop();
 
 	// Aggregation des statistiques
@@ -1571,24 +1899,57 @@ boolean PLParallelTask::CallMasterAggregate()
 	ALString sTmp;
 	int i;
 
+	nMasterAggregateCount++;
+
+	// Crash test
+	if (shared_nCrashTestMethod == MASTER_AGGREGATE and shared_nCrashTestCallIndex == nMasterAggregateCount)
+	{
+		switch (shared_nCrashTestType)
+		{
+		case TestType::USER_INTERRUPTION:
+			TaskProgression::ForceInterruptionRequested();
+			break;
+		case TestType::IO_FAILURE_OPEN:
+			SystemFile::SetAlwaysErrorOnOpen(true);
+			break;
+		case TestType::IO_FAILURE_WRITE:
+			SystemFile::SetAlwaysErrorOnFlush(true);
+			break;
+		case TestType::IO_FAILURE_READ:
+			SystemFile::SetAlwaysErrorOnRead(true);
+			break;
+		}
+	}
+
 	// Autorisation de lecture pour les output variables
 	SetSharedVariablesRO(&oaOutputVariables);
 	tMaster.Start();
-	require(method == NONE);
-	method = MASTER_AGGREGATE;
+	require(method == Method::NONE);
+	method = Method::MASTER_AGGREGATE;
 
 	if (GetDriver()->GetTracerProtocol()->GetActiveMode())
-		GetDriver()->GetTracerProtocol()->AddTrace(sTmp + "In MasterAggregateResults");
+		GetDriver()->GetTracerProtocol()->AddTrace(sTmp + "In MasterAggregateResults for slave " +
+							   IntToString(nNextWorkingSlaveRank) + " taskId " +
+							   IntToString(GetTaskIndex()));
 	if (MemoryStatsManager::IsOpened())
 		MemoryStatsManager::AddLog("Task " + GetTaskName() + " .MasterAggregateResults " +
 					   IntToString(GetTaskIndex()) + " Begin");
 	bOk = MasterAggregateResults();
+
+	// On renvoie false systematiquement si il y a interruption utilisateur
+	bOk = bOk and not TaskProgression::IsInterruptionRequested();
+
+	// Reinitialisation du crash test
+	SystemFile::SetAlwaysErrorOnOpen(false);
+	SystemFile::SetAlwaysErrorOnFlush(false);
+	SystemFile::SetAlwaysErrorOnRead(false);
+
 	if (MemoryStatsManager::IsOpened())
 		MemoryStatsManager::AddLog("Task " + GetTaskName() + " .MasterAggregateResults " +
 					   IntToString(GetTaskIndex()) + " End");
 	if (GetDriver()->GetTracerProtocol()->GetActiveMode())
 		GetDriver()->GetTracerProtocol()->AddTrace("Out MasterAggregateResults", bOk);
-	method = NONE;
+	method = Method::NONE;
 	tMaster.Stop();
 
 	// Aggregation des statistiques
@@ -1614,17 +1975,11 @@ boolean PLParallelTask::CallMasterAggregate()
 
 	// Mise a jour de la duree de vie du repertoire temporaire
 	TouchTmpDir();
-
-	// CrashTest
-	if (GetCrashTestMode() == PLParallelTask::CRASH_MASTER_AGGREGATE)
-	{
-		cout << "Crash test ON !!" << endl;
-		RemoveTempDirContent();
-	}
 	return bOk;
 }
 
-boolean PLParallelTask::CallMasterPrepareTaskInput(double& dTaskPercent, boolean& bIsTaskFinished, PLSlaveState* slave)
+boolean PLParallelTask::CallMasterPrepareTaskInput(double& dTaskPercent, boolean& bIsTaskFinished,
+						   const PLSlaveState* slave)
 {
 	boolean bOk;
 	ALString sTmp;
@@ -1637,24 +1992,55 @@ boolean PLParallelTask::CallMasterPrepareTaskInput(double& dTaskPercent, boolean
 
 	// Par defaut, le pourcentage d'avancement est a 0
 	dTaskPercent = 0;
+	nPrepareTaskInputCount++;
+
+	// Crash test
+	if (shared_nCrashTestMethod == MASTER_PREPARE_INPUT and shared_nCrashTestCallIndex == nPrepareTaskInputCount)
+	{
+		switch (shared_nCrashTestType)
+		{
+		case TestType::USER_INTERRUPTION:
+			TaskProgression::ForceInterruptionRequested();
+			break;
+		case TestType::IO_FAILURE_OPEN:
+			SystemFile::SetAlwaysErrorOnOpen(true);
+			break;
+		case TestType::IO_FAILURE_WRITE:
+			SystemFile::SetAlwaysErrorOnFlush(true);
+			break;
+		case TestType::IO_FAILURE_READ:
+			SystemFile::SetAlwaysErrorOnRead(true);
+			break;
+		}
+	}
 
 	tMaster.Start();
-	require(method == NONE);
-	method = MASTER_PREPARE_INPUT;
+	require(method == Method::NONE);
+	method = Method::MASTER_PREPARE_INPUT;
 	if (GetDriver()->GetTracerProtocol()->GetActiveMode())
-		GetDriver()->GetTracerProtocol()->AddTrace("In MasterPrepareTaskInput");
-	if (MemoryStatsManager::IsOpened())
-		MemoryStatsManager::AddLog("Task " + GetTaskName() + " .MasterPrepareTaskInput " +
-					   IntToString(GetTaskIndex()) + " Begin");
-	bOk = MasterPrepareTaskInput(dTaskPercent, bJobIsTerminated);
-	assert(not(bJobIsTerminated and bSlaveAtRestWithoutProcessing));
+		GetDriver()->GetTracerProtocol()->AddTrace(sTmp + "In MasterPrepareTaskInput for slave " +
+							   IntToString(nNextWorkingSlaveRank) + " taskId " +
+							   IntToString(GetTaskIndex()));
+	MemoryStatsManager::AddLog("Task " + GetTaskName() + " .MasterPrepareTaskInput " + IntToString(GetTaskIndex()) +
+				   " Begin");
+	bOk = MasterPrepareTaskInput(dTaskPercent, bIsTaskFinished);
+
+	// On renvoie false systematiquement si il y a interruption utilisateur
+	bOk = bOk and not TaskProgression::IsInterruptionRequested();
+
+	// Reinitialisation du crash test
+	SystemFile::SetAlwaysErrorOnOpen(false);
+	SystemFile::SetAlwaysErrorOnFlush(false);
+	SystemFile::SetAlwaysErrorOnRead(false);
+
+	assert(not(bIsTaskFinished and bSlaveAtRestWithoutProcessing));
 	if (MemoryStatsManager::IsOpened())
 		MemoryStatsManager::AddLog("Task " + GetTaskName() + " .MasterPrepareTaskInput " +
 					   IntToString(GetTaskIndex()) + " End");
 
 	if (GetDriver()->GetTracerProtocol()->GetActiveMode())
 	{
-		if (not bJobIsTerminated)
+		if (not bIsTaskFinished)
 			GetDriver()->GetTracerProtocol()->AddTrace(
 			    sTmp + "Out MasterPrepareTaskInput " + DoubleToString(dTaskPercent), bOk);
 		else
@@ -1662,7 +2048,7 @@ boolean PLParallelTask::CallMasterPrepareTaskInput(double& dTaskPercent, boolean
 			    sTmp + "Out MasterPrepareTaskInput " + DoubleToString(dTaskPercent) + " DONE", bOk);
 	}
 	TouchTmpDir();
-	method = NONE;
+	method = Method::NONE;
 	tMaster.Stop();
 	assert(0 <= dTaskPercent and dTaskPercent <= 1);
 
@@ -1671,27 +2057,26 @@ boolean PLParallelTask::CallMasterPrepareTaskInput(double& dTaskPercent, boolean
 	// Fin d'autorisation d'ecriture
 	SetSharedVariablesNoPermission(&oaInputVariables);
 
-	// Arret si erreur
-	if (not bOk)
-	{
-		if (bVerbose and not TaskProgression::IsInterruptionRequested())
-			AddError("An error occurred in input preparation");
-	}
+	// Message en cas d'eerreur
+	if (bVerbose and not bOk and not TaskProgression::IsInterruptionRequested())
+		AddError("An error occurred in input preparation");
+
 	return bOk;
 }
 
-int PLParallelTask::InternalComputeStairBufferSize(int nBufferSizeMin, int nBufferSizeMax, longint lFileProcessed,
-						   longint lFileSize, int nProcessNumber, int nTaskIndex)
+int PLParallelTask::InternalComputeStairBufferSize(int nBufferSizeMin, int nBufferSizeMax, int nMultiple,
+						   longint lFileProcessed, longint lFileSize, int nProcessNumber,
+						   int nTaskIndex)
 {
 	int nStepSize;
-	int nStepPerSlave;
-	int nRandomMin;
-	longint lFileSizeRemaining;
 	int nComputedBufferSizeMax;
 	ALString sTmp;
 	boolean bStart;
 	boolean bCruise;
 	boolean bStop;
+	int nMax;
+	int nStepNumber;
+	longint lFileSizeRemaining;
 
 	require(nProcessNumber > 0);
 	require(nBufferSizeMin > 0);
@@ -1720,7 +2105,7 @@ int PLParallelTask::InternalComputeStairBufferSize(int nBufferSizeMin, int nBuff
 	// Il ne faut pas forcement prendre tout le buffer max, par exemple si il est plus
 	// grand que le fichier on aura un traitement sequentiel. On considere que chaque esclave doit
 	// realiser au moins 2 traitements.
-	int nMax = nProcessNumber * 2 * nBufferSizeMax;
+	nMax = nProcessNumber * 2 * nBufferSizeMax;
 	if (nMax <= 0)
 		nMax = INT_MAX;
 	if (nMax > lFileSize)
@@ -1755,7 +2140,9 @@ int PLParallelTask::InternalComputeStairBufferSize(int nBufferSizeMin, int nBuff
 
 	// Si ni start ni stop, on est en phase nominale
 	if (not bStart and not bStop)
+	{
 		bCruise = true;
+	}
 
 	//////////////////////////////////////////////////////
 	// Traitement suivant la phase
@@ -1763,23 +2150,49 @@ int PLParallelTask::InternalComputeStairBufferSize(int nBufferSizeMin, int nBuff
 	{
 		// On fait une marche d'escalier reguliere entre nBufferSizeMin et nMaxBufferSize
 		// Calcul de la hauteur de la marche
-		nStepPerSlave = (nComputedBufferSizeMax - nBufferSizeMin) / nProcessNumber;
-		nStepSize = (nTaskIndex + 1) * nStepPerSlave;
+
+		if (nTaskIndex == 0)
+			nStepSize = nBufferSizeMin;
+		else
+		{
+			// Nombre de marches de hauteur "nMultiple" par esclave entre le min et le max
+			nStepNumber = (nComputedBufferSizeMax - nBufferSizeMin) / (nMultiple * nProcessNumber);
+			if (nStepNumber == 0)
+				nStepNumber = 1;
+
+			// Chaque esclave gravit nStepNumber marches d'un coup
+			nStepSize = (nBufferSizeMin + nTaskIndex * nStepNumber * nMultiple);
+
+			// Arrondi a un multiple de nMultiple
+			nStepSize = (int)(ceil(nStepSize / nMultiple) * nMultiple);
+		}
 	}
 	if (bStop)
 	{
 		assert(nStepSize == -1);
+
 		// En fin de course on donne un buffer de plus en plus petit (sans decroitre trop vite)
 		nStepSize = (int)lFileSizeRemaining / (nProcessNumber / 2);
+
+		// Arrondi a un multiple de nMultiple
+		nStepSize = (int)ceil(nStepSize / nMultiple) * nMultiple;
 	}
 	if (bCruise)
 	{
 		assert(nStepSize == -1);
 
-		// Taille aleatoire entre 0.8 * nBufferSizeMax et nBufferSizeMax
-		// (sauf si 0.8*nBufferSizeMax plus petit que nBufferSizeMin)
-		nRandomMin = max(nBufferSizeMin, int(0.8 * nComputedBufferSizeMax));
-		nStepSize = nRandomMin + RandomInt(nComputedBufferSizeMax - nRandomMin);
+		// Nombre de marches de taille nMultiple
+		nStepNumber = (nComputedBufferSizeMax - nBufferSizeMin) / nMultiple;
+		if (nStepNumber <= 2)
+		{
+			nStepSize = nBufferSizeMax;
+		}
+		else
+		{
+			// Taille aleatoire entre nBufferSizeMin + la moitie des marches + random(la moitie des marches)
+			nStepSize = nBufferSizeMin + nStepNumber / 2 * nMultiple +
+				    IthRandomInt(nTaskIndex, nStepNumber / 2) * nMultiple;
+		}
 	}
 	assert(nStepSize != -1);
 
@@ -1789,9 +2202,6 @@ int PLParallelTask::InternalComputeStairBufferSize(int nBufferSizeMin, int nBuff
 	if (nStepSize > nComputedBufferSizeMax)
 		nStepSize = nComputedBufferSizeMax;
 
-	// Arrondi pour tomber sur une taille de bloc de CharVector
-	nStepSize = (int)floor(nStepSize / MemSegmentByteSize) * MemSegmentByteSize;
-
 	// Le buffer doit etre plus grand qu'un bloc et plus petit que 2 Go - 8Mo -1
 	nStepSize = InputBufferedFile::FitBufferSize(nStepSize);
 
@@ -1800,11 +2210,10 @@ int PLParallelTask::InternalComputeStairBufferSize(int nBufferSizeMin, int nBuff
 		nStepSize = (int)(lFileSize - lFileProcessed);
 
 	ensure(nStepSize > 0);
-	GetDriver()->GetTracerMPI()->AddTrace(sTmp + "Buffer step size = " + LongintToHumanReadableString(nStepSize));
 	return nStepSize;
 }
 
-void PLParallelTask::SetSharedVariablesRO(ObjectArray* oaValue)
+void PLParallelTask::SetSharedVariablesRO(const ObjectArray* oaValue)
 {
 #ifndef NDEBUG
 	int i;
@@ -1819,7 +2228,7 @@ void PLParallelTask::SetSharedVariablesRO(ObjectArray* oaValue)
 #endif // NDEBUG
 }
 
-void PLParallelTask::SetSharedVariablesRW(ObjectArray* oaValue)
+void PLParallelTask::SetSharedVariablesRW(const ObjectArray* oaValue)
 {
 #ifndef NDEBUG
 	int i;
@@ -1834,7 +2243,7 @@ void PLParallelTask::SetSharedVariablesRW(ObjectArray* oaValue)
 #endif // NDEBUG
 }
 
-void PLParallelTask::SetSharedVariablesNoPermission(ObjectArray* oaValue)
+void PLParallelTask::SetSharedVariablesNoPermission(const ObjectArray* oaValue)
 {
 #ifndef NDEBUG
 	int i;
@@ -1847,29 +2256,6 @@ void PLParallelTask::SetSharedVariablesNoPermission(ObjectArray* oaValue)
 		cast(PLSharedVariable*, oaValue->GetAt(i))->SetNoPermission();
 	}
 #endif // NDEBUG
-}
-
-void PLParallelTask::RemoveTempDirContent() const
-{
-	StringVector svDirectoryNames;
-	StringVector svFileNames;
-	int i;
-
-	FileService::GetDirectoryContent(FileService::GetApplicationTmpDir(), &svDirectoryNames, &svFileNames);
-
-	// Suppresssion de chaque fichier
-	for (i = 0; i < svFileNames.GetSize(); i++)
-	{
-		FileService::RemoveFile(
-		    FileService::BuildFilePathName(FileService::GetApplicationTmpDir(), svFileNames.GetAt(i)));
-	}
-
-	// Suppression de chaque repertoire
-	for (i = 0; i < svDirectoryNames.GetSize(); i++)
-	{
-		FileService::RemoveDirectory(
-		    FileService::BuildFilePathName(FileService::GetApplicationTmpDir(), svDirectoryNames.GetAt(i)));
-	}
 }
 
 void PLParallelTask::Exit(int nExitCode)
@@ -2032,8 +2418,19 @@ boolean PLParallelTask::InitializeParametersFromSharedVariables()
 	// Mise a jour de la duree de vie du repertoire temporaire
 	TouchTmpDir();
 
+	// Mise a jour de la taille max des lignes
+	InputBufferedFile::SetMaxLineLength(shared_nMaxLineLength);
+
+	// Mise a jour de la taille max de la heap
+	MemSetMaxHeapSize(shared_lMaxHeapSize);
+
 	// Mise a jour du nom de l'application
 	SetTaskUserLabel(shared_sTaskUserLabel.GetValue());
+
+	// Parametrage des drivers
+	GetDriver()->GetTracerProtocol()->CopyFrom(shared_tracerProtocol.GetTracer());
+	GetDriver()->GetTracerMPI()->CopyFrom(shared_tracerMPI.GetTracer());
+	GetDriver()->GetTracerPerformance()->CopyFrom(shared_tracerPerformance.GetTracer());
 
 	return bOk;
 }
@@ -2078,7 +2475,6 @@ void PLParallelTask::AddLocalGenericError(int nGravity, const ALString& sLabel, 
 	}
 	else
 	{
-
 		// Ajout de la decoration
 		sLabelWithIndex =
 		    sTmp + "Record " + LongintToReadableString(lGlobalLineNumber + lLineNumber) + " : " + sLabel;
@@ -2097,8 +2493,8 @@ int PLParallelTask::GetTaskIndex() const
 		return nTaskProcessedNumber;
 }
 
-void PLParallelTask::TestComputeStairBufferSize(int nBufferSizeMin, int nBufferSizeMax, longint lFileSize,
-						int nProcessNumber)
+void PLParallelTask::TestComputeStairBufferSize(int nBufferSizeMin, int nBufferSizeMax, int nBufferStep,
+						longint lFileSize, int nProcessNumber)
 {
 	int i;
 	longint lFileProcessed;
@@ -2121,7 +2517,7 @@ void PLParallelTask::TestComputeStairBufferSize(int nBufferSizeMin, int nBufferS
 	while (lFileProcessed < lFileSize)
 	{
 		nBufferSize = PLParallelTask::InternalComputeStairBufferSize(
-		    nBufferSizeMin, nBufferSizeMax, lFileProcessed, lFileSize, nProcessNumber, i);
+		    nBufferSizeMin, nBufferSizeMax, nBufferStep, lFileProcessed, lFileSize, nProcessNumber, i);
 		cout << i << "\t" << nBufferSize << endl;
 		lFileProcessed += nBufferSize;
 		i++;

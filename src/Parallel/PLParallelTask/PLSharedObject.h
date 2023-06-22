@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "PLSharedVariable.h"
+
 class PLSharedObject;
 class PLShared_ObjectArray;
 class PLShared_ObjectDictionary;
@@ -12,8 +14,6 @@ class PLShared_StringObject;
 class PLShared_DoubleObject;
 class PLShared_IntObject;
 class PLShared_LongintObject;
-
-#include "PLSharedVariable.h"
 
 ////////////////////////////////////////////////////////////////////////////
 // Classe PLSharedObject.
@@ -57,8 +57,8 @@ protected:
 	virtual Object* Create() const = 0;
 
 	// Serialisation / Deserialization de l'objet, potentiellement null
-	void SerializeValue(PLSerializer*) const override final;
-	void DeserializeValue(PLSerializer*) override final;
+	void SerializeValue(PLSerializer*) const final;
+	void DeserializeValue(PLSerializer*) final;
 
 	// L'objet appartient a l'appele (construit a la premiere utilisation, detruit si necessaire au destructeur,
 	// remplace au set)
@@ -297,8 +297,8 @@ public:
 	~PLShared_LongintObject();
 
 	// Acces au LongintObject
-	void SetHostResource(LongintObject* hr);
-	LongintObject* GetHostResource();
+	void SetLongintObject(LongintObject* hr);
+	LongintObject* GetLongintObject();
 
 	// Reimplementation des methodes virtuelles
 	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
@@ -473,12 +473,12 @@ inline Object* PLShared_IntObject::Create() const
 	return new IntObject;
 }
 
-inline void PLShared_LongintObject::SetHostResource(LongintObject* lo)
+inline void PLShared_LongintObject::SetLongintObject(LongintObject* lo)
 {
 	SetObject(lo);
 }
 
-inline LongintObject* PLShared_LongintObject::GetHostResource()
+inline LongintObject* PLShared_LongintObject::GetLongintObject()
 {
 	return cast(LongintObject*, GetObject());
 }

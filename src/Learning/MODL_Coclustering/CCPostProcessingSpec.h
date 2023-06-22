@@ -5,8 +5,7 @@
 #pragma once
 
 ////////////////////////////////////////////////////////////
-// 2021-02-05 18:19:44
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "Object.h"
@@ -59,6 +58,14 @@ public:
 	int GetMaxPreservedInformation() const;
 	void SetMaxPreservedInformation(int nValue);
 
+	// Total part number
+	int GetTotalPartNumber() const;
+	void SetTotalPartNumber(int nValue);
+
+	// Max total part number
+	int GetMaxTotalPartNumber() const;
+	void SetMaxTotalPartNumber(int nValue);
+
 	// Frequency variable
 	const ALString& GetFrequencyAttribute() const;
 	void SetFrequencyAttribute(const ALString& sValue);
@@ -96,7 +103,7 @@ public:
 	// ##
 
 	////////////////////////////////////////////////////////
-	//// Implementation
+	///// Implementation
 protected:
 	// Attributs de la classe
 	ALString sShortDescription;
@@ -105,6 +112,8 @@ protected:
 	int nCellNumber;
 	int nMaxCellNumber;
 	int nMaxPreservedInformation;
+	int nTotalPartNumber;
+	int nMaxTotalPartNumber;
 	ALString sFrequencyAttribute;
 
 	// ## Custom implementation
@@ -176,6 +185,26 @@ inline int CCPostProcessingSpec::GetMaxPreservedInformation() const
 inline void CCPostProcessingSpec::SetMaxPreservedInformation(int nValue)
 {
 	nMaxPreservedInformation = nValue;
+}
+
+inline int CCPostProcessingSpec::GetTotalPartNumber() const
+{
+	return nTotalPartNumber;
+}
+
+inline void CCPostProcessingSpec::SetTotalPartNumber(int nValue)
+{
+	nTotalPartNumber = nValue;
+}
+
+inline int CCPostProcessingSpec::GetMaxTotalPartNumber() const
+{
+	return nMaxTotalPartNumber;
+}
+
+inline void CCPostProcessingSpec::SetMaxTotalPartNumber(int nValue)
+{
+	nMaxTotalPartNumber = nValue;
 }
 
 inline const ALString& CCPostProcessingSpec::GetFrequencyAttribute() const
