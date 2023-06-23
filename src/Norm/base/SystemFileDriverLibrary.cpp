@@ -305,6 +305,7 @@ boolean SystemFileDriverLibrary::LoadLibrary(const ALString& sLibraryFilePathNam
 	{
 		UnloadLibrary();
 		Clean();
+		bIsError = true;
 	}
 	return not bIsError;
 }
