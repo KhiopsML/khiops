@@ -831,12 +831,13 @@ const ALString CCLearningProblem::BuildOutputPathName(boolean bInputCoclustering
 	// Si le repertoire des resultats n'est pas specifie, on utilise celui de la base d'apprentissage
 	if (sResultPathName == "")
 		sOutputPathName = sBasePathName;
-	// S'il est absolu, on le prend tel quel
-	else if (FileService::IsAbsoluteFilePathName(sResultPathName))
+	// S'il est absolu ou si c'est une URI, on le prend tel quel
+	else if (FileService::IsAbsoluteFilePathName(sResultPathName) or
+		 (FileService::GetURIScheme(sResultPathName) != ""))
 		sOutputPathName = sResultPathName;
-	// S'il commence par "./", on le traite comme un chemin absolu
+	// S'il commence par "./" ou ".\", on le traite comme un chemin absolu
 	else if (sResultPathName.GetLength() > 2 and sResultPathName.GetAt(0) == '.' and
-		 sResultPathName.GetAt(1) != '.')
+		 (sResultPathName.GetAt(1) == '/' or sResultPathName.GetAt(1) == '\\'))
 		sOutputPathName = sResultPathName;
 	// s'il est relatif, on le concatene a celui de la base d'apprentissage
 	else
