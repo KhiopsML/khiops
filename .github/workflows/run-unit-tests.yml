@@ -48,6 +48,8 @@ jobs:
             name: Unit Tests
             path: ${{github.workspace}}/reports/report-*.xml
             reporter: jest-junit
+            path-replace-backslashes: "true"  # Necessary for windows paths
+
 
 
 
