@@ -114,7 +114,7 @@ void DTForestParameter::SetMaxIntervalsNumberForTarget(int i)
 	nMaxIntervalsNumberForTarget = i;
 }
 
-int DTForestParameter::GeMaxIntervalsNumberForTarget() const
+int DTForestParameter::GetMaxIntervalsNumberForTarget() const
 {
 	return nMaxIntervalsNumberForTarget;
 }
@@ -248,6 +248,7 @@ const ALString DTForestParameter::DRAWING_TYPE_USE_OUT_OF_BAG_LABEL = "Random dr
 const ALString DTForestParameter::DRAWING_TYPE_ADABOOST_REPLACEMENT_LABEL = "AdaBoost draw";
 const ALString DTForestParameter::HEURISTIC_NODRAW_LABEL = "No draw";
 const ALString DTForestParameter::DISCRETIZATION_EQUAL_FREQUENCY = "EFDiscretization";
+const ALString DTForestParameter::DISCRETIZATION_BINARY_EQUAL_FREQUENCY = "EFBinDiscretization";
 const ALString DTForestParameter::DISCRETIZATION_MODL = "MODLDiscretization";
 
 ////////////////  classe PLShared_ForestParameter

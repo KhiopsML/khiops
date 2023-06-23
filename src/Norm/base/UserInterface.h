@@ -26,7 +26,6 @@ class UIAction;
 #include "Vector.h"
 #include "Ermgt.h"
 #include "TaskProgression.h"
-#include "LMLicenseService.h"
 #include "PLRemoteFileService.h"
 #include "FileService.h"
 #include "CommandLine.h"
@@ -168,9 +167,6 @@ public:
 	void SetHelpText(const ALString& sValue);
 	//
 	const ALString& GetHelpText() const;
-
-	// Ajout de texte pour l'aide (par concatenation, sans retour a la ligne)
-	void AddHelpText(const ALString& sValue);
 
 	// Style d'un composant (aucun par defaut)
 	/*! Le style permet d'influer sur le choix de representation du

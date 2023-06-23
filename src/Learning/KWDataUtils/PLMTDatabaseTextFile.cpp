@@ -1077,12 +1077,15 @@ void PLMTDatabaseTextFile::ComputeMemoryGuardOpenInformation()
 					    KWDatabaseMemoryGuard::GetDefautMaxSecondaryRecordNumberFactor());
 
 				// On prend egalement en compte des nombres absolus de records, repartis par table
-				// secondaire
+				// secondaire Pour le min, on prend le minimum, pour eviter de surestimer la memoire
+				// minimum necessaire En effet, on peut avoir une table principale petite, avec des
+				// tables secondaire comportement une majorite d'enregistrements orphelins, ce qui
+				// fausse les estimation et peut empecher a tort l'execution des taches
 				dTableRatio = lSecondaryRecordNumber / (1.0 + lTotalSecondaryRecordNumber);
 				lMinSecondaryRecordNumber =
-				    max(lMinSecondaryRecordNumber,
+				    min(lMinSecondaryRecordNumber,
 					longint(dTableRatio *
-						KWDatabaseMemoryGuard::GetDefautMaxSecondaryRecordNumberLowerBound()));
+						KWDatabaseMemoryGuard::GetDefautMinSecondaryRecordNumberLowerBound()));
 				lMaxSecondaryRecordNumber =
 				    max(lMaxSecondaryRecordNumber,
 					longint(dTableRatio *
@@ -1127,8 +1130,8 @@ void PLMTDatabaseTextFile::ComputeMemoryGuardOpenInformation()
 			if (bDisplay)
 			{
 				if (i == 0)
-					cout << "\t\tTable\tDataPath\tRecords\tRAM per record\tlEst. max "
-						"records\t\tMin record\tMax record\tMin RAM\tMax RAM\n";
+					cout << "\t\tTable\tDataPath\tRecords\tRAM per record\tlEst. max records\tMin "
+						"record\tMax record\tMin RAM\tMax RAM\n";
 				cout << "\t\tTable" << i << "\t" << mapping->GetDataPath() << "\t"
 				     << lSecondaryRecordNumber << "\t" << lUsedMemoryPerObject << "\t";
 				cout << lEstimatedMaxSecondaryRecordNumber << "\t";
@@ -1142,7 +1145,7 @@ void PLMTDatabaseTextFile::ComputeMemoryGuardOpenInformation()
 	// On utilise une limite minimale au nombre max de records secondaires, pour de pas declencher de warning
 	// utilisateurs excessifs
 	lEstimatedMaxSecondaryRecordNumber = max(lEstimatedMaxSecondaryRecordNumber,
-						 KWDatabaseMemoryGuard::GetDefautMaxSecondaryRecordNumberLowerBound());
+						 KWDatabaseMemoryGuard::GetDefautMinSecondaryRecordNumberLowerBound());
 
 	// On utilise une limite minimale a la memoire RAM, pour de pas declencher de warning utilisateurs excessifs
 	lEstimatedMinSingleInstanceMemoryLimit += 2 * BufferedFile::nDefaultBufferSize;

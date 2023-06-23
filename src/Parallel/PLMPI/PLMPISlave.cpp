@@ -599,38 +599,20 @@ void PLMPISlave::Run()
 	task->DeserializeSharedVariables(&serializer, &GetTask()->oaSharedParameters);
 	serializer.Close();
 	task->SetSharedVariablesRO(&task->oaSharedParameters);
-	bOk = GetTask()->InitializeParametersFromSharedVariables();
+	GetTask()->InitializeParametersFromSharedVariables();
 
-	if (bOk)
-	{
-		// Activation du mode boost
-		bBoostedMode = GetTask()->shared_bBoostedMode;
+	// Activation du mode boost
+	bBoostedMode = GetTask()->shared_bBoostedMode;
 
-		// Mise a jour du nom de l'application
-		task->SetTaskUserLabel(task->shared_sTaskUserLabel.GetValue());
-	}
-
-	if (not bOk)
-	{
-		// Envoi d'une demande d'arret
-		NotifyAbnormalExit();
-
-		// Reception de la demande d'arret
-		context.Recv(MPI_COMM_WORLD, 0, MASTER_STOP_ORDER);
-		serializer.OpenForRead(&context);
-		serializer.Close();
-		if (GetTracerMPI()->GetActiveMode())
-			GetTracerMPI()->AddRecv(0, MASTER_STOP_ORDER);
-	}
+	// Mise a jour du nom de l'application
+	task->SetTaskUserLabel(task->shared_sTaskUserLabel.GetValue());
 
 	// Boucle de traitement dirigee par le maitre
-	if (bOk)
-	{
-		// En cas d'erreur, le message qui contient les resultats et qui est envoye au maitre
-		// contient un boolean a False. Lors de sa reception le maitre ordonne a tous les esclaves de s'arreter,
-		// c'est le seul moyen de sortir de la boucle
-		bOk = Process();
-	}
+	// En cas d'erreur, le message qui contient les resultats et qui est envoye au maitre
+	// contient un boolean a False. Lors de sa reception le maitre ordonne a tous les esclaves de s'arreter,
+	// c'est le seul moyen de sortir de la boucle
+	bOk = Process();
+
 	if (task->bIsSlaveInitialized)
 	{
 		// Positionnement de l'etat en cours pour que le gestionnaire de progression

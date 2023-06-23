@@ -706,6 +706,14 @@ const ALString FileService::GetPathName(const ALString& sFilePathName)
 	ALString sPathName;
 	int nPos;
 	int nSeparatorPos;
+	ALString sScheme;
+	char cFileSeparator;
+
+	// Attention au cas specifique des URI
+	sScheme = GetURIScheme(sFilePathName);
+	cFileSeparator = GetFileSeparator();
+	if (sScheme != "")
+		cFileSeparator = GetURIFileSeparator();
 
 	// Recherche du dernier caractere separateur de chemin
 	nSeparatorPos = -1;
@@ -715,7 +723,7 @@ const ALString FileService::GetPathName(const ALString& sFilePathName)
 		{
 			nSeparatorPos = nPos;
 
-			// On supprime les eventuel separator immediatement avant
+			// On supprime les eventuels separators immediatement avant
 			while (nSeparatorPos > 0 and IsFileSeparator(sFilePathName[nSeparatorPos - 1]))
 				nSeparatorPos--;
 			break;
@@ -724,7 +732,11 @@ const ALString FileService::GetPathName(const ALString& sFilePathName)
 
 	// On retourne la partie chemin suivi du separateur (sinon, vide)
 	if (nSeparatorPos >= 0)
-		sPathName = sFilePathName.Left(nSeparatorPos) + GetFileSeparator();
+		sPathName = sFilePathName.Left(nSeparatorPos) + cFileSeparator;
+
+	// Dans le cas d'une URI, on ajoute 2 '/' pour en avoir 3
+	if (sScheme != "" and sPathName.GetLength() < sScheme.GetLength() + 3)
+		sPathName = sPathName + cFileSeparator + cFileSeparator;
 	return sPathName;
 }
 
@@ -825,8 +837,11 @@ const ALString FileService::BuildFileName(const ALString& sFilePrefix, const ALS
 
 const ALString FileService::BuildFilePathName(const ALString& sPathName, const ALString& sFileName)
 {
+	ALString sNormalizedPathName;
 	int nSeparatorPos;
 	int nPos;
+	ALString sScheme;
+	char cFileSeparator;
 
 	if (sPathName == "")
 		return sFileName;
@@ -834,24 +849,44 @@ const ALString FileService::BuildFilePathName(const ALString& sPathName, const A
 		return sPathName;
 	else
 	{
+		// Normalisation de la forme du path name avec separateur potentiel en fin
+		sNormalizedPathName = GetPathName(sPathName + GetFileSeparator());
+
+		// Attention au cas specifique des URI
+		sScheme = GetURIScheme(sNormalizedPathName);
+		cFileSeparator = GetFileSeparator();
+		if (sScheme != "")
+			cFileSeparator = GetURIFileSeparator();
+
 		// Tolerance pour les chemin se terminant par un separateur
-		assert(sPathName.GetLength() > 0);
+		assert(sNormalizedPathName.GetLength() > 0);
 		nSeparatorPos = -1;
-		nPos = sPathName.GetLength() - 1;
-		if (IsFileSeparator(sPathName.GetAt(nPos)))
+		nPos = sNormalizedPathName.GetLength() - 1;
+		if (IsFileSeparator(sNormalizedPathName.GetAt(nPos)))
 		{
 			nSeparatorPos = nPos;
 
-			// On supprime les eventuel separator immediatement avant
-			while (nSeparatorPos > 0 and IsFileSeparator(sPathName[nSeparatorPos - 1]))
-				nSeparatorPos--;
+			// On supprime les eventuels separateurs immediatement avant
+			if (sScheme == "")
+			{
+				// cas d'un fichier standard
+				while (nSeparatorPos > 0 and IsFileSeparator(sNormalizedPathName[nSeparatorPos - 1]))
+					nSeparatorPos--;
+			}
+			else
+			{
+				// Cas d'une URI ou on ne supprime pas les separateurs avant scheme:///
+				while (nSeparatorPos > sScheme.GetLength() + 3 and
+				       IsFileSeparator(sNormalizedPathName[nSeparatorPos - 1]))
+					nSeparatorPos--;
+			}
 
 			// On renvoie le nom complet, en ayant supprime les doublons de separateur
-			// et en ayant utilise le sepetauer du systeme en cours
-			return sPathName.Left(nSeparatorPos) + GetFileSeparator() + sFileName;
+			// et en ayant utilise le separateur du systeme en cours
+			return sNormalizedPathName.Left(nSeparatorPos) + cFileSeparator + sFileName;
 		}
 		else
-			return sPathName + GetFileSeparator() + sFileName;
+			return sNormalizedPathName + cFileSeparator + sFileName;
 	}
 }
 
@@ -1615,7 +1650,7 @@ const ALString FileService::BuildURI(const ALString& sScheme, const ALString& sH
 	{
 		// On ne rajoute "./" que s'il n'y a pas deja "." au debut
 		if (sFileName.GetLength() >= 1 and sFileName.GetAt(0) != '.')
-			sRelativePath = sRelativePath + "." + GetFileSeparator();
+			sRelativePath = sRelativePath + "." + GetURIFileSeparator();
 	}
 	return sScheme + "://" + sHostName + "/" + sRelativePath + sFileName;
 }
@@ -1948,16 +1983,68 @@ void FileService::Test()
 	cout << GetPortableTmpFilePathName(sFilePathName) << "->" << GetFileSuffix(sFilePathName) << endl;
 	cout << GetPortableTmpFilePathName(sFilePathName2) << "->" << GetFileSuffix(sFilePathName2) << endl;
 
+	// Test de GetPathName
+	cout << endl << "Extract path name" << endl;
+#ifdef __UNIX__
+
+	sFilePathName = "/standard/linux/path/file.txt";
+	cout << "SYS PATH\t" << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
+	sFilePathName = "/standard/linux/path////file.txt";
+	cout << "SYS PATH\t" << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
+	sFilePathName = "/file.txt";
+	cout << "SYS PATH\t" << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
+	sFilePathName = "//////file.txt";
+	cout << "SYS PATH\t" << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
+#else
+	sFilePathName = "c:\\standard\\linux\\path\\file.txt";
+	cout << "SYS PATH\t" << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
+	sFilePathName = "c:\\standard\\linux\\path\\\\\\\\file.txt";
+	cout << "SYS PATH\t" << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
+	sFilePathName = "c:\\file.txt";
+	cout << "SYS PATH\t" << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
+	sFilePathName = "c:\\\\\\\\\\file.txt";
+	cout << "SYS PATH\t" << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
+#endif //__UNIX__
+	sFilePathName = "hdfs:///standard/path/file.txt";
+	cout << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
+	sFilePathName = "hdfs:///standard/path////file.txt";
+	cout << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
+	sFilePathName = "hdfs:///file.txt";
+	cout << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
+	sFilePathName = "gs:///////file.txt";
+	cout << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
+
+	// Test de BuildFilePathName
+	cout << endl << "Build path" << endl;
+	sPathName = "/standard/path/";
+	cout << sPathName << " => " << BuildFilePathName(sPathName, "file.txt") << endl;
+	sPathName = "/standard/path";
+	cout << sPathName << " => " << BuildFilePathName(sPathName, "file.txt") << endl;
+	sPathName = "/standard/path///";
+	cout << sPathName << " => " << BuildFilePathName(sPathName, "file.txt") << endl;
+	sPathName = "/";
+	cout << sPathName << " => " << BuildFilePathName(sPathName, "file.txt") << endl;
+	sPathName = "////";
+	cout << sPathName << " => " << BuildFilePathName(sPathName, "file.txt") << endl;
+	sPathName = "gs:///standard/path///";
+	cout << sPathName << " => " << BuildFilePathName(sPathName, "file.txt") << endl;
+	sPathName = "gs:///";
+	cout << sPathName << " => " << BuildFilePathName(sPathName, "file.txt") << endl;
+	sPathName = "gs://////";
+	cout << sPathName << " => " << BuildFilePathName(sPathName, "file.txt") << endl;
+
+	// Destruction eventuelle du fichier pour repartir du meme etat et
+	// assurer la reproductibilite des tests
+	RemoveFile(sFilePathName);
+
 	// Construction d'un nom de chemin
+	sFileName = "toto.txt";
+	sFilePathName = FileService::GetFileSeparator() + sFileName;
 	cout << endl << "Construction d'un chemin complet de fichier" << endl;
 	sPathName = GetTmpDir();
 	cout << GetPortableTmpFilePathName(sPathName) << " + " << GetPortableTmpFilePathName(sFileName) << endl;
 	sFilePathName = BuildFilePathName(sPathName, sFileName);
 	cout << "-> " << GetPortableTmpFilePathName(sFilePathName) << endl;
-
-	// Destruction eventuelle du fichier pour repartir du meme etat et
-	// assurer la reproductibilite des tests
-	RemoveFile(sFilePathName);
 
 	// Modification de parties d'un nom de fichier
 	cout << endl << "Modification de parties d'un nom de fichier" << endl;
@@ -2118,16 +2205,18 @@ void FileService::Test()
 	svURItests.Add("s3:///good-URI/test");
 	svURItests.Add("s3://host/good-URI/test");
 
-#ifndef __UNIX
+	// Test oriente linux
 	svURItests.Add("file:///home/test.txt");
 	svURItests.Add("file://host-name/home/test.txt");
 	svURItests.Add("file:///home/test.txt");
 	svURItests.Add("file:///./test.txt");
 	svURItests.Add("file:///..\\test.txt");
-#else
+
+	// Test orientes windows
 	svURItests.Add("file:///c:\\home\\test.txt");
 	svURItests.Add("file://host-name/c:\\home\\test.txt");
-#endif // __UNIX__
+
+	// Lancement des tests
 	for (i = 0; i < svURItests.GetSize(); i++)
 	{
 		cout << svURItests.GetAt(i) << endl;
@@ -2203,6 +2292,11 @@ void FileService::Test()
 		// Destruction du fichier
 		RemoveFile(sFilePathName);
 	}
+}
+
+char FileService::GetURIFileSeparator()
+{
+	return '/';
 }
 
 boolean FileService::SystemSeekPositionInBinaryFile(FILE* fFile, longint lOffset, int nWhence)
@@ -2550,8 +2644,15 @@ boolean FileSpec::CheckReferenceFileSpec(const FileSpec* refFileSpec) const
 		// Verification de l'egalite des chemins de facon recursive
 		sPathName = GetFilePathName();
 		sRefPathName = refFileSpec->GetFilePathName();
-		if (sPathName.GetLength() == sRefPathName.GetLength())
+
+		if (sPathName.GetLength() == sRefPathName.GetLength() and
+		    FileService::GetURIScheme(sPathName) == FileService::GetURIScheme(sRefPathName) and
+		    FileService::GetURIHostName(sPathName) == FileService::GetURIHostName(sRefPathName))
 		{
+
+			// On enleve la partie URI des chemins (file://hostname/)
+			sPathName = FileService::GetURIFilePathName(sPathName);
+			sRefPathName = FileService::GetURIFilePathName(sRefPathName);
 			bOk = false;
 			while (sPathName != "")
 			{
@@ -2608,4 +2709,66 @@ const ALString FileSpec::GetClassLabel() const
 const ALString FileSpec::GetObjectLabel() const
 {
 	return GetLabel() + " " + GetFilePathName();
+}
+
+boolean FileSpec::Test()
+{
+	FileSpec spec1;
+	FileSpec spec2;
+	boolean bTest;
+	boolean bOk = true;
+
+	const ALString sPathName1 = "/user/toto/LearningTest/TestKhiops/Standard/IrisTransfer/results/T_Iris.txt";
+	const ALString sPathName2 = "/user/titi/LearningTest/TestKhiops/Standard/IrisTransfer/results/T_Iris.txt";
+	const ALString sScheme1 = "foo";
+	const ALString sScheme2 = "bar";
+	const ALString host1 = "host1";
+	const ALString host2 = "host2";
+
+	spec1.SetLabel("std");
+	spec2.SetLabel("std");
+
+	// Fichiers std identiques
+	spec1.SetFilePathName(sPathName1);
+	spec2.SetFilePathName(sPathName1);
+	bTest = spec2.CheckReferenceFileSpec(&spec1);
+	bOk = not bTest and bOk;
+	ensure(bOk);
+
+	// Fichiers std differents (mais longueur du path identique)
+	spec1.SetFilePathName(sPathName1);
+	spec2.SetFilePathName(sPathName2);
+	bTest = spec2.CheckReferenceFileSpec(&spec1);
+	bOk = bTest and bOk;
+	ensure(bOk);
+
+	// URI identiques
+	spec1.SetFilePathName(FileService::BuildURI(sScheme1, host1, sPathName1));
+	spec2.SetFilePathName(FileService::BuildURI(sScheme1, host1, sPathName1));
+	bTest = spec2.CheckReferenceFileSpec(&spec1);
+	bOk = not bTest and bOk;
+	ensure(bOk);
+
+	// URI schemas differents (mais longueur du path identique)
+	spec1.SetFilePathName(FileService::BuildURI(sScheme1, host1, sPathName1));
+	spec2.SetFilePathName(FileService::BuildURI(sScheme2, host1, sPathName1));
+	bTest = spec2.CheckReferenceFileSpec(&spec1);
+	bOk = bTest and bOk;
+	ensure(bOk);
+
+	// URI hosts differents (mais longueur du path identique)
+	spec1.SetFilePathName(FileService::BuildURI(sScheme1, host1, sPathName1));
+	spec2.SetFilePathName(FileService::BuildURI(sScheme1, host2, sPathName1));
+	bTest = spec2.CheckReferenceFileSpec(&spec1);
+	bOk = bTest and bOk;
+	ensure(bOk);
+
+	// URI nom de fichiers differents (mais longueur du path identique)
+	spec1.SetFilePathName(FileService::BuildURI(sScheme1, host1, sPathName1));
+	spec2.SetFilePathName(FileService::BuildURI(sScheme1, host1, sPathName2));
+	bTest = spec2.CheckReferenceFileSpec(&spec1);
+	bOk = bTest and bOk;
+	ensure(bOk);
+
+	return bOk;
 }

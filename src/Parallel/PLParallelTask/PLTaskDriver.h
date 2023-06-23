@@ -90,6 +90,7 @@ public:
 
 	// Permet de forcer la lancement d'un serveur de fichier si le systeme ne contient qu'une machine
 	// Utile pour les tests
+	// TODO acces a cette methode depuis l'IHM pour pouvoir lancer LearningTest avec cette
 	static void SetFileServerOnSingleHost(boolean);
 	static boolean GetFileServerOnSingleHost();
 

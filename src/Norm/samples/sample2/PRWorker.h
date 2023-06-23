@@ -38,6 +38,7 @@ public:
 	// Nom
 	const ALString& GetFamilyName() const;
 	void SetFamilyName(const ALString& sValue);
+
 	///////////////////////////////////////////////////////////
 	// Divers
 
@@ -53,7 +54,7 @@ public:
 	// ##
 
 	////////////////////////////////////////////////////////
-	//// Implementation
+	///// Implementation
 protected:
 	// Attributs de la classe
 	ALString sFirstName;

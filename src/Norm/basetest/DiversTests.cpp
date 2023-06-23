@@ -15,8 +15,6 @@ void ShowKeyInfo()
 	cout << "PROCESSOR_IDENTIFIER: " << p_getenv("PROCESSOR_IDENTIFIER") << endl;
 	cout << "PROCESSOR_REVISION: " << p_getenv("PROCESSOR_REVISION") << endl;
 	cout << "MAC Address: " << GetMACAddress() << endl;
-	cout << "Computer name: " << LMLicenseService::GetComputerName() << endl;
-	cout << "Machine ID: " << LMLicenseService::GetMachineID() << endl;
 }
 
 void TestMemAdvanced()

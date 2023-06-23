@@ -459,6 +459,7 @@ boolean KWChunkSorterTask::SlaveProcess()
 	CharVector cvLineToWrite;
 	InputBufferedFile* inputFile;
 	OutputBufferedFile* outputFile;
+	MemoryInputBufferedFile memoryFile;
 	ObjectArray oaBufferedFiles;
 	double dTotalProgression;
 	double dLocalProgression;
@@ -470,12 +471,19 @@ boolean KWChunkSorterTask::SlaveProcess()
 	longint lCumulatedFileSize;
 	boolean bIsLineOK;
 	ALString sTmp;
+	boolean bEndOfLine;
+	char* sField;
+	int nFieldLength;
+	int nFieldError;
+	boolean bLastLine = false;
+	int nMaxLineLength;
 
 	// Initialisations
 	outputFile = NULL;
 	nObjectNumer = 0;
 	lOneBucketFileSize = 0;
 	lCumulatedFileSize = 0;
+	memoryFile.SetFieldSeparator(shared_cInputSeparator.GetValue());
 
 	// Si il n'y a qu'un fichier le header est dans ce fichier, il faudra le supprimer
 	// En effet, en cas d'un fichier trop petit, on le tri directement (et il garde son eventuelle ligne d'entete)
@@ -566,6 +574,7 @@ boolean KWChunkSorterTask::SlaveProcess()
 
 		// Extraction des clefs de chaque buffer
 		dTotalProgression = 0;
+		nMaxLineLength = 0;
 		for (i = 0; i < oaBufferedFiles.GetSize(); i++)
 		{
 			inputFile = cast(InputBufferedFile*, oaBufferedFiles.GetAt(i));
@@ -573,7 +582,7 @@ boolean KWChunkSorterTask::SlaveProcess()
 			// Saut du Header (dans ce cas, il n'y a qu'un seul bucket, donc une seule tache)
 			// Attention, on ne peut pas se baser sur la presence d'une ligne de header dans
 			// le input file (cf. MasterInitialize)
-			if (i == 0 and bSkipFirstLine)
+			if (bSkipFirstLine and i == 0)
 			{
 				assert(GetTaskIndex() == 0);
 				inputFile->SkipLine(bLineTooLong);
@@ -594,12 +603,12 @@ boolean KWChunkSorterTask::SlaveProcess()
 				keysExtractor.ExtractLine(nLineBeginPos, nLineEndPos);
 				if (bIsLineOK)
 				{
-
 					keyLine = new KWKeyLinePair;
 					keyLine->SetKey(key);
 					keyLine->SetInputBuffer(inputFile);
 					oaKeyLines.Add(keyLine);
 					keyLine->SetLinePosition(nLineBeginPos, nLineEndPos);
+					nMaxLineLength = max(nMaxLineLength, nLineEndPos - nLineBeginPos + 1);
 				}
 				else
 				{
@@ -645,95 +654,71 @@ boolean KWChunkSorterTask::SlaveProcess()
 		{
 			outputFile = new OutputBufferedFile;
 			outputFile->SetFileName(sOutputFileName);
+			outputFile->SetFieldSeparator(shared_cOutputSeparator.GetValue());
 			ensure(outputFile->GetBufferSize() > 0);
 			assert(!shared_bOnlyOneBucket or lOneBucketFileSize > 0);
 
-			// Ouverture et  reserve de la taille du fichier qui va etre ecrite pour eviter la fragmentation
+			// Ouverture et reserve de la taille du fichier qui va etre ecrite pour eviter la fragmentation
 			// du disque
 			bOk = outputFile->Open();
 			outputFile->ReserveExtraSize(lCumulatedFileSize);
 			if (bOk)
 			{
+				// Utilisation d'un MemoryInputBufferedFile pour transformer le champ si les separateurs
+				// sont differents
+				if (not bSameSeparator)
+					memoryFile.SetBufferSize(nMaxLineLength);
 				for (i = 0; i < oaKeyLines.GetSize(); i++)
 				{
+					bLastLine = false;
+
 					// Extraction de la ligne a partir de ses offsets
 					keyLine = cast(KWKeyLinePair*, oaKeyLines.GetAt(i));
 					keyLine->GetLinePosition(nLineBeginPos, nLineEndPos);
 
-					// Cas particulier du InMemory
-					if (shared_bOnlyOneBucket)
+					// Remplacement du separateur
+					if (not bSameSeparator)
 					{
-						// Traitement de la derniere ligne : il faut peut etre ajouter un EOF
-						if (nLineEndPos == lOneBucketFileSize)
+						// extraction du buffer
+						assert(not bLastLine);
+						keyLine->GetInputBuffer()->ExtractSubBuffer(nLineBeginPos, nLineEndPos,
+											    &cvLineToWrite);
+						memoryFile.ResetBuffer();
+						memoryFile.FillBuffer(&cvLineToWrite);
+						bEndOfLine = false;
+
+						// Lecture et ecriture de chaque champ
+						while (not bEndOfLine)
 						{
-							// extraction du buffer
-							keyLine->GetInputBuffer()->ExtractSubBuffer(
-							    nLineBeginPos, nLineEndPos, &cvLineToWrite);
-
-							// Si la derniere ligne n'a pas le caractere fin de ligne, on le
-							// rajoute
-							if (cvLineToWrite.GetAt(cvLineToWrite.GetSize() - 1) != '\n')
-							{
-								// Cela fausse le calcul de la reserve, mais ce n'est
-								// pas grave, puisque c'est de la place en plus
-#ifndef __UNIX__
-								cvLineToWrite.Add('\r');
-#endif // __UNIX__
-								cvLineToWrite.Add('\n');
-							}
-
-							// Remplacement du speparateur
-							if (not bSameSeparator)
-							{
-								// ReplaceAll : separateur d'entree -> separateur de
-								// sortie
-								ReplaceSeparator(&cvLineToWrite,
-										 shared_cInputSeparator.GetValue(),
-										 shared_cOutputSeparator.GetValue());
-							}
-
-							// Ecriture de la ligne
-							bOk = outputFile->Write(&cvLineToWrite);
+							bEndOfLine = memoryFile.GetNextField(sField, nFieldLength,
+											     nFieldError, bLineTooLong);
+							ensure(bLineTooLong == false);
+							outputFile->WriteField(sField);
+							if (not bEndOfLine)
+								outputFile->Write(shared_cOutputSeparator.GetValue());
 						}
-						else
-						{
-							// Dans le cas de sparateur differents, il faut extraire le
-							// buffer et remplacer les separateurs
-							if (not bSameSeparator)
-							{
-								keyLine->GetInputBuffer()->ExtractSubBuffer(
-								    nLineBeginPos, nLineEndPos, &cvLineToWrite);
-
-								// ReplaceAll : separateur d'entree -> separateur de
-								// sortie
-								ReplaceSeparator(&cvLineToWrite,
-										 shared_cInputSeparator.GetValue(),
-										 shared_cOutputSeparator.GetValue());
-
-								// Ecriture de la ligne
-								bOk = outputFile->Write(&cvLineToWrite);
-							}
-							else
-							{
-								// Si il n'y a rien a changer, on ecrit directement,
-								// sans recopie
-								bOk = outputFile->WriteSubPart(
-								    keyLine->GetInputBuffer()->GetCache(),
-								    keyLine->GetInputBuffer()->GetBufferStartInCache() +
-									nLineBeginPos,
-								    nLineEndPos - nLineBeginPos);
-							}
-						}
+						outputFile->WriteEOL();
 					}
 					else
-					// Cas standard : le separateur de sortie a ete modifie si necessaire dans le
-					// chunk builder On ecrit directement sans recopie
 					{
-						assert(bSameSeparator);
+						// Si il n'y a rien a changer, on ecrit directement, sans recopie
 						bOk = outputFile->WriteSubPart(
 						    keyLine->GetInputBuffer()->GetCache(),
 						    keyLine->GetInputBuffer()->GetBufferStartInCache() + nLineBeginPos,
 						    nLineEndPos - nLineBeginPos);
+
+						// Cas particulier du InMemory : pour la derniere ligne, il faut peut
+						// etre ajouter un EOL (on l'a fait de toute façon si les separateurs
+						// sont differents)
+						if (shared_bOnlyOneBucket and nLineEndPos == lOneBucketFileSize)
+						{
+							// Si la derniere ligne n'a pas le caractere fin de ligne, on le
+							// rajoute
+							if (keyLine->GetInputBuffer()->GetCache()->GetAt(
+								keyLine->GetInputBuffer()->GetBufferStartInCache() +
+								nLineEndPos - 1) != '\n')
+								outputFile->WriteEOL();
+						}
 					}
 
 					// Gestion de l'avancement (entre 75 et 100 pour cette partie)
@@ -844,29 +829,6 @@ void KWChunkSorterTask::SkipField(CharVector* cvLineToWrite, char cOriginalSepar
 			}
 			nPos++;
 		}
-	}
-}
-
-void KWChunkSorterTask::ReplaceSeparator(CharVector* cvLineToWrite, char cOriginalSeparator, char cNewSeparator)
-{
-	int i;
-	require(cvLineToWrite != NULL);
-	require(cOriginalSeparator != cNewSeparator);
-
-	i = 0;
-
-	// Saut des champs un par un
-	while (i < cvLineToWrite->GetSize())
-	{
-		// Saut du champ
-		SkipField(cvLineToWrite, cOriginalSeparator, i);
-
-		// Remplacement du separateur
-		if (i < cvLineToWrite->GetSize())
-		{
-			cvLineToWrite->SetAt(i, cNewSeparator);
-		}
-		i++;
 	}
 }
 

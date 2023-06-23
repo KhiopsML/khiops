@@ -11,6 +11,8 @@
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 // Classe technique pour la gestion de licence
+// Classe temporairement rappatriee de Norm V9.1.4, pour pouvoir utiliser Norm.V9.2.1
+// (qui n'a plus cette class), dans le cadre du patch de Khiops V10.1.1
 class LMLicenseService : public Object
 {
 public:

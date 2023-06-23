@@ -332,7 +332,7 @@ public:
 	// Renvoie vide si l'URI est mal formee
 	static const ALString GetURIHostName(const ALString& sFileURI);
 
-	// Extraction du nom du fichier a partir de l'URI
+	// Extraction du chemin du fichier a partir de l'URI
 	// Renvoie le chemin en entree si l'URI est mal formee
 	static const ALString GetURIFilePathName(const ALString& sFileURI);
 
@@ -367,6 +367,9 @@ public:
 
 	// Prefixe des URI des fichiers distants (file)
 	static const ALString sRemoteScheme;
+
+	// Separateur des fichiers dans les chemins dans le cas d'une URI
+	static char GetURIFileSeparator();
 
 protected:
 	friend void FileServiceApplicationTmpDirAutomaticRemove();
@@ -480,6 +483,9 @@ public:
 	// Libelles utilisateurs
 	const ALString GetClassLabel() const override;
 	const ALString GetObjectLabel() const override;
+
+	// Test de la classe
+	static boolean Test();
 
 	////////////////////////////////////////////////////////
 	//// Implementation

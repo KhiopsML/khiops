@@ -10,7 +10,6 @@
 #include "ALString.h"
 #include "Object.h"
 #include "SortedList.h"
-#include "LMLicenseService.h"
 #include "UITestClassSpecArrayView.h"
 #include "UITest.h"
 #include "MemoryManager.h"

@@ -3,6 +3,10 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #pragma once
+/******************************************************************************
+ * Khiops Native Interface (KNI)
+ * Copyright (c) 2022 Orange Labs. All rights reserved.
+ *****************************************************************************/
 
 /*
  * Recode an input file to an output file, using a Khiops dictionary from a dictionary file

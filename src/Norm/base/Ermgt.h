@@ -156,7 +156,7 @@ protected:
 					 const ALString& sLocalisationValue, const ALString& sLabelValue);
 
 	// Ajout d'une erreur
-	static void ShowError(Error e);
+	static void ShowError(const Error* e);
 
 	// Niveau d'empilement de la gestion du controle d'erreur
 	static int nErrorFlowControlLevel;
