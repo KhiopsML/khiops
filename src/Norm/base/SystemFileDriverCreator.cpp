@@ -33,6 +33,7 @@ int SystemFileDriverCreator::RegisterExternalDrivers()
 
 #ifdef __UNIX__
 	sLibraryPath = "/usr/lib/";
+
 #else
 	sLibraryPath = p_getenv("KHIOPS_HOME");
 	sLibraryPath += "\\bin";
@@ -134,14 +135,17 @@ void SystemFileDriverCreator::UnregisterDrivers()
 	{
 		for (i = 0; i < oaSystemFileDriver->GetSize(); i++)
 		{
-			driver = cast(SystemFileDriver*, oaSystemFileDriver->GetAt(i));
+			if (oaSystemFileDriver->GetAt(i) != NULL)
+			{
+				driver = cast(SystemFileDriver*, oaSystemFileDriver->GetAt(i));
 
-			// Deconnexion et dechargement (on ne pourra plus appeler de methodes du driver)
-			if (driver->IsConnected())
-				driver->Disconnect();
+				// Deconnexion et dechargement (on ne pourra plus appeler de methodes du driver)
+				if (driver->IsConnected())
+					driver->Disconnect();
+				delete driver;
+			}
 		}
 
-		oaSystemFileDriver->DeleteAll();
 		delete oaSystemFileDriver;
 		oaSystemFileDriver = NULL;
 	}
