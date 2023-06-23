@@ -54,14 +54,6 @@ const char* const LongintToString(longint lValue)
 	return sBuffer;
 }
 
-const char* const FloatToString(float fValue)
-{
-	char* sBuffer = StandardGetBuffer();
-
-	sprintf(sBuffer, "%g", fValue);
-	return sBuffer;
-}
-
 const char* const DoubleToString(double dValue)
 {
 	char* sBuffer = StandardGetBuffer();
@@ -154,31 +146,6 @@ longint StringToLongint(const char* sValue)
 	require(sValue != NULL);
 
 	return atoll(sValue);
-}
-
-float StringToFloat(const char* sValue)
-{
-	int i;
-	char* sBuffer = StandardGetBuffer();
-	const char* sSource;
-
-	require(sValue != NULL);
-
-	// Recopie dans un buffer, en changeant les
-	// ',' en '.'
-	i = 0;
-	sSource = sValue;
-	while (sSource[i] != '\0' and i < BUFFER_LENGTH)
-	{
-		if (sSource[i] == ',')
-			sBuffer[i] = '.';
-		else
-			sBuffer[i] = sSource[i];
-		i++;
-	}
-	sBuffer[i] = '\0';
-
-	return float(atof(sBuffer));
 }
 
 double StringToDouble(const char* sValue)

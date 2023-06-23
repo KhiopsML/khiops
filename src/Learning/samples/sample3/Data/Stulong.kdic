@@ -1,4 +1,83 @@
-#Khiops 7.7.2i
+
+Root	Dictionary	Entry	(ICO)
+{
+	Categorical	ICO		;	// Identification number of a patient
+	Categorical	KONSKUP		;	// studied group of patients
+	Numerical	ROKNAR		;	// year of birth 
+	Numerical	ROKVSTUP	;	// year of entry into the study 
+	Numerical	MESVSTUP	;	// month of entry into the study (format MM) 
+	Numerical	STAV		;	// single - married - ...
+	Categorical	VZDELANI	;	// reached education 
+	Categorical	ZODPOV		;	// responsibility in a job 
+	Categorical	TELAKTZA	;	// physical activity in a job 
+	Categorical	AKTPOZAM	;	// physical activity after a job 
+	Categorical	DOPRAVA		;	// which means of transport he uses for getting to work 
+	Categorical	DOPRATRV	;	// how long it takes to get to work 
+	Categorical	KOURENI		;	// intensity of smoking 
+	Categorical	DOBAKOUR	;	// how low he has been smoking 
+	Categorical	BYVKURAK	;	// how long an ex-smoker has not been smoking 
+	Categorical	ALKOHOL		;	// drinking of alcohol 
+	Categorical	PIVO7		;	// beer 7° 
+	Categorical	PIVO10		;	// beer 10° 
+	Categorical	PIVO12		;	// beer 12° 
+	Categorical	VINO		;	// vine 
+	Categorical	LIHOV		;	// liquors 
+	Categorical	PIVOMN		;	// amount of beer per day 
+	Categorical	VINOMN		;	// amount of vine per day 
+	Categorical	LIHMN		;	// amount of liquors per day 
+	Categorical	KAVA		;	// black coffee 
+	Categorical	CAJ		;	// tea 
+	Numerical	CUKR		;	// how many sugar lumps he usually daily consumes 
+	Categorical	IM		;	// IM found  (myocardial infarction)
+	Categorical	IML		;	// medicines in IM 
+	Numerical	IMTRV		;	// before how many year IM has appeared 
+	Categorical	HT		;	// HT found (hypertension)
+	Categorical	HTD		;	// diet in HT 
+	Categorical	HTL		;	// medicines in HT 
+	Numerical	HTTRV		;	// before how many years HT has appeared 
+	Categorical	ICT		;	// ICT found (ictus)
+	Categorical	ICTL		;	// medicines in ICT 
+	Numerical	ICTTRV		;	// before how many years ICT has appeared 
+	Categorical	DIABET		;	// DIAB found (diabetes)
+	Categorical	DIABD		;	// diet in DIAB 
+	Categorical	DIABL		;	// medicines in DIAB 
+	Numerical	DIABTRV		;	// before how many years DIAB has appeared 
+	Categorical	HYPLIP		;	// HYPLIP found (hyperlipidemia)
+	Categorical	HYPLD		;	// diet in HYPLIP 
+	Categorical	HYPLL		;	// medicines in HYPLIP 
+	Numerical	HYPLTRV		;	// before how many years HYPLIP has appeared 
+	Categorical	BOLHR		;	// chest pain 
+	Categorical	BOLDK		;	// lower limbs pain 
+	Categorical	DUSNOST		;	// asthma 
+	Numerical	VYSKA		;	// height (cm) 
+	Numerical	VAHA		;	// weight (kg) 
+	Numerical	SYST1		;	// blood pressure I systolic (mm Hg) 
+	Numerical	DIAST1		;	// blood pressure I diastolic (mm Hg) 
+	Numerical	SYST2		;	// blood pressure II systolic (mm Hg) 
+	Numerical	DIAST2		;	// blood pressure II diastolic (mm Hg) 
+	Numerical	TRIC		;	// Skinfold above musculus triceps (mm) 
+	Numerical	SUBSC		;	// skinfold above musculus subscapularis (mm) 
+Unused	Numerical	CHLST		;	// cholesterol in mg% 
+	Numerical	TRIGL		;	// triglycerides in mg% 
+	Categorical	MOC		;	// urine 
+	Categorical	RARISK		;	// positive family anamnesis 
+	Categorical	OBEZRISK	;	// obsesity 
+	Categorical	KOURRISK	;	// smoking 
+	Categorical	HTRISK		;	// hypertension 
+	Categorical	CHOLRISK	;	// increased cholesterol 
+	Table(Contr)	ListContr;
+	Entity(Letter)	Letter;
+	Entity(Death)	Death;		
+	Numerical ContrNumber = TableCount(ListContr);
+	Numerical LetterNumber = Exist(Letter);
+	Numerical DeathNumber = Exist(Death);
+	Numerical	DeathROKUMR = GetValue(Death, ROKUMR);
+	Categorical	DeathPRICUMR = GetValueC(Death, PRICUMR);
+	Numerical ContrHYPCHL = TableCount(TableSelection(ListContr, EQc(HYPCHL, "1")));
+};
+
+
+
 
 Dictionary	Contr	(ICO)
 {
@@ -6,20 +85,20 @@ Dictionary	Contr	(ICO)
 	Numerical	ROKVYS		;	// year of the control examination
 	Numerical	MESVYS		;	// month of the control examination
 	Numerical	PORADK		;	// sequence of the control examination (for individual patient) ordre, premier, deuxième, ...
-	Categorical	ZMCHARZA		;	// change of the character of occupation
-	Categorical	ZMTELAKT		;	// change of physical activity
-	Categorical	AKTPOZAM		;	// current physical activity in leisure time
-	Categorical	ZMDIET		;	// changes of diet
-	Categorical	LEKCHOL		;	// takes medicines for decreasing of cholesterol
-	Categorical	LEKTLAK		;	// takes medicines for decreasing of blood pressure
-	Categorical	ZMKOUR		;	// changes of smoking
-	Numerical	POCCIG		;	// number of cigarettes per day
-	Categorical	PRACNES		;	// he was on sickness leave
-	Categorical	SRDCE		;	// CHD, AP, IM as a reason for sickness leave
-	Categorical	HYPERT		;	// HT as a reason for sickness leave
-	Categorical	CEVMOZ		;	// cerebrovascular accident as a reason for sickness leave
-	Categorical	DIAB		;	// diabetes mellitus as a reason for sickness leave
-	Categorical	JINAONE		;	// other reasons for sickness leave
+	Categorical	ZMCHARZA	;	// change of the character of occupation 
+	Categorical	ZMTELAKT	;	// change of physical activity 
+	Categorical	AKTPOZAM	;	// current physical activity in leisure time 
+	Categorical	ZMDIET		;	// changes of diet 
+	Categorical	LEKCHOL		;	// takes medicines for decreasing of cholesterol 
+	Categorical	LEKTLAK		;	// takes medicines for decreasing of blood pressure 
+	Categorical	ZMKOUR		;	// changes of smoking 
+	Numerical	POCCIG		;	// number of cigarettes per day 
+	Categorical	PRACNES		;	// he was on sickness leave 
+	Categorical	SRDCE		;	// CHD, AP, IM as a reason for sickness leave 
+	Categorical	HYPERT		;	// HT as a reason for sickness leave 
+	Categorical	CEVMOZ		;	// cerebrovascular accident as a reason for sickness leave 
+	Categorical	DIAB		;	// diabetes mellitus as a reason for sickness leave 
+	Categorical	JINAONE		;	// other reasons for sickness leave 
 	Categorical	BOLHR		;	// chest pain
 	Categorical	BOLDK		;	// pain of lower limbs
 	Categorical	DUSN		;	// dyspnea
@@ -48,452 +127,101 @@ Dictionary	Contr	(ICO)
 	Numerical	ROK21		;	// years of disease finding
 	Categorical	HODN23		;	// disease
 	Numerical	ROK23		;	// years of disease finding
-	Numerical	HMOT		;	// weight (kg)
-	Numerical	SYST		;	// systolic blood pressure (mm Hg)
-	Numerical	DIAST		;	// diastolic blood pressure (mm Hg)
-	Numerical	TRIC		;	// skinfold above musculus triceps (mm)
-	Numerical	SUBSC		;	// skinfold above musculus subscapularis (mm)
-	Categorical	HYPERSD		;	// systolic-diastolic hypertension
-	Categorical	HYPERS		;	// systolic hypertension
-	Categorical	HYPERD		;	// diastolic hypertension
-	Categorical	HYPCHL		;	// hypercholesterolemia
-	Categorical	HYPTGL		;	// hypertriglyceridemia
-	Numerical	CHLST		;	// cholesterol (mmol/l)
-	Numerical	CHLSTMG		;	// cholesterol (mg%)
-	Numerical	TRIGL		;	// triglycerides (mmol/l)
-	Numerical	TRIGLMG		;	// triglycerides (mg%)
-	Numerical	HDL		;	// HDL cholesterol (mmol/l)
-	Numerical	HDLMG		;	// HDL cholesterol (mg%)
-	Categorical	MOC		;	// urine
-	Numerical	GLYKEMIE		;	// glycemia (mmol/l)
-	Numerical	KYSMOC		;	// uric acid (mikromol/l)
-	Numerical	LDL		;	// LDL cholesterol (mmol/l)
+	Numerical	HMOT		;	// weight (kg) 
+	Numerical	SYST		;	// systolic blood pressure (mm Hg) 
+	Numerical	DIAST		;	// diastolic blood pressure (mm Hg) 
+	Numerical	TRIC		;	// skinfold above musculus triceps (mm) 
+	Numerical	SUBSC		;	// skinfold above musculus subscapularis (mm) 
+	Categorical	HYPERSD		;	// systolic-diastolic hypertension 
+	Categorical	HYPERS		;	// systolic hypertension 
+	Categorical	HYPERD		;	// diastolic hypertension 
+	Categorical	HYPCHL		;	// hypercholesterolemia 
+	Categorical	HYPTGL		;	// hypertriglyceridemia 
+	Numerical	CHLST		;	// cholesterol (mmol/l) 
+	Numerical	CHLSTMG		;	// cholesterol (mg%) 
+	Numerical	TRIGL		;	// triglycerides (mmol/l) 
+	Numerical	TRIGLMG		;	// triglycerides (mg%) 
+	Numerical	HDL		;	// HDL cholesterol (mmol/l) 
+	Numerical	HDLMG		;	// HDL cholesterol (mg%) 
+	Categorical	MOC		;	// urine 
+	Numerical	GLYKEMIE	;	// glycemia (mmol/l) 
+	Numerical	KYSMOC		;	// uric acid (mikromol/l) 
+	Numerical	LDL		;	// LDL cholesterol (mmol/l) 
 };
 
-Dictionary	Death	(ICO)
-{
-	Categorical	ICO		;	// patient's identification number
-	Numerical	DENUMR		;	// day of death (format DD)
-	Numerical	MESUMR		;	// month of death (format MM)
-	Numerical	ROKUMR		;	// year of death (format RR)
-	Categorical	PRICUMR		;	// cause of death
-};
 
-Root	Dictionary	EntryCHOLRISK	(ICO)
-{
-	Categorical	ICO		;	// Identification number of a patient
-	Categorical	KONSKUP		;	// studied group of patients
-	Numerical	ROKNAR		;	// year of birth
-	Numerical	ROKVSTUP		;	// year of entry into the study
-	Numerical	MESVSTUP		;	// month of entry into the study (format MM)
-	Numerical	STAV		;	// single - married - ...
-	Categorical	VZDELANI		;	// reached education
-	Categorical	ZODPOV		;	// responsibility in a job
-	Categorical	TELAKTZA		;	// physical activity in a job
-	Categorical	AKTPOZAM		;	// physical activity after a job
-	Categorical	DOPRAVA		;	// which means of transport he uses for getting to work
-	Categorical	DOPRATRV		;	// how long it takes to get to work
-	Categorical	KOURENI		;	// intensity of smoking
-	Categorical	DOBAKOUR		;	// how low he has been smoking
-	Categorical	BYVKURAK		;	// how long an ex-smoker has not been smoking
-	Categorical	ALKOHOL		;	// drinking of alcohol
-	Categorical	PIVO7		;	// beer 7°
-	Categorical	PIVO10		;	// beer 10°
-	Categorical	PIVO12		;	// beer 12°
-	Categorical	VINO		;	// vine
-	Categorical	LIHOV		;	// liquors
-	Categorical	PIVOMN		;	// amount of beer per day
-	Categorical	VINOMN		;	// amount of vine per day
-	Categorical	LIHMN		;	// amount of liquors per day
-	Categorical	KAVA		;	// black coffee
-	Categorical	CAJ		;	// tea
-	Numerical	CUKR		;	// how many sugar lumps he usually daily consumes
-	Categorical	IM		;	// IM found  (myocardial infarction)
-	Categorical	IML		;	// medicines in IM
-	Numerical	IMTRV		;	// before how many year IM has appeared
-	Categorical	HT		;	// HT found (hypertension)
-	Categorical	HTD		;	// diet in HT
-	Categorical	HTL		;	// medicines in HT
-	Numerical	HTTRV		;	// before how many years HT has appeared
-	Categorical	ICT		;	// ICT found (ictus)
-	Categorical	ICTL		;	// medicines in ICT
-	Numerical	ICTTRV		;	// before how many years ICT has appeared
-	Categorical	DIABET		;	// DIAB found (diabetes)
-	Categorical	DIABD		;	// diet in DIAB
-	Categorical	DIABL		;	// medicines in DIAB
-	Numerical	DIABTRV		;	// before how many years DIAB has appeared
-	Categorical	HYPLIP		;	// HYPLIP found (hyperlipidemia)
-	Categorical	HYPLD		;	// diet in HYPLIP
-	Categorical	HYPLL		;	// medicines in HYPLIP
-	Numerical	HYPLTRV		;	// before how many years HYPLIP has appeared
-	Categorical	BOLHR		;	// chest pain
-	Categorical	BOLDK		;	// lower limbs pain
-	Categorical	DUSNOST		;	// asthma
-	Numerical	VYSKA		;	// height (cm)
-	Numerical	VAHA		;	// weight (kg)
-	Numerical	SYST1		;	// blood pressure I systolic (mm Hg)
-	Numerical	DIAST1		;	// blood pressure I diastolic (mm Hg)
-	Numerical	SYST2		;	// blood pressure II systolic (mm Hg)
-	Numerical	DIAST2		;	// blood pressure II diastolic (mm Hg)
-	Numerical	TRIC		;	// Skinfold above musculus triceps (mm)
-	Numerical	SUBSC		;	// skinfold above musculus subscapularis (mm)
-Unused	Numerical	CHLST		;	// cholesterol in mg%
-	Numerical	TRIGL		;	// triglycerides in mg%
-	Categorical	MOC		;	// urine
-Unused	Categorical	RARISK		;	// positive family anamnesis
-Unused	Categorical	OBEZRISK		;	// obsesity
-Unused	Categorical	KOURRISK		;	// smoking
-Unused	Categorical	HTRISK		;	// hypertension
-	Categorical	CHOLRISK		;	// increased cholesterol
-	Table(Contr)	ListContr		;	
-	Entity(Letter)	Letter		;	
-	Entity(Death)	Death		;	
-};
-
-Root	Dictionary	EntryHTRISK	(ICO)
-{
-	Categorical	ICO		;	// Identification number of a patient
-	Categorical	KONSKUP		;	// studied group of patients
-	Numerical	ROKNAR		;	// year of birth
-	Numerical	ROKVSTUP		;	// year of entry into the study
-	Numerical	MESVSTUP		;	// month of entry into the study (format MM)
-	Numerical	STAV		;	// single - married - ...
-	Categorical	VZDELANI		;	// reached education
-	Categorical	ZODPOV		;	// responsibility in a job
-	Categorical	TELAKTZA		;	// physical activity in a job
-	Categorical	AKTPOZAM		;	// physical activity after a job
-	Categorical	DOPRAVA		;	// which means of transport he uses for getting to work
-	Categorical	DOPRATRV		;	// how long it takes to get to work
-	Categorical	KOURENI		;	// intensity of smoking
-	Categorical	DOBAKOUR		;	// how low he has been smoking
-	Categorical	BYVKURAK		;	// how long an ex-smoker has not been smoking
-	Categorical	ALKOHOL		;	// drinking of alcohol
-	Categorical	PIVO7		;	// beer 7°
-	Categorical	PIVO10		;	// beer 10°
-	Categorical	PIVO12		;	// beer 12°
-	Categorical	VINO		;	// vine
-	Categorical	LIHOV		;	// liquors
-	Categorical	PIVOMN		;	// amount of beer per day
-	Categorical	VINOMN		;	// amount of vine per day
-	Categorical	LIHMN		;	// amount of liquors per day
-	Categorical	KAVA		;	// black coffee
-	Categorical	CAJ		;	// tea
-	Numerical	CUKR		;	// how many sugar lumps he usually daily consumes
-	Categorical	IM		;	// IM found  (myocardial infarction)
-	Categorical	IML		;	// medicines in IM
-	Numerical	IMTRV		;	// before how many year IM has appeared
-	Categorical	HT		;	// HT found (hypertension)
-	Categorical	HTD		;	// diet in HT
-	Categorical	HTL		;	// medicines in HT
-	Numerical	HTTRV		;	// before how many years HT has appeared
-	Categorical	ICT		;	// ICT found (ictus)
-	Categorical	ICTL		;	// medicines in ICT
-	Numerical	ICTTRV		;	// before how many years ICT has appeared
-	Categorical	DIABET		;	// DIAB found (diabetes)
-	Categorical	DIABD		;	// diet in DIAB
-	Categorical	DIABL		;	// medicines in DIAB
-	Numerical	DIABTRV		;	// before how many years DIAB has appeared
-	Categorical	HYPLIP		;	// HYPLIP found (hyperlipidemia)
-	Categorical	HYPLD		;	// diet in HYPLIP
-	Categorical	HYPLL		;	// medicines in HYPLIP
-	Numerical	HYPLTRV		;	// before how many years HYPLIP has appeared
-	Categorical	BOLHR		;	// chest pain
-	Categorical	BOLDK		;	// lower limbs pain
-	Categorical	DUSNOST		;	// asthma
-	Numerical	VYSKA		;	// height (cm)
-	Numerical	VAHA		;	// weight (kg)
-	Numerical	SYST1		;	// blood pressure I systolic (mm Hg)
-	Numerical	DIAST1		;	// blood pressure I diastolic (mm Hg)
-	Numerical	SYST2		;	// blood pressure II systolic (mm Hg)
-	Numerical	DIAST2		;	// blood pressure II diastolic (mm Hg)
-	Numerical	TRIC		;	// Skinfold above musculus triceps (mm)
-	Numerical	SUBSC		;	// skinfold above musculus subscapularis (mm)
-Unused	Numerical	CHLST		;	// cholesterol in mg%
-	Numerical	TRIGL		;	// triglycerides in mg%
-	Categorical	MOC		;	// urine
-Unused	Categorical	RARISK		;	// positive family anamnesis
-Unused	Categorical	OBEZRISK		;	// obsesity
-Unused	Categorical	KOURRISK		;	// smoking
-	Categorical	HTRISK		;	// hypertension
-Unused	Categorical	CHOLRISK		;	// increased cholesterol
-	Table(Contr)	ListContr		;	
-	Entity(Letter)	Letter		;	
-	Entity(Death)	Death		;	
-};
-
-Root	Dictionary	EntryKOURRISK	(ICO)
-{
-	Categorical	ICO		;	// Identification number of a patient
-	Categorical	KONSKUP		;	// studied group of patients
-	Numerical	ROKNAR		;	// year of birth
-	Numerical	ROKVSTUP		;	// year of entry into the study
-	Numerical	MESVSTUP		;	// month of entry into the study (format MM)
-	Numerical	STAV		;	// single - married - ...
-	Categorical	VZDELANI		;	// reached education
-	Categorical	ZODPOV		;	// responsibility in a job
-	Categorical	TELAKTZA		;	// physical activity in a job
-	Categorical	AKTPOZAM		;	// physical activity after a job
-	Categorical	DOPRAVA		;	// which means of transport he uses for getting to work
-	Categorical	DOPRATRV		;	// how long it takes to get to work
-	Categorical	KOURENI		;	// intensity of smoking
-	Categorical	DOBAKOUR		;	// how low he has been smoking
-	Categorical	BYVKURAK		;	// how long an ex-smoker has not been smoking
-	Categorical	ALKOHOL		;	// drinking of alcohol
-	Categorical	PIVO7		;	// beer 7°
-	Categorical	PIVO10		;	// beer 10°
-	Categorical	PIVO12		;	// beer 12°
-	Categorical	VINO		;	// vine
-	Categorical	LIHOV		;	// liquors
-	Categorical	PIVOMN		;	// amount of beer per day
-	Categorical	VINOMN		;	// amount of vine per day
-	Categorical	LIHMN		;	// amount of liquors per day
-	Categorical	KAVA		;	// black coffee
-	Categorical	CAJ		;	// tea
-	Numerical	CUKR		;	// how many sugar lumps he usually daily consumes
-	Categorical	IM		;	// IM found  (myocardial infarction)
-	Categorical	IML		;	// medicines in IM
-	Numerical	IMTRV		;	// before how many year IM has appeared
-	Categorical	HT		;	// HT found (hypertension)
-	Categorical	HTD		;	// diet in HT
-	Categorical	HTL		;	// medicines in HT
-	Numerical	HTTRV		;	// before how many years HT has appeared
-	Categorical	ICT		;	// ICT found (ictus)
-	Categorical	ICTL		;	// medicines in ICT
-	Numerical	ICTTRV		;	// before how many years ICT has appeared
-	Categorical	DIABET		;	// DIAB found (diabetes)
-	Categorical	DIABD		;	// diet in DIAB
-	Categorical	DIABL		;	// medicines in DIAB
-	Numerical	DIABTRV		;	// before how many years DIAB has appeared
-	Categorical	HYPLIP		;	// HYPLIP found (hyperlipidemia)
-	Categorical	HYPLD		;	// diet in HYPLIP
-	Categorical	HYPLL		;	// medicines in HYPLIP
-	Numerical	HYPLTRV		;	// before how many years HYPLIP has appeared
-	Categorical	BOLHR		;	// chest pain
-	Categorical	BOLDK		;	// lower limbs pain
-	Categorical	DUSNOST		;	// asthma
-	Numerical	VYSKA		;	// height (cm)
-	Numerical	VAHA		;	// weight (kg)
-	Numerical	SYST1		;	// blood pressure I systolic (mm Hg)
-	Numerical	DIAST1		;	// blood pressure I diastolic (mm Hg)
-	Numerical	SYST2		;	// blood pressure II systolic (mm Hg)
-	Numerical	DIAST2		;	// blood pressure II diastolic (mm Hg)
-	Numerical	TRIC		;	// Skinfold above musculus triceps (mm)
-	Numerical	SUBSC		;	// skinfold above musculus subscapularis (mm)
-Unused	Numerical	CHLST		;	// cholesterol in mg%
-	Numerical	TRIGL		;	// triglycerides in mg%
-	Categorical	MOC		;	// urine
-Unused	Categorical	RARISK		;	// positive family anamnesis
-Unused	Categorical	OBEZRISK		;	// obsesity
-	Categorical	KOURRISK		;	// smoking
-Unused	Categorical	HTRISK		;	// hypertension
-Unused	Categorical	CHOLRISK		;	// increased cholesterol
-	Table(Contr)	ListContr		;	
-	Entity(Letter)	Letter		;	
-	Entity(Death)	Death		;	
-};
-
-Root	Dictionary	EntryOBEZRISK	(ICO)
-{
-	Categorical	ICO		;	// Identification number of a patient
-	Categorical	KONSKUP		;	// studied group of patients
-	Numerical	ROKNAR		;	// year of birth
-	Numerical	ROKVSTUP		;	// year of entry into the study
-	Numerical	MESVSTUP		;	// month of entry into the study (format MM)
-	Numerical	STAV		;	// single - married - ...
-	Categorical	VZDELANI		;	// reached education
-	Categorical	ZODPOV		;	// responsibility in a job
-	Categorical	TELAKTZA		;	// physical activity in a job
-	Categorical	AKTPOZAM		;	// physical activity after a job
-	Categorical	DOPRAVA		;	// which means of transport he uses for getting to work
-	Categorical	DOPRATRV		;	// how long it takes to get to work
-	Categorical	KOURENI		;	// intensity of smoking
-	Categorical	DOBAKOUR		;	// how low he has been smoking
-	Categorical	BYVKURAK		;	// how long an ex-smoker has not been smoking
-	Categorical	ALKOHOL		;	// drinking of alcohol
-	Categorical	PIVO7		;	// beer 7°
-	Categorical	PIVO10		;	// beer 10°
-	Categorical	PIVO12		;	// beer 12°
-	Categorical	VINO		;	// vine
-	Categorical	LIHOV		;	// liquors
-	Categorical	PIVOMN		;	// amount of beer per day
-	Categorical	VINOMN		;	// amount of vine per day
-	Categorical	LIHMN		;	// amount of liquors per day
-	Categorical	KAVA		;	// black coffee
-	Categorical	CAJ		;	// tea
-	Numerical	CUKR		;	// how many sugar lumps he usually daily consumes
-	Categorical	IM		;	// IM found  (myocardial infarction)
-	Categorical	IML		;	// medicines in IM
-	Numerical	IMTRV		;	// before how many year IM has appeared
-	Categorical	HT		;	// HT found (hypertension)
-	Categorical	HTD		;	// diet in HT
-	Categorical	HTL		;	// medicines in HT
-	Numerical	HTTRV		;	// before how many years HT has appeared
-	Categorical	ICT		;	// ICT found (ictus)
-	Categorical	ICTL		;	// medicines in ICT
-	Numerical	ICTTRV		;	// before how many years ICT has appeared
-	Categorical	DIABET		;	// DIAB found (diabetes)
-	Categorical	DIABD		;	// diet in DIAB
-	Categorical	DIABL		;	// medicines in DIAB
-	Numerical	DIABTRV		;	// before how many years DIAB has appeared
-	Categorical	HYPLIP		;	// HYPLIP found (hyperlipidemia)
-	Categorical	HYPLD		;	// diet in HYPLIP
-	Categorical	HYPLL		;	// medicines in HYPLIP
-	Numerical	HYPLTRV		;	// before how many years HYPLIP has appeared
-	Categorical	BOLHR		;	// chest pain
-	Categorical	BOLDK		;	// lower limbs pain
-	Categorical	DUSNOST		;	// asthma
-	Numerical	VYSKA		;	// height (cm)
-	Numerical	VAHA		;	// weight (kg)
-	Numerical	SYST1		;	// blood pressure I systolic (mm Hg)
-	Numerical	DIAST1		;	// blood pressure I diastolic (mm Hg)
-	Numerical	SYST2		;	// blood pressure II systolic (mm Hg)
-	Numerical	DIAST2		;	// blood pressure II diastolic (mm Hg)
-	Numerical	TRIC		;	// Skinfold above musculus triceps (mm)
-	Numerical	SUBSC		;	// skinfold above musculus subscapularis (mm)
-Unused	Numerical	CHLST		;	// cholesterol in mg%
-	Numerical	TRIGL		;	// triglycerides in mg%
-	Categorical	MOC		;	// urine
-Unused	Categorical	RARISK		;	// positive family anamnesis
-	Categorical	OBEZRISK		;	// obsesity
-Unused	Categorical	KOURRISK		;	// smoking
-Unused	Categorical	HTRISK		;	// hypertension
-Unused	Categorical	CHOLRISK		;	// increased cholesterol
-	Table(Contr)	ListContr		;	
-	Entity(Letter)	Letter		;	
-	Entity(Death)	Death		;	
-};
-
-Root	Dictionary	EntryRARISK	(ICO)
-{
-	Categorical	ICO		;	// Identification number of a patient
-	Categorical	KONSKUP		;	// studied group of patients
-	Numerical	ROKNAR		;	// year of birth
-	Numerical	ROKVSTUP		;	// year of entry into the study
-	Numerical	MESVSTUP		;	// month of entry into the study (format MM)
-	Numerical	STAV		;	// single - married - ...
-	Categorical	VZDELANI		;	// reached education
-	Categorical	ZODPOV		;	// responsibility in a job
-	Categorical	TELAKTZA		;	// physical activity in a job
-	Categorical	AKTPOZAM		;	// physical activity after a job
-	Categorical	DOPRAVA		;	// which means of transport he uses for getting to work
-	Categorical	DOPRATRV		;	// how long it takes to get to work
-	Categorical	KOURENI		;	// intensity of smoking
-	Categorical	DOBAKOUR		;	// how low he has been smoking
-	Categorical	BYVKURAK		;	// how long an ex-smoker has not been smoking
-	Categorical	ALKOHOL		;	// drinking of alcohol
-	Categorical	PIVO7		;	// beer 7°
-	Categorical	PIVO10		;	// beer 10°
-	Categorical	PIVO12		;	// beer 12°
-	Categorical	VINO		;	// vine
-	Categorical	LIHOV		;	// liquors
-	Categorical	PIVOMN		;	// amount of beer per day
-	Categorical	VINOMN		;	// amount of vine per day
-	Categorical	LIHMN		;	// amount of liquors per day
-	Categorical	KAVA		;	// black coffee
-	Categorical	CAJ		;	// tea
-	Numerical	CUKR		;	// how many sugar lumps he usually daily consumes
-	Categorical	IM		;	// IM found  (myocardial infarction)
-	Categorical	IML		;	// medicines in IM
-	Numerical	IMTRV		;	// before how many year IM has appeared
-	Categorical	HT		;	// HT found (hypertension)
-	Categorical	HTD		;	// diet in HT
-	Categorical	HTL		;	// medicines in HT
-	Numerical	HTTRV		;	// before how many years HT has appeared
-	Categorical	ICT		;	// ICT found (ictus)
-	Categorical	ICTL		;	// medicines in ICT
-	Numerical	ICTTRV		;	// before how many years ICT has appeared
-	Categorical	DIABET		;	// DIAB found (diabetes)
-	Categorical	DIABD		;	// diet in DIAB
-	Categorical	DIABL		;	// medicines in DIAB
-	Numerical	DIABTRV		;	// before how many years DIAB has appeared
-	Categorical	HYPLIP		;	// HYPLIP found (hyperlipidemia)
-	Categorical	HYPLD		;	// diet in HYPLIP
-	Categorical	HYPLL		;	// medicines in HYPLIP
-	Numerical	HYPLTRV		;	// before how many years HYPLIP has appeared
-	Categorical	BOLHR		;	// chest pain
-	Categorical	BOLDK		;	// lower limbs pain
-	Categorical	DUSNOST		;	// asthma
-	Numerical	VYSKA		;	// height (cm)
-	Numerical	VAHA		;	// weight (kg)
-	Numerical	SYST1		;	// blood pressure I systolic (mm Hg)
-	Numerical	DIAST1		;	// blood pressure I diastolic (mm Hg)
-	Numerical	SYST2		;	// blood pressure II systolic (mm Hg)
-	Numerical	DIAST2		;	// blood pressure II diastolic (mm Hg)
-	Numerical	TRIC		;	// Skinfold above musculus triceps (mm)
-	Numerical	SUBSC		;	// skinfold above musculus subscapularis (mm)
-Unused	Numerical	CHLST		;	// cholesterol in mg%
-	Numerical	TRIGL		;	// triglycerides in mg%
-	Categorical	MOC		;	// urine
-	Categorical	RARISK		;	// positive family anamnesis
-Unused	Categorical	OBEZRISK		;	// obsesity
-Unused	Categorical	KOURRISK		;	// smoking
-Unused	Categorical	HTRISK		;	// hypertension
-Unused	Categorical	CHOLRISK		;	// increased cholesterol
-	Table(Contr)	ListContr		;	
-	Entity(Letter)	Letter		;	
-	Entity(Death)	Death		;	
-};
 
 Dictionary	Letter	(ICO)
 {
-	Categorical	ICO		;	// patient's identification number
-	Numerical	MESDOT		;	// month of the fulfilling of the questionnaire
-	Numerical	ROKDOT		;	// year of the fulfilling of the questionnaire
-	Categorical	LEKCHOL		;	// drugs for reduction of cholesterol
-	Categorical	LEKTK		;	// drugs for reduction of blood pressure
-	Categorical	NEMOC1		;	// disease found
-	Numerical	ROK1		;	// year when the first disease was found
-	Categorical	NEMOC2		;	// disease found
-	Numerical	ROK2		;	// year when the second disease was found
-	Categorical	NEMOC3		;	// disease found
-	Numerical	ROK3		;	// year when the third disease was found
-	Categorical	NEMOC4		;	// disease found
-	Numerical	ROK4		;	// year when the fourth disease was found
-	Categorical	NEMOC5		;	// disease found
-	Numerical	ROK5		;	// year when the fifth disease was found
-	Categorical	HYPTK		;	// hypertension found
-	Numerical	ROKHYPTK		;	// year when the hypertension was found
-	Categorical	HYPLP		;	// hyperlipidemia found
-	Numerical	ROKHYPLP		;	// year when the hyperlipidemia was found
-	Categorical	CUKROVKA		;	// diabetes mellitus found
-	Numerical	ROKCUKR		;	// year when the diabetes mellitus was found
-	Categorical	CUKRTAB		;	// diabetes mellitus treated by tablets
-	Numerical	ODCUTAB		;	// year when the treatment of diabetes mellitus by tablets started
-	Numerical	DOCUTAB		;	// year when the treatment of diabetes mellitus by tablets finished
-	Categorical	CUKRINS		;	// diabetes mellitus treated by insulin
-	Numerical	ODCUINS		;	// year when the treatment of diabetes mellitus by insulin started
-	Numerical	DOCUINS		;	// year when the treatment of diabetes mellitus by insulin finished
-	Categorical	AP		;	// treatment of the angina pectoris
-	Categorical	SI		;	// myocardial infarction found
-	Numerical	ROKSI		;	// year when the myocardial infarction was found
-	Categorical	MM		;	// ictus found
-	Numerical	ROKMM		;	// year when the ictus was found
-	Categorical	BDK		;	// treatment of the pains in the lower limbs
-	Numerical	ROKBDK1		;	// year of treatment of the pains in the lower limbs
-	Categorical	DUSNOST		;	// dyspnea
-	Numerical	ROKDUS		;	// year of the beginning of the dyspnea
-	Categorical	DUSCHUZE		;	// dyspnea by the ascending the hill or the stairs
-	Categorical	DUSBEH		;	// dyspnea by the running or the high-speed walking
-	Categorical	DUSROVIN		;	// dyspnea by the walking on the plane
-	Categorical	DUKLID		;	// resting dyspnea
-	Categorical	DUSNOC		;	// nocturnal dyspnea
-	Categorical	KURAK		;	// smoker
-	Categorical	KURAKBYV		;	// former smoker
-	Numerical	ROKPRKOUR		;	// former smoker: how many years ago he stopped to smoke
-	Numerical	KOURLET		;	// former smoker: the number of the years of the smoking
-	Numerical	CIGDENMIN		;	// former smoker: average number of the cigarettes/day in the time of the smoking
-	Numerical	CIGDEN		;	// current smoker: average number of the cigarettes/day in the present time
-	Numerical	KOURODLET		;	// age of the beginning of the smoking
-	Categorical	DYMKA		;	// smoking of the pipe or cigar in the present time
-	Categorical	PASED		;	// physical activity in the present time: predominantly seated
-	Categorical	PAMIRNA		;	// physical activity in the present time: predominantly moderate
-	Categorical	PAVELKA		;	// physical activity in the present time: predominantly extensive
-	Categorical	PAPRED10		;	// physical activity 10 years ago
-	Categorical	DIETA		;	// diet in the present time
-	Numerical	DIECUOD		;	// the year from which the patient is on the diet with the reduction of the sugar
-	Numerical	DIETUKOD		;	// the year from which the patient is on the diet with the reduction of the lipids
-	Categorical	JINADIE		;	// other diet in the present time
-	Numerical	JINADIEOD		;	// the year from which the patient is on the other diet
-	Numerical	VAHA		;	// weight in the present time
-	Numerical	VAHAPRED10		;	// weight 10 years ago
+	Categorical	ICO		;	// patient's identification number 
+	Numerical	MESDOT		;	// month of the fulfilling of the questionnaire 
+	Numerical	ROKDOT		;	// year of the fulfilling of the questionnaire 
+	Categorical	LEKCHOL		;	// drugs for reduction of cholesterol 
+	Categorical	LEKTK		;	// drugs for reduction of blood pressure 
+	Categorical	NEMOC1		;	// disease found 
+	Numerical	ROK1		;	// year when the first disease was found 
+	Categorical	NEMOC2		;	// disease found 
+	Numerical	ROK2		;	// year when the second disease was found 
+	Categorical	NEMOC3		;	// disease found 
+	Numerical	ROK3		;	// year when the third disease was found 
+	Categorical	NEMOC4		;	// disease found 
+	Numerical	ROK4		;	// year when the fourth disease was found 
+	Categorical	NEMOC5		;	// disease found 
+	Numerical	ROK5		;	// year when the fifth disease was found 
+	Categorical	HYPTK		;	// hypertension found 
+	Numerical	ROKHYPTK	;	// year when the hypertension was found 
+	Categorical	HYPLP		;	// hyperlipidemia found 
+	Numerical	ROKHYPLP	;	// year when the hyperlipidemia was found  
+	Categorical	CUKROVKA	;	// diabetes mellitus found 
+	Numerical	ROKCUKR		;	// year when the diabetes mellitus was found 
+	Categorical	CUKRTAB		;	// diabetes mellitus treated by tablets 
+	Numerical	ODCUTAB		;	// year when the treatment of diabetes mellitus by tablets started 
+	Numerical	DOCUTAB		;	// year when the treatment of diabetes mellitus by tablets finished 
+	Categorical	CUKRINS		;	// diabetes mellitus treated by insulin 
+	Numerical	ODCUINS		;	// year when the treatment of diabetes mellitus by insulin started 
+	Numerical	DOCUINS		;	// year when the treatment of diabetes mellitus by insulin finished 
+	Categorical	AP		;	// treatment of the angina pectoris 
+	Categorical	SI		;	// myocardial infarction found 
+	Numerical	ROKSI		;	// year when the myocardial infarction was found 
+	Categorical	MM		;	// ictus found 
+	Numerical	ROKMM		;	// year when the ictus was found 
+	Categorical	BDK		;	// treatment of the pains in the lower limbs 
+	Numerical	ROKBDK1		;	// year of treatment of the pains in the lower limbs 
+	Categorical	DUSNOST		;	// dyspnea 
+	Numerical	ROKDUS		;	// year of the beginning of the dyspnea 
+	Categorical	DUSCHUZE	;	// dyspnea by the ascending the hill or the stairs 
+	Categorical	DUSBEH		;	// dyspnea by the running or the high-speed walking 
+	Categorical	DUSROVIN	;	// dyspnea by the walking on the plane 
+	Categorical	DUKLID		;	// resting dyspnea 
+	Categorical	DUSNOC		;	// nocturnal dyspnea 
+	Categorical	KURAK		;	// smoker 
+	Categorical	KURAKBYV	;	// former smoker 
+	Numerical	ROKPRKOUR	;	// former smoker: how many years ago he stopped to smoke 
+	Numerical	KOURLET		;	// former smoker: the number of the years of the smoking 
+	Numerical	CIGDENMIN	;	// former smoker: average number of the cigarettes/day in the time of the smoking 
+	Numerical	CIGDEN		;	// current smoker: average number of the cigarettes/day in the present time 
+	Numerical	KOURODLET	;	// age of the beginning of the smoking 
+	Categorical	DYMKA		;	// smoking of the pipe or cigar in the present time 
+	Categorical	PASED		;	// physical activity in the present time: predominantly seated 
+	Categorical	PAMIRNA		;	// physical activity in the present time: predominantly moderate 
+	Categorical	PAVELKA		;	// physical activity in the present time: predominantly extensive 
+	Categorical	PAPRED10	;	// physical activity 10 years ago 
+	Categorical	DIETA		;	// diet in the present time 
+	Numerical	DIECUOD		;	// the year from which the patient is on the diet with the reduction of the sugar 
+	Numerical	DIETUKOD	;	// the year from which the patient is on the diet with the reduction of the lipids 
+	Categorical	JINADIE		;	// other diet in the present time 
+	Numerical	JINADIEOD	;	// the year from which the patient is on the other diet 
+	Numerical	VAHA		;	// weight in the present time 
+	Numerical	VAHAPRED10	;	// weight 10 years ago 
+};
+
+
+
+Dictionary	Death	(ICO)
+{
+	Categorical	ICO		;	// patient's identification number 
+	Numerical	DENUMR		;	// day of death (format DD) 
+	Numerical	MESUMR		;	// month of death (format MM) 
+	Numerical	ROKUMR		;	// year of death (format RR) 
+	Categorical	PRICUMR		;	// cause of death 
 };

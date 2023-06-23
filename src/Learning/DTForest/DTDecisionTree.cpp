@@ -141,9 +141,14 @@ boolean DTDecisionTree::ComputeStats()
 {
 	require(GetCostClass() != NULL);
 	dEvaluation = 0;
+	boolean bCurrentSilentMode;
 
+	// enregistrement du mode silence
+	bCurrentSilentMode = Global::GetSilentMode();
 	if (not dtPredictorParameter->GetVerboseMode())
+	{
 		Global::SetSilentMode(true); // eviter les warnings sur valeur unique de modalite cible
+	}
 
 	assert(Check());
 
@@ -171,7 +176,8 @@ boolean DTDecisionTree::ComputeStats()
 
 	bIsStatsComputed = true;
 
-	Global::SetSilentMode(false);
+	// retour au mode silence itnitiale
+	Global::SetSilentMode(bCurrentSilentMode);
 
 	return true;
 }

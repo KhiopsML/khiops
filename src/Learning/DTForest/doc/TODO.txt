@@ -15,19 +15,19 @@
 
 
 27/11/2020
-Revoir le calcul de la mémoire necessaire.
-Nettoyer l'ensemble des messages utilisateurs (AddError et AddWarning)
-  . soit il s'agit d'une erruer de développement, et un assert doit faire l'affaire
-  . soit il s'agit d'un mode verbeux, uniquement à l'intention du développeur
-  . soit il s'agit d'un message utilisateur, et il doit etre compréhensible et potentiellement utile
+**** FAIT **** Revoir le calcul de la mémoire necessaire.
+**** FAIT **** Nettoyer l'ensemble des messages utilisateurs (AddError et AddWarning)
+**** FAIT ****   . soit il s'agit d'une erruer de développement, et un assert doit faire l'affaire
+**** FAIT ****   . soit il s'agit d'un mode verbeux, uniquement à l'intention du développeur
+**** FAIT ****  . soit il s'agit d'un message utilisateur, et il doit etre compréhensible et potentiellement utile
 
 
   
 27/11/2020
 **** FAIT **** fusionner DTStat et KWStat
 **** FAIT **** faire un rapport dédier arbres, plus JSON
-paralleliser la construction des arbres
-Envisager d'étendre les arbres au cas de la régression, en partitionnant la variable cible en intervalles et en passant par des arbres de classification
+**** FAIT **** paralleliser la construction des arbres
+**** FAIT **** Envisager d'étendre les arbres au cas de la régression, en partitionnant la variable cible en intervalles et en passant par des arbres de classification
 
 
 23/03/2021
@@ -37,3 +37,25 @@ spécialiser les règles de dérivation dans le cas binaire pour qu’elles soient be
 •         LE(variable, value) pour un test numérique
 •         InGroup(ValueGroup(value1, value2, …), variable) pour une variable catégorielle
 
+24/03/2022
+•         Dans les cout de selection de l’ensemble des variables d’un arbre 
+			Ln*(K_T)+sum(ConstructionCost(Var_k))-ln(K_T !)
+•         Améliorer et tester les arbres de regression pour faire à mettre dans la release
+
+10/06/2022
+Estimation des ressources pour la lecture du SliceSet, pour la construction des arbres
+  . il faut tenir compte de la taille des buffers de lecture par slice à lire du SliceSet
+    . en cas de tres grand nombre de slices devant etre lus, la taille cumules des buffers peut devenir importantesd
+      (exemple: 100 slices x 8 MB = 800 MB)
+    . cela peut entrainer un plantage par memory overflow
+    . en attendant, on a diminue dans KWDataTableSliceSet::OpenForRead la taille par defaut a utiliser par slice (à 1 MB)
+      pour reduire le risque de manque de memoire, tout en concervant des performances IO acceptables
+  . déjà pris en compte dans le SNB dans SNBPredictorSNBTrainingTask::SlaveInitializeDataTableBinarySliceSet
+    pour la création du BinarySliceSet (cf. V10.0.8i) 
+    . KWDataTableSliceSet::Set|GetTotalBufferSize: paramétrage de la taille totale des buffers à utiliser pour l'ouverture des slices
+    . dans SNBPredictorSNBTrainingTask::SlaveInitializeDataTableBinarySliceSet pour la création du BinarySliceSet
+  . A prévoir dans DTDecisionTreeCreationTask pour la construction des arbres en parallèle
+    . ComputeResourceRequirement:
+      . demander au minimum MemSegmentByteSize par Slice, et au maximum InputBufferedFile:nDefaultBufferSize
+    . SlaveProcess:
+      . parametrer le SliceSet par SetTotalBufferSize avant le lire les slices

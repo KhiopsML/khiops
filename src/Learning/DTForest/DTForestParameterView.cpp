@@ -33,9 +33,10 @@ DTForestParameterView::DTForestParameterView()
 			    DTForestParameter::DRAWING_TYPE_USE_OUT_OF_BAG_LABEL);
 
 	AddStringField("DiscretizationTargetMethod", "Discretization target method",
-		       DTForestParameter::DISCRETIZATION_EQUAL_FREQUENCY);
+		       DTForestParameter::DISCRETIZATION_MODL);
 	GetFieldAt("DiscretizationTargetMethod")
 	    ->SetParameters(DTForestParameter::DISCRETIZATION_MODL + "\n" +
+			    DTForestParameter::DISCRETIZATION_BINARY_EQUAL_FREQUENCY + "\n" +
 			    DTForestParameter::DISCRETIZATION_EQUAL_FREQUENCY);
 	AddIntField("MaxIntervalsNumberForTarget", "Max intervals number for target ", 2);
 
@@ -103,6 +104,7 @@ void DTForestParameterView::EventUpdate(Object* object)
 	editedObject->SetVariableNumberMin(GetIntValueAt("VariableNumberMin"));
 	editedObject->SetDiscretizationTargetMethod(GetStringValueAt("DiscretizationTargetMethod"));
 	editedObject->SetMaxIntervalsNumberForTarget(GetIntValueAt("MaxIntervalsNumberForTarget"));
+
 	// mise a jour automatique du NodeVariablesSelection en fonction du TreesVariablesSelection
 
 	const ALString s = GetStringValueAt("TreesVariablesSelection");
@@ -138,5 +140,5 @@ void DTForestParameterView::EventRefresh(Object* object)
 	SetIntValueAt("OptimizationLoopNumber", editedObject->GetOptimizationLoopNumber());
 	SetIntValueAt("VariableNumberMin", editedObject->GetVariableNumberMin());
 	SetStringValueAt("DiscretizationTargetMethod", editedObject->GetDiscretizationTargetMethod());
-	SetIntValueAt("MaxIntervalsNumberForTarget", editedObject->GeMaxIntervalsNumberForTarget());
+	SetIntValueAt("MaxIntervalsNumberForTarget", editedObject->GetMaxIntervalsNumberForTarget());
 }

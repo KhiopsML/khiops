@@ -12,6 +12,7 @@
 #include "KWSortedChunkBuilderTask.h"
 #include "KWArtificialDataset.h"
 #include "PLFileConcatenater.h"
+#include "MemoryBufferedFile.h"
 
 ////////////////////////////////////////////////////////////
 // Classe KWChunkSorterTask
@@ -103,11 +104,6 @@ public:
 
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation
-
-	// Remplacement de tous les separateur de champ cOriginalSeparator par cNewSeparator dans cvLineToWrite
-	// Prend en compte les double-quotes. Ils delimitent un champ qui contient un separateur (celui-ci ne sera pas
-	// remplace). C'est egalement le caracter d'echapement pour le double-quote
-	static void ReplaceSeparator(CharVector* cvLineToWrite, char cOriginalSeparator, char cNewSeparator);
 
 protected:
 	// Algorithme

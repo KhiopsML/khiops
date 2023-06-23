@@ -12,8 +12,6 @@
 
 ///////////////////////////////////////////////////////////////////////////
 // Fichier bufferise en lecture
-// TODO dans chaque methode qui fait avancer la position courante, il faut tester
-// si on n'a pas une ligne trop longue et l'indiquer a l'utilisateur
 // Il ya au moins les methode suivantes :
 // 			boolean GetNextField(char* sField, int& nFieldError); // nouvelle valeur de nFieldError quand la
 // ligne est trop longue 			boolean SkipField(); 			void GetNextLine(CharVector*
@@ -42,7 +40,7 @@ public:
 	// Methode utilisable uniquement si le fichier est ouvert
 	// Pour obtenir la taille d'un fichier non ouvert, passer par FileService ou PLRemoteFileService
 	// Renvoie 0 si probleme d'acces au fichier
-	longint GetFileSize() const;
+	virtual longint GetFileSize() const;
 
 	// Taille du buffer
 	void SetBufferSize(int nValue) override;

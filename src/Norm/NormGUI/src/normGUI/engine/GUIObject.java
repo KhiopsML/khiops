@@ -271,6 +271,7 @@ public abstract class GUIObject
         public static void main(String[] args)
         {
                 System.out.println("Java GUI engine version: " + getGUIEngineVersion());
+                System.exit(0);
         }
 
         /**

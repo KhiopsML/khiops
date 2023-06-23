@@ -522,13 +522,10 @@ boolean OutputBufferedFile::FlushCache()
 {
 	boolean bOk = true;
 	int nSizeToWrite;
-	int nPosToCopy;
 
 	require(IsOpened());
 	require(nBufferSize >= 0);
 	require(GetFileName() != "");
-
-	nPosToCopy = 0;
 
 	// Arret si traitement inutile ou si erreur lors de l'ouverture
 	if (nCurrentBufferSize == 0)

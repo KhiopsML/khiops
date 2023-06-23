@@ -91,6 +91,20 @@ public:
 
 	// Libelle traduit de la classe
 	const ALString GetTranslatedClassLabel() const;
+
+	///////////////////////////////////////////////////////////////////////////////////////
+	///// Implementation
+private:
+	// On interdit les operateurs suivant generes par defaut par le C++:
+	//   . le constructeur par copie (Object myObject(sourceObject) et
+	//   . l'operateur = (Object = sourceObject),
+	// Ces operateurs sont tres dangereux, car il recopient le bloc memoire de l'objet source tel quel,
+	// y compris dans le cas de pointeurs, ce qui fait que les memes sous-objets peuvent etre partages
+	// par la source et la cible de la copie (et donc detruits deux fois, par exemple).
+	// Si on a besoin de copier un objet explicitement, il faut implementer une methode de type
+	//  void CopyFrom(const MyClass* sourceObject)
+	Object(const Object&) = delete;
+	Object& operator=(const Object&) = delete;
 };
 
 // Ecriture dans un stream
@@ -133,7 +147,8 @@ public:
 	// Libelle de la classe
 	const ALString GetClassLabel() const override;
 
-	/// Implementation ///
+	///////////////////////////////////////////////////////////////////////////////////////
+	///// Implementation
 protected:
 	int nInt;
 	ALString sString;
@@ -171,6 +186,7 @@ public:
 	// Libelle de la classe
 	const ALString GetClassLabel() const override;
 
+	///////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
 	ALString sString;
@@ -204,6 +220,7 @@ public:
 	// Libelle de la classe
 	const ALString GetClassLabel() const override;
 
+	///////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
 	double dDouble;
@@ -237,6 +254,7 @@ public:
 	// Libelle de la classe
 	const ALString GetClassLabel() const override;
 
+	///////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
 	int nInt;
@@ -270,6 +288,7 @@ public:
 	// Libelle de la classe
 	const ALString GetClassLabel() const override;
 
+	///////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
 	longint lLongint;

@@ -97,11 +97,6 @@ const ALString& UIObject::GetHelpText() const
 	return sHelpText;
 }
 
-void UIObject::AddHelpText(const ALString& sValue)
-{
-	sHelpText += sValue;
-}
-
 boolean UIObject::GetVisible() const
 {
 	return bVisible;

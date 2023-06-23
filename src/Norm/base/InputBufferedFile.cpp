@@ -1000,7 +1000,7 @@ boolean InputBufferedFile::GetNextDoubleQuoteField(char* sField, int& i, int& nF
 		assert(sField[0] == '"');
 
 		// On doit supprimer le premier double-quote, ainsi que toutes les paires de double-quote
-		// Le dernier double-quotes n'a pas ete memorise
+		// Le dernier double-quote n'a pas ete memorise
 		iLast = i;
 		i = 0;
 		iNew = 1;
@@ -2435,8 +2435,6 @@ boolean InputBufferedFile::InternalRawFillBytes(longint lBeginPos, int nSizeToFi
 	int nRemainingInCache; // Quantite de donnee qui est deja contenue dans le cache (en segments entiers)
 	int nDataFromCache;    // Quantite de donnee qui est deja contenue dans le cache
 	int nSizeToRemove;
-	longint lInternalBeginPos;
-	int nInternalSizeToFill;
 
 	require(nSizeToFill >= 0);
 	require(0 <= lBeginPos and lBeginPos + nSizeToFill <= lFileSize);
@@ -2461,10 +2459,6 @@ boolean InputBufferedFile::InternalRawFillBytes(longint lBeginPos, int nSizeToFi
 		     << LongintToReadableString(lCacheStartInFile) << " preferred size "
 		     << LongintToReadableString(GetPreferredBufferSize()) << endl;
 	}
-
-	// Modification si necessaire de parametre de remplissage pour tenir compte de la detection du BOM UTF8
-	lInternalBeginPos = lBeginPos;
-	nInternalSizeToFill = nSizeToFill;
 
 	// Arret immediat si erreur
 	if (bIsError)

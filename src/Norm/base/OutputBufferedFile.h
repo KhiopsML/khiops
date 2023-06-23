@@ -196,6 +196,8 @@ inline boolean OutputBufferedFile::WriteField(const char* sValue)
 		while (c != '\0')
 		{
 			Write(c);
+
+			// Doublement si necessaire du double-quote
 			if (c == '"')
 				Write('"');
 			nLength++;

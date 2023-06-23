@@ -389,6 +389,8 @@ void PLMPITaskDriver::InitializeResourceSystem()
 	boolean bIsCluster;
 	ALString sLastHostName;
 	ALString sKhiopsTmpDirEnv;
+	ALString sTmpDirFromMaster;
+	ALString sApplicationName;
 
 	oaSharedResource = new PLShared_ObjectArray(new PLShared_HostResource);
 	oaSharedResource->bIsDeclared = true;
@@ -424,9 +426,11 @@ void PLMPITaskDriver::InitializeResourceSystem()
 		serializer.Close();
 
 		// Reception du repertoire temporaire (qui a un impact sur le calcul de l'espace disque)
+		// et du nom de l'application
 		context.Bcast(MPI_COMM_WORLD);
 		serializer.OpenForRead(&context);
-		FileService::SetUserTmpDir(serializer.GetString());
+		sTmpDirFromMaster = serializer.GetString();
+		sApplicationName = serializer.GetString();
 		serializer.Close();
 
 		// Sur cluster la variable KhiopsTmpDir est prioritaire par rapport a ce qui est renseigne dans le
@@ -434,6 +438,11 @@ void PLMPITaskDriver::InitializeResourceSystem()
 		sKhiopsTmpDirEnv = p_getenv("KHIOPS_TMP_DIR");
 		if (bIsCluster and not sKhiopsTmpDirEnv.IsEmpty())
 			FileService::SetUserTmpDir(sKhiopsTmpDirEnv);
+		else
+			FileService::SetUserTmpDir(sTmpDirFromMaster);
+
+		if (sApplicationName != "")
+			FileService::SetApplicationName(sApplicationName);
 
 		// Creation du repertoire temporaire si necessaire
 		FileService::CreateApplicationTmpDir();
@@ -497,6 +506,7 @@ void PLMPITaskDriver::InitializeResourceSystem()
 		context.Bcast(MPI_COMM_WORLD);
 		serializer.OpenForWrite(&context);
 		serializer.PutString(FileService::GetUserTmpDir());
+		serializer.PutString(FileService::GetApplicationName());
 		serializer.Close();
 
 		///////////////////////////////////////////////////////////////
@@ -533,7 +543,7 @@ void PLMPITaskDriver::InitializeResourceSystem()
 
 		// Ajout du host et de la memoire du master
 		lvMemory.SetAt(0, min(MemGetAvailablePhysicalMemory(), MemGetAdressablePhysicalMemory()));
-		svHosts.SetAt(0, sHostName);
+		svHosts.SetAt(0, GetLocalHostName());
 		lvDiskSpace.SetAt(0, RMResourceManager::GetTmpDirFreeSpace());
 		ivProcNumberOnHost.SetAt(0, SystemGetProcessorNumber());
 		RMTaskResourceRequirement::GetMasterSystemAtStart()->GetMemory()->Set(

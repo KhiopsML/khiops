@@ -57,7 +57,7 @@ public:
 
 	// nbre max d'intervalles pour discretisation Eq Freq d'une target continue
 	void SetMaxIntervalsNumberForTarget(int i);
-	int GeMaxIntervalsNumberForTarget() const;
+	int GetMaxIntervalsNumberForTarget() const;
 
 	boolean IsWriteDetailedStatistics() const;
 	void SetWriteDetailedStatistics(boolean);
@@ -83,6 +83,7 @@ public:
 	static const ALString DRAWING_TYPE_ADABOOST_REPLACEMENT_LABEL;
 	static const ALString HEURISTIC_NODRAW_LABEL;
 	static const ALString DISCRETIZATION_EQUAL_FREQUENCY;
+	static const ALString DISCRETIZATION_BINARY_EQUAL_FREQUENCY;
 	static const ALString DISCRETIZATION_MODL;
 
 	////////////////////////////////////////////////////////

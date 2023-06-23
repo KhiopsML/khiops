@@ -1506,14 +1506,15 @@ DTDecisionTreeCreationTaskSequential::InitializeEqualFreqDiscretization(KWTupleT
 
 	if (randomForestParameter.GetDiscretizationTargetMethod() == DTForestParameter::DISCRETIZATION_EQUAL_FREQUENCY)
 		svTargetValues = EqualFreqDiscretizeContinuousTarget(
-		    tupleTableLoader, randomForestParameter.GeMaxIntervalsNumberForTarget());
+		    tupleTableLoader, randomForestParameter.GetMaxIntervalsNumberForTarget());
 	else
 	{
 		AddWarning("Discretization target method no yet implemented in sequential mode, assuming Equal Freq "
 			   "discretization with " +
-			   ALString(IntToString(randomForestParameter.GeMaxIntervalsNumberForTarget())) + " intervals");
+			   ALString(IntToString(randomForestParameter.GetMaxIntervalsNumberForTarget())) +
+			   " intervals");
 		svTargetValues = EqualFreqDiscretizeContinuousTarget(
-		    tupleTableLoader, randomForestParameter.GeMaxIntervalsNumberForTarget());
+		    tupleTableLoader, randomForestParameter.GetMaxIntervalsNumberForTarget());
 	}
 
 	assert(svTargetValues != NULL);
