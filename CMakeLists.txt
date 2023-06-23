@@ -69,10 +69,14 @@ message("\n")
 #
 # - Shared and static library target directory: lib
 # - Executable target directory: bin
+# - We must use these weird generator expressions to avoid the Debug and Release directories in VS
+# - More info: https://stackoverflow.com/q/47175912
 #
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY $<1:${CMAKE_BINARY_DIR}/lib/>)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY $<1:${CMAKE_BINARY_DIR}/lib/>)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY $<1:${CMAKE_BINARY_DIR}/bin/>)
+message(STATUS "CMake generator is: ${CMAKE_GENERATOR}")
+message(STATUS "CMake compiler is: ${CMAKE_CXX_COMPILER_ID}")
 message(STATUS "Executables will be stored in ${CMAKE_BINARY_DIR}/bin/")
 message(STATUS "Libraries will be stored in ${CMAKE_BINARY_DIR}/lib/")
 

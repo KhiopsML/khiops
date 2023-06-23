@@ -10,7 +10,6 @@
             "name": "default",
             "hidden": true,
             "description": "Khiops default build options",
-            "generator": "Ninja",
             "cacheVariables": {
                 "MPI": "ON",
                 "LEARNING": "ON",
