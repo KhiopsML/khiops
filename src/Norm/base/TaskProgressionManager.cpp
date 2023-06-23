@@ -59,10 +59,10 @@ void FileTaskProgressionManager::SetTaskProgressionFileName(const ALString& sFil
 
 		// Sur Linux, si le fichier de progression est stdout ou stderr, l'affichage est dans la console
 		// On ajoutera un prefixe a chaque ligne
-#ifdef __UNIX__
+#ifdef __linux_or_apple__
 		if (sFileName == "/dev/stdout" or sFileName == "/dev/stderr")
 			bPrintProgressionInConsole = true;
-#endif // __UNIX__
+#endif
 	}
 }
 

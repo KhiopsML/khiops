@@ -142,10 +142,7 @@ inline boolean OutputBufferedFile::Write(char c)
 
 inline boolean OutputBufferedFile::WriteEOL()
 {
-#ifndef __UNIX__
-	Write('\r');
-#endif // __UNIX__
-	Write('\n');
+	Write(FileService::GetEOL());
 	return not bIsError;
 }
 

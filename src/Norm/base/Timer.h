@@ -7,12 +7,8 @@
 #include "Object.h"
 
 // Utilisation de la bibliotheque chrono uniquement a partir de C++ 11
-#if defined __UNIX__ and not defined __C11__
-#undef __CHRONO__
-#else
-// Chrono est toujous disponible sous Windows
+#ifdef __C11__
 #include <chrono>
-#define __CHRONO__
 #endif
 
 class Timer;
@@ -69,7 +65,7 @@ protected:
 	longint lStartNumber;
 
 	// Implementation preferentielle avec chrono, qui est tres precis, mais disponible uniquement en C++ 11
-#ifdef __CHRONO__
+#ifdef __C11__
 	// Doc sur https://www.modernescpp.com/index.php/the-three-clocks
 	std::chrono::steady_clock::time_point tLastStartNanoTime;
 	double dElapsedNanoTime;
@@ -77,7 +73,7 @@ protected:
 #else
 	time_t tLastStartTime;
 	time_t tElapsedTime;
-#endif // __CHRONO__
+#endif // __C11__
 };
 
 //////////////////////////////////////////////////////////
@@ -122,8 +118,8 @@ inline double Timer::GetMeanElapsedTime() const
 		return GetElapsedTime() / lStartNumber;
 }
 
-// Implementation avec chrono
-#ifdef __CHRONO__
+// Implementation avec chrono a partir de C++ 11
+#ifdef __C11__
 
 inline void Timer::Start()
 {
@@ -216,7 +212,7 @@ inline double Timer::GetElapsedTime() const
 	else
 		return ((double)tElapsedTime) / 1e6;
 }
-#endif // __CHRONO__
+#endif // __C11__
 
 /////////////////////////////////////////
 // Implementation inline de PeriodicTest

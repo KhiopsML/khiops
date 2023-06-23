@@ -962,19 +962,16 @@ JNIEnv* UIObject::GetJNIEnv()
 	// Chargement de la lib dynamique de jni
 	if (jvmHandle == NULL)
 	{
-#ifdef __UNIX__
-#ifdef __APPLE__
-		static ALString sJvmLibraryName = "libjvm.dylib";
-		static ALString sJvmLibraryPathName = sJvmLibraryName;
-#else  //__APPLE__
-
-		static ALString sJvmLibraryName = "libjvm.so";
-		static ALString sJvmLibraryPathName = sJvmLibraryName;
-#endif // __APPLE
-#else
+#ifdef _WIN32
 		static const ALString sJvmLibraryName = "jvm.dll";
 		static const ALString sJvmLibraryPathName =
 		    FileService::GetFilePath(sJvmLibraryName, FileService::GetPathDirectoryList());
+#elif defined __linux__
+		static ALString sJvmLibraryName = "libjvm.so";
+		static ALString sJvmLibraryPathName = sJvmLibraryName;
+#elif defined __APPLE__
+		static ALString sJvmLibraryName = "libjvm.dylib";
+		static ALString sJvmLibraryPathName = sJvmLibraryName;
 #endif
 		// Chargement de la librairie
 		jvmHandle = LoadSharedLibrary(sJvmLibraryPathName, sErrorMessage);
@@ -982,14 +979,14 @@ JNIEnv* UIObject::GetJNIEnv()
 		// Si pas de lib dynamique, on retourne une erreur utilisateur
 		if (jvmHandle == NULL)
 		{
-#ifdef __UNIX__
-			Global::AddError("Java", "",
-					 sTmp + "Unable to load " + sJvmLibraryName + " (" + sErrorMessage +
-					     "), install java JRE or check the LD_LIBRARY_PATH variable");
-#else
+#ifdef _WIN32
 			Global::AddError("Java", "",
 					 sTmp + "Unable to load " + sJvmLibraryName + " (" + sErrorMessage +
 					     "), install Java JRE or check the PATH variable");
+#else
+			Global::AddError("Java", "",
+					 sTmp + "Unable to load " + sJvmLibraryName + " (" + sErrorMessage +
+					     "), install java JRE or check the LD_LIBRARY_PATH variable");
 #endif
 			return NULL;
 		}
@@ -1192,6 +1189,10 @@ JNIEnv* UIObject::GraphicGetJNIEnv()
 	ALString sTmp;
 	static boolean bGraphicIsLoaded = false;
 
+#ifdef __APPLE__
+	Global::AddFatalError("Java", "GUI", "Java GUI is not available on MacOS");
+#endif
+
 	cls = 0;
 	env = GetJNIEnv();
 
@@ -1220,7 +1221,11 @@ JNIEnv* UIObject::GraphicGetJNIEnv()
 		if (cls == 0)
 		{
 			DisplayJavaException(env);
-#ifdef __UNIX__
+#ifdef _WIN32
+			Global::AddFatalError("Java", "Library",
+					      "Please check that Java version is at least Java 7 and check access to "
+					      "the norm.jar library in the Java classpath");
+#else
 			ALString sDisplay;
 			sDisplay = p_getenv("DISPLAY");
 			if (sDisplay.IsEmpty())
@@ -1232,10 +1237,6 @@ JNIEnv* UIObject::GraphicGetJNIEnv()
 						      "Please check that Java version is at least Java 7, that the X "
 						      "server is available under current environment and check access "
 						      "to the norm.jar library in the Java classpath");
-#else
-			Global::AddFatalError("Java", "Library",
-					      "Please check that Java version is at least Java 7 and check access to "
-					      "the norm.jar library in the Java classpath");
 #endif
 		}
 		else
@@ -1499,7 +1500,8 @@ const ALString UIObject::FromJstring(JNIEnv* envValue, const jstring value)
 	// S'il n'y avait pas d'encodage avec le caractere DEL, on fait un deuxieme test heuristique
 	// base sur la longueur de la chaine decodee
 	// On active cette solution heuristique uniquement pour Windows
-#ifdef _MSC_VER
+
+#ifdef _WIN32
 	if (bIsUTF8)
 	{
 		if (sResultUTF8.GetLength() > sResultANSI.GetLength())
@@ -1572,7 +1574,7 @@ const ALString UIObject::NativeFromJstring(JNIEnv* envValue, const jstring value
 		codeString = envValue->NewStringUTF("UTF-8");
 	// Codge page ANSI latin (specifique pour Windows)
 	else
-#ifdef _MSC_VER
+#ifdef _WIN32
 		codeString = envValue->NewStringUTF("Windows-1252");
 #else
 		codeString = envValue->NewStringUTF("ISO-8859-1");
@@ -1620,7 +1622,7 @@ const jstring UIObject::NativeToJstring(JNIEnv* envValue, const ALString& sValue
 		codeString = envValue->NewStringUTF("UTF-8");
 	// Codge page ANSI latin (specifique pour Windows)
 	else
-#ifdef _MSC_VER
+#ifdef _WIN32
 		codeString = envValue->NewStringUTF("Windows-1252");
 #else
 		codeString = envValue->NewStringUTF("ISO-8859-1");
@@ -1736,7 +1738,7 @@ boolean UIObject::CheckOptions(const ObjectArray& oaOptions)
 	}
 
 	// Test que le fichier d'entree n'est pas une sortie
-#ifdef __UNIX__
+#ifdef __linux_or_apple__
 	if (fsInputFile != NULL and
 	    (fsInputFile->GetFilePathName() == "/dev/stdout" or fsInputFile->GetFilePathName() == "/dev/stderr"))
 	{
@@ -1744,7 +1746,7 @@ boolean UIObject::CheckOptions(const ObjectArray& oaOptions)
 		Global::AddError("Command line parameters", "",
 				 "wrong input command file " + fsInputFile->GetFilePathName());
 	}
-#endif // __UNIX__
+#endif
 
 	// Test de conflit entre les noms de fichiers : les fichiers doivent tous etre differents
 	for (i = 0; i < oaSpecFiles.GetSize(); i++)
@@ -1757,15 +1759,15 @@ boolean UIObject::CheckOptions(const ObjectArray& oaOptions)
 			fsFileToCompare = cast(FileSpec*, oaSpecFiles.GetAt(nRef));
 
 // Test de difference
-#ifdef __UNIX__
+#ifdef _WIN32
+			bOk = bOk and fsFileToCompare->CheckReferenceFileSpec(fsFile);
+#else
 			bOk = bOk and (fsFileToCompare->CheckReferenceFileSpec(fsFile) or
 				       (fsFileToCompare->GetFilePathName() == "/dev/stdout" and
 					fsFile->GetFilePathName() == "/dev/stdout") or
 				       (fsFileToCompare->GetFilePathName() == "/dev/stderr" and
 					fsFile->GetFilePathName() == "/dev/stderr"));
-#else  // __UNIX__
-			bOk = bOk and fsFileToCompare->CheckReferenceFileSpec(fsFile);
-#endif // __UNIX__
+#endif // _WIN32
 			if (not bOk)
 				break;
 		}
@@ -1998,10 +2000,10 @@ boolean UIObject::OpenOutputCommandFile(const ALString& sFileName)
 	}
 
 // Si les fichier de sortie est /dev/stdout ou /dev/stderr, c'est un eredirection vers la console
-#ifdef __UNIX__
+#ifdef __linux_or_apple__
 	if (sLocalOutputCommandsFileName == "/dev/stdout" or sLocalOutputCommandsFileName == "/dev/stderr")
 		bPrintOutputInConsole = true;
-#endif // __UNIX__
+#endif
 
 	// En mode Graphic on renvoie systematiquement true : on permet de lancer l'outil meme si on ne peut
 	// pas ecrire dans le fichier output (les options -e et -o sont passees par defaut a l'outil dans les scripts de

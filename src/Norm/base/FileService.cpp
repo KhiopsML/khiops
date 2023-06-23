@@ -15,19 +15,15 @@ boolean FileService::FileExists(const ALString& sPathName)
 	boolean bIsFile = false;
 
 	p_SetMachineLocale();
-#if defined _MSC_VER || defined __MSVCRT_VERSION__
-
+#ifdef _WIN32
 	struct __stat64 fileStat;
 	if (_stat64(sPathName, &fileStat) == 0)
 		bIsFile = ((fileStat.st_mode & S_IFMT) == S_IFREG);
-
 #else
-
 	struct stat s;
 	if (stat(sPathName, &s) == 0)
 		bIsFile = ((s.st_mode & S_IFMT) == S_IFREG);
-
-#endif // defined _MSC_VER || defined __MSVCRT_VERSION__
+#endif // _WIN32
 	p_SetApplicationLocale();
 
 	return bIsFile;
@@ -38,15 +34,10 @@ boolean FileService::DirExists(const ALString& sPathName)
 	boolean bIsDirectory = false;
 
 	p_SetMachineLocale();
-#if defined _MSC_VER || defined __MSVCRT_VERSION__
+#ifdef _WIN32
 	boolean bExist;
 
-#if _MSC_VER >= 1400
-	bExist = _access(sPathName, 0) != -1; // 00=existence only
-					      // Pour Visual C++ 2003
-#else
-	bExist = access(sPathName, _IOREAD) != -1;
-#endif // _MSC_VER >= 1400
+	bExist = _access(sPathName, 0) != -1;
 	if (bExist)
 	{
 		// On test si ca n'est pas un fichier, car sous Windows, la racine ("C:") existe mais n'est
@@ -57,13 +48,13 @@ boolean FileService::DirExists(const ALString& sPathName)
 			bIsFile = ((fileStat.st_mode & S_IFMT) == S_IFREG);
 		bIsDirectory = not bIsFile;
 	}
-#else // defined _MSC_VER || defined __MSVCRT_VERSION__
+#else // _WIN32
 
 	struct stat s;
 	if (stat(sPathName, &s) == 0)
 		bIsDirectory = ((s.st_mode & S_IFMT) == S_IFDIR);
 
-#endif // defined _MSC_VER || defined __MSVCRT_VERSION__
+#endif // _WIN32
 	p_SetApplicationLocale();
 
 	return bIsDirectory;
@@ -74,8 +65,13 @@ boolean FileService::SetFileMode(const ALString& sFilePathName, boolean bReadOnl
 	boolean bOk;
 
 	p_SetMachineLocale();
-	// Pour UNIX ou wgpp
-#if defined __UNIX__ or defined __WGPP__
+
+#ifdef _WIN32
+	if (bReadOnly)
+		bOk = _chmod(sFilePathName, _S_IREAD) == 0;
+	else
+		bOk = _chmod(sFilePathName, _S_IREAD | _S_IWRITE) == 0;
+#else
 	if (bReadOnly)
 		// Lecture par owner  S_IRUSR, groupe S_IRGRP
 		bOk = chmod(sFilePathName, S_IRUSR | S_IRGRP) == 0;
@@ -83,11 +79,6 @@ boolean FileService::SetFileMode(const ALString& sFilePathName, boolean bReadOnl
 		// idem + ecriture owner S_IWUSR
 		bOk = chmod(sFilePathName, S_IRUSR | S_IRGRP | S_IWUSR) == 0;
 		// Pour Visual C++
-#else
-	if (bReadOnly)
-		bOk = _chmod(sFilePathName, _S_IREAD) == 0;
-	else
-		bOk = _chmod(sFilePathName, _S_IREAD | _S_IWRITE) == 0;
 #endif
 	p_SetApplicationLocale();
 	return bOk;
@@ -96,25 +87,27 @@ boolean FileService::SetFileMode(const ALString& sFilePathName, boolean bReadOnl
 longint FileService::GetFileSize(const ALString& sFilePathName)
 {
 	longint lFileSize;
+	int nError;
 
 	p_SetMachineLocale();
+
 	// Pour les fichiers de plus de 4 Go, il existe une API speciale (stat64...)
-#if defined _MSC_VER || defined __MSVCRT_VERSION__
+#ifdef _WIN32
 	struct __stat64 fileStat;
-	int nError = _stat64(sFilePathName, &fileStat);
-	if (nError != 0)
-		lFileSize = 0;
-	else
-		lFileSize = fileStat.st_size;
+	nError = _stat64(sFilePathName, &fileStat);
+#elif defined(__APPLE__)
+	struct stat fileStat;
+	nError = stat(sFilePathName, &fileStat);
 #else
 	struct stat64 fileStat;
-	int nError = stat64(sFilePathName, &fileStat);
+	nError = stat64(sFilePathName, &fileStat);
+#endif
+
+	p_SetApplicationLocale();
 	if (nError != 0)
 		lFileSize = 0;
 	else
 		lFileSize = fileStat.st_size;
-#endif
-	p_SetApplicationLocale();
 	return lFileSize;
 }
 
@@ -394,11 +387,11 @@ boolean FileService::ReserveExtraSize(FILE* fFile, longint lSize)
 
 const ALString& FileService::GetEOL()
 {
-#ifndef __UNIX__
-	static const ALString sEOL = "\r";
-#else  // __UNIX__
+#ifdef _WIN32
 	static const ALString sEOL = "\r\n";
-#endif // __UNIX__
+#else
+	static const ALString sEOL = "\n";
+#endif
 	return sEOL;
 }
 
@@ -464,7 +457,7 @@ const ALString FileService::GetLastSystemIOErrorMessage()
 boolean FileService::GetDirectoryContentExtended(const ALString& sPathName, StringVector* svDirectoryNames,
 						 StringVector* svFileNames)
 {
-#if defined _MSC_VER || defined __MSVCRT_VERSION__
+#ifdef _WIN32
 	return GetDirectoryContent(sPathName, svDirectoryNames, svFileNames);
 #else
 	boolean bOk = true;
@@ -524,7 +517,7 @@ boolean FileService::GetDirectoryContentExtended(const ALString& sPathName, Stri
 boolean FileService::GetDirectoryContent(const ALString& sPathName, StringVector* svDirectoryNames,
 					 StringVector* svFileNames)
 {
-#if defined _MSC_VER || defined __MSVCRT_VERSION__
+#ifdef _WIN32
 	boolean bOk = true;
 	void* hFind = NULL;
 	void* pFileData;
@@ -600,18 +593,16 @@ boolean FileService::GetDirectoryContent(const ALString& sPathName, StringVector
 
 boolean FileService::MakeDirectory(const ALString& sPathName)
 {
-	// Pour UNIX ou wgpp
-#if defined __UNIX__ // MinGW make use of__MSVCRT_VERSION__
-	int nError;
-	p_SetMachineLocale();
-	nError = mkdir(sPathName, S_IRWXU);
-	p_SetApplicationLocale();
-	return nError == 0;
-	// Pour Visual C++
-#else
+#ifdef _WIN32
 	int nError;
 	p_SetMachineLocale();
 	nError = _mkdir(sPathName);
+	p_SetApplicationLocale();
+	return nError == 0;
+#else
+	int nError;
+	p_SetMachineLocale();
+	nError = mkdir(sPathName, S_IRWXU);
 	p_SetApplicationLocale();
 	return nError == 0;
 #endif
@@ -646,18 +637,16 @@ boolean FileService::MakeDirectories(const ALString& sPathName)
 
 boolean FileService::RemoveDirectory(const ALString& sPathName)
 {
-	// Pour UNIX ou wgpp
-#if defined __UNIX__ or defined __WGPP__
-	int nError;
-	p_SetMachineLocale();
-	nError = rmdir(sPathName);
-	p_SetApplicationLocale();
-	return nError == 0;
-	// Pour Visual C++
-#else
+#ifdef _WIN32
 	int nError;
 	p_SetMachineLocale();
 	nError = _rmdir(sPathName);
+	p_SetApplicationLocale();
+	return nError == 0;
+#else
+	int nError;
+	p_SetMachineLocale();
+	nError = rmdir(sPathName);
 	p_SetApplicationLocale();
 	return nError == 0;
 #endif
@@ -667,20 +656,20 @@ boolean FileService::RemoveDirectory(const ALString& sPathName)
 
 char FileService::GetFileSeparator()
 {
-#ifndef __UNIX__
+#ifdef _WIN32
 	return '\\';
 #else
 	return '/';
-#endif // UNIX
+#endif
 }
 
 boolean FileService::IsFileSeparator(char c)
 {
-#ifndef __UNIX__
+#ifdef _WIN32
 	return c == GetFileSeparator() or c == '/';
 #else
 	return c == GetFileSeparator();
-#endif // UNIX
+#endif
 }
 
 boolean FileService::IsPathInFilePath(const ALString& sFilePathName)
@@ -828,7 +817,12 @@ const ALString FileService::SetFileSuffix(const ALString& sFilePathName, const A
 const ALString FileService::BuildFileName(const ALString& sFilePrefix, const ALString& sFileSuffix)
 {
 	if (sFilePrefix == "")
-		return sFileSuffix;
+	{
+		if (sFileSuffix == "")
+			return "";
+		else
+			return '.' + sFileSuffix;
+	}
 	else if (sFileSuffix == "")
 		return sFilePrefix;
 	else
@@ -901,7 +895,7 @@ boolean FileService::IsAbsoluteFilePathName(const ALString& sURIFilePathName)
 	// Ici, on se contente d'une regle simplifiee
 	//   - sous unix: nom du chemin commencant par '/'
 	//   - sous windows: nom du chemin [drive letter:]\ ou \\[server name]\[volume]
-#ifndef __UNIX__
+#ifdef _WIN32
 	// Test si on commence par "\\"
 	bIsAbsolutePath =
 	    sFilePathName.GetLength() > 1 and (sFilePathName.GetAt(0) == '\\' and sFilePathName.GetAt(1) == '\\');
@@ -917,7 +911,7 @@ boolean FileService::IsAbsoluteFilePathName(const ALString& sURIFilePathName)
 	}
 #else
 	bIsAbsolutePath = sFilePathName.GetLength() > 0 and sFilePathName.GetAt(0) == '/';
-#endif // UNIX
+#endif
 	return bIsAbsolutePath;
 }
 
@@ -925,7 +919,7 @@ boolean FileService::IsAbsoluteFilePathName(const ALString& sURIFilePathName)
 
 char FileService::GetPathSeparator()
 {
-#ifndef __UNIX__
+#ifdef _WIN32
 	return ';';
 #else
 	return ':';
@@ -1120,7 +1114,7 @@ const ALString FileService::GetSystemTmpDir()
 			sTmpDir = "";
 	}
 
-#ifndef __UNIX__
+#ifdef _WIN32
 	// Encore un essai avec "\temp"
 	if (sTmpDir == "")
 	{
@@ -1143,7 +1137,7 @@ const ALString FileService::GetSystemTmpDir()
 		if (not DirExists(sTmpDir))
 			sTmpDir = "";
 	}
-#endif // #ifndef __UNIX__
+#endif // _WIN32
 	return sTmpDir;
 }
 
@@ -1736,22 +1730,30 @@ const ALString FileService::GetURIFilePathName(const ALString& sFileURI)
 				nNextSlashPos = i;
 				break;
 			}
-		};
+		}
 
-		// Ok si un slash a ete trouve
-		if (nNextSlashPos != -1)
+		// Cas ou le chemin ne contient que scheme:///
+		if (nNextSlashPos == sFileURI.GetLength() - 1)
 		{
-#ifndef __UNIX__
-			// Sur windows on renvoie C:\XXX et non /C:\XXX
-			sFilePathName = sFileURI.Right(sFileURI.GetLength() - nNextSlashPos - 1);
-#else
-			// Par contre, sur linux on renvoie le slash : /home/XXX
-			// Mais si c'est un chemin relatif, on ne prend pas le slash
-			if (sFileURI.GetLength() > nNextSlashPos and sFileURI.GetAt(nNextSlashPos + 1) == '.')
+			sFilePathName = "/";
+		}
+		else
+		{
+			// Ok si un slash a ete trouve
+			if (nNextSlashPos != -1)
+			{
+#ifdef _WIN32
+				// Sur windows on renvoie C:\XXX et non /C:\XXX
 				sFilePathName = sFileURI.Right(sFileURI.GetLength() - nNextSlashPos - 1);
-			else
-				sFilePathName = sFileURI.Right(sFileURI.GetLength() - nNextSlashPos);
-#endif // __UNIX__
+#else
+				// Par contre, sur linux on renvoie le slash : /home/XXX
+				// Mais si c'est un chemin relatif, on ne prend pas le slash
+				if (sFileURI.GetLength() > nNextSlashPos and sFileURI.GetAt(nNextSlashPos + 1) == '.')
+					sFilePathName = sFileURI.Right(sFileURI.GetLength() - nNextSlashPos - 1);
+				else
+					sFilePathName = sFileURI.Right(sFileURI.GetLength() - nNextSlashPos);
+#endif // _WIN32
+			}
 		}
 	}
 
@@ -1799,7 +1801,7 @@ void FileService::SetURISmartLabels(boolean bValue)
 
 ALString FileService::GetSystemNulFileName()
 {
-#if defined _MSC_VER || defined __MSVCRT_VERSION__
+#ifdef _WIN32
 	return "NUL";
 #else
 	return "/dev/null";
@@ -1880,6 +1882,7 @@ const ALString FileService::GetPortableTmpFilePathName(const ALString& sFilePath
 	ALString sTmpDir;
 	const ALString sAppTmpDirAlias = "APPTMPDIR";
 	const ALString sTmpDirAlias = "TMPDIR";
+	int nTmpDirLength;
 	ALString sPortableTmpFilePathName;
 
 	// Remplacement eventuel du nom de chemin par le repertoire applicatif puis systeme temporaire
@@ -1888,14 +1891,26 @@ const ALString FileService::GetPortableTmpFilePathName(const ALString& sFilePath
 	sPortableTmpFilePathName = sFilePathName;
 	if (sAppTmpDir != "" and sAppTmpDir.GetLength() <= sFilePathName.GetLength() and
 	    sFilePathName.Left(sAppTmpDir.GetLength()) == sAppTmpDir)
+	{
+		nTmpDirLength = sAppTmpDir.GetLength();
+		if (sFilePathName.GetLength() > nTmpDirLength and
+		    sFilePathName.GetAt(nTmpDirLength) == GetFileSeparator())
+			nTmpDirLength++;
 		sPortableTmpFilePathName =
-		    sTmpDirAlias + sFilePathName.Right(sFilePathName.GetLength() - sAppTmpDir.GetLength());
+		    BuildFilePathName(sAppTmpDirAlias, sFilePathName.Right(sFilePathName.GetLength() - nTmpDirLength));
+	}
 	if (sTmpDir.GetLength() <= sFilePathName.GetLength() and sFilePathName.Left(sTmpDir.GetLength()) == sTmpDir)
+	{
+		nTmpDirLength = sTmpDir.GetLength();
+		if (sFilePathName.GetLength() > nTmpDirLength and
+		    sFilePathName.GetAt(nTmpDirLength) == GetFileSeparator())
+			nTmpDirLength++;
 		sPortableTmpFilePathName =
-		    sTmpDirAlias + sFilePathName.Right(sFilePathName.GetLength() - sTmpDir.GetLength());
+		    BuildFilePathName(sTmpDirAlias, sFilePathName.Right(sFilePathName.GetLength() - nTmpDirLength));
+	}
 
-		// Uniformation du caractere separateur de chemin
-#ifndef __UNIX__
+	// Uniformation du caractere separateur de chemin
+#ifdef _WIN32
 	for (int i = 0; i < sPortableTmpFilePathName.GetLength(); i++)
 	{
 		if (sPortableTmpFilePathName.GetAt(i) == '\\')
@@ -1985,17 +2000,7 @@ void FileService::Test()
 
 	// Test de GetPathName
 	cout << endl << "Extract path name" << endl;
-#ifdef __UNIX__
-
-	sFilePathName = "/standard/linux/path/file.txt";
-	cout << "SYS PATH\t" << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
-	sFilePathName = "/standard/linux/path////file.txt";
-	cout << "SYS PATH\t" << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
-	sFilePathName = "/file.txt";
-	cout << "SYS PATH\t" << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
-	sFilePathName = "//////file.txt";
-	cout << "SYS PATH\t" << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
-#else
+#ifdef _WIN32
 	sFilePathName = "c:\\standard\\linux\\path\\file.txt";
 	cout << "SYS PATH\t" << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
 	sFilePathName = "c:\\standard\\linux\\path\\\\\\\\file.txt";
@@ -2004,7 +2009,16 @@ void FileService::Test()
 	cout << "SYS PATH\t" << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
 	sFilePathName = "c:\\\\\\\\\\file.txt";
 	cout << "SYS PATH\t" << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
-#endif //__UNIX__
+#else
+	sFilePathName = "/standard/linux/path/file.txt";
+	cout << "SYS PATH\t" << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
+	sFilePathName = "/standard/linux/path////file.txt";
+	cout << "SYS PATH\t" << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
+	sFilePathName = "/file.txt";
+	cout << "SYS PATH\t" << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
+	sFilePathName = "//////file.txt";
+	cout << "SYS PATH\t" << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
+#endif // __linux_or_apple__
 	sFilePathName = "hdfs:///standard/path/file.txt";
 	cout << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
 	sFilePathName = "hdfs:///standard/path////file.txt";
@@ -2032,6 +2046,10 @@ void FileService::Test()
 	cout << sPathName << " => " << BuildFilePathName(sPathName, "file.txt") << endl;
 	sPathName = "gs://////";
 	cout << sPathName << " => " << BuildFilePathName(sPathName, "file.txt") << endl;
+	sPathName = ".";
+	cout << sPathName << " => " << BuildFilePathName(sPathName, "file.txt") << endl;
+	cout << sPathName << " (.) => " << BuildFilePathName(sPathName, "./file.txt") << endl;
+	cout << sPathName << " (..) => " << BuildFilePathName(sPathName, "../file.txt") << endl;
 
 	// Destruction eventuelle du fichier pour repartir du meme etat et
 	// assurer la reproductibilite des tests
@@ -2306,9 +2324,9 @@ boolean FileService::SystemSeekPositionInBinaryFile(FILE* fFile, longint lOffset
 	require(nWhence == SEEK_SET or nWhence == SEEK_CUR or nWhence == SEEK_END);
 
 	// Pour les fichiers de plus de 4 Go, il existe une API speciale (stat64...)
-#if defined _MSC_VER || defined __MSVCRT_VERSION__
+#ifdef _WIN32
 	_fseeki64(fFile, lOffset, nWhence);
-#elif defined __clang__
+#elif defined(__APPLE__)
 	fseeko(fFile, lOffset, nWhence);
 #else
 	fseeko64(fFile, lOffset, nWhence);

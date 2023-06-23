@@ -88,7 +88,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # CMake doesn't add "-pie" by default for executables (CMake issue #14983)
 if(NOT MSVC)
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pie")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
 endif(NOT MSVC)
 
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
@@ -162,10 +162,6 @@ function(set_khiops_options target)
   target_compile_definitions(${target} PRIVATE $<$<CONFIG:RELEASE>:NDEBUG NOALL>)
   target_compile_definitions(${target} PRIVATE $<$<CONFIG:RELWITHDEBINFO>:__ALPHA__>)
 
-  if(CMAKE_BUILD_TYPE MATCHES Debug)
-    target_compile_definitions(${target} PRIVATE _CPPRTTI) # TODO TO REMOVE for next release
-  endif()
-
   if(MSVC)
     set_msvc_khiops_options(${target})
   else()
@@ -175,8 +171,6 @@ endfunction(set_khiops_options)
 
 # Sets the compiling options for unix environments
 function(set_unix_khiops_options target)
-
-  target_compile_definitions(${target} PRIVATE __UNIX__) # TODO TO REMOVE for next release
 
   # Improve size optimisation, to ckeck, MinSizeRel is perhaps enough with -Os
   if(CMAKE_BUILD_TYPE MATCHES MinSizeRel)
@@ -191,9 +185,11 @@ function(set_unix_khiops_options target)
   #
   # - relro: (relocation read-Only linking) the linker resolves all dynamically linked functions at the beginning of the
   #   execution
-  # - noexecstack:do not use executable stack
+  # - noexecstack: do not use executable stack
   #
-  target_link_options(${target} PRIVATE "LINKER:SHELL:-z noexecstack" "LINKER:SHELL:-z relro")
+  if(NOT APPLE) # TODO bring back macOS to hardening
+    target_link_options(${target} PRIVATE "LINKER:SHELL:-z noexecstack" "LINKER:SHELL:-z relro")
+  endif()
 
   # stripping
   target_link_options(${target} PRIVATE $<$<CONFIG:RELEASE>:-s>)
@@ -293,6 +289,11 @@ if(TESTING)
   #
   # GoogleTest requires at least C++14
   set(CMAKE_CXX_STANDARD 14)
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+  set(BUILD_GMOCK OFF)
+  set(INSTALL_GTEST OFF)
+
   include(FetchContent)
   FetchContent_Declare(
     googletest

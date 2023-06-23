@@ -5,11 +5,11 @@
 #include "LMLicenseService.h"
 
 // Ajout pour portage Unix
-#ifdef __UNIX__
+#ifdef __linux_or_apple__
 #include <errno.h>
 #include <unistd.h>
 #include <sys/utsname.h>
-#endif // __UNIX__
+#endif // __linux_or_apple__
 
 boolean LMLicenseService::Initialize()
 {
@@ -414,7 +414,7 @@ ALString LMLicenseService::BuildFeatureFullName(const ALString& sFeatureName, co
 }
 
 // portage Unix
-#ifdef __UNIX__
+#ifdef __linux_or_apple__
 
 char* GetProcessorName()
 {
@@ -452,7 +452,7 @@ char* GetProcessorName()
 	return sProcessorName;
 }
 
-#endif // __UNIX__
+#endif // __linux_or_apple__
 
 ////////////////////////////////////////////////////////
 // Le machine ID est determine a partir des
@@ -757,7 +757,7 @@ const ALString LMLicenseService::BuildMachineIDHeader(const ALString& sComputerN
 	return sMachineIDHeader;
 }
 
-#ifdef __UNIX__
+#ifdef __linux_or_apple__
 // Renvoie les nSizeMax premiers caracteres contenus dans le fichier passe en parametre
 // renvoie vide si le fichier n'existe pas
 static const char* GetFileFirstLine(const char* sFileName, int nMaxSize)
@@ -780,7 +780,7 @@ static const char* GetFileFirstLine(const char* sFileName, int nMaxSize)
 	}
 	return sContent;
 }
-#endif // __UNIX__
+#endif // __linux_or_apple__
 
 const ALString LMLicenseService::BuildMachineID()
 {
@@ -801,7 +801,7 @@ const ALString LMLicenseService::BuildMachineID()
 
 	// Recherche des informations identifiant la machine
 	// Portage unix
-#ifndef __UNIX__
+#ifndef __linux_or_apple__
 	sOS = p_getenv("OS");
 	sPROCESSOR_IDENTIFIER = p_getenv("PROCESSOR_IDENTIFIER");
 	sPROCESSOR_REVISION = p_getenv("PROCESSOR_REVISION");
@@ -814,7 +814,7 @@ const ALString LMLicenseService::BuildMachineID()
 		sOS = sysinfo.sysname;
 	sPROCESSOR_IDENTIFIER = GetProcessorName();
 	sPROCESSOR_REVISION = "";
-#endif // __UNIX__
+#endif // __linux_or_apple__
 	sCOMPUTERNAME = GetComputerName();
 
 	// On prend comme identifiant le GUID et si il n'existe pas l'adresse mac
@@ -849,11 +849,11 @@ const ALString LMLicenseService::BuildMachineID()
 		   IntToString(SystemGetProcessorNumber());
 
 	// Ajout d'informations specifiques a Linux pour eviter qu'une licence soit valide sur 2 machines differentes
-#ifdef __UNIX__
+#ifdef __linux_or_apple__
 	sBaseKey += sSeparator + GetFileFirstLine("/sys/devices/virtual/dmi/id/board_name", 40);
 	sBaseKey += sSeparator + GetFileFirstLine("/sys/devices/virtual/dmi/id/chassis_vendor", 40);
 	sBaseKey += sSeparator + GetFileFirstLine("/sys/devices/virtual/dmi/id/product_name", 40);
-#endif //__UNIX__
+#endif //__linux_or_apple__
 
 	sKey1 = sBaseKey;
 	ShuffleString(sKey1);

@@ -11,7 +11,9 @@ jobs:
       matrix:
         build-setup: [
           {os: windows-2022, cmake-preset: windows-msvc-debug},
-          {os: ubuntu-latest, cmake-preset: linux-gcc-debug}]
+          {os: ubuntu-latest, cmake-preset: linux-gcc-debug},
+          {os: macos-latest, cmake-preset: macos-clang-debug}]
+
 
     runs-on: ${{ matrix.build-setup.os }}
 

@@ -4,10 +4,7 @@
 
 #pragma once
 
-#ifndef __ANDROID__
-
 #include "KWVersion.h"
 #include "CCLearningProject.h"
 #include "LMLicenseManager.h"
-
-#endif // __ANDROID__
+#include "PLUseMPI.h"

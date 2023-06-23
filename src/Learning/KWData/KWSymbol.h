@@ -128,12 +128,12 @@ public:
 	/////////////////////////////////////////////////////////
 	//// Implementation
 
-#if defined __UNIX__ and defined __C11__
+#ifdef __C11__
 	// Constructeur et affectation de deplacement, pour l'optimisation de la
 	// gestion des variables temporaires par le compilateur
-	Symbol(Symbol&& sSymbol);
-	Symbol& operator=(Symbol&& sSymbol);
-#endif // defined __UNIX__ and defined __C11__
+	Symbol(Symbol&& sSymbol) noexcept;
+	Symbol& operator=(Symbol&& sSymbol) noexcept;
+#endif
 
 protected:
 	// Implementation specifique en protected pour interdire l'utilisation de *
@@ -310,7 +310,7 @@ public:
 		pchData = (char*)sValue.GetValue();
 	}
 
-	// Destructeur, derefercant ses donnees internes pour ne pas les desallouer
+	// Destructeur, dereferencant ses donnees internes pour ne pas les desallouer
 	inline ~KWSymbolAsString()
 	{
 		Init();
@@ -645,14 +645,14 @@ inline void Symbol::Reset()
 	symbolData = NULL;
 }
 
-#if defined __UNIX__ and defined __C11__
-inline Symbol::Symbol(Symbol&& sSymbol)
+#ifdef __C11__
+inline Symbol::Symbol(Symbol&& sSymbol) noexcept
 {
 	symbolData = sSymbol.symbolData;
 	sSymbol.symbolData = NULL;
 }
 
-inline Symbol& Symbol::operator=(Symbol&& sSymbol)
+inline Symbol& Symbol::operator=(Symbol&& sSymbol) noexcept
 {
 	if (this != &sSymbol)
 	{
@@ -663,7 +663,7 @@ inline Symbol& Symbol::operator=(Symbol&& sSymbol)
 	}
 	return (*this);
 }
-#endif // defined __UNIX__ and defined __C11__
+#endif // defined __C11__
 
 inline Symbol& Symbol::operator=(const char* sString)
 {

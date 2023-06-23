@@ -4,8 +4,6 @@
 
 #include "MODL_Coclustering.h"
 
-#ifndef __ANDROID__
-
 int main(int argc, char** argv)
 {
 	CCLearningProject learningProject;
@@ -22,5 +20,3 @@ int main(int argc, char** argv)
 	else
 		return EXIT_SUCCESS;
 }
-
-#endif // __ANDROID__

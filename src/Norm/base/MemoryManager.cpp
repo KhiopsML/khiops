@@ -1090,24 +1090,15 @@ void HeapInit()
 	{
 		bIsHeapInitialized = true;
 
-		// On profite de l'initialisation de la heap pour effectuer un parametrage pour l'ensemble de tous les
-		// programmes On force ici un format d'exposant a deux digits sous Windows, pour etre compatible avec
-		// Linux dans toutes les sorties, ce qui facilite la reproductibilite des tests (par defaut: exposant a
-		// trois digits sous Windows, et a deux digits sous Linux) On force ici les locale, pour unifier les
-		// conversion entre double et chaines de caracteres (point decimal)
-#if defined _MSC_VER and _MSC_VER < 1400
-		_set_output_format(_TWO_DIGIT_EXPONENT);
-#endif
-
 		// On profite de l'initialisation de la heap pour effectuer un parametrage sous linux
 		// pour permettre l'ecriture de fichier dump en mode alpha
-#if defined __UNIX__ and defined __ALPHA__
+#if defined __linux_or_apple__ and defined __ALPHA__
 		// Pour forcer les crash dumps
 		rlimit limit;
 		limit.rlim_cur = RLIM_INFINITY;
 		limit.rlim_max = RLIM_INFINITY;
 		setrlimit(RLIMIT_CORE, &limit);
-#endif // defined __UNIX__ and defined __ALPHA__
+#endif // defined __linux_or_apple__ and defined __ALPHA__
 
 		// On force un locale independant de la machine, pour assurer unicite des conversions numeriques et des
 		// tris
@@ -1296,10 +1287,10 @@ void HeapClose()
 }
 
 // Visual C++: supression des Warning
-#ifdef _MSC_VER
+#ifdef __MSC__
 #pragma warning(disable : 6385) // disable C6385 warning (pour un controle excessif sur pHeap->fixedSizeHeapHeadSegments
 				// dans HeapCheckFixedSizeHeapLecture)
-#endif                          // _MSC_VER
+#endif                          // __MSC__
 
 // Verification d'un segment d'un FixedSizeHeap
 int HeapCheckFixedSizeHeap(MemSegment* psegSearched)
@@ -1608,9 +1599,9 @@ inline void MemFree(void* pBlock)
 	}
 
 	psegCurrent = MemBlockGetSegment(pBlock);
-#ifdef _MSC_VER
+#ifdef __MSC__
 	assert(psegCurrent != MemStatusMicrosoftNoMansland);
-#endif                           //_MSC_VER
+#endif                           // __MSC__
 	if (psegCurrent != NULL) // liberation subclassee
 	{
 		assert(psegCurrent->nNbBlock >= 1);
@@ -2192,11 +2183,11 @@ void DebugMemFree(void* pBlock)
 		// Cas particulier Microsoft: en mode DEBUG
 		// l'allocateur est redefini, et on capture des
 		// delete sans avoir eu les new correspondant
-#ifdef _MSC_VER
+#ifdef __MSC__
 		if (MemBlockGetValueAt(pBlock, -1) == MemStatusMicrosoftNoMansland)
 			p_hugefree(pBlock);
 		else
-#endif //_MSC_VER
+#endif // __MSC__
 		{
 			void* pAllocBlock;
 

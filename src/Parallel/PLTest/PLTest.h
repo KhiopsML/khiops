@@ -20,3 +20,8 @@
 #include "PLSharedObject.h"
 #include "PLShared_TaskResourceGrant.h"
 #include "PLShared_ResourceRequirement.h"
+
+#ifdef USE_MPI
+#include "PLMPITaskDriver.h"
+#include "PLMPISystemFileDriverRemote.h"
+#endif // USE_MPI

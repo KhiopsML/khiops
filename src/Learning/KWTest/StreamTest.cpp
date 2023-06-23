@@ -3,15 +3,15 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #include "StreamTest.h"
-#ifndef __UNIX__
+#ifdef _WIN32
 #include <fcntl.h>
-#endif //__UNIX__
 
 // Visual C++: supression des Warning sur les assignation au sein d'un expression conditionnelle (cf.
 // TestStreamLineCount7 et TestStreamLineCount8)
-#ifdef _MSC_VER
+#ifdef __MSC__
 #pragma warning(disable : 4706) // disable C4706 warning
-#endif                          // _MSC_VER
+#endif
+#endif __MSC__
 
 void StreamTest(int argc, char** argv)
 {
@@ -336,8 +336,8 @@ void TestStreamLineCount7(const ALString& sFileName)
 // Implementation avec fichier binaire et API C
 void TestStreamLineCount8(const ALString& sFileName)
 {
-	// Methode specifique Windows pour etude technique (le protage Linux n'est pas necessaire)
-#ifndef __UNIX__
+	// Methode specifique Windows pour etude technique (le portage Linux n'est pas necessaire)
+#ifdef _WIN32
 	boolean bOk;
 	const int nBufferSize = 16384;
 	char cBuffer[nBufferSize + 1];
@@ -373,5 +373,5 @@ void TestStreamLineCount8(const ALString& sFileName)
 	// Affichage du resultat
 	cout << "BinaryFile(RB8)\t" << sFileName << "\t" << nLineNumber << "\t" << SecondsToString(dTotalComputeTime)
 	     << endl;
-#endif //__UNIX__
+#endif // _WIN32
 }

@@ -44,7 +44,7 @@ longint MemGetPhysicalMemoryReserve()
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Implementation Windows
-#if defined _MSC_VER || defined __MSVCRT_VERSION__
+#ifdef _WIN32
 
 #include <winsock2.h>
 #include <iphlpapi.h>
@@ -262,6 +262,7 @@ longint MemGetAdressablePhysicalMemory()
 longint MemGetAvailablePhysicalMemory()
 {
 	MEMORYSTATUS memstat;
+
 	// L'utilisation conseillee GlobalMemoryStatusEx n'a pas ete concluante
 	// On renvoie en effet la memoire totale de la machine, sans la limiter a 2 GB
 	GlobalMemoryStatus(&memstat);
@@ -271,6 +272,7 @@ longint MemGetAvailablePhysicalMemory()
 longint MemGetFreePhysicalMemory()
 {
 	MEMORYSTATUS memstat;
+
 	// L'utilisation conseillee GlobalMemoryStatusEx n'a pas ete concluante
 	// On renvoie en effet la memoire totale de la machine, sans la limiter a 2 GB
 	GlobalMemoryStatus(&memstat);
@@ -482,11 +484,11 @@ int GetMaxOpenedFileNumber()
 	return _getmaxstdio();
 }
 
-#endif // defined _MSC_VER || defined __MSVCRT_VERSION__
+#endif // _WIN32
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Implementation Linux
-#if defined __UNIX__
+#ifdef __linux_or_apple__
 
 #include <unistd.h>
 #include <sys/time.h>
@@ -498,6 +500,7 @@ int GetMaxOpenedFileNumber()
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/utsname.h>
 
 #ifndef __ANDROID__
 #include <ifaddrs.h>
@@ -515,7 +518,7 @@ int GetMaxOpenedFileNumber()
 #include <netpacket/packet.h>
 #include <sys/sysinfo.h>
 
-#ifdef __clang__
+#ifdef __ANDROID__
 #include <sys/vfs.h> // ANDROID https://svn.boost.org/trac/boost/ticket/8816
 #else
 #include <sys/statvfs.h>
@@ -531,41 +534,31 @@ void SystemSleep(double dSeconds)
 	nanosleep(&req, NULL);
 }
 
-#ifdef __clang__
-longint DiskGetFreeSpace(const char* sPathName)
-{
-	struct statfs fiData;
-	longint lFree;
-
-	assert(sPathName != NULL);
-	p_SetMachineLocale();
-	if ((statfs(sPathName, &fiData)) < 0)
-	{
-		lFree = 0;
-	}
-	else
-	{
-		lFree = fiData.f_bavail;
-		lFree *= fiData.f_bsize;
-	}
-	p_SetApplicationLocale();
-	assert(lFree >= 0);
-	return lFree;
-}
-
-#else  // __clang__
 longint DiskGetFreeSpace(const char* sPathName)
 {
 	// cf. statvfs for linux.
 	// http://stackoverflow.com/questions/1449055/disk-space-used-free-total-how-do-i-get-this-in-c
 	// http://pubs.opengroup.org/onlinepubs/009695399/basedefs/sys/statvfs.h.html
+
+#if defined(__ANDROID__) || defined(__APPLE__)
+	struct statfs fiData;
+#else
 	struct statvfs64 fiData;
+#endif
 	longint lFree;
+	int nRet;
 
 	assert(sPathName != NULL);
 
 	p_SetMachineLocale();
-	if ((statvfs64(sPathName, &fiData)) < 0)
+
+#if defined(__ANDROID__) || defined(__APPLE__)
+	nRet = statfs(sPathName, &fiData);
+#else
+	nRet = statvfs64(sPathName, &fiData);
+#endif
+
+	if (nRet < 0)
 	{
 		lFree = 0;
 	}
@@ -578,7 +571,6 @@ longint DiskGetFreeSpace(const char* sPathName)
 	assert(lFree >= 0);
 	return lFree;
 }
-#endif // __clang__
 
 int SystemGetProcessorNumber()
 {
@@ -1290,4 +1282,4 @@ int GetMaxOpenedFileNumber()
 	getrlimit(RLIMIT_NOFILE, &lim);
 	return lim.rlim_cur;
 }
-#endif // __UNIX__
+#endif // __linux_or_apple__

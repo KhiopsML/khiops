@@ -106,7 +106,7 @@ int main(int argc, char** argv)
 
 extern "C"
 {
-#ifdef _MSC_VER
+#ifdef _WIN32
 	// Version 32 bits
 	int __stdcall _imp__JNI_CreateJavaVM(void** pvm, void** penv, void* args)
 	{
@@ -126,9 +126,7 @@ extern "C"
 	{
 		exit(11);
 	}
-#endif // _MSC_VER
-
-#ifdef __UNIX__
+#else
 	int JNI_CreateJavaVM(void** pvm, void** penv, void* args)
 	{
 		exit(11);
@@ -137,5 +135,5 @@ extern "C"
 	{
 		exit(11);
 	}
-#endif // __UNIX__
+#endif // _WIN32
 }

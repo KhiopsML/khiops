@@ -12,7 +12,7 @@ Timer::Timer()
 Timer::~Timer() {}
 
 // Implementation avec chrono
-#ifdef __CHRONO__
+#ifdef __C11__
 void Timer::Reset()
 {
 	bIsStarted = false;
@@ -60,7 +60,7 @@ double Timer::GetAbsoluteTime()
 	dAbsoluteTime = tv.tv_sec + tv.tv_usec / 1e-6;
 	return dAbsoluteTime;
 }
-#endif //__CHRONO__
+#endif //__C11__
 
 longint Timer::GetUsedMemory() const
 {

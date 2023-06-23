@@ -39,19 +39,19 @@ void MDKhiopsLearningProject::OpenLearningEnvironnement()
 
 	// Documentation
 	sDocumentation += "<h4> Reference guide and tutorial </h4> ";
-#ifdef __UNIX__
-	sDocumentation += "<p> In the '/usr/share/doc/khiops' directory </p> ";
-#else
+#ifdef _WIN32
 	sDocumentation += "<p> In the 'doc' sub-directory of the installation directory </p> ";
-#endif // __UNIX__
+#elif defined __linux__
+	sDocumentation += "<p> In the '/usr/share/doc/khiops' directory </p> ";
+#endif
 
 	// Examples
 	sDocumentation += "<h4> Sample data sets </h4> ";
-#ifdef __UNIX__
-	sDocumentation += "<p> In the '/usr/share/doc/khiops/samples' directory </p> ";
-#else
+#ifdef _WIN32
 	sDocumentation += "<p> In the 'samples' sub-directory of the installation directory </p> ";
-#endif // __UNIX__
+#elif defined __linux__
+	sDocumentation += "<p> In the '/usr/share/doc/khiops/samples' directory </p> ";
+#endif
 
 	// Autre resources
 	sDocumentation += "<h4> Dictionaries and modeling results under the json format </h4> ";

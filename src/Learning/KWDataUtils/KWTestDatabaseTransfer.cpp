@@ -323,11 +323,8 @@ boolean KWTestDatabaseTransfer::STTestTransfer()
 						else
 							sWrongLine = "Wrong";
 
-							// Fin de ligne
-#ifndef __UNIX__
-						sWrongLine += '\r';
-#endif
-						sWrongLine += '\n';
+						// Fin de ligne
+						sWrongLine += FileService::GetEOL();
 
 						// Ajout de lignes
 						bOk = KWArtificialDataset::AddLinesInFile(
@@ -355,11 +352,7 @@ boolean KWTestDatabaseTransfer::STTestTransfer()
 						cout << "empty lines";
 
 						// Fin de ligne
-						sWrongLine = "";
-#ifndef __UNIX__
-						sWrongLine += '\r';
-#endif
-						sWrongLine += '\n';
+						sWrongLine = FileService::GetEOL();
 
 						// Ajout de lignes dans le fichier
 						bOk = KWArtificialDataset::AddLinesInFile(
@@ -392,11 +385,7 @@ boolean KWTestDatabaseTransfer::STTestTransfer()
 						sWrongLine += databaseSource.GetFieldSeparator();
 					}
 					sWrongLine += "exceed";
-
-#ifndef __UNIX__
-					sWrongLine += '\r';
-#endif
-					sWrongLine += '\n';
+					sWrongLine += FileService::GetEOL();
 
 					// Ajout de lignes dans le fichier
 					bOk = KWArtificialDataset::AddLinesInFile(

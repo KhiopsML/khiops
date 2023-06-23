@@ -4,4 +4,4 @@ add_executable(KNITransfer ${cppfiles})
 set_khiops_options(KNITransfer)
 
 target_link_libraries(KNITransfer PUBLIC KhiopsNativeInterface KWLearningProblem DTForest KMDRRuleLibrary
-                                         $<$<BOOL:${MPI}>:PLMPI> PLParallelTask)
+                                         PLParallelTask)

@@ -5,7 +5,7 @@
 #include "Regex.h"
 
 // Utilisation de la bibliotheque regex uniquement a partir de C++ 11
-#if defined __UNIX__ and not defined __C11__
+#if defined __linux_or_apple__ and not defined __C11__
 #undef __REGEX__
 #else
 // Regex est toujours disponible sous Windows

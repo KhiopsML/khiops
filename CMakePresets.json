@@ -34,7 +34,9 @@
             },
             "vendor": {
                 "microsoft.com/VisualStudioSettings/CMake/1.0": {
-                    "hostOS": ["Linux"]
+                    "hostOS": [
+                        "Linux"
+                    ]
                 }
             }
         },
@@ -48,7 +50,9 @@
             },
             "vendor": {
                 "microsoft.com/VisualStudioSettings/CMake/1.0": {
-                    "hostOS": ["Windows"]
+                    "hostOS": [
+                        "Windows"
+                    ]
                 }
             }
         },
@@ -62,7 +66,9 @@
             },
             "vendor": {
                 "microsoft.com/VisualStudioSettings/CMake/1.0": {
-                    "hostOS": ["macOS"]
+                    "hostOS": [
+                        "macOS"
+                    ]
                 }
             }
         },
@@ -120,49 +126,89 @@
         },
         {
             "name": "linux-gcc-debug",
-            "inherits": ["default", "linux", "gcc", "debug"],
+            "inherits": [
+                "default",
+                "linux",
+                "gcc",
+                "debug"
+            ],
             "displayName": "Linux GCC Debug",
             "description": "Khiops debug build for Linux with GCC"
         },
         {
             "name": "linux-gcc-release",
-            "inherits": ["default", "linux", "gcc", "release"],
+            "inherits": [
+                "default",
+                "linux",
+                "gcc",
+                "release"
+            ],
             "displayName": "Linux GCC Release",
             "description": "Khiops release build for Linux with GCC"
         },
         {
             "name": "linux-clang-debug",
-            "inherits": ["default", "linux", "clang", "debug"],
+            "inherits": [
+                "default",
+                "linux",
+                "clang",
+                "debug"
+            ],
             "displayName": "Linux Clang Debug",
             "description": "Khiops debug build for Linux with Clang"
         },
         {
             "name": "linux-clang-release",
-            "inherits": ["default", "linux", "clang", "release"],
+            "inherits": [
+                "default",
+                "linux",
+                "clang",
+                "release"
+            ],
             "displayName": "Linux Clang Release",
             "description": "Khiops release build for Linux with Clang"
         },
         {
             "name": "windows-msvc-debug",
-            "inherits": ["default", "windows", "msvc", "debug"],
+            "inherits": [
+                "default",
+                "windows",
+                "msvc",
+                "debug"
+            ],
             "displayName": "Windows MSVC Debug",
             "description": "Khiops debug build for Windows with MSVC"
         },
         {
             "name": "windows-msvc-release",
-            "inherits": ["default", "windows", "msvc", "release"],
+            "inherits": [
+                "default",
+                "windows",
+                "msvc",
+                "release"
+            ],
             "displayName": "Windows MSVC Release",
             "description": "Khiops release build for Windows with MSVC"
         },
         {
             "name": "macos-clang-debug",
-            "inherits": ["default", "macos", "clang", "debug"],
+            "inherits": [
+                "default",
+                "macos",
+                "clang",
+                "debug"
+            ],
             "displayName": "macOS Clang Debug",
             "description": "Khiops debug build for macOS with Clang"
         },
         {
             "name": "macos-clang-release",
-            "inherits": ["default", "macos", "clang", "release"],
+            "inherits": [
+                "default",
+                "macos",
+                "clang",
+                "release"
+            ],
             "displayName": "macOS Clang Release",
             "description": "Khiops release build for macOS with Clang"
         }

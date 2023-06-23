@@ -20,8 +20,8 @@ void p_SetApplicationLocale()
 }
 
 /////////////////////////////////////////////////////////////////
-// Implementation standard pour gcc, et pour MS VC++ avant 2005
-#if defined __UNIX__ or defined __WGPP__ or _MSC_VER < 1400
+// Implementation standard pour Linux
+#ifdef __linux_or_apple__
 
 const char* p_getenv(const char* varname)
 {
@@ -46,11 +46,11 @@ void p_hugefree(void* memblock)
 	free(memblock);
 }
 
-#endif //  __UNIX__, __WGPP__, _MSC_VER < 1400
+#endif //  __linux_or_apple__
 
 ////////////////////////////////////////////////////
-// Reimplementation pour MS Visual C++ 2005, 2008
-#if _MSC_VER >= 1400
+// Reimplementation pour Windows
+#ifdef _WIN32
 
 #include <windows.h>
 
@@ -186,7 +186,7 @@ void p_FindClose(void* handle)
 	FindClose(hFind);
 }
 
-#endif // _MSC_VER >= 1400
+#endif // _WIN32
 
 ///////////////////////////////////////////////////////////////////////////
 // Gestion d'un buffer tournant, permettant une certaine reentrance
@@ -245,7 +245,7 @@ void* LoadSharedLibrary(const char* sLibraryPath, char* sErrorMessage)
 		sErrorMessage[i] = '\0';
 	}
 
-#if defined(_MSC_VER)
+#ifdef _WIN32
 	UINT nCurrentErrorMode;
 	wchar_t* wString = NULL;
 	int nBufferSize;
@@ -270,7 +270,7 @@ void* LoadSharedLibrary(const char* sLibraryPath, char* sErrorMessage)
 	// Restitution du mode courant de gestion des erreurs
 	SetErrorMode(nCurrentErrorMode);
 
-	// Traitement des erreures
+	// Traitement des erreurs
 	if (handle == NULL)
 	{
 		TCHAR szMessage[SHARED_LIBRARY_MESSAGE_LENGTH + 1];
@@ -304,7 +304,7 @@ void* LoadSharedLibrary(const char* sLibraryPath, char* sErrorMessage)
 	}
 	return handle;
 
-#elif defined(__UNIX__)
+#else
 	// Nettoyage des erreurs pre-existantes
 	dlerror();
 
@@ -323,18 +323,18 @@ void* LoadSharedLibrary(const char* sLibraryPath, char* sErrorMessage)
 
 void* GetSharedLibraryFunction(void* libraryHandle, const char* sFunctionName)
 {
-#if defined(_MSC_VER)
+#ifdef _WIN32
 	return (void*)GetProcAddress((HINSTANCE)libraryHandle, sFunctionName);
-#elif defined(__UNIX__)
+#else
 	return dlsym(libraryHandle, sFunctionName);
 #endif
 }
 
 int FreeSharedLibrary(void* libraryHandle)
 {
-#if defined(_MSC_VER)
+#ifdef _WIN32
 	return FreeLibrary((HINSTANCE)libraryHandle);
-#elif defined(__UNIX__)
+#else
 	return dlclose(libraryHandle);
 #endif
 }

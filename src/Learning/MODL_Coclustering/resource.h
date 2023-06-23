@@ -5,7 +5,7 @@
 // Fichier genere automatiquement pour l'affichage des ressources
 // Ne pas modifier
 
-#ifndef __UNIX__
+#ifdef _WIN32
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
 // Used by MODL_Coclustering.rc
