@@ -1,14 +1,14 @@
 ---
 name: "Build Khiops"
 
-on:
-  workflow_call:
-    inputs:
-      preset-name:
-        description: "The CMake preset name"
-        required: true
-      override-flags:
-        description: "List of overriding flags for the preset defaults"
+inputs:
+  preset-name:
+    description: "The CMake preset name"
+    required: true
+  override-flags:
+    description: "List of overriding flags for the preset defaults (ex: '-DUSE_MPI=OFF -DBUILD_JARS=ON')"
+  targets:
+    description: "List of targets to be built (ex: 'MODL norm_test')"
 
 runs:
   using: "composite"
@@ -27,4 +27,4 @@ runs:
       shell: bash
       run: |
         cmake --preset ${{ inputs.preset-name }} ${{ inputs.override-flags }}
-        cmake --build --preset build-${{ inputs.preset-name }}
+        cmake --build --preset build-${{ inputs.preset-name }} --target ${{ inputs.targets }}
