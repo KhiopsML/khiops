@@ -299,9 +299,9 @@ void KWPredictorEvaluator::EvaluatePredictorSpecs()
 	if (bOk)
 	{
 		sOutputPathName = FileService::GetPathName(GetEvaluationFilePathName());
-		if (sOutputPathName != "" and not FileService::DirExists(sOutputPathName))
+		if (sOutputPathName != "" and not PLRemoteFileService::DirExists(sOutputPathName))
 		{
-			bOk = FileService::MakeDirectories(sOutputPathName);
+			bOk = PLRemoteFileService::MakeDirectories(sOutputPathName);
 			if (not bOk)
 				AddError("Unable to create output directory (" + sOutputPathName +
 					 ") for evaluation file");

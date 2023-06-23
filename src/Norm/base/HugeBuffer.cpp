@@ -82,3 +82,8 @@ char* GetHugeBuffer(unsigned int nHugeSize)
 
 	return sHugeBuffer;
 }
+
+char* GetHugeBufferAdress()
+{
+	return sHugeBuffer;
+}
