@@ -17,7 +17,7 @@ requirements:
     - mpich # [not win]
     - msmpi # [win]
     - cmake
-    - ninja
+    - ninja # [win]
     - {{ compiler('cxx') }}
   host:
     - mpich # [not win]
@@ -35,9 +35,8 @@ outputs:
 
 test:
   commands:
-    # MODL_* processes fail (return 9009) in windows
-    - MODL -v # [not win]
-    - MODL_Coclustering -v # [not win]
+    - MODL -v
+    - MODL_Coclustering -v
 
 about:
   home: www.khiops.org
