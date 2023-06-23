@@ -156,6 +156,10 @@ boolean PLFileConcatenater::Concatenate(const StringVector* svChunkURIs, const O
 	dTaskPercent = dProgressionEnd - dProgressionBegin;
 	nChunkIndex = 0;
 
+	// Si rien a faire, on sort
+	if (svChunkURIs->GetSize() == 0)
+		return true;
+
 	// Lancement des serveurs de fichiers si on n'est pas dans une tache
 	if (GetProcessId() == 0)
 	{

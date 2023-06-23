@@ -17,6 +17,10 @@
 // Acces a un buffer de grande taille, cree automatiquement si necessaire
 char* GetHugeBuffer(unsigned int nHugeSize);
 
+// Renvoie l'adresse du buffer de grande taille en cours, NULL s'il n'est pas alloue
+// Potentiellement utile pour les assertions
+char* GetHugeBufferAdress();
+
 // Taille du buffer en cours
 int GetHugeBufferSize();
 
