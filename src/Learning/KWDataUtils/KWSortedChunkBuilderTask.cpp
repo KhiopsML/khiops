@@ -729,15 +729,6 @@ boolean KWSortedChunkBuilderTask::SlaveProcess()
 						    cvLine.GetAt(cvLine.GetSize() - 1) != '\n')
 							cvLine.Add('\n');
 
-						// Modification du separateur
-						if (not bSameFieldSeparator)
-						{
-							// ReplaceAll : separateur d'entree -> separateur de sortie
-							KWChunkSorterTask::ReplaceSeparator(
-							    &cvLine, shared_cInputFieldSeparator.GetValue(),
-							    shared_cOutputFieldSeparator.GetValue());
-						}
-
 						// Ajout de la ligne dans le bon bucket
 						slaveBuckets.AddLineAtKey(&key, &cvLine);
 

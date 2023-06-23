@@ -360,11 +360,11 @@ boolean Attribute::Check() const
 	// Test du type
 	if (IsField())
 	{
-		if (GetType() != "int" and GetType() != "ALString" and GetType() != "float" and
-		    GetType() != "double" and GetType() != "boolean" and GetType() != "char")
+		if (GetType() != "int" and GetType() != "ALString" and GetType() != "double" and
+		    GetType() != "boolean" and GetType() != "char")
 		{
 			bOk = false;
-			AddError("The type must be char, int, float, double, boolean ou ALString");
+			AddError("The type must be char, int, double, boolean ou ALString");
 		}
 	}
 
@@ -405,7 +405,7 @@ boolean Attribute::Check() const
 					 " Password, RadioButton, TextArea, FormattedLabel, SelectableLabel, UriLabel");
 			}
 		}
-		if (GetType() == "float" or GetType() == "double")
+		if (GetType() == "double")
 		{
 			if (GetStyle() != "TextField" and GetStyle() != "ComboBox" and
 			    GetStyle() != "EditableComboBox" and GetStyle() != "RadioButton" and
@@ -449,8 +449,6 @@ const ALString Attribute::GetPrefix() const
 		return "n";
 	else if (sType == "ALString")
 		return "s";
-	else if (sType == "float")
-		return "f";
 	else if (sType == "double")
 		return "d";
 	else if (sType == "boolean")
@@ -469,8 +467,6 @@ const ALString Attribute::GetFieldType() const
 		return "Int";
 	else if (sType == "ALString")
 		return "String";
-	else if (sType == "float")
-		return "Double";
 	else if (sType == "double")
 		return "Double";
 	else if (sType == "boolean")
@@ -489,8 +485,6 @@ const ALString Attribute::GetDefaultValue() const
 		return "0";
 	else if (sType == "ALString")
 		return "\"\"";
-	else if (sType == "float")
-		return "0";
 	else if (sType == "double")
 		return "0";
 	else if (sType == "boolean")
@@ -509,8 +503,6 @@ boolean Attribute::IsConstructorInit() const
 		return true;
 	else if (sType == "ALString")
 		return false;
-	else if (sType == "float")
-		return true;
 	else if (sType == "double")
 		return true;
 	else if (sType == "boolean")
@@ -542,8 +534,6 @@ const ALString Attribute::GetCharVarToType(const ALString& sVarName) const
 		return "StringToInt(" + sVarName + ")";
 	else if (sType == "ALString")
 		return sVarName;
-	else if (sType == "float")
-		return "StringToFloat(" + sVarName + ")";
 	else if (sType == "double")
 		return "StringToDouble(" + sVarName + ")";
 	else if (sType == "boolean")
@@ -561,8 +551,6 @@ const ALString Attribute::GetTypeVarToString(const ALString& sVarName) const
 		return "IntToString(" + sVarName + ")";
 	else if (sType == "ALString")
 		return sVarName;
-	else if (sType == "float")
-		return "FloatToString(" + sVarName + ")";
 	else if (sType == "double")
 		return "DoubleToString(" + sVarName + ")";
 	else if (sType == "boolean")
@@ -598,9 +586,6 @@ const ALString Attribute::GetTypeVarComparison(const ALString& sFirstElem, const
 		return sFirstElem + ".Compare( " + sSecondElem + ")";
 	else if (sType == "int")
 		return sFirstElem + " - " + sSecondElem;
-	else if (sType == "float")
-		return "(" + sFirstElem + " == " + sSecondElem + " ? 0 : (" + sFirstElem + " < " + sSecondElem +
-		       " ? -1 : 1))";
 	else if (sType == "double")
 		return "(" + sFirstElem + " == " + sSecondElem + " ? 0 : (" + sFirstElem + " < " + sSecondElem +
 		       " ? -1 : 1))";

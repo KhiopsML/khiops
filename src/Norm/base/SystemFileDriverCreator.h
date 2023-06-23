@@ -39,7 +39,7 @@ public:
 	static longint GetMaxPreferredBufferSize();
 
 protected:
-	// Renvoie true si le nom du fichier en parametre corresepond aux nom des drivers
+	// Renvoie true si le nom du fichier en parametre correspond aux nom des drivers
 	// libkhiopsdriver_file_SCHEME.so/dll ou SCHEME est une suite alphanumerique sans symboles
 	static boolean IsKhiopsDriverName(const ALString& sFileName);
 

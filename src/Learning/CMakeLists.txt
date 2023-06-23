@@ -1,4 +1,7 @@
 add_subdirectory(DTForest)
+add_subdirectory(genum)
+add_subdirectory(genumfp)
+
 add_subdirectory(KDDomainKnowledge)
 add_subdirectory(KhiopsNativeInterface)
 add_subdirectory(KIInterpretation)
@@ -14,9 +17,9 @@ add_subdirectory(KWDataUtils)
 add_subdirectory(KWDRRuleLibrary)
 add_subdirectory(KWLearningProblem)
 add_subdirectory(KWModeling)
-
 add_subdirectory(KWUserInterface)
 add_subdirectory(KWUtils)
+add_subdirectory(MHHistograms)
 add_subdirectory(MODL)
 add_subdirectory(MODL_Coclustering)
 add_subdirectory(SNBPredictor)

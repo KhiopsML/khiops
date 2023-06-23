@@ -100,7 +100,6 @@ const char* const SecondsToString(double dValue);
 // Conversions des types simples vers les chaines de caracteres
 const char* const IntToString(int nValue);
 const char* const LongintToString(longint lValue);
-const char* const FloatToString(float fValue);
 const char* const DoubleToString(double dValue);
 const char* const CharToString(char cValue);
 const char* const BooleanToString(boolean bValue);
@@ -113,7 +112,6 @@ const char* const CharsToString(const char* sValue);
 // Conversions des chaines de caracteres vers les types simples
 int StringToInt(const char* sValue);
 longint StringToLongint(const char* sValue);
-float StringToFloat(const char* sValue);
 double StringToDouble(const char* sValue);
 char StringToChar(const char* sValue);
 boolean StringToBoolean(const char* sValue);

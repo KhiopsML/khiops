@@ -46,6 +46,7 @@ DTDecisionTreeCreationTask::DTDecisionTreeCreationTask()
 	DeclareTaskInput(input_forestParameter);
 
 	DeclareTaskInput(&input_cvIntervalValues);
+	DeclareTaskInput(&input_ivSplitValues);
 
 	output_oaAttributeStats = new PLShared_ObjectArray(new PLShared_AttributeStats);
 	DeclareTaskOutput(output_oaAttributeStats);
@@ -263,6 +264,12 @@ boolean DTDecisionTreeCreationTask::MasterInitialize()
 		nAttributesNumberForOneSlave = ComputeOneSlaveMaxLoadableAttributeNumber(
 		    grantedResources->GetSlaveNumber(), grantedResources->GetSlaveMemory());
 
+		if (nAttributesNumberForOneSlave < nMasterForestMaxAttributesSelectionNumber)
+		{
+			AddWarning("No tree built : system resources are not sufficient to run the task");
+			return false;
+		}
+
 		BuildAttributeSelectionsSlices(forestattributeselection->GetAttributeSelections(),
 					       &oaInputAttributeSelectionsSlices, nAttributesNumberForOneSlave,
 					       grantedResources->GetSlaveNumber());
@@ -350,7 +357,27 @@ boolean DTDecisionTreeCreationTask::MasterPrepareTaskInput(double& dTaskPercent,
 		// liste des coupures effectuees sur une cible continue (toutes variables confondues), en amont
 		if (shared_learningSpec.GetLearningSpec()->GetTargetAttributeType() == KWType::Continuous and
 		    input_cvIntervalValues.GetSize() == 0)
+		{
+			// reference des coupure MODL et DISCRETIZATION_BINARY_EQUAL_FREQUENCY
 			ReferenceTargetIntervalValues(odMasterInputAttributeStats);
+		}
+		// initialisation pour chaque selection du split pour la regression
+		// DISCRETIZATION_BINARY_EQUAL_FREQUENCY pour chaque selection on choisi un nombre alétoire de la
+		// coupure allant de 0 à nb_coupure-2
+		if (shared_learningSpec.GetLearningSpec()->GetTargetAttributeType() == KWType::Continuous and
+		    randomForestParameter.GetDiscretizationTargetMethod() ==
+			DTForestParameter::DISCRETIZATION_BINARY_EQUAL_FREQUENCY)
+		{
+			IntVector ivTemp;
+			ivTemp.SetSize(nMaxCreatedAttributeNumber);
+			int nMax = input_cvIntervalValues.GetContinuousVector()->GetSize() - 1;
+
+			for (i = 0; i < nMaxCreatedAttributeNumber; i++)
+			{
+				ivTemp.SetAt(i, RandomInt(nMax - 1));
+			}
+			input_ivSplitValues.GetIntVector()->CopyFrom(&ivTemp);
+		}
 
 		// Tranches elementaires impliques dans les arbres
 		// On met une copie de la specification de la tranche
@@ -748,13 +775,16 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 			    (slaveTupleTableLoader.GetInputExtraAttributeType() == KWType::Continuous and
 				     randomForestParameter.GetDiscretizationTargetMethod() ==
 					 DTForestParameter::DISCRETIZATION_EQUAL_FREQUENCY
+
 				 ? true
 				 : false);
 
 			const boolean bRegressionWithMODLDiscretization =
 			    (slaveTupleTableLoader.GetInputExtraAttributeType() == KWType::Continuous and
-				     randomForestParameter.GetDiscretizationTargetMethod() ==
-					 DTForestParameter::DISCRETIZATION_MODL
+				     (randomForestParameter.GetDiscretizationTargetMethod() ==
+					  DTForestParameter::DISCRETIZATION_MODL or
+				      randomForestParameter.GetDiscretizationTargetMethod() ==
+					  DTForestParameter::DISCRETIZATION_BINARY_EQUAL_FREQUENCY)
 				 ? true
 				 : false);
 
@@ -817,15 +847,27 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 					TaskProgression::DisplayProgression(((nAttribute + 1) * 50) /
 									    nMaxCreatedAttributeNumberSlice);
 
+					attributegenerator =
+					    cast(DTAttributeSelection*,
+						 input_oaAttributeSelections->GetObjectArray()->GetAt(nAttribute));
+					attributegenerator->InitializeTreeAttributesFromClass(kwcSliceSetClass);
+
 					if (bRegressionWithMODLDiscretization)
 					{
 						// dans ce cas, la discretisation est effectuee selon des coupures
 						// potentiellement differentes pour chaque arbre : le
 						// slaveTupleTableLoader va etre modifie pour chaque arbre et les stats
 						// cibles du learningSpec vont etre recalculees
-						InitializeMODLDiscretization(
-						    &slaveTupleTableLoader, slaveLearningSpec,
-						    *input_cvIntervalValues.GetConstContinuousVector());
+						if (randomForestParameter.GetDiscretizationTargetMethod() ==
+						    DTForestParameter::DISCRETIZATION_MODL)
+							InitializeMODLDiscretization(
+							    &slaveTupleTableLoader, slaveLearningSpec,
+							    *input_cvIntervalValues.GetConstContinuousVector());
+						else
+							InitializeBinaryEQFDiscretization(
+							    &slaveTupleTableLoader, slaveLearningSpec,
+							    *input_cvIntervalValues.GetConstContinuousVector(),
+							    input_ivSplitValues.GetAt(attributegenerator->GetIndex()));
 
 						blOrigine.Initialize(slaveLearningSpec, &slaveTupleTableLoader,
 								     &oaObjects);
@@ -846,11 +888,6 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 						    learningSpecTree, &blOrigine,
 						    shared_odAttributeStats->GetObjectDictionary());
 					}
-
-					attributegenerator =
-					    cast(DTAttributeSelection*,
-						 input_oaAttributeSelections->GetObjectArray()->GetAt(nAttribute));
-					attributegenerator->InitializeTreeAttributesFromClass(kwcSliceSetClass);
 
 					nBuidTreeNumber++;
 
@@ -1313,9 +1350,11 @@ longint DTDecisionTreeCreationTask::ComputeBiggestTreeNecessaryMemory()
 	assert(lMasterTreeWorkingMemory > 0);
 	assert(nMasterForestMaxAttributesSelectionNumber > 0);
 
+	// ATTENTION toute modification de cette formule doit etre reporter dans la fonction
+	// ComputeOneSlaveMaxLoadableAttributeNumber
 	lResult =
 	    (nMasterForestMaxAttributesSelectionNumber * (lMasterMedianStatMemory + lMasterOneAttributeValueMemory)) +
-	    lMasterTreeWorkingMemory;
+	    lMasterTreeWorkingMemory + lMasterTreeResultMeanMemory;
 	lResult = longint(1.3 * lResult); // marge de securite
 
 	// Trace de deboggage
@@ -1328,6 +1367,8 @@ longint DTDecisionTreeCreationTask::ComputeBiggestTreeNecessaryMemory()
 			    ALString(LongintToString(nMasterForestMaxAttributesSelectionNumber)) + "\n";
 		sMessage +=
 		    "\t\tTree working mem = " + ALString(LongintToHumanReadableString(lMasterTreeWorkingMemory)) + "\n";
+		sMessage += "\t\tTree result mean mem = " +
+			    ALString(LongintToHumanReadableString(lMasterTreeResultMeanMemory)) + "\n";
 		sMessage += "\t\tOne Attribute Value mem = " +
 			    ALString(LongintToHumanReadableString(lMasterOneAttributeValueMemory)) + "\n";
 		sMessage += "\t\tNecessary memory on 1 slave, for computing the biggest possible tree :" +
@@ -1422,6 +1463,9 @@ int DTDecisionTreeCreationTask::ComputeOneSlaveMaxLoadableAttributeNumber(const 
 	(lGrantedMinSlaveMemory) doit etre diminuee de :
 		- la memoire de travail necessaire pour gerer un arbre vide (lMasterTreeWorkingMemory)
 		- la memoire necessaire pour stocker 1 resultat (lMasterTreeResultMeanMemory)
+
+	ATTENTION toute modification de cette formule doit etre reporter dans la fonction
+	ComputeBiggestTreeNecessaryMemory
 	*/
 
 	lResult = (lGrantedMinSlaveMemory - lMasterTreeWorkingMemory - lMasterTreeResultMeanMemory) /
@@ -1441,6 +1485,8 @@ int DTDecisionTreeCreationTask::ComputeOneSlaveMaxLoadableAttributeNumber(const 
 		    "\t\tMedian stats mem = " + ALString(LongintToHumanReadableString(lMasterMedianStatMemory)) + "\n";
 		sMessage +=
 		    "\t\tTree working mem = " + ALString(LongintToHumanReadableString(lMasterTreeWorkingMemory)) + "\n";
+		sMessage += "\t\tTree result mean mem = " +
+			    ALString(LongintToHumanReadableString(lMasterTreeResultMeanMemory)) + "\n";
 		sMessage += "\t\tOne Attribute Value mem = " +
 			    ALString(LongintToHumanReadableString(lMasterOneAttributeValueMemory)) + "\n";
 		sMessage += "\t\tForest max attributes selection number = " +
@@ -2209,7 +2255,8 @@ void DTDecisionTreeCreationTask::InitializeEqualFreqDiscretization(KWTupleTableL
 	       DTForestParameter::DISCRETIZATION_EQUAL_FREQUENCY);
 
 	svTargetValues = EqualFreqDiscretizeContinuousTarget(tupleTableLoader,
-							     randomForestParameter.GeMaxIntervalsNumberForTarget());
+							     randomForestParameter.GetMaxIntervalsNumberForTarget());
+
 	assert(svTargetValues != NULL);
 
 	tupleTableLoader->SetInputExtraAttributeName(learningSpec->GetTargetAttributeName());
@@ -2254,7 +2301,56 @@ void DTDecisionTreeCreationTask::InitializeMODLDiscretization(KWTupleTableLoader
 	assert(randomForestParameter.GetDiscretizationTargetMethod() == DTForestParameter::DISCRETIZATION_MODL);
 
 	svTargetValues = MODLDiscretizeContinuousTarget(
-	    tupleTableLoader, randomForestParameter.GeMaxIntervalsNumberForTarget(), cvIntervalValues);
+	    tupleTableLoader, randomForestParameter.GetMaxIntervalsNumberForTarget(), cvIntervalValues, 0);
+	assert(svTargetValues != NULL);
+
+	tupleTableLoader->SetInputExtraAttributeName(learningSpec->GetTargetAttributeName());
+	if (tupleTableLoader->GetInputExtraAttributeSymbolValues() != NULL)
+		delete slaveTupleTableLoader.GetInputExtraAttributeSymbolValues();
+	tupleTableLoader->SetInputExtraAttributeSymbolValues(svTargetValues);
+	tupleTableLoader->SetInputExtraAttributeType(KWType::Symbol);
+	tupleTableLoader->SetCheckDatabaseObjectClass(false);
+	targetTupleTableClassification = cast(KWTupleTable*, tupleTableLoader->GetInputExtraAttributeTupleTable());
+	bl.LoadTupleTableFromSymbolValues(learningSpec->GetClass(), learningSpec->GetTargetAttributeName(),
+					  svTargetValues, targetTupleTableClassification);
+	tupleTableLoader->SetInputClass(learningSpec->GetClass());
+
+	// calcul des stats cibles
+	learningSpec->ComputeTargetStats(targetTupleTableClassification);
+
+	bOk = bOk and learningSpec->Check();
+	bOk = bOk and tupleTableLoader->GetInputExtraAttributeTupleTable()->GetAttributeNumber() <= 1;
+	bOk = bOk and (tupleTableLoader->GetInputExtraAttributeTupleTable()->GetAttributeNumber() == 0 or
+		       learningSpec->GetTargetAttributeName() != "");
+	bOk = bOk and (learningSpec->GetTargetAttributeName() == "" or
+		       tupleTableLoader->GetInputExtraAttributeTupleTable()->GetAttributeNameAt(0) ==
+			   learningSpec->GetTargetAttributeName());
+	bOk = bOk and (learningSpec->GetTargetAttributeName() == "" or
+		       tupleTableLoader->GetInputExtraAttributeTupleTable()->GetAttributeTypeAt(0) ==
+			   learningSpec->GetTargetAttributeType());
+	assert(bOk);
+}
+
+void DTDecisionTreeCreationTask::InitializeBinaryEQFDiscretization(KWTupleTableLoader* tupleTableLoader,
+								   KWLearningSpec* learningSpec,
+								   const ContinuousVector& cvIntervalValues,
+								   const int nSplitIndex)
+{
+	// on transforme la cible continue en cible categorielle, en effectuant au prealable une dicretisation MODL sur
+	// la cible continue
+
+	KWTupleTable* targetTupleTableClassification = NULL;
+	boolean bOk = true;
+	DTBaseLoader bl;
+	SymbolVector* svTargetValues = NULL;
+
+	assert(learningSpec != NULL);
+	assert(tupleTableLoader != NULL);
+	assert(randomForestParameter.GetDiscretizationTargetMethod() ==
+	       DTForestParameter::DISCRETIZATION_BINARY_EQUAL_FREQUENCY);
+
+	svTargetValues = MODLDiscretizeContinuousTarget(
+	    tupleTableLoader, randomForestParameter.GetMaxIntervalsNumberForTarget(), cvIntervalValues, nSplitIndex);
 	assert(svTargetValues != NULL);
 
 	tupleTableLoader->SetInputExtraAttributeName(learningSpec->GetTargetAttributeName());
@@ -2310,7 +2406,6 @@ SymbolVector* DTDecisionTreeCreationTask::EqualFreqDiscretizeContinuousTarget(KW
 	{
 		// pour chaque valeur de target continue, determiner a quel intervale elle appartient
 		Continuous cValue = tupleTableLoader->GetInputExtraAttributeContinuousValues()->GetAt(i);
-
 		for (int nInterval = 0; nInterval < quantileBuilder.GetIntervalNumber(); nInterval++)
 		{
 			if (cValue >= quantileBuilder.GetIntervalLowerBoundAt(nInterval) and
@@ -2343,9 +2438,11 @@ SymbolVector* DTDecisionTreeCreationTask::EqualFreqDiscretizeContinuousTarget(KW
 
 SymbolVector* DTDecisionTreeCreationTask::MODLDiscretizeContinuousTarget(KWTupleTableLoader* tupleTableLoader,
 									 const int nMaxIntervalsNumber,
-									 const ContinuousVector& cvInput) const
+									 const ContinuousVector& cvInput,
+									 const int nSplitIndex) const
 {
 	SymbolVector* svTargetValues = NULL;
+	SymbolVector svTargetIn;
 	ContinuousVector cvChosenIntervals;
 	ContinuousVector cvInputIntervalValues;
 	ObjectDictionary odIntervals;
@@ -2355,49 +2452,82 @@ SymbolVector* DTDecisionTreeCreationTask::MODLDiscretizeContinuousTarget(KWTuple
 	ALString s;
 
 	require(nMaxIntervalsNumber >= 2);
-
 	cvInputIntervalValues.CopyFrom(&cvInput);
-	cvInputIntervalValues.Shuffle();
-	if (cvInputIntervalValues.GetSize() > nMaxIntervalsNumber - 1)
-		cvInputIntervalValues.SetSize(nMaxIntervalsNumber - 1);
-
-	// supprimer les doublons
-	for (int nInterval = 0; nInterval < cvInputIntervalValues.GetSize(); nInterval++)
+	if (randomForestParameter.GetDiscretizationTargetMethod() == DTForestParameter::DISCRETIZATION_MODL)
 	{
-		const char* c = DoubleToString(cvInputIntervalValues.GetAt(nInterval));
-		if (odIntervals.Lookup(c) != NULL)
-			continue;
-		odIntervals.SetAt(c, &o);
-		cvChosenIntervals.Add(cvInputIntervalValues.GetAt(nInterval));
-	}
 
-	cvChosenIntervals.Add(KWContinuous::GetMinValue());
-	cvChosenIntervals.Add(KWContinuous::GetMaxValue());
-	cvChosenIntervals.Sort();
+		cvInputIntervalValues.Shuffle();
+		if (cvInputIntervalValues.GetSize() > nMaxIntervalsNumber - 1)
+			cvInputIntervalValues.SetSize(nMaxIntervalsNumber - 1);
+
+		// supprimer les doublons
+		for (int nInterval = 0; nInterval < cvInputIntervalValues.GetSize(); nInterval++)
+		{
+			const char* c = DoubleToString(cvInputIntervalValues.GetAt(nInterval));
+			if (odIntervals.Lookup(c) != NULL)
+				continue;
+			odIntervals.SetAt(c, &o);
+			cvChosenIntervals.Add(cvInputIntervalValues.GetAt(nInterval));
+		}
+
+		cvChosenIntervals.Add(KWContinuous::GetMinValue());
+		cvChosenIntervals.Add(KWContinuous::GetMaxValue());
+		cvChosenIntervals.Sort();
+	}
+	else
+	{
+		cvChosenIntervals.CopyFrom(&cvInput);
+	}
 
 	if (bDisplayValues)
 		cvChosenIntervals.Write(cout);
 
 	svTargetValues = new SymbolVector;
-
-	for (int i = 0; i < tupleTableLoader->GetInputExtraAttributeContinuousValues()->GetSize(); i++)
+	if (randomForestParameter.GetDiscretizationTargetMethod() == DTForestParameter::DISCRETIZATION_MODL)
 	{
-		// pour chaque valeur de target continue, determiner a quel intervalle elle appartient
-		cValue = tupleTableLoader->GetInputExtraAttributeContinuousValues()->GetAt(i);
 
 		for (int nInterval = 0; nInterval < cvChosenIntervals.GetSize(); nInterval++)
 		{
-			if (nInterval == cvChosenIntervals.GetSize() - 1 or
-			    (cValue >= cvChosenIntervals.GetAt(nInterval) and
-			     cValue < cvChosenIntervals.GetAt(nInterval + 1)))
+			s = "I" + ALString(IntToString(nInterval));
+			svTargetIn.Add((Symbol)s);
+		}
+		for (int i = 0; i < tupleTableLoader->GetInputExtraAttributeContinuousValues()->GetSize(); i++)
+		{
+			// pour chaque valeur de target continue, determiner a quel intervalle elle appartient
+			cValue = tupleTableLoader->GetInputExtraAttributeContinuousValues()->GetAt(i);
+
+			for (int nInterval = 0; nInterval < cvChosenIntervals.GetSize(); nInterval++)
 			{
-				s = "I" + ALString(IntToString(nInterval));
-				svTargetValues->Add(s.GetBuffer(s.GetLength()));
-				break;
+				if (nInterval == cvChosenIntervals.GetSize() - 1 or
+				    (cValue >= cvChosenIntervals.GetAt(nInterval) and
+				     cValue < cvChosenIntervals.GetAt(nInterval + 1)))
+				{
+					svTargetValues->Add(svTargetIn.GetAt(nInterval));
+					break;
+				}
 			}
 		}
 	}
+	else
+	{
+		Symbol sI0("I0");
+		Symbol sI1("I1");
 
+		for (int i = 0; i < tupleTableLoader->GetInputExtraAttributeContinuousValues()->GetSize(); i++)
+		{
+			// pour chaque valeur de target continue, determiner a quel intervalle elle appartient
+			cValue = tupleTableLoader->GetInputExtraAttributeContinuousValues()->GetAt(i);
+
+			if (cValue <= cvChosenIntervals.GetAt(nSplitIndex))
+			{
+				svTargetValues->Add(sI0);
+			}
+			else
+			{
+				svTargetValues->Add(sI1);
+			}
+		}
+	}
 	assert(svTargetValues != NULL);
 	assert(tupleTableLoader->GetInputExtraAttributeContinuousValues()->GetSize() == svTargetValues->GetSize());
 
@@ -2449,20 +2579,42 @@ void DTDecisionTreeCreationTask::ReferenceTargetIntervalValues(const ObjectDicti
 {
 	ObjectArray oaAttributeStats;
 	ContinuousVector cv;
+	SymbolVector* svTargetValues = NULL;
+	ContinuousVector* cvTargetValues = NULL;
+	KWQuantileIntervalBuilder quantileBuilder;
 
-	odAttributeStats->ExportObjectArray(&oaAttributeStats);
-
-	for (int i = 0; i < oaAttributeStats.GetSize(); i++)
+	if (randomForestParameter.GetDiscretizationTargetMethod() == DTForestParameter::DISCRETIZATION_MODL)
 	{
-		KWAttributeStats* stats = cast(KWAttributeStats*, oaAttributeStats.GetAt(i));
-		const KWDGSAttributePartition* partition = stats->GetPreparedDataGridStats()->GetAttributeAt(
-		    stats->GetPreparedDataGridStats()->GetFirstTargetAttributeIndex());
-		KWDGSAttributeDiscretization* kwdgs = cast(KWDGSAttributeDiscretization*, partition);
+		odAttributeStats->ExportObjectArray(&oaAttributeStats);
 
-		for (int iInterval = 0; iInterval < kwdgs->GetIntervalBoundNumber(); iInterval++)
-			cv.Add(kwdgs->GetIntervalBoundAt(iInterval));
+		for (int i = 0; i < oaAttributeStats.GetSize(); i++)
+		{
+			KWAttributeStats* stats = cast(KWAttributeStats*, oaAttributeStats.GetAt(i));
+			const KWDGSAttributePartition* partition = stats->GetPreparedDataGridStats()->GetAttributeAt(
+			    stats->GetPreparedDataGridStats()->GetFirstTargetAttributeIndex());
+			KWDGSAttributeDiscretization* kwdgs = cast(KWDGSAttributeDiscretization*, partition);
+
+			for (int iInterval = 0; iInterval < kwdgs->GetIntervalBoundNumber(); iInterval++)
+				cv.Add(kwdgs->GetIntervalBoundAt(iInterval));
+		}
 	}
+	else
+	{
+		// Initialisation
+		cvTargetValues = masterTupleTableLoader->GetInputExtraAttributeContinuousValues()->Clone();
+		require(cvTargetValues != NULL);
+		cvTargetValues->Sort();
+		quantileBuilder.InitializeValues(cvTargetValues);
+		delete cvTargetValues;
 
+		// Calcul des quantiles
+		quantileBuilder.ComputeQuantiles(randomForestParameter.GetMaxIntervalsNumberForTarget());
+
+		for (int nInterval = 0; nInterval < quantileBuilder.GetIntervalNumber(); nInterval++)
+		{
+			cv.Add(quantileBuilder.GetIntervalUpperBoundAt(nInterval));
+		}
+	}
 	input_cvIntervalValues.GetContinuousVector()->CopyFrom(&cv);
 }
 

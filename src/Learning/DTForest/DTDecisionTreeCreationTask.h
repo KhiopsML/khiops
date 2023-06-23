@@ -128,11 +128,15 @@ protected:
 
 	// Discretisation 'MODL' d'une target continue
 	SymbolVector* MODLDiscretizeContinuousTarget(KWTupleTableLoader*, const int nMaxIntervalsNumber,
-						     const ContinuousVector& cvIntervalValues) const;
+						     const ContinuousVector& cvIntervalValues,
+						     const int nSplitIndex) const;
 
 	// transforme une regression en classification en effectuant au prealable une discretisation MODL
 	void InitializeMODLDiscretization(KWTupleTableLoader*, KWLearningSpec*,
 					  const ContinuousVector& cvIntervalValues);
+
+	void InitializeBinaryEQFDiscretization(KWTupleTableLoader*, KWLearningSpec*,
+					       const ContinuousVector& cvIntervalValues, const int nSplitIndex);
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////
 	// Reimplementation des methodes virtuelles de tache
@@ -201,6 +205,9 @@ protected:
 
 	// liste des coupures effectuees sur la cible continue (cas de la regression)
 	PLShared_ContinuousVector input_cvIntervalValues;
+
+	// list des valeurs de split par arbre (cas de la regression)
+	PLShared_IntVector input_ivSplitValues;
 
 	// Preparation des attributs d'une tranche de base
 	// En sortie, les attributs arbres sont completes avec leur analyse

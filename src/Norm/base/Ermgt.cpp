@@ -106,7 +106,7 @@ void Global::AddErrorObjectValued(int nGravityValue, const ALString& sCategoryVa
 	// Sortie si erreur fatale
 	if (nGravityValue == Error::GravityFatalError)
 	{
-		ShowError(e);
+		ShowError(&e);
 		GlobalExit();
 	}
 	// Cas des autres types de message
@@ -133,7 +133,7 @@ void Global::AddErrorObjectValued(int nGravityValue, const ALString& sCategoryVa
 		// Affichage si autorise
 		if (nErrorFlowControlLevel == 0 or lErrorFlowNumber <= nMaxErrorFlowNumber or
 		    IgnoreErrorFlowForDisplay(&e))
-			ShowError(e);
+			ShowError(&e);
 
 		// Affichage special si depassement du nombre max autorise
 		if (nErrorFlowControlLevel > 0 and lErrorFlowNumber > nMaxErrorFlowNumber)
@@ -142,7 +142,7 @@ void Global::AddErrorObjectValued(int nGravityValue, const ALString& sCategoryVa
 			if (lErrorFlowNumber == nMaxErrorFlowNumber + 1)
 			{
 				e.Initialize(nGravityValue, sCategoryValue, "", "...");
-				ShowError(e);
+				ShowError(&e);
 			}
 			// Sinon, on re-affiche un message toutes les puissances de 10
 			// ou tous les millions
@@ -155,19 +155,21 @@ void Global::AddErrorObjectValued(int nGravityValue, const ALString& sCategoryVa
 						  "th " + Error::GetGravityLabel(nGravityValue) + ")";
 				e.Initialize(nGravityValue, sCategoryValue, sLocalisationValue,
 					     sLabelValue + " " + sAdditionalInfo);
-				ShowError(e);
+				ShowError(&e);
 
 				// Message de suite
 				e.Initialize(nGravityValue, sCategoryValue, "", "...");
-				ShowError(e);
+				ShowError(&e);
 			}
 		}
 	}
 }
 
-void Global::ShowError(Error e)
+void Global::ShowError(const Error* e)
 {
-	if (not GetSilentMode() or e.GetGravity() == Error::GravityFatalError)
+	require(e != NULL);
+
+	if (not GetSilentMode() or e->GetGravity() == Error::GravityFatalError)
 	{
 		// Ecriture dans le fichier de log
 		if (fstError.is_open())
@@ -177,11 +179,11 @@ void Global::ShowError(Error e)
 			// (progression, output etc...)
 			if (bPrintMessagesInConsole)
 				fstError << "Khiops.log\t";
-			fstError << e << flush;
+			fstError << *e << flush;
 		}
 
 		// Affichage avec interface utilisateur
-		e.Display();
+		e->Display();
 	}
 }
 

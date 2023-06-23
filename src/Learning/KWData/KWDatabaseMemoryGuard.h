@@ -164,7 +164,7 @@ public:
 	// Constantes pour le dimensionnement des instances de tres grande taille
 
 	// Bornes inf et sup des nombres max de records secondaires, pour le dimensionnement des taches
-	static const longint GetDefautMaxSecondaryRecordNumberLowerBound();
+	static const longint GetDefautMinSecondaryRecordNumberLowerBound();
 	static const longint GetDefautMaxSecondaryRecordNumberUpperBound();
 
 	// Min et max du facteur entre le nombre de records secondaire et le nombre moyen de records secondaires
@@ -248,7 +248,7 @@ protected:
 	static longint lCrashTestSingleInstanceMemoryLimit;
 
 	// Bornes inf et sup des nombres max de records secondaires
-	static const longint lDefautMaxSecondaryRecordNumberLowerBound = 100000;
+	static const longint lDefautMinSecondaryRecordNumberLowerBound = 100000;
 	static const longint lDefautMaxSecondaryRecordNumberUpperBound = 10000000;
 
 	// Min et max du facteur entre le nombre de records secondaires et le nombre moyen de records secondaires
@@ -288,9 +288,9 @@ inline boolean KWDatabaseMemoryGuard::IsSingleInstanceMemoryLimitReached() const
 	return bIsSingleInstanceMemoryLimitReached;
 }
 
-inline const longint KWDatabaseMemoryGuard::GetDefautMaxSecondaryRecordNumberLowerBound()
+inline const longint KWDatabaseMemoryGuard::GetDefautMinSecondaryRecordNumberLowerBound()
 {
-	return lDefautMaxSecondaryRecordNumberLowerBound;
+	return lDefautMinSecondaryRecordNumberLowerBound;
 }
 
 inline const longint KWDatabaseMemoryGuard::GetDefautMaxSecondaryRecordNumberUpperBound()

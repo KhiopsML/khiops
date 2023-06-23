@@ -462,8 +462,9 @@ protected:
 	// nBufferSizeMax
 	// - pour le milieu du fichier on renvoie une valeur aleatoire entre 0.8*nBufferSizeMax et nBufferSizeMax
 	// - pour la fin on donne nBufferSizeMin (c'est la fin du traitement quand on peut donner 2 nBufferSizeMin a
-	//   chaque esclave ou quand il n'y a plus que la moitie des esclaves qui vont travailler) La valeur retournee
-	// est un multiple de la taille d'un bloc et plus petite que InputBufferedFile::GetMaxBufferSize()
+	// chaque esclave ou 							quand il n'y a plus que la moitie des
+	// esclaves qui vont travailler) La valeur retournee est un multiple de la taille d'un bloc et plus petite que
+	// InputBufferedFile::GetMaxBufferSize()
 	//
 	// Ne peut etre appele que dans MasterPrepareTaskInput
 	int ComputeStairBufferSize(int nBufferSizeMin, int nBufferSizeMax, int nBufferSizeStep, longint lFileProcessed,
@@ -608,7 +609,7 @@ private:
 
 	// Initialisation des attributs de la tache a partir des variables partagees
 	// et creation du repertoire applicatif
-	boolean InitializeParametersFromSharedVariables();
+	void InitializeParametersFromSharedVariables();
 
 	// Erreur indexee  generique
 	void AddLocalGenericError(int nGravity, const ALString& sLabel, longint lLineNumber);
@@ -635,10 +636,6 @@ private:
 
 	// Nombre de process esclave
 	int nWorkingProcessNumber;
-
-	// Parametres qui corespondent aux userTmpDir et applicationName de la classe FileService
-	PLShared_String shared_sUserTmpDir;
-	PLShared_String shared_sApplicationName;
 
 	// Parametres  de la classe Global
 	PLShared_Boolean input_bSilentMode;
@@ -806,7 +803,7 @@ private:
 	// Liste de tous les fichiers temporaires enregistres par l'esclave
 	StringVector svSlaveRegisteredUniqueTmpFiles;
 
-	// Est-ce que l'esclave qui instancie cetet tache est initialise
+	// Est-ce que l'esclave qui instancie cette tache est initialise
 	boolean bIsSlaveInitialized;
 
 	// Tableau des messages utilisateurs en attente d'affichage

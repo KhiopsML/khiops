@@ -56,8 +56,6 @@ PLParallelTask::PLParallelTask()
 	bSlaveAtRestWithoutProcessing = false;
 
 	// Declaration des variables partagees qui contiennent les constantes systeme
-	DeclareSharedParameter(&shared_sUserTmpDir);
-	DeclareSharedParameter(&shared_sApplicationName);
 	DeclareSharedParameter(&input_bVerbose);
 	DeclareSharedParameter(&shared_nMaxErrorFlowNumber);
 	DeclareSharedParameter(&shared_nMaxLineLength);
@@ -80,8 +78,6 @@ PLParallelTask::PLParallelTask()
 	DeclareTaskOutput(&output_bSlaveProcessOk);
 
 	// Initialisation des parametres partages
-	shared_sUserTmpDir.SetValue(FileService::GetUserTmpDir());
-	shared_sApplicationName.SetValue(FileService::GetApplicationName());
 	shared_nMaxErrorFlowNumber = Global::GetMaxErrorFlowNumber();
 	shared_nMaxLineLength = InputBufferedFile::GetMaxLineLength();
 	shared_lMaxHeapSize = MemGetMaxHeapSize();
@@ -2397,23 +2393,11 @@ void PLParallelTask::DeserializeSharedVariables(PLSerializer* serializer, Object
 	}
 }
 
-boolean PLParallelTask::InitializeParametersFromSharedVariables()
+void PLParallelTask::InitializeParametersFromSharedVariables()
 {
-	boolean bOk;
-
-	bOk = true;
 
 	// Mise a jour du nombre de messages max
 	Global::SetMaxErrorFlowNumber(shared_nMaxErrorFlowNumber);
-
-	// Mise a jour des UserTmpDir et ApplicationName et creation du repertoire temporaire
-	if (FileService::GetUserTmpDir() != shared_sUserTmpDir.GetValue())
-		FileService::SetUserTmpDir(shared_sUserTmpDir.GetValue());
-	if (FileService::GetApplicationName() != shared_sApplicationName.GetValue())
-		FileService::SetApplicationName(shared_sApplicationName.GetValue());
-
-	bOk = FileService::CreateApplicationTmpDir();
-	require(FileService::CheckApplicationTmpDir());
 
 	// Mise a jour de la duree de vie du repertoire temporaire
 	TouchTmpDir();
@@ -2431,8 +2415,6 @@ boolean PLParallelTask::InitializeParametersFromSharedVariables()
 	GetDriver()->GetTracerProtocol()->CopyFrom(shared_tracerProtocol.GetTracer());
 	GetDriver()->GetTracerMPI()->CopyFrom(shared_tracerMPI.GetTracer());
 	GetDriver()->GetTracerPerformance()->CopyFrom(shared_tracerPerformance.GetTracer());
-
-	return bOk;
 }
 
 boolean PLParallelTask::IsAllSlavesEnding() const

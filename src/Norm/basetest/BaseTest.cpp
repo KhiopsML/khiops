@@ -59,8 +59,6 @@ TestBaseComponents::~TestBaseComponents()
 void TestBaseComponents::SystemResourceTest()
 {
 	// Ressources systeme
-	cout << "SYS Computer name\t" << LMLicenseService::GetComputerName() << endl;
-	cout << "SYS Machine ID\t" << LMLicenseService::GetMachineID() << endl;
 	cout << "SYS MAC Address\t" << GetMACAddress() << endl;
 	cout << "SYS machine GUID " << GetMachineGUID() << endl;
 	cout << "SYS RESOURCE\tProcessor number\t" << SystemGetProcessorNumber() << "\n";
