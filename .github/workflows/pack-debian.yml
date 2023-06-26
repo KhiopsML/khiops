@@ -3,10 +3,6 @@ name: Create Debian package
 on:
   workflow_dispatch:
 
-
-env:
-  BUILD_TYPE: Release
-
 jobs:
   package:
     strategy:
@@ -26,14 +22,13 @@ jobs:
         source /etc/os-release 
         echo "ID=$ID" >> "$GITHUB_ENV"
         echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
-        set KHIOPS_VERSION=$(grep "KHIOPS_VERSION" src/Learning/KWUtils/KWKhiopsVersion.h | cut -d"(" -f2 | cut -d")" -f1)
-        echo "KHIOPS_VERSION=$KHIOPS_VERSION" >> "$GITHUB_ENV"
+       
 
     - name: Configure CMake
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DMPI=ON -DTESTING=OFF -DFULL=OFF -DBUILD_JARS=ON
+      run: cmake -B ${{github.workspace}}/build -DMPI=ON -DTESTING=OFF -DBUILD_JARS=ON
 
     - name: Build
-      run: time cmake --build ${{github.workspace}}/build --parallel
+      run: time cmake --build ${{github.workspace}}/build --parallel --target MODL MODL_Coclustering KhiopsNativeInterface
     
     - name: Pack
       run: cd ${{github.workspace}}/build && cpack -G DEB
