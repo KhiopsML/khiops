@@ -1,14 +1,14 @@
 ---
 name: "Build Khiops"
 
-on:
-  workflow_call:
-    inputs:
-      preset-name:
-        description: "The CMake preset name"
-        required: true
-      override-flags:
-        description: "List of overriding flags for the preset defaults"
+inputs:
+  preset-name:
+    description: "The CMake preset name"
+    required: true
+  override-flags:
+    description: "List of overriding flags for the preset defaults (ex: '-DUSE_MPI=OFF -DBUILD_JARS=ON')"
+  targets:
+    description: "List of targets to be built (ex: 'MODL norm_test')"
 
 runs:
   using: "composite"
@@ -23,13 +23,8 @@ runs:
         call "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\VC\\Auxiliary\\Build\\vcvars64.bat"
         set >> %GITHUB_ENV%
 
-    - name: Install Ninja (Linux only)
-      if: ${{ runner.os == 'Linux' }}
-      shell: bash
-      run: sudo apt-get install ninja-build
-
     - name: Compile Khiops with CMake
       shell: bash
       run: |
         cmake --preset ${{ inputs.preset-name }} ${{ inputs.override-flags }}
-        cmake --build --preset build-${{ inputs.preset-name }}
+        cmake --build --preset build-${{ inputs.preset-name }} --target ${{ inputs.targets }}

@@ -24,10 +24,11 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v3
 
-      - name: Build Khiops
+      - name: Build Khiops test executables
         uses: ./.github/actions/build-khiops
         with:
           preset-name: ${{ matrix.build-setup.cmake-preset }}
+          targets: "norm_test Parallel_test learning_test"
 
       - name: Run Unit Tests for the Norm Module
         if: success() || failure()
@@ -41,13 +42,11 @@ jobs:
         if: success() || failure()
         run: build/${{ matrix.build-setup.cmake-preset }}/bin/learning_test --gtest_output="xml:${{github.workspace}}/reports/report-learning.xml"
 
-      - name: Create Unit Test Report
+      - name: Create Unit Test Reports
         uses: dorny/test-reporter@v1
         if: success() || failure()
         with:
             name: Unit Tests
             path: ${{github.workspace}}/reports/report-*.xml
             reporter: jest-junit
-
-
-
+            path-replace-backslashes: "true"  # Necessary for windows paths
