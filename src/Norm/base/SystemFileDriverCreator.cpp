@@ -31,13 +31,14 @@ int SystemFileDriverCreator::RegisterExternalDrivers()
 	if (oaSystemFileDriver == NULL)
 		oaSystemFileDriver = new ObjectArray;
 
-#ifdef __UNIX__
-	sLibraryPath = "/usr/lib/";
-
-#else
+#ifdef _WIN32
 	sLibraryPath = p_getenv("KHIOPS_HOME");
 	sLibraryPath += "\\bin";
-#endif //__UNIX__
+#elif defined __linux__
+	sLibraryPath = "/usr/lib/";
+#elif defined __APPLE__ // TODO: a verifier
+	sLibraryPath = "/usr/lib/";
+#endif
 	bOk = FileService::GetDirectoryContentExtended(sLibraryPath, &svDirectoryNames, &svFileNames);
 	nExternalDriverNumber = 0;
 	if (bOk)
@@ -264,11 +265,13 @@ longint SystemFileDriverCreator::GetMaxPreferredBufferSize()
 boolean SystemFileDriverCreator::IsKhiopsDriverName(const ALString& sFileName)
 {
 	const ALString sPrefix = "libkhiopsdriver_file_";
-#ifdef __UNIX__
-	const ALString sExtension = "so";
-#else  //__UNIX__
+#ifdef _WIN32
 	const ALString sExtension = "dll";
-#endif //__UNIX__
+#elif defined __linux__
+	const ALString sExtension = "so";
+#elif defined __APPLE__ // TODO: a verifier
+	const ALString sExtension = "dylib";
+#endif
 	ALString sScheme;
 	boolean bOk = true;
 	int i;

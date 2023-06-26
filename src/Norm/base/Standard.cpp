@@ -640,18 +640,6 @@ void _CastFailure(const char* __type, const char* __object, const char* __file, 
 	GlobalExit();
 }
 
-// Pauses for a specified number of milliseconds
-// portage Unix
-#ifndef __UNIX__
-void sleep(clock_t wait)
-{
-	clock_t goal;
-	goal = wait + clock();
-	while (goal > clock())
-		;
-}
-#endif // __UNIX__
-
 // Flag de sortie utilisateur
 //(pour conditionner les traitements enregistres en atexit)
 int nStandardGlobalExit = 0;
@@ -702,11 +690,11 @@ void GlobalExit()
 		}
 
 		// Flush et fermeture de tous les fichiers
-#if defined __UNIX__ or defined __WGPP__
-		fflush(NULL);
-#else
+#ifdef _WIN32
 		_flushall();
 		_fcloseall();
+#else
+		fflush(NULL);
 #endif
 
 		// Sortie fatale (seul exit de toutes)

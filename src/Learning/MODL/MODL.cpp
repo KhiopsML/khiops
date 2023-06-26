@@ -4,8 +4,6 @@
 
 #include "MODL.h"
 
-#ifndef __ANDROID__
-
 int main(int argc, char** argv)
 {
 	MDKhiopsLearningProject learningProject;
@@ -29,10 +27,8 @@ int main(int argc, char** argv)
 	// TaskProgression::SetExternalInterruptionRequestIndex();
 	// TaskProgression::SetInterruptionRequestIndex(75);
 
-	// #define USE_MPI (on passe par les directive de compilation)
-#if defined(USE_MPI)
-	PLParallelTask::UseMPI(GetLearningVersion());
-#endif // defined(USE_MPI)
+	// Parametrage de l'utilisation de MPI
+	UseMPI();
 
 	// Simulation du mode parallele pour le debuggage
 	// PLParallelTask::SetParallelSimulated(true);
@@ -65,5 +61,3 @@ int main(int argc, char** argv)
 	else
 		return EXIT_SUCCESS;
 }
-
-#endif // __ANDROID__

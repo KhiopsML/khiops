@@ -32,7 +32,7 @@ class KWDREncrypt;
 
 #include "KWDerivationRule.h"
 #include "KWDRVector.h"
-#include "Regex.h"
+#include "Regexp.h"
 
 // Enregistrement de ces regles
 void KWDRRegisterStringRules();

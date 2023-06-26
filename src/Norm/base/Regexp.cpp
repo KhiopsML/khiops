@@ -2,10 +2,10 @@
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
-#include "Regex.h"
+#include "Regexp.h"
 
 // Utilisation de la bibliotheque regex uniquement a partir de C++ 11
-#if defined __UNIX__ and not defined __C11__
+#if defined __linux_or_apple__ and not defined __C11__
 #undef __REGEX__
 #else
 // Regex est toujours disponible sous Windows

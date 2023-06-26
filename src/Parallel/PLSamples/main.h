@@ -15,3 +15,8 @@
 #include "PLSharedVector.h"
 #include "PLShared_ResourceRequirement.h"
 #include "PLShared_TaskResourceGrant.h"
+
+#ifdef USE_MPI
+#include "PLMPITaskDriver.h"
+#include "PLMPISystemFileDriverRemote.h"
+#endif // USE_MPI

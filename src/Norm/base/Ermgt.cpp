@@ -320,10 +320,10 @@ boolean Global::SetErrorLogFileName(const ALString& sValue)
 		// Si le fichier de log est /dev/stdout ou /dev/stderr
 		// C'est une redirection des messages vers la console
 		// (on ajoutera un prefix a chaque ligne)
-#ifdef __UNIX__
+#ifdef __linux_or_apple__
 		if (sValue == "/dev/stdout" or sValue == "/dev/stderr")
 			bPrintMessagesInConsole = true;
-#endif // __UNIX__
+#endif
 	}
 	return bOk;
 }

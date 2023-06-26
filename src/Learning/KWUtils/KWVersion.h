@@ -13,6 +13,14 @@
 // Ce code est tricky, en mode quick and dirty
 #define DEPRECATED_V10
 
+// Extraction de la version majeure d'une version complete
+// Par exemple: renvoie 10 pour la version 10.1.4i
+int GetMajorVersion(const ALString& sFullVersion);
+
+// Extraction de la version majeure d'une version complete
+// Par exemple: renvoie 1 pour la version 10.1.4i
+int GetMinorVersion(const ALString& sFullVersion);
+
 //////////////////////////////////////////////////////////////////////////////
 // Gestion des noms d'application, de module et de la version de l'executable
 

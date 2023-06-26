@@ -728,10 +728,10 @@ const char* const KWContinuous::ContinuousToString(Continuous cValue)
 		sBuffer[0] = '0';
 		sBuffer[1] = '\0';
 	}
-#ifdef __UNIX__
-	else if (isnan(cValue))
-#else
+#ifdef _WIN32
 	else if (_isnan(cValue))
+#else
+	else if (isnan(cValue))
 #endif
 	{
 		sBuffer[0] = 'N';
@@ -1609,10 +1609,10 @@ int KWContinuous::StandardStringToContinuousError(const char* const sValue, Cont
 				return ErrorBadEndString;
 		}
 		// Cas du NaN (not a number): traite comme missing
-#ifdef __UNIX__
-		else if (isnan(dValue))
-#else
+#ifdef _WIN32
 		else if (_isnan(dValue))
+#else
+		else if (isnan(dValue))
 #endif
 		{
 			cValue = GetMissingValue();

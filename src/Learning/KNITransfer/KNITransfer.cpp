@@ -8,9 +8,8 @@ int main(int argc, char** argv)
 {
 	KNITransferProject learningProject;
 
-#if defined(USE_MPI)
-	PLParallelTask::UseMPI(GetLearningVersion());
-#endif // defined(USE_MPI)
+	// Parametrage de l'utilisation de MPI
+	UseMPI();
 
 	// MemSetAllocIndexExit(1290133);
 
