@@ -1,6 +1,6 @@
 # On utilise les exceptions seulement pour le fichier Regex.cpp
 if(NOT MSVC)
-  set_source_files_properties(Regex.cpp PROPERTIES COMPILE_FLAGS -fexceptions)
+  set_source_files_properties(Regexp.cpp PROPERTIES COMPILE_FLAGS -fexceptions)
 endif(NOT MSVC)
 
 file(GLOB cppfiles ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)

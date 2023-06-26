@@ -18,7 +18,7 @@
 #include "CharVector.h"
 #include "InputBufferedFile.h"
 #include "OutputBufferedFile.h"
-#include "Regex.h"
+#include "Regexp.h"
 #include "DiversTests.h"
 #include "UITestObject.h"
 #include "UITestObjectView.h"

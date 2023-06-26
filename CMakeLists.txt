@@ -75,8 +75,6 @@ message("\n")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY $<1:${CMAKE_BINARY_DIR}/lib/>)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY $<1:${CMAKE_BINARY_DIR}/lib/>)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY $<1:${CMAKE_BINARY_DIR}/bin/>)
-message(STATUS "CMake generator is: ${CMAKE_GENERATOR}")
-message(STATUS "CMake compiler is: ${CMAKE_CXX_COMPILER_ID}")
 message(STATUS "Executables will be stored in ${CMAKE_BINARY_DIR}/bin/")
 message(STATUS "Libraries will be stored in ${CMAKE_BINARY_DIR}/lib/")
 
@@ -87,9 +85,9 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/packaging")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # CMake doesn't add "-pie" by default for executables (CMake issue #14983)
-if(NOT MSVC)
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
-endif(NOT MSVC)
+if(NOT MSVC OR NOT APPLE)
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pie")
+endif()
 
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN 1)
@@ -97,12 +95,27 @@ set(CMAKE_VISIBILITY_INLINES_HIDDEN 1)
 # Force clang to use RTTI on Debug
 if(CMAKE_BUILD_TYPE EQUAL "Debug")
   set(LLVM_REQUIRES_RTTI 1)
-endif(CMAKE_BUILD_TYPE EQUAL "Debug")
+endif()
 
 # Process dependencies Find MPI if required
 if(MPI)
   find_package(MPI 2.0 REQUIRED)
 endif()
+
+# Set C++ revision globally if required
+if(TESTING)
+  # Google test requires C++14
+  set(CMAKE_CXX_STANDARD 14)
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+elseif(C11)
+  set(CMAKE_CXX_STANDARD 11)
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+endif()
+
+# Message the current C++ configuration
+message(STATUS "CMake generator is: ${CMAKE_GENERATOR}")
+message(STATUS "CMake compiler is: ${CMAKE_CXX_COMPILER_ID}")
+message(STATUS "CMake C++ standard is: ${CMAKE_CXX_STANDARD}")
 
 # On Fedora distros, the binaries compiled with mpi must be located under the mpi location furthermore they have to be
 # suffixed by the name of the mpi implementation. These 2 items are given by MPI_BIN and MPI_SUFFIX when the module
@@ -153,10 +166,6 @@ function(set_khiops_options target)
   target_compile_definitions(${target} PRIVATE UNICODE _UNICODE)
   if(MPI)
     target_compile_definitions(${target} PRIVATE USE_MPI)
-  endif()
-
-  if(C11)
-    target_compile_features(${target} PRIVATE cxx_std_11)
   endif()
 
   target_compile_definitions(${target} PRIVATE $<$<CONFIG:RELEASE>:NDEBUG NOALL>)
@@ -281,19 +290,10 @@ if(LEARNING)
 endif(LEARNING)
 
 if(TESTING)
-  # there are two options for googletest, the recommanded one is Fetch and the simple one is find_package both of them
-  # are successfuly tested on Linux, whe have to test them on windows and mac (TODO) On windows (with visual studio):
-  #
-  # - the git fetch is not working
-  # - we have to defined http_proxy and https_proxy environment variables
-  #
-  # GoogleTest requires at least C++14
-  set(CMAKE_CXX_STANDARD 14)
-  set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
   set(BUILD_GMOCK OFF)
   set(INSTALL_GTEST OFF)
 
+  # Fetch googletest from its Git repo
   include(FetchContent)
   FetchContent_Declare(
     googletest
@@ -313,6 +313,7 @@ if(TESTING)
     set_property(TARGET gtest PROPERTY MSVC_RUNTIME_LIBRARY MultiThreadedDebug)
     set_property(TARGET gtest_main PROPERTY MSVC_RUNTIME_LIBRARY MultiThreadedDebug)
   endif()
+
   include(GoogleTest)
   enable_testing()
 
