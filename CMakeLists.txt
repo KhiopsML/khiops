@@ -78,12 +78,18 @@ if(IS_FEDORA_LIKE)
   if(DEFINED ENV{MPI_BIN})
     set(MPI_BIN $ENV{MPI_BIN})
   else()
-    message(FATAL_ERROR "MPI_BIN is not defined, you have to load the mpi module")
+    message(
+      FATAL_ERROR
+        "MPI_BIN is not defined, you have to load the mpi module (e.g. source /etc/profile.d/modules.sh && module load mpi/mpich-x86_64)"
+    )
   endif(DEFINED ENV{MPI_BIN})
   if(DEFINED ENV{MPI_SUFFIX})
     set(MPI_SUFFIX $ENV{MPI_SUFFIX})
   else()
-    message(FATAL_ERROR "MPI_SUFFIX is not defined, you have to load the mpi module")
+    message(
+      FATAL_ERROR
+        "MPI_SUFFIX is not defined, you have to load the mpi module (e.g. source /etc/profile.d/modules.sh && module load mpi/mpich-x86_64)"
+    )
   endif(DEFINED ENV{MPI_SUFFIX})
 endif(IS_FEDORA_LIKE)
 
@@ -282,7 +288,7 @@ function(display_variables)
   endforeach()
 endfunction()
 
-# Build Norm Parallel and Learning modules
+# Add targets for Norm Parallel and Learning modules
 add_subdirectory(src/Norm)
 add_subdirectory(src/Parallel)
 add_subdirectory(src/Learning)

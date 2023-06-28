@@ -43,7 +43,7 @@ jobs:
 
       - name: Run Unit Tests for the Parallel MPI Module in parallel
         if: success() || failure()
-        run: mpiexec  -n 4 build/${{ matrix.build-setup.cmake-preset }}/bin/parallel_mpi_test --gtest_output="xml:${{github.workspace}}/reports/report-parallel-mpi.xml"
+        run: mpiexec -n 4 build/${{ matrix.build-setup.cmake-preset }}/bin/parallel_mpi_test --gtest_output="xml:${{github.workspace}}/reports/report-parallel-mpi.xml"
 
       - name: Run Unit Tests for the Learning Module
         if: success() || failure()

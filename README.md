@@ -25,7 +25,7 @@ cd build
 cpack -G DEB
 ```
 
-On Fedorra-like distro, the environment module mpi must be loaded before configure, build and package processes:
+On Fedora-like distro, the environment module mpi must be loaded before configure, build and package processes:
 
 ```bash
 source /etc/profile.d/modules.sh
