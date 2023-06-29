@@ -139,10 +139,7 @@ install(
   COMPONENT KHIOPS_CORE)
 
 install(
-  FILES ${PROJECT_SOURCE_DIR}/packaging/common/khiops/doc/KhiopsGuide.pdf
-        ${PROJECT_SOURCE_DIR}/packaging/common/khiops/doc/KhiopsCoclusteringGuide.pdf
-        ${PROJECT_SOURCE_DIR}/packaging/common/khiops/doc/KhiopsTutorial.pdf
-        ${PROJECT_SOURCE_DIR}/packaging/common/khiops/whatsnewV10.0.txt
+  FILES ${PROJECT_SOURCE_DIR}/packaging/common/khiops/whatsnewV10.0.txt
         ${PROJECT_SOURCE_DIR}/packaging/common/khiops/README.txt
   DESTINATION usr/share/doc/khiops
   COMPONENT KHIOPS)
@@ -158,8 +155,3 @@ install(
         ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops-coclustering.desktop
   DESTINATION usr/share/applications
   COMPONENT KHIOPS)
-
-install(
-  DIRECTORY ${PROJECT_SOURCE_DIR}/packaging/common/khiops/samples
-  DESTINATION usr/share/doc/khiops
-  COMPONENT KHIOPS_SAMPLES)

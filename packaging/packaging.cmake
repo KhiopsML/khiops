@@ -32,8 +32,6 @@ dependancies to use Khiops. It is intended to be used on servers : it comes
 without GUI, samples or documentation. The full Khiops distribution is
 available with the 'khiops' package.")
 
-set(CPACK_COMPONENT_KHIOPS_SAMPLES_DESCRIPTION "Examples data for the Khiops tool")
-
 set(CPACK_COMPONENT_KNI_DESCRIPTION
     "Khiops Native Interface
 The purpose of Khiops Native Interface (KNI) is to allow a deep integration of
@@ -75,7 +73,6 @@ set(CPACK_ARCHIVE_KNI_FILE_NAME kni-${CMAKE_PROJECT_VERSION})
 set(CPACK_ARCHIVE_KNI_DOC_FILE_NAME kni-doc-${CMAKE_PROJECT_VERSION})
 set(CPACK_ARCHIVE_KHIOPS_FILE_NAME khiops-${CMAKE_PROJECT_VERSION})
 set(CPACK_ARCHIVE_KHIOPS_CORE_FILE_NAME khiops-core-${CMAKE_PROJECT_VERSION})
-set(CPACK_ARCHIVE_KHIOPS_SAMPLES_FILE_NAME khiops-samples-${CMAKE_PROJECT_VERSION})
 
 # ########### DEB Generator #############################
 
@@ -90,7 +87,6 @@ set(CPACK_DEBIAN_PACKAGE_GENERATE_SHLIBS ON)
 # packages names
 set(CPACK_DEBIAN_KHIOPS_PACKAGE_NAME khiops)
 set(CPACK_DEBIAN_KHIOPS_CORE_PACKAGE_NAME khiops-core)
-set(CPACK_DEBIAN_KHIOPS_SAMPLES_PACKAGE_NAME khiops-samples)
 set(CPACK_DEBIAN_KNI_PACKAGE_NAME kni)
 set(CPACK_DEBIAN_KNI_DOC_PACKAGE_NAME kni-doc)
 
@@ -100,7 +96,6 @@ set(CPACK_DEBIAN_KHIOPS_PACKAGE_DEPENDS "khiops-core (>=10)" "default-jre (>=1.7
 
 # packages recommends
 set(CPACK_DEBIAN_KHIOPS_CORE_PACKAGE_RECOMMENDS khiops khiops-samples khiops-visualization)
-set(CPACK_DEBIAN_KHIOPS_SAMPLES_PACKAGE_RECOMMENDS khiops-core khiops khiops-visualization)
 set(CPACK_DEBIAN_KHIOPS_KNI_RECOMMENDS¶ kni-doc)
 
 # packages posinst and triggers
@@ -123,7 +118,6 @@ set(CPACK_RPM_KHIOPS_PACKAGE_AUTOREQ ON)
 # packages names
 set(CPACK_RPM_KHIOPS_PACKAGE_NAME khiops)
 set(CPACK_RPM_KHIOPS_CORE_PACKAGE_NAME khiops-core)
-set(CPACK_RPM_KHIOPS_SAMPLES_PACKAGE_NAME khiops-samples)
 set(CPACK_RPM_KNI_PACKAGE_NAME kni)
 set(CPACK_RPM_KNI_DOC_PACKAGE_NAME kni-doc)
 
@@ -133,7 +127,6 @@ set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
 # packages summary
 set(CPACK_RPM_KHIOPS_PACKAGE_SUMMARY "Khiops tools")
 set(CPACK_RPM_KHIOPS_CORE_PACKAGE_SUMMARY "Khiops tools (core)")
-set(CPACK_RPM_KHIOPS_SAMPLES_PACKAGE_SUMMARY "Examples data for the Khiops tool")
 set(CPACK_RPM_KNI_PACKAGE_SUMMARY "Khiops Native Interface")
 set(CPACK_RPM_KNI_DOC_PACKAGE_SUMMARY "Khiops Native Interface documentation")
 
@@ -142,7 +135,6 @@ set(CPACK_RPM_KHIOPS_PACKAGE_REQUIRES "khiops-core = ${CMAKE_PROJECT_VERSION}")
 set(CPACK_RPM_KHIOPS_PACKAGE_REQUIRES "khiops-samples = ${CMAKE_PROJECT_VERSION}")
 set(CPACK_RPM_KHIOPS_PACKAGE_REQUIRES "java-11-openjdk")
 set(CPACK_RPM_KHIOPS_CORE_PACKAGE_REQUIRES "util-linux")
-set(CPACK_RPM_KHIOPS_SAMPLES_PACKAGE_REQUIRES "util-linux")
 
 # packages post/postun install scripts
 set(CPACK_RPM_KHIOPS_CORE_POST_INSTALL_SCRIPT_FILE "${PROJECT_SOURCE_DIR}/packaging/linux/redhat/khiops-core.post")
