@@ -25,13 +25,13 @@ cd build
 cpack -G DEB
 ```
 
-On Fedorra-like distro, whe have to set `FEDORA` to `ON` to configure the cmake project. Moreover, the environment module mpi must be loaded before configure, build and package processes:
+On Fedora-like distro, the environment module mpi must be loaded before configure, build and package processes:
 
 ```bash
 source /etc/profile.d/modules.sh
 module load mpi/mpich-x86_64
 mkdir build && cd build
-cmake -B . -S .. -DMPI=ON -DFULL=OFF -DBUILD_JARS=ON -DTESTING=OFF -DCMAKE_BUILD_TYPE=Release -DFEDORA=ON
+cmake -B . -S .. -DMPI=ON -DFULL=OFF -DBUILD_JARS=ON -DTESTING=OFF -DCMAKE_BUILD_TYPE=Release
 cmake --build . --parallel
 cpack -G RPM
 ```

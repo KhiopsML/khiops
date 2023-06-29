@@ -4,8 +4,6 @@
 
 #pragma once
 
-#ifdef __ANDROID__
-
 /* Use of C linkage from C++ */
 #ifdef __cplusplus
 extern "C"
@@ -39,11 +37,6 @@ extern "C"
 	/*
 	 * Get version of Khiops
 	 * Enable to check the version of the DLL
-	 *
-	 * Success return code:
-	 *    0
-	 * Failure return code:
-	 *    1
 	 */
 	KHIOPS_API int GetVersion();
 
@@ -52,10 +45,8 @@ extern "C"
 	 * this si similar to "khiops -b -i  sInputScenario -e sLogFileName -t sTaskFileName"
 	 * The parameter sTaskFileName can be an empty string, in this case, khiops is launch without the "-t" flag
 	 *
-	 * Success return code:
-	 *    0
-	 * Failure return code:
-	 *    1
+	 * Success return code: 0
+	 * Failure return code: 1
 	 */
 	KHIOPS_API int StartKhiops(const char* sInputScenario, const char* sLogFileName, const char* sTaskFileName);
 
@@ -63,5 +54,3 @@ extern "C"
 #ifdef __cplusplus
 } /* extern "C" */
 #endif /* __cplusplus */
-
-#endif // __ANDROID__

@@ -3,9 +3,6 @@ name: Create RPM package
 on:
   workflow_dispatch:
 
-env:
-  BUILD_TYPE: Release
-
 jobs:
   package-rpm:
     runs-on: ubuntu-latest
@@ -32,10 +29,11 @@ jobs:
       run:  |
         source /etc/profile.d/modules.sh
         module load mpi/mpich-x86_64
-        cmake -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DMPI=ON -DTESTING=OFF -DFULL=OFF -DBUILD_JARS=ON -DFEDORA=ON
+        echo "MPI_SUFFIX=$MPI_SUFFIX" >> "$GITHUB_ENV"
+        cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -DTESTING=OFF -DBUILD_JARS=ON -DFEDORA=ON
 
     - name: Build
-      run: time cmake --build build --parallel
+      run: cmake --build build --parallel --target MODL${{ env.MPI_SUFFIX }} MODL_Coclustering KhiopsNativeInterface
     
     - name: Pack
       run: cd build && cpack -G RPM

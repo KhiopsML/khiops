@@ -12,15 +12,10 @@
             "description": "Khiops default build options",
             "cacheVariables": {
                 "MPI": "ON",
-                "LEARNING": "ON",
-                "PARALLEL": "ON",
                 "TESTING": "ON",
                 "BUILD_JARS": "ON",
                 "BUILD_LEX_YACC": "OFF",
-                "C11": "ON",
-                "FULL": "ON",
-                "FEDORA": "OFF",
-                "MODL_SO": "OFF"
+                "C11": "ON"
             },
             "binaryDir": "${sourceDir}/build/${presetName}"
         },
@@ -215,44 +210,78 @@
     ],
     "buildPresets": [
         {
-            "name": "build-linux-clang-debug",
+            "name": "linux-clang-debug",
             "displayName": "Linux Clang Debug",
-            "configurePreset": "linux-clang-debug"
+            "configurePreset": "linux-clang-debug",
+            "jobs": 0
         },
         {
-            "name": "build-linux-clang-release",
+            "name": "linux-clang-release",
             "displayName": "Linux Clang Release",
-            "configurePreset": "linux-clang-release"
+            "configurePreset": "linux-clang-release",
+            "jobs": 0
         },
         {
-            "name": "build-linux-gcc-debug",
+            "name": "linux-gcc-debug",
             "displayName": "Linux GCC Debug",
+            "configurePreset": "linux-gcc-debug",
+            "jobs": 0
+        },
+        {
+            "name": "linux-gcc-release",
+            "displayName": "Linux GCC Release",
+            "configurePreset": "linux-gcc-release",
+            "jobs": 0
+        },
+        {
+            "name": "windows-msvc-debug",
+            "displayName": "Windows MSVC Debug",
+            "configurePreset": "windows-msvc-debug",
+            "jobs": 0
+        },
+        {
+            "name": "windows-msvc-release",
+            "displayName": "Windows MSVC Release",
+            "configurePreset": "windows-msvc-release",
+            "jobs": 0
+        },
+        {
+            "name": "macos-clang-debug",
+            "displayName": "macOS Clang Debug",
+            "configurePreset": "macos-clang-debug",
+            "jobs": 0
+        },
+        {
+            "name": "macos-clang-release",
+            "displayName": "macOS Clang Release",
+            "configurePreset": "macos-clang-release",
+            "jobs": 0
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "linux-gcc-debug",
             "configurePreset": "linux-gcc-debug"
         },
         {
-            "name": "build-linux-gcc-release",
-            "displayName": "Linux GCC Release",
+            "name": "linux-gcc-release",
             "configurePreset": "linux-gcc-release"
         },
         {
-            "name": "build-windows-msvc-debug",
-            "displayName": "Windows MSVC Debug",
-            "configurePreset": "windows-msvc-debug"
-        },
-        {
-            "name": "build-windows-msvc-release",
-            "displayName": "Windows MSVC Release",
-            "configurePreset": "windows-msvc-release"
-        },
-        {
-            "name": "build-macos-clang-debug",
-            "displayName": "macOS Clang Debug",
+            "name": "macos-clang-debug",
             "configurePreset": "macos-clang-debug"
         },
         {
-            "name": "build-macos-clang-release",
-            "displayName": "macOS Clang Release",
+            "name": "macos-clang-release",
             "configurePreset": "macos-clang-release"
+        },
+        {
+            "name": "windows-msvc-debug",
+            "configurePreset": "windows-msvc-debug"
+        },
+        {
+            "name": "windows-msvc-release",
+            "configurePreset": "windows-msvc-release"
         }
     ]
 }

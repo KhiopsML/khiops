@@ -27,4 +27,4 @@ runs:
       shell: bash
       run: |
         cmake --preset ${{ inputs.preset-name }} ${{ inputs.override-flags }}
-        cmake --build --parallel --preset build-${{ inputs.preset-name }} --target ${{ inputs.targets }}
+        cmake --build --parallel --preset ${{ inputs.preset-name }} --target ${{ inputs.targets }}
