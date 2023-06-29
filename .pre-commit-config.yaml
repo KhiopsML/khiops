@@ -9,3 +9,10 @@ repos:
     rev: v0.6.13
     hooks:
       - id: cmake-format
+  - repo: local
+    hooks:
+      - id: update-copyright
+        name: update-copyright
+        entry: python scripts/update-copyright.py
+        language: system
+        types_or: [c, c++, java]
