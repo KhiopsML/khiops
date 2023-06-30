@@ -3,7 +3,6 @@
 # Echo all output
 set -x
 
-
 # The binary location depends on the preset name used at the configure step (Cf. build.sh)
 if [ "$(uname)" == "Darwin" ]
 then
