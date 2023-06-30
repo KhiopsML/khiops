@@ -1189,12 +1189,14 @@ JNIEnv* UIObject::GraphicGetJNIEnv()
 	ALString sTmp;
 	static boolean bGraphicIsLoaded = false;
 
-#ifdef __APPLE__
-	Global::AddFatalError("Java", "GUI", "Java GUI is not available on MacOS");
-#endif
-
 	cls = 0;
+
+#ifdef __APPLE__
+	Global::AddError("Java", "GUI", "Java GUI is not available on MacOS");
+	env = NULL;
+#else
 	env = GetJNIEnv();
+#endif
 
 	if (env != NULL and not bGraphicIsLoaded)
 	{

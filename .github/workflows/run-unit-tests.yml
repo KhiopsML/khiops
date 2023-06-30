@@ -37,13 +37,17 @@ jobs:
         if: success() || failure()
         run: build/${{ matrix.build-setup.cmake-preset }}/bin/norm_test --gtest_output="xml:${{github.workspace}}/reports/report-norm.xml"
 
-      - name: Run Unit Tests for the Parallel MPI Module in serial
+      - name: Run Unit Tests for the Parallel Module 
         if: success() || failure()
         run: build/${{ matrix.build-setup.cmake-preset }}/bin/parallel_test --gtest_output="xml:${{github.workspace}}/reports/report-parallel.xml"
 
+      - name: Run Unit Tests for the Parallel MPI Module in serial
+        if: success() || failure()
+        run: build/${{ matrix.build-setup.cmake-preset }}/bin/parallel_mpi_test --gtest_output="xml:${{github.workspace}}/reports/report-parallel-mpi-serial.xml"
+
       - name: Run Unit Tests for the Parallel MPI Module in parallel
         if: success() || failure()
-        run: mpiexec -n 4 build/${{ matrix.build-setup.cmake-preset }}/bin/parallel_mpi_test --gtest_output="xml:${{github.workspace}}/reports/report-parallel-mpi.xml"
+        run: mpiexec -n 4 build/${{ matrix.build-setup.cmake-preset }}/bin/parallel_mpi_test --gtest_output="xml:${{github.workspace}}/reports/report-parallel-mpi-parallel.xml"
 
       - name: Run Unit Tests for the Learning Module
         if: success() || failure()

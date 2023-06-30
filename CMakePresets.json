@@ -212,50 +212,42 @@
         {
             "name": "linux-clang-debug",
             "displayName": "Linux Clang Debug",
-            "configurePreset": "linux-clang-debug",
-            "jobs": 0
+            "configurePreset": "linux-clang-debug"
         },
         {
             "name": "linux-clang-release",
             "displayName": "Linux Clang Release",
-            "configurePreset": "linux-clang-release",
-            "jobs": 0
+            "configurePreset": "linux-clang-release"
         },
         {
             "name": "linux-gcc-debug",
             "displayName": "Linux GCC Debug",
-            "configurePreset": "linux-gcc-debug",
-            "jobs": 0
+            "configurePreset": "linux-gcc-debug"
         },
         {
             "name": "linux-gcc-release",
             "displayName": "Linux GCC Release",
-            "configurePreset": "linux-gcc-release",
-            "jobs": 0
+            "configurePreset": "linux-gcc-release"
         },
         {
             "name": "windows-msvc-debug",
             "displayName": "Windows MSVC Debug",
-            "configurePreset": "windows-msvc-debug",
-            "jobs": 0
+            "configurePreset": "windows-msvc-debug"
         },
         {
             "name": "windows-msvc-release",
             "displayName": "Windows MSVC Release",
-            "configurePreset": "windows-msvc-release",
-            "jobs": 0
+            "configurePreset": "windows-msvc-release"
         },
         {
             "name": "macos-clang-debug",
             "displayName": "macOS Clang Debug",
-            "configurePreset": "macos-clang-debug",
-            "jobs": 0
+            "configurePreset": "macos-clang-debug"
         },
         {
             "name": "macos-clang-release",
             "displayName": "macOS Clang Release",
-            "configurePreset": "macos-clang-release",
-            "jobs": 0
+            "configurePreset": "macos-clang-release"
         }
     ],
     "testPresets": [
