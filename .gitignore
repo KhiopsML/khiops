@@ -5,6 +5,9 @@
 .vs/
 .vscode/
 
+# CMake User Preset
+CMakeUserPresets.json
+
 # Build directory
 build/
 
