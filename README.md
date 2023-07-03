@@ -17,7 +17,7 @@ The different packages are built with cpack. The used generators are:
 - DEB for debian
 - ZIP for KNI on windows
 - RPM for redhat
-  
+
 Run the following command to launch the packaging. The resulting packages are located on `build/packages`.
 
 ```bash
