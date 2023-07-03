@@ -23,14 +23,13 @@ jobs:
         echo "ID=$ID" >> "$GITHUB_ENV"
         echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
        
-
     - name: Configure CMake
       run: cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -DMPI=ON -DTESTING=OFF -DBUILD_JARS=ON
 
-    - name: Build
+    - name: Build Khiops executables
       run: cmake --build ${{github.workspace}}/build --parallel --target MODL MODL_Coclustering KhiopsNativeInterface
     
-    - name: Pack
+    - name: Build package with CPack
       run: cd ${{github.workspace}}/build && cpack -G DEB
     
     - name: Upload artifacts
