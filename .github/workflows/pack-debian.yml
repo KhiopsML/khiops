@@ -1,40 +1,33 @@
+---
 name: Create Debian package
-
 on:
   workflow_dispatch:
-
 jobs:
   package:
     strategy:
       matrix:
         os: [ubuntu-22.04, ubuntu-20.04]
     runs-on: ${{ matrix.os }}
-
     steps:
-    - uses: actions/checkout@v3
-
-    - name: install dependencies
-      run: |
-        sudo apt-get -y --no-install-recommends install libmpich-dev  
-
-    - name : set environment variables
-      run : |
-        source /etc/os-release 
-        echo "ID=$ID" >> "$GITHUB_ENV"
-        echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
-       
-    - name: Configure CMake
-      run: cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -DMPI=ON -DTESTING=OFF -DBUILD_JARS=ON
-
-    - name: Build Khiops executables
-      run: cmake --build ${{github.workspace}}/build --parallel --target MODL MODL_Coclustering KhiopsNativeInterface
-    
-    - name: Build package with CPack
-      run: cd ${{github.workspace}}/build && cpack -G DEB
-    
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v3
-      with:
-        name: ${{ env.ID }}-${{ env.VERSION_CODENAME }}
-        path: build/packages/*.deb
-
+      - uses: actions/checkout@v3
+      - name: install dependencies
+        run: |
+          sudo apt-get -y --no-install-recommends install libmpich-dev  
+      - name: set environment variables
+        run: |
+          source /etc/os-release 
+          echo "ID=$ID" >> "$GITHUB_ENV"
+          echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
+      - name: Configure CMake
+        run: cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -DMPI=ON -DTESTING=OFF
+          -DBUILD_JARS=ON
+      - name: Build Khiops executables
+        run: cmake --build ${{github.workspace}}/build --parallel --target MODL MODL_Coclustering
+          KhiopsNativeInterface
+      - name: Build package with CPack
+        run: cd ${{github.workspace}}/build && cpack -G DEB
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.ID }}-${{ env.VERSION_CODENAME }}
+          path: build/packages/*.deb

@@ -47,7 +47,7 @@
   - [11.3. La mise au point : en séquentiel, le test : en parallèle simulé](#113-la-mise-au-point-en-séquentiel-le-test-en-parallèle-simulé)
   - [11.4. Enregistrement des variables partagées](#114-enregistrement-des-variables-partagées)
   - [11.5. Enregistrement des nouvelles tâches](#115-enregistrement-des-nouvelles-tâches)
-  
+
 
 <div style="page-break-after: always;"></div>
 
@@ -63,11 +63,11 @@ La bibliothèque parallèle utilise MPI, MPI pour Message Passing Interface est 
 - Toutes les variables du programme sont privées et sont stockées dans la mémoire locale de chaque processus.
 - Une variable est échangée entre 2 processus à travers l’appel d’une fonction.
 
-MPI est un framework pérenne, stable et mature. En effet, la première version de la norme date de 1993 ; il y a eu 2 nouvelles versions depuis, en 1997 et en 2012. Chaque version ajoute des fonctionnalités et de nouveaux concepts mais l’API ne change pas. Un programme écrit en 1994 compile toujours avec les bibliothèques de MPI-3. MPI est implémentée en C, C++ et Fortran dans de nombreuses bibliothèques et sur la quasi-totalité des plateformes (machines multi-cœurs, cluster de machines et supercalculateurs massivement parallèles). Nous utilisons deux implémentations de MPI : MPICH pour Linux et MS-MPI pour Windows. 
+MPI est un framework pérenne, stable et mature. En effet, la première version de la norme date de 1993 ; il y a eu 2 nouvelles versions depuis, en 1997 et en 2012. Chaque version ajoute des fonctionnalités et de nouveaux concepts mais l’API ne change pas. Un programme écrit en 1994 compile toujours avec les bibliothèques de MPI-3. MPI est implémentée en C, C++ et Fortran dans de nombreuses bibliothèques et sur la quasi-totalité des plateformes (machines multi-cœurs, cluster de machines et supercalculateurs massivement parallèles). Nous utilisons deux implémentations de MPI : MPICH pour Linux et MS-MPI pour Windows.
 Dans tous les programmes MPI, ce sont plusieurs instances du même programme qui sont lancées simultanément. A chaque instance du programme, MPI assigne un rang différent. Un programme MPI typique commence par un test sur le rang afin de déterminer son rôle,  maître ou esclave.
 
 ```
-si rang == 0 
+si rang == 0
 alors
     Implémentation du maître
 sinon
@@ -126,9 +126,9 @@ C’est le même code « utilisateur » qui est appelé en séquentiel et en p
 ### 3.1.1. Le mode parallèle simulé
 
 La bibliothèque propose en plus un mode « parallèle simulé », dans ce mode le programme est exécuté dans un seul processus. Contrairement au mode séquentiel, l’objectif n’est pas d’être le plus léger possible mais d’être le plus proche du code parallèle sans utilisé MPI. Pour exécuter le programme avec ce mode il faut ajouter l’instruction suivante au début du programme :
-```cpp 
+```cpp
 PLParallelTask::SetParallelSimulated(true);
-``` 
+```
 Si le programme s’exécute correctement dans le mode parallèle simulé, il s’exécutera correctement en parallèle.
 
 ### 3.1.2. Retour de fonctions
@@ -324,7 +324,7 @@ KWShared_City shared_capital;
     serializer->PutString(name);
     serializer->PutString(population);
 
-    // La serialisation de la capitale est sous-traitée	
+    // La serialisation de la capitale est sous-traitée
     shared_capital.AddToSerializer(serializer, capital);
 
 }
@@ -352,7 +352,7 @@ static double SerialPi()
  double step = 1.0 / (double)num_steps;
  for (int i = 0; i < num_steps; i++)
  {
-  double x = (i + 0.5) * step; 
+  double x = (i + 0.5) * step;
   sum = sum + 4.0 / (1.0 + x * x);
  }
  return step * sum;
