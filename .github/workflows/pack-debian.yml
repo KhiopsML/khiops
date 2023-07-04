@@ -2,6 +2,8 @@
 name: Create Debian package
 on:
   workflow_dispatch:
+  push:
+    branches: [39-add-learningtest-lite-to-the-repo]
 jobs:
   package:
     strategy:
@@ -9,11 +11,12 @@ jobs:
         os: [ubuntu-22.04, ubuntu-20.04]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
-      - name: install dependencies
+      - name: Checkout sources
+        uses: actions/checkout@v3
+      - name: Install dependencies
         run: |
           sudo apt-get -y --no-install-recommends install libmpich-dev  
-      - name: set environment variables
+      - name: Set environment variables
         run: |
           source /etc/os-release 
           echo "ID=$ID" >> "$GITHUB_ENV"
@@ -31,3 +34,31 @@ jobs:
         with:
           name: ${{ env.ID }}-${{ env.VERSION_CODENAME }}
           path: build/packages/*.deb
+  test:
+    needs: package
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-20.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+      - name: Set environment variables
+        run: |
+          source /etc/os-release 
+          echo "ID=$ID" >> "$GITHUB_ENV"
+          echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.ID }}-${{ env.VERSION_CODENAME }}
+          path: artifacts
+      - name: Install Khiops
+        run: |
+          sudo apt-get -y install ./artifacts/khiops-core*
+          sudo apt-get -y install ./artifacts/khiops_*
+          sudo apt-get -f install
+      - name: Run Khiops
+        run: |-
+          khiops -s
+          khiops_coclustering -s

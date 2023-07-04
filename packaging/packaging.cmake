@@ -92,11 +92,11 @@ set(CPACK_DEBIAN_KNI_DOC_PACKAGE_NAME kni-doc)
 
 # packages depends
 set(CPACK_DEBIAN_KHIOPS_CORE_DEPENDS "mpich (>= 3.0)")
-set(CPACK_DEBIAN_KHIOPS_PACKAGE_DEPENDS "khiops-core (>=10)" "default-jre (>=1.7)")
+set(CPACK_DEBIAN_KHIOPS_PACKAGE_DEPENDS "khiops-core (>=${CMAKE_PROJECT_VERSION}), default-jre (>=1.7)")
 
 # packages recommends
-set(CPACK_DEBIAN_KHIOPS_CORE_PACKAGE_RECOMMENDS khiops khiops-samples khiops-visualization)
-set(CPACK_DEBIAN_KHIOPS_KNI_RECOMMENDS¶ kni-doc)
+set(CPACK_DEBIAN_KHIOPS_CORE_PACKAGE_RECOMMENDS "khiops, khiops-visualization")
+set(CPACK_DEBIAN_KHIOPS_KNI_RECOMMENDS kni-doc)
 
 # packages posinst and triggers
 set(CPACK_DEBIAN_KHIOPS_PACKAGE_CONTROL_EXTRA "${PROJECT_SOURCE_DIR}/packaging/linux/debian/khiops/postinst")

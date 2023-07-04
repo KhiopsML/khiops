@@ -12,7 +12,8 @@ jobs:
     container:
       image: ghcr.io/khiopsml/khiops/${{ matrix.os }}:latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout sources
+        uses: actions/checkout@v3
       - name: set environment variables
         run: |
           source /etc/os-release 
