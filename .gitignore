@@ -19,3 +19,8 @@ test/*/results/
 LearningTest/*/*/*/results/
 LearningTest/*/*/*/results.ref/time.log
 
+# LearningTest 
+results/
+__pycache__/
+comparisonResults.log
+
