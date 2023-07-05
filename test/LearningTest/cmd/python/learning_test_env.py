@@ -57,7 +57,11 @@ def load_learning_test_config():
     # Analyse key value pairs
     if ok:
         for n, line in enumerate(lines):
-            line = line[:-1]
+            line = line.strip()
+            # Skip comment lines or empty lines
+            if len(line) == 0 or line.find("#") == 0:
+                continue
+            # Split key=value pair
             fields = line.split("=")
             # Test syntax
             if len(fields) != 2:
@@ -99,23 +103,13 @@ def load_learning_test_config():
                     break
                 else:
                     config_dic[fields[0]] = fields[1]
-    # Test that all keys are present
+    # Fill missing keys with empty values, the as when the config file is missing
     if ok:
         if len(learning_test_config_keys) != len(config_dic):
             missing_keys = ""
             for key in learning_test_config_keys:
                 if not key in config_dic:
-                    if missing_keys != "":
-                        missing_keys += ", "
-                    missing_keys += key
-            print(
-                "error in config file "
-                + learning_test_config_file_name
-                + ": missing keys ("
-                + missing_keys
-                + ")"
-            )
-            ok = False
+                    config_dic[key] = ""
     # Return if ok
     if ok:
         return config_dic
@@ -125,9 +119,9 @@ def load_learning_test_config():
         print(
             "The config file "
             + learning_test_config_file_name
-            + " must be in directory "
-            + containing_dir_path
+            + " must be in directory LearningTest\cmd\python"
         )
+        print("It is optional, in which case all keys are set to empty")
         print(
             "It contains the following key=value pairs that allows a personnalisation of the environment:"
         )

@@ -91,7 +91,7 @@ set(CPACK_DEBIAN_KNI_PACKAGE_NAME kni)
 set(CPACK_DEBIAN_KNI_DOC_PACKAGE_NAME kni-doc)
 
 # packages depends
-set(CPACK_DEBIAN_KHIOPS_CORE_DEPENDS "mpich (>= 3.0)")
+set(CPACK_DEBIAN_KHIOPS_CORE_PACKAGE_DEPENDS "mpich (>= 3.0)")
 set(CPACK_DEBIAN_KHIOPS_PACKAGE_DEPENDS "khiops-core (>=${CMAKE_PROJECT_VERSION}), default-jre (>=1.7)")
 
 # packages recommends

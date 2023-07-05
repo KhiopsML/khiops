@@ -34,6 +34,8 @@ jobs:
         with:
           name: ${{ env.ID }}-${{ env.VERSION_CODENAME }}
           path: build/packages/*.deb
+  # Test packages on a brand new runner: we want to check the installation process (with the dependencies installation)
+  # and the Khiops execution on a simple dataset
   test:
     needs: package
     strategy:
@@ -53,12 +55,43 @@ jobs:
         with:
           name: ${{ env.ID }}-${{ env.VERSION_CODENAME }}
           path: artifacts
-      - name: Install Khiops
+      - name: Install Khiops core
         run: |
-          sudo apt-get -y install ./artifacts/khiops-core*
-          sudo apt-get -y install ./artifacts/khiops_*
+          sudo apt-get update
+          sudo dpkg -i ./artifacts/khiops-core* || true
           sudo apt-get -f install
-      - name: Run Khiops
+      - name: Check Khiops core installation
+        run: |
+          khiops -v
+          khiops_coclustering -v
+      - name: Install Khiops (with java)
+        run: |
+          dpkg -i ./khiops_10.1.4_amd64.deb || true
+          sudo apt-get -f install
+      - name: Check Khiops installation
+        run: |
+          khiops -v
+          khiops_coclustering -v
+      - name: Run Khiops tests
+        run: |
+          cd test/LearningTest/TestKhiops/Standard/Iris/
+          khiops -b -i test.prm -e results/err.txt
+          cd -
+      - name: Run Khiops Coclustering tests
+        run: |
+          cd test/LearningTest/TestCoclustering/Standard/Iris/
+          khiops_coclustering -b -i test.prm -e results/err.txt
+          cd -
+      - name: Check results
         run: |-
-          khiops -s
-          khiops_coclustering -s
+          touch test/LearningTest/TestCoclustering/Standard/Iris/results/time.log
+          touch test/LearningTest/TestKhiops/Standard/Iris/results/time.log
+          cd test/LearningTest/cmd/python/
+          python test_khiops.py Khiops nul Standard
+          python test_khiops.py Coclustering nul Standard
+          python apply_command.py errors ../../TestKhiops/Standard/ | tee /tmp/khiops-log.txt
+          python apply_command.py errors ../../TestCoclustering/Standard/ | tee /tmp/coclustering-log.txt
+          if (grep -q error /tmp/khiops-log.txt || grep -q error /tmp/coclustering-log.txt); then
+            echo "::error::Errors in Khiops run"
+            false
+          fi
