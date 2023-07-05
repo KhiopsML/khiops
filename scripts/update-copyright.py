@@ -28,21 +28,23 @@ def update_copyright(file_path):
 
     # Read the lines from the source file
     with open(file_path, "rb") as file:
-        lines = file.read().split(byte_linesep)
+        lines = file.readlines()
 
     # Then write the file as-is
     skipped_copyright = False
     with open(file_path, "wb") as file:
-        # Write the current copyright
+        # Write the current copyright, followed by an empty line
         for line in copyright_banner_lines:
             file.write(line)
             file.write(byte_linesep)
+        file.write(byte_linesep)
 
         # Rewrite the file as follows
         # - Skip the old copyright
         # - Write the rest of the lines, the last one without newline
         line_number = len(lines)
         for n, line in enumerate(lines):
+            line = line.rstrip()
             if (
                 line.startswith(b"// Copyright (c)")
                 or line.startswith(b"// This software is distributed")
@@ -51,7 +53,11 @@ def update_copyright(file_path):
                 continue
             else:
                 if not skipped_copyright:
-                    skipped_copyright = True
+                    # Skip head empty lines
+                    if len(line) == 0:
+                        continue
+                    else:
+                        skipped_copyright = True
                 file.write(line)
                 if n < line_number - 1:
                     file.write(byte_linesep)
