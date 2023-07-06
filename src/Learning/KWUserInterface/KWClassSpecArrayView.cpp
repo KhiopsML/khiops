@@ -26,8 +26,8 @@ KWClassSpecArrayView::KWClassSpecArrayView()
 
 	// ## Custom constructor
 
-	// La visualisation du parametre Root n'est disponible qu'en mode multitables
-	GetFieldAt("Root")->SetVisible(GetLearningMultiTableMode());
+	// Specialisation de la methode d'inspection, pour perdonnaliser les warning
+	GetActionAt("InspectItem")->SetActionMethod((ActionMethod)(&KWClassSpecArrayView::ActionInspectItem));
 
 	// La cle n'est pas visible en mode tableau
 	GetFieldAt("Key")->SetVisible(false);
@@ -96,5 +96,18 @@ const ALString KWClassSpecArrayView::GetClassLabel() const
 }
 
 // ## Method implementation
+
+void KWClassSpecArrayView::ActionInspectItem()
+{
+	// Warning si aucun item n'est selectionne
+	if (GetSelectedItemIndex() == -1 and GetItemNumber() > 0)
+	{
+		// On passe par Global pour avoir un warning simple
+		Global::AddWarning("", "", "Click in the list to select the dictionary to inspect");
+	}
+	// Sinon, inspection en appelant l'implementation de la classe ancetre
+	else
+		UIObjectArrayView::ActionInspectItem();
+}
 
 // ##

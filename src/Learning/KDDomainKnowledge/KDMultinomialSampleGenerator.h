@@ -166,6 +166,9 @@ protected:
 	// Verification d'un vecteur de proba
 	// Si bComplete=false, la somme des proba doit seulement etre plus petite que 1
 	boolean InternalCheckProbVector(const DoubleVector* dvProbs, boolean bComplete) const;
+
+	// Graine pour l'appel du generateur aleatoire IthRandomDouble, pour assurer la reporudctibilite des resultats
+	mutable longint lRankedRandomSeed;
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////

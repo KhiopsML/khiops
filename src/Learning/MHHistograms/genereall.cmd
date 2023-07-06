@@ -1,3 +1,5 @@
 @echo off
 
-genere -noarrayview MHHistogramSpec "Histogram parameters" MHHistogramSpec.dd
+echo. > genere.log
+
+genere -noarrayview MHHistogramSpec "Histogram parameters" MHHistogramSpec.dd >> genere.log

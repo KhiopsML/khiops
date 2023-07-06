@@ -1085,7 +1085,7 @@ int KWContinuous::StringToContinuousError(const char* const sValue, Continuous& 
 
 		// On saute les blancs initiaux
 		nOffset = 0;
-		while (isspace(sValue[nOffset]))
+		while (iswspace(sValue[nOffset]))
 			nOffset++;
 
 		// Analyse du signe optionnel

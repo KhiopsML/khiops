@@ -7,13 +7,13 @@
 #include "UserInterface.h"
 #include "KWLearningSpec.h"
 #include "RMResourceSystem.h"
+#include "KWResultFilePathBuilder.h"
 #include "KWVersion.h"
 
 ////////////////////////////////////////////////////////////
 // Classe KWSystemParametersView
 //    System parameters
 // Editeur des parametres systemes suivants (variables statiques):
-//    KWLearningSpec::MaxModalityNumber
 //    RMResourceConstraints::OptimizationTime
 //    RMResourceConstraints::MemoryLimit
 //    RMResourceConstraints::nMaxCoreNumber

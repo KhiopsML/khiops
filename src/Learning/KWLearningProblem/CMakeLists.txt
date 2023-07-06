@@ -16,4 +16,5 @@ target_link_libraries(
          KWDRRuleLibrary
          KWDataPreparation
          KWUserInterface
-         SNBPredictor)
+         SNBPredictor
+         MHHistograms)

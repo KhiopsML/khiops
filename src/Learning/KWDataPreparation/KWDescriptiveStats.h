@@ -7,13 +7,14 @@
 class KWDescriptiveStats;
 class KWDescriptiveContinuousStats;
 class KWDescriptiveSymbolStats;
+class PLShared_DescriptiveStats;
 class PLShared_DescriptiveContinuousStats;
 class PLShared_DescriptiveSymbolStats;
 
 #include "KWLearningReport.h"
 #include "PLSharedObject.h"
 
-///////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 // Classe KWDescriptiveStats
 // Service generique de calcul des statistiques descriptives d'un attribut
 class KWDescriptiveStats : public KWLearningReport
@@ -27,16 +28,28 @@ public:
 	void SetAttributeName(const ALString& sValue);
 	const ALString& GetAttributeName() const;
 
-	// Nombre de valeurs differentes
-	int GetValueNumber() const;
+	// (Re)Initialisation des statistiques descriptives
+	virtual void Init();
 
 	// Dans cette classe et ses sous-classe, la methode ComputeStats doit etre appelee
 	// avec une table de tuples ayant l'attribut courant en premier
-	boolean ComputeStats() final;
-	virtual boolean ComputeStats(const KWTupleTable* tupleTable) = 0;
+	// Donc on marque le ComputeStats herite de KWLearningReport comme `final` et on le fait planter
+	// avec des assert(false)
+	boolean ComputeStats() override final;
+	virtual boolean ComputeStats(const KWTupleTable* tupleTable);
 
-	// (Re)Initialisation des statistiques descriptives
-	virtual void Init();
+	/////////////////////////////////////////////////////
+	// Acces aux statistiques calculees
+	// Accessible uniquement si statistiques calculees
+
+	// Nombre de valeurs differentes
+	int GetValueNumber() const;
+
+	// Nombre des valeurs manquantes
+	int GetMissingValueNumber() const;
+
+	// Nombre des valeurs sparse manquantes
+	int GetSparseMissingValueNumber() const;
 
 	// Duplication
 	virtual KWDescriptiveStats* Clone() const = 0;
@@ -51,10 +64,14 @@ protected:
 	// Attributs
 	ALString sAttributeName;
 	int nValueNumber;
+	int nMissingValueNumber;
+	int nSparseMissingValueNumber;
+
+	// Access privee a la classe de serialisation
 	friend class PLShared_DescriptiveStats;
 };
 
-///////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 // Classe KWDescriptiveContinuousStats
 // Calcul des statistiques descriptives d'un attribut de type Continuous
 class KWDescriptiveContinuousStats : public KWDescriptiveStats
@@ -64,18 +81,15 @@ public:
 	KWDescriptiveContinuousStats();
 	~KWDescriptiveContinuousStats();
 
-	// Calcul des statistiques descriptives a partir de la base de tuple
-	// Doit positionner l'indicateur a vrai en fin de calcul
-	boolean ComputeStats(const KWTupleTable* tupleTable) override;
+	//////////////////////////////////////////
+	// Initialisation
 
 	// (Re)Initialisation des statistiques descriptives
 	void Init() override;
 
-	// Duplication
-	KWDescriptiveStats* Clone() const override;
-
-	// Memoire utilisee
-	longint GetUsedMemory() const override;
+	// Calcul des statistiques descriptives a partir de la base de tuple
+	// Doit positionner l'indicateur a vrai en fin de calcul
+	boolean ComputeStats(const KWTupleTable* tupleTable) override;
 
 	/////////////////////////////////////////////////////
 	// Acces aux statistiques calculees
@@ -86,7 +100,6 @@ public:
 	Continuous GetMax() const;
 	Continuous GetMean() const;
 	Continuous GetStandardDeviation() const;
-	int GetMissingValueNumber() const;
 
 	// Ecriture d'un rapport destine a rentrer dans un rapport englobant
 	void WriteReport(ostream& ost) override;
@@ -98,6 +111,15 @@ public:
 	// Ecriture d'un rapport JSON
 	void WriteJSONFields(JSONFile* fJSON) override;
 
+	////////////////////////////////////////////////
+	// Services divers
+
+	// Duplication (retourne un objet generique)
+	KWDescriptiveStats* Clone() const override;
+
+	// Memoire utilisee
+	longint GetUsedMemory() const override;
+
 	/////////////////////////////////////////////////
 	///// Implementation
 protected:
@@ -106,38 +128,35 @@ protected:
 	Continuous cMax;
 	Continuous cMean;
 	Continuous cStandardDeviation;
-	int nMissingValueNumber;
+
+	// Acces privee a la classe de serialisation
 	friend class PLShared_DescriptiveContinuousStats;
 };
 
-///////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 // Classe KWDescriptiveSymbolStats
 // Calcul des statistiques descriptives d'un attribut de type Symbol
 class KWDescriptiveSymbolStats : public KWDescriptiveStats
 {
 public:
-	// Constructeur et destructeur
+	// Constructeur
 	KWDescriptiveSymbolStats();
 	~KWDescriptiveSymbolStats();
+
+	//////////////////////////////////////////
+	// Initialisation
+
+	// (Re)Initialisation des statistiques descriptives
+	void Init() override;
 
 	// Calcul des statistiques descriptives a partir de la base de tuple
 	// Doit positionner l'indicateur a vrai en fin de calcul
 	boolean ComputeStats(const KWTupleTable* tupleTable) override;
 
-	// (Re)Initialisation des statistiques descriptives
-	void Init() override;
-
-	// Duplication
-	KWDescriptiveStats* Clone() const override;
-
-	// Memoire utilisee
-	longint GetUsedMemory() const override;
-
 	/////////////////////////////////////////////////////
 	// Acces aux statistiques calculees
 	// Accessible uniquement si statistiques calculees
 
-	// Statistique descriptives classiques
 	// Entropie initiale
 	double GetEntropy() const;
 
@@ -158,6 +177,15 @@ public:
 	// Ecriture d'un rapport JSON
 	void WriteJSONFields(JSONFile* fJSON) override;
 
+	///////////////////////////////////////////
+	// Services Divers
+
+	// Duplication (retourne un objet generique)
+	KWDescriptiveStats* Clone() const override;
+
+	// Memoire utilisee
+	longint GetUsedMemory() const override;
+
 	/////////////////////////////////////////////////
 	///// Implementation
 protected:
@@ -166,10 +194,12 @@ protected:
 	mutable Symbol sMode;
 	int nModeFrequency;
 	int nTotalFrequency;
+
+	// Acces prive a la classe de serialisation
 	friend class PLShared_DescriptiveSymbolStats;
 };
 
-///////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 // Classe PLShared_DescriptiveStats
 // Serialisation de la classe KWDescriptiveStats
 class PLShared_DescriptiveStats : public PLShared_LearningReport
@@ -179,12 +209,12 @@ public:
 	PLShared_DescriptiveStats();
 	~PLShared_DescriptiveStats();
 
-	// Reimplementation des methodes virtuelles
-	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
-	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
+	// Reimplementation de l'interface PLSerialiser
+	void SerializeObject(PLSerializer* serializer, const Object* object) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* object) const override;
 };
 
-///////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 // Classe PLShared_DescriptiveContinuousStats
 // Serialisation de la classe KWDescriptiveContinuousStats
 class PLShared_DescriptiveContinuousStats : public PLShared_DescriptiveStats
@@ -198,17 +228,18 @@ public:
 	void SetDescriptiveStats(KWDescriptiveContinuousStats* descriptiveStats);
 	KWDescriptiveContinuousStats* GetDescriptiveStats();
 
-	// Reimplementation des methodes virtuelles
-	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
-	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
+	// Reimplementation de l'interface PLSerialiser
+	void SerializeObject(PLSerializer* serializer, const Object* object) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* object) const override;
 
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
+	// Reimplementation de la methode Create de PLSerializer
 	Object* Create() const override;
 };
 
-///////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 // Classe PLShared_DescriptiveSymbolStats
 // Serialisation de la classe KWDescriptiveSymbolStats
 class PLShared_DescriptiveSymbolStats : public PLShared_DescriptiveStats
@@ -222,12 +253,13 @@ public:
 	void SetDescriptiveStats(KWDescriptiveSymbolStats* descriptiveStats);
 	KWDescriptiveSymbolStats* GetDescriptiveStats();
 
-	// Reimplementation des methodes virtuelles
-	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
-	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
+	// Reimplementation de l'interface PLSerialiser
+	void SerializeObject(PLSerializer* serializer, const Object* object) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* object) const override;
 
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
+	// Reimplementation de la methode Create de PLSerializer
 	Object* Create() const override;
 };

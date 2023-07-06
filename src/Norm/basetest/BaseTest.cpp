@@ -32,6 +32,10 @@ TestBaseComponents::TestBaseComponents()
 		  (ActionMethod)&TestBaseComponents::ObjectDictionaryTest);
 	AddAction("NumericKeyDictionaryTest", "Test des dictionaires d'objects a cle numerique",
 		  (ActionMethod)&TestBaseComponents::NumericKeyDictionaryTest);
+	AddAction("LongintDictionaryTest", "Test des dictionaires de longint",
+		  (ActionMethod)&TestBaseComponents::LongintDictionaryTest);
+	AddAction("LongintNumericKeyDictionaryTest", "Test des dictionaires de longint a cle numerique",
+		  (ActionMethod)&TestBaseComponents::LongintNumericKeyDictionaryTest);
 	AddAction("DoubleVectorTest", "Test des vecteurs de doubles",
 		  (ActionMethod)&TestBaseComponents::DoubleVectorTest);
 	AddAction("IntVectorTest", "Test des vecteurs d'entiers", (ActionMethod)&TestBaseComponents::IntVectorTest);
@@ -507,6 +511,16 @@ void TestBaseComponents::ObjectDictionaryTest()
 void TestBaseComponents::NumericKeyDictionaryTest()
 {
 	NumericKeyDictionary::Test();
+}
+
+void TestBaseComponents::LongintDictionaryTest()
+{
+	LongintDictionary::Test();
+}
+
+void TestBaseComponents::LongintNumericKeyDictionaryTest()
+{
+	LongintNumericKeyDictionary::Test();
 }
 
 void TestBaseComponents::DoubleVectorTest()

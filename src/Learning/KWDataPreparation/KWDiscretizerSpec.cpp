@@ -7,7 +7,7 @@
 KWDiscretizerSpec::KWDiscretizerSpec()
 {
 	sSupervisedMethodName = "MODL";
-	sUnsupervisedMethodName = "EqualWidth";
+	sUnsupervisedMethodName = "MODL";
 	dParam = 0;
 	nMinIntervalFrequency = 0;
 	nMaxIntervalNumber = 0;
@@ -41,17 +41,42 @@ const ALString KWDiscretizerSpec::GetMethodName(int nTargetAttributeType) const
 
 const ALString KWDiscretizerSpec::GetMethodLabel(int nTargetAttributeType) const
 {
+	ALString sLabel;
+	int nParamNumber;
+	ALString sTmp;
+
 	require(nTargetAttributeType == KWType::Symbol or nTargetAttributeType == KWType::Continuous or
 		nTargetAttributeType == KWType::None);
 
-	if (GetParam() > 0)
-		return GetMethodName(nTargetAttributeType) + "(" + IntToString(GetMinIntervalFrequency()) + ", " +
-		       IntToString(GetMaxIntervalNumber()) + ", " + DoubleToString(GetParam()) + ")";
-	else if (GetMinIntervalFrequency() > 0 or GetMaxIntervalNumber() > 0)
-		return GetMethodName(nTargetAttributeType) + "(" + IntToString(GetMinIntervalFrequency()) + ", " +
-		       IntToString(GetMaxIntervalNumber()) + ")";
-	else
-		return GetMethodName(nTargetAttributeType);
+	sLabel = GetMethodName(nTargetAttributeType);
+	if (GetMinIntervalFrequency() > 0 or GetMaxIntervalNumber() > 0 or GetParam() > 0)
+	{
+		nParamNumber = 0;
+		sLabel += '(';
+		if (GetMinIntervalFrequency() > 0)
+		{
+			if (nParamNumber > 0)
+				sLabel += ", ";
+			sLabel += sTmp + "Min frequency=" + IntToString(GetMinIntervalFrequency());
+			nParamNumber++;
+		}
+		if (GetMaxIntervalNumber() > 0)
+		{
+			if (nParamNumber > 0)
+				sLabel += ", ";
+			sLabel += sTmp + "Max parts=" + IntToString(GetMaxIntervalNumber());
+			nParamNumber++;
+		}
+		if (GetParam() > 0)
+		{
+			if (nParamNumber > 0)
+				sLabel += ", ";
+			sLabel += sTmp + "Param=" + DoubleToString(GetParam());
+			nParamNumber++;
+		}
+		sLabel += ')';
+	}
+	return sLabel;
 }
 
 const ALString& KWDiscretizerSpec::GetSupervisedMethodName() const
@@ -207,10 +232,17 @@ const KWDiscretizer* KWDiscretizerSpec::GetDiscretizer(int nTargetAttributeType)
 		// On ne peut demander None qu'en non supervise
 		else if (not(GetMethodName(nTargetAttributeType) == "None" and nTargetAttributeType == KWType::None))
 		{
-			discretizer = KWDiscretizer::CloneDiscretizer(GetMethodName(nTargetAttributeType));
+			discretizer =
+			    KWDiscretizer::CloneDiscretizer(nTargetAttributeType, GetMethodName(nTargetAttributeType));
 			if (discretizer == NULL)
-				Global::AddError(GetClassLabel(), GetMethodName(nTargetAttributeType),
-						 "Unknown method");
+			{
+				if (nTargetAttributeType == KWType::Symbol)
+					Global::AddError(GetClassLabel(), GetMethodName(nTargetAttributeType),
+							 "Unknown supervised method");
+				else
+					Global::AddError(GetClassLabel(), GetMethodName(nTargetAttributeType),
+							 "Unknown unsupervised method");
+			}
 		}
 
 		// Parametrage
@@ -246,6 +278,16 @@ const KWDiscretizer* KWDiscretizerSpec::GetDiscretizer(int nTargetAttributeType)
 int KWDiscretizerSpec::GetFreshness() const
 {
 	return nFreshness;
+}
+
+void KWDiscretizerSpec::Write(ostream& ost) const
+{
+	ost << GetClassLabel() << "(";
+	ost << sSupervisedMethodName << ", ";
+	ost << sUnsupervisedMethodName << ", ";
+	ost << nMinIntervalFrequency << ", ";
+	ost << nMaxIntervalNumber << ", ";
+	ost << dParam << ")";
 }
 
 const ALString KWDiscretizerSpec::GetClassLabel() const

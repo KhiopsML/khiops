@@ -93,6 +93,18 @@ public:
 	void RemoveTrainedResults();
 	void DeleteTrainedResults();
 
+	// Dictionnaire des KWDataPreparationStats selectionnes par le predicteur
+	// Il s'agit d'une sous-partie du tableau GetAllPreparedStats du ClassStats en parametre (vide si ClassStats non
+	// specifie), qui peuvent provenir d'attributs natifs ou construit, d'arbres, de paires de variables Memoire:
+	// appartient a l'appele, et son contenu appartient au ClassStats
+	const NumericKeyDictionary* GetSelectedDataPreparationStats() const;
+
+	// Dictionnaire des KWDataPreparationStats selectionnes directement ou indirectement par le predicteur
+	// Ce dictionnaire correspond a l'analyse des attribut utilses dans les SelectedDataPreparationStats,
+	// comme par exemple les variables preparees utilisees via les paires ou les arbres
+	// Memoire: appartient a l'appele, et son contenu appartient au ClassStats
+	const NumericKeyDictionary* GetRecursivelySelectedDataPreparationStats() const;
+
 	// Rapport d'apprentissage, oriente interpretation (alors que le TrainedPredictor est oriente deploiement)
 	// Memoire: l'objet rendu appartient a l'appele
 	KWPredictorReport* GetPredictorReport();
@@ -189,14 +201,26 @@ protected:
 	// methode appelant nettoie les donnees d'apprentissage au moyen de DeleteTrainedResults)
 	virtual boolean InternalTrain();
 
+	// Collecte des KWDataPreparationStats selectionnes recursivement ou non par le predicteur
+	// pour initialiser les dictionnaires SelectedDataPreparationStats et
+	// RecursivelySelectedAttributePreparationStats Le tableau en entree contient les KWDataPreparationStats
+	// utilises par le predicteur
+	virtual void CollectSelectedPreparationStats(ObjectArray* oaUsedDataPreparationStats);
+
 	//////////////////////////////////////////////////////////////////////
 	// Memorisation des donnees de statistiques
 
-	// Attribut de statistiques
+	// Attribut des statistiques de prepararation
 	KWClassStats* classStats;
 
 	// Parametres d'apprentissage
 	KWTrainParameters trainParameters;
+
+	// Dictionnaire des KWDataPreparationStats du ClassStats selectionnes
+	NumericKeyDictionary nkdSelectedDataPreparationStats;
+
+	// Dictionnaire des KWDataPreparationStats du selectionnes recursivement
+	NumericKeyDictionary nkdRecursivelySelectedDataPreparationStats;
 
 	// Resultats d'apprentissage, a creer et alimenter par la methode InternalTrain
 	KWPredictorReport* predictorReport;

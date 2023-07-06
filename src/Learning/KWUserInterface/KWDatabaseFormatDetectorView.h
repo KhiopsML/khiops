@@ -27,6 +27,8 @@ public:
 	KWDatabase* GetDatabase() const;
 
 	// Utilisation ou non du dictionnaire pour detecter le format (defaut: true)
+	// Si le dictionnaire est utilisable, on l'utilise s'il est specifie, et sinon
+	// on se rabat sur le comprtement sans dictionnaire
 	void SetUsingClass(boolean bValue);
 	boolean GetUsingClass();
 

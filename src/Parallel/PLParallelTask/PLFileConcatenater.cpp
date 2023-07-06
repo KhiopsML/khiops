@@ -156,10 +156,6 @@ boolean PLFileConcatenater::Concatenate(const StringVector* svChunkURIs, const O
 	dTaskPercent = dProgressionEnd - dProgressionBegin;
 	nChunkIndex = 0;
 
-	// Si rien a faire, on sort
-	if (svChunkURIs->GetSize() == 0)
-		return true;
-
 	// Lancement des serveurs de fichiers si on n'est pas dans une tache
 	if (GetProcessId() == 0)
 	{
@@ -168,7 +164,10 @@ boolean PLFileConcatenater::Concatenate(const StringVector* svChunkURIs, const O
 
 	// Memoire disponible sur la machine
 	lRemainingMemory = RMResourceManager::GetRemainingAvailableMemory();
-	nInputPreferredSize = PLRemoteFileService::GetPreferredBufferSize(svChunkURIs->GetAt(0));
+	if (svChunkURIs->GetSize() > 0)
+		nInputPreferredSize = PLRemoteFileService::GetPreferredBufferSize(svChunkURIs->GetAt(0));
+	else
+		nInputPreferredSize = SystemFile::nMinPreferredBufferSize;
 	nOutputPreferredSize = PLRemoteFileService::GetPreferredBufferSize(sOutputFileName);
 
 	if (lRemainingMemory >= nInputPreferredSize + nOutputPreferredSize)
@@ -176,7 +175,7 @@ boolean PLFileConcatenater::Concatenate(const StringVector* svChunkURIs, const O
 		nOutputBufferSize = nOutputPreferredSize;
 		lInputBufferSize = lRemainingMemory - nOutputBufferSize;
 
-		// Ajustement de la  taille a un multiple de preferred size
+		// Ajustement de la taille a un multiple de preferred size
 		if (lInputBufferSize > nInputPreferredSize)
 			lInputBufferSize = (lInputBufferSize / nInputPreferredSize) * nInputPreferredSize;
 

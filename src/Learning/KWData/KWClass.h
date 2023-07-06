@@ -21,7 +21,7 @@ class KWDerivationRule;
 #include "KWType.h"
 #include "KWMetaData.h"
 #include "KWLoadIndex.h"
-#include "JSONFile.h"
+#include "KWTextService.h"
 #include "KWCDUniqueString.h"
 
 ///////////////////////////////////////////////////////////////////////////
@@ -31,13 +31,14 @@ class KWDerivationRule;
 //  - donnees elementaires
 //    . Continuous
 //    . Symbol
+//  - donnees de type temporel ou textuel
 //  - donnees structurees
 //    . Object
 //    . ObjectArray
 //  - donnees algorithmiques, pour stocker les calculs intermediaires, les modeles et les appliquer
 //    . Structure
 // Elle possede:
-//  . un nom(obligatoire)
+//  . un nom (obligatoire)
 //  . un libelle
 //  . un status de classe racine ou composante
 // Les attributs de type Object ou Array d'Object possede un statut
@@ -223,7 +224,7 @@ public:
 	int GetNativeDataItemNumber() const;
 
 	// Nombre d'attributs natifs de type relation utilises recursivement par la classe
-	// Le parametre InternalOnly indique que l'on ne prendre ignore les classe referencees
+	// Le parametre InternalOnly indique que l'on ignore les classe referencees
 	int ComputeOverallNativeRelationAttributeNumber(boolean bIncludingReferences) const;
 
 	// Nombre d'attribut initiaux d'une classe a analyser
@@ -572,7 +573,7 @@ protected:
 
 	// Dictionnaire des blocs utilises
 	// Les blocs appartiennent directement a leurs attribut et sont seulement reference par leur dictionnaire
-	// Les blocs peuevnt etre detruits explicitement; il sont egalement detruit quand leur dernier attribut est
+	// Les blocs peuvent etre detruits explicitement; il sont egalement detruit quand leur dernier attribut est
 	// detruit Attention, les noms d'attributs et de blocs, geres par deux dictionnaire, doivent etre uniques
 	// collectivement
 	ObjectDictionary odAttributeBlocks;

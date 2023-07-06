@@ -566,7 +566,7 @@ void DTDiscretizerMODL::DiscretizeGranularizedFrequencyTableNEW(KWFrequencyTable
 		kwftnull->SetGranularizedValueNumber(2);
 		kwdfvSourceFrequencyVectornull = cast(KWDenseFrequencyVector*, kwftnull->GetFrequencyVectorAt(0));
 		// Initialisation de la taille des resultats binaire
-		kwftbin.Initialize(2);
+		kwftbin.SetFrequencyVectorNumber(2);
 		kwdfvSourceFrequencyVector0 = cast(KWDenseFrequencyVector*, kwftbin.GetFrequencyVectorAt(0));
 		kwdfvSourceFrequencyVector0->GetFrequencyVector()->SetSize(nTargetValueNumber);
 		kwdfvSourceFrequencyVector1 = cast(KWDenseFrequencyVector*, kwftbin.GetFrequencyVectorAt(1));

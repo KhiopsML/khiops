@@ -737,8 +737,7 @@ void KWTypeAutomaticRecognition::Finalize()
 	assert(nMinTextFieldSize < KWValue::nMaxSymbolFieldSize);
 
 	// Detection du type Text
-	if (GetLearningTextVariableMode())
-		bMatchingText = (nMaxValueLength >= nMinTextFieldSize);
+	bMatchingText = (nMaxValueLength >= nMinTextFieldSize);
 
 	// Invalidation du type Continuous s'il n'y a des 0 et des 1, plus eventuellement des Missing
 	if (bMatchingContinuous)

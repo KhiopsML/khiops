@@ -59,6 +59,7 @@ public:
 	// Acces a la valeur par defaut pour les types bloc d'attributs
 	// Acces uniquement pour la valeur par defaut du bon type, pour une classe compilee
 	// La valeur par defaut est necessairement NULL dans les cas des blocs de type ObjectArrayValueBlock
+	// Le bloc doit etre compile pour actualiser cette valeur par defaut
 	Continuous GetContinuousDefaultValue() const;
 	Symbol& GetSymbolDefaultValue() const;
 
@@ -82,7 +83,7 @@ public:
 	//    attribute = attributeBlock->GetFirstAttribute();
 	//    while (attribute != NULL)
 	//    {
-	//    		// Traitemet sur l'attribut en cours
+	//    		// Traitement sur l'attribut en cours
 	//
 	//    	    // Arret si fin du bloc
 	//    		if (attribute == attributeBlock->GetLastAttribute())
@@ -509,7 +510,7 @@ inline KWAttribute* KWAttributeBlock::LookupAttributeByContinuousVarKey(int nVar
 	require(GetParentClass()->IsIndexed());
 	require(GetVarKeyType() == KWType::Continuous);
 
-	attribute = cast(KWAttribute*, nkdAttributesByVarKeys.Lookup((NUMERIC)(longint)nVarKey));
+	attribute = cast(KWAttribute*, nkdAttributesByVarKeys.Lookup(nVarKey));
 	return attribute;
 }
 
@@ -528,7 +529,7 @@ inline void KWAttributeBlock::InternalIndexAttributeByContinuousVarKey(int nVarK
 {
 	require(attribute != NULL);
 	require(attribute->GetAttributeBlock() == this);
-	nkdAttributesByVarKeys.SetAt((NUMERIC)(longint)nVarKey, attribute);
+	nkdAttributesByVarKeys.SetAt(nVarKey, attribute);
 }
 
 inline void KWAttributeBlock::InternalIndexAttributeBySymbolVarKey(Symbol sVarKey, KWAttribute* attribute)
@@ -544,7 +545,7 @@ inline KWAttribute* KWAttributeBlock::InternalLookupAttributeByContinuousVarKey(
 
 	require(GetVarKeyType() == KWType::Continuous);
 
-	attribute = cast(KWAttribute*, nkdAttributesByVarKeys.Lookup((NUMERIC)(longint)nVarKey));
+	attribute = cast(KWAttribute*, nkdAttributesByVarKeys.Lookup(nVarKey));
 	return attribute;
 }
 

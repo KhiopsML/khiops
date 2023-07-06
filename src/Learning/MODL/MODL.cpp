@@ -23,7 +23,7 @@ int main(int argc, char** argv)
 	// MemoryStatsManager::AllStats);
 
 	// Parametrage de l'arret pour la memoire ou les interruptions utilisateurs
-	// MemSetAllocIndexExit(1674366);
+	// MemSetAllocIndexExit(37140);
 	// TaskProgression::SetExternalInterruptionRequestIndex();
 	// TaskProgression::SetInterruptionRequestIndex(75);
 
@@ -32,7 +32,7 @@ int main(int argc, char** argv)
 
 	// Simulation du mode parallele pour le debuggage
 	// PLParallelTask::SetParallelSimulated(true);
-	// PLParallelTask::SetSimulatedSlaveNumber(7);
+	// PLParallelTask::SetSimulatedSlaveNumber(2);
 	// PLParallelTask::SetTracerResources(1);
 	// PLParallelTask::SetTracerProtocolActive(true);
 	// PLParallelTask::SetTracerMPIActive(true);

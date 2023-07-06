@@ -18,23 +18,15 @@ void StartLearningProblem(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-#ifdef _DEBUG
-	std::cout << "*******COMPILATION********" << std::endl;
-	std::cout << "        Sample 1           " << std::endl;
-	std::cout << __DATE__ << " " << __TIME__ << std::endl;
-	std::cout << "**************************" << std::endl;
-#endif
-
 	// MemSetAllocIndexExit(12431);
+
+	// Pour permettre une interaction en mode textuelle dans les environnements sans interface utilisateur java
+	// (par defaut, cela n'est pas autorise pour l'outil Khiops)
+	UIObject::SetTextualInteractiveModeAllowed(true);
 
 	// Lancement de la vue principale
 	StartSampleOne(argc, argv);
 	// StartLearningProblem(argc, argv);
-
-#ifdef _DEBUG
-	std::cout << "'Debug' executable, press enter..." << std::endl;
-	std::cin.get();
-#endif
 
 	return 0;
 }

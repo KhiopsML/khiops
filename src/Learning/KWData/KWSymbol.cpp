@@ -648,6 +648,10 @@ void KWSymbolDictionary::RemoveAll()
 	    (sUserName == "miib6422") and GetLearningExpertMode() and this == &(Symbol::sdSharedSymbols);
 	debug(bShowAllocErrorMessages = false);
 
+	// Desactivation de cette option y compris en mode release, car cela provoque du reporting verbeux en cas
+	// d'erreur fatale A reactiver si necessaire
+	bShowAllocErrorMessages = false;
+
 	// Nettoyage des cles de la table de hashage
 	nMessageIndex = 0;
 	for (nHashPosition = 0; nHashPosition < pvSymbolDatas.GetSize(); nHashPosition++)

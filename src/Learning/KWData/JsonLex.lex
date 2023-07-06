@@ -17,15 +17,10 @@ static double cJsonTokenDouble = 0;
 static boolean bJsonTokenBoolean = false;
 
 // Desactivation de warnings pour le Visual C++
-#ifdef _MSC_VER
+#ifdef __MSC__
 #pragma warning(disable : 4505) // C4505: la fonction locale non référencée a été supprimée
-#endif                          // _MSC_VER
-
-// Visual C++: prise en compte des variantes Windows des fonctions et isatty fileno
-#ifdef  _MSC_VER
-#define isatty _isatty
-#define fileno _fileno
-#endif  // _MSC_VER
+#pragma warning(disable : 4996) // C4996: warning for deprecated POSIX names isatty and fileno
+#endif                          // __MSC__
 %}
 
 /* pour avoir acces aux numeros de lignes, et moins cher que le -l de la ligne de commande */

@@ -779,18 +779,13 @@ static double cJsonTokenDouble = 0;
 static boolean bJsonTokenBoolean = false;
 
 // Desactivation de warnings pour le Visual C++
-#ifdef _MSC_VER
+#ifdef __MSC__
 #pragma warning(disable : 4505) // C4505: la fonction locale non référencée a été supprimée
-#endif                          // _MSC_VER
-
-// Visual C++: prise en compte des variantes Windows des fonctions et isatty fileno
-#ifdef  _MSC_VER
-#define isatty _isatty
-#define fileno _fileno
-#endif  // _MSC_VER
-#line 791 "JsonLex.inc"
+#pragma warning(disable : 4996) // C4996: warning for deprecated POSIX names isatty and fileno
+#endif                          // __MSC__
+#line 786 "JsonLex.inc"
 /* pour avoir acces aux numeros de lignes, et moins cher que le -l de la ligne de commande */
-#line 793 "JsonLex.inc"
+#line 788 "JsonLex.inc"
 
 #define INITIAL 0
 
@@ -999,10 +994,10 @@ YY_DECL
 		}
 
 	{
-#line 50 "JsonLex.lex"
+#line 45 "JsonLex.lex"
 
 
-#line 1005 "JsonLex.inc"
+#line 1000 "JsonLex.inc"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -1071,53 +1066,53 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 52 "JsonLex.lex"
+#line 47 "JsonLex.lex"
 {return '{';}
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 53 "JsonLex.lex"
+#line 48 "JsonLex.lex"
 {return '}';}
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 54 "JsonLex.lex"
+#line 49 "JsonLex.lex"
 {return '[';}
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 55 "JsonLex.lex"
+#line 50 "JsonLex.lex"
 {return ']';}
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 56 "JsonLex.lex"
+#line 51 "JsonLex.lex"
 {return ',';}
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 57 "JsonLex.lex"
+#line 52 "JsonLex.lex"
 {return ':';}
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 58 "JsonLex.lex"
+#line 53 "JsonLex.lex"
 {bJsonTokenBoolean = true; return JSONTokenizer::Boolean;}
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 59 "JsonLex.lex"
+#line 54 "JsonLex.lex"
 {bJsonTokenBoolean = false; return JSONTokenizer::Boolean;}
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 60 "JsonLex.lex"
+#line 55 "JsonLex.lex"
 {return JSONTokenizer::Null;}
 	YY_BREAK
 case 10:
 /* rule 10 can match eol */
 YY_RULE_SETUP
-#line 64 "JsonLex.lex"
+#line 59 "JsonLex.lex"
 {
                     yytext[yyleng-1] = '\0';
                     JSONTokenizer::JsonToCString((char*)&yytext[1], sJsonTokenString);
@@ -1134,7 +1129,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 78 "JsonLex.lex"
+#line 73 "JsonLex.lex"
 {
                     cJsonTokenDouble = KWContinuous::StringToContinuous((char*)yytext);
                     return(JSONTokenizer::Number);
@@ -1143,20 +1138,20 @@ YY_RULE_SETUP
 case 12:
 /* rule 12 can match eol */
 YY_RULE_SETUP
-#line 83 "JsonLex.lex"
+#line 78 "JsonLex.lex"
 {/*IGNORE*/}
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 85 "JsonLex.lex"
+#line 80 "JsonLex.lex"
 {sJsonTokenString = yytext; return JSONTokenizer::Error;}
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 87 "JsonLex.lex"
+#line 82 "JsonLex.lex"
 ECHO;
 	YY_BREAK
-#line 1159 "JsonLex.inc"
+#line 1154 "JsonLex.inc"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2173,5 +2168,5 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 87 "JsonLex.lex"
+#line 82 "JsonLex.lex"
 

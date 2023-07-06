@@ -23,12 +23,12 @@ class KWObjectArrayValueBlock;
 
 // Desactivation generale de warnings pour le Visual C++
 // Ce header etant inclu partout, les pragma va annuler les warning globalement
-#ifdef _MSC_VER
+#ifdef __MSC__
 #pragma warning(disable : 4100) // C4100: unreferenced formal parameter
 #pragma warning(disable : 4702) // C4702: unreachable code (mal gere par Visual C++)
 #pragma warning(disable : 4511) // C4511: le constructeur de copie n'a pas pu etre genere
 #pragma warning(disable : 4512) // C4512: l'operateur d'assignation n'a pas pu etre genere
-#endif                          // _MSC_VER
+#endif                          // __MSC__
 
 ///////////////////////////////////////////////////////////
 // Definition des types d'attributs d'une KWClass
@@ -294,18 +294,12 @@ inline boolean KWType::IsComplex(int nType)
 
 inline boolean KWType::IsStored(int nType)
 {
-	if (GetLearningTextVariableMode())
-		return (nType >= 0 and nType <= Text);
-	else
-		return (nType >= 0 and nType <= TimestampTZ);
+	return (nType >= 0 and nType <= Text);
 }
 
 inline boolean KWType::IsTextBased(int nType)
 {
-	if (GetLearningTextVariableMode())
-		return (nType == Text or nType == TextList);
-	else
-		return false;
+	return (nType == Text or nType == TextList);
 }
 
 inline boolean KWType::IsRelation(int nType)

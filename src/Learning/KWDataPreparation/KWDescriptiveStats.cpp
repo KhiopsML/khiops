@@ -4,13 +4,15 @@
 
 #include "KWDescriptiveStats.h"
 
-///////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // Classe KWDescriptiveStats
 
 KWDescriptiveStats::KWDescriptiveStats()
 {
 	bIsStatsComputed = false;
 	nValueNumber = 0;
+	nMissingValueNumber = 0;
+	nSparseMissingValueNumber = 0;
 }
 
 KWDescriptiveStats::~KWDescriptiveStats() {}
@@ -25,10 +27,11 @@ const ALString& KWDescriptiveStats::GetAttributeName() const
 	return sAttributeName;
 }
 
-int KWDescriptiveStats::GetValueNumber() const
+void KWDescriptiveStats::Init()
 {
-	require(IsStatsComputed());
-	return nValueNumber;
+	bIsStatsComputed = false;
+	nValueNumber = 0;
+	nMissingValueNumber = 0;
 }
 
 boolean KWDescriptiveStats::ComputeStats()
@@ -38,10 +41,31 @@ boolean KWDescriptiveStats::ComputeStats()
 	return bIsStatsComputed;
 }
 
-void KWDescriptiveStats::Init()
+boolean KWDescriptiveStats::ComputeStats(const KWTupleTable* tupleTable)
 {
-	bIsStatsComputed = false;
-	nValueNumber = 0;
+	// Initialisation
+	Init();
+	nSparseMissingValueNumber = tupleTable->GetSparseMissingValueNumber();
+
+	return true;
+}
+
+int KWDescriptiveStats::GetValueNumber() const
+{
+	require(IsStatsComputed());
+	return nValueNumber;
+}
+
+int KWDescriptiveStats::GetMissingValueNumber() const
+{
+	require(IsStatsComputed());
+	return nMissingValueNumber;
+}
+
+int KWDescriptiveStats::GetSparseMissingValueNumber() const
+{
+	require(IsStatsComputed());
+	return nSparseMissingValueNumber;
 }
 
 const ALString KWDescriptiveStats::GetSortName() const
@@ -52,11 +76,10 @@ const ALString KWDescriptiveStats::GetSortName() const
 double KWDescriptiveStats::GetSortValue() const
 {
 	require(IsStatsComputed());
-
 	return (double)nValueNumber;
 }
 
-///////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // Classe KWDescriptiveContinuousStats
 
 KWDescriptiveContinuousStats::KWDescriptiveContinuousStats()
@@ -65,51 +88,32 @@ KWDescriptiveContinuousStats::KWDescriptiveContinuousStats()
 	cMax = 0;
 	cMean = 0;
 	cStandardDeviation = 0;
-	nMissingValueNumber = 0;
 }
 
 KWDescriptiveContinuousStats::~KWDescriptiveContinuousStats() {}
 
-Continuous KWDescriptiveContinuousStats::GetMin() const
+void KWDescriptiveContinuousStats::Init()
 {
-	require(IsStatsComputed());
-	return cMin;
-}
+	// Appel a la methode ancetre
+	KWDescriptiveStats::Init();
 
-Continuous KWDescriptiveContinuousStats::GetMax() const
-{
-	require(IsStatsComputed());
-	return cMax;
-}
-
-Continuous KWDescriptiveContinuousStats::GetMean() const
-{
-	require(IsStatsComputed());
-	return cMean;
-}
-
-Continuous KWDescriptiveContinuousStats::GetStandardDeviation() const
-{
-	require(IsStatsComputed());
-	return cStandardDeviation;
-}
-
-int KWDescriptiveContinuousStats::GetMissingValueNumber() const
-{
-	require(IsStatsComputed());
-	return nMissingValueNumber;
+	// Par defaut, les statistiques descriptives sont manquantes
+	cMin = KWContinuous::GetMissingValue();
+	cMax = KWContinuous::GetMissingValue();
+	cMean = KWContinuous::GetMissingValue();
+	cStandardDeviation = KWContinuous::GetMissingValue();
 }
 
 boolean KWDescriptiveContinuousStats::ComputeStats(const KWTupleTable* tupleTable)
 {
 	int nTuple;
-	int nFirstActualValueTuple;
 	const KWTuple* tuple;
-	Continuous cRef;
 	Continuous cValue;
-	double dValue;
+	int nFirstActualValueTuple;
 	double dAttributeSum;
 	double dAttributeSquareSum;
+	Continuous cRef;
+	double dValue;
 	int nFilledValueNumber;
 
 	require(Check());
@@ -120,9 +124,8 @@ boolean KWDescriptiveContinuousStats::ComputeStats(const KWTupleTable* tupleTabl
 	require(tupleTable != NULL);
 	require(tupleTable->GetAttributeNameAt(0) == sAttributeName);
 
-	// Initialisation
-	Init();
-	bIsStatsComputed = true;
+	// Appel a la methode ancetre
+	bIsStatsComputed = KWDescriptiveStats::ComputeStats(tupleTable);
 
 	// Calcul des stats dans le cas ou la base est non vide
 	if (bIsStatsComputed and tupleTable->GetTotalFrequency() > 0)
@@ -148,7 +151,7 @@ boolean KWDescriptiveContinuousStats::ComputeStats(const KWTupleTable* tupleTabl
 		       tupleTable->GetAt(nFirstActualValueTuple - 1)->GetContinuousAt(0) ==
 			   KWContinuous::GetMissingValue());
 
-		// Statistiques descriptives si au moins une valeur non manquante
+		// Calcul des statistiques descriptives si au moins une valeur non manquante
 		if (nMissingValueNumber < tupleTable->GetTotalFrequency())
 		{
 			// Recherche de la valeur Min: premier objet restant
@@ -174,8 +177,7 @@ boolean KWDescriptiveContinuousStats::ComputeStats(const KWTupleTable* tupleTabl
 				dAttributeSquareSum = 0;
 
 				// Parcours des objets de la base pour le calcul des statistiques
-				// On va collecter les index et effectifs des valeurs d'effectif
-				// important en une passe.
+				// On va collecter les index et effectifs des valeurs d'effectif important en une passe
 				cRef = 0;
 				for (nTuple = nFirstActualValueTuple; nTuple < tupleTable->GetSize(); nTuple++)
 				{
@@ -201,11 +203,11 @@ boolean KWDescriptiveContinuousStats::ComputeStats(const KWTupleTable* tupleTabl
 				// Calcul de la moyenne
 				nFilledValueNumber = tupleTable->GetTotalFrequency() - nMissingValueNumber;
 				assert(nFilledValueNumber > 0);
-				cMean = (Continuous)(dAttributeSum / nFilledValueNumber);
+				cMean = (dAttributeSum / nFilledValueNumber);
 				assert(cMin <= cMean and cMean <= cMax);
 
 				// Calcul de l'ecart type
-				cStandardDeviation = (Continuous)sqrt(
+				cStandardDeviation = sqrt(
 				    fabs((dAttributeSquareSum - dAttributeSum * dAttributeSum / nFilledValueNumber) /
 					 nFilledValueNumber));
 				assert(cStandardDeviation >= 0);
@@ -220,36 +222,105 @@ boolean KWDescriptiveContinuousStats::ComputeStats(const KWTupleTable* tupleTabl
 	// Reinitialisation des resultats si interruption utilisateur
 	if (TaskProgression::IsInterruptionRequested())
 		Init();
+
 	return bIsStatsComputed;
 }
 
-void KWDescriptiveContinuousStats::Init()
+Continuous KWDescriptiveContinuousStats::GetMin() const
 {
-	KWDescriptiveStats::Init();
+	require(IsStatsComputed());
+	return cMin;
+}
 
-	// Par defaut, les statistiques descriptives sont manquantes
-	cMin = KWContinuous::GetMissingValue();
-	cMax = KWContinuous::GetMissingValue();
-	cMean = KWContinuous::GetMissingValue();
-	cStandardDeviation = KWContinuous::GetMissingValue();
-	nMissingValueNumber = 0;
+Continuous KWDescriptiveContinuousStats::GetMax() const
+{
+	require(IsStatsComputed());
+	return cMax;
+}
+
+Continuous KWDescriptiveContinuousStats::GetMean() const
+{
+	require(IsStatsComputed());
+	return cMean;
+}
+
+Continuous KWDescriptiveContinuousStats::GetStandardDeviation() const
+{
+	require(IsStatsComputed());
+	return cStandardDeviation;
+}
+
+void KWDescriptiveContinuousStats::WriteReport(ostream& ost)
+{
+	require(IsStatsComputed());
+
+	// On passe par la methode de la classe KWContinuous pour gerer le cas des valeurs manquantes
+	ost << "Values\t" << GetValueNumber() << "\n";
+	ost << "Min\t" << KWContinuous::ContinuousToString(GetMin()) << "\n";
+	ost << "Max\t" << KWContinuous::ContinuousToString(GetMax()) << "\n";
+	ost << "Mean\t" << KWContinuous::ContinuousToString(GetMean()) << "\n";
+	ost << "Std dev\t" << KWContinuous::ContinuousToString(GetStandardDeviation()) << "\n";
+	ost << "Missing number\t" << GetMissingValueNumber() << "\n";
+	ost << "Sparse missing number\t" << GetSparseMissingValueNumber() << "\n";
+}
+
+void KWDescriptiveContinuousStats::WriteHeaderLineReport(ostream& ost)
+{
+	require(IsStatsComputed());
+
+	ost << "Values\t";
+	ost << "Min\t";
+	ost << "Max\t";
+	ost << "Mean\t";
+	ost << "Std dev\t";
+	ost << "Missing number\t";
+	ost << "Sparse missing number";
+}
+
+void KWDescriptiveContinuousStats::WriteLineReport(ostream& ost)
+{
+	require(IsStatsComputed());
+
+	// On passe par la methode de la classe KWContinuous pour gerer le cas des valeurs manquantes
+	ost << GetValueNumber() << "\t";
+	ost << KWContinuous::ContinuousToString(GetMin()) << "\t";
+	ost << KWContinuous::ContinuousToString(GetMax()) << "\t";
+	ost << KWContinuous::ContinuousToString(GetMean()) << "\t";
+	ost << KWContinuous::ContinuousToString(GetStandardDeviation()) << "\t";
+	ost << GetMissingValueNumber() << "\t";
+	ost << GetSparseMissingValueNumber();
+}
+
+void KWDescriptiveContinuousStats::WriteJSONFields(JSONFile* fJSON)
+{
+	require(IsStatsComputed());
+
+	fJSON->WriteKeyInt("values", GetValueNumber());
+	fJSON->WriteKeyContinuous("min", GetMin());
+	fJSON->WriteKeyContinuous("max", GetMax());
+	fJSON->WriteKeyContinuous("mean", GetMean());
+	fJSON->WriteKeyContinuous("stdDev", GetStandardDeviation());
+	fJSON->WriteKeyInt("missingNumber", GetMissingValueNumber());
+	fJSON->WriteKeyInt("sparseMissingNumber", GetSparseMissingValueNumber());
 }
 
 KWDescriptiveStats* KWDescriptiveContinuousStats::Clone() const
 {
-	KWDescriptiveContinuousStats* kwdcsClone;
+	KWDescriptiveContinuousStats* continuousStatsClone;
 
-	kwdcsClone = new KWDescriptiveContinuousStats;
-	kwdcsClone->SetLearningSpec(GetLearningSpec());
-	kwdcsClone->SetAttributeName(GetAttributeName());
-	kwdcsClone->bIsStatsComputed = bIsStatsComputed;
-	kwdcsClone->nValueNumber = nValueNumber;
-	kwdcsClone->cMin = cMin;
-	kwdcsClone->cMax = cMax;
-	kwdcsClone->cMean = cMean;
-	kwdcsClone->cStandardDeviation = cStandardDeviation;
-	kwdcsClone->nMissingValueNumber = nMissingValueNumber;
-	return kwdcsClone;
+	continuousStatsClone = new KWDescriptiveContinuousStats;
+	continuousStatsClone->SetLearningSpec(GetLearningSpec());
+	continuousStatsClone->SetAttributeName(GetAttributeName());
+	continuousStatsClone->bIsStatsComputed = bIsStatsComputed;
+	continuousStatsClone->nValueNumber = nValueNumber;
+	continuousStatsClone->cMin = cMin;
+	continuousStatsClone->cMax = cMax;
+	continuousStatsClone->cMean = cMean;
+	continuousStatsClone->cStandardDeviation = cStandardDeviation;
+	continuousStatsClone->nMissingValueNumber = nMissingValueNumber;
+	continuousStatsClone->nSparseMissingValueNumber = nSparseMissingValueNumber;
+
+	return continuousStatsClone;
 }
 
 longint KWDescriptiveContinuousStats::GetUsedMemory() const
@@ -261,61 +332,7 @@ longint KWDescriptiveContinuousStats::GetUsedMemory() const
 	return lUsedMemory;
 }
 
-void KWDescriptiveContinuousStats::WriteReport(ostream& ost)
-{
-	require(IsStatsComputed());
-
-	// Statistiques descriptives
-	// On passe par la methode de la classe KWContinuous pour gerer le cas des valeurs manquantes
-	ost << "Values\t" << GetValueNumber() << "\n";
-	ost << "Min\t" << KWContinuous::ContinuousToString(GetMin()) << "\n";
-	ost << "Max\t" << KWContinuous::ContinuousToString(GetMax()) << "\n";
-	ost << "Mean\t" << KWContinuous::ContinuousToString(GetMean()) << "\n";
-	ost << "Std dev\t" << KWContinuous::ContinuousToString(GetStandardDeviation()) << "\n";
-	ost << "Missing number\t" << GetMissingValueNumber() << "\n";
-}
-
-void KWDescriptiveContinuousStats::WriteJSONFields(JSONFile* fJSON)
-{
-	require(IsStatsComputed());
-
-	// Statistiques descriptives
-	fJSON->WriteKeyInt("values", GetValueNumber());
-	fJSON->WriteKeyContinuous("min", GetMin());
-	fJSON->WriteKeyContinuous("max", GetMax());
-	fJSON->WriteKeyContinuous("mean", GetMean());
-	fJSON->WriteKeyContinuous("stdDev", GetStandardDeviation());
-	fJSON->WriteKeyInt("missingNumber", GetMissingValueNumber());
-}
-
-void KWDescriptiveContinuousStats::WriteHeaderLineReport(ostream& ost)
-{
-	require(IsStatsComputed());
-
-	// Statistiques descriptives
-	ost << "Values\t";
-	ost << "Min\t";
-	ost << "Max\t";
-	ost << "Mean\t";
-	ost << "Std dev\t";
-	ost << "Missing number";
-}
-
-void KWDescriptiveContinuousStats::WriteLineReport(ostream& ost)
-{
-	require(IsStatsComputed());
-
-	// Statistiques descriptives
-	// On passe par la methode de la classe KWContinuous pour gerer le cas des valeurs manquantes
-	ost << GetValueNumber() << "\t";
-	ost << KWContinuous::ContinuousToString(GetMin()) << "\t";
-	ost << KWContinuous::ContinuousToString(GetMax()) << "\t";
-	ost << KWContinuous::ContinuousToString(GetMean()) << "\t";
-	ost << KWContinuous::ContinuousToString(GetStandardDeviation()) << "\t";
-	ost << GetMissingValueNumber();
-}
-
-///////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // Classe KWDescriptiveSymbolStats
 
 KWDescriptiveSymbolStats::KWDescriptiveSymbolStats()
@@ -327,42 +344,26 @@ KWDescriptiveSymbolStats::KWDescriptiveSymbolStats()
 
 KWDescriptiveSymbolStats::~KWDescriptiveSymbolStats() {}
 
-double KWDescriptiveSymbolStats::GetEntropy() const
+void KWDescriptiveSymbolStats::Init()
 {
-	require(IsStatsComputed());
+	// Appel a la methode ancetre
+	KWDescriptiveStats::Init();
 
-	return dEntropy;
-}
-
-Symbol& KWDescriptiveSymbolStats::GetMode() const
-{
-	require(IsStatsComputed());
-
-	return sMode;
-}
-
-int KWDescriptiveSymbolStats::GetModeFrequency() const
-{
-	require(IsStatsComputed());
-
-	return nModeFrequency;
-}
-
-int KWDescriptiveSymbolStats::GetTotalFrequency() const
-{
-	require(IsStatsComputed());
-
-	return nTotalFrequency;
+	// Mise a zero des statistiques
+	dEntropy = 0;
+	sMode.Reset();
+	nModeFrequency = 0;
+	nTotalFrequency = 0;
 }
 
 boolean KWDescriptiveSymbolStats::ComputeStats(const KWTupleTable* tupleTable)
 {
-	int nTuple;
-	const KWTuple* tuple;
+	Symbol sRef;
 	int nValueFrequency;
 	int nPreviousValueFrequency;
+	int nTuple;
+	const KWTuple* tuple;
 	Symbol sValue;
-	Symbol sRef;
 	double dProba;
 
 	require(Check());
@@ -373,11 +374,29 @@ boolean KWDescriptiveSymbolStats::ComputeStats(const KWTupleTable* tupleTable)
 	require(tupleTable != NULL);
 	require(tupleTable->GetAttributeNameAt(0) == sAttributeName);
 
-	// Initialisation
-	Init();
-	bIsStatsComputed = true;
+	// Appel a la methode ancetre
+	bIsStatsComputed = KWDescriptiveStats::ComputeStats(tupleTable);
 
-	// Calcul des stats dans le cas ou la table de tuple est non vide
+	// Calcul des stats dans le cas ou la base est non vide
+	if (bIsStatsComputed and tupleTable->GetTotalFrequency() > 0)
+	{
+		// On passe toutes les valeurs manquantes
+		for (nTuple = 0; nTuple < tupleTable->GetSize(); nTuple++)
+		{
+			tuple = tupleTable->GetAt(nTuple);
+
+			// Acces a la valeur
+			sValue = tuple->GetSymbolAt(0);
+
+			// Arret si valeur non manquante
+			if (sValue == Symbol(""))
+				nMissingValueNumber += tuple->GetFrequency();
+			else
+				break;
+		}
+	}
+
+	// Calcul des stats seulement quand la table de tuples est non vide
 	if (tupleTable->GetTotalFrequency() > 0)
 	{
 		// Parcours des objets de la base pour le calcul des statistiques (recherche du mode,
@@ -465,6 +484,7 @@ boolean KWDescriptiveSymbolStats::ComputeStats(const KWTupleTable* tupleTable)
 		}
 		assert(nValueNumber >= 1 or tupleTable->GetTotalFrequency() == 0);
 		assert(nTotalFrequency == tupleTable->GetTotalFrequency());
+		assert(nMissingValueNumber >= 0);
 
 		// Normalisation de l'entropie en base 2 et seuillage
 		dEntropy /= -log(2.0);
@@ -480,38 +500,28 @@ boolean KWDescriptiveSymbolStats::ComputeStats(const KWTupleTable* tupleTable)
 	return bIsStatsComputed;
 }
 
-void KWDescriptiveSymbolStats::Init()
+double KWDescriptiveSymbolStats::GetEntropy() const
 {
-	KWDescriptiveStats::Init();
-	dEntropy = 0;
-	sMode.Reset();
-	nModeFrequency = 0;
-	nTotalFrequency = 0;
+	require(IsStatsComputed());
+	return dEntropy;
 }
 
-KWDescriptiveStats* KWDescriptiveSymbolStats::Clone() const
+Symbol& KWDescriptiveSymbolStats::GetMode() const
 {
-	KWDescriptiveSymbolStats* kwdssClone;
-
-	kwdssClone = new KWDescriptiveSymbolStats;
-	kwdssClone->SetLearningSpec(GetLearningSpec());
-	kwdssClone->SetAttributeName(GetAttributeName());
-	kwdssClone->bIsStatsComputed = bIsStatsComputed;
-	kwdssClone->nValueNumber = nValueNumber;
-	kwdssClone->dEntropy = dEntropy;
-	kwdssClone->sMode = sMode;
-	kwdssClone->nModeFrequency = nModeFrequency;
-	kwdssClone->nTotalFrequency = nTotalFrequency;
-	return kwdssClone;
+	require(IsStatsComputed());
+	return sMode;
 }
 
-longint KWDescriptiveSymbolStats::GetUsedMemory() const
+int KWDescriptiveSymbolStats::GetModeFrequency() const
 {
-	longint lUsedMemory;
+	require(IsStatsComputed());
+	return nModeFrequency;
+}
 
-	lUsedMemory = sizeof(KWDescriptiveSymbolStats);
-	lUsedMemory += sAttributeName.GetUsedMemory();
-	return lUsedMemory;
+int KWDescriptiveSymbolStats::GetTotalFrequency() const
+{
+	require(IsStatsComputed());
+	return nTotalFrequency;
 }
 
 void KWDescriptiveSymbolStats::WriteReport(ostream& ost)
@@ -521,8 +531,10 @@ void KWDescriptiveSymbolStats::WriteReport(ostream& ost)
 	// Statistiques descriptives
 	ost << "Values\t" << GetValueNumber() << "\n";
 	ost << "Init. entr.\t" << GetEntropy() << "\n";
-	ost << "Mode\t" << GetMode() << "\n";
+	ost << "Mode\t" << TSV::Export(GetMode().GetValue()) << "\n";
 	ost << "Mode coverage\t" << GetModeFrequency() << "\n";
+	ost << "Missing number\t" << GetMissingValueNumber() << "\n";
+	ost << "Sparse missing number\t" << GetSparseMissingValueNumber() << "\n";
 }
 
 void KWDescriptiveSymbolStats::WriteHeaderLineReport(ostream& ost)
@@ -532,7 +544,9 @@ void KWDescriptiveSymbolStats::WriteHeaderLineReport(ostream& ost)
 	// Statistiques descriptives
 	ost << "Values\t";
 	ost << "Mode\t";
-	ost << "Mode coverage";
+	ost << "Mode coverage\t";
+	ost << "Missing number\t";
+	ost << "Sparse missing number";
 }
 
 void KWDescriptiveSymbolStats::WriteLineReport(ostream& ost)
@@ -541,11 +555,13 @@ void KWDescriptiveSymbolStats::WriteLineReport(ostream& ost)
 
 	// Statistiques descriptives
 	ost << GetValueNumber() << "\t";
-	ost << GetMode() << "\t";
+	ost << TSV::Export(GetMode().GetValue()) << "\t";
 	if (nTotalFrequency == 0)
-		ost << "0";
+		ost << "0\t";
 	else
-		ost << GetModeFrequency() / (double)nTotalFrequency;
+		ost << GetModeFrequency() / (double)nTotalFrequency << "\t";
+	ost << GetMissingValueNumber() << "\t";
+	ost << GetSparseMissingValueNumber();
 }
 
 void KWDescriptiveSymbolStats::WriteJSONFields(JSONFile* fJSON)
@@ -556,47 +572,79 @@ void KWDescriptiveSymbolStats::WriteJSONFields(JSONFile* fJSON)
 	fJSON->WriteKeyInt("values", GetValueNumber());
 	fJSON->WriteKeyString("mode", GetMode().GetValue());
 	fJSON->WriteKeyDouble("modeFrequency", GetModeFrequency());
+	fJSON->WriteKeyInt("missingNumber", GetMissingValueNumber());
+	fJSON->WriteKeyInt("sparseMissingNumber", GetSparseMissingValueNumber());
 }
 
-////////////////////////////////////////////////////////////////////
-// Implementation de PLShared_DescriptiveStats
+KWDescriptiveStats* KWDescriptiveSymbolStats::Clone() const
+{
+	KWDescriptiveSymbolStats* symbolStatsClone;
+
+	symbolStatsClone = new KWDescriptiveSymbolStats;
+	symbolStatsClone->SetLearningSpec(GetLearningSpec());
+	symbolStatsClone->SetAttributeName(GetAttributeName());
+	symbolStatsClone->bIsStatsComputed = bIsStatsComputed;
+	symbolStatsClone->nValueNumber = nValueNumber;
+	symbolStatsClone->dEntropy = dEntropy;
+	symbolStatsClone->sMode = sMode;
+	symbolStatsClone->nModeFrequency = nModeFrequency;
+	symbolStatsClone->nTotalFrequency = nTotalFrequency;
+	return symbolStatsClone;
+}
+
+longint KWDescriptiveSymbolStats::GetUsedMemory() const
+{
+	longint lUsedMemory;
+
+	lUsedMemory = sizeof(KWDescriptiveSymbolStats);
+	lUsedMemory += sAttributeName.GetUsedMemory();
+
+	return lUsedMemory;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Classe PLShared_DescriptiveStats
 
 PLShared_DescriptiveStats::PLShared_DescriptiveStats() {}
 
 PLShared_DescriptiveStats::~PLShared_DescriptiveStats() {}
 
-void PLShared_DescriptiveStats::SerializeObject(PLSerializer* serializer, const Object* o) const
+void PLShared_DescriptiveStats::SerializeObject(PLSerializer* serializer, const Object* object) const
 {
-	KWDescriptiveStats* decriptiveStats;
+	KWDescriptiveStats* descriptiveStats;
 
 	require(serializer->IsOpenForWrite());
 
 	// Appel de la methode ancetre
-	PLShared_LearningReport::SerializeObject(serializer, o);
+	PLShared_LearningReport::SerializeObject(serializer, object);
 
 	// Serialization des attributs specifiques
-	decriptiveStats = cast(KWDescriptiveStats*, o);
-	serializer->PutString(decriptiveStats->sAttributeName);
-	serializer->PutInt(decriptiveStats->nValueNumber);
+	descriptiveStats = cast(KWDescriptiveStats*, object);
+	serializer->PutString(descriptiveStats->sAttributeName);
+	serializer->PutInt(descriptiveStats->nValueNumber);
+	serializer->PutInt(descriptiveStats->nMissingValueNumber);
+	serializer->PutInt(descriptiveStats->nSparseMissingValueNumber);
 }
 
-void PLShared_DescriptiveStats::DeserializeObject(PLSerializer* serializer, Object* o) const
+void PLShared_DescriptiveStats::DeserializeObject(PLSerializer* serializer, Object* object) const
 {
-	KWDescriptiveStats* decriptiveStats;
+	KWDescriptiveStats* descriptiveStats;
 
 	require(serializer->IsOpenForRead());
 
 	// Appel de la methode ancetre
-	PLShared_LearningReport::DeserializeObject(serializer, o);
+	PLShared_LearningReport::DeserializeObject(serializer, object);
 
 	// Deserialization des attributs specifiques
-	decriptiveStats = cast(KWDescriptiveStats*, o);
-	decriptiveStats->SetAttributeName(serializer->GetString());
-	decriptiveStats->nValueNumber = serializer->GetInt();
+	descriptiveStats = cast(KWDescriptiveStats*, object);
+	descriptiveStats->SetAttributeName(serializer->GetString());
+	descriptiveStats->nValueNumber = serializer->GetInt();
+	descriptiveStats->nMissingValueNumber = serializer->GetInt();
+	descriptiveStats->nSparseMissingValueNumber = serializer->GetInt();
 }
 
-////////////////////////////////////////////////////////////////////
-// Implementation de PLShared_DescriptiveContinuousStats
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Classe PLShared_DescriptiveContinuousStats
 
 PLShared_DescriptiveContinuousStats::PLShared_DescriptiveContinuousStats() {}
 
@@ -613,34 +661,33 @@ KWDescriptiveContinuousStats* PLShared_DescriptiveContinuousStats::GetDescriptiv
 	return cast(KWDescriptiveContinuousStats*, GetObject());
 }
 
-void PLShared_DescriptiveContinuousStats::SerializeObject(PLSerializer* serializer, const Object* o) const
+void PLShared_DescriptiveContinuousStats::SerializeObject(PLSerializer* serializer, const Object* object) const
 {
 	PLShared_Continuous cMin;
 	PLShared_Continuous cMax;
 	PLShared_Continuous cMean;
 	PLShared_Continuous cStandardDeviation;
-	KWDescriptiveContinuousStats* decriptiveStats;
+	KWDescriptiveContinuousStats* descriptiveStats;
 	require(serializer->IsOpenForWrite());
 
 	// Appel de la methode ancetre
-	PLShared_DescriptiveStats::SerializeObject(serializer, o);
+	PLShared_DescriptiveStats::SerializeObject(serializer, object);
 
 	// Serialization des attributs specifiques
-	decriptiveStats = cast(KWDescriptiveContinuousStats*, o);
-	cMin = decriptiveStats->GetMin();
+	descriptiveStats = cast(KWDescriptiveContinuousStats*, object);
+	cMin = descriptiveStats->GetMin();
 	cMin.Serialize(serializer);
-	cMax = decriptiveStats->GetMax();
+	cMax = descriptiveStats->GetMax();
 	cMax.Serialize(serializer);
-	cMean = decriptiveStats->GetMean();
+	cMean = descriptiveStats->GetMean();
 	cMean.Serialize(serializer);
-	cStandardDeviation = decriptiveStats->GetStandardDeviation();
+	cStandardDeviation = descriptiveStats->GetStandardDeviation();
 	cStandardDeviation.Serialize(serializer);
-	serializer->PutInt(decriptiveStats->GetMissingValueNumber());
 }
 
-void PLShared_DescriptiveContinuousStats::DeserializeObject(PLSerializer* serializer, Object* o) const
+void PLShared_DescriptiveContinuousStats::DeserializeObject(PLSerializer* serializer, Object* object) const
 {
-	KWDescriptiveContinuousStats* decriptiveStats;
+	KWDescriptiveContinuousStats* descriptiveStats;
 	PLShared_Continuous sharedContinuous;
 	PLShared_Continuous cMax;
 	PLShared_Continuous cMean;
@@ -649,19 +696,18 @@ void PLShared_DescriptiveContinuousStats::DeserializeObject(PLSerializer* serial
 	require(serializer->IsOpenForRead());
 
 	// Appel de la methode ancetre
-	PLShared_DescriptiveStats::DeserializeObject(serializer, o);
+	PLShared_DescriptiveStats::DeserializeObject(serializer, object);
 
 	// Deserialization des attributs specifiques
-	decriptiveStats = cast(KWDescriptiveContinuousStats*, o);
+	descriptiveStats = cast(KWDescriptiveContinuousStats*, object);
 	sharedContinuous.Deserialize(serializer);
-	decriptiveStats->cMin = sharedContinuous;
+	descriptiveStats->cMin = sharedContinuous;
 	sharedContinuous.Deserialize(serializer);
-	decriptiveStats->cMax = sharedContinuous;
+	descriptiveStats->cMax = sharedContinuous;
 	sharedContinuous.Deserialize(serializer);
-	decriptiveStats->cMean = sharedContinuous;
+	descriptiveStats->cMean = sharedContinuous;
 	sharedContinuous.Deserialize(serializer);
-	decriptiveStats->cStandardDeviation = sharedContinuous;
-	decriptiveStats->nMissingValueNumber = serializer->GetInt();
+	descriptiveStats->cStandardDeviation = sharedContinuous;
 }
 
 Object* PLShared_DescriptiveContinuousStats::Create() const
@@ -669,8 +715,8 @@ Object* PLShared_DescriptiveContinuousStats::Create() const
 	return new KWDescriptiveContinuousStats;
 }
 
-////////////////////////////////////////////////////////////////////
-// Implementation de PLShared_DescriptiveSymbolStats
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Classe PLShared_DescriptiveSymbolStats
 
 PLShared_DescriptiveSymbolStats::PLShared_DescriptiveSymbolStats() {}
 
@@ -687,41 +733,42 @@ KWDescriptiveSymbolStats* PLShared_DescriptiveSymbolStats::GetDescriptiveStats()
 	return cast(KWDescriptiveSymbolStats*, GetObject());
 }
 
-void PLShared_DescriptiveSymbolStats::SerializeObject(PLSerializer* serializer, const Object* o) const
+void PLShared_DescriptiveSymbolStats::SerializeObject(PLSerializer* serializer, const Object* object) const
 {
-	KWDescriptiveSymbolStats* decriptiveStats;
+	KWDescriptiveSymbolStats* descriptiveStats;
 	PLShared_Symbol sharedSymbol;
 
 	require(serializer->IsOpenForWrite());
 
 	// Appel de la methode ancetre
-	PLShared_DescriptiveStats::SerializeObject(serializer, o);
+	PLShared_DescriptiveStats::SerializeObject(serializer, object);
 
 	// Serialization des attributs specifiques
-	decriptiveStats = cast(KWDescriptiveSymbolStats*, o);
-	serializer->PutDouble(decriptiveStats->GetEntropy());
-	sharedSymbol = decriptiveStats->sMode;
+	descriptiveStats = cast(KWDescriptiveSymbolStats*, object);
+	serializer->PutDouble(descriptiveStats->GetEntropy());
+	sharedSymbol = descriptiveStats->sMode;
 	sharedSymbol.Serialize(serializer);
-	serializer->PutInt(decriptiveStats->nModeFrequency);
-	serializer->PutInt(decriptiveStats->nTotalFrequency);
+	serializer->PutInt(descriptiveStats->nModeFrequency);
+	serializer->PutInt(descriptiveStats->nTotalFrequency);
 }
 
-void PLShared_DescriptiveSymbolStats::DeserializeObject(PLSerializer* serializer, Object* o) const
+void PLShared_DescriptiveSymbolStats::DeserializeObject(PLSerializer* serializer, Object* object) const
 {
-	KWDescriptiveSymbolStats* decriptiveStats;
+	KWDescriptiveSymbolStats* descriptiveStats;
 	PLShared_Symbol sharedSymbol;
+
 	require(serializer->IsOpenForRead());
 
 	// Appel de la methode ancetre
-	PLShared_DescriptiveStats::DeserializeObject(serializer, o);
+	PLShared_DescriptiveStats::DeserializeObject(serializer, object);
 
 	// Deserialization des attributs specifiques
-	decriptiveStats = cast(KWDescriptiveSymbolStats*, o);
-	decriptiveStats->dEntropy = serializer->GetDouble();
+	descriptiveStats = cast(KWDescriptiveSymbolStats*, object);
+	descriptiveStats->dEntropy = serializer->GetDouble();
 	sharedSymbol.Deserialize(serializer);
-	decriptiveStats->sMode = sharedSymbol;
-	decriptiveStats->nModeFrequency = serializer->GetInt();
-	decriptiveStats->nTotalFrequency = serializer->GetInt();
+	descriptiveStats->sMode = sharedSymbol;
+	descriptiveStats->nModeFrequency = serializer->GetInt();
+	descriptiveStats->nTotalFrequency = serializer->GetInt();
 }
 
 Object* PLShared_DescriptiveSymbolStats::Create() const

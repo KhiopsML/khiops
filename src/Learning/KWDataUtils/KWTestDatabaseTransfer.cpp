@@ -130,13 +130,13 @@ void KWTestDatabaseTransfer::STTest()
 
 	// Initialisation de la base cible
 	databaseTarget.CopyFrom(&databaseSource);
-	sTransferredFilePathName = FileService::BuildFilePathName(sTmpDir, "T_" + sFileName + sSuffix);
+	sTransferredFilePathName = FileService::BuildFilePathName(sTmpDir, "D_" + sFileName + sSuffix);
 	databaseTarget.SetDatabaseName(sTransferredFilePathName);
 
 	// Transfert
 	databaseTransfer.SetDisplayAllTaskMessages(false);
 	databaseTransfer.Transfer(&databaseSource, &databaseTarget, lWrittenRecordNumber);
-	cout << "Transferred instances: " << LongintToReadableString(lWrittenRecordNumber) << endl;
+	cout << "Deployed instances: " << LongintToReadableString(lWrittenRecordNumber) << endl;
 	KWArtificialDataset::DisplayFileFirstLines(sTransferredFilePathName, 10);
 
 	///////////////////////////////////////////////////////////////////////////
@@ -970,9 +970,8 @@ void KWTestDatabaseTransfer::MTTestWithArtificialDatabase(int nTableNumber, int 
 	bOk = databaseTransfer.Transfer(&databaseSource, &databaseTarget, lWrittenRecordNumber);
 	timer.Stop();
 	if (bShowTime)
-		cout << "Transfer time: " << timer.GetElapsedTime() << endl;
-	cout << "Transferred instances: " << LongintToReadableString(lWrittenRecordNumber) << " (" << bOk << ")"
-	     << endl;
+		cout << "Deployment time: " << timer.GetElapsedTime() << endl;
+	cout << "Deployed instances: " << LongintToReadableString(lWrittenRecordNumber) << " (" << bOk << ")" << endl;
 	for (nTable = 0; nTable < oaArtificialDatasets.GetSize(); nTable++)
 	{
 		sTransferredFilePathName = svTransferredFilePathNames.GetAt(nTable);

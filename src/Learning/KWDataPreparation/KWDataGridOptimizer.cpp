@@ -469,6 +469,43 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 	return dBestCost;
 }
 
+double KWDataGridOptimizer::SimplifyDataGrid(KWDataGrid* optimizedDataGrid) const
+{
+	KWDataGridManager dataGridManager;
+	KWDataGridMerger dataGridMerger;
+	double dSimplifiedGridCost;
+
+	require(optimizedDataGrid != NULL);
+
+	// Cas ou la contrainte est dekja respectee: on garde la grille telle quelle
+	if (optimizationParameters.GetMaxPartNumber() == 0 or
+	    optimizedDataGrid->ComputeMaxPartNumber() <= optimizationParameters.GetMaxPartNumber())
+	{
+		// Il faut recalculer le cout de la grille initiale
+		dSimplifiedGridCost = GetDataGridCosts()->ComputeDataGridTotalCost(optimizedDataGrid);
+	}
+	// Cas ou il faut simplifier la grille
+	else
+	{
+		// Export de la grille initiale vers un merger de grille
+		dataGridManager.SetSourceDataGrid(optimizedDataGrid);
+		dataGridManager.ExportDataGrid(&dataGridMerger);
+
+		// Parametrage des couts et des contraintes
+		dataGridMerger.SetDataGridCosts(GetDataGridCosts());
+		dataGridMerger.SetMaxPartNumber(optimizationParameters.GetMaxPartNumber());
+		assert(dataGridMerger.Check());
+
+		// Post-traitement de simplification
+		dSimplifiedGridCost = dataGridMerger.Merge();
+
+		// Memorisation de la solution initiale
+		dataGridManager.CopyDataGrid(&dataGridMerger, optimizedDataGrid);
+	}
+	ensure(fabs(dSimplifiedGridCost - GetDataGridCosts()->ComputeDataGridTotalCost(optimizedDataGrid)) < dEpsilon);
+	return dSimplifiedGridCost;
+}
+
 double KWDataGridOptimizer::OptimizeGranularizedDataGrid(const KWDataGrid* initialDataGrid,
 							 KWDataGrid* optimizedDataGrid, boolean bIsLastGranularity,
 							 double& dTotalComputeTime) const

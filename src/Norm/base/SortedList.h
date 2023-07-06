@@ -6,6 +6,7 @@
 
 #include "Object.h"
 
+class SortedList;
 class AVLNode;
 
 ///////////////////////////////////////////////////////

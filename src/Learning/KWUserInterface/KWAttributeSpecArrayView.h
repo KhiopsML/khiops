@@ -80,7 +80,7 @@ protected:
 	NumericKeyDictionary nkdEditedClassKeyAttributes;
 	NumericKeyDictionary nkdEditedClassUsedAttributeReferences;
 
-	// Liste des types d'attributs stockes, pour les message d'erreur
+	// Liste des types d'attributs stockes, pour les messages d'erreur
 	ALString sStoredTypes;
 
 	// ##

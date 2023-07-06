@@ -25,8 +25,8 @@ add_library(
   KWData STATIC
   JSONFile.cpp
   JSONTokenizer.cpp
-  KWAttributeBlock.cpp
   KWAttribute.cpp
+  KWAttributeBlock.cpp
   KWAttributeName.cpp
   KWAttributePairName.cpp
   KWCDUniqueString.cpp
@@ -59,11 +59,14 @@ add_library(
   KWSTDatabaseTextFile.cpp
   KWStructureRule.cpp
   KWSymbol.cpp
+  KWTextService.cpp
+  KWTextTokenizer.cpp
   KWTime.cpp
   KWTimestamp.cpp
   KWTimestampTZ.cpp
-  KWTypeAutomaticRecognition.cpp
+  KWTokenFrequency.cpp
   KWType.cpp
+  KWTypeAutomaticRecognition.cpp
   KWValueBlock.cpp
   KWValueDictionary.cpp
   KWValueSparseVector.cpp

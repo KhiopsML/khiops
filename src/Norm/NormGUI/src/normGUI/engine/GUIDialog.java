@@ -4,6 +4,7 @@
 
 package normGUI.engine;
 
+import java.awt.Dimension;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.beans.PropertyChangeEvent;
@@ -137,8 +138,16 @@ public class GUIDialog extends GUIObject
                         }
                 });
 
-                // Positionnement de la boite de dialogue par rapport a la fenetre parente
+                // Ajustement de la taille de la fenetre pour tenir compte de la longueur du titre
                 dialog.pack();
+                int minDialogWidth = getMinFramedWidth(guiDialogCard.getLabel());
+                Dimension currentPreferredSize = dialog.getPreferredSize();
+                if (currentPreferredSize.getWidth() <= minDialogWidth) {
+                        dialog.setPreferredSize(new Dimension(minDialogWidth, (int)currentPreferredSize.getHeight()));
+                        dialog.pack();
+                }
+
+                // Positionnement de la boite de dialogue par rapport a la fenetre parente
                 dialog.setLocationRelativeTo(parentFrame);
 
                 // Parametrage specifique dans le cas d'une fenetre parentre nul
