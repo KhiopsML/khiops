@@ -8,13 +8,15 @@ class KDTextFeatureConstruction;
 class KDTextAttributePath;
 class KDTextClass;
 
+#include "KDTextFeatureSpec.h"
 #include "KDFeatureConstruction.h"
 #include "KWClass.h"
-#include "KDTokenFrequency.h"
+#include "KWTokenFrequency.h"
 #include "KWDRTextualAnalysis.h"
 #include "KDMultinomialSampleGenerator.h"
 #include "KDTextTokenSampleCollectionTask.h"
 #include "KDClassCompliantRules.h"
+#include "KWTextService.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // Classe KDTextFeatureConstruction
@@ -26,22 +28,25 @@ public:
 	KDTextFeatureConstruction();
 	~KDTextFeatureConstruction();
 
-	// Construction de variables interpretables (defaut: false)
-	// En mode non interpretable, les variables sont basee sur des n-grammes de bytes:
-	//   . entierement automatique
-	//   . rapide
-	//   . bonne performances attendues en general
-	//   . boite noire: pas d'interpretation possible
-	// En mode interpretable, les variables sont bases sur les tokens frequents dans les texte,
-	// un token etant une suite de caracteres obtenu lors du parsing d'un texte avec le caractere ' '
-	// comme separateur:
+	// Type d'attributs de type texte construits:
+	// . ngrams : ngrams d'octets ; generique, rapide, robuste, mais peu interpretable
+	// . mots : tokens interpretables bases sur une tokenisation automatique en mots.
+	// . tokens : tokens dont l'interpretabilite et l'interet dependent de la qualite du pretraitement du texte.
+	//
+	// Les mots resultent d'une tokenisation automatique utilisant des caracteres de separation ou de controle comme
+	// delimiteurs, et sont constitues soit de sequences de caracteres de ponctuation, soit de sequences de tout
+	// autre caractere. Les tokens sont le resultat d'une tokenisation de base utilisant le caractere de separation
+	// comme delimiteur.
+	//
+	// Dans tous les cas, on fait d'abord une passe de collecte des tokens les plus frequents (tokens au sens
+	// general, ngrams, words...) Potentiellement, on peut ameliorer la tokenisation par des pretraitements
+	// exploitant des connaissance linguistique a priori.
 	//   . demande un pretraitement des textes pour etre efficace
 	//      . lemmatisation, stemmatisation, supression des caracteres accentues, des chiffres...
 	//      . expertise necessaire
-	//   . demande une passe de lecture initiale sur les donnees pour collecter les token les plus frequents
 	//   . performances attendues selon la qualite des pretraitements des textes
-	void SetInterpretableMode(boolean bValue);
-	boolean GetInterpretableMode() const;
+	void SetTextFeatures(const ALString& sValue);
+	const ALString& GetTextFeatures() const;
 
 	// Indique si un dictionnaire contient des variables de type texte utilisees directement ou via un autre
 	// dictionnaire accessible via ses sous-entite et sous-tables
@@ -99,24 +104,24 @@ protected:
 	void ComputeTextClassConstructedFeatureNumbers(const KWClass* kwcClass, const ObjectDictionary* odTextClasses,
 						       int nFeatureNumber) const;
 
-	// Collecte d'un echantillon des tokens valeurs par variable secondaire de type texte par analyse de la base
+	// Collecte d'un echantillon des tokens par variable secondaire de type texte par analyse de la base
 	// Renvoie true si OK (false si par exemple tache interrompue)
 	boolean ExtractTokenSamples(const KWClass* kwcClass, const ObjectDictionary* odTextClasses) const;
 
-	// Tache de lecture de la base pour collecter un echantillon des tokens valeurs par variable secondaire de type
-	// texte Les chemins d'attributs en entree on un nombre d'attributs a construire specifie. En sortie, un
-	// echantillon de token est alimente pour chaque chemin d'attribut.
+	// Tache de lecture de la base pour collecter un echantillon des tokens par variable secondaire de type texte
+	// Les chemins d'attributs en entree ont un nombre d'attributs a construire specifie.
+	// En sortie, un echantillon de token est alimente pour chaque chemin d'attribut.
 	boolean TaskCollectTokenSamples(const KWClass* tokenExtractionClass,
 					const ObjectDictionary* odTextClasses) const;
 
 	// Construction d'un domaine de lecture de la base pour la collecte des echantillons de tokens,
-	// c'est a dire ayant tout en Unused, sauf les variable de type texet permettant d'acceder aux
-	// variable secondaire de type texte. Le domain fabrique est compile et pret a l'emploi
+	// c'est a dire ayant tout en Unused, sauf les variable de type texte permettant d'acceder aux
+	// variables secondaires de type texte. Le domain fabrique est compile et pret a l'emploi
 	//
-	// Les nombres de variables construites existantes de type token sont collectes pour les chemins d'acces aux
-	// attributs de type texte d'une classe, et sont memorises dans les chemins d'attributs (ExistingTokenNumber) Le
-	// domain est enssuite nettoye de ses variables inutiles pour optimiser les acces aux donnees Memoire: le
-	// domaine et son contenu appartiennent a l'appelant
+	// Les nombres de variables construites existantes de type token (ngrams, words, tokens) sont collectes pour les
+	// chemins d'acces aux attributs de type texte d'une classe, et sont memorises dans les chemins d'attributs
+	// (ExistingTokenNumber) Le domain est ensuite nettoye de ses variables inutiles pour optimiser les acces aux
+	// donnees Memoire: le domaine et son contenu appartiennent a l'appelant
 	KWClassDomain* BuildTokenExtractionDomainWithExistingTokenNumbers(const KWClass* kwcClass,
 									  const ObjectDictionary* odTextClasses) const;
 
@@ -136,23 +141,14 @@ protected:
 	KWAttribute* ConstructPathAttribute(KDClassCompliantRules* classCompliantRules, KWClass* kwcClass,
 					    const KDTextAttributePath* textAttributePath) const;
 
-	// Construction d'un bloc de variables de type ngram pour un attribut de type texte, dans le cas non
-	// interpretable Le nombre de variable a construire est nBlockAttributeNUmber. En cas de variables construites
-	// existantes, on utilise des VarKey de plus en plus grandes pour cree de nouvelles variables. Le cout de
-	// construction est celui de selection ou construction de l'attribut texte lui meme
-	void ConstructTextAttributeNgramBlock(KDClassCompliantRules* classCompliantRules, KWClass* kwcClass,
-					      const KWAttribute* textAttribute, double dTextConstructionCost,
-					      int nBlockAttributeNUmber,
-					      ObjectDictionary* odConstructedAttributes) const;
-
-	// Construction d'un bloc de variables de type token pour un attribut de type texte, dans le cas interpretable
-	// Le nombre de variable a construire est nBlockAttributeNUmber. En cas de variables construites existantes,
-	// on exploite de plus en plus de tokens ex exploitant les tokens en parametres (KDTokenFrequency) en
-	// parametres, ordonnes du plus frequent au moins frequent. Le cout de construction est celui de selection ou
-	// construction de l'attribut texte lui meme
+	// Construction d'un bloc de variables de tokens pour un attribut de type texte, selon le type de features
+	// Le nombre de variable a construire est nBlockAttributeNumber. En cas de variables construites existantes,
+	// on exploite de plus en plus de tokens en exploitant les tokens en parametres (KWTokenFrequency),
+	// ordonnes du plus frequent au moins frequent.
+	// Le cout de construction est celui de selection ou construction de l'attribut texte lui meme
 	void ConstructTextAttributeTokenBlock(KDClassCompliantRules* classCompliantRules, KWClass* kwcClass,
 					      const KWAttribute* textAttribute, double dTextConstructionCost,
-					      int nBlockAttributeNUmber, const ObjectArray* oaTokens,
+					      int nBlockAttributeNumber, const ObjectArray* oaTokens,
 					      ObjectDictionary* odConstructedAttributes) const;
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -166,13 +162,13 @@ protected:
 	// ou blocs de variables existants, basee sur les regles de derivation dediees au traitement des Text.
 	//
 	// Les variables de chemins d'acces aux donnees de type texte (cas multi-table) sont reutiliseees telles
-	// quelles. Les blocs sont de deux typse, bases sur des ngrammes ou des tokens. Dans les deux cas, le bloc est
-	// derive d'une regle n'ayant qu'un seul operande (le texte a analyser), la dimension du bloc et la liste des
-	// variable du bloc etant determinee par les VarKey des variables du bloc. Cela permet de reutiliser des blocs
-	// existants (ayant les memes regles de derivation), en ajoutant autant de variables que souhaite auyx variables
-	// existant deja. Dans le cas des ngrammes, il suffit d'ajoiter des nouvelle VarKey en incrementant leur index
-	// si necessaire. Dans le cas des tokens, il faut avoir extrait plus de tokens que ce qui est specifie pour
-	// tenir compte des variables existantes, qui exploitent deja potentiellement une partie des tokens extraits.
+	// quelles. Les blocs sont de deux type, bases sur des tokens de type ngrams ou mots. Dans les deux cas, le bloc
+	// est derive d'une regle n'ayant qu'un seul operande (le texte a analyser), la dimension du bloc et la liste
+	// des variables du bloc etant determinee par les VarKey des variables du bloc. Cela permet de reutiliser des
+	// blocs existants (ayant les memes regles de derivation), en ajoutant autant de variables que souhaite aux
+	// variables existant deja. Dans le cas de variables construites existantes, il faut avoir extrait plus de
+	// tokens que ce qui est specifie pour tenir compte des variables existantes, qui exploitent deja
+	// potentiellement une partie des tokens extraits.
 
 	// Initialisation du service de gestion des attributs derives existants
 	void InitializeMainClassConstructedAttributesAndBlocks(KDClassCompliantRules* classCompliantRules,
@@ -203,21 +199,16 @@ protected:
 	// attribut d'une sous-table
 	const ALString BuildMainTextAttributeName(const KDTextAttributePath* textAttributePath) const;
 
-	// Construction d'un nom d'attribut de type ngrammme construit a partir d'un attribut de type texte
-	const ALString BuildNGramBasedAttributeName(const KWAttribute* textAttribute, int nGramLength,
-						    int nHashTableSize, int nIndex) const;
-
-	// Construction d'un nom de bloc d'attributs de type ngrammme construits a partir d'un attribut de type texte
-	const ALString BuildNGramBasedAttributeBlockName(const KWAttribute* textAttribute) const;
-
-	// Construction d'un nom d'attribut de type token construit a partir d'un attribut de type texte
+	// Construction d'un nom d'attribut de type token construit a partir d'un attribut de type texte, pour un type
+	// de features
 	const ALString BuildTokenBasedAttributeName(const KWAttribute* textAttribute, const ALString& sToken) const;
 
-	// Construction d'un nom de bloc d'attributs de type token construits a partir d'un attribut de type texte
+	// Construction d'un nom de bloc d'attributs de type token construits a partir d'un attribut de type texte, pour
+	// un type de features
 	const ALString BuildTokenBasedAttributeBlockName(const KWAttribute* textAttribute) const;
 
-	// Mode interpretable pour la construction des variables de type texte
-	boolean bInterpretableMode;
+	// Type de d'attribut de type texte
+	ALString sTextFeatures;
 
 	// Index du prochain attribut dans le cas d'un nommage indexe, non interpretable
 	mutable int nAttributeNameIndex;
@@ -226,6 +217,7 @@ protected:
 //////////////////////////////////////////////////////////////////////////////
 // Classe KDTextAttributePath
 // Chemin d'acces a un attribut de type texte (Text ou TextList) depuis le dictionnaire principal
+// Classe de travail pour l'extraction des tokens
 class KDTextAttributePath : public Object
 {
 public:
@@ -293,7 +285,7 @@ public:
 	void SetExistingTokenNumber(int nValue);
 	int GetExistingTokenNumber() const;
 
-	// Tableau des tokens avec leur effectif (KDTokenFrequency), a utiliser pour la construction de variable en mode
+	// Tableau des tokens avec leur effectif (KWTokenFrequency), a utiliser pour la construction de variable en mode
 	// interpretable Memoire: les tokens appartiennent a l'appele
 	ObjectArray* GetTokens();
 
@@ -341,6 +333,7 @@ protected:
 //////////////////////////////////////////////////////////////////////////////
 // Classe KDTextClass
 // Classe de gestion de la construction des variables de type texte (Text ou TextList)
+// Classe de travail pour l'extraction des tokens
 class KDTextClass : public Object
 {
 public:

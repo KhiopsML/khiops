@@ -359,7 +359,7 @@ void SNBAttributeSelectionWeightCalculator::ComputeAttributeWeigths()
 			    evaluationRecord->GetType() == SNBAttributeSelectionOptimizationRecord::UnevaluatedAdd or
 			    evaluationRecord->GetType() == SNBAttributeSelectionOptimizationRecord::BestAdd)
 			{
-				nkdSelectedAttributeSet.SetAt((NUMERIC)evaluationRecord->GetAttribute(),
+				nkdSelectedAttributeSet.SetAt(evaluationRecord->GetAttribute(),
 							      evaluationRecord->GetAttribute());
 			}
 			// Suppression d'un attribut de la selection

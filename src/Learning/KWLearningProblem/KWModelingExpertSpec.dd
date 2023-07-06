@@ -1,0 +1,6 @@
+Rank;Name;Type;Style;Label
+2;BaselinePredictor            ;boolean ;CheckBox   ;Baseline predictor
+3;UnivariatePredictorNumber    ;int     ;Spinner    ;Number of univariate predictors
+4;SelectiveNaiveBayesPredictor ;boolean ;CheckBox   ;Selective Naive Bayes predictor
+5;NaiveBayesPredictor          ;boolean ;CheckBox   ;Naive Bayes predictor
+6;DataGridPredictor            ;boolean ;CheckBox   ;Data Grid predictor

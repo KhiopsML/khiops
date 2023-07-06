@@ -13,7 +13,7 @@
 #include "KWDatabaseTransferTask.h"
 #include "KWClassAttributeHelpList.h"
 #include "KWDatabaseAttributeValuesHelpList.h"
-#include "LMLicenseManager.h"
+#include "KWResultFilePathBuilder.h"
 
 ////////////////////////////////////////////////////////////
 // Classe KWDatabaseTransferView
@@ -27,12 +27,13 @@ public:
 	KWDatabaseTransferView();
 	~KWDatabaseTransferView();
 
-	// Initialisation des specifications du fichier d'origine
-	// a presenter a l'utilisateur
+	// Initialisation des specifications du fichier d'origine a presenter a l'utilisateur
 	// Si NULL, reinitialisation de toutes les valeurs a vide
-	// La classe assure sinon la permanence des dernieres saisies
-	// utilisateurs entre deux ouvertures successives
-	void InitializeSourceDatabase(KWDatabase* database);
+	// La classe assure sinon la permanence des dernieres saisies utilisateurs
+	// entre deux ouvertures successives
+	// Le chemin des sortie est base en priorite sur celui de la base en sortie, puis celui de la base
+	// en entree, puis celui du fichier dictionnaire
+	void InitializeSourceDatabase(KWDatabase* database, const ALString& sDatabaseClassFileName);
 
 	// Reimplementation de la methode Open
 	void Open() override;
@@ -85,6 +86,7 @@ protected:
 
 	// Memorisation des donnees gerees par la fiche
 	ALString sClassName;
+	ALString sClassFileName;
 	KWDatabase* sourceDatabase;
 	KWDatabase* targetDatabase;
 

@@ -4,6 +4,8 @@
 
 #pragma once
 
+class JSONFile;
+
 #include "Object.h"
 #include "ALString.h"
 #include "KWContinuous.h"
@@ -11,6 +13,7 @@
 #include "MemoryStatsManager.h"
 #include "PLRemoteFileService.h"
 #include "KWSortableIndex.h"
+#include "KWTextService.h"
 
 //////////////////////////////////////////
 // Fichier JSON
@@ -42,7 +45,7 @@ public:
 	//  . utf8: utf8, sans ansi
 	//  . mixed_ansi_utf8: ansi et utf8, sans utf8 provenant de windows1252/iso8859-1
 	//  . colliding_ansi_utf8: ansi et utf8, avec utf8 provenant de windows1252/iso8859-1
-	// Seul le dernier cas pose probleme, car un fois lu depuis un json reader, il y a des collisions
+	// Seul le dernier cas pose probleme, car une fois lu depuis un json reader, il y a des collisions
 	// potentielles entres les caracteres ansi initiaux recodes en utf8 avec windows1252/iso8859-1
 	// et les caracteres utf8 initiaux presents dans windows1252/iso8859-1.
 	// En cas de collision, les deux champs supplementaires sont ajoutes dans le json pour aide
@@ -50,6 +53,9 @@ public:
 	//   . ansi_chars: tableau des caracteres ansi utilises
 	//   . colliding_utf8_chars: tableau des caracteres utf8 initiaux utilises dans windows1252/iso8859-1.
 	boolean Close();
+
+	// Variante de la fermeture, permetant d'ignorer la gestion de l'encodage
+	boolean CloseWithoutEncodingStats();
 
 	////////////////////////////////////////////////////
 	// Ecriture des structures JSON
@@ -121,10 +127,6 @@ public:
 	// endodes avec iso-8859-1/windows-1252 vers ansi
 	static void CStringToCAnsiString(const ALString& sCString, ALString& sCAnsiString);
 
-	// Longueur en bytes d'un caractere UTF8 valide a partir d'une position donnees
-	// Retourne 1 a 4 dans le cas d'un caractere valide, 0 sinon pour un caractere ANSI non encodable directement
-	static int GetValidUTF8CharLengthAt(const ALString& sValue, int nStart);
-
 	// Conversion d'un caractere ansi windows-1252 vers un caractere unicode au format hexa
 	static void Windows1252ToUnicodeHex(int nAnsiCode, ALString& sUnicodeHexChars);
 
@@ -145,6 +147,9 @@ public:
 	//////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
+	// Fermeture du fichier, en choisissant d'ignorer ou non la gestion de l'encodage
+	boolean InternalClose(boolean bExploitEncodingStats);
+
 	// Ecriture d'une cle (suivi de ": ")
 	void WriteKey(const ALString& sKey);
 
@@ -175,18 +180,6 @@ protected:
 
 	// Exploitation des stats d'encodage: memorisation dans le fichier json et message utilisateur
 	void ExploitEncodingStats();
-
-	//////////////////////////////////////////////////////////////////////////////////////
-	// Conversion entre caracteres hexa et bytes
-
-	// Test si un caractere est un caractere hexe (0 a 9 ou A a F)
-	static boolean IsHexChar(char c);
-
-	// Code entre 0 et 15 associe a un caractere hexa
-	static int GetHexCharCode(char c);
-
-	// Transformation d'une chaine de code hexa en chaines de bytes
-	static void HexCharStringToByteString(const ALString& sHexCharString, ALString& sByteString);
 
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Gestion des encodages windows-1252 vers unicode et UFT8

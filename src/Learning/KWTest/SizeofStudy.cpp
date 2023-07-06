@@ -399,7 +399,7 @@ void SizeofStudyTest()
 	cout << "sizeof(IntVector)\t" << sizeof(IntVector) << endl;
 	cout << "sizeof(ObjectArray)\t" << sizeof(ObjectArray) << endl;
 	cout << "sizeof(NumericKeyDictionary)\t" << sizeof(NumericKeyDictionary) << endl;
-	cout << "sizeof(NKDAssoc)\t" << sizeof(NKDAssoc) << endl;
+	cout << "sizeof(GDAssoc)\t" << sizeof(GDAssoc) << endl;
 	cout << "sizeof(SortedList)\t" << sizeof(SortedList) << endl;
 	cout << "sizeof(AVLNode)\t" << sizeof(AVLNode) << endl;
 	cout << "sizeof(KWClass)\t" << sizeof(KWClass) << endl;

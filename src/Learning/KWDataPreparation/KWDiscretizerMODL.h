@@ -4,6 +4,8 @@
 
 #pragma once
 
+class KWDiscretizerMODLFamily;
+class KWMODLHistogramResults;
 class KWDiscretizerMODL;
 
 #include "KWDiscretizer.h"
@@ -30,6 +32,44 @@ public:
 	virtual double ComputeDiscretizationConstructionCost(KWFrequencyTable* kwftDiscretizedTable) const = 0;
 	virtual double ComputeDiscretizationPreparationCost(KWFrequencyTable* kwftDiscretizedTable) const = 0;
 	virtual double ComputeDiscretizationDataCost(KWFrequencyTable* kwftDiscretizedTable) const = 0;
+
+	////////////////////////////////////////////////////////////////////////
+	// Gestion des resultats de discretisation non supervise MODL
+
+	// Construction des resultats de discretisation non supervise MODL
+	// Par defaut: renvoie NULL
+	// Memoire: l'objet retourne appartient a l'appelant
+	virtual KWMODLHistogramResults* BuildMODLHistogramResults() const;
+
+	// Creation generique d'une objet de resultats de discretisation non supervise MODL
+	// Par defaut: renvoie NULL
+	// Memoire: l'objet retourne appartient a l'appelant
+	virtual KWMODLHistogramResults* CreateMODLHistogramResults() const;
+
+	// Acces a un objet permettant de gerer la serialisation des resultats de discretisation
+	// Par defaut: renvoie NULL
+	// Memoire: l'objet retourne appartient a l'appele
+	virtual const PLSharedObject* GetMODLHistogramResultsSharedObject() const;
+};
+
+/////////////////////////////////////////////////////////////////////////////////
+// Specification generique des resultats de discretisation non supervise MODL
+// Comme il ne peut y avoir de dependance cyclique entre bibliotheque, cette classe
+// virtuelle permet de definir les quelques services de base utilisable de facon generique
+// dans la librairie courante, tout en implementant les histogrammes MODL
+// dans une librairie fille, pour modulariser les developpement
+class KWMODLHistogramResults : public Object
+{
+public:
+	// Bornes des histogrammes, qui ne sont pas necessairement les valeur min et max du jeux de donnees
+	virtual Continuous GetDomainLowerBound() const = 0;
+	virtual Continuous GetDomainUpperBound() const = 0;
+
+	// Ecriture d'un rapport JSON
+	virtual void WriteJSONKeyReport(JSONFile* fJSON, const ALString& sKey) = 0;
+
+	// Nom du discretiseur a l'origine des results
+	virtual const ALString GetDiscretizerName() const = 0;
 };
 
 //////////////////////////////////////////////////////////////////////////////////

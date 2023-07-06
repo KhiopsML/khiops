@@ -241,7 +241,7 @@ boolean SystemFileDriverLibrary::CopyFileToLocal(const char* sSourceFilePathName
 boolean SystemFileDriverLibrary::LoadLibrary(const ALString& sLibraryFilePathName)
 {
 	ALString sTmp;
-	char sErrorMessage[SHARED_LIBRARY_MESSAGE_LENGTH + 1];
+	char sErrorMessage[SYSTEM_MESSAGE_LENGTH + 1];
 
 	require(not IsLibraryLoaded());
 

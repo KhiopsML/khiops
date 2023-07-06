@@ -288,7 +288,7 @@ public:
 
 	// Verification que les attributs d'un bloc sont tous presents via leur VarKey
 	// dans les blocs en operandes de la regle
-	// Les messages sont emis pour le bloc d'attribut en paremetre, associe a la regle a verifier
+	// Les messages sont emis pour le bloc d'attribut en parametre, associe a la regle a verifier
 	virtual boolean CheckBlockAttributes(const KWClass* kwcOwnerClass,
 					     const KWAttributeBlock* attributeBlock) const;
 	virtual boolean CheckBlockAttributesAt(const KWClass* kwcOwnerClass, const KWAttributeBlock* attributeBlock,

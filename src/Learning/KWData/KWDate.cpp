@@ -192,7 +192,7 @@ boolean Date::AddDays(int nValue)
 	nYear = e / 1461 - 4716 + (14 - nMonth) / 12;
 
 	// Initialisation si annee valide
-	if (1 <= nYear and nYear <= 9999)
+	if (1 <= nYear and nYear <= 4000)
 	{
 		SetYear(nYear);
 		SetMonth(nMonth);

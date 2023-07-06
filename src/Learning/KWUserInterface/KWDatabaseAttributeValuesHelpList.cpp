@@ -188,10 +188,9 @@ void KWDatabaseAttributeValuesHelpList::FillAttributeValues(const KWDatabase* in
 
 						// Ajout de la modalite cible un dictionnaire pour en controler
 						// l'unicite
-						if (nkdHelpValues.Lookup((NUMERIC)sHelpValue.GetNumericKey()) == NULL)
+						if (nkdHelpValues.Lookup(sHelpValue.GetNumericKey()) == NULL)
 						{
-							nkdHelpValues.SetAt((NUMERIC)sHelpValue.GetNumericKey(),
-									    &nkdHelpValues);
+							nkdHelpValues.SetAt(sHelpValue.GetNumericKey(), &nkdHelpValues);
 
 							// Memorisation dans un vecteur de valeurs symbol pour les
 							// detruire ensuite
@@ -210,10 +209,9 @@ void KWDatabaseAttributeValuesHelpList::FillAttributeValues(const KWDatabase* in
 
 						// Ajout de la modalite cible un dictionnaire pour en controler
 						// l'unicite
-						if (nkdHelpValues.Lookup((NUMERIC)sHelpValue.GetNumericKey()) == NULL)
+						if (nkdHelpValues.Lookup(sHelpValue.GetNumericKey()) == NULL)
 						{
-							nkdHelpValues.SetAt((NUMERIC)sHelpValue.GetNumericKey(),
-									    &nkdHelpValues);
+							nkdHelpValues.SetAt(sHelpValue.GetNumericKey(), &nkdHelpValues);
 
 							// Memorisation dans un vecteur de valeurs pour les trier
 							// ensuite

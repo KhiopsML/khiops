@@ -4,10 +4,6 @@
 
 #include "KWDataGridStats.h"
 
-// Le include est ici dans l'implementation, pour ne pas gerer des cycle de include dans les headers
-// Le seul parametre utilise est de type static: KWLearningSpec::GetMaxModalityNumber()
-#include "KWLearningSpec.h"
-
 //////////////////////////////////////////////////////////////////////////////////
 // Classe KWDataGridStats
 
@@ -16,15 +12,15 @@ KWDataGridStats::KWDataGridStats()
 	nSourceAttributeNumber = 0;
 	nMainTargetModalityIndex = -1;
 	nGranularity = 0;
-	cvJSONAttributeMinValues = NULL;
-	cvJSONAttributeMaxValues = NULL;
+	cvJSONAttributeDomainLowerBounds = NULL;
+	cvJSONAttributeDomainUpperBounds = NULL;
 }
 
 KWDataGridStats::~KWDataGridStats()
 {
 	oaAttributes.DeleteAll();
-	assert(cvJSONAttributeMinValues == NULL);
-	assert(cvJSONAttributeMaxValues == NULL);
+	assert(cvJSONAttributeDomainLowerBounds == NULL);
+	assert(cvJSONAttributeDomainUpperBounds == NULL);
 }
 
 void KWDataGridStats::SetGranularity(int nValue)
@@ -464,7 +460,6 @@ boolean KWDataGridStats::WriteAttributeArrayLineReports(ostream& ost, boolean bS
 	boolean bWritten = false;
 	int nAttribute;
 	const KWDGSAttributePartition* attribute;
-	int nWrittenAttributeNumber;
 
 	require(Check());
 
@@ -486,8 +481,8 @@ boolean KWDataGridStats::WriteAttributeArrayLineReports(ostream& ost, boolean bS
 			bWritten = true;
 			attribute = GetAttributeAt(GetFirstTargetAttributeIndex());
 			ost << "\t";
-			ost << KWType::ToString(attribute->GetAttributeType()) << "\t" << attribute->GetAttributeName()
-			    << "\n";
+			ost << KWType::ToString(attribute->GetAttributeType()) << "\t"
+			    << TSV::Export(attribute->GetAttributeName()) << "\n";
 
 			// Ajout de l'information sur la valeur cible principale
 			if (GetMainTargetModalityIndex() >= 0 and bSource)
@@ -504,15 +499,12 @@ boolean KWDataGridStats::WriteAttributeArrayLineReports(ostream& ost, boolean bS
 			bWritten = true;
 			ost << "\n";
 			ost << "\tType\tName\n";
-			nWrittenAttributeNumber = ComputeMaxWrittenItemNumber(GetTargetAttributeNumber());
-			for (nAttribute = 0; nAttribute < nWrittenAttributeNumber; nAttribute++)
+			for (nAttribute = 0; nAttribute < GetTargetAttributeNumber(); nAttribute++)
 			{
 				attribute = GetAttributeAt(GetFirstTargetAttributeIndex() + nAttribute);
 				ost << "\t" << KWType::ToString(attribute->GetAttributeType()) << "\t"
-				    << attribute->GetAttributeName() << "\n";
+				    << TSV::Export(attribute->GetAttributeName()) << "\n";
 			}
-			if (nWrittenAttributeNumber < GetTargetAttributeNumber())
-				ost << "\t...\t...\n";
 		}
 	}
 
@@ -530,7 +522,7 @@ boolean KWDataGridStats::WriteAttributeArrayLineReports(ostream& ost, boolean bS
 			bWritten = true;
 			ost << "\t";
 			ost << KWType::ToString(GetAttributeAt(0)->GetAttributeType()) << "\t"
-			    << GetAttributeAt(0)->GetAttributeName() << "\n";
+			    << TSV::Export(GetAttributeAt(0)->GetAttributeName()) << "\n";
 
 			if (KWFrequencyTable::GetWriteGranularityAndGarbage())
 			{
@@ -555,12 +547,11 @@ boolean KWDataGridStats::WriteAttributeArrayLineReports(ostream& ost, boolean bS
 				ost << "\tType\tName\n";
 			else
 				ost << "\tType\tName\tGranularity\tGarbagePresence\n";
-			nWrittenAttributeNumber = ComputeMaxWrittenItemNumber(GetSourceAttributeNumber());
-			for (nAttribute = 0; nAttribute < nWrittenAttributeNumber; nAttribute++)
+			for (nAttribute = 0; nAttribute < GetSourceAttributeNumber(); nAttribute++)
 			{
 				attribute = GetAttributeAt(nAttribute);
 				ost << "\t" << KWType::ToString(attribute->GetAttributeType()) << "\t"
-				    << attribute->GetAttributeName();
+				    << TSV::Export(attribute->GetAttributeName());
 				if (KWFrequencyTable::GetWriteGranularityAndGarbage())
 				{
 					ost << "\t" << GetGranularity();
@@ -574,8 +565,6 @@ boolean KWDataGridStats::WriteAttributeArrayLineReports(ostream& ost, boolean bS
 				}
 				ost << "\n";
 			}
-			if (nWrittenAttributeNumber < GetSourceAttributeNumber())
-				ost << "\t...\t...\n";
 		}
 	}
 	return bWritten;
@@ -586,7 +575,6 @@ boolean KWDataGridStats::WriteAttributePartArrayLineReports(ostream& ost, boolea
 	boolean bWritten = false;
 	int nAttribute;
 	const KWDGSAttributePartition* attribute;
-	int nWrittenAttributeNumber;
 
 	require(Check());
 
@@ -606,20 +594,17 @@ boolean KWDataGridStats::WriteAttributePartArrayLineReports(ostream& ost, boolea
 		ost << " stats\n";
 
 		// Boucle sur tous les attributs cibles
-		nWrittenAttributeNumber = ComputeMaxWrittenItemNumber(GetTargetAttributeNumber());
-		for (nAttribute = 0; nAttribute < nWrittenAttributeNumber; nAttribute++)
+		for (nAttribute = 0; nAttribute < GetTargetAttributeNumber(); nAttribute++)
 		{
 			attribute = GetAttributeAt(GetFirstTargetAttributeIndex() + nAttribute);
 
 			// On rappele le nom de l'attribut uniquement s'il y en a plusieurs
 			if (GetTargetAttributeNumber() > 1)
-				ost << attribute->GetAttributeName() << "\n";
+				ost << TSV::Export(attribute->GetAttributeName()) << "\n";
 
 			// Ecriture des details des parties
 			WriteAttributePartArrayLineReportAt(ost, GetFirstTargetAttributeIndex() + nAttribute, true);
 		}
-		if (nWrittenAttributeNumber < GetTargetAttributeNumber())
-			ost << "...\n";
 	}
 
 	// Liste des attributs source
@@ -638,22 +623,18 @@ boolean KWDataGridStats::WriteAttributePartArrayLineReports(ostream& ost, boolea
 			    << "\n";
 
 		// Boucle sur les attributs sources
-		nWrittenAttributeNumber = ComputeMaxWrittenItemNumber(GetSourceAttributeNumber());
-		for (nAttribute = 0; nAttribute < nWrittenAttributeNumber; nAttribute++)
+		for (nAttribute = 0; nAttribute < GetSourceAttributeNumber(); nAttribute++)
 		{
 			attribute = GetAttributeAt(nAttribute);
 
 			// On rappele le nom de l'attribut uniquement s'il y en a plusieurs
 			if (GetSourceAttributeNumber() > 1)
-				ost << attribute->GetAttributeName() << "\n";
+				ost << TSV::Export(attribute->GetAttributeName()) << "\n";
 
 			// Ecriture des details des parties
 			WriteAttributePartArrayLineReportAt(ost, nAttribute, (GetSourceAttributeNumber() > 1));
 		}
-		if (nWrittenAttributeNumber < GetSourceAttributeNumber())
-			ost << "...\n";
 	}
-
 	return bWritten;
 }
 
@@ -664,7 +645,6 @@ void KWDataGridStats::WriteAttributePartArrayLineReportAt(ostream& ost, int nAtt
 	int nTotalFrequency;
 	int nPart;
 	int nPartFrequency;
-	int nWrittenPartNumber;
 
 	require(Check());
 	require(0 <= nAttribute and nAttribute < GetAttributeNumber());
@@ -693,8 +673,7 @@ void KWDataGridStats::WriteAttributePartArrayLineReportAt(ostream& ost, int nAtt
 	ost << "\n";
 
 	// Details par partie
-	nWrittenPartNumber = ComputeMaxWrittenItemNumber(attribute->GetPartNumber());
-	for (nPart = 0; nPart < nWrittenPartNumber; nPart++)
+	for (nPart = 0; nPart < attribute->GetPartNumber(); nPart++)
 	{
 		// Nom de la partie
 		attribute->WritePartAt(ost, nPart);
@@ -719,13 +698,6 @@ void KWDataGridStats::WriteAttributePartArrayLineReportAt(ostream& ost, int nAtt
 		}
 		ost << "\n";
 	}
-	if (nWrittenPartNumber < attribute->GetPartNumber())
-	{
-		ost << "...\t...";
-		if (bWriteFrequencies)
-			ost << "\t...\t...";
-		ost << "\n";
-	}
 }
 
 void KWDataGridStats::WriteFrequencyCrossTable(ostream& ost) const
@@ -741,8 +713,6 @@ void KWDataGridStats::WriteFrequencyCrossTable(ostream& ost) const
 	IntVector ivAttribute1PartFrequencies;
 	IntVector ivAttribute2PartFrequencies;
 	int nGridFrequency;
-	int nWrittenPart1Number;
-	int nWrittenPart2Number;
 
 	require(GetSourceAttributeNumber() == 2 or
 		(GetSourceAttributeNumber() == 0 and GetTargetAttributeNumber() == 2));
@@ -786,33 +756,27 @@ void KWDataGridStats::WriteFrequencyCrossTable(ostream& ost) const
 		nGridFrequency += ivAttribute1PartFrequencies.GetAt(nPart1);
 	assert(nGridFrequency == ComputeGridFrequency());
 
-	// Calcul des nombres max de parties a afficher
-	nWrittenPart1Number = ComputeMaxWrittenItemNumber(attribute1->GetPartNumber());
-	nWrittenPart2Number = ComputeMaxWrittenItemNumber(attribute2->GetPartNumber());
-
 	// Entete
 	ost << "Cell frequencies\n";
-	ost << "\t" << attribute2->GetAttributeName() << "\n";
+	ost << "\t" << TSV::Export(attribute2->GetAttributeName()) << "\n";
 
 	// Libelles des parties du second attribut
-	ost << attribute1->GetAttributeName();
-	for (nPart2 = 0; nPart2 < nWrittenPart2Number; nPart2++)
+	ost << TSV::Export(attribute1->GetAttributeName());
+	for (nPart2 = 0; nPart2 < attribute2->GetPartNumber(); nPart2++)
 	{
 		ost << "\t";
 		attribute2->WritePartAt(ost, nPart2);
 	}
-	if (nWrittenPart2Number < attribute2->GetPartNumber())
-		ost << "\t...";
 	ost << "\tTotal\tCoverage\n";
 
 	// Affichage des effectifs du tableau croise
-	for (nPart1 = 0; nPart1 < nWrittenPart1Number; nPart1++)
+	for (nPart1 = 0; nPart1 < attribute1->GetPartNumber(); nPart1++)
 	{
 		// Libelle de la partie
 		attribute1->WritePartAt(ost, nPart1);
 
 		// Effectif par cellule
-		for (nPart2 = 0; nPart2 < nWrittenPart2Number; nPart2++)
+		for (nPart2 = 0; nPart2 < attribute2->GetPartNumber(); nPart2++)
 		{
 			cell = cast(KWDGSCell*, oaAllCells.GetAt(nPart1 + attribute1->GetPartNumber() * nPart2));
 
@@ -822,8 +786,6 @@ void KWDataGridStats::WriteFrequencyCrossTable(ostream& ost) const
 			else
 				ost << "\t" << cell->GetCellFrequency();
 		}
-		if (nWrittenPart2Number < attribute2->GetPartNumber())
-			ost << "\t...";
 
 		// Totaux par partie de l'attribut 1
 		ost << "\t" << ivAttribute1PartFrequencies.GetAt(nPart1);
@@ -836,40 +798,25 @@ void KWDataGridStats::WriteFrequencyCrossTable(ostream& ost) const
 		ost << "\n";
 	}
 
-	// Ligne supplementaire si tout n'a pas pu etre affiche
-	if (nWrittenPart1Number < attribute1->GetPartNumber())
-	{
-		ost << "...";
-		for (nPart2 = 0; nPart2 < nWrittenPart2Number; nPart2++)
-			ost << "\t...";
-		if (nWrittenPart2Number < attribute2->GetPartNumber())
-			ost << "\t...";
-		ost << "\t...\n";
-	}
-
 	// Totaux par partie de l'attribut 2
 	ost << "Total";
 	nGridFrequency = 0;
-	for (nPart2 = 0; nPart2 < nWrittenPart2Number; nPart2++)
+	for (nPart2 = 0; nPart2 < attribute2->GetPartNumber(); nPart2++)
 	{
 		nGridFrequency += ivAttribute2PartFrequencies.GetAt(nPart2);
 		ost << "\t" << ivAttribute2PartFrequencies.GetAt(nPart2);
 	}
-	if (nWrittenPart2Number < attribute2->GetPartNumber())
-		ost << "\t...";
 	ost << "\t" << nGridFrequency << "\n";
 
 	// Totaux par partie de l'attribut 2
 	ost << "Coverage";
-	for (nPart2 = 0; nPart2 < nWrittenPart2Number; nPart2++)
+	for (nPart2 = 0; nPart2 < attribute2->GetPartNumber(); nPart2++)
 	{
 		if (nGridFrequency == 0)
 			ost << "\t" << 0;
 		else
 			ost << "\t" << ivAttribute2PartFrequencies.GetAt(nPart2) * 1.0 / nGridFrequency;
 	}
-	if (nWrittenPart2Number < attribute2->GetPartNumber())
-		ost << "\t...";
 	ost << "\n";
 
 	// Nettoyage
@@ -886,8 +833,6 @@ void KWDataGridStats::WriteTargetStatsCrossTableAt(ostream& ost, int nTargetInde
 	KWDGSSourceCell* cell;
 	int nPart1;
 	int nPart2;
-	int nWrittenPart1Number;
-	int nWrittenPart2Number;
 
 	require(GetSourceAttributeNumber() == 2 and GetTargetAttributeNumber() == 1 and
 		GetMainTargetModalityIndex() >= 0);
@@ -917,35 +862,29 @@ void KWDataGridStats::WriteTargetStatsCrossTableAt(ostream& ost, int nTargetInde
 		oaAllCells.SetAt(nPart1 + attribute1->GetPartNumber() * nPart2, cell);
 	}
 
-	// Calcul des nombres max de parties a afficher
-	nWrittenPart1Number = ComputeMaxWrittenItemNumber(attribute1->GetPartNumber());
-	nWrittenPart2Number = ComputeMaxWrittenItemNumber(attribute2->GetPartNumber());
-
 	// Entete
 	ost << "% target value\t";
 	WriteMainTargetModality(ost);
 	ost << "\n";
-	ost << "\t" << attribute2->GetAttributeName() << "\n";
+	ost << "\t" << TSV::Export(attribute2->GetAttributeName()) << "\n";
 
 	// Libelles des parties du second attribut
-	ost << attribute1->GetAttributeName();
-	for (nPart2 = 0; nPart2 < nWrittenPart2Number; nPart2++)
+	ost << TSV::Export(attribute1->GetAttributeName());
+	for (nPart2 = 0; nPart2 < attribute2->GetPartNumber(); nPart2++)
 	{
 		ost << "\t";
 		attribute2->WritePartAt(ost, nPart2);
 	}
-	if (nWrittenPart2Number < attribute2->GetPartNumber())
-		ost << "\t...";
 	ost << "\n";
 
 	// Affichage des effectifs du tableau croise
-	for (nPart1 = 0; nPart1 < nWrittenPart1Number; nPart1++)
+	for (nPart1 = 0; nPart1 < attribute1->GetPartNumber(); nPart1++)
 	{
 		// Libelle de la partie
 		attribute1->WritePartAt(ost, nPart1);
 
 		// Proportion dans la cellule de la valeur cible principale
-		for (nPart2 = 0; nPart2 < nWrittenPart2Number; nPart2++)
+		for (nPart2 = 0; nPart2 < attribute2->GetPartNumber(); nPart2++)
 		{
 			cell = cast(KWDGSSourceCell*, oaAllCells.GetAt(nPart1 + attribute1->GetPartNumber() * nPart2));
 
@@ -957,19 +896,6 @@ void KWDataGridStats::WriteTargetStatsCrossTableAt(ostream& ost, int nTargetInde
 				    << cell->GetTargetPartFrequencies()->GetAt(GetMainTargetModalityIndex()) * 1.0 /
 					   cell->GetCellFrequency();
 		}
-		if (nWrittenPart2Number < attribute2->GetPartNumber())
-			ost << "\t...";
-		ost << "\n";
-	}
-
-	// Ligne supplementaire si tout n'a pas pu etre affiche
-	if (nWrittenPart1Number < attribute1->GetPartNumber())
-	{
-		ost << "...";
-		for (nPart2 = 0; nPart2 < nWrittenPart2Number; nPart2++)
-			ost << "\t...";
-		if (nWrittenPart2Number < attribute2->GetPartNumber())
-			ost << "\t...";
 		ost << "\n";
 	}
 
@@ -1027,24 +953,24 @@ void KWDataGridStats::WriteMainTargetModality(ostream& ost) const
 	GetAttributeAt(GetFirstTargetAttributeIndex())->WritePartAt(ost, GetMainTargetModalityIndex());
 }
 
-void KWDataGridStats::SetJSONAttributeMinValues(const ContinuousVector* cvValues)
+void KWDataGridStats::SetJSONAttributeDomainLowerBounds(const ContinuousVector* cvValues)
 {
-	cvJSONAttributeMinValues = cvValues;
+	cvJSONAttributeDomainLowerBounds = cvValues;
 }
 
-const ContinuousVector* KWDataGridStats::GetJSONAttributeMinValues() const
+const ContinuousVector* KWDataGridStats::GetJSONAttributeDomainLowerBounds() const
 {
-	return cvJSONAttributeMinValues;
+	return cvJSONAttributeDomainLowerBounds;
 }
 
-void KWDataGridStats::SetJSONAttributeMaxValues(const ContinuousVector* cvValues)
+void KWDataGridStats::SetJSONAttributeDomainUpperBounds(const ContinuousVector* cvValues)
 {
-	cvJSONAttributeMaxValues = cvValues;
+	cvJSONAttributeDomainUpperBounds = cvValues;
 }
 
-const ContinuousVector* KWDataGridStats::GetJSONAttributeMaxValues() const
+const ContinuousVector* KWDataGridStats::GetJSONAttributeDomainUpperBounds() const
 {
-	return cvJSONAttributeMaxValues;
+	return cvJSONAttributeDomainUpperBounds;
 }
 
 void KWDataGridStats::WriteJSONFields(JSONFile* fJSON)
@@ -1067,9 +993,9 @@ void KWDataGridStats::WriteJSONFields(JSONFile* fJSON)
 	ALString sTmp;
 
 	require(GetTargetAttributeNumber() == 1 or GetTargetAttributeNumber() == GetAttributeNumber());
-	require(cvJSONAttributeMinValues != NULL and cvJSONAttributeMaxValues != NULL);
-	require(cvJSONAttributeMinValues->GetSize() == cvJSONAttributeMaxValues->GetSize());
-	require(cvJSONAttributeMinValues->GetSize() == GetAttributeNumber());
+	require(cvJSONAttributeDomainLowerBounds != NULL and cvJSONAttributeDomainUpperBounds != NULL);
+	require(cvJSONAttributeDomainLowerBounds->GetSize() == cvJSONAttributeDomainUpperBounds->GetSize());
+	require(cvJSONAttributeDomainLowerBounds->GetSize() == GetAttributeNumber());
 
 	// On determine s'il faut afficher les interets des cellules
 	bShowCellInterest = GetTargetAttributeNumber() == 1 and GetSourceAttributeNumber() >= 1;
@@ -1089,8 +1015,8 @@ void KWDataGridStats::WriteJSONFields(JSONFile* fJSON)
 			// On utilise les bornes pour ecrire les intervalles extremes avec leur vraies bornes
 			fJSON->BeginObject();
 			cast(KWDGSAttributeDiscretization*, attribute)
-			    ->WriteJSONFieldsWithBounds(fJSON, cvJSONAttributeMinValues->GetAt(nAttribute),
-							cvJSONAttributeMaxValues->GetAt(nAttribute));
+			    ->WriteJSONFieldsWithBounds(fJSON, cvJSONAttributeDomainLowerBounds->GetAt(nAttribute),
+							cvJSONAttributeDomainUpperBounds->GetAt(nAttribute));
 			fJSON->EndObject();
 		}
 		// Cas general
@@ -1919,9 +1845,6 @@ void KWDataGridStats::Test()
 {
 	KWDataGridStats* testDataGrid;
 
-	// Parametrage du nombre max d'item dans les rapports
-	// KWLearningSpec::SetMaxModalityNumber(5);
-
 	// Non supervise
 	cout << "Unsupervised (1)\n--------------------\n";
 	testDataGrid = CreateTestDataGrid(0, 1, false, 0, 2, 3);
@@ -1979,10 +1902,6 @@ void KWDataGridStats::WriteSupervisedCellArrayLineReport(ostream& ost) const
 	ObjectArray* oaSourceCells;
 	KWDGSSourceCell* sourceCell;
 	IntVector ivPartFrequencies;
-	int nWrittenCellNumber;
-	int nWrittenSourceAttributeNumber;
-	int nWrittenTargetAttributeNumber;
-	int nWrittenPartNumber;
 	boolean bShowCellInterest;
 
 	require(GetSourceAttributeNumber() > 0);
@@ -2014,11 +1933,6 @@ void KWDataGridStats::WriteSupervisedCellArrayLineReport(ostream& ost) const
 		}
 	}
 
-	// Calcul des nombre max d'items a afficher
-	nWrittenSourceAttributeNumber = ComputeMaxWrittenItemNumber(GetSourceAttributeNumber());
-	nWrittenTargetAttributeNumber = ComputeMaxWrittenItemNumber(GetTargetAttributeNumber());
-	nWrittenCellNumber = ComputeMaxWrittenItemNumber(nCellNumber);
-
 	// On affiche les index de cellules uniquement dans le cas multivarie
 	bWriteCellIndex = GetSourceAttributeNumber() > 1;
 
@@ -2039,26 +1953,19 @@ void KWDataGridStats::WriteSupervisedCellArrayLineReport(ostream& ost) const
 		// On passe les attributs sources
 		if (bWriteCellIndex)
 			ost << "\t";
-		for (nAttribute = 0; nAttribute < nWrittenSourceAttributeNumber; nAttribute++)
+		for (nAttribute = 0; nAttribute < GetSourceAttributeNumber(); nAttribute++)
 			ost << "\t";
-		if (nWrittenSourceAttributeNumber < GetSourceAttributeNumber())
-			ost << "...\t";
 
 		// Nom d'attribut par attribut cible
-		for (nAttribute = 0; nAttribute < nWrittenTargetAttributeNumber; nAttribute++)
+		for (nAttribute = 0; nAttribute < GetTargetAttributeNumber(); nAttribute++)
 		{
 			attribute = GetAttributeAt(GetFirstTargetAttributeIndex() + nAttribute);
-			ost << attribute->GetAttributeName();
+			ost << TSV::Export(attribute->GetAttributeName());
 
 			// On passe les parties
-			nWrittenPartNumber = ComputeMaxWrittenItemNumber(attribute->GetPartNumber());
-			for (nPart = 0; nPart < nWrittenPartNumber; nPart++)
+			for (nPart = 0; nPart < attribute->GetPartNumber(); nPart++)
 				ost << "\t";
-			if (nWrittenPartNumber < attribute->GetPartNumber())
-				ost << "...\t";
 		}
-		if (nWrittenTargetAttributeNumber < GetTargetAttributeNumber())
-			ost << "...\t";
 		ost << "\n";
 	}
 
@@ -2076,32 +1983,25 @@ void KWDataGridStats::WriteSupervisedCellArrayLineReport(ostream& ost) const
 	// Plusieurs attributs sources: on rappelle le nom de chaque attribut
 	else
 	{
-		for (nAttribute = 0; nAttribute < nWrittenSourceAttributeNumber; nAttribute++)
+		for (nAttribute = 0; nAttribute < GetSourceAttributeNumber(); nAttribute++)
 		{
 			attribute = GetAttributeAt(nAttribute);
-			ost << attribute->GetAttributeName() << "\t";
+			ost << TSV::Export(attribute->GetAttributeName()) << "\t";
 		}
-		if (nWrittenSourceAttributeNumber < GetSourceAttributeNumber())
-			ost << "...\t";
 	}
 
 	// Parties des attributs cibles, pour affichage des probabilites conditionnelles par partie
-	for (nAttribute = 0; nAttribute < nWrittenTargetAttributeNumber; nAttribute++)
+	for (nAttribute = 0; nAttribute < GetTargetAttributeNumber(); nAttribute++)
 	{
 		attribute = GetAttributeAt(GetFirstTargetAttributeIndex() + nAttribute);
 
 		// On affiche les libelles des parties
-		nWrittenPartNumber = ComputeMaxWrittenItemNumber(attribute->GetPartNumber());
-		for (nPart = 0; nPart < nWrittenPartNumber; nPart++)
+		for (nPart = 0; nPart < attribute->GetPartNumber(); nPart++)
 		{
 			attribute->WritePartAt(ost, nPart);
 			ost << "\t";
 		}
-		if (nWrittenPartNumber < attribute->GetPartNumber())
-			ost << "...\t";
 	}
-	if (nWrittenTargetAttributeNumber < GetTargetAttributeNumber())
-		ost << "...\t";
 
 	// Interest de la cellule
 	if (bShowCellInterest)
@@ -2119,7 +2019,7 @@ void KWDataGridStats::WriteSupervisedCellArrayLineReport(ostream& ost) const
 	dGridFrequency = ComputeGridFrequency();
 
 	// Affichage des cellules
-	for (nCell = 0; nCell < nWrittenCellNumber; nCell++)
+	for (nCell = 0; nCell < nCellNumber; nCell++)
 	{
 		// Recherche de la cellule dans le tableau de cellules du premier attribut cible
 		oaSourceCells = cast(ObjectArray*, oaAllSourceCellViews.GetAt(0));
@@ -2131,21 +2031,19 @@ void KWDataGridStats::WriteSupervisedCellArrayLineReport(ostream& ost) const
 			ost << "C" << nCellIndex + 1 << "\t";
 
 		// Affichage des libelles des parties sources de la cellule
-		for (nAttribute = 0; nAttribute < nWrittenSourceAttributeNumber; nAttribute++)
+		for (nAttribute = 0; nAttribute < GetSourceAttributeNumber(); nAttribute++)
 		{
 			attribute = GetAttributeAt(nAttribute);
 			attribute->WritePartAt(ost, cell->GetPartIndexes()->GetAt(nAttribute));
 			ost << "\t";
 		}
-		if (nWrittenSourceAttributeNumber < GetSourceAttributeNumber())
-			ost << "...\t";
 
 		// Effectif de la cellule
 		nCellFrequency = cell->GetCellFrequency();
 		assert(nCellFrequency > 0);
 
 		// Affichage des probabilites conditionnelles par attribut cible
-		for (nAttribute = 0; nAttribute < nWrittenTargetAttributeNumber; nAttribute++)
+		for (nAttribute = 0; nAttribute < GetTargetAttributeNumber(); nAttribute++)
 		{
 			attribute = GetAttributeAt(GetFirstTargetAttributeIndex() + nAttribute);
 
@@ -2161,15 +2059,10 @@ void KWDataGridStats::WriteSupervisedCellArrayLineReport(ostream& ost) const
 
 			// Affichage des probabilites conditionnelles
 			assert(sourceCell->GetCellFrequency() > 0);
-			nWrittenPartNumber = ComputeMaxWrittenItemNumber(attribute->GetPartNumber());
-			for (nPart = 0; nPart < nWrittenPartNumber; nPart++)
+			for (nPart = 0; nPart < attribute->GetPartNumber(); nPart++)
 				ost << sourceCell->GetTargetPartFrequencies()->GetAt(nPart) * 1.0 / nCellFrequency
 				    << "\t";
-			if (nWrittenPartNumber < attribute->GetPartNumber())
-				ost << "...\t";
 		}
-		if (nWrittenTargetAttributeNumber < GetTargetAttributeNumber())
-			ost << "...\t";
 
 		// Calcul si necessaire de l'interet de la cellule
 		if (bShowCellInterest)
@@ -2190,56 +2083,26 @@ void KWDataGridStats::WriteSupervisedCellArrayLineReport(ostream& ost) const
 			ost << nCellFrequency / dGridFrequency << "\n";
 	}
 
-	// Affichage d'une derniere ligne si tout n'a pas pu etre ecrit
-	if (nWrittenCellNumber < nCellNumber)
-	{
-		if (bWriteCellIndex)
-			ost << "\t";
-		for (nAttribute = 0; nAttribute < nWrittenSourceAttributeNumber; nAttribute++)
-			ost << "...\t";
-		if (nWrittenSourceAttributeNumber < GetSourceAttributeNumber())
-			ost << "...\t";
-		for (nAttribute = 0; nAttribute < nWrittenTargetAttributeNumber; nAttribute++)
-		{
-			attribute = GetAttributeAt(GetFirstTargetAttributeIndex() + nAttribute);
-			nWrittenPartNumber = ComputeMaxWrittenItemNumber(attribute->GetPartNumber());
-			for (nPart = 0; nPart < nWrittenPartNumber; nPart++)
-				ost << "...\t";
-			if (nWrittenPartNumber < attribute->GetPartNumber())
-				ost << "...\t";
-		}
-		if (nWrittenTargetAttributeNumber < GetTargetAttributeNumber())
-			ost << "...\t";
-		ost << "...\t...\n";
-	}
-
 	// Affichage des totaux
 	if (bWriteCellIndex)
 		ost << "\t";
 	ost << "Total";
-	for (nAttribute = 0; nAttribute < nWrittenSourceAttributeNumber; nAttribute++)
+	for (nAttribute = 0; nAttribute < GetSourceAttributeNumber(); nAttribute++)
 		ost << "\t";
-	if (nWrittenSourceAttributeNumber < GetSourceAttributeNumber())
-		ost << "\t";
-	for (nAttribute = 0; nAttribute < nWrittenTargetAttributeNumber; nAttribute++)
+	for (nAttribute = 0; nAttribute < GetTargetAttributeNumber(); nAttribute++)
 	{
 		attribute = GetAttributeAt(GetFirstTargetAttributeIndex() + nAttribute);
 
 		// Probabilite conditionnelles par defaut par partie
 		ExportAttributePartFrequenciesAt(GetFirstTargetAttributeIndex() + nAttribute, &ivPartFrequencies);
-		nWrittenPartNumber = ComputeMaxWrittenItemNumber(attribute->GetPartNumber());
-		for (nPart = 0; nPart < nWrittenPartNumber; nPart++)
+		for (nPart = 0; nPart < attribute->GetPartNumber(); nPart++)
 		{
 			if (dGridFrequency == 0)
 				ost << "0\t";
 			else
 				ost << ivPartFrequencies.GetAt(nPart) / dGridFrequency << "\t";
 		}
-		if (nWrittenPartNumber < attribute->GetPartNumber())
-			ost << "...\t";
 	}
-	if (nWrittenTargetAttributeNumber < GetTargetAttributeNumber())
-		ost << "...\t";
 	if (bShowCellInterest)
 	{
 		if (nCellNumber > 1)
@@ -2294,8 +2157,6 @@ void KWDataGridStats::WriteUnsupervisedCellArrayLineReport(ostream& ost) const
 	int nCellNumber;
 	int nCellFrequency;
 	double dGridFrequency;
-	int nWrittenCellNumber;
-	int nWrittenAttributeNumber;
 
 	require(GetTargetAttributeNumber() == GetAttributeNumber());
 
@@ -2310,14 +2171,11 @@ void KWDataGridStats::WriteUnsupervisedCellArrayLineReport(ostream& ost) const
 		ost << "Cell Id\t";
 
 	// Affichage de l'entete
-	nWrittenAttributeNumber = ComputeMaxWrittenItemNumber(GetAttributeNumber());
-	for (nAttribute = 0; nAttribute < nWrittenAttributeNumber; nAttribute++)
+	for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
 	{
 		attribute = GetAttributeAt(nAttribute);
-		ost << attribute->GetAttributeName() << "\t";
+		ost << TSV::Export(attribute->GetAttributeName()) << "\t";
 	}
-	if (nWrittenAttributeNumber < GetAttributeNumber())
-		ost << "...\t";
 	ost << "Frequency\tCoverage\n";
 
 	// Effectif de la grille
@@ -2330,8 +2188,7 @@ void KWDataGridStats::WriteUnsupervisedCellArrayLineReport(ostream& ost) const
 
 	// Affichage des cellules
 	nCellNumber = oaCells.GetSize();
-	nWrittenCellNumber = ComputeMaxWrittenItemNumber(nCellNumber);
-	for (nCell = 0; nCell < nWrittenCellNumber; nCell++)
+	for (nCell = 0; nCell < nCellNumber; nCell++)
 	{
 		cell = cast(KWDGSCell*, oaCells.GetAt(nCell));
 
@@ -2341,14 +2198,12 @@ void KWDataGridStats::WriteUnsupervisedCellArrayLineReport(ostream& ost) const
 			ost << "C" << nCellIndex + 1 << "\t";
 
 		// Affichage des libelles des parties de la cellule
-		for (nAttribute = 0; nAttribute < nWrittenAttributeNumber; nAttribute++)
+		for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
 		{
 			attribute = GetAttributeAt(nAttribute);
 			attribute->WritePartAt(ost, cell->GetPartIndexes()->GetAt(nAttribute));
 			ost << "\t";
 		}
-		if (nWrittenAttributeNumber < GetAttributeNumber())
-			ost << "...\t";
 
 		// Effectif de la cellule
 		nCellFrequency = cell->GetCellFrequency();
@@ -2361,27 +2216,12 @@ void KWDataGridStats::WriteUnsupervisedCellArrayLineReport(ostream& ost) const
 			ost << nCellFrequency / dGridFrequency << "\n";
 	}
 
-	// Affichage d'une derniere ligne si tout n'a pas pu etre ecrit
-	if (nWrittenCellNumber < nCellNumber)
-	{
-		// Affichage des libelles des parties de la cellule
-		if (bWriteCellIndex)
-			ost << "\t";
-		for (nAttribute = 0; nAttribute < nWrittenAttributeNumber; nAttribute++)
-			ost << "...\t";
-		if (nWrittenAttributeNumber < GetAttributeNumber())
-			ost << "...\t";
-		ost << "...\t...\n";
-	}
-
 	// Affichage des totaux
 	if (bWriteCellIndex)
 		ost << "\t";
 	ost << "Total";
-	for (nAttribute = 0; nAttribute < nWrittenAttributeNumber; nAttribute++)
+	for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
 		ost << "\t";
-	if (nWrittenAttributeNumber < GetAttributeNumber())
-		ost << "...\t";
 	ost << (int)dGridFrequency << "\t" << 1 << "\n";
 
 	// Nettoyage
@@ -2408,12 +2248,6 @@ boolean KWDataGridStats::InternalCheckPartIndexes(const IntVector* ivPartIndexes
 		assert(0 <= nPartIndex and nPartIndex < attribute->GetPartNumber());
 	}
 	return true;
-}
-
-// La methode n'est pas en inline, en raison d'une boucle entre les header de KWLearningSpec et KWDataGridStats
-int KWDataGridStats::GetMaxModalityNumber() const
-{
-	return KWLearningSpec::GetMaxModalityNumber();
 }
 
 int KWDataGridStatsCompare(const void* elem1, const void* elem2)
@@ -2544,7 +2378,7 @@ void KWDGSAttributePartition::Write(ostream& ost) const
 
 	// En tete de l'attribut
 	ost << "Variable"
-	    << "\t" << KWType::ToString(GetAttributeType()) << "\t" << GetAttributeName() << "\n";
+	    << "\t" << KWType::ToString(GetAttributeType()) << "\t" << TSV::Export(GetAttributeName()) << "\n";
 
 	// Ligne d'entete
 	ost << "\t";
@@ -3158,13 +2992,14 @@ void KWDGSAttributeGrouping::WritePartAt(ostream& ost, int nPartIndex) const
 	int nFirstValue;
 	int nLastValue;
 	int nNumber;
+	ALString sGroupName;
 
 	require(0 <= nPartIndex and nPartIndex < GetPartNumber());
 
 	// Libelle base sur l'ensemble des valeurs
 	nFirstValue = GetGroupFirstValueIndexAt(nPartIndex);
 	nLastValue = GetGroupLastValueIndexAt(nPartIndex);
-	ost << "{";
+	sGroupName = "{";
 	nNumber = 0;
 	for (nValue = nFirstValue; nValue <= nLastValue; nValue++)
 	{
@@ -3175,19 +3010,22 @@ void KWDGSAttributeGrouping::WritePartAt(ostream& ost, int nPartIndex) const
 			if (nNumber < 3)
 			{
 				if (nNumber > 0)
-					ost << ", ";
-				ost << GetValueAt(nValue);
+					sGroupName += ", ";
+				sGroupName += GetValueAt(nValue);
 				nNumber++;
 			}
 			// Arret si au moins quatre valeurs
 			else
 			{
-				ost << ", ...";
+				sGroupName += ", ...";
 				break;
 			}
 		}
 	}
-	ost << "}";
+	sGroupName += "}";
+
+	// Affichage du groupe apres formatage
+	ost << TSV::Export(sGroupName);
 }
 
 boolean KWDGSAttributeGrouping::IsPartDetailsReported() const
@@ -3202,7 +3040,6 @@ void KWDGSAttributeGrouping::WritePartDetailsHeader(ostream& ost) const
 
 void KWDGSAttributeGrouping::WritePartDetailsAt(ostream& ost, int nPartIndex) const
 {
-	int nMaxModalityNumber;
 	int nValue;
 	int nFirstValue;
 	int nLastValue;
@@ -3210,9 +3047,6 @@ void KWDGSAttributeGrouping::WritePartDetailsAt(ostream& ost, int nPartIndex) co
 	boolean bStarValue;
 
 	require(0 <= nPartIndex and nPartIndex < GetPartNumber());
-
-	// Acces au nombre max de modalite a afficher
-	nMaxModalityNumber = KWLearningSpec::GetMaxModalityNumber();
 
 	// Calcul du nombre de valeurs, en excluant la StarValue
 	nFirstValue = GetGroupFirstValueIndexAt(nPartIndex);
@@ -3244,25 +3078,10 @@ void KWDGSAttributeGrouping::WritePartDetailsAt(ostream& ost, int nPartIndex) co
 
 	// Liste des valeurs hors valeur speciale
 	nNumber = 0;
-	if (nMaxModalityNumber > 0)
+	for (nValue = nFirstValue; nValue <= nLastValue; nValue++)
 	{
-		for (nValue = nFirstValue; nValue <= nLastValue; nValue++)
-		{
-			// Arret si nombre max de modalites atteint
-			if (nNumber >= nMaxModalityNumber)
-			{
-				assert(nNumber > 0);
-				if (GetValueAt(nValue) == Symbol::GetStarValue() and nValue == nLastValue)
-					ost << "\t" << Symbol::GetStarValue();
-				else
-					ost << "\t...";
-				break;
-			}
-
-			// Affichage de la valeur
-			ost << "\t" << GetValueAt(nValue);
-			nNumber++;
-		}
+		ost << "\t" << TSV::Export(GetValueAt(nValue).GetValue());
+		nNumber++;
 	}
 }
 
@@ -3799,7 +3618,7 @@ void KWDGSAttributeSymbolValues::WritePartAt(ostream& ost, int nPartIndex) const
 {
 	require(0 <= nPartIndex and nPartIndex < GetPartNumber());
 
-	ost << svValues.GetAt(nPartIndex);
+	ost << TSV::Export(svValues.GetAt(nPartIndex).GetValue());
 }
 
 void KWDGSAttributeSymbolValues::WriteJSONPartFieldsAt(JSONFile* fJSON, int nPartIndex)

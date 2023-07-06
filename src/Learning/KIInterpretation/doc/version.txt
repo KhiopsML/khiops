@@ -1,6 +1,23 @@
 KIInterpretation library
 
-version 0.0.0
+	version du 22/11/2022 (khiops 10.1)
+		- ajout de metadatas dans le modele, pour permettre la production de certains graphiques
+		- ajout de la méthode de contribution Shapley
 
-	version du 01/07/2022: première version
+	version du 18/08/2022 (khiops 10.0.9.2i)
+		- mise au norme des tests, mise en forme du code source
+		- corrections d'asserts levés en mode debug sur dataset multitable (domaine non complètement compilé)
+		
+	version du 09/08/2022
+		- Modif ergonomie IHM suite à revue de Nicolas V. et Marc B.
+		- correction bug si dictionnaire absent ou ne contient pas de classifieur interprétable
+		- correction bug sur select/deselect de tous les attributs en renforcement
+		- modif du nom de dictionnaire d'interprétation (prefixé dorénavant par "Interpretation_"
+
+	version du 15/07/2022: première version intégrable à Khiops
+		Ajout d'un fichier KIInterpretation.vcxproj.filters pour dispatcher les .h et .cpp dans l’IDE 
+		Suppression de l’ancienne librairie ISDRRuleLibrary, dont les règles sont disponibles dans la nouvelle librairie KIInterpretation (ajout des fichiers KIDRRegisterAllRules.h et .cpp pour l’enregistrement des règles).
+		Vérification sur le jeu de test LearningTest\TestKhiops\Rules\_KhiopsInterpretation.
+		Ajoute de l'action « Interpret model » dans le menu « Tools » de Khiops. Cela marche si ou a un dictionnaire de type predicteur 
+		Mise en place de la variable d’environnement KhiopsInterpretationMode dans le fichier KWVersion, pour conditionner la visibilité de l’action de menu
 

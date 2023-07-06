@@ -730,13 +730,13 @@ void UITest::DisplaySampleObjectArray()
 ////////////////////////////////////////////////////////////////////////
 // Classe FileReaderCard
 
-#if defined _MSC_VER || defined __MSVCRT_VERSION__
+#ifdef _WIN32
 const ALString FileReaderCard::sRootPath = "C:/temp";
 #else
 const ALString FileReaderCard::sRootPath = "/temp";
 #endif
 
-#ifdef _MSC_VER
+#ifdef __MSC__
 #pragma warning(disable : 4310) // disable C4310 warning("le cast tronque la valeur constante")
 #endif
 

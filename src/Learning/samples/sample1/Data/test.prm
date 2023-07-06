@@ -27,10 +27,10 @@ TrainDatabase.DatabaseFiles.DataTableName iris.txt    // Data table file
 AnalysisSpec.TargetAttributeName Class   // Target variable
 ShowClass                      // Show class
 ShowObject                     // Show object
-Value 1                        // Index de l'instance a afficher
+Value 1                       // Index of the instance to show
 Exit                           // OK
 ExportStats                    // Export stats
-Value Report.xls               // Nom du rapport
+Value Report.xls               // Report name
 Exit                           // OK
 
 //Exit                           // Close

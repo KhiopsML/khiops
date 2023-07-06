@@ -186,6 +186,9 @@ public:
 	// Nombre total de parties par attribut (par cumul sur tous les attributs)
 	int GetTotalPartNumber() const;
 
+	// Calcul du nombre max de partie par attribut
+	int ComputeMaxPartNumber() const;
+
 	// Calcul a des valeurs d'entropie dans les cellules (source), les valeurs cibles (target) ou mutuelle
 	// L'entropie permet de mesurer la quantite d'information (en bits)
 	// pour coder une variable

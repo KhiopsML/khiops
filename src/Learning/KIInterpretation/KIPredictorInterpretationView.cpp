@@ -129,11 +129,14 @@ void KIPredictorInterpretationView::Open()
 	UICard::Open();
 }
 
-void KIPredictorInterpretationView::InitializeSourceDatabase(KWDatabase* database)
+void KIPredictorInterpretationView::InitializeSourceDatabase(KWDatabase* database,
+							     const ALString& sDatabaseClassFileName)
 {
-	sourceDatabase = database;
+	require(database != NULL);
 
 	// Parametrage du nom du dictionnaire
+	sClassFileName = sDatabaseClassFileName;
+	sourceDatabase = database;
 	sClassName = database->GetClassName();
 	if (KWClassDomain::GetCurrentDomain()->LookupClass(sClassName) == NULL)
 		sClassName = "";
@@ -149,6 +152,8 @@ void KIPredictorInterpretationView::BuildInterpretationClass()
 	ALString sTargetPath;
 	ALString sInterpretationClassFileName;
 	ALString sOutputPathName;
+	KWResultFilePathBuilder resultFilePathBuilder;
+
 	assert(interpretationSpec != NULL);
 
 	if (not interpretationSpec->Check())
@@ -185,11 +190,14 @@ void KIPredictorInterpretationView::BuildInterpretationClass()
 	// Ouverture d'une boite de dialogue pour le nom du fichier dictionnaire
 	if (bOk)
 	{
-		if (sourceDatabase != NULL)
-			// On initialise le nom du dictionnaire en prenant le chemin de la base source
-			sTargetPath = FileService::GetPathName(sourceDatabase->GetDatabaseName());
-
-		sInterpretationClassFileName = FileService::BuildFilePathName(sTargetPath, "Interpretation.kdic");
+		// On initialise avec le nom du dictionnaire en prenant le chemin de la base source
+		if (sourceDatabase->GetDatabaseName() != "")
+			resultFilePathBuilder.SetInputFilePathName(sourceDatabase->GetDatabaseName());
+		else if (sClassFileName != "")
+			resultFilePathBuilder.SetInputFilePathName(sClassFileName);
+		resultFilePathBuilder.SetOutputFilePathName("Interpretation.kdic");
+		resultFilePathBuilder.SetFileSuffix("kdic");
+		sInterpretationClassFileName = resultFilePathBuilder.BuildResultFilePathName();
 
 		// Ouverture du FileChooser
 		sChosenFileName =
@@ -199,17 +207,9 @@ void KIPredictorInterpretationView::BuildInterpretationClass()
 		// Verification du nom du fichier de dictionnaire
 		if (sChosenFileName != "")
 		{
-			sInterpretationClassFileName = sChosenFileName;
-
-			// Creation si necessaire du repertoire cible
-			sOutputPathName = FileService::GetPathName(sInterpretationClassFileName);
-			if (sOutputPathName != "" and not FileService::DirExists(sOutputPathName))
-			{
-				bOk = PLRemoteFileService::MakeDirectories(sOutputPathName);
-				if (not bOk)
-					AddError("Unable to create directory (" + sOutputPathName +
-						 ") for interpretation dictionary");
-			}
+			// Construction du chemin complet du dictionnaire a sauver
+			resultFilePathBuilder.SetOutputFilePathName(sChosenFileName);
+			sInterpretationClassFileName = resultFilePathBuilder.BuildResultFilePathName();
 
 			// generation du dictionaire si OK
 			if (bOk)
@@ -234,8 +234,9 @@ void KIPredictorInterpretationView::BuildInterpretationClass()
 							   "No reinforcement class has been specified : no "
 							   "reinforcement analysis will be done.");
 
-				AddSimpleMessage("Interpretation dictionary has been generated : " +
+				AddSimpleMessage("Write interpretation dictionary file " +
 						 sInterpretationClassFileName);
+				AddSimpleMessage("");
 			}
 		}
 	}

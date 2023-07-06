@@ -30,7 +30,7 @@ void DTAttributeSelection::Write(ostream& ost) const
 	for (nAttribute = 0; nAttribute < oaTreeAttributeSelection.GetSize(); nAttribute++)
 	{
 		taAttribute = cast(DTTreeAttribute*, oaTreeAttributeSelection.GetAt(nAttribute));
-		ost << "\t" << taAttribute->GetName() << "\n";
+		ost << "\t" << TSV::Export(taAttribute->GetName()) << "\n";
 	}
 }
 
@@ -585,10 +585,10 @@ void DTAttributeSelection::WriteReport(ostream& ost)
 	{
 		taAttribute = cast(DTTreeAttribute*, oaTreeAttributeSelection.GetAt(nAttribute));
 		if (taAttribute->aAttribute->GetAttributeBlock() == NULL)
-			ost << "attribut : " << taAttribute->GetName() << endl;
+			ost << "attribut : " << TSV::Export(taAttribute->GetName()) << endl;
 		else
-			ost << "  - block : " << taAttribute->aAttribute->GetAttributeBlock()->GetName()
-			    << "attribut : " << taAttribute->GetName() << endl;
+			ost << "  - block : " << TSV::Export(taAttribute->aAttribute->GetAttributeBlock()->GetName())
+			    << "attribut : " << TSV::Export(taAttribute->GetName()) << endl;
 	}
 }
 

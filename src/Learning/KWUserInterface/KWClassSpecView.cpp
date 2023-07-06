@@ -29,10 +29,6 @@ KWClassSpecView::KWClassSpecView()
 		GetFieldAtIndex(nField)->SetVisible(false);
 	GetFieldAt("ClassName")->SetVisible(true);
 
-	// La visualisation des parametres Root et Key n'est disponible qu'en mode multitables
-	GetFieldAt("Root")->SetVisible(GetLearningMultiTableMode());
-	GetFieldAt("Key")->SetVisible(GetLearningMultiTableMode());
-
 	// Ajout d'une liste des attributs
 	attributeSpecArrayView = new KWAttributeSpecArrayView;
 	AddListField("AttributeSpecs", "Variables", attributeSpecArrayView);

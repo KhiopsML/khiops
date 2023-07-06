@@ -566,8 +566,8 @@ void KWPredictorDataGridReport::WriteJSONArrayFields(JSONFile* fJSON, boolean bS
 {
 	KWSelectedDataGridReport* dataGridReport;
 	KWDataGridStats* dataGridStats;
-	ContinuousVector cvJSONAttributeMinValues;
-	ContinuousVector cvJSONAttributeMaxValues;
+	ContinuousVector cvJSONAttributeDomainLowerBounds;
+	ContinuousVector cvJSONAttributeDomainUpperBounds;
 	KWAttributeStats* attributeStats;
 	KWDescriptiveContinuousStats* descriptiveContinuousStats;
 	const KWDGSAttributePartition* attributePartition;
@@ -587,14 +587,14 @@ void KWPredictorDataGridReport::WriteJSONArrayFields(JSONFile* fJSON, boolean bS
 		fJSON->WriteKeyDouble("level", dataGridReport->GetUnivariateEvaluation());
 
 		// Parametrage des bornes des attributs numeriques de la grilles
-		cvJSONAttributeMinValues.SetSize(dataGridStats->GetAttributeNumber());
-		cvJSONAttributeMaxValues.SetSize(dataGridStats->GetAttributeNumber());
+		cvJSONAttributeDomainLowerBounds.SetSize(dataGridStats->GetAttributeNumber());
+		cvJSONAttributeDomainUpperBounds.SetSize(dataGridStats->GetAttributeNumber());
 
 		// On les met a missing par defaut
-		for (i = 0; i < cvJSONAttributeMinValues.GetSize(); i++)
+		for (i = 0; i < cvJSONAttributeDomainLowerBounds.GetSize(); i++)
 		{
-			cvJSONAttributeMinValues.SetAt(i, KWContinuous::GetMissingValue());
-			cvJSONAttributeMaxValues.SetAt(i, KWContinuous::GetMissingValue());
+			cvJSONAttributeDomainLowerBounds.SetAt(i, KWContinuous::GetMissingValue());
+			cvJSONAttributeDomainUpperBounds.SetAt(i, KWContinuous::GetMissingValue());
 		}
 
 		// On les parametre correctement si possible
@@ -627,23 +627,25 @@ void KWPredictorDataGridReport::WriteJSONArrayFields(JSONFile* fJSON, boolean bS
 					// Parametrage des bornes
 					if (descriptiveContinuousStats != NULL)
 					{
-						cvJSONAttributeMinValues.SetAt(i, descriptiveContinuousStats->GetMin());
-						cvJSONAttributeMaxValues.SetAt(i, descriptiveContinuousStats->GetMax());
+						cvJSONAttributeDomainLowerBounds.SetAt(
+						    i, descriptiveContinuousStats->GetMin());
+						cvJSONAttributeDomainUpperBounds.SetAt(
+						    i, descriptiveContinuousStats->GetMax());
 					}
 				}
 			}
 		}
 
 		// Parametrage de la grille
-		dataGridStats->SetJSONAttributeMinValues(&cvJSONAttributeMinValues);
-		dataGridStats->SetJSONAttributeMaxValues(&cvJSONAttributeMaxValues);
+		dataGridStats->SetJSONAttributeDomainLowerBounds(&cvJSONAttributeDomainLowerBounds);
+		dataGridStats->SetJSONAttributeDomainUpperBounds(&cvJSONAttributeDomainUpperBounds);
 
 		// Affichage des details de la grille
 		dataGridStats->WriteJSONKeyReport(fJSON, "dataGrid");
 
 		// Nettoyage du parametrage
-		dataGridStats->SetJSONAttributeMinValues(NULL);
-		dataGridStats->SetJSONAttributeMaxValues(NULL);
+		dataGridStats->SetJSONAttributeDomainLowerBounds(NULL);
+		dataGridStats->SetJSONAttributeDomainUpperBounds(NULL);
 	}
 }
 
@@ -763,7 +765,7 @@ void KWSelectedDataGridReport::WriteReport(ostream& ost)
 	ost << "\n";
 	ost << "Rank\t" << GetIdentifier() << "\n";
 	ost << "Data grid\t";
-	ost << GetSortName();
+	ost << TSV::Export(GetSortName());
 	ost << "\n";
 
 	// Affichage des details de la grille

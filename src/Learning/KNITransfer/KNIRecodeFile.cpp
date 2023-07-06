@@ -4,7 +4,7 @@
 
 /******************************************************************************
  * Khiops Native Interface (KNI)
- * Copyright (c) 2022 Orange Labs. All rights reserved.
+ * Copyright (c) 2023 Orange Labs. All rights reserved.
  *****************************************************************************/
 
 #ifdef _MSC_VER

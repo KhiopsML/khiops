@@ -10,6 +10,7 @@
 KDDataPreparationAttributeCreationTask::KDDataPreparationAttributeCreationTask()
 {
 	nMaxCreatedAttributeNumber = 0;
+	classStats = NULL;
 }
 
 KDDataPreparationAttributeCreationTask::~KDDataPreparationAttributeCreationTask() {}
@@ -23,6 +24,16 @@ void KDDataPreparationAttributeCreationTask::SetMaxCreatedAttributeNumber(int nV
 int KDDataPreparationAttributeCreationTask::GetMaxCreatedAttributeNumber() const
 {
 	return nMaxCreatedAttributeNumber;
+}
+
+void KDDataPreparationAttributeCreationTask::SetClassStats(KWClassStats* stats)
+{
+	classStats = stats;
+}
+
+KWClassStats* KDDataPreparationAttributeCreationTask::GetClassStats() const
+{
+	return classStats;
 }
 
 boolean KDDataPreparationAttributeCreationTask::CreatePreparedAttributes(KWLearningSpec* learningSpec,
@@ -100,7 +111,7 @@ boolean KDDataPreparationAttributeCreationTask::CheckPreparedAttributes(KWLearni
 	KWAttributeStats* attributeStats;
 	KWAttribute* attribute;
 	int i;
-	int nInputAttributeNumber;
+	int nPreparedAttributeNumber;
 	ALString sTmp;
 
 	require(learningSpec != NULL);
@@ -118,7 +129,7 @@ boolean KDDataPreparationAttributeCreationTask::CheckPreparedAttributes(KWLearni
 	}
 
 	// Parcours des attributs en entree de la classe
-	nInputAttributeNumber = 0;
+	nPreparedAttributeNumber = 0;
 	for (i = 0; i < learningSpec->GetClass()->GetUsedAttributeNumber(); i++)
 	{
 		attribute = learningSpec->GetClass()->GetUsedAttributeAt(i);
@@ -127,23 +138,28 @@ boolean KDDataPreparationAttributeCreationTask::CheckPreparedAttributes(KWLearni
 		if (KWType::IsSimple(attribute->GetType()) and
 		    attribute->GetName() != learningSpec->GetTargetAttributeName())
 		{
-			nInputAttributeNumber++;
-
 			// Recherche d'une preparation dans les dictionnaire en entree et sortie
-			if (odInputAttributeStats->Lookup(attribute->GetName()) == NULL and
-			    odOutputAttributeStats.Lookup(attribute->GetName()) == NULL)
+			// Erreur si presente deux fois
+			if (odInputAttributeStats->Lookup(attribute->GetName()) != NULL and
+			    odOutputAttributeStats.Lookup(attribute->GetName()) != NULL)
 			{
-				AddError("Variable " + attribute->GetName() + " has no data preparation");
+				AddError("Variable " + attribute->GetName() +
+					 " has data preparation both in input and out prepared variables");
 				bOk = false;
 				break;
 			}
+			// On le compte s'il est present dans un des deux containers
+			// Il peut etre absent, si on ne veut pas l'utiliser pour la creation de nouveaux attributs
+			else if (odInputAttributeStats->Lookup(attribute->GetName()) != NULL or
+				 odOutputAttributeStats.Lookup(attribute->GetName()) != NULL)
+				nPreparedAttributeNumber++;
 		}
 	}
 
 	// Test s'il n'y a pas trop de preparations
-	if (bOk and nInputAttributeNumber != odInputAttributeStats->GetCount() + odOutputAttributeStats.GetCount())
+	if (bOk and nPreparedAttributeNumber != odInputAttributeStats->GetCount() + odOutputAttributeStats.GetCount())
 	{
-		AddError(sTmp + "Number of input variables (" + IntToString(nInputAttributeNumber) +
+		AddError(sTmp + "Number of used input variables (" + IntToString(nPreparedAttributeNumber) +
 			 ") should be equal to number of prepared variables (" +
 			 IntToString(odInputAttributeStats->GetCount() + odOutputAttributeStats.GetCount()) + ")");
 		bOk = false;

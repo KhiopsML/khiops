@@ -96,7 +96,7 @@ void StudyCharacterEncodings()
 	int i;
 	ALString sTmp;
 
-#ifdef _MSC_VER
+#ifdef __MSC__
 // C4310: le cast tronque la valeur constante
 #pragma warning(disable : 4310) // disable 4310 warning
 #endif
@@ -109,7 +109,7 @@ void StudyCharacterEncodings()
 	svEncodings.Add(sAnsiAsUtf8);
 	svEncodings.Add(sUtf8);
 
-#ifdef _MSC_VER
+#ifdef __MSC__
 // C4310: le cast tronque la valeur constante
 #pragma warning(default : 4310) // enable 4310 warning
 #endif

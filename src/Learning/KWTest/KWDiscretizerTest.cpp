@@ -1521,7 +1521,7 @@ void KWDiscretizerTest::InitializeBinaryIntegerTable(KWFrequencyTable* table, in
 	// cout << "Target distinct values " << ivTargetDistinctValues << endl;
 	// cout << "Target frequencies " << ivTargetFrequencies << endl;
 	//  Initialisation de la table de contingence
-	table->Initialize(ivTargetFrequencies.GetSize());
+	table->SetFrequencyVectorNumber(ivTargetFrequencies.GetSize());
 
 	// Initialisation de la taille des vecteurs de la table
 	for (i = 0; i < ivTargetFrequencies.GetSize(); i++)
@@ -2668,7 +2668,7 @@ void KWDiscretizerTest::InitializeHeadPureIntervalTable(KWFrequencyTable* table,
 	require(0 <= nIntervalSize and nIntervalSize <= nFirstClassFrequency);
 
 	// Initialisation de la table
-	table->Initialize(2);
+	table->SetFrequencyVectorNumber(2);
 
 	// Parametrage de la taille des vecteurs de la table d'effectifs
 	for (nSource = 0; nSource < 2; nSource++)
@@ -2714,7 +2714,7 @@ void KWDiscretizerTest::InitializeCenterPureIntervalTable(KWFrequencyTable* tabl
 	nEndIntervalSize = (nSampleSize - nIntervalSize) - nBeginIntervalSize;
 
 	// Initialisation de la table
-	table->Initialize(3);
+	table->SetFrequencyVectorNumber(3);
 
 	// Parametrage de la taille des vecteurs de la table d'effectifs
 	for (nSource = 0; nSource < 3; nSource++)
@@ -2770,7 +2770,7 @@ void KWDiscretizerTest::InitializeCenterTwoPureIntervalsTable(KWFrequencyTable* 
 	nEndIntervalSize = (nSampleSize - 2 * nIntervalSize) - nBeginIntervalSize;
 
 	// Initialisation de la table
-	table->Initialize(4);
+	table->SetFrequencyVectorNumber(4);
 
 	// Parametrage de la taille des vecteurs de la table d'effectifs
 	for (nSource = 0; nSource < 4; nSource++)
