@@ -103,13 +103,17 @@ else()
   #
   # see https://docs.fedoraproject.org/en-US/packaging-guidelines/MPI/
   #
-  install(TARGETS MODL${MPI_SUFFIX} RUNTIME DESTINATION ./${MPI_BIN}/khiops/ COMPONENT KHIOPS_CORE)
-  install(TARGETS MODL_Coclustering RUNTIME DESTINATION usr/bin COMPONENT KHIOPS_CORE)
+  install(TARGETS MODL${MPI_SUFFIX} RUNTIME DESTINATION ./${MPI_BIN}/khiops COMPONENT KHIOPS_CORE)
+  install(TARGETS MODL_Coclustering${MPI_SUFFIX} RUNTIME DESTINATION ./${MPI_BIN}/khiops COMPONENT KHIOPS_CORE)
 
   # We install the binary under $MPI_BIN and create a symlink to it
-  execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink /usr/bin/MODL${MPI_SUFFIX} ${CMAKE_BINARY_DIR}/MODL)
+  execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${MPI_BIN}/khiops/MODL${MPI_SUFFIX}
+                          ${CMAKE_BINARY_DIR}/MODL)
+  execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${MPI_BIN}/khiops/MODL_Coclustering${MPI_SUFFIX}
+                          ${CMAKE_BINARY_DIR}/MODL_Coclustering)
+
   install(
-    FILES ${CMAKE_BINARY_DIR}/MODL
+    FILES ${CMAKE_BINARY_DIR}/MODL ${CMAKE_BINARY_DIR}/MODL_Coclustering
     DESTINATION usr/bin
     COMPONENT KHIOPS_CORE)
 

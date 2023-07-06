@@ -2,20 +2,26 @@
 name: Create Debian package
 on:
   workflow_dispatch:
-  push:
-    branches: [39-add-learningtest-lite-to-the-repo]
+  # push:
+  #  branches: [39-add-learningtest-lite-to-the-repo]
 jobs:
-  package:
+  package-deb:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-22.04, ubuntu-20.04]
-    runs-on: ${{ matrix.os }}
+        os: [ubuntu22.04, ubuntu20.04]
+    container:
+      image: ghcr.io/khiopsml/khiops/${{ matrix.os }}:latest
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
       - name: Install dependencies
         run: |
-          sudo apt-get -y --no-install-recommends install libmpich-dev  
+          apt-get -y --no-install-recommends install libmpich-dev  
       - name: Set environment variables
         run: |
           source /etc/os-release 
@@ -25,10 +31,10 @@ jobs:
         run: cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -DMPI=ON -DTESTING=OFF
           -DBUILD_JARS=ON
       - name: Build Khiops executables
-        run: cmake --build ${{github.workspace}}/build --parallel --target MODL MODL_Coclustering
-          KhiopsNativeInterface
+        run: |
+          cmake --build build --parallel --target MODL MODL_Coclustering KhiopsNativeInterface
       - name: Build package with CPack
-        run: cd ${{github.workspace}}/build && cpack -G DEB
+        run: cd build && cpack -G DEB
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
@@ -37,11 +43,17 @@ jobs:
   # Test packages on a brand new runner: we want to check the installation process (with the dependencies installation)
   # and the Khiops execution on a simple dataset
   test:
-    needs: package
+    needs: package-deb
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-22.04, ubuntu-20.04]
-    runs-on: ${{ matrix.os }}
+        os: [22.04, 20.04]
+    container:
+      image: ubuntu:${{ matrix.os }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -57,17 +69,17 @@ jobs:
           path: artifacts
       - name: Install Khiops core
         run: |
-          sudo apt-get update
-          sudo dpkg -i ./artifacts/khiops-core* || true
-          sudo apt-get -f install
+          apt-get update
+          dpkg -i ./artifacts/khiops-core* || true
+          apt-get -f install -y
       - name: Check Khiops core installation
         run: |
           khiops -v
           khiops_coclustering -v
       - name: Install Khiops (with java)
         run: |
-          dpkg -i ./khiops_10.1.4_amd64.deb || true
-          sudo apt-get -f install
+          dpkg -i ./khiops_* || true
+          apt-get -f install -y
       - name: Check Khiops installation
         run: |
           khiops -v
@@ -84,13 +96,14 @@ jobs:
           cd -
       - name: Check results
         run: |-
+          apt-get install python3 -y
           touch test/LearningTest/TestCoclustering/Standard/Iris/results/time.log
           touch test/LearningTest/TestKhiops/Standard/Iris/results/time.log
           cd test/LearningTest/cmd/python/
-          python test_khiops.py Khiops nul Standard
-          python test_khiops.py Coclustering nul Standard
-          python apply_command.py errors ../../TestKhiops/Standard/ | tee /tmp/khiops-log.txt
-          python apply_command.py errors ../../TestCoclustering/Standard/ | tee /tmp/coclustering-log.txt
+          python3 test_khiops.py Khiops nul Standard
+          python3 test_khiops.py Coclustering nul Standard
+          python3 apply_command.py errors ../../TestKhiops/Standard/ | tee /tmp/khiops-log.txt
+          python3 apply_command.py errors ../../TestCoclustering/Standard/ | tee /tmp/coclustering-log.txt
           if (grep -q error /tmp/khiops-log.txt || grep -q error /tmp/coclustering-log.txt); then
             echo "::error::Errors in Khiops run"
             false

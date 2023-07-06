@@ -76,6 +76,10 @@ set(CPACK_ARCHIVE_KHIOPS_CORE_FILE_NAME khiops-core-${CMAKE_PROJECT_VERSION})
 
 # ########### DEB Generator #############################
 
+# Package release ("This is the numbering of the DEB package itself, i.e. the version of the packaging and not the
+# version of the content")
+set(CPACK_DEBIAN_PACKAGE_RELEASE 1)
+
 # package name for deb.
 set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
 
@@ -92,7 +96,8 @@ set(CPACK_DEBIAN_KNI_DOC_PACKAGE_NAME kni-doc)
 
 # packages depends
 set(CPACK_DEBIAN_KHIOPS_CORE_PACKAGE_DEPENDS "mpich (>= 3.0)")
-set(CPACK_DEBIAN_KHIOPS_PACKAGE_DEPENDS "khiops-core (>=${CMAKE_PROJECT_VERSION}), default-jre (>=1.7)")
+set(CPACK_DEBIAN_KHIOPS_PACKAGE_DEPENDS
+    "khiops-core (=${CMAKE_PROJECT_VERSION}-${CPACK_DEBIAN_PACKAGE_RELEASE}), default-jre (>=1.8)")
 
 # packages recommends
 set(CPACK_DEBIAN_KHIOPS_CORE_PACKAGE_RECOMMENDS "khiops, khiops-visualization")
@@ -131,9 +136,8 @@ set(CPACK_RPM_KNI_PACKAGE_SUMMARY "Khiops Native Interface")
 set(CPACK_RPM_KNI_DOC_PACKAGE_SUMMARY "Khiops Native Interface documentation")
 
 # packages requires
-set(CPACK_RPM_KHIOPS_PACKAGE_REQUIRES "khiops-core = ${CMAKE_PROJECT_VERSION}")
-set(CPACK_RPM_KHIOPS_PACKAGE_REQUIRES "khiops-samples = ${CMAKE_PROJECT_VERSION}")
-set(CPACK_RPM_KHIOPS_PACKAGE_REQUIRES "java-11-openjdk")
+set(CPACK_RPM_KHIOPS_PACKAGE_REQUIRES "khiops-core = ${CMAKE_PROJECT_VERSION}-${CPACK_RPM_PACKAGE_RELEASE}")
+set(CPACK_RPM_KHIOPS_PACKAGE_REQUIRES "java >= 1.8")
 set(CPACK_RPM_KHIOPS_CORE_PACKAGE_REQUIRES "util-linux")
 
 # packages post/postun install scripts
