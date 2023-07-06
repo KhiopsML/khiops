@@ -2,9 +2,10 @@
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
-#include "Test.h"
+﻿#include "Test.h"
 
-void Test(int argc, char** argv)
+    void
+    Test(int argc, char** argv)
 {
 	// ALString sPath = "c:\\users\\boullema\\learning.v4\\KWTest\\TestData\\";
 
@@ -131,7 +132,12 @@ void Test(int argc, char** argv)
 	// KWSymbolValueBlock::Test();
 	// KWObjectArrayValueBlock::Test();
 	// KWCDUniqueString::Test();
-	SNBIndexVector::Test();
+	// SNBIndexVector::Test();
+	// KWTextService::Test();
+	// KWTextNgramTokenizer::Test();
+	// KWTextWordTokenizer::Test();
+	// KWTextTokenizer::Test();
+	KWResultFilePathBuilder::Test();
 }
 
 void KWTestAllComponents(boolean bLong)

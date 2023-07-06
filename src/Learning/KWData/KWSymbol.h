@@ -383,7 +383,7 @@ protected:
 	int nLength;
 
 	// Stockage de la valeur du symbole (de taille quelconque)
-	// On utilise une taille de 4 pour que la memoire total soit un multiple de 8 octets en 64 bits
+	// On utilise une taille de 8 pour que la memoire total soit un multiple de 8 octets en 64 bits
 	static const int nMinStringSize = 8;
 	char cFirstStringChar[nMinStringSize]; // Pour acceder au debut de la chaine
 

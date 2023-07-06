@@ -29,7 +29,7 @@ public:
 	// entre plusieurs taches paralleles, pour peut que la base soit de meme structure
 	// (cf methode CompareDatabaseStructure de KWDatabaseIndexer).
 	// La tache sait comment utiliser et reutiliser ce parametre, qui n'a pas besoin d'etre initialise
-	// par l'appelant. Si ce parametre n'est aps specifie, la tache utilise sont propre DatabaseIndexer.
+	// par l'appelant. Si ce parametre n'est pas specifie, la tache utilise sont propre DatabaseIndexer.
 	// Memoire: appatient a l'appelant
 	void SetReusableDatabaseIndexer(KWDatabaseIndexer* databaseIndexer);
 	KWDatabaseIndexer* GetReusableDatabaseIndexer() const;

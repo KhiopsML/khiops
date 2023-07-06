@@ -8,10 +8,6 @@
 
 #include "CCLearningProblem.h"
 
-#include "CCPostProcessingSpecView.h"
-#include "CCAnalysisResultsView.h"
-#include "LMLicenseManager.h"
-
 ////////////////////////////////////////////////////////////
 // Classe CCLearningProblemToolView
 class CCLearningProblemToolView : public UIObjectView

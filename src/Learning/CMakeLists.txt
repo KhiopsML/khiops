@@ -1,6 +1,6 @@
 add_subdirectory(DTForest)
 add_subdirectory(genum)
-add_subdirectory(genumfp)
+add_subdirectory(khisto)
 
 add_subdirectory(KDDomainKnowledge)
 add_subdirectory(KhiopsNativeInterface)

@@ -23,9 +23,6 @@ void CMLearningProject::OpenLearningEnvironnement()
 	// Appel de la methode ancetre
 	KWLearningProject::OpenLearningEnvironnement();
 
-	// Declaration des licences
-	LMLicenseManager::DeclarePredefinedLicense(LMLicenseManager::Khiops);
-
 	// Enregistrement de la regle de derivation Majority
 	KWDerivationRule::RegisterDerivationRule(new CMDRMajorityClassifier);
 

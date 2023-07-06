@@ -618,16 +618,7 @@ void DTDecisionTreeNode::WriteHeaderLineReport(ostream& ost, DTDecisionTree* tre
 	for (nTarget = 0; nTarget < attributeSymbolValues->GetPartNumber(); nTarget++)
 	{
 		// Affichage de la valeur courante
-		ost << "\t" << attributeSymbolValues->GetValueAt(nTarget);
-		;
-
-		// Test de depassement du nombre max de valeurs
-		// if (attributeSymbolValues->GetPartNumber() > GetMaxModalityNumber() and
-		//	nTarget == GetMaxModalityNumber()-1)
-		//{
-		//	ost << "\t...";
-		//	break;
-		//}
+		ost << "\t" << TSV::Export(attributeSymbolValues->GetValueAt(nTarget).GetValue());
 	}
 
 	// Cas d'une feuille
@@ -792,7 +783,7 @@ void DTDecisionTreeNode::WriteLineReport(ostream& ost, DTDecisionTree* tree)
 	if (!IsLeaf())
 	{
 		// Affichage du nom de la variable de split
-		ost << "\t" << GetSplitAttributeStats()->GetAttributeName();
+		ost << "\t" << TSV::Export(GetSplitAttributeStats()->GetAttributeName());
 
 		ost << "\t";
 		// Parcours des fils

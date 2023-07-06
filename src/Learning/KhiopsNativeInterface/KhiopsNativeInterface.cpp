@@ -247,14 +247,14 @@ static void KNIAddInternalError(const ALString& sLabel)
 
 KNI_API int KNIGetVersion()
 {
-	return KNI_VERSION_10_1;
+	return 10 * GetMajorVersion(KHIOPS_VERSION) + GetMinorVersion(KHIOPS_VERSION);
 }
 
 KNI_API const char* KNIGetFullVersion()
 {
 	static ALString sFullVersion;
 
-	// Initialisation la premiere fois, en supprimant tout ce qui n'est ni chiffre, ni '.'
+	// Initialisation la premiere fois
 	if (sFullVersion == "")
 		sFullVersion = KHIOPS_VERSION;
 	return sFullVersion;

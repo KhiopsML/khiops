@@ -1085,6 +1085,8 @@ KWClass* KWLearningBenchmark::BuildLearningSpecConstructedClass(KWLearningSpec* 
 	textFeatureConstruction.SetLearningSpec(learningSpec);
 	textFeatureConstruction.SetConstructionDomain(
 	    predictorSpec->GetAttributeConstructionSpec()->GetConstructionDomain());
+	textFeatureConstruction.SetTextFeatures(
+	    predictorSpec->GetAttributeConstructionSpec()->GetTextFeatureSpec()->GetTextFeatures());
 
 	// Detection si des variable de type texte peuvent etre construites
 	bIsTextConstructionPossible = textFeatureConstruction.ContainsTextAttributes(learningSpec->GetClass());

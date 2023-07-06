@@ -2,31 +2,30 @@
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
+////////////////////////////////////////////////////////////
+// File generated with Genere tool
+// Insert your specific code inside "//## " sections
+
 #include "KWModelingAdvancedSpecView.h"
 
 KWModelingAdvancedSpecView::KWModelingAdvancedSpecView()
 {
 	SetIdentifier("KWModelingAdvancedSpec");
-	SetLabel("Predictor advanced parameters");
-
-	// Ajout des champs
-	AddBooleanField("BaselinePredictor", "Baseline predictor", false);
-	AddIntField("UnivariatePredictorNumber", "Number of univariate predictors", 0);
+	SetLabel("Advanced predictor parameters");
+	AddBooleanField("DataPreparationOnly", "Do data preparation only", false);
 
 	// Parametrage des styles;
-	GetFieldAt("BaselinePredictor")->SetStyle("CheckBox");
-	GetFieldAt("UnivariatePredictorNumber")->SetStyle("Spinner");
+	GetFieldAt("DataPreparationOnly")->SetStyle("CheckBox");
 
-	// Plage de valeurs pour le nombre de predicteurs univaries
-	cast(UIIntElement*, GetFieldAt("UnivariatePredictorNumber"))->SetMinValue(0);
-	cast(UIIntElement*, GetFieldAt("UnivariatePredictorNumber"))->SetMaxValue(100);
+	// ## Custom constructor
+
+	// Ajout d'une sous-fiche pour les parametres du SNB
+	AddCardField("SelectiveNaiveBayesParameters", "Selective Naive Bayes parameters",
+		     new SNBPredictorSelectiveNaiveBayesView);
 
 	// Declaration des actions
 	// On utilise exceptionnellement un format html pour le libelle des actions, pour l'avoir centre et sur deux
 	// lignes
-	AddAction("InspectSelectiveNaiveBayesParameters",
-		  "<html> <center> Selective Naive Bayes <br> parameters </center> </html>",
-		  (ActionMethod)(&KWModelingAdvancedSpecView::InspectSelectiveNaiveBayesParameters));
 	AddAction("InspectConstructionDomain",
 		  "<html> <center> Variable construction <br> parameters </center> </html>",
 		  (ActionMethod)(&KWModelingAdvancedSpecView::InspectConstructionDomain));
@@ -37,14 +36,10 @@ KWModelingAdvancedSpecView::KWModelingAdvancedSpecView()
 	AddAction("InspectAttributeCreationParameters",
 		  "<html> <center> Tree construction <br> parameters </center> </html>",
 		  (ActionMethod)(&KWModelingAdvancedSpecView::InspectAttributeCreationParameters));
-	GetActionAt("InspectSelectiveNaiveBayesParameters")->SetStyle("Button");
 	GetActionAt("InspectConstructionDomain")->SetStyle("Button");
 	GetActionAt("InspectTextFeaturesParameters")->SetStyle("Button");
 	GetActionAt("InspectAttributePairsParameters")->SetStyle("Button");
 	GetActionAt("InspectAttributeCreationParameters")->SetStyle("Button");
-
-	// Parametrage des paramtres expert pour les variables de type texte
-	GetActionAt("InspectTextFeaturesParameters")->SetVisible(GetLearningTextVariableMode());
 
 	// Action d'edition des parametre des arbres disponible uniquement en mode avance
 	GetActionAt("InspectAttributeCreationParameters")
@@ -52,20 +47,9 @@ KWModelingAdvancedSpecView::KWModelingAdvancedSpecView()
 			 KDDataPreparationAttributeCreationTaskView::GetGlobalCreationTaskView() != NULL);
 
 	// Info-bulles
-	GetFieldAt("BaselinePredictor")
-	    ->SetHelpText("Build a base line predictor"
-			  "\n The baseline classifier predicts the train majority class."
-			  "\n The baseline regressor predicts the train mean of the target variable.");
-	GetFieldAt("UnivariatePredictorNumber")
-	    ->SetHelpText("Number of univariate predictors to build."
-			  "\n The univariate predictors are chosen according to their predictive importance,"
-			  "\n which is assessed during the analysis of the train database.");
-	GetActionAt("InspectSelectiveNaiveBayesParameters")
-	    ->SetHelpText(
-		"Advanced parameters for the Selective Naive Bayes predictor."
-		"\n These parameters are user constraints that allow to control the variable selection process."
-		"\n Their use might decrease the performance, compared to the default mode (without user "
-		"constraints).");
+	GetFieldAt("DataPreparationOnly")
+	    ->SetHelpText("Do the data preparation step only."
+			  "\n Do not perform the modeling step in supervised analysis.");
 	GetActionAt("InspectConstructionDomain")
 	    ->SetHelpText(
 		"Advanced parameters to select the construction rules used for automatic variable construction.");
@@ -75,9 +59,16 @@ KWModelingAdvancedSpecView::KWModelingAdvancedSpecView()
 	    ->SetHelpText("Advanced parameters to select the variable pairs to analyze.");
 	GetActionAt("InspectAttributeCreationParameters")
 	    ->SetHelpText("Advanced parameters for the constuction of tree based variables.");
+
+	// ##
 }
 
-KWModelingAdvancedSpecView::~KWModelingAdvancedSpecView() {}
+KWModelingAdvancedSpecView::~KWModelingAdvancedSpecView()
+{
+	// ## Custom destructor
+
+	// ##
+}
 
 KWModelingSpec* KWModelingAdvancedSpecView::GetKWModelingSpec()
 {
@@ -92,8 +83,11 @@ void KWModelingAdvancedSpecView::EventUpdate(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(KWModelingSpec*, object);
-	editedObject->SetBaselinePredictor(GetBooleanValueAt("BaselinePredictor"));
-	editedObject->SetUnivariatePredictorNumber(GetIntValueAt("UnivariatePredictorNumber"));
+	editedObject->SetDataPreparationOnly(GetBooleanValueAt("DataPreparationOnly"));
+
+	// ## Custom update
+
+	// ##
 }
 
 void KWModelingAdvancedSpecView::EventRefresh(Object* object)
@@ -103,8 +97,11 @@ void KWModelingAdvancedSpecView::EventRefresh(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(KWModelingSpec*, object);
-	SetBooleanValueAt("BaselinePredictor", editedObject->GetBaselinePredictor());
-	SetIntValueAt("UnivariatePredictorNumber", editedObject->GetUnivariatePredictorNumber());
+	SetBooleanValueAt("DataPreparationOnly", editedObject->GetDataPreparationOnly());
+
+	// ## Custom refresh
+
+	// ##
 }
 
 const ALString KWModelingAdvancedSpecView::GetClassLabel() const
@@ -112,27 +109,7 @@ const ALString KWModelingAdvancedSpecView::GetClassLabel() const
 	return "Advanced predictor parameters";
 }
 
-void KWModelingAdvancedSpecView::InspectSelectiveNaiveBayesParameters()
-{
-	KWModelingSpec* modelingSpec;
-	const SNBPredictorSelectiveNaiveBayesView refPredictorSelectiveNaiveBayesView;
-	KWPredictorView* predictorSelectiveNaiveBayesView;
-
-	// Acces a l'objet edite
-	modelingSpec = cast(KWModelingSpec*, GetObject());
-	check(modelingSpec);
-
-	// Creation de la fiche specialise pour le predicteur
-	predictorSelectiveNaiveBayesView =
-	    KWPredictorView::ClonePredictorView(refPredictorSelectiveNaiveBayesView.GetName());
-
-	// Ouverture de la sous-fiche
-	predictorSelectiveNaiveBayesView->SetObject(modelingSpec->GetPredictorSelectiveNaiveBayes());
-	predictorSelectiveNaiveBayesView->Open();
-
-	// Nettoyage
-	delete predictorSelectiveNaiveBayesView;
-}
+// ## Method implementation
 
 void KWModelingAdvancedSpecView::InspectConstructionDomain()
 {
@@ -205,6 +182,25 @@ void KWModelingAdvancedSpecView::InspectAttributePairsParameters()
 	// Supression des paires en doublon
 	modelingSpec->GetAttributeConstructionSpec()->GetAttributePairsSpec()->DeleteDuplicateAttributePairs();
 
-	// Verification que le nombre de paires max est superieure ou egal au nombre de paires specifique
+	// Verification que le nombre de paires max est superieure ou egal au nombre de paires specifiques
 	modelingSpec->GetAttributeConstructionSpec()->GetAttributePairsSpec()->CheckAttributePairNumbers();
 }
+
+void KWModelingAdvancedSpecView::SetObject(Object* object)
+{
+	KWModelingSpec* modelingSpec;
+
+	require(object != NULL);
+
+	// Acces a l'objet edite
+	modelingSpec = cast(KWModelingSpec*, object);
+
+	// Parametrages des sous-fiches par les sous-objets
+	cast(SNBPredictorSelectiveNaiveBayesView*, GetFieldAt("SelectiveNaiveBayesParameters"))
+	    ->SetObject(modelingSpec->GetPredictorSelectiveNaiveBayes());
+
+	// Memorisation de l'objet pour la fiche courante
+	UIObjectView::SetObject(object);
+}
+
+// ##

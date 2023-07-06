@@ -509,6 +509,22 @@ void KWDataGrid::UpdateAllStatistics()
 	nTotalPartNumber = ComputeTotalPartNumber();
 }
 
+int KWDataGrid::ComputeMaxPartNumber() const
+{
+	int nResult;
+	int nAttribute;
+	KWDGAttribute* attribute;
+
+	// Calcul par parcours des attributs
+	nResult = 0;
+	for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
+	{
+		attribute = cast(KWDGAttribute*, oaAttributes.GetAt(nAttribute));
+		nResult = max(nResult, attribute->GetPartNumber());
+	}
+	return nResult;
+}
+
 double KWDataGrid::ComputeSourceEntropy()
 {
 	double dResult;
@@ -1222,7 +1238,7 @@ void KWDataGrid::ExportDataGridStats(KWDataGridStats* dataGridStats) const
 				// Memorisation de l'index de la partie dans un dictionnaire
 				partIndex = new KWSortableIndex;
 				partIndex->SetIndex(nPart);
-				nkdPartIndexes.SetAt((NUMERIC)part, partIndex);
+				nkdPartIndexes.SetAt(part, partIndex);
 
 				// Parametrage des valeurs de la partie
 				attributeGrouping->SetGroupFirstValueIndexAt(nPart, nValue);
@@ -1281,7 +1297,7 @@ void KWDataGrid::ExportDataGridStats(KWDataGridStats* dataGridStats) const
 				// Memorisation de l'index de la partie dans un dictionnaire
 				partIndex = new KWSortableIndex;
 				partIndex->SetIndex(nPart);
-				nkdPartIndexes.SetAt((NUMERIC)part, partIndex);
+				nkdPartIndexes.SetAt(part, partIndex);
 
 				// On memorise la borne inf a partir du deusiemme intervalle
 				if (nPart > 0)
@@ -1346,7 +1362,7 @@ void KWDataGrid::ExportDataGridStats(KWDataGridStats* dataGridStats) const
 		{
 			// Recherche de l'index associe a la partie
 			part = cell->GetPartAt(nAttribute);
-			partIndex = cast(KWSortableIndex*, nkdPartIndexes.Lookup((NUMERIC)part));
+			partIndex = cast(KWSortableIndex*, nkdPartIndexes.Lookup(part));
 			check(partIndex);
 			ivPartIndexes.SetAt(nAttribute, partIndex->GetIndex());
 		}
@@ -1631,7 +1647,7 @@ void KWDataGrid::WriteCrossTableStats(ostream& ost, int nTargetIndex) const
 		ost << "Cell frequencies\n";
 	else
 		ost << "% target value\t" << GetTargetValueAt(nTargetIndex) << "\n";
-	ost << "\t" << attribute2->GetAttributeName() << "\n";
+	ost << "\t" << TSV::Export(attribute2->GetAttributeName()) << "\n";
 	ost << attribute1->GetAttributeName();
 	dGridFrequency = GetGridFrequency();
 	for (nPart2 = 0; nPart2 < oaAttribute2Parts.GetSize(); nPart2++)
@@ -1639,7 +1655,7 @@ void KWDataGrid::WriteCrossTableStats(ostream& ost, int nTargetIndex) const
 		part2 = cast(KWDGPart*, oaAttribute2Parts.GetAt(nPart2));
 
 		// Libelle ligne de la partie de l'attribut 2
-		ost << "\t" << part2->GetObjectLabel();
+		ost << "\t" << TSV::Export(part2->GetObjectLabel());
 	}
 	ost << "\n";
 
@@ -1649,7 +1665,7 @@ void KWDataGrid::WriteCrossTableStats(ostream& ost, int nTargetIndex) const
 		part1 = cast(KWDGPart*, oaAttribute1Parts.GetAt(nPart1));
 
 		// Libelle ligne de la partie de l'attribut 1
-		ost << part1->GetObjectLabel();
+		ost << TSV::Export(part1->GetObjectLabel());
 
 		// Rangement des cellules lies a la partie de l'attribut 1 en utilisant
 		// les parties comme cle d'acces
@@ -1657,7 +1673,7 @@ void KWDataGrid::WriteCrossTableStats(ostream& ost, int nTargetIndex) const
 		cell = part1->GetHeadCell();
 		while (cell != NULL)
 		{
-			nkdPartCells.SetAt((NUMERIC)cell->GetPartAt(1), cell);
+			nkdPartCells.SetAt(cell->GetPartAt(1), cell);
 			part1->GetNextCell(cell);
 		}
 
@@ -1667,7 +1683,7 @@ void KWDataGrid::WriteCrossTableStats(ostream& ost, int nTargetIndex) const
 			part2 = cast(KWDGPart*, oaAttribute2Parts.GetAt(nPart2));
 
 			// Affichage de la cellule si elle existe
-			cell = cast(KWDGCell*, nkdPartCells.Lookup((NUMERIC)part2));
+			cell = cast(KWDGCell*, nkdPartCells.Lookup(part2));
 			ost << "\t";
 			if (cell == NULL or cell->GetCellFrequency() == 0 or dGridFrequency == 0)
 				ost << "0";
@@ -2366,7 +2382,7 @@ void KWDGAttribute::BuildIndexingStructure()
 				while (value != NULL)
 				{
 					// Ajout de la partie avec la valeur pour cle
-					nkdParts.SetAt((NUMERIC)value->GetValue().GetNumericKey(), part);
+					nkdParts.SetAt(value->GetValue().GetNumericKey(), part);
 
 					// Memorisation de la partie associe a la valeur speciale
 					if (value->GetValue() == Symbol::GetStarValue())
@@ -2479,7 +2495,7 @@ KWDGPart* KWDGAttribute::LookupSymbolPart(const Symbol& sValue)
 	require(IsIndexed());
 	require(GetAttributeType() == KWType::Symbol);
 
-	part = cast(KWDGPart*, nkdParts.Lookup((NUMERIC)sValue.GetNumericKey()));
+	part = cast(KWDGPart*, nkdParts.Lookup(sValue.GetNumericKey()));
 	if (part == NULL)
 		part = starValuePart;
 	ensure(part != NULL);
@@ -2663,8 +2679,7 @@ boolean KWDGAttribute::Check() const
 			while (value != NULL)
 			{
 				// Recherche si la valeur est deja enregistree
-				searchedPart =
-				    cast(KWDGPart*, nkdCheckParts.Lookup((NUMERIC)value->GetValue().GetNumericKey()));
+				searchedPart = cast(KWDGPart*, nkdCheckParts.Lookup(value->GetValue().GetNumericKey()));
 
 				// Erreur si partie deja enregistree avec cette valeur
 				if (searchedPart != NULL)
@@ -2678,7 +2693,7 @@ boolean KWDGAttribute::Check() const
 				else
 				{
 					// Ajout de la partie avec la valeur pour cle
-					nkdCheckParts.SetAt((NUMERIC)value->GetValue().GetNumericKey(), part);
+					nkdCheckParts.SetAt(value->GetValue().GetNumericKey(), part);
 
 					// Test si valeur speciale
 					if (value->GetValue() == Symbol::GetStarValue())
@@ -3737,7 +3752,7 @@ boolean KWDGValueSet::Check() const
 				bStarValuePresent = true;
 
 			// Erreur si partie deja enregistree avec cette valeur
-			if (nkdCheckValues.Lookup((NUMERIC)value->GetValue().GetNumericKey()) != NULL)
+			if (nkdCheckValues.Lookup(value->GetValue().GetNumericKey()) != NULL)
 			{
 				AddError(sTmp + "Value " + value->GetValue() + " already exists in the part");
 				bOk = false;
@@ -3747,7 +3762,7 @@ boolean KWDGValueSet::Check() const
 			else
 			{
 				// Ajout de la partie avec la valeur pour cle
-				nkdCheckValues.SetAt((NUMERIC)value->GetValue().GetNumericKey(), value);
+				nkdCheckValues.SetAt(value->GetValue().GetNumericKey(), value);
 
 				// Valeur suivante
 				GetNextValue(value);

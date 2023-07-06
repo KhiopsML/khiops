@@ -1,16 +1,12 @@
 Rank;Name;Type;Style;Label
 1;HistogramCriterion     ;ALString;ComboBox   ;Histogram criterion
 2;DeltaCentralBinExponent;int     ;           ;Delta central bin exponent
-3;MaxHierarchyLevel      ;int     ;           ;Max hierarchy level
-4;MaxIntervalNumber      ;int     ;           ;Max interval number
-5;MaxCoarsenedHistogramNumber  ;int     ;         ;Max coarsened histogram number
-6;TruncationManagementHeuristic;boolean ;CheckBox ;Truncation management heuristic
-7;SingularityRemovalHeuristic  ;boolean ;CheckBox ;Singularity removal heuristic
-8;OutlierManagementHeuristic   ;boolean ;CheckBox ;Outlier management heuristic
-9;EpsilonBinWidth        ;double  ;           ;Epsilon bin width
-10;EpsilonBinNumber      ;int     ;           ;Epsilon bin number
-11;OptimalAlgorithm      ;boolean ;CheckBox   ;Optimal algorithm
-12;ExportInternalLogFiles;boolean ;CheckBox   ;Export internal log files
-13;FileFormat            ;int     ;                ;File format
-14;ResultFilesDirectory  ;ALString;DirectoryChooser;Result files directory
-15;ResultFilesPrefix     ;ALString;                ;Result files prefix
+3;TruncationManagementHeuristic;boolean ;CheckBox ;Truncation management heuristic
+4;SingularityRemovalHeuristic  ;boolean ;CheckBox ;Singularity removal heuristic
+5;EpsilonBinWidth        ;double  ;           ;Epsilon bin width
+6;OptimalAlgorithm      ;boolean ;CheckBox   ;Optimal algorithm
+7;ExportResultHistograms;ALString;ComboBox   ;Export result histograms
+8;ExportInternalLogFiles;boolean ;CheckBox   ;Export internal log files
+9;FileFormat            ;int     ;                ;File format
+10;ResultFilesDirectory  ;ALString;DirectoryChooser;Result files directory
+11;ResultFilesPrefix     ;ALString;                ;Result files prefix

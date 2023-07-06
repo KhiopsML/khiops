@@ -13,6 +13,9 @@ CCLearningProblem::CCLearningProblem()
 	postProcessingSpec = new CCPostProcessingSpec;
 	deploymentSpec = new CCDeploymentSpec;
 	analysisResults = new CCAnalysisResults;
+
+	// Parametrage de la base associee au resultats
+	analysisResults->SetTrainDatabase(database);
 }
 
 CCLearningProblem::~CCLearningProblem()
@@ -29,13 +32,13 @@ CCLearningProblem::~CCLearningProblem()
 
 KWClassManagement* CCLearningProblem::GetClassManagement()
 {
+	require(database->GetClassName() == classManagement->GetClassName());
 	return classManagement;
 }
 
 KWDatabase* CCLearningProblem::GetDatabase()
 {
-	// Synchronisation du dictionnaire de la base
-	database->SetClassName(classManagement->GetClassName());
+	require(database->GetClassName() == classManagement->GetClassName());
 	return database;
 }
 
@@ -57,6 +60,16 @@ CCDeploymentSpec* CCLearningProblem::GetDeploymentSpec()
 CCAnalysisResults* CCLearningProblem::GetAnalysisResults()
 {
 	return analysisResults;
+}
+
+void CCLearningProblem::UpdateClassNameFromClassManagement()
+{
+	database->SetClassName(classManagement->GetClassName());
+}
+
+void CCLearningProblem::UpdateClassNameFromTrainDatabase()
+{
+	classManagement->SetClassName(database->GetClassName());
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -115,7 +128,7 @@ void CCLearningProblem::BuildCoclustering()
 	require(not TaskProgression::IsStarted());
 
 	// Demarage du suivi de la tache
-	TaskProgression::SetTitle("Train model " + GetClassName());
+	TaskProgression::SetTitle("Train coclustering " + GetClassName());
 	TaskProgression::SetDisplayedLevelNumber(2);
 	TaskProgression::Start();
 
@@ -163,10 +176,10 @@ void CCLearningProblem::BuildCoclustering()
 	}
 	coclusteringBuilder.SetFrequencyAttribute(analysisSpec->GetCoclusteringSpec()->GetFrequencyAttribute());
 
-	// Parametrage du nom du rapport Khiphren
-	sReportFileName = BuildOutputFilePathName(GetAnalysisResults()->GetCoclusteringFileName(), false);
+	// Parametrage du nom du rapport de coclustering
+	sReportFileName = BuildOutputFilePathName(TaskBuildCoclustering);
 	coclusteringBuilder.SetReportFileName(sReportFileName);
-	coclusteringBuilder.SetExportJSON(GetAnalysisResults()->GetExportJSON());
+	coclusteringBuilder.SetExportAsKhc(GetAnalysisResults()->GetExportAsKhc());
 
 	// Calcul du coclustering
 	if (not TaskProgression::IsInterruptionRequested())
@@ -176,18 +189,17 @@ void CCLearningProblem::BuildCoclustering()
 	if (coclusteringBuilder.IsCoclusteringComputed() and not coclusteringBuilder.IsCoclusteringInformative())
 		AddSimpleMessage("No informative coclustering found in data");
 
-	// Ecriture du rapport Khiphren
+	// Ecriture du rapport de coclustering
 	if (coclusteringBuilder.IsCoclusteringInformative() and sReportFileName != "")
 	{
 		AddSimpleMessage("Write coclustering report " + sReportFileName);
 		bWriteOk =
-		    coclusteringReport.WriteReport(sReportFileName, coclusteringBuilder.GetCoclusteringDataGrid());
+		    coclusteringReport.WriteJSONReport(sReportFileName, coclusteringBuilder.GetCoclusteringDataGrid());
 
-		// Sauvegarde au format JSON si necessaire
-		if (bWriteOk and GetAnalysisResults()->GetExportJSON())
-			coclusteringReport.WriteJSONReport(
-			    FileService::SetFileSuffix(sReportFileName, CCCoclusteringReport::GetJSONReportSuffix()),
-			    coclusteringBuilder.GetCoclusteringDataGrid());
+		// Sauvegarde au format khc si necessaire
+		if (bWriteOk and GetAnalysisResults()->GetExportAsKhc())
+			coclusteringReport.WriteReport(BuildKhcOutputFilePathName(TaskBuildCoclustering),
+						       coclusteringBuilder.GetCoclusteringDataGrid());
 
 		// Destruction de la derniere sauvegarde de fichier temporaire
 		if (bWriteOk)
@@ -235,8 +247,7 @@ void CCLearningProblem::PostProcessCoclustering()
 
 	// Parametrage des specifications de coclustering a partir du rapport de coclustering
 	sCoclusteringReportFileName = GetAnalysisResults()->GetInputCoclusteringFileName();
-	sPostProcessedCoclusteringReportFileName =
-	    BuildOutputFilePathName(GetAnalysisResults()->GetPostProcessedCoclusteringFileName(), true);
+	sPostProcessedCoclusteringReportFileName = BuildOutputFilePathName(TaskPostProcessCoclustering);
 
 	// Recherche du nom du fichier de coclustering
 	// Demarage du suivi de la tache
@@ -257,14 +268,13 @@ void CCLearningProblem::PostProcessCoclustering()
 	if (bOk and sPostProcessedCoclusteringReportFileName != "")
 	{
 		AddSimpleMessage("Write simplified report " + sPostProcessedCoclusteringReportFileName);
-		bOk = postProcessedcoclusteringReport.WriteReport(sPostProcessedCoclusteringReportFileName,
-								  &postProcessedCoclusteringDataGrid);
+		bOk = postProcessedcoclusteringReport.WriteJSONReport(sPostProcessedCoclusteringReportFileName,
+								      &postProcessedCoclusteringDataGrid);
 
-		// Sauvegarde au format JSON si necessaire
-		if (bOk and GetAnalysisResults()->GetExportJSON())
-			postProcessedcoclusteringReport.WriteJSONReport(
-			    FileService::SetFileSuffix(sPostProcessedCoclusteringReportFileName,
-						       CCCoclusteringReport::GetJSONReportSuffix()),
+		// Sauvegarde au format khc si necessaire
+		if (bOk and GetAnalysisResults()->GetExportAsKhc())
+			postProcessedcoclusteringReport.WriteReport(
+			    BuildKhcOutputFilePathName(TaskPostProcessCoclustering),
 			    &postProcessedCoclusteringDataGrid);
 	}
 
@@ -291,7 +301,7 @@ void CCLearningProblem::ExtractClusters(const ALString& sCoclusteringAttributeNa
 
 	// Parametrage des specifications de coclustering a partir du rapport de coclustering
 	sCoclusteringReportFileName = GetAnalysisResults()->GetInputCoclusteringFileName();
-	sClusterTableFileName = BuildOutputFilePathName(GetAnalysisResults()->GetClusterFileName(), true);
+	sClusterTableFileName = BuildOutputFilePathName(TaskExtractClusters);
 
 	// Recherche du nom du fichier de coclustering
 	// Demarage du suivi de la tache
@@ -374,8 +384,7 @@ void CCLearningProblem::PrepareDeployment()
 
 	// Parametrage des specifications de coclustering a partir du rapport de coclustering
 	sCoclusteringReportFileName = GetAnalysisResults()->GetInputCoclusteringFileName();
-	sCoclusteringDictionaryFileName =
-	    BuildOutputFilePathName(GetAnalysisResults()->GetCoclusteringDictionaryFileName(), true);
+	sCoclusteringDictionaryFileName = BuildOutputFilePathName(TaskPrepareDeployment);
 
 	// Recherche du nom du fichier de coclustering
 	// Demarage du suivi de la tache
@@ -604,7 +613,10 @@ boolean CCLearningProblem::CheckResultFileNames(int nTaskId) const
 	FileSpec specInputClass;
 	FileSpec specInputTrainDatabase;
 	FileSpec specInputCoclustering;
+	FileSpec specOutputMainFile;
+	FileSpec specOutputKhcFile;
 	FileSpec specOutputCoclustering;
+	FileSpec specOutputClusters;
 	FileSpec specOutputCoclusteringDictionary;
 	FileSpec specOutputPostProcessedCoclustering;
 	FileSpec specOutputTrainEvaluation;
@@ -662,70 +674,28 @@ boolean CCLearningProblem::CheckResultFileNames(int nTaskId) const
 	}
 	oaInputFileSpecs.InsertObjectArrayAt(oaInputFileSpecs.GetSize(), &oaTrainDatabaseFileSpecs);
 
-	// Specification des fichiers de sortie concernes
-	if (nTaskId == TaskBuildCoclustering)
+	// Test si fichier en sortie specifie
+	specOutputMainFile.SetLabel(GetOutputFileLabel(nTaskId));
+	if (GetSpecifiedOutputFileName(nTaskId) == "")
 	{
-		specOutputCoclustering.SetLabel("covisualization report");
-		specOutputCoclustering.SetFilePathName(analysisResults->GetCoclusteringFileName());
-		oaOutputFileSpecs.Add(&specOutputCoclustering);
-
-		// Ajout du fichier d'export JSON si necessaire
-		if (analysisResults->GetExportJSON())
-		{
-			specOutputJSONCoclustering.SetLabel("JSON covisualization report");
-			specOutputJSONCoclustering.SetFilePathName(FileService::SetFileSuffix(
-			    analysisResults->GetCoclusteringFileName(), CCCoclusteringReport::GetJSONReportSuffix()));
-			oaOutputFileSpecs.Add(&specOutputJSONCoclustering);
-		}
-	}
-	else if (nTaskId == TaskExtractClusters)
-	{
-		specOutputCoclustering.SetLabel("cluster table file");
-		specOutputCoclustering.SetFilePathName(analysisResults->GetCoclusteringFileName());
-		oaOutputFileSpecs.Add(&specOutputCoclustering);
-	}
-	else if (nTaskId == TaskPostProcessCoclustering)
-	{
-		specOutputPostProcessedCoclustering.SetLabel("simplified covisualization report");
-		specOutputPostProcessedCoclustering.SetFilePathName(
-		    analysisResults->GetPostProcessedCoclusteringFileName());
-		oaOutputFileSpecs.Add(&specOutputPostProcessedCoclustering);
-
-		// Ajout du fichier d'export JSON si necessaire
-		if (analysisResults->GetExportJSON())
-		{
-			specOutputJSONCoclustering.SetLabel("simplified JSON covisualization report");
-			specOutputJSONCoclustering.SetFilePathName(
-			    FileService::SetFileSuffix(analysisResults->GetPostProcessedCoclusteringFileName(),
-						       CCCoclusteringReport::GetJSONReportSuffix()));
-			oaOutputFileSpecs.Add(&specOutputJSONCoclustering);
-		}
-	}
-	else if (nTaskId == TaskPrepareDeployment)
-	{
-		specOutputCoclusteringDictionary.SetLabel("coclustering dictionary");
-		specOutputCoclusteringDictionary.SetFilePathName(analysisResults->GetCoclusteringDictionaryFileName());
-		oaOutputFileSpecs.Add(&specOutputCoclusteringDictionary);
+		bOk = false;
+		specOutputMainFile.AddError("Missing file name");
 	}
 
-	// Verification que les fichiers en sortie sont des fichiers simple, sans chemin
-	for (nOutput = 0; nOutput < oaOutputFileSpecs.GetSize(); nOutput++)
-	{
-		specOutput = cast(FileSpec*, oaOutputFileSpecs.GetAt(nOutput));
-		bOk = bOk and specOutput->CheckSimplePath();
-		if (not bOk)
-			break;
-	}
-
-	// Calcul des chemins complets des fichiers de sortie concernes
+	// Ajout du fichier en sortie
 	if (bOk)
 	{
-		for (nOutput = 0; nOutput < oaOutputFileSpecs.GetSize(); nOutput++)
-		{
-			specOutput = cast(FileSpec*, oaOutputFileSpecs.GetAt(nOutput));
-			specOutput->SetFilePathName(
-			    BuildOutputFilePathName(specOutput->GetFilePathName(), (nTaskId != TaskBuildCoclustering)));
-		}
+		specOutputMainFile.SetFilePathName(BuildOutputFilePathName(nTaskId));
+		oaOutputFileSpecs.Add(&specOutputMainFile);
+	}
+
+	// Ajout du fichier d'export khc si necessaire
+	if (bOk and (nTaskId == TaskBuildCoclustering or nTaskId == TaskPostProcessCoclustering) and
+	    analysisResults->GetExportAsKhc())
+	{
+		specOutputKhcFile.SetLabel("khc " + GetOutputFileLabel(nTaskId));
+		specOutputKhcFile.SetFilePathName(BuildKhcOutputFilePathName(nTaskId));
+		oaOutputFileSpecs.Add(&specOutputKhcFile);
 	}
 
 	// Chaque fichier de sortie doit etre different des fichiers d'entree
@@ -775,14 +745,7 @@ boolean CCLearningProblem::CheckResultFileNames(int nTaskId) const
 	// Creation du repertoire des fichiers de sortie
 	if (bOk)
 	{
-		sOutputPathName = BuildOutputPathName((nTaskId != TaskBuildCoclustering));
-		if (sOutputPathName != "" and not FileService::DirExists(sOutputPathName))
-		{
-			bOk = PLRemoteFileService::MakeDirectories(sOutputPathName);
-			if (not bOk)
-				Global::AddError("", "",
-						 "Unable to create results directory (" + sOutputPathName + ")");
-		}
+		bOk = CheckResultDirectory(nTaskId);
 	}
 
 	// Nettoyage
@@ -791,58 +754,22 @@ boolean CCLearningProblem::CheckResultFileNames(int nTaskId) const
 	return bOk;
 }
 
-const ALString CCLearningProblem::BuildOutputFilePathName(const ALString& sFileName, boolean bInputCoclustering) const
+boolean CCLearningProblem::CheckResultDirectory(int nTaskId) const
 {
-	ALString sOutputPathName;
-	ALString sOutputFilePathName;
-
-	require(sFileName == "" or not FileService::IsPathInFilePath(sFileName));
-
-	// Calcul du repertoire effectif des resultats
-	sOutputPathName = BuildOutputPathName(bInputCoclustering);
-
-	// On construit le nom complet du fichier, s'il est specifie
-	if (sFileName != "")
-	{
-		sOutputFilePathName = FileService::BuildFilePathName(
-		    sOutputPathName, analysisResults->GetResultFilesPrefix() + sFileName);
-	}
-	return sOutputFilePathName;
+	// Verification du repertoire
+	return GetResultFilePathBuilder(nTaskId)->CheckResultDirectory("");
 }
 
-const ALString CCLearningProblem::BuildOutputPathName(boolean bInputCoclustering) const
+const ALString CCLearningProblem::BuildOutputFilePathName(int nTaskId) const
 {
-	ALString sResultPathName;
-	ALString sBasePathName;
-	ALString sOutputPathName;
+	// Construction du nom du fichier en sortie
+	return GetResultFilePathBuilder(nTaskId)->BuildResultFilePathName();
+}
 
-	// Recherche du chemin de base
-	if (bInputCoclustering)
-	{
-		sBasePathName = FileService::GetPathName(analysisResults->GetInputCoclusteringFileName());
-		sResultPathName = analysisResults->GetResultFilesDirectory();
-	}
-	else
-	{
-		sBasePathName = FileService::GetPathName(GetDatabaseName());
-		sResultPathName = analysisResults->GetResultFilesDirectory();
-	}
-
-	// Si le repertoire des resultats n'est pas specifie, on utilise celui de la base d'apprentissage
-	if (sResultPathName == "")
-		sOutputPathName = sBasePathName;
-	// S'il est absolu ou si c'est une URI, on le prend tel quel
-	else if (FileService::IsAbsoluteFilePathName(sResultPathName) or
-		 (FileService::GetURIScheme(sResultPathName) != ""))
-		sOutputPathName = sResultPathName;
-	// S'il commence par "./" ou ".\", on le traite comme un chemin absolu
-	else if (sResultPathName.GetLength() > 2 and sResultPathName.GetAt(0) == '.' and
-		 (sResultPathName.GetAt(1) == '/' or sResultPathName.GetAt(1) == '\\'))
-		sOutputPathName = sResultPathName;
-	// s'il est relatif, on le concatene a celui de la base d'apprentissage
-	else
-		sOutputPathName = FileService::BuildFilePathName(sBasePathName, sResultPathName);
-	return sOutputPathName;
+const ALString CCLearningProblem::BuildKhcOutputFilePathName(int nTaskId) const
+{
+	// Construction du nom du fichier en sortie
+	return GetResultFilePathBuilder(nTaskId)->BuildOtherResultFilePathName("khc");
 }
 
 const ALString CCLearningProblem::GetClassLabel() const
@@ -919,4 +846,65 @@ void CCLearningProblem::WriteContinuousClusters(const CCHDGAttribute* continuous
 		// Partie suivante
 		continuousCoclusteringAttribute->GetNextPart(dgPart);
 	}
+}
+
+const ALString CCLearningProblem::GetSpecifiedOutputFileName(int nTaskId) const
+{
+	require(nTaskId == TaskBuildCoclustering or nTaskId == TaskExtractClusters or
+		nTaskId == TaskPostProcessCoclustering or nTaskId == TaskPrepareDeployment);
+
+	if (nTaskId == TaskBuildCoclustering)
+		return analysisResults->GetCoclusteringFileName();
+	else if (nTaskId == TaskExtractClusters)
+		return analysisResults->GetClusterFileName();
+	else if (nTaskId == TaskPostProcessCoclustering)
+		return analysisResults->GetPostProcessedCoclusteringFileName();
+	else if (nTaskId == TaskPrepareDeployment)
+		return analysisResults->GetCoclusteringDictionaryFileName();
+	else
+		return "";
+}
+
+const ALString CCLearningProblem::GetOutputFileLabel(int nTaskId) const
+{
+	require(nTaskId == TaskBuildCoclustering or nTaskId == TaskExtractClusters or
+		nTaskId == TaskPostProcessCoclustering or nTaskId == TaskPrepareDeployment);
+
+	if (nTaskId == TaskBuildCoclustering)
+		return "coclustering report";
+	else if (nTaskId == TaskExtractClusters)
+		return "cluster table file";
+	else if (nTaskId == TaskPostProcessCoclustering)
+		return "simplified coclustering report";
+	else if (nTaskId == TaskPrepareDeployment)
+		return "coclustering dictionary";
+	else
+		return "";
+}
+
+const KWResultFilePathBuilder* CCLearningProblem::GetResultFilePathBuilder(int nTaskId) const
+{
+	require(nTaskId == TaskBuildCoclustering or nTaskId == TaskExtractClusters or
+		nTaskId == TaskPostProcessCoclustering or nTaskId == TaskPrepareDeployment);
+
+	// Initialisation du createur de chemin de fichier
+	if (nTaskId == TaskBuildCoclustering)
+	{
+		if (database != NULL)
+			resultFilePathBuilder.SetInputFilePathName(database->GetDatabaseName());
+	}
+	else
+		resultFilePathBuilder.SetInputFilePathName(analysisResults->GetInputCoclusteringFileName());
+	resultFilePathBuilder.SetOutputFilePathName(GetSpecifiedOutputFileName(nTaskId));
+
+	// Parametrage du suffixe
+	if (nTaskId == TaskBuildCoclustering)
+		resultFilePathBuilder.SetFileSuffix("khcj");
+	else if (nTaskId == TaskExtractClusters)
+		resultFilePathBuilder.SetFileSuffix("txt");
+	else if (nTaskId == TaskPostProcessCoclustering)
+		resultFilePathBuilder.SetFileSuffix("khcj");
+	else if (nTaskId == TaskPrepareDeployment)
+		resultFilePathBuilder.SetFileSuffix("kdic");
+	return &resultFilePathBuilder;
 }

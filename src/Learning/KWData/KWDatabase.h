@@ -17,6 +17,7 @@ class KWDatabase;
 #include "RMResourceManager.h"
 #include "KWLoadIndex.h"
 #include "KWDatabaseMemoryGuard.h"
+#include "KWResultFilePathBuilder.h"
 
 ///////////////////////////////////////////////////////////
 // Gestion d'une base de donnees de KWObject
@@ -84,7 +85,7 @@ public:
 	/////////////////////////////////////////////////////////////////////
 	// Services et information de nommage et de technologie utilisee
 
-	// Ajout d'un prefixe ou ux fichiers utilises pour gerer la base
+	// Ajout d'un prefixe ou aux fichiers utilises pour gerer la base
 	virtual void AddPrefixToUsedFiles(const ALString& sPrefix);
 
 	// Ajout d'un d'un suffixe aux fichiers utilises pour gerer la base (ici, fin du nom du fichier, avant le

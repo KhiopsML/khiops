@@ -2,10 +2,6 @@
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
-////////////////////////////////////////////////////////////
-// File generated with Genere tool
-// Insert your specific code inside "//## " sections
-
 #include "CCAnalysisSpecView.h"
 
 CCAnalysisSpecView::CCAnalysisSpecView()
@@ -13,14 +9,9 @@ CCAnalysisSpecView::CCAnalysisSpecView()
 	SetIdentifier("CCAnalysisSpec");
 	SetLabel("Parameters");
 
-	// ## Custom constructor
-
 	// Ajout des sous-fiches
 	AddCardField("CoclusteringParameters", "Coclustering parameters", new CCCoclusteringSpecView);
 	AddCardField("SystemParameters", "System parameters", new KWSystemParametersView);
-	cast(KWSystemParametersView*, GetFieldAt("SystemParameters"))
-	    ->GetFieldAt("MaxItemNumberInReports")
-	    ->SetVisible(false);
 	AddCardField("CrashTestParameters", "Crash test parameters", new KWCrashTestParametersView);
 
 	// Parametrage de la visibilite de l'onglet des crash tests
@@ -47,22 +38,9 @@ CCAnalysisSpecView::CCAnalysisSpecView()
 	// Short cuts
 	GetFieldAt("CoclusteringParameters")->SetShortCut('C');
 	GetFieldAt("SystemParameters")->SetShortCut('S');
-
-	// ##
 }
 
-CCAnalysisSpecView::~CCAnalysisSpecView()
-{
-	// ## Custom destructor
-
-	// ##
-}
-
-CCAnalysisSpec* CCAnalysisSpecView::GetCCAnalysisSpec()
-{
-	require(objValue != NULL);
-	return cast(CCAnalysisSpec*, objValue);
-}
+CCAnalysisSpecView::~CCAnalysisSpecView() {}
 
 void CCAnalysisSpecView::EventUpdate(Object* object)
 {
@@ -71,10 +49,6 @@ void CCAnalysisSpecView::EventUpdate(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(CCAnalysisSpec*, object);
-
-	// ## Custom update
-
-	// ##
 }
 
 void CCAnalysisSpecView::EventRefresh(Object* object)
@@ -84,18 +58,7 @@ void CCAnalysisSpecView::EventRefresh(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(CCAnalysisSpec*, object);
-
-	// ## Custom refresh
-
-	// ##
 }
-
-const ALString CCAnalysisSpecView::GetClassLabel() const
-{
-	return "Parameters";
-}
-
-// ## Method implementation
 
 void CCAnalysisSpecView::SetObject(Object* object)
 {
@@ -120,4 +83,7 @@ void CCAnalysisSpecView::SetObject(Object* object)
 	UIObjectView::SetObject(object);
 }
 
-// ##
+const ALString CCAnalysisSpecView::GetClassLabel() const
+{
+	return "Parameters";
+}

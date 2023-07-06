@@ -758,7 +758,7 @@ boolean KWMTDatabase::CheckObjectConsistency() const
 	// Traitement des classes depuis la classe principale, on les memorisant dans un dictionnaire pour ne les
 	// traiter qu'une seule fois
 	oaClasses.Add(rootClass);
-	nkdClasses.SetAt((NUMERIC)rootClass, rootClass);
+	nkdClasses.SetAt(rootClass, rootClass);
 	for (nClass = 0; nClass < oaClasses.GetSize(); nClass++)
 	{
 		secondaryClass = cast(KWClass*, oaClasses.GetAt(nClass));
@@ -778,10 +778,10 @@ boolean KWMTDatabase::CheckObjectConsistency() const
 				if (rule == NULL)
 				{
 					// Ajout de la classe a verifier
-					if (nkdClasses.Lookup((NUMERIC)attribute->GetClass()) == NULL)
+					if (nkdClasses.Lookup(attribute->GetClass()) == NULL)
 					{
 						oaClasses.Add(attribute->GetClass());
-						nkdClasses.SetAt((NUMERIC)attribute->GetClass(), attribute->GetClass());
+						nkdClasses.SetAt(attribute->GetClass(), attribute->GetClass());
 					}
 				}
 				// Verification des operandes de la regle sinon
@@ -1247,7 +1247,7 @@ void KWMTDatabase::ComputeUnusedNativeAttributesToKeep(NumericKeyDictionary* nkd
 
 	// Initialisation des classe a traiter avec la classe principale
 	oaImpactedClasses.Add(kwcClass);
-	nkdImpactedClasses.SetAt((NUMERIC)kwcClass, kwcClass);
+	nkdImpactedClasses.SetAt(kwcClass, kwcClass);
 
 	// Analyse des classes impactees, en ajoutant au fur et a mesure de nouvelles classes
 	// pour la composition des attributs natifs, et en analysant les regles de derivation
@@ -1273,10 +1273,10 @@ void KWMTDatabase::ComputeUnusedNativeAttributesToKeep(NumericKeyDictionary* nkd
 										   attribute->GetAnyDerivationRule());
 
 				// Ajout de la classe parmi les classes a analyser
-				if (nkdImpactedClasses.Lookup((NUMERIC)attribute->GetClass()) == NULL)
+				if (nkdImpactedClasses.Lookup(attribute->GetClass()) == NULL)
 				{
 					oaImpactedClasses.Add(attribute->GetClass());
-					nkdImpactedClasses.SetAt((NUMERIC)attribute->GetClass(), attribute->GetClass());
+					nkdImpactedClasses.SetAt(attribute->GetClass(), attribute->GetClass());
 				}
 			}
 		}
@@ -1299,11 +1299,11 @@ void KWMTDatabase::ComputeUnusedNativeAttributesToKeepForRule(NumericKeyDictiona
 	require(KWType::IsGeneralRelation(rule->GetType()));
 
 	// Arret si regle deja analysee
-	if (nkdAnalysedRules->Lookup((NUMERIC)rule) != NULL)
+	if (nkdAnalysedRules->Lookup(rule) != NULL)
 		return;
 	// Sinon, on commence par memoriser la regle analysee
 	else
-		nkdAnalysedRules->SetAt((NUMERIC)rule, rule);
+		nkdAnalysedRules->SetAt(rule, rule);
 
 	// Parcours des operandes de la regle
 	for (nOperand = 0; nOperand < rule->GetOperandNumber(); nOperand++)
@@ -1338,7 +1338,7 @@ void KWMTDatabase::ComputeUnusedNativeAttributesToKeepForRule(NumericKeyDictiona
 						    nkdAttributes, nkdAnalysedRules, attribute->GetAnyDerivationRule());
 					// Memorisation de l'attribut natif sinon
 					else
-						nkdAttributes->SetAt((NUMERIC)attribute, attribute);
+						nkdAttributes->SetAt(attribute, attribute);
 				}
 			}
 		}

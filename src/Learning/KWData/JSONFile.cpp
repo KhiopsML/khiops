@@ -67,34 +67,12 @@ boolean JSONFile::IsOpened()
 
 boolean JSONFile::Close()
 {
-	boolean bOk;
+	return InternalClose(true);
+}
 
-	require(IsOpened());
-
-	// Exploitation des stats d'encodage: memorisation dans le fichier json et message utilisateur
-	ExploitEncodingStats();
-
-	// Fin de l'objet global
-	Unindent();
-	fstJSON << "\n}\n";
-
-	// Fermeture du fichier
-	bOk = FileService::CloseOutputFile(sLocalFileName, fstJSON);
-
-	// Copie vers HDFS si necessaire
-	PLRemoteFileService::CleanOutputWorkingFile(sFileName, sLocalFileName);
-
-	// Nettoyage du buffer de travail
-	sStringBuffer = "";
-
-	// Re-initialisation des stats sur les caracteres encodes
-	InitializeEncodingStats();
-
-	// Ajout de log memoire
-	MemoryStatsManager::AddLog(GetClassLabel() + " " + GetObjectLabel() + " Write report End");
-	ensure(ivLevelElementNumber.GetSize() == 0);
-	ensure(nCurrentListLevel == 0);
-	return bOk;
+boolean JSONFile::CloseWithoutEncodingStats()
+{
+	return InternalClose(false);
 }
 
 void JSONFile::WriteString(const ALString& sValue)
@@ -332,11 +310,11 @@ void JSONFile::CStringToJsonString(const ALString& sCString, ALString& sJsonStri
 
 	// Encodage de la chaine au format json
 	i = 0;
-	nMaxValidUTF8CharLength = false;
+	nMaxValidUTF8CharLength = 0;
 	while (i < sCString.GetLength())
 	{
 		// Recherche du nombre de caracteres UTF8 consecutifs valides
-		nUTF8CharLength = GetValidUTF8CharLengthAt(sCString, i);
+		nUTF8CharLength = KWTextService::GetValidUTF8CharLengthAt(sCString, i);
 		nMaxValidUTF8CharLength = max(nMaxValidUTF8CharLength, nUTF8CharLength);
 
 		// Cas avec 0 ou un caractere valide
@@ -396,23 +374,23 @@ void JSONFile::CStringToJsonString(const ALString& sCString, ALString& sJsonStri
 		// Cas d'un catactere UTF8 multi-byte
 		else if (nUTF8CharLength == 2)
 		{
-			sJsonString += (unsigned char)sCString.GetAt(i);
-			sJsonString += (unsigned char)sCString.GetAt(i + 1);
+			sJsonString += sCString.GetAt(i);
+			sJsonString += sCString.GetAt(i + 1);
 			i += 2;
 		}
 		else if (nUTF8CharLength == 3)
 		{
-			sJsonString += (unsigned char)sCString.GetAt(i);
-			sJsonString += (unsigned char)sCString.GetAt(i + 1);
-			sJsonString += (unsigned char)sCString.GetAt(i + 2);
+			sJsonString += sCString.GetAt(i);
+			sJsonString += sCString.GetAt(i + 1);
+			sJsonString += sCString.GetAt(i + 2);
 			i += 3;
 		}
 		else if (nUTF8CharLength == 4)
 		{
-			sJsonString += (unsigned char)sCString.GetAt(i);
-			sJsonString += (unsigned char)sCString.GetAt(i + 1);
-			sJsonString += (unsigned char)sCString.GetAt(i + 2);
-			sJsonString += (unsigned char)sCString.GetAt(i + 3);
+			sJsonString += sCString.GetAt(i);
+			sJsonString += sCString.GetAt(i + 1);
+			sJsonString += sCString.GetAt(i + 2);
+			sJsonString += sCString.GetAt(i + 3);
 			i += 4;
 		}
 	}
@@ -430,7 +408,6 @@ void JSONFile::CStringToCAnsiString(const ALString& sCString, ALString& sCAnsiSt
 {
 	int i;
 	int j;
-	unsigned char c;
 	int nUTF8CharLength;
 	int nUtf8Code;
 	int nAnsiCodeFromUtf8;
@@ -443,14 +420,13 @@ void JSONFile::CStringToCAnsiString(const ALString& sCString, ALString& sCAnsiSt
 	while (i < sCString.GetLength())
 	{
 		// Recherche du nombre de caracteres UTF8 consecutifs valides
-		nUTF8CharLength = GetValidUTF8CharLengthAt(sCString, i);
+		nUTF8CharLength = KWTextService::GetValidUTF8CharLengthAt(sCString, i);
 
 		// Cas avec 0 ou un caractere valide, ascii ou ansi
 		if (nUTF8CharLength <= 1)
 		{
-			c = (unsigned char)sCString.GetAt(i);
+			sCAnsiString += sCString.GetAt(i);
 			i++;
-			sCAnsiString += c;
 		}
 		// Cas d'un caractere UTF8 multi-byte trop long pour la plage windows-1252
 		else if (nUTF8CharLength == 4)
@@ -458,9 +434,8 @@ void JSONFile::CStringToCAnsiString(const ALString& sCString, ALString& sCAnsiSt
 			// On memorise les bytes du carectere utf8 tels quels
 			for (j = 0; j < nUTF8CharLength; j++)
 			{
-				c = (unsigned char)sCString.GetAt(i);
+				sCAnsiString += sCString.GetAt(i);
 				i++;
-				sCAnsiString += c;
 			}
 		}
 		// Cas d'un caractere UTF8 multi-byte pouvant etre encode sur la plage windows-1252
@@ -472,10 +447,9 @@ void JSONFile::CStringToCAnsiString(const ALString& sCString, ALString& sCAnsiSt
 			nUtf8Code = 0;
 			for (j = 0; j < nUTF8CharLength; j++)
 			{
-				c = (unsigned char)sCString.GetAt(i);
-				i++;
 				nUtf8Code *= 256;
-				nUtf8Code += c;
+				nUtf8Code += (unsigned char)sCString.GetAt(i);
+				i++;
 			}
 
 			// Recherche de l'index du caractere dans la plage windows-1252
@@ -492,8 +466,7 @@ void JSONFile::CStringToCAnsiString(const ALString& sCString, ALString& sCAnsiSt
 			{
 				for (j = i - nUTF8CharLength; j < i; j++)
 				{
-					c = (unsigned char)sCString.GetAt(j);
-					sCAnsiString += c;
+					sCAnsiString += sCString.GetAt(j);
 				}
 			}
 		}
@@ -651,9 +624,42 @@ void JSONFile::Test()
 	fJSON.Close();
 }
 
+boolean JSONFile::InternalClose(boolean bExploitEncodingStats)
+{
+	boolean bOk;
+
+	require(IsOpened());
+
+	// Exploitation des stats d'encodage: memorisation dans le fichier json et message utilisateur
+	if (bExploitEncodingStats)
+		ExploitEncodingStats();
+
+	// Fin de l'objet global
+	Unindent();
+	fstJSON << "\n}\n";
+
+	// Fermeture du fichier
+	bOk = FileService::CloseOutputFile(sLocalFileName, fstJSON);
+
+	// Copie vers HDFS si necessaire
+	PLRemoteFileService::CleanOutputWorkingFile(sFileName, sLocalFileName);
+
+	// Nettoyage du buffer de travail
+	sStringBuffer = "";
+
+	// Re-initialisation des stats sur les caracteres encodes
+	InitializeEncodingStats();
+
+	// Ajout de log memoire
+	MemoryStatsManager::AddLog(GetClassLabel() + " " + GetObjectLabel() + " Write report End");
+	ensure(ivLevelElementNumber.GetSize() == 0);
+	ensure(nCurrentListLevel == 0);
+	return bOk;
+}
 void JSONFile::WriteKey(const ALString& sKey)
 {
 	require(IsOpened());
+	require(sKey != "");
 	WriteIndent();
 	if (bCamelCaseKeys)
 		WriteStringValue(ToCamelCase(sKey));
@@ -812,7 +818,7 @@ void JSONFile::UpdateEncodingStats(const ALString& sCString)
 	while (i < sCString.GetLength())
 	{
 		// Recherche du nombre de caracteres UTF8 consecutifs valides
-		nUTF8CharLength = GetValidUTF8CharLengthAt(sCString, i);
+		nUTF8CharLength = KWTextService::GetValidUTF8CharLengthAt(sCString, i);
 
 		// Cas avec 0 ou un caractere valide
 		if (nUTF8CharLength <= 1)
@@ -938,7 +944,8 @@ void JSONFile::ExploitEncodingStats()
 				if (lvWindows1252AnsiCharNumbers.GetAt(i) > 0 and
 				    lvWindows1252Utf8CharNumbers.GetAt(i) > 0)
 				{
-					HexCharStringToByteString(svWindows1252Utf8HexEncoding.GetAt(i), sByteString);
+					sByteString = KWTextService::HexCharStringToByteString(
+					    svWindows1252Utf8HexEncoding.GetAt(i));
 					WriteString(sByteString);
 				}
 			}
@@ -987,41 +994,6 @@ void JSONFile::ExploitEncodingStats()
 	}
 }
 
-boolean JSONFile::IsHexChar(char c)
-{
-	return ('0' <= c and c <= '9') or ('A' <= c and c <= 'F');
-}
-
-int JSONFile::GetHexCharCode(char c)
-{
-	require(IsHexChar(c));
-	if (c >= 'A')
-		return c - 'A' + 10;
-	else
-		return c - '0';
-}
-
-void JSONFile::HexCharStringToByteString(const ALString& sHexCharString, ALString& sByteString)
-{
-	int i;
-	int nChar;
-
-	require(sHexCharString.GetLength() % 2 == 0);
-
-	// Recodage des caracteres hexa par paires en bytes
-	sByteString.GetBufferSetLength(0);
-	i = 0;
-	while (i < sHexCharString.GetLength())
-	{
-		nChar = 16 * GetHexCharCode(sHexCharString.GetAt(i));
-		i++;
-		nChar += GetHexCharCode(sHexCharString.GetAt(i));
-		i++;
-		sByteString += (char)nChar;
-	}
-	ensure(sByteString.GetLength() == sHexCharString.GetLength() / 2);
-}
-
 int JSONFile::GetHexStringCode(const ALString& sHexString)
 {
 	int i;
@@ -1032,7 +1004,7 @@ int JSONFile::GetHexStringCode(const ALString& sHexString)
 	for (i = 0; i < sHexString.GetLength(); i++)
 	{
 		nCode *= 16;
-		nCode += GetHexCharCode(sHexString.GetAt(i));
+		nCode += KWTextService::GetHexCharCode(sHexString.GetAt(i));
 	}
 	ensure(0 <= nCode and nCode < pow(256, nWindows1252EncodingMaxByteNumber));
 	return nCode;
@@ -1142,52 +1114,6 @@ boolean JSONFile::CheckEncodingStructures()
 	return bOk;
 }
 
-int JSONFile::GetValidUTF8CharLengthAt(const ALString& sValue, int nStart)
-{
-	int nUtf8CharLength;
-	int c;
-	int nLength;
-
-	require(0 <= nStart and nStart < sValue.GetLength());
-
-	// Initialisations
-	nUtf8CharLength = 0;
-	nLength = sValue.GetLength();
-	c = (unsigned char)sValue.GetAt(nStart);
-
-	// Cas d'un caractere ascii 0bbbbbbb
-	if (0x00 <= c and c <= 0x7f)
-		nUtf8CharLength = 1;
-	// Debut d'un caractere UTF8 sur deux octets 110bbbbb
-	else if ((c & 0xE0) == 0xC0)
-	{
-		if (nStart + 1 < nLength and ((unsigned char)sValue.GetAt(nStart + 1) & 0xC0) == 0x80)
-			nUtf8CharLength = 2;
-		else
-			nUtf8CharLength = 0;
-	}
-	// Debut d'un caractere UTF8 sur trois octets 1110bbbb
-	else if ((c & 0xF0) == 0xE0)
-	{
-		if (nStart + 2 < nLength and ((unsigned char)sValue.GetAt(nStart + 1) & 0xC0) == 0x80 and
-		    ((unsigned char)sValue.GetAt(nStart + 2) & 0xC0) == 0x80)
-			nUtf8CharLength = 3;
-		else
-			nUtf8CharLength = 0;
-	}
-	// Debut d'un caractere UTF8 sur quatre octets 11110bbb
-	else if ((c & 0xF8) == 0xF0)
-	{
-		if (nStart + 3 < nLength and ((unsigned char)sValue.GetAt(nStart + 1) & 0xC0) == 0x80 and
-		    ((unsigned char)sValue.GetAt(nStart + 2) & 0xC0) == 0x80 and
-		    ((unsigned char)sValue.GetAt(nStart + 3) & 0xC0) == 0x80)
-			nUtf8CharLength = 4;
-		else
-			nUtf8CharLength = 0;
-	}
-	return nUtf8CharLength;
-}
-
 void JSONFile::Windows1252ToUnicodeHex(int nAnsiCode, ALString& sUnicodeHexChars)
 {
 	require(0 <= nAnsiCode and nAnsiCode <= 255);
@@ -1209,11 +1135,11 @@ int JSONFile::UnicodeHexToWindows1252(const ALString& sUnicodeHexChars)
 	if (sUnicodeHexChars.GetAt(0) == '0' and sUnicodeHexChars.GetAt(1) == '0')
 	{
 		// Decodage du premier caractere suivant
-		nCode = GetHexCharCode(sUnicodeHexChars.GetAt(2));
+		nCode = KWTextService::GetHexCharCode(sUnicodeHexChars.GetAt(2));
 
 		// Decodage du second caractere suivant
 		nCode *= 16;
-		nCode += GetHexCharCode(sUnicodeHexChars.GetAt(3));
+		nCode += KWTextService::GetHexCharCode(sUnicodeHexChars.GetAt(3));
 	}
 
 	// Sinon, on recherche dans la table des caracteres speciaux

@@ -66,6 +66,7 @@ KWTupleTable::KWTupleTable()
 {
 	nSize = 0;
 	nTotalFrequency = 0;
+	nSparseMissingValueNumber = 0;
 	slTuples = NULL;
 	inputTuple = NULL;
 }

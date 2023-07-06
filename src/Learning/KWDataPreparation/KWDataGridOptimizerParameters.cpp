@@ -6,6 +6,7 @@
 
 KWDataGridOptimizerParameters::KWDataGridOptimizerParameters()
 {
+	nMaxPartNumber = 0;
 	sOptimizationAlgorithm = "VNS";
 	nOptimizationTime = 0;
 	nOptimizationLevel = 4;
@@ -20,6 +21,18 @@ KWDataGridOptimizerParameters::KWDataGridOptimizerParameters()
 
 KWDataGridOptimizerParameters::~KWDataGridOptimizerParameters() {}
 
+int KWDataGridOptimizerParameters::GetMaxPartNumber() const
+{
+	return nMaxPartNumber;
+}
+
+void KWDataGridOptimizerParameters::SetMaxPartNumber(int nValue)
+{
+	require(nValue >= 0);
+	nMaxPartNumber = nValue;
+	nFreshness++;
+}
+
 const ALString& KWDataGridOptimizerParameters::GetOptimizationAlgorithm() const
 {
 	return sOptimizationAlgorithm;
@@ -29,6 +42,7 @@ void KWDataGridOptimizerParameters::SetOptimizationAlgorithm(const ALString& sVa
 {
 	require(sValue == "Greedy" or sValue == "MultiStart" or sValue == "VNS" or sValue == "None");
 	sOptimizationAlgorithm = sValue;
+	nFreshness++;
 }
 
 int KWDataGridOptimizerParameters::GetOptimizationTime() const
@@ -107,6 +121,7 @@ const ALString& KWDataGridOptimizerParameters::GetInternalParameter() const
 void KWDataGridOptimizerParameters::SetInternalParameter(const ALString& sValue)
 {
 	sInternalParameter = sValue;
+	nFreshness++;
 }
 
 boolean KWDataGridOptimizerParameters::GetDisplayDetails() const
@@ -128,6 +143,7 @@ boolean KWDataGridOptimizerParameters::Check() const
 void KWDataGridOptimizerParameters::CopyFrom(const KWDataGridOptimizerParameters* kwdgopSource)
 {
 	sOptimizationAlgorithm = kwdgopSource->sOptimizationAlgorithm;
+	nMaxPartNumber = kwdgopSource->nMaxPartNumber;
 	nOptimizationTime = kwdgopSource->nOptimizationTime;
 	nOptimizationLevel = kwdgopSource->nOptimizationLevel;
 	bUnivariateInitialization = kwdgopSource->bUnivariateInitialization;
@@ -151,6 +167,21 @@ KWDataGridOptimizerParameters* KWDataGridOptimizerParameters::Clone() const
 int KWDataGridOptimizerParameters::GetFreshness() const
 {
 	return nFreshness;
+}
+
+void KWDataGridOptimizerParameters::Write(ostream& ost) const
+{
+	ost << GetClassLabel() << "(";
+	ost << sOptimizationAlgorithm << ", ";
+	ost << nMaxPartNumber << ", ";
+	ost << nOptimizationTime << ", ";
+	ost << nOptimizationLevel << ", ";
+	ost << bUnivariateInitialization << ", ";
+	ost << bPreOptimize << ", ";
+	ost << bOptimize << ", ";
+	ost << bPostOptimize << ", ";
+	ost << sInternalParameter << ", ";
+	ost << bDisplayDetails << ")";
 }
 
 const ALString KWDataGridOptimizerParameters::GetClassLabel() const
@@ -200,6 +231,7 @@ void PLShared_DataGridOptimizerParameters::SerializeObject(PLSerializer* seriali
 	require(serializer->IsOpenForWrite());
 
 	dataGridOptimizerParameters = cast(KWDataGridOptimizerParameters*, o);
+	serializer->PutInt(dataGridOptimizerParameters->GetMaxPartNumber());
 	serializer->PutString(dataGridOptimizerParameters->GetOptimizationAlgorithm());
 	serializer->PutInt(dataGridOptimizerParameters->GetOptimizationTime());
 	serializer->PutInt(dataGridOptimizerParameters->GetOptimizationLevel());
@@ -217,6 +249,7 @@ void PLShared_DataGridOptimizerParameters::DeserializeObject(PLSerializer* seria
 	require(serializer->IsOpenForRead());
 
 	dataGridOptimizerParameters = cast(KWDataGridOptimizerParameters*, o);
+	dataGridOptimizerParameters->SetMaxPartNumber(serializer->GetInt());
 	dataGridOptimizerParameters->SetOptimizationAlgorithm(serializer->GetString());
 	dataGridOptimizerParameters->SetOptimizationTime(serializer->GetInt());
 	dataGridOptimizerParameters->SetOptimizationLevel(serializer->GetInt());

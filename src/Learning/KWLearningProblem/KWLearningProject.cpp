@@ -142,9 +142,8 @@ void KWLearningProject::StartMaster(int argc, char** argv)
 	UIQuestionCard quitCard;
 	boolean bContinue;
 	ALString sTmpDirFromEnv;
-	CommandLineOption* optionLicenceInfo;
-	CommandLineOption* optionLicenceUpdate;
 	CommandLineOption* optionGetVersion;
+	CommandLineOption* optionStatus;
 
 	require(PLParallelTask::IsMasterProcess());
 
@@ -160,36 +159,7 @@ void KWLearningProject::StartMaster(int argc, char** argv)
 	// Ajout d'options a l'interface
 	UIObject::GetCommandLineOptions()->SetCommandName(GetLearningCommandName());
 
-	if (LMLicenseManager::IsEnabled())
-	{
-		optionLicenceInfo = new CommandLineOption;
-		optionLicenceInfo->SetFlag('l');
-		optionLicenceInfo->AddDescriptionLine(
-		    "print information to get a license: Computer name, Machine ID and remaining days");
-		optionLicenceInfo->AddDescriptionLine(
-		    "exit with code 0 if khiops finds an active license (code 1 otherwise)");
-		optionLicenceInfo->SetSingle(true);
-		optionLicenceInfo->SetFinal(true);
-		optionLicenceInfo->SetGroup(1);
-		optionLicenceInfo->SetMethod(ShowLicenseInfo);
-		UIObject::GetCommandLineOptions()->AddOption(optionLicenceInfo);
-	}
-
-	if (LMLicenseManager::IsEnabled())
-	{
-		optionLicenceUpdate = new CommandLineOption;
-		optionLicenceUpdate->SetFlag('u');
-		optionLicenceUpdate->AddDescriptionLine("update license");
-		optionLicenceUpdate->AddDescriptionLine(
-		    "exit with code 0 if the license is successfully updated (code 1 otherwise)");
-		optionLicenceUpdate->SetGroup(1);
-		optionLicenceUpdate->SetFinal(true);
-		optionLicenceUpdate->SetMethod(UpdateLicense);
-		optionLicenceUpdate->SetParameterRequired(true);
-		optionLicenceUpdate->SetParameterDescription(CommandLineOption::sParameterFile);
-		UIObject::GetCommandLineOptions()->AddOption(optionLicenceUpdate);
-	}
-
+	// Option pour obtenir la version
 	optionGetVersion = new CommandLineOption;
 	optionGetVersion->SetFlag('v');
 	optionGetVersion->AddDescriptionLine("print version");
@@ -199,6 +169,15 @@ void KWLearningProject::StartMaster(int argc, char** argv)
 	optionGetVersion->SetSingle(true);
 	UIObject::GetCommandLineOptions()->AddOption(optionGetVersion);
 
+	optionStatus = new CommandLineOption;
+	optionStatus->SetFlag('s');
+	optionStatus->AddDescriptionLine("print system information");
+	optionStatus->SetGroup(1);
+	optionStatus->SetFinal(true);
+	optionStatus->SetMethod(ShowSystemInformation);
+	optionStatus->SetSingle(true);
+	UIObject::GetCommandLineOptions()->AddOption(optionStatus);
+
 	// Analyse de la ligne de commande
 	UIObject::ParseMainParameters(argc, argv);
 
@@ -206,19 +185,9 @@ void KWLearningProject::StartMaster(int argc, char** argv)
 	if (not UIObject::IsBatchMode())
 		cout << GetLearningShellBanner() << endl;
 
-	// Affichage du start des licences
-	if (LMLicenseManager::IsEnabled())
-		LMLicenseManager::ShowLicenseStatus();
-
 	// Parametrage du repertoire temporaire via les variables d'environnement
 	// (la valeur du repertoire temporaire peut etre modifiee par l'IHM)
 	sTmpDirFromEnv = p_getenv("KHIOPS_TMP_DIR");
-	if (sTmpDirFromEnv == "")
-	{
-		sTmpDirFromEnv = p_getenv("KhiopsTmpDir"); // DEPRECATED
-		if (sTmpDirFromEnv != "")
-			AddWarning("'KhiopsTmpDir' is deprecated and is now replaced by 'KHIOPS_TMP_DIR'");
-	}
 	if (sTmpDirFromEnv != "")
 		FileService::SetUserTmpDir(sTmpDirFromEnv);
 
@@ -271,12 +240,6 @@ void KWLearningProject::OpenLearningEnvironnement()
 	KWSTDatabaseTextFile defaultDatabaseTechnology;
 	KWMTDatabaseTextFile multiTableDatabaseTechnology;
 
-	// Initialisation de la gestion des licences
-	// Fonctionnalites de Modeling et de Scoring
-	if (LMLicenseManager::IsEnabled())
-		if (GetProcessId() == 0)
-			LMLicenseManager::Initialize();
-
 	// Parametrage du nom du module applicatif
 	SetLearningModuleName("");
 
@@ -289,10 +252,7 @@ void KWLearningProject::OpenLearningEnvironnement()
 	// Enregistrement des technologies de bases de donnees
 	KWDatabase::RegisterDatabaseTechnology(new KWSTDatabaseTextFile);
 	KWDatabase::RegisterDatabaseTechnology(new KWMTDatabaseTextFile);
-	if (GetLearningMultiTableMode())
-		KWDatabase::SetDefaultTechnologyName(multiTableDatabaseTechnology.GetTechnologyName());
-	else
-		KWDatabase::SetDefaultTechnologyName(defaultDatabaseTechnology.GetTechnologyName());
+	KWDatabase::SetDefaultTechnologyName(multiTableDatabaseTechnology.GetTechnologyName());
 
 	// Enregistrement des vues sur les technologies de bases de donnees (uniquement pour le maitre)
 	KWDatabaseView::RegisterDatabaseTechnologyView(new KWSTDatabaseTextFileView);
@@ -310,32 +270,31 @@ void KWLearningProject::OpenLearningEnvironnement()
 	KWDRRegisterNBPredictorRules();
 	KIDRRegisterAllRules();
 
-	// Enregistrement des methodes de pretraitement
-	KWDiscretizer::RegisterDiscretizer(new KWDiscretizerMODL);
-	KWDiscretizer::RegisterDiscretizer(new KWDiscretizerEqualWidth);
-	KWDiscretizer::RegisterDiscretizer(new KWDiscretizerEqualFrequency);
-	KWDiscretizer::RegisterDiscretizer(new KWDiscretizerMODLEqualWidth);
-	KWDiscretizer::RegisterDiscretizer(new KWDiscretizerMODLEqualFrequency);
-	KWGrouper::RegisterGrouper(new KWGrouperMODL);
-	KWGrouper::RegisterGrouper(new KWGrouperBasicGrouping);
-	KWGrouper::RegisterGrouper(new KWGrouperMODLBasic);
+	// Enregistrement des methodes de pretraitement supervisees et non supervisees
+	KWDiscretizer::RegisterDiscretizer(KWType::Symbol, new KWDiscretizerMODL);
+	KWDiscretizer::RegisterDiscretizer(KWType::Symbol, new KWDiscretizerEqualWidth);
+	KWDiscretizer::RegisterDiscretizer(KWType::Symbol, new KWDiscretizerEqualFrequency);
+	KWDiscretizer::RegisterDiscretizer(KWType::Symbol, new KWDiscretizerMODLEqualWidth);
+	KWDiscretizer::RegisterDiscretizer(KWType::Symbol, new KWDiscretizerMODLEqualFrequency);
+	KWDiscretizer::RegisterDiscretizer(KWType::None, new MHDiscretizerTruncationMODLHistogram);
+	KWDiscretizer::RegisterDiscretizer(KWType::None, new KWDiscretizerEqualWidth);
+	KWDiscretizer::RegisterDiscretizer(KWType::None, new KWDiscretizerEqualFrequency);
+	KWGrouper::RegisterGrouper(KWType::Symbol, new KWGrouperMODL);
+	KWGrouper::RegisterGrouper(KWType::Symbol, new KWGrouperBasicGrouping);
+	KWGrouper::RegisterGrouper(KWType::Symbol, new KWGrouperMODLBasic);
+	KWGrouper::RegisterGrouper(KWType::None, new KWGrouperBasicGrouping);
+	KWGrouper::RegisterGrouper(KWType::None, new KWGrouperUnsupervisedMODL);
 
 	// Enregistrement de predicteurs
 	KWPredictor::RegisterPredictor(new KWPredictorBaseline);
 	KWPredictor::RegisterPredictor(new KWPredictorUnivariate);
 	KWPredictor::RegisterPredictor(new KWPredictorBivariate);
 	KWPredictor::RegisterPredictor(new KWPredictorNaiveBayes);
-	if (GetForceSNBV9ExpertMode())
-		KWPredictor::RegisterPredictor(new KWPredictorSelectiveNaiveBayes);
-	else
-		KWPredictor::RegisterPredictor(new SNBPredictorSelectiveNaiveBayes);
+	KWPredictor::RegisterPredictor(new SNBPredictorSelectiveNaiveBayes);
 	KWPredictor::RegisterPredictor(new KWPredictorDataGrid);
 
 	// Enregistrement de vues sur les predicteurs (uniquement pour le maitre)
-	if (GetForceSNBV9ExpertMode())
-		KWPredictorView::RegisterPredictorView(new KWPredictorSelectiveNaiveBayesView);
-	else
-		KWPredictorView::RegisterPredictorView(new SNBPredictorSelectiveNaiveBayesView);
+	KWPredictorView::RegisterPredictorView(new SNBPredictorSelectiveNaiveBayesView);
 	KWPredictorView::RegisterPredictorView(new KWPredictorDataGridView);
 
 	////////////////////////////////////////////////////////////////
@@ -367,23 +326,17 @@ void KWLearningProject::OpenLearningEnvironnement()
 	PLParallelTask::RegisterTask(new KWRegressorEvaluationTask);
 	PLParallelTask::RegisterTask(new KWClassifierUnivariateEvaluationTask);
 	PLParallelTask::RegisterTask(new KWRegressorUnivariateEvaluationTask);
-	if (not GetForceSNBV9ExpertMode())
-	{
-		PLParallelTask::RegisterTask(new SNBPredictorSNBDirectTrainingTask);
-		PLParallelTask::RegisterTask(new SNBPredictorSNBEnsembleTrainingTask);
-	}
+	PLParallelTask::RegisterTask(new SNBPredictorSNBDirectTrainingTask);
+	PLParallelTask::RegisterTask(new SNBPredictorSNBEnsembleTrainingTask);
 	PLParallelTask::RegisterTask(new KDSelectionOperandSamplingTask);
 	PLParallelTask::RegisterTask(new DTDecisionTreeCreationTask);
+	PLParallelTask::RegisterTask(new KDTextTokenSampleCollectionTask);
 }
 
 void KWLearningProject::CloseLearningEnvironnement()
 {
 	// Arret des esclaves
 	PLParallelTask::GetDriver()->StopSlaves();
-
-	// Terminaison de la gestion des licences
-	if (LMLicenseManager::IsEnabled())
-		LMLicenseManager::Close();
 
 	// Nettoyage de l'administration des classifieurs
 	KWPredictorView::DeleteAllPredictorViews();
@@ -430,33 +383,37 @@ UIObjectView* KWLearningProject::CreateGenericLearningProblemView()
 	return CreateLearningProblemView();
 }
 
-boolean KWLearningProject::ShowLicenseInfo(const ALString& sParam)
-{
-	int nRemainingDays;
-
-	nRemainingDays = LMLicenseManager::GetRemainingDays();
-	cout << "License information:" << endl;
-	cout << "Computer name"
-	     << "\t" << LMLicenseService::GetComputerName() << endl;
-	cout << "Machine ID    "
-	     << "\t" << LMLicenseService::GetMachineID() << endl;
-	cout << "Remaining days"
-	     << "\t" << nRemainingDays << endl;
-	cout << "To obtain or renew your license, go to www.khiops.com" << endl;
-
-	return nRemainingDays != 0;
-}
-
-boolean KWLearningProject::UpdateLicense(const ALString& sFileName)
-{
-	return LMLicenseManager::UpdateLicenseFromFile(sFileName);
-}
-
-boolean KWLearningProject::ShowVersion(const ALString&)
+boolean KWLearningProject::ShowVersion(const ALString& sValue)
 {
 	cout << GetLearningApplicationName() << " ";
 	if (GetLearningModuleName() != "")
 		cout << GetLearningModuleName() << " ";
 	cout << GetLearningVersion() << endl;
+	return true;
+}
+
+boolean KWLearningProject::ShowSystemInformation(const ALString& sValue)
+{
+	int i;
+	const SystemFileDriver* fileDriver;
+	ALString sTmp;
+
+	// Version
+	ShowVersion(sTmp);
+
+	// Drivers
+	for (i = 0; i < SystemFileDriverCreator::GetExternalDriverNumber(); i++)
+	{
+		fileDriver = SystemFileDriverCreator::GetRegisteredDriverAt(i);
+		cout << " \tDriver '" << fileDriver->GetDriverName() << "' for URI scheme '" << fileDriver->GetScheme()
+		     << "'" << endl;
+	}
+
+	// Resources
+	cout << *RMResourceManager::GetResourceSystem();
+
+	// System
+	cout << "System\n";
+	cout << GetSystemInfos();
 	return true;
 }

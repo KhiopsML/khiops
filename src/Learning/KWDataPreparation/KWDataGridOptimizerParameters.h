@@ -20,6 +20,12 @@ public:
 	KWDataGridOptimizerParameters();
 	~KWDataGridOptimizerParameters();
 
+	// Nombre maximum de parties (defaut: 0)
+	// Permet de specifier une contrainte d'interpretabilite des resultats de pretraitement
+	// Ce parametre est determine automatiquement par l'algorithme s'il vaut 0
+	int GetMaxPartNumber() const;
+	void SetMaxPartNumber(int nValue);
+
 	// Optimization algorithm: None, Greedy, MultiStart, ou VNS (default)
 	const ALString& GetOptimizationAlgorithm() const;
 	void SetOptimizationAlgorithm(const ALString& sValue);
@@ -41,15 +47,15 @@ public:
 	boolean GetUnivariateInitialization() const;
 	void SetUnivariateInitialization(boolean bValue);
 
-	// Pre-optimize each solution
+	// Pre-optimise chaque solution
 	boolean GetPreOptimize() const;
 	void SetPreOptimize(boolean bValue);
 
-	// Optimize each solution
+	// Optimise chaque solution
 	boolean GetOptimize() const;
 	void SetOptimize(boolean bValue);
 
-	// Post-optimize each solution
+	// Post-optimise chaque solution
 	boolean GetPostOptimize() const;
 	void SetPostOptimize(boolean bValue);
 
@@ -76,6 +82,9 @@ public:
 	// Fraicheur de l'objet, incrementee a chaque modification
 	int GetFreshness() const;
 
+	// Affichage, ecriture dans un fichier
+	void Write(ostream& ost) const override;
+
 	// Libelles utilisateur
 	const ALString GetClassLabel() const override;
 	const ALString GetObjectLabel() const override;
@@ -85,6 +94,7 @@ public:
 protected:
 	// Attributs de la classe
 	ALString sOptimizationAlgorithm;
+	int nMaxPartNumber;
 	int nOptimizationTime;
 	int nOptimizationLevel;
 	boolean bUnivariateInitialization;

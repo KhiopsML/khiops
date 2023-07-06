@@ -230,13 +230,13 @@ int SNBHardAttributeSelection::GetAttributeNumber() const
 void SNBHardAttributeSelection::AddAttribute(SNBDataTableBinarySliceSetAttribute* attribute)
 {
 	require(not Contains(attribute));
-	nkdAttributeSelectionSet.SetAt((NUMERIC)attribute, attribute);
+	nkdAttributeSelectionSet.SetAt(attribute, attribute);
 }
 
 void SNBHardAttributeSelection::RemoveAttribute(SNBDataTableBinarySliceSetAttribute* attribute)
 {
 	require(Contains(attribute));
-	nkdAttributeSelectionSet.RemoveKey((NUMERIC)attribute);
+	nkdAttributeSelectionSet.RemoveKey(attribute);
 }
 
 void SNBHardAttributeSelection::RemoveAllAttributes()
@@ -246,7 +246,7 @@ void SNBHardAttributeSelection::RemoveAllAttributes()
 
 boolean SNBHardAttributeSelection::Contains(SNBDataTableBinarySliceSetAttribute* attribute) const
 {
-	return nkdAttributeSelectionSet.Lookup((NUMERIC)attribute) != NULL;
+	return nkdAttributeSelectionSet.Lookup(attribute) != NULL;
 }
 
 SNBHardAttributeSelection* SNBHardAttributeSelection::Clone() const
@@ -609,14 +609,14 @@ double SNBWeightedAttributeSelection::IncreaseAttributeWeight(SNBDataTableBinary
 	{
 		doWeight = new DoubleObject;
 		doWeight->SetDouble(dDeltaWeight);
-		nkdAttributeWeights.SetAt((NUMERIC)attribute, doWeight);
+		nkdAttributeWeights.SetAt(attribute, doWeight);
 		dOldWeight = 0.0;
 		dNewWeight = dDeltaWeight;
 	}
 	// Sinon : Mise a jour du poids
 	else
 	{
-		doWeight = cast(DoubleObject*, nkdAttributeWeights.Lookup((NUMERIC)attribute));
+		doWeight = cast(DoubleObject*, nkdAttributeWeights.Lookup(attribute));
 		dOldWeight = doWeight->GetDouble();
 		dNewWeight = dOldWeight + dDeltaWeight;
 	}
@@ -652,14 +652,14 @@ double SNBWeightedAttributeSelection::DecreaseAttributeWeight(SNBDataTableBinary
 	require(dDeltaWeight >= 0.0);
 
 	// Recuperation du poids ancien et calcul du nouveau
-	doWeight = cast(DoubleObject*, nkdAttributeWeights.Lookup((NUMERIC)attribute));
+	doWeight = cast(DoubleObject*, nkdAttributeWeights.Lookup(attribute));
 	dOldWeight = doWeight->GetDouble();
 	dNewWeight = dOldWeight - dDeltaWeight;
 
 	// Si le poids est negatif: Elimination de l'attribut de la selection
 	if (dNewWeight <= 0.0)
 	{
-		nkdAttributeWeights.RemoveKey((NUMERIC)attribute);
+		nkdAttributeWeights.RemoveKey(attribute);
 		delete doWeight;
 		doWeight = NULL;
 		dEffectiveDeltaWeight = dOldWeight;
@@ -680,7 +680,7 @@ double SNBWeightedAttributeSelection::DecreaseAttributeWeight(SNBDataTableBinary
 
 boolean SNBWeightedAttributeSelection::Contains(SNBDataTableBinarySliceSetAttribute* attribute) const
 {
-	return nkdAttributeWeights.Lookup((NUMERIC)attribute) != NULL;
+	return nkdAttributeWeights.Lookup(attribute) != NULL;
 }
 
 double SNBWeightedAttributeSelection::GetAttributeWeightAt(SNBDataTableBinarySliceSetAttribute* attribute) const
@@ -692,7 +692,7 @@ double SNBWeightedAttributeSelection::GetAttributeWeightAt(SNBDataTableBinarySli
 
 	if (Contains(attribute))
 	{
-		doWeight = cast(DoubleObject*, nkdAttributeWeights.Lookup((NUMERIC)attribute));
+		doWeight = cast(DoubleObject*, nkdAttributeWeights.Lookup(attribute));
 		dWeight = doWeight->GetDouble();
 	}
 	else
@@ -725,7 +725,7 @@ boolean SNBWeightedAttributeSelection::Check() const
 	while (position != NULL)
 	{
 		nkdAttributeWeights.GetNextAssoc(position, key, oValue);
-		attribute = (SNBDataTableBinarySliceSetAttribute*)key;
+		attribute = cast(SNBDataTableBinarySliceSetAttribute*, (Object*)key.ToPointer());
 		doWeight = cast(DoubleObject*, oValue);
 		bOk = bOk and attribute != NULL;
 		bOk = bOk and doWeight != NULL;
@@ -749,7 +749,7 @@ SNBWeightedAttributeSelection* SNBWeightedAttributeSelection::Clone() const
 	while (position != NULL)
 	{
 		nkdAttributeWeights.GetNextAssoc(position, key, oValue);
-		attribute = (SNBDataTableBinarySliceSetAttribute*)key;
+		attribute = cast(SNBDataTableBinarySliceSetAttribute*, (Object*)key.ToPointer());
 		doWeight = cast(DoubleObject*, oValue);
 		cloneWeightedAttributeSelection->IncreaseAttributeWeight(attribute, doWeight->GetDouble());
 	}
@@ -773,7 +773,7 @@ ObjectArray* SNBWeightedAttributeSelection::CollectSelectedAttributes() const
 	while (position != NULL)
 	{
 		nkdAttributeWeights.GetNextAssoc(position, key, oValue);
-		attribute = (SNBDataTableBinarySliceSetAttribute*)key;
+		attribute = cast(SNBDataTableBinarySliceSetAttribute*, (Object*)key.ToPointer());
 		oaSelectedAttributes->SetAt(nAttribute, attribute);
 		nAttribute++;
 	}
@@ -798,11 +798,11 @@ void SNBWeightedAttributeSelection::Write(ostream& ost) const
 		// Tri par nom les attributs (cles) dans un tableau
 		position = nkdAttributeWeights.GetStartPosition();
 		nkdAttributeWeights.GetNextAssoc(position, key, oValue);
-		oaAttributes.Add((Object*)key);
+		oaAttributes.Add((Object*)key.ToPointer());
 		while (position != NULL)
 		{
 			nkdAttributeWeights.GetNextAssoc(position, key, oValue);
-			oaAttributes.Add((Object*)key);
+			oaAttributes.Add((Object*)key.ToPointer());
 		}
 		oaAttributes.SetCompareFunction(SNBDataTableBinarySliceSetAttributeCompareNativeAttributeName);
 		oaAttributes.Sort();

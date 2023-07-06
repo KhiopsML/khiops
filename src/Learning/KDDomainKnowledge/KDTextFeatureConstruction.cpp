@@ -9,20 +9,22 @@
 
 KDTextFeatureConstruction::KDTextFeatureConstruction()
 {
-	bInterpretableMode = false;
+	sTextFeatures = "ngrams";
 	nAttributeNameIndex = 0;
 }
 
 KDTextFeatureConstruction::~KDTextFeatureConstruction() {}
 
-void KDTextFeatureConstruction::SetInterpretableMode(boolean bValue)
+void KDTextFeatureConstruction::SetTextFeatures(const ALString& sValue)
 {
-	bInterpretableMode = bValue;
+	require(KWTextTokenizer::CheckTextFeatures(sValue));
+	sTextFeatures = sValue;
 }
 
-boolean KDTextFeatureConstruction::GetInterpretableMode() const
+const ALString& KDTextFeatureConstruction::GetTextFeatures() const
 {
-	return bInterpretableMode;
+	ensure(KWTextTokenizer::CheckTextFeatures(sTextFeatures));
+	return sTextFeatures;
 }
 
 boolean KDTextFeatureConstruction::ContainsTextAttributes(const KWClass* kwcClass) const
@@ -39,12 +41,19 @@ boolean KDTextFeatureConstruction::ConstructTextFeatures(KWClass* kwcClass, int 
 	boolean bDisplay = false;
 	ObjectDictionary odTextClasses;
 	KDClassCompliantRules mainClassCompliantRules;
+	int nConstructedVariableNumber;
+	Timer timerConstruction;
+	ALString sTmp;
 
 	require(kwcClass != NULL);
 	require(kwcClass->IsCompiled());
 	require(nFeatureNumber >= 0);
 	require(odConstructedAttributes != NULL);
 	require(odConstructedAttributes->GetCount() == 0);
+
+	// Demarrage du timer
+	timerConstruction.Reset();
+	timerConstruction.Start();
 
 	// Collecte de tous les attributs derives existants
 	// On utilise l'objet mainClassCompliantRules uniquement pour ses service des gestion des attributs derives
@@ -69,9 +78,8 @@ boolean KDTextFeatureConstruction::ConstructTextFeatures(KWClass* kwcClass, int 
 	// Calcul des nombres de variables construites pour les chemins d'acces aux attribut de type Text d'une classe
 	ComputeTextClassConstructedFeatureNumbers(kwcClass, &odTextClasses, nFeatureNumber);
 
-	// Collecte des tokens en mode interpretable
-	if (GetInterpretableMode())
-		bOk = ExtractTokenSamples(kwcClass, &odTextClasses);
+	// Collecte des tokens
+	bOk = ExtractTokenSamples(kwcClass, &odTextClasses);
 
 	// Creation des blocks de variables de type texte selon les specifications par chemin d'attributs de la classe
 	// principale
@@ -89,6 +97,46 @@ boolean KDTextFeatureConstruction::ConstructTextFeatures(KWClass* kwcClass, int 
 	// Nettoyage
 	odTextClasses.DeleteAll();
 	mainClassCompliantRules.CleanCollectedConstructedAttributesAndBlocks();
+
+	// Message de fin
+	timerConstruction.Stop();
+	if (TaskProgression::IsInterruptionRequested())
+	{
+		AddSimpleMessage(sTmp + "Text feature construction interrupted after " +
+				 SecondsToString(timerConstruction.GetElapsedTime()));
+	}
+	else if (bOk)
+	{
+		nConstructedVariableNumber = kwcClass->ComputeInitialAttributeNumber(GetTargetAttributeName() != "") -
+					     GetLearningSpec()->GetInitialAttributeNumber();
+
+		// Cas ou on construit toutes les variables demandees
+		if (nConstructedVariableNumber == nFeatureNumber)
+		{
+			assert(nConstructedVariableNumber >= 0);
+			AddSimpleMessage(sTmp + "Text feature construction time: " +
+					 SecondsToString(timerConstruction.GetElapsedTime()) + " (" +
+					 IntToString(nConstructedVariableNumber) + " " + GetTextFeatures() + ")");
+		}
+		// Cas ou il n'y a pas assez de tokens dan pour construire toutes les variables demandees: message
+		// informatif
+		//  - ce cas peu arriver avec un seul texte n'ayant pas assez de tokens: on a fait le maximum
+		//  - dans le cas de plusieurs textes, il se peut qu'un des textes soit "sature",  au maximum de ses
+		//  tokens presents
+		//     - on aurait pu genere d'avantage de variables pour les textes non satures
+		//     - traitement non retenu pour les raison suivantes:
+		//        - complexe a traiter, car plusieurs passes sont potentiellement necessaires
+		//        - potentiellement non scalable, car il faudrait demander a priori a collecter un grand nombre
+		//        de tokens
+		//          sur tous les textes pour etre sur d'en avoir assez
+		//        - le cas de plusieurs textes, dont certains sont satures est a priori rare
+		else
+			AddSimpleMessage(sTmp + "Text feature construction time: " +
+					 SecondsToString(timerConstruction.GetElapsedTime()) + " (" +
+					 IntToString(nConstructedVariableNumber) + " " + GetTextFeatures() +
+					 ", out of " + IntToString(nFeatureNumber) + " planned)");
+	}
+
 	ensure(odConstructedAttributes->GetCount() <= nFeatureNumber);
 	return bOk;
 }
@@ -104,11 +152,11 @@ boolean KDTextFeatureConstruction::InternalContainsTextAttributes(const KWClass*
 	require(nkdExploredClasses != NULL);
 
 	// Arret de l'exploration si classe deja prise en compte
-	if (nkdExploredClasses->Lookup((NUMERIC)kwcClass) != NULL)
+	if (nkdExploredClasses->Lookup(kwcClass) != NULL)
 		return false;
 	// Sinon, enregistrement de la classe
 	else
-		nkdExploredClasses->SetAt((NUMERIC)kwcClass, cast(Object*, kwcClass));
+		nkdExploredClasses->SetAt(kwcClass, cast(Object*, kwcClass));
 
 	// Parcours des attributs utilise pour detecter recursivement ceux de type Text
 	for (i = 0; i < kwcClass->GetUsedAttributeNumber(); i++)
@@ -451,7 +499,6 @@ boolean KDTextFeatureConstruction::ExtractTokenSamples(const KWClass* kwcClass,
 	KWClassDomain* tokenExtractionDomain;
 	KWClass* tokenExtractionClass;
 
-	require(GetInterpretableMode());
 	require(kwcClass != NULL);
 	require(odTextClasses != NULL);
 	require(odTextClasses->Lookup(kwcClass->GetName()) != NULL);
@@ -488,7 +535,6 @@ boolean KDTextFeatureConstruction::TaskCollectTokenSamples(const KWClass* tokenE
 	ObjectArray oaCollectedTokenSamples;
 	KDTextTokenSampleCollectionTask tokenSampleCollectionTask;
 
-	require(GetInterpretableMode());
 	require(tokenExtractionClass != NULL);
 	require(tokenExtractionClass->GetUsedAttributeNumber() > 0);
 	require(tokenExtractionClass->GetUsedAttributeNumber() ==
@@ -522,6 +568,7 @@ boolean KDTextFeatureConstruction::TaskCollectTokenSamples(const KWClass* tokenE
 
 	// Lancement de la tache
 	tokenSampleCollectionTask.SetReusableDatabaseIndexer(GetLearningSpec()->GetDatabaseIndexer());
+	tokenSampleCollectionTask.SetTextFeatures(GetTextFeatures());
 	bOk = tokenSampleCollectionTask.CollectTokenSamples(GetDatabase(), &ivTokenNumbers, &oaCollectedTokenSamples);
 
 	return bOk;
@@ -540,10 +587,9 @@ KWClassDomain* KDTextFeatureConstruction::BuildTokenExtractionDomainWithExisting
 	int nUsefullPathNumber;
 	KDTextAttributePath* textAttributePath;
 	KWAttribute* textAttribute;
-	KWDRTextTokens* textVariableBlockRule;
+	KWDRTokenizationRule* textVariableBlockRule;
 	KWAttributeBlock* attributeBlock;
 
-	require(GetInterpretableMode());
 	require(kwcClass != NULL);
 	require(odTextClasses != NULL);
 	require(odTextClasses->Lookup(kwcClass->GetName()) != NULL);
@@ -595,11 +641,10 @@ KWClassDomain* KDTextFeatureConstruction::BuildTokenExtractionDomainWithExisting
 			textAttribute->SetUsed(true);
 			textAttribute->SetLoaded(true);
 
-			// Creation de la regle de derivation, selon le type de l'attribut a analyser
-			if (textAttribute->GetType() == KWType::Text)
-				textVariableBlockRule = new KWDRTextTokens;
-			else
-				textVariableBlockRule = new KWDRTextListTokens;
+			// Creation de la regle de derivation, selon le type de l'attribut a analyser et selon le type
+			// de tokens
+			textVariableBlockRule =
+			    KWDRTokenizationRule::CreateTokenizationRule(textAttribute->GetType(), GetTextFeatures());
 			textVariableBlockRule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
 			textVariableBlockRule->GetFirstOperand()->SetAttributeName(textAttribute->GetName());
 			textVariableBlockRule->CompleteTypeInfo(tokenExtractionClass);
@@ -624,7 +669,10 @@ KWClassDomain* KDTextFeatureConstruction::BuildTokenExtractionDomainWithExisting
 			if (bDisplay)
 			{
 				if (nPath == 0)
+				{
+					cout << "BuildTokenExtractionDomainWithExistingTokenNumbers\n";
 					cout << "\tFeature number\tExisting tokens\tText variable path\n";
+				}
 				cout << "\t" << textAttributePath->GetConstructedFeatureNumber() << "\t"
 				     << textAttributePath->GetExistingTokenNumber() << "\t"
 				     << textAttributePath->GetObjectLabel() << "\n";
@@ -632,7 +680,7 @@ KWClassDomain* KDTextFeatureConstruction::BuildTokenExtractionDomainWithExisting
 		}
 	}
 
-	// Nettoyage de l'objet de colelcte des attribut et blocs existants
+	// Nettoyage de l'objet de collecte des attributs et blocs existants
 	extractionClassCompliantRules.CleanCollectedConstructedAttributesAndBlocks();
 
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -709,9 +757,8 @@ void KDTextFeatureConstruction::ConstructAllTextAttributeBlocks(KDClassCompliant
 
 		// Generation d'attributs uniquement si necessaire
 		bIsFeatrureConstructionNecessary = textAttributePath->GetConstructedFeatureNumber() > 0;
-		if (GetInterpretableMode())
-			bIsFeatrureConstructionNecessary =
-			    bIsFeatrureConstructionNecessary and textAttributePath->GetTokens()->GetSize() > 0;
+		bIsFeatrureConstructionNecessary =
+		    bIsFeatrureConstructionNecessary and textAttributePath->GetTokens()->GetSize() > 0;
 		if (bIsFeatrureConstructionNecessary)
 		{
 			// Generation et memorisation des attributs d'acces au texte si necessaire
@@ -728,18 +775,12 @@ void KDTextFeatureConstruction::ConstructAllTextAttributeBlocks(KDClassCompliant
 			check(textAttribute);
 			assert(KWType::IsTextBased(textAttribute->GetType()));
 
-			// Construction d'un bloc de variables pour un attribut de type Text, selon le mode
-			if (not GetInterpretableMode())
-				ConstructTextAttributeNgramBlock(
-				    classCompliantRules, kwcClass, textAttribute,
-				    GetLearningSpec()->GetSelectionCost() + textAttributePath->GetCost(),
-				    textAttributePath->GetConstructedFeatureNumber(), odConstructedAttributes);
-			else
-				ConstructTextAttributeTokenBlock(
-				    classCompliantRules, kwcClass, textAttribute,
-				    GetLearningSpec()->GetSelectionCost() + textAttributePath->GetCost(),
-				    textAttributePath->GetConstructedFeatureNumber(), textAttributePath->GetTokens(),
-				    odConstructedAttributes);
+			// Construction d'un bloc de variables pour un attribut de type Text, selon le type de features
+			ConstructTextAttributeTokenBlock(classCompliantRules, kwcClass, textAttribute,
+							 GetLearningSpec()->GetSelectionCost() +
+							     textAttributePath->GetCost(),
+							 textAttributePath->GetConstructedFeatureNumber(),
+							 textAttributePath->GetTokens(), odConstructedAttributes);
 		}
 	}
 }
@@ -831,158 +872,24 @@ KWAttribute* KDTextFeatureConstruction::ConstructPathAttribute(KDClassCompliantR
 	return mainTextAttribute;
 }
 
-void KDTextFeatureConstruction::ConstructTextAttributeNgramBlock(KDClassCompliantRules* classCompliantRules,
-								 KWClass* kwcClass, const KWAttribute* textAttribute,
-								 double dTextConstructionCost,
-								 int nBlockAttributeNUmber,
-								 ObjectDictionary* odConstructedAttributes) const
-{
-	KWDRTextAllNGrams* textVariableBlockRule;
-	KWAttributeBlock* attributeBlock;
-	KWAttribute* attribute;
-	KWIndexedNKeyBlock* existingAttributesIndexKeyBlock;
-	int nVarKey;
-	int nAttribute;
-	int nIndex;
-	int nAttributeIndex;
-	int nHashTableSize;
-	int nNGramLength;
-	double dCost;
-
-	require(not GetInterpretableMode());
-	require(classCompliantRules != NULL);
-	require(kwcClass != NULL);
-	require(classCompliantRules->GetClass() == kwcClass);
-	require(textAttribute != NULL);
-	require(KWType::IsTextBased(textAttribute->GetType()));
-	require(kwcClass->LookupAttribute(textAttribute->GetName()) == textAttribute);
-	require(dTextConstructionCost >= 0);
-	require(nBlockAttributeNUmber > 0);
-	require(odConstructedAttributes != NULL);
-
-	// Creation de la regle de derivation, selon le type de l'attribute a analyser
-	if (textAttribute->GetType() == KWType::Text)
-		textVariableBlockRule = new KWDRTextAllNGrams;
-	else
-		textVariableBlockRule = new KWDRTextListAllNGrams;
-	textVariableBlockRule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
-	textVariableBlockRule->GetFirstOperand()->SetAttributeName(textAttribute->GetName());
-	textVariableBlockRule->CompleteTypeInfo(kwcClass);
-
-	// Recherche du bloc d'attribut parmi les blocs initiaux
-	existingAttributesIndexKeyBlock = NULL;
-	attributeBlock =
-	    cast(KWAttributeBlock*, classCompliantRules->LookupDerivedAttributeBlock(textVariableBlockRule));
-	if (attributeBlock != NULL)
-	{
-		assert(kwcClass == attributeBlock->GetParentClass());
-
-		// Indexation des attributs existants
-		existingAttributesIndexKeyBlock =
-		    cast(KWIndexedNKeyBlock*, attributeBlock->BuildAttributesIndexedKeyBlock());
-
-		// Destruction de la regle de bloc ayant servi a le retrouver
-		delete textVariableBlockRule;
-		textVariableBlockRule = NULL;
-	}
-
-	// Creation des variables du bloc en parcourant les tables de hashages de la regle KWDRMultipleCharNGramCounts
-	// Jusqu'a obtenir le nombre desire de variables
-	nAttribute = 0;
-	nVarKey = 0;
-	for (nIndex = 0; nIndex < KWDRTextAllNGrams::GetMaxHashTableNumber(); nIndex++)
-	{
-		nHashTableSize = KWDRTextAllNGrams::GetHashTableSizeAt(nIndex);
-		nNGramLength = KWDRTextAllNGrams::GetHashTableNGramLengthAt(nIndex);
-
-		// Arret si VarKey trop grand
-		if (nVarKey > KWDRTextAllNGrams::GetMaxVarKey())
-			break;
-
-		// Parcours de la table de hashage courante
-		for (nAttributeIndex = 0; nAttributeIndex < nHashTableSize; nAttributeIndex++)
-		{
-			nVarKey++;
-
-			// Arret si VarKey trop grand
-			if (nVarKey > KWDRTextAllNGrams::GetMaxVarKey())
-				break;
-
-			// Creation d'un attribut s'il n'est pas existant pour cette VarKey
-			if (existingAttributesIndexKeyBlock == NULL or
-			    not existingAttributesIndexKeyBlock->IsKeyPresent(nVarKey))
-			{
-				nAttribute++;
-
-				// Creation d'un nouvel attribut pour le bloc
-				attribute = new KWAttribute;
-				attribute->SetName(kwcClass->BuildAttributeName(BuildNGramBasedAttributeName(
-				    textAttribute, nNGramLength, nHashTableSize, nAttributeIndex + 1)));
-				attribute->GetMetaData()->SetDoubleValueAt(
-				    KWAttributeBlock::GetAttributeKeyMetaDataKey(), nVarKey);
-				attribute->SetType(KWType::Continuous);
-				attribute->SetUsed(true);
-
-				// Memorisation dans les attributs construits
-				odConstructedAttributes->SetAt(attribute->GetName(), attribute);
-
-				// Mise a jour du cout
-				dCost = dTextConstructionCost + KWStat::NaturalNumbersUniversalCodeLength(nIndex + 1) +
-					log(nHashTableSize);
-				attribute->SetCost(dCost);
-				attribute->SetMetaDataCost(attribute->GetCost());
-
-				// Si bloc existant, insertion de l'attribut en fin de son bloc
-				if (attributeBlock != NULL)
-					kwcClass->InsertAttributeInBlock(attribute, attributeBlock);
-				// Sinon, ajout de l'attribut dans sa classe, et creation du bloc
-				else
-				{
-					assert(textVariableBlockRule != NULL);
-
-					// Ajout dans la classe
-					kwcClass->InsertAttribute(attribute);
-
-					// Creation du bloc dans la classe
-					attributeBlock = kwcClass->CreateAttributeBlock(
-					    kwcClass->BuildAttributeBlockName(
-						BuildNGramBasedAttributeBlockName(textAttribute)),
-					    attribute, attribute);
-					attributeBlock->SetDerivationRule(textVariableBlockRule);
-				}
-			}
-
-			// Arret si assez d'attributs construits
-			if (nAttribute >= nBlockAttributeNUmber)
-				break;
-		}
-		// Arret si assez d'attributs construits
-		if (nAttribute >= nBlockAttributeNUmber)
-			break;
-	}
-
-	// Nettoyage
-	if (existingAttributesIndexKeyBlock != NULL)
-		delete existingAttributesIndexKeyBlock;
-}
-
 void KDTextFeatureConstruction::ConstructTextAttributeTokenBlock(KDClassCompliantRules* classCompliantRules,
 								 KWClass* kwcClass, const KWAttribute* textAttribute,
 								 double dTextConstructionCost,
-								 int nBlockAttributeNUmber, const ObjectArray* oaTokens,
+								 int nBlockAttributeNumber, const ObjectArray* oaTokens,
 								 ObjectDictionary* odConstructedAttributes) const
 {
-	KWDRTextTokens* textVariableBlockRule;
+	boolean bDisplay = false;
+	KWDRTokenizationRule* textVariableBlockRule;
 	KWAttributeBlock* attributeBlock;
 	KWAttribute* attribute;
 	int nAttribute;
 	KWIndexedCKeyBlock* existingAttributesIndexKeyBlock;
-	Symbol sVarKey;
-	KDTokenFrequency* token;
+	ALString sAttributeKey;
+	Symbol sKey;
+	KWTokenFrequency* token;
 	int nToken;
 	double dCost;
 
-	require(GetInterpretableMode());
 	require(classCompliantRules != NULL);
 	require(kwcClass != NULL);
 	require(classCompliantRules->GetClass() == kwcClass);
@@ -990,15 +897,19 @@ void KDTextFeatureConstruction::ConstructTextAttributeTokenBlock(KDClassComplian
 	require(KWType::IsTextBased(textAttribute->GetType()));
 	require(kwcClass->LookupAttribute(textAttribute->GetName()) == textAttribute);
 	require(dTextConstructionCost >= 0);
-	require(nBlockAttributeNUmber > 0);
+	require(nBlockAttributeNumber > 0);
 	require(oaTokens != NULL);
 	require(odConstructedAttributes != NULL);
 
+	// Affichage: entete
+	if (bDisplay)
+		cout << "ConstructTextAttributeTokenBlock\t" << GetTextFeatures() << "\t" << kwcClass->GetName() << "\t"
+		     << textAttribute->GetName() << "\t" << oaTokens->GetSize() << "\t" << nBlockAttributeNumber
+		     << "\n";
+
 	// Creation de la regle de derivation, selon le type de l'attribute a analyser
-	if (textAttribute->GetType() == KWType::Text)
-		textVariableBlockRule = new KWDRTextTokens;
-	else
-		textVariableBlockRule = new KWDRTextListTokens;
+	textVariableBlockRule =
+	    KWDRTokenizationRule::CreateTokenizationRule(textAttribute->GetType(), GetTextFeatures());
 	textVariableBlockRule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
 	textVariableBlockRule->GetFirstOperand()->SetAttributeName(textAttribute->GetName());
 	textVariableBlockRule->CompleteTypeInfo(kwcClass);
@@ -1014,24 +925,20 @@ void KDTextFeatureConstruction::ConstructTextAttributeTokenBlock(KDClassComplian
 		// Indexation des attributs existants
 		existingAttributesIndexKeyBlock =
 		    cast(KWIndexedCKeyBlock*, attributeBlock->BuildAttributesIndexedKeyBlock());
-
-		// Destruction de la regle de bloc ayant servi a le retrouver
-		delete textVariableBlockRule;
-		textVariableBlockRule = NULL;
 	}
 
 	// Creation des variables du bloc en parcourant les tokens
 	nAttribute = 0;
 	for (nToken = 0; nToken < oaTokens->GetSize(); nToken++)
 	{
-		token = cast(KDTokenFrequency*, oaTokens->GetAt(nToken));
+		token = cast(KWTokenFrequency*, oaTokens->GetAt(nToken));
 		assert(nToken == 0 or
-		       token->CompareFrequency(cast(KDTokenFrequency*, oaTokens->GetAt(nToken - 1))) > 0);
+		       token->CompareFrequency(cast(KWTokenFrequency*, oaTokens->GetAt(nToken - 1))) > 0);
 
-		// Creation d'un attribut s'il n'est pas existant pour cette VarKey
-		sVarKey = Symbol(token->GetToken());
-		if (existingAttributesIndexKeyBlock == NULL or
-		    not existingAttributesIndexKeyBlock->IsKeyPresent(sVarKey))
+		// Creation d'un attribut s'il n'est pas existant pour cette cle
+		sAttributeKey = textVariableBlockRule->BuildAttributeKeyFromToken(token->GetToken());
+		sKey = Symbol(sAttributeKey);
+		if (existingAttributesIndexKeyBlock == NULL or not existingAttributesIndexKeyBlock->IsKeyPresent(sKey))
 		{
 			nAttribute++;
 
@@ -1040,7 +947,7 @@ void KDTextFeatureConstruction::ConstructTextAttributeTokenBlock(KDClassComplian
 			attribute->SetName(kwcClass->BuildAttributeName(
 			    BuildTokenBasedAttributeName(textAttribute, token->GetToken())));
 			attribute->GetMetaData()->SetStringValueAt(KWAttributeBlock::GetAttributeKeyMetaDataKey(),
-								   sVarKey.GetValue());
+								   sAttributeKey);
 			attribute->SetType(KWType::Continuous);
 			attribute->SetUsed(true);
 
@@ -1071,14 +978,22 @@ void KDTextFeatureConstruction::ConstructTextAttributeTokenBlock(KDClassComplian
 			}
 		}
 
+		// Affichage pour le token courant
+		if (bDisplay)
+			cout << "\t" << nToken + 1 << "\t" << nAttribute << "\t(" << token->GetToken() << ")\t"
+			     << token->GetFrequency() << "\n";
+
 		// Arret si assez d'attributs construits
-		if (nAttribute >= nBlockAttributeNUmber)
+		if (nAttribute >= nBlockAttributeNumber)
 			break;
 	}
 
 	// Nettoyage
 	if (existingAttributesIndexKeyBlock != NULL)
+	{
 		delete existingAttributesIndexKeyBlock;
+		delete textVariableBlockRule;
+	}
 }
 
 void KDTextFeatureConstruction::InitializeMainClassConstructedAttributesAndBlocks(
@@ -1089,10 +1004,10 @@ void KDTextFeatureConstruction::InitializeMainClassConstructedAttributesAndBlock
 	const KWDRGetTextListValue refGetTextListValue;
 	const KWDRTableAllTexts refTableAllTexts;
 	const KWDRTableAllTextLists refTableAllTextLists;
-	const KWDRTextAllNGrams refTextAllNGrams;
-	const KWDRTextListAllNGrams refTextListAllNGrams;
-	const KWDRTextTokens refTextTokens;
-	const KWDRTextListTokens refTextListTokens;
+	const KWDRTextNgrams refTextNGrams;
+	const KWDRTextListNgrams refTextListNGrams;
+	const KWDRTextWords refTextTokens;
+	const KWDRTextListWords refTextListTokens;
 
 	require(classCompliantRules != NULL);
 	require(classCompliantRules->GetClass() == NULL);
@@ -1108,8 +1023,8 @@ void KDTextFeatureConstruction::InitializeMainClassConstructedAttributesAndBlock
 	odUsableDerivationRules.SetAt(refGetTextListValue.GetName(), cast(Object*, &refGetTextListValue));
 	odUsableDerivationRules.SetAt(refTableAllTexts.GetName(), cast(Object*, &refTableAllTexts));
 	odUsableDerivationRules.SetAt(refTableAllTextLists.GetName(), cast(Object*, &refTableAllTextLists));
-	odUsableDerivationRules.SetAt(refTextAllNGrams.GetName(), cast(Object*, &refTextAllNGrams));
-	odUsableDerivationRules.SetAt(refTextListAllNGrams.GetName(), cast(Object*, &refTextListAllNGrams));
+	odUsableDerivationRules.SetAt(refTextNGrams.GetName(), cast(Object*, &refTextNGrams));
+	odUsableDerivationRules.SetAt(refTextListNGrams.GetName(), cast(Object*, &refTextListNGrams));
 	odUsableDerivationRules.SetAt(refTextTokens.GetName(), cast(Object*, &refTextTokens));
 	odUsableDerivationRules.SetAt(refTextListTokens.GetName(), cast(Object*, &refTextListTokens));
 
@@ -1224,69 +1139,27 @@ const ALString KDTextFeatureConstruction::BuildMainTextAttributeName(const KDTex
 	return sAttributeName;
 }
 
-const ALString KDTextFeatureConstruction::BuildNGramBasedAttributeName(const KWAttribute* textAttribute,
-								       int nGramLength, int nHashTableSize,
-								       int nIndex) const
-{
-	ALString sAttributeName;
-
-	require(not GetInterpretableMode());
-	require(textAttribute != NULL);
-
-	// Construction d'un nom "interpretable"
-	if (GetConstructionDomain()->GetInterpretableNames())
-	{
-		// Construction du nom de variable a partir des caracteristiques du n-gramme
-		sAttributeName = textAttribute->GetName();
-		sAttributeName += '.';
-		sAttributeName += IntToString(nGramLength);
-		sAttributeName += "gram(";
-		sAttributeName += IntToString(nHashTableSize);
-		sAttributeName += ',';
-		sAttributeName += IntToString(nIndex);
-		sAttributeName += ')';
-	}
-	// Numerotation des variables
-	else
-		sAttributeName = BuildIndexedAttributeName();
-	return sAttributeName;
-}
-
-const ALString KDTextFeatureConstruction::BuildNGramBasedAttributeBlockName(const KWAttribute* textAttribute) const
-{
-	ALString sAttributeName;
-
-	require(not GetInterpretableMode());
-	require(textAttribute != NULL);
-
-	// Construction d'un nom "interpretable"
-	if (GetConstructionDomain()->GetInterpretableNames())
-	{
-		// Construction du nom de variable a partir des caracteristiques du n-gramme
-		sAttributeName = textAttribute->GetName();
-		sAttributeName += ".AllNGrams";
-	}
-	// Numerotation des variables
-	else
-		sAttributeName = BuildIndexedAttributeName();
-	return sAttributeName;
-}
-
 const ALString KDTextFeatureConstruction::BuildTokenBasedAttributeName(const KWAttribute* textAttribute,
 								       const ALString& sToken) const
 {
 	ALString sAttributeName;
 
-	require(GetInterpretableMode());
 	require(textAttribute != NULL);
 
 	// Construction d'un nom "interpretable"
 	if (GetConstructionDomain()->GetInterpretableNames())
 	{
-		// Construction du nom de variable a partir des caracteristiques du n-gramme
+		// Construction du nom de variable a partir des caracteristiques du token
 		sAttributeName = textAttribute->GetName();
-		sAttributeName += '.';
-		sAttributeName += sToken;
+		if (GetTextFeatures() == "ngrams")
+		{
+			sAttributeName += '.';
+			sAttributeName += IntToString(sToken.GetLength());
+			sAttributeName += "gram";
+		}
+		sAttributeName += '(';
+		sAttributeName += KWTextService::ByteStringToWord(sToken);
+		sAttributeName += ')';
 	}
 	// Numerotation des variables
 	else
@@ -1298,15 +1171,15 @@ const ALString KDTextFeatureConstruction::BuildTokenBasedAttributeBlockName(cons
 {
 	ALString sAttributeName;
 
-	require(GetInterpretableMode());
 	require(textAttribute != NULL);
 
 	// Construction d'un nom "interpretable"
 	if (GetConstructionDomain()->GetInterpretableNames())
 	{
-		// Construction du nom de variable a partir des caracteristiques du n-gramme
+		// Construction du nom de variable a partir des caracteristiques du ngram
 		sAttributeName = textAttribute->GetName();
-		sAttributeName += ".Tokens";
+		sAttributeName += '.';
+		sAttributeName += GetTextFeatures();
 	}
 	// Numerotation des variables
 	else
@@ -1498,9 +1371,9 @@ boolean KDTextAttributePath::Check() const
 			}
 
 			// Verification de l'absence de cycle, par l'unicite des attributs utilises dans le chemins
-			bOk = bOk and nkdAttributes.Lookup((NUMERIC)attribute) == NULL;
+			bOk = bOk and nkdAttributes.Lookup(attribute) == NULL;
 			if (bOk)
-				nkdAttributes.SetAt((NUMERIC)attribute, cast(Object*, attribute));
+				nkdAttributes.SetAt(attribute, cast(Object*, attribute));
 			assert(bOk);
 		}
 	}
@@ -1658,8 +1531,8 @@ boolean KDTextClass::Check() const
 		bOk = bOk and KWType::IsTextBased(attribute->GetType());
 
 		// Unicite de l'attribut
-		bOk = bOk and nkdAllAttributes.Lookup((NUMERIC)attribute) == NULL;
-		nkdAllAttributes.SetAt((NUMERIC)attribute, attribute);
+		bOk = bOk and nkdAllAttributes.Lookup(attribute) == NULL;
+		nkdAllAttributes.SetAt(attribute, attribute);
 		assert(bOk);
 	}
 
@@ -1679,8 +1552,8 @@ boolean KDTextClass::Check() const
 		bOk = bOk and KWType::IsRelation(attribute->GetType());
 
 		// Unicite de l'attribut
-		bOk = bOk and nkdAllAttributes.Lookup((NUMERIC)attribute) == NULL;
-		nkdAllAttributes.SetAt((NUMERIC)attribute, attribute);
+		bOk = bOk and nkdAllAttributes.Lookup(attribute) == NULL;
+		nkdAllAttributes.SetAt(attribute, attribute);
 		assert(bOk);
 	}
 

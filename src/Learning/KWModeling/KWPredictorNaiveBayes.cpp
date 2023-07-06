@@ -127,6 +127,24 @@ void KWPredictorNaiveBayes::InternalTrainWNB(KWDataPreparationClass* dataPrepara
 	dataPreparationClass->RemoveDataPreparation();
 }
 
+void KWPredictorNaiveBayes::ExtractDataPreparationStats(const ObjectArray* oaDataPreparationAttributes,
+							ObjectArray* oaDataPreparationAttributeStats)
+{
+	KWDataPreparationAttribute* dataPreparationAttribute;
+	int i;
+
+	require(oaDataPreparationAttributes != NULL);
+	require(oaDataPreparationAttributeStats != NULL);
+
+	// Extraction de la partie preparation de chaque attribut prepare
+	oaDataPreparationAttributeStats->SetSize(oaDataPreparationAttributes->GetSize());
+	for (i = 0; i < oaDataPreparationAttributes->GetSize(); i++)
+	{
+		dataPreparationAttribute = cast(KWDataPreparationAttribute*, oaDataPreparationAttributes->GetAt(i));
+		oaDataPreparationAttributeStats->SetAt(i, dataPreparationAttribute->GetPreparedStats());
+	}
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 // WNBClassifier
 
@@ -137,6 +155,7 @@ void KWPredictorNaiveBayes::InternalTrainWNBClassifier(KWTrainedClassifier* trai
 {
 	KWAttribute* classifierAttribute;
 	KWAttribute* targetValuesAttribute;
+	ObjectArray oaDataPreparationAttributeStats;
 
 	require(trainedClassifier != NULL);
 	require(trainedClassifier->GetPredictorClass() != NULL);
@@ -144,6 +163,10 @@ void KWPredictorNaiveBayes::InternalTrainWNBClassifier(KWTrainedClassifier* trai
 	require(oaDataPreparationUsedAttributes != NULL);
 	require(cvDataPreparationWeights == NULL or
 		cvDataPreparationWeights->GetSize() >= oaDataPreparationUsedAttributes->GetSize());
+
+	// Collecte des KWDataPreparationStats selectionnes recursivement ou non par le predicteur
+	ExtractDataPreparationStats(oaDataPreparationUsedAttributes, &oaDataPreparationAttributeStats);
+	CollectSelectedPreparationStats(&oaDataPreparationAttributeStats);
 
 	// Memorisation de la reference a l'attribut cible
 	trainedClassifier->SetTargetAttribute(
@@ -347,6 +370,7 @@ void KWPredictorNaiveBayes::InternalTrainWNBRegressor(KWTrainedRegressor* traine
 	KWAttribute* rankRegressorAttribute;
 	KWAttribute* regressorAttribute;
 	KWAttribute* targetValuesAttribute;
+	ObjectArray oaDataPreparationAttributeStats;
 
 	require(trainedRegressor != NULL);
 	require(trainedRegressor->GetPredictorClass() != NULL);
@@ -354,6 +378,10 @@ void KWPredictorNaiveBayes::InternalTrainWNBRegressor(KWTrainedRegressor* traine
 	require(oaDataPreparationUsedAttributes != NULL);
 	require(cvDataPreparationWeights == NULL or
 		cvDataPreparationWeights->GetSize() >= oaDataPreparationUsedAttributes->GetSize());
+
+	// Collecte des KWDataPreparationStats selectionnes recursivement ou non par le predicteur
+	ExtractDataPreparationStats(oaDataPreparationUsedAttributes, &oaDataPreparationAttributeStats);
+	CollectSelectedPreparationStats(&oaDataPreparationAttributeStats);
 
 	// Memorisation de la reference a l'attribut cible
 	trainedRegressor->SetTargetAttribute(

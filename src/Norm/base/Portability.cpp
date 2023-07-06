@@ -234,13 +234,325 @@ void StandardGetInputString(char* sBuffer, FILE* fInput)
 	assert(strlen(sBuffer) < BUFFER_LENGTH);
 }
 
+int SecureStrcpy(char* sDest, const char* sSource, int nMaxLength)
+{
+	int bOk = 0;
+	int nLenDest;
+	int nLengthSource;
+
+	assert(nMaxLength > 0);
+
+	nLengthSource = strlen(sSource);
+	nLenDest = strlen(sDest);
+	if (nLenDest + nLengthSource < nMaxLength)
+	{
+		strcpy(&sDest[nLenDest], sSource);
+		bOk = 1;
+	}
+	return bOk;
+}
+
+// Implementation Windows du lancement d'excutable
+#ifdef _WIN32
+
+#include <Shlwapi.h>
+#pragma comment(lib, "Shlwapi.lib")
+
+// Fonction utilitaire propre a Windows de formatage d'un message d'erreur
+static void FormatErrorMessage(char* sErrorMessage)
+{
+	TCHAR szMessage[SYSTEM_MESSAGE_LENGTH + 1];
+	size_t nConvertedSize;
+	int nErrorMessageLength;
+
+	// Formatage du message d'erreur
+	FormatMessage(FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(),
+		      MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), szMessage, MAX_PATH, NULL);
+
+	// Conversion entre differents types de chaines de caracteres
+	// https://docs.microsoft.com/fr-fr/cpp/text/how-to-convert-between-various-string-types?view=msvc-160
+	wcstombs_s(&nConvertedSize, sErrorMessage, SYSTEM_MESSAGE_LENGTH, szMessage, SYSTEM_MESSAGE_LENGTH);
+
+	// Supression du saut de ligne en fin de chaine
+	nErrorMessageLength = (int)strlen(sErrorMessage);
+	while (nErrorMessageLength > 0)
+	{
+		// Nettoyage si saut de ligne en fin de chaine
+		if (sErrorMessage[nErrorMessageLength - 1] == '\n' or sErrorMessage[nErrorMessageLength - 1] == '\r')
+		{
+			sErrorMessage[nErrorMessageLength - 1] = '\0';
+			nErrorMessageLength--;
+		}
+		// Ok sinon
+		else
+			break;
+	}
+}
+
+// Recherche le path de l'exe system associe a une extension (ex: ".txt")
+// Renvoie chaine vide si non trouve
+static const char* GetFileOpenAssocation(const char* sExtension)
+{
+	DWORD size = BUFFER_LENGTH;
+	char* sFileAssociation = StandardGetBuffer();
+	HRESULT hres;
+
+	assert(sExtension != NULL);
+	assert(strlen(sExtension) > 1);
+	assert(sExtension[0] == '.');
+
+	// Recherche de l'association geree par Windows
+	// On n'accepte pas le OpenWith par defaut de Windows, car cet exe lance une fenetre
+	// qui disparait si on ne se mete pas en attente du processus de lancement de la commande
+	hres = AssocQueryStringA(
+	    ASSOCF_INIT_IGNOREUNKNOWN, // Pour ne pas prendre en compte le OpenWith par defaut de Windows
+	    ASSOCSTR_EXECUTABLE, sExtension, "open", sFileAssociation, &size);
+	if (hres != S_OK)
+		sFileAssociation[0] = '\0';
+	return sFileAssociation;
+}
+
+// Lancement d'un exe de facon asynchrone
+// Si on passe des arguments avec des blancs au milieu (ex: pour le path de l'exe),
+// ceux-ci doivent etre entre double-quotes
+// Renvoie 0 en cas d'erreur, et dans ce cas initialise le message d'erreur en parametre
+static int StartProcess(const char* sCommandLine, char* sErrorMessage)
+{
+	BOOL ok;
+	STARTUPINFOA si;
+	PROCESS_INFORMATION pi;
+	SECURITY_ATTRIBUTES sa;
+	HANDLE hNulOutput;
+
+	assert(sCommandLine != NULL);
+	assert(sErrorMessage != NULL);
+
+	// Initialisation de la taille des structures
+	ZeroMemory(&si, sizeof(si));
+	si.cb = sizeof(si);
+	ZeroMemory(&pi, sizeof(pi));
+
+	// Creation d'un handle sur un fichier NUL pour rediriger la sortie
+	sa.nLength = sizeof(sa);
+	sa.lpSecurityDescriptor = NULL;
+	sa.bInheritHandle = TRUE;
+	hNulOutput = CreateFile(TEXT("NUL"), FILE_APPEND_DATA, FILE_SHARE_WRITE | FILE_SHARE_READ, &sa, OPEN_ALWAYS,
+				FILE_ATTRIBUTE_NORMAL, NULL);
+
+	// Parametrage des fichier de sortie
+	si.dwFlags = STARTF_USESTDHANDLES;
+	si.hStdInput = NULL;
+	si.hStdOutput = hNulOutput;
+	si.hStdError = hNulOutput;
+
+	// Lance le programme
+	// Different de la fonction system du C ansi, qui lance un shell avec une commande en parametre
+	// Ici, on lance un exe directement
+	ok = CreateProcessA(
+	    NULL,                // the path
+	    (char*)sCommandLine, // Command line
+	    NULL,                // Process handle not inheritable
+	    NULL,                // Thread handle not inheritable
+	    TRUE, // Set handle inheritance to TRUE (sinon, la rediction de la sortie vers NUL ne marche pas)
+	    0,    // No creation flags
+	    NULL, // Use parent's environment block
+	    NULL, // Use parent's starting directory
+	    &si,  // Pointer to STARTUPINFO structure
+	    &pi   // Pointer to PROCESS_INFORMATION structure (removed extra parentheses)
+	);
+
+	// Recherche du message d'erreur si necessaire
+	sErrorMessage[0] = '\0';
+	if (!ok)
+		FormatErrorMessage(sErrorMessage);
+
+	// Fermeture des handle de process et de thread
+	CloseHandle(pi.hProcess);
+	CloseHandle(pi.hThread);
+	return ok;
+}
+
+// Implementation Windows du lancement d'excutable
+int OpenApplication(const char* sApplicationExeName, const char* sApplicationLabel, const char* sFileToOpen,
+		    char* sErrorMessage)
+{
+	int ok;
+	const char* sFileExtension;
+	const char* sSearch;
+	const char* sFileAssociation;
+	char* sCommandLine;
+	char* sSystemErrorMessage;
+
+	assert(sApplicationExeName != NULL);
+	assert(strlen(sApplicationExeName) < SYSTEM_MESSAGE_LENGTH / 2);
+	assert(sApplicationLabel != NULL);
+	assert(strlen(sApplicationLabel) < SYSTEM_MESSAGE_LENGTH / 2);
+	assert(sFileToOpen != NULL);
+	assert(strchr(sFileToOpen, '.') != NULL);
+	assert(sErrorMessage != NULL);
+
+	// Initialisations
+	ok = 1;
+	sErrorMessage[0] = '\0';
+	sFileAssociation = "";
+
+	// Recherche de l'extension du fichier, y compris le '.' de depart
+	sFileExtension = NULL;
+	sSearch = sFileToOpen;
+	while (sSearch[0] != '\0')
+	{
+		if (sSearch[0] == '.')
+			sFileExtension = sSearch;
+		sSearch++;
+	}
+	assert(sFileExtension != NULL);
+
+	// Recherche de l'application associe a l'extension du fichier
+	ok = 0;
+	if (sFileExtension != NULL && strlen(sFileExtension) > 1)
+	{
+		sFileAssociation = GetFileOpenAssocation(sFileExtension);
+		ok = sFileAssociation[0] != '\0';
+	}
+
+	// On utilise l'extension de l'editeur de texte par defaut si non trouve et qu'il n'y a pas d'exe specifie
+	if (not ok && sApplicationExeName[0] == '\0')
+	{
+		sFileAssociation = GetFileOpenAssocation(".txt");
+		ok = sFileAssociation[0] != '\0';
+	}
+
+	// Erreur si pas d'association
+	if (!ok)
+	{
+		sprintf(sErrorMessage, "%s tool not found", sApplicationLabel);
+	}
+	// Lancement de l'application
+	else
+	{
+		// Preparation des arguments: commande de longueur inconnue, et message d'erreur
+		sCommandLine = new char[strlen(sFileAssociation) + strlen(sFileToOpen) + 10];
+		sprintf(sCommandLine, "\"%s\" \"%s\"", sFileAssociation, sFileToOpen);
+		sSystemErrorMessage = StandardGetBuffer();
+
+		// Lancement de la commande
+		ok = StartProcess(sCommandLine, sSystemErrorMessage);
+		delete[] sCommandLine;
+
+		// Message d'erreur
+		if (!ok)
+		{
+			// On passe par SecureStrcpy plutot que par  sprintf en raison de l'incertitude sur les tailles
+			// de parametres
+			assert(sErrorMessage[0] == '\0');
+			SecureStrcpy(sErrorMessage, "unable to launch ", SYSTEM_MESSAGE_LENGTH);
+			SecureStrcpy(sErrorMessage, sApplicationLabel, SYSTEM_MESSAGE_LENGTH);
+			SecureStrcpy(sErrorMessage, " tool using \"", SYSTEM_MESSAGE_LENGTH);
+			SecureStrcpy(sErrorMessage, sFileAssociation, SYSTEM_MESSAGE_LENGTH);
+			SecureStrcpy(sErrorMessage, "\" (", SYSTEM_MESSAGE_LENGTH);
+			SecureStrcpy(sErrorMessage, sSystemErrorMessage, SYSTEM_MESSAGE_LENGTH);
+			SecureStrcpy(sErrorMessage, ")", SYSTEM_MESSAGE_LENGTH);
+		}
+	}
+	return ok;
+}
+
+#elif defined(__gnu_linux__)
+#include <spawn.h>
+
+// Implementation linux du lancement d'executable
+int OpenApplication(const char* sApplicationExeName, const char* sApplicationLabel, const char* sFileToOpen,
+		    char* sErrorMessage)
+{
+	int ok;
+	const char* sFileExtension;
+	const char* sSearch;
+	const char* sFileAssociation;
+	char* sCommandLine;
+	char* sSystemErrorMessage;
+
+	assert(sApplicationExeName != NULL);
+	assert(strlen(sApplicationExeName) < SYSTEM_MESSAGE_LENGTH / 2);
+	assert(sApplicationLabel != NULL);
+	assert(strlen(sApplicationLabel) < SYSTEM_MESSAGE_LENGTH / 2);
+	assert(sFileToOpen != NULL);
+	assert(strchr(sFileToOpen, '.') != NULL);
+	assert(sErrorMessage != NULL);
+
+	// Initialisations
+	ok = 1;
+	sErrorMessage[0] = '\0';
+
+	// Test d'existence de l'exe s'il est specifiee
+	if (sApplicationExeName[0] != '\0')
+	{
+		sCommandLine = StandardGetBuffer();
+		sprintf(sCommandLine, "command -v %s > /dev/null", sApplicationExeName);
+		ok = system(sCommandLine) == 0;
+		if (!ok)
+			sprintf(sErrorMessage, "%s tool not installed", sApplicationLabel);
+	}
+
+	// Lancement si ok
+	if (ok)
+	{
+		int processID;
+		int status;
+		char* argv[3];
+		argv[0] = (char*)"xdg-open";
+		argv[1] = (char*)sFileToOpen;
+		argv[2] = (char*)0;
+
+		// Lancement de l'exe approprie grace a xdg-open qui ouvre n'importe quel fichier avec le
+		// programme qui lui est associe (a defaut l'editeur de texte). Fermeture au prealable de
+		// stdin et stdout pour ne pas avoir de messages dan sla console
+		posix_spawn_file_actions_t fa;
+		posix_spawn_file_actions_init(&fa);
+		posix_spawn_file_actions_addclose(&fa, STDERR_FILENO);
+		posix_spawn_file_actions_addclose(&fa, STDOUT_FILENO);
+		status = posix_spawn(&processID, "/usr/bin/xdg-open", &fa, NULL, argv, environ);
+		posix_spawn_file_actions_destroy(&fa);
+
+		// Message d'erreur
+		if (status != 0)
+		{
+			ok = 0;
+			assert(strlen(strerror(status)) < SYSTEM_MESSAGE_LENGTH / 2 - 30);
+			sprintf(sErrorMessage, "unable to launch %s tool (%s)", sApplicationLabel, strerror(status));
+		}
+	}
+	return ok;
+}
+
+#else
+// Implementation du lancement d'executable avec erreur pour les autres OS
+int OpenApplication(const char* sApplicationExeName, const char* sApplicationLabel, const char* sExtension,
+		    const char* sFileToOpen, char* sErrorMessage)
+{
+	int ok;
+
+	assert(sApplicationExeName != NULL);
+	assert(strlen(sApplicationExeName) < SYSTEM_MESSAGE_LENGTH / 2);
+	assert(sApplicationLabel != NULL);
+	assert(strlen(sApplicationLabel) < SYSTEM_MESSAGE_LENGTH / 2);
+	assert(sFileToOpen != NULL);
+	assert(strchr(sFileToOpen, '.') != NULL);
+	assert(sErrorMessage != NULL);
+
+	// Initialisations
+	ok = 0;
+	sprintf(sErrorMessage, "unable to launch %s application on this OS", sApplicationLabel);
+	return ok;
+}
+#endif
+
 void* LoadSharedLibrary(const char* sLibraryPath, char* sErrorMessage)
 {
 	void* handle;
 	int i;
 
 	// Initialisation du message d'erreur avec la chaine vide
-	for (i = 0; i < SHARED_LIBRARY_MESSAGE_LENGTH + 1; i++)
+	for (i = 0; i < SYSTEM_MESSAGE_LENGTH + 1; i++)
 	{
 		sErrorMessage[i] = '\0';
 	}
@@ -272,36 +584,7 @@ void* LoadSharedLibrary(const char* sLibraryPath, char* sErrorMessage)
 
 	// Traitement des erreurs
 	if (handle == NULL)
-	{
-		TCHAR szMessage[SHARED_LIBRARY_MESSAGE_LENGTH + 1];
-		size_t nConvertedSize;
-		int nErrorMessageLength;
-
-		// Formatage du message d'erreur
-		FormatMessage(FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(),
-			      MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL), szMessage, MAX_PATH, NULL);
-
-		// Conversion entre differents types de chaines de caracteres
-		// https://docs.microsoft.com/fr-fr/cpp/text/how-to-convert-between-various-string-types?view=msvc-160
-		wcstombs_s(&nConvertedSize, sErrorMessage, SHARED_LIBRARY_MESSAGE_LENGTH, szMessage,
-			   SHARED_LIBRARY_MESSAGE_LENGTH);
-
-		// Supression du saut de ligne en fin de chaine
-		nErrorMessageLength = (int)strlen(sErrorMessage);
-		while (nErrorMessageLength > 0)
-		{
-			// Nettoyage si saut de ligne en fin de chaine
-			if (sErrorMessage[nErrorMessageLength - 1] == '\n' or
-			    sErrorMessage[nErrorMessageLength - 1] == '\r')
-			{
-				sErrorMessage[nErrorMessageLength - 1] = '\0';
-				nErrorMessageLength--;
-			}
-			// Ok sinon
-			else
-				break;
-		}
-	}
+		FormatErrorMessage(sErrorMessage);
 	return handle;
 
 #else
@@ -315,7 +598,7 @@ void* LoadSharedLibrary(const char* sLibraryPath, char* sErrorMessage)
 		char* errstr;
 		errstr = dlerror();
 		if (errstr != NULL)
-			strncpy(sErrorMessage, errstr, SHARED_LIBRARY_MESSAGE_LENGTH);
+			strncpy(sErrorMessage, errstr, SYSTEM_MESSAGE_LENGTH);
 	}
 	return handle;
 #endif

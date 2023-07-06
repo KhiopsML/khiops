@@ -5,7 +5,7 @@
 #pragma once
 /******************************************************************************
  * Khiops Native Interface (KNI)
- * Copyright (c) 2022 Orange Labs. All rights reserved.
+ * Copyright (c) 2023 Orange Labs. All rights reserved.
  *****************************************************************************/
 
 /* Use of C linkage from C++ */
@@ -105,17 +105,14 @@ extern "C"
 #define KNI_ErrorLogFile (-25)                  /* Bad error file */
 
 	/*
-	 * Version of KNI
-	 */
-#define KNI_VERSION_10_1 110
-#define KNI_VERSION_10_0 100
-#define KNI_VERSION_9_0 90
-#define KNI_VERSION_8_0 80
-#define KNI_VERSION_7_5 75
-
-	/*
 	 * Get version of KNI
-	 * Enable to check the major version of the DLL
+	 *
+	 * Enable to check the major and minor version of the DLL, which is the same as that of the Khiops tool
+	 * The version is given as an integer (10*major + minor) to ease comparisons
+	 * Exemple:
+	 *   75 for Khiops 7.5
+	 *   100 for Khiops 10.0
+	 *   101 for Khiops 10.1
 	 *
 	 * Return code:
 	 *    version number, an integer constant

@@ -13,8 +13,6 @@ class CCLearningProblemView;
 #include "CCLearningProblemClusterExtractionView.h"
 #include "CCLearningProblemPostProcessingView.h"
 #include "CCLearningProblemDeploymentPreparationView.h"
-#include "CCLearningProblemPostOptimizationView.h"
-#include "LMLicenseManager.h"
 
 ////////////////////////////////////////////////////////////
 // Classe CCLearningProblemActionView
@@ -40,7 +38,6 @@ public:
 	void PostProcessCoclustering();
 	void ExtractClusters();
 	void PrepareDeployment();
-	void PostOptimizeCoclustering();
 
 	// Acces au probleme d'apprentissage
 	CCLearningProblem* GetLearningProblem();

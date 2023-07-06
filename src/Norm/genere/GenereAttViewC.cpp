@@ -13,12 +13,12 @@ void TableGenerator::GenerateAttributeViewC(ostream& ost) const
 
 	ost << ""
 	    << "\n";
-	ost << "#include \"" << GetClassName() << "View.h\""
+	ost << "#include \"" << GetViewClassName() << ".h\""
 	    << "\n";
 	ost << ""
 	    << "\n";
 
-	ost << GetClassName() << "View::" << GetClassName() << "View()"
+	ost << GetViewClassName() << "::" << GetViewClassName() << "()"
 	    << "\n";
 	ost << "{"
 	    << "\n";
@@ -30,7 +30,7 @@ void TableGenerator::GenerateAttributeViewC(ostream& ost) const
 	{
 		att = GetFieldAt(nCurrent);
 
-		if (att->GetVisible() == true)
+		if (att->GetVisible())
 		{
 			ost << "\tAdd" << att->GetFieldType() << "Field(\"" << att->GetName() << "\", \""
 			    << att->GetLabel() << "\", " << att->GetTypeVarToField(att->GetDefaultValue()) << ");"
@@ -48,7 +48,7 @@ void TableGenerator::GenerateAttributeViewC(ostream& ost) const
 		{
 			att = GetFieldAt(nCurrent);
 
-			if (att->GetVisible() == true and att->GetStyle() != "")
+			if (att->GetVisible() and att->GetStyle() != "")
 			{
 				ost << "\tGetFieldAt(\"" << att->GetName() << "\")->SetStyle(\"" << att->GetStyle()
 				    << "\");"
@@ -65,7 +65,7 @@ void TableGenerator::GenerateAttributeViewC(ostream& ost) const
 	ost << ""
 	    << "\n";
 
-	ost << GetClassName() << "View::~" << GetClassName() << "View()"
+	ost << GetViewClassName() << "::~" << GetViewClassName() << "()"
 	    << "\n";
 	ost << "{"
 	    << "\n";
@@ -75,22 +75,22 @@ void TableGenerator::GenerateAttributeViewC(ostream& ost) const
 	ost << ""
 	    << "\n";
 
-	ost << GetClassName() << "* " << GetClassName() << "View::Get" << GetClassName() << "()"
+	ost << GetModelClassName() << "* " << GetViewClassName() << "::Get" << GetModelClassName() << "()"
 	    << "\n";
 	ost << "{"
 	    << "\n";
 	ost << "\trequire(objValue != NULL);\n";
-	ost << "\treturn cast(" << GetClassName() << "*, objValue);\n";
+	ost << "\treturn cast(" << GetModelClassName() << "*, objValue);\n";
 	ost << "}"
 	    << "\n";
 	ost << ""
 	    << "\n";
 
-	ost << "void " << GetClassName() << "View::EventUpdate(Object* object)"
+	ost << "void " << GetViewClassName() << "::EventUpdate(Object* object)"
 	    << "\n";
 	ost << "{"
 	    << "\n";
-	ost << "\t" << GetClassName() << "* editedObject;"
+	ost << "\t" << GetModelClassName() << "* editedObject;"
 	    << "\n";
 	ost << ""
 	    << "\n";
@@ -99,14 +99,14 @@ void TableGenerator::GenerateAttributeViewC(ostream& ost) const
 	ost << ""
 	    << "\n";
 	if (GetSuperClassName() != "")
-		ost << "\t" << GetSuperClassName() << "View::EventUpdate(object);\n";
-	ost << "\teditedObject = cast(" << GetClassName() << "*, object);"
+		ost << "\t" << GetViewSuperClassName() << "::EventUpdate(object);\n";
+	ost << "\teditedObject = cast(" << GetModelClassName() << "*, object);"
 	    << "\n";
 	for (nCurrent = 0; nCurrent < GetFieldNumber(); nCurrent++)
 	{
 		att = GetFieldAt(nCurrent);
 
-		if (att->GetVisible() == true and not att->GetDerived())
+		if (att->GetVisible() and not att->GetDerived())
 		{
 			ost << "\teditedObject->Set" << att->GetName() << "("
 			    << "Get" << att->GetFieldType() << "ValueAt(\"" << att->GetName() << "\")"
@@ -123,11 +123,11 @@ void TableGenerator::GenerateAttributeViewC(ostream& ost) const
 	ost << ""
 	    << "\n";
 
-	ost << "void " << GetClassName() << "View::EventRefresh(Object* object)"
+	ost << "void " << GetViewClassName() << "::EventRefresh(Object* object)"
 	    << "\n";
 	ost << "{"
 	    << "\n";
-	ost << "\t" << GetClassName() << "* editedObject;"
+	ost << "\t" << GetModelClassName() << "* editedObject;"
 	    << "\n";
 	ost << ""
 	    << "\n";
@@ -136,14 +136,14 @@ void TableGenerator::GenerateAttributeViewC(ostream& ost) const
 	ost << ""
 	    << "\n";
 	if (GetSuperClassName() != "")
-		ost << "\t" << GetSuperClassName() << "View::EventRefresh(object);\n";
-	ost << "\teditedObject = cast(" << GetClassName() << "*, object);"
+		ost << "\t" << GetViewSuperClassName() << "::EventRefresh(object);\n";
+	ost << "\teditedObject = cast(" << GetModelClassName() << "*, object);"
 	    << "\n";
 	for (nCurrent = 0; nCurrent < GetFieldNumber(); nCurrent++)
 	{
 		att = GetFieldAt(nCurrent);
 
-		if (att->GetVisible() == true)
+		if (att->GetVisible())
 		{
 			ost << "\tSet" << att->GetFieldType() << "ValueAt(\"" << att->GetName() << "\", "
 			    << "editedObject->Get" << att->GetName() << "()"
@@ -160,7 +160,7 @@ void TableGenerator::GenerateAttributeViewC(ostream& ost) const
 	ost << ""
 	    << "\n";
 
-	ost << "const ALString " << GetClassName() << "View::GetClassLabel() const"
+	ost << "const ALString " << GetViewClassName() << "::GetClassLabel() const"
 	    << "\n";
 	ost << "{"
 	    << "\n";

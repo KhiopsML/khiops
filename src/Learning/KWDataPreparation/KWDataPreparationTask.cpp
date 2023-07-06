@@ -348,6 +348,8 @@ longint KWDataPreparationTask::ComputeNecessaryUnivariateStatsMemory(const KWLea
 	lAttributeStatSize = lClassAttributeMemory;
 
 	// Taille occupee par un attribut
+	// L'estimation est tres approximative, et est consideree comme raisonnable que ce soit dans le cas supervise
+	// ou non supervise, meme avec des histogrammes
 	lAttributeStatSize +=
 	    nMeanValueNumber * lSymbolSize + sizeof(KWAttributeStats) + sizeof(KWDescriptiveContinuousStats) +
 	    sizeof(KWDataGridStats) + 2 * (sizeof(KWDGSAttributeGrouping) + KWClass::GetNameMaxLength()) +

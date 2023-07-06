@@ -28,15 +28,6 @@ KWLearningProblemActionView::KWLearningProblemActionView()
 	AddAction("InterpretPredictor", "Interpret model...",
 		  (ActionMethod)(&KWLearningProblemActionView::InterpretPredictor));
 
-#ifdef DEPRECATED_V10
-	{
-		// DEPRECATED V10: fonctionnalite obsolete, conservee de facon cachee en V10 pour compatibilite
-		// ascendante des scenarios
-		if (LMLicenseManager::IsEnabled())
-			LMLicenseManager::DEPRECATEDAddLicenseManagementMenu(this);
-	}
-#endif // DEPRECATED_V10
-
 	// Ajout d'accelateurs sur les actions principales
 	GetActionAt("ComputeStats")->SetAccelKey("control T");
 	GetActionAt("TransferDatabase")->SetAccelKey("control D");
@@ -44,19 +35,7 @@ KWLearningProblemActionView::KWLearningProblemActionView()
 	GetActionAt("InterpretPredictor")->SetAccelKey("control I");
 
 	// Construction du dictionnaire uniquement en mode expert
-	if (not GetLearningExpertMode())
-		GetActionAt("BuildConstructedDictionary")->SetVisible(false);
-
-	// Tri des tables uniquement en mode multi-tables
-	if (not GetLearningMultiTableMode())
-	{
-		GetActionAt("SortDataTableByKey")->SetVisible(false);
-		GetActionAt("ExtractKeysFromDataTable")->SetVisible(false);
-	}
-
-	// Interpretation uniquement en mode Khiops interpretation
-	if (not GetLearningInterpretationMode())
-		GetActionAt("InterpretPredictor")->SetVisible(false);
+	GetActionAt("BuildConstructedDictionary")->SetVisible(GetLearningExpertMode());
 
 	// Info-bulles
 	GetActionAt("CheckData")
@@ -85,8 +64,8 @@ KWLearningProblemActionView::KWLearningProblemActionView()
 	    ->SetHelpText("Open a dialog box allowing to specify an evaluation report, an evaluation database"
 			  "\n and to choose the predictor(s) to evaluate.");
 	GetActionAt("InterpretPredictor")
-	    ->SetHelpText("Open a dialog box allowing to specify build an interpretation dictionary for a predictor to "
-			  "interpret.");
+	    ->SetHelpText("Open a dialog box allowing to specify and build an interpretation dictionary for a "
+			  "predictor to interpret.");
 
 	// Recopie des info-bulles de la vue principale (KWLearningProblemView)
 	// (pas de reutilisation possible)

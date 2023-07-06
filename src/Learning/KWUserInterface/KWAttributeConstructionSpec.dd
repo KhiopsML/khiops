@@ -1,7 +1,6 @@
 Rank;Name;Type;Style;Label
-1;MaxConstructedAttributeNumber;int     ;Spinner ;Max number of constructed variables
-2;MaxTextFeatureNumber         ;int     ;Spinner ;Max number of text features
-3;MaxTreeNumber                ;int     ;Spinner ;Max number of trees
-4;MaxAttributePairNumber       ;int     ;Spinner ;Max number of variable pairs
-5;MandatoryAttributeInPairs    ;ALString;        ;Only pairs with variable (deprecated)
-6;RecodingClass                ;boolean ;CheckBox;Build recoding dictionary (deprecated)
+1;KeepSelectedAttributesOnly   ;boolean;CheckBox;Keep selected variables only
+2;MaxConstructedAttributeNumber;int    ;Spinner ;Max number of constructed variables
+3;MaxTextFeatureNumber         ;int    ;Spinner ;Max number of text features
+4;MaxTreeNumber                ;int    ;Spinner ;Max number of trees
+5;MaxAttributePairNumber       ;int    ;Spinner ;Max number of variable pairs

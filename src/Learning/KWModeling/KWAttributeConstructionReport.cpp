@@ -27,9 +27,7 @@ void KWAttributeConstructionReport::WriteReport(ostream& ost)
 	{
 		ost << "Max number of constructed variables\t"
 		    << attributeConstructionSpec->GetMaxConstructedAttributeNumber() << "\n";
-		if (GetLearningTextVariableMode())
-			ost << "Max number of text features\t" << attributeConstructionSpec->GetMaxTextFeatureNumber()
-			    << "\n";
+		ost << "Max number of text features\t" << attributeConstructionSpec->GetMaxTextFeatureNumber() << "\n";
 		ost << "Max number of trees\t" << attributeConstructionSpec->GetMaxTreeNumber() << "\n";
 		ost << "Max number of variable pairs\t" << attributeConstructionSpec->GetMaxAttributePairNumber()
 		    << "\n";
@@ -43,9 +41,7 @@ void KWAttributeConstructionReport::WriteJSONReport(JSONFile* fJSON)
 		fJSON->BeginKeyObject("featureEngineering");
 		fJSON->WriteKeyInt("maxNumberOfConstructedVariables",
 				   attributeConstructionSpec->GetMaxConstructedAttributeNumber());
-		if (GetLearningTextVariableMode())
-			fJSON->WriteKeyInt("maxNumberOfTextFeatures",
-					   attributeConstructionSpec->GetMaxTextFeatureNumber());
+		fJSON->WriteKeyInt("maxNumberOfTextFeatures", attributeConstructionSpec->GetMaxTextFeatureNumber());
 		fJSON->WriteKeyInt("maxNumberOfTrees", attributeConstructionSpec->GetMaxTreeNumber());
 		fJSON->WriteKeyInt("maxNumberOfVariablePairs", attributeConstructionSpec->GetMaxAttributePairNumber());
 		fJSON->EndObject();

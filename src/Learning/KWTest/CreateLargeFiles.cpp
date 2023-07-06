@@ -9,10 +9,8 @@ boolean MovePositionInBinaryFile(FILE* fFile, longint lOffset)
 	boolean bOk;
 
 	// Pour les fichiers de plus de 4 Go, il existe une API speciale (stat64...)
-#if defined _MSC_VER || defined __MSVCRT_VERSION__
+#if defined __MSC__
 	_fseeki64(fFile, lOffset, SEEK_CUR);
-#elif defined __clang__
-	fseeko(fFile, lOffset, SEEK_CUR);
 #else
 	fseeko64(fFile, lOffset, SEEK_CUR);
 #endif
@@ -25,10 +23,8 @@ longint TellPositionInBinaryFile(FILE* fFile)
 	longint lCurrentPosition;
 
 	// Pour les fichiers de plus de 4 Go, il existe une API speciale (stat64...)
-#if defined _MSC_VER || defined __MSVCRT_VERSION__
+#if defined __MSC__
 	lCurrentPosition = _ftelli64(fFile);
-#elif defined __clang__
-	lCurrentPosition = fseeko(fFile);
 #else
 	lCurrentPosition = fseeko64(fFile);
 #endif
@@ -107,7 +103,7 @@ void StudyCreateLargeFiles(int argc, char** argv)
 		// Creation du repertoire racine
 		FileService::MakeDirectories(sRootDir);
 
-		// Liste des modes testes (wb et w+b ne marchent pas, car un fichier est recrée e chaque fois)
+		// Liste des modes testes (wb et w+b ne marchent pas, car un fichier est recree e chaque fois)
 		svOpenModes.Add("r+b");
 		svOpenModes.Add("a+b");
 		svOpenModes.Add("ab");

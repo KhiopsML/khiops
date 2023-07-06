@@ -49,7 +49,7 @@ KWLearningBenchmark* MYLearningProblem::GetRegressorBenchmark()
 
 void MYLearningProblem::CollectPredictors(KWClassStats* classStats, ObjectArray* oaPredictors)
 {
-	KWPredictorSelectiveNaiveBayes* predictorSelectiveNaiveBayes;
+	SNBPredictorSelectiveNaiveBayes* predictorSelectiveNaiveBayes;
 	KWPredictorNaiveBayes* predictorNaiveBayes;
 	MYModelingSpec* khiopsModelingSpec;
 
@@ -66,7 +66,7 @@ void MYLearningProblem::CollectPredictors(KWClassStats* classStats, ObjectArray*
 	if (khiopsModelingSpec->GetSelectiveNaiveBayesPredictor())
 	{
 		predictorSelectiveNaiveBayes =
-		    cast(KWPredictorSelectiveNaiveBayes*,
+		    cast(SNBPredictorSelectiveNaiveBayes*,
 			 KWPredictor::ClonePredictor("Selective Naive Bayes", classStats->GetTargetAttributeType()));
 		if (predictorSelectiveNaiveBayes != NULL)
 		{

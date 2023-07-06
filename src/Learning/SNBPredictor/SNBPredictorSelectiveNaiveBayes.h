@@ -16,7 +16,7 @@ class SNBPredictorSelectiveNaiveBayes;
 // Il doit etre parametre par un objet KWClassStats correctement initialise pour l'apprentissage.
 // Les statistiques ne seront reevaluees que si necessaire
 // L'algorithme de optimisation de la selection de variables
-// est sous-traitee a une tache parallele KWPredictorSelectiveNaiveBayesTrainingTask
+// est sous-traitee a une tache parallele SNBPredictorSelectiveNaiveBayesTrainingTask
 class SNBPredictorSelectiveNaiveBayes : public KWPredictorNaiveBayes
 {
 public:

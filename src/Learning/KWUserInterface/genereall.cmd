@@ -6,13 +6,15 @@ rem Dans la plus cas, on ne genere que les classe de type vue, les classe de typ
 
 genere -nomodel -noarrayview KWDatabase "Database" KWDatabase.dd >> genere.log
 
-genere -nomodel -super KWDatabase -noarrayview KWSTDatabaseTextFile "Database" KWSTDatabaseTextFile.dd >> genere.log
+genere -nomodel -noarrayview -specificmodel KWDatabase KWDatabaseSampling "Sampling" KWDatabaseSampling.dd >> genere.log
 
-genere -nomodel -super KWDatabase -noarrayview KWMTDatabaseTextFile "Database" KWMTDatabaseTextFile.dd >> genere.log
+genere -nomodel -noarrayview -specificmodel KWDatabase  KWDatabaseSelection "Selection" KWDatabaseSelection.dd >> genere.log
+
+genere -nomodel -noarrayview -specificmodel KWSTDatabaseTextFile  KWSTDatabaseTextFileData "Data" KWSTDatabaseTextFileData.dd >> genere.log
+
+genere -nomodel -noarrayview -specificmodel KWMTDatabaseTextFile  KWMTDatabaseTextFileData "Data" KWMTDatabaseTextFileData.dd >> genere.log
 
 genere -nomodel KWMTDatabaseMapping "Multi-table mapping" KWMTDatabaseMapping.dd >> genere.log
-
-genere -noarrayview KWClassManagement "Dictionary management" KWClassManagement.dd >> genere.log
 
 genere KWClassSpec "Dictionary" KWClassSpec.dd >> genere.log
 
@@ -24,11 +26,9 @@ genere -nomodel KWAttributePairName "Variable pair" KWAttributePairName.dd >> ge
 
 genere KWEvaluatedPredictorSpec "Evaluated predictor" KWEvaluatedPredictorSpec.dd >> genere.log
 
-genere -nomodel KWPreprocessingSpec "Preprocessing parameters" KWPreprocessingSpec.dd >> genere.log
+genere -nomodel -noarrayview KWPreprocessingSpec "Preprocessing parameters" KWPreprocessingSpec.dd >> genere.log
 
-genere -nomodel -noarrayview KWDiscretizerSpec "Discretization" KWDiscretizerSpec.dd >> genere.log
-
-genere -nomodel -noarrayview KWGrouperSpec "Value grouping" KWGrouperSpec.dd >> genere.log
+genere -nomodel -noarrayview -specificmodel KWPreprocessingSpec KWPreprocessingAdvancedSpec "Unsupervised parameters" KWPreprocessingAdvancedSpec.dd >> genere.log
 
 genere -nomodel -noarrayview KWDataGridOptimizerParameters "Data Grid optimization" KWDataGridOptimizerParameters.dd >> genere.log
 

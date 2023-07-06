@@ -561,7 +561,7 @@ void KWDataGridManager::ExportFrequencyTableFromOneAttribute(const KWFrequencyVe
 	nTargetValueNumber = 0;
 
 	kwFrequencyTable->SetFrequencyVectorCreator(kwfvCreator->Clone());
-	kwFrequencyTable->Initialize(nSourceValueNumber);
+	kwFrequencyTable->SetFrequencyVectorNumber(nSourceValueNumber);
 	kwFrequencyTable->SetInitialValueNumber(oneAttributeDataGrid.GetAttributeAt(0)->GetInitialValueNumber());
 	kwFrequencyTable->SetGranularizedValueNumber(
 	    oneAttributeDataGrid.GetAttributeAt(0)->GetGranularizedValueNumber());
@@ -1713,7 +1713,7 @@ boolean KWDataGridManager::BuildDataGridFromClassStats(KWDataGrid* targetDataGri
 		// On memorise dans un dictionnaire les attributs selectionnes
 		for (nAttribute = 0; nAttribute < oaAllAttributeStats.GetSize(); nAttribute++)
 		{
-			nkdBestAttributeStats.SetAt((NUMERIC)oaAllAttributeStats.GetAt(nAttribute),
+			nkdBestAttributeStats.SetAt(oaAllAttributeStats.GetAt(nAttribute),
 						    oaAllAttributeStats.GetAt(nAttribute));
 		}
 	}
@@ -1726,7 +1726,7 @@ boolean KWDataGridManager::BuildDataGridFromClassStats(KWDataGrid* targetDataGri
 		// Initialisation de l'attribut s'il a ete selectionne
 		attributeStats = classStats->LookupAttributeStats(sourceAttribute->GetAttributeName());
 		if (attributeStats->GetLevel() > 0 and
-		    (bSmallSourceDataGrid or nkdBestAttributeStats.Lookup((NUMERIC)attributeStats) != NULL))
+		    (bSmallSourceDataGrid or nkdBestAttributeStats.Lookup(attributeStats) != NULL))
 			oaTargetAttributeStats.Add(attributeStats);
 
 		// Arret si grille cible complete
@@ -1834,7 +1834,7 @@ boolean KWDataGridManager::BuildDataGridFromUnivariateProduct(KWDataGrid* target
 		// On memorise dans un dictionnaire les attributs selectionnes
 		for (nAttribute = 0; nAttribute < oaAllAttributeStats.GetSize(); nAttribute++)
 		{
-			nkdBestAttributeStats.SetAt((NUMERIC)oaAllAttributeStats.GetAt(nAttribute),
+			nkdBestAttributeStats.SetAt(oaAllAttributeStats.GetAt(nAttribute),
 						    oaAllAttributeStats.GetAt(nAttribute));
 		}
 	}
@@ -1847,7 +1847,7 @@ boolean KWDataGridManager::BuildDataGridFromUnivariateProduct(KWDataGrid* target
 		// Initialisation de l'attribut s'il a ete selectionne
 		attributeStats = classStats->LookupAttributeStats(sourceAttribute->GetAttributeName());
 		if (attributeStats->GetLevel() > 0 and
-		    (bSmallSourceDataGrid or nkdBestAttributeStats.Lookup((NUMERIC)attributeStats) != NULL))
+		    (bSmallSourceDataGrid or nkdBestAttributeStats.Lookup(attributeStats) != NULL))
 			oaSelectedAtttributes.Add(sourceAttribute);
 
 		// Arret si grille cible complete

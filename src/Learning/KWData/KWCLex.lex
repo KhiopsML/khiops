@@ -1,11 +1,11 @@
 %{
 #include <stdlib.h>
 
-// Visual C++: prise en compte des variantes Windows des fonctions et isatty fileno
-#ifdef  _MSC_VER
-#define isatty _isatty
-#define fileno _fileno
-#endif  // _MSC_VER
+// Desactivation de warnings pour le Visual C++
+#ifdef __MSC__
+#pragma warning(disable : 4505) // C4505: la fonction locale non référencée a été supprimée
+#pragma warning(disable : 4996) // C4996: warning for deprecated POSIX names isatty and fileno
+#endif                          // __MSC__
 
 /* Redefinition du nombre de token max */
 #undef YYLMAX
@@ -247,7 +247,7 @@ name      {letter}({letter}|{digit})*
                           ALString sTmp;
                           ALString sToken;
                           int nInput;
-                          unsigned char c;
+                          char c;
   					      int nCorrectedLineNumber;
                           
                           // Initialisation de la valeur du token
@@ -255,7 +255,7 @@ name      {letter}({letter}|{digit})*
 						  if (not isprint(c))
 						  {
   			                sToken += '[';
-						    sToken += IntToString((int)c);
+						    sToken += IntToString((unsigned char)c);
 						    sToken += ']';
 						  }
 						  else
@@ -273,14 +273,14 @@ name      {letter}({letter}|{digit})*
 						      }
 						      if (not isprint(c))
 							  {
-							    if (sToken.GetLength() < nMaxLength)
+							    if (sToken.GetLength() <= nMaxLength)
 							    {
 								  if (sToken.GetLength()+5 > nMaxLength)
 								    sToken += "...";
 								  else
 								  {
 						            sToken += '[';
-						            sToken += IntToString((int)c);
+						            sToken += IntToString((unsigned char)c);
 						            sToken += ']';
 								  }
 								}

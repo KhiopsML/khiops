@@ -26,19 +26,13 @@ KWClassBuilderView::KWClassBuilderView()
 	// Ajout du parametrage de la base d'origine
 	sourceDataTableView = new KWSTDatabaseTextFileView;
 	sourceDataTableView->SetObject(&sourceDataTable);
-	sourceDataTableView->GetFieldAt("DatabaseName")->SetLabel("Data table file");
 	AddCardField("SourceDataTable", "Input data table", sourceDataTableView);
 
 	// Parametrage de la visibilite des specifications de la base d'origine
-	for (i = 0; i < sourceDataTableView->GetFieldNumber(); i++)
-		sourceDataTableView->GetFieldAtIndex(i)->SetVisible(false);
-	sourceDataTableView->GetFieldAt("DatabaseName")->SetVisible(true);
-	sourceDataTableView->GetFieldAt("HeaderLineUsed")->SetVisible(true);
-	sourceDataTableView->GetFieldAt("FieldSeparator")->SetVisible(true);
-	sourceDataTableView->GetFieldAt("DatabaseFormatDetector")->SetVisible(true);
+	sourceDataTableView->ToBasicReadMode();
 
 	// Le detecteur de format est en mode sans utilisation de dictionnaire
-	cast(KWDatabaseFormatDetectorView*, sourceDataTableView->GetFieldAt("DatabaseFormatDetector"))
+	cast(KWDatabaseFormatDetectorView*, sourceDataTableView->GetDataView()->GetFieldAt("DatabaseFormatDetector"))
 	    ->SetUsingClass(false);
 
 	// Ajout de l'action de visualisation des premieres lignes
@@ -57,25 +51,19 @@ KWClassBuilderView::KWClassBuilderView()
 		{
 			if (sStoredTypesLabel != "")
 				sStoredTypesLabel += ", ";
+			sStoredTypesLabel += KWType::ToString(i);
 		}
-		sStoredTypesLabel += KWType::ToString(i);
 	}
 
 	// Info-bulles
-	sourceDataTableView->GetFieldAt("DatabaseName")->SetHelpText("Name of the data table file");
+	sourceDataTableView->GetDataView()->GetFieldAt("DatabaseName")->SetHelpText("Name of the data table file");
 	classNameList->GetFieldAt("Name")->SetHelpText("Name of dictionary.");
 	GetActionAt("BuildClassDef")
 	    ->SetHelpText(
-		sTmp + "Start the analysis of the data table file to build a dictionary." +
-		"\n The first lines of the file are analyzed in order to determine the type of the variables:" + "\n " +
+		sTmp +
+		"Start the analysis of the data table file to build a dictionary."
+		"\n The first lines of the file are analyzed in order to determine the type of the variables:\n " +
 		sStoredTypesLabel + "\n After analysis, the user can choose the name of the dictionary.");
-	if (GetLearningTextVariableMode())
-		GetActionAt("BuildClassDef")
-		    ->SetHelpText(
-			"Start the analysis of the data table file to build a dictionary."
-			"\n The first lines of the file are analyzed in order to determine the type of the variables:"
-			"\n Categorical, Numerical, Date, Time, Timestamp, TimestampTZ, Text."
-			"\n After analysis, the user can choose the name of the dictionary.");
 	GetActionAt("Exit")->SetHelpText("Close the dialog box."
 					 "\n If dictionaries have been built,"
 					 "\n proposes to save them in a dictionary file.");

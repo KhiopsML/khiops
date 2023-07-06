@@ -42,10 +42,10 @@ KWBenchmarkSpecView::KWBenchmarkSpecView()
 
 	// Parametrage des champs visibles pour la base
 	databaseView->GetFieldAt("ClassName")->SetVisible(false);
-	databaseView->GetFieldAt("SampleNumberPercentage")->SetVisible(false);
-	databaseView->GetFieldAt("SamplingMode")->SetVisible(false);
-	databaseView->GetFieldAt("SelectionAttribute")->SetVisible(false);
-	databaseView->GetFieldAt("SelectionValue")->SetVisible(false);
+	databaseView->GetSamplingView()->GetFieldAt("SampleNumberPercentage")->SetVisible(false);
+	databaseView->GetSamplingView()->GetFieldAt("SamplingMode")->SetVisible(false);
+	databaseView->GetSelectionView()->GetFieldAt("SelectionAttribute")->SetVisible(false);
+	databaseView->GetSelectionView()->GetFieldAt("SelectionValue")->SetVisible(false);
 
 	// ##
 }
