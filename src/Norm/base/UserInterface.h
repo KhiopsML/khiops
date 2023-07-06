@@ -300,7 +300,7 @@ public:
 
 	// Obtention de l'environnement Java JNI, utile pour toutes les methodes JNI
 	// (l'environnement est alloue a la premiere utilisation, et desalloue
-	// automatiquement des qu'il n'y a plus de UIObject en memoire
+	// automatiquement des qu'il n'y a plus de UIObject en memoire)
 	static JNIEnv* GetJNIEnv();
 
 	// Dechargement de la dll JVM si necessaire

@@ -35,10 +35,9 @@ protected:
 	// de discretisation non supervisees
 
 	// Discretisation en intervalle de frequence egale (sinon largeur egale)
-	// Les eventuels intervalles vides sont fusionnes.
 	void EqualBinsDiscretizeValues(boolean bIsEqualFrequency, ContinuousVector* cvSourceValues,
 				       IntVector* ivTargetIndexes, int nTargetValueNumber,
-				       KWFrequencyTable*& kwftTarget) const;
+				       KWFrequencyTable*& kwftTarget, ContinuousVector*& cvBounds) const;
 
 	// Calcul des vecteurs de frequences cumulees par modalite cible
 	// Ces vecteurs sont indexes par les index des valeurs sources, et correspondent
@@ -62,10 +61,11 @@ protected:
 
 	// Creation de la table d'effectifs resultat a partir d'une discretisation d'un quantileBuilder
 	// Toutes les entrees sont disponibles grace a la methode ComputeCumulativeTargetFrequencies
-	// La table d'effectif est fabriquee en sortie
-	void ComputeTargetFrequencyTable(KWQuantileIntervalBuilder* quantileBuilder,
-					 ObjectArray* oaCumulativeTargetFrequencies,
-					 KWFrequencyTable*& kwftTarget) const;
+	// La table d'effectif est fabriquee en sortie, ainsi que le vecteur des bornes des intervalles
+	// dans le cas d'un quantileBuilder de type EqualWidth
+	void ComputeTargetDiscretization(KWQuantileIntervalBuilder* quantileBuilder,
+					 ObjectArray* oaCumulativeTargetFrequencies, KWFrequencyTable*& kwftTarget,
+					 ContinuousVector*& cvBounds) const;
 };
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -79,15 +79,15 @@ public:
 	~KWDiscretizerEqualWidth();
 
 	// Nom de l'algorithme
-	const ALString GetName() const;
+	const ALString GetName() const override;
 
 	// Constructeur generique
-	KWDiscretizer* Create() const;
+	KWDiscretizer* Create() const override;
 
 	// Discretisation
 	// Les eventuels intervalles vides sont fusionnes.
 	void DiscretizeValues(ContinuousVector* cvSourceValues, IntVector* ivTargetIndexes, int nTargetValueNumber,
-			      KWFrequencyTable*& kwftTarget) const;
+			      KWFrequencyTable*& kwftTarget, ContinuousVector*& cvBounds) const override;
 };
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -111,7 +111,7 @@ public:
 	// au final moins d'intervalles que demandes si les decoupages par frequence
 	// tombent sur des valeurs doublons en grand  nombre
 	void DiscretizeValues(ContinuousVector* cvSourceValues, IntVector* ivTargetIndexes, int nTargetValueNumber,
-			      KWFrequencyTable*& kwftTarget) const;
+			      KWFrequencyTable*& kwftTarget, ContinuousVector*& cvBounds) const override;
 };
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -134,7 +134,7 @@ protected:
 	// de frequence egale (sinon de largeur egale)
 	void MODLEqualBinsDiscretizeValues(boolean bIsEqualFrequency, ContinuousVector* cvSourceValues,
 					   IntVector* ivTargetIndexes, int nTargetValueNumber,
-					   KWFrequencyTable*& kwftTarget) const;
+					   KWFrequencyTable*& kwftTarget, ContinuousVector*& cvBounds) const;
 
 	// Calcul du cout d'une partition en n intervalles
 	virtual double ComputePartitionCost(int nIntervalNumber, int nValueNumber) const;
@@ -172,7 +172,7 @@ public:
 	// au final moins d'intervalles que demandes si les decoupages par frequence
 	// tombent sur des valeurs doublon en grand  nombre
 	void DiscretizeValues(ContinuousVector* cvSourceValues, IntVector* ivTargetIndexes, int nTargetValueNumber,
-			      KWFrequencyTable*& kwftTarget) const;
+			      KWFrequencyTable*& kwftTarget, ContinuousVector*& cvBounds) const override;
 };
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -199,5 +199,5 @@ public:
 	// au final moins d'intervalles que demandes si les decoupages par frequence
 	// tombent sur des valeurs doublon en grand  nombre
 	void DiscretizeValues(ContinuousVector* cvSourceValues, IntVector* ivTargetIndexes, int nTargetValueNumber,
-			      KWFrequencyTable*& kwftTarget) const;
+			      KWFrequencyTable*& kwftTarget, ContinuousVector*& cvBounds) const override;
 };

@@ -97,6 +97,10 @@ void PLParallelTask::SetDriver(PLTaskDriver* driverValue)
 	require(not bIsRunning);
 	require(driverValue != NULL);
 
+	// Le driver doit etre positionne avant la declaration des taches
+	// On s'assure ainsi qu'il est declare tres tot dans le programme
+	require(PLParallelTask::nInstanciatedTaskNumber == 0);
+
 	// On ne peut changer que si le driver est sequentiel, pour un driver parallele
 	require(currentDriver->GetTechnology() == PLTaskDriver::GetDriver()->GetTechnology() and
 		driverValue->GetTechnology() != PLTaskDriver::GetDriver()->GetTechnology());

@@ -488,9 +488,8 @@ void KWClass::IndexClass()
 			else
 			{
 				nVarKey = attributeBlock->GetContinuousVarKey(attribute);
-				assert(attributeBlock->nkdAttributesByVarKeys.Lookup((NUMERIC)(longint)nVarKey) ==
-				       NULL);
-				attributeBlock->nkdAttributesByVarKeys.SetAt((NUMERIC)(longint)nVarKey, attribute);
+				assert(attributeBlock->nkdAttributesByVarKeys.Lookup(nVarKey) == NULL);
+				attributeBlock->nkdAttributesByVarKeys.SetAt(nVarKey, attribute);
 			}
 		}
 
@@ -1279,7 +1278,7 @@ void KWClass::DeleteUnusedDerivedAttributes(const KWClassDomain* referenceDomain
 					currentDerivationRule->BuildAllUsedAttributes(attribute, &nkdAllUsedAttributes);
 
 					// Memorisation de l'attribut porteur de la reference vers une table externe
-					nkdAllUsedAttributes.SetAt((NUMERIC)attribute, attribute);
+					nkdAllUsedAttributes.SetAt(attribute, attribute);
 				}
 			}
 
@@ -1323,7 +1322,7 @@ void KWClass::DeleteUnusedDerivedAttributes(const KWClassDomain* referenceDomain
 			// Attribut a detruire s'il est derive ou dans un bloc, et non utilise
 			if (not attribute->GetUsed() and
 			    (attribute->GetDerivationRule() != NULL or attribute->IsInBlock()) and
-			    nkdAllUsedAttributes.Lookup((NUMERIC)attribute) == NULL)
+			    nkdAllUsedAttributes.Lookup(attribute) == NULL)
 			{
 				// Attribut a detruire si absent du domaine de reference
 				referenceAttribute = NULL;
@@ -1397,7 +1396,7 @@ void KWClass::BuildAllUsedClasses(ObjectArray* oaUsedClasses) const
 	// Initialisation avec la classe courante
 	oaUsedClasses->RemoveAll();
 	oaUsedClasses->Add((Object*)this);
-	nkdUsedClasses.SetAt((NUMERIC)this, (Object*)this);
+	nkdUsedClasses.SetAt(this, (Object*)this);
 
 	// Parcours des classes utilises, en completant le tableau au fur et a mesure
 	// pour lesquelles il faut propager la duplication
@@ -1415,10 +1414,9 @@ void KWClass::BuildAllUsedClasses(ObjectArray* oaUsedClasses) const
 				if (attribute->GetClass() != NULL)
 				{
 					// Memorisation si necessaire
-					if (nkdUsedClasses.Lookup((NUMERIC)attribute->GetClass()) == NULL)
+					if (nkdUsedClasses.Lookup(attribute->GetClass()) == NULL)
 					{
-						nkdUsedClasses.SetAt((NUMERIC)attribute->GetClass(),
-								     attribute->GetClass());
+						nkdUsedClasses.SetAt(attribute->GetClass(), attribute->GetClass());
 						oaUsedClasses->Add(attribute->GetClass());
 					}
 				}
@@ -2001,13 +1999,6 @@ boolean KWClass::CheckNameWithMessage(const ALString& sValue, ALString& sMessage
 		if (not bOk)
 			sMessage = "Incorrect name: must not contain end of line char (" + sValue + ")";
 	}
-	if (bOk)
-	{
-		// Test du caractere tabulation
-		bOk = sValue.Find('\t') == -1;
-		if (not bOk)
-			sMessage = "Incorrect name: must not contain tabulation char (" + sValue + ")";
-	}
 
 	// Test de l'absence de caractere d'espace en debut et fin
 	if (bOk)
@@ -2060,7 +2051,7 @@ ALString KWClass::BuildUTF8SubString(const ALString sValue)
 	i = nLength - 1;
 	while (i > 0)
 	{
-		nValidUTF8CharNumber = JSONFile::GetValidUTF8CharLengthAt(sValue, i);
+		nValidUTF8CharNumber = KWTextService::GetValidUTF8CharLengthAt(sValue, i);
 		if (nValidUTF8CharNumber > 0)
 		{
 			nLength = i + nValidUTF8CharNumber;
@@ -2633,7 +2624,7 @@ boolean KWClass::CheckClassComposition(KWAttribute* parentAttribute, NumericKeyD
 		parentClass = parentAttribute->GetParentClass();
 
 	// Ajout de la classe courante dans le dictionnaire des classes utilisees
-	nkdComponentClasses->SetAt((NUMERIC)this, (Object*)this);
+	nkdComponentClasses->SetAt(this, (Object*)this);
 
 	// Parcours des attributs de la classe
 	attribute = GetHeadAttribute();
@@ -2646,7 +2637,7 @@ boolean KWClass::CheckClassComposition(KWAttribute* parentAttribute, NumericKeyD
 			attributeClass = attribute->GetClass();
 
 			// Test si classe deja utilisee
-			if (nkdComponentClasses->Lookup((NUMERIC)attributeClass) == attributeClass)
+			if (nkdComponentClasses->Lookup(attributeClass) == attributeClass)
 			{
 				AddError("Existing composition cycle caused by the recursive use of dictionary " +
 					 attributeClass->GetName() + " by variable " + attribute->GetName());
@@ -2689,7 +2680,7 @@ boolean KWClass::CheckClassComposition(KWAttribute* parentAttribute, NumericKeyD
 	}
 
 	// Supression de la classe courante dans le dictionnaire des classes utilisees
-	nkdComponentClasses->RemoveKey((NUMERIC)this);
+	nkdComponentClasses->RemoveKey(this);
 	return bOk;
 }
 

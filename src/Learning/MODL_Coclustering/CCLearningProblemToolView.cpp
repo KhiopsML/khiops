@@ -52,11 +52,6 @@ void CCLearningProblemToolView::SelectInputCoclustering()
 	UIFileChooserCard openCard;
 	ALString sCoclusteringReportFileName;
 
-	// Execution controlee par licence
-	if (LMLicenseManager::IsEnabled())
-		if (not LMLicenseManager::RequestLicenseKey())
-			return;
-
 	// Ouverture du FileChooser
 	sCoclusteringReportFileName =
 	    openCard.ChooseFile("Select input coclustering", "Open", "FileChooser", "Coclustering\nkhc\nkhcj\njson",

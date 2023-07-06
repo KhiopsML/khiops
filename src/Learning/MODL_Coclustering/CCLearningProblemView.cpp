@@ -6,7 +6,7 @@
 
 CCLearningProblemView::CCLearningProblemView()
 {
-	KWClassManagementView* classManagementView;
+	KWClassManagementActionView* classManagementActionView;
 	KWDatabaseView* databaseView;
 	CCAnalysisSpecView* analysisSpecView;
 	CCAnalysisResultsView* analysisResultsView;
@@ -24,7 +24,7 @@ CCLearningProblemView::CCLearningProblemView()
 	GetActionAt("Exit")->SetVisible(false);
 
 	// Creation des sous fiches (creation generique pour les vues sur bases de donnees)
-	classManagementView = new KWClassManagementView;
+	classManagementActionView = new KWClassManagementActionView;
 	databaseView = KWDatabaseView::CreateDefaultDatabaseTechnologyView();
 	analysisSpecView = new CCAnalysisSpecView;
 	analysisResultsView = new CCAnalysisResultsView;
@@ -32,26 +32,39 @@ CCLearningProblemView::CCLearningProblemView()
 	learningProblemHelpCard = new KWLearningProblemHelpCard;
 
 	// Ajout des sous-fiches
-	AddCardField("ClassManagement", "Data dictionary", classManagementView);
+	AddCardField("ClassManagement", "Data dictionary", classManagementActionView);
 	AddCardField("Database", "Database", databaseView);
 	AddCardField("AnalysisSpec", "Parameters", analysisSpecView);
 	AddCardField("AnalysisResults", "Results", analysisResultsView);
 	AddCardField("LearningTools", "Tools", learningProblemActionView);
 	AddCardField("Help", "Help", learningProblemHelpCard);
 
-	// Le champ des dictionnaires n'est pas visibles dans les parametrages de
-	// base de donnees: il est defini dans la fiche de gestion des dictionnaires
-	databaseView->GetFieldAt("ClassName")->SetVisible(false);
+	// Ajout pour la basxe de train d'un champ en read-only pour rappeler le nom du fichier de dictionnaire
+	// Attention, il s'agit d'un champ d'interface uniquement, a mettre ajour dans EventRefresh
+	databaseView->AddStringField("ClassFileName", "Dictionary file", "");
+	databaseView->GetFieldAt("ClassFileName")->SetEditable(false);
+	databaseView->GetFieldAt("ClassFileName")->SetHelpText("Name of the current dictionary file.");
+	databaseView->MoveFieldBefore("ClassFileName", "DatabaseSpec");
 
-	// Seul le champ sur le rapport de coclustering est visible dans cette vue
-	analysisResultsView->SetResultFieldsVisible(false);
-	analysisResultsView->GetFieldAt("ShortDescription")->SetVisible(true);
-	analysisResultsView->GetFieldAt("CoclusteringFileName")->SetVisible(true);
-	analysisResultsView->GetFieldAt("ExportJSON")->SetVisible(true);
+	// On montre le nom du dictionnaire sur les bases
+	// On utilise le meme nom que dans l'onglet ClassManagement
+	databaseView->GetFieldAt("ClassName")->SetLabel("Analysis dictionary");
 
-	// Parametrage de liste d'aide pour le nom du dictionnaire
-	classManagementView->GetFieldAt("ClassName")->SetStyle("HelpedComboBox");
-	classManagementView->GetFieldAt("ClassName")->SetParameters("ClassManagement.Classes:ClassName");
+	// On parametre la liste des dictionnaires en fonction des dictionnaire charges dans ClassManagement
+	databaseView->GetFieldAt("ClassName")->SetStyle("HelpedComboBox");
+	databaseView->GetFieldAt("ClassName")->SetParameters("ClassManagement.Classes:ClassName");
+
+	// On indique que le champ de parametrage du dictionnaire declenche une action de rafraichissement
+	// de l'interface immediatement apres une mise a jour, pour pouvoir rafraichir les mapping des databases
+	cast(UIElement*, databaseView->GetFieldAt("ClassName"))->SetTriggerRefresh(true);
+
+	// Le champ est visible dans l'onglet train
+	databaseView->GetFieldAt("ClassName")->SetVisible(true);
+
+	// Aide specifique a la base de train
+	databaseView->GetFieldAt("ClassName")
+	    ->SetHelpText("Name of the dictionary related to the database."
+			  "\n Automatically generated from data table file if not specified");
 
 	// Specialisation du parametrage des listes d'aide de la base
 	databaseView->SetHelpListViewPath("Database");
@@ -117,7 +130,7 @@ void CCLearningProblemView::EventUpdate(Object* object)
 
 	// Synchronisation des specifications des bases d'apprentissage et de test avec le dictionnaire en cours
 	// L'appel aux methodes d'acces permet de faire cette synchronisation
-	editedObject->GetDatabase();
+	editedObject->UpdateClassNameFromTrainDatabase();
 
 	// Synchronisation egalement des interfaces pour forcer la coherence entre interface et objet edite
 	cast(KWDatabaseView*, GetFieldAt("Database"))
@@ -134,7 +147,11 @@ void CCLearningProblemView::EventRefresh(Object* object)
 
 	// Synchronisation des specifications des bases d'apprentissage et de test avec le dictionnaire en cours
 	// L'appel aux methodes d'acces permet de faire cette synchronisation
-	editedObject->GetDatabase();
+	editedObject->UpdateClassNameFromTrainDatabase();
+
+	// On rappatrie la valeur du ClassFileName dans le champ read-only correspondant de la base
+	cast(KWDatabaseView*, GetFieldAt("Database"))
+	    ->SetStringValueAt("ClassFileName", editedObject->GetClassManagement()->GetClassFileName());
 
 	// Rafraichissement des listes d'aide
 	RefreshHelpLists();
@@ -144,10 +161,11 @@ void CCLearningProblemView::EventRefresh(Object* object)
 
 void CCLearningProblemView::BuildCoclustering()
 {
-	// Execution controlee par licence
-	if (LMLicenseManager::IsEnabled())
-		if (not LMLicenseManager::RequestLicenseKey())
-			return;
+	boolean bOk = true;
+
+	// Test si on a pas specifie de dictionnaire d'analyse, pour le construire automatiquement a la volee
+	if (GetLearningProblem()->CheckDatabaseName() and GetLearningProblem()->GetDatabase()->GetClassName() == "")
+		bOk = BuildClassFromDataTable();
 
 	// OK si nom du fichier renseigne et classe correcte
 	if (GetLearningProblem()->CheckClass() and GetLearningProblem()->CheckDatabaseName() and
@@ -166,6 +184,7 @@ void CCLearningProblemView::BuildCoclustering()
 void CCLearningProblemView::SetObject(Object* object)
 {
 	CCLearningProblem* learningProblem;
+	KWClassManagementActionView* classManagementActionView;
 
 	require(object != NULL);
 
@@ -173,11 +192,15 @@ void CCLearningProblemView::SetObject(Object* object)
 	learningProblem = cast(CCLearningProblem*, object);
 
 	// Parametrage des sous-fiches
-	cast(KWClassManagementView*, GetFieldAt("ClassManagement"))->SetObject(learningProblem->GetClassManagement());
+	classManagementActionView = cast(KWClassManagementActionView*, GetFieldAt("ClassManagement"));
+	classManagementActionView->SetObject(learningProblem->GetClassManagement());
 	cast(KWDatabaseView*, GetFieldAt("Database"))->SetObject(learningProblem->GetDatabase());
 	cast(CCAnalysisSpecView*, GetFieldAt("AnalysisSpec"))->SetObject(learningProblem->GetAnalysisSpec());
 	cast(CCAnalysisResultsView*, GetFieldAt("AnalysisResults"))->SetObject(learningProblem->GetAnalysisResults());
 	cast(CCLearningProblemActionView*, GetFieldAt("LearningTools"))->SetObject(learningProblem);
+
+	// Parametrage de la vue ClassManagement pour qu'elle connaisse la base
+	classManagementActionView->SetTrainDatabase(learningProblem->GetDatabase());
 
 	// Memorisation de l'objet pour la fiche courante
 	UIObjectView::SetObject(object);
@@ -186,6 +209,86 @@ void CCLearningProblemView::SetObject(Object* object)
 CCLearningProblem* CCLearningProblemView::GetLearningProblem()
 {
 	return cast(CCLearningProblem*, objValue);
+}
+
+boolean CCLearningProblemView::BuildClassFromDataTable()
+{
+	boolean bOk = true;
+	KWDatabaseFormatDetector databaseFormatDetector;
+	KWClassManagementActionView* classManagementActionView;
+	ALString sClassManagementMenuItemName;
+	KWDatabase* database;
+	ALString sClassName;
+	KWClass* kwcClass;
+
+	require(GetLearningProblem()->CheckDatabaseName() and
+		GetLearningProblem()->GetDatabase()->GetClassName() == "");
+
+	// Recherche de la base de travail dans une variable locale, pour travailler les contraintes de coherence
+	// globale
+	database = GetLearningProblem()->GetDatabase();
+
+	// Detection du format de fichier
+	databaseFormatDetector.SetDatabase(database);
+	bOk = databaseFormatDetector.DetectFileFormat();
+
+	// Construction automatique de dictionnaire
+	if (bOk)
+	{
+		// On initialise le nom a partir du prefix du fichier d'apprentissage
+		sClassName = FileService::GetFilePrefix(database->GetDatabaseName());
+		if (sClassName == "")
+			sClassName = FileService::GetFileSuffix(database->GetDatabaseName());
+
+		// On recherche un nom de classe nouveau
+		sClassName = KWClassDomain::GetCurrentDomain()->BuildClassName(sClassName);
+
+		// Demarage du suivi de la tache
+		TaskProgression::SetTitle("Build dictionary fom data table");
+		TaskProgression::Start();
+
+		// Parametrage du driver la base source pour qu'il n'emette pas de warning pour des champs categoriels
+		// trop long Cela permet d'identifier des champs Text via des champs categoriel
+		KWDataTableDriverTextFile::SetOverlengthyFieldsVerboseMode(false);
+
+		// Construction effective de la classe
+		database->SetClassName(sClassName);
+		kwcClass = database->ComputeClass();
+		bOk = (kwcClass != NULL);
+
+		// Synchronisation des nom de dictionnaire partout si ok
+		if (bOk)
+		{
+			// Synchronisation entre ClassManagement et la database
+			GetLearningProblem()->UpdateClassNameFromTrainDatabase();
+		}
+		// Reinitialisation sinon
+		else
+			database->SetClassName("");
+		assert(database == GetLearningProblem()->GetDatabase());
+
+		// Restitutuion du parametrage initial du driver
+		KWDataTableDriverTextFile::SetOverlengthyFieldsVerboseMode(true);
+
+		// Fin du suivi de la tache
+		TaskProgression::Stop();
+	}
+
+	// Nom du menu pour la gestion des dictionnaires
+	classManagementActionView = cast(KWClassManagementActionView*, GetFieldAt("ClassManagement"));
+	sClassManagementMenuItemName = classManagementActionView->GetLabel();
+	sClassManagementMenuItemName += "/";
+	sClassManagementMenuItemName += classManagementActionView->GetActionAt("ManageClasses")->GetLabel();
+
+	// Warning utilisateur pour prevenir de cet usage un peu atypique et de ses limites
+	if (bOk)
+		Global::AddWarning("", "",
+				   "A dictionary has been generated automatically. "
+				   "The field types should be checked and the dictionary saved if necessary. "
+				   "For standard use, refer to the '" +
+				       sClassManagementMenuItemName + "' menu.\n");
+
+	return bOk;
 }
 
 void CCLearningProblemView::RefreshHelpLists()

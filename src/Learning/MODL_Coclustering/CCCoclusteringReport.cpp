@@ -224,6 +224,11 @@ const ALString CCCoclusteringReport::GetJSONReportSuffix()
 	return "khcj";
 }
 
+const ALString CCCoclusteringReport::GetKhcReportSuffix()
+{
+	return "khc";
+}
+
 boolean CCCoclusteringReport::ReadJSONReport(const ALString& sFileName, CCHierarchicalDataGrid* coclusteringDataGrid)
 {
 	boolean bOk = true;
@@ -234,6 +239,7 @@ boolean CCCoclusteringReport::ReadJSONReport(const ALString& sFileName, CCHierar
 	// Initialisation du tokenizer pour analiser le rapport
 	nHeaderInstanceNumber = 0;
 	nHeaderCellNumber = 0;
+	sReportFileName = sFileName;
 	bOk = JSONTokenizer::OpenForRead(GetClassLabel(), sFileName);
 	if (bOk)
 	{
@@ -243,6 +249,7 @@ boolean CCCoclusteringReport::ReadJSONReport(const ALString& sFileName, CCHierar
 		// Fermeture du tokenizer
 		JSONTokenizer::Close();
 	}
+	sReportFileName = "";
 	nHeaderInstanceNumber = 0;
 	nHeaderCellNumber = 0;
 	return bOk;
@@ -260,6 +267,7 @@ boolean CCCoclusteringReport::ReadJSONReportHeader(const ALString& sFileName,
 	// Initialisation du tokenizer pour analiser le rapport
 	nHeaderInstanceNumber = 0;
 	nHeaderCellNumber = 0;
+	sReportFileName = sFileName;
 	bOk = JSONTokenizer::OpenForRead(GetClassLabel(), sFileName);
 	if (bOk)
 	{
@@ -271,6 +279,7 @@ boolean CCCoclusteringReport::ReadJSONReportHeader(const ALString& sFileName,
 		// Fermeture du tokenizer
 		JSONTokenizer::Close();
 	}
+	sReportFileName = "";
 	nHeaderInstanceNumber = 0;
 	nHeaderCellNumber = 0;
 	return bOk;
@@ -358,8 +367,9 @@ int CCCoclusteringReport::DetectFileFormatAndEncoding(const ALString& sFileName,
 
 		// Message d'erreur si pas de format reconnu
 		if (nFileFormat == None)
-			AddError("Format of file " + sFileName + " should either khc or " +
-				 CCCoclusteringReport::GetJSONReportSuffix());
+			AddError("Format of file " + sFileName + " should either " +
+				 CCCoclusteringReport::GetJSONReportSuffix() + " or " +
+				 CCCoclusteringReport::GetKhcReportSuffix());
 
 		// Recherche de l'encodage dans le cas json
 		if (nFileFormat == JSON)
@@ -2578,6 +2588,9 @@ boolean CCCoclusteringReport::InternalReadJSONReport(CCHierarchicalDataGrid* coc
 
 	require(JSONTokenizer::IsOpened());
 
+	// Gestion des erreurs
+	Global::ActivateErrorFlowControl();
+
 	// Debut de fichier
 	bOk = bOk and JSONTokenizer::ReadExpectedToken('{');
 
@@ -2649,6 +2662,9 @@ boolean CCCoclusteringReport::InternalReadJSONReport(CCHierarchicalDataGrid* coc
 		bOk = bOk and JSONTokenizer::ReadExpectedToken(',');
 		bOk = bOk and ReadJSONCells(coclusteringDataGrid);
 	}
+
+	// Gestion des erreurs
+	Global::DesactivateErrorFlowControl();
 	return bOk;
 }
 
@@ -3247,7 +3263,22 @@ boolean CCCoclusteringReport::ReadJSONValueGroups(CCHDGAttribute* dgAttribute, K
 	dValueTypicality = 0;
 	while (bOk and not bIsEnd)
 	{
-		bOk = bOk and JSONTokenizer::ReadDoubleValue(true, dValueTypicality);
+		bOk = bOk and JSONTokenizer::ReadDoubleValue(false, dValueTypicality);
+		// Tolerance pour les typicalite negatives
+
+		if (dValueTypicality < 0)
+			AddWarning(sTmp + "Typicality (" + DoubleToString(dValueTypicality) +
+				   ") less than 0 for variable " + dgAttribute->GetAttributeName() +
+				   " in \"valueTypicalities\" line " +
+				   IntToString(JSONTokenizer::GetCurrentLineIndex()));
+		// Erreur pour les typicalite supereures a 1
+		else if (dValueTypicality > 1)
+		{
+			AddError(sTmp + "Typicality (" + DoubleToString(dValueTypicality) +
+				 ") greater than 1 for variable " + dgAttribute->GetAttributeName() +
+				 " in \"valueTypicalities\" line " + IntToString(JSONTokenizer::GetCurrentLineIndex()));
+			break;
+		}
 		bOk = bOk and JSONTokenizer::ReadArrayNext(bIsEnd);
 		if (bOk)
 			dvValueTypicalities.Add(dValueTypicality);
@@ -4125,7 +4156,7 @@ void CCCoclusteringReport::WriteJSONCells(const CCHierarchicalDataGrid* cocluste
 			nIndex++;
 
 			// Memorisation de l'index associe a la partoe
-			nkdPartIndexes->SetAt((NUMERIC)dgPart, siPartIndex);
+			nkdPartIndexes->SetAt(dgPart, siPartIndex);
 
 			// Partie suivante
 			dgAttribute->GetNextPart(dgPart);
@@ -4149,7 +4180,7 @@ void CCCoclusteringReport::WriteJSONCells(const CCHierarchicalDataGrid* cocluste
 
 				// Recherche de l'index associe a la partie
 				nkdPartIndexes = cast(NumericKeyDictionary*, oaAttributePartIndexes.GetAt(nAttribute));
-				siPartIndex = cast(KWSortableIndex*, nkdPartIndexes->Lookup((NUMERIC)dgPart));
+				siPartIndex = cast(KWSortableIndex*, nkdPartIndexes->Lookup(dgPart));
 
 				// Ecriture de l'index
 				fJSON->WriteInt(siPartIndex->GetIndex());

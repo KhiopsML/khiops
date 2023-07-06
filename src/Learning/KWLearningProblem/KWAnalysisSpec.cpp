@@ -16,6 +16,7 @@ KWAnalysisSpec::KWAnalysisSpec()
 	modelingSpec = new KWModelingSpec;
 	recoderSpec = new KWRecoderSpec;
 	preprocessingSpec = new KWPreprocessingSpec;
+	histogramSpec = new MHHistogramSpec;
 
 	// ##
 }
@@ -27,6 +28,7 @@ KWAnalysisSpec::~KWAnalysisSpec()
 	delete modelingSpec;
 	delete recoderSpec;
 	delete preprocessingSpec;
+	delete histogramSpec;
 
 	// ##
 }
@@ -92,6 +94,11 @@ KWRecoderSpec* KWAnalysisSpec::GetRecoderSpec()
 KWPreprocessingSpec* KWAnalysisSpec::GetPreprocessingSpec()
 {
 	return preprocessingSpec;
+}
+
+MHHistogramSpec* KWAnalysisSpec::GetHistogramSpec()
+{
+	return histogramSpec;
 }
 
 // ##

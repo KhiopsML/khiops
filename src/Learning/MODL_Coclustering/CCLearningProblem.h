@@ -50,6 +50,18 @@ public:
 	// Resultats d'analyse, post-processing et deploiement
 	CCAnalysisResults* GetAnalysisResults();
 
+	//////////////////////////////////////////////////////////////////////////////////
+	// Synchronisation du dictionnaire entre le AnalysisDictionary de ClassManagement
+	// et celui de Database
+	// En effet, ces deux dictionnaires doivent etre les meme, mais il peuvent etre
+	// edites depuis l'interface depuis plusieurs vues, et doivent etre synchronises.
+
+	// Synchronisation depuis ClassManagement
+	void UpdateClassNameFromClassManagement();
+
+	// Synchronisation depuis TrainDatabase
+	void UpdateClassNameFromTrainDatabase();
+
 	////////////////////////////////////////////////////////
 	// Acces direct aux attributs principaux
 
@@ -108,22 +120,16 @@ public:
 	//////////////////////////////////////////////////////////////
 	// Services de base
 
-	// Construction d'un chemin de fichier a partir d'un nom de fichier
-	// et d'un prefixe pour la partie nom du fichier
-	// Si le repertoire des fichiers resultats n'est pas specifie, on prend celui de la
-	// base d'apprentissage (si bInputCoclustering=false) ou celui du fichier de d'entree
-	// de coclustering (si bInputCoclustering=true)
-	// On ajoute l'eventuel suffixe aux noms des fichiers de sortie
-	// On rend vide si le fichier en entree est vide
-	const ALString BuildOutputFilePathName(const ALString& sFileName, boolean bInputCoclustering) const;
+	// Verification du chemin de repertoire complet en sortie, pour une tache donnee
+	// On tente de construire les repertoires en sortie
+	// On rend false avec message d'erreur si echec
+	boolean CheckResultDirectory(int nTaskId) const;
 
-	// Construction du nom du chemin des fichier en sortie
-	// Si le repertoire des fichiers resultats n'est pas specifie, on prend celui de la base d'apprentissage
-	// S'il est relatif, on le concatene a celui de la base d'apprentissage
-	// S'il est absolu, on le prend tel quel
-	// S'il commence par ./, on le considere comme absolu, ce qui revient a le traiter  en relatif par
-	//  rapport au directory courant
-	const ALString BuildOutputPathName(boolean bInputCoclustering) const;
+	// Construction d'un chemin de fichier en sortie, pour un des fichiers resultats possibles,
+	const ALString BuildOutputFilePathName(int nTaskId) const;
+
+	// Construction d'un chemin de fichier khc en sortie, pour un des fichiers resultats possibles,
+	const ALString BuildKhcOutputFilePathName(int nTaskId) const;
 
 	// Libelles utilisateur: nom du module de l'application (GetLearningModuleName())
 	const ALString GetClassLabel() const override;
@@ -135,6 +141,15 @@ protected:
 	void WriteSymbolClusters(const CCHDGAttribute* symbolCoclusteringAttribute, ostream& ost);
 	void WriteContinuousClusters(const CCHDGAttribute* continuousCoclusteringAttribute, ostream& ost);
 
+	// Nom du chemin du fichier specifie en sortie pour une tache donnees
+	const ALString GetSpecifiedOutputFileName(int nTaskId) const;
+
+	// Libelle du fichier en sortie en sortie pour une tache donnees
+	const ALString GetOutputFileLabel(int nTaskId) const;
+
+	// Retourne le service de construction des chemins de fichier en sortie
+	const KWResultFilePathBuilder* GetResultFilePathBuilder(int nTaskId) const;
+
 	// Sous-parties du probleme d'apprentissage
 	KWClassManagement* classManagement;
 	KWDatabase* database;
@@ -142,4 +157,7 @@ protected:
 	CCAnalysisResults* analysisResults;
 	CCPostProcessingSpec* postProcessingSpec;
 	CCDeploymentSpec* deploymentSpec;
+
+	// Service de construction du chemin des fichiers en sortie
+	mutable KWResultFilePathBuilder resultFilePathBuilder;
 };

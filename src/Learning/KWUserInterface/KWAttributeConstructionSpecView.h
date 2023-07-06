@@ -50,14 +50,6 @@ public:
 
 	// ## Custom declarations
 
-#ifdef DEPRECATED_V10
-	// DEPRECATED V10: actions obsoletes, conserves de facon cachee en V10 pour compatibilite ascendante des
-	// scenarios
-	void DEPRECATEDInspectConstructionDomain();
-	void DEPRECATEDInspectAttributeCreationParameters();
-	void DEPRECATEDInspectRecodingSpec();
-#endif // DEPRECATED_V10
-
 	// ##
 	////////////////////////////////////////////////////////
 	///// Implementation

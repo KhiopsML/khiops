@@ -12,6 +12,10 @@
 
 // ## Custom includes
 
+#include "KWDatabase.h"
+#include "KWResultFilePathBuilder.h"
+#include "KWVersion.h"
+
 // ##
 
 ////////////////////////////////////////////////////////////
@@ -31,21 +35,17 @@ public:
 	///////////////////////////////////////////////////////////
 	// Acces aux attributs
 
-	// Result files directory
-	const ALString& GetResultFilesDirectory() const;
-	void SetResultFilesDirectory(const ALString& sValue);
-
-	// Result files prefix
-	const ALString& GetResultFilesPrefix() const;
-	void SetResultFilesPrefix(const ALString& sValue);
+	// Coclustering report
+	const ALString& GetCoclusteringFileName() const;
+	void SetCoclusteringFileName(const ALString& sValue);
 
 	// Short description
 	const ALString& GetShortDescription() const;
 	void SetShortDescription(const ALString& sValue);
 
-	// Coclustering report
-	const ALString& GetCoclusteringFileName() const;
-	void SetCoclusteringFileName(const ALString& sValue);
+	// Export as khc
+	boolean GetExportAsKhc() const;
+	void SetExportAsKhc(boolean bValue);
 
 	// Input coclustering report
 	const ALString& GetInputCoclusteringFileName() const;
@@ -63,10 +63,6 @@ public:
 	const ALString& GetCoclusteringDictionaryFileName() const;
 	void SetCoclusteringDictionaryFileName(const ALString& sValue);
 
-	// Export JSON
-	boolean GetExportJSON() const;
-	void SetExportJSON(boolean bValue);
-
 	///////////////////////////////////////////////////////////
 	// Divers
 
@@ -79,23 +75,28 @@ public:
 
 	// ## Custom declarations
 
+	// Parametrage du LearningProblem, pour avoir acces a son service de recherche de chemin de fichier
+	void SetTrainDatabase(const KWDatabase* database);
+	const KWDatabase* GetTrainDatabase() const;
+
 	// ##
 
 	////////////////////////////////////////////////////////
 	///// Implementation
 protected:
 	// Attributs de la classe
-	ALString sResultFilesDirectory;
-	ALString sResultFilesPrefix;
-	ALString sShortDescription;
 	ALString sCoclusteringFileName;
+	ALString sShortDescription;
+	boolean bExportAsKhc;
 	ALString sInputCoclusteringFileName;
 	ALString sClusterFileName;
 	ALString sPostProcessedCoclusteringFileName;
 	ALString sCoclusteringDictionaryFileName;
-	boolean bExportJSON;
 
 	// ## Custom implementation
+
+	// Base de donnees servant a obtenir le chemin des fichier en entree
+	const KWDatabase* trainDatabase;
 
 	// ##
 };
@@ -103,24 +104,14 @@ protected:
 ////////////////////////////////////////////////////////////
 // Implementations inline
 
-inline const ALString& CCAnalysisResults::GetResultFilesDirectory() const
+inline const ALString& CCAnalysisResults::GetCoclusteringFileName() const
 {
-	return sResultFilesDirectory;
+	return sCoclusteringFileName;
 }
 
-inline void CCAnalysisResults::SetResultFilesDirectory(const ALString& sValue)
+inline void CCAnalysisResults::SetCoclusteringFileName(const ALString& sValue)
 {
-	sResultFilesDirectory = sValue;
-}
-
-inline const ALString& CCAnalysisResults::GetResultFilesPrefix() const
-{
-	return sResultFilesPrefix;
-}
-
-inline void CCAnalysisResults::SetResultFilesPrefix(const ALString& sValue)
-{
-	sResultFilesPrefix = sValue;
+	sCoclusteringFileName = sValue;
 }
 
 inline const ALString& CCAnalysisResults::GetShortDescription() const
@@ -133,14 +124,14 @@ inline void CCAnalysisResults::SetShortDescription(const ALString& sValue)
 	sShortDescription = sValue;
 }
 
-inline const ALString& CCAnalysisResults::GetCoclusteringFileName() const
+inline boolean CCAnalysisResults::GetExportAsKhc() const
 {
-	return sCoclusteringFileName;
+	return bExportAsKhc;
 }
 
-inline void CCAnalysisResults::SetCoclusteringFileName(const ALString& sValue)
+inline void CCAnalysisResults::SetExportAsKhc(boolean bValue)
 {
-	sCoclusteringFileName = sValue;
+	bExportAsKhc = bValue;
 }
 
 inline const ALString& CCAnalysisResults::GetInputCoclusteringFileName() const
@@ -181,16 +172,6 @@ inline const ALString& CCAnalysisResults::GetCoclusteringDictionaryFileName() co
 inline void CCAnalysisResults::SetCoclusteringDictionaryFileName(const ALString& sValue)
 {
 	sCoclusteringDictionaryFileName = sValue;
-}
-
-inline boolean CCAnalysisResults::GetExportJSON() const
-{
-	return bExportJSON;
-}
-
-inline void CCAnalysisResults::SetExportJSON(boolean bValue)
-{
-	bExportJSON = bValue;
 }
 
 // ## Custom inlines

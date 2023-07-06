@@ -295,9 +295,9 @@ KWDRTablePartition::ComputeObjectArrayValueBlockResult(const KWObject* kwoObject
 	//
 	// Variables de travail
 	//  . oaSparseParts: tableau de travail de taille P, memorisant pour chaque index sparse de partie
-	//       la partie si elle a	 ete pas retenue;
+	//       la partie si elle a ete pas retenue;
 	//       ce vecteur de taille P est preinitialise avec des NULL, qui servent d'indicateur de non utilisation
-	//  . ivUsedSparseIndexes: vecteur des index sparse de partie utilises;
+	//  . ivUsedSparseIndexes: vecteur des index sparse de parties utilises;
 	//       ce vecteur est utilise temporairement, et atteint sa taille maximum T en fin de traitement
 	//       quand toutes les parties utilises ont ete identifiees
 	//

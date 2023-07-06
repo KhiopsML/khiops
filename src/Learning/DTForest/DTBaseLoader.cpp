@@ -214,7 +214,8 @@ void DTBaseLoader::Write(ostream& ost)
 
 		const Symbol sInstanceModality = tuple->GetSymbolAt(0);
 
-		ost << "class : " << sInstanceModality.GetValue() << "Freq : " << tuple->GetFrequency() << endl;
+		ost << "class : " << TSV::Export(sInstanceModality.GetValue()) << "Freq : " << tuple->GetFrequency()
+		    << endl;
 		// targetModalitiesCount->SetAt(sInstanceModality.GetNumericKey(), modalityCount);
 	}
 }

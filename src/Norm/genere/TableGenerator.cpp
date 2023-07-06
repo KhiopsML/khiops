@@ -47,6 +47,16 @@ void TableGenerator::SetSuperClassName(const ALString& sValue)
 	sSuperClassName = sValue;
 }
 
+const ALString& TableGenerator::GetSpecificModelClassName() const
+{
+	return sSpecificModelClassName;
+}
+
+void TableGenerator::SetSpecificModelClassName(const ALString& sValue)
+{
+	sSpecificModelClassName = sValue;
+}
+
 const ALString& TableGenerator::GetClassUserLabel() const
 {
 	return sClassUserLabel;
@@ -55,6 +65,48 @@ const ALString& TableGenerator::GetClassUserLabel() const
 void TableGenerator::SetClassUserLabel(const ALString& sValue)
 {
 	sClassUserLabel = sValue;
+}
+
+const ALString TableGenerator::GetModelClassName() const
+{
+	if (GetSpecificModelClassName() != "")
+		return GetSpecificModelClassName();
+	else
+		return GetClassName();
+}
+
+const ALString TableGenerator::GetViewClassName() const
+{
+	return GetClassName() + "View";
+}
+
+const ALString TableGenerator::GetArrayViewClassName() const
+{
+	return GetClassName() + "ArrayView";
+}
+
+const ALString TableGenerator::GetModelSuperClassName() const
+{
+	if (GetSuperClassName() == "")
+		return "Object";
+	else
+		return GetSuperClassName();
+}
+
+const ALString TableGenerator::GetViewSuperClassName() const
+{
+	if (GetSuperClassName() == "")
+		return "UIObjectView";
+	else
+		return GetSuperClassName() + "View";
+}
+
+const ALString TableGenerator::GetArrayViewSuperClassName() const
+{
+	if (GetSuperClassName() == "")
+		return "UIObjectArrayView";
+	else
+		return GetSuperClassName() + "ArrayView";
 }
 
 void TableGenerator::SetGenereModel(boolean bValue)
@@ -395,8 +447,8 @@ void TableGenerator::Genere() const
 	}
 }
 
-void TableGenerator::GenereWith(const ALString& sName, const ALString& sSuperName, const ALString& sLabel,
-				const ALString& sAttributeFileName)
+void TableGenerator::GenereWith(const ALString& sName, const ALString& sSpecificModelName, const ALString& sSuperName,
+				const ALString& sLabel, const ALString& sAttributeFileName)
 {
 	IntVector ivMandatoryFieldIndexes;
 	AttributeTable* attTable;
@@ -406,6 +458,7 @@ void TableGenerator::GenereWith(const ALString& sName, const ALString& sSuperNam
 
 	// Initialisation des attributs
 	SetClassName(sName);
+	SetSpecificModelClassName(sSpecificModelName);
 	SetSuperClassName(sSuperName);
 	SetClassUserLabel(sLabel);
 	attTable = new AttributeTable;
@@ -435,8 +488,21 @@ void TableGenerator::GenereWith(const ALString& sName, const ALString& sSuperNam
 
 	// Verification de la syntaxe des nom de classe
 	bOk = bOk and CheckClassName(GetClassName());
-	if (GetSuperClassName() != "")
-		bOk = bOk and CheckClassName(GetSuperClassName());
+	bOk = bOk and CheckClassName(GetSpecificModelClassName());
+	bOk = bOk and CheckClassName(GetSuperClassName());
+	if (bOk and GetSuperClassName() != "" and GetClassName() == GetSuperClassName())
+	{
+		bOk = false;
+		Error("Class name <" + GetClassName() + "> must be different from super class name <" +
+		      GetSuperClassName() + ">");
+	}
+	if (bOk and GetSuperClassName() != "" and GetSpecificModelClassName() != "" and
+	    GetSpecificModelClassName() == GetSuperClassName())
+	{
+		bOk = false;
+		Error("Specific model class name <" + GetSpecificModelClassName() +
+		      "> must be different from super class name <" + GetSuperClassName() + ">");
+	}
 
 	// Generation
 	if (bOk)

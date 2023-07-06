@@ -2,19 +2,6 @@
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
-/*
- * #%L
- * Software Name: Khiops Interpretation
- * Version : 9.0
- * %%
- * Copyright (C) 2019 Orange
- * This software is the confidential and proprietary information of Orange.
- * You shall not disclose such confidential information and shall use it only
- * in accordance with the terms of the license agreement you entered into
- * with Orange.
- * #L%
- */
-
 #ifndef PT_INTERPRETATION_DICTIONARY_H
 #define PT_INTERPRETATION_DICTIONARY_H
 
@@ -57,6 +44,7 @@ public:
 	 * le dico d'interpretation */
 	boolean UpdateInterpretationAttributes();
 
+	const Symbol SHAPLEY_LABEL = "Shapley";
 	const Symbol NORMALIZED_ODDS_RATIO_LABEL = "NormalizedOddsRatio";
 	const Symbol MIN_PROBA_DIFF_LABEL = "MinProbaDiff";
 	const Symbol WEIGHT_EVIDENCE_LABEL = "WeightEvidence";

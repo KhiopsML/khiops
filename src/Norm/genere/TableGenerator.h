@@ -27,19 +27,40 @@ public:
 	~TableGenerator();
 
 	///////////////////////////////////////////////////////////
-	// Attributs
+	// Attributs de specification des classe a generer
 
-	// Nom de la classe a generer
+	// Nom de base de la classe a generer
 	const ALString& GetClassName() const;
 	void SetClassName(const ALString& sValue);
 
-	// Nom de la classe mere de la classe a generer
+	// Nom de base de la classe mere de la classe a generer
+	// Par defaut vide, si on herite directement des classe standard de la librairie
 	const ALString& GetSuperClassName() const;
 	void SetSuperClassName(const ALString& sValue);
+
+	// Nom specifique de classe de modele a generer
+	// Par defaut vide, si l'on prend le nom de base a la fois pour le modele et les vue
+	const ALString& GetSpecificModelClassName() const;
+	void SetSpecificModelClassName(const ALString& sValue);
 
 	// Libelle utilisateur de la classe a generer
 	const ALString& GetClassUserLabel() const;
 	void SetClassUserLabel(const ALString& sValue);
+
+	///////////////////////////////////////////////////////////
+	// Nom des classes a generer
+
+	// Classe de model a generer
+	const ALString GetModelClassName() const;
+
+	// Classes de vue a generer
+	const ALString GetViewClassName() const;
+	const ALString GetArrayViewClassName() const;
+
+	// Classes ancetre des classes a generer
+	const ALString GetModelSuperClassName() const;
+	const ALString GetViewSuperClassName() const;
+	const ALString GetArrayViewSuperClassName() const;
 
 	///////////////////////////////////////////////////////////
 	// Parametrage de ce qui est a generer (true par defaut)
@@ -68,8 +89,8 @@ public:
 
 	// Methodes de generation
 	void Genere() const;
-	void GenereWith(const ALString& sName, const ALString& sSuperName, const ALString& sLabel,
-			const ALString& sAttributeFileName);
+	void GenereWith(const ALString& sName, const ALString& sSpecificModelName, const ALString& sSuperName,
+			const ALString& sLabel, const ALString& sAttributeFileName);
 
 	//////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
@@ -126,8 +147,9 @@ protected:
 
 	// Attributs de base
 	ALString sClassName;
-	ALString sClassUserLabel;
 	ALString sSuperClassName;
+	ALString sSpecificModelClassName;
+	ALString sClassUserLabel;
 	AttributeTable* attAttributeTable;
 	QueryServices* qsAttributeRangServices;
 	AttributeTable* attFieldTable;

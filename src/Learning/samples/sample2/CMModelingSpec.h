@@ -2,11 +2,6 @@
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
-////////////////////////////////////////////////////////////
-// Wed Jun 27 17:02:15 2007
-// File generated  with GenereTable
-// Insert your specific code inside "//## " sections
-
 #pragma once
 
 #include "CMMajorityClassifier.h"
@@ -27,9 +22,9 @@ public:
 	////////////////////////////////////////////////////////
 	// Acces aux attributs
 
-	/// CM classifier
-	boolean GetCMClassifier() const;
-	void SetCMClassifier(boolean bValue);
+	/// Classifier majoritaire
+	boolean GetTrainMajorityClassifier() const;
+	void SetTrainMajorityClassifier(boolean bValue);
 
 	////////////////////////////////////////////////////////
 	// Divers
@@ -41,30 +36,28 @@ public:
 	const ALString GetClassLabel() const;
 	const ALString GetObjectLabel() const;
 
-	// ## Custom declarations
-
-	/// Parametrage d'un predicteur CM
-	CMMajorityClassifier* GetClassifieurMajoritaire();
+	/// Parametrage d'un predicteur majoritaire
+	CMMajorityClassifier* GetMajorityClassifier();
 
 	////////////////////////////////////////////////////////
 	//// Implementation
 protected:
 	/// Apprentissage ou non du classifieur majoritaire
-	boolean bCMClassifier;
+	boolean bTrainMajorityClassifier;
 
 	/// Parametrage du classifieur
-	CMMajorityClassifier classifieurMajoritaire;
+	CMMajorityClassifier majorityClassifier;
 };
 
 ////////////////////////////////////////////////////////////
 // Implementations inline
 
-inline boolean CMModelingSpec::GetCMClassifier() const
+inline boolean CMModelingSpec::GetTrainMajorityClassifier() const
 {
-	return bCMClassifier;
+	return bTrainMajorityClassifier;
 }
 
-inline void CMModelingSpec::SetCMClassifier(boolean bValue)
+inline void CMModelingSpec::SetTrainMajorityClassifier(boolean bValue)
 {
-	bCMClassifier = bValue;
+	bTrainMajorityClassifier = bValue;
 }

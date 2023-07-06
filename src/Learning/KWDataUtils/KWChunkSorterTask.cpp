@@ -477,7 +477,6 @@ boolean KWChunkSorterTask::SlaveProcess()
 	int nFieldError;
 	boolean bLastLine = false;
 	int nMaxLineLength;
-	ALString sLocalHugeBuffer;
 
 	// Initialisations
 	outputFile = NULL;
@@ -522,8 +521,8 @@ boolean KWChunkSorterTask::SlaveProcess()
 			inputFile->SetFileName(sFileURI);
 			inputFile->SetFieldSeparator(shared_cInputSeparator.GetValue());
 
-			// Pas de gestion du BOM du fichier (interne), sauf dans le cas shared_bOnlyOneBucket (fichier
-			// utilisateur)
+			// Pas de gestion du BOM du fichier (interne), sauf dans le cas cas shared_bOnlyOneBucket
+			// (fichier utilisateur)
 			if (not shared_bOnlyOneBucket)
 				inputFile->SetUTF8BomManagement(false);
 
@@ -659,26 +658,16 @@ boolean KWChunkSorterTask::SlaveProcess()
 			ensure(outputFile->GetBufferSize() > 0);
 			assert(!shared_bOnlyOneBucket or lOneBucketFileSize > 0);
 
-			// Ouverture
+			// Ouverture et reserve de la taille du fichier qui va etre ecrite pour eviter la fragmentation
+			// du disque
 			bOk = outputFile->Open();
+			outputFile->ReserveExtraSize(lCumulatedFileSize);
 			if (bOk)
 			{
-				if (bSameSeparator)
-				{
-					// On reserve la taille du fichier pour eviter la fragmentation du disque,
-					// seulement dans le cas ou les separateurs sont identiques. Si ils sont
-					// differents, le chanp ecrit peut etre plus petit que le chanp lu car on
-					// supprime les caracteres '"'. Dans ce cas, on aura reserve trop de memoire et
-					// le fichier sera corrompu
-					outputFile->ReserveExtraSize(lCumulatedFileSize);
-				}
-				else
-				{
-					// Utilisation d'un MemoryInputBufferedFile pour transformer le champ si les
-					// separateurs sont differents
+				// Utilisation d'un MemoryInputBufferedFile pour transformer le champ si les separateurs
+				// sont differents
+				if (not bSameSeparator)
 					memoryFile.SetBufferSize(nMaxLineLength);
-				}
-
 				for (i = 0; i < oaKeyLines.GetSize(); i++)
 				{
 					bLastLine = false;
@@ -704,12 +693,7 @@ boolean KWChunkSorterTask::SlaveProcess()
 							bEndOfLine = memoryFile.GetNextField(sField, nFieldLength,
 											     nFieldError, bLineTooLong);
 							ensure(bLineTooLong == false);
-
-							// Recopie de sField dans un buffer intermediaire car sField est
-							// le buffer de grande taille qui est unique (GetHugeBuffer) Ce
-							// buffer est modifie dans WriteField ce qui produirait un bug
-							sLocalHugeBuffer = sField;
-							outputFile->WriteField(sLocalHugeBuffer);
+							outputFile->WriteField(sField);
 							if (not bEndOfLine)
 								outputFile->Write(shared_cOutputSeparator.GetValue());
 						}
@@ -724,7 +708,7 @@ boolean KWChunkSorterTask::SlaveProcess()
 						    nLineEndPos - nLineBeginPos);
 
 						// Cas particulier du InMemory : pour la derniere ligne, il faut peut
-						// etre ajouter un EOL (on l'a fait de toute facon si les separateurs
+						// etre ajouter un EOL (on l'a fait de toute façon si les separateurs
 						// sont differents)
 						if (shared_bOnlyOneBucket and nLineEndPos == lOneBucketFileSize)
 						{

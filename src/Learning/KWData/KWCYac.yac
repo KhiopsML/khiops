@@ -930,14 +930,10 @@ typeDeclaration:
         }
     | TEXTTYPE
         {
-		  if (not GetLearningTextVariableMode())
-		  	yyerror("Type Text is unknown");
           $$ = KWType::Text;
         }
     | TEXTLISTTYPE
         {
-		  if (not GetLearningTextVariableMode())
-		  	yyerror("Type TextList is unknown");
           $$ = KWType::TextList;
         }
     | OBJECTTYPE

@@ -513,11 +513,7 @@ const ALString InputBufferedFile::GetFieldErrorLabel(int nFieldError)
 
 	require(FieldNoError < nFieldError and nFieldError <= FieldTooLong);
 
-	if (nFieldError == FieldTabReplaced)
-		return "tabulation replaced by space char";
-	else if (nFieldError == FieldCtrlZReplaced)
-		return "Ctrl-Z (ascii 26) replaced by space char";
-	else if (nFieldError == FieldMiddleDoubleQuote)
+	if (nFieldError == FieldMiddleDoubleQuote)
 		return "double-quote in the middle of the field should be paired";
 	else if (nFieldError == FieldMissingEndDoubleQuote)
 		return "missing double-quote at the end of the field";
@@ -537,7 +533,6 @@ const ALString InputBufferedFile::GetLineTooLongErrorLabel()
 
 boolean InputBufferedFile::GetNextField(char*& sField, int& nFieldLength, int& nFieldError, boolean& bLineTooLong)
 {
-	const char cCtrlZ = char(26);
 	boolean bUnconditionalLoop = true; // Pour eviter un warning dans la boucle
 	char c;
 	boolean bEndOfLine;
@@ -611,11 +606,14 @@ boolean InputBufferedFile::GetNextField(char*& sField, int& nFieldLength, int& n
 		nFieldError = FieldTooLong;
 
 	// Supression des blancs en fin (TrimRight)
+	// Attention: on utilise iswspace et non isspace, systematiquement dans tous les sources
+	// Une tentative de passage a isspace a entraine une degradation des performances de presque 25%
+	// dans un traitement complet impliquant des lecture de fichier
 	i--;
 	while (i >= 0)
 	{
 		c = sField[i];
-		if (not iswspace(c) and c != cCtrlZ)
+		if (not iswspace(c))
 			break;
 		i--;
 	}
@@ -626,7 +624,7 @@ boolean InputBufferedFile::GetNextField(char*& sField, int& nFieldLength, int& n
 
 	// Supression des blancs en debut (TrimLeft)
 	iStart = 0;
-	while ((c = sField[iStart]) != '\0' and (iswspace(c) or c == cCtrlZ))
+	while ((c = sField[iStart]) != '\0' and iswspace(c))
 		iStart++;
 	if (iStart > 0)
 	{
@@ -637,28 +635,6 @@ boolean InputBufferedFile::GetNextField(char*& sField, int& nFieldLength, int& n
 		memmove(sField, &sField[iStart], i + 1);
 	}
 	assert(sField[i] == '\0');
-
-	// Remplacement des tabulations et Ctrl-Z par des blancs
-	iStart = i - 1;
-	while (iStart >= 0)
-	{
-		c = sField[iStart];
-		// Remplacement de la tabulation, qui pose probleme dans les rapports de visualisation
-		if (c == '\t')
-		{
-			if (nFieldError == FieldNoError)
-				nFieldError = FieldTabReplaced;
-			sField[iStart] = ' ';
-		}
-		// Remplacement du caractere Ctrl-Z, qui fait planter le parser lex et yacc des dictionnaires
-		else if (c == cCtrlZ)
-		{
-			if (nFieldError == FieldNoError)
-				nFieldError = FieldCtrlZReplaced;
-			sField[iStart] = ' ';
-		}
-		iStart--;
-	}
 
 	// Memorisation de la longueur du champ
 	nFieldLength = i;

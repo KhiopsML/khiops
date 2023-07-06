@@ -163,6 +163,11 @@ public:
 	// Effectif total des tuples de la table
 	int GetTotalFrequency() const;
 
+	// Nombre des valeurs manquantes pour les attributs sparse
+	// Pertinent dans le cas de table de tuples univariees
+	void SetSparseMissingValueNumber(int nValueNumber);
+	int GetSparseMissingValueNumber() const;
+
 	// Acces aux tuples
 	// Les tuples sont tries par valeurs croissantes
 	const KWTuple* GetAt(int nIndex) const;
@@ -292,6 +297,9 @@ protected:
 	// Effectif total
 	int nTotalFrequency;
 
+	// Nombre des valeurs manquantes en mode sparse
+	int nSparseMissingValueNumber;
+
 	// Liste triee pour la gestion du mode edition
 	// En mode edition, tous les tuples sont dans cette liste, qui en assure l'unicite
 	SortedList* slTuples;
@@ -332,9 +340,9 @@ protected:
 ////////////////////////////////////////////////////////////////////
 // Methode en inline
 
-#ifdef _MSC_VER
+#ifdef __MSC__
 #pragma warning(disable : 26495) // disable C26495 warning("La variable'% variable% 'n'est pas initialisee...")
-#endif                           // _MSC_VER
+#endif                           // __MSC__
 
 inline KWTuple::KWTuple()
 {
@@ -342,9 +350,9 @@ inline KWTuple::KWTuple()
 	// methode NewTuple appelante Cela declenche un warning sous Visual C++ 2019, que l'on peut ignorer
 }
 
-#ifdef _MSC_VER
+#ifdef __MSC__
 #pragma warning(default : 26495)
-#endif // _MSC_VER
+#endif // __MSC__
 
 inline KWTuple::~KWTuple() {}
 
@@ -450,6 +458,16 @@ inline int KWTupleTable::GetSize() const
 inline int KWTupleTable::GetTotalFrequency() const
 {
 	return nTotalFrequency;
+}
+
+inline void KWTupleTable::SetSparseMissingValueNumber(int nValueNumber)
+{
+	nSparseMissingValueNumber = nValueNumber;
+}
+
+inline int KWTupleTable::GetSparseMissingValueNumber() const
+{
+	return nSparseMissingValueNumber;
 }
 
 inline const KWTuple* KWTupleTable::GetAt(int nIndex) const

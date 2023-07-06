@@ -9,6 +9,21 @@ boolean KWDiscretizerMODLFamily::IsMODLFamily() const
 	return true;
 }
 
+KWMODLHistogramResults* KWDiscretizerMODLFamily::BuildMODLHistogramResults() const
+{
+	return NULL;
+}
+
+KWMODLHistogramResults* KWDiscretizerMODLFamily::CreateMODLHistogramResults() const
+{
+	return NULL;
+}
+
+const PLSharedObject* KWDiscretizerMODLFamily::GetMODLHistogramResultsSharedObject() const
+{
+	return NULL;
+}
+
 //////////////////////////////////////////////////////////////////////////////////
 // Classe KWDiscretizerMODL
 
@@ -504,7 +519,7 @@ void KWDiscretizerMODL::GranularizeFrequencyTable(KWFrequencyTable* kwftSource, 
 			// Creation de la table de contingence cible
 			kwftTarget = new KWFrequencyTable;
 			kwftTarget->SetFrequencyVectorCreator(GetFrequencyVectorCreator()->Clone());
-			kwftTarget->Initialize(nActualPartileNumber);
+			kwftTarget->SetFrequencyVectorNumber(nActualPartileNumber);
 
 			// Initialisation du nombre initial de valeurs et du nombre de valeurs apres granularisation
 			// Dans le cas d'une variable numerique, on conserve le nombre theorique de valeurs apres
@@ -573,7 +588,7 @@ void KWDiscretizerMODL::TestGranularizeFrequencyTable()
 	nSourceNumber = 100;
 	nTargetNumber = 2;
 	nTableFrequency = 1000;
-	kwftTest.Initialize(nSourceNumber);
+	kwftTest.SetFrequencyVectorNumber(nSourceNumber);
 
 	// Initialisation de la taille des vecteurs de la table
 	for (nSource = 0; nSource < nSourceNumber; nSource++)
@@ -789,7 +804,7 @@ void KWDiscretizerMODL::MergeFrequencyTablePureIntervals(KWFrequencyTable* kwftS
 	// Creation de la table de contingence issue de la fusion
 	kwftTarget = new KWFrequencyTable;
 	kwftTarget->SetFrequencyVectorCreator(GetFrequencyVectorCreator()->Clone());
-	kwftTarget->Initialize(oaFrequencies.GetSize());
+	kwftTarget->SetFrequencyVectorNumber(oaFrequencies.GetSize());
 	kwftTarget->SetInitialValueNumber(kwftSource->GetInitialValueNumber());
 	kwftTarget->SetGranularizedValueNumber(kwftSource->GetGranularizedValueNumber());
 	kwftTarget->SetGranularity(kwftSource->GetGranularity());
@@ -870,7 +885,7 @@ KWFrequencyTable* KWDiscretizerMODL::BuildFrequencyTableFromIntervalList(KWMODLL
 	{
 		// Dimensionnement
 		kwftFrequencyTable->SetFrequencyVectorCreator(GetFrequencyVectorCreator()->Clone());
-		kwftFrequencyTable->Initialize(nLineNumber);
+		kwftFrequencyTable->SetFrequencyVectorNumber(nLineNumber);
 
 		// Initialisation
 		line = headLine;

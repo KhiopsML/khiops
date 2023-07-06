@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "PLUseMPI.h"
+
 #include "UserInterface.h"
 #include "KWContinuous.h"
 #include "KWSymbol.h"
@@ -83,5 +85,8 @@
 #include "KWValueBlock.h"
 #include "KWDRTextualAnalysis.h"
 #include "SNBIndexVector.h"
+#include "KWTextService.h"
+#include "KWTextTokenizer.h"
+#include "KWResultFilePathBuilder.h"
 
 #include "HanoiTower.h"

@@ -2,39 +2,52 @@
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
+////////////////////////////////////////////////////////////
+// File generated with Genere tool
+// Insert your specific code inside "//## " sections
+
 #include "KWModelingSpec.h"
 
 KWModelingSpec::KWModelingSpec()
 {
-	const SNBPredictorSelectiveNaiveBayes refPredictorSelectiveNaiveBayes;
-
-	// Valeurs par defaut standard
+	bDataPreparationOnly = false;
 	bBaselinePredictor = false;
 	nUnivariatePredictorNumber = 0;
+	bSelectiveNaiveBayesPredictor = false;
+	bNaiveBayesPredictor = false;
+	bDataGridPredictor = false;
 
-	// Choix du predicteur SNB
-	predictorSelectiveNaiveBayes =
-	    KWPredictor::ClonePredictor(refPredictorSelectiveNaiveBayes.GetName(), KWType::Symbol);
+	// ## Custom constructor
 
-#ifdef DEPRECATED_V10
-	{
-		// DEPRECATED V10
-		DEPRECATEDSourceSubObjets = NULL;
-	}
-#endif // DEPRECATED_V10
+	// Par defaut, on a le predicteur de base (regression uniquement) et le SNB,
+	// que l'on peut desactiver soit directement, soit par DataPreparationOnly
+	bBaselinePredictor = true;
+	bSelectiveNaiveBayesPredictor = true;
+
+	// ##
 }
 
 KWModelingSpec::~KWModelingSpec()
 {
-	delete predictorSelectiveNaiveBayes;
+	// ## Custom destructor
+
+	// ##
 }
 
 void KWModelingSpec::CopyFrom(const KWModelingSpec* aSource)
 {
 	require(aSource != NULL);
 
+	bDataPreparationOnly = aSource->bDataPreparationOnly;
 	bBaselinePredictor = aSource->bBaselinePredictor;
 	nUnivariatePredictorNumber = aSource->nUnivariatePredictorNumber;
+	bSelectiveNaiveBayesPredictor = aSource->bSelectiveNaiveBayesPredictor;
+	bNaiveBayesPredictor = aSource->bNaiveBayesPredictor;
+	bDataGridPredictor = aSource->bDataGridPredictor;
+
+	// ## Custom copyfrom
+
+	// ##
 }
 
 KWModelingSpec* KWModelingSpec::Clone() const
@@ -43,33 +56,29 @@ KWModelingSpec* KWModelingSpec::Clone() const
 
 	aClone = new KWModelingSpec;
 	aClone->CopyFrom(this);
+
+	// ## Custom clone
+
+	// ##
 	return aClone;
 }
 
-boolean KWModelingSpec::GetBaselinePredictor() const
+void KWModelingSpec::Write(ostream& ost) const
 {
-	return bBaselinePredictor;
-}
-
-void KWModelingSpec::SetBaselinePredictor(boolean bValue)
-{
-	bBaselinePredictor = bValue;
-}
-
-int KWModelingSpec::GetUnivariatePredictorNumber() const
-{
-	return nUnivariatePredictorNumber;
-}
-
-void KWModelingSpec::SetUnivariatePredictorNumber(int nValue)
-{
-	nUnivariatePredictorNumber = nValue;
+	ost << "Do data preparation only\t" << BooleanToString(GetDataPreparationOnly()) << "\n";
+	ost << "Baseline predictor\t" << BooleanToString(GetBaselinePredictor()) << "\n";
+	ost << "Number of univariate predictors\t" << GetUnivariatePredictorNumber() << "\n";
+	ost << "Selective Naive Bayes predictor\t" << BooleanToString(GetSelectiveNaiveBayesPredictor()) << "\n";
+	ost << "Naive Bayes predictor\t" << BooleanToString(GetNaiveBayesPredictor()) << "\n";
+	ost << "Data Grid predictor\t" << BooleanToString(GetDataGridPredictor()) << "\n";
 }
 
 const ALString KWModelingSpec::GetClassLabel() const
 {
 	return "Predictors";
 }
+
+// ## Method implementation
 
 const ALString KWModelingSpec::GetObjectLabel() const
 {
@@ -80,60 +89,17 @@ const ALString KWModelingSpec::GetObjectLabel() const
 
 KWPredictor* KWModelingSpec::GetPredictorSelectiveNaiveBayes()
 {
-#ifdef DEPRECATED_V10
-	{
-		// DEPRECATED V10
-		if (DEPRECATEDSourceSubObjets != NULL)
-			return DEPRECATEDSourceSubObjets->predictorSelectiveNaiveBayes;
-	}
-#endif // DEPRECATED_V10
-	return predictorSelectiveNaiveBayes;
+	return &predictorSelectiveNaiveBayes;
 }
 
 KWPredictorDataGrid* KWModelingSpec::GetPredictorDataGrid()
 {
-#ifdef DEPRECATED_V10
-	{
-		// DEPRECATED V10
-		if (DEPRECATEDSourceSubObjets != NULL)
-			return &DEPRECATEDSourceSubObjets->predictorDataGrid;
-	}
-#endif // DEPRECATED_V10
 	return &predictorDataGrid;
 }
 
 KWAttributeConstructionSpec* KWModelingSpec::GetAttributeConstructionSpec()
 {
-#ifdef DEPRECATED_V10
-	{
-		// DEPRECATED V10
-		if (DEPRECATEDSourceSubObjets != NULL)
-			return &DEPRECATEDSourceSubObjets->attributeConstructionSpec;
-	}
-#endif // DEPRECATED_V10
 	return &attributeConstructionSpec;
 }
 
-#ifdef DEPRECATED_V10
-void KWModelingSpec::DEPRECATEDSetSourceSubObjets(KWModelingSpec* source)
-{
-	DEPRECATEDSourceSubObjets = source;
-}
-
-boolean KWModelingSpec::DEPRECATEDIsUpdated(const KWModelingSpec* source) const
-{
-	boolean bIsUpdated = false;
-	require(source != NULL);
-
-	bIsUpdated = bIsUpdated or source->GetBaselinePredictor() != GetBaselinePredictor();
-	bIsUpdated = bIsUpdated or source->GetUnivariatePredictorNumber() != GetUnivariatePredictorNumber();
-	return bIsUpdated;
-}
-
-void KWModelingSpec::DEPRECATEDCopyFrom(const KWModelingSpec* source)
-{
-	require(source != NULL);
-
-	CopyFrom(source);
-}
-#endif // DEPRECATED_V10
+// ##

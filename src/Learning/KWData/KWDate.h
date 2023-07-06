@@ -28,7 +28,7 @@ public:
 	void Reset();
 
 	// Initialisation
-	// Renvoie true si l'initialisation est valide (entre 01/01/0001 et 31/12/9999)
+	// Renvoie true si l'initialisation est valide (entre 01/01/0001 et 31/12/4000)
 	boolean Init(int nYear, int nMonth, int nDay);
 
 	// Operateurs de comparaison

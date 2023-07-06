@@ -13,6 +13,7 @@ class PLShared_DataPreparationStats;
 #include "KWLearningSpec.h"
 #include "KWTupleTable.h"
 #include "KWDataGridStats.h"
+#include "TSV.h"
 #include "JSONFile.h"
 #include "PLSharedObject.h"
 
@@ -137,7 +138,7 @@ public:
 	////////////////////////////////////////////////////////////////////////////////
 	// Specification de la preparation, pour un attribut ou un ensemble d'attributs
 	// Attention: une fois prepare, une grille de preparation peut contenir moins
-	// d'attribits que le nombre d'attributs initiaux (cas non informatif).
+	// d'attributs que le nombre d'attributs initiaux (cas non informatif).
 	// A redefinir dans les sous-classes
 
 	// Nombre d'attributs a utiliser

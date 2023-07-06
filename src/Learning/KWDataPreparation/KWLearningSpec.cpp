@@ -51,7 +51,6 @@ const ALString KWLearningService::GetObjectLabel() const
 //////////////////////////////////////////////////
 
 boolean KWLearningSpec::bTextConstructionUsedByTrees = false;
-int KWLearningSpec::nMaxModalityNumber = 1000000;
 
 KWLearningSpec::KWLearningSpec()
 {
@@ -691,7 +690,7 @@ void KWLearningSpec::ComputeNullCost()
 
 		// Creation d'une table de contingence cible avec une seule ligne et une colonne par valeur
 		nValueNumber = GetTargetValueStats()->GetAttributeAt(0)->GetPartNumber();
-		nullFrequencyTable.Initialize(1);
+		nullFrequencyTable.SetFrequencyVectorNumber(1);
 
 		// Acces au vecteur de la ligne et parametrage de sa taille (sense etre en representation dense)
 		kwdfvFrequencyVector = cast(KWDenseFrequencyVector*, nullFrequencyTable.GetFrequencyVectorAt(0));
@@ -812,7 +811,6 @@ void PLShared_LearningSpec::SerializeObject(PLSerializer* serializer, const Obje
 	serializer->PutBoolean(learningSpec->bAttributePairs);
 	serializer->PutInt(learningSpec->nConstructionFamilyNumber);
 	serializer->PutInt(learningSpec->nMainTargetModalityIndex);
-	serializer->PutInt(learningSpec->nMaxModalityNumber);
 	serializer->PutBoolean(learningSpec->bCheckTargetAttribute);
 
 	// Serialisation des specification de preprocessing
@@ -865,7 +863,6 @@ void PLShared_LearningSpec::DeserializeObject(PLSerializer* serializer, Object* 
 	learningSpec->bAttributePairs = serializer->GetBoolean();
 	learningSpec->nConstructionFamilyNumber = serializer->GetInt();
 	learningSpec->nMainTargetModalityIndex = serializer->GetInt();
-	learningSpec->nMaxModalityNumber = serializer->GetInt();
 	learningSpec->bCheckTargetAttribute = serializer->GetBoolean();
 
 	// Deserialisation des specification de preprocessing

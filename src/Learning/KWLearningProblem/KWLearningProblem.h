@@ -4,6 +4,8 @@
 
 #pragma once
 
+class KWLearningProblem;
+
 #include "Object.h"
 #include "KWVersion.h"
 #include "TaskProgression.h"
@@ -27,6 +29,7 @@
 #include "KDMultiTableFeatureConstruction.h"
 #include "KDTextFeatureConstruction.h"
 #include "KDDataPreparationAttributeCreationTask.h"
+#include "MHDiscretizerMODLHistogram.h"
 #include "KWLearningErrorManager.h"
 #include "JSONFile.h"
 
@@ -58,6 +61,18 @@ public:
 
 	// Resultats d'analyse
 	KWAnalysisResults* GetAnalysisResults();
+
+	//////////////////////////////////////////////////////////////////////////////////
+	// Synchronisation du dictionnaire entre le AnalysisDictionary de ClassManagement
+	// et celui de TrainDatabase et TestDatabase.
+	// En effet, ces trois dictionnaires doivent etre les meme, mais il peuvent etre
+	// edites depuis l'interface depuis plusieurs vues, et doivent etre synchronises.
+
+	// Synchronisation depuis ClassManagement
+	void UpdateClassNameFromClassManagement();
+
+	// Synchronisation depuis TrainDatabase
+	void UpdateClassNameFromTrainDatabase();
 
 	////////////////////////////////////////////////////////
 	// Acces direct aux attributs principaux
@@ -105,11 +120,6 @@ public:
 	// Verification de la validite de l'attribut cible (s'il est specifie)
 	boolean CheckTargetAttribute() const;
 
-#ifdef DEPRECATED_V10
-	// Verification de la validite de l'attribut obligatoire dans les paires (s'il est specifie)
-	boolean CheckMandatoryAttributeInPairs() const;
-#endif // DEPRECATED_V10
-
 	// Verification si le nom du fichier d'apprentissage est bien renseigne
 	// Emission de message d'erreur si non renseigne
 	boolean CheckTrainDatabaseName() const;
@@ -126,26 +136,6 @@ public:
 	// Ils doivent etre differents des fichiers d'entree, et different entre eux
 	// Emission de message d'erreur en cas de probleme
 	boolean CheckResultFileNames() const;
-
-	// Construction d'un chemin de fichier a partir d'un nom de fichier
-	// et d'un prefixe pour la partie nom du fichier
-	// Si le repertoire des fichiers resultats n'est pas specifie, on prend celui de la base d'apprentissage
-	// On ajoute l'eventuel suffix aux noms des fichiers de sortie
-	// On rend vide si le fichier en entree est vide
-	const ALString BuildOutputFilePathName(const ALString& sFileName) const;
-
-	// Construction du nom du chemin des fichier en sortie
-	// Si le repertoire des fichiers resultats n'est pas specifie, on prend celui de la base d'apprentissage
-	// S'il est relatif, on le concatene a celui de la base d'apprentissage
-	// S'il est absolu, on le prend tel quel
-	// S'il commence par ./, on le considere comme absolu, ce qui revient a le traiter  en relatif par
-	//  rapport au directory courant
-	// TODO BG sur HDFS on fait quoi ? on interdit les chemins relatifs ?
-	// si c'est relatif c'est relatif par rapport a quoi ?
-	// Avec la code actuel, le chemin ../path est relatif par rapport a la base d'apprentissage (comme la spec)
-	// par contre ./path ne fonctionne pas... c'est un chemin relatif par rapport a quoi ?? quel est le directory
-	// courant ?
-	const ALString BuildOutputPathName() const;
 
 	// Libelles utilisateur: nom du module de l'application (GetLearningModuleName())
 	const ALString GetClassLabel() const override;
@@ -187,7 +177,7 @@ protected:
 	virtual void DeleteAllOutputFiles();
 	void DeleteOutputFile(const ALString& sOutputFilePathName);
 
-	// Ecriture des rapports de preparation des donnees
+	// Ecriture des rapports de preparation des donnees au format tabulaire xls
 	virtual void WritePreparationReports(KWClassStats* classStats);
 
 	// Ecriture du rapport JSON

@@ -4,17 +4,7 @@
 
 #pragma once
 
-////////////////////////////////////////////////////////////
-// File generated with Genere tool
-// Insert your specific code inside "//## " sections
-
-#include "Object.h"
-
-// ## Custom includes
-
 #include "CCCoclusteringSpec.h"
-
-// ##
 
 ////////////////////////////////////////////////////////////
 // Classe CCAnalysisSpec
@@ -26,42 +16,16 @@ public:
 	CCAnalysisSpec();
 	~CCAnalysisSpec();
 
-	// Copie et duplication
-	void CopyFrom(const CCAnalysisSpec* aSource);
-	CCAnalysisSpec* Clone() const;
-
-	///////////////////////////////////////////////////////////
-	// Divers
-
-	// Ecriture
-	void Write(ostream& ost) const override;
+	// Parametrage du coclustering
+	CCCoclusteringSpec* GetCoclusteringSpec();
 
 	// Libelles utilisateur
 	const ALString GetClassLabel() const override;
 	const ALString GetObjectLabel() const override;
 
-	// ## Custom declarations
-
-	// Parametrage du coclustering
-	CCCoclusteringSpec* GetCoclusteringSpec();
-
-	// ##
-
 	////////////////////////////////////////////////////////
 	///// Implementation
 protected:
 	// Attributs de la classe
-
-	// ## Custom implementation
-
 	CCCoclusteringSpec coclusteringSpec;
-
-	// ##
 };
-
-////////////////////////////////////////////////////////////
-// Implementations inline
-
-// ## Custom inlines
-
-// ##

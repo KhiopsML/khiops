@@ -6,8 +6,11 @@
 
 int main(int argv, char** argc)
 {
-
 #if defined(USE_MPI)
+// Pour indiquer les libraries a utiliser par le linker
+// Potentiellement inutile apres utilisation de cmake
+#pragma comment(lib, "msmpi")
+#pragma comment(lib, "PLMPI")
 
 	// Mise en place du fdriver parallel
 	PLParallelTask::SetDriver(PLMPITaskDriver::GetDriver());

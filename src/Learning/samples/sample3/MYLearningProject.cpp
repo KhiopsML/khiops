@@ -12,9 +12,6 @@ void MYLearningProject::OpenLearningEnvironnement()
 {
 	// Appel de la methode ancetre
 	KWLearningProject::OpenLearningEnvironnement();
-
-	// Declaration des licences
-	LMLicenseManager::DeclarePredefinedLicense(LMLicenseManager::Khiops);
 }
 
 KWLearningProblem* MYLearningProject::CreateLearningProblem()

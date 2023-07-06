@@ -339,7 +339,7 @@ void DTForestAttributeSelection::WriteReport(ostream& ost)
 	for (nAttribute = 0; nAttribute < oaOriginalAttributesUsed.GetSize(); nAttribute++)
 	{
 		taAttribute = cast(DTTreeAttribute*, oaOriginalAttributesUsed.GetAt(nAttribute));
-		ost << taAttribute->GetName() << endl;
+		ost << TSV::Export(taAttribute->GetName()) << endl;
 	}
 	ost << "nombre de selection : " << ivSelectionAttributeNumber.GetSize() << endl;
 
@@ -354,7 +354,7 @@ void DTForestAttributeSelection::WriteReport(ostream& ost)
 		svRandattibuteselection = cast(DTAttributeSelection*, oaSelectionAttributes.GetAt(nSelection));
 		for (nAttribute = 0; nAttribute < svRandattibuteselection->GetSize(); nAttribute++)
 		{
-			ost << (char*)svRandattibuteselection->GetAttributeAt(nAttribute)->GetName() << endl;
+			ost << TSV::Export(svRandattibuteselection->GetAttributeAt(nAttribute)->GetName()) << endl;
 		}
 	}
 }
@@ -895,7 +895,7 @@ void DTAttributeSelectionsSlices::Write(ostream& ost) const
 	for (i = 0; i < oaTreeAttributes.GetSize(); i++)
 	{
 		treeattribute = cast(DTTreeAttribute*, oaTreeAttributes.GetAt(i));
-		ost << "\t" << treeattribute->GetName() << "\n";
+		ost << "\t" << TSV::Export(treeattribute->GetName()) << "\n";
 	}
 
 	// Affichages des tranches
@@ -903,7 +903,7 @@ void DTAttributeSelectionsSlices::Write(ostream& ost) const
 	for (i = 0; i < oaSlices.GetSize(); i++)
 	{
 		slice = cast(KWDataTableSlice*, oaSlices.GetAt(i));
-		ost << "\t" << slice->GetClass()->GetName() << "\n";
+		ost << "\t" << TSV::Export(slice->GetClass()->GetName()) << "\n";
 	}
 }
 

@@ -38,6 +38,9 @@ public:
 	// Renvoie le plus grand preferred buffer size de tous les drivers (y compris le driver ANSI)
 	static longint GetMaxPreferredBufferSize();
 
+	// Acces aux drivers pour consultation
+	static const SystemFileDriver* GetRegisteredDriverAt(int nIndex);
+
 protected:
 	// Renvoie true si le nom du fichier en parametre correspond aux nom des drivers
 	// libkhiopsdriver_file_SCHEME.so/dll ou SCHEME est une suite alphanumerique sans symboles

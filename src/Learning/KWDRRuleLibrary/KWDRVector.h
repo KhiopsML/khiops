@@ -18,8 +18,6 @@ class KWDRContinuousValueAt;
 class KWDRAsSymbolVector;
 class KWDRAsContinuousVector;
 
-class KWDRExtractWords;
-
 #include "KWDerivationRule.h"
 #include "KWStructureRule.h"
 
@@ -246,60 +244,6 @@ public:
 protected:
 	// Resultat utilise pour le code retour de la regle
 	mutable KWDRContinuousVector continuousVector;
-};
-
-////////////////////////////////////////////////////////////////////////////
-// Classe KWDRExtractWords
-// Regle de derivation de type Structure(VectorC), basee sur l'extraction
-// de mots a partir d'une chaine de caracteres.
-// Les caracteres sont d'abord pretraites et transformes selon les parametres
-// d'extraction, tous les autres caracteres etant transformes en caracteres blancs.
-// Les mots sont alors extraits de la chaine de catacteres pretraites avec separateur blanc.
-// Les parametres d'extraction sont les suivants
-//      - SourceString: chaine de caracteres initiale
-//		- ToLower: mise en minuscule
-//      - KeepNumerical: on garde les caracteres numeriques
-//      - AdditionalChars: caracteres supplementaires a garder
-//      - TranslatedAdditionalChars: version recodee des caracteres additionnels
-//      - MaxLength: longueur max des mots, au dela de laquels les mots sont tronques
-class KWDRExtractWords : public KWDerivationRule
-{
-public:
-	// Constructeur
-	KWDRExtractWords();
-	~KWDRExtractWords();
-
-	// Creation
-	KWDerivationRule* Create() const override;
-
-	// Calcul de l'attribut derive
-	Object* ComputeStructureResult(const KWObject* kwoObject) const override;
-
-	// Verification des parametres d'extraction
-	boolean CheckOperandsDefinition() const override;
-
-	// Compilation redefinie pour optimisation
-	void Compile(KWClass* kwcOwnerClass) override;
-
-	// Memoire utilisee
-	longint GetUsedMemory() const override;
-
-	//////////////////////////////////////////////////////////
-	///// Implementation
-protected:
-	// Resultat utilise pour le code retour de la regle
-	mutable KWDRSymbolVector symbolVector;
-
-	/////////////////////////////////////////////////////////////////////////////////
-	// Resultats de l'optimisation des parametres d'extraction
-
-	// Vecteur des caracteres recodes suite a application des parametres d'extraction
-	// Chaque caracteres (entre 0 et 255) est ainsi garde tel quel, mise en minuscule,
-	// recode ou transforme en blanc
-	ALString sTranslatedChars;
-
-	// Longuer max des mots
-	int nMaxLength;
 };
 
 ///////////////////////////////////////////////////////////

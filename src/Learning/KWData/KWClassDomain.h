@@ -18,6 +18,7 @@ class KWDerivationRule;
 #include "JSONFile.h"
 #include "KWCDUniqueString.h"
 #include "MemoryStatsManager.h"
+#include "KWResultFilePathBuilder.h"
 #include "KWVersion.h"
 
 //////////////////////////////////////////////////////////////////////////////
@@ -133,7 +134,7 @@ public:
 	// La classe et ses classes referencees recursivement sont dupliquees de facon coherente
 	KWClassDomain* CloneFromClass(const KWClass* rootClass) const;
 
-	// Import de toutes les classes d'un domaine, en y a joutant un prefixe  et un suffixe
+	// Import de toutes les classes d'un domaine, en y ajoutant un prefixe  et un suffixe
 	// et en les renommant si necessaire
 	// Le domaine source est vide a l'issue de l'import
 	void ImportDomain(KWClassDomain* kwcdInputDomain, const ALString& sClassPrefix, const ALString& sClassSuffix);
@@ -151,7 +152,7 @@ public:
 	// Cle de hashage du domaine et de sa composition
 	longint ComputeHashValue() const;
 
-	// Affichage, ecriture dans un fichier
+	// Affichage
 	void Write(ostream& ost) const override;
 
 	// Libelles utilisateurs
@@ -205,6 +206,7 @@ public:
 	// Calcul d'un nouveau nom de domaine a partir d'un prefix
 	static const ALString BuildDomainName(const ALString& sPrefix);
 
+	///////////////////////////////////////////////////////////////////
 	//// Implementation
 protected:
 	//////////////////////////////////////////////////////

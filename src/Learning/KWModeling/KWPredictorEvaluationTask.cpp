@@ -1546,7 +1546,7 @@ void KWConfusionMatrixEvaluation::ExportDataGridStats(KWDataGridStats* dgsConfus
 	for (nActual = 0; nActual < svActualValues.GetSize(); nActual++)
 	{
 		sActualTarget = svActualValues.GetAt(nActual);
-		if (nkdPredictedValues.Lookup((NUMERIC)sActualTarget.GetNumericKey()) == NULL)
+		if (nkdPredictedValues.Lookup(sActualTarget.GetNumericKey()) == NULL)
 			svConfusionMatrixAllValues->Add(sActualTarget);
 	}
 
@@ -1579,11 +1579,11 @@ void KWConfusionMatrixEvaluation::ExportDataGridStats(KWDataGridStats* dgsConfus
 			nFrequency = 0;
 			nkdActualFrequencies =
 			    cast(NumericKeyDictionary*,
-				 nkdPredictedValuesActualFreqs.Lookup((NUMERIC)sPredictedTarget.GetNumericKey()));
+				 nkdPredictedValuesActualFreqs.Lookup(sPredictedTarget.GetNumericKey()));
 			if (nkdActualFrequencies != NULL)
 			{
-				ioFrequency = cast(
-				    IntObject*, nkdActualFrequencies->Lookup((NUMERIC)sActualTarget.GetNumericKey()));
+				ioFrequency =
+				    cast(IntObject*, nkdActualFrequencies->Lookup(sActualTarget.GetNumericKey()));
 				if (ioFrequency != NULL)
 					nFrequency = ioFrequency->GetInt();
 				nTruncatedFrequency += nFrequency;
@@ -1608,14 +1608,13 @@ void KWConfusionMatrixEvaluation::ExportDataGridStats(KWDataGridStats* dgsConfus
 
 				// Recherche de l'effectif correspondant
 				nFrequency = 0;
-				nkdActualFrequencies = cast(
-				    NumericKeyDictionary*,
-				    nkdPredictedValuesActualFreqs.Lookup((NUMERIC)sPredictedTarget.GetNumericKey()));
+				nkdActualFrequencies =
+				    cast(NumericKeyDictionary*,
+					 nkdPredictedValuesActualFreqs.Lookup(sPredictedTarget.GetNumericKey()));
 				if (nkdActualFrequencies != NULL)
 				{
-					ioFrequency =
-					    cast(IntObject*,
-						 nkdActualFrequencies->Lookup((NUMERIC)sActualTarget.GetNumericKey()));
+					ioFrequency = cast(IntObject*,
+							   nkdActualFrequencies->Lookup(sActualTarget.GetNumericKey()));
 					if (ioFrequency != NULL)
 						nFrequency = ioFrequency->GetInt();
 					nTruncatedFrequency += nFrequency;
@@ -1637,14 +1636,13 @@ void KWConfusionMatrixEvaluation::ExportDataGridStats(KWDataGridStats* dgsConfus
 
 				// Recherche de l'effectif correspondant
 				nFrequency = 0;
-				nkdActualFrequencies = cast(
-				    NumericKeyDictionary*,
-				    nkdPredictedValuesActualFreqs.Lookup((NUMERIC)sPredictedTarget.GetNumericKey()));
+				nkdActualFrequencies =
+				    cast(NumericKeyDictionary*,
+					 nkdPredictedValuesActualFreqs.Lookup(sPredictedTarget.GetNumericKey()));
 				if (nkdActualFrequencies != NULL)
 				{
-					ioFrequency =
-					    cast(IntObject*,
-						 nkdActualFrequencies->Lookup((NUMERIC)sActualTarget.GetNumericKey()));
+					ioFrequency = cast(IntObject*,
+							   nkdActualFrequencies->Lookup(sActualTarget.GetNumericKey()));
 					if (ioFrequency != NULL)
 						nFrequency = ioFrequency->GetInt();
 					nTruncatedFrequency += nFrequency;
@@ -1754,8 +1752,8 @@ void KWConfusionMatrixEvaluation::AddInstances(const Symbol& sPredictedTarget, c
 
 	require(nFrequency >= 0);
 
-	predictedTargetKey = (NUMERIC)sPredictedTarget.GetNumericKey();
-	actualTargetKey = (NUMERIC)sActualTarget.GetNumericKey();
+	predictedTargetKey = sPredictedTarget.GetNumericKey();
+	actualTargetKey = sActualTarget.GetNumericKey();
 
 	// Memorisation de la valeur predite si n'est pas encore enregistree
 	if (nkdPredictedValues.Lookup(predictedTargetKey) == NULL)
@@ -1805,11 +1803,11 @@ int KWConfusionMatrixEvaluation::ComputeFrequencyAt(const Symbol& sPredictedTarg
 	nFrequency = 0;
 
 	// Recherche de l'effectif de la cellule [target, actual]
-	predictedTargetKey = (NUMERIC)sPredictedTarget.GetNumericKey();
+	predictedTargetKey = sPredictedTarget.GetNumericKey();
 	nkdActualFrequencies = cast(NumericKeyDictionary*, nkdPredictedValuesActualFreqs.Lookup(predictedTargetKey));
 	if (nkdActualFrequencies != NULL)
 	{
-		actualTargetKey = (NUMERIC)sActualTarget.GetNumericKey();
+		actualTargetKey = sActualTarget.GetNumericKey();
 		ioFrequency = cast(IntObject*, nkdActualFrequencies->Lookup(actualTargetKey));
 
 		if (ioFrequency != NULL)
@@ -1836,12 +1834,10 @@ int KWConfusionMatrixEvaluation::ComputeCumulatedActualFrequencyAt(const Symbol&
 
 		// Recherche de l'existance d'une cellule non vide pour la modalite reelle
 		nkdActualFrequencies =
-		    cast(NumericKeyDictionary*,
-			 nkdPredictedValuesActualFreqs.Lookup((NUMERIC)sPredictedTarget.GetNumericKey()));
+		    cast(NumericKeyDictionary*, nkdPredictedValuesActualFreqs.Lookup(sPredictedTarget.GetNumericKey()));
 		if (nkdActualFrequencies != NULL)
 		{
-			ioFrequency =
-			    cast(IntObject*, nkdActualFrequencies->Lookup((NUMERIC)sActualTarget.GetNumericKey()));
+			ioFrequency = cast(IntObject*, nkdActualFrequencies->Lookup(sActualTarget.GetNumericKey()));
 			if (ioFrequency != NULL)
 				nCumulatedFrequency += ioFrequency->GetInt();
 		}
@@ -1861,8 +1857,8 @@ int KWConfusionMatrixEvaluation::ComputeCumulatedPredictedFrequencyAt(const Symb
 	// Recherche du dictionnaire de modalites relles correspondant a la modalite predite
 	// Efficace algorithmiquement si la matrice est creuse
 	nCumulatedFrequency = 0;
-	nkdActualFrequencies = cast(NumericKeyDictionary*,
-				    nkdPredictedValuesActualFreqs.Lookup((NUMERIC)sPredictedTarget.GetNumericKey()));
+	nkdActualFrequencies =
+	    cast(NumericKeyDictionary*, nkdPredictedValuesActualFreqs.Lookup(sPredictedTarget.GetNumericKey()));
 	if (nkdActualFrequencies != NULL)
 	{
 		// Somme des frequences de cellules non vides pour cette modalite predite

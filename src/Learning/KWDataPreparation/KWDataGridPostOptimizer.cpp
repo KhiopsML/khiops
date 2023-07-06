@@ -432,7 +432,7 @@ void KWDGPODiscretizer::InitializeFrequencyTableFromDataGrid(KWFrequencyTable* k
 
 	// Initialisation de la table d'effectif
 	kwftFrequencyTable->SetFrequencyVectorCreator(GetFrequencyVectorCreator()->Clone());
-	kwftFrequencyTable->Initialize(dataGridAttribute->GetPartNumber());
+	kwftFrequencyTable->SetFrequencyVectorNumber(dataGridAttribute->GetPartNumber());
 	kwftFrequencyTable->SetInitialValueNumber(dataGridAttribute->GetInitialValueNumber());
 	kwftFrequencyTable->SetGranularizedValueNumber(dataGridAttribute->GetGranularizedValueNumber());
 	kwftFrequencyTable->SetGranularity(dataGrid->GetGranularity());
@@ -496,7 +496,7 @@ void KWDGPODiscretizer::InitializePartFrequencyVector(KWDGPOPartFrequencyVector*
 	while (cell != NULL)
 	{
 		// Recherche de l'objet (cellule) representatnt la signature exogene
-		hashCell = cast(KWDGCell*, nkdHashCells->Lookup((NUMERIC)cell));
+		hashCell = cast(KWDGCell*, nkdHashCells->Lookup(cell));
 		check(hashCell);
 
 		// Creation et initialisation d'un vecteur d'effectif pour la cellule
@@ -643,7 +643,7 @@ void KWDGPODiscretizer::InitializeHashCellDictionary(NumericKeyDictionary* nkdHa
 		previousCell = cell;
 
 		// On associe la cellule a sa signature exogene
-		nkdHashCells->SetAt((NUMERIC)cell, hashCell);
+		nkdHashCells->SetAt(cell, hashCell);
 	}
 
 	// Reinitialisationde l'index de l'attribut a post-optimiser
@@ -1355,7 +1355,7 @@ void KWDGPOGrouper::InitializeFrequencyTableFromDataGrid(KWFrequencyTable* kwftF
 
 	// Initialisation de la table d'effectif
 	kwftFrequencyTable->SetFrequencyVectorCreator(GetFrequencyVectorCreator()->Clone());
-	kwftFrequencyTable->Initialize(dataGridAttribute->GetPartNumber());
+	kwftFrequencyTable->SetFrequencyVectorNumber(dataGridAttribute->GetPartNumber());
 	kwftFrequencyTable->SetInitialValueNumber(dataGridAttribute->GetInitialValueNumber());
 	kwftFrequencyTable->SetGranularizedValueNumber(dataGridAttribute->GetGranularizedValueNumber());
 	// Parametrage granularite et poubelle
@@ -1414,7 +1414,7 @@ void KWDGPOGrouper::InitializePartFrequencyVector(KWDGPOPartFrequencyVector* par
 	while (cell != NULL)
 	{
 		// Recherche de l'objet (cellule) representatnt la signature exogene
-		hashCell = cast(KWDGCell*, nkdHashCells->Lookup((NUMERIC)cell));
+		hashCell = cast(KWDGCell*, nkdHashCells->Lookup(cell));
 		check(hashCell);
 
 		// Creation et initialisation d'un vecteur d'effectif pour la cellule
@@ -1560,7 +1560,7 @@ void KWDGPOGrouper::InitializeHashCellDictionary(NumericKeyDictionary* nkdHashCe
 		previousCell = cell;
 
 		// On associe la cellule a sa signature exogene
-		nkdHashCells->SetAt((NUMERIC)cell, hashCell);
+		nkdHashCells->SetAt(cell, hashCell);
 	}
 
 	// Reinitialisationde l'index de l'attribut a post-optimiser
@@ -1601,7 +1601,7 @@ void KWDGPOGrouper::InitializeGroupIndexes(IntVector* ivGroups, const KWDataGrid
 		kwsiOptimizedPartIndex->SetIndex(nIndex);
 
 		// Memorisation dans un dictionaire
-		nkdOptimizedPartIndexes.SetAt((NUMERIC)optimizedPart, kwsiOptimizedPartIndex);
+		nkdOptimizedPartIndexes.SetAt(optimizedPart, kwsiOptimizedPartIndex);
 
 		// Partie suivante
 		optimizedAttribute->GetNextPart(optimizedPart);
@@ -1623,7 +1623,7 @@ void KWDGPOGrouper::InitializeGroupIndexes(IntVector* ivGroups, const KWDataGrid
 		    optimizedAttribute->LookupSymbolPart(initialPart->GetValueSet()->GetHeadValue()->GetValue());
 
 		// Memorisation de l'index de ce groupe
-		kwsiOptimizedPartIndex = cast(KWSortableIndex*, nkdOptimizedPartIndexes.Lookup((NUMERIC)optimizedPart));
+		kwsiOptimizedPartIndex = cast(KWSortableIndex*, nkdOptimizedPartIndexes.Lookup(optimizedPart));
 		check(kwsiOptimizedPartIndex);
 		ivGroups->SetAt(nIndex, kwsiOptimizedPartIndex->GetIndex());
 
@@ -1674,7 +1674,7 @@ int KWDGPOGrouper::InitializeGroupIndexesAndGarbageIndex(IntVector* ivGroups, co
 		kwsiOptimizedPartIndex->SetIndex(nIndex);
 
 		// Memorisation dans un dictionaire
-		nkdOptimizedPartIndexes.SetAt((NUMERIC)optimizedPart, kwsiOptimizedPartIndex);
+		nkdOptimizedPartIndexes.SetAt(optimizedPart, kwsiOptimizedPartIndex);
 
 		// Cas du groupe poubelle : memorisation de son index
 		if (optimizedPart == optimizedAttribute->GetGarbagePart())
@@ -1700,7 +1700,7 @@ int KWDGPOGrouper::InitializeGroupIndexesAndGarbageIndex(IntVector* ivGroups, co
 		    optimizedAttribute->LookupSymbolPart(initialPart->GetValueSet()->GetHeadValue()->GetValue());
 
 		// Memorisation de l'index de ce groupe
-		kwsiOptimizedPartIndex = cast(KWSortableIndex*, nkdOptimizedPartIndexes.Lookup((NUMERIC)optimizedPart));
+		kwsiOptimizedPartIndex = cast(KWSortableIndex*, nkdOptimizedPartIndexes.Lookup(optimizedPart));
 		check(kwsiOptimizedPartIndex);
 		ivGroups->SetAt(nIndex, kwsiOptimizedPartIndex->GetIndex());
 
@@ -1735,7 +1735,7 @@ void KWDGPOGrouper::InitializeGroupedFrequencyTableFromDataGrid(KWFrequencyTable
 
 	// Initialisation de la table d'effectif groupee
 	groupedFrequencyTable->SetFrequencyVectorCreator(initialFrequencyTable->GetFrequencyVectorCreator()->Clone());
-	groupedFrequencyTable->Initialize(nGroupNumber);
+	groupedFrequencyTable->SetFrequencyVectorNumber(nGroupNumber);
 	groupedFrequencyTable->SetInitialValueNumber(initialFrequencyTable->GetInitialValueNumber());
 	groupedFrequencyTable->SetGranularizedValueNumber(initialFrequencyTable->GetGranularizedValueNumber());
 	// Parametrage granularite
@@ -2825,7 +2825,7 @@ KWDGPOCellFrequencyVector* KWDGPOPartFrequencyVector::LookupCell(const Object* c
 {
 	KWDGPOCellFrequencyVector* cellFrequencyVector;
 
-	cellFrequencyVector = cast(KWDGPOCellFrequencyVector*, nkdCellFrequencyVectors.Lookup((NUMERIC)cellHashObject));
+	cellFrequencyVector = cast(KWDGPOCellFrequencyVector*, nkdCellFrequencyVectors.Lookup(cellHashObject));
 	ensure(cellFrequencyVector == NULL or cellFrequencyVector->GetHashObject() == cellHashObject);
 	return cellFrequencyVector;
 }
@@ -2836,7 +2836,7 @@ void KWDGPOPartFrequencyVector::AddCell(KWDGPOCellFrequencyVector* cellFrequency
 	require(cellFrequencyVector->GetHashObject() != NULL);
 	require(LookupCell(cellFrequencyVector->GetHashObject()) == NULL);
 
-	nkdCellFrequencyVectors.SetAt((NUMERIC)cellFrequencyVector->GetHashObject(), cellFrequencyVector);
+	nkdCellFrequencyVectors.SetAt(cellFrequencyVector->GetHashObject(), cellFrequencyVector);
 }
 
 void KWDGPOPartFrequencyVector::DeleteCell(KWDGPOCellFrequencyVector* cellFrequencyVector)
@@ -2845,7 +2845,7 @@ void KWDGPOPartFrequencyVector::DeleteCell(KWDGPOCellFrequencyVector* cellFreque
 	require(cellFrequencyVector->GetHashObject() != NULL);
 	require(LookupCell(cellFrequencyVector->GetHashObject()) == cellFrequencyVector);
 
-	nkdCellFrequencyVectors.RemoveKey((NUMERIC)cellFrequencyVector->GetHashObject());
+	nkdCellFrequencyVectors.RemoveKey(cellFrequencyVector->GetHashObject());
 	delete cellFrequencyVector;
 }
 

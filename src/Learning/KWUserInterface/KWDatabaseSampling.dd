@@ -1,0 +1,3 @@
+Rank;Name;Type;Style;Label
+1;SampleNumberPercentage   ;double  ;Spinner ;Sample percentage
+2;SamplingMode             ;ALString;ComboBox;Sampling mode

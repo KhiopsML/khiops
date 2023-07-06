@@ -946,7 +946,7 @@ JNIEnv* UIObject::GetJNIEnv()
 	JavaVMAttachArgs vm_aargs;
 	boolean bIsError = false;
 	ALString sTmp;
-	char sErrorMessage[SHARED_LIBRARY_MESSAGE_LENGTH + 1];
+	char sErrorMessage[SYSTEM_MESSAGE_LENGTH + 1];
 
 	////////////////////////////////////////////////////////////////////////////////////////////
 	// Cette methode est appelee de nombreuses fois
@@ -1918,7 +1918,7 @@ void UIObject::ParseMainParameters(int argc, char** argv)
 	else
 	{
 		bOk = SetUIMode(UIObject::Graphic);
-		if (not bOk)
+		if (not bOk and not GetTextualInteractiveModeAllowed())
 		{
 			Global::AddError("", "",
 					 "Unable to load GUI, use -b and -i flags to launch khiops in batch mode "

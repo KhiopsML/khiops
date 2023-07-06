@@ -10,7 +10,6 @@
 #include "KWEvaluatedPredictorSpecArrayView.h"
 #include "KWClassAttributeHelpList.h"
 #include "KWDatabaseAttributeValuesHelpList.h"
-#include "LMLicenseManager.h"
 
 ////////////////////////////////////////////////////////////
 // Classe KWPredictorEvaluatorView

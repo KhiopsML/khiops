@@ -68,10 +68,10 @@ void KWAttribute::InternalCompleteTypeInfo(KWClass* kwcOwnerClass, NumericKeyDic
 	require(nkdCompletedAttributes != NULL);
 
 	// Completion des infos de l'attributs, si cela n'a pas deja ete fait
-	if (nkdCompletedAttributes->Lookup((NUMERIC)this) == NULL)
+	if (nkdCompletedAttributes->Lookup(this) == NULL)
 	{
 		// Memorisation de l'attribut
-		nkdCompletedAttributes->SetAt((NUMERIC)this, this);
+		nkdCompletedAttributes->SetAt(this, this);
 
 		// Informations de type si premier attribut d'un bloc
 		if (IsFirstInBlock() and GetBlockDerivationRule() != NULL)
@@ -444,15 +444,15 @@ boolean KWAttribute::ContainsCycle(NumericKeyDictionary* nkdGreyAttributes,
 	require(not IsInBlock());
 
 	// Marquage de l'attribut en Grey
-	nkdGreyAttributes->SetAt((NUMERIC)this, (Object*)this);
+	nkdGreyAttributes->SetAt(this, (Object*)this);
 
 	// Analyse de l'eventuelle regle de derivation attachee a l'attribut
 	if (GetDerivationRule() != NULL)
 		bContainsCycle = GetDerivationRule()->ContainsCycle(nkdGreyAttributes, nkdBlackAttributes);
 
 	// Marquage de l'attribut en Black
-	nkdGreyAttributes->SetAt((NUMERIC)this, NULL);
-	nkdBlackAttributes->SetAt((NUMERIC)this, (Object*)this);
+	nkdGreyAttributes->SetAt(this, NULL);
+	nkdBlackAttributes->SetAt(this, (Object*)this);
 
 	return bContainsCycle;
 }

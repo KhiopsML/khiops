@@ -38,18 +38,6 @@ void KWAttributePairsSpec::SetAllAttributePairs(boolean bValue)
 	bAllAttributePairs = bValue;
 }
 
-#ifdef DEPRECATED_V10
-const ALString& KWAttributePairsSpec::GetMandatoryAttributeInPairs() const
-{
-	return sMandatoryAttributeInPairs;
-}
-
-void KWAttributePairsSpec::SetMandatoryAttributeInPairs(const ALString& sValue)
-{
-	sMandatoryAttributeInPairs = sValue;
-}
-#endif // DEPRECATED_V10
-
 ObjectArray* KWAttributePairsSpec::GetSpecificAttributePairs()
 {
 	return &oaSpecificAttributePairs;
@@ -129,9 +117,7 @@ void KWAttributePairsSpec::ImportAttributePairs(const ALString& sFileName)
 				if (bLineTooLong)
 					AddWarning(InputBufferedFile::GetLineTooLongErrorLabel() + ", ignored record");
 				// Warning pour certaines erreurs sur le champ
-				else if (nFieldError == InputBufferedFile::FieldTabReplaced or
-					 nFieldError == InputBufferedFile::FieldCtrlZReplaced or
-					 nFieldError == InputBufferedFile::FieldTooLong)
+				else if (nFieldError == InputBufferedFile::FieldTooLong)
 					AddWarning(InputBufferedFile::GetFieldErrorLabel(nFieldError) +
 						   ", ignored record");
 				// Warning si un seul champ
@@ -177,9 +163,7 @@ void KWAttributePairsSpec::ImportAttributePairs(const ALString& sFileName)
 						AddWarning(InputBufferedFile::GetLineTooLongErrorLabel() +
 							   ", ignored record");
 					// Warning pour certaines erreurs sur le champ
-					else if (nFieldError == InputBufferedFile::FieldTabReplaced or
-						 nFieldError == InputBufferedFile::FieldCtrlZReplaced or
-						 nFieldError == InputBufferedFile::FieldTooLong)
+					else if (nFieldError == InputBufferedFile::FieldTooLong)
 						AddWarning(InputBufferedFile::GetFieldErrorLabel(nFieldError));
 					// Warning si strictement plus de deux champs
 					else if (not bEndOfLine)
@@ -503,15 +487,6 @@ int KWAttributePairsSpec::GetMaxRequestedAttributePairNumber(const ALString& sTa
 	if (kwcAnalyzedClass->LookupAttribute(sTargetAttributeName) != NULL)
 		lUsedAttributeNumber--;
 
-#ifdef DEPRECATED_V10
-	// Cas avec attribut particulier dans les paires: cas obsolete
-	if (GetMandatoryAttributeInPairs() != "")
-	{
-		nRequestedAttributePairNumber = min(GetMaxAttributePairNumber(), max((int)lUsedAttributeNumber - 1, 0));
-		return nRequestedAttributePairNumber;
-	}
-#endif // DEPRECATED_V10
-
 	// Cas ou toutes les paires sont a analyser: seul le nombre max peut limiter le nombre de paires
 	if (GetAllAttributePairs())
 	{
@@ -630,55 +605,6 @@ void KWAttributePairsSpec::SelectAttributePairStats(const ObjectArray* oaAttribu
 
 	// Recherche et priorisation des attributs a analyser
 	SelectAttributeStatsForAttributePairs(oaAttributeStats, &odAttributeStats, &oaSelectedAttributeStats);
-
-#ifdef DEPRECATED_V10
-	// Cas avec attribut particulier dans les paires: cas obsolete
-	if (GetMandatoryAttributeInPairs() != "")
-	{
-		// Warning si attribut inexistant
-		if (kwcAnalyzedClass->LookupAttribute(GetMandatoryAttributeInPairs()) == NULL)
-			AddWarning("Mandatory variable in pairs " + GetMandatoryAttributeInPairs() +
-				   " not found in dictionary " + GetClassName());
-		else if (odAttributeStats.Lookup(GetMandatoryAttributeInPairs()) == NULL)
-			AddWarning("Mandatory variable in pairs " + GetMandatoryAttributeInPairs() +
-				   " not analyzed in data preparation");
-		// Sinon, on va rechercher les paires correspondantes
-		else
-		{
-			// Creation des paires a analyser
-			workingAttributePairName.SetFirstName(GetMandatoryAttributeInPairs());
-			for (i = 0; i < oaSelectedAttributeStats.GetSize(); i++)
-			{
-				attributeStats2 = cast(KWAttributeStats*, oaSelectedAttributeStats.GetAt(i));
-
-				// On n'insere pas les paires impliquant un autre attribut
-				if (attributeStats2->GetSortName() != GetMandatoryAttributeInPairs())
-				{
-					// Creation et initialisation d'un objet de stats pour la paire d'attributs
-					attributePairStats = new KWAttributePairStats;
-					attributePairStats->SetLearningSpec(learningSpec);
-					oaAttributePairStats->Add(attributePairStats);
-
-					// Parametrage des attributs de la paire par ordre alphabetique
-					workingAttributePairName.SetSecondName(attributeStats2->GetSortName());
-					attributePairStats->SetAttributeName1(
-					    workingAttributePairName.GetFirstSortedName());
-					attributePairStats->SetAttributeName2(
-					    workingAttributePairName.GetSecondSortedName());
-
-					// Arret si assez de paires
-					if (oaAttributePairStats->GetSize() >= GetMaxAttributePairNumber())
-						break;
-				}
-			}
-		}
-
-		// On arrete avec un warning, sans chercher a hybrider ce mode obsolete avec les nouvelles
-		// specifications
-		AddWarning("Parameter 'Mandatory variable in pairs' is deprecated since Khiops V10");
-		return;
-	}
-#endif // DEPRECATED_V10
 
 	// Recherche des paires d'attributs specifique valides
 	Global::ActivateErrorFlowControl();

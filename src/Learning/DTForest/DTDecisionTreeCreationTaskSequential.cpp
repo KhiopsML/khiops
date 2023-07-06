@@ -295,7 +295,7 @@ boolean DTDecisionTreeCreationTaskSequential::CreatePreparedAttributes(KWLearnin
 				// Creation de la spec de l'arbre a partir de l'arbre calcule dtdecisiontree
 				treespec.InitFromDecisionTree(dttree);
 				// detection des doublons
-				key = (NUMERIC)treespec.ComputeHashValue();
+				key = treespec.ComputeHashValue();
 				// filtre les arbre qui
 				//  1 sont similaire key exist deja
 				//  2 au moins une profondeur de 3 (2 niveau de groupage discretisation)
@@ -437,7 +437,9 @@ boolean DTDecisionTreeCreationTaskSequential::CreatePreparedAttributes(KWLearnin
 		kwcUpdatedClass->SetAllAttributesLoaded(true);
 		kwcUpdatedClass->Compile();
 
-		creationReport.ComputeRankIdentifiers();
+		// Parametrage des classStats pour specialiser le contenu des rapports
+		creationReport.SetClassStats(GetClassStats());
+
 		oatupletable.DeleteAll();
 
 		// message et warning final

@@ -46,14 +46,12 @@ public:
 	void SetParam(double dValue);
 
 	// Effectif minimum par intervalle (defaut: 0)
-	// Ce parametre est determine automatiquement par l'algorithme
-	// s'il vaut 0
+	// Ce parametre est determine automatiquement par l'algorithme s'il vaut 0
 	int GetMinIntervalFrequency() const;
 	void SetMinIntervalFrequency(int nValue);
 
 	// Nombre maximum d'intervalles (defaut: 0)
-	// Ce parametre est determine automatiquement par l'algorithme
-	// s'il vaut 0
+	// Ce parametre est determine automatiquement par l'algorithme s'il vaut 0
 	int GetMaxIntervalNumber() const;
 	void SetMaxIntervalNumber(int nValue);
 
@@ -78,6 +76,9 @@ public:
 
 	// Fraicheur de l'objet, incrementee a chaque modification
 	int GetFreshness() const;
+
+	// Affichage, ecriture dans un fichier
+	void Write(ostream& ost) const override;
 
 	// Libelles utilisateur
 	const ALString GetClassLabel() const override;

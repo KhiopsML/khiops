@@ -135,3 +135,39 @@ protected:
 
 /////////////////////////////////////////////////////////////////
 // Implementations en inline
+
+inline int KWCharFrequencyVector::GetSize() const
+{
+	return nCharNumber;
+}
+
+inline char KWCharFrequencyVector::GetCharAtIndex(int nIndex) const
+{
+	require(0 <= nIndex and nIndex < GetSize());
+	return (char)nIndex;
+}
+
+inline void KWCharFrequencyVector::SetFrequencyAt(char cValue, int nFrequency)
+{
+	require(nTotalFrequency - GetFrequencyAt(cValue) <= INT_MAX - nFrequency);
+	nTotalFrequency -= GetFrequencyAt(cValue);
+	ivCharFrequencies.SetAt((unsigned char)cValue, nFrequency);
+	nTotalFrequency += GetFrequencyAt(cValue);
+}
+
+inline int KWCharFrequencyVector::GetFrequencyAt(char cValue) const
+{
+	return ivCharFrequencies.GetAt((unsigned char)cValue);
+}
+
+inline void KWCharFrequencyVector::UpgradeFrequencyAt(char cValue, int nDeltaFrequency)
+{
+	require(nTotalFrequency <= INT_MAX - nDeltaFrequency);
+	ivCharFrequencies.UpgradeAt((unsigned char)cValue, nDeltaFrequency);
+	nTotalFrequency += nDeltaFrequency;
+}
+
+inline int KWCharFrequencyVector::GetTotalFrequency() const
+{
+	return nTotalFrequency;
+}

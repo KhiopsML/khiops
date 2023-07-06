@@ -9,26 +9,85 @@
 
 MHMODLHistogramCosts::MHMODLHistogramCosts()
 {
-	nTotalBinNumber = 0;
+	dHyperParametersCost = 0;
+	nMinCentralBinExponent = 0;
+	nMaxCentralBinExponent = 0;
+	nCentralBinExponent = 0;
+	nHierarchicalLevel = 0;
+	dMinBinLength = 0;
 	nPartileNumber = 0;
 
 	// Redefinition du creator de vecteur d'effectif gere par la classe
 	// (on detruit prealablement la version initialisee par la classe ancetre)
 	delete kwfvFrequencyVectorCreator;
-	kwfvFrequencyVectorCreator = new MHHistogramVector;
+	kwfvFrequencyVectorCreator = new MHMODLHistogramVector;
 }
 
 MHMODLHistogramCosts::~MHMODLHistogramCosts() {}
 
-void MHMODLHistogramCosts::SetTotalBinNumber(int nValue)
+void MHMODLHistogramCosts::SetHyperParametersCost(double dValue)
 {
-	require(nValue >= 0);
-	nTotalBinNumber = nValue;
+	require(dHyperParametersCost >= 0);
+	dHyperParametersCost = dValue;
 }
 
-int MHMODLHistogramCosts::GetTotalBinNumber() const
+double MHMODLHistogramCosts::GetHyperParametersCost() const
 {
-	return nTotalBinNumber;
+	return dHyperParametersCost;
+}
+
+void MHMODLHistogramCosts::SetMinCentralBinExponent(int nValue)
+{
+	nMinCentralBinExponent = nValue;
+}
+
+int MHMODLHistogramCosts::GetMinCentralBinExponent() const
+{
+	return nMinCentralBinExponent;
+}
+
+void MHMODLHistogramCosts::SetMaxCentralBinExponent(int nValue)
+{
+	nMaxCentralBinExponent = nValue;
+}
+
+int MHMODLHistogramCosts::GetMaxCentralBinExponent() const
+{
+	return nMaxCentralBinExponent;
+}
+
+void MHMODLHistogramCosts::SetCentralBinExponent(int nValue)
+{
+	require(nMinCentralBinExponent <= nValue and nValue <= nMaxCentralBinExponent);
+	nCentralBinExponent = nValue;
+}
+
+int MHMODLHistogramCosts::GetCentralBinExponent() const
+{
+	ensure(nMinCentralBinExponent <= nCentralBinExponent and nCentralBinExponent <= nMaxCentralBinExponent);
+	return nCentralBinExponent;
+}
+
+void MHMODLHistogramCosts::SetHierarchicalLevel(int nValue)
+{
+	require(nValue >= 0);
+	nHierarchicalLevel = nValue;
+}
+
+int MHMODLHistogramCosts::GetHierarchicalLevel() const
+{
+	return nHierarchicalLevel;
+}
+
+void MHMODLHistogramCosts::SetMinBinLength(double dValue)
+{
+	require(dValue >= 0);
+	dMinBinLength = dValue;
+}
+
+double MHMODLHistogramCosts::GetMinBinLength() const
+{
+	return dMinBinLength;
 }
 
 void MHMODLHistogramCosts::SetPartileNumber(int nValue)
@@ -42,6 +101,37 @@ int MHMODLHistogramCosts::GetPartileNumber() const
 	return nPartileNumber;
 }
 
+double MHMODLHistogramCosts::ComputeFloatingPointBinCost(boolean bIsCentralBin, int nSign, int nExponent)
+{
+	require(nSign == -1 or nSign == 1);
+
+	// Un bit pour le choix central vs exponent bit
+	// Un bit pour le signe
+	// Un bit pour le signe de l'exposant
+	// Codage de la valeur absolue de l'exposant avec le prior universel de Rissanen pour les nombres entiers
+	return 3 * log(2.0) + KWStat::NaturalNumbersUniversalCodeLength(abs(nExponent) + 1);
+}
+
+double MHMODLHistogramCosts::ComputeCentralBinExponentCost(int nExponent)
+{
+	// Un bit pour le signe de l'exposant
+	// Codage de la valeur absolue de l'exposant avec le prior universel de Rissanen pour les nombres entiers
+	return log(2.0) + KWStat::NaturalNumbersUniversalCodeLength(abs(nExponent) + 1);
+}
+
+double MHMODLHistogramCosts::ComputeDomainBoundsMantissaCost(int nMantissaBitNumber)
+{
+	require(nMantissaBitNumber >= 0);
+	return KWStat::NaturalNumbersUniversalCodeLength(nMantissaBitNumber + 1) +
+	       2 * ComputeMantissaCost(nMantissaBitNumber);
+}
+
+double MHMODLHistogramCosts::ComputeMantissaCost(int nMantissaBitNumber)
+{
+	require(nMantissaBitNumber >= 0);
+	return nMantissaBitNumber * log(2.0);
+}
+
 KWUnivariatePartitionCosts* MHMODLHistogramCosts::Create() const
 {
 	return new MHMODLHistogramCosts;
@@ -50,39 +140,47 @@ KWUnivariatePartitionCosts* MHMODLHistogramCosts::Create() const
 double MHMODLHistogramCosts::ComputePartitionCost(int nPartNumber) const
 {
 	boolean bDisplayResults = false;
-	int nActualPartileNumber;
-	double dCost;
+	double dCost = 0;
 
 	require(nPartNumber >= 1);
 	require(nTotalInstanceNumber > 0);
-	require(nPartileNumber <= nTotalBinNumber);
-	require(nPartileNumber == 0 or nPartNumber <= nPartileNumber);
+	require(dMinBinLength > 0);
+	require(nPartileNumber > 0);
+	require(nPartNumber <= nPartileNumber);
 
-	// Cout choix du nombre d'intervalles
-	dCost = KWStat::NaturalNumbersUniversalCodeLength(nPartNumber);
+	// Hyper-parametres
+	dCost += GetHyperParametersCost();
+	if (bDisplayResults)
+		cout << "\tCout des hyper-parametres\t" << GetHyperParametersCost() << endl;
+
+	// Choix du niveau du central bin exponent par rapport au min central bin exponent
+	dCost += KWStat::NaturalNumbersUniversalCodeLength(1 + GetMaxCentralBinExponent() - GetCentralBinExponent());
+	if (bDisplayResults)
+		cout << "\tCout du central bin exponent " << GetCentralBinExponent() << "\t"
+		     << KWStat::NaturalNumbersUniversalCodeLength(1 + GetMaxCentralBinExponent() -
+								  GetCentralBinExponent())
+		     << endl;
+
+	// Choix du niveau de hierarchie
+	dCost += KWStat::NaturalNumbersUniversalCodeLength(1 + nHierarchicalLevel);
+	if (bDisplayResults)
+		cout << "\tCout choix niveau de hierarchie " << nHierarchicalLevel << "\t"
+		     << KWStat::NaturalNumbersUniversalCodeLength(1 + nHierarchicalLevel) << endl;
+
+	// Choix du nombre d'intervalles
+	dCost += KWStat::NaturalNumbersUniversalCodeLength(nPartNumber);
 	if (bDisplayResults)
 		cout << "\tCout choix nombre de parties " << nPartNumber << "\t"
 		     << KWStat::NaturalNumbersUniversalCodeLength(nPartNumber) << endl;
 
-	// Choix du nombre de partiles
-	nActualPartileNumber = nTotalBinNumber;
-	if (nPartileNumber > 0)
-	{
-		nActualPartileNumber = nPartileNumber;
-		dCost += KWStat::NaturalNumbersUniversalCodeLength(nPartileNumber);
-		if (bDisplayResults)
-			cout << "\tCout choix nombre de partiles " << nPartileNumber << "\t"
-			     << KWStat::NaturalNumbersUniversalCodeLength(nPartileNumber) << endl;
-	}
-
-	// Partition des longueurs des intervalles
-	dCost += KWStat::LnFactorial(nActualPartileNumber + nPartNumber - 1);
-	dCost -= KWStat::LnFactorial(nActualPartileNumber);
+	// Partition des intervalles en bins
+	dCost += KWStat::LnFactorial(GetPartileNumber() + nPartNumber - 1);
+	dCost -= KWStat::LnFactorial(GetPartileNumber());
 	dCost -= KWStat::LnFactorial(nPartNumber - 1);
 	if (bDisplayResults)
 		cout << "\tCout choix des longueurs des intervalles "
-		     << KWStat::LnFactorial(nActualPartileNumber + nPartNumber - 1) -
-			    KWStat::LnFactorial(nActualPartileNumber) - KWStat::LnFactorial(nPartNumber - 1)
+		     << KWStat::LnFactorial(GetPartileNumber() + nPartNumber - 1) -
+			    KWStat::LnFactorial(GetPartileNumber()) - KWStat::LnFactorial(nPartNumber - 1)
 		     << endl;
 
 	// Partition des effectifs des intervalles
@@ -100,6 +198,14 @@ double MHMODLHistogramCosts::ComputePartitionCost(int nPartNumber) const
 	if (bDisplayResults)
 		cout << "\tCout du numerateur de la multinomiale des effectifs"
 		     << " \t" << KWStat::LnFactorial(nTotalInstanceNumber) << endl;
+
+	// Correction de la vraissemblance sur la longueur des intervalles
+	dCost -= nTotalInstanceNumber * log(dMinBinLength);
+	if (bDisplayResults)
+		cout << "\tCout de correction de la vraissemblance sur la longueur des intervalles"
+		     << " \t" << -nTotalInstanceNumber * log(dMinBinLength) << endl;
+
+	// Cout complet
 	if (bDisplayResults)
 		cout << "Cout complet"
 		     << " \t" << nPartNumber << "\t " << dCost << endl;
@@ -127,28 +233,51 @@ double MHMODLHistogramCosts::ComputePartCost(const KWFrequencyVector* part) cons
 	boolean bDisplay = false;
 	double dCost;
 	int nIntervalFrequency;
-	int nIntervalLength;
+	Continuous cLowerBound;
+	Continuous cUpperBound;
 
 	require(part != NULL);
 	require(part->GetClassLabel() == GetFrequencyVectorCreator()->GetClassLabel());
 
-	// On extrait l'effectif et la longueur de l'intervalle
-	nIntervalFrequency = cast(MHHistogramVector*, part)->GetFrequency();
-	nIntervalLength = cast(MHHistogramVector*, part)->GetLength();
+	// On extrait l'effectif et les bornes de l'intervalle
+	nIntervalFrequency = cast(MHMODLHistogramVector*, part)->GetFrequency();
+	cLowerBound = cast(MHMODLHistogramVector*, part)->GetLowerBound();
+	cUpperBound = cast(MHMODLHistogramVector*, part)->GetUpperBound();
 
 	// Partie de la vraisemblance multinomiale pour l'effectif
 	dCost = -KWStat::LnFactorial(nIntervalFrequency);
 
 	// Partie de la vraissemblance pour la longueur
-	if (nIntervalLength > 0)
-		dCost += nIntervalFrequency * log(nIntervalLength);
+	if (cUpperBound > cLowerBound)
+		dCost += nIntervalFrequency * log(cUpperBound - cLowerBound);
 
 	// Affichage des details du cout
 	if (bDisplay)
 	{
-		cout << "\tPart(" << nIntervalFrequency << ", " << nIntervalLength << ")\t" << dCost << endl;
+		cout << "\tPart(" << nIntervalFrequency << ", " << cUpperBound - cLowerBound << ")\t" << dCost << endl;
 	}
 	return dCost;
+}
+
+double MHMODLHistogramCosts::ComputeReferenceNullCost(int nFrequency, int nExtremeValueMantissaBinBitNumber)
+{
+	double dReferenceNullCost;
+
+	require(nFrequency >= 0);
+	require(nExtremeValueMantissaBinBitNumber >= 0);
+
+	// Prise en compte des hyper-parametres pour un ensemble ]1,2]
+	// Un seul exponent bin tres simple, et pas de mantisse pour coder les hyper-parametres
+	dReferenceNullCost = MHMODLHistogramCosts::ComputeFloatingPointBinCost(false, 1, 0);
+	dReferenceNullCost += MHMODLHistogramCosts::ComputeFloatingPointBinCost(false, 1, 1);
+	dReferenceNullCost += MHMODLHistogramCosts::ComputeDomainBoundsMantissaCost(0);
+
+	// Cout des choix du central bin exponent, de la granularite et du nombre d'intervalles
+	dReferenceNullCost += 3 * KWStat::NaturalNumbersUniversalCodeLength(1);
+
+	// Ajout du cout de codage des instances pour le modele null
+	dReferenceNullCost += nExtremeValueMantissaBinBitNumber * log(2) * nFrequency;
+	return dReferenceNullCost;
 }
 
 double MHMODLHistogramCosts::ComputePartitionGlobalCost(const KWFrequencyTable* partTable) const
@@ -180,10 +309,10 @@ double MHMODLHistogramCosts::ComputePartitionModelCost(int nPartNumber, int nGar
 {
 	double dCost;
 
-	// Il faut retrancher le numerateur de la vraissemblanvce multinomiale pour avoir la partie prior du cout de
-	// partition
+	// Il faut retrancher les partie vraissemblance pour avoir la partie prior du cout de partition
 	dCost = ComputePartitionCost(nPartNumber);
 	dCost -= KWStat::LnFactorial(nTotalInstanceNumber);
+	dCost += nTotalInstanceNumber * log(dMinBinLength);
 	return dCost;
 }
 
@@ -195,5 +324,5 @@ double MHMODLHistogramCosts::ComputePartModelCost(const KWFrequencyVector* part)
 
 const ALString MHMODLHistogramCosts::GetClassLabel() const
 {
-	return "G-Enum histogram discretization costs";
+	return "G-Enum-fp histogram discretization costs";
 }

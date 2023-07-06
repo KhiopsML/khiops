@@ -16,12 +16,12 @@ void TableGenerator::GenerateAttributeArrayViewH(ostream& ost) const
 	    << "\n";
 	ost << ""
 	    << "\n";
-	ost << "#include \"" << GetClassName() << ".h\""
+	ost << "#include \"" << GetModelClassName() << ".h\""
 	    << "\n";
-	ost << "#include \"" << GetClassName() << "View.h\""
+	ost << "#include \"" << GetViewClassName() << ".h\""
 	    << "\n";
 	if (GetSuperClassName() != "")
-		ost << "#include \"" << GetSuperClassName() << "ArrayView.h\""
+		ost << "#include \"" << GetArrayViewSuperClassName() << ".h\""
 		    << "\n";
 
 	ost << ""
@@ -31,21 +31,17 @@ void TableGenerator::GenerateAttributeArrayViewH(ostream& ost) const
 	ost << ""
 	    << "\n";
 	GenereClassHeaderComment(ost, "ArrayView");
-	ost << "// Editeur de tableau de " << GetClassName() << "\n";
-	if (GetSuperClassName() == "")
-		ost << "class " << GetClassName() << "ArrayView : public UIObjectArrayView"
-		    << "\n";
-	else
-		ost << "class " << GetClassName() << "ArrayView : public " << GetSuperClassName() << "ArrayView\n";
+	ost << "// Editeur de tableau de " << GetModelClassName() << "\n";
+	ost << "class " << GetArrayViewClassName() << " : public " << GetArrayViewSuperClassName() << "\n";
 	ost << "{"
 	    << "\n";
 	ost << "public:"
 	    << "\n";
 	ost << "\t// Constructeur"
 	    << "\n";
-	ost << "\t" << GetClassName() << "ArrayView();"
+	ost << "\t" << GetArrayViewClassName() << "();"
 	    << "\n";
-	ost << "\t~" << GetClassName() << "ArrayView();"
+	ost << "\t~" << GetArrayViewClassName() << "();"
 	    << "\n";
 	ost << ""
 	    << "\n";

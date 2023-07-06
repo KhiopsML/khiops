@@ -61,8 +61,11 @@ public:
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Gestion des rapports au format json
 
-	// Suffix des fichiers de rapports au format json: json, ou khcj depuis les rapports au format Khiops V10
+	// Suffix des fichiers de rapports au format json: khcj depuis les rapports au format Khiops V10
 	static const ALString GetJSONReportSuffix();
+
+	// Suffix des fichiers de rapports au format khc DEPRACATED
+	static const ALString GetKhcReportSuffix();
 
 	// Lecture des informations de coclustering a partir d'un fichier de rapport au format json
 	boolean ReadJSONReport(const ALString& sFileName, CCHierarchicalDataGrid* coclusteringDataGrid);
@@ -207,7 +210,4 @@ protected:
 	static const ALString sKeyWordAnnotation;
 	static const ALString sKeyWordTrue;
 	static const ALString sKeyWordFalse;
-
-	// Classe declaree temporairement en amie
-	friend class CCLearningProblemPostOptimizationView;
 };

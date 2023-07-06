@@ -162,18 +162,17 @@ void KWAttributeSpecArrayView::EventUpdate(Object* object)
 			}
 			// Erreur si attribut utilise dans une regle de calcul, directement ou via un bloc
 			else if ((not attribute->IsInBlock() and
-				  nkdEditedClassUsedAttributeReferences.Lookup((NUMERIC)attribute) != NULL) or
-				 (attribute->IsInBlock() and nkdEditedClassUsedAttributeReferences.Lookup(
-								 (NUMERIC)attribute->GetAttributeBlock()) != NULL))
+				  nkdEditedClassUsedAttributeReferences.Lookup(attribute) != NULL) or
+				 (attribute->IsInBlock() and
+				  nkdEditedClassUsedAttributeReferences.Lookup(attribute->GetAttributeBlock()) != NULL))
 			{
 				if (not attribute->IsInBlock())
 					referenceDataItem =
-					    cast(KWDataItem*,
-						 nkdEditedClassUsedAttributeReferences.Lookup((NUMERIC)attribute));
+					    cast(KWDataItem*, nkdEditedClassUsedAttributeReferences.Lookup(attribute));
 				else
 					referenceDataItem =
 					    cast(KWDataItem*, nkdEditedClassUsedAttributeReferences.Lookup(
-								  (NUMERIC)attribute->GetAttributeBlock()));
+								  attribute->GetAttributeBlock()));
 				check(referenceDataItem);
 
 				// Cas d'un attribut referencant
@@ -212,7 +211,7 @@ void KWAttributeSpecArrayView::EventUpdate(Object* object)
 				bTypeError = true;
 			}
 			// Erreur si attribut utilise dans la cle
-			else if (nkdEditedClassKeyAttributes.Lookup((NUMERIC)attribute) != NULL)
+			else if (nkdEditedClassKeyAttributes.Lookup(attribute) != NULL)
 			{
 				attribute->AddError("Cannot change type of key variable that must be of type " +
 						    KWType::ToString(KWType::Symbol));
@@ -313,7 +312,7 @@ void KWAttributeSpecArrayView::BuildKeyAttributes(KWClass* kwcClass, NumericKeyD
 	require(nkdKeyAttributes->GetCount() == 0);
 
 	for (nKey = 0; nKey < kwcClass->GetKeyAttributeNumber(); nKey++)
-		nkdKeyAttributes->SetAt((NUMERIC)kwcClass->GetKeyAttributeAt(nKey), kwcClass->GetKeyAttributeAt(nKey));
+		nkdKeyAttributes->SetAt(kwcClass->GetKeyAttributeAt(nKey), kwcClass->GetKeyAttributeAt(nKey));
 }
 
 void KWAttributeSpecArrayView::BuildClassUsedAttributeReferences(KWClass* kwcClass,
@@ -394,15 +393,14 @@ void KWAttributeSpecArrayView::BuildRuleUsedAttributeReferences(KWDerivationRule
 			{
 				usedAttribute = operand->GetOriginAttribute();
 				if (usedAttribute != NULL)
-					nkdUsedAttributeReferences->SetAt((NUMERIC)usedAttribute, referenceDataItem);
+					nkdUsedAttributeReferences->SetAt(usedAttribute, referenceDataItem);
 			}
 			// Sinon le cas d'un bloc d'attribut
 			else
 			{
 				usedAttributeBlock = operand->GetOriginAttributeBlock();
 				if (usedAttributeBlock != NULL)
-					nkdUsedAttributeReferences->SetAt((NUMERIC)usedAttributeBlock,
-									  referenceDataItem);
+					nkdUsedAttributeReferences->SetAt(usedAttributeBlock, referenceDataItem);
 			}
 		}
 		// Cas d'une sous regle

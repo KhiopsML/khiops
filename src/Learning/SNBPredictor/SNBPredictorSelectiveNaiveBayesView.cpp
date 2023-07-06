@@ -17,6 +17,10 @@ SNBPredictorSelectiveNaiveBayesView::SNBPredictorSelectiveNaiveBayesView()
 
 	// Ajout des sous-fiches
 	AddCardField("SelectionParameters", "Selection parameters", new KWSelectionParametersView);
+
+	// On met les deux sousèfiches sans bord
+	cast(UIObjectView*, GetFieldAt("TrainParameters"))->SetParameters("NoBorder");
+	cast(UIObjectView*, GetFieldAt("SelectionParameters"))->SetParameters("NoBorder");
 }
 
 SNBPredictorSelectiveNaiveBayesView::~SNBPredictorSelectiveNaiveBayesView() {}

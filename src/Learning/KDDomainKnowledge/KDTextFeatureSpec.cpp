@@ -12,7 +12,7 @@ KDTextFeatureSpec::KDTextFeatureSpec()
 {
 	// ## Custom constructor
 
-	sTextFeatures = "n-grams";
+	sTextFeatures = "ngrams";
 
 	// ##
 }
@@ -67,16 +67,14 @@ const ALString KDTextFeatureSpec::GetObjectLabel() const
 	return sLabel;
 }
 
-boolean KDTextFeatureSpec::IsNGram() const
+boolean KDTextFeatureSpec::Check() const
 {
-	require(sTextFeatures == "n-grams" or sTextFeatures == "words");
-	return sTextFeatures == "n-grams";
-}
+	boolean bOk;
 
-boolean KDTextFeatureSpec::IsToken() const
-{
-	require(sTextFeatures == "n-grams" or sTextFeatures == "words");
-	return sTextFeatures == "words";
+	bOk = GetTextFeatures() == "ngrams" or GetTextFeatures() == "words" or GetTextFeatures() == "tokens";
+	if (not bOk)
+		AddError("Invalid parameter " + GetTextFeatures() + " : must be ngrams, words or tokens");
+	return bOk;
 }
 
 // ##

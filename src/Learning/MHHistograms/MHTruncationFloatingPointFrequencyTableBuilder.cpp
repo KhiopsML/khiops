@@ -84,7 +84,7 @@ void MHTruncationFloatingPointFrequencyTableBuilder::InitializeBins(const Contin
 	assert(cMaxNegativeValue == 0 or cMaxNegativeValue <= -dTruncationBinaryEpsilon);
 	assert(cMinPositiveValue == 0 or cMinPositiveValue >= dTruncationBinaryEpsilon);
 
-	// Creation et initialisation d'un tableBuilder pour les valeur initiales
+	// Creation et initialisation d'un tableBuilder pour les valeurs initiales
 	initialBinsTableBuilder = new MHFloatingPointFrequencyTableBuilder;
 	initialBinsTableBuilder->InitializeBins(cvSourceBinLowerValues, cvSourceBinUpperValues, ivSourceBinFrequencies);
 	ensure(Check());
@@ -147,7 +147,7 @@ void MHTruncationFloatingPointFrequencyTableBuilder::SetCentralBinExponent(int n
 	// les bornes du domaines, car cela revient ici au meme, sans avoir a gerer l'effet de bord de la borne inf du
 	// domain qui est strictement inferieur a Min
 	nMaxHierarchyLevel = 0;
-	if (dTruncationBinaryEpsilon < GetMaxValue() - GetMinValue())
+	if (dTruncationBinaryEpsilon <= GetMaxValue() - GetMinValue())
 	{
 		// Recherche du niveau de hierarchie max
 		nMaxHierarchyLevel = -1;
@@ -189,7 +189,7 @@ int MHTruncationFloatingPointFrequencyTableBuilder::GetMinOptimizedCentralBinExp
 	require(dTruncationEpsilon > 0);
 
 	// Initialisation dans le cas standard
-	if (dTruncationBinaryEpsilon < GetMaxValue() - GetMinValue())
+	if (dTruncationBinaryEpsilon <= GetMaxValue() - GetMinValue())
 		nMinOptimizedCentralBinExponent = max(nTruncationBinaryEpsilonExponent, nMinCentralBinExponent);
 	// Et dans le cas ou on depasse l'etendues de donnees
 	else
@@ -283,6 +283,7 @@ int MHTruncationFloatingPointFrequencyTableBuilder::GetTotalBinNumberAt(int nHie
 				}
 			}
 		}
+		assert(nTotalBinNumber >= 1);
 		assert(nTotalBinNumber <= GetMainBinNumber() * nMainBinMantissaBinNumber);
 	}
 	ensure(1 <= nTotalBinNumber and nTotalBinNumber <= (1 << nHierarchyLevel));
@@ -396,12 +397,8 @@ Continuous MHTruncationFloatingPointFrequencyTableBuilder::TransformValue(Contin
 		       nMantissaBitNumber == MHFloatingPointFrequencyTableBuilder::GetMaxMantissaBinBitNumber());
 		cTransformedValue = cUpperBound;
 	}
-
-	// Cas des valeurs extremes
-	if (cTransformedValue > KWContinuous::GetMaxValue())
-		cTransformedValue = KWContinuous::GetMaxValue();
-	else if (cTransformedValue < KWContinuous::GetMinValue())
-		cTransformedValue = KWContinuous::GetMinValue();
+	assert(cTransformedValue >= GetSystemMinValue());
+	assert(cTransformedValue <= GetSystemMaxValue());
 
 	// Verification de coherence avec la transformation inverse
 	assert(fabs(cValue - InverseTransformValue(cTransformedValue)) <= (1 + 1e-5) * dTruncationEpsilon or
@@ -430,7 +427,7 @@ Continuous MHTruncationFloatingPointFrequencyTableBuilder::InverseTransformValue
 		cValue = KWContinuous::GetMaxValue();
 	else if (cTransformedValue <= KWContinuous::GetMinValue())
 		cValue = KWContinuous::GetMinValue();
-	// Transformation inverse de  de la valeur autour de zero
+	// Transformation inverse de la valeur autour de zero
 	else if (-dTruncationBinaryEpsilon <= cTransformedValue and cTransformedValue <= dTruncationBinaryEpsilon)
 		cValue = (cTransformedValue * dTruncationEpsilon) / dTruncationBinaryEpsilon + dTruncationEpsilon / 2;
 	// Sinon, on passe par l'exposant pour s'adapter a l'ordre de grandeur de la valeur
@@ -504,6 +501,33 @@ void MHTruncationFloatingPointFrequencyTableBuilder::TransformValues(const Conti
 				cout << cvSourceValues->GetAt(n) << "\t" << cvTransformedValues->GetAt(n) << "\n";
 		}
 	}
+}
+
+Continuous MHTruncationFloatingPointFrequencyTableBuilder::GetSystemMinValue() const
+{
+	Continuous cSystemMinValue;
+
+	cSystemMinValue = KWContinuous::GetMinValue();
+	if (dTruncationBinaryEpsilon > 0)
+		cSystemMinValue =
+		    (cSystemMinValue * dTruncationBinaryEpsilon) / dTruncationEpsilon - dTruncationBinaryEpsilon / 2;
+	return cSystemMinValue;
+}
+
+Continuous MHTruncationFloatingPointFrequencyTableBuilder::GetSystemMaxValue() const
+{
+	Continuous cSystemMaxValue;
+
+	cSystemMaxValue = KWContinuous::GetMaxValue();
+	if (dTruncationBinaryEpsilon > 0)
+		cSystemMaxValue =
+		    (cSystemMaxValue * dTruncationBinaryEpsilon) / dTruncationEpsilon + dTruncationBinaryEpsilon / 2;
+	return cSystemMaxValue;
+}
+
+void MHTruncationFloatingPointFrequencyTableBuilder::UpdateMaxSafeHierarchyLevel()
+{
+	// On ne fait rien dans le cas de la troncature
 }
 
 void MHTruncationFloatingPointFrequencyTableBuilder::InitializeDomainBounds()

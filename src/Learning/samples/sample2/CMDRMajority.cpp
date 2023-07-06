@@ -9,6 +9,7 @@ CMDRMajorityClassifier::CMDRMajorityClassifier()
 	// Initialisation des parametres de la regle et de ses operandes
 	SetName("MajorityClassifier");
 	SetLabel("Majority Classifier");
+	nTotalFrequency = 0;
 }
 
 CMDRMajorityClassifier::~CMDRMajorityClassifier() {}
@@ -39,37 +40,15 @@ Object* CMDRMajorityClassifier::ComputeStructureResult(const KWObject* kwoObject
 void CMDRMajorityClassifier::ComputeTargetProbs() const
 {
 	int nTarget;
-	int nFrequencyMax;
-	int nFrequencyMaxIndex;
-	Symbol sMode;
 
 	require(IsCompiled());
 	require(IsOptimized());
 	require(cvTargetProbs.GetSize() == GetDataGridSetTargetPartNumber());
 
-	// Calcul du mode
-	nFrequencyMax = 0;
-	nFrequencyMaxIndex = -1;
-	for (nTarget = 0; nTarget < ivFrequencies.GetSize(); nTarget++)
-	{
-		if (ivFrequencies.GetAt(nTarget) > nFrequencyMax)
-		{
-			nFrequencyMax = ivFrequencies.GetAt(nTarget);
-			nFrequencyMaxIndex = nTarget;
-		}
-	}
-	assert(nFrequencyMaxIndex > -1);
-	sMode = svTargetValues.GetAt(nFrequencyMaxIndex);
-
+	// Calcul des proba a partir des effectifs en apprentissage
 	for (nTarget = 0; nTarget < svTargetValues.GetSize(); nTarget++)
 	{
-		if (svTargetValues.GetAt(nTarget) == sMode)
-		{
-			// Memorisation du resultat
-			cvTargetProbs.SetAt(nTarget, (Continuous)(1.0 - (svTargetValues.GetSize() * 0.001)));
-		}
-		else
-			cvTargetProbs.SetAt(nTarget, (Continuous)0.001);
+		cvTargetProbs.SetAt(nTarget, ivFrequencies.GetAt(nTarget) / (double)nTotalFrequency);
 	}
 }
 
@@ -91,10 +70,14 @@ void CMDRMajorityClassifier::Compile(KWClass* kwcOwnerClass)
 	nTargetValueNumber = targetDataGrid->GetTotalCellNumber();
 
 	// Initialisation du vecteur des frequences cibles
+	nTotalFrequency = 0;
 	targetFrequencies =
 	    cast(const KWDRFrequencies*, targetDataGrid->GetOperandAt(1)->GetReferencedDerivationRule(kwcOwnerClass));
 	assert(targetFrequencies->GetFrequencyNumber() == nTargetValueNumber);
 	ivFrequencies.SetSize(nTargetValueNumber);
 	for (nTarget = 0; nTarget < nTargetValueNumber; nTarget++)
+	{
 		ivFrequencies.SetAt(nTarget, targetFrequencies->GetFrequencyAt(nTarget));
+		nTotalFrequency += targetFrequencies->GetFrequencyAt(nTarget);
+	}
 }

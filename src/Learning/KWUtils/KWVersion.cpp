@@ -259,35 +259,6 @@ boolean GetLearningRawGuiModeMode()
 	return bLearningRawGuiMode;
 }
 
-boolean GetLearningMultiTableMode()
-{
-	static boolean bIsInitialized = false;
-	static boolean bLearningMultiTableMode = false;
-
-	// Determination du mode expert au premier appel
-	if (not bIsInitialized)
-	{
-		ALString sLearningMultiTableMode;
-
-		// Recherche des variables d'environnement
-		sLearningMultiTableMode = p_getenv("KhiopsMultiTableMode");
-		sLearningMultiTableMode.MakeLower();
-
-		// Determination du mode multi-tables
-		if (sLearningMultiTableMode == "true")
-			bLearningMultiTableMode = true;
-		else if (sLearningMultiTableMode == "false")
-			bLearningMultiTableMode = false;
-		// Par defaut: true
-		else
-			bLearningMultiTableMode = true;
-
-		// Memorisation du flag d'initialisation
-		bIsInitialized = true;
-	}
-	return bLearningMultiTableMode;
-}
-
 boolean GetLearningExpertMode()
 {
 	static boolean bIsInitialized = false;
@@ -306,7 +277,7 @@ boolean GetLearningExpertMode()
 		sLearningExpertMode.MakeLower();
 
 		// Determination du mode expert (en debug pour Marc ou Carine)
-		debug(bLearningExpertMode = (sUserName == "miib6422") or (sUserName == "mgtt5712"));
+		// DDD		debug(bLearningExpertMode = (sUserName == "miib6422") or (sUserName == "mgtt5712"));
 		if (sLearningExpertMode == "true")
 			bLearningExpertMode = true;
 		else if (sLearningExpertMode == "false")
@@ -316,6 +287,33 @@ boolean GetLearningExpertMode()
 		bIsInitialized = true;
 	}
 	return bLearningExpertMode;
+}
+
+boolean GetLearningHardMemoryLimitMode()
+{
+	static boolean bIsInitialized = false;
+	static boolean bLearningHardMemoryLimitMode = false;
+
+	// Determination du mode HardMemoryLimit au premier appel
+	if (not bIsInitialized)
+	{
+		ALString sUserName;
+		ALString sLearningHardMemoryLimitMode;
+
+		// Recherche des variables d'environnement
+		sLearningHardMemoryLimitMode = p_getenv("KhiopsHardMemoryLimitMode");
+		sLearningHardMemoryLimitMode.MakeLower();
+
+		// Determination du mode HardMemoryLimit
+		if (sLearningHardMemoryLimitMode == "true")
+			bLearningHardMemoryLimitMode = true;
+		else if (sLearningHardMemoryLimitMode == "false")
+			bLearningHardMemoryLimitMode = false;
+
+		// Memorisation du flag d'initialisation
+		bIsInitialized = true;
+	}
+	return GetLearningExpertMode() and bLearningHardMemoryLimitMode;
 }
 
 boolean GetLearningCrashTestMode()
@@ -330,13 +328,10 @@ boolean GetLearningCrashTestMode()
 		ALString sLearningCrashTestMode;
 
 		// Recherche des variables d'environnement
-		sUserName = p_getenv("USERNAME");
-		sUserName.MakeLower();
 		sLearningCrashTestMode = p_getenv("KhiopsCrashTestMode");
 		sLearningCrashTestMode.MakeLower();
 
-		// Determination du mode CrashTest (en debug pour Marc ou Carine)
-		debug(bLearningCrashTestMode = (sUserName == "miib6422") or (sUserName == "mgtt5712"));
+		// Determination du mode CrashTest
 		if (sLearningCrashTestMode == "true")
 			bLearningCrashTestMode = true;
 		else if (sLearningCrashTestMode == "false")
@@ -345,67 +340,7 @@ boolean GetLearningCrashTestMode()
 		// Memorisation du flag d'initialisation
 		bIsInitialized = true;
 	}
-	return bLearningCrashTestMode;
-}
-
-boolean GetLearningTextVariableMode()
-{
-	static boolean bIsInitialized = false;
-	static boolean bLearningTextVariableMode = false;
-
-	// Determination du mode au premier appel
-	if (not bIsInitialized)
-	{
-		ALString sUserName;
-		ALString sLearningTextVariableMode;
-
-		// Recherche des variables d'environnement
-		sUserName = p_getenv("USERNAME");
-		sUserName.MakeLower();
-		sLearningTextVariableMode = p_getenv("KhiopsTextVariableMode");
-		sLearningTextVariableMode.MakeLower();
-
-		// Determination du mode (en debug)
-		// DDD		debug(bLearningTextVariableMode = (sUserName == "miib6422"));
-		if (sLearningTextVariableMode == "true")
-			bLearningTextVariableMode = true;
-		else if (sLearningTextVariableMode == "false")
-			bLearningTextVariableMode = false;
-
-		// Memorisation du flag d'initialisation
-		bIsInitialized = true;
-	}
-	return bLearningTextVariableMode;
-}
-
-boolean GetLearningInterpretationMode()
-{
-	static boolean bIsInitialized = false;
-	static boolean bLearningInterpretationMode = false;
-
-	// Determination du mode au premier appel
-	if (not bIsInitialized)
-	{
-		ALString sUserName;
-		ALString sLearningInterpretationMode;
-
-		// Recherche des variables d'environnement
-		sUserName = p_getenv("USERNAME");
-		sUserName.MakeLower();
-		sLearningInterpretationMode = p_getenv("KhiopsInterpretationMode");
-		sLearningInterpretationMode.MakeLower();
-
-		// Determination du mode (en debug)
-		// DDD 		debug(bLearningInterpretationMode = (sUserName == "miib6422"));
-		if (sLearningInterpretationMode == "true")
-			bLearningInterpretationMode = true;
-		else if (sLearningInterpretationMode == "false")
-			bLearningInterpretationMode = false;
-
-		// Memorisation du flag d'initialisation
-		bIsInitialized = true;
-	}
-	return bLearningInterpretationMode;
+	return GetLearningExpertMode() and bLearningCrashTestMode;
 }
 
 boolean GetPreparationTraceMode()
@@ -486,32 +421,6 @@ boolean GetForestExpertMode()
 	return bForestExpertMode;
 }
 
-boolean GetForceSNBV9ExpertMode()
-{
-	static boolean bIsInitialized = false;
-	static boolean bForceSNBV9Mode = false;
-
-	// Determination du mode expert au premier appel
-	if (not bIsInitialized)
-	{
-		ALString sForceSNBV9Mode;
-
-		// Recherche des variables d'environnement
-		sForceSNBV9Mode = p_getenv("KhiopsForceSNBV9Mode");
-		sForceSNBV9Mode.MakeLower();
-
-		// Determination du mode expert
-		if (sForceSNBV9Mode == "true")
-			bForceSNBV9Mode = true;
-		else if (sForceSNBV9Mode == "false")
-			bForceSNBV9Mode = false;
-
-		// Memorisation du flag d'initialisation
-		bIsInitialized = true;
-	}
-	return bForceSNBV9Mode;
-}
-
 boolean GetLearningCoclusteringExpertMode()
 {
 	static boolean bIsInitialized = false;
@@ -520,7 +429,6 @@ boolean GetLearningCoclusteringExpertMode()
 	// Determination du mode expert au premier appel
 	if (not bIsInitialized)
 	{
-		ALString sUserName;
 		ALString sLearningCoclusteringExpertMode;
 
 		// Recherche des variables d'environnement
@@ -547,12 +455,9 @@ boolean GetParallelExpertMode()
 	// Determination du mode parallele au premier appel
 	if (not bIsInitialized)
 	{
-		ALString sUserName;
 		ALString sExpertParallelMode;
 
 		// Recherche des variables d'environnement
-		sUserName = p_getenv("USERNAME");
-		sUserName.MakeLower();
 		sExpertParallelMode = p_getenv("KhiopsExpertParallelMode");
 		sExpertParallelMode.MakeLower();
 
@@ -610,7 +515,6 @@ boolean GetLearningPriorStudyMode()
 	// Determination du mode etude des prior au premier appel
 	if (not bIsInitialized)
 	{
-		ALString sUserName;
 		ALString sLearningPriorStudyMode;
 
 		// Recherche des variables d'environnement
@@ -637,7 +541,6 @@ boolean GetDistanceStudyMode()
 	// Determination du mode parallele au premier appel
 	if (not bIsInitialized)
 	{
-		ALString sUserName;
 		ALString sDistanceStudyMode;
 
 		// Recherche des variables d'environnement

@@ -6,6 +6,7 @@
 
 int main(int argv, char** argc)
 {
+	// Il faut definir USE_MPI avant de lancer le programme avec mpiexec
 #if defined(USE_MPI)
 
 	// Mise en place du fdriver parallel

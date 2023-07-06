@@ -5,7 +5,6 @@
 #pragma once
 
 #include "UserInterface.h"
-#include "LMLicenseManager.h"
 #include "KWVersion.h"
 
 ////////////////////////////////////////////////////////////
@@ -19,18 +18,26 @@ public:
 	~KWLearningProblemHelpCard();
 
 	// Actions de menu
+	void ShowQuickStart();
 	void ShowDocumentation();
-	void LicenseManagement();
 	void ShowAbout();
 
-	// Parametrage de la documentation (par defaut: vide)
+	////////////////////////////////////////////////////////////
+	// Parametrage des texte d'aide
 	// Le texte a passer est au format html et sera visualise dans une boite de dialogue
 	// Le parametrage doit etre fait des le depart, avant le lancement de l'application
-	static void SetDocumentationText(const ALString sValue);
+
+	// Parametrage du quick start (par defaut: vide)
+	static void SetQuickStartText(const ALString& sValue);
+	static const ALString& GetQuickStartText();
+
+	// Parametrage de la documentation (par defaut: vide)
+	static void SetDocumentationText(const ALString& sValue);
 	static const ALString& GetDocumentationText();
 
 	////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
+	static ALString sQuickStartText;
 	static ALString sDocumentationText;
 };

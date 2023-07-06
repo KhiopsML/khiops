@@ -88,9 +88,6 @@ public:
 	////////////////////////////////////////////
 	// Parametrage avance
 
-	// Nombre max de valeurs prise en comptes dans les rapports
-	static int GetMaxModalityNumber();
-
 	// Verification de la presence et de la validite des specifications
 	boolean Check() const override;
 
@@ -281,9 +278,6 @@ public:
 
 	// Nombre max de valeurs prise en comptes dans les rapports (defaut: 1000000)
 	// notament pour les dimensions des grilles de preparation des donnees
-	static void SetMaxModalityNumber(int nValue);
-	static int GetMaxModalityNumber();
-
 	// Indique s'il faut grouper la cible, c'est a dire si cela est demande en pretraitement et
 	// que l'on est dans le cas de la classification supervisee avec des pretraitements MODL
 	boolean IsTargetGrouped() const;
@@ -381,7 +375,6 @@ protected:
 	// Parametres avances
 	boolean bCheckTargetAttribute;
 	static boolean bTextConstructionUsedByTrees;
-	static int nMaxModalityNumber;
 
 	friend class PLShared_LearningSpec;
 };
@@ -509,11 +502,6 @@ inline double KWLearningService::GetNullPreparationCost() const
 inline double KWLearningService::GetNullDataCost() const
 {
 	return learningSpec->GetNullDataCost();
-}
-
-inline int KWLearningService::GetMaxModalityNumber()
-{
-	return KWLearningSpec::GetMaxModalityNumber();
 }
 
 inline boolean KWLearningService::IsTargetGrouped() const
@@ -715,15 +703,4 @@ inline void KWLearningSpec::SetTextConstructionUsedByTrees(boolean bValue)
 inline boolean KWLearningSpec::GetTextConstructionUsedByTrees()
 {
 	return bTextConstructionUsedByTrees;
-}
-
-inline void KWLearningSpec::SetMaxModalityNumber(int nValue)
-{
-	require(nValue >= 0);
-	nMaxModalityNumber = nValue;
-}
-
-inline int KWLearningSpec::GetMaxModalityNumber()
-{
-	return nMaxModalityNumber;
 }

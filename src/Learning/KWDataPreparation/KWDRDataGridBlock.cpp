@@ -659,7 +659,7 @@ void KWDRDataGridBlockRule::BuildAllUsedAttributes(const KWAttribute* derivedAtt
 		}
 
 		// Memorisation de l'attribut dans le dictionnaire
-		nkdAllUsedAttributes->SetAt((NUMERIC)attribute, cast(Object*, attribute));
+		nkdAllUsedAttributes->SetAt(attribute, cast(Object*, attribute));
 
 		// Propagation a la regle du bloc en operande, car celui-ci peut lui meme etre le resultat d'un calcul
 		// Notamment s'il se base sur un autre bloc en operande, il faut propager a l'attribut de ce bloc de
@@ -683,7 +683,7 @@ void KWDRDataGridBlockRule::BuildAllUsedAttributes(const KWAttribute* derivedAtt
 		for (nAttribute = 0; nAttribute < oaAllUsedAttributes.GetSize(); nAttribute++)
 		{
 			attribute = cast(KWAttribute*, oaAllUsedAttributes.GetAt(nAttribute));
-			if (nkdInitialAllUsedAttributes.Lookup((NUMERIC)attribute) == NULL)
+			if (nkdInitialAllUsedAttributes.Lookup(attribute) == NULL)
 				cout << "\t" << attribute->GetName() << "\n";
 		}
 	}
@@ -862,7 +862,7 @@ void KWDRDataGridBlockRule::Optimize(KWClass* kwcOwnerClass)
 			nVarKey = usedDataGridBlock->GetContinuousVarKeyAt(nIndex);
 			ioDataGridIndex = new IntObject;
 			ioDataGridIndex->SetInt(nIndex);
-			nkdVarKeyDataGridIndexes.SetAt((NUMERIC)(longint)nVarKey, ioDataGridIndex);
+			nkdVarKeyDataGridIndexes.SetAt(nVarKey, ioDataGridIndex);
 		}
 
 		// Parcours des cles du bloc source
@@ -871,7 +871,7 @@ void KWDRDataGridBlockRule::Optimize(KWClass* kwcOwnerClass)
 			nVarKey = sourceIndexedNKeyBlock->GetKeyAt(nSourceIndex);
 
 			// Memorisation de l'index de la grille correspondante, -1 si non trouvee
-			ioDataGridIndex = cast(IntObject*, nkdVarKeyDataGridIndexes.Lookup((NUMERIC)(longint)nVarKey));
+			ioDataGridIndex = cast(IntObject*, nkdVarKeyDataGridIndexes.Lookup(nVarKey));
 			if (ioDataGridIndex == NULL)
 				ivUsedRecodingDataGridIndexes.SetAt(nSourceIndex, -1);
 			else
@@ -1135,7 +1135,7 @@ boolean KWDRCellIndexBlock::CheckBlockAttributesAt(const KWClass* kwcOwnerClass,
 				for (nIndex = 0; nIndex < referencedDataGridBlock->GetUncheckedVarKeyNumber(); nIndex++)
 				{
 					nVarKey = referencedDataGridBlock->GetUncheckedContinuousVarKeyAt(nIndex);
-					nkdDataGridVarKeys.SetAt((NUMERIC)(longint)nVarKey, &nkdDataGridVarKeys);
+					nkdDataGridVarKeys.SetAt(nVarKey, &nkdDataGridVarKeys);
 				}
 			}
 		}
@@ -1159,7 +1159,7 @@ boolean KWDRCellIndexBlock::CheckBlockAttributesAt(const KWClass* kwcOwnerClass,
 				else
 				{
 					nVarKey = attributeBlock->GetContinuousVarKey(checkedAttribute);
-					bVarKeyFound = nkdDataGridVarKeys.Lookup((NUMERIC)(longint)nVarKey) != NULL;
+					bVarKeyFound = nkdDataGridVarKeys.Lookup(nVarKey) != NULL;
 				}
 
 				// Erreur si la VarKey de grille n'est pas trouvee

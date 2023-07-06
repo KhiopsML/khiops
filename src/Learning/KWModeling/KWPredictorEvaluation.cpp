@@ -166,26 +166,27 @@ void KWPredictorEvaluation::WriteFullReport(ostream& ost, const ALString& sEvalu
 	    << "\n";
 	ost << "\n";
 	ost << "Dictionary"
-	    << "\t" << GetClass()->GetName() << "\n";
+	    << "\t" << TSV::Export(GetClass()->GetName()) << "\n";
 	if (GetTargetAttributeName() != "")
 	{
 		ost << "Target variable"
-		    << "\t" << KWType::ToString(GetTargetAttributeType()) << "\t" << GetTargetAttributeName() << "\n";
+		    << "\t" << KWType::ToString(GetTargetAttributeType()) << "\t"
+		    << TSV::Export(GetTargetAttributeName()) << "\n";
 		if (GetMainTargetModalityIndex() >= 0)
 			ost << "Main target value"
-			    << "\t" << GetMainTargetModality() << "\n";
+			    << "\t" << TSV::Export(GetMainTargetModality().GetValue()) << "\n";
 	}
 
 	// Base de donnes
-	ost << "Database\t" << evaluationDatabaseSpec.GetDatabaseName() << "\n";
+	ost << "Database\t" << TSV::Export(evaluationDatabaseSpec.GetDatabaseName()) << "\n";
 
 	// Taux d'echantillonnage
 	ost << "Sample percentage\t" << evaluationDatabaseSpec.GetSampleNumberPercentage() << "\n";
 	ost << "Sampling mode\t" << evaluationDatabaseSpec.GetSamplingMode() << "\n";
 
 	// Variable de selection
-	ost << "Selection variable\t" << evaluationDatabaseSpec.GetSelectionAttribute() << "\n";
-	ost << "Selection value\t" << evaluationDatabaseSpec.GetSelectionValue() << "\n";
+	ost << "Selection variable\t" << TSV::Export(evaluationDatabaseSpec.GetSelectionAttribute()) << "\n";
+	ost << "Selection value\t" << TSV::Export(evaluationDatabaseSpec.GetSelectionValue()) << "\n";
 
 	// Nombre d'instances
 	ost << "Instances\t" << GetEvaluationInstanceNumber() << "\n";
@@ -641,11 +642,11 @@ void KWClassifierEvaluation::WriteConfusionMatrixReport(ostream& ost)
 
 	// Matrice de confusion
 	for (j = 0; j <= jMax; j++)
-		ost << "\t" << GetActualModalities()->GetValueAt(j);
+		ost << "\t" << TSV::Export(GetActualModalities()->GetValueAt(j).GetValue());
 	ost << "\n";
 	for (i = 0; i <= iMax; i++)
 	{
-		ost << "$" << GetPredictedModalities()->GetValueAt(i);
+		ost << "$" << TSV::Export(GetPredictedModalities()->GetValueAt(i).GetValue());
 		for (j = 0; j <= jMax; j++)
 			ost << "\t" << GetConfusionMatrix()->GetBivariateCellFrequencyAt(i, j);
 		ost << "\n";
@@ -686,7 +687,7 @@ void KWClassifierEvaluation::WriteLiftCurveReportArray(ostream& ost, ObjectArray
 		// Titre de la courbe base sur le nom de la modalite
 		if (n > 0)
 			ost << "\n";
-		ost << "Lift curves\t" << GetPredictorTargetValueAt(nPredictorTarget) << "\n";
+		ost << "Lift curves\t" << TSV::Export(GetPredictorTargetValueAt(nPredictorTarget).GetValue()) << "\n";
 
 		// Ligne d'entete
 		ost << "Size\tRandom\tOptimal";
@@ -705,7 +706,7 @@ void KWClassifierEvaluation::WriteLiftCurveReportArray(ostream& ost, ObjectArray
 			require(classifierEvaluation->GetLiftCurveIndexAt(nPredictorTarget) != -1);
 
 			// Libelle du classifier
-			ost << "\t" << classifierEvaluation->GetPredictorName();
+			ost << "\t" << TSV::Export(classifierEvaluation->GetPredictorName());
 		}
 		ost << "\n";
 
@@ -751,7 +752,7 @@ void KWClassifierEvaluation::WriteReport(ostream& ost)
 	require(Check());
 
 	// Donnees de base
-	ost << "Classifier\t" << GetPredictorName() << "\n";
+	ost << "Classifier\t" << TSV::Export(GetPredictorName()) << "\n";
 	ost << "Accuracy\t" << GetAccuracy() << "\n";
 	ost << "Compression\t" << GetCompressionRate() << "\n";
 	ost << "AUC\t" << GetAUC() << "\n";
@@ -773,7 +774,7 @@ void KWClassifierEvaluation::WriteHeaderLineReport(ostream& ost)
 void KWClassifierEvaluation::WriteLineReport(ostream& ost)
 {
 	require(Check());
-	ost << GetPredictorName() << "\t";
+	ost << TSV::Export(GetPredictorName()) << "\t";
 	ost << GetAccuracy() << "\t";
 	ost << GetCompressionRate() << "\t";
 	ost << GetAUC();
@@ -1097,7 +1098,7 @@ void KWRegressorEvaluation::WriteRankRECCurveReport(ostream& ost)
 	require(IsPerformanceCurveReported());
 
 	// Ligne d'entete
-	ost << "Size\t" << GetPredictorName() << "\n";
+	ost << "Size\t" << TSV::Export(GetPredictorName()) << "\n";
 
 	// Donnees de la courbe de lift
 	for (nIndex = 0; nIndex <= GetPartileNumber(); nIndex++)
@@ -1132,7 +1133,7 @@ void KWRegressorEvaluation::WriteRankRECCurveReportArray(ostream& ost, ObjectArr
 		require(regressorEvaluation->GetPartileNumber() == GetPartileNumber());
 
 		// Libelle du regressor
-		ost << "\t" << regressorEvaluation->GetPredictorName();
+		ost << "\t" << TSV::Export(regressorEvaluation->GetPredictorName());
 	}
 	ost << "\n";
 
@@ -1174,7 +1175,7 @@ void KWRegressorEvaluation::WriteReport(ostream& ost)
 	require(Check());
 
 	// Donnees de base
-	ost << "Regressor\t" << GetPredictorName() << "\n";
+	ost << "Regressor\t" << TSV::Export(GetPredictorName()) << "\n";
 	if (GetEvaluationInstanceNumber() > GetTargetMissingValueNumber())
 	{
 		ost << "RMSE\t" << GetRMSE() << "\n";
@@ -1195,7 +1196,7 @@ void KWRegressorEvaluation::WriteHeaderLineReport(ostream& ost)
 void KWRegressorEvaluation::WriteLineReport(ostream& ost)
 {
 	require(Check());
-	ost << GetPredictorName() << "\t";
+	ost << TSV::Export(GetPredictorName()) << "\t";
 	if (GetEvaluationInstanceNumber() > 0)
 	{
 		ost << GetRMSE() << "\t" << GetMAE() << "\t" << GetNLPD() << "\t";

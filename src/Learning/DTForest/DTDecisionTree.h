@@ -160,7 +160,7 @@ public:
 	int GetUsableAttributesNumber() const;
 	void SetUsableAttributesNumber(const int);
 
-	boolean Check() const;
+	boolean Check() const override;
 
 	void Write(ostream&);
 

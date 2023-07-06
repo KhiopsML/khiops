@@ -16,15 +16,14 @@
 #include "KWPredictorUnivariate.h"
 #include "KWPredictorBivariate.h"
 #include "KWPredictorNaiveBayes.h"
-#include "KWPredictorSelectiveNaiveBayes.h"
 #include "SNBPredictorSelectiveNaiveBayes.h"
 #include "KWPredictorDataGrid.h"
-#include "KWPredictorSelectiveNaiveBayesView.h"
 #include "SNBPredictorSelectiveNaiveBayesView.h"
 #include "KWPredictorDataGridView.h"
 #include "KWDiscretizer.h"
 #include "KWDiscretizerMODL.h"
 #include "KWDiscretizerUnsupervised.h"
+#include "MHDiscretizerTruncationMODLHistogram.h"
 #include "KWDatabase.h"
 #include "KWSTDatabaseTextFile.h"
 #include "KWMTDatabaseTextFile.h"
@@ -113,8 +112,7 @@ protected:
 	virtual Object* CreateGenericLearningProblem();
 	virtual UIObjectView* CreateGenericLearningProblemView();
 
-	// Methodes appelees lorsque l'utilisateur saisi les flag -l -u et -v dans la ligne de commande
-	static boolean ShowLicenseInfo(const ALString&);
-	static boolean UpdateLicense(const ALString& sFileName);
-	static boolean ShowVersion(const ALString&);
+	// Methodes appelees lorsque l'utilisateur saisi le flag -v ou -s dans la ligne de commande
+	static boolean ShowVersion(const ALString& sValue);
+	static boolean ShowSystemInformation(const ALString& sValue);
 };

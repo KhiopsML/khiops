@@ -130,10 +130,14 @@ protected:
 	virtual IntVector* ComputeInitialTargetIndexes(const KWTupleTable* tupleTable);
 
 	// Creation de la grille de preparation a partir de la table d'effectifs de discretisation
+	// Si le parametre cvBounds est NULL, les bornes des intervalels sont determinees
+	// en fonction des effectifs des intervalles et des valeurs des instances.
+	// Sinon, les bornes utilises sont directement celle de cvBounds
 	// Prerequis: les donnees doivent etre triees suivant l'attribut a discretiser
 	// Memoire: l'objet retournee doit etre liberee par l'appelant
 	virtual void BuildPreparedDiscretizationDataGridStats(const KWTupleTable* tupleTable,
-							      const KWFrequencyTable* kwftDiscretizedTable);
+							      const KWFrequencyTable* kwftDiscretizedTable,
+							      const ContinuousVector* cvBounds);
 
 	///////////////////////////////////////////////////////////
 	// Methodes pour le groupage d'un attribut Symbol
@@ -168,11 +172,18 @@ protected:
 	// (1 - MutualEntropy/TargetEntropy)
 	virtual void ComputeDefaultEvaluation();
 
-	// Attributs
+	// Attributs de base
 	ALString sAttributeName;
 	int nAttributeType;
 	KWDescriptiveStats* kwDescriptiveStats;
+
+	// Liste des valeurs elementaires dans le cas des atrribut categoriels
 	KWDataGridStats* symbolValueStats;
+
+	// Resultats de discretisation non supervise MODL
+	KWMODLHistogramResults* modlHistogramResults;
+
+	// Calsle en friend pour les variable partagees des methodes parallelisees
 	friend class PLShared_AttributeStats;
 };
 

@@ -104,7 +104,7 @@ void KWGrouperMODL::MergePureSourceValues(KWFrequencyTable* kwftSource, KWFreque
 	// Creation de la table source preprocessee
 	kwftPreprocessedSource = new KWFrequencyTable;
 	kwftPreprocessedSource->SetFrequencyVectorCreator(GetFrequencyVectorCreator()->Clone());
-	kwftPreprocessedSource->Initialize(nNewIndex);
+	kwftPreprocessedSource->SetFrequencyVectorNumber(nNewIndex);
 	kwftPreprocessedSource->SetInitialValueNumber(kwftSource->GetInitialValueNumber());
 	kwftPreprocessedSource->SetGranularizedValueNumber(kwftSource->GetGranularizedValueNumber());
 	// Parametrage granularite et poubelle
@@ -210,7 +210,7 @@ ObjectArray* KWGrouperMODL::BuildReliableSubGroups(KWFrequencyTable* kwftSource,
 	oaAllBiClassGroupIndexes.SetSize(nTargetNumber);
 	ivIndexMaxValues.SetSize(nTargetNumber);
 	kwftBiClassSource.SetFrequencyVectorCreator(GetFrequencyVectorCreator()->Clone());
-	kwftBiClassSource.Initialize(kwftSource->GetFrequencyVectorNumber());
+	kwftBiClassSource.SetFrequencyVectorNumber(kwftSource->GetFrequencyVectorNumber());
 	kwftBiClassSource.SetInitialValueNumber(kwftSource->GetInitialValueNumber());
 	kwftBiClassSource.SetGranularizedValueNumber(kwftSource->GetGranularizedValueNumber());
 	// Parametrage granularite et poubelle
@@ -431,7 +431,7 @@ KWFrequencyTable* KWGrouperMODL::BuildTable(ObjectArray* oaGroups) const
 	kwftTable = new KWFrequencyTable;
 	kwftTable->SetFrequencyVectorCreator(GetFrequencyVectorCreator()->Clone());
 	if (oaGroups->GetSize() > 0)
-		kwftTable->Initialize(oaGroups->GetSize());
+		kwftTable->SetFrequencyVectorNumber(oaGroups->GetSize());
 
 	// Initialisation de la table de contingence par recopie du tableau de groupes
 	for (nSource = 0; nSource < kwftTable->GetFrequencyVectorNumber(); nSource++)
@@ -1943,7 +1943,7 @@ void KWGrouperMODL::ForceBestGroupMerge(KWFrequencyTable* kwftSource, KWFrequenc
 	// Creation de la nouvelle table
 	kwftNewTarget = new KWFrequencyTable;
 	kwftNewTarget->SetFrequencyVectorCreator(GetFrequencyVectorCreator()->Clone());
-	kwftNewTarget->Initialize(kwftTarget->GetFrequencyVectorNumber() - 1);
+	kwftNewTarget->SetFrequencyVectorNumber(kwftTarget->GetFrequencyVectorNumber() - 1);
 	kwftNewTarget->SetInitialValueNumber(kwftTarget->GetInitialValueNumber());
 	kwftNewTarget->SetGranularizedValueNumber(kwftTarget->GetGranularizedValueNumber());
 	kwftNewTarget->SetGranularity(kwftTarget->GetGranularity());
@@ -1992,7 +1992,7 @@ void KWGrouperMODL::BuildSingletonGrouping(KWFrequencyTable* kwftSource, KWFrequ
 	// Creation de la table de contingence cible avec un seul groupe
 	kwftTarget = new KWFrequencyTable;
 	kwftTarget->SetFrequencyVectorCreator(GetFrequencyVectorCreator()->Clone());
-	kwftTarget->Initialize(1);
+	kwftTarget->SetFrequencyVectorNumber(1);
 	kwftTarget->SetInitialValueNumber(kwftSource->GetInitialValueNumber());
 	kwftTarget->SetGranularizedValueNumber(kwftSource->GetGranularizedValueNumber());
 	// Parametrage granularite et poubelle

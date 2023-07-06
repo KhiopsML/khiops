@@ -9,6 +9,7 @@
 
 KWDataGridMerger::KWDataGridMerger()
 {
+	nMaxPartNumber = 0;
 	nCellDictionaryCount = 0;
 	dCost = 0;
 	dataGridCosts = NULL;
@@ -17,6 +18,17 @@ KWDataGridMerger::KWDataGridMerger()
 }
 
 KWDataGridMerger::~KWDataGridMerger() {}
+
+int KWDataGridMerger::GetMaxPartNumber() const
+{
+	return nMaxPartNumber;
+}
+
+void KWDataGridMerger::SetMaxPartNumber(int nValue)
+{
+	require(nValue >= 0);
+	nMaxPartNumber = nValue;
+}
 
 double KWDataGridMerger::Merge()
 {
@@ -189,6 +201,8 @@ double KWDataGridMerger::OptimizeMerge()
 	double dDataGridTotalCost;
 	double dBestDataGridTotalCost;
 	double dBestDeltaCost;
+	boolean bIsBestSolutionValid;
+	boolean bIsSolutionValid;
 	KWDGMPartMerge* bestPartMerge;
 	boolean bContinue;
 	int nCount;
@@ -208,6 +222,12 @@ double KWDataGridMerger::OptimizeMerge()
 	InitializeAllCosts();
 	dDataGridTotalCost = GetDataGridCosts()->ComputeDataGridMergerTotalCost(this);
 	dBestDataGridTotalCost = dDataGridTotalCost;
+
+	// Initialisation de la gestion de la contrainte sur le nombre max de partie par attribut
+	bIsSolutionValid = true;
+	if (GetMaxPartNumber() > 0)
+		bIsSolutionValid = ComputeMaxPartNumber() <= GetMaxPartNumber();
+	bIsBestSolutionValid = bIsSolutionValid;
 
 	// Initialisation de la table de hash des cellules
 	CellDictionaryInit();
@@ -304,8 +324,24 @@ double KWDataGridMerger::OptimizeMerge()
 			// Realisation de la fusion
 			PerformPartMerge(bestPartMerge);
 			dDataGridTotalCost += dBestDeltaCost;
-			if (dDataGridTotalCost < dBestDataGridTotalCost + dEpsilon)
+
+			// Gestion de la contrainte sur le nombre max de partie par attribut
+			if (GetMaxPartNumber() > 0)
+			{
+				// On ne reevalue la contrainte que si la meilleure solution ne la respecte pas
+				// car le max du nombre de partie ne fait que diminuer lors des etapes de fusions de
+				// partie
+				assert(not bIsBestSolutionValid or ComputeMaxPartNumber() <= GetMaxPartNumber());
+				bIsSolutionValid = bIsBestSolutionValid or ComputeMaxPartNumber() <= GetMaxPartNumber();
+			}
+
+			// Memorisation du meilleur cout si amelioration ou si la solution passe de non valide a valide
+			if ((dDataGridTotalCost < dBestDataGridTotalCost + dEpsilon) or
+			    (not bIsBestSolutionValid and bIsSolutionValid))
+			{
 				dBestDataGridTotalCost = dDataGridTotalCost;
+				bIsBestSolutionValid = bIsSolutionValid;
+			}
 
 			// Verification de la mise a jour correcte des structures et des couts
 			assert(Check());

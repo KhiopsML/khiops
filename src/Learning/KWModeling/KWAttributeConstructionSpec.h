@@ -10,10 +10,6 @@
 #include "KDDataPreparationAttributeCreationTask.h"
 #include "KWAttributePairsSpec.h"
 
-#ifdef DEPRECATED_V10
-#include "KWRecodingSpec.h"
-#endif // DEPRECATED_V10
-
 ////////////////////////////////////////////////////////////
 // Classe KWAttributeConstructionSpec
 //    Feature engineering parameters
@@ -30,6 +26,10 @@ public:
 
 	///////////////////////////////////////////////////////////
 	// Acces aux attributs
+
+	// Indicateur pour ne garder dans les rapport que les variables construites selectionnees par le predicteur SNB
+	boolean GetKeepSelectedAttributesOnly() const;
+	void SetKeepSelectedAttributesOnly(boolean bValue);
 
 	// Max number of constructed variables
 	int GetMaxConstructedAttributeNumber() const;
@@ -68,26 +68,6 @@ public:
 						     boolean bIsMultiTableConstructionPossible,
 						     boolean bIsTextConstructionPossible);
 
-#ifdef DEPRECATED_V10
-	// Only pairs with variable (deprecated)
-	const ALString& GetMandatoryAttributeInPairs() const;
-	void SetMandatoryAttributeInPairs(const ALString& sValue);
-
-	// Build recoding dictionary (deprecated)
-	boolean GetRecodingClass() const;
-	void SetRecodingClass(boolean bValue);
-
-	// DEPRECATED V10: champ obsolete, conserve de facon cachee en V10 pour compatibilite ascendante des scenarios
-	// Parametres de recodage
-	// Ces parametres sont maintenant geres dans l'onglet de recodage
-	// On va pointer ici vers le meme objet edite, gere par l'appelant
-	KWRecodingSpec* DEPRECATEDGetRecodingSpec();
-	void DEPRECATEDSetRecodingSpec(KWRecodingSpec* spec);
-
-	// DEPRECATED V10: champ obsolete, conserve de facon cachee en V10 pour compatibilite ascendante des scenarios
-	void DEPRECATEDSetSourceSubObjets(KWAttributeConstructionSpec* source);
-#endif // DEPRECATED_V10
-
 	// Ecriture de rapport lignes sur les specification du classifier
 	void WriteHeaderLineReport(ostream& ost);
 	void WriteLineReport(ostream& ost);
@@ -96,7 +76,7 @@ public:
 	static const int nLargestMaxConstructedAttributeNumber = 100000;
 
 	// Borne du nombre max de variables de type texte
-	static const int nLargestMaxTextFeatureNumber = 200000;
+	static const int nLargestMaxTextFeatureNumber = 100000;
 
 	// Borne du nombre max d'arbres
 	static const int nLargestMaxTreeNumber = 1000;
@@ -115,6 +95,7 @@ public:
 	//// Implementation
 protected:
 	// Attributs de la classe
+	boolean bKeepSelectedAttributesOnly;
 	int nMaxConstructedAttributeNumber;
 	int nMaxTextFeatureNumber;
 	int nMaxTreeNumber;
@@ -130,23 +111,20 @@ protected:
 
 	// Parametrage de l'analyse des paires de variables
 	KWAttributePairsSpec attributePairsSpec;
-
-#ifdef DEPRECATED_V10
-	ALString sMandatoryAttributeInPairs;
-	boolean bRecodingClass;
-
-	// DEPRECATED V10: champ obsolete, conserve de facon cachee en V10 pour compatibilite ascendante des scenarios
-	// Parametres de recodage
-	KWRecodingSpec* DEPRECATEDrecodingSpec;
-
-	// DEPRECATED V10: memorisation de l'objet edite source, pour que les onglets obsolete editent les nouveaux
-	// sous-objets
-	KWAttributeConstructionSpec* DEPRECATEDSourceSubObjets;
-#endif // DEPRECATED_V10
 };
 
 ////////////////////////////////////////////////////////////
 // Implementations inline
+
+inline boolean KWAttributeConstructionSpec::GetKeepSelectedAttributesOnly() const
+{
+	return bKeepSelectedAttributesOnly;
+}
+
+inline void KWAttributeConstructionSpec::SetKeepSelectedAttributesOnly(boolean bValue)
+{
+	bKeepSelectedAttributesOnly = bValue;
+}
 
 inline int KWAttributeConstructionSpec::GetMaxConstructedAttributeNumber() const
 {
@@ -187,25 +165,3 @@ inline void KWAttributeConstructionSpec::SetMaxAttributePairNumber(int nValue)
 {
 	attributePairsSpec.SetMaxAttributePairNumber(nValue);
 }
-
-#ifdef DEPRECATED_V10
-inline const ALString& KWAttributeConstructionSpec::GetMandatoryAttributeInPairs() const
-{
-	return sMandatoryAttributeInPairs;
-}
-
-inline void KWAttributeConstructionSpec::SetMandatoryAttributeInPairs(const ALString& sValue)
-{
-	sMandatoryAttributeInPairs = sValue;
-}
-
-inline boolean KWAttributeConstructionSpec::GetRecodingClass() const
-{
-	return bRecodingClass;
-}
-
-inline void KWAttributeConstructionSpec::SetRecodingClass(boolean bValue)
-{
-	bRecodingClass = bValue;
-}
-#endif // DEPRECATED_V10

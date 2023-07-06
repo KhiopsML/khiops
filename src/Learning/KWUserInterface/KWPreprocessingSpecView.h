@@ -14,8 +14,8 @@
 
 // ## Custom includes
 
-#include "KWDiscretizerSpecView.h"
-#include "KWGrouperSpecView.h"
+#include "KWPreprocessingAdvancedSpecView.h"
+#include "MHHistogramSpecView.h"
 #include "KWDataGridOptimizerParametersView.h"
 
 // ##
@@ -48,14 +48,27 @@ public:
 
 	// ## Custom declarations
 
+	// Action d'inspection des parametres avances
+	void InspectAdvancedParameters();
+	void InspectHistogramParameters();
+	void InspectDataGridOptimizerParameters();
+
 	// Parametrage de l'objet edite
 	void SetObject(Object* object) override;
+
+	// Parametrage de l'objet de gestion de specification des histogrammes
+	// Pour des raisons techniques (cycle de librairie), cet objet n'est pas un sous-objet des preprocessingSpec
+	void SetHistogramSpecObject(Object* object);
+	Object* GetHistogramSpecObject();
 
 	// ##
 	////////////////////////////////////////////////////////
 	///// Implementation
 protected:
 	// ## Custom implementation
+
+	// Objet de gestion de specification des histogrammes
+	Object* histogramSpecObject;
 
 	// ##
 };

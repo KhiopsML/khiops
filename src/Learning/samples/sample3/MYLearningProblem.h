@@ -5,7 +5,7 @@
 #pragma once
 
 #include "KWPredictorNaiveBayes.h"
-#include "KWPredictorSelectiveNaiveBayes.h"
+#include "SNBPredictorSelectiveNaiveBayes.h"
 #include "KWLearningProblem.h"
 #include "KWLearningBenchmark.h"
 #include "MYModelingSpec.h"

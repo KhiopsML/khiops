@@ -108,7 +108,7 @@ void KWDataTableSliceSet::ComputeSpecification(const KWClass* kwcClassToPartitio
 		// Memorisation de l'index associe a l'attribut
 		ioIndex = new IntObject;
 		ioIndex->SetInt(nAttributeIndex);
-		nkdAttributeIndexes.SetAt((NUMERIC)attribute, ioIndex);
+		nkdAttributeIndexes.SetAt(attribute, ioIndex);
 
 		// Attribut suivant
 		nAttributeIndex++;
@@ -216,7 +216,7 @@ void KWDataTableSliceSet::ComputeSpecification(const KWClass* kwcClassToPartitio
 				{
 					// Les attributs sont repartis de facon contigue dans les tranches
 					nAttributeIndex =
-					    cast(IntObject*, nkdAttributeIndexes.Lookup((NUMERIC)attribute))->GetInt();
+					    cast(IntObject*, nkdAttributeIndexes.Lookup(attribute))->GetInt();
 					nSliceIndex = ivSliceAttributeNumbers.GetSize() - nBlockSliceNumber +
 						      (i * nBlockSliceNumber) / nBlockSize;
 					ivUsedAttributesSliceIndexes.SetAt(nAttributeIndex, nSliceIndex);
@@ -263,7 +263,7 @@ void KWDataTableSliceSet::ComputeSpecification(const KWClass* kwcClassToPartitio
 				if (attribute != targetAttribute)
 				{
 					nAttributeIndex =
-					    cast(IntObject*, nkdAttributeIndexes.Lookup((NUMERIC)attribute))->GetInt();
+					    cast(IntObject*, nkdAttributeIndexes.Lookup(attribute))->GetInt();
 					ivUsedAttributesSliceIndexes.SetAt(nAttributeIndex, nSliceIndex);
 					ivSliceAttributeNumbers.UpgradeAt(nSliceIndex, 1);
 				}
@@ -317,7 +317,7 @@ void KWDataTableSliceSet::ComputeSpecification(const KWClass* kwcClassToPartitio
 		assert(attribute != targetAttribute);
 
 		// Acces a l'index de l'attribut
-		nAttributeIndex = cast(IntObject*, nkdAttributeIndexes.Lookup((NUMERIC)attribute))->GetInt();
+		nAttributeIndex = cast(IntObject*, nkdAttributeIndexes.Lookup(attribute))->GetInt();
 
 		// On cherche d'abord a remplir uniformenent les eventuelles tranches supplementaires
 		if (n < nEmptySliceNumber * nMaxDenseAttributeNumberPerSlice)
@@ -2622,7 +2622,7 @@ boolean KWDataTableSliceSet::BuildAllUsedSliceAttributes(const KWDerivationRule*
 
 				// Enregistrement si attribut dans le sliceset
 				if (slice != NULL)
-					nkdAllUsedSliceAttributes->SetAt((NUMERIC)originAttribute, originAttribute);
+					nkdAllUsedSliceAttributes->SetAt(originAttribute, originAttribute);
 				// Sinon, erreur
 				else
 				{
@@ -2637,10 +2637,9 @@ boolean KWDataTableSliceSet::BuildAllUsedSliceAttributes(const KWDerivationRule*
 					else
 					{
 						// On propage uniquement si necessaire
-						if (nkdAllUsedDerivedAttributes->Lookup((NUMERIC)originAttribute) ==
-						    NULL)
+						if (nkdAllUsedDerivedAttributes->Lookup(originAttribute) == NULL)
 						{
-							nkdAllUsedDerivedAttributes->SetAt((NUMERIC)originAttribute,
+							nkdAllUsedDerivedAttributes->SetAt(originAttribute,
 											   originAttribute);
 							bOk = BuildAllUsedSliceAttributes(
 							    originAttribute->GetAnyDerivationRule(), odSliceAttributes,
@@ -2667,8 +2666,7 @@ boolean KWDataTableSliceSet::BuildAllUsedSliceAttributes(const KWDerivationRule*
 
 					// Enregistrement si attribut dans le sliceset
 					if (slice != NULL)
-						nkdAllUsedSliceAttributes->SetAt((NUMERIC)originAttribute,
-										 originAttribute);
+						nkdAllUsedSliceAttributes->SetAt(originAttribute, originAttribute);
 					// Sinon on verifie sa provenance
 					else
 					{
@@ -2690,10 +2688,10 @@ boolean KWDataTableSliceSet::BuildAllUsedSliceAttributes(const KWDerivationRule*
 							{
 								// On propage uniquement si necessaire
 								if (nkdAllUsedDerivedAttributes->Lookup(
-									(NUMERIC)originAttribute) == NULL)
+									originAttribute) == NULL)
 								{
 									nkdAllUsedDerivedAttributes->SetAt(
-									    (NUMERIC)originAttribute, originAttribute);
+									    originAttribute, originAttribute);
 									bOk = BuildAllUsedSliceAttributes(
 									    originAttribute->GetAnyDerivationRule(),
 									    odSliceAttributes,
@@ -2707,7 +2705,7 @@ boolean KWDataTableSliceSet::BuildAllUsedSliceAttributes(const KWDerivationRule*
 								// bloc
 								else
 									nkdAllUsedDerivedAttributes->SetAt(
-									    (NUMERIC)originAttribute, originAttribute);
+									    originAttribute, originAttribute);
 							}
 						}
 					}
@@ -4102,7 +4100,7 @@ boolean KWDataTableDriverSlice::ReadObject(KWObject* kwoObject)
 
 	// Remplissage du buffer si necessaire
 	UpdateInputBuffer();
-	bOk = not IsError();
+	bOk = bOk and not IsError();
 	return bOk;
 }
 

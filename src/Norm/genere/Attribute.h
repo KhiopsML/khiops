@@ -109,7 +109,6 @@ public:
 	const ALString GetObjectLabel() const override;
 
 	// Consultation du status
-	boolean GetTransient() const;
 	boolean GetDerived() const;
 
 	// Visible
@@ -271,11 +270,6 @@ inline const ALString& Attribute::GetLabel() const
 inline void Attribute::SetLabel(const ALString& sValue)
 {
 	sLabel = sValue;
-}
-
-inline boolean Attribute::GetTransient() const
-{
-	return sStatus == "Standard" or sStatus == "";
 }
 
 inline boolean Attribute::GetDerived() const

@@ -45,9 +45,20 @@ public:
 	// En sortie, on trouve une nouvelle grille optimisee compatible avec la grille initiale,
 	// ne conservant que les attributs non reduits a une seule partie
 	// Les intervalles (resp. groupes) de la grille optimisee sont tries par valeur (resp. effectifs decroissants)
-	// Retourne le cout de codage MODL de la grille post-optimisee
 	// Integre un parcours des granularites
+	// Retourne le cout de codage MODL de la grille post-optimisee
 	double OptimizeDataGrid(const KWDataGrid* initialDataGrid, KWDataGrid* optimizedDataGrid) const;
+
+	// Simplification d'une grille selon le parametre MaxPartNumber des parametres d'optimisation
+	// La grille en parametre est en simplifiee si necessaire, en fusionnant iterativement les partie
+	// tant que la contrainte de nombre max de partie n'est pas respectee
+	// Ce parametre n'est pris en compte qu'en etape de post-traitement d'un grille deja optimisee
+	//  . cela permet de faire en sorte que les grilles simplifiee sont toutes des sous-grille de la grille
+	//  optimale,
+	//    ce qui simplifie l'interpretabilite
+	//  . cela simplifie l'implementation, qui n'est ici effectuee qu'en post-traitement
+	// Retourne le cout de codage MODL de la grille simplifiee
+	double SimplifyDataGrid(KWDataGrid* optimizedDataGrid) const;
 
 	//////////////////////////////////////////////////////////////////
 	// Parametrage avance

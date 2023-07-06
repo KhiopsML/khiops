@@ -3,8 +3,5 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #pragma once
-
 #include "KWVersion.h"
 #include "CCLearningProject.h"
-#include "LMLicenseManager.h"
-#include "PLUseMPI.h"

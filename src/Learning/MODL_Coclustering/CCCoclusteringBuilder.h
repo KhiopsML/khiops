@@ -61,9 +61,9 @@ public:
 	void SetReportFileName(const ALString& sFileName);
 	const ALString& GetReportFileName() const;
 
-	// Export JSON (defaut: true)
-	boolean GetExportJSON() const;
-	void SetExportJSON(boolean bValue);
+	// Export Khc (defaut: true)
+	boolean GetExportAsKhc() const;
+	void SetExportAsKhc(boolean bValue);
 
 	// Supression du dernier fichier temporaire sauvegarde
 	void RemoveLastSavedReportFile() const;
@@ -214,8 +214,8 @@ protected:
 	mutable double dAnyTimeBestCost;
 	mutable boolean bIsDefaultCostComputed;
 
-	// Export des rapport au format JSON
-	boolean bExportJSON;
+	// Export des rapport au format Khc
+	boolean bExportAsKhc;
 };
 
 //////////////////////////////////////////////////////////////////////////////////

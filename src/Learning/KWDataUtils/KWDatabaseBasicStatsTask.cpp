@@ -519,7 +519,7 @@ boolean KWDatabaseBasicStatsTask::SlaveProcess()
 {
 	boolean bOk;
 
-	// Initialisation de la memoire dediie a la collecte des valeursd
+	// Initialisation de la memoire dediee a la collecte des valeurs
 	lSlaveValuesUsedMemory = 0;
 
 	// Appel de la methode ancetre
@@ -541,7 +541,7 @@ boolean KWDatabaseBasicStatsTask::SlaveProcessExploitDatabaseObject(const KWObje
 		lValueNumber = 0;
 		if (slaveTargetAttribute->GetType() == KWType::Symbol)
 		{
-			sValue = kwoObject->GetSymbolValueAt(slaveTargetAttribute->GetLoadIndex()).GetValue();
+			sValue = kwoObject->GetSymbolValueAt(slaveTargetAttribute->GetLoadIndex());
 			lValueMemory = sizeof(ALString*) + sizeof(ALString) + sValue.GetLength();
 
 			// Prise en compte de la valeur si pas de depassement memoire

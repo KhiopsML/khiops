@@ -104,7 +104,7 @@ boolean KWMTClassBuilderView::BuildMultiTableClass()
 	// Verification de la specification du dictionnaire secondaire
 	if (sSecondaryDictionaryName == "")
 	{
-		AddError("Missing secondary dictionary name");
+		AddError("Missing dictionary name");
 		bOk = false;
 	}
 
@@ -112,14 +112,21 @@ boolean KWMTClassBuilderView::BuildMultiTableClass()
 	kwcSecondaryClass = KWClassDomain::GetCurrentDomain()->LookupClass(sSecondaryDictionaryName);
 	if (bOk and kwcSecondaryClass == NULL)
 	{
-		AddError("Secondary dictionary " + sSecondaryDictionaryName + " does not exist");
+		AddError("Dictionary " + sSecondaryDictionaryName + " does not exist");
 		bOk = false;
 	}
 
 	// Erreur s'il s'agit d'un dictionnaire racine
 	if (bOk and kwcSecondaryClass->GetRoot())
 	{
-		AddError("Secondary dictionary " + sSecondaryDictionaryName + " should not be a Root dictionary");
+		AddError("Dictionary " + sSecondaryDictionaryName + " should not be a Root dictionary");
+		bOk = false;
+	}
+
+	// Erreur s'il n'y a pas de cle
+	if (bOk and kwcSecondaryClass->GetKeyAttributeNumber() == 0)
+	{
+		AddError("Missing key in dictionary " + sSecondaryDictionaryName);
 		bOk = false;
 	}
 

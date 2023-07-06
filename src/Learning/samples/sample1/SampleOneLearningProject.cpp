@@ -8,15 +8,6 @@ SampleOneLearningProject::SampleOneLearningProject() {}
 
 SampleOneLearningProject::~SampleOneLearningProject() {}
 
-void SampleOneLearningProject::OpenLearningEnvironnement()
-{
-	// Appel de la methode ancetre
-	KWLearningProject::OpenLearningEnvironnement();
-
-	// Declaration des licences
-	LMLicenseManager::DeclarePredefinedLicense(LMLicenseManager::Khiops);
-}
-
 KWLearningProblem* SampleOneLearningProject::CreateLearningProblem()
 {
 	return new SampleOneLearningProblem;

@@ -14,7 +14,7 @@ class MHHistogramInterval;
 
 //////////////////////////////////////////////////////////
 // Classe de description d'un histogramme resultat
-// de la meyhode de discretisation des donnees en histogrammes
+// de la methode de discretisation des donnees en histogrammes
 class MHHistogram : public Object
 {
 public:
@@ -33,7 +33,7 @@ public:
 	const MHHistogramInterval* GetConstIntervalAt(int nIndex) const;
 
 	// Acces direct aux intervalles, pour edition et consultation
-	// Memoire: les intervalles appartiennet a l'appele
+	// Memoire: les intervalles appartiennent a l'appele
 	ObjectArray* GetIntervals();
 
 	// Nombre d'intervalles vides d'un histogramme
@@ -44,9 +44,6 @@ public:
 
 	// Nombre d'intervalles avec une seule valeur d'un histogramme
 	int ComputeSingleValueIntervalNumber() const;
-
-	// Nombre d'intervalles PICH d'un histogramme
-	int ComputePICHIntervalNumber() const;
 
 	// Nombre d'intervalles singuliers d'un histogramme
 	int ComputeSingularIntervalNumber() const;
@@ -63,19 +60,11 @@ public:
 	// Nombre d'intervalles de type peak: intervalle non vide, entoure de deux intervalles moins denses
 	int ComputePeakIntervalNumber() const;
 
-	// Test si un intervalle est de type spike
+	// Test si un intervalle est de type peak
 	boolean IsPeakIntervalAt(int nIntervalIndex) const;
 
 	// Calcul de l'effectif total
 	int ComputeTotalFrequency() const;
-
-	// Calcul du nombre total de bins
-	int ComputeTotalBinLength() const;
-
-	// Calcul du nombre total de bins dans le cas d'histogrammes construits selon l'heuristique OMH
-	// L'agregation de sous-histogramme peut en effet declencher le depassement de la limite des entiers
-	// On utilise egalement cette methode dans les cas de la representation a virgule flotante
-	double ComputeLargeScaleTotalBinLength() const;
 
 	// Nombre de valeurs distinctes
 	void SetDistinctValueNumber(int nValue);
@@ -92,9 +81,9 @@ public:
 	void SetHistogramCriterion(const ALString& sValue);
 	const ALString& GetHistogramCriterion() const;
 
-	// Index de simplification de l'histogramme en sortie
-	void SetCoarseningIndex(int nValue);
-	int GetCoarseningIndex() const;
+	// Indique si l'histograme est basique, avant l'application des heuristiques troncature ou de simplification
+	void SetRaw(boolean bValue);
+	boolean GetRaw() const;
 
 	// Epsilon de troncature en sortie
 	void SetTruncationEpsilon(double dValue);
@@ -104,7 +93,7 @@ public:
 	void SetRemovedSingularIntervalsNumber(int nValue);
 	int GetRemovedSingularIntervalsNumber() const;
 
-	// Granularite: nombre d'intervalles elementairtes a la granularite G
+	// Granularite: nombre d'intervalles elementaires a la granularite G
 	void SetGranularity(int nValue);
 	int GetGranularity() const;
 
@@ -124,17 +113,11 @@ public:
 	void SetPartitionCost(double dValue);
 	double GetPartitionCost() const;
 
-	// Cout du modele null granularise
-	double GetGranularizedNullCost() const;
-
-	// Cout du modele granularise
-	double GetGranularizedCost() const;
-
 	// Indicateur Level
 	double GetLevel() const;
 
-	// Indicateur Level granularise
-	double GetGranularizedLevel() const;
+	// Indicateur Level normalise
+	double GetNormalizedLevel() const;
 
 	// Temp de calcul
 	void SetComputationTime(double dValue);
@@ -147,7 +130,7 @@ public:
 	void SetDomainLowerBound(Continuous cValue);
 	Continuous GetDomainLowerBound() const;
 
-	// Borne inf du domaine numerique, provenant des hyper-parametres
+	// Borne sup du domaine numerique, provenant des hyper-parametres
 	void SetDomainUpperBound(Continuous cValue);
 	Continuous GetDomainUpperBound() const;
 
@@ -191,33 +174,31 @@ public:
 	void SetMinBinLength(double dValue);
 	double GetMinBinLength() const;
 
-	/////////////////////////////////////////////////////////////////////////////////////
-	// Parametres de modelisation dans le cas des histogrammes avec gestion des outliers
-
-	// Nombre de sous ensemble de donnees impliques dans l'heuristique des gestion des outliers
-	int GetOutlierDataSubsetNumber() const;
-
-	// Nombre de sous ensemble de donnees impliques dans l'heuristique des getsion des outliers
-	int GetOutlierBoundaryIntervalNumber() const;
-
 	////////////////////////////////////////////////////////
 	// Divers
 
 	// Nettoyage
-	void Clean();
+	virtual void Clean();
+
+	// Creation virtuelle d'un histogramme dans le bon type
+	virtual MHHistogram* Create() const;
 
 	// Copie
-	void CopyFrom(const MHHistogram* sourceHistogram);
+	virtual void CopyFrom(const MHHistogram* sourceHistogram);
 
 	// Duplication
-	MHHistogram* Clone() const;
+	virtual MHHistogram* Clone() const;
 
 	// Ecriture sous forme d'un tableau de bins avec leurs caracteristiques
+	virtual void WriteSummary(ostream& ost) const;
 	void Write(ostream& ost) const override;
 	void WriteFile(const ALString& sFileName) const;
 
 	// Verification de l'integrite
-	boolean Check() const;
+	boolean Check() const override;
+
+	// Verification qu'un intervalle est du bon type
+	virtual boolean CheckIntervalType(const MHHistogramInterval* interval) const;
 
 	// Verification de l'integrite des valeurs des intervalles (lower et upper value)
 	boolean CheckValues(const ContinuousVector* cvValues) const;
@@ -229,6 +210,13 @@ public:
 	////////////////////////////////////////////////////////
 	//// Implementation
 protected:
+	///////////////////////////////////////////////////////
+	// Notes sur l'implementation
+	// La classe est specialisee pour les histogrammes MODL virgule flotante.
+	// Mais elle comporte quelques methodes generiques virtuelles, permettant
+	// de la specialiser si necessaire pour des methodes alternatives
+
+	// Tableau des intervalles
 	ObjectArray oaIntervals;
 	int nDistinctValueNumber;
 
@@ -247,7 +235,7 @@ protected:
 	Continuous cDomainLowerBound;
 	Continuous cDomainUpperBound;
 	int nDomainBoundsMantissaBitNumber;
-	int nCoarseningIndex;
+	boolean bRaw;
 	int nHierarchyLevel;
 	int nMainBinHierarchyRootLevel;
 	int nMaxHierarchyLevel;
@@ -298,38 +286,15 @@ public:
 	// Test s'il y a une seule valeur
 	boolean IsSingleValue() const;
 
-	// Longueur en nombre de epsilon bins
-	void SetBinLength(int nValue);
-	int GetBinLength() const;
-
 	//////////////////////////////////////////////////////////////////
-	// Information avancee sur les intervalles, issues des algorithmes
-
-	// Index du sous-ensemble utilise pour construire l'histogramme
-	// dans le cas de l'heuristique de gestion des outliers
-	// On utilise 0 si un seul ensemble a ete utilise globalement,
-	// sinon un index superieur ou egal a 1
-	void SetDataSubsetIndex(int nValue);
-	int GetDataSubsetIndex() const;
-
-	// Indique qu'il s'agit d'un intervalle frontiere avec le sous-ensemble precedent
-	void SetPreviousDataSubsetBoundary(boolean bValue);
-	boolean GetPreviousDataSubsetBoundary() const;
-
-	// Indique qu'il s'agit d'un intervalle provenant d'un sous-ensemble PICH
-	void SetPICH(boolean bValue);
-	boolean GetPICH() const;
-
-	// Index de decoupage de l'ensemble PICH a l'origine de l'intervalle
-	void SetPICHSplitIndex(int nValue);
-	int GetPICHSplitIndex() const;
+	// Informations avancees sur les intervalles, issues des algorithmes
 
 	// Cout de l'intervalle localement a son sous-ensemble
 	void SetCost(double dValue);
 	double GetCost() const;
 
 	//////////////////////////////////////////////////////////////////
-	// Information calculees sur les intervalles
+	// Informations calculees sur les intervalles
 
 	// Longeur de l'intervalle, basee sur ses bornes
 	Continuous GetLength() const;
@@ -346,15 +311,18 @@ public:
 	// Comparaison des intervalle sur leur densite en prenant en compte les valeurs et non les bornes
 	int CompareDensity(const MHHistogramInterval* otherInterval) const;
 
+	// Creation virtuelle d'un intervalle dans le bon type
+	virtual MHHistogramInterval* Create() const;
+
 	// Copie
-	void CopyFrom(const MHHistogramInterval* sourceInterval);
+	virtual void CopyFrom(const MHHistogramInterval* sourceInterval);
 
 	// Duplication
 	MHHistogramInterval* Clone() const;
 
 	// Ecriture sous fomre d'un tableau de bins avec leurs caracteristiques
-	void WriteHeaderLineReport(ostream& ost) const;
-	void WriteLineReport(int nTotalFrequency, ostream& ost) const;
+	virtual void WriteHeaderLineReport(ostream& ost) const;
+	virtual void WriteLineReport(int nTotalFrequency, ostream& ost) const;
 
 	// Ecriture, sans la probabilite et la densite
 	void Write(ostream& ost) const override;
@@ -363,7 +331,7 @@ public:
 	boolean CheckBounds() const;
 
 	// Verification de l'integrite
-	boolean Check() const;
+	boolean Check() const override;
 
 	// Libelles utilisateur
 	const ALString GetClassLabel() const override;
@@ -375,12 +343,7 @@ protected:
 	Continuous cLowerBound;
 	Continuous cUpperBound;
 	int nFrequency;
-	int nBinLength;
 	Continuous cLowerValue;
 	Continuous cUpperValue;
-	int nDataSubsetIndex;
-	boolean bPreviousDataSubsetBoundary;
-	boolean bPICH;
-	int nPICHSplitIndex;
 	double dCost;
 };

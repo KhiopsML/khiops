@@ -15,26 +15,12 @@ CCLearningProblemActionView::CCLearningProblemActionView()
 		  (ActionMethod)(&CCLearningProblemActionView::ExtractClusters));
 	AddAction("PrepareDeployment", "Prepare deployment...",
 		  (ActionMethod)(&CCLearningProblemActionView::PrepareDeployment));
-	AddAction("PostOptimizeCoclustering", "Post-optimize coclustering (expert mode)...",
-		  (ActionMethod)(&CCLearningProblemActionView::PostOptimizeCoclustering));
 
 	// Ajout d'accelateurs sur les actions principales
 	GetActionAt("BuildCoclustering")->SetAccelKey("control T");
 	GetActionAt("PostProcessCoclustering")->SetAccelKey("control I");
 	GetActionAt("ExtractClusters")->SetAccelKey("control E");
 	GetActionAt("PrepareDeployment")->SetAccelKey("control P");
-
-	// Les fonctionnalites de post-optimization sont accessible uniquement en mode expert
-	GetActionAt("PostOptimizeCoclustering")->SetVisible(GetLearningCoclusteringExpertMode());
-
-#ifdef DEPRECATED_V10
-	{
-		// DEPRECATED V10: fonctionnalite obsolete, conservee de facon cachee en V10 pour compatibilite
-		// ascendante des scenarios
-		if (LMLicenseManager::IsEnabled())
-			LMLicenseManager::DEPRECATEDAddLicenseManagementMenu(this);
-	}
-#endif // DEPRECATED_V10
 
 	// Info-bulles
 	GetActionAt("BuildCoclustering")
@@ -53,9 +39,6 @@ CCLearningProblemActionView::CCLearningProblemActionView()
 	    ->SetHelpText(
 		"Enables the deployment of a coclustering model by the means of a Khiops deployment dictionary."
 		"\n Opens a new window named 'Coclustering deployment preparation'.");
-	GetActionAt("PostOptimizeCoclustering")
-	    ->SetHelpText("Post-optimize a coclustering (available only in expert mode)."
-			  "\n Opens a new window named 'Post-optimize coclustering'.");
 
 	// Short cuts
 	SetShortCut('T');
@@ -116,18 +99,6 @@ void CCLearningProblemActionView::PrepareDeployment()
 	// Lancement de la fenetre de post-processing
 	deploymentPreparationView.SetObject(GetLearningProblem());
 	deploymentPreparationView.Open();
-}
-
-void CCLearningProblemActionView::PostOptimizeCoclustering()
-{
-	CCLearningProblemPostOptimizationView postOptimizationView;
-
-	// Initialisation des caracteristiques du coclustering a traiter
-	InitializeInputCoclusteringSpecs();
-
-	// Lancement de la fenetre de post-processing
-	postOptimizationView.SetObject(GetLearningProblem());
-	postOptimizationView.Open();
 }
 
 CCLearningProblem* CCLearningProblemActionView::GetLearningProblem()

@@ -539,40 +539,24 @@ int RandomInt(int nMax)
 	return nRand;
 }
 
-// Reference: Numerical recipes: the art of scientific computing THIRD EDITION
-// Chapter 7: Random numbers, p 352
-// Generateur sans etat et sans graine
-inline unsigned long long int InternalIthRandomLongint(unsigned long long int n)
-{
-	unsigned long long int v = n * 3935559000370003845LL + 2691343689449507681LL;
-	v ^= v >> 21;
-	v ^= v << 37;
-	v ^= v >> 4;
-	v *= 4768777513237032717LL;
-	v ^= v << 20;
-	v ^= v >> 41;
-	v ^= v << 5;
-	return v;
-}
-
 double IthRandomDouble(longint lIndex)
 {
 	require(lIndex >= 0);
 	// Version de Numerical Recipes
-	return 5.42101086242752217E-20 * InternalIthRandomLongint((unsigned long long int)lIndex);
+	return 5.42101086242752217E-20 * IthRandomUnsignedLongint((unsigned long long int)lIndex);
 }
 
 longint IthRandomLongint(longint lIndex)
 {
 	require(lIndex >= 0);
-	return (longint)(InternalIthRandomLongint((unsigned long long int)lIndex));
+	return (longint)(IthRandomUnsignedLongint((unsigned long long int)lIndex));
 }
 
 int IthRandomInt(longint lIndex, int nMax)
 {
 	require(lIndex >= 0);
 	require(nMax >= 0);
-	return (int)(InternalIthRandomLongint((unsigned long long int)lIndex) % ((unsigned long long int)nMax + 1));
+	return (int)(IthRandomUnsignedLongint((unsigned long long int)lIndex) % ((unsigned long long int)nMax + 1));
 }
 
 /////////////////////////////////////////////////////////////////////////////

@@ -47,14 +47,12 @@ public:
 	void SetParam(double dValue);
 
 	// Effectif minimum par groupe (defaut: 0)
-	// Ce parametre est determine automatiquement par l'algorithme
-	// s'il vaut 0
+	// Ce parametre est determine automatiquement par l'algorithme s'il vaut 0
 	int GetMinGroupFrequency() const;
 	void SetMinGroupFrequency(int nValue);
 
 	// Nombre maximum de groupes (defaut: 0)
-	// Ce parametre est determine automatiquement par l'algorithme
-	// s'il vaut 0
+	// Ce parametre est determine automatiquement par l'algorithme s'il vaut 0
 	int GetMaxGroupNumber() const;
 	void SetMaxGroupNumber(int nValue);
 
@@ -79,6 +77,9 @@ public:
 
 	// Fraicheur de l'objet, incrementee a chaque modification
 	int GetFreshness() const;
+
+	// Affichage, ecriture dans un fichier
+	void Write(ostream& ost) const override;
 
 	// Libelles utilisateur
 	const ALString GetClassLabel() const override;

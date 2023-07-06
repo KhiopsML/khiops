@@ -6,22 +6,13 @@
 
 KWAttributeConstructionSpec::KWAttributeConstructionSpec()
 {
+	bKeepSelectedAttributesOnly = true;
 	nMaxConstructedAttributeNumber = 0;
 	nMaxTextFeatureNumber = 0;
 	nMaxTreeNumber = 0;
 
 	// On initialise la tache de creation de variable par rapport au parametrage global
 	attributeCreationTask = KDDataPreparationAttributeCreationTask::CloneGlobalCreationTask();
-
-#ifdef DEPRECATED_V10
-	{
-		// Supprimer MandatoryAttributeInPairs et RecodingClass de KWAttributeConstructionSpec.dd et regenerer
-		// la classe DEPRECATED V10
-		DEPRECATEDrecodingSpec = NULL;
-		DEPRECATEDSourceSubObjets = NULL;
-		bRecodingClass = false;
-	}
-#endif // DEPRECATED_V10
 }
 
 KWAttributeConstructionSpec::~KWAttributeConstructionSpec()
@@ -34,16 +25,11 @@ void KWAttributeConstructionSpec::CopyFrom(const KWAttributeConstructionSpec* aS
 {
 	require(aSource != NULL);
 
+	bKeepSelectedAttributesOnly = aSource->bKeepSelectedAttributesOnly;
 	nMaxConstructedAttributeNumber = aSource->nMaxConstructedAttributeNumber;
 	nMaxTextFeatureNumber = aSource->nMaxTextFeatureNumber;
 	nMaxTreeNumber = aSource->nMaxTreeNumber;
 	SetMaxAttributePairNumber(aSource->GetMaxAttributePairNumber());
-#ifdef DEPRECATED_V10
-	{
-		sMandatoryAttributeInPairs = aSource->sMandatoryAttributeInPairs;
-		bRecodingClass = aSource->bRecodingClass;
-	}
-#endif // DEPRECATED_V10
 }
 
 KWAttributeConstructionSpec* KWAttributeConstructionSpec::Clone() const
@@ -57,13 +43,6 @@ KWAttributeConstructionSpec* KWAttributeConstructionSpec::Clone() const
 
 KDConstructionDomain* KWAttributeConstructionSpec::GetConstructionDomain()
 {
-#ifdef DEPRECATED_V10
-	{
-		// DEPRECATED V10
-		if (DEPRECATEDSourceSubObjets != NULL)
-			return &DEPRECATEDSourceSubObjets->constructionDomain;
-	}
-#endif // DEPRECATED_V10
 	return &constructionDomain;
 }
 
@@ -74,13 +53,6 @@ KDTextFeatureSpec* KWAttributeConstructionSpec::GetTextFeatureSpec()
 
 KDDataPreparationAttributeCreationTask* KWAttributeConstructionSpec::GetAttributeCreationParameters()
 {
-#ifdef DEPRECATED_V10
-	{
-		// DEPRECATED V10
-		if (DEPRECATEDSourceSubObjets != NULL)
-			return DEPRECATEDSourceSubObjets->attributeCreationTask;
-	}
-#endif // DEPRECATED_V10
 	return attributeCreationTask;
 }
 
@@ -110,28 +82,10 @@ void KWAttributeConstructionSpec::SpecifyLearningSpecConstructionFamilies(KWLear
 	     2));
 }
 
-#ifdef DEPRECATED_V10
-KWRecodingSpec* KWAttributeConstructionSpec::DEPRECATEDGetRecodingSpec()
-{
-	return DEPRECATEDrecodingSpec;
-}
-
-void KWAttributeConstructionSpec::DEPRECATEDSetRecodingSpec(KWRecodingSpec* spec)
-{
-	DEPRECATEDrecodingSpec = spec;
-}
-
-void KWAttributeConstructionSpec::DEPRECATEDSetSourceSubObjets(KWAttributeConstructionSpec* source)
-{
-	DEPRECATEDSourceSubObjets = source;
-}
-#endif // DEPRECATED_V10
-
 void KWAttributeConstructionSpec::WriteHeaderLineReport(ostream& ost)
 {
 	ost << "Constr. vars\t";
-	if (GetLearningTextVariableMode())
-		ost << "Text vars\t";
+	ost << "Text vars\t";
 	ost << "Tree vars\t";
 	ost << "Var pairs\t";
 }
@@ -139,8 +93,7 @@ void KWAttributeConstructionSpec::WriteHeaderLineReport(ostream& ost)
 void KWAttributeConstructionSpec::WriteLineReport(ostream& ost)
 {
 	ost << GetMaxConstructedAttributeNumber() << "\t";
-	if (GetLearningTextVariableMode())
-		ost << GetMaxTextFeatureNumber() << "\t";
+	ost << GetMaxTextFeatureNumber() << "\t";
 	ost << GetMaxTreeNumber() << "\t";
 	ost << GetMaxAttributePairNumber() << "\t";
 }
@@ -151,12 +104,6 @@ void KWAttributeConstructionSpec::Write(ostream& ost) const
 	ost << "Max number of text features\t" << GetMaxTextFeatureNumber() << "\n";
 	ost << "Max number of trees\t" << GetMaxTreeNumber() << "\n";
 	ost << "Max number of variable pairs\t" << GetMaxAttributePairNumber() << "\n";
-#ifdef DEPRECATED_V10
-	{
-		ost << "Only pairs with variable (deprecated)\t" << GetMandatoryAttributeInPairs() << "\n";
-		ost << "Build recoding dictionary (deprecated)\t" << BooleanToString(GetRecodingClass()) << "\n";
-	}
-#endif // DEPRECATED_V10
 }
 
 const ALString KWAttributeConstructionSpec::GetClassLabel() const

@@ -107,7 +107,7 @@ void DoubleVectorAccessTest();
 // Classe KWValueIndexPair
 // Class technique, utilisee uniquement pour l'implementation des blocs sparse
 // Pas de "packing" des attribut pour optimiser la place memoire
-#ifdef _MSC_VER
+#ifdef _WIN32
 #pragma pack(push)
 #pragma pack(1)
 class KWValueIndexPairTest : public SystemObject

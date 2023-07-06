@@ -56,6 +56,12 @@ public:
 	// Acces aux valeurs (prerequis: initialisation valeur)
 	Continuous GetValueAt(int nIndex) const;
 
+	// Valeur min, en ignorant les valeur manquantes
+	Continuous GetMinValue() const;
+
+	// Valeur max
+	Continuous GetMaxValue() const;
+
 	// Nombre d'instances avec valeur manquante (prerequis: initialisation valeur)
 	int GetMissingValueNumber() const;
 
@@ -74,12 +80,8 @@ public:
 	int ComputeQuantiles(int nQuantileNumber);
 
 	// Calcul de quantiles de largeur egale (prerequis: initialisation valeur)
-	// En raison de doublons potentiels sur les valeurs, le nombre d'intervalles produits peut
-	// etre inferieur au nombre de quantiles demandes
 	// En cas de valeur manquante, un intervalle est cree uniquement pour la valeur manquante
-	// Sinon, pour chaque frontiere de quantile base sur une valeur, on cherche la premiere instance depassant la
-	// valeur et on utilise cette valeur (avec la valeur suivsnat) comme frontiere d'intervalle. Les intervalles
-	// vides sont ensuite supprimes. On retourne le nombre de quantiles effectivement produits
+	// On retourne le nombre de quantiles demandes, y compris les intervalles vides
 	int ComputeEqualWidthQuantiles(int nQuantileNumber);
 
 	// Test si quantiles calcules
@@ -326,6 +328,24 @@ inline Continuous KWQuantileIntervalBuilder::GetValueAt(int nIndex) const
 	require(IsValueInitialized());
 	require(0 <= nIndex and nIndex < GetValueNumber());
 	return cvValues.GetAt(nIndex);
+}
+
+inline Continuous KWQuantileIntervalBuilder::GetMinValue() const
+{
+	Continuous cMinValue;
+	require(IsFrequencyInitialized());
+	require(IsValueInitialized());
+	cMinValue = cvValues.GetAt(0);
+	if (cMinValue == KWContinuous::GetMissingValue() and cvValues.GetSize() > 1)
+		cMinValue = cvValues.GetAt(1);
+	return cMinValue;
+}
+
+inline Continuous KWQuantileIntervalBuilder::GetMaxValue() const
+{
+	require(IsFrequencyInitialized());
+	require(IsValueInitialized());
+	return cvValues.GetAt(cvValues.GetSize() - 1);
 }
 
 inline int KWQuantileIntervalBuilder::GetMissingValueNumber() const

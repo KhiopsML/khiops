@@ -49,12 +49,6 @@ public:
 	PLParallelTask();
 	~PLParallelTask();
 
-	// Methode a appeler en debut de programme pour avoir une execution parallele
-	// Met en place toute la configuration necessaire a MPI (bibliotheques, driver, header...)
-	// Sans l'appel a cette methode la code sera execute en sequentiel
-	// La version du logiciel doit etre passe en parametre
-	static void UseMPI(const ALString& sVersion);
-
 	// Retourne true quand la tache a ete executee (en echec ou non)
 	boolean IsJobDone() const;
 

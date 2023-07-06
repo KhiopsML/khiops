@@ -13,4 +13,4 @@
 #define GENUM_VERSION str(1.0)
 
 // Copyright
-#define GENUM_COPYRIGHT_LABEL str((c)2022 Orange Labs.)
+#define GENUM_COPYRIGHT_LABEL str((c)2023 Orange Labs.)

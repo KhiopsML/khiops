@@ -2,11 +2,11 @@
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
-/* A Bison parser, made by GNU Bison 3.7.4.  */
+/* A Bison parser, made by GNU Bison 3.8.2.  */
 
 /* Bison implementation for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2020 Free Software Foundation,
+   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2021 Free Software Foundation,
    Inc.
 
    This program is free software: you can redistribute it and/or modify
@@ -20,7 +20,7 @@
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
 /* As a special exception, you may create a larger work that contains
    part or all of the Bison parser skeleton and distribute that work
@@ -50,10 +50,10 @@
    USER NAME SPACE" below.  */
 
 /* Identify Bison output, and Bison version.  */
-#define YYBISON 30704
+#define YYBISON 30802
 
 /* Bison version string.  */
-#define YYBISON_VERSION "3.7.4"
+#define YYBISON_VERSION "3.8.2"
 
 /* Skeleton name.  */
 #define YYSKELETON_NAME "yacc.c"
@@ -324,6 +324,18 @@ typedef int_least16_t yytype_int16;
 typedef short yytype_int16;
 #endif
 
+/* Work around bug in HP-UX 11.23, which defines these macros
+   incorrectly for preprocessor constants.  This workaround can likely
+   be removed in 2023, as HPE has promised support for HP-UX 11.23
+   (aka HP-UX 11i v2) only through the end of 2022; see Table 2 of
+   <https://h20195.www2.hpe.com/V2/getpdf.aspx/4AA4-7673ENW.pdf>.  */
+#ifdef __hpux
+#undef UINT_LEAST8_MAX
+#undef UINT_LEAST16_MAX
+#define UINT_LEAST8_MAX 255
+#define UINT_LEAST16_MAX 65535
+#endif
+
 #if defined __UINT_LEAST8_MAX__ && __UINT_LEAST8_MAX__ <= __INT_MAX__
 typedef __UINT_LEAST8_TYPE__ yytype_uint8;
 #elif (!defined __UINT_LEAST8_MAX__ && defined YY_STDINT_H && UINT_LEAST8_MAX <= INT_MAX)
@@ -414,16 +426,21 @@ typedef int yy_state_fast_t;
 
 /* Suppress unused-variable warnings by "using" E.  */
 #if !defined lint || defined __GNUC__
-#define YYUSE(E) ((void)(E))
+#define YY_USE(E) ((void)(E))
 #else
-#define YYUSE(E) /* empty */
+#define YY_USE(E) /* empty */
 #endif
 
-#if defined __GNUC__ && !defined __ICC && 407 <= __GNUC__ * 100 + __GNUC_MINOR__
 /* Suppress an incorrect diagnostic about yylval being uninitialized.  */
+#if defined __GNUC__ && !defined __ICC && 406 <= __GNUC__ * 100 + __GNUC_MINOR__
+#if __GNUC__ * 100 + __GNUC_MINOR__ < 407
+#define YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN                                                                            \
+	_Pragma("GCC diagnostic push") _Pragma("GCC diagnostic ignored \"-Wuninitialized\"")
+#else
 #define YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN                                                                            \
 	_Pragma("GCC diagnostic push") _Pragma("GCC diagnostic ignored \"-Wuninitialized\"")                           \
 	    _Pragma("GCC diagnostic ignored \"-Wmaybe-uninitialized\"")
+#endif
 #define YY_IGNORE_MAYBE_UNINITIALIZED_END _Pragma("GCC diagnostic pop")
 #else
 #define YY_INITIAL_VALUE(Value) Value
@@ -611,8 +628,8 @@ static const yytype_int16 yyrline[] = {
     0,    134,  134,  138,  145,  149,  153,  157,  161,  165,  169,  173,  177,  181,  185,  189,  193,  197,  201,
     207,  220,  221,  224,  227,  237,  245,  288,  367,  386,  397,  442,  491,  583,  590,  598,  604,  614,  627,
     647,  666,  685,  702,  710,  845,  857,  864,  876,  883,  888,  895,  900,  907,  911,  915,  919,  923,  927,
-    931,  937,  943,  947,  951,  959,  964,  970,  974,  978,  983,  992,  997,  1003, 1023, 1039, 1217, 1221, 1228,
-    1241, 1252, 1266, 1275, 1284, 1294, 1304, 1315, 1324, 1331, 1332, 1336, 1341, 1347, 1348, 1352, 1357, 1369, 1371};
+    931,  935,  939,  943,  947,  955,  960,  966,  970,  974,  979,  988,  993,  999,  1019, 1035, 1213, 1217, 1224,
+    1237, 1248, 1262, 1271, 1280, 1290, 1300, 1311, 1320, 1327, 1328, 1332, 1337, 1343, 1344, 1348, 1353, 1365, 1367};
 #endif
 
 /** Accessing symbol of state STATE.  */
@@ -700,14 +717,6 @@ static const char* yysymbol_name(yysymbol_kind_t yysymbol)
 }
 #endif
 
-#ifdef YYPRINT
-/* YYTOKNUM[NUM] -- (External) token number corresponding to the
-   (internal) symbol number NUM (which must be that of a token).  */
-static const yytype_int16 yytoknum[] = {0,   256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266,
-					267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 125,
-					123, 40,  41,  44,  60,  61,  62,  93,  91,  46,  43,  59};
-#endif
-
 #define YYPACT_NINF (-65)
 
 #define yypact_value_is_default(Yyn) ((Yyn) == YYPACT_NINF)
@@ -741,7 +750,7 @@ static const yytype_int8 yypgoto[] = {-65, -35, 51,  -65, -65, -65, -65, -65, -6
 				      -65, -65, -65, -64, -65, -65, 104, -65, -65, -65, -57, -65, -29, -65, -65};
 
 /* YYDEFGOTO[NTERM-NUM].  */
-static const yytype_int8 yydefgoto[] = {-1, 91, 60, 1,  5,  7,  8,  39, 9,  68, 80, 81, 15, 2,   10, 20,
+static const yytype_int8 yydefgoto[] = {0,  91, 60, 1,  5,  7,  8,  39, 9,  68, 80, 81, 15, 2,   10, 20,
 					16, 35, 42, 73, 74, 75, 92, 85, 86, 87, 93, 94, 22, 106, 109};
 
 /* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
@@ -766,8 +775,8 @@ static const yytype_int8 yycheck[] = {
     6,   25, 9,  10, 11, 12, 13, 14, 15,  16, 17,  18,  19,  20, 21, 22, 3,  28, 30, 103, 30, 30, 9,   10, 11,  12, 13,
     14,  15, 16, 17, 18, 19, 20, 21, 22,  10, 11,  12,  13,  71, -1, 16, 17, 18, 19, 20,  21, 22};
 
-/* YYSTOS[STATE-NUM] -- The (internal number of the) accessing
-   symbol of state STATE-NUM.  */
+/* YYSTOS[STATE-NUM] -- The symbol kind of the accessing symbol of
+   state STATE-NUM.  */
 static const yytype_int8 yystos[] = {
     0,  39, 49, 0,  8,  40, 1,  41, 42, 44, 50, 1,  15, 23, 24, 48, 52, 50, 7,  14, 51, 35, 64, 50, 10, 11, 12, 13,
     16, 17, 18, 19, 20, 21, 22, 53, 9,  35, 23, 43, 48, 25, 54, 3,  4,  9,  10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
@@ -775,14 +784,14 @@ static const yytype_int8 yystos[] = {
     58, 59, 60, 61, 5,  6,  33, 37, 58, 62, 63, 64, 27, 31, 55, 64, 26, 27, 24, 28, 26, 25, 65, 26, 26, 66, 62, 27,
     62, 34, 47, 62, 64, 47, 50, 37, 38, 25, 62, 6,  50, 47, 50, 29, 30, 25, 50, 5,  6,  37, 30, 30, 30};
 
-/* YYR1[YYN] -- Symbol number of symbol that rule YYN derives.  */
+/* YYR1[RULE-NUM] -- Symbol kind of the left-hand side of rule RULE-NUM.  */
 static const yytype_int8 yyr1[] = {0,  36, 37, 37, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38,
 				   39, 40, 40, 40, 41, 42, 42, 42, 42, 42, 43, 43, 44, 45, 45, 45, 46, 46, 47,
 				   47, 47, 47, 47, 48, 49, 49, 50, 50, 51, 51, 52, 52, 53, 53, 53, 53, 53, 53,
 				   53, 53, 53, 53, 53, 54, 54, 55, 55, 55, 55, 55, 56, 57, 57, 58, 59, 59, 60,
 				   61, 61, 62, 62, 62, 62, 62, 63, 63, 64, 64, 64, 64, 65, 65, 65, 65, 66, 66};
 
-/* YYR2[YYN] -- Number of symbols on the right hand side of rule YYN.  */
+/* YYR2[RULE-NUM] -- Number of symbols on the right-hand side of rule RULE-NUM.  */
 static const yytype_int8 yyr2[] = {0, 2, 1,  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 2, 2, 0, 3,
 				   2, 2, 10, 9, 2, 2, 1, 7, 4, 1, 0, 3, 1, 6, 6, 4, 6, 0, 8, 2, 0, 2, 0, 1,
 				   0, 1, 0,  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 0, 2, 1, 3, 3, 0, 2, 2, 3,
@@ -799,6 +808,7 @@ enum
 #define YYACCEPT goto yyacceptlab
 #define YYABORT goto yyabortlab
 #define YYERROR goto yyerrorlab
+#define YYNOMEM goto yyexhaustedlab
 
 #define YYRECOVERING() (!!yyerrstatus)
 
@@ -838,11 +848,6 @@ enum
 			YYFPRINTF Args;                                                                                \
 	} while (0)
 
-/* This macro is provided for backward compatibility. */
-#ifndef YY_LOCATION_PRINT
-#define YY_LOCATION_PRINT(File, Loc) ((void)0)
-#endif
-
 #define YY_SYMBOL_PRINT(Title, Kind, Value, Location)                                                                  \
 	do                                                                                                             \
 	{                                                                                                              \
@@ -861,15 +866,11 @@ enum
 static void yy_symbol_value_print(FILE* yyo, yysymbol_kind_t yykind, YYSTYPE const* const yyvaluep)
 {
 	FILE* yyoutput = yyo;
-	YYUSE(yyoutput);
+	YY_USE(yyoutput);
 	if (!yyvaluep)
 		return;
-#ifdef YYPRINT
-	if (yykind < YYNTOKENS)
-		YYPRINT(yyo, yytoknum[yykind], *yyvaluep);
-#endif
 	YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
-	YYUSE(yykind);
+	YY_USE(yykind);
 	YY_IGNORE_MAYBE_UNINITIALIZED_END
 }
 
@@ -966,7 +967,7 @@ int yydebug;
 
 static void yydestruct(const char* yymsg, yysymbol_kind_t yykind, YYSTYPE* yyvaluep)
 {
-	YYUSE(yyvaluep);
+	YY_USE(yyvaluep);
 	if (!yymsg)
 		yymsg = "Deleting";
 	YY_SYMBOL_PRINT(yymsg, yykind, yyvaluep, yylocationp);
@@ -981,7 +982,7 @@ static void yydestruct(const char* yymsg, yysymbol_kind_t yykind, YYSTYPE* yyval
 			delete ((*yyvaluep).sValue);
 		((*yyvaluep).sValue) = NULL;
 	}
-#line 1103 "KWCYac.cpp"
+#line 1105 "KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_EXTENDEDIDENTIFIER: /* EXTENDEDIDENTIFIER  */
@@ -991,7 +992,7 @@ static void yydestruct(const char* yymsg, yysymbol_kind_t yykind, YYSTYPE* yyval
 			delete ((*yyvaluep).sValue);
 		((*yyvaluep).sValue) = NULL;
 	}
-#line 1109 "KWCYac.cpp"
+#line 1111 "KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_STRINGLITTERAL: /* STRINGLITTERAL  */
@@ -1001,7 +1002,7 @@ static void yydestruct(const char* yymsg, yysymbol_kind_t yykind, YYSTYPE* yyval
 			delete ((*yyvaluep).sValue);
 		((*yyvaluep).sValue) = NULL;
 	}
-#line 1115 "KWCYac.cpp"
+#line 1117 "KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_LABEL: /* LABEL  */
@@ -1011,7 +1012,7 @@ static void yydestruct(const char* yymsg, yysymbol_kind_t yykind, YYSTYPE* yyval
 			delete ((*yyvaluep).sValue);
 		((*yyvaluep).sValue) = NULL;
 	}
-#line 1121 "KWCYac.cpp"
+#line 1123 "KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_APPLICATIONID: /* APPLICATIONID  */
@@ -1021,7 +1022,7 @@ static void yydestruct(const char* yymsg, yysymbol_kind_t yykind, YYSTYPE* yyval
 			delete ((*yyvaluep).sValue);
 		((*yyvaluep).sValue) = NULL;
 	}
-#line 1127 "KWCYac.cpp"
+#line 1129 "KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_IDENTIFIER: /* IDENTIFIER  */
@@ -1031,7 +1032,7 @@ static void yydestruct(const char* yymsg, yysymbol_kind_t yykind, YYSTYPE* yyval
 			delete ((*yyvaluep).sValue);
 		((*yyvaluep).sValue) = NULL;
 	}
-#line 1133 "KWCYac.cpp"
+#line 1135 "KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_SIMPLEIDENTIFIER: /* SIMPLEIDENTIFIER  */
@@ -1041,7 +1042,7 @@ static void yydestruct(const char* yymsg, yysymbol_kind_t yykind, YYSTYPE* yyval
 			delete ((*yyvaluep).sValue);
 		((*yyvaluep).sValue) = NULL;
 	}
-#line 1139 "KWCYac.cpp"
+#line 1141 "KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_oaAttributeArrayDeclaration: /* oaAttributeArrayDeclaration  */
@@ -1051,7 +1052,7 @@ static void yydestruct(const char* yymsg, yysymbol_kind_t yykind, YYSTYPE* yyval
 			delete ((*yyvaluep).oaAttributes);
 		((*yyvaluep).oaAttributes) = NULL;
 	}
-#line 1145 "KWCYac.cpp"
+#line 1147 "KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_keyFields: /* keyFields  */
@@ -1061,7 +1062,7 @@ static void yydestruct(const char* yymsg, yysymbol_kind_t yykind, YYSTYPE* yyval
 			delete ((*yyvaluep).svValue);
 		((*yyvaluep).svValue) = NULL;
 	}
-#line 1151 "KWCYac.cpp"
+#line 1153 "KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_keyFieldList: /* keyFieldList  */
@@ -1071,7 +1072,7 @@ static void yydestruct(const char* yymsg, yysymbol_kind_t yykind, YYSTYPE* yyval
 			delete ((*yyvaluep).svValue);
 		((*yyvaluep).svValue) = NULL;
 	}
-#line 1157 "KWCYac.cpp"
+#line 1159 "KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_metaData: /* metaData  */
@@ -1081,7 +1082,7 @@ static void yydestruct(const char* yymsg, yysymbol_kind_t yykind, YYSTYPE* yyval
 			delete ((*yyvaluep).kwmdMetaData);
 		((*yyvaluep).kwmdMetaData) = NULL;
 	}
-#line 1163 "KWCYac.cpp"
+#line 1165 "KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_kwattributeDeclaration: /* kwattributeDeclaration  */
@@ -1091,7 +1092,7 @@ static void yydestruct(const char* yymsg, yysymbol_kind_t yykind, YYSTYPE* yyval
 			delete ((*yyvaluep).kwaValue);
 		((*yyvaluep).kwaValue) = NULL;
 	}
-#line 1169 "KWCYac.cpp"
+#line 1171 "KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_applicationids: /* applicationids  */
@@ -1101,7 +1102,7 @@ static void yydestruct(const char* yymsg, yysymbol_kind_t yykind, YYSTYPE* yyval
 			delete ((*yyvaluep).sValue);
 		((*yyvaluep).sValue) = NULL;
 	}
-#line 1175 "KWCYac.cpp"
+#line 1177 "KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_comments: /* comments  */
@@ -1111,7 +1112,7 @@ static void yydestruct(const char* yymsg, yysymbol_kind_t yykind, YYSTYPE* yyval
 			delete ((*yyvaluep).sValue);
 		((*yyvaluep).sValue) = NULL;
 	}
-#line 1181 "KWCYac.cpp"
+#line 1183 "KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_refIdentifier: /* refIdentifier  */
@@ -1121,7 +1122,7 @@ static void yydestruct(const char* yymsg, yysymbol_kind_t yykind, YYSTYPE* yyval
 			delete ((*yyvaluep).sValue);
 		((*yyvaluep).sValue) = NULL;
 	}
-#line 1187 "KWCYac.cpp"
+#line 1189 "KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_usedDerivationRule: /* usedDerivationRule  */
@@ -1131,7 +1132,7 @@ static void yydestruct(const char* yymsg, yysymbol_kind_t yykind, YYSTYPE* yyval
 			delete ((*yyvaluep).kwdrValue);
 		((*yyvaluep).kwdrValue) = NULL;
 	}
-#line 1193 "KWCYac.cpp"
+#line 1195 "KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_referenceRule: /* referenceRule  */
@@ -1141,7 +1142,7 @@ static void yydestruct(const char* yymsg, yysymbol_kind_t yykind, YYSTYPE* yyval
 			delete ((*yyvaluep).kwdrValue);
 		((*yyvaluep).kwdrValue) = NULL;
 	}
-#line 1199 "KWCYac.cpp"
+#line 1201 "KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_referenceRuleBody: /* referenceRuleBody  */
@@ -1151,7 +1152,7 @@ static void yydestruct(const char* yymsg, yysymbol_kind_t yykind, YYSTYPE* yyval
 			delete ((*yyvaluep).kwdrValue);
 		((*yyvaluep).kwdrValue) = NULL;
 	}
-#line 1205 "KWCYac.cpp"
+#line 1207 "KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_derivationRule: /* derivationRule  */
@@ -1161,7 +1162,7 @@ static void yydestruct(const char* yymsg, yysymbol_kind_t yykind, YYSTYPE* yyval
 			delete ((*yyvaluep).kwdrValue);
 		((*yyvaluep).kwdrValue) = NULL;
 	}
-#line 1211 "KWCYac.cpp"
+#line 1213 "KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_derivationRuleBody: /* derivationRuleBody  */
@@ -1171,7 +1172,7 @@ static void yydestruct(const char* yymsg, yysymbol_kind_t yykind, YYSTYPE* yyval
 			delete ((*yyvaluep).kwdrValue);
 		((*yyvaluep).kwdrValue) = NULL;
 	}
-#line 1217 "KWCYac.cpp"
+#line 1219 "KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_derivationRuleHeader: /* derivationRuleHeader  */
@@ -1181,7 +1182,7 @@ static void yydestruct(const char* yymsg, yysymbol_kind_t yykind, YYSTYPE* yyval
 			delete ((*yyvaluep).kwdrValue);
 		((*yyvaluep).kwdrValue) = NULL;
 	}
-#line 1223 "KWCYac.cpp"
+#line 1225 "KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_derivationRuleBegin: /* derivationRuleBegin  */
@@ -1191,7 +1192,7 @@ static void yydestruct(const char* yymsg, yysymbol_kind_t yykind, YYSTYPE* yyval
 			delete ((*yyvaluep).kwdrValue);
 		((*yyvaluep).kwdrValue) = NULL;
 	}
-#line 1229 "KWCYac.cpp"
+#line 1231 "KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_derivationRuleOperand: /* derivationRuleOperand  */
@@ -1201,7 +1202,7 @@ static void yydestruct(const char* yymsg, yysymbol_kind_t yykind, YYSTYPE* yyval
 			delete ((*yyvaluep).kwdroValue);
 		((*yyvaluep).kwdroValue) = NULL;
 	}
-#line 1235 "KWCYac.cpp"
+#line 1237 "KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_bigstring: /* bigstring  */
@@ -1211,7 +1212,7 @@ static void yydestruct(const char* yymsg, yysymbol_kind_t yykind, YYSTYPE* yyval
 			delete ((*yyvaluep).sValue);
 		((*yyvaluep).sValue) = NULL;
 	}
-#line 1241 "KWCYac.cpp"
+#line 1243 "KWCYac.cpp"
 	break;
 
 	default:
@@ -1272,6 +1273,7 @@ int yyparse(void)
 	YYDPRINTF((stderr, "Starting parse\n"));
 
 	yychar = YYEMPTY; /* Cause a token to be read.  */
+
 	goto yysetstate;
 
 /*------------------------------------------------------------.
@@ -1295,7 +1297,7 @@ yysetstate:
 
 	if (yyss + yystacksize - 1 <= yyssp)
 #if !defined yyoverflow && !defined YYSTACK_RELOCATE
-		goto yyexhaustedlab;
+		YYNOMEM;
 #else
 	{
 		/* Get the current used size of the three stacks, in elements.  */
@@ -1321,7 +1323,7 @@ yysetstate:
 #else /* defined YYSTACK_RELOCATE */
 		/* Extend the stack our own way.  */
 		if (YYMAXDEPTH <= yystacksize)
-			goto yyexhaustedlab;
+			YYNOMEM;
 		yystacksize *= 2;
 		if (YYMAXDEPTH < yystacksize)
 			yystacksize = YYMAXDEPTH;
@@ -1331,7 +1333,7 @@ yysetstate:
 			union yyalloc* yyptr =
 			    YY_CAST(union yyalloc*, YYSTACK_ALLOC(YY_CAST(YYSIZE_T, YYSTACK_BYTES(yystacksize))));
 			if (!yyptr)
-				goto yyexhaustedlab;
+				YYNOMEM;
 			YYSTACK_RELOCATE(yyss_alloc, yyss);
 			YYSTACK_RELOCATE(yyvs_alloc, yyvs);
 #undef YYSTACK_RELOCATE
@@ -1464,7 +1466,7 @@ yyreduce:
 	{
 		(yyval.sValue) = (yyvsp[0].sValue);
 	}
-#line 1511 "KWCYac.cpp"
+#line 1515 "KWCYac.cpp"
 	break;
 
 	case 3: /* IDENTIFIER: EXTENDEDIDENTIFIER  */
@@ -1472,7 +1474,7 @@ yyreduce:
 	{
 		(yyval.sValue) = (yyvsp[0].sValue);
 	}
-#line 1519 "KWCYac.cpp"
+#line 1523 "KWCYac.cpp"
 	break;
 
 	case 4: /* SIMPLEIDENTIFIER: BASICIDENTIFIER  */
@@ -1480,7 +1482,7 @@ yyreduce:
 	{
 		(yyval.sValue) = (yyvsp[0].sValue);
 	}
-#line 1527 "KWCYac.cpp"
+#line 1531 "KWCYac.cpp"
 	break;
 
 	case 5: /* SIMPLEIDENTIFIER: CLASS  */
@@ -1488,7 +1490,7 @@ yyreduce:
 	{
 		(yyval.sValue) = new ALString("Dictionary");
 	}
-#line 1535 "KWCYac.cpp"
+#line 1539 "KWCYac.cpp"
 	break;
 
 	case 6: /* SIMPLEIDENTIFIER: CONTINUOUSTYPE  */
@@ -1496,7 +1498,7 @@ yyreduce:
 	{
 		(yyval.sValue) = new ALString("Numerical");
 	}
-#line 1543 "KWCYac.cpp"
+#line 1547 "KWCYac.cpp"
 	break;
 
 	case 7: /* SIMPLEIDENTIFIER: SYMBOLTYPE  */
@@ -1504,7 +1506,7 @@ yyreduce:
 	{
 		(yyval.sValue) = new ALString("Categorical");
 	}
-#line 1551 "KWCYac.cpp"
+#line 1555 "KWCYac.cpp"
 	break;
 
 	case 8: /* SIMPLEIDENTIFIER: OBJECTTYPE  */
@@ -1512,7 +1514,7 @@ yyreduce:
 	{
 		(yyval.sValue) = new ALString("Entity");
 	}
-#line 1559 "KWCYac.cpp"
+#line 1563 "KWCYac.cpp"
 	break;
 
 	case 9: /* SIMPLEIDENTIFIER: OBJECTARRAYTYPE  */
@@ -1520,7 +1522,7 @@ yyreduce:
 	{
 		(yyval.sValue) = new ALString("Table");
 	}
-#line 1567 "KWCYac.cpp"
+#line 1571 "KWCYac.cpp"
 	break;
 
 	case 10: /* SIMPLEIDENTIFIER: ROOT  */
@@ -1528,7 +1530,7 @@ yyreduce:
 	{
 		(yyval.sValue) = new ALString("Root");
 	}
-#line 1575 "KWCYac.cpp"
+#line 1579 "KWCYac.cpp"
 	break;
 
 	case 11: /* SIMPLEIDENTIFIER: UNUSED  */
@@ -1536,7 +1538,7 @@ yyreduce:
 	{
 		(yyval.sValue) = new ALString("Unused");
 	}
-#line 1583 "KWCYac.cpp"
+#line 1587 "KWCYac.cpp"
 	break;
 
 	case 12: /* SIMPLEIDENTIFIER: DATETYPE  */
@@ -1544,7 +1546,7 @@ yyreduce:
 	{
 		(yyval.sValue) = new ALString("Date");
 	}
-#line 1591 "KWCYac.cpp"
+#line 1595 "KWCYac.cpp"
 	break;
 
 	case 13: /* SIMPLEIDENTIFIER: TIMETYPE  */
@@ -1552,7 +1554,7 @@ yyreduce:
 	{
 		(yyval.sValue) = new ALString("Time");
 	}
-#line 1599 "KWCYac.cpp"
+#line 1603 "KWCYac.cpp"
 	break;
 
 	case 14: /* SIMPLEIDENTIFIER: TIMESTAMPTYPE  */
@@ -1560,7 +1562,7 @@ yyreduce:
 	{
 		(yyval.sValue) = new ALString("Timestamp");
 	}
-#line 1607 "KWCYac.cpp"
+#line 1611 "KWCYac.cpp"
 	break;
 
 	case 15: /* SIMPLEIDENTIFIER: TIMESTAMPTZTYPE  */
@@ -1568,7 +1570,7 @@ yyreduce:
 	{
 		(yyval.sValue) = new ALString("TimestampTZ");
 	}
-#line 1615 "KWCYac.cpp"
+#line 1619 "KWCYac.cpp"
 	break;
 
 	case 16: /* SIMPLEIDENTIFIER: TEXTTYPE  */
@@ -1576,7 +1578,7 @@ yyreduce:
 	{
 		(yyval.sValue) = new ALString("Text");
 	}
-#line 1623 "KWCYac.cpp"
+#line 1627 "KWCYac.cpp"
 	break;
 
 	case 17: /* SIMPLEIDENTIFIER: TEXTLISTTYPE  */
@@ -1584,7 +1586,7 @@ yyreduce:
 	{
 		(yyval.sValue) = new ALString("TextList");
 	}
-#line 1631 "KWCYac.cpp"
+#line 1635 "KWCYac.cpp"
 	break;
 
 	case 18: /* SIMPLEIDENTIFIER: STRUCTURETYPE  */
@@ -1592,7 +1594,7 @@ yyreduce:
 	{
 		(yyval.sValue) = new ALString("Structure");
 	}
-#line 1639 "KWCYac.cpp"
+#line 1643 "KWCYac.cpp"
 	break;
 
 	case 19: /* kwclassFile: applicationids kwclasses comments  */
@@ -1606,7 +1608,7 @@ yyreduce:
 		if ((yyvsp[0].sValue) != NULL)
 			delete (yyvsp[0].sValue);
 	}
-#line 1653 "KWCYac.cpp"
+#line 1657 "KWCYac.cpp"
 	break;
 
 	case 21: /* kwclasses: kwclasses error  */
@@ -1615,7 +1617,7 @@ yyreduce:
 		yyerror("Error outside the definition of a dictionary");
 		YYABORT;
 	}
-#line 1660 "KWCYac.cpp"
+#line 1664 "KWCYac.cpp"
 	break;
 
 	case 23: /* kwclass: kwclassBegin '}' semicolon  */
@@ -1627,7 +1629,7 @@ yyreduce:
 		/* Reinitialisation de la classe courante */
 		kwcLoadCurrentClass = NULL;
 	}
-#line 1672 "KWCYac.cpp"
+#line 1676 "KWCYac.cpp"
 	break;
 
 	case 24: /* kwclassBegin: kwclassHeader comments  */
@@ -1639,7 +1641,7 @@ yyreduce:
 		assert(kwcLoadCurrentClass == (yyvsp[-1].kwcValue));
 		(yyval.kwcValue) = (yyvsp[-1].kwcValue);
 	}
-#line 1684 "KWCYac.cpp"
+#line 1688 "KWCYac.cpp"
 	break;
 
 	case 25: /* kwclassBegin: kwclassBegin kwattributeDeclaration  */
@@ -1689,7 +1691,7 @@ yyreduce:
 
 		(yyval.kwcValue) = kwcClass;
 	}
-#line 1731 "KWCYac.cpp"
+#line 1735 "KWCYac.cpp"
 	break;
 
 	case 26: /* kwclassBegin: kwclassBegin '{' comments oaAttributeArrayDeclaration '}' IDENTIFIER
@@ -1780,7 +1782,7 @@ yyreduce:
 
 		(yyval.kwcValue) = kwcClass;
 	}
-#line 1814 "KWCYac.cpp"
+#line 1818 "KWCYac.cpp"
 	break;
 
 	case 27: /* kwclassBegin: kwclassBegin '{' comments '}' IDENTIFIER usedDerivationRule semicolon metaData
@@ -1804,7 +1806,7 @@ yyreduce:
 			delete (yyvsp[0].sValue);
 		(yyval.kwcValue) = kwcClass;
 	}
-#line 1837 "KWCYac.cpp"
+#line 1841 "KWCYac.cpp"
 	break;
 
 	case 28: /* kwclassBegin: kwclassBegin error  */
@@ -1816,7 +1818,7 @@ yyreduce:
 		kwcLoadCurrentClass = NULL;
 		YYABORT;
 	}
-#line 1849 "KWCYac.cpp"
+#line 1853 "KWCYac.cpp"
 	break;
 
 	case 29: /* oaAttributeArrayDeclaration: oaAttributeArrayDeclaration kwattributeDeclaration  */
@@ -1869,7 +1871,7 @@ yyreduce:
 
 		(yyval.oaAttributes) = oaAttributes;
 	}
-#line 1898 "KWCYac.cpp"
+#line 1902 "KWCYac.cpp"
 	break;
 
 	case 30: /* oaAttributeArrayDeclaration: kwattributeDeclaration  */
@@ -1924,7 +1926,7 @@ yyreduce:
 
 		(yyval.oaAttributes) = oaAttributes;
 	}
-#line 1949 "KWCYac.cpp"
+#line 1953 "KWCYac.cpp"
 	break;
 
 	case 31: /* kwclassHeader: comments rootDeclaration CLASS IDENTIFIER keyFields metaData '{'  */
@@ -2018,7 +2020,7 @@ yyreduce:
 		kwcLoadCurrentClass = kwcClass;
 		(yyval.kwcValue) = kwcClass;
 	}
-#line 2042 "KWCYac.cpp"
+#line 2046 "KWCYac.cpp"
 	break;
 
 	case 32: /* keyFields: '(' keyFieldList ')' comments  */
@@ -2029,7 +2031,7 @@ yyreduce:
 			delete (yyvsp[0].sValue);
 		(yyval.svValue) = (yyvsp[-2].svValue);
 	}
-#line 2053 "KWCYac.cpp"
+#line 2057 "KWCYac.cpp"
 	break;
 
 	case 33: /* keyFields: comments  */
@@ -2040,7 +2042,7 @@ yyreduce:
 			delete (yyvsp[0].sValue);
 		(yyval.svValue) = NULL; /* pas de champ cle */
 	}
-#line 2064 "KWCYac.cpp"
+#line 2068 "KWCYac.cpp"
 	break;
 
 	case 34: /* keyFields: %empty  */
@@ -2048,7 +2050,7 @@ yyreduce:
 	{
 		(yyval.svValue) = NULL; /* pas de champ cle */
 	}
-#line 2072 "KWCYac.cpp"
+#line 2076 "KWCYac.cpp"
 	break;
 
 	case 35: /* keyFieldList: keyFieldList ',' IDENTIFIER  */
@@ -2062,7 +2064,7 @@ yyreduce:
 		delete (yyvsp[0].sValue);
 		(yyval.svValue) = svKeyFields;
 	}
-#line 2086 "KWCYac.cpp"
+#line 2090 "KWCYac.cpp"
 	break;
 
 	case 36: /* keyFieldList: IDENTIFIER  */
@@ -2076,7 +2078,7 @@ yyreduce:
 		delete (yyvsp[0].sValue);
 		(yyval.svValue) = svKeyFields;
 	}
-#line 2100 "KWCYac.cpp"
+#line 2104 "KWCYac.cpp"
 	break;
 
 	case 37: /* metaData: metaData '<' SIMPLEIDENTIFIER '=' STRINGLITTERAL '>'  */
@@ -2100,7 +2102,7 @@ yyreduce:
 		delete (yyvsp[-1].sValue);
 		(yyval.kwmdMetaData) = metaData;
 	}
-#line 2124 "KWCYac.cpp"
+#line 2128 "KWCYac.cpp"
 	break;
 
 	case 38: /* metaData: metaData '<' SIMPLEIDENTIFIER '=' CONTINUOUSLITTERAL '>'  */
@@ -2123,7 +2125,7 @@ yyreduce:
 		delete (yyvsp[-3].sValue);
 		(yyval.kwmdMetaData) = metaData;
 	}
-#line 2147 "KWCYac.cpp"
+#line 2151 "KWCYac.cpp"
 	break;
 
 	case 39: /* metaData: metaData '<' SIMPLEIDENTIFIER '>'  */
@@ -2146,7 +2148,7 @@ yyreduce:
 		delete (yyvsp[-1].sValue);
 		(yyval.kwmdMetaData) = metaData;
 	}
-#line 2170 "KWCYac.cpp"
+#line 2174 "KWCYac.cpp"
 	break;
 
 	case 40: /* metaData: metaData '<' SIMPLEIDENTIFIER '=' IDENTIFIER '>'  */
@@ -2167,7 +2169,7 @@ yyreduce:
 		delete (yyvsp[-1].sValue);
 		(yyval.kwmdMetaData) = metaData;
 	}
-#line 2190 "KWCYac.cpp"
+#line 2194 "KWCYac.cpp"
 	break;
 
 	case 41: /* metaData: %empty  */
@@ -2175,7 +2177,7 @@ yyreduce:
 	{
 		(yyval.kwmdMetaData) = NULL; /* pas de paires cle valeurs */
 	}
-#line 2198 "KWCYac.cpp"
+#line 2202 "KWCYac.cpp"
 	break;
 
 	case 42: /* kwattributeDeclaration: usedDeclaration typeDeclaration refIdentifier IDENTIFIER usedDerivationRule
@@ -2323,7 +2325,7 @@ yyreduce:
 
 		(yyval.kwaValue) = attribute;
 	}
-#line 2325 "KWCYac.cpp"
+#line 2329 "KWCYac.cpp"
 	break;
 
 	case 43: /* applicationids: applicationids APPLICATIONID  */
@@ -2338,7 +2340,7 @@ yyreduce:
 			(yyval.sValue) = (yyvsp[-1].sValue);
 		}
 	}
-#line 2340 "KWCYac.cpp"
+#line 2344 "KWCYac.cpp"
 	break;
 
 	case 44: /* applicationids: %empty  */
@@ -2346,7 +2348,7 @@ yyreduce:
 	{
 		(yyval.sValue) = NULL; /* pas d'identification d'application */
 	}
-#line 2348 "KWCYac.cpp"
+#line 2352 "KWCYac.cpp"
 	break;
 
 	case 45: /* comments: comments LABEL  */
@@ -2361,7 +2363,7 @@ yyreduce:
 			(yyval.sValue) = (yyvsp[-1].sValue);
 		}
 	}
-#line 2363 "KWCYac.cpp"
+#line 2367 "KWCYac.cpp"
 	break;
 
 	case 46: /* comments: %empty  */
@@ -2369,7 +2371,7 @@ yyreduce:
 	{
 		(yyval.sValue) = NULL; /* pas de commentaire */
 	}
-#line 2371 "KWCYac.cpp"
+#line 2375 "KWCYac.cpp"
 	break;
 
 	case 47: /* rootDeclaration: ROOT  */
@@ -2377,7 +2379,7 @@ yyreduce:
 	{
 		(yyval.bValue) = true;
 	}
-#line 2379 "KWCYac.cpp"
+#line 2383 "KWCYac.cpp"
 	break;
 
 	case 48: /* rootDeclaration: %empty  */
@@ -2385,7 +2387,7 @@ yyreduce:
 	{
 		(yyval.bValue) = false; /* valeur par defaut */
 	}
-#line 2387 "KWCYac.cpp"
+#line 2391 "KWCYac.cpp"
 	break;
 
 	case 49: /* usedDeclaration: UNUSED  */
@@ -2393,7 +2395,7 @@ yyreduce:
 	{
 		(yyval.bValue) = false;
 	}
-#line 2395 "KWCYac.cpp"
+#line 2399 "KWCYac.cpp"
 	break;
 
 	case 50: /* usedDeclaration: %empty  */
@@ -2401,7 +2403,7 @@ yyreduce:
 	{
 		(yyval.bValue) = true; /* valeur par defaut */
 	}
-#line 2403 "KWCYac.cpp"
+#line 2407 "KWCYac.cpp"
 	break;
 
 	case 51: /* typeDeclaration: CONTINUOUSTYPE  */
@@ -2409,7 +2411,7 @@ yyreduce:
 	{
 		(yyval.nValue) = KWType::Continuous;
 	}
-#line 2411 "KWCYac.cpp"
+#line 2415 "KWCYac.cpp"
 	break;
 
 	case 52: /* typeDeclaration: SYMBOLTYPE  */
@@ -2417,7 +2419,7 @@ yyreduce:
 	{
 		(yyval.nValue) = KWType::Symbol;
 	}
-#line 2419 "KWCYac.cpp"
+#line 2423 "KWCYac.cpp"
 	break;
 
 	case 53: /* typeDeclaration: DATETYPE  */
@@ -2425,7 +2427,7 @@ yyreduce:
 	{
 		(yyval.nValue) = KWType::Date;
 	}
-#line 2427 "KWCYac.cpp"
+#line 2431 "KWCYac.cpp"
 	break;
 
 	case 54: /* typeDeclaration: TIMETYPE  */
@@ -2433,7 +2435,7 @@ yyreduce:
 	{
 		(yyval.nValue) = KWType::Time;
 	}
-#line 2435 "KWCYac.cpp"
+#line 2439 "KWCYac.cpp"
 	break;
 
 	case 55: /* typeDeclaration: TIMESTAMPTYPE  */
@@ -2441,7 +2443,7 @@ yyreduce:
 	{
 		(yyval.nValue) = KWType::Timestamp;
 	}
-#line 2443 "KWCYac.cpp"
+#line 2447 "KWCYac.cpp"
 	break;
 
 	case 56: /* typeDeclaration: TIMESTAMPTZTYPE  */
@@ -2449,31 +2451,27 @@ yyreduce:
 	{
 		(yyval.nValue) = KWType::TimestampTZ;
 	}
-#line 2451 "KWCYac.cpp"
+#line 2455 "KWCYac.cpp"
 	break;
 
 	case 57: /* typeDeclaration: TEXTTYPE  */
 #line 932 "KWCYac.yac"
 	{
-		if (not GetLearningTextVariableMode())
-			yyerror("Type Text is unknown");
 		(yyval.nValue) = KWType::Text;
 	}
-#line 2461 "KWCYac.cpp"
+#line 2463 "KWCYac.cpp"
 	break;
 
 	case 58: /* typeDeclaration: TEXTLISTTYPE  */
-#line 938 "KWCYac.yac"
+#line 936 "KWCYac.yac"
 	{
-		if (not GetLearningTextVariableMode())
-			yyerror("Type TextList is unknown");
 		(yyval.nValue) = KWType::TextList;
 	}
 #line 2471 "KWCYac.cpp"
 	break;
 
 	case 59: /* typeDeclaration: OBJECTTYPE  */
-#line 944 "KWCYac.yac"
+#line 940 "KWCYac.yac"
 	{
 		(yyval.nValue) = KWType::Object;
 	}
@@ -2481,7 +2479,7 @@ yyreduce:
 	break;
 
 	case 60: /* typeDeclaration: OBJECTARRAYTYPE  */
-#line 948 "KWCYac.yac"
+#line 944 "KWCYac.yac"
 	{
 		(yyval.nValue) = KWType::ObjectArray;
 	}
@@ -2489,7 +2487,7 @@ yyreduce:
 	break;
 
 	case 61: /* typeDeclaration: STRUCTURETYPE  */
-#line 952 "KWCYac.yac"
+#line 948 "KWCYac.yac"
 	{
 		(yyval.nValue) = KWType::Structure;
 	}
@@ -2497,7 +2495,7 @@ yyreduce:
 	break;
 
 	case 62: /* refIdentifier: '(' IDENTIFIER ')'  */
-#line 960 "KWCYac.yac"
+#line 956 "KWCYac.yac"
 	{
 		(yyval.sValue) = (yyvsp[-1].sValue);
 	}
@@ -2505,7 +2503,7 @@ yyreduce:
 	break;
 
 	case 63: /* refIdentifier: %empty  */
-#line 964 "KWCYac.yac"
+#line 960 "KWCYac.yac"
 	{
 		(yyval.sValue) = NULL;
 	}
@@ -2513,7 +2511,7 @@ yyreduce:
 	break;
 
 	case 64: /* usedDerivationRule: '=' derivationRule  */
-#line 971 "KWCYac.yac"
+#line 967 "KWCYac.yac"
 	{
 		(yyval.kwdrValue) = (yyvsp[0].kwdrValue);
 	}
@@ -2521,7 +2519,7 @@ yyreduce:
 	break;
 
 	case 65: /* usedDerivationRule: referenceRule  */
-#line 975 "KWCYac.yac"
+#line 971 "KWCYac.yac"
 	{
 		(yyval.kwdrValue) = (yyvsp[0].kwdrValue);
 	}
@@ -2529,7 +2527,7 @@ yyreduce:
 	break;
 
 	case 66: /* usedDerivationRule: '=' derivationRule ')'  */
-#line 979 "KWCYac.yac"
+#line 975 "KWCYac.yac"
 	{
 		yyerror("Too many ')'");
 		(yyval.kwdrValue) = (yyvsp[-1].kwdrValue);
@@ -2538,7 +2536,7 @@ yyreduce:
 	break;
 
 	case 67: /* usedDerivationRule: '(' IDENTIFIER ')'  */
-#line 984 "KWCYac.yac"
+#line 980 "KWCYac.yac"
 	{
 		ALString sTmp;
 		yyerror(sTmp + "Invalid syntax (" + *(yyvsp[-1].sValue) + ")");
@@ -2550,7 +2548,7 @@ yyreduce:
 	break;
 
 	case 68: /* usedDerivationRule: %empty  */
-#line 992 "KWCYac.yac"
+#line 988 "KWCYac.yac"
 	{
 		(yyval.kwdrValue) = NULL;
 	}
@@ -2558,7 +2556,7 @@ yyreduce:
 	break;
 
 	case 69: /* referenceRule: referenceRuleBody ']'  */
-#line 998 "KWCYac.yac"
+#line 994 "KWCYac.yac"
 	{
 		(yyval.kwdrValue) = (yyvsp[-1].kwdrValue);
 	}
@@ -2566,7 +2564,7 @@ yyreduce:
 	break;
 
 	case 70: /* referenceRuleBody: '[' derivationRuleOperand  */
-#line 1004 "KWCYac.yac"
+#line 1000 "KWCYac.yac"
 	{
 		KWDerivationRule* rule;
 		KWDerivationRuleOperand* operand;
@@ -2590,7 +2588,7 @@ yyreduce:
 	break;
 
 	case 71: /* referenceRuleBody: referenceRuleBody ',' derivationRuleOperand  */
-#line 1024 "KWCYac.yac"
+#line 1020 "KWCYac.yac"
 	{
 		KWDerivationRule* rule = (yyvsp[-2].kwdrValue);
 		KWDerivationRuleOperand* operand;
@@ -2608,7 +2606,7 @@ yyreduce:
 	break;
 
 	case 72: /* derivationRule: derivationRuleBody closeparenthesis  */
-#line 1040 "KWCYac.yac"
+#line 1036 "KWCYac.yac"
 	{
 		KWDerivationRule* ruleBody = (yyvsp[-1].kwdrValue);
 		KWDerivationRule* rule;
@@ -2800,7 +2798,7 @@ yyreduce:
 	break;
 
 	case 73: /* derivationRuleBody: derivationRuleBegin  */
-#line 1218 "KWCYac.yac"
+#line 1214 "KWCYac.yac"
 	{
 		(yyval.kwdrValue) = (yyvsp[0].kwdrValue);
 	}
@@ -2808,7 +2806,7 @@ yyreduce:
 	break;
 
 	case 74: /* derivationRuleBody: derivationRuleHeader  */
-#line 1222 "KWCYac.yac"
+#line 1218 "KWCYac.yac"
 	{
 		(yyval.kwdrValue) = (yyvsp[0].kwdrValue);
 	}
@@ -2816,7 +2814,7 @@ yyreduce:
 	break;
 
 	case 75: /* derivationRuleHeader: IDENTIFIER openparenthesis  */
-#line 1229 "KWCYac.yac"
+#line 1225 "KWCYac.yac"
 	{
 		KWDerivationRule* rule;
 
@@ -2830,7 +2828,7 @@ yyreduce:
 	break;
 
 	case 76: /* derivationRuleBegin: derivationRuleHeader derivationRuleOperand  */
-#line 1242 "KWCYac.yac"
+#line 1238 "KWCYac.yac"
 	{
 		KWDerivationRule* rule = (yyvsp[-1].kwdrValue);
 		KWDerivationRuleOperand* operand = (yyvsp[0].kwdroValue);
@@ -2845,7 +2843,7 @@ yyreduce:
 	break;
 
 	case 77: /* derivationRuleBegin: derivationRuleBegin ',' derivationRuleOperand  */
-#line 1253 "KWCYac.yac"
+#line 1249 "KWCYac.yac"
 	{
 		KWDerivationRule* rule = (yyvsp[-2].kwdrValue);
 		KWDerivationRuleOperand* operand = (yyvsp[0].kwdroValue);
@@ -2860,7 +2858,7 @@ yyreduce:
 	break;
 
 	case 78: /* derivationRuleOperand: IDENTIFIER  */
-#line 1267 "KWCYac.yac"
+#line 1263 "KWCYac.yac"
 	{
 		KWDerivationRuleOperand* operand;
 		operand = new KWDerivationRuleOperand;
@@ -2873,7 +2871,7 @@ yyreduce:
 	break;
 
 	case 79: /* derivationRuleOperand: CONTINUOUSLITTERAL  */
-#line 1276 "KWCYac.yac"
+#line 1272 "KWCYac.yac"
 	{
 		KWDerivationRuleOperand* operand;
 		operand = new KWDerivationRuleOperand;
@@ -2886,7 +2884,7 @@ yyreduce:
 	break;
 
 	case 80: /* derivationRuleOperand: bigstring  */
-#line 1285 "KWCYac.yac"
+#line 1281 "KWCYac.yac"
 	{
 		KWDerivationRuleOperand* operand;
 		operand = new KWDerivationRuleOperand;
@@ -2900,7 +2898,7 @@ yyreduce:
 	break;
 
 	case 81: /* derivationRuleOperand: derivationRule  */
-#line 1295 "KWCYac.yac"
+#line 1291 "KWCYac.yac"
 	{
 		KWDerivationRuleOperand* operand;
 		operand = new KWDerivationRuleOperand;
@@ -2914,7 +2912,7 @@ yyreduce:
 	break;
 
 	case 82: /* derivationRuleOperand: '.' derivationRuleOperand  */
-#line 1305 "KWCYac.yac"
+#line 1301 "KWCYac.yac"
 	{
 		KWDerivationRuleOperand* operand;
 		operand = (yyvsp[0].kwdroValue);
@@ -2925,7 +2923,7 @@ yyreduce:
 	break;
 
 	case 83: /* bigstring: bigstring '+' STRINGLITTERAL  */
-#line 1316 "KWCYac.yac"
+#line 1312 "KWCYac.yac"
 	{
 		/* Concatenation des deux chaines */
 		(yyval.sValue) = new ALString(*(yyvsp[-2].sValue) + *(yyvsp[0].sValue));
@@ -2938,7 +2936,7 @@ yyreduce:
 	break;
 
 	case 84: /* bigstring: STRINGLITTERAL  */
-#line 1325 "KWCYac.yac"
+#line 1321 "KWCYac.yac"
 	{
 		(yyval.sValue) = (yyvsp[0].sValue);
 	}
@@ -2946,7 +2944,7 @@ yyreduce:
 	break;
 
 	case 86: /* semicolon: ';' ';'  */
-#line 1333 "KWCYac.yac"
+#line 1329 "KWCYac.yac"
 	{
 		yyerror("There is one superfluous ';'");
 	}
@@ -2954,7 +2952,7 @@ yyreduce:
 	break;
 
 	case 87: /* semicolon: ';' ';' ';'  */
-#line 1337 "KWCYac.yac"
+#line 1333 "KWCYac.yac"
 	{
 		yyerror("Too many ';'");
 	}
@@ -2962,7 +2960,7 @@ yyreduce:
 	break;
 
 	case 88: /* semicolon: %empty  */
-#line 1341 "KWCYac.yac"
+#line 1337 "KWCYac.yac"
 	{
 		yyerror("Missing ';'");
 	}
@@ -2970,7 +2968,7 @@ yyreduce:
 	break;
 
 	case 90: /* openparenthesis: '(' '('  */
-#line 1349 "KWCYac.yac"
+#line 1345 "KWCYac.yac"
 	{
 		yyerror("There is one superfluous '('");
 	}
@@ -2978,7 +2976,7 @@ yyreduce:
 	break;
 
 	case 91: /* openparenthesis: '(' '(' '('  */
-#line 1353 "KWCYac.yac"
+#line 1349 "KWCYac.yac"
 	{
 		yyerror("Too many '('");
 	}
@@ -2986,7 +2984,7 @@ yyreduce:
 	break;
 
 	case 92: /* openparenthesis: %empty  */
-#line 1357 "KWCYac.yac"
+#line 1353 "KWCYac.yac"
 	{
 		/* ERRORMGT */
 		/* Attention: supprimer cette instruction en cas d'evolution du parser */
@@ -2999,7 +2997,7 @@ yyreduce:
 	break;
 
 	case 94: /* closeparenthesis: %empty  */
-#line 1371 "KWCYac.yac"
+#line 1367 "KWCYac.yac"
 	{
 		/* ERRORMGT */
 		/* Attention: supprimer cette instruction en cas d'evolution du parser */
@@ -3089,6 +3087,7 @@ yyerrorlab:
 	   label yyerrorlab therefore never appears in user code.  */
 	if (0)
 		YYERROR;
+	++yynerrs;
 
 	/* Do not reclaim the symbols of the rule whose action triggered
 	   this YYERROR.  */
@@ -3144,29 +3143,27 @@ yyerrlab1:
 `-------------------------------------*/
 yyacceptlab:
 	yyresult = 0;
-	goto yyreturn;
+	goto yyreturnlab;
 
 /*-----------------------------------.
 | yyabortlab -- YYABORT comes here.  |
 `-----------------------------------*/
 yyabortlab:
 	yyresult = 1;
-	goto yyreturn;
+	goto yyreturnlab;
 
-#if !defined yyoverflow
-/*-------------------------------------------------.
-| yyexhaustedlab -- memory exhaustion comes here.  |
-`-------------------------------------------------*/
+/*-----------------------------------------------------------.
+| yyexhaustedlab -- YYNOMEM (memory exhaustion) comes here.  |
+`-----------------------------------------------------------*/
 yyexhaustedlab:
 	yyerror(YY_("memory exhausted"));
 	yyresult = 2;
-	goto yyreturn;
-#endif
+	goto yyreturnlab;
 
-/*-------------------------------------------------------.
-| yyreturn -- parsing is finished, clean up and return.  |
-`-------------------------------------------------------*/
-yyreturn:
+/*----------------------------------------------------------.
+| yyreturnlab -- parsing is finished, clean up and return.  |
+`----------------------------------------------------------*/
+yyreturnlab:
 	if (yychar != YYEMPTY)
 	{
 		/* Make sure we have latest lookahead translation.  See comments at
@@ -3191,7 +3188,7 @@ yyreturn:
 	return yyresult;
 }
 
-#line 1382 "KWCYac.yac"
+#line 1378 "KWCYac.yac"
 
 #include "KWCLex.inc"
 

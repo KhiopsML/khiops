@@ -11,8 +11,6 @@
 #include "CCLearningProblemToolView.h"
 #include "CCPostProcessingSpecView.h"
 #include "CCDeploymentSpecView.h"
-#include "CCAnalysisResultsView.h"
-#include "LMLicenseManager.h"
 
 ////////////////////////////////////////////////////////////
 // Classe CCLearningProblemDeploymentPreparationView

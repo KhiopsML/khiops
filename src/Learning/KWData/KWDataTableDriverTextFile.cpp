@@ -429,24 +429,20 @@ KWObject* KWDataTableDriverTextFile::Read()
 				if (attribute->GetType() == KWType::Symbol)
 				{
 					// Troncature si necessaire des champs trop longs
-					if (GetLearningTextVariableMode())
+					if (nFieldLength > KWValue::nMaxSymbolFieldSize)
 					{
-						if (nFieldLength > KWValue::nMaxSymbolFieldSize)
+						if (bOverlengthyFieldsVerboseMode)
 						{
-							if (bOverlengthyFieldsVerboseMode)
-							{
-								AddWarning(
-								    sTmp + dataItem->GetClassLabel() + " " +
-								    dataItem->GetObjectLabel() + " with value <" +
-								    InputBufferedFile::GetDisplayValue(sField) +
-								    "> : " + "categorical field too long (" +
-								    IntToString(nFieldLength) + "), truncated to " +
-								    IntToString(KWValue::nMaxSymbolFieldSize) +
-								    " characters");
-							}
-							nFieldLength = KWValue::nMaxSymbolFieldSize;
-							sField[nFieldLength] = '\0';
+							AddWarning(sTmp + dataItem->GetClassLabel() + " " +
+								   dataItem->GetObjectLabel() + " with value <" +
+								   InputBufferedFile::GetDisplayValue(sField) +
+								   "> : " + "categorical field too long (" +
+								   IntToString(nFieldLength) + "), truncated to " +
+								   IntToString(KWValue::nMaxSymbolFieldSize) +
+								   " characters");
 						}
+						nFieldLength = KWValue::nMaxSymbolFieldSize;
+						sField[nFieldLength] = '\0';
 					}
 					kwoObject->SetSymbolValueAt(liLoadIndex, Symbol(sField, nFieldLength));
 				}
@@ -527,6 +523,8 @@ KWObject* KWDataTableDriverTextFile::Read()
 				// Cas attribut Text
 				else if (attribute->GetType() == KWType::Text)
 				{
+					// Les champs trop long sont tronques directement par le inputBuffer (cf.
+					// nMaxFieldSize)
 					kwoObject->SetTextValueAt(liLoadIndex, Symbol(sField, nFieldLength));
 				}
 			}
@@ -644,6 +642,9 @@ void KWDataTableDriverTextFile::Write(const KWObject* kwoObject)
 			attribute = cast(KWAttribute*, dataItem);
 
 			// Ecriture de la valeur du champs
+			// Contrairement a la lecture, ou ne limite pas la taille des champs ecrit pour les cas Symbol
+			// et Text Cela donne de la souplesse pour des usages de type data management purs, et n'est pas
+			// genant pour les analyses, qui reliront les donnees en les tronquant si necessaiore
 			if (KWType::IsStored(attribute->GetType()))
 			{
 				if (nFieldIndex > 0)

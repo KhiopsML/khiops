@@ -19,8 +19,7 @@ public:
 	///////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
-	// Reimplementation des methodes virtuelles
-	void OpenLearningEnvironnement() override;
+	// Reimplementation des methodes virtuelles, pour specialiser le LearningProblem
 	KWLearningProblem* CreateLearningProblem() override;
 	KWLearningProblemView* CreateLearningProblemView() override;
 };

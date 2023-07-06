@@ -155,9 +155,8 @@ MYLearningProblemView* MYLearningProblemExtendedActionView::GetMyLearningProblem
 
 MYAnalysisSpecView::MYAnalysisSpecView()
 {
-
 	MYModelingSpecView* modelingSpecView;
-	const ALString sModelingSpecIdentifier = "ModelingSpec";
+	const ALString sModelingSpecIdentifier = "PredictorsSpec";
 
 	// Specialisation de la fiche des parametres de modelisation,
 	// en remplacant l'ancienne version par une sous-classe

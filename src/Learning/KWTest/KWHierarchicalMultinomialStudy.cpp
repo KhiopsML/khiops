@@ -326,8 +326,8 @@ void KWHierarchicalMultinomialStudy::StudyDatasetBivariate(const ALString& sClas
 	// Ecriture du rapport
 	if (bWriteReport)
 	{
-		classStatsS.SetWriteOptionStats1D(false);
-		classStatsH.SetWriteOptionStats1D(false);
+		classStatsS.SetWriteOptionStatsNativeOrConstructed(false);
+		classStatsH.SetWriteOptionStatsNativeOrConstructed(false);
 		classStatsS.WriteReportFile(
 		    FileService::BuildFilePathName(sResultDirectory, "Preparation2DReport.S.xls"));
 		classStatsH.WriteReportFile(

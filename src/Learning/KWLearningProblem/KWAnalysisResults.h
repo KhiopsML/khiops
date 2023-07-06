@@ -12,6 +12,10 @@
 
 // ## Custom includes
 
+class KWAnalysisResults;
+
+#include "KWDatabase.h"
+#include "KWResultFilePathBuilder.h"
 #include "KWVersion.h"
 
 // ##
@@ -33,17 +37,17 @@ public:
 	///////////////////////////////////////////////////////////
 	// Acces aux attributs
 
-	// Result files directory
-	const ALString& GetResultFilesDirectory() const;
-	void SetResultFilesDirectory(const ALString& sValue);
-
-	// Result files prefix
-	const ALString& GetResultFilesPrefix() const;
-	void SetResultFilesPrefix(const ALString& sValue);
+	// Analysis report
+	const ALString& GetReportFileName() const;
+	void SetReportFileName(const ALString& sValue);
 
 	// Short description
 	const ALString& GetShortDescription() const;
 	void SetShortDescription(const ALString& sValue);
+
+	// Export as xls
+	boolean GetExportAsXls() const;
+	void SetExportAsXls(boolean bValue);
 
 	// Preparation report
 	const ALString& GetPreparationFileName() const;
@@ -77,14 +81,6 @@ public:
 	const ALString& GetTestEvaluationFileName() const;
 	void SetTestEvaluationFileName(const ALString& sValue);
 
-	// Visualization report
-	const ALString& GetVisualizationFileName() const;
-	void SetVisualizationFileName(const ALString& sValue);
-
-	// JSON report
-	const ALString& GetJSONFileName() const;
-	void SetJSONFileName(const ALString& sValue);
-
 	///////////////////////////////////////////////////////////
 	// Divers
 
@@ -97,15 +93,32 @@ public:
 
 	// ## Custom declarations
 
+	// Verification du chemin de repertoire complet en sortie
+	// On tente de construire les repertoires en sortie
+	// On rend false avec message d'erreur si echec
+	boolean CheckResultDirectory() const;
+
+	// Construction d'un chemin de fichier en sortie a partir d'un nom de fichier specifie parmi les resultats
+	// Si le repertoire des fichiers resultats n'est pas specifie, on prend celui de la base d'apprentissage
+	// On prend le fichier de rapport tel quel. Pour les autre fichiers, on se base sur le fichier de rapport
+	// en remplacant son suffix par le nom du fichier (ex: AnalysisResults.khj devient AnnalysisResults.model.kdic).
+	// On rend vide si le fichier en entree est vide
+	// Cf. classe KWResultFilePathBuilder pour le comportement detaille
+	const ALString BuildOutputFilePathName(const ALString& sOutputFileName) const;
+
+	// Parametrage du LearningProblem, pour avoir acces a son service de recherche de chemin de fichier
+	void SetTrainDatabase(const KWDatabase* database);
+	const KWDatabase* GetTrainDatabase() const;
+
 	// ##
 
 	////////////////////////////////////////////////////////
 	///// Implementation
 protected:
 	// Attributs de la classe
-	ALString sResultFilesDirectory;
-	ALString sResultFilesPrefix;
+	ALString sReportFileName;
 	ALString sShortDescription;
+	boolean bExportAsXls;
 	ALString sPreparationFileName;
 	ALString sTextPreparationFileName;
 	ALString sTreePreparationFileName;
@@ -114,10 +127,17 @@ protected:
 	ALString sModelingFileName;
 	ALString sTrainEvaluationFileName;
 	ALString sTestEvaluationFileName;
-	ALString sVisualizationFileName;
-	ALString sJSONFileName;
 
 	// ## Custom implementation
+
+	// Retourne le service de construction des chemins de fichier en sortie
+	const KWResultFilePathBuilder* GetResultFilePathBuilder() const;
+
+	// Base de donnees servant a obtenir le chemin des fichier en entree
+	const KWDatabase* trainDatabase;
+
+	// Service de construction du chemin des fichiers en sortie
+	mutable KWResultFilePathBuilder resultFilePathBuilder;
 
 	// ##
 };
@@ -125,24 +145,14 @@ protected:
 ////////////////////////////////////////////////////////////
 // Implementations inline
 
-inline const ALString& KWAnalysisResults::GetResultFilesDirectory() const
+inline const ALString& KWAnalysisResults::GetReportFileName() const
 {
-	return sResultFilesDirectory;
+	return sReportFileName;
 }
 
-inline void KWAnalysisResults::SetResultFilesDirectory(const ALString& sValue)
+inline void KWAnalysisResults::SetReportFileName(const ALString& sValue)
 {
-	sResultFilesDirectory = sValue;
-}
-
-inline const ALString& KWAnalysisResults::GetResultFilesPrefix() const
-{
-	return sResultFilesPrefix;
-}
-
-inline void KWAnalysisResults::SetResultFilesPrefix(const ALString& sValue)
-{
-	sResultFilesPrefix = sValue;
+	sReportFileName = sValue;
 }
 
 inline const ALString& KWAnalysisResults::GetShortDescription() const
@@ -153,6 +163,16 @@ inline const ALString& KWAnalysisResults::GetShortDescription() const
 inline void KWAnalysisResults::SetShortDescription(const ALString& sValue)
 {
 	sShortDescription = sValue;
+}
+
+inline boolean KWAnalysisResults::GetExportAsXls() const
+{
+	return bExportAsXls;
+}
+
+inline void KWAnalysisResults::SetExportAsXls(boolean bValue)
+{
+	bExportAsXls = bValue;
 }
 
 inline const ALString& KWAnalysisResults::GetPreparationFileName() const
@@ -233,26 +253,6 @@ inline const ALString& KWAnalysisResults::GetTestEvaluationFileName() const
 inline void KWAnalysisResults::SetTestEvaluationFileName(const ALString& sValue)
 {
 	sTestEvaluationFileName = sValue;
-}
-
-inline const ALString& KWAnalysisResults::GetVisualizationFileName() const
-{
-	return sVisualizationFileName;
-}
-
-inline void KWAnalysisResults::SetVisualizationFileName(const ALString& sValue)
-{
-	sVisualizationFileName = sValue;
-}
-
-inline const ALString& KWAnalysisResults::GetJSONFileName() const
-{
-	return sJSONFileName;
-}
-
-inline void KWAnalysisResults::SetJSONFileName(const ALString& sValue)
-{
-	sJSONFileName = sValue;
 }
 
 // ## Custom inlines

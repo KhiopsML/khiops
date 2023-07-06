@@ -5,6 +5,7 @@
 #pragma once
 
 class KWGrouperMODL;
+class KWGrouperUnsupervisedMODL;
 class KWGrouperMODLBasic;
 
 #include "KWGrouper.h"
@@ -405,7 +406,88 @@ protected:
 };
 
 //////////////////////////////////////////////////////////////////////////////////
-// Algorithme de groupage MODL basique, en optimisant uniquement
+// Algorithme MODL de groupage non supervise des lignes d'une table
+// de contingence, en garadant les valeurs les plus frequentes a part, plus
+// un groupe poubelle pour les valeurs rares, de facon a minimiser le cout
+// d'encodage de la multinomiale hierarchique resultants
+class KWGrouperUnsupervisedMODL : public KWGrouper
+{
+public:
+	// Constructeur
+	KWGrouperUnsupervisedMODL();
+	~KWGrouperUnsupervisedMODL();
+
+	// Nom de l'algorithme
+	const ALString GetName() const override;
+
+	// Constructeur generique
+	KWGrouper* Create() const override;
+
+	// Verification des parametres
+	boolean Check() const override;
+
+	// Libelles utilisateur
+	const ALString GetObjectLabel() const override;
+
+	/////////////////////////////////////////////////////////////////
+	//// Implementation
+protected:
+	////////////////////////////////////////////////////////////////////
+	// Calcul du meilleur groupement non supervise base sur l'encodage
+	// d'une distribution multinomiale, de facon standard ou hierarchique
+	// Cf. article
+	//   M. Boulle. Hierarchical two-part MDL code for multinomial distributions.
+	//   International Journal of Approximate Reasoning, 103:71-93, 2018.
+	// La partie vraisemblance est toujours la meme, a l'aide d'une formule
+	// du multinome. La difference est uniquement dans le prior:
+	//  . standard: encodage des parametres d'une multionomiale de n instances sur m valeurs
+	//  . hierarchique: encodage d'une partition des valeurs en deux groupes de valeurs,
+	//                  d'un choix d'effectif par groupe de valeur, et enfin des parametres
+	//                  des multinomiale dans chaque groupe
+	// Pour plus de souplesse, les methodes sont implemente sur une sous partie d'une table de contingence,
+	// de StartIndex compris a StopIndex non compris. Cela permet si necessaire d'envisagezr des
+	// codsage hierarchique a plusieurs niveaux
+
+	// Calcul du nombre maximum de lignes a garder
+	// Cette methode de la classe ancetre est reimplementee a partir de l'optimisation du codage multinomial
+	// pour en deduire automatiquement le nombre de valeurz a garder
+	// Dans l'objectif d'optimiser la taille des histogramme en analyse exploratoire, l'heuristique suivant est
+	// appliquee:
+	//  Comparer le coût de codage multinomial standard versus en deux groupes de valeurs
+	//    - Si plus de 100 valeurs dans le premier groupe (ou un seul groupe)
+	//        on garde ce nombre de valeurs
+	//        (le deuxième groupe est la poubelle)
+	//    - Sinon,
+	//        on recoupe le deuxieme groupe en deux sous-groupes pour augmenter le nombre de valeurs retenues
+	//        (le deuxième sous-groupe est la poubelle)
+	// Les resultats sont satisfaisants pour l'analyse exploratoire, avec une coupure automatique pertinente.
+	// Les tests sur la base Criteo (45 millions d'instances et des variables categorielles de 2 valeurs
+	// a plus de 8 millions de valeurs) iluustrent tous les cas de figure interessants
+	int ComputePreprocessedMaxLineNumber(KWFrequencyTable* table) const override;
+
+	// Calcul du meilleure encodage multionomial, en comparant l'encodage standard et l'encodage hierarchique
+	// On renvoie le meilleure cout, et on indique en parametre en sortie le nombre de valeurs du premier groupe
+	double ComputeBestPriorCost(const KWFrequencyTable* table, int nStartIndex, int nStopIndex,
+				    int& nBestFirstGroupValueNumber) const;
+
+	// Calcul de la meilleure coupure d'une sous-table en deux parties non vides
+	// On renvoie le meilleure cout, et on indique en parametre en sortie le nombre de valeurs du premier groupe
+	double ComputeBestHierarchicalMultinomialPriorCost(const KWFrequencyTable* table, int nStartIndex,
+							   int nStopIndex, int& nBestFirstGroupValueNumber) const;
+
+	// Calcul du cout d'encodage multinomial standard
+	double ComputeMultinomialPriorCost(int nFrequency, int nValueNumber) const;
+
+	// Calcul du cout d'encodage multinomial hierarchique en deux groupes
+	double ComputeHierarchicalMultinomialPriorCost(int nFirstGroupFrequency, int nFirstGroupValueNumber,
+						       int nSecondGroupFrequency, int nSecondGroupValueNumber) const;
+
+	// Effectif cumule entre d'une sous-table, de StatIndex compris a StopIndex non compris
+	int ComputeSubTableFrequency(const KWFrequencyTable* table, int nStartIndex, int nStopIndex) const;
+};
+
+//////////////////////////////////////////////////////////////////////////////////
+// Algorithme de groupage supervise MODL basique, en optimisant uniquement
 // la taille du groupe "fourre-tout" contenant les modalites de faible effectif
 class KWGrouperMODLBasic : public KWGrouper
 {

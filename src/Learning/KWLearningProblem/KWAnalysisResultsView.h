@@ -46,6 +46,12 @@ public:
 
 	// ## Custom declarations
 
+	// Actions de menu
+	void VisualizeResults();
+
+	// Libelles de l'objet
+	const ALString GetObjectLabel() const override;
+
 	// ##
 	////////////////////////////////////////////////////////
 	///// Implementation

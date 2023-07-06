@@ -2,70 +2,34 @@
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
-////////////////////////////////////////////////////////////
-// File generated with Genere tool
-// Insert your specific code inside "//## " sections
-
 #include "KWClassManagement.h"
 
-KWClassManagement::KWClassManagement()
-{
-	// ## Custom constructor
-
-	// ##
-}
+KWClassManagement::KWClassManagement() {}
 
 KWClassManagement::~KWClassManagement()
 {
-	// ## Custom destructor
-
 	// Destruction des specs de classes
 	oaClassSpecs.DeleteAll();
-
-	// ##
 }
 
-void KWClassManagement::CopyFrom(const KWClassManagement* aSource)
+const ALString& KWClassManagement::GetClassName() const
 {
-	require(aSource != NULL);
-
-	sClassName = aSource->sClassName;
-	sClassFileName = aSource->sClassFileName;
-
-	// ## Custom copyfrom
-
-	// ##
+	return sClassName;
 }
 
-KWClassManagement* KWClassManagement::Clone() const
+void KWClassManagement::SetClassName(const ALString& sValue)
 {
-	KWClassManagement* aClone;
-
-	aClone = new KWClassManagement;
-	aClone->CopyFrom(this);
-
-	// ## Custom clone
-
-	// ##
-	return aClone;
+	sClassName = sValue;
 }
 
-void KWClassManagement::Write(ostream& ost) const
+const ALString& KWClassManagement::GetClassFileName() const
 {
-	ost << "Analysis dictionary\t" << GetClassName() << "\n";
-	ost << "Dictionary file\t" << GetClassFileName() << "\n";
+	return sClassFileName;
 }
 
-const ALString KWClassManagement::GetClassLabel() const
+void KWClassManagement::SetClassFileName(const ALString& sValue)
 {
-	return "Dictionary management";
-}
-
-// ## Method implementation
-
-const ALString KWClassManagement::GetObjectLabel() const
-{
-	return GetClassFileName();
+	sClassFileName = sValue;
 }
 
 ObjectArray* KWClassManagement::GetClassSpecs()
@@ -122,41 +86,15 @@ boolean KWClassManagement::ReadClasses()
 
 boolean KWClassManagement::WriteClasses()
 {
-	boolean bOk = true;
-	ALString sOutputPathName;
-
-	// Creation si necessaire du repertoire cible
-	sOutputPathName = FileService::GetPathName(GetClassFileName());
-	if (sOutputPathName != "" and not PLRemoteFileService::DirExists(sOutputPathName))
-	{
-		bOk = PLRemoteFileService::MakeDirectories(sOutputPathName);
-		if (not bOk)
-			AddError("Unable to create directory (" + sOutputPathName + ") for dictionary");
-	}
-
-	// Ecriture si OK
-	if (bOk)
-		bOk = KWClassDomain::GetCurrentDomain()->WriteFile(GetClassFileName());
+	boolean bOk;
+	bOk = KWClassDomain::GetCurrentDomain()->WriteFile(GetClassFileName());
 	return bOk;
 }
 
 boolean KWClassManagement::ExportJSONClasses(const ALString& sJSONFileName)
 {
-	boolean bOk = true;
-	ALString sOutputPathName;
-
-	// Creation si necessaire du repertoire cible
-	sOutputPathName = FileService::GetPathName(sJSONFileName);
-	if (sOutputPathName != "" and not PLRemoteFileService::DirExists(sOutputPathName))
-	{
-		bOk = PLRemoteFileService::MakeDirectories(sOutputPathName);
-		if (not bOk)
-			AddError("Unable to create directory (" + sOutputPathName + ") for dictionary JSON file");
-	}
-
-	// Ecriture si OK
-	if (bOk)
-		bOk = KWClassDomain::GetCurrentDomain()->WriteJSONFile(sJSONFileName);
+	boolean bOk;
+	bOk = KWClassDomain::GetCurrentDomain()->WriteJSONFile(sJSONFileName);
 	return bOk;
 }
 
@@ -254,4 +192,18 @@ const ALString KWClassManagement::SearchDefaultClassName() const
 	return sDefaultClassName;
 }
 
-// ##
+void KWClassManagement::Write(ostream& ost) const
+{
+	ost << "Analysis dictionary\t" << GetClassName() << "\n";
+	ost << "Dictionary file\t" << GetClassFileName() << "\n";
+}
+
+const ALString KWClassManagement::GetClassLabel() const
+{
+	return "Dictionary management";
+}
+
+const ALString KWClassManagement::GetObjectLabel() const
+{
+	return GetClassFileName();
+}

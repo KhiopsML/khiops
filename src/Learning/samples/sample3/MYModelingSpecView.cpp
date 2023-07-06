@@ -88,7 +88,7 @@ const ALString MYModelingSpecView::GetClassLabel() const
 
 void MYModelingSpecView::InspectSelectiveNaiveBayesParameters()
 {
-	KWPredictorSelectiveNaiveBayesView predictorSelectiveNaiveBayesView;
+	SNBPredictorSelectiveNaiveBayesView predictorSelectiveNaiveBayesView;
 	KWModelingSpec* modelingSpec;
 
 	// Acces a l'objet edite

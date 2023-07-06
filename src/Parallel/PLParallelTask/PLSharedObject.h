@@ -8,6 +8,7 @@
 
 class PLSharedObject;
 class PLShared_ObjectArray;
+class PLShared_ObjectArrayArray;
 class PLShared_ObjectDictionary;
 class PLShared_ObjectList;
 class PLShared_StringObject;
@@ -76,6 +77,7 @@ private:
 
 	// Classes friend
 	friend class PLShared_ObjectArray;
+	friend class PLShared_ObjectArrayArray;
 	friend class PLShared_ObjectList;
 	friend class PLShared_ObjectDictionary;
 	friend class PLShared_StringVector;
@@ -92,7 +94,7 @@ private:
 // L'objet contenu doit avoir un type serialise associe (qui efectue la serialisation / deserialisation)
 // Par exemple pour serialiser un tableau de SampleObject, il faut avoir construit le type PLShared_SampleObject.
 // Une instance de cet objet est passee au constructeur.
-// Un PLShared_ObjectArray donne un pointeur vers un ObjectArray qui peut etre manipuler comme d'habitude.
+// Un PLShared_ObjectArray donne un pointeur vers un ObjectArray qui peut etre manipule comme d'habitude.
 // Cet ObjectArray appartient au PLShared_ObjectArray (ainsi que tous les elements qu'il contient)
 //
 // Un exemple d'utilisation est donne dans la methode de test
@@ -131,6 +133,40 @@ protected:
 
 	// Fonction de comparaison
 	CompareFunction compareFunction;
+};
+
+/////////////////////////////////////////////////////////////////////////////
+// Classe PLShared_ObjectArrayArray
+// Specialisation de PLShared_ObjectArray pour serialiser un tableau de tableaux d'objets
+//
+// L'objet contenu doit avoir un type serialise associe (qui efectue la serialisation / deserialisation),
+// comme pour PLShared_ObjectArray
+// Par exemple pour serialiser un tableau de tableau de SampleObject, il faut avoir construit le type
+// PLShared_SampleObject. Une instance de cet objet est passee au constructeur. Un PLShared_ObjectArrayArray donne un
+// pointeur vers un ObjectArray qui peut etre manipule comme d'habitude. Cet ObjectArray appartient au
+// PLShared_ObjectArrayArray (ainsi que tous les tableaux qu'il contient et leur contenu)
+class PLShared_ObjectArrayArray : public PLShared_ObjectArray
+{
+public:
+	// Constructeur
+	PLShared_ObjectArrayArray(const PLSharedObject* object);
+	~PLShared_ObjectArrayArray();
+
+	// Acces au tableau de tableaux
+	void SetObjectArray(ObjectArray* oa);
+	ObjectArray* GetObjectArray();
+
+	// Reimplementation des methodes virtuelles
+	void Clean() override;
+
+	// Methodes de test
+	static void Test();
+
+	//////////////////////////////////////////////////////////////////
+	///// Implementation
+protected:
+	// Destruction de tous les tableaux d'un ta bleau de tableu et de leur contenu
+	void DeleteAllArrays(ObjectArray* oaaArray) const;
 };
 
 ////////////////////////////////////////////////////////////////////////////
@@ -179,7 +215,7 @@ protected:
 // L'objet contenu doit avoir un type serialise associe (qui efectue la serialisation / deserialisation)
 // Par exemple pour serialiser un dictionnaire de SampleObject, il faut avoir construit le type PLShared_SampleObject.
 // Une instance de cet objet est passee au constructeur.
-// Un PLShared_ObjectDictionary donne un pointeur vers un ObjectDictionary qui peut etre manipuler comme d'habitude.
+// Un PLShared_ObjectDictionary donne un pointeur vers un ObjectDictionary qui peut etre manipule comme d'habitude.
 // Cet ObjectDictionary appartient au PLShared_ObjectDictionary (ainsi que tous les elements qu'il contient)
 //
 class PLShared_ObjectDictionary : public PLSharedObject
@@ -381,6 +417,19 @@ inline void PLShared_ObjectArray::Clean()
 		}
 	}
 	PLSharedObject::Clean();
+}
+
+inline void PLShared_ObjectArrayArray::SetObjectArray(ObjectArray* oa)
+{
+	// Specialisation de la methode pour detruire le contenu des tableaux
+	if (oValue != NULL)
+		DeleteAllArrays(cast(ObjectArray*, oValue));
+	SetObject(oa);
+}
+
+inline ObjectArray* PLShared_ObjectArrayArray::GetObjectArray()
+{
+	return cast(ObjectArray*, GetObject());
 }
 
 inline void PLShared_ObjectList::SetObjectList(ObjectList* ol)

@@ -412,7 +412,7 @@ void CCHDGAttribute::ExportHierarchyParts(ObjectArray* oaParts) const
 	if (rootPart != NULL)
 	{
 		oaParts->Add(rootPart);
-		nkdExportedParts.SetAt((NUMERIC)rootPart, rootPart);
+		nkdExportedParts.SetAt(rootPart, rootPart);
 	}
 
 	// On boucle sur l'ajout de parties tant que l'on en trouve de nouvelles
@@ -426,16 +426,16 @@ void CCHDGAttribute::ExportHierarchyParts(ObjectArray* oaParts) const
 
 			// Ajout si necessaire des parties filles
 			if (hdgPart->GetChildPart1() != NULL and
-			    nkdExportedParts.Lookup((NUMERIC)hdgPart->GetChildPart1()) == NULL)
+			    nkdExportedParts.Lookup(hdgPart->GetChildPart1()) == NULL)
 			{
 				oaParts->Add(hdgPart->GetChildPart1());
-				nkdExportedParts.SetAt((NUMERIC)hdgPart->GetChildPart1(), hdgPart->GetChildPart1());
+				nkdExportedParts.SetAt(hdgPart->GetChildPart1(), hdgPart->GetChildPart1());
 			}
 			if (hdgPart->GetChildPart2() != NULL and
-			    nkdExportedParts.Lookup((NUMERIC)hdgPart->GetChildPart2()) == NULL)
+			    nkdExportedParts.Lookup(hdgPart->GetChildPart2()) == NULL)
 			{
 				oaParts->Add(hdgPart->GetChildPart2());
-				nkdExportedParts.SetAt((NUMERIC)hdgPart->GetChildPart2(), hdgPart->GetChildPart2());
+				nkdExportedParts.SetAt(hdgPart->GetChildPart2(), hdgPart->GetChildPart2());
 			}
 		}
 		nFirstPart = nLastPart;

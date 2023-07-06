@@ -14,7 +14,6 @@ KWAttributePairsSpecView::KWAttributePairsSpecView()
 	SetLabel("Variable pairs parameters");
 	AddIntField("MaxAttributePairNumber", "Max number of variable pairs", 0);
 	AddBooleanField("AllAttributePairs", "All pairs", false);
-	AddStringField("MandatoryAttributeInPairs", "Only pairs with variable (deprecated)", "");
 
 	// Parametrage des styles;
 	GetFieldAt("MaxAttributePairNumber")->SetStyle("Spinner");
@@ -86,17 +85,6 @@ KWAttributePairsSpecView::KWAttributePairsSpecView()
 	specificAttributePairs->GetActionAt("InsertItemAfter")->SetShortCut('I');
 	specificAttributePairs->GetActionAt("RemoveItem")->SetShortCut('R');
 
-#ifdef DEPRECATED_V10
-	// DEPRECATED V10: champ obsolete, conserve de facon cachee en V10 pour compatibilite ascendante des scenarios
-	// A suuprimer du fichier KWAttributePairsSpec.dd apres la V10
-	GetFieldAt("MandatoryAttributeInPairs")->SetVisible(false);
-	GetFieldAt("MandatoryAttributeInPairs")->SetStyle("HelpedComboBox");
-	GetFieldAt("MandatoryAttributeInPairs")->SetParameters("Attributes:Name");
-	GetFieldAt("MandatoryAttributeInPairs")
-	    ->SetHelpText("Only the pairs containing the specified variable are preprocessed"
-			  "\n (default: no specified mandatory variable)");
-#endif // DEPRECATED_V10
-
 	// ##
 }
 
@@ -122,13 +110,8 @@ void KWAttributePairsSpecView::EventUpdate(Object* object)
 	editedObject = cast(KWAttributePairsSpec*, object);
 	editedObject->SetMaxAttributePairNumber(GetIntValueAt("MaxAttributePairNumber"));
 	editedObject->SetAllAttributePairs(GetBooleanValueAt("AllAttributePairs"));
-	editedObject->SetMandatoryAttributeInPairs(GetStringValueAt("MandatoryAttributeInPairs"));
 
 	// ## Custom update
-
-#ifdef DEPRECATED_V10
-	editedObject->SetMandatoryAttributeInPairs(GetStringValueAt("MandatoryAttributeInPairs"));
-#endif // DEPRECATED_V10
 
 	// ##
 }
@@ -142,13 +125,8 @@ void KWAttributePairsSpecView::EventRefresh(Object* object)
 	editedObject = cast(KWAttributePairsSpec*, object);
 	SetIntValueAt("MaxAttributePairNumber", editedObject->GetMaxAttributePairNumber());
 	SetBooleanValueAt("AllAttributePairs", editedObject->GetAllAttributePairs());
-	SetStringValueAt("MandatoryAttributeInPairs", editedObject->GetMandatoryAttributeInPairs());
 
 	// ## Custom refresh
-
-#ifdef DEPRECATED_V10
-	SetStringValueAt("MandatoryAttributeInPairs", editedObject->GetMandatoryAttributeInPairs());
-#endif // DEPRECATED_V10
 
 	// Mise a jour du champ contenant la taille de la liste des paires
 	SetIntValueAt("SpecificPairsNumber", editedObject->GetSpecificAttributePairs()->GetSize());

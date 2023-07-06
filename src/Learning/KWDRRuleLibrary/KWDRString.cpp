@@ -345,8 +345,8 @@ Symbol KWDRTokenLeft::ComputeSymbolResult(const KWObject* kwoObject) const
 		return sValue;
 	else
 	{
-		KWSymbolAsString sTmpValue(sValue);
-		KWSymbolAsString sTmpDelimiters(sDelimiters);
+		const KWSymbolAsString sTmpValue(sValue);
+		const KWSymbolAsString sTmpDelimiters(sDelimiters);
 
 		// Recherche des separateurs en tenant compte des caracteres speciaux
 		nTokenIndex = 0;
@@ -450,8 +450,8 @@ Symbol KWDRTokenRight::ComputeSymbolResult(const KWObject* kwoObject) const
 		return sValue;
 	else
 	{
-		KWSymbolAsString sTmpValue(sValue);
-		KWSymbolAsString sTmpDelimiters(sDelimiters);
+		const KWSymbolAsString sTmpValue(sValue);
+		const KWSymbolAsString sTmpDelimiters(sDelimiters);
 
 		// Recherche des separateurs en tenant compte des caracteres speciaux
 		// On parcours la chaine a l'envers pour extraire les tokens a droite
@@ -562,8 +562,8 @@ Symbol KWDRTokenMiddle::ComputeSymbolResult(const KWObject* kwoObject) const
 		return sValue;
 	else
 	{
-		KWSymbolAsString sTmpValue(sValue);
-		KWSymbolAsString sTmpDelimiters(sDelimiters);
+		const KWSymbolAsString sTmpValue(sValue);
+		const KWSymbolAsString sTmpDelimiters(sDelimiters);
 
 		// Recherche des separateurs en tenant compte des caracteres speciaux
 		nTokenIndex = 0;

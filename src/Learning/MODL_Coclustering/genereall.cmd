@@ -2,8 +2,6 @@
 
 echo. > genere.log
 
-genere -noarrayview CCAnalysisSpec "Parameters" CCAnalysisSpec.dd >> genere.log
-
 genere -noarrayview CCCoclusteringSpec "Coclustering parameters" CCCoclusteringSpec.dd >> genere.log
 
 genere -noarrayview CCPostProcessingSpec "Simplification parameters" CCPostProcessingSpec.dd >> genere.log

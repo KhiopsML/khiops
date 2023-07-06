@@ -29,8 +29,8 @@ boolean KWDiscretizerUsingSourceValues::Check() const
 	if (GetMinIntervalFrequency() > 0)
 	{
 		bOk = false;
-		AddError(
-		    "Specification of the min frequency per interval inconsistent with unsupervized discretization");
+		AddError("Specifying the minimum frequency per interval is not compatible with unsupervised "
+			 "discretization; use the maximum number of intervals instead");
 	}
 	return bOk;
 }
@@ -46,7 +46,8 @@ const ALString KWDiscretizerUsingSourceValues::GetObjectLabel() const
 void KWDiscretizerUsingSourceValues::EqualBinsDiscretizeValues(boolean bIsEqualFrequency,
 							       ContinuousVector* cvSourceValues,
 							       IntVector* ivTargetIndexes, int nTargetValueNumber,
-							       KWFrequencyTable*& kwftTarget) const
+							       KWFrequencyTable*& kwftTarget,
+							       ContinuousVector*& cvBounds) const
 {
 	const int nDefaultMaxIntervalNumber = 10;
 	int nIntervalNumber;
@@ -61,6 +62,7 @@ void KWDiscretizerUsingSourceValues::EqualBinsDiscretizeValues(boolean bIsEqualF
 
 	// Si pas d'instance, on renvoie une table de contingence NULL
 	kwftTarget = NULL;
+	cvBounds = NULL;
 	if (cvSourceValues->GetSize() == 0)
 		return;
 
@@ -83,8 +85,9 @@ void KWDiscretizerUsingSourceValues::EqualBinsDiscretizeValues(boolean bIsEqualF
 		quantileBuilder.ComputeEqualWidthQuantiles(nIntervalNumber);
 
 	// Creation de la table d'effectif resultat
-	ComputeTargetFrequencyTable(&quantileBuilder, &oaCumulativeTargetFrequencies, kwftTarget);
+	ComputeTargetDiscretization(&quantileBuilder, &oaCumulativeTargetFrequencies, kwftTarget, cvBounds);
 
+	// Nettoyage
 	// Nettoyage
 	oaCumulativeTargetFrequencies.DeleteAll();
 }
@@ -174,9 +177,10 @@ void KWDiscretizerUsingSourceValues::ComputeCumulativeTargetFrequencies(
 	}
 }
 
-void KWDiscretizerUsingSourceValues::ComputeTargetFrequencyTable(KWQuantileIntervalBuilder* quantileBuilder,
+void KWDiscretizerUsingSourceValues::ComputeTargetDiscretization(KWQuantileIntervalBuilder* quantileBuilder,
 								 ObjectArray* oaCumulativeTargetFrequencies,
-								 KWFrequencyTable*& kwftTarget) const
+								 KWFrequencyTable*& kwftTarget,
+								 ContinuousVector*& cvBounds) const
 {
 	IntVector ivIntervalLastValueIndexes;
 	IntVector* ivCumulativeFrequencies;
@@ -188,6 +192,10 @@ void KWDiscretizerUsingSourceValues::ComputeTargetFrequencyTable(KWQuantileInter
 	int nFrequency;
 	KWDenseFrequencyVector* kwdfvFrequencyVector;
 	IntVector* ivFrequencyVector;
+	Continuous cUpperBound;
+	int nNewIntervalIndex;
+	KWDenseFrequencyVector* kwdfvNewFrequencyVector;
+	Continuous cNewUpperBound;
 
 	require(Check());
 	require(quantileBuilder != NULL);
@@ -198,15 +206,27 @@ void KWDiscretizerUsingSourceValues::ComputeTargetFrequencyTable(KWQuantileInter
 	// Creation de la table d'effectifs avec le bon nombre d'intervalles
 	kwftTarget = new KWFrequencyTable;
 	nTargetValueNumber = oaCumulativeTargetFrequencies->GetSize();
-	kwftTarget->Initialize(quantileBuilder->GetIntervalNumber());
+	kwftTarget->SetFrequencyVectorNumber(quantileBuilder->GetIntervalNumber());
 	kwftTarget->SetInitialValueNumber(quantileBuilder->GetValueNumber());
 	kwftTarget->SetGranularizedValueNumber(quantileBuilder->GetValueNumber());
+
+	// Creation du vecteur de bornes si necessaire
+	cvBounds = NULL;
+	if (quantileBuilder->IsEqualWidth())
+	{
+		cvBounds = new ContinuousVector;
+		cvBounds->SetSize(quantileBuilder->GetIntervalNumber() - 1);
+	}
 
 	// Calcul de la discretisation avec la taille des intervalles specifies
 	nPreviousIntervalValueIndex = -1;
 	for (nIntervalIndex = 0; nIntervalIndex < quantileBuilder->GetIntervalNumber(); nIntervalIndex++)
 	{
 		nIntervalValueIndex = quantileBuilder->GetIntervalLastValueIndexAt(nIntervalIndex);
+
+		// Memorisation d'une borne a partir du deuxieme intervalle
+		if (nIntervalIndex > 0 and quantileBuilder->IsEqualWidth())
+			cvBounds->SetAt(nIntervalIndex - 1, quantileBuilder->GetIntervalLowerBoundAt(nIntervalIndex));
 
 		// Acces au vecteur (sense etre en representation dense)
 		kwdfvFrequencyVector = cast(KWDenseFrequencyVector*, kwftTarget->GetFrequencyVectorAt(nIntervalIndex));
@@ -232,6 +252,79 @@ void KWDiscretizerUsingSourceValues::ComputeTargetFrequencyTable(KWQuantileInter
 		nPreviousIntervalValueIndex = nIntervalValueIndex;
 	}
 	assert(kwftTarget->GetTotalFrequency() == quantileBuilder->GetInstanceNumber());
+
+	// Dans le cas EqualWidth, il peut ne pas y avoir assez de place avoir des bornes d'intervalle distinctes
+	// si les valeur min et et max sont trop proches, en limite de la precision numerique
+	if (quantileBuilder->IsEqualWidth() and cvBounds->GetSize() > 0)
+	{
+		// On part du premier intervalle et de sa borne sup
+		nNewIntervalIndex = 0;
+		kwdfvNewFrequencyVector =
+		    cast(KWDenseFrequencyVector*, kwftTarget->GetFrequencyVectorAt(nNewIntervalIndex));
+		cNewUpperBound = cvBounds->GetAt(nNewIntervalIndex);
+
+		// Parcours des intervalles pour les fusionner si deux bornes successives sont identiques
+		for (nIntervalIndex = 1; nIntervalIndex < quantileBuilder->GetIntervalNumber(); nIntervalIndex++)
+		{
+			// Acces au vecteur
+			kwdfvFrequencyVector =
+			    cast(KWDenseFrequencyVector*, kwftTarget->GetFrequencyVectorAt(nIntervalIndex));
+
+			// Acces a la borne sup de l'intervalle
+			if (nIntervalIndex == quantileBuilder->GetIntervalNumber() - 1)
+				cUpperBound = quantileBuilder->GetMaxValue();
+			else
+				cUpperBound = cvBounds->GetAt(nIntervalIndex);
+			assert(cNewUpperBound <= cUpperBound);
+
+			// On fusionne l'intervalle avec le nouvel interval courant s'il n'y a pas de difference de
+			// borne sup
+			if (cNewUpperBound == cUpperBound)
+			{
+				assert(cvBounds->GetAt(nNewIntervalIndex) == cUpperBound);
+
+				// On copie les caracteristiques de l'intervalle courant dans le nouvelle intervalle
+				for (nTarget = 0; nTarget < nTargetValueNumber; nTarget++)
+					kwdfvNewFrequencyVector->GetFrequencyVector()->UpgradeAt(
+					    nTarget, kwdfvFrequencyVector->GetFrequencyVector()->GetAt(nTarget));
+			}
+			// Sinon, on passe au nouvel intervalle suivant
+			else
+			{
+				nNewIntervalIndex++;
+				kwdfvNewFrequencyVector =
+				    cast(KWDenseFrequencyVector*, kwftTarget->GetFrequencyVectorAt(nNewIntervalIndex));
+				cNewUpperBound = cUpperBound;
+
+				// Recopie si necessaire de ses caracteristiques
+				assert(nNewIntervalIndex <= nIntervalIndex);
+				if (nNewIntervalIndex < nIntervalIndex)
+				{
+					assert(cNewUpperBound > cvBounds->GetAt(nNewIntervalIndex - 1));
+					kwdfvNewFrequencyVector->CopyFrom(kwdfvFrequencyVector);
+					if (nNewIntervalIndex < cvBounds->GetSize())
+						cvBounds->SetAt(nNewIntervalIndex, cNewUpperBound);
+				}
+			}
+		}
+
+		// Retaillage des resultats
+		if (nNewIntervalIndex < quantileBuilder->GetIntervalNumber())
+		{
+			kwftTarget->SetFrequencyVectorNumber(nNewIntervalIndex + 1);
+			cvBounds->SetSize(nNewIntervalIndex);
+			assert(kwftTarget->GetTotalFrequency() == quantileBuilder->GetInstanceNumber());
+		}
+	}
+	ensure(quantileBuilder->IsEqualWidth() or kwftTarget->CheckNoEmptyFrequencyVectors());
+	ensure(kwftTarget->GetTotalFrequency() == quantileBuilder->GetInstanceNumber());
+	ensure(cvBounds == NULL or quantileBuilder->IsEqualWidth());
+	ensure(cvBounds == NULL or cvBounds->GetSize() == kwftTarget->GetFrequencyVectorNumber() - 1);
+	ensure(
+	    cvBounds == NULL or cvBounds->GetSize() == 0 or quantileBuilder->GetMinValue() <= cvBounds->GetAt(0) or
+	    (quantileBuilder->GetMissingValueNumber() > 0 and cvBounds->GetAt(0) == KWContinuous::GetMissingValue()));
+	ensure(cvBounds == NULL or cvBounds->GetSize() == 0 or
+	       cvBounds->GetAt(cvBounds->GetSize() - 1) < quantileBuilder->GetMaxValue());
 }
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -252,9 +345,10 @@ KWDiscretizer* KWDiscretizerEqualWidth::Create() const
 }
 
 void KWDiscretizerEqualWidth::DiscretizeValues(ContinuousVector* cvSourceValues, IntVector* ivTargetIndexes,
-					       int nTargetValueNumber, KWFrequencyTable*& kwftTarget) const
+					       int nTargetValueNumber, KWFrequencyTable*& kwftTarget,
+					       ContinuousVector*& cvBounds) const
 {
-	EqualBinsDiscretizeValues(false, cvSourceValues, ivTargetIndexes, nTargetValueNumber, kwftTarget);
+	EqualBinsDiscretizeValues(false, cvSourceValues, ivTargetIndexes, nTargetValueNumber, kwftTarget, cvBounds);
 }
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -275,9 +369,10 @@ KWDiscretizer* KWDiscretizerEqualFrequency::Create() const
 }
 
 void KWDiscretizerEqualFrequency::DiscretizeValues(ContinuousVector* cvSourceValues, IntVector* ivTargetIndexes,
-						   int nTargetValueNumber, KWFrequencyTable*& kwftTarget) const
+						   int nTargetValueNumber, KWFrequencyTable*& kwftTarget,
+						   ContinuousVector*& cvBounds) const
 {
-	EqualBinsDiscretizeValues(true, cvSourceValues, ivTargetIndexes, nTargetValueNumber, kwftTarget);
+	EqualBinsDiscretizeValues(true, cvSourceValues, ivTargetIndexes, nTargetValueNumber, kwftTarget, cvBounds);
 }
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -293,7 +388,8 @@ KWDiscretizerMODLEqualBins::~KWDiscretizerMODLEqualBins() {}
 void KWDiscretizerMODLEqualBins::MODLEqualBinsDiscretizeValues(boolean bIsEqualFrequency,
 							       ContinuousVector* cvSourceValues,
 							       IntVector* ivTargetIndexes, int nTargetValueNumber,
-							       KWFrequencyTable*& kwftTarget) const
+							       KWFrequencyTable*& kwftTarget,
+							       ContinuousVector*& cvBounds) const
 {
 	boolean bDisplayDiscretizationTables = false;
 	boolean bDisplayDiscretizationCosts = false;
@@ -329,6 +425,7 @@ void KWDiscretizerMODLEqualBins::MODLEqualBinsDiscretizeValues(boolean bIsEqualF
 
 	// Si pas d'instance, on renvoie une table de contingence NULL
 	kwftTarget = NULL;
+	cvBounds = NULL;
 	if (cvSourceValues->GetSize() == 0)
 		return;
 
@@ -462,9 +559,12 @@ void KWDiscretizerMODLEqualBins::MODLEqualBinsDiscretizeValues(boolean bIsEqualF
 			nBestActualIntervalNumber = nActualIntervalNumber;
 		}
 
-		// Arret de la recherche si autant d'intervalles que de valeurs
-		assert(nActualIntervalNumber <= nValueNumber and nActualIntervalNumber <= nIntervalNumber);
-		if (nActualIntervalNumber == nValueNumber)
+		// Arret de la recherche si autant d'intervalles que de valeurs (EqualFrequency) ou d'individus
+		// (EqualWidth)
+		assert(nActualIntervalNumber <= nIntervalNumber);
+		assert(nActualIntervalNumber <= nValueNumber or not bIsEqualFrequency);
+		if ((bIsEqualFrequency and nActualIntervalNumber >= nValueNumber) or
+		    (not bIsEqualFrequency and nActualIntervalNumber >= nInstanceNumber))
 			break;
 	}
 
@@ -484,7 +584,7 @@ void KWDiscretizerMODLEqualBins::MODLEqualBinsDiscretizeValues(boolean bIsEqualF
 		quantileBuilder.ComputeEqualWidthQuantiles(nBestIntervalNumber);
 
 	// Creation de la table d'effectifs resultat
-	ComputeTargetFrequencyTable(&quantileBuilder, &oaCumulativeTargetFrequencies, kwftTarget);
+	ComputeTargetDiscretization(&quantileBuilder, &oaCumulativeTargetFrequencies, kwftTarget, cvBounds);
 
 	// Nettoyage
 	oaCumulativeTargetFrequencies.DeleteAll();
@@ -565,9 +665,10 @@ KWDiscretizer* KWDiscretizerMODLEqualWidth::Create() const
 }
 
 void KWDiscretizerMODLEqualWidth::DiscretizeValues(ContinuousVector* cvSourceValues, IntVector* ivTargetIndexes,
-						   int nTargetValueNumber, KWFrequencyTable*& kwftTarget) const
+						   int nTargetValueNumber, KWFrequencyTable*& kwftTarget,
+						   ContinuousVector*& cvBounds) const
 {
-	MODLEqualBinsDiscretizeValues(false, cvSourceValues, ivTargetIndexes, nTargetValueNumber, kwftTarget);
+	MODLEqualBinsDiscretizeValues(false, cvSourceValues, ivTargetIndexes, nTargetValueNumber, kwftTarget, cvBounds);
 }
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -591,7 +692,8 @@ KWDiscretizer* KWDiscretizerMODLEqualFrequency::Create() const
 }
 
 void KWDiscretizerMODLEqualFrequency::DiscretizeValues(ContinuousVector* cvSourceValues, IntVector* ivTargetIndexes,
-						       int nTargetValueNumber, KWFrequencyTable*& kwftTarget) const
+						       int nTargetValueNumber, KWFrequencyTable*& kwftTarget,
+						       ContinuousVector*& cvBounds) const
 {
-	MODLEqualBinsDiscretizeValues(true, cvSourceValues, ivTargetIndexes, nTargetValueNumber, kwftTarget);
+	MODLEqualBinsDiscretizeValues(true, cvSourceValues, ivTargetIndexes, nTargetValueNumber, kwftTarget, cvBounds);
 }

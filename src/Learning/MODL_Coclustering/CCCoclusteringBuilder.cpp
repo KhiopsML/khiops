@@ -16,7 +16,7 @@ CCCoclusteringBuilder::CCCoclusteringBuilder()
 	dAnyTimeDefaultCost = 0;
 	dAnyTimeBestCost = 0;
 	bIsDefaultCostComputed = false;
-	bExportJSON = true;
+	bExportAsKhc = true;
 }
 
 CCCoclusteringBuilder::~CCCoclusteringBuilder()
@@ -299,14 +299,14 @@ const ALString& CCCoclusteringBuilder::GetReportFileName() const
 	return sAnyTimeReportFileName;
 }
 
-boolean CCCoclusteringBuilder::GetExportJSON() const
+boolean CCCoclusteringBuilder::GetExportAsKhc() const
 {
-	return bExportJSON;
+	return bExportAsKhc;
 }
 
-void CCCoclusteringBuilder::SetExportJSON(boolean bValue)
+void CCCoclusteringBuilder::SetExportAsKhc(boolean bValue)
 {
-	bExportJSON = bValue;
+	bExportAsKhc = bValue;
 }
 
 void CCCoclusteringBuilder::RemoveLastSavedReportFile() const
@@ -315,10 +315,10 @@ void CCCoclusteringBuilder::RemoveLastSavedReportFile() const
 	{
 		PLRemoteFileService::RemoveFile(sLastActualAnyTimeReportFileName);
 
-		// Destruction eventuelle du rapport au format JSON
-		if (GetExportJSON())
+		// Destruction eventuelle du rapport au format khc
+		if (GetExportAsKhc())
 			PLRemoteFileService::RemoveFile(FileService::SetFileSuffix(
-			    sLastActualAnyTimeReportFileName, CCCoclusteringReport::GetJSONReportSuffix()));
+			    sLastActualAnyTimeReportFileName, CCCoclusteringReport::GetKhcReportSuffix()));
 	}
 	sLastActualAnyTimeReportFileName = "";
 }
@@ -429,17 +429,17 @@ void CCCoclusteringBuilder::HandleOptimizationStep(const KWDataGrid* optimizedDa
 			    "Write intermediate coclustering report " + FileService::GetFileName(sReportFileName) +
 			    "\tLevel: " + DoubleToString(dLevel) + "\tSize: " + sCoclusteringSizeInfo +
 			    "\tGranularity: " + IntToString(initialGranularizedDataGrid->GetGranularity()));
-		bWriteOk = coclusteringReport.WriteReport(sReportFileName, coclusteringDataGrid);
+		// On supprime le mode verbeux pour les sauvegardes intermediaires
+		JSONFile::SetVerboseMode(bIsLastSaving);
+		bWriteOk = coclusteringReport.WriteJSONReport(sReportFileName, coclusteringDataGrid);
+		JSONFile::SetVerboseMode(true);
 
-		// Sauvegarde au format JSON si necessaire
-		if (bWriteOk and GetExportJSON())
+		// Sauvegarde au format Khc necessaire
+		if (bWriteOk and GetExportAsKhc())
 		{
-			// On supprime le mode verbeux pour les sauvegardes intermediaires
-			JSONFile::SetVerboseMode(bIsLastSaving);
-			coclusteringReport.WriteJSONReport(
-			    FileService::SetFileSuffix(sReportFileName, CCCoclusteringReport::GetJSONReportSuffix()),
+			coclusteringReport.WriteReport(
+			    FileService::SetFileSuffix(sReportFileName, CCCoclusteringReport::GetKhcReportSuffix()),
 			    coclusteringDataGrid);
-			JSONFile::SetVerboseMode(true);
 		}
 
 		// Destruction de la precedente sauvegarde
@@ -1387,7 +1387,7 @@ void CCCoclusteringBuilder::ComputeValueTypicalitiesAt(const KWDataGrid* inputIn
 		dgValue = dgValuePart->GetValueSet()->GetHeadValue();
 		while (dgValue != NULL)
 		{
-			nkdOptimizedAttributeValues.SetAt((NUMERIC)(dgValue->GetValue().GetNumericKey()), dgValue);
+			nkdOptimizedAttributeValues.SetAt((dgValue->GetValue().GetNumericKey()), dgValue);
 			dgValuePart->GetValueSet()->GetNextValue(dgValue);
 		}
 
@@ -1557,8 +1557,9 @@ void CCCoclusteringBuilder::ComputeValueTypicalitiesAt(const KWDataGrid* inputIn
 			for (nIntraCatchAllValue = 0; nIntraCatchAllValue < nValueModalityNumber; nIntraCatchAllValue++)
 			{
 				// Recherche de la valeur correspondante pour l'attribut optimise
-				hdgValue = cast(CCHDGValue*, nkdOptimizedAttributeValues.Lookup(
-								 (NUMERIC)(dgValue->GetValue().GetNumericKey())));
+				hdgValue =
+				    cast(CCHDGValue*,
+					 nkdOptimizedAttributeValues.Lookup((dgValue->GetValue().GetNumericKey())));
 
 				// Calcul de la typicite elementaire = la typicite du fourre-tout * effectif  de la
 				// modalite elementaire / effectif total du fourre-tout
@@ -1598,9 +1599,8 @@ void CCCoclusteringBuilder::ComputeValueTypicalitiesAt(const KWDataGrid* inputIn
 			dgValue = dgValuePart->GetValueSet()->GetHeadValue();
 
 			// Recherche de la valeur correspondante pour l'attribut optimise
-			hdgValue =
-			    cast(CCHDGValue*,
-				 nkdOptimizedAttributeValues.Lookup((NUMERIC)(dgValue->GetValue().GetNumericKey())));
+			hdgValue = cast(CCHDGValue*,
+					nkdOptimizedAttributeValues.Lookup((dgValue->GetValue().GetNumericKey())));
 
 			// Memorisation de la typicalite normalisee
 			assert(0 <= dvTypicalities.GetAt(nValue) and
@@ -1620,8 +1620,9 @@ void CCCoclusteringBuilder::ComputeValueTypicalitiesAt(const KWDataGrid* inputIn
 			for (nIntraCatchAllValue = 0; nIntraCatchAllValue < nValueModalityNumber; nIntraCatchAllValue++)
 			{
 				// Recherche de la valeur correspondante pour l'attribut optimise
-				hdgValue = cast(CCHDGValue*, nkdOptimizedAttributeValues.Lookup(
-								 (NUMERIC)(dgValue->GetValue().GetNumericKey())));
+				hdgValue =
+				    cast(CCHDGValue*,
+					 nkdOptimizedAttributeValues.Lookup((dgValue->GetValue().GetNumericKey())));
 
 				if (dvMaxTypicalities.GetAt(nOutGroup) > 0)
 					hdgValue->SetTypicality(dvTypicalities.GetAt(nValue + nIntraCatchAllValue) /
@@ -1824,7 +1825,7 @@ void CCCoclusteringBuilder::ComputePartHierarchies(KWDataGridMerger* optimizedDa
 			assert(hdgPart->GetObjectLabel() == dgPart->GetObjectLabel());
 
 			// Memorisation de l'association dans le dictionnaire
-			nkdHierarchicalParts.SetAt((NUMERIC)dgPart, hdgPart);
+			nkdHierarchicalParts.SetAt(dgPart, hdgPart);
 
 			// Partie suivante
 			dgAttribute->GetNextPart(dgPart);
@@ -1900,10 +1901,10 @@ void CCCoclusteringBuilder::ComputePartHierarchies(KWDataGridMerger* optimizedDa
 			hdgParentPart->SetHierarchicalRank(optimizedDataGridMerger->GetTotalPartNumber() - 1);
 
 			// Lien avec ses partie filles
-			hdgPart = cast(CCHDGPart*, nkdHierarchicalParts.Lookup((NUMERIC)bestPartMerge->GetPart1()));
+			hdgPart = cast(CCHDGPart*, nkdHierarchicalParts.Lookup(bestPartMerge->GetPart1()));
 			hdgPart->SetParentPart(hdgParentPart);
 			hdgParentPart->SetChildPart1(hdgPart);
-			hdgPart = cast(CCHDGPart*, nkdHierarchicalParts.Lookup((NUMERIC)bestPartMerge->GetPart2()));
+			hdgPart = cast(CCHDGPart*, nkdHierarchicalParts.Lookup(bestPartMerge->GetPart2()));
 			hdgPart->SetParentPart(hdgParentPart);
 			hdgParentPart->SetChildPart2(hdgPart);
 
@@ -1945,7 +1946,7 @@ void CCCoclusteringBuilder::ComputePartHierarchies(KWDataGridMerger* optimizedDa
 				hdgAttribute->SetRootPart(hdgParentPart);
 
 			// Memorisation de la nouvelle partie
-			nkdHierarchicalParts.SetAt((NUMERIC)dgmMergedPart, hdgParentPart);
+			nkdHierarchicalParts.SetAt(dgmMergedPart, hdgParentPart);
 		}
 	}
 }

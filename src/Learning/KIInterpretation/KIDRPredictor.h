@@ -2,19 +2,6 @@
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
-/*
- * #%L
- * Software Name: Khiops Interpretation
- * Version : 9.0
- * %%
- * Copyright (C) 2019 Orange
- * This software is the confidential and proprietary information of Orange.
- * You shall not disclose such confidential information and shall use it only
- * in accordance with the terms of the license agreement you entered into
- * with Orange.
- * #L%
- */
-
 #pragma once
 
 #include "KWDerivationRule.h"
@@ -44,6 +31,8 @@ class KITargetValueProbas : public Object
 	KITargetValueProbas();
 	~KITargetValueProbas();
 
+	void Write(ostream&) const;
+
 protected:
 	friend class KIDRClassifierInterpretation;
 	friend class KIDRClassifierReinforcement;
@@ -71,6 +60,7 @@ public:
 
 	void Compile(KWClass* kwcOwnerClass) override;
 
+	const Symbol SHAPLEY_LABEL = "Shapley";
 	const Symbol NORMALIZED_ODDS_RATIO_LABEL = "NormalizedOddsRatio";
 	const Symbol MIN_PROBA_DIFF_LABEL = "MinProbaDiff";
 	const Symbol WEIGHT_EVIDENCE_LABEL = "WeightEvidence";
@@ -125,6 +115,11 @@ protected:
 
 	// Vecteurs des valeurs cibles
 	SymbolVector svTargetValues;
+
+	// frequences des valeurs cibles
+	IntVector ivTargetFrequencies;
+
+	Continuous cTotalFrequency;
 };
 
 class KIDRClassifierContribution : public KIDRClassifierInterpretation
@@ -167,7 +162,8 @@ public:
 		Kullback,
 		LogModalityProbability,
 		LogImportanceValue,
-		BayesDistanceWithoutPrior
+		BayesDistanceWithoutPrior,
+		Shapley
 	};
 
 protected:
@@ -211,6 +207,10 @@ protected:
 	/// selon la probabilite de la modalite de l'attribut conditionnellement a la classe : p(X_i | C) - MOP
 	Continuous ComputeModalityProbability(int nAttributeIndex, int nTargetClassIndex, int nModalityIndex) const;
 
+	/// meme chose que ComputeModalityProbability, mais pour toutes les classes sauf la classe cible
+	Continuous ComputeModalityProbabilityWithoutTargetClass(int nAttributeIndex, int nTargetClassIndex,
+								int nModalityIndex) const;
+
 	/// Calcul de la valeur d'importance pour un attribut et une partie de cet attribut (pour le pourquoi)
 	/// selon la probabilite de la modalite de l'attribut conditionnellement a la classe : log p(X_i | C) - LMOP
 	Continuous ComputeLogModalityProbability(int nAttributeIndex, int nTargetClassIndex, int nModalityIndex) const;
@@ -230,6 +230,12 @@ protected:
 	/// selon la divergence de Kullback-Leibler (non symetrisee) - KLD
 	Continuous ComputeKullback(int nAttributeIndex, int nTargetClassIndex, IntVector* ivModalityIndexes,
 				   int nDatabaseSize, int nTargetValuesNumber) const;
+
+	/// Calcul de la valeur Shapley
+	/// nModalityIndex indique dans quel intervalle ou groupe de l'attribut designe par nAttributeIndex, cet
+	/// individu appartient nTargetClassIndex est la classe cible pour le calcul de l'importance
+	Continuous ComputeShapley(const int nAttributeIndex, const int nTargetClassIndex,
+				  const int nModalityIndex) const;
 
 	ContinuousVector* ComputeScoreVectorLjWithoutOneVariable(IntVector* ivModalityIndexes,
 								 int nVariableIndex) const;
@@ -459,23 +465,6 @@ public:
 };
 
 ///////////////////////////////  Methodes en inline ///////////////////////////////
-
-inline Continuous KIDRClassifierInterpretation::ExtractLogPosteriorProba(int nClassIndex, int nAttributeIndex,
-									 int nModalityIndex) const
-{
-	ContinuousVector* cvVector;
-
-	require(oaModelProbabilities.GetSize() > 0);
-
-	// Extraction du tableau des probas pour la classe cible courante
-	KITargetValueProbas* targetValueProbas = cast(KITargetValueProbas*, oaModelProbabilities.GetAt(nClassIndex));
-
-	// Extraction du vecteur de probas pour l'attribut predictif
-	cvVector = cast(ContinuousVector*, targetValueProbas->oaProbasAposteriori->GetAt(nAttributeIndex));
-
-	// On retourne la proba associee a la modalite que prend l'individu pour cet attribut predictif
-	return cvVector->GetAt(nModalityIndex);
-}
 
 inline Continuous KIDRClassifierContribution::ExtractLogPriorProba(int nClassIndex) const
 {

@@ -9,6 +9,7 @@ class KWGrouperBasicGrouping;
 
 #include "KWVersion.h"
 #include "KWFrequencyVector.h"
+#include "KWStat.h"
 
 //////////////////////////////////////////////////////////////////////////////////
 // Algorithme generique de fusion des lignes d'une table de contingence
@@ -94,25 +95,26 @@ public:
 	virtual void Group(KWFrequencyTable* kwftSource, KWFrequencyTable*& kwftTarget, IntVector*& ivGroups) const;
 
 	/////////////////////////////////////////////////////////////////////////
-	// Administration des groupeurs
+	// Administration des groupeurs, soit supervise, soit non supervise
+	// selon le TargetAttributeType (Symbol ou None)
 
 	// Enregistrement dans la base des groupeurs
 	// Il ne doit pas y avoir deux groupeurs enregistres avec le meme nom
 	// Memoire: les groupeurs enregistres sont geres par l'appele
-	static void RegisterGrouper(KWGrouper* grouper);
+	static void RegisterGrouper(int nTargetAttributeType, KWGrouper* grouper);
 
 	// Recherche par cle
 	// Retourne NULL si absent
-	static KWGrouper* LookupGrouper(const ALString& sName);
+	static KWGrouper* LookupGrouper(int nTargetAttributeType, const ALString& sName);
 
 	// Recherche par cle et duplication
 	// Permet d'obtenir un groupeur pret a etre instancie
 	// Retourne NULL si absent
-	static KWGrouper* CloneGrouper(const ALString& sName);
+	static KWGrouper* CloneGrouper(int nTargetAttributeType, const ALString& sName);
 
 	// Export de tous les groupeurs enregistres
 	// Memoire: le contenu du tableau appartient a l'appele
-	static void ExportAllGroupers(ObjectArray* oaGroupers);
+	static void ExportAllGroupers(int nTargetAttributeType, ObjectArray* oaGroupers);
 
 	// Suppresion/destruction de tous les predicteurs enregistrees
 	static void RemoveAllGroupers();
@@ -131,6 +133,9 @@ public:
 	/////////////////////////////////////////////////////////////////
 	//// Implementation
 protected:
+	// Acces aux groupers selon l'attribut cible
+	static ObjectDictionary* GetGroupers(int nTargetAttributeType);
+
 	//////////////////////////////////////////////////////////////////
 	// Methodes interne pour le groupage
 	// La methode principale construit si necessaire une table preprocesse
@@ -178,7 +183,8 @@ protected:
 	boolean bActivePreprocessing;
 
 	// Administration des groupers
-	static ObjectDictionary* odGroupers;
+	static ObjectDictionary odSupervisedGroupers;
+	static ObjectDictionary odUnsupervisedGroupers;
 };
 
 // Fonction de comparaison sur le nom d'un grouper
@@ -187,7 +193,7 @@ int KWGrouperCompareName(const void* first, const void* second);
 //////////////////////////////////////////////////////////////////////////////////
 // Algorithme BasicGrouping de groupage non supervise des lignes d'une table
 // de contingence, en fusionnant les modalites tant qu'elle n'atteignent pas
-// l'effectif minimal et tant qu'elles sont en nombre trop important
+// l'effectif minimal et tant qu'elles ne sont pas en nombre trop important
 class KWGrouperBasicGrouping : public KWGrouper
 {
 public:

@@ -8,8 +8,6 @@
 #include "KWLearningProblemView.h"
 #include "KWLearningBenchmarkView.h"
 #include "KWAnalysisSpecView.h"
-#include "MDKhiopsModelingSpecView.h"
-#include "LMLicenseManager.h"
 
 ////////////////////////////////////////////////////////////
 // Classe MDKhiopsLearningProblemView
@@ -65,17 +63,4 @@ public:
 
 	// Acces a la vue principale sur le probleme d'apprentissage
 	MDKhiopsLearningProblemView* GetKhiopsLearningProblemView();
-};
-
-////////////////////////////////////////////////////////////
-// Classe MDKhiopsAnalysisSpecView
-//    Version specialisee des Analysis specs permettant
-//     de preciser les parametre de modelisation
-// Editeur de MDKhiopsAnalysisSpec
-class MDKhiopsAnalysisSpecView : public KWAnalysisSpecView
-{
-public:
-	// Constructeur
-	MDKhiopsAnalysisSpecView();
-	~MDKhiopsAnalysisSpecView();
 };

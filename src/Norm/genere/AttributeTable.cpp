@@ -45,7 +45,7 @@ int AttributeTable::GetVisibleFieldsNumber()
 
 	for (int i = 0; i < GetSize(); i++)
 	{
-		if (cast(Attribute*, GetAt(i))->IsField() and cast(Attribute*, GetAt(i))->GetVisible() == true)
+		if (cast(Attribute*, GetAt(i))->IsField() and cast(Attribute*, GetAt(i))->GetVisible())
 			nResult++;
 	}
 	return nResult;
@@ -58,7 +58,7 @@ int AttributeTable::GetStyleFieldsNumber()
 	for (int i = 0; i < GetSize(); i++)
 	{
 		if (cast(Attribute*, GetAt(i))->IsField() and cast(Attribute*, GetAt(i))->GetStyle() != "" and
-		    cast(Attribute*, GetAt(i))->GetVisible() == true)
+		    cast(Attribute*, GetAt(i))->GetVisible())
 			nResult++;
 	}
 	return nResult;
