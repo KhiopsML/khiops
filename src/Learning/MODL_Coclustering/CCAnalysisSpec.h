@@ -6,7 +6,7 @@
 
 #include "CCCoclusteringSpec.h"
 // CH IV Refactoring: renommer en CCVarPartCoclusteringSpec
-#include "CCInstancesVariablesCoclusteringSpec.h"
+#include "CCVarPartCoclusteringSpec.h"
 
 ////////////////////////////////////////////////////////////
 // Classe CCAnalysisSpec
@@ -22,19 +22,24 @@ public:
 	CCCoclusteringSpec* GetCoclusteringSpec();
 
 	// CH IV Begin
-	// Parametrage du coclustering instances variables (generique)
+	// Parametrage du coclustering VarPart instances x variables
 	// CH IV Refactoring: renommer en CCVarPartCoclusteringSpec
-	CCInstancesVariablesCoclusteringSpec* GetInstancesVariablesCoclusteringSpec();
+	CCVarPartCoclusteringSpec* GetVarPartCoclusteringSpec();
 
 	// Parametrage du type de coclustering
-	// generique : instances * variable (i.e. variable * variable avec nouveau type de variable de type parties de
-	// variable) sinon : variable * variable
+	// A true pour un coclustering de type VarPart, instances * varialbes
+	// A false sinon pour un coclustering variable * variable (valeur par defaut)
 	// CH IV Refactoring: renommer en Get|SetVarPartCoclustering
-	void SetGenericCoclustering(boolean bValue);
-	boolean GetGenericCoclustering() const;
+	void SetVarPartCoclustering(boolean bValue);
+	boolean GetVarPartCoclustering() const;
 
-	void SetCoclusteringType(const ALString& sValue);
-	const ALString GetCoclusteringType() const;
+	// Libelles correspondant aux type de coclustering
+	// pour les cas VartPart (instances x variables) ou standard (variables x variables)
+	static const ALString GetCoclusteringLabelFromType(boolean bIsVarPartCoclustering);
+
+	// Type correspond a un libelle de coclustering
+	// Renvoie true dans la cas VarPart, false sinon
+	static boolean GetCoclusteringTypeFromLabel(const ALString& sLabel);
 	// CH IV End
 
 	// Libelles utilisateur
@@ -47,7 +52,7 @@ protected:
 	// Attributs de la classe
 	CCCoclusteringSpec coclusteringSpec;
 	// CH IV Begin
-	CCInstancesVariablesCoclusteringSpec instancesVariablesCoclusteringSpec;
-	boolean bGenericCoclustering;
+	CCVarPartCoclusteringSpec varPartCoclusteringSpec;
+	boolean bVarPartCoclustering;
 	// CH IV End
 };

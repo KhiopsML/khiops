@@ -6,7 +6,7 @@ Rank;Name;Type;Style;Label
 5;PreOptimize             ;boolean ;CheckBox;Pre-optimize each solution
 6;Optimize                ;boolean ;CheckBox;Optimize each solution
 7;PostOptimize            ;boolean ;CheckBox;Post-optimize each solution
-8;PostFusion              ;boolean ;CheckBox;VarPart post-fusion each solution
-9;VarPartPostOptimization ;boolean ;CheckBox;VarPart post-optimize each solution
-10;InternalParameter       ;ALString;        ;Internal parameter
-11;DisplayDetails          ;boolean ;CheckBox;Display details
+8;VarPartPostMerge        ;boolean ;CheckBox;VarPart post-merge each solution
+9;VarPartPostOptimize     ;boolean ;CheckBox;VarPart post-optimize each solution
+10;InternalParameter      ;ALString;        ;Internal parameter
+11;DisplayDetails         ;boolean ;CheckBox;Display details

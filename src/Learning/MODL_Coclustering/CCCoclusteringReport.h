@@ -165,12 +165,12 @@ protected:
 	boolean ReadJSONValueGroups(CCHDGAttribute* dgAttribute, KWDGPart* dgPart);
 	// CH IV Begin
 	// Est ce que ces methodes doivent prendre en entree des KWDGAttribute ou des CCHDGAttriute
-	// Les impliedAttribute peuvent il s etre des CCHDGAttribute ? (CCHDGAttribute* dgAttribute);
+	// Les innerAttribute peuvent il s etre des CCHDGAttribute ? (CCHDGAttribute* dgAttribute);
 	// Pour l'instant on met des KWDGAttribute pour que cela compile
 	boolean ReadJSONIntervalVarParts(KWDGAttribute* dgAttribute);
 	boolean ReadJSONValueGroupsVarParts(KWDGAttribute* dgAttribute);
 	boolean ReadJSONVarPart(CCHDGAttribute* dgAttribute, KWDGPart* dgPart, ObjectDictionary* odVarParts);
-	boolean ReadJSONImpliedAttribute(KWDGAttribute* impliedAttribute, ObjectDictionary* odVarParts);
+	boolean ReadJSONInnerAttribute(KWDGAttribute* innerAttribute, ObjectDictionary* odVarParts);
 	// CH IV End
 	boolean ReadJSONDimensionHierarchies(CCHierarchicalDataGrid* coclusteringDataGrid);
 	boolean ReadJSONCells(CCHierarchicalDataGrid* coclusteringDataGrid);
@@ -182,7 +182,7 @@ protected:
 	void WriteJSONDimensionPartitions(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
 	// CH IV Begin
 	void WriteJSONVarPartPartition(const CCHierarchicalDataGrid* coclusteringDataGrid,
-				       KWDGAttribute* impliedAttribute, JSONFile* fJSON);
+				       KWDGAttribute* innerAttribute, JSONFile* fJSON);
 	// CH IV End
 	void WriteJSONDimensionHierarchies(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
 	void WriteJSONCells(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);

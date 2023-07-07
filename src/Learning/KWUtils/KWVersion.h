@@ -64,13 +64,13 @@ const ALString GetLearningSystemType();
 // CH IV Refactoring: envisager d'abandonner la gestion des poubelles
 //    pour les attributs de type VarPart( axe) et les VarPart attributs de ces axes?
 
-// CH IV Refactoring: renommer en GetVarPartAxisGarbage?
-const boolean GetVarPartsAttributeGarbage();
-void SetVarPartsAttributeGarbage(const boolean bValue);
-
 // CH IV Refactoring: renommer en GetVarPartAttributeGarbage?
-const boolean GetImpliedAttributeGarbage();
-void SetImpliedAttributeGarbage(const boolean bValue);
+const boolean GetVarPartAttributeGarbage();
+void SetVarPartAttributeGarbage(const boolean bValue);
+
+// CH IV Refactoring: renommer en GetInnerAttributeGarbage?
+const boolean GetInnerAttributeGarbage();
+void SetInnerAttributeGarbage(const boolean bValue);
 // CH IV End
 
 //////////////////////////////////////////////////////////////////////////////////////

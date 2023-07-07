@@ -18,7 +18,7 @@
 
 ////////////////////////////////////////////////////////////
 // Classe KWAttributeAxisNameView
-//    VariableAxis
+//    Variable axis
 // Editeur de KWAttributeAxisName
 class KWAttributeAxisNameView : public UIObjectView
 {
@@ -30,7 +30,7 @@ public:
 	// Acces a l'objet edite
 	KWAttributeAxisName* GetKWAttributeAxisName();
 
-	////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
 	// Redefinition des methodes a reimplementer obligatoirement
 
 	// Mise a jour de l'objet par les valeurs de l'interface
@@ -46,7 +46,7 @@ public:
 
 	// ##
 	////////////////////////////////////////////////////////
-	//// Implementation
+	///// Implementation
 protected:
 	// ## Custom implementation
 

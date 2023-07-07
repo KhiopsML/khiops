@@ -78,14 +78,6 @@ public:
 	// Fichier de donnees
 	ALString GetDatabaseName() const;
 
-	// CH IV Begin
-	// Nombre d'enregistrements lus
-	// CH IV Refactoring: renommer en GetInstanceNumber (cf. KWLearningService::GetInstanceNumber)?
-	//    a supprimer si jamais utilise
-	int GetSampleNumber() const;
-	void SetSampleNumber(int nValue);
-	// CH IV End
-
 	//////////////////////////////////////////////////////////////
 	// Fonctionnalites disponibles
 

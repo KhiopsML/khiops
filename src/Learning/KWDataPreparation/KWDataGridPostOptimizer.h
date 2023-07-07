@@ -23,7 +23,7 @@ class KWDGVarPartSetCostParameter;
 class KWDGCellCostParameter;
 class KWDGPOCellFrequencyVector;
 // CH IV Refactoring: renommer en CCVarPartDataGridPostOptimizer
-class CCGenericDataGridPostOptimizer;
+class CCVarPartDataGridPostOptimizer;
 
 //////////////////////////////////////////////////////////////////////////////////
 // Classe KWDataGridPostOptimizer
@@ -680,20 +680,21 @@ protected:
 
 // CH IV Begin
 // CH IV Refactoring: renommer en CCVarPartDataGridPostOptimizer
+// CH IV Refactoring: renommages internes apres analyse
 //////////////////////////////////////////////////////////////////////////////////
-// Classe CCGenericDataGridPostOptimizer
-// Post-optimisation de l'attribut VarParts d'une grille generique de donnees [[[parametree par une structure de cout
-// ]]] L'attribut Identifier est fige durant toute cette post-optimisation La post-optimisation procede par des
+// Classe CCVarPartDataGridPostOptimizer
+// Post-optimisation de l'attribut VarPart d'une grille de donnees de type VarPart [[[parametree par une structure de
+// cout ]]] L'attribut Identifier est fige durant toute cette post-optimisation La post-optimisation procede par des
 // deplacements de PV elementaires d'une grille de reference vers des clusters permettant une fusion de cette PV avec
 // d'autres PV presentes
-class CCGenericDataGridPostOptimizer : public Object
+class CCVarPartDataGridPostOptimizer : public Object
 {
 public:
 	// Constructeur
-	CCGenericDataGridPostOptimizer();
-	~CCGenericDataGridPostOptimizer();
+	CCVarPartDataGridPostOptimizer();
+	~CCVarPartDataGridPostOptimizer();
 
-	// Nom de l'attribut de type VarParts post-optimise
+	// Nom de l'attribut de type VarPart post-optimise
 	void SetPostOptimizationAttributeName(const ALString& sValue);
 	const ALString& GetPostOptimizationAttributeName() const;
 
@@ -704,43 +705,43 @@ public:
 	// void SetDataGridCosts(const KWDataGridCosts* kwdgcCosts);
 	// const KWDataGridCosts* GetDataGridCosts() const;
 
-	// Optimisation de l'attribut VarParts d'un grille [[[pour une structure de cout donnees ]]]
+	// Optimisation de l'attribut VarPart d'un grille [[[pour une structure de cout donnees ]]]
 	// La grille de reference en entree contient la description la plus fine possible des
-	// parties de variable de chaque attribut implique dans l'attribut VarParts
-	// En entree, la grille optimisee constitue une solution de depart, dont les attributs impliques ont ete
+	// parties de variable de chaque attribut interne dans l'attribut VarPart
+	// En entree, la grille optimisee constitue une solution de depart, dont les attributs internes ont ete
 	// post-fusionnes par rapport a la grille de reference En sortie, la grille optimisee est amelioree par la
 	// methode de post-optimisation.
 	// [[[Le mode pousse (DeepPostOptimization) remet en question fortement les partition univariees, alors
 	// que le mode leger se contente de deplacer les frontieres
 	// Retourne le cout de codage MODL de la grille post-optimisee]]]
-	// double PostOptimizeGenericDataGrid(const KWDataGrid* initialDataGrid, KWDataGrid* optimizedDataGrid,boolean
+	// double PostOptimizeVarPartDataGrid(const KWDataGrid* initialDataGrid, KWDataGrid* optimizedDataGrid,boolean
 	// bDeepPostOptimization) const;
 
 	// Optimisation legere
-	// Seuls les deplacements des parties de variables impliquees numeriques (intervalles) sont envisagees
-	// Cette optimisation ne remet donc pas en question les partitions des attributs impliquees
+	// Seuls les deplacements des parties de variables unternes numeriques (intervalles) sont envisagees
+	// Cette optimisation ne remet donc pas en question les partitions des attributs internes
 	// Elle teste les deplacements de PV qui conduisent a une ou deux fusions de PV et prend en compte la variation
-	// de cout du prior lie a ce deplacement Elle ne teste que les deplacements d'intervalles (attribut implique
+	// de cout du prior lie a ce deplacement Elle ne teste que les deplacements d'intervalles (attribut interne
 	// numerique) En entree :
 	// - referenceDataGrid : grille identique a optimizedDataGrid avec pour l'attribut VarPart 1 cluster par PV des
-	// attributs impliques
-	// - sImpliedAttributeName : nom de l'attribut implique dont l'affectation des intervalles dans les clusters de
-	// PV est optimise
-	// - grille optimise : amelioree par la post-optimisation, avec la meme partition des attributs impliques (les
+	// attributs internes
+	// - sInnerAttributeName : nom de l'attribut interne dont l'affectation des intervalles dans les clusters de PV
+	// est optimise
+	// - grille optimise : amelioree par la post-optimisation, avec la meme partition des attributs internes (les
 	// fusions d'intervalles restent a effectuer) En sortie : ivGroups : pour chaque cluster mono-PV de la grille de
 	// reference, donne son cluster dans la grille optimisee
-	// double PostOptimizeLightGenericDataGrid(const KWDataGrid* referenceDataGrid, ALString sImpliedAttributeName,
+	// double PostOptimizeLightVarPartDataGrid(const KWDataGrid* referenceDataGrid, ALString sInnerAttributeName,
 	// KWDataGrid* optimizedDataGrid, IntVector* ivGroups) const;
 
 	// La variation de cout se calcule en partant de la meme grille initiale pour tous les deplacements
 	// Renvoie vrai s'il existe au moins une amelioration
-	// Pour tous les attributs impliques numeriques et categoriels
+	// Pour tous les attributs internes numeriques et categoriels
 	// En entree : referenceDataGrid contient la grille de reference avec des clusters contenant une seule PV a
 	// partir des PV de la grille optimisee
 	//				optimizedDataGrid : grille dont on post-optimise les parties de variable
 	//				ivGroups : vecteur d'index qui indique pour chaque PV l'index du cluster de PV
 	// auquel elle appartient, mis a jour au cours de cette post-optimisation
-	boolean PostOptimizeLightGenericDataGrid(const KWDataGrid* referenceDataGrid, KWDataGrid* optimizedDataGrid,
+	boolean PostOptimizeLightVarPartDataGrid(const KWDataGrid* referenceDataGrid, KWDataGrid* optimizedDataGrid,
 						 IntVector* ivGroups) const;
 
 	/////////////////////////////////////////////////////////////////
@@ -761,21 +762,21 @@ protected:
 
 	// Methodes dediees de calcul de variation de cout par attribut, par cluster ...
 
-	// Variation de cout lors du deplacement d'un intervalle entier d'un attribut implique numerique vers un cluster
+	// Variation de cout lors du deplacement d'un intervalle entier d'un attribut interne numerique vers un cluster
 	// qui permet au moins une fusion d'intervalles En entree :
-	// - l'attribut VarParts
+	// - l'attribut VarPart
 	// - la variation du nombre de clusters : 1 si le depart de l'intervalle vide completement son cluster de
 	// depart, 0 sinon
 	// - la variation du nombre de parties de variable : 1 si l'intervalle fusionne avec un intervalle de son
 	// cluster d'arrivee, 2 s'il fusionne avec deux intervalles de son cluster d'arrivee
 	double ComputeVarPartsContinuousAttributeVariationCost(KWDGAttribute* attribute, int nClusterNumberVariation,
 							       int nVarPartsNumberVariation,
-							       ALString sImpliedAttributeName) const;
+							       ALString sInnerAttributeName) const;
 
 	double ComputeVarPartsSymbolAttributeVariationCost(KWDGAttribute* attribute, int nClusterNumberVariation,
-							   int nVarPartsNumberVariation, ALString sImpliedAttributeName,
+							   int nVarPartsNumberVariation, ALString sInnerAttributeName,
 							   KWDGPart* varPartIn, KWDGPart* varPartOut,
-							   KWDGPart* impliedPart) const;
+							   KWDGPart* innerPart) const;
 
 	// Variation de cout d'un cluster lors du depart ou de l'arrivee d'une partie de variable
 	// En entree :
@@ -803,7 +804,7 @@ protected:
 	// Seuil d'amelioration
 	double dEpsilon;
 
-	// Nom de l'attribut VarParts de post-optimisation
+	// Nom de l'attribut VarPart de post-optimisation
 	ALString sPostOptimizationAttributeName;
 };
 // CH IV Begin

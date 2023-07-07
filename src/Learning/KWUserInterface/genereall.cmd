@@ -20,7 +20,7 @@ genere KWClassSpec "Dictionary" KWClassSpec.dd >> genere.log
 
 genere KWAttributeSpec "Variable" KWAttributeSpec.dd >> genere.log
 
-genere -nomodel KWAttributeAxisName "Variable axis" KWAttributeAxisName.dd >> genere.log
+genere KWAttributeAxisName "Variable axis" KWAttributeAxisName.dd >> genere.log
 
 genere -nomodel KWAttributeName "Variable" KWAttributeName.dd >> genere.log
 

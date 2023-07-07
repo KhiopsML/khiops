@@ -3,8 +3,7 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 ////////////////////////////////////////////////////////////
-// 2019-02-25 11:58:40
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "KWAttributeAxisNameArrayView.h"
@@ -12,9 +11,9 @@
 KWAttributeAxisNameArrayView::KWAttributeAxisNameArrayView()
 {
 	SetIdentifier("Array.KWAttributeAxisName");
-	SetLabel("VariableAxes");
-	AddStringField("Name", "AttributeName", "");
-	AddStringField("AxisName", "AxisName", "");
+	SetLabel("Variable axiss");
+	AddStringField("AttributeName", "Attribute name", "");
+	AddStringField("OwnerAttributeName", "Owner attribute name", "");
 
 	// Card and help prameters
 	SetItemView(new KWAttributeAxisNameView);
@@ -46,8 +45,8 @@ void KWAttributeAxisNameArrayView::EventUpdate(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(KWAttributeAxisName*, object);
-	editedObject->SetAttributeName(GetStringValueAt("Name"));
-	editedObject->SetAxisName(GetStringValueAt("AxisName"));
+	editedObject->SetAttributeName(GetStringValueAt("AttributeName"));
+	editedObject->SetOwnerAttributeName(GetStringValueAt("OwnerAttributeName"));
 
 	// ## Custom update
 
@@ -61,8 +60,8 @@ void KWAttributeAxisNameArrayView::EventRefresh(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(KWAttributeAxisName*, object);
-	SetStringValueAt("Name", editedObject->GetAttributeName());
-	SetStringValueAt("AxisName", editedObject->GetAxisName());
+	SetStringValueAt("AttributeName", editedObject->GetAttributeName());
+	SetStringValueAt("OwnerAttributeName", editedObject->GetOwnerAttributeName());
 
 	// ## Custom refresh
 
@@ -71,7 +70,7 @@ void KWAttributeAxisNameArrayView::EventRefresh(Object* object)
 
 const ALString KWAttributeAxisNameArrayView::GetClassLabel() const
 {
-	return "VariableAxes";
+	return "Variable axiss";
 }
 
 // ## Method implementation

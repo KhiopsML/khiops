@@ -3,8 +3,7 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 ////////////////////////////////////////////////////////////
-// 2019-02-25 11:58:40
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "KWAttributeAxisName.h"
@@ -28,7 +27,7 @@ void KWAttributeAxisName::CopyFrom(const KWAttributeAxisName* aSource)
 	require(aSource != NULL);
 
 	sAttributeName = aSource->sAttributeName;
-	sAxisName = aSource->sAxisName;
+	sOwnerAttributeName = aSource->sOwnerAttributeName;
 
 	// ## Custom copyfrom
 
@@ -50,13 +49,13 @@ KWAttributeAxisName* KWAttributeAxisName::Clone() const
 
 void KWAttributeAxisName::Write(ostream& ost) const
 {
-	ost << "AttributeName\t" << GetAttributeName() << "\n";
-	ost << "AxisName\t" << GetAxisName() << "\n";
+	ost << "Attribute name\t" << GetAttributeName() << "\n";
+	ost << "Owner attribute name\t" << GetOwnerAttributeName() << "\n";
 }
 
 const ALString KWAttributeAxisName::GetClassLabel() const
 {
-	return "VariableAxis";
+	return "Variable axis";
 }
 
 // ## Method implementation
@@ -65,7 +64,7 @@ const ALString KWAttributeAxisName::GetObjectLabel() const
 {
 	ALString sLabel;
 
-	sLabel = GetAttributeName() + GetAxisName();
+	sLabel = GetAttributeName() + GetOwnerAttributeName();
 	return sLabel;
 }
 

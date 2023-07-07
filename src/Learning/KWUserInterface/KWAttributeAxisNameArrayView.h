@@ -5,7 +5,7 @@
 #pragma once
 
 ////////////////////////////////////////////////////////////
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "UserInterface.h"
@@ -19,7 +19,7 @@
 
 ////////////////////////////////////////////////////////////
 // Classe KWAttributeAxisNameArrayView
-//    VariableAxis
+//    Variable axis
 // Editeur de tableau de KWAttributeAxisName
 class KWAttributeAxisNameArrayView : public UIObjectArrayView
 {
@@ -28,7 +28,7 @@ public:
 	KWAttributeAxisNameArrayView();
 	~KWAttributeAxisNameArrayView();
 
-	////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
 	// Redefinition des methodes a reimplementer obligatoirement
 
 	// Creation d'un objet (du bon type), suite a une demande d'insertion utilisateur
@@ -58,7 +58,7 @@ public:
 	// ##
 
 	////////////////////////////////////////////////////////
-	//// Implementation
+	///// Implementation
 protected:
 	// ## Custom implementation
 

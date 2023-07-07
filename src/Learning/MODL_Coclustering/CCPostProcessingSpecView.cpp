@@ -21,9 +21,7 @@ CCPostProcessingSpecView::CCPostProcessingSpecView()
 	AddIntField("TotalPartNumber", "Total part number", 0);
 	AddIntField("MaxTotalPartNumber", "Max total part number", 0);
 	AddStringField("FrequencyAttribute", "Frequency variable", "");
-	// CH IV Begin
 	AddStringField("IdentifierAttribute", "Identifier variable", "");
-	// CH IV End
 
 	// Parametrage des styles;
 	GetFieldAt("MaxCellNumber")->SetStyle("Spinner");
@@ -119,9 +117,7 @@ void CCPostProcessingSpecView::EventUpdate(Object* object)
 	editedObject->SetTotalPartNumber(GetIntValueAt("TotalPartNumber"));
 	editedObject->SetMaxTotalPartNumber(GetIntValueAt("MaxTotalPartNumber"));
 	editedObject->SetFrequencyAttribute(GetStringValueAt("FrequencyAttribute"));
-	// CH IV Begin
 	editedObject->SetIdentifierAttribute(GetStringValueAt("IdentifierAttribute"));
-	// CH IV End
 
 	// ## Custom update
 
@@ -144,9 +140,7 @@ void CCPostProcessingSpecView::EventRefresh(Object* object)
 	SetIntValueAt("TotalPartNumber", editedObject->GetTotalPartNumber());
 	SetIntValueAt("MaxTotalPartNumber", editedObject->GetMaxTotalPartNumber());
 	SetStringValueAt("FrequencyAttribute", editedObject->GetFrequencyAttribute());
-	// CH IV Begin
 	SetStringValueAt("IdentifierAttribute", editedObject->GetIdentifierAttribute());
-	// CH IV End
 
 	// ## Custom refresh
 
