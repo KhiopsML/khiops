@@ -92,7 +92,7 @@ public:
 	KWDataGridCosts* CreateDataGridCost() const override;
 
 	// Traite le cas VarPart ou les attributs sont de type Simple ou de type parties de variables
-	// L'attribute de grile de type VarPart cree contient un cluster de parties de variable pour chaque partie de
+	// L'attribut de grile de type VarPart cree contient un cluster de parties de variable pour chaque partie de
 	// variable de chaque attribut interne L'effectif de la variable identifiant est alimente par le vecteur
 	// ivObservationNumbers
 	KWDataGrid* CreateVarPartDataGrid(const KWTupleTable* tupleTable, ObjectDictionary& odObservationNumbers);
@@ -183,8 +183,7 @@ protected:
 	// qui associe a chaque tuple le nombre d'observations dans l'attribut de type VarPart
 	// Un tuple est ecarte si son attribut identifiant n' est pas renseigne ou si aucune valeur n'est renseignee
 	// pour les attributs internes En sortie, le dictionnaire odObservationNumbers contient pour chaque modalite de
-	// l'identifiant, le nombre d'observations stocke dans un IntObject CH IV Refactoring: renommer en
-	// FillVarPartTupleTableFromDatabase
+	// l'identifiant, le nombre d'observations stocke dans un IntObject
 	boolean FillVarPartTupleTableFromDatabase(KWDatabase* database, KWTupleTable* tupleTable,
 						  ObjectDictionary& odObservationNumbers);
 

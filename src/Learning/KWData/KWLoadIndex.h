@@ -385,5 +385,5 @@ inline void PLShared_LoadIndex::SetValue(KWLoadIndex li)
 {
 	require(bIsWritable);
 	require(bIsDeclared);
-	this->liValue = li;
+	liValue = li;
 }

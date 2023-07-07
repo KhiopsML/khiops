@@ -44,11 +44,10 @@ public:
 	KWClassStats* GetClassStats() const;
 
 	// CH IV Begin
-	// Parametrage (facultatif) par une grille initiale
-	// Dans le cas du coclustering instances * variables,
+	// Parametrage (facultatif) par une grille initiale, sans le cas du coclustering instances * variables,
 	// Permet l'utilisation de cette grille pour la creation de la grille avec parties de variables fusionnees
-	// Memoire: les specifications sont referencees et destinee a etre partagees
-	void SetInitialDataGrid(KWDataGrid* initialDataGrid);
+	// Memoire: les specifications sont referencees et destinees a etre partagees
+	void SetInitialDataGrid(KWDataGrid* refDataGrid);
 	KWDataGrid* GetInitialDataGrid() const;
 	// CH IV End
 
@@ -152,7 +151,7 @@ protected:
 
 	// CH IV Begin
 	// Grille de reference
-	KWDataGrid* initialDataGrid;
+	KWDataGrid* initialVarPartDataGrid;
 	// CH IV End
 
 	// Nettoyage des attribut non informatifs

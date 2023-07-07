@@ -252,7 +252,7 @@ double KWDataGridMerger::OptimizeMerge()
 	if (bDisplayDataGrid)
 	{
 		cout << "Debut de OptimizeMerge" << endl;
-		this->Write(cout);
+		Write(cout);
 	}
 
 	// Boucle de recherche d'ameliorations
@@ -355,7 +355,7 @@ double KWDataGridMerger::OptimizeMerge()
 			{
 				cout << "Apres PerformPartMerge " << nCount << "\t dDataGridTotalCost \t"
 				     << dDataGridTotalCost << endl;
-				this->Write(cout);
+				Write(cout);
 				cout << "Tous les couts de la grille" << endl;
 				GetDataGridCosts()->WriteDataGridAllCosts(this, cout);
 			}
@@ -379,7 +379,7 @@ double KWDataGridMerger::OptimizeMerge()
 	if (bDisplayDataGrid)
 	{
 		cout << "Apres restauration de la meilleure solution " << nCount << endl;
-		this->Write(cout);
+		Write(cout);
 	}
 
 	// Fin de tache
@@ -453,6 +453,7 @@ void KWDataGridMerger::RemoveAllPartLists()
 		attributeM->RemoveAllPartsFromValueNumberList();
 	}
 }
+
 void KWDataGridMerger::InitializeAllPartMerges()
 {
 	int nAttribute;

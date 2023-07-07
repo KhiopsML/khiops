@@ -36,11 +36,11 @@ void KWDiscretizerMODL::IntervalListMergeOptimization(KWMODLLineOptimization*& h
 		{
 			cout << "Meilleur merge IntervalListMergeOptimization" << endl;
 			interval->Write(cout);
-			this->GetDiscretizationCosts()->Write(cout);
+			GetDiscretizationCosts()->Write(cout);
 		}
 
 		if (bDisplayResult)
-			this->GetDiscretizationCosts()->Write(cout);
+			GetDiscretizationCosts()->Write(cout);
 
 		// Transmission taille poubelle : vide car discretiseur ou grouper sans recherche de poubelle
 		// Variation du cout du au codage d'un intervalle en moins

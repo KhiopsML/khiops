@@ -58,7 +58,6 @@ public:
 	// bSourceIdentifierClusters : true -> les clusters d'individus exportes sont ceux de la grille initiale
 	//							   false -> les clusters d'individus exportes sont ceux
 	// de la grille optimsee
-	// CH IV Refactoring; renommer bSourceIdentifierClusters en bSourceInstanceClusters? NON
 	void ExportDataGridWithSingletonVarParts(const KWDataGrid* optimizedDataGrid, KWDataGrid* targetDataGrid,
 						 boolean bSourceIdentifierClusters) const;
 
@@ -116,7 +115,6 @@ public:
 	// Export des parties uniquement (les attributs de la grille cible sont déja exportes)
 	// Les attributs cibles peuvent n'etre qu'un sous-ensemble des attributs sources
 	// Les parties des attributs interne sont dupliquees
-	// CH IV Refactoring: renommer en ExportPartsWithNewInnerParts ? PLUS TARD
 	void ExportPartsWithNewInnerParts(KWDataGrid* targetDataGrid) const;
 	// CH IV End
 
@@ -357,6 +355,13 @@ public:
 	/////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
+	// Initialisation d'un attribut de grille venant d'etre cree a partir d'un d'un attribut valide
+	// On initialise ses caracterisques principales uniquement, pas les parties:
+	//  - nom, type, cout, ...
+	//  - fourre-tout
+	//  - attributs internes, en mode partages avec l'attribut source
+	void InitialiseAttribute(const KWDGAttribute* sourceAttribute, KWDGAttribute* targetAttribute) const;
+
 	// Export des effectif des valeurs de la grille initiale vers un attribut categoriel entierement specifie
 	// La valeur speciale recoit pour effectif l'ensemble des effectifs manquants
 	void ExportSymbolAttributeValueFrequencies(KWDGAttribute* targetAttribute) const;

@@ -68,25 +68,17 @@ public:
 	const KWDatabase* GetConstDatabaseSpec() const;
 
 	// CH IV Begin
+	// // CH IV Refactoring: re-ecrire avec un dictionnaire d'intervalles contenant les valeurs extremes
+
 	// Nom de l'attribute d'identifiant (optionnel)
 	void SetIdentifierAttributeName(const ALString& sValue);
 	const ALString& GetIdentifierAttributeName() const;
 
-	// Vecteur des valeurs min par attribut interne
-	// Range dans l'ordre du tableau des attributs internes
-	// Pour un attribut interne categoriel, min et max sont a zero
-	void SetInnerAttributeMinValues(const ContinuousVector* cvValues);
-	const ContinuousVector* GetInnerAttributeMinValues() const;
-
-	// Vecteur des valeurs max par attribut interne
-	void SetInnerAttributeMaxValues(const ContinuousVector* cvValues);
-	const ContinuousVector* GetInnerAttributeMaxValues() const;
-
-	// CH IV Refactoring: je ne comprend pas clairement par rapport a quoi sont ces index
-	// Index des attributs internes numeriques parmi l'ensemble des attributs internes,
-	// pour pourvoir exploiter des vecteurs des valeurs min et max
-	void SetInnerContinuousAttributeIndexes(ObjectDictionary* odIndexes);
-	ObjectDictionary* GetInnerContinuousAttributeIndexes() const;
+	// Acces aux dictionnaire des bornes de domaine des attribut internes numeriques, via des KWDGInterval
+	// Ce parametrage permet de memoriser les bornes des intervalles extremes pour les attribut internes,
+	// afin d'ecrire les varies bornes plutot que -in et +inf dans les rapports json
+	// Memoire; appartient a l'appele, ainsi que son contenu, qui doit etre gere par l'appelant
+	ObjectDictionary* GetInnerAttributeDomainBounds() const;
 	// CH IV End
 
 	/////////////////////////////////////////////////////////////////////////
@@ -115,10 +107,7 @@ protected:
 	// CH IV Begin
 	// CH IV Refactoring: le sIdentifierAttributeName est-il toujours utile???
 	ALString sIdentifierAttributeName;
-	// CH IV Refactoring: pourrait-on passer par les Set/GetMin et Set/GetMax des CCHDGAttribute???
-	const ContinuousVector* cvInnerAttributeMinValues;
-	const ContinuousVector* cvInnerAttributeMaxValues;
-	ObjectDictionary* odInnerContinuousAttributeIndexes;
+	mutable ObjectDictionary odInnerAttributeDomainBounds;
 	// CH IV End
 };
 

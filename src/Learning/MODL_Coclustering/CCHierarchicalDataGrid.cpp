@@ -12,25 +12,12 @@ CCHierarchicalDataGrid::CCHierarchicalDataGrid()
 	dNullCost = 0;
 	dCost = 0;
 	nInitialAttributeNumber = 0;
-	// CH IV Begin
-	cvInnerAttributeMinValues = NULL;
-	cvInnerAttributeMaxValues = NULL;
-	odInnerContinuousAttributeIndexes = NULL;
-	// CH IV End
 }
 
 CCHierarchicalDataGrid::~CCHierarchicalDataGrid()
 {
 	// CH IV Begin
-	if (cvInnerAttributeMinValues != NULL)
-		delete cvInnerAttributeMinValues;
-	if (cvInnerAttributeMaxValues != NULL)
-		delete cvInnerAttributeMaxValues;
-	if (odInnerContinuousAttributeIndexes != NULL)
-	{
-		odInnerContinuousAttributeIndexes->DeleteAll();
-		delete odInnerContinuousAttributeIndexes;
-	}
+	odInnerAttributeDomainBounds.DeleteAll();
 	// CH IV End
 }
 
@@ -122,44 +109,11 @@ const ALString& CCHierarchicalDataGrid::GetIdentifierAttributeName() const
 	return sIdentifierAttributeName;
 }
 
-void CCHierarchicalDataGrid::SetInnerAttributeMinValues(const ContinuousVector* cvValues)
+ObjectDictionary* CCHierarchicalDataGrid::GetInnerAttributeDomainBounds() const
 {
-	if (cvInnerAttributeMinValues != NULL)
-		delete cvInnerAttributeMinValues;
-	cvInnerAttributeMinValues = cvValues;
+	return &odInnerAttributeDomainBounds;
 }
 
-const ContinuousVector* CCHierarchicalDataGrid::GetInnerAttributeMinValues() const
-{
-	return cvInnerAttributeMinValues;
-}
-
-void CCHierarchicalDataGrid::SetInnerAttributeMaxValues(const ContinuousVector* cvValues)
-{
-	if (cvInnerAttributeMaxValues != NULL)
-		delete cvInnerAttributeMaxValues;
-	cvInnerAttributeMaxValues = cvValues;
-}
-
-const ContinuousVector* CCHierarchicalDataGrid::GetInnerAttributeMaxValues() const
-{
-	return cvInnerAttributeMaxValues;
-}
-
-void CCHierarchicalDataGrid::SetInnerContinuousAttributeIndexes(ObjectDictionary* odIndexes)
-{
-	if (odInnerContinuousAttributeIndexes != NULL)
-	{
-		odInnerContinuousAttributeIndexes->DeleteAll();
-		delete odInnerContinuousAttributeIndexes;
-	}
-	odInnerContinuousAttributeIndexes = odIndexes;
-}
-
-ObjectDictionary* CCHierarchicalDataGrid::GetInnerContinuousAttributeIndexes() const
-{
-	return odInnerContinuousAttributeIndexes;
-}
 // CH IV End
 
 void CCHierarchicalDataGrid::DeleteAll()
@@ -175,6 +129,7 @@ void CCHierarchicalDataGrid::DeleteAll()
 	databaseSpec.CopyFrom(&nullDatabase);
 	// CH IV Begin
 	sIdentifierAttributeName = "";
+	odInnerAttributeDomainBounds.DeleteAll();
 	// CH IV End
 }
 

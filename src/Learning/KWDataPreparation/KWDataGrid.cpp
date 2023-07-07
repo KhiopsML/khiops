@@ -20,24 +20,12 @@ KWDataGrid::KWDataGrid()
 	nSortValue = 0;
 	targetAttribute = NULL;
 	nGranularity = 0;
-	// CH IV Begin
-	bVarPartDataGrid = false;
-	bVarPartsShared = false;
-	innerAttributes = NULL;
-	// CH IV End
+	varPartAttribute = NULL;
 }
 
 KWDataGrid::~KWDataGrid()
 {
 	DeleteAll();
-	// CH IV Begin
-	// Destruction des descriptions de parties de variable si la grille en est proprietaire
-	if (bVarPartDataGrid and not bVarPartsShared and innerAttributes != NULL)
-	{
-		delete innerAttributes;
-		innerAttributes = NULL;
-	}
-	// CH IV End
 }
 
 int KWDataGrid::GetGranularity() const
@@ -106,11 +94,6 @@ KWDGAttribute* KWDataGrid::SearchAttribute(const ALString& sAttributeName) const
 		attribute = GetAttributeAt(nAttributeIndex);
 		if (attribute->GetAttributeName() == sAttributeName)
 			return attribute;
-		// CH IV Begin
-		if (attribute->GetAttributeType() == KWType::VarPart and
-		    GetInnerAttributes()->LookupInnerAttribute(sAttributeName) != NULL)
-			return GetInnerAttributes()->LookupInnerAttribute(sAttributeName);
-		// CH IV End
 	}
 	return NULL;
 }
@@ -173,16 +156,10 @@ void KWDataGrid::DeleteAll()
 
 	// Destruction des attributs
 	oaAttributes.DeleteAll();
+	varPartAttribute = NULL;
 
 	// Destruction des valeurs cibles
 	svTargetValues.SetSize(0);
-	// CH IV Begin
-	// Nettoyage des descriptions de parties de variable
-	if (bVarPartDataGrid and not bVarPartsShared and innerAttributes != NULL)
-	{
-		innerAttributes->DeleteAll();
-	}
-	// CH IV End
 }
 
 void KWDataGrid::DeleteAllCells()
@@ -682,6 +659,8 @@ boolean KWDataGrid::Check() const
 	ALString sTmp;
 	int nTargetAttributeNumber;
 
+	// CH IV Refactoring: etendre les controles au cas individus x variables
+
 	// Initialisation du nombre d'attributs indiques comme cible
 	nTargetAttributeNumber = 0;
 
@@ -864,7 +843,7 @@ void KWDataGrid::SortAttributeParts()
 	int nAttribute;
 	KWDGAttribute* attribute;
 
-	// Tri des partie pour chaque attribut
+	// Tri des parties pour chaque attribut
 	for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
 	{
 		attribute = cast(KWDGAttribute*, oaAttributes.GetAt(nAttribute));
@@ -888,35 +867,7 @@ boolean KWDataGrid::AreAttributePartsSorted() const
 	}
 	return bIsSorted;
 }
-// CH IV Begin
-boolean KWDataGrid::AreInnerAttributePartsSorted() const
-{
-	int nAttribute;
-	KWDGAttribute* attribute;
-	boolean bIsSorted = true;
-	int nInnerAttribute;
-	KWDGAttribute* innerAttribute;
 
-	// Verification du tri des parties pour chaque attribut
-	for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
-	{
-		attribute = cast(KWDGAttribute*, oaAttributes.GetAt(nAttribute));
-		if (attribute->GetAttributeType() == KWType::VarPart)
-		{
-			for (nInnerAttribute = 0; nInnerAttribute < attribute->GetInnerAttributeNumber();
-			     nInnerAttribute++)
-			{
-				innerAttribute = GetInnerAttributes()->LookupInnerAttribute(
-				    attribute->GetInnerAttributeNameAt(nInnerAttribute));
-				bIsSorted = innerAttribute->ArePartsSorted();
-				if (not bIsSorted)
-					break;
-			}
-		}
-	}
-	return bIsSorted;
-}
-// CH IV End
 void KWDataGrid::ImportDataGridStats(const KWDataGridStats* dataGridStats)
 {
 	int nAttributeNumber;
@@ -1461,10 +1412,12 @@ void KWDataGrid::Write(ostream& ost) const
 	if (GetTargetAttribute() != NULL)
 		ost << "TargetVariable\t" << GetTargetAttribute()->GetAttributeName() << "\n";
 	ost << "Granularity\t" << GetGranularity() << "\n";
-	// CH IV Begin
-	if (GetVarPartDataGrid())
-		ost << "VariableParts Granularity\t" << GetInnerAttributes()->GetVarPartGranularity() << "\n";
-	// CH IV End
+	if (IsVarPartDataGrid())
+	{
+		ost << "VariableParts Granularity\t"
+		    << GetVarPartAttribute()->GetInnerAttributes()->GetVarPartGranularity() << "\n";
+		WriteInnerAttributes(ost);
+	}
 	if (GetAttributeNumber() > 0)
 	{
 		WriteAttributes(ost);
@@ -1489,10 +1442,6 @@ void KWDataGrid::WriteAttributes(ostream& ost) const
 {
 	int nAttribute;
 	KWDGAttribute* attribute;
-	// CH IV Begin
-	int nInnerAttribute;
-	KWDGAttribute* innerAttribute;
-	// CH IV End
 
 	// Liste des attributs
 	ost << "Variables"
@@ -1501,6 +1450,7 @@ void KWDataGrid::WriteAttributes(ostream& ost) const
 	{
 		attribute = cast(KWDGAttribute*, oaAttributes.GetAt(nAttribute));
 		ost << "\t" << attribute->GetAttributeName() << "\t" << KWType::ToString(attribute->GetAttributeType());
+
 		// Cas d'un attribut categoriel : affichage du groupe poubelle eventuel
 		if (attribute->GetAttributeType() == KWType::Symbol and not attribute->GetAttributeTargetFunction())
 		{
@@ -1511,7 +1461,6 @@ void KWDataGrid::WriteAttributes(ostream& ost) const
 			    << "\t" << (attribute->GetGarbagePart() != NULL);
 			ost << "\t" << attribute->GetGarbageModalityNumber();
 		}
-		// CH IV Begin
 		else if (attribute->GetAttributeType() == KWType::VarPart)
 		{
 			ost << "\t"
@@ -1519,16 +1468,7 @@ void KWDataGrid::WriteAttributes(ostream& ost) const
 				KWFrequencyTable::GetMinimumNumberOfModalitiesForGarbage())
 			    << "\t" << (attribute->GetGarbagePart() != NULL);
 			ost << "\t" << attribute->GetGarbageModalityNumber() << "\n";
-			for (nInnerAttribute = 0; nInnerAttribute < attribute->GetInnerAttributeNumber();
-			     nInnerAttribute++)
-			{
-				ost << "\nInnerAttribute\n";
-				innerAttribute = GetInnerAttributes()->LookupInnerAttribute(
-				    attribute->GetInnerAttributeNameAt(nInnerAttribute));
-				innerAttribute->Write(ost);
-			}
 		}
-		// CH IV End
 		ost << "\n";
 	}
 }
@@ -1695,26 +1635,15 @@ void KWDataGrid::WriteCells(ostream& ost) const
 			    << "\n";
 	}
 }
-// CH IV Begin
+
 void KWDataGrid::WriteInnerAttributes(ostream& ost) const
 {
-	int nInnerAttribute;
-	KWDGAttribute* innerAttribute;
-
-	if (innerAttributes != NULL)
-	{
-		cout << "Inner variable number \t" << GetInnerAttributes()->GetInnerAttributeNumber() << endl;
-		for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributes()->GetInnerAttributeNumber();
-		     nInnerAttribute++)
-		{
-			innerAttribute = GetInnerAttributes()->GetInnerAttributeAt(nInnerAttribute);
-			innerAttribute->Write(ost);
-		}
-	}
+	if (GetVarPartAttribute() != NULL)
+		GetVarPartAttribute()->GetInnerAttributes()->Write(ost);
 	else
 		cout << "No inner variable" << endl;
 }
-// CH IV End
+
 void KWDataGrid::WriteCrossTableStats(ostream& ost, int nTargetIndex) const
 {
 	KWDGAttribute* attribute1;
@@ -2332,21 +2261,29 @@ KWDGAttribute::KWDGAttribute()
 	nCatchAllValueNumber = -1;
 	catchAllValueSet = NULL;
 	garbagePart = NULL;
-	// CH IV Begin
 	sOwnerAttributeName = "";
-	// CH IV End
+	bVarPartsShared = false;
+	innerAttributes = NULL;
 }
 
 KWDGAttribute::~KWDGAttribute()
 {
+	// Destruction de tous les parties
+	DeleteAllParts();
+
+	// Destruction du fourre-tout
 	if (catchAllValueSet != NULL)
 	{
 		catchAllValueSet->DeleteAllValues();
 		delete catchAllValueSet;
 	}
 
-	// Destruction de tous les parties
-	DeleteAllParts();
+	// Destruction des attribut internes s'ils ne sont pas partages
+	if (not bVarPartsShared and innerAttributes != NULL)
+	{
+		innerAttributes->DeleteAll();
+		delete innerAttributes;
+	}
 
 	// Reinitialisation en mode debug, pour faciliter le diagnostique
 	debug(dataGrid = NULL);
@@ -2358,6 +2295,8 @@ KWDGAttribute::~KWDGAttribute()
 	debug(tailPart = NULL);
 	debug(nPartNumber = 0);
 	debug(bIsIndexed = false);
+	debug(catchAllValueSet = NULL);
+	debug(innerAttributes = NULL);
 }
 
 // CH IV Begin
@@ -2369,19 +2308,18 @@ void KWDGAttribute::CreateVarPartsSet()
 	int nInnerAttribute;
 
 	require(nAttributeType == KWType::VarPart);
-	require(this->GetInnerAttributeNumber() > 0);
+	require(GetInnerAttributeNumber() > 0);
 
-	for (nInnerAttribute = 0; nInnerAttribute < this->GetInnerAttributeNumber(); nInnerAttribute++)
+	for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributeNumber(); nInnerAttribute++)
 	{
-		innerAttribute =
-		    GetDataGrid()->GetInnerAttributes()->LookupInnerAttribute(GetInnerAttributeNameAt(nInnerAttribute));
+		innerAttribute = GetInnerAttributeAt(nInnerAttribute);
 		currentPart = innerAttribute->GetHeadPart();
 
 		// Parcours des parties de variables de l'attribut
 		while (currentPart != NULL)
 		{
 			// On cree un cluster par parties de variables
-			part = this->AddPart();
+			part = AddPart();
 			part->GetVarPartSet()->AddVarPart(currentPart);
 
 			// Partie suivante
@@ -2395,12 +2333,7 @@ KWDGPart* KWDGAttribute::AddPart()
 {
 	KWDGPart* part;
 
-	require(GetAttributeType() != KWType::Unknown);
-	// CH IV Begin
-	// require(KWType::IsSimple(GetAttributeType()) or (dataGrid->GetVarPartDataGrid() and GetAttributeType() ==
-	// KWType::VarPart));
 	require(KWType::IsCoclusteringType(GetAttributeType()));
-	// CH IV End
 	require(not IsIndexed());
 
 	// Creation d'une nouvelle partie en fonction du type de l'attribut
@@ -2525,10 +2458,8 @@ void KWDGAttribute::BuildIndexingStructure()
 	int nInnerAttribute;
 	// CH IV End
 
-	require(GetAttributeType() != KWType::Unknown);
 	// CH IV Begin
-	require(KWType::IsSimple(GetAttributeType()) or
-		(dataGrid->GetVarPartDataGrid() and GetAttributeType() == KWType::VarPart));
+	require(KWType::IsCoclusteringType(GetAttributeType()));
 	// CH IV End
 	require(Check());
 
@@ -2587,6 +2518,8 @@ void KWDGAttribute::BuildIndexingStructure()
 		// Cas d'un attribut de type VarPart
 		else
 		{
+			assert(GetAttributeType() == KWType::VarPart);
+
 			// Parcours des parties pour les indexer par leurs parties de variable
 			nkdVarPartSets.RemoveAll();
 			part = headPart;
@@ -2611,8 +2544,8 @@ void KWDGAttribute::BuildIndexingStructure()
 			// Parcours des attributs internes
 			for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributeNumber(); nInnerAttribute++)
 			{
-				innerAttribute = GetDataGrid()->GetInnerAttributes()->LookupInnerAttribute(
-				    GetInnerAttributeNameAt(nInnerAttribute));
+				innerAttribute = GetInnerAttributeAt(nInnerAttribute);
+
 				// Indexation des valeurs des parties de l'attribut
 				innerAttribute->BuildIndexingStructure();
 			}
@@ -2634,10 +2567,8 @@ void KWDGAttribute::DeleteIndexingStructure()
 	// Suppression de l'indexation si necessaire
 	if (bIsIndexed)
 	{
-		assert(GetAttributeType() != KWType::Unknown);
 		// CH IV Begin
-		assert(KWType::IsSimple(GetAttributeType()) or
-		       (dataGrid->GetVarPartDataGrid() and GetAttributeType() == KWType::VarPart));
+		assert(KWType::IsCoclusteringType(GetAttributeType()));
 		if (GetAttributeType() == KWType::Continuous)
 			oaIntervals.SetSize(0);
 		else if (GetAttributeType() == KWType::Symbol)
@@ -2648,11 +2579,11 @@ void KWDGAttribute::DeleteIndexingStructure()
 		// Cas d'un attribut de type VarPart
 		else
 		{
+			assert(GetAttributeType() == KWType::VarPart);
 			nkdVarPartSets.RemoveAll();
 			for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributeNumber(); nInnerAttribute++)
 			{
-				innerAttribute = GetDataGrid()->GetInnerAttributes()->LookupInnerAttribute(
-				    GetInnerAttributeNameAt(nInnerAttribute));
+				innerAttribute = GetInnerAttributeAt(nInnerAttribute);
 				innerAttribute->DeleteIndexingStructure();
 			}
 		}
@@ -2780,7 +2711,6 @@ boolean KWDGAttribute::Check() const
 	else if (not KWType::IsCoclusteringType(nAttributeType))
 	// CH IV End
 	{
-		assert(KWType::IsSimple(nAttributeType) or GetDataGrid()->GetVarPartDataGrid());
 		AddError("Type must be Numerical, Categorical or VarPart");
 		bOk = false;
 	}
@@ -3499,8 +3429,7 @@ void KWDGPart::SetPartFrequency(int nValue)
 {
 	require(nValue >= 0);
 	// CH IV Begin
-	require(GetAttribute()->GetOwnerAttributeName() != "" or GetEmulated() or
-		nValue == ComputeCellsTotalFrequency());
+	require(GetAttribute()->IsInnerAttribute() or GetEmulated() or nValue == ComputeCellsTotalFrequency());
 	// CH IV End
 	nPartFrequency = nValue;
 }
@@ -3581,10 +3510,10 @@ boolean KWDGPart::Check() const
 			// CH IV Debug
 			// CH IV Refactoring: nettoyer?
 			cout << "KWDGPart::Check()" << endl;
-			this->Write(cout);
+			Write(cout);
 			nTotalVarPartFrequency = varPartSet->ComputeTotalFrequency();
 			cout << "nTotalFrequency\t" << nTotalVarPartFrequency << endl;
-			this->GetPartFrequency();
+			GetPartFrequency();
 			bOk = false;
 		}
 	}
@@ -3647,7 +3576,7 @@ boolean KWDGPart::Check() const
 
 	// Verification de l'effectif total de la partie
 	// CH IV Begin
-	if (bOk and (GetAttribute()->GetOwnerAttributeName() == "" and nPartFrequency != ComputeCellsTotalFrequency()))
+	if (bOk and (not GetAttribute()->IsInnerAttribute() and nPartFrequency != ComputeCellsTotalFrequency()))
 	// CH IV End
 	{
 		AddError(sTmp + "Part frequency (" + IntToString(nPartFrequency) +
@@ -3714,7 +3643,7 @@ const ALString KWDGPart::GetVarPartLabel() const
 {
 	require(KWType::IsSimple(GetPartType()));
 	require(GetAttribute() != NULL);
-	require(GetAttribute()->GetOwnerAttributeName() != "");
+	require(GetAttribute()->IsInnerAttribute());
 
 	return GetAttribute()->GetAttributeName() + " " + GetObjectLabel();
 }
@@ -5050,6 +4979,7 @@ int KWDGInnerAttributes::GetVarPartGranularity() const
 {
 	return nVarPartGranularity;
 }
+
 void KWDGInnerAttributes::SetVarPartGranularity(int nValue)
 {
 	require(nValue >= 0);
@@ -5063,6 +4993,24 @@ void KWDGInnerAttributes::DeleteAll()
 	oaInnerAttributes.DeleteAll();
 }
 
+boolean KWDGInnerAttributes::AreInnerAttributePartsSorted() const
+{
+	boolean bIsSorted;
+	int nInnerAttribute;
+	KWDGAttribute* innerAttribute;
+
+	// Verification du tri des parties pour chaque attribut interne
+	bIsSorted = true;
+	for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributeNumber(); nInnerAttribute++)
+	{
+		innerAttribute = GetInnerAttributeAt(nInnerAttribute);
+		bIsSorted = innerAttribute->ArePartsSorted();
+		if (not bIsSorted)
+			break;
+	}
+	return bIsSorted;
+}
+
 boolean KWDGInnerAttributes::Check() const
 {
 	boolean bOk = true;
@@ -5072,7 +5020,7 @@ boolean KWDGInnerAttributes::Check() const
 	// Parcours des attributs
 	for (nInnerAttribute = 0; nInnerAttribute < oaInnerAttributes.GetSize(); nInnerAttribute++)
 	{
-		innerAttribute = this->GetInnerAttributeAt(nInnerAttribute);
+		innerAttribute = GetInnerAttributeAt(nInnerAttribute);
 		bOk = bOk and innerAttribute->Check();
 		if (innerAttribute->GetOwnerAttributeName() == "")
 		{
@@ -5089,7 +5037,18 @@ boolean KWDGInnerAttributes::Check() const
 	return bOk;
 }
 
-// CH IV End
+void KWDGInnerAttributes::Write(ostream& ost) const
+{
+	int nInnerAttribute;
+	KWDGAttribute* innerAttribute;
+
+	cout << "Inner variable number \t" << GetInnerAttributeNumber() << endl;
+	for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributeNumber(); nInnerAttribute++)
+	{
+		innerAttribute = GetInnerAttributeAt(nInnerAttribute);
+		innerAttribute->Write(ost);
+	}
+}
 
 //////////////////////////////////////////////////////////////////////////////
 // Classe KWDGCell
