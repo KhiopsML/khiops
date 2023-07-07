@@ -17,7 +17,6 @@ class CCCoclusteringOptimizer;
 #include "CCHierarchicalDataGrid.h"
 #include "CCCoclusteringReport.h"
 #include "CCCoclusteringSpec.h"
-// CH IV Refactoring: rennommer en CCVarPartCoclusteringSpec
 #include "CCVarPartCoclusteringSpec.h"
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -39,15 +38,14 @@ public:
 
 	// CH IV Begin
 	// Variable d'identifiant (optionnelle)
-	// Pour un coclustering individus * variables, permet de renseigner la variable d'identifiant des individus
+	// Pour un coclustering instances * variables, permet de renseigner la variable d'identifiant des instances
 	// Sinon, cette variable est creee automatiquement
 	const ALString& GetIdentifierAttribute() const;
 	void SetIdentifierAttribute(const ALString& sValue);
 
 	// Type de coclustering
-	// A true pour un coclustering de type VarPart, instances * varialbes
+	// A true pour un coclustering de type VarPart, instances * variables
 	// A false sinon pour un coclustering variable * variable (valeur par defaut)
-	// CH IV Refactoring: rennommer en Set|GetVarPartCoclustering
 	boolean GetVarPartCoclustering() const;
 	void SetVarPartCoclustering(boolean bValue);
 	// CH IV End
@@ -100,11 +98,10 @@ public:
 	// Traite le cas VarPart ou les attributs sont de type Simple ou de type parties de variables
 	// L'attribute de grile de type VarPart cree contient un cluster de parties de variable pour chaque partie de
 	// variable de chaque attribut interne L'effectif de la variable identifiant est alimente par le vecteur
-	// ivObservationNumbers CH IV Refactoring: renommer en CreateVarPartDataGrid
+	// ivObservationNumbers
 	KWDataGrid* CreateVarPartDataGrid(const KWTupleTable* tupleTable, ObjectDictionary& odObservationNumbers);
 
 	// Nettoyage des eventuelles parties de variables vides du fait d'observations manquantes
-	// CH IV Refactoring: renommer en CleanVarPartDataGrid
 	void CleanVarPartDataGrid(KWDataGrid* dataGrid);
 
 	// Alimentation des cellules d'un DataGrid dont les attributs et parties
@@ -114,7 +111,7 @@ public:
 	// attributs pour alimenter les cellules associees a chaque observation (l'observation d'un attribut interne par
 	// attribut de grille de type VarPart) CH IV Refactoring: passer en override de la methode ancetre? OK
 	//   verifier egalement pour les autres methodes CreateVarPartDataGrid, CreateVarPartDataGrid
-	//    qui pourrait etre des redefintions des methodes de la classe ancetre?
+	//    qui pourrait etre des redefinitions des methodes de la classe ancetre?
 	boolean CreateDataGridCells(const KWTupleTable* tupleTable, KWDataGrid* dataGrid);
 	// CH IV End
 
@@ -162,7 +159,6 @@ protected:
 	virtual void OptimizeDataGrid(const KWDataGrid* inputInitialDataGrid, KWDataGrid* optimizedDataGrid);
 
 	// CH IV Begin
-	// CH IV Refactoring: renommer en OptimizeVarPartDataGrid
 	void OptimizeVarPartDataGrid(const KWDataGrid* inputInitialDataGrid, KWDataGrid* optimizedDataGrid,
 				     CCCoclusteringOptimizer dataGridOptimizer);
 	// CH IV End
@@ -197,20 +193,6 @@ protected:
 	boolean FillVarPartTupleTableFromDatabase(KWDatabase* database, KWTupleTable* tupleTable,
 						  ObjectDictionary& odObservationNumbers);
 
-	// CH IV Refactoring: terminologie Instances x Variables a unifier
-	//   VarPart: type d'un axe de grille, et terme generique de type adjectif
-	//   VarPartDataGrid: grille ayant un axe de type VarPart
-	//   VarPartAttribute: attribute simple utilise dans un axe de type VarPart
-	//   VarPartAttributePart: partie d'un VarPartAttribute,
-	//   Identifier (InstanceIdentifier?)
-	//   Axis: attribut d'un grille, terminologie nouvelle depuis l'introduction des VarPart
-	//         pour differencier les attributs de type VarPart, et les VarPartAttributes qui les composent
-	//   VarPartAxis: Axis de type VarPart
-	//   Observation: lie a un couple (instance, valeur de variable)
-	//     pour chaque instance, on a autant d'observations que de variables npn manquantes
-	//   ...
-	// CH IV Refactoring: OK, a deplacer et unifier dans l'entete de KWDataGrid
-
 	// Creation de la partition d'un attribut de DataGrid de type Identifiant dans un coclustering Identifiant *
 	// Parties de variables En entree, le dictionnaire odObservationNumbers contient pour chaque modalite de
 	// l'identifiant, le nombre d'observations Ces effectifs permettent d'initialiser les effectifs de l'attribut
@@ -226,7 +208,6 @@ protected:
 	// Alimentation d'un tableau de vecteur d'indexes decrivant toutes les observations generees
 	// Traite le cas de plusieurs attributs de type VarPart
 	// CH IV Refactoring: obsolete???
-	// CH IV Refactoring: renommer en FillObjectArrayVarPartAttributesIndexes
 	void FillObjectArrayVarPartsAttributesIndexes(ObjectArray* oaIndexes, int nFirstVarPartsAttributeIndex,
 						      KWDataGrid* dataGrid);
 
@@ -329,7 +310,6 @@ protected:
 	ALString sIdentifierAttribute;
 
 	// Type de coclustering
-	// CH IV Refactoring: renommer en bVarPartCoclustering
 	boolean bVarPartCoclustering;
 	// CH IV End
 
@@ -364,7 +344,6 @@ protected:
 	// Nombre d'attributs internes par axe
 	// Egal a 1 pour un axe de type autre que Parties de variables
 	// Est > 1 pour un axe de type Parties de variables
-	// CH IV Refactoring: renommer en ivVarPartAttributesNumber
 	IntVector ivInnerAttributesNumber;
 
 	// Nom d'axe pour chaque attribut (avec redondance)

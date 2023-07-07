@@ -123,6 +123,8 @@ void CCLearningProblem::BuildCoclustering()
 	KWAttribute* kwAttribute;
 	KWAttributeName* attributeName;
 	// CH IV Begin
+	const ALString sDefaultOwnerAttributeName = "Variables";
+	ALString sOwnerAttributeName;
 	ObjectArray* oaAttributesAndAxes;
 	KWAttributeAxisName* attributeAxisName;
 	boolean bOk = true;
@@ -203,7 +205,7 @@ void CCLearningProblem::BuildCoclustering()
 		}
 		coclusteringBuilder.SetFrequencyAttribute(analysisSpec->GetCoclusteringSpec()->GetFrequencyAttribute());
 	}
-	// Sinon : cas d'un coclustering individus * variables avec au moins un axe de parties de variable
+	// Sinon : cas d'un coclustering instances * variables avec au moins un axe de parties de variable
 	else
 	{
 		assert(oaAttributesAndAxes == NULL);
@@ -248,6 +250,10 @@ void CCLearningProblem::BuildCoclustering()
 		// Ajout de la ligne au tableau
 		oaAttributesAndAxes->Add(attributeAxisName);
 
+		// Recherche d'un nom d'attribut de griiole de type VarPart qui n'entre pas en collision avec un des
+		// attribut du dictionnaire
+		sOwnerAttributeName = kwcClass->BuildAttributeName(sDefaultOwnerAttributeName);
+
 		// Creation de l'axe Variables avec l'ensemble des variables Used sauf l'attribut identifiant
 		kwAttribute = kwcClass->GetHeadAttribute();
 		while (kwAttribute != NULL)
@@ -263,7 +269,7 @@ void CCLearningProblem::BuildCoclustering()
 				// Ajout de l'attribut et de son axe
 				attributeAxisName = new KWAttributeAxisName;
 				attributeAxisName->SetAttributeName(kwAttribute->GetName());
-				attributeAxisName->SetOwnerAttributeName("Variables");
+				attributeAxisName->SetOwnerAttributeName(sOwnerAttributeName);
 
 				// Ajout au tableau
 				oaAttributesAndAxes->Add(attributeAxisName);
@@ -374,7 +380,7 @@ void CCLearningProblem::BuildCoclustering()
 				    " out of the " + IntToString(coclusteringBuilder.GetAttributeNumber()) +
 				    " input variables");
 		}
-		// Sinon cas du coclustering individus * variables
+		// Sinon cas du coclustering instances * variables
 		else
 		{
 			if (coclusteringBuilder.GetCoclusteringDataGrid()->GetAttributeNumber() <
@@ -402,7 +408,7 @@ void CCLearningProblem::BuildCoclustering()
 	if (analysisSpec->GetVarPartCoclustering())
 	{
 		assert(oaAttributesAndAxes != NULL);
-		oaAttributesAndAxes->DeleteAll(); // CH IV Refactoring: attention, non initialise
+		oaAttributesAndAxes->DeleteAll();
 	}
 
 	// Nettoyage
@@ -450,15 +456,6 @@ void CCLearningProblem::PostProcessCoclustering()
 	if (bOk)
 		bOk = coclusteringReport.ReadGenericReport(sCoclusteringReportFileName,
 							   &postProcessedCoclusteringDataGrid);
-
-	// CH IV Begin
-	// Cas d'un rapport issu d'un coclustering individus * variables : fonctionnalite non implemente
-	if (postProcessedCoclusteringDataGrid.GetVarPartDataGrid())
-	{
-		bOk = false;
-		AddWarning("Simplify coclustering is not yet implemented for instances variables coclustering");
-	}
-	// CH IV End
 
 	// Post-traitement
 	if (bOk)
@@ -819,7 +816,7 @@ boolean CCLearningProblem::CheckCoclusteringAttributeNames() const
 		}
 	}
 
-	// Sinon : cas d'un coclustering individus * variables
+	// Sinon : cas d'un coclustering instances * variables
 	else
 	{
 		// Verification de la variable d'identifiant

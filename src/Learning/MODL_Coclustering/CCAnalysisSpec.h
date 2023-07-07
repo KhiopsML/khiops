@@ -5,7 +5,6 @@
 #pragma once
 
 #include "CCCoclusteringSpec.h"
-// CH IV Refactoring: renommer en CCVarPartCoclusteringSpec
 #include "CCVarPartCoclusteringSpec.h"
 
 ////////////////////////////////////////////////////////////
@@ -23,13 +22,11 @@ public:
 
 	// CH IV Begin
 	// Parametrage du coclustering VarPart instances x variables
-	// CH IV Refactoring: renommer en CCVarPartCoclusteringSpec
 	CCVarPartCoclusteringSpec* GetVarPartCoclusteringSpec();
 
 	// Parametrage du type de coclustering
 	// A true pour un coclustering de type VarPart, instances * varialbes
 	// A false sinon pour un coclustering variable * variable (valeur par defaut)
-	// CH IV Refactoring: renommer en Get|SetVarPartCoclustering
 	void SetVarPartCoclustering(boolean bValue);
 	boolean GetVarPartCoclustering() const;
 

@@ -16,8 +16,7 @@ CCLearningProblemView::CCLearningProblemView()
 	UIList* continuousAttributeNameHelpList;
 	UIList* categoricalAttributeNameHelpList;
 	CCCoclusteringSpecView* coclusteringSpecView;
-	// CH IV Refactoring: renommer en varPartCoclusteringSpecView
-	CCVarPartCoclusteringSpecView* instancesVariablesCoclusteringSpecView;
+	CCVarPartCoclusteringSpecView* varPartCoclusteringSpecView;
 
 	// Libelles
 	SetIdentifier("CCLearningProblem");
@@ -87,10 +86,10 @@ CCLearningProblemView::CCLearningProblemView()
 	// CH IV Refactoring: plutot tout declarer et utiliser "normalement" (partout dans ce fichier source),
 	//   et parametrer la visibilite selon GetLearningCoclusteringIVExpertMode()
 
-	// Parametrage de liste d'aide pour le nom de l'attribut identifiant pour le coclustering individus * variables
+	// Parametrage de liste d'aide pour le nom de l'attribut identifiant pour le coclustering instances * variables
 	if (GetLearningCoclusteringIVExpertMode())
 	{
-		instancesVariablesCoclusteringSpecView =
+		varPartCoclusteringSpecView =
 		    cast(CCVarPartCoclusteringSpecView*, analysisSpecView->GetFieldAt("VarPartCoclusteringParameters"));
 
 		// Creation d'une liste cachee des attributs de type Categorical de la classe en cours
@@ -99,8 +98,8 @@ CCLearningProblemView::CCLearningProblemView()
 		AddListField("CategoricalAttributes", "Simple variables", categoricalAttributeNameHelpList);
 		categoricalAttributeNameHelpList->SetVisible(false);
 
-		instancesVariablesCoclusteringSpecView->GetFieldAt("IdentifierAttribute")->SetStyle("HelpedComboBox");
-		instancesVariablesCoclusteringSpecView->GetFieldAt("IdentifierAttribute")
+		varPartCoclusteringSpecView->GetFieldAt("IdentifierAttribute")->SetStyle("HelpedComboBox");
+		varPartCoclusteringSpecView->GetFieldAt("IdentifierAttribute")
 		    ->SetParameters("CategoricalAttributes:Name");
 	}
 	// CH IV End
@@ -124,12 +123,12 @@ CCLearningProblemView::CCLearningProblemView()
 	if (GetLearningCoclusteringIVExpertMode())
 	{
 		// Parametrage de liste d'aide pour le nom des attributs de coclustering VarPart
-		instancesVariablesCoclusteringSpecView =
+		varPartCoclusteringSpecView =
 		    cast(CCVarPartCoclusteringSpecView*, analysisSpecView->GetFieldAt("VarPartCoclusteringParameters"));
-		cast(KWAttributeAxisNameArrayView*, instancesVariablesCoclusteringSpecView->GetFieldAt("Attributes"))
+		cast(KWAttributeAxisNameArrayView*, varPartCoclusteringSpecView->GetFieldAt("Attributes"))
 		    ->GetFieldAt("AttributeName")
 		    ->SetStyle("HelpedComboBox");
-		cast(KWAttributeAxisNameArrayView*, instancesVariablesCoclusteringSpecView->GetFieldAt("Attributes"))
+		cast(KWAttributeAxisNameArrayView*, varPartCoclusteringSpecView->GetFieldAt("Attributes"))
 		    ->GetFieldAt("AttributeName")
 		    ->SetParameters("SimpleAttributes:Name");
 	}

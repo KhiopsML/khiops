@@ -889,7 +889,6 @@ boolean KWDataGrid::AreAttributePartsSorted() const
 	return bIsSorted;
 }
 // CH IV Begin
-// CH IV Refactoring: renommer partout Implied en Inner
 boolean KWDataGrid::AreInnerAttributePartsSorted() const
 {
 	int nAttribute;
@@ -904,7 +903,7 @@ boolean KWDataGrid::AreInnerAttributePartsSorted() const
 		attribute = cast(KWDGAttribute*, oaAttributes.GetAt(nAttribute));
 		if (attribute->GetAttributeType() == KWType::VarPart)
 		{
-			for (nInnerAttribute = 0; nInnerAttribute < attribute->GetInnerAttributesNumber();
+			for (nInnerAttribute = 0; nInnerAttribute < attribute->GetInnerAttributeNumber();
 			     nInnerAttribute++)
 			{
 				innerAttribute = GetInnerAttributes()->LookupInnerAttribute(
@@ -1520,7 +1519,7 @@ void KWDataGrid::WriteAttributes(ostream& ost) const
 				KWFrequencyTable::GetMinimumNumberOfModalitiesForGarbage())
 			    << "\t" << (attribute->GetGarbagePart() != NULL);
 			ost << "\t" << attribute->GetGarbageModalityNumber() << "\n";
-			for (nInnerAttribute = 0; nInnerAttribute < attribute->GetInnerAttributesNumber();
+			for (nInnerAttribute = 0; nInnerAttribute < attribute->GetInnerAttributeNumber();
 			     nInnerAttribute++)
 			{
 				ost << "\nInnerAttribute\n";
@@ -2370,9 +2369,9 @@ void KWDGAttribute::CreateVarPartsSet()
 	int nInnerAttribute;
 
 	require(nAttributeType == KWType::VarPart);
-	require(this->GetInnerAttributesNumber() > 0);
+	require(this->GetInnerAttributeNumber() > 0);
 
-	for (nInnerAttribute = 0; nInnerAttribute < this->GetInnerAttributesNumber(); nInnerAttribute++)
+	for (nInnerAttribute = 0; nInnerAttribute < this->GetInnerAttributeNumber(); nInnerAttribute++)
 	{
 		innerAttribute = this->GetDataGrid()->GetInnerAttributes()->LookupInnerAttribute(
 		    GetInnerAttributeNameAt(nInnerAttribute));
@@ -2398,8 +2397,9 @@ KWDGPart* KWDGAttribute::AddPart()
 
 	require(GetAttributeType() != KWType::Unknown);
 	// CH IV Begin
-	require(KWType::IsSimple(GetAttributeType()) or
-		(dataGrid->GetVarPartDataGrid() and GetAttributeType() == KWType::VarPart));
+	// require(KWType::IsSimple(GetAttributeType()) or (dataGrid->GetVarPartDataGrid() and GetAttributeType() ==
+	// KWType::VarPart));
+	require(KWType::IsCoclusteringType(GetAttributeType()));
 	// CH IV End
 	require(not IsIndexed());
 
@@ -2609,7 +2609,7 @@ void KWDGAttribute::BuildIndexingStructure()
 			}
 
 			// Parcours des attributs internes
-			for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributesNumber(); nInnerAttribute++)
+			for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributeNumber(); nInnerAttribute++)
 			{
 				innerAttribute = GetDataGrid()->GetInnerAttributes()->LookupInnerAttribute(
 				    GetInnerAttributeNameAt(nInnerAttribute));
@@ -2649,7 +2649,7 @@ void KWDGAttribute::DeleteIndexingStructure()
 		else
 		{
 			nkdVarPartSets.RemoveAll();
-			for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributesNumber(); nInnerAttribute++)
+			for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributeNumber(); nInnerAttribute++)
 			{
 				innerAttribute = GetDataGrid()->GetInnerAttributes()->LookupInnerAttribute(
 				    GetInnerAttributeNameAt(nInnerAttribute));
@@ -2750,10 +2750,6 @@ KWDGPart* KWDGAttribute::LookupVarPart(KWDGPart* varPart)
 	require(GetAttributeType() == KWType::VarPart);
 
 	part = cast(KWDGPart*, nkdVarPartSets.Lookup((NUMERIC)varPart));
-
-	// DDD
-	if (part == NULL)
-		cout << "VarPart not found in Attribute";
 
 	ensure(part != NULL);
 	return part;
@@ -4410,7 +4406,7 @@ const ALString KWDGValueSet::GetObjectLabel() const
 			{
 				if (nValue > 0)
 					sLabel += ", ";
-				sLabel += dgValue->GetValue();
+				sLabel += GetExternalValue(dgValue->GetValue());
 				nValue++;
 			}
 			// Arret si au moins quatre valeurs
@@ -4424,6 +4420,33 @@ const ALString KWDGValueSet::GetObjectLabel() const
 	}
 	sLabel += "}";
 	return sLabel;
+}
+
+const ALString KWDGValueSet::GetExternalValue(const Symbol& sValue) const
+{
+	ALString sResult;
+	int nLength;
+	char c;
+	int i;
+
+	// On prend la valeur telle quelle
+	sResult = sValue;
+
+	// On la met entre quotes si elle contient un caractere special utilise par ObjectLabel
+	if (sResult.FindOneOf("'{},") != -1)
+	{
+		sResult = '\'';
+		nLength = sValue.GetLength();
+		for (i = 0; i < nLength; i++)
+		{
+			c = sValue.GetAt(i);
+			if (c == '\'')
+				sResult += '\'';
+			sResult += c;
+		}
+		sResult += '\'';
+	}
+	return sResult;
 }
 
 void KWDGValueSet::InternalSortValues(CompareFunction fCompare)
@@ -5002,8 +5025,9 @@ KWDGAttribute* KWDGInnerAttributes::LookupInnerAttribute(const ALString& sAttrib
 void KWDGInnerAttributes::AddInnerAttribute(KWDGAttribute* innerAttribute)
 {
 	require(innerAttribute != NULL);
-	require(KWType::IsSimple(innerAttribute->GetAttributeType()));
+	require(innerAttribute->GetAttributeName() != "");
 	require(odInnerAttributes.Lookup(innerAttribute->GetAttributeName()) == NULL);
+	require(KWType::IsSimple(innerAttribute->GetAttributeType()));
 	require(odInnerAttributes.GetCount() == oaInnerAttributes.GetSize());
 
 	// Ajout de l'attribut dans le tableau des attributs internes

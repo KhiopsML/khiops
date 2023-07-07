@@ -64,11 +64,9 @@ const ALString GetLearningSystemType();
 // CH IV Refactoring: envisager d'abandonner la gestion des poubelles
 //    pour les attributs de type VarPart( axe) et les VarPart attributs de ces axes?
 
-// CH IV Refactoring: renommer en GetVarPartAttributeGarbage?
 const boolean GetVarPartAttributeGarbage();
 void SetVarPartAttributeGarbage(const boolean bValue);
 
-// CH IV Refactoring: renommer en GetInnerAttributeGarbage?
 const boolean GetInnerAttributeGarbage();
 void SetInnerAttributeGarbage(const boolean bValue);
 // CH IV End
@@ -143,7 +141,7 @@ boolean GetForestExpertMode();
 boolean GetLearningCoclusteringExpertMode();
 
 // CH IV Begin
-// Indicateur du mode expert de l'outil de coclustering (permet d'activer la fonctionnalite de coclustering individus *
+// Indicateur du mode expert de l'outil de coclustering (permet d'activer la fonctionnalite de coclustering instances *
 // variables) Ce mode expert est controlable par la variable d'environnement KhiopsCoclusteringIVExpertMode a true ou
 // false
 boolean GetLearningCoclusteringIVExpertMode();

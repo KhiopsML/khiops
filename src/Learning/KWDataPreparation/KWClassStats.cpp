@@ -1294,10 +1294,9 @@ void KWClassStats::WriteJSONFields(JSONFile* fJSON)
 
 	// Correction de type patch pour contourner un bug de Khiops visualization
 	// Eventuellement a activer pour la version beta de Khiops V11, en attendant la correction dans la visualisation
-	// DDD
+	// DDD Bug reproduit dans LearningTest\TestKhiops\TextVariables\AllConstructionSpliceJunction
 	/*DDD
-	if (GetLearningKhiops11UIProtoMode() and GetWriteOptionStats2D() and oaFilteredDataPreparationStats.GetSize() ==
-	0)
+	if (GetWriteOptionStats2D() and oaFilteredDataPreparationStats.GetSize() == 0)
 	{
 		fJSON->BeginKeyArray(sDataStartLabel + "Statistics");
 		fJSON->EndArray();

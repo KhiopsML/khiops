@@ -17,9 +17,6 @@
 #include "KWAttributeNameView.h"
 #include "KWAttributeNameArrayView.h"
 #include "KWVersion.h"
-// CH IV Refactoring: il semble que les deux includes ci-dessous soient inutiles
-#include "KWAttributeAxisNameView.h"
-#include "KWAttributeAxisNameArrayView.h"
 
 // ##
 

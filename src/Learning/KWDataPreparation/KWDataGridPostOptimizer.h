@@ -22,7 +22,6 @@ class KWDGValueSetCostParameter;
 class KWDGVarPartSetCostParameter;
 class KWDGCellCostParameter;
 class KWDGPOCellFrequencyVector;
-// CH IV Refactoring: renommer en CCVarPartDataGridPostOptimizer
 class CCVarPartDataGridPostOptimizer;
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -679,7 +678,6 @@ protected:
 };
 
 // CH IV Begin
-// CH IV Refactoring: renommer en CCVarPartDataGridPostOptimizer
 // CH IV Refactoring: renommages internes apres analyse
 //////////////////////////////////////////////////////////////////////////////////
 // Classe CCVarPartDataGridPostOptimizer

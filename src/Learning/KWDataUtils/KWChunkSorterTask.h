@@ -152,7 +152,7 @@ protected:
 	// Pour des raisons d'optimisation, le chunk a trier peut etre constitue
 	// d'un ou plusieurs fichiers constitues par une tache precedente
 	PLShared_Int input_nBucketIndex;         // Index du bucket a trier
-	PLShared_StringVector input_svFileNames; // Liste des noms des fichier contituant le chunk a trier
+	PLShared_StringVector input_svFileNames; // Liste des noms des fichier constituant le chunk a trier
 
 	// En sortie des taches
 	PLShared_Int output_nBucketIndex; // Index du bucket trie (recopie d'apres la variable correspondante en entree)

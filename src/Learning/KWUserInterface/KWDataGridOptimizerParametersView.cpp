@@ -49,9 +49,6 @@ KWDataGridOptimizerParametersView::KWDataGridOptimizerParametersView()
 	GetFieldAt("InternalParameter")->SetVisible(false);
 
 	// CH IV Begin
-	// CH IV Refactoring: modifie en passant par le .dd: OK
-	// CH IV Refactoring: renommer PostFusion en VarPartPostFusion?
-	// CH IV Refactoring: renommer VarPartPostOptimization en VarPartPostOptimiz?
 	// Parametres de coclustering instances x variables en mode expert
 	GetFieldAt("VarPartPostMerge")->SetVisible(GetLearningCoclusteringIVExpertMode());
 	GetFieldAt("VarPartPostOptimize")->SetVisible(GetLearningCoclusteringIVExpertMode());

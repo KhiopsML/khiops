@@ -163,28 +163,20 @@ public:
 	void AddAttribute();
 
 	// CH IV Begin
-	// CH IV Refactoring: unifier la terminologie basee sur VarPart,
-	//  commenter un peu davantage les methodes suivantes
-	//  et reporter dans l'entete de la classe
 	// CH IV Refactoring: question: pourquoi la gestion des VarPart attributes n'est elle pas
 	//   porte par l'axe VarPart qui les contient, plutot que par le DataGrid?
 	//   MB: pourquoi pas, faire une etude d'impact et d'interet
 
 	// Type de grille : standard ou VarPart (avec une attribut de type VarPart)
-	// CH IV Refactoring: renommer en Set|GetVarPartDataGrid?
-	// CH IV Refactoring: remplacer Generic en VarPart partout (noms de variable locales, commentaires...)
 	boolean GetVarPartDataGrid() const;
 	void SetVarPartDataGrid(boolean bValue);
 
 	// Statut de la description des parties de variable des attributs internes : partagee ou proprietaire
 	// Seules les descriptions proprietaires sont detruites lors de la destruction de la grille
-	// CH IV Refactoring: renommer en Set|GetVarPartShared?
 	boolean GetVarPartsShared() const;
 	void SetVarPartsShared(boolean bValue) const;
 
 	// Acces aux attributs internes
-	// CH IV Refactoring: renommer en Set|GetInnerAttributes?
-	// CH IV Refactoring: remplacer Implied en Inner partout (noms de variable locales, commentaires...)
 	void SetInnerAttributes(KWDGInnerAttributes* attributes);
 	KWDGInnerAttributes* GetInnerAttributes() const;
 	// CH IV End
@@ -334,7 +326,6 @@ public:
 	boolean AreAttributePartsSorted() const;
 
 	// CH IV Begin
-	// CH IV Refactoring: renommer en AreInnerAttributesSorted?
 	// Verification du tri des parties des attributs internes : couteuse, a utiliser essentiellement dans les
 	// assertions
 	boolean AreInnerAttributePartsSorted() const;
@@ -357,7 +348,6 @@ public:
 	void WriteAttributeParts(ostream& ost) const;
 	void WriteCells(ostream& ost) const;
 	// CH IV Begin
-	// CH IV Refactoring: renommer en WriteVarPartAttributes?
 	void WriteInnerAttributes(ostream& ost) const;
 	// CH IV End
 
@@ -454,20 +444,13 @@ protected:
 	// CH IV Begin
 	// Type VarPart d'une grille admettant un attribut de type VarPart
 	// Par defaut a false
-	// CH IV Refactoring: renommer en bVarPartDataGrid?
 	boolean bVarPartDataGrid;
 
 	// Attributs internes dans les attributs de type VarPart
-	// CH IV Refactoring: renommer en innerAttributes?
 	KWDGInnerAttributes* innerAttributes;
-
-	// Cout du modele nul
-	// CH IV Refactoring: supprimer? (apparement, jamais utilise)
-	double dNullModelCost;
 
 	// Statut proprietaire ou partage de la description des attributs internes
 	// Mutable car modifie par HandleOptimizationStep
-	// CH IV Refactoring: renommer en bVarPartShared?
 	mutable boolean bVarPartsShared;
 	// CH IV End
 };
@@ -498,7 +481,7 @@ public:
 	// Acces au nom d'attribut de grille dont l'attribut interne fait eventuellement partie
 	// Dans le cas d'un attribut de grille simple (coclustering standard), renvoie vide
 	// Dans le cas d'un attribut interne, renvoie le nom de l'attribut de grille de type VarPart qui contient
-	// l'attribut CH IV Refactoring: renommer en Set|GetOwnerAttributeName?
+	// l'attribut
 	ALString GetOwnerAttributeName() const;
 	void SetOwnerAttributeName(ALString sName);
 
@@ -572,21 +555,20 @@ public:
 	// CH IV Begin
 	// Methodes specifiques aux attributs de type VarPart
 	// Acces au nombre d'attributs interne dans un attribut de grille de type VarPart
-	// CH IV Refactoring: renommer en Set|GetInnerAttributesNumber?
-	int GetInnerAttributesNumber() const;
-	void SetInnerAttributesNumber(int nValue);
+	int GetInnerAttributeNumber() const;
+	void SetInnerAttributeNumber(int nValue);
 
 	// Acces au tableau des noms des attributs internes dans un attribut de grille de type VarPart
-	// CH IV Refactoring: renommer en Set|GetInnerAttributeNameAt?
 	const ALString& GetInnerAttributeNameAt(int nIndex) const;
 	void SetInnerAttributeNameAt(int nAttributeIndex, const ALString& sInnerAttributeName);
 
 	// Tri du tableau des noms des attributs internes
-	// CH IV Refactoring: renommer en SortInnerAttributeNames?
+	// CH IV Refactoring: est-ce toujours utile si on deplacer la gestion des attributs internes vers l'atttribute
+	// de grille de type VarPart???
 	void SortInnerAttributeNames();
 
 	// Initialisation des parties de l'attribut de type VarPart a partir des attributs internes initialises en
-	// creant une partie par partie de variable CH IV Refactoring: renommer en CreateVarPartSet?
+	// creant une partie par partie de variable
 	void CreateVarPartsSet();
 	// CH IV End
 
@@ -786,15 +768,15 @@ protected:
 	NumericKeyDictionary nkdVarPartSets;
 
 	// Tableau des noms des attributs internes dans un attribut de type VarPart
-	// CH IV Refactoring: renommer en svInnerAttributeNames
 	StringVector svInnerAttributeNames;
 
+	// CH IV Refactoring: supprimer???
 	// Attribut de type VarPart dont depend un attribut interne
 	// Par defaut a NULL pour un attribut de type Simple (numerique ou categoriel)
 	// KWDGAttribute* attributeAxis;
+
 	// Nom de l'attribut de type VarPart dont depend un attribut interne
 	// Par defaut a vide pour un attribut de type Simple (numerique ou categoriel)
-	// CH IV Refactoring: renommer en sOwnerAttributeName, et revoir le commentaire
 	ALString sOwnerAttributeName;
 	// CH IV End
 };
@@ -1099,6 +1081,11 @@ public:
 	///////////////////////////////
 	///// Implementation
 protected:
+	// Nom externe d'une valeur, de facon a assurer que l'unicite des ObjectLabel
+	// Les valeurs sont entourees de quotes, si elle contiennent un des caracteres impliquee dans la construction du
+	// ObjectLabel
+	const ALString GetExternalValue(const Symbol& sValue) const;
+
 	// Tri des valeurs selon une fonction de tri
 	// La valeur speciale est toujours mise en dernier, independament du critere de tri
 	void InternalSortValues(CompareFunction fCompare);
@@ -1175,7 +1162,6 @@ public:
 	void DeleteVarPartValue(KWDGVarPartValue* varPartValue);
 
 	// Destruction de toutes les parties de variable
-	// CH IV Refactoring: renommer en DeleteAllVarPartValues
 	void DeleteAllVarPartValues();
 
 	// Test de validite d'une partie de variable (si elle appartient a la partie)
@@ -1279,13 +1265,12 @@ protected:
 };
 
 // Comparaison de deux parties de variable, par nom de variable puis par comparaison des parties si elles dependent de
-// la meme variable CH IV Refactoring: renommer en KWDGVarPartValueCompareAttributeNameAndVarPart
+// la meme variable
 int KWDGVarPartValueCompareAttributeNameAndVarPart(const void* elem1, const void* elem2);
 
 // Comparaison de deux objets KWSortableObject contenant des KWDGVarPartValue
 int KWSortableObjectCompareVarPart(const void* elem1, const void* elem2);
 
-// CH IV Refactoring: renommer en KWDGInnerAttributes, et commenter l'entete
 //////////////////////////////////////////////////////////////////////////////
 // Classe KWDGInnerAttributes
 // Ensemble des attributs internes d'un attribut de grille de type VarPart
@@ -1297,22 +1282,18 @@ public:
 	~KWDGInnerAttributes();
 
 	// Ajout d'un attribut interne
-	// CH IV Refactoring: renommer en AddInnerAttribute et deplacer en premiere methode
-	// CH IV Refactoring: et ajouter une nouvelle methode GetInnerAttributNumber
 	void AddInnerAttribute(KWDGAttribute* innerAttribute);
 
 	// Nombre attribut internes
 	int GetInnerAttributeNumber() const;
 
 	// Acces a un attribut interne par index
-	// CH IV Refactoring: renommer en GetInnerAttributeAt
 	KWDGAttribute* GetInnerAttributeAt(int nAttributeIndex) const;
 
 	// Acces a un attribut interne par nom
 	KWDGAttribute* LookupInnerAttribute(const ALString& sAttributeName);
 
 	// Acces a la granularite des parties de variable, partages par tous les attributs
-	// CH IV Refactoring: renommer en Set|GetVarPartGranularity
 	int GetVarPartGranularity() const;
 	void SetVarPartGranularity(int nValue);
 
@@ -1328,7 +1309,6 @@ public:
 	///////////////////////////////
 	///// Implementation
 protected:
-	// CH IV Refactoring: renommer en nVarPartGranularity, odInnerAttributes, oaInnerAttributes
 	int nVarPartGranularity;
 	ObjectDictionary odInnerAttributes;
 	ObjectArray oaInnerAttributes;
@@ -1601,10 +1581,6 @@ inline ALString KWDGAttribute::GetOwnerAttributeName() const
 inline void KWDGAttribute::SetOwnerAttributeName(ALString sName)
 {
 	sOwnerAttributeName = sName;
-	// CH IV Refactoring: lignes suivantes a supprimer? sOwnerAttributeName == "Identifier" en dur???: SUPPRIMER
-	// DDD
-	if (sOwnerAttributeName == "Identifier")
-		cout << "pb nom attribut VarPart" << endl;
 }
 
 // CH IV End
@@ -1703,13 +1679,13 @@ inline double KWDGAttribute::GetCost() const
 	return dCost;
 }
 // CH IV Begin
-inline int KWDGAttribute::GetInnerAttributesNumber() const
+inline int KWDGAttribute::GetInnerAttributeNumber() const
 {
 	ensure(nAttributeType == KWType::VarPart or svInnerAttributeNames.GetSize() == 0);
 	return svInnerAttributeNames.GetSize();
 }
 
-inline void KWDGAttribute::SetInnerAttributesNumber(int nValue)
+inline void KWDGAttribute::SetInnerAttributeNumber(int nValue)
 {
 	require(nAttributeType == KWType::VarPart or nValue == 0);
 	svInnerAttributeNames.SetSize(nValue);

@@ -10,9 +10,6 @@ CCAnalysisSpecView::CCAnalysisSpecView()
 	SetLabel("Parameters");
 
 	// CH IV Begin
-	// CH IV Refactoring: plutot passer par une gestion standard des parametres
-	//    dans le constructeur, EventRefresh, EventUpdate SetObject
-	//    et juste conditionner le visibilites des champs concernes
 	// Ajout d'un radio bouton pour choisir le type de coclustering : variables*variables ou instances*variables
 	// Le choix est exclusif
 	AddStringField("CoclusteringType", "Coclustering Type", "");

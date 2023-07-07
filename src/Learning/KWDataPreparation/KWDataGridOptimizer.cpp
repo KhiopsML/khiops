@@ -208,7 +208,7 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 
 			// CH IV Refactoring: nettoyer lignes suivantes?
 			/* CH
-			// Affichage pour grille individus * variables
+			// Affichage pour grille instances * variables
 			if (bDisplayGranularities and granularizedDataGrid.GetVarPartDataGrid())
 				cout << "Prepartitionnement\t" <<
 			granularizedDataGrid.GetInnerAttributes()->GetVarPartGranularity() << "\tGranularite\t" <<
@@ -299,7 +299,7 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 				}
 
 				// CH IV Begin
-				// Dans le cas d'un coclustering individus * variables, le cout obtenu
+				// Dans le cas d'un coclustering instances * variables, le cout obtenu
 				// dGranularityBestCost est le cout de l'antecedent de la meilleure grille avant fusion
 				// des PV d'un meme cluster L'amelioration de cout doit etre mesuree par rapport au cout
 				// de la grille post-fusionnee de granularizedOptimizedDataGrid
@@ -476,7 +476,7 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 			nGranularityIndex++;
 		}
 		// CH IV Begin
-		// Cas d'une grille conventionnelle hors coclustering individus * variables
+		// Cas d'une grille conventionnelle hors coclustering instances * variables
 		if (not optimizedDataGrid->GetVarPartDataGrid())
 		{
 			// Post-optimisation de la granularite : on attribue a la grille optimale la plus petite
@@ -504,7 +504,7 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 	// StopCCTimer(CCTimerPreOptimize);
 	// StopCCTimer(CCTimerMainOptimize);
 	// StopCCTimer(CCTimerPostOptimize);
-	// Memorisation des temps de calcul pour suivi dans le cas d'un coclustering individus variables
+	// Memorisation des temps de calcul pour suivi dans le cas d'un coclustering instances x variables
 	if (optimizedDataGrid->GetVarPartDataGrid())
 		AddSimpleMessage(
 		    sTmp + "Granularity : \t" +
