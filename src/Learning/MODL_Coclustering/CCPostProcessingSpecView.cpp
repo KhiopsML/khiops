@@ -12,7 +12,8 @@ CCPostProcessingSpecView::CCPostProcessingSpecView()
 {
 	SetIdentifier("CCPostProcessingSpec");
 	SetLabel("Simplification parameters");
-	AddStringField("ShortDescription", "ShortDescription", "");
+	AddStringField("CoclusteringType", "Coclustering type", "");
+	AddStringField("ShortDescription", "Short description", "");
 	AddIntField("InstanceNumber", "Instance number", 0);
 	AddIntField("NonEmptyCellNumber", "Non empty cell number", 0);
 	AddIntField("CellNumber", "Cell number", 0);
@@ -21,7 +22,6 @@ CCPostProcessingSpecView::CCPostProcessingSpecView()
 	AddIntField("TotalPartNumber", "Total part number", 0);
 	AddIntField("MaxTotalPartNumber", "Max total part number", 0);
 	AddStringField("FrequencyAttribute", "Frequency variable", "");
-	AddStringField("IdentifierAttribute", "Identifier variable", "");
 
 	// Parametrage des styles;
 	GetFieldAt("MaxCellNumber")->SetStyle("Spinner");
@@ -58,12 +58,17 @@ CCPostProcessingSpecView::CCPostProcessingSpecView()
 	MoveFieldBefore("PostProcessedAttributes", "FrequencyAttribute");
 
 	// CH IV Begin
-	// La variable d'effectif et d'identifiant n'est pas editable
-	GetFieldAt("FrequencyAttribute")->SetEditable(false);
-	GetFieldAt("IdentifierAttribute")->SetEditable(false);
+	// La variable de type de coclustering n'est pas editable
+	GetFieldAt("CoclusteringType")->SetEditable(false);
 	// CH IV End
 
+	// La variable d'effectif n'est pas editable
+	GetFieldAt("FrequencyAttribute")->SetEditable(false);
+
 	// Info-bulles
+	// CH IV Begin
+	GetFieldAt("CoclusteringType")->SetHelpText("Type of coclustering.");
+	// CH IV End
 	GetFieldAt("InstanceNumber")->SetHelpText("Instance number in the input coclustering.");
 	GetFieldAt("NonEmptyCellNumber")->SetHelpText("Non empty cell number in the input coclustering.");
 	GetFieldAt("CellNumber")->SetHelpText("Cell number in the input coclustering.");
@@ -80,10 +85,6 @@ CCPostProcessingSpecView::CCPostProcessingSpecView()
 	    ->SetHelpText("Max total number of parts to keep"
 			  "\n in the simplified coclustering (0: no constraint).");
 	GetFieldAt("FrequencyAttribute")->SetHelpText("Frequency variable in the input coclustering.");
-	// CH IV Begin
-	GetFieldAt("IdentifierAttribute")
-	    ->SetHelpText("Identifier variable in the instance * variables input coclustering.");
-	// CH IV End
 
 	// ##
 }
@@ -108,6 +109,7 @@ void CCPostProcessingSpecView::EventUpdate(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(CCPostProcessingSpec*, object);
+	editedObject->SetCoclusteringType(GetStringValueAt("CoclusteringType"));
 	editedObject->SetShortDescription(GetStringValueAt("ShortDescription"));
 	editedObject->SetInstanceNumber(GetIntValueAt("InstanceNumber"));
 	editedObject->SetNonEmptyCellNumber(GetIntValueAt("NonEmptyCellNumber"));
@@ -117,7 +119,6 @@ void CCPostProcessingSpecView::EventUpdate(Object* object)
 	editedObject->SetTotalPartNumber(GetIntValueAt("TotalPartNumber"));
 	editedObject->SetMaxTotalPartNumber(GetIntValueAt("MaxTotalPartNumber"));
 	editedObject->SetFrequencyAttribute(GetStringValueAt("FrequencyAttribute"));
-	editedObject->SetIdentifierAttribute(GetStringValueAt("IdentifierAttribute"));
 
 	// ## Custom update
 
@@ -131,6 +132,7 @@ void CCPostProcessingSpecView::EventRefresh(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(CCPostProcessingSpec*, object);
+	SetStringValueAt("CoclusteringType", editedObject->GetCoclusteringType());
 	SetStringValueAt("ShortDescription", editedObject->GetShortDescription());
 	SetIntValueAt("InstanceNumber", editedObject->GetInstanceNumber());
 	SetIntValueAt("NonEmptyCellNumber", editedObject->GetNonEmptyCellNumber());
@@ -140,7 +142,6 @@ void CCPostProcessingSpecView::EventRefresh(Object* object)
 	SetIntValueAt("TotalPartNumber", editedObject->GetTotalPartNumber());
 	SetIntValueAt("MaxTotalPartNumber", editedObject->GetMaxTotalPartNumber());
 	SetStringValueAt("FrequencyAttribute", editedObject->GetFrequencyAttribute());
-	SetStringValueAt("IdentifierAttribute", editedObject->GetIdentifierAttribute());
 
 	// ## Custom refresh
 

@@ -1,11 +1,11 @@
 Rank;Name;Type;Style;Label
-1;ShortDescription         ;ALString;    ;ShortDescription
-2;InstanceNumber           ;int;         ;Instance number
-3;NonEmptyCellNumber       ;int;         ;Non empty cell number
-4;CellNumber               ;int;         ;Cell number
-5;MaxCellNumber            ;int;Spinner  ;Max cell number
-6;MaxPreservedInformation  ;int;Spinner  ;Max preserved information
-7;TotalPartNumber          ;int;         ;Total part number
-8;MaxTotalPartNumber       ;int;Spinner  ;Max total part number
-9;FrequencyAttribute       ;ALString;    ;Frequency variable
-10;IdentifierAttribute     ;ALString;    ;Identifier variable
+1;CoclusteringType         ;ALString;    ;Coclustering type
+2;ShortDescription         ;ALString;    ;Short description
+3;InstanceNumber           ;int;         ;Instance number
+4;NonEmptyCellNumber       ;int;         ;Non empty cell number
+5;CellNumber               ;int;         ;Cell number
+6;MaxCellNumber            ;int;Spinner  ;Max cell number
+7;MaxPreservedInformation  ;int;Spinner  ;Max preserved information
+8;TotalPartNumber          ;int;         ;Total part number
+9;MaxTotalPartNumber       ;int;Spinner  ;Max total part number
+10;FrequencyAttribute      ;ALString;    ;Frequency variable

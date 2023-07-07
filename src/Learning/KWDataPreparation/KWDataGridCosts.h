@@ -10,7 +10,6 @@ class KWDataGridClusteringCosts;
 class KWDataGridRegressionCosts;
 class KWDataGridGeneralizedClassificationCosts;
 // CH IV Begin
-// CH IV Refactoring: renommer en KWVarPartDataGridClusteringCosts
 class KWVarPartDataGridClusteringCosts;
 // CH IV End
 #include "KWDataGrid.h"
@@ -68,12 +67,9 @@ public:
 	/////////////////////////////////////////////////////////////////////////
 	// Methodes avancees pour les grilles VarPart avec des attributs de type VarPart
 	// Calcul du cout local d'un attribut interne dans un attribut de type VarPart
-	// CH IV Refactoring: commenter un peu davantage
-	// CH IV Refactoring: renommer en ComputeInnerAttributeCost
 	virtual double ComputeInnerAttributeCost(const KWDGAttribute* attribute, int nPartitionSize) const;
 
 	// Calcul du cout local d'une partie d'un attribut interne dans une variable de type parties de variable
-	// CH IV Refactoring: renommer en ComputeInnerAttributePartCost
 	virtual double ComputeInnerAttributePartCost(const KWDGPart* part) const;
 	// CH IV End
 
@@ -288,11 +284,9 @@ public:
 
 	// CH IV Begin
 	// Calcul du cout local d'un attribut interne dans une variable de type parties de variable
-	// CH IV Refactoring: renommer en ComputeInnerAttributeCost
 	double ComputeInnerAttributeCost(const KWDGAttribute* attribute, int nPartitionSize) const override;
 
 	// Calcul du cout local d'une partie d'un attribut interne dans une variable de type parties de variable
-	// CH IV Refactoring: renommer en ComputeInnerAttributePartCost
 	double ComputeInnerAttributePartCost(const KWDGPart* part) const override;
 	// CH IV End
 
@@ -352,11 +346,9 @@ public:
 
 	// CH IV Begin
 	// Calcul du cout local d'un attribut interne dans une variable de type parties de variable
-	// CH IV Refactoring: renommer en ComputeInnerAttributeCost
 	double ComputeInnerAttributeCost(const KWDGAttribute* attribute, int nPartitionSize) const override;
 
 	// Calcul du cout local d'une partie d'un attribut interne dans une variable de type parties de variable
-	// CH IV Refactoring: renommer en ComputeInnerAttributePartCost
 	double ComputeInnerAttributePartCost(const KWDGPart* part) const override;
 	// CH IV End
 
@@ -377,8 +369,8 @@ public:
 
 // CH IV Begin
 ////////////////////////////////////////////////////////////////////////////
-// Structure des couts d'une grille de donnees dans le cas du clustering avec un attribut de type VarPart
-// CH IV Refactoring: renommer en KWVarPartDataGridClusteringCosts
+// Structure des couts d'une grille de donnees dans le cas du clustering instances x variable, comportant un attribut de
+// type VarPart
 class KWVarPartDataGridClusteringCosts : public KWDataGridCosts
 {
 public:
@@ -417,11 +409,9 @@ public:
 	double ComputeValueCost(const KWDGValue* value) const override;
 
 	// Calcul du cout local d'un attribut interne dans une variable de type parties de variable
-	// CH IV Refactoring: renommer en ComputeInnerAttributeCost
 	double ComputeInnerAttributeCost(const KWDGAttribute* attribute, int nPartitionSize) const override;
 
 	// Calcul du cout local d'une partie d'un attribut interne dans une variable de type parties de variable
-	// CH IV Refactoring: renommer en ComputeInnerAttributePartCost
 	double ComputeInnerAttributePartCost(const KWDGPart* part) const override;
 
 	// Cout de modele par entite
@@ -483,11 +473,9 @@ public:
 
 	// CH IV Begin
 	// Calcul du cout local d'un attribut interne dans une variable de type parties de variable
-	// CH IV Refactoring: renommer en ComputeInnerAttributeCost
 	double ComputeInnerAttributeCost(const KWDGAttribute* attribute, int nPartitionSize) const override;
 
 	// Calcul du cout local d'une partie d'un attribut interne dans une variable de type parties de variable
-	// CH IV Refactoring: renommer en ComputeInnerAttributePartCost
 	double ComputeInnerAttributePartCost(const KWDGPart* part) const override;
 	// CH IV End
 
@@ -553,11 +541,9 @@ public:
 
 	// CH IV Begin
 	// Calcul du cout local d'un attribut interne dans une variable de type parties de variable
-	// CH IV Refactoring: renommer en ComputeInnerAttributeCost
 	double ComputeInnerAttributeCost(const KWDGAttribute* attribute, int nPartitionSize) const override;
 
 	// Calcul du cout local d'une partie d'un attribut interne dans une variable de type parties de variable
-	// CH IV Refactoring: renommer en ComputeInnerAttributePartCost
 	double ComputeInnerAttributePartCost(const KWDGPart* part) const override;
 	// CH IV End
 

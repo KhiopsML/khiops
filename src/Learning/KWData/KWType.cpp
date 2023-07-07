@@ -41,8 +41,7 @@ const ALString KWType::ToString(int nType)
 		return "TableBlock";
 	// CH IV Begin
 	case VarPart:
-		// CH IV Refactoring: renommer en VarPart
-		return "VariableParts";
+		return "VarPart";
 	// CH IV End
 	case None:
 		return "None";
@@ -84,8 +83,7 @@ int KWType::ToType(const ALString& sType)
 	else if (sType == "TableBlock")
 		return ObjectArrayValueBlock;
 	// CH IV Begin
-	// CH IV Refactoring: utiliser VarPart
-	else if (sType == "VariablePart")
+	else if (sType == "VarPart")
 		return VarPart;
 	// CH IV End
 	else if (sType == "None")

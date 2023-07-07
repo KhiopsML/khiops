@@ -2420,8 +2420,8 @@ void KWDataGridUnivariateCosts::InitializeUnivariateCostParameters(const KWDataG
 	attributeCostParameter->SetGranularizedValueNumber(postOptimizedAttribute->GetGranularizedValueNumber());
 	attributeCostParameter->nGarbageModalityNumber = postOptimizedAttribute->GetGarbageModalityNumber();
 	// CH IV Begin
-	attributeCostParameter->SetInnerAttributesNumber(postOptimizedAttribute->GetInnerAttributesNumber());
-	for (nInnerAttribute = 0; nInnerAttribute < postOptimizedAttribute->GetInnerAttributesNumber();
+	attributeCostParameter->SetInnerAttributeNumber(postOptimizedAttribute->GetInnerAttributeNumber());
+	for (nInnerAttribute = 0; nInnerAttribute < postOptimizedAttribute->GetInnerAttributeNumber();
 	     nInnerAttribute++)
 	{
 		attributeCostParameter->SetInnerAttributeNameAt(

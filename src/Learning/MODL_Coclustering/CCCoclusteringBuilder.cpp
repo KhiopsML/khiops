@@ -330,11 +330,11 @@ void CCCoclusteringBuilder::OptimizeDataGrid(const KWDataGrid* inputInitialDataG
 			cout << "Algorithme d'optimisation variable * variable\n";
 		dataGridOptimizer.OptimizeDataGrid(initialDataGrid, optimizedDataGrid);
 	}
-	// Sinon : optimisation de la grille dans le cas d'un coclustering individus * variables
+	// Sinon : optimisation de la grille dans le cas d'un coclustering instances * variables
 	else
 	{
 		if (bDisplayResults)
-			cout << "Algorithme d'optimisation individus * variables\n";
+			cout << "Algorithme d'optimisation instances * variables\n";
 		// CH IV a encapsuler dans une methode mais probleme pour l'instant avec dataGridOptimizer utilise comme
 		// argument
 		// OptimizeVarPartDataGrid(initialDataGrid, optimizedDataGrid, dataGridOptimizer);
@@ -462,7 +462,7 @@ void CCCoclusteringBuilder::OptimizeDataGrid(const KWDataGrid* inputInitialDataG
 				if (attribute->GetAttributeType() == KWType::VarPart)
 				{
 					for (nInnerAttribute = 0;
-					     nInnerAttribute < attribute->GetInnerAttributesNumber(); nInnerAttribute++)
+					     nInnerAttribute < attribute->GetInnerAttributeNumber(); nInnerAttribute++)
 					{
 						innerAttribute =
 						    attribute->GetDataGrid()
@@ -942,7 +942,7 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 			// Traitement dans le cas VarPart uniquement
 			if (attribute->GetAttributeType() == KWType::VarPart)
 			{
-				for (nInnerAttribute = 0; nInnerAttribute < attribute->GetInnerAttributesNumber();
+				for (nInnerAttribute = 0; nInnerAttribute < attribute->GetInnerAttributeNumber();
 				     nInnerAttribute++)
 				{
 					innerAttribute =
@@ -1567,10 +1567,10 @@ KWDataGrid* CCCoclusteringBuilder::CreateVarPartDataGrid(const KWTupleTable* tup
 			// Necessairement pas un attribut cible
 
 			// Creation du tableau des attributs internes
-			dgAttribute->SetInnerAttributesNumber(ivInnerAttributesNumber.GetAt(nAxis));
+			dgAttribute->SetInnerAttributeNumber(ivInnerAttributesNumber.GetAt(nAxis));
 
 			nInitialVarPartNumber = 0;
-			for (nInnerAttribute = 0; nInnerAttribute < dgAttribute->GetInnerAttributesNumber();
+			for (nInnerAttribute = 0; nInnerAttribute < dgAttribute->GetInnerAttributeNumber();
 			     nInnerAttribute++)
 			{
 				// Recherche de l'index de l'attribut dans la table de tuples
@@ -1726,9 +1726,9 @@ void CCCoclusteringBuilder::CleanVarPartDataGrid(KWDataGrid* dataGrid)
 //	int nAttribute;
 //	boolean bOk = true;
 //
-//	require(dgAttribute->GetInnerAttributesNumber() > 0);
+//	require(dgAttribute->GetInnerAttributeNumber() > 0);
 //
-//	for (nAttribute = 0; nAttribute < dgAttribute->GetInnerAttributesNumber(); nAttribute++)
+//	for (nAttribute = 0; nAttribute < dgAttribute->GetInnerAttributeNumber(); nAttribute++)
 //	{
 //		innerAttribute = dgAttribute->GetInnerAttributesAt(nAttribute);
 //		currentPart = innerAttribute->GetHeadPart();
@@ -1884,7 +1884,7 @@ boolean CCCoclusteringBuilder::CreateDataGridCells(const KWTupleTable* tupleTabl
 
 			//			// Parcours des attributs internes de attribut de type VarPart
 			//			for (nInnerAttribute = 0; nInnerAttribute <
-			// dgAttribute->GetInnerAttributesNumber(); nInnerAttribute++)
+			// dgAttribute->GetInnerAttributeNumber(); nInnerAttribute++)
 			//			{
 			//				// Extraction de l'attribut interne pour l'observation courante
 			//				innerAttribute =
@@ -1989,7 +1989,7 @@ boolean CCCoclusteringBuilder::CreateDataGridCells(const KWTupleTable* tupleTabl
 			boolean bInnerAttributeOk;
 
 			// Parcours des axes de type VarPart
-			// Ce parcours ne contient qu'un axe pour le cas de 2 axes individus * variables
+			// Ce parcours ne contient qu'un axe pour le cas de 2 axes instances * variables
 			for (nAttribute = nFirstVarPartsAttributeIndex; nAttribute < dataGrid->GetAttributeNumber();
 			     nAttribute++)
 			{
@@ -1997,7 +1997,7 @@ boolean CCCoclusteringBuilder::CreateDataGridCells(const KWTupleTable* tupleTabl
 				dgAttribute = dataGrid->GetAttributeAt(nAttribute);
 
 				// Parcours des attributs interne de attribut de grille de type VarPart
-				for (nInnerAttribute = 0; nInnerAttribute < dgAttribute->GetInnerAttributesNumber();
+				for (nInnerAttribute = 0; nInnerAttribute < dgAttribute->GetInnerAttributeNumber();
 				     nInnerAttribute++)
 				{
 					// Extraction de l'attribut interne dans l'observation courante
@@ -2240,7 +2240,7 @@ void CCCoclusteringBuilder::HandleOptimizationStep(const KWDataGrid* optimizedDa
 		coclusteringDataGrid->SetShortDescription(GetShortDescription());
 
 		// CH IV Begin
-		// Memorisation variable identifiant dans le cas d'un coclustering individus * variables
+		// Memorisation variable identifiant dans le cas d'un coclustering instances * variables
 		if (optimizedDataGrid->GetVarPartDataGrid())
 			coclusteringDataGrid->SetIdentifierAttributeName(GetIdentifierAttribute());
 
@@ -3768,7 +3768,7 @@ void CCCoclusteringBuilder::ComputeHierarchicalInfo(const KWDataGrid* inputIniti
 	optimizedDataGrid->SetCost(dBestDataGridTotalCost);
 	optimizedDataGrid->SetNullCost(dataGridMerger.GetDataGridCosts()->GetTotalDefaultCost());
 	// CH IV Begin
-	// Dans le cas d'un coclustering individus x variables, la structure de cout depend du pre-partitionnement des
+	// Dans le cas d'un coclustering instances x variables, la structure de cout depend du pre-partitionnement des
 	// attributs internes donc son cout par defaut n'est pas egal au cout du modele nul Le cout du modele nul (avec
 	// une partie par attribut interne) est calcule au debut de la methode CCCoclusteringBuilder::OptimizeDataGrid
 	if (optimizedDataGrid->GetVarPartDataGrid())
@@ -3834,9 +3834,8 @@ void CCCoclusteringBuilder::ComputeContinuousAttributeBounds(CCHierarchicalDataG
 	ContinuousVector* cvMaxValues;
 	int nInnerAttribute;
 	KWDGAttribute* innerAttribute;
-	ObjectDictionary* odIndexInnerVariable;
-	// DoubleObject* doMin;
-	// DoubleObject* doMax;
+	ObjectDictionary* odInnerContinuousAttributeIndexes;
+	IntObject* io;
 
 	require(optimizedDataGrid != NULL);
 
@@ -3858,18 +3857,20 @@ void CCCoclusteringBuilder::ComputeContinuousAttributeBounds(CCHierarchicalDataG
 			}
 		}
 		// CH IV Begin
+		// CH IV Refactoring: est-ce utile, si on memorise les PartLabels explicitement
 		// Recherche des caracteristiques des attributs internes numeriques
-		if (hdgAttribute->GetInnerAttributesNumber() > 0)
+		if (hdgAttribute->GetInnerAttributeNumber() > 0)
 		{
 			cvMinValues = new ContinuousVector;
 			cvMaxValues = new ContinuousVector;
-			odIndexInnerVariable = new ObjectDictionary;
+			odInnerContinuousAttributeIndexes = new ObjectDictionary;
 
-			for (nInnerAttribute = 0; nInnerAttribute < hdgAttribute->GetInnerAttributesNumber();
+			for (nInnerAttribute = 0; nInnerAttribute < hdgAttribute->GetInnerAttributeNumber();
 			     nInnerAttribute++)
 			{
 				innerAttribute = coclusteringDataGrid->GetInnerAttributes()->LookupInnerAttribute(
 				    hdgAttribute->GetInnerAttributeNameAt(nInnerAttribute));
+
 				// Cas d'un attribut Continuous
 				if (innerAttribute->GetAttributeType() == KWType::Continuous)
 				{
@@ -3878,28 +3879,24 @@ void CCCoclusteringBuilder::ComputeContinuousAttributeBounds(CCHierarchicalDataG
 						 odDescriptiveStats.Lookup(innerAttribute->GetAttributeName()));
 					cvMinValues->Add(descriptiveContinuousStats->GetMin());
 					cvMaxValues->Add(descriptiveContinuousStats->GetMax());
-					IntObject* io = new IntObject;
+					io = new IntObject;
 					io->SetInt(cvMinValues->GetSize() - 1);
-					odIndexInnerVariable->SetAt(innerAttribute->GetAttributeName(), io);
-					// CH IV Refactoring: a supprimer?
-					// doMin = new DoubleObject;
-					// doMin->SetDouble(descriptiveContinuousStats->GetMin());
-
-					// doMax = new DoubleObject;
-					// doMax->SetDouble(descriptiveContinuousStats->GetMax());
+					odInnerContinuousAttributeIndexes->SetAt(innerAttribute->GetAttributeName(),
+										 io);
 				}
 			}
 			if (cvMinValues->GetSize() > 0)
 			{
 				coclusteringDataGrid->SetInnerAttributeMinValues(cvMinValues);
 				coclusteringDataGrid->SetInnerAttributeMaxValues(cvMaxValues);
-				coclusteringDataGrid->SetInnerAttributeIndexes(odIndexInnerVariable);
+				coclusteringDataGrid->SetInnerContinuousAttributeIndexes(
+				    odInnerContinuousAttributeIndexes);
 			}
 			else
 			{
 				delete cvMinValues;
 				delete cvMaxValues;
-				delete odIndexInnerVariable;
+				delete odInnerContinuousAttributeIndexes;
 			}
 		}
 		// CH IV End

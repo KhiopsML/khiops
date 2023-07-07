@@ -2089,8 +2089,8 @@ boolean KWClass::IsStringIdentifier(const ALString& sValue)
 
 ALString KWClass::GetExternalName(const ALString& sValue)
 {
-	int nLength;
 	ALString sResult;
+	int nLength;
 	char c;
 	int i;
 

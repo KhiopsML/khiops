@@ -60,13 +60,12 @@ public:
 	void SetPostOptimize(boolean bValue);
 
 	// CH IV Begin
-	// Post-fusion des parties de variable d'un meme cluster pour le coclustering individus * variable
-	// CH IV Refactoring: renommer en Set|GetVarPartPostMerge
+	// Post-fusion des parties de variable d'un meme cluster pour le coclustering instances * variables
 	boolean GetVarPartPostMerge() const;
 	void SetVarPartPostMerge(boolean bValue);
 
 	// VarPart Post-optimisation des parties de variable (modification des frontieres) pour le coclustering
-	// individus * variable
+	// instances * variables
 	boolean GetVarPartPostOptimize() const;
 	void SetVarPartPostOptimize(boolean bValue);
 	// CH IV End

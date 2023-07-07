@@ -595,7 +595,7 @@ double KWDataGridCosts::ComputeDataGridAllValuesCost(const KWDataGrid* dataGrid)
 		// VarPart
 		else if (attribute->GetAttributeType() == KWType::VarPart)
 		{
-			for (nInnerAttribute = 0; nInnerAttribute < attribute->GetInnerAttributesNumber();
+			for (nInnerAttribute = 0; nInnerAttribute < attribute->GetInnerAttributeNumber();
 			     nInnerAttribute++)
 			{
 				innerAttribute = attribute->GetDataGrid()->GetInnerAttributes()->LookupInnerAttribute(
@@ -1864,7 +1864,7 @@ double KWVarPartDataGridClusteringCosts::ComputeAttributeCost(const KWDGAttribut
 	{
 		// CH AB AF pour optimiser les calculs, memoriser le dInnerAttributeCost et ne le calculer que si
 		// necessaire (changement de partition ou post-fusion) Prise en compte du cout des attributs internes
-		for (nInnerAttribute = 0; nInnerAttribute < attribute->GetInnerAttributesNumber(); nInnerAttribute++)
+		for (nInnerAttribute = 0; nInnerAttribute < attribute->GetInnerAttributeNumber(); nInnerAttribute++)
 		{
 			innerAttribute = attribute->GetDataGrid()->GetInnerAttributes()->LookupInnerAttribute(
 			    attribute->GetInnerAttributeNameAt(nInnerAttribute));
@@ -2150,7 +2150,7 @@ double KWVarPartDataGridClusteringCosts::ComputeAttributeModelCost(const KWDGAtt
 	if (attribute->GetDataGrid()->GetVarPartDataGrid() and attribute->GetAttributeType() == KWType::VarPart)
 	{
 		// Prise en compte du cout des attributs internes
-		for (nInnerAttribute = 0; nInnerAttribute < attribute->GetInnerAttributesNumber(); nInnerAttribute++)
+		for (nInnerAttribute = 0; nInnerAttribute < attribute->GetInnerAttributeNumber(); nInnerAttribute++)
 		{
 			innerAttribute = attribute->GetDataGrid()->GetInnerAttributes()->LookupInnerAttribute(
 			    attribute->GetInnerAttributeNameAt(nInnerAttribute));

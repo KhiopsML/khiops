@@ -53,7 +53,6 @@ public:
 		ContinuousValueBlock,  // Type bloc de valeurs Continuous
 		ObjectArrayValueBlock, // Type bloc de valeurs ObjectArray
 		// CH IV Begin
-		// CH IV Refactoring: renommer en VarPart
 		VarPart, // Type parties de variables (coclustering instances * variables)
 		// CH IV End
 		None,   // Type absent deliberement, pour le non supervise
@@ -104,8 +103,11 @@ public:
 	static int GetBlockBaseType(int nType);
 
 	// CH IV Begin
-	// Indique si le type peut etre utilise pour un attribut de grille: : (Continuous, Symbol ou VarPart)
+	// Indique si le type peut etre utilise pour un attribut de grille: (Continuous, Symbol ou VarPart)
 	static boolean IsCoclusteringType(int nType);
+
+	// Renvoie le type eementaire d'un attribut de grille: (Continuous, ou Symbol pour un type Symbol ou VarPart)
+	static int GetSimpleCoclusteringType(int nType);
 	// CH IV End
 
 	// Indique si le type est un type de predicteur: (Continuous, Symbol ou None)
@@ -363,6 +365,15 @@ inline int KWType::GetBlockBaseType(int nType)
 inline boolean KWType::IsCoclusteringType(int nType)
 {
 	return (nType == Continuous or nType == Symbol or nType == VarPart);
+}
+
+inline int KWType::GetSimpleCoclusteringType(int nType)
+{
+	require(IsCoclusteringType(nType));
+	if (nType == Continuous)
+		return Continuous;
+	else
+		return Symbol;
 }
 
 inline boolean KWType::IsPredictorType(int nType)
