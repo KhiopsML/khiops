@@ -413,7 +413,7 @@ boolean DTDecisionTreeNode::IsPrunable() const
 
 void DTDecisionTreeNode::SetLeaf(boolean b)
 {
-	if (this->fatherNode == NULL)
+	if (fatherNode == NULL)
 		bIsLeaf = b;
 	bIsLeaf = b;
 }

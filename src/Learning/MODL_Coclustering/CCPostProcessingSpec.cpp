@@ -298,7 +298,7 @@ void CCPostProcessingSpec::UpdateCoclusteringSpec(const ALString& sCoclusteringR
 		// CH IV Begin
 		// Attribute identifiant (coclustering instances * variables)
 		sCoclusteringType =
-		    CCAnalysisSpec::GetCoclusteringLabelFromType(coclusteringDataGrid.GetVarPartDataGrid());
+		    CCAnalysisSpec::GetCoclusteringLabelFromType(coclusteringDataGrid.IsVarPartDataGrid());
 		// CH IV End
 
 		// Description courte

@@ -232,15 +232,6 @@ KWDataGridPostOptimizer::BuildUnivariateInitialDataGrid(const KWDataGrid* optimi
 	// Creation de la grille univariee
 	univariateInitialDataGrid = new KWDataGrid;
 
-	// CH IV Begin
-	// Parametrage par les parties de variable
-	if (optimizedDataGrid->GetVarPartDataGrid())
-	{
-		univariateInitialDataGrid->SetInnerAttributes(optimizedDataGrid->GetInnerAttributes());
-		univariateInitialDataGrid->SetVarPartsShared(true);
-	}
-	// CH IV End
-
 	// Export des attributs et des parties de la grille optimisee
 	dataGridManager.SetSourceDataGrid(optimizedDataGrid);
 	dataGridManager.ExportAttributes(univariateInitialDataGrid);
@@ -2376,9 +2367,6 @@ void KWDataGridUnivariateCosts::InitializeUnivariateCostParameters(const KWDataG
 	KWDGAttribute* attribute;
 	KWDGPart* part;
 	int nPartitionSize;
-	// CH IV Begin
-	int nInnerAttribute;
-	// CH IV End
 
 	require(GetPostOptimizationAttributeName() != "");
 	require(GetDataGridCosts() != NULL);
@@ -2401,11 +2389,6 @@ void KWDataGridUnivariateCosts::InitializeUnivariateCostParameters(const KWDataG
 	if (postOptimizedAttribute->GetPartNumber() > 1)
 		dataGridCostParameter->nInformativeAttributeNumber--;
 	dataGridCostParameter->nGranularity = optimizedDataGrid->GetGranularity();
-	// CH IV Begin
-	dataGridCostParameter->bVarPartDataGrid = optimizedDataGrid->GetVarPartDataGrid();
-	dataGridCostParameter->SetInnerAttributes(optimizedDataGrid->GetInnerAttributes());
-	dataGridCostParameter->SetVarPartsShared(true);
-	// CH IV End
 
 	// Memorisation des caracteristiques de l'attribut a post-optimiser
 	attributeCostParameter = new KWDGAttributeCostParameter;
@@ -2419,15 +2402,13 @@ void KWDataGridUnivariateCosts::InitializeUnivariateCostParameters(const KWDataG
 	attributeCostParameter->SetInitialValueNumber(postOptimizedAttribute->GetInitialValueNumber());
 	attributeCostParameter->SetGranularizedValueNumber(postOptimizedAttribute->GetGranularizedValueNumber());
 	attributeCostParameter->nGarbageModalityNumber = postOptimizedAttribute->GetGarbageModalityNumber();
-	// CH IV Begin
-	attributeCostParameter->SetInnerAttributeNumber(postOptimizedAttribute->GetInnerAttributeNumber());
-	for (nInnerAttribute = 0; nInnerAttribute < postOptimizedAttribute->GetInnerAttributeNumber();
-	     nInnerAttribute++)
+
+	// On memorise les attributs internes en status partage
+	if (postOptimizedAttribute->GetAttributeType() == KWType::VarPart)
 	{
-		attributeCostParameter->SetInnerAttributeNameAt(
-		    nInnerAttribute, postOptimizedAttribute->GetInnerAttributeNameAt(nInnerAttribute));
+		attributeCostParameter->SetInnerAttributes(postOptimizedAttribute->GetInnerAttributes());
+		attributeCostParameter->SetVarPartsShared(true);
 	}
-	// CH IV End
 
 	// Caracteristiques generales du cout en univarie
 	nValueNumber = attributeCostParameter->GetGranularizedValueNumber();
@@ -3492,8 +3473,8 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 	// bBestNegativeVariationForEachAttribute : pour chaque attribut, le meilleur deplacement est memorise
 	// bBestNegativeVariation : le meilleur deplacement parmi tous les attributs est memorise
 
-	require(optimizedDataGrid->GetVarPartDataGrid());
-	require(referenceDataGrid->GetVarPartDataGrid());
+	require(optimizedDataGrid->IsVarPartDataGrid());
+	require(referenceDataGrid->IsVarPartDataGrid());
 	require(ivGroups != NULL);
 
 	// Initialisation du nombre d'ameliorations
@@ -3525,7 +3506,6 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 		optimizedDataGrid->Write(cout);
 		cout << "CCVarPartDataGridPostOptimizer: Table de reference avec PV elementaires\n";
 		referenceDataGrid->Write(cout);
-		// cout << "CCVarPartDataGridPostOptimizer:Attribut a optimiser\t" << sInnerAttributeName << endl;
 		cout << "CCVarPartDataGridPostOptimizer:Attribut VarPart\tVarPartNumber\t"
 		     << varPartOptimizedAttribute->GetInitialValueNumber() << "\tClusterNumber\t"
 		     << varPartOptimizedAttribute->GetPartNumber() << endl;
@@ -3993,8 +3973,8 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 		{
 			// Extraction de l'attribut interne dans la grille optimisee
 			// Les PV y sont fusionnees comme dans les clusters
-			innerOptimizedAttribute =
-			    optimizedDataGrid->SearchAttribute(innerAttribute->GetAttributeName());
+			innerOptimizedAttribute = optimizedDataGrid->GetInnerAttributes()->LookupInnerAttribute(
+			    innerAttribute->GetAttributeName());
 			innerOptimizedAttribute->BuildIndexingStructure();
 
 			if (bBestNegativeVariationForEachAttribute)
@@ -4292,14 +4272,11 @@ double CCVarPartDataGridPostOptimizer::ComputeVarPartsSymbolAttributeVariationCo
 
 	require(attribute != NULL);
 	require(attribute->GetTrueValueNumber() > 0);
-	require(attribute->GetDataGrid()->GetVarPartDataGrid());
 	require(attribute->GetAttributeType() == KWType::VarPart);
-	require(attribute->GetDataGrid()
-		    ->GetInnerAttributes()
-		    ->LookupInnerAttribute(sInnerAttributeName)
-		    ->GetAttributeType() == KWType::Symbol);
+	require(attribute->GetInnerAttributes()->LookupInnerAttribute(sInnerAttributeName)->GetAttributeType() ==
+		KWType::Symbol);
 
-	innerAttribute = attribute->GetDataGrid()->GetInnerAttributes()->LookupInnerAttribute(sInnerAttributeName);
+	innerAttribute = attribute->GetInnerAttributes()->LookupInnerAttribute(sInnerAttributeName);
 	nPartileNumber = attribute->GetTrueValueNumber();
 	nClusterNumber = attribute->GetPartNumber();
 
@@ -4513,14 +4490,11 @@ double CCVarPartDataGridPostOptimizer::ComputeVarPartsContinuousAttributeVariati
 
 	require(attribute != NULL);
 	require(attribute->GetTrueValueNumber() > 0);
-	require(attribute->GetDataGrid()->GetVarPartDataGrid());
 	require(attribute->GetAttributeType() == KWType::VarPart);
-	require(attribute->GetDataGrid()
-		    ->GetInnerAttributes()
-		    ->LookupInnerAttribute(sInnerAttributeName)
-		    ->GetAttributeType() == KWType::Continuous);
+	require(attribute->GetInnerAttributes()->LookupInnerAttribute(sInnerAttributeName)->GetAttributeType() ==
+		KWType::Continuous);
 
-	innerAttribute = attribute->GetDataGrid()->GetInnerAttributes()->LookupInnerAttribute(sInnerAttributeName);
+	innerAttribute = attribute->GetInnerAttributes()->LookupInnerAttribute(sInnerAttributeName);
 	nPartileNumber = attribute->GetTrueValueNumber();
 	nClusterNumber = attribute->GetPartNumber();
 

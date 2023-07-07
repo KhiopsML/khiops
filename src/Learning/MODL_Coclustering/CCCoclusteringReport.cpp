@@ -652,15 +652,6 @@ boolean CCCoclusteringReport::ReadDimensions(CCHierarchicalDataGrid* coclusterin
 				nAttributeType = KWType::Continuous;
 			else
 				nAttributeType = KWType::ToType(sField);
-
-			// CH IV Begin
-			if (bOk and coclusteringDataGrid->GetVarPartDataGrid())
-			{
-				AddError(sTmp + "Invalid coclustering type (VarPart coclustering not available with "
-						"deprecated khc format)");
-				bOk = false;
-			}
-			// CH IV End
 			if (bOk and not KWType::IsSimple(nAttributeType))
 			{
 				bOk = false;
@@ -2844,7 +2835,7 @@ boolean CCCoclusteringReport::ReadJSONDimensionSummaries(CCHierarchicalDataGrid*
 	boolean bIsVarPart;
 	ALString sValue;
 	int nAttribute;
-	CCHDGAttribute* dgVarPartAttribute;
+	CCHDGAttribute* varPartAttribute;
 	ALString sTmp;
 
 	require(coclusteringDataGrid != NULL);
@@ -2854,6 +2845,7 @@ boolean CCCoclusteringReport::ReadJSONDimensionSummaries(CCHierarchicalDataGrid*
 	bOk = bOk and JSONTokenizer::ReadKeyArray("dimensionSummaries");
 
 	// Lecture des elements du tableau
+	varPartAttribute = NULL;
 	while (bOk and not bIsEnd)
 	{
 		// Initialisations
@@ -2966,6 +2958,14 @@ boolean CCCoclusteringReport::ReadJSONDimensionSummaries(CCHierarchicalDataGrid*
 			}
 		}
 
+		// Erreur si tentative d'ajout d'un second attribut de type VarPart
+		if (bOk and varPartAttribute != NULL and nAttributeType == KWType::VarPart)
+		{
+			bOk = false;
+			AddError("Incorrect use of two variables of type VarPart: " +
+				 varPartAttribute->GetAttributeName() + " and " + sAttributeName);
+		}
+
 		// Specification de l'attribut
 		if (bOk)
 		{
@@ -2979,6 +2979,10 @@ boolean CCCoclusteringReport::ReadJSONDimensionSummaries(CCHierarchicalDataGrid*
 			dgAttribute->SetGranularizedValueNumber(nAttributeValueNumber);
 			dgAttribute->SetInterest(dAttributeInterest);
 			dgAttribute->SetDescription(sAttributeDescription);
+
+			// Memorisation dans le cas d'un attribut de type VarPart
+			if (nAttributeType == KWType::VarPart)
+				varPartAttribute = dgAttribute;
 
 			// Valeur min et max dans le cas numerique
 			if (nAttributeType == KWType::Continuous)
@@ -2998,36 +3002,10 @@ boolean CCCoclusteringReport::ReadJSONDimensionSummaries(CCHierarchicalDataGrid*
 	}
 
 	// CH IV Begin
-	// Recherche des attributs de type VarPart
-	dgVarPartAttribute = NULL;
-	if (bOk)
-	{
-		for (nAttribute = 0; nAttribute < coclusteringDataGrid->GetAttributeNumber(); nAttribute++)
-		{
-			dgAttribute = cast(CCHDGAttribute*, coclusteringDataGrid->GetAttributeAt(nAttribute));
-			if (dgAttribute->GetAttributeType() == KWType::VarPart)
-			{
-				if (dgVarPartAttribute != NULL)
-				{
-					{
-						bOk = false;
-						AddError("Incorrect use of two variables of type VarPart: " +
-							 dgVarPartAttribute->GetAttributeName() + " and " +
-							 dgAttribute->GetAttributeName());
-						break;
-					}
-				}
-				dgVarPartAttribute = dgAttribute;
-			}
-		}
-	}
-
 	// Prise en compte d'un coclustering de type VarPart
 	// CH IV Refactoring: potentiellement inutile apres la fin du refactoring
-	if (bOk and dgVarPartAttribute != NULL)
+	if (bOk and varPartAttribute != NULL)
 	{
-		coclusteringDataGrid->SetVarPartDataGrid(true);
-
 		// Parametrage de l'attribut identifiant, en prenant le premier attribut catgoriel trouve
 		for (nAttribute = 0; nAttribute < coclusteringDataGrid->GetAttributeNumber(); nAttribute++)
 		{
@@ -3039,10 +3017,12 @@ boolean CCCoclusteringReport::ReadJSONDimensionSummaries(CCHierarchicalDataGrid*
 
 	// Tests d'integrite dans le cas d'un coclustering de type instances * variables
 	// CH IV Refactoring: potentiellement inutile apres la fin du refactoring
-	if (bOk and coclusteringDataGrid->GetVarPartDataGrid())
+	if (bOk and coclusteringDataGrid->IsVarPartDataGrid())
 	{
+		assert(varPartAttribute == coclusteringDataGrid->GetVarPartAttribute());
+
 		// Verification du nombre d'attributs
-		if (coclusteringDataGrid->GetVarPartDataGrid() and coclusteringDataGrid->GetAttributeNumber() != 2)
+		if (coclusteringDataGrid->GetAttributeNumber() != 2)
 		{
 			AddError(
 			    sTmp +
@@ -3051,7 +3031,7 @@ boolean CCCoclusteringReport::ReadJSONDimensionSummaries(CCHierarchicalDataGrid*
 			bOk = false;
 		}
 	}
-	if (bOk and coclusteringDataGrid->GetVarPartDataGrid())
+	if (bOk and coclusteringDataGrid->IsVarPartDataGrid())
 	{
 		// Verification du type des attributs : categoriel (ou numerique) pour le 1er, VarPart pour le second
 		if (not KWType::IsSimple(coclusteringDataGrid->GetAttributeAt(0)->GetAttributeType()) or
@@ -3091,11 +3071,8 @@ boolean CCCoclusteringReport::ReadJSONDimensionPartitions(CCHierarchicalDataGrid
 	int nInnerAttributeNumber;
 	ObjectDictionary odInnerAttributesAllVarParts;
 	ObjectDictionary odVarPartAttributeAllVarParts;
-	ContinuousVector* cvMinValues;
-	ContinuousVector* cvMaxValues;
-	ObjectDictionary* odInnerContinuousAttributeIndexes;
-	IntObject* io;
-	int nInnerAttributeIndex;
+	KWDGInterval* domainBounds;
+	int nInnerAttribute;
 	// CH IV End
 	ALString sTmp;
 
@@ -3170,7 +3147,7 @@ boolean CCCoclusteringReport::ReadJSONDimensionPartitions(CCHierarchicalDataGrid
 
 				// Creation des attributs internes
 				innerAttributes = new KWDGInnerAttributes;
-				dgAttribute->GetDataGrid()->SetInnerAttributes(innerAttributes);
+				dgAttribute->SetInnerAttributes(innerAttributes);
 				nInnerAttributeNumber = 0;
 
 				// Boucle de lecture des attributs internes
@@ -3190,9 +3167,8 @@ boolean CCCoclusteringReport::ReadJSONDimensionPartitions(CCHierarchicalDataGrid
 					}
 
 					// Test d'unicite de la variable interne
-					if (bOk and
-					    dgAttribute->GetDataGrid()->GetInnerAttributes()->LookupInnerAttribute(
-						innerAttribute->GetAttributeName()) != NULL)
+					if (bOk and dgAttribute->GetInnerAttributes()->LookupInnerAttribute(
+							innerAttribute->GetAttributeName()) != NULL)
 					{
 						bOk = false;
 						JSONTokenizer::AddParseError("Inner variable " +
@@ -3204,16 +3180,15 @@ boolean CCCoclusteringReport::ReadJSONDimensionPartitions(CCHierarchicalDataGrid
 					if (bOk)
 					{
 						innerAttribute->SetOwnerAttributeName(dgAttribute->GetAttributeName());
-						dgAttribute->GetDataGrid()->GetInnerAttributes()->AddInnerAttribute(
-						    innerAttribute);
+						dgAttribute->GetInnerAttributes()->AddInnerAttribute(innerAttribute);
 						nInnerAttributeNumber++;
-						dgAttribute->SetInnerAttributeNumber(nInnerAttributeNumber);
-						dgAttribute->SetInnerAttributeNameAt(
-						    nInnerAttributeNumber - 1, innerAttribute->GetAttributeName());
 					}
 					// Destruction de l'attribut interne sinon
 					else
+					{
 						delete innerAttribute;
+						dgAttribute->SetInnerAttributes(NULL); // DDD
+					}
 
 					// Test si nouvel attribut interne
 					bOk = bOk and JSONTokenizer::ReadArrayNext(bIsInnerAttributeEnd);
@@ -3227,30 +3202,26 @@ boolean CCCoclusteringReport::ReadJSONDimensionPartitions(CCHierarchicalDataGrid
 				// numeriques
 				if (bOk)
 				{
-					// Collecte des informations
-					cvMinValues = new ContinuousVector;
-					cvMaxValues = new ContinuousVector;
-					odInnerContinuousAttributeIndexes = new ObjectDictionary;
-					for (nInnerAttributeIndex = 0;
-					     nInnerAttributeIndex < dgAttribute->GetInnerAttributeNumber();
-					     nInnerAttributeIndex++)
+					coclusteringDataGrid->GetInnerAttributeDomainBounds()->DeleteAll();
+					for (nInnerAttribute = 0;
+					     nInnerAttribute < dgAttribute->GetInnerAttributeNumber();
+					     nInnerAttribute++)
 					{
-						innerAttribute = dgAttribute->GetDataGrid()
-								     ->GetInnerAttributes()
-								     ->GetInnerAttributeAt(nInnerAttributeIndex);
+						innerAttribute = dgAttribute->GetInnerAttributes()->GetInnerAttributeAt(
+						    nInnerAttribute);
+
+						// Cas d'un attribut Continuous
 						if (innerAttribute->GetAttributeType() == KWType::Continuous)
 						{
-							// Memorisation de l'information
-							cvMinValues->Add(innerAttribute->GetHeadPart()
-									     ->GetInterval()
-									     ->GetLowerBound());
-							cvMaxValues->Add(innerAttribute->GetTailPart()
-									     ->GetInterval()
-									     ->GetUpperBound());
-							io = new IntObject;
-							io->SetInt(cvMinValues->GetSize() - 1);
-							odInnerContinuousAttributeIndexes->SetAt(
-							    innerAttribute->GetAttributeName(), io);
+							domainBounds = new KWDGInterval;
+							domainBounds->SetLowerBound(innerAttribute->GetHeadPart()
+											->GetInterval()
+											->GetLowerBound());
+							domainBounds->SetUpperBound(innerAttribute->GetTailPart()
+											->GetInterval()
+											->GetUpperBound());
+							coclusteringDataGrid->GetInnerAttributeDomainBounds()->SetAt(
+							    innerAttribute->GetAttributeName(), domainBounds);
 
 							// On modifie les bornes des intervalles extremes de facon a
 							// pouvoir produire les libelle avec -inf et +inf par
@@ -3261,12 +3232,6 @@ boolean CCCoclusteringReport::ReadJSONDimensionPartitions(CCHierarchicalDataGrid
 							    KWDGInterval::GetMaxUpperBound());
 						}
 					}
-
-					// Memorisation des informations
-					coclusteringDataGrid->SetInnerAttributeMinValues(cvMinValues);
-					coclusteringDataGrid->SetInnerAttributeMaxValues(cvMaxValues);
-					coclusteringDataGrid->SetInnerContinuousAttributeIndexes(
-					    odInnerContinuousAttributeIndexes);
 				}
 
 				// Fin du tableau des attributs internes
@@ -3839,13 +3804,11 @@ boolean CCCoclusteringReport::ReadJSONInnerAttributeValueGroups(KWDGAttribute* i
 	boolean bIsEnd;
 	ALString sClusterName;
 	ALString sValue;
-	StringVector svValues;
 	IntVector ivValueFrequencies;
 	DoubleVector dvValueTypicalities;
 	ALString sTmp;
 	boolean bPartitionIsEnd;
 	KWDGPart* dgPart;
-	int nIndex;
 
 	require(innerAttribute != NULL);
 	require(innerAttribute->GetAttributeName() != "");
@@ -3859,32 +3822,22 @@ boolean CCCoclusteringReport::ReadJSONInnerAttributeValueGroups(KWDGAttribute* i
 		dgPart = innerAttribute->AddPart();
 
 		// Lecture des valeurs
-		// CH IV Refactoring: lire et memoriser les valeurs en une passe, sans passer par le vecteur svValues???
 		bIsEnd = false;
 		bOk = bOk and JSONTokenizer::ReadExpectedToken('[');
 		while (bOk and not bIsEnd)
 		{
 			bOk = bOk and JSONTokenizer::ReadStringValue(sValue);
 			if (bOk)
-				svValues.Add(sValue);
+			{
+				// Traitement particulier de la Star value
+				if (sValue == Symbol::GetStarValue().GetValue())
+					dgPart->GetValueSet()->AddValue(Symbol::GetStarValue());
+				else
+					dgPart->GetValueSet()->AddValue((Symbol)sValue);
+			}
 			bOk = bOk and JSONTokenizer::ReadArrayNext(bIsEnd);
 		}
 		bOk = bOk and JSONTokenizer::ReadArrayNext(bPartitionIsEnd);
-
-		// Memorisation des informations sur la PV intervalle
-		if (bOk)
-		{
-			for (nIndex = 0; nIndex < svValues.GetSize(); nIndex++)
-			{
-				// Traitement particulier de la Star value
-				if (svValues.GetAt(nIndex) == Symbol::GetStarValue().GetValue())
-					dgPart->GetValueSet()->AddValue(Symbol::GetStarValue());
-				else
-					dgPart->GetValueSet()->AddValue((Symbol)svValues.GetAt(nIndex));
-			}
-		}
-		// Nettoyage du vecteur de modalites
-		svValues.SetSize(0);
 	}
 
 	// Test si section suivante dans le json
@@ -4810,8 +4763,7 @@ void CCCoclusteringReport::WriteJSONDimensionPartitions(const CCHierarchicalData
 			for (nIndex = 0; nIndex < dgAttribute->GetInnerAttributeNumber(); nIndex++)
 			{
 				// Extraction de l'attribut
-				innerAttribute = coclusteringDataGrid->GetInnerAttributes()->LookupInnerAttribute(
-				    dgAttribute->GetInnerAttributeNameAt(nIndex));
+				innerAttribute = dgAttribute->GetInnerAttributeAt(nIndex);
 				assert(innerAttribute != NULL);
 
 				// Partition de la variable interne
@@ -4900,7 +4852,7 @@ void CCCoclusteringReport::WriteJSONInnerAttributePartition(const CCHierarchical
 {
 	KWDGPart* currentPart;
 	KWDGValue* currentValue;
-	int nIndex;
+	KWDGInterval* domainBounds;
 
 	require(coclusteringDataGrid != NULL);
 	require(innerAttribute != NULL);
@@ -4916,27 +4868,27 @@ void CCCoclusteringReport::WriteJSONInnerAttributePartition(const CCHierarchical
 	if (innerAttribute->GetAttributeType() == KWType::Continuous)
 	{
 		fJSON->BeginKeyArray("partition");
-		nIndex = cast(IntObject*, coclusteringDataGrid->GetInnerContinuousAttributeIndexes()->Lookup(
-					      innerAttribute->GetAttributeName()))
-			     ->GetInt();
-		currentPart = innerAttribute->GetHeadPart();
+
+		// Acces aux bornes du domaine
+		domainBounds = cast(KWDGInterval*, coclusteringDataGrid->GetInnerAttributeDomainBounds()->Lookup(
+						       innerAttribute->GetAttributeName()));
+		assert(domainBounds != NULL);
 
 		// Parcours des parties de l'attribut
+		currentPart = innerAttribute->GetHeadPart();
 		while (currentPart != NULL)
 		{
 			fJSON->BeginList();
 
 			// Borne inf, ou min pour le premier intervalle non Missing
 			if (currentPart == innerAttribute->GetHeadPart())
-				fJSON->WriteContinuous(
-				    coclusteringDataGrid->GetInnerAttributeMinValues()->GetAt(nIndex));
+				fJSON->WriteContinuous(domainBounds->GetLowerBound());
 			else
 				fJSON->WriteContinuous(currentPart->GetInterval()->GetLowerBound());
 
 			// Cas de + inf
 			if (currentPart == innerAttribute->GetTailPart())
-				fJSON->WriteContinuous(
-				    coclusteringDataGrid->GetInnerAttributeMaxValues()->GetAt(nIndex));
+				fJSON->WriteContinuous(domainBounds->GetUpperBound());
 			else
 				fJSON->WriteContinuous(currentPart->GetInterval()->GetUpperBound());
 			fJSON->EndList();

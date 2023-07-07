@@ -598,8 +598,8 @@ double KWDataGridCosts::ComputeDataGridAllValuesCost(const KWDataGrid* dataGrid)
 			for (nInnerAttribute = 0; nInnerAttribute < attribute->GetInnerAttributeNumber();
 			     nInnerAttribute++)
 			{
-				innerAttribute = attribute->GetDataGrid()->GetInnerAttributes()->LookupInnerAttribute(
-				    attribute->GetInnerAttributeNameAt(nInnerAttribute));
+				innerAttribute = attribute->GetInnerAttributeAt(nInnerAttribute);
+
 				// Gestion uniquement dans le cas symbolique
 				if (innerAttribute->GetAttributeType() == KWType::Symbol)
 				{
@@ -1735,7 +1735,6 @@ double KWVarPartDataGridClusteringCosts::ComputeDataGridCost(const KWDataGrid* d
 	require(dLnGridSize >= 0);
 	require(nInformativeAttributeNumber >= 0);
 	require(nInformativeAttributeNumber <= GetTotalAttributeNumber());
-	require(dataGrid->GetVarPartDataGrid());
 
 	// Coût du choix entre modele nul et modele informatif
 	dDataGridCost = log(2.0);
@@ -1775,8 +1774,7 @@ double KWVarPartDataGridClusteringCosts::ComputeAttributeCost(const KWDGAttribut
 
 	require(attribute != NULL);
 	require(attribute->GetTrueValueNumber() > 0);
-	require(KWType::IsSimple(attribute->GetAttributeType()) or attribute->GetAttributeType() == KWType::VarPart);
-	require(attribute->GetDataGrid()->GetVarPartDataGrid());
+	require(KWType::IsCoclusteringType(attribute->GetAttributeType()));
 
 	nPartileNumber = attribute->GetTrueValueNumber();
 	// Sans prise en compte granularite : pas de sens en non supervise
@@ -1860,14 +1858,13 @@ double KWVarPartDataGridClusteringCosts::ComputeAttributeCost(const KWDGAttribut
 
 	// Cas d'une grille et d'un attribut de type VarPart
 	// Prise en compte du cout des attributs internes (quelle que soit la taille de la partition)
-	if (attribute->GetDataGrid()->GetVarPartDataGrid() and attribute->GetAttributeType() == KWType::VarPart)
+	if (attribute->GetAttributeType() == KWType::VarPart)
 	{
 		// CH AB AF pour optimiser les calculs, memoriser le dInnerAttributeCost et ne le calculer que si
 		// necessaire (changement de partition ou post-fusion) Prise en compte du cout des attributs internes
 		for (nInnerAttribute = 0; nInnerAttribute < attribute->GetInnerAttributeNumber(); nInnerAttribute++)
 		{
-			innerAttribute = attribute->GetDataGrid()->GetInnerAttributes()->LookupInnerAttribute(
-			    attribute->GetInnerAttributeNameAt(nInnerAttribute));
+			innerAttribute = attribute->GetInnerAttributeAt(nInnerAttribute);
 
 			// Cas d'un attribut internes qui ne fait pas partie du modele nul
 			if (innerAttribute->GetPartNumber() > 1 or nPartitionSize > 1)
@@ -1875,8 +1872,8 @@ double KWVarPartDataGridClusteringCosts::ComputeAttributeCost(const KWDGAttribut
 				dAttributeCost +=
 				    ComputeInnerAttributeCost(innerAttribute, innerAttribute->GetPartNumber());
 
-				innerAttributePart = innerAttribute->GetHeadPart();
 				// Prise en compte du cout des parties internes
+				innerAttributePart = innerAttribute->GetHeadPart();
 				while (innerAttributePart != NULL)
 				{
 					dAttributeCost += ComputeInnerAttributePartCost(innerAttributePart);
@@ -1896,7 +1893,7 @@ double KWVarPartDataGridClusteringCosts::ComputeInnerAttributeCost(const KWDGAtt
 	int nGarbageModalityNumber;
 	int nPartileNumber;
 
-	require(attribute->GetOwnerAttributeName() != "");
+	require(attribute->IsInnerAttribute());
 	require(KWType::IsSimple(attribute->GetAttributeType()));
 	require(attribute->GetTrueValueNumber() > 0);
 
@@ -1978,7 +1975,7 @@ double KWVarPartDataGridClusteringCosts::ComputeInnerAttributePartCost(const KWD
 	double dInnerAttributePartCost;
 	int nValueNumber;
 
-	require(part->GetAttribute()->GetOwnerAttributeName() != "");
+	require(part->GetAttribute()->IsInnerAttribute());
 
 	dInnerAttributePartCost = 0;
 
@@ -1999,9 +1996,7 @@ double KWVarPartDataGridClusteringCosts::ComputePartCost(const KWDGPart* part) c
 	int nValueNumber;
 
 	require(part != NULL);
-	require(KWType::IsSimple(part->GetAttribute()->GetAttributeType()) or
-		part->GetAttribute()->GetAttributeType() == KWType::VarPart);
-	require(part->GetAttribute()->GetDataGrid()->GetVarPartDataGrid());
+	require(KWType::IsCoclusteringType(part->GetAttribute()->GetAttributeType()));
 
 	// Cout de rangement des instances dans le cas continu
 	if (part->GetAttribute()->GetAttributeType() == KWType::Continuous)
@@ -2041,9 +2036,7 @@ double KWVarPartDataGridClusteringCosts::ComputePartUnionCost(const KWDGPart* pa
 	require(part1 != NULL);
 	require(part2 != NULL);
 	require(part1->GetAttribute() == part2->GetAttribute());
-	require(part1->GetAttribute()->GetDataGrid()->GetVarPartDataGrid());
-	require(KWType::IsSimple(part1->GetAttribute()->GetAttributeType()) or
-		part1->GetAttribute()->GetAttributeType() == KWType::VarPart);
+	require(KWType::IsCoclusteringType(part1->GetAttribute()->GetAttributeType()));
 
 	// Cout de rangement des instances dans le cas continu
 	nPartFrequency = part1->GetPartFrequency() + part2->GetPartFrequency();
@@ -2147,13 +2140,12 @@ double KWVarPartDataGridClusteringCosts::ComputeAttributeModelCost(const KWDGAtt
 	dAttributeModelCost = ComputeAttributeCost(attribute, nPartitionSize);
 
 	// Cas d'une grille et d'un attribut de type VarPart
-	if (attribute->GetDataGrid()->GetVarPartDataGrid() and attribute->GetAttributeType() == KWType::VarPart)
+	if (attribute->GetAttributeType() == KWType::VarPart)
 	{
 		// Prise en compte du cout des attributs internes
 		for (nInnerAttribute = 0; nInnerAttribute < attribute->GetInnerAttributeNumber(); nInnerAttribute++)
 		{
-			innerAttribute = attribute->GetDataGrid()->GetInnerAttributes()->LookupInnerAttribute(
-			    attribute->GetInnerAttributeNameAt(nInnerAttribute));
+			innerAttribute = attribute->GetInnerAttributeAt(nInnerAttribute);
 			dAttributeModelCost +=
 			    ComputeInnerAttributeCost(innerAttribute, innerAttribute->GetPartNumber());
 

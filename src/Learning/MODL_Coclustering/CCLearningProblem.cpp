@@ -39,12 +39,6 @@ KWClassManagement* CCLearningProblem::GetClassManagement()
 KWDatabase* CCLearningProblem::GetDatabase()
 {
 	require(database->GetClassName() == classManagement->GetClassName());
-	// CH IV Begin
-	// CH IV Refactoring: est-ce vraiment utile? a supprimer?
-	//   a verifier et tester
-	// Synchronisation du dictionnaire de la base
-	database->SetClassName(classManagement->GetClassName());
-	// CH IV End
 	return database;
 }
 
@@ -487,6 +481,15 @@ void CCLearningProblem::ExtractClusters(const ALString& sCoclusteringAttributeNa
 				WriteSymbolClusters(coclusteringAttribute, fstClusterTableFile);
 			else if (coclusteringAttribute->GetAttributeType() == KWType::Continuous)
 				WriteContinuousClusters(coclusteringAttribute, fstClusterTableFile);
+			// CH IV Begin
+			else if (coclusteringAttribute->GetAttributeType() == KWType::VarPart)
+			{
+				// Cas d'une variable de type VarPart : ajout d'un descriptif des parties de variable
+				// des attributs internes
+				WriteVarPartClusters(coclusteringAttribute, fstClusterTableFile);
+				WriteVarPartsInnerAttributes(coclusteringAttribute);
+			}
+			// CH IV End
 
 			// Ecriture du rapport
 			bOk = FileService::CloseOutputFile(sLocalFileName, fstClusterTableFile);
@@ -533,6 +536,15 @@ void CCLearningProblem::PrepareDeployment()
 	// Lecture du rapport de coclustering
 	if (bOk)
 		bOk = coclusteringReport.ReadGenericReport(sCoclusteringReportFileName, &coclusteringDataGrid);
+
+	// CH IV Begin
+	// Cas d'un rapport issu d'un coclustering instances * variables : fonctionnalite non implementee
+	if (coclusteringDataGrid.IsVarPartDataGrid())
+	{
+		bOk = false;
+		AddWarning("Deployment preparation is not yet implemented for instances * variables coclustering");
+	}
+	// CH IV End
 
 	// Post-traitement
 	if (bOk)
@@ -1088,6 +1100,205 @@ void CCLearningProblem::WriteContinuousClusters(const CCHDGAttribute* continuous
 
 		// Partie suivante
 		continuousCoclusteringAttribute->GetNextPart(dgPart);
+	}
+}
+
+void CCLearningProblem::WriteVarPartClusters(const CCHDGAttribute* varPartCoclusteringAttribute, ostream& ost)
+{
+	KWDGPart* dgPart;
+	CCHDGPart* hdgPart;
+	CCHDGVarPartSet* hdgVarPartSet;
+	KWDGVarPartValue* dgValue;
+	CCHDGVarPartValue* hdgValue;
+
+	require(varPartCoclusteringAttribute != NULL);
+	require(varPartCoclusteringAttribute->GetAttributeType() == KWType::VarPart);
+
+	// Entete
+	ost << "Cluster\tVarPart\tFrequency\tTypicality\n";
+
+	// Parcours des parties
+	dgPart = varPartCoclusteringAttribute->GetHeadPart();
+	while (dgPart != NULL)
+	{
+		hdgPart = cast(CCHDGPart*, dgPart);
+
+		// Parcours des valeurs
+		hdgVarPartSet = cast(CCHDGVarPartSet*, hdgPart->GetVarPartSet());
+		dgValue = hdgVarPartSet->GetHeadVarPart();
+		while (dgValue != NULL)
+		{
+			hdgValue = cast(CCHDGVarPartValue*, dgValue);
+
+			// Caracteristiques des valeurs
+			ost << hdgPart->GetUserLabel() << "\t" << hdgValue->GetVarPart()->GetVarPartLabel() << "\t"
+			    << hdgValue->GetVarPartFrequency() << "\t" << hdgValue->GetTypicality() << "\n";
+
+			// Valeur suivante
+			hdgVarPartSet->GetNextVarPart(dgValue);
+		}
+
+		// Partie suivante
+		varPartCoclusteringAttribute->GetNextPart(dgPart);
+	}
+}
+
+void CCLearningProblem::WriteVarPartsInnerAttributes(const CCHDGAttribute* varPartCoclusteringAttribute)
+{
+	ALString sIntervalsTableFileName;
+	ALString sGroupsTableFileName;
+	ALString sIntervalsTableSuffix = "intervals.txt";
+	ALString sModalitiesTableSuffix = "groups.txt";
+	ALString sLocalIntervalsFileName;
+	ALString sLocalGroupsFileName;
+	fstream fstIntervalsTableFile;
+	fstream fstGroupsTableFile;
+	KWDGInnerAttributes* innerAttributes;
+	KWDGAttribute* innerAttribute;
+	int nIndex;
+	boolean bIntervalsOk = true;
+	boolean bGroupsOk = true;
+	boolean bFirstContinuousAttribute = true;
+	boolean bFirstSymbolAttribute = true;
+
+	// Creation des noms des fichiers dedies a la description des VarPart selon leur type continu ou categoriel
+	sIntervalsTableFileName =
+	    GetResultFilePathBuilder(TaskExtractClusters)->BuildOtherResultFilePathName(sIntervalsTableSuffix);
+	sGroupsTableFileName =
+	    GetResultFilePathBuilder(TaskExtractClusters)->BuildOtherResultFilePathName(sModalitiesTableSuffix);
+
+	// Preparation de la copie sur HDFS si necessaire
+	bIntervalsOk = PLRemoteFileService::BuildOutputWorkingFile(sIntervalsTableFileName, sLocalIntervalsFileName);
+	// Ouverture du fichier de rapport en ecriture
+	if (bIntervalsOk)
+		bIntervalsOk = FileService::OpenOutputFile(sLocalIntervalsFileName, fstIntervalsTableFile);
+
+	bGroupsOk = PLRemoteFileService::BuildOutputWorkingFile(sGroupsTableFileName, sLocalGroupsFileName);
+	// Ouverture du fichier de rapport en ecriture
+	if (bGroupsOk)
+		bGroupsOk = FileService::OpenOutputFile(sLocalGroupsFileName, fstGroupsTableFile);
+
+	// Extraction des attributs internes
+	innerAttributes = varPartCoclusteringAttribute->GetDataGrid()->GetInnerAttributes();
+
+	if (bIntervalsOk and bGroupsOk)
+	{
+		// Boucle sur les attributs
+		for (nIndex = 0; nIndex < innerAttributes->GetInnerAttributeNumber(); nIndex++)
+		{
+			innerAttribute = innerAttributes->GetInnerAttributeAt(nIndex);
+			// Cas d'un attribut de type Continuous
+			if (innerAttribute->GetAttributeType() == KWType::Continuous)
+			{
+				// Premier attribut Continuous
+				if (bFirstContinuousAttribute)
+				{
+					// Entete
+					fstIntervalsTableFile << "VarPart\tLower bound\tUpper bound\n";
+					WriteContinuousInnerAttribute(innerAttribute, fstIntervalsTableFile);
+					bFirstContinuousAttribute = false;
+				}
+				// Sinon
+				else
+					WriteContinuousInnerAttribute(innerAttribute, fstIntervalsTableFile);
+			}
+			// Sinon, cas d'un attribut de type categoriel
+			if (innerAttribute->GetAttributeType() == KWType::Symbol)
+			{
+				// Premier attribut Symbol
+				if (bFirstSymbolAttribute)
+				{
+					// Entete
+					fstGroupsTableFile << "VarPart\tModality\n";
+					WriteSymbolInnerAttribute(innerAttribute, fstGroupsTableFile);
+					bFirstSymbolAttribute = false;
+				}
+				else
+					WriteSymbolInnerAttribute(innerAttribute, fstGroupsTableFile);
+			}
+		}
+		// Ecriture du rapport
+		bIntervalsOk = FileService::CloseOutputFile(sLocalIntervalsFileName, fstIntervalsTableFile);
+
+		// Destruction du fichier si erreur
+		if (not bIntervalsOk)
+			FileService::RemoveFile(sLocalIntervalsFileName);
+
+		bGroupsOk = FileService::CloseOutputFile(sLocalGroupsFileName, fstGroupsTableFile);
+
+		// Destruction du fichier si erreur
+		if (not bGroupsOk)
+			FileService::RemoveFile(sLocalGroupsFileName);
+	}
+	if (bIntervalsOk)
+	{
+		// Copie vers HDFS
+		PLRemoteFileService::CleanOutputWorkingFile(sIntervalsTableFileName, sLocalIntervalsFileName);
+	}
+	if (bGroupsOk)
+	{
+		// Copie vers HDFS
+		PLRemoteFileService::CleanOutputWorkingFile(sGroupsTableFileName, sLocalGroupsFileName);
+	}
+}
+
+void CCLearningProblem::WriteContinuousInnerAttribute(KWDGAttribute* continuousCoclusteringAttribute, ostream& ost)
+{
+	KWDGPart* dgPart;
+
+	require(continuousCoclusteringAttribute != NULL);
+	require(continuousCoclusteringAttribute->GetAttributeType() == KWType::Continuous);
+
+	// Parcours des parties
+	dgPart = continuousCoclusteringAttribute->GetHeadPart();
+	while (dgPart != NULL)
+	{
+		// Caracteristiques de la partie de variable
+		ost << continuousCoclusteringAttribute->GetAttributeName() + " " + dgPart->GetObjectLabel() << "\t";
+		if (dgPart->GetInterval()->GetLowerBound() > KWContinuous::GetMinValue())
+			ost << KWContinuous::ContinuousToString(dgPart->GetInterval()->GetLowerBound());
+		else
+			ost << "-inf";
+		ost << "\t";
+		if (dgPart->GetInterval()->GetUpperBound() < KWContinuous::GetMaxValue())
+			ost << KWContinuous::ContinuousToString(dgPart->GetInterval()->GetUpperBound());
+		else
+			ost << "+inf";
+		ost << "\n";
+
+		// Partie suivante
+		continuousCoclusteringAttribute->GetNextPart(dgPart);
+	}
+}
+
+void CCLearningProblem::WriteSymbolInnerAttribute(KWDGAttribute* symbolCoclusteringAttribute, ostream& ost)
+{
+	KWDGPart* dgPart;
+	KWDGValueSet* dgValueSet;
+	KWDGValue* dgValue;
+
+	require(symbolCoclusteringAttribute != NULL);
+	require(symbolCoclusteringAttribute->GetAttributeType() == KWType::Symbol);
+
+	// Parcours des parties
+	dgPart = symbolCoclusteringAttribute->GetHeadPart();
+	while (dgPart != NULL)
+	{
+		// Parcours des valeurs
+		dgValueSet = dgPart->GetValueSet();
+		dgValue = dgValueSet->GetHeadValue();
+		while (dgValue != NULL)
+		{
+			// Caracteristiques des valeurs
+			ost << symbolCoclusteringAttribute->GetAttributeName() + " " + dgPart->GetObjectLabel() << "\t"
+			    << dgValue->GetValue() << "\n";
+
+			// Valeur suivante
+			dgValueSet->GetNextValue(dgValue);
+		}
+
+		// Partie suivante
+		symbolCoclusteringAttribute->GetNextPart(dgPart);
 	}
 }
 
