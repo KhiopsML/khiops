@@ -80,7 +80,6 @@ boolean KWAttributeSubsetStats::CheckSpecifications() const
 	ALString sAttributeName;
 	KWAttribute* attribute;
 	boolean bTargetAttributeUsed;
-	ALString sTmp;
 
 	require(Check());
 
@@ -105,28 +104,28 @@ boolean KWAttributeSubsetStats::CheckSpecifications() const
 		if (attribute == NULL)
 		{
 			bOk = false;
-			AddError(sTmp + "Variable " + sAttributeName + " does not exist");
+			AddError("Variable " + sAttributeName + " does not exist");
 		}
 
 		// Test d'utilisation de l'attribut
 		if (attribute != NULL and not attribute->GetUsed())
 		{
 			bOk = false;
-			AddError(sTmp + "Variable " + sAttributeName + " is not used");
+			AddError("Variable " + sAttributeName + " is not used");
 		}
 
 		// Test du type de l'attribut
 		if (attribute != NULL and not KWType::IsSimple(attribute->GetType()))
 		{
 			bOk = false;
-			AddError(sTmp + "Variable " + sAttributeName + " is not of numerical or categorical type");
+			AddError("Variable " + sAttributeName + " is not of numerical or categorical type");
 		}
 
 		// Test de chargement en memoire de l'attribut
 		if (attribute != NULL and not attribute->GetLoaded())
 		{
 			bOk = false;
-			AddError(sTmp + "Variable " + sAttributeName + " is not loaded");
+			AddError("Variable " + sAttributeName + " is not loaded");
 		}
 
 		// Arret si erreurs
@@ -140,7 +139,7 @@ boolean KWAttributeSubsetStats::CheckSpecifications() const
 		if (bTargetAttributeUsed)
 		{
 			bOk = false;
-			AddError(sTmp + "Target variable " + GetTargetAttributeName() + " is used in the subset");
+			AddError("Target variable " + GetTargetAttributeName() + " is used in the subset");
 		}
 	}
 

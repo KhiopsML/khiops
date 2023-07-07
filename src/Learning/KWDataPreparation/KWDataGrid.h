@@ -28,7 +28,7 @@ class KWDGInnerAttributes;
 // Classe KWDataGrid
 //
 // Deux famille de grille de donnees
-//   - coclustering "standard", variables x variables
+//   - coclustering de variables "standard"
 //      - estimateur de densite jointe ou conditionnelle entre variables
 //      - multivarie, avec variable numeriques ou categorielles
 //      - Structure de donnees permettant de representer l'ensemble des enregistrements
@@ -164,7 +164,7 @@ public:
 
 	// CH IV Begin
 	// CH IV Refactoring: question: pourquoi la gestion des VarPart attributes n'est elle pas
-	//   porte par l'axe VarPart qui les contient, plutot que par le DataGrid?
+	//   porte par l'attribut de type VarPart qui les contient, plutot que par le DataGrid?
 	//   MB: pourquoi pas, faire une etude d'impact et d'interet
 
 	// Type de grille : standard ou VarPart (avec une attribut de type VarPart)
@@ -488,7 +488,6 @@ public:
 	// CH IV Refactoring: ajouter une methode boolean IsInnerAttribute() const? OK
 	//   permettrait de remplacer tous les tests de type GetOwnerAttributeName() == "" par IsInVarParts() (idem pour
 	//   !=)
-	// Plus une methode boolean IsAxis() const? NON
 
 	// CH IV End
 
@@ -552,7 +551,11 @@ public:
 	void SetCost(double dValue);
 	double GetCost() const;
 
+	////////////////////////////////////////////////
+	// Service pour les attributs de type VarPart
+
 	// CH IV Begin
+	// CH IV Refactoring: redondant avec KWDGInnerAttributes?
 	// Methodes specifiques aux attributs de type VarPart
 	// Acces au nombre d'attributs interne dans un attribut de grille de type VarPart
 	int GetInnerAttributeNumber() const;
@@ -853,6 +856,10 @@ public:
 	void Write(ostream& ost) const override;
 	void WriteValues(ostream& ost) const;
 	void WriteCells(ostream& ost) const;
+
+	// Libelle complet dans le cas d'une partie de variable, base sur le libelle de l'identifiant interne et celui
+	// de la partie
+	const ALString GetVarPartLabel() const;
 
 	// Libelles utilisateur
 	const ALString GetClassLabel() const override;
@@ -1835,7 +1842,8 @@ inline int KWDGPart::GetPartFrequency() const
 
 inline int KWDGPart::GetPartType() const
 {
-	require(interval == NULL or valueSet == NULL);
+	require(interval == NULL or valueSet == NULL or varPartSet == NULL);
+	require((interval == NULL) + (valueSet == NULL) + (varPartSet == NULL) >= 2);
 
 	if (interval != NULL)
 		return KWType::Continuous;

@@ -21,7 +21,7 @@ CCPostProcessingSpecView::CCPostProcessingSpecView()
 	AddIntField("MaxPreservedInformation", "Max preserved information", 0);
 	AddIntField("TotalPartNumber", "Total part number", 0);
 	AddIntField("MaxTotalPartNumber", "Max total part number", 0);
-	AddStringField("FrequencyAttribute", "Frequency variable", "");
+	AddStringField("FrequencyAttributeName", "Frequency variable", "");
 
 	// Parametrage des styles;
 	GetFieldAt("MaxCellNumber")->SetStyle("Spinner");
@@ -55,7 +55,7 @@ CCPostProcessingSpecView::CCPostProcessingSpecView()
 	cast(UIIntElement*, postProcessedAttributeArrayView->GetFieldAt("MaxPartNumber"))->SetMaxValue(1000000);
 
 	// Le tableau des variable est affiche avant la variable d'effectif
-	MoveFieldBefore("PostProcessedAttributes", "FrequencyAttribute");
+	MoveFieldBefore("PostProcessedAttributes", "FrequencyAttributeName");
 
 	// CH IV Begin
 	// La variable de type de coclustering n'est pas editable
@@ -63,7 +63,7 @@ CCPostProcessingSpecView::CCPostProcessingSpecView()
 	// CH IV End
 
 	// La variable d'effectif n'est pas editable
-	GetFieldAt("FrequencyAttribute")->SetEditable(false);
+	GetFieldAt("FrequencyAttributeName")->SetEditable(false);
 
 	// Info-bulles
 	// CH IV Begin
@@ -84,7 +84,7 @@ CCPostProcessingSpecView::CCPostProcessingSpecView()
 	GetFieldAt("MaxTotalPartNumber")
 	    ->SetHelpText("Max total number of parts to keep"
 			  "\n in the simplified coclustering (0: no constraint).");
-	GetFieldAt("FrequencyAttribute")->SetHelpText("Frequency variable in the input coclustering.");
+	GetFieldAt("FrequencyAttributeName")->SetHelpText("Frequency variable in the input coclustering.");
 
 	// ##
 }
@@ -118,7 +118,7 @@ void CCPostProcessingSpecView::EventUpdate(Object* object)
 	editedObject->SetMaxPreservedInformation(GetIntValueAt("MaxPreservedInformation"));
 	editedObject->SetTotalPartNumber(GetIntValueAt("TotalPartNumber"));
 	editedObject->SetMaxTotalPartNumber(GetIntValueAt("MaxTotalPartNumber"));
-	editedObject->SetFrequencyAttribute(GetStringValueAt("FrequencyAttribute"));
+	editedObject->SetFrequencyAttributeName(GetStringValueAt("FrequencyAttributeName"));
 
 	// ## Custom update
 
@@ -141,7 +141,7 @@ void CCPostProcessingSpecView::EventRefresh(Object* object)
 	SetIntValueAt("MaxPreservedInformation", editedObject->GetMaxPreservedInformation());
 	SetIntValueAt("TotalPartNumber", editedObject->GetTotalPartNumber());
 	SetIntValueAt("MaxTotalPartNumber", editedObject->GetMaxTotalPartNumber());
-	SetStringValueAt("FrequencyAttribute", editedObject->GetFrequencyAttribute());
+	SetStringValueAt("FrequencyAttributeName", editedObject->GetFrequencyAttributeName());
 
 	// ## Custom refresh
 

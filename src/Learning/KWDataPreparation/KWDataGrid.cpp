@@ -2373,8 +2373,8 @@ void KWDGAttribute::CreateVarPartsSet()
 
 	for (nInnerAttribute = 0; nInnerAttribute < this->GetInnerAttributeNumber(); nInnerAttribute++)
 	{
-		innerAttribute = this->GetDataGrid()->GetInnerAttributes()->LookupInnerAttribute(
-		    GetInnerAttributeNameAt(nInnerAttribute));
+		innerAttribute =
+		    GetDataGrid()->GetInnerAttributes()->LookupInnerAttribute(GetInnerAttributeNameAt(nInnerAttribute));
 		currentPart = innerAttribute->GetHeadPart();
 
 		// Parcours des parties de variables de l'attribut
@@ -3710,6 +3710,15 @@ void KWDGPart::WriteCells(ostream& ost) const
 	}
 }
 
+const ALString KWDGPart::GetVarPartLabel() const
+{
+	require(KWType::IsSimple(GetPartType()));
+	require(GetAttribute() != NULL);
+	require(GetAttribute()->GetOwnerAttributeName() != "");
+
+	return GetAttribute()->GetAttributeName() + " " + GetObjectLabel();
+}
+
 const ALString KWDGPart::GetClassLabel() const
 {
 	if (GetPartType() == KWType::Continuous)
@@ -4932,8 +4941,7 @@ const ALString KWDGVarPartSet::GetObjectLabel() const
 		{
 			if (nValue > 0)
 				sLabel += ", ";
-			sLabel += dgVarPartValue->GetVarPart()->GetAttribute()->GetAttributeName() +
-				  dgVarPartValue->GetVarPart()->GetObjectLabel();
+			sLabel += dgVarPartValue->GetVarPart()->GetVarPartLabel();
 			nValue++;
 		}
 		// Arret si au moins quatre valeurs

@@ -395,9 +395,7 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 				parallelSorter.SetLineNumber(lLineNumber * nChunkSize / lFileSize);
 				parallelSorter.GetKeyFieldIndexes()->CopyFrom(
 				    keyFieldsIndexer.GetConstKeyFieldIndexes());
-				// Le separateur du fichier d'entree est bien celui du fichier de sortie car le
-				// separateur a ete modifie dans les chunks par ChunkBuilder
-				parallelSorter.SetInputFieldSeparator(cOutputFieldSeparator);
+				parallelSorter.SetInputFieldSeparator(cInputFieldSeparator);
 				parallelSorter.SetInputHeaderLineUsed(bInputHeaderLineUsed);
 				parallelSorter.SetOutputFieldSeparator(cOutputFieldSeparator);
 				bOk = parallelSorter.Sort();
@@ -704,7 +702,6 @@ KWSortBuckets* KWFileSorter::SplitDatabase(int nChunkSizeMin, int nChunkSize, KW
 		chunksBuilder.GetKeyFieldIndexes()->CopyFrom(keyFieldsIndexer.GetConstKeyFieldIndexes());
 		chunksBuilder.SetFileURI(sFileURI);
 		chunksBuilder.SetInputFieldSeparator(cFieldSeparator);
-		chunksBuilder.SetOutputFieldSeparator(cOutputFieldSeparator);
 		chunksBuilder.SetHeaderLineUsed(bIsHeaderLineUsed);
 		sortedBuckets = new KWSortBuckets;
 

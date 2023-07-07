@@ -967,7 +967,7 @@ void KWDataGridManager::ExportGranularizedPartsForContinuousAttribute(KWDataGrid
 			targetPart->GetInterval()->SetUpperBound(sourcePart->GetInterval()->GetUpperBound());
 
 			// CH IV Begin
-			// Cas de la granularisation d'un attribut interne dans un axe de type VarPart
+			// Cas de la granularisation d'un attribut interne dans un attribut de grille de type VarPart
 			if (sourceAttribute->GetOwnerAttributeName() != "")
 			{
 				for (nPartIndex = quantileBuilder->GetIntervalFirstValueIndexAt(nPartileIndex);
@@ -1064,7 +1064,8 @@ void KWDataGridManager::ExportGranularizedPartsForSymbolAttribute(KWDataGrid* ta
 				targetPart->GetValueSet()->UpgradeFrom(sourcePart->GetValueSet());
 
 				// CH IV Begin
-				// Cas de la granularisation d'un attribut interne dans un axe de type VarPart
+				// Cas de la granularisation d'un attribut interne dans un attribut de grille de type
+				// VarPart
 				if (sourceAttribute->GetOwnerAttributeName() != "")
 					targetPart->SetPartFrequency(targetPart->GetPartFrequency() +
 								     sourcePart->GetPartFrequency());
@@ -1261,7 +1262,8 @@ void KWDataGridManager::ExportGranularizedPartsForVarPartAttributes(KWDataGrid* 
 			// Un cluster par partie de variable
 			targetAttribute->CreateVarPartsSet();
 
-			// Initialisation du nombre total de parties de variables qui compose l'axe de type VarPart
+			// Initialisation du nombre total de parties de variables qui compose l'attribut de grille de
+			// type VarPart
 			targetAttribute->SetInitialValueNumber(nTotalVarPartNumber);
 
 			// Remarque : a ce stade les effectifs des parties ne sont pas renseignees

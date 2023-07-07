@@ -4321,6 +4321,7 @@ double CCVarPartDataGridPostOptimizer::ComputeVarPartsSymbolAttributeVariationCo
 		assert(nPartileNumber > 1);
 
 		assert(not GetVarPartAttributeGarbage());
+		// CH IV Refactoring: nettoyer le code ci-dessous?
 		//// Cout de structure si attribut  parties de variable et poubelle
 		// if (attribute->GetAttributeType() == KWType::VarPart and GetVarPartAttributeGarbage())
 		//{
@@ -4389,6 +4390,7 @@ double CCVarPartDataGridPostOptimizer::ComputeVarPartsSymbolAttributeVariationCo
 	{
 		// Cas d'un attribut interne categoriel avec groupe poubelle a integrer plus tard
 		assert(not GetInnerAttributeGarbage());
+		// CH IV Refactoring: nettoyer le code ci-dessous?
 		// if (GetInnerAttributeGarbage())
 		//{
 		//	// Taille de la poubelle
@@ -4538,6 +4540,7 @@ double CCVarPartDataGridPostOptimizer::ComputeVarPartsContinuousAttributeVariati
 		assert(nPartileNumber > 1);
 
 		assert(not GetVarPartAttributeGarbage());
+		// CH IV Refactoring: nettoyer ci dessous?
 		//// Cout de structure si attribut  parties de variable et poubelle
 		// if (attribute->GetAttributeType() == KWType::VarPart and GetVarPartAttributeGarbage())
 		//{
@@ -4620,6 +4623,7 @@ double CCVarPartDataGridPostOptimizer::ComputeVarPartsContinuousAttributeVariati
 		{
 			// A integrer plus tard
 			assert(not GetInnerAttributeGarbage());
+			// CH IV Refactoring: nettoyer ci dessous?
 			// if (GetInnerAttributeGarbage())
 			//{
 			//	// Taille de la poubelle

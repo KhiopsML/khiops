@@ -8,4 +8,4 @@ Rank;Name;Type;Style;Label
 7;MaxPreservedInformation  ;int;Spinner  ;Max preserved information
 8;TotalPartNumber          ;int;         ;Total part number
 9;MaxTotalPartNumber       ;int;Spinner  ;Max total part number
-10;FrequencyAttribute      ;ALString;    ;Frequency variable
+10;FrequencyAttributeName  ;ALString;    ;Frequency variable

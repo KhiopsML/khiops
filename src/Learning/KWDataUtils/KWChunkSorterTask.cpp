@@ -477,6 +477,7 @@ boolean KWChunkSorterTask::SlaveProcess()
 	int nFieldError;
 	boolean bLastLine = false;
 	int nMaxLineLength;
+	ALString sLocalHugeBuffer;
 
 	// Initialisations
 	outputFile = NULL;
@@ -703,7 +704,12 @@ boolean KWChunkSorterTask::SlaveProcess()
 							bEndOfLine = memoryFile.GetNextField(sField, nFieldLength,
 											     nFieldError, bLineTooLong);
 							ensure(bLineTooLong == false);
-							outputFile->WriteField(sField);
+
+							// Recopie de sField dans un buffer intermediaire car sField est
+							// le buffer de grande taille qui est unique (GetHugeBuffer) Ce
+							// buffer est modifie dans WriteField ce qui produirait un bug
+							sLocalHugeBuffer = sField;
+							outputFile->WriteField(sLocalHugeBuffer);
 							if (not bEndOfLine)
 								outputFile->Write(shared_cOutputSeparator.GetValue());
 						}

@@ -45,7 +45,7 @@ void CCPostProcessingSpec::CopyFrom(const CCPostProcessingSpec* aSource)
 	nMaxPreservedInformation = aSource->nMaxPreservedInformation;
 	nTotalPartNumber = aSource->nTotalPartNumber;
 	nMaxTotalPartNumber = aSource->nMaxTotalPartNumber;
-	sFrequencyAttribute = aSource->sFrequencyAttribute;
+	sFrequencyAttributeName = aSource->sFrequencyAttributeName;
 
 	// ## Custom copyfrom
 
@@ -88,7 +88,7 @@ void CCPostProcessingSpec::Write(ostream& ost) const
 	ost << "Max preserved information\t" << GetMaxPreservedInformation() << "\n";
 	ost << "Total part number\t" << GetTotalPartNumber() << "\n";
 	ost << "Max total part number\t" << GetMaxTotalPartNumber() << "\n";
-	ost << "Frequency variable\t" << GetFrequencyAttribute() << "\n";
+	ost << "Frequency variable\t" << GetFrequencyAttributeName() << "\n";
 }
 
 const ALString CCPostProcessingSpec::GetClassLabel() const
@@ -281,7 +281,7 @@ void CCPostProcessingSpec::UpdateCoclusteringSpec(const ALString& sCoclusteringR
 	nMaxCellNumber = 0;
 	nMaxPreservedInformation = 0;
 	nTotalPartNumber = 0;
-	sFrequencyAttribute = "";
+	sFrequencyAttributeName = "";
 	oaPostProcessedAttributes.DeleteAll();
 
 	// Si pas de fichier, cela revient a reinitialiser les infos de coclustering
@@ -305,7 +305,7 @@ void CCPostProcessingSpec::UpdateCoclusteringSpec(const ALString& sCoclusteringR
 		sShortDescription = coclusteringDataGrid.GetShortDescription();
 
 		// Variable de frequence
-		sFrequencyAttribute = coclusteringDataGrid.GetFrequencyAttributeName();
+		sFrequencyAttributeName = coclusteringDataGrid.GetFrequencyAttributeName();
 
 		// Information sur les attributs de coclustering
 		nCellNumber = 1;
@@ -337,7 +337,7 @@ void CCPostProcessingSpec::UpdateCoclusteringSpec(const ALString& sCoclusteringR
 		    bSameCoclustering and (nNonEmptyCellNumber == refPostProcessingSpec.nNonEmptyCellNumber);
 		bSameCoclustering = bSameCoclustering and (nCellNumber == refPostProcessingSpec.nCellNumber);
 		bSameCoclustering =
-		    bSameCoclustering and (sFrequencyAttribute == refPostProcessingSpec.sFrequencyAttribute);
+		    bSameCoclustering and (sFrequencyAttributeName == refPostProcessingSpec.sFrequencyAttributeName);
 		bSameCoclustering = bSameCoclustering and (oaPostProcessedAttributes.GetSize() ==
 							   refPostProcessingSpec.oaPostProcessedAttributes.GetSize());
 		if (bSameCoclustering)

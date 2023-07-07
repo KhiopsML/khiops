@@ -8,6 +8,7 @@
 #include "CCAnalysisSpec.h"
 #include "CCCoclusteringSpecView.h"
 #include "CCVarPartCoclusteringSpecView.h"
+#include "KWDataGridOptimizerParametersView.h"
 #include "KWSystemParametersView.h"
 #include "KWCrashTestParametersView.h"
 

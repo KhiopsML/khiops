@@ -56,7 +56,8 @@ KWDataGrid* KWDataGridOptimizer::GetInitialDataGrid() const
 	return initialDataGrid;
 }
 // CH IV End
-// warning C4458 : la déclaration de 'initialDataGrid' masque le membre de classe
+// CH IV Refactoring
+// warning C4458 : la declaration de 'initialDataGrid' masque le membre de classe
 double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, KWDataGrid* optimizedDataGrid) const
 
 {
@@ -211,7 +212,7 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 			// Affichage pour grille instances * variables
 			if (bDisplayGranularities and granularizedDataGrid.GetVarPartDataGrid())
 				cout << "Prepartitionnement\t" <<
-			granularizedDataGrid.GetInnerAttributes()->GetVarPartGranularity() << "\tGranularite\t" <<
+			granularizedDataGrid.GetInnerAttributesNames()->GetVarPartGranularity() << "\tGranularite\t" <<
 			nGranularityIndex
 				     << "\tNombre de clusters" << ivCurrentPartNumber << flush;
 			*/
@@ -386,7 +387,7 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 				}
 				// CH IV End
 
-				// Sinon : cas variable * variable
+				// Sinon : cas coclustering de variables
 				else
 				{
 					// Cas d'amelioration du cout
@@ -556,6 +557,8 @@ double KWDataGridOptimizer::SimplifyDataGrid(KWDataGrid* optimizedDataGrid) cons
 	return dSimplifiedGridCost;
 }
 
+// CH IV Refactoring
+// warning C4458 : la declaration de 'initialDataGrid' masque le membre de classe
 double KWDataGridOptimizer::OptimizeGranularizedDataGrid(const KWDataGrid* initialDataGrid,
 							 KWDataGrid* optimizedDataGrid, boolean bIsLastGranularity,
 							 double& dTotalComputeTime) const
@@ -693,6 +696,8 @@ void KWDataGridOptimizer::HandleOptimizationStep(const KWDataGrid* optimizedData
 {
 }
 
+// CH IV Refactoring
+// warning C4458 : la declaration de 'initialDataGrid' masque le membre de classe
 void KWDataGridOptimizer::PostOptimizeGranularity(const KWDataGrid* initialDataGrid, KWDataGrid* optimizedDataGrid,
 						  ObjectDictionary& odQuantileBuilders,
 						  int nLastExploredGranularity) const
@@ -902,6 +907,8 @@ void KWDataGridOptimizer::PostOptimizeGranularity(const KWDataGrid* initialDataG
 	}
 }
 
+// CH IV Refactoring
+// warning C4458 : la declaration de 'initialDataGrid' masque le membre de classe
 double KWDataGridOptimizer::InitializeWithTerminalDataGrid(const KWDataGrid* initialDataGrid,
 							   KWDataGrid* optimizedDataGrid) const
 {
@@ -931,6 +938,8 @@ double KWDataGridOptimizer::InitializeWithTerminalDataGrid(const KWDataGrid* ini
 	return dBestCost;
 }
 
+// CH IV Refactoring
+// warning C4458 : la declaration de 'initialDataGrid' masque le membre de classe
 double
 KWDataGridOptimizer::OptimizeWithBestUnivariatePartitionForCurrentGranularity(const KWDataGrid* initialDataGrid,
 									      KWDataGrid* optimizedDataGrid) const
@@ -1075,6 +1084,8 @@ KWDataGridOptimizer::OptimizeWithBestUnivariatePartitionForCurrentGranularity(co
 	return dBestCost;
 }
 
+// CH IV Refactoring
+// warning C4458 : la declaration de 'initialDataGrid' masque le membre de classe
 double KWDataGridOptimizer::OptimizeWithMultipleUnivariatePartitions(const KWDataGrid* initialDataGrid,
 								     KWDataGrid* optimizedDataGrid) const
 {
@@ -1168,6 +1179,8 @@ double KWDataGridOptimizer::OptimizeWithMultipleUnivariatePartitions(const KWDat
 	return dBestCost;
 }
 
+// CH IV Refactoring
+// warning C4458 : la declaration de 'initialDataGrid' masque le membre de classe
 double KWDataGridOptimizer::GreedyOptimize(const KWDataGrid* initialDataGrid, KWDataGrid* optimizedDataGrid) const
 {
 	KWDataGridManager dataGridManager;
@@ -1224,6 +1237,8 @@ double KWDataGridOptimizer::GreedyOptimize(const KWDataGrid* initialDataGrid, KW
 	return dBestCost;
 }
 
+// CH IV Refactoring
+// warning C4458 : la declaration de 'initialDataGrid' masque le membre de classe
 double KWDataGridOptimizer::MultiStartOptimize(const KWDataGrid* initialDataGrid, KWDataGrid* optimizedDataGrid) const
 {
 	KWDataGridManager dataGridManager;
@@ -1329,6 +1344,8 @@ double KWDataGridOptimizer::MultiStartOptimize(const KWDataGrid* initialDataGrid
 	return dBestCost;
 }
 
+// CH IV Refactoring
+// warning C4458 : la declaration de 'initialDataGrid' masque le membre de classe
 double KWDataGridOptimizer::VNSOptimize(const KWDataGrid* initialDataGrid, KWDataGrid* optimizedDataGrid,
 					boolean bIsLastGranularity) const
 {
@@ -1519,7 +1536,7 @@ double KWDataGridVNSOptimizer::IterativeVNSOptimizeDataGrid(const KWDataGrid* in
 
 		// Optimisation a partir de la nouvelle solution
 		// CH IV Begin
-		// Cas d'une grille variable * variable
+		// Cas d'un coclustering de variables
 		if (not currentDataGrid.GetVarPartDataGrid())
 		{
 			dCost = VNSOptimizeDataGrid(initialDataGrid, dDecreaseFactor, 0, nIndexNumber, &currentDataGrid,
@@ -1754,7 +1771,8 @@ double KWDataGridVNSOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* init
 				IntVector ivGroups;
 				ALString sInnerAttributeName;
 				// double dPostOptimizedCost;
-				// warning C4456: la déclaration de 'dFusionDeltaCost' masque la déclaration locale
+				//  CH IV Refactoring
+				// warning C4456: la declaration de 'dFusionDeltaCost' masque la déclaration locale
 				// précédente
 				double dFusionDeltaCost;
 				double dNewMergedCost;
