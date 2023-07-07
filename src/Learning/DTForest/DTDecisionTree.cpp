@@ -2543,7 +2543,7 @@ void DTDecisionTree::UpdateDatabaseObjectsTargetModalities()
 	assert(nkdDatabaseObjects->GetCount() > 0);
 	assert(svReferenceTargetModalities->GetSize() > 0);
 
-	const ALString sTargetName = this->GetLearningSpec()->GetTargetAttributeName();
+	const ALString sTargetName = GetLearningSpec()->GetTargetAttributeName();
 
 	// POSITION position = nkdDatabaseObjects->GetStartPosition();
 	// NUMERIC key;

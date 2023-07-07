@@ -144,6 +144,12 @@ protected:
 	// Ecriture des clusters categoriels et numeriques
 	void WriteSymbolClusters(const CCHDGAttribute* symbolCoclusteringAttribute, ostream& ost);
 	void WriteContinuousClusters(const CCHDGAttribute* continuousCoclusteringAttribute, ostream& ost);
+	// CH IV Begin
+	void WriteVarPartClusters(const CCHDGAttribute* varPartCoclusteringAttribute, ostream& ost);
+	void WriteVarPartsInnerAttributes(const CCHDGAttribute* varPartCoclusteringAttribute);
+	void WriteContinuousInnerAttribute(KWDGAttribute* continuousInnerAttribute, ostream& ost);
+	void WriteSymbolInnerAttribute(KWDGAttribute* symbolInnerAttribute, ostream& ost);
+	// CH IV End
 
 	// Nom du chemin du fichier specifie en sortie pour une tache donnees
 	const ALString GetSpecifiedOutputFileName(int nTaskId) const;

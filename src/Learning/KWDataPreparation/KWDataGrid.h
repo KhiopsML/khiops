@@ -127,6 +127,7 @@ public:
 	//   - un DataGrid est un VarPartDataGrid si l'un de ses attributs est de type VarPart
 	// Chaque attribut est defini principalement par:
 	//   - son type: numerique, categoriele ou partie de variables
+	//      - specification des variables internes dans le cas partie de variables
 	//	 - son nombre de valeurs
 	//   - sa liste de parties
 	// Chaque partie est definie principalement par:
@@ -162,25 +163,6 @@ public:
 	// Ajout d'un attribut si la grille est vide, sans aucune cellule
 	void AddAttribute();
 
-	// CH IV Begin
-	// CH IV Refactoring: question: pourquoi la gestion des VarPart attributes n'est elle pas
-	//   porte par l'attribut de type VarPart qui les contient, plutot que par le DataGrid?
-	//   MB: pourquoi pas, faire une etude d'impact et d'interet
-
-	// Type de grille : standard ou VarPart (avec une attribut de type VarPart)
-	boolean GetVarPartDataGrid() const;
-	void SetVarPartDataGrid(boolean bValue);
-
-	// Statut de la description des parties de variable des attributs internes : partagee ou proprietaire
-	// Seules les descriptions proprietaires sont detruites lors de la destruction de la grille
-	boolean GetVarPartsShared() const;
-	void SetVarPartsShared(boolean bValue) const;
-
-	// Acces aux attributs internes
-	void SetInnerAttributes(KWDGInnerAttributes* attributes);
-	KWDGInnerAttributes* GetInnerAttributes() const;
-	// CH IV End
-
 	// Test si le DataGrid est dans un etat vide (identique a l'etat initial)
 	boolean IsEmpty() const;
 
@@ -197,7 +179,20 @@ public:
 	// avec valeurs cibles a grouper).
 	KWDGAttribute* GetTargetAttribute() const;
 
-	// Recherche d'un attribut par son nom (recherche couteuse, par parcours exhaustif des attributs)
+	// Indique si la grille est de type instances x variables, car un de ses attribut est de type VarPart
+	boolean IsVarPartDataGrid() const;
+
+	// Acces a l'attribut de type VarPart d'un grille si elle de type instances x variables, NULL sinon
+	KWDGAttribute* GetVarPartAttribute() const;
+
+	// Acces direct au statut du parametrage des attributs internes de l'attribut de type VarPart
+	boolean GetVarPartsShared() const;
+	void SetVarPartsShared(boolean bValue) const;
+
+	// Acces direct au parametrage des attributs internes de l'attribut de type VarPart
+	KWDGInnerAttributes* GetInnerAttributes() const;
+
+	// Recherche d'un attribut de la grille par son nom (recherche couteuse, par parcours exhaustif des attributs)
 	// Renvoie NULL si non trouve
 	KWDGAttribute* SearchAttribute(const ALString& sAttributeName) const;
 
@@ -325,12 +320,6 @@ public:
 	// Verification du tri des parties : couteuse, a utiliser essentiellement dans les assertions
 	boolean AreAttributePartsSorted() const;
 
-	// CH IV Begin
-	// Verification du tri des parties des attributs internes : couteuse, a utiliser essentiellement dans les
-	// assertions
-	boolean AreInnerAttributePartsSorted() const;
-	// CH IV End
-
 	// Import/export avec les objets KWDataGridStats, qui permettent un stockage compact (mais fige)
 	// de tout type de grilles de donnees
 	// Les possibilites d'echange sont limitee par celles de la classe KWDataGrid, a savoir:
@@ -347,9 +336,7 @@ public:
 	void WriteAttributes(ostream& ost) const;
 	void WriteAttributeParts(ostream& ost) const;
 	void WriteCells(ostream& ost) const;
-	// CH IV Begin
 	void WriteInnerAttributes(ostream& ost) const;
-	// CH IV End
 
 	// Affichage des statistiques par classe cible dans un tableau croise
 	// Dans chaque cellule du tableau, on affichage la proportion de la classe en parametre, ou
@@ -441,18 +428,10 @@ protected:
 	// Valeur de tri
 	int nSortValue;
 
-	// CH IV Begin
-	// Type VarPart d'une grille admettant un attribut de type VarPart
-	// Par defaut a false
-	boolean bVarPartDataGrid;
-
-	// Attributs internes dans les attributs de type VarPart
-	KWDGInnerAttributes* innerAttributes;
-
-	// Statut proprietaire ou partage de la description des attributs internes
-	// Mutable car modifie par HandleOptimizationStep
-	mutable boolean bVarPartsShared;
-	// CH IV End
+	// Attribut de la grille de type VarPart
+	// Positionne par l'attribut lors de l'initialsaition de son type s'il est de type VarPart
+	// Permet egalement de savoir si la grille est de type VarPart
+	KWDGAttribute* varPartAttribute;
 };
 
 // Comparaison de deux grilles de donnees, sur la valeur de tri (SortValue),
@@ -477,20 +456,6 @@ public:
 	// DataGrid dont l'attribut fait partie
 	KWDataGrid* GetDataGrid() const;
 
-	// CH IV Begin
-	// Acces au nom d'attribut de grille dont l'attribut interne fait eventuellement partie
-	// Dans le cas d'un attribut de grille simple (coclustering standard), renvoie vide
-	// Dans le cas d'un attribut interne, renvoie le nom de l'attribut de grille de type VarPart qui contient
-	// l'attribut
-	ALString GetOwnerAttributeName() const;
-	void SetOwnerAttributeName(ALString sName);
-
-	// CH IV Refactoring: ajouter une methode boolean IsInnerAttribute() const? OK
-	//   permettrait de remplacer tous les tests de type GetOwnerAttributeName() == "" par IsInVarParts() (idem pour
-	//   !=)
-
-	// CH IV End
-
 	/////////////////////////////////////////////
 	// Specifications de l'attribut operande
 
@@ -510,7 +475,31 @@ public:
 	void SetAttributeTargetFunction(boolean bTargetAttribute);
 	boolean GetAttributeTargetFunction() const;
 
-	// Index de l'attribut dans le tableau des operandes
+	// Test si un attribut est interne
+	boolean IsInnerAttribute() const;
+
+	// Nom de l'attribut de grille de type VarPart dont l'attribut interne fait eventuellement partie
+	// Renvoie vide dans le cas d'un coclustering standard
+	ALString GetOwnerAttributeName() const;
+	void SetOwnerAttributeName(ALString sName);
+
+	// Statut du parametrage des attributs internes: partagee ou non (defaut: false)
+	// Ce parametrage est detuit avec l'appelant, sauf s'il est partage
+	boolean GetVarPartsShared() const;
+	void SetVarPartsShared(boolean bValue) const;
+
+	// Parametrage des attributs internes dans le cas d'un attribut de grille de type VarPart
+	void SetInnerAttributes(KWDGInnerAttributes* attributes);
+	KWDGInnerAttributes* GetInnerAttributes() const;
+
+	// Nombre d'attributs internes
+	int GetInnerAttributeNumber() const;
+
+	// Acces a un attribut interne par index
+	KWDGAttribute* GetInnerAttributeAt(int nIndex) const;
+
+	// Index de l'attribut dans le tableau des attributs de la grille
+	// Renvoie -1 si attribut interne
 	int GetAttributeIndex() const;
 
 	// CH V9 TODO :
@@ -553,22 +542,6 @@ public:
 
 	////////////////////////////////////////////////
 	// Service pour les attributs de type VarPart
-
-	// CH IV Begin
-	// CH IV Refactoring: redondant avec KWDGInnerAttributes?
-	// Methodes specifiques aux attributs de type VarPart
-	// Acces au nombre d'attributs interne dans un attribut de grille de type VarPart
-	int GetInnerAttributeNumber() const;
-	void SetInnerAttributeNumber(int nValue);
-
-	// Acces au tableau des noms des attributs internes dans un attribut de grille de type VarPart
-	const ALString& GetInnerAttributeNameAt(int nIndex) const;
-	void SetInnerAttributeNameAt(int nAttributeIndex, const ALString& sInnerAttributeName);
-
-	// Tri du tableau des noms des attributs internes
-	// CH IV Refactoring: est-ce toujours utile si on deplacer la gestion des attributs internes vers l'atttribute
-	// de grille de type VarPart???
-	void SortInnerAttributeNames();
 
 	// Initialisation des parties de l'attribut de type VarPart a partir des attributs internes initialises en
 	// creant une partie par partie de variable
@@ -620,9 +593,11 @@ public:
 	// Memoire:  cet ensemble de valeurs appartient a l'appele
 	// Renvoie NULL si pas de fourre tout
 	KWDGValueSet* GetCatchAllValueSet() const;
+
 	// Initialisation du fourre-tout
 	// Sans recopie (creation a partir de la methode ConvertToCleanedValueSet)
 	void SetCatchAllValueSet(KWDGValueSet* valueSet);
+
 	// Avec recopie
 	void InitializeCatchAllValueSet(KWDGValueSet* valueSet);
 
@@ -770,17 +745,16 @@ protected:
 	// Structure d'indexation, des parties dans le cas VarPart
 	NumericKeyDictionary nkdVarPartSets;
 
-	// Tableau des noms des attributs internes dans un attribut de type VarPart
-	StringVector svInnerAttributeNames;
-
-	// CH IV Refactoring: supprimer???
-	// Attribut de type VarPart dont depend un attribut interne
-	// Par defaut a NULL pour un attribut de type Simple (numerique ou categoriel)
-	// KWDGAttribute* attributeAxis;
-
 	// Nom de l'attribut de type VarPart dont depend un attribut interne
 	// Par defaut a vide pour un attribut de type Simple (numerique ou categoriel)
 	ALString sOwnerAttributeName;
+
+	// Attributs internes dans les attributs de type VarPart
+	KWDGInnerAttributes* innerAttributes;
+
+	// Statut proprietaire ou partage de la description des attributs internes
+	// Mutable car modifie par HandleOptimizationStep
+	mutable boolean bVarPartsShared;
 	// CH IV End
 };
 
@@ -1307,11 +1281,18 @@ public:
 	///////////////////////////////
 	// Services divers
 
+	// Nettoyage
+	void DeleteAll();
+
+	// Verification du tri des parties des attributs internes : couteuse, a utiliser essentiellement dans les
+	// assertions
+	boolean AreInnerAttributePartsSorted() const;
+
 	// Controle d'integrite
 	boolean Check() const override;
 
-	// Nettoyage
-	void DeleteAll();
+	// Affichage
+	void Write(ostream& ost) const override;
 
 	///////////////////////////////
 	///// Implementation
@@ -1449,37 +1430,7 @@ inline int KWDataGrid::GetTargetValueNumber() const
 {
 	return svTargetValues.GetSize();
 }
-// CH IV Begin
-inline boolean KWDataGrid::GetVarPartDataGrid() const
-{
-	return bVarPartDataGrid;
-}
 
-inline void KWDataGrid::SetVarPartDataGrid(boolean bValue)
-{
-	bVarPartDataGrid = bValue;
-}
-
-inline boolean KWDataGrid::GetVarPartsShared() const
-{
-	return bVarPartsShared;
-}
-
-inline void KWDataGrid::SetVarPartsShared(boolean bValue) const
-{
-	bVarPartsShared = bValue;
-}
-
-inline void KWDataGrid::SetInnerAttributes(KWDGInnerAttributes* attributes)
-{
-	innerAttributes = attributes;
-}
-
-inline KWDGInnerAttributes* KWDataGrid::GetInnerAttributes() const
-{
-	return innerAttributes;
-}
-// CH IV End
 inline boolean KWDataGrid::IsEmpty() const
 {
 	return GetAttributeNumber() == 0 and GetTargetValueNumber() == 0;
@@ -1511,6 +1462,37 @@ inline KWDGAttribute* KWDataGrid::GetTargetAttribute() const
 {
 	return targetAttribute;
 }
+
+// CH IV Begin
+inline boolean KWDataGrid::IsVarPartDataGrid() const
+{
+	return varPartAttribute != NULL;
+}
+
+inline KWDGAttribute* KWDataGrid::GetVarPartAttribute() const
+{
+	ensure(varPartAttribute == NULL or varPartAttribute->GetAttributeType() == KWType::VarPart);
+	return varPartAttribute;
+}
+
+inline boolean KWDataGrid::GetVarPartsShared() const
+{
+	require(IsVarPartDataGrid());
+	return GetVarPartAttribute()->GetVarPartsShared();
+}
+
+inline void KWDataGrid::SetVarPartsShared(boolean bValue) const
+{
+	require(IsVarPartDataGrid());
+	GetVarPartAttribute()->SetVarPartsShared(bValue);
+}
+
+inline KWDGInnerAttributes* KWDataGrid::GetInnerAttributes() const
+{
+	require(IsVarPartDataGrid());
+	return GetVarPartAttribute()->GetInnerAttributes();
+}
+// CH IV End
 
 inline int KWDataGrid::GetCellNumber() const
 {
@@ -1579,18 +1561,7 @@ inline KWDataGrid* KWDGAttribute::GetDataGrid() const
 {
 	return dataGrid;
 }
-// CH IV Begin
-inline ALString KWDGAttribute::GetOwnerAttributeName() const
-{
-	return sOwnerAttributeName;
-}
 
-inline void KWDGAttribute::SetOwnerAttributeName(ALString sName)
-{
-	sOwnerAttributeName = sName;
-}
-
-// CH IV End
 inline void KWDGAttribute::SetAttributeName(const ALString& sValue)
 {
 	sAttributeName = sValue;
@@ -1604,10 +1575,17 @@ inline const ALString& KWDGAttribute::GetAttributeName() const
 inline void KWDGAttribute::SetAttributeType(int nValue)
 {
 	require(nAttributeType == KWType::Unknown);
-	// CH IV Begin
 	require(KWType::IsCoclusteringType(nValue));
-	// CH IV End
+	require(dataGrid == NULL or dataGrid->varPartAttribute == NULL or nValue != KWType::VarPart);
+
 	nAttributeType = nValue;
+
+	// On memorise l'attribut de type VarPart dans la grille
+	if (nAttributeType == KWType::VarPart)
+	{
+		assert(dataGrid != NULL and dataGrid->varPartAttribute == NULL);
+		dataGrid->varPartAttribute = this;
+	}
 }
 
 inline int KWDGAttribute::GetAttributeType() const
@@ -1630,6 +1608,67 @@ inline boolean KWDGAttribute::GetAttributeTargetFunction() const
 {
 	return bTargetAttribute;
 }
+
+// CH IV Begin
+inline boolean KWDGAttribute::IsInnerAttribute() const
+{
+	assert(dataGrid == NULL or
+	       (sOwnerAttributeName == "" and
+		(not dataGrid->IsVarPartDataGrid() or
+		 dataGrid->GetInnerAttributes()->LookupInnerAttribute(sAttributeName) == NULL)) or
+	       (sOwnerAttributeName != "" and
+		(dataGrid->IsVarPartDataGrid() and
+		 dataGrid->GetInnerAttributes()->LookupInnerAttribute(sAttributeName) == this)));
+	return sOwnerAttributeName != "";
+}
+
+inline ALString KWDGAttribute::GetOwnerAttributeName() const
+{
+	return sOwnerAttributeName;
+}
+
+inline void KWDGAttribute::SetOwnerAttributeName(ALString sName)
+{
+	sOwnerAttributeName = sName;
+}
+
+inline boolean KWDGAttribute::GetVarPartsShared() const
+{
+	require(GetAttributeType() == KWType::VarPart);
+	return bVarPartsShared;
+}
+
+inline void KWDGAttribute::SetVarPartsShared(boolean bValue) const
+{
+	require(GetAttributeType() == KWType::VarPart);
+	bVarPartsShared = bValue;
+}
+
+inline void KWDGAttribute::SetInnerAttributes(KWDGInnerAttributes* attributes)
+{
+	require(GetAttributeType() == KWType::VarPart);
+	innerAttributes = attributes;
+}
+
+inline KWDGInnerAttributes* KWDGAttribute::GetInnerAttributes() const
+{
+	require(GetAttributeType() == KWType::VarPart);
+	ensure(innerAttributes != NULL);
+	return innerAttributes;
+}
+
+inline int KWDGAttribute::GetInnerAttributeNumber() const
+{
+	require(nAttributeType == KWType::VarPart);
+	return GetInnerAttributes()->GetInnerAttributeNumber();
+}
+
+inline KWDGAttribute* KWDGAttribute::GetInnerAttributeAt(int nIndex) const
+{
+	require(nAttributeType == KWType::VarPart);
+	return GetInnerAttributes()->GetInnerAttributeAt(nIndex);
+}
+// CH IV End
 
 inline int KWDGAttribute::GetAttributeIndex() const
 {
@@ -1668,10 +1707,11 @@ inline int KWDGAttribute::GetStoredValueNumber() const
 
 inline int KWDGAttribute::GetTrueValueNumber() const
 {
+	// CH Refactoring: nettoyer
 	// if (nAttributeType == KWType::Symbol)
 	//	return nInitialValueNumber - 1;
 	// else
-	//  Desormais nInitialValueNumber est le TrueValueNumber
+	// Desormais nInitialValueNumber est le TrueValueNumber
 	return nInitialValueNumber;
 }
 
@@ -1685,41 +1725,6 @@ inline double KWDGAttribute::GetCost() const
 {
 	return dCost;
 }
-// CH IV Begin
-inline int KWDGAttribute::GetInnerAttributeNumber() const
-{
-	ensure(nAttributeType == KWType::VarPart or svInnerAttributeNames.GetSize() == 0);
-	return svInnerAttributeNames.GetSize();
-}
-
-inline void KWDGAttribute::SetInnerAttributeNumber(int nValue)
-{
-	require(nAttributeType == KWType::VarPart or nValue == 0);
-	svInnerAttributeNames.SetSize(nValue);
-}
-
-inline const ALString& KWDGAttribute::GetInnerAttributeNameAt(int nIndex) const
-{
-	require(nAttributeType == KWType::VarPart);
-	require(0 <= nIndex and nIndex < svInnerAttributeNames.GetSize());
-
-	return svInnerAttributeNames.GetAt(nIndex);
-}
-
-inline void KWDGAttribute::SetInnerAttributeNameAt(int nIndex, const ALString& sInnerAttributeName)
-{
-	require(nAttributeType == KWType::VarPart);
-	require(0 <= nIndex and nIndex < svInnerAttributeNames.GetSize());
-
-	svInnerAttributeNames.SetAt(nIndex, sInnerAttributeName);
-}
-
-inline void KWDGAttribute::SortInnerAttributeNames()
-{
-	require(nAttributeType == KWType::VarPart);
-	svInnerAttributeNames.Sort();
-}
-// CH IV End
 
 inline int KWDGAttribute::GetPartNumber() const
 {
@@ -1834,8 +1839,7 @@ inline KWDGAttribute* KWDGPart::GetAttribute() const
 inline int KWDGPart::GetPartFrequency() const
 {
 	// CH IV Begin
-	ensure(GetEmulated() or nPartFrequency == ComputeCellsTotalFrequency() or
-	       GetAttribute()->GetOwnerAttributeName() != "");
+	ensure(GetEmulated() or nPartFrequency == ComputeCellsTotalFrequency() or GetAttribute()->IsInnerAttribute());
 	// CH IV End
 	return nPartFrequency;
 }
