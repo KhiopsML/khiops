@@ -3,16 +3,16 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 ////////////////////////////////////////////////////////////
-// 2018-04-23 16:45:14
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
-#include "CCInstancesVariablesCoclusteringSpecView.h"
+#include "CCVarPartCoclusteringSpecView.h"
 
-CCInstancesVariablesCoclusteringSpecView::CCInstancesVariablesCoclusteringSpecView()
+CCVarPartCoclusteringSpecView::CCVarPartCoclusteringSpecView()
 {
-	SetIdentifier("CCInstancesVariablesCoclusteringSpec");
-	SetLabel("Instances Variables Coclustering parameters");
+	SetIdentifier("CCVarPartCoclusteringSpec");
+	SetLabel("Instances Variables coclustering parameters");
+	AddStringField("IdentifierAttribute", "Identifier variable", "");
 
 	// ## Custom constructor
 
@@ -24,15 +24,11 @@ CCInstancesVariablesCoclusteringSpecView::CCInstancesVariablesCoclusteringSpecVi
 		AddCardField("DataGridOptimizerParameters", "Data grid parameters",
 			     new KWDataGridOptimizerParametersView);
 
-	// Ajout d'une variable identifier qui donne le label des individus
-	// Si une telle variable n'est pas indique, elle sera cree automatiquement avant l'analyse
-	AddStringField("IdentifierAttribute", "Identifier variable", "");
-	// Ajout d'un tableau des variables de coclustering generique
+	// Ajout d'un tableau des variables de coclustering VarPart
 	KWAttributeAxisNameArrayView* attributeAxisNameArrayView;
 	attributeAxisNameArrayView = new KWAttributeAxisNameArrayView;
 
-	attributeAxisNameArrayView->SetMaxAxisNumber(
-	    CCInstancesVariablesCoclusteringSpec::GetMaxCoclusteringAttributeNumber());
+	attributeAxisNameArrayView->SetMaxAxisNumber(CCVarPartCoclusteringSpec::GetMaxCoclusteringAttributeNumber());
 	attributeAxisNameArrayView->SetAttributeLabel("coclustering");
 	AddListField("Attributes", "Coclustering variables axes", attributeAxisNameArrayView);
 
@@ -44,12 +40,13 @@ CCInstancesVariablesCoclusteringSpecView::CCInstancesVariablesCoclusteringSpecVi
 	attributeAxisNameArrayView->GetActionAt("RemoveItem")->SetLabel("Remove variable and axis");
 
 	// Info-bulles
-	attributeAxisNameArrayView->GetFieldAt("Name")->SetHelpText(
-	    "Input variable for the generic coclustering model."
-	    "\n There must be at least two numerical or categorical or variable part input coclustering axes. Up to "
-	    "ten axes are allowed.");
-	attributeAxisNameArrayView->GetFieldAt("AxisName")
-	    ->SetHelpText("Input axis for the generic coclustering model."
+	// CH IV Refactoring: deplacer les info-bulles vers KWAttributeAxisNameView?
+	attributeAxisNameArrayView->GetFieldAt("AttributeName")
+	    ->SetHelpText("Input variable for the VarPart coclustering model."
+			  "\n There must be at least two numerical or categorical or VarPart input coclustering axes. "
+			  "Up to ten axes are allowed.");
+	attributeAxisNameArrayView->GetFieldAt("OwnerAttributeName")
+	    ->SetHelpText("Input axis for the VarPart coclustering model."
 			  "\n There must be at least two numerical or categorical or variable part input coclustering "
 			  "axes. Up to ten axes are allowed.");
 	attributeAxisNameArrayView->GetActionAt("InsertItemAfter")
@@ -57,38 +54,39 @@ CCInstancesVariablesCoclusteringSpecView::CCInstancesVariablesCoclusteringSpecVi
 	attributeAxisNameArrayView->GetActionAt("RemoveItem")
 	    ->SetHelpText("Remove coclustering variable and its axis.");
 
+	// CH IV Refactoring: est-ce toujours utile de pouvoir parametrer le tableau d'attributs
+	// CH IV Refactoring: les classes de type KWAttributeAxisName* sont-elles toujours utilisees
 	attributeAxisNameArrayView->SetVisible(false);
 
 	GetFieldAt("IdentifierAttribute")
-	    ->SetHelpText("Identifier variable (optional)."
-			  "\n In case of a coclustering instances x variables, name of a variable that contains the "
-			  "identifier of the records."
-			  "\n Such a variable is automatically created for a instances x variables analysis if no name "
-			  "is given ");
+	    ->SetHelpText(
+		"Identifier variable (optional)."
+		"\n In the case of instances x variables coclustering, name of a variable that contains the identifier "
+		"of the records."
+		"\n Such a variable is automatically created for instances x variables analysis if no name is given ");
 	// ##
 }
 
-CCInstancesVariablesCoclusteringSpecView::~CCInstancesVariablesCoclusteringSpecView()
+CCVarPartCoclusteringSpecView::~CCVarPartCoclusteringSpecView()
 {
 	// ## Custom destructor
 
 	// ##
 }
 
-CCInstancesVariablesCoclusteringSpec*
-CCInstancesVariablesCoclusteringSpecView::GetCCInstancesVariablesCoclusteringSpec()
+CCVarPartCoclusteringSpec* CCVarPartCoclusteringSpecView::GetCCVarPartCoclusteringSpec()
 {
 	require(objValue != NULL);
-	return cast(CCInstancesVariablesCoclusteringSpec*, objValue);
+	return cast(CCVarPartCoclusteringSpec*, objValue);
 }
 
-void CCInstancesVariablesCoclusteringSpecView::EventUpdate(Object* object)
+void CCVarPartCoclusteringSpecView::EventUpdate(Object* object)
 {
-	CCInstancesVariablesCoclusteringSpec* editedObject;
+	CCVarPartCoclusteringSpec* editedObject;
 
 	require(object != NULL);
 
-	editedObject = cast(CCInstancesVariablesCoclusteringSpec*, object);
+	editedObject = cast(CCVarPartCoclusteringSpec*, object);
 	editedObject->SetIdentifierAttribute(GetStringValueAt("IdentifierAttribute"));
 
 	// ## Custom update
@@ -96,13 +94,13 @@ void CCInstancesVariablesCoclusteringSpecView::EventUpdate(Object* object)
 	// ##
 }
 
-void CCInstancesVariablesCoclusteringSpecView::EventRefresh(Object* object)
+void CCVarPartCoclusteringSpecView::EventRefresh(Object* object)
 {
-	CCInstancesVariablesCoclusteringSpec* editedObject;
+	CCVarPartCoclusteringSpec* editedObject;
 
 	require(object != NULL);
 
-	editedObject = cast(CCInstancesVariablesCoclusteringSpec*, object);
+	editedObject = cast(CCVarPartCoclusteringSpec*, object);
 	SetStringValueAt("IdentifierAttribute", editedObject->GetIdentifierAttribute());
 
 	// ## Custom refresh
@@ -110,23 +108,23 @@ void CCInstancesVariablesCoclusteringSpecView::EventRefresh(Object* object)
 	// ##
 }
 
-const ALString CCInstancesVariablesCoclusteringSpecView::GetClassLabel() const
+const ALString CCVarPartCoclusteringSpecView::GetClassLabel() const
 {
-	return "Instances Variables Coclustering parameters";
+	return "Instances Variables coclustering parameters";
 }
 
 // ## Method implementation
 
-void CCInstancesVariablesCoclusteringSpecView::SetObject(Object* object)
+void CCVarPartCoclusteringSpecView::SetObject(Object* object)
 {
-	CCInstancesVariablesCoclusteringSpec* coclusteringSpec;
+	CCVarPartCoclusteringSpec* coclusteringSpec;
 
 	require(object != NULL);
 
 	// Acces a l'objet edite
-	coclusteringSpec = cast(CCInstancesVariablesCoclusteringSpec*, object);
+	coclusteringSpec = cast(CCVarPartCoclusteringSpec*, object);
 
-	// Parametrage du tableau des axes et variables de coclustering generique
+	// Parametrage du tableau des axes et variables de coclustering VarPart
 	cast(KWAttributeAxisNameArrayView*, GetFieldAt("Attributes"))
 	    ->SetObjectArray(coclusteringSpec->GetAttributesAndAxes());
 

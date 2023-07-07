@@ -324,7 +324,7 @@ protected:
 	friend class CCCoclusteringBuilder;
 
 	//////////////////////////////////////////////////////////////
-	// Gestion des fusions dans lesquelles la partie est implique
+	// Gestion des fusions dans lesquelles la partie est impliquee
 	// Les fusions sont accessible par cle de la partie extremite de la fusion
 
 	// Ajout d'une fusion
@@ -416,7 +416,7 @@ public:
 	~KWDGMPartMerge();
 
 	/////////////////////////////////////////////////////
-	// Gestions des parties impliques dans le groupage
+	// Gestions des parties impliquees dans le groupage
 
 	// Parametrage de la partie origine
 	void SetPart1(KWDGMPart* part);

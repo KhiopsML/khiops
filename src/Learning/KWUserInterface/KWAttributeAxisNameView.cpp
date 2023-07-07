@@ -11,9 +11,9 @@
 KWAttributeAxisNameView::KWAttributeAxisNameView()
 {
 	SetIdentifier("KWAttributeAxisName");
-	SetLabel("VariableAxis");
-	AddStringField("Attribute", "AttributeName", "");
-	AddStringField("AxisName", "AxisName", "");
+	SetLabel("Variable axis");
+	AddStringField("AttributeName", "Attribute name", "");
+	AddStringField("OwnerAttributeName", "Owner attribute name", "");
 
 	// ## Custom constructor
 
@@ -40,8 +40,8 @@ void KWAttributeAxisNameView::EventUpdate(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(KWAttributeAxisName*, object);
-	editedObject->SetAttributeName(GetStringValueAt("Name"));
-	editedObject->SetAxisName(GetStringValueAt("AxisName"));
+	editedObject->SetAttributeName(GetStringValueAt("AttributeName"));
+	editedObject->SetOwnerAttributeName(GetStringValueAt("OwnerAttributeName"));
 
 	// ## Custom update
 
@@ -55,8 +55,8 @@ void KWAttributeAxisNameView::EventRefresh(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(KWAttributeAxisName*, object);
-	SetStringValueAt("Name", editedObject->GetAttributeName());
-	SetStringValueAt("AxisName", editedObject->GetAxisName());
+	SetStringValueAt("AttributeName", editedObject->GetAttributeName());
+	SetStringValueAt("OwnerAttributeName", editedObject->GetOwnerAttributeName());
 
 	// ## Custom refresh
 
@@ -65,7 +65,7 @@ void KWAttributeAxisNameView::EventRefresh(Object* object)
 
 const ALString KWAttributeAxisNameView::GetClassLabel() const
 {
-	return "VariableAxis";
+	return "Variable axis";
 }
 
 // ## Method implementation

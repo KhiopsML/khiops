@@ -604,7 +604,7 @@ boolean CCCoclusteringReport::ReadDimensions(CCHierarchicalDataGrid* coclusterin
 		}
 		// Cas d'un coclustering individus * variables
 		if (nCoclusteringType == 1)
-			coclusteringDataGrid->SetDataGridGeneric(true);
+			coclusteringDataGrid->SetVarPartDataGrid(true);
 
 		SkipLine();
 		// Lecture du champ suivant pour la suite
@@ -682,7 +682,7 @@ boolean CCCoclusteringReport::ReadDimensions(CCHierarchicalDataGrid* coclusterin
 				nAttributeType = KWType::ToType(sField);
 			// CH IV Begin
 			if (bOk and not KWType::IsSimple(nAttributeType) and
-			    not coclusteringDataGrid->IsDataGridGeneric())
+			    not coclusteringDataGrid->GetVarPartDataGrid())
 			// CH IV End
 			{
 				bOk = false;
@@ -1072,7 +1072,7 @@ boolean CCCoclusteringReport::ReadCoclusteringStats(CCHierarchicalDataGrid* cocl
 
 	// CH IV Begin
 	// Variable d'identifiant
-	if (coclusteringDataGrid->IsDataGridGeneric())
+	if (coclusteringDataGrid->GetVarPartDataGrid())
 	{
 		if (bOk)
 		{
@@ -2163,7 +2163,7 @@ void CCCoclusteringReport::WriteCoclusteringStats(const CCHierarchicalDataGrid* 
 	ost << sKeyWordSelectionValue << "\t" << coclusteringDataGrid->GetConstDatabaseSpec()->GetSelectionValue()
 	    << "\n";
 	// CH IV Begin
-	if (coclusteringDataGrid->IsDataGridGeneric())
+	if (coclusteringDataGrid->GetVarPartDataGrid())
 	{
 		ost << sKeyWordIdentifierAttribute << "\t" << coclusteringDataGrid->GetIdentifierAttributeName()
 		    << "\n";
@@ -2339,7 +2339,7 @@ void CCCoclusteringReport::WriteComposition(const CCHierarchicalDataGrid* coclus
 		}
 		// CH IV Begin
 		// Traitement des attributs de type VarPart
-		else if (dgAttribute->GetAttributeType() == KWType::VarParts)
+		else if (dgAttribute->GetAttributeType() == KWType::VarPart)
 		{
 			// Entete
 			ost << sKeyWordComposition << "\t" << dgAttribute->GetAttributeName() << "\n";
@@ -2840,7 +2840,7 @@ boolean CCCoclusteringReport::ReadJSONSummary(CCHierarchicalDataGrid* coclusteri
 		// Lecture d'un champ supplementaire dans le cas d'un coclustering de type indivdivus * variables
 		if (not bIsEnd)
 		{
-			coclusteringDataGrid->SetDataGridGeneric(true);
+			coclusteringDataGrid->SetVarPartDataGrid(true);
 			bOk = bOk and
 			      JSONTokenizer::ReadKeyStringValue("identifierVariable", sIdentifierVariable, bIsEnd);
 		}
@@ -2879,7 +2879,7 @@ boolean CCCoclusteringReport::ReadJSONSummary(CCHierarchicalDataGrid* coclusteri
 	}
 
 	// Verification de l'integrite dans le cas d'un coclustering de type individus * variables
-	if (coclusteringDataGrid->IsDataGridGeneric() and coclusteringDataGrid->GetInitialAttributeNumber() != 2)
+	if (coclusteringDataGrid->GetVarPartDataGrid() and coclusteringDataGrid->GetInitialAttributeNumber() != 2)
 	{
 		AddError(sTmp + "Number of attribute for IV coclustering should be 2 and is equal to (" +
 			 IntToString(nInitialAttributeNumber) + ")");
@@ -2956,13 +2956,16 @@ boolean CCCoclusteringReport::ReadJSONDimensionSummaries(CCHierarchicalDataGrid*
 
 		// Type de l'attribut
 		bOk = bOk and JSONTokenizer::ReadKeyStringValue("type", sAttributeType, bIsEnd);
+		// CH IV Refactoring: ligne suivante en attendant la finalisation des choix d'encodage du format json
+		if (sAttributeType == "VariableParts")
+			sAttributeType = "VariablePart";
 		nAttributeType = KWType::ToType(sAttributeType);
 		// CH IV Begin
-		if (bOk and not(KWType::IsSimple(nAttributeType) or KWType::IsVarParts(nAttributeType)))
+		if (bOk and not KWType::IsCoclusteringType(nAttributeType))
 		{
 			bOk = false;
 			JSONTokenizer::AddParseError("Type of variable " + sAttributeName + " (" + sAttributeType +
-						     ") should be Numerical or Categorical or VarParts");
+						     ") should be Numerical or Categorical or VarPart");
 		}
 		// CH IV End
 
@@ -3032,11 +3035,11 @@ boolean CCCoclusteringReport::ReadJSONDimensionSummaries(CCHierarchicalDataGrid*
 
 	// CH IV Begin
 	// Tests d'integrite dans le cas d'un coclustering de type individus * variables
-	if (bOk and coclusteringDataGrid->IsDataGridGeneric())
+	if (bOk and coclusteringDataGrid->GetVarPartDataGrid())
 	{
-		// Verification du type des attributs : categoriel (ou numerique) pour le 1er, varParts pour le second
+		// Verification du type des attributs : categoriel (ou numerique) pour le 1er, VarPart pour le second
 		if (not KWType::IsSimple(coclusteringDataGrid->GetAttributeAt(0)->GetAttributeType()) or
-		    not KWType::IsVarParts(coclusteringDataGrid->GetAttributeAt(1)->GetAttributeType()))
+		    coclusteringDataGrid->GetAttributeAt(1)->GetAttributeType() != KWType::VarPart)
 		{
 			bOk = false;
 			AddError("Incorrect type of variables for instance * variables coclustering ");
@@ -3054,7 +3057,7 @@ boolean CCCoclusteringReport::ReadJSONDimensionPartitions(CCHierarchicalDataGrid
 	ALString sPartName;
 	boolean bIsAttributeEnd;
 	// CH IV Begin
-	boolean bIsImpliedAttributeEnd;
+	boolean bIsInnerAttributeEnd;
 	// CH IV End
 	boolean bIsPartEnd;
 	int nAttributeIndex;
@@ -3065,15 +3068,15 @@ boolean CCCoclusteringReport::ReadJSONDimensionPartitions(CCHierarchicalDataGrid
 	ALString sAttributeType;
 	int nAttributeType;
 	// CH IV Begin
-	int nImpliedAttributeIndex;
+	int nInnerAttributeIndex;
 	// CH IV End
 	int nDefaultGroupIndex;
 	ALString sValue;
 	ALString sTmp;
 	// CH IV Begin
-	KWDGAllVariableParts* impliedAttributes;
-	KWDGAttribute* impliedAttribute;
-	int nImpliedAttributeNumber;
+	KWDGInnerAttributes* innerAttributes;
+	KWDGAttribute* innerAttribute;
+	int nInnerAttributeNumber;
 	ObjectDictionary odVarParts;
 	// CH IV End
 
@@ -3139,50 +3142,51 @@ boolean CCCoclusteringReport::ReadJSONDimensionPartitions(CCHierarchicalDataGrid
 				bOk = bOk and JSONTokenizer::ReadKeyArray("valueGroups");
 			// CH IV Begin
 			// Cas d'un attribut VarPart
-			else if (dgAttribute->GetAttributeType() == KWType::VarParts)
+			else if (dgAttribute->GetAttributeType() == KWType::VarPart)
 			{
-				// Tableau des variables impliquees dans l'attribut de type VarPart
+				// Tableau des variables internes dans l'attribut de type VarPart
+				// CH IV Refactoring: renommer en innerVariable
 				bOk = bOk and JSONTokenizer::ReadKeyArray("impliedVariables");
 
-				// Creation des attributs impliques
-				impliedAttributes = new KWDGAllVariableParts;
-				dgAttribute->GetDataGrid()->SetImpliedAttributes(impliedAttributes);
-				nImpliedAttributeNumber = 0;
+				// Creation des attributs internes
+				innerAttributes = new KWDGInnerAttributes;
+				dgAttribute->GetDataGrid()->SetInnerAttributes(innerAttributes);
+				nInnerAttributeNumber = 0;
 
-				// Lecture des attributs impliques
+				// Lecture des attributs internes
 				// dgPart = dgAttribute->GetHeadPart();
-				impliedAttribute = new KWDGAttribute;
-				impliedAttribute->SetAxisName(dgAttribute->GetAttributeName());
-				dgAttribute->GetDataGrid()->GetImpliedAttributes()->AddImpliedAttribute(
-				    impliedAttribute);
-				bIsImpliedAttributeEnd = false;
-				nImpliedAttributeIndex = 0;
-				// Boucle sur les attributs impliques
-				while (bOk and not bIsImpliedAttributeEnd)
+				innerAttribute = new KWDGAttribute;
+				innerAttribute->SetOwnerAttributeName(dgAttribute->GetAttributeName());
+				dgAttribute->GetDataGrid()->GetInnerAttributes()->AddInnerAttribute(innerAttribute);
+				bIsInnerAttributeEnd = false;
+				nInnerAttributeIndex = 0;
+
+				// Boucle sur les attributs internes
+				while (bOk and not bIsInnerAttributeEnd)
 				{
 					// Lecture de l'attribut
-					bOk = bOk and ReadJSONImpliedAttribute(impliedAttribute, &odVarParts);
-					nImpliedAttributeNumber++;
-					dgAttribute->SetImpliedAttributesNumber(nImpliedAttributeNumber);
-					dgAttribute->SetImpliedAttributeNameAt(nImpliedAttributeIndex,
-									       impliedAttribute->GetAttributeName());
+					bOk = bOk and ReadJSONInnerAttribute(innerAttribute, &odVarParts);
+					nInnerAttributeNumber++;
+					dgAttribute->SetInnerAttributesNumber(nInnerAttributeNumber);
+					dgAttribute->SetInnerAttributeNameAt(nInnerAttributeIndex,
+									     innerAttribute->GetAttributeName());
 
-					// Test si nouvel attribut implique
-					bOk = bOk and JSONTokenizer::ReadArrayNext(bIsImpliedAttributeEnd);
+					// Test si nouvel attribut interne
+					bOk = bOk and JSONTokenizer::ReadArrayNext(bIsInnerAttributeEnd);
 
 					// Attribut suivant
 					if (bOk)
 					{
-						nImpliedAttributeIndex++;
-						impliedAttribute = new KWDGAttribute;
-						impliedAttribute->SetAxisName(dgAttribute->GetAttributeName());
-						dgAttribute->GetDataGrid()->GetImpliedAttributes()->AddImpliedAttribute(
-						    impliedAttribute);
+						nInnerAttributeIndex++;
+						innerAttribute = new KWDGAttribute;
+						innerAttribute->SetOwnerAttributeName(dgAttribute->GetAttributeName());
+						dgAttribute->GetDataGrid()->GetInnerAttributes()->AddInnerAttribute(
+						    innerAttribute);
 					}
 					else
 						break;
 				}
-				// Fin du tableau des attributs impliques
+				// Fin du tableau des attributs internes
 				bOk = bOk and JSONTokenizer::ReadExpectedToken(',');
 
 				// Lecture des parties "varPartGroups"
@@ -3218,7 +3222,7 @@ boolean CCCoclusteringReport::ReadJSONDimensionPartitions(CCHierarchicalDataGrid
 					else if (dgAttribute->GetAttributeType() == KWType::Symbol)
 						bOk = bOk and ReadJSONValueGroups(dgAttribute, dgPart);
 					// CH IV Begin
-					else if (dgAttribute->GetAttributeType() == KWType::VarParts)
+					else if (dgAttribute->GetAttributeType() == KWType::VarPart)
 						bOk = bOk and ReadJSONVarPart(dgAttribute, dgPart, &odVarParts);
 					// CH IV End
 				}
@@ -3331,7 +3335,7 @@ boolean CCCoclusteringReport::ReadJSONDimensionPartitions(CCHierarchicalDataGrid
 			}
 			// CH IV Begin
 			// Dans le cas VarPart
-			else if (dgAttribute->GetAttributeType() == KWType::VarParts)
+			else if (dgAttribute->GetAttributeType() == KWType::VarPart)
 			{
 				// Lecture de la fin de l'objet
 				bOk = bOk and JSONTokenizer::ReadExpectedToken('}');
@@ -3655,7 +3659,7 @@ boolean CCCoclusteringReport::ReadJSONValueGroupsVarParts(KWDGAttribute* dgAttri
 	return bOk;
 }
 
-boolean CCCoclusteringReport::ReadJSONImpliedAttribute(KWDGAttribute* impliedAttribute, ObjectDictionary* odVarParts)
+boolean CCCoclusteringReport::ReadJSONInnerAttribute(KWDGAttribute* innerAttribute, ObjectDictionary* odVarParts)
 {
 	boolean bOk = true;
 	boolean bIsEnd;
@@ -3663,9 +3667,7 @@ boolean CCCoclusteringReport::ReadJSONImpliedAttribute(KWDGAttribute* impliedAtt
 	ALString sAttributeType;
 	int nAttributeType;
 	ALString sValue;
-	int nValueFrequency; // CH IV Refactoring: supprimer car non utilise
 	StringVector svValues;
-	// IntVector ivValueFrequencies;// CH IV Refactoring: supprimer car non utilise
 	DoubleVector dvValueTypicalities;
 	int i;
 	ALString sTmp;
@@ -3689,19 +3691,19 @@ boolean CCCoclusteringReport::ReadJSONImpliedAttribute(KWDGAttribute* impliedAtt
 	}
 	// Attribution du type (necessaire pour la creation des parties de l'attribut)
 	if (bOk)
-		impliedAttribute->SetAttributeType(nAttributeType);
+		innerAttribute->SetAttributeType(nAttributeType);
 
 	// Partition de l'attribut
 	bOk = bOk and JSONTokenizer::ReadKeyArray("partition");
 	// Cas d'un attribut Continuous
 	if (nAttributeType == KWType::Continuous)
 	{
-		ReadJSONIntervalVarParts(impliedAttribute);
+		ReadJSONIntervalVarParts(innerAttribute);
 	}
 	// Cas d'un attribut Categorial
 	else
 	{
-		ReadJSONValueGroupsVarParts(impliedAttribute);
+		ReadJSONValueGroupsVarParts(innerAttribute);
 	}
 
 	// Redondant avec "varPartFrequencies"
@@ -3730,7 +3732,7 @@ boolean CCCoclusteringReport::ReadJSONImpliedAttribute(KWDGAttribute* impliedAtt
 	}
 	// bOk = bOk and JSONTokenizer::ReadExpectedToken(',');
 
-	if (bOk and svValues.GetSize() != impliedAttribute->GetPartNumber())
+	if (bOk and svValues.GetSize() != innerAttribute->GetPartNumber())
 	{
 		JSONTokenizer::AddParseError("Vector \"partLabels\" should be of same size as vector \"partition\"");
 		bOk = false;
@@ -3742,10 +3744,10 @@ boolean CCCoclusteringReport::ReadJSONImpliedAttribute(KWDGAttribute* impliedAtt
 	// Memorisation des informations sur l'attribut
 	if (bOk)
 	{
-		impliedAttribute->SetAttributeName(sAttributeName);
+		innerAttribute->SetAttributeName(sAttributeName);
 
 		// Memorisation de chaque partie
-		dgPart = impliedAttribute->GetHeadPart();
+		dgPart = innerAttribute->GetHeadPart();
 		for (i = 0; i < svValues.GetSize(); i++)
 		{
 			// Memorisation de l'effectif de chaque partie
@@ -3755,7 +3757,7 @@ boolean CCCoclusteringReport::ReadJSONImpliedAttribute(KWDGAttribute* impliedAtt
 			odVarParts->SetAt(svValues.GetAt(i), dgPart);
 
 			// Partie suivante
-			impliedAttribute->GetNextPart(dgPart);
+			innerAttribute->GetNextPart(dgPart);
 		}
 	}
 	return bOk;
@@ -4414,7 +4416,7 @@ void CCCoclusteringReport::WriteJSONSummary(const CCHierarchicalDataGrid* coclus
 
 	// CH IV Begin
 	// Cas d'un coclustering de type individus * variables
-	if (coclusteringDataGrid->IsDataGridGeneric())
+	if (coclusteringDataGrid->GetVarPartDataGrid())
 		fJSON->WriteKeyString(sKeyWordIdentifierAttribute, coclusteringDataGrid->GetIdentifierAttributeName());
 	// CH IV End
 	fJSON->EndObject();
@@ -4480,8 +4482,7 @@ void CCCoclusteringReport::WriteJSONDimensionPartitions(const CCHierarchicalData
 	CCHDGVarPartSet* hdgVarPartSet;
 	KWDGVarPartValue* dgVarPartValue;
 	CCHDGVarPartValue* hdgVarPartValue;
-	KWDGAttribute* impliedAttribute;
-	int nPart; // CH IV Refactoring: supprimer car non utilise
+	KWDGAttribute* innerAttribute;
 	// CH IV End
 
 	require(coclusteringDataGrid != NULL);
@@ -4606,22 +4607,23 @@ void CCCoclusteringReport::WriteJSONDimensionPartitions(const CCHierarchicalData
 			fJSON->WriteKeyInt("defaultGroupIndex", nDefaultGroupIndex);
 		}
 		// CH IV Begin
-		// Traitement des attributs de type VarParts
-		if (dgAttribute->GetAttributeType() == KWType::VarParts)
+		// Traitement des attributs de type VarPart
+		if (dgAttribute->GetAttributeType() == KWType::VarPart)
 		{
 			// Parcours des variables de l'attribut
+			// CH IV Refactoring: renommer en innerVariables
 			fJSON->BeginKeyArray("impliedVariables");
 			nIndex = 0;
-			for (nIndex = 0; nIndex < dgAttribute->GetImpliedAttributesNumber(); nIndex++)
+			for (nIndex = 0; nIndex < dgAttribute->GetInnerAttributesNumber(); nIndex++)
 			{
 				// Extraction de l'attribut
-				impliedAttribute = coclusteringDataGrid->GetImpliedAttributes()->LookupImpliedAttribute(
-				    dgAttribute->GetImpliedAttributeNameAt(nIndex));
+				innerAttribute = coclusteringDataGrid->GetInnerAttributes()->LookupInnerAttribute(
+				    dgAttribute->GetInnerAttributeNameAt(nIndex));
 
 				fJSON->BeginObject();
 
-				// Partition de la variable impliquee
-				WriteJSONVarPartPartition(coclusteringDataGrid, impliedAttribute, fJSON);
+				// Partition de la variable interne
+				WriteJSONVarPartPartition(coclusteringDataGrid, innerAttribute, fJSON);
 
 				fJSON->EndObject();
 			}
@@ -4724,25 +4726,26 @@ void CCCoclusteringReport::WriteJSONDimensionPartitions(const CCHierarchicalData
 
 // CH IV Begin
 void CCCoclusteringReport::WriteJSONVarPartPartition(const CCHierarchicalDataGrid* coclusteringDataGrid,
-						     KWDGAttribute* impliedAttribute, JSONFile* fJSON)
+						     KWDGAttribute* innerAttribute, JSONFile* fJSON)
 {
 	KWDGPart* currentPart;
 	KWDGValue* currentValue;
 	int nIndex;
 
 	// Entete
-	fJSON->WriteKeyString("variable", impliedAttribute->GetAttributeName());
-	fJSON->WriteKeyString("type", KWType::ToString(impliedAttribute->GetAttributeType()));
+	fJSON->WriteKeyString("variable", innerAttribute->GetAttributeName());
+	fJSON->WriteKeyString("type", KWType::ToString(innerAttribute->GetAttributeType()));
 
 	// Partition de la variable
 	// Cas d'un attribut Continuous
-	if (impliedAttribute->GetAttributeType() == KWType::Continuous)
+	if (innerAttribute->GetAttributeType() == KWType::Continuous)
 	{
 		fJSON->BeginKeyArray("partition");
-		nIndex = cast(IntObject*, coclusteringDataGrid->GetImpliedAttributeIndexes()->Lookup(
-					      impliedAttribute->GetAttributeName()))
-			     ->GetInt();
-		currentPart = impliedAttribute->GetHeadPart();
+		nIndex =
+		    cast(IntObject*,
+			 coclusteringDataGrid->GetInnerAttributeIndexes()->Lookup(innerAttribute->GetAttributeName()))
+			->GetInt();
+		currentPart = innerAttribute->GetHeadPart();
 
 		// Parcours des parties de l'attribut
 		while (currentPart != NULL)
@@ -4753,22 +4756,22 @@ void CCCoclusteringReport::WriteJSONVarPartPartition(const CCHierarchicalDataGri
 			// if (currentPart->GetInterval()->GetLowerBound() == KWDGInterval::GetMinLowerBound())
 
 			// Borne inf, ou min pour le premier intervalle non Missing
-			if (currentPart == impliedAttribute->GetHeadPart())
+			if (currentPart == innerAttribute->GetHeadPart())
 				fJSON->WriteContinuous(
-				    coclusteringDataGrid->GetImpliedAttributeMinValues()->GetAt(nIndex));
+				    coclusteringDataGrid->GetInnerAttributeMinValues()->GetAt(nIndex));
 			else
 				fJSON->WriteContinuous(currentPart->GetInterval()->GetLowerBound());
 
 			// Cas de + inf
-			if (currentPart == impliedAttribute->GetTailPart())
+			if (currentPart == innerAttribute->GetTailPart())
 				fJSON->WriteContinuous(
-				    coclusteringDataGrid->GetImpliedAttributeMaxValues()->GetAt(nIndex));
+				    coclusteringDataGrid->GetInnerAttributeMaxValues()->GetAt(nIndex));
 			else
 				fJSON->WriteContinuous(currentPart->GetInterval()->GetUpperBound());
 
 			fJSON->EndList();
 			// Partie suivante
-			impliedAttribute->GetNextPart(currentPart);
+			innerAttribute->GetNextPart(currentPart);
 		}
 		fJSON->EndArray();
 	}
@@ -4777,7 +4780,7 @@ void CCCoclusteringReport::WriteJSONVarPartPartition(const CCHierarchicalDataGri
 	else
 	{
 		fJSON->BeginKeyList("partition");
-		currentPart = impliedAttribute->GetHeadPart();
+		currentPart = innerAttribute->GetHeadPart();
 		// Parcours des parties de l'attribut
 		while (currentPart != NULL)
 		{
@@ -4797,7 +4800,7 @@ void CCCoclusteringReport::WriteJSONVarPartPartition(const CCHierarchicalDataGri
 			fJSON->EndList();
 
 			// Partie suivante
-			impliedAttribute->GetNextPart(currentPart);
+			innerAttribute->GetNextPart(currentPart);
 		}
 		fJSON->EndList();
 	}
@@ -4805,34 +4808,34 @@ void CCCoclusteringReport::WriteJSONVarPartPartition(const CCHierarchicalDataGri
 	// Libelles des parties de variable utilises pour decrire les clusters de parties de variable
 	fJSON->BeginKeyList("partLabels");
 	// Cas d'un attribut Continuous
-	if (impliedAttribute->GetAttributeType() == KWType::Continuous)
+	if (innerAttribute->GetAttributeType() == KWType::Continuous)
 	{
-		currentPart = impliedAttribute->GetHeadPart();
+		currentPart = innerAttribute->GetHeadPart();
 
 		// Parcours des parties de l'attribut
 		while (currentPart != NULL)
 		{
 			// Ecriture du label de la partie de variable
-			fJSON->WriteString(impliedAttribute->GetAttributeName() +
+			fJSON->WriteString(innerAttribute->GetAttributeName() +
 					   currentPart->GetInterval()->GetObjectLabel());
 			// Partie suivante
-			impliedAttribute->GetNextPart(currentPart);
+			innerAttribute->GetNextPart(currentPart);
 		}
 	}
 
 	// Sinon, attribut Categoriel
 	else
 	{
-		currentPart = impliedAttribute->GetHeadPart();
+		currentPart = innerAttribute->GetHeadPart();
 		// Parcours des parties de l'attribut
 		while (currentPart != NULL)
 		{
 			// Ecriture du label de la partie de variable
-			fJSON->WriteString(impliedAttribute->GetAttributeName() +
+			fJSON->WriteString(innerAttribute->GetAttributeName() +
 					   currentPart->GetValueSet()->GetObjectLabel());
 
 			// Partie suivante
-			impliedAttribute->GetNextPart(currentPart);
+			innerAttribute->GetNextPart(currentPart);
 		}
 	}
 	fJSON->EndList();

@@ -5,7 +5,7 @@
 #pragma once
 
 ////////////////////////////////////////////////////////////
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "Object.h"
@@ -16,7 +16,7 @@
 
 ////////////////////////////////////////////////////////////
 // Classe KWAttributeAxisName
-//    VariableAxis
+//    Variable axis
 class KWAttributeAxisName : public Object
 {
 public:
@@ -28,18 +28,18 @@ public:
 	void CopyFrom(const KWAttributeAxisName* aSource);
 	KWAttributeAxisName* Clone() const;
 
-	////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
 	// Acces aux attributs
 
-	// AttributeName
+	// Attribute name
 	const ALString& GetAttributeName() const;
 	void SetAttributeName(const ALString& sValue);
 
-	// AxisName
-	const ALString& GetAxisName() const;
-	void SetAxisName(const ALString& sValue);
+	// Owner attribute name
+	const ALString& GetOwnerAttributeName() const;
+	void SetOwnerAttributeName(const ALString& sValue);
 
-	////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
 	// Divers
 
 	// Ecriture
@@ -54,11 +54,11 @@ public:
 	// ##
 
 	////////////////////////////////////////////////////////
-	//// Implementation
+	///// Implementation
 protected:
 	// Attributs de la classe
 	ALString sAttributeName;
-	ALString sAxisName;
+	ALString sOwnerAttributeName;
 
 	// ## Custom implementation
 
@@ -78,14 +78,14 @@ inline void KWAttributeAxisName::SetAttributeName(const ALString& sValue)
 	sAttributeName = sValue;
 }
 
-inline const ALString& KWAttributeAxisName::GetAxisName() const
+inline const ALString& KWAttributeAxisName::GetOwnerAttributeName() const
 {
-	return sAxisName;
+	return sOwnerAttributeName;
 }
 
-inline void KWAttributeAxisName::SetAxisName(const ALString& sValue)
+inline void KWAttributeAxisName::SetOwnerAttributeName(const ALString& sValue)
 {
-	sAxisName = sValue;
+	sOwnerAttributeName = sValue;
 }
 
 // ## Custom inlines

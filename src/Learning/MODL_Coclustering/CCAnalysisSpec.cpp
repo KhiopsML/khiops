@@ -7,7 +7,7 @@
 CCAnalysisSpec::CCAnalysisSpec()
 {
 	// CH IV Begin
-	bGenericCoclustering = false;
+	bVarPartCoclustering = false;
 	// CH IV End
 }
 
@@ -19,33 +19,33 @@ CCCoclusteringSpec* CCAnalysisSpec::GetCoclusteringSpec()
 }
 
 // CH IV Begin
-CCInstancesVariablesCoclusteringSpec* CCAnalysisSpec::GetInstancesVariablesCoclusteringSpec()
+CCVarPartCoclusteringSpec* CCAnalysisSpec::GetVarPartCoclusteringSpec()
 {
-	return &instancesVariablesCoclusteringSpec;
+	return &varPartCoclusteringSpec;
 }
 
-void CCAnalysisSpec::SetGenericCoclustering(boolean bValue)
+void CCAnalysisSpec::SetVarPartCoclustering(boolean bValue)
 {
-	bGenericCoclustering = bValue;
+	bVarPartCoclustering = bValue;
 }
 
-boolean CCAnalysisSpec::GetGenericCoclustering() const
+boolean CCAnalysisSpec::GetVarPartCoclustering() const
 {
-	return bGenericCoclustering;
+	return bVarPartCoclustering;
 }
 
-void CCAnalysisSpec::SetCoclusteringType(const ALString& sValue)
+const ALString CCAnalysisSpec::GetCoclusteringLabelFromType(boolean bIsVarPartCoclustering)
 {
-	require(sValue == "Variables coclustering" or sValue == "Instances x Variables coclustering");
-	bGenericCoclustering = (sValue == "Instances x Variables coclustering");
-}
-
-const ALString CCAnalysisSpec::GetCoclusteringType() const
-{
-	if (bGenericCoclustering)
+	if (bIsVarPartCoclustering)
 		return "Instances x Variables coclustering";
 	else
 		return "Variables coclustering";
+}
+
+boolean CCAnalysisSpec::GetCoclusteringTypeFromLabel(const ALString& sLabel)
+{
+	require(sLabel == GetCoclusteringLabelFromType(true) or sLabel == GetCoclusteringLabelFromType(false));
+	return sLabel == GetCoclusteringLabelFromType(true);
 }
 // CH IV End
 

@@ -18,7 +18,7 @@ CCCoclusteringBuilder::CCCoclusteringBuilder()
 	bIsDefaultCostComputed = false;
 	bExportAsKhc = true;
 	// CH IV Begin
-	bGenericCoclustering = false;
+	bVarPartCoclustering = false;
 	nFirstVarPartsAttributeIndex = -1;
 	// CH IV End
 }
@@ -48,14 +48,14 @@ void CCCoclusteringBuilder::SetIdentifierAttribute(const ALString& sValue)
 	sIdentifierAttribute = sValue;
 }
 
-boolean CCCoclusteringBuilder::GetGenericCoclustering() const
+boolean CCCoclusteringBuilder::GetVarPartCoclustering() const
 {
-	return bGenericCoclustering;
+	return bVarPartCoclustering;
 }
 
-void CCCoclusteringBuilder::SetGenericCoclustering(boolean bValue)
+void CCCoclusteringBuilder::SetVarPartCoclustering(boolean bValue)
 {
-	bGenericCoclustering = bValue;
+	bVarPartCoclustering = bValue;
 }
 // CH IV End
 boolean CCCoclusteringBuilder::CheckSpecifications() const
@@ -191,13 +191,13 @@ boolean CCCoclusteringBuilder::ComputeCoclustering()
 	if (bOk and not TaskProgression::IsInterruptionRequested())
 	// CH IV Begin
 	{
-		// Cas ou le coclustering se ramene a un coclustering classique, appel de la methode classique de
-		// creation de grille
-		if (not GetGenericCoclustering())
+		// Cas ou le coclustering se ramene a un coclustering standard, appel de la methode standard de creation
+		// de grille
+		if (not GetVarPartCoclustering())
 			bOk = FillTupleTableFromDatabase(GetDatabase(), &tupleTable);
-		// Sinon, cas de coclustering generique
+		// Sinon, cas de coclustering VarPart
 		else
-			bOk = FillGenericTupleTableFromDatabase(GetDatabase(), &tupleTable, odObservationNumbers);
+			bOk = FillVarPartTupleTableFromDatabase(GetDatabase(), &tupleTable, odObservationNumbers);
 	}
 	// CH IV End
 
@@ -217,13 +217,13 @@ boolean CCCoclusteringBuilder::ComputeCoclustering()
 	if (bOk and not TaskProgression::IsInterruptionRequested())
 	{
 		// CH IV Begin
-		// Cas ou le coclustering se ramene a un coclustering classique, appel de la methode classique de
-		// creation de grille
-		if (not GetGenericCoclustering())
+		// Cas ou le coclustering se ramene a un coclustering standard, appel de la methode standard de creation
+		// de grille
+		if (not GetVarPartCoclustering())
 			initialDataGrid = CreateDataGrid(&tupleTable);
-		// Sinon, cas de coclustering generique
+		// Sinon, cas de coclustering VarPart
 		else
-			initialDataGrid = CreateGenericDataGrid(&tupleTable, odObservationNumbers);
+			initialDataGrid = CreateVarPartDataGrid(&tupleTable, odObservationNumbers);
 		// CH IV End
 		bOk = initialDataGrid != NULL;
 	}
@@ -290,7 +290,6 @@ void CCCoclusteringBuilder::OptimizeDataGrid(const KWDataGrid* inputInitialDataG
 {
 	CCCoclusteringOptimizer dataGridOptimizer;
 	boolean bDisplayResults = false;
-	boolean bDisplayCosts = false; // CH IV Refactoring: supprimer car non utilise
 	boolean bDisplayPartitionLevel = false;
 
 	// Creation et initialisation de la structure de couts
@@ -306,6 +305,7 @@ void CCCoclusteringBuilder::OptimizeDataGrid(const KWDataGrid* inputInitialDataG
 	dataGridOptimizer.GetParameters()->CopyFrom(GetPreprocessingSpec()->GetDataGridOptimizerParameters());
 	dataGridOptimizer.GetParameters()->SetOptimizationTime(RMResourceConstraints::GetOptimizationTime());
 
+	// CH IV Refactoring: supprimer???
 	// Parametrage d'un niveau d'optimisation "illimite" si une limite de temps est indiquee
 	// debug(dataGridOptimizer.GetParameters()->SetOptimizationLevel(0));
 	// debug(cout << "BEWARE: Optimization level set to 0 in debug mode only!!!" << endl);
@@ -321,7 +321,7 @@ void CCCoclusteringBuilder::OptimizeDataGrid(const KWDataGrid* inputInitialDataG
 
 	// Optimisation de la grille dans le cas d'un coclustering variale * variable
 	// Pour s'arreter apres la tache de creation de la grille et verifier que le nettoyage est OK
-	if (not initialDataGrid->IsDataGridGeneric())
+	if (not initialDataGrid->GetVarPartDataGrid())
 	{
 		// Initialisation des couts par defaut
 		coclusteringDataGridCosts->InitializeDefaultCosts(inputInitialDataGrid);
@@ -337,10 +337,10 @@ void CCCoclusteringBuilder::OptimizeDataGrid(const KWDataGrid* inputInitialDataG
 			cout << "Algorithme d'optimisation individus * variables\n";
 		// CH IV a encapsuler dans une methode mais probleme pour l'instant avec dataGridOptimizer utilise comme
 		// argument
-		// OptimizeGenericDataGrid(initialDataGrid, optimizedDataGrid, dataGridOptimizer);
+		// OptimizeVarPartDataGrid(initialDataGrid, optimizedDataGrid, dataGridOptimizer);
 
 		// CH IV a encapsuler dans une methode dediee
-		ObjectDictionary odImpliedQuantileBuilders;
+		ObjectDictionary odInnerAttributesQuantileBuilders;
 		KWDataGrid* nullDataGrid;
 		KWDataGrid* partitionedDataGrid;
 		KWDataGrid* partitionedOptimizedDataGrid;
@@ -356,11 +356,11 @@ void CCCoclusteringBuilder::OptimizeDataGrid(const KWDataGrid* inputInitialDataG
 		boolean bIsPrePartitioningSelected;
 		double dPartitionBestCost;
 		double dBestCost;
-		int nImpliedAttribute;
+		int nInnerAttribute;
 		int nAttribute;
-		int nImpliedAttributeCumulated;
+		int nInnerAttributeCumulated;
 		KWDGAttribute* attribute;
-		KWDGAttribute* impliedAttribute;
+		KWDGAttribute* innerAttribute;
 		KWDataGrid* partitionedPostMergedOptimizedDataGrid;
 		KWDataGrid partitionedReferencePostMergedDataGrid;
 		double dMergedCost;
@@ -372,12 +372,12 @@ void CCCoclusteringBuilder::OptimizeDataGrid(const KWDataGrid* inputInitialDataG
 		double dTotalComputeTime;
 		ALString sTmp;
 
-		// On parcourt les differentes tailles de pre-partitionnement des attributs de type VarParts par
+		// On parcourt les differentes tailles de pre-partitionnement des attributs de type VarPart par
 		// puissance de 2 Ce parcours est similaire a celui des granularites mais il porte exclusivement sur le
-		// partitionnement des parties de variable des attributs impliques A chaque pre-partitionnement est
+		// partitionnement des parties de variable des attributs internes A chaque pre-partitionnement est
 		// associe un cout seuil par defaut : c'est le cout du pseudo-modele nul qui contient 1 cluster par
 		// attribut avec le nombre de parties de variables du pre-partitionnement Le vrai modele nul contient un
-		// cluster par attribut et une seule partie de variable par attribut implique dans l'axe parties de
+		// cluster par attribut et une seule partie de variable par attribut interne dans l'axe parties de
 		// variable
 		nValueNumber = initialDataGrid->GetGridFrequency();
 		nPrePartitionMax = (int)ceil(log(nValueNumber * 1.0) / log(2.0));
@@ -389,11 +389,12 @@ void CCCoclusteringBuilder::OptimizeDataGrid(const KWDataGrid* inputInitialDataG
 		// Initialisation du facteur d'accroissement requis entre deux pre-partitionnements
 		dRequiredIncreasingCoefficient = 2;
 
-		// Initialisation d'un quantile builder pour chaque attribut implique dans un axe de type VarParts
-		// La grille initiale comporte un cluster par partie de variable pour ses axes de type VarParts
+		// Initialisation d'un quantile builder pour chaque attribut interne dans un attribut de grile de type
+		// de type VarPart La grille initiale comporte un cluster par partie de variable pour ses attributs de
+		// grille de type VarPart
 		dataGridManager.SetSourceDataGrid(initialDataGrid);
-		dataGridManager.InitializeQuantileBuildersForVariablePartsPartitioning(&odImpliedQuantileBuilders,
-										       &ivMaxPartNumbers);
+		dataGridManager.InitializeQuantileBuildersForVariablePartsPartitioning(
+		    &odInnerAttributesQuantileBuilders, &ivMaxPartNumbers);
 
 		if (bDisplayPrePartitioning)
 		{
@@ -414,7 +415,7 @@ void CCCoclusteringBuilder::OptimizeDataGrid(const KWDataGrid* inputInitialDataG
 		dataGridOptimizer.SetInitialDataGrid(initialDataGrid);
 
 		// Export de la grille du (vrai) modele nul : un seul cluster par attribut et une seule partie de
-		// variable par attribut implique
+		// variable par attribut interne
 		nullDataGrid = new KWDataGrid;
 		dataGridManager.ExportNullDataGrid(nullDataGrid);
 		dAnyTimeDefaultCost = coclusteringDataGridCosts->ComputeDataGridTotalCost(nullDataGrid);
@@ -425,7 +426,7 @@ void CCCoclusteringBuilder::OptimizeDataGrid(const KWDataGrid* inputInitialDataG
 		// CH AB n'est plus necessaire c'est le cout du vrai modele nul qui doit etre utilise comme reference
 		// Initialisation du meilleur cout au cout du modele nul conditionnellement au pre-partitionnement
 		// Il ne s'agit donc pas ici du cout du VRAI modele nul (un seul cluster par attribut et une seule
-		// partie de variable par attribut implique)
+		// partie de variable par attribut interne)
 		// dBestCost = coclusteringDataGridCosts->GetTotalDefaultCost();
 		// dBestMergedCost = dBestCost;
 		// cout << "Cout du modele nul associe a la grille de reference\t" << dBestCost << "\n";
@@ -437,11 +438,11 @@ void CCCoclusteringBuilder::OptimizeDataGrid(const KWDataGrid* inputInitialDataG
 			if (TaskProgression::IsInterruptionRequested())
 				break;
 
-			// Pre-partitionnement des attributs impliques de la grille initiale
+			// Pre-partitionnement des attributs internes de la grille initiale
 			dataGridManager.SetSourceDataGrid(initialDataGrid);
 			partitionedDataGrid = new KWDataGrid;
 			dataGridManager.ExportPartitionedDataGridForVarPartAttributes(
-			    partitionedDataGrid, nPrePartitionIndex, &odImpliedQuantileBuilders);
+			    partitionedDataGrid, nPrePartitionIndex, &odInnerAttributesQuantileBuilders);
 
 			if (bDisplayResults)
 			{
@@ -450,37 +451,38 @@ void CCCoclusteringBuilder::OptimizeDataGrid(const KWDataGrid* inputInitialDataG
 				partitionedDataGrid->Write(cout);
 			}
 
-			// Etude du nombre de parties des attributs impliques pour decider du traitement ou non de ce
+			// Etude du nombre de parties des attributs internes pour decider du traitement ou non de ce
 			// pre-partitionnement Parcours des attributs
-			nImpliedAttributeCumulated = 0;
+			nInnerAttributeCumulated = 0;
 			for (nAttribute = 0; nAttribute < partitionedDataGrid->GetAttributeNumber(); nAttribute++)
 			{
 				attribute = partitionedDataGrid->GetAttributeAt(nAttribute);
 
-				// Traitement dans le cas VarParts uniquement
-				if (attribute->GetAttributeType() == KWType::VarParts)
+				// Traitement dans le cas VarPart uniquement
+				if (attribute->GetAttributeType() == KWType::VarPart)
 				{
-					for (nImpliedAttribute = 0;
-					     nImpliedAttribute < attribute->GetImpliedAttributesNumber();
-					     nImpliedAttribute++)
+					for (nInnerAttribute = 0;
+					     nInnerAttribute < attribute->GetInnerAttributesNumber(); nInnerAttribute++)
 					{
-						impliedAttribute =
+						innerAttribute =
 						    attribute->GetDataGrid()
-							->GetImpliedAttributes()
-							->LookupImpliedAttribute(
-							    attribute->GetImpliedAttributeNameAt(nImpliedAttribute));
-						// Memorisation du nombre de parties de l'attribut implique granularise
-						ivCurrentPartNumber.SetAt(nImpliedAttributeCumulated,
-									  impliedAttribute->GetPartNumber());
-						nImpliedAttributeCumulated++;
+							->GetInnerAttributes()
+							->LookupInnerAttribute(
+							    attribute->GetInnerAttributeNameAt(nInnerAttribute));
+
+						// Memorisation du nombre de parties de l'attribut interne granularise
+						ivCurrentPartNumber.SetAt(nInnerAttributeCumulated,
+									  innerAttribute->GetPartNumber());
+						nInnerAttributeCumulated++;
 					}
 				}
 			}
 
-			// Analyse du nombre de parties par attribut implique granularise pour determiner si la grille
+			// Analyse du nombre de parties par attribut interne granularise pour determiner si la grille
 			// pre-partitionnee est la derniere
 			bIsLastPrePartitioning = true;
-			// Si on n'a pas encore atteint la granularite max pour les attributs impliques partitionnes
+
+			// Si on n'a pas encore atteint la granularite max pour les attributs internes partitionnes
 			if (nPrePartitionIndex < nPrePartitionMax)
 			{
 				for (nAttribute = 0; nAttribute < ivMaxPartNumbers.GetSize(); nAttribute++)
@@ -501,9 +503,9 @@ void CCCoclusteringBuilder::OptimizeDataGrid(const KWDataGrid* inputInitialDataG
 			if (bIsLastPrePartitioning)
 				// On positionne l'index de granularite au maximum afin que l'affichage soit adapte a ce
 				// cas
-				partitionedDataGrid->GetImpliedAttributes()->SetVarPartsGranularity(nPrePartitionMax);
+				partitionedDataGrid->GetInnerAttributes()->SetVarPartGranularity(nPrePartitionMax);
 
-			// Analyse du nombre de parties par attribut implique granularise pour determiner si la grille
+			// Analyse du nombre de parties par attribut interne granularise pour determiner si la grille
 			// pre-partitionnee sera optimise Il faut pour cela qu'elle soit suffisamment differente de la
 			// grille analysee precedemment
 			bIsPrePartitioningSelected = false;
@@ -540,7 +542,7 @@ void CCCoclusteringBuilder::OptimizeDataGrid(const KWDataGrid* inputInitialDataG
 				partitionedOptimizedDataGrid = new KWDataGrid;
 
 				// Initialisation du modele par defaut : ce modele depend du partitionnement des
-				// attributs impliques
+				// attributs internes
 				coclusteringDataGridCosts->InitializeDefaultCosts(partitionedDataGrid);
 
 				// Optimisation de la grille pre-partitionnee
@@ -569,14 +571,14 @@ void CCCoclusteringBuilder::OptimizeDataGrid(const KWDataGrid* inputInitialDataG
 				partitionedPostMergedOptimizedDataGrid = new KWDataGrid;
 
 				if (partitionedOptimizedDataGrid->GetInformativeAttributeNumber() > 0 and
-				    dataGridOptimizer.GetParameters()->GetPostFusion())
+				    dataGridOptimizer.GetParameters()->GetVarPartPostMerge())
 				{
 					dataGridManager.SetSourceDataGrid(partitionedOptimizedDataGrid);
 					// Creation d'une nouvelle grille avec nouvelle description des PV et calcul de
 					// la variation de cout liee a la fusion des PV
 					dFusionDeltaCost = dataGridManager.ExportMergedDataGridForVarPartAttributes(
 					    partitionedPostMergedOptimizedDataGrid, coclusteringDataGridCosts);
-					assert(not partitionedPostMergedOptimizedDataGrid->AreVarPartsShared());
+					assert(not partitionedPostMergedOptimizedDataGrid->GetVarPartsShared());
 
 					// Calcul et verification du cout
 					dMergedCost = dPartitionBestCost + dFusionDeltaCost;
@@ -612,7 +614,7 @@ void CCCoclusteringBuilder::OptimizeDataGrid(const KWDataGrid* inputInitialDataG
 
 					// Memorisation de l'optimum post-fusionne
 					if (partitionedOptimizedDataGrid->GetInformativeAttributeNumber() > 0 and
-					    dataGridOptimizer.GetParameters()->GetPostFusion())
+					    dataGridOptimizer.GetParameters()->GetVarPartPostMerge())
 					{
 						dataGridManager.CopyDataGrid(partitionedPostMergedOptimizedDataGrid,
 									     optimizedDataGrid);
@@ -644,13 +646,13 @@ void CCCoclusteringBuilder::OptimizeDataGrid(const KWDataGrid* inputInitialDataG
 					if (optimizedDataGrid->GetInformativeAttributeNumber() > 0)
 					{
 						// Construction d'une grille initiale compatible avec les parties de
-						// variables fusionnees au niveau des attributs impliques Necessaire
-						// pour la memorisation de la grille post-mergee La grille source
-						// contient des clusters mono-parties de variables, avec des PV issues
-						// du pre-partitionnement La grille optimisee contient des clusters de
-						// PV, avec des PV eventuellement issues d'une fusion des PV de la
-						// grille source On construit une grille qui contient des clusters
-						// mono-PV avec les PV issues de la fusion de la grille optimisee
+						// variables fusionnees au niveau des attributs internes Necessaire pour
+						// la memorisation de la grille post-mergee La grille source contient
+						// des clusters mono-parties de variables, avec des PV issues du
+						// pre-partitionnement La grille optimisee contient des clusters de PV,
+						// avec des PV eventuellement issues d'une fusion des PV de la grille
+						// source On construit une grille qui contient des clusters mono-PV avec
+						// les PV issues de la fusion de la grille optimisee
 						dataGridManager.SetSourceDataGrid(initialDataGrid);
 						dataGridManager.ExportDataGridWithSingletonVarParts(
 						    optimizedDataGrid, &partitionedReferencePostMergedDataGrid, true);
@@ -678,16 +680,16 @@ void CCCoclusteringBuilder::OptimizeDataGrid(const KWDataGrid* inputInitialDataG
 					{
 						HandleOptimizationStep(optimizedDataGrid, partitionedDataGrid, true);
 
-						if (optimizedDataGrid->GetImpliedAttributes() ==
-						    partitionedDataGrid->GetImpliedAttributes())
+						if (optimizedDataGrid->GetInnerAttributes() ==
+						    partitionedDataGrid->GetInnerAttributes())
 						{
 							// CH IV Refactoring: nettoyer lignes suivantes?
 							// assert pouvait ne pas etre verifie si on avait deja modifie
 							// pour nPartitionIndex precedent
 							/*cout << "optimizedDataGrid et coclusteringDG meme
-							ImpliedAttributes \t nPartitionIndex" << nPartitionIndex <<
-							"\n"; assert(coclusteringDataGrid->AreVarPartsShared() == true);
-							assert(optimizedDataGrid->AreVarPartsShared() == false);*/
+							InnerAttributes \t nPartitionIndex" << nPartitionIndex << "\n";
+							assert(coclusteringDataGrid->GetVarPartsShared() == true);
+							assert(optimizedDataGrid->GetVarPartsShared() == false);*/
 
 							partitionedDataGrid->SetVarPartsShared(true);
 							optimizedDataGrid->SetVarPartsShared(false);
@@ -697,40 +699,40 @@ void CCCoclusteringBuilder::OptimizeDataGrid(const KWDataGrid* inputInitialDataG
 
 				if (coclusteringDataGrid != NULL)
 				{
-					if (partitionedDataGrid->GetImpliedAttributes() ==
-					    coclusteringDataGrid->GetImpliedAttributes())
+					if (partitionedDataGrid->GetInnerAttributes() ==
+					    coclusteringDataGrid->GetInnerAttributes())
 					{
 						// CH IV Refactoring: nettoyer lignes suivantes?
-						/*cout << "partitionedDataGrid et coclusteringDG meme ImpliedAttributes
-						   \t nPartitionIndex" << nPartitionIndex << "\n";
-							assert(coclusteringDataGrid->AreVarPartsShared() == true);
-							assert(partitionedDataGrid->AreVarPartsShared() == false);*/
+						/*cout << "partitionedDataGrid et coclusteringDG meme InnerAttributes \t
+						   nPartitionIndex" << nPartitionIndex << "\n";
+							assert(coclusteringDataGrid->GetVarPartsShared() == true);
+							assert(partitionedDataGrid->GetVarPartsShared() == false);*/
 						coclusteringDataGrid->SetVarPartsShared(false);
 						partitionedDataGrid->SetVarPartsShared(true);
 					}
 
-					if (partitionedPostMergedOptimizedDataGrid->GetImpliedAttributes() ==
-					    coclusteringDataGrid->GetImpliedAttributes())
+					if (partitionedPostMergedOptimizedDataGrid->GetInnerAttributes() ==
+					    coclusteringDataGrid->GetInnerAttributes())
 					{
 						// CH IV Refactoring: nettoyer lignes suivantes?
-						/*cout << "partitionedDataGrid et coclusteringDG meme ImpliedAttributes
-						   \t nPartitionIndex" << nPartitionIndex << "\n";
-							assert(coclusteringDataGrid->AreVarPartsShared() == true);
-							assert(partitionedDataGrid->AreVarPartsShared() == false);*/
+						/*cout << "partitionedDataGrid et coclusteringDG meme InnerAttributes \t
+						   nPartitionIndex" << nPartitionIndex << "\n";
+							assert(coclusteringDataGrid->GetVarPartsShared() == true);
+							assert(partitionedDataGrid->GetVarPartsShared() == false);*/
 						coclusteringDataGrid->SetVarPartsShared(false);
 						partitionedPostMergedOptimizedDataGrid->SetVarPartsShared(true);
 					}
 
-					if (optimizedDataGrid->GetImpliedAttributes() ==
-					    coclusteringDataGrid->GetImpliedAttributes())
+					if (optimizedDataGrid->GetInnerAttributes() ==
+					    coclusteringDataGrid->GetInnerAttributes())
 					{
 						// CH IV Refactoring: nettoyer lignes suivantes?
 						// assert pouvait ne pas etre verifie si on avait deja modifie pour
 						// nPartitioecedent
-						/*cout << "optimizedDataGrid et coclusteringDG meme ImpliedAttributes \t
+						/*cout << "optimizedDataGrid et coclusteringDG meme InnerAttributes \t
 						   nPartitionIndex" << nPartitionIndex << "\n";
-							assert(coclusteringDataGrid->AreVarPartsShared() == true);
-							assert(optimizedDataGrid->AreVarPartsShared() == false);*/
+							assert(coclusteringDataGrid->GetVarPartsShared() == true);
+							assert(optimizedDataGrid->GetVarPartsShared() == false);*/
 
 						coclusteringDataGrid->SetVarPartsShared(false);
 						optimizedDataGrid->SetVarPartsShared(true);
@@ -781,7 +783,7 @@ void CCCoclusteringBuilder::OptimizeDataGrid(const KWDataGrid* inputInitialDataG
 			else
 			{
 				if (bDisplayResults)
-					cout << "CCOptimize :Pre-partitionnement des attributs impliques "
+					cout << "CCOptimize :Pre-partitionnement des attributs internes "
 					     << nPrePartitionIndex << " non traite car trop proche de la precedente"
 					     << endl;
 			}
@@ -800,7 +802,7 @@ void CCCoclusteringBuilder::OptimizeDataGrid(const KWDataGrid* inputInitialDataG
 		}
 
 		// Nettoyage
-		odImpliedQuantileBuilders.DeleteAll();
+		odInnerAttributesQuantileBuilders.DeleteAll();
 		delete nullDataGrid;
 	}
 	// CH IV End
@@ -815,14 +817,13 @@ void CCCoclusteringBuilder::OptimizeDataGrid(const KWDataGrid* inputInitialDataG
 	//}
 }
 
-void CCCoclusteringBuilder::OptimizeGenericDataGrid(const KWDataGrid* inputInitialDataGrid,
+void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputInitialDataGrid,
 						    KWDataGrid* optimizedDataGrid,
 						    CCCoclusteringOptimizer dataGridOptimizer)
 {
 	boolean bDisplayResults = false;
-	boolean bDisplayCosts = false; // CH IV Refactoring: supprimer car non utilise
 	boolean bDisplayPartitionLevel = false;
-	ObjectDictionary odImpliedQuantileBuilders;
+	ObjectDictionary odInnerAttributesQuantileBuilders;
 	KWDataGrid* nullDataGrid;
 	KWDataGrid* partitionedDataGrid;
 	KWDataGrid* partitionedOptimizedDataGrid;
@@ -838,11 +839,11 @@ void CCCoclusteringBuilder::OptimizeGenericDataGrid(const KWDataGrid* inputIniti
 	boolean bIsPrePartitioningSelected;
 	double dPartitionBestCost;
 	double dBestCost;
-	int nImpliedAttribute;
+	int nInnerAttribute;
 	int nAttribute;
-	int nImpliedAttributeCumulated;
+	int nInnerAttributeCumulated;
 	KWDGAttribute* attribute;
-	KWDGAttribute* impliedAttribute;
+	KWDGAttribute* innerAttribute;
 	KWDataGrid* partitionedPostMergedOptimizedDataGrid;
 	KWDataGrid partitionedReferencePostMergedDataGrid;
 	double dMergedCost;
@@ -854,12 +855,12 @@ void CCCoclusteringBuilder::OptimizeGenericDataGrid(const KWDataGrid* inputIniti
 	double dTotalComputeTime;
 	ALString sTmp;
 
-	// On parcourt les differentes tailles de pre-partitionnement des attributs de type VarParts par puissance de 2
+	// On parcourt les differentes tailles de pre-partitionnement des attributs de type VarPart par puissance de 2
 	// Ce parcours est similaire a celui des granularites mais il porte exclusivement sur le partitionnement des
-	// parties de variable des attributs impliques A chaque pre-partitionnement est associe un cout seuil par defaut
+	// parties de variable des attributs internes A chaque pre-partitionnement est associe un cout seuil par defaut
 	// : c'est le cout du pseudo-modele nul qui contient 1 cluster par attribut avec le nombre de parties de
 	// variables du pre-partitionnement Le vrai modele nul contient un cluster par attribut et une seule partie de
-	// variable par attribut implique dans l'axe parties de variable
+	// variable par attribut interne dans l'attribut de grile de type VarPart
 	nValueNumber = initialDataGrid->GetGridFrequency();
 	nPrePartitionMax = (int)ceil(log(nValueNumber * 1.0) / log(2.0));
 
@@ -870,10 +871,10 @@ void CCCoclusteringBuilder::OptimizeGenericDataGrid(const KWDataGrid* inputIniti
 	// Initialisation du facteur d'accroissement requis entre deux pre-partitionnements
 	dRequiredIncreasingCoefficient = 2;
 
-	// Initialisation d'un quantile builder pour chaque attribut implique dans un axe de type VarParts
-	// La grille initiale comporte un cluster par partie de variable pour ses axes de type VarParts
+	// Initialisation d'un quantile builder pour chaque attribut interne dans un attribut de grille de type VarPart
+	// La grille initiale comporte un cluster par partie de variable pour ses attributs de grille de type VarPart
 	dataGridManager.SetSourceDataGrid(initialDataGrid);
-	dataGridManager.InitializeQuantileBuildersForVariablePartsPartitioning(&odImpliedQuantileBuilders,
+	dataGridManager.InitializeQuantileBuildersForVariablePartsPartitioning(&odInnerAttributesQuantileBuilders,
 									       &ivMaxPartNumbers);
 
 	if (bDisplayPrePartitioning)
@@ -895,7 +896,7 @@ void CCCoclusteringBuilder::OptimizeGenericDataGrid(const KWDataGrid* inputIniti
 	dataGridOptimizer.SetInitialDataGrid(initialDataGrid);
 
 	// Export de la grille du (vrai) modele nul : un seul cluster par attribut et une seule partie de variable par
-	// attribut implique
+	// attribut interne
 	nullDataGrid = new KWDataGrid;
 	dataGridManager.ExportNullDataGrid(nullDataGrid);
 	dAnyTimeDefaultCost = coclusteringDataGridCosts->ComputeDataGridTotalCost(nullDataGrid);
@@ -906,7 +907,7 @@ void CCCoclusteringBuilder::OptimizeGenericDataGrid(const KWDataGrid* inputIniti
 	// CH AB n'est plus necessaire c'est le cout du vrai modele nul qui doit etre utilise comme reference
 	// Initialisation du meilleur cout au cout du modele nul conditionnellement au pre-partitionnement
 	// Il ne s'agit donc pas ici du cout du VRAI modele nul (un seul cluster par attribut et une seule partie de
-	// variable par attribut implique)
+	// variable par attribut interne)
 	// dBestCost = coclusteringDataGridCosts->GetTotalDefaultCost();
 	// dBestMergedCost = dBestCost;
 	// cout << "Cout du modele nul associe a la grille de reference\t" << dBestCost << "\n";
@@ -918,11 +919,11 @@ void CCCoclusteringBuilder::OptimizeGenericDataGrid(const KWDataGrid* inputIniti
 		if (TaskProgression::IsInterruptionRequested())
 			break;
 
-		// Pre-partitionnement des attributs impliques de la grille initiale
+		// Pre-partitionnement des attributs internes de la grille initiale
 		dataGridManager.SetSourceDataGrid(initialDataGrid);
 		partitionedDataGrid = new KWDataGrid;
 		dataGridManager.ExportPartitionedDataGridForVarPartAttributes(partitionedDataGrid, nPrePartitionIndex,
-									      &odImpliedQuantileBuilders);
+									      &odInnerAttributesQuantileBuilders);
 
 		if (bDisplayResults)
 		{
@@ -931,34 +932,36 @@ void CCCoclusteringBuilder::OptimizeGenericDataGrid(const KWDataGrid* inputIniti
 			partitionedDataGrid->Write(cout);
 		}
 
-		// Etude du nombre de parties des attributs impliques pour decider du traitement ou non de ce
+		// Etude du nombre de parties des attributs internes pour decider du traitement ou non de ce
 		// pre-partitionnement Parcours des attributs
-		nImpliedAttributeCumulated = 0;
+		nInnerAttributeCumulated = 0;
 		for (nAttribute = 0; nAttribute < partitionedDataGrid->GetAttributeNumber(); nAttribute++)
 		{
 			attribute = partitionedDataGrid->GetAttributeAt(nAttribute);
 
-			// Traitement dans le cas VarParts uniquement
-			if (attribute->GetAttributeType() == KWType::VarParts)
+			// Traitement dans le cas VarPart uniquement
+			if (attribute->GetAttributeType() == KWType::VarPart)
 			{
-				for (nImpliedAttribute = 0; nImpliedAttribute < attribute->GetImpliedAttributesNumber();
-				     nImpliedAttribute++)
+				for (nInnerAttribute = 0; nInnerAttribute < attribute->GetInnerAttributesNumber();
+				     nInnerAttribute++)
 				{
-					impliedAttribute =
-					    attribute->GetDataGrid()->GetImpliedAttributes()->LookupImpliedAttribute(
-						attribute->GetImpliedAttributeNameAt(nImpliedAttribute));
-					// Memorisation du nombre de parties de l'attribut implique granularise
-					ivCurrentPartNumber.SetAt(nImpliedAttributeCumulated,
-								  impliedAttribute->GetPartNumber());
-					nImpliedAttributeCumulated++;
+					innerAttribute =
+					    attribute->GetDataGrid()->GetInnerAttributes()->LookupInnerAttribute(
+						attribute->GetInnerAttributeNameAt(nInnerAttribute));
+
+					// Memorisation du nombre de parties de l'attribut interne granularise
+					ivCurrentPartNumber.SetAt(nInnerAttributeCumulated,
+								  innerAttribute->GetPartNumber());
+					nInnerAttributeCumulated++;
 				}
 			}
 		}
 
-		// Analyse du nombre de parties par attribut implique granularise pour determiner si la grille
+		// Analyse du nombre de parties par attribut interne granularise pour determiner si la grille
 		// pre-partitionnee est la derniere
 		bIsLastPrePartitioning = true;
-		// Si on n'a pas encore atteint la granularite max pour les attributs impliques partitionnes
+
+		// Si on n'a pas encore atteint la granularite max pour les attributs internes partitionnes
 		if (nPrePartitionIndex < nPrePartitionMax)
 		{
 			for (nAttribute = 0; nAttribute < ivMaxPartNumbers.GetSize(); nAttribute++)
@@ -977,9 +980,9 @@ void CCCoclusteringBuilder::OptimizeGenericDataGrid(const KWDataGrid* inputIniti
 		// variable -> commentaire a comprendre ! Cas ou cette granularite sera la derniere traitee
 		if (bIsLastPrePartitioning)
 			// On positionne l'index de granularite au maximum afin que l'affichage soit adapte a ce cas
-			partitionedDataGrid->GetImpliedAttributes()->SetVarPartsGranularity(nPrePartitionMax);
+			partitionedDataGrid->GetInnerAttributes()->SetVarPartGranularity(nPrePartitionMax);
 
-		// Analyse du nombre de parties par attribut implique granularise pour determiner si la grille
+		// Analyse du nombre de parties par attribut interne granularise pour determiner si la grille
 		// pre-partitionnee sera optimise Il faut pour cela qu'elle soit suffisamment differente de la grille
 		// analysee precedemment
 		bIsPrePartitioningSelected = false;
@@ -1016,7 +1019,7 @@ void CCCoclusteringBuilder::OptimizeGenericDataGrid(const KWDataGrid* inputIniti
 			partitionedOptimizedDataGrid = new KWDataGrid;
 
 			// Initialisation du modele par defaut : ce modele depend du partitionnement des attributs
-			// impliques
+			// internes
 			coclusteringDataGridCosts->InitializeDefaultCosts(partitionedDataGrid);
 
 			// Optimisation de la grille pre-partitionnee
@@ -1044,14 +1047,14 @@ void CCCoclusteringBuilder::OptimizeGenericDataGrid(const KWDataGrid* inputIniti
 			partitionedPostMergedOptimizedDataGrid = new KWDataGrid;
 
 			if (partitionedOptimizedDataGrid->GetInformativeAttributeNumber() > 0 and
-			    dataGridOptimizer.GetParameters()->GetPostFusion())
+			    dataGridOptimizer.GetParameters()->GetVarPartPostMerge())
 			{
 				dataGridManager.SetSourceDataGrid(partitionedOptimizedDataGrid);
 				// Creation d'une nouvelle grille avec nouvelle description des PV et calcul de la
 				// variation de cout liee a la fusion des PV
 				dFusionDeltaCost = dataGridManager.ExportMergedDataGridForVarPartAttributes(
 				    partitionedPostMergedOptimizedDataGrid, coclusteringDataGridCosts);
-				assert(not partitionedPostMergedOptimizedDataGrid->AreVarPartsShared());
+				assert(not partitionedPostMergedOptimizedDataGrid->GetVarPartsShared());
 
 				// Calcul et verification du cout
 				dMergedCost = dPartitionBestCost + dFusionDeltaCost;
@@ -1085,7 +1088,7 @@ void CCCoclusteringBuilder::OptimizeGenericDataGrid(const KWDataGrid* inputIniti
 
 				// Memorisation de l'optimum post-fusionne
 				if (partitionedOptimizedDataGrid->GetInformativeAttributeNumber() > 0 and
-				    dataGridOptimizer.GetParameters()->GetPostFusion())
+				    dataGridOptimizer.GetParameters()->GetVarPartPostMerge())
 				{
 					dataGridManager.CopyDataGrid(partitionedPostMergedOptimizedDataGrid,
 								     optimizedDataGrid);
@@ -1116,7 +1119,7 @@ void CCCoclusteringBuilder::OptimizeGenericDataGrid(const KWDataGrid* inputIniti
 				if (optimizedDataGrid->GetInformativeAttributeNumber() > 0)
 				{
 					// Construction d'une grille initiale compatible avec les parties de variables
-					// fusionnees au niveau des attributs impliques Necessaire pour la memorisation
+					// fusionnees au niveau des attributs internes Necessaire pour la memorisation
 					// de la grille post-mergee La grille source contient des clusters mono-parties
 					// de variables, avec des PV issues du pre-partitionnement La grille optimisee
 					// contient des clusters de PV, avec des PV eventuellement issues d'une fusion
@@ -1148,15 +1151,15 @@ void CCCoclusteringBuilder::OptimizeGenericDataGrid(const KWDataGrid* inputIniti
 				{
 					HandleOptimizationStep(optimizedDataGrid, partitionedDataGrid, true);
 
-					if (optimizedDataGrid->GetImpliedAttributes() ==
-					    partitionedDataGrid->GetImpliedAttributes())
+					if (optimizedDataGrid->GetInnerAttributes() ==
+					    partitionedDataGrid->GetInnerAttributes())
 					{
 						// assert pouvait ne pas etre verifie si on avait deja modifie pour
 						// nPartitionIndex precedent
-						/*cout << "optimizedDataGrid et coclusteringDG meme ImpliedAttributes \t
+						/*cout << "optimizedDataGrid et coclusteringDG meme InnerAttributes \t
 					nPartitionIndex" << nPartitionIndex << "\n";
-					assert(coclusteringDataGrid->AreVarPartsShared() == true);
-					assert(optimizedDataGrid->AreVarPartsShared() == false);*/
+					assert(coclusteringDataGrid->GetVarPartsShared() == true);
+					assert(optimizedDataGrid->GetVarPartsShared() == false);*/
 
 						partitionedDataGrid->SetVarPartsShared(true);
 						optimizedDataGrid->SetVarPartsShared(false);
@@ -1166,37 +1169,37 @@ void CCCoclusteringBuilder::OptimizeGenericDataGrid(const KWDataGrid* inputIniti
 
 			if (coclusteringDataGrid != NULL)
 			{
-				if (partitionedDataGrid->GetImpliedAttributes() ==
-				    coclusteringDataGrid->GetImpliedAttributes())
+				if (partitionedDataGrid->GetInnerAttributes() ==
+				    coclusteringDataGrid->GetInnerAttributes())
 				{
-					/*cout << "partitionedDataGrid et coclusteringDG meme ImpliedAttributes \t
+					/*cout << "partitionedDataGrid et coclusteringDG meme InnerAttributes \t
 					nPartitionIndex" << nPartitionIndex << "\n";
-					assert(coclusteringDataGrid->AreVarPartsShared() == true);
-					assert(partitionedDataGrid->AreVarPartsShared() == false);*/
+					assert(coclusteringDataGrid->GetVarPartsShared() == true);
+					assert(partitionedDataGrid->GetVarPartsShared() == false);*/
 					coclusteringDataGrid->SetVarPartsShared(false);
 					partitionedDataGrid->SetVarPartsShared(true);
 				}
 
-				if (partitionedPostMergedOptimizedDataGrid->GetImpliedAttributes() ==
-				    coclusteringDataGrid->GetImpliedAttributes())
+				if (partitionedPostMergedOptimizedDataGrid->GetInnerAttributes() ==
+				    coclusteringDataGrid->GetInnerAttributes())
 				{
-					/*cout << "partitionedDataGrid et coclusteringDG meme ImpliedAttributes \t
+					/*cout << "partitionedDataGrid et coclusteringDG meme InnerAttributes \t
 					nPartitionIndex" << nPartitionIndex << "\n";
-					assert(coclusteringDataGrid->AreVarPartsShared() == true);
-					assert(partitionedDataGrid->AreVarPartsShared() == false);*/
+					assert(coclusteringDataGrid->GetVarPartsShared() == true);
+					assert(partitionedDataGrid->GetVarPartsShared() == false);*/
 					coclusteringDataGrid->SetVarPartsShared(false);
 					partitionedPostMergedOptimizedDataGrid->SetVarPartsShared(true);
 				}
 
-				if (optimizedDataGrid->GetImpliedAttributes() ==
-				    coclusteringDataGrid->GetImpliedAttributes())
+				if (optimizedDataGrid->GetInnerAttributes() ==
+				    coclusteringDataGrid->GetInnerAttributes())
 				{
 					// assert pouvait ne pas etre verifie si on avait deja modifie pour
 					// nPartitioecedent
-					/*cout << "optimizedDataGrid et coclusteringDG meme ImpliedAttributes \t
+					/*cout << "optimizedDataGrid et coclusteringDG meme InnerAttributes \t
 					nPartitionIndex" << nPartitionIndex << "\n";
-					assert(coclusteringDataGrid->AreVarPartsShared() == true);
-					assert(optimizedDataGrid->AreVarPartsShared() == false);*/
+					assert(coclusteringDataGrid->GetVarPartsShared() == true);
+					assert(optimizedDataGrid->GetVarPartsShared() == false);*/
 
 					coclusteringDataGrid->SetVarPartsShared(false);
 					optimizedDataGrid->SetVarPartsShared(true);
@@ -1242,7 +1245,7 @@ void CCCoclusteringBuilder::OptimizeGenericDataGrid(const KWDataGrid* inputIniti
 		else
 		{
 			if (bDisplayResults)
-				cout << "CCOptimize :Pre-partitionnement des attributs impliques " << nPrePartitionIndex
+				cout << "CCOptimize :Pre-partitionnement des attributs internes " << nPrePartitionIndex
 				     << " non traite car trop proche de la precedente" << endl;
 		}
 
@@ -1259,7 +1262,7 @@ void CCCoclusteringBuilder::OptimizeGenericDataGrid(const KWDataGrid* inputIniti
 	}
 
 	// Nettoyage
-	odImpliedQuantileBuilders.DeleteAll();
+	odInnerAttributesQuantileBuilders.DeleteAll();
 	delete nullDataGrid;
 }
 
@@ -1318,7 +1321,7 @@ boolean CCCoclusteringBuilder::ExtractAndCheckAxisNames()
 	bOk = true;
 	bFirstVarPartsAttribute = false;
 	svAxisNames.SetSize(0);
-	ivImpliedAttributesNumber.SetSize(0);
+	ivInnerAttributesNumber.SetSize(0);
 
 	sPreviousAttributeName = svAttributeNames.GetAt(0);
 	sPreviousAxisName = svAxisForAttributeNames.GetAt(0);
@@ -1333,13 +1336,13 @@ boolean CCCoclusteringBuilder::ExtractAndCheckAxisNames()
 			if (bFirstVarPartsAttribute)
 			{
 				// Les axes de nom vide (attributs simples) doivent etre decrits en premier
-				AddError("Simple variables must be all specified before VarParts variables");
+				AddError("Simple variables must be all specified before VarPart variables");
 				bOk = false;
 			}
 
 			// Memorisation de l'attribut simple
 			svAxisNames.Add(sPreviousAxisName);
-			ivImpliedAttributesNumber.Add(nAttributeNumber);
+			ivInnerAttributesNumber.Add(nAttributeNumber);
 
 			// Passage a l'attribut suivant
 			sPreviousAxisName = svAxisForAttributeNames.GetAt(nAttributeIndex);
@@ -1349,7 +1352,7 @@ boolean CCCoclusteringBuilder::ExtractAndCheckAxisNames()
 			if (svAttributeNames.GetSize() == 2)
 			{
 				svAxisNames.Add(sPreviousAxisName);
-				ivImpliedAttributesNumber.Add(nAttributeNumber);
+				ivInnerAttributesNumber.Add(nAttributeNumber);
 			}
 
 			nAttributeIndex++;
@@ -1377,7 +1380,7 @@ boolean CCCoclusteringBuilder::ExtractAndCheckAxisNames()
 			else
 			{
 				svAxisNames.Add(sPreviousAxisName);
-				ivImpliedAttributesNumber.Add(nAttributeNumber);
+				ivInnerAttributesNumber.Add(nAttributeNumber);
 
 				// Passage a l'attribut suivant
 				if (nAttributeIndex < svAxisForAttributeNames.GetSize())
@@ -1396,13 +1399,13 @@ boolean CCCoclusteringBuilder::ExtractAndCheckAxisNames()
 		if (bFirstVarPartsAttribute)
 		{
 			// Les axes de nom vide (attributs simples) doivent etre decrits en premier
-			AddError("Simple variables must be all specified before VarParts variables");
+			AddError("Simple variables must be all specified before VarPart variables");
 			bOk = false;
 		}
 
 		// Memorisation de l'attribut simple
 		svAxisNames.Add(sPreviousAxisName);
-		ivImpliedAttributesNumber.Add(nAttributeNumber);
+		ivInnerAttributesNumber.Add(nAttributeNumber);
 	}
 
 	// Il doit y avoir au moins deux axes
@@ -1415,8 +1418,7 @@ boolean CCCoclusteringBuilder::ExtractAndCheckAxisNames()
 	else if (svAxisNames.GetSize() > 10)
 	{
 		AddError(sTmp + "Too many coclustering axes (> " +
-			 IntToString(CCInstancesVariablesCoclusteringSpec::GetMaxCoclusteringAxisNumber()) +
-			 ") are specified");
+			 IntToString(CCVarPartCoclusteringSpec::GetMaxCoclusteringAxisNumber()) + ") are specified");
 		bOk = false;
 	}
 
@@ -1435,17 +1437,17 @@ KWDataGridCosts* CCCoclusteringBuilder::CreateDataGridCost() const
 	require(Check());
 	require(CheckSpecifications());
 
-	// Cas d'un coclustering classique
-	if (not GetGenericCoclustering())
+	// Cas d'un coclustering standard
+	if (not GetVarPartCoclustering())
 		dataGridCosts = new KWDataGridClusteringCosts;
-	// Cas d'un coclustering generique
+	// Cas d'un coclustering VarPart
 	else
-		dataGridCosts = new KWDataGridGenericClusteringCosts;
+		dataGridCosts = new KWVarPartDataGridClusteringCosts;
 	check(dataGridCosts);
 	return dataGridCosts;
 }
 
-KWDataGrid* CCCoclusteringBuilder::CreateGenericDataGrid(const KWTupleTable* tupleTable,
+KWDataGrid* CCCoclusteringBuilder::CreateVarPartDataGrid(const KWTupleTable* tupleTable,
 							 ObjectDictionary& odObservationNumbers)
 {
 	KWDataGridManager dataGridManager;
@@ -1458,11 +1460,11 @@ KWDataGrid* CCCoclusteringBuilder::CreateGenericDataGrid(const KWTupleTable* tup
 	ALString sAxisName;
 	ALString sAttributName;
 	int nAxis;
-	int nImpliedAttribute;
-	KWDGAttribute* impliedAttribute;
+	int nInnerAttribute;
+	KWDGAttribute* innerAttribute;
 	boolean bFirstVarPartsAttribute = false;
 	int nInitialVarPartNumber;
-	KWDGAllVariableParts* initialImpliedAttributes;
+	KWDGInnerAttributes* initialInnerAttributes;
 
 	require(Check());
 	require(CheckSpecifications());
@@ -1470,23 +1472,23 @@ KWDataGrid* CCCoclusteringBuilder::CreateGenericDataGrid(const KWTupleTable* tup
 	require(tupleTable->GetSize() > 0);
 	require(GetInstanceNumber() == tupleTable->GetTotalFrequency());
 	require(GetTargetAttributeName() == "");
-	require(GetGenericCoclustering());
+	require(GetVarPartCoclustering());
 
 	// Creation du DataGrid initial
 	dataGrid = new KWDataGrid;
 	dataGrid->Initialize(GetAxisNumber(), 0);
 
-	// Memorisation mode generique pour la grille
-	dataGrid->SetDataGridGeneric(true);
+	// Memorisation mode VarPart pour la grille
+	dataGrid->SetVarPartDataGrid(true);
 
 	// Creation de la description initiale des parties de variable
-	initialImpliedAttributes = new KWDGAllVariableParts;
-	dataGrid->SetImpliedAttributes(initialImpliedAttributes);
+	initialInnerAttributes = new KWDGInnerAttributes;
+	dataGrid->SetInnerAttributes(initialInnerAttributes);
 	dataGrid->SetVarPartsShared(false);
 
 	// Debut de suivi de tache
 	TaskProgression::BeginTask();
-	TaskProgression::DisplayMainLabel("Initialize generic data grid");
+	TaskProgression::DisplayMainLabel("Initialize instances x variables coclustering");
 
 	// Attribut courant (progressivement charges au fil des axes)
 	nAttribute = 0;
@@ -1502,7 +1504,7 @@ KWDataGrid* CCCoclusteringBuilder::CreateGenericDataGrid(const KWTupleTable* tup
 		{
 			// Il s'agit alors d'un axe identifiant
 
-			// Les axes simples doivent tous etre renseignes avant les axes de type VarParts
+			// Les axes simples doivent tous etre renseignes avant les axes de type VarPart
 			assert(not bFirstVarPartsAttribute);
 
 			// Recherche de l'index de l'attribut dans la table de tuples
@@ -1559,63 +1561,61 @@ KWDataGrid* CCCoclusteringBuilder::CreateGenericDataGrid(const KWTupleTable* tup
 
 			// Parametrage de l'attribut du DataGrid de type Parties de variables
 			dgAttribute->SetAttributeName(sAxisName);
-			dgAttribute->SetAttributeType(KWType::VarParts);
+			dgAttribute->SetAttributeType(KWType::VarPart);
 
 			// Pas de cout de selection/construction pour ce type d'attribut
 			// Necessairement pas un attribut cible
 
-			// Creation du tableau des attributs impliques
-			dgAttribute->SetImpliedAttributesNumber(ivImpliedAttributesNumber.GetAt(nAxis));
+			// Creation du tableau des attributs internes
+			dgAttribute->SetInnerAttributesNumber(ivInnerAttributesNumber.GetAt(nAxis));
 
 			nInitialVarPartNumber = 0;
-			for (nImpliedAttribute = 0; nImpliedAttribute < dgAttribute->GetImpliedAttributesNumber();
-			     nImpliedAttribute++)
+			for (nInnerAttribute = 0; nInnerAttribute < dgAttribute->GetInnerAttributesNumber();
+			     nInnerAttribute++)
 			{
 				// Recherche de l'index de l'attribut dans la table de tuples
 				nTupleAttributeIndex = tupleTable->LookupAttributeIndex(GetAttributeNameAt(nAttribute));
 				assert(nTupleAttributeIndex >= 0);
 
 				// Recherche de l'attribut du DataGrid correspondant
-				impliedAttribute = new KWDGAttribute;
+				innerAttribute = new KWDGAttribute;
 
 				// Parametrage de l'axe de l'attribut
-				impliedAttribute->SetAxisName(dgAttribute->GetAttributeName());
+				innerAttribute->SetOwnerAttributeName(dgAttribute->GetAttributeName());
 
 				// Parametrage de l'attribut du DataGrid
-				impliedAttribute->SetAttributeName(
-				    tupleTable->GetAttributeNameAt(nTupleAttributeIndex));
-				impliedAttribute->SetAttributeType(
-				    tupleTable->GetAttributeTypeAt(nTupleAttributeIndex));
-				impliedAttribute->SetAttributeTargetFunction(impliedAttribute->GetAttributeName() ==
-									     GetTargetAttributeName());
+				innerAttribute->SetAttributeName(tupleTable->GetAttributeNameAt(nTupleAttributeIndex));
+				innerAttribute->SetAttributeType(tupleTable->GetAttributeTypeAt(nTupleAttributeIndex));
+				innerAttribute->SetAttributeTargetFunction(innerAttribute->GetAttributeName() ==
+									   GetTargetAttributeName());
 
-				// Ajout de l'attribut dans le dictionnaire des attributs impliques de la grille
-				dataGrid->GetImpliedAttributes()->AddImpliedAttribute(impliedAttribute);
-				dgAttribute->SetImpliedAttributeNameAt(nImpliedAttribute,
-								       impliedAttribute->GetAttributeName());
+				// Ajout de l'attribut dans le dictionnaire des attributs internes de la grille
+				dataGrid->GetInnerAttributes()->AddInnerAttribute(innerAttribute);
+				dgAttribute->SetInnerAttributeNameAt(nInnerAttribute,
+								     innerAttribute->GetAttributeName());
 
 				// Recuperation du cout de selection/construction de l'attribut hors attribut cible
-				if (impliedAttribute->GetAttributeName() != GetTargetAttributeName())
+				if (innerAttribute->GetAttributeName() != GetTargetAttributeName())
 				{
-					attribute = GetClass()->LookupAttribute(impliedAttribute->GetAttributeName());
+					attribute = GetClass()->LookupAttribute(innerAttribute->GetAttributeName());
 					check(attribute);
-					impliedAttribute->SetCost(attribute->GetCost());
+					innerAttribute->SetCost(attribute->GetCost());
 				}
 
-				// Creation des parties de l'attribut implique selon son type
+				// Creation des parties de l'attribut interne selon son type
 				TaskProgression::DisplayLabel("Initialize " + dgAttribute->GetAttributeName() +
 							      " parts");
-				if (impliedAttribute->GetAttributeType() == KWType::Continuous)
-					CreateAttributeIntervals(tupleTable, impliedAttribute);
+				if (innerAttribute->GetAttributeType() == KWType::Continuous)
+					CreateAttributeIntervals(tupleTable, innerAttribute);
 				else
-					CreateAttributeValueSets(tupleTable, impliedAttribute);
+					CreateAttributeValueSets(tupleTable, innerAttribute);
 
 				// Test interruption utilisateur
 				if (TaskProgression::IsInterruptionRequested())
 					break;
 
 				// Mise a jour du nombre total de parties de variables de l'attribut
-				nInitialVarPartNumber += impliedAttribute->GetPartNumber();
+				nInitialVarPartNumber += innerAttribute->GetPartNumber();
 
 				// Incrementation de l'attribut courant a charger
 				nAttribute++;
@@ -1624,10 +1624,10 @@ KWDataGrid* CCCoclusteringBuilder::CreateGenericDataGrid(const KWTupleTable* tup
 			// Parametrage du nombre initial de parties de variable
 			dgAttribute->SetInitialValueNumber(nInitialVarPartNumber);
 
-			// Tri du tableau des noms des attributs impliques
-			dgAttribute->SortImpliedAttributeNames();
+			// Tri du tableau des noms des attributs internes
+			dgAttribute->SortInnerAttributeNames();
 
-			// Creation des parties de l'axe de type VarParts
+			// Creation des parties de l'attribut de grile de type de type VarPart
 			// A la creation, une partie est un cluster de parties de variables qui ne contient qu'une
 			// partie de variable
 			dgAttribute->CreateVarPartsSet();
@@ -1656,7 +1656,7 @@ KWDataGrid* CCCoclusteringBuilder::CreateGenericDataGrid(const KWTupleTable* tup
 	}
 
 	// Nettoyage des eventuelles parties vides du fait d'observations manquantes
-	CleanGenericDataGrid(dataGrid);
+	CleanVarPartDataGrid(dataGrid);
 
 	// Fin de suivi de tache
 	TaskProgression::EndTask();
@@ -1673,19 +1673,19 @@ KWDataGrid* CCCoclusteringBuilder::CreateGenericDataGrid(const KWTupleTable* tup
 	return dataGrid;
 }
 
-void CCCoclusteringBuilder::CleanGenericDataGrid(KWDataGrid* dataGrid)
+void CCCoclusteringBuilder::CleanVarPartDataGrid(KWDataGrid* dataGrid)
 {
 	ObjectArray oaVarParts;
 	int nVarPart;
 	int nAxis;
-	int nImpliedAttribute;
+	int nInnerAttribute;
 	KWDGAttribute* dgAttribute;
-	KWDGAttribute* impliedAttribute;
+	KWDGAttribute* innerAttribute;
 
 	for (nAxis = 0; nAxis < dataGrid->GetAttributeNumber(); nAxis++)
 	{
 		dgAttribute = dataGrid->GetAttributeAt(nAxis);
-		if (dgAttribute->GetAttributeType() == KWType::VarParts)
+		if (dgAttribute->GetAttributeType() == KWType::VarPart)
 		{
 			// Export des parties de l'attribut VartPart
 			dgAttribute->ExportParts(&oaVarParts);
@@ -1698,18 +1698,17 @@ void CCCoclusteringBuilder::CleanGenericDataGrid(KWDataGrid* dataGrid)
 		}
 	}
 	// Nettoyage des attributs comportant des valeurs manquantes
-	for (nImpliedAttribute = 0;
-	     nImpliedAttribute < dataGrid->GetImpliedAttributes()->GetImpliedAttributesDictionary()->GetCount();
-	     nImpliedAttribute++)
+	for (nInnerAttribute = 0; nInnerAttribute < dataGrid->GetInnerAttributes()->GetInnerAttributeNumber();
+	     nInnerAttribute++)
 	{
-		impliedAttribute = dataGrid->GetImpliedAttributes()->GetImpliedAttributeAt(nImpliedAttribute);
-		if (impliedAttribute->GetAttributeType() == KWType::Continuous)
+		innerAttribute = dataGrid->GetInnerAttributes()->GetInnerAttributeAt(nInnerAttribute);
+		if (innerAttribute->GetAttributeType() == KWType::Continuous)
 		{
-			impliedAttribute->ExportParts(&oaVarParts);
+			innerAttribute->ExportParts(&oaVarParts);
 			for (nVarPart = 0; nVarPart < oaVarParts.GetSize(); nVarPart++)
 			{
 				if (cast(KWDGPart*, oaVarParts.GetAt(nVarPart))->GetPartFrequency() == 0)
-					impliedAttribute->DeletePart(cast(KWDGPart*, oaVarParts.GetAt(nVarPart)));
+					innerAttribute->DeletePart(cast(KWDGPart*, oaVarParts.GetAt(nVarPart)));
 			}
 			oaVarParts.SetSize(0);
 		}
@@ -1723,16 +1722,16 @@ void CCCoclusteringBuilder::CleanGenericDataGrid(KWDataGrid* dataGrid)
 //	KWDGVarPart* varPart;
 //	KWDGPart* currentPart;
 //	KWDGVarPart* currentVarPart;
-//	KWDGAttribute* impliedAttribute;
+//	KWDGAttribute* innerAttribute;
 //	int nAttribute;
 //	boolean bOk = true;
 //
-//	require(dgAttribute->GetImpliedAttributesNumber() > 0);
+//	require(dgAttribute->GetInnerAttributesNumber() > 0);
 //
-//	for (nAttribute = 0; nAttribute < dgAttribute->GetImpliedAttributesNumber(); nAttribute++)
+//	for (nAttribute = 0; nAttribute < dgAttribute->GetInnerAttributesNumber(); nAttribute++)
 //	{
-//		impliedAttribute = dgAttribute->GetImpliedAttributesAt(nAttribute);
-//		currentPart = impliedAttribute->GetHeadPart();
+//		innerAttribute = dgAttribute->GetInnerAttributesAt(nAttribute);
+//		currentPart = innerAttribute->GetHeadPart();
 //		currentVarPart = cast(KWDGVarPart*, currentPart);
 //		// Parcours des parties de variables
 //		while (currentVarPart != NULL)
@@ -1742,7 +1741,7 @@ void CCCoclusteringBuilder::CleanGenericDataGrid(KWDataGrid* dataGrid)
 //			part->GetVarPartSet()->AddVarPart(currentVarPart);
 //
 //			// Partie suivante
-//			impliedAttribute->GetNextPart(currentPart);
+//			innerAttribute->GetNextPart(currentPart);
 //			currentVarPart = cast(KWDGVarPart*, currentPart);
 //		}
 //	}
@@ -1768,20 +1767,20 @@ boolean CCCoclusteringBuilder::CreateDataGridCells(const KWTupleTable* tupleTabl
 	ALString sTmp;
 	// CH AB
 	ObjectArray oaIndexes;
-	int nObservationIndex;           // CH IV Refactoring: supprimer car non utilise
-	IntVector* ivObservationIndexes; // CH IV Refactoring: supprimer car non utilise
-	int nImpliedAttributeIndex;
-	KWDGAttribute* dgImpliedAttribute;
+	// int nObservationIndex;           // CH IV Refactoring: supprimer car non utilise
+	// IntVector* ivObservationIndexes; // CH IV Refactoring: supprimer car non utilise
+	int nInnerAttributeIndex;
+	KWDGAttribute* innerAttribute;
 	KWDGPart* varPart;
-	int nImpliedAttribute;
+	int nInnerAttribute;
 	// CH IV A supprimer
 	// boolean bNewInitialization = true;
 
-	// Cas ou le coclustering se ramene a un coclustering classique, appel de la methode classique de creation de
+	// Cas ou le coclustering se ramene a un coclustering standard, appel de la methode standard de creation de
 	// cellules
-	if (not GetGenericCoclustering())
+	if (not GetVarPartCoclustering())
 		bOk = KWAttributeSubsetStats::CreateDataGridCells(tupleTable, dataGrid);
-	// Sinon, cas reel de coclustering generique
+	// Sinon, cas reel de coclustering VarPart
 	else
 	{
 		require(Check());
@@ -1816,14 +1815,14 @@ boolean CCCoclusteringBuilder::CreateDataGridCells(const KWTupleTable* tupleTabl
 		// if (not bNewInitialization)
 		//{
 		//	// Calcul de toutes les combinaisons possibles d'observations d'attributs pour les axes de type
-		// VarParts 	FillObjectArrayVarPartsAttributesIndexes(&oaIndexes, nFirstVarPartsAttributeIndex,
+		// VarPart 	FillObjectArrayVarPartsAttributesIndexes(&oaIndexes, nFirstVarPartsAttributeIndex,
 		// dataGrid);
 		//}
 
 		// Ajout d'instances dans le DataGrid
 		oaParts.SetSize(dataGrid->GetAttributeNumber());
 
-		// oaImpliedAttributes.SetSize(dataGrid->GetAttributeNumber());
+		// oaInnerAttributes.SetSize(dataGrid->GetAttributeNumber());
 
 		// Parcours des tuples
 		for (nTuple = 0; nTuple < tupleTable->GetSize(); nTuple++)
@@ -1864,7 +1863,7 @@ boolean CCCoclusteringBuilder::CreateDataGridCells(const KWTupleTable* tupleTabl
 					if (bDisplayInstanceCreation)
 						cout << sValue << "\t";
 				}
-				// oaImpliedAttributes.SetAt(nAttribute, NULL);
+				// oaInnerAttributes.SetAt(nAttribute, NULL);
 			}
 
 			// CH IV Refactoring: nettoyer lignes suivantes?
@@ -1880,40 +1879,38 @@ boolean CCCoclusteringBuilder::CreateDataGridCells(const KWTupleTable* tupleTabl
 			//		for (nAttribute = nFirstVarPartsAttributeIndex; nAttribute <
 			// dataGrid->GetAttributeNumber(); nAttribute++)
 			//		{
-			//			// Extraction de l'attribut VarParts
+			//			// Extraction de l'attribut VarPart
 			//			dgAttribute = dataGrid->GetAttributeAt(nAttribute);
 
-			//			// Parcours des attributs impliques de cet axe VarParts
-			//			for (nImpliedAttribute = 0; nImpliedAttribute <
-			// dgAttribute->GetImpliedAttributesNumber(); nImpliedAttribute++)
+			//			// Parcours des attributs internes de attribut de type VarPart
+			//			for (nInnerAttribute = 0; nInnerAttribute <
+			// dgAttribute->GetInnerAttributesNumber(); nInnerAttribute++)
 			//			{
-			//				// Extraction de l'attribut implique dans l'observation courante
-			//				dgImpliedAttribute =
-			// dgAttribute->GetDataGrid()->GetImpliedAttributes()->LookupImpliedAttribute(dgAttribute->GetImpliedAttributeNameAt(ivObservationIndexes->GetAt(nAttribute
+			//				// Extraction de l'attribut interne pour l'observation courante
+			//				innerAttribute =
+			// dgAttribute->GetDataGrid()->GetInnerAttributes()->LookupInnerAttribute(dgAttribute->GetInnerAttributeNameAt(ivObservationIndexes->GetAt(nAttribute
 			//- nFirstVarPartsAttributeIndex)));
 
-			//				nImpliedAttributeIndex =
-			// tupleTable->LookupAttributeIndex(dgImpliedAttribute->GetAttributeName());
+			//				nInnerAttributeIndex =
+			// tupleTable->LookupAttributeIndex(innerAttribute->GetAttributeName());
 
 			//				// Recherche de la partie associee a la valeur selon son type
-			//				if (dgImpliedAttribute->GetAttributeType() ==
-			// KWType::Continuous)
+			//				if (innerAttribute->GetAttributeType() == KWType::Continuous)
 			//				{
-			//					cValue = tuple->GetContinuousAt(nImpliedAttributeIndex);
+			//					cValue = tuple->GetContinuousAt(nInnerAttributeIndex);
 			//					// Cas d'une valeur manquante
 			//					if (cValue == KWContinuous::GetMissingValue())
 			//						break;
 			//					else
 			//						part =
-			// dgImpliedAttribute->LookupContinuousPart(cValue); 					if
-			// (bDisplayInstanceCreation) 						cout << cValue
-			//<< "\t";
+			// innerAttribute->LookupContinuousPart(cValue); 					if
+			// (bDisplayInstanceCreation) 						cout << cValue <<
+			//"\t";
 			//				}
-			//				else if (dgImpliedAttribute->GetAttributeType() ==
-			// KWType::Symbol)
+			//				else if (innerAttribute->GetAttributeType() == KWType::Symbol)
 			//				{
-			//					sValue = tuple->GetSymbolAt(nImpliedAttributeIndex);
-			//					part = dgImpliedAttribute->LookupSymbolPart(sValue);
+			//					sValue = tuple->GetSymbolAt(nInnerAttributeIndex);
+			//					part = innerAttribute->LookupSymbolPart(sValue);
 			//					if (bDisplayInstanceCreation)
 			//						cout << sValue << "\t";
 			//				}
@@ -1989,63 +1986,63 @@ boolean CCCoclusteringBuilder::CreateDataGridCells(const KWTupleTable* tupleTabl
 			//// Nouvelle initialisation
 			// else
 			//{
-			boolean bImpliedAttributeOk;
+			boolean bInnerAttributeOk;
 
 			// Parcours des axes de type VarPart
 			// Ce parcours ne contient qu'un axe pour le cas de 2 axes individus * variables
 			for (nAttribute = nFirstVarPartsAttributeIndex; nAttribute < dataGrid->GetAttributeNumber();
 			     nAttribute++)
 			{
-				// Extraction de l'attribut VarParts
+				// Extraction de l'attribut VarPart
 				dgAttribute = dataGrid->GetAttributeAt(nAttribute);
 
-				// Parcours des attributs impliques de cet axe VarParts
-				for (nImpliedAttribute = 0;
-				     nImpliedAttribute < dgAttribute->GetImpliedAttributesNumber(); nImpliedAttribute++)
+				// Parcours des attributs interne de attribut de grille de type VarPart
+				for (nInnerAttribute = 0; nInnerAttribute < dgAttribute->GetInnerAttributesNumber();
+				     nInnerAttribute++)
 				{
-					// Extraction de l'attribut implique dans l'observation courante
-					dgImpliedAttribute =
-					    dgAttribute->GetDataGrid()->GetImpliedAttributes()->LookupImpliedAttribute(
-						dgAttribute->GetImpliedAttributeNameAt(nImpliedAttribute));
+					// Extraction de l'attribut interne dans l'observation courante
+					innerAttribute =
+					    dgAttribute->GetDataGrid()->GetInnerAttributes()->LookupInnerAttribute(
+						dgAttribute->GetInnerAttributeNameAt(nInnerAttribute));
 
-					nImpliedAttributeIndex =
-					    tupleTable->LookupAttributeIndex(dgImpliedAttribute->GetAttributeName());
-					bImpliedAttributeOk = true;
+					nInnerAttributeIndex =
+					    tupleTable->LookupAttributeIndex(innerAttribute->GetAttributeName());
+					bInnerAttributeOk = true;
 					part = NULL;
 
 					// Recherche de la partie associee a la valeur selon son type
-					if (dgImpliedAttribute->GetAttributeType() == KWType::Continuous)
+					if (innerAttribute->GetAttributeType() == KWType::Continuous)
 					{
-						cValue = tuple->GetContinuousAt(nImpliedAttributeIndex);
+						cValue = tuple->GetContinuousAt(nInnerAttributeIndex);
 						// Cas d'une valeur manquante
 						if (cValue == KWContinuous::GetMissingValue())
 						{
-							bImpliedAttributeOk = false;
-							part = dgImpliedAttribute->LookupContinuousPart(cValue);
+							bInnerAttributeOk = false;
+							part = innerAttribute->LookupContinuousPart(cValue);
 						}
 
 						else
-							part = dgImpliedAttribute->LookupContinuousPart(cValue);
+							part = innerAttribute->LookupContinuousPart(cValue);
 						if (bDisplayInstanceCreation)
 							cout << cValue << "\t";
 					}
-					else if (dgImpliedAttribute->GetAttributeType() == KWType::Symbol)
+					else if (innerAttribute->GetAttributeType() == KWType::Symbol)
 					{
-						sValue = tuple->GetSymbolAt(nImpliedAttributeIndex);
-						part = dgImpliedAttribute->LookupSymbolPart(sValue);
+						sValue = tuple->GetSymbolAt(nInnerAttributeIndex);
+						part = innerAttribute->LookupSymbolPart(sValue);
 						if (bDisplayInstanceCreation)
 							cout << sValue << "\t";
 					}
 
-					// Cas d'une observation valide pour l'attribut implique courant
-					if (bImpliedAttributeOk)
+					// Cas d'une observation valide pour l'attribut interne courant
+					if (bInnerAttributeOk)
 					{
 						require(part != NULL);
 
 						// CH Debug erreur sur le nCellFrequency qui est toujours a 1 ?
 						// est ce bien ce que l'on veut faire ?
 						// Mise a jour de l'effectif de la partie de variable de l'attribut
-						// implique
+						// interne
 						part->SetPartFrequency(part->GetPartFrequency() + nCellFrequency);
 
 						// Extraction de la VarPartSet de l'axe associee a cette partie
@@ -2204,11 +2201,11 @@ void CCCoclusteringBuilder::HandleOptimizationStep(const KWDataGrid* optimizedDa
 	{
 		assert(nAnyTimeOptimizationIndex == 0);
 		// CH IV Begin
-		// Dans le cas d'un coclustering individus variables, la structure de cout depend du pre-partitionnement
-		// des attributs impliques donc son cout par defaut n'est pas egal au cout du modele nul Le cout du
-		// modele nul (avec une partie par attribut implique) est calcule au debut de la methode
+		// Dans le cas d'un coclustering instances x variables, la structure de cout depend du
+		// pre-partitionnement des attributs internes donc son cout par defaut n'est pas egal au cout du modele
+		// nul Le cout du modele nul (avec une partie par attribut interne) est calcule au debut de la methode
 		// CCCoclusteringBuilder::OptimizeDataGrid
-		assert(dAnyTimeDefaultCost == 0 or optimizedDataGrid->IsDataGridGeneric());
+		assert(dAnyTimeDefaultCost == 0 or optimizedDataGrid->GetVarPartDataGrid());
 		if (dAnyTimeDefaultCost == 0)
 			dAnyTimeDefaultCost = coclusteringDataGridCosts->GetTotalDefaultCost();
 		// CH IV End
@@ -2244,12 +2241,12 @@ void CCCoclusteringBuilder::HandleOptimizationStep(const KWDataGrid* optimizedDa
 
 		// CH IV Begin
 		// Memorisation variable identifiant dans le cas d'un coclustering individus * variables
-		if (optimizedDataGrid->IsDataGridGeneric())
+		if (optimizedDataGrid->GetVarPartDataGrid())
 			coclusteringDataGrid->SetIdentifierAttributeName(GetIdentifierAttribute());
 
-		// CH AB tentative pour rendre coclusteringDataGrid proprietaire de son impliedAttribute qd necessaire
-		// si on arrive ici via une grille post-fusionnee, elle a son impliedAttribute sinon, non
-		if (optimizedDataGrid->IsDataGridGeneric() and not optimizedDataGrid->AreVarPartsShared())
+		// CH AB tentative pour rendre coclusteringDataGrid proprietaire de son innerAttribute qd necessaire
+		// si on arrive ici via une grille post-fusionnee, elle a son innerAttribute sinon, non
+		if (optimizedDataGrid->GetVarPartDataGrid() and not optimizedDataGrid->GetVarPartsShared())
 		{
 			optimizedDataGrid->SetVarPartsShared(true);
 			coclusteringDataGrid->SetVarPartsShared(false);
@@ -2275,7 +2272,7 @@ void CCCoclusteringBuilder::HandleOptimizationStep(const KWDataGrid* optimizedDa
 		// Calcul d'un libelle sur la taille de la grille (nombre de parties par dimension)
 		// CH IV Begin
 		// Cas d'une grille variable * variable
-		if (not GetGenericCoclustering())
+		if (not GetVarPartCoclustering())
 		{
 			for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
 			{
@@ -2307,7 +2304,7 @@ void CCCoclusteringBuilder::HandleOptimizationStep(const KWDataGrid* optimizedDa
 			for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
 			{
 				dgAttribute = coclusteringDataGrid->SearchAttribute(GetAttributeNameAt(nAttribute));
-				if (dgAttribute->GetAxisName() != "")
+				if (dgAttribute->GetOwnerAttributeName() != "")
 				{
 					// CH AB Si cette partie reste dans l'affichage definitif, il faudra supprimer
 					// le premier "*" redondant
@@ -2320,10 +2317,10 @@ void CCCoclusteringBuilder::HandleOptimizationStep(const KWDataGrid* optimizedDa
 				}
 			}
 
-			// Granularite de pre-partitionnement des attributs impliques
+			// Granularite de pre-partitionnement des attributs internes
 			sCoclusteringSizeInfo += "\tVarPartsGranularity :";
 			sCoclusteringSizeInfo +=
-			    IntToString(coclusteringDataGrid->GetImpliedAttributes()->GetVarPartsGranularity());
+			    IntToString(coclusteringDataGrid->GetInnerAttributes()->GetVarPartGranularity());
 
 			// Granularite de partitionnement de la grille pre-partitionnee
 			sCoclusteringSizeInfo += "\tDgGranularity :";
@@ -2680,7 +2677,7 @@ boolean CCCoclusteringBuilder::FillTupleTableFromDatabase(KWDatabase* database, 
 	return bOk;
 }
 // CH IV Begin
-boolean CCCoclusteringBuilder::FillGenericTupleTableFromDatabase(KWDatabase* database, KWTupleTable* tupleTable,
+boolean CCCoclusteringBuilder::FillVarPartTupleTableFromDatabase(KWDatabase* database, KWTupleTable* tupleTable,
 								 ObjectDictionary& odObservationNumbers)
 {
 	boolean bOk;
@@ -2708,7 +2705,7 @@ boolean CCCoclusteringBuilder::FillGenericTupleTableFromDatabase(KWDatabase* dat
 	require(tupleTable != NULL);
 	require(not tupleTable->GetUpdateMode());
 	require(tupleTable->GetSize() == 0);
-	require(GetGenericCoclustering());
+	require(GetVarPartCoclustering());
 	require(odObservationNumbers.GetCount() == 0);
 
 	// Debut de suivi de tache
@@ -2785,9 +2782,9 @@ boolean CCCoclusteringBuilder::FillGenericTupleTableFromDatabase(KWDatabase* dat
 					break;
 				}
 
-				// Calcul du nombre d'observations de l'objet parmi les attributs impliques
+				// Calcul du nombre d'observations de l'objet parmi les attributs internes
 				// Renvoie 0 si l'attribut identifiant n'est pas renseigne ou si aucune valeur n'est
-				// renseignee pour les attributs impliques
+				// renseignee pour les attributs interne
 				nObjectObservationNumber = GetDatabaseObjectObservationNumber(
 				    kwoObject, liIdentifierAttributeLoadIndex, lRecordNumber, livLoadIndexes);
 
@@ -2969,7 +2966,7 @@ void CCCoclusteringBuilder::FillObjectArrayVarPartsAttributesIndexes(ObjectArray
 								     KWDataGrid* dataGrid)
 {
 	IntVector ivCurrentIndexes;
-	IntVector ivVarPartsImpliedAttributesNumbers;
+	IntVector ivVarPartInnerAttributesNumbers;
 	int nAttributeIndex;
 	int nArraySize;
 	int nArrayIndex;
@@ -2978,20 +2975,22 @@ void CCCoclusteringBuilder::FillObjectArrayVarPartsAttributesIndexes(ObjectArray
 
 	require(oaIndexes != NULL);
 
+	// Initialisation
 	nArraySize = 1;
-
-	// Parcours des attributs de type VarParts
-	for (nAttributeIndex = nIndex; nAttributeIndex < dataGrid->GetAttributeNumber(); nAttributeIndex++)
-	{
-		// Extraction du nombre d'attributs impliques par l'attribut VarParts courant
-		ivVarPartsImpliedAttributesNumbers.Add(ivImpliedAttributesNumber.GetAt(nAttributeIndex));
-		nArraySize *= ivImpliedAttributesNumber.GetAt(nAttributeIndex);
-	}
-
 	oaIndexes->DeleteAll();
 	oaIndexes->SetSize(nArraySize);
-	// Taille du nombre d'attributs de type VarParts
-	ivCurrentIndexes.SetSize(ivVarPartsImpliedAttributesNumbers.GetSize());
+
+	// Parcours des attributs de type VarPart
+	for (nAttributeIndex = nIndex; nAttributeIndex < dataGrid->GetAttributeNumber(); nAttributeIndex++)
+	{
+		// Extraction du nombre d'attributs internes pour l'attribut VarPart courant
+		ivVarPartInnerAttributesNumbers.Add(ivInnerAttributesNumber.GetAt(nAttributeIndex));
+		nArraySize *= ivInnerAttributesNumber.GetAt(nAttributeIndex);
+	}
+
+	// Taille du nombre d'attributs de type VarPart
+	ivCurrentIndexes.SetSize(ivVarPartInnerAttributesNumbers.GetSize());
+
 	// Ajout du premier vecteur d'index
 	oaIndexes->SetAt(0, ivCurrentIndexes.Clone());
 
@@ -3003,7 +3002,7 @@ void CCCoclusteringBuilder::FillObjectArrayVarPartsAttributesIndexes(ObjectArray
 		while (not bIncremented)
 		{
 			if (ivCurrentIndexes.GetAt(nIncrementedIndex) <
-			    ivVarPartsImpliedAttributesNumbers.GetAt(nIncrementedIndex) - 1)
+			    ivVarPartInnerAttributesNumbers.GetAt(nIncrementedIndex) - 1)
 			{
 				ivCurrentIndexes.SetAt(nIncrementedIndex,
 						       ivCurrentIndexes.GetAt(nIncrementedIndex) + 1);
@@ -3095,8 +3094,8 @@ boolean CCCoclusteringBuilder::CreateIdentifierAttributeIntervals(const KWTupleT
 			// Progression
 			if (periodicTestDisplay.IsTestAllowed(nTuple))
 			{
-				// Cas d'un attribut non implique dans un attribut VarPart
-				if (dgAttribute->GetAxisName() == "")
+				// Cas d'un attribut de grille standard, non interne dans un attribut VarPart
+				if (dgAttribute->GetOwnerAttributeName() == "")
 				{
 					// Avancement: au prorata de la base pour l'attribut en cours, en reservant 50
 					// pour la creation des cellules
@@ -3116,22 +3115,22 @@ boolean CCCoclusteringBuilder::CreateIdentifierAttributeIntervals(const KWTupleT
 			// Memorisation de la valeur de reference initiale pour le premier tuple ou premier tuple avec
 			// valeur non manquante
 
-			if (nTuple == 0 or
-			    (cSourceRef == KWContinuous::GetMissingValue() and dgAttribute->GetAxisName() != ""))
+			if (nTuple == 0 or (cSourceRef == KWContinuous::GetMissingValue() and
+					    dgAttribute->GetOwnerAttributeName() != ""))
 			{
 				cSourceRef = cSourceValue;
 				nFrequency = tuple->GetFrequency();
 			}
 			// Cas du dernier tuple d'effectif 1 : il est regroupe avec l'intervalle precedent
-			else if (dgAttribute->GetAxisName() != "" and nTuple == attributeTupleTable.GetSize() - 1 and
-				 tuple->GetFrequency() == 1)
+			else if (dgAttribute->GetOwnerAttributeName() != "" and
+				 nTuple == attributeTupleTable.GetSize() - 1 and tuple->GetFrequency() == 1)
 				break;
 			// Creation d'un nouvel intervalle sinon
 			else
 			{
 				assert(cSourceValue > cSourceRef);
 
-				if (dgAttribute->GetAxisName() == "" or nFrequency > 1)
+				if (dgAttribute->GetOwnerAttributeName() == "" or nFrequency > 1)
 				{
 					// Calcul de la borne sup de l'intervalle courant, comme moyenne de la valeur
 					// des deux objets de part et d'autre de l'intervalle
@@ -3218,9 +3217,9 @@ boolean CCCoclusteringBuilder::CreateIdentifierAttributeValueSets(const KWTupleT
 		// Progression
 		if (periodicTestDisplay.IsTestAllowed(nTuple))
 		{
-			// Cas d'un attribut non implique dans un axe VarParts
+			// Cas d'un attribut de grille standard, non interne dans un attribut VarPart
 			// Sinon GetDataGrid() n'est pas defini
-			if (dgAttribute->GetAxisName() == "")
+			if (dgAttribute->GetOwnerAttributeName() == "")
 			{
 				// Avancement: au prorata de la base pour l'attribut en cours, en reservant 50 pour la
 				// creation des cellules
@@ -3285,12 +3284,13 @@ int CCCoclusteringBuilder::GetDatabaseObjectObservationNumber(KWObject* kwoObjec
 						  ") with missing value");
 			return nObjectObservationNumber;
 		}
-		// Parcours des attributs impliques pour calculer le nombre d'observations
+		// Parcours des attributs internes pour calculer le nombre d'observations
 		// Parametrage du tuple d'entree de la table a cree
 		for (nAttribute = 0; nAttribute < livLoadIndexes.GetSize(); nAttribute++)
 		{
 			attribute = GetClass()->LookupAttribute(GetAttributeNameAt(nAttribute));
-			// Cas d'un attribut implique dans une variable de type VarPart (attribut identifiant exclu)
+
+			// Cas d'un attribut interne dans une variable de type VarPart (attribut identifiant exclu)
 			if (livLoadIndexes.GetAt(nAttribute) != liIdentifierAttributeLoadIndex)
 			{
 				if (attribute->GetType() == KWType::Continuous and
@@ -3546,26 +3546,25 @@ boolean CCCoclusteringBuilder::CheckMemoryForDataGridOptimization(KWDataGrid* in
 			lWorkingDataGridSize += 2 * dgAttribute->GetPartNumber() *
 						(sizeof(KWDGMPart) + sizeof(KWDGValueSet) + 2 * sizeof(void*));
 		// CH IV Begin
-		else if (dgAttribute->GetAttributeType() == KWType::VarParts)
+		else if (dgAttribute->GetAttributeType() == KWType::VarPart)
 		{
-			int nImpliedAttribute;
-			KWDGAttribute* impliedAttribute;
-			int nImpliedPartNumber;
-			for (nImpliedAttribute = 0;
-			     nImpliedAttribute <
-			     inputInitialDataGrid->GetImpliedAttributes()->GetImpliedAttributesDictionary()->GetCount();
-			     nImpliedAttribute++)
+			int nInnerAttribute;
+			KWDGAttribute* innerAttribute;
+			int nInnerAttributePartNumber;
+			for (nInnerAttribute = 0;
+			     nInnerAttribute < inputInitialDataGrid->GetInnerAttributes()->GetInnerAttributeNumber();
+			     nInnerAttribute++)
 			{
-				impliedAttribute = inputInitialDataGrid->GetImpliedAttributes()->GetImpliedAttributeAt(
-				    nImpliedAttribute);
-				nImpliedPartNumber = impliedAttribute->GetPartNumber();
-				if (impliedAttribute->GetAttributeType() == KWType::Continuous)
+				innerAttribute =
+				    inputInitialDataGrid->GetInnerAttributes()->GetInnerAttributeAt(nInnerAttribute);
+				nInnerAttributePartNumber = innerAttribute->GetPartNumber();
+				if (innerAttribute->GetAttributeType() == KWType::Continuous)
 					lWorkingDataGridSize +=
-					    2 * nImpliedPartNumber *
+					    2 * nInnerAttributePartNumber *
 					    (sizeof(KWDGMPart) + sizeof(KWDGInterval) + sizeof(void*));
-				else if (impliedAttribute->GetAttributeType() == KWType::Symbol)
+				else if (innerAttribute->GetAttributeType() == KWType::Symbol)
 					lWorkingDataGridSize +=
-					    2 * nImpliedPartNumber *
+					    2 * nInnerAttributePartNumber *
 					    (sizeof(KWDGMPart) + sizeof(KWDGValueSet) + 2 * sizeof(void*));
 			}
 		}
@@ -3769,10 +3768,10 @@ void CCCoclusteringBuilder::ComputeHierarchicalInfo(const KWDataGrid* inputIniti
 	optimizedDataGrid->SetCost(dBestDataGridTotalCost);
 	optimizedDataGrid->SetNullCost(dataGridMerger.GetDataGridCosts()->GetTotalDefaultCost());
 	// CH IV Begin
-	// Dans le cas d'un coclustering individus variables, la structure de cout depend du pre-partitionnement des
-	// attributs impliques donc son cout par defaut n'est pas egal au cout du modele nul Le cout du modele nul (avec
-	// une partie par attribut implique) est calcule au debut de la methode CCCoclusteringBuilder::OptimizeDataGrid
-	if (optimizedDataGrid->IsDataGridGeneric())
+	// Dans le cas d'un coclustering individus x variables, la structure de cout depend du pre-partitionnement des
+	// attributs internes donc son cout par defaut n'est pas egal au cout du modele nul Le cout du modele nul (avec
+	// une partie par attribut interne) est calcule au debut de la methode CCCoclusteringBuilder::OptimizeDataGrid
+	if (optimizedDataGrid->GetVarPartDataGrid())
 	{
 		optimizedDataGrid->SetNullCost(dAnyTimeDefaultCost);
 	}
@@ -3833,9 +3832,9 @@ void CCCoclusteringBuilder::ComputeContinuousAttributeBounds(CCHierarchicalDataG
 	KWDescriptiveContinuousStats* descriptiveContinuousStats;
 	ContinuousVector* cvMinValues;
 	ContinuousVector* cvMaxValues;
-	int nImpliedAttribute;
-	KWDGAttribute* impliedAttribute;
-	ObjectDictionary* odIndexImpliedVariable;
+	int nInnerAttribute;
+	KWDGAttribute* innerAttribute;
+	ObjectDictionary* odIndexInnerVariable;
 	// DoubleObject* doMin;
 	// DoubleObject* doMax;
 
@@ -3859,29 +3858,29 @@ void CCCoclusteringBuilder::ComputeContinuousAttributeBounds(CCHierarchicalDataG
 			}
 		}
 		// CH IV Begin
-		// Recherche des caracteristiques des attributs impliques numeriques
-		if (hdgAttribute->GetImpliedAttributesNumber() > 0)
+		// Recherche des caracteristiques des attributs internes numeriques
+		if (hdgAttribute->GetInnerAttributesNumber() > 0)
 		{
 			cvMinValues = new ContinuousVector;
 			cvMaxValues = new ContinuousVector;
-			odIndexImpliedVariable = new ObjectDictionary;
+			odIndexInnerVariable = new ObjectDictionary;
 
-			for (nImpliedAttribute = 0; nImpliedAttribute < hdgAttribute->GetImpliedAttributesNumber();
-			     nImpliedAttribute++)
+			for (nInnerAttribute = 0; nInnerAttribute < hdgAttribute->GetInnerAttributesNumber();
+			     nInnerAttribute++)
 			{
-				impliedAttribute = coclusteringDataGrid->GetImpliedAttributes()->LookupImpliedAttribute(
-				    hdgAttribute->GetImpliedAttributeNameAt(nImpliedAttribute));
+				innerAttribute = coclusteringDataGrid->GetInnerAttributes()->LookupInnerAttribute(
+				    hdgAttribute->GetInnerAttributeNameAt(nInnerAttribute));
 				// Cas d'un attribut Continuous
-				if (impliedAttribute->GetAttributeType() == KWType::Continuous)
+				if (innerAttribute->GetAttributeType() == KWType::Continuous)
 				{
 					descriptiveContinuousStats =
 					    cast(KWDescriptiveContinuousStats*,
-						 odDescriptiveStats.Lookup(impliedAttribute->GetAttributeName()));
+						 odDescriptiveStats.Lookup(innerAttribute->GetAttributeName()));
 					cvMinValues->Add(descriptiveContinuousStats->GetMin());
 					cvMaxValues->Add(descriptiveContinuousStats->GetMax());
 					IntObject* io = new IntObject;
 					io->SetInt(cvMinValues->GetSize() - 1);
-					odIndexImpliedVariable->SetAt(impliedAttribute->GetAttributeName(), io);
+					odIndexInnerVariable->SetAt(innerAttribute->GetAttributeName(), io);
 					// CH IV Refactoring: a supprimer?
 					// doMin = new DoubleObject;
 					// doMin->SetDouble(descriptiveContinuousStats->GetMin());
@@ -3892,15 +3891,15 @@ void CCCoclusteringBuilder::ComputeContinuousAttributeBounds(CCHierarchicalDataG
 			}
 			if (cvMinValues->GetSize() > 0)
 			{
-				coclusteringDataGrid->SetImpliedAttributeMinValues(cvMinValues);
-				coclusteringDataGrid->SetImpliedAttributeMaxValues(cvMaxValues);
-				coclusteringDataGrid->SetImpliedAttributeIndexes(odIndexImpliedVariable);
+				coclusteringDataGrid->SetInnerAttributeMinValues(cvMinValues);
+				coclusteringDataGrid->SetInnerAttributeMaxValues(cvMaxValues);
+				coclusteringDataGrid->SetInnerAttributeIndexes(odIndexInnerVariable);
 			}
 			else
 			{
 				delete cvMinValues;
 				delete cvMaxValues;
-				delete odIndexImpliedVariable;
+				delete odIndexInnerVariable;
 			}
 		}
 		// CH IV End
@@ -4039,7 +4038,7 @@ void CCCoclusteringBuilder::ComputeValueTypicalitiesAt(const KWDataGrid* inputIn
 		if (nGroup == nGarbageGroupIndex)
 		{
 			nGarbageModalityNumber = dgValuePart->GetValueSet()->GetTrueValueNumber();
-			// CH AB AF adaptation eventuelle VarParts
+			// CH AB AF adaptation eventuelle VarPart
 		}
 	}
 

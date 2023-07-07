@@ -13,20 +13,20 @@ CCHierarchicalDataGrid::CCHierarchicalDataGrid()
 	dCost = 0;
 	nInitialAttributeNumber = 0;
 	// CH IV Begin
-	cvImpliedAttributeMinValues = NULL;
-	cvImpliedAttributeMaxValues = NULL;
-	odImpliedAttributeIndexes = NULL;
+	cvInnerAttributeMinValues = NULL;
+	cvInnerAttributeMaxValues = NULL;
+	odInnerAttributeIndexes = NULL;
 	// CH IV End
 }
 
 CCHierarchicalDataGrid::~CCHierarchicalDataGrid()
 {
 	// CH IV Begin
-	delete cvImpliedAttributeMinValues;
-	delete cvImpliedAttributeMaxValues;
-	if (odImpliedAttributeIndexes != NULL)
-		odImpliedAttributeIndexes->DeleteAll();
-	delete odImpliedAttributeIndexes;
+	delete cvInnerAttributeMinValues;
+	delete cvInnerAttributeMaxValues;
+	if (odInnerAttributeIndexes != NULL)
+		odInnerAttributeIndexes->DeleteAll();
+	delete odInnerAttributeIndexes;
 	// CH IV End
 }
 
@@ -118,34 +118,34 @@ const ALString& CCHierarchicalDataGrid::GetIdentifierAttributeName() const
 	return sIdentifierAttributeName;
 }
 
-void CCHierarchicalDataGrid::SetImpliedAttributeMinValues(const ContinuousVector* cvValues)
+void CCHierarchicalDataGrid::SetInnerAttributeMinValues(const ContinuousVector* cvValues)
 {
-	cvImpliedAttributeMinValues = cvValues;
+	cvInnerAttributeMinValues = cvValues;
 }
 
-const ContinuousVector* CCHierarchicalDataGrid::GetImpliedAttributeMinValues() const
+const ContinuousVector* CCHierarchicalDataGrid::GetInnerAttributeMinValues() const
 {
-	return cvImpliedAttributeMinValues;
+	return cvInnerAttributeMinValues;
 }
 
-void CCHierarchicalDataGrid::SetImpliedAttributeMaxValues(const ContinuousVector* cvValues)
+void CCHierarchicalDataGrid::SetInnerAttributeMaxValues(const ContinuousVector* cvValues)
 {
-	cvImpliedAttributeMaxValues = cvValues;
+	cvInnerAttributeMaxValues = cvValues;
 }
 
-const ContinuousVector* CCHierarchicalDataGrid::GetImpliedAttributeMaxValues() const
+const ContinuousVector* CCHierarchicalDataGrid::GetInnerAttributeMaxValues() const
 {
-	return cvImpliedAttributeMaxValues;
+	return cvInnerAttributeMaxValues;
 }
 
-void CCHierarchicalDataGrid::SetImpliedAttributeIndexes(ObjectDictionary* odIndexes)
+void CCHierarchicalDataGrid::SetInnerAttributeIndexes(ObjectDictionary* odIndexes)
 {
-	odImpliedAttributeIndexes = odIndexes;
+	odInnerAttributeIndexes = odIndexes;
 }
 
-ObjectDictionary* CCHierarchicalDataGrid::GetImpliedAttributeIndexes() const
+ObjectDictionary* CCHierarchicalDataGrid::GetInnerAttributeIndexes() const
 {
-	return odImpliedAttributeIndexes;
+	return odInnerAttributeIndexes;
 }
 // CH IV End
 
@@ -316,7 +316,7 @@ CCHDGPart* CCHDGAttribute::NewHierarchyPart()
 
 	require(GetAttributeType() != KWType::Unknown);
 	// CH IV Begin
-	require(KWType::IsSimple(GetAttributeType()) or GetAttributeType() == KWType::VarParts);
+	require(KWType::IsSimple(GetAttributeType()) or GetAttributeType() == KWType::VarPart);
 	// CH IV End
 
 	// Creation d'une nouvelle partie en fonction du type de l'attribut
@@ -1189,7 +1189,7 @@ int CCHDGVarPartValueCompareDecreasingTypicality(const void* elem1, const void* 
 	else if (dCompare < -dPrecision)
 		nCompare = -1;
 	else
-		nCompare = KWDGVarPartValueCompareVariableNameAndVarPart(elem1, elem2);
+		nCompare = KWDGVarPartValueCompareAttributeNameAndVarPart(elem1, elem2);
 	return nCompare;
 }
 // CH IV End

@@ -17,7 +17,6 @@ class CCCoclusteringOptimizer;
 #include "KWDataGridOptimizerParameters.h"
 #include "SortedList.h"
 #include "Timer.h"
-#include "CCConfig.h"
 
 //////////////////////////////////////////////////////////////////////////////////
 // Classe KWDataGridOptimizer
@@ -60,7 +59,7 @@ public:
 	// Integre un parcours des granularites
 	// Retourne le cout de codage MODL de la grille post-optimisee
 	// Integre un parcours des granularites
-	// Dans le cas d'une grille generique avec des parties de variable, le cout retourne est celui de la grille
+	// Dans le cas d'une grille VarPart avec des parties de variable, le cout retourne est celui de la grille
 	// antecedente de la meilleure grille post-fusionnee (fusion des parties de variable consecutives dans un
 	// cluster de parties de variables)
 	double OptimizeDataGrid(const KWDataGrid* initialDataGrid, KWDataGrid* optimizedDataGrid) const;
@@ -238,7 +237,7 @@ protected:
 	// avant post-fusion de la meilleure grille post-fusionne Le cout renvoye est le cout de cette optimizedDataGrid
 	// dBestMergedDataGridCost contient le cout de la meilleure grille apres post-fusion (meilleur cout)
 	// CH IV Refactoring: renommer en VNSOptimizeVarPartDataGrid
-	double VNSOptimizeGenericDataGrid(const KWDataGrid* initialDataGrid, double dDecreaseFactor, int nMinIndex,
+	double VNSOptimizeVarPartDataGrid(const KWDataGrid* initialDataGrid, double dDecreaseFactor, int nMinIndex,
 					  int nMaxIndex, KWDataGrid* optimizedDataGrid, double dOptimizedDataGridCost,
 					  double& dBestMergedDataGridCost) const;
 	// CH IV End

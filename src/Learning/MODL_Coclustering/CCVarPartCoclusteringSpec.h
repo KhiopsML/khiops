@@ -5,7 +5,8 @@
 #pragma once
 
 ////////////////////////////////////////////////////////////
-// File generated  with GenereTable
+// File generated with Genere tool
+// Insert your specific code inside "//## " sections
 
 #include "Object.h"
 
@@ -13,39 +14,32 @@
 
 #include "KWAttributeName.h"
 #include "KWVersion.h"
-
-// DDD
 #include "KWDataGridOptimizerParameters.h"
 
 // ##
 
 ////////////////////////////////////////////////////////////
-// Classe CCInstancesVariablesCoclusteringSpec
-//    Coclustering parameters
-class CCInstancesVariablesCoclusteringSpec : public Object
+// Classe CCVarPartCoclusteringSpec
+//    Instances Variables coclustering parameters
+class CCVarPartCoclusteringSpec : public Object
 {
 public:
 	// Constructeur
-	CCInstancesVariablesCoclusteringSpec();
-	~CCInstancesVariablesCoclusteringSpec();
+	CCVarPartCoclusteringSpec();
+	~CCVarPartCoclusteringSpec();
 
 	// Copie et duplication
-	void CopyFrom(const CCInstancesVariablesCoclusteringSpec* aSource);
-	CCInstancesVariablesCoclusteringSpec* Clone() const;
+	void CopyFrom(const CCVarPartCoclusteringSpec* aSource);
+	CCVarPartCoclusteringSpec* Clone() const;
 
-	////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
 	// Acces aux attributs
 
 	// Identifier variable
 	const ALString& GetIdentifierAttribute() const;
 	void SetIdentifierAttribute(const ALString& sValue);
 
-	// CH AD DDD
-	// Optimization  paramters
-	KWDataGridOptimizerParameters* GetOptimizationParameters();
-	// void SetOptimizationParameters(KWDataGridOptimizerParameters* parameters);
-
-	////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
 	// Divers
 
 	// Ecriture
@@ -63,16 +57,21 @@ public:
 	// Nombre max d'attributs pour le coclustering
 	static int GetMaxCoclusteringAttributeNumber();
 
-	// Tableau des noms des variables et de leur axe (KWAttributeAxisName), parametres d'un coclustering generique
+	// Tableau des noms des variables et de leur axe (KWAttributeAxisName), parametres d'un coclustering VarPart
 	ObjectArray* GetAttributesAndAxes();
 
-	// Nombre max d'axes pour le coclustering generique
+	// Nombre max d'axes pour le coclustering VarPart
 	static int GetMaxCoclusteringAxisNumber();
+
+	// CH AD DDD
+	// Optimization  paramters
+	KWDataGridOptimizerParameters* GetOptimizationParameters();
+	// void SetOptimizationParameters(KWDataGridOptimizerParameters* parameters);
 
 	// ##
 
 	////////////////////////////////////////////////////////
-	//// Implementation
+	///// Implementation
 protected:
 	// Attributs de la classe
 	ALString sIdentifierAttribute;
@@ -94,12 +93,12 @@ protected:
 ////////////////////////////////////////////////////////////
 // Implementations inline
 
-inline const ALString& CCInstancesVariablesCoclusteringSpec::GetIdentifierAttribute() const
+inline const ALString& CCVarPartCoclusteringSpec::GetIdentifierAttribute() const
 {
 	return sIdentifierAttribute;
 }
 
-inline void CCInstancesVariablesCoclusteringSpec::SetIdentifierAttribute(const ALString& sValue)
+inline void CCVarPartCoclusteringSpec::SetIdentifierAttribute(const ALString& sValue)
 {
 	sIdentifierAttribute = sValue;
 }

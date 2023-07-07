@@ -21,9 +21,9 @@ KWDataGrid::KWDataGrid()
 	targetAttribute = NULL;
 	nGranularity = 0;
 	// CH IV Begin
-	bGenericDataGrid = false;
-	bAreVariablePartsShared = false;
-	impliedAttributes = NULL;
+	bVarPartDataGrid = false;
+	bVarPartsShared = false;
+	innerAttributes = NULL;
 	// CH IV End
 }
 
@@ -32,10 +32,10 @@ KWDataGrid::~KWDataGrid()
 	DeleteAll();
 	// CH IV Begin
 	// Destruction des descriptions de parties de variable si la grille en est proprietaire
-	if (bGenericDataGrid and not bAreVariablePartsShared and impliedAttributes != NULL)
+	if (bVarPartDataGrid and not bVarPartsShared and innerAttributes != NULL)
 	{
-		delete impliedAttributes;
-		impliedAttributes = NULL;
+		delete innerAttributes;
+		innerAttributes = NULL;
 	}
 	// CH IV End
 }
@@ -107,9 +107,9 @@ KWDGAttribute* KWDataGrid::SearchAttribute(const ALString& sAttributeName) const
 		if (attribute->GetAttributeName() == sAttributeName)
 			return attribute;
 		// CH IV Begin
-		if (attribute->GetAttributeType() == KWType::VarParts and
-		    GetImpliedAttributes()->LookupImpliedAttribute(sAttributeName) != NULL)
-			return GetImpliedAttributes()->LookupImpliedAttribute(sAttributeName);
+		if (attribute->GetAttributeType() == KWType::VarPart and
+		    GetInnerAttributes()->LookupInnerAttribute(sAttributeName) != NULL)
+			return GetInnerAttributes()->LookupInnerAttribute(sAttributeName);
 		// CH IV End
 	}
 	return NULL;
@@ -178,9 +178,9 @@ void KWDataGrid::DeleteAll()
 	svTargetValues.SetSize(0);
 	// CH IV Begin
 	// Nettoyage des descriptions de parties de variable
-	if (bGenericDataGrid and not bAreVariablePartsShared and impliedAttributes != NULL)
+	if (bVarPartDataGrid and not bVarPartsShared and innerAttributes != NULL)
 	{
-		impliedAttributes->DeleteAll();
+		innerAttributes->DeleteAll();
 	}
 	// CH IV End
 }
@@ -889,27 +889,27 @@ boolean KWDataGrid::AreAttributePartsSorted() const
 	return bIsSorted;
 }
 // CH IV Begin
-// CH IV Refactoring: renommer partout Implied en VarPart
-boolean KWDataGrid::AreImpliedAttributePartsSorted() const
+// CH IV Refactoring: renommer partout Implied en Inner
+boolean KWDataGrid::AreInnerAttributePartsSorted() const
 {
 	int nAttribute;
 	KWDGAttribute* attribute;
 	boolean bIsSorted = true;
-	int nImpliedAttribute;
-	KWDGAttribute* impliedAttribute;
+	int nInnerAttribute;
+	KWDGAttribute* innerAttribute;
 
 	// Verification du tri des parties pour chaque attribut
 	for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
 	{
 		attribute = cast(KWDGAttribute*, oaAttributes.GetAt(nAttribute));
-		if (attribute->GetAttributeType() == KWType::VarParts)
+		if (attribute->GetAttributeType() == KWType::VarPart)
 		{
-			for (nImpliedAttribute = 0; nImpliedAttribute < attribute->GetImpliedAttributesNumber();
-			     nImpliedAttribute++)
+			for (nInnerAttribute = 0; nInnerAttribute < attribute->GetInnerAttributesNumber();
+			     nInnerAttribute++)
 			{
-				impliedAttribute = GetImpliedAttributes()->LookupImpliedAttribute(
-				    attribute->GetImpliedAttributeNameAt(nImpliedAttribute));
-				bIsSorted = impliedAttribute->ArePartsSorted();
+				innerAttribute = GetInnerAttributes()->LookupInnerAttribute(
+				    attribute->GetInnerAttributeNameAt(nInnerAttribute));
+				bIsSorted = innerAttribute->ArePartsSorted();
 				if (not bIsSorted)
 					break;
 			}
@@ -1463,8 +1463,8 @@ void KWDataGrid::Write(ostream& ost) const
 		ost << "TargetVariable\t" << GetTargetAttribute()->GetAttributeName() << "\n";
 	ost << "Granularity\t" << GetGranularity() << "\n";
 	// CH IV Begin
-	if (IsDataGridGeneric())
-		ost << "VariableParts Granularity\t" << GetImpliedAttributes()->GetVarPartsGranularity() << "\n";
+	if (GetVarPartDataGrid())
+		ost << "VariableParts Granularity\t" << GetInnerAttributes()->GetVarPartGranularity() << "\n";
 	// CH IV End
 	if (GetAttributeNumber() > 0)
 	{
@@ -1491,8 +1491,8 @@ void KWDataGrid::WriteAttributes(ostream& ost) const
 	int nAttribute;
 	KWDGAttribute* attribute;
 	// CH IV Begin
-	int nImpliedAttribute;
-	KWDGAttribute* impliedAttribute;
+	int nInnerAttribute;
+	KWDGAttribute* innerAttribute;
 	// CH IV End
 
 	// Liste des attributs
@@ -1513,20 +1513,20 @@ void KWDataGrid::WriteAttributes(ostream& ost) const
 			ost << "\t" << attribute->GetGarbageModalityNumber();
 		}
 		// CH IV Begin
-		else if (attribute->GetAttributeType() == KWType::VarParts)
+		else if (attribute->GetAttributeType() == KWType::VarPart)
 		{
 			ost << "\t"
 			    << (attribute->GetTrueValueNumber() >
 				KWFrequencyTable::GetMinimumNumberOfModalitiesForGarbage())
 			    << "\t" << (attribute->GetGarbagePart() != NULL);
 			ost << "\t" << attribute->GetGarbageModalityNumber() << "\n";
-			for (nImpliedAttribute = 0; nImpliedAttribute < attribute->GetImpliedAttributesNumber();
-			     nImpliedAttribute++)
+			for (nInnerAttribute = 0; nInnerAttribute < attribute->GetInnerAttributesNumber();
+			     nInnerAttribute++)
 			{
-				ost << "\nImpliedAttribute\n";
-				impliedAttribute = GetImpliedAttributes()->LookupImpliedAttribute(
-				    attribute->GetImpliedAttributeNameAt(nImpliedAttribute));
-				impliedAttribute->Write(ost);
+				ost << "\nInnerAttribute\n";
+				innerAttribute = GetInnerAttributes()->LookupInnerAttribute(
+				    attribute->GetInnerAttributeNameAt(nInnerAttribute));
+				innerAttribute->Write(ost);
 			}
 		}
 		// CH IV End
@@ -1585,7 +1585,7 @@ void KWDataGrid::WriteAttributeParts(ostream& ost) const
 					}
 				}
 				// CH IV Begin
-				else if (attribute->GetAttributeType() == KWType::VarParts)
+				else if (attribute->GetAttributeType() == KWType::VarPart)
 				{
 					nDisplayedValue = 0;
 					varPartValue = part->GetVarPartSet()->GetHeadVarPart();
@@ -1697,25 +1697,23 @@ void KWDataGrid::WriteCells(ostream& ost) const
 	}
 }
 // CH IV Begin
-void KWDataGrid::WriteImpliedAttributes(ostream& ost) const
+void KWDataGrid::WriteInnerAttributes(ostream& ost) const
 {
-	int nImpliedAttribute;
-	KWDGAttribute* impliedAttribute;
+	int nInnerAttribute;
+	KWDGAttribute* innerAttribute;
 
-	if (impliedAttributes != NULL)
+	if (innerAttributes != NULL)
 	{
-		cout << "Implied attributes number \t"
-		     << GetImpliedAttributes()->GetImpliedAttributesDictionary()->GetCount() << endl;
-		for (nImpliedAttribute = 0;
-		     nImpliedAttribute < GetImpliedAttributes()->GetImpliedAttributesDictionary()->GetCount();
-		     nImpliedAttribute++)
+		cout << "Inner variable number \t" << GetInnerAttributes()->GetInnerAttributeNumber() << endl;
+		for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributes()->GetInnerAttributeNumber();
+		     nInnerAttribute++)
 		{
-			impliedAttribute = GetImpliedAttributes()->GetImpliedAttributeAt(nImpliedAttribute);
-			impliedAttribute->Write(ost);
+			innerAttribute = GetInnerAttributes()->GetInnerAttributeAt(nInnerAttribute);
+			innerAttribute->Write(ost);
 		}
 	}
 	else
-		cout << "No implied attribute" << endl;
+		cout << "No inner variable" << endl;
 }
 // CH IV End
 void KWDataGrid::WriteCrossTableStats(ostream& ost, int nTargetIndex) const
@@ -2336,7 +2334,7 @@ KWDGAttribute::KWDGAttribute()
 	catchAllValueSet = NULL;
 	garbagePart = NULL;
 	// CH IV Begin
-	axisName = "";
+	sOwnerAttributeName = "";
 	// CH IV End
 }
 
@@ -2363,6 +2361,37 @@ KWDGAttribute::~KWDGAttribute()
 	debug(bIsIndexed = false);
 }
 
+// CH IV Begin
+void KWDGAttribute::CreateVarPartsSet()
+{
+	KWDGPart* part;
+	KWDGPart* currentPart;
+	KWDGAttribute* innerAttribute;
+	int nInnerAttribute;
+
+	require(nAttributeType == KWType::VarPart);
+	require(this->GetInnerAttributesNumber() > 0);
+
+	for (nInnerAttribute = 0; nInnerAttribute < this->GetInnerAttributesNumber(); nInnerAttribute++)
+	{
+		innerAttribute = this->GetDataGrid()->GetInnerAttributes()->LookupInnerAttribute(
+		    GetInnerAttributeNameAt(nInnerAttribute));
+		currentPart = innerAttribute->GetHeadPart();
+
+		// Parcours des parties de variables de l'attribut
+		while (currentPart != NULL)
+		{
+			// On cree un cluster par parties de variables
+			part = this->AddPart();
+			part->GetVarPartSet()->AddVarPart(currentPart);
+
+			// Partie suivante
+			innerAttribute->GetNextPart(currentPart);
+		}
+	}
+}
+// CH IV End
+
 KWDGPart* KWDGAttribute::AddPart()
 {
 	KWDGPart* part;
@@ -2370,7 +2399,7 @@ KWDGPart* KWDGAttribute::AddPart()
 	require(GetAttributeType() != KWType::Unknown);
 	// CH IV Begin
 	require(KWType::IsSimple(GetAttributeType()) or
-		(dataGrid->IsDataGridGeneric() and GetAttributeType() == KWType::VarParts));
+		(dataGrid->GetVarPartDataGrid() and GetAttributeType() == KWType::VarPart));
 	// CH IV End
 	require(not IsIndexed());
 
@@ -2492,14 +2521,14 @@ void KWDGAttribute::BuildIndexingStructure()
 	// CH IV Begin
 	KWDGVarPartSet* varPartSet;
 	KWDGVarPartValue* varPartValue;
-	KWDGAttribute* dgImpliedAttribute;
-	int nImpliedAttributeIndex;
+	KWDGAttribute* innerAttribute;
+	int nInnerAttribute;
 	// CH IV End
 
 	require(GetAttributeType() != KWType::Unknown);
 	// CH IV Begin
 	require(KWType::IsSimple(GetAttributeType()) or
-		(dataGrid->IsDataGridGeneric() and GetAttributeType() == KWType::VarParts));
+		(dataGrid->GetVarPartDataGrid() and GetAttributeType() == KWType::VarPart));
 	// CH IV End
 	require(Check());
 
@@ -2555,7 +2584,7 @@ void KWDGAttribute::BuildIndexingStructure()
 			assert(starValuePart != NULL);
 		}
 		// CH IV Begin
-		// Cas d'un attribut de type VarParts
+		// Cas d'un attribut de type VarPart
 		else
 		{
 			// Parcours des parties pour les indexer par leurs parties de variable
@@ -2579,14 +2608,13 @@ void KWDGAttribute::BuildIndexingStructure()
 				part = part->nextPart;
 			}
 
-			// Parcours des attributs impliques
-			for (nImpliedAttributeIndex = 0; nImpliedAttributeIndex < GetImpliedAttributesNumber();
-			     nImpliedAttributeIndex++)
+			// Parcours des attributs internes
+			for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributesNumber(); nInnerAttribute++)
 			{
-				dgImpliedAttribute = GetDataGrid()->GetImpliedAttributes()->LookupImpliedAttribute(
-				    GetImpliedAttributeNameAt(nImpliedAttributeIndex));
+				innerAttribute = GetDataGrid()->GetInnerAttributes()->LookupInnerAttribute(
+				    GetInnerAttributeNameAt(nInnerAttribute));
 				// Indexation des valeurs des parties de l'attribut
-				dgImpliedAttribute->BuildIndexingStructure();
+				innerAttribute->BuildIndexingStructure();
 			}
 		}
 		// CH Iv End
@@ -2599,8 +2627,8 @@ void KWDGAttribute::BuildIndexingStructure()
 void KWDGAttribute::DeleteIndexingStructure()
 {
 	// CH IV Begin
-	int nImpliedAttributeIndex;
-	KWDGAttribute* dgImpliedAttribute;
+	int nInnerAttribute;
+	KWDGAttribute* innerAttribute;
 	// CH IV End
 
 	// Suppression de l'indexation si necessaire
@@ -2609,7 +2637,7 @@ void KWDGAttribute::DeleteIndexingStructure()
 		assert(GetAttributeType() != KWType::Unknown);
 		// CH IV Begin
 		assert(KWType::IsSimple(GetAttributeType()) or
-		       (dataGrid->IsDataGridGeneric() and GetAttributeType() == KWType::VarParts));
+		       (dataGrid->GetVarPartDataGrid() and GetAttributeType() == KWType::VarPart));
 		if (GetAttributeType() == KWType::Continuous)
 			oaIntervals.SetSize(0);
 		else if (GetAttributeType() == KWType::Symbol)
@@ -2617,18 +2645,15 @@ void KWDGAttribute::DeleteIndexingStructure()
 			nkdParts.RemoveAll();
 			starValuePart = NULL;
 		}
-		// Cas d'un attribut de type VarParts
+		// Cas d'un attribut de type VarPart
 		else
 		{
 			nkdVarPartSets.RemoveAll();
-			for (nImpliedAttributeIndex = 0; nImpliedAttributeIndex < GetImpliedAttributesNumber();
-			     nImpliedAttributeIndex++)
+			for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributesNumber(); nInnerAttribute++)
 			{
-				// dgImpliedAttribute = cast(KWDGAttribute*,
-				// GetImpliedAttributesAt(nImpliedAttributeIndex));
-				dgImpliedAttribute = GetDataGrid()->GetImpliedAttributes()->LookupImpliedAttribute(
-				    GetImpliedAttributeNameAt(nImpliedAttributeIndex));
-				dgImpliedAttribute->DeleteIndexingStructure();
+				innerAttribute = GetDataGrid()->GetInnerAttributes()->LookupInnerAttribute(
+				    GetInnerAttributeNameAt(nInnerAttribute));
+				innerAttribute->DeleteIndexingStructure();
 			}
 		}
 		// CH IV End
@@ -2722,7 +2747,7 @@ KWDGPart* KWDGAttribute::LookupVarPart(KWDGPart* varPart)
 	KWDGPart* part;
 
 	require(IsIndexed());
-	require(GetAttributeType() == KWType::VarParts);
+	require(GetAttributeType() == KWType::VarPart);
 
 	part = cast(KWDGPart*, nkdVarPartSets.Lookup((NUMERIC)varPart));
 
@@ -2756,11 +2781,11 @@ boolean KWDGAttribute::Check() const
 		bOk = false;
 	}
 	// CH IV Begin
-	else if (not KWType::IsSimple(nAttributeType) and
-		 not(GetDataGrid()->IsDataGridGeneric() and KWType::IsVarParts(nAttributeType)))
+	else if (not KWType::IsCoclusteringType(nAttributeType))
 	// CH IV End
 	{
-		AddError("Type must be numerical or categorical");
+		assert(KWType::IsSimple(nAttributeType) or GetDataGrid()->GetVarPartDataGrid());
+		AddError("Type must be Numerical, Categorical or VarPart");
 		bOk = false;
 	}
 
@@ -2992,7 +3017,7 @@ void KWDGAttribute::SortParts()
 		}
 	}
 	// CH IV Begin
-	else if (GetAttributeType() == KWType::VarParts)
+	else if (GetAttributeType() == KWType::VarPart)
 	{
 		part = GetHeadPart();
 		while (part != NULL)
@@ -3034,7 +3059,7 @@ boolean KWDGAttribute::ArePartsSorted() const
 		}
 	}
 	// CH IV Begin
-	else if (GetAttributeType() == KWType::VarParts)
+	else if (GetAttributeType() == KWType::VarPart)
 	{
 		part = GetHeadPart();
 		while (part != NULL)
@@ -3070,7 +3095,7 @@ boolean KWDGAttribute::ArePartsSorted() const
 			// Cas categoriel
 			else if (GetAttributeType() == KWType::Symbol)
 				nCompare = KWDGPartSymbolCompareDecreasingFrequency(&part, &nextPart);
-			// Cas VarParts
+			// Cas VarPart
 			else
 				nCompare = KWDGPartVarPartCompareDecreasingFrequency(&part, &nextPart);
 			// Avant integration coclustering IV nCompare = KWDGPartSymbolCompareDecreasingFrequency(&part,
@@ -3419,7 +3444,7 @@ void KWDGPart::SetPartType(int nValue)
 {
 	require(GetPartType() == KWType::Unknown);
 	// CH IV Begin
-	require(KWType::IsSimple(nValue) or KWType::IsVarParts(nValue));
+	require(KWType::IsCoclusteringType(nValue));
 
 	// Creation de l'objet interval ou ensemble de valeur selon le type
 	if (nValue == KWType::Continuous)
@@ -3478,7 +3503,8 @@ void KWDGPart::SetPartFrequency(int nValue)
 {
 	require(nValue >= 0);
 	// CH IV Begin
-	require(GetAttribute()->GetAxisName() != "" or GetEmulated() or nValue == ComputeCellsTotalFrequency());
+	require(GetAttribute()->GetOwnerAttributeName() != "" or GetEmulated() or
+		nValue == ComputeCellsTotalFrequency());
 	// CH IV End
 	nPartFrequency = nValue;
 }
@@ -3625,7 +3651,7 @@ boolean KWDGPart::Check() const
 
 	// Verification de l'effectif total de la partie
 	// CH IV Begin
-	if (bOk and (GetAttribute()->GetAxisName() == "" and nPartFrequency != ComputeCellsTotalFrequency()))
+	if (bOk and (GetAttribute()->GetOwnerAttributeName() == "" and nPartFrequency != ComputeCellsTotalFrequency()))
 	// CH IV End
 	{
 		AddError(sTmp + "Part frequency (" + IntToString(nPartFrequency) +
@@ -3658,7 +3684,7 @@ void KWDGPart::Write(ostream& ost) const
 	if (GetPartType() == KWType::Symbol and valueSet->GetValueNumber() > 0)
 		WriteValues(ost);
 
-	if (GetPartType() == KWType::VarParts and varPartSet->GetVarPartNumber() > 0)
+	if (GetPartType() == KWType::VarPart and varPartSet->GetVarPartNumber() > 0)
 		varPartSet->WriteVarParts(ost);
 	// CH IV End
 	if (GetCellNumber() > 0)
@@ -3695,7 +3721,7 @@ const ALString KWDGPart::GetClassLabel() const
 	else if (GetPartType() == KWType::Symbol)
 		return valueSet->GetClassLabel();
 	// CH IV Begin
-	else if (GetPartType() == KWType::VarParts)
+	else if (GetPartType() == KWType::VarPart)
 		return varPartSet->GetClassLabel();
 	// CH IV End
 	else
@@ -3709,7 +3735,7 @@ const ALString KWDGPart::GetObjectLabel() const
 	else if (GetPartType() == KWType::Symbol)
 		return valueSet->GetObjectLabel();
 	// CH IV Begin
-	else if (GetPartType() == KWType::VarParts)
+	else if (GetPartType() == KWType::VarPart)
 		return varPartSet->GetObjectLabel();
 	// CH IV End
 	else
@@ -3841,8 +3867,8 @@ int KWDGPartVarPartCompare(const void* elem1, const void* elem2)
 	// Acces a la parties
 	part1 = cast(KWDGPart*, *(Object**)elem1);
 	part2 = cast(KWDGPart*, *(Object**)elem2);
-	assert(part1->GetPartType() == KWType::VarParts);
-	assert(part2->GetPartType() == KWType::VarParts);
+	assert(part1->GetPartType() == KWType::VarPart);
+	assert(part2->GetPartType() == KWType::VarPart);
 
 	// Comparaison de la premiere partie de variable de la partie
 	if (part1->GetVarPartSet()->GetHeadVarPart() == NULL)
@@ -3858,7 +3884,7 @@ int KWDGPartVarPartCompare(const void* elem1, const void* elem2)
 	{
 		varPartValue1 = part1->GetVarPartSet()->GetHeadVarPart();
 		varPartValue2 = part2->GetVarPartSet()->GetHeadVarPart();
-		return KWDGVarPartValueCompareVariableNameAndVarPart(&varPartValue1, &varPartValue2);
+		return KWDGVarPartValueCompareAttributeNameAndVarPart(&varPartValue1, &varPartValue2);
 	}
 }
 
@@ -3874,8 +3900,8 @@ int KWDGPartVarPartCompareDecreasingFrequency(const void* elem1, const void* ele
 	// Acces a la parties
 	part1 = cast(KWDGPart*, *(Object**)elem1);
 	part2 = cast(KWDGPart*, *(Object**)elem2);
-	assert(part1->GetPartType() == KWType::VarParts);
-	assert(part2->GetPartType() == KWType::VarParts);
+	assert(part1->GetPartType() == KWType::VarPart);
+	assert(part2->GetPartType() == KWType::VarPart);
 
 	// Comparaison
 	nCompare = -part1->GetPartFrequency() + part2->GetPartFrequency();
@@ -4502,7 +4528,7 @@ void KWDGVarPartValue::Write(ostream& ost) const
 	ost << *varPart << "\t" << varPart->GetPartFrequency() << "\n";
 }
 
-int KWDGVarPartValueCompareVariableNameAndVarPart(const void* elem1, const void* elem2)
+int KWDGVarPartValueCompareAttributeNameAndVarPart(const void* elem1, const void* elem2)
 {
 	KWDGVarPartValue* value1;
 	KWDGVarPartValue* value2;
@@ -4548,7 +4574,7 @@ int KWSortableObjectCompareVarPart(const void* elem1, const void* elem2)
 	varPartValue1 = cast(KWDGVarPartValue*, cast(KWSortableObject*, *(Object**)elem1)->GetSortValue());
 	varPartValue2 = cast(KWDGVarPartValue*, cast(KWSortableObject*, *(Object**)elem2)->GetSortValue());
 
-	return KWDGVarPartValueCompareVariableNameAndVarPart(&varPartValue1, &varPartValue2);
+	return KWDGVarPartValueCompareAttributeNameAndVarPart(&varPartValue1, &varPartValue2);
 }
 
 KWDGVarPartValue* KWDGVarPartSet::AddVarPart(KWDGPart* varPart)
@@ -4592,7 +4618,7 @@ void KWDGVarPartSet::DeleteVarPartValue(KWDGVarPartValue* value)
 	delete value;
 }
 
-void KWDGVarPartSet::DeleteAllVarPartsValue()
+void KWDGVarPartSet::DeleteAllVarPartValues()
 {
 	KWDGVarPartValue* value;
 	KWDGVarPartValue* valueToDelete;
@@ -4721,7 +4747,7 @@ void KWDGVarPartSet::CopyFrom(const KWDGVarPartSet* sourceVarPartSet)
 	require(sourceVarPartSet != NULL);
 
 	// Nettoyage des parties de variable actuelles
-	DeleteAllVarPartsValue();
+	DeleteAllVarPartValues();
 
 	// Recopie de la liste de valeurs source
 	varPartValue = sourceVarPartSet->GetHeadVarPart();
@@ -4736,31 +4762,30 @@ void KWDGVarPartSet::CopyFrom(const KWDGVarPartSet* sourceVarPartSet)
 	nVarPartNumber = sourceVarPartSet->nVarPartNumber;
 }
 
-void KWDGVarPartSet::CopyWithNewVariablePartsFrom(const KWDGVarPartSet* sourceVarPartSet,
-						  KWDGAllVariableParts* targetVariableParts)
+void KWDGVarPartSet::CopyWithNewVarPartsFrom(const KWDGVarPartSet* sourceVarPartSet,
+					     KWDGInnerAttributes* targetInnerAttributes)
 {
 	KWDGVarPartValue* varPartValue;
 	KWDGVarPartValue* varPartCopyValue;
 	KWDGPart* newVarPart;
-	ALString sImpliedAttributeName;
-	KWDGAttribute* impliedAttribute;
+	ALString sInnerAttributeName;
+	KWDGAttribute* innerAttribute;
 
 	require(sourceVarPartSet != NULL);
 
 	// Nettoyage des parties de variable actuelles
-	DeleteAllVarPartsValue();
+	DeleteAllVarPartValues();
 
-	// Clone de la liste de parties de variable avec insertion des parties dans les attributs impliques
+	// Clone de la liste de parties de variable avec insertion des parties dans les attributs internes
 	varPartValue = sourceVarPartSet->GetHeadVarPart();
 	while (varPartValue != NULL)
 	{
-		// Extraction du nom de l'attribut implique dont depend la partie de variable
-		sImpliedAttributeName = varPartValue->GetVarPart()->GetAttribute()->GetAttributeName();
-		impliedAttribute =
-		    cast(KWDGAttribute*,
-			 targetVariableParts->GetImpliedAttributesDictionary()->Lookup(sImpliedAttributeName));
-		// Creation d'une nouvelle partie pour l'attribut implique
-		newVarPart = impliedAttribute->AddPart();
+		// Extraction du nom de l'attribut interne dont depend la partie de variable
+		sInnerAttributeName = varPartValue->GetVarPart()->GetAttribute()->GetAttributeName();
+		innerAttribute = cast(KWDGAttribute*, targetInnerAttributes->LookupInnerAttribute(sInnerAttributeName));
+
+		// Creation d'une nouvelle partie pour l'attribut interne
+		newVarPart = innerAttribute->AddPart();
 
 		// Copie du contenu de la partie de variable (numerique ou categorielle)
 		if (varPartValue->GetVarPart()->GetPartType() == KWType::Continuous)
@@ -4774,7 +4799,7 @@ void KWDGVarPartSet::CopyWithNewVariablePartsFrom(const KWDGVarPartSet* sourceVa
 		// Ajout de cette partie de variable dans le varPartSet cible
 		varPartCopyValue = AddVarPart(newVarPart);
 
-		// Ajout de cette partie dans l'attribut implique
+		// Ajout de cette partie pour l'attribut interne
 		sourceVarPartSet->GetNextVarPart(varPartValue);
 	}
 
@@ -4807,7 +4832,7 @@ void KWDGVarPartSet::UpgradeFrom(const KWDGVarPartSet* sourceVarPartSet)
 
 void KWDGVarPartSet::SortVarPartValues()
 {
-	InternalSortValues(KWDGVarPartValueCompareVariableNameAndVarPart);
+	InternalSortValues(KWDGVarPartValueCompareAttributeNameAndVarPart);
 }
 
 boolean KWDGVarPartSet::AreVarPartValuesSorted() const
@@ -4825,7 +4850,7 @@ boolean KWDGVarPartSet::AreVarPartValuesSorted() const
 	while (value2 != NULL)
 	{
 		// Comparaison de la paire courante
-		nCompare = KWDGVarPartValueCompareVariableNameAndVarPart(&value1, &value2);
+		nCompare = KWDGVarPartValueCompareAttributeNameAndVarPart(&value1, &value2);
 
 		if (nCompare > 0)
 		{
@@ -4864,7 +4889,7 @@ void KWDGVarPartSet::WriteVarParts(ostream& ost) const
 
 const ALString KWDGVarPartSet::GetClassLabel() const
 {
-	return "VarParts set";
+	return "VarPart set";
 }
 
 const ALString KWDGVarPartSet::GetObjectLabel() const
@@ -4960,81 +4985,72 @@ boolean KWDGVarPartSet::GetEmulated() const
 }
 
 //////////////////////////////////////////////////////////////////////////////
-// Classe KWDGAllVariableParts
+// Classe KWDGInnerAttributes
 
-KWDGAttribute* KWDGAllVariableParts::GetImpliedAttributeAt(int nAttributeIndex) const
+KWDGAttribute* KWDGInnerAttributes::GetInnerAttributeAt(int nAttributeIndex) const
 {
-	require(0 <= nAttributeIndex and nAttributeIndex < oaImpliedAttributes.GetSize());
+	require(0 <= nAttributeIndex and nAttributeIndex < oaInnerAttributes.GetSize());
 
-	return cast(KWDGAttribute*, oaImpliedAttributes.GetAt(nAttributeIndex));
-}
-void KWDGAllVariableParts::SetImpliedAttributeAt(int nAttributeIndex, KWDGAttribute* impliedAttribute)
-{
-	require(0 <= nAttributeIndex and nAttributeIndex < oaImpliedAttributes.GetSize());
-
-	oaImpliedAttributes.SetAt(nAttributeIndex, impliedAttribute);
+	return cast(KWDGAttribute*, oaInnerAttributes.GetAt(nAttributeIndex));
 }
 
-ObjectDictionary* KWDGAllVariableParts::GetImpliedAttributesDictionary()
+KWDGAttribute* KWDGInnerAttributes::LookupInnerAttribute(const ALString& sAttributeName)
 {
-	return &odImpliedAttributes;
+	return cast(KWDGAttribute*, odInnerAttributes.Lookup(sAttributeName));
 }
 
-KWDGAttribute* KWDGAllVariableParts::LookupImpliedAttribute(const ALString& sAttributeName)
+void KWDGInnerAttributes::AddInnerAttribute(KWDGAttribute* innerAttribute)
 {
-	return cast(KWDGAttribute*, odImpliedAttributes.Lookup(sAttributeName));
-}
+	require(innerAttribute != NULL);
+	require(KWType::IsSimple(innerAttribute->GetAttributeType()));
+	require(odInnerAttributes.Lookup(innerAttribute->GetAttributeName()) == NULL);
+	require(odInnerAttributes.GetCount() == oaInnerAttributes.GetSize());
 
-void KWDGAllVariableParts::AddImpliedAttribute(KWDGAttribute* impliedAttribute)
-{
-	// Ajout de l'attribut dans le tableau des attributs impliques
-	oaImpliedAttributes.Add(impliedAttribute);
+	// Ajout de l'attribut dans le tableau des attributs internes
+	oaInnerAttributes.Add(innerAttribute);
 
 	// Indexation dans le dictionnaire
-	odImpliedAttributes.SetAt(impliedAttribute->GetAttributeName(), impliedAttribute);
+	odInnerAttributes.SetAt(innerAttribute->GetAttributeName(), innerAttribute);
+	ensure(odInnerAttributes.GetCount() == oaInnerAttributes.GetSize());
 }
 
-int KWDGAllVariableParts::GetVarPartsGranularity() const
+int KWDGInnerAttributes::GetVarPartGranularity() const
 {
-	return nVariablePartsGranularity;
+	return nVarPartGranularity;
 }
-void KWDGAllVariableParts::SetVarPartsGranularity(int nValue)
+void KWDGInnerAttributes::SetVarPartGranularity(int nValue)
 {
 	require(nValue >= 0);
 
-	nVariablePartsGranularity = nValue;
+	nVarPartGranularity = nValue;
 }
 
-void KWDGAllVariableParts::DeleteAll()
+void KWDGInnerAttributes::DeleteAll()
 {
-	int nAttribute;
-	for (nAttribute = 0; nAttribute < oaImpliedAttributes.GetSize(); nAttribute++)
-		delete cast(KWDGAttribute*, oaImpliedAttributes.GetAt(nAttribute));
-	oaImpliedAttributes.RemoveAll();
-	odImpliedAttributes.RemoveAll();
+	odInnerAttributes.RemoveAll();
+	oaInnerAttributes.DeleteAll();
 }
 
-boolean KWDGAllVariableParts::Check() const
+boolean KWDGInnerAttributes::Check() const
 {
 	boolean bOk = true;
-	int nImpliedAttribute;
-	KWDGAttribute* impliedAttribute;
+	int nInnerAttribute;
+	KWDGAttribute* innerAttribute;
 
 	// Parcours des attributs
-	for (nImpliedAttribute = 0; nImpliedAttribute < oaImpliedAttributes.GetSize(); nImpliedAttribute++)
+	for (nInnerAttribute = 0; nInnerAttribute < oaInnerAttributes.GetSize(); nInnerAttribute++)
 	{
-		impliedAttribute = this->GetImpliedAttributeAt(nImpliedAttribute);
-		bOk = bOk and impliedAttribute->Check();
-		if (impliedAttribute->GetAxisName() == "")
+		innerAttribute = this->GetInnerAttributeAt(nInnerAttribute);
+		bOk = bOk and innerAttribute->Check();
+		if (innerAttribute->GetOwnerAttributeName() == "")
 		{
-			AddError("No attribute axis for impliedAttribute\t" + impliedAttribute->GetAttributeName() +
-				 "\n");
+			AddError("No owner variable for inner variable\t" + innerAttribute->GetAttributeName() + "\n");
 			bOk = false;
 		}
-		if (not KWType::IsSimple(impliedAttribute->GetAttributeType()))
+		if (not KWType::IsSimple(innerAttribute->GetAttributeType()))
 		{
-			AddError("Type of implied attribute\t" + impliedAttribute->GetAttributeName() +
-				 "\t must be Simple(Continuous or Categorical)");
+			AddError("Type of inner variable \t" + innerAttribute->GetAttributeName() +
+				 "\t must be Numerical or Categorical");
 			bOk = false;
 		}
 	}
@@ -5319,7 +5335,7 @@ int KWDGCellCompareValue(const void* elem1, const void* elem2)
 		// CH IV Begin
 		else if (part1->GetPartType() == KWType::Symbol)
 			nPartCompare = KWDGPartSymbolCompare(&part1, &part2);
-		else if (part1->GetPartType() == KWType::VarParts)
+		else if (part1->GetPartType() == KWType::VarPart)
 			nPartCompare = KWDGPartVarPartCompare(&part1, &part2);
 		else
 			nPartCompare = -1;
