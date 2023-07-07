@@ -62,7 +62,7 @@ const ALString GetLearningSystemType();
 // CH IV Refactoring: commenter les methodes
 // CH IV Refactoring: verifier si ces methodes sont utilisees
 // CH IV Refactoring: envisager d'abandonner la gestion des poubelles
-//    pour les attributs de type VarPart( axe) et les VarPart attributs de ces axes?
+//    pour les attributs de grille de type VarPart et les attributs internes qu'il contiennent?
 
 const boolean GetVarPartAttributeGarbage();
 void SetVarPartAttributeGarbage(const boolean bValue);

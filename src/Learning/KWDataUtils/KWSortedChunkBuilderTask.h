@@ -38,11 +38,10 @@ public:
 	boolean GetHeaderLineUsed() const;
 
 	// Separateur de champs utilise (par defaut: '\t')
+	// Note: le separateur en sortie est le meme que celui en entree
+	// car le chunk builder ne change pas le separateur
 	void SetInputFieldSeparator(char cValue);
 	char GetInputFieldSeparator() const;
-
-	void SetOutputFieldSeparator(char cValue);
-	char GetOutputFieldSeparator() const;
 
 	/////////////////////////////////////////////////////
 	// Parametres du tri des chunks
@@ -130,9 +129,6 @@ protected:
 	// Dictionnaire bucket ID / bucket size
 	ObjectDictionary odIdBucketsSize_slave;
 
-	// Est-ce que les fichiers d'input et d'output ont les memes separateur de champs
-	boolean bSameFieldSeparator;
-
 	// Fichier en lecture
 	InputBufferedFile inputFile;
 
@@ -152,7 +148,6 @@ protected:
 	// Attributs du fichier d'entree
 	PLShared_String shared_sFileName;
 	PLShared_Boolean shared_bHeaderLineUsed;
-	PLShared_Char shared_cOutputFieldSeparator;
 	PLShared_Char shared_cInputFieldSeparator;
 	PLShared_Longint shared_lFileSize;
 

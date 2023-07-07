@@ -644,7 +644,7 @@ boolean CCCoclusteringReport::ReadDimensions(CCHierarchicalDataGrid* coclusterin
 				AddError(sTmp + "Variable " + sAttributeName + " used twice");
 			}
 
-			// Type, avec gestion des noms DEPRECATED des types
+			// Type, avec gestion des noms DEPRECATED des types, pour compatibilite ascendante
 			sField = ReadNextField();
 			if (strcmp(sField, "Symbol") == 0)
 				nAttributeType = KWType::Symbol;
@@ -2307,14 +2307,8 @@ void CCCoclusteringReport::WriteComposition(const CCHierarchicalDataGrid* coclus
 					hdgVarPartValue = cast(CCHDGVarPartValue*, dgVarPartValue);
 
 					// Caracteristiques de la partie de variable
-					ost << hdgPart->GetPartName() << "\t"
-					    << hdgVarPartValue->GetVarPart()->GetAttribute()->GetAttributeName();
-					if (hdgVarPartValue->GetVarPart()->GetPartType() == KWType::Continuous)
-						ost << " "
-						    << hdgVarPartValue->GetVarPart()->GetInterval()->GetObjectLabel();
-					else
-						ost << " "
-						    << hdgVarPartValue->GetVarPart()->GetValueSet()->GetObjectLabel();
+					ost << hdgPart->GetPartName() << "\t";
+					ost << hdgVarPartValue->GetVarPart()->GetVarPartLabel();
 					ost << "\t" << hdgVarPartValue->GetVarPart()->GetPartFrequency() << "\t"
 					    << hdgVarPartValue->GetTypicality() << "\n";
 
@@ -3314,15 +3308,15 @@ boolean CCCoclusteringReport::ReadJSONDimensionPartitions(CCHierarchicalDataGrid
 					else if (dgAttribute->GetAttributeType() == KWType::VarPart)
 					{
 						// Dans le cas instances x variables, on procede a des tests pousses sur
-						// la coherences des varPartLabels
-						//  - tous les varPartLabels declare dans les variables internes doivent
+						// la coherences des varPartIds
+						//  - tous les varPartIds declare dans les variables internes doivent
 						//  etre uniques
-						//  - tous les varPartLabels utilises dans les grpoupes de parties de
+						//  - tous les varPartIds utilises dans les grpoupes de parties de
 						//  variable de l'attribut VarPart doivent
-						//    etre uniques, et correspondre a des varPartLabels declares dans
-						//    les attributs internes
-						//  - les deux ensembles de varPartLabels doivent etre exactement les
-						//  meme (tous ceux declares sont utilises)
+						//    etre uniques, et correspondre a des varPartIds declares dans les
+						//    attributs internes
+						//  - les deux ensembles de varPartIds doivent etre exactement les meme
+						//  (tous ceux declares sont utilises)
 						// Par contre, lors de la regeneration du fichier json, ces libellés
 						// sont déduits des parties, et ne sont pas necessairement ceux qui
 						// etaient en entree (mais la structure est preservee).
@@ -3744,7 +3738,7 @@ boolean CCCoclusteringReport::ReadJSONInnerAttribute(KWDGAttribute* innerAttribu
 	}
 
 	// Tableau des labels des parties de variables
-	bOk = bOk and JSONTokenizer::ReadKeyArray("partLabels");
+	bOk = bOk and JSONTokenizer::ReadKeyArray("varPartIds");
 	bIsEnd = false;
 	while (bOk and not bIsEnd)
 	{
@@ -3756,7 +3750,7 @@ boolean CCCoclusteringReport::ReadJSONInnerAttribute(KWDGAttribute* innerAttribu
 
 	if (bOk and svValues.GetSize() != innerAttribute->GetPartNumber())
 	{
-		JSONTokenizer::AddParseError("Vector \"partLabels\" should be of same size as vector \"partition\"");
+		JSONTokenizer::AddParseError("Vector \"varPartIds\" should be of same size as vector \"partition\"");
 		bOk = false;
 	}
 
@@ -3773,7 +3767,7 @@ boolean CCCoclusteringReport::ReadJSONInnerAttribute(KWDGAttribute* innerAttribu
 			// Test d'unicite du libelle de partie parmi l'ensembe de tous les libelles de partie
 			if (odInnerAttributesAllVarParts->Lookup(svValues.GetAt(i)) != NULL)
 			{
-				JSONTokenizer::AddParseError("Vector \"partLabels\" contains value \"" +
+				JSONTokenizer::AddParseError("Vector \"varPartIds\" contains value \"" +
 							     svValues.GetAt(i) + "\" already used previously");
 				bOk = false;
 				break;
@@ -3949,7 +3943,7 @@ boolean CCCoclusteringReport::ReadJSONVarPartAttributeValueGroup(CCHDGAttribute*
 				JSONTokenizer::AddParseError("Vector \"values\" of VarPart variable " +
 							     varPartAttribute->GetAttributeName() +
 							     " contains variable part \"" + sValue +
-							     "\" which was not specified among all the \"partLabels\" "
+							     "\" which was not specified among all the \"varPartIds\" "
 							     "vectors in the \"innerVariables\" section");
 				bOk = false;
 				break;
@@ -4853,30 +4847,7 @@ void CCCoclusteringReport::WriteJSONDimensionPartitions(const CCHierarchicalData
 					hdgVarPartValue = cast(CCHDGVarPartValue*, dgVarPartValue);
 
 					if (hdgVarPartValue->GetVarPartFrequency() > 0)
-					{
-						// Cas d'une partie de variable numerique
-						if (hdgVarPartValue->GetVarPart()->GetPartType() == KWType::Continuous)
-						{
-							// Nom de la variable et son intervalle
-							fJSON->WriteString(hdgVarPartValue->GetVarPart()
-									       ->GetAttribute()
-									       ->GetAttributeName() +
-									   hdgVarPartValue->GetVarPart()
-									       ->GetInterval()
-									       ->GetObjectLabel());
-						}
-						// Sinon, cas d'une partie de variable categorielle
-						else
-						{
-							// Nom de la variable de cette partie et Liste des modalites
-							fJSON->WriteString(hdgVarPartValue->GetVarPart()
-									       ->GetAttribute()
-									       ->GetAttributeName() +
-									   hdgVarPartValue->GetVarPart()
-									       ->GetValueSet()
-									       ->GetObjectLabel());
-						}
-					}
+						fJSON->WriteString(hdgVarPartValue->GetVarPart()->GetVarPartLabel());
 
 					hdgVarPartSet->GetNextVarPart(dgVarPartValue);
 				}
@@ -5003,40 +4974,19 @@ void CCCoclusteringReport::WriteJSONInnerAttributePartition(const CCHierarchical
 		fJSON->EndList();
 	}
 
-	// Libelles des parties de variable utilises pour decrire les clusters de parties de variable
-	fJSON->BeginKeyList("partLabels");
+	// Identifiant des parties de variable utilises pour decrire les clusters de parties de variable
+	fJSON->BeginKeyList("varPartIds");
 
-	// Cas d'un attribut Continuous
-	if (innerAttribute->GetAttributeType() == KWType::Continuous)
+	// Parcours des parties de l'attribut
+	currentPart = innerAttribute->GetHeadPart();
+	while (currentPart != NULL)
 	{
-		currentPart = innerAttribute->GetHeadPart();
+		// Ecriture de l'identifiant de la partie de variable, sous la forme d'un libelle lisible dont l'unicite
+		// est assuree par la methode GetObjectLabel des parties de variables
+		fJSON->WriteString(currentPart->GetVarPartLabel());
 
-		// Parcours des parties de l'attribut
-		while (currentPart != NULL)
-		{
-			// Ecriture du label de la partie de variable
-			fJSON->WriteString(innerAttribute->GetAttributeName() +
-					   currentPart->GetInterval()->GetObjectLabel());
-
-			// Partie suivante
-			innerAttribute->GetNextPart(currentPart);
-		}
-	}
-	// Sinon, attribut Categoriel
-	else
-	{
-		currentPart = innerAttribute->GetHeadPart();
-
-		// Parcours des parties de l'attribut
-		while (currentPart != NULL)
-		{
-			// Ecriture du label de la partie de variable
-			fJSON->WriteString(innerAttribute->GetAttributeName() +
-					   currentPart->GetValueSet()->GetObjectLabel());
-
-			// Partie suivante
-			innerAttribute->GetNextPart(currentPart);
-		}
+		// Partie suivante
+		innerAttribute->GetNextPart(currentPart);
 	}
 	fJSON->EndList();
 }

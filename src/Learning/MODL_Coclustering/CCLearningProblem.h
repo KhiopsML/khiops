@@ -17,7 +17,6 @@
 #include "KWClassStats.h"
 #include "CCCoclusteringBuilder.h"
 #include "CCCoclusteringReport.h"
-#include "KWAttributeAxisName.h"
 
 ////////////////////////////////////////////////////////////
 // Classe CCLearningProblem
@@ -102,8 +101,8 @@ public:
 	// Verification si le nom du fichier d'apprentissage est bien renseigne
 	boolean CheckDatabaseName() const;
 
-	// Verification des attributs utilisee pour le coclustering
-	boolean CheckCoclusteringAttributeNames() const;
+	// Verification de la specification du coclustering
+	boolean CheckCoclusteringSpecifications() const;
 
 	// Verification des noms des fichiers de resultats par type de tache
 	// Ils doivent etre differents des fichiers d'entree, et different entre eux
@@ -135,16 +134,13 @@ public:
 	// Libelles utilisateur: nom du module de l'application (GetLearningModuleName())
 	const ALString GetClassLabel() const override;
 
-	// CH IV Begin
-	// Insertion d'un attribut d'identifiant dans la classe
-	// Cet attribut est de type Symbol et contient le label de l'individu
-	// Le 1er individu possede le label "1" que le fichier de donnees contient un header ou pas
-	KWAttribute* InsertIdentifierAttribute(KWClass* kwcClass);
-	// CH IV End
-
 	////////////////////////////////////////////////////////
 	//// Implementation
 protected:
+	// Insertion d'un attribut d'identifiant dans la classe pour le cas instances x variables
+	// Cet attribut est de type Symbol et contient le le numero de ligne de l'instance dans son fichier
+	KWAttribute* InsertIdentifierAttribute(KWClass* kwcClass);
+
 	// Ecriture des clusters categoriels et numeriques
 	void WriteSymbolClusters(const CCHDGAttribute* symbolCoclusteringAttribute, ostream& ost);
 	void WriteContinuousClusters(const CCHDGAttribute* continuousCoclusteringAttribute, ostream& ost);

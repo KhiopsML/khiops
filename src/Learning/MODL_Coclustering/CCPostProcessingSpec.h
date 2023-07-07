@@ -72,8 +72,8 @@ public:
 	void SetMaxTotalPartNumber(int nValue);
 
 	// Frequency variable
-	const ALString& GetFrequencyAttribute() const;
-	void SetFrequencyAttribute(const ALString& sValue);
+	const ALString& GetFrequencyAttributeName() const;
+	void SetFrequencyAttributeName(const ALString& sValue);
 
 	///////////////////////////////////////////////////////////
 	// Divers
@@ -120,7 +120,7 @@ protected:
 	int nMaxPreservedInformation;
 	int nTotalPartNumber;
 	int nMaxTotalPartNumber;
-	ALString sFrequencyAttribute;
+	ALString sFrequencyAttributeName;
 
 	// ## Custom implementation
 
@@ -223,14 +223,14 @@ inline void CCPostProcessingSpec::SetMaxTotalPartNumber(int nValue)
 	nMaxTotalPartNumber = nValue;
 }
 
-inline const ALString& CCPostProcessingSpec::GetFrequencyAttribute() const
+inline const ALString& CCPostProcessingSpec::GetFrequencyAttributeName() const
 {
-	return sFrequencyAttribute;
+	return sFrequencyAttributeName;
 }
 
-inline void CCPostProcessingSpec::SetFrequencyAttribute(const ALString& sValue)
+inline void CCPostProcessingSpec::SetFrequencyAttributeName(const ALString& sValue)
 {
-	sFrequencyAttribute = sValue;
+	sFrequencyAttributeName = sValue;
 }
 
 // ## Custom inlines

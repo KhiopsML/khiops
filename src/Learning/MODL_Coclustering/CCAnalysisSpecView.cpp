@@ -9,32 +9,30 @@ CCAnalysisSpecView::CCAnalysisSpecView()
 	SetIdentifier("CCAnalysisSpec");
 	SetLabel("Parameters");
 
-	// CH IV Begin
-	// Ajout d'un radio bouton pour choisir le type de coclustering : variables*variables ou instances*variables
+	// Ajout d'un radio bouton pour choisir le type de coclustering : variables ou instances*variables
 	// Le choix est exclusif
-	AddStringField("CoclusteringType", "Coclustering Type", "");
+	AddStringField("CoclusteringType", "Coclustering type", "");
 	GetFieldAt("CoclusteringType")->SetStyle("RadioButton");
 	GetFieldAt("CoclusteringType")
 	    ->SetParameters(CCAnalysisSpec::GetCoclusteringLabelFromType(false) + "\n" +
 			    CCAnalysisSpec::GetCoclusteringLabelFromType(true));
 	cast(UIStringElement*, GetFieldAt("CoclusteringType"))
 	    ->SetDefaultValue(CCAnalysisSpec::GetCoclusteringLabelFromType(false));
-	// CH IV End
 
 	// Ajout des sous-fiches
 	AddCardField("CoclusteringParameters", "Variables parameters", new CCCoclusteringSpecView);
-	// CH IV Begin
 	AddCardField("VarPartCoclusteringParameters", "Instances x variables parameters",
 		     new CCVarPartCoclusteringSpecView);
-	// CH IV End
+	AddCardField("DataGridOptimizerParameters", "Data grid parameters", new KWDataGridOptimizerParametersView);
 	AddCardField("SystemParameters", "System parameters", new KWSystemParametersView);
 	AddCardField("CrashTestParameters", "Crash test parameters", new KWCrashTestParametersView);
 
-	// CH IV Begin
 	// Parametrage de la visibilite du coclustering instances*variables
 	GetFieldAt("CoclusteringType")->SetVisible(GetLearningCoclusteringIVExpertMode());
 	GetFieldAt("VarPartCoclusteringParameters")->SetVisible(GetLearningCoclusteringIVExpertMode());
-	// CH IV End
+
+	// Parametrage de la visibilite de l'onglet des parametres d'optimisation
+	GetFieldAt("DataGridOptimizerParameters")->SetVisible(GetLearningExpertMode());
 
 	// Parametrage de la visibilite de l'onglet des crash tests
 	GetFieldAt("CrashTestParameters")->SetVisible(GetLearningCrashTestMode());
@@ -56,6 +54,13 @@ CCAnalysisSpecView::CCAnalysisSpecView()
 	cast(KWSystemParametersView*, GetFieldAt("SystemParameters"))
 	    ->GetFieldAt("IgnoreMemoryLimit")
 	    ->SetVisible(GetLearningExpertMode());
+
+	// Info-bulles
+	GetFieldAt("CoclusteringType")
+	    ->SetHelpText("Type of coclustering:"
+			  "\n - Variables coclustering: based on the coclustering variables parameters,"
+			  "\n - Instances * Variables coclustering: based on an identifer on one dimension, and all "
+			  "the numerical and categorical variables on the other dimension.");
 
 	// Short cuts
 	GetFieldAt("CoclusteringParameters")->SetShortCut('C');
@@ -104,11 +109,10 @@ void CCAnalysisSpecView::SetObject(Object* object)
 	// Parametrages des sous-fiches par les sous-objets
 	cast(CCCoclusteringSpecView*, GetFieldAt("CoclusteringParameters"))
 	    ->SetObject(analysisSpec->GetCoclusteringSpec());
-
-	// CH IV Begin
 	cast(CCVarPartCoclusteringSpecView*, GetFieldAt("VarPartCoclusteringParameters"))
 	    ->SetObject(analysisSpec->GetVarPartCoclusteringSpec());
-	// CH IV End
+	cast(KWDataGridOptimizerParametersView*, GetFieldAt("DataGridOptimizerParameters"))
+	    ->SetObject(analysisSpec->GetOptimizationParameters());
 
 	// Cas particulier de la vue sur les parametres systemes
 	// Cette vue ne travaille sur des variables statiques de KWSystemResource et KWLearningSpec

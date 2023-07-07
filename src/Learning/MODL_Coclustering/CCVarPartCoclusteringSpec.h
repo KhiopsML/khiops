@@ -12,9 +12,7 @@
 
 // ## Custom includes
 
-#include "KWAttributeName.h"
 #include "KWVersion.h"
-#include "KWDataGridOptimizerParameters.h"
 
 // ##
 
@@ -36,8 +34,8 @@ public:
 	// Acces aux attributs
 
 	// Identifier variable
-	const ALString& GetIdentifierAttribute() const;
-	void SetIdentifierAttribute(const ALString& sValue);
+	const ALString& GetIdentifierAttributeName() const;
+	void SetIdentifierAttributeName(const ALString& sValue);
 
 	///////////////////////////////////////////////////////////
 	// Divers
@@ -51,22 +49,17 @@ public:
 
 	// ## Custom declarations
 
-	// Tableau des attributes (KWAttributeName), parametres d'un coclustering
-	ObjectArray* GetAttributes();
-
-	// Nombre max d'attributs pour le coclustering
-	static int GetMaxCoclusteringAttributeNumber();
-
-	// Tableau des noms des variables et de leur axe (KWAttributeAxisName), parametres d'un coclustering VarPart
-	ObjectArray* GetAttributesAndAxes();
-
-	// Nombre max d'axes pour le coclustering VarPart
-	static int GetMaxCoclusteringAxisNumber();
-
-	// CH AD DDD
-	// Optimization  paramters
-	KWDataGridOptimizerParameters* GetOptimizationParameters();
-	// void SetOptimizationParameters(KWDataGridOptimizerParameters* parameters);
+	//////////////////////////////////////////////////////////////////////////////////////
+	// Specification utilisateur du coclustering instances x variables
+	//   - une variable identifiant
+	//      - si non renseigne, on en genere une correspondant au numero de ligne des instances
+	//
+	// Cela suffit d'un point de vue utilisateur
+	// On creera une grille ayant:
+	//   - un attribut identifiant (categoriel et present dans le dictionnaire)
+	//   - un attribut de type partie de variable
+	//       - autant de variable internes qu'il y a de variables numeriques ou categorielles
+	//         disponible dans le dictionnaire en entree, en Used, et au moins une
 
 	// ##
 
@@ -74,18 +67,9 @@ public:
 	///// Implementation
 protected:
 	// Attributs de la classe
-	ALString sIdentifierAttribute;
+	ALString sIdentifierAttributeName;
 
 	// ## Custom implementation
-
-	// Tableau des variables
-	ObjectArray oaAttributes;
-
-	// Tableau des variables avec leur axe
-	ObjectArray oaAttributesAxes;
-
-	// CH AB DDD
-	KWDataGridOptimizerParameters optimizationParameters;
 
 	// ##
 };
@@ -93,14 +77,14 @@ protected:
 ////////////////////////////////////////////////////////////
 // Implementations inline
 
-inline const ALString& CCVarPartCoclusteringSpec::GetIdentifierAttribute() const
+inline const ALString& CCVarPartCoclusteringSpec::GetIdentifierAttributeName() const
 {
-	return sIdentifierAttribute;
+	return sIdentifierAttributeName;
 }
 
-inline void CCVarPartCoclusteringSpec::SetIdentifierAttribute(const ALString& sValue)
+inline void CCVarPartCoclusteringSpec::SetIdentifierAttributeName(const ALString& sValue)
 {
-	sIdentifierAttribute = sValue;
+	sIdentifierAttributeName = sValue;
 }
 
 // ## Custom inlines

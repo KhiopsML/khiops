@@ -6,6 +6,7 @@
 
 #include "CCCoclusteringSpec.h"
 #include "CCVarPartCoclusteringSpec.h"
+#include "KWDataGridOptimizerParameters.h"
 
 ////////////////////////////////////////////////////////////
 // Classe CCAnalysisSpec
@@ -17,27 +18,28 @@ public:
 	CCAnalysisSpec();
 	~CCAnalysisSpec();
 
-	// Parametrage du coclustering
-	CCCoclusteringSpec* GetCoclusteringSpec();
-
-	// CH IV Begin
-	// Parametrage du coclustering VarPart instances x variables
-	CCVarPartCoclusteringSpec* GetVarPartCoclusteringSpec();
-
 	// Parametrage du type de coclustering
-	// A true pour un coclustering de type VarPart, instances * varialbes
-	// A false sinon pour un coclustering variable * variable (valeur par defaut)
+	// A true pour un coclustering de type VarPart, instances * variables
+	// A false sinon pour un coclustering de variables (valeur par defaut)
 	void SetVarPartCoclustering(boolean bValue);
 	boolean GetVarPartCoclustering() const;
 
+	// Parametrage du coclustering
+	CCCoclusteringSpec* GetCoclusteringSpec();
+
+	// Parametrage du coclustering VarPart instances x variables
+	CCVarPartCoclusteringSpec* GetVarPartCoclusteringSpec();
+
 	// Libelles correspondant aux type de coclustering
-	// pour les cas VartPart (instances x variables) ou standard (variables x variables)
+	// pour les cas VartPart (coclustering instances x variables) ou standard (coclustering de variables)
 	static const ALString GetCoclusteringLabelFromType(boolean bIsVarPartCoclustering);
 
 	// Type correspond a un libelle de coclustering
 	// Renvoie true dans la cas VarPart, false sinon
 	static boolean GetCoclusteringTypeFromLabel(const ALString& sLabel);
-	// CH IV End
+
+	// Parametresd d'optimisation
+	KWDataGridOptimizerParameters* GetOptimizationParameters();
 
 	// Libelles utilisateur
 	const ALString GetClassLabel() const override;
@@ -47,9 +49,8 @@ public:
 	///// Implementation
 protected:
 	// Attributs de la classe
-	CCCoclusteringSpec coclusteringSpec;
-	// CH IV Begin
-	CCVarPartCoclusteringSpec varPartCoclusteringSpec;
 	boolean bVarPartCoclustering;
-	// CH IV End
+	CCCoclusteringSpec coclusteringSpec;
+	CCVarPartCoclusteringSpec varPartCoclusteringSpec;
+	KWDataGridOptimizerParameters optimizationParameters;
 };

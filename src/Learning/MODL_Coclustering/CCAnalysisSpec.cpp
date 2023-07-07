@@ -6,19 +6,11 @@
 
 CCAnalysisSpec::CCAnalysisSpec()
 {
-	// CH IV Begin
 	bVarPartCoclustering = false;
-	// CH IV End
 }
 
 CCAnalysisSpec::~CCAnalysisSpec() {}
 
-CCCoclusteringSpec* CCAnalysisSpec::GetCoclusteringSpec()
-{
-	return &coclusteringSpec;
-}
-
-// CH IV Begin
 CCVarPartCoclusteringSpec* CCAnalysisSpec::GetVarPartCoclusteringSpec()
 {
 	return &varPartCoclusteringSpec;
@@ -27,6 +19,11 @@ CCVarPartCoclusteringSpec* CCAnalysisSpec::GetVarPartCoclusteringSpec()
 void CCAnalysisSpec::SetVarPartCoclustering(boolean bValue)
 {
 	bVarPartCoclustering = bValue;
+}
+
+CCCoclusteringSpec* CCAnalysisSpec::GetCoclusteringSpec()
+{
+	return &coclusteringSpec;
 }
 
 boolean CCAnalysisSpec::GetVarPartCoclustering() const
@@ -47,7 +44,11 @@ boolean CCAnalysisSpec::GetCoclusteringTypeFromLabel(const ALString& sLabel)
 	require(sLabel == GetCoclusteringLabelFromType(true) or sLabel == GetCoclusteringLabelFromType(false));
 	return sLabel == GetCoclusteringLabelFromType(true);
 }
-// CH IV End
+
+KWDataGridOptimizerParameters* CCAnalysisSpec::GetOptimizationParameters()
+{
+	return &optimizationParameters;
+}
 
 const ALString CCAnalysisSpec::GetClassLabel() const
 {
