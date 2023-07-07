@@ -416,8 +416,7 @@ void KWDataGridMerger::InitializeAllPartLists()
 
 		// CH IV Begin
 		// Cas d'un attribut categoriel ou varParts (donc eligible au groupe poubelle)
-		if (attribute->GetAttributeType() == KWType::Symbol or
-		    attribute->GetAttributeType() == KWType::VarParts)
+		if (attribute->GetAttributeType() == KWType::Symbol or attribute->GetAttributeType() == KWType::VarPart)
 		// CH IV End
 		{
 			// Parcours des parties de l'attribut
@@ -881,9 +880,9 @@ double KWDataGridMerger::SearchBestPartMergeWithGarbageSearch(KWDGMPartMerge*& b
 					 GetCost();
 
 			// CH IV Begin
-			// Cas d'un attribut categoriel ou VarParts pour lequel un groupe poubelle est envisageable
+			// Cas d'un attribut categoriel ou VarPart pour lequel un groupe poubelle est envisageable
 			if (attribute->GetAttributeType() == KWType::Symbol or
-			    attribute->GetAttributeType() == KWType::VarParts)
+			    attribute->GetAttributeType() == KWType::VarPart)
 			// CH IV End
 			{
 				// Memorisation de la presence d'un groupe poubelle pour restitution ulterieure
@@ -945,7 +944,7 @@ double KWDataGridMerger::SearchBestPartMergeWithGarbageSearch(KWDGMPartMerge*& b
 			// de parties apres fusion >=3 CH AB voir l'impact de la variation d'un cout avec groupe
 			// poubelle lorsque le nombre de PV est reduit du fait de la post-fusion
 			if ((attribute->GetAttributeType() == KWType::Symbol or
-			     (attribute->GetAttributeType() == KWType::VarParts and GetVarPartsAttributeGarbage())) and
+			     (attribute->GetAttributeType() == KWType::VarPart and GetVarPartAttributeGarbage())) and
 			    attributeM->GetPartNumber() - 1 >= 3)
 			{
 				partMerge->SetGarbagePresence(true);
@@ -980,7 +979,7 @@ double KWDataGridMerger::SearchBestPartMergeWithGarbageSearch(KWDGMPartMerge*& b
 						attributeM->SetGarbagePart(
 						    cast(KWDGPart*, attributeM->slPartValueNumbers->GetHead()));
 				}
-				else if (attribute->GetAttributeType() == KWType::VarParts)
+				else if (attribute->GetAttributeType() == KWType::VarPart)
 				{
 					if (partMerge->GetPart1()->GetVarPartSet()->GetVarPartNumber() +
 						partMerge->GetPart2()->GetVarPartSet()->GetVarPartNumber() >
@@ -991,7 +990,7 @@ double KWDataGridMerger::SearchBestPartMergeWithGarbageSearch(KWDGMPartMerge*& b
 						// Creation du nouveau groupe poubelle
 						garbagePart = new KWDGPart;
 
-						garbagePart->SetPartType(KWType::VarParts);
+						garbagePart->SetPartType(KWType::VarPart);
 						// Copie des valeurs de la partie 1 de la fusion
 						garbagePart->GetVarPartSet()->CopyFrom(
 						    partMerge->GetPart1()->GetVarPartSet());
@@ -1069,7 +1068,7 @@ double KWDataGridMerger::SearchBestPartMergeWithGarbageSearch(KWDGMPartMerge*& b
 			}
 			// CH IV Begin
 			if (attribute->GetAttributeType() == KWType::Symbol or
-			    (attribute->GetAttributeType() == KWType::VarParts and GetVarPartsAttributeGarbage()))
+			    (attribute->GetAttributeType() == KWType::VarPart and GetVarPartAttributeGarbage()))
 			// CH IV End
 			{
 				// Restitution de la poubelle initiale
@@ -1946,7 +1945,7 @@ boolean KWDGMPart::Check() const
 	}
 	// CH IV Begin
 	// Verification de l'ensemble des parties de variable
-	else if (bOk and GetPartType() == KWType::VarParts)
+	else if (bOk and GetPartType() == KWType::VarPart)
 	{
 		// Verification de la compatibilite entre l'effectif de la partie
 		// et l'effectif cumule de ses parties de variables
@@ -2004,8 +2003,8 @@ int KWDGMPartValueNumberCompare(const void* elem1, const void* elem2)
 	partM2 = cast(KWDGMPart*, *(Object**)elem2);
 
 	// CH IV Begin
-	assert(partM1->GetPartType() == KWType::Symbol or partM1->GetPartType() == KWType::VarParts);
-	assert(partM2->GetPartType() == KWType::Symbol or partM2->GetPartType() == KWType::VarParts);
+	assert(partM1->GetPartType() == KWType::Symbol or partM1->GetPartType() == KWType::VarPart);
+	assert(partM2->GetPartType() == KWType::Symbol or partM2->GetPartType() == KWType::VarPart);
 
 	// Comparaison du nombre de modalites par valeurs decroissantes
 	if (partM1->GetPartType() == KWType::Symbol)
@@ -2064,7 +2063,7 @@ void KWDGMPartMerge::Write(ostream& ost) const
 	// Valeur de la fusion
 	ost << dMergeCost << "\t";
 
-	// Nombre de cellules impliques
+	// Nombre de cellules associees
 	if (part1 != NULL and part2 != NULL)
 		ost << part1->GetCellNumber() + part2->GetCellNumber();
 	ost << "\t" << bGarbagePresence;

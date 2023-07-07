@@ -14,7 +14,7 @@ class KWDGCell;
 // CH IV Begin
 class KWDGVarPartSet;
 class KWDGVarPartValue;
-class KWDGAllVariableParts;
+class KWDGInnerAttributes;
 // CH IV End
 
 #include "KWVersion.h"
@@ -26,13 +26,93 @@ class KWDGAllVariableParts;
 
 //////////////////////////////////////////////////////////////////////////////////
 // Classe KWDataGrid
-// Structure de donnees permettant de representer l'ensemble des enregistrements
-// d'une base de donnees, sous forme d'un produit cartesien des attributs.
-// Ce produit cartesien correspond a un tableau multi-dimensionnel creux.
-// Le DataGrid permet un stockage efficace des n-uplets instancies, en maintenant
-// le lien entre les attributs, leurs valeurs, et les n-uplets de valeurs.
-// Cette structure est particulierement adaptee aux algorithmes de groupage
-// multidimensionnels.
+//
+// Deux famille de grille de donnees
+//   - coclustering "standard", variables x variables
+//      - estimateur de densite jointe ou conditionnelle entre variables
+//      - multivarie, avec variable numeriques ou categorielles
+//      - Structure de donnees permettant de representer l'ensemble des enregistrements
+//        d'une base de donnees, sous forme d'un produit cartesien des attributs.
+//        - Ce produit cartesien correspond a un tableau multi-dimensionnel creux.
+//        - la DataGrid permet un stockage efficace des n-uplets instancies, en maintenant
+//          le lien entre les attributs, leurs valeurs, et les n-uplets de valeurs.
+//        - cette structure est particulierement adaptee aux algorithmes de groupage multidimensionnels.
+//      - terminologie
+//         - modele en grile ou grille de donnees, variable, partie (intervalles, groupe de valeurs), valeur, cellule
+//         - DataGrid, Attribute, part (Interval, ValueGroup), Value, Cell
+//
+//   - coclustering instances x variables (cf. these de Aichetou)
+//      - pour l'analyse exploratoire d'une base de donnees, en groupa
+//      - extension des data grid, avec un des attribut de type VarPart (extension sous forme de parametrage additionnel
+//      de la meme classe)
+//        - un attribut de la grille peut etre soit numerique, soit categoriel, soit constitue de parties de variables
+//        - dans la these d'Aichetou
+//          - dedie au cas instances x variables
+//          - chaque variables descriptives est partitionnees en parties, intervalles ou groupes de valeurs
+//          - chaque partie de variable est l'analogue d'un mot
+//          - chaque instance est decrites par l'ensmeble des mots correspondant aux valeurs de ses variables
+//          descriptives
+//        - on a une grille à deux dimension, analogue au cas d'une grille textes x mots
+//          - un attribut de la grille contient des groupes d'instances (textes), par leur identifiant
+//          - l'autre attribut de la grille contients des groupes de parties de variables (mots)
+//      - terminologie
+//         VarPart
+//           - nouveau type, pour un attribut de DataGrid
+//           - extension du type Symbol, ou chaque partie de variable joue le rôle d’une valeur
+//           - adjectif utilise pour specialiser les extensions des DataGrid quand elles ont un attribut de type VarPart
+//         VarPartDataGrid
+//           - extension d’un DataGrid, avec un attribut de type VarPart
+//           - un et un seul attribut de type VarPart, plus un a plusieurs autres attributs
+//           - le plus standard: un autre attribut de type Symbol, portant les identifiants des instances
+//             - on se rapproche du modele standard “Instances x Variables”
+//             - dans ce cas, on peut nommer cet attribut le IdentifierAttribute
+//           - extensions, avec un a plusieurs attributs de type Symbol ou Continuous
+//             - a explorer: IdSource x IdTarget dans le cas de l’analyse des arcs d’un graphe avec des variables par
+//             arcs
+//             - a explorer: Time * Identifier dans d’instances evoluant au cours du temps
+//             - pas de terminologie particuliere pour ces extensions (autre que attributs de Symbol ou Continuous)
+//         Attribute
+//           - cas general: un attribut de DataGrid
+//         VarPartAttribute
+//           - attribut de type VarPart
+//             - ses valeurs sont des VarPartValues
+//             - ses groupes de valeurs sont des VarPartGroups
+//             - les attributs correspondant aux VarPartValues sont ses InnerAttributes
+//               - un InnerAttribute est de type Symbol ou Continuous
+//               - pour un InnerAttribute, son attribut de type VarPart de la DataGrid est son OwnerAttribute
+//      - terminologie interne en français, pour des etudes/discussions techniques
+//           - grille de donnees (ou coclustering)
+//           - attribut de grille (ou axe, dimension)
+//           - attribut interne (Inner)
+//           - attribut proprietaire (Owner)
+//      - terminologie externe, pour communiquer et expliquer aux utilisateurs
+//           - coclustering, cluster, cocluster
+//           - coclustering de variables
+//             - chaque cluster est une Part, Interval ou Value group
+//           - coclustering instances x variables
+//             - clusters d’instances vs clusters de parties de variables
+//             - on peut parler de dimension instances et dimension partie de variables
+//             - les parties de variables sont des Part, Interval ou Value group
+//
+// Coclustering dans la litterature
+//    - coclustering de matrice
+//      - bivarie, en general categoriel, lie aux matrices
+//      - terminologie
+//        - coclustering, block clustering, two-mode clustering, cross-clustering, bi-clustering
+//        - biclusters, coclusters, block, sub-matrix
+//        - bipartite, array, matrix
+//        - rows, columns
+//    - coclustering variable x variable
+//       - peu courant hormis le coclustering de matrice
+//       - rare pour des variables de type mixte, ou en multivarie au dela de deux variables
+//    - coclustering instances x variables
+//      - plus connu et courant que le coclustering de variables, souvent confondu
+//      - toujours avec des variables d'un seul type, souvent numeriques
+//      - souvent meme terminologie que coclustering de matrice, en considerant la matrice instances x variables
+//      - terminologie supplementaire
+//        - object, instance, variable
+//        - cluster, subset, group
+//        - dimension (of instances, of variables)
 class KWDataGrid : public Object
 {
 public:
@@ -44,10 +124,12 @@ public:
 	// Specification des donnees d'un DataGrid
 	// Un DataGrid est representee sous forme d'un graphe d'objets:
 	//   - au premier niveau, un tableau d'attributs
+	//   - un DataGrid est un VarPartDataGrid si l'un de ses attributs est de type VarPart
 	// Chaque attribut est defini principalement par:
+	//   - son type: numerique, categoriele ou partie de variables
 	//	 - son nombre de valeurs
 	//   - sa liste de parties
-	// Chaque partie est definir principalement par:
+	// Chaque partie est definie principalement par:
 	//   - sa liste de valeurs
 	//   - sa liste de cellules
 	// Chaque cellule est defini principalement par:
@@ -88,23 +170,23 @@ public:
 	//   porte par l'axe VarPart qui les contient, plutot que par le DataGrid?
 	//   MB: pourquoi pas, faire une etude d'impact et d'interet
 
-	// Type de grille : classique ou generique (avec axes de type parties de variables)
+	// Type de grille : standard ou VarPart (avec une attribut de type VarPart)
 	// CH IV Refactoring: renommer en Set|GetVarPartDataGrid?
 	// CH IV Refactoring: remplacer Generic en VarPart partout (noms de variable locales, commentaires...)
-	boolean IsDataGridGeneric() const;
-	void SetDataGridGeneric(boolean bValue);
+	boolean GetVarPartDataGrid() const;
+	void SetVarPartDataGrid(boolean bValue);
 
-	// Statut de la description des parties de variable des attributs impliques : partagee ou proprietaire
+	// Statut de la description des parties de variable des attributs internes : partagee ou proprietaire
 	// Seules les descriptions proprietaires sont detruites lors de la destruction de la grille
 	// CH IV Refactoring: renommer en Set|GetVarPartShared?
-	boolean AreVarPartsShared() const;
+	boolean GetVarPartsShared() const;
 	void SetVarPartsShared(boolean bValue) const;
 
-	// Acces aux attributs impliques
-	// CH IV Refactoring: renommer en Set|GetVarPartAttributes?
-	// CH IV Refactoring: remplacer Implied en VarPart partout (noms de variable locales, commentaires...)
-	void SetImpliedAttributes(KWDGAllVariableParts* impliedAttributes);
-	KWDGAllVariableParts* GetImpliedAttributes() const;
+	// Acces aux attributs internes
+	// CH IV Refactoring: renommer en Set|GetInnerAttributes?
+	// CH IV Refactoring: remplacer Implied en Inner partout (noms de variable locales, commentaires...)
+	void SetInnerAttributes(KWDGInnerAttributes* attributes);
+	KWDGInnerAttributes* GetInnerAttributes() const;
 	// CH IV End
 
 	// Test si le DataGrid est dans un etat vide (identique a l'etat initial)
@@ -252,10 +334,10 @@ public:
 	boolean AreAttributePartsSorted() const;
 
 	// CH IV Begin
-	// CH IV Refactoring: renommer en AreVarPartAttributesSorted?
-	// Verification du tri des parties des attributs impliques : couteuse, a utiliser essentiellement dans les
+	// CH IV Refactoring: renommer en AreInnerAttributesSorted?
+	// Verification du tri des parties des attributs internes : couteuse, a utiliser essentiellement dans les
 	// assertions
-	boolean AreImpliedAttributePartsSorted() const;
+	boolean AreInnerAttributePartsSorted() const;
 	// CH IV End
 
 	// Import/export avec les objets KWDataGridStats, qui permettent un stockage compact (mais fige)
@@ -276,7 +358,7 @@ public:
 	void WriteCells(ostream& ost) const;
 	// CH IV Begin
 	// CH IV Refactoring: renommer en WriteVarPartAttributes?
-	void WriteImpliedAttributes(ostream& ost) const;
+	void WriteInnerAttributes(ostream& ost) const;
 	// CH IV End
 
 	// Affichage des statistiques par classe cible dans un tableau croise
@@ -370,20 +452,23 @@ protected:
 	int nSortValue;
 
 	// CH IV Begin
-	// Mode generique d'une grille admettant des axes de type parties de variables
+	// Type VarPart d'une grille admettant un attribut de type VarPart
 	// Par defaut a false
 	// CH IV Refactoring: renommer en bVarPartDataGrid?
-	boolean bGenericDataGrid;
-	// Attributs impliques dans les attributs de type VarPart
-	// CH IV Refactoring: renommer en varPartAttributes?
-	KWDGAllVariableParts* impliedAttributes;
+	boolean bVarPartDataGrid;
+
+	// Attributs internes dans les attributs de type VarPart
+	// CH IV Refactoring: renommer en innerAttributes?
+	KWDGInnerAttributes* innerAttributes;
+
 	// Cout du modele nul
 	// CH IV Refactoring: supprimer? (apparement, jamais utilise)
 	double dNullModelCost;
-	// Statut proprietaire ou partage de la description des attributs impliques
+
+	// Statut proprietaire ou partage de la description des attributs internes
 	// Mutable car modifie par HandleOptimizationStep
 	// CH IV Refactoring: renommer en bVarPartShared?
-	mutable boolean bAreVariablePartsShared;
+	mutable boolean bVarPartsShared;
 	// CH IV End
 };
 
@@ -410,18 +495,16 @@ public:
 	KWDataGrid* GetDataGrid() const;
 
 	// CH IV Begin
-	// Acces au nom l'axe dont l'attribut fait eventuellement partie
-	// Dans le cas d'un attribut Simple (coclustering classique), est vide
-	// Dans le cas d'un attribut de type parties de variables, renvoie le nom de l'axe qui contient les attributs
-	// impliques CH IV Refactoring: renommer en Set|GetVarPartAxisName?
-	ALString GetAxisName() const;
-	void SetAxisName(ALString sName);
+	// Acces au nom d'attribut de grille dont l'attribut interne fait eventuellement partie
+	// Dans le cas d'un attribut de grille simple (coclustering standard), renvoie vide
+	// Dans le cas d'un attribut interne, renvoie le nom de l'attribut de grille de type VarPart qui contient
+	// l'attribut CH IV Refactoring: renommer en Set|GetOwnerAttributeName?
+	ALString GetOwnerAttributeName() const;
+	void SetOwnerAttributeName(ALString sName);
 
-	// CH IV Refactoring: ajouter une methode ALString GetAxisName() const? NON
-	//   (redirigee sur GetVarPartAxisName ou GetAttributeName)
-
-	// CH IV Refactoring: ajouter une methode boolean IsVarPartAttribute() const? OK
-	//   permettrait de remplacer tous les tests de type GetAxisName() == "" par IsInVarParts() (idem pour !=)
+	// CH IV Refactoring: ajouter une methode boolean IsInnerAttribute() const? OK
+	//   permettrait de remplacer tous les tests de type GetOwnerAttributeName() == "" par IsInVarParts() (idem pour
+	//   !=)
 	// Plus une methode boolean IsAxis() const? NON
 
 	// CH IV End
@@ -488,24 +571,25 @@ public:
 
 	// CH IV Begin
 	// Methodes specifiques aux attributs de type VarPart
-	// Acces au nombre d'attributs impliques dans un axe de type Parties de variable
-	// CH IV Refactoring: renommer en Set|GetVarPartAttributesNumber?
-	int GetImpliedAttributesNumber() const;
-	void SetImpliedAttributesNumber(int nValue);
+	// Acces au nombre d'attributs interne dans un attribut de grille de type VarPart
+	// CH IV Refactoring: renommer en Set|GetInnerAttributesNumber?
+	int GetInnerAttributesNumber() const;
+	void SetInnerAttributesNumber(int nValue);
 
-	// Acces au tableau des noms des attributs impliques dans un axe de type Parties de variable
-	// CH IV Refactoring: renommer en Set|GetVarPartAttributeNameAt?
-	const ALString& GetImpliedAttributeNameAt(int nIndex) const;
-	void SetImpliedAttributeNameAt(int nAttributeIndex, const ALString& sImpliedAttributeName);
+	// Acces au tableau des noms des attributs internes dans un attribut de grille de type VarPart
+	// CH IV Refactoring: renommer en Set|GetInnerAttributeNameAt?
+	const ALString& GetInnerAttributeNameAt(int nIndex) const;
+	void SetInnerAttributeNameAt(int nAttributeIndex, const ALString& sInnerAttributeName);
 
-	// Tri du tableau des noms des attributs impliques
-	// CH IV Refactoring: renommer en SortVarPartAttributeNames?
-	void SortImpliedAttributeNames();
+	// Tri du tableau des noms des attributs internes
+	// CH IV Refactoring: renommer en SortInnerAttributeNames?
+	void SortInnerAttributeNames();
 
-	// Initialisation des parties de l'attribut de type VarPart a partir des attributs impliques initialises en
+	// Initialisation des parties de l'attribut de type VarPart a partir des attributs internes initialises en
 	// creant une partie par partie de variable CH IV Refactoring: renommer en CreateVarPartSet?
 	void CreateVarPartsSet();
 	// CH IV End
+
 	////////////////////////////////////////////////
 	// Gestion des parties de l'attribut
 	// Memoire: les parties appartiennent a l'attribut
@@ -701,17 +785,17 @@ protected:
 	// Structure d'indexation, des parties dans le cas VarPart
 	NumericKeyDictionary nkdVarPartSets;
 
-	// Tableau des noms attributs impliques dans un attribut de type parties de variable
-	// CH IV Refactoring: renommer en svVarPartAttributeNames
-	StringVector svImpliedAttributeNames;
+	// Tableau des noms des attributs internes dans un attribut de type VarPart
+	// CH IV Refactoring: renommer en svInnerAttributeNames
+	StringVector svInnerAttributeNames;
 
-	// Axe dont depend l'attribut
+	// Attribut de type VarPart dont depend un attribut interne
 	// Par defaut a NULL pour un attribut de type Simple (numerique ou categoriel)
 	// KWDGAttribute* attributeAxis;
-	// Nom de l'axe dont depend l'attribut
+	// Nom de l'attribut de type VarPart dont depend un attribut interne
 	// Par defaut a vide pour un attribut de type Simple (numerique ou categoriel)
-	// CH IV Refactoring: renommer en sVarPartAxisName, et revoir le commentaire
-	ALString axisName;
+	// CH IV Refactoring: renommer en sOwnerAttributeName, et revoir le commentaire
+	ALString sOwnerAttributeName;
 	// CH IV End
 };
 
@@ -1071,7 +1155,7 @@ int KWDGValueCompareDecreasingFrequency(const void* elem1, const void* elem2);
 //////////////////////////////////////////////////////////////////////////////
 // CH IV Begin
 // Classe KWDGVarPartSet
-// Ensemble de parties de variables (constitue une partie d'un attribut de type VarParts)
+// Ensemble de parties de variables (constitue une partie d'un attribut de grille de type VarPart)
 class KWDGVarPartSet : public Object
 {
 public:
@@ -1092,7 +1176,7 @@ public:
 
 	// Destruction de toutes les parties de variable
 	// CH IV Refactoring: renommer en DeleteAllVarPartValues
-	void DeleteAllVarPartsValue();
+	void DeleteAllVarPartValues();
 
 	// Test de validite d'une partie de variable (si elle appartient a la partie)
 	boolean CheckVarPart(KWDGVarPartValue* varPartValue) const;
@@ -1122,9 +1206,9 @@ public:
 	// Copie
 	void CopyFrom(const KWDGVarPartSet* sourceVarPartSet);
 
-	// Copie avec creation de nouvelles parties de variables qui alimente un nouveau KWDGAllVariableParts;
-	void CopyWithNewVariablePartsFrom(const KWDGVarPartSet* sourceVarPartSet,
-					  KWDGAllVariableParts* targetVariableParts);
+	// Copie avec creation de nouvelles parties de variables qui alimente un nouveau KWDGInnerAttributes;
+	void CopyWithNewVarPartsFrom(const KWDGVarPartSet* sourceVarPartSet,
+				     KWDGInnerAttributes* targetInnerAttributes);
 
 	// Ajout de nouvelles parties recopiees depuis une source
 	void UpgradeFrom(const KWDGVarPartSet* sourceVarPartSet);
@@ -1196,40 +1280,41 @@ protected:
 
 // Comparaison de deux parties de variable, par nom de variable puis par comparaison des parties si elles dependent de
 // la meme variable CH IV Refactoring: renommer en KWDGVarPartValueCompareAttributeNameAndVarPart
-int KWDGVarPartValueCompareVariableNameAndVarPart(const void* elem1, const void* elem2);
+int KWDGVarPartValueCompareAttributeNameAndVarPart(const void* elem1, const void* elem2);
 
 // Comparaison de deux objets KWSortableObject contenant des KWDGVarPartValue
 int KWSortableObjectCompareVarPart(const void* elem1, const void* elem2);
 
-// CH IV Refactoring: renommer en KWDGAllVarPartAttributes, et commenter l'entete
-class KWDGAllVariableParts : public Object
+// CH IV Refactoring: renommer en KWDGInnerAttributes, et commenter l'entete
+//////////////////////////////////////////////////////////////////////////////
+// Classe KWDGInnerAttributes
+// Ensemble des attributs internes d'un attribut de grille de type VarPart
+class KWDGInnerAttributes : public Object
 {
 public:
 	// Constructeur
-	KWDGAllVariableParts();
-	~KWDGAllVariableParts();
+	KWDGInnerAttributes();
+	~KWDGInnerAttributes();
 
-	// Acces au tableau des attributs impliques
-	// CH IV Refactoring: renommer en GetVarPartAttributeAt
-	KWDGAttribute* GetImpliedAttributeAt(int nAttributeIndex) const;
-	// CH IV Refactoring: supprimer cette methode, jamais utilisee
-	void SetImpliedAttributeAt(int nAttributeIndex, KWDGAttribute* impliedAttribute);
+	// Ajout d'un attribut interne
+	// CH IV Refactoring: renommer en AddInnerAttribute et deplacer en premiere methode
+	// CH IV Refactoring: et ajouter une nouvelle methode GetInnerAttributNumber
+	void AddInnerAttribute(KWDGAttribute* innerAttribute);
 
-	// Acces au dictionnaire des attributs impliques
-	// CH IV Refactoring: supprimer cette methode, en passant par GetVarPartAttributNumber (pas utile sinon)
-	ObjectDictionary* GetImpliedAttributesDictionary();
-	// CH IV Refactoring: renommer en LookupVarPartAttribute
-	KWDGAttribute* LookupImpliedAttribute(const ALString& sAttributeName);
+	// Nombre attribut internes
+	int GetInnerAttributeNumber() const;
 
-	// Ajout d'un attribut implique
-	// CH IV Refactoring: renommer en AddVarPartAttribute et deplacer en premiere methode
-	// CH IV Refactoring: et ajouter une nouvelle methode GetVarPartAttributNumber
-	void AddImpliedAttribute(KWDGAttribute* impliedAttribute);
+	// Acces a un attribut interne par index
+	// CH IV Refactoring: renommer en GetInnerAttributeAt
+	KWDGAttribute* GetInnerAttributeAt(int nAttributeIndex) const;
+
+	// Acces a un attribut interne par nom
+	KWDGAttribute* LookupInnerAttribute(const ALString& sAttributeName);
 
 	// Acces a la granularite des parties de variable, partages par tous les attributs
 	// CH IV Refactoring: renommer en Set|GetVarPartGranularity
-	int GetVarPartsGranularity() const;
-	void SetVarPartsGranularity(int nValue);
+	int GetVarPartGranularity() const;
+	void SetVarPartGranularity(int nValue);
 
 	///////////////////////////////
 	// Services divers
@@ -1243,10 +1328,10 @@ public:
 	///////////////////////////////
 	///// Implementation
 protected:
-	// CH IV Refactoring: renommer en nVarPartGranularity, odVarPartAttributes, oaVarPartAttributes
-	int nVariablePartsGranularity;
-	ObjectDictionary odImpliedAttributes;
-	ObjectArray oaImpliedAttributes;
+	// CH IV Refactoring: renommer en nVarPartGranularity, odInnerAttributes, oaInnerAttributes
+	int nVarPartGranularity;
+	ObjectDictionary odInnerAttributes;
+	ObjectArray oaInnerAttributes;
 };
 // CH IV End
 
@@ -1378,34 +1463,34 @@ inline int KWDataGrid::GetTargetValueNumber() const
 	return svTargetValues.GetSize();
 }
 // CH IV Begin
-inline boolean KWDataGrid::IsDataGridGeneric() const
+inline boolean KWDataGrid::GetVarPartDataGrid() const
 {
-	return bGenericDataGrid;
+	return bVarPartDataGrid;
 }
 
-inline void KWDataGrid::SetDataGridGeneric(boolean bValue)
+inline void KWDataGrid::SetVarPartDataGrid(boolean bValue)
 {
-	bGenericDataGrid = bValue;
+	bVarPartDataGrid = bValue;
 }
 
-inline boolean KWDataGrid::AreVarPartsShared() const
+inline boolean KWDataGrid::GetVarPartsShared() const
 {
-	return bAreVariablePartsShared;
+	return bVarPartsShared;
 }
 
 inline void KWDataGrid::SetVarPartsShared(boolean bValue) const
 {
-	bAreVariablePartsShared = bValue;
+	bVarPartsShared = bValue;
 }
 
-inline void KWDataGrid::SetImpliedAttributes(KWDGAllVariableParts* attributes)
+inline void KWDataGrid::SetInnerAttributes(KWDGInnerAttributes* attributes)
 {
-	impliedAttributes = attributes;
+	innerAttributes = attributes;
 }
 
-inline KWDGAllVariableParts* KWDataGrid::GetImpliedAttributes() const
+inline KWDGInnerAttributes* KWDataGrid::GetInnerAttributes() const
 {
-	return impliedAttributes;
+	return innerAttributes;
 }
 // CH IV End
 inline boolean KWDataGrid::IsEmpty() const
@@ -1508,17 +1593,17 @@ inline KWDataGrid* KWDGAttribute::GetDataGrid() const
 	return dataGrid;
 }
 // CH IV Begin
-inline ALString KWDGAttribute::GetAxisName() const
+inline ALString KWDGAttribute::GetOwnerAttributeName() const
 {
-	return axisName;
+	return sOwnerAttributeName;
 }
 
-inline void KWDGAttribute::SetAxisName(ALString sName)
+inline void KWDGAttribute::SetOwnerAttributeName(ALString sName)
 {
-	axisName = sName;
-	// CH IV Refactoring: lignes suivantes a supprimer? axisName == "Identifier" en dur???: SUPPRIMER
+	sOwnerAttributeName = sName;
+	// CH IV Refactoring: lignes suivantes a supprimer? sOwnerAttributeName == "Identifier" en dur???: SUPPRIMER
 	// DDD
-	if (axisName == "Identifier")
+	if (sOwnerAttributeName == "Identifier")
 		cout << "pb nom attribut VarPart" << endl;
 }
 
@@ -1537,7 +1622,7 @@ inline void KWDGAttribute::SetAttributeType(int nValue)
 {
 	require(nAttributeType == KWType::Unknown);
 	// CH IV Begin
-	require(KWType::IsSimple(nValue) or (GetDataGrid()->IsDataGridGeneric() and KWType::IsVarParts(nValue)));
+	require(KWType::IsCoclusteringType(nValue));
 	// CH IV End
 	nAttributeType = nValue;
 }
@@ -1618,63 +1703,41 @@ inline double KWDGAttribute::GetCost() const
 	return dCost;
 }
 // CH IV Begin
-inline int KWDGAttribute::GetImpliedAttributesNumber() const
+inline int KWDGAttribute::GetInnerAttributesNumber() const
 {
-	return svImpliedAttributeNames.GetSize();
+	ensure(nAttributeType == KWType::VarPart or svInnerAttributeNames.GetSize() == 0);
+	return svInnerAttributeNames.GetSize();
 }
 
-inline void KWDGAttribute::SetImpliedAttributesNumber(int nValue)
+inline void KWDGAttribute::SetInnerAttributesNumber(int nValue)
 {
-	svImpliedAttributeNames.SetSize(nValue);
+	require(nAttributeType == KWType::VarPart or nValue == 0);
+	svInnerAttributeNames.SetSize(nValue);
 }
 
-inline const ALString& KWDGAttribute::GetImpliedAttributeNameAt(int nIndex) const
+inline const ALString& KWDGAttribute::GetInnerAttributeNameAt(int nIndex) const
 {
-	require(0 <= nIndex and nIndex < svImpliedAttributeNames.GetSize());
+	require(nAttributeType == KWType::VarPart);
+	require(0 <= nIndex and nIndex < svInnerAttributeNames.GetSize());
 
-	return svImpliedAttributeNames.GetAt(nIndex);
+	return svInnerAttributeNames.GetAt(nIndex);
 }
 
-inline void KWDGAttribute::SetImpliedAttributeNameAt(int nIndex, const ALString& sName)
+inline void KWDGAttribute::SetInnerAttributeNameAt(int nIndex, const ALString& sInnerAttributeName)
 {
-	require(0 <= nIndex and nIndex < svImpliedAttributeNames.GetSize());
+	require(nAttributeType == KWType::VarPart);
+	require(0 <= nIndex and nIndex < svInnerAttributeNames.GetSize());
 
-	svImpliedAttributeNames.SetAt(nIndex, sName);
+	svInnerAttributeNames.SetAt(nIndex, sInnerAttributeName);
 }
 
-inline void KWDGAttribute::SortImpliedAttributeNames()
+inline void KWDGAttribute::SortInnerAttributeNames()
 {
-	svImpliedAttributeNames.Sort();
-}
-
-inline void KWDGAttribute::CreateVarPartsSet()
-{
-	KWDGPart* part;
-	KWDGPart* currentPart;
-	KWDGAttribute* impliedAttribute;
-	int nAttribute;
-
-	require(this->GetImpliedAttributesNumber() > 0);
-
-	for (nAttribute = 0; nAttribute < this->GetImpliedAttributesNumber(); nAttribute++)
-	{
-		impliedAttribute = this->GetDataGrid()->GetImpliedAttributes()->LookupImpliedAttribute(
-		    GetImpliedAttributeNameAt(nAttribute));
-		currentPart = impliedAttribute->GetHeadPart();
-
-		// Parcours des parties de variables de l'attribut
-		while (currentPart != NULL)
-		{
-			// On cree un cluster par parties de variables
-			part = this->AddPart();
-			part->GetVarPartSet()->AddVarPart(currentPart);
-
-			// Partie suivante
-			impliedAttribute->GetNextPart(currentPart);
-		}
-	}
+	require(nAttributeType == KWType::VarPart);
+	svInnerAttributeNames.Sort();
 }
 // CH IV End
+
 inline int KWDGAttribute::GetPartNumber() const
 {
 	return nPartNumber;
@@ -1711,7 +1774,7 @@ inline KWDGPart* KWDGAttribute::GetGarbagePart() const
 inline void KWDGAttribute::SetGarbagePart(KWDGPart* part)
 {
 	// CH IV Begin
-	require(nAttributeType == KWType::Symbol or nAttributeType == KWType::VarParts);
+	require(nAttributeType == KWType::Symbol or nAttributeType == KWType::VarPart);
 	// CH IV End
 	garbagePart = part;
 }
@@ -1788,7 +1851,8 @@ inline KWDGAttribute* KWDGPart::GetAttribute() const
 inline int KWDGPart::GetPartFrequency() const
 {
 	// CH IV Begin
-	ensure(GetEmulated() or nPartFrequency == ComputeCellsTotalFrequency() or GetAttribute()->GetAxisName() != "");
+	ensure(GetEmulated() or nPartFrequency == ComputeCellsTotalFrequency() or
+	       GetAttribute()->GetOwnerAttributeName() != "");
 	// CH IV End
 	return nPartFrequency;
 }
@@ -1803,7 +1867,7 @@ inline int KWDGPart::GetPartType() const
 		return KWType::Symbol;
 	// CH IV Begin
 	else if (varPartSet != NULL)
-		return KWType::VarParts;
+		return KWType::VarPart;
 	// CH IV End
 	else
 		return KWType::Unknown;
@@ -1827,7 +1891,7 @@ inline KWDGValueSet* KWDGPart::GetValueSet() const
 // CH IV Begin
 inline KWDGVarPartSet* KWDGPart::GetVarPartSet() const
 {
-	require(GetPartType() == KWType::VarParts);
+	require(GetPartType() == KWType::VarPart);
 
 	ensure(varPartSet != NULL);
 	return varPartSet;
@@ -2012,7 +2076,7 @@ inline KWDGVarPartSet::KWDGVarPartSet()
 
 inline KWDGVarPartSet::~KWDGVarPartSet()
 {
-	DeleteAllVarPartsValue();
+	DeleteAllVarPartValues();
 }
 
 inline int KWDGVarPartSet::GetVarPartNumber() const
@@ -2044,17 +2108,25 @@ inline void KWDGVarPartSet::GetPrevVarPart(KWDGVarPartValue*& varPartValue) cons
 	varPartValue = varPartValue->prevVarPartValue;
 }
 
-// Classe KWDGAllVariableParts
-inline KWDGAllVariableParts::KWDGAllVariableParts()
+// Classe KWDGInnerAttributes
+inline KWDGInnerAttributes::KWDGInnerAttributes()
 {
-	oaImpliedAttributes.SetSize(0);
-	odImpliedAttributes.DeleteAll();
-	nVariablePartsGranularity = 0;
+	oaInnerAttributes.SetSize(0);
+	odInnerAttributes.DeleteAll();
+	nVarPartGranularity = 0;
 }
-inline KWDGAllVariableParts::~KWDGAllVariableParts()
+
+inline KWDGInnerAttributes::~KWDGInnerAttributes()
 {
 	DeleteAll();
 }
+
+inline int KWDGInnerAttributes::GetInnerAttributeNumber() const
+{
+	assert(odInnerAttributes.GetCount() == oaInnerAttributes.GetSize());
+	return oaInnerAttributes.GetSize();
+}
+
 // CH IV End
 // Classe KWDGValue
 

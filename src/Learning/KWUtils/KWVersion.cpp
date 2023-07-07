@@ -20,10 +20,10 @@ static boolean bKWLearningVersionModified = false;
 
 // CH IV Begin
 // Booleen de prise en compte de la poubelle
-// pour les attributs de type VarParts
-static boolean bVarPartsAttributeGarbage = false;
-// pour les attribut impliques categoriels
-static boolean bImpliedAttributeGarbage = false;
+// pour les attributs de type VarPart
+static boolean bVarPartAttributeGarbage = false;
+// pour les attribut interne categoriels
+static boolean bInnerAttributeGarbage = false;
 // CH IV End
 int GetMajorVersion(const ALString& sFullVersion)
 {
@@ -165,22 +165,22 @@ const ALString GetLearningSystemType()
 }
 
 // CH IV Begin
-const boolean GetVarPartsAttributeGarbage()
+const boolean GetVarPartAttributeGarbage()
 {
-	return bVarPartsAttributeGarbage;
+	return bVarPartAttributeGarbage;
 }
-void SetVarPartsAttributeGarbage(const boolean bValue)
+void SetVarPartAttributeGarbage(const boolean bValue)
 {
-	bVarPartsAttributeGarbage = bValue;
+	bVarPartAttributeGarbage = bValue;
 }
 
-const boolean GetImpliedAttributeGarbage()
+const boolean GetInnerAttributeGarbage()
 {
-	return bImpliedAttributeGarbage;
+	return bInnerAttributeGarbage;
 }
-void SetImpliedAttributeGarbage(const boolean bValue)
+void SetInnerAttributeGarbage(const boolean bValue)
 {
-	bImpliedAttributeGarbage = bValue;
+	bInnerAttributeGarbage = bValue;
 }
 // CH IV End
 
@@ -503,6 +503,8 @@ boolean GetLearningCoclusteringIVExpertMode()
 		// Memorisation du flag d'initialisation
 		bIsInitialized = true;
 	}
+	// DDD
+	return true;
 	return bLearningCoclusteringIVExpertMode;
 }
 // CH IV End

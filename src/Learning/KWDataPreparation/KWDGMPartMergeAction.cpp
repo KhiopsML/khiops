@@ -114,7 +114,7 @@ KWDGMPart* KWDGMPartMergeAction::PerformPartMerge(KWDGMPartMerge* partMerge)
 	// Dereferencement des parties de la liste triee par nombre de modalites
 	// Restitution de la poubelle
 	// CH IV Begin
-	if (attribute->GetAttributeType() == KWType::Symbol or attribute->GetAttributeType() == KWType::VarParts)
+	if (attribute->GetAttributeType() == KWType::Symbol or attribute->GetAttributeType() == KWType::VarPart)
 	// CH IV End
 	{
 		attribute->RemovePartFromValueNumberList(part1);
@@ -251,7 +251,7 @@ KWDGMPart* KWDGMPartMergeAction::PerformPartMerge(KWDGMPartMerge* partMerge)
 	part2->SetCost(dataGridCosts->ComputePartCost(part2));
 
 	// CH IV Begin
-	if (attribute->GetAttributeType() == KWType::Symbol or attribute->GetAttributeType() == KWType::VarParts)
+	if (attribute->GetAttributeType() == KWType::Symbol or attribute->GetAttributeType() == KWType::VarPart)
 	// CH IV End
 	{
 		// Reinsertion de la partie fusionnee dans la liste triee par nombre de modalites

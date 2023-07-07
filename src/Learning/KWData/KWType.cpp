@@ -40,7 +40,8 @@ const ALString KWType::ToString(int nType)
 	case ObjectArrayValueBlock:
 		return "TableBlock";
 	// CH IV Begin
-	case VarParts:
+	case VarPart:
+		// CH IV Refactoring: renommer en VarPart
 		return "VariableParts";
 	// CH IV End
 	case None:
@@ -83,18 +84,14 @@ int KWType::ToType(const ALString& sType)
 	else if (sType == "TableBlock")
 		return ObjectArrayValueBlock;
 	// CH IV Begin
-	else if (sType == "VariableParts")
-		return VarParts;
+	// CH IV Refactoring: utiliser VarPart
+	else if (sType == "VariablePart")
+		return VarPart;
 	// CH IV End
 	else if (sType == "None")
 		return None;
 	else
 		return Unknown;
-}
-
-boolean KWType::IsPredictorType(int nType)
-{
-	return (nType == Continuous or nType == Symbol or nType == None);
 }
 
 const ALString KWType::GetPredictorLabel(int nType)

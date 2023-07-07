@@ -688,8 +688,8 @@ boolean KWAttributeSubsetStats::CreateAttributeIntervals(const KWTupleTable* tup
 			if (periodicTestDisplay.IsTestAllowed(nTuple))
 			{
 				// CH IV Begin
-				// Cas d'un attribut non implique dans un attribut VarPart
-				if (dgAttribute->GetAxisName() == "")
+				// Cas d'un attribut de grille, qui n'est pas un attribut interne d'un attribut VarPart
+				if (dgAttribute->GetOwnerAttributeName() == "")
 				{
 					// Avancement: au prorata de la base pour l'attribut en cours, en reservant 50
 					// pour la creation des cellules
@@ -784,8 +784,8 @@ boolean KWAttributeSubsetStats::CreateAttributeValueSets(const KWTupleTable* tup
 		if (periodicTestDisplay.IsTestAllowed(nTuple))
 		{
 			// CH IV Begin
-			// Cas d'un attribut non implique dans un attribut VarPart
-			if (dgAttribute->GetAxisName() == "")
+			// Cas d'un attribut de grille, qui n'est pas un attribut interne d'un attribut VarPart
+			if (dgAttribute->GetOwnerAttributeName() == "")
 			{
 				// Avancement: au prorata de la base pour l'attribut en cours, en reservant 50 pour la
 				// creation des cellules

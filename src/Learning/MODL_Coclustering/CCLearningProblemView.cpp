@@ -17,7 +17,7 @@ CCLearningProblemView::CCLearningProblemView()
 	UIList* categoricalAttributeNameHelpList;
 	CCCoclusteringSpecView* coclusteringSpecView;
 	// CH IV Refactoring: renommer en varPartCoclusteringSpecView
-	CCInstancesVariablesCoclusteringSpecView* instancesVariablesCoclusteringSpecView;
+	CCVarPartCoclusteringSpecView* instancesVariablesCoclusteringSpecView;
 
 	// Libelles
 	SetIdentifier("CCLearningProblem");
@@ -91,8 +91,7 @@ CCLearningProblemView::CCLearningProblemView()
 	if (GetLearningCoclusteringIVExpertMode())
 	{
 		instancesVariablesCoclusteringSpecView =
-		    cast(CCInstancesVariablesCoclusteringSpecView*,
-			 analysisSpecView->GetFieldAt("InstancesVariablesCoclusteringParameters"));
+		    cast(CCVarPartCoclusteringSpecView*, analysisSpecView->GetFieldAt("VarPartCoclusteringParameters"));
 
 		// Creation d'une liste cachee des attributs de type Categorical de la classe en cours
 		categoricalAttributeNameHelpList = new UIList;
@@ -124,15 +123,14 @@ CCLearningProblemView::CCLearningProblemView()
 	// CH IV Begin
 	if (GetLearningCoclusteringIVExpertMode())
 	{
-		// Parametrage de liste d'aide pour le nom des attributs de coclustering generique
+		// Parametrage de liste d'aide pour le nom des attributs de coclustering VarPart
 		instancesVariablesCoclusteringSpecView =
-		    cast(CCInstancesVariablesCoclusteringSpecView*,
-			 analysisSpecView->GetFieldAt("InstancesVariablesCoclusteringParameters"));
+		    cast(CCVarPartCoclusteringSpecView*, analysisSpecView->GetFieldAt("VarPartCoclusteringParameters"));
 		cast(KWAttributeAxisNameArrayView*, instancesVariablesCoclusteringSpecView->GetFieldAt("Attributes"))
-		    ->GetFieldAt("Name")
+		    ->GetFieldAt("AttributeName")
 		    ->SetStyle("HelpedComboBox");
 		cast(KWAttributeAxisNameArrayView*, instancesVariablesCoclusteringSpecView->GetFieldAt("Attributes"))
-		    ->GetFieldAt("Name")
+		    ->GetFieldAt("AttributeName")
 		    ->SetParameters("SimpleAttributes:Name");
 	}
 	// CH IV End

@@ -45,9 +45,8 @@ void CCPostProcessingSpec::CopyFrom(const CCPostProcessingSpec* aSource)
 	nTotalPartNumber = aSource->nTotalPartNumber;
 	nMaxTotalPartNumber = aSource->nMaxTotalPartNumber;
 	sFrequencyAttribute = aSource->sFrequencyAttribute;
-	// CH IV Begin
 	sIdentifierAttribute = aSource->sIdentifierAttribute;
-	// CH IV End
+
 	// ## Custom copyfrom
 
 	int i;
@@ -89,9 +88,7 @@ void CCPostProcessingSpec::Write(ostream& ost) const
 	ost << "Total part number\t" << GetTotalPartNumber() << "\n";
 	ost << "Max total part number\t" << GetMaxTotalPartNumber() << "\n";
 	ost << "Frequency variable\t" << GetFrequencyAttribute() << "\n";
-	// CH IV Begin
 	ost << "Identifier variable\t" << GetIdentifierAttribute() << "\n";
-	// CH IV End
 }
 
 const ALString CCPostProcessingSpec::GetClassLabel() const
@@ -371,7 +368,7 @@ void CCPostProcessingSpec::UpdateCoclusteringSpec(const ALString& sCoclusteringR
 
 	// CH IV Begin
 	// Cas d'un rapport issu d'un coclustering individus * variables : fonctionnalite non implemente
-	if (coclusteringDataGrid.IsDataGridGeneric())
+	if (coclusteringDataGrid.GetVarPartDataGrid())
 	{
 		bOk = false;
 		AddWarning("This functionality is not yet implemented for instances variables coclustering");

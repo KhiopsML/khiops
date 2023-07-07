@@ -5,13 +5,12 @@
 #pragma once
 
 ////////////////////////////////////////////////////////////
-// 2018-04-23 16:45:14
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "UserInterface.h"
 
-#include "CCInstancesVariablesCoclusteringSpec.h"
+#include "CCVarPartCoclusteringSpec.h"
 
 // ## Custom includes
 
@@ -29,20 +28,20 @@
 // ##
 
 ////////////////////////////////////////////////////////////
-// Classe CCInstancesVariablesCoclusteringSpecView
-//    Coclustering parameters
-// Editeur de CCCoclusteringSpec
-class CCInstancesVariablesCoclusteringSpecView : public UIObjectView
+// Classe CCVarPartCoclusteringSpecView
+//    Instances Variables coclustering parameters
+// Editeur de CCVarPartCoclusteringSpec
+class CCVarPartCoclusteringSpecView : public UIObjectView
 {
 public:
 	// Constructeur
-	CCInstancesVariablesCoclusteringSpecView();
-	~CCInstancesVariablesCoclusteringSpecView();
+	CCVarPartCoclusteringSpecView();
+	~CCVarPartCoclusteringSpecView();
 
 	// Acces a l'objet edite
-	CCInstancesVariablesCoclusteringSpec* GetCCInstancesVariablesCoclusteringSpec();
+	CCVarPartCoclusteringSpec* GetCCVarPartCoclusteringSpec();
 
-	////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
 	// Redefinition des methodes a reimplementer obligatoirement
 
 	// Mise a jour de l'objet par les valeurs de l'interface
@@ -61,7 +60,7 @@ public:
 
 	// ##
 	////////////////////////////////////////////////////////
-	//// Implementation
+	///// Implementation
 protected:
 	// ## Custom implementation
 

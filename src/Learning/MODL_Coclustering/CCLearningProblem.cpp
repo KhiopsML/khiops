@@ -164,7 +164,8 @@ void CCLearningProblem::BuildCoclustering()
 
 	// CH IV Begin
 	// Cas d'un coclustering variable * variable : mode non expert ou type de coclustering demande a l'interface
-	if (not GetLearningCoclusteringIVExpertMode() or not analysisSpec->GetGenericCoclustering())
+	oaAttributesAndAxes = NULL;
+	if (not GetLearningCoclusteringIVExpertMode() or not analysisSpec->GetVarPartCoclustering())
 	{
 		for (nAttribute = 0; nAttribute < analysisSpec->GetCoclusteringSpec()->GetAttributes()->GetSize();
 		     nAttribute++)
@@ -190,7 +191,7 @@ void CCLearningProblem::BuildCoclustering()
 		learningSpec.SetClass(kwcClass);
 
 		// Parametrage du coclustering
-		coclusteringBuilder.SetGenericCoclustering(false);
+		coclusteringBuilder.SetVarPartCoclustering(false);
 		coclusteringBuilder.SetLearningSpec(&learningSpec);
 		coclusteringBuilder.SetAttributeNumber(analysisSpec->GetCoclusteringSpec()->GetAttributes()->GetSize());
 		for (nAttribute = 0; nAttribute < analysisSpec->GetCoclusteringSpec()->GetAttributes()->GetSize();
@@ -205,13 +206,15 @@ void CCLearningProblem::BuildCoclustering()
 	// Sinon : cas d'un coclustering individus * variables avec au moins un axe de parties de variable
 	else
 	{
+		assert(oaAttributesAndAxes == NULL);
+
 		// Extraction du tableau des noms de variable et de leur axe
-		oaAttributesAndAxes = analysisSpec->GetInstancesVariablesCoclusteringSpec()->GetAttributesAndAxes();
+		oaAttributesAndAxes = analysisSpec->GetVarPartCoclusteringSpec()->GetAttributesAndAxes();
 		assert(oaAttributesAndAxes->GetSize() == 0);
 
 		// Creation de l'axe avec la variable d'identifiant des instances
 		// Cas ou aucun attribut identifiant n'a ete specifie
-		if (analysisSpec->GetInstancesVariablesCoclusteringSpec()->GetIdentifierAttribute() == "")
+		if (analysisSpec->GetVarPartCoclusteringSpec()->GetIdentifierAttribute() == "")
 		{
 			// Creation d'une nouvelle classe enrichie d'une variable d'identifiant
 
@@ -232,15 +235,15 @@ void CCLearningProblem::BuildCoclustering()
 			identifierAttribute = InsertIdentifierAttribute(kwcClass);
 
 			// Ajout du nom de l'attribut dans les specifications
-			analysisSpec->GetInstancesVariablesCoclusteringSpec()->SetIdentifierAttribute(
+			analysisSpec->GetVarPartCoclusteringSpec()->SetIdentifierAttribute(
 			    identifierAttribute->GetName());
 		}
 
 		// Creation de la ligne de tableau avec nom de l'attribut identifiant et de son axe
 		attributeAxisName = new KWAttributeAxisName;
 		attributeAxisName->SetAttributeName(
-		    analysisSpec->GetInstancesVariablesCoclusteringSpec()->GetIdentifierAttribute());
-		attributeAxisName->SetAxisName("");
+		    analysisSpec->GetVarPartCoclusteringSpec()->GetIdentifierAttribute());
+		attributeAxisName->SetOwnerAttributeName("");
 
 		// Ajout de la ligne au tableau
 		oaAttributesAndAxes->Add(attributeAxisName);
@@ -252,7 +255,7 @@ void CCLearningProblem::BuildCoclustering()
 			// Ajout si attribut utilise et du bon type
 			if (kwAttribute->GetUsed() and KWType::IsSimple(kwAttribute->GetType()) and
 			    kwAttribute->GetName() !=
-				analysisSpec->GetInstancesVariablesCoclusteringSpec()->GetIdentifierAttribute())
+				analysisSpec->GetVarPartCoclusteringSpec()->GetIdentifierAttribute())
 			{
 				check(kwAttribute);
 				kwAttribute->SetLoaded(true);
@@ -260,7 +263,7 @@ void CCLearningProblem::BuildCoclustering()
 				// Ajout de l'attribut et de son axe
 				attributeAxisName = new KWAttributeAxisName;
 				attributeAxisName->SetAttributeName(kwAttribute->GetName());
-				attributeAxisName->SetAxisName("Variables");
+				attributeAxisName->SetOwnerAttributeName("Variables");
 
 				// Ajout au tableau
 				oaAttributesAndAxes->Add(attributeAxisName);
@@ -269,23 +272,21 @@ void CCLearningProblem::BuildCoclustering()
 		}
 
 		for (nAttribute = 0;
-		     nAttribute <
-		     analysisSpec->GetInstancesVariablesCoclusteringSpec()->GetAttributesAndAxes()->GetSize();
+		     nAttribute < analysisSpec->GetVarPartCoclusteringSpec()->GetAttributesAndAxes()->GetSize();
 		     nAttribute++)
 		{
 			attributeAxisName =
 			    cast(KWAttributeAxisName*,
-				 analysisSpec->GetInstancesVariablesCoclusteringSpec()->GetAttributesAndAxes()->GetAt(
-				     nAttribute));
+				 analysisSpec->GetVarPartCoclusteringSpec()->GetAttributesAndAxes()->GetAt(nAttribute));
 			kwAttribute = kwcClass->LookupAttribute(attributeAxisName->GetAttributeName());
 			check(kwAttribute);
 			kwAttribute->SetLoaded(true);
 		}
 
-		if (analysisSpec->GetInstancesVariablesCoclusteringSpec()->GetIdentifierAttribute() != "")
+		if (analysisSpec->GetVarPartCoclusteringSpec()->GetIdentifierAttribute() != "")
 		{
 			kwAttribute = kwcClass->LookupAttribute(
-			    analysisSpec->GetInstancesVariablesCoclusteringSpec()->GetIdentifierAttribute());
+			    analysisSpec->GetVarPartCoclusteringSpec()->GetIdentifierAttribute());
 			check(kwAttribute);
 			kwAttribute->SetLoaded(true);
 			if (kwAttribute->GetType() != KWType::Symbol)
@@ -301,32 +302,32 @@ void CCLearningProblem::BuildCoclustering()
 		learningSpec.SetShortDescription(GetAnalysisResults()->GetShortDescription());
 		learningSpec.SetDatabase(database);
 		learningSpec.SetClass(kwcClass);
-		// Parametrage du coclustering generique
-		coclusteringBuilder.SetGenericCoclustering(true);
+
+		// Parametrage du coclustering VarPart
+		coclusteringBuilder.SetVarPartCoclustering(true);
 		coclusteringBuilder.SetLearningSpec(&learningSpec);
 		coclusteringBuilder.SetAttributeNumber(
-		    analysisSpec->GetInstancesVariablesCoclusteringSpec()->GetAttributesAndAxes()->GetSize());
+		    analysisSpec->GetVarPartCoclusteringSpec()->GetAttributesAndAxes()->GetSize());
 		for (nAttribute = 0;
-		     nAttribute <
-		     analysisSpec->GetInstancesVariablesCoclusteringSpec()->GetAttributesAndAxes()->GetSize();
+		     nAttribute < analysisSpec->GetVarPartCoclusteringSpec()->GetAttributesAndAxes()->GetSize();
 		     nAttribute++)
 		{
 			attributeAxisName =
 			    cast(KWAttributeAxisName*,
-				 analysisSpec->GetInstancesVariablesCoclusteringSpec()->GetAttributesAndAxes()->GetAt(
-				     nAttribute));
+				 analysisSpec->GetVarPartCoclusteringSpec()->GetAttributesAndAxes()->GetAt(nAttribute));
 			coclusteringBuilder.SetAttributeNameAt(nAttribute, attributeAxisName->GetAttributeName());
 
 			// On rapatrie le nom de l'axe
-			coclusteringBuilder.SetAxisForAttributeNameAt(nAttribute, attributeAxisName->GetAxisName());
+			coclusteringBuilder.SetAxisForAttributeNameAt(nAttribute,
+								      attributeAxisName->GetOwnerAttributeName());
 		}
 		coclusteringBuilder.SetIdentifierAttribute(
-		    analysisSpec->GetInstancesVariablesCoclusteringSpec()->GetIdentifierAttribute());
+		    analysisSpec->GetVarPartCoclusteringSpec()->GetIdentifierAttribute());
 		coclusteringBuilder.GetPreprocessingSpec()->GetDataGridOptimizerParameters()->CopyFrom(
-		    analysisSpec->GetInstancesVariablesCoclusteringSpec()->GetOptimizationParameters());
+		    analysisSpec->GetVarPartCoclusteringSpec()->GetOptimizationParameters());
 
-		// On extrait les noms distincts des axes et des attributs impliques dans chaque axe de type parties de
-		// variable
+		// On extrait les noms distincts des axes et des attributs internes dans chaque attribut de grille de
+		// type VarPart
 		bOk = bOk and coclusteringBuilder.ExtractAndCheckAxisNames();
 	}
 	// CH IV End
@@ -363,7 +364,7 @@ void CCLearningProblem::BuildCoclustering()
 		// CH IV Begin
 		// Warning si moins d'attributs dans le coclustering que d'attributs ou d'axes specifiees
 		// Cas du coclustering variable * variable
-		if (not GetLearningCoclusteringIVExpertMode() or not analysisSpec->GetGenericCoclustering())
+		if (not GetLearningCoclusteringIVExpertMode() or not analysisSpec->GetVarPartCoclustering())
 		{
 			if (coclusteringBuilder.GetCoclusteringDataGrid()->GetAttributeNumber() <
 			    coclusteringBuilder.GetAttributeNumber())
@@ -396,10 +397,13 @@ void CCLearningProblem::BuildCoclustering()
 		delete constructedDomain;
 		kwcClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName());
 		check(kwcClass);
-		analysisSpec->GetInstancesVariablesCoclusteringSpec()->SetIdentifierAttribute("");
+		analysisSpec->GetVarPartCoclusteringSpec()->SetIdentifierAttribute("");
 	}
-	if (analysisSpec->GetGenericCoclustering())
+	if (analysisSpec->GetVarPartCoclustering())
+	{
+		assert(oaAttributesAndAxes != NULL);
 		oaAttributesAndAxes->DeleteAll(); // CH IV Refactoring: attention, non initialise
+	}
 
 	// Nettoyage
 	kwcClass->SetAllAttributesLoaded(true);
@@ -449,7 +453,7 @@ void CCLearningProblem::PostProcessCoclustering()
 
 	// CH IV Begin
 	// Cas d'un rapport issu d'un coclustering individus * variables : fonctionnalite non implemente
-	if (postProcessedCoclusteringDataGrid.IsDataGridGeneric())
+	if (postProcessedCoclusteringDataGrid.GetVarPartDataGrid())
 	{
 		bOk = false;
 		AddWarning("Simplify coclustering is not yet implemented for instances variables coclustering");
@@ -690,8 +694,8 @@ boolean CCLearningProblem::CheckCoclusteringAttributeNames() const
 	kwcClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName());
 
 	// CH IV Begin
-	// Cas d'un coclustering classique : variable * variable
-	if (not analysisSpec->GetGenericCoclustering())
+	// Cas d'un coclustering standard : variable * variable
+	if (not analysisSpec->GetVarPartCoclustering())
 	{
 		// Il doit y avoir au moins deux variables dans un co-clustering
 		if (analysisSpec->GetCoclusteringSpec()->GetAttributes()->GetSize() < 2)
@@ -819,8 +823,7 @@ boolean CCLearningProblem::CheckCoclusteringAttributeNames() const
 	else
 	{
 		// Verification de la variable d'identifiant
-		sIdentifierAttributeName =
-		    analysisSpec->GetInstancesVariablesCoclusteringSpec()->GetIdentifierAttribute();
+		sIdentifierAttributeName = analysisSpec->GetVarPartCoclusteringSpec()->GetIdentifierAttribute();
 		if (bOk and sIdentifierAttributeName != "")
 		{
 			// Recherche de la variable correspondante dans le dictionnaire
