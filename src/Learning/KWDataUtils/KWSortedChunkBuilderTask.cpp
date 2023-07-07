@@ -16,7 +16,6 @@ KWSortedChunkBuilderTask::KWSortedChunkBuilderTask()
 	nReadSizeMin = 0;
 	nReadSizeMax = 0;
 	nReadBufferSize = 0;
-	bSameFieldSeparator = false;
 
 	// Variables partagees
 	DeclareSharedParameter(&shared_ivKeyFieldIndexes);
@@ -26,7 +25,6 @@ KWSortedChunkBuilderTask::KWSortedChunkBuilderTask()
 	DeclareSharedParameter(&shared_sFileName);
 	DeclareSharedParameter(&shared_bHeaderLineUsed);
 	DeclareSharedParameter(&shared_cInputFieldSeparator);
-	DeclareSharedParameter(&shared_cOutputFieldSeparator);
 	DeclareSharedParameter(&shared_lFileSize);
 	DeclareSharedParameter(&shared_lMaxSlaveBucketMemory);
 
@@ -40,7 +38,6 @@ KWSortedChunkBuilderTask::KWSortedChunkBuilderTask()
 	DeclareTaskOutput(&output_ivBucketSize_dictionary);
 
 	shared_cInputFieldSeparator.SetValue('\t');
-	shared_cOutputFieldSeparator.SetValue('\t');
 }
 
 KWSortedChunkBuilderTask::~KWSortedChunkBuilderTask()
@@ -76,16 +73,6 @@ void KWSortedChunkBuilderTask::SetInputFieldSeparator(char cValue)
 char KWSortedChunkBuilderTask::GetInputFieldSeparator() const
 {
 	return shared_cInputFieldSeparator.GetValue();
-}
-
-void KWSortedChunkBuilderTask::SetOutputFieldSeparator(char cValue)
-{
-	shared_cOutputFieldSeparator.SetValue(cValue);
-}
-
-char KWSortedChunkBuilderTask::GetOutputFieldSeparator() const
-{
-	return shared_cOutputFieldSeparator.GetValue();
 }
 
 IntVector* KWSortedChunkBuilderTask::GetKeyFieldIndexes()
@@ -590,9 +577,6 @@ boolean KWSortedChunkBuilderTask::SlaveInitialize()
 		lBucketsUsedMemory +=
 		    cast(KWSortBucket*, shared_oaBuckets->GetObjectArray()->GetAt(i))->GetUsedMemory();
 	}
-
-	// Est ce que le fichiers ont les memes separateur
-	bSameFieldSeparator = shared_cInputFieldSeparator.GetValue() == shared_cOutputFieldSeparator.GetValue();
 
 	inputFile.SetFieldSeparator(shared_cInputFieldSeparator.GetValue());
 	inputFile.SetFileName(shared_sFileName.GetValue());

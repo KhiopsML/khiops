@@ -19,9 +19,6 @@ CCVarPartCoclusteringSpec::~CCVarPartCoclusteringSpec()
 {
 	// ## Custom destructor
 
-	oaAttributes.DeleteAll();
-	oaAttributesAxes.DeleteAll();
-
 	// ##
 }
 
@@ -29,7 +26,7 @@ void CCVarPartCoclusteringSpec::CopyFrom(const CCVarPartCoclusteringSpec* aSourc
 {
 	require(aSource != NULL);
 
-	sIdentifierAttribute = aSource->sIdentifierAttribute;
+	sIdentifierAttributeName = aSource->sIdentifierAttributeName;
 
 	// ## Custom copyfrom
 
@@ -54,7 +51,7 @@ CCVarPartCoclusteringSpec* CCVarPartCoclusteringSpec::Clone() const
 
 void CCVarPartCoclusteringSpec::Write(ostream& ost) const
 {
-	ost << "Identifier variable\t" << GetIdentifierAttribute() << "\n";
+	ost << "Identifier variable\t" << GetIdentifierAttributeName() << "\n";
 }
 
 const ALString CCVarPartCoclusteringSpec::GetClassLabel() const
@@ -70,39 +67,5 @@ const ALString CCVarPartCoclusteringSpec::GetObjectLabel() const
 
 	return sLabel;
 }
-
-ObjectArray* CCVarPartCoclusteringSpec::GetAttributes()
-{
-	return &oaAttributes;
-}
-
-int CCVarPartCoclusteringSpec::GetMaxCoclusteringAttributeNumber()
-{
-	return 50;
-}
-
-// CH AB
-ObjectArray* CCVarPartCoclusteringSpec::GetAttributesAndAxes()
-{
-	return &oaAttributesAxes;
-}
-
-int CCVarPartCoclusteringSpec::GetMaxCoclusteringAxisNumber()
-{
-	return 10;
-}
-// Fin CH AB
-
-// CH AB DDD
-KWDataGridOptimizerParameters* CCVarPartCoclusteringSpec::GetOptimizationParameters()
-{
-	return &optimizationParameters;
-}
-
-// CH IV Refactoring: nettoyer lignes suivantes?
-// void CCVarPartCoclusteringSpec::SetOptimizationParameters(KWDataGridOptimizerParameters* parameters)
-//{
-//	optimizationParameters = parameters;
-//}
 
 // ##

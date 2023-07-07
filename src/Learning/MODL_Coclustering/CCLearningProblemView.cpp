@@ -79,8 +79,8 @@ CCLearningProblemView::CCLearningProblemView()
 
 	// Parametrage de liste d'aide pour le nom de l'attribut d'effectif pour le coclustering
 	coclusteringSpecView = cast(CCCoclusteringSpecView*, analysisSpecView->GetFieldAt("CoclusteringParameters"));
-	coclusteringSpecView->GetFieldAt("FrequencyAttribute")->SetStyle("HelpedComboBox");
-	coclusteringSpecView->GetFieldAt("FrequencyAttribute")->SetParameters("ContinuousAttributes:Name");
+	coclusteringSpecView->GetFieldAt("FrequencyAttributeName")->SetStyle("HelpedComboBox");
+	coclusteringSpecView->GetFieldAt("FrequencyAttributeName")->SetParameters("ContinuousAttributes:Name");
 
 	// CH IV Begin
 	// CH IV Refactoring: plutot tout declarer et utiliser "normalement" (partout dans ce fichier source),
@@ -98,8 +98,8 @@ CCLearningProblemView::CCLearningProblemView()
 		AddListField("CategoricalAttributes", "Simple variables", categoricalAttributeNameHelpList);
 		categoricalAttributeNameHelpList->SetVisible(false);
 
-		varPartCoclusteringSpecView->GetFieldAt("IdentifierAttribute")->SetStyle("HelpedComboBox");
-		varPartCoclusteringSpecView->GetFieldAt("IdentifierAttribute")
+		varPartCoclusteringSpecView->GetFieldAt("IdentifierAttributeName")->SetStyle("HelpedComboBox");
+		varPartCoclusteringSpecView->GetFieldAt("IdentifierAttributeName")
 		    ->SetParameters("CategoricalAttributes:Name");
 	}
 	// CH IV End
@@ -118,21 +118,6 @@ CCLearningProblemView::CCLearningProblemView()
 	cast(KWAttributeNameArrayView*, coclusteringSpecView->GetFieldAt("Attributes"))
 	    ->GetFieldAt("Name")
 	    ->SetParameters("SimpleAttributes:Name");
-
-	// CH IV Begin
-	if (GetLearningCoclusteringIVExpertMode())
-	{
-		// Parametrage de liste d'aide pour le nom des attributs de coclustering VarPart
-		varPartCoclusteringSpecView =
-		    cast(CCVarPartCoclusteringSpecView*, analysisSpecView->GetFieldAt("VarPartCoclusteringParameters"));
-		cast(KWAttributeAxisNameArrayView*, varPartCoclusteringSpecView->GetFieldAt("Attributes"))
-		    ->GetFieldAt("AttributeName")
-		    ->SetStyle("HelpedComboBox");
-		cast(KWAttributeAxisNameArrayView*, varPartCoclusteringSpecView->GetFieldAt("Attributes"))
-		    ->GetFieldAt("AttributeName")
-		    ->SetParameters("SimpleAttributes:Name");
-	}
-	// CH IV End
 
 	// Passage en ergonomie onglets
 	SetStyle("TabbedPanes");
@@ -153,7 +138,7 @@ CCLearningProblemView::CCLearningProblemView()
 		GetActionAt("BuildCoclustering")
 		    ->SetHelpText(
 			"Build a coclustering model given the coclustering parameters."
-			"\n A variable * variable or an instances * variables coclustering is computed given the "
+			"\n A variables coclustering or an instances * variables coclustering is computed given the "
 			"parameters."
 			"\n This action is anytime: coclustering models are computed and continuously improved,"
 			"\n with new solutions saved as soon as improvements are reached."
@@ -224,7 +209,7 @@ void CCLearningProblemView::BuildCoclustering()
 	    GetLearningProblem()->GetDatabase()->Check() and
 	    GetLearningProblem()->GetDatabase()->CheckSelectionValue(
 		GetLearningProblem()->GetDatabase()->GetSelectionValue()) and
-	    GetLearningProblem()->CheckCoclusteringAttributeNames() and
+	    GetLearningProblem()->CheckCoclusteringSpecifications() and
 	    GetLearningProblem()->CheckResultFileNames(CCLearningProblem::TaskBuildCoclustering))
 	{
 		// Calcul des stats

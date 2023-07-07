@@ -17,13 +17,6 @@
 #include "KWAttributeNameView.h"
 #include "KWAttributeNameArrayView.h"
 #include "KWVersion.h"
-// CH AB
-#include "KWAttributeAxisNameView.h"
-#include "KWAttributeAxisNameArrayView.h"
-// DDD
-// pour avoir acces au parametrage de l'algo DataGrid
-#include "KWDataGridOptimizerParametersView.h"
-// Fin CH AB
 
 // ##
 

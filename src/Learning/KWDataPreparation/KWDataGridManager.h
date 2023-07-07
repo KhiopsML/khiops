@@ -239,7 +239,7 @@ public:
 							KWDGAttribute* targetAttribute, int nGranularity,
 							KWQuantileGroupBuilder* quantileGroupBuilder) const;
 
-	// Construction d'un quantile builder pour chaque attribut interne dans un axe de type VarPart
+	// Construction d'un quantile builder pour chaque attribut interne dans un attribut de grille de type VarPart
 	// ivMaxPartNumbers : nombre maximal de parties pour chaque attribut interne. Utilise pour reperer quand on est
 	// arrive a la granularisation maxmimale
 	void
