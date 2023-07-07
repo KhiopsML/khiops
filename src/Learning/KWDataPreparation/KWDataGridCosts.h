@@ -9,7 +9,10 @@ class KWDataGridClassificationCosts;
 class KWDataGridClusteringCosts;
 class KWDataGridRegressionCosts;
 class KWDataGridGeneralizedClassificationCosts;
-
+// CH IV Begin
+// CH IV Refactoring: renommer en KWVarPartDataGridClusteringCosts
+class KWDataGridGenericClusteringCosts;
+// CH IV End
 #include "KWDataGrid.h"
 #include "KWDataGridMerger.h"
 #include "KWStat.h"
@@ -61,6 +64,19 @@ public:
 	// Calcul du cout local d'une cellule
 	virtual double ComputeCellCost(const KWDGCell* cell) const;
 
+	// CH IV Begin
+	/////////////////////////////////////////////////////////////////////////
+	// Methodes avancees pour les grilles generiques avec des attributs contenant des parties de variable
+	// Calcul du cout local d'un attribut implique dans une variable de type parties de variable
+	// CH IV Refactoring: commenter un peu davantage
+	// CH IV Refactoring: renommer en ComputeVarPartAttributeCost
+	virtual double ComputeImpliedAttributeCost(const KWDGAttribute* attribute, int nPartitionSize) const;
+
+	// Calcul du cout local d'une partie d'un attribut implique dans une variable de type parties de variable
+	// CH IV Refactoring: renommer en ComputeVarPartAttributePartCost
+	virtual double ComputeImpliedPartCost(const KWDGPart* part) const;
+	// CH IV End
+
 	/////////////////////////////////////////////////////////////////////////
 	// Calcul du cout total d'une grille de donnees
 	//	- cout de la grille
@@ -93,7 +109,12 @@ public:
 	void CleanDefaultCosts();
 	boolean IsInitialized() const;
 
-	// Acces aux cout total de la grille par defaut
+	// Acces au cout total de la grille par defaut
+	// CH IV Begin
+	// Pour une grille generique individus * variables, le cout de la grille par defaut
+	// depend du niveau de pre-partitionnment des variables en parties de variable
+	// Ce cout varie donc en fonction de ce niveau
+	// CH IV End
 	double GetTotalDefaultCost() const;
 
 	// Acces aux cout constant par attribut non informatif (cout attribut plus celui de son unique partie)
@@ -265,6 +286,16 @@ public:
 	// Calcul du cout local d'une cellule
 	double ComputeCellCost(const KWDGCell* cell) const override;
 
+	// CH IV Begin
+	// Calcul du cout local d'un attribut implique dans une variable de type parties de variable
+	// CH IV Refactoring: renommer en ComputeVarPartAttributeCost
+	double ComputeImpliedAttributeCost(const KWDGAttribute* attribute, int nPartitionSize) const override;
+
+	// Calcul du cout local d'une partie d'un attribut implique dans une variable de type parties de variable
+	// CH IV Refactoring: renommer en ComputeVarPartAttributePartCost
+	double ComputeImpliedPartCost(const KWDGPart* part) const override;
+	// CH IV End
+
 	// Cout de modele par entite
 	double ComputeDataGridConstructionCost(const KWDataGrid* dataGrid, double dLnGridSize,
 					       int nInformativeAttributeNumber) const override;
@@ -319,6 +350,16 @@ public:
 	// Calcul du cout local d'une valeur d'un attribut symbolique
 	double ComputeValueCost(const KWDGValue* value) const override;
 
+	// CH IV Begin
+	// Calcul du cout local d'un attribut implique dans une variable de type parties de variable
+	// CH IV Refactoring: renommer en ComputeVarPartAttributeCost
+	double ComputeImpliedAttributeCost(const KWDGAttribute* attribute, int nPartitionSize) const override;
+
+	// Calcul du cout local d'une partie d'un attribut implique dans une variable de type parties de variable
+	// CH IV Refactoring: renommer en ComputeVarPartAttributePartCost
+	double ComputeImpliedPartCost(const KWDGPart* part) const override;
+	// CH IV End
+
 	// Cout de modele par entite
 	double ComputeDataGridConstructionCost(const KWDataGrid* dataGrid, double dLnGridSize,
 					       int nInformativeAttributeNumber) const override;
@@ -334,6 +375,70 @@ public:
 	const ALString GetClassLabel() const override;
 };
 
+// CH IV Begin
+////////////////////////////////////////////////////////////////////////////
+// Structure des couts d'une grille de donnees dans le cas du clustering generique avec des axes de type VarParts
+// CH IV Refactoring: renommer en KWVarPartDataGridClusteringCosts
+class KWDataGridGenericClusteringCosts : public KWDataGridCosts
+{
+public:
+	// Constructeur
+	KWDataGridGenericClusteringCosts();
+	~KWDataGridGenericClusteringCosts();
+
+	// Duplication
+	KWDataGridCosts* Clone() const;
+
+	/////////////////////////////////////////////////////////////////////////
+	// Calcul des couts locaux par entite de la grille des donnees
+
+	// Calcul du cout local d'un DataGrid, en fonction de taille de la grille (en cellules) et
+	// du nombre d'attribut informatifs
+	//  La taille de la grille est donnee par son log, pour ne pas depasser les limites informatiques
+	//  Les attributs informatifs sont ceux ayant strictement plus de une partie
+	double ComputeDataGridCost(const KWDataGrid* dataGrid, double dLnGridSize,
+				   int nInformativeAttributeNumber) const override;
+
+	// Calcul du cout local d'un attribut, pour un nombre de parties donnees
+	// Le nombre de parties est le nombre total de parties.
+	// En cas de presence d'une poubelle il s'agit du nombre de parties informatives de l'attribut + 1
+	double ComputeAttributeCost(const KWDGAttribute* attribute, int nPartitionSize) const override;
+
+	// Calcul du cout local d'une partie
+	double ComputePartCost(const KWDGPart* part) const override;
+
+	// Calcul du cout local de l'union de deux parties
+	double ComputePartUnionCost(const KWDGPart* part1, const KWDGPart* part2) const override;
+
+	// Calcul du cout local d'une cellule
+	double ComputeCellCost(const KWDGCell* cell) const override;
+
+	// Calcul du cout local d'une valeur d'un attribut symbolique
+	double ComputeValueCost(const KWDGValue* value) const override;
+
+	// Calcul du cout local d'un attribut implique dans une variable de type parties de variable
+	// CH IV Refactoring: renommer en ComputeVarPartAttributeCost
+	double ComputeImpliedAttributeCost(const KWDGAttribute* attribute, int nPartitionSize) const override;
+
+	// Calcul du cout local d'une partie d'un attribut implique dans une variable de type parties de variable
+	// CH IV Refactoring: renommer en ComputeVarPartAttributePartCost
+	double ComputeImpliedPartCost(const KWDGPart* part) const override;
+
+	// Cout de modele par entite
+	double ComputeDataGridConstructionCost(const KWDataGrid* dataGrid, double dLnGridSize,
+					       int nInformativeAttributeNumber) const override;
+	double ComputeAttributeConstructionCost(const KWDGAttribute* attribute, int nPartitionSize) const override;
+	double ComputeDataGridModelCost(const KWDataGrid* dataGrid, double dLnGridSize,
+					int nInformativeAttributeNumber) const override;
+	double ComputeAttributeModelCost(const KWDGAttribute* attribute, int nPartitionSize) const override;
+	double ComputePartModelCost(const KWDGPart* part) const override;
+	double ComputeCellModelCost(const KWDGCell* cell) const override;
+	double ComputeValueModelCost(const KWDGValue* value) const override;
+
+	// Libelle de la classe
+	const ALString GetClassLabel() const override;
+};
+// CH IV End
 ////////////////////////////////////////////////////////////////////////////
 // Structure des couts d'une grille de donnees dans le cas de la regression
 class KWDataGridRegressionCosts : public KWDataGridCosts
@@ -374,6 +479,16 @@ public:
 
 	// Calcul du cout local d'une cellule
 	double ComputeCellCost(const KWDGCell* cell) const override;
+
+	// CH IV Begin
+	// Calcul du cout local d'un attribut implique dans une variable de type parties de variable
+	// CH IV Refactoring: renommer en ComputeVarPartAttributeCost
+	double ComputeImpliedAttributeCost(const KWDGAttribute* attribute, int nPartitionSize) const override;
+
+	// Calcul du cout local d'une partie d'un attribut implique dans une variable de type parties de variable
+	// CH IV Refactoring: renommer en ComputeVarPartAttributePartCost
+	double ComputeImpliedPartCost(const KWDGPart* part) const override;
+	// CH IV End
 
 	// Cout de modele par entite
 	double ComputeDataGridConstructionCost(const KWDataGrid* dataGrid, double dLnGridSize,
@@ -434,6 +549,16 @@ public:
 
 	// Calcul du cout local d'une valeur d'un attribut symbolique
 	double ComputeValueCost(const KWDGValue* value) const override;
+
+	// CH IV Begin
+	// Calcul du cout local d'un attribut implique dans une variable de type parties de variable
+	// CH IV Refactoring: renommer en ComputeVarPartAttributeCost
+	double ComputeImpliedAttributeCost(const KWDGAttribute* attribute, int nPartitionSize) const override;
+
+	// Calcul du cout local d'une partie d'un attribut implique dans une variable de type parties de variable
+	// CH IV Refactoring: renommer en ComputeVarPartAttributePartCost
+	double ComputeImpliedPartCost(const KWDGPart* part) const override;
+	// CH IV End
 
 	// Calcul du cout global (constant) de toutes les valeurs du DataGrid
 	double ComputeDataGridAllValuesCost(const KWDataGrid* dataGrid) const override;

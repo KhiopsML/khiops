@@ -58,6 +58,21 @@ void SetLearningWebSite(const ALString& sValue);
 // Type de systeme: 32 ou 64 bit
 const ALString GetLearningSystemType();
 
+// CH IV Begin
+// CH IV Refactoring: commenter les methodes
+// CH IV Refactoring: verifier si ces methodes sont utilisees
+// CH IV Refactoring: envisager d'abandonner la gestion des poubelles
+//    pour les attributs de type VarPart( axe) et les VarPart attributs de ces axes?
+
+// CH IV Refactoring: renommer en GetVarPartAxisGarbage?
+const boolean GetVarPartsAttributeGarbage();
+void SetVarPartsAttributeGarbage(const boolean bValue);
+
+// CH IV Refactoring: renommer en GetVarPartAttributeGarbage?
+const boolean GetImpliedAttributeGarbage();
+void SetImpliedAttributeGarbage(const boolean bValue);
+// CH IV End
+
 //////////////////////////////////////////////////////////////////////////////////////
 // Politique d'affichage des noms
 
@@ -101,7 +116,7 @@ boolean GetLearningRawGuiModeMode();
 // Ce mode expert est controlable par la variable d'environnement KhiopsExpertMode a true ou false
 boolean GetLearningExpertMode();
 
-// Indicateur du mode de l'outil avec gestion des d'un controle strict des limites memoire (defaut: false)
+// Indicateur du mode de l'outil avec gestion d'un controle stricte des limites memoire (defaut: false)
 // Quand il est a true, tout dépassement d'une limite memoire specifie par l'utilisateur provoque
 // un crash memoire, gere par un parametrage de l'allocateur
 // Ce mode expert est controlable par la variable d'environnement KhiopsHardMemoryLimitMode a true ou false
@@ -126,6 +141,13 @@ boolean GetForestExpertMode();
 // Indicateur du mode expert de l'outil de coclustering (permet d'activer certains services additionnels)
 // Ce mode expert est controlable par la variable d'environnement KhiopsCoclusteringExpertMode a true ou false
 boolean GetLearningCoclusteringExpertMode();
+
+// CH IV Begin
+// Indicateur du mode expert de l'outil de coclustering (permet d'activer la fonctionnalite de coclustering individus *
+// variables) Ce mode expert est controlable par la variable d'environnement KhiopsCoclusteringIVExpertMode a true ou
+// false
+boolean GetLearningCoclusteringIVExpertMode();
+// CH IV End
 
 // Indicateur du mode parallelisation expert de l'outil (en mode expert uniquement)
 // Permet d'activer certains services additionnels du mode parallele

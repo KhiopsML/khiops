@@ -67,7 +67,7 @@ double KWDataGridPostOptimizer::PostOptimizeDataGrid(const KWDataGrid* initialDa
 	// Affichage de la grille initiale avec ses couts
 	if (bDisplayResults)
 	{
-		cout << "\nPost-optimisation: grille initiale" << endl;
+		cout << "\nPost-optimisation: grille initiale" << sTaskLabel << endl;
 
 		if (optimizedDataGrid->GetAttributeNumber() == 2)
 			optimizedDataGrid->WriteCrossTableStats(cout, 0);
@@ -151,6 +151,16 @@ double KWDataGridPostOptimizer::PostOptimizeDataGrid(const KWDataGrid* initialDa
 				dCost = dataGridUnivariateGrouper.PostOptimizeDataGrid(
 				    univariateInitialDataGrid, dataGridCosts, optimizedDataGrid, bDeepPostOptimization);
 			}
+			// CH IV Begin
+			// Groupement de parties de variable si attribut VarParts
+			else
+			{
+				dataGridUnivariateGrouper.SetPostOptimizationAttributeName(
+				    dataGridAttribute->GetAttributeName());
+				dCost = dataGridUnivariateGrouper.PostOptimizeDataGrid(
+				    univariateInitialDataGrid, dataGridCosts, optimizedDataGrid, bDeepPostOptimization);
+			}
+			// CH IV End
 
 			// Le cout precedent devra etre correct
 			assert(dCost * (1 - dEpsilon) < dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid));
@@ -212,8 +222,24 @@ KWDataGridPostOptimizer::BuildUnivariateInitialDataGrid(const KWDataGrid* optimi
 	require(optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName) != NULL);
 	require(initialDataGrid->SearchAttribute(sPostOptimizationAttributeName) != NULL);
 
+	// CH IV Begin
+	// Extension pour un attribut de type VarParts : code identique
+	// Il faut une coherence (egalite) entre le KWDGAllVariableParts utilise par la grille optimisee et celui
+	// utilise pour l'attribut de la grille initiale
+	require(initialDataGrid->GetImpliedAttributes() == optimizedDataGrid->GetImpliedAttributes());
+	// CH IV End
+
 	// Creation de la grille univariee
 	univariateInitialDataGrid = new KWDataGrid;
+
+	// CH IV Begin
+	// Parametrage par les parties de variable
+	if (optimizedDataGrid->IsDataGridGeneric())
+	{
+		univariateInitialDataGrid->SetImpliedAttributes(optimizedDataGrid->GetImpliedAttributes());
+		univariateInitialDataGrid->SetVarPartsShared(true);
+	}
+	// CH IV End
 
 	// Export des attributs et des parties de la grille optimisee
 	dataGridManager.SetSourceDataGrid(optimizedDataGrid);
@@ -490,6 +516,10 @@ void KWDGPODiscretizer::InitializePartFrequencyVector(KWDGPOPartFrequencyVector*
 	// Memorisation du nombre de valeurs associees a la partie
 	if (part->GetPartType() == KWType::Symbol)
 		partFrequencyVector->SetModalityNumber(part->GetValueSet()->GetValueNumber());
+	// CH IV Begin
+	else if (part->GetPartType() == KWType::VarParts)
+		partFrequencyVector->SetModalityNumber(part->GetVarPartSet()->GetVarPartNumber());
+	// CH IV End
 
 	// Parcours des cellules de la partie pour creer les vecteurs d'effectif par cellule
 	cell = part->GetHeadCell();
@@ -1197,6 +1227,9 @@ double KWDGPOGrouper::PostOptimizeDataGrid(const KWDataGrid* initialDataGrid, co
 	int nNewIndex;
 	int nMaxStepNumber;
 	int nGroup;
+	// CH IV Begin
+	boolean bEMAlgorithm = false;
+	// CH IV End
 
 	require(optimizedDataGrid != NULL);
 	require(initialDataGrid != NULL);
@@ -1254,9 +1287,14 @@ double KWDGPOGrouper::PostOptimizeDataGrid(const KWDataGrid* initialDataGrid, co
 	}
 	// Cas ou l'attribut de grille a un groupe poubelle
 	if (optimizedDataGrid->SearchAttribute(GetPostOptimizationAttributeName())->GetGarbagePart() != NULL)
+	{
+		if (bDisplayResults)
+			cout << "PostOptimizeDataGrid:GarbageVarParts:Cas ou l'attribut de grille a un groupe poubelle"
+			     << endl;
 		// Initialisation de la taille du groupe poubelle
 		groupedFrequencyTable.SetGarbageModalityNumber(
 		    cast(KWFrequencyVector*, frequencyList.GetHead())->GetModalityNumber());
+	}
 
 	// Post-optimisation du groupage
 	// Il n'est pas utile d'utiliser PostOptimizeGrouping, meme en cas d'optimisation intense
@@ -1265,8 +1303,16 @@ double KWDGPOGrouper::PostOptimizeDataGrid(const KWDataGrid* initialDataGrid, co
 	else
 		nMaxStepNumber = 2;
 
-	FastPostOptimizeGroupsWithGarbage(&initialFrequencyTable, &groupedFrequencyTable, &ivGroups, nMaxStepNumber,
-					  &frequencyList);
+	// CH IV Begin
+	// Travail en cours pour etudier une approche EM plutot que l'algorithme initial de post-optimisation
+	if (not bEMAlgorithm)
+		FastPostOptimizeGroupsWithGarbage(&initialFrequencyTable, &groupedFrequencyTable, &ivGroups,
+						  nMaxStepNumber, &frequencyList);
+	else
+		EMPostOptimizeGroupsWithGarbage(&initialFrequencyTable, &groupedFrequencyTable, &ivGroups,
+						nMaxStepNumber, &frequencyList);
+	// CH IV End
+
 	nGroupNumber = groupedFrequencyTable.GetFrequencyVectorNumber();
 
 	// Supression des eventuels groupes vides
@@ -1408,6 +1454,10 @@ void KWDGPOGrouper::InitializePartFrequencyVector(KWDGPOPartFrequencyVector* par
 	// Memorisation du nombre de valeurs associees a la partie
 	if (part->GetPartType() == KWType::Symbol)
 		partFrequencyVector->SetModalityNumber(part->GetValueSet()->GetTrueValueNumber());
+	// CH IV Begin
+	else if (part->GetPartType() == KWType::VarParts)
+		partFrequencyVector->SetModalityNumber(part->GetVarPartSet()->GetVarPartNumber());
+	// CH IV End
 
 	// Parcours des cellules de la partie pour creer les vecteurs d'effectif par cellule
 	cell = part->GetHeadCell();
@@ -1618,9 +1668,15 @@ void KWDGPOGrouper::InitializeGroupIndexes(IntVector* ivGroups, const KWDataGrid
 	nIndex = 0;
 	while (initialPart != NULL)
 	{
-		// Recherche de sa partie groupee correspondante
-		optimizedPart =
-		    optimizedAttribute->LookupSymbolPart(initialPart->GetValueSet()->GetHeadValue()->GetValue());
+		// CH IV Begin
+		if (optimizedAttribute->GetAttributeType() == KWType::Symbol)
+			// Recherche de sa partie groupee correspondante
+			optimizedPart = optimizedAttribute->LookupSymbolPart(
+			    initialPart->GetValueSet()->GetHeadValue()->GetValue());
+		else
+			optimizedPart = optimizedAttribute->LookupVarPart(
+			    initialPart->GetVarPartSet()->GetHeadVarPart()->GetVarPart());
+		// CH IV End
 
 		// Memorisation de l'index de ce groupe
 		kwsiOptimizedPartIndex = cast(KWSortableIndex*, nkdOptimizedPartIndexes.Lookup(optimizedPart));
@@ -1696,8 +1752,19 @@ int KWDGPOGrouper::InitializeGroupIndexesAndGarbageIndex(IntVector* ivGroups, co
 	while (initialPart != NULL)
 	{
 		// Recherche de sa partie groupee correspondante
-		optimizedPart =
-		    optimizedAttribute->LookupSymbolPart(initialPart->GetValueSet()->GetHeadValue()->GetValue());
+
+		// CH IV Begin
+		if (optimizedAttribute->GetAttributeType() == KWType::Symbol)
+		{
+			optimizedPart = optimizedAttribute->LookupSymbolPart(
+			    initialPart->GetValueSet()->GetHeadValue()->GetValue());
+		}
+		else if (optimizedAttribute->GetAttributeType() == KWType::VarParts)
+		{
+			optimizedPart = optimizedAttribute->LookupVarPart(
+			    initialPart->GetVarPartSet()->GetHeadVarPart()->GetVarPart());
+		}
+		// CH IV End
 
 		// Memorisation de l'index de ce groupe
 		kwsiOptimizedPartIndex = cast(KWSortableIndex*, nkdOptimizedPartIndexes.Lookup(optimizedPart));
@@ -1812,12 +1879,31 @@ void KWDGPOGrouper::UpdateDataGridWithGarbageFromGroups(KWDataGrid* optimizedDat
 		// Recherche de la partie optimisee a mettre a jour
 		optimizedPart = cast(KWDGPart*, oaOptimizedParts.GetAt(nGroup));
 
-		// Mise a jour de la definition du group
-		optimizedPart->GetValueSet()->UpgradeFrom(initialPart->GetValueSet());
+		// CH IV Begin
+		// Cas d'une partie d'un attribut categoriel
+		if (optimizedPart->GetPartType() == KWType::Symbol)
+		{
+			// Mise a jour de la definition du group
+			optimizedPart->GetValueSet()->UpgradeFrom(initialPart->GetValueSet());
 
-		// Mise a jour du groupe poubelle comme le groupe contenant le plus de modalites
-		if (optimizedPart->GetValueSet()->GetTrueValueNumber() > optimizedAttribute->GetGarbageModalityNumber())
-			optimizedAttribute->SetGarbagePart(optimizedPart);
+			// Mise a jour du groupe poubelle comme le groupe contenant le plus de modalites
+			if (optimizedPart->GetValueSet()->GetTrueValueNumber() >
+			    optimizedAttribute->GetGarbageModalityNumber())
+				optimizedAttribute->SetGarbagePart(optimizedPart);
+		}
+
+		// Sinon d'un attribut de type VarPart
+		else if (optimizedPart->GetPartType() == KWType::VarParts)
+		{
+			// Mise a jour de la definition du group
+			optimizedPart->GetVarPartSet()->UpgradeFrom(initialPart->GetVarPartSet());
+
+			// Mise a jour du groupe poubelle comme le groupe contenant le plus de parties de variables
+			if (optimizedPart->GetVarPartSet()->GetVarPartNumber() >
+			    optimizedAttribute->GetGarbageModalityNumber())
+				optimizedAttribute->SetGarbagePart(optimizedPart);
+		}
+		// CH IV End
 
 		// Partie initiale suivante
 		initialAttribute->GetNextPart(initialPart);
@@ -2290,6 +2376,9 @@ void KWDataGridUnivariateCosts::InitializeUnivariateCostParameters(const KWDataG
 	KWDGAttribute* attribute;
 	KWDGPart* part;
 	int nPartitionSize;
+	// CH IV Begin
+	int nImpliedAttribute;
+	// CH IV End
 
 	require(GetPostOptimizationAttributeName() != "");
 	require(GetDataGridCosts() != NULL);
@@ -2312,6 +2401,11 @@ void KWDataGridUnivariateCosts::InitializeUnivariateCostParameters(const KWDataG
 	if (postOptimizedAttribute->GetPartNumber() > 1)
 		dataGridCostParameter->nInformativeAttributeNumber--;
 	dataGridCostParameter->nGranularity = optimizedDataGrid->GetGranularity();
+	// CH IV Begin
+	dataGridCostParameter->bGenericDataGrid = optimizedDataGrid->IsDataGridGeneric();
+	dataGridCostParameter->SetImpliedAttributes(optimizedDataGrid->GetImpliedAttributes());
+	dataGridCostParameter->SetVarPartsShared(true);
+	// CH IV End
 
 	// Memorisation des caracteristiques de l'attribut a post-optimiser
 	attributeCostParameter = new KWDGAttributeCostParameter;
@@ -2325,6 +2419,15 @@ void KWDataGridUnivariateCosts::InitializeUnivariateCostParameters(const KWDataG
 	attributeCostParameter->SetInitialValueNumber(postOptimizedAttribute->GetInitialValueNumber());
 	attributeCostParameter->SetGranularizedValueNumber(postOptimizedAttribute->GetGranularizedValueNumber());
 	attributeCostParameter->nGarbageModalityNumber = postOptimizedAttribute->GetGarbageModalityNumber();
+	// CH IV Begin
+	attributeCostParameter->SetImpliedAttributesNumber(postOptimizedAttribute->GetImpliedAttributesNumber());
+	for (nImpliedAttribute = 0; nImpliedAttribute < postOptimizedAttribute->GetImpliedAttributesNumber();
+	     nImpliedAttribute++)
+	{
+		attributeCostParameter->SetImpliedAttributeNameAt(
+		    nImpliedAttribute, postOptimizedAttribute->GetImpliedAttributeNameAt(nImpliedAttribute));
+	}
+	// CH IV End
 
 	// Caracteristiques generales du cout en univarie
 	nValueNumber = attributeCostParameter->GetGranularizedValueNumber();
@@ -2572,6 +2675,14 @@ double KWDataGridUnivariateCosts::ComputePartCost(const KWFrequencyVector* part)
 		cast(KWDGValueSetCostParameter*, partCostParameter->GetValueSet())->nValueNumber =
 		    cast(KWDGPOPartFrequencyVector*, part)->GetModalityNumber();
 	}
+	// CH IV Begin
+	else if (partCostParameter->GetPartType() == KWType::VarParts)
+	{
+		cast(KWDGVarPartSetCostParameter*, partCostParameter->GetVarPartSet())->nVarPartNumber =
+		    cast(KWDGPOPartFrequencyVector*, part)->GetModalityNumber();
+		// il faut que modalityNumber ait ete alimente par le nombre de parties de variable
+	}
+	// CH IV End
 
 	// Cout: cout local de la partie + somme des cout des cellules (maintenu dans la partie)
 	dCost =
@@ -2638,6 +2749,14 @@ double KWDataGridUnivariateCosts::ComputePartUnionCost(const KWFrequencyVector* 
 		    cast(KWDGPOPartFrequencyVector*, sourcePart1)->GetModalityNumber() +
 		    cast(KWDGPOPartFrequencyVector*, sourcePart2)->GetModalityNumber();
 	}
+	// CH IV Begin
+	else if (partCostParameter->GetPartType() == KWType::VarParts)
+	{
+		cast(KWDGVarPartSetCostParameter*, partCostParameter->GetVarPartSet())->nVarPartNumber =
+		    cast(KWDGPOPartFrequencyVector*, sourcePart1)->GetModalityNumber() +
+		    cast(KWDGPOPartFrequencyVector*, sourcePart2)->GetModalityNumber();
+	}
+	// CH IV End
 
 	// Cout: cout local de la partie + somme des cout des cellules (maintenu dans la partie)
 	dCost = dataGridCosts->ComputePartCost(partCostParameter);
@@ -2670,6 +2789,14 @@ double KWDataGridUnivariateCosts::ComputePartDiffCost(const KWFrequencyVector* s
 		    cast(KWDGPOPartFrequencyVector*, sourcePart)->GetModalityNumber() -
 		    cast(KWDGPOPartFrequencyVector*, removedPart)->GetModalityNumber();
 	}
+	// CH IV Begin
+	if (partCostParameter->GetPartType() == KWType::VarParts)
+	{
+		cast(KWDGVarPartSetCostParameter*, partCostParameter->GetVarPartSet())->nVarPartNumber =
+		    cast(KWDGPOPartFrequencyVector*, sourcePart)->GetModalityNumber() -
+		    cast(KWDGPOPartFrequencyVector*, removedPart)->GetModalityNumber();
+	}
+	// CH IV End
 
 	// Cout: cout local de la partie + somme des cout des cellules (maintenu dans la partie)
 	dCost = dataGridCosts->ComputePartCost(partCostParameter);
@@ -2748,14 +2875,18 @@ boolean KWDGAttributeCostParameter::GetEmulated() const
 void KWDGPartCostParameter::SetPartType(int nValue)
 {
 	require(GetPartType() == KWType::Unknown);
-	require(KWType::IsSimple(nValue));
+	// CH IV Begin
+	require(KWType::IsSimple(nValue) or nValue == KWType::VarParts);
 
 	// Creation de l'objet interval ou ensemble de valeur selon le type
 	if (nValue == KWType::Continuous)
 		interval = new KWDGInterval;
-	else
+	else if (nValue == KWType::Symbol)
 		valueSet = new KWDGValueSetCostParameter;
-
+	else
+		varPartSet = new KWDGVarPartSetCostParameter;
+	// Avant integration : pour quel cas ? valueSet = new KWDGValueSetCostParameter;
+	// CH IV End
 	ensure(GetPartType() != KWType::Unknown);
 }
 
@@ -2769,6 +2900,12 @@ boolean KWDGValueSetCostParameter::GetEmulated() const
 	return true;
 }
 
+// CH IV Begin
+boolean KWDGVarPartSetCostParameter::GetEmulated() const
+{
+	return true;
+}
+// CH IV End
 boolean KWDGCellCostParameter::GetEmulated() const
 {
 	return true;
@@ -3277,3 +3414,1403 @@ int KWDGPOCellFrequencyVector::ComputeTotalFrequency() const
 		nTotalFrequency = nCellFrequency;
 	return nTotalFrequency;
 }
+
+// CH IV Begin
+//////////////////////////////////////////////////////////////////////////////////
+// Classe CCGenericDataGridPostOptimizer
+
+CCGenericDataGridPostOptimizer::CCGenericDataGridPostOptimizer()
+{
+	// dataGridCosts = NULL;
+	dEpsilon = 1e-10;
+	sPostOptimizationAttributeName = "";
+}
+
+CCGenericDataGridPostOptimizer::~CCGenericDataGridPostOptimizer() {}
+
+void CCGenericDataGridPostOptimizer::SetPostOptimizationAttributeName(const ALString& sValue)
+{
+	sPostOptimizationAttributeName = sValue;
+}
+
+const ALString& CCGenericDataGridPostOptimizer::GetPostOptimizationAttributeName() const
+{
+	return sPostOptimizationAttributeName;
+}
+
+boolean CCGenericDataGridPostOptimizer::PostOptimizeLightGenericDataGrid(const KWDataGrid* referenceDataGrid,
+									 KWDataGrid* optimizedDataGrid,
+									 IntVector* ivGroups) const
+{
+	KWDGAttribute* impliedAttribute;
+	KWDGAttribute* impliedOptimizedAttribute;
+	KWDGAttribute* varPartReferenceAttribute;
+	KWDGAttribute* varPartOptimizedAttribute;
+	KWDataGridManager dataGridManager;
+	IntVector ivVarPartIndexes;
+	IntVector ivFrozenParts;
+	int nDeltaVarPartNumber;
+	int nDeltaVarPartNumberClusterOut;
+	int nDeltaClusterNumber;
+	KWDGPart* impliedPart;
+	KWDGPart* impliedInOptimizedPart;
+	KWDGPart* impliedOutOptimizedPart;
+	KWDGPart* impliedPartCluster;
+	KWDGPart* clusterPart;
+	KWDGPart* clusterPartIn;
+	KWDGPart* clusterPartOut;
+	KWDGPart* prevPartCluster = NULL;
+	KWDGPart* currentPartCluster = NULL;
+	KWDGPart* nextPartCluster = NULL;
+	KWDGVarPartValue* varPartValue;
+	int nImpliedPart;
+	int nPartIndex;
+	int nCurrentClusterIndex;
+	int nPrevClusterIndex;
+	int nNextClusterIndex;
+	int nClusterIndex;
+	ObjectArray oaClusterParts;
+	ObjectArray oaImpliedParts;
+	NumericKeyDictionary nkdClusterIndexes;
+	NumericKeyDictionary nkdReferenceClusterIndexes;
+	double dVariationCost = 0;
+	IntObject* clusterIndex;
+	double dBestVariationCost;
+	int nBestVarPartIndex;
+	int nBestClusterIndex;
+	int nImpliedAttribute;
+	int nImprovementNumber;
+	ALString sImpliedAttributeName;
+	boolean bDisplayCosts = false;
+	boolean bDisplayImprovement = false;
+	boolean bAllNegativeVariation = true;
+	boolean bBestNegativeVariation = false;
+	boolean bBestNegativeVariationForEachAttribute = false;
+
+	// Trois cas de memorisation des deplacements
+	// bAllNegativeVariation : tous les deplacements ameliorant le critere sont memorises
+	// bBestNegativeVariationForEachAttribute : pour chaque attribut, le meilleur deplacement est memorise
+	// bBestNegativeVariation : le meilleur deplacement parmi tous les attributs est memorise
+
+	require(optimizedDataGrid->IsDataGridGeneric());
+	require(referenceDataGrid->IsDataGridGeneric());
+	require(ivGroups != NULL);
+
+	// Initialisation du nombre d'ameliorations
+	nImprovementNumber = 0;
+
+	// Initialisation du meilleur cout
+	dBestVariationCost = 0;
+	nBestClusterIndex = -1;
+	nBestVarPartIndex = -1;
+
+	// Re-initialisation du vecteur des clusters
+	ivGroups->SetSize(0);
+
+	// Verification de la compatibilite entre grille optimisee et grille initiale
+	dataGridManager.SetSourceDataGrid(referenceDataGrid);
+	// require(dataGridManager.CheckDataGrid(optimizedDataGrid));
+
+	// Extraction de l'attribut VarPart dans la grille pre-partitionnee de reference
+	varPartReferenceAttribute = referenceDataGrid->SearchAttribute(sPostOptimizationAttributeName);
+	varPartReferenceAttribute->BuildIndexingStructure();
+
+	// Extraction de l'attribut VarPart dans la grille optimisee courante
+	varPartOptimizedAttribute = optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName);
+	varPartOptimizedAttribute->BuildIndexingStructure();
+
+	if (bDisplayCosts)
+	{
+		cout << "CCGenericDataGridPostOptimizer:Table a optimiser\n";
+		optimizedDataGrid->Write(cout);
+		cout << "CCGenericDataGridPostOptimizer: Table de reference avec PV elementaires\n";
+		referenceDataGrid->Write(cout);
+		// cout << "CCGenericDataGridPostOptimizer:Attribut a optimiser\t" << sImpliedAttributeName << endl;
+		cout << "CCGenericDataGridPostOptimizer:Attribut VarPart\tVarPartNumber\t"
+		     << varPartOptimizedAttribute->GetInitialValueNumber() << "\tClusterNumber\t"
+		     << varPartOptimizedAttribute->GetPartNumber() << endl;
+	}
+
+	// Creation d'un dictionnaire des VarPart dans l'attribut optimise
+	nPartIndex = 0;
+	clusterPart = varPartOptimizedAttribute->GetHeadPart();
+	while (clusterPart != NULL)
+	{
+		clusterIndex = new IntObject;
+		clusterIndex->SetInt(nPartIndex);
+		nkdClusterIndexes.SetAt((NUMERIC)clusterPart, clusterIndex);
+		nPartIndex++;
+		varPartOptimizedAttribute->GetNextPart(clusterPart);
+	}
+
+	// Creation d'un dictionnaire donnant pour chaque partie de l'attribut de reference le cluster auquel cette
+	// partie appartient dans l'attribut optimise Parcours des parties de l'attribut VarParts (parcours commun a
+	// tous les attributs impliques)
+	nPartIndex = 0;
+	impliedPartCluster = varPartReferenceAttribute->GetHeadPart();
+	while (impliedPartCluster != NULL)
+	{
+		impliedPart = impliedPartCluster->GetVarPartSet()->GetHeadVarPart()->GetVarPart();
+		clusterPart = varPartOptimizedAttribute->LookupVarPart(impliedPart);
+		ivGroups->Add(cast(IntObject*, nkdClusterIndexes.Lookup((NUMERIC)clusterPart))->GetInt());
+		clusterIndex = new IntObject;
+		clusterIndex->SetInt(nPartIndex);
+		nkdReferenceClusterIndexes.SetAt((NUMERIC)impliedPart, clusterIndex);
+		nPartIndex++;
+		varPartReferenceAttribute->GetNextPart(impliedPartCluster);
+	}
+
+	if (bDisplayCosts)
+	{
+		cout << "Association PV - cluster optimise" << endl;
+		// Pour chaque PV on affiche l'index du cluster optimise auquel elle appartient
+		impliedPartCluster = varPartReferenceAttribute->GetHeadPart();
+
+		for (nPartIndex = 0; nPartIndex < ivGroups->GetSize(); nPartIndex++)
+		{
+			impliedPart = impliedPartCluster->GetVarPartSet()->GetHeadVarPart()->GetVarPart();
+			cout << "PV\t" << *impliedPart << "\t" << ivGroups->GetAt(nPartIndex) << "\n";
+			varPartReferenceAttribute->GetNextPart(impliedPartCluster);
+		}
+	}
+
+	// Boucle sur les attributs impliques pour une post-optimisation univariee
+	for (nImpliedAttribute = 0;
+	     nImpliedAttribute <
+	     referenceDataGrid->GetImpliedAttributes()->GetImpliedAttributesDictionary()->GetCount();
+	     nImpliedAttribute++)
+	{
+		// Attribut implique a optimiser
+		impliedAttribute = referenceDataGrid->GetImpliedAttributes()->GetImpliedAttributeAt(nImpliedAttribute);
+
+		// Cas d'un attribut Continuous
+		if (impliedAttribute->GetAttributeType() == KWType::Continuous)
+		{
+			if (bBestNegativeVariationForEachAttribute)
+			{
+				// Initialisation du meilleur cout pour cet attribut
+				dBestVariationCost = 0;
+				nBestClusterIndex = -1;
+				nBestVarPartIndex = -1;
+			}
+
+			// Association partie cluster dans la grille optimisee initiale
+			// Parcours des parties de l'attribut implique (parcours specifique a l'attribut implique)
+			nImpliedPart = 0;
+			impliedPart = impliedAttribute->GetHeadPart();
+			oaClusterParts.SetSize(impliedAttribute->GetPartNumber());
+			while (impliedPart != NULL)
+			{
+				// Recherche de la partie de l'attribut correspondant
+				clusterPart = varPartOptimizedAttribute->LookupVarPart(impliedPart);
+				oaClusterParts.SetAt(nImpliedPart, clusterPart);
+				impliedAttribute->GetNextPart(impliedPart);
+				nImpliedPart++;
+			}
+
+			// Affichage des clusters des PV de l'attribut implique
+			if (bDisplayCosts)
+			{
+				cout << "CCGenericDataGridPostOptimizer:Clusters des PV de l'attribut\t"
+				     << impliedAttribute->GetAttributeName() << endl;
+				oaClusterParts.Write(cout);
+			}
+			cout << flush;
+
+			// Indexation des parties de l'attribut pour melange aleatoire
+			ivVarPartIndexes.SetSize(impliedAttribute->GetPartNumber());
+			for (nImpliedPart = 0; nImpliedPart < impliedAttribute->GetPartNumber(); nImpliedPart++)
+				ivVarPartIndexes.SetAt(nImpliedPart, nImpliedPart);
+			// Melange aleatoire
+			ivVarPartIndexes.Shuffle();
+
+			// Initialisation du vecteur indiquant les parties "depart" gelees : intervalle a ne pas
+			// deplacer car implique dans un deplacement memorise
+			ivFrozenParts.SetSize(impliedAttribute->GetPartNumber());
+			ivFrozenParts.Initialize();
+
+			// Parcours des parties de l'attribut implique selon l'ordre du melange aleatoire
+			impliedAttribute->ExportParts(&oaImpliedParts);
+			for (nImpliedPart = 0; nImpliedPart < oaImpliedParts.GetSize(); nImpliedPart++)
+			{
+				// Index de la partie si on ne les prend pas dans l'ordre
+				nPartIndex = ivVarPartIndexes.GetAt(nImpliedPart);
+				impliedPart = cast(KWDGPart*, oaImpliedParts.GetAt(nPartIndex));
+
+				// Intervalle eligible
+				if (ivFrozenParts.GetAt(nPartIndex) < 0)
+				{
+					if (bDisplayCosts)
+						cout << "intervalle non eligible\t" << *impliedPart << endl;
+				}
+				else
+				{
+					// Extraction du cluster de la grille optimisee dans lequel se trouve la PV a
+					// deplacer
+					currentPartCluster = cast(KWDGPart*, oaClusterParts.GetAt(nPartIndex));
+
+					// Index de ce cluster
+					nCurrentClusterIndex =
+					    cast(IntObject*, nkdClusterIndexes.Lookup((NUMERIC)currentPartCluster))
+						->GetInt();
+
+					// Extraction du cluster de la PV dans la grille de reference (avec une PV par
+					// cluster)
+					impliedPartCluster = varPartReferenceAttribute->LookupVarPart(impliedPart);
+
+					// Variation du nombre de cluster
+					nDeltaClusterNumber = 0;
+					// Cas ou le cluster est vide apres le depart de l'intervalle
+					if (currentPartCluster->GetPartFrequency() == impliedPart->GetPartFrequency())
+						nDeltaClusterNumber = 1;
+
+					// Cas d'une PV autre que la premiere
+					if (nPartIndex > 0)
+					{
+						// Extraction et index du cluster de la PV precedente
+						prevPartCluster = cast(KWDGPart*, oaClusterParts.GetAt(nPartIndex - 1));
+						nPrevClusterIndex =
+						    cast(IntObject*, nkdClusterIndexes.Lookup((NUMERIC)prevPartCluster))
+							->GetInt();
+					}
+					else
+					{
+						prevPartCluster = NULL;
+						nPrevClusterIndex = -1;
+					}
+					// Cas d'une PV autre que la derniere
+					if (nPartIndex < oaImpliedParts.GetSize() - 1)
+					{
+						// Extraction et index du cluster de la PV suivante
+						nextPartCluster = cast(KWDGPart*, oaClusterParts.GetAt(nPartIndex + 1));
+						nNextClusterIndex =
+						    cast(IntObject*, nkdClusterIndexes.Lookup((NUMERIC)nextPartCluster))
+							->GetInt();
+					}
+					else
+					{
+						nextPartCluster = NULL;
+						nNextClusterIndex = -1;
+					}
+					// Deplacement de l'intervalle courant vers le cluster de l'intervalle precedent
+					if (prevPartCluster != NULL and currentPartCluster != prevPartCluster)
+					{
+						// Cas d'une double fusion au niveau des PV de l'impliedAttribute : si
+						// le cluster de l'intervalle precedent est egalement le cluster de
+						// l'intervalle suivant Dans ce cas l'impliedAttribute perd 2 PV. Le
+						// cluster d'arrivee en perd 1
+						if (prevPartCluster == nextPartCluster)
+						{
+							assert(nPrevClusterIndex == nNextClusterIndex);
+							nDeltaVarPartNumber = 2;
+							nDeltaVarPartNumberClusterOut = 1;
+						}
+						// Sinon, simple fusion dans le cluster d'arrivee (celui de l'intervalle
+						// precedent)
+						else
+						{
+							assert(nPrevClusterIndex != nNextClusterIndex);
+							// Deux cas : l'intervalle courant etait ou pas avec
+							// l'intervalle suivant Cas ou l'intervalle courant n'etait pas
+							// avec l'intervalle suivant
+							if (currentPartCluster != nextPartCluster)
+							{
+								// L'impliedAttribute perd 1 PV. Le cluster de depart
+								// perd une PV Le cluster d'arrivee 0 (les 2 PV
+								// fusionnent dans la meme donc il y a le meme nombre de
+								// PV dans le cluster)
+								nDeltaVarPartNumber = 1;
+								nDeltaVarPartNumberClusterOut = 1;
+							}
+							// Sinon, aucune perte de PV, juste un transfert
+							{
+								nDeltaVarPartNumber = 0;
+								nDeltaVarPartNumberClusterOut = 0;
+							}
+						}
+
+						// Calcul du cout de ce deplacement
+						// Variation de cout de l'attribut VarParts et de l'attribut implique
+						dVariationCost = ComputeVarPartsContinuousAttributeVariationCost(
+						    varPartOptimizedAttribute, nDeltaClusterNumber, nDeltaVarPartNumber,
+						    impliedAttribute->GetAttributeName());
+
+						// Variation de cout du cluster de depart (cluster et cellules associes)
+						dVariationCost += ComputeClusterVariationCost(
+						    currentPartCluster, impliedPart->GetPartFrequency(),
+						    nDeltaVarPartNumberClusterOut, true);
+
+						dVariationCost += ComputeClusterCellVariationCost(
+						    currentPartCluster, impliedPartCluster, true);
+
+						// Variation de cout du cluster d'arrivee
+						// Le cluster d'arrivee perd zero ou un intervalle selon le type de
+						// fusion simple ou double
+						dVariationCost += ComputeClusterVariationCost(
+						    prevPartCluster, impliedPart->GetPartFrequency(),
+						    nDeltaVarPartNumber - nDeltaVarPartNumberClusterOut, false);
+
+						dVariationCost += ComputeClusterCellVariationCost(
+						    prevPartCluster, impliedPartCluster, false);
+
+						// Affichage de l'intervalle, de la variation du nombre de parties de
+						// variable et du cout de son deplacement
+						if (bDisplayCosts)
+							cout << "CCGenericDataGridPostOptimizer:Intervalle\t"
+							     << *impliedPart << "VarPartVariationNumber vers prev\t"
+							     << nDeltaVarPartNumber << "\tDeltaCost\t" << dVariationCost
+							     << "\n";
+
+						// Cas d'un deplacement ameliorant le critere : construction de la
+						// nouvelle grille pour verifier l'egalite des couts
+						if (dVariationCost < dBestVariationCost and
+						    (bBestNegativeVariation or bBestNegativeVariationForEachAttribute))
+						{
+							if (bDisplayCosts or bDisplayImprovement)
+							{
+								cout << "PO numerique" << endl;
+								cout << "PV d'index\t" << nImpliedPart << "\t"
+								     << *impliedPart << "\tdVariationCost\t"
+								     << dVariationCost << endl;
+								cout << "PV qui appartient au cluster reference"
+								     << *impliedPartCluster;
+								cout << "Cluster dans la grille optimisee d'index\t"
+								     << nCurrentClusterIndex << "\t"
+								     << *currentPartCluster;
+								cout << "Index du cluster dans la grille optimisee "
+									"d'apres ivGroups\t"
+								     << ivGroups->GetAt(nImpliedPart) << endl;
+								cout << "Nouvel index de PV \t"
+								     << cast(IntObject*,
+									     nkdReferenceClusterIndexes.Lookup(
+										 (NUMERIC)impliedPart))
+									    ->GetInt()
+								     << endl;
+								cout << "Nouvel index de cluster \t"
+								     << ivGroups->GetAt(
+									    cast(IntObject*,
+										 nkdReferenceClusterIndexes.Lookup(
+										     (NUMERIC)impliedPart))
+										->GetInt())
+								     << endl;
+							}
+
+							cout << flush;
+
+							dBestVariationCost = dVariationCost;
+							nBestVarPartIndex =
+							    cast(IntObject*, nkdReferenceClusterIndexes.Lookup(
+										 (NUMERIC)impliedPart))
+								->GetInt();
+							nBestClusterIndex = nPrevClusterIndex;
+						}
+						// Si on veut memoriser tous les deplacements qui ameliorent le critere
+						if (dVariationCost < 0 and bAllNegativeVariation)
+						{
+							ivGroups->SetAt(
+							    cast(IntObject*, nkdReferenceClusterIndexes.Lookup(
+										 (NUMERIC)impliedPart))
+								->GetInt(),
+							    nPrevClusterIndex);
+							nImprovementNumber++;
+
+							// On marque les intervalles precedent et eventuellement suivant
+							// comme non eligibles pour un eventuel deplacement car implique
+							// dans la fusion de ce deplacement
+							ivFrozenParts.SetAt(nPartIndex - 1, -1);
+							if (nDeltaVarPartNumber == 2)
+								ivFrozenParts.SetAt(nPartIndex + 1, -1);
+							if (bDisplayCosts or bDisplayImprovement)
+							{
+								cout << "PV d'index\t" << nImpliedPart << "\t"
+								     << *impliedPart << "\tdVariationCost\t"
+								     << dVariationCost << endl;
+								cout << "Nouvel index de cluster \t"
+								     << ivGroups->GetAt(
+									    cast(IntObject*,
+										 nkdReferenceClusterIndexes.Lookup(
+										     (NUMERIC)impliedPart))
+										->GetInt())
+								     << endl;
+							}
+						}
+					}
+
+					// Deplacement de l'intervalle courant vers le cluster de l'intervalle suivant
+					if (nextPartCluster != NULL and currentPartCluster != nextPartCluster)
+					{
+						// Cas d'une simple fusion (la double fusion aura ete vu lors du
+						// deplacement de l'intervalle courant vers le cluster de l'intervalle
+						// precedent
+						if (nextPartCluster != prevPartCluster)
+						{
+							assert(nPrevClusterIndex != nNextClusterIndex);
+
+							// Cas ou l'intervalle courant n'est pas avec le precedent
+							if (currentPartCluster != prevPartCluster)
+							{
+								nDeltaVarPartNumber = 1;
+								nDeltaVarPartNumberClusterOut = 1;
+							}
+							else
+							{
+								nDeltaVarPartNumber = 0;
+								nDeltaVarPartNumberClusterOut = 0;
+							}
+
+							// Calcul du cout de ce deplacement
+							// Variation de cout de l'attribut VarParts et de l'attribut
+							// implique
+							dVariationCost =
+							    ComputeVarPartsContinuousAttributeVariationCost(
+								varPartOptimizedAttribute, nDeltaClusterNumber,
+								nDeltaVarPartNumber,
+								impliedAttribute->GetAttributeName());
+
+							// Variation de cout du cluster de depart (cluster et cellules
+							// associes)
+							dVariationCost += ComputeClusterVariationCost(
+							    currentPartCluster, impliedPart->GetPartFrequency(),
+							    nDeltaVarPartNumberClusterOut, true);
+
+							dVariationCost += ComputeClusterCellVariationCost(
+							    currentPartCluster, impliedPartCluster, true);
+
+							// Variation de cout du cluster d'arrivee
+							// Le cluster de depart perd un ou deux intervalle selon le type
+							// de fusion simple ou double : valeur calculee dans
+							// nDeltaVarPartNumber
+							dVariationCost += ComputeClusterVariationCost(
+							    nextPartCluster, impliedPart->GetPartFrequency(),
+							    nDeltaVarPartNumber - nDeltaVarPartNumberClusterOut, false);
+
+							dVariationCost += ComputeClusterCellVariationCost(
+							    nextPartCluster, impliedPartCluster, false);
+
+							// Affichage de l'intervalle et de la variation du nombre de
+							// parties de variable et du cout de son deplacement
+							if (bDisplayCosts)
+								cout << "CCGenericDataGridPostOptimizer:Intervalle\t"
+								     << *impliedPart
+								     << "VarPartVariationNumber vers next\t"
+								     << nDeltaVarPartNumber << "\tDeltaCost\t"
+								     << dVariationCost << "\n";
+
+							// Cas d'un deplacement ameliorant le critere : construction de
+							// la nouvelle grille pour verifier l'egalite des couts
+							if (dVariationCost < dBestVariationCost and
+							    (bBestNegativeVariation or
+							     bBestNegativeVariationForEachAttribute))
+							{
+
+								if (bDisplayCosts or bDisplayImprovement)
+								{
+									cout << "PO numerique" << endl;
+									cout << "PV d'index\t" << nImpliedPart << "\t"
+									     << *impliedPart;
+									cout << "PV qui appartient au cluster reference"
+									     << *impliedPartCluster;
+									cout << "Cluster dans la grille optimisee "
+										"d'index\t"
+									     << nCurrentClusterIndex << "\t"
+									     << *currentPartCluster;
+									cout << "Index du cluster dans la grille "
+										"optimisee d'apres ivGroups\t"
+									     << ivGroups->GetAt(nImpliedPart) << endl;
+									cout << "Nouvel index de PV \t"
+									     << cast(IntObject*,
+										     nkdReferenceClusterIndexes.Lookup(
+											 (NUMERIC)impliedPart))
+										    ->GetInt()
+									     << endl;
+									cout << "Nouvel index de cluster \t"
+									     << ivGroups->GetAt(
+										    cast(IntObject*,
+											 nkdReferenceClusterIndexes
+											     .Lookup(
+												 (NUMERIC)impliedPart))
+											->GetInt())
+									     << endl;
+								}
+
+								cout << flush;
+
+								dBestVariationCost = dVariationCost;
+								nBestVarPartIndex =
+								    cast(IntObject*, nkdReferenceClusterIndexes.Lookup(
+											 (NUMERIC)impliedPart))
+									->GetInt();
+								nBestClusterIndex = nNextClusterIndex;
+							}
+							// Si on veut tous les deplacements qui ameliorent le critere on
+							// peut directement mettre a jour
+							if (dVariationCost < 0 and bAllNegativeVariation)
+							{
+								// pas nImpliedPart
+								ivGroups->SetAt(
+								    cast(IntObject*, nkdReferenceClusterIndexes.Lookup(
+											 (NUMERIC)impliedPart))
+									->GetInt(),
+								    nNextClusterIndex);
+								nImprovementNumber++;
+
+								// On marque l'intervalle suivant non eligible pour un
+								// future deplacement car implique dans cette fusion
+								ivFrozenParts.SetAt(nPartIndex + 1, -1);
+
+								if (bDisplayCosts or bDisplayImprovement)
+								{
+									cout << "PO numerique" << endl;
+									cout << "PV d'index\t" << nImpliedPart << "\t"
+									     << *impliedPart << "\tdVariationCost\t"
+									     << dVariationCost << endl;
+									cout << "Nouvel index de cluster \t"
+									     << ivGroups->GetAt(
+										    cast(IntObject*,
+											 nkdReferenceClusterIndexes
+											     .Lookup(
+												 (NUMERIC)impliedPart))
+											->GetInt())
+									     << endl;
+								}
+							}
+						}
+					}
+				}
+			}
+
+			// Realisation du meilleur deplacement rencontre
+			if (nBestVarPartIndex > 0 and bBestNegativeVariationForEachAttribute)
+			{
+				ivGroups->SetAt(nBestVarPartIndex, nBestClusterIndex);
+				nImprovementNumber++;
+			}
+
+			// Nettoyage
+			oaImpliedParts.SetSize(0);
+			oaClusterParts.SetSize(0);
+			ivVarPartIndexes.SetSize(0);
+		}
+		// Cas d'un attribut Categoriel
+		else
+		{
+			// Extraction de l'attribut implique dans la grille optimisee
+			// Les PV y sont fusionnees comme dans les clusters
+			impliedOptimizedAttribute =
+			    optimizedDataGrid->SearchAttribute(impliedAttribute->GetAttributeName());
+			impliedOptimizedAttribute->BuildIndexingStructure();
+
+			if (bBestNegativeVariationForEachAttribute)
+			{
+				// Initialisation du meilleur cout pour cet attribut
+				dBestVariationCost = 0;
+				nBestClusterIndex = -1;
+				nBestVarPartIndex = -1;
+			}
+
+			// Association partie cluster dans la grille optimisee initiale
+			// Parcours des parties de l'attribut implique (parcours specifique a l'attribut implique)
+			nImpliedPart = 0;
+			impliedPart = impliedAttribute->GetHeadPart();
+			oaClusterParts.SetSize(impliedAttribute->GetPartNumber());
+			while (impliedPart != NULL)
+			{
+				// Recherche de la partie de l'attribut correspondant
+				clusterPart = varPartOptimizedAttribute->LookupVarPart(impliedPart);
+				oaClusterParts.SetAt(nImpliedPart, clusterPart);
+				impliedAttribute->GetNextPart(impliedPart);
+				nImpliedPart++;
+			}
+
+			// Affichage des clusters des PV de l'attribut implique
+			if (bDisplayCosts)
+			{
+				// cout << "CCGenericDataGridPostOptimizer:Clusters des PV de l'attribut\t" <<
+				// impliedAttribute->GetAttributeName() << endl; oaClusterParts.Write(cout);
+			}
+			cout << flush;
+
+			// Indexation des parties de l'attribut pour melange aleatoire
+			ivVarPartIndexes.SetSize(impliedAttribute->GetPartNumber());
+			for (nImpliedPart = 0; nImpliedPart < impliedAttribute->GetPartNumber(); nImpliedPart++)
+				ivVarPartIndexes.SetAt(nImpliedPart, nImpliedPart);
+			// Melange aleatoire
+			ivVarPartIndexes.Shuffle();
+
+			// Initialisation du vecteur indiquant les parties destination gelees : parties mono modalite ne
+			// pouvant accueillir de nouvelle modalite car la modalite qu'elle contienne a ete retenu dans
+			// un deplacement
+			ivFrozenParts.SetSize(varPartOptimizedAttribute->GetPartNumber());
+			ivFrozenParts.Initialize();
+
+			// Parcours des PV de l'attribut implique optimise pour memoriser les clusters de l'attribut
+			// optimise dans lesquels cet attribut est present Seuls ces clusters seront eligibles a
+			// recevoir une PV de l'attribut
+			impliedInOptimizedPart = impliedOptimizedAttribute->GetHeadPart();
+			while (impliedInOptimizedPart != NULL)
+			{
+				// Extraction du cluster dans l'attribut optimise
+				currentPartCluster = varPartOptimizedAttribute->LookupVarPart(impliedInOptimizedPart);
+
+				// Index de ce cluster
+				nCurrentClusterIndex =
+				    cast(IntObject*, nkdClusterIndexes.Lookup((NUMERIC)currentPartCluster))->GetInt();
+
+				// Memorisation du cluster concerne par l'attribut implique
+				ivFrozenParts.SetAt(nCurrentClusterIndex, 1);
+
+				// Partie suivante
+				impliedOptimizedAttribute->GetNextPart(impliedInOptimizedPart);
+			}
+
+			// Parcours aleatoire des parties de l'attribut implique dans la grille de reference
+			// Dans la grille optimisee, ces parties sont eventuellement fusionnees quand elles font partie
+			// du meme cluster de l'attribut VarPart
+			impliedAttribute->ExportParts(&oaImpliedParts);
+			for (nImpliedPart = 0; nImpliedPart < oaImpliedParts.GetSize(); nImpliedPart++)
+			{
+				// Index de la partie si on ne les prend pas dans l'ordre
+				nPartIndex = ivVarPartIndexes.GetAt(nImpliedPart);
+				impliedPart = cast(KWDGPart*, oaImpliedParts.GetAt(nPartIndex));
+
+				// Extraction du cluster de la grille optimisee dans lequel se trouve la PV a deplacer
+				clusterPartOut = cast(KWDGPart*, oaClusterParts.GetAt(nPartIndex));
+
+				// Index de ce cluster
+				nCurrentClusterIndex =
+				    cast(IntObject*, nkdClusterIndexes.Lookup((NUMERIC)clusterPartOut))->GetInt();
+
+				// Extraction du cluster de la PV dans la grille de reference (avec une PV par cluster)
+				impliedPartCluster = varPartReferenceAttribute->LookupVarPart(impliedPart);
+
+				// Variation du nombre de cluster
+				nDeltaClusterNumber = 0;
+				// Cas ou le cluster est vide apres le depart du groupe de modalites
+				if (clusterPartOut->GetPartFrequency() == impliedPart->GetPartFrequency())
+					nDeltaClusterNumber = 1;
+
+				// Variation du nombre de PV
+				// Cas general : pas de variation du nombre de PV car la PV groupe de modalites est
+				// toujours deplacee dans un cluster ou l'attribut implique est deja present
+				nDeltaVarPartNumber = 0;
+				//  Cas ou la PV deplacee etait la seule PV de l'attribut implique presente dans son
+				//  cluster de depart
+				impliedOutOptimizedPart = impliedOptimizedAttribute->LookupSymbolPart(
+				    impliedPart->GetValueSet()->GetHeadValue()->GetValue());
+				if (impliedOutOptimizedPart->GetValueSet()->GetValueNumber() ==
+				    impliedPart->GetValueSet()->GetValueNumber())
+					nDeltaVarPartNumber = 1;
+
+				// Parcours des clusters d'arrivee eligibles
+				nClusterIndex = 0;
+				clusterPartIn = varPartOptimizedAttribute->GetHeadPart();
+				while (clusterPartIn != NULL)
+				{
+					// Cluster eligible a recevoir la partie de variable
+					if (nClusterIndex != nCurrentClusterIndex and
+					    ivFrozenParts.GetAt(nClusterIndex) > 0)
+					{
+						// Extraction de la partie de variable de l'attribut implique qui
+						// accueillerait la partie de variable deplacee
+						varPartValue = clusterPartIn->GetVarPartSet()->GetHeadVarPart();
+						while (varPartValue->GetVarPart()->GetAttribute()->GetAttributeName() !=
+						       impliedPart->GetAttribute()->GetAttributeName())
+						{
+							clusterPartIn->GetVarPartSet()->GetNextVarPart(varPartValue);
+						}
+						impliedInOptimizedPart = varPartValue->GetVarPart();
+
+						// Calcul du cout de ce deplacement
+						// Variation de cout de l'attribut VarParts et de l'attribut implique
+						dVariationCost = ComputeVarPartsSymbolAttributeVariationCost(
+						    varPartOptimizedAttribute, nDeltaClusterNumber, nDeltaVarPartNumber,
+						    impliedAttribute->GetAttributeName(), impliedInOptimizedPart,
+						    impliedOutOptimizedPart, impliedPart);
+
+						// Variation de cout du cluster de depart (cluster et cellules associes)
+						dVariationCost += ComputeClusterVariationCost(
+						    clusterPartOut, impliedPart->GetPartFrequency(),
+						    nDeltaVarPartNumber, true);
+						dVariationCost += ComputeClusterCellVariationCost(
+						    clusterPartOut, impliedPartCluster, true);
+
+						// Variation de cout du cluster d'arrivee
+						// Le cluster d'arrivee garde le meme nombre de PV car le groupe deplace
+						// rejoint un groupe deja existant du meme attribut implique
+						dVariationCost += ComputeClusterVariationCost(
+						    clusterPartIn, impliedPart->GetPartFrequency(), 0, false);
+						dVariationCost += ComputeClusterCellVariationCost(
+						    clusterPartIn, impliedPartCluster, false);
+
+						// Affichage de l'intervalle, de la variation du nombre de parties de
+						// variable et du cout de son deplacement
+						if (bDisplayCosts)
+							cout << "CCGenericDataGridPostOptimizer:Intervalle\t"
+							     << *impliedPart << "VarPartVariationNumber vers prev\t"
+							     << nDeltaVarPartNumber << "\tDeltaCost\t" << dVariationCost
+							     << "\n";
+
+						// Cas d'un deplacement ameliorant le critere : construction de la
+						// nouvelle grille pour verifier l'egalite des couts
+						if (dVariationCost < dBestVariationCost and
+						    (bBestNegativeVariation or bBestNegativeVariationForEachAttribute))
+						{
+							if (bDisplayCosts or bDisplayImprovement)
+							{
+								cout << "PO categoriel" << endl;
+								cout << "PV d'index de depart\t" << nImpliedPart << "\t"
+								     << *impliedPart << "\tdVariationCost\t"
+								     << dVariationCost << endl;
+								cout << "PV qui appartient au cluster reference"
+								     << *impliedPartCluster;
+								cout << "Cluster de depart dans la grille optimisee "
+									"d'index\t"
+								     << nCurrentClusterIndex << "\t" << *clusterPartOut;
+								cout << "Index du cluster dans la grille optimisee "
+									"d'apres ivGroups\t"
+								     << ivGroups->GetAt(nImpliedPart) << endl;
+								cout << "Nouvel index de PV \t"
+								     << cast(IntObject*,
+									     nkdReferenceClusterIndexes.Lookup(
+										 (NUMERIC)impliedPart))
+									    ->GetInt()
+								     << endl;
+								cout << "Nouvel index de cluster \t"
+								     << ivGroups->GetAt(
+									    cast(IntObject*,
+										 nkdReferenceClusterIndexes.Lookup(
+										     (NUMERIC)impliedPart))
+										->GetInt())
+								     << endl;
+							}
+
+							cout << flush;
+
+							dBestVariationCost = dVariationCost;
+							nBestVarPartIndex =
+							    cast(IntObject*, nkdReferenceClusterIndexes.Lookup(
+										 (NUMERIC)impliedPart))
+								->GetInt();
+							nBestClusterIndex = nClusterIndex;
+						}
+						// Si on veut memoriser tous les deplacements qui ameliorent le critere
+						if (dVariationCost < 0 and bAllNegativeVariation)
+						{
+							ivGroups->SetAt(
+							    cast(IntObject*, nkdReferenceClusterIndexes.Lookup(
+										 (NUMERIC)impliedPart))
+								->GetInt(),
+							    nClusterIndex);
+							nImprovementNumber++;
+
+							// Si le cluster de depart contenait une seule PV de l'attribut
+							// implique, on marque ce cluster comme non eligible pour la
+							// suite des deplacements de cet attribut
+							if (nDeltaVarPartNumber == 1)
+								ivFrozenParts.SetAt(nCurrentClusterIndex, 0);
+
+							// Affichage
+							if (bDisplayCosts or bDisplayImprovement)
+							{
+								cout << "PO categoriel" << endl;
+								cout << "PV d'index\t" << nImpliedPart << "\t"
+								     << *impliedPart << "\tdVariationCost\t"
+								     << dVariationCost << endl;
+								cout << "Nouvel index de cluster \t"
+								     << ivGroups->GetAt(
+									    cast(IntObject*,
+										 nkdReferenceClusterIndexes.Lookup(
+										     (NUMERIC)impliedPart))
+										->GetInt())
+								     << endl;
+							}
+						}
+					}
+					nClusterIndex++;
+					varPartOptimizedAttribute->GetNextPart(clusterPartIn);
+				}
+			}
+
+			// Realisation du meilleur deplacement rencontre
+			if (nBestVarPartIndex > 0 and bBestNegativeVariationForEachAttribute)
+			{
+				ivGroups->SetAt(nBestVarPartIndex, nBestClusterIndex);
+				nImprovementNumber++;
+			}
+
+			// Nettoyage
+			oaImpliedParts.SetSize(0);
+			oaClusterParts.SetSize(0);
+			ivVarPartIndexes.SetSize(0);
+			impliedOptimizedAttribute->DeleteIndexingStructure();
+		}
+	}
+
+	// Realisation du meilleur deplacement rencontre
+	if (nBestVarPartIndex > 0 and bBestNegativeVariation)
+	{
+		ivGroups->SetAt(nBestVarPartIndex, nBestClusterIndex);
+		nImprovementNumber++;
+	}
+	// Affichage de tous les deplacements memorises
+	if (bDisplayCosts)
+	{
+		cout << "Association PV de l'attribut de reference - cluster optimise, nombre de modifications\t"
+		     << nImprovementNumber << endl;
+		// Pour chaque PV on affiche l'index du cluster optimise auquel elle appartient
+		impliedPartCluster = varPartReferenceAttribute->GetHeadPart();
+
+		for (nPartIndex = 0; nPartIndex < ivGroups->GetSize(); nPartIndex++)
+		{
+			impliedPart = impliedPartCluster->GetVarPartSet()->GetHeadVarPart()->GetVarPart();
+			cout << "PV\t" << *impliedPart << "\t" << ivGroups->GetAt(nPartIndex) << "\n";
+			varPartReferenceAttribute->GetNextPart(impliedPartCluster);
+		}
+		cout << flush;
+	}
+
+	// Nettoyage
+	varPartOptimizedAttribute->DeleteIndexingStructure();
+	varPartReferenceAttribute->DeleteIndexingStructure();
+	nkdClusterIndexes.DeleteAll();
+	nkdReferenceClusterIndexes.DeleteAll();
+
+	return (nImprovementNumber > 0);
+}
+
+// CH IV Refactoring: supprimer les lignes commentees de cette methode?
+double CCGenericDataGridPostOptimizer::ComputeVarPartsSymbolAttributeVariationCost(
+    KWDGAttribute* attribute, int nClusterNumberVariation, int nVarPartsNumberVariation, ALString sImpliedAttributeName,
+    KWDGPart* varPartIn, KWDGPart* varPartOut, KWDGPart* impliedPart) const
+{
+	int nPartileNumber;
+	int nClusterNumber;
+	// int nGarbageModalityNumber;
+	int nPartitionSize;
+	int nValueNumber;
+	int nPartFrequency;
+	double dVariationAttributeCost = 0;
+	double dAttributeCost;
+	KWDGAttribute* impliedAttribute;
+
+	require(attribute != NULL);
+	require(attribute->GetTrueValueNumber() > 0);
+	require(attribute->GetDataGrid()->IsDataGridGeneric());
+	require(attribute->GetAttributeType() == KWType::VarParts);
+	require(attribute->GetDataGrid()
+		    ->GetImpliedAttributes()
+		    ->LookupImpliedAttribute(sImpliedAttributeName)
+		    ->GetAttributeType() == KWType::Symbol);
+
+	impliedAttribute =
+	    attribute->GetDataGrid()->GetImpliedAttributes()->LookupImpliedAttribute(sImpliedAttributeName);
+	nPartileNumber = attribute->GetTrueValueNumber();
+	nClusterNumber = attribute->GetPartNumber();
+
+	// Sans prise en compte granularite : pas de sens en non supervise
+	require(nClusterNumber > 0);
+	require(nClusterNumber >= 1);
+	require(nClusterNumber <= nPartileNumber);
+	// Une partition avec poubelle contient au moins 2 parties informatives + 1 groupe poubelle
+	require(attribute->GetGarbageModalityNumber() == 0 or nClusterNumber >= 3);
+	require(varPartIn->GetPartType() == KWType::Symbol);
+	require(varPartOut->GetPartType() == KWType::Symbol);
+
+	// Cout nul si partition nulle
+	// cas ou l'on passerait de 2 clusters a 1 seul cluster
+	if (nClusterNumber == 1)
+		dAttributeCost = 0;
+	else
+	{
+		assert(nPartileNumber > 1);
+
+		assert(not GetVarPartsAttributeGarbage());
+		//// Cout de structure si attribut  parties de variable et poubelle
+		// if (attribute->GetAttributeType() == KWType::VarParts and GetVarPartsAttributeGarbage())
+		//{
+		//	// Taille de la poubelle
+		//	nGarbageModalityNumber = attribute->GetGarbageModalityNumber();
+
+		//	// Cout de codage du choix des modalites informatives (hors poubelle)
+		//	if (nGarbageModalityNumber > 0)
+		//	{
+		//		// Cout de codage de la taille de la non-poubelle
+		//		dAttributeCost += KWStat::BoundedNaturalNumbersUniversalCodeLength(nPartileNumber -
+		// nGarbageModalityNumber - 1, nPartileNumber - 2);
+
+		//		// Choix des modalites hors poubelle selon un tirage multinomial avec un tirage par
+		// variable 		dAttributeCost += (nPartileNumber - nGarbageModalityNumber) * log(nPartileNumber
+		// * 1.0) - KWStat::LnFactorial(nPartileNumber - nGarbageModalityNumber);
+
+		//		// Cout de codage du nombre de parties informatives (nPartitionSize-1)
+		//		dAttributeCost += KWStat::BoundedNaturalNumbersUniversalCodeLength(nClusterNumber - 2,
+		// nPartileNumber - nGarbageModalityNumber - 1);
+
+		//		// Cout de codage du choix des parties informatives (nPartitionSize - 1)
+		//		dAttributeCost += KWStat::LnBell(nPartileNumber - nGarbageModalityNumber, nClusterNumber
+		//- 1);
+		//	}
+		//	else
+		//	{
+		//		// Cout de codage du nombre de parties
+		//		dAttributeCost += KWStat::BoundedNaturalNumbersUniversalCodeLength(nClusterNumber - 1,
+		// nPartileNumber - 1);
+
+		//		// Cout de codage du choix des parties
+		//		dAttributeCost += KWStat::LnBell(nPartileNumber, nClusterNumber);
+		//	}
+		//}
+		//// Cout de structure si attribut de type parties de variable sans prise en compte d'un groupe poubelle
+		//// CH AB AF temporaire : obsolete a l'integration definitive du groupe poubelle
+		// else
+		//{
+		//  On retire le cout avec l'ancien nombre de clusters et de PV
+		//  Cout de codage du nombre de clusters de parties de variable
+		dVariationAttributeCost -=
+		    KWStat::BoundedNaturalNumbersUniversalCodeLength(nClusterNumber - 1, nPartileNumber - 1);
+
+		// Cout de codage du choix des parties de variable
+		dVariationAttributeCost -= KWStat::LnBell(nPartileNumber, nClusterNumber);
+
+		// On ajoute le cout avec le nouveau nombre de clusters et de PV
+		// Cout de codage du nombre de clusters de parties de variable
+		dVariationAttributeCost += KWStat::BoundedNaturalNumbersUniversalCodeLength(
+		    nClusterNumber - nClusterNumberVariation - 1, nPartileNumber - nVarPartsNumberVariation - 1);
+
+		// Cout de codage du choix des parties de variable
+		dVariationAttributeCost +=
+		    KWStat::LnBell(nPartileNumber - nVarPartsNumberVariation, nClusterNumber - nClusterNumberVariation);
+
+		//}
+	}
+
+	// Variation de cout de l'attribut implique (obligatoirement categoriel ici)
+	nPartitionSize = impliedAttribute->GetPartNumber();
+	nPartileNumber = impliedAttribute->GetInitialValueNumber();
+
+	// Cas d'un attribut implique qui ne fait pas partie du modele nul
+	if (impliedAttribute->GetPartNumber() > 1 or nPartitionSize > 1)
+	{
+		// Cas d'un attribut implique categoriel avec groupe poubelle a integrer plus tard
+		assert(not GetImpliedAttributeGarbage());
+		// if (GetImpliedAttributeGarbage())
+		//{
+		//	// Taille de la poubelle
+		//	nGarbageModalityNumber = attribute->GetGarbageModalityNumber();
+
+		//	// Cout de codage du choix d'une poubelle ou pas
+		//	if (nPartileNumber > KWFrequencyTable::GetMinimumNumberOfModalitiesForGarbage())
+		//		dImpliedAttributeCost += log(2.0);
+
+		//	// Cout de codage du choix des modalites informatives (hors poubelle)
+		//	if (nGarbageModalityNumber > 0)
+		//	{
+		//		// Cout de codage de la taille de la non-poubelle : superieur ou egal a 1 (mais pas a 2
+		// comme en classification supervisee) 		dImpliedAttributeCost +=
+		// KWStat::BoundedNaturalNumbersUniversalCodeLength(nPartileNumber - nGarbageModalityNumber,
+		// nPartileNumber - 1);
+
+		//		// Choix des modalites hors poubelle selon un tirage multinomial avec un tirage par
+		// variable 		dImpliedAttributeCost += (nPartileNumber - nGarbageModalityNumber) *
+		// log(nPartileNumber
+		//* 1.0) - KWStat::LnFactorial(nPartileNumber - nGarbageModalityNumber);
+
+		//		// Cout de codage du nombre de parties informatives (nPartitionSize-1)
+		//		dImpliedAttributeCost += KWStat::BoundedNaturalNumbersUniversalCodeLength(nPartitionSize
+		//- 1, nPartileNumber - nGarbageModalityNumber);
+
+		//		// Cout de codage du choix des parties informatives (nPartitionSize - 1)
+		//		dImpliedAttributeCost += KWStat::LnBell(nPartileNumber - nGarbageModalityNumber,
+		// nPartitionSize - 1);
+		//	}
+		//	else
+		//	{
+		//		// Cout de codage du nombre de parties entre 1 et nPartileNumber (la partition peut etre
+		// de taille 1) 		dImpliedAttributeCost +=
+		// KWStat::BoundedNaturalNumbersUniversalCodeLength(nPartitionSize, nPartileNumber);
+
+		//		// Cout de codage du choix des parties
+		//		dImpliedAttributeCost += KWStat::LnBell(nPartileNumber, nPartitionSize);
+		//	}
+		//}
+		//// CH AB AF temporaire : obsolete apres integration groupe poubelle
+		// else
+		{
+			// Cas d'une variation du nombre de PV pour cet attribut
+			if (nVarPartsNumberVariation > 0)
+			{
+				// On retire le cout avec l'ancienne taille de partition
+				dVariationAttributeCost -=
+				    KWStat::BoundedNaturalNumbersUniversalCodeLength(nPartitionSize, nPartileNumber);
+				dVariationAttributeCost -= KWStat::LnBell(nPartileNumber, nPartitionSize);
+
+				// On ajoute le cout avec la nouvelle taille de partitition
+				// nPartileNumber ne bouge pas : il s'agit du nombre de modalites initiale
+				// (independamment du prepartitionnement) Jk taille de la partition : soit juste apres
+				// le prepartitionnement, soit en tenant compte des fusions pour les modalites dans le
+				// cluster de PV
+				dVariationAttributeCost += KWStat::BoundedNaturalNumbersUniversalCodeLength(
+				    nPartitionSize - nVarPartsNumberVariation, nPartileNumber);
+				dVariationAttributeCost +=
+				    KWStat::LnBell(nPartileNumber, nPartitionSize - nVarPartsNumberVariation);
+			}
+
+			// Variation de cout de la partie de variable de depart
+			// On retire le cout avant deplacement
+			nValueNumber = varPartOut->GetValueSet()->GetTrueValueNumber();
+			nPartFrequency = varPartOut->GetPartFrequency();
+			// Distribution des valeurs dans la partie
+			dVariationAttributeCost -= KWStat::LnFactorial(nPartFrequency + nValueNumber - 1);
+			dVariationAttributeCost += KWStat::LnFactorial(nValueNumber - 1);
+			dVariationAttributeCost += KWStat::LnFactorial(nPartFrequency);
+
+			// On ajoute le cout de la partie de depart apres deplacement
+			// Si la partie n'est pas vide apres deplacement
+			nValueNumber = varPartOut->GetValueSet()->GetTrueValueNumber() -
+				       impliedPart->GetValueSet()->GetTrueValueNumber();
+			if (nValueNumber > 0)
+			{
+				nPartFrequency = varPartOut->GetPartFrequency() - impliedPart->GetPartFrequency();
+				assert(nVarPartsNumberVariation > 0);
+				// Distribution des valeurs dans la partie
+				dVariationAttributeCost += KWStat::LnFactorial(nPartFrequency + nValueNumber - 1);
+				dVariationAttributeCost -= KWStat::LnFactorial(nValueNumber - 1);
+				dVariationAttributeCost -= KWStat::LnFactorial(nPartFrequency);
+			}
+
+			// Variation de cout de la partie de variable d'arrivee
+			// On retire le cout de la partie d'arrivee avant deplacement
+			nValueNumber = varPartIn->GetValueSet()->GetTrueValueNumber();
+			nPartFrequency = varPartIn->GetPartFrequency();
+			// Distribution des valeurs dans la partie
+			dVariationAttributeCost -= KWStat::LnFactorial(nPartFrequency + nValueNumber - 1);
+			dVariationAttributeCost += KWStat::LnFactorial(nValueNumber - 1);
+			dVariationAttributeCost += KWStat::LnFactorial(nPartFrequency);
+
+			// On ajoute le cout de la partie d'arrivee apres deplacement
+			nValueNumber = varPartIn->GetValueSet()->GetTrueValueNumber() +
+				       impliedPart->GetValueSet()->GetTrueValueNumber();
+			nPartFrequency = varPartIn->GetPartFrequency() + impliedPart->GetPartFrequency();
+			// Distribution des valeurs dans la partie
+			dVariationAttributeCost += KWStat::LnFactorial(nPartFrequency + nValueNumber - 1);
+			dVariationAttributeCost -= KWStat::LnFactorial(nValueNumber - 1);
+			dVariationAttributeCost -= KWStat::LnFactorial(nPartFrequency);
+		}
+	}
+
+	return dVariationAttributeCost;
+}
+
+double CCGenericDataGridPostOptimizer::ComputeVarPartsContinuousAttributeVariationCost(
+    KWDGAttribute* attribute, int nClusterNumberVariation, int nVarPartsNumberVariation,
+    ALString sImpliedAttributeName) const
+{
+	int nPartileNumber;
+	int nClusterNumber;
+	// int nGarbageModalityNumber;
+	int nPartitionSize;
+	double dVariationAttributeCost = 0;
+	double dAttributeCost;
+	KWDGAttribute* impliedAttribute;
+
+	require(attribute != NULL);
+	require(attribute->GetTrueValueNumber() > 0);
+	require(attribute->GetDataGrid()->IsDataGridGeneric());
+	require(attribute->GetAttributeType() == KWType::VarParts);
+	require(attribute->GetDataGrid()
+		    ->GetImpliedAttributes()
+		    ->LookupImpliedAttribute(sImpliedAttributeName)
+		    ->GetAttributeType() == KWType::Continuous);
+
+	impliedAttribute =
+	    attribute->GetDataGrid()->GetImpliedAttributes()->LookupImpliedAttribute(sImpliedAttributeName);
+	nPartileNumber = attribute->GetTrueValueNumber();
+	nClusterNumber = attribute->GetPartNumber();
+
+	// Sans prise en compte granularite : pas de sens en non supervise
+	require(nClusterNumber > 0);
+	require(nClusterNumber >= 1);
+	require(nClusterNumber <= nPartileNumber);
+	// Une partition avec poubelle contient au moins 2 parties informatives + 1 groupe poubelle
+	require(attribute->GetGarbageModalityNumber() == 0 or nClusterNumber >= 3);
+
+	// Cout nul si partition nulle
+	// cas ou l'on passerait de 2 clusters a 1 seul cluster
+	if (nClusterNumber == 1)
+		dAttributeCost = 0;
+	else
+	{
+		assert(nPartileNumber > 1);
+
+		assert(not GetVarPartsAttributeGarbage());
+		//// Cout de structure si attribut  parties de variable et poubelle
+		// if (attribute->GetAttributeType() == KWType::VarParts and GetVarPartsAttributeGarbage())
+		//{
+		//	// Taille de la poubelle
+		//	nGarbageModalityNumber = attribute->GetGarbageModalityNumber();
+
+		//	// Cout de codage du choix des modalites informatives (hors poubelle)
+		//	if (nGarbageModalityNumber > 0)
+		//	{
+		//		// Cout de codage de la taille de la non-poubelle
+		//		dAttributeCost += KWStat::BoundedNaturalNumbersUniversalCodeLength(nPartileNumber -
+		// nGarbageModalityNumber - 1, nPartileNumber - 2);
+
+		//		// Choix des modalites hors poubelle selon un tirage multinomial avec un tirage par
+		// variable 		dAttributeCost += (nPartileNumber - nGarbageModalityNumber) * log(nPartileNumber
+		// * 1.0) - KWStat::LnFactorial(nPartileNumber - nGarbageModalityNumber);
+
+		//		// Cout de codage du nombre de parties informatives (nPartitionSize-1)
+		//		dAttributeCost += KWStat::BoundedNaturalNumbersUniversalCodeLength(nClusterNumber - 2,
+		// nPartileNumber - nGarbageModalityNumber - 1);
+
+		//		// Cout de codage du choix des parties informatives (nPartitionSize - 1)
+		//		dAttributeCost += KWStat::LnBell(nPartileNumber - nGarbageModalityNumber, nClusterNumber
+		//- 1);
+		//	}
+		//	else
+		//	{
+		//		// Cout de codage du nombre de parties
+		//		dAttributeCost += KWStat::BoundedNaturalNumbersUniversalCodeLength(nClusterNumber - 1,
+		// nPartileNumber - 1);
+
+		//		// Cout de codage du choix des parties
+		//		dAttributeCost += KWStat::LnBell(nPartileNumber, nClusterNumber);
+		//	}
+		//}
+		//// Cout de structure si attribut de type parties de variable sans prise en compte d'un groupe poubelle
+		//// CH AB AF temporaire : obsolete a l'integration definitive du groupe poubelle
+		// else
+		//{
+		//  Cout de codage du nombre de clusters de parties de variable
+		dVariationAttributeCost += KWStat::BoundedNaturalNumbersUniversalCodeLength(
+		    nClusterNumber - nClusterNumberVariation - 1, nPartileNumber - nVarPartsNumberVariation - 1);
+
+		// Cout de codage du choix des parties de variable
+		dVariationAttributeCost +=
+		    KWStat::LnBell(nPartileNumber - nVarPartsNumberVariation, nClusterNumber - nClusterNumberVariation);
+
+		// Cout de codage du nombre de clusters de parties de variable
+		dVariationAttributeCost -=
+		    KWStat::BoundedNaturalNumbersUniversalCodeLength(nClusterNumber - 1, nPartileNumber - 1);
+
+		// Cout de codage du choix des parties de variable
+		dVariationAttributeCost -= KWStat::LnBell(nPartileNumber, nClusterNumber);
+		//}
+	}
+
+	// Variation de cout de l'attribut implique (obligatoirement numerique ici)
+	nPartitionSize = impliedAttribute->GetPartNumber();
+	nPartileNumber = impliedAttribute->GetInitialValueNumber();
+
+	// Cas d'un attribut implique qui ne fait pas partie du modele nul
+	if (impliedAttribute->GetPartNumber() > 1 or nPartitionSize > 1)
+	{
+		// Cas d'un attribut numerique
+		if (impliedAttribute->GetAttributeType() == KWType::Continuous)
+		{
+			// On retire le cout avec l'ancienne taille de partition
+			dVariationAttributeCost -=
+			    KWStat::BoundedNaturalNumbersUniversalCodeLength(nPartitionSize, nPartileNumber);
+
+			// On ajoute le cout avec la nouvelle taille de partitition
+			dVariationAttributeCost += KWStat::BoundedNaturalNumbersUniversalCodeLength(
+			    nPartitionSize - nVarPartsNumberVariation, nPartileNumber);
+
+			// Pas de variation de cout lie aux parties (intervalles)
+		}
+
+		// Cas d'un attribut categoriel
+		else
+		{
+			// A integrer plus tard
+			assert(not GetImpliedAttributeGarbage());
+			// if (GetImpliedAttributeGarbage())
+			//{
+			//	// Taille de la poubelle
+			//	nGarbageModalityNumber = attribute->GetGarbageModalityNumber();
+
+			//	// Cout de codage du choix d'une poubelle ou pas
+			//	if (nPartileNumber > KWFrequencyTable::GetMinimumNumberOfModalitiesForGarbage())
+			//		dImpliedAttributeCost += log(2.0);
+
+			//	// Cout de codage du choix des modalites informatives (hors poubelle)
+			//	if (nGarbageModalityNumber > 0)
+			//	{
+			//		// Cout de codage de la taille de la non-poubelle : superieur ou egal a 1 (mais
+			// pas a 2 comme en classification supervisee) 		dImpliedAttributeCost +=
+			// KWStat::BoundedNaturalNumbersUniversalCodeLength(nPartileNumber - nGarbageModalityNumber,
+			// nPartileNumber - 1);
+
+			//		// Choix des modalites hors poubelle selon un tirage multinomial avec un tirage
+			// par variable 		dImpliedAttributeCost += (nPartileNumber -
+			// nGarbageModalityNumber)
+			// * log(nPartileNumber * 1.0) - KWStat::LnFactorial(nPartileNumber - nGarbageModalityNumber);
+
+			//		// Cout de codage du nombre de parties informatives (nPartitionSize-1)
+			//		dImpliedAttributeCost +=
+			// KWStat::BoundedNaturalNumbersUniversalCodeLength(nPartitionSize - 1, nPartileNumber -
+			// nGarbageModalityNumber);
+
+			//		// Cout de codage du choix des parties informatives (nPartitionSize - 1)
+			//		dImpliedAttributeCost += KWStat::LnBell(nPartileNumber - nGarbageModalityNumber,
+			// nPartitionSize - 1);
+			//	}
+			//	else
+			//	{
+			//		// Cout de codage du nombre de parties entre 1 et nPartileNumber (la partition
+			// peut etre de taille 1) 		dImpliedAttributeCost +=
+			// KWStat::BoundedNaturalNumbersUniversalCodeLength(nPartitionSize, nPartileNumber);
+
+			//		// Cout de codage du choix des parties
+			//		dImpliedAttributeCost += KWStat::LnBell(nPartileNumber, nPartitionSize);
+			//	}
+			//}
+			//// CH AB AF temporaire : obsolete apres integration groupe poubelle
+			// else
+			{
+				// Cas d'une variation du nombre de PV pour cet attribut
+				if (nVarPartsNumberVariation > 0)
+				{
+					// On retire le cout avec l'ancienne taille de partition
+					dVariationAttributeCost -= KWStat::BoundedNaturalNumbersUniversalCodeLength(
+					    nPartitionSize, nPartileNumber);
+					dVariationAttributeCost -= KWStat::LnBell(nPartileNumber, nPartitionSize);
+
+					// On ajoute le cout avec la nouvelle taille de partitition
+					// nPartileNumber ne bouge pas : il s'agit du nombre de modalites initiale
+					// (independamment du prepartitionnement) Jk taille de la partition : soit juste
+					// apres le prepartitionnement, soit en tenant compte des fusions pour les
+					// modalites dans le cluster de PV
+					dVariationAttributeCost += KWStat::BoundedNaturalNumbersUniversalCodeLength(
+					    nPartitionSize - nVarPartsNumberVariation, nPartileNumber);
+					dVariationAttributeCost +=
+					    KWStat::LnBell(nPartileNumber, nPartitionSize - nVarPartsNumberVariation);
+				}
+
+				// Variation de cout des parties impliquees dans le deplacement (depart et arrivee)
+				// Depend du nombre d'observations et du nombre de modalites associe a ce qui est
+				// deplace (modalite ou groupe de modalites) On n'a pas ces elements dans la methode
+				// Continuous donc il faut une methode pour attribut implique categoriel
+				//	impliedPart = impliedAttribute->GetHeadPart();
+				//	// Prise en compte de la variation de cout des parties de depart et d'arrivee du
+				// deplacement 	while (impliedPart != NULL)
+				//	{
+				//		dAttributeCost += ComputeImpliedPartCost(impliedPart);
+				//		impliedAttribute->GetNextPart(impliedPart);
+				//	}
+			}
+		}
+	}
+
+	return dVariationAttributeCost;
+}
+
+double CCGenericDataGridPostOptimizer::ComputeClusterVariationCost(KWDGPart* part, int nDeltaObservationNumber,
+								   int nDeltaValueNumber, boolean bDeparture) const
+{
+	int nValueNumber;
+	int nClusterFrequency;
+	double dVariationCost;
+	int nVariationSign;
+
+	dVariationCost = 0;
+
+	// Signe de la variation d'effectif nDeltaObservationNumber : +1 en cas de depart, -1 en cas d'arrivee
+	if (bDeparture)
+		nVariationSign = 1;
+	else
+		nVariationSign = -1;
+
+	// Nombre de modalites du cluster de parties de variable
+	nValueNumber = part->GetVarPartSet()->GetVarPartNumber();
+	nClusterFrequency = part->GetPartFrequency();
+
+	// On retire le cout du cluster avec son effectif et son nombre de PV
+	dVariationCost -= KWStat::LnFactorial(nClusterFrequency + nValueNumber - 1);
+	dVariationCost += KWStat::LnFactorial(nValueNumber - 1);
+
+	// On ajoute le cout du nouveau cluster avec nouvel effectif et nouveau nombre de PV
+	// Uniquement dans le cas ou le cluster n'est pas vide apres depart de la PV
+	if (nClusterFrequency - nVariationSign * nDeltaObservationNumber > 0)
+	{
+		dVariationCost += KWStat::LnFactorial(nClusterFrequency - nVariationSign * nDeltaObservationNumber +
+						      nValueNumber - nDeltaValueNumber - 1);
+		dVariationCost -= KWStat::LnFactorial(nValueNumber - nDeltaValueNumber - 1);
+	}
+
+	return dVariationCost;
+}
+
+double CCGenericDataGridPostOptimizer::ComputeClusterCellVariationCost(KWDGPart* cluster, KWDGPart* varPartCluster,
+								       boolean bDeparture) const
+{
+	double dVariationCost;
+	KWDGCell* varPartCell;
+	KWDGCell* clusterCell;
+	KWDGPart* identifierPart;
+	NumericKeyDictionary nkdCells;
+	int nVariationSign;
+
+	require(cluster->GetPartType() == KWType::VarParts);
+	require(varPartCluster->GetPartType() == KWType::VarParts);
+	require(cluster->GetCellNumber() >= varPartCluster->GetCellNumber() or not bDeparture);
+
+	// Signe de la variation d'effectif : +1 en cas de depart, -1 en cas d'arrivee
+	if (bDeparture)
+		nVariationSign = 1;
+	else
+		nVariationSign = -1;
+
+	// Initialisation
+	dVariationCost = 0;
+
+	// Indexation des cellules du cluster de la grille optimise par la premiere valeur de leur partie d'Identifier
+	clusterCell = cluster->GetHeadCell();
+	while (clusterCell != NULL)
+	{
+		// Extraction du cluster Identifier
+		identifierPart = clusterCell->GetPartAt(0);
+		assert(identifierPart->GetPartType() == KWType::Symbol);
+		nkdCells.SetAt((NUMERIC)identifierPart->GetValueSet()->GetHeadValue()->GetValue().GetNumericKey(),
+			       clusterCell);
+
+		// Partie suivante
+		cluster->GetNextCell(clusterCell);
+	}
+
+	// Parcours des cellules de la partie de variable
+	varPartCell = varPartCluster->GetHeadCell();
+	while (varPartCell != NULL)
+	{
+		identifierPart = varPartCell->GetPartAt(0);
+		assert(identifierPart->GetPartType() == KWType::Symbol);
+		clusterCell = cast(
+		    KWDGCell*, nkdCells.Lookup(
+				   (NUMERIC)identifierPart->GetValueSet()->GetHeadValue()->GetValue().GetNumericKey()));
+
+		// Calcul de la variation de cout du a la variation d'effectifs (croissant ou decroissant selon le
+		// depart ou l'arrivee de la PV)
+		if (clusterCell != NULL)
+		{
+			// On retire le cout de la cellule avec l'effectif avant variation
+			dVariationCost += KWStat::LnFactorial(clusterCell->GetCellFrequency());
+
+			// On ajoute le cout de la cellule d'effectif mis a jour
+			dVariationCost -= KWStat::LnFactorial(clusterCell->GetCellFrequency() -
+							      nVariationSign * varPartCell->GetCellFrequency());
+		}
+		// Cas d'un cluster d'arrivee ou la cellule pour ce cluster d'identifiant est vide
+		else
+		{
+			assert(not bDeparture);
+			// Le cout de la cellule avant variation est nul (effectif nul)
+			// On ajoute le cout de la cellule d'effectif mis a jour
+			dVariationCost -= KWStat::LnFactorial(varPartCell->GetCellFrequency());
+		}
+		varPartCluster->GetNextCell(varPartCell);
+	}
+
+	return dVariationCost;
+}
+// CH IV End

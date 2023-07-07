@@ -6,6 +6,7 @@
 
 class KWDataGridOptimizer;
 class KWDataGridVNSOptimizer;
+class CCCoclusteringOptimizer;
 
 #include "KWClassStats.h"
 #include "KWDataGrid.h"
@@ -15,6 +16,8 @@ class KWDataGridVNSOptimizer;
 #include "KWDataGridPostOptimizer.h"
 #include "KWDataGridOptimizerParameters.h"
 #include "SortedList.h"
+#include "Timer.h"
+#include "CCConfig.h"
 
 //////////////////////////////////////////////////////////////////////////////////
 // Classe KWDataGridOptimizer
@@ -41,12 +44,25 @@ public:
 	void SetClassStats(KWClassStats* stats);
 	KWClassStats* GetClassStats() const;
 
+	// CH IV Begin
+	// Parametrage (facultatif) par une grille initiale
+	// Dans le cas du coclustering individus * variables,
+	// Permet l'utilisation de cette grille pour la creation de la grille avec parties de variables fusionnees
+	// Memoire: les specifications sont referencees et destinee a etre partagees
+	void SetInitialDataGrid(KWDataGrid* initialDataGrid);
+	KWDataGrid* GetInitialDataGrid() const;
+	// CH IV End
+
 	// Optimisation d'un grille pour une structure de cout donnees
 	// En sortie, on trouve une nouvelle grille optimisee compatible avec la grille initiale,
 	// ne conservant que les attributs non reduits a une seule partie
 	// Les intervalles (resp. groupes) de la grille optimisee sont tries par valeur (resp. effectifs decroissants)
 	// Integre un parcours des granularites
 	// Retourne le cout de codage MODL de la grille post-optimisee
+	// Integre un parcours des granularites
+	// Dans le cas d'une grille generique avec des parties de variable, le cout retourne est celui de la grille
+	// antecedente de la meilleure grille post-fusionnee (fusion des parties de variable consecutives dans un
+	// cluster de parties de variables)
 	double OptimizeDataGrid(const KWDataGrid* initialDataGrid, KWDataGrid* optimizedDataGrid) const;
 
 	// Simplification d'une grille selon le parametre MaxPartNumber des parametres d'optimisation
@@ -74,6 +90,11 @@ public:
 	// recalculer les informations de la hierachie
 	virtual void HandleOptimizationStep(const KWDataGrid* optimizedDataGrid,
 					    const KWDataGrid* initialGranularizedDataGrid, boolean bIsLastSaving) const;
+
+	mutable Timer CCTimerPreOptimize;
+	mutable Timer CCTimerMainOptimize;
+	mutable Timer CCTimerPostOptimize;
+	mutable Timer CCTimerPostIVOptimize;
 
 	//////////////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
@@ -129,6 +150,11 @@ protected:
 
 	// Attribut de statistiques
 	KWClassStats* classStats;
+
+	// CH IV Begin
+	// Grille de reference
+	KWDataGrid* initialDataGrid;
+	// CH IV End
 
 	// Nettoyage des attribut non informatifs
 	boolean bCleanNonInformativeVariables;
@@ -203,6 +229,19 @@ protected:
 	// selon un facteur geometrique (de DecreaseFactor^MinIndex a Factor^MaxIndex)
 	double VNSOptimizeDataGrid(const KWDataGrid* initialDataGrid, double dDecreaseFactor, int nMinIndex,
 				   int nMaxIndex, KWDataGrid* optimizedDataGrid, double dOptimizedDataGridCost) const;
+
+	// CH IV Begin
+	// Pilotage de la meta heuristique VNS, avec des voisinages successifs de taille décroissante
+	// selon un facteur geometrique (de DecreaseFactor^MinIndex a Factor^MaxIndex)
+	// Les grilles generiques optimales sont post-fusionnees et les voisinages sont ceux des grilles antecedentes
+	// des grilles de meilleur cout apres post-fusion En sortie : optimizedDataGrid contient la grille antecedent
+	// avant post-fusion de la meilleure grille post-fusionne Le cout renvoye est le cout de cette optimizedDataGrid
+	// dBestMergedDataGridCost contient le cout de la meilleure grille apres post-fusion (meilleur cout)
+	// CH IV Refactoring: renommer en VNSOptimizeVarPartDataGrid
+	double VNSOptimizeGenericDataGrid(const KWDataGrid* initialDataGrid, double dDecreaseFactor, int nMinIndex,
+					  int nMaxIndex, KWDataGrid* optimizedDataGrid, double dOptimizedDataGridCost,
+					  double& dBestMergedDataGridCost) const;
+	// CH IV End
 
 	// Optimisation d'une solution
 	// Optimisation et post-optimisation activee selon les parametres d'optimisations

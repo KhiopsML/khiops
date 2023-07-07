@@ -163,6 +163,15 @@ protected:
 	boolean ReadJSONDimensionPartitions(CCHierarchicalDataGrid* coclusteringDataGrid);
 	boolean ReadJSONInterval(CCHDGAttribute* dgAttribute, KWDGPart* dgPart);
 	boolean ReadJSONValueGroups(CCHDGAttribute* dgAttribute, KWDGPart* dgPart);
+	// CH IV Begin
+	// Est ce que ces methodes doivent prendre en entree des KWDGAttribute ou des CCHDGAttriute
+	// Les impliedAttribute peuvent il s etre des CCHDGAttribute ? (CCHDGAttribute* dgAttribute);
+	// Pour l'instant on met des KWDGAttribute pour que cela compile
+	boolean ReadJSONIntervalVarParts(KWDGAttribute* dgAttribute);
+	boolean ReadJSONValueGroupsVarParts(KWDGAttribute* dgAttribute);
+	boolean ReadJSONVarPart(CCHDGAttribute* dgAttribute, KWDGPart* dgPart, ObjectDictionary* odVarParts);
+	boolean ReadJSONImpliedAttribute(KWDGAttribute* impliedAttribute, ObjectDictionary* odVarParts);
+	// CH IV End
 	boolean ReadJSONDimensionHierarchies(CCHierarchicalDataGrid* coclusteringDataGrid);
 	boolean ReadJSONCells(CCHierarchicalDataGrid* coclusteringDataGrid);
 
@@ -171,6 +180,10 @@ protected:
 	void WriteJSONSummary(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
 	void WriteJSONDimensionSummaries(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
 	void WriteJSONDimensionPartitions(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
+	// CH IV Begin
+	void WriteJSONVarPartPartition(const CCHierarchicalDataGrid* coclusteringDataGrid,
+				       KWDGAttribute* impliedAttribute, JSONFile* fJSON);
+	// CH IV End
 	void WriteJSONDimensionHierarchies(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
 	void WriteJSONCells(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
 
@@ -190,6 +203,7 @@ protected:
 	static const ALString sKeyWordKhiops;
 	static const ALString sKeyWordShortDescription;
 	static const ALString sKeyWordDimensions;
+	static const ALString sKeyWordCoclusteringType;
 	static const ALString sKeyWordCoclusteringStats;
 	static const ALString sKeyWordInstances;
 	static const ALString sKeyWordCells;
@@ -210,4 +224,5 @@ protected:
 	static const ALString sKeyWordAnnotation;
 	static const ALString sKeyWordTrue;
 	static const ALString sKeyWordFalse;
+	static const ALString sKeyWordIdentifierAttribute;
 };

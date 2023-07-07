@@ -2,6 +2,8 @@
 
 echo. > genere.log
 
+genere -noarrayview CCInstancesVariablesCoclusteringSpec ""Instances Variables Coclustering parameters" CCInstancesVariablesCoclusteringSpec.dd >> genere.log
+
 genere -noarrayview CCCoclusteringSpec "Coclustering parameters" CCCoclusteringSpec.dd >> genere.log
 
 genere -noarrayview CCPostProcessingSpec "Simplification parameters" CCPostProcessingSpec.dd >> genere.log

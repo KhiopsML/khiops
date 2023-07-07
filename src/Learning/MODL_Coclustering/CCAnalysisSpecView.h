@@ -7,6 +7,7 @@
 #include "UserInterface.h"
 #include "CCAnalysisSpec.h"
 #include "CCCoclusteringSpecView.h"
+#include "CCInstancesVariablesCoclusteringSpecView.h"
 #include "KWSystemParametersView.h"
 #include "KWCrashTestParametersView.h"
 

@@ -17,6 +17,7 @@
 #include "KWClassStats.h"
 #include "CCCoclusteringBuilder.h"
 #include "CCCoclusteringReport.h"
+#include "KWAttributeAxisName.h"
 
 ////////////////////////////////////////////////////////////
 // Classe CCLearningProblem
@@ -77,6 +78,14 @@ public:
 	// Fichier de donnees
 	ALString GetDatabaseName() const;
 
+	// CH IV Begin
+	// Nombre d'enregistrements lus
+	// CH IV Refactoring: renommer en GetInstanceNumber (cf. KWLearningService::GetInstanceNumber)?
+	//    a supprimer si jamais utilise
+	int GetSampleNumber() const;
+	void SetSampleNumber(int nValue);
+	// CH IV End
+
 	//////////////////////////////////////////////////////////////
 	// Fonctionnalites disponibles
 
@@ -133,6 +142,13 @@ public:
 
 	// Libelles utilisateur: nom du module de l'application (GetLearningModuleName())
 	const ALString GetClassLabel() const override;
+
+	// CH IV Begin
+	// Insertion d'un attribut d'identifiant dans la classe
+	// Cet attribut est de type Symbol et contient le label de l'individu
+	// Le 1er individu possede le label "1" que le fichier de donnees contient un header ou pas
+	KWAttribute* InsertIdentifierAttribute(KWClass* kwcClass);
+	// CH IV End
 
 	////////////////////////////////////////////////////////
 	//// Implementation

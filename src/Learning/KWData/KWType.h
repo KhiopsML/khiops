@@ -52,8 +52,12 @@ public:
 		SymbolValueBlock,      // Type bloc de valeurs Symbol
 		ContinuousValueBlock,  // Type bloc de valeurs Continuous
 		ObjectArrayValueBlock, // Type bloc de valeurs ObjectArray
-		None,                  // Type absent deliberement, pour le non supervise
-		Unknown                // Type inconnu (non valide)
+		// CH IV Begin
+		// CH IV Refactoring: renommer en VarPart
+		VarParts, // Type parties de variables (coclustering instances * variables)
+		// CH IV End
+		None,   // Type absent deliberement, pour le non supervise
+		Unknown // Type inconnu (non valide)
 	};
 
 	// Verification de validite d'un type
@@ -67,6 +71,13 @@ public:
 
 	// Verification si un type est simple (Continuous ou Symbol)
 	static boolean IsSimple(int nType);
+
+	// CH IV Begin
+	// CH IV Refactoring: est-ce necessaire, vu la simplicite du test (utilise seulement 5 fois): supprimer
+	// CH IV Refactoring: par contre, ajouter une methode IsCoclusteringUsable (Continuous, Symbol, VarParts): OK
+	// Verification si un type est VarParts
+	static boolean IsVarParts(int nType);
+	// CH IV End
 
 	// Verification si un type est complexe (Date, Time, Timestamp, TimestampTZ)
 	static boolean IsComplex(int nType);
@@ -286,6 +297,12 @@ inline boolean KWType::IsSimple(int nType)
 {
 	return (nType == Continuous or nType == Symbol);
 }
+// CH IV Begin
+inline boolean KWType::IsVarParts(int nType)
+{
+	return (nType == VarParts);
+}
+// CH IV End
 
 inline boolean KWType::IsComplex(int nType)
 {

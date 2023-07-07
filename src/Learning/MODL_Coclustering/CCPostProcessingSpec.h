@@ -70,6 +70,13 @@ public:
 	const ALString& GetFrequencyAttribute() const;
 	void SetFrequencyAttribute(const ALString& sValue);
 
+	// CH IV Begin
+	// CH IV Refactoring: passer par CCPostProcessingSpec.dd pour ajouter ce champ partout
+	// Identifier variable
+	const ALString& GetIdentifierAttribute() const;
+	void SetIdentifierAttribute(const ALString& sValue);
+	// CH IV End
+
 	///////////////////////////////////////////////////////////
 	// Divers
 
@@ -115,6 +122,9 @@ protected:
 	int nTotalPartNumber;
 	int nMaxTotalPartNumber;
 	ALString sFrequencyAttribute;
+	// CH IV Begin
+	ALString sIdentifierAttribute;
+	// CH IV End
 
 	// ## Custom implementation
 
@@ -216,6 +226,18 @@ inline void CCPostProcessingSpec::SetFrequencyAttribute(const ALString& sValue)
 {
 	sFrequencyAttribute = sValue;
 }
+
+// CH IV Begin
+inline const ALString& CCPostProcessingSpec::GetIdentifierAttribute() const
+{
+	return sIdentifierAttribute;
+}
+
+inline void CCPostProcessingSpec::SetIdentifierAttribute(const ALString& sValue)
+{
+	sIdentifierAttribute = sValue;
+}
+// CH IV End
 
 // ## Custom inlines
 

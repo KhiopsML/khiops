@@ -10,6 +10,10 @@ class CCHDGPart;
 class CCHDGValueSet;
 class CCHDGValue;
 class CCHDGCell;
+// CH IV Begin
+class CCHDGVarPartSet;
+class CCHDGVarPartValue;
+// CH IV End
 
 #include "KWDataGrid.h"
 #include "KWDatabase.h"
@@ -63,6 +67,30 @@ public:
 	KWDatabase* GetDatabaseSpec();
 	const KWDatabase* GetConstDatabaseSpec() const;
 
+	// CH IV Begin
+	// Nom de l'attribute d'identifiant (optionnel)
+	void SetIdentifierAttributeName(const ALString& sValue);
+	const ALString& GetIdentifierAttributeName() const;
+
+	// Vecteur des valeurs min par attribut implique
+	// Range dans l'ordre du tableau des attributs impliques
+	// Pour un attribut implique categoriel, min et max sont a zero
+	// CH IV Refactoring: renommer en SetVarPartAttributeMinValues
+	void SetImpliedAttributeMinValues(const ContinuousVector* cvValues);
+	const ContinuousVector* GetImpliedAttributeMinValues() const;
+
+	// Vecteur des valeurs max par attribut implique
+	// CH IV Refactoring: renommer en SetVarPartAttributeMaxValues
+	void SetImpliedAttributeMaxValues(const ContinuousVector* cvValues);
+	const ContinuousVector* GetImpliedAttributeMaxValues() const;
+
+	// CH IV Refactoring: je ne comprend pas clairement par rapport a quoi sont ces index
+	// Index d'un attribut implique dans les vecteurs ci dessous des min et des max a partir de son nom
+	// CH IV Refactoring: renommer en SetVarPartAttributeIndexes
+	void SetImpliedAttributeIndexes(ObjectDictionary* odIndexes);
+	ObjectDictionary* GetImpliedAttributeIndexes() const;
+	// CH IV End
+
 	/////////////////////////////////////////////////////////////////////////
 	// Services divers
 
@@ -86,6 +114,12 @@ protected:
 	int nInitialAttributeNumber;
 	ALString sFrequencyAttributeName;
 	KWDatabase databaseSpec;
+	// CH IV Begin
+	ALString sIdentifierAttributeName;
+	const ContinuousVector* cvImpliedAttributeMinValues;
+	const ContinuousVector* cvImpliedAttributeMaxValues;
+	ObjectDictionary* odImpliedAttributeIndexes;
+	// CH IV End
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -256,6 +290,9 @@ public:
 protected:
 	// Reimplementation des methodes virtuelles
 	KWDGValueSet* NewValueSet() const override;
+	// CH IV Begin
+	KWDGVarPartSet* NewVarPartSet() const override;
+	// CH IV End
 
 	// Reimplementation de la methode indiquant si les donnees sont emulees
 	// pour gerer les effectifs des parties de la hierarchie, n'ayant pas directement de cellules
@@ -332,6 +369,58 @@ protected:
 
 // Comparaison de deux valeurs symboliques, par typicalite decroissante
 int CCHDGValueCompareDecreasingTypicality(const void* elem1, const void* elem2);
+
+// CH IV Begin
+//////////////////////////////////////////////////////////////////////////////
+// Classe CCHDGVarPartSet
+// Ensemble de parties de variable d'une partie de type VarPart d'un HierarchicalDataGrid
+class CCHDGVarPartSet : public KWDGVarPartSet
+{
+public:
+	// Constructeur
+	CCHDGVarPartSet();
+	~CCHDGVarPartSet();
+
+	// Tri des parties de variable par typicalite decroissante
+	void SortVarPartsByTypicality();
+
+	// Controle d'integrite pour la hierarchie
+	boolean CheckHierarchy() const;
+
+	///////////////////////////////
+	///// Implementation
+protected:
+	// Reimplementation des methodes virtuelles
+	KWDGVarPartValue* NewVarPartValue(KWDGPart* varPart) const override;
+};
+
+//////////////////////////////////////////////////////////////////////////////
+// Classe CCHDGVarPartValue
+// Partie de variable d'un HierarchicalDataGrid
+class CCHDGVarPartValue : public KWDGVarPartValue
+{
+public:
+	// Constructeur
+	CCHDGVarPartValue(KWDGPart* varPart);
+	~CCHDGVarPartValue();
+
+	// Typicalite
+	void SetTypicality(double dValue);
+	double GetTypicality() const;
+
+	// Controle d'integrite pour la hierarchie
+	boolean CheckHierarchy() const;
+
+	///////////////////////////////
+	///// Implementation
+protected:
+	double dTypicality;
+};
+
+// Comparaison de deux valeurs symboliques, par typicalite decroissante
+int CCHDGVarPartValueCompareDecreasingTypicality(const void* elem1, const void* elem2);
+
+// CH IV End
 
 //////////////////////////////////////////////////////////////////////////////
 // Classe CCHDGCell

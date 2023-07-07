@@ -16,6 +16,9 @@ class CCCoclusteringOptimizer;
 #include "KWDataPreparationClass.h"
 #include "CCHierarchicalDataGrid.h"
 #include "CCCoclusteringReport.h"
+#include "CCCoclusteringSpec.h"
+// CH IV Refactoring: rennommer en CCVarPartCoclusteringSpec
+#include "CCInstancesVariablesCoclusteringSpec.h"
 
 /////////////////////////////////////////////////////////////////////////////////
 // Construction et services autour du coclustering
@@ -34,6 +37,21 @@ public:
 	const ALString& GetFrequencyAttribute() const;
 	void SetFrequencyAttribute(const ALString& sValue);
 
+	// CH IV Begin
+	// Variable d'identifiant (optionnelle)
+	// Pour un coclustering individus * variables, permet de renseigner la variable d'identifiant des individus
+	// Sinon, cette variable est creee automatiquement
+	const ALString& GetIdentifierAttribute() const;
+	void SetIdentifierAttribute(const ALString& sValue);
+
+	// Type de coclustering
+	// A true pour un coclustering generique de type individus * varialbes
+	// A false sinon pour un coclustering variable * variable (valeur par defaut)
+	// CH IV Refactoring: rennommer en Set|GetVarPartCoclustering
+	boolean GetGenericCoclustering() const;
+	void SetGenericCoclustering(boolean bValue);
+	// CH IV End
+
 	// Verification de la validite des specifications
 	boolean CheckSpecifications() const override;
 
@@ -43,6 +61,67 @@ public:
 
 	// Test si le coclustering est calcule et informatif (au moins deux dimensions)
 	boolean IsCoclusteringInformative() const;
+
+	// CH IV Begin
+
+	// CH IV Refactoring: a clarifier (uniquement les attributs VarPart, ceux la plus l'Identifier, quid du
+	// coclustering classique?)
+
+	// Nombre d'attributs
+	// Redefinition qui permet de definir la taille du vecteur des noms d'attributs et du vecteur des noms d'axes de
+	// chaque attribut A ce stade, les noms d'axes sont redondants si plusieurs attributs partagent le meme axe
+	void SetAttributeNumber(int nValue);
+
+	// Parametrage des axes
+	// Memoire: les specifications des axes sont a gerer par l'appelant
+	// Acces au nom de l'axe d'un attribut
+	// Pour un attribut Simple (numérique ou catégoriel), le nom est vide
+	// Pour un attribut de type Parties de variables, contient le nom de l'axe
+	void SetAxisForAttributeNameAt(int nIndex, const ALString& sAxisName);
+	const ALString& GetAxisForAttributeNameAt(int nIndex) const;
+
+	// Acces aux noms d'axes (sans redondance)
+	const ALString& GetAxisNameAt(int nIndex) const;
+
+	// Acces au nombre d'attributs impliques par axe
+	// CH IV Refactoring: renommer en GetVarPartAttributeNumberAt
+	// CH IV Refactoring: clarifier, il suffit d'indiquer quel est l'index de l'aaxe portant les VarPart attributes?
+	int GetImpliedAttributeNumberAt(int nIndex) const;
+
+	// Extraction et verification des noms des axes
+	// L'extraction est effectuee en supprimant les noms redondants
+	// Les noms vides sont consideres comme correspondant a des axes de type numerique ou categoriel
+	// Un axe avec un nom non vide doit etre partage par au moins deux attributs successifs
+	// Renvoie faux si le Check a echoue
+	boolean ExtractAndCheckAxisNames();
+
+	// Nombre d'axes distincts
+	int GetAxisNumber() const;
+
+	// Creation d'une structure de cout pour le probleme de coclustering generique
+	// Memoire: appartient a l'appelant
+	KWDataGridCosts* CreateDataGridCost() const;
+
+	// Traite le cas generique ou les attributs sont de type Simple ou de type parties de variables
+	// L'axe VarParts cree contient un cluster de parties de variable pour chaque partie de variable de chaque
+	// attribut implique L'effectif de la variable identifiant est alimente par le vecteur ivObservationNumbers CH
+	// IV Refactoring: renommer en CreateVarPartDataGrid
+	KWDataGrid* CreateGenericDataGrid(const KWTupleTable* tupleTable, ObjectDictionary& odObservationNumbers);
+
+	// Nettoyage des eventuelles parties de variables vides du fait d'observations manquantes
+	// CH IV Refactoring: renommer en CleanVarPartDataGrid
+	void CleanGenericDataGrid(KWDataGrid* dataGrid);
+
+	// Alimentation des cellules d'un DataGrid dont les attributs et parties
+	// sont correctement initialises
+	// Renvoie true si cellule correctement initialisee, false sinon (sans nettoyage des celulles crees)
+	// Pour les attributs de type VarParts, on parcourt l'ensemble des attributs impliques de l'ensemble de ces
+	// attributs pour alimenter les cellules associees a chaque observation (l'observation d'un attribut implique
+	// par axe de type VarParts) CH IV Refactoring: passer en override de la methode ancetre? OK
+	//   verifier egalement pour les autres methodes CreateGenericDataGrid, CreateGenericDataGrid
+	//    qui pourrait etre des redefintions des methodes de la classe ancetre?
+	boolean CreateDataGridCells(const KWTupleTable* tupleTable, KWDataGrid* dataGrid);
+	// CH IV End
 
 	/////////////////////////////////////////////////////
 	// Acces aux resultats de coclustering
@@ -87,6 +166,12 @@ protected:
 	// Methode virtuelle d'optimisation d'une grille
 	virtual void OptimizeDataGrid(const KWDataGrid* inputInitialDataGrid, KWDataGrid* optimizedDataGrid);
 
+	// CH IV Begin
+	// CH IV Refactoring: renommer en OptimizeVarPartDataGrid
+	void OptimizeGenericDataGrid(const KWDataGrid* inputInitialDataGrid, KWDataGrid* optimizedDataGrid,
+				     CCCoclusteringOptimizer dataGridOptimizer);
+	// CH IV End
+
 	///////////////////////////////////////////////////////////////////////////////////////
 	// Gestion preventive de l'utilisation des ressources memoire, avec message d'erreur
 	// On procede selon les etapes suivantes:
@@ -105,6 +190,57 @@ protected:
 	// de depasssement des capacites memoire sont effectuees regulierement
 	// On renvoie true en cas de succes, false sinon avec un message d'erreur
 	boolean FillTupleTableFromDatabase(KWDatabase* database, KWTupleTable* tupleTable);
+
+	// CH IV Begin
+	// Cas du coclustering generique avec attribut de type VarPart
+	// En plus d'une table de tuples comme dans FillTupleTableFromDatabase, on alimente egalement un vecteur
+	// qui associe a chaque tuple le nombre d'observations dans l'attribut de type VarPart
+	// Un tuple est ecarte si son attribut identifiant n' est pas renseigne ou si aucune valeur n'est renseignee
+	// pour les attributs impliques En sortie, le dictionnaire odObservationNumbers contient pour chaque modalite de
+	// l'identifiant, le nombre d'observations stocke dans un IntObject CH IV Refactoring: renommer en
+	// FillVarPartTupleTableFromDatabase
+	boolean FillGenericTupleTableFromDatabase(KWDatabase* database, KWTupleTable* tupleTable,
+						  ObjectDictionary& odObservationNumbers);
+
+	// CH IV Refactoring: terminologie Instances x Variables a unifier
+	//   VarPart: type d'un axe de grille, et terme generique de typa adjectif
+	//   VarPartDataGrid: grille ayant un axe de type VarPart
+	//   VarPartAttribute: attribute simple utilise dans un axe de type VarPart
+	//   VarPartAttributePart: partie d'un VarPartAttribute,
+	//   Identifier (InstanceIdentifier?)
+	//   Axis: attribut d'un grille, terminologie nouvelle depuis l'introduction des VarPart
+	//         pour differencier les attributs de type VarPart, et les VarPartAttributes qui les composent
+	//   VarPartAxis: Axis de type VarPart
+	//   Observation: lie a un couple (instance, valeur de variable)
+	//     pour chaque instance, on a autant d'observations que de variables npn manquantes
+	//   ...
+	// CH IV Refactoring: OK, a deplacer et unifier dans l'entete de KWDataGrid
+
+	// Creation de la partition d'un attribut de DataGrid de type Identifiant dans un coclustering Identifiant *
+	// Parties de variables En entree, le dictionnaire odObservationNumbers contient pour chaque modalite de
+	// l'identifiant, le nombre d'observations Ces effectifs permettent d'initialiser les effectifs de l'attribut
+	// Cas d'un attribut Identifier de type Symbol
+	boolean CreateIdentifierAttributeValueSets(const KWTupleTable* tupleTable, KWDGAttribute* dgAttribute,
+						   ObjectDictionary& odObservationNumbers);
+
+	// Cas d'un attribut Identifier de type Continuous
+	boolean CreateIdentifierAttributeIntervals(const KWTupleTable* tupleTable, KWDGAttribute* dgAttribute,
+						   ObjectDictionary& odObservationNumbers);
+
+	// CH AB AF obsolete quand le calcul exact du nombre d'observations sera effectue
+	// Alimentation d'un tableau de vecteur d'indexes decrivant toutes les observations generees
+	// Traite le cas de plusieurs axes de type VarParts
+	// CH IV Refactoring: obsolete???
+	// CH IV Refactoring: renommer en FillObjectArrayVarPartAttributesIndexes
+	void FillObjectArrayVarPartsAttributesIndexes(ObjectArray* oaIndexes, int nFirstVarPartsAttributeIndex,
+						      KWDataGrid* dataGrid);
+
+	// Renvoie le nombre d'observations associe a un enregistrement, avec eventuellement affichage de warning
+	// Renvoie 0 si l'enregistrement est non utilisable (valeur manquante pour l'attribut Identifiant ou aucune
+	// observation) L'attribut Identifiant est exclu du calcul du nombre d'observations
+	int GetDatabaseObjectObservationNumber(KWObject* kwoObject, KWLoadIndex liFrequencyAttributeLoadIndex,
+					       longint lRecordIndex, KWLoadIndexVector& livLoadIndexes);
+	// CH IV End
 
 	// Renvoie l'effectif associe a un enregistrement, avec eventuellement affichage de warning
 	// Renvoie 1 si l'index de l'attribut d'eefctif est invalide
@@ -193,6 +329,15 @@ protected:
 	// Attributs d'effectif
 	ALString sFrequencyAttribute;
 
+	// CH IV Begin
+	// Attribut d'identifiant
+	ALString sIdentifierAttribute;
+
+	// Type de coclustering
+	// CH IV Refactoring: renommer en bVarPartCoclustering
+	boolean bGenericCoclustering;
+	// CH IV End
+
 	// Structure de cout de la grille
 	KWDataGridCosts* coclusteringDataGridCosts;
 
@@ -214,8 +359,26 @@ protected:
 	mutable double dAnyTimeBestCost;
 	mutable boolean bIsDefaultCostComputed;
 
-	// Export des rapport au format Khc
+	// Export des rapports au format Khc
 	boolean bExportAsKhc;
+
+	// CH IV Begin
+	// Nom des axes (sans redondance)
+	StringVector svAxisNames;
+
+	// Nombre d'attributs impliques par axe
+	// Egal a 1 pour un axe de type autre que Parties de variables
+	// Est > 1 pour un axe de type Parties de variables
+	// CH IV Refactoring: renommer en ivVarPartAttributesNumber
+	IntVector ivImpliedAttributesNumber;
+
+	// Nom d'axe pour chaque attribut (avec redondance)
+	StringVector svAxisForAttributeNames;
+
+	// Index du premier attribut de type VarParts
+	// CH IV Refactoring: cf clarification du cas d'un axe (le seul) avec des VarParts
+	int nFirstVarPartsAttributeIndex;
+	// CH IV End
 };
 
 //////////////////////////////////////////////////////////////////////////////////

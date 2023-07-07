@@ -10,34 +10,27 @@
 
 #include "UserInterface.h"
 
-#include "CCCoclusteringSpec.h"
+#include "KWAttributeAxisName.h"
 
 // ## Custom includes
-
-#include "KWAttributeNameView.h"
-#include "KWAttributeNameArrayView.h"
-#include "KWVersion.h"
-// CH IV Refactoring: il semble que les deux includes ci-dessous soient inutiles
-#include "KWAttributeAxisNameView.h"
-#include "KWAttributeAxisNameArrayView.h"
 
 // ##
 
 ////////////////////////////////////////////////////////////
-// Classe CCCoclusteringSpecView
-//    Coclustering parameters
-// Editeur de CCCoclusteringSpec
-class CCCoclusteringSpecView : public UIObjectView
+// Classe KWAttributeAxisNameView
+//    VariableAxis
+// Editeur de KWAttributeAxisName
+class KWAttributeAxisNameView : public UIObjectView
 {
 public:
 	// Constructeur
-	CCCoclusteringSpecView();
-	~CCCoclusteringSpecView();
+	KWAttributeAxisNameView();
+	~KWAttributeAxisNameView();
 
 	// Acces a l'objet edite
-	CCCoclusteringSpec* GetCCCoclusteringSpec();
+	KWAttributeAxisName* GetKWAttributeAxisName();
 
-	///////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////
 	// Redefinition des methodes a reimplementer obligatoirement
 
 	// Mise a jour de l'objet par les valeurs de l'interface
@@ -51,12 +44,9 @@ public:
 
 	// ## Custom declarations
 
-	// Parametrage de l'objet edite
-	void SetObject(Object* object) override;
-
 	// ##
 	////////////////////////////////////////////////////////
-	///// Implementation
+	//// Implementation
 protected:
 	// ## Custom implementation
 
