@@ -113,7 +113,9 @@ KWDGMPart* KWDGMPartMergeAction::PerformPartMerge(KWDGMPartMerge* partMerge)
 
 	// Dereferencement des parties de la liste triee par nombre de modalites
 	// Restitution de la poubelle
-	if (attribute->GetAttributeType() == KWType::Symbol)
+	// CH IV Begin
+	if (attribute->GetAttributeType() == KWType::Symbol or attribute->GetAttributeType() == KWType::VarParts)
+	// CH IV End
 	{
 		attribute->RemovePartFromValueNumberList(part1);
 		attribute->RemovePartFromValueNumberList(part2);
@@ -162,8 +164,12 @@ KWDGMPart* KWDGMPartMergeAction::PerformPartMerge(KWDGMPartMerge* partMerge)
 	// Import des valeurs de la partie origine vers la partie destination
 	if (attribute->GetAttributeType() == KWType::Continuous)
 		part2->GetInterval()->Import(part1->GetInterval());
-	else
+	// CH IV Begin
+	else if (attribute->GetAttributeType() == KWType::Symbol)
 		part2->GetValueSet()->Import(part1->GetValueSet());
+	else
+		part2->GetVarPartSet()->Import(part1->GetVarPartSet());
+	// CH IV End
 
 	// Transfert des cellules a transferer
 	for (nCell = 0; nCell < oaTransferredCells1.GetSize(); nCell++)
@@ -244,7 +250,9 @@ KWDGMPart* KWDGMPartMergeAction::PerformPartMerge(KWDGMPartMerge* partMerge)
 	// Mise a jour du cout de la partie 2
 	part2->SetCost(dataGridCosts->ComputePartCost(part2));
 
-	if (attribute->GetAttributeType() == KWType::Symbol)
+	// CH IV Begin
+	if (attribute->GetAttributeType() == KWType::Symbol or attribute->GetAttributeType() == KWType::VarParts)
+	// CH IV End
 	{
 		// Reinsertion de la partie fusionnee dans la liste triee par nombre de modalites
 		attribute->AddPartToValueNumberList(part2);

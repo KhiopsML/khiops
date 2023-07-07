@@ -59,6 +59,18 @@ public:
 	boolean GetPostOptimize() const;
 	void SetPostOptimize(boolean bValue);
 
+	// CH IV Begin
+	// Post-fusion des parties de variable d'un meme cluster pour le coclustering individus * variable
+	// CH IV Refactoring: renommer en Set|GetVarPartPostFusion
+	boolean GetPostFusion() const;
+	void SetPostFusion(boolean bValue);
+
+	// VarPart Post-optimisation des parties de variable (modification des frontieres) pour le coclustering
+	// individus * variable
+	boolean GetVarPartPostOptimization() const;
+	void SetVarPartOptimization(boolean bValue);
+	// CH IV End
+
 	// Parametre interne, pour personnalisation avancee
 	const ALString& GetInternalParameter() const;
 	void SetInternalParameter(const ALString& sValue);
@@ -101,6 +113,10 @@ protected:
 	boolean bPreOptimize;
 	boolean bOptimize;
 	boolean bPostOptimize;
+	// CH IV Begin
+	boolean bPostFusion;
+	boolean bVarPartPostOptimization;
+	// CH IV End
 	ALString sInternalParameter;
 	boolean bDisplayDetails;
 	int nFreshness;

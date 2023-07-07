@@ -687,15 +687,21 @@ boolean KWAttributeSubsetStats::CreateAttributeIntervals(const KWTupleTable* tup
 			// Progression
 			if (periodicTestDisplay.IsTestAllowed(nTuple))
 			{
-				// Avancement: au prorata de la base pour l'attribut en cours, en reservant 50 pour la
-				// creation des cellules
-				dProgression = dgAttribute->GetAttributeIndex() * 50.0 /
-					       dgAttribute->GetDataGrid()->GetAttributeNumber();
-				dProgression += (nTuple * 50.0 / attributeTupleTable.GetSize()) /
-						dgAttribute->GetDataGrid()->GetAttributeNumber();
-				TaskProgression::DisplayProgression((int)dProgression);
-				if (TaskProgression::IsInterruptionRequested())
-					return false;
+				// CH IV Begin
+				// Cas d'un attribut non implique dans un attribut VarPart
+				if (dgAttribute->GetAxisName() == "")
+				{
+					// Avancement: au prorata de la base pour l'attribut en cours, en reservant 50
+					// pour la creation des cellules
+					dProgression = dgAttribute->GetAttributeIndex() * 50.0 /
+						       dgAttribute->GetDataGrid()->GetAttributeNumber();
+					dProgression += (nTuple * 50.0 / attributeTupleTable.GetSize()) /
+							dgAttribute->GetDataGrid()->GetAttributeNumber();
+					TaskProgression::DisplayProgression((int)dProgression);
+					if (TaskProgression::IsInterruptionRequested())
+						return false;
+				}
+				// CH IV End
 			}
 
 			// Valeur du tuple
@@ -777,15 +783,21 @@ boolean KWAttributeSubsetStats::CreateAttributeValueSets(const KWTupleTable* tup
 		// Progression
 		if (periodicTestDisplay.IsTestAllowed(nTuple))
 		{
-			// Avancement: au prorata de la base pour l'attribut en cours, en reservant 50 pour la creation
-			// des cellules
-			dProgression =
-			    dgAttribute->GetAttributeIndex() * 50.0 / dgAttribute->GetDataGrid()->GetAttributeNumber();
-			dProgression += (nTuple * 50.0 / attributeTupleTable.GetSize()) /
-					dgAttribute->GetDataGrid()->GetAttributeNumber();
-			TaskProgression::DisplayProgression((int)dProgression);
-			if (TaskProgression::IsInterruptionRequested())
-				return false;
+			// CH IV Begin
+			// Cas d'un attribut non implique dans un attribut VarPart
+			if (dgAttribute->GetAxisName() == "")
+			{
+				// Avancement: au prorata de la base pour l'attribut en cours, en reservant 50 pour la
+				// creation des cellules
+				dProgression = dgAttribute->GetAttributeIndex() * 50.0 /
+					       dgAttribute->GetDataGrid()->GetAttributeNumber();
+				dProgression += (nTuple * 50.0 / attributeTupleTable.GetSize()) /
+						dgAttribute->GetDataGrid()->GetAttributeNumber();
+				TaskProgression::DisplayProgression((int)dProgression);
+				if (TaskProgression::IsInterruptionRequested())
+					return false;
+			}
+			// CH IV End
 		}
 
 		// Creation d'une nouvelle partie mono-valeur

@@ -335,6 +335,14 @@ protected:
 					       IntVector* ivGroups, int nMaxStepNumber,
 					       SortedList* frequencyList) const;
 
+	// CH IV Begin
+	// CH IV Refactoring: completer le commentaire?
+	// Post-optimisation selon un algorithme EM
+	// On effectue
+	void EMPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSource, KWFrequencyTable* kwftTarget,
+					     IntVector* ivGroups, int nMaxStepNumber, SortedList* frequencyList) const;
+	// CH IV End
+
 	// On force le meilleur merge parmi les groupes deja constitues
 	// Une nouvelle table est constituee en sortie, avec un groupe en moins
 	// Le vecteur d'affectation des groupes correspond alors a la nouvelle table

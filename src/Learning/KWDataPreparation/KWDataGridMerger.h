@@ -84,6 +84,11 @@ protected:
 	// Suppression de toutes les listes de parties triees par nombre de modalites
 	void RemoveAllPartLists();
 
+	// CH IV Begin
+	// Destruction de toutes les listes de parties triees par nombre de modalites
+	void DeleteAllPartLists();
+	// CH IV End
+
 	// Initialisation de toutes les fusions de parties
 	// Les fusions sont evaluees, chainees dans les deux sens avec les parties
 	// et triees dans les attributs
@@ -532,12 +537,23 @@ inline void KWDGMAttribute::RemovePartFromValueNumberList(KWDGMPart* partM)
 	slPartValueNumbers->RemoveAt(partM->GetPosition());
 	partM->SetPosition(NULL);
 }
-
+// CH IV Begin
 inline void KWDGMAttribute::RemoveAllPartsFromValueNumberList()
 {
-	slPartValueNumbers->RemoveAll();
-}
+	KWDGPart* part;
+	KWDGMPart* partM;
 
+	slPartValueNumbers->RemoveAll();
+	// CH IV REfactoring: je ne comprend pas ce qui suit dans cette methode
+	part = this->GetHeadPart();
+	while (part != NULL)
+	{
+		partM = cast(KWDGMPart*, part);
+		partM->SetPosition(NULL);
+		GetNextPart(part);
+	}
+}
+// CH IV End
 inline void KWDGMAttribute::AddPartMerge(KWDGMPartMerge* partMerge)
 {
 	require(partMerge != NULL);
