@@ -75,20 +75,18 @@ public:
 	// Vecteur des valeurs min par attribut interne
 	// Range dans l'ordre du tableau des attributs internes
 	// Pour un attribut interne categoriel, min et max sont a zero
-	// CH IV Refactoring: renommer en SetVarPartAttributeMinValues
 	void SetInnerAttributeMinValues(const ContinuousVector* cvValues);
 	const ContinuousVector* GetInnerAttributeMinValues() const;
 
 	// Vecteur des valeurs max par attribut interne
-	// CH IV Refactoring: renommer en SetVarPartAttributeMaxValues
 	void SetInnerAttributeMaxValues(const ContinuousVector* cvValues);
 	const ContinuousVector* GetInnerAttributeMaxValues() const;
 
 	// CH IV Refactoring: je ne comprend pas clairement par rapport a quoi sont ces index
-	// Index d'un attribut interne dans les vecteurs ci dessous des min et des max a partir de son nom
-	// CH IV Refactoring: renommer en SetInnerAttributeIndexes
-	void SetInnerAttributeIndexes(ObjectDictionary* odIndexes);
-	ObjectDictionary* GetInnerAttributeIndexes() const;
+	// Index des attributs internes numeriques parmi l'ensemble des attributs internes,
+	// pour pourvoir exploiter des vecteurs des valeurs min et max
+	void SetInnerContinuousAttributeIndexes(ObjectDictionary* odIndexes);
+	ObjectDictionary* GetInnerContinuousAttributeIndexes() const;
 	// CH IV End
 
 	/////////////////////////////////////////////////////////////////////////
@@ -115,10 +113,12 @@ protected:
 	ALString sFrequencyAttributeName;
 	KWDatabase databaseSpec;
 	// CH IV Begin
+	// CH IV Refactoring: le sIdentifierAttributeName est-il toujours utile???
 	ALString sIdentifierAttributeName;
+	// CH IV Refactoring: pourrait-on passer par les Set/GetMin et Set/GetMax des CCHDGAttribute???
 	const ContinuousVector* cvInnerAttributeMinValues;
 	const ContinuousVector* cvInnerAttributeMaxValues;
-	ObjectDictionary* odInnerAttributeIndexes;
+	ObjectDictionary* odInnerContinuousAttributeIndexes;
 	// CH IV End
 };
 

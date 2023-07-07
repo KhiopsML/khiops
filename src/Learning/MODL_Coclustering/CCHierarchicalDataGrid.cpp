@@ -15,18 +15,22 @@ CCHierarchicalDataGrid::CCHierarchicalDataGrid()
 	// CH IV Begin
 	cvInnerAttributeMinValues = NULL;
 	cvInnerAttributeMaxValues = NULL;
-	odInnerAttributeIndexes = NULL;
+	odInnerContinuousAttributeIndexes = NULL;
 	// CH IV End
 }
 
 CCHierarchicalDataGrid::~CCHierarchicalDataGrid()
 {
 	// CH IV Begin
-	delete cvInnerAttributeMinValues;
-	delete cvInnerAttributeMaxValues;
-	if (odInnerAttributeIndexes != NULL)
-		odInnerAttributeIndexes->DeleteAll();
-	delete odInnerAttributeIndexes;
+	if (cvInnerAttributeMinValues != NULL)
+		delete cvInnerAttributeMinValues;
+	if (cvInnerAttributeMaxValues != NULL)
+		delete cvInnerAttributeMaxValues;
+	if (odInnerContinuousAttributeIndexes != NULL)
+	{
+		odInnerContinuousAttributeIndexes->DeleteAll();
+		delete odInnerContinuousAttributeIndexes;
+	}
 	// CH IV End
 }
 
@@ -120,6 +124,8 @@ const ALString& CCHierarchicalDataGrid::GetIdentifierAttributeName() const
 
 void CCHierarchicalDataGrid::SetInnerAttributeMinValues(const ContinuousVector* cvValues)
 {
+	if (cvInnerAttributeMinValues != NULL)
+		delete cvInnerAttributeMinValues;
 	cvInnerAttributeMinValues = cvValues;
 }
 
@@ -130,6 +136,8 @@ const ContinuousVector* CCHierarchicalDataGrid::GetInnerAttributeMinValues() con
 
 void CCHierarchicalDataGrid::SetInnerAttributeMaxValues(const ContinuousVector* cvValues)
 {
+	if (cvInnerAttributeMaxValues != NULL)
+		delete cvInnerAttributeMaxValues;
 	cvInnerAttributeMaxValues = cvValues;
 }
 
@@ -138,14 +146,19 @@ const ContinuousVector* CCHierarchicalDataGrid::GetInnerAttributeMaxValues() con
 	return cvInnerAttributeMaxValues;
 }
 
-void CCHierarchicalDataGrid::SetInnerAttributeIndexes(ObjectDictionary* odIndexes)
+void CCHierarchicalDataGrid::SetInnerContinuousAttributeIndexes(ObjectDictionary* odIndexes)
 {
-	odInnerAttributeIndexes = odIndexes;
+	if (odInnerContinuousAttributeIndexes != NULL)
+	{
+		odInnerContinuousAttributeIndexes->DeleteAll();
+		delete odInnerContinuousAttributeIndexes;
+	}
+	odInnerContinuousAttributeIndexes = odIndexes;
 }
 
-ObjectDictionary* CCHierarchicalDataGrid::GetInnerAttributeIndexes() const
+ObjectDictionary* CCHierarchicalDataGrid::GetInnerContinuousAttributeIndexes() const
 {
-	return odInnerAttributeIndexes;
+	return odInnerContinuousAttributeIndexes;
 }
 // CH IV End
 
@@ -316,7 +329,7 @@ CCHDGPart* CCHDGAttribute::NewHierarchyPart()
 
 	require(GetAttributeType() != KWType::Unknown);
 	// CH IV Begin
-	require(KWType::IsSimple(GetAttributeType()) or GetAttributeType() == KWType::VarPart);
+	require(KWType::IsCoclusteringType(GetAttributeType()));
 	// CH IV End
 
 	// Creation d'une nouvelle partie en fonction du type de l'attribut

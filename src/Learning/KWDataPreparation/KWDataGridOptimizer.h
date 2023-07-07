@@ -45,7 +45,7 @@ public:
 
 	// CH IV Begin
 	// Parametrage (facultatif) par une grille initiale
-	// Dans le cas du coclustering individus * variables,
+	// Dans le cas du coclustering instances * variables,
 	// Permet l'utilisation de cette grille pour la creation de la grille avec parties de variables fusionnees
 	// Memoire: les specifications sont referencees et destinee a etre partagees
 	void SetInitialDataGrid(KWDataGrid* initialDataGrid);
@@ -236,7 +236,6 @@ protected:
 	// des grilles de meilleur cout apres post-fusion En sortie : optimizedDataGrid contient la grille antecedent
 	// avant post-fusion de la meilleure grille post-fusionne Le cout renvoye est le cout de cette optimizedDataGrid
 	// dBestMergedDataGridCost contient le cout de la meilleure grille apres post-fusion (meilleur cout)
-	// CH IV Refactoring: renommer en VNSOptimizeVarPartDataGrid
 	double VNSOptimizeVarPartDataGrid(const KWDataGrid* initialDataGrid, double dDecreaseFactor, int nMinIndex,
 					  int nMaxIndex, KWDataGrid* optimizedDataGrid, double dOptimizedDataGridCost,
 					  double& dBestMergedDataGridCost) const;

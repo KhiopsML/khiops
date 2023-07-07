@@ -240,9 +240,9 @@ void KWDataGridManager::ExportTerminalDataGrid(KWDataGrid* targetDataGrid) const
 			}
 
 			// Transfert du tableau des noms des attributs internes
-			targetAttribute->SetInnerAttributesNumber(sourceAttribute->GetInnerAttributesNumber());
+			targetAttribute->SetInnerAttributeNumber(sourceAttribute->GetInnerAttributeNumber());
 
-			for (nInnerAttribute = 0; nInnerAttribute < sourceAttribute->GetInnerAttributesNumber();
+			for (nInnerAttribute = 0; nInnerAttribute < sourceAttribute->GetInnerAttributeNumber();
 			     nInnerAttribute++)
 			{
 				targetAttribute->SetInnerAttributeNameAt(
@@ -303,7 +303,7 @@ void KWDataGridManager::ExportNullDataGrid(KWDataGrid* targetDataGrid) const
 			if (sourceAttribute->GetAttributeType() == KWType::VarPart)
 			{
 				// Parcours des attributs internes
-				for (nInnerAttribute = 0; nInnerAttribute < sourceAttribute->GetInnerAttributesNumber();
+				for (nInnerAttribute = 0; nInnerAttribute < sourceAttribute->GetInnerAttributeNumber();
 				     nInnerAttribute++)
 				{
 					// Extraction de l'attribut internes source
@@ -412,7 +412,7 @@ void KWDataGridManager::ExportNullDataGrid(KWDataGrid* targetDataGrid) const
 			targetPart = targetAttribute->AddPart();
 
 			// Parcours des attributs internes
-			for (nInnerAttribute = 0; nInnerAttribute < targetAttribute->GetInnerAttributesNumber();
+			for (nInnerAttribute = 0; nInnerAttribute < targetAttribute->GetInnerAttributeNumber();
 			     nInnerAttribute++)
 			{
 				// Extraction de l'attribut interne source
@@ -585,11 +585,11 @@ void KWDataGridManager::InitializeQuantileBuildersForVariablePartsPartitioning(
 					sourcePart->GetVarPartSet()->GetNextVarPart(varPartValue);
 				}
 			}
-			assert(odAllInnerAttributesPartFrequencies.GetCount() == attribute->GetInnerAttributesNumber());
+			assert(odAllInnerAttributesPartFrequencies.GetCount() == attribute->GetInnerAttributeNumber());
 
 			// Parcours des attributs internes pour la construction des quantile builders (un par attribut
 			// interne)
-			for (nInnerAttribute = 0; nInnerAttribute < attribute->GetInnerAttributesNumber();
+			for (nInnerAttribute = 0; nInnerAttribute < attribute->GetInnerAttributeNumber();
 			     nInnerAttribute++)
 			{
 				innerAttribute = attribute->GetDataGrid()->GetInnerAttributes()->LookupInnerAttribute(
@@ -1209,7 +1209,7 @@ void KWDataGridManager::ExportGranularizedPartsForVarPartAttributes(KWDataGrid* 
 			nTotalVarPartNumber = 0;
 
 			// Parcours des attributs internes
-			for (nInnerAttribute = 0; nInnerAttribute < sourceAttribute->GetInnerAttributesNumber();
+			for (nInnerAttribute = 0; nInnerAttribute < sourceAttribute->GetInnerAttributeNumber();
 			     nInnerAttribute++)
 			{
 				// Extraction de l'attribut interne source
@@ -1435,7 +1435,7 @@ double KWDataGridManager::ExportMergedDataGridForVarPartAttributes(KWDataGrid* t
 			if (sourceAttribute->GetAttributeType() == KWType::VarPart)
 			{
 				// Parcours des attributs internes
-				for (nInnerAttribute = 0; nInnerAttribute < sourceAttribute->GetInnerAttributesNumber();
+				for (nInnerAttribute = 0; nInnerAttribute < sourceAttribute->GetInnerAttributeNumber();
 				     nInnerAttribute++)
 				{
 					// Extraction de l'attribut interne source
@@ -1829,9 +1829,9 @@ void KWDataGridManager::ExportAttributes(KWDataGrid* targetDataGrid) const
 		if (sourceAttribute->GetAttributeType() == KWType::VarPart)
 		{
 			// Initialisation du tableau des noms des attributs internes
-			targetAttribute->SetInnerAttributesNumber(sourceAttribute->GetInnerAttributesNumber());
+			targetAttribute->SetInnerAttributeNumber(sourceAttribute->GetInnerAttributeNumber());
 
-			for (nInnerAttribute = 0; nInnerAttribute < sourceAttribute->GetInnerAttributesNumber();
+			for (nInnerAttribute = 0; nInnerAttribute < sourceAttribute->GetInnerAttributeNumber();
 			     nInnerAttribute++)
 			{
 				targetAttribute->SetInnerAttributeNameAt(
@@ -1900,9 +1900,9 @@ void KWDataGridManager::ExportOneAttribute(KWDataGrid* targetDataGrid, const ALS
 	if (sourceAttribute->GetAttributeType() == KWType::VarPart)
 	{
 		// Initialisation du tableau des noms des attributs internes
-		targetAttribute->SetInnerAttributesNumber(sourceAttribute->GetInnerAttributesNumber());
+		targetAttribute->SetInnerAttributeNumber(sourceAttribute->GetInnerAttributeNumber());
 
-		for (nInnerAttribute = 0; nInnerAttribute < sourceAttribute->GetInnerAttributesNumber();
+		for (nInnerAttribute = 0; nInnerAttribute < sourceAttribute->GetInnerAttributeNumber();
 		     nInnerAttribute++)
 		{
 			targetAttribute->SetInnerAttributeNameAt(
@@ -1981,9 +1981,9 @@ void KWDataGridManager::ExportInformativeAttributes(KWDataGrid* targetDataGrid) 
 			if (sourceAttribute->GetAttributeType() == KWType::VarPart)
 			{
 				// Initialisation du tableau des noms des attributs internes
-				targetAttribute->SetInnerAttributesNumber(sourceAttribute->GetInnerAttributesNumber());
+				targetAttribute->SetInnerAttributeNumber(sourceAttribute->GetInnerAttributeNumber());
 
-				for (nInnerAttribute = 0; nInnerAttribute < sourceAttribute->GetInnerAttributesNumber();
+				for (nInnerAttribute = 0; nInnerAttribute < sourceAttribute->GetInnerAttributeNumber();
 				     nInnerAttribute++)
 				{
 					targetAttribute->SetInnerAttributeNameAt(
@@ -2461,7 +2461,7 @@ void KWDataGridManager::ExportPartsWithNewInnerParts(KWDataGrid* targetDataGrid)
 		// Tri des attributs internes pour un attribut de grille de type VarPart
 		if (sourceAttribute->GetAttributeType() == KWType::VarPart)
 		{
-			for (nInnerAttribute = 0; nInnerAttribute < targetAttribute->GetInnerAttributesNumber();
+			for (nInnerAttribute = 0; nInnerAttribute < targetAttribute->GetInnerAttributeNumber();
 			     nInnerAttribute++)
 			{
 				innerAttribute =
@@ -2748,9 +2748,9 @@ void KWDataGridManager::ExportRandomAttributes(KWDataGrid* targetDataGrid, int n
 		if (sourceAttribute->GetAttributeType() == KWType::VarPart)
 		{
 			// Initialisation du tableau des noms des attributs internes
-			targetAttribute->SetInnerAttributesNumber(sourceAttribute->GetInnerAttributesNumber());
+			targetAttribute->SetInnerAttributeNumber(sourceAttribute->GetInnerAttributeNumber());
 
-			for (nInnerAttribute = 0; nInnerAttribute < sourceAttribute->GetInnerAttributesNumber();
+			for (nInnerAttribute = 0; nInnerAttribute < sourceAttribute->GetInnerAttributeNumber();
 			     nInnerAttribute++)
 			{
 				targetAttribute->SetInnerAttributeNameAt(
@@ -3135,9 +3135,9 @@ void KWDataGridManager::AddRandomAttributes(KWDataGrid* targetDataGrid, const KW
 		if (sourceAttribute->GetAttributeType() == KWType::VarPart)
 		{
 			// Initialisation du tableau des noms des attributs internes
-			targetAttribute->SetInnerAttributesNumber(sourceAttribute->GetInnerAttributesNumber());
+			targetAttribute->SetInnerAttributeNumber(sourceAttribute->GetInnerAttributeNumber());
 
-			for (nInnerAttribute = 0; nInnerAttribute < sourceAttribute->GetInnerAttributesNumber();
+			for (nInnerAttribute = 0; nInnerAttribute < sourceAttribute->GetInnerAttributeNumber();
 			     nInnerAttribute++)
 			{
 				targetAttribute->SetInnerAttributeNameAt(

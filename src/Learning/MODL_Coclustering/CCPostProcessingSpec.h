@@ -14,6 +14,7 @@
 
 #include "CCPostProcessedAttribute.h"
 #include "CCCoclusteringReport.h"
+#include "CCAnalysisSpec.h"
 
 // ##
 
@@ -34,7 +35,11 @@ public:
 	///////////////////////////////////////////////////////////
 	// Acces aux attributs
 
-	// ShortDescription
+	// Coclustering type
+	const ALString& GetCoclusteringType() const;
+	void SetCoclusteringType(const ALString& sValue);
+
+	// Short description
 	const ALString& GetShortDescription() const;
 	void SetShortDescription(const ALString& sValue);
 
@@ -69,10 +74,6 @@ public:
 	// Frequency variable
 	const ALString& GetFrequencyAttribute() const;
 	void SetFrequencyAttribute(const ALString& sValue);
-
-	// Identifier variable
-	const ALString& GetIdentifierAttribute() const;
-	void SetIdentifierAttribute(const ALString& sValue);
 
 	///////////////////////////////////////////////////////////
 	// Divers
@@ -110,6 +111,7 @@ public:
 	///// Implementation
 protected:
 	// Attributs de la classe
+	ALString sCoclusteringType;
 	ALString sShortDescription;
 	int nInstanceNumber;
 	int nNonEmptyCellNumber;
@@ -119,7 +121,6 @@ protected:
 	int nTotalPartNumber;
 	int nMaxTotalPartNumber;
 	ALString sFrequencyAttribute;
-	ALString sIdentifierAttribute;
 
 	// ## Custom implementation
 
@@ -131,6 +132,16 @@ protected:
 
 ////////////////////////////////////////////////////////////
 // Implementations inline
+
+inline const ALString& CCPostProcessingSpec::GetCoclusteringType() const
+{
+	return sCoclusteringType;
+}
+
+inline void CCPostProcessingSpec::SetCoclusteringType(const ALString& sValue)
+{
+	sCoclusteringType = sValue;
+}
 
 inline const ALString& CCPostProcessingSpec::GetShortDescription() const
 {
@@ -220,16 +231,6 @@ inline const ALString& CCPostProcessingSpec::GetFrequencyAttribute() const
 inline void CCPostProcessingSpec::SetFrequencyAttribute(const ALString& sValue)
 {
 	sFrequencyAttribute = sValue;
-}
-
-inline const ALString& CCPostProcessingSpec::GetIdentifierAttribute() const
-{
-	return sIdentifierAttribute;
-}
-
-inline void CCPostProcessingSpec::SetIdentifierAttribute(const ALString& sValue)
-{
-	sIdentifierAttribute = sValue;
 }
 
 // ## Custom inlines
