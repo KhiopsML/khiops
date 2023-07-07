@@ -61,4 +61,7 @@ protected:
 	// Gestion des listes d'aide
 	KWClassAttributeHelpList simpleAttributeHelpList;
 	KWClassAttributeHelpList continuousAttributeHelpList;
+	// CH IV Begin
+	KWClassAttributeHelpList categoricalAttributeHelpList;
+	// CH IV End
 };

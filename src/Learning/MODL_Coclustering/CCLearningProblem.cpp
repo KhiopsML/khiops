@@ -39,6 +39,12 @@ KWClassManagement* CCLearningProblem::GetClassManagement()
 KWDatabase* CCLearningProblem::GetDatabase()
 {
 	require(database->GetClassName() == classManagement->GetClassName());
+	// CH IV Begin
+	// CH IV Refactoring: est-ce vraiment utile? a supprimer?
+	//   a verifier et tester
+	// Synchronisation du dictionnaire de la base
+	database->SetClassName(classManagement->GetClassName());
+	// CH IV End
 	return database;
 }
 
@@ -116,9 +122,20 @@ void CCLearningProblem::BuildCoclustering()
 	int nAttribute;
 	KWAttribute* kwAttribute;
 	KWAttributeName* attributeName;
+	// CH IV Begin
+	ObjectArray* oaAttributesAndAxes;
+	KWAttributeAxisName* attributeAxisName;
+	boolean bOk = true;
+	// CH IV End
 	ALString sReportFileName;
 	Timer timer;
 	boolean bWriteOk;
+	// CH IV Begin
+	KWClassDomain* currentDomain = NULL;
+	KWClassDomain* constructedDomain = NULL;
+	KWClass* currentClass;
+	KWAttribute* identifierAttribute;
+	// CH IV End
 
 	require(CheckClass());
 	require(CheckDatabaseName());
@@ -144,37 +161,175 @@ void CCLearningProblem::BuildCoclustering()
 
 	// Parametrage des attributs de la base a lire
 	kwcClass->SetAllAttributesLoaded(false);
-	for (nAttribute = 0; nAttribute < analysisSpec->GetCoclusteringSpec()->GetAttributes()->GetSize(); nAttribute++)
-	{
-		attributeName =
-		    cast(KWAttributeName*, analysisSpec->GetCoclusteringSpec()->GetAttributes()->GetAt(nAttribute));
-		kwAttribute = kwcClass->LookupAttribute(attributeName->GetName());
-		check(kwAttribute);
-		kwAttribute->SetLoaded(true);
-	}
-	if (analysisSpec->GetCoclusteringSpec()->GetFrequencyAttribute() != "")
-	{
-		kwAttribute = kwcClass->LookupAttribute(analysisSpec->GetCoclusteringSpec()->GetFrequencyAttribute());
-		check(kwAttribute);
-		kwAttribute->SetLoaded(true);
-	}
-	KWClassDomain::GetCurrentDomain()->Compile();
 
-	// Parametrage des specifications d'apprentissage
-	learningSpec.SetShortDescription(GetAnalysisResults()->GetShortDescription());
-	learningSpec.SetDatabase(database);
-	learningSpec.SetClass(kwcClass);
-
-	// Parametrage du coclustering
-	coclusteringBuilder.SetLearningSpec(&learningSpec);
-	coclusteringBuilder.SetAttributeNumber(analysisSpec->GetCoclusteringSpec()->GetAttributes()->GetSize());
-	for (nAttribute = 0; nAttribute < analysisSpec->GetCoclusteringSpec()->GetAttributes()->GetSize(); nAttribute++)
+	// CH IV Begin
+	// Cas d'un coclustering variable * variable : mode non expert ou type de coclustering demande a l'interface
+	if (not GetLearningCoclusteringIVExpertMode() or not analysisSpec->GetGenericCoclustering())
 	{
-		attributeName =
-		    cast(KWAttributeName*, analysisSpec->GetCoclusteringSpec()->GetAttributes()->GetAt(nAttribute));
-		coclusteringBuilder.SetAttributeNameAt(nAttribute, attributeName->GetName());
+		for (nAttribute = 0; nAttribute < analysisSpec->GetCoclusteringSpec()->GetAttributes()->GetSize();
+		     nAttribute++)
+		{
+			attributeName = cast(KWAttributeName*,
+					     analysisSpec->GetCoclusteringSpec()->GetAttributes()->GetAt(nAttribute));
+			kwAttribute = kwcClass->LookupAttribute(attributeName->GetName());
+			check(kwAttribute);
+			kwAttribute->SetLoaded(true);
+		}
+		if (analysisSpec->GetCoclusteringSpec()->GetFrequencyAttribute() != "")
+		{
+			kwAttribute =
+			    kwcClass->LookupAttribute(analysisSpec->GetCoclusteringSpec()->GetFrequencyAttribute());
+			check(kwAttribute);
+			kwAttribute->SetLoaded(true);
+		}
+		KWClassDomain::GetCurrentDomain()->Compile();
+
+		// Parametrage des specifications d'apprentissage
+		learningSpec.SetShortDescription(GetAnalysisResults()->GetShortDescription());
+		learningSpec.SetDatabase(database);
+		learningSpec.SetClass(kwcClass);
+
+		// Parametrage du coclustering
+		coclusteringBuilder.SetGenericCoclustering(false);
+		coclusteringBuilder.SetLearningSpec(&learningSpec);
+		coclusteringBuilder.SetAttributeNumber(analysisSpec->GetCoclusteringSpec()->GetAttributes()->GetSize());
+		for (nAttribute = 0; nAttribute < analysisSpec->GetCoclusteringSpec()->GetAttributes()->GetSize();
+		     nAttribute++)
+		{
+			attributeName = cast(KWAttributeName*,
+					     analysisSpec->GetCoclusteringSpec()->GetAttributes()->GetAt(nAttribute));
+			coclusteringBuilder.SetAttributeNameAt(nAttribute, attributeName->GetName());
+		}
+		coclusteringBuilder.SetFrequencyAttribute(analysisSpec->GetCoclusteringSpec()->GetFrequencyAttribute());
 	}
-	coclusteringBuilder.SetFrequencyAttribute(analysisSpec->GetCoclusteringSpec()->GetFrequencyAttribute());
+	// Sinon : cas d'un coclustering individus * variables avec au moins un axe de parties de variable
+	else
+	{
+		// Extraction du tableau des noms de variable et de leur axe
+		oaAttributesAndAxes = analysisSpec->GetInstancesVariablesCoclusteringSpec()->GetAttributesAndAxes();
+		assert(oaAttributesAndAxes->GetSize() == 0);
+
+		// Creation de l'axe avec la variable d'identifiant des instances
+		// Cas ou aucun attribut identifiant n'a ete specifie
+		if (analysisSpec->GetInstancesVariablesCoclusteringSpec()->GetIdentifierAttribute() == "")
+		{
+			// Creation d'une nouvelle classe enrichie d'une variable d'identifiant
+
+			// Preparation du domaine pour la nouvelle classe
+			constructedDomain = kwcClass->GetDomain()->CloneFromClass(kwcClass);
+			constructedDomain->Compile();
+
+			// Remplacement du domaine courant par le domaine de selection
+			currentDomain = KWClassDomain::GetCurrentDomain();
+			KWClassDomain::SetCurrentDomain(constructedDomain);
+
+			// Remplacement de la classe courante par la classe enrichie
+			currentClass = kwcClass;
+			kwcClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName());
+			check(kwcClass);
+
+			// Insertion d'un attribut identifiant
+			identifierAttribute = InsertIdentifierAttribute(kwcClass);
+
+			// Ajout du nom de l'attribut dans les specifications
+			analysisSpec->GetInstancesVariablesCoclusteringSpec()->SetIdentifierAttribute(
+			    identifierAttribute->GetName());
+		}
+
+		// Creation de la ligne de tableau avec nom de l'attribut identifiant et de son axe
+		attributeAxisName = new KWAttributeAxisName;
+		attributeAxisName->SetAttributeName(
+		    analysisSpec->GetInstancesVariablesCoclusteringSpec()->GetIdentifierAttribute());
+		attributeAxisName->SetAxisName("");
+
+		// Ajout de la ligne au tableau
+		oaAttributesAndAxes->Add(attributeAxisName);
+
+		// Creation de l'axe Variables avec l'ensemble des variables Used sauf l'attribut identifiant
+		kwAttribute = kwcClass->GetHeadAttribute();
+		while (kwAttribute != NULL)
+		{
+			// Ajout si attribut utilise et du bon type
+			if (kwAttribute->GetUsed() and KWType::IsSimple(kwAttribute->GetType()) and
+			    kwAttribute->GetName() !=
+				analysisSpec->GetInstancesVariablesCoclusteringSpec()->GetIdentifierAttribute())
+			{
+				check(kwAttribute);
+				kwAttribute->SetLoaded(true);
+
+				// Ajout de l'attribut et de son axe
+				attributeAxisName = new KWAttributeAxisName;
+				attributeAxisName->SetAttributeName(kwAttribute->GetName());
+				attributeAxisName->SetAxisName("Variables");
+
+				// Ajout au tableau
+				oaAttributesAndAxes->Add(attributeAxisName);
+			}
+			kwcClass->GetNextAttribute(kwAttribute);
+		}
+
+		for (nAttribute = 0;
+		     nAttribute <
+		     analysisSpec->GetInstancesVariablesCoclusteringSpec()->GetAttributesAndAxes()->GetSize();
+		     nAttribute++)
+		{
+			attributeAxisName =
+			    cast(KWAttributeAxisName*,
+				 analysisSpec->GetInstancesVariablesCoclusteringSpec()->GetAttributesAndAxes()->GetAt(
+				     nAttribute));
+			kwAttribute = kwcClass->LookupAttribute(attributeAxisName->GetAttributeName());
+			check(kwAttribute);
+			kwAttribute->SetLoaded(true);
+		}
+
+		if (analysisSpec->GetInstancesVariablesCoclusteringSpec()->GetIdentifierAttribute() != "")
+		{
+			kwAttribute = kwcClass->LookupAttribute(
+			    analysisSpec->GetInstancesVariablesCoclusteringSpec()->GetIdentifierAttribute());
+			check(kwAttribute);
+			kwAttribute->SetLoaded(true);
+			if (kwAttribute->GetType() != KWType::Symbol)
+			{
+				AddError("Identifier attribute must be categoriel");
+				bOk = false;
+			}
+		}
+
+		KWClassDomain::GetCurrentDomain()->Compile();
+
+		// Parametrage des specifications d'apprentissage
+		learningSpec.SetShortDescription(GetAnalysisResults()->GetShortDescription());
+		learningSpec.SetDatabase(database);
+		learningSpec.SetClass(kwcClass);
+		// Parametrage du coclustering generique
+		coclusteringBuilder.SetGenericCoclustering(true);
+		coclusteringBuilder.SetLearningSpec(&learningSpec);
+		coclusteringBuilder.SetAttributeNumber(
+		    analysisSpec->GetInstancesVariablesCoclusteringSpec()->GetAttributesAndAxes()->GetSize());
+		for (nAttribute = 0;
+		     nAttribute <
+		     analysisSpec->GetInstancesVariablesCoclusteringSpec()->GetAttributesAndAxes()->GetSize();
+		     nAttribute++)
+		{
+			attributeAxisName =
+			    cast(KWAttributeAxisName*,
+				 analysisSpec->GetInstancesVariablesCoclusteringSpec()->GetAttributesAndAxes()->GetAt(
+				     nAttribute));
+			coclusteringBuilder.SetAttributeNameAt(nAttribute, attributeAxisName->GetAttributeName());
+
+			// On rapatrie le nom de l'axe
+			coclusteringBuilder.SetAxisForAttributeNameAt(nAttribute, attributeAxisName->GetAxisName());
+		}
+		coclusteringBuilder.SetIdentifierAttribute(
+		    analysisSpec->GetInstancesVariablesCoclusteringSpec()->GetIdentifierAttribute());
+		coclusteringBuilder.GetPreprocessingSpec()->GetDataGridOptimizerParameters()->CopyFrom(
+		    analysisSpec->GetInstancesVariablesCoclusteringSpec()->GetOptimizationParameters());
+
+		// On extrait les noms distincts des axes et des attributs impliques dans chaque axe de type parties de
+		// variable
+		bOk = bOk and coclusteringBuilder.ExtractAndCheckAxisNames();
+	}
+	// CH IV End
 
 	// Parametrage du nom du rapport de coclustering
 	sReportFileName = BuildOutputFilePathName(TaskBuildCoclustering);
@@ -182,7 +337,7 @@ void CCLearningProblem::BuildCoclustering()
 	coclusteringBuilder.SetExportAsKhc(GetAnalysisResults()->GetExportAsKhc());
 
 	// Calcul du coclustering
-	if (not TaskProgression::IsInterruptionRequested())
+	if (not TaskProgression::IsInterruptionRequested() and bOk)
 		coclusteringBuilder.ComputeCoclustering();
 
 	// Message si pas de coclustering informatif trouve en depit du temp imparti
@@ -205,14 +360,46 @@ void CCLearningProblem::BuildCoclustering()
 		if (bWriteOk)
 			coclusteringBuilder.RemoveLastSavedReportFile();
 
-		// Warning si moins d'attributs dans le coclustering que d'attributs specifiees
-		if (coclusteringBuilder.GetCoclusteringDataGrid()->GetAttributeNumber() <
-		    coclusteringBuilder.GetAttributeNumber())
-			AddWarning(sTmp + "The built coclustering only exploits " +
-				   IntToString(coclusteringBuilder.GetCoclusteringDataGrid()->GetAttributeNumber()) +
-				   " out of the " + IntToString(coclusteringBuilder.GetAttributeNumber()) +
-				   " input variables");
+		// CH IV Begin
+		// Warning si moins d'attributs dans le coclustering que d'attributs ou d'axes specifiees
+		// Cas du coclustering variable * variable
+		if (not GetLearningCoclusteringIVExpertMode() or not analysisSpec->GetGenericCoclustering())
+		{
+			if (coclusteringBuilder.GetCoclusteringDataGrid()->GetAttributeNumber() <
+			    coclusteringBuilder.GetAttributeNumber())
+				AddWarning(
+				    sTmp + "The built coclustering only exploits " +
+				    IntToString(coclusteringBuilder.GetCoclusteringDataGrid()->GetAttributeNumber()) +
+				    " out of the " + IntToString(coclusteringBuilder.GetAttributeNumber()) +
+				    " input variables");
+		}
+		// Sinon cas du coclustering individus * variables
+		else
+		{
+			if (coclusteringBuilder.GetCoclusteringDataGrid()->GetAttributeNumber() <
+			    coclusteringBuilder.GetAxisNumber())
+				AddWarning(
+				    sTmp + "The built coclustering only exploits " +
+				    IntToString(coclusteringBuilder.GetCoclusteringDataGrid()->GetAttributeNumber()) +
+				    " out of the " + IntToString(coclusteringBuilder.GetAxisNumber()) +
+				    " axis variables");
+		}
+		// CH IV End
 	}
+
+	// Cas d'un domaine construit
+	if (constructedDomain != NULL)
+	{
+		// Restauration de l'etat initial
+		assert(currentDomain != NULL);
+		KWClassDomain::SetCurrentDomain(currentDomain);
+		delete constructedDomain;
+		kwcClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName());
+		check(kwcClass);
+		analysisSpec->GetInstancesVariablesCoclusteringSpec()->SetIdentifierAttribute("");
+	}
+	if (analysisSpec->GetGenericCoclustering())
+		oaAttributesAndAxes->DeleteAll(); // CH IV Refactoring: attention, non initialise
 
 	// Nettoyage
 	kwcClass->SetAllAttributesLoaded(true);
@@ -259,6 +446,15 @@ void CCLearningProblem::PostProcessCoclustering()
 	if (bOk)
 		bOk = coclusteringReport.ReadGenericReport(sCoclusteringReportFileName,
 							   &postProcessedCoclusteringDataGrid);
+
+	// CH IV Begin
+	// Cas d'un rapport issu d'un coclustering individus * variables : fonctionnalite non implemente
+	if (postProcessedCoclusteringDataGrid.IsDataGridGeneric())
+	{
+		bOk = false;
+		AddWarning("Simplify coclustering is not yet implemented for instances variables coclustering");
+	}
+	// CH IV End
 
 	// Post-traitement
 	if (bOk)
@@ -483,6 +679,9 @@ boolean CCLearningProblem::CheckCoclusteringAttributeNames() const
 	KWAttribute* attribute;
 	ObjectDictionary odCoclusteringAttributes;
 	ALString sFrequencyAttributeName;
+	// CH IV Begin
+	ALString sIdentifierAttributeName;
+	// CH IV End
 	ALString sTmp;
 
 	require(CheckClass());
@@ -490,119 +689,170 @@ boolean CCLearningProblem::CheckCoclusteringAttributeNames() const
 	// Recherche de la classe
 	kwcClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName());
 
-	// Il doit y avoir au moins deux variables
-	if (analysisSpec->GetCoclusteringSpec()->GetAttributes()->GetSize() < 2)
+	// CH IV Begin
+	// Cas d'un coclustering classique : variable * variable
+	if (not analysisSpec->GetGenericCoclustering())
 	{
-		AddError("Less than two coclustering variables are specified");
-		bOk = false;
-	}
-	// Il y a une limite au nombre de variables
-	else if (analysisSpec->GetCoclusteringSpec()->GetAttributes()->GetSize() >
-		 CCCoclusteringSpec::GetMaxCoclusteringAttributeNumber())
-	{
-		AddError(sTmp + "Two many coclustering variables (> " +
-			 IntToString(CCCoclusteringSpec::GetMaxCoclusteringAttributeNumber()) + ") are specified");
-		bOk = false;
-	}
-	// Sinon, verification des variables
-	else
-	{
-		for (nVar = 0; nVar < analysisSpec->GetCoclusteringSpec()->GetAttributes()->GetSize(); nVar++)
+		// Il doit y avoir au moins deux variables dans un co-clustering
+		if (analysisSpec->GetCoclusteringSpec()->GetAttributes()->GetSize() < 2)
 		{
-			attributeName =
-			    cast(KWAttributeName*, analysisSpec->GetCoclusteringSpec()->GetAttributes()->GetAt(nVar));
+			AddError("Less than two coclustering variables are specified");
+			if (GetLearningCoclusteringIVExpertMode())
+				AddWarning("You may be interested in Instances x Variables coclustering rather than "
+					   "Variables coclustering");
+			bOk = false;
+		}
+		// Il y a une limite au nombre de variables
+		else if (analysisSpec->GetCoclusteringSpec()->GetAttributes()->GetSize() >
+			 CCCoclusteringSpec::GetMaxCoclusteringAttributeNumber())
+		{
+			AddError(sTmp + "Too many coclustering variables (> " +
+				 IntToString(CCCoclusteringSpec::GetMaxCoclusteringAttributeNumber()) +
+				 ") are specified");
+			bOk = false;
+		}
+		// Sinon, verification des variables
+		else
+		{
+			for (nVar = 0; nVar < analysisSpec->GetCoclusteringSpec()->GetAttributes()->GetSize(); nVar++)
+			{
+				attributeName = cast(KWAttributeName*,
+						     analysisSpec->GetCoclusteringSpec()->GetAttributes()->GetAt(nVar));
+
+				// Recherche de la variable correspondante dans le dictionnaire
+				attribute = kwcClass->LookupAttribute(attributeName->GetName());
+
+				// La variable doit avoir un nom
+				if (attributeName->GetName() == "")
+				{
+					AddError(sTmp + "Missing name for coclustering variable " +
+						 IntToString(nVar + 1));
+					bOk = false;
+				}
+				// Elle doit etre presente dans le dictionnaire
+				else if (attribute == NULL)
+				{
+					bOk = false;
+					Global::AddError("", "",
+							 "Coclustering variable " + attributeName->GetName() +
+							     " unknown in dictionary " + GetClassName());
+				}
+				// De type simple
+				else if (not KWType::IsSimple(attribute->GetType()))
+				{
+					bOk = false;
+					Global::AddError("", "",
+							 "Incorrect type for coclustering variable " +
+							     attributeName->GetName());
+				}
+				// Et utilise
+				else if (not attribute->GetUsed())
+				{
+					bOk = false;
+					Global::AddError("", "",
+							 "Coclustering variable " + attributeName->GetName() +
+							     " unused in dictionary " + GetClassName());
+				}
+
+				// Si ok, verification de l'absence de doublon
+				if (bOk)
+				{
+					if (odCoclusteringAttributes.Lookup(attributeName->GetName()) != NULL)
+					{
+						bOk = false;
+						Global::AddError("", "",
+								 "Coclustering variable " + attributeName->GetName() +
+								     " is specified twice");
+					}
+					else
+						odCoclusteringAttributes.SetAt(attributeName->GetName(), attributeName);
+				}
+			}
+		}
+
+		// Verification de la variable de frequence
+		sFrequencyAttributeName = analysisSpec->GetCoclusteringSpec()->GetFrequencyAttribute();
+		if (bOk and sFrequencyAttributeName != "")
+		{
+			assert(odCoclusteringAttributes.GetCount() ==
+			       analysisSpec->GetCoclusteringSpec()->GetAttributes()->GetSize());
 
 			// Recherche de la variable correspondante dans le dictionnaire
-			attribute = kwcClass->LookupAttribute(attributeName->GetName());
+			attribute = kwcClass->LookupAttribute(sFrequencyAttributeName);
 
-			// La variable doit avoir un nom
-			if (attributeName->GetName() == "")
-			{
-				AddError(sTmp + "Missing name for coclustering variable " + IntToString(nVar + 1));
-				bOk = false;
-			}
-			// Elle doit etre presente dans le dictionnaire
-			else if (attribute == NULL)
+			// La variable doit etre presente dans le dictionnaire
+			if (attribute == NULL)
 			{
 				bOk = false;
 				Global::AddError("", "",
-						 "Coclustering variable " + attributeName->GetName() +
+						 "Coclustering frequency variable " + sFrequencyAttributeName +
 						     " unknown in dictionary " + GetClassName());
 			}
-			// De type simple
-			else if (not KWType::IsSimple(attribute->GetType()))
+			// De type Continuous
+			else if (attribute->GetType() != KWType::Continuous)
 			{
 				bOk = false;
-				Global::AddError(
-				    "", "", "Incorrect type for coclustering variable " + attributeName->GetName());
+				Global::AddError("", "",
+						 "Incorrect type for coclustering frequency variable " +
+						     sFrequencyAttributeName);
 			}
 			// Et utilise
 			else if (not attribute->GetUsed())
 			{
 				bOk = false;
 				Global::AddError("", "",
-						 "Coclustering variable " + attributeName->GetName() +
+						 "Coclustering frequency variable " + sFrequencyAttributeName +
 						     " unused in dictionary " + GetClassName());
 			}
-
-			// Si ok, verification de l'absence de doublon
-			if (bOk)
+			// et differente des attributs de coclustering
+			else if (odCoclusteringAttributes.Lookup(sFrequencyAttributeName) != NULL)
 			{
-				if (odCoclusteringAttributes.Lookup(attributeName->GetName()) != NULL)
-				{
-					bOk = false;
-					Global::AddError("", "",
-							 "Coclustering variable " + attributeName->GetName() +
-							     " is specified twice");
-				}
-				else
-					odCoclusteringAttributes.SetAt(attributeName->GetName(), attributeName);
+				bOk = false;
+				Global::AddError("", "",
+						 "Coclustering frequency variable " + sFrequencyAttributeName +
+						     " is already used among the coclustering variables");
 			}
 		}
 	}
 
-	// Verification de la variable de frequence
-	sFrequencyAttributeName = analysisSpec->GetCoclusteringSpec()->GetFrequencyAttribute();
-	if (bOk and sFrequencyAttributeName != "")
+	// Sinon : cas d'un coclustering individus * variables
+	else
 	{
-		assert(odCoclusteringAttributes.GetCount() ==
-		       analysisSpec->GetCoclusteringSpec()->GetAttributes()->GetSize());
+		// Verification de la variable d'identifiant
+		sIdentifierAttributeName =
+		    analysisSpec->GetInstancesVariablesCoclusteringSpec()->GetIdentifierAttribute();
+		if (bOk and sIdentifierAttributeName != "")
+		{
+			// Recherche de la variable correspondante dans le dictionnaire
+			attribute = kwcClass->LookupAttribute(sIdentifierAttributeName);
 
-		// Recherche de la variable correspondante dans le dictionnaire
-		attribute = kwcClass->LookupAttribute(sFrequencyAttributeName);
-
-		// La variable doit etre presente dans le dictionnaire
-		if (attribute == NULL)
-		{
-			bOk = false;
-			Global::AddError("", "",
-					 "Coclustering frequency variable " + sFrequencyAttributeName +
-					     " unknown in dictionary " + GetClassName());
-		}
-		// De type Continuous
-		else if (attribute->GetType() != KWType::Continuous)
-		{
-			bOk = false;
-			Global::AddError(
-			    "", "", "Incorrect type for coclustering frequency variable " + sFrequencyAttributeName);
-		}
-		// Et utilise
-		else if (not attribute->GetUsed())
-		{
-			bOk = false;
-			Global::AddError("", "",
-					 "Coclustering frequency variable " + sFrequencyAttributeName +
-					     " unused in dictionary " + GetClassName());
-		}
-		// et differente des attributs de coclustering
-		else if (odCoclusteringAttributes.Lookup(sFrequencyAttributeName) != NULL)
-		{
-			bOk = false;
-			Global::AddError("", "",
-					 "Coclustering frequency variable " + sFrequencyAttributeName +
-					     " is already used among the coclustering variables");
+			// La variable doit etre presente dans le dictionnaire
+			if (attribute == NULL)
+			{
+				bOk = false;
+				Global::AddError("", "",
+						 "Coclustering identifier variable " + sIdentifierAttributeName +
+						     " unknown in dictionary " + GetClassName());
+			}
+			// De type Symbol
+			else if (attribute->GetType() != KWType::Symbol)
+			{
+				bOk = false;
+				Global::AddError("", "",
+						 "Incorrect type for coclustering identifier variable " +
+						     sIdentifierAttributeName);
+			}
+			// Et utilise
+			else if (not attribute->GetUsed())
+			{
+				bOk = false;
+				Global::AddError("", "",
+						 "Coclustering identifier variable " + sIdentifierAttributeName +
+						     " unused in dictionary " + GetClassName());
+			}
 		}
 	}
+	// CH IV End
 
 	return bOk;
 }
@@ -776,6 +1026,68 @@ const ALString CCLearningProblem::GetClassLabel() const
 {
 	return GetLearningModuleName();
 }
+
+// CH IV Begin
+KWAttribute* CCLearningProblem::InsertIdentifierAttribute(KWClass* kwcClass)
+{
+	KWDRAsSymbol* identifierRule;
+	KWDRDiff* diffRule;
+	KWDRIndex* indexRule;
+	KWAttribute* attribute;
+	const ALString sIdentifierMetaDataKey = "IdentifierCC";
+	KWMTDatabaseTextFile refMTDatabaseTextFile;
+	KWSTDatabaseTextFile refSTDatabaseTextFile;
+
+	require(kwcClass->Check());
+
+	// Creation de la regle de l'identifiant
+	identifierRule = new KWDRAsSymbol;
+	identifierRule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginRule);
+
+	// Creation de la regle qui donne l'index de la ligne
+	indexRule = new KWDRIndex;
+
+	// Cas de presence d'un header dans le fichier de donnees
+	// CH IV Refactoring: supprimer ce code un peu "too much"
+	// CH IV Refactoring: quel est le lien avec IsMultiTableTechnology? (uniquement pour le cast)?
+	// CH IV Refactoring: la decrementation de l'index en cas de ligne d'entete est peut-etre "too much"?
+	//     de toute facon, avec le sampling, on a pas tous les numeros consecutifs
+	// CH IV Refactoring: par contre, en multi-table, on pourrait utiliser comme cle la concatenation
+	//    des champs cles du dictionnaire? (mais pb si cle multiple...): NON
+	if ((database->IsMultiTableTechnology() and cast(KWMTDatabaseTextFile*, database)->GetHeaderLineUsed()) or
+	    (not database->IsMultiTableTechnology() and cast(KWSTDatabaseTextFile*, database)->GetHeaderLineUsed()))
+	{
+		// Creation de la regle qui decremente l'index de 1 du fait de la presence d'un header
+		diffRule = new KWDRDiff;
+		diffRule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginRule);
+		diffRule->GetFirstOperand()->SetDerivationRule(indexRule);
+		diffRule->GetSecondOperand()->SetOrigin(KWDerivationRuleOperand::OriginConstant);
+		diffRule->GetSecondOperand()->SetContinuousConstant(1.0);
+
+		identifierRule->GetFirstOperand()->SetDerivationRule(diffRule);
+	}
+	// Sinon
+	else
+		identifierRule->GetFirstOperand()->SetDerivationRule(indexRule);
+
+	// Nettoyage des meta-data des attributs de la classe
+	kwcClass->RemoveAllAttributesMetaDataKey(sIdentifierMetaDataKey);
+
+	// Creation de l'attribut et de son nom
+	attribute = new KWAttribute;
+	attribute->SetName(kwcClass->BuildAttributeName("Identifier"));
+	attribute->GetMetaData()->SetNoValueAt("IdentifierCC");
+
+	// Initialisation
+	attribute->SetDerivationRule(identifierRule);
+	attribute->CompleteTypeInfo(kwcClass);
+
+	// Insertion dans la classe enrichie
+	kwcClass->InsertAttribute(attribute);
+
+	return attribute;
+}
+// CH IV End
 
 void CCLearningProblem::WriteSymbolClusters(const CCHDGAttribute* symbolCoclusteringAttribute, ostream& ost)
 {

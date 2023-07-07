@@ -4,7 +4,12 @@
 
 #include "CCAnalysisSpec.h"
 
-CCAnalysisSpec::CCAnalysisSpec() {}
+CCAnalysisSpec::CCAnalysisSpec()
+{
+	// CH IV Begin
+	bGenericCoclustering = false;
+	// CH IV End
+}
 
 CCAnalysisSpec::~CCAnalysisSpec() {}
 
@@ -12,6 +17,37 @@ CCCoclusteringSpec* CCAnalysisSpec::GetCoclusteringSpec()
 {
 	return &coclusteringSpec;
 }
+
+// CH IV Begin
+CCInstancesVariablesCoclusteringSpec* CCAnalysisSpec::GetInstancesVariablesCoclusteringSpec()
+{
+	return &instancesVariablesCoclusteringSpec;
+}
+
+void CCAnalysisSpec::SetGenericCoclustering(boolean bValue)
+{
+	bGenericCoclustering = bValue;
+}
+
+boolean CCAnalysisSpec::GetGenericCoclustering() const
+{
+	return bGenericCoclustering;
+}
+
+void CCAnalysisSpec::SetCoclusteringType(const ALString& sValue)
+{
+	require(sValue == "Variables coclustering" or sValue == "Instances x Variables coclustering");
+	bGenericCoclustering = (sValue == "Instances x Variables coclustering");
+}
+
+const ALString CCAnalysisSpec::GetCoclusteringType() const
+{
+	if (bGenericCoclustering)
+		return "Instances x Variables coclustering";
+	else
+		return "Variables coclustering";
+}
+// CH IV End
 
 const ALString CCAnalysisSpec::GetClassLabel() const
 {

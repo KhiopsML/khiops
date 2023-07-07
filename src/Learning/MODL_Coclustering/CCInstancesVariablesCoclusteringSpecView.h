@@ -5,39 +5,44 @@
 #pragma once
 
 ////////////////////////////////////////////////////////////
-// File generated with Genere tool
+// 2018-04-23 16:45:14
+// File generated  with GenereTable
 // Insert your specific code inside "//## " sections
 
 #include "UserInterface.h"
 
-#include "CCCoclusteringSpec.h"
+#include "CCInstancesVariablesCoclusteringSpec.h"
 
 // ## Custom includes
 
 #include "KWAttributeNameView.h"
 #include "KWAttributeNameArrayView.h"
 #include "KWVersion.h"
-// CH IV Refactoring: il semble que les deux includes ci-dessous soient inutiles
+// CH AB
 #include "KWAttributeAxisNameView.h"
 #include "KWAttributeAxisNameArrayView.h"
+// DDD
+// pour avoir acces au parametrage de l'algo DataGrid
+#include "KWDataGridOptimizerParametersView.h"
+// Fin CH AB
 
 // ##
 
 ////////////////////////////////////////////////////////////
-// Classe CCCoclusteringSpecView
+// Classe CCInstancesVariablesCoclusteringSpecView
 //    Coclustering parameters
 // Editeur de CCCoclusteringSpec
-class CCCoclusteringSpecView : public UIObjectView
+class CCInstancesVariablesCoclusteringSpecView : public UIObjectView
 {
 public:
 	// Constructeur
-	CCCoclusteringSpecView();
-	~CCCoclusteringSpecView();
+	CCInstancesVariablesCoclusteringSpecView();
+	~CCInstancesVariablesCoclusteringSpecView();
 
 	// Acces a l'objet edite
-	CCCoclusteringSpec* GetCCCoclusteringSpec();
+	CCInstancesVariablesCoclusteringSpec* GetCCInstancesVariablesCoclusteringSpec();
 
-	///////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////
 	// Redefinition des methodes a reimplementer obligatoirement
 
 	// Mise a jour de l'objet par les valeurs de l'interface
@@ -56,7 +61,7 @@ public:
 
 	// ##
 	////////////////////////////////////////////////////////
-	///// Implementation
+	//// Implementation
 protected:
 	// ## Custom implementation
 

@@ -1886,6 +1886,479 @@ void KWGrouperMODL::FastPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSour
 	ensure(kwftSource->GetFrequencyVectorSize() == kwftTarget->GetFrequencyVectorSize());
 }
 
+// CH IV Begin
+// CH IV Refactoring: nettoyer tout le code commente dans cette methode?
+void KWGrouperMODL::EMPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSource, KWFrequencyTable* kwftTarget,
+						    IntVector* ivGroups, int nMaxStepNumber,
+						    SortedList* frequencyList) const
+{
+	boolean bPrintInitialTables = false;
+	boolean bPrintOptimizations = false;
+	boolean bPrintFinalTable = false;
+	boolean bSearchBestOptim = false;
+	boolean bPrintDeltaCosts = false;
+	boolean bContinue;
+	int nStepNumber;
+	int nModalityNumber;
+	int nGroupNumber;
+	DoubleVector dvGroupCosts;
+	int nModality;
+	int nGroup;
+	int nStart;
+	double dOutDeltaCost;
+	double dInDeltaCost;
+	double dDeltaCost;
+	int nOutGroup;
+	int nInGroup;
+	double dBestDeltaCost;
+	double dBestInDeltaCost;
+	int nBestInGroup;
+	PeriodicTest periodicTestOptimize;
+	POSITION position;
+	KWFrequencyVector* frequencyVector;
+	KWFrequencyTable kwftImproved;
+	SortedList improvedFrequencyList(KWFrequencyVectorModalityNumberCompare);
+	IntVector ivImprovedGroups;
+	double dImprovedCost;
+	double dCurrentCost;
+	int nGarbageModalityNumber;
+	int nGarbageModalityNumberMax;
+	int nNewGarbageModalityNumber;
+	int nTrueGroupNumber;
+	int nNewTrueGroupNumber;
+	boolean bLastModality;
+	double dPartitionDeltaCost;
+	IntVector* ivMoveIndexes;
+	ObjectArray oaMoves;
+	int nMove;
+
+	require(kwftSource != NULL);
+	require(kwftTarget != NULL);
+	require(ivGroups != NULL);
+	require(kwftSource->GetFrequencyVectorSize() == kwftTarget->GetFrequencyVectorSize());
+	require(kwftSource->GetFrequencyVectorNumber() >= kwftTarget->GetFrequencyVectorNumber());
+	require(ivGroups->GetSize() == kwftSource->GetFrequencyVectorNumber());
+	require(0 <= nMaxStepNumber);
+	require(frequencyList != NULL);
+
+	// Arret si un seul groupe
+	if (kwftTarget->GetFrequencyVectorNumber() <= 1)
+		return;
+
+	// Affichage des tables initiales
+	if (bPrintInitialTables)
+	{
+		cout << "EMPostOptimizeGroupsWithGarbage : Table Initiale et optimisee \n"
+		     << *kwftSource << endl
+		     << *kwftTarget << endl;
+		cout << "EMPostOptimizeGroupsWithGarbage : groupes des modalites de la table initiale \n";
+		for (nModality = 0; nModality < ivGroups->GetSize(); nModality++)
+		{
+			cout << nModality << "\t" << ivGroups->GetAt(nModality) << "\n";
+		}
+	}
+
+	// Memorisation des nombre de modalites, groupes et classes cibles
+	nModalityNumber = kwftSource->GetFrequencyVectorNumber();
+	nGroupNumber = kwftTarget->GetFrequencyVectorNumber();
+
+	// Initialisation du nombre de modalites du groupe poubelle
+	nGarbageModalityNumber = cast(KWFrequencyVector*, frequencyList->GetHead())->GetModalityNumber();
+	nNewGarbageModalityNumber = 0;
+	nTrueGroupNumber = nGroupNumber;
+
+	// Parcours de la liste pour compter le nombre total de modalites
+	nGarbageModalityNumberMax = 0;
+	position = frequencyList->GetHeadPosition();
+	while (position != NULL)
+	{
+		nGarbageModalityNumberMax +=
+		    cast(KWFrequencyVector*, frequencyList->GetNext(position))->GetModalityNumber();
+	}
+	nGarbageModalityNumberMax = nGarbageModalityNumberMax - nGroupNumber + 1;
+
+	// Initialisation des valeurs de groupes
+	dvGroupCosts.SetSize(nGroupNumber);
+	for (nGroup = 0; nGroup < nGroupNumber; nGroup++)
+		dvGroupCosts.SetAt(nGroup, ComputeGroupCost(kwftTarget->GetFrequencyVectorAt(nGroup)));
+
+	// Tant qu'il y a amelioration, on continue a chercher le premier
+	// deplacement interessant de modalites entre groupes
+	bContinue = true;
+	nStepNumber = 0;
+	bLastModality = false;
+	// bBestLastModality = false;
+	while (bContinue and nStepNumber < nMaxStepNumber)
+	{
+		// Par defaut, on ne continue pas
+		bContinue = false;
+		nStepNumber++;
+
+		// Test si arret de tache demandee
+		if (periodicTestOptimize.IsTestAllowed(0) and TaskProgression::IsInterruptionRequested())
+			break;
+
+		// Parcours de toutes les modalites
+		for (nModality = 0; nModality < nModalityNumber; nModality++)
+		{
+			// nModality = ivModalityIndexes.GetAt(n1);
+
+			// Recherche du groupe de rattachement de la modalite
+			nOutGroup = ivGroups->GetAt(nModality);
+
+			// Calcul du cout du groupe apres le depart de la modalite,
+			// en se basant sur les nouveaux effectifs du groupe
+			dOutDeltaCost = ComputeGroupDiffCost(kwftTarget->GetFrequencyVectorAt(nOutGroup),
+							     kwftSource->GetFrequencyVectorAt(nModality));
+			dOutDeltaCost -= dvGroupCosts.GetAt(nOutGroup);
+
+			// Parcours des groupes cible potentiels
+			// (de facon "aleatoire": on ne refait pas le Shuffle des index des groupes)
+			dDeltaCost = 0;
+			dBestDeltaCost = 0;
+			dBestInDeltaCost = 0;
+			nBestInGroup = 0;
+			nStart = RandomInt(nGroupNumber);
+			if (kwftTarget->GetGarbageModalityNumber() > 0)
+				nGarbageModalityNumber =
+				    cast(KWFrequencyVector*, frequencyList->GetHead())->GetModalityNumber();
+			else
+				nGarbageModalityNumber = 0;
+			// for (n2 = 0; n2 < nGroupNumber; n2++)
+			for (nInGroup = 0; nInGroup < nGroupNumber; nInGroup++)
+			{
+				// Test si arret de tache demandee
+				if (periodicTestOptimize.IsTestAllowed(0) and
+				    TaskProgression::IsInterruptionRequested())
+					break;
+
+				// On n'evalue que les nouveaux groupes potentiels
+				if (nInGroup != nOutGroup)
+				{
+					// Calcul du cout du groupe apres l'arrivee de la modalite,
+					// en se basant sur les nouveaux effectifs du groupe
+					dInDeltaCost =
+					    ComputeGroupUnionCost(kwftTarget->GetFrequencyVectorAt(nInGroup),
+								  kwftSource->GetFrequencyVectorAt(nModality));
+					dInDeltaCost -= dvGroupCosts.GetAt(nInGroup);
+
+					// Dans le cas de cet algo EM, pas de prise en compte de la variation de cout
+					// liee a la variation du nombre de groupes Dans l'algorithme
+					// FastPostOptimizeGroups, un seul deplacement est effectue simultanement (le
+					// 1er qui ameliore le coup apres melange aleatoire des modalites) Dans le cas
+					// de l'algorithme EM, tous les deplacements de modalite melioratifs sont
+					// effectues simultanement. On ne peut pas calculer l'evolution du nombre de
+					// modalites par groupe au niveau de chaque modalite On ne peut donc pas non
+					// plus calculer l'evolution eventuelle du groupe poubelle
+
+					// Initialisations
+					// Nombre de groupes apres ce deplacement
+					// nNewTrueGroupNumber = nTrueGroupNumber;
+					// Derniere modalite de son groupe
+					// bLastModality = false;
+
+					// Variation du nombre de groupes suite a ce deplacement
+					// Cas ou le groupe devient vide apres le depart de la modalite
+					// if (kwftTarget->GetFrequencyVectorAt(nOutGroup)->ComputeTotalFrequency() ==
+					// kwftSource->GetFrequencyVectorAt(nModality)->ComputeTotalFrequency())
+					//{
+					// bLastModality = true;
+					// nNewTrueGroupNumber--;
+					//}
+					// Cas d'une modalite qui arrive dans un groupe qui etait vide
+					// if (kwftTarget->GetFrequencyVectorAt(nInGroup)->ComputeTotalFrequency() == 0)
+					// Incrementation du nombre de groupes
+					// nNewTrueGroupNumber++;
+
+					// Taille du groupe poubelle apres ce deplacement
+					// nNewGarbageModalityNumber = nGarbageModalityNumber;
+					// Variation de la taille du groupe poubelle
+					// Uniquement en presence d'un groupe poubelle
+					// if (kwftTarget->GetGarbageModalityNumber() > 0)
+					//{
+					//	// Cas ou le deplacement est envisageable : au moins 2 groupes et 1
+					// groupe poubelle apres deplacement 	if ((bLastModality and nTrueGroupNumber
+					// > 3) or (not bLastModality and nTrueGroupNumber >= 3))
+					//	{
+					//		// Cas ou la modalite part du groupe poubelle
+					//		if (kwftTarget->GetFrequencyVectorAt(nOutGroup)->GetPosition()
+					//== frequencyList->GetHeadPosition())
+					//		{
+					//			// On decremente la taille du groupe poubelle du nombre
+					// de modalites deplacees
+					//			// En coclustering, la modalite peut etre une super
+					// modalite donc contenir plus d'une modalite
+					// nNewGarbageModalityNumber = nNewGarbageModalityNumber -
+					// kwftSource->GetFrequencyVectorAt(nModality)->GetModalityNumber();
+
+					//			// Comparaison avec le nombre de modalites du groupe qui
+					// accueillerait la modalite 			if (nNewGarbageModalityNumber <
+					// kwftTarget->GetFrequencyVectorAt(nInGroup)->GetModalityNumber() +
+					// kwftSource->GetFrequencyVectorAt(nModality)->GetModalityNumber())
+					//				nNewGarbageModalityNumber =
+					// kwftTarget->GetFrequencyVectorAt(nInGroup)->GetModalityNumber() +
+					// kwftSource->GetFrequencyVectorAt(nModality)->GetModalityNumber();
+
+					//			position = frequencyList->GetHeadPosition();
+					//			frequencyVector = cast(KWFrequencyVector*,
+					// frequencyList->GetNext(position)); 			frequencyVector =
+					// cast(KWFrequencyVector*, frequencyList->GetNext(position));
+					//			// Comparaison avec le nombre de modalites du second
+					// groupe par nombre de modalites 			if
+					// (nNewGarbageModalityNumber < frequencyVector->GetModalityNumber())
+					// nNewGarbageModalityNumber = frequencyVector->GetModalityNumber();
+					//		}
+
+					//		// Comparaison avec le nombre de modalites du groupe d'arrivee
+					//		if (nNewGarbageModalityNumber <
+					// kwftTarget->GetFrequencyVectorAt(nInGroup)->GetModalityNumber() +
+					// kwftSource->GetFrequencyVectorAt(nModality)->GetModalityNumber())
+					//			nNewGarbageModalityNumber =
+					// kwftTarget->GetFrequencyVectorAt(nInGroup)->GetModalityNumber() +
+					// kwftSource->GetFrequencyVectorAt(nModality)->GetModalityNumber();
+					//	}
+					//}
+
+					dPartitionDeltaCost = 0;
+
+					//// Cas ou le nombre de groupes ou la taille du groupe poubelle a evolue :
+					/// evaluation de la variation du cout de partition
+					// if (nNewTrueGroupNumber != nTrueGroupNumber or nNewGarbageModalityNumber !=
+					// nGarbageModalityNumber)
+					//{
+					//	// Cas de deplacements non envisageables
+					//	// Cas d'un nombre de modalites dans le groupe poubelle trop elevee par
+					// rapport a la taille de la partition
+					//	// Ou cas d'un nombre de groupes trop faible en presence d'un groupe
+					// poubelle 	if ((nNewGarbageModalityNumber > nGarbageModalityNumberMax) or
+					//(nNewTrueGroupNumber < 3))
+					//	{
+					//		// Deplacement non envisageable
+					//		dPartitionDeltaCost = DBL_MAX;
+					//	}
+					//	else
+					//	{
+					//		assert(nGarbageModalityNumber > 0 or
+					// kwftTarget->GetGarbageModalityNumber() == 0);
+					// dPartitionDeltaCost = ComputePartitionCost(nNewTrueGroupNumber,
+					// nNewGarbageModalityNumber) - ComputePartitionCost(nTrueGroupNumber,
+					// nGarbageModalityNumber);
+					//	}
+					// }
+
+					// Evaluation de la variation globale du cout
+					dDeltaCost = dOutDeltaCost + dInDeltaCost + dPartitionDeltaCost;
+
+					// CH AB DDD pour affichage systematique, a enlever a terme
+					// if (bPrintDeltaCosts and dDeltaCost < dBestDeltaCost - dEpsilon)
+					if (bPrintDeltaCosts)
+					{
+						cout << "Modality\t" << nModality << "\tOutGroup\t" << nOutGroup
+						     << "\tInGroup\t" << nInGroup << "\tGroupNumber\t" << nGroupNumber
+						     << "\tTrueGroupNumber\t " << nTrueGroupNumber << "\t Garbage \t"
+						     << (kwftTarget->GetGarbageModalityNumber() > 0)
+						     << "\tGarbageNumber\t" << nGarbageModalityNumber
+						     << "\tNewGarbageNumber\t" << nNewGarbageModalityNumber << endl;
+						cout << "BestDeltaCost\t" << dBestDeltaCost << "\t DeltaCost \t"
+						     << dDeltaCost << "\tOutDeltaCost\t" << dOutDeltaCost
+						     << "\tInDeltaCost\t" << dInDeltaCost << "\tPartitionDeltaCost\t"
+						     << dPartitionDeltaCost << endl;
+						// cout << "Table avant deplacement " << endl;
+						// cout << *kwftTarget << endl;
+					}
+
+					// Memorisation si amelioration
+					if (dDeltaCost < dBestDeltaCost - dEpsilon)
+					{
+						dBestDeltaCost = dDeltaCost;
+						dBestInDeltaCost = dInDeltaCost;
+						nBestInGroup = nInGroup;
+					}
+				}
+			}
+
+			// Test si arret de tache demandee
+			if (periodicTestOptimize.IsTestAllowed(0) and TaskProgression::IsInterruptionRequested())
+				break;
+
+			// On memorise le meilleur transfert de la modalite courante vers un nouveau groupe s'il existe
+			if (dBestDeltaCost < -dEpsilon)
+			{
+				// Affichage du transfert qui sera effectue plus tard
+				if (bPrintOptimizations)
+				{
+					cout << "Etape\t" << nStepNumber << "\t" << dBestDeltaCost << "\t" << nModality
+					     << "\t(" << nOutGroup << "," << nBestInGroup << ")\t";
+					//<< bBestLastModality << "\t";
+					kwftSource->GetFrequencyVectorAt(nModality)->WriteLineReport(cout);
+					cout << endl;
+				}
+
+				// Memorisation du transfert
+				ivMoveIndexes = new IntVector;
+				ivMoveIndexes->Add(nModality);
+				ivMoveIndexes->Add(nOutGroup);
+				ivMoveIndexes->Add(nBestInGroup);
+				oaMoves.Add(ivMoveIndexes);
+			}
+
+			// On continue de rechercher les ameliorations
+			bContinue = true;
+		}
+
+		// Cas ou aucun deplacement de modalites ne conduit a une amelioraton
+		if (oaMoves.GetSize() == 0)
+			bContinue = false;
+		// Sinon on effectue tous les deplacements de modalites memorises a cette etape
+		else
+		{
+			// Creation d'une table temporaire pour evaluation exacte du cout de l'ensemble des deplacements
+			// memorises
+			kwftImproved.CopyFrom(kwftTarget);
+			improvedFrequencyList.RemoveAll();
+
+			for (nGroup = 0; nGroup < kwftImproved.GetFrequencyVectorNumber(); nGroup++)
+			{
+				// Ajout de la ligne dans la liste triee par nombre de modalites et memorisation de sa
+				// position
+				kwftImproved.GetFrequencyVectorAt(nGroup)->SetPosition(
+				    improvedFrequencyList.Add(kwftImproved.GetFrequencyVectorAt(nGroup)));
+			}
+
+			ivImprovedGroups.CopyFrom(ivGroups);
+
+			// Parcours des modalites a transferer
+			for (nMove = 0; nMove < oaMoves.GetSize(); nMove++)
+			{
+				// Extraction du transfert
+				ivMoveIndexes = cast(IntVector*, oaMoves.GetAt(nMove));
+
+				nModality = ivMoveIndexes->GetAt(0);
+				nOutGroup = ivMoveIndexes->GetAt(1);
+				nBestInGroup = ivMoveIndexes->GetAt(2);
+
+				// CH Debuggage
+				// Avant nMove
+				if (bPrintOptimizations)
+				{
+					cout << "Avant Move \t" << nMove << "\tParametres \t" << *ivMoveIndexes << endl;
+					cout << kwftImproved << endl;
+				}
+
+				// CH est ce qu'on les met a jour ?
+				// Modification du cout des groupes de depart et d'arrivee
+				// dvGroupCosts.UpgradeAt(nOutGroup, dOutDeltaCost);
+				// dvGroupCosts.UpgradeAt(nBestInGroup, dBestInDeltaCost);
+
+				// Retrait des groupes de depart et d'arrivee de la liste des nombres de modalites
+				improvedFrequencyList.RemoveAt(
+				    kwftImproved.GetFrequencyVectorAt(nBestInGroup)->GetPosition());
+				debug(kwftImproved.GetFrequencyVectorAt(nBestInGroup)->SetPosition(NULL));
+				improvedFrequencyList.RemoveAt(
+				    kwftImproved.GetFrequencyVectorAt(nOutGroup)->GetPosition());
+				debug(kwftImproved.GetFrequencyVectorAt(nOutGroup)->SetPosition(NULL));
+
+				// Variation du nombre de groupes
+				// Cas ou l'arrivee de la modalite remplit un groupe qui etait vide
+				if (kwftImproved.GetFrequencyVectorAt(nBestInGroup)->ComputeTotalFrequency() == 0)
+				{
+					nTrueGroupNumber++;
+				}
+
+				// Modification des effectifs des groupes de depart et d'arrivee
+				AddFrequencyVector(kwftImproved.GetFrequencyVectorAt(nBestInGroup),
+						   kwftSource->GetFrequencyVectorAt(nModality));
+				RemoveFrequencyVector(kwftImproved.GetFrequencyVectorAt(nOutGroup),
+						      kwftSource->GetFrequencyVectorAt(nModality));
+				// CH encore verifiable ?
+				// assert(fabs(ComputeGroupCost(kwftTarget->GetFrequencyVectorAt(nOutGroup)) -
+				//    dvGroupCosts.GetAt(nOutGroup)) < dEpsilon);
+				// assert(fabs(ComputeGroupCost(kwftTarget->GetFrequencyVectorAt(nBestInGroup)) -
+				//    dvGroupCosts.GetAt(nBestInGroup)) < dEpsilon);
+
+				// Variation du nombre de groupes
+				// Cas ou le depart de la modalite laisse un groupe vide
+				if (kwftImproved.GetFrequencyVectorAt(nOutGroup)->ComputeTotalFrequency() == 0)
+				{
+					// CH n'est plus verifie quand on effectue plusieurs deplacements
+					// assert(bBestLastModality);
+					nTrueGroupNumber--;
+				}
+
+				// Reinsertion des groupes de depart et d'arrivee dans la liste des groupes triee par
+				// nombre de modalites
+				kwftImproved.GetFrequencyVectorAt(nBestInGroup)
+				    ->SetPosition(
+					improvedFrequencyList.Add(kwftImproved.GetFrequencyVectorAt(nBestInGroup)));
+				kwftImproved.GetFrequencyVectorAt(nOutGroup)->SetPosition(
+				    improvedFrequencyList.Add(kwftImproved.GetFrequencyVectorAt(nOutGroup)));
+				// Mise a jour de la taille du groupe poubelle de la table
+				if (kwftImproved.GetGarbageModalityNumber() > 0)
+				{
+					kwftImproved.SetGarbageModalityNumber(
+					    cast(KWFrequencyVector*, improvedFrequencyList.GetHead())
+						->GetModalityNumber());
+					// assert(nNewGarbageModalityNumber == kwftTarget->GetGarbageModalityNumber());
+				}
+
+				// Memorisation de l'index du nouveau groupe
+				ivImprovedGroups.SetAt(nModality, nBestInGroup);
+
+				// CH Debuggage
+				// Apres nMove
+				if (bPrintOptimizations)
+					cout << "Apres Move \t" << nMove << kwftImproved << endl;
+			}
+
+			// Nouveau cout global
+			dImprovedCost = ComputePartitionGlobalCost(&kwftImproved);
+			dCurrentCost = ComputePartitionGlobalCost(kwftTarget);
+
+			if (bPrintOptimizations)
+				cout << "Cout Improved\t" << dImprovedCost << "\tCout courant \t" << dCurrentCost
+				     << "\tDeltaCost \t" << dImprovedCost - dCurrentCost << endl;
+
+			if (dImprovedCost < dCurrentCost - dEpsilon)
+			{
+				cout << dImprovedCost << endl;
+				if (bPrintOptimizations)
+					cout << "Amelioration du cout suite au deplacement de l'ensemble des modalites "
+						"eligibles"
+					     << endl;
+
+				kwftTarget->CopyFrom(&kwftImproved);
+				ivGroups->CopyFrom(&ivImprovedGroups);
+
+				// Mise a jour des couts de chaque groupe
+				dvGroupCosts.SetSize(kwftTarget->GetFrequencyVectorNumber());
+				for (nGroup = 0; nGroup < kwftTarget->GetFrequencyVectorNumber(); nGroup++)
+					dvGroupCosts.SetAt(nGroup,
+							   ComputeGroupCost(kwftTarget->GetFrequencyVectorAt(nGroup)));
+			}
+			else
+				bContinue = false;
+
+			// Si amelioration, on memorise la nouvelle table et les nouvelles frequences
+
+			// Evaluation finale du cout (il faudrait pouvoir revenir en arriere s'il n'y a pas
+			// d'amelioration) Il faudrait donc avoir cette evaluation finale avant d'effectuer les
+			// deplacements Calculer le nouveau nombre de modalites par groupe apres l'ensemble des
+			// deplacements Cela donne le nombre de groupe et le nombre de modalites par groupe -> suffit
+			// pour calculer le cout non pas par variation mais comme un nouveau cout ?
+
+			// Nettoyage
+			oaMoves.DeleteAll();
+		}
+	}
+
+	// Affichage de la table finale
+	if (bPrintFinalTable)
+		cout << *kwftTarget << endl;
+
+	ensure(kwftSource->GetFrequencyVectorSize() == kwftTarget->GetFrequencyVectorSize());
+}
+// CH IV End
+
 void KWGrouperMODL::ForceBestGroupMerge(KWFrequencyTable* kwftSource, KWFrequencyTable* kwftTarget,
 					KWFrequencyTable*& kwftNewTarget, IntVector* ivGroups) const
 {

@@ -21,6 +21,9 @@ CCPostProcessingSpecView::CCPostProcessingSpecView()
 	AddIntField("TotalPartNumber", "Total part number", 0);
 	AddIntField("MaxTotalPartNumber", "Max total part number", 0);
 	AddStringField("FrequencyAttribute", "Frequency variable", "");
+	// CH IV Begin
+	AddStringField("IdentifierAttribute", "Identifier variable", "");
+	// CH IV End
 
 	// Parametrage des styles;
 	GetFieldAt("MaxCellNumber")->SetStyle("Spinner");
@@ -56,8 +59,11 @@ CCPostProcessingSpecView::CCPostProcessingSpecView()
 	// Le tableau des variable est affiche avant la variable d'effectif
 	MoveFieldBefore("PostProcessedAttributes", "FrequencyAttribute");
 
-	// La variable d'effectif n'est pas editable
+	// CH IV Begin
+	// La variable d'effectif et d'identifiant n'est pas editable
 	GetFieldAt("FrequencyAttribute")->SetEditable(false);
+	GetFieldAt("IdentifierAttribute")->SetEditable(false);
+	// CH IV End
 
 	// Info-bulles
 	GetFieldAt("InstanceNumber")->SetHelpText("Instance number in the input coclustering.");
@@ -76,6 +82,10 @@ CCPostProcessingSpecView::CCPostProcessingSpecView()
 	    ->SetHelpText("Max total number of parts to keep"
 			  "\n in the simplified coclustering (0: no constraint).");
 	GetFieldAt("FrequencyAttribute")->SetHelpText("Frequency variable in the input coclustering.");
+	// CH IV Begin
+	GetFieldAt("IdentifierAttribute")
+	    ->SetHelpText("Identifier variable in the instance * variables input coclustering.");
+	// CH IV End
 
 	// ##
 }
@@ -109,6 +119,9 @@ void CCPostProcessingSpecView::EventUpdate(Object* object)
 	editedObject->SetTotalPartNumber(GetIntValueAt("TotalPartNumber"));
 	editedObject->SetMaxTotalPartNumber(GetIntValueAt("MaxTotalPartNumber"));
 	editedObject->SetFrequencyAttribute(GetStringValueAt("FrequencyAttribute"));
+	// CH IV Begin
+	editedObject->SetIdentifierAttribute(GetStringValueAt("IdentifierAttribute"));
+	// CH IV End
 
 	// ## Custom update
 
@@ -131,6 +144,9 @@ void CCPostProcessingSpecView::EventRefresh(Object* object)
 	SetIntValueAt("TotalPartNumber", editedObject->GetTotalPartNumber());
 	SetIntValueAt("MaxTotalPartNumber", editedObject->GetMaxTotalPartNumber());
 	SetStringValueAt("FrequencyAttribute", editedObject->GetFrequencyAttribute());
+	// CH IV Begin
+	SetStringValueAt("IdentifierAttribute", editedObject->GetIdentifierAttribute());
+	// CH IV End
 
 	// ## Custom refresh
 

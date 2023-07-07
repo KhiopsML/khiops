@@ -9,8 +9,31 @@ CCAnalysisSpecView::CCAnalysisSpecView()
 	SetIdentifier("CCAnalysisSpec");
 	SetLabel("Parameters");
 
+	// CH IV Begin
+	// CH IV Refactoring: plutot passer par une gestion standard des parametres
+	//    dans le constructeur, EventRefresh, EventUpdate SetObject
+	//    et juste conditionner le visibilites des champs concernes
+	if (GetLearningCoclusteringIVExpertMode())
+	{
+		// Ajout d'un radio bouton pour choisir le type de coclustering : variables*variables ou
+		// individus*variables Le choix est exclusif
+		AddStringField("CoclusteringType", "Coclustering Type", "");
+		GetFieldAt("CoclusteringType")->SetStyle("RadioButton");
+		GetFieldAt("CoclusteringType")
+		    ->SetParameters("Variables coclustering\nInstances x Variables coclustering");
+
+		// On indique la valeur par defaut
+		cast(UIStringElement*, GetFieldAt("CoclusteringType"))->SetDefaultValue("Variables coclustering");
+	}
+	// CH IV End
+
 	// Ajout des sous-fiches
 	AddCardField("CoclusteringParameters", "Coclustering parameters", new CCCoclusteringSpecView);
+	// CH IV Begin
+	if (GetLearningCoclusteringIVExpertMode())
+		AddCardField("InstancesVariablesCoclusteringParameters", "InstancesVariablesCoclustering parameters",
+			     new CCInstancesVariablesCoclusteringSpecView);
+	// CH IV End
 	AddCardField("SystemParameters", "System parameters", new KWSystemParametersView);
 	AddCardField("CrashTestParameters", "Crash test parameters", new KWCrashTestParametersView);
 
@@ -49,6 +72,11 @@ void CCAnalysisSpecView::EventUpdate(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(CCAnalysisSpec*, object);
+
+	// CH IV Begin
+	if (GetLearningCoclusteringIVExpertMode())
+		editedObject->SetCoclusteringType(GetStringValueAt("CoclusteringType"));
+	// CH IV End
 }
 
 void CCAnalysisSpecView::EventRefresh(Object* object)
@@ -58,6 +86,11 @@ void CCAnalysisSpecView::EventRefresh(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(CCAnalysisSpec*, object);
+
+	// CH IV Begin
+	if (GetLearningCoclusteringIVExpertMode())
+		SetStringValueAt("CoclusteringType", editedObject->GetCoclusteringType());
+	// CH IV End
 }
 
 void CCAnalysisSpecView::SetObject(Object* object)
@@ -72,6 +105,12 @@ void CCAnalysisSpecView::SetObject(Object* object)
 	// Parametrages des sous-fiches par les sous-objets
 	cast(CCCoclusteringSpecView*, GetFieldAt("CoclusteringParameters"))
 	    ->SetObject(analysisSpec->GetCoclusteringSpec());
+
+	// CH IV Begin
+	if (GetLearningCoclusteringIVExpertMode())
+		cast(CCInstancesVariablesCoclusteringSpecView*, GetFieldAt("InstancesVariablesCoclusteringParameters"))
+		    ->SetObject(analysisSpec->GetInstancesVariablesCoclusteringSpec());
+	// CH IV End
 
 	// Cas particulier de la vue sur les parametres systemes
 	// Cette vue ne travaille sur des variables statiques de KWSystemResource et KWLearningSpec

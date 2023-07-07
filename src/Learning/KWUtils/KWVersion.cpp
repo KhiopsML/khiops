@@ -18,6 +18,13 @@ static ALString sKWLearningWebSite = "";
 static ALString sKWLearningVersion;
 static boolean bKWLearningVersionModified = false;
 
+// CH IV Begin
+// Booleen de prise en compte de la poubelle
+// pour les attributs de type VarParts
+static boolean bVarPartsAttributeGarbage = false;
+// pour les attribut impliques categoriels
+static boolean bImpliedAttributeGarbage = false;
+// CH IV End
 int GetMajorVersion(const ALString& sFullVersion)
 {
 	ALString sMajorVersion;
@@ -157,6 +164,26 @@ const ALString GetLearningSystemType()
 		return "(64-bit)";
 }
 
+// CH IV Begin
+const boolean GetVarPartsAttributeGarbage()
+{
+	return bVarPartsAttributeGarbage;
+}
+void SetVarPartsAttributeGarbage(const boolean bValue)
+{
+	bVarPartsAttributeGarbage = bValue;
+}
+
+const boolean GetImpliedAttributeGarbage()
+{
+	return bImpliedAttributeGarbage;
+}
+void SetImpliedAttributeGarbage(const boolean bValue)
+{
+	bImpliedAttributeGarbage = bValue;
+}
+// CH IV End
+
 const ALString GetLearningFullName()
 {
 	ALString sFullName;
@@ -277,7 +304,7 @@ boolean GetLearningExpertMode()
 		sLearningExpertMode.MakeLower();
 
 		// Determination du mode expert (en debug pour Marc ou Carine)
-		// DDD		debug(bLearningExpertMode = (sUserName == "miib6422") or (sUserName == "mgtt5712"));
+		debug(bLearningExpertMode = (sUserName == "miib6422") or (sUserName == "mgtt5712"));
 		if (sLearningExpertMode == "true")
 			bLearningExpertMode = true;
 		else if (sLearningExpertMode == "false")
@@ -446,6 +473,39 @@ boolean GetLearningCoclusteringExpertMode()
 	}
 	return bLearningCoclusteringExpertMode;
 }
+
+// CH IV Begin
+boolean GetLearningCoclusteringIVExpertMode()
+{
+	static boolean bIsInitialized = false;
+	static boolean bLearningCoclusteringIVExpertMode = false;
+
+	// Determination du mode expert au premier appel
+	if (not bIsInitialized)
+	{
+		ALString sUserName;
+		ALString sLearningCoclusteringIVExpertMode;
+
+		// Recherche des variables d'environnement
+		sUserName = p_getenv("USERNAME");
+		sUserName.MakeLower();
+		sLearningCoclusteringIVExpertMode = p_getenv("KhiopsCoclusteringIVExpertMode");
+		sLearningCoclusteringIVExpertMode.MakeLower();
+
+		// Determination du mode (en debug)
+		debug(bLearningCoclusteringIVExpertMode = (sUserName == "mgtt5712"));
+		// Determination du mode expert
+		if (sLearningCoclusteringIVExpertMode == "true")
+			bLearningCoclusteringIVExpertMode = true;
+		else if (sLearningCoclusteringIVExpertMode == "false")
+			bLearningCoclusteringIVExpertMode = false;
+
+		// Memorisation du flag d'initialisation
+		bIsInitialized = true;
+	}
+	return bLearningCoclusteringIVExpertMode;
+}
+// CH IV End
 
 boolean GetParallelExpertMode()
 {
