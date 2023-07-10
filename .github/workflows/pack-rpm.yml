@@ -2,8 +2,6 @@
 name: Create RPM package
 on:
   workflow_dispatch:
-  push:
-    branches: [39-add-learningtest-lite-to-the-repo]
 jobs:
   package-rpm:
     runs-on: ubuntu-latest
@@ -74,38 +72,8 @@ jobs:
       - name: Install Khiops core
         run: |
           yum install -y ./artifacts/khiops-core* 
-      - name: Check Khiops core installation
-        run: |
-          khiops -v
-          khiops_coclustering -v
       - name: Install Khiops (with java)
         run: |
           yum install -y ./artifacts/khiops-*
-      - name: Check Khiops installation
-        run: |
-          khiops -v
-          khiops_coclustering -v
-      - name: Run Khiops tests
-        run: |
-          cd test/LearningTest/TestKhiops/Standard/Iris/
-          khiops -b -i test.prm -e results/err.txt
-          cd -
-      - name: Run Khiops Coclustering tests
-        run: |
-          cd test/LearningTest/TestCoclustering/Standard/Iris/
-          khiops_coclustering -b -i test.prm -e results/err.txt
-          cd -
-      - name: Check results
-        run: |-
-          yum install python3.11 -y
-          touch test/LearningTest/TestCoclustering/Standard/Iris/results/time.log
-          touch test/LearningTest/TestKhiops/Standard/Iris/results/time.log
-          cd test/LearningTest/cmd/python/
-          python3 test_khiops.py Khiops nul Standard
-          python3 test_khiops.py Coclustering nul Standard
-          python3 apply_command.py errors ../../TestKhiops/Standard/ | tee /tmp/khiops-log.txt
-          python3 apply_command.py errors ../../TestCoclustering/Standard/ | tee /tmp/coclustering-log.txt
-          if (grep -q error /tmp/khiops-log.txt || grep -q error /tmp/coclustering-log.txt); then
-            echo "::error::Errors in Khiops run"
-            false
-          fi
+      - name: Test Khiops and Khiops Coclustering
+        uses: ./.github/actions/test-khiops
