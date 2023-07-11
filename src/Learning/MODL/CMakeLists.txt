@@ -1,6 +1,6 @@
 # on fedora, binaries built with mpi must ended by _mpich suffix
 file(GLOB cppfiles ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
-add_executable(MODL${MPI_SUFFIX} ${cppfiles})
+add_executable(MODL${MPI_SUFFIX} ${cppfiles} MODL.rc)
 
 target_link_libraries(MODL${MPI_SUFFIX} PUBLIC DTForest KMDRRuleLibrary KWLearningProblem PLParallelTask)
 set_khiops_options(MODL${MPI_SUFFIX})
