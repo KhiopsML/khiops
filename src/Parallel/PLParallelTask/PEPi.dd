@@ -1,5 +1,0 @@
-Rank;Name;Type;Style;Label
-1;IterationNumber;int   ;;Number of iterations
-2;ProcessusNumber;int   ;Spinner;Number of process
-3;Pi             ;ALString;;Pi approximation
-4;ElapsedTime    ;double;;Computation time

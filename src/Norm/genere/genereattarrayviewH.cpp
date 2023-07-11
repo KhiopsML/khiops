@@ -6,6 +6,7 @@
 
 void TableGenerator::GenerateAttributeArrayViewH(ostream& ost) const
 {
+	GenerateCopyrightHeader(ost);
 	ost << "#pragma once\n";
 	ost << "\n";
 	GenerateFileHeader(ost);

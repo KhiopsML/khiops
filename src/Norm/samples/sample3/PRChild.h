@@ -38,6 +38,7 @@ public:
 	// Age
 	int GetAge() const;
 	void SetAge(int nValue);
+
 	///////////////////////////////////////////////////////////
 	// Divers
 
@@ -53,7 +54,7 @@ public:
 	// ##
 
 	////////////////////////////////////////////////////////
-	//// Implementation
+	///// Implementation
 protected:
 	// Attributs de la classe
 	ALString sFirstName;

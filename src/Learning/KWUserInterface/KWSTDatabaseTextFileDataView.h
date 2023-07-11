@@ -21,7 +21,7 @@
 
 ////////////////////////////////////////////////////////////
 // Classe KWSTDatabaseTextFileDataView
-//    Database
+//    Data
 // Editeur de KWSTDatabaseTextFile
 class KWSTDatabaseTextFileDataView : public UIObjectView
 {
