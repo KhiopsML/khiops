@@ -2,7 +2,7 @@
 file(GLOB cppfiles ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 add_executable(MODL${MPI_SUFFIX} ${cppfiles} MODL.rc)
 
-target_link_libraries(MODL${MPI_SUFFIX} PUBLIC DTForest KMDRRuleLibrary KWLearningProblem PLParallelTask)
+target_link_libraries(MODL${MPI_SUFFIX} PUBLIC DTForest KMDRRuleLibrary KWLearningProblem $<$<BOOL:${MPI}>:PLMPI>)
 set_khiops_options(MODL${MPI_SUFFIX})
 
 add_library(MODL_SO SHARED ${cppfiles})
