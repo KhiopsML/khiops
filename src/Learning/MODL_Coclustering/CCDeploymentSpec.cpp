@@ -69,7 +69,8 @@ void CCDeploymentSpec::Write(ostream& ost) const
 	ost << "Input table variable\t" << GetInputObjectArrayAttributeName() << "\n";
 	ost << "Coclustering deployed variable\t" << GetDeployedAttributeName() << "\n";
 	ost << "Build predicted cluster variable\t" << BooleanToString(GetBuildPredictedClusterAttribute()) << "\n";
-	ost << "Build inter-cluster distance variables\t" << BooleanToString(GetBuildClusterDistanceAttributes()) << "\n";
+	ost << "Build inter-cluster distance variables\t" << BooleanToString(GetBuildClusterDistanceAttributes())
+	    << "\n";
 	ost << "Build frequency recoding variables\t" << BooleanToString(GetBuildFrequencyRecodingAttributes()) << "\n";
 	ost << "Output variables prefix\t" << GetOutputAttributesPrefix() << "\n";
 }

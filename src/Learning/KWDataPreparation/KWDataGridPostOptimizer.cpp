@@ -3701,6 +3701,7 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 								nDeltaVarPartNumberClusterOut = 1;
 							}
 							// Sinon, aucune perte de PV, juste un transfert
+							else
 							{
 								nDeltaVarPartNumber = 0;
 								nDeltaVarPartNumberClusterOut = 0;
@@ -4554,13 +4555,18 @@ double CCVarPartDataGridPostOptimizer::ComputeVarPartsContinuousAttributeVariati
 		//// CH AB AF temporaire : obsolete a l'integration definitive du groupe poubelle
 		// else
 		//{
-		//  Cout de codage du nombre de clusters de parties de variable
-		dVariationAttributeCost += KWStat::BoundedNaturalNumbersUniversalCodeLength(
-		    nClusterNumber - nClusterNumberVariation - 1, nPartileNumber - nVarPartsNumberVariation - 1);
+		//  Cas ou il reste au moins deux clusters apres variation
+		if (nClusterNumber - nClusterNumberVariation > 1)
+		{
+			// Cout de codage du nombre de clusters de parties de variable
+			dVariationAttributeCost += KWStat::BoundedNaturalNumbersUniversalCodeLength(
+			    nClusterNumber - nClusterNumberVariation - 1,
+			    nPartileNumber - nVarPartsNumberVariation - 1);
 
-		// Cout de codage du choix des parties de variable
-		dVariationAttributeCost +=
-		    KWStat::LnBell(nPartileNumber - nVarPartsNumberVariation, nClusterNumber - nClusterNumberVariation);
+			// Cout de codage du choix des parties de variable
+			dVariationAttributeCost += KWStat::LnBell(nPartileNumber - nVarPartsNumberVariation,
+								  nClusterNumber - nClusterNumberVariation);
+		}
 
 		// Cout de codage du nombre de clusters de parties de variable
 		dVariationAttributeCost -=
