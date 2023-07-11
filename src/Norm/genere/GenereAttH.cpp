@@ -9,6 +9,7 @@ void TableGenerator::GenerateAttributeH(ostream& ost) const
 	int nCurrent;
 	Attribute* att;
 
+	GenerateCopyrightHeader(ost);
 	ost << "#pragma once\n";
 	ost << "\n";
 	GenerateFileHeader(ost);

@@ -520,6 +520,14 @@ void TableGenerator::GenereWith(const ALString& sName, const ALString& sSpecific
 	}
 }
 
+void TableGenerator::GenerateCopyrightHeader(ostream& ost) const
+{
+	ost << "// Copyright (c) 2023 Orange. All rights reserved.\n";
+	ost << "// This software is distributed under the BSD 3-Clause-clear License, the text of which is available\n";
+	ost << "// at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the \"LICENSE\" file for more details.\n";
+	ost << "\n";
+}
+
 void TableGenerator::GenerateFileHeader(ostream& ost) const
 {
 	ALString sCommentLign('/', 60);
@@ -566,10 +574,10 @@ void TableGenerator::GenerateUserCodeSection(ostream& ost, const ALString& sInde
 	if (not GetGenereUserSection())
 		return;
 
-	ost << sIndent << "//## " << sIdentifier << "\n";
+	ost << sIndent << "// ## " << sIdentifier << "\n";
 	ost << ""
 	    << "\n";
-	ost << sIndent << "//##"
+	ost << sIndent << "// ##"
 	    << "\n";
 }
 
@@ -578,7 +586,7 @@ void TableGenerator::GenerateUserCodeHeader(ostream& ost, const ALString& sInden
 	if (not GetGenereUserSection())
 		return;
 
-	ost << sIndent << "//## " << sIdentifier << "\n";
+	ost << sIndent << "// ## " << sIdentifier << "\n";
 }
 
 void TableGenerator::GenerateUserCodeTrailer(ostream& ost, const ALString& sIndent, const ALString& sIdentifier,
@@ -587,7 +595,7 @@ void TableGenerator::GenerateUserCodeTrailer(ostream& ost, const ALString& sInde
 	if (not GetGenereUserSection())
 		return;
 
-	ost << sIndent << "//##";
+	ost << sIndent << "// ##";
 	if (bNewLine)
 		ost << "\n";
 }
