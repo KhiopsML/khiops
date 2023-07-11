@@ -1,8 +1,7 @@
 file(GLOB cppfiles ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 
 # on fedora, binaries built with mpi must ended by _mpich suffix
-add_executable(MODL_Coclustering${MPI_SUFFIX} ${cppfiles})
-
+add_executable(MODL_Coclustering${MPI_SUFFIX} ${cppfiles} MODL_Coclustering.rc)
 set_khiops_options(MODL_Coclustering${MPI_SUFFIX})
 
 target_link_libraries(MODL_Coclustering${MPI_SUFFIX} PUBLIC KWLearningProblem DTForest KMDRRuleLibrary)

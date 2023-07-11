@@ -1,5 +1,5 @@
 file(GLOB cppfiles ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
-add_library(KhiopsNativeInterface SHARED "${cppfiles}")
+add_library(KhiopsNativeInterface SHARED "${cppfiles}" KhiopsNativeInterface.rc)
 target_include_directories(KhiopsNativeInterface PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(KhiopsNativeInterface PUBLIC KWLearningProblem)
 set_target_properties(

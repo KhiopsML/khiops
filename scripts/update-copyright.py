@@ -58,9 +58,10 @@ def update_copyright(file_path):
                         continue
                     else:
                         skipped_copyright = True
+                # Beware: all lines must end with an end of line, including the last line
+                # (otherwise, the Windows RC compiler does not work)
                 file.write(line)
-                if n < line_number - 1:
-                    file.write(byte_linesep)
+                file.write(byte_linesep)
 
 
 if __name__ == "__main__":
