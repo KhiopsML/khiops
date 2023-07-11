@@ -1,5 +1,5 @@
 @echo off
 
-genere -noarrayview PRWorker "Employe" PRWorker.dd
-genere              PRChild "Enfant" PRChild.dd
-genere -noarrayview PRAddress "Adresse" PRAddress.dd
+call ..\..\..\genere -noarrayview PRWorker "Employe" PRWorker.dd > genere.log
+call ..\..\..\genere              PRChild "Enfant" PRChild.dd >> genere.log
+call ..\..\..\genere -noarrayview PRAddress "Adresse" PRAddress.dd >> genere.log

@@ -123,6 +123,7 @@ protected:
 	// Methodes de generation
 
 	// Utilitaires de generation
+	void GenerateCopyrightHeader(ostream& ost) const;
 	void GenerateFileHeader(ostream& ost) const;
 	void GenereClassHeaderComment(ostream& ost, const ALString& sClassFamily) const;
 	void GenereTitledComment(ostream& ost, const ALString& sIndent, const ALString& sComment) const;
