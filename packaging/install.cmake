@@ -5,12 +5,6 @@ set(TMP_DIR ${PROJECT_BINARY_DIR}/tmp)
 # API_VERSION_NUMBER is replace in the configure_file process
 set(API_VERSION_NUMBER ${PROJECT_VERSION_MAJOR})
 
-configure_file(${PROJECT_SOURCE_DIR}/packaging/common/KNI/PackageRef/samples/C/readme.txt.in ${TMP_DIR}/kni.C.README.txt
-               @ONLY NEWLINE_STYLE UNIX)
-
-configure_file(${PROJECT_SOURCE_DIR}/packaging/common/KNI/PackageRef/samples/java/readme.txt.in
-               ${TMP_DIR}/kni.java.README.txt @ONLY NEWLINE_STYLE UNIX)
-
 configure_file(${PROJECT_SOURCE_DIR}/packaging/common/KNI/README.txt.in ${TMP_DIR}/kni.README.txt @ONLY
                NEWLINE_STYLE UNIX)
 
@@ -44,51 +38,16 @@ install(
   FILES ${TMP_DIR}/kni.README.txt
   DESTINATION ${DOC_DIR}
   RENAME README.txt
-  COMPONENT KNI_DOC)
-
-install(
-  FILES ${TMP_DIR}/kni.C.README.txt
-  DESTINATION ${DOC_DIR}/samples/C
-  RENAME README.txt
-  COMPONENT KNI_DOC)
-
-install(
-  FILES ${TMP_DIR}/kni.java.README.txt
-  DESTINATION ${DOC_DIR}/samples/java
-  RENAME README.txt
-  COMPONENT KNI_DOC)
-
-install(
-  DIRECTORY ${PROJECT_SOURCE_DIR}/packaging/common/KNI/PackageRef/samples
-  DESTINATION ${DOC_DIR}
-  COMPONENT KNI_DOC
-  PATTERN "*.in" EXCLUDE
-  PATTERN ".*" EXCLUDE)
+  COMPONENT KNI)
 
 # Copy KNI c++ files to temporary directory before to add main functions
-file(COPY KNITransfer/KNIRecodeFile.cpp DESTINATION ${TMP_DIR}/)
-file(COPY KNITransfer/KNIRecodeMTFiles.cpp DESTINATION ${TMP_DIR}/)
-file(APPEND ${TMP_DIR}/KNIRecodeFile.cpp
-     "\n\nvoid main(int argv, char** argc)\n{\n\tmainKNIRecodeFile(argv, argc);\n}\n")
-file(APPEND ${TMP_DIR}/KNIRecodeMTFiles.cpp
-     "\n\nvoid main(int argv, char** argc)\n{\n\tmainKNIRecodeMTFiles(argv, argc);\n}\n")
+configure_file(KNITransfer/KNIRecodeFile.cpp ${TMP_DIR}/KNIRecodeFile.c COPYONLY)
+configure_file(KNITransfer/KNIRecodeMTFiles.cpp ${TMP_DIR}/KNIRecodeMTFiles.c COPYONLY)
 
-install(
-  FILES ${TMP_DIR}/KNIRecodeFile.cpp
-  RENAME KNIRecodeFile.c
-  DESTINATION ${DOC_DIR}/samples/C
-  COMPONENT KNI_DOC)
-
-install(
-  FILES ${TMP_DIR}/KNIRecodeMTFiles.cpp
-  RENAME KNIRecodeMTFiles.c
-  DESTINATION ${DOC_DIR}/samples/C
-  COMPONENT KNI_DOC)
-
-install(
-  FILES KNITransfer/KNIRecodeFile.h KNITransfer/KNIRecodeMTFiles.h
-  DESTINATION ${DOC_DIR}/samples/C
-  COMPONENT KNI_DOC)
+file(APPEND ${TMP_DIR}/KNIRecodeFile.c
+     "\n\nvoid main(int argv, char** argc)\n{\n\tmainKNIRecodeFile(argv, argc);\n \texit(0);\n}\n")
+file(APPEND ${TMP_DIR}/KNIRecodeMTFiles.c
+     "\n\nvoid main(int argv, char** argc)\n{\n\tmainKNIRecodeMTFiles(argv, argc);\n \texit(0);\n}\n")
 
 # ######################################## Khiops and Khiops Coclustering installation
 

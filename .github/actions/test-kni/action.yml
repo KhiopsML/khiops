@@ -48,7 +48,7 @@ runs:
           echo "::error::R_Iris.txt is missing"
           false
         fi
-        if diff -q R_Iris.txt khiops/packaging/common/KNI/PackageRef/TestRef/R_Iris.txt > /dev/null ; 
+        if diff -q R_Iris.txt khiops/packaging/common/KNI/R_Iris.txt > /dev/null ; 
         then
           echo "Mono table recodage is OK"
         else
@@ -65,7 +65,7 @@ runs:
           echo "::error::R_SpliceJunction.txt is missing"
           false
         fi
-        if diff -q R_SpliceJunction.txt khiops/packaging/common/KNI/PackageRef/TestRef/R_SpliceJunction.txt > /dev/null ; 
+        if diff -q R_SpliceJunction.txt khiops/packaging/common/KNI/R_SpliceJunction.txt > /dev/null ; 
         then
           echo "Multi table recodage is OK"
         else

@@ -1,9 +1,0 @@
-
-Dictionary	Iris
-{
-	Numerical	SepalLength	;	
-	Numerical	SepalWidth	;	
-	Numerical	PetalLength	;	
-	Numerical	PetalWidth	;	
-	Categorical	Class	;	
-};

@@ -37,8 +37,3 @@ include: include file, with a detailed description of KNI functions
 lib: 
 	- librairy for windows C/C++ bindings: KhiopsNativeInterface64.lib (64 bits)
 	- shared library for linux libKhiopsNativeInterface.so.@PROJECT_VERSION@
-
-samples: sample directory
-	- sample\data: dictionary and database sample data, and test results
-	- samples\C: sample C source file using KNI functions (see samples\C\README.txt)
-	- samples\java: sample java source file using KNI functions (see samples\java\README.txt)
