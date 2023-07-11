@@ -1,0 +1,71 @@
+---
+name: Test Khiops Native Interface
+description: Action to test KNI package
+runs:
+  using: composite
+  steps:
+    - name: Check ldconfig
+      shell: bash
+      run: |
+        if ["$RUNNER_OS" == "Linux"]
+        then
+          if [ $(ldconfig -p | grep -c KhiopsNativeInterface) -eq 0 ] 
+          then
+            echo "::error::KNI is not reachable with ld, check post installation"
+            false
+          fi
+        fi
+    - name: Checkout sources
+      uses: actions/checkout@v3
+      with:
+        path: khiops
+    - name: Checkout KhiopsNativeInterface-tutorial
+      uses: actions/checkout@v3
+      with:
+        repository: KhiopsML/KhiopsNativeInterface-tutorial
+        path: tutorial
+    - name: Compile C examples
+      shell: bash
+      run: |
+        if [ "$RUNNER_OS" == "Linux" ] ;
+        then
+          gcc -o KNIRecodeFile tutorial/cpp/KNIRecodeFile.c -I khiops/src/Learning/KhiopsNativeInterface/ -lKhiopsNativeInterface  -ldl
+          gcc -o KNIRecodeMTFiles tutorial/cpp/KNIRecodeMTFiles.c  -I khiops/src/Learning/KhiopsNativeInterface/ -lKhiopsNativeInterface -ldl
+        fi
+        if [ "$RUNNER_OS" == "Windows" ] ;
+        then
+          cl tutorial/cpp/KNIRecodeFile.c -I khiops/src/Learning/KhiopsNativeInterface/ KhiopsNativeInterface64.lib /link "/LIBPATH:kni"
+          cl tutorial/cpp/KNIRecodeMTFiles.c  -I khiops/src/Learning/KhiopsNativeInterface/ KhiopsNativeInterface64.lib /link "/LIBPATH:kni"
+        fi
+    - name: Test mono-table example
+      shell: bash
+      run: |-
+        ./KNIRecodeFile tutorial/data/ModelingIris.kdic SNB_Iris tutorial/data/Iris.txt R_Iris.txt
+        if [ ! -f R_Iris.txt ] ;
+        then
+          echo "::error::R_Iris.txt is missing"
+          false
+        fi
+        if diff -q R_Iris.txt khiops/packaging/common/KNI/PackageRef/TestRef/R_Iris.txt > /dev/null ; 
+        then
+          echo "Mono table recodage is OK"
+        else
+        echo "::error::Recodage issue with Iris.txt"
+          false
+        fi
+    - name: Test multi-tables example
+      shell: bash
+      run: |-
+        ./KNIRecodeMTFiles -d tutorial/data/ModelingSpliceJunction.kdic SNB_SpliceJunction -i tutorial/data/SpliceJunction.txt 1 -s DNA  tutorial/data/SpliceJunctionDNA.txt 1 -o R_SpliceJunction.txt
+        if [ ! -f R_SpliceJunction.txt ] ;
+        then
+          echo "::error::R_SpliceJunction.txt is missing"
+          false
+        fi
+        if diff -q R_SpliceJunction.txt khiops/packaging/common/KNI/PackageRef/TestRef/R_SpliceJunction.txt > /dev/null ; 
+        then
+          echo "Multi table recodage is OK"
+        else
+          echo "::error::Recodage issue with SpliceJunction.txt"
+          false
+        fi

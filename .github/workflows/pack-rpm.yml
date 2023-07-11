@@ -2,6 +2,8 @@
 name: Create RPM package
 on:
   workflow_dispatch:
+  push:
+    branches: [47-improve-and-test-kni-packages]
 jobs:
   build-rpm-package:
     runs-on: ubuntu-latest
@@ -90,3 +92,37 @@ jobs:
           yum install -y ./artifacts/khiops-*
       - name: Test Khiops and Khiops Coclustering
         uses: ./.github/actions/test-khiops
+  test-kni-rpm:
+    needs: package-rpm
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [rocky8, rocky9]
+    container:
+      image: ghcr.io/khiopsml/khiops/${{ matrix.os }}:latest
+    steps:
+      - name: Set environment variables
+        run: |
+          source /etc/os-release 
+          echo "ID=$ID" >> "$GITHUB_ENV"
+          VERSION=$(echo $PLATFORM_ID | cut -d":" -f2)
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.ID }}-${{ env.VERSION }}
+          path: artifacts
+      - name: Install KNI
+        run: |
+          yum update -y
+          yum install -y ./artifacts/kni* 
+      - name: Checkout sources
+        uses: actions/checkout@v3
+        with:
+          sparse-checkout: .github
+      - name: Test KNI
+        uses: ./.github/actions/test-kni
