@@ -3,17 +3,24 @@ name: Create Debian package
 on:
   workflow_dispatch:
 jobs:
-  package:
+  package-deb:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-22.04, ubuntu-20.04]
-    runs-on: ${{ matrix.os }}
+        os: [ubuntu22.04, ubuntu20.04]
+    container:
+      image: ghcr.io/khiopsml/khiops/${{ matrix.os }}:latest
     steps:
-      - uses: actions/checkout@v3
-      - name: install dependencies
+      - name: Checkout sources
+        uses: actions/checkout@v3
+      - name: Install dependencies
         run: |
-          sudo apt-get -y --no-install-recommends install libmpich-dev  
-      - name: set environment variables
+          apt-get -y --no-install-recommends install libmpich-dev  
+      - name: Set environment variables
         run: |
           source /etc/os-release 
           echo "ID=$ID" >> "$GITHUB_ENV"
@@ -22,12 +29,58 @@ jobs:
         run: cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -DMPI=ON -DTESTING=OFF
           -DBUILD_JARS=ON
       - name: Build Khiops executables
-        run: cmake --build ${{github.workspace}}/build --parallel --target MODL MODL_Coclustering
-          KhiopsNativeInterface
+        run: |
+          cmake --build build --parallel --target MODL MODL_Coclustering KhiopsNativeInterface
       - name: Build package with CPack
-        run: cd ${{github.workspace}}/build && cpack -G DEB
+        run: cd build && cpack -G DEB
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
           name: ${{ env.ID }}-${{ env.VERSION_CODENAME }}
           path: build/packages/*.deb
+  # Test packages on a brand new runner: we want to check the installation process (with the dependencies installation)
+  # and the Khiops execution on a simple dataset
+  test:
+    needs: package-deb
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [22.04, 20.04]
+    container:
+      image: ubuntu:${{ matrix.os }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+      - name: Set environment variables
+        run: |
+          source /etc/os-release 
+          echo "ID=$ID" >> "$GITHUB_ENV"
+          echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.ID }}-${{ env.VERSION_CODENAME }}
+          path: artifacts
+      - name: Install Khiops core
+        run: |
+          apt-get update
+          dpkg -i ./artifacts/khiops-core* || true
+          apt-get -f install -y
+      - name: Check Khiops core installation
+        run: |
+          khiops -v
+          khiops_coclustering -v
+      - name: Install Khiops (with java)
+        run: |
+          dpkg -i ./khiops_* || true
+          apt-get -f install -y
+      - name: Check Khiops installation
+        run: |
+          khiops -v
+          khiops_coclustering -v
+      - name: Test Khiops / Khiops Coclustering
+        uses: ./.github/actions/test-khiops

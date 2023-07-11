@@ -5,6 +5,9 @@ on:
 jobs:
   package-rpm:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
@@ -12,7 +15,8 @@ jobs:
     container:
       image: ghcr.io/khiopsml/khiops/${{ matrix.os }}:latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout sources
+        uses: actions/checkout@v3
       - name: set environment variables
         run: |
           source /etc/os-release 
@@ -24,10 +28,10 @@ jobs:
           source /etc/profile.d/modules.sh
           module load mpi/mpich-x86_64
           echo "MPI_SUFFIX=$MPI_SUFFIX" >> "$GITHUB_ENV"
-          cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -DTESTING=OFF -DBUILD_JARS=ON -DFEDORA=ON
+          cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -DTESTING=OFF -DBUILD_JARS=ON
       - name: Build Khiops executables
-        run: cmake --build build --parallel --target MODL${{ env.MPI_SUFFIX }} MODL_Coclustering
-          KhiopsNativeInterface
+        run: |
+          cmake --build build --parallel --target MODL${{ env.MPI_SUFFIX }} MODL_Coclustering${{ env.MPI_SUFFIX }} KhiopsNativeInterface
       - name: Build package with CPack
         run: cd build && cpack -G RPM
       - name: Upload artifacts
@@ -36,3 +40,40 @@ jobs:
           name: ${{ env.ID }}-${{ env.VERSION }}
           path: build/packages/*.rpm
           if-no-files-found: error
+  # Test packages on a brand new runner: we want to check the installation process (with the dependencies installation)
+  # and the Khiops execution on a simple dataset
+  test:
+    needs: package-rpm
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [8, 9]
+    container:
+      image: rockylinux:${{ matrix.os }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+      - name: Set environment variables
+        run: |
+          source /etc/os-release 
+          echo "ID=$ID" >> "$GITHUB_ENV"
+          VERSION=$(echo $PLATFORM_ID | cut -d":" -f2)
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.ID }}-${{ env.VERSION}}
+          path: artifacts
+      - run: yum update -y
+      - name: Install Khiops core
+        run: |
+          yum install -y ./artifacts/khiops-core* 
+      - name: Install Khiops (with java)
+        run: |
+          yum install -y ./artifacts/khiops-*
+      - name: Test Khiops and Khiops Coclustering
+        uses: ./.github/actions/test-khiops

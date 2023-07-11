@@ -1,0 +1,66 @@
+// Thu Jun 12 13:31:06 2008
+// modl
+// Output command file
+//
+//This file contains recorded commands, that can be replayed.
+//Commands are based on user interactions:
+//	field update
+//	list index selection
+//	menu action
+//Every command can be commented, using //.
+//For example, commenting the last Exit command will allow other
+//user interactions, after the commands have been replayed.
+//
+//
+
+// -> Data preparation and scoring
+ClassManagement.OpenFile       // Open...
+
+// -> Open
+ClassFileName ../../../datasets/Iris/Iris.kdic       // Dictionary file
+OK                             // Open
+// <- Open
+
+ClassManagement.ClassName Iris          // Dictionary
+
+TrainDatabase.DatabaseFiles.List.Key Iris               // List item selection
+TrainDatabase.DatabaseFiles.DataTableName ../../../datasets/Iris/Iris.txt     // Database file
+TrainDatabase.SampleNumberPercentage 70  // Sample percentage
+
+AnalysisSpec.TargetAttributeName Class   // Target variable
+AnalysisSpec.MainTargetModality Iris-versicolor        // Main target modality
+
+AnalysisSpec.PredictorsSpec.SelectiveNaiveBayesPredictor true // Predicteur Bayesien Naif Selectif
+AnalysisSpec.PredictorsSpec.AdvancedSpec.UnivariatePredictorNumber 1      // Nombre de predicteurs univaries
+
+AnalysisResults.ResultFilesDirectory ./results   // Result files directory
+
+
+
+AnalysisSpec.PredictorsSpec.ConstructionSpec.MaxTreeNumber 0  // Max Tree number
+AnalysisSpec.PredictorsSpec.ConstructionSpec.MaxConstructedAttributeNumber 0 // Max number of constructed variables
+ComputeStats                   // Analyse database
+
+
+ClassManagement.OpenFile       // Open...
+ClassFileName ./results/Modeling.kdic       // Dictionary file
+OK                             // Open
+
+TransferDatabase               // Transfer database
+
+// -> Database transfer
+ClassName SNB_Iris             // Transfer dictionary
+SourceDatabase.SampleNumberPercentage 70  // Sample percentage
+TargetDatabase.DatabaseFiles.List.Key SNB_Iris               // List item selection
+TargetDatabase.DatabaseFiles.DataTableName ./results/T_Iris.txt     // Database file
+TransferDatabase               // Transfer database
+Exit                           // Close
+// <- Database transfer
+
+Exit                           // Close
+// <- Data preparation and scoring
+
+
+// -> Data preparation and scoring
+OK                             // Close
+// <- Data preparation and scoring
