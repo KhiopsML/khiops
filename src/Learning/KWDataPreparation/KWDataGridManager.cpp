@@ -80,6 +80,13 @@ void KWDataGridManager::ExportDataGridWithSingletonVarParts(const KWDataGrid* op
 							    boolean bSourceIdentifierClusters) const
 {
 	KWDGAttribute* targetVarPartAttribute;
+	const KWDataGrid* originDataGrid;
+	int nAttribute;
+	KWDGAttribute* sourceAttribute;
+	KWDGAttribute* targetAttribute;
+	KWDGPart* sourcePart;
+	KWDGPart* targetPart;
+
 	require(Check());
 	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
 	require(sourceDataGrid->GetInformativeAttributeNumber() > 0);
@@ -103,12 +110,57 @@ void KWDataGridManager::ExportDataGridWithSingletonVarParts(const KWDataGrid* op
 	// Export des partie des attributs
 	if (optimizedDataGrid->GetInformativeAttributeNumber() > 0)
 	{
-		// Cas ou l'on exporte les clusters de la grille initiale pour l'attribut Instances
+		// Parametrage de la grille d'origine selon la provenant des clusters d'instances
 		if (bSourceIdentifierClusters)
-			ExportSingletonPartsForVarPartAttributes(targetDataGrid);
-		// Sinon on exporte les clusters de la grille optimisee pour l'attribut Instances
+			originDataGrid = sourceDataGrid;
 		else
-			ExportSingletonPartsForVarPartAttributes(optimizedDataGrid, targetDataGrid);
+			originDataGrid = optimizedDataGrid;
+
+		// Initialisation des parties des attributs
+		for (nAttribute = 0; nAttribute < targetDataGrid->GetAttributeNumber(); nAttribute++)
+		{
+			targetAttribute = targetDataGrid->GetAttributeAt(nAttribute);
+
+			// Recherche de l'attribut source correspondant
+			sourceAttribute = originDataGrid->SearchAttribute(targetAttribute->GetAttributeName());
+			check(sourceAttribute);
+
+			// Cas d'un attribut Continuous ou Symbol
+			if (sourceAttribute->GetAttributeType() == KWType::Continuous or
+			    sourceAttribute->GetAttributeType() == KWType::Symbol)
+			{
+				// Transfert du parametrage des parties de l'attribut
+				sourcePart = sourceAttribute->GetHeadPart();
+				while (sourcePart != NULL)
+				{
+					// Creation de la partie cible
+					targetPart = targetAttribute->AddPart();
+
+					// Transfert des valeurs de la partie cible
+					if (sourceAttribute->GetAttributeType() == KWType::Continuous)
+						targetPart->GetInterval()->CopyFrom(sourcePart->GetInterval());
+					else
+					{
+						targetPart->GetValueSet()->CopyFrom(sourcePart->GetValueSet());
+
+						// Transfert du parametrage du groupe poubelle
+						if (sourcePart == sourceAttribute->GetGarbagePart())
+							targetAttribute->SetGarbagePart(targetPart);
+						// CH RefontePrior2-P-Inside
+						// targetPart->SetModalityNumber(sourcePart->GetModalityNumber());
+						// targetPart->SetPosition(targetAttribute->GetPartsSizesList()->Add(targetPart));
+						// Fin CH RefontePrior2
+					}
+
+					// Partie suivante
+					sourceAttribute->GetNextPart(sourcePart);
+				}
+			}
+			// Sinon, cas d'un attribut VarPart
+			else
+				targetAttribute->CreateVarPartsSet();
+		}
+		assert(CheckParts(targetDataGrid));
 	}
 	//
 	else
@@ -129,7 +181,6 @@ void KWDataGridManager::ExportTerminalDataGrid(KWDataGrid* targetDataGrid) const
 	require(Check());
 	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
 
-	int nTarget;
 	int nAttribute;
 	KWDGAttribute* sourceAttribute;
 	KWDGAttribute* targetAttribute;
@@ -146,10 +197,7 @@ void KWDataGridManager::ExportTerminalDataGrid(KWDataGrid* targetDataGrid) const
 	targetDataGrid->Initialize(sourceDataGrid->GetAttributeNumber(), sourceDataGrid->GetTargetValueNumber());
 
 	// Initialisation des valeurs cibles
-	for (nTarget = 0; nTarget < sourceDataGrid->GetTargetValueNumber(); nTarget++)
-	{
-		targetDataGrid->SetTargetValueAt(nTarget, sourceDataGrid->GetTargetValueAt(nTarget));
-	}
+	InitialiseTargetValues(sourceDataGrid, targetDataGrid);
 
 	// Initialisation des attributs avec une seule partie
 	for (nAttribute = 0; nAttribute < sourceDataGrid->GetAttributeNumber(); nAttribute++)
@@ -576,7 +624,6 @@ void KWDataGridManager::UpdateDataGridFromGroups(KWDataGrid* optimizedDataGrid, 
 	// Acces aux attributs des grilles initiale et optimise pour l'attribut de post-optimisation
 	initialAttribute = sourceDataGrid->SearchAttribute(sAttributeName);
 	optimizedAttribute = optimizedDataGrid->SearchAttribute(sAttributeName);
-
 	assert(initialAttribute->GetPartNumber() == ivGroups->GetSize());
 
 	// On vide la grille optimisee de ses cellules, en preservant ses attribut et leur partition
@@ -701,7 +748,6 @@ void KWDataGridManager::ExportGranularizedDataGrid(KWDataGrid* targetDataGrid, i
 void KWDataGridManager::ExportGranularizedParts(KWDataGrid* targetDataGrid, int nGranularity,
 						ObjectDictionary* odQuantileBuilders) const
 {
-	ObjectDictionary odSourceAttributes;
 	int nAttribute;
 	KWDGAttribute* sourceAttribute;
 	KWDGAttribute* targetAttribute;
@@ -714,19 +760,14 @@ void KWDataGridManager::ExportGranularizedParts(KWDataGrid* targetDataGrid, int 
 	require(0 <= nGranularity and nGranularity <= ceil(log(sourceDataGrid->GetGridFrequency()) / log(2.0)));
 	require(odQuantileBuilders->GetCount() == sourceDataGrid->GetAttributeNumber());
 
-	// Rangement des attributs sources dans un dictionnaire
-	for (nAttribute = 0; nAttribute < sourceDataGrid->GetAttributeNumber(); nAttribute++)
-	{
-		sourceAttribute = sourceDataGrid->GetAttributeAt(nAttribute);
-		odSourceAttributes.SetAt(sourceAttribute->GetAttributeName(), sourceAttribute);
-	}
-
 	// Initialisation des parties des attributs
 	for (nAttribute = 0; nAttribute < targetDataGrid->GetAttributeNumber(); nAttribute++)
 	{
-		// Recherche des attributs cible et source
 		targetAttribute = targetDataGrid->GetAttributeAt(nAttribute);
-		sourceAttribute = cast(KWDGAttribute*, odSourceAttributes.Lookup(targetAttribute->GetAttributeName()));
+
+		// Recherche de l'attribut source correspondant
+		sourceAttribute = sourceDataGrid->SearchAttribute(targetAttribute->GetAttributeName());
+		check(sourceAttribute);
 
 		targetAttribute->SetInitialValueNumber(sourceAttribute->GetInitialValueNumber());
 
@@ -1050,7 +1091,6 @@ void KWDataGridManager::ExportPartitionedDataGridForVarPartAttributes(KWDataGrid
 void KWDataGridManager::ExportGranularizedPartsForVarPartAttributes(KWDataGrid* targetDataGrid, int nGranularity,
 								    ObjectDictionary* odQuantileBuilders) const
 {
-	ObjectDictionary odSourceAttributes;
 	int nAttribute;
 	KWDGAttribute* sourceAttribute;
 	KWDGAttribute* targetAttribute;
@@ -1068,19 +1108,14 @@ void KWDataGridManager::ExportGranularizedPartsForVarPartAttributes(KWDataGrid* 
 	require(sourceDataGrid->IsVarPartDataGrid());
 	require(odQuantileBuilders->GetCount() == sourceDataGrid->GetInnerAttributes()->GetInnerAttributeNumber());
 
-	// Rangement des attributs sources dans un dictionnaire
-	for (nAttribute = 0; nAttribute < sourceDataGrid->GetAttributeNumber(); nAttribute++)
-	{
-		sourceAttribute = sourceDataGrid->GetAttributeAt(nAttribute);
-		odSourceAttributes.SetAt(sourceAttribute->GetAttributeName(), sourceAttribute);
-	}
-
 	// Initialisation des parties des attributs
 	for (nAttribute = 0; nAttribute < targetDataGrid->GetAttributeNumber(); nAttribute++)
 	{
-		// Recherche des attributs cible et source
 		targetAttribute = targetDataGrid->GetAttributeAt(nAttribute);
-		sourceAttribute = cast(KWDGAttribute*, odSourceAttributes.Lookup(targetAttribute->GetAttributeName()));
+
+		// Recherche de l'attribut source correspondant
+		sourceAttribute = sourceDataGrid->SearchAttribute(targetAttribute->GetAttributeName());
+		check(sourceAttribute);
 
 		targetAttribute->SetInitialValueNumber(sourceAttribute->GetInitialValueNumber());
 
@@ -1613,7 +1648,6 @@ void KWDataGridManager::ExportFrequencyTableFromOneAttribute(const KWFrequencyVe
 
 void KWDataGridManager::ExportAttributes(KWDataGrid* targetDataGrid) const
 {
-	int nTarget;
 	int nAttribute;
 	KWDGAttribute* sourceAttribute;
 	KWDGAttribute* targetAttribute;
@@ -1628,10 +1662,7 @@ void KWDataGridManager::ExportAttributes(KWDataGrid* targetDataGrid) const
 	targetDataGrid->SetGranularity(sourceDataGrid->GetGranularity());
 
 	// Initialisation des valeurs cibles
-	for (nTarget = 0; nTarget < sourceDataGrid->GetTargetValueNumber(); nTarget++)
-	{
-		targetDataGrid->SetTargetValueAt(nTarget, sourceDataGrid->GetTargetValueAt(nTarget));
-	}
+	InitialiseTargetValues(sourceDataGrid, targetDataGrid);
 
 	// Initialisation des attributs
 	for (nAttribute = 0; nAttribute < sourceDataGrid->GetAttributeNumber(); nAttribute++)
@@ -1651,7 +1682,6 @@ void KWDataGridManager::ExportAttributes(KWDataGrid* targetDataGrid) const
 
 void KWDataGridManager::ExportOneAttribute(KWDataGrid* targetDataGrid, const ALString& sAttributeName) const
 {
-	int nTarget;
 	KWDGAttribute* sourceAttribute;
 	KWDGAttribute* targetAttribute;
 
@@ -1666,10 +1696,7 @@ void KWDataGridManager::ExportOneAttribute(KWDataGrid* targetDataGrid, const ALS
 	targetDataGrid->Initialize(1, sourceDataGrid->GetTargetValueNumber());
 
 	// Initialisation des valeurs cibles
-	for (nTarget = 0; nTarget < sourceDataGrid->GetTargetValueNumber(); nTarget++)
-	{
-		targetDataGrid->SetTargetValueAt(nTarget, sourceDataGrid->GetTargetValueAt(nTarget));
-	}
+	InitialiseTargetValues(sourceDataGrid, targetDataGrid);
 
 	// Recherche de l'attribut source et cible
 	sourceAttribute = sourceDataGrid->SearchAttribute(sAttributeName);
@@ -1685,7 +1712,6 @@ void KWDataGridManager::ExportOneAttribute(KWDataGrid* targetDataGrid, const ALS
 
 void KWDataGridManager::ExportInformativeAttributes(KWDataGrid* targetDataGrid) const
 {
-	int nTarget;
 	int nAttribute;
 	int nTargetAttribute;
 	KWDGAttribute* sourceAttribute;
@@ -1702,10 +1728,7 @@ void KWDataGridManager::ExportInformativeAttributes(KWDataGrid* targetDataGrid) 
 				   sourceDataGrid->GetTargetValueNumber());
 
 	// Initialisation des valeurs cibles
-	for (nTarget = 0; nTarget < sourceDataGrid->GetTargetValueNumber(); nTarget++)
-	{
-		targetDataGrid->SetTargetValueAt(nTarget, sourceDataGrid->GetTargetValueAt(nTarget));
-	}
+	InitialiseTargetValues(sourceDataGrid, targetDataGrid);
 
 	// Initialisation des attributs
 	nTargetAttribute = 0;
@@ -1733,10 +1756,7 @@ void KWDataGridManager::ExportInformativeAttributes(KWDataGrid* targetDataGrid) 
 
 void KWDataGridManager::ExportParts(KWDataGrid* targetDataGrid) const
 {
-	ObjectDictionary odSourceAttributes;
-	IntVector ivSourceAttributeIndexes;
 	int nAttribute;
-	int nSourceAttributeIndex;
 	KWDGAttribute* sourceAttribute;
 	KWDGAttribute* targetAttribute;
 	KWDGPart* sourcePart;
@@ -1745,33 +1765,14 @@ void KWDataGridManager::ExportParts(KWDataGrid* targetDataGrid) const
 	require(Check());
 	require(targetDataGrid != NULL and CheckAttributes(targetDataGrid) and CheckGranularity(targetDataGrid));
 
-	// Rangement des attributs sources dans un dictionnaire
-	for (nAttribute = 0; nAttribute < sourceDataGrid->GetAttributeNumber(); nAttribute++)
-	{
-		sourceAttribute = sourceDataGrid->GetAttributeAt(nAttribute);
-		odSourceAttributes.SetAt(sourceAttribute->GetAttributeName(), sourceAttribute);
-	}
-
-	// Rercherche de l'index de l'attribut source correspondant a chaque attribut cible
-	ivSourceAttributeIndexes.SetSize(targetDataGrid->GetAttributeNumber());
-	for (nAttribute = 0; nAttribute < targetDataGrid->GetAttributeNumber(); nAttribute++)
-	{
-		targetAttribute = targetDataGrid->GetAttributeAt(nAttribute);
-
-		// Recherche de l'attribut source correspondant et rangement dans le tableau
-		sourceAttribute = cast(KWDGAttribute*, odSourceAttributes.Lookup(targetAttribute->GetAttributeName()));
-		check(sourceAttribute);
-		ivSourceAttributeIndexes.SetAt(nAttribute, sourceAttribute->GetAttributeIndex());
-	}
-
 	// Initialisation des parties des attributs
 	for (nAttribute = 0; nAttribute < targetDataGrid->GetAttributeNumber(); nAttribute++)
 	{
-		// Recherche de l'attribut source et cible
-		nSourceAttributeIndex = ivSourceAttributeIndexes.GetAt(nAttribute);
-		sourceAttribute = sourceDataGrid->GetAttributeAt(nSourceAttributeIndex);
 		targetAttribute = targetDataGrid->GetAttributeAt(nAttribute);
-		assert(sourceAttribute->GetAttributeName() == targetAttribute->GetAttributeName());
+
+		// Recherche de l'attribut source correspondant
+		sourceAttribute = sourceDataGrid->SearchAttribute(targetAttribute->GetAttributeName());
+		check(sourceAttribute);
 
 		// Transfert du parametrage des parties de l'attribut
 		sourcePart = sourceAttribute->GetHeadPart();
@@ -1808,167 +1809,6 @@ void KWDataGridManager::ExportParts(KWDataGrid* targetDataGrid) const
 }
 
 // CH IV Begin
-void KWDataGridManager::ExportSingletonPartsForVarPartAttributes(KWDataGrid* targetDataGrid) const
-{
-	ObjectDictionary odSourceAttributes;
-	IntVector ivSourceAttributeIndexes;
-	int nAttribute;
-	int nSourceAttributeIndex;
-	KWDGAttribute* sourceAttribute;
-	KWDGAttribute* targetAttribute;
-	KWDGPart* sourcePart;
-	KWDGPart* targetPart;
-
-	require(Check());
-	require(targetDataGrid != NULL and CheckAttributes(targetDataGrid) and CheckGranularity(targetDataGrid));
-
-	// Rangement des attributs sources dans un dictionnaire
-	for (nAttribute = 0; nAttribute < sourceDataGrid->GetAttributeNumber(); nAttribute++)
-	{
-		sourceAttribute = sourceDataGrid->GetAttributeAt(nAttribute);
-		odSourceAttributes.SetAt(sourceAttribute->GetAttributeName(), sourceAttribute);
-	}
-
-	// Rercherche de l'index de l'attribut source correspondant a chaque attribut cible
-	ivSourceAttributeIndexes.SetSize(targetDataGrid->GetAttributeNumber());
-	for (nAttribute = 0; nAttribute < targetDataGrid->GetAttributeNumber(); nAttribute++)
-	{
-		targetAttribute = targetDataGrid->GetAttributeAt(nAttribute);
-
-		// Recherche de l'attribut source correspondant et rangement dans le tableau
-		sourceAttribute = cast(KWDGAttribute*, odSourceAttributes.Lookup(targetAttribute->GetAttributeName()));
-		check(sourceAttribute);
-		ivSourceAttributeIndexes.SetAt(nAttribute, sourceAttribute->GetAttributeIndex());
-	}
-
-	// Initialisation des parties des attributs
-	for (nAttribute = 0; nAttribute < targetDataGrid->GetAttributeNumber(); nAttribute++)
-	{
-		// Recherche de l'attribut source et cible
-		nSourceAttributeIndex = ivSourceAttributeIndexes.GetAt(nAttribute);
-		sourceAttribute = sourceDataGrid->GetAttributeAt(nSourceAttributeIndex);
-		targetAttribute = targetDataGrid->GetAttributeAt(nAttribute);
-		assert(sourceAttribute->GetAttributeName() == targetAttribute->GetAttributeName());
-
-		// Cas d'un attribut Continuous ou Symbol
-		if (sourceAttribute->GetAttributeType() == KWType::Continuous or
-		    sourceAttribute->GetAttributeType() == KWType::Symbol)
-		{
-			// Transfert du parametrage des parties de l'attribut
-			sourcePart = sourceAttribute->GetHeadPart();
-			while (sourcePart != NULL)
-			{
-				// Creation de la partie cible
-				targetPart = targetAttribute->AddPart();
-
-				// Transfert des valeurs de la partie cible
-				if (sourceAttribute->GetAttributeType() == KWType::Continuous)
-					targetPart->GetInterval()->CopyFrom(sourcePart->GetInterval());
-				else
-				{
-					targetPart->GetValueSet()->CopyFrom(sourcePart->GetValueSet());
-
-					// Transfert du parametrage du groupe poubelle
-					if (sourcePart == sourceAttribute->GetGarbagePart())
-						targetAttribute->SetGarbagePart(targetPart);
-					// CH RefontePrior2-P-Inside
-					// targetPart->SetModalityNumber(sourcePart->GetModalityNumber());
-					// targetPart->SetPosition(targetAttribute->GetPartsSizesList()->Add(targetPart));
-					// Fin CH RefontePrior2
-				}
-
-				// Partie suivante
-				sourceAttribute->GetNextPart(sourcePart);
-			}
-		}
-		// Sinon, cas d'un attribut VarPart
-		else
-			targetAttribute->CreateVarPartsSet();
-	}
-	ensure(CheckParts(targetDataGrid));
-}
-
-void KWDataGridManager::ExportSingletonPartsForVarPartAttributes(const KWDataGrid* optimizedDataGrid,
-								 KWDataGrid* targetDataGrid) const
-{
-	ObjectDictionary odSourceAttributes;
-	IntVector ivSourceAttributeIndexes;
-	int nAttribute;
-	int nSourceAttributeIndex;
-	KWDGAttribute* sourceAttribute;
-	KWDGAttribute* targetAttribute;
-	KWDGPart* sourcePart;
-	KWDGPart* targetPart;
-
-	require(Check());
-	require(targetDataGrid != NULL and CheckAttributes(targetDataGrid) and CheckGranularity(targetDataGrid));
-
-	// Rangement des attributs sources dans un dictionnaire
-	for (nAttribute = 0; nAttribute < optimizedDataGrid->GetAttributeNumber(); nAttribute++)
-	{
-		sourceAttribute = optimizedDataGrid->GetAttributeAt(nAttribute);
-		odSourceAttributes.SetAt(sourceAttribute->GetAttributeName(), sourceAttribute);
-	}
-
-	// Rercherche de l'index de l'attribut source correspondant a chaque attribut cible
-	ivSourceAttributeIndexes.SetSize(targetDataGrid->GetAttributeNumber());
-	for (nAttribute = 0; nAttribute < targetDataGrid->GetAttributeNumber(); nAttribute++)
-	{
-		targetAttribute = targetDataGrid->GetAttributeAt(nAttribute);
-
-		// Recherche de l'attribut source correspondant et rangement dans le tableau
-		sourceAttribute = cast(KWDGAttribute*, odSourceAttributes.Lookup(targetAttribute->GetAttributeName()));
-		check(sourceAttribute);
-		ivSourceAttributeIndexes.SetAt(nAttribute, sourceAttribute->GetAttributeIndex());
-	}
-
-	// Initialisation des parties des attributs
-	for (nAttribute = 0; nAttribute < targetDataGrid->GetAttributeNumber(); nAttribute++)
-	{
-		// Recherche de l'attribut source et cible
-		nSourceAttributeIndex = ivSourceAttributeIndexes.GetAt(nAttribute);
-		sourceAttribute = optimizedDataGrid->GetAttributeAt(nSourceAttributeIndex);
-		targetAttribute = targetDataGrid->GetAttributeAt(nAttribute);
-		assert(sourceAttribute->GetAttributeName() == targetAttribute->GetAttributeName());
-
-		// Cas d'un attribut Continuous ou Symbol
-		if (sourceAttribute->GetAttributeType() == KWType::Continuous or
-		    sourceAttribute->GetAttributeType() == KWType::Symbol)
-		{
-			// Transfert du parametrage des parties de l'attribut
-			sourcePart = sourceAttribute->GetHeadPart();
-			while (sourcePart != NULL)
-			{
-				// Creation de la partie cible
-				targetPart = targetAttribute->AddPart();
-
-				// Transfert des valeurs de la partie cible
-				if (sourceAttribute->GetAttributeType() == KWType::Continuous)
-					targetPart->GetInterval()->CopyFrom(sourcePart->GetInterval());
-				else
-				{
-					targetPart->GetValueSet()->CopyFrom(sourcePart->GetValueSet());
-
-					// Transfert du parametrage du groupe poubelle
-					if (sourcePart == sourceAttribute->GetGarbagePart())
-						targetAttribute->SetGarbagePart(targetPart);
-					// CH RefontePrior2-P-Inside
-					// targetPart->SetModalityNumber(sourcePart->GetModalityNumber());
-					// targetPart->SetPosition(targetAttribute->GetPartsSizesList()->Add(targetPart));
-					// Fin CH RefontePrior2
-				}
-
-				// Partie suivante
-				sourceAttribute->GetNextPart(sourcePart);
-			}
-		}
-		// Sinon, cas d'un attribut VarPart
-		else
-			targetAttribute->CreateVarPartsSet();
-	}
-	ensure(CheckParts(targetDataGrid));
-}
-
 void KWDataGridManager::ExportDataGridWithReferenceVarPartClusters(KWDataGrid* targetDataGrid,
 								   KWDataGrid* referenceDataGrid,
 								   const KWDataGrid* initialDataGrid)
@@ -2020,9 +1860,12 @@ void KWDataGridManager::UpdatePartsWithReferenceVarPartClusters(KWDataGrid* targ
 	Continuous cValue;
 	Symbol sValue;
 
+	require(targetDataGrid != NULL);
+	require(referenceDataGrid != NULL);
+	require(referenceDataGrid->IsVarPartDataGrid());
+
 	// Extraction du nom de l'attribut VarPart
-	sVarPartsAttributeName =
-	    referenceDataGrid->GetInnerAttributes()->GetInnerAttributeAt(0)->GetOwnerAttributeName();
+	sVarPartsAttributeName = referenceDataGrid->GetVarPartAttribute()->GetAttributeName();
 
 	// Acces aux attributs des grilles initiale et optimise pour l'attribut de post-optimisation
 	initialAttribute = sourceDataGrid->SearchAttribute(sVarPartsAttributeName);
@@ -2107,10 +1950,7 @@ void KWDataGridManager::UpdatePartsWithReferenceVarPartClusters(KWDataGrid* targ
 
 void KWDataGridManager::ExportPartsWithNewInnerParts(KWDataGrid* targetDataGrid) const
 {
-	ObjectDictionary odSourceAttributes;
-	IntVector ivSourceAttributeIndexes;
 	int nAttribute;
-	int nSourceAttributeIndex;
 	KWDGAttribute* sourceAttribute;
 	KWDGAttribute* targetAttribute;
 	KWDGPart* sourcePart;
@@ -2121,33 +1961,14 @@ void KWDataGridManager::ExportPartsWithNewInnerParts(KWDataGrid* targetDataGrid)
 	require(Check());
 	require(targetDataGrid != NULL and CheckAttributes(targetDataGrid) and CheckGranularity(targetDataGrid));
 
-	// Rangement des attributs sources dans un dictionnaire
-	for (nAttribute = 0; nAttribute < sourceDataGrid->GetAttributeNumber(); nAttribute++)
-	{
-		sourceAttribute = sourceDataGrid->GetAttributeAt(nAttribute);
-		odSourceAttributes.SetAt(sourceAttribute->GetAttributeName(), sourceAttribute);
-	}
-
-	// Rercherche de l'index de l'attribut source correspondant a chaque attribut cible
-	ivSourceAttributeIndexes.SetSize(targetDataGrid->GetAttributeNumber());
-	for (nAttribute = 0; nAttribute < targetDataGrid->GetAttributeNumber(); nAttribute++)
-	{
-		targetAttribute = targetDataGrid->GetAttributeAt(nAttribute);
-
-		// Recherche de l'attribut source correspondant et rangement dans le tableau
-		sourceAttribute = cast(KWDGAttribute*, odSourceAttributes.Lookup(targetAttribute->GetAttributeName()));
-		check(sourceAttribute);
-		ivSourceAttributeIndexes.SetAt(nAttribute, sourceAttribute->GetAttributeIndex());
-	}
-
 	// Initialisation des parties des attributs
 	for (nAttribute = 0; nAttribute < targetDataGrid->GetAttributeNumber(); nAttribute++)
 	{
-		// Recherche de l'attribut source et cible
-		nSourceAttributeIndex = ivSourceAttributeIndexes.GetAt(nAttribute);
-		sourceAttribute = sourceDataGrid->GetAttributeAt(nSourceAttributeIndex);
 		targetAttribute = targetDataGrid->GetAttributeAt(nAttribute);
-		assert(sourceAttribute->GetAttributeName() == targetAttribute->GetAttributeName());
+
+		// Recherche de l'attribut source correspondant
+		sourceAttribute = sourceDataGrid->SearchAttribute(targetAttribute->GetAttributeName());
+		check(sourceAttribute);
 
 		// Transfert du parametrage des parties de l'attribut
 		sourcePart = sourceAttribute->GetHeadPart();
@@ -2255,12 +2076,10 @@ void KWDataGridManager::ExportPartsForAttribute(KWDataGrid* targetDataGrid, cons
 
 void KWDataGridManager::ExportCells(KWDataGrid* targetDataGrid) const
 {
-	ObjectDictionary odSourceAttributes;
-	IntVector ivSourceAttributeIndexes;
 	KWDGCell* sourceCell;
 	KWDGCell* targetCell;
 	int nAttribute;
-	int nSourceAttributeIndex;
+	ObjectArray oaSourceAttributes;
 	ObjectArray oaTargetParts;
 	KWDGAttribute* sourceAttribute;
 	KWDGAttribute* targetAttribute;
@@ -2278,29 +2097,25 @@ void KWDataGridManager::ExportCells(KWDataGrid* targetDataGrid) const
 	require(targetDataGrid != NULL and CheckTargetValues(targetDataGrid) and CheckAttributes(targetDataGrid) and
 		CheckParts(targetDataGrid) and targetDataGrid->GetCellNumber() == 0);
 
-	// Rangement des attributs sources dans un dictionnaire
-	for (nAttribute = 0; nAttribute < sourceDataGrid->GetAttributeNumber(); nAttribute++)
-	{
-		sourceAttribute = sourceDataGrid->GetAttributeAt(nAttribute);
-		odSourceAttributes.SetAt(sourceAttribute->GetAttributeName(), sourceAttribute);
-	}
-
-	// Rercherche de l'index de l'attribut source correspondant a chaque attribut cible
-	ivSourceAttributeIndexes.SetSize(targetDataGrid->GetAttributeNumber());
-	for (nAttribute = 0; nAttribute < targetDataGrid->GetAttributeNumber(); nAttribute++)
-	{
-		targetAttribute = targetDataGrid->GetAttributeAt(nAttribute);
-
-		// Recherche de l'attribut source correspondant et rangement dans le tableau
-		sourceAttribute = cast(KWDGAttribute*, odSourceAttributes.Lookup(targetAttribute->GetAttributeName()));
-		check(sourceAttribute);
-		ivSourceAttributeIndexes.SetAt(nAttribute, sourceAttribute->GetAttributeIndex());
-	}
-
 	// Passage de la grille cible en mode update
 	targetDataGrid->SetCellUpdateMode(true);
 	targetDataGrid->BuildIndexingStructure();
 	oaTargetParts.SetSize(targetDataGrid->GetAttributeNumber());
+
+	// Collecte une fois pour toutes des attributs sources correspondant aux attribut cible,
+	// car il faudra y acceder rapidement autant de fois qu'il y a de cellules
+	oaSourceAttributes.SetSize(targetDataGrid->GetAttributeNumber());
+	for (nAttribute = 0; nAttribute < targetDataGrid->GetAttributeNumber(); nAttribute++)
+	{
+		targetAttribute = targetDataGrid->GetAttributeAt(nAttribute);
+
+		// Recherche de l'attribut source correspondant
+		sourceAttribute = sourceDataGrid->SearchAttribute(targetAttribute->GetAttributeName());
+		check(sourceAttribute);
+
+		// Memorisation au meme index
+		oaSourceAttributes.SetAt(nAttribute, sourceAttribute);
+	}
 
 	// Transfert des cellules sources
 	sourceCell = sourceDataGrid->GetHeadCell();
@@ -2311,13 +2126,11 @@ void KWDataGridManager::ExportCells(KWDataGrid* targetDataGrid) const
 		{
 			targetAttribute = targetDataGrid->GetAttributeAt(nAttribute);
 
-			// Index de l'attribut source associe
-			nSourceAttributeIndex = ivSourceAttributeIndexes.GetAt(nAttribute);
-			assert(sourceDataGrid->GetAttributeAt(nSourceAttributeIndex)->GetAttributeName() ==
-			       targetAttribute->GetAttributeName());
+			// Recherche de l'attribut source correspondant dans le tableau ou ils ont ete collectes
+			sourceAttribute = cast(KWDGAttribute*, oaSourceAttributes.GetAt(nAttribute));
 
 			// Recherche de la partie associee a la cellule selon son type
-			sourcePart = sourceCell->GetPartAt(nSourceAttributeIndex);
+			sourcePart = sourceCell->GetPartAt(sourceAttribute->GetAttributeIndex());
 			if (sourcePart->GetPartType() == KWType::Continuous)
 			{
 				// Recherche d'une valeur typique: le milieu de l'intervalle (hors borne inf)
@@ -2406,7 +2219,6 @@ void KWDataGridManager::ExportCells(KWDataGrid* targetDataGrid) const
 
 void KWDataGridManager::ExportRandomAttributes(KWDataGrid* targetDataGrid, int nAttributeNumber) const
 {
-	int nTarget;
 	int nSourceAttribute;
 	int nTargetAttribute;
 	IntVector ivSourceAttributeIndexes;
@@ -2424,10 +2236,7 @@ void KWDataGridManager::ExportRandomAttributes(KWDataGrid* targetDataGrid, int n
 	targetDataGrid->Initialize(nAttributeNumber, sourceDataGrid->GetTargetValueNumber());
 
 	// Initialisation des valeurs cibles
-	for (nTarget = 0; nTarget < sourceDataGrid->GetTargetValueNumber(); nTarget++)
-	{
-		targetDataGrid->SetTargetValueAt(nTarget, sourceDataGrid->GetTargetValueAt(nTarget));
-	}
+	InitialiseTargetValues(sourceDataGrid, targetDataGrid);
 
 	// Creation d'un vecteur d'index d'attributs cibles choisis aleatoirement
 	ivSourceAttributeIndexes.SetSize(sourceDataGrid->GetAttributeNumber());
@@ -2457,7 +2266,6 @@ void KWDataGridManager::ExportRandomAttributes(KWDataGrid* targetDataGrid, int n
 
 void KWDataGridManager::ExportRandomParts(KWDataGrid* targetDataGrid, int nMeanAttributePartNumber) const
 {
-	ObjectDictionary odSourceAttributes;
 	int nAttribute;
 	KWDGAttribute* sourceAttribute;
 	KWDGAttribute* targetAttribute;
@@ -2466,19 +2274,14 @@ void KWDataGridManager::ExportRandomParts(KWDataGrid* targetDataGrid, int nMeanA
 	require(targetDataGrid != NULL and CheckAttributes(targetDataGrid) and CheckGranularity(targetDataGrid));
 	require(1 <= nMeanAttributePartNumber and nMeanAttributePartNumber <= sourceDataGrid->GetGridFrequency());
 
-	// Rangement des attributs sources dans un dictionnaire
-	for (nAttribute = 0; nAttribute < sourceDataGrid->GetAttributeNumber(); nAttribute++)
-	{
-		sourceAttribute = sourceDataGrid->GetAttributeAt(nAttribute);
-		odSourceAttributes.SetAt(sourceAttribute->GetAttributeName(), sourceAttribute);
-	}
-
 	// Initialisation des parties des attributs
 	for (nAttribute = 0; nAttribute < targetDataGrid->GetAttributeNumber(); nAttribute++)
 	{
-		// Recherche des attributs cible et source
 		targetAttribute = targetDataGrid->GetAttributeAt(nAttribute);
-		sourceAttribute = cast(KWDGAttribute*, odSourceAttributes.Lookup(targetAttribute->GetAttributeName()));
+
+		// Recherche de l'attribut source correspondant
+		sourceAttribute = sourceDataGrid->SearchAttribute(targetAttribute->GetAttributeName());
+		check(sourceAttribute);
 
 		// Export d'un sous ensemble de parties de l'attribut
 		ExportRandomAttributeParts(targetDataGrid, sourceAttribute, targetAttribute, nMeanAttributePartNumber);
@@ -2732,15 +2535,11 @@ void KWDataGridManager::ExportRandomAttributeParts(KWDataGrid* targetDataGrid, K
 void KWDataGridManager::AddRandomAttributes(KWDataGrid* targetDataGrid, const KWDataGrid* mandatoryDataGrid,
 					    int nRequestedAttributeNumber) const
 {
-	ObjectDictionary odMandatoryAttributes;
-	int nTarget;
 	int nSourceAttribute;
 	int nTargetAttribute;
 	int nAttributeNumber;
-	int nAttribute;
 	IntVector ivSourceAttributeIndexes;
 	KWDGAttribute* sourceAttribute;
-	KWDGAttribute* mandatoryAttribute;
 	KWDGAttribute* targetAttribute;
 
 	require(Check());
@@ -2759,24 +2558,14 @@ void KWDataGridManager::AddRandomAttributes(KWDataGrid* targetDataGrid, const KW
 	targetDataGrid->Initialize(nAttributeNumber, sourceDataGrid->GetTargetValueNumber());
 
 	// Initialisation des valeurs cibles
-	for (nTarget = 0; nTarget < sourceDataGrid->GetTargetValueNumber(); nTarget++)
-	{
-		targetDataGrid->SetTargetValueAt(nTarget, sourceDataGrid->GetTargetValueAt(nTarget));
-	}
-
-	// Rangement des attributs obligatoires dans un dictionnaire
-	for (nAttribute = 0; nAttribute < mandatoryDataGrid->GetAttributeNumber(); nAttribute++)
-	{
-		mandatoryAttribute = mandatoryDataGrid->GetAttributeAt(nAttribute);
-		odMandatoryAttributes.SetAt(mandatoryAttribute->GetAttributeName(), mandatoryAttribute);
-	}
+	InitialiseTargetValues(sourceDataGrid, targetDataGrid);
 
 	// Creation d'un vecteur d'index d'attributs cibles choisis aleatoirement,
 	// parmi les attribut non deja present dans les attributs obligatoires
 	for (nSourceAttribute = 0; nSourceAttribute < sourceDataGrid->GetAttributeNumber(); nSourceAttribute++)
 	{
 		sourceAttribute = sourceDataGrid->GetAttributeAt(nSourceAttribute);
-		if (odMandatoryAttributes.Lookup(sourceAttribute->GetAttributeName()) == NULL)
+		if (mandatoryDataGrid->SearchAttribute(sourceAttribute->GetAttributeName()) == NULL)
 			ivSourceAttributeIndexes.Add(nSourceAttribute);
 	}
 	assert(ivSourceAttributeIndexes.GetSize() ==
@@ -2788,7 +2577,7 @@ void KWDataGridManager::AddRandomAttributes(KWDataGrid* targetDataGrid, const KW
 	for (nSourceAttribute = 0; nSourceAttribute < sourceDataGrid->GetAttributeNumber(); nSourceAttribute++)
 	{
 		sourceAttribute = sourceDataGrid->GetAttributeAt(nSourceAttribute);
-		if (odMandatoryAttributes.Lookup(sourceAttribute->GetAttributeName()) != NULL)
+		if (mandatoryDataGrid->SearchAttribute(sourceAttribute->GetAttributeName()) != NULL)
 			ivSourceAttributeIndexes.Add(nSourceAttribute);
 	}
 	assert(ivSourceAttributeIndexes.GetSize() == nAttributeNumber);
@@ -2818,8 +2607,6 @@ void KWDataGridManager::AddRandomParts(KWDataGrid* targetDataGrid, const KWDataG
 				       int nRequestedContinuousPartNumber, int nRequestedSymbolPartNumber,
 				       double dMinPercentageAddedPart) const
 {
-	ObjectDictionary odSourceAttributes;
-	ObjectDictionary odMandatoryAttributes;
 	int nAttribute;
 	KWDGAttribute* sourceAttribute;
 	KWDGAttribute* mandatoryAttribute;
@@ -2835,28 +2622,19 @@ void KWDataGridManager::AddRandomParts(KWDataGrid* targetDataGrid, const KWDataG
 	require(1 <= nRequestedSymbolPartNumber and nRequestedSymbolPartNumber <= sourceDataGrid->GetGridFrequency());
 	require(0 <= dMinPercentageAddedPart and dMinPercentageAddedPart <= 1);
 
-	// Rangement des attributs sources dans un dictionnaire
-	for (nAttribute = 0; nAttribute < sourceDataGrid->GetAttributeNumber(); nAttribute++)
-	{
-		sourceAttribute = sourceDataGrid->GetAttributeAt(nAttribute);
-		odSourceAttributes.SetAt(sourceAttribute->GetAttributeName(), sourceAttribute);
-	}
-
-	// Rangement des attributs obligatoires dans un dictionnaire
-	for (nAttribute = 0; nAttribute < mandatoryDataGrid->GetAttributeNumber(); nAttribute++)
-	{
-		mandatoryAttribute = mandatoryDataGrid->GetAttributeAt(nAttribute);
-		odMandatoryAttributes.SetAt(mandatoryAttribute->GetAttributeName(), mandatoryAttribute);
-	}
-
 	// Ajout des parties des attributs
 	for (nAttribute = 0; nAttribute < targetDataGrid->GetAttributeNumber(); nAttribute++)
 	{
 		// Recherche des attributs cible, initial et source
 		targetAttribute = targetDataGrid->GetAttributeAt(nAttribute);
-		mandatoryAttribute =
-		    cast(KWDGAttribute*, odMandatoryAttributes.Lookup(targetAttribute->GetAttributeName()));
-		sourceAttribute = cast(KWDGAttribute*, odSourceAttributes.Lookup(targetAttribute->GetAttributeName()));
+
+		// Recherche de l'attribut obligatoire correspondant
+		mandatoryAttribute = mandatoryDataGrid->SearchAttribute(targetAttribute->GetAttributeName());
+		check(mandatoryAttribute);
+
+		// Recherche de l'attribut source correspondant
+		sourceAttribute = sourceDataGrid->SearchAttribute(targetAttribute->GetAttributeName());
+		check(sourceAttribute);
 
 		// Verifications d'integrite
 		check(sourceAttribute);
@@ -3213,7 +2991,6 @@ void KWDataGridManager::AddRandomAttributeParts(KWDataGrid* targetDataGrid, KWDG
 void KWDataGridManager::BuildDataGridFromUnivariateStats(KWDataGrid* targetDataGrid,
 							 KWAttributeStats* attributeStats) const
 {
-	int nTarget;
 	KWDGAttribute* targetAttribute;
 
 	require(Check());
@@ -3232,10 +3009,7 @@ void KWDataGridManager::BuildDataGridFromUnivariateStats(KWDataGrid* targetDataG
 	targetDataGrid->Initialize(1, sourceDataGrid->GetTargetValueNumber());
 
 	// Initialisation des valeurs cibles
-	for (nTarget = 0; nTarget < sourceDataGrid->GetTargetValueNumber(); nTarget++)
-	{
-		targetDataGrid->SetTargetValueAt(nTarget, sourceDataGrid->GetTargetValueAt(nTarget));
-	}
+	InitialiseTargetValues(sourceDataGrid, targetDataGrid);
 
 	// Initialisation de l'attribut
 	targetAttribute = targetDataGrid->GetAttributeAt(0);
@@ -3253,7 +3027,6 @@ boolean KWDataGridManager::BuildDataGridFromClassStats(KWDataGrid* targetDataGri
 	boolean bSmallSourceDataGrid;
 	int nMaxAttributeNumber;
 	int nAttributeNumber;
-	int nTarget;
 	int nAttribute;
 	KWDGAttribute* sourceAttribute;
 	KWDGAttribute* targetAttribute;
@@ -3337,10 +3110,7 @@ boolean KWDataGridManager::BuildDataGridFromClassStats(KWDataGrid* targetDataGri
 		targetDataGrid->Initialize(oaTargetAttributeStats.GetSize(), sourceDataGrid->GetTargetValueNumber());
 
 		// Initialisation des valeurs cibles
-		for (nTarget = 0; nTarget < sourceDataGrid->GetTargetValueNumber(); nTarget++)
-		{
-			targetDataGrid->SetTargetValueAt(nTarget, sourceDataGrid->GetTargetValueAt(nTarget));
-		}
+		InitialiseTargetValues(sourceDataGrid, targetDataGrid);
 
 		// Creation des partitions
 		for (nAttribute = 0; nAttribute < oaTargetAttributeStats.GetSize(); nAttribute++)
@@ -3373,7 +3143,6 @@ boolean KWDataGridManager::BuildDataGridFromUnivariateProduct(KWDataGrid* target
 	int nMaxAttributeNumber;
 	int nAttributeNumber;
 	int nInstanceNumber;
-	int nTarget;
 	int nAttribute;
 	boolean bOk = true;
 	boolean bSmallSourceDataGrid;
@@ -3458,10 +3227,7 @@ boolean KWDataGridManager::BuildDataGridFromUnivariateProduct(KWDataGrid* target
 		targetDataGrid->Initialize(oaSelectedAtttributes.GetSize(), sourceDataGrid->GetTargetValueNumber());
 
 		// Initialisation des valeurs cibles
-		for (nTarget = 0; nTarget < sourceDataGrid->GetTargetValueNumber(); nTarget++)
-		{
-			targetDataGrid->SetTargetValueAt(nTarget, sourceDataGrid->GetTargetValueAt(nTarget));
-		}
+		InitialiseTargetValues(sourceDataGrid, targetDataGrid);
 
 		// Creation des partitions
 		for (nAttribute = 0; nAttribute < oaSelectedAtttributes.GetSize(); nAttribute++)
@@ -3926,8 +3692,8 @@ boolean KWDataGridManager::CheckGranularity(const KWDataGrid* targetDataGrid) co
 boolean KWDataGridManager::CheckTargetValues(const KWDataGrid* targetDataGrid) const
 {
 	boolean bOk = true;
-	ALString sTmp;
 	int nTarget;
+	ALString sTmp;
 
 	require(Check());
 	require(targetDataGrid != NULL);
@@ -3960,21 +3726,13 @@ boolean KWDataGridManager::CheckTargetValues(const KWDataGrid* targetDataGrid) c
 boolean KWDataGridManager::CheckAttributes(const KWDataGrid* targetDataGrid) const
 {
 	boolean bOk = true;
-	ALString sTmp;
-	ObjectDictionary odSourceAttributes;
 	int nAttribute;
 	KWDGAttribute* sourceAttribute;
 	KWDGAttribute* targetAttribute;
+	ALString sTmp;
 
 	require(Check());
 	require(targetDataGrid != NULL);
-
-	// Rangement des attributs source dans un dictionnaire
-	for (nAttribute = 0; nAttribute < sourceDataGrid->GetAttributeNumber(); nAttribute++)
-	{
-		sourceAttribute = sourceDataGrid->GetAttributeAt(nAttribute);
-		odSourceAttributes.SetAt(sourceAttribute->GetAttributeName(), sourceAttribute);
-	}
 
 	// Rercherche d'un attribut source correspondant a chaque attribut cible
 	for (nAttribute = 0; nAttribute < targetDataGrid->GetAttributeNumber(); nAttribute++)
@@ -3982,7 +3740,8 @@ boolean KWDataGridManager::CheckAttributes(const KWDataGrid* targetDataGrid) con
 		targetAttribute = targetDataGrid->GetAttributeAt(nAttribute);
 
 		// Recherche de l'attribut source correspondant
-		sourceAttribute = cast(KWDGAttribute*, odSourceAttributes.Lookup(targetAttribute->GetAttributeName()));
+		sourceAttribute = sourceDataGrid->SearchAttribute(targetAttribute->GetAttributeName());
+		check(sourceAttribute);
 
 		// Erreur si pas d'attribut correspondant
 		if (sourceAttribute == NULL)
@@ -4004,8 +3763,6 @@ boolean KWDataGridManager::CheckAttributes(const KWDataGrid* targetDataGrid) con
 boolean KWDataGridManager::CheckParts(const KWDataGrid* targetDataGrid) const
 {
 	boolean bOk = true;
-	ALString sTmp;
-	ObjectDictionary odSourceAttributes;
 	int nAttribute;
 	KWDGAttribute* sourceAttribute;
 	KWDGAttribute* targetAttribute;
@@ -4019,18 +3776,12 @@ boolean KWDataGridManager::CheckParts(const KWDataGrid* targetDataGrid) const
 	KWDGValueSet* sourceValueSet;
 	KWDGValue* sourceValue;
 	KWDGPart* headTargetPart;
+	ALString sTmp;
 
 	require(Check());
 	require(targetDataGrid != NULL);
 	require(targetDataGrid->Check());
 	require(CheckAttributes(targetDataGrid));
-
-	// Rangement des attributs source dans un dictionnaire
-	for (nAttribute = 0; nAttribute < sourceDataGrid->GetAttributeNumber(); nAttribute++)
-	{
-		sourceAttribute = sourceDataGrid->GetAttributeAt(nAttribute);
-		odSourceAttributes.SetAt(sourceAttribute->GetAttributeName(), sourceAttribute);
-	}
 
 	// Rercherche d'un attribut source correspondant a chaque attribut cible
 	for (nAttribute = 0; nAttribute < targetDataGrid->GetAttributeNumber(); nAttribute++)
@@ -4038,9 +3789,8 @@ boolean KWDataGridManager::CheckParts(const KWDataGrid* targetDataGrid) const
 		targetAttribute = targetDataGrid->GetAttributeAt(nAttribute);
 
 		// Recherche de l'attribut source correspondant
-		sourceAttribute = cast(KWDGAttribute*, odSourceAttributes.Lookup(targetAttribute->GetAttributeName()));
-		assert(sourceAttribute != NULL);
-		assert(targetAttribute->GetAttributeType() == sourceAttribute->GetAttributeType());
+		sourceAttribute = sourceDataGrid->SearchAttribute(targetAttribute->GetAttributeName());
+		check(sourceAttribute);
 
 		// Comparaison des intervalles dans le cas numerique
 		if (targetAttribute->GetAttributeType() == KWType::Continuous)
@@ -4188,7 +3938,7 @@ boolean KWDataGridManager::CheckParts(const KWDataGrid* targetDataGrid) const
 boolean KWDataGridManager::CheckCells(const KWDataGrid* targetDataGrid) const
 {
 	boolean bOk = true;
-	ALString sTmp;
+	boolean bDisplayResults = false;
 	KWDataGridManager checkDataGridManager;
 	KWDataGrid checkDataGrid;
 	ObjectArray oaCheckParts;
@@ -4203,7 +3953,7 @@ boolean KWDataGridManager::CheckCells(const KWDataGrid* targetDataGrid) const
 	Continuous cValue;
 	Symbol sValue;
 	KWDGPart* varPart;
-	boolean bDisplayResults = false;
+	ALString sTmp;
 
 	require(Check());
 	require(targetDataGrid != NULL);
@@ -4433,6 +4183,21 @@ void KWDataGridManager::Test(const KWDataGrid* dataGrid)
 		dataGridManager.ExportCells(&targetDataGrid2);
 		cout << "Random modified exported data grid" << endl;
 		cout << targetDataGrid2 << endl;
+	}
+}
+
+void KWDataGridManager::InitialiseTargetValues(const KWDataGrid* originDataGrid, KWDataGrid* targetDataGrid) const
+{
+	int nTarget;
+
+	require(originDataGrid != NULL);
+	require(targetDataGrid != NULL);
+	require(targetDataGrid->GetTargetValueNumber() == originDataGrid->GetTargetValueNumber());
+
+	// Initialisation des valeurs cibles
+	for (nTarget = 0; nTarget < originDataGrid->GetTargetValueNumber(); nTarget++)
+	{
+		targetDataGrid->SetTargetValueAt(nTarget, originDataGrid->GetTargetValueAt(nTarget));
 	}
 }
 
