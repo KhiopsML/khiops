@@ -43,7 +43,7 @@ public:
 	// Service de transfert du contenu de la grille source vers la grille cible
 	// Les methodes prennent en argument un grille initialement vide
 	// Pour toutes les methodes de la classe, l'ordre des attributs exportes est
-	// compatible avec celui des attributs initaux
+	// compatible avec celui des attributs initaux de la grille de donnees source
 
 	// Export total (attribut, parties et cellules)
 	void ExportDataGrid(KWDataGrid* targetDataGrid) const;
@@ -56,25 +56,10 @@ public:
 	// des PV eventuellement issues d'une fusion des PV de la grille source En sortie, la grille targetDataGrid
 	// contient des clusters mono-PV avec les PV issues de la fusion de la grille optimisee
 	// bSourceIdentifierClusters : true -> les clusters d'individus exportes sont ceux de la grille initiale
-	//							   false -> les clusters d'individus exportes sont ceux
-	// de la grille optimsee
+	//							   false -> les clusters d'individus exportes sont ceux de la
+	//grille optimsee
 	void ExportDataGridWithSingletonVarParts(const KWDataGrid* optimizedDataGrid, KWDataGrid* targetDataGrid,
 						 boolean bSourceIdentifierClusters) const;
-
-	// CH IV Refactoring: les deux methodes suivantes
-	//  - preciser la semantique de chaqune, et choisir un nom different
-	//  - passer dans la partie implementation
-	//    (elles sont utilisees uniquement pour l'implementation de la methode principale
-	//    ExportDataGridWithSingletonVarParts)
-	//  - restructurer eventuellement le code pour le factoriser, via des methodes internes
-	//    - exemple: export uniquement des attributs Instance ou VarPart...
-
-	// Export des attributs pour lequel, pour les attributs VarPart, leurs parties sont initialisees a une partie
-	// par partie de variable d'attribut interne (partie singleton)
-	void ExportSingletonPartsForVarPartAttributes(KWDataGrid* targetDataGrid) const;
-
-	void ExportSingletonPartsForVarPartAttributes(const KWDataGrid* optimizedDataGrid,
-						      KWDataGrid* targetDataGrid) const;
 
 	// Export d'une grille avec ses VarParts pour construire une nouvelle grille avec les clusters de VarParts de la
 	// grille de reference Cette grille de reference n'a pas les memes VarParts que la grille source
@@ -355,6 +340,9 @@ public:
 	/////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
+	// Initialisation des valeur cible d'une grille a partir de la grille source courante
+	void InitialiseTargetValues(const KWDataGrid* originDataGrid, KWDataGrid* targetDataGrid) const;
+
 	// Initialisation d'un attribut de grille venant d'etre cree a partir d'un d'un attribut valide
 	// On initialise ses caracterisques principales uniquement, pas les parties:
 	//  - nom, type, cout, ...
@@ -375,7 +363,6 @@ protected:
 	void SortAttributeParts(KWDGAttribute* sourceAttribute, KWDGAttribute* groupedAttribute,
 				ObjectArray* oaSortedSourceParts, ObjectArray* oaSortedGroupedParts) const;
 
-	// CH IV Begin
 	// Tri des parties d'un attribut source de type VarPart, selon les groupements
 	// de ces parties dans un attribut cible compatible
 	// Les parties sources se trouvent dans le tableau resultat, trie correctement

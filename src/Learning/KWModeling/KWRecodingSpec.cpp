@@ -76,7 +76,8 @@ void KWRecodingSpec::Write(ostream& ost) const
 	ost << "Categorical recoding method\t" << GetRecodeSymbolAttributes() << "\n";
 	ost << "Numerical recoding method\t" << GetRecodeContinuousAttributes() << "\n";
 	ost << "Pairs recoding method\t" << GetRecodeBivariateAttributes() << "\n";
-	ost << "Recode using probabilistic distance (expert mode)\t" << BooleanToString(GetRecodeProbabilisticDistance()) << "\n";
+	ost << "Recode using probabilistic distance (expert mode)\t"
+	    << BooleanToString(GetRecodeProbabilisticDistance()) << "\n";
 }
 
 const ALString KWRecodingSpec::GetClassLabel() const

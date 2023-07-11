@@ -19,8 +19,8 @@ PEPiView::PEPiView()
 	// ## Custom constructor
 	int nMaxCores;
 
-    // Champ specifique sur la limite du nombre de processeur
-    // synchronise avec la classe RMResourceConstraints
+	// Champ specifique sur la limite du nombre de processeur
+	// synchronise avec la classe RMResourceConstraints
 	AddIntField("ProcessusNumber", "Number of process", 0);
 	GetFieldAt("ProcessusNumber")->SetStyle("Spinner");
 
@@ -68,7 +68,7 @@ void PEPiView::EventUpdate(Object* object)
 
 	// ## Custom update
 
-	// Synchronisation avec la gestion des contraintes	
+	// Synchronisation avec la gestion des contraintes
 	RMResourceConstraints::SetMaxCoreNumberOnCluster(GetIntValueAt("ProcessusNumber"));
 
 	// ##
@@ -87,7 +87,7 @@ void PEPiView::EventRefresh(Object* object)
 
 	// ## Custom refresh
 
-	// Synchronisation avec la gestion des contraintes	
+	// Synchronisation avec la gestion des contraintes
 	SetIntValueAt("ProcessusNumber", RMResourceConstraints::GetMaxCoreNumberOnCluster());
 
 	// ##

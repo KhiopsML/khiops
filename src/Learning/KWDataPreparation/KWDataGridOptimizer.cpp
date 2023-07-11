@@ -1760,12 +1760,9 @@ double KWDataGridVNSOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* init
 				int nGroupNumber;
 				boolean bImprovement;
 
-				// Parametrage par attribut VarPart : est ce qu'on le connait pour toutes les grilles ?
-				// si grille VarPart elle a un innerAttributes : chacun refere a l'attribut VarPart
+				// Parametrage pour l'attribut VarPart
 				varPartDataGridPostOptimizer.SetPostOptimizationAttributeName(
-				    mergedDataGrid.GetInnerAttributes()
-					->GetInnerAttributeAt(0)
-					->GetOwnerAttributeName());
+				    mergedDataGrid.GetVarPartAttribute()->GetAttributeName());
 
 				if (bDisplayResults)
 				{
