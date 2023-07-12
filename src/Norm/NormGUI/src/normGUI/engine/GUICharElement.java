@@ -15,8 +15,6 @@ import javax.swing.text.PlainDocument;
 
 /**
  * Definit un element de type caractere
- *
- * @author Marc Boulle
  */
 public abstract class GUICharElement extends GUIElement
 {
@@ -116,8 +114,6 @@ public abstract class GUICharElement extends GUIElement
 /**
  * Definit l'element graphique par defaut permettant l'affichage de caracteres.
  * Cette classe utilise un JTextField.
- *
- * @author Marc Boulle
  */
 class GUICharElementTextField extends GUICharElement
 {

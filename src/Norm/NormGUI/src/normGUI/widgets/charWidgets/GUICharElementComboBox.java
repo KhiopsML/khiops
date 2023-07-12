@@ -17,8 +17,6 @@ import normGUI.engine.GUIUnit;
 /**
  * Represente l'element graphique correspondant au style ComboBox. Affichage de
  * caracteres dans une zone de liste. Utilisation d'une JComboBox.
- *
- * @author Marc Boulle
  */
 public class GUICharElementComboBox extends GUICharElement
 {

@@ -546,7 +546,6 @@ static char* GetOsVersion()
 const char* GetSystemInfos()
 {
 	char* sInfo = StandardGetBuffer();
-	char sBuffer[100];
 
 	// Nom du processeur
 	sInfo[0] = '\0';

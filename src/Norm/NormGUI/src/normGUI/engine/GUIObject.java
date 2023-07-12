@@ -20,8 +20,6 @@ import javax.swing.JTextField;
 
 /**
  * Definit un objet d'interface
- *
- * @author Marc Boulle
  */
 public abstract class GUIObject
 {

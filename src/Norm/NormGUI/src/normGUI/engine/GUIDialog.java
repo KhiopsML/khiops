@@ -20,8 +20,6 @@ import javax.swing.JOptionPane;
  * renvoie un booleen . input: champ de saisie texte + deux boutons Ok et Cancel
  * -> renvoie la valeur saisie, vide si cancel
  * https://docs.oracle.com/javase/tutorial/uiswing/components/dialog.html
- *
- * @author Marc Boulle
  */
 public class GUIDialog extends GUIObject
 {

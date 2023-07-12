@@ -15,8 +15,6 @@ import javax.swing.JScrollPane;
 
 /**
  * Definit une unite d'interface de type liste
- *
- * @author Marc Boulle
  */
 public class GUIList extends GUIUnit
 {
