@@ -13,8 +13,6 @@ import javax.swing.JPanel;
  * Definit une donnee d'interface. Une donnee d'interface peut etre une unite ou
  * un element. Une donnee possede un caractere editable et une unite mere (nul
  * s'il s'agit de l'unite racine).
- *
- * @author Marc Boulle
  */
 public abstract class GUIData extends GUIObject
 {

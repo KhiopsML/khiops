@@ -14,8 +14,6 @@ import javax.swing.UIManager;
 
 /**
  * Initialisation globale, en particulier en ce qui concerne le UIManager
- *
- * @author Marc Boulle
  */
 public class GUIManager extends GUIObject
 {

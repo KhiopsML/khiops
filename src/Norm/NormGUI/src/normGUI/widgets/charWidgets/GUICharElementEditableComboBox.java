@@ -20,8 +20,6 @@ import normGUI.engine.GUIUnit;
  * Represente l'element graphique correspondant au style EditableComboBox.
  * Affichage de caracteres dans une zone de liste editable. Utilisation d'une
  * JComboBox.
- *
- * @author Marc Boulle
  */
 public class GUICharElementEditableComboBox extends GUICharElement
 {

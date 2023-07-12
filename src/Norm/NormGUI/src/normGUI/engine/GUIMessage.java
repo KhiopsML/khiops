@@ -27,8 +27,6 @@ import javax.swing.text.StyledDocument;
 
 /**
  * Definit une fenetre d'avertissement
- *
- * @author Marc Boulle
  */
 public class GUIMessage extends JFrame
 {

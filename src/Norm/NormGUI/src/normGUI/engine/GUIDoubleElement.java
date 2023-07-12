@@ -15,8 +15,6 @@ import javax.swing.text.PlainDocument;
 
 /**
  * Definit un element de type reel
- *
- * @author Marc Boulle
  */
 public abstract class GUIDoubleElement extends GUIElement
 {
@@ -163,8 +161,6 @@ public abstract class GUIDoubleElement extends GUIElement
 /**
  * Definit l'element graphique par defaut permettant l'affichage de reels. Cette
  * classe utilise un JTextField.
- *
- * @author Marc Boulle
  */
 class GUIDoubleElementTextField extends GUIDoubleElement
 {

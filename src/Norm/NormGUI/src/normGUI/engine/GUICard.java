@@ -13,8 +13,6 @@ import javax.swing.JPanel;
 
 /**
  * Definit une unite d'interface de type fiche
- *
- * @author Marc Boulle
  */
 public class GUICard extends GUIUnit
 {
