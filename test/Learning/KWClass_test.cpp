@@ -4,7 +4,7 @@
 
 #include "KWClass.h"
 
-#include "../Utils/TestServices.h"
+#include "TestServices.h"
 
 namespace
 {

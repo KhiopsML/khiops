@@ -16,6 +16,3 @@
 // Tests complet de l'API de deploiement, avec des utilisation correcte ou erronnes des fonctions KNI
 void KNITest(const char* sDictionaryFileName, const char* sDictionaryName, const char* sInputFileName,
 	     const char* sOutputFileName, const char* sErrorFileName);
-
-// Appel de la methode de test depuis un main
-void mainKNITest(int argc, char** argv);

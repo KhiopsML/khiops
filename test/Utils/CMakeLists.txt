@@ -1,0 +1,7 @@
+file(GLOB cppfiles ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+add_library(testutils STATIC ${cppfiles})
+set_khiops_options(base)
+target_include_directories(testutils PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(testutils PUBLIC base GTest::gtest_main)
+target_compile_options(testutils PUBLIC ${GTEST_CFLAGS})
+include(GoogleTest)

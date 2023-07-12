@@ -8,12 +8,13 @@
 #endif // _MSC_VER
 
 #include "KNITest.h"
+#include "TestServices.h"
 
 #define MAXITER 1000
 #define MAXBUFFERSIZE 1000
 
 void KNITest(const char* sDictionaryFileName, const char* sDictionaryName, const char* sInputFileName,
-	     const char* sOutputFileName, const char* sErrorFileName)
+	     const char* sOutputFileName)
 {
 	int nRetCode;
 	int hStream;
@@ -27,18 +28,15 @@ void KNITest(const char* sDictionaryFileName, const char* sDictionaryName, const
 	assert(sDictionaryName != NULL);
 	assert(sInputFileName != NULL);
 	assert(sOutputFileName != NULL);
-	assert(sErrorFileName != NULL);
 
 	//////////////////////////////////////////////////////////
 	// Test standard
 
 	// Message de debut
-	printf("\nBegin test KNI\n");
+	printf("Begin test KNI\n");
+
 	printf("KNI version: %d\n", KNIGetVersion());
 	printf("KNI full version: %s\n", KNIGetFullVersion());
-
-	// Positionnement du fichier d'erreur
-	KNISetLogFileName(sErrorFileName);
 
 	// Open stream
 	strcpy(sHeaderLine, "SepalLength	SepalWidth	PetalLength	PetalWidth	Class");
@@ -190,17 +188,23 @@ void KNITest(const char* sDictionaryFileName, const char* sDictionaryName, const
 	printf("\nEnd test KNI");
 }
 
-void mainKNITest(int argc, char** argv)
+void Test()
 {
-	if (argc != 5 && argc != 6)
-	{
-		printf("Deploy <Dictionary file> <Dictionary> <Input File> <Output File> [Error file] \n");
-	}
-	else
-	{
-		if (argc == 5)
-			KNITest(argv[1], argv[2], argv[3], argv[4], "");
-		else
-			KNITest(argv[1], argv[2], argv[3], argv[4], argv[5]);
-	}
+	ALString sTestPath;
+	ALString sDictionaryPath;
+	ALString sDataPath;
+	ALString sOutputPath;
+
+	sTestPath = FileService::GetPathName(__FILE__);
+	sDictionaryPath = FileService::BuildFilePathName(sTestPath, "ModelingIris.kdic");
+	sDataPath = FileService::BuildFilePathName(sTestPath, "../LearningTest/datasets/Iris/Iris.txt");
+	sOutputPath = FileService::BuildFilePathName(FileService::GetTmpDir(), "R_Iris.txt");
+
+	KNITest(sDictionaryPath, "SNB_Iris", sDataPath, sOutputPath);
 }
+
+namespace
+{
+KHIOPS_TEST(KNI, full, ::Test());
+
+} // namespace
