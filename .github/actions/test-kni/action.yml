@@ -36,6 +36,7 @@ runs:
         fi
         if [ "$RUNNER_OS" == "Windows" ] ;
         then
+          call "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\VC\\Auxiliary\\Build\\vcvars64.bat"
           cl tutorial/cpp/KNIRecodeFile.c -I khiops/src/Learning/KhiopsNativeInterface/ KhiopsNativeInterface64.lib /link "/LIBPATH:kni"
           cl tutorial/cpp/KNIRecodeMTFiles.c  -I khiops/src/Learning/KhiopsNativeInterface/ KhiopsNativeInterface64.lib /link "/LIBPATH:kni"
         fi

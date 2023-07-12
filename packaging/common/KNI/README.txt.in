@@ -1,5 +1,5 @@
-Khiops Native Interface @API_VERSION_NUMBER@
-============================
+Khiops Native Interface @PROJECT_VERSION@
+==============================
 
 The purpose of Khiops Native Interface (KNI) is to allow a deep integration of Khiops in 
 information systems, by the mean of the C programming language, using a dynamic link library (DLL).

@@ -2,12 +2,6 @@
 
 set(TMP_DIR ${PROJECT_BINARY_DIR}/tmp)
 
-# API_VERSION_NUMBER is replace in the configure_file process
-set(API_VERSION_NUMBER ${PROJECT_VERSION_MAJOR})
-
-configure_file(${PROJECT_SOURCE_DIR}/packaging/common/KNI/README.txt.in ${TMP_DIR}/kni.README.txt @ONLY
-               NEWLINE_STYLE UNIX)
-
 # ######################################## KNI installation
 
 # Specification of the paths according to the OS
@@ -45,9 +39,15 @@ configure_file(KNITransfer/KNIRecodeFile.cpp ${TMP_DIR}/KNIRecodeFile.c COPYONLY
 configure_file(KNITransfer/KNIRecodeMTFiles.cpp ${TMP_DIR}/KNIRecodeMTFiles.c COPYONLY)
 
 file(APPEND ${TMP_DIR}/KNIRecodeFile.c
-     "\n\nvoid main(int argv, char** argc)\n{\n\tmainKNIRecodeFile(argv, argc);\n \texit(0);\n}\n")
+     "\n\nint main(int argv, char** argc)\n{\n\tmainKNIRecodeFile(argv, argc);\n \treturn 0;\n}\n")
 file(APPEND ${TMP_DIR}/KNIRecodeMTFiles.c
-     "\n\nvoid main(int argv, char** argc)\n{\n\tmainKNIRecodeMTFiles(argv, argc);\n \texit(0);\n}\n")
+     "\n\nint main(int argv, char** argc)\n{\n\tmainKNIRecodeMTFiles(argv, argc);\n \treturn 0;\n}\n")
+
+# Replace PROJECT_VERSION
+configure_file(${PROJECT_SOURCE_DIR}/packaging/common/KNI/README.txt.in ${TMP_DIR}/kni.README.txt @ONLY
+               NEWLINE_STYLE UNIX)
+configure_file(${PROJECT_SOURCE_DIR}/packaging/common/KNI/README.md.in ${TMP_DIR}/kni.README.md @ONLY
+               NEWLINE_STYLE UNIX)
 
 # ######################################## Khiops and Khiops Coclustering installation
 
