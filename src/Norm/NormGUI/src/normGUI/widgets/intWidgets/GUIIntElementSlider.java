@@ -16,8 +16,6 @@ import normGUI.engine.GUIIntElement;
  * entier au sein d'une regle (slider). Les bornes inferieures et superieures de
  * la regles sont determinees a partir des valeurs min et max de l'element.
  * Utilisation de JSlider.
- *
- * @author Marc Boulle
  */
 public class GUIIntElementSlider extends GUIIntElement
 {

@@ -15,8 +15,6 @@ import javax.swing.text.PlainDocument;
 
 /**
  * Definit un element de type chaine de caracteres
- *
- * @author Marc Boulle
  */
 public abstract class GUIStringElement extends GUIElement
 {
@@ -149,8 +147,6 @@ public abstract class GUIStringElement extends GUIElement
 /**
  * Definit l'element graphique par defaut permettant l'affichage de chaines de
  * caracteres. Cette classe utilise un JTextField.
- *
- * @author Marc Boulle
  */
 class GUIStringElementTextField extends GUIStringElement
 {
