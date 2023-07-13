@@ -59,7 +59,7 @@ public:
 	const ALString& GetRecodeBivariateAttributes() const;
 	void SetRecodeBivariateAttributes(const ALString& sValue);
 
-	// Recode using probabilistic distance (expert mode)
+	// Recode using prob distance (expert)
 	boolean GetRecodeProbabilisticDistance() const;
 	void SetRecodeProbabilisticDistance(boolean bValue);
 
