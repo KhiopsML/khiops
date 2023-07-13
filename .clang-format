@@ -12,8 +12,12 @@ AlignOperands: true
 SortIncludes: false
 UseTab: ForContinuationAndIndentation
 AllowShortFunctionsOnASingleLine: Empty
+ReflowComments: true
+PenaltyBreakComment: 500
 ---
 BasedOnStyle: Mozilla
 Language: Java
 ColumnLimit: 120
 IndentWidth: 8
+ReflowComments: true
+PenaltyBreakComment: 500
