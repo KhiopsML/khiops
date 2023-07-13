@@ -97,6 +97,7 @@ void Genere(int argc, char** argv)
 		cout << "Genere " << sClassName << " " << sClassUserLabel << " " << sAttributeFileName << endl;
 		tgTest.GenereWith(sClassName, sSpecificModelClassName, sSuperClassName, sClassUserLabel,
 				  sAttributeFileName);
+		cout << endl;
 	}
 	else
 		CommandLineError();
