@@ -8,6 +8,11 @@ int main(int argc, char** argv)
 {
 	CCLearningProject learningProject;
 
+	// Debogage sous Windows Visual C++ 2022 (bug https://github.com/microsoft/vscode-cpptools/issues/8084)
+	// Choix en dur du repertoire de lancement (a commenter apres fin du debug)
+	// ALString sUserRootPath = "D:/Users/miib6422/Documents/boullema/LearningTest/TestCoclustering/";
+	// _chdir(sUserRootPath + "y_CoclusteringIV_Standard/IrisLight");
+
 	// MemSetAllocIndexExit(1290133);
 
 	// Activation de la gestion des signaux via des erreurs, pour afficher des messages d'erreur explicites

@@ -2109,6 +2109,7 @@ const ALString KWDGMPartMerge::GetObjectLabel() const
 
 int KWDGMPartMergeCompare(const void* elem1, const void* elem2)
 {
+
 	// On utilise Epsilon=0 en escomptant que le resultat du Diff est reproductible si les operandes sont les memes
 	// Pour Epsilon > 0, on court le risque d'avoir diff(PM1,PM2) < Epsilon et diff(PM2,PM3) < Epsilon,
 	// mais diff(PM1,PM3) >= Epsilon (ce bug (avec consequence desatreuse dans une SortedList) est deja arrive)
@@ -2117,8 +2118,11 @@ int KWDGMPartMergeCompare(const void* elem1, const void* elem2)
 	KWDGMPartMerge* partMerge1;
 	KWDGMPartMerge* partMerge2;
 	double dDiff;
-	ALString sPartLabel1;
-	ALString sPartLabel2;
+	ALString sFirstPartLabel1;
+	ALString sSecondPartLabel1;
+	ALString sFirstPartLabel2;
+	ALString sSecondPartLabel2;
+	ALString sSwapPartLabel;
 
 	require(elem1 != NULL);
 	require(elem2 != NULL);
@@ -2135,7 +2139,7 @@ int KWDGMPartMergeCompare(const void* elem1, const void* elem2)
 	if (dDiff > dEpsilon)
 		nCompare = 1;
 	else if (dDiff < -dEpsilon)
-		nCompare = - 1;
+		nCompare = -1;
 
 	// Si egalite, on compare sur les nom de des attributs, puis sur celui des parties
 	// On ne peut se baser sur le nombre de cellules des fusions, qui varie a cout egal,
@@ -2152,13 +2156,30 @@ int KWDGMPartMergeCompare(const void* elem1, const void* elem2)
 		// On se base ensuite sur le libelle du plus petit des deux libelles de partie
 		if (nCompare == 0)
 		{
-			sPartLabel1 = partMerge1->GetPart1()->GetObjectLabel();
-			if (sPartLabel1 > partMerge1->GetPart2()->GetObjectLabel())
-				sPartLabel1 = partMerge1->GetPart2()->GetObjectLabel();
-			sPartLabel2 = partMerge2->GetPart1()->GetObjectLabel();
-			if (sPartLabel2 > partMerge2->GetPart2()->GetObjectLabel())
-				sPartLabel2 = partMerge2->GetPart2()->GetObjectLabel();
-			nCompare = sPartLabel1.Compare(sPartLabel2);
+			// Collecte des libelles de parties pour le Merge 1
+			sFirstPartLabel1 = partMerge1->GetPart1()->GetObjectLabel();
+			sSecondPartLabel1 = partMerge1->GetPart2()->GetObjectLabel();
+			if (sFirstPartLabel1 > sSecondPartLabel1)
+			{
+				sSwapPartLabel = sSecondPartLabel1;
+				sSecondPartLabel1 = sFirstPartLabel1;
+				sFirstPartLabel1 = sSwapPartLabel;
+			}
+
+			// Collecte des libelles de parties pour le Merge 2
+			sFirstPartLabel2 = partMerge2->GetPart1()->GetObjectLabel();
+			sSecondPartLabel2 = partMerge2->GetPart2()->GetObjectLabel();
+			if (sFirstPartLabel2 > sSecondPartLabel2)
+			{
+				sSwapPartLabel = sSecondPartLabel2;
+				sSecondPartLabel2 = sFirstPartLabel2;
+				sFirstPartLabel2 = sSwapPartLabel;
+			}
+
+			// Comparaison des libelles
+			nCompare = sFirstPartLabel1.Compare(sFirstPartLabel2);
+			if (nCompare == 0)
+				nCompare = sSecondPartLabel1.Compare(sSecondPartLabel2);
 		}
 	}
 	return nCompare;

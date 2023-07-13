@@ -144,14 +144,14 @@ inline boolean FileCompareForTest(const ALString& sFileName1, const ALString& sF
 	char line1[sizeMax];
 	char line2[sizeMax];
 
-    // Initialisations
+	// Initialisations
 	bOk1 = false;
 	bOk2 = false;
 	file1 = NULL;
 	file2 = NULL;
 
-    // Retour si un fichier n'existe pas
-    if (not FileService::FileExists(sFileName1))
+	// Retour si un fichier n'existe pas
+	if (not FileService::FileExists(sFileName1))
 	{
 		cout << "File " << sFileName1 << " is missing" << endl;
 		return false;
@@ -161,7 +161,6 @@ inline boolean FileCompareForTest(const ALString& sFileName1, const ALString& sF
 		cout << "File " << sFileName2 << " is missing" << endl;
 		return false;
 	}
-
 
 	// Ouverture des fichiers
 	bOk1 = FileService::OpenInputBinaryFile(sFileName1, file1);
