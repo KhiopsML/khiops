@@ -4,46 +4,73 @@
 
 #include "TestServices.h"
 
-boolean FileCompareForTest(const ALString& sFileName1, const ALString& sFileName2)
+// Retourne le chemin du repertoire qui contient le projet Khiops
+inline ALString GetRootDir()
 {
-	FILE* file1;
-	FILE* file2;
+	ALString sFileDir;
+	ALString sRootDir;
+	int nSep = 0;
+	int nPos;
+
+	sFileDir = FileService::GetPathName(__FILE__);
+	for (nPos = sFileDir.GetLength(); nPos > 0; nPos--)
+	{
+		if (sFileDir.GetAt(nPos - 1) == FileService::GetFileSeparator())
+			nSep++;
+		if (nSep == 3)
+			break;
+	}
+	sRootDir = sFileDir.Left(nPos - 1);
+
+	return sRootDir;
+}
+
+void SearchAndReplace(char* sString, const ALString& sSearch, const ALString& sReplace)
+{
+	// TODO
+}
+
+boolean FileCompareForTest(const ALString& sFileNameReference, const ALString& sFileNameTest)
+{
+	FILE* fileRef;
+	FILE* fileTest;
 	boolean bOk1;
 	boolean bOk2;
 	boolean bSame = true;
 	const char sys[] = "SYS";
 	int nLineIndex;
 	const int sizeMax = 512;
-	char line1[sizeMax];
-	char line2[sizeMax];
+	char lineRef[sizeMax];
+	char lineTest[sizeMax];
+	const ALString sRootDir = GetRootDir();
 
 	// Initialisations
 	bOk1 = false;
 	bOk2 = false;
-	file1 = NULL;
-	file2 = NULL;
+	fileRef = NULL;
+	fileTest = NULL;
 
 	// Retour si un fichier n'existe pas
-	if (not FileService::FileExists(sFileName1))
+	if (not FileService::FileExists(sFileNameReference))
 	{
-		cout << "File " << sFileName1 << " is missing" << endl;
+		cout << "File " << sFileNameReference << " is missing" << endl;
 		return false;
 	}
 
-	if (not FileService::FileExists(sFileName2))
+	if (not FileService::FileExists(sFileNameTest))
 	{
-		cout << "File " << sFileName2 << " is missing" << endl;
+		cout << "File " << sFileNameTest << " is missing" << endl;
 		return false;
 	}
 
 	// Ouverture des fichiers
-	bOk1 = FileService::OpenInputBinaryFile(sFileName1, file1);
+	bOk1 = FileService::OpenInputBinaryFile(sFileNameReference, fileRef);
 	if (bOk1)
 	{
-		bOk2 = FileService::OpenInputBinaryFile(sFileName2, file2);
+		bOk2 = FileService::OpenInputBinaryFile(sFileNameTest, fileTest);
 		if (not bOk2)
 		{
-			fclose(file1);
+			fclose(fileRef);
 			return false;
 		}
 	}
@@ -52,20 +79,21 @@ boolean FileCompareForTest(const ALString& sFileName1, const ALString& sFileName
 	if (bOk1 and bOk2)
 	{
 		nLineIndex = 0;
-		while (fgets(line1, sizeof(line1), file1) != NULL)
+		while (fgets(lineRef, sizeof(lineRef), fileRef) != NULL)
 		{
 			nLineIndex++;
-			if (fgets(line2, sizeof(line2), file2) == NULL)
+			if (fgets(lineTest, sizeof(lineTest), fileTest) == NULL)
 			{
 				bSame = false;
 				break;
 			}
+			SearchAndReplace(lineTest, sRootDir, "@ROOT_DIR@");
 
 			// Si les 2 lignes sont differentes et qu'elles ne commencent pas toutes
 			// les 2 par SYS, les fichiers sont differents
-			if (not(memcmp(line1, sys, strlen(sys) - 1) == 0 and
-				memcmp(line2, sys, strlen(sys) - 1) == 0) and
-			    (strcmp(line1, line2) != 0))
+			if (not(memcmp(lineRef, sys, strlen(sys) - 1) == 0 and
+				memcmp(lineTest, sys, strlen(sys) - 1) == 0) and
+			    (strcmp(lineRef, lineTest) != 0))
 			{
 				bSame = false;
 				break;
@@ -77,10 +105,10 @@ boolean FileCompareForTest(const ALString& sFileName1, const ALString& sFileName
 	}
 
 	// Fermeture des fichiers
-	if (file1 != NULL)
-		fclose(file1);
-	if (file2 != NULL)
-		fclose(file2);
+	if (fileRef != NULL)
+		fclose(fileRef);
+	if (fileTest != NULL)
+		fclose(fileTest);
 	return bSame;
 }
 

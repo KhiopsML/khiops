@@ -35,8 +35,9 @@ install(
   COMPONENT KNI)
 
 # Copy KNI c++ files to temporary directory before to add main functions
-configure_file(${PROJECT_SOURCE_DIR}/test/KNITest/KNIRecodeFile.cpp ${TMP_DIR}/KNIRecodeFile.c COPYONLY)
-configure_file(${PROJECT_SOURCE_DIR}/test/KNITest/KNIRecodeMTFiles.cpp ${TMP_DIR}/KNIRecodeMTFiles.c COPYONLY)
+configure_file(${PROJECT_SOURCE_DIR}/src/Learning/KNITransfer/KNIRecodeFile.cpp ${TMP_DIR}/KNIRecodeFile.c COPYONLY)
+configure_file(${PROJECT_SOURCE_DIR}/src/Learning/KNITransfer/KNIRecodeMTFiles.cpp ${TMP_DIR}/KNIRecodeMTFiles.c
+               COPYONLY)
 
 file(APPEND ${TMP_DIR}/KNIRecodeFile.c
      "\n\nint main(int argv, char** argc)\n{\n\tmainKNIRecodeFile(argv, argc);\n \treturn 0;\n}\n")

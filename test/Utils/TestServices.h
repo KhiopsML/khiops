@@ -63,11 +63,9 @@
 	        dup2(fd,STDOUT_FILENO);                                                    \
 	        close(fd);                                                                 \
                                                                                            \
-                                                                                           \
-                                                                                           \
-                                                                                           \
                 /* Lancement de la methode de test de la classe */                         \
                 method_to_test;                                                            \
+                                                                                           \
                    /* On restitue cout dans son etat initial */                            \
                	dup2(fdInit, STDOUT_FILENO);                                               \
 	        close(fdInit);                                                             \
@@ -138,4 +136,4 @@
 // Comparaison de 2 fichiers ligne par ligne
 // Les fichiers peuvent differer pour les lignes qui commencent par 'SYS'
 // Renvoie true si les 2 fichiers existent et sont identiques
-boolean FileCompareForTest(const ALString& sFileName1, const ALString& sFileName2);
+boolean FileCompareForTest(const ALString& sFileNameReference, const ALString& sFileNameTest);

@@ -2,7 +2,6 @@
 name: Update KhiopsNativeInterface-tutorial repository
 on:
   workflow_dispatch:
-  push:
 jobs:
   update-repo:
     runs-on: ubuntu-latest

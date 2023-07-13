@@ -9,6 +9,7 @@
 
 #include "KNITest.h"
 #include "TestServices.h"
+#include "../../src/Learning/KNITransfer/KNIRecodeFile.cpp"
 
 #define MAXITER 1000
 #define MAXBUFFERSIZE 1000

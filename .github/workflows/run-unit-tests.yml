@@ -23,7 +23,7 @@ jobs:
         uses: ./.github/actions/build-khiops
         with:
           preset-name: ${{ matrix.build-setup.cmake-preset }}
-          targets: norm_test parallel_test parallel_mpi_test learning_test
+          targets: norm_test parallel_test parallel_mpi_test learning_test KNITest
           override-flags: -DBUILD_JARS=OFF
       - name: Run Unit Tests for the Norm Module
         if: success() || failure()
