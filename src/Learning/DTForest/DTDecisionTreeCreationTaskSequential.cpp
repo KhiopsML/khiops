@@ -527,14 +527,12 @@ boolean DTDecisionTreeCreationTaskSequential::CreatePreparedAttributes(KWLearnin
 	AddSimpleMessage(sTmp + " ComputeTree time: \t" + DoubleToString(DTTimer_ComputeTree.GetElapsedTime()));
 	AddSimpleMessage(sTmp + " prepa attribut de CreatePreparedAttributes time: \t" +
 			 DoubleToString(DTTimer_CreateAttribute.GetElapsedTime()));
-	AddSimpleMessage(
-	    sTmp + " DiscretizeGFT time: \t" +
-	    DoubleToString(DTTimerDiscretizeGFT.GetElapsedTime())); // a ajouter dasn la V10 + "\t" +
-								    // IntToString(DTTimerDiscretizeGFT.GetLoop()));
-	AddSimpleMessage(
-	    sTmp + " Discretize time: \t" +
-	    DoubleToString(DTTimerDiscretize.GetElapsedTime())); // a ajouter dasn la V10 + "\t" +
-								 // IntToString(DTTimerDiscretize.GetLoop()));
+	AddSimpleMessage(sTmp + " DiscretizeGFT time: \t" +
+			 DoubleToString(DTTimerDiscretizeGFT.GetElapsedTime())); // a ajouter dasn la V10 + "\t" +
+	// IntToString(DTTimerDiscretizeGFT.GetLoop()));
+	AddSimpleMessage(sTmp + " Discretize time: \t" +
+			 DoubleToString(DTTimerDiscretize.GetElapsedTime())); // a ajouter dasn la V10 + "\t" +
+	// IntToString(DTTimerDiscretize.GetLoop()));
 	AddSimpleMessage(sTmp + " BuildRootAttributeStats time: \t" +
 			 DoubleToString(DTTimer_BuildRootAttributeStats.GetElapsedTime()));
 	AddSimpleMessage(sTmp + " SetUpInternalNode : \t" + DoubleToString(DTTimerTree1.GetElapsedTime()));
