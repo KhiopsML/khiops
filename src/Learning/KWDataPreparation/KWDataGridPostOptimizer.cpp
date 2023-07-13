@@ -226,7 +226,8 @@ KWDataGridPostOptimizer::BuildUnivariateInitialDataGrid(const KWDataGrid* optimi
 	// Extension pour un attribut de type VarPart : code identique
 	// Il faut une coherence (egalite) entre le KWDGInnerAttributes utilise par la grille optimisee et celui utilise
 	// pour l'attribut de la grille initiale
-	require(initialDataGrid->GetInnerAttributes() == optimizedDataGrid->GetInnerAttributes());
+	require(not initialDataGrid->IsVarPartDataGrid() or
+		initialDataGrid->GetInnerAttributes() == optimizedDataGrid->GetInnerAttributes());
 	// CH IV End
 
 	// Creation de la grille univariee

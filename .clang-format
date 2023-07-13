@@ -2,6 +2,7 @@
 BasedOnStyle: LLVM
 Language: Cpp
 ColumnLimit: 120
+ReflowComments: false
 IndentWidth: 8
 AccessModifierOffset: -8
 BreakBeforeBraces: Allman
