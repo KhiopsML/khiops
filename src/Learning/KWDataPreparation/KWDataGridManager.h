@@ -62,17 +62,8 @@ public:
 						 boolean bSourceIdentifierClusters) const;
 
 	// Export d'une grille avec ses VarParts pour construire une nouvelle grille avec les clusters de VarParts de la
-	// grille de reference Cette grille de reference n'a pas les memes VarParts que la grille source
-	void ExportDataGridWithReferenceVarPartClusters(KWDataGrid* targetDataGrid, KWDataGrid* referenceDataGrid,
-							const KWDataGrid* initialDataGrid);
-
-	// CH IV Refactoring: la methode suivante
-	//  - preciser la semantique de chaqune
-	//  - passer dans la partie implementation
-	//    (elle est utilisee uniquement pour l'implementation de la methode principale
-	//    ExportDataGridWithReferenceVarPartClusters)
-
-	void UpdatePartsWithReferenceVarPartClusters(KWDataGrid* targetDataGrid, KWDataGrid* referenceDataGrid);
+	// grille de reference. Cette grille de reference n'a pas les memes VarParts que la grille source
+	void ExportDataGridWithReferenceVarPartClusters(KWDataGrid* targetDataGrid, KWDataGrid* referenceDataGrid);
 
 	// Export d'une grille terminale, avec attributs reduits a une seule partie
 	// Ne modifie pas la pre-partition des attributs internes
@@ -230,12 +221,14 @@ public:
 							       IntVector* ivMaxPartNumbers) const;
 
 	///////////////////////////////////////////////////////////////////////////
-	// Mise a jour d'une grille a partir des index de cluster des PV
-	// En entree
-	// CH IV Refactoring: mieux commenter (je ne comprend pas bien ce que fait cette methode)
-	//     terminologie Group?
-	void UpdateDataGridFromGroups(KWDataGrid* optimizedDataGrid, ALString sAttributeName, const IntVector* ivGroups,
-				      int nGroupNumber) const;
+	// Mise a jour des groupes de l'attribut VarPart d'une grille de type VarPart
+	// En entree:
+	//  - ivTargetGroupIndexes: index de groupe cible par index de groupe source
+	//  - nTargetGroupNumber: nombre de groupe cibles
+	// En sortie, les groupes cibles sont crees en exploitant la partition specifiee pour les groupes sources,
+	// et les cellules de la grille cible sont recalculees
+	void UpdateVarPartDataGridFromVarPartGroups(KWDataGrid* targetDataGrid, const IntVector* ivTargetGroupIndexes,
+						    int nTargetGroupNumber) const;
 	// CH IV End
 	///////////////////////////////////////////////////////////////////////////
 	// Service de recuperation des partitions univariees pour initialiser

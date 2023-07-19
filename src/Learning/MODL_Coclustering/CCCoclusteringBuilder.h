@@ -15,6 +15,7 @@ class CCCoclusteringOptimizer;
 #include "KWDataGridPostOptimizer.h"
 #include "KWDataPreparationClass.h"
 #include "CCHierarchicalDataGrid.h"
+#include "CCAnalysisSpec.h"
 #include "CCCoclusteringReport.h"
 #include "CCCoclusteringSpec.h"
 #include "CCVarPartCoclusteringSpec.h"
@@ -153,9 +154,13 @@ protected:
 	// Methode virtuelle d'optimisation d'une grille
 	virtual void OptimizeDataGrid(const KWDataGrid* inputInitialDataGrid, KWDataGrid* optimizedDataGrid);
 
+	// Initialisation d'un optimiseur de grille dedie coclustering
+	void InitializeDataGridOptimizer(const KWDataGrid* inputInitialDataGrid,
+					 CCCoclusteringOptimizer* dataGridOptimizer);
+
 	// CH IV Begin
-	void OptimizeVarPartDataGrid(const KWDataGrid* inputInitialDataGrid, KWDataGrid* optimizedDataGrid,
-				     CCCoclusteringOptimizer dataGridOptimizer);
+	// Methode d'optimisation d'une grille dediee au cas instances x variables
+	void OptimizeVarPartDataGrid(const KWDataGrid* inputInitialDataGrid, KWDataGrid* optimizedDataGrid);
 	// CH IV End
 
 	///////////////////////////////////////////////////////////////////////////////////////
@@ -339,6 +344,9 @@ public:
 	// Constructeur
 	CCCoclusteringOptimizer();
 	~CCCoclusteringOptimizer();
+
+	// Reinitialisation
+	void Reset() override;
 
 	// Parametrage du contexte de gestion de la partie anytime de l'optimisation
 	void SetCoclusteringBuilder(const CCCoclusteringBuilder* builder);
