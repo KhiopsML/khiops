@@ -644,6 +644,10 @@ public:
 	///////////////////////////////
 	// Services divers
 
+	// Test si l'attribut contient des sous-parties de l'autre attribut en parametre
+	// Dans le cas d'un attribut de type VarPart, les deux attribut doivent exploiter les meme variables internes
+	boolean ContainsSubParts(const KWDGAttribute* otherAttribute) const;
+
 	// Controle d'integrite local a l'attribut (parties, valeurs, cellules de l'attribut)
 	// Dans le cas continus, les intervalles doivent former une partition.
 	// Dans le cas symbolique, les parties doivent former une partiton des valeurs,
@@ -714,12 +718,16 @@ protected:
 	ALString sAttributeName;
 	int nAttributeType;
 	int nAttributeIndex;
+
 	// Nombre initial de valeurs
 	int nInitialValueNumber;
+
 	// Nombre de valeurs apres granularisation
 	int nGranularizedValueNumber;
+
 	// Pointeur vers la partie poubelle, a NULL par defaut
 	KWDGPart* garbagePart;
+
 	// Pointeur vers les valeurs initiales du fourre-tout, a NULL par defaut
 	int nCatchAllValueNumber;
 	KWDGValueSet* catchAllValueSet;
@@ -820,6 +828,9 @@ public:
 	// Attention, cela doit correspondre exactement au cumul des effectifs des cellules de la parties
 	void SetPartFrequency(int nValue);
 
+	// Test si la partie est une sous-partie de l'autre partie en parametre
+	boolean IsSubPart(const KWDGPart* otherPart) const;
+
 	// Controle d'integrite local a la partie (valeurs, cellules de la partie)
 	boolean Check() const override;
 
@@ -831,8 +842,8 @@ public:
 	void WriteValues(ostream& ost) const;
 	void WriteCells(ostream& ost) const;
 
-	// Libelle complet dans le cas d'une partie de variable, base sur le libelle de l'identifiant interne et celui
-	// de la partie
+	// Libelle complet dans le cas d'une partie de variable, base sur le libelle de l'identifiant interne
+	// et celui de la partie
 	const ALString GetVarPartLabel() const;
 
 	// Libelles utilisateur
@@ -932,6 +943,9 @@ public:
 	///////////////////////////////
 	// Services divers
 
+	// Test si l'intervalle est un sous-intervalle
+	boolean IsSubInterval(const KWDGInterval* otherInterval) const;
+
 	// Controle d'integrite
 	boolean Check() const override;
 
@@ -1027,6 +1041,10 @@ public:
 
 	///////////////////////////////
 	// Services divers
+
+	// Test si l'ensemble de valeur est inclus dans l'autre ensemble de valeurs en parametres
+	// On ne tine spas compte de la StarValue, et on effectue un test d'inclusion exhaustif pour toutes les valeurs
+	boolean IsSubValueSet(const KWDGValueSet* otherValueSet) const;
 
 	// Controle d'integrite
 	boolean Check() const override;
@@ -1160,6 +1178,9 @@ public:
 	///////////////////////////////
 	// Services divers
 
+	// Test si l'ensemble de VarPart est inclus dans l'autre ensemble de VarPart en parametres
+	boolean IsSubVarPartSet(const KWDGVarPartSet* otherVarPartSet) const;
+
 	// Controle d'integrite
 	boolean Check() const override;
 
@@ -1284,9 +1305,17 @@ public:
 	// Nettoyage
 	void DeleteAll();
 
-	// Verification du tri des parties des attributs internes : couteuse, a utiliser essentiellement dans les
-	// assertions
+	// Calcul du nombre total de parties de variable sur l'ensemble des attributs internes
+	int ComputeTotalInnerAttributeVarParts() const;
+
+	// Verification du tri des parties des attributs internes
+	// Test couteux, a utiliser essentiellement dans les assertions
 	boolean AreInnerAttributePartsSorted() const;
+
+	// Test si les attribut internes sont constitue des meme attributs, ne contenant que sous-partie
+	// des VarPart des autres attributs internes en parametressi Verification du tri des parties des attributs internes :
+	// Test couteux, a utiliser essentiellement dans les assertions
+	boolean ContainsSubVarParts(const KWDGInnerAttributes* otherInnerAttributes) const;
 
 	// Controle d'integrite
 	boolean Check() const override;

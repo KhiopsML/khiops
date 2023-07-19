@@ -604,44 +604,44 @@ void KWDataGridManager::InitializeQuantileBuildersForVariablePartsPartitioning(
 	odAllInnerAttributesPartFrequencies.DeleteAll();
 }
 
-void KWDataGridManager::UpdateDataGridFromGroups(KWDataGrid* optimizedDataGrid, ALString sAttributeName,
-						 const IntVector* ivGroups, int nGroupNumber) const
+void KWDataGridManager::UpdateVarPartDataGridFromVarPartGroups(KWDataGrid* targetDataGrid,
+							       const IntVector* ivTargetGroupIndexes,
+							       int nTargetGroupNumber) const
 {
 	boolean bDisplayResults = false;
 	KWDGAttribute* initialAttribute;
-	KWDGAttribute* optimizedAttribute;
+	KWDGAttribute* targetAttribute;
 	KWDGPart* initialPart;
-	KWDGPart* optimizedPart;
-	int nGroup;
+	KWDGPart* targetPart;
+	ObjectArray oaTargetParts;
 	int nInitial;
-	ObjectArray oaOptimizedParts;
+	int nTarget;
 
-	require(optimizedDataGrid != NULL);
-	require(sourceDataGrid != NULL);
-	require(optimizedDataGrid->SearchAttribute(sAttributeName) != NULL);
-	require(sourceDataGrid->SearchAttribute(sAttributeName) != NULL);
+	require(Check());
+	require(sourceDataGrid->IsVarPartDataGrid());
+	require(sourceDataGrid->GetVarPartAttribute()->GetPartNumber() == ivTargetGroupIndexes->GetSize());
+	require(targetDataGrid->IsVarPartDataGrid());
 
 	// Acces aux attributs des grilles initiale et optimise pour l'attribut de post-optimisation
-	initialAttribute = sourceDataGrid->SearchAttribute(sAttributeName);
-	optimizedAttribute = optimizedDataGrid->SearchAttribute(sAttributeName);
-	assert(initialAttribute->GetPartNumber() == ivGroups->GetSize());
+	initialAttribute = sourceDataGrid->GetVarPartAttribute();
+	targetAttribute = targetDataGrid->GetVarPartAttribute();
 
-	// On vide la grille optimisee de ses cellules, en preservant ses attribut et leur partition
-	optimizedDataGrid->DeleteAllCells();
+	// On vide la grille optimisee de ses cellules, en preservant ses attributs et leur partition
+	targetDataGrid->DeleteAllCells();
 
 	// On reinitialise a vide les partie pour l'attribut a post-optimiser
-	optimizedAttribute->DeleteAllParts();
+	targetAttribute->DeleteAllParts();
 
 	// Reinitialisation a vide du groupe poubelle
-	optimizedAttribute->SetGarbagePart(NULL);
+	targetAttribute->SetGarbagePart(NULL);
 
 	// Creation des parties de l'attribut groupee et memorisation dans un tableau
-	oaOptimizedParts.SetSize(nGroupNumber);
-	for (nGroup = 0; nGroup < nGroupNumber; nGroup++)
+	oaTargetParts.SetSize(nTargetGroupNumber);
+	for (nTarget = 0; nTarget < nTargetGroupNumber; nTarget++)
 	{
 		// Creation d'une nouvelle partie optimisee
-		optimizedPart = optimizedAttribute->AddPart();
-		oaOptimizedParts.SetAt(nGroup, optimizedPart);
+		targetPart = targetAttribute->AddPart();
+		oaTargetParts.SetAt(nTarget, targetPart);
 	}
 
 	// Parcours des parties initiales pour determiner les definitions des groupes
@@ -650,35 +650,20 @@ void KWDataGridManager::UpdateDataGridFromGroups(KWDataGrid* optimizedDataGrid, 
 	while (initialPart != NULL)
 	{
 		// Recherche de l'index du groupe correspondant
-		nGroup = ivGroups->GetAt(nInitial);
-		assert(0 <= nGroup and nGroup < nGroupNumber);
+		nTarget = ivTargetGroupIndexes->GetAt(nInitial);
+		assert(0 <= nTarget and nTarget < nTargetGroupNumber);
 
 		// Recherche de la partie optimisee a mettre a jour
-		optimizedPart = cast(KWDGPart*, oaOptimizedParts.GetAt(nGroup));
+		targetPart = cast(KWDGPart*, oaTargetParts.GetAt(nTarget));
+		assert(targetPart->GetPartType() == KWType::VarPart);
 
-		// Cas d'une partie d'un attribut categoriel
-		if (optimizedPart->GetPartType() == KWType::Symbol)
-		{
-			// Mise a jour de la definition du group
-			optimizedPart->GetValueSet()->UpgradeFrom(initialPart->GetValueSet());
+		// Mise a jour de la definition du group
+		targetPart->GetVarPartSet()->UpgradeFrom(initialPart->GetVarPartSet());
 
-			// Mise a jour du groupe poubelle comme le groupe contenant le plus de modalites
-			if (optimizedPart->GetValueSet()->GetTrueValueNumber() >
-			    optimizedAttribute->GetGarbageModalityNumber())
-				optimizedAttribute->SetGarbagePart(optimizedPart);
-		}
-
-		// Sinon d'un attribut de type VarPart
-		else if (optimizedPart->GetPartType() == KWType::VarPart)
-		{
-			// Mise a jour de la definition du group
-			optimizedPart->GetVarPartSet()->UpgradeFrom(initialPart->GetVarPartSet());
-
-			// Mise a jour du groupe poubelle comme le groupe contenant le plus de parties de variables
-			if (GetVarPartAttributeGarbage() and optimizedPart->GetVarPartSet()->GetVarPartNumber() >
-								 optimizedAttribute->GetGarbageModalityNumber())
-				optimizedAttribute->SetGarbagePart(optimizedPart);
-		}
+		// Mise a jour du groupe poubelle comme le groupe contenant le plus de parties de variables
+		if (GetVarPartAttributeGarbage() and
+		    targetPart->GetVarPartSet()->GetVarPartNumber() > targetAttribute->GetGarbageModalityNumber())
+			targetAttribute->SetGarbagePart(targetPart);
 
 		// Partie initiale suivante
 		initialAttribute->GetNextPart(initialPart);
@@ -686,36 +671,37 @@ void KWDataGridManager::UpdateDataGridFromGroups(KWDataGrid* optimizedDataGrid, 
 	}
 
 	// Nettoyage eventuel des parties vides
-	for (nGroup = 0; nGroup < oaOptimizedParts.GetSize(); nGroup++)
+	for (nTarget = 0; nTarget < oaTargetParts.GetSize(); nTarget++)
 	{
 		// Recherche de la partie optimisee a mettre a jour
-		optimizedPart = cast(KWDGPart*, oaOptimizedParts.GetAt(nGroup));
+		targetPart = cast(KWDGPart*, oaTargetParts.GetAt(nTarget));
+		assert(targetPart->GetPartType() == KWType::VarPart);
 
-		if ((optimizedPart->GetPartType() == KWType::Symbol and
-		     optimizedPart->GetValueSet()->GetValueNumber() == 0) or
-		    (optimizedPart->GetPartType() == KWType::VarPart and
-		     optimizedPart->GetVarPartSet()->GetVarPartNumber() == 0))
+		// Destruction si elle est vide
+		if (targetPart->GetVarPartSet()->GetVarPartNumber() == 0)
 		{
-			optimizedAttribute->DeletePart(optimizedPart);
-			nGroupNumber--;
+			targetAttribute->DeletePart(targetPart);
+			nTargetGroupNumber--;
 		}
 	}
+	assert(targetAttribute->GetPartNumber() == nTargetGroupNumber);
 
 	// Export des cellules pour la grille initiale univariee
-	ExportCells(optimizedDataGrid);
+	ExportCells(targetDataGrid);
 
 	// Affichage des resultats
 	if (bDisplayResults)
 	{
-		cout << "Preparation d'une grille pour l'optimisation univariee\t" << sAttributeName << endl;
+		cout << "Preparation d'une grille pour l'optimisation univariee\t"
+		     << sourceDataGrid->GetVarPartAttribute()->GetAttributeName() << endl;
 		cout << "Grille initiale\n" << *sourceDataGrid << endl;
-		cout << "Grille optimisee\n" << *optimizedDataGrid << endl;
+		cout << "Grille optimisee\n" << *targetDataGrid << endl;
 	}
 
 	// Verification de la grille preparee
-	ensure(optimizedAttribute->GetPartNumber() == nGroupNumber);
-	ensure(sourceDataGrid->GetGridFrequency() == optimizedDataGrid->GetGridFrequency());
-	ensure(sourceDataGrid->GetCellNumber() >= optimizedDataGrid->GetCellNumber());
+	ensure(targetAttribute->GetPartNumber() == nTargetGroupNumber);
+	ensure(sourceDataGrid->GetGridFrequency() == targetDataGrid->GetGridFrequency());
+	ensure(sourceDataGrid->GetCellNumber() >= targetDataGrid->GetCellNumber());
 }
 // CH IV End
 void KWDataGridManager::ExportGranularizedDataGrid(KWDataGrid* targetDataGrid, int nGranularity,
@@ -1570,8 +1556,10 @@ void KWDataGridManager::ExportFrequencyTableFromOneAttribute(const KWFrequencyVe
 
 	// Export d'une grille reduite a l'attribut
 	ExportOneAttribute(&oneAttributeDataGrid, sAttributeName);
+
 	// Export des parties de cette grille
 	ExportParts(&oneAttributeDataGrid);
+
 	// Export des cellules de cette grille
 	ExportCells(&oneAttributeDataGrid);
 
@@ -1769,10 +1757,14 @@ void KWDataGridManager::ExportParts(KWDataGrid* targetDataGrid) const
 	for (nAttribute = 0; nAttribute < targetDataGrid->GetAttributeNumber(); nAttribute++)
 	{
 		targetAttribute = targetDataGrid->GetAttributeAt(nAttribute);
+		assert(targetAttribute->GetPartNumber() == 0);
 
 		// Recherche de l'attribut source correspondant
 		sourceAttribute = sourceDataGrid->SearchAttribute(targetAttribute->GetAttributeName());
 		check(sourceAttribute);
+		assert(sourceAttribute->GetAttributeType() == targetAttribute->GetAttributeType());
+		assert(sourceAttribute->GetAttributeType() != KWType::VarPart or
+		       sourceAttribute->GetInnerAttributes() == targetAttribute->GetInnerAttributes());
 
 		// Transfert du parametrage des parties de l'attribut
 		sourcePart = sourceAttribute->GetHeadPart();
@@ -1791,7 +1783,6 @@ void KWDataGridManager::ExportParts(KWDataGrid* targetDataGrid) const
 			{
 				if (sourceAttribute->GetAttributeType() == KWType::Symbol)
 					targetPart->GetValueSet()->CopyFrom(sourcePart->GetValueSet());
-
 				else
 					targetPart->GetVarPartSet()->CopyFrom(sourcePart->GetVarPartSet());
 
@@ -1804,55 +1795,25 @@ void KWDataGridManager::ExportParts(KWDataGrid* targetDataGrid) const
 			// Partie suivante
 			sourceAttribute->GetNextPart(sourcePart);
 		}
+		assert(targetAttribute->GetPartNumber() == sourceAttribute->GetPartNumber());
 	}
 	ensure(CheckParts(targetDataGrid));
 }
 
 // CH IV Begin
 void KWDataGridManager::ExportDataGridWithReferenceVarPartClusters(KWDataGrid* targetDataGrid,
-								   KWDataGrid* referenceDataGrid,
-								   const KWDataGrid* initialDataGrid)
+								   KWDataGrid* referenceDataGrid)
 {
-	require(Check());
-	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
-
-	// Export de la granularite
-	targetDataGrid->SetGranularity(sourceDataGrid->GetGranularity());
-
-	// Export des attributs
-	ExportAttributes(targetDataGrid);
-
-	// Export des parties
-	SetSourceDataGrid(referenceDataGrid);
-	ExportParts(targetDataGrid);
-	SetSourceDataGrid(initialDataGrid);
-
-	// Export des cellules
-	// CH IV Refactoring: supprimer la ligne suivante?
-	// ExportCells(targetDataGrid);
-
-	// Mise a jour des parties des attributs de la grille source en les mettant dans les clusters de la grille
-	// referenceDataGrid
-	UpdatePartsWithReferenceVarPartClusters(targetDataGrid, referenceDataGrid);
-	ensure(CheckDataGrid(targetDataGrid));
-	ensure(not targetDataGrid->IsVarPartDataGrid() or
-	       targetDataGrid->GetVarPartAttribute()->GetInnerAttributes() ==
-		   sourceDataGrid->GetVarPartAttribute()->GetInnerAttributes());
-}
-
-void KWDataGridManager::UpdatePartsWithReferenceVarPartClusters(KWDataGrid* targetDataGrid,
-								KWDataGrid* referenceDataGrid)
-{
-	IntVector ivGroups;
+	KWDataGridManager referenceDataGridManager;
+	IntVector ivTargetGroupIndexes;
+	int nTargetGroupNumber;
 	IntObject* clusterIndex;
 	NumericKeyDictionary nkdClusterIndexes;
-	int nGroupNumber;
 	int nInitial;
 	int nPartIndex;
-	ALString sVarPartsAttributeName;
 	KWDGAttribute* initialAttribute;
 	KWDGAttribute* referenceAttribute;
-	KWDGAttribute* innerAttribute;
+	KWDGAttribute* referenceInnerAttribute;
 	KWDGPart* initialPart;
 	KWDGPart* initialVarPart;
 	KWDGPart* referencePart;
@@ -1860,25 +1821,47 @@ void KWDataGridManager::UpdatePartsWithReferenceVarPartClusters(KWDataGrid* targ
 	Continuous cValue;
 	Symbol sValue;
 
-	require(targetDataGrid != NULL);
+	require(Check());
+	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
 	require(referenceDataGrid != NULL);
-	require(referenceDataGrid->IsVarPartDataGrid());
+	require(sourceDataGrid->IsVarPartDataGrid());
+	require(sourceDataGrid->IsVarPartDataGrid() == referenceDataGrid->IsVarPartDataGrid());
+	require(sourceDataGrid->GetInnerAttributes() != referenceDataGrid->GetInnerAttributes() or
+		sourceDataGrid->GetVarPartAttribute()->ContainsSubParts(referenceDataGrid->GetVarPartAttribute()));
 
-	// Extraction du nom de l'attribut VarPart
-	sVarPartsAttributeName = referenceDataGrid->GetVarPartAttribute()->GetAttributeName();
+	// Export de la granularite
+	targetDataGrid->SetGranularity(sourceDataGrid->GetGranularity());
 
-	// Acces aux attributs des grilles initiale et optimise pour l'attribut de post-optimisation
-	initialAttribute = sourceDataGrid->SearchAttribute(sVarPartsAttributeName);
-	referenceAttribute = referenceDataGrid->SearchAttribute(sVarPartsAttributeName);
+	// Export des attributs depuis la grille initiale
+	ExportAttributes(targetDataGrid);
 
-	// Indexation de la table de reference
-	referenceDataGrid->BuildIndexingStructure();
-	nGroupNumber = referenceAttribute->GetPartNumber();
+	////////////////////////////////////////////////////////////////////////////////////
+	// Export des partie pour tous les attributs de la grille
 
-	// Initialisation du vecteur d'index
-	ivGroups.SetSize(initialAttribute->GetPartNumber());
+	// Parametrage d'un data grid manager avec la grille de reference, pour exporter les parties
+	referenceDataGridManager.SetSourceDataGrid(referenceDataGrid);
 
-	// Construction d'un dictionnaire d'index des clusters de l'attribut VarPart de la grille de reference
+	// Export des partie de la grille de reference vers la grille cible
+	// On modifie temporairement le parametrage des attribut internes pour passer les assertions
+	targetDataGrid->GetVarPartAttribute()->SetInnerAttributes(
+	    referenceDataGrid->GetVarPartAttribute()->GetInnerAttributes());
+	referenceDataGridManager.ExportParts(targetDataGrid);
+	targetDataGrid->GetVarPartAttribute()->SetInnerAttributes(
+	    sourceDataGrid->GetVarPartAttribute()->GetInnerAttributes());
+
+	////////////////////////////////////////////////////////////////////////////////////
+	// On refait les partie de l'attribut VarPart en utilisant la grille de reference
+	// pur redispatcher les VarPart initiaux dans des nouveaux groupes
+
+	// Acces aux attributs des grilles initiale et de reference pour l'attribut VarPart
+	initialAttribute = sourceDataGrid->GetVarPartAttribute();
+	referenceAttribute = referenceDataGrid->GetVarPartAttribute();
+
+	// Initialisation du vecteur d'index de grpupe cible
+	ivTargetGroupIndexes.SetSize(initialAttribute->GetPartNumber());
+	nTargetGroupNumber = referenceAttribute->GetPartNumber();
+
+	// Construction d'un dictionnaire d'index des groupes de l'attribut VarPart de la grille de reference
 	nPartIndex = 0;
 	referencePart = referenceAttribute->GetHeadPart();
 	while (referencePart != NULL)
@@ -1887,24 +1870,30 @@ void KWDataGridManager::UpdatePartsWithReferenceVarPartClusters(KWDataGrid* targ
 		clusterIndex->SetInt(nPartIndex);
 		nkdClusterIndexes.SetAt((NUMERIC)referencePart, clusterIndex);
 
+		// Partie suivante
 		nPartIndex++;
 		referenceAttribute->GetNextPart(referencePart);
 	}
 
+	// Indexation de la grille de reference
+	referenceDataGrid->BuildIndexingStructure();
+
 	// Construction du vecteur de correspondance entre les groupes initiaux et les groupes de reference
-	// Parcours des parties de l'attribut VarPart de la grille initiale
-	// Parcours des parties initiales pour determiner les definitions des groupes
+	// Parcours des parties initiales pour determiner le groupe de destination dans la grille
+	// de reference et memoriser son index
 	initialPart = initialAttribute->GetHeadPart();
 	nInitial = 0;
 	while (initialPart != NULL)
 	{
+		// On prend la premiere partie de variable du groupe
 		initialVarPart = initialPart->GetVarPartSet()->GetHeadVarPart()->GetVarPart();
 
-		// Extraction de l'attribut interne de cette partie issu de la grille de reference
-		innerAttribute = cast(KWDGAttribute*, referenceDataGrid->GetInnerAttributes()->LookupInnerAttribute(
-							  initialVarPart->GetAttribute()->GetAttributeName()));
+		// Extraction de l'attribut interne issu de la grille de reference pour cette partie
+		referenceInnerAttribute =
+		    cast(KWDGAttribute*, referenceDataGrid->GetInnerAttributes()->LookupInnerAttribute(
+					     initialVarPart->GetAttribute()->GetAttributeName()));
 
-		// Cas d'une partie d'un attribut numerique
+		// Recherche de la partie de variable de reference dns le cas d'un attribut interne numerique
 		if (initialVarPart->GetPartType() == KWType::Continuous)
 		{
 			// Recherche d'une valeur typique: le milieu de l'intervalle (hors borne inf)
@@ -1913,39 +1902,45 @@ void KWDataGridManager::UpdatePartsWithReferenceVarPartClusters(KWDataGrid* targ
 
 			// Recherche de la partie de variable contenant cette valeur dans l'attribut interne de la
 			// grille de reference
-			referenceVarPart = innerAttribute->LookupContinuousPart(cValue);
+			referenceVarPart = referenceInnerAttribute->LookupContinuousPart(cValue);
 		}
 
-		// Sinon cas d'une partie d'un attribut categoriel
+		// Sinon cas d'une partie d'un attribut interne categoriel
 		else
 		{
 			// Recherche d'une valeur typique: la premiere valeur
 			assert(initialVarPart->GetValueSet()->GetHeadValue() != NULL);
 			sValue = initialVarPart->GetValueSet()->GetHeadValue()->GetValue();
 
-			// Recherche du groupe de valeurs contenant cette modalite dans l'attribut interne de la grille
-			// de reference
-			referenceVarPart = innerAttribute->LookupSymbolPart(sValue);
+			// Recherche du groupe de valeurs contenant cette modalite dans l'attribut interne
+			// de la grille de reference
+			referenceVarPart = referenceInnerAttribute->LookupSymbolPart(sValue);
 		}
 
-		// Recherche de la partie (cluster de PV) contenant cette partie de variable dans l'attribut VarPart de
-		// la grille de reference
+		// Recherche de la partie (groupe de PV) contenant cette partie de variable
+		// dans l'attribut VarPart de la grille de reference
 		referencePart = referenceAttribute->LookupVarPart(referenceVarPart);
+		assert(initialVarPart->IsSubPart(referenceVarPart));
 
-		ivGroups.SetAt(nInitial, cast(IntObject*, nkdClusterIndexes.Lookup(referencePart))->GetInt());
+		// Memorisation de l'index du groupe cible
+		ivTargetGroupIndexes.SetAt(nInitial,
+					   cast(IntObject*, nkdClusterIndexes.Lookup(referencePart))->GetInt());
 
 		// Partie initiale suivante
 		initialAttribute->GetNextPart(initialPart);
 		nInitial++;
 	}
 
-	// Mise a jour de la grille : suppose que l'on a deja exporte une grille complete (ExportParts et ExportCells)
-	// On refait un ExportCelle dans cet Update
-	// Dans ce cas il faudrait que cette methode s'appelle plutot UpdateParts qu'ExportParts
-	UpdateDataGridFromGroups(targetDataGrid, sVarPartsAttributeName, &ivGroups, nGroupNumber);
-
-	// Nettoyage
+	// Nettoyage des index de clusters
 	nkdClusterIndexes.DeleteAll();
+
+	// Mise a jour de la grille cible sur la base de la nouvelle partition specifiee
+	// Les cellule sont reexportee par la methode appelee
+	UpdateVarPartDataGridFromVarPartGroups(targetDataGrid, &ivTargetGroupIndexes, nTargetGroupNumber);
+
+	ensure(targetDataGrid->GetVarPartAttribute()->GetInnerAttributes() ==
+	       sourceDataGrid->GetVarPartAttribute()->GetInnerAttributes());
+	ensure(CheckDataGrid(targetDataGrid));
 }
 
 void KWDataGridManager::ExportPartsWithNewInnerParts(KWDataGrid* targetDataGrid) const
@@ -2039,6 +2034,9 @@ void KWDataGridManager::ExportPartsForAttribute(KWDataGrid* targetDataGrid, cons
 		assert(targetDataGrid->SearchAttribute(sAttributeName) == NULL);
 		sourceAttribute = sourceDataGrid->GetInnerAttributes()->LookupInnerAttribute(sAttributeName);
 		targetAttribute = targetDataGrid->GetInnerAttributes()->LookupInnerAttribute(sAttributeName);
+
+		//DDD
+		cout << "ExportPartsForAttribute Inner " << sAttributeName << endl;
 	}
 	assert(targetAttribute->GetPartNumber() == 0);
 
@@ -3807,12 +3805,7 @@ boolean KWDataGridManager::CheckParts(const KWDataGrid* targetDataGrid) const
 
 			// Parcours des intervalles cibles pour verifier leur compatibilite
 			// avec les intervalles source
-			// Attention: si des attribut ont ete fabrique en utilisant (recursivement ou non)
-			// la regles de derivation Random, les bornes des intervalles ne sont pas necessaire les
-			// meme lors de la lecture en univarie ou en bivarie, ce qui entraine des erreurs
-			// Ce cas est neanmoins rare, et l'erreur n'a lieu qu'en mode debug: on ne la
-			// corrige pas (cela n'a en fait pas de consequence pour l'utilisateur:
-			// la methode CheckParts est utille afin de test d'integrite pour le developpeur,
+			// la methode CheckParts est utile afin de test d'integrite pour le developpeur,
 			// dans les cas "standard")
 			nSourcePart = 0;
 			for (nTargetPart = 0; nTargetPart < oaTargetIntervals.GetSize(); nTargetPart++)
@@ -4224,7 +4217,8 @@ void KWDataGridManager::InitialiseAttribute(const KWDGAttribute* sourceAttribute
 	// Partage des partitions des attributs internes de la grille source
 	if (sourceAttribute->GetAttributeType() == KWType::VarPart)
 	{
-		targetAttribute->SetInnerAttributes(sourceDataGrid->GetInnerAttributes());
+		//DDD targetAttribute->SetInnerAttributes(sourceDataGrid->GetInnerAttributes());
+		targetAttribute->SetInnerAttributes(sourceAttribute->GetInnerAttributes());
 		targetAttribute->SetVarPartsShared(true);
 	}
 	ensure(targetAttribute->GetAttributeType() != KWType::VarPart or targetAttribute->GetInnerAttributes() != NULL);
