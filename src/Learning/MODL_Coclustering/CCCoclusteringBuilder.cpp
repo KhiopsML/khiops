@@ -480,509 +480,71 @@ boolean CCCoclusteringBuilder::ComputeCoclustering()
 
 void CCCoclusteringBuilder::OptimizeDataGrid(const KWDataGrid* inputInitialDataGrid, KWDataGrid* optimizedDataGrid)
 {
-	CCCoclusteringOptimizer dataGridOptimizer;
 	boolean bDisplayResults = false;
-	boolean bDisplayPartitionLevel = false;
+	CCCoclusteringOptimizer dataGridOptimizer;
+
+	require(inputInitialDataGrid != NULL);
+	require(coclusteringDataGridCosts == NULL);
+
+	// Affichage du debut de l'optimisation
+	if (bDisplayResults)
+	{
+		cout << "CCCoclusteringBuilder :: Grille initiale avant optimisation" << endl;
+		initialDataGrid->Write(cout);
+		cout << "Algorithme d'optimisation du " +
+			    CCAnalysisSpec::GetCoclusteringLabelFromType(initialDataGrid->IsVarPartDataGrid())
+		     << endl;
+	}
+
+	// Optimisation de la grille dans le cas d'un coclustering variale * variable
+	if (not initialDataGrid->IsVarPartDataGrid())
+	{
+		InitializeDataGridOptimizer(inputInitialDataGrid, &dataGridOptimizer);
+		dataGridOptimizer.OptimizeDataGrid(initialDataGrid, optimizedDataGrid);
+	}
+	// Sinon : optimisation de la grille dans le cas d'un coclustering instances * variables
+	else
+		OptimizeVarPartDataGrid(inputInitialDataGrid, optimizedDataGrid);
+}
+
+void CCCoclusteringBuilder::InitializeDataGridOptimizer(const KWDataGrid* inputInitialDataGrid,
+							CCCoclusteringOptimizer* dataGridOptimizer)
+{
+	require(inputInitialDataGrid != NULL);
+	require(dataGridOptimizer != NULL);
+
+	// Reinitialisation de l'optimiseur
+	dataGridOptimizer->Reset();
 
 	// Creation et initialisation de la structure de couts
 	coclusteringDataGridCosts = CreateDataGridCost();
 
 	// Parametrage des couts de l'optimiseur de grille
-	dataGridOptimizer.SetDataGridCosts(coclusteringDataGridCosts);
+	dataGridOptimizer->SetDataGridCosts(coclusteringDataGridCosts);
 
 	// Parametrage pour l'optimisation anytime: avoir acces aux ameliorations a chaque etape de l'optimisation
-	dataGridOptimizer.SetCoclusteringBuilder(this);
+	dataGridOptimizer->SetCoclusteringBuilder(this);
 
 	// Recopie du parametrage d'optimisation des grilles
-	dataGridOptimizer.GetParameters()->CopyFrom(GetPreprocessingSpec()->GetDataGridOptimizerParameters());
-	dataGridOptimizer.GetParameters()->SetOptimizationTime(RMResourceConstraints::GetOptimizationTime());
+	dataGridOptimizer->GetParameters()->CopyFrom(GetPreprocessingSpec()->GetDataGridOptimizerParameters());
+	dataGridOptimizer->GetParameters()->SetOptimizationTime(RMResourceConstraints::GetOptimizationTime());
 
-	// CH IV Refactoring: supprimer???
 	// Parametrage d'un niveau d'optimisation "illimite" si une limite de temps est indiquee
-	// debug(dataGridOptimizer.GetParameters()->SetOptimizationLevel(0));
-	// debug(cout << "BEWARE: Optimization level set to 0 in debug mode only!!!" << endl);
-	// if (dataGridOptimizer.GetParameters()->GetOptimizationTime() > 0)
-	// dataGridOptimizer.GetParameters()->SetOptimizationLevel(20);
+	//debug(dataGridOptimizer->GetParameters()->SetOptimizationLevel(0));
+	//debug(cout << "BEWARE: Optimization level set to 0 in debug mode only!!!" << endl);
+	if (dataGridOptimizer->GetParameters()->GetOptimizationTime() > 0)
+		dataGridOptimizer->GetParameters()->SetOptimizationLevel(20);
 
-	// CH IV Begin
-	if (bDisplayResults)
-	{
-		cout << "CCCoclusteringBuilder :: Grille initiale avant optimisation" << endl;
-		initialDataGrid->Write(cout);
-	}
-
-	// Optimisation de la grille dans le cas d'un coclustering variale * variable
-	// Pour s'arreter apres la tache de creation de la grille et verifier que le nettoyage est OK
-	if (not initialDataGrid->IsVarPartDataGrid())
-	{
-		// Initialisation des couts par defaut
-		coclusteringDataGridCosts->InitializeDefaultCosts(inputInitialDataGrid);
-
-		if (bDisplayResults)
-			cout << "Algorithme d'optimisation du coclustering de variables\n";
-		dataGridOptimizer.OptimizeDataGrid(initialDataGrid, optimizedDataGrid);
-	}
-	// Sinon : optimisation de la grille dans le cas d'un coclustering instances * variables
-	else
-	{
-		if (bDisplayResults)
-			cout << "Algorithme d'optimisation du coclustering instances * variables\n";
-		// CH IV a encapsuler dans une methode mais probleme pour l'instant avec dataGridOptimizer utilise comme
-		// argument
-		// OptimizeVarPartDataGrid(initialDataGrid, optimizedDataGrid, dataGridOptimizer);
-
-		// CH IV a encapsuler dans une methode dediee
-		ObjectDictionary odInnerAttributesQuantileBuilders;
-		KWDataGrid* nullDataGrid;
-		KWDataGrid* partitionedDataGrid;
-		KWDataGrid* partitionedOptimizedDataGrid;
-		KWDataGridManager dataGridManager;
-		IntVector ivMaxPartNumbers;
-		int nPrePartitionIndex;
-		int nPrePartitionMax;
-		boolean bIsLastPrePartitioning;
-		double dRequiredIncreasingCoefficient;
-		int nValueNumber;
-		IntVector ivPreviousPartNumber;
-		IntVector ivCurrentPartNumber;
-		boolean bIsPrePartitioningSelected;
-		double dPartitionBestCost;
-		double dBestCost;
-		int nInnerAttribute;
-		int nAttribute;
-		int nInnerAttributeCumulated;
-		KWDGAttribute* varPartAttribute;
-		KWDGAttribute* innerAttribute;
-		KWDataGrid* partitionedPostMergedOptimizedDataGrid;
-		KWDataGrid partitionedReferencePostMergedDataGrid;
-		double dMergedCost;
-		double dBestMergedCost;
-		double dFusionDeltaCost;
-		IntVector ivUsedPrePartitioning;
-		boolean bDisplayPrePartitioning = false;
-		double dEpsilon = 1e-6;
-		double dTotalComputeTime;
-		ALString sTmp;
-
-		// On parcourt les differentes tailles de pre-partitionnement des attributs de type VarPart par
-		// puissance de 2 Ce parcours est similaire a celui des granularites mais il porte exclusivement sur le
-		// partitionnement des parties de variable des attributs internes A chaque pre-partitionnement est
-		// associe un cout seuil par defaut : c'est le cout du pseudo-modele nul qui contient 1 cluster par
-		// attribut avec le nombre de parties de variables du pre-partitionnement Le vrai modele nul contient un
-		// cluster par attribut et une seule partie de variable par attribut interne dans l'attribut de grille
-		// de type VarPart
-		nValueNumber = initialDataGrid->GetGridFrequency();
-		nPrePartitionMax = (int)ceil(log(nValueNumber * 1.0) / log(2.0));
-
-		// Initialisation
-		nPrePartitionIndex = 1;
-		bIsLastPrePartitioning = false;
-
-		// Initialisation du facteur d'accroissement requis entre deux pre-partitionnements
-		dRequiredIncreasingCoefficient = 2;
-
-		// Initialisation d'un quantile builder pour chaque attribut interne dans un attribut de grile de type
-		// de type VarPart La grille initiale comporte un cluster par partie de variable pour ses attributs de
-		// grille de type VarPart
-		dataGridManager.SetSourceDataGrid(initialDataGrid);
-		dataGridManager.InitializeQuantileBuildersForVariablePartsPartitioning(
-		    &odInnerAttributesQuantileBuilders, &ivMaxPartNumbers);
-
-		if (bDisplayPrePartitioning)
-		{
-			cout << "ivMaxPartNumbers\t" << ivMaxPartNumbers;
-			cout << flush;
-		}
-
-		// Initialisation des vecteurs de nombre de parties courant et precedent
-		ivPreviousPartNumber.SetSize(ivMaxPartNumbers.GetSize());
-		ivCurrentPartNumber.SetSize(ivMaxPartNumbers.GetSize());
-
-		// CH AB AF peut ne pas etre necessaire car ces couts par defaut sont remplaces ensuite par ceux
-		// associes au premier partitionnement Initialisation des couts par defaut
-		coclusteringDataGridCosts->InitializeDefaultCosts(inputInitialDataGrid);
-
-		// Initialisation de l'optimiseur pour que la grille initiale puisse servir a l'export des grilles avec
-		// PV fusionnnees
-		dataGridOptimizer.SetInitialDataGrid(initialDataGrid);
-
-		// Export de la grille du (vrai) modele nul : un seul cluster par attribut et une seule partie de
-		// variable par attribut interne
-		nullDataGrid = new KWDataGrid;
-		dataGridManager.ExportNullDataGrid(nullDataGrid);
-		dAnyTimeDefaultCost = coclusteringDataGridCosts->ComputeDataGridTotalCost(nullDataGrid);
-		dataGridManager.CopyDataGrid(nullDataGrid, optimizedDataGrid);
-		dBestCost = dAnyTimeDefaultCost;
-		dBestMergedCost = dBestCost;
-
-		// CH AB n'est plus necessaire c'est le cout du vrai modele nul qui doit etre utilise comme reference
-		// Initialisation du meilleur cout au cout du modele nul conditionnellement au pre-partitionnement
-		// Il ne s'agit donc pas ici du cout du VRAI modele nul (un seul cluster par attribut et une seule
-		// partie de variable par attribut interne)
-		// dBestCost = coclusteringDataGridCosts->GetTotalDefaultCost();
-		// dBestMergedCost = dBestCost;
-		// cout << "Cout du modele nul associe a la grille de reference\t" << dBestCost << "\n";
-
-		// Parcours des tailles de pre-partitionnement en parties de variable
-		while (nPrePartitionIndex <= nPrePartitionMax and not bIsLastPrePartitioning)
-		{
-			// Arret si interruption utilisateur
-			if (TaskProgression::IsInterruptionRequested())
-				break;
-
-			// Pre-partitionnement des attributs internes de la grille initiale
-			dataGridManager.SetSourceDataGrid(initialDataGrid);
-			partitionedDataGrid = new KWDataGrid;
-			dataGridManager.ExportPartitionedDataGridForVarPartAttributes(
-			    partitionedDataGrid, nPrePartitionIndex, &odInnerAttributesQuantileBuilders);
-
-			if (bDisplayResults)
-			{
-				cout << "CCOptimize :partitionedDataGrid pour le pre-partitionnement "
-				     << nPrePartitionIndex << endl;
-				partitionedDataGrid->Write(cout);
-			}
-
-			// Etude du nombre de parties des attributs internes pour decider du traitement ou non de ce
-			// pre-partitionnement
-			nInnerAttributeCumulated = 0;
-			varPartAttribute = partitionedDataGrid->GetVarPartAttribute();
-			if (varPartAttribute != NULL)
-			{
-				for (nInnerAttribute = 0; nInnerAttribute < varPartAttribute->GetInnerAttributeNumber();
-				     nInnerAttribute++)
-				{
-					innerAttribute = varPartAttribute->GetInnerAttributeAt(nInnerAttribute);
-
-					// Memorisation du nombre de parties de l'attribut interne granularise
-					ivCurrentPartNumber.SetAt(nInnerAttributeCumulated,
-								  innerAttribute->GetPartNumber());
-					nInnerAttributeCumulated++;
-				}
-			}
-
-			// Analyse du nombre de parties par attribut interne granularise pour determiner si la grille
-			// pre-partitionnee est la derniere
-			bIsLastPrePartitioning = true;
-
-			// Si on n'a pas encore atteint la granularite max pour les attributs internes partitionnes
-			if (nPrePartitionIndex < nPrePartitionMax)
-			{
-				for (nAttribute = 0; nAttribute < ivMaxPartNumbers.GetSize(); nAttribute++)
-				{
-					// Cas ou le nombre de parties de l'attribut courant est inferieur au nombre max
-					// de parties de l'attribut
-					if (ivCurrentPartNumber.GetAt(nAttribute) < ivMaxPartNumbers.GetAt(nAttribute))
-					{
-						bIsLastPrePartitioning = false;
-						break;
-					}
-				}
-			}
-
-			// CH a supprimer car granu max sur N nbre total d'observations et pas sur Nk nombre
-			// d'observations par variable -> commentaire a comprendre ! Cas ou cette granularite sera la
-			// derniere traitee
-			if (bIsLastPrePartitioning)
-				// On positionne l'index de granularite au maximum afin que l'affichage soit adapte a ce
-				// cas
-				partitionedDataGrid->GetInnerAttributes()->SetVarPartGranularity(nPrePartitionMax);
-
-			// Analyse du nombre de parties par attribut interne granularise pour determiner si la grille
-			// pre-partitionnee sera optimise Il faut pour cela qu'elle soit suffisamment differente de la
-			// grille analysee precedemment
-			bIsPrePartitioningSelected = false;
-			for (nAttribute = 0; nAttribute < ivCurrentPartNumber.GetSize(); nAttribute++)
-			{
-				// Cas d'accroissement suffisant du nombre de parties : le cas d'un attribut suffit pour
-				// justifier le traitement de cette granularite
-				if ((ivCurrentPartNumber.GetAt(nAttribute) >=
-				     ivPreviousPartNumber.GetAt(nAttribute) * dRequiredIncreasingCoefficient) and
-				    (ivCurrentPartNumber.GetAt(nAttribute) * dRequiredIncreasingCoefficient <=
-				     ivMaxPartNumbers.GetAt(nAttribute)))
-				{
-					bIsPrePartitioningSelected = true;
-					break;
-				}
-			}
-
-			// On ne traite pas les grilles avec un seul attribut informatif
-			if (partitionedDataGrid->GetInformativeAttributeNumber() <= 1)
-				bIsPrePartitioningSelected = false;
-
-			// Cas du traitement de la granularite courante
-			if (bIsPrePartitioningSelected or bIsLastPrePartitioning)
-			{
-				// Affichage du niveau de pre-partitionnement et du nombre de parties associe
-				if (bDisplayPartitionLevel)
-					cout << "Niveau de pre-partitionnement\t" << nPrePartitionIndex
-					     << "\tNombre de parties \t" << ivCurrentPartNumber;
-
-				// Memorisation des pre-partitionnements exploites
-				ivUsedPrePartitioning.Add(nPrePartitionIndex);
-
-				// Initialisation de la grille pre-partitionnee optimisee
-				partitionedOptimizedDataGrid = new KWDataGrid;
-
-				// Initialisation du modele par defaut : ce modele depend du partitionnement des
-				// attributs internes
-				coclusteringDataGridCosts->InitializeDefaultCosts(partitionedDataGrid);
-
-				// Optimisation de la grille pre-partitionnee
-				// Le cout dPartitionBestCost est le cout de la grille antecedente de la meilleure
-				// grille post-fusionnee (fusion des parties de variables consecutives dans un meme
-				// cluster)
-				dPartitionBestCost = dataGridOptimizer.OptimizeDataGrid(partitionedDataGrid,
-											partitionedOptimizedDataGrid);
-
-				// Calcul du temps d'optimisation (depuis le debut)
-				tAnyTimeTimer.Stop();
-				dTotalComputeTime = tAnyTimeTimer.GetElapsedTime(), tAnyTimeTimer.Start();
-
-				if (bDisplayResults)
-				{
-					cout << "Apres OptimizeGranularizedDataGrid pour Granularite "
-					     << nPrePartitionIndex << "\t Cout " << dPartitionBestCost << endl;
-					partitionedOptimizedDataGrid->WriteAttributes(cout);
-					partitionedOptimizedDataGrid->WriteAttributeParts(cout);
-				}
-
-				// Creation d'une grille post-mergee pour cette granularite de pre-partitionnement
-				// CH AF Il faudrait aussi recalculer la post-optimisation VarPart de la grille
-				// post-mergee mais de toute facon cette meilleure grille aura ete memorisee avec
-				// HandleOptimisationStep dans l'algo VNS -> commentaire a comprendre
-				partitionedPostMergedOptimizedDataGrid = new KWDataGrid;
-
-				if (partitionedOptimizedDataGrid->GetInformativeAttributeNumber() > 0 and
-				    dataGridOptimizer.GetParameters()->GetVarPartPostMerge())
-				{
-					dataGridManager.SetSourceDataGrid(partitionedOptimizedDataGrid);
-					// Creation d'une nouvelle grille avec nouvelle description des PV et calcul de
-					// la variation de cout liee a la fusion des PV
-					dFusionDeltaCost = dataGridManager.ExportMergedDataGridForVarPartAttributes(
-					    partitionedPostMergedOptimizedDataGrid, coclusteringDataGridCosts);
-					assert(not partitionedPostMergedOptimizedDataGrid->GetVarPartsShared());
-
-					// Calcul et verification du cout
-					dMergedCost = dPartitionBestCost + dFusionDeltaCost;
-					// Le cout precedent devra etre correct
-					assert(dMergedCost * (1 - dEpsilon) <
-					       coclusteringDataGridCosts->ComputeDataGridTotalCost(
-						   partitionedPostMergedOptimizedDataGrid));
-					assert(coclusteringDataGridCosts->ComputeDataGridTotalCost(
-						   partitionedPostMergedOptimizedDataGrid) <
-					       dMergedCost * (1 + dEpsilon));
-
-					if (bDisplayResults)
-					{
-						cout << "CCOptimize : Grille avant fusion \t" << dPartitionBestCost
-						     << "\n";
-						cout << "CCOptimize : Grille fusionnee  \t" << dMergedCost << "\n";
-						partitionedPostMergedOptimizedDataGrid->Write(cout);
-						cout << flush;
-					}
-				}
-				else
-					dMergedCost = dPartitionBestCost;
-
-				if (dMergedCost < dBestMergedCost - dEpsilon)
-				{
-					dBestMergedCost = dMergedCost;
-					dBestCost = dPartitionBestCost;
-
-					if (bDisplayResults)
-						cout << "CCCoclusteringBuilder : amelioration du cout et memorisation "
-							"de la grille sans post-optimisation VarPart"
-						     << endl;
-
-					// Memorisation de l'optimum post-fusionne
-					if (partitionedOptimizedDataGrid->GetInformativeAttributeNumber() > 0 and
-					    dataGridOptimizer.GetParameters()->GetVarPartPostMerge())
-					{
-						dataGridManager.CopyDataGrid(partitionedPostMergedOptimizedDataGrid,
-									     optimizedDataGrid);
-
-						// Mise a jour de la propriete de la description des parties de variable
-						partitionedPostMergedOptimizedDataGrid->SetVarPartsShared(true);
-						optimizedDataGrid->SetVarPartsShared(false);
-					}
-
-					else
-					{
-						dataGridManager.CopyDataGrid(partitionedOptimizedDataGrid,
-									     optimizedDataGrid);
-
-						// Mise a jour de la propriete de la description des parties de variable
-						partitionedOptimizedDataGrid->SetVarPartsShared(true);
-						optimizedDataGrid->SetVarPartsShared(false);
-					}
-				}
-
-				// Cas ou il s'agit de la derniere granularite : on met a jour les infos du coclustering
-				if (bIsLastPrePartitioning)
-				{
-					if (bDisplayResults)
-						cout << "CCOptimize :Mise a jour de la memorisation du coclustering "
-							"pour la derniere granularite "
-						     << endl;
-
-					if (optimizedDataGrid->GetInformativeAttributeNumber() > 0)
-					{
-						// Construction d'une grille initiale compatible avec les parties de
-						// variables fusionnees au niveau des attributs internes Necessaire pour
-						// la memorisation de la grille post-mergee La grille source contient
-						// des clusters mono-parties de variables, avec des PV issues du
-						// pre-partitionnement La grille optimisee contient des clusters de PV,
-						// avec des PV eventuellement issues d'une fusion des PV de la grille
-						// source On construit une grille qui contient des clusters mono-PV avec
-						// les PV issues de la fusion de la grille optimisee
-						dataGridManager.SetSourceDataGrid(initialDataGrid);
-						dataGridManager.ExportDataGridWithSingletonVarParts(
-						    optimizedDataGrid, &partitionedReferencePostMergedDataGrid, true);
-
-						if (bDisplayResults)
-							cout << "CCCoclusteringBuilder : memorisation d'une grille "
-								"potentiellement sans post-optimisation VarPart"
-							     << endl;
-
-						HandleOptimizationStep(optimizedDataGrid,
-								       &partitionedReferencePostMergedDataGrid, true);
-
-						if (bDisplayResults)
-						{
-							cout << "CCOptimize :partitionedReferencePostMergedDataGrid"
-							     << endl;
-							partitionedReferencePostMergedDataGrid.Write(cout);
-							cout << "CCOptimize :Derniere grille apres "
-								"HandleOptimizationStep de cout \t"
-							     << dBestMergedCost << endl;
-							optimizedDataGrid->Write(cout);
-						}
-					}
-					else
-					{
-						HandleOptimizationStep(optimizedDataGrid, partitionedDataGrid, true);
-
-						if (optimizedDataGrid->GetInnerAttributes() ==
-						    partitionedDataGrid->GetInnerAttributes())
-						{
-							partitionedDataGrid->SetVarPartsShared(true);
-							optimizedDataGrid->SetVarPartsShared(false);
-						}
-					}
-				}
-
-				if (coclusteringDataGrid != NULL and coclusteringDataGrid->IsVarPartDataGrid())
-				{
-					if (partitionedDataGrid->IsVarPartDataGrid() and
-					    partitionedDataGrid->GetInnerAttributes() ==
-						coclusteringDataGrid->GetInnerAttributes())
-					{
-						coclusteringDataGrid->SetVarPartsShared(false);
-						partitionedDataGrid->SetVarPartsShared(true);
-					}
-
-					if (partitionedPostMergedOptimizedDataGrid->IsVarPartDataGrid() and
-					    partitionedPostMergedOptimizedDataGrid->GetInnerAttributes() ==
-						coclusteringDataGrid->GetInnerAttributes())
-					{
-						coclusteringDataGrid->SetVarPartsShared(false);
-						partitionedPostMergedOptimizedDataGrid->SetVarPartsShared(true);
-					}
-
-					if (optimizedDataGrid->IsVarPartDataGrid() and
-					    optimizedDataGrid->GetInnerAttributes() ==
-						coclusteringDataGrid->GetInnerAttributes())
-					{
-						coclusteringDataGrid->SetVarPartsShared(false);
-						optimizedDataGrid->SetVarPartsShared(true);
-					}
-				}
-
-				// Nettoyage
-				delete partitionedPostMergedOptimizedDataGrid;
-				partitionedReferencePostMergedDataGrid.DeleteAll();
-
-				// Nettoyage de la grille optimisee pour cette granularite
-				delete partitionedOptimizedDataGrid;
-				partitionedOptimizedDataGrid = NULL;
-
-				// Cas d'un temps limite : mise a jour du temps restant par retrait du temps consacre a
-				// cette granularite
-				if (dataGridOptimizer.GetParameters()->GetOptimizationTime() > 0)
-				{
-					// L'utilisation de la totalite du temps global alloue (OptimizationTime) peut
-					// conduire a l'arret du parcours des granularites et nuire a la recherche de la
-					// grille optimale
-					if (dataGridOptimizer.GetParameters()->GetOptimizationTime() -
-						dTotalComputeTime <
-					    0)
-					{
-						break;
-						// Affichage d'un warning pour eventuelle modification de l'optimisation
-						// time
-						AddWarning(sTmp +
-							   "All the optimization time has been used but maximum "
-							   "granularity has not been reached:" +
-							   IntToString(nPrePartitionIndex) + " on " +
-							   IntToString(nPrePartitionMax) +
-							   ". You could obtain better results with greater "
-							   "optimization time.");
-						if (bDisplayResults)
-							cout << "Totalite du temps alloue ecoule apres la granularite "
-								"de pre-partitionnement de l'attribut VarPart \t"
-							     << nPrePartitionIndex << endl;
-					}
-				}
-
-				// Memorisation du nombre de parties par attribut pour comparaison a l'etape suivante
-				ivPreviousPartNumber.CopyFrom(&ivCurrentPartNumber);
-			}
-
-			// Sinon : pas de traitement pour cette granularite
-			else
-			{
-				if (bDisplayResults)
-					cout << "CCOptimize :Pre-partitionnement des attributs internes "
-					     << nPrePartitionIndex << " non traite car trop proche de la precedente"
-					     << endl;
-			}
-
-			// Nettoyage de la grille granularisee
-			delete partitionedDataGrid;
-
-			nPrePartitionIndex++;
-		}
-		if (bDisplayPrePartitioning)
-		{
-			cout << "Recapitulatif des pre-partitionnements utilises " << endl;
-			for (nPrePartitionIndex = 0; nPrePartitionIndex < ivUsedPrePartitioning.GetSize();
-			     nPrePartitionIndex++)
-				cout << ivUsedPrePartitioning.GetAt(nPrePartitionIndex) << endl;
-		}
-
-		// Nettoyage
-		odInnerAttributesQuantileBuilders.DeleteAll();
-		delete nullDataGrid;
-	}
-	// CH IV End
-
-	// CH IV probleme est ce que le code qui suit est a conserver
-	//  Cas ou la grille terminale n'est pas ameliorable else
-	//{
-	// Tri des parties par attribut, pour preparer les affichages de resultats
-	// ainsi que les resultats de preparation des donnees
-	// optimizedDataGrid->SortAttributeParts();
-	//}
-	//}
+	// Initialisation des couts par defaut
+	coclusteringDataGridCosts->InitializeDefaultCosts(inputInitialDataGrid);
 }
 
 void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputInitialDataGrid,
-						    KWDataGrid* optimizedDataGrid,
-						    CCCoclusteringOptimizer dataGridOptimizer)
+						    KWDataGrid* optimizedDataGrid)
 {
 	boolean bDisplayResults = false;
 	boolean bDisplayPartitionLevel = false;
+	CCCoclusteringOptimizer dataGridOptimizer;
 	ObjectDictionary odInnerAttributesQuantileBuilders;
 	KWDataGrid* nullDataGrid;
 	KWDataGrid* partitionedDataGrid;
@@ -1015,12 +577,23 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 	double dTotalComputeTime;
 	ALString sTmp;
 
-	// On parcourt les differentes tailles de pre-partitionnement des attributs de type VarPart par puissance de 2
-	// Ce parcours est similaire a celui des granularites mais il porte exclusivement sur le partitionnement des
-	// parties de variable des attributs internes A chaque pre-partitionnement est associe un cout seuil par defaut
-	// : c'est le cout du pseudo-modele nul qui contient 1 cluster par attribut avec le nombre de parties de
-	// variables du pre-partitionnement Le vrai modele nul contient un cluster par attribut et une seule partie de
-	// variable par attribut interne dans l'attribut de grile de type VarPart
+	require(inputInitialDataGrid != NULL);
+	require(coclusteringDataGridCosts == NULL);
+
+	// Initialisation de l'optimiseur de grille
+	InitializeDataGridOptimizer(inputInitialDataGrid, &dataGridOptimizer);
+
+	// Initialisation de l'optimiseur pour que la grille initiale puisse servir a
+	// l'export des grilles avec VarPart fusionnnees
+	dataGridOptimizer.SetInitialVarPartDataGrid(initialDataGrid);
+
+	// On parcourt les differentes tailles de pre-partitionnement des attributs de type VarPart par
+	// puissance de 2 Ce parcours est similaire a celui des granularites mais il porte exclusivement sur le
+	// partitionnement des parties de variable des attributs internes A chaque pre-partitionnement est
+	// associe un cout seuil par defaut : c'est le cout du pseudo-modele nul qui contient 1 cluster par
+	// attribut avec le nombre de parties de variables du pre-partitionnement Le vrai modele nul contient un
+	// cluster par attribut et une seule partie de variable par attribut interne dans l'attribut de grille
+	// de type VarPart
 	nValueNumber = initialDataGrid->GetGridFrequency();
 	nPrePartitionMax = (int)ceil(log(nValueNumber * 1.0) / log(2.0));
 
@@ -1031,8 +604,9 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 	// Initialisation du facteur d'accroissement requis entre deux pre-partitionnements
 	dRequiredIncreasingCoefficient = 2;
 
-	// Initialisation d'un quantile builder pour chaque attribut interne dans un attribut de grille de type VarPart
-	// La grille initiale comporte un cluster par partie de variable pour ses attributs de grille de type VarPart
+	// Initialisation d'un quantile builder pour chaque attribut interne dans un attribut de grile de type
+	// de type VarPart La grille initiale comporte un cluster par partie de variable pour ses attributs de
+	// grille de type VarPart
 	dataGridManager.SetSourceDataGrid(initialDataGrid);
 	dataGridManager.InitializeQuantileBuildersForVariablePartsPartitioning(&odInnerAttributesQuantileBuilders,
 									       &ivMaxPartNumbers);
@@ -1047,16 +621,8 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 	ivPreviousPartNumber.SetSize(ivMaxPartNumbers.GetSize());
 	ivCurrentPartNumber.SetSize(ivMaxPartNumbers.GetSize());
 
-	// CH AB AF peut ne pas etre necessaire car ces couts par defaut sont remplaces ensuite par ceux associes au
-	// premier partitionnement Initialisation des couts par defaut
-	coclusteringDataGridCosts->InitializeDefaultCosts(inputInitialDataGrid);
-
-	// Initialisation de l'optimiseur pour que la grille initiale puisse servir a l'export des grilles avec PV
-	// fusionnnees
-	dataGridOptimizer.SetInitialDataGrid(initialDataGrid);
-
-	// Export de la grille du (vrai) modele nul : un seul cluster par attribut et une seule partie de variable par
-	// attribut interne
+	// Export de la grille du (vrai) modele nul : un seul cluster par attribut et une seule partie de
+	// variable par attribut interne
 	nullDataGrid = new KWDataGrid;
 	dataGridManager.ExportNullDataGrid(nullDataGrid);
 	dAnyTimeDefaultCost = coclusteringDataGridCosts->ComputeDataGridTotalCost(nullDataGrid);
@@ -1066,8 +632,8 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 
 	// CH AB n'est plus necessaire c'est le cout du vrai modele nul qui doit etre utilise comme reference
 	// Initialisation du meilleur cout au cout du modele nul conditionnellement au pre-partitionnement
-	// Il ne s'agit donc pas ici du cout du VRAI modele nul (un seul cluster par attribut et une seule partie de
-	// variable par attribut interne)
+	// Il ne s'agit donc pas ici du cout du VRAI modele nul (un seul cluster par attribut et une seule
+	// partie de variable par attribut interne)
 	// dBestCost = coclusteringDataGridCosts->GetTotalDefaultCost();
 	// dBestMergedCost = dBestCost;
 	// cout << "Cout du modele nul associe a la grille de reference\t" << dBestCost << "\n";
@@ -1118,8 +684,8 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 		{
 			for (nAttribute = 0; nAttribute < ivMaxPartNumbers.GetSize(); nAttribute++)
 			{
-				// Cas ou le nombre de parties de l'attribut courant est inferieur au nombre max de
-				// parties de l'attribut
+				// Cas ou le nombre de parties de l'attribut courant est inferieur au nombre max
+				// de parties de l'attribut
 				if (ivCurrentPartNumber.GetAt(nAttribute) < ivMaxPartNumbers.GetAt(nAttribute))
 				{
 					bIsLastPrePartitioning = false;
@@ -1128,15 +694,17 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 			}
 		}
 
-		// CH a supprimer car granu max sur N nbre total d'observations et pas sur Nk nombre d'observations par
-		// variable -> commentaire a comprendre ! Cas ou cette granularite sera la derniere traitee
+		// CH a supprimer car granu max sur N nbre total d'observations et pas sur Nk nombre
+		// d'observations par variable -> commentaire a comprendre ! Cas ou cette granularite sera la
+		// derniere traitee
 		if (bIsLastPrePartitioning)
-			// On positionne l'index de granularite au maximum afin que l'affichage soit adapte a ce cas
+			// On positionne l'index de granularite au maximum afin que l'affichage soit adapte a ce
+			// cas
 			partitionedDataGrid->GetInnerAttributes()->SetVarPartGranularity(nPrePartitionMax);
 
 		// Analyse du nombre de parties par attribut interne granularise pour determiner si la grille
-		// pre-partitionnee sera optimise Il faut pour cela qu'elle soit suffisamment differente de la grille
-		// analysee precedemment
+		// pre-partitionnee sera optimise Il faut pour cela qu'elle soit suffisamment differente de la
+		// grille analysee precedemment
 		bIsPrePartitioningSelected = false;
 		for (nAttribute = 0; nAttribute < ivCurrentPartNumber.GetSize(); nAttribute++)
 		{
@@ -1170,13 +738,14 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 			// Initialisation de la grille pre-partitionnee optimisee
 			partitionedOptimizedDataGrid = new KWDataGrid;
 
-			// Initialisation du modele par defaut : ce modele depend du partitionnement des attributs
-			// internes
+			// Initialisation du modele par defaut : ce modele depend du partitionnement des
+			// attributs internes
 			coclusteringDataGridCosts->InitializeDefaultCosts(partitionedDataGrid);
 
 			// Optimisation de la grille pre-partitionnee
-			// Le cout dPartitionBestCost est le cout de la grille antecedente de la meilleure grille
-			// post-fusionnee (fusion des parties de variables consecutives dans un meme cluster)
+			// Le cout dPartitionBestCost est le cout de la grille antecedente de la meilleure
+			// grille post-fusionnee (fusion des parties de variables consecutives dans un meme
+			// cluster)
 			dPartitionBestCost =
 			    dataGridOptimizer.OptimizeDataGrid(partitionedDataGrid, partitionedOptimizedDataGrid);
 
@@ -1193,17 +762,17 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 			}
 
 			// Creation d'une grille post-mergee pour cette granularite de pre-partitionnement
-			// CH AF Il faudrait aussi recalculer la post-optimisation VarPart de la grille post-mergee
-			// mais de toute facon cette meilleure grille aura ete memorisee avec HandleOptimisationStep
-			// dans l'algo VNS -> commentaire a comprendre
+			// CH AF Il faudrait aussi recalculer la post-optimisation VarPart de la grille
+			// post-mergee mais de toute facon cette meilleure grille aura ete memorisee avec
+			// HandleOptimisationStep dans l'algo VNS -> commentaire a comprendre
 			partitionedPostMergedOptimizedDataGrid = new KWDataGrid;
 
 			if (partitionedOptimizedDataGrid->GetInformativeAttributeNumber() > 0 and
 			    dataGridOptimizer.GetParameters()->GetVarPartPostMerge())
 			{
 				dataGridManager.SetSourceDataGrid(partitionedOptimizedDataGrid);
-				// Creation d'une nouvelle grille avec nouvelle description des PV et calcul de la
-				// variation de cout liee a la fusion des PV
+				// Creation d'une nouvelle grille avec nouvelle description des PV et calcul de
+				// la variation de cout liee a la fusion des PV
 				dFusionDeltaCost = dataGridManager.ExportMergedDataGridForVarPartAttributes(
 				    partitionedPostMergedOptimizedDataGrid, coclusteringDataGridCosts);
 				assert(not partitionedPostMergedOptimizedDataGrid->GetVarPartsShared());
@@ -1234,8 +803,8 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 				dBestCost = dPartitionBestCost;
 
 				if (bDisplayResults)
-					cout << "CCCoclusteringBuilder : amelioration du cout et memorisation de la "
-						"grille sans post-optimisation VarPart"
+					cout << "CCCoclusteringBuilder : amelioration du cout et memorisation "
+						"de la grille sans post-optimisation VarPart"
 					     << endl;
 
 				// Memorisation de l'optimum post-fusionne
@@ -1264,19 +833,20 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 			if (bIsLastPrePartitioning)
 			{
 				if (bDisplayResults)
-					cout << "CCOptimize :Mise a jour de la memorisation du coclustering pour la "
-						"derniere granularite "
+					cout << "CCOptimize :Mise a jour de la memorisation du coclustering "
+						"pour la derniere granularite "
 					     << endl;
 
 				if (optimizedDataGrid->GetInformativeAttributeNumber() > 0)
 				{
-					// Construction d'une grille initiale compatible avec les parties de variables
-					// fusionnees au niveau des attributs internes Necessaire pour la memorisation
-					// de la grille post-mergee La grille source contient des clusters mono-parties
-					// de variables, avec des PV issues du pre-partitionnement La grille optimisee
-					// contient des clusters de PV, avec des PV eventuellement issues d'une fusion
-					// des PV de la grille source On construit une grille qui contient des clusters
-					// mono-PV avec les PV issues de la fusion de la grille optimisee
+					// Construction d'une grille initiale compatible avec les parties de
+					// variables fusionnees au niveau des attributs internes Necessaire pour
+					// la memorisation de la grille post-mergee La grille source contient
+					// des clusters mono-parties de variables, avec des PV issues du
+					// pre-partitionnement La grille optimisee contient des clusters de PV,
+					// avec des PV eventuellement issues d'une fusion des PV de la grille
+					// source On construit une grille qui contient des clusters mono-PV avec
+					// les PV issues de la fusion de la grille optimisee
 					dataGridManager.SetSourceDataGrid(initialDataGrid);
 					dataGridManager.ExportDataGridWithSingletonVarParts(
 					    optimizedDataGrid, &partitionedReferencePostMergedDataGrid, true);
@@ -1293,8 +863,8 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 					{
 						cout << "CCOptimize :partitionedReferencePostMergedDataGrid" << endl;
 						partitionedReferencePostMergedDataGrid.Write(cout);
-						cout << "CCOptimize :Derniere grille apres HandleOptimizationStep de "
-							"cout \t"
+						cout << "CCOptimize :Derniere grille apres "
+							"HandleOptimizationStep de cout \t"
 						     << dBestMergedCost << endl;
 						optimizedDataGrid->Write(cout);
 					}
@@ -1306,53 +876,34 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 					if (optimizedDataGrid->GetInnerAttributes() ==
 					    partitionedDataGrid->GetInnerAttributes())
 					{
-						// assert pouvait ne pas etre verifie si on avait deja modifie pour
-						// nPartitionIndex precedent
-						/*cout << "optimizedDataGrid et coclusteringDG meme InnerAttributes \t
-					nPartitionIndex" << nPartitionIndex << "\n";
-					assert(coclusteringDataGrid->GetVarPartsShared() == true);
-					assert(optimizedDataGrid->GetVarPartsShared() == false);*/
-
 						partitionedDataGrid->SetVarPartsShared(true);
 						optimizedDataGrid->SetVarPartsShared(false);
 					}
 				}
 			}
 
-			if (coclusteringDataGrid != NULL)
+			if (coclusteringDataGrid != NULL and coclusteringDataGrid->IsVarPartDataGrid())
 			{
-				if (partitionedDataGrid->GetInnerAttributes() ==
-				    coclusteringDataGrid->GetInnerAttributes())
+				if (partitionedDataGrid->IsVarPartDataGrid() and
+				    partitionedDataGrid->GetInnerAttributes() ==
+					coclusteringDataGrid->GetInnerAttributes())
 				{
-					/*cout << "partitionedDataGrid et coclusteringDG meme InnerAttributes \t
-					nPartitionIndex" << nPartitionIndex << "\n";
-					assert(coclusteringDataGrid->GetVarPartsShared() == true);
-					assert(partitionedDataGrid->GetVarPartsShared() == false);*/
 					coclusteringDataGrid->SetVarPartsShared(false);
 					partitionedDataGrid->SetVarPartsShared(true);
 				}
 
-				if (partitionedPostMergedOptimizedDataGrid->GetInnerAttributes() ==
-				    coclusteringDataGrid->GetInnerAttributes())
+				if (partitionedPostMergedOptimizedDataGrid->IsVarPartDataGrid() and
+				    partitionedPostMergedOptimizedDataGrid->GetInnerAttributes() ==
+					coclusteringDataGrid->GetInnerAttributes())
 				{
-					/*cout << "partitionedDataGrid et coclusteringDG meme InnerAttributes \t
-					nPartitionIndex" << nPartitionIndex << "\n";
-					assert(coclusteringDataGrid->GetVarPartsShared() == true);
-					assert(partitionedDataGrid->GetVarPartsShared() == false);*/
 					coclusteringDataGrid->SetVarPartsShared(false);
 					partitionedPostMergedOptimizedDataGrid->SetVarPartsShared(true);
 				}
 
-				if (optimizedDataGrid->GetInnerAttributes() ==
-				    coclusteringDataGrid->GetInnerAttributes())
+				if (optimizedDataGrid->IsVarPartDataGrid() and
+				    optimizedDataGrid->GetInnerAttributes() ==
+					coclusteringDataGrid->GetInnerAttributes())
 				{
-					// assert pouvait ne pas etre verifie si on avait deja modifie pour
-					// nPartitioecedent
-					/*cout << "optimizedDataGrid et coclusteringDG meme InnerAttributes \t
-					nPartitionIndex" << nPartitionIndex << "\n";
-					assert(coclusteringDataGrid->GetVarPartsShared() == true);
-					assert(optimizedDataGrid->GetVarPartsShared() == false);*/
-
 					coclusteringDataGrid->SetVarPartsShared(false);
 					optimizedDataGrid->SetVarPartsShared(true);
 				}
@@ -1366,25 +917,28 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 			delete partitionedOptimizedDataGrid;
 			partitionedOptimizedDataGrid = NULL;
 
-			// Cas d'un temps limite : mise a jour du temps restant par retrait du temps consacre a cette
-			// granularite
+			// Cas d'un temps limite : mise a jour du temps restant par retrait du temps consacre a
+			// cette granularite
 			if (dataGridOptimizer.GetParameters()->GetOptimizationTime() > 0)
 			{
-				// L'utilisation de la totalite du temps global alloue (OptimizationTime) peut conduire
-				// a l'arret du parcours des granularites et nuire a la recherche de la grille optimale
+				// L'utilisation de la totalite du temps global alloue (OptimizationTime) peut
+				// conduire a l'arret du parcours des granularites et nuire a la recherche de la
+				// grille optimale
 				if (dataGridOptimizer.GetParameters()->GetOptimizationTime() - dTotalComputeTime < 0)
 				{
 					break;
-					// Affichage d'un warning pour eventuelle modification de l'optimisation time
+					// Affichage d'un warning pour eventuelle modification de l'optimisation
+					// time
 					AddWarning(sTmp +
-						   "All the optimization time has been used but maximum granularity "
-						   "has not been reached:" +
+						   "All the optimization time has been used but maximum "
+						   "granularity has not been reached:" +
 						   IntToString(nPrePartitionIndex) + " on " +
 						   IntToString(nPrePartitionMax) +
-						   ". You could obtain better results with greater optimization time.");
+						   ". You could obtain better results with greater "
+						   "optimization time.");
 					if (bDisplayResults)
-						cout << "Totalite du temps alloue ecoule apres la granularite de "
-							"pre-partitionnement de l'attribut VarPart \t"
+						cout << "Totalite du temps alloue ecoule apres la granularite "
+							"de pre-partitionnement de l'attribut VarPart \t"
 						     << nPrePartitionIndex << endl;
 				}
 			}
@@ -1416,6 +970,16 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 	// Nettoyage
 	odInnerAttributesQuantileBuilders.DeleteAll();
 	delete nullDataGrid;
+	// CH IV End
+
+	// CH IV probleme est ce que le code qui suit est a conserver
+	//  Cas ou la grille terminale n'est pas ameliorable else
+	//{
+	// Tri des parties par attribut, pour preparer les affichages de resultats
+	// ainsi que les resultats de preparation des donnees
+	// optimizedDataGrid->SortAttributeParts();
+	//}
+	//}
 }
 
 boolean CCCoclusteringBuilder::IsCoclusteringComputed() const
@@ -4498,6 +4062,12 @@ CCCoclusteringOptimizer::CCCoclusteringOptimizer()
 }
 
 CCCoclusteringOptimizer::~CCCoclusteringOptimizer() {}
+
+void CCCoclusteringOptimizer::Reset()
+{
+	KWDataGridOptimizer::Reset();
+	coclusteringBuilder = NULL;
+}
 
 void CCCoclusteringOptimizer::SetCoclusteringBuilder(const CCCoclusteringBuilder* builder)
 {
