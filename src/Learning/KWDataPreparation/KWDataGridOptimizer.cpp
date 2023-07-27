@@ -1000,6 +1000,8 @@ KWDataGridOptimizer::OptimizeWithBestUnivariatePartitionForCurrentGranularity(co
 			if (attributeStats->GetPreparedDataGridStats()->GetGranularity() !=
 			    initialDataGrid->GetGranularity())
 			{
+				// CH IV Refactoring: mieux utiliser les possibibilite de dataGridManager???
+				//
 				// Export de la granularite
 				univariateDataGrid.SetGranularity(initialDataGrid->GetGranularity());
 
@@ -1030,9 +1032,7 @@ KWDataGridOptimizer::OptimizeWithBestUnivariatePartitionForCurrentGranularity(co
 				    initialAttribute->GetGranularizedValueNumber());
 
 				// Transfert du parametrage du fourre-tout
-				if (initialAttribute->GetCatchAllValueSet() != NULL)
-					targetAttribute->InitializeCatchAllValueSet(
-					    initialAttribute->GetCatchAllValueSet());
+				targetAttribute->InitializeCatchAllValueSet(initialAttribute->GetCatchAllValueSet());
 
 				dataGridManager.BuildDataGridAttributeFromGranularizedPartition(
 				    initialAttribute, targetAttribute, classStats);
@@ -1051,18 +1051,13 @@ KWDataGridOptimizer::OptimizeWithBestUnivariatePartitionForCurrentGranularity(co
 
 				// Transfert du parametrage du fourre-tout
 				targetAttribute = univariateDataGrid.GetAttributeAt(0);
-				if (initialAttribute->GetCatchAllValueSet() != NULL)
-					targetAttribute->InitializeCatchAllValueSet(
-					    initialAttribute->GetCatchAllValueSet());
+				targetAttribute->InitializeCatchAllValueSet(initialAttribute->GetCatchAllValueSet());
 			}
 		}
 
 		// Evaluation si la grille univariee a ete construite
 		if (bEvaluated)
 		{
-			// if (bDisplayResults)
-			// cout << " AVANT Cout de la grille univariee " << endl;
-
 			// Evaluation de la grille
 			dCost = dataGridCosts->ComputeDataGridTotalCost(&univariateDataGrid);
 			if (bDisplayResults)

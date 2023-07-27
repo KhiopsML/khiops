@@ -716,7 +716,7 @@ void KWDataGridCosts::WriteAttributeCostLine(const KWDGAttribute* attribute, ost
 	dAttributeCumulativeCost = ComputeAttributeCumulativeCost(attribute);
 
 	// Affichage
-	ost << attribute->GetObjectLabel() << "\t" << attribute->GetTrueValueNumber() << "\t"
+	ost << attribute->GetObjectLabel() << "\t" << attribute->GetInitialValueNumber() << "\t"
 	    << attribute->GetPartNumber() << "\t" << dAttributeCost << "\t" << dAttributeCumulativeCost << "\n";
 }
 
@@ -1457,10 +1457,10 @@ double KWDataGridClusteringCosts::ComputeAttributeCost(const KWDGAttribute* attr
 	int nGarbageModalityNumber;
 
 	require(attribute != NULL);
-	require(attribute->GetTrueValueNumber() > 0);
+	require(attribute->GetInitialValueNumber() > 0);
 	require(KWType::IsSimple(attribute->GetAttributeType()));
 
-	nPartileNumber = attribute->GetTrueValueNumber();
+	nPartileNumber = attribute->GetInitialValueNumber();
 	// Sans prise en compte granularite : pas de sens en non supervise
 	require(nPartileNumber > 0);
 	require(nPartitionSize >= 1);
@@ -1773,10 +1773,10 @@ double KWVarPartDataGridClusteringCosts::ComputeAttributeCost(const KWDGAttribut
 	KWDGPart* innerAttributePart;
 
 	require(attribute != NULL);
-	require(attribute->GetTrueValueNumber() > 0);
+	require(attribute->GetInitialValueNumber() > 0);
 	require(KWType::IsCoclusteringType(attribute->GetAttributeType()));
 
-	nPartileNumber = attribute->GetTrueValueNumber();
+	nPartileNumber = attribute->GetInitialValueNumber();
 	// Sans prise en compte granularite : pas de sens en non supervise
 	require(nPartileNumber > 0);
 	require(nPartitionSize >= 1);
@@ -1895,11 +1895,11 @@ double KWVarPartDataGridClusteringCosts::ComputeInnerAttributeCost(const KWDGAtt
 
 	require(attribute->IsInnerAttribute());
 	require(KWType::IsSimple(attribute->GetAttributeType()));
-	require(attribute->GetTrueValueNumber() > 0);
+	require(attribute->GetInitialValueNumber() > 0);
 
 	// Initialisation
 	dInnerAttributeCost = 0;
-	nPartileNumber = attribute->GetTrueValueNumber();
+	nPartileNumber = attribute->GetInitialValueNumber();
 
 	// Cas d'un attribut continu
 	if (attribute->GetAttributeType() == KWType::Continuous)
