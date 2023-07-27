@@ -3191,7 +3191,7 @@ boolean CCCoclusteringReport::ReadJSONDimensionPartitions(CCHierarchicalDataGrid
 					else
 					{
 						delete innerAttribute;
-						dgAttribute->SetInnerAttributes(NULL); // DDD
+						dgAttribute->SetInnerAttributes(NULL);
 					}
 
 					// Test si nouvel attribut interne

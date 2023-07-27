@@ -783,11 +783,12 @@ boolean KWDataGrid::Check() const
 	}
 
 	// Verifications par assertion de la memorisation de l'eventuel attribut de type VarPart
-	assert(varPartAttribute == NULL or varPartAttribute->GetAttributeType() == KWType::VarPart);
-	assert(varPartAttribute == NULL or SearchAttribute(varPartAttribute->GetAttributeName()) == varPartAttribute);
-	assert(varPartAttribute == NULL or varPartAttribute->GetInnerAttributes() != NULL);
-	assert(varPartAttribute == NULL or nVarTypeAttributeNumber > 0);
-	assert(varPartAttribute != NULL or nVarTypeAttributeNumber == 0);
+	assert(not bOk or varPartAttribute == NULL or varPartAttribute->GetAttributeType() == KWType::VarPart);
+	assert(not bOk or varPartAttribute == NULL or
+	       SearchAttribute(varPartAttribute->GetAttributeName()) == varPartAttribute);
+	assert(not bOk or varPartAttribute == NULL or varPartAttribute->GetInnerAttributes() != NULL);
+	assert(not bOk or varPartAttribute == NULL or nVarTypeAttributeNumber > 0);
+	assert(not bOk or varPartAttribute != NULL or nVarTypeAttributeNumber == 0);
 
 	// Verification qu'il y au plus un attribut de type VarPart
 	if (bOk and nVarTypeAttributeNumber > 1)
@@ -1500,7 +1501,7 @@ void KWDataGrid::WriteAttributes(ostream& ost) const
 		// Cas d'un attribut categoriel : affichage du groupe poubelle eventuel
 		if (attribute->GetAttributeType() == KWType::Symbol and not attribute->GetAttributeTargetFunction())
 		{
-			ost << "\tTailleFourreTout " << attribute->GetCatchAllValueNumber() << endl;
+			ost << "\tCatch all size " << attribute->GetCatchAllValueNumber() << "\n";
 			ost << "\t"
 			    << (attribute->GetTrueValueNumber() >
 				KWFrequencyTable::GetMinimumNumberOfModalitiesForGarbage())
@@ -1599,7 +1600,7 @@ void KWDataGrid::WriteAttributeParts(ostream& ost) const
 				// Affichage complet du valueSet dans le cas d'un attribut Symbol
 				if (bDisplayAll and attribute->GetAttributeType() == KWType::Symbol)
 				{
-					cout << "Affichage ValueSet" << endl;
+					cout << "ValueSet\n";
 					part->GetValueSet()->Write(cout);
 				}
 
@@ -1687,7 +1688,7 @@ void KWDataGrid::WriteInnerAttributes(ostream& ost) const
 	if (GetVarPartAttribute() != NULL)
 		GetVarPartAttribute()->GetInnerAttributes()->Write(ost);
 	else
-		cout << "No inner variable" << endl;
+		cout << "No inner variable\n";
 }
 
 void KWDataGrid::WriteCrossTableStats(ostream& ost, int nTargetIndex) const
@@ -3396,10 +3397,10 @@ void KWDGAttribute::WriteParts(ostream& ost) const
 	{
 		// Cas de la partie poubelle
 		if (part == garbagePart)
-			ost << "\tGarbage:" << *part << endl;
+			ost << "\tGarbage:" << *part;
 		// Sinon
 		else
-			ost << "\t" << *part << endl;
+			ost << "\t" << *part;
 		GetNextPart(part);
 	}
 }
@@ -3947,10 +3948,12 @@ void KWDGPart::Write(ostream& ost) const
 
 void KWDGPart::WriteValues(ostream& ost) const
 {
-	// Des valeurs sont a afficher uniquement dans le cas symbolique
+	// Des valeurs sont a afficher uniquement dans le cas symbolique et VarPart
 	// (l'intervalle est le libelle de la partie dans le cas continu)
 	if (GetPartType() == KWType::Symbol)
 		valueSet->WriteValues(ost);
+	else if (GetPartType() == KWType::VarPart)
+		varPartSet->WriteVarParts(ost);
 }
 
 void KWDGPart::WriteCells(ostream& ost) const
