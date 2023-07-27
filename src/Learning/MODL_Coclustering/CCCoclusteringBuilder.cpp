@@ -1164,7 +1164,7 @@ KWDataGrid* CCCoclusteringBuilder::CreateVarPartDataGrid(const KWTupleTable* tup
 			// Parametrage du nombre initial de parties de variable
 			dgAttribute->SetInitialValueNumber(nInitialVarPartNumber);
 
-			// Creation des parties de l'attribut de grile de type de type VarPart
+			// Creation des parties de l'attribut de grille de type de type VarPart
 			// A la creation, une partie est un cluster de parties de variables qui ne contient qu'une
 			// partie de variable
 			dgAttribute->CreateVarPartsSet();
@@ -1219,6 +1219,8 @@ void CCCoclusteringBuilder::CleanVarPartDataGrid(KWDataGrid* dataGrid)
 	int nInnerAttribute;
 	KWDGAttribute* varPartAttribute;
 	KWDGAttribute* innerAttribute;
+	KWDGPart* part;
+	boolean bIsDefaultPartDeleted;
 
 	require(dataGrid != NULL);
 	require(dataGrid->IsVarPartDataGrid());
@@ -1236,20 +1238,32 @@ void CCCoclusteringBuilder::CleanVarPartDataGrid(KWDataGrid* dataGrid)
 	}
 	oaVarParts.SetSize(0);
 
-	// Nettoyage des attributs comportant des valeurs manquantes
+	// Nettoyage des attributs comportant des valeurs manquantes, pour les valeur numeriques ou categorielles
 	for (nInnerAttribute = 0; nInnerAttribute < varPartAttribute->GetInnerAttributeNumber(); nInnerAttribute++)
 	{
 		innerAttribute = varPartAttribute->GetInnerAttributeAt(nInnerAttribute);
-		if (innerAttribute->GetAttributeType() == KWType::Continuous)
+
+		// Nettoyage des parties vides
+		bIsDefaultPartDeleted = false;
+		innerAttribute->ExportParts(&oaVarParts);
+		for (nVarPart = 0; nVarPart < oaVarParts.GetSize(); nVarPart++)
 		{
-			innerAttribute->ExportParts(&oaVarParts);
-			for (nVarPart = 0; nVarPart < oaVarParts.GetSize(); nVarPart++)
+			part = cast(KWDGPart*, oaVarParts.GetAt(nVarPart));
+			if (part->GetPartFrequency() == 0)
 			{
-				if (cast(KWDGPart*, oaVarParts.GetAt(nVarPart))->GetPartFrequency() == 0)
-					innerAttribute->DeletePart(cast(KWDGPart*, oaVarParts.GetAt(nVarPart)));
+				// Memorisation si on a supprime la partie contenant la modalite speciale StarValue
+				if (innerAttribute->GetAttributeType() == KWType::Symbol and
+				    part->GetValueSet()->IsDefaultPart())
+					bIsDefaultPartDeleted = true;
+				innerAttribute->DeletePart(cast(KWDGPart*, oaVarParts.GetAt(nVarPart)));
 			}
-			oaVarParts.SetSize(0);
 		}
+		oaVarParts.SetSize(0);
+
+		// Si necessaire, initialisation de la partie par defaut, contenant la modalite speciale
+		// Compte-tenu du tri prealable des tuples, il s'agit de la derniere partie de l'attribut
+		if (bIsDefaultPartDeleted and innerAttribute->GetPartNumber() > 0)
+			innerAttribute->GetTailPart()->GetValueSet()->AddValue(Symbol::GetStarValue());
 	}
 	// DDDDD dataGrid->GetInnerAttributes()->CleanEmptyInnerAttributes();
 	dataGrid->UpdateAllStatistics();
@@ -1417,7 +1431,10 @@ boolean CCCoclusteringBuilder::CreateVarPartDataGridCells(const KWTupleTable* tu
 			else if (innerAttribute->GetAttributeType() == KWType::Symbol)
 			{
 				sValue = tuple->GetSymbolAt(nInnerAttributeIndex);
-				part = innerAttribute->LookupSymbolPart(sValue);
+
+				// On ne prend en compte que les valeurs presentes
+				if (not sValue.IsEmpty())
+					part = innerAttribute->LookupSymbolPart(sValue);
 				if (bDisplayInstanceCreation)
 					cout << sValue << "\t";
 			}
@@ -2398,7 +2415,6 @@ boolean CCCoclusteringBuilder::CreateIdentifierAttributeIntervals(const KWTupleT
 
 			// Memorisation de la valeur de reference initiale pour le premier tuple ou premier tuple avec
 			// valeur non manquante
-
 			if (nTuple == 0 or
 			    (cSourceRef == KWContinuous::GetMissingValue() and dgAttribute->IsInnerAttribute()))
 			{
@@ -2574,11 +2590,15 @@ int CCCoclusteringBuilder::GetDatabaseObjectObservationNumber(const KWObject* kw
 		for (nInnerAttribute = 0; nInnerAttribute < oaInnerAttributes->GetSize(); nInnerAttribute++)
 		{
 			innerAttribute = cast(KWAttribute*, oaInnerAttributes->GetAt(nInnerAttribute));
+
+			// Comptage des nombre d'observation, en excluant les valeurs manquantes
 			if (innerAttribute->GetType() == KWType::Continuous and
 			    kwoObject->GetContinuousValueAt(innerAttribute->GetLoadIndex()) !=
 				KWContinuous::GetMissingValue())
 				nObjectObservationNumber++;
-			else if (innerAttribute->GetType() == KWType::Symbol)
+			// On ne prend pas en compte non plus les valeur manquantes dans le cas categoriel
+			else if (innerAttribute->GetType() == KWType::Symbol and
+				 not kwoObject->GetSymbolValueAt(innerAttribute->GetLoadIndex()).IsEmpty())
 				nObjectObservationNumber++;
 		}
 	}

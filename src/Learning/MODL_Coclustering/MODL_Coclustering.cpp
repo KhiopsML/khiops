@@ -30,7 +30,7 @@ int main(int argc, char** argv)
 	CCLearningProject learningProject;
 
 	// Choix du repertoire de lancement pour le debugage sous Windows (a commenter apres fin du debug)
-	// SetWindowsDebugDir("y_CoclusteringIV_Standard", "Iris");
+	// SetWindowsDebugDir("y_CoclusteringIV_Standard", "IrisMissingValues");
 
 	// MemSetAllocIndexExit(1290133);
 
