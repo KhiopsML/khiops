@@ -1503,7 +1503,7 @@ void KWDataGrid::WriteAttributes(ostream& ost) const
 		{
 			ost << "\tCatch all size " << attribute->GetCatchAllValueNumber() << "\n";
 			ost << "\t"
-			    << (attribute->GetTrueValueNumber() >
+			    << (attribute->GetInitialValueNumber() >
 				KWFrequencyTable::GetMinimumNumberOfModalitiesForGarbage())
 			    << "\t" << (attribute->GetGarbagePart() != NULL);
 			ost << "\t" << attribute->GetGarbageModalityNumber();
@@ -1511,7 +1511,7 @@ void KWDataGrid::WriteAttributes(ostream& ost) const
 		else if (attribute->GetAttributeType() == KWType::VarPart)
 		{
 			ost << "\t"
-			    << (attribute->GetTrueValueNumber() >
+			    << (attribute->GetInitialValueNumber() >
 				KWFrequencyTable::GetMinimumNumberOfModalitiesForGarbage())
 			    << "\t" << (attribute->GetGarbagePart() != NULL);
 			ost << "\t" << attribute->GetGarbageModalityNumber() << "\n";
@@ -2887,6 +2887,7 @@ boolean KWDGAttribute::Check() const
 	int nInterval;
 	Continuous cPreviousUpperBound;
 	NumericKeyDictionary nkdCheckParts;
+	boolean bGarbagePartFound;
 	boolean bStarValueFound;
 	int nInnerAttribute;
 	KWDGAttribute* innerAttribute;
@@ -2989,6 +2990,8 @@ boolean KWDGAttribute::Check() const
 	// Verification des parties
 	if (bOk)
 	{
+		// Parcours des partie a verifier
+		bGarbagePartFound = false;
 		part = headPart;
 		while (part != NULL)
 		{
@@ -2998,6 +3001,10 @@ boolean KWDGAttribute::Check() const
 
 			// Coherence de chainage
 			assert(part->nextPart == NULL or part->nextPart->prevPart == part);
+
+			// Test si on a trouve la partie de type Garbage
+			if (part == garbagePart)
+				bGarbagePartFound = true;
 
 			// Verification locale de la partie
 			bOk = bOk and part->Check();
@@ -3025,6 +3032,15 @@ boolean KWDGAttribute::Check() const
 			if (not bOk)
 				break;
 			part = part->nextPart;
+		}
+
+		// Test de la partie poubelle
+		assert(garbagePart == NULL or GetAttributeType() != KWType::Continuous);
+		if (garbagePart != NULL and not bGarbagePartFound)
+		{
+			AddError(part->GetClassLabel() + " " + part->GetObjectLabel() +
+				 ": the garbage part in not found among the parts of the variable");
+			bOk = false;
 		}
 	}
 
@@ -3374,7 +3390,7 @@ void KWDGAttribute::Write(ostream& ost) const
 
 	//  Affichage des caracteristiques de la poubelle
 	ost << "Garbage\tPossible\tExist\tSize\n";
-	ost << "\t" << (GetTrueValueNumber() > KWFrequencyTable::GetMinimumNumberOfModalitiesForGarbage()) << "\t"
+	ost << "\t" << (GetInitialValueNumber() > KWFrequencyTable::GetMinimumNumberOfModalitiesForGarbage()) << "\t"
 	    << (GetGarbagePart() != NULL);
 	if (GetGarbagePart() != NULL)
 		ost << "\t" << cast(KWDGValueSet*, GetGarbagePart())->GetTrueValueNumber() << "\n";
@@ -4596,6 +4612,7 @@ void KWDGValueSet::CopyFrom(const KWDGValueSet* sourceValueSet)
 		sourceValueSet->GetNextValue(value);
 	}
 	bIsDefaultPart = sourceValueSet->IsDefaultPart();
+
 	// Pour garantir la valeur correcte de nValueNumber si le sourceValueSet a ete compresse avant la copie
 	nValueNumber = sourceValueSet->nValueNumber;
 }
@@ -5127,9 +5144,7 @@ void KWDGVarPartSet::CopyFrom(const KWDGVarPartSet* sourceVarPartSet)
 	while (varPartValue != NULL)
 	{
 		varPartCopyValue = AddVarPart(varPartValue->GetVarPart());
-
-		// CH IV Rfactoring: pour la ligne suivante est-elle commentee?
-		// varPartCopy->SetPartFrequency(varPart->GetPartFrequency());
+		assert(varPartCopyValue->GetVarPartFrequency() == varPartValue->GetVarPartFrequency());
 		sourceVarPartSet->GetNextVarPart(varPartValue);
 	}
 	assert(nVarPartNumber == sourceVarPartSet->nVarPartNumber);
@@ -5420,6 +5435,19 @@ int KWDGInnerAttributes::ComputeTotalInnerAttributeVarParts() const
 		nTotal += innerAttribute->GetPartNumber();
 	}
 	return nTotal;
+}
+
+void KWDGInnerAttributes::SortInnerAttributeParts() const
+{
+	int nInnerAttribute;
+	KWDGAttribute* innerAttribute;
+
+	// Tri des attributs internes pour un attribut de grille de type VarPart
+	for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributeNumber(); nInnerAttribute++)
+	{
+		innerAttribute = GetInnerAttributeAt(nInnerAttribute);
+		innerAttribute->SortParts();
+	}
 }
 
 boolean KWDGInnerAttributes::AreInnerAttributePartsSorted() const

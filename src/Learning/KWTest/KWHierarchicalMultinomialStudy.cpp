@@ -1280,7 +1280,7 @@ void KWAttributePairStatsStudy::ExportGranularizedParts(KWDataGrid* targetDataGr
 		// envisageable
 		if (sourceAttribute->GetAttributeTargetFunction())
 		{
-			targetAttribute->SetGranularizedValueNumber(sourceAttribute->GetTrueValueNumber());
+			targetAttribute->SetGranularizedValueNumber(sourceAttribute->GetInitialValueNumber());
 
 			dataGridManager.ExportPartsForAttribute(targetDataGrid, sourceAttribute->GetAttributeName());
 			if (bDisplayResults)
@@ -1387,7 +1387,7 @@ void KWAttributePairStatsStudy::ExportGranularizedPartsForContinuousAttribute(
 		targetAttribute->SetGranularizedValueNumber(nPartileNumber);
 	// Sinon, la granularisation n'est qu'un procede de construction d'une grille initiale
 	else
-		targetAttribute->SetGranularizedValueNumber(sourceAttribute->GetTrueValueNumber());
+		targetAttribute->SetGranularizedValueNumber(sourceAttribute->GetInitialValueNumber());
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1442,7 +1442,7 @@ double KWDataGridClusteringCostsBivariate::ComputeAttributeCost(const KWDGAttrib
 	double dAttributeCost;
 
 	require(attribute != NULL);
-	require(attribute->GetTrueValueNumber() > 0);
+	require(attribute->GetInitialValueNumber() > 0);
 	require(KWType::IsSimple(attribute->GetAttributeType()));
 	require(attribute->GetAttributeType() == KWType::Continuous);
 

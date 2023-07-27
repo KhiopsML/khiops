@@ -56,8 +56,7 @@ public:
 	// des PV eventuellement issues d'une fusion des PV de la grille source En sortie, la grille targetDataGrid
 	// contient des clusters mono-PV avec les PV issues de la fusion de la grille optimisee
 	// bSourceIdentifierClusters : true -> les clusters d'individus exportes sont ceux de la grille initiale
-	//							   false -> les clusters d'individus exportes sont ceux de la
-	//grille optimsee
+	//							   false -> les clusters d'individus exportes sont ceux de la grille optimsee
 	void ExportDataGridWithSingletonVarParts(const KWDataGrid* optimizedDataGrid, KWDataGrid* targetDataGrid,
 						 boolean bSourceIdentifierClusters) const;
 
@@ -77,9 +76,6 @@ public:
 	// Export des attributs uniquement (plus les specifications des classes cibles)
 	void ExportAttributes(KWDataGrid* targetDataGrid) const;
 
-	// Export d'un unique attribut (plus les specifications des classes cibles)
-	void ExportOneAttribute(KWDataGrid* targetDataGrid, const ALString& sAttributeName) const;
-
 	// Export des attributs informatifs uniquement (non reduits a une seule partie)
 	void ExportInformativeAttributes(KWDataGrid* targetDataGrid) const;
 
@@ -96,7 +92,7 @@ public:
 
 	// Export des parties pour un attribut donne (devant exister dans la grille source et
 	// dans la grille cible sans ses parties)
-	void ExportPartsForAttribute(KWDataGrid* targetDataGrid, const ALString& sAttributeName) const;
+	void ExportAttributeParts(KWDataGrid* targetDataGrid, const ALString& sAttributeName) const;
 
 	// Export des cellules uniquement (les attributs et parties de la grille cible sont deja exportes)
 	// Les attributs cibles peuvent n'etre qu'un sous-ensemble des attributs sources
@@ -333,15 +329,30 @@ public:
 	/////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
-	// Initialisation des valeur cible d'une grille a partir de la grille source courante
-	void InitialiseTargetValues(const KWDataGrid* originDataGrid, KWDataGrid* targetDataGrid) const;
+	// Initialisation d'une grille (ganularite, eventuelle valeurs cible) avec le bon nombre d'attributs
+	// Les attribut ne sont pas initialises
+	void InitialiseDataGrid(const KWDataGrid* originDataGrid, KWDataGrid* targetDataGrid,
+				int nAttributeNumber) const;
 
-	// Initialisation d'un attribut de grille venant d'etre cree a partir d'un d'un attribut valide
+	// Initialisation d'un attribut venant d'etre cree a partir d'un attribut valide
 	// On initialise ses caracterisques principales uniquement, pas les parties:
 	//  - nom, type, cout, ...
 	//  - fourre-tout
 	//  - attributs internes, en mode partages avec l'attribut source
 	void InitialiseAttribute(const KWDGAttribute* sourceAttribute, KWDGAttribute* targetAttribute) const;
+
+	// Initialisation des parties pour un attribut venant d'etre initialise, sans partie, a partir d'un attribut valide
+	void InitialiseAttributeParts(const KWDGAttribute* sourceAttribute, KWDGAttribute* targetAttribute) const;
+
+	// Initialisation de parties aleatoires pour un attribut venant d'etre initialise, sans partie, a partir d'un attribut valide
+	// On effectue une parttion aleatoire en au maximum MaxPartNumber des partie des l'attribut source
+	void InitialiseAttributeRandomParts(const KWDGAttribute* sourceAttribute, KWDGAttribute* targetAttribute) const;
+
+	// Initialisation d'une unique parties pour un attribut venant d'etre initialise, sans partie, a partir d'un attribut valide
+	void InitialiseAttributeNullPart(const KWDGAttribute* sourceAttribute, KWDGAttribute* targetAttribute) const;
+
+	// Verification que deux attributs sont coherents: meme nom, type...
+	boolean CheckAttributesConsistency(const KWDGAttribute* attribute1, const KWDGAttribute* attribute2) const;
 
 	// Export des effectif des valeurs de la grille initiale vers un attribut categoriel entierement specifie
 	// La valeur speciale recoit pour effectif l'ensemble des effectifs manquants
