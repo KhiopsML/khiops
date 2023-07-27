@@ -84,15 +84,10 @@ void KWDataGridManager::ExportDataGridWithSingletonVarParts(const KWDataGrid* op
 	int nAttribute;
 	KWDGAttribute* sourceAttribute;
 	KWDGAttribute* targetAttribute;
-	KWDGPart* sourcePart;
-	KWDGPart* targetPart;
 
 	require(Check());
 	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
 	require(sourceDataGrid->GetInformativeAttributeNumber() > 0);
-
-	// Export de la granularite
-	targetDataGrid->SetGranularity(optimizedDataGrid->GetGranularity());
 
 	// Export des attributs
 	ExportAttributes(targetDataGrid);
@@ -100,15 +95,17 @@ void KWDataGridManager::ExportDataGridWithSingletonVarParts(const KWDataGrid* op
 	// Attention, on reutilise les attribut internes de la grille optimisee
 	if (targetDataGrid->IsVarPartDataGrid())
 	{
-		targetVarPartAttribute = targetDataGrid->GetVarPartAttribute();
-
 		// Partage des partitions des attributs internes de la grille optimisee
+		targetVarPartAttribute = targetDataGrid->GetVarPartAttribute();
 		targetVarPartAttribute->SetInnerAttributes(optimizedDataGrid->GetInnerAttributes());
-		targetVarPartAttribute->SetVarPartsShared(true);
+		assert(targetVarPartAttribute->GetVarPartsShared());
 	}
 
-	// Export des partie des attributs
-	if (optimizedDataGrid->GetInformativeAttributeNumber() > 0)
+	// Export des partie des attributs si aucune variable informatives
+	if (optimizedDataGrid->GetInformativeAttributeNumber() == 0)
+		ExportParts(targetDataGrid);
+	// Et dans le cas de variables informatives
+	else
 	{
 		// Parametrage de la grille d'origine selon la provenant des clusters d'instances
 		if (bSourceIdentifierClusters)
@@ -126,45 +123,15 @@ void KWDataGridManager::ExportDataGridWithSingletonVarParts(const KWDataGrid* op
 			check(sourceAttribute);
 
 			// Cas d'un attribut Continuous ou Symbol
-			if (sourceAttribute->GetAttributeType() == KWType::Continuous or
-			    sourceAttribute->GetAttributeType() == KWType::Symbol)
-			{
-				// Transfert du parametrage des parties de l'attribut
-				sourcePart = sourceAttribute->GetHeadPart();
-				while (sourcePart != NULL)
-				{
-					// Creation de la partie cible
-					targetPart = targetAttribute->AddPart();
-
-					// Transfert des valeurs de la partie cible
-					if (sourceAttribute->GetAttributeType() == KWType::Continuous)
-						targetPart->GetInterval()->CopyFrom(sourcePart->GetInterval());
-					else
-					{
-						targetPart->GetValueSet()->CopyFrom(sourcePart->GetValueSet());
-
-						// Transfert du parametrage du groupe poubelle
-						if (sourcePart == sourceAttribute->GetGarbagePart())
-							targetAttribute->SetGarbagePart(targetPart);
-						// CH RefontePrior2-P-Inside
-						// targetPart->SetModalityNumber(sourcePart->GetModalityNumber());
-						// targetPart->SetPosition(targetAttribute->GetPartsSizesList()->Add(targetPart));
-						// Fin CH RefontePrior2
-					}
-
-					// Partie suivante
-					sourceAttribute->GetNextPart(sourcePart);
-				}
-			}
+			if (KWType::IsSimple(sourceAttribute->GetAttributeType()))
+				InitialiseAttributeParts(sourceAttribute, targetAttribute);
 			// Sinon, cas d'un attribut VarPart
+			// Creation des parties de parties de variable de l'attribut, avec un cluster par partie de variable
 			else
 				targetAttribute->CreateVarPartsSet();
 		}
 		assert(CheckParts(targetDataGrid));
 	}
-	//
-	else
-		ExportParts(targetDataGrid);
 
 	// Export des cellules
 	ExportCells(targetDataGrid);
@@ -190,14 +157,8 @@ void KWDataGridManager::ExportTerminalDataGrid(KWDataGrid* targetDataGrid) const
 	require(Check());
 	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
 
-	// Export de la granularite
-	targetDataGrid->SetGranularity(sourceDataGrid->GetGranularity());
-
 	// Initialisation de la grille cible
-	targetDataGrid->Initialize(sourceDataGrid->GetAttributeNumber(), sourceDataGrid->GetTargetValueNumber());
-
-	// Initialisation des valeurs cibles
-	InitialiseTargetValues(sourceDataGrid, targetDataGrid);
+	InitialiseDataGrid(sourceDataGrid, targetDataGrid, sourceDataGrid->GetAttributeNumber());
 
 	// Initialisation des attributs avec une seule partie
 	for (nAttribute = 0; nAttribute < sourceDataGrid->GetAttributeNumber(); nAttribute++)
@@ -350,8 +311,7 @@ void KWDataGridManager::ExportNullDataGrid(KWDataGrid* targetDataGrid) const
 		targetAttribute = targetDataGrid->GetAttributeAt(nAttribute);
 
 		// Transfert du parametrage du fourre-tout
-		if (sourceAttribute->GetCatchAllValueSet() != NULL)
-			targetAttribute->InitializeCatchAllValueSet(sourceAttribute->GetCatchAllValueSet());
+		targetAttribute->InitializeCatchAllValueSet(sourceAttribute->GetCatchAllValueSet());
 
 		// Creation d'un intervalle unique dans le cas continu
 		if (sourceAttribute->GetAttributeType() == KWType::Continuous)
@@ -757,13 +717,12 @@ void KWDataGridManager::ExportGranularizedParts(KWDataGrid* targetDataGrid, int 
 
 		targetAttribute->SetInitialValueNumber(sourceAttribute->GetInitialValueNumber());
 
-		// Cas d'un attribut "cible" (regression, classif avec groupage) : pas de granularisation mais poubelle
-		// envisageable
+		// Cas d'un attribut "cible" (regression, classif avec groupage) : pas de granularisation mais poubelle envisageable
 		if (sourceAttribute->GetAttributeTargetFunction())
 		{
-			targetAttribute->SetGranularizedValueNumber(sourceAttribute->GetTrueValueNumber());
+			targetAttribute->SetGranularizedValueNumber(sourceAttribute->GetInitialValueNumber());
 
-			ExportPartsForAttribute(targetDataGrid, sourceAttribute->GetAttributeName());
+			InitialiseAttributeParts(sourceAttribute, targetAttribute);
 			if (bDisplayResults)
 			{
 				cout << "Attribut cible " << targetAttribute->GetAttributeName() << endl;
@@ -834,6 +793,7 @@ void KWDataGridManager::ExportGranularizedPartsForContinuousAttribute(KWDataGrid
 	int nPartIndex;
 	// CH IV End
 
+	require(CheckAttributesConsistency(sourceAttribute, targetAttribute));
 	require(quantileBuilder != NULL);
 
 	nValueNumber = sourceDataGrid->GetGridFrequency();
@@ -846,8 +806,8 @@ void KWDataGridManager::ExportGranularizedPartsForContinuousAttribute(KWDataGrid
 	// Cas ou la granularisation n'est pas appliquee : non prise en compte de la granularite ou granularite maximale
 	if (nGranularity == 0 or nPartileNumber >= nValueNumber)
 	{
-		ExportPartsForAttribute(targetDataGrid, sourceAttribute->GetAttributeName());
-		targetAttribute->SetGranularizedValueNumber(sourceAttribute->GetTrueValueNumber());
+		InitialiseAttributeParts(sourceAttribute, targetAttribute);
+		targetAttribute->SetGranularizedValueNumber(sourceAttribute->GetInitialValueNumber());
 	}
 
 	// Granularisation
@@ -916,7 +876,7 @@ void KWDataGridManager::ExportGranularizedPartsForContinuousAttribute(KWDataGrid
 		targetAttribute->SetGranularizedValueNumber(nPartileNumber);
 	// Sinon, la granularisation n'est qu'un procede de construction d'une grille initiale
 	else
-		targetAttribute->SetGranularizedValueNumber(sourceAttribute->GetTrueValueNumber());
+		targetAttribute->SetGranularizedValueNumber(sourceAttribute->GetInitialValueNumber());
 }
 
 void KWDataGridManager::ExportGranularizedPartsForSymbolAttribute(KWDataGrid* targetDataGrid,
@@ -927,12 +887,14 @@ void KWDataGridManager::ExportGranularizedPartsForSymbolAttribute(KWDataGrid* ta
 	ObjectArray oaSourceParts;
 	KWDGPart* sourcePart;
 	KWDGPart* targetPart;
+	KWDGValueSet* cleanedValueSet;
 	int nValueNumber;
 	int nPartileNumber;
 	int nActualPartileNumber;
 	int nPartileIndex;
 	int nSourceIndex;
 
+	require(CheckAttributesConsistency(sourceAttribute, targetAttribute));
 	require(quantileBuilder != NULL);
 
 	nValueNumber = sourceDataGrid->GetGridFrequency();
@@ -947,8 +909,8 @@ void KWDataGridManager::ExportGranularizedPartsForSymbolAttribute(KWDataGrid* ta
 	// Cas ou la granularisation n'est pas appliquee : non prise en compte de la granularite
 	if (nGranularity == 0)
 	{
-		ExportPartsForAttribute(targetDataGrid, sourceAttribute->GetAttributeName());
-		targetAttribute->SetGranularizedValueNumber(sourceAttribute->GetTrueValueNumber());
+		InitialiseAttributeParts(sourceAttribute, targetAttribute);
+		targetAttribute->SetGranularizedValueNumber(sourceAttribute->GetInitialValueNumber());
 	}
 
 	// Granularisation
@@ -1006,8 +968,9 @@ void KWDataGridManager::ExportGranularizedPartsForSymbolAttribute(KWDataGrid* ta
 			    targetPart->GetValueSet()->GetTrueValueNumber() > 1)
 			{
 				// Compression du fourre-tout et memorisation de ses valeurs
-				targetAttribute->SetCatchAllValueSet(
-				    targetPart->GetValueSet()->ConvertToCleanedValueSet());
+				cleanedValueSet = targetPart->GetValueSet()->ConvertToCleanedValueSet();
+				targetAttribute->InitializeCatchAllValueSet(cleanedValueSet);
+				delete cleanedValueSet;
 			}
 			// Tri des valeurs du fourre tout
 			if (targetPart->GetValueSet()->IsDefaultPart())
@@ -1022,7 +985,7 @@ void KWDataGridManager::ExportGranularizedPartsForSymbolAttribute(KWDataGrid* ta
 		targetAttribute->SetGranularizedValueNumber(nActualPartileNumber);
 	// Sinon, la granularisation n'est qu'un procede de construction d'une grille initiale
 	else
-		targetAttribute->SetGranularizedValueNumber(sourceAttribute->GetTrueValueNumber());
+		targetAttribute->SetGranularizedValueNumber(sourceAttribute->GetInitialValueNumber());
 }
 
 // CH IV Begin
@@ -1109,9 +1072,9 @@ void KWDataGridManager::ExportGranularizedPartsForVarPartAttributes(KWDataGrid* 
 		// envisageable
 		if (sourceAttribute->GetAttributeTargetFunction())
 		{
-			targetAttribute->SetGranularizedValueNumber(sourceAttribute->GetTrueValueNumber());
+			targetAttribute->SetGranularizedValueNumber(sourceAttribute->GetInitialValueNumber());
 
-			ExportPartsForAttribute(targetDataGrid, sourceAttribute->GetAttributeName());
+			InitialiseAttributeParts(sourceAttribute, targetAttribute);
 			if (bDisplayResults)
 			{
 				cout << "Attribut cible " << targetAttribute->GetAttributeName() << endl;
@@ -1172,8 +1135,8 @@ void KWDataGridManager::ExportGranularizedPartsForVarPartAttributes(KWDataGrid* 
 				// Mise a jour du nombre total de parties de variables
 				nTotalVarPartNumber += targetInnerAttribute->GetPartNumber();
 			}
-			// Creation des parties de parties de variable de l'attribut
-			// Un cluster par partie de variable
+
+			// Creation des parties de parties de variable de l'attribut, avec un cluster par partie de variable
 			targetAttribute->CreateVarPartsSet();
 
 			// Initialisation du nombre total de parties de variables qui compose l'attribut de grille de
@@ -1183,7 +1146,7 @@ void KWDataGridManager::ExportGranularizedPartsForVarPartAttributes(KWDataGrid* 
 			// Remarque : a ce stade les effectifs des parties ne sont pas renseignees
 		}
 		else
-			ExportPartsForAttribute(targetDataGrid, sourceAttribute->GetAttributeName());
+			InitialiseAttributeParts(sourceAttribute, targetAttribute);
 	}
 
 	ensure(CheckParts(targetDataGrid));
@@ -1204,6 +1167,7 @@ void KWDataGridManager::ExportGranularizedPartsForVarPartAttribute(KWDataGrid* t
 	int nPartileIndex;
 	int nSourceIndex;
 
+	require(CheckAttributesConsistency(sourceAttribute, targetAttribute));
 	require(quantileBuilder != NULL);
 
 	nValueNumber = sourceDataGrid->GetGridFrequency();
@@ -1218,8 +1182,8 @@ void KWDataGridManager::ExportGranularizedPartsForVarPartAttribute(KWDataGrid* t
 	// Cas ou la granularisation n'est pas appliquee : non prise en compte de la granularite
 	if (nGranularity == 0)
 	{
-		ExportPartsForAttribute(targetDataGrid, sourceAttribute->GetAttributeName());
-		targetAttribute->SetGranularizedValueNumber(sourceAttribute->GetTrueValueNumber());
+		InitialiseAttributeParts(sourceAttribute, targetAttribute);
+		targetAttribute->SetGranularizedValueNumber(sourceAttribute->GetInitialValueNumber());
 	}
 
 	// Granularisation
@@ -1261,6 +1225,7 @@ void KWDataGridManager::ExportGranularizedPartsForVarPartAttribute(KWDataGrid* t
 				// Ajout de ses valeurs
 				targetPart->GetVarPartSet()->UpgradeFrom(sourcePart->GetVarPartSet());
 			}
+			// CH IV Refactoring: nettoyer lignes ci-dessous
 			// CH TODO Inclusion poubelle
 			//// Compression et memorisation du fourre-tout si necessaire (mode supervise, attribut non
 			/// cible) / La partie qui contient la StarValue est compressee uniquement si elle contient plus
@@ -1286,7 +1251,7 @@ void KWDataGridManager::ExportGranularizedPartsForVarPartAttribute(KWDataGrid* t
 		targetAttribute->SetGranularizedValueNumber(nActualPartileNumber);
 	// Sinon, la granularisation n'est qu'un procede de construction d'une grille initiale
 	else
-		targetAttribute->SetGranularizedValueNumber(sourceAttribute->GetTrueValueNumber());
+		targetAttribute->SetGranularizedValueNumber(sourceAttribute->GetInitialValueNumber());
 }
 
 double KWDataGridManager::ExportMergedDataGridForVarPartAttributes(KWDataGrid* targetDataGrid,
@@ -1344,15 +1309,7 @@ double KWDataGridManager::ExportMergedDataGridForVarPartAttributes(KWDataGrid* t
 			targetInnerAttribute = new KWDGAttribute;
 
 			// Parametrage
-			targetInnerAttribute->SetAttributeName(sourceInnerAttribute->GetAttributeName());
-			targetInnerAttribute->SetOwnerAttributeName(targetAttribute->GetAttributeName());
-			targetInnerAttribute->SetAttributeType(sourceInnerAttribute->GetAttributeType());
-			targetInnerAttribute->SetAttributeTargetFunction(
-			    sourceInnerAttribute->GetAttributeTargetFunction());
-			targetInnerAttribute->SetInitialValueNumber(sourceInnerAttribute->GetInitialValueNumber());
-			targetInnerAttribute->SetCost(sourceInnerAttribute->GetCost());
-			targetInnerAttribute->SetGranularizedValueNumber(
-			    sourceInnerAttribute->GetGranularizedValueNumber());
+			InitialiseAttribute(sourceInnerAttribute, targetInnerAttribute);
 			targetAttribute->GetInnerAttributes()->AddInnerAttribute(targetInnerAttribute);
 		}
 	}
@@ -1536,9 +1493,11 @@ void KWDataGridManager::ExportFrequencyTableFromOneAttribute(const KWFrequencyVe
 							     KWFrequencyTable* kwFrequencyTable,
 							     const ALString& sAttributeName) const
 {
-	KWDenseFrequencyVector* kwdfvFrequencyVector;
 	boolean bDisplayResults = false;
+	KWDenseFrequencyVector* kwdfvFrequencyVector;
 	KWDataGrid oneAttributeDataGrid;
+	KWDGAttribute* sourceAttribute;
+	KWDGAttribute* targetAttribute;
 	KWDGPart* dgPart;
 	KWDGCell* dgCell;
 	ObjectArray oaParts;
@@ -1551,11 +1510,18 @@ void KWDataGridManager::ExportFrequencyTableFromOneAttribute(const KWFrequencyVe
 	require(kwFrequencyTable != NULL);
 	require(sAttributeName != "");
 
-	// Export de la granularite
+	// Export de la granularite pour la table de contingence
 	kwFrequencyTable->SetGranularity(sourceDataGrid->GetGranularity());
 
-	// Export d'une grille reduite a l'attribut
-	ExportOneAttribute(&oneAttributeDataGrid, sAttributeName);
+	// Initialisation de la grille reduite a l'attribut
+	InitialiseDataGrid(sourceDataGrid, &oneAttributeDataGrid, 1);
+
+	// Recherche de l'attribut source et cible
+	sourceAttribute = sourceDataGrid->SearchAttribute(sAttributeName);
+	targetAttribute = oneAttributeDataGrid.GetAttributeAt(0);
+
+	// Transfert du parametrage de l'attribut
+	InitialiseAttribute(sourceAttribute, targetAttribute);
 
 	// Export des parties de cette grille
 	ExportParts(&oneAttributeDataGrid);
@@ -1620,10 +1586,7 @@ void KWDataGridManager::ExportFrequencyTableFromOneAttribute(const KWFrequencyVe
 			kwdfvFrequencyVector->SetModalityNumber(dgPart->GetVarPartSet()->GetVarPartNumber());
 
 			if (oneAttributeDataGrid.GetAttributeAt(0)->GetGarbagePart() == dgPart)
-			{
-				cout << "ExportFrequencyTable:GarbageVarParts" << endl;
 				kwFrequencyTable->SetGarbageModalityNumber(dgPart->GetVarPartSet()->GetVarPartNumber());
-			}
 		}
 		// CH IV End
 	}
@@ -1645,13 +1608,7 @@ void KWDataGridManager::ExportAttributes(KWDataGrid* targetDataGrid) const
 	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
 
 	// Initialisation de la grille cible
-	targetDataGrid->Initialize(sourceDataGrid->GetAttributeNumber(), sourceDataGrid->GetTargetValueNumber());
-
-	// Export de la granularite
-	targetDataGrid->SetGranularity(sourceDataGrid->GetGranularity());
-
-	// Initialisation des valeurs cibles
-	InitialiseTargetValues(sourceDataGrid, targetDataGrid);
+	InitialiseDataGrid(sourceDataGrid, targetDataGrid, sourceDataGrid->GetAttributeNumber());
 
 	// Initialisation des attributs
 	for (nAttribute = 0; nAttribute < sourceDataGrid->GetAttributeNumber(); nAttribute++)
@@ -1669,36 +1626,6 @@ void KWDataGridManager::ExportAttributes(KWDataGrid* targetDataGrid) const
 		   sourceDataGrid->GetVarPartAttribute()->GetInnerAttributes());
 }
 
-void KWDataGridManager::ExportOneAttribute(KWDataGrid* targetDataGrid, const ALString& sAttributeName) const
-{
-	KWDGAttribute* sourceAttribute;
-	KWDGAttribute* targetAttribute;
-
-	require(Check());
-	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
-	require(sourceDataGrid->SearchAttribute(sAttributeName) != NULL);
-
-	// Export de la granularite
-	targetDataGrid->SetGranularity(sourceDataGrid->GetGranularity());
-
-	// Initialisation de la grille cible
-	targetDataGrid->Initialize(1, sourceDataGrid->GetTargetValueNumber());
-
-	// Initialisation des valeurs cibles
-	InitialiseTargetValues(sourceDataGrid, targetDataGrid);
-
-	// Recherche de l'attribut source et cible
-	sourceAttribute = sourceDataGrid->SearchAttribute(sAttributeName);
-	targetAttribute = targetDataGrid->GetAttributeAt(0);
-
-	// Transfert du parametrage de l'attribut
-	InitialiseAttribute(sourceAttribute, targetAttribute);
-	ensure(CheckAttributes(targetDataGrid));
-	ensure(not targetDataGrid->IsVarPartDataGrid() or
-	       targetDataGrid->GetVarPartAttribute()->GetInnerAttributes() ==
-		   sourceDataGrid->GetVarPartAttribute()->GetInnerAttributes());
-}
-
 void KWDataGridManager::ExportInformativeAttributes(KWDataGrid* targetDataGrid) const
 {
 	int nAttribute;
@@ -1709,15 +1636,8 @@ void KWDataGridManager::ExportInformativeAttributes(KWDataGrid* targetDataGrid) 
 	require(Check());
 	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
 
-	// Export de la granularite
-	targetDataGrid->SetGranularity(sourceDataGrid->GetGranularity());
-
 	// Initialisation de la grille cible
-	targetDataGrid->Initialize(sourceDataGrid->GetInformativeAttributeNumber(),
-				   sourceDataGrid->GetTargetValueNumber());
-
-	// Initialisation des valeurs cibles
-	InitialiseTargetValues(sourceDataGrid, targetDataGrid);
+	InitialiseDataGrid(sourceDataGrid, targetDataGrid, sourceDataGrid->GetInformativeAttributeNumber());
 
 	// Initialisation des attributs
 	nTargetAttribute = 0;
@@ -1748,8 +1668,6 @@ void KWDataGridManager::ExportParts(KWDataGrid* targetDataGrid) const
 	int nAttribute;
 	KWDGAttribute* sourceAttribute;
 	KWDGAttribute* targetAttribute;
-	KWDGPart* sourcePart;
-	KWDGPart* targetPart;
 
 	require(Check());
 	require(targetDataGrid != NULL and CheckAttributes(targetDataGrid) and CheckGranularity(targetDataGrid));
@@ -1762,41 +1680,9 @@ void KWDataGridManager::ExportParts(KWDataGrid* targetDataGrid) const
 
 		// Recherche de l'attribut source correspondant
 		sourceAttribute = sourceDataGrid->SearchAttribute(targetAttribute->GetAttributeName());
-		check(sourceAttribute);
-		assert(sourceAttribute->GetAttributeType() == targetAttribute->GetAttributeType());
-		assert(sourceAttribute->GetAttributeType() != KWType::VarPart or
-		       sourceAttribute->GetInnerAttributes() == targetAttribute->GetInnerAttributes());
 
 		// Transfert du parametrage des parties de l'attribut
-		sourcePart = sourceAttribute->GetHeadPart();
-		while (sourcePart != NULL)
-		{
-			// Creation de la partie cible
-			targetPart = targetAttribute->AddPart();
-
-			// CH IV Begin
-			// Transfert des valeurs a la partie cible
-			// Cas continu
-			if (sourceAttribute->GetAttributeType() == KWType::Continuous)
-				targetPart->GetInterval()->CopyFrom(sourcePart->GetInterval());
-			// Sinon : cas Symbol ou VarPart
-			else
-			{
-				if (sourceAttribute->GetAttributeType() == KWType::Symbol)
-					targetPart->GetValueSet()->CopyFrom(sourcePart->GetValueSet());
-				else
-					targetPart->GetVarPartSet()->CopyFrom(sourcePart->GetVarPartSet());
-
-				// Transfert du parametrage du groupe poubelle
-				if (sourcePart == sourceAttribute->GetGarbagePart())
-					targetAttribute->SetGarbagePart(targetPart);
-			}
-			// CH IV End
-
-			// Partie suivante
-			sourceAttribute->GetNextPart(sourcePart);
-		}
-		assert(targetAttribute->GetPartNumber() == sourceAttribute->GetPartNumber());
+		InitialiseAttributeParts(sourceAttribute, targetAttribute);
 	}
 	ensure(CheckParts(targetDataGrid));
 }
@@ -1805,15 +1691,17 @@ void KWDataGridManager::ExportParts(KWDataGrid* targetDataGrid) const
 void KWDataGridManager::ExportDataGridWithReferenceVarPartClusters(KWDataGrid* targetDataGrid,
 								   KWDataGrid* referenceDataGrid)
 {
-	KWDataGridManager referenceDataGridManager;
+	//DDD KWDataGridManager referenceDataGridManager;
 	IntVector ivTargetGroupIndexes;
 	int nTargetGroupNumber;
 	IntObject* clusterIndex;
 	NumericKeyDictionary nkdClusterIndexes;
 	int nInitial;
 	int nPartIndex;
+	int nAttribute;
 	KWDGAttribute* initialAttribute;
 	KWDGAttribute* referenceAttribute;
+	KWDGAttribute* targetAttribute;
 	KWDGAttribute* referenceInnerAttribute;
 	KWDGPart* initialPart;
 	KWDGPart* initialVarPart;
@@ -1837,18 +1725,36 @@ void KWDataGridManager::ExportDataGridWithReferenceVarPartClusters(KWDataGrid* t
 	ExportAttributes(targetDataGrid);
 
 	////////////////////////////////////////////////////////////////////////////////////
-	// Export des partie pour tous les attributs de la grille
+	// Export des partie pour tous les attributs de la grille, hors attribut VarPart
 
 	// Parametrage d'un data grid manager avec la grille de reference, pour exporter les parties
-	referenceDataGridManager.SetSourceDataGrid(referenceDataGrid);
+	//DDD referenceDataGridManager.SetSourceDataGrid(referenceDataGrid);
 
 	// Export des partie de la grille de reference vers la grille cible
+	for (nAttribute = 0; nAttribute < targetDataGrid->GetAttributeNumber(); nAttribute++)
+	{
+		targetAttribute = targetDataGrid->GetAttributeAt(nAttribute);
+		assert(targetAttribute->GetPartNumber() == 0);
+
+		// Uniquement pour les attributs de type simple
+		if (KWType::IsSimple(targetAttribute->GetAttributeType()))
+		{
+			// Recherche de l'attribut source correspondant
+			referenceAttribute = referenceDataGrid->SearchAttribute(targetAttribute->GetAttributeName());
+
+			// Transfert du parametrage des parties de l'attribut
+			InitialiseAttributeParts(referenceAttribute, targetAttribute);
+		}
+	}
+
+	/*DDD
 	// On modifie temporairement le parametrage des attribut internes pour passer les assertions
 	targetDataGrid->GetVarPartAttribute()->SetInnerAttributes(
 	    referenceDataGrid->GetVarPartAttribute()->GetInnerAttributes());
 	referenceDataGridManager.ExportParts(targetDataGrid);
 	targetDataGrid->GetVarPartAttribute()->SetInnerAttributes(
 	    sourceDataGrid->GetVarPartAttribute()->GetInnerAttributes());
+		*/
 
 	////////////////////////////////////////////////////////////////////////////////////
 	// On refait les partie de l'attribut VarPart en utilisant la grille de reference
@@ -1951,8 +1857,6 @@ void KWDataGridManager::ExportPartsWithNewInnerParts(KWDataGrid* targetDataGrid)
 	KWDGAttribute* targetAttribute;
 	KWDGPart* sourcePart;
 	KWDGPart* targetPart;
-	int nInnerAttribute;
-	KWDGAttribute* innerAttribute;
 
 	require(Check());
 	require(targetDataGrid != NULL and CheckAttributes(targetDataGrid) and CheckGranularity(targetDataGrid));
@@ -1966,108 +1870,62 @@ void KWDataGridManager::ExportPartsWithNewInnerParts(KWDataGrid* targetDataGrid)
 		sourceAttribute = sourceDataGrid->SearchAttribute(targetAttribute->GetAttributeName());
 		check(sourceAttribute);
 
-		// Transfert du parametrage des parties de l'attribut
-		sourcePart = sourceAttribute->GetHeadPart();
-		while (sourcePart != NULL)
+		// Cas d'un attribut Continuous ou Symbol
+		if (KWType::IsSimple(sourceAttribute->GetAttributeType()))
+			InitialiseAttributeParts(sourceAttribute, targetAttribute);
+		// Sinon, cas d'un attribut VarPart
+		// Creation des parties de parties de variable de l'attribut, avec un cluster par partie de variable
+		else
 		{
-			// Creation de la partie cible
-			targetPart = targetAttribute->AddPart();
+			assert(sourceAttribute->GetAttributeType() == KWType::VarPart);
 
-			// Transfert des valeurs de la partie cible
-			if (sourceAttribute->GetAttributeType() == KWType::Continuous)
-				targetPart->GetInterval()->CopyFrom(sourcePart->GetInterval());
-			else
+			// Transfert du parametrage des parties de l'attribut
+			sourcePart = sourceAttribute->GetHeadPart();
+			while (sourcePart != NULL)
 			{
-				// Cas d'une partie de type Value
-				if (sourceAttribute->GetAttributeType() == KWType::Symbol)
-					targetPart->GetValueSet()->CopyFrom(sourcePart->GetValueSet());
-				// Cas d'une partie de type VarPart
+				assert(sourcePart->GetPartType() == KWType::VarPart);
+
+				// Creation de la partie cible
+				targetPart = targetAttribute->AddPart();
+
 				// Transfert des parties de parties de variable avec de nouvelles parties de variable
 				// pour les attributs internes
-				else
-					targetPart->GetVarPartSet()->CopyWithNewVarPartsFrom(
-					    sourcePart->GetVarPartSet(), targetDataGrid->GetInnerAttributes());
+				targetPart->GetVarPartSet()->CopyWithNewVarPartsFrom(
+				    sourcePart->GetVarPartSet(), targetDataGrid->GetInnerAttributes());
 
 				// Transfert du parametrage du groupe poubelle
 				if (sourcePart == sourceAttribute->GetGarbagePart())
 					targetAttribute->SetGarbagePart(targetPart);
+
+				// Partie suivante
+				sourceAttribute->GetNextPart(sourcePart);
 			}
 
-			// Partie suivante
-			sourceAttribute->GetNextPart(sourcePart);
-		}
-
-		// Tri des attributs internes pour un attribut de grille de type VarPart
-		if (sourceAttribute->GetAttributeType() == KWType::VarPart)
-		{
-			for (nInnerAttribute = 0; nInnerAttribute < targetAttribute->GetInnerAttributeNumber();
-			     nInnerAttribute++)
-			{
-				innerAttribute = targetAttribute->GetInnerAttributeAt(nInnerAttribute);
-				innerAttribute->SortParts();
-			}
+			// Tri des attributs internes pour un attribut de grille de type VarPart
+			targetAttribute->GetInnerAttributes()->SortInnerAttributeParts();
 		}
 	}
 	ensure(CheckParts(targetDataGrid));
 }
 // CH IV End
 
-void KWDataGridManager::ExportPartsForAttribute(KWDataGrid* targetDataGrid, const ALString& sAttributeName) const
+void KWDataGridManager::ExportAttributeParts(KWDataGrid* targetDataGrid, const ALString& sAttributeName) const
 {
 	KWDGAttribute* sourceAttribute;
 	KWDGAttribute* targetAttribute;
-	KWDGPart* sourcePart;
-	KWDGPart* targetPart;
 
 	require(Check());
-	require(targetDataGrid != NULL and CheckAttributes(targetDataGrid)); // and CheckGranularity(targetDataGrid));
-	require(sourceDataGrid->SearchAttribute(sAttributeName) != NULL or
-		sourceDataGrid->GetInnerAttributes()->LookupInnerAttribute(sAttributeName) != NULL);
-	require(targetDataGrid->SearchAttribute(sAttributeName) != NULL or
-		targetDataGrid->GetInnerAttributes()->LookupInnerAttribute(sAttributeName) != NULL);
+	require(targetDataGrid != NULL and CheckAttributes(targetDataGrid));
+	require(sourceDataGrid->SearchAttribute(sAttributeName) != NULL);
+	require(targetDataGrid->SearchAttribute(sAttributeName) != NULL);
+	require(targetDataGrid->SearchAttribute(sAttributeName)->GetPartNumber() == 0);
 
-	// Recherche des attributs source et cible, dans la grille directement, sinon, en tant qu'attribut interne
+	// Recherche des attributs source et cible dans la grille directement
 	sourceAttribute = sourceDataGrid->SearchAttribute(sAttributeName);
-	if (sourceAttribute != NULL)
-		targetAttribute = targetDataGrid->SearchAttribute(sAttributeName);
-	else
-	{
-		assert(targetDataGrid->SearchAttribute(sAttributeName) == NULL);
-		sourceAttribute = sourceDataGrid->GetInnerAttributes()->LookupInnerAttribute(sAttributeName);
-		targetAttribute = targetDataGrid->GetInnerAttributes()->LookupInnerAttribute(sAttributeName);
-	}
-	assert(targetAttribute->GetPartNumber() == 0);
+	targetAttribute = targetDataGrid->SearchAttribute(sAttributeName);
 
 	// Transfert du parametrage des parties de l'attribut
-	sourcePart = sourceAttribute->GetHeadPart();
-	while (sourcePart != NULL)
-	{
-		// Creation de la partie cible
-		targetPart = targetAttribute->AddPart();
-
-		// Transfert des valeurs de la partie cible
-		if (sourceAttribute->GetAttributeType() == KWType::Continuous)
-			targetPart->GetInterval()->CopyFrom(sourcePart->GetInterval());
-		// CH IV Begin
-		else if (sourceAttribute->GetAttributeType() == KWType::Symbol)
-		{
-			targetPart->GetValueSet()->CopyFrom(sourcePart->GetValueSet());
-			// CH RefontePrior2-P-Inside
-			// targetPart->SetModalityNumber(sourcePart->GetModalityNumber());
-			// targetPart->SetPosition(targetAttribute->GetPartsSizesList()->Add(targetPart));
-			// Fin CH RefontePrior2
-		}
-		// Cas d'une partie de type VarPart
-		// Transfert des parties de parties de variable
-		else
-		{
-			targetPart->GetVarPartSet()->CopyFrom(sourcePart->GetVarPartSet());
-		}
-		// CH IV End
-
-		// Partie suivante
-		sourceAttribute->GetNextPart(sourcePart);
-	}
+	InitialiseAttributeParts(sourceAttribute, targetAttribute);
 }
 
 void KWDataGridManager::ExportCells(KWDataGrid* targetDataGrid) const
@@ -2225,14 +2083,8 @@ void KWDataGridManager::ExportRandomAttributes(KWDataGrid* targetDataGrid, int n
 	require(0 <= nAttributeNumber and nAttributeNumber <= sourceDataGrid->GetAttributeNumber());
 	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
 
-	// Export de la granularite
-	targetDataGrid->SetGranularity(sourceDataGrid->GetGranularity());
-
 	// Initialisation de la grille cible
-	targetDataGrid->Initialize(nAttributeNumber, sourceDataGrid->GetTargetValueNumber());
-
-	// Initialisation des valeurs cibles
-	InitialiseTargetValues(sourceDataGrid, targetDataGrid);
+	InitialiseDataGrid(sourceDataGrid, targetDataGrid, nAttributeNumber);
 
 	// Creation d'un vecteur d'index d'attributs cibles choisis aleatoirement
 	ivSourceAttributeIndexes.SetSize(sourceDataGrid->GetAttributeNumber());
@@ -2374,26 +2226,14 @@ void KWDataGridManager::ExportRandomAttributeParts(KWDataGrid* targetDataGrid, K
 	{
 		// Recopie du fourre-tout
 		// Transfert du parametrage du fourre-tout
-		if (sourceAttribute->GetCatchAllValueSet() != NULL)
-			targetAttribute->InitializeCatchAllValueSet(sourceAttribute->GetCatchAllValueSet());
+		targetAttribute->InitializeCatchAllValueSet(sourceAttribute->GetCatchAllValueSet());
 
 		// S'il y a moins de valeurs que de partie a constituer, on recopie directement
 		// les meme parties
 		if (sourceAttribute->GetPartNumber() <= nPartNumber)
 		{
 			// Transfert du parametrage des parties de l'attribut
-			sourcePart = sourceAttribute->GetHeadPart();
-			while (sourcePart != NULL)
-			{
-				// Creation de la partie cible
-				targetPart = targetAttribute->AddPart();
-
-				// Transfert des valeurs de la partie cible
-				targetPart->GetValueSet()->CopyFrom(sourcePart->GetValueSet());
-
-				// Partie suivante
-				sourceAttribute->GetNextPart(sourcePart);
-			}
+			InitialiseAttributeParts(sourceAttribute, targetAttribute);
 		}
 		// Sinon, partitionnement aleatoire des parties sources
 		else
@@ -2458,18 +2298,7 @@ void KWDataGridManager::ExportRandomAttributeParts(KWDataGrid* targetDataGrid, K
 		if (sourceAttribute->GetPartNumber() <= nPartNumber)
 		{
 			// Transfert du parametrage des parties de l'attribut
-			sourcePart = sourceAttribute->GetHeadPart();
-			while (sourcePart != NULL)
-			{
-				// Creation de la partie cible
-				targetPart = targetAttribute->AddPart();
-
-				// Transfert des valeurs de la partie cible
-				targetPart->GetVarPartSet()->CopyFrom(sourcePart->GetVarPartSet());
-
-				// Partie suivante
-				sourceAttribute->GetNextPart(sourcePart);
-			}
+			InitialiseAttributeParts(sourceAttribute, targetAttribute);
 		}
 		// Sinon, partitionnement aleatoire des parties sources
 		else
@@ -2544,17 +2373,13 @@ void KWDataGridManager::AddRandomAttributes(KWDataGrid* targetDataGrid, const KW
 	require(CheckAttributes(mandatoryDataGrid));
 	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
 
-	// Export de la granularite
-	targetDataGrid->SetGranularity(sourceDataGrid->GetGranularity());
-
-	// Initialisation de la grille cible a partir de la grille initiale
+	// Calcul du nombre d'attribut a exporter
 	nAttributeNumber = mandatoryDataGrid->GetAttributeNumber();
 	if (nAttributeNumber < nRequestedAttributeNumber)
 		nAttributeNumber = nRequestedAttributeNumber;
-	targetDataGrid->Initialize(nAttributeNumber, sourceDataGrid->GetTargetValueNumber());
 
-	// Initialisation des valeurs cibles
-	InitialiseTargetValues(sourceDataGrid, targetDataGrid);
+	// Initialisation de la grille cible
+	InitialiseDataGrid(sourceDataGrid, targetDataGrid, nAttributeNumber);
 
 	// Creation d'un vecteur d'index d'attributs cibles choisis aleatoirement,
 	// parmi les attribut non deja present dans les attributs obligatoires
@@ -2624,17 +2449,13 @@ void KWDataGridManager::AddRandomParts(KWDataGrid* targetDataGrid, const KWDataG
 		// Recherche des attributs cible, initial et source
 		targetAttribute = targetDataGrid->GetAttributeAt(nAttribute);
 
-		// Recherche de l'attribut obligatoire correspondant
-		mandatoryAttribute = mandatoryDataGrid->SearchAttribute(targetAttribute->GetAttributeName());
-		check(mandatoryAttribute);
-
 		// Recherche de l'attribut source correspondant
 		sourceAttribute = sourceDataGrid->SearchAttribute(targetAttribute->GetAttributeName());
 		check(sourceAttribute);
-
-		// Verifications d'integrite
-		check(sourceAttribute);
 		assert(sourceAttribute->GetAttributeType() == targetAttribute->GetAttributeType());
+
+		// Recherche de l'attribut obligatoire correspondant
+		mandatoryAttribute = mandatoryDataGrid->SearchAttribute(targetAttribute->GetAttributeName());
 
 		// Nombre de partie demandees en fonction du type de l'attribut
 		if (sourceAttribute->GetAttributeType() == KWType::Continuous)
@@ -2712,24 +2533,7 @@ void KWDataGridManager::AddRandomAttributeParts(KWDataGrid* targetDataGrid, KWDG
 	else if (nAddedPartNumber == 0)
 	{
 		// Transfert du parametrage des parties de l'attribut
-		mandatoryPart = mandatoryAttribute->GetHeadPart();
-		while (mandatoryPart != NULL)
-		{
-			// Creation de la partie cible
-			targetPart = targetAttribute->AddPart();
-
-			// Transfert des valeurs de la partie cible
-			if (mandatoryAttribute->GetAttributeType() == KWType::Continuous)
-				targetPart->GetInterval()->CopyFrom(mandatoryPart->GetInterval());
-			// CH IV Begin
-			else if (mandatoryAttribute->GetAttributeType() == KWType::Symbol)
-				targetPart->GetValueSet()->CopyFrom(mandatoryPart->GetValueSet());
-			else
-				targetPart->GetVarPartSet()->CopyFrom(mandatoryPart->GetVarPartSet());
-			// Avant integration coclustering IV
-			// targetPart->GetValueSet()->CopyFrom(mandatoryPart->GetValueSet()); CH IV End Partie suivante
-			mandatoryAttribute->GetNextPart(mandatoryPart);
-		}
+		InitialiseAttributeParts(mandatoryAttribute, targetAttribute);
 	}
 	// Partition aleatoire des bornes des intervalles (en rangs) dans le cas continu
 	else if (sourceAttribute->GetAttributeType() == KWType::Continuous)
@@ -2819,23 +2623,11 @@ void KWDataGridManager::AddRandomAttributeParts(KWDataGrid* targetDataGrid, KWDG
 	else if (sourceAttribute->GetAttributeType() == KWType::Symbol)
 	// CH IV End
 	{
-		// S'il y a moins de valeurs que de partie a constituer, on recopie directement
-		// les meme parties
+		// S'il y a moins de valeurs que de partie a constituer, on recopie directement les meme parties
 		if (sourceAttribute->GetPartNumber() <= mandatoryAttribute->GetPartNumber() + nAddedPartNumber)
 		{
 			// Transfert du parametrage des parties de l'attribut
-			sourcePart = sourceAttribute->GetHeadPart();
-			while (sourcePart != NULL)
-			{
-				// Creation de la partie cible
-				targetPart = targetAttribute->AddPart();
-
-				// Transfert des valeurs de la partie cible
-				targetPart->GetValueSet()->CopyFrom(sourcePart->GetValueSet());
-
-				// Partie suivante
-				sourceAttribute->GetNextPart(sourcePart);
-			}
+			InitialiseAttributeParts(sourceAttribute, targetAttribute);
 		}
 		// Sinon, partitionnement aleatoire des parties sources
 		else
@@ -2901,23 +2693,11 @@ void KWDataGridManager::AddRandomAttributeParts(KWDataGrid* targetDataGrid, KWDG
 	// CH IV Begin
 	else
 	{
-		// S'il y a moins de parties sources que de partie a constituer, on recopie directement
-		// les meme parties
+		// S'il y a moins de parties sources que de partie a constituer, on recopie directement les meme parties
 		if (sourceAttribute->GetPartNumber() <= mandatoryAttribute->GetPartNumber() + nAddedPartNumber)
 		{
 			// Transfert du parametrage des parties de l'attribut
-			sourcePart = sourceAttribute->GetHeadPart();
-			while (sourcePart != NULL)
-			{
-				// Creation de la partie cible
-				targetPart = targetAttribute->AddPart();
-
-				// Transfert des valeurs de la partie cible
-				targetPart->GetVarPartSet()->CopyFrom(sourcePart->GetVarPartSet());
-
-				// Partie suivante
-				sourceAttribute->GetNextPart(sourcePart);
-			}
+			InitialiseAttributeParts(sourceAttribute, targetAttribute);
 		}
 		// Sinon, partitionnement aleatoire des parties sources
 		else
@@ -2998,14 +2778,8 @@ void KWDataGridManager::BuildDataGridFromUnivariateStats(KWDataGrid* targetDataG
 	require(sourceDataGrid->SearchAttribute(attributeStats->GetAttributeName()) != NULL);
 	require(attributeStats->GetPreparedDataGridStats()->GetSourceAttributeNumber() == 1);
 
-	// Export de la granularite
-	targetDataGrid->SetGranularity(sourceDataGrid->GetGranularity());
-
-	// Initialisation de la grille cible avec le nombre d'attributs demandes
-	targetDataGrid->Initialize(1, sourceDataGrid->GetTargetValueNumber());
-
-	// Initialisation des valeurs cibles
-	InitialiseTargetValues(sourceDataGrid, targetDataGrid);
+	// Initialisation de la grille cible
+	InitialiseDataGrid(sourceDataGrid, targetDataGrid, 1);
 
 	// Initialisation de l'attribut
 	targetAttribute = targetDataGrid->GetAttributeAt(0);
@@ -3036,9 +2810,6 @@ boolean KWDataGridManager::BuildDataGridFromClassStats(KWDataGrid* targetDataGri
 	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
 	require(classStats != NULL);
 	require(classStats->GetInformativeAttributeNumber() > 0);
-
-	// Export de la granularite
-	targetDataGrid->SetGranularity(sourceDataGrid->GetGranularity());
 
 	// Calcul du nombre d'attributs a prendre en compte
 	nAttributeNumber = sourceDataGrid->GetAttributeNumber();
@@ -3102,11 +2873,8 @@ boolean KWDataGridManager::BuildDataGridFromClassStats(KWDataGrid* targetDataGri
 	bOk = oaTargetAttributeStats.GetSize() >= 2;
 	if (bOk)
 	{
-		// Initialisation de la grille cible avec le nombre d'attributs demandes
-		targetDataGrid->Initialize(oaTargetAttributeStats.GetSize(), sourceDataGrid->GetTargetValueNumber());
-
-		// Initialisation des valeurs cibles
-		InitialiseTargetValues(sourceDataGrid, targetDataGrid);
+		// Initialisation de la grille cible
+		InitialiseDataGrid(sourceDataGrid, targetDataGrid, oaTargetAttributeStats.GetSize());
 
 		// Creation des partitions
 		for (nAttribute = 0; nAttribute < oaTargetAttributeStats.GetSize(); nAttribute++)
@@ -3149,9 +2917,6 @@ boolean KWDataGridManager::BuildDataGridFromUnivariateProduct(KWDataGrid* target
 	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
 	require(classStats != NULL);
 	require(classStats->GetInformativeAttributeNumber() > 0);
-
-	// Export de la granularite
-	targetDataGrid->SetGranularity(sourceDataGrid->GetGranularity());
 
 	// Nombre d'instance
 	nInstanceNumber = sourceDataGrid->GetGridFrequency();
@@ -3219,11 +2984,8 @@ boolean KWDataGridManager::BuildDataGridFromUnivariateProduct(KWDataGrid* target
 	bOk = oaSelectedAtttributes.GetSize() >= 2;
 	if (bOk)
 	{
-		// Initialisation de la grille cible avec le nombre d'attributs demandes
-		targetDataGrid->Initialize(oaSelectedAtttributes.GetSize(), sourceDataGrid->GetTargetValueNumber());
-
-		// Initialisation des valeurs cibles
-		InitialiseTargetValues(sourceDataGrid, targetDataGrid);
+		// Initialisation de la grille cible
+		InitialiseDataGrid(sourceDataGrid, targetDataGrid, oaSelectedAtttributes.GetSize());
 
 		// Creation des partitions
 		for (nAttribute = 0; nAttribute < oaSelectedAtttributes.GetSize(); nAttribute++)
@@ -4177,13 +3939,20 @@ void KWDataGridManager::Test(const KWDataGrid* dataGrid)
 	}
 }
 
-void KWDataGridManager::InitialiseTargetValues(const KWDataGrid* originDataGrid, KWDataGrid* targetDataGrid) const
+void KWDataGridManager::InitialiseDataGrid(const KWDataGrid* originDataGrid, KWDataGrid* targetDataGrid,
+					   int nAttributeNumber) const
 {
 	int nTarget;
 
 	require(originDataGrid != NULL);
-	require(targetDataGrid != NULL);
-	require(targetDataGrid->GetTargetValueNumber() == originDataGrid->GetTargetValueNumber());
+	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
+	require(nAttributeNumber >= 0);
+
+	// Export de la granularite
+	targetDataGrid->SetGranularity(originDataGrid->GetGranularity());
+
+	// Initialisation de la grille cible
+	targetDataGrid->Initialize(nAttributeNumber, originDataGrid->GetTargetValueNumber());
 
 	// Initialisation des valeurs cibles
 	for (nTarget = 0; nTarget < originDataGrid->GetTargetValueNumber(); nTarget++)
@@ -4206,11 +3975,9 @@ void KWDataGridManager::InitialiseAttribute(const KWDGAttribute* sourceAttribute
 	targetAttribute->SetAttributeTargetFunction(sourceAttribute->GetAttributeTargetFunction());
 	targetAttribute->SetInitialValueNumber(sourceAttribute->GetInitialValueNumber());
 	targetAttribute->SetGranularizedValueNumber(sourceAttribute->GetGranularizedValueNumber());
+	targetAttribute->InitializeCatchAllValueSet(sourceAttribute->GetCatchAllValueSet());
+	targetAttribute->SetOwnerAttributeName(sourceAttribute->GetOwnerAttributeName());
 	targetAttribute->SetCost(sourceAttribute->GetCost());
-
-	// Transfert du parametrage du fourre-tout
-	if (sourceAttribute->GetCatchAllValueSet() != NULL)
-		targetAttribute->InitializeCatchAllValueSet(sourceAttribute->GetCatchAllValueSet());
 
 	// Partage des partitions des attributs internes de la grille source
 	if (sourceAttribute->GetAttributeType() == KWType::VarPart)
@@ -4219,6 +3986,77 @@ void KWDataGridManager::InitialiseAttribute(const KWDGAttribute* sourceAttribute
 		targetAttribute->SetVarPartsShared(true);
 	}
 	ensure(targetAttribute->GetAttributeType() != KWType::VarPart or targetAttribute->GetInnerAttributes() != NULL);
+}
+
+void KWDataGridManager::InitialiseAttributeParts(const KWDGAttribute* sourceAttribute,
+						 KWDGAttribute* targetAttribute) const
+{
+	KWDGPart* sourcePart;
+	KWDGPart* targetPart;
+
+	require(CheckAttributesConsistency(sourceAttribute, targetAttribute));
+	require(targetAttribute->GetPartNumber() == 0);
+
+	// Recopie des parties de l'attribut source
+	sourcePart = sourceAttribute->GetHeadPart();
+	while (sourcePart != NULL)
+	{
+		// Creation de la partie cible
+		targetPart = targetAttribute->AddPart();
+
+		// Cas continu
+		if (sourceAttribute->GetAttributeType() == KWType::Continuous)
+			targetPart->GetInterval()->CopyFrom(sourcePart->GetInterval());
+		// Sinon : cas Symbol ou VarPart
+		else
+		{
+			if (sourceAttribute->GetAttributeType() == KWType::Symbol)
+				targetPart->GetValueSet()->CopyFrom(sourcePart->GetValueSet());
+			else
+				targetPart->GetVarPartSet()->CopyFrom(sourcePart->GetVarPartSet());
+
+			// Transfert du parametrage du groupe poubelle
+			if (sourcePart == sourceAttribute->GetGarbagePart())
+				targetAttribute->SetGarbagePart(targetPart);
+		}
+
+		// Partie suivante
+		sourceAttribute->GetNextPart(sourcePart);
+	}
+	assert(targetAttribute->GetPartNumber() == sourceAttribute->GetPartNumber());
+}
+
+void KWDataGridManager::InitialiseAttributeRandomParts(const KWDGAttribute* sourceAttribute,
+						       KWDGAttribute* targetAttribute) const
+{
+	require(CheckAttributesConsistency(sourceAttribute, targetAttribute));
+	require(targetAttribute->GetPartNumber() == 0);
+}
+
+void KWDataGridManager::InitialiseAttributeNullPart(const KWDGAttribute* sourceAttribute,
+						    KWDGAttribute* targetAttribute) const
+{
+	require(CheckAttributesConsistency(sourceAttribute, targetAttribute));
+	require(targetAttribute->GetPartNumber() == 0);
+}
+
+boolean KWDataGridManager::CheckAttributesConsistency(const KWDGAttribute* attribute1,
+						      const KWDGAttribute* attribute2) const
+{
+	boolean bOk = true;
+
+	require(attribute1 != NULL);
+	require(attribute2 != NULL);
+	require(attribute1 != attribute2);
+
+	// Comaraison sur les caracteristiques principale des attributs
+	bOk = bOk and attribute1->GetAttributeName() == attribute2->GetAttributeName();
+	bOk = bOk and attribute1->GetAttributeType() == attribute2->GetAttributeType();
+	bOk = bOk and attribute1->GetAttributeTargetFunction() == attribute2->GetAttributeTargetFunction();
+	bOk = bOk and attribute1->GetInitialValueNumber() == attribute2->GetInitialValueNumber();
+	bOk = bOk and attribute1->GetOwnerAttributeName() == attribute2->GetOwnerAttributeName();
+	bOk = bOk and attribute1->GetCost() == attribute2->GetCost();
+	return bOk;
 }
 
 void KWDataGridManager::ExportSymbolAttributeValueFrequencies(KWDGAttribute* targetAttribute) const

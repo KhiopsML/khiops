@@ -502,32 +502,12 @@ public:
 	// Renvoie -1 si attribut interne
 	int GetAttributeIndex() const;
 
-	// CH V9 TODO :
-	// Refactoring
-	// - supprimer le GetTrueValueNumber qui est desormais redondant avec le GetInitialValueNumber (est encore
-	// utilise dans les anciennes methodes de calcul de cout)
-	// - nGranularizedValueNumber : nombre de valeurs apres granularisation
-	// - nStoredValueNumber correspond aux modalites stockees
-	// en plus des valeurs vues dans les donnes la StarValue
-	// en moins les valeurs eventuellement nettoyees lors de la creation du fourre-tout en supervise
-
 	// Nombre initial de valeurs de l'attribut
 	// Attribut continu : nombre total d'instances
-	// Attribut categoriel : nombre de valeurs distinctes (la StarValue n'est plus comptee ici)
-	// On accede au nombre de valeurs distinctes avec la StarValue dans le cas categoriel
-	// via la methode GetStoredValueNumber()
-	// CH IV Begin
+	// Attribut categoriel : nombre de valeurs distinctes (sans la StarValue)
 	// Attribut parties de variables : nombre de parties de variables distinctes
-	// CH IV End
 	void SetInitialValueNumber(int nValue);
 	int GetInitialValueNumber() const;
-
-	// Nombre de valeurs stockees pour l'attribut (avec la valeur speciale en plus dans le cas categoriel)
-	int GetStoredValueNumber() const;
-
-	// CH V9 TODO a supprimer a terme
-	// Nombre de valeurs initiales reelles de l'attribut
-	int GetTrueValueNumber() const;
 
 	// Nomre de valeurs apres granularisation
 	// Attribut continu : nombre theorique de partiles Ng=2^G
@@ -594,14 +574,11 @@ public:
 	// Renvoie NULL si pas de fourre tout
 	KWDGValueSet* GetCatchAllValueSet() const;
 
-	// Initialisation du fourre-tout
-	// Sans recopie (creation a partir de la methode ConvertToCleanedValueSet)
-	void SetCatchAllValueSet(KWDGValueSet* valueSet);
-
-	// Avec recopie
+	// Initialisation du fourre-tout en le recopiant s'il est non NULL
 	void InitializeCatchAllValueSet(KWDGValueSet* valueSet);
 
 	// Acces au nombre de modalites du groupe fourre-tout
+	// Permet de memoriser sa taille, meme si on l'a nettoye
 	// Renvoie 0 si le groupe fourre-tout n'existe pas et sa taille s'il existe
 	void SetCatchAllValueNumber(int nValue);
 	int GetCatchAllValueNumber() const;
@@ -1003,11 +980,7 @@ public:
 	// Test de validite d'une valeur (si elle appartient a la partie)
 	boolean CheckValue(KWDGValue* value) const;
 
-	// CH V9 TODO
-	// Refactoring : distinguer nInitialValueNumber le nombre initial de valeurs
-	// nGranularizedValueNumber : le nombre de modalites apres granularisation
-	// nStoredValueNumber : le nombre de modalites stockees
-	// Nombre de valeurs
+	// Nombre de valeurs, y compris l'eventuelle modalite speciale StarValue
 	int GetValueNumber() const;
 
 	// Test si la partie est la partie par defaut (si elle contient la valeur speciale)
@@ -1035,7 +1008,7 @@ public:
 	// En sortie : un KWDGValueSet qui contient les valeurs autres que celles conservees
 	KWDGValueSet* ConvertToCleanedValueSet();
 
-	// Calue et renvoie un ValueSet compresse avec la modalite d'effectif le plus eleve et la StarValue
+	// Calcule et renvoie un ValueSet compresse avec la modalite d'effectif le plus eleve et la StarValue
 	// Ne modifie pas le ValueSet
 	KWDGValueSet* ComputeCleanedValueSet() const;
 
@@ -1248,7 +1221,7 @@ public:
 	// Partie de variable
 	KWDGPart* GetVarPart() const;
 
-	// Effectif lie a la partie de variable
+	// Effectif lie a la partie de variable, qui est gere par la partie de variable elle-meme
 	void SetVarPartFrequency(int nFrequency);
 	int GetVarPartFrequency() const;
 
@@ -1307,6 +1280,9 @@ public:
 
 	// Calcul du nombre total de parties de variable sur l'ensemble des attributs internes
 	int ComputeTotalInnerAttributeVarParts() const;
+
+	// Tri des parties des attributs internes
+	void SortInnerAttributeParts() const;
 
 	// Verification du tri des parties des attributs internes
 	// Test couteux, a utiliser essentiellement dans les assertions
@@ -1726,24 +1702,6 @@ inline int KWDGAttribute::GetGranularizedValueNumber() const
 	return nGranularizedValueNumber;
 }
 
-inline int KWDGAttribute::GetStoredValueNumber() const
-{
-	if (nAttributeType == KWType::Symbol)
-		return nInitialValueNumber + 1;
-	else
-		return nInitialValueNumber;
-}
-
-inline int KWDGAttribute::GetTrueValueNumber() const
-{
-	// CH Refactoring: nettoyer
-	// if (nAttributeType == KWType::Symbol)
-	//	return nInitialValueNumber - 1;
-	// else
-	// Desormais nInitialValueNumber est le TrueValueNumber
-	return nInitialValueNumber;
-}
-
 inline void KWDGAttribute::SetCost(double dValue)
 {
 	require(dValue >= 0);
@@ -1784,7 +1742,8 @@ inline void KWDGAttribute::GetPrevPart(KWDGPart*& part) const
 
 inline KWDGPart* KWDGAttribute::GetGarbagePart() const
 {
-	// CH V9 MB TODO: expliquer pourquoi il n'y a pas de require(nAttributeType == KWType::Symbol)
+	// Pas de require strict sur le type d'attribut, pour simplifier l'usage de cette methode
+	require(nAttributeType == KWType::Symbol or nAttributeType == KWType::VarPart or garbagePart == NULL);
 	return garbagePart;
 }
 
@@ -1811,27 +1770,26 @@ inline int KWDGAttribute::GetGarbageModalityNumber() const
 
 inline KWDGValueSet* KWDGAttribute::GetCatchAllValueSet() const
 {
-	// CH V9 MB TODO: expliquer pourquoi il n'y a pas de require(nAttributeType == KWType::Symbol)
-	// require(nAttributeType == KWType::Symbol);
+	// Pas de require strict sur le type d'attribut, pour simplifier l'usage de cette methode
+	require(nAttributeType == KWType::Symbol or catchAllValueSet == NULL);
 	return catchAllValueSet;
-}
-
-inline void KWDGAttribute::SetCatchAllValueSet(KWDGValueSet* valueSet)
-{
-	require(nAttributeType == KWType::Symbol);
-	if (catchAllValueSet != NULL)
-		delete catchAllValueSet;
-	catchAllValueSet = valueSet;
 }
 
 inline void KWDGAttribute::InitializeCatchAllValueSet(KWDGValueSet* valueSet)
 {
-	require(nAttributeType == KWType::Symbol);
+	// Pas de require strict sur le type d'attribut, pour simplifier l'usage de cette methode
+	require(nAttributeType == KWType::Symbol or catchAllValueSet == NULL);
+	require(nAttributeType == KWType::Symbol or valueSet == NULL);
 
 	if (catchAllValueSet != NULL)
 		delete catchAllValueSet;
-	catchAllValueSet = new KWDGValueSet;
-	catchAllValueSet->CopyFrom(valueSet);
+	if (valueSet == NULL)
+		catchAllValueSet = NULL;
+	else
+	{
+		catchAllValueSet = new KWDGValueSet;
+		catchAllValueSet->CopyFrom(valueSet);
+	}
 }
 
 inline void KWDGAttribute::SetCatchAllValueNumber(int nValue)

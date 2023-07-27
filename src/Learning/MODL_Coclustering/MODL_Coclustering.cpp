@@ -30,7 +30,7 @@ int main(int argc, char** argv)
 	CCLearningProject learningProject;
 
 	// Choix du repertoire de lancement pour le debugage sous Windows (a commenter apres fin du debug)
-	// SetWindowsDebugDir("y_CoclusteringIV_Standard", "IrisMissingValues");
+	// SetWindowsDebugDir("y_CoclusteringIV_Standard", "Iris");
 
 	// MemSetAllocIndexExit(1290133);
 
@@ -41,8 +41,7 @@ int main(int argc, char** argv)
 	// Lancement du projet
 	learningProject.Start(argc, argv);
 
-	// On renvoie 0 si tout s'est bien passe, 1 en cas de FatalError (dans Standard.cpp) et 2 si il y eu au moins
-	// une erreur
+	// On renvoie 0 si tout s'est bien passe, 1 en cas de FatalError (dans Standard.cpp) et 2 si il y eu au moins une erreur
 	if (GetProcessId() == 0 and Global::IsAtLeastOneError())
 		return EXIT_FAILURE + 1;
 	else

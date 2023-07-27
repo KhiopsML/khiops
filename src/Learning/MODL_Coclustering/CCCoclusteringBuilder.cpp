@@ -2819,9 +2819,9 @@ boolean CCCoclusteringBuilder::CheckMemoryForDataGridOptimization(KWDataGrid* in
 		if (lPartNumber > lInitialMaxPartNumber)
 			lInitialMaxPartNumber = lPartNumber;
 
-		// Nombre total de valeurs
+		// Nombre total de valeurs categorielles
 		if (dgAttribute->GetAttributeType() == KWType::Symbol)
-			lTotalValueNumber += dgAttribute->GetStoredValueNumber();
+			lTotalValueNumber += dgAttribute->GetInitialValueNumber();
 	}
 
 	// Prise en compte d'une grille de travail et d'une grille pour la meilleure solution

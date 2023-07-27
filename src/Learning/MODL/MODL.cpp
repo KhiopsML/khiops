@@ -82,8 +82,7 @@ int main(int argc, char** argv)
 	// Nombre total d'interruptions utilisateurs
 	// cout << "Interruption request number: " << TaskProgression::GetInterruptionRequestNumber() << endl;
 
-	// On renvoie 0 si tout s'est bien passe, 1 en cas de FatalError (dans Standard.cpp) et 2 si il y eu au moins
-	// une erreur
+	// On renvoie 0 si tout s'est bien passe, 1 en cas de FatalError (dans Standard.cpp) et 2 si il y eu au moins une erreur
 	if (GetProcessId() == 0 and Global::IsAtLeastOneError())
 		return EXIT_FAILURE + 1;
 	else
