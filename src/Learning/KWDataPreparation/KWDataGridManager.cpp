@@ -1570,6 +1570,7 @@ void KWDataGridManager::ExportFrequencyTableFromOneAttribute(const KWFrequencyVe
 	nSourceValueNumber = oaParts.GetSize();
 	nTargetValueNumber = 0;
 
+	// Parametrage de la table d'effectif
 	kwFrequencyTable->SetFrequencyVectorCreator(kwfvCreator->Clone());
 	kwFrequencyTable->SetFrequencyVectorNumber(nSourceValueNumber);
 	kwFrequencyTable->SetInitialValueNumber(oneAttributeDataGrid.GetAttributeAt(0)->GetInitialValueNumber());
@@ -2034,9 +2035,6 @@ void KWDataGridManager::ExportPartsForAttribute(KWDataGrid* targetDataGrid, cons
 		assert(targetDataGrid->SearchAttribute(sAttributeName) == NULL);
 		sourceAttribute = sourceDataGrid->GetInnerAttributes()->LookupInnerAttribute(sAttributeName);
 		targetAttribute = targetDataGrid->GetInnerAttributes()->LookupInnerAttribute(sAttributeName);
-
-		//DDD
-		cout << "ExportPartsForAttribute Inner " << sAttributeName << endl;
 	}
 	assert(targetAttribute->GetPartNumber() == 0);
 
@@ -4217,7 +4215,6 @@ void KWDataGridManager::InitialiseAttribute(const KWDGAttribute* sourceAttribute
 	// Partage des partitions des attributs internes de la grille source
 	if (sourceAttribute->GetAttributeType() == KWType::VarPart)
 	{
-		//DDD targetAttribute->SetInnerAttributes(sourceDataGrid->GetInnerAttributes());
 		targetAttribute->SetInnerAttributes(sourceAttribute->GetInnerAttributes());
 		targetAttribute->SetVarPartsShared(true);
 	}
