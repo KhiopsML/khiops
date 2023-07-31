@@ -7,6 +7,7 @@
 ObjectArray* SystemFileDriverCreator::oaSystemFileDriver = NULL;
 SystemFileDriverANSI SystemFileDriverCreator::driverANSI;
 int SystemFileDriverCreator::nExternalDriverNumber = 0;
+boolean SystemFileDriverCreator::bIsRegistered = false;
 
 /////////////////////////////////////////////
 // Implementation de la classe SystemFileDriverCreator
@@ -24,7 +25,6 @@ int SystemFileDriverCreator::RegisterExternalDrivers()
 	int i;
 	int nDriver;
 	ALString sTmp;
-	static boolean bIsRegistered = false;
 
 	require(not bIsRegistered);
 

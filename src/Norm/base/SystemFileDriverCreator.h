@@ -18,6 +18,9 @@ public:
 	// Retourne le nombre de drivers correctement instancies
 	static int RegisterExternalDrivers();
 
+	// Renvoie true su les dribers on ete instanicies (correctement ou non)
+	static boolean IsExternalDriversRegistered();
+
 	// Retourne le nombre de drivers instancies a partir de bibliotheques dynamiques
 	static int GetExternalDriverNumber();
 
@@ -54,4 +57,11 @@ protected:
 	// Nombre de drivers externes, different de la taille de oaSystemFileDriver car ce tableau
 	// contient egalement le drivers objets
 	static int nExternalDriverNumber;
+
+	static boolean bIsRegistered;
 };
+
+inline boolean SystemFileDriverCreator::IsExternalDriversRegistered()
+{
+	return bIsRegistered;
+}
