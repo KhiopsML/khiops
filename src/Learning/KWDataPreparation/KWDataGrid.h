@@ -802,7 +802,7 @@ public:
 	// Services divers
 
 	// Methode avancee: mise a jour directe de l'effectif de la partie
-	// Attention, cela doit correspondre exactement au cumul des effectifs des cellules de la parties
+	// Attention, cela doit correspondre exactement au cumul des effectifs des cellules de la partie
 	void SetPartFrequency(int nValue);
 
 	// Test si la partie est une sous-partie de l'autre partie en parametre
