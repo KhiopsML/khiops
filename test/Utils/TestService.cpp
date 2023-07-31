@@ -25,9 +25,38 @@ inline ALString GetRootDir()
 	return sRootDir;
 }
 
-void SearchAndReplace(char* sString, const ALString& sSearch, const ALString& sReplace)
+void SearchAndReplace(char* sInputString, const ALString& sSearchString, const ALString& sReplaceString)
 {
-	// TODO
+	int nReplacePos;
+	ALString sBeginString;
+	ALString sEndString;
+	ALString sOutputString;
+
+	// Remplacement iteratif des pattern trouves a partir de la chaine pretraitee precedente
+	nReplacePos = 0;
+	sBeginString = "";
+	sEndString = sInputString;
+	sOutputString = sBeginString;
+	while (nReplacePos >= 0 and sEndString.GetLength() > 0)
+	{
+		nReplacePos = sEndString.Find(sSearchString);
+
+		// Si non trouve, on garde la fin de la chaine en cours de traitement
+		if (nReplacePos == -1)
+			sOutputString += sEndString;
+		// Sinon, en prend le debut puis la valeur de remplacement
+		else
+		{
+			sBeginString = sEndString.Left(nReplacePos);
+			sEndString = sEndString.Right(sEndString.GetLength() - sSearchString.GetLength() - nReplacePos);
+			sOutputString += sBeginString;
+			sOutputString += sReplaceString;
+		}
+	}
+	char* test = sOutputString.GetBuffer(sOutputString.GetLength());
+	sInputString[0] = '\0';
+	memcpy(sInputString, test, sOutputString.GetLength());
+	sInputString[sOutputString.GetLength()] = '\0';
 }
 
 boolean FileCompareForTest(const ALString& sFileNameReference, const ALString& sFileNameTest)
@@ -43,6 +72,7 @@ boolean FileCompareForTest(const ALString& sFileNameReference, const ALString& s
 	char lineRef[sizeMax];
 	char lineTest[sizeMax];
 	const ALString sRootDir = GetRootDir();
+	const ALString sTmpDir = FileService::GetTmpDir();
 
 	// Initialisations
 	bOk1 = false;
@@ -87,7 +117,11 @@ boolean FileCompareForTest(const ALString& sFileNameReference, const ALString& s
 				bSame = false;
 				break;
 			}
+
+			// Remplacement du repêrtoire de travail par @ROOT_DIR@
+			// et du repertoire temporaire par @TMP_DIR@
 			SearchAndReplace(lineTest, sRootDir, "@ROOT_DIR@");
+			SearchAndReplace(lineTest, sTmpDir, "@TMP_DIR@");
 
 			// Si les 2 lignes sont differentes et qu'elles ne commencent pas toutes
 			// les 2 par SYS, les fichiers sont differents
@@ -110,16 +144,4 @@ boolean FileCompareForTest(const ALString& sFileNameReference, const ALString& s
 	if (fileTest != NULL)
 		fclose(fileTest);
 	return bSame;
-}
-
-inline void TestDup()
-{
-	int fdInit = dup(STDOUT_FILENO);
-	int fd = open("file", O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-	dup(fd);
-	close(fd);
-	dup2(fd, STDOUT_FILENO); // make stdout go to file
-
-	dup2(fdInit, 1);
-	close(fdInit);
 }

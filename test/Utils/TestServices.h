@@ -66,7 +66,8 @@
                 /* Lancement de la methode de test de la classe */                         \
                 method_to_test;                                                            \
                                                                                            \
-                   /* On restitue cout dans son etat initial */                            \
+                /* On restitue cout dans son etat initial */                               \
+                fflush(stdout);                                                            \
                	dup2(fdInit, STDOUT_FILENO);                                               \
 	        close(fdInit);                                                             \
                                                                                            \
