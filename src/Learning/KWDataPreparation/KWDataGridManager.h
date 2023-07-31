@@ -118,10 +118,6 @@ public:
 	// (partition des rangs pour les attributs numeriques, des valeurs pour les symboliques).
 	void ExportRandomParts(KWDataGrid* targetDataGrid, int nMeanAttributePartNumber) const;
 
-	// Export d'une partition aleatoire des parties pour un attribut donne
-	void ExportRandomAttributeParts(KWDataGrid* targetDataGrid, KWDGAttribute* sourceAttribute,
-					KWDGAttribute* targetAttribute, int nPartNumber) const;
-
 	// Export d'un sous-ensemble aleatoire des attributs (plus les specifications des classes cibles)
 	// en partant d'un ensemble d'attributs obligatoires.
 	void AddRandomAttributes(KWDataGrid* targetDataGrid, const KWDataGrid* mandatoryDataGrid,
@@ -138,61 +134,40 @@ public:
 			    int nRequestedContinuousPartNumber, int nRequestedSymbolPartNumber,
 			    double dMinPercentageAddedPart) const;
 
-	// Ajout aleatoire de partie dans une partition pour un attribut donne
-	void AddRandomAttributeParts(KWDataGrid* targetDataGrid, KWDGAttribute* sourceAttribute,
-				     KWDGAttribute* mandatoryAttribute, KWDGAttribute* targetAttribute,
-				     int nRequestedPartNumber) const;
-
 	///////////////////////////////////////////////////////////////////////////
 	// Construction d'une grille de donnees cible en granularisant
 	// la grille de donnees source
 
-	// Initialisation du dictionnaire des quantiles builders
+	// Initialisation du dictionnaire des quantile builders
 	// Un quantile builder (Group ou Interval) est initialise par attribut de la grille source.
 	// CH IV Begin
 	// Pour un attribut categoriel, les groupes sont des groupes de modalites
-	// Pour un attribut de type Parties de variables, les groupes sont des parties de variable
+	// Pour un attribut de type parties de variables, les groupes sont des parties de variable
 	// CH IV End
 	// Il est range dans un dictionnaire a partir du nom de l'attribut source
 	// Une fois initialises, ces quantile builders sont utilises pour les granularisations
 	// En sortie, le vecteur ivMaxPartNumbers contient pour chaque attribut le nombre maximal
 	// de parties attendu apres granularisation
 	// Pour un attribut numerique, il s'agit du nombre de valeurs distinctes
-	// Pour un attribut categoriel,  il s'agit du nombre de parties dont l'effectif
-	//  est > 1 + 1 en presence de singletons
-	void InitializeQuantileBuildersBeforeGranularization(ObjectDictionary* odQuantilesBuilders,
-							     IntVector* ivMaxPartNumbers) const;
+	// Pour un attribut categoriel,  il s'agit du nombre de parties dont l'effectif est > 1,
+	// plus une partie en presence de singletons
+	void InitializeQuantileBuilders(ObjectDictionary* odQuantilesBuilders, IntVector* ivMaxPartNumbers) const;
 
-	// Export d'une grille granularisee pour une granularite commune a tous ses attributs (attribut, parties et
-	// cellules)
+	// Export d'une grille granularisee pour une granularite commune a tous ses attributs
+	// (attribut, parties et cellules)
 	void ExportGranularizedDataGrid(KWDataGrid* targetDataGrid, int nGranularity,
-					ObjectDictionary* odQuantilesBuilders) const;
-
-	// Export des parties granularisees (les attributs de la grille cible sont deja exportes)
-	void ExportGranularizedParts(KWDataGrid* targetDataGrid, int nGranularity,
-				     ObjectDictionary* odQuantilesBuilders) const;
-
-	// Export d'une partition definie par une granularite pour un attribut donne
-	// Met a jour le nombre de partiles (nPartileNumber) effectivement obtenue pour cette granularite
-	// void ExportGranularizedPartsForAttribute(KWDataGrid* targetDataGrid, KWDGAttribute* sourceAttribute,
-	// KWDGAttribute* targetAttribute, int nGranularity) const;
-	void ExportGranularizedPartsForContinuousAttribute(KWDataGrid* targetDataGrid, KWDGAttribute* sourceAttribute,
-							   KWDGAttribute* targetAttribute, int nGranularity,
-							   KWQuantileIntervalBuilder* quantileIntervalBuilder) const;
-	void ExportGranularizedPartsForSymbolAttribute(KWDataGrid* targetDataGrid, KWDGAttribute* sourceAttribute,
-						       KWDGAttribute* targetAttribute, int nGranularity,
-						       KWQuantileGroupBuilder* quantileGroupBuilder) const;
+					const ObjectDictionary* odQuantilesBuilders) const;
 
 	// CH IV Begin
 	// Calcul la grille obtenue apres fusion des PV d'un meme cluster
-	// dans le cas numérique, fusion des intervalles contigues
-	// dans le cas catégoriel fusion des modalites de la même variable categorielle
+	// dans le cas numerique, fusion des intervalles contigues
+	// dans le cas categoriel fusion des modalites de la même variable categorielle
 	// Creation d'un nouveau KWDGInnerAttributes qui doit etre detruit par l'appelant
 	// En sortie : renvoie la variation de cout entre la grille source et la grille fusionnee
 	double ExportMergedDataGridForVarPartAttributes(KWDataGrid* targetDataGrid,
 							const KWDataGridCosts* dataGridCosts) const;
 
-	// Effectue la fusion des PV : dans le cas numérique, fusion des intervalles contigues et dans le cas catégoriel
+	// Effectue la fusion des PV : dans le cas numerique, fusion des intervalles contigues et dans le cas categoriel
 	// fusion des modalites de la même variable categorielle En sortie : renvoie la variation de cout cumulee pour
 	// les clusters impactes par les fusions de PV (ne prend pas en compte la variation du cout de partition)
 	double MergePartsForVarPartAttributes(KWDataGrid* targetDataGrid) const;
@@ -205,16 +180,12 @@ public:
 	// deja exportes) Les parties des attributs Symbol ou Continuous sont inchanges
 	void ExportGranularizedPartsForVarPartAttributes(KWDataGrid* targetDataGrid, int nGranularity,
 							 ObjectDictionary* odQuantilesBuilders) const;
-	void ExportGranularizedPartsForVarPartAttribute(KWDataGrid* targetDataGrid, KWDGAttribute* sourceAttribute,
-							KWDGAttribute* targetAttribute, int nGranularity,
-							KWQuantileGroupBuilder* quantileGroupBuilder) const;
 
 	// Construction d'un quantile builder pour chaque attribut interne dans un attribut de grille de type VarPart
 	// ivMaxPartNumbers : nombre maximal de parties pour chaque attribut interne. Utilise pour reperer quand on est
 	// arrive a la granularisation maxmimale
-	void
-	InitializeQuantileBuildersForVariablePartsPartitioning(ObjectDictionary* odInnerAttributesQuantilesBuilders,
-							       IntVector* ivMaxPartNumbers) const;
+	void InitializeInnerAttributesQuantileBuilders(ObjectDictionary* odInnerAttributesQuantilesBuilders,
+						       IntVector* ivMaxPartNumbers) const;
 
 	///////////////////////////////////////////////////////////////////////////
 	// Mise a jour des groupes de l'attribut VarPart d'une grille de type VarPart
@@ -281,12 +252,8 @@ public:
 
 	///////////////////////////////////////////////////////////////////////////
 	// Service de creation d'une table d'effectifs a partir d'un attribut
-	// Export d'un attribut sous la forme d'une table d'effectifs
-	// CH V9 TODO MB
-	// Pas le meme algo de construction que methodes
-	// {KWDGPOGrouper,KWDGPDiscretizer}::InitializeFrequencyTableFromDataGrid A changer ? A mutualiser ?
-	void ExportFrequencyTableFromOneAttribute(const KWFrequencyVector* kwfvCreator,
-						  KWFrequencyTable* kwFrequencyTable,
+	// Export d'un attribut sous la forme d'une table d'effectifs dense
+	void ExportFrequencyTableFromOneAttribute(KWFrequencyTable* kwFrequencyTable,
 						  const ALString& sAttributeName) const;
 
 	///////////////////////////////////////////////////////////////////////////
@@ -341,22 +308,52 @@ protected:
 	//  - attributs internes, en mode partages avec l'attribut source
 	void InitialiseAttribute(const KWDGAttribute* sourceAttribute, KWDGAttribute* targetAttribute) const;
 
+	//////////////////////////////////////////////////////////////////////////////////
+	// Services d'initialisation des parties d'un attribut
+
 	// Initialisation des parties pour un attribut venant d'etre initialise, sans partie, a partir d'un attribut valide
 	void InitialiseAttributeParts(const KWDGAttribute* sourceAttribute, KWDGAttribute* targetAttribute) const;
-
-	// Initialisation de parties aleatoires pour un attribut venant d'etre initialise, sans partie, a partir d'un attribut valide
-	// On effectue une parttion aleatoire en au maximum MaxPartNumber des partie des l'attribut source
-	void InitialiseAttributeRandomParts(const KWDGAttribute* sourceAttribute, KWDGAttribute* targetAttribute) const;
 
 	// Initialisation d'une unique parties pour un attribut venant d'etre initialise, sans partie, a partir d'un attribut valide
 	void InitialiseAttributeNullPart(const KWDGAttribute* sourceAttribute, KWDGAttribute* targetAttribute) const;
 
+	// Export d'une partition aleatoire des parties pour un attribut donne
+	void InitialiseAttributeRandomParts(const KWDGAttribute* sourceAttribute, KWDGAttribute* targetAttribute,
+					    int nPartNumber) const;
+
+	// Ajout aleatoire de partie dans une partition pour un attribut donne
+	void AddAttributeRandomParts(const KWDGAttribute* sourceAttribute, KWDGAttribute* mandatoryAttribute,
+				     KWDGAttribute* targetAttribute, int nRequestedPartNumber) const;
+
+	// Ajout de partie granularisee pour un attribut donne
+	void InitialiseAttributeGranularizedParts(const KWDGAttribute* sourceAttribute, KWDGAttribute* targetAttribute,
+						  int nGranularity, KWQuantileBuilder* quantileBuilder) const;
+	void InitialiseAttributeGranularizedContinuousParts(const KWDGAttribute* sourceAttribute,
+							    KWDGAttribute* targetAttribute, int nGranularity,
+							    KWQuantileIntervalBuilder* quantileIntervalBuilder) const;
+	void InitialiseAttributeGranularizedSymbolParts(const KWDGAttribute* sourceAttribute,
+							KWDGAttribute* targetAttribute, int nGranularity,
+							KWQuantileGroupBuilder* quantileGroupBuilder) const;
+	void InitialiseAttributeGranularizedVarPartParts(const KWDGAttribute* sourceAttribute,
+							 KWDGAttribute* targetAttribute, int nGranularity,
+							 KWQuantileGroupBuilder* quantileGroupBuilder) const;
+
+	// Test si on est dans le cas d'un attribut source pour l'analyse supervisee
+	boolean IsSupervisedInputAttribute(const KWDGAttribute* attribute) const;
+
 	// Verification que deux attributs sont coherents: meme nom, type...
 	boolean CheckAttributesConsistency(const KWDGAttribute* attribute1, const KWDGAttribute* attribute2) const;
 
+	//////////////////////////////////////////////////////////////////////////////////
+	// Services divers
+
+	// Creation et initialisation d'un quantile builder, et du nombre max de parties a quuantiliser
+	void CreateAttributeQuantileBuilder(const KWDGAttribute* attribute, KWQuantileBuilder*& quantileBuilder,
+					    int& nMaxPartNumber) const;
+
 	// Export des effectif des valeurs de la grille initiale vers un attribut categoriel entierement specifie
 	// La valeur speciale recoit pour effectif l'ensemble des effectifs manquants
-	void ExportSymbolAttributeValueFrequencies(KWDGAttribute* targetAttribute) const;
+	void ExportAttributeSymbolValueFrequencies(KWDGAttribute* targetAttribute) const;
 
 	// Tri des parties d'un attribut source symbolique, selon les groupements
 	// de ces parties dans un attribut cible compatible
@@ -364,7 +361,7 @@ protected:
 	// par groupe, et en ordre aleatoire a l'interieur de chaque groupe
 	//    oaSortedSourceParts: parties sources triees par groupe
 	//    oaSortedGroupedParts: parties groupees associees aux parties source
-	void SortAttributeParts(KWDGAttribute* sourceAttribute, KWDGAttribute* groupedAttribute,
+	void SortAttributeParts(const KWDGAttribute* sourceAttribute, KWDGAttribute* groupedAttribute,
 				ObjectArray* oaSortedSourceParts, ObjectArray* oaSortedGroupedParts) const;
 
 	// Tri des parties d'un attribut source de type VarPart, selon les groupements
@@ -373,7 +370,7 @@ protected:
 	// par groupe, et en ordre aleatoire a l'interieur de chaque groupe
 	//    oaSortedSourceParts: parties sources triees par groupe
 	//    oaSortedGroupedParts: parties groupees associees aux parties source
-	void SortVarPartAttributeParts(KWDGAttribute* sourceAttribute, KWDGAttribute* groupedAttribute,
+	void SortVarPartAttributeParts(const KWDGAttribute* sourceAttribute, KWDGAttribute* groupedAttribute,
 				       ObjectArray* oaSortedSourceParts, ObjectArray* oaSortedGroupedParts) const;
 	// CH IV End
 

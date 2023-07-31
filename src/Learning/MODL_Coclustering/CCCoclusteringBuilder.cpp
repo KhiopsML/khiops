@@ -608,8 +608,8 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 	// de type VarPart La grille initiale comporte un cluster par partie de variable pour ses attributs de
 	// grille de type VarPart
 	dataGridManager.SetSourceDataGrid(initialDataGrid);
-	dataGridManager.InitializeQuantileBuildersForVariablePartsPartitioning(&odInnerAttributesQuantileBuilders,
-									       &ivMaxPartNumbers);
+	dataGridManager.InitializeInnerAttributesQuantileBuilders(&odInnerAttributesQuantileBuilders,
+								  &ivMaxPartNumbers);
 
 	if (bDisplayPrePartitioning)
 	{

@@ -660,8 +660,6 @@ boolean KWDataGrid::Check() const
 	int nVarTypeAttributeNumber;
 	ALString sTmp;
 
-	// CH IV Refactoring: etendre les controles au cas individus x variables
-
 	// Initialisation des nombres d'attributs a verifier
 	nTargetAttributeNumber = 0;
 	nVarTypeAttributeNumber = 0;
@@ -5160,6 +5158,7 @@ void KWDGVarPartSet::CopyWithNewVarPartsFrom(const KWDGVarPartSet* sourceVarPart
 	KWDGAttribute* innerAttribute;
 
 	require(sourceVarPartSet != NULL);
+	require(targetInnerAttributes != NULL);
 
 	// Nettoyage des parties de variable actuelles
 	DeleteAllVarPartValues();
