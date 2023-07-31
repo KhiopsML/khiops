@@ -107,8 +107,9 @@ protected:
 
 	// Groupage des modalites pour une table d'effectifs preprocessee
 	// Modification de l'algorithme pour parcourir les differentes granularites et inserer eventuellement un groupe
-	// poubelle Reimplementation d'une methode virtuellle de KWGrouper CH V9 TODO Renommer et modifier description
-	// de la methode : avec la granularite, il n'y a plus de preprocessing manuel donc cette methode effectue un
+	// poubelle Reimplementation d'une methode virtuellle de KWGrouper
+	// CH V9 TODO Renommer et modifier description de la methode :
+	// avec la granularite, il n'y a plus de preprocessing manuel donc cette methode effectue un
 	// groupage sur la table initiale par parcours des granularites
 	void GroupPreprocessedTable(KWFrequencyTable* kwctSource, KWFrequencyTable*& kwctTarget,
 				    IntVector*& ivGroups) const override;

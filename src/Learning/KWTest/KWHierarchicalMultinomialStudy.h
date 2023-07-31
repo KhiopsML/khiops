@@ -126,8 +126,11 @@ protected:
 	// Methode redefinie, pour eviter la pre-granularisation des attributs numeriques
 	boolean CreateAttributeIntervals(const KWTupleTable* tupleTable, KWDGAttribute* dgAttribute) override;
 
-	// Export d'une grille granularisee pour une granularite commune a tous ses attributs (attribut, parties et
-	// cellules) Methode adaptee de KWDataGridManager
+	// Export d'une grille granularisee pour une granularite commune a tous ses attributs
+	//  (attribut, parties et cellules)
+	// Methode adaptee de KWDataGridManager
+	// CH IV Refactoring: maintenir cette classe, ou la supprimer?
+	// CH IV Refactoring: seule difference avec methode de KWDataGridManager (maintenant refactore...): PartileNumber vs Granularity???
 	void ExportGranularizedDataGrid(KWDataGrid* targetDataGrid, int nPartileNumber,
 					ObjectDictionary* odQuantilesBuilders) const;
 	void ExportGranularizedParts(KWDataGrid* targetDataGrid, int nPartileNumber,

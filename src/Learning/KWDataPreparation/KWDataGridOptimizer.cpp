@@ -182,7 +182,7 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 
 		// Initialisation des quantiles builders a partir de la grille source
 		dataGridManager.SetSourceDataGrid(initialDataGrid);
-		dataGridManager.InitializeQuantileBuildersBeforeGranularization(&odQuantileBuilders, &ivMaxPartNumbers);
+		dataGridManager.InitializeQuantileBuilders(&odQuantileBuilders, &ivMaxPartNumbers);
 
 		if (bDisplayResults)
 			cout << "ivMaxPartNumbers Granularisation\t" << ivMaxPartNumbers << flush;
