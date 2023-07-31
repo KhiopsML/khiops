@@ -1,6 +1,6 @@
 Begin test KNI
 KNI version: 110
-KNI full version: 10.1.4
+SYS KNI full version: 10.1.4
 Open stream @ROOT_DIR@/test/KNITest/ModelingIris.kdic SNB_Iris: 1
 Recode stream record Iris-setosa	Iris-setosa	0.9960418693	0.001979090503	0.001979040221: 0
 Recode stream record Iris-virginica	Iris-virginica	0.00198971666	0.03512915094	0.9628811324: 0

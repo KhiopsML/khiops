@@ -24,6 +24,6 @@ TEST(PLSerializer, int)
 	ASSERT_EQ(nIn, nOut);
 }
 
-KHIOPS_TEST(PLSerializer, full, PLSerializer::Test());
+KHIOPS_TEST(PLSerializer, full, PLSerializer::Test);
 
 } // namespace

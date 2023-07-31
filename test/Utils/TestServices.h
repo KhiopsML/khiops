@@ -7,9 +7,14 @@
 #include "gtest/gtest.h"
 #include <fcntl.h>
 
-// clang-format off
+#ifdef _WIN32
+#include "sys\stat.h"
+#endif
 
-
+#ifndef STDOUT_FILENO
+// Non defini sous Windows: file descriptor 1 == "stdout"
+#define STDOUT_FILENO 1
+#endif
 
 // Macro qui facilite l'ecriture d'un test unitaire lorsqu'on a deja une methode
 // de test qui ecrit ses resultats dans la sortie standard.
@@ -32,104 +37,26 @@
 // Le test est reussi lorsque les 2 fichiers sont identiques (a l'exception des
 // lignes qui commencent par "SYS" qui peuvent etre differentes)
 //
+// clang-format off
 #define KHIOPS_TEST(test_suite, test_name, method_to_test)                                 \
         TEST(test_suite, test_name)                                                        \
         {                                                                                  \
-                                                                                           \
-                ALString sTestFileName;                                                    \
-                boolean bOk;                                                               \
-                ALString sTmp;                                                             \
-                ALString sTestPath;                                                        \
-                ALString sFileName;                                                        \
-                FILE *stream;                                                              \
-                                                                                           \
-                /* Nommmage du ficher de sortie d'apres test suit et test name de          \
-                 * googleTest*/                                                            \
-                sFileName = sTmp + #test_suite + "_" + #test_name + ".txt";                \
-                                                                                           \
-                /* Le chemin des repertoires results et results.ref est deduit du chemin   \
-                 * du fichier cpp qui appelle cette macro */                               \
-                sTestPath = FileService::GetPathName(__FILE__);                            \
-                                                                                           \
-                /*Creation du repertoire results si necessaire */                          \
-                if (not FileService::DirExists(sTestPath + "results"))                     \
-                        FileService::CreateNewDirectory(sTestPath + "results");            \
-                sTestFileName =                                                            \
-                    sTestPath + "results" + FileService::GetFileSeparator() + sFileName;   \
-                                                                                           \
-                       /* Redirection de cout vers le stream dedie au batch */             \
-                int fdInit = dup(STDOUT_FILENO);                                           \
-	        int fd = open(sTestFileName, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);         \
-	        dup2(fd,STDOUT_FILENO);                                                    \
-	        close(fd);                                                                 \
-                                                                                           \
-                /* Lancement de la methode de test de la classe */                         \
-                method_to_test;                                                            \
-                                                                                           \
-                /* On restitue cout dans son etat initial */                               \
-                fflush(stdout);                                                            \
-               	dup2(fdInit, STDOUT_FILENO);                                               \
-	        close(fdInit);                                                             \
-                                                                                           \
-                /* comparaison du fichier issu de la sortie standrd avec le fichier de     \
-                 * reference */                                                            \
-                bOk = FileCompareForTest(                                                  \
-                   sTestPath + "results.ref" + FileService::GetFileSeparator() + sFileName \
-                   ,sTestFileName                                                          \
-                                         );                                                \
-                                                                                           \
-                EXPECT_TRUE(bOk);                                                          \
+        boolean bOk;                                                                       \
+        bOk = TestAndCompareResults(FileService::GetPathName(__FILE__),                    \
+                        #test_suite, #test_name, method_to_test);                          \
+        EXPECT_TRUE(bOk);                                                                  \
         }
+
+
 
 // Idem KHIOPS_TEST pour les avec parametre
 #define KHIOPS_TEST_P(test_suite, test_name, method_to_test)                               \
         TEST_P(test_suite, test_name)                                                      \
         {                                                                                  \
-                                                                                           \
-                ALString sTestFileName;                                                    \
-                boolean bOk;                                                               \
-                ALString sTmp;                                                             \
-                ALString sTestPath;                                                        \
-                ALString sFileName;                                                        \
-                FILE *stream;                                                              \
-                                                                                           \
-                /* Nommmage du ficher de sortie d'apres test suit et test name de          \
-                 * googleTest*/                                                            \
-                sFileName = sTmp + #test_suite + "_" + #test_name + ".txt";                \
-                                                                                           \
-                /* Le chemin des repertoires results et results.ref est deduit du chemin   \
-                 * du fichier cpp qui appelle cette macro */                               \
-                sTestPath = FileService::GetPathName(__FILE__);                            \
-                                                                                           \
-                /*Creation du repertoire results si necessaire */                          \
-                if (not FileService::DirExists(sTestPath + "results"))                     \
-                        FileService::CreateNewDirectory(sTestPath + "results");            \
-                sTestFileName =                                                            \
-                    sTestPath + "results" + FileService::GetFileSeparator() + sFileName;   \
-                                                                                           \
-                       /* Redirection de cout vers le stream dedie au batch */             \
-                int fdInit = dup(STDOUT_FILENO);                                           \
-	        int fd = open(sTestFileName, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);         \
-	        dup2(fd,STDOUT_FILENO);                                                    \
-	        close(fd);                                                                 \
-                                                                                           \
-                                                                                           \
-                                                                                           \
-                                                                                           \
-                /* Lancement de la methode de test de la classe */                         \
-                method_to_test;                                                            \
-                   /* On restitue cout dans son etat initial */                            \
-               	dup2(fdInit, STDOUT_FILENO);                                               \
-	        close(fdInit);                                                             \
-                                                                                           \
-                /* comparaison du fichier issu de la sortie standrd avec le fichier de     \
-                 * reference */                                                            \
-                bOk = FileCompareForTest(                                                  \
-                   sTestPath + "results.ref" + FileService::GetFileSeparator() + sFileName \
-                   ,sTestFileName                                                          \
-                                         );                                                \
-                                                                                           \
-                EXPECT_TRUE(bOk);                                                          \
+        boolean bOk;                                                                       \
+        bOk = TestAndCompareResults(FileService::GetPathName(__FILE__),                    \
+                        #test_suite, #test_name, method_to_test);                          \
+        EXPECT_TRUE(bOk);                                                                  \
         }
 
 // clang-format on
@@ -138,3 +65,7 @@
 // Les fichiers peuvent differer pour les lignes qui commencent par 'SYS'
 // Renvoie true si les 2 fichiers existent et sont identiques
 boolean FileCompareForTest(const ALString& sFileNameReference, const ALString& sFileNameTest);
+
+// Lance la methode de test et compare la sortie standard avec un fichier de reference
+boolean TestAndCompareResults(const char* sTestPath, const char* test_suite, const char* test_name,
+			      void (*method_to_test)());

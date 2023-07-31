@@ -2,6 +2,7 @@
 name: Run Unit Tests
 on:
   workflow_dispatch:
+  push:
 jobs:
   run-unit-tests:
     strategy:

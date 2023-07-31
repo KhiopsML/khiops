@@ -37,7 +37,7 @@ void KNITest(const char* sDictionaryFileName, const char* sDictionaryName, const
 	printf("Begin test KNI\n");
 
 	printf("KNI version: %d\n", KNIGetVersion());
-	printf("KNI full version: %s\n", KNIGetFullVersion());
+	printf("SYS KNI full version: %s\n", KNIGetFullVersion());
 
 	// Open stream
 	strcpy(sHeaderLine, "SepalLength	SepalWidth	PetalLength	PetalWidth	Class");
@@ -208,6 +208,6 @@ void Test()
 
 namespace
 {
-KHIOPS_TEST(KNI, full, ::Test());
+KHIOPS_TEST(KNI, full, ::Test);
 
 } // namespace

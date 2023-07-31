@@ -9,6 +9,6 @@
 namespace
 {
 
-KHIOPS_TEST(KWClass, full, KWClass::Test());
+KHIOPS_TEST(KWClass, full, KWClass::Test);
 
 } // namespace

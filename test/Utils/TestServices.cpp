@@ -119,9 +119,11 @@ boolean FileCompareForTest(const ALString& sFileNameReference, const ALString& s
 			}
 
 			// Remplacement du repêrtoire de travail par @ROOT_DIR@
-			// et du repertoire temporaire par @TMP_DIR@
+			// du repertoire temporaire par @TMP_DIR@
+			// et du separateur windows par le separateur unix
 			SearchAndReplace(lineTest, sRootDir, "@ROOT_DIR@");
 			SearchAndReplace(lineTest, sTmpDir, "@TMP_DIR@");
+			SearchAndReplace(lineTest, "\\", "/");
 
 			// Si les 2 lignes sont differentes et qu'elles ne commencent pas toutes
 			// les 2 par SYS, les fichiers sont differents
@@ -144,4 +146,79 @@ boolean FileCompareForTest(const ALString& sFileNameReference, const ALString& s
 	if (fileTest != NULL)
 		fclose(fileTest);
 	return bSame;
+}
+
+inline int p_dup(int fd)
+{
+#ifdef _WIN32
+	return _dup(fd);
+#else
+	return dup(fd);
+#endif
+}
+
+inline int p_dup2(int fd, int fd2)
+{
+#ifdef _WIN32
+	return _dup2(fd, fd2);
+#else
+	return dup2(fd, fd2);
+#endif
+}
+
+inline int p_fileno(FILE* __stream)
+{
+#ifdef _WIN32
+	return _fileno(__stream);
+#else
+	return fileno(__stream);
+#endif
+}
+
+boolean TestAndCompareResults(const char* sTestPath, const char* test_suite, const char* test_name,
+			      void (*method_to_test)())
+{
+	ALString sTestFileName;
+	boolean bOk;
+	ALString sTmp;
+	ALString sFileName;
+	FILE* stream;
+	int fdInit;
+	int fd;
+
+	// Nommmage du ficher de sortie d'apres test suit et test name de googleTest
+	sFileName = sTmp + test_suite + "_" + test_name + ".txt";
+
+	// Creation du repertoire results si necessaire
+	if (not FileService::DirExists(sTmp + sTestPath + "results"))
+		FileService::CreateNewDirectory(sTmp + sTestPath + "results");
+	sTestFileName = sTmp + sTestPath + "results" + FileService::GetFileSeparator() + sFileName;
+
+	stream = p_fopen(sTestFileName, "w+");
+	EXPECT_TRUE(stream != NULL);
+
+	// Redirection de cout vers le stream dedie au batch
+	fdInit = p_dup(STDOUT_FILENO);
+	p_dup2(p_fileno(stream), STDOUT_FILENO);
+
+	// Lancement de la methode de test de la classe
+	(*method_to_test)();
+
+	// On restitue cout dans son etat initial
+	fflush(stdout);
+	fclose(stream);
+	p_dup2(fdInit, STDOUT_FILENO);
+
+#ifdef _WIN32
+	_close(fdInit);
+#else
+	close(fdInit);
+#endif
+
+	// comparaison du fichier issu de la sortie standrd avec le fichier de reference
+	bOk = FileCompareForTest(sTmp + sTestPath + "results.ref" + FileService::GetFileSeparator() + sFileName,
+				 sTestFileName);
+
+	EXPECT_TRUE(bOk);
+	return true;
 }
