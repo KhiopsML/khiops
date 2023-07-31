@@ -94,7 +94,7 @@ void KNITest(const char* sDictionaryFileName, const char* sDictionaryName, const
 	//////////////////////////////////////////////////////////
 	// Test d'erreurs
 
-	printf("\nWrong parameter tests");
+	printf("\nWrong parameter tests\n");
 
 	// Fichier de dictionaire NULL
 	hStream = KNIOpenStream(NULL, sDictionaryName, "", '\t');
@@ -149,7 +149,7 @@ void KNITest(const char* sDictionaryFileName, const char* sDictionaryName, const
 		ivStreamHandles[nIter] = -1;
 
 	// Boucle d'ouverture de nombreux stream
-	printf("Muliple open stream");
+	printf("SYS Muliple open stream");
 	for (nIter = 0; nIter < nMaxIter; nIter++)
 	{
 		// Create stream
@@ -162,12 +162,13 @@ void KNITest(const char* sDictionaryFileName, const char* sDictionaryName, const
 		else
 		{
 			printf("\t%d: Error %d\n", nIter, hStream);
+			EXPECT_EQ(hStream, KNI_ErrorMemoryOverflow);
 			break;
 		}
 	}
 
 	// Boucle de fermeture des streams
-	printf("Muliple close stream");
+	printf("SYS Muliple close stream");
 	for (nIter = 0; nIter < nMaxIter; nIter++)
 	{
 		// Open stream
@@ -178,6 +179,7 @@ void KNITest(const char* sDictionaryFileName, const char* sDictionaryName, const
 		if (nRetCode != KNI_OK)
 		{
 			printf("\t%d: Error %d\n", nIter, nRetCode);
+			EXPECT_EQ(nRetCode, KNI_ErrorStreamHandle);
 			break;
 		}
 	}

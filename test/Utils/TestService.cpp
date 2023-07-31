@@ -135,7 +135,7 @@ boolean FileCompareForTest(const ALString& sFileNameReference, const ALString& s
 		}
 
 		if (not bSame)
-			cout << endl << "error at line " << nLineIndex << endl;
+			cout << endl << "error at line " << nLineIndex << endl << "=> " << lineTest << endl;
 	}
 
 	// Fermeture des fichiers
