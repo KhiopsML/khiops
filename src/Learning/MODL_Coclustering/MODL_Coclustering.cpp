@@ -10,6 +10,10 @@ int main(int argc, char** argv)
 
 	// MemSetAllocIndexExit(1290133);
 
+	// Activation de la gestion des signaux via des erreurs, pour afficher des messages d'erreur explicites
+	// A potentiellement commnter sur certian IDE lors des phases de debuggage
+	Global::ActivateSignalErrorManagement();
+
 	// Lancement du projet
 	learningProject.Start(argc, argv);
 
