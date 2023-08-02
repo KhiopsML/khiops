@@ -8,6 +8,10 @@ int main(int argc, char** argv)
 {
 	MDKhiopsLearningProject learningProject;
 
+	// Activation de la gestion des signaux via des erreurs, pour afficher des messages d'erreur explicites
+	// A potentiellement commnter sur certian IDE lors des phases de debuggage
+	Global::ActivateSignalErrorManagement();
+
 	// Parametrage des logs memoires depuis les variables d'environnement, pris en compte dans KWLearningProject
 	//   KhiopsMemStatsLogFileName, KhiopsMemStatsLogFrequency, KhiopsMemStatsLogToCollect
 	// On ne tente d'ouvrir le fichier que si ces trois variables sont presentes et valides
@@ -17,10 +21,6 @@ int main(int argc, char** argv)
 	// FileService::SetIOStatsActive(true);
 	// MemoryStatsManager::OpenLogFile("D:\\temp\\KhiopsMemoryStats\\Test\\KhiopsMemoryStats.log", 10000,
 	// MemoryStatsManager::AllStats);
-
-	// Pour desactiver l'interception du signal "segmentation fault", pour permettre au debugger d'identifier le
-	// probleme
-	debug(signal(SIGSEGV, NULL));
 
 	// Parametrage de l'arret pour la memoire ou les interruptions utilisateurs
 	// MemSetAllocIndexExit(1674366);
