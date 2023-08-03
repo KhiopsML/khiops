@@ -47,7 +47,7 @@ file(APPEND ${TMP_DIR}/KNIRecodeMTFiles.c
 # Replace PROJECT_VERSION
 configure_file(${PROJECT_SOURCE_DIR}/packaging/common/KNI/README.txt.in ${TMP_DIR}/kni.README.txt @ONLY
                NEWLINE_STYLE UNIX)
-configure_file(${PROJECT_SOURCE_DIR}/packaging/common/KNI/README.md.in ${TMP_DIR}/kni.README.md @ONLY
+configure_file(${PROJECT_SOURCE_DIR}/packaging/common/KNI/template-README.md ${TMP_DIR}/kni.README.md @ONLY
                NEWLINE_STYLE UNIX)
 
 # ######################################## Khiops and Khiops Coclustering installation

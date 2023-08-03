@@ -1,0 +1,5 @@
+
+Recode records of @ROOT_DIR@/test/KNITest/../LearningTest/datasets/Adult/Adult.txt to @ROOT_DIR@/test/KNITest/results/R_Adult.txt
+Recoded record number: 48842
+
+End test Adult

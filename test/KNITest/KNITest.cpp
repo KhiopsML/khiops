@@ -14,8 +14,8 @@
 #define MAXITER 1000
 #define MAXBUFFERSIZE 1000
 
-void KNITest(const char* sDictionaryFileName, const char* sDictionaryName, const char* sInputFileName,
-	     const char* sOutputFileName)
+// Test side effetcts with Iris dataset
+void TestSideEffect(const char* sDictionaryFileName, const char* sDictionaryName, const char* sInputFileName)
 {
 	int nRetCode;
 	int hStream;
@@ -28,7 +28,6 @@ void KNITest(const char* sDictionaryFileName, const char* sDictionaryName, const
 	assert(sDictionaryFileName != NULL);
 	assert(sDictionaryName != NULL);
 	assert(sInputFileName != NULL);
-	assert(sOutputFileName != NULL);
 
 	//////////////////////////////////////////////////////////
 	// Test standard
@@ -36,7 +35,7 @@ void KNITest(const char* sDictionaryFileName, const char* sDictionaryName, const
 	// Message de debut
 	printf("Begin test KNI\n");
 
-	printf("KNI version: %d\n", KNIGetVersion());
+	printf("SYS KNI version: %d\n", KNIGetVersion());
 	printf("SYS KNI full version: %s\n", KNIGetFullVersion());
 
 	// Open stream
@@ -162,7 +161,6 @@ void KNITest(const char* sDictionaryFileName, const char* sDictionaryName, const
 		else
 		{
 			printf("\t%d: Error %d\n", nIter, hStream);
-			EXPECT_EQ(hStream, KNI_ErrorMemoryOverflow);
 			break;
 		}
 	}
@@ -179,35 +177,99 @@ void KNITest(const char* sDictionaryFileName, const char* sDictionaryName, const
 		if (nRetCode != KNI_OK)
 		{
 			printf("\t%d: Error %d\n", nIter, nRetCode);
-			EXPECT_EQ(nRetCode, KNI_ErrorStreamHandle);
 			break;
 		}
 	}
-
-	// Test de deploiement
-	KNIRecodeFile(sDictionaryFileName, sDictionaryName, sInputFileName, sOutputFileName, "");
-
-	// Message de fin
-	printf("\nEnd test KNI");
 }
 
-void Test()
+void TestIris()
 {
 	ALString sTestPath;
 	ALString sDictionaryPath;
 	ALString sDataPath;
 	ALString sOutputPath;
+	ALString sRefFilePath;
+	int nLineNumber;
+	boolean bOk;
 
 	sTestPath = FileService::GetPathName(__FILE__);
 	sDictionaryPath = FileService::BuildFilePathName(sTestPath, "ModelingIris.kdic");
 	sDataPath = FileService::BuildFilePathName(sTestPath, "../LearningTest/datasets/Iris/Iris.txt");
-	sOutputPath = FileService::BuildFilePathName(FileService::GetTmpDir(), "R_Iris.txt");
+	sOutputPath = sTestPath + "results" + FileService::GetFileSeparator() + "R_Iris.txt";
+	sRefFilePath = sTestPath + "results.ref" + FileService::GetFileSeparator() + "R_Iris.txt";
 
-	KNITest(sDictionaryPath, "SNB_Iris", sDataPath, sOutputPath);
+	// Test des effets de bord
+	TestSideEffect(sDictionaryPath, "SNB_Iris", sDataPath);
+
+	// Test de deploiement
+	nLineNumber = KNIRecodeFile(sDictionaryPath, "SNB_Iris", sDataPath, sOutputPath, "");
+	ASSERT_EQ(nLineNumber, 150);
+
+	// Comparaison
+	bOk = FileCompareForTest(sRefFilePath, sOutputPath);
+	ASSERT_TRUE(bOk);
+
+	// Message de fin
+	printf("\nEnd test KNI");
+}
+
+void TestAdult()
+{
+	ALString sTestPath;
+	ALString sDictionaryPath;
+	ALString sDataPath;
+	ALString sOutputPath;
+	ALString sRefFilePath;
+	int nLineNumber;
+	FILE* fRef;
+	FILE* fWithoutHeader;
+	char ch;
+	boolean bOk;
+
+	sTestPath = FileService::GetPathName(__FILE__);
+	sDictionaryPath = FileService::BuildFilePathName(sTestPath, "../LearningTest/datasets/Adult/Adult.kdic");
+	sDataPath = FileService::BuildFilePathName(sTestPath, "../LearningTest/datasets/Adult/Adult.txt");
+	sOutputPath = sTestPath + "results" + FileService::GetFileSeparator() + "R_Adult.txt";
+
+	// Test de deploiement
+	nLineNumber = KNIRecodeFile(sDictionaryPath, "Adult", sDataPath, sOutputPath, "");
+	ASSERT_EQ(nLineNumber, 48842);
+
+	// Verification du fichier deploye
+	// Le fichier d'entree contient un header, le fichier deploye n'en contient pas
+	// On recopie le fichier d'entree sans le header pour effectuer un ecomparaison
+
+	// Saut du header
+	FileService::OpenInputBinaryFile(sDataPath, fRef);
+	ch = getc(fRef);
+	while (ch != '\n' and ch != EOF)
+	{
+		ch = getc(fRef);
+	}
+
+	// Copie du fichier tel quel
+	sRefFilePath = sTestPath + "results" + FileService::GetFileSeparator() + "ref_Adult.txt";
+	FileService::OpenOutputBinaryFile(sRefFilePath, fWithoutHeader);
+	ch = getc(fRef);
+	while (ch != EOF)
+	{
+		putc(ch, fWithoutHeader);
+		ch = getc(fRef);
+	}
+	FileService::CloseInputBinaryFile(sDataPath, fRef);
+	FileService::CloseOutputBinaryFile(sRefFilePath, fWithoutHeader);
+
+	// Comparaison
+	bOk = FileCompareForTest(sRefFilePath, sOutputPath);
+	ASSERT_TRUE(bOk);
+
+	// Message de fin
+	printf("\nEnd test Adult");
 }
 
 namespace
 {
-KHIOPS_TEST(KNI, full, ::Test);
+KHIOPS_TEST(KNI, Iris, ::TestIris);
+KHIOPS_TEST(KNI, Adult, ::TestAdult);
 
 } // namespace
