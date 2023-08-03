@@ -621,6 +621,9 @@ public:
 	///////////////////////////////
 	// Services divers
 
+	// Calcul de l'effectif cumule sur l'ensemble des parties
+	int ComputeTotalPartFrequency() const;
+
 	// Test si l'attribut contient des sous-parties de l'autre attribut en parametre
 	// Dans le cas d'un attribut de type VarPart, les deux attribut doivent exploiter les meme variables internes
 	boolean ContainsSubParts(const KWDGAttribute* otherAttribute) const;
@@ -803,6 +806,7 @@ public:
 
 	// Methode avancee: mise a jour directe de l'effectif de la partie
 	// Attention, cela doit correspondre exactement au cumul des effectifs des cellules de la partie
+	// Sauf pour les attributs interne ou l'effectif est possitionne directement
 	void SetPartFrequency(int nValue);
 
 	// Test si la partie est une sous-partie de l'autre partie en parametre
@@ -1167,10 +1171,6 @@ public:
 	// Copie
 	void CopyFrom(const KWDGVarPartSet* sourceVarPartSet);
 
-	// Copie avec creation de nouvelles parties de variables qui alimente un nouveau KWDGInnerAttributes;
-	void CopyWithNewVarPartsFrom(const KWDGVarPartSet* sourceVarPartSet,
-				     KWDGInnerAttributes* targetInnerAttributes);
-
 	// Ajout de nouvelles parties recopiees depuis une source
 	void UpgradeFrom(const KWDGVarPartSet* sourceVarPartSet);
 
@@ -1278,8 +1278,14 @@ public:
 	// Nettoyage
 	void DeleteAll();
 
+	// Export de toutes les parties parties de variables des attributs internes dans un tableau (initialement vide)
+	void ExportAllInnerAttributeVarParts(ObjectArray* oaInnerAttributeVarParts) const;
+
 	// Calcul du nombre total de parties de variable sur l'ensemble des attributs internes
 	int ComputeTotalInnerAttributeVarParts() const;
+
+	// Calcul de l'effectif total cumule sur les parties de variable sur l'ensemble des attributs internes
+	int ComputeTotalInnerAttributeFrequency() const;
 
 	// Tri des parties des attributs internes
 	void SortInnerAttributeParts() const;
