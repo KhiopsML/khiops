@@ -734,11 +734,13 @@ public:
 	// La variation de cout se calcule en partant de la meme grille initiale pour tous les deplacements
 	// Renvoie vrai s'il existe au moins une amelioration
 	// Pour tous les attributs internes numeriques et categoriels
-	// En entree : referenceDataGrid contient la grille de reference avec des clusters contenant une seule PV a
-	// partir des PV de la grille optimisee
-	//				optimizedDataGrid : grille dont on post-optimise les parties de variable
-	//				ivGroups : vecteur d'index qui indique pour chaque PV l'index du cluster de PV
-	// auquel elle appartient, mis a jour au cours de cette post-optimisation
+	// En entree:
+	//  - referenceDataGrid contient la grille de reference avec des clusters contenant une seule PV
+	//    a partir des PV de la grille optimisee
+	// En sortie:
+	//	- optimizedDataGrid : grille dont on post-optimise les parties de variable
+	//	- ivGroups : vecteur d'index qui indique pour chaque PV l'index du cluster de PV
+	//    auquel elle appartient, mis a jour au cours de cette post-optimisation
 	boolean PostOptimizeLightVarPartDataGrid(const KWDataGrid* referenceDataGrid, KWDataGrid* optimizedDataGrid,
 						 IntVector* ivGroups) const;
 

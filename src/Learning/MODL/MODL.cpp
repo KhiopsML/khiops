@@ -29,16 +29,12 @@ int main(int argc, char** argv)
 {
 	MDKhiopsLearningProject learningProject;
 
-	// Choix du repertoire de lancement pour le debugage sous Windows (a commenter apres fin du debug)
-	// SetWindowsDebugDir("Standard", "IrisLight");
 	// Activation de la gestion des signaux via des erreurs, pour afficher des messages d'erreur explicites
-	// A potentiellement commnter sur certian IDE lors des phases de debuggage
+	// A potentiellement commenter sur certains IDE lors des phases de debuggage
 	Global::ActivateSignalErrorManagement();
 
-	// Debogage sous Windows Visual C++ 2022 (bug https://github.com/microsoft/vscode-cpptools/issues/8084)
-	// Choix en dur du repertoire de lancement (a commenter apres fin du debug)
-	// ALString sUserRootPath = "D:/Users/miib6422/Documents/boullema/LearningTest/TestKhiops/";
-	// _chdir(sUserRootPath  + "z_Work/AllReportsTiny");
+	// Choix du repertoire de lancement pour le debugage sous Windows (a commenter apres fin du debug)
+	// SetWindowsDebugDir("Standard", "IrisLight");
 
 	// Parametrage des logs memoires depuis les variables d'environnement, pris en compte dans KWLearningProject
 	//   KhiopsMemStatsLogFileName, KhiopsMemStatsLogFrequency, KhiopsMemStatsLogToCollect

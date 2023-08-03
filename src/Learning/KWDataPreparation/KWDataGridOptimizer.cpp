@@ -323,10 +323,9 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 						dataGridManager.SetSourceDataGrid(granularizedOptimizedDataGrid);
 						// Creation d'une nouvelle grille avec nouvelle description des PV
 
-						// Calcul de la grille de reference post fusionnee a partir de
-						// granularizedDataGrid
+						// Calcul de la grille de reference post fusionnee a partir de granularizedDataGrid
 						dFusionDeltaCost =
-						    dataGridManager.ExportMergedDataGridForVarPartAttributes(
+						    dataGridManager.ExportDataGridWithVarPartMergeOptimization(
 							&granularizedPostMergedOptimizedDataGrid, dataGridCosts);
 						assert(not granularizedPostMergedOptimizedDataGrid.GetVarPartsShared());
 
@@ -1720,7 +1719,7 @@ double KWDataGridVNSOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* init
 			dataGridManager.SetSourceDataGrid(&neighbourDataGrid);
 			// Creation d'une nouvelle grille avec nouvelle description des PV fusionnees
 			dFusionDeltaCost =
-			    dataGridManager.ExportMergedDataGridForVarPartAttributes(&mergedDataGrid, dataGridCosts);
+			    dataGridManager.ExportDataGridWithVarPartMergeOptimization(&mergedDataGrid, dataGridCosts);
 			assert(not mergedDataGrid.GetVarPartsShared());
 
 			// Calcul et verification du cout
@@ -1854,7 +1853,7 @@ double KWDataGridVNSOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* init
 						// fusion de la grille comportant les deplacements
 						dataGridManager.SetSourceDataGrid(&mergedDataGrid);
 						dVarPartFusionDeltaCost =
-						    dataGridManager.ExportMergedDataGridForVarPartAttributes(
+						    dataGridManager.ExportDataGridWithVarPartMergeOptimization(
 							&mergedMergedDataGrid, dataGridCosts);
 						dMergedMergedCost =
 						    dataGridCosts->ComputeDataGridTotalCost(&mergedMergedDataGrid);
@@ -1878,7 +1877,7 @@ double KWDataGridVNSOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* init
 							neighbourDataGrid.DeleteAll();
 							dataGridManager.SetSourceDataGrid(initialDataGrid);
 							dataGridManager.ExportDataGridWithReferenceVarPartClusters(
-							    &neighbourDataGrid, &mergedDataGrid);
+							    &mergedDataGrid, &neighbourDataGrid);
 							if (bDisplayResults)
 							{
 								cout << "VNSOptimizeVarPartDataGrid: grille best "

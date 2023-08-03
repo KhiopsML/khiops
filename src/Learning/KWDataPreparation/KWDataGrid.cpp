@@ -801,21 +801,39 @@ boolean KWDataGrid::Check() const
 	{
 		assert(nVarTypeAttributeNumber == 1);
 
-		// Verification quue les attributs de la grille sont distincts des attributs internes
-		for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
-		{
-			attribute = cast(KWDGAttribute*, oaAttributes.GetAt(nAttribute));
+		// Verification des attributs internes
+		bOk = GetInnerAttributes()->Check();
 
-			// Test d'existence parmi les attribut internes
-			if (GetVarPartAttribute()->GetInnerAttributes()->LookupInnerAttribute(
-				attribute->GetAttributeName()) != NULL)
+		// Verification que les attributs de la grille sont distincts des attributs internes
+		if (bOk)
+		{
+			for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
 			{
-				AddError(sTmp + "Internal variable " + attribute->GetAttributeName() +
-					 " is already used with the same name among the data grid variables (index " +
-					 IntToString(attribute->GetAttributeIndex()) + ")");
-				break;
-				bOk = false;
+				attribute = cast(KWDGAttribute*, oaAttributes.GetAt(nAttribute));
+
+				// Test d'existence parmi les attribut internes
+				if (GetVarPartAttribute()->GetInnerAttributes()->LookupInnerAttribute(
+					attribute->GetAttributeName()) != NULL)
+				{
+					AddError(sTmp + "Internal variable " + attribute->GetAttributeName() +
+						 " is already used with the same name among the data grid variables "
+						 "(index " +
+						 IntToString(attribute->GetAttributeIndex()) + ")");
+					break;
+					bOk = false;
+				}
 			}
+		}
+
+		// Verification de l'effectif total de la grille
+		// On ne fait la verification que si des cellules sont presentes, ce qui permet de verifier une grille
+
+		if (bOk and GetCellNumber() > 0 and
+		    GetInnerAttributes()->ComputeTotalInnerAttributeFrequency() != ComputeGridFrequency())
+		{
+			AddError(sTmp + "Grid frequency (" + IntToString(ComputeGridFrequency()) +
+				 ") is different from the total part frequency of the inner variables (" +
+				 IntToString(GetInnerAttributes()->ComputeTotalInnerAttributeFrequency()) + ")");
 		}
 	}
 
@@ -2732,6 +2750,22 @@ KWDGPart* KWDGAttribute::LookupVarPart(KWDGPart* varPart)
 }
 // CH IV End
 
+int KWDGAttribute::ComputeTotalPartFrequency() const
+{
+	int nTotalFrequency;
+	KWDGPart* part;
+
+	// Parcours des parties
+	nTotalFrequency = 0;
+	part = headPart;
+	while (part != NULL)
+	{
+		nTotalFrequency += part->GetPartFrequency();
+		part = part->nextPart;
+	}
+	return nTotalFrequency;
+}
+
 boolean KWDGAttribute::ContainsSubParts(const KWDGAttribute* otherAttribute) const
 {
 	boolean bOk;
@@ -2748,8 +2782,8 @@ boolean KWDGAttribute::ContainsSubParts(const KWDGAttribute* otherAttribute) con
 	require(GetAttributeType() == otherAttribute->GetAttributeType());
 	require(GetAttributeType() != KWType::VarPart or GetInnerAttributes() == otherAttribute->GetInnerAttributes());
 
-	// On doit avoir un nombre inferieur de partie
-	bOk = GetPartNumber() <= otherAttribute->GetPartNumber();
+	// On doit avoir un nombre superieur de partie
+	bOk = GetPartNumber() >= otherAttribute->GetPartNumber();
 
 	// Test d'inclusion des parties
 	if (bOk)
@@ -2760,15 +2794,15 @@ boolean KWDGAttribute::ContainsSubParts(const KWDGAttribute* otherAttribute) con
 			// Test des borne extremes
 			bOk = bOk and GetHeadPart()->GetInterval()->GetLowerBound() ==
 					  otherAttribute->GetHeadPart()->GetInterval()->GetLowerBound();
-			bOk = bOk and GetTailPart()->GetInterval()->GetLowerBound() ==
-					  otherAttribute->GetTailPart()->GetInterval()->GetLowerBound();
+			bOk = bOk and GetTailPart()->GetInterval()->GetUpperBound() ==
+					  otherAttribute->GetTailPart()->GetInterval()->GetUpperBound();
 
 			// Parcours des intervalles pour verifier leur inclusion
 			part = GetHeadPart();
 			otherPart = otherAttribute->GetHeadPart();
 			while (part != NULL)
 			{
-				// Test si l'intervalle est d'ans l'autre intervalle
+				// Test si l'intervalle est dans l'autre intervalle
 				if (part->IsSubPart(otherPart))
 					GetNextPart(part);
 				// Sinon, on teste dans l'autre intervalle suivant
@@ -2988,7 +3022,7 @@ boolean KWDGAttribute::Check() const
 	// Verification des parties
 	if (bOk)
 	{
-		// Parcours des partie a verifier
+		// Parcours des parties a verifier
 		bGarbagePartFound = false;
 		part = headPart;
 		while (part != NULL)
@@ -5148,52 +5182,6 @@ void KWDGVarPartSet::CopyFrom(const KWDGVarPartSet* sourceVarPartSet)
 	assert(nVarPartNumber == sourceVarPartSet->nVarPartNumber);
 }
 
-void KWDGVarPartSet::CopyWithNewVarPartsFrom(const KWDGVarPartSet* sourceVarPartSet,
-					     KWDGInnerAttributes* targetInnerAttributes)
-{
-	KWDGVarPartValue* varPartValue;
-	KWDGVarPartValue* varPartCopyValue;
-	KWDGPart* newVarPart;
-	ALString sInnerAttributeName;
-	KWDGAttribute* innerAttribute;
-
-	require(sourceVarPartSet != NULL);
-	require(targetInnerAttributes != NULL);
-
-	// Nettoyage des parties de variable actuelles
-	DeleteAllVarPartValues();
-
-	// Clone de la liste de parties de variable avec insertion des parties dans les attributs internes
-	varPartValue = sourceVarPartSet->GetHeadVarPart();
-	while (varPartValue != NULL)
-	{
-		// Extraction du nom de l'attribut interne dont depend la partie de variable
-		sInnerAttributeName = varPartValue->GetVarPart()->GetAttribute()->GetAttributeName();
-		innerAttribute = cast(KWDGAttribute*, targetInnerAttributes->LookupInnerAttribute(sInnerAttributeName));
-
-		// Creation d'une nouvelle partie pour l'attribut interne
-		newVarPart = innerAttribute->AddPart();
-
-		// Copie du contenu de la partie de variable (numerique ou categorielle)
-		if (varPartValue->GetVarPart()->GetPartType() == KWType::Continuous)
-			newVarPart->GetInterval()->CopyFrom(varPartValue->GetVarPart()->GetInterval());
-		else if (varPartValue->GetVarPart()->GetPartType() == KWType::Symbol)
-			newVarPart->GetValueSet()->CopyFrom(varPartValue->GetVarPart()->GetValueSet());
-
-		// Copie de l'effectif de la partie
-		newVarPart->SetPartFrequency(varPartValue->GetVarPart()->GetPartFrequency());
-
-		// Ajout de cette partie de variable dans le varPartSet cible
-		varPartCopyValue = AddVarPart(newVarPart);
-
-		// Ajout de cette partie pour l'attribut interne
-		sourceVarPartSet->GetNextVarPart(varPartValue);
-	}
-
-	// Copie de nPartNumber
-	nVarPartNumber = sourceVarPartSet->nVarPartNumber;
-}
-
 void KWDGVarPartSet::UpgradeFrom(const KWDGVarPartSet* sourceVarPartSet)
 {
 	KWDGVarPartValue* part;
@@ -5420,20 +5408,60 @@ void KWDGInnerAttributes::DeleteAll()
 	oaInnerAttributes.DeleteAll();
 }
 
+void KWDGInnerAttributes::ExportAllInnerAttributeVarParts(ObjectArray* oaInnerAttributeVarParts) const
+{
+	int nInnerAttribute;
+	KWDGAttribute* innerAttribute;
+	KWDGPart* part;
+
+	require(oaInnerAttributeVarParts != NULL);
+	require(oaInnerAttributeVarParts->GetSize() == 0);
+
+	// Parcours de attribut inerne pour compter le nombre total de partie
+	for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributeNumber(); nInnerAttribute++)
+	{
+		innerAttribute = GetInnerAttributeAt(nInnerAttribute);
+
+		// Ajout des parties dans le tableau
+		part = innerAttribute->GetHeadPart();
+		while (part != NULL)
+		{
+			oaInnerAttributeVarParts->Add(part);
+			innerAttribute->GetNextPart(part);
+		}
+	}
+}
+
 int KWDGInnerAttributes::ComputeTotalInnerAttributeVarParts() const
 {
-	int nTotal;
+	int nTotalPartNumber;
 	int nInnerAttribute;
 	KWDGAttribute* innerAttribute;
 
 	// Parcours de attribut inerne pour compter le nombre total de partie
-	nTotal = 0;
+	nTotalPartNumber = 0;
 	for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributeNumber(); nInnerAttribute++)
 	{
 		innerAttribute = GetInnerAttributeAt(nInnerAttribute);
-		nTotal += innerAttribute->GetPartNumber();
+		nTotalPartNumber += innerAttribute->GetPartNumber();
 	}
-	return nTotal;
+	return nTotalPartNumber;
+}
+
+int KWDGInnerAttributes::ComputeTotalInnerAttributeFrequency() const
+{
+	int nTotalFrequency;
+	int nInnerAttribute;
+	KWDGAttribute* innerAttribute;
+
+	// Parcours de attribut inerne pour compter le nombre total de partie
+	nTotalFrequency = 0;
+	for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributeNumber(); nInnerAttribute++)
+	{
+		innerAttribute = GetInnerAttributeAt(nInnerAttribute);
+		nTotalFrequency += innerAttribute->ComputeTotalPartFrequency();
+	}
+	return nTotalFrequency;
 }
 
 void KWDGInnerAttributes::SortInnerAttributeParts() const
@@ -5518,16 +5546,27 @@ boolean KWDGInnerAttributes::Check() const
 	for (nInnerAttribute = 0; nInnerAttribute < oaInnerAttributes.GetSize(); nInnerAttribute++)
 	{
 		innerAttribute = GetInnerAttributeAt(nInnerAttribute);
+
+		// Verifications de base
 		bOk = bOk and innerAttribute->Check();
-		if (innerAttribute->GetOwnerAttributeName() == "")
+
+		// Verification de l'attribut interne
+		if (bOk and innerAttribute->GetOwnerAttributeName() == "")
 		{
-			AddError("No owner variable for inner variable\t" + innerAttribute->GetAttributeName() + "\n");
+			AddError("No owner variable for inner variable " + innerAttribute->GetAttributeName() + "\n");
 			bOk = false;
 		}
-		if (not KWType::IsSimple(innerAttribute->GetAttributeType()))
+		if (bOk and not KWType::IsSimple(innerAttribute->GetAttributeType()))
 		{
-			AddError("Type of inner variable \t" + innerAttribute->GetAttributeName() +
+			AddError("Type of inner variable " + innerAttribute->GetAttributeName() +
 				 "\t must be Numerical or Categorical");
+			bOk = false;
+		}
+
+		// Verification du tri des parties de l'attribut interne
+		if (bOk and not innerAttribute->ArePartsSorted())
+		{
+			AddError("Parts of inner variable " + innerAttribute->GetAttributeName() + " should be sorted");
 			bOk = false;
 		}
 	}
@@ -5539,7 +5578,7 @@ void KWDGInnerAttributes::Write(ostream& ost) const
 	int nInnerAttribute;
 	KWDGAttribute* innerAttribute;
 
-	cout << "Inner variable number \t" << GetInnerAttributeNumber() << endl;
+	ost << "Inner variable number \t" << GetInnerAttributeNumber() << endl;
 	for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributeNumber(); nInnerAttribute++)
 	{
 		innerAttribute = GetInnerAttributeAt(nInnerAttribute);
