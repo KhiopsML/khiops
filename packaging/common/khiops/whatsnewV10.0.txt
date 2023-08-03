@@ -1,5 +1,11 @@
 Khiops 10.0.4 release notes
 ===========================
+. fix KhiopsNativeInterface crashes with java under linux. 
+  Signals are not intercepted anymore in KNI.
+
+
+Khiops 10.0.4 release notes
+===========================
 . bug fix in sort algorithm : the field separator in the output file was not correct 
   for files with a huge number of identical lines.
   
