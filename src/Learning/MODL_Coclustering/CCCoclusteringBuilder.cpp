@@ -648,8 +648,8 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 		// Pre-partitionnement des attributs internes de la grille initiale
 		dataGridManager.SetSourceDataGrid(initialDataGrid);
 		partitionedDataGrid = new KWDataGrid;
-		dataGridManager.ExportPartitionedDataGridForVarPartAttributes(partitionedDataGrid, nPrePartitionIndex,
-									      &odInnerAttributesQuantileBuilders);
+		dataGridManager.ExportGranularizedDataGridForVarPartAttributes(partitionedDataGrid, nPrePartitionIndex,
+									       &odInnerAttributesQuantileBuilders);
 
 		if (bDisplayResults)
 		{
@@ -773,7 +773,7 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 				dataGridManager.SetSourceDataGrid(partitionedOptimizedDataGrid);
 				// Creation d'une nouvelle grille avec nouvelle description des PV et calcul de
 				// la variation de cout liee a la fusion des PV
-				dFusionDeltaCost = dataGridManager.ExportMergedDataGridForVarPartAttributes(
+				dFusionDeltaCost = dataGridManager.ExportDataGridWithVarPartMergeOptimization(
 				    partitionedPostMergedOptimizedDataGrid, coclusteringDataGridCosts);
 				assert(not partitionedPostMergedOptimizedDataGrid->GetVarPartsShared());
 
@@ -839,13 +839,14 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 
 				if (optimizedDataGrid->GetInformativeAttributeNumber() > 0)
 				{
-					// Construction d'une grille initiale compatible avec les parties de
-					// variables fusionnees au niveau des attributs internes Necessaire pour
-					// la memorisation de la grille post-mergee La grille source contient
-					// des clusters mono-parties de variables, avec des PV issues du
-					// pre-partitionnement La grille optimisee contient des clusters de PV,
-					// avec des PV eventuellement issues d'une fusion des PV de la grille
-					// source On construit une grille qui contient des clusters mono-PV avec
+					// Construction d'une grille initiale compatible avec les parties
+					// de variables fusionnees au niveau des attributs internes
+					// Necessaire pour la memorisation de la grille post-mergee
+					// La grille source contient des clusters mono-parties de variables,
+					// avec des PV issues du pre-partitionnement
+					// La grille optimisee contient des clusters de PV,avec des PV
+					// eventuellement issues d'une fusion des PV de la grille source
+					// On construit une grille qui contient des clusters mono-PV avec
 					// les PV issues de la fusion de la grille optimisee
 					dataGridManager.SetSourceDataGrid(initialDataGrid);
 					dataGridManager.ExportDataGridWithSingletonVarParts(

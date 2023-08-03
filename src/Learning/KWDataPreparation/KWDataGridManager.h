@@ -49,29 +49,36 @@ public:
 	void ExportDataGrid(KWDataGrid* targetDataGrid) const;
 
 	// CH IV Begin
-	// Export total (attribut, parties et cellules) dans lequel, pour les attributs VarPart, leurs parties sont
-	// initialisees a une partie par partie de variable d'attribut interne present dans la grille optimizedDataGrid
-	// (partie singleton) La grille source du dataGridManager contient des clusters mono-parties de variables, avec
-	// des PV issues du pre-partitionnement En entree, la grille optimizedDataGrid contient des clusters de PV, avec
-	// des PV eventuellement issues d'une fusion des PV de la grille source En sortie, la grille targetDataGrid
-	// contient des clusters mono-PV avec les PV issues de la fusion de la grille optimisee
-	// bSourceIdentifierClusters : true -> les clusters d'individus exportes sont ceux de la grille initiale
-	//							   false -> les clusters d'individus exportes sont ceux de la grille optimsee
-	void ExportDataGridWithSingletonVarParts(const KWDataGrid* optimizedDataGrid, KWDataGrid* targetDataGrid,
-						 boolean bSourceIdentifierClusters) const;
+	// Export total (attribut, parties et cellules) en exploitant une grille de reference,
+	// avec une partie par VarPart
+	// - pour les attributs simples:
+	//   - bSourceSimpleAttributeParts = true: on prend les parties de la grille source
+	//   - bSourceSimpleAttributeParts = false: on prend les parties de la grille de reference
+	// - pour l'attribut VarPart: on utilise les attributs internes de la grille de reference
+	//                            avec un unique partie par partie de variable
+	// Attention: les attributs internes en sortie sont ceux de la grille de reference
+	void ExportDataGridWithSingletonVarParts(const KWDataGrid* referenceDataGrid, KWDataGrid* targetDataGrid,
+						 boolean bSourceSimpleAttributeParts) const;
 
-	// Export d'une grille avec ses VarParts pour construire une nouvelle grille avec les clusters de VarParts de la
-	// grille de reference. Cette grille de reference n'a pas les memes VarParts que la grille source
-	void ExportDataGridWithReferenceVarPartClusters(KWDataGrid* targetDataGrid, KWDataGrid* referenceDataGrid);
+	// Export total (attribut, parties et cellules) en exploitant une grille de reference,
+	// avec des partie de VarPart de la grille source, exploitant la partition de la grille de refere
+	// Cette grille de reference n'a pas les memes VarParts que la grille source, alors que la grille en sortie
+	// reutilise les VarPart de la grille source
+	void ExportDataGridWithReferenceVarPartClusters(KWDataGrid* referenceDataGrid, KWDataGrid* targetDataGrid);
 
 	// Export d'une grille terminale, avec attributs reduits a une seule partie
 	// Ne modifie pas la pre-partition des attributs internes
 	void ExportTerminalDataGrid(KWDataGrid* targetDataGrid) const;
 
-	// Export de la grille du modele nul : 1 seule partie par attribut et, pour les attributs VarPart, une seule
-	// partie de variable Cette methode cree un nouvel objet pour les innerAttributes
+	// Export de la grille du modele nul : une seule partie par attribut et, pour les attributs VarPart,
+	// une seule partie de variable
+	// Attention: creation de nouveaux attributs internes qui doivent etre detruit par l'appelant
 	void ExportNullDataGrid(KWDataGrid* targetDataGrid) const;
 	// CH IV End
+
+	/////////////////////////////////////////////////////////////////////////////////////////
+	// Service elementaires de transfert du contenu de la grille source vers la grille cible
+	// dedies aux attributs, parties et cellules
 
 	// Export des attributs uniquement (plus les specifications des classes cibles)
 	void ExportAttributes(KWDataGrid* targetDataGrid) const;
@@ -82,13 +89,6 @@ public:
 	// Export des parties uniquement (les attributs de la grille cible sont deja exportes)
 	// Les attributs cibles peuvent n'etre qu'un sous-ensemble des attributs sources
 	void ExportParts(KWDataGrid* targetDataGrid) const;
-
-	// CH IV Begin
-	// Export des parties uniquement (les attributs de la grille cible sont déja exportes)
-	// Les attributs cibles peuvent n'etre qu'un sous-ensemble des attributs sources
-	// Les parties des attributs interne sont dupliquees
-	void ExportPartsWithNewInnerParts(KWDataGrid* targetDataGrid) const;
-	// CH IV End
 
 	// Export des parties pour un attribut donne (devant exister dans la grille source et
 	// dans la grille cible sans ses parties)
@@ -134,9 +134,8 @@ public:
 			    int nRequestedContinuousPartNumber, int nRequestedSymbolPartNumber,
 			    double dMinPercentageAddedPart) const;
 
-	///////////////////////////////////////////////////////////////////////////
-	// Construction d'une grille de donnees cible en granularisant
-	// la grille de donnees source
+	////////////////////////////////////////////////////////////////////////////////////////////
+	// Construction d'une grille de donnees cible en granularisant la grille de donnees source
 
 	// Initialisation du dictionnaire des quantile builders
 	// Un quantile builder (Group ou Interval) est initialise par attribut de la grille source.
@@ -158,36 +157,30 @@ public:
 	void ExportGranularizedDataGrid(KWDataGrid* targetDataGrid, int nGranularity,
 					const ObjectDictionary* odQuantilesBuilders) const;
 
-	// CH IV Begin
-	// Calcul la grille obtenue apres fusion des PV d'un meme cluster
-	// dans le cas numerique, fusion des intervalles contigues
-	// dans le cas categoriel fusion des modalites de la même variable categorielle
-	// Creation d'un nouveau KWDGInnerAttributes qui doit etre detruit par l'appelant
-	// En sortie : renvoie la variation de cout entre la grille source et la grille fusionnee
-	double ExportMergedDataGridForVarPartAttributes(KWDataGrid* targetDataGrid,
-							const KWDataGridCosts* dataGridCosts) const;
-
-	// Effectue la fusion des PV : dans le cas numerique, fusion des intervalles contigues et dans le cas categoriel
-	// fusion des modalites de la même variable categorielle En sortie : renvoie la variation de cout cumulee pour
-	// les clusters impactes par les fusions de PV (ne prend pas en compte la variation du cout de partition)
-	double MergePartsForVarPartAttributes(KWDataGrid* targetDataGrid) const;
-
-	// Creation d'un nouveau KWDGInnerAttributes qui doit etre detruit par l'appelant
-	void ExportPartitionedDataGridForVarPartAttributes(KWDataGrid* targetDataGrid, int nGranularity,
-							   ObjectDictionary* odQuantilesBuilders) const;
-
-	// Export des parties granularisees pour les attributs de type VarPart (les attributs de la grille cible sont
-	// deja exportes) Les parties des attributs Symbol ou Continuous sont inchanges
-	void ExportGranularizedPartsForVarPartAttributes(KWDataGrid* targetDataGrid, int nGranularity,
-							 ObjectDictionary* odQuantilesBuilders) const;
-
 	// Construction d'un quantile builder pour chaque attribut interne dans un attribut de grille de type VarPart
 	// ivMaxPartNumbers : nombre maximal de parties pour chaque attribut interne. Utilise pour reperer quand on est
 	// arrive a la granularisation maxmimale
 	void InitializeInnerAttributesQuantileBuilders(ObjectDictionary* odInnerAttributesQuantilesBuilders,
 						       IntVector* ivMaxPartNumbers) const;
 
-	///////////////////////////////////////////////////////////////////////////
+	// Creation d'un nouveau KWDGInnerAttributes qui doit etre detruit par l'appelant
+	// Attention: creation de nouveaux attributs internes qui doivent etre detruit par l'appelant
+	void ExportGranularizedDataGridForVarPartAttributes(
+	    KWDataGrid* targetDataGrid, int nGranularity,
+	    const ObjectDictionary* odInnerAttributesQuantilesBuilders) const;
+
+	////////////////////////////////////////////////////////////////////////////////////////////
+	// Services avances de construction de grille
+
+	// CH IV Begin
+	// Export d'une grille en optimisantv ses clusters de VarPart par fusion de VarParts
+	// - dans le cas numerique: fusion des intervalles contigues
+	// - dans le cas categoriel: fusion des modalites de la même variable categorielle
+	// Attention: creation de nouveaux attributs internes qui doivent etre detruit par l'appelant
+	// En sortie : renvoie la variation de cout entre la grille source et la grille fusionnee
+	double ExportDataGridWithVarPartMergeOptimization(KWDataGrid* targetDataGrid,
+							  const KWDataGridCosts* dataGridCosts) const;
+
 	// Mise a jour des groupes de l'attribut VarPart d'une grille de type VarPart
 	// En entree:
 	//  - ivTargetGroupIndexes: index de groupe cible par index de groupe source
@@ -197,6 +190,7 @@ public:
 	void UpdateVarPartDataGridFromVarPartGroups(KWDataGrid* targetDataGrid, const IntVector* ivTargetGroupIndexes,
 						    int nTargetGroupNumber) const;
 	// CH IV End
+
 	///////////////////////////////////////////////////////////////////////////
 	// Service de recuperation des partitions univariees pour initialiser
 	// la grille cible (de facon compatible avec la grille source)
@@ -296,8 +290,11 @@ public:
 	/////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
-	// Initialisation d'une grille (ganularite, eventuelle valeurs cible) avec le bon nombre d'attributs
-	// Les attribut ne sont pas initialises
+	//////////////////////////////////////////////////////////////////////////////////
+	// Services principaux d'initialisation d'une grille et de ses attributs
+
+	// Initialisation d'une grille (granularite, eventuelle valeurs cible) avec le bon nombre d'attributs
+	// Les attributs ne sont pas initialises
 	void InitialiseDataGrid(const KWDataGrid* originDataGrid, KWDataGrid* targetDataGrid,
 				int nAttributeNumber) const;
 
@@ -313,6 +310,11 @@ protected:
 
 	// Initialisation des parties pour un attribut venant d'etre initialise, sans partie, a partir d'un attribut valide
 	void InitialiseAttributeParts(const KWDGAttribute* sourceAttribute, KWDGAttribute* targetAttribute) const;
+
+	// Initialisation des parties pour un attribut de type VarPart venant d'etre initialise, sans partie, a partir d'un attribut valide,
+	// en creant un clone de ses attributs internes
+	void InitialiseVarPartAttributeClonedParts(const KWDGAttribute* sourceAttribute,
+						   KWDGAttribute* targetAttribute) const;
 
 	// Initialisation d'une unique parties pour un attribut venant d'etre initialise, sans partie, a partir d'un attribut valide
 	void InitialiseAttributeNullPart(const KWDGAttribute* sourceAttribute, KWDGAttribute* targetAttribute) const;
@@ -345,7 +347,26 @@ protected:
 	boolean CheckAttributesConsistency(const KWDGAttribute* attribute1, const KWDGAttribute* attribute2) const;
 
 	//////////////////////////////////////////////////////////////////////////////////
+	// Services de creation d'attribut internes
+
+	// Creation d'attributs internes en dupliquant les attributs internes source
+	KWDGInnerAttributes* CloneInnerAttributes(const KWDGInnerAttributes* sourceInnerAttributes) const;
+
+	// Creation d'attributs internes avec une seule partie par attribut
+	KWDGInnerAttributes* CreateNullInnerAttributes(const KWDGInnerAttributes* sourceInnerAttributes) const;
+
+	// Creation d'attributs internes en granularisant les attributs internes source
+	KWDGInnerAttributes*
+	CreateGranularizedInnerAttributes(const KWDGInnerAttributes* sourceInnerAttributes, int nGranularity,
+					  const ObjectDictionary* odInnerAttributesQuantilesBuilders) const;
+
+	//////////////////////////////////////////////////////////////////////////////////
 	// Services divers
+
+	// Effectue la fusion des PV : dans le cas numerique, fusion des intervalles contigues et dans le cas categoriel
+	// fusion des modalites de la même variable categorielle En sortie : renvoie la variation de cout cumulee pour
+	// les clusters impactes par les fusions de PV (ne prend pas en compte la variation du cout de partition)
+	double MergePartsForVarPartAttributes(KWDataGrid* targetDataGrid) const;
 
 	// Creation et initialisation d'un quantile builder, et du nombre max de parties a quuantiliser
 	void CreateAttributeQuantileBuilder(const KWDGAttribute* attribute, KWQuantileBuilder*& quantileBuilder,
