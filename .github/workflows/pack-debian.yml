@@ -33,6 +33,13 @@ jobs:
           cmake --build build --parallel --target MODL MODL_Coclustering KhiopsNativeInterface
       - name: Build package with CPack
         run: cd build && cpack -G DEB
+      - name: Rename packages with codename
+        run: |
+          source /etc/os-release
+          cd build/packages/
+          for filename in *.deb; 
+          do mv -v $filename ${filename%_*}-${VERSION_CODENAME}.${filename##*_}; 
+          done
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
