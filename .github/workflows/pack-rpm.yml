@@ -21,8 +21,8 @@ jobs:
         run: |
           source /etc/os-release 
           echo "ID=$ID" >> "$GITHUB_ENV"
-          VERSION=$(echo $PLATFORM_ID | cut -d":" -f2)
-          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          VERSION_CODENAME=$(echo $PLATFORM_ID | cut -d":" -f2)
+          echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
       - name: Configure CMake
         run: |
           source /etc/profile.d/modules.sh
@@ -34,10 +34,18 @@ jobs:
           cmake --build build --parallel --target MODL${{ env.MPI_SUFFIX }} MODL_Coclustering${{ env.MPI_SUFFIX }} KhiopsNativeInterface
       - name: Build package with CPack
         run: cd build && cpack -G RPM
+      - name: Rename packages with codename
+        run: |
+          source /etc/os-release
+          ARCH=$(arch)
+          cd build/packages/
+          for filename in *.rpm; 
+          do mv -v $filename ${filename%.${ARCH}*}.${{ env.VERSION_CODENAME }}.${ARCH}.rpm; 
+          done
       - name: Upload artifacts
         uses: actions/upload-artifact@v3.1.2
         with:
-          name: ${{ env.ID }}-${{ env.VERSION }}
+          name: ${{ env.ID }}-${{ env.VERSION_CODENAME }}
           path: build/packages/*.rpm
           if-no-files-found: error
   # Test packages on a brand new runner: we want to check the installation process (with the dependencies installation)
