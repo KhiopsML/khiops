@@ -1,0 +1,68 @@
+---
+name: Run Standard Tests
+on:
+  push:
+env:
+  KhiopsBatchMode: true
+jobs:
+  run-standard-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        build-setup:
+          - {os: windows-2022, cmake-preset: windows-msvc-release}
+          - {os: ubuntu-latest, cmake-preset: linux-gcc-release}
+          - {os: macos-latest, cmake-preset: macos-clang-release}
+    runs-on: ${{ matrix.build-setup.os }}
+    permissions:
+      id-token: write
+      contents: read
+      checks: write
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Build Khiops executables
+        uses: ./.github/actions/build-khiops
+        with:
+          preset-name: ${{ matrix.build-setup.cmake-preset }}
+          targets: MODL MODL_Coclustering
+          override-flags: -DBUILD_JARS=OFF -DTESTING=OFF
+      - name: Run Tests (unix)
+        if: matrix.build-setup.os != 'windows-2022'
+        run: |
+          python test/LearningTest/cmd/python/test_khiops.py Khiops ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}/bin/MODL Standard
+          python test/LearningTest/cmd/python/test_khiops.py Coclustering ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}/bin/MODL_Coclustering Standard
+      - name: Run Tests (windows)
+        if: matrix.build-setup.os == 'windows-2022'
+        run: |
+          python test/LearningTest/cmd/python/test_khiops.py Khiops ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}/bin/MODL.exe Standard
+          python test/LearningTest/cmd/python/test_khiops.py Coclustering ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}/bin/MODL_Coclustering.exe Standard
+      - name: Collect results
+        if: success() || failure()
+        run: |
+          python3 test/LearningTest/cmd/python/apply_command.py errors test/LearningTest/TestKhiops/Standard | tee test/LearningTest/TestKhiops/Standard/khiops-log.txt
+          python3 test/LearningTest/cmd/python/apply_command.py errors test/LearningTest/TestCoclustering/Standard | tee test/LearningTest/TestCoclustering/Standard/coclustering-log.txt
+      - name: Check results
+        shell: bash
+        run: |
+          if (grep -q error test/LearningTest/TestKhiops/Standard/khiops-log.txt test/LearningTest/TestCoclustering/Standard/coclustering-log.txt); then
+            echo "::error::Errors in test"
+            false
+          fi
+          if (grep -q 'The test has not been launched' test/LearningTest/TestKhiops/Standard/khiops-log.txt test/LearningTest/TestCoclustering/Standard/coclustering-log.txt); then
+            echo "::error::Test not launched"
+            false
+          fi
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.build-setup.cmake-preset }}
+          path: |-
+            test/LearningTest/**/results
+            test/LearningTest/TestKhiops/Standard/khiops-log.txt
+            test/LearningTest/TestCoclustering/Standard/coclustering-log.txt
+            test/LearningTest/**/comparisonResults.log
