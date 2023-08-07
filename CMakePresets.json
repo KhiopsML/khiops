@@ -10,6 +10,7 @@
       "name": "default",
       "hidden": true,
       "description": "Khiops default build options",
+      "generator": "Ninja",
       "cacheVariables": {
         "MPI": "ON",
         "TESTING": "ON",
@@ -49,8 +50,7 @@
             "Windows"
           ]
         }
-      },
-      "generator": "Visual Studio 17 2022"
+      }
     },
     {
       "name": "macos",

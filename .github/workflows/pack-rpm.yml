@@ -3,7 +3,7 @@ name: Create RPM package
 on:
   workflow_dispatch:
 jobs:
-  package-rpm:
+  build-rpm-package:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -13,13 +13,13 @@ jobs:
       matrix:
         os: [rocky8, rocky9]
     container:
-      image: ghcr.io/khiopsml/khiops/${{ matrix.os }}:latest
+      image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
       - name: set environment variables
         run: |
-          source /etc/os-release 
+          source /etc/os-release
           echo "ID=$ID" >> "$GITHUB_ENV"
           VERSION_CODENAME=$(echo $PLATFORM_ID | cut -d":" -f2)
           echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
@@ -28,30 +28,35 @@ jobs:
           source /etc/profile.d/modules.sh
           module load mpi/mpich-x86_64
           echo "MPI_SUFFIX=$MPI_SUFFIX" >> "$GITHUB_ENV"
-          cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -DTESTING=OFF -DBUILD_JARS=ON
-      - name: Build Khiops executables
+          cmake --preset linux-gcc-release -DTESTING=OFF
+      - name: Build Khiops binaries
         run: |
-          cmake --build build --parallel --target MODL${{ env.MPI_SUFFIX }} MODL_Coclustering${{ env.MPI_SUFFIX }} KhiopsNativeInterface
+          cmake --build --preset linux-gcc-release --parallel \
+            --target MODL${{ env.MPI_SUFFIX }} MODL_Coclustering${{ env.MPI_SUFFIX }} \
+                     KhiopsNativeInterface norm_jar khiops_jar
       - name: Build package with CPack
-        run: cd build && cpack -G RPM
+        run: cd build/linux-gcc-release && cpack -G RPM
       - name: Rename packages with codename
         run: |
           source /etc/os-release
           ARCH=$(arch)
-          cd build/packages/
-          for filename in *.rpm; 
-          do mv -v $filename ${filename%.${ARCH}*}.${{ env.VERSION_CODENAME }}.${ARCH}.rpm; 
+          cd build/linux-gcc-release/packages
+          for filename in *.rpm
+          do
+            mv -v $filename ${filename%.${ARCH}*}.${{ env.VERSION_CODENAME }}.${ARCH}.rpm
           done
-      - name: Upload artifacts
+      - name: Upload the packages as artifacts
         uses: actions/upload-artifact@v3.1.2
         with:
           name: ${{ env.ID }}-${{ env.VERSION_CODENAME }}
-          path: build/packages/*.rpm
+          path: build/linux-gcc-release/packages/*.rpm
           if-no-files-found: error
-  # Test packages on a brand new runner: we want to check the installation process (with the dependencies installation)
-  # and the Khiops execution on a simple dataset
-  test:
-    needs: package-rpm
+  # Test packages on a brand new runner to check:
+  # - the installation process (including dependencies installation)
+  # - that executable works (run with -v)
+  # - that it executes a small test
+  test-rpm-package:
+    needs: build-rpm-package
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -59,28 +64,28 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [8, 9]
+        rocky_version: [8, 9]
     container:
-      image: rockylinux:${{ matrix.os }}
+      image: rockylinux:${{ matrix.rocky_version }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
       - name: Set environment variables
         run: |
-          source /etc/os-release 
+          source /etc/os-release
           echo "ID=$ID" >> "$GITHUB_ENV"
           VERSION=$(echo $PLATFORM_ID | cut -d":" -f2)
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
-          name: ${{ env.ID }}-${{ env.VERSION}}
+          name: ${{ env.ID }}-${{ env.VERSION }}
           path: artifacts
       - run: yum update -y
       - name: Install Khiops core
         run: |
-          yum install -y ./artifacts/khiops-core* 
-      - name: Install Khiops (with java)
+          yum install -y ./artifacts/khiops-core*
+      - name: Install Khiops Desktop (with java)
         run: |
           yum install -y ./artifacts/khiops-*
       - name: Test Khiops and Khiops Coclustering
