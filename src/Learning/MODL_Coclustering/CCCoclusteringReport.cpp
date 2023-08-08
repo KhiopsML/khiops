@@ -3202,6 +3202,13 @@ boolean CCCoclusteringReport::ReadJSONDimensionPartitions(CCHierarchicalDataGrid
 						break;
 				}
 
+				// Nettoyage des attributs internes si erreur
+				if (not bOk)
+				{
+					dgAttribute->SetInnerAttributes(NULL);
+					delete innerAttributes;
+				}
+
 				// Memorisation des informations sur les bornes des valeurs des attributs internes
 				// numeriques
 				if (bOk)
@@ -4723,7 +4730,7 @@ void CCCoclusteringReport::WriteJSONDimensionPartitions(const CCHierarchicalData
 				}
 				fJSON->EndList();
 
-				// Effectifs des valeurs
+				// Effectifs des effectifs
 				fJSON->BeginKeyList("valueFrequencies");
 				dgValue = hdgValueSet->GetHeadValue();
 				while (dgValue != NULL)
@@ -4796,7 +4803,7 @@ void CCCoclusteringReport::WriteJSONDimensionPartitions(const CCHierarchicalData
 				// Parcours des parties de variable, sauf si effectif null
 				fJSON->BeginObject();
 				fJSON->WriteKeyString("cluster", hdgPart->GetPartName());
-				fJSON->BeginKeyList("values"); // ou KeyArray ?
+				fJSON->BeginKeyList("values");
 				dgVarPartValue = hdgVarPartSet->GetHeadVarPart();
 				while (dgVarPartValue != NULL)
 				{
@@ -4857,6 +4864,10 @@ void CCCoclusteringReport::WriteJSONInnerAttributePartition(const CCHierarchical
 	KWDGPart* currentPart;
 	KWDGValue* currentValue;
 	KWDGInterval* domainBounds;
+	ObjectArray oaValues;
+	ObjectArray oaAllValues;
+	KWDGValue* dgValue;
+	int nValue;
 
 	require(coclusteringDataGrid != NULL);
 	require(innerAttribute != NULL);
@@ -4945,6 +4956,51 @@ void CCCoclusteringReport::WriteJSONInnerAttributePartition(const CCHierarchical
 		innerAttribute->GetNextPart(currentPart);
 	}
 	fJSON->EndList();
+
+	// Ecriture des valeurs et de leur effectif dans les cas des attribut Symbol
+	// CH IV Refactoring: il faut decider d'un formatbd'export des valeurs et leur effectif,
+	// soit global, soit par groupe de facon similaire a l'existant
+	// En attendant, on ne fait rien
+	// Il faudra egalement implementer la relecture de ces valeurs lors de la lecture d'un json
+	boolean bExportValues = false;
+	if (bExportValues and innerAttribute->GetAttributeType() == KWType::Symbol)
+	{
+		// Export de toutes les valeurs des parties de l'attribut
+		currentPart = innerAttribute->GetHeadPart();
+		while (currentPart != NULL)
+		{
+			currentPart->GetValueSet()->ExportValues(&oaValues);
+			oaAllValues.InsertObjectArrayAt(oaAllValues.GetSize(), &oaValues);
+			oaValues.SetSize(0);
+
+			// Partie suivante
+			innerAttribute->GetNextPart(currentPart);
+		}
+
+		// Tri des valeurs
+		oaAllValues.SetCompareFunction(KWDGValueCompareDecreasingFrequency);
+		oaAllValues.Sort();
+
+		// Ecriture des valeurs
+		fJSON->BeginKeyList("values");
+		for (nValue = 0; nValue < oaAllValues.GetSize(); nValue++)
+		{
+			dgValue = cast(KWDGValue*, oaAllValues.GetAt(nValue));
+			if (dgValue->GetValueFrequency() > 0)
+				fJSON->WriteString(dgValue->GetValue().GetValue());
+		}
+		fJSON->EndList();
+
+		// Effectifs des effectifs
+		fJSON->BeginKeyList("valueFrequencies");
+		for (nValue = 0; nValue < oaAllValues.GetSize(); nValue++)
+		{
+			dgValue = cast(KWDGValue*, oaAllValues.GetAt(nValue));
+			if (dgValue->GetValueFrequency() > 0)
+				fJSON->WriteInt(dgValue->GetValueFrequency());
+		}
+		fJSON->EndList();
+	}
 }
 // CH IV End
 
