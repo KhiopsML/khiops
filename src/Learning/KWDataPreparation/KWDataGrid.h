@@ -1019,6 +1019,9 @@ public:
 	///////////////////////////////
 	// Services divers
 
+	// Export des valeurs dans un tableau (initialement vide)
+	void ExportValues(ObjectArray* oaValues) const;
+
 	// Test si l'ensemble de valeur est inclus dans l'autre ensemble de valeurs en parametres
 	// On ne tine spas compte de la StarValue, et on effectue un test d'inclusion exhaustif pour toutes les valeurs
 	boolean IsSubValueSet(const KWDGValueSet* otherValueSet) const;
@@ -1154,6 +1157,9 @@ public:
 
 	///////////////////////////////
 	// Services divers
+
+	// Export des VarPart dans un tableau (initialement vide)
+	void ExportVarParts(ObjectArray* oaVarParts) const;
 
 	// Test si l'ensemble de VarPart est inclus dans l'autre ensemble de VarPart en parametres
 	boolean IsSubVarPartSet(const KWDGVarPartSet* otherVarPartSet) const;
