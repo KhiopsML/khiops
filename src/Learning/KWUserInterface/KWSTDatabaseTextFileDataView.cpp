@@ -11,7 +11,7 @@
 KWSTDatabaseTextFileDataView::KWSTDatabaseTextFileDataView()
 {
 	SetIdentifier("KWSTDatabaseTextFileData");
-	SetLabel("Database");
+	SetLabel("Data");
 	AddStringField("DatabaseName", "Data table file", "");
 	AddBooleanField("HeaderLineUsed", "Header line used", false);
 	AddCharField("FieldSeparator", "Field separator", ' ');
@@ -101,7 +101,7 @@ void KWSTDatabaseTextFileDataView::EventRefresh(Object* object)
 
 const ALString KWSTDatabaseTextFileDataView::GetClassLabel() const
 {
-	return "Database";
+	return "Data";
 }
 
 // ## Method implementation

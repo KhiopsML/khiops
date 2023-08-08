@@ -7,6 +7,20 @@
 /////////////////////////////////////////////////////////////////////////
 // Classe KWQuantileIntervalBuilder
 
+KWQuantileBuilder::KWQuantileBuilder()
+{
+	bIsFrequencyInitialized = false;
+	bIsValueInitialized = false;
+	nInstanceNumber = 0;
+	nValueNumber = 0;
+	nRequestedQuantileNumber = 0;
+}
+
+KWQuantileBuilder::~KWQuantileBuilder() {}
+
+/////////////////////////////////////////////////////////////////////////
+// Classe KWQuantileIntervalBuilder
+
 KWQuantileIntervalBuilder::KWQuantileIntervalBuilder()
 {
 	bIsFrequencyInitialized = false;
@@ -301,6 +315,21 @@ void KWQuantileIntervalBuilder::WriteIntervals(ostream& ost) const
 		}
 		cout << endl;
 	}
+}
+
+int KWQuantileIntervalBuilder::GetComputedQuantileNumber() const
+{
+	return GetIntervalNumber();
+}
+
+int KWQuantileIntervalBuilder::GetQuantileFrequencyAt(int nQuantileIndex) const
+{
+	return GetIntervalFrequencyAt(nQuantileIndex);
+}
+
+void KWQuantileIntervalBuilder::WriteQuantiles(ostream& ost) const
+{
+	WriteIntervals(ost);
 }
 
 void KWQuantileIntervalBuilder::Test()
@@ -702,7 +731,7 @@ void KWQuantileGroupBuilder::InitializeFrequencies(const IntVector* ivInputFrequ
 	// Reinitialisation des resultats
 	nRequestedQuantileNumber = 0;
 
-	// Calcul et memorisation des efefctifs cumules
+	// Calcul et memorisation des effectifs cumules
 	bIsValueInitialized = false;
 	bIsFrequencyInitialized = true;
 	nInstanceNumber = 0;
@@ -785,6 +814,21 @@ void KWQuantileGroupBuilder::WriteGroups(ostream& ost) const
 		}
 		cout << endl;
 	}
+}
+
+int KWQuantileGroupBuilder::GetComputedQuantileNumber() const
+{
+	return GetGroupNumber();
+}
+
+int KWQuantileGroupBuilder::GetQuantileFrequencyAt(int nQuantileIndex) const
+{
+	return GetGroupFrequencyAt(nQuantileIndex);
+}
+
+void KWQuantileGroupBuilder::WriteQuantiles(ostream& ost) const
+{
+	WriteGroups(ost);
 }
 
 void KWQuantileGroupBuilder::Test()

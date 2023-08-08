@@ -1292,19 +1292,6 @@ void KWClassStats::WriteJSONFields(JSONFile* fJSON)
 	WriteJSONDictionaryReport(fJSON, sDataStartLabel + "DetailedStatistics", &oaFilteredDataPreparationStats,
 				  false);
 
-	// Correction de type patch pour contourner un bug de Khiops visualization
-	// Eventuellement a activer pour la version beta de Khiops V11, en attendant la correction dans la visualisation
-	// DDD Bug reproduit dans LearningTest\TestKhiops\TextVariables\AllConstructionSpliceJunction
-	/*DDD
-	if (GetWriteOptionStats2D() and oaFilteredDataPreparationStats.GetSize() == 0)
-	{
-		fJSON->BeginKeyArray(sDataStartLabel + "Statistics");
-		fJSON->EndArray();
-		fJSON->BeginKeyObject(sDataStartLabel + "DetailedStatistics");
-		fJSON->EndObject();
-	}
-	*/
-
 	// // Rapport detaille additionnel dans le cas des arbres
 	if (GetWriteOptionStatsTrees() and attributeTreeConstructionTask != NULL and
 	    oaFilteredDataPreparationStats.GetSize() > 0)

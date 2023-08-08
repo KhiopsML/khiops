@@ -19,7 +19,7 @@ KWRecodingSpecView::KWRecodingSpecView()
 	AddStringField("RecodeSymbolAttributes", "Categorical recoding method", "");
 	AddStringField("RecodeContinuousAttributes", "Numerical recoding method", "");
 	AddStringField("RecodeBivariateAttributes", "Pairs recoding method", "");
-	AddBooleanField("RecodeProbabilisticDistance", "Recode using probabilistic distance (expert mode)", false);
+	AddBooleanField("RecodeProbabilisticDistance", "Recode using prob distance (expert)", false);
 
 	// Parametrage des styles;
 	GetFieldAt("FilterAttributes")->SetStyle("CheckBox");

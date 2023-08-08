@@ -20,6 +20,17 @@ KWDataGridOptimizer::KWDataGridOptimizer()
 
 KWDataGridOptimizer::~KWDataGridOptimizer() {}
 
+void KWDataGridOptimizer::Reset()
+{
+	classStats = NULL;
+	dataGridCosts = NULL;
+	bCleanNonInformativeVariables = false;
+	dEpsilon = 1e-6;
+	// CH IV Begin
+	initialVarPartDataGrid = NULL;
+	// CH IV end
+}
+
 void KWDataGridOptimizer::SetDataGridCosts(const KWDataGridCosts* kwdgcCosts)
 {
 	dataGridCosts = kwdgcCosts;
@@ -45,13 +56,14 @@ KWClassStats* KWDataGridOptimizer::GetClassStats() const
 	return classStats;
 }
 // CH IV Begin
-void KWDataGridOptimizer::SetInitialDataGrid(KWDataGrid* refDataGrid)
+void KWDataGridOptimizer::SetInitialVarPartDataGrid(KWDataGrid* refDataGrid)
 {
 	require(refDataGrid != NULL);
+	require(refDataGrid->IsVarPartDataGrid());
 	initialVarPartDataGrid = refDataGrid;
 }
 
-KWDataGrid* KWDataGridOptimizer::GetInitialDataGrid() const
+KWDataGrid* KWDataGridOptimizer::GetInitialVarPartDataGrid() const
 {
 	return initialVarPartDataGrid;
 }
@@ -170,7 +182,7 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 
 		// Initialisation des quantiles builders a partir de la grille source
 		dataGridManager.SetSourceDataGrid(initialDataGrid);
-		dataGridManager.InitializeQuantileBuildersBeforeGranularization(&odQuantileBuilders, &ivMaxPartNumbers);
+		dataGridManager.InitializeQuantileBuilders(&odQuantileBuilders, &ivMaxPartNumbers);
 
 		if (bDisplayResults)
 			cout << "ivMaxPartNumbers Granularisation\t" << ivMaxPartNumbers << flush;
@@ -311,10 +323,9 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 						dataGridManager.SetSourceDataGrid(granularizedOptimizedDataGrid);
 						// Creation d'une nouvelle grille avec nouvelle description des PV
 
-						// Calcul de la grille de reference post fusionnee a partir de
-						// granularizedDataGrid
+						// Calcul de la grille de reference post fusionnee a partir de granularizedDataGrid
 						dFusionDeltaCost =
-						    dataGridManager.ExportMergedDataGridForVarPartAttributes(
+						    dataGridManager.ExportDataGridWithVarPartMergeOptimization(
 							&granularizedPostMergedOptimizedDataGrid, dataGridCosts);
 						assert(not granularizedPostMergedOptimizedDataGrid.GetVarPartsShared());
 
@@ -369,7 +380,7 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 						{
 							// La grille source est la grille de reference qui contient la
 							// partition la plus fine
-							dataGridManager.SetSourceDataGrid(GetInitialDataGrid());
+							dataGridManager.SetSourceDataGrid(GetInitialVarPartDataGrid());
 							dataGridManager.ExportDataGridWithSingletonVarParts(
 							    &granularizedPostMergedOptimizedDataGrid,
 							    &partitionedReferenceGranularizedPostMergedDataGrid, true);
@@ -988,6 +999,8 @@ KWDataGridOptimizer::OptimizeWithBestUnivariatePartitionForCurrentGranularity(co
 			if (attributeStats->GetPreparedDataGridStats()->GetGranularity() !=
 			    initialDataGrid->GetGranularity())
 			{
+				// CH IV Refactoring: mieux utiliser les possibibilite de dataGridManager???
+				//
 				// Export de la granularite
 				univariateDataGrid.SetGranularity(initialDataGrid->GetGranularity());
 
@@ -1018,9 +1031,7 @@ KWDataGridOptimizer::OptimizeWithBestUnivariatePartitionForCurrentGranularity(co
 				    initialAttribute->GetGranularizedValueNumber());
 
 				// Transfert du parametrage du fourre-tout
-				if (initialAttribute->GetCatchAllValueSet() != NULL)
-					targetAttribute->InitializeCatchAllValueSet(
-					    initialAttribute->GetCatchAllValueSet());
+				targetAttribute->InitializeCatchAllValueSet(initialAttribute->GetCatchAllValueSet());
 
 				dataGridManager.BuildDataGridAttributeFromGranularizedPartition(
 				    initialAttribute, targetAttribute, classStats);
@@ -1039,18 +1050,13 @@ KWDataGridOptimizer::OptimizeWithBestUnivariatePartitionForCurrentGranularity(co
 
 				// Transfert du parametrage du fourre-tout
 				targetAttribute = univariateDataGrid.GetAttributeAt(0);
-				if (initialAttribute->GetCatchAllValueSet() != NULL)
-					targetAttribute->InitializeCatchAllValueSet(
-					    initialAttribute->GetCatchAllValueSet());
+				targetAttribute->InitializeCatchAllValueSet(initialAttribute->GetCatchAllValueSet());
 			}
 		}
 
 		// Evaluation si la grille univariee a ete construite
 		if (bEvaluated)
 		{
-			// if (bDisplayResults)
-			// cout << " AVANT Cout de la grille univariee " << endl;
-
 			// Evaluation de la grille
 			dCost = dataGridCosts->ComputeDataGridTotalCost(&univariateDataGrid);
 			if (bDisplayResults)
@@ -1713,7 +1719,7 @@ double KWDataGridVNSOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* init
 			dataGridManager.SetSourceDataGrid(&neighbourDataGrid);
 			// Creation d'une nouvelle grille avec nouvelle description des PV fusionnees
 			dFusionDeltaCost =
-			    dataGridManager.ExportMergedDataGridForVarPartAttributes(&mergedDataGrid, dataGridCosts);
+			    dataGridManager.ExportDataGridWithVarPartMergeOptimization(&mergedDataGrid, dataGridCosts);
 			assert(not mergedDataGrid.GetVarPartsShared());
 
 			// Calcul et verification du cout
@@ -1760,12 +1766,9 @@ double KWDataGridVNSOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* init
 				int nGroupNumber;
 				boolean bImprovement;
 
-				// Parametrage par attribut VarPart : est ce qu'on le connait pour toutes les grilles ?
-				// si grille VarPart elle a un innerAttributes : chacun refere a l'attribut VarPart
+				// Parametrage pour l'attribut VarPart
 				varPartDataGridPostOptimizer.SetPostOptimizationAttributeName(
-				    mergedDataGrid.GetInnerAttributes()
-					->GetInnerAttributeAt(0)
-					->GetOwnerAttributeName());
+				    mergedDataGrid.GetVarPartAttribute()->GetAttributeName());
 
 				if (bDisplayResults)
 				{
@@ -1774,7 +1777,7 @@ double KWDataGridVNSOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* init
 					cout << "Debut PostOptimisation VarPart" << endl;
 					cout << "VNSOptimizeVarPartDataGrid: grille initiale du DataGridOptimizer"
 					     << endl;
-					GetDataGridOptimizer()->GetInitialDataGrid()->Write(cout);
+					GetDataGridOptimizer()->GetInitialVarPartDataGrid()->Write(cout);
 					cout << "VNSOptimizeVarPartDataGrid: grille initiale utilisee pour l'export"
 					     << endl;
 					initialDataGrid->Write(cout);
@@ -1796,15 +1799,13 @@ double KWDataGridVNSOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* init
 					// Construction d'une grille de reference avec des clusters contenant une seule
 					// PV a partir des PV apres fusion Parametrage par la grille initiale de
 					// l'optimiseur
-					dataGridManager.SetSourceDataGrid(GetDataGridOptimizer()->GetInitialDataGrid());
+					dataGridManager.SetSourceDataGrid(
+					    GetDataGridOptimizer()->GetInitialVarPartDataGrid());
 					assert(mergedDataGrid.Check());
 					dataGridManager.ExportDataGridWithSingletonVarParts(
 					    &mergedDataGrid, &partitionedReferencePostMergedDataGrid, false);
-					ivGroups.SetSize(
-					    partitionedReferencePostMergedDataGrid
-						.SearchAttribute(
-						    varPartDataGridPostOptimizer.GetPostOptimizationAttributeName())
-						->GetPartNumber());
+					ivGroups.SetSize(partitionedReferencePostMergedDataGrid.GetVarPartAttribute()
+							     ->GetPartNumber());
 					assert(partitionedReferencePostMergedDataGrid.Check());
 					assert(partitionedReferencePostMergedDataGrid.GetVarPartsShared());
 					assert(partitionedReferencePostMergedDataGrid.GetInnerAttributes() ==
@@ -1831,17 +1832,11 @@ double KWDataGridVNSOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* init
 					if (bImprovement)
 					{
 						// Mise a jour de la grille pour l'optimisation de cet attribut
-						nGroupNumber =
-						    mergedDataGrid
-							.SearchAttribute(varPartDataGridPostOptimizer
-									     .GetPostOptimizationAttributeName())
-							->GetPartNumber();
+						nGroupNumber = mergedDataGrid.GetVarPartAttribute()->GetPartNumber();
 						dataGridManager.SetSourceDataGrid(
 						    &partitionedReferencePostMergedDataGrid);
-						dataGridManager.UpdateDataGridFromGroups(
-						    &mergedDataGrid,
-						    varPartDataGridPostOptimizer.GetPostOptimizationAttributeName(),
-						    &ivGroups, nGroupNumber);
+						dataGridManager.UpdateVarPartDataGridFromVarPartGroups(
+						    &mergedDataGrid, &ivGroups, nGroupNumber);
 
 						if (bDisplayResults)
 						{
@@ -1858,7 +1853,7 @@ double KWDataGridVNSOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* init
 						// fusion de la grille comportant les deplacements
 						dataGridManager.SetSourceDataGrid(&mergedDataGrid);
 						dVarPartFusionDeltaCost =
-						    dataGridManager.ExportMergedDataGridForVarPartAttributes(
+						    dataGridManager.ExportDataGridWithVarPartMergeOptimization(
 							&mergedMergedDataGrid, dataGridCosts);
 						dMergedMergedCost =
 						    dataGridCosts->ComputeDataGridTotalCost(&mergedMergedDataGrid);
@@ -1882,7 +1877,7 @@ double KWDataGridVNSOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* init
 							neighbourDataGrid.DeleteAll();
 							dataGridManager.SetSourceDataGrid(initialDataGrid);
 							dataGridManager.ExportDataGridWithReferenceVarPartClusters(
-							    &neighbourDataGrid, &mergedDataGrid, initialDataGrid);
+							    &mergedDataGrid, &neighbourDataGrid);
 							if (bDisplayResults)
 							{
 								cout << "VNSOptimizeVarPartDataGrid: grille best "
@@ -1952,7 +1947,8 @@ double KWDataGridVNSOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* init
 
 				else
 				{
-					dataGridManager.SetSourceDataGrid(GetDataGridOptimizer()->GetInitialDataGrid());
+					dataGridManager.SetSourceDataGrid(
+					    GetDataGridOptimizer()->GetInitialVarPartDataGrid());
 					dataGridManager.ExportDataGridWithSingletonVarParts(
 					    &mergedDataGrid, &partitionedReferencePostMergedDataGrid, true);
 					dataGridOptimizer->HandleOptimizationStep(

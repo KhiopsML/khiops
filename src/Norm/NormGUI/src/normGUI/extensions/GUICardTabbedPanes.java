@@ -27,8 +27,6 @@ import normGUI.engine.GUIUnit;
 
 /**
  * Cette classe represente une unite d'interface de type fiche
- *
- * @author Marc Boulle
  */
 public class GUICardTabbedPanes extends GUICard implements ChangeListener, FocusListener
 {

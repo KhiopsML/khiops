@@ -1895,7 +1895,6 @@ void KWGrouperMODL::EMPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSource
 	boolean bPrintInitialTables = false;
 	boolean bPrintOptimizations = false;
 	boolean bPrintFinalTable = false;
-	boolean bSearchBestOptim = false;
 	boolean bPrintDeltaCosts = false;
 	boolean bContinue;
 	int nStepNumber;
@@ -1915,7 +1914,6 @@ void KWGrouperMODL::EMPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSource
 	int nBestInGroup;
 	PeriodicTest periodicTestOptimize;
 	POSITION position;
-	KWFrequencyVector* frequencyVector;
 	KWFrequencyTable kwftImproved;
 	SortedList improvedFrequencyList(KWFrequencyVectorModalityNumberCompare);
 	IntVector ivImprovedGroups;
@@ -1925,7 +1923,6 @@ void KWGrouperMODL::EMPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSource
 	int nGarbageModalityNumberMax;
 	int nNewGarbageModalityNumber;
 	int nTrueGroupNumber;
-	int nNewTrueGroupNumber;
 	boolean bLastModality;
 	double dPartitionDeltaCost;
 	IntVector* ivMoveIndexes;
@@ -2050,6 +2047,9 @@ void KWGrouperMODL::EMPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSource
 					// effectues simultanement. On ne peut pas calculer l'evolution du nombre de
 					// modalites par groupe au niveau de chaque modalite On ne peut donc pas non
 					// plus calculer l'evolution eventuelle du groupe poubelle
+
+					// KWFrequencyVector* frequencyVector;
+					// int nNewTrueGroupNumber;
 
 					// Initialisations
 					// Nombre de groupes apres ce deplacement

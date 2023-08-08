@@ -6,4 +6,4 @@ Rank;Name;Type;Style;Label
 5;RecodeSymbolAttributes         ;ALString;ComboBox   ;Categorical recoding method
 6;RecodeContinuousAttributes     ;ALString;ComboBox   ;Numerical recoding method
 7;RecodeBivariateAttributes      ;ALString;ComboBox   ;Pairs recoding method
-8;RecodeProbabilisticDistance    ;boolean ;CheckBox   ;Recode using probabilistic distance (expert mode)
+8;RecodeProbabilisticDistance    ;boolean ;CheckBox   ;Recode using prob distance (expert)

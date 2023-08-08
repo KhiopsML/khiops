@@ -9,6 +9,7 @@ void TableGenerator::GenerateAttributeViewC(ostream& ost) const
 	int nCurrent;
 	Attribute* att;
 
+	GenerateCopyrightHeader(ost);
 	GenerateFileHeader(ost);
 
 	ost << ""
@@ -173,5 +174,5 @@ void TableGenerator::GenerateAttributeViewC(ostream& ost) const
 	    << "\n";
 	GenerateUserCodeHeader(ost, "", "Method implementation");
 	ost << "\n";
-	GenerateUserCodeTrailer(ost, "", "Method implementation", false);
+	GenerateUserCodeTrailer(ost, "", "Method implementation", true);
 }

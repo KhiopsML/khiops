@@ -1,3 +1,3 @@
 @echo off
 
-genere -noarrayview PRWorker "Employe" PRWorker.dd
+call ..\..\..\genere -noarrayview PRWorker "Employe" PRWorker.dd > genere.log

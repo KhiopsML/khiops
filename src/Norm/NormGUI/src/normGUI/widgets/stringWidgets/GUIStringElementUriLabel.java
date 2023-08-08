@@ -22,8 +22,6 @@ import normGUI.engine.GUIStringElement;
  * d'une chaine de caracteres dans une zone de texte potentiellement au format
  * html avec gestion d'un hyper-lien defini dans les parametres Utilisation de
  * JLabel.
- *
- * @author Marc Boulle
  */
 public class GUIStringElementUriLabel extends GUIStringElement
 {

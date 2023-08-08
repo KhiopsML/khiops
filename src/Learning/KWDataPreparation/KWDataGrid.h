@@ -502,32 +502,12 @@ public:
 	// Renvoie -1 si attribut interne
 	int GetAttributeIndex() const;
 
-	// CH V9 TODO :
-	// Refactoring
-	// - supprimer le GetTrueValueNumber qui est desormais redondant avec le GetInitialValueNumber (est encore
-	// utilise dans les anciennes methodes de calcul de cout)
-	// - nGranularizedValueNumber : nombre de valeurs apres granularisation
-	// - nStoredValueNumber correspond aux modalites stockees
-	// en plus des valeurs vues dans les donnes la StarValue
-	// en moins les valeurs eventuellement nettoyees lors de la creation du fourre-tout en supervise
-
 	// Nombre initial de valeurs de l'attribut
 	// Attribut continu : nombre total d'instances
-	// Attribut categoriel : nombre de valeurs distinctes (la StarValue n'est plus comptee ici)
-	// On accede au nombre de valeurs distinctes avec la StarValue dans le cas categoriel
-	// via la methode GetStoredValueNumber()
-	// CH IV Begin
+	// Attribut categoriel : nombre de valeurs distinctes (sans la StarValue)
 	// Attribut parties de variables : nombre de parties de variables distinctes
-	// CH IV End
 	void SetInitialValueNumber(int nValue);
 	int GetInitialValueNumber() const;
-
-	// Nombre de valeurs stockees pour l'attribut (avec la valeur speciale en plus dans le cas categoriel)
-	int GetStoredValueNumber() const;
-
-	// CH V9 TODO a supprimer a terme
-	// Nombre de valeurs initiales reelles de l'attribut
-	int GetTrueValueNumber() const;
 
 	// Nomre de valeurs apres granularisation
 	// Attribut continu : nombre theorique de partiles Ng=2^G
@@ -594,14 +574,11 @@ public:
 	// Renvoie NULL si pas de fourre tout
 	KWDGValueSet* GetCatchAllValueSet() const;
 
-	// Initialisation du fourre-tout
-	// Sans recopie (creation a partir de la methode ConvertToCleanedValueSet)
-	void SetCatchAllValueSet(KWDGValueSet* valueSet);
-
-	// Avec recopie
+	// Initialisation du fourre-tout en le recopiant s'il est non NULL
 	void InitializeCatchAllValueSet(KWDGValueSet* valueSet);
 
 	// Acces au nombre de modalites du groupe fourre-tout
+	// Permet de memoriser sa taille, meme si on l'a nettoye
 	// Renvoie 0 si le groupe fourre-tout n'existe pas et sa taille s'il existe
 	void SetCatchAllValueNumber(int nValue);
 	int GetCatchAllValueNumber() const;
@@ -643,6 +620,13 @@ public:
 
 	///////////////////////////////
 	// Services divers
+
+	// Calcul de l'effectif cumule sur l'ensemble des parties
+	int ComputeTotalPartFrequency() const;
+
+	// Test si l'attribut contient des sous-parties de l'autre attribut en parametre
+	// Dans le cas d'un attribut de type VarPart, les deux attribut doivent exploiter les meme variables internes
+	boolean ContainsSubParts(const KWDGAttribute* otherAttribute) const;
 
 	// Controle d'integrite local a l'attribut (parties, valeurs, cellules de l'attribut)
 	// Dans le cas continus, les intervalles doivent former une partition.
@@ -714,12 +698,16 @@ protected:
 	ALString sAttributeName;
 	int nAttributeType;
 	int nAttributeIndex;
+
 	// Nombre initial de valeurs
 	int nInitialValueNumber;
+
 	// Nombre de valeurs apres granularisation
 	int nGranularizedValueNumber;
+
 	// Pointeur vers la partie poubelle, a NULL par defaut
 	KWDGPart* garbagePart;
+
 	// Pointeur vers les valeurs initiales du fourre-tout, a NULL par defaut
 	int nCatchAllValueNumber;
 	KWDGValueSet* catchAllValueSet;
@@ -817,8 +805,12 @@ public:
 	// Services divers
 
 	// Methode avancee: mise a jour directe de l'effectif de la partie
-	// Attention, cela doit correspondre exactement au cumul des effectifs des cellules de la parties
+	// Attention, cela doit correspondre exactement au cumul des effectifs des cellules de la partie
+	// Sauf pour les attributs interne ou l'effectif est possitionne directement
 	void SetPartFrequency(int nValue);
+
+	// Test si la partie est une sous-partie de l'autre partie en parametre
+	boolean IsSubPart(const KWDGPart* otherPart) const;
 
 	// Controle d'integrite local a la partie (valeurs, cellules de la partie)
 	boolean Check() const override;
@@ -831,8 +823,8 @@ public:
 	void WriteValues(ostream& ost) const;
 	void WriteCells(ostream& ost) const;
 
-	// Libelle complet dans le cas d'une partie de variable, base sur le libelle de l'identifiant interne et celui
-	// de la partie
+	// Libelle complet dans le cas d'une partie de variable, base sur le libelle de l'identifiant interne
+	// et celui de la partie
 	const ALString GetVarPartLabel() const;
 
 	// Libelles utilisateur
@@ -932,6 +924,9 @@ public:
 	///////////////////////////////
 	// Services divers
 
+	// Test si l'intervalle est un sous-intervalle
+	boolean IsSubInterval(const KWDGInterval* otherInterval) const;
+
 	// Controle d'integrite
 	boolean Check() const override;
 
@@ -989,11 +984,7 @@ public:
 	// Test de validite d'une valeur (si elle appartient a la partie)
 	boolean CheckValue(KWDGValue* value) const;
 
-	// CH V9 TODO
-	// Refactoring : distinguer nInitialValueNumber le nombre initial de valeurs
-	// nGranularizedValueNumber : le nombre de modalites apres granularisation
-	// nStoredValueNumber : le nombre de modalites stockees
-	// Nombre de valeurs
+	// Nombre de valeurs, y compris l'eventuelle modalite speciale StarValue
 	int GetValueNumber() const;
 
 	// Test si la partie est la partie par defaut (si elle contient la valeur speciale)
@@ -1021,12 +1012,19 @@ public:
 	// En sortie : un KWDGValueSet qui contient les valeurs autres que celles conservees
 	KWDGValueSet* ConvertToCleanedValueSet();
 
-	// Calue et renvoie un ValueSet compresse avec la modalite d'effectif le plus eleve et la StarValue
+	// Calcule et renvoie un ValueSet compresse avec la modalite d'effectif le plus eleve et la StarValue
 	// Ne modifie pas le ValueSet
 	KWDGValueSet* ComputeCleanedValueSet() const;
 
 	///////////////////////////////
 	// Services divers
+
+	// Export des valeurs dans un tableau (initialement vide)
+	void ExportValues(ObjectArray* oaValues) const;
+
+	// Test si l'ensemble de valeur est inclus dans l'autre ensemble de valeurs en parametres
+	// On ne tine spas compte de la StarValue, et on effectue un test d'inclusion exhaustif pour toutes les valeurs
+	boolean IsSubValueSet(const KWDGValueSet* otherValueSet) const;
 
 	// Controle d'integrite
 	boolean Check() const override;
@@ -1160,6 +1158,12 @@ public:
 	///////////////////////////////
 	// Services divers
 
+	// Export des VarPart dans un tableau (initialement vide)
+	void ExportVarParts(ObjectArray* oaVarParts) const;
+
+	// Test si l'ensemble de VarPart est inclus dans l'autre ensemble de VarPart en parametres
+	boolean IsSubVarPartSet(const KWDGVarPartSet* otherVarPartSet) const;
+
 	// Controle d'integrite
 	boolean Check() const override;
 
@@ -1172,10 +1176,6 @@ public:
 
 	// Copie
 	void CopyFrom(const KWDGVarPartSet* sourceVarPartSet);
-
-	// Copie avec creation de nouvelles parties de variables qui alimente un nouveau KWDGInnerAttributes;
-	void CopyWithNewVarPartsFrom(const KWDGVarPartSet* sourceVarPartSet,
-				     KWDGInnerAttributes* targetInnerAttributes);
 
 	// Ajout de nouvelles parties recopiees depuis une source
 	void UpgradeFrom(const KWDGVarPartSet* sourceVarPartSet);
@@ -1227,7 +1227,7 @@ public:
 	// Partie de variable
 	KWDGPart* GetVarPart() const;
 
-	// Effectif lie a la partie de variable
+	// Effectif lie a la partie de variable, qui est gere par la partie de variable elle-meme
 	void SetVarPartFrequency(int nFrequency);
 	int GetVarPartFrequency() const;
 
@@ -1284,9 +1284,26 @@ public:
 	// Nettoyage
 	void DeleteAll();
 
-	// Verification du tri des parties des attributs internes : couteuse, a utiliser essentiellement dans les
-	// assertions
+	// Export de toutes les parties parties de variables des attributs internes dans un tableau (initialement vide)
+	void ExportAllInnerAttributeVarParts(ObjectArray* oaInnerAttributeVarParts) const;
+
+	// Calcul du nombre total de parties de variable sur l'ensemble des attributs internes
+	int ComputeTotalInnerAttributeVarParts() const;
+
+	// Calcul de l'effectif total cumule sur les parties de variable sur l'ensemble des attributs internes
+	int ComputeTotalInnerAttributeFrequency() const;
+
+	// Tri des parties des attributs internes
+	void SortInnerAttributeParts() const;
+
+	// Verification du tri des parties des attributs internes
+	// Test couteux, a utiliser essentiellement dans les assertions
 	boolean AreInnerAttributePartsSorted() const;
+
+	// Test si les attribut internes sont constitue des meme attributs, ne contenant que sous-partie
+	// des VarPart des autres attributs internes en parametressi Verification du tri des parties des attributs internes :
+	// Test couteux, a utiliser essentiellement dans les assertions
+	boolean ContainsSubVarParts(const KWDGInnerAttributes* otherInnerAttributes) const;
 
 	// Controle d'integrite
 	boolean Check() const override;
@@ -1697,24 +1714,6 @@ inline int KWDGAttribute::GetGranularizedValueNumber() const
 	return nGranularizedValueNumber;
 }
 
-inline int KWDGAttribute::GetStoredValueNumber() const
-{
-	if (nAttributeType == KWType::Symbol)
-		return nInitialValueNumber + 1;
-	else
-		return nInitialValueNumber;
-}
-
-inline int KWDGAttribute::GetTrueValueNumber() const
-{
-	// CH Refactoring: nettoyer
-	// if (nAttributeType == KWType::Symbol)
-	//	return nInitialValueNumber - 1;
-	// else
-	// Desormais nInitialValueNumber est le TrueValueNumber
-	return nInitialValueNumber;
-}
-
 inline void KWDGAttribute::SetCost(double dValue)
 {
 	require(dValue >= 0);
@@ -1755,7 +1754,8 @@ inline void KWDGAttribute::GetPrevPart(KWDGPart*& part) const
 
 inline KWDGPart* KWDGAttribute::GetGarbagePart() const
 {
-	// CH V9 MB TODO: expliquer pourquoi il n'y a pas de require(nAttributeType == KWType::Symbol)
+	// Pas de require strict sur le type d'attribut, pour simplifier l'usage de cette methode
+	require(nAttributeType == KWType::Symbol or nAttributeType == KWType::VarPart or garbagePart == NULL);
 	return garbagePart;
 }
 
@@ -1782,27 +1782,26 @@ inline int KWDGAttribute::GetGarbageModalityNumber() const
 
 inline KWDGValueSet* KWDGAttribute::GetCatchAllValueSet() const
 {
-	// CH V9 MB TODO: expliquer pourquoi il n'y a pas de require(nAttributeType == KWType::Symbol)
-	// require(nAttributeType == KWType::Symbol);
+	// Pas de require strict sur le type d'attribut, pour simplifier l'usage de cette methode
+	require(nAttributeType == KWType::Symbol or catchAllValueSet == NULL);
 	return catchAllValueSet;
-}
-
-inline void KWDGAttribute::SetCatchAllValueSet(KWDGValueSet* valueSet)
-{
-	require(nAttributeType == KWType::Symbol);
-	if (catchAllValueSet != NULL)
-		delete catchAllValueSet;
-	catchAllValueSet = valueSet;
 }
 
 inline void KWDGAttribute::InitializeCatchAllValueSet(KWDGValueSet* valueSet)
 {
-	require(nAttributeType == KWType::Symbol);
+	// Pas de require strict sur le type d'attribut, pour simplifier l'usage de cette methode
+	require(nAttributeType == KWType::Symbol or catchAllValueSet == NULL);
+	require(nAttributeType == KWType::Symbol or valueSet == NULL);
 
 	if (catchAllValueSet != NULL)
 		delete catchAllValueSet;
-	catchAllValueSet = new KWDGValueSet;
-	catchAllValueSet->CopyFrom(valueSet);
+	if (valueSet == NULL)
+		catchAllValueSet = NULL;
+	else
+	{
+		catchAllValueSet = new KWDGValueSet;
+		catchAllValueSet->CopyFrom(valueSet);
+	}
 }
 
 inline void KWDGAttribute::SetCatchAllValueNumber(int nValue)

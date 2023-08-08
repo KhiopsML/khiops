@@ -10,8 +10,6 @@ import javax.swing.JButton;
 
 /**
  * Definit une action utilisateur
- *
- * @author Marc Boulle
  */
 public class GUIAction extends GUIObject
 {

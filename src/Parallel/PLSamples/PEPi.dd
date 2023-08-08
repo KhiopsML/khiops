@@ -1,0 +1,4 @@
+Rank;Name;Type;Style;Label
+1;IterationNumber;int   ;;Number of iterations
+2;Pi             ;ALString;;Pi approximation
+3;ElapsedTime    ;double;;Computation time

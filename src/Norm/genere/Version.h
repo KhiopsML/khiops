@@ -10,7 +10,7 @@
 // dans le TaskManager de Windows (par exemple)
 
 // Version de Khiops
-#define KHIOPS_VERSION str(10.4.7i)
+#define GENERE_VERSION str(1.0)
 
 // Copyright
-#define KHIOPS_COPYRIGHT_LABEL str((c)2023 Orange Labs - All rights reserved.)
+#define GENERE_COPYRIGHT_LABEL str((c)2023 Orange Labs.)

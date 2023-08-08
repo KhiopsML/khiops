@@ -13,8 +13,6 @@ import javax.swing.ListCellRenderer;
 
 /**
  * Definit un rendu personnalise pour les ComboBox contenant des images
- *
- * @author Marc Boulle
  */
 public class GUIComboBoxImageRenderer extends JLabel implements ListCellRenderer
 {

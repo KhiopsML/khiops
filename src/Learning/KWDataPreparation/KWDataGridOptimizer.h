@@ -28,6 +28,9 @@ public:
 	KWDataGridOptimizer();
 	~KWDataGridOptimizer();
 
+	// Reinitialisation
+	virtual void Reset();
+
 	// Parametrage de la structure des couts de la grille de donnees
 	// Memoire: les specifications sont referencees et destinees a etre partagees par plusieurs algorithmes
 	void SetDataGridCosts(const KWDataGridCosts* kwdgcCosts);
@@ -44,11 +47,11 @@ public:
 	KWClassStats* GetClassStats() const;
 
 	// CH IV Begin
-	// Parametrage (facultatif) par une grille initiale, sans le cas du coclustering instances * variables,
+	// Parametrage (facultatif) par une grille initiale, dans le cas du coclustering instances * variables,
 	// Permet l'utilisation de cette grille pour la creation de la grille avec parties de variables fusionnees
 	// Memoire: les specifications sont referencees et destinees a etre partagees
-	void SetInitialDataGrid(KWDataGrid* refDataGrid);
-	KWDataGrid* GetInitialDataGrid() const;
+	void SetInitialVarPartDataGrid(KWDataGrid* refDataGrid);
+	KWDataGrid* GetInitialVarPartDataGrid() const;
 	// CH IV End
 
 	// Optimisation d'un grille pour une structure de cout donnees

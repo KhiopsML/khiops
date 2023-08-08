@@ -11,6 +11,7 @@ void TableGenerator::GenerateAttributeC(ostream& ost) const
 	int nCount;
 	boolean bSkipLine;
 
+	GenerateCopyrightHeader(ost);
 	GenerateFileHeader(ost);
 
 	ost << ""
@@ -197,5 +198,5 @@ void TableGenerator::GenerateAttributeC(ostream& ost) const
 	ost << ""
 	    << "\n";
 
-	GenerateUserCodeTrailer(ost, "", "Method implementation", false);
+	GenerateUserCodeTrailer(ost, "", "Method implementation", true);
 }

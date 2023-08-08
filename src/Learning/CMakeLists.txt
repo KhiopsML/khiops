@@ -7,9 +7,7 @@ add_subdirectory(KhiopsNativeInterface)
 add_subdirectory(KIInterpretation)
 
 add_subdirectory(KMDRRuleLibrary)
-if(FULL)
-  add_subdirectory(KNITransfer)
-endif(FULL)
+add_subdirectory(KNITransfer)
 
 add_subdirectory(KWData)
 add_subdirectory(KWDataPreparation)

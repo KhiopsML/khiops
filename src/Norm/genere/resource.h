@@ -7,7 +7,7 @@
 #ifdef _WIN32
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
-// Used by khisto.rc
+// Used by genere.rc
 #include "Version.h"
 // Valeurs par defaut suivantes des nouveaux objets
 //

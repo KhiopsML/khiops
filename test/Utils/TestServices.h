@@ -137,8 +137,6 @@ inline boolean FileCompareForTest(const ALString& sFileName1, const ALString& sF
 	FILE* file2;
 	boolean bOk1;
 	boolean bOk2;
-	char c1;
-	char c2;
 	boolean bSame = true;
 	const char sys[] = "SYS";
 	int nLineIndex;
@@ -146,12 +144,18 @@ inline boolean FileCompareForTest(const ALString& sFileName1, const ALString& sF
 	char line1[sizeMax];
 	char line2[sizeMax];
 
+	// Initialisations
+	bOk1 = false;
+	bOk2 = false;
+	file1 = NULL;
+	file2 = NULL;
+
+	// Retour si un fichier n'existe pas
 	if (not FileService::FileExists(sFileName1))
 	{
 		cout << "File " << sFileName1 << " is missing" << endl;
 		return false;
 	}
-
 	if (not FileService::FileExists(sFileName2))
 	{
 		cout << "File " << sFileName2 << " is missing" << endl;

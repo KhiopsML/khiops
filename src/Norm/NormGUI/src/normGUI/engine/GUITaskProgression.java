@@ -23,8 +23,6 @@ import javax.swing.JScrollPane;
 
 /**
  * Definit une fenetre d'avertissement
- *
- * @author Marc Boulle
  */
 public class GUITaskProgression extends JFrame
 {

@@ -22,8 +22,6 @@ import normGUI.engine.GUIUnit;
  * d'une chaine de caracteres dans une zone de texte de type mot de passe. Les
  * caracteres de saisie sont remplaces par des points a l'affichage. Utilisation
  * de JPasswordField.
- *
- * @author Marc Boulle
  */
 public class GUIStringElementPassword extends GUIStringElement
 {

@@ -242,8 +242,8 @@ int SecureStrcpy(char* sDest, const char* sSource, int nMaxLength)
 
 	assert(nMaxLength > 0);
 
-	nLengthSource = strlen(sSource);
-	nLenDest = strlen(sDest);
+	nLengthSource = (int)strlen(sSource);
+	nLenDest = (int)strlen(sDest);
 	if (nLenDest + nLengthSource < nMaxLength)
 	{
 		strcpy(&sDest[nLenDest], sSource);

@@ -226,7 +226,8 @@ KWDataGridPostOptimizer::BuildUnivariateInitialDataGrid(const KWDataGrid* optimi
 	// Extension pour un attribut de type VarPart : code identique
 	// Il faut une coherence (egalite) entre le KWDGInnerAttributes utilise par la grille optimisee et celui utilise
 	// pour l'attribut de la grille initiale
-	require(initialDataGrid->GetInnerAttributes() == optimizedDataGrid->GetInnerAttributes());
+	require(not initialDataGrid->IsVarPartDataGrid() or
+		initialDataGrid->GetInnerAttributes() == optimizedDataGrid->GetInnerAttributes());
 	// CH IV End
 
 	// Creation de la grille univariee
@@ -243,7 +244,7 @@ KWDataGridPostOptimizer::BuildUnivariateInitialDataGrid(const KWDataGrid* optimi
 
 	// Export des parties les plus fines (de la grille initiale) pour la grille a optimiser
 	dataGridManager.SetSourceDataGrid(initialDataGrid);
-	dataGridManager.ExportPartsForAttribute(univariateInitialDataGrid, sPostOptimizationAttributeName);
+	dataGridManager.ExportAttributeParts(univariateInitialDataGrid, sPostOptimizationAttributeName);
 
 	// Export des cellules pour la grille initiale univariee
 	dataGridManager.SetSourceDataGrid(initialDataGrid);
@@ -3701,6 +3702,7 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 								nDeltaVarPartNumberClusterOut = 1;
 							}
 							// Sinon, aucune perte de PV, juste un transfert
+							else
 							{
 								nDeltaVarPartNumber = 0;
 								nDeltaVarPartNumberClusterOut = 0;
@@ -4271,13 +4273,13 @@ double CCVarPartDataGridPostOptimizer::ComputeVarPartsSymbolAttributeVariationCo
 	KWDGAttribute* innerAttribute;
 
 	require(attribute != NULL);
-	require(attribute->GetTrueValueNumber() > 0);
+	require(attribute->GetInitialValueNumber() > 0);
 	require(attribute->GetAttributeType() == KWType::VarPart);
 	require(attribute->GetInnerAttributes()->LookupInnerAttribute(sInnerAttributeName)->GetAttributeType() ==
 		KWType::Symbol);
 
 	innerAttribute = attribute->GetInnerAttributes()->LookupInnerAttribute(sInnerAttributeName);
-	nPartileNumber = attribute->GetTrueValueNumber();
+	nPartileNumber = attribute->GetInitialValueNumber();
 	nClusterNumber = attribute->GetPartNumber();
 
 	// Sans prise en compte granularite : pas de sens en non supervise
@@ -4489,13 +4491,13 @@ double CCVarPartDataGridPostOptimizer::ComputeVarPartsContinuousAttributeVariati
 	KWDGAttribute* innerAttribute;
 
 	require(attribute != NULL);
-	require(attribute->GetTrueValueNumber() > 0);
+	require(attribute->GetInitialValueNumber() > 0);
 	require(attribute->GetAttributeType() == KWType::VarPart);
 	require(attribute->GetInnerAttributes()->LookupInnerAttribute(sInnerAttributeName)->GetAttributeType() ==
 		KWType::Continuous);
 
 	innerAttribute = attribute->GetInnerAttributes()->LookupInnerAttribute(sInnerAttributeName);
-	nPartileNumber = attribute->GetTrueValueNumber();
+	nPartileNumber = attribute->GetInitialValueNumber();
 	nClusterNumber = attribute->GetPartNumber();
 
 	// Sans prise en compte granularite : pas de sens en non supervise
@@ -4554,13 +4556,18 @@ double CCVarPartDataGridPostOptimizer::ComputeVarPartsContinuousAttributeVariati
 		//// CH AB AF temporaire : obsolete a l'integration definitive du groupe poubelle
 		// else
 		//{
-		//  Cout de codage du nombre de clusters de parties de variable
-		dVariationAttributeCost += KWStat::BoundedNaturalNumbersUniversalCodeLength(
-		    nClusterNumber - nClusterNumberVariation - 1, nPartileNumber - nVarPartsNumberVariation - 1);
+		//  Cas ou il reste au moins deux clusters apres variation
+		if (nClusterNumber - nClusterNumberVariation > 1)
+		{
+			// Cout de codage du nombre de clusters de parties de variable
+			dVariationAttributeCost += KWStat::BoundedNaturalNumbersUniversalCodeLength(
+			    nClusterNumber - nClusterNumberVariation - 1,
+			    nPartileNumber - nVarPartsNumberVariation - 1);
 
-		// Cout de codage du choix des parties de variable
-		dVariationAttributeCost +=
-		    KWStat::LnBell(nPartileNumber - nVarPartsNumberVariation, nClusterNumber - nClusterNumberVariation);
+			// Cout de codage du choix des parties de variable
+			dVariationAttributeCost += KWStat::LnBell(nPartileNumber - nVarPartsNumberVariation,
+								  nClusterNumber - nClusterNumberVariation);
+		}
 
 		// Cout de codage du nombre de clusters de parties de variable
 		dVariationAttributeCost -=

@@ -49,8 +49,7 @@
             "Windows"
           ]
         }
-      },
-      "generator": "Visual Studio 17 2022"
+      }
     },
     {
       "name": "macos",

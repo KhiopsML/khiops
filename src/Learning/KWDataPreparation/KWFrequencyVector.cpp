@@ -449,7 +449,8 @@ void KWFrequencyTable::ImportDataGridStats(const KWDataGridStats* dataGridStats)
 	nGranularity = dataGridStats->GetGranularity();
 
 	// Initialisation  du nombre de valeurs initial et apres granularisation selon les caracteristiques du premier
-	// attribut de la grille CH V9 Lot 8 TODO pas de sens s'il y a plusieurs attributs source ?
+	// attribut de la grille
+	// CH V9 Lot 8 TODO pas de sens s'il y a plusieurs attributs source ?
 	nInitialValueNumber = dataGridStats->GetAttributeAt(0)->GetInitialValueNumber();
 	nGranularizedValueNumber = dataGridStats->GetAttributeAt(0)->GetGranularizedValueNumber();
 
