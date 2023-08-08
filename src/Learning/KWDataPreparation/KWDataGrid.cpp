@@ -4490,6 +4490,26 @@ KWDGValueSet* KWDGValueSet::ComputeCleanedValueSet() const
 	return valueSet;
 }
 
+void KWDGValueSet::ExportValues(ObjectArray* oaValues) const
+{
+	KWDGValue* value;
+	int nValue;
+
+	require(oaValues != NULL);
+	require(oaValues->GetSize() == 0);
+
+	// Ajout des parties dans le tableau
+	oaValues->SetSize(GetValueNumber());
+	nValue = 0;
+	value = headValue;
+	while (value != NULL)
+	{
+		oaValues->SetAt(nValue, value);
+		nValue++;
+		value = value->nextValue;
+	}
+}
+
 boolean KWDGValueSet::IsSubValueSet(const KWDGValueSet* otherValueSet) const
 {
 	boolean bOk = true;
@@ -4531,6 +4551,7 @@ boolean KWDGValueSet::Check() const
 	boolean bStarValuePresent;
 	NumericKeyDictionary nkdCheckValues;
 	KWDGValue* value;
+	boolean bCheckFrequencies;
 	ALString sTmp;
 
 	// Test d'existence d'au moins une valeur
@@ -4543,6 +4564,9 @@ boolean KWDGValueSet::Check() const
 	// Test des valeurs de la partie
 	if (bOk)
 	{
+		// On ne verifie les effectifs que si au moins un est specifie
+		bCheckFrequencies = ComputeTotalFrequency() > 0;
+
 		// Parcours des valeurs de la partie
 		bStarValuePresent = false;
 		value = GetHeadValue();
@@ -4556,6 +4580,14 @@ boolean KWDGValueSet::Check() const
 			if (nkdCheckValues.Lookup(value->GetValue().GetNumericKey()) != NULL)
 			{
 				AddError(sTmp + "Value " + value->GetValue() + " already exists in the part");
+				bOk = false;
+				break;
+			}
+			// Erreur si effectif a 0 pour une valeur qui n'est pas la star value
+			else if (bCheckFrequencies and value->GetValue() != Symbol::GetStarValue() and
+				 value->GetValueFrequency() == 0)
+			{
+				AddError(sTmp + "Value " + value->GetValue() + " should have a non-zero frequency");
 				bOk = false;
 				break;
 			}
@@ -5044,6 +5076,26 @@ boolean KWDGVarPartSet::CheckVarPart(KWDGVarPartValue* value) const
 	return bOk;
 }
 
+void KWDGVarPartSet::ExportVarParts(ObjectArray* oaVarParts) const
+{
+	KWDGVarPartValue* varPartValue;
+	int nVarPart;
+
+	require(oaVarParts != NULL);
+	require(oaVarParts->GetSize() == 0);
+
+	// Ajout des parties dans le tableau
+	oaVarParts->SetSize(GetVarPartNumber());
+	nVarPart = 0;
+	varPartValue = headVarPart;
+	while (varPartValue != NULL)
+	{
+		oaVarParts->SetAt(nVarPart, varPartValue);
+		nVarPart++;
+		varPartValue = varPartValue->nextVarPartValue;
+	}
+}
+
 boolean KWDGVarPartSet::IsSubVarPartSet(const KWDGVarPartSet* otherVarPartSet) const
 {
 	boolean bOk = true;
@@ -5087,6 +5139,7 @@ boolean KWDGVarPartSet::Check() const
 	boolean bOk = true;
 	NumericKeyDictionary nkdCheckVarParts;
 	KWDGVarPartValue* varPartValue;
+	boolean bCheckFrequencies;
 	ALString sTmp;
 
 	// Test d'existence d'au moins une partie
@@ -5099,6 +5152,9 @@ boolean KWDGVarPartSet::Check() const
 	// Test des valeurs de la partie
 	if (bOk)
 	{
+		// On ne verifie les effectifs que si au moins un est specifie
+		bCheckFrequencies = ComputeTotalFrequency() > 0;
+
 		// Parcours des parties
 		varPartValue = GetHeadVarPart();
 		while (varPartValue != NULL)
@@ -5108,6 +5164,14 @@ boolean KWDGVarPartSet::Check() const
 			{
 				AddError(sTmp + "VarPart " + varPartValue->GetObjectLabel() +
 					 " already exists in the cluster");
+				bOk = false;
+				break;
+			}
+			// Erreur si effectif a 0
+			else if (bCheckFrequencies and varPartValue->GetVarPartFrequency() == 0)
+			{
+				AddError(sTmp + "VarPart " + varPartValue->GetObjectLabel() +
+					 " should have a non-zero frequency");
 				bOk = false;
 				break;
 			}
@@ -5539,6 +5603,7 @@ boolean KWDGInnerAttributes::Check() const
 	boolean bOk = true;
 	int nInnerAttribute;
 	KWDGAttribute* innerAttribute;
+	boolean bIsCompletelySpecified;
 
 	require(odInnerAttributes.GetCount() == oaInnerAttributes.GetSize());
 
@@ -5563,8 +5628,11 @@ boolean KWDGInnerAttributes::Check() const
 			bOk = false;
 		}
 
-		// Verification du tri des parties de l'attribut interne
-		if (bOk and not innerAttribute->ArePartsSorted())
+		// Verification du tri des parties de l'attribut interne, uniquement si l'attribut est completement specifie
+		// avec des partie d'effectif non vide, pour pouvoir faire des verifications en cours de construction d'une grille
+		bIsCompletelySpecified =
+		    innerAttribute->GetPartNumber() > 0 and innerAttribute->GetHeadPart()->GetPartFrequency() > 0;
+		if (bOk and bIsCompletelySpecified and not innerAttribute->ArePartsSorted())
 		{
 			AddError("Parts of inner variable " + innerAttribute->GetAttributeName() + " should be sorted");
 			bOk = false;
