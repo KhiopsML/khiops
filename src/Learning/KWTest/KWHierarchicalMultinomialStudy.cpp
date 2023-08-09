@@ -1029,8 +1029,7 @@ boolean KWAttributePairStatsStudy::ComputeStats(const KWTupleTable* tupleTable)
 
 		// Parametrage de quantile builder
 		dataGridManager.SetSourceDataGrid(dataGrid);
-		dataGridManager.InitializeQuantileBuildersBeforeGranularization(&odQuantilesBuilders,
-										&ivMaxPartNumbers);
+		dataGridManager.InitializeQuantileBuilders(&odQuantilesBuilders, &ivMaxPartNumbers);
 
 		// Effectif total
 		nTotalFrequency = dataGrid->GetGridFrequency();
@@ -1282,7 +1281,7 @@ void KWAttributePairStatsStudy::ExportGranularizedParts(KWDataGrid* targetDataGr
 		{
 			targetAttribute->SetGranularizedValueNumber(sourceAttribute->GetInitialValueNumber());
 
-			dataGridManager.ExportPartsForAttribute(targetDataGrid, sourceAttribute->GetAttributeName());
+			dataGridManager.ExportAttributeParts(targetDataGrid, sourceAttribute->GetAttributeName());
 			if (bDisplayResults)
 			{
 				cout << "Attribut cible " << targetAttribute->GetAttributeName() << endl;
@@ -1311,9 +1310,9 @@ void KWAttributePairStatsStudy::ExportGranularizedParts(KWDataGrid* targetDataGr
 				    cast(KWQuantileGroupBuilder*,
 					 odQuantileBuilders->Lookup(sourceAttribute->GetAttributeName()));
 
-				dataGridManager.ExportGranularizedPartsForSymbolAttribute(
-				    targetDataGrid, sourceAttribute, targetAttribute, nPartileNumber,
-				    quantileGroupBuilder);
+				ExportGranularizedPartsForSymbolAttribute(targetDataGrid, sourceAttribute,
+									  targetAttribute, nPartileNumber,
+									  quantileGroupBuilder);
 			}
 		}
 	}
@@ -1385,6 +1384,116 @@ void KWAttributePairStatsStudy::ExportGranularizedPartsForContinuousAttribute(
 	if ((targetDataGrid->GetTargetValueNumber() > 0 or
 	     (targetDataGrid->GetTargetAttribute() != NULL and not sourceAttribute->GetAttributeTargetFunction())))
 		targetAttribute->SetGranularizedValueNumber(nPartileNumber);
+	// Sinon, la granularisation n'est qu'un procede de construction d'une grille initiale
+	else
+		targetAttribute->SetGranularizedValueNumber(sourceAttribute->GetInitialValueNumber());
+}
+
+void KWAttributePairStatsStudy::ExportGranularizedPartsForSymbolAttribute(KWDataGrid* targetDataGrid,
+									  KWDGAttribute* sourceAttribute,
+									  KWDGAttribute* targetAttribute,
+									  int nGranularity,
+									  KWQuantileGroupBuilder* quantileBuilder) const
+{
+	ObjectArray oaSourceParts;
+	KWDGPart* sourcePart;
+	KWDGPart* targetPart;
+	KWDGValueSet* cleanedValueSet;
+	int nValueNumber;
+	int nPartileNumber;
+	int nActualPartileNumber;
+	int nPartileIndex;
+	int nSourceIndex;
+
+	require(quantileBuilder != NULL);
+
+	nValueNumber = dataGridManager.GetSourceDataGrid()->GetGridFrequency();
+
+	// Nombre potentiel de partiles associes a cette granularite
+	nPartileNumber = (int)pow(2, nGranularity);
+	if (nPartileNumber > nValueNumber)
+		nPartileNumber = nValueNumber;
+	// Initialisation
+	nActualPartileNumber = nPartileNumber;
+
+	// Cas ou la granularisation n'est pas appliquee : non prise en compte de la granularite
+	if (nGranularity == 0)
+	{
+		dataGridManager.ExportAttributeParts(targetDataGrid, sourceAttribute->GetAttributeName());
+		targetAttribute->SetGranularizedValueNumber(sourceAttribute->GetInitialValueNumber());
+	}
+
+	// Granularisation
+	else
+	{
+		// Export des parties de l'attribut source
+		sourceAttribute->ExportParts(&oaSourceParts);
+
+		// Cas du nombre de partiles associe a la granularite maximale
+		if (nPartileNumber == nValueNumber)
+			// Seuillage de nPartileNumber au nombre de partiles associe a la granularite precedente
+			// pour que la granularisation rassemble les eventuelles valeurs sources
+			// singletons dans le fourre-tout
+			// Pour G tel que 2^G < N <= 2^(G+1) on aura 1 < N/2^G <= 2 c'est a dire un effectif minimal par
+			// partile de 2 (donc pas de singleton apres granularisation)
+			nPartileNumber = (int)pow(2, nGranularity - 1);
+
+		// Calcul des quantiles
+		quantileBuilder->ComputeQuantiles(nPartileNumber);
+
+		// Initialisation du nombre effectif de partiles (peut etre inferieur au nombre theorique du fait de
+		// doublons)
+		nActualPartileNumber = quantileBuilder->GetGroupNumber();
+
+		// Creation des partiles
+		for (nPartileIndex = 0; nPartileIndex < nActualPartileNumber; nPartileIndex++)
+		{
+			targetPart = targetAttribute->AddPart();
+
+			// Parcours des instances du partile
+			for (nSourceIndex = quantileBuilder->GetGroupFirstValueIndexAt(nPartileIndex);
+			     nSourceIndex <= quantileBuilder->GetGroupLastValueIndexAt(nPartileIndex); nSourceIndex++)
+			{
+				// Extraction de la partie a ajouter dans le groupe
+				sourcePart = cast(KWDGPart*, oaSourceParts.GetAt(nSourceIndex));
+
+				// Ajout de ses valeurs
+				targetPart->GetValueSet()->UpgradeFrom(sourcePart->GetValueSet());
+
+				// CH IV Begin
+				// Cas de la granularisation d'un attribut interne dans un attribut de grille de type
+				// VarPart
+				if (sourceAttribute->IsInnerAttribute())
+					targetPart->SetPartFrequency(targetPart->GetPartFrequency() +
+								     sourcePart->GetPartFrequency());
+				// CH IV End
+			}
+
+			// Compression et memorisation du fourre-tout si necessaire (mode supervise, attribut non cible)
+			// La partie qui contient la StarValue est compressee uniquement si elle contient plus d'une
+			// modalite (cas d'un vrai fourre-tout)
+			if ((targetDataGrid->GetTargetValueNumber() > 0 or
+			     (targetDataGrid->GetTargetAttribute() != NULL and
+			      not sourceAttribute->GetAttributeTargetFunction())) and
+			    targetPart->GetValueSet()->IsDefaultPart() and
+			    targetPart->GetValueSet()->GetTrueValueNumber() > 1)
+			{
+				// Compression du fourre-tout et memorisation de ses valeurs
+				cleanedValueSet = targetPart->GetValueSet()->ConvertToCleanedValueSet();
+				targetAttribute->InitializeCatchAllValueSet(cleanedValueSet);
+				delete cleanedValueSet;
+			}
+			// Tri des valeurs du fourre tout
+			if (targetPart->GetValueSet()->IsDefaultPart())
+				targetPart->GetValueSet()->SortValues();
+		}
+	}
+
+	// Cas d'un attribut explicatif dans le cadre d'une analyse supervisee
+	// Mise a jour du parametrage du nombre de partiles par le nombre effectif de groupes distincts
+	if ((targetDataGrid->GetTargetValueNumber() > 0 or
+	     (targetDataGrid->GetTargetAttribute() != NULL and not sourceAttribute->GetAttributeTargetFunction())))
+		targetAttribute->SetGranularizedValueNumber(nActualPartileNumber);
 	// Sinon, la granularisation n'est qu'un procede de construction d'une grille initiale
 	else
 		targetAttribute->SetGranularizedValueNumber(sourceAttribute->GetInitialValueNumber());

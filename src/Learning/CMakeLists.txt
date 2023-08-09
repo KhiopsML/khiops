@@ -20,6 +20,8 @@ add_subdirectory(MODL_Coclustering)
 add_subdirectory(SNBPredictor)
 add_subdirectory(samples/sample3)
 
+add_subdirectory(KWTest)
+
 # build norm.jar
 if(BUILD_JARS)
   include(UseJava)

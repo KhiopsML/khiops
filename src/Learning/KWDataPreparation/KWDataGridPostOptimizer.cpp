@@ -498,20 +498,14 @@ void KWDGPODiscretizer::InitializePartFrequencyVector(KWDGPOPartFrequencyVector*
 	require(partFrequencyVector != NULL);
 	require(partFrequencyVector->GetCellCost() == 0);
 	require(partFrequencyVector->ComputeTotalFrequency() == 0);
+	require(partFrequencyVector->GetModalityNumber() == 0);
 	require(part != NULL);
+	require(part->GetPartType() == KWType::Continuous);
 	require(part->GetAttribute()->GetAttributeName() == GetPostOptimizationAttributeName());
 	require(nkdHashCells != NULL);
 
 	// Initialisation "standard" du vecteur d'effectif
 	InitializeFrequencyVector(partFrequencyVector);
-
-	// Memorisation du nombre de valeurs associees a la partie
-	if (part->GetPartType() == KWType::Symbol)
-		partFrequencyVector->SetModalityNumber(part->GetValueSet()->GetValueNumber());
-	// CH IV Begin
-	else if (part->GetPartType() == KWType::VarPart)
-		partFrequencyVector->SetModalityNumber(part->GetVarPartSet()->GetVarPartNumber());
-	// CH IV End
 
 	// Parcours des cellules de la partie pour creer les vecteurs d'effectif par cellule
 	cell = part->GetHeadCell();
@@ -1436,7 +1430,9 @@ void KWDGPOGrouper::InitializePartFrequencyVector(KWDGPOPartFrequencyVector* par
 	require(partFrequencyVector != NULL);
 	require(partFrequencyVector->GetCellCost() == 0);
 	require(partFrequencyVector->ComputeTotalFrequency() == 0);
+	require(partFrequencyVector->GetModalityNumber() == 0);
 	require(part != NULL);
+	require(part->GetPartType() == KWType::Symbol or part->GetPartType() == KWType::VarPart);
 	require(part->GetAttribute()->GetAttributeName() == GetPostOptimizationAttributeName());
 	require(nkdHashCells != NULL);
 
@@ -2651,9 +2647,12 @@ double KWDataGridUnivariateCosts::ComputePartCost(const KWFrequencyVector* part)
 
 	// Specification du nombre de valeurs pour une partie symbolique
 	// Attention: on utilise ici un acces direct au nombre de valeur du ValueSet pour permettre
-	// d'utiliser ce parametre dans les calculs de cout (mais il y a inconsistance du ValueSet)
+	// d'utiliser ce parametre dans les calculs de cout
+	// (mais il y a incompletude du ValueSet, qui n'est specifie que pour ce qui est utile pour le calcul des couts)
 	if (partCostParameter->GetPartType() == KWType::Symbol)
 	{
+		// N'etant jamais la partie par defaut, on a le TrueValueNumber egal au ValueNumber
+		assert(not partCostParameter->GetValueSet()->IsDefaultPart());
 		cast(KWDGValueSetCostParameter*, partCostParameter->GetValueSet())->nValueNumber =
 		    cast(KWDGPOPartFrequencyVector*, part)->GetModalityNumber();
 	}
@@ -2724,7 +2723,8 @@ double KWDataGridUnivariateCosts::ComputePartUnionCost(const KWFrequencyVector* 
 
 	// Specification du nombre de valeurs pour une partie symbolique
 	// Attention: on utilise ici un acces direct au nombre de valeur du ValueSet pour permettre
-	// d'utiliser ce parametre dans les calculs de cout (mais il y a inconsistance du ValueSet)
+	// d'utiliser ce parametre dans les calculs de cout
+	// (mais il y a incompletude du ValueSet, qui n'est specifie que pour ce qui est utile pour le calcul des couts)
 	if (partCostParameter->GetPartType() == KWType::Symbol)
 	{
 		cast(KWDGValueSetCostParameter*, partCostParameter->GetValueSet())->nValueNumber =
@@ -2764,7 +2764,8 @@ double KWDataGridUnivariateCosts::ComputePartDiffCost(const KWFrequencyVector* s
 
 	// Specification du nombre de valeurs pour une partie symbolique
 	// Attention: on utilise ici un acces direct au nombre de valeur du ValueSet pour permettre
-	// d'utiliser ce parametre dans les calculs de cout (mais il y a inconsistance du ValueSet)
+	// d'utiliser ce parametre dans les calculs de cout
+	// (mais il y a incompletude du ValueSet, qui n'est specifie que pour ce qui est utile pour le calcul des couts)
 	if (partCostParameter->GetPartType() == KWType::Symbol)
 	{
 		cast(KWDGValueSetCostParameter*, partCostParameter->GetValueSet())->nValueNumber =
@@ -4076,8 +4077,8 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 				//  cluster de depart
 				innerOutOptimizedPart = innerOptimizedAttribute->LookupSymbolPart(
 				    innerPart->GetValueSet()->GetHeadValue()->GetValue());
-				if (innerOutOptimizedPart->GetValueSet()->GetValueNumber() ==
-				    innerPart->GetValueSet()->GetValueNumber())
+				if (innerOutOptimizedPart->GetValueSet()->GetTrueValueNumber() ==
+				    innerPart->GetValueSet()->GetTrueValueNumber())
 					nDeltaVarPartNumber = 1;
 
 				// Parcours des clusters d'arrivee eligibles

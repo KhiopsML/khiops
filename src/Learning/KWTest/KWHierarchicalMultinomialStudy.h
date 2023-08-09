@@ -138,6 +138,9 @@ protected:
 	void ExportGranularizedPartsForContinuousAttribute(KWDataGrid* targetDataGrid, KWDGAttribute* sourceAttribute,
 							   KWDGAttribute* targetAttribute, int nPartileNumber,
 							   KWQuantileIntervalBuilder* quantileIntervalBuilder) const;
+	void ExportGranularizedPartsForSymbolAttribute(KWDataGrid* targetDataGrid, KWDGAttribute* sourceAttribute,
+						       KWDGAttribute* targetAttribute, int nGranularity,
+						       KWQuantileGroupBuilder* quantileGroupBuilder) const;
 
 	// Variables
 	boolean bHierarchicalMultinomialPrior;

@@ -3423,6 +3423,7 @@ void KWDataGridManager::InitialiseAttributeGranularizedSymbolParts(const KWDGAtt
 				targetAttribute->InitializeCatchAllValueSet(cleanedValueSet);
 				delete cleanedValueSet;
 			}
+
 			// Tri des valeurs du fourre tout
 			if (targetPart->GetValueSet()->IsDefaultPart())
 				targetPart->GetValueSet()->SortValues();

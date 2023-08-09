@@ -265,7 +265,7 @@ int main(int argc, char** argv)
 	boolean bBigBatch;
 
 	// Parametrage de l'utilisation de MPI
-	UseMPI();
+	//DDD UseMPI();
 
 	// Initialisation de l'environnement
 	learningProject.Begin();
