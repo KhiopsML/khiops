@@ -4,10 +4,11 @@ add_subdirectory(base)
 add_subdirectory(khiopsdriver_file_null)
 add_subdirectory(genere)
 
-if(FULL)
-  add_subdirectory(basetest)
-  add_subdirectory(generetest)
-endif(FULL)
+add_subdirectory(basetest)
+add_subdirectory(generetest)
+add_subdirectory(samples/sample1)
+add_subdirectory(samples/sample2)
+add_subdirectory(samples/sample3)
 
 # build norm.jar
 if(BUILD_JARS)

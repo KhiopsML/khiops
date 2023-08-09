@@ -1,0 +1,5 @@
+file(GLOB cppfiles ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+add_executable(norm_sample2 ${cppfiles})
+set_khiops_options(norm_sample2)
+add_view_generation(norm_sample2 PRWorker "Employe" PRWorker.dd PRWorker.dd.log -noarrayview)
+target_link_libraries(norm_sample2 PUBLIC base)

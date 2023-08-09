@@ -43,6 +43,7 @@ option(MPI "Use MPI libraries (ON,OFF)" ON)
 option(TESTING "Build unit tests (ON,OFF)" OFF)
 option(BUILD_LEX_YACC "Re-generate parsing files with lex & yacc" OFF)
 option(BUILD_JARS "Re-generate norm.jar and khiops.jar" OFF)
+option(GENERATE_VIEWS "Re-generate views sources from dd files" OFF)
 option(C11 "Build whith C++11 libraries (ON,OFF)" ON)
 
 # Print the options
@@ -53,6 +54,7 @@ message("  TESTING=\"${TESTING}\"")
 message("  C11=\"${C11}\"")
 message("  BUILD_LEX_YACC=\"${BUILD_LEX_YACC}\"")
 message("  BUILD_JARS=\"${BUILD_JARS}\"")
+message("  GENERATE_VIEWS=\"${GENERATE_VIEWS}\"")
 message("\n")
 
 # Check if the os is a linux fedora-like distro (CentOS, Rocky etc...)
@@ -68,8 +70,6 @@ if(EXISTS "/etc/os-release")
     set(IS_FEDORA_LIKE true)
   endif()
 endif()
-
-message(STATUS "IS_FEDORA_LIKE is ${IS_FEDORA_LIKE}")
 
 # On Fedora distros, the binaries compiled with mpi must be located under the mpi location furthermore they have to be
 # suffixed by the name of the mpi implementation. These 2 items are given by MPI_BIN and MPI_SUFFIX when the module
@@ -151,9 +151,14 @@ if(BUILD_LEX_YACC)
   find_package(FLEX REQUIRED)
 endif()
 
-# Find Java
+# Find Java if required
 if(BUILD_JARS)
   find_package(Java REQUIRED COMPONENTS Development)
+endif()
+
+# Find Python if required
+if(GENERATE_VIEWS)
+  find_package(Python REQUIRED COMPONENTS Interpreter)
 endif()
 
 # MSVC: Eliminate some options the old CMake way because VS sets them with default values
@@ -287,6 +292,9 @@ function(display_variables)
     message(STATUS "${_variableName}=${${_variableName}}")
   endforeach()
 endfunction()
+
+# Load module to generate views from .dd files
+include(genere-views)
 
 # Add targets for Norm Parallel and Learning modules
 add_subdirectory(src/Norm)

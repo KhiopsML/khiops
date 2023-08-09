@@ -5,16 +5,20 @@
 .vs/
 .vscode/
 
-# Log file using genere tool
+# Log files of the "genere" tool and the cmake module "genere-views"
 genere.log
+**.dd.log
+**.dd.*.log
+
+# Cmake exceptions #
 
 # CMake User Preset
 CMakeUserPresets.json
 
-# Build directory
+# CMake default build directory
 build/
 
-# Cmake exceptions
+# Files created by CMake
 CMakeFiles/
 
 # Test exceptions
