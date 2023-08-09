@@ -12,6 +12,9 @@ class KWDGValueSet;
 class KWDGValue;
 class KWDGCell;
 // CH IV Begin
+class KWDGPartValues;
+class KWDGGenericValueSet;
+class KWDGGenericValue;
 class KWDGVarPartSet;
 class KWDGVarPartValue;
 class KWDGInnerAttributes;
@@ -897,15 +900,161 @@ int KWDGPartVarPartCompare(const void* elem1, const void* elem2);
 // Comparaison de deux parties de parties de variables, par effectif decroissant
 int KWDGPartVarPartCompareDecreasingFrequency(const void* elem1, const void* elem2);
 // CH IV End
+
+//////////////////////////////////////////////////////////////////////////////
+// Classe KWDGPartValues
+// Composant de KWDGPart dedie a la gestion des valeurs effectives d'une partie
+// Classe abstraite, ancetre des intervalles et groupes de valeur
+class KWDGPartValues : public Object
+{
+public:
+	// Type de valeur gere par la partie
+	virtual int GetValueType() const = 0;
+
+	// Test si la partie de valeur est un sous-ensemble de la partie en parametre
+	virtual boolean IsSubPartValues(const KWDGPartValues* otherPartValues) const = 0;
+
+	// Import des valeurs d'une autre partie
+	// La partie source est reinitialisee
+	virtual void Import(KWDGPartValues* sourcePartValues) = 0;
+
+	// Mise a jour des valeurs a partir des valeurs d'une partie source, devant etre adjacente
+	// La partie source n'est pas modifiee
+	virtual void UpgradeFrom(const KWDGPartValues* sourcePartValues) = 0;
+
+	// Copie
+	virtual void CopyFrom(const KWDGPartValues* sourcePartValues) = 0;
+
+	// Controle d'integrite
+	boolean Check() const override = 0;
+
+	// Affichage
+	void Write(ostream& ost) const override = 0;
+};
+
+/*DDD
+//////////////////////////////////////////////////////////////////////////////
+// Classe KWDGGenericValueSet
+// Sous-classe virtuelle de KWDGPartValues dediee aux groupes de valeurs
+// pour mutualiser la gestion des valeur de type Symbol ou VarPart
+class KWDGGenericValueSet : public KWDGPartValues
+{
+public:
+	////////////////////////////////////////////////////////////////
+	// Gestion des valeurs de la parties sous forme de liste
+	// Memoire: les valeurs appartiennent a la partie
+
+	// Destruction d'une valeur de la liste
+	void DeleteValue(KWDGGenericValue* value);
+
+	// Destruction de toutes les valeurs
+	void DeleteAllValues();
+
+	// Test de validite d'une valeur (si elle appartient a la partie)
+	boolean CheckValue(KWDGGenericValue* value) const;
+
+	// Nombre de valeurs
+	int GetValueNumber() const;
+
+	// Parcours de tous les valeurs
+	KWDGGenericValue* GetHeadValue() const;
+	KWDGGenericValue* GetTailValue() const;
+	void GetNextValue(KWDGGenericValue*& value) const;
+	void GetPrevValue(KWDGGenericValue*& value) const;
+
+	///////////////////////////////
+	// Services divers
+
+	// Export des valeurs dans un tableau (initialement vide)
+	void ExportValues(ObjectArray* oaValues) const;
+
+	// Test si l'ensemble de valeur est inclus dans l'autre ensemble de valeurs en parametres
+	// On ne tient pas compte de la StarValue, et on effectue un test d'inclusion exhaustif pour toutes les valeurs
+	boolean IsSubValueSet(const KWDGGenericValueSet* otherValueSet) const;
+
+	// Calcul de l'effectif cumule des valeurs
+	int ComputeTotalFrequency() const;
+
+	// Import des valeurs d'une partie source, devant etre disjointe de la premiere
+	// partie. La partie source est reinitialise
+	void Import(KWDGGenericValueSet* sourceValueSet);
+
+	// Copie
+	void CopyFrom(const KWDGGenericValueSet* sourceValueSet);
+
+	// Ajout de nouvelles valeurs recopiees depuis une source
+	void UpgradeFrom(const KWDGGenericValueSet* sourceValueSet);
+
+	// Tri des valeurs par effectif decroissant, pour preparer l'affichage
+	void SortValues();
+
+	// Verification du tri des valeurs par effectif decroissant
+	// Couteux, a utiliser essentiellement dans les assertions
+	boolean AreValuesSorted() const;
+
+	// Controle d'integrite
+	boolean Check() const override;
+
+	// Affichage
+	void Write(ostream& ost) const override;
+	void WriteValues(ostream& ost) const;
+
+	// Libelles utilisateur
+	const ALString GetClassLabel() const override;
+	const ALString GetObjectLabel() const override;
+
+	///////////////////////////////
+	///// Implementation
+protected:
+	// Tri des valeurs selon une fonction de tri
+	// La valeur speciale est toujours mise en dernier, independament du critere de tri
+	void InternalSortValues(CompareFunction fCompare);
+
+	// Methode indiquant si les donnees sont emulee
+	virtual boolean GetEmulated() const;
+
+	// Gestion de la liste doublement chainee des cellules
+	KWDGGenericValue* headValue;
+	KWDGGenericValue* tailValue;
+	int nValueNumber;
+};
+*/
+
+//////////////////////////////////////////////////////////////////////////////
+// Classe KWGenericValue
+// Classe virtuelle pour mutualiser la gestion des valeur de type Sumbol ou VarPart
+class KWDGGenericValue : public Object
+{
+public:
+	// Effectif lie a la partie de variable, qui est gere par la partie de variable elle-meme
+	virtual void SetVarPartFrequency(int nFrequency) = 0;
+	virtual int GetVarPartFrequency() const = 0;
+
+	// Affichage
+	void Write(ostream& ost) const override = 0;
+
+	///////////////////////////////
+	///// Implementation
+protected:
+	friend class KWDGGenericValueSet;
+
+	// Attributs
+	KWDGVarPartValue* prevVarPartValue;
+	KWDGVarPartValue* nextVarPartValue;
+};
+
 //////////////////////////////////////////////////////////////////////////////
 // Classe KWDGInterval
 // Intervalle de valeurs
-class KWDGInterval : public Object
+class KWDGInterval : public KWDGPartValues
 {
 public:
 	// Constructeur
 	KWDGInterval();
 	~KWDGInterval();
+
+	// Type de valeur gere par la partie
+	int GetValueType() const;
 
 	// Borne inf de l'intervalle
 	// (doit etre egal a KWDGInterval::GetMinLowerBound pour le premier intervalle)
@@ -927,9 +1076,6 @@ public:
 	// Test si l'intervalle est un sous-intervalle
 	boolean IsSubInterval(const KWDGInterval* otherInterval) const;
 
-	// Controle d'integrite
-	boolean Check() const override;
-
 	// Import des valeurs d'un intervalle source, devant etre adjacent au premier
 	// intervalle. L'intervalle source est reinitialise
 	void Import(KWDGInterval* sourceInterval);
@@ -937,10 +1083,20 @@ public:
 	// CH IV Begin
 	// Mise a jour des valeurs de l'intervalle a partir des valeurs d'un intervalle source, devant etre adjacent au
 	// premier intervalle. L'intervalle source n'est pas modifie
+	// CH IV Refactoring: UpgradeFrom est tres proche de Import: a mutualiser, ou remplacer Import par UpgradeFrom puis Reset???
 	void UpgradeFrom(const KWDGInterval* sourceInterval);
 	// CH IV End
 	// Copie
 	void CopyFrom(const KWDGInterval* sourceInterval);
+
+	// Redefinition des methodes virtuelles a partir des methodes specifiques
+	boolean IsSubPartValues(const KWDGPartValues* otherPartValues) const override;
+	void Import(KWDGPartValues* sourcePartValues) override;
+	void UpgradeFrom(const KWDGPartValues* sourcePartValues) override;
+	void CopyFrom(const KWDGPartValues* sourcePartValues) override;
+
+	// Controle d'integrite
+	boolean Check() const override;
 
 	// Affichage
 	void Write(ostream& ost) const override;
@@ -984,9 +1140,6 @@ public:
 	// Test de validite d'une valeur (si elle appartient a la partie)
 	boolean CheckValue(KWDGValue* value) const;
 
-	// Nombre de valeurs, y compris l'eventuelle modalite speciale StarValue
-	int GetValueNumber() const;
-
 	// Test si la partie est la partie par defaut (si elle contient la valeur speciale)
 	boolean IsDefaultPart() const;
 
@@ -1026,9 +1179,6 @@ public:
 	// On ne tine spas compte de la StarValue, et on effectue un test d'inclusion exhaustif pour toutes les valeurs
 	boolean IsSubValueSet(const KWDGValueSet* otherValueSet) const;
 
-	// Controle d'integrite
-	boolean Check() const override;
-
 	// Calcul de l'effectif cumule des valeurs
 	int ComputeTotalFrequency() const;
 
@@ -1048,6 +1198,9 @@ public:
 	// Verification du tri des valeurs par effectif decroissant : couteux, a utiliser essentiellement dans les
 	// assertions
 	boolean AreValuesSorted() const;
+
+	// Controle d'integrite
+	boolean Check() const override;
 
 	// Affichage
 	void Write(ostream& ost) const override;
@@ -1164,9 +1317,6 @@ public:
 	// Test si l'ensemble de VarPart est inclus dans l'autre ensemble de VarPart en parametres
 	boolean IsSubVarPartSet(const KWDGVarPartSet* otherVarPartSet) const;
 
-	// Controle d'integrite
-	boolean Check() const override;
-
 	// Calcul de l'effectif cumule des parties de variable
 	int ComputeTotalFrequency() const;
 
@@ -1186,6 +1336,9 @@ public:
 
 	// Verification du tri des parties de variable : couteux, a utiliser essentiellement dans les assertions
 	boolean AreVarPartValuesSorted() const;
+
+	// Controle d'integrite
+	boolean Check() const override;
 
 	// Affichage
 	void Write(ostream& ost) const override;
@@ -1820,7 +1973,10 @@ inline int KWDGAttribute::GetCatchAllValueNumber() const
 	else if (nCatchAllValueNumber != -1)
 		return nCatchAllValueNumber;
 	else
-		return GetCatchAllValueSet()->GetValueNumber();
+	{
+		assert(not GetCatchAllValueSet()->IsDefaultPart());
+		return GetCatchAllValueSet()->GetTrueValueNumber();
+	}
 }
 
 inline boolean KWDGAttribute::IsIndexed() const
@@ -1934,6 +2090,11 @@ inline KWDGInterval::KWDGInterval()
 
 inline KWDGInterval::~KWDGInterval() {}
 
+inline int KWDGInterval::GetValueType() const
+{
+	return KWType::Continuous;
+}
+
 inline void KWDGInterval::SetLowerBound(Continuous cValue)
 {
 	cLowerBound = cValue;
@@ -1988,11 +2149,6 @@ inline KWDGValueSet::~KWDGValueSet()
 	DeleteAllValues();
 }
 
-inline int KWDGValueSet::GetValueNumber() const
-{
-	return nValueNumber;
-}
-
 inline boolean KWDGValueSet::IsDefaultPart() const
 {
 	return bIsDefaultPart;
@@ -2000,10 +2156,7 @@ inline boolean KWDGValueSet::IsDefaultPart() const
 
 inline int KWDGValueSet::GetTrueValueNumber() const
 {
-	if (bIsDefaultPart and nValueNumber > 1)
-		return nValueNumber - 1;
-	else
-		return nValueNumber;
+	return nValueNumber;
 }
 
 inline KWDGValue* KWDGValueSet::GetHeadValue() const

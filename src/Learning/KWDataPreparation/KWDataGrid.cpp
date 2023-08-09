@@ -1230,14 +1230,14 @@ void KWDataGrid::ExportDataGridStats(KWDataGridStats* dataGridStats) const
 			attributeGrouping->SetCatchAllValueNumber(attribute->GetCatchAllValueNumber());
 			attributeGrouping->SetGarbageModalityNumber(attribute->GetGarbageModalityNumber());
 
-			// Comptage du nombre total de valeurs
+			// Comptage du nombre total de valeurs, en partant de 1 pour compter la StarValue
 			nSuppressedValueNumber = 0;
-			nValueNumber = 0;
+			nValueNumber = 1;
 			part = attribute->GetHeadPart();
 			while (part != NULL)
 			{
 				valueSet = part->GetValueSet();
-				nValueNumber += valueSet->GetValueNumber();
+				nValueNumber += valueSet->GetTrueValueNumber();
 
 				// Calcul du nombre eventuel de modalites qui seront nettoyees (non memorisees pour
 				// l'affichage) En presence d'un fourre-tout, les modalites du fourre-tout autres que
@@ -1293,6 +1293,7 @@ void KWDataGrid::ExportDataGridStats(KWDataGridStats* dataGridStats) const
 				else if (part == attribute->GetGarbagePart())
 				{
 					attributeGrouping->SetGarbageGroupIndex(nPart);
+
 					// Cas de la presence d'un groupe poubelle sans presence de fourre-tout
 					if (attribute->GetCatchAllValueNumber() == 0)
 					{
@@ -1320,6 +1321,7 @@ void KWDataGrid::ExportDataGridStats(KWDataGridStats* dataGridStats) const
 						nValue++;
 						cleanedValueSet->GetNextValue(value);
 					}
+
 					// Nettoyage
 					delete cleanedValueSet;
 					cleanedValueSet = NULL;
@@ -1349,7 +1351,6 @@ void KWDataGrid::ExportDataGridStats(KWDataGridStats* dataGridStats) const
 			attributeDiscretization = new KWDGSAttributeDiscretization;
 			attributePartition = attributeDiscretization;
 			attributePartition->SetAttributeName(attribute->GetAttributeName());
-
 			attributePartition->SetInitialValueNumber(attribute->GetInitialValueNumber());
 			attributePartition->SetGranularizedValueNumber(attribute->GetGranularizedValueNumber());
 
@@ -3984,7 +3985,7 @@ void KWDGPart::Write(ostream& ost) const
 	ost << GetClassLabel() << "\t" << GetObjectLabel() << "\t" << GetPartFrequency() << "\n";
 
 	// Valeurs et cellules de la partie
-	if (GetPartType() == KWType::Symbol and valueSet->GetValueNumber() > 0)
+	if (GetPartType() == KWType::Symbol and valueSet->GetTrueValueNumber() > 0)
 		WriteValues(ost);
 
 	if (GetPartType() == KWType::VarPart and varPartSet->GetVarPartNumber() > 0)
@@ -4237,28 +4238,6 @@ boolean KWDGInterval::IsSubInterval(const KWDGInterval* otherInterval) const
 	return GetLowerBound() >= otherInterval->GetLowerBound() and GetUpperBound() <= otherInterval->GetUpperBound();
 }
 
-boolean KWDGInterval::Check() const
-{
-	boolean bOk = true;
-
-	// Test des bornes: cas missing
-	if (cUpperBound == KWContinuous::GetMissingValue())
-	{
-		if (cLowerBound != KWContinuous::GetMissingValue())
-		{
-			AddError("The lower and upper bounds must be equal for the missing value interval");
-			bOk = false;
-		}
-	}
-	// Cas standard (tolerance si egalite des bornes, possible dans les limites de precision numerique)
-	else if (cLowerBound > cUpperBound)
-	{
-		AddError("The lower bound must be less than the upper bound");
-		bOk = false;
-	}
-	return bOk;
-}
-
 void KWDGInterval::Import(KWDGInterval* sourceInterval)
 {
 	require(Check());
@@ -4297,8 +4276,50 @@ void KWDGInterval::UpgradeFrom(const KWDGInterval* sourceInterval)
 
 	ensure(Check());
 }
-
 // CH IV End
+
+boolean KWDGInterval::IsSubPartValues(const KWDGPartValues* otherPartValues) const
+{
+	return IsSubInterval(cast(KWDGInterval*, otherPartValues));
+}
+
+void KWDGInterval::Import(KWDGPartValues* sourcePartValues)
+{
+	Import(cast(KWDGInterval*, sourcePartValues));
+}
+
+void KWDGInterval::UpgradeFrom(const KWDGPartValues* sourcePartValues)
+{
+	UpgradeFrom(cast(KWDGInterval*, sourcePartValues));
+}
+
+void KWDGInterval::CopyFrom(const KWDGPartValues* sourcePartValues)
+{
+	CopyFrom(cast(KWDGInterval*, sourcePartValues));
+}
+
+boolean KWDGInterval::Check() const
+{
+	boolean bOk = true;
+
+	// Test des bornes: cas missing
+	if (cUpperBound == KWContinuous::GetMissingValue())
+	{
+		if (cLowerBound != KWContinuous::GetMissingValue())
+		{
+			AddError("The lower and upper bounds must be equal for the missing value interval");
+			bOk = false;
+		}
+	}
+	// Cas standard (tolerance si egalite des bornes, possible dans les limites de precision numerique)
+	else if (cLowerBound > cUpperBound)
+	{
+		AddError("The lower bound must be less than the upper bound");
+		bOk = false;
+	}
+	return bOk;
+}
+
 void KWDGInterval::Write(ostream& ost) const
 {
 	// Identification
@@ -4343,7 +4364,6 @@ KWDGValue* KWDGValueSet::AddValue(const Symbol& sValue)
 	value = NewValue(sValue);
 
 	// Ajout en fin de la liste des valeurs
-	nValueNumber++;
 	if (headValue == NULL)
 		headValue = value;
 	if (tailValue != NULL)
@@ -4356,6 +4376,9 @@ KWDGValue* KWDGValueSet::AddValue(const Symbol& sValue)
 	// Partie par defaut si la valeur est la valeur par defaut
 	if (sValue == Symbol::GetStarValue())
 		bIsDefaultPart = true;
+	// Incrementation du nombre de valeurs sinon
+	else
+		nValueNumber++;
 
 	// On retourne la valeur cree
 	return value;
@@ -4366,7 +4389,6 @@ void KWDGValueSet::DeleteValue(KWDGValue* value)
 	require(value != NULL);
 
 	// Supression de la liste des valuees
-	nValueNumber--;
 	if (value->prevValue != NULL)
 		value->prevValue->nextValue = value->nextValue;
 	if (value->nextValue != NULL)
@@ -4379,6 +4401,9 @@ void KWDGValueSet::DeleteValue(KWDGValue* value)
 	// Partie "standard" si la valeur detruite est la valeur par defaut
 	if (value->GetValue() == Symbol::GetStarValue())
 		bIsDefaultPart = false;
+	// Decrementation du nombre de valeurs sinon
+	else
+		nValueNumber--;
 
 	// Destruction de la valeur
 	delete value;
@@ -4493,19 +4518,15 @@ KWDGValueSet* KWDGValueSet::ComputeCleanedValueSet() const
 void KWDGValueSet::ExportValues(ObjectArray* oaValues) const
 {
 	KWDGValue* value;
-	int nValue;
 
 	require(oaValues != NULL);
 	require(oaValues->GetSize() == 0);
 
 	// Ajout des parties dans le tableau
-	oaValues->SetSize(GetValueNumber());
-	nValue = 0;
 	value = headValue;
 	while (value != NULL)
 	{
-		oaValues->SetAt(nValue, value);
-		nValue++;
+		oaValues->Add(value);
 		value = value->nextValue;
 	}
 }
@@ -4517,7 +4538,7 @@ boolean KWDGValueSet::IsSubValueSet(const KWDGValueSet* otherValueSet) const
 	KWDGValue* value;
 
 	// On doit avoir moins de valeurs
-	if (GetValueNumber() > otherValueSet->GetValueNumber())
+	if (GetTrueValueNumber() > otherValueSet->GetTrueValueNumber())
 		bOk = false;
 	// Sinon, on teste effectivement l'inclusion
 	else
@@ -4540,80 +4561,6 @@ boolean KWDGValueSet::IsSubValueSet(const KWDGValueSet* otherValueSet) const
 				break;
 			}
 			GetNextValue(value);
-		}
-	}
-	return bOk;
-}
-
-boolean KWDGValueSet::Check() const
-{
-	boolean bOk = true;
-	boolean bStarValuePresent;
-	NumericKeyDictionary nkdCheckValues;
-	KWDGValue* value;
-	boolean bCheckFrequencies;
-	ALString sTmp;
-
-	// Test d'existence d'au moins une valeur
-	if (nValueNumber == 0)
-	{
-		AddError("No value specified");
-		bOk = false;
-	}
-
-	// Test des valeurs de la partie
-	if (bOk)
-	{
-		// On ne verifie les effectifs que si au moins un est specifie
-		bCheckFrequencies = ComputeTotalFrequency() > 0;
-
-		// Parcours des valeurs de la partie
-		bStarValuePresent = false;
-		value = GetHeadValue();
-		while (value != NULL)
-		{
-			// Detection de la star value
-			if (value->GetValue() == Symbol::GetStarValue())
-				bStarValuePresent = true;
-
-			// Erreur si partie deja enregistree avec cette valeur
-			if (nkdCheckValues.Lookup(value->GetValue().GetNumericKey()) != NULL)
-			{
-				AddError(sTmp + "Value " + value->GetValue() + " already exists in the part");
-				bOk = false;
-				break;
-			}
-			// Erreur si effectif a 0 pour une valeur qui n'est pas la star value
-			else if (bCheckFrequencies and value->GetValue() != Symbol::GetStarValue() and
-				 value->GetValueFrequency() == 0)
-			{
-				AddError(sTmp + "Value " + value->GetValue() + " should have a non-zero frequency");
-				bOk = false;
-				break;
-			}
-			// On continue si pas d'erreur
-			else
-			{
-				// Ajout de la partie avec la valeur pour cle
-				nkdCheckValues.SetAt(value->GetValue().GetNumericKey(), value);
-
-				// Valeur suivante
-				GetNextValue(value);
-			}
-		}
-
-		// Test d'integrite sur la star value
-		if (bStarValuePresent and not bIsDefaultPart)
-		{
-			AddError(sTmp + "Special grouping value " + Symbol::GetStarValue() +
-				 " is used used in a standard part");
-			bOk = false;
-		}
-		else if (not bStarValuePresent and bIsDefaultPart)
-		{
-			AddError(sTmp + "Special grouping value " + Symbol::GetStarValue() +
-				 " is missing in default part");
-			bOk = false;
 		}
 	}
 	return bOk;
@@ -4750,6 +4697,80 @@ boolean KWDGValueSet::AreValuesSorted() const
 	return bIsSorted;
 }
 
+boolean KWDGValueSet::Check() const
+{
+	boolean bOk = true;
+	boolean bStarValuePresent;
+	NumericKeyDictionary nkdCheckValues;
+	KWDGValue* value;
+	boolean bCheckFrequencies;
+	ALString sTmp;
+
+	// Test d'existence d'au moins une valeur
+	if (nValueNumber == 0)
+	{
+		AddError("No value specified");
+		bOk = false;
+	}
+
+	// Test des valeurs de la partie
+	if (bOk)
+	{
+		// On ne verifie les effectifs que si au moins un est specifie
+		bCheckFrequencies = ComputeTotalFrequency() > 0;
+
+		// Parcours des valeurs de la partie
+		bStarValuePresent = false;
+		value = GetHeadValue();
+		while (value != NULL)
+		{
+			// Detection de la star value
+			if (value->GetValue() == Symbol::GetStarValue())
+				bStarValuePresent = true;
+
+			// Erreur si partie deja enregistree avec cette valeur
+			if (nkdCheckValues.Lookup(value->GetValue().GetNumericKey()) != NULL)
+			{
+				AddError(sTmp + "Value " + value->GetValue() + " already exists in the part");
+				bOk = false;
+				break;
+			}
+			// Erreur si effectif a 0 pour une valeur qui n'est pas la star value
+			else if (bCheckFrequencies and value->GetValue() != Symbol::GetStarValue() and
+				 value->GetValueFrequency() == 0)
+			{
+				AddError(sTmp + "Value " + value->GetValue() + " should have a non-zero frequency");
+				bOk = false;
+				break;
+			}
+			// On continue si pas d'erreur
+			else
+			{
+				// Ajout de la partie avec la valeur pour cle
+				nkdCheckValues.SetAt(value->GetValue().GetNumericKey(), value);
+
+				// Valeur suivante
+				GetNextValue(value);
+			}
+		}
+
+		// Test d'integrite sur la star value
+		if (bStarValuePresent and not bIsDefaultPart)
+		{
+			AddError(sTmp + "Special grouping value " + Symbol::GetStarValue() +
+				 " is used used in a standard part");
+			bOk = false;
+		}
+		else if (not bStarValuePresent and bIsDefaultPart)
+		{
+			AddError(sTmp + "Special grouping value " + Symbol::GetStarValue() +
+				 " is missing in default part");
+			bOk = false;
+		}
+	}
+	return bOk;
+}
+
 void KWDGValueSet::Write(ostream& ost) const
 {
 	// Identification
@@ -4765,7 +4786,7 @@ void KWDGValueSet::WriteValues(ostream& ost) const
 
 	// Affichage des valeurs
 	cout << "Values"
-	     << "\t" << GetValueNumber() << "\n";
+	     << "\t" << GetTrueValueNumber() << "\n";
 	value = GetHeadValue();
 	while (value != NULL)
 	{
@@ -5134,61 +5155,6 @@ boolean KWDGVarPartSet::IsSubVarPartSet(const KWDGVarPartSet* otherVarPartSet) c
 	return bOk;
 }
 
-boolean KWDGVarPartSet::Check() const
-{
-	boolean bOk = true;
-	NumericKeyDictionary nkdCheckVarParts;
-	KWDGVarPartValue* varPartValue;
-	boolean bCheckFrequencies;
-	ALString sTmp;
-
-	// Test d'existence d'au moins une partie
-	if (nVarPartNumber == 0)
-	{
-		AddError("No var part specified");
-		bOk = false;
-	}
-
-	// Test des valeurs de la partie
-	if (bOk)
-	{
-		// On ne verifie les effectifs que si au moins un est specifie
-		bCheckFrequencies = ComputeTotalFrequency() > 0;
-
-		// Parcours des parties
-		varPartValue = GetHeadVarPart();
-		while (varPartValue != NULL)
-		{
-			// Erreur si partie deja enregistree avec cette valeur
-			if (nkdCheckVarParts.Lookup((NUMERIC)varPartValue) != NULL)
-			{
-				AddError(sTmp + "VarPart " + varPartValue->GetObjectLabel() +
-					 " already exists in the cluster");
-				bOk = false;
-				break;
-			}
-			// Erreur si effectif a 0
-			else if (bCheckFrequencies and varPartValue->GetVarPartFrequency() == 0)
-			{
-				AddError(sTmp + "VarPart " + varPartValue->GetObjectLabel() +
-					 " should have a non-zero frequency");
-				bOk = false;
-				break;
-			}
-			// On continue si pas d'erreur
-			else
-			{
-				// Ajout de la partie
-				nkdCheckVarParts.SetAt((NUMERIC)varPartValue, varPartValue);
-
-				// Valeur suivante
-				GetNextVarPart(varPartValue);
-			}
-		}
-	}
-	return bOk;
-}
-
 int KWDGVarPartSet::ComputeTotalFrequency() const
 {
 	int nTotalFrequency;
@@ -5300,6 +5266,61 @@ boolean KWDGVarPartSet::AreVarPartValuesSorted() const
 		GetNextVarPart(value2);
 	}
 	return bIsSorted;
+}
+
+boolean KWDGVarPartSet::Check() const
+{
+	boolean bOk = true;
+	NumericKeyDictionary nkdCheckVarParts;
+	KWDGVarPartValue* varPartValue;
+	boolean bCheckFrequencies;
+	ALString sTmp;
+
+	// Test d'existence d'au moins une partie
+	if (nVarPartNumber == 0)
+	{
+		AddError("No var part specified");
+		bOk = false;
+	}
+
+	// Test des valeurs de la partie
+	if (bOk)
+	{
+		// On ne verifie les effectifs que si au moins un est specifie
+		bCheckFrequencies = ComputeTotalFrequency() > 0;
+
+		// Parcours des parties
+		varPartValue = GetHeadVarPart();
+		while (varPartValue != NULL)
+		{
+			// Erreur si partie deja enregistree avec cette valeur
+			if (nkdCheckVarParts.Lookup((NUMERIC)varPartValue) != NULL)
+			{
+				AddError(sTmp + "VarPart " + varPartValue->GetObjectLabel() +
+					 " already exists in the cluster");
+				bOk = false;
+				break;
+			}
+			// Erreur si effectif a 0
+			else if (bCheckFrequencies and varPartValue->GetVarPartFrequency() == 0)
+			{
+				AddError(sTmp + "VarPart " + varPartValue->GetObjectLabel() +
+					 " should have a non-zero frequency");
+				bOk = false;
+				break;
+			}
+			// On continue si pas d'erreur
+			else
+			{
+				// Ajout de la partie
+				nkdCheckVarParts.SetAt((NUMERIC)varPartValue, varPartValue);
+
+				// Valeur suivante
+				GetNextVarPart(varPartValue);
+			}
+		}
+	}
+	return bOk;
 }
 
 void KWDGVarPartSet::Write(ostream& ost) const

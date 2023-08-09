@@ -3506,7 +3506,7 @@ void CCCoclusteringBuilder::ComputeValueTypicalitiesAt(const KWDataGrid* inputIn
 	{
 		// Acces a la valeur
 		dgValuePart = cast(KWDGPart*, oaValueParts.GetAt(nValue));
-		assert(dgValuePart->GetValueSet()->GetValueNumber() == 1 or
+		assert(dgValuePart->GetValueSet()->GetTrueValueNumber() == 1 or
 		       // n'est plus garanti car la grille initiale contient un fourre-tout
 		       //(dgValuePart->GetValueSet()->GetValueNumber() == 2 and
 		       dgValuePart->GetValueSet()->GetTailValue()->GetValue() == Symbol::GetStarValue());

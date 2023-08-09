@@ -34,7 +34,8 @@ int main(int argc, char** argv)
 	Global::ActivateSignalErrorManagement();
 
 	// Choix du repertoire de lancement pour le debugage sous Windows (a commenter apres fin du debug)
-	SetWindowsDebugDir("y_CoclusteringIV_Standard", "IrisLight");
+	//SetWindowsDebugDir("y_CoclusteringIV_Standard", "IrisLight");
+	SetWindowsDebugDir("Standard", "Iris");
 
 	// Point d'arret sur l'allocation d'un bloc memoire
 	// MemSetAllocIndexExit(17362);

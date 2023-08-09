@@ -426,7 +426,7 @@ class KWDataGridCostParameter : public KWDataGrid
 {
 protected:
 	friend class KWDataGridUnivariateCosts;
-	boolean GetEmulated() const;
+	boolean GetEmulated() const override;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -445,7 +445,7 @@ class KWDGAttributeCostParameter : public KWDGAttribute
 protected:
 	KWDGPart* NewPart() const;
 	friend class KWDataGridUnivariateCosts;
-	boolean GetEmulated() const;
+	boolean GetEmulated() const override;
 	int nGarbageModalityNumber;
 };
 
@@ -456,7 +456,7 @@ class KWDGPartCostParameter : public KWDGPart
 protected:
 	friend class KWDataGridUnivariateCosts;
 	void SetPartType(int nValue);
-	boolean GetEmulated() const;
+	boolean GetEmulated() const override;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -465,7 +465,7 @@ class KWDGValueSetCostParameter : public KWDGValueSet
 {
 protected:
 	friend class KWDataGridUnivariateCosts;
-	boolean GetEmulated() const;
+	boolean GetEmulated() const override;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -475,7 +475,7 @@ class KWDGVarPartSetCostParameter : public KWDGVarPartSet
 {
 protected:
 	friend class KWDataGridUnivariateCosts;
-	boolean GetEmulated() const;
+	boolean GetEmulated() const override;
 };
 // CH IV End
 
@@ -485,7 +485,7 @@ class KWDGCellCostParameter : public KWDGCell
 {
 protected:
 	friend class KWDataGridUnivariateCosts;
-	boolean GetEmulated() const;
+	boolean GetEmulated() const override;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////
