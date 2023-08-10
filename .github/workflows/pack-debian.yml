@@ -3,7 +3,7 @@ name: Create Debian package
 on:
   workflow_dispatch:
 jobs:
-  package-deb:
+  build-deb-package:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -13,42 +13,43 @@ jobs:
       matrix:
         os: [ubuntu22.04, ubuntu20.04]
     container:
-      image: ghcr.io/khiopsml/khiops/${{ matrix.os }}:latest
+      image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
-      - name: Install dependencies
-        run: |
-          apt-get -y --no-install-recommends install libmpich-dev  
       - name: Set environment variables
         run: |
-          source /etc/os-release 
+          source /etc/os-release
           echo "ID=$ID" >> "$GITHUB_ENV"
           echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
       - name: Configure CMake
-        run: cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -DMPI=ON -DTESTING=OFF
-          -DBUILD_JARS=ON
-      - name: Build Khiops executables
         run: |
-          cmake --build build --parallel --target MODL MODL_Coclustering KhiopsNativeInterface
+          cmake --preset linux-gcc-release -DTESTING=OFF
+      - name: Build Khiops binaries
+        run: |
+          cmake --build --preset linux-gcc-release --parallel \
+            --target MODL MODL_Coclustering KhiopsNativeInterface norm_jar khiops_jar
       - name: Build package with CPack
-        run: cd build && cpack -G DEB
-      - name: Rename packages with codename
+        run: cd build/linux-gcc-release && cpack -G DEB
+      - name: Rename the packages to include the ubuntu codename
         run: |
           source /etc/os-release
-          cd build/packages/
-          for filename in *.deb; 
-          do mv -v $filename ${filename%_*}-${VERSION_CODENAME}.${filename##*_}; 
+          cd build/linux-gcc-release/packages/
+          for filename in *.deb
+          do
+            mv -v $filename ${filename%_*}-${VERSION_CODENAME}.${filename##*_}
           done
-      - name: Upload artifacts
+      - name: Upload the packages as artifacts
         uses: actions/upload-artifact@v3
         with:
           name: ${{ env.ID }}-${{ env.VERSION_CODENAME }}
-          path: build/packages/*.deb
-  # Test packages on a brand new runner: we want to check the installation process (with the dependencies installation)
-  # and the Khiops execution on a simple dataset
-  test:
-    needs: package-deb
+          path: build/linux-gcc-release/packages/*.deb
+  # Test packages on a brand new runner to check:
+  # - the installation process (including dependencies installation)
+  # - that executable works (run with -v)
+  # - that it executes a small test
+  test-deb-package:
+    needs: build-deb-package
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -64,7 +65,7 @@ jobs:
         uses: actions/checkout@v3
       - name: Set environment variables
         run: |
-          source /etc/os-release 
+          source /etc/os-release
           echo "ID=$ID" >> "$GITHUB_ENV"
           echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
       - name: Download artifacts
@@ -81,7 +82,7 @@ jobs:
         run: |
           khiops -v
           khiops_coclustering -v
-      - name: Install Khiops (with java)
+      - name: Install Khiops Desktop (with java)
         run: |
           dpkg -i ./khiops_* || true
           apt-get -f install -y
@@ -89,5 +90,5 @@ jobs:
         run: |
           khiops -v
           khiops_coclustering -v
-      - name: Test Khiops / Khiops Coclustering
+      - name: Test Khiops and Khiops Coclustering
         uses: ./.github/actions/test-khiops

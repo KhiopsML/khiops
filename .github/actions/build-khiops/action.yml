@@ -15,6 +15,8 @@ runs:
   steps:
     - name: Setup MPI
       uses: mpi4py/setup-mpi@v1
+    - name: Setup Ninja
+      uses: ashutoshvarma/setup-ninja@v1.1
     - name: Load Visual C++ Environment Variables (Windows only)
       if: ${{ runner.os == 'Windows' }}
       shell: cmd
