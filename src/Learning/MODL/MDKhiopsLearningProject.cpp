@@ -27,10 +27,10 @@ void MDKhiopsLearningProject::OpenLearningEnvironnement()
 	KWGrouper::RegisterGrouper(new DTGrouperMODL);
 
 	// Parametrage de l'icone de l'application
-	UIObject::SetIconImage("khiops.gif");
+	UIObject::SetIconImage("images/khiops.gif");
 
 	// Parametrage du menu about
-	SetLearningAboutImage("khiops_about.gif");
+	SetLearningAboutImage("images/khiops_about.gif");
 	SetLearningWebSite("www.khiops.com");
 
 	// Parametrage de la fenetre de documentation
