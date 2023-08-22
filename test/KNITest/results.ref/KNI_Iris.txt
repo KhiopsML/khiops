@@ -25,8 +25,10 @@ Close wrong stream (-1): -10
 Close wrong stream (0): -10
 
 Muliple test: up to 1000 simultaneous streams
-SYS Muliple open stream	317: Error -22
-SYS Muliple close stream	317: Error -10
+Muliple open stream
+SYS	=> stream index 317
+	=> Error -22
+Muliple close stream
 
 Recode records of @ROOT_DIR@/test/KNITest/../LearningTest/datasets/Iris/Iris.txt to @ROOT_DIR@/test/KNITest/results/R_Iris.txt
 Recoded record number: 150

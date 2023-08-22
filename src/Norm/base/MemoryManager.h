@@ -133,7 +133,7 @@ void MemSetAllocBlockExit(void* pBlock);
 void* MemGetAllocBlockExit();
 
 // Methode limitant physiquement la taille totale allouee,  meme en release
-// En cas de passement, une erreur fatale est declenchee, avec sortie par GlobalExit()
+// En cas de depassement, une erreur fatale est declenchee, avec sortie par GlobalExit()
 // Par defaut, 0 signifie pas de limite
 void MemSetMaxHeapSize(longint lSize);
 longint MemGetMaxHeapSize();

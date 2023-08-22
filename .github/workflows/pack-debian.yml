@@ -93,7 +93,7 @@ jobs:
       - name: Test Khiops and Khiops Coclustering
         uses: ./.github/actions/test-khiops
   test-kni-deb:
-    needs: package-deb
+    needs: build-deb-package
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -103,7 +103,7 @@ jobs:
       matrix:
         os: [ubuntu22.04, ubuntu20.04]
     container:
-      image: ghcr.io/khiopsml/khiops/${{ matrix.os }}:latest
+      image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
     steps:
       - name: Set environment variables
         run: |

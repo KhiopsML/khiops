@@ -21,6 +21,7 @@ void TestSideEffect(const char* sDictionaryFileName, const char* sDictionaryName
 	int hStream;
 	const int nMaxIter = 1000;
 	int nIter;
+	int nIterClose;
 	int ivStreamHandles[MAXITER];
 	char sHeaderLine[MAXBUFFERSIZE];
 	char sOutputRecord[MAXBUFFERSIZE];
@@ -148,7 +149,7 @@ void TestSideEffect(const char* sDictionaryFileName, const char* sDictionaryName
 		ivStreamHandles[nIter] = -1;
 
 	// Boucle d'ouverture de nombreux stream
-	printf("SYS Muliple open stream");
+	printf("Muliple open stream\n");
 	for (nIter = 0; nIter < nMaxIter; nIter++)
 	{
 		// Create stream
@@ -160,23 +161,27 @@ void TestSideEffect(const char* sDictionaryFileName, const char* sDictionaryName
 		// Arret sinon
 		else
 		{
-			printf("\t%d: Error %d\n", nIter, hStream);
+			printf("SYS\t=> stream index %d\n",
+			       nIter); // L'index du stream qui ne peut pas etre ouvert depend de la RAM disponible
+			ASSERT_GT(nIter, 2);                // On doit pouvoir ouvrir au moins 3 streams
+			printf("\t=> Error %d\n", hStream); // Le code retour n'est pas systeme dependant
+
 			break;
 		}
 	}
 
-	// Boucle de fermeture des streams
-	printf("SYS Muliple close stream");
-	for (nIter = 0; nIter < nMaxIter; nIter++)
+	// Boucle de fermeture des streams correctement ouverts
+	printf("Muliple close stream\n");
+	for (nIterClose = 0; nIterClose < nIter; nIterClose++)
 	{
 		// Open stream
-		hStream = ivStreamHandles[nIter];
+		hStream = ivStreamHandles[nIterClose];
 		nRetCode = KNICloseStream(hStream);
 
 		// Arret si erreur
 		if (nRetCode != KNI_OK)
 		{
-			printf("\t%d: Error %d\n", nIter, nRetCode);
+			printf("Error while closing stream %d: Error %d\n", nIterClose, nRetCode);
 			break;
 		}
 	}

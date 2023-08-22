@@ -11,7 +11,3 @@
 
 #include "KhiopsNativeInterface.h"
 #include "../../src/Learning/KNITransfer/KNIRecodeFile.h"
-
-// Tests complet de l'API de deploiement, avec des utilisation correcte ou erronnes des fonctions KNI
-void KNITest(const char* sDictionaryFileName, const char* sDictionaryName, const char* sInputFileName,
-	     const char* sOutputFileName, const char* sErrorFileName);

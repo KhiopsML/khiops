@@ -15,6 +15,7 @@ See [KhiopsNativeInterface.h](include/KhiopsNativeInterface.h) for a detailed de
 
 
 
+
 # KNI installation
 
 On windows, download and extract the zip file to your machine. Set the environment variable `KNI_HOME` to the extracted directory. This variable is used in the following examples.
@@ -55,15 +56,13 @@ The files are located in [cpp directory](cpp/). They allow to build `KNIRecodeFi
 On linux:
 
 ```bash
-gcc -o KNIRecodeFile cpp/KNIRecodeFile.c -lKhiopsNativeInterface -ldl
-gcc -o KNIRecodeMTFiles cpp/KNIRecodeMTFiles.c -lKhiopsNativeInterface -ldl
+@BUILD_C_LINUX@
 ```
 
 On windows, open a "Visual Studio Developer Console" and run:
 
 ```cmd
-cl KNITest.c KNIRecodeFile.c KNIRecodeMTFiles.c %KNI_HOME%\lib\KhiopsNativeInterface64.lib \
-    -I %KNI_HOME%\include /link "/LIBPATH:%KNI_HOME%\bin"
+@BUILD_C_WINDOWS@
 ```
 
 ## Launch
@@ -90,8 +89,7 @@ The files are located in [java directory](java/). They allow to build `KNIRecode
 To compile Java files and create kni.jar file:
 
 ```bash
-javac -cp jna.jar KNIRecodeFile.java KNI.java
-jar cf kni.jar *.class
+@BUILD_JAVA@
 ```
 
 ## Launch
@@ -101,13 +99,11 @@ Recodes the iris dataset from the data directory using the SNB_Iris dictionary.
 On Linux:
 
 ```bash
-java -d64 -cp kni.jar;jna.jar KNIRecodeFile data/ModelingIris.kdic SNB_Iris \
-      data/Iris.txt data/R_Iris.txt > data/test.log 2>&1
+@RUN_JAVA_LINUX@
 ```
 
 On Windows:
 
-```cmd
-java -d64 -cp kni.jar:jna.jar KNIRecodeFile data/ModelingIris.kdic SNB_Iris \
-      data/Iris.txt data/R_Iris.txt > data/test.log 2>&1
+```bash
+@RUN_JAVA_WINDOWS@
 ```

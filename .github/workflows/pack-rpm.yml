@@ -33,7 +33,7 @@ jobs:
         run: |
           cmake --build --preset linux-gcc-release --parallel \
             --target MODL${{ env.MPI_SUFFIX }} MODL_Coclustering${{ env.MPI_SUFFIX }} \
-                     KhiopsNativeInterface norm_jar khiops_jar
+            KhiopsNativeInterface norm_jar khiops_jar
       - name: Build package with CPack
         run: cd build/linux-gcc-release && cpack -G RPM
       - name: Rename packages with codename
@@ -91,7 +91,7 @@ jobs:
       - name: Test Khiops and Khiops Coclustering
         uses: ./.github/actions/test-khiops
   test-kni-rpm:
-    needs: package-rpm
+    needs: build-rpm-package
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -101,7 +101,7 @@ jobs:
       matrix:
         os: [rocky8, rocky9]
     container:
-      image: ghcr.io/khiopsml/khiops/${{ matrix.os }}:latest
+      image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
     steps:
       - name: Set environment variables
         run: |
