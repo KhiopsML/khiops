@@ -26,17 +26,14 @@ runs:
       shell: bash
       if: runner.os == "Linux"
       run: |
-        gcc -o KNIRecodeFile tutorial/cpp/KNIRecodeFile.c -I khiops/src/Learning/KhiopsNativeInterface/ \
-                -lKhiopsNativeInterface  -ldl
-        gcc -o KNIRecodeMTFiles tutorial/cpp/KNIRecodeMTFiles.c  -I khiops/src/Learning/KhiopsNativeInterface/ \
-                -lKhiopsNativeInterface -ldl
+        packaging/common/KNI/build-c-linux.sh
     - name: Compile C examples (Windows)
       if: runner.os == "Windows"
       shell: cmd
       run: |
         call "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\VC\\Auxiliary\\Build\\vcvars64.bat"
-        cl tutorial/cpp/KNIRecodeFile.c -I khiops/src/Learning/KhiopsNativeInterface/ KhiopsNativeInterface64.lib /link "/LIBPATH:kni"
-        cl tutorial/cpp/KNIRecodeMTFiles.c  -I khiops/src/Learning/KhiopsNativeInterface/ KhiopsNativeInterface64.lib /link "/LIBPATH:kni"
+        set KNI_HOME=%RUNNER_TEMP%\\KNI
+        call packaging/common/KNI/build-c--windows.cmd
     - name: Test mono-table example
       shell: bash
       run: |
