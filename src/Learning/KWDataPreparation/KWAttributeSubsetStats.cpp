@@ -801,7 +801,7 @@ boolean KWAttributeSubsetStats::CreateAttributeValueSets(const KWTupleTable* tup
 
 		// Creation d'une nouvelle partie mono-valeur
 		part = dgAttribute->AddPart();
-		value = part->GetValueSet()->AddValue(tuple->GetSymbolAt(0));
+		value = part->GetSymbolValueSet()->AddSymbolValue(tuple->GetSymbolAt(0));
 		value->SetValueFrequency(tuple->GetFrequency());
 	}
 	assert(attributeTupleTable.GetSize() == dgAttribute->GetPartNumber());
@@ -809,7 +809,7 @@ boolean KWAttributeSubsetStats::CreateAttributeValueSets(const KWTupleTable* tup
 
 	// Initialisation de la partie par defaut, contenant la modalite speciale
 	// Compte-tenu du tri prealable des tuples, il s'agit de la derniere partie de l'attribut
-	dgAttribute->GetTailPart()->GetValueSet()->AddValue(Symbol::GetStarValue());
+	dgAttribute->GetTailPart()->GetSymbolValueSet()->AddSymbolValue(Symbol::GetStarValue());
 
 	// Parametrage du nombre total de valeurs
 	// Pour un attribut categoriel, l'InitialValueNumber ne contient plus la StarValue

@@ -955,11 +955,11 @@ double KWDataGridMerger::SearchBestPartMergeWithGarbageSearch(KWDGMPartMerge*& b
 				// Cas ou les deux parties fusionnees deviennent le groupe poubelle
 				if (attribute->GetAttributeType() == KWType::Symbol)
 				{
-					if (partMerge->GetPart1()->GetValueSet()->GetTrueValueNumber() +
-						partMerge->GetPart2()->GetValueSet()->GetTrueValueNumber() >
+					if (partMerge->GetPart1()->GetValueSet()->GetValueNumber() +
+						partMerge->GetPart2()->GetValueSet()->GetValueNumber() >
 					    cast(KWDGPart*, attributeM->slPartValueNumbers->GetHead())
 						->GetValueSet()
-						->GetTrueValueNumber())
+						->GetValueNumber())
 					{
 						// Creation du nouveau groupe poubelle
 						garbagePart = new KWDGPart;
@@ -1912,7 +1912,7 @@ boolean KWDGMPart::Check() const
 		// de la grille (les parties et leurs valeurs sont creees avant
 		// la creation des cellules).
 		// La verification n'est pas faite dans tous les cas dans la classe ancetre
-		nTotalValueFrequency = valueSet->ComputeTotalFrequency();
+		nTotalValueFrequency = symbolValueSet->ComputeTotalFrequency();
 		if (bOk and GetPartFrequency() > 0 and nTotalValueFrequency > 0 and
 		    GetPartFrequency() != nTotalValueFrequency)
 		{
@@ -1987,7 +1987,7 @@ int KWDGMPartValueNumberCompare(const void* elem1, const void* elem2)
 
 	// Comparaison du nombre de modalites par valeurs decroissantes
 	if (partM1->GetPartType() == KWType::Symbol)
-		return (partM2->GetValueSet()->GetTrueValueNumber() - partM1->GetValueSet()->GetTrueValueNumber());
+		return (partM2->GetValueSet()->GetValueNumber() - partM1->GetValueSet()->GetValueNumber());
 	else
 		return (partM2->GetVarPartSet()->GetVarPartNumber() - partM1->GetVarPartSet()->GetVarPartNumber());
 	// CH IV End

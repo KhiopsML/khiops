@@ -1264,7 +1264,7 @@ void CCCoclusteringBuilder::CleanVarPartDataGrid(KWDataGrid* dataGrid)
 		// Si necessaire, initialisation de la partie par defaut, contenant la modalite speciale
 		// Compte-tenu du tri prealable des tuples, il s'agit de la derniere partie de l'attribut
 		if (bIsDefaultPartDeleted and innerAttribute->GetPartNumber() > 0)
-			innerAttribute->GetTailPart()->GetValueSet()->AddValue(Symbol::GetStarValue());
+			innerAttribute->GetTailPart()->GetSymbolValueSet()->AddSymbolValue(Symbol::GetStarValue());
 	}
 	// DDDDD dataGrid->GetInnerAttributes()->CleanEmptyInnerAttributes();
 	dataGrid->UpdateAllStatistics();
@@ -2537,7 +2537,7 @@ boolean CCCoclusteringBuilder::CreateIdentifierAttributeValueSets(const KWTupleT
 
 		// Creation d'une nouvelle partie mono-valeur
 		part = dgAttribute->AddPart();
-		value = part->GetValueSet()->AddValue(tuple->GetSymbolAt(0));
+		value = part->GetSymbolValueSet()->AddSymbolValue(tuple->GetSymbolAt(0));
 		value->SetValueFrequency(
 		    cast(IntObject*, odObservationNumbers.Lookup(tuple->GetSymbolAt(0)))->GetInt());
 	}
@@ -2546,7 +2546,7 @@ boolean CCCoclusteringBuilder::CreateIdentifierAttributeValueSets(const KWTupleT
 
 	// Initialisation de la partie par defaut, contenant la modalite speciale
 	// Compte-tenu du tri prealable des tuples, il s'agit de la derniere partie de l'attribut
-	dgAttribute->GetTailPart()->GetValueSet()->AddValue(Symbol::GetStarValue());
+	dgAttribute->GetTailPart()->GetSymbolValueSet()->AddSymbolValue(Symbol::GetStarValue());
 
 	// Parametrage du nombre total de valeurs
 	// Pour un attribut categoriel, l'InitialValueNumber ne contient plus la StarValue
@@ -3228,7 +3228,7 @@ void CCCoclusteringBuilder::ComputeValueTypicalitiesAt(const KWDataGrid* inputIn
 	KWDGPart* dgValuePart;
 	KWDGValue* dgValue;
 	NumericKeyDictionary nkdOptimizedAttributeValues;
-	CCHDGValue* hdgValue;
+	CCHDGSymbolValue* hdgValue;
 	DoubleVector dvTypicalities;
 	DoubleVector dvMaxTypicalities;
 	int nGarbageGroupIndex;
@@ -3306,17 +3306,17 @@ void CCCoclusteringBuilder::ComputeValueTypicalitiesAt(const KWDataGrid* inputIn
 		dgValue = dgValuePart->GetValueSet()->GetHeadValue();
 		while (dgValue != NULL)
 		{
-			nkdOptimizedAttributeValues.SetAt((dgValue->GetValue().GetNumericKey()), dgValue);
+			nkdOptimizedAttributeValues.SetAt((dgValue->GetNumericKeyValue()), dgValue);
 			dgValuePart->GetValueSet()->GetNextValue(dgValue);
 		}
 
 		// Memorisation du nombre de modalites du groupe
-		ivGroupModalityNumber.Add(dgValuePart->GetValueSet()->GetTrueValueNumber());
+		ivGroupModalityNumber.Add(dgValuePart->GetValueSet()->GetValueNumber());
 
 		// Cas du groupe poubelle : memorisation du nombre de modalites
 		if (nGroup == nGarbageGroupIndex)
 		{
-			nGarbageModalityNumber = dgValuePart->GetValueSet()->GetTrueValueNumber();
+			nGarbageModalityNumber = dgValuePart->GetValueSet()->GetValueNumber();
 			// CH AB AF adaptation eventuelle VarPart
 		}
 	}
@@ -3481,9 +3481,8 @@ void CCCoclusteringBuilder::ComputeValueTypicalitiesAt(const KWDataGrid* inputIn
 			for (nIntraCatchAllValue = 0; nIntraCatchAllValue < nValueModalityNumber; nIntraCatchAllValue++)
 			{
 				// Recherche de la valeur correspondante pour l'attribut optimise
-				hdgValue =
-				    cast(CCHDGValue*,
-					 nkdOptimizedAttributeValues.Lookup((dgValue->GetValue().GetNumericKey())));
+				hdgValue = cast(CCHDGSymbolValue*,
+						nkdOptimizedAttributeValues.Lookup((dgValue->GetNumericKeyValue())));
 
 				// Calcul de la typicite elementaire = la typicite du fourre-tout * effectif  de la
 				// modalite elementaire / effectif total du fourre-tout
@@ -3506,10 +3505,10 @@ void CCCoclusteringBuilder::ComputeValueTypicalitiesAt(const KWDataGrid* inputIn
 	{
 		// Acces a la valeur
 		dgValuePart = cast(KWDGPart*, oaValueParts.GetAt(nValue));
-		assert(dgValuePart->GetValueSet()->GetTrueValueNumber() == 1 or
+		assert(dgValuePart->GetValueSet()->GetValueNumber() == 1 or
 		       // n'est plus garanti car la grille initiale contient un fourre-tout
 		       //(dgValuePart->GetValueSet()->GetValueNumber() == 2 and
-		       dgValuePart->GetValueSet()->GetTailValue()->GetValue() == Symbol::GetStarValue());
+		       dgValuePart->GetValueSet()->GetTailValue()->GetSymbolValue() == Symbol::GetStarValue());
 
 		// Acces au nombre de modalites de la valeur
 		nValueModalityNumber = initialFrequencyTable.GetFrequencyVectorAt(nValue)->GetModalityNumber();
@@ -3518,13 +3517,13 @@ void CCCoclusteringBuilder::ComputeValueTypicalitiesAt(const KWDataGrid* inputIn
 		nOutGroup = ivGroups.GetAt(nValue);
 
 		// Cas d'une modalite non fourre-tout
-		if (dgValuePart->GetValueSet()->GetTrueValueNumber() == 1)
+		if (dgValuePart->GetValueSet()->GetValueNumber() == 1)
 		{
 			dgValue = dgValuePart->GetValueSet()->GetHeadValue();
 
 			// Recherche de la valeur correspondante pour l'attribut optimise
-			hdgValue = cast(CCHDGValue*,
-					nkdOptimizedAttributeValues.Lookup((dgValue->GetValue().GetNumericKey())));
+			hdgValue = cast(CCHDGSymbolValue*,
+					nkdOptimizedAttributeValues.Lookup((dgValue->GetNumericKeyValue())));
 
 			// Memorisation de la typicalite normalisee
 			// Mis en defaut avec Breast pour nValue = 14
@@ -3545,9 +3544,8 @@ void CCCoclusteringBuilder::ComputeValueTypicalitiesAt(const KWDataGrid* inputIn
 			for (nIntraCatchAllValue = 0; nIntraCatchAllValue < nValueModalityNumber; nIntraCatchAllValue++)
 			{
 				// Recherche de la valeur correspondante pour l'attribut optimise
-				hdgValue =
-				    cast(CCHDGValue*,
-					 nkdOptimizedAttributeValues.Lookup((dgValue->GetValue().GetNumericKey())));
+				hdgValue = cast(CCHDGSymbolValue*,
+						nkdOptimizedAttributeValues.Lookup((dgValue->GetNumericKeyValue())));
 
 				if (dvMaxTypicalities.GetAt(nOutGroup) > 0)
 					hdgValue->SetTypicality(dvTypicalities.GetAt(nValue + nIntraCatchAllValue) /
@@ -4063,7 +4061,7 @@ void CCCoclusteringBuilder::SortAttributePartsAndValues(CCHierarchicalDataGrid* 
 		{
 			// Tri des valeurs de la partie si attribut categoriel
 			if (dgAttribute->GetAttributeType() == KWType::Symbol)
-				cast(CCHDGValueSet*, dgPart->GetValueSet())->SortValuesByTypicality();
+				cast(CCHDGSymbolValueSet*, dgPart->GetValueSet())->SortValuesByTypicality();
 
 			// Initialisation du nom de la partie
 			cast(CCHDGPart*, dgPart)->SetPartName(dgPart->GetObjectLabel());

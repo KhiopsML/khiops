@@ -1552,8 +1552,8 @@ boolean CCCoclusteringReport::ReadComposition(CCHierarchicalDataGrid* coclusteri
 	ALString sTmp;
 	CCHDGAttribute* dgAttribute;
 	KWDGPart* dgPart;
-	CCHDGValueSet* dgValueSet;
-	CCHDGValue* dgValue;
+	CCHDGSymbolValueSet* dgValueSet;
+	CCHDGSymbolValue* dgValue;
 	int nAttribute;
 	ObjectDictionary* odPartDictionary;
 	ALString sAttributeName;
@@ -1643,8 +1643,8 @@ boolean CCCoclusteringReport::ReadComposition(CCHierarchicalDataGrid* coclusteri
 						// On rajoute si necessaire la StarValue au dernier groupe specifie
 						if (dgPart != NULL and not bStarValueFound)
 						{
-							dgValueSet = cast(CCHDGValueSet*, dgPart->GetValueSet());
-							dgValueSet->AddValue(Symbol::GetStarValue());
+							dgValueSet = cast(CCHDGSymbolValueSet*, dgPart->GetValueSet());
+							dgValueSet->AddSymbolValue(Symbol::GetStarValue());
 						}
 						break;
 					}
@@ -1730,8 +1730,8 @@ boolean CCCoclusteringReport::ReadComposition(CCHierarchicalDataGrid* coclusteri
 							sValue = (Symbol)sValueName;
 
 						// Memorisation de la valeur
-						dgValueSet = cast(CCHDGValueSet*, dgPart->GetValueSet());
-						dgValue = cast(CCHDGValue*, dgValueSet->AddValue(sValue));
+						dgValueSet = cast(CCHDGSymbolValueSet*, dgPart->GetValueSet());
+						dgValue = cast(CCHDGSymbolValue*, dgValueSet->AddSymbolValue(sValue));
 						dgValue->SetValueFrequency(nFrequency);
 						dgValue->SetTypicality(dTypicality);
 
@@ -1758,7 +1758,7 @@ boolean CCCoclusteringReport::ReadComposition(CCHierarchicalDataGrid* coclusteri
 				{
 					// Verification de la compatibilite entre l'effectif de la partie
 					// et l'effectif cumule de ses valeurs
-					dgValueSet = cast(CCHDGValueSet*, dgPart->GetValueSet());
+					dgValueSet = cast(CCHDGSymbolValueSet*, dgPart->GetValueSet());
 					nTotalValueFrequency = dgValueSet->ComputeTotalFrequency();
 					if (dgPart->GetPartFrequency() != nTotalValueFrequency)
 					{
@@ -2229,9 +2229,9 @@ void CCCoclusteringReport::WriteComposition(const CCHierarchicalDataGrid* coclus
 	int nAttribute;
 	KWDGPart* dgPart;
 	CCHDGPart* hdgPart;
-	CCHDGValueSet* hdgValueSet;
+	CCHDGSymbolValueSet* hdgValueSet;
 	KWDGValue* dgValue;
-	CCHDGValue* hdgValue;
+	CCHDGSymbolValue* hdgValue;
 	// CH IV Begin
 	CCHDGVarPartSet* hdgVarPartSet;
 	KWDGVarPartValue* dgVarPartValue;
@@ -2259,15 +2259,15 @@ void CCCoclusteringReport::WriteComposition(const CCHierarchicalDataGrid* coclus
 				hdgPart = cast(CCHDGPart*, dgPart);
 
 				// Parcours des valeurs
-				hdgValueSet = cast(CCHDGValueSet*, hdgPart->GetValueSet());
+				hdgValueSet = cast(CCHDGSymbolValueSet*, hdgPart->GetValueSet());
 				dgValue = hdgValueSet->GetHeadValue();
 				while (dgValue != NULL)
 				{
-					hdgValue = cast(CCHDGValue*, dgValue);
+					hdgValue = cast(CCHDGSymbolValue*, dgValue);
 
 					// Caracteristiques des valeurs
 					// (y compris la valeur par defaut, pour etre coherent avec l'export JSON)
-					ost << hdgPart->GetPartName() << "\t" << hdgValue->GetValue() << "\t"
+					ost << hdgPart->GetPartName() << "\t" << hdgValue->GetSymbolValue() << "\t"
 					    << hdgValue->GetValueFrequency() << "\t" << hdgValue->GetTypicality()
 					    << "\n";
 
@@ -3423,7 +3423,8 @@ boolean CCCoclusteringReport::ReadJSONDimensionPartitions(CCHierarchicalDataGrid
 
 					// Ajout de la valeur par defaut dans ce groupe
 					assert(dgPart != NULL);
-					cast(CCHDGValueSet*, dgPart->GetValueSet())->AddValue(Symbol::GetStarValue());
+					cast(CCHDGSymbolValueSet*, dgPart->GetValueSet())
+					    ->AddSymbolValue(Symbol::GetStarValue());
 				}
 			}
 			// CH IV Begin
@@ -3527,8 +3528,8 @@ boolean CCCoclusteringReport::ReadJSONValueGroup(CCHDGAttribute* dgAttribute, KW
 	boolean bOk = true;
 	ObjectDictionary odChekedValues;
 	boolean bIsEnd;
-	CCHDGValueSet* dgValueSet;
-	CCHDGValue* dgValue;
+	CCHDGSymbolValueSet* dgValueSet;
+	CCHDGSymbolValue* dgValue;
 	CCHDGPart* hdgPart;
 	ALString sClusterName;
 	ALString sValue;
@@ -3635,7 +3636,7 @@ boolean CCCoclusteringReport::ReadJSONValueGroup(CCHDGAttribute* dgAttribute, KW
 	if (bOk)
 	{
 		hdgPart = cast(CCHDGPart*, dgPart);
-		dgValueSet = cast(CCHDGValueSet*, dgPart->GetValueSet());
+		dgValueSet = cast(CCHDGSymbolValueSet*, dgPart->GetValueSet());
 		hdgPart->SetPartName(sClusterName);
 		hdgPart->SetShortDescription("");
 		hdgPart->SetDescription("");
@@ -3643,7 +3644,7 @@ boolean CCCoclusteringReport::ReadJSONValueGroup(CCHDGAttribute* dgAttribute, KW
 		// Memorisation des valeurs
 		for (i = 0; i < svValues.GetSize(); i++)
 		{
-			dgValue = cast(CCHDGValue*, dgValueSet->AddValue((Symbol)svValues.GetAt(i)));
+			dgValue = cast(CCHDGSymbolValue*, dgValueSet->AddSymbolValue((Symbol)svValues.GetAt(i)));
 			dgValue->SetValueFrequency(ivValueFrequencies.GetAt(i));
 			dgValue->SetTypicality(dvValueTypicalities.GetAt(i));
 		}
@@ -3842,9 +3843,9 @@ boolean CCCoclusteringReport::ReadJSONInnerAttributeValueGroups(KWDGAttribute* i
 			{
 				// Traitement particulier de la Star value
 				if (sValue == Symbol::GetStarValue().GetValue())
-					dgPart->GetValueSet()->AddValue(Symbol::GetStarValue());
+					dgPart->GetSymbolValueSet()->AddSymbolValue(Symbol::GetStarValue());
 				else
-					dgPart->GetValueSet()->AddValue((Symbol)sValue);
+					dgPart->GetSymbolValueSet()->AddSymbolValue((Symbol)sValue);
 			}
 			bOk = bOk and JSONTokenizer::ReadArrayNext(bIsEnd);
 		}
@@ -4628,9 +4629,9 @@ void CCCoclusteringReport::WriteJSONDimensionPartitions(const CCHierarchicalData
 	int nAttribute;
 	KWDGPart* dgPart;
 	CCHDGPart* hdgPart;
-	CCHDGValueSet* hdgValueSet;
+	CCHDGSymbolValueSet* hdgValueSet;
 	KWDGValue* dgValue;
-	CCHDGValue* hdgValue;
+	CCHDGSymbolValue* hdgValue;
 	int nIndex;
 	int nDefaultGroupIndex;
 	KWDGInterval* dgInterval;
@@ -4709,7 +4710,7 @@ void CCCoclusteringReport::WriteJSONDimensionPartitions(const CCHierarchicalData
 			while (dgPart != NULL)
 			{
 				hdgPart = cast(CCHDGPart*, dgPart);
-				hdgValueSet = cast(CCHDGValueSet*, hdgPart->GetValueSet());
+				hdgValueSet = cast(CCHDGSymbolValueSet*, hdgPart->GetValueSet());
 
 				// Memorisation de l'index du groupe par defaut
 				if (hdgValueSet->IsDefaultPart())
@@ -4723,9 +4724,9 @@ void CCCoclusteringReport::WriteJSONDimensionPartitions(const CCHierarchicalData
 				dgValue = hdgValueSet->GetHeadValue();
 				while (dgValue != NULL)
 				{
-					hdgValue = cast(CCHDGValue*, dgValue);
+					hdgValue = cast(CCHDGSymbolValue*, dgValue);
 					if (hdgValue->GetValueFrequency() > 0)
-						fJSON->WriteString(hdgValue->GetValue().GetValue());
+						fJSON->WriteString(hdgValue->GetSymbolValue().GetValue());
 					hdgValueSet->GetNextValue(dgValue);
 				}
 				fJSON->EndList();
@@ -4735,7 +4736,7 @@ void CCCoclusteringReport::WriteJSONDimensionPartitions(const CCHierarchicalData
 				dgValue = hdgValueSet->GetHeadValue();
 				while (dgValue != NULL)
 				{
-					hdgValue = cast(CCHDGValue*, dgValue);
+					hdgValue = cast(CCHDGSymbolValue*, dgValue);
 					if (hdgValue->GetValueFrequency() > 0)
 						fJSON->WriteInt(hdgValue->GetValueFrequency());
 					hdgValueSet->GetNextValue(dgValue);
@@ -4747,7 +4748,7 @@ void CCCoclusteringReport::WriteJSONDimensionPartitions(const CCHierarchicalData
 				dgValue = hdgValueSet->GetHeadValue();
 				while (dgValue != NULL)
 				{
-					hdgValue = cast(CCHDGValue*, dgValue);
+					hdgValue = cast(CCHDGSymbolValue*, dgValue);
 					if (hdgValue->GetValueFrequency() > 0)
 						fJSON->WriteDouble(hdgValue->GetTypicality());
 					hdgValueSet->GetNextValue(dgValue);
@@ -4928,7 +4929,7 @@ void CCCoclusteringReport::WriteJSONInnerAttributePartition(const CCHierarchical
 			currentValue = currentPart->GetValueSet()->GetHeadValue();
 			while (currentValue != NULL)
 			{
-				fJSON->WriteString(currentValue->GetValue().GetValue());
+				fJSON->WriteString(currentValue->GetSymbolValue().GetValue());
 
 				// Valeur suivante
 				currentPart->GetValueSet()->GetNextValue(currentValue);
@@ -4987,7 +4988,7 @@ void CCCoclusteringReport::WriteJSONInnerAttributePartition(const CCHierarchical
 		{
 			dgValue = cast(KWDGValue*, oaAllValues.GetAt(nValue));
 			if (dgValue->GetValueFrequency() > 0)
-				fJSON->WriteString(dgValue->GetValue().GetValue());
+				fJSON->WriteString(dgValue->GetSymbolValue().GetValue());
 		}
 		fJSON->EndList();
 

@@ -856,7 +856,7 @@ boolean CCHDGPart::CheckHierarchy() const
 
 	// Verification de l'ensemble de valeurs dans le cas categoriel
 	if (GetPartType() == KWType::Symbol)
-		bOk = bOk and cast(CCHDGValueSet*, valueSet)->CheckHierarchy();
+		bOk = bOk and cast(CCHDGSymbolValueSet*, symbolValueSet)->CheckHierarchy();
 
 	// Verifications complementaires de chainahe coherent de la hierarchie, sans message d'erreur
 	assert(not bOk or parentPart == NULL or parentPart->childPart1 == this or parentPart->childPart2 == this);
@@ -865,9 +865,9 @@ boolean CCHDGPart::CheckHierarchy() const
 	return bOk;
 }
 
-KWDGValueSet* CCHDGPart::NewValueSet() const
+KWDGSymbolValueSet* CCHDGPart::NewSymbolValueSet() const
 {
-	return new CCHDGValueSet();
+	return new CCHDGSymbolValueSet();
 }
 
 // CH IV Begin
@@ -949,18 +949,23 @@ int CCHDGPartCompareHierarchicalRank(const void* elem1, const void* elem2)
 }
 
 //////////////////////////////////////////////////////////////////////////////
-// Classe CCHDGValueSet
+// Classe CCHDGSymbolValueSet
 
-CCHDGValueSet::CCHDGValueSet() {}
+CCHDGSymbolValueSet::CCHDGSymbolValueSet() {}
 
-CCHDGValueSet::~CCHDGValueSet() {}
+CCHDGSymbolValueSet::~CCHDGSymbolValueSet() {}
 
-void CCHDGValueSet::SortValuesByTypicality()
+KWDGValueSet* CCHDGSymbolValueSet::Create() const
+{
+	return new CCHDGSymbolValueSet;
+}
+
+void CCHDGSymbolValueSet::SortValuesByTypicality()
 {
 	InternalSortValues(CCHDGValueCompareDecreasingTypicality);
 }
 
-boolean CCHDGValueSet::CheckHierarchy() const
+boolean CCHDGSymbolValueSet::CheckHierarchy() const
 {
 	boolean bOk = true;
 	KWDGValue* value;
@@ -974,7 +979,7 @@ boolean CCHDGValueSet::CheckHierarchy() const
 		while (value != NULL)
 		{
 			// Test de la valeur
-			bOk = cast(CCHDGValue*, value)->CheckHierarchy();
+			bOk = cast(CCHDGSymbolValue*, value)->CheckHierarchy();
 			if (not bOk)
 				break;
 
@@ -985,39 +990,39 @@ boolean CCHDGValueSet::CheckHierarchy() const
 	return bOk;
 }
 
-KWDGValue* CCHDGValueSet::NewValue(const Symbol& sValue) const
+KWDGValue* CCHDGSymbolValueSet::NewSymbolValue(const Symbol& sValue) const
 {
-	return new CCHDGValue(sValue);
+	return new CCHDGSymbolValue(sValue);
 }
 
 //////////////////////////////////////////////////////////////////////////////
 // Classe CCHDGValue
 
-CCHDGValue::CCHDGValue(const Symbol& sValue) : KWDGValue(sValue)
+CCHDGSymbolValue::CCHDGSymbolValue(const Symbol& sValue) : KWDGSymbolValue(sValue)
 {
 	dTypicality = 0;
 }
 
-CCHDGValue::~CCHDGValue() {}
+CCHDGSymbolValue::~CCHDGSymbolValue() {}
 
-void CCHDGValue::SetTypicality(double dValue)
+void CCHDGSymbolValue::SetTypicality(double dValue)
 {
 	require(0 <= dTypicality and dTypicality <= 1);
 	dTypicality = dValue;
 }
 
-double CCHDGValue::GetTypicality() const
+double CCHDGSymbolValue::GetTypicality() const
 {
 	return dTypicality;
 }
 
-boolean CCHDGValue::CheckHierarchy() const
+boolean CCHDGSymbolValue::CheckHierarchy() const
 {
 	boolean bOk = true;
 	ALString sTmp;
 
 	// Methode d'integrite de base
-	require(KWDGValue::Check());
+	require(KWDGSymbolValue::Check());
 
 	// Typicalite
 	if (bOk and (dTypicality < 0 or dTypicality > 1))
@@ -1031,8 +1036,8 @@ boolean CCHDGValue::CheckHierarchy() const
 int CCHDGValueCompareDecreasingTypicality(const void* elem1, const void* elem2)
 {
 	const double dPrecision = 1e-7;
-	CCHDGValue* value1;
-	CCHDGValue* value2;
+	CCHDGSymbolValue* value1;
+	CCHDGSymbolValue* value2;
 	double dCompare;
 	int nCompare;
 
@@ -1040,8 +1045,8 @@ int CCHDGValueCompareDecreasingTypicality(const void* elem1, const void* elem2)
 	require(elem2 != NULL);
 
 	// Acces a la valueies
-	value1 = cast(CCHDGValue*, *(Object**)elem1);
-	value2 = cast(CCHDGValue*, *(Object**)elem2);
+	value1 = cast(CCHDGSymbolValue*, *(Object**)elem1);
+	value2 = cast(CCHDGSymbolValue*, *(Object**)elem2);
 
 	// Comparaison a une precision pres (compatible avec l'affichage)
 	dCompare = -value1->GetTypicality() + value2->GetTypicality();

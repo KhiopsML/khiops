@@ -7,8 +7,8 @@
 class CCHierarchicalDataGrid;
 class CCHDGAttribute;
 class CCHDGPart;
-class CCHDGValueSet;
-class CCHDGValue;
+class CCHDGSymbolValueSet;
+class CCHDGSymbolValue;
 class CCHDGCell;
 // CH IV Begin
 class CCHDGVarPartSet;
@@ -278,7 +278,7 @@ public:
 	///// Implementation
 protected:
 	// Reimplementation des methodes virtuelles
-	KWDGValueSet* NewValueSet() const override;
+	KWDGSymbolValueSet* NewSymbolValueSet() const override;
 	// CH IV Begin
 	KWDGVarPartSet* NewVarPartSet() const override;
 	// CH IV End
@@ -311,14 +311,17 @@ int CCHDGPartCompareLeafRank(const void* elem1, const void* elem2);
 int CCHDGPartCompareHierarchicalRank(const void* elem1, const void* elem2);
 
 //////////////////////////////////////////////////////////////////////////////
-// Classe CCHDGValueSet
+// Classe CCHDGSymbolValueSet
 // Ensemble de valeurs d'une partie symbolique d'un HierarchicalDataGrid
-class CCHDGValueSet : public KWDGValueSet
+class CCHDGSymbolValueSet : public KWDGSymbolValueSet
 {
 public:
 	// Constructeur
-	CCHDGValueSet();
-	~CCHDGValueSet();
+	CCHDGSymbolValueSet();
+	~CCHDGSymbolValueSet();
+
+	// Creation
+	KWDGValueSet* Create() const override;
 
 	// Tri des valeurs par typicalite decroissante
 	void SortValuesByTypicality();
@@ -330,18 +333,18 @@ public:
 	///// Implementation
 protected:
 	// Reimplementation des methodes virtuelles
-	KWDGValue* NewValue(const Symbol& sValue) const override;
+	KWDGValue* NewSymbolValue(const Symbol& sValue) const override;
 };
 
 //////////////////////////////////////////////////////////////////////////////
-// Classe CCHDGValue
+// Classe CCHDGSymbolValue
 // Valeur symbolique d'un HierarchicalDataGrid
-class CCHDGValue : public KWDGValue
+class CCHDGSymbolValue : public KWDGSymbolValue
 {
 public:
 	// Constructeur
-	CCHDGValue(const Symbol& sValue);
-	~CCHDGValue();
+	CCHDGSymbolValue(const Symbol& sValue);
+	~CCHDGSymbolValue();
 
 	// Typicalite
 	void SetTypicality(double dValue);

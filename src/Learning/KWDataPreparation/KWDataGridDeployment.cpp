@@ -81,7 +81,7 @@ void KWDataGridDeployment::PrepareForDeployment()
 	// Ajout d'une valeur fictive dans le cas categoriel
 	if (GetDeploymentAttribute()->GetAttributeType() == KWType::Symbol)
 	{
-		dgNewDeploymentPart->GetValueSet()->AddValue(
+		dgNewDeploymentPart->GetSymbolValueSet()->AddSymbolValue(
 		    Symbol::BuildNewSymbol(" Coclustering New Deployment Part "));
 
 		// On n'oublie pas de mettre a jour le nombre de valeurs

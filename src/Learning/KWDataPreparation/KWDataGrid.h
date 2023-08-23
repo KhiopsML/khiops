@@ -13,8 +13,8 @@ class KWDGValue;
 class KWDGCell;
 // CH IV Begin
 class KWDGPartValues;
-class KWDGGenericValueSet;
-class KWDGGenericValue;
+class KWDGSymbolValueSet;
+class KWDGSymbolValue;
 class KWDGVarPartSet;
 class KWDGVarPartValue;
 class KWDGInnerAttributes;
@@ -780,6 +780,7 @@ public:
 	// Acces aux valeurs, selon le type
 	KWDGInterval* GetInterval() const;
 	KWDGValueSet* GetValueSet() const;
+	KWDGSymbolValueSet* GetSymbolValueSet() const;
 	// CH IV Begin
 	KWDGVarPartSet* GetVarPartSet() const;
 	// CH IV End
@@ -844,7 +845,7 @@ protected:
 	// Methodes de creations virtuelles, permettant de specialiser la composition d'une partie
 	// dans une sous-classe
 	virtual KWDGInterval* NewInterval() const;
-	virtual KWDGValueSet* NewValueSet() const;
+	virtual KWDGSymbolValueSet* NewSymbolValueSet() const;
 	// CH IV Begin
 	virtual KWDGVarPartSet* NewVarPartSet() const;
 	// CH IV End
@@ -876,7 +877,7 @@ protected:
 	// Gestion des valeurs de la parties
 	// Un seul objet, correspondant au type de la partie, doit etre non nul
 	KWDGInterval* interval;
-	KWDGValueSet* valueSet;
+	KWDGSymbolValueSet* symbolValueSet;
 	// CH IV Begin
 	KWDGVarPartSet* varPartSet;
 	// CH IV End
@@ -932,35 +933,57 @@ public:
 	void Write(ostream& ost) const override = 0;
 };
 
-/*DDD
 //////////////////////////////////////////////////////////////////////////////
-// Classe KWDGGenericValueSet
+// Classe KWDGValueSet
 // Sous-classe virtuelle de KWDGPartValues dediee aux groupes de valeurs
-// pour mutualiser la gestion des valeur de type Symbol ou VarPart
-class KWDGGenericValueSet : public KWDGPartValues
+// pour mutualiser la gestion des valeurs de type Symbol ou VarPart
+class KWDGValueSet : public KWDGPartValues
 {
 public:
+	// Constructeur
+	KWDGValueSet();
+	~KWDGValueSet();
+
+	// Type de valeur gere
+	virtual int GetValueType() const = 0;
+
+	// Creation
+	virtual KWDGValueSet* Create() const = 0;
+
+	// Copie
+	void CopyFrom(const KWDGValueSet* sourceValueSet);
+
+	// Duplication
+	KWDGValueSet* Clone() const;
+
 	////////////////////////////////////////////////////////////////
 	// Gestion des valeurs de la parties sous forme de liste
 	// Memoire: les valeurs appartiennent a la partie
 
+	// Creation d'une valeur a partir de la copie d'une valeur existante et ajout en fin de liste
+	// Renvoie la valeur cree
+	virtual KWDGValue* AddValueCopy(const KWDGValue* sourceValue) = 0;
+
 	// Destruction d'une valeur de la liste
-	void DeleteValue(KWDGGenericValue* value);
+	void DeleteValue(KWDGValue* value);
 
 	// Destruction de toutes les valeurs
 	void DeleteAllValues();
 
 	// Test de validite d'une valeur (si elle appartient a la partie)
-	boolean CheckValue(KWDGGenericValue* value) const;
+	boolean CheckValue(KWDGValue* value) const;
+
+	// Test si la partie est la partie par defaut
+	boolean IsDefaultPart() const;
 
 	// Nombre de valeurs
 	int GetValueNumber() const;
 
 	// Parcours de tous les valeurs
-	KWDGGenericValue* GetHeadValue() const;
-	KWDGGenericValue* GetTailValue() const;
-	void GetNextValue(KWDGGenericValue*& value) const;
-	void GetPrevValue(KWDGGenericValue*& value) const;
+	KWDGValue* GetHeadValue() const;
+	KWDGValue* GetTailValue() const;
+	void GetNextValue(KWDGValue*& value) const;
+	void GetPrevValue(KWDGValue*& value) const;
 
 	///////////////////////////////
 	// Services divers
@@ -970,20 +993,17 @@ public:
 
 	// Test si l'ensemble de valeur est inclus dans l'autre ensemble de valeurs en parametres
 	// On ne tient pas compte de la StarValue, et on effectue un test d'inclusion exhaustif pour toutes les valeurs
-	boolean IsSubValueSet(const KWDGGenericValueSet* otherValueSet) const;
+	boolean IsSubValueSet(const KWDGValueSet* otherValueSet) const;
 
 	// Calcul de l'effectif cumule des valeurs
 	int ComputeTotalFrequency() const;
 
 	// Import des valeurs d'une partie source, devant etre disjointe de la premiere
 	// partie. La partie source est reinitialise
-	void Import(KWDGGenericValueSet* sourceValueSet);
-
-	// Copie
-	void CopyFrom(const KWDGGenericValueSet* sourceValueSet);
+	void Import(KWDGValueSet* sourceValueSet);
 
 	// Ajout de nouvelles valeurs recopiees depuis une source
-	void UpgradeFrom(const KWDGGenericValueSet* sourceValueSet);
+	void UpgradeFrom(const KWDGValueSet* sourceValueSet);
 
 	// Tri des valeurs par effectif decroissant, pour preparer l'affichage
 	void SortValues();
@@ -991,6 +1011,12 @@ public:
 	// Verification du tri des valeurs par effectif decroissant
 	// Couteux, a utiliser essentiellement dans les assertions
 	boolean AreValuesSorted() const;
+
+	// Redefinition des methodes virtuelles
+	boolean IsSubPartValues(const KWDGPartValues* otherPartValues) const override;
+	void Import(KWDGPartValues* sourcePartValues) override;
+	void UpgradeFrom(const KWDGPartValues* sourcePartValues) override;
+	void CopyFrom(const KWDGPartValues* sourcePartValues) override;
 
 	// Controle d'integrite
 	boolean Check() const override;
@@ -1006,6 +1032,9 @@ public:
 	///////////////////////////////
 	///// Implementation
 protected:
+	// Ajout d'une valeur en fin de liste
+	void AddTailValue(KWDGValue* value);
+
 	// Tri des valeurs selon une fonction de tri
 	// La valeur speciale est toujours mise en dernier, independament du critere de tri
 	void InternalSortValues(CompareFunction fCompare);
@@ -1014,33 +1043,156 @@ protected:
 	virtual boolean GetEmulated() const;
 
 	// Gestion de la liste doublement chainee des cellules
-	KWDGGenericValue* headValue;
-	KWDGGenericValue* tailValue;
+	KWDGValue* headValue;
+	KWDGValue* tailValue;
 	int nValueNumber;
+	boolean bIsDefaultPart;
 };
-*/
 
 //////////////////////////////////////////////////////////////////////////////
-// Classe KWGenericValue
-// Classe virtuelle pour mutualiser la gestion des valeur de type Sumbol ou VarPart
-class KWDGGenericValue : public Object
+// Classe KWDGValue
+// Classe virtuelle pour mutualiser la gestion des valeur de type Symbol ou VarPart
+class KWDGValue : public Object
 {
 public:
-	// Effectif lie a la partie de variable, qui est gere par la partie de variable elle-meme
-	virtual void SetVarPartFrequency(int nFrequency) = 0;
-	virtual int GetVarPartFrequency() const = 0;
+	// Constructeur
+	KWDGValue();
+	~KWDGValue();
+
+	// Type de valeur
+	virtual int GetValueType() const = 0;
+
+	// Valeur
+	virtual Symbol& GetSymbolValue() const;
+	virtual KWDGPart* GetVarPart() const;
+
+	// Valeur en tant que cle numerique
+	virtual NUMERIC GetNumericKeyValue() const = 0;
+
+	// Test si on est la valeur par defaut, qui fait partie de la partie par defaut
+	virtual boolean IsDefaultValue() const = 0;
+
+	// Effectif de la valeur
+	virtual void SetValueFrequency(int nFrequency) = 0;
+	virtual int GetValueFrequency() const = 0;
+
+	// Comparaison de valeur
+	virtual int CompareValue(const KWDGValue* otherValue) const = 0;
 
 	// Affichage
 	void Write(ostream& ost) const override = 0;
 
+	// Libelle externe base sur la valeur
+	virtual const ALString GetExternalValueLabel() const = 0;
+
 	///////////////////////////////
 	///// Implementation
 protected:
-	friend class KWDGGenericValueSet;
+	friend class KWDGValueSet;
 
 	// Attributs
-	KWDGVarPartValue* prevVarPartValue;
-	KWDGVarPartValue* nextVarPartValue;
+	KWDGValue* prevValue;
+	KWDGValue* nextValue;
+};
+
+// Comparaison de deux valeurs, par effectif decroissant
+int KWDGValueCompareDecreasingFrequency(const void* elem1, const void* elem2);
+
+//////////////////////////////////////////////////////////////////////////////
+// Classe KWDGSymbolValueSet
+// Ensemble de valeurs d'une partie symbolique
+class KWDGSymbolValueSet : public KWDGValueSet
+{
+public:
+	// Constructeur
+	KWDGSymbolValueSet();
+	~KWDGSymbolValueSet();
+
+	// Type de valeur gere par la partie
+	int GetValueType() const override;
+
+	// Creation
+	KWDGValueSet* Create() const override;
+
+	// Creation d'une valeur et ajout en fin de liste
+	// Renvoie la valeur cree
+	KWDGValue* AddSymbolValue(const Symbol& sValue);
+
+	// Redefinition de la methode virtuelle d'ajout de la copie d'une valeur existante
+	KWDGValue* AddValueCopy(const KWDGValue* sourceValue) override;
+
+	///////////////////////////////
+	// Services avances
+
+	// Compression des valeurs (pour raison de memoire)
+	// La liste des valeurs est remplacee par une seule valeur (la valeur speciale StarValue)
+	// Les statistiques (ValueNumber et Frequency) sont conservees
+	void CompressValueSet();
+
+	// Compression des valeurs
+	// La liste des valeurs est nettoyee des modalites de plus faible effectif
+	// Les valeurs conservees sont la valeur de tete (la plus frequente) et la valeur speciale StarValue
+	// Frequency est conservee
+	// ValueNumber est mise a 1
+	// En sortie : un KWDGValueSet qui contient les valeurs autres que celles conservees
+	KWDGValueSet* ConvertToCleanedValueSet();
+
+	// Calcule et renvoie un ValueSet compresse avec la modalite d'effectif le plus eleve et la StarValue
+	// Ne modifie pas le ValueSet
+	KWDGValueSet* ComputeCleanedValueSet() const;
+
+	///////////////////////////////
+	///// Implementation
+protected:
+	// Methodes de creations virtuelles, permettant de specialiser la creation d'une valeur
+	// dans une sous-classe
+	virtual KWDGValue* NewSymbolValue(const Symbol& sValue) const;
+};
+
+//////////////////////////////////////////////////////////////////////////////
+// Classe KWDGSymbolValue
+// Valeur symbolique appartenant a une partie de valeur
+class KWDGSymbolValue : public KWDGValue
+{
+public:
+	// Constructeur
+	KWDGSymbolValue(const Symbol& sValue);
+	~KWDGSymbolValue();
+
+	// Type de valeur
+	int GetValueType() const override;
+
+	// Valeur
+	Symbol& GetSymbolValue() const override;
+
+	// Valeur en tant que cle numerique
+	NUMERIC GetNumericKeyValue() const override;
+
+	// Test si on est la valeur par defaut, qui fait partie de la partie par defaut
+	boolean IsDefaultValue() const override;
+
+	// Effectif lie a la valeur
+	void SetValueFrequency(int nFrequency) override;
+	int GetValueFrequency() const override;
+
+	// Comparaison de valeur
+	int CompareValue(const KWDGValue* otherValue) const override;
+
+	// Affichage
+	void Write(ostream& ost) const override;
+
+	// Libelle externe base sur la valeur
+	const ALString GetExternalValueLabel() const override;
+
+	// Libelles utilisateur
+	const ALString GetClassLabel() const override;
+	const ALString GetObjectLabel() const override;
+
+	///////////////////////////////
+	///// Implementation
+protected:
+	mutable Symbol sSymbolValue;
+	int nValueFrequency;
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -1089,7 +1241,7 @@ public:
 	// Copie
 	void CopyFrom(const KWDGInterval* sourceInterval);
 
-	// Redefinition des methodes virtuelles a partir des methodes specifiques
+	// Redefinition des methodes virtuelles
 	boolean IsSubPartValues(const KWDGPartValues* otherPartValues) const override;
 	void Import(KWDGPartValues* sourcePartValues) override;
 	void UpgradeFrom(const KWDGPartValues* sourcePartValues) override;
@@ -1112,164 +1264,6 @@ protected:
 	Continuous cLowerBound;
 	Continuous cUpperBound;
 };
-
-//////////////////////////////////////////////////////////////////////////////
-// Classe KWDGValueSet
-// Ensemble de valeurs d'une partie symbolique
-class KWDGValueSet : public Object
-{
-public:
-	// Constructeur
-	KWDGValueSet();
-	~KWDGValueSet();
-
-	////////////////////////////////////////////////////////////////
-	// Gestion des valeurs de la parties sous forme de liste
-	// Memoire: les valeurs appartiennent a la partie
-
-	// Creation d'une valeur et ajout en fin de liste
-	// Renvoie la valeur cree
-	KWDGValue* AddValue(const Symbol& sValue);
-
-	// Destruction d'une valeur de la liste
-	void DeleteValue(KWDGValue* value);
-
-	// Destruction de toutes les valeurs
-	void DeleteAllValues();
-
-	// Test de validite d'une valeur (si elle appartient a la partie)
-	boolean CheckValue(KWDGValue* value) const;
-
-	// Test si la partie est la partie par defaut (si elle contient la valeur speciale)
-	boolean IsDefaultPart() const;
-
-	// Nombre de valeurs reelles (valeurs sauf l'eventuelle valeur speciale)
-	int GetTrueValueNumber() const;
-
-	// Parcours de tous les valeurs
-	KWDGValue* GetHeadValue() const;
-	KWDGValue* GetTailValue() const;
-	void GetNextValue(KWDGValue*& value) const;
-	void GetPrevValue(KWDGValue*& value) const;
-
-	// Compression des valeurs (pour raison de memoire)
-	// La liste des valeurs est remplacee par une seule valeur (la valeur speciale StarValue)
-	// Les statistiques (ValueNumber et Frequency) sont conservees
-	void CompressValueSet();
-
-	// Compression des valeurs
-	// La liste des valeurs est nettoyee des modalites de plus faible effectif
-	// Les valeurs conservees sont la valeur de tete (la plus frequente) et la valeur speciale StarValue
-	// Frequency est conservee
-	// ValueNumber est mise a 1
-	// En sortie : un KWDGValueSet qui contient les valeurs autres que celles conservees
-	KWDGValueSet* ConvertToCleanedValueSet();
-
-	// Calcule et renvoie un ValueSet compresse avec la modalite d'effectif le plus eleve et la StarValue
-	// Ne modifie pas le ValueSet
-	KWDGValueSet* ComputeCleanedValueSet() const;
-
-	///////////////////////////////
-	// Services divers
-
-	// Export des valeurs dans un tableau (initialement vide)
-	void ExportValues(ObjectArray* oaValues) const;
-
-	// Test si l'ensemble de valeur est inclus dans l'autre ensemble de valeurs en parametres
-	// On ne tine spas compte de la StarValue, et on effectue un test d'inclusion exhaustif pour toutes les valeurs
-	boolean IsSubValueSet(const KWDGValueSet* otherValueSet) const;
-
-	// Calcul de l'effectif cumule des valeurs
-	int ComputeTotalFrequency() const;
-
-	// Import des valeurs d'une partie source, devant etre disjointe de la premiere
-	// partie. La partie source est reinitialise
-	void Import(KWDGValueSet* sourceValueSet);
-
-	// Copie
-	void CopyFrom(const KWDGValueSet* sourceValueSet);
-
-	// Ajout de nouvelles valeurs recopiees depuis une source
-	void UpgradeFrom(const KWDGValueSet* sourceValueSet);
-
-	// Tri des valeurs par effectif decroissant, pour preparer l'affichage
-	void SortValues();
-
-	// Verification du tri des valeurs par effectif decroissant : couteux, a utiliser essentiellement dans les
-	// assertions
-	boolean AreValuesSorted() const;
-
-	// Controle d'integrite
-	boolean Check() const override;
-
-	// Affichage
-	void Write(ostream& ost) const override;
-	void WriteValues(ostream& ost) const;
-
-	// Libelles utilisateur
-	const ALString GetClassLabel() const override;
-	const ALString GetObjectLabel() const override;
-
-	///////////////////////////////
-	///// Implementation
-protected:
-	// Nom externe d'une valeur, de facon a assurer que l'unicite des ObjectLabel
-	// Les valeurs sont entourees de quotes, si elle contiennent un des caracteres impliquee dans la construction du
-	// ObjectLabel
-	const ALString GetExternalValue(const Symbol& sValue) const;
-
-	// Tri des valeurs selon une fonction de tri
-	// La valeur speciale est toujours mise en dernier, independament du critere de tri
-	void InternalSortValues(CompareFunction fCompare);
-
-	// Methodes de creations virtuelles, permettant de specialiser la creation d'une valeur
-	// dans une sous-classe
-	virtual KWDGValue* NewValue(const Symbol& sValue) const;
-
-	// Methode indiquant si les donnees sont emulee
-	virtual boolean GetEmulated() const;
-
-	// Gestion de la liste doublement chainee des cellules
-	KWDGValue* headValue;
-	KWDGValue* tailValue;
-	int nValueNumber;
-	boolean bIsDefaultPart;
-};
-
-//////////////////////////////////////////////////////////////////////////////
-// Classe KWDGValue
-// Valeur symbolique appartenant a une partie de valeur
-class KWDGValue : public Object
-{
-public:
-	// Constructeur
-	KWDGValue(const Symbol& sValue);
-	~KWDGValue();
-
-	// Valeur
-	Symbol& GetValue() const;
-
-	// Effectif lie a la valeur
-	void SetValueFrequency(int nFrequency);
-	int GetValueFrequency() const;
-
-	// Affichage
-	void Write(ostream& ost) const override;
-
-	///////////////////////////////
-	///// Implementation
-protected:
-	friend class KWDGValueSet;
-
-	// Attributs
-	KWDGValue* prevValue;
-	KWDGValue* nextValue;
-	mutable Symbol sSymbolValue;
-	int nValueFrequency;
-};
-
-// Comparaison de deux valeurs symboliques, par effectif decroissant
-int KWDGValueCompareDecreasingFrequency(const void* elem1, const void* elem2);
 
 //////////////////////////////////////////////////////////////////////////////
 // CH IV Begin
@@ -1927,7 +1921,7 @@ inline int KWDGAttribute::GetGarbageModalityNumber() const
 	// Sinon
 	// CH IV Begin
 	else if (nAttributeType == KWType::Symbol)
-		return GetGarbagePart()->GetValueSet()->GetTrueValueNumber();
+		return GetGarbagePart()->GetValueSet()->GetValueNumber();
 	else
 		return GetGarbagePart()->GetVarPartSet()->GetVarPartNumber();
 	// CH IV End
@@ -1951,10 +1945,7 @@ inline void KWDGAttribute::InitializeCatchAllValueSet(KWDGValueSet* valueSet)
 	if (valueSet == NULL)
 		catchAllValueSet = NULL;
 	else
-	{
-		catchAllValueSet = new KWDGValueSet;
-		catchAllValueSet->CopyFrom(valueSet);
-	}
+		catchAllValueSet = valueSet->Clone();
 }
 
 inline void KWDGAttribute::SetCatchAllValueNumber(int nValue)
@@ -1975,7 +1966,7 @@ inline int KWDGAttribute::GetCatchAllValueNumber() const
 	else
 	{
 		assert(not GetCatchAllValueSet()->IsDefaultPart());
-		return GetCatchAllValueSet()->GetTrueValueNumber();
+		return GetCatchAllValueSet()->GetValueNumber();
 	}
 }
 
@@ -2001,12 +1992,12 @@ inline int KWDGPart::GetPartFrequency() const
 
 inline int KWDGPart::GetPartType() const
 {
-	require(interval == NULL or valueSet == NULL or varPartSet == NULL);
-	require((interval == NULL) + (valueSet == NULL) + (varPartSet == NULL) >= 2);
+	require(interval == NULL or symbolValueSet == NULL or varPartSet == NULL);
+	require((interval == NULL) + (symbolValueSet == NULL) + (varPartSet == NULL) >= 2);
 
 	if (interval != NULL)
 		return KWType::Continuous;
-	else if (valueSet != NULL)
+	else if (symbolValueSet != NULL)
 		return KWType::Symbol;
 	// CH IV Begin
 	else if (varPartSet != NULL)
@@ -2026,10 +2017,20 @@ inline KWDGInterval* KWDGPart::GetInterval() const
 
 inline KWDGValueSet* KWDGPart::GetValueSet() const
 {
+	require(GetPartType() == KWType::Symbol or GetPartType() == KWType::VarPart);
+
+	if (GetPartType() == KWType::Symbol)
+		return symbolValueSet;
+	else
+		return NULL; //DDD
+}
+
+inline KWDGSymbolValueSet* KWDGPart::GetSymbolValueSet() const
+{
 	require(GetPartType() == KWType::Symbol);
 
-	ensure(valueSet != NULL);
-	return valueSet;
+	ensure(symbolValueSet != NULL);
+	return symbolValueSet;
 }
 // CH IV Begin
 inline KWDGVarPartSet* KWDGPart::GetVarPartSet() const
@@ -2149,14 +2150,33 @@ inline KWDGValueSet::~KWDGValueSet()
 	DeleteAllValues();
 }
 
+inline KWDGValueSet* KWDGValueSet::Clone() const
+{
+	KWDGValueSet* cloneValueSet;
+	cloneValueSet = Create();
+	cloneValueSet->CopyFrom(this);
+	return cloneValueSet;
+}
+
 inline boolean KWDGValueSet::IsDefaultPart() const
 {
 	return bIsDefaultPart;
 }
 
-inline int KWDGValueSet::GetTrueValueNumber() const
+inline int KWDGValueSet::GetValueNumber() const
 {
-	return nValueNumber;
+	assert(nValueNumber > 0 or IsDefaultPart());
+
+	// On assure que le seul cas sans aucune valeur est le cas de la partie par defaut reduite a la StarValue
+	// Cela peut arriver si la partie a ete "nettoyee" pour gagner de la place, notamment quand on exporte
+	// une grille dans un dictionnaire et qu'on la reimporte pour le deploiement
+	// Dans ce cas, ou rend une nombre d evaleur egal 1 a, ce qui a le merite d'avoir des couts de grille
+	// valides numeriquement, meme s'il ne corrrespondnent pas au vrau model qui aurait du memoriser
+	// le nombre exacte de valeurs du groupe
+	if (nValueNumber == 0 and IsDefaultPart())
+		return 1;
+	else
+		return nValueNumber;
 }
 
 inline KWDGValue* KWDGValueSet::GetHeadValue() const
@@ -2180,6 +2200,23 @@ inline void KWDGValueSet::GetPrevValue(KWDGValue*& value) const
 	require(value != NULL);
 	value = value->prevValue;
 }
+
+// Classe KWDGSymbolValueSet
+
+inline KWDGSymbolValueSet::KWDGSymbolValueSet() {}
+
+inline KWDGSymbolValueSet::~KWDGSymbolValueSet() {}
+
+inline int KWDGSymbolValueSet::GetValueType() const
+{
+	return KWType::Symbol;
+}
+
+inline KWDGValueSet* KWDGSymbolValueSet::Create() const
+{
+	return new KWDGSymbolValueSet;
+}
+
 // CH IV Begin
 // Classe KWDGVarPartValue
 
@@ -2268,32 +2305,74 @@ inline int KWDGInnerAttributes::GetInnerAttributeNumber() const
 }
 
 // CH IV End
+
 // Classe KWDGValue
 
-inline KWDGValue::KWDGValue(const Symbol& sValue)
+inline KWDGValue::KWDGValue()
 {
-	sSymbolValue = sValue;
-	nValueFrequency = 0;
 	prevValue = NULL;
 	nextValue = NULL;
 }
 
 inline KWDGValue::~KWDGValue() {}
 
-inline Symbol& KWDGValue::GetValue() const
+inline Symbol& KWDGValue::GetSymbolValue() const
+{
+	static Symbol sEmpty;
+	assert(false);
+	return sEmpty;
+}
+
+inline KWDGPart* KWDGValue::GetVarPart() const
+{
+	assert(false);
+	return NULL;
+}
+
+// Classe KWDGSymbolValue
+
+inline KWDGSymbolValue::KWDGSymbolValue(const Symbol& sValue)
+{
+	sSymbolValue = sValue;
+	nValueFrequency = 0;
+}
+
+inline KWDGSymbolValue::~KWDGSymbolValue() {}
+
+inline int KWDGSymbolValue::GetValueType() const
+{
+	return KWType::Symbol;
+}
+
+inline Symbol& KWDGSymbolValue::GetSymbolValue() const
 {
 	return sSymbolValue;
 }
 
-inline void KWDGValue::SetValueFrequency(int nFrequency)
+inline NUMERIC KWDGSymbolValue::GetNumericKeyValue() const
+{
+	return sSymbolValue.GetNumericKey();
+}
+
+inline boolean KWDGSymbolValue::IsDefaultValue() const
+{
+	return sSymbolValue == Symbol::GetStarValue();
+}
+
+inline void KWDGSymbolValue::SetValueFrequency(int nFrequency)
 {
 	require(nFrequency >= 0);
 	nValueFrequency = nFrequency;
 }
 
-inline int KWDGValue::GetValueFrequency() const
+inline int KWDGSymbolValue::GetValueFrequency() const
 {
 	return nValueFrequency;
+}
+
+inline int KWDGSymbolValue::CompareValue(const KWDGValue* otherValue) const
+{
+	return GetSymbolValue().CompareValue(otherValue->GetSymbolValue());
 }
 
 // Classe KWDGCell

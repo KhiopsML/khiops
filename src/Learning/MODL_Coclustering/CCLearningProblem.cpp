@@ -1036,9 +1036,9 @@ void CCLearningProblem::WriteSymbolClusters(const CCHDGAttribute* symbolCocluste
 {
 	KWDGPart* dgPart;
 	CCHDGPart* hdgPart;
-	CCHDGValueSet* hdgValueSet;
+	CCHDGSymbolValueSet* hdgValueSet;
 	KWDGValue* dgValue;
-	CCHDGValue* hdgValue;
+	CCHDGSymbolValue* hdgValue;
 
 	require(symbolCoclusteringAttribute != NULL);
 	require(symbolCoclusteringAttribute->GetAttributeType() == KWType::Symbol);
@@ -1053,14 +1053,14 @@ void CCLearningProblem::WriteSymbolClusters(const CCHDGAttribute* symbolCocluste
 		hdgPart = cast(CCHDGPart*, dgPart);
 
 		// Parcours des valeurs
-		hdgValueSet = cast(CCHDGValueSet*, hdgPart->GetValueSet());
+		hdgValueSet = cast(CCHDGSymbolValueSet*, hdgPart->GetValueSet());
 		dgValue = hdgValueSet->GetHeadValue();
 		while (dgValue != NULL)
 		{
-			hdgValue = cast(CCHDGValue*, dgValue);
+			hdgValue = cast(CCHDGSymbolValue*, dgValue);
 
 			// Caracteristiques des valeurs
-			ost << hdgPart->GetUserLabel() << "\t" << hdgValue->GetValue() << "\t"
+			ost << hdgPart->GetUserLabel() << "\t" << hdgValue->GetSymbolValue() << "\t"
 			    << hdgValue->GetValueFrequency() << "\t" << hdgValue->GetTypicality() << "\n";
 
 			// Valeur suivante
@@ -1291,7 +1291,7 @@ void CCLearningProblem::WriteSymbolInnerAttribute(KWDGAttribute* symbolCocluster
 		{
 			// Caracteristiques des valeurs
 			ost << symbolCoclusteringAttribute->GetAttributeName() + " " + dgPart->GetObjectLabel() << "\t"
-			    << dgValue->GetValue() << "\n";
+			    << dgValue->GetSymbolValue() << "\n";
 
 			// Valeur suivante
 			dgValueSet->GetNextValue(dgValue);

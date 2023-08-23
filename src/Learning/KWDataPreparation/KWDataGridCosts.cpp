@@ -283,7 +283,7 @@ void KWDataGridCosts::InitializeDefaultCosts(const KWDataGrid* dataGrid)
 				defaultPart = defaultAttribute->GetHeadPart();
 
 				// Remplacement de ses valeurs par une valeur unique
-				defaultPart->GetValueSet()->CompressValueSet();
+				cast(KWDGSymbolValueSet*, defaultPart->GetValueSet())->CompressValueSet();
 			}
 		}
 	}
@@ -743,7 +743,7 @@ void KWDataGridCosts::WritePartCostLine(const KWDGPart* part, ostream& ost) cons
 	ost << part->GetObjectLabel() << "\t";
 	ost << part->GetCellNumber() << "\t" << part->GetPartFrequency() << "\t";
 	if (part->GetPartType() == KWType::Symbol)
-		ost << part->GetValueSet()->GetTrueValueNumber() << "\t";
+		ost << part->GetValueSet()->GetValueNumber() << "\t";
 	// CH IV Begin
 	else if (part->GetPartType() == KWType::Continuous)
 		ost << part->GetPartFrequency() << "\t";
@@ -1550,7 +1550,7 @@ double KWDataGridClusteringCosts::ComputePartCost(const KWDGPart* part) const
 		dPartCost = 0;
 		if (part->GetPartFrequency() > 0)
 		{
-			nValueNumber = part->GetValueSet()->GetTrueValueNumber();
+			nValueNumber = part->GetValueSet()->GetValueNumber();
 			dPartCost = KWStat::LnFactorial(part->GetPartFrequency());
 
 			// Distribution des valeurs dans la partie
@@ -1583,7 +1583,7 @@ double KWDataGridClusteringCosts::ComputePartUnionCost(const KWDGPart* part1, co
 	// On ignore le cout LnFactorial par valeur, qui est constant quelle que soit la grille
 	else
 	{
-		nValueNumber = part1->GetValueSet()->GetTrueValueNumber() + part2->GetValueSet()->GetTrueValueNumber();
+		nValueNumber = part1->GetValueSet()->GetValueNumber() + part2->GetValueSet()->GetValueNumber();
 		dPartUnionCost = KWStat::LnFactorial(nPartFrequency);
 
 		// Distribution des valeurs dans la partie
@@ -1686,7 +1686,7 @@ double KWDataGridClusteringCosts::ComputePartModelCost(const KWDGPart* part) con
 	{
 		if (part->GetPartFrequency() > 0)
 		{
-			nValueNumber = part->GetValueSet()->GetTrueValueNumber();
+			nValueNumber = part->GetValueSet()->GetValueNumber();
 
 			// Distribution des valeurs dans la partie
 			dPartCost += KWStat::LnFactorial(part->GetPartFrequency() + nValueNumber - 1);
@@ -1981,7 +1981,7 @@ double KWVarPartDataGridClusteringCosts::ComputeInnerAttributePartCost(const KWD
 
 	if (part->GetPartType() == KWType::Symbol)
 	{
-		nValueNumber = part->GetValueSet()->GetTrueValueNumber();
+		nValueNumber = part->GetValueSet()->GetValueNumber();
 		// Distribution des valeurs dans la partie
 		dInnerAttributePartCost += KWStat::LnFactorial(part->GetPartFrequency() + nValueNumber - 1);
 		dInnerAttributePartCost -= KWStat::LnFactorial(nValueNumber - 1);
@@ -2011,7 +2011,7 @@ double KWVarPartDataGridClusteringCosts::ComputePartCost(const KWDGPart* part) c
 		if (part->GetPartFrequency() > 0)
 		{
 			if (part->GetAttribute()->GetAttributeType() == KWType::Symbol)
-				nValueNumber = part->GetValueSet()->GetTrueValueNumber();
+				nValueNumber = part->GetValueSet()->GetValueNumber();
 			else
 				nValueNumber = part->GetVarPartSet()->GetVarPartNumber();
 			dPartCost = KWStat::LnFactorial(part->GetPartFrequency());
@@ -2048,7 +2048,7 @@ double KWVarPartDataGridClusteringCosts::ComputePartUnionCost(const KWDGPart* pa
 	// On ignore le cout LnFactorial par valeur, qui est constant quelle que soit la grille
 	else if (part1->GetAttribute()->GetAttributeType() == KWType::Symbol)
 	{
-		nValueNumber = part1->GetValueSet()->GetTrueValueNumber() + part2->GetValueSet()->GetTrueValueNumber();
+		nValueNumber = part1->GetValueSet()->GetValueNumber() + part2->GetValueSet()->GetValueNumber();
 		dPartUnionCost = KWStat::LnFactorial(nPartFrequency);
 
 		// Distribution des valeurs dans la partie
@@ -2176,7 +2176,7 @@ double KWVarPartDataGridClusteringCosts::ComputePartModelCost(const KWDGPart* pa
 	{
 		if (part->GetPartFrequency() > 0)
 		{
-			nValueNumber = part->GetValueSet()->GetTrueValueNumber();
+			nValueNumber = part->GetValueSet()->GetValueNumber();
 
 			// Distribution des valeurs dans la partie
 			dPartCost += KWStat::LnFactorial(part->GetPartFrequency() + nValueNumber - 1);
@@ -2718,13 +2718,13 @@ double KWDataGridGeneralizedClassificationCosts::ComputePartCost(const KWDGPart*
 		else
 		{
 			assert(part->GetAttribute()->GetAttributeType() == KWType::Symbol);
-			assert(part->GetPartFrequency() >= part->GetValueSet()->GetTrueValueNumber() - 1);
+			assert(part->GetPartFrequency() >= part->GetValueSet()->GetValueNumber() - 1);
 			dPartCost = 0;
 			if (part->GetPartFrequency() > 0)
 			{
 				dPartCost = KWStat::LnFactorial(part->GetPartFrequency() +
-								part->GetValueSet()->GetTrueValueNumber() - 1);
-				dPartCost -= KWStat::LnFactorial(part->GetValueSet()->GetTrueValueNumber() - 1);
+								part->GetValueSet()->GetValueNumber() - 1);
+				dPartCost -= KWStat::LnFactorial(part->GetValueSet()->GetValueNumber() - 1);
 			}
 		}
 	}
@@ -2773,7 +2773,7 @@ double KWDataGridGeneralizedClassificationCosts::ComputePartUnionCost(const KWDG
 		{
 			assert(part1->GetAttribute()->GetAttributeType() == KWType::Symbol);
 			nPartValueNumber =
-			    part1->GetValueSet()->GetTrueValueNumber() + part2->GetValueSet()->GetTrueValueNumber();
+			    part1->GetValueSet()->GetValueNumber() + part2->GetValueSet()->GetValueNumber();
 			assert(nPartFrequency >= nPartValueNumber - 1);
 			dPartUnionCost = 0;
 			if (nPartFrequency > 0)
@@ -2974,13 +2974,13 @@ double KWDataGridGeneralizedClassificationCosts::ComputePartModelCost(const KWDG
 		else
 		{
 			assert(part->GetAttribute()->GetAttributeType() == KWType::Symbol);
-			assert(part->GetPartFrequency() >= part->GetValueSet()->GetTrueValueNumber() - 1);
+			assert(part->GetPartFrequency() >= part->GetValueSet()->GetValueNumber() - 1);
 			dPartCost = 0;
 			if (part->GetPartFrequency() > 0)
 			{
 				dPartCost = KWStat::LnFactorial(part->GetPartFrequency() +
-								part->GetValueSet()->GetTrueValueNumber() - 1);
-				dPartCost -= KWStat::LnFactorial(part->GetValueSet()->GetTrueValueNumber() - 1);
+								part->GetValueSet()->GetValueNumber() - 1);
+				dPartCost -= KWStat::LnFactorial(part->GetValueSet()->GetValueNumber() - 1);
 				dPartCost -= KWStat::LnFactorial(part->GetPartFrequency());
 			}
 		}
