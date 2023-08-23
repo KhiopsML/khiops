@@ -943,7 +943,7 @@ void KWDataGrid::ImportDataGridStats(const KWDataGridStats* dataGridStats)
 	int nPart;
 	KWDGPart* part;
 	KWDGInterval* interval;
-	KWDGValueSet* valueSet;
+	KWDGSymbolValueSet* symbolValueSet;
 	int nValue;
 	ObjectArray oaAttributePartitions;
 	ObjectArray* oaPartition;
@@ -1080,12 +1080,13 @@ void KWDataGrid::ImportDataGridStats(const KWDataGridStats* dataGridStats)
 			{
 				part = attribute->AddPart();
 				oaPartition->SetAt(nPart, part);
-				valueSet = part->GetValueSet();
+				symbolValueSet = part->GetSymbolValueSet();
 
 				// Initialisation des valeurs du groupe
 				for (nValue = attributeGrouping->GetGroupFirstValueIndexAt(nPart);
 				     nValue <= attributeGrouping->GetGroupLastValueIndexAt(nPart); nValue++)
-					valueSet->AddValue(attributeGrouping->GetValueAt(nValue));
+					symbolValueSet->AddSymbolValue(attributeGrouping->GetValueAt(nValue));
+
 				// Cas du groupe poubelle : memorisation de la partie au niveau de l'attribut
 				if (nPart == attributeGrouping->GetGarbageGroupIndex())
 					attribute->SetGarbagePart(part);
@@ -1103,17 +1104,17 @@ void KWDataGrid::ImportDataGridStats(const KWDataGridStats* dataGridStats)
 			{
 				part = attribute->AddPart();
 				oaPartition->SetAt(nPart, part);
-				valueSet = part->GetValueSet();
+				symbolValueSet = part->GetSymbolValueSet();
 
 				// Initialisation de la valeur du groupe
 				assert(attributeSymbolValues->GetValueAt(nPart) != Symbol::GetStarValue());
-				valueSet->AddValue(attributeSymbolValues->GetValueAt(nPart));
+				symbolValueSet->AddSymbolValue(attributeSymbolValues->GetValueAt(nPart));
 			}
 
 			// Ajout de la valeur speciale
 			assert(attributeSymbolValues->GetValueNumber() > 0);
-			valueSet = attribute->GetTailPart()->GetValueSet();
-			valueSet->AddValue(Symbol::GetStarValue());
+			symbolValueSet = attribute->GetTailPart()->GetSymbolValueSet();
+			symbolValueSet->AddSymbolValue(Symbol::GetStarValue());
 		}
 	}
 
@@ -1189,7 +1190,7 @@ void KWDataGrid::ExportDataGridStats(KWDataGridStats* dataGridStats) const
 	int nPart;
 	KWDGPart* part;
 	KWDGInterval* interval;
-	KWDGValueSet* valueSet;
+	KWDGSymbolValueSet* symbolValueSet;
 	int nValue;
 	int nValueNumber;
 	int nSuppressedValueNumber;
@@ -1198,7 +1199,7 @@ void KWDataGrid::ExportDataGridStats(KWDataGridStats* dataGridStats) const
 	IntVector ivPartIndexes;
 	NumericKeyDictionary nkdPartIndexes;
 	KWSortableIndex* partIndex;
-	KWDGValueSet* cleanedValueSet;
+	KWDGSymbolValueSet* cleanedSymbolValueSet;
 
 	require(Check());
 	require(dataGridStats != NULL);
@@ -1206,7 +1207,7 @@ void KWDataGrid::ExportDataGridStats(KWDataGridStats* dataGridStats) const
 
 	dataGridStats->SetGranularity(nGranularity);
 
-	cleanedValueSet = NULL;
+	cleanedSymbolValueSet = NULL;
 
 	// Creation des attributs sources de la grille
 	for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
@@ -1236,8 +1237,8 @@ void KWDataGrid::ExportDataGridStats(KWDataGridStats* dataGridStats) const
 			part = attribute->GetHeadPart();
 			while (part != NULL)
 			{
-				valueSet = part->GetValueSet();
-				nValueNumber += valueSet->GetTrueValueNumber();
+				symbolValueSet = part->GetSymbolValueSet();
+				nValueNumber += symbolValueSet->GetValueNumber();
 
 				// Calcul du nombre eventuel de modalites qui seront nettoyees (non memorisees pour
 				// l'affichage) En presence d'un fourre-tout, les modalites du fourre-tout autres que
@@ -1247,7 +1248,7 @@ void KWDataGrid::ExportDataGridStats(KWDataGridStats* dataGridStats) const
 				// groupe poubelle, ce groupe poubelle est represente par la modalite la plus frequente
 				// + StarValue Cas de la partie poubelle en l'absence de fourre-tout
 				if (attribute->GetGarbagePart() == part and attribute->GetCatchAllValueNumber() == 0)
-					nSuppressedValueNumber = valueSet->GetTrueValueNumber() - 1;
+					nSuppressedValueNumber = symbolValueSet->GetValueNumber() - 1;
 				attribute->GetNextPart(part);
 			}
 
@@ -1261,7 +1262,7 @@ void KWDataGrid::ExportDataGridStats(KWDataGridStats* dataGridStats) const
 			nValue = 0;
 			while (part != NULL)
 			{
-				valueSet = part->GetValueSet();
+				symbolValueSet = part->GetSymbolValueSet();
 
 				// Regles d'affectation de la StarValue
 				// - dans le fourre-tout en presence d'un fourre-tout et en l'absence d'un groupe
@@ -1278,14 +1279,14 @@ void KWDataGrid::ExportDataGridStats(KWDataGridStats* dataGridStats) const
 				    attribute->GetGarbageModalityNumber() > 0)
 				{
 					// Creation d'un valueSet nettoye sans la StarValue
-					cleanedValueSet = new KWDGValueSet;
-					value = valueSet->GetHeadValue();
+					cleanedSymbolValueSet = cast(KWDGSymbolValueSet*, symbolValueSet->Create());
+					value = symbolValueSet->GetHeadValue();
 					while (value != NULL)
 					{
 						// Cas d'une modalite differente de la StarValue
-						if (value->GetValue() != Symbol::GetStarValue())
-							cleanedValueSet->AddValue(value->GetValue());
-						valueSet->GetNextValue(value);
+						if (value->GetSymbolValue() != Symbol::GetStarValue())
+							cleanedSymbolValueSet->AddSymbolValue(value->GetSymbolValue());
+						symbolValueSet->GetNextValue(value);
 					}
 				}
 
@@ -1299,7 +1300,8 @@ void KWDataGrid::ExportDataGridStats(KWDataGridStats* dataGridStats) const
 					{
 						// Creation d'un ValueSet nettoye pour un affichage reduit a la modalite
 						// la plus frequente
-						cleanedValueSet = valueSet->ComputeCleanedValueSet();
+						cleanedSymbolValueSet =
+						    cast(KWDGSymbolValueSet*, symbolValueSet->ComputeCleanedValueSet());
 					}
 				}
 
@@ -1312,29 +1314,29 @@ void KWDataGrid::ExportDataGridStats(KWDataGridStats* dataGridStats) const
 				attributeGrouping->SetGroupFirstValueIndexAt(nPart, nValue);
 
 				// Cas ou une version nettoyee du valueSet de la partie a ete cree
-				if (cleanedValueSet != NULL)
+				if (cleanedSymbolValueSet != NULL)
 				{
-					value = cleanedValueSet->GetHeadValue();
+					value = cleanedSymbolValueSet->GetHeadValue();
 					while (value != NULL)
 					{
-						attributeGrouping->SetValueAt(nValue, value->GetValue());
+						attributeGrouping->SetValueAt(nValue, value->GetSymbolValue());
 						nValue++;
-						cleanedValueSet->GetNextValue(value);
+						cleanedSymbolValueSet->GetNextValue(value);
 					}
 
 					// Nettoyage
-					delete cleanedValueSet;
-					cleanedValueSet = NULL;
+					delete cleanedSymbolValueSet;
+					cleanedSymbolValueSet = NULL;
 				}
 				// Sinon
 				else
 				{
-					value = valueSet->GetHeadValue();
+					value = symbolValueSet->GetHeadValue();
 					while (value != NULL)
 					{
-						attributeGrouping->SetValueAt(nValue, value->GetValue());
+						attributeGrouping->SetValueAt(nValue, value->GetSymbolValue());
 						nValue++;
-						valueSet->GetNextValue(value);
+						symbolValueSet->GetNextValue(value);
 					}
 				}
 
@@ -1583,7 +1585,7 @@ void KWDataGrid::WriteAttributeParts(ostream& ost) const
 							break;
 						}
 						else
-							ost << "\t" << value->GetValue();
+							ost << "\t" << value->GetSymbolValue();
 						part->GetValueSet()->GetNextValue(value);
 					}
 				}
@@ -2563,10 +2565,10 @@ void KWDGAttribute::BuildIndexingStructure()
 				while (value != NULL)
 				{
 					// Ajout de la partie avec la valeur pour cle
-					nkdParts.SetAt(value->GetValue().GetNumericKey(), part);
+					nkdParts.SetAt(value->GetNumericKeyValue(), part);
 
 					// Memorisation de la partie associe a la valeur speciale
-					if (value->GetValue() == Symbol::GetStarValue())
+					if (value->GetSymbolValue() == Symbol::GetStarValue())
 						starValuePart = part;
 
 					// Valeur suivante
@@ -2773,7 +2775,6 @@ boolean KWDGAttribute::ContainsSubParts(const KWDGAttribute* otherAttribute) con
 	KWDGPart* part;
 	KWDGPart* otherPart;
 	KWDGValue* value;
-	Symbol sFirstValue;
 	KWDGVarPartValue* varPartValue;
 	KWDGPart* firstVarPartValue;
 	NumericKeyDictionary nkdOtherPartsPerValue;
@@ -2834,7 +2835,7 @@ boolean KWDGAttribute::ContainsSubParts(const KWDGAttribute* otherAttribute) con
 				value = otherPart->GetValueSet()->GetHeadValue();
 				while (value != NULL)
 				{
-					nkdOtherPartsPerValue.SetAt(value->GetValue().GetNumericKey(), otherPart);
+					nkdOtherPartsPerValue.SetAt(value->GetNumericKeyValue(), otherPart);
 					otherPart->GetValueSet()->GetNextValue(value);
 				}
 
@@ -2847,8 +2848,9 @@ boolean KWDGAttribute::ContainsSubParts(const KWDGAttribute* otherAttribute) con
 			while (part != NULL)
 			{
 				// Recherche de l'autre partie sur la base de la premiere valeur de la partie en cours
-				sFirstValue = part->GetValueSet()->GetHeadValue()->GetValue();
-				otherPart = cast(KWDGPart*, nkdOtherPartsPerValue.Lookup(sFirstValue.GetNumericKey()));
+				otherPart =
+				    cast(KWDGPart*, nkdOtherPartsPerValue.Lookup(
+							part->GetValueSet()->GetHeadValue()->GetNumericKeyValue()));
 
 				// Pas d'inclusion si partie non trouvee ou non inclusante
 				if (otherPart == NULL or not part->IsSubPart(otherPart))
@@ -3148,12 +3150,12 @@ boolean KWDGAttribute::Check() const
 			while (value != NULL)
 			{
 				// Recherche si la valeur est deja enregistree
-				searchedPart = cast(KWDGPart*, nkdCheckParts.Lookup(value->GetValue().GetNumericKey()));
+				searchedPart = cast(KWDGPart*, nkdCheckParts.Lookup(value->GetNumericKeyValue()));
 
 				// Erreur si partie deja enregistree avec cette valeur
 				if (searchedPart != NULL)
 				{
-					part->AddError(sTmp + "Value " + value->GetValue() +
+					part->AddError(sTmp + "Value " + value->GetObjectLabel() +
 						       " already belongs to part " + part->GetObjectLabel());
 					bOk = false;
 					break;
@@ -3162,10 +3164,10 @@ boolean KWDGAttribute::Check() const
 				else
 				{
 					// Ajout de la partie avec la valeur pour cle
-					nkdCheckParts.SetAt(value->GetValue().GetNumericKey(), part);
+					nkdCheckParts.SetAt(value->GetNumericKeyValue(), part);
 
 					// Test si valeur speciale
-					if (value->GetValue() == Symbol::GetStarValue())
+					if (value->GetSymbolValue() == Symbol::GetStarValue())
 						bStarValueFound = true;
 
 					// Valeur suivante
@@ -3426,7 +3428,7 @@ void KWDGAttribute::Write(ostream& ost) const
 	ost << "\t" << (GetInitialValueNumber() > KWFrequencyTable::GetMinimumNumberOfModalitiesForGarbage()) << "\t"
 	    << (GetGarbagePart() != NULL);
 	if (GetGarbagePart() != NULL)
-		ost << "\t" << cast(KWDGValueSet*, GetGarbagePart())->GetTrueValueNumber() << "\n";
+		ost << "\t" << cast(KWDGValueSet*, GetGarbagePart())->GetValueNumber() << "\n";
 	else
 		ost << "\n";
 	// Parties de l'attribut
@@ -3512,7 +3514,7 @@ KWDGAttribute* KWDGAttribute::CreateTestSymbolAttribute(int nValueNumber, int nP
 	KWDGAttribute* attribute;
 	int nValue;
 	KWDGPart* part;
-	KWDGValueSet* valueSet;
+	KWDGSymbolValueSet* symbolValueSet;
 	KWDGValue* value;
 
 	require(nValueNumber > 0);
@@ -3538,10 +3540,10 @@ KWDGAttribute* KWDGAttribute::CreateTestSymbolAttribute(int nValueNumber, int nP
 		if (part == NULL)
 			part = attribute->GetHeadPart();
 		check(part);
-		valueSet = part->GetValueSet();
+		symbolValueSet = part->GetSymbolValueSet();
 
 		// Ajout d'une valeur a la partie courant
-		value = valueSet->AddValue((Symbol)(sValuePrefix + IntToString(nValue)));
+		value = symbolValueSet->AddSymbolValue((Symbol)(sValuePrefix + IntToString(nValue)));
 		value->SetValueFrequency(0);
 		nValue++;
 	}
@@ -3551,8 +3553,8 @@ KWDGAttribute* KWDGAttribute::CreateTestSymbolAttribute(int nValueNumber, int nP
 	if (part == NULL)
 		part = attribute->GetHeadPart();
 	check(part);
-	valueSet = part->GetValueSet();
-	value = valueSet->AddValue(Symbol::GetStarValue());
+	symbolValueSet = part->GetSymbolValueSet();
+	value = symbolValueSet->AddSymbolValue(Symbol::GetStarValue());
 	value->SetValueFrequency(0);
 
 	ensure(attribute->Check());
@@ -3705,7 +3707,7 @@ KWDGPart::KWDGPart()
 	tailCell = NULL;
 	nCellNumber = 0;
 	interval = NULL;
-	valueSet = NULL;
+	symbolValueSet = NULL;
 	// CH IV Begin
 	varPartSet = NULL;
 	// CH IV End
@@ -3715,15 +3717,13 @@ KWDGPart::~KWDGPart()
 {
 	if (interval != NULL)
 		delete interval;
-	if (valueSet != NULL)
-		delete valueSet;
+	if (symbolValueSet != NULL)
+		delete symbolValueSet;
 	// CH IV Begin
 	if (varPartSet != NULL)
-	{
 		delete varPartSet;
-		varPartSet = NULL;
-	}
 	// CH IV End
+
 	// Reinitialisation pour faciliter le debug
 	debug(attribute = NULL);
 	debug(prevPart = NULL);
@@ -3733,7 +3733,8 @@ KWDGPart::~KWDGPart()
 	debug(tailCell = NULL);
 	debug(nCellNumber = 0);
 	debug(interval = NULL);
-	debug(valueSet = NULL);
+	debug(symbolValueSet = NULL);
+	debug(varPartSet = NULL);
 }
 
 void KWDGPart::SetPartType(int nValue)
@@ -3746,7 +3747,7 @@ void KWDGPart::SetPartType(int nValue)
 	if (nValue == KWType::Continuous)
 		interval = NewInterval();
 	else if (nValue == KWType::Symbol)
-		valueSet = NewValueSet();
+		symbolValueSet = NewSymbolValueSet();
 	else
 		varPartSet = NewVarPartSet();
 	// CH IV End
@@ -3844,7 +3845,7 @@ boolean KWDGPart::Check() const
 	// Verification de l'ensemble de valeurs
 	else if (GetPartType() == KWType::Symbol)
 	{
-		bOk = bOk and valueSet->Check();
+		bOk = bOk and symbolValueSet->Check();
 
 		// Verification de la compatibilite entre l'effectif de la partie
 		// et l'effectif cumule de ses valeurs
@@ -3856,7 +3857,7 @@ boolean KWDGPart::Check() const
 		// Cela permet egalement de verifier la validite d'une grille
 		// construite pour le deploiement de modele, qui n'a pas besoin
 		// des effectifs par valeur.
-		nTotalValueFrequency = valueSet->ComputeTotalFrequency();
+		nTotalValueFrequency = symbolValueSet->ComputeTotalFrequency();
 		if (bOk and GetPartFrequency() > 0 and nTotalValueFrequency > 0 and
 		    GetPartFrequency() != nTotalValueFrequency)
 		{
@@ -3973,8 +3974,10 @@ longint KWDGPart::GetUsedMemory() const
 	lUsedMemory = sizeof(KWDGPart);
 	if (interval != NULL)
 		lUsedMemory += sizeof(KWDGInterval);
-	if (valueSet != NULL)
-		lUsedMemory += sizeof(KWDGValueSet);
+	if (symbolValueSet != NULL)
+		lUsedMemory += sizeof(KWDGSymbolValueSet);
+	if (varPartSet != NULL)
+		lUsedMemory += sizeof(KWDGVarPartSet);
 	return lUsedMemory;
 }
 
@@ -3985,7 +3988,7 @@ void KWDGPart::Write(ostream& ost) const
 	ost << GetClassLabel() << "\t" << GetObjectLabel() << "\t" << GetPartFrequency() << "\n";
 
 	// Valeurs et cellules de la partie
-	if (GetPartType() == KWType::Symbol and valueSet->GetTrueValueNumber() > 0)
+	if (GetPartType() == KWType::Symbol and symbolValueSet->GetValueNumber() > 0)
 		WriteValues(ost);
 
 	if (GetPartType() == KWType::VarPart and varPartSet->GetVarPartNumber() > 0)
@@ -4000,7 +4003,7 @@ void KWDGPart::WriteValues(ostream& ost) const
 	// Des valeurs sont a afficher uniquement dans le cas symbolique et VarPart
 	// (l'intervalle est le libelle de la partie dans le cas continu)
 	if (GetPartType() == KWType::Symbol)
-		valueSet->WriteValues(ost);
+		symbolValueSet->WriteValues(ost);
 	else if (GetPartType() == KWType::VarPart)
 		varPartSet->WriteVarParts(ost);
 }
@@ -4034,7 +4037,7 @@ const ALString KWDGPart::GetClassLabel() const
 	if (GetPartType() == KWType::Continuous)
 		return interval->GetClassLabel();
 	else if (GetPartType() == KWType::Symbol)
-		return valueSet->GetClassLabel();
+		return symbolValueSet->GetClassLabel();
 	// CH IV Begin
 	else if (GetPartType() == KWType::VarPart)
 		return varPartSet->GetClassLabel();
@@ -4048,7 +4051,7 @@ const ALString KWDGPart::GetObjectLabel() const
 	if (GetPartType() == KWType::Continuous)
 		return interval->GetObjectLabel();
 	else if (GetPartType() == KWType::Symbol)
-		return valueSet->GetObjectLabel();
+		return symbolValueSet->GetObjectLabel();
 	// CH IV Begin
 	else if (GetPartType() == KWType::VarPart)
 		return varPartSet->GetObjectLabel();
@@ -4062,9 +4065,9 @@ KWDGInterval* KWDGPart::NewInterval() const
 	return new KWDGInterval;
 }
 
-KWDGValueSet* KWDGPart::NewValueSet() const
+KWDGSymbolValueSet* KWDGPart::NewSymbolValueSet() const
 {
-	return new KWDGValueSet;
+	return new KWDGSymbolValueSet;
 }
 // CH IV Begin
 KWDGVarPartSet* KWDGPart::NewVarPartSet() const
@@ -4141,8 +4144,8 @@ int KWDGPartSymbolCompare(const void* elem1, const void* elem2)
 	else if (part2->GetValueSet()->GetHeadValue() == NULL)
 		return 1;
 	else
-		return part1->GetValueSet()->GetHeadValue()->GetValue().CompareValue(
-		    part2->GetValueSet()->GetHeadValue()->GetValue());
+		return part1->GetValueSet()->GetHeadValue()->GetSymbolValue().CompareValue(
+		    part2->GetValueSet()->GetHeadValue()->GetSymbolValue());
 }
 
 int KWDGPartSymbolCompareDecreasingFrequency(const void* elem1, const void* elem2)
@@ -4356,39 +4359,36 @@ const ALString KWDGInterval::GetObjectLabel() const
 //////////////////////////////////////////////////////////////////////////////
 // Classe KWDGValueSet
 
-KWDGValue* KWDGValueSet::AddValue(const Symbol& sValue)
+void KWDGValueSet::CopyFrom(const KWDGValueSet* sourceValueSet)
 {
 	KWDGValue* value;
+	KWDGValue* valueCopy;
 
-	// Creation de la valeur
-	value = NewValue(sValue);
+	require(sourceValueSet != NULL);
+	require(sourceValueSet->GetValueType() == GetValueType());
 
-	// Ajout en fin de la liste des valeurs
-	if (headValue == NULL)
-		headValue = value;
-	if (tailValue != NULL)
+	// Nettoyage des valeurs actuelles
+	DeleteAllValues();
+
+	// Recopie de la liste de valeurs source
+	value = sourceValueSet->GetHeadValue();
+	while (value != NULL)
 	{
-		tailValue->nextValue = value;
-		value->prevValue = tailValue;
+		valueCopy = AddValueCopy(value);
+		valueCopy->SetValueFrequency(value->GetValueFrequency());
+		sourceValueSet->GetNextValue(value);
 	}
-	tailValue = value;
+	bIsDefaultPart = sourceValueSet->IsDefaultPart();
 
-	// Partie par defaut si la valeur est la valeur par defaut
-	if (sValue == Symbol::GetStarValue())
-		bIsDefaultPart = true;
-	// Incrementation du nombre de valeurs sinon
-	else
-		nValueNumber++;
-
-	// On retourne la valeur cree
-	return value;
+	// Pour garantir la valeur correcte de nValueNumber si le sourceValueSet a ete compresse avant la copie
+	nValueNumber = sourceValueSet->nValueNumber;
 }
 
 void KWDGValueSet::DeleteValue(KWDGValue* value)
 {
 	require(value != NULL);
 
-	// Supression de la liste des valuees
+	// Supression de la liste des values
 	if (value->prevValue != NULL)
 		value->prevValue->nextValue = value->nextValue;
 	if (value->nextValue != NULL)
@@ -4399,7 +4399,7 @@ void KWDGValueSet::DeleteValue(KWDGValue* value)
 		tailValue = value->prevValue;
 
 	// Partie "standard" si la valeur detruite est la valeur par defaut
-	if (value->GetValue() == Symbol::GetStarValue())
+	if (value->IsDefaultValue())
 		bIsDefaultPart = false;
 	// Decrementation du nombre de valeurs sinon
 	else
@@ -4452,69 +4452,6 @@ boolean KWDGValueSet::CheckValue(KWDGValue* value) const
 	return bOk;
 }
 
-void KWDGValueSet::CompressValueSet()
-{
-	int nCurrentValueNumber;
-	int nCurrentPartFrequency;
-	KWDGValue* value;
-
-	require(bIsDefaultPart);
-
-	// Memorisation des statistique
-	nCurrentValueNumber = nValueNumber;
-	nCurrentPartFrequency = ComputeTotalFrequency();
-
-	// Remplacement de l'ensemble des valeurs par une seule valeur
-	DeleteAllValues();
-	value = AddValue(Symbol::GetStarValue());
-	value->SetValueFrequency(nCurrentPartFrequency);
-	nValueNumber = nCurrentValueNumber;
-}
-
-KWDGValueSet* KWDGValueSet::ConvertToCleanedValueSet()
-{
-	int nCurrentPartFrequency;
-	KWDGValue* value;
-	KWDGValueSet* valueSet;
-
-	require(bIsDefaultPart);
-
-	// Memorisation des statistique
-	nCurrentPartFrequency = ComputeTotalFrequency();
-	valueSet = new KWDGValueSet;
-	valueSet->CopyFrom(this);
-
-	// Remplacement de l'ensemble des valeurs par une seule valeur + modalite StarValue
-	DeleteAllValues();
-	value = AddValue(valueSet->GetHeadValue()->GetValue());
-	value->SetValueFrequency(valueSet->GetHeadValue()->GetValueFrequency());
-	value = AddValue(Symbol::GetStarValue());
-	value->SetValueFrequency(nCurrentPartFrequency - valueSet->GetHeadValue()->GetValueFrequency());
-
-	// Suppression dans le fourre tout des valeurs conservees dans la partie granularisee (pour eviter la redondance
-	// des modalites)
-	valueSet->DeleteValue(valueSet->GetHeadValue());
-	valueSet->DeleteValue(valueSet->GetTailValue());
-
-	return valueSet;
-}
-
-KWDGValueSet* KWDGValueSet::ComputeCleanedValueSet() const
-{
-	KWDGValueSet* valueSet;
-	KWDGValue* value;
-
-	// Creation d'un nouveau ValueSet
-	valueSet = new KWDGValueSet;
-
-	value = valueSet->AddValue(GetHeadValue()->GetValue());
-	value->SetValueFrequency(GetHeadValue()->GetValueFrequency());
-	value = valueSet->AddValue(Symbol::GetStarValue());
-	value->SetValueFrequency(ComputeTotalFrequency() - GetHeadValue()->GetValueFrequency());
-
-	return valueSet;
-}
-
 void KWDGValueSet::ExportValues(ObjectArray* oaValues) const
 {
 	KWDGValue* value;
@@ -4538,7 +4475,7 @@ boolean KWDGValueSet::IsSubValueSet(const KWDGValueSet* otherValueSet) const
 	KWDGValue* value;
 
 	// On doit avoir moins de valeurs
-	if (GetTrueValueNumber() > otherValueSet->GetTrueValueNumber())
+	if (GetValueNumber() > otherValueSet->GetValueNumber())
 		bOk = false;
 	// Sinon, on teste effectivement l'inclusion
 	else
@@ -4547,7 +4484,7 @@ boolean KWDGValueSet::IsSubValueSet(const KWDGValueSet* otherValueSet) const
 		value = otherValueSet->GetHeadValue();
 		while (value != NULL)
 		{
-			nkdOtherValues.SetAt(value->GetValue().GetNumericKey(), value);
+			nkdOtherValues.SetAt(value->GetNumericKeyValue(), value);
 			otherValueSet->GetNextValue(value);
 		}
 
@@ -4555,7 +4492,7 @@ boolean KWDGValueSet::IsSubValueSet(const KWDGValueSet* otherValueSet) const
 		value = GetHeadValue();
 		while (value != NULL)
 		{
-			if (nkdOtherValues.Lookup(value->GetValue().GetNumericKey()) == NULL)
+			if (nkdOtherValues.Lookup(value->GetNumericKeyValue()) == NULL)
 			{
 				bOk = false;
 				break;
@@ -4604,30 +4541,6 @@ void KWDGValueSet::Import(KWDGValueSet* sourceValueSet)
 	ensure(Check());
 }
 
-void KWDGValueSet::CopyFrom(const KWDGValueSet* sourceValueSet)
-{
-	KWDGValue* value;
-	KWDGValue* valueCopy;
-
-	require(sourceValueSet != NULL);
-
-	// Nettoyage des valeurs actuelles
-	DeleteAllValues();
-
-	// Recopie de la liste de valeurs source
-	value = sourceValueSet->GetHeadValue();
-	while (value != NULL)
-	{
-		valueCopy = AddValue(value->GetValue());
-		valueCopy->SetValueFrequency(value->GetValueFrequency());
-		sourceValueSet->GetNextValue(value);
-	}
-	bIsDefaultPart = sourceValueSet->IsDefaultPart();
-
-	// Pour garantir la valeur correcte de nValueNumber si le sourceValueSet a ete compresse avant la copie
-	nValueNumber = sourceValueSet->nValueNumber;
-}
-
 void KWDGValueSet::UpgradeFrom(const KWDGValueSet* sourceValueSet)
 {
 	KWDGValue* value;
@@ -4643,7 +4556,7 @@ void KWDGValueSet::UpgradeFrom(const KWDGValueSet* sourceValueSet)
 	value = sourceValueSet->GetHeadValue();
 	while (value != NULL)
 	{
-		valueUpgrade = AddValue(value->GetValue());
+		valueUpgrade = AddValueCopy(value);
 		valueUpgrade->SetValueFrequency(value->GetValueFrequency());
 		sourceValueSet->GetNextValue(value);
 	}
@@ -4670,13 +4583,13 @@ boolean KWDGValueSet::AreValuesSorted() const
 	// Parcours des valeurs
 	while (value2 != NULL)
 	{
-		if (value1->GetValue() == Symbol::GetStarValue())
+		if (value1->IsDefaultValue())
 		{
 			bIsSorted = false;
 			break;
 		}
 
-		if (value2->GetValue() == Symbol::GetStarValue())
+		if (value2->IsDefaultValue())
 		{
 			if (value2 != GetTailValue())
 				bIsSorted = false;
@@ -4697,17 +4610,37 @@ boolean KWDGValueSet::AreValuesSorted() const
 	return bIsSorted;
 }
 
+boolean KWDGValueSet::IsSubPartValues(const KWDGPartValues* otherPartValues) const
+{
+	return IsSubValueSet(cast(KWDGValueSet*, otherPartValues));
+}
+
+void KWDGValueSet::Import(KWDGPartValues* sourcePartValues)
+{
+	Import(cast(KWDGValueSet*, sourcePartValues));
+}
+
+void KWDGValueSet::UpgradeFrom(const KWDGPartValues* sourcePartValues)
+{
+	UpgradeFrom(cast(KWDGValueSet*, sourcePartValues));
+}
+
+void KWDGValueSet::CopyFrom(const KWDGPartValues* sourcePartValues)
+{
+	CopyFrom(cast(KWDGValueSet*, sourcePartValues));
+}
+
 boolean KWDGValueSet::Check() const
 {
 	boolean bOk = true;
-	boolean bStarValuePresent;
+	boolean bDefaultValuePresent;
 	NumericKeyDictionary nkdCheckValues;
 	KWDGValue* value;
 	boolean bCheckFrequencies;
 	ALString sTmp;
 
 	// Test d'existence d'au moins une valeur
-	if (nValueNumber == 0)
+	if (GetValueNumber() == 0)
 	{
 		AddError("No value specified");
 		bOk = false;
@@ -4716,30 +4649,33 @@ boolean KWDGValueSet::Check() const
 	// Test des valeurs de la partie
 	if (bOk)
 	{
-		// On ne verifie les effectifs que si au moins un est specifie
-		bCheckFrequencies = ComputeTotalFrequency() > 0;
+		// On ne verifie les effectifs que si au moins un est specifie et si on n'est pas le groupe par defaut
+		// En effet, le groupe par defaut pouvant etre compresse, il peut y a voir quelques incoherences
+		// sur les effectifs des valeurs des valeur du groupe
+		bCheckFrequencies = not bIsDefaultPart and ComputeTotalFrequency() > 0;
 
 		// Parcours des valeurs de la partie
-		bStarValuePresent = false;
+		bDefaultValuePresent = false;
 		value = GetHeadValue();
 		while (value != NULL)
 		{
 			// Detection de la star value
-			if (value->GetValue() == Symbol::GetStarValue())
-				bStarValuePresent = true;
+			if (value->IsDefaultValue())
+				bDefaultValuePresent = true;
 
 			// Erreur si partie deja enregistree avec cette valeur
-			if (nkdCheckValues.Lookup(value->GetValue().GetNumericKey()) != NULL)
+			if (nkdCheckValues.Lookup(value->GetNumericKeyValue()) != NULL)
 			{
-				AddError(sTmp + "Value " + value->GetValue() + " already exists in the part");
+				AddError(sTmp + value->GetClassLabel() + " " + value->GetObjectLabel() +
+					 " already exists in the part");
 				bOk = false;
 				break;
 			}
-			// Erreur si effectif a 0 pour une valeur qui n'est pas la star value
-			else if (bCheckFrequencies and value->GetValue() != Symbol::GetStarValue() and
-				 value->GetValueFrequency() == 0)
+			// Erreur si effectif a 0 pour une valeur qui n'est pas la valeur par defaut
+			else if (bCheckFrequencies and not value->IsDefaultValue() and value->GetValueFrequency() == 0)
 			{
-				AddError(sTmp + "Value " + value->GetValue() + " should have a non-zero frequency");
+				AddError(sTmp + value->GetClassLabel() + " " + value->GetObjectLabel() +
+					 " should have a non-zero frequency");
 				bOk = false;
 				break;
 			}
@@ -4747,24 +4683,22 @@ boolean KWDGValueSet::Check() const
 			else
 			{
 				// Ajout de la partie avec la valeur pour cle
-				nkdCheckValues.SetAt(value->GetValue().GetNumericKey(), value);
+				nkdCheckValues.SetAt(value->GetNumericKeyValue(), value);
 
 				// Valeur suivante
 				GetNextValue(value);
 			}
 		}
 
-		// Test d'integrite sur la star value
-		if (bStarValuePresent and not bIsDefaultPart)
+		// Test d'integrite sur la valeur par defaut
+		if (bDefaultValuePresent and not bIsDefaultPart)
 		{
-			AddError(sTmp + "Special grouping value " + Symbol::GetStarValue() +
-				 " is used used in a standard part");
+			AddError(sTmp + "Special default value is used used in a standard part");
 			bOk = false;
 		}
-		else if (not bStarValuePresent and bIsDefaultPart)
+		else if (not bDefaultValuePresent and bIsDefaultPart)
 		{
-			AddError(sTmp + "Special grouping value " + Symbol::GetStarValue() +
-				 " is missing in default part");
+			AddError(sTmp + "Special default value is missing in default part");
 			bOk = false;
 		}
 	}
@@ -4786,7 +4720,7 @@ void KWDGValueSet::WriteValues(ostream& ost) const
 
 	// Affichage des valeurs
 	cout << "Values"
-	     << "\t" << GetTrueValueNumber() << "\n";
+	     << "\t" << GetValueNumber() << "\n";
 	value = GetHeadValue();
 	while (value != NULL)
 	{
@@ -4812,15 +4746,15 @@ const ALString KWDGValueSet::GetObjectLabel() const
 	dgValue = GetHeadValue();
 	while (dgValue != NULL)
 	{
-		// On n'utilise la modalite speciale pour fabriquer le libelle
-		if (dgValue->GetValue() != Symbol::GetStarValue())
+		// On n'utilise la valeur par defaut pour fabriquer le libelle
+		if (not dgValue->IsDefaultValue())
 		{
 			// Prise en compte si moins de trois valeurs
 			if (nValue < 3)
 			{
 				if (nValue > 0)
 					sLabel += ", ";
-				sLabel += GetExternalValue(dgValue->GetValue());
+				sLabel += dgValue->GetExternalValueLabel();
 				nValue++;
 			}
 			// Arret si au moins quatre valeurs
@@ -4836,31 +4770,27 @@ const ALString KWDGValueSet::GetObjectLabel() const
 	return sLabel;
 }
 
-const ALString KWDGValueSet::GetExternalValue(const Symbol& sValue) const
+void KWDGValueSet::AddTailValue(KWDGValue* value)
 {
-	ALString sResult;
-	int nLength;
-	char c;
-	int i;
+	require(value != NULL);
+	require(value->GetValueType() == GetValueType());
 
-	// On prend la valeur telle quelle
-	sResult = sValue;
-
-	// On la met entre quotes si elle contient un caractere special utilise par ObjectLabel
-	if (sResult.FindOneOf("'{},") != -1)
+	// Ajout en fin de la liste des valeurs
+	if (headValue == NULL)
+		headValue = value;
+	if (tailValue != NULL)
 	{
-		sResult = '\'';
-		nLength = sValue.GetLength();
-		for (i = 0; i < nLength; i++)
-		{
-			c = sValue.GetAt(i);
-			if (c == '\'')
-				sResult += '\'';
-			sResult += c;
-		}
-		sResult += '\'';
+		tailValue->nextValue = value;
+		value->prevValue = tailValue;
 	}
-	return sResult;
+	tailValue = value;
+
+	// Partie par defaut si la valeur est la valeur par defaut
+	if (value->IsDefaultValue())
+		bIsDefaultPart = true;
+	// Incrementation du nombre de valeurs sinon
+	else
+		nValueNumber++;
 }
 
 void KWDGValueSet::InternalSortValues(CompareFunction fCompare)
@@ -4879,7 +4809,7 @@ void KWDGValueSet::InternalSortValues(CompareFunction fCompare)
 	value = GetHeadValue();
 	while (value != NULL)
 	{
-		if (value->GetValue() != Symbol::GetStarValue())
+		if (not value->IsDefaultValue())
 			oaValues.Add(value);
 		else
 			defaultValue = value;
@@ -4917,23 +4847,103 @@ void KWDGValueSet::InternalSortValues(CompareFunction fCompare)
 	}
 }
 
-KWDGValue* KWDGValueSet::NewValue(const Symbol& sValue) const
-{
-	return new KWDGValue(sValue);
-}
-
 boolean KWDGValueSet::GetEmulated() const
 {
 	return false;
 }
 
 //////////////////////////////////////////////////////////////////////////////
-// Classe KWDGValue
+// Classe KWDGSymbolValueSet
 
-void KWDGValue::Write(ostream& ost) const
+KWDGValue* KWDGSymbolValueSet::AddSymbolValue(const Symbol& sValue)
 {
-	ost << sSymbolValue << "\t" << nValueFrequency;
+	KWDGValue* value;
+
+	// Creation de la valeur
+	value = NewSymbolValue(sValue);
+
+	// Ajout en fin de la liste des valeurs
+	AddTailValue(value);
+
+	// On retourne la valeur cree
+	return value;
 }
+
+KWDGValue* KWDGSymbolValueSet::AddValueCopy(const KWDGValue* sourceValue)
+{
+	return AddSymbolValue(cast(KWDGSymbolValue*, sourceValue)->GetSymbolValue());
+}
+
+void KWDGSymbolValueSet::CompressValueSet()
+{
+	int nCurrentValueNumber;
+	int nCurrentPartFrequency;
+	KWDGValue* value;
+
+	require(bIsDefaultPart);
+
+	// Memorisation des statistique
+	nCurrentValueNumber = nValueNumber;
+	nCurrentPartFrequency = ComputeTotalFrequency();
+
+	// Remplacement de l'ensemble des valeurs par une seule valeur
+	DeleteAllValues();
+	value = AddSymbolValue(Symbol::GetStarValue());
+	value->SetValueFrequency(nCurrentPartFrequency);
+	nValueNumber = nCurrentValueNumber;
+}
+
+KWDGValueSet* KWDGSymbolValueSet::ConvertToCleanedValueSet()
+{
+	int nCurrentPartFrequency;
+	KWDGValue* value;
+	KWDGValueSet* valueSet;
+
+	require(bIsDefaultPart);
+
+	// Memorisation des statistique
+	nCurrentPartFrequency = ComputeTotalFrequency();
+	valueSet = Clone();
+
+	// Remplacement de l'ensemble des valeurs par une seule valeur + modalite StarValue
+	DeleteAllValues();
+	value = AddSymbolValue(valueSet->GetHeadValue()->GetSymbolValue());
+	value->SetValueFrequency(valueSet->GetHeadValue()->GetValueFrequency());
+	value = AddSymbolValue(Symbol::GetStarValue());
+	value->SetValueFrequency(nCurrentPartFrequency - valueSet->GetHeadValue()->GetValueFrequency());
+
+	// Suppression dans le fourre tout des valeurs conservees dans la partie granularisee
+	// (pour eviter la redondance des modalites)
+	valueSet->DeleteValue(valueSet->GetHeadValue());
+	valueSet->DeleteValue(valueSet->GetTailValue());
+
+	return valueSet;
+}
+
+KWDGValueSet* KWDGSymbolValueSet::ComputeCleanedValueSet() const
+{
+	KWDGSymbolValueSet* symbolValueSet;
+	KWDGValue* value;
+
+	// Creation d'un nouveau ValueSet
+	symbolValueSet = cast(KWDGSymbolValueSet*, Create());
+
+	// Remplacement de l'ensemble des valeurs par une seule valeur + modalite StarValue
+	value = symbolValueSet->AddSymbolValue(GetHeadValue()->GetSymbolValue());
+	value->SetValueFrequency(GetHeadValue()->GetValueFrequency());
+	value = symbolValueSet->AddSymbolValue(Symbol::GetStarValue());
+	value->SetValueFrequency(ComputeTotalFrequency() - GetHeadValue()->GetValueFrequency());
+
+	return symbolValueSet;
+}
+
+KWDGValue* KWDGSymbolValueSet::NewSymbolValue(const Symbol& sValue) const
+{
+	return new KWDGSymbolValue(sValue);
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Classe KWDGValue
 
 int KWDGValueCompareDecreasingFrequency(const void* elem1, const void* elem2)
 {
@@ -4953,7 +4963,52 @@ int KWDGValueCompareDecreasingFrequency(const void* elem1, const void* elem2)
 	if (nCompare != 0)
 		return nCompare;
 	else
-		return value1->GetValue().CompareValue(value2->GetValue());
+		return value1->CompareValue(value2);
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Classe KWDGSymbolValue
+
+void KWDGSymbolValue::Write(ostream& ost) const
+{
+	ost << sSymbolValue << "\t" << nValueFrequency;
+}
+
+const ALString KWDGSymbolValue::GetExternalValueLabel() const
+{
+	ALString sResult;
+	int nLength;
+	char c;
+	int i;
+
+	// On prend la valeur telle quelle
+	sResult = sSymbolValue;
+
+	// On la met entre quotes si elle contient un caractere special utilise par ObjectLabel
+	if (sResult.FindOneOf("'{},") != -1)
+	{
+		sResult = '\'';
+		nLength = sSymbolValue.GetLength();
+		for (i = 0; i < nLength; i++)
+		{
+			c = sSymbolValue.GetAt(i);
+			if (c == '\'')
+				sResult += '\'';
+			sResult += c;
+		}
+		sResult += '\'';
+	}
+	return sResult;
+}
+
+const ALString KWDGSymbolValue::GetClassLabel() const
+{
+	return "Value";
+}
+
+const ALString KWDGSymbolValue::GetObjectLabel() const
+{
+	return sSymbolValue.GetValue();
 }
 
 //////////////////////////////////////////////////////////////////////////////

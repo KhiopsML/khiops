@@ -18,7 +18,7 @@ class KWDataGridUnivariateCosts;
 class KWDataGridCostParameter;
 class KWDGAttributeCostParameter;
 class KWDGPartCostParameter;
-class KWDGValueSetCostParameter;
+class KWDGSymbolValueSetCostParameter;
 class KWDGVarPartSetCostParameter;
 class KWDGCellCostParameter;
 class KWDGPOCellFrequencyVector;
@@ -461,7 +461,7 @@ protected:
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 // Sous-classes de ValueSet de grille servant de parametre de cout
-class KWDGValueSetCostParameter : public KWDGValueSet
+class KWDGSymbolValueSetCostParameter : public KWDGSymbolValueSet
 {
 protected:
 	friend class KWDataGridUnivariateCosts;

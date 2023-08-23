@@ -1441,7 +1441,7 @@ void KWDGPOGrouper::InitializePartFrequencyVector(KWDGPOPartFrequencyVector* par
 
 	// Memorisation du nombre de valeurs associees a la partie
 	if (part->GetPartType() == KWType::Symbol)
-		partFrequencyVector->SetModalityNumber(part->GetValueSet()->GetTrueValueNumber());
+		partFrequencyVector->SetModalityNumber(part->GetValueSet()->GetValueNumber());
 	// CH IV Begin
 	else if (part->GetPartType() == KWType::VarPart)
 		partFrequencyVector->SetModalityNumber(part->GetVarPartSet()->GetVarPartNumber());
@@ -1660,7 +1660,7 @@ void KWDGPOGrouper::InitializeGroupIndexes(IntVector* ivGroups, const KWDataGrid
 		if (optimizedAttribute->GetAttributeType() == KWType::Symbol)
 			// Recherche de sa partie groupee correspondante
 			optimizedPart = optimizedAttribute->LookupSymbolPart(
-			    initialPart->GetValueSet()->GetHeadValue()->GetValue());
+			    initialPart->GetValueSet()->GetHeadValue()->GetSymbolValue());
 		else
 			optimizedPart = optimizedAttribute->LookupVarPart(
 			    initialPart->GetVarPartSet()->GetHeadVarPart()->GetVarPart());
@@ -1745,7 +1745,7 @@ int KWDGPOGrouper::InitializeGroupIndexesAndGarbageIndex(IntVector* ivGroups, co
 		if (optimizedAttribute->GetAttributeType() == KWType::Symbol)
 		{
 			optimizedPart = optimizedAttribute->LookupSymbolPart(
-			    initialPart->GetValueSet()->GetHeadValue()->GetValue());
+			    initialPart->GetValueSet()->GetHeadValue()->GetSymbolValue());
 		}
 		else if (optimizedAttribute->GetAttributeType() == KWType::VarPart)
 		{
@@ -1875,7 +1875,7 @@ void KWDGPOGrouper::UpdateDataGridWithGarbageFromGroups(KWDataGrid* optimizedDat
 			optimizedPart->GetValueSet()->UpgradeFrom(initialPart->GetValueSet());
 
 			// Mise a jour du groupe poubelle comme le groupe contenant le plus de modalites
-			if (optimizedPart->GetValueSet()->GetTrueValueNumber() >
+			if (optimizedPart->GetValueSet()->GetValueNumber() >
 			    optimizedAttribute->GetGarbageModalityNumber())
 				optimizedAttribute->SetGarbagePart(optimizedPart);
 		}
@@ -2653,7 +2653,7 @@ double KWDataGridUnivariateCosts::ComputePartCost(const KWFrequencyVector* part)
 	{
 		// N'etant jamais la partie par defaut, on a le TrueValueNumber egal au ValueNumber
 		assert(not partCostParameter->GetValueSet()->IsDefaultPart());
-		cast(KWDGValueSetCostParameter*, partCostParameter->GetValueSet())->nValueNumber =
+		cast(KWDGSymbolValueSetCostParameter*, partCostParameter->GetValueSet())->nValueNumber =
 		    cast(KWDGPOPartFrequencyVector*, part)->GetModalityNumber();
 	}
 	// CH IV Begin
@@ -2727,7 +2727,7 @@ double KWDataGridUnivariateCosts::ComputePartUnionCost(const KWFrequencyVector* 
 	// (mais il y a incompletude du ValueSet, qui n'est specifie que pour ce qui est utile pour le calcul des couts)
 	if (partCostParameter->GetPartType() == KWType::Symbol)
 	{
-		cast(KWDGValueSetCostParameter*, partCostParameter->GetValueSet())->nValueNumber =
+		cast(KWDGSymbolValueSetCostParameter*, partCostParameter->GetValueSet())->nValueNumber =
 		    cast(KWDGPOPartFrequencyVector*, sourcePart1)->GetModalityNumber() +
 		    cast(KWDGPOPartFrequencyVector*, sourcePart2)->GetModalityNumber();
 	}
@@ -2768,7 +2768,7 @@ double KWDataGridUnivariateCosts::ComputePartDiffCost(const KWFrequencyVector* s
 	// (mais il y a incompletude du ValueSet, qui n'est specifie que pour ce qui est utile pour le calcul des couts)
 	if (partCostParameter->GetPartType() == KWType::Symbol)
 	{
-		cast(KWDGValueSetCostParameter*, partCostParameter->GetValueSet())->nValueNumber =
+		cast(KWDGSymbolValueSetCostParameter*, partCostParameter->GetValueSet())->nValueNumber =
 		    cast(KWDGPOPartFrequencyVector*, sourcePart)->GetModalityNumber() -
 		    cast(KWDGPOPartFrequencyVector*, removedPart)->GetModalityNumber();
 	}
@@ -2865,7 +2865,7 @@ void KWDGPartCostParameter::SetPartType(int nValue)
 	if (nValue == KWType::Continuous)
 		interval = new KWDGInterval;
 	else if (nValue == KWType::Symbol)
-		valueSet = new KWDGValueSetCostParameter;
+		symbolValueSet = new KWDGSymbolValueSetCostParameter;
 	else
 		varPartSet = new KWDGVarPartSetCostParameter;
 	// Avant integration : pour quel cas ? valueSet = new KWDGValueSetCostParameter;
@@ -2878,7 +2878,7 @@ boolean KWDGPartCostParameter::GetEmulated() const
 	return true;
 }
 
-boolean KWDGValueSetCostParameter::GetEmulated() const
+boolean KWDGSymbolValueSetCostParameter::GetEmulated() const
 {
 	return true;
 }
@@ -4076,9 +4076,9 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 				//  Cas ou la PV deplacee etait la seule PV de l'attribut interne presente dans son
 				//  cluster de depart
 				innerOutOptimizedPart = innerOptimizedAttribute->LookupSymbolPart(
-				    innerPart->GetValueSet()->GetHeadValue()->GetValue());
-				if (innerOutOptimizedPart->GetValueSet()->GetTrueValueNumber() ==
-				    innerPart->GetValueSet()->GetTrueValueNumber())
+				    innerPart->GetValueSet()->GetHeadValue()->GetSymbolValue());
+				if (innerOutOptimizedPart->GetValueSet()->GetValueNumber() ==
+				    innerPart->GetValueSet()->GetValueNumber())
 					nDeltaVarPartNumber = 1;
 
 				// Parcours des clusters d'arrivee eligibles
@@ -4435,7 +4435,7 @@ double CCVarPartDataGridPostOptimizer::ComputeVarPartsSymbolAttributeVariationCo
 
 			// Variation de cout de la partie de variable de depart
 			// On retire le cout avant deplacement
-			nValueNumber = varPartOut->GetValueSet()->GetTrueValueNumber();
+			nValueNumber = varPartOut->GetValueSet()->GetValueNumber();
 			nPartFrequency = varPartOut->GetPartFrequency();
 			// Distribution des valeurs dans la partie
 			dVariationAttributeCost -= KWStat::LnFactorial(nPartFrequency + nValueNumber - 1);
@@ -4444,8 +4444,8 @@ double CCVarPartDataGridPostOptimizer::ComputeVarPartsSymbolAttributeVariationCo
 
 			// On ajoute le cout de la partie de depart apres deplacement
 			// Si la partie n'est pas vide apres deplacement
-			nValueNumber = varPartOut->GetValueSet()->GetTrueValueNumber() -
-				       innerPart->GetValueSet()->GetTrueValueNumber();
+			nValueNumber =
+			    varPartOut->GetValueSet()->GetValueNumber() - innerPart->GetValueSet()->GetValueNumber();
 			if (nValueNumber > 0)
 			{
 				nPartFrequency = varPartOut->GetPartFrequency() - innerPart->GetPartFrequency();
@@ -4458,7 +4458,7 @@ double CCVarPartDataGridPostOptimizer::ComputeVarPartsSymbolAttributeVariationCo
 
 			// Variation de cout de la partie de variable d'arrivee
 			// On retire le cout de la partie d'arrivee avant deplacement
-			nValueNumber = varPartIn->GetValueSet()->GetTrueValueNumber();
+			nValueNumber = varPartIn->GetValueSet()->GetValueNumber();
 			nPartFrequency = varPartIn->GetPartFrequency();
 			// Distribution des valeurs dans la partie
 			dVariationAttributeCost -= KWStat::LnFactorial(nPartFrequency + nValueNumber - 1);
@@ -4466,8 +4466,8 @@ double CCVarPartDataGridPostOptimizer::ComputeVarPartsSymbolAttributeVariationCo
 			dVariationAttributeCost += KWStat::LnFactorial(nPartFrequency);
 
 			// On ajoute le cout de la partie d'arrivee apres deplacement
-			nValueNumber = varPartIn->GetValueSet()->GetTrueValueNumber() +
-				       innerPart->GetValueSet()->GetTrueValueNumber();
+			nValueNumber =
+			    varPartIn->GetValueSet()->GetValueNumber() + innerPart->GetValueSet()->GetValueNumber();
 			nPartFrequency = varPartIn->GetPartFrequency() + innerPart->GetPartFrequency();
 			// Distribution des valeurs dans la partie
 			dVariationAttributeCost += KWStat::LnFactorial(nPartFrequency + nValueNumber - 1);
@@ -4752,7 +4752,7 @@ double CCVarPartDataGridPostOptimizer::ComputeClusterCellVariationCost(KWDGPart*
 		// Extraction du cluster Identifier
 		identifierPart = clusterCell->GetPartAt(0);
 		assert(identifierPart->GetPartType() == KWType::Symbol);
-		nkdCells.SetAt((NUMERIC)identifierPart->GetValueSet()->GetHeadValue()->GetValue().GetNumericKey(),
+		nkdCells.SetAt((NUMERIC)identifierPart->GetValueSet()->GetHeadValue()->GetNumericKeyValue(),
 			       clusterCell);
 
 		// Partie suivante
@@ -4765,9 +4765,9 @@ double CCVarPartDataGridPostOptimizer::ComputeClusterCellVariationCost(KWDGPart*
 	{
 		identifierPart = varPartCell->GetPartAt(0);
 		assert(identifierPart->GetPartType() == KWType::Symbol);
-		clusterCell = cast(
-		    KWDGCell*, nkdCells.Lookup(
-				   (NUMERIC)identifierPart->GetValueSet()->GetHeadValue()->GetValue().GetNumericKey()));
+		clusterCell =
+		    cast(KWDGCell*,
+			 nkdCells.Lookup((NUMERIC)identifierPart->GetValueSet()->GetHeadValue()->GetNumericKeyValue()));
 
 		// Calcul de la variation de cout du a la variation d'effectifs (croissant ou decroissant selon le
 		// depart ou l'arrivee de la PV)

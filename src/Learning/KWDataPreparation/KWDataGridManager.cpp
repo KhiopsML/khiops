@@ -716,7 +716,7 @@ void KWDataGridManager::ExportFrequencyTableFromOneAttribute(KWFrequencyTable* k
 		if (oneAttributeDataGrid.GetAttributeAt(0)->GetAttributeType() == KWType::Symbol)
 		{
 			// Recopie du nombre de modalites
-			kwdfvFrequencyVector->SetModalityNumber(dgPart->GetValueSet()->GetTrueValueNumber());
+			kwdfvFrequencyVector->SetModalityNumber(dgPart->GetValueSet()->GetValueNumber());
 		}
 		// CH IV Begin
 		else if (oneAttributeDataGrid.GetAttributeAt(0)->GetAttributeType() == KWType::VarPart)
@@ -934,7 +934,7 @@ void KWDataGridManager::ExportDataGridWithReferenceVarPartClusters(KWDataGrid* r
 		{
 			// Recherche d'une valeur typique: la premiere valeur
 			assert(initialVarPart->GetValueSet()->GetHeadValue() != NULL);
-			sValue = initialVarPart->GetValueSet()->GetHeadValue()->GetValue();
+			sValue = initialVarPart->GetValueSet()->GetHeadValue()->GetSymbolValue();
 
 			// Recherche du groupe de valeurs contenant cette modalite dans l'attribut interne
 			// de la grille de reference
@@ -1057,7 +1057,7 @@ void KWDataGridManager::ExportCells(KWDataGrid* targetDataGrid) const
 			{
 				// Recherche d'une valeur typique: la premiere valeur
 				assert(sourcePart->GetValueSet()->GetHeadValue() != NULL);
-				sValue = sourcePart->GetValueSet()->GetHeadValue()->GetValue();
+				sValue = sourcePart->GetValueSet()->GetHeadValue()->GetSymbolValue();
 
 				// Recherche du groupe de valeurs cible correspondant
 				targetPart = targetAttribute->LookupSymbolPart(sValue);
@@ -1095,7 +1095,7 @@ void KWDataGridManager::ExportCells(KWDataGrid* targetDataGrid) const
 				{
 					// Recherche d'une valeur typique: la premiere valeur
 					assert(sourceVarPart->GetValueSet()->GetHeadValue() != NULL);
-					sValue = sourceVarPart->GetValueSet()->GetHeadValue()->GetValue();
+					sValue = sourceVarPart->GetValueSet()->GetHeadValue()->GetSymbolValue();
 
 					// Recherche du groupe de valeurs cible correspondant
 					targetVarPart = innerAttribute->LookupSymbolPart(sValue);
@@ -1717,10 +1717,10 @@ void KWDataGridManager::BuildPartsOfSymbolAttributeFromGroupsIndex(KWDGAttribute
 
 		// Memorisation de la partie comme partie poubelle.
 		// Si elle existe, elle maximise le nombre de modalites
-		if (nGarbageModalityNumber > 0 and targetPart->GetValueSet()->GetTrueValueNumber() > nMaxValueNumber)
+		if (nGarbageModalityNumber > 0 and targetPart->GetValueSet()->GetValueNumber() > nMaxValueNumber)
 		{
 			targetAttribute->SetGarbagePart(targetPart);
-			nMaxValueNumber = targetPart->GetValueSet()->GetTrueValueNumber();
+			nMaxValueNumber = targetPart->GetValueSet()->GetValueNumber();
 		}
 
 		// Partie initiale suivante
@@ -1753,7 +1753,7 @@ void KWDataGridManager::BuildDataGridAttributeFromUnivariateStats(KWDGAttribute*
 	int nPart;
 	KWDGPart* part;
 	KWDGInterval* interval;
-	KWDGValueSet* valueSet;
+	KWDGSymbolValueSet* symbolValueSet;
 	int nValue;
 	KWAttribute* attribute;
 	KWDGAttribute* sourceAttribute;
@@ -1822,12 +1822,12 @@ void KWDataGridManager::BuildDataGridAttributeFromUnivariateStats(KWDGAttribute*
 		for (nPart = 0; nPart < attributeGrouping->GetPartNumber(); nPart++)
 		{
 			part = targetAttribute->AddPart();
-			valueSet = part->GetValueSet();
+			symbolValueSet = part->GetSymbolValueSet();
 
 			// Initialisation des valeurs du groupe
 			for (nValue = attributeGrouping->GetGroupFirstValueIndexAt(nPart);
 			     nValue <= attributeGrouping->GetGroupLastValueIndexAt(nPart); nValue++)
-				valueSet->AddValue(attributeGrouping->GetValueAt(nValue));
+				symbolValueSet->AddSymbolValue(attributeGrouping->GetValueAt(nValue));
 
 			// Memorisation du groupe poubelle
 			if (nPart == attributeGrouping->GetGarbageGroupIndex())
@@ -2204,7 +2204,7 @@ boolean KWDataGridManager::CheckParts(const KWDataGrid* targetDataGrid) const
 				// Recherche de la partie cible associee a la premiere valeur source
 				sourceValue = sourceValueSet->GetHeadValue();
 				check(sourceValue);
-				headTargetPart = targetAttribute->LookupSymbolPart(sourceValue->GetValue());
+				headTargetPart = targetAttribute->LookupSymbolPart(sourceValue->GetSymbolValue());
 				check(headTargetPart);
 
 				// Parcours des valeurs de la partie source
@@ -2212,15 +2212,16 @@ boolean KWDataGridManager::CheckParts(const KWDataGrid* targetDataGrid) const
 				while (sourceValue != NULL)
 				{
 					// Recherche de la partie cible associee a la valeur source
-					targetPart = targetAttribute->LookupSymbolPart(sourceValue->GetValue());
+					targetPart = targetAttribute->LookupSymbolPart(sourceValue->GetSymbolValue());
 					check(targetPart);
 
 					// Erreur si la partie est differente de la premiere partie
 					// Tolerance pour la valeur speciale
 					if (targetPart != headTargetPart and
-					    sourceValue->GetValue() != Symbol::GetStarValue())
+					    sourceValue->GetSymbolValue() != Symbol::GetStarValue())
 					{
-						sourcePart->AddError(sTmp + "Input value (" + sourceValue->GetValue() +
+						sourcePart->AddError(sTmp + "Input value (" +
+								     sourceValue->GetSymbolValue() +
 								     ") belongs to an output group different from that "
 								     "of the first input value");
 						bOk = false;
@@ -2357,7 +2358,7 @@ boolean KWDataGridManager::CheckCells(const KWDataGrid* targetDataGrid) const
 				{
 					// Recherche d'une valeur typique: la premiere valeur
 					assert(targetPart->GetValueSet()->GetHeadValue() != NULL);
-					sValue = targetPart->GetValueSet()->GetHeadValue()->GetValue();
+					sValue = targetPart->GetValueSet()->GetHeadValue()->GetSymbolValue();
 
 					// Recherche du groupe de valeurs cible correspondant
 					checkPart = checkAttribute->LookupSymbolPart(sValue);
@@ -3415,11 +3416,12 @@ void KWDataGridManager::InitialiseAttributeGranularizedSymbolParts(const KWDGAtt
 			// La partie qui contient la StarValue est compressee uniquement si elle contient plus d'une
 			// modalite (cas d'un vrai fourre-tout)
 			if (targetPart->GetValueSet()->IsDefaultPart() and
-			    targetPart->GetValueSet()->GetTrueValueNumber() > 1 and
+			    targetPart->GetValueSet()->GetValueNumber() > 1 and
 			    IsSupervisedInputAttribute(targetAttribute))
 			{
 				// Compression du fourre-tout et memorisation de ses valeurs
-				cleanedValueSet = targetPart->GetValueSet()->ConvertToCleanedValueSet();
+				cleanedValueSet =
+				    cast(KWDGSymbolValueSet*, targetPart->GetValueSet())->ConvertToCleanedValueSet();
 				targetAttribute->InitializeCatchAllValueSet(cleanedValueSet);
 				delete cleanedValueSet;
 			}
@@ -3519,7 +3521,7 @@ void KWDataGridManager::InitialiseAttributeGranularizedVarPartParts(const KWDGAt
 			// if ((targetDataGrid->GetTargetValueNumber() > 0 or(targetDataGrid->GetTargetAttribute() !=
 			// NULL and not sourceAttribute->GetAttributeTargetFunction())) 	and
 			// targetPart->GetVarPartSet()->IsDefaultPart() 	and
-			// targetPart->GetVarPartSet()->GetTrueValueNumber() > 1)
+			// targetPart->GetVarPartSet()->GetValueNumber() > 1)
 			//{
 			//	// Compression du fourre-tout et memorisation de ses valeurs
 			//	targetAttribute->SetCatchAllValueSet(targetPart->GetValueSet()->ConvertToCleanedValueSet());
@@ -3934,7 +3936,7 @@ void KWDataGridManager::ExportAttributeSymbolValueFrequencies(KWDGAttribute* tar
 		value = valueSet->GetHeadValue();
 		while (value != NULL)
 		{
-			nkdSourceValues.SetAt(value->GetValue().GetNumericKey(), value);
+			nkdSourceValues.SetAt(value->GetNumericKeyValue(), value);
 			valueSet->GetNextValue(value);
 		}
 
@@ -3954,7 +3956,7 @@ void KWDataGridManager::ExportAttributeSymbolValueFrequencies(KWDGAttribute* tar
 		while (value != NULL)
 		{
 			// Recherche de son effectif, precedement collecte a partir de l'attribut source
-			sourceValue = cast(KWDGValue*, nkdSourceValues.Lookup(value->GetValue().GetNumericKey()));
+			sourceValue = cast(KWDGValue*, nkdSourceValues.Lookup(value->GetNumericKeyValue()));
 
 			// Cas ou la sourceValue est bien presente
 			// Dans le cas particulier ou sourceAttribute provient d'une grille construite a partir d'un
@@ -3966,7 +3968,7 @@ void KWDataGridManager::ExportAttributeSymbolValueFrequencies(KWDGAttribute* tar
 				value->SetValueFrequency(sourceValue->GetValueFrequency());
 
 				// On test si on est sur la valeur par defaut
-				if (value->GetValue() == Symbol::GetStarValue())
+				if (value->GetSymbolValue() == Symbol::GetStarValue())
 					defaultValue = value;
 				// Sinon cumul de l'effectif hors fourre-tout
 				else
@@ -4024,13 +4026,14 @@ void KWDataGridManager::SortAttributeParts(const KWDGAttribute* sourceAttribute,
 		sourcePart = cast(KWDGPart*, oaSourceParts.GetAt(nSource));
 
 		// Recherche de la partie groupee correspondante
-		groupedPart = groupedAttribute->LookupSymbolPart(sourcePart->GetValueSet()->GetHeadValue()->GetValue());
+		groupedPart =
+		    groupedAttribute->LookupSymbolPart(sourcePart->GetValueSet()->GetHeadValue()->GetSymbolValue());
 
 		// Creation de l'association entre index de partie et premiere valeur du groupe
 		association = new KWSortableSymbol;
 		oaAssociations.SetAt(nSource, association);
 		association->SetIndex(nSource);
-		association->SetSortValue(groupedPart->GetValueSet()->GetHeadValue()->GetValue());
+		association->SetSortValue(groupedPart->GetValueSet()->GetHeadValue()->GetSymbolValue());
 	}
 
 	// Tri des association, apres une randomisation pour avoir un ordre aleatoire par groupe
@@ -4051,7 +4054,8 @@ void KWDataGridManager::SortAttributeParts(const KWDGAttribute* sourceAttribute,
 		sourcePart = cast(KWDGPart*, oaSourceParts.GetAt(nSource));
 
 		// Recherche de la partie groupee correspondante
-		groupedPart = groupedAttribute->LookupSymbolPart(sourcePart->GetValueSet()->GetHeadValue()->GetValue());
+		groupedPart =
+		    groupedAttribute->LookupSymbolPart(sourcePart->GetValueSet()->GetHeadValue()->GetSymbolValue());
 
 		// Rangement dans les tableaux en sortie
 		oaSortedSourceParts->SetAt(n, sourcePart);

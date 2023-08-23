@@ -1476,10 +1476,11 @@ void KWAttributePairStatsStudy::ExportGranularizedPartsForSymbolAttribute(KWData
 			     (targetDataGrid->GetTargetAttribute() != NULL and
 			      not sourceAttribute->GetAttributeTargetFunction())) and
 			    targetPart->GetValueSet()->IsDefaultPart() and
-			    targetPart->GetValueSet()->GetTrueValueNumber() > 1)
+			    targetPart->GetValueSet()->GetValueNumber() > 1)
 			{
 				// Compression du fourre-tout et memorisation de ses valeurs
-				cleanedValueSet = targetPart->GetValueSet()->ConvertToCleanedValueSet();
+				cleanedValueSet =
+				    cast(KWDGSymbolValueSet*, targetPart->GetValueSet())->ConvertToCleanedValueSet();
 				targetAttribute->InitializeCatchAllValueSet(cleanedValueSet);
 				delete cleanedValueSet;
 			}
