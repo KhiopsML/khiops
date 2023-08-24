@@ -1,0 +1,69 @@
+The Domain Theory (for recognizing splice junctions):
+
+   % Prolog notation is used with two minor extensions.
+   % ::- indicates a "definitional" rule. That is, rules with this
+   % indicator should never be changed.  These rules merely recode
+   % inputs into low-level derived features.
+   % The second extension allows n-of-m style rules. That is rules
+   % are allowed to say if any 'n' of the following 'm' antecedents
+   % are true, then the consequent should be considered true.
+
+   % Also, the rules use a shorthand notation for expressing sequences.
+   % Namely, the rule: 
+   %       EI-stop ::- @-3 `TAA'.
+   % could be expanded to:
+   %       EI-stop ::- @-3=T, @-2=A, @-1=A.
+   % In this shorthand, there is no position 0. 
+
+   % An exon->intron boundary is defined by a short sequence arround
+   % the boundary and the absence of a "stop" codon on the exon side
+   % of the boundary.
+	EI :- @-3 `MAGGTRAGT', not(EI-stop).
+
+	EI-stop ::- @-3 `TAA'.
+	EI-stop ::- @-3 `TAG'.
+	EI-stop ::- @-3 `TGA'.
+	EI-stop ::- @-4 `TAA'.
+        EI-stop ::- @-4 `TAG'.
+        EI-stop ::- @-4 `TGA'. 
+        EI-stop ::- @-5 `TAA'.
+        EI-stop ::- @-5 `TAG'.
+        EI-stop ::- @-5 `TGA'.
+
+   % An intro->exon boundary is defined by a short sequence arround the 
+   % boundary, the absence of a "stop" codon immediately following the 
+   % boundary and a "pryamidine rich" region preceeding the boundary.
+   	IE :- pyramidine-rich, @-3 `YAGG', not(IE-stop).
+
+   	pyramidine-rich :- 6 of (@-15 `YYYYYYYYYY').
+
+   	IE-stop1 ::- @1 `TAA'.
+   	IE-stop2 ::- @1 `TAG'.
+   	IE-stop3 ::- @1 `TGA'.
+        IE-stop4 ::- @2 `TAA'.
+        IE-stop5 ::- @2 `TAG'.
+        IE-stop6 ::- @2 `TGA'.
+        IE-stop7 ::- @3 `TAA'.
+        IE-stop8 ::- @3 `TAG'.
+        IE-stop9 ::- @3 `TGA'.
+
+% In addition to the above rules, the following iterative constructs
+% can be used as needed to define letters other than {A G C T}.
+% These letters represent disjunctive combinations of the four nucleotides.
+% The codes are standard in the biological literature.
+For i from ((-30 to -1) and (+1 to +30))
+           {@<i>`Y' ::- @<i>`C'.  
+            @<i>`Y' ::- @<i>`T'.}
+
+For i from ((-30 to -1) and (+1 to +30))
+           {@<i>`M' ::- @<i>`C'.  
+            @<i>`M' ::- @<i>`A'.}
+
+For i from ((-30 to -1) and (+1 to +30))
+           {@<i>`R' ::- @<i>`A'.  
+            @<i>`R' ::- @<i>`G'.}
+
+% If exact matches are required, then this set of rules correctly identifies 
+% 40% of the IE examples, 4% of the EI examples and 99% of the neither
+% examples. 48 examples are falsely classed as IE. No examples are falsely
+% classed as EI.  

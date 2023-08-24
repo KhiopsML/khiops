@@ -1,0 +1,75 @@
+// Fri Oct 21 15:42:08 2011
+// c:\Users\boullema\Learning\Win32\Debug\MODL_coclustering.exe
+// Output command file
+//
+//This file contains recorded commands, that can be replayed.
+//Commands are based on user interactions:
+//	field update
+//	list item selection
+//	menu action
+//Every command can be commented, using //.
+//For example, commenting the last Exit command will allow other
+//user interactions, after the commands have been replayed.
+//
+//
+
+// -> Khiops Coclustering
+ClassManagement.OpenFile       // Open...
+
+// -> Open
+ClassFileName ./Bivariate.kdic        // Dictionary file
+OK                             // Open
+// <- Open
+
+ClassManagement.ClassName CapColor       // Dictionary
+
+// -> Khiops Coclustering
+LearningTools.PostProcessCoclustering    // Simplify coclustering...
+
+// -> Coclustering post-processing
+SelectInputCoclustering        // Select input coclustering...
+
+// -> Open
+InputCoclusteringFileName ./Coclustering.khcj  // Input coclustering file
+OK                             // Open
+// <- Open
+
+AnalysisResults.ResultFilesDirectory ./results // Result files directory
+
+PostProcessCoclustering        // Simplify coclustering
+Exit                           // Close
+// <- Coclustering post-processing
+
+
+LearningTools.PrepareDeployment          // Prepare deployment...
+
+// -> Coclustering deployment preparation
+SelectInputCoclustering        // Select input coclustering...
+
+// -> Open
+InputCoclusteringFileName ./Coclustering.khcj // Input coclustering file
+OK                             // Open
+// <- Open
+
+DeploymentSpec.DeployedAttributeName CapColor      // Coclustering deployed variable
+DeploymentSpec.InputClassName CapColor   // Input dictionary
+DeploymentSpec.InputObjectArrayAttributeName Odors  // Input variable
+DeploymentSpec.BuildPredictedClusterAttribute true // Build predicted cluster variable
+DeploymentSpec.BuildClusterDistanceAttributes true // Build inter-cluster distance variables
+DeploymentSpec.BuildFrequencyRecodingAttributes true         // Build frequency recoding variables
+DeploymentSpec.OutputAttributesPrefix P_ // Output variables prefix
+AnalysisResults.CoclusteringDictionaryFileName CapColorDeployment.kdic // Coclustering dictionary file
+AnalysisResults.ResultFilesDirectory ./results // Result files directory
+PrepareDeployment              // Prepare deployment
+Exit                           // Close
+// <- Coclustering deployment preparation
+
+
+Exit                           // Close
+// <- Khiops Coclustering
+
+
+// -> Khiops Coclustering
+OK                             // Close
+// <- Khiops Coclustering
+

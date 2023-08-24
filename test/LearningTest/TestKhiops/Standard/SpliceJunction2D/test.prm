@@ -1,0 +1,52 @@
+// Wed Apr 15 18:02:49 2009
+// MODL.exe
+// Output command file
+//
+//This file contains recorded commands, that can be replayed.
+//Commands are based on user interactions:
+//	field update
+//	list index selection
+//	menu action
+//Every command can be commented, using //.
+//For example, commenting the last Exit command will allow other
+//user interactions, after the commands have been replayed.
+//
+//
+
+// -> Data preparation and scoring
+ClassManagement.OpenFile       // Open...
+// -> Open
+ClassFileName ../../../MTdatasets/SpliceJunction/SpliceJunction.kdic  // Dictionary file
+OK                             // Open
+
+ClassManagement.ClassName SpliceJunction        // Dictionary
+
+TrainDatabase.DatabaseFiles.List.Key SpliceJunction               // List item selection
+TrainDatabase.DatabaseFiles.DataTableName ../../../MTdatasets/SpliceJunction/SpliceJunction.txt      // Data table file
+TrainDatabase.DatabaseFiles.List.Key SpliceJunction`DNA               // List item selection
+TrainDatabase.DatabaseFiles.DataTableName ../../../MTdatasets/SpliceJunction/SpliceJunctionDNA.txt      // Data table file
+
+TrainDatabase.SampleNumberPercentage 10  // Sample percentage
+
+
+AnalysisSpec.TargetAttributeName Class   // Target variable
+
+AnalysisSpec.PredictorsSpec.SelectiveNaiveBayesPredictor false // Predicteur Bayesien Naif Selectif
+
+AnalysisSpec.PredictorsSpec.ConstructionSpec.MaxAttributePairNumber 100    // Max number of pairs of variables
+
+AnalysisResults.ResultFilesDirectory ./results   // Result files directory
+
+AnalysisResults.ResultFilesPrefix C100_   // Result files directory
+AnalysisSpec.PredictorsSpec.ConstructionSpec.MaxConstructedAttributeNumber 100 // Max number of constructed variables
+AnalysisSpec.PredictorsSpec.ConstructionSpec.MaxTreeNumber 0  // Max Tree number
+ComputeStats                   // Analyse database
+
+Exit                           // Close
+// <- MultiTable Data preparation and scoring
+
+
+// -> MultiTable Data preparation and scoring
+OK                             // Close
+// <- MultiTable Data preparation and scoring
+

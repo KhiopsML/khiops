@@ -1,0 +1,10 @@
+Database ./AdultMissing10000.txt : Read records: 10,000
+  0:00:00	Write intermediate coclustering report Coclustering(1).khc	Level: 0.00338501	Size: 2*1*2	Granularity: 1
+  0:00:00	Write intermediate coclustering report Coclustering(2).khc	Level: 0.0279628	Size: 2*3*2	Granularity: 2
+  0:00:00	Write intermediate coclustering report Coclustering(3).khc	Level: 0.0304703	Size: 3*3*2	Granularity: 3
+  0:00:00	Write intermediate coclustering report Coclustering(4).khc	Level: 0.0331267	Size: 6*4*2	Granularity: 5
+  0:00:00	Write intermediate coclustering report Coclustering(5).khc	Level: 0.0338808	Size: 7*4*2
+  0:00:00	Write intermediate coclustering report Coclustering(6).khc	Level: 0.0339522	Size: 8*4*2
+Write coclustering report ./results\Coclustering.khc
+Coclustering analysis time: 0:00:00.12
+

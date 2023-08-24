@@ -1,0 +1,4 @@
+Write simplified report ./results\SimplifiedCoclustering.khc
+
+Write deployment dictionary file ./results\CapColorDeployment.kdic
+

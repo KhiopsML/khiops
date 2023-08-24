@@ -1,0 +1,42 @@
+#Khiops 7.8.1i
+
+Dictionary	SNB_Iris
+<InitialDictionary="Iris"> <PredictorLabel="Selective Naive Bayes"> <PredictorType="Regressor">
+{
+Unused	Numerical	SepalLength		; <Cost=2.3979> <Level=0.0864154> <Weight=0.238895>	
+Unused	Numerical	SepalWidth		; <Cost=2.3979> <Level=0.0169406> <Weight=0.161859>	
+	Numerical	PetalLength		; <TargetVariable>	
+Unused	Numerical	PetalWidth		; <Cost=2.3979> <Level=0.160389> <Weight=0.159836>	
+Unused	Categorical	SPetalLength	 = AsCategorical(Floor(PetalLength))	; <Cost=2.3979> <Level=0.214409> <MAP> <Weight=0.765319>	
+Unused	Numerical	LowerPetalLength	 = If(LE(PetalLength, 3), PetalLength, 3)	; <Cost=2.3979> <Level=0.130489> <MAP> <Weight=0.760397>	
+Unused	Numerical	UpperPetalWidth	 = If(GE(PetalWidth, 1.5), PetalWidth, 1.5)	; <Cost=2.3979> <Level=0.0831879> <MAP> <Weight=0.401034>	
+Unused	Categorical	Class1	 = IfC(EQc(Class, "Iris-setosa"), "setosa", "")	; <Cost=2.3979> <Level=0.13198> <Weight=0.183985>	
+Unused	Categorical	Class2	 = IfC(EQc(Class, "Iris-versicolor"), "versicolor", "")	; <Cost=2.3979> <Level=0.0984773> <Weight=0.24478>	
+Unused	Numerical	Dummy1	 = Copy(0)	; <Cost=2.3979> <Level=0>	
+Unused	Numerical	Dummy2	 = Random()	; <Cost=2.3979> <Level=0>	
+Unused	Categorical	Class		; <Cost=2.3979> <Level=0.192238> <Weight=0.195918>	
+Unused	Structure(DataGrid)	VPetalLength	 = DataGrid(ValueSet(1, 1.1, 1.3, 1.4, 1.5, 1.6, 1.7, 1.9, 3, 3.5, 3.8, 3.9, 4, 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 4.9, 5, 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8, 5.9, 6, 6.1, 6.7, 6.9), Frequencies(1, 1, 5, 9, 8, 3, 2, 2, 1, 2, 1, 2, 4, 3, 3, 2, 3, 5, 2, 4, 2, 4, 3, 6, 2, 2, 1, 2, 3, 2, 2, 1, 2, 1, 2, 1))	; <TargetValues>	
+Unused	Structure(DataGrid)	PSepalLength	 = DataGrid(IntervalBounds(5.45, 5.75), IntervalBounds(3.95, 4.55), Frequencies(31, 6, 0, 0, 9, 11, 0, 1, 41))	; <Level=0.0864154>	// DataGrid(SepalLength, PetalLength)
+Unused	Structure(DataGrid)	PSepalWidth	 = DataGrid(IntervalBounds(3.35), IntervalBounds(2.45), Frequencies(11, 20, 65, 3))	; <Level=0.0169406>	// DataGrid(SepalWidth, PetalLength)
+Unused	Structure(DataGrid)	PPetalWidth	 = DataGrid(IntervalBounds(0.7, 1.65), IntervalBounds(2.45, 4.75), Frequencies(31, 0, 0, 0, 32, 0, 0, 5, 31))	; <Level=0.160389>	// DataGrid(PetalWidth, PetalLength)
+Unused	Structure(DataGrid)	PSPetalLength	 = DataGrid(ValueGroups(ValueGroup("4"), ValueGroup("1"), ValueGroup("5"), ValueGroup("3"), ValueGroup("6", " * ")), IntervalBounds(2.45, 3.95, 4.95, 5.95), Frequencies(0, 31, 0, 0, 0, 0, 0, 0, 6, 0, 32, 0, 0, 0, 0, 0, 0, 24, 0, 0, 0, 0, 0, 0, 6))	; <Level=0.214409>	// DataGrid(SPetalLength, PetalLength)
+Unused	Structure(DataGrid)	PLowerPetalLength	 = DataGrid(IntervalBounds(1.45, 2.45), IntervalBounds(1.45, 2.45), Frequencies(16, 0, 0, 0, 15, 0, 0, 0, 68))	; <Level=0.130489>	// DataGrid(LowerPetalLength, PetalLength)
+Unused	Structure(DataGrid)	PUpperPetalWidth	 = DataGrid(IntervalBounds(1.65), IntervalBounds(4.75), Frequencies(63, 0, 5, 31))	; <Level=0.0831879>	// DataGrid(UpperPetalWidth, PetalLength)
+Unused	Structure(DataGrid)	PClass1	 = DataGrid(ValueGroups(ValueGroup(""), ValueGroup("setosa", " * ")), IntervalBounds(2.45), Frequencies(0, 31, 68, 0))	; <Level=0.13198>	// DataGrid(Class1, PetalLength)
+Unused	Structure(DataGrid)	PClass2	 = DataGrid(ValueGroups(ValueGroup(""), ValueGroup("versicolor", " * ")), IntervalBounds(2.45, 4.85), Frequencies(31, 0, 0, 34, 31, 3))	; <Level=0.0984773>	// DataGrid(Class2, PetalLength)
+Unused	Structure(DataGrid)	PClass	 = DataGrid(ValueGroups(ValueGroup("Iris-versicolor"), ValueGroup("Iris-setosa"), ValueGroup("Iris-virginica", " * ")), IntervalBounds(2.45, 4.85), Frequencies(0, 31, 0, 34, 0, 0, 3, 0, 31))	; <Level=0.192238>	// DataGrid(Class, PetalLength)
+Unused	Structure(RankRegressor)	SNBRPetalLength	 = SNBRankRegressor(Vector(0.2388946263, 0.1618589312, 0.1598359575, 0.7653189889, 0.7603970316, 0.4010336262, 0.1839853019, 0.2447799892, 0.1959182326), DataGridStats(PSepalLength, SepalLength), DataGridStats(PSepalWidth, SepalWidth), DataGridStats(PPetalWidth, PetalWidth), DataGridStats(PSPetalLength, SPetalLength), DataGridStats(PLowerPetalLength, LowerPetalLength), DataGridStats(PUpperPetalWidth, UpperPetalWidth), DataGridStats(PClass1, Class1), DataGridStats(PClass2, Class2), DataGridStats(PClass, Class))	;	
+Unused	Numerical	MRPetalLength	 = TargetRankMean(SNBRPetalLength)	; <MeanRank>	
+Unused	Numerical	SDRPetalLength	 = TargetRankStandardDeviation(SNBRPetalLength)	; <StandardDeviationRank>	
+Unused	Numerical	CPR1PetalLength	 = TargetRankCumulativeProbAt(SNBRPetalLength, 0.2)	; <CumulativeProbRank1>	// Partile 1 on 5
+Unused	Numerical	CPR2PetalLength	 = TargetRankCumulativeProbAt(SNBRPetalLength, 0.4)	; <CumulativeProbRank2>	// Partile 2 on 5
+Unused	Numerical	CPR3PetalLength	 = TargetRankCumulativeProbAt(SNBRPetalLength, 0.6)	; <CumulativeProbRank3>	// Partile 3 on 5
+Unused	Numerical	CPR4PetalLength	 = TargetRankCumulativeProbAt(SNBRPetalLength, 0.8)	; <CumulativeProbRank4>	// Partile 4 on 5
+Unused	Numerical	CPR5PetalLength	 = TargetRankCumulativeProbAt(SNBRPetalLength, 1)	; <CumulativeProbRank5>	// Partile 5 on 5
+Unused	Numerical	RankPetalLength	 = ValueRank(VPetalLength, PetalLength)	; <TargetVariableRank>	
+Unused	Numerical	DRPetalLength	 = TargetRankDensityAt(SNBRPetalLength, RankPetalLength)	; <DensityRank>	
+Unused	Structure(Regressor)	SNBPetalLength	 = SNBRegressor(SNBRPetalLength, VPetalLength)	;	
+	Numerical	MPetalLength	 = TargetMean(SNBPetalLength)	; <Mean>	
+Unused	Numerical	SDPetalLength	 = TargetStandardDeviation(SNBPetalLength)	; <StandardDeviation>	
+Unused	Numerical	DPetalLength	 = TargetDensityAt(SNBPetalLength, PetalLength)	; <Density>	
+};

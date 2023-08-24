@@ -1,0 +1,10 @@
+Write simplified report ./results\PostProcessedCoclustering_10000cells.khc
+
+Write simplified report ./results\PostProcessedCoclustering_100cells.khc
+
+Write simplified report ./results\PostProcessedCoclustering_50info.khc
+
+Write simplified report ./results\PostProcessedCoclustering_max5age.khc
+
+Write simplified report ./results\PostProcessedCoclustering_max5occupation.khc
+

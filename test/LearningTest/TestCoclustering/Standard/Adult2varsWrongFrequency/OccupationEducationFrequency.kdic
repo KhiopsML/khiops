@@ -1,0 +1,8 @@
+#Khiops 7.7.2i
+
+Dictionary	OccupationEducationFrequency
+{
+	Categorical	education		;	
+	Categorical	occupation		;	
+	Numerical	frequency		;	
+};

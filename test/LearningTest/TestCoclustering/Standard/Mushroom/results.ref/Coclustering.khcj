@@ -1,0 +1,445 @@
+{
+	"tool": "Khiops Coclustering",
+	"version": "10.1",
+	"shortDescription": "",
+	"coclusteringReport": {
+		"summary": {
+			"instances": 8416,
+			"cells": 25,
+			"nullCost": 27969.36342,
+			"cost": 24894.85736,
+			"level": 0.1099240629,
+			"initialDimensions": 2,
+			"frequencyVariable": "",
+			"dictionary": "Mushroom",
+			"database": "..\/..\/..\/datasets\/Mushroom\/Mushroom.txt",
+			"samplePercentage": 100,
+			"samplingMode": "Include sample",
+			"selectionVariable": "",
+			"selectionValue": ""
+		},
+		"dimensionSummaries": [
+			{
+				"name": "CapColor",
+				"type": "Categorical",
+				"parts": 7,
+				"initialParts": 7,
+				"values": 10,
+				"interest": 1,
+				"description": ""
+			},
+			{
+				"name": "Odor",
+				"type": "Categorical",
+				"parts": 7,
+				"initialParts": 7,
+				"values": 9,
+				"interest": 1,
+				"description": ""
+			}
+		],
+		"dimensionPartitions": [
+			{
+				"name": "CapColor",
+				"type": "Categorical",
+				"valueGroups": [
+					{
+						"cluster": "{YELLOW}",
+						"values": ["YELLOW"],
+						"valueFrequencies": [1072],
+						"valueTypicalities": [1]
+					},
+					{
+						"cluster": "{GRAY, BUFF}",
+						"values": ["GRAY","BUFF"],
+						"valueFrequencies": [2096,168],
+						"valueTypicalities": [1,0.186627]
+					},
+					{
+						"cluster": "{WHITE}",
+						"values": ["WHITE"],
+						"valueFrequencies": [1040],
+						"valueTypicalities": [1]
+					},
+					{
+						"cluster": "{PINK}",
+						"values": ["PINK"],
+						"valueFrequencies": [144],
+						"valueTypicalities": [1]
+					},
+					{
+						"cluster": "{CINNAMON, GREEN, PURPLE}",
+						"values": ["CINNAMON","GREEN","PURPLE"],
+						"valueFrequencies": [44,16,16],
+						"valueTypicalities": [1,0.281571,0.281571]
+					},
+					{
+						"cluster": "{RED}",
+						"values": ["RED"],
+						"valueFrequencies": [1500],
+						"valueTypicalities": [1]
+					},
+					{
+						"cluster": "{BROWN}",
+						"values": ["BROWN"],
+						"valueFrequencies": [2320],
+						"valueTypicalities": [1]
+					}
+				],
+				"defaultGroupIndex": 4
+			},
+			{
+				"name": "Odor",
+				"type": "Categorical",
+				"valueGroups": [
+					{
+						"cluster": "{ALMOND, ANISE}",
+						"values": ["ALMOND","ANISE"],
+						"valueFrequencies": [400,400],
+						"valueTypicalities": [1,1]
+					},
+					{
+						"cluster": "{FOUL}",
+						"values": ["FOUL"],
+						"valueFrequencies": [2160],
+						"valueTypicalities": [1]
+					},
+					{
+						"cluster": "{FISHY, SPICY}",
+						"values": ["FISHY","SPICY"],
+						"valueFrequencies": [576,576],
+						"valueTypicalities": [1,1]
+					},
+					{
+						"cluster": "{NONE}",
+						"values": ["NONE"],
+						"valueFrequencies": [3808],
+						"valueTypicalities": [1]
+					},
+					{
+						"cluster": "{MUSTY}",
+						"values": ["MUSTY"],
+						"valueFrequencies": [48],
+						"valueTypicalities": [1]
+					},
+					{
+						"cluster": "{CREOSOTE}",
+						"values": ["CREOSOTE"],
+						"valueFrequencies": [192],
+						"valueTypicalities": [1]
+					},
+					{
+						"cluster": "{PUNGENT}",
+						"values": ["PUNGENT"],
+						"valueFrequencies": [256],
+						"valueTypicalities": [1]
+					}
+				],
+				"defaultGroupIndex": 4
+			}
+		],
+		"dimensionHierarchies": [
+			{
+				"name": "CapColor",
+				"type": "Categorical",
+				"clusters": [
+					{
+						"cluster": "{YELLOW}",
+						"parentCluster": "A2",
+						"frequency": 1072,
+						"interest": 1,
+						"hierarchicalLevel": 1,
+						"rank": 1,
+						"hierarchicalRank": 14,
+						"isLeaf": true
+					},
+					{
+						"cluster": "{GRAY, BUFF}",
+						"parentCluster": "A6",
+						"frequency": 2264,
+						"interest": 0.738875,
+						"hierarchicalLevel": 1,
+						"rank": 3,
+						"hierarchicalRank": 14,
+						"isLeaf": true
+					},
+					{
+						"cluster": "{WHITE}",
+						"parentCluster": "A10",
+						"frequency": 1040,
+						"interest": 0.62668,
+						"hierarchicalLevel": 1,
+						"rank": 5,
+						"hierarchicalRank": 14,
+						"isLeaf": true
+					},
+					{
+						"cluster": "{PINK}",
+						"parentCluster": "A12",
+						"frequency": 144,
+						"interest": 0.275998,
+						"hierarchicalLevel": 1,
+						"rank": 7,
+						"hierarchicalRank": 14,
+						"isLeaf": true
+					},
+					{
+						"cluster": "{CINNAMON, GREEN, PURPLE}",
+						"parentCluster": "A12",
+						"frequency": 76,
+						"interest": 0.141839,
+						"hierarchicalLevel": 1,
+						"rank": 9,
+						"hierarchicalRank": 14,
+						"isLeaf": true
+					},
+					{
+						"cluster": "{RED}",
+						"parentCluster": "A8",
+						"frequency": 1500,
+						"interest": 0.679797,
+						"hierarchicalLevel": 1,
+						"rank": 11,
+						"hierarchicalRank": 14,
+						"isLeaf": true
+					},
+					{
+						"cluster": "{BROWN}",
+						"parentCluster": "A8",
+						"frequency": 2320,
+						"interest": 0.668005,
+						"hierarchicalLevel": 1,
+						"rank": 13,
+						"hierarchicalRank": 14,
+						"isLeaf": true
+					},
+					{
+						"cluster": "A2",
+						"parentCluster": "",
+						"frequency": 8416,
+						"interest": 0.714894,
+						"hierarchicalLevel": -0.00288095,
+						"rank": 2,
+						"hierarchicalRank": 3,
+						"isLeaf": false
+					},
+					{
+						"cluster": "A6",
+						"parentCluster": "A3",
+						"frequency": 3524,
+						"interest": 0.673974,
+						"hierarchicalLevel": 0.663563,
+						"rank": 4,
+						"hierarchicalRank": 7,
+						"isLeaf": false
+					},
+					{
+						"cluster": "A10",
+						"parentCluster": "A6",
+						"frequency": 1260,
+						"interest": 0.557357,
+						"hierarchicalLevel": 0.948442,
+						"rank": 6,
+						"hierarchicalRank": 11,
+						"isLeaf": false
+					},
+					{
+						"cluster": "A12",
+						"parentCluster": "A10",
+						"frequency": 220,
+						"interest": 0.229652,
+						"hierarchicalLevel": 0.996096,
+						"rank": 8,
+						"hierarchicalRank": 13,
+						"isLeaf": false
+					},
+					{
+						"cluster": "A3",
+						"parentCluster": "A2",
+						"frequency": 7344,
+						"interest": 0.673277,
+						"hierarchicalLevel": 0.360757,
+						"rank": 10,
+						"hierarchicalRank": 4,
+						"isLeaf": false
+					},
+					{
+						"cluster": "A8",
+						"parentCluster": "A3",
+						"frequency": 3820,
+						"interest": 0.672635,
+						"hierarchicalLevel": 0.866385,
+						"rank": 12,
+						"hierarchicalRank": 9,
+						"isLeaf": false
+					}
+				]
+			},
+			{
+				"name": "Odor",
+				"type": "Categorical",
+				"clusters": [
+					{
+						"cluster": "{ALMOND, ANISE}",
+						"parentCluster": "B5",
+						"frequency": 800,
+						"interest": 0.919626,
+						"hierarchicalLevel": 1,
+						"rank": 1,
+						"hierarchicalRank": 14,
+						"isLeaf": true
+					},
+					{
+						"cluster": "{FOUL}",
+						"parentCluster": "B5",
+						"frequency": 2160,
+						"interest": 0.875708,
+						"hierarchicalLevel": 1,
+						"rank": 3,
+						"hierarchicalRank": 14,
+						"isLeaf": true
+					},
+					{
+						"cluster": "{FISHY, SPICY}",
+						"parentCluster": "B4",
+						"frequency": 1152,
+						"interest": 1,
+						"hierarchicalLevel": 1,
+						"rank": 5,
+						"hierarchicalRank": 14,
+						"isLeaf": true
+					},
+					{
+						"cluster": "{NONE}",
+						"parentCluster": "B11",
+						"frequency": 3808,
+						"interest": 0.864707,
+						"hierarchicalLevel": 1,
+						"rank": 7,
+						"hierarchicalRank": 14,
+						"isLeaf": true
+					},
+					{
+						"cluster": "{MUSTY}",
+						"parentCluster": "B11",
+						"frequency": 48,
+						"interest": 0.142302,
+						"hierarchicalLevel": 1,
+						"rank": 9,
+						"hierarchicalRank": 14,
+						"isLeaf": true
+					},
+					{
+						"cluster": "{CREOSOTE}",
+						"parentCluster": "B9",
+						"frequency": 192,
+						"interest": 0.462788,
+						"hierarchicalLevel": 1,
+						"rank": 11,
+						"hierarchicalRank": 14,
+						"isLeaf": true
+					},
+					{
+						"cluster": "{PUNGENT}",
+						"parentCluster": "B9",
+						"frequency": 256,
+						"interest": 0.378414,
+						"hierarchicalLevel": 1,
+						"rank": 13,
+						"hierarchicalRank": 14,
+						"isLeaf": true
+					},
+					{
+						"cluster": "B5",
+						"parentCluster": "B1",
+						"frequency": 2960,
+						"interest": 0.887578,
+						"hierarchicalLevel": 0.645068,
+						"rank": 2,
+						"hierarchicalRank": 6,
+						"isLeaf": false
+					},
+					{
+						"cluster": "B1",
+						"parentCluster": "",
+						"frequency": 8416,
+						"interest": 0.863188,
+						"hierarchicalLevel": 0,
+						"rank": 4,
+						"hierarchicalRank": 2,
+						"isLeaf": false
+					},
+					{
+						"cluster": "B4",
+						"parentCluster": "B1",
+						"frequency": 5456,
+						"interest": 0.849956,
+						"hierarchicalLevel": 0.408241,
+						"rank": 6,
+						"hierarchicalRank": 5,
+						"isLeaf": false
+					},
+					{
+						"cluster": "B11",
+						"parentCluster": "B7",
+						"frequency": 3856,
+						"interest": 0.855714,
+						"hierarchicalLevel": 0.990396,
+						"rank": 8,
+						"hierarchicalRank": 12,
+						"isLeaf": false
+					},
+					{
+						"cluster": "B7",
+						"parentCluster": "B4",
+						"frequency": 4304,
+						"interest": 0.809796,
+						"hierarchicalLevel": 0.812259,
+						"rank": 10,
+						"hierarchicalRank": 8,
+						"isLeaf": false
+					},
+					{
+						"cluster": "B9",
+						"parentCluster": "B7",
+						"frequency": 448,
+						"interest": 0.414574,
+						"hierarchicalLevel": 0.914323,
+						"rank": 12,
+						"hierarchicalRank": 10,
+						"isLeaf": false
+					}
+				]
+			}
+		],
+		"cellPartIndexes": [
+			[1,3],
+			[6,3],
+			[1,1],
+			[0,1],
+			[5,3],
+			[6,2],
+			[5,2],
+			[2,3],
+			[0,0],
+			[2,0],
+			[6,1],
+			[5,1],
+			[6,6],
+			[2,6],
+			[6,0],
+			[2,1],
+			[3,3],
+			[4,3],
+			[1,5],
+			[3,5],
+			[2,5],
+			[6,4],
+			[0,3],
+			[4,4],
+			[5,4]
+		],
+		"cellFrequencies": [1360,1208,840,648,624,576,576,448,400,304,288,288,128,128,96,96,80,64,64,64,64,24,24,12,12]
+	},
+	"khiops_encoding": "ascii"
+}

@@ -1,0 +1,45 @@
+// Mon Jul 11 10:35:30 2011
+// C:\Users\boullema\Learning\Win32\debug\MODL_Coclustering
+// Output command file
+//
+//This file contains recorded commands, that can be replayed.
+//Commands are based on user interactions:
+//	field update
+//	list item selection
+//	menu action
+//Every command can be commented, using //.
+//For example, commenting the last Exit command will allow other
+//user interactions, after the commands have been replayed.
+//
+//
+
+// -> Khiops Coclustering
+ClassManagement.OpenFile       // Open...
+
+// -> Open
+ClassFileName ../../../datasets/Adult/Adult.kdic       // Dictionary file
+OK                             // Open
+// <- Open
+
+Database.DatabaseFiles.List.Key Adult               // List item selection
+Database.DatabaseFiles.DataTableName ../../../datasets/Adult/Adult.txt     // Database file
+Database.SampleNumberPercentage 70  // Sample percentage
+Database.SelectionAttribute native_country   // Selection variable
+Database.SelectionValue United-States        // Selection value
+
+AnalysisSpec.CoclusteringParameters.Attributes.InsertItemAfter         // Insert variable
+AnalysisSpec.CoclusteringParameters.Attributes.Name occupation     // Name
+AnalysisSpec.CoclusteringParameters.Attributes.InsertItemAfter         // Insert variable
+AnalysisSpec.CoclusteringParameters.Attributes.Name education     // Name
+
+AnalysisSpec.SystemParameters.OptimizationTime 0  // Optimization time in seconds
+AnalysisResults.ResultFilesDirectory ./results // Result files directory
+BuildCoclustering              // Build coclustering
+
+Exit                           // Close
+// <- Khiops Coclustering
+
+
+// -> Khiops Coclustering
+OK                             // Close
+// <- Khiops Coclustering

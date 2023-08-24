@@ -29,35 +29,39 @@ jobs:
         uses: ./.github/actions/build-khiops
         with:
           preset-name: ${{ matrix.build-setup.cmake-preset }}
-          targets: MODL MODL_Coclustering
+          targets: MODL MODL_Coclustering KNITransfer
           override-flags: -DBUILD_JARS=OFF -DTESTING=OFF
       - name: Run Tests (unix)
         if: matrix.build-setup.os != 'windows-2022'
         run: |
           python test/LearningTest/cmd/python/test_khiops.py Khiops ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}/bin/MODL Standard
           python test/LearningTest/cmd/python/test_khiops.py Coclustering ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}/bin/MODL_Coclustering Standard
+          python test/LearningTest/cmd/python/test_khiops.py KNI ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}/bin/KNITransfer Standard
       - name: Run Tests (windows)
         if: matrix.build-setup.os == 'windows-2022'
         run: |
           python test/LearningTest/cmd/python/test_khiops.py Khiops ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}/bin/MODL.exe Standard
           python test/LearningTest/cmd/python/test_khiops.py Coclustering ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}/bin/MODL_Coclustering.exe Standard
+          python test/LearningTest/cmd/python/test_khiops.py KNI ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}/bin/KNITransfer.exe Standard
       - name: Collect results
         if: success() || failure()
         run: |
           python3 test/LearningTest/cmd/python/apply_command.py errors test/LearningTest/TestKhiops/Standard | tee test/LearningTest/TestKhiops/Standard/khiops-log.txt
           python3 test/LearningTest/cmd/python/apply_command.py errors test/LearningTest/TestCoclustering/Standard | tee test/LearningTest/TestCoclustering/Standard/coclustering-log.txt
+          python3 test/LearningTest/cmd/python/apply_command.py errors test/LearningTest/TestKNITransfer/Standard | tee test/LearningTest/TestKNITransfer/Standard/kni-log.txt
       - name: Check results
         shell: bash
         run: |
-          if (grep -q error test/LearningTest/TestKhiops/Standard/khiops-log.txt test/LearningTest/TestCoclustering/Standard/coclustering-log.txt); then
+          if (grep -q error test/LearningTest/TestKhiops/Standard/khiops-log.txt test/LearningTest/TestCoclustering/Standard/coclustering-log.txt test/LearningTest/TestKNITransfer/Standard/kni-log.txt); then
             echo "::error::Errors in test"
             false
           fi
-          if (grep -q 'The test has not been launched' test/LearningTest/TestKhiops/Standard/khiops-log.txt test/LearningTest/TestCoclustering/Standard/coclustering-log.txt); then
+          if (grep -q 'The test has not been launched' test/LearningTest/TestKhiops/Standard/khiops-log.txt test/LearningTest/TestCoclustering/Standard/coclustering-log.txt test/LearningTest/TestKNITransfer/Standard/kni-log.txt); then
             echo "::error::Test not launched"
             false
           fi
       - name: Upload test results
+        if: failure()
         uses: actions/upload-artifact@v3
         with:
           name: ${{ matrix.build-setup.cmake-preset }}
@@ -65,4 +69,5 @@ jobs:
             test/LearningTest/**/results
             test/LearningTest/TestKhiops/Standard/khiops-log.txt
             test/LearningTest/TestCoclustering/Standard/coclustering-log.txt
+            test/LearningTest/TestKNITransfer/Standard/kni-log.txt
             test/LearningTest/**/comparisonResults.log

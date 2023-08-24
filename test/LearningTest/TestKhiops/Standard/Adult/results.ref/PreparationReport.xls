@@ -1,0 +1,451 @@
+#Khiops 10.1
+Descriptive statistics
+
+
+Problem description
+Short description	
+
+Dictionary	Adult
+Variables
+	Categorical	9
+	Numerical	7
+	Total	16
+
+Database	../../../datasets/Adult/Adult.txt
+Sample percentage	70
+Sampling mode	Include sample
+Selection variable	
+Selection value	
+Instances	34291
+
+Learning task	Classification analysis
+
+Target variable	Categorical	class
+Main target value	more
+
+Target variable stats
+Value	Frequency	Coverage
+less	26117	0.761628
+more	8174	0.238372
+
+Evaluated variables	15
+Informative variables	13
+
+Max number of constructed variables	0
+Max number of trees	0
+Max number of variable pairs	0
+Discretization	MODL
+Value grouping	MODL
+
+Null model
+	Constr. cost	0.693147
+	Prep. cost	10.4427
+	Data cost	18827.2
+
+
+Categorical variables statistics
+
+Rank	Name	Level	Groups	Values	Mode	Mode coverage	Constr. cost	Prep. cost	Data cost
+R01	relationship	0.208145	5	6	Husband	0.401592	3.4012	53.9185	14859.9
+R02	marital_status	0.197864	3	7	Married-civ-spouse	0.455192	3.4012	39.207	15068.3
+R06	education	0.112034	7	16	HS-grad	0.323758	3.4012	88.9107	16635.5
+R07	occupation	0.090111	8	14	Prof-specialty	0.184567	3.4012	94.4276	17042.9
+R10	sex	0.0466409	2	2	Male	0.66726	3.4012	20.8234	17935.5
+R11	workclass	0.0224888	4	8	Private	0.751276	3.4012	47.5855	18363.7
+R12	race	0.0102259	2	5	White	0.854481	3.4012	25.3683	18616.9
+R13	native_country	0.00652175	3	40	United-States	0.915371	3.4012	73.666	18638.4
+
+
+Numerical variables statistics
+
+Rank	Name	Level	Intervals	Values	Min	Max	Mean	Std dev	Missing number	Constr. cost	Prep. cost	Data cost
+R03	capital_gain	0.139679	19	122	0	99999	1129.327783	7735.318813	0	3.4012	188.918	16014.7
+R04	age	0.117931	12	74	17	90	38.67338369	13.77705677	0	3.4012	122.056	16491.2
+R05	education_num	0.112569	7	16	1	16	10.08075005	2.555450221	0	3.4012	78.8343	16635.5
+R08	hours_per_week	0.0717333	6	93	1	99	40.41281969	12.3602687	0	3.4012	69.0858	17414.5
+R09	capital_loss	0.0536587	16	95	0	4356	87.26231373	403.1609014	0	3.4012	169.971	17654.1
+R14	Label	0	1	34291	2	48842	24421.00207	14110.19055	0	0.693147	10.4427	18827.2
+R15	fnlwgt	0	1	22525	12285	1490400	189903.0584	105303.8837	0	0.693147	10.4427	18827.2
+
+
+--------------------------------------------------------------------------------
+
+Variables detailed statistics
+
+
+Rank	R01
+Variable	Categorical	relationship
+
+Variable stats
+Group	Size	Value list
+{Husband, Wife}	2	Husband	Wife
+{Not-in-family}	1	Not-in-family
+{Own-child}	1	Own-child
+{Unmarried}	1	Unmarried
+{Other-relative}	1	Other-relative	 * 
+
+% target values
+Group	less	more	Interest	Frequency	Coverage
+{Husband, Wife}	0.548238	0.451762	0.422448	15382	0.448573
+{Own-child}	0.985228	0.0147719	0.287464	5348	0.155959
+{Not-in-family}	0.90009	0.0999098	0.142352	8868	0.25861
+{Unmarried}	0.93731	0.0626899	0.101483	3621	0.105596
+{Other-relative}	0.969216	0.0307836	0.0462536	1072	0.0312618
+Total	0.761628	0.238372	1	34291	1
+
+Values
+Value	Frequency	Coverage
+Husband	13771	0.401592
+Not-in-family	8868	0.25861
+Own-child	5348	0.155959
+Unmarried	3621	0.105596
+Wife	1611	0.0469803
+Other-relative	1072	0.0312618
+
+----------------------------------------------
+Rank	R02
+Variable	Categorical	marital_status
+
+Variable stats
+Group	Size	Value list
+{Married-civ-spouse, Married-AF-spouse}	2	Married-civ-spouse	Married-AF-spouse	 * 
+{Never-married, Separated}	2	Never-married	Separated
+{Divorced, Widowed, Married-spouse-absent}	3	Divorced	Widowed	Married-spouse-absent
+
+% target values
+Group	less	more	Interest	Frequency	Coverage
+{Never-married, Separated}	0.953587	0.0464128	0.460279	12475	0.363798
+{Married-civ-spouse, Married-AF-spouse}	0.553211	0.446789	0.4328	15636	0.45598
+{Divorced, Widowed, Married-spouse-absent}	0.901456	0.0985437	0.106921	6180	0.180222
+Total	0.761628	0.238372	1	34291	1
+
+Values
+Value	Frequency	Coverage
+Married-civ-spouse	15609	0.455192
+Never-married	11400	0.332449
+Divorced	4655	0.13575
+Widowed	1093	0.0318743
+Separated	1075	0.0313493
+Married-spouse-absent	432	0.0125981
+Married-AF-spouse	27	0.000787379
+
+----------------------------------------------
+Rank	R03
+Variable	Numerical	capital_gain
+
+% target values
+Interval	less	more	Interest	Frequency	Coverage
+]-inf;57]	0.796308	0.203692	0.0385112	31420	0.916275
+]57;3048]	1	0	0.0478367	492	0.0143478
+]3048;3120]	0.0636364	0.936364	0.0441147	110	0.00320784
+]3120;4240]	1	0	0.0311133	320	0.00933189
+]4240;4400]	0.142857	0.857143	0.0214422	70	0.00204135
+]4400;4668]	1	0	0.00748665	77	0.00224549
+]4668;4826]	0	1	0.0148484	29	0.000845703
+]4826;4970]	0.758621	0.241379	2.57249e-07	29	0.000845703
+]4970;5119]	1	0	0.00777833	80	0.00233297
+]5119;5310]	0	1	0.0532493	104	0.00303287
+]5310;6808]	0.6	0.4	0.00125563	55	0.00160392
+]6808;7070]	1	0	0.00330579	34	0.000991514
+]7070;7436]	0	1	0.137731	269	0.00784462
+]7436;7560]	1	0	0.000388917	4	0.000116649
+]7560;10000]	0.00534759	0.994652	0.186215	374	0.0109067
+]10000;10585]	0.156863	0.843137	0.0148831	51	0.00148727
+]10585;30900]	0.00172414	0.998276	0.293924	580	0.0169141
+]30900;70000]	1	0	0.000680604	7	0.000204135
+]70000;+inf[	0	1	0.0952344	186	0.00542416
+Total	0.761628	0.238372	1	34291	1
+
+----------------------------------------------
+Rank	R04
+Variable	Numerical	age
+
+% target values
+Interval	less	more	Interest	Frequency	Coverage
+]-inf;21.5]	0.997875	0.00212508	0.372056	3294	0.0960602
+]21.5;23.5]	0.98447	0.0155297	0.164954	1803	0.0525794
+]23.5;25.5]	0.952071	0.047929	0.0997211	1690	0.0492841
+]25.5;27.5]	0.913456	0.0865442	0.057524	1687	0.0491966
+]27.5;30.5]	0.836812	0.163188	0.0194256	2635	0.0768423
+]30.5;35.5]	0.768085	0.231915	0.000232794	4631	0.13505
+]35.5;37.5]	0.69452	0.30548	0.00939477	1843	0.0537459
+]37.5;42.5]	0.65368	0.34632	0.0532907	4158	0.121256
+]42.5;55.5]	0.612847	0.387153	0.192212	8095	0.236068
+]55.5;61.5]	0.656179	0.343821	0.0268643	2193	0.0639526
+]61.5;66.5]	0.734199	0.265801	0.00101566	1155	0.0336823
+]66.5;+inf[	0.810298	0.189702	0.00330892	1107	0.0322825
+Total	0.761628	0.238372	1	34291	1
+
+----------------------------------------------
+Rank	R05
+Variable	Numerical	education_num
+
+% target values
+Interval	less	more	Interest	Frequency	Coverage
+]-inf;8.5]	0.943106	0.0568942	0.24816	4482	0.130705
+]8.5;9.5]	0.842191	0.157809	0.100321	11102	0.323758
+]9.5;10.5]	0.811903	0.188097	0.0258925	7645	0.222945
+]10.5;12.5]	0.742073	0.257927	0.00123361	2586	0.0754134
+]12.5;13.5]	0.586005	0.413995	0.195066	5645	0.16462
+]13.5;14.5]	0.457112	0.542888	0.181348	1842	0.0537167
+]14.5;+inf[	0.266936	0.733064	0.247978	989	0.0288414
+Total	0.761628	0.238372	1	34291	1
+
+----------------------------------------------
+Rank	R06
+Variable	Categorical	education
+
+Variable stats
+Group	Size	Value list
+{HS-grad}	1	HS-grad
+{Some-college}	1	Some-college
+{Bachelors}	1	Bachelors
+{11th, 10th, 7th-8th, ...}	8	11th	10th	7th-8th	9th	12th	5th-6th	1st-4th	Preschool	 * 
+{Assoc-voc, Assoc-acdm}	2	Assoc-voc	Assoc-acdm
+{Masters}	1	Masters
+{Prof-school, Doctorate}	2	Prof-school	Doctorate
+
+% target values
+Group	less	more	Interest	Frequency	Coverage
+{11th, 10th, 7th-8th, ...}	0.943106	0.0568942	0.24816	4482	0.130705
+{Prof-school, Doctorate}	0.266936	0.733064	0.247978	989	0.0288414
+{Bachelors}	0.586005	0.413995	0.195066	5645	0.16462
+{Masters}	0.457112	0.542888	0.181348	1842	0.0537167
+{HS-grad}	0.842191	0.157809	0.100321	11102	0.323758
+{Some-college}	0.811903	0.188097	0.0258925	7645	0.222945
+{Assoc-voc, Assoc-acdm}	0.742073	0.257927	0.00123361	2586	0.0754134
+Total	0.761628	0.238372	1	34291	1
+
+Values
+Value	Frequency	Coverage
+HS-grad	11102	0.323758
+Some-college	7645	0.222945
+Bachelors	5645	0.16462
+Masters	1842	0.0537167
+Assoc-voc	1453	0.0423726
+11th	1277	0.0372401
+Assoc-acdm	1133	0.0330407
+10th	1004	0.0292788
+7th-8th	638	0.0186055
+Prof-school	584	0.0170307
+9th	528	0.0153976
+12th	465	0.0135604
+Doctorate	405	0.0118107
+5th-6th	357	0.0104109
+1st-4th	160	0.00466595
+Preschool	53	0.0015456
+
+----------------------------------------------
+Rank	R07
+Variable	Categorical	occupation
+
+Variable stats
+Group	Size	Value list
+{Prof-specialty, Protective-serv, Armed-Forces}	3	Prof-specialty	Protective-serv	Armed-Forces	 * 
+{Craft-repair, Transport-moving}	2	Craft-repair	Transport-moving
+{Sales, Tech-support}	2	Sales	Tech-support
+{Exec-managerial}	1	Exec-managerial
+{Adm-clerical}	1	Adm-clerical
+{Other-service, Priv-house-serv}	2	Other-service	Priv-house-serv
+{Machine-op-inspct, Farming-fishing}	2	Machine-op-inspct	Farming-fishing
+{Handlers-cleaners}	1	Handlers-cleaners
+
+% target values
+Group	less	more	Interest	Frequency	Coverage
+{Exec-managerial}	0.524942	0.475058	0.322787	4290	0.125106
+{Other-service, Priv-house-serv}	0.962057	0.0379434	0.320807	3637	0.106063
+{Prof-specialty, Protective-serv, Armed-Forces}	0.663204	0.336796	0.0985361	7028	0.204952
+{Machine-op-inspct, Farming-fishing}	0.886811	0.113189	0.0893676	3101	0.0904319
+{Handlers-cleaners}	0.934586	0.0654141	0.0872203	1437	0.041906
+{Adm-clerical}	0.862104	0.137896	0.0693478	3887	0.113353
+{Sales, Tech-support}	0.728088	0.271912	0.00839068	4906	0.14307
+{Craft-repair, Transport-moving}	0.780849	0.219151	0.00354381	6005	0.175119
+Total	0.761628	0.238372	1	34291	1
+
+Values
+Value	Frequency	Coverage
+Prof-specialty	6329	0.184567
+Craft-repair	4309	0.12566
+Exec-managerial	4290	0.125106
+Adm-clerical	3887	0.113353
+Sales	3872	0.112916
+Other-service	3457	0.100814
+Machine-op-inspct	2092	0.0610073
+Transport-moving	1696	0.049459
+Handlers-cleaners	1437	0.041906
+Tech-support	1034	0.0301537
+Farming-fishing	1009	0.0294246
+Protective-serv	686	0.0200052
+Priv-house-serv	180	0.00524919
+Armed-Forces	13	0.000379108
+
+----------------------------------------------
+Rank	R08
+Variable	Numerical	hours_per_week
+
+% target values
+Interval	less	more	Interest	Frequency	Coverage
+]-inf;34.5]	0.931477	0.0685232	0.434249	5925	0.172786
+]34.5;39.5]	0.844568	0.155432	0.0348336	2329	0.0679187
+]39.5;40.5]	0.7902	0.2098	0.0264835	15939	0.464816
+]40.5;49.5]	0.651227	0.348773	0.0719813	3260	0.0950687
+]49.5;64.5]	0.560007	0.439993	0.399988	5716	0.166691
+]64.5;+inf[	0.634581	0.365419	0.0324643	1122	0.03272
+Total	0.761628	0.238372	1	34291	1
+
+----------------------------------------------
+Rank	R09
+Variable	Numerical	capital_loss
+
+% target values
+Interval	less	more	Interest	Frequency	Coverage
+]-inf;70]	0.77456	0.22544	0.0131577	32696	0.953486
+]70;1457]	0.977528	0.0224719	0.0146582	89	0.00259543
+]1457;1494]	0.413043	0.586957	0.0109609	46	0.00134146
+]1494;1537]	1	0	0.00399388	17	0.000495757
+]1537;1568.5]	0	1	0.0383523	31	0.000904027
+]1568.5;1789]	1	0	0.0878653	374	0.0109067
+]1789;1846]	0.666667	0.333333	0.000178532	9	0.00026246
+]1846;1859]	0	1	0.0606214	49	0.00142895
+]1859;1881]	1	0	0.00986723	42	0.00122481
+]1881;1906.5]	0.0304709	0.969529	0.393118	361	0.0105275
+]1906.5;1975.5]	0.956522	0.0434783	0.0028567	23	0.00067073
+]1975.5;1978.5]	0	1	0.22764	184	0.00536584
+]1978.5;2156]	1	0	0.0277222	118	0.00344114
+]2156;2384]	0.609756	0.390244	0.00602329	123	0.00358695
+]2384;2580]	0.0510204	0.94898	0.0991934	98	0.00285789
+]2580;+inf[	0.516129	0.483871	0.00379124	31	0.000904027
+Total	0.761628	0.238372	1	34291	1
+
+----------------------------------------------
+Rank	R10
+Variable	Categorical	sex
+
+Variable stats
+Group	Size	Value list
+{Male}	1	Male
+{Female}	1	Female	 * 
+
+% target values
+Group	less	more	Interest	Frequency	Coverage
+{Female}	0.8922	0.1078	0.71524	11410	0.33274
+{Male}	0.696517	0.303483	0.28476	22881	0.66726
+Total	0.761628	0.238372	1	34291	1
+
+Values
+Value	Frequency	Coverage
+Male	22881	0.66726
+Female	11410	0.33274
+
+----------------------------------------------
+Rank	R11
+Variable	Categorical	workclass
+
+Variable stats
+Group	Size	Value list
+{Private, Without-pay, Never-worked}	3	Private	Without-pay	Never-worked	 * 
+{Self-emp-not-inc, Local-gov, State-gov}	3	Self-emp-not-inc	Local-gov	State-gov
+{Self-emp-inc}	1	Self-emp-inc
+{Federal-gov}	1	Federal-gov
+
+% target values
+Group	less	more	Interest	Frequency	Coverage
+{Self-emp-inc}	0.435511	0.564489	0.642787	1194	0.0348196
+{Private, Without-pay, Never-worked}	0.793081	0.206919	0.160564	25783	0.751888
+{Federal-gov}	0.606786	0.393214	0.130634	1002	0.0292205
+{Self-emp-not-inc, Local-gov, State-gov}	0.719423	0.280577	0.0660155	6312	0.184072
+Total	0.761628	0.238372	1	34291	1
+
+Values
+Value	Frequency	Coverage
+Private	25762	0.751276
+Self-emp-not-inc	2673	0.0779505
+Local-gov	2246	0.0654982
+State-gov	1393	0.0406229
+Self-emp-inc	1194	0.0348196
+Federal-gov	1002	0.0292205
+Without-pay	12	0.000349946
+Never-worked	9	0.00026246
+
+----------------------------------------------
+Rank	R12
+Variable	Categorical	race
+
+Variable stats
+Group	Size	Value list
+{White, Asian-Pac-Islander}	2	White	Asian-Pac-Islander
+{Black, Amer-Indian-Eskimo, Other}	3	Black	Amer-Indian-Eskimo	Other	 * 
+
+% target values
+Group	less	more	Interest	Frequency	Coverage
+{Black, Amer-Indian-Eskimo, Other}	0.883453	0.116547	0.902111	3904	0.113849
+{White, Asian-Pac-Islander}	0.745977	0.254023	0.0978889	30387	0.886151
+Total	0.761628	0.238372	1	34291	1
+
+Values
+Value	Frequency	Coverage
+White	29301	0.854481
+Black	3307	0.0964393
+Asian-Pac-Islander	1086	0.0316701
+Amer-Indian-Eskimo	331	0.00965268
+Other	266	0.00775714
+
+----------------------------------------------
+Rank	R13
+Variable	Categorical	native_country
+
+Variable stats
+Group	Size	Value list
+{United-States, Philippines, Cuba, ...}	12	United-States	Philippines	Cuba	China	Jamaica	South	Italy	Poland	Ireland	Hong	Hungary	Scotland
+{Mexico, Puerto-Rico, El-Salvador, ...}	17	Mexico	Puerto-Rico	El-Salvador	Dominican-Republic	Guatemala	Haiti	Vietnam	Columbia	Portugal	Nicaragua	Peru	Ecuador	Thailand	Trinadad&Tobago	Honduras	Outlying-US	Laos	 * 
+{Germany, Canada, India, ...}	11	Germany	Canada	India	England	Japan	Taiwan	Iran	Greece	France	Cambodia	Yugoslavia
+
+% target values
+Group	less	more	Interest	Frequency	Coverage
+{Mexico, Puerto-Rico, El-Salvador, ...}	0.936034	0.0639659	0.840639	1407	0.0410312
+{Germany, Canada, India, ...}	0.64011	0.35989	0.147839	728	0.0212301
+{United-States, Philippines, Cuba, ...}	0.756748	0.243252	0.0115219	32156	0.937739
+Total	0.761628	0.238372	1	34291	1
+
+Values
+Value	Frequency	Coverage
+United-States	31389	0.915371
+Mexico	641	0.018693
+Philippines	211	0.00615322
+Germany	146	0.00425768
+Puerto-Rico	127	0.0037036
+Canada	125	0.00364527
+India	114	0.00332449
+El-Salvador	109	0.00317868
+Cuba	96	0.00279957
+England	91	0.00265376
+China	89	0.00259543
+Jamaica	83	0.00242046
+South	80	0.00233297
+Italy	77	0.00224549
+Dominican-Republic	74	0.002158
+Guatemala	67	0.00195387
+Japan	64	0.00186638
+Haiti	58	0.00169141
+Poland	57	0.00166224
+Vietnam	53	0.0015456
+Columbia	52	0.00151643
+Taiwan	49	0.00142895
+Portugal	44	0.00128314
+Iran	41	0.00119565
+Nicaragua	37	0.001079
+Peru	36	0.00104984
+Greece	34	0.000991514
+Ecuador	30	0.000874865
+France	26	0.000758216
+Ireland	25	0.000729054
+Hong	21	0.000612406
+Thailand	21	0.000612406
+Cambodia	19	0.000554081
+Yugoslavia	19	0.000554081
+Trinadad&Tobago	16	0.000466595
+Honduras	15	0.000437433
+Hungary	15	0.000437433
+Outlying-US	15	0.000437433
+Scotland	13	0.000379108
+Laos	12	0.000349946

@@ -1,0 +1,10 @@
+#Khiops 7.7.2i
+
+Dictionary	Iris
+{
+	Numerical	SepalLength		;	
+	Numerical	SepalWidth		;	
+	Numerical	PetalLength		;	
+	Numerical	PetalWidth		;	
+	Categorical	Class		;	
+};

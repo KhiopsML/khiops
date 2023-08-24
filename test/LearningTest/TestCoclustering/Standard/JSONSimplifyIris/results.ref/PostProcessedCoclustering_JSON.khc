@@ -1,0 +1,58 @@
+#Khiops 10.1
+Short description	
+Dimensions	3
+Name	Type	Parts	Initial parts	Values	Interest	Description
+PetalLength	Numerical	2	3	150	1	
+PetalWidth	Numerical	2	3	150	1	
+Class	Categorical	2	3	3	1	
+
+Coclustering stats
+Instances	150
+Cells	2
+Null cost	1379.668177
+Cost	1164.273132
+Level	0.1561209054
+Initial dimensions	3
+Frequency variable	
+Dictionary	Iris
+Database	../../../datasets/Iris/Iris.txt
+Sample percentage	100
+Sampling mode	Include sample
+Selection variable	
+Selection value	
+
+Bounds
+Name	Min	Max
+PetalLength	1	6.9
+PetalWidth	0.1	2.5
+
+Hierarchy	PetalLength
+Cluster	ParentCluster	Frequency	Interest	HierarchicalLevel	Rank	HierarchicalRank
+]-inf;2.4]	]-inf;+inf[	50	0.557285	1	1	9
+]2.4;+inf[	]-inf;+inf[	100	0.693493	0.856289	4	8
+]-inf;+inf[		150	0.648091	-0.0145257	2	4
+
+Hierarchy	PetalWidth
+Cluster	ParentCluster	Frequency	Interest	HierarchicalLevel	Rank	HierarchicalRank
+]-inf;0.8]	]-inf;+inf[	50	0.569949	1	1	9
+]0.8;+inf[	]-inf;+inf[	100	0.737824	0.704564	4	7
+]-inf;+inf[		150	0.681865	0.374198	2	5
+
+Hierarchy	Class
+Cluster	ParentCluster	Frequency	Interest	HierarchicalLevel	Rank	HierarchicalRank
+{Iris-setosa}	C1	50	1	1	1	9
+C4	C1	100	0.912663	0.739904	4	6
+C1		150	0.941775	0	2	3
+
+Composition	Class
+Cluster	Value	Frequency	Typicality
+{Iris-setosa}	Iris-setosa	50	1
+C4	Iris-versicolor	50	1
+C4	Iris-virginica	50	1
+C4	 * 	0	0
+
+Cells
+PetalLength	PetalWidth	Class	Frequency
+]2.4;+inf[	]0.8;+inf[	C4	100
+]-inf;2.4]	]-inf;0.8]	{Iris-setosa}	50
+
