@@ -3,7 +3,7 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #include "gtest/gtest.h"
-#include "../Utils/MpiEnvironment.h"
+#include "MpiEnvironment.h"
 
 int main(int argc, char** argv)
 {

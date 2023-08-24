@@ -15,5 +15,8 @@ target_include_directories(
   PLMPI
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
   PRIVATE ${MPI_CXX_INCLUDE_PATH})
-target_link_libraries(PLMPI PUBLIC PLParallelTask base ${MPI_CXX_LIBRARIES})
+
+target_link_libraries(
+  PLMPI PUBLIC PLParallelTask base) # We don't add ${MPI_CXX_LIBRARIES} here because we don't want that each binary that
+                                    # depends on PLMPI depends on libmpich.so (especially KNI)
 target_compile_definitions(PLMPI PRIVATE MPI_DEV)

@@ -1,7 +1,7 @@
 file(GLOB cppfiles *.cpp)
 add_executable(learning_test ${cppfiles})
 set_khiops_options(learning_test)
-target_link_libraries(learning_test GTest::gtest_main KWData)
+target_link_libraries(learning_test GTest::gtest_main KWData testutils)
 target_compile_options(learning_test PUBLIC ${GTEST_CFLAGS})
 include(GoogleTest)
 gtest_discover_tests(learning_test)

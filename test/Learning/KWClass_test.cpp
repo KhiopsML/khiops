@@ -4,11 +4,11 @@
 
 #include "KWClass.h"
 
-#include "../Utils/TestServices.h"
+#include "TestServices.h"
 
 namespace
 {
 
-KHIOPS_TEST(KWClass, full, KWClass::Test());
+KHIOPS_TEST(KWClass, full, KWClass::Test);
 
 } // namespace

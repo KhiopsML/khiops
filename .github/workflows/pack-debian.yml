@@ -92,3 +92,37 @@ jobs:
           khiops_coclustering -v
       - name: Test Khiops and Khiops Coclustering
         uses: ./.github/actions/test-khiops
+  test-kni-deb:
+    needs: build-deb-package
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu22.04, ubuntu20.04]
+    container:
+      image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
+    steps:
+      - name: Put OS info on the environment
+        run: |
+          source /etc/os-release 
+          echo "ID=$ID" >> "$GITHUB_ENV"
+          echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.ID }}-${{ env.VERSION_CODENAME }}
+          path: artifacts
+      - name: Install KNI Package
+        run: |
+          apt-get update
+          dpkg -i ./artifacts/kni* || true
+          apt-get -f install -y
+      - name: Checkout sources
+        uses: actions/checkout@v3
+        with:
+          sparse-checkout: .github
+      - name: Test KNI package
+        uses: ./.github/actions/test-kni

@@ -325,6 +325,8 @@ if(TESTING)
   add_subdirectory(test/Parallel)
   add_subdirectory(test/Parallel-mpi)
   add_subdirectory(test/Learning)
+  add_subdirectory(test/KNITest)
+  add_subdirectory(test/Utils)
 
 endif(TESTING)
 

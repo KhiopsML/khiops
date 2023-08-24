@@ -26,7 +26,7 @@ set(CPACK_COMPONENT_KHIOPS_CORE_DESCRIPTION
     "software for data mining
 Khiops is a data preparation and scoring tool for supervised learning and
 unsupervised learning. See the khiops package for more information.
-.
+ .
 This package is a minimal Khiops package, it contains the minimal files and
 dependancies to use Khiops. It is intended to be used on servers : it comes
 without GUI, samples or documentation. The full Khiops distribution is
@@ -34,26 +34,26 @@ available with the 'khiops' package.")
 
 set(CPACK_COMPONENT_KNI_DESCRIPTION
     "Khiops Native Interface
-The purpose of Khiops Native Interface (KNI) is to allow a deep integration of
-Khiops in information systems, by the mean of the C programming language, using
-a dynamic link library (DLL). This relates especially to the problem of model
+The purpose of Khiops Native Interface (KNI) is to allow a deeper integration
+of Khiops in information systems, by mean of the C programming language, using
+a dynamic link library (DLL). This relates specially to the problem of model
 deployment, which otherwise requires the use of input and output data files
 when using directly the Khiops tool in batch mode. See Khiops Guide for an
 introduction to dictionary files, dictionaries, database files and deployment.
-.
+ .
 The Khiops deployment features are thus made public through an API with a DLL.
 Therefore, a Khiops model can be deployed directly from any programming
-language, such as C, C++, Java, Python, Matlab... This enables model deployment
-in real time application (e.g. scoring in a marketing context,targeted
-advertising on the web) without the overhead of temporary data files or
-launching executables.
-.
-All KNI functions are C functions for easier use with other programming
-languages. They return a positive or null value in case of success, and a
-negative error code in case of failure. The functions are not reentrant
-(thread-safe): the DLL can be used simultaneously by several executables, but
-not simultaneously by several threads in the same executable.
-.
+language, such as C, C++, Java, Python, Matlab, etc. This enables real time
+model deployment without the overhead of temporary data files or launching
+executables. This is critical for certain applications in marketing or targeted
+advertising on the web.
+ .
+All KNI functions are C functions for easy use with other programming languages.
+They return a positive or null value in case of success, and a negative error
+code in case of failure. The functions are not reentrant (thread-safe): the DLL
+can be used simultaneously by several executables, but not simultaneously by
+several threads in the same executable.
+ .
 See KhiopsNativeInterface.h for a detailed description of KNI functions")
 
 set(CPACK_COMPONENT_KNI_DOC_DESCRIPTION "Documentation and examples for Khiops Native Interface (kni)")
