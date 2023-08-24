@@ -442,7 +442,7 @@ KNI_API int KNIOpenStream(const char* sDictionaryFileName, const char* sDictiona
 					     lMB);
 
 		// Ok si la nouvelle limite memoire est possible
-		if (nNewAllStreamsMemoryLimit + nPhysicalMemoryReserve < nPhysicalMemoryLimit)
+		if (nNewAllStreamsMemoryLimit + nPhysicalMemoryReserve <= nPhysicalMemoryLimit)
 		{
 			RMResourceConstraints::SetMemoryLimit(nNewAllStreamsMemoryLimit + nPhysicalMemoryReserve);
 			KNIStream::SetAllStreamsMemoryLimit(nNewAllStreamsMemoryLimit);

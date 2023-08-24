@@ -37,29 +37,24 @@
 // Le test est reussi lorsque les 2 fichiers sont identiques (a l'exception des
 // lignes qui commencent par "SYS" qui peuvent etre differentes)
 //
-// clang-format off
-#define KHIOPS_TEST(test_suite, test_name, method_to_test)                                 \
-        TEST(test_suite, test_name)                                                        \
-        {                                                                                  \
-        boolean bOk;                                                                       \
-        bOk = TestAndCompareResults(FileService::GetPathName(__FILE__),                    \
-                        #test_suite, #test_name, method_to_test);                          \
-        EXPECT_TRUE(bOk);                                                                  \
-        }
-
-
+#define KHIOPS_TEST(test_suite, test_name, method_to_test)                                                             \
+	TEST(test_suite, test_name)                                                                                    \
+	{                                                                                                              \
+		boolean bOk;                                                                                           \
+		bOk = TestAndCompareResults(FileService::GetPathName(__FILE__), #test_suite, #test_name,               \
+					    method_to_test);                                                           \
+		EXPECT_TRUE(bOk);                                                                                      \
+	}
 
 // Idem KHIOPS_TEST pour les avec parametre
-#define KHIOPS_TEST_P(test_suite, test_name, method_to_test)                               \
-        TEST_P(test_suite, test_name)                                                      \
-        {                                                                                  \
-        boolean bOk;                                                                       \
-        bOk = TestAndCompareResults(FileService::GetPathName(__FILE__),                    \
-                        #test_suite, #test_name, method_to_test);                          \
-        EXPECT_TRUE(bOk);                                                                  \
-        }
-
-// clang-format on
+#define KHIOPS_TEST_P(test_suite, test_name, method_to_test)                                                           \
+	TEST_P(test_suite, test_name)                                                                                  \
+	{                                                                                                              \
+		boolean bOk;                                                                                           \
+		bOk = TestAndCompareResults(FileService::GetPathName(__FILE__), #test_suite, #test_name,               \
+					    method_to_test);                                                           \
+		EXPECT_TRUE(bOk);                                                                                      \
+	}
 
 // Comparaison de 2 fichiers ligne par ligne
 // Les fichiers peuvent differer pour les lignes qui commencent par 'SYS'

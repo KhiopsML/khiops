@@ -1,5 +1,5 @@
 ---
-name: Update KNI-tutorial repository
+name: Update KhiopsNativeInterface-tutorial repository
 on:
   workflow_dispatch:
 jobs:
@@ -8,11 +8,11 @@ jobs:
     permissions:
       contents: write  # To push a branch 
     steps:
-      - name: Checkout khiops
+      - name: Checkout khiops sources
         uses: actions/checkout@v3
         with:
           path: khiops
-      - name: Get Khiops version
+      - name: Put Khiops version on the environment
         run: |
           KHIOPS_VERSION=$(grep "KHIOPS_VERSION" khiops/src/Learning/KWUtils/KWKhiopsVersion.h | cut -d"(" -f2 | cut -d")" -f1)
           echo "KHIOPS_VERSION=${KHIOPS_VERSION}" >> "$GITHUB_ENV"
@@ -39,7 +39,6 @@ jobs:
           cd tutorial
           git config --global user.email "khiops.bot@no-mail.com"
           git config --global user.name "khiops bot"
-          git status
           git commit -am"update to v${{ env.KHIOPS_VERSION }}"
           git push
           git tag v${{ env.KHIOPS_VERSION }}
