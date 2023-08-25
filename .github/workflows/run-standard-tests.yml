@@ -37,26 +37,29 @@ jobs:
           python test/LearningTest/cmd/python/test_khiops.py Khiops ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}/bin/MODL Standard
           python test/LearningTest/cmd/python/test_khiops.py Coclustering ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}/bin/MODL_Coclustering Standard
           python test/LearningTest/cmd/python/test_khiops.py KNI ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}/bin/KNITransfer Standard
+          python test/LearningTest/cmd/python/test_khiops.py KNI ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}/bin/KNITransfer MultiTables SpliceJunction
       - name: Run Tests (windows)
         if: matrix.build-setup.os == 'windows-2022'
         run: |
           python test/LearningTest/cmd/python/test_khiops.py Khiops ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}/bin/MODL.exe Standard
           python test/LearningTest/cmd/python/test_khiops.py Coclustering ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}/bin/MODL_Coclustering.exe Standard
           python test/LearningTest/cmd/python/test_khiops.py KNI ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}/bin/KNITransfer.exe Standard
+          python test/LearningTest/cmd/python/test_khiops.py KNI ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}/bin/KNITransfer.exe MultiTables SpliceJunction
       - name: Collect results
         if: success() || failure()
         run: |
-          python3 test/LearningTest/cmd/python/apply_command.py errors test/LearningTest/TestKhiops/Standard | tee test/LearningTest/TestKhiops/Standard/khiops-log.txt
-          python3 test/LearningTest/cmd/python/apply_command.py errors test/LearningTest/TestCoclustering/Standard | tee test/LearningTest/TestCoclustering/Standard/coclustering-log.txt
-          python3 test/LearningTest/cmd/python/apply_command.py errors test/LearningTest/TestKNITransfer/Standard | tee test/LearningTest/TestKNITransfer/Standard/kni-log.txt
+          python3 test/LearningTest/cmd/python/apply_command.py errors test/LearningTest/TestKhiops/Standard | tee test/LearningTest/TestKhiops/Standard/errors.txt
+          python3 test/LearningTest/cmd/python/apply_command.py errors test/LearningTest/TestCoclustering/Standard | tee test/LearningTest/TestCoclustering/Standard/errors.txt
+          python3 test/LearningTest/cmd/python/apply_command.py errors test/LearningTest/TestKNITransfer/Standard | tee test/LearningTest/TestKNITransfer/Standard/errors.txt
+          python3 test/LearningTest/cmd/python/apply_command.py errors test/LearningTest/TestKNITransfer/MultiTables SpliceJunction | tee test/LearningTest/TestKNITransfer/MultiTables/errors.txt
       - name: Check results
         shell: bash
         run: |
-          if (grep -q error test/LearningTest/TestKhiops/Standard/khiops-log.txt test/LearningTest/TestCoclustering/Standard/coclustering-log.txt test/LearningTest/TestKNITransfer/Standard/kni-log.txt); then
+          if (grep -qr "error" --include="errors.txt" test/LearningTest/ ); then
             echo "::error::Errors in test"
             false
           fi
-          if (grep -q 'The test has not been launched' test/LearningTest/TestKhiops/Standard/khiops-log.txt test/LearningTest/TestCoclustering/Standard/coclustering-log.txt test/LearningTest/TestKNITransfer/Standard/kni-log.txt); then
+          if (grep -qr "The test has not been launched" --include="errors.txt" test/LearningTest/ ); then
             echo "::error::Test not launched"
             false
           fi
@@ -65,9 +68,8 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: ${{ matrix.build-setup.cmake-preset }}
+          retention-days: 7
           path: |-
             test/LearningTest/**/results
-            test/LearningTest/TestKhiops/Standard/khiops-log.txt
-            test/LearningTest/TestCoclustering/Standard/coclustering-log.txt
-            test/LearningTest/TestKNITransfer/Standard/kni-log.txt
+            test/LearningTest/**/errors.txt
             test/LearningTest/**/comparisonResults.log

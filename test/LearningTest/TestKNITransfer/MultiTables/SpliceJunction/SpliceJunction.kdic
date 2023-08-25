@@ -1,0 +1,16 @@
+#Khiops 8.1.0a
+
+Root	Dictionary	SpliceJunction	(SampleId)
+{
+	Categorical	SampleId		;	
+	Categorical	Class		;	
+	Table(SpliceJunctionDNA)	DNA		;	
+	Numerical	CountDNA = TableCount(DNA)	;
+};
+
+Dictionary	SpliceJunctionDNA	(SampleId)
+{
+	Categorical	SampleId		;	
+	Numerical	Pos		;	
+	Categorical	Char		;	
+};
