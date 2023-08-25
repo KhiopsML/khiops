@@ -1,7 +1,15 @@
 ---
 name: Run Standard Tests
+# Run minimal end-to-end tests for Khiops, Khiops Coclustering and KNITransfer
+# Tests are lauched on Linux, Windows and macOS ; in serial and in parallel (3 procs)
+# On release, it runs Standard test for binary. Plus MultiTables/SpliceJunction for KNITransfer
+# On debug, it runs only Standard/Iris for Coclustering and KNITransfer and Standard/IrisLight for Khiops
+# In case of errors, test results are available as artifacts for 7 days
+# It is automatically triggered on PR when sources files are modified (files in src directory)
 on:
-  push:
+  workflow_dispatch:
+  pull_request:
+    paths: [src/**]
 env:
   KhiopsBatchMode: true
 jobs:
@@ -10,9 +18,11 @@ jobs:
       fail-fast: false
       matrix:
         build-setup:
-          - {os: windows-2022, cmake-preset: windows-msvc-release}
-          - {os: ubuntu-latest, cmake-preset: linux-gcc-release}
-          - {os: macos-latest, cmake-preset: macos-clang-release}
+          - {os: windows-2022, cmake-preset: windows-msvc}
+          - {os: ubuntu-latest, cmake-preset: linux-gcc}
+          - {os: macos-latest, cmake-preset: macos-clang}
+        running-mode: [parallel, serial]
+        config: [debug, release]
     runs-on: ${{ matrix.build-setup.os }}
     permissions:
       id-token: write
@@ -25,41 +35,81 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-      - name: Build Khiops executables
+      - name: Build Khiops executables (parallel)
+      # In parallel, build only MODL
+        if: matrix.running-mode == 'parallel'
         uses: ./.github/actions/build-khiops
         with:
-          preset-name: ${{ matrix.build-setup.cmake-preset }}
+          preset-name: ${{ matrix.build-setup.cmake-preset }}-${{ matrix.config }}
+          targets: MODL
+          override-flags: -DBUILD_JARS=OFF -DTESTING=OFF
+      - name: Build Khiops executables (serial)
+      # In serial, build all binaries
+        if: matrix.running-mode == 'serial'
+        uses: ./.github/actions/build-khiops
+        with:
+          preset-name: ${{ matrix.build-setup.cmake-preset }}-${{ matrix.config }}
           targets: MODL MODL_Coclustering KNITransfer
           override-flags: -DBUILD_JARS=OFF -DTESTING=OFF
-      - name: Run Tests (unix)
-        if: matrix.build-setup.os != 'windows-2022'
+      - name: Set environment variables
+        shell: bash
         run: |
-          python test/LearningTest/cmd/python/test_khiops.py Khiops ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}/bin/MODL Standard
-          python test/LearningTest/cmd/python/test_khiops.py Coclustering ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}/bin/MODL_Coclustering Standard
-          python test/LearningTest/cmd/python/test_khiops.py KNI ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}/bin/KNITransfer Standard
-          python test/LearningTest/cmd/python/test_khiops.py KNI ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}/bin/KNITransfer MultiTables SpliceJunction
-      - name: Run Tests (windows)
-        if: matrix.build-setup.os == 'windows-2022'
+          echo "TEST_PY=test/LearningTest/cmd/python/test_khiops.py" >> "$GITHUB_ENV"
+          echo "APPLY_PY=test/LearningTest/cmd/python/apply_command.py" >> "$GITHUB_ENV"
+          echo "BIN_PATH=${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}-${{ matrix.config }}/bin" >> "$GITHUB_ENV"
+      - name: Run Tests
+      # Run test on linux and macOS as describe in the top comment:
+      # - In parallel, run only MODL tests
+      # - In debug run only Standard/Iris for KNITRansfer and MODL_Coclustering, Standard/IrisLight for MODL
+      # - In release run all Standard tests
+        shell: bash
         run: |
-          python test/LearningTest/cmd/python/test_khiops.py Khiops ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}/bin/MODL.exe Standard
-          python test/LearningTest/cmd/python/test_khiops.py Coclustering ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}/bin/MODL_Coclustering.exe Standard
-          python test/LearningTest/cmd/python/test_khiops.py KNI ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}/bin/KNITransfer.exe Standard
-          python test/LearningTest/cmd/python/test_khiops.py KNI ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}/bin/KNITransfer.exe MultiTables SpliceJunction
+          if [[ "${{ matrix.build-setup.os }}"  == 'windows-2022' ]]; then
+            export EXT=".exe"
+          fi
+          if [[ "${{ matrix.running-mode }}" == "parallel" ]] ; then 
+            export KhiopsMPIProcessNumber=3 
+          fi
+          if [[ "${{ matrix.config }}" == "release" ]] ; then
+            python $TEST_PY Khiops ${BIN_PATH}/MODL${EXT} Standard
+            if [[ "${{ matrix.running-mode }}" != "parallel" ]] ; then
+              python $TEST_PY Coclustering ${BIN_PATH}/MODL_Coclustering${EXT} Standard
+              python $TEST_PY KNI ${BIN_PATH}/KNITransfer${EXT} Standard
+              python $TEST_PY KNI ${BIN_PATH}/KNITransfer${EXT} MultiTables SpliceJunction
+            fi
+          else
+            python $TEST_PY Khiops ${BIN_PATH}/MODL${EXT} Standard IrisLight
+            if [[ "${{ matrix.running-mode }}" != "parallel" ]] ; then
+              python $TEST_PY Coclustering ${BIN_PATH}/MODL_Coclustering${EXT} Standard Iris
+              python $TEST_PY KNI ${BIN_PATH}/KNITransfer${EXT} Standard Iris
+            fi
+          fi
       - name: Collect results
+        shell: bash
         if: success() || failure()
         run: |
-          python3 test/LearningTest/cmd/python/apply_command.py errors test/LearningTest/TestKhiops/Standard | tee test/LearningTest/TestKhiops/Standard/errors.txt
-          python3 test/LearningTest/cmd/python/apply_command.py errors test/LearningTest/TestCoclustering/Standard | tee test/LearningTest/TestCoclustering/Standard/errors.txt
-          python3 test/LearningTest/cmd/python/apply_command.py errors test/LearningTest/TestKNITransfer/Standard | tee test/LearningTest/TestKNITransfer/Standard/errors.txt
-          python3 test/LearningTest/cmd/python/apply_command.py errors test/LearningTest/TestKNITransfer/MultiTables SpliceJunction | tee test/LearningTest/TestKNITransfer/MultiTables/errors.txt
+          if [[ "${{ matrix.config }}" == "release" ]] ; then
+            python3 $APPLY_PY errors test/LearningTest/TestKhiops/Standard | tee test/LearningTest/TestKhiops/Standard/errors.txt
+            if [[ "${{ matrix.running-mode }}" != "parallel" ]] ; then
+              python $APPLY_PY errors test/LearningTest/TestCoclustering/Standard | tee test/LearningTest/TestCoclustering/Standard/errors.txt
+              python $APPLY_PY errors test/LearningTest/TestKNITransfer/Standard | tee test/LearningTest/TestKNITransfer/Standard/errors.txt
+              python $APPLY_PY errors test/LearningTest/TestKNITransfer/MultiTables SpliceJunction | tee test/LearningTest/TestKNITransfer/MultiTables/errors.txt
+            fi
+          else
+            python3 $APPLY_PY errors test/LearningTest/TestKhiops/Standard IrisLight | tee test/LearningTest/TestKhiops/Standard/errors.txt
+            if [[ "${{ matrix.running-mode }}" != "parallel" ]] ; then
+              python $APPLY_PY errors test/LearningTest/TestCoclustering/Standard Iris | tee test/LearningTest/TestCoclustering/Standard/errors.txt
+              python $APPLY_PY errors test/LearningTest/TestKNITransfer/Standard Iris | tee test/LearningTest/TestKNITransfer/Standard/errors.txt
+            fi
+          fi
       - name: Check results
         shell: bash
         run: |
-          if (grep -qr "error" --include="errors.txt" test/LearningTest/ ); then
+          if grep -qr "error" --include="errors.txt" test/LearningTest/ ; then
             echo "::error::Errors in test"
             false
           fi
-          if (grep -qr "The test has not been launched" --include="errors.txt" test/LearningTest/ ); then
+          if grep -qr "The test has not been launched" --include="errors.txt" test/LearningTest/ ; then
             echo "::error::Test not launched"
             false
           fi
@@ -67,9 +117,11 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.build-setup.cmake-preset }}
+          name: ${{ matrix.build-setup.cmake-preset }}-${{ matrix.config }}-${{ matrix.running-mode
+            }}
           retention-days: 7
           path: |-
             test/LearningTest/**/results
+            test/LearningTest/**/results.ref
             test/LearningTest/**/errors.txt
             test/LearningTest/**/comparisonResults.log
