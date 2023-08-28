@@ -748,7 +748,7 @@ void KWDataGridCosts::WritePartCostLine(const KWDGPart* part, ostream& ost) cons
 	else if (part->GetPartType() == KWType::Continuous)
 		ost << part->GetPartFrequency() << "\t";
 	else
-		ost << part->GetVarPartSet()->GetVarPartNumber() << "\t";
+		ost << part->GetValueSet()->GetValueNumber() << "\t";
 	// Avant integration coclustering IV ost << part->GetPartFrequency() << "\t";
 	// CH IV End
 	ost << dPartCost << "\t" << dPartCumulativeCost << "\n";
@@ -2013,7 +2013,7 @@ double KWVarPartDataGridClusteringCosts::ComputePartCost(const KWDGPart* part) c
 			if (part->GetAttribute()->GetAttributeType() == KWType::Symbol)
 				nValueNumber = part->GetValueSet()->GetValueNumber();
 			else
-				nValueNumber = part->GetVarPartSet()->GetVarPartNumber();
+				nValueNumber = part->GetValueSet()->GetValueNumber();
 			dPartCost = KWStat::LnFactorial(part->GetPartFrequency());
 
 			// Distribution des valeurs dans la partie
@@ -2031,7 +2031,6 @@ double KWVarPartDataGridClusteringCosts::ComputePartUnionCost(const KWDGPart* pa
 	double dPartUnionCost;
 	int nPartFrequency;
 	int nValueNumber;
-	int nVarPartNumber;
 
 	require(part1 != NULL);
 	require(part2 != NULL);
@@ -2059,13 +2058,12 @@ double KWVarPartDataGridClusteringCosts::ComputePartUnionCost(const KWDGPart* pa
 	// Cout de distribution des parties de variable dans le cas VarPart
 	else
 	{
-		nVarPartNumber =
-		    part1->GetVarPartSet()->GetVarPartNumber() + part2->GetVarPartSet()->GetVarPartNumber();
+		nValueNumber = part1->GetValueSet()->GetValueNumber() + part2->GetValueSet()->GetValueNumber();
 		dPartUnionCost = KWStat::LnFactorial(nPartFrequency);
 
 		// Distribution des parties de variable dans la partie
-		dPartUnionCost += KWStat::LnFactorial(nPartFrequency + nVarPartNumber - 1);
-		dPartUnionCost -= KWStat::LnFactorial(nVarPartNumber - 1);
+		dPartUnionCost += KWStat::LnFactorial(nPartFrequency + nValueNumber - 1);
+		dPartUnionCost -= KWStat::LnFactorial(nValueNumber - 1);
 		dPartUnionCost -= KWStat::LnFactorial(nPartFrequency);
 	}
 	return dPartUnionCost;

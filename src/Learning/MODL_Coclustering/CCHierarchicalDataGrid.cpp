@@ -1075,14 +1075,14 @@ void CCHDGVarPartSet::SortVarPartsByTypicality()
 boolean CCHDGVarPartSet::CheckHierarchy() const
 {
 	boolean bOk = true;
-	KWDGVarPartValue* varPartValue;
+	KWDGValue* varPartValue;
 
 	// Pas de controle d'integrite de base (invalide pour els parties non feuilles)
 	// Test des valeurs de la partie
 	if (bOk)
 	{
 		// Parcours des valeurs de la partie
-		varPartValue = GetHeadVarPart();
+		varPartValue = GetHeadValue();
 		while (varPartValue != NULL)
 		{
 			// Test de la valeur
@@ -1091,7 +1091,7 @@ boolean CCHDGVarPartSet::CheckHierarchy() const
 				break;
 
 			// Valeur suivante
-			GetNextVarPart(varPartValue);
+			GetNextValue(varPartValue);
 		}
 	}
 	return bOk;
@@ -1162,7 +1162,7 @@ int CCHDGVarPartValueCompareDecreasingTypicality(const void* elem1, const void* 
 	else if (dCompare < -dPrecision)
 		nCompare = -1;
 	else
-		nCompare = KWDGVarPartValueCompareAttributeNameAndVarPart(elem1, elem2);
+		nCompare = value1->CompareValue(value2);
 	return nCompare;
 }
 // CH IV End

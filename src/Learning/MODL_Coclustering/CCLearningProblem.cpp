@@ -1108,7 +1108,7 @@ void CCLearningProblem::WriteVarPartClusters(const CCHDGAttribute* varPartCoclus
 	KWDGPart* dgPart;
 	CCHDGPart* hdgPart;
 	CCHDGVarPartSet* hdgVarPartSet;
-	KWDGVarPartValue* dgValue;
+	KWDGValue* dgValue;
 	CCHDGVarPartValue* hdgValue;
 
 	require(varPartCoclusteringAttribute != NULL);
@@ -1125,17 +1125,17 @@ void CCLearningProblem::WriteVarPartClusters(const CCHDGAttribute* varPartCoclus
 
 		// Parcours des valeurs
 		hdgVarPartSet = cast(CCHDGVarPartSet*, hdgPart->GetVarPartSet());
-		dgValue = hdgVarPartSet->GetHeadVarPart();
+		dgValue = hdgVarPartSet->GetHeadValue();
 		while (dgValue != NULL)
 		{
 			hdgValue = cast(CCHDGVarPartValue*, dgValue);
 
 			// Caracteristiques des valeurs
 			ost << hdgPart->GetUserLabel() << "\t" << hdgValue->GetVarPart()->GetVarPartLabel() << "\t"
-			    << hdgValue->GetVarPartFrequency() << "\t" << hdgValue->GetTypicality() << "\n";
+			    << hdgValue->GetValueFrequency() << "\t" << hdgValue->GetTypicality() << "\n";
 
 			// Valeur suivante
-			hdgVarPartSet->GetNextVarPart(dgValue);
+			hdgVarPartSet->GetNextValue(dgValue);
 		}
 
 		// Partie suivante

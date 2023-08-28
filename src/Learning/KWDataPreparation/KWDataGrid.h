@@ -1006,7 +1006,7 @@ public:
 	void UpgradeFrom(const KWDGValueSet* sourceValueSet);
 
 	// Tri des valeurs par effectif decroissant, pour preparer l'affichage
-	void SortValues();
+	virtual void SortValues(); //DDD DEBUG virtual a supprimer
 
 	// Verification du tri des valeurs par effectif decroissant
 	// Couteux, a utiliser essentiellement dans les assertions
@@ -1144,8 +1144,7 @@ public:
 	///////////////////////////////
 	///// Implementation
 protected:
-	// Methodes de creations virtuelles, permettant de specialiser la creation d'une valeur
-	// dans une sous-classe
+	// Methode de creation virtuelle, permettant de specialiser la creation d'une valeur dans une sous-classe
 	virtual KWDGValue* NewSymbolValue(const Symbol& sValue) const;
 };
 
@@ -1266,77 +1265,77 @@ protected:
 };
 
 //////////////////////////////////////////////////////////////////////////////
-// CH IV Begin
 // Classe KWDGVarPartSet
 // Ensemble de parties de variables (constitue une partie d'un attribut de grille de type VarPart)
-class KWDGVarPartSet : public Object
+class KWDGVarPartSet : public KWDGValueSet
 {
 public:
 	// Constructeur
 	KWDGVarPartSet();
 	~KWDGVarPartSet();
 
-	////////////////////////////////////////////////////////////////
-	// Gestion des parties de variable sous forme de liste
-	// Memoire: les parties de variable appartiennent a la partie
+	// Type de valeur gere par la partie
+	int GetValueType() const override;
 
-	// Creation d'une partie de variable et ajout en fin de liste
-	// Renvoie la partie de variable cree
-	KWDGVarPartValue* AddVarPart(KWDGPart* varPart);
+	// Creation
+	KWDGValueSet* Create() const override;
 
-	// Destruction d'une partie de variable de la liste
-	void DeleteVarPartValue(KWDGVarPartValue* varPartValue);
+	// Creation d'une valeur de type partie de variable et ajout en fin de liste
+	// Renvoie la valeur cree
+	KWDGValue* AddVarPart(KWDGPart* varPart);
 
-	// Destruction de toutes les parties de variable
-	void DeleteAllVarPartValues();
+	// Redefinition de la methode virtuelle d'ajout de la copie d'une valeur existante
+	KWDGValue* AddValueCopy(const KWDGValue* sourceValue) override;
 
-	// Test de validite d'une partie de variable (si elle appartient a la partie)
-	boolean CheckVarPart(KWDGVarPartValue* varPartValue) const;
-
-	// Nombre de parties de variable
-	int GetVarPartNumber() const;
-
-	// Parcours de toutes les parties
-	KWDGVarPartValue* GetHeadVarPart() const;
-	KWDGVarPartValue* GetTailVarPart() const;
-	void GetNextVarPart(KWDGVarPartValue*& varPartValue) const;
-	void GetPrevVarPart(KWDGVarPartValue*& varPartValue) const;
-
-	///////////////////////////////
-	// Services divers
-
-	// Export des VarPart dans un tableau (initialement vide)
-	void ExportVarParts(ObjectArray* oaVarParts) const;
-
-	// Test si l'ensemble de VarPart est inclus dans l'autre ensemble de VarPart en parametres
-	boolean IsSubVarPartSet(const KWDGVarPartSet* otherVarPartSet) const;
-
-	// Calcul de l'effectif cumule des parties de variable
-	int ComputeTotalFrequency() const;
-
-	// Import des parties d'un ensemble  source, devant etre disjointe de la premiere
-	// partie. La cible est reinitialisee
-	void Import(KWDGVarPartSet* sourceVarPartSet);
-
-	// Copie
-	void CopyFrom(const KWDGVarPartSet* sourceVarPartSet);
-
-	// Ajout de nouvelles parties recopiees depuis une source
-	void UpgradeFrom(const KWDGVarPartSet* sourceVarPartSet);
+	//DDD BEGIN Ajout temporaire de methodes, pour debuggage
 
 	// Tri des parties de variable par nom de variable puis tri des parties de la meme variable, pour preparer
 	// l'affichage
-	void SortVarPartValues();
+	void SortValues() override;
 
-	// Verification du tri des parties de variable : couteux, a utiliser essentiellement dans les assertions
-	boolean AreVarPartValuesSorted() const;
+	//DDD END Ajout temporaire de methodes, pour debuggage
 
-	// Controle d'integrite
-	boolean Check() const override;
+	///////////////////////////////
+	///// Implementation
+protected:
+	// Methode de creation virtuelle, permettant de specialiser la creation d'une valeur dans une sous-classe
+	virtual KWDGVarPartValue* NewVarPartValue(KWDGPart* varPart) const;
+};
+
+//////////////////////////////////////////////////////////////////////////////
+// Classe KWDGVarPartValue
+// Partie de variable appartenant a une partie de parties de variable
+class KWDGVarPartValue : public KWDGValue
+{
+public:
+	// Constructeur
+	KWDGVarPartValue(KWDGPart* varPartValue);
+	~KWDGVarPartValue();
+
+	// Type de valeur
+	int GetValueType() const override;
+
+	// Partie de variable
+	KWDGPart* GetVarPart() const;
+
+	// Valeur en tant que cle numerique
+	NUMERIC GetNumericKeyValue() const override;
+
+	// Test si on est la valeur par defaut, qui fait partie de la partie par defaut
+	boolean IsDefaultValue() const override;
+
+	// Effectif lie a la valeur
+	void SetValueFrequency(int nFrequency) override;
+	int GetValueFrequency() const override;
+
+	// Comparaison de valeur
+	int CompareValue(const KWDGValue* otherValue) const override;
 
 	// Affichage
 	void Write(ostream& ost) const override;
-	void WriteVarParts(ostream& ost) const;
+
+	// Libelle externe base sur la valeur
+	const ALString GetExternalValueLabel() const override;
 
 	// Libelles utilisateur
 	const ALString GetClassLabel() const override;
@@ -1345,56 +1344,9 @@ public:
 	///////////////////////////////
 	///// Implementation
 protected:
-	// Tri des parties de variable selon une fonction de tri
-	void InternalSortValues(CompareFunction fCompare);
-
-	// Methodes de creations virtuelles, permettant de specialiser la creation d'une valeur
-	// dans une sous-classe
-	virtual KWDGVarPartValue* NewVarPartValue(KWDGPart* varPart) const;
-
-	// Methode indiquant si les donnees sont emulees
-	virtual boolean GetEmulated() const;
-
-	// Gestion de la liste doublement chainee des cellules
-	KWDGVarPartValue* headVarPart;
-	KWDGVarPartValue* tailVarPart;
-	int nVarPartNumber;
-};
-
-//////////////////////////////////////////////////////////////////////////////
-// Classe KWDGVarPartValue
-// Partie de variable appartenant a une partie de parties de variable
-class KWDGVarPartValue : public Object
-{
-public:
-	// Constructeur
-	KWDGVarPartValue(KWDGPart* varPart);
-	~KWDGVarPartValue();
-
-	// Partie de variable
-	KWDGPart* GetVarPart() const;
-
-	// Effectif lie a la partie de variable, qui est gere par la partie de variable elle-meme
-	void SetVarPartFrequency(int nFrequency);
-	int GetVarPartFrequency() const;
-
-	// Affichage
-	void Write(ostream& ost) const override;
-
-	///////////////////////////////
-	///// Implementation
-protected:
-	friend class KWDGVarPartSet;
-
 	// Attributs
 	KWDGPart* varPart;
-	KWDGVarPartValue* prevVarPartValue;
-	KWDGVarPartValue* nextVarPartValue;
 };
-
-// Comparaison de deux parties de variable, par nom de variable puis par comparaison des parties si elles dependent de
-// la meme variable
-int KWDGVarPartValueCompareAttributeNameAndVarPart(const void* elem1, const void* elem2);
 
 // Comparaison de deux objets KWSortableObject contenant des KWDGVarPartValue
 int KWSortableObjectCompareVarPart(const void* elem1, const void* elem2);
@@ -1923,7 +1875,7 @@ inline int KWDGAttribute::GetGarbageModalityNumber() const
 	else if (nAttributeType == KWType::Symbol)
 		return GetGarbagePart()->GetValueSet()->GetValueNumber();
 	else
-		return GetGarbagePart()->GetVarPartSet()->GetVarPartNumber();
+		return GetGarbagePart()->GetVarPartSet()->GetValueNumber();
 	// CH IV End
 }
 
@@ -2022,7 +1974,7 @@ inline KWDGValueSet* KWDGPart::GetValueSet() const
 	if (GetPartType() == KWType::Symbol)
 		return symbolValueSet;
 	else
-		return NULL; //DDD
+		return varPartSet;
 }
 
 inline KWDGSymbolValueSet* KWDGPart::GetSymbolValueSet() const
@@ -2165,13 +2117,13 @@ inline boolean KWDGValueSet::IsDefaultPart() const
 
 inline int KWDGValueSet::GetValueNumber() const
 {
-	assert(nValueNumber > 0 or IsDefaultPart());
+	assert(nValueNumber > 0 or (IsDefaultPart() and GetValueType() == KWType::Symbol));
 
 	// On assure que le seul cas sans aucune valeur est le cas de la partie par defaut reduite a la StarValue
 	// Cela peut arriver si la partie a ete "nettoyee" pour gagner de la place, notamment quand on exporte
 	// une grille dans un dictionnaire et qu'on la reimporte pour le deploiement
-	// Dans ce cas, ou rend une nombre d evaleur egal 1 a, ce qui a le merite d'avoir des couts de grille
-	// valides numeriquement, meme s'il ne corrrespondnent pas au vrau model qui aurait du memoriser
+	// Dans ce cas, ou rend une nombre de valeurs egal 1 a, ce qui a le merite d'avoir des couts de grille
+	// valides numeriquement, meme s'ils ne corrrespondent pas au vrai model qui aurait du memoriser
 	// le nombre exacte de valeurs du groupe
 	if (nValueNumber == 0 and IsDefaultPart())
 		return 1;
@@ -2217,72 +2169,115 @@ inline KWDGValueSet* KWDGSymbolValueSet::Create() const
 	return new KWDGSymbolValueSet;
 }
 
+inline KWDGValue* KWDGSymbolValueSet::AddSymbolValue(const Symbol& sValue)
+{
+	KWDGValue* value;
+
+	// Creation de la valeur
+	value = NewSymbolValue(sValue);
+
+	// Ajout en fin de la liste des valeurs
+	AddTailValue(value);
+
+	// On retourne la valeur cree
+	return value;
+}
+
+inline KWDGValue* KWDGSymbolValueSet::AddValueCopy(const KWDGValue* sourceValue)
+{
+	return AddSymbolValue(cast(KWDGSymbolValue*, sourceValue)->GetSymbolValue());
+}
+
+inline KWDGValue* KWDGSymbolValueSet::NewSymbolValue(const Symbol& sValue) const
+{
+	return new KWDGSymbolValue(sValue);
+}
+
 // CH IV Begin
+
+// Class KWDGVarPartSet
+
+inline KWDGVarPartSet::KWDGVarPartSet() {}
+
+inline KWDGVarPartSet::~KWDGVarPartSet() {}
+
+inline int KWDGVarPartSet::KWDGVarPartSet::GetValueType() const
+{
+	return KWType::VarPart;
+}
+
+inline KWDGValueSet* KWDGVarPartSet::Create() const
+{
+	return new KWDGVarPartSet;
+}
+
+inline KWDGValue* KWDGVarPartSet::AddVarPart(KWDGPart* varPart)
+{
+	KWDGValue* value;
+
+	require(varPart != NULL);
+
+	// Creation de la valeur
+	value = NewVarPartValue(varPart);
+
+	// Ajout en fin de la liste des valeurs
+	AddTailValue(value);
+
+	// On retourne la valeur cree
+	return value;
+}
+
+inline KWDGValue* KWDGVarPartSet::AddValueCopy(const KWDGValue* sourceValue)
+{
+	return AddVarPart(cast(KWDGVarPartValue*, sourceValue)->GetVarPart());
+}
+
+inline KWDGVarPartValue* KWDGVarPartSet::NewVarPartValue(KWDGPart* varPart) const
+{
+	require(varPart != NULL);
+	return new KWDGVarPartValue(varPart);
+}
+
 // Classe KWDGVarPartValue
 
 inline KWDGVarPartValue::KWDGVarPartValue(KWDGPart* varPartValue)
 {
+	require(varPartValue != NULL);
 	varPart = varPartValue;
-	prevVarPartValue = NULL;
-	nextVarPartValue = NULL;
 }
 
 inline KWDGVarPartValue::~KWDGVarPartValue() {}
+
+inline int KWDGVarPartValue::GetValueType() const
+{
+	return KWType::VarPart;
+}
 
 inline KWDGPart* KWDGVarPartValue::GetVarPart() const
 {
 	return varPart;
 }
 
-inline void KWDGVarPartValue::SetVarPartFrequency(int nFrequency)
+inline NUMERIC KWDGVarPartValue::GetNumericKeyValue() const
 {
+	return varPart;
+}
+
+inline boolean KWDGVarPartValue::IsDefaultValue() const
+{
+	return false;
+}
+
+inline void KWDGVarPartValue::SetValueFrequency(int nFrequency)
+{
+	require(varPart != NULL);
 	varPart->SetPartFrequency(nFrequency);
 }
 
-inline int KWDGVarPartValue::GetVarPartFrequency() const
+inline int KWDGVarPartValue::GetValueFrequency() const
 {
+	require(varPart != NULL);
 	return varPart->GetPartFrequency();
-}
-
-inline KWDGVarPartSet::KWDGVarPartSet()
-{
-	headVarPart = NULL;
-	tailVarPart = NULL;
-	nVarPartNumber = 0;
-}
-
-inline KWDGVarPartSet::~KWDGVarPartSet()
-{
-	DeleteAllVarPartValues();
-}
-
-inline int KWDGVarPartSet::GetVarPartNumber() const
-{
-	return nVarPartNumber;
-}
-
-inline KWDGVarPartValue* KWDGVarPartSet::GetHeadVarPart() const
-{
-	return headVarPart;
-}
-
-inline KWDGVarPartValue* KWDGVarPartSet::GetTailVarPart() const
-{
-	return tailVarPart;
-}
-
-inline void KWDGVarPartSet::GetNextVarPart(KWDGVarPartValue*& varPartValue) const
-{
-	require(varPartValue != NULL);
-
-	varPartValue = varPartValue->nextVarPartValue;
-}
-
-inline void KWDGVarPartSet::GetPrevVarPart(KWDGVarPartValue*& varPartValue) const
-{
-	require(varPartValue != NULL);
-
-	varPartValue = varPartValue->prevVarPartValue;
 }
 
 // Classe KWDGInnerAttributes

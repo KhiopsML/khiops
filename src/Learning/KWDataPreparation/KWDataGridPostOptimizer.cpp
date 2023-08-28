@@ -1444,7 +1444,7 @@ void KWDGPOGrouper::InitializePartFrequencyVector(KWDGPOPartFrequencyVector* par
 		partFrequencyVector->SetModalityNumber(part->GetValueSet()->GetValueNumber());
 	// CH IV Begin
 	else if (part->GetPartType() == KWType::VarPart)
-		partFrequencyVector->SetModalityNumber(part->GetVarPartSet()->GetVarPartNumber());
+		partFrequencyVector->SetModalityNumber(part->GetVarPartSet()->GetValueNumber());
 	// CH IV End
 
 	// Parcours des cellules de la partie pour creer les vecteurs d'effectif par cellule
@@ -1663,7 +1663,7 @@ void KWDGPOGrouper::InitializeGroupIndexes(IntVector* ivGroups, const KWDataGrid
 			    initialPart->GetValueSet()->GetHeadValue()->GetSymbolValue());
 		else
 			optimizedPart = optimizedAttribute->LookupVarPart(
-			    initialPart->GetVarPartSet()->GetHeadVarPart()->GetVarPart());
+			    initialPart->GetVarPartSet()->GetHeadValue()->GetVarPart());
 		// CH IV End
 
 		// Memorisation de l'index de ce groupe
@@ -1750,7 +1750,7 @@ int KWDGPOGrouper::InitializeGroupIndexesAndGarbageIndex(IntVector* ivGroups, co
 		else if (optimizedAttribute->GetAttributeType() == KWType::VarPart)
 		{
 			optimizedPart = optimizedAttribute->LookupVarPart(
-			    initialPart->GetVarPartSet()->GetHeadVarPart()->GetVarPart());
+			    initialPart->GetVarPartSet()->GetHeadValue()->GetVarPart());
 		}
 		// CH IV End
 
@@ -1887,7 +1887,7 @@ void KWDGPOGrouper::UpdateDataGridWithGarbageFromGroups(KWDataGrid* optimizedDat
 			optimizedPart->GetVarPartSet()->UpgradeFrom(initialPart->GetVarPartSet());
 
 			// Mise a jour du groupe poubelle comme le groupe contenant le plus de parties de variables
-			if (optimizedPart->GetVarPartSet()->GetVarPartNumber() >
+			if (optimizedPart->GetVarPartSet()->GetValueNumber() >
 			    optimizedAttribute->GetGarbageModalityNumber())
 				optimizedAttribute->SetGarbagePart(optimizedPart);
 		}
@@ -2659,7 +2659,7 @@ double KWDataGridUnivariateCosts::ComputePartCost(const KWFrequencyVector* part)
 	// CH IV Begin
 	else if (partCostParameter->GetPartType() == KWType::VarPart)
 	{
-		cast(KWDGVarPartSetCostParameter*, partCostParameter->GetVarPartSet())->nVarPartNumber =
+		cast(KWDGVarPartSetCostParameter*, partCostParameter->GetVarPartSet())->nValueNumber =
 		    cast(KWDGPOPartFrequencyVector*, part)->GetModalityNumber();
 		// il faut que modalityNumber ait ete alimente par le nombre de parties de variable
 	}
@@ -2734,7 +2734,7 @@ double KWDataGridUnivariateCosts::ComputePartUnionCost(const KWFrequencyVector* 
 	// CH IV Begin
 	else if (partCostParameter->GetPartType() == KWType::VarPart)
 	{
-		cast(KWDGVarPartSetCostParameter*, partCostParameter->GetVarPartSet())->nVarPartNumber =
+		cast(KWDGVarPartSetCostParameter*, partCostParameter->GetVarPartSet())->nValueNumber =
 		    cast(KWDGPOPartFrequencyVector*, sourcePart1)->GetModalityNumber() +
 		    cast(KWDGPOPartFrequencyVector*, sourcePart2)->GetModalityNumber();
 	}
@@ -2775,7 +2775,7 @@ double KWDataGridUnivariateCosts::ComputePartDiffCost(const KWFrequencyVector* s
 	// CH IV Begin
 	if (partCostParameter->GetPartType() == KWType::VarPart)
 	{
-		cast(KWDGVarPartSetCostParameter*, partCostParameter->GetVarPartSet())->nVarPartNumber =
+		cast(KWDGVarPartSetCostParameter*, partCostParameter->GetVarPartSet())->nValueNumber =
 		    cast(KWDGPOPartFrequencyVector*, sourcePart)->GetModalityNumber() -
 		    cast(KWDGPOPartFrequencyVector*, removedPart)->GetModalityNumber();
 	}
@@ -3445,7 +3445,7 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 	KWDGPart* prevPartCluster = NULL;
 	KWDGPart* currentPartCluster = NULL;
 	KWDGPart* nextPartCluster = NULL;
-	KWDGVarPartValue* varPartValue;
+	KWDGValue* varPartValue;
 	int nInnerPart;
 	int nPartIndex;
 	int nCurrentClusterIndex;
@@ -3492,6 +3492,7 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 
 	// Verification de la compatibilite entre grille optimisee et grille initiale
 	dataGridManager.SetSourceDataGrid(referenceDataGrid);
+	// CH IV: si cette verification est inutile, la supprimer
 	// require(dataGridManager.CheckDataGrid(optimizedDataGrid));
 
 	// Extraction de l'attribut VarPart dans la grille pre-partitionnee de reference
@@ -3532,7 +3533,7 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 	innerPartCluster = varPartReferenceAttribute->GetHeadPart();
 	while (innerPartCluster != NULL)
 	{
-		innerPart = innerPartCluster->GetVarPartSet()->GetHeadVarPart()->GetVarPart();
+		innerPart = innerPartCluster->GetVarPartSet()->GetHeadValue()->GetVarPart();
 		clusterPart = varPartOptimizedAttribute->LookupVarPart(innerPart);
 		ivGroups->Add(cast(IntObject*, nkdClusterIndexes.Lookup((NUMERIC)clusterPart))->GetInt());
 		clusterIndex = new IntObject;
@@ -3550,7 +3551,7 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 
 		for (nPartIndex = 0; nPartIndex < ivGroups->GetSize(); nPartIndex++)
 		{
-			innerPart = innerPartCluster->GetVarPartSet()->GetHeadVarPart()->GetVarPart();
+			innerPart = innerPartCluster->GetVarPartSet()->GetHeadValue()->GetVarPart();
 			cout << "PV\t" << *innerPart << "\t" << ivGroups->GetAt(nPartIndex) << "\n";
 			varPartReferenceAttribute->GetNextPart(innerPartCluster);
 		}
@@ -3594,8 +3595,8 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 				cout << "CCVarPartDataGridPostOptimizer:Clusters des PV de l'attribut\t"
 				     << innerAttribute->GetAttributeName() << endl;
 				oaClusterParts.Write(cout);
+				cout << flush;
 			}
-			cout << flush;
 
 			// Indexation des parties de l'attribut pour melange aleatoire
 			ivVarPartIndexes.SetSize(innerAttribute->GetPartNumber());
@@ -3776,8 +3777,6 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 								     << endl;
 							}
 
-							cout << flush;
-
 							dBestVariationCost = dVariationCost;
 							nBestVarPartIndex =
 							    cast(IntObject*,
@@ -3913,8 +3912,6 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 									    << endl;
 								}
 
-								cout << flush;
-
 								dBestVariationCost = dVariationCost;
 								nBestVarPartIndex =
 								    cast(IntObject*, nkdReferenceClusterIndexes.Lookup(
@@ -4007,8 +4004,8 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 			{
 				// cout << "CCVarPartDataGridPostOptimizer:Clusters des PV de l'attribut\t" <<
 				// innerAttribute->GetAttributeName() << endl; oaClusterParts.Write(cout);
+				cout << flush;
 			}
-			cout << flush;
 
 			// Indexation des parties de l'attribut pour melange aleatoire
 			ivVarPartIndexes.SetSize(innerAttribute->GetPartNumber());
@@ -4092,11 +4089,11 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 					{
 						// Extraction de la partie de variable de l'attribut interne qui
 						// accueillerait la partie de variable deplacee
-						varPartValue = clusterPartIn->GetVarPartSet()->GetHeadVarPart();
+						varPartValue = clusterPartIn->GetVarPartSet()->GetHeadValue();
 						while (varPartValue->GetVarPart()->GetAttribute()->GetAttributeName() !=
 						       innerPart->GetAttribute()->GetAttributeName())
 						{
-							clusterPartIn->GetVarPartSet()->GetNextVarPart(varPartValue);
+							clusterPartIn->GetVarPartSet()->GetNextValue(varPartValue);
 						}
 						innerInOptimizedPart = varPartValue->GetVarPart();
 
@@ -4163,8 +4160,6 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 										->GetInt())
 								     << endl;
 							}
-
-							cout << flush;
 
 							dBestVariationCost = dVariationCost;
 							nBestVarPartIndex =
@@ -4242,7 +4237,7 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 
 		for (nPartIndex = 0; nPartIndex < ivGroups->GetSize(); nPartIndex++)
 		{
-			innerPart = innerPartCluster->GetVarPartSet()->GetHeadVarPart()->GetVarPart();
+			innerPart = innerPartCluster->GetVarPartSet()->GetHeadValue()->GetVarPart();
 			cout << "PV\t" << *innerPart << "\t" << ivGroups->GetAt(nPartIndex) << "\n";
 			varPartReferenceAttribute->GetNextPart(innerPartCluster);
 		}
@@ -4703,7 +4698,7 @@ double CCVarPartDataGridPostOptimizer::ComputeClusterVariationCost(KWDGPart* par
 		nVariationSign = -1;
 
 	// Nombre de modalites du cluster de parties de variable
-	nValueNumber = part->GetVarPartSet()->GetVarPartNumber();
+	nValueNumber = part->GetVarPartSet()->GetValueNumber();
 	nClusterFrequency = part->GetPartFrequency();
 
 	// On retire le cout du cluster avec son effectif et son nombre de PV

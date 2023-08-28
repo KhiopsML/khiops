@@ -1549,9 +1549,6 @@ void KWDataGrid::WriteAttributeParts(ostream& ost) const
 	KWDGValue* value;
 	boolean bDisplayAll = false;
 	boolean bDisplayPartDetails = true;
-	// CH IV Begin
-	KWDGVarPartValue* varPartValue;
-	// CH IV End
 
 	// Liste des attributs et de leurs parties
 	ost << "Parts by variable"
@@ -1567,9 +1564,7 @@ void KWDataGrid::WriteAttributeParts(ostream& ost) const
 			part = attribute->GetHeadPart();
 			while (part != NULL)
 			{
-				// CH IV Begin
 				ost << "\t\t" << part->GetObjectLabel() << "\t" << part->GetPartFrequency();
-				// CH IV End
 
 				// Affichage des premieres valeurs dans le cas d'un attribut Symbol
 				if (attribute->GetAttributeType() == KWType::Symbol)
@@ -1593,8 +1588,8 @@ void KWDataGrid::WriteAttributeParts(ostream& ost) const
 				else if (attribute->GetAttributeType() == KWType::VarPart)
 				{
 					nDisplayedValue = 0;
-					varPartValue = part->GetVarPartSet()->GetHeadVarPart();
-					while (varPartValue != NULL)
+					value = part->GetVarPartSet()->GetHeadValue();
+					while (value != NULL)
 					{
 						nDisplayedValue++;
 						if (nDisplayedValue > nMaxDisplayedValue)
@@ -1604,11 +1599,9 @@ void KWDataGrid::WriteAttributeParts(ostream& ost) const
 						}
 						else
 							ost << "\t"
-							    << varPartValue->GetVarPart()
-								   ->GetAttribute()
-								   ->GetAttributeName()
-							    << "\t" << *(varPartValue->GetVarPart());
-						part->GetVarPartSet()->GetNextVarPart(varPartValue);
+							    << value->GetVarPart()->GetAttribute()->GetAttributeName()
+							    << "\t" << *(value->GetVarPart());
+						part->GetVarPartSet()->GetNextValue(value);
 					}
 				}
 				// CH IV End
@@ -2517,16 +2510,10 @@ void KWDGAttribute::BuildIndexingStructure()
 	KWDGPart* part;
 	KWDGValueSet* valueSet;
 	KWDGValue* value;
-	// CH IV Begin
-	KWDGVarPartSet* varPartSet;
-	KWDGVarPartValue* varPartValue;
 	KWDGAttribute* innerAttribute;
 	int nInnerAttribute;
-	// CH IV End
 
-	// CH IV Begin
 	require(KWType::IsCoclusteringType(GetAttributeType()));
-	// CH IV End
 	require(Check());
 
 	// Indexation si necessaire
@@ -2568,7 +2555,7 @@ void KWDGAttribute::BuildIndexingStructure()
 					nkdParts.SetAt(value->GetNumericKeyValue(), part);
 
 					// Memorisation de la partie associe a la valeur speciale
-					if (value->GetSymbolValue() == Symbol::GetStarValue())
+					if (value->IsDefaultValue())
 						starValuePart = part;
 
 					// Valeur suivante
@@ -2592,15 +2579,15 @@ void KWDGAttribute::BuildIndexingStructure()
 			while (part != NULL)
 			{
 				// Parcours des parties de variable de la partie
-				varPartSet = part->GetVarPartSet();
-				varPartValue = varPartSet->GetHeadVarPart();
-				while (varPartValue != NULL)
+				valueSet = part->GetValueSet();
+				value = valueSet->GetHeadValue();
+				while (value != NULL)
 				{
 					// Ajout de la partie avec la partie de variable pour cle
-					nkdVarPartSets.SetAt((NUMERIC)varPartValue->GetVarPart(), part);
+					nkdVarPartSets.SetAt(value->GetNumericKeyValue(), part);
 
 					// Partie de variable suivante
-					varPartSet->GetNextVarPart(varPartValue);
+					valueSet->GetNextValue(value);
 				}
 
 				// Partie suivante
@@ -2775,8 +2762,6 @@ boolean KWDGAttribute::ContainsSubParts(const KWDGAttribute* otherAttribute) con
 	KWDGPart* part;
 	KWDGPart* otherPart;
 	KWDGValue* value;
-	KWDGVarPartValue* varPartValue;
-	KWDGPart* firstVarPartValue;
 	NumericKeyDictionary nkdOtherPartsPerValue;
 
 	require(otherAttribute != NULL);
@@ -2843,7 +2828,7 @@ boolean KWDGAttribute::ContainsSubParts(const KWDGAttribute* otherAttribute) con
 				otherAttribute->GetNextPart(otherPart);
 			}
 
-			// Parcours des partie pour verifier leur inclusion
+			// Parcours des parties pour verifier leur inclusion
 			part = GetHeadPart();
 			while (part != NULL)
 			{
@@ -2873,11 +2858,11 @@ boolean KWDGAttribute::ContainsSubParts(const KWDGAttribute* otherAttribute) con
 			while (otherPart != NULL)
 			{
 				// Parcours de valeurs de l'autre partie pour memoriser l'association
-				varPartValue = otherPart->GetVarPartSet()->GetHeadVarPart();
-				while (varPartValue != NULL)
+				value = otherPart->GetVarPartSet()->GetHeadValue();
+				while (value != NULL)
 				{
-					nkdOtherPartsPerValue.SetAt((NUMERIC)(varPartValue->GetVarPart()), otherPart);
-					otherPart->GetVarPartSet()->GetNextVarPart(varPartValue);
+					nkdOtherPartsPerValue.SetAt(value->GetNumericKeyValue(), otherPart);
+					otherPart->GetVarPartSet()->GetNextValue(value);
 				}
 
 				// Autre partie suivante
@@ -2889,8 +2874,9 @@ boolean KWDGAttribute::ContainsSubParts(const KWDGAttribute* otherAttribute) con
 			while (part != NULL)
 			{
 				// Recherche de l'autre partie sur la base de la premiere valeur de la partie en cours
-				firstVarPartValue = part->GetVarPartSet()->GetHeadVarPart()->GetVarPart();
-				otherPart = cast(KWDGPart*, nkdOtherPartsPerValue.Lookup((NUMERIC)firstVarPartValue));
+				otherPart =
+				    cast(KWDGPart*, nkdOtherPartsPerValue.Lookup(
+							part->GetValueSet()->GetHeadValue()->GetNumericKeyValue()));
 
 				// Pas d'inclusion si partie non trouvee ou non inclusante
 				if (otherPart == NULL or not part->IsSubPart(otherPart))
@@ -2915,8 +2901,6 @@ boolean KWDGAttribute::Check() const
 	KWDGPart* searchedPart;
 	KWDGValueSet* valueSet;
 	KWDGValue* value;
-	KWDGVarPartSet* varPartSet;
-	KWDGVarPartValue* varPartValue;
 	KWDGPart* usedVarPart;
 	ObjectArray oaCheckIntervals;
 	int nInterval;
@@ -3197,21 +3181,18 @@ boolean KWDGAttribute::Check() const
 		while (part != NULL)
 		{
 			// Parcours des VarPart de la partie pour verifier qu'elle ne sont utilisees qu'une seule fois
-			varPartSet = part->GetVarPartSet();
-			varPartValue = varPartSet->GetHeadVarPart();
-			while (varPartValue != NULL)
+			valueSet = part->GetValueSet();
+			value = valueSet->GetHeadValue();
+			while (value != NULL)
 			{
-				usedVarPart = varPartValue->GetVarPart();
-
 				// Recherche si la VarPart est deja enregistree
-				searchedPart = cast(KWDGPart*, nkdCheckParts.Lookup((NUMERIC)usedVarPart));
+				searchedPart = cast(KWDGPart*, nkdCheckParts.Lookup(value->GetNumericKeyValue()));
 
 				// Erreur si VarPart deja enregistree
 				if (searchedPart != NULL)
 				{
-					part->AddError(sTmp + "Inner variable var part " +
-						       usedVarPart->GetObjectLabel() + " already belongs to part " +
-						       part->GetObjectLabel());
+					part->AddError(sTmp + "Inner variable var part " + value->GetObjectLabel() +
+						       " already belongs to part " + part->GetObjectLabel());
 					bOk = false;
 					break;
 				}
@@ -3219,10 +3200,10 @@ boolean KWDGAttribute::Check() const
 				else
 				{
 					// Ajout de la partie avec la valeur pour cle
-					nkdCheckParts.SetAt((NUMERIC)usedVarPart, part);
+					nkdCheckParts.SetAt(value->GetNumericKeyValue(), part);
 
 					// Valeur suivante
-					varPartSet->GetNextVarPart(varPartValue);
+					valueSet->GetNextValue(value);
 				}
 			}
 
@@ -3316,7 +3297,7 @@ void KWDGAttribute::SortParts()
 		part = GetHeadPart();
 		while (part != NULL)
 		{
-			part->GetVarPartSet()->SortVarPartValues();
+			part->GetValueSet()->SortValues();
 			GetNextPart(part);
 		}
 	}
@@ -3358,7 +3339,7 @@ boolean KWDGAttribute::ArePartsSorted() const
 		part = GetHeadPart();
 		while (part != NULL)
 		{
-			bIsSorted = part->GetVarPartSet()->AreVarPartValuesSorted();
+			bIsSorted = part->GetValueSet()->AreValuesSorted();
 			if (not bIsSorted)
 				break;
 			GetNextPart(part);
@@ -3818,7 +3799,7 @@ boolean KWDGPart::IsSubPart(const KWDGPart* otherPart) const
 	else if (GetPartType() == KWType::Symbol)
 		return GetValueSet()->IsSubValueSet(otherPart->GetValueSet());
 	else
-		return GetVarPartSet()->IsSubVarPartSet(otherPart->GetVarPartSet());
+		return GetValueSet()->IsSubValueSet(otherPart->GetValueSet());
 }
 
 boolean KWDGPart::Check() const
@@ -3991,8 +3972,8 @@ void KWDGPart::Write(ostream& ost) const
 	if (GetPartType() == KWType::Symbol and symbolValueSet->GetValueNumber() > 0)
 		WriteValues(ost);
 
-	if (GetPartType() == KWType::VarPart and varPartSet->GetVarPartNumber() > 0)
-		varPartSet->WriteVarParts(ost);
+	if (GetPartType() == KWType::VarPart and varPartSet->GetValueNumber() > 0)
+		WriteValues(ost);
 	// CH IV End
 	if (GetCellNumber() > 0)
 		WriteCells(ost);
@@ -4005,7 +3986,7 @@ void KWDGPart::WriteValues(ostream& ost) const
 	if (GetPartType() == KWType::Symbol)
 		symbolValueSet->WriteValues(ost);
 	else if (GetPartType() == KWType::VarPart)
-		varPartSet->WriteVarParts(ost);
+		varPartSet->WriteValues(ost);
 }
 
 void KWDGPart::WriteCells(ostream& ost) const
@@ -4176,8 +4157,8 @@ int KWDGPartVarPartCompare(const void* elem1, const void* elem2)
 {
 	KWDGPart* part1;
 	KWDGPart* part2;
-	KWDGVarPartValue* varPartValue1;
-	KWDGVarPartValue* varPartValue2;
+	KWDGValue* value1;
+	KWDGValue* value2;
 
 	require(elem1 != NULL);
 	require(elem2 != NULL);
@@ -4189,20 +4170,20 @@ int KWDGPartVarPartCompare(const void* elem1, const void* elem2)
 	assert(part2->GetPartType() == KWType::VarPart);
 
 	// Comparaison de la premiere partie de variable de la partie
-	if (part1->GetVarPartSet()->GetHeadVarPart() == NULL)
+	if (part1->GetVarPartSet()->GetHeadValue() == NULL)
 	{
-		if (part2->GetVarPartSet()->GetHeadVarPart() == NULL)
+		if (part2->GetVarPartSet()->GetHeadValue() == NULL)
 			return 0;
 		else
 			return -1;
 	}
-	else if (part2->GetVarPartSet()->GetHeadVarPart() == NULL)
+	else if (part2->GetVarPartSet()->GetHeadValue() == NULL)
 		return 1;
 	else
 	{
-		varPartValue1 = part1->GetVarPartSet()->GetHeadVarPart();
-		varPartValue2 = part2->GetVarPartSet()->GetHeadVarPart();
-		return KWDGVarPartValueCompareAttributeNameAndVarPart(&varPartValue1, &varPartValue2);
+		value1 = part1->GetVarPartSet()->GetHeadValue();
+		value2 = part2->GetVarPartSet()->GetHeadValue();
+		return value1->CompareValue(value2);
 	}
 }
 
@@ -4724,7 +4705,7 @@ void KWDGValueSet::WriteValues(ostream& ost) const
 	value = GetHeadValue();
 	while (value != NULL)
 	{
-		ost << "\t" << *value << "\n";
+		ost << "\t" << value->GetObjectLabel() << "\t" << value->GetValueFrequency() << "\n";
 		GetNextValue(value);
 	}
 }
@@ -4855,25 +4836,6 @@ boolean KWDGValueSet::GetEmulated() const
 //////////////////////////////////////////////////////////////////////////////
 // Classe KWDGSymbolValueSet
 
-KWDGValue* KWDGSymbolValueSet::AddSymbolValue(const Symbol& sValue)
-{
-	KWDGValue* value;
-
-	// Creation de la valeur
-	value = NewSymbolValue(sValue);
-
-	// Ajout en fin de la liste des valeurs
-	AddTailValue(value);
-
-	// On retourne la valeur cree
-	return value;
-}
-
-KWDGValue* KWDGSymbolValueSet::AddValueCopy(const KWDGValue* sourceValue)
-{
-	return AddSymbolValue(cast(KWDGSymbolValue*, sourceValue)->GetSymbolValue());
-}
-
 void KWDGSymbolValueSet::CompressValueSet()
 {
 	int nCurrentValueNumber;
@@ -4935,11 +4897,6 @@ KWDGValueSet* KWDGSymbolValueSet::ComputeCleanedValueSet() const
 	value->SetValueFrequency(ComputeTotalFrequency() - GetHeadValue()->GetValueFrequency());
 
 	return symbolValueSet;
-}
-
-KWDGValue* KWDGSymbolValueSet::NewSymbolValue(const Symbol& sValue) const
-{
-	return new KWDGSymbolValue(sValue);
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -5013,13 +4970,63 @@ const ALString KWDGSymbolValue::GetObjectLabel() const
 
 //////////////////////////////////////////////////////////////////////////////
 // CH IV Begin
+
+//////////////////////////////////////////////////////////////////////////////
 // Classe KWDGVarPartValue
+
+int KWDGVarPartValue::CompareValue(const KWDGValue* otherValue) const
+{
+	int nCompare;
+	KWDGPart* varPart1;
+	KWDGPart* varPart2;
+
+	require(otherValue != NULL);
+
+	// Comparaison des noms d'attributs des parties de variable
+	nCompare = GetVarPart()->GetAttribute()->GetAttributeName().Compare(
+	    otherValue->GetVarPart()->GetAttribute()->GetAttributeName());
+	if (nCompare != 0)
+		return nCompare;
+	// Cas de parties de variable d'un meme attribut
+	else
+
+	{
+		varPart1 = GetVarPart();
+		varPart2 = otherValue->GetVarPart();
+		// Cas d'un attribut numerique : comparaison des intervalles
+		if (varPart1->GetPartType() == KWType::Continuous)
+			return KWDGPartContinuousCompare(&varPart1, &varPart2);
+		// Cas d'un attribut categoriel : comparaison des effectifs des valueSet
+		else
+			return KWDGPartSymbolCompare(&varPart1, &varPart2);
+	}
+}
 
 void KWDGVarPartValue::Write(ostream& ost) const
 {
-	ost << *varPart << "\t" << varPart->GetPartFrequency() << "\n";
+	ost << *varPart << "\t" << GetValueFrequency();
 }
 
+const ALString KWDGVarPartValue::GetExternalValueLabel() const
+{
+	return GetObjectLabel();
+}
+
+const ALString KWDGVarPartValue::GetClassLabel() const
+{
+	return "VarPart";
+}
+
+const ALString KWDGVarPartValue::GetObjectLabel() const
+{
+	return varPart->GetVarPartLabel();
+}
+
+//DDD
+//DDD BEGIN Ajout temporaire de methodes, pour debuggage
+//DDD
+
+//DDD Ajout temporaire de methodes, pour debuggage
 int KWDGVarPartValueCompareAttributeNameAndVarPart(const void* elem1, const void* elem2)
 {
 	KWDGVarPartValue* value1;
@@ -5054,6 +5061,18 @@ int KWDGVarPartValueCompareAttributeNameAndVarPart(const void* elem1, const void
 	}
 }
 
+//DDD Ajout temporaire de methodes, pour debuggage
+// Tri des parties de variable par nom de variable puis tri des parties de la meme variable, pour preparer
+// l'affichage
+void KWDGVarPartSet::SortValues()
+{
+	InternalSortValues(KWDGVarPartValueCompareAttributeNameAndVarPart);
+}
+
+//DDD
+//DDD END Ajout temporaire de methodes, pour debuggage
+//DDD
+
 int KWSortableObjectCompareVarPart(const void* elem1, const void* elem2)
 {
 	KWDGVarPartValue* varPartValue1;
@@ -5066,437 +5085,7 @@ int KWSortableObjectCompareVarPart(const void* elem1, const void* elem2)
 	varPartValue1 = cast(KWDGVarPartValue*, cast(KWSortableObject*, *(Object**)elem1)->GetSortValue());
 	varPartValue2 = cast(KWDGVarPartValue*, cast(KWSortableObject*, *(Object**)elem2)->GetSortValue());
 
-	return KWDGVarPartValueCompareAttributeNameAndVarPart(&varPartValue1, &varPartValue2);
-}
-
-KWDGVarPartValue* KWDGVarPartSet::AddVarPart(KWDGPart* varPart)
-{
-	KWDGVarPartValue* varPartValue;
-
-	// Creation de la partie de variable
-	varPartValue = NewVarPartValue(varPart);
-
-	// Ajout en fin de la liste des valeurs
-	nVarPartNumber++;
-	if (headVarPart == NULL)
-		headVarPart = varPartValue;
-	if (tailVarPart != NULL)
-	{
-		tailVarPart->nextVarPartValue = varPartValue;
-		varPartValue->prevVarPartValue = tailVarPart;
-	}
-	tailVarPart = varPartValue;
-
-	// On retourne la valeur cree
-	return varPartValue;
-}
-
-void KWDGVarPartSet::DeleteVarPartValue(KWDGVarPartValue* value)
-{
-	require(value != NULL);
-
-	// Supression de la liste des valuees
-	nVarPartNumber--;
-	if (value->prevVarPartValue != NULL)
-		value->prevVarPartValue->nextVarPartValue = value->nextVarPartValue;
-	if (value->nextVarPartValue != NULL)
-		value->nextVarPartValue->prevVarPartValue = value->prevVarPartValue;
-	if (headVarPart == value)
-		headVarPart = value->nextVarPartValue;
-	if (tailVarPart == value)
-		tailVarPart = value->prevVarPartValue;
-
-	// Destruction de la valeur
-	delete value;
-}
-
-void KWDGVarPartSet::DeleteAllVarPartValues()
-{
-	KWDGVarPartValue* value;
-	KWDGVarPartValue* valueToDelete;
-
-	// Destruction des valeurs
-	value = headVarPart;
-	while (value != NULL)
-	{
-		valueToDelete = value;
-		value = value->nextVarPartValue;
-		delete valueToDelete;
-	}
-
-	// Reinitialisation de la gestion de la liste des valeurs
-	headVarPart = NULL;
-	tailVarPart = NULL;
-	nVarPartNumber = 0;
-}
-
-boolean KWDGVarPartSet::CheckVarPart(KWDGVarPartValue* value) const
-{
-	boolean bOk;
-	KWDGVarPartValue* currentValue;
-
-	require(value != NULL);
-
-	// Test si la partie fait partie de l'ensemble
-	bOk = false;
-	currentValue = headVarPart;
-	while (currentValue != NULL)
-	{
-		if (value == currentValue)
-		{
-			bOk = true;
-			break;
-		}
-		currentValue = currentValue->nextVarPartValue;
-	}
-	return bOk;
-}
-
-void KWDGVarPartSet::ExportVarParts(ObjectArray* oaVarParts) const
-{
-	KWDGVarPartValue* varPartValue;
-	int nVarPart;
-
-	require(oaVarParts != NULL);
-	require(oaVarParts->GetSize() == 0);
-
-	// Ajout des parties dans le tableau
-	oaVarParts->SetSize(GetVarPartNumber());
-	nVarPart = 0;
-	varPartValue = headVarPart;
-	while (varPartValue != NULL)
-	{
-		oaVarParts->SetAt(nVarPart, varPartValue);
-		nVarPart++;
-		varPartValue = varPartValue->nextVarPartValue;
-	}
-}
-
-boolean KWDGVarPartSet::IsSubVarPartSet(const KWDGVarPartSet* otherVarPartSet) const
-{
-	boolean bOk = true;
-	NumericKeyDictionary nkdOtherValues;
-	KWDGVarPartValue* varPartValue;
-	KWDGPart* part;
-
-	// On doit avoir moins de valeurs
-	if (GetVarPartNumber() > otherVarPartSet->GetVarPartNumber())
-		bOk = false;
-	// Sinon, on teste effectivement l'inclusion
-	else
-	{
-		// Memorisation prealable des valeurs de l'autre ensemble de valeur
-		varPartValue = otherVarPartSet->GetHeadVarPart();
-		while (varPartValue != NULL)
-		{
-			part = varPartValue->GetVarPart();
-			nkdOtherValues.SetAt((NUMERIC)part, part);
-			otherVarPartSet->GetNextVarPart(varPartValue);
-		}
-
-		// Parcours des valeurs pour verifie s'i elles existe dans l'autre ensemble de valeur
-		varPartValue = GetHeadVarPart();
-		while (varPartValue != NULL)
-		{
-			part = varPartValue->GetVarPart();
-			if (nkdOtherValues.Lookup((NUMERIC)part) == NULL)
-			{
-				bOk = false;
-				break;
-			}
-			GetNextVarPart(varPartValue);
-		}
-	}
-	return bOk;
-}
-
-int KWDGVarPartSet::ComputeTotalFrequency() const
-{
-	int nTotalFrequency;
-	KWDGVarPartValue* value;
-
-	// Parcours des parties de variable pour calculer l'effectif cumule
-	nTotalFrequency = 0;
-	value = GetHeadVarPart();
-	while (value != NULL)
-	{
-		nTotalFrequency += value->GetVarPartFrequency();
-		GetNextVarPart(value);
-	}
-	return nTotalFrequency;
-}
-
-void KWDGVarPartSet::Import(KWDGVarPartSet* sourceVarPartSet)
-{
-	require(Check());
-	require(sourceVarPartSet != NULL);
-	require(sourceVarPartSet->Check());
-
-	// Transfert des valeurs de la premiere partie en tete du second
-	sourceVarPartSet->tailVarPart->nextVarPartValue = headVarPart;
-	headVarPart->prevVarPartValue = sourceVarPartSet->tailVarPart;
-	headVarPart = sourceVarPartSet->headVarPart;
-	nVarPartNumber += sourceVarPartSet->nVarPartNumber;
-
-	// On dereference les valeurs de la premiere partie
-	sourceVarPartSet->headVarPart = NULL;
-	sourceVarPartSet->tailVarPart = NULL;
-	sourceVarPartSet->nVarPartNumber = 0;
-
-	ensure(Check());
-}
-
-void KWDGVarPartSet::CopyFrom(const KWDGVarPartSet* sourceVarPartSet)
-{
-	KWDGVarPartValue* varPartValue;
-	KWDGVarPartValue* varPartCopyValue;
-
-	require(sourceVarPartSet != NULL);
-
-	// Nettoyage des parties de variable actuelles
-	DeleteAllVarPartValues();
-
-	// Recopie de la liste de valeurs source
-	varPartValue = sourceVarPartSet->GetHeadVarPart();
-	while (varPartValue != NULL)
-	{
-		varPartCopyValue = AddVarPart(varPartValue->GetVarPart());
-		assert(varPartCopyValue->GetVarPartFrequency() == varPartValue->GetVarPartFrequency());
-		sourceVarPartSet->GetNextVarPart(varPartValue);
-	}
-	assert(nVarPartNumber == sourceVarPartSet->nVarPartNumber);
-}
-
-void KWDGVarPartSet::UpgradeFrom(const KWDGVarPartSet* sourceVarPartSet)
-{
-	KWDGVarPartValue* part;
-	KWDGVarPartValue* partUpgrade;
-
-	require(sourceVarPartSet != NULL);
-
-	// Pour garantir la valeur correcte de nValueNumber si le sourceValueSet a ete compresse avant la copie
-	int nOldPartNumber;
-	nOldPartNumber = nVarPartNumber;
-
-	// Recopie de la liste de valeurs source
-	part = sourceVarPartSet->GetHeadVarPart();
-	while (part != NULL)
-	{
-		partUpgrade = AddVarPart(part->GetVarPart());
-		// partUpgrade->SetPartFrequency(part->GetPartFrequency());
-		sourceVarPartSet->GetNextVarPart(part);
-	}
-	// Pour garantir la valeur correcte de nValueNumber si le sourceValueSet a ete compresse avant la copie
-	nVarPartNumber = nOldPartNumber + sourceVarPartSet->nVarPartNumber;
-}
-
-void KWDGVarPartSet::SortVarPartValues()
-{
-	InternalSortValues(KWDGVarPartValueCompareAttributeNameAndVarPart);
-}
-
-boolean KWDGVarPartSet::AreVarPartValuesSorted() const
-{
-	KWDGVarPartValue* value1;
-	KWDGVarPartValue* value2;
-	int nCompare;
-	boolean bIsSorted = true;
-
-	value1 = GetHeadVarPart();
-	value2 = GetHeadVarPart();
-	GetNextVarPart(value2);
-
-	// Parcours des valeurs
-	while (value2 != NULL)
-	{
-		// Comparaison de la paire courante
-		nCompare = KWDGVarPartValueCompareAttributeNameAndVarPart(&value1, &value2);
-
-		if (nCompare > 0)
-		{
-			bIsSorted = false;
-			break;
-		}
-		GetNextVarPart(value1);
-		GetNextVarPart(value2);
-	}
-	return bIsSorted;
-}
-
-boolean KWDGVarPartSet::Check() const
-{
-	boolean bOk = true;
-	NumericKeyDictionary nkdCheckVarParts;
-	KWDGVarPartValue* varPartValue;
-	boolean bCheckFrequencies;
-	ALString sTmp;
-
-	// Test d'existence d'au moins une partie
-	if (nVarPartNumber == 0)
-	{
-		AddError("No var part specified");
-		bOk = false;
-	}
-
-	// Test des valeurs de la partie
-	if (bOk)
-	{
-		// On ne verifie les effectifs que si au moins un est specifie
-		bCheckFrequencies = ComputeTotalFrequency() > 0;
-
-		// Parcours des parties
-		varPartValue = GetHeadVarPart();
-		while (varPartValue != NULL)
-		{
-			// Erreur si partie deja enregistree avec cette valeur
-			if (nkdCheckVarParts.Lookup((NUMERIC)varPartValue) != NULL)
-			{
-				AddError(sTmp + "VarPart " + varPartValue->GetObjectLabel() +
-					 " already exists in the cluster");
-				bOk = false;
-				break;
-			}
-			// Erreur si effectif a 0
-			else if (bCheckFrequencies and varPartValue->GetVarPartFrequency() == 0)
-			{
-				AddError(sTmp + "VarPart " + varPartValue->GetObjectLabel() +
-					 " should have a non-zero frequency");
-				bOk = false;
-				break;
-			}
-			// On continue si pas d'erreur
-			else
-			{
-				// Ajout de la partie
-				nkdCheckVarParts.SetAt((NUMERIC)varPartValue, varPartValue);
-
-				// Valeur suivante
-				GetNextVarPart(varPartValue);
-			}
-		}
-	}
-	return bOk;
-}
-
-void KWDGVarPartSet::Write(ostream& ost) const
-{
-	// Identification
-	ost << GetClassLabel() << "\t" << GetObjectLabel() << "\n";
-
-	// Affichage des valeurs
-	WriteVarParts(ost);
-}
-
-void KWDGVarPartSet::WriteVarParts(ostream& ost) const
-{
-	KWDGVarPartValue* value;
-
-	// Affichage des valeurs
-	cout << "VarParts"
-	     << "\t" << GetVarPartNumber() << "\n";
-	value = GetHeadVarPart();
-	while (value != NULL)
-	{
-		ost << value->GetVarPart()->GetAttribute()->GetAttributeName() << "\t" << *(value->GetVarPart())
-		    << "\n";
-		GetNextVarPart(value);
-	}
-}
-
-const ALString KWDGVarPartSet::GetClassLabel() const
-{
-	return "VarPart set";
-}
-
-const ALString KWDGVarPartSet::GetObjectLabel() const
-{
-	ALString sLabel;
-	int nValue;
-	KWDGVarPartValue* dgVarPartValue;
-
-	// Libelle base sur l'ensemble des parties
-	sLabel = "{";
-	nValue = 0;
-	dgVarPartValue = GetHeadVarPart();
-	while (dgVarPartValue != NULL)
-	{
-		// Prise en compte si moins de trois valeurs
-		if (nValue < 3)
-		{
-			if (nValue > 0)
-				sLabel += ", ";
-			sLabel += dgVarPartValue->GetVarPart()->GetVarPartLabel();
-			nValue++;
-		}
-		// Arret si au moins quatre valeurs
-		else
-		{
-			sLabel += ", ...";
-			break;
-		}
-		GetNextVarPart(dgVarPartValue);
-	}
-	sLabel += "}";
-	return sLabel;
-}
-
-void KWDGVarPartSet::InternalSortValues(CompareFunction fCompare)
-{
-	ObjectArray oaValues;
-	int i;
-	KWDGVarPartValue* value;
-	KWDGVarPartValue* defaultValue;
-
-	require(fCompare != NULL);
-
-	// Rangement des valeurs dans un tableau (hors valeur speciale)
-	// CH V9 TODO
-	// Pour pouvoir traiter les valueSet qui ont ete compressees, la taille est
-	// deduite du parcours des valeurs
-	// oaValues.SetSize(GetValueNumber());
-	defaultValue = NULL;
-	value = GetHeadVarPart();
-	while (value != NULL)
-	{
-		oaValues.Add(value);
-		GetNextVarPart(value);
-	}
-
-	// Tri des valeurs selon la fonction de tri
-	oaValues.SetCompareFunction(fCompare);
-	oaValues.Sort();
-
-	// Rangement des valeurs dans la liste, selon l'ordre du tableau trie
-	headVarPart = NULL;
-	tailVarPart = NULL;
-	for (i = 0; i < oaValues.GetSize(); i++)
-	{
-		value = cast(KWDGVarPartValue*, oaValues.GetAt(i));
-
-		// Reinitialisation du chainage de la partie
-		value->prevVarPartValue = NULL;
-		value->nextVarPartValue = NULL;
-
-		// Ajout de la valeur en fin de liste
-		if (headVarPart == NULL)
-			headVarPart = value;
-		if (tailVarPart != NULL)
-		{
-			tailVarPart->nextVarPartValue = value;
-			value->prevVarPartValue = tailVarPart;
-		}
-		tailVarPart = value;
-	}
-}
-
-KWDGVarPartValue* KWDGVarPartSet::NewVarPartValue(KWDGPart* varPart) const
-{
-	return new KWDGVarPartValue(varPart);
-}
-
-boolean KWDGVarPartSet::GetEmulated() const
-{
-	return false;
+	return varPartValue1->CompareValue(varPartValue2);
 }
 
 //////////////////////////////////////////////////////////////////////////////

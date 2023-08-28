@@ -2230,7 +2230,7 @@ void CCCoclusteringReport::WriteComposition(const CCHierarchicalDataGrid* coclus
 	CCHDGSymbolValue* hdgValue;
 	// CH IV Begin
 	CCHDGVarPartSet* hdgVarPartSet;
-	KWDGVarPartValue* dgVarPartValue;
+	KWDGValue* dgVarPartValue;
 	CCHDGVarPartValue* hdgVarPartValue;
 	// CH IV End
 
@@ -2292,7 +2292,7 @@ void CCCoclusteringReport::WriteComposition(const CCHierarchicalDataGrid* coclus
 
 				// Parcours des valeurs
 				hdgVarPartSet = cast(CCHDGVarPartSet*, hdgPart->GetVarPartSet());
-				dgVarPartValue = hdgVarPartSet->GetHeadVarPart();
+				dgVarPartValue = hdgVarPartSet->GetHeadValue();
 				while (dgVarPartValue != NULL)
 				{
 					hdgVarPartValue = cast(CCHDGVarPartValue*, dgVarPartValue);
@@ -2304,7 +2304,7 @@ void CCCoclusteringReport::WriteComposition(const CCHierarchicalDataGrid* coclus
 					    << hdgVarPartValue->GetTypicality() << "\n";
 
 					// Valeur suivante
-					hdgVarPartSet->GetNextVarPart(dgVarPartValue);
+					hdgVarPartSet->GetNextValue(dgVarPartValue);
 				}
 
 				// Partie suivante
@@ -4009,7 +4009,7 @@ boolean CCCoclusteringReport::ReadJSONVarPartAttributeValueGroup(CCHDGAttribute*
 			dgVarPartValue = cast(CCHDGVarPartValue*, dgVarPartSet->AddVarPart(dgVarPart));
 
 			// Memorisation de l'effectif et de la typicite
-			dgVarPartValue->SetVarPartFrequency(ivValueFrequencies.GetAt(i));
+			dgVarPartValue->SetValueFrequency(ivValueFrequencies.GetAt(i));
 			dgVarPartValue->SetTypicality(dvValueTypicalities.GetAt(i));
 		}
 	}
@@ -4633,7 +4633,7 @@ void CCCoclusteringReport::WriteJSONDimensionPartitions(const CCHierarchicalData
 	KWDGInterval* dgInterval;
 	// CH IV Begin
 	CCHDGVarPartSet* hdgVarPartSet;
-	KWDGVarPartValue* dgVarPartValue;
+	KWDGValue* dgVarPartValue;
 	CCHDGVarPartValue* hdgVarPartValue;
 	KWDGAttribute* innerAttribute;
 	// CH IV End
@@ -4801,39 +4801,39 @@ void CCCoclusteringReport::WriteJSONDimensionPartitions(const CCHierarchicalData
 				fJSON->BeginObject();
 				fJSON->WriteKeyString("cluster", hdgPart->GetPartName());
 				fJSON->BeginKeyList("values");
-				dgVarPartValue = hdgVarPartSet->GetHeadVarPart();
+				dgVarPartValue = hdgVarPartSet->GetHeadValue();
 				while (dgVarPartValue != NULL)
 				{
 					hdgVarPartValue = cast(CCHDGVarPartValue*, dgVarPartValue);
 
-					if (hdgVarPartValue->GetVarPartFrequency() > 0)
+					if (hdgVarPartValue->GetValueFrequency() > 0)
 						fJSON->WriteString(hdgVarPartValue->GetVarPart()->GetVarPartLabel());
 
-					hdgVarPartSet->GetNextVarPart(dgVarPartValue);
+					hdgVarPartSet->GetNextValue(dgVarPartValue);
 				}
 				fJSON->EndList();
 
 				// Effectifs des valeurs de type partie de variable
 				fJSON->BeginKeyList("valueFrequencies");
-				dgVarPartValue = hdgVarPartSet->GetHeadVarPart();
+				dgVarPartValue = hdgVarPartSet->GetHeadValue();
 				while (dgVarPartValue != NULL)
 				{
 					hdgVarPartValue = cast(CCHDGVarPartValue*, dgVarPartValue);
-					if (hdgVarPartValue->GetVarPartFrequency() > 0)
-						fJSON->WriteInt(hdgVarPartValue->GetVarPartFrequency());
-					hdgVarPartSet->GetNextVarPart(dgVarPartValue);
+					if (hdgVarPartValue->GetValueFrequency() > 0)
+						fJSON->WriteInt(hdgVarPartValue->GetValueFrequency());
+					hdgVarPartSet->GetNextValue(dgVarPartValue);
 				}
 				fJSON->EndList();
 
 				// Typicalite des valeurs de type partie de variable
 				fJSON->BeginKeyList("valueTypicalities");
-				dgVarPartValue = hdgVarPartSet->GetHeadVarPart();
+				dgVarPartValue = hdgVarPartSet->GetHeadValue();
 				while (dgVarPartValue != NULL)
 				{
 					hdgVarPartValue = cast(CCHDGVarPartValue*, dgVarPartValue);
-					if (hdgVarPartValue->GetVarPartFrequency() > 0)
+					if (hdgVarPartValue->GetValueFrequency() > 0)
 						fJSON->WriteDouble(hdgVarPartValue->GetTypicality());
-					hdgVarPartSet->GetNextVarPart(dgVarPartValue);
+					hdgVarPartSet->GetNextValue(dgVarPartValue);
 				}
 				fJSON->EndList();
 				fJSON->EndObject();

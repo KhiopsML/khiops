@@ -982,11 +982,11 @@ double KWDataGridMerger::SearchBestPartMergeWithGarbageSearch(KWDGMPartMerge*& b
 				}
 				else if (attribute->GetAttributeType() == KWType::VarPart)
 				{
-					if (partMerge->GetPart1()->GetVarPartSet()->GetVarPartNumber() +
-						partMerge->GetPart2()->GetVarPartSet()->GetVarPartNumber() >
+					if (partMerge->GetPart1()->GetVarPartSet()->GetValueNumber() +
+						partMerge->GetPart2()->GetVarPartSet()->GetValueNumber() >
 					    cast(KWDGPart*, attributeM->slPartValueNumbers->GetHead())
 						->GetVarPartSet()
-						->GetVarPartNumber())
+						->GetValueNumber())
 					{
 						// Creation du nouveau groupe poubelle
 						garbagePart = new KWDGPart;
@@ -2011,7 +2011,7 @@ int KWDGMPartValueNumberCompare(const void* elem1, const void* elem2)
 	if (partM1->GetPartType() == KWType::Symbol)
 		return (partM2->GetValueSet()->GetValueNumber() - partM1->GetValueSet()->GetValueNumber());
 	else
-		return (partM2->GetVarPartSet()->GetVarPartNumber() - partM1->GetVarPartSet()->GetVarPartNumber());
+		return (partM2->GetVarPartSet()->GetValueNumber() - partM1->GetVarPartSet()->GetValueNumber());
 	// CH IV End
 }
 //////////////////////////////////////////////////////////////////////////////
