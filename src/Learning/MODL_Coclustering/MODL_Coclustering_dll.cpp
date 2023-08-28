@@ -93,37 +93,3 @@ KHIOPS_COCLUSTERING_API int StartKhiopsCoclustering(const char* sInputScenario, 
 	delete[] argv;
 	return EXIT_SUCCESS;
 }
-
-/********************************************************************
- * Le source suivant permet de compiler des sources developpes avec *
- * l'environnement Norm, d'utiliser le mode UIObject::Textual et    *
- * de ne pas linker avec jvm.lib (a eviter absoluement).            *
- * Moyennant ces conditions, on peut livrer un executable en mode   *
- * textuel ne necessitant pas l'installation prealable du JRE Java   *
- ********************************************************************/
-
-extern "C"
-{
-#ifdef _WIN32
-	// Version 32 bits
-	int __stdcall _imp__JNI_CreateJavaVM(void** pvm, void** penv, void* args)
-	{
-		exit(11);
-	}
-
-	// Version 64 bits
-	int __stdcall __imp_JNI_CreateJavaVM(void** pvm, void** penv, void* args)
-	{
-		exit(11);
-	}
-#else
-
-#ifndef __ANDROID__
-	int JNI_CreateJavaVM(void** pvm, void** penv, void* args)
-	{
-		exit(11);
-	}
-#endif // __ANDROID__
-
-#endif // _WIN32
-}
