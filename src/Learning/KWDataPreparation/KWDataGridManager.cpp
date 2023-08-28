@@ -349,9 +349,9 @@ double KWDataGridManager::ExportDataGridWithVarPartMergeOptimization(KWDataGrid*
 			part = targetAttribute->GetHeadPart();
 			while (part != NULL)
 			{
-				if (part->GetVarPartSet()->GetVarPartNumber() > nGarbageModalityNumber)
+				if (part->GetVarPartSet()->GetValueNumber() > nGarbageModalityNumber)
 				{
-					nGarbageModalityNumber = part->GetVarPartSet()->GetVarPartNumber();
+					nGarbageModalityNumber = part->GetVarPartSet()->GetValueNumber();
 					garbagePart = part;
 				}
 				targetAttribute->GetNextPart(part);
@@ -439,7 +439,7 @@ void KWDataGridManager::UpdateVarPartDataGridFromVarPartGroups(KWDataGrid* targe
 
 		// Mise a jour du groupe poubelle comme le groupe contenant le plus de parties de variables
 		if (GetVarPartAttributeGarbage() and
-		    targetPart->GetVarPartSet()->GetVarPartNumber() > targetAttribute->GetGarbageModalityNumber())
+		    targetPart->GetVarPartSet()->GetValueNumber() > targetAttribute->GetGarbageModalityNumber())
 			targetAttribute->SetGarbagePart(targetPart);
 
 		// Partie initiale suivante
@@ -455,7 +455,7 @@ void KWDataGridManager::UpdateVarPartDataGridFromVarPartGroups(KWDataGrid* targe
 		assert(targetPart->GetPartType() == KWType::VarPart);
 
 		// Destruction si elle est vide
-		if (targetPart->GetVarPartSet()->GetVarPartNumber() == 0)
+		if (targetPart->GetVarPartSet()->GetValueNumber() == 0)
 		{
 			targetAttribute->DeletePart(targetPart);
 			nTargetGroupNumber--;
@@ -722,7 +722,7 @@ void KWDataGridManager::ExportFrequencyTableFromOneAttribute(KWFrequencyTable* k
 		else if (oneAttributeDataGrid.GetAttributeAt(0)->GetAttributeType() == KWType::VarPart)
 		{
 			// Recopie du nombre de modalites
-			kwdfvFrequencyVector->SetModalityNumber(dgPart->GetVarPartSet()->GetVarPartNumber());
+			kwdfvFrequencyVector->SetModalityNumber(dgPart->GetValueSet()->GetValueNumber());
 		}
 		// CH IV End
 	}
@@ -910,7 +910,7 @@ void KWDataGridManager::ExportDataGridWithReferenceVarPartClusters(KWDataGrid* r
 	while (initialPart != NULL)
 	{
 		// On prend la premiere partie de variable du groupe
-		initialVarPart = initialPart->GetVarPartSet()->GetHeadVarPart()->GetVarPart();
+		initialVarPart = initialPart->GetVarPartSet()->GetHeadValue()->GetVarPart();
 
 		// Extraction de l'attribut interne issu de la grille de reference pour cette partie
 		referenceInnerAttribute =
@@ -1067,9 +1067,9 @@ void KWDataGridManager::ExportCells(KWDataGrid* targetDataGrid) const
 			else
 			{
 				// Recherche d'une partie de variable typique : la premiere partie de variable
-				assert(sourcePart->GetVarPartSet()->GetHeadVarPart() != NULL);
+				assert(sourcePart->GetVarPartSet()->GetHeadValue() != NULL);
 
-				sourceVarPart = sourcePart->GetVarPartSet()->GetHeadVarPart()->GetVarPart();
+				sourceVarPart = sourcePart->GetVarPartSet()->GetHeadValue()->GetVarPart();
 
 				// Recherche de la partie de variable cible qui contient cette partie de variable source
 				// (suite a la granularisation) Extraction de l'attribut de cette partie de variable
@@ -2367,8 +2367,8 @@ boolean KWDataGridManager::CheckCells(const KWDataGrid* targetDataGrid) const
 				else
 				{
 					// Recherche d'une partie de variable typique: la premiere
-					assert(targetPart->GetVarPartSet()->GetHeadVarPart() != NULL);
-					varPart = targetPart->GetVarPartSet()->GetHeadVarPart()->GetVarPart();
+					assert(targetPart->GetVarPartSet()->GetHeadValue() != NULL);
+					varPart = targetPart->GetVarPartSet()->GetHeadValue()->GetVarPart();
 
 					// Recherche du cluster de parties de variables correspondant
 					checkPart = checkAttribute->LookupVarPart(varPart);
@@ -2606,7 +2606,7 @@ void KWDataGridManager::InitialiseVarPartAttributeClonedParts(const KWDGAttribut
 	KWDGPart* targetPart;
 	KWDGPart* sourceVarPart;
 	KWDGPart* targetVarPart;
-	KWDGVarPartValue* sourceVarPartValue;
+	KWDGValue* sourceValue;
 
 	require(CheckAttributesConsistency(sourceAttribute, targetAttribute));
 	require(targetAttribute->GetAttributeType() == KWType::VarPart);
@@ -2637,17 +2637,17 @@ void KWDataGridManager::InitialiseVarPartAttributeClonedParts(const KWDGAttribut
 		targetPart = targetAttribute->AddPart();
 
 		// Transfert des parties de parties de variable avec de nouvelles parties de variable
-		sourceVarPartValue = sourcePart->GetVarPartSet()->GetHeadVarPart();
-		while (sourceVarPartValue != NULL)
+		sourceValue = sourcePart->GetVarPartSet()->GetHeadValue();
+		while (sourceValue != NULL)
 		{
-			sourceVarPart = sourceVarPartValue->GetVarPart();
+			sourceVarPart = sourceValue->GetVarPart();
 
 			// Memorisation de la partie cible correspondante
 			targetVarPart = cast(KWDGPart*, nkdTargetInnerAttributeVarParts.Lookup(sourceVarPart));
 			targetPart->GetVarPartSet()->AddVarPart(targetVarPart);
 
 			// Ajout de cette partie pour l'attribut interne
-			sourcePart->GetVarPartSet()->GetNextVarPart(sourceVarPartValue);
+			sourcePart->GetVarPartSet()->GetNextValue(sourceValue);
 		}
 
 		// Transfert du parametrage du groupe poubelle
@@ -3720,8 +3720,8 @@ double KWDataGridManager::MergePartsForVarPartAttributes(KWDataGrid* targetDataG
 	KWDGAttribute* innerAttribute;
 	KWDGPart* initialPart;
 	KWDGPart* initialSourcePart;
-	KWDGVarPartValue* currentVarPart;
-	KWDGVarPartValue* nextVarPart;
+	KWDGValue* currentValue;
+	KWDGValue* nextValue;
 	boolean bNewVarPart;
 	double dEpsilon = 1e-4;
 	double dDeltaClusterCost;
@@ -3746,35 +3746,35 @@ double KWDataGridManager::MergePartsForVarPartAttributes(KWDataGrid* targetDataG
 	while (initialPart != NULL)
 	{
 		// Tri des parties de variable du cluster
-		initialPart->GetVarPartSet()->SortVarPartValues();
+		initialPart->GetVarPartSet()->SortValues();
 
 		// Initialisation des deux premieres parties de variable
-		currentVarPart = initialPart->GetVarPartSet()->GetHeadVarPart();
-		nextVarPart = currentVarPart;
-		initialPart->GetVarPartSet()->GetNextVarPart(nextVarPart);
+		currentValue = initialPart->GetVarPartSet()->GetHeadValue();
+		nextValue = currentValue;
+		initialPart->GetVarPartSet()->GetNextValue(nextValue);
 
 		// Deplacement avec une partie et la suivante
-		while (nextVarPart != NULL)
+		while (nextValue != NULL)
 		{
 			bNewVarPart = false;
 
 			// Cas de non fusion
 			// Parties d'attributs distincts
-			if (currentVarPart->GetVarPart()->GetAttribute()->GetAttributeName() !=
-			    nextVarPart->GetVarPart()->GetAttribute()->GetAttributeName())
+			if (currentValue->GetVarPart()->GetAttribute()->GetAttributeName() !=
+			    nextValue->GetVarPart()->GetAttribute()->GetAttributeName())
 				bNewVarPart = true;
 			// Parties (intervalles) non consecutives d'un attribut numerique
-			else if (currentVarPart->GetVarPart()->GetPartType() == KWType::Continuous and
-				 abs(currentVarPart->GetVarPart()->GetInterval()->GetUpperBound() -
-				     nextVarPart->GetVarPart()->GetInterval()->GetLowerBound()) > dEpsilon)
+			else if (currentValue->GetVarPart()->GetPartType() == KWType::Continuous and
+				 abs(currentValue->GetVarPart()->GetInterval()->GetUpperBound() -
+				     nextValue->GetVarPart()->GetInterval()->GetLowerBound()) > dEpsilon)
 				bNewVarPart = true;
 
 			// Pas de fusion a realiser
 			if (bNewVarPart)
 			{
 				// Parties de variable suivantes
-				initialPart->GetVarPartSet()->GetNextVarPart(currentVarPart);
-				initialPart->GetVarPartSet()->GetNextVarPart(nextVarPart);
+				initialPart->GetVarPartSet()->GetNextValue(currentValue);
+				initialPart->GetVarPartSet()->GetNextValue(nextValue);
 			}
 			// Cas de fusion
 			else
@@ -3783,37 +3783,37 @@ double KWDataGridManager::MergePartsForVarPartAttributes(KWDataGrid* targetDataG
 				    targetVarPartAttribute->GetInitialValueNumber() - 1);
 
 				// Transfert des valeurs de la partie suivante
-				if (currentVarPart->GetVarPart()->GetPartType() == KWType::Continuous)
-					currentVarPart->GetVarPart()->GetInterval()->Import(
-					    nextVarPart->GetVarPart()->GetInterval());
+				if (currentValue->GetVarPart()->GetPartType() == KWType::Continuous)
+					currentValue->GetVarPart()->GetInterval()->Import(
+					    nextValue->GetVarPart()->GetInterval());
 				else
-					currentVarPart->GetVarPart()->GetValueSet()->Import(
-					    nextVarPart->GetVarPart()->GetValueSet());
+					currentValue->GetVarPart()->GetValueSet()->Import(
+					    nextValue->GetVarPart()->GetValueSet());
 
 				// Fusion des effectifs
-				currentVarPart->GetVarPart()->SetPartFrequency(
-				    currentVarPart->GetVarPart()->GetPartFrequency() +
-				    nextVarPart->GetVarPart()->GetPartFrequency());
+				currentValue->GetVarPart()->SetPartFrequency(
+				    currentValue->GetVarPart()->GetPartFrequency() +
+				    nextValue->GetVarPart()->GetPartFrequency());
 
 				// Suppression de la partie de variable de l'attribut interne
 				innerAttribute = targetDataGrid->GetInnerAttributes()->LookupInnerAttribute(
-				    currentVarPart->GetVarPart()->GetAttribute()->GetAttributeName());
-				innerAttribute->DeletePart(nextVarPart->GetVarPart());
+				    currentValue->GetVarPart()->GetAttribute()->GetAttributeName());
+				innerAttribute->DeletePart(nextValue->GetVarPart());
 				innerAttribute->SetGranularizedValueNumber(
 				    innerAttribute->GetGranularizedValueNumber() - 1);
 
 				// Evaluation de la variation de cout du cluster du fait de la diminution du nombre de
 				// parties
 				dDeltaClusterCost += -log(initialSourcePart->GetPartFrequency() +
-							  initialPart->GetVarPartSet()->GetVarPartNumber() - 1) +
-						     log(initialPart->GetVarPartSet()->GetVarPartNumber() - 1);
+							  initialPart->GetVarPartSet()->GetValueNumber() - 1) +
+						     log(initialPart->GetVarPartSet()->GetValueNumber() - 1);
 
 				// Suppression de la partie de variable du cluster
-				initialPart->GetVarPartSet()->DeleteVarPartValue(nextVarPart);
+				initialPart->GetVarPartSet()->DeleteValue(nextValue);
 
 				// Parties de variable suivantes
-				nextVarPart = currentVarPart;
-				initialPart->GetVarPartSet()->GetNextVarPart(nextVarPart);
+				nextValue = currentValue;
+				initialPart->GetVarPartSet()->GetNextValue(nextValue);
 			}
 		}
 		targetVarPartAttribute->GetNextPart(initialPart);
@@ -4113,13 +4113,13 @@ void KWDataGridManager::SortVarPartAttributeParts(const KWDGAttribute* sourceAtt
 
 		// Recherche de la partie groupee correspondante
 		groupedPart =
-		    groupedAttribute->LookupVarPart(sourcePart->GetVarPartSet()->GetHeadVarPart()->GetVarPart());
+		    groupedAttribute->LookupVarPart(sourcePart->GetVarPartSet()->GetHeadValue()->GetVarPart());
 
 		// Creation de l'association entre index de partie et premiere valeur du groupe
 		association = new KWSortableObject;
 		oaAssociations.SetAt(nSource, association);
 		association->SetIndex(nSource);
-		association->SetSortValue(groupedPart->GetVarPartSet()->GetHeadVarPart());
+		association->SetSortValue(groupedPart->GetVarPartSet()->GetHeadValue());
 	}
 
 	// Tri des association, apres une randomisation pour avoir un ordre aleatoire par groupe
@@ -4140,7 +4140,7 @@ void KWDataGridManager::SortVarPartAttributeParts(const KWDGAttribute* sourceAtt
 
 		// Recherche de la partie groupee correspondante
 		groupedPart =
-		    groupedAttribute->LookupVarPart(sourcePart->GetVarPartSet()->GetHeadVarPart()->GetVarPart());
+		    groupedAttribute->LookupVarPart(sourcePart->GetVarPartSet()->GetHeadValue()->GetVarPart());
 
 		// Rangement dans les tableaux en sortie
 		oaSortedSourceParts->SetAt(n, sourcePart);
