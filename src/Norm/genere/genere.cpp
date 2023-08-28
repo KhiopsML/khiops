@@ -26,11 +26,11 @@ void CommandLineError()
 	cout << "\t  -outputdir <DirName>\n";
 	cout << "\t      ouput directory for generation (default: current directory)";
 	cout << endl;
-	exit(0);
 }
 
-void Genere(int argc, char** argv)
+int Genere(int argc, char** argv)
 {
+	boolean bOk = true;
 	TableGenerator tgTest;
 	ALString sOption;
 	ALString sClassName;
@@ -82,6 +82,8 @@ void Genere(int argc, char** argv)
 						cout << "ouputdir <" << tgTest.GetOutputDir()
 						     << "> is not a valid directory\n";
 						CommandLineError();
+						bOk = false;
+						break;
 					}
 				}
 			}
@@ -89,65 +91,36 @@ void Genere(int argc, char** argv)
 			{
 				cout << sOption << " is not a valid option\n";
 				CommandLineError();
+				bOk = false;
+				break;
 			}
 		}
-		sClassName = argv[argc - 3];
-		sClassUserLabel = argv[argc - 2];
-		sAttributeFileName = argv[argc - 1];
-		cout << "Genere " << sClassName << " " << sClassUserLabel << " " << sAttributeFileName << endl;
-		tgTest.GenereWith(sClassName, sSpecificModelClassName, sSuperClassName, sClassUserLabel,
-				  sAttributeFileName);
-		cout << endl;
+		if (bOk)
+		{
+			sClassName = argv[argc - 3];
+			sClassUserLabel = argv[argc - 2];
+			sAttributeFileName = argv[argc - 1];
+			cout << "Genere " << sClassName << " " << sClassUserLabel << " " << sAttributeFileName << endl;
+			tgTest.GenereWith(sClassName, sSpecificModelClassName, sSuperClassName, sClassUserLabel,
+					  sAttributeFileName);
+			cout << endl;
+		}
 	}
 	else
+	{
 		CommandLineError();
+		bOk = false;
+	}
+
+	// On renvoie 0 si tout s'est bien passe, 1 si il y eu au moins une erreur
+	if (not bOk or Global::IsAtLeastOneError())
+		return EXIT_FAILURE;
+	else
+		return EXIT_SUCCESS;
 }
 
 // Portage unix void->int
 int main(int argc, char** argv)
 {
-	Genere(argc, argv);
-	return 0;
-}
-
-/********************************************************************
- * Le source suivant permet de compiler des sources developpes avec *
- * l'environnement Norm, d'utiliser le mode UIObject::Textual et    *
- * de ne pas linker avec jvm.lib (a eviter absoluement).            *
- * Moyennant ces conditions, on peut livrer un executable en mode   *
- * textuel ne necessitant pas l'installation prealable du JRE Java   *
- ********************************************************************/
-
-extern "C"
-{
-#ifdef _WIN32
-	// Version 32 bits
-	int __stdcall _imp__JNI_CreateJavaVM(void** pvm, void** penv, void* args)
-	{
-		exit(11);
-	}
-	int __stdcall _imp__JNI_GetCreatedJavaVMs(void**, long, long*)
-	{
-		exit(11);
-	}
-
-	// Version 64 bits
-	int __stdcall __imp_JNI_CreateJavaVM(void** pvm, void** penv, void* args)
-	{
-		exit(11);
-	}
-	int __stdcall __imp_JNI_GetCreatedJavaVMs(void**, long, long*)
-	{
-		exit(11);
-	}
-#else
-	int JNI_CreateJavaVM(void** pvm, void** penv, void* args)
-	{
-		exit(11);
-	}
-	int JNI_GetCreatedJavaVMs(void** pvm, void** penv, void* args)
-	{
-		exit(11);
-	}
-#endif // _WIN32
+	return Genere(argc, argv);
 }
