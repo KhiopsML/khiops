@@ -296,6 +296,7 @@ boolean CCCoclusteringReport::WriteJSONReport(const ALString& sJSONReportName,
 	ALString sLocalTempFileName;
 
 	require(coclusteringDataGrid != NULL);
+	require(coclusteringDataGrid->Check());
 
 	// Preparation de la copie sur HDFS si necessaire
 	bOk = PLRemoteFileService::BuildOutputWorkingFile(sJSONReportName, sLocalTempFileName);
@@ -4979,7 +4980,7 @@ void CCCoclusteringReport::WriteJSONInnerAttributePartition(const CCHierarchical
 		}
 
 		// Tri des valeurs
-		oaAllValues.SetCompareFunction(KWDGValueCompareDecreasingFrequency);
+		oaAllValues.SetCompareFunction(KWDGValueCompareFrequency);
 		oaAllValues.Sort();
 
 		// Ecriture des valeurs

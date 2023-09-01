@@ -34,6 +34,7 @@ int main(int argc, char** argv)
 	Global::ActivateSignalErrorManagement();
 
 	// Choix du repertoire de lancement pour le debugage sous Windows (a commenter apres fin du debug)
+	//DDD SetWindowsDebugDir("y_CoclusteringIV_Standard", "IrisLight");
 	SetWindowsDebugDir("y_CoclusteringIV_Standard", "IrisMissingValues");
 	//SetWindowsDebugDir("Standard", "Iris");
 

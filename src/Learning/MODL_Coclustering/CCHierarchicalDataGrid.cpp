@@ -1055,7 +1055,7 @@ int CCHDGValueCompareDecreasingTypicality(const void* elem1, const void* elem2)
 	else if (dCompare < -dPrecision)
 		nCompare = -1;
 	else
-		nCompare = KWDGValueCompareDecreasingFrequency(elem1, elem2);
+		nCompare = value1->CompareFrequency(value2);
 	return nCompare;
 }
 

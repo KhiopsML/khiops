@@ -1606,7 +1606,7 @@ void KWDataGridManager::BuildPartsOfContinuousAttributeFromFrequencyTable(KWDGAt
 	sourceAttribute->ExportParts(&oaSourceParts);
 
 	// Tri des intervalles source par borne inf croissante
-	oaSourceParts.SetCompareFunction(KWDGPartContinuousCompare);
+	oaSourceParts.SetCompareFunction(KWDGPartCompareValues);
 	oaSourceParts.Sort();
 
 	// Recuperation des effectifs "source" de la table d'effectifs
@@ -2114,12 +2114,12 @@ boolean KWDataGridManager::CheckParts(const KWDataGrid* targetDataGrid) const
 		{
 			// Ajout des parties source numeriques dans un tableau d'intervalles
 			sourceAttribute->ExportParts(&oaSourceIntervals);
-			oaSourceIntervals.SetCompareFunction(KWDGPartContinuousCompare);
+			oaSourceIntervals.SetCompareFunction(KWDGPartCompareValues);
 			oaSourceIntervals.Sort();
 
 			// Ajout des parties cibles numeriques dans un tableau d'intervalles
 			targetAttribute->ExportParts(&oaTargetIntervals);
-			oaTargetIntervals.SetCompareFunction(KWDGPartContinuousCompare);
+			oaTargetIntervals.SetCompareFunction(KWDGPartCompareValues);
 			oaTargetIntervals.Sort();
 
 			// Parcours des intervalles cibles pour verifier leur compatibilite
@@ -2742,7 +2742,7 @@ void KWDataGridManager::InitialiseAttributeRandomParts(const KWDGAttribute* sour
 		sourceAttribute->ExportParts(&oaSourceParts);
 
 		// Tri des intervalles source par borne inf croissante
-		oaSourceParts.SetCompareFunction(KWDGPartContinuousCompare);
+		oaSourceParts.SetCompareFunction(KWDGPartCompareValues);
 		oaSourceParts.Sort();
 
 		// Initialisation d'un ensemble de bornes aleatoires
@@ -2974,12 +2974,12 @@ void KWDataGridManager::AddAttributeRandomParts(const KWDGAttribute* sourceAttri
 	{
 		// Export des parties de l'attribut source
 		sourceAttribute->ExportParts(&oaSourceParts);
-		oaSourceParts.SetCompareFunction(KWDGPartContinuousCompare);
+		oaSourceParts.SetCompareFunction(KWDGPartCompareValues);
 		oaSourceParts.Sort();
 
 		// Export des parties de l'attribut obligatoire
 		mandatoryAttribute->ExportParts(&oaMandatoryParts);
-		oaMandatoryParts.SetCompareFunction(KWDGPartContinuousCompare);
+		oaMandatoryParts.SetCompareFunction(KWDGPartCompareValues);
 		oaMandatoryParts.Sort();
 		assert(oaMandatoryParts.GetSize() > 0);
 
@@ -3425,10 +3425,6 @@ void KWDataGridManager::InitialiseAttributeGranularizedSymbolParts(const KWDGAtt
 				targetAttribute->InitializeCatchAllValueSet(cleanedValueSet);
 				delete cleanedValueSet;
 			}
-
-			// Tri des valeurs du fourre tout
-			if (targetPart->GetValueSet()->IsDefaultPart())
-				targetPart->GetValueSet()->SortValues();
 		}
 	}
 
@@ -3472,7 +3468,6 @@ void KWDataGridManager::InitialiseAttributeGranularizedVarPartParts(const KWDGAt
 		InitialiseAttributeParts(sourceAttribute, targetAttribute);
 		targetAttribute->SetGranularizedValueNumber(sourceAttribute->GetInitialValueNumber());
 	}
-
 	// Granularisation
 	else
 	{
@@ -3513,6 +3508,7 @@ void KWDataGridManager::InitialiseAttributeGranularizedVarPartParts(const KWDGAt
 				// Ajout de ses valeurs
 				targetPart->GetVarPartSet()->UpgradeFrom(sourcePart->GetVarPartSet());
 			}
+
 			// CH IV Refactoring: nettoyer lignes ci-dessous
 			// CH TODO Inclusion poubelle
 			//// Compression et memorisation du fourre-tout si necessaire (mode supervise, attribut non
@@ -3699,6 +3695,11 @@ KWDataGridManager::CreateGranularizedInnerAttributes(const KWDGInnerAttributes* 
 			 odInnerAttributesQuantilesBuilders->Lookup(targetInnerAttribute->GetAttributeName()));
 		InitialiseAttributeGranularizedParts(sourceInnerAttribute, targetInnerAttribute, nGranularity,
 						     quantileBuilder);
+
+		// Tri des parties de l'attribut interne
+		// Necessaire, car la derniere partie issue de la granularisation peut etre d'effectif plus
+		// important en raison du groupe par defaut
+		targetInnerAttribute->SortParts();
 	}
 
 	// Memorisation de la granularite
@@ -3723,7 +3724,6 @@ double KWDataGridManager::MergePartsForVarPartAttributes(KWDataGrid* targetDataG
 	KWDGValue* currentValue;
 	KWDGValue* nextValue;
 	boolean bNewVarPart;
-	double dEpsilon = 1e-4;
 	double dDeltaClusterCost;
 
 	require(sourceDataGrid->IsVarPartDataGrid());
@@ -3746,6 +3746,8 @@ double KWDataGridManager::MergePartsForVarPartAttributes(KWDataGrid* targetDataG
 	while (initialPart != NULL)
 	{
 		// Tri des parties de variable du cluster
+		// Attention, les VarPart sont ici trie d'abord par attribut, puis par valeurs de la partie,
+		// de facon a pouvoir detecter la fusion de deux parties consecutives issues du meme attribut
 		initialPart->GetVarPartSet()->SortValues();
 
 		// Initialisation des deux premieres parties de variable
@@ -3757,6 +3759,8 @@ double KWDataGridManager::MergePartsForVarPartAttributes(KWDataGrid* targetDataG
 		while (nextValue != NULL)
 		{
 			bNewVarPart = false;
+			assert(currentValue->GetVarPart()->GetAttribute()->GetAttributeName() <=
+			       nextValue->GetVarPart()->GetAttribute()->GetAttributeName());
 
 			// Cas de non fusion
 			// Parties d'attributs distincts
@@ -3764,10 +3768,14 @@ double KWDataGridManager::MergePartsForVarPartAttributes(KWDataGrid* targetDataG
 			    nextValue->GetVarPart()->GetAttribute()->GetAttributeName())
 				bNewVarPart = true;
 			// Parties (intervalles) non consecutives d'un attribut numerique
-			else if (currentValue->GetVarPart()->GetPartType() == KWType::Continuous and
-				 abs(currentValue->GetVarPart()->GetInterval()->GetUpperBound() -
-				     nextValue->GetVarPart()->GetInterval()->GetLowerBound()) > dEpsilon)
-				bNewVarPart = true;
+			else if (currentValue->GetVarPart()->GetPartType() == KWType::Continuous)
+			{
+				assert(currentValue->GetVarPart()->GetInterval()->GetUpperBound() <=
+				       nextValue->GetVarPart()->GetInterval()->GetLowerBound());
+				if (currentValue->GetVarPart()->GetInterval()->GetUpperBound() <
+				    nextValue->GetVarPart()->GetInterval()->GetLowerBound())
+					bNewVarPart = true;
+			}
 
 			// Pas de fusion a realiser
 			if (bNewVarPart)
@@ -3790,7 +3798,7 @@ double KWDataGridManager::MergePartsForVarPartAttributes(KWDataGrid* targetDataG
 					currentValue->GetVarPart()->GetValueSet()->Import(
 					    nextValue->GetVarPart()->GetValueSet());
 
-				// Fusion des effectifs
+				// Cumul des effectifs
 				currentValue->GetVarPart()->SetPartFrequency(
 				    currentValue->GetVarPart()->GetPartFrequency() +
 				    nextValue->GetVarPart()->GetPartFrequency());
