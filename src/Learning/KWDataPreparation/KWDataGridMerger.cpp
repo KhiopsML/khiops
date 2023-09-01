@@ -493,7 +493,7 @@ void KWDataGridMerger::InitializeAllPartMerges()
 		if (attribute->GetAttributeType() == KWType::Continuous)
 		{
 			// Tri des intervalles
-			oaParts.SetCompareFunction(KWDGPartContinuousCompare);
+			oaParts.SetCompareFunction(KWDGPartCompareValues);
 			oaParts.Sort();
 
 			// Creation des fusions entre intervalles adjacents
@@ -524,12 +524,7 @@ void KWDataGridMerger::InitializeAllPartMerges()
 		else
 		{
 			// Tri des parties (pour des raisons d'affichage uniquement)
-			// CH IV Begin
-			if (attribute->GetAttributeType() == KWType::Symbol)
-				oaParts.SetCompareFunction(KWDGPartSymbolCompare);
-			else
-				oaParts.SetCompareFunction(KWDGPartVarPartCompare);
-			// CH IV End
+			oaParts.SetCompareFunction(KWDGPartCompareValues);
 			oaParts.Sort();
 
 			// Creation des fusions entre toutes les paires de parties

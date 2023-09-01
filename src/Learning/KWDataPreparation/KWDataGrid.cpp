@@ -1734,14 +1734,7 @@ void KWDataGrid::WriteCrossTableStats(ostream& ost, int nTargetIndex) const
 		nPart1++;
 		attribute1->GetNextPart(part1);
 	}
-	if (attribute1->GetAttributeType() == KWType::Continuous)
-		oaAttribute1Parts.SetCompareFunction(KWDGPartContinuousCompare);
-	// CH IV Begin
-	else if (attribute1->GetAttributeType() == KWType::Symbol)
-		oaAttribute1Parts.SetCompareFunction(KWDGPartSymbolCompare);
-	else
-		oaAttribute1Parts.SetCompareFunction(KWDGPartVarPartCompare);
-	// CH IV End
+	oaAttribute1Parts.SetCompareFunction(KWDGPartCompareValues);
 	oaAttribute1Parts.Sort();
 
 	// Tri des parties de l'attribut 2
@@ -1754,14 +1747,7 @@ void KWDataGrid::WriteCrossTableStats(ostream& ost, int nTargetIndex) const
 		nPart2++;
 		attribute2->GetNextPart(part2);
 	}
-	if (attribute2->GetAttributeType() == KWType::Continuous)
-		oaAttribute2Parts.SetCompareFunction(KWDGPartContinuousCompare);
-	// CH IV Begin
-	else if (attribute2->GetAttributeType() == KWType::Symbol)
-		oaAttribute2Parts.SetCompareFunction(KWDGPartSymbolCompare);
-	else
-		oaAttribute2Parts.SetCompareFunction(KWDGPartVarPartCompare);
-	// CH IV End
+	oaAttribute1Parts.SetCompareFunction(KWDGPartCompareValues);
 	oaAttribute2Parts.Sort();
 
 	// Affichage de la ligne d'entete
@@ -2532,7 +2518,7 @@ void KWDGAttribute::BuildIndexingStructure()
 			ExportParts(&oaIntervals);
 
 			// Tri des intervalles par borne inf
-			oaIntervals.SetCompareFunction(KWDGPartContinuousCompare);
+			oaIntervals.SetCompareFunction(KWDGPartCompareValues);
 			oaIntervals.Sort();
 		}
 		// Sinon, indexation des parties par les valeurs
@@ -2958,7 +2944,9 @@ boolean KWDGAttribute::Check() const
 		AddError("Initial value number must be greater or equal than granularized value number");
 		bOk = false;
 	}
-	else if (KWType::IsSimple(nAttributeType) and nPartNumber > nGranularizedValueNumber)
+	// Verification uniquement si on a des infos sur la granularisation
+	else if (KWType::IsSimple(nAttributeType) and nPartNumber > nGranularizedValueNumber and
+		 nGranularizedValueNumber > 0)
 	// CH IV End
 	{
 		AddError("Granularized value number must be greater or equal than part number");
@@ -3078,7 +3066,7 @@ boolean KWDGAttribute::Check() const
 		}
 
 		// Tri des intervalles par borne inf
-		oaCheckIntervals.SetCompareFunction(KWDGPartContinuousCompare);
+		oaCheckIntervals.SetCompareFunction(KWDGPartCompareValues);
 		oaCheckIntervals.Sort();
 
 		// Verification des intervalles
@@ -3281,17 +3269,17 @@ void KWDGAttribute::SortParts()
 	ObjectArray oaParts;
 	KWDGPart* part;
 
-	// Tri des valeurs dans chaque partie d'attribut symbolique
+	// Tri des valeurs par effectif decroissant dans chaque partie d'attribut symbolique
 	if (GetAttributeType() == KWType::Symbol)
 	{
 		part = GetHeadPart();
 		while (part != NULL)
 		{
-			part->GetValueSet()->SortValues();
+			part->GetValueSet()->SortValueByDecreasingFrequencies();
 			GetNextPart(part);
 		}
 	}
-	// CH IV Begin
+	// Tri par partie de variable (attribut, puis valeur de la parties) dans le cas d'un attribut VarPart
 	else if (GetAttributeType() == KWType::VarPart)
 	{
 		part = GetHeadPart();
@@ -3304,13 +3292,7 @@ void KWDGAttribute::SortParts()
 
 	// Tri des parties par intervalle croissant pour les attribut continus et
 	// ou par effectif decroissant pour les attributs symboliques ou de type varpart
-	if (GetAttributeType() == KWType::Continuous)
-		InternalSortParts(KWDGPartContinuousCompare);
-	else if (GetAttributeType() == KWType::Symbol)
-		InternalSortParts(KWDGPartSymbolCompareDecreasingFrequency);
-	else
-		InternalSortParts(KWDGPartVarPartCompareDecreasingFrequency);
-	// CH IV End
+	InternalSortParts(KWDGPartCompare);
 }
 
 boolean KWDGAttribute::ArePartsSorted() const
@@ -3327,13 +3309,13 @@ boolean KWDGAttribute::ArePartsSorted() const
 		part = GetHeadPart();
 		while (part != NULL)
 		{
-			bIsSorted = part->GetValueSet()->AreValuesSorted();
+			bIsSorted = part->GetValueSet()->AreValuesSortedByDecreasingFrequencies();
 			if (not bIsSorted)
 				break;
 			GetNextPart(part);
 		}
 	}
-	// CH IV Begin
+	// Verification du tri des valeurs dans chaque partie d'attribut VarPart
 	else if (GetAttributeType() == KWType::VarPart)
 	{
 		part = GetHeadPart();
@@ -3345,13 +3327,11 @@ boolean KWDGAttribute::ArePartsSorted() const
 			GetNextPart(part);
 		}
 	}
-	// CH IV End
-	if (not bIsSorted)
-		return false;
 
-	else
+	// Verification du tri des partie si ok
+	if (bIsSorted)
 	{
-		// Verification Tri des parties par intervalle croissant pour les attribut continus et
+		// Verification du tri des parties par intervalle croissant pour les attribut continus et
 		// ou par effectif decroissant pour les attributs symboliques
 
 		// Initialisation
@@ -3362,21 +3342,8 @@ boolean KWDGAttribute::ArePartsSorted() const
 		// Parcours des parties
 		while (nextPart != NULL)
 		{
-			// Comparaison
-			// Cas continu
-			if (GetAttributeType() == KWType::Continuous)
-				nCompare = KWDGPartContinuousCompare(&part, &nextPart);
-			// CH IV Begin
-			// Cas categoriel
-			else if (GetAttributeType() == KWType::Symbol)
-				nCompare = KWDGPartSymbolCompareDecreasingFrequency(&part, &nextPart);
-			// Cas VarPart
-			else
-				nCompare = KWDGPartVarPartCompareDecreasingFrequency(&part, &nextPart);
-
-			// CH IV Refactoring: nettoyer ligne suivante???
-			// Avant integration coclustering IV nCompare = KWDGPartSymbolCompareDecreasingFrequency(&part,
-			// &nextPart); CH IV End Erreur de tri
+			// Comparaison des partie par intervalles, ou par effectif decroissant, puis valeurs Symbol ou VarPart)
+			nCompare = part->ComparePart(nextPart);
 			if (nCompare > 0)
 			{
 				bIsSorted = false;
@@ -3387,7 +3354,6 @@ boolean KWDGAttribute::ArePartsSorted() const
 			GetNextPart(part);
 			GetNextPart(nextPart);
 		}
-
 		return bIsSorted;
 	}
 }
@@ -3802,6 +3768,35 @@ boolean KWDGPart::IsSubPart(const KWDGPart* otherPart) const
 		return GetValueSet()->IsSubValueSet(otherPart->GetValueSet());
 }
 
+int KWDGPart::ComparePart(const KWDGPart* otherPart) const
+{
+	int nCompare;
+
+	require(otherPart != NULL);
+	require(GetPartType() == otherPart->GetPartType());
+
+	if (GetPartType() == KWType::Continuous)
+		nCompare = GetInterval()->ComparePartValues(otherPart->GetInterval());
+	else
+	{
+		nCompare = -GetPartFrequency() + otherPart->GetPartFrequency();
+		if (nCompare == 0)
+			nCompare = GetValueSet()->ComparePartValues(otherPart->GetValueSet());
+	}
+	return nCompare;
+}
+
+int KWDGPart::ComparePartValues(const KWDGPart* otherPart) const
+{
+	int nCompare;
+
+	require(otherPart != NULL);
+	require(GetPartType() == otherPart->GetPartType());
+
+	nCompare = GetPartValues()->ComparePartValues(otherPart->GetPartValues());
+	return nCompare;
+}
+
 boolean KWDGPart::Check() const
 {
 	boolean bOk = true;
@@ -4077,7 +4072,7 @@ boolean KWDGPart::GetEmulated() const
 	return false;
 }
 
-int KWDGPartContinuousCompare(const void* elem1, const void* elem2)
+int KWDGPartCompare(const void* elem1, const void* elem2)
 {
 	KWDGPart* part1;
 	KWDGPart* part2;
@@ -4089,47 +4084,13 @@ int KWDGPartContinuousCompare(const void* elem1, const void* elem2)
 	// Acces a la parties
 	part1 = cast(KWDGPart*, *(Object**)elem1);
 	part2 = cast(KWDGPart*, *(Object**)elem2);
-	assert(part1->GetPartType() == KWType::Continuous);
-	assert(part2->GetPartType() == KWType::Continuous);
 
 	// Comparaison: on compare en priorite sur les bornes inf
-	nCompare = KWContinuous::Compare(part1->GetInterval()->GetLowerBound(), part2->GetInterval()->GetLowerBound());
-	if (nCompare == 0)
-		nCompare =
-		    KWContinuous::Compare(part1->GetInterval()->GetUpperBound(), part2->GetInterval()->GetUpperBound());
+	return part1->ComparePart(part2);
 	return nCompare;
 }
 
-int KWDGPartSymbolCompare(const void* elem1, const void* elem2)
-{
-	KWDGPart* part1;
-	KWDGPart* part2;
-
-	require(elem1 != NULL);
-	require(elem2 != NULL);
-
-	// Acces aux parties
-	part1 = cast(KWDGPart*, *(Object**)elem1);
-	part2 = cast(KWDGPart*, *(Object**)elem2);
-	assert(part1->GetPartType() == KWType::Symbol);
-	assert(part2->GetPartType() == KWType::Symbol);
-
-	// Comparaison de la premiere valeur de la partie
-	if (part1->GetValueSet()->GetHeadValue() == NULL)
-	{
-		if (part2->GetValueSet()->GetHeadValue() == NULL)
-			return 0;
-		else
-			return -1;
-	}
-	else if (part2->GetValueSet()->GetHeadValue() == NULL)
-		return 1;
-	else
-		return part1->GetValueSet()->GetHeadValue()->GetSymbolValue().CompareValue(
-		    part2->GetValueSet()->GetHeadValue()->GetSymbolValue());
-}
-
-int KWDGPartSymbolCompareDecreasingFrequency(const void* elem1, const void* elem2)
+int KWDGPartCompareValues(const void* elem1, const void* elem2)
 {
 	KWDGPart* part1;
 	KWDGPart* part2;
@@ -4141,77 +4102,12 @@ int KWDGPartSymbolCompareDecreasingFrequency(const void* elem1, const void* elem
 	// Acces a la parties
 	part1 = cast(KWDGPart*, *(Object**)elem1);
 	part2 = cast(KWDGPart*, *(Object**)elem2);
-	assert(part1->GetPartType() == KWType::Symbol);
-	assert(part2->GetPartType() == KWType::Symbol);
 
-	// Comparaison
-	nCompare = -part1->GetPartFrequency() + part2->GetPartFrequency();
-
-	// Comparaison sur la valeur en cas d'egalite
-	if (nCompare == 0)
-		nCompare = KWDGPartSymbolCompare(elem1, elem2);
-	return nCompare;
-}
-// CH IV Begin
-int KWDGPartVarPartCompare(const void* elem1, const void* elem2)
-{
-	KWDGPart* part1;
-	KWDGPart* part2;
-	KWDGValue* value1;
-	KWDGValue* value2;
-
-	require(elem1 != NULL);
-	require(elem2 != NULL);
-
-	// Acces a la parties
-	part1 = cast(KWDGPart*, *(Object**)elem1);
-	part2 = cast(KWDGPart*, *(Object**)elem2);
-	assert(part1->GetPartType() == KWType::VarPart);
-	assert(part2->GetPartType() == KWType::VarPart);
-
-	// Comparaison de la premiere partie de variable de la partie
-	if (part1->GetVarPartSet()->GetHeadValue() == NULL)
-	{
-		if (part2->GetVarPartSet()->GetHeadValue() == NULL)
-			return 0;
-		else
-			return -1;
-	}
-	else if (part2->GetVarPartSet()->GetHeadValue() == NULL)
-		return 1;
-	else
-	{
-		value1 = part1->GetVarPartSet()->GetHeadValue();
-		value2 = part2->GetVarPartSet()->GetHeadValue();
-		return value1->CompareValue(value2);
-	}
-}
-
-int KWDGPartVarPartCompareDecreasingFrequency(const void* elem1, const void* elem2)
-{
-	KWDGPart* part1;
-	KWDGPart* part2;
-	int nCompare;
-
-	require(elem1 != NULL);
-	require(elem2 != NULL);
-
-	// Acces a la parties
-	part1 = cast(KWDGPart*, *(Object**)elem1);
-	part2 = cast(KWDGPart*, *(Object**)elem2);
-	assert(part1->GetPartType() == KWType::VarPart);
-	assert(part2->GetPartType() == KWType::VarPart);
-
-	// Comparaison
-	nCompare = -part1->GetPartFrequency() + part2->GetPartFrequency();
-
-	// Comparaison sur la valeur en cas d'egalite
-	if (nCompare == 0)
-		nCompare = KWDGPartVarPartCompare(elem1, elem2);
+	// Comparaison: on compare en priorite sur les bornes inf
+	return part1->ComparePartValues(part2);
 	return nCompare;
 }
 
-// CH IV End
 //////////////////////////////////////////////////////////////////////////////
 // Classe KWDGInterval
 
@@ -4280,6 +4176,22 @@ void KWDGInterval::UpgradeFrom(const KWDGPartValues* sourcePartValues)
 void KWDGInterval::CopyFrom(const KWDGPartValues* sourcePartValues)
 {
 	CopyFrom(cast(KWDGInterval*, sourcePartValues));
+}
+
+int KWDGInterval::ComparePartValues(const KWDGPartValues* otherPartValues) const
+{
+	int nCompare;
+	KWDGInterval* otherInterval;
+
+	require(otherPartValues != NULL);
+	require(otherPartValues->GetValueType() == GetValueType());
+
+	// Comparaison: on compare en priorite sur les bornes inf
+	otherInterval = cast(KWDGInterval*, otherPartValues);
+	nCompare = KWContinuous::Compare(GetLowerBound(), otherInterval->GetLowerBound());
+	if (nCompare == 0)
+		nCompare = KWContinuous::Compare(GetUpperBound(), otherInterval->GetUpperBound());
+	return nCompare;
 }
 
 boolean KWDGInterval::Check() const
@@ -4547,48 +4459,22 @@ void KWDGValueSet::UpgradeFrom(const KWDGValueSet* sourceValueSet)
 
 void KWDGValueSet::SortValues()
 {
-	InternalSortValues(KWDGValueCompareDecreasingFrequency);
+	InternalSortValues(KWDGValueCompareValue);
+}
+
+void KWDGValueSet::SortValueByDecreasingFrequencies()
+{
+	InternalSortValues(KWDGValueCompareFrequency);
 }
 
 boolean KWDGValueSet::AreValuesSorted() const
 {
-	KWDGValue* value1;
-	KWDGValue* value2;
-	int nCompare;
-	boolean bIsSorted = true;
+	return InternalAreValuesSorted(KWDGValueCompareValue);
+}
 
-	value1 = GetHeadValue();
-	value2 = GetHeadValue();
-	GetNextValue(value2);
-
-	// Parcours des valeurs
-	while (value2 != NULL)
-	{
-		if (value1->IsDefaultValue())
-		{
-			bIsSorted = false;
-			break;
-		}
-
-		if (value2->IsDefaultValue())
-		{
-			if (value2 != GetTailValue())
-				bIsSorted = false;
-			break;
-		}
-
-		// Comparaison de la paire courante
-		nCompare = KWDGValueCompareDecreasingFrequency(&value1, &value2);
-
-		if (nCompare > 0)
-		{
-			bIsSorted = false;
-			break;
-		}
-		GetNextValue(value1);
-		GetNextValue(value2);
-	}
-	return bIsSorted;
+boolean KWDGValueSet::AreValuesSortedByDecreasingFrequencies() const
+{
+	return InternalAreValuesSorted(KWDGValueCompareFrequency);
 }
 
 boolean KWDGValueSet::IsSubPartValues(const KWDGPartValues* otherPartValues) const
@@ -4609,6 +4495,30 @@ void KWDGValueSet::UpgradeFrom(const KWDGPartValues* sourcePartValues)
 void KWDGValueSet::CopyFrom(const KWDGPartValues* sourcePartValues)
 {
 	CopyFrom(cast(KWDGValueSet*, sourcePartValues));
+}
+
+int KWDGValueSet::ComparePartValues(const KWDGPartValues* otherPartValues) const
+{
+	int nCompare;
+	KWDGValueSet* otherValueSet;
+
+	require(otherPartValues != NULL);
+	require(otherPartValues->GetValueType() == GetValueType());
+
+	// Comparaison de la premiere valeur de la partie
+	otherValueSet = cast(KWDGValueSet*, otherPartValues);
+	if (GetHeadValue() == NULL)
+	{
+		if (otherValueSet->GetHeadValue() == NULL)
+			return 0;
+		else
+			return -1;
+	}
+	else if (otherValueSet->GetHeadValue() == NULL)
+		return 1;
+	else
+		return GetHeadValue()->CompareValue(otherValueSet->GetHeadValue());
+	return nCompare;
 }
 
 boolean KWDGValueSet::Check() const
@@ -4828,6 +4738,47 @@ void KWDGValueSet::InternalSortValues(CompareFunction fCompare)
 	}
 }
 
+boolean KWDGValueSet::InternalAreValuesSorted(CompareFunction fCompare) const
+{
+	KWDGValue* value1;
+	KWDGValue* value2;
+	int nCompare;
+	boolean bIsSorted = true;
+
+	value1 = GetHeadValue();
+	value2 = GetHeadValue();
+	GetNextValue(value2);
+
+	// Parcours des valeurs
+	while (value2 != NULL)
+	{
+		// La valeur manquante doit etre en dernier
+		if (value1->IsDefaultValue())
+		{
+			bIsSorted = false;
+			break;
+		}
+		if (value2->IsDefaultValue())
+		{
+			if (value2 != GetTailValue())
+				bIsSorted = false;
+			break;
+		}
+
+		// Comparaison de la paire courante
+		nCompare = fCompare(&value1, &value2);
+
+		if (nCompare > 0)
+		{
+			bIsSorted = false;
+			break;
+		}
+		GetNextValue(value1);
+		GetNextValue(value2);
+	}
+	return bIsSorted;
+}
+
 boolean KWDGValueSet::GetEmulated() const
 {
 	return false;
@@ -4902,11 +4853,10 @@ KWDGValueSet* KWDGSymbolValueSet::ComputeCleanedValueSet() const
 //////////////////////////////////////////////////////////////////////////////
 // Classe KWDGValue
 
-int KWDGValueCompareDecreasingFrequency(const void* elem1, const void* elem2)
+int KWDGValueCompareValue(const void* elem1, const void* elem2)
 {
 	KWDGValue* value1;
 	KWDGValue* value2;
-	int nCompare;
 
 	require(elem1 != NULL);
 	require(elem2 != NULL);
@@ -4916,11 +4866,23 @@ int KWDGValueCompareDecreasingFrequency(const void* elem1, const void* elem2)
 	value2 = cast(KWDGValue*, *(Object**)elem2);
 
 	// Comparaison
-	nCompare = -value1->GetValueFrequency() + value2->GetValueFrequency();
-	if (nCompare != 0)
-		return nCompare;
-	else
-		return value1->CompareValue(value2);
+	return value1->CompareValue(value2);
+}
+
+int KWDGValueCompareFrequency(const void* elem1, const void* elem2)
+{
+	KWDGValue* value1;
+	KWDGValue* value2;
+
+	require(elem1 != NULL);
+	require(elem2 != NULL);
+
+	// Acces a la valeur
+	value1 = cast(KWDGValue*, *(Object**)elem1);
+	value2 = cast(KWDGValue*, *(Object**)elem2);
+
+	// Comparaison
+	return value1->CompareFrequency(value2);
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -4977,29 +4939,17 @@ const ALString KWDGSymbolValue::GetObjectLabel() const
 int KWDGVarPartValue::CompareValue(const KWDGValue* otherValue) const
 {
 	int nCompare;
-	KWDGPart* varPart1;
-	KWDGPart* varPart2;
 
 	require(otherValue != NULL);
 
 	// Comparaison des noms d'attributs des parties de variable
 	nCompare = GetVarPart()->GetAttribute()->GetAttributeName().Compare(
 	    otherValue->GetVarPart()->GetAttribute()->GetAttributeName());
-	if (nCompare != 0)
-		return nCompare;
-	// Cas de parties de variable d'un meme attribut
-	else
 
-	{
-		varPart1 = GetVarPart();
-		varPart2 = otherValue->GetVarPart();
-		// Cas d'un attribut numerique : comparaison des intervalles
-		if (varPart1->GetPartType() == KWType::Continuous)
-			return KWDGPartContinuousCompare(&varPart1, &varPart2);
-		// Cas d'un attribut categoriel : comparaison des effectifs des valueSet
-		else
-			return KWDGPartSymbolCompare(&varPart1, &varPart2);
-	}
+	// Si egalite, comparaison sur les valeurs de la partie (intervalle, ou premiere valeur du groupe)
+	if (nCompare == 0)
+		nCompare = GetVarPart()->ComparePartValues(otherValue->GetVarPart());
+	return nCompare;
 }
 
 void KWDGVarPartValue::Write(ostream& ost) const
@@ -5021,57 +4971,6 @@ const ALString KWDGVarPartValue::GetObjectLabel() const
 {
 	return varPart->GetVarPartLabel();
 }
-
-//DDD
-//DDD BEGIN Ajout temporaire de methodes, pour debuggage
-//DDD
-
-//DDD Ajout temporaire de methodes, pour debuggage
-int KWDGVarPartValueCompareAttributeNameAndVarPart(const void* elem1, const void* elem2)
-{
-	KWDGVarPartValue* value1;
-	KWDGVarPartValue* value2;
-	KWDGPart* varPart1;
-	KWDGPart* varPart2;
-	int nCompare;
-
-	require(elem1 != NULL);
-	require(elem2 != NULL);
-
-	// Acces a la valeur
-	value1 = cast(KWDGVarPartValue*, *(Object**)elem1);
-	value2 = cast(KWDGVarPartValue*, *(Object**)elem2);
-
-	// Comparaison des noms d'attributs des parties de variable
-	nCompare = value1->GetVarPart()->GetAttribute()->GetAttributeName().Compare(
-	    value2->GetVarPart()->GetAttribute()->GetAttributeName());
-	if (nCompare != 0)
-		return nCompare;
-	// Cas de parties de variable d'un meme attribut
-	else
-	{
-		varPart1 = value1->GetVarPart();
-		varPart2 = value2->GetVarPart();
-		// Cas d'un attribut numerique : comparaison des intervalles
-		if (varPart1->GetPartType() == KWType::Continuous)
-			return KWDGPartContinuousCompare(&varPart1, &varPart2);
-		// Cas d'un attribut categoriel : comparaison des effectifs des valueSet
-		else
-			return KWDGPartSymbolCompare(&varPart1, &varPart2);
-	}
-}
-
-//DDD Ajout temporaire de methodes, pour debuggage
-// Tri des parties de variable par nom de variable puis tri des parties de la meme variable, pour preparer
-// l'affichage
-void KWDGVarPartSet::SortValues()
-{
-	InternalSortValues(KWDGVarPartValueCompareAttributeNameAndVarPart);
-}
-
-//DDD
-//DDD END Ajout temporaire de methodes, pour debuggage
-//DDD
 
 int KWSortableObjectCompareVarPart(const void* elem1, const void* elem2)
 {
@@ -5590,16 +5489,7 @@ int KWDGCellCompareValue(const void* elem1, const void* elem2)
 		assert(part1->GetPartType() == part2->GetPartType());
 
 		// Comparaison selon le type de partie
-		if (part1->GetPartType() == KWType::Continuous)
-			nPartCompare = KWDGPartContinuousCompare(&part1, &part2);
-		// CH IV Begin
-		else if (part1->GetPartType() == KWType::Symbol)
-			nPartCompare = KWDGPartSymbolCompare(&part1, &part2);
-		else if (part1->GetPartType() == KWType::VarPart)
-			nPartCompare = KWDGPartVarPartCompare(&part1, &part2);
-		else
-			nPartCompare = -1;
-		// CH IV End
+		nPartCompare = part1->ComparePartValues(part2);
 		if (nPartCompare != 0)
 			return nPartCompare;
 	}

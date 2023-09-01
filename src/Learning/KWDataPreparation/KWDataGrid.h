@@ -643,11 +643,11 @@ public:
 
 	// Tri des parties pour preparer l'affichage
 	// Les intervalles sont tries par valeur croissante
-	// CH IV Begin
 	// Les groupes (de valeurs ou de parties de variable) sont tries par effectif decroissant
-	// Les valeurs dans les groupes sont tries par effectif decroissant
-	// Les parties de variables dans les groupes sont tries par attribut puis en appliquant le tri des intervalles
-	// ou des groupes au sein de chaque attribut CH IV End
+	// Danc chaque partie:
+	// - Symbol: les valeurs dans les groupes sont tries par effectif decroissant
+	// - VarPart: les parties de variables dans les groupes sont tries par attribut puis
+	//    par valeur de la partie, intervalles, ou valeurs du groupe
 	void SortParts();
 
 	// Verification du tri des parties : couteux, a utiliser essentiellement dans les assertions
@@ -778,6 +778,7 @@ public:
 	int GetPartType() const;
 
 	// Acces aux valeurs, selon le type
+	KWDGPartValues* GetPartValues() const;
 	KWDGInterval* GetInterval() const;
 	KWDGValueSet* GetValueSet() const;
 	KWDGSymbolValueSet* GetSymbolValueSet() const;
@@ -815,6 +816,16 @@ public:
 
 	// Test si la partie est une sous-partie de l'autre partie en parametre
 	boolean IsSubPart(const KWDGPart* otherPart) const;
+
+	// Comparaison de deux parties en exploitant la taille des parties, sauf dans le cas numerique
+	// - par intervalle si numerique
+	// - par effectif decroissant puis valeur si ensemble de valeurs
+	int ComparePart(const KWDGPart* otherPart) const;
+
+	// Comparaison des valeurs des parties
+	// - par intervalle si numerique
+	// - par premiere valeur si groupe de valeur categoriel ou VarPart
+	int ComparePartValues(const KWDGPart* otherPart) const;
 
 	// Controle d'integrite local a la partie (valeurs, cellules de la partie)
 	boolean Check() const override;
@@ -883,24 +894,11 @@ protected:
 	// CH IV End
 };
 
-// Comparaison de deux parties numeriques, sur la base de leur borne sup
-int KWDGPartContinuousCompare(const void* elem1, const void* elem2);
+// Comparaison de deux parties, par effectif decroissant puis valeur, ou par intervalle (cf. ComparePart)
+int KWDGPartCompare(const void* elem1, const void* elem2);
 
-// Comparaison de deux parties symboliques, sur la base de leur premiere valeur
-int KWDGPartSymbolCompare(const void* elem1, const void* elem2);
-
-// Comparaison de deux parties symboliques, par effectif decroissant
-int KWDGPartSymbolCompareDecreasingFrequency(const void* elem1, const void* elem2);
-
-// CH IV Begin
-// Comparaison de deux parties de type parties de variables sur la base de leur premiere partie de variable :
-// - le nom de l'attribut des premieres parties
-// - la comparaison des premieres parties si l'attribut est semblable
-int KWDGPartVarPartCompare(const void* elem1, const void* elem2);
-
-// Comparaison de deux parties de parties de variables, par effectif decroissant
-int KWDGPartVarPartCompareDecreasingFrequency(const void* elem1, const void* elem2);
-// CH IV End
+// Comparaison de deux parties, par valeur ou par intervalle (cf. ComparePartValues)
+int KWDGPartCompareValues(const void* elem1, const void* elem2);
 
 //////////////////////////////////////////////////////////////////////////////
 // Classe KWDGPartValues
@@ -925,6 +923,9 @@ public:
 
 	// Copie
 	virtual void CopyFrom(const KWDGPartValues* sourcePartValues) = 0;
+
+	// Comparaison sur les valeurs de la partie
+	virtual int ComparePartValues(const KWDGPartValues* otherPartValues) const = 0;
 
 	// Controle d'integrite
 	boolean Check() const override = 0;
@@ -1005,18 +1006,27 @@ public:
 	// Ajout de nouvelles valeurs recopiees depuis une source
 	void UpgradeFrom(const KWDGValueSet* sourceValueSet);
 
+	// Tri des valeurs
+	void SortValues();
+
 	// Tri des valeurs par effectif decroissant, pour preparer l'affichage
-	virtual void SortValues(); //DDD DEBUG virtual a supprimer
+	void SortValueByDecreasingFrequencies();
 
 	// Verification du tri des valeurs par effectif decroissant
 	// Couteux, a utiliser essentiellement dans les assertions
 	boolean AreValuesSorted() const;
+	boolean AreValuesSortedByDecreasingFrequencies() const;
 
 	// Redefinition des methodes virtuelles
 	boolean IsSubPartValues(const KWDGPartValues* otherPartValues) const override;
 	void Import(KWDGPartValues* sourcePartValues) override;
 	void UpgradeFrom(const KWDGPartValues* sourcePartValues) override;
 	void CopyFrom(const KWDGPartValues* sourcePartValues) override;
+
+	// Comparaison de deux ensembles de valeurs d'apres leur premiere valeur
+	// - valeur Symbol si categoriel
+	// - nom d'attribut, puis valeur de partie si VarPart
+	int ComparePartValues(const KWDGPartValues* otherPartValues) const override;
 
 	// Controle d'integrite
 	boolean Check() const override;
@@ -1038,6 +1048,10 @@ protected:
 	// Tri des valeurs selon une fonction de tri
 	// La valeur speciale est toujours mise en dernier, independament du critere de tri
 	void InternalSortValues(CompareFunction fCompare);
+
+	// Test si des valeurs sont triees selon une fonction de tri
+	// La valeur speciale est toujours mise en dernier, independament du critere de tri
+	boolean InternalAreValuesSorted(CompareFunction fCompare) const;
 
 	// Methode indiquant si les donnees sont emulee
 	virtual boolean GetEmulated() const;
@@ -1062,7 +1076,9 @@ public:
 	// Type de valeur
 	virtual int GetValueType() const = 0;
 
-	// Valeur
+	// Valeur accesssible depuis la classe ancetre, pour simplifier l'ecriture de code generique
+	// Implementation par defaut en assert false
+	// Chaque sous-classe doit reimplementer la methode correspondante a son type de valeur
 	virtual Symbol& GetSymbolValue() const;
 	virtual KWDGPart* GetVarPart() const;
 
@@ -1076,8 +1092,13 @@ public:
 	virtual void SetValueFrequency(int nFrequency) = 0;
 	virtual int GetValueFrequency() const = 0;
 
-	// Comparaison de valeur
+	// Comparaison par valeur
+	// - valeur Syymbol si categoriel
+	// - nom d'attribut, puis valeur de partie si VarPart
 	virtual int CompareValue(const KWDGValue* otherValue) const = 0;
+
+	// Compare par effectif decroissant, puis par valeur
+	virtual int CompareFrequency(const KWDGValue* otherValue) const;
 
 	// Affichage
 	void Write(ostream& ost) const override = 0;
@@ -1095,8 +1116,11 @@ protected:
 	KWDGValue* nextValue;
 };
 
+// Comparaison de deux valeurs
+int KWDGValueCompareValue(const void* elem1, const void* elem2);
+
 // Comparaison de deux valeurs, par effectif decroissant
-int KWDGValueCompareDecreasingFrequency(const void* elem1, const void* elem2);
+int KWDGValueCompareFrequency(const void* elem1, const void* elem2);
 
 //////////////////////////////////////////////////////////////////////////////
 // Classe KWDGSymbolValueSet
@@ -1174,7 +1198,7 @@ public:
 	void SetValueFrequency(int nFrequency) override;
 	int GetValueFrequency() const override;
 
-	// Comparaison de valeur
+	// Comparaison de valeur Symbol
 	int CompareValue(const KWDGValue* otherValue) const override;
 
 	// Affichage
@@ -1246,6 +1270,9 @@ public:
 	void UpgradeFrom(const KWDGPartValues* sourcePartValues) override;
 	void CopyFrom(const KWDGPartValues* sourcePartValues) override;
 
+	// Comparaison de deux intervalles d'apres leur bornes
+	int ComparePartValues(const KWDGPartValues* otherPartValues) const override;
+
 	// Controle d'integrite
 	boolean Check() const override;
 
@@ -1287,14 +1314,6 @@ public:
 	// Redefinition de la methode virtuelle d'ajout de la copie d'une valeur existante
 	KWDGValue* AddValueCopy(const KWDGValue* sourceValue) override;
 
-	//DDD BEGIN Ajout temporaire de methodes, pour debuggage
-
-	// Tri des parties de variable par nom de variable puis tri des parties de la meme variable, pour preparer
-	// l'affichage
-	void SortValues() override;
-
-	//DDD END Ajout temporaire de methodes, pour debuggage
-
 	///////////////////////////////
 	///// Implementation
 protected:
@@ -1328,7 +1347,7 @@ public:
 	void SetValueFrequency(int nFrequency) override;
 	int GetValueFrequency() const override;
 
-	// Comparaison de valeur
+	// Comparaison de valeur, par attribut, puis selon les valeurs de la partie, intervalles ou premiere valeur des groupe
 	int CompareValue(const KWDGValue* otherValue) const override;
 
 	// Affichage
@@ -1959,6 +1978,18 @@ inline int KWDGPart::GetPartType() const
 		return KWType::Unknown;
 }
 
+inline KWDGPartValues* KWDGPart::GetPartValues() const
+{
+	require(KWType::IsCoclusteringType(GetPartType()));
+
+	if (GetPartType() == KWType::Continuous)
+		return interval;
+	else if (GetPartType() == KWType::Symbol)
+		return symbolValueSet;
+	else
+		return varPartSet;
+}
+
 inline KWDGInterval* KWDGPart::GetInterval() const
 {
 	require(GetPartType() == KWType::Continuous);
@@ -2117,11 +2148,13 @@ inline boolean KWDGValueSet::IsDefaultPart() const
 
 inline int KWDGValueSet::GetValueNumber() const
 {
-	assert(nValueNumber > 0 or (IsDefaultPart() and GetValueType() == KWType::Symbol));
+	assert(nValueNumber > 0 or IsDefaultPart() or GetValueType() != KWType::Symbol);
 
 	// On assure que le seul cas sans aucune valeur est le cas de la partie par defaut reduite a la StarValue
 	// Cela peut arriver si la partie a ete "nettoyee" pour gagner de la place, notamment quand on exporte
-	// une grille dans un dictionnaire et qu'on la reimporte pour le deploiement
+	// une grille dans un fichier de dictionnaire .kdic. Le modele exporte n'est pas tout a fait valide,
+	// puisque l'on a perdu le compte des valeurs du groupe poubelle (bug a corriger plus tard).
+	// Quand on reimporte le model pour le deploiement, il faut contourner ces incoherences.
 	// Dans ce cas, ou rend une nombre de valeurs egal 1 a, ce qui a le merite d'avoir des couts de grille
 	// valides numeriquement, meme s'ils ne corrrespondent pas au vrai model qui aurait du memoriser
 	// le nombre exacte de valeurs du groupe
@@ -2322,6 +2355,19 @@ inline KWDGPart* KWDGValue::GetVarPart() const
 {
 	assert(false);
 	return NULL;
+}
+
+inline int KWDGValue::CompareFrequency(const KWDGValue* otherValue) const
+{
+	int nCompare;
+
+	require(otherValue != NULL);
+	require(otherValue->GetValueType() == GetValueType());
+
+	nCompare = -GetValueFrequency() + otherValue->GetValueFrequency();
+	if (nCompare == 0)
+		nCompare = CompareValue(otherValue);
+	return nCompare;
 }
 
 // Classe KWDGSymbolValue
