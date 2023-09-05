@@ -106,8 +106,11 @@ public:
 	// Indique si le type peut etre utilise pour un attribut de grille: (Continuous, Symbol ou VarPart)
 	static boolean IsCoclusteringType(int nType);
 
-	// Renvoie le type eementaire d'un attribut de grille: (Continuous, ou Symbol pour un type Symbol ou VarPart)
-	static int GetSimpleCoclusteringType(int nType);
+	// Indique si le type peut etre utilise pour un attribut groupable de grille: (Symbol ou VarPart)
+	static boolean IsCoclusteringGroupableType(int nType);
+
+	// Renvoie le type elementaire d'un attribut de grille: (Continuous, ou Symbol pour un type Symbol ou VarPart)
+	static int GetCoclusteringSimpleType(int nType);
 	// CH IV End
 
 	// Indique si le type est un type de predicteur: (Continuous, Symbol ou None)
@@ -367,7 +370,12 @@ inline boolean KWType::IsCoclusteringType(int nType)
 	return (nType == Continuous or nType == Symbol or nType == VarPart);
 }
 
-inline int KWType::GetSimpleCoclusteringType(int nType)
+inline boolean KWType::IsCoclusteringGroupableType(int nType)
+{
+	return (nType == Symbol or nType == VarPart);
+}
+
+inline int KWType::GetCoclusteringSimpleType(int nType)
 {
 	require(IsCoclusteringType(nType));
 	if (nType == Continuous)

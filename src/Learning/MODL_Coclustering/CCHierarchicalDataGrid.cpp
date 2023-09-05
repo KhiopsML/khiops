@@ -856,7 +856,7 @@ boolean CCHDGPart::CheckHierarchy() const
 
 	// Verification de l'ensemble de valeurs dans le cas categoriel
 	if (GetPartType() == KWType::Symbol)
-		bOk = bOk and cast(CCHDGSymbolValueSet*, symbolValueSet)->CheckHierarchy();
+		bOk = bOk and cast(CCHDGSymbolValueSet*, GetSymbolValueSet())->CheckHierarchy();
 
 	// Verifications complementaires de chainahe coherent de la hierarchie, sans message d'erreur
 	assert(not bOk or parentPart == NULL or parentPart->childPart1 == this or parentPart->childPart2 == this);

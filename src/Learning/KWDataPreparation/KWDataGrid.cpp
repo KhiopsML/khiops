@@ -1518,6 +1518,7 @@ void KWDataGrid::WriteAttributes(ostream& ost) const
 		ost << "\t" << attribute->GetAttributeName() << "\t" << KWType::ToString(attribute->GetAttributeType());
 
 		// Cas d'un attribut categoriel : affichage du groupe poubelle eventuel
+		//DDDSIMPLIFY
 		if (attribute->GetAttributeType() == KWType::Symbol and not attribute->GetAttributeTargetFunction())
 		{
 			ost << "\tCatch all size " << attribute->GetCatchAllValueNumber() << "\n";
@@ -1567,6 +1568,7 @@ void KWDataGrid::WriteAttributeParts(ostream& ost) const
 				ost << "\t\t" << part->GetObjectLabel() << "\t" << part->GetPartFrequency();
 
 				// Affichage des premieres valeurs dans le cas d'un attribut Symbol
+				//DDDSIMPLIFY
 				if (attribute->GetAttributeType() == KWType::Symbol)
 				{
 					nDisplayedValue = 0;
@@ -1610,6 +1612,7 @@ void KWDataGrid::WriteAttributeParts(ostream& ost) const
 				ost << "\n";
 
 				// Affichage complet du valueSet dans le cas d'un attribut Symbol
+				//DDDSIMPLIFY
 				if (bDisplayAll and attribute->GetAttributeType() == KWType::Symbol)
 				{
 					cout << "ValueSet\n";
@@ -2523,6 +2526,7 @@ void KWDGAttribute::BuildIndexingStructure()
 		}
 		// Sinon, indexation des parties par les valeurs
 		// CH IV Begin
+		//DDDSIMPLIFY
 		else if (GetAttributeType() == KWType::Symbol)
 		// CH IV End
 		{
@@ -2610,6 +2614,7 @@ void KWDGAttribute::DeleteIndexingStructure()
 		assert(KWType::IsCoclusteringType(GetAttributeType()));
 		if (GetAttributeType() == KWType::Continuous)
 			oaIntervals.SetSize(0);
+		//DDDSIMPLIFY
 		else if (GetAttributeType() == KWType::Symbol)
 		{
 			nkdParts.RemoveAll();
@@ -2796,6 +2801,7 @@ boolean KWDGAttribute::ContainsSubParts(const KWDGAttribute* otherAttribute) con
 			}
 		}
 		// Test d'inclusion des parties dans le cas categoriel
+		//DDDSIMPLIFY
 		else if (otherAttribute->GetAttributeType() == KWType::Symbol)
 		{
 			// Indexation prealable des partie cibles
@@ -3108,6 +3114,7 @@ boolean KWDGAttribute::Check() const
 		}
 	}
 	// Si attribut categoriel, indexation locale des parties par les valeurs pour validation
+	//DDDSIMPLIFY
 	else if (bOk and GetAttributeType() == KWType::Symbol)
 	{
 		// Parcours des parties pour les indexer par leurs valeurs
@@ -3354,8 +3361,8 @@ boolean KWDGAttribute::ArePartsSorted() const
 			GetNextPart(part);
 			GetNextPart(nextPart);
 		}
-		return bIsSorted;
 	}
+	return bIsSorted;
 }
 
 void KWDGAttribute::Write(ostream& ost) const
@@ -3653,23 +3660,13 @@ KWDGPart::KWDGPart()
 	headCell = NULL;
 	tailCell = NULL;
 	nCellNumber = 0;
-	interval = NULL;
-	symbolValueSet = NULL;
-	// CH IV Begin
-	varPartSet = NULL;
-	// CH IV End
+	partValues = NULL;
 }
 
 KWDGPart::~KWDGPart()
 {
-	if (interval != NULL)
-		delete interval;
-	if (symbolValueSet != NULL)
-		delete symbolValueSet;
-	// CH IV Begin
-	if (varPartSet != NULL)
-		delete varPartSet;
-	// CH IV End
+	if (partValues != NULL)
+		delete partValues;
 
 	// Reinitialisation pour faciliter le debug
 	debug(attribute = NULL);
@@ -3679,9 +3676,7 @@ KWDGPart::~KWDGPart()
 	debug(headCell = NULL);
 	debug(tailCell = NULL);
 	debug(nCellNumber = 0);
-	debug(interval = NULL);
-	debug(symbolValueSet = NULL);
-	debug(varPartSet = NULL);
+	debug(partValues = NULL);
 }
 
 void KWDGPart::SetPartType(int nValue)
@@ -3690,15 +3685,13 @@ void KWDGPart::SetPartType(int nValue)
 	// CH IV Begin
 	require(KWType::IsCoclusteringType(nValue));
 
-	// Creation de l'objet interval ou ensemble de valeur selon le type
+	// Creation de l'objet interval ou ensemble de valeurs selon le type
 	if (nValue == KWType::Continuous)
-		interval = NewInterval();
+		partValues = NewInterval();
 	else if (nValue == KWType::Symbol)
-		symbolValueSet = NewSymbolValueSet();
+		partValues = NewSymbolValueSet();
 	else
-		varPartSet = NewVarPartSet();
-	// CH IV End
-
+		partValues = NewVarPartSet();
 	ensure(GetPartType() != KWType::Unknown);
 }
 
@@ -3817,11 +3810,11 @@ boolean KWDGPart::Check() const
 	}
 	// Verification de l'intervalle
 	else if (GetPartType() == KWType::Continuous)
-		bOk = bOk and interval->Check();
+		bOk = bOk and partValues->Check();
 	// Verification de l'ensemble de valeurs
 	else if (GetPartType() == KWType::Symbol)
 	{
-		bOk = bOk and symbolValueSet->Check();
+		bOk = bOk and partValues->Check();
 
 		// Verification de la compatibilite entre l'effectif de la partie
 		// et l'effectif cumule de ses valeurs
@@ -3833,7 +3826,7 @@ boolean KWDGPart::Check() const
 		// Cela permet egalement de verifier la validite d'une grille
 		// construite pour le deploiement de modele, qui n'a pas besoin
 		// des effectifs par valeur.
-		nTotalValueFrequency = symbolValueSet->ComputeTotalFrequency();
+		nTotalValueFrequency = GetValueSet()->ComputeTotalFrequency();
 		if (bOk and GetPartFrequency() > 0 and nTotalValueFrequency > 0 and
 		    GetPartFrequency() != nTotalValueFrequency)
 		{
@@ -3847,7 +3840,7 @@ boolean KWDGPart::Check() const
 	// Verification de l'ensemble des parties de variables
 	else
 	{
-		bOk = bOk and varPartSet->Check();
+		bOk = bOk and partValues->Check();
 
 		// Verification de la compatibilite entre l'effectif de la partie
 		// et l'effectif cumule de ses parties de variable
@@ -3859,7 +3852,7 @@ boolean KWDGPart::Check() const
 		// Cela permet egalement de verifier la validite d'une grille
 		// construite pour le deploiement de modele, qui n'a pas besoin
 		// des effectifs par valeur.
-		nTotalVarPartFrequency = varPartSet->ComputeTotalFrequency();
+		nTotalVarPartFrequency = GetValueSet()->ComputeTotalFrequency();
 		// CH IV Debug
 		// CH IV Refactoring: nettoyer?
 		// cout << "nTotalVarPartFrequency\t" << nTotalVarPartFrequency << "\tGetPartFrequency\t" <<
@@ -3948,12 +3941,8 @@ longint KWDGPart::GetUsedMemory() const
 	longint lUsedMemory;
 
 	lUsedMemory = sizeof(KWDGPart);
-	if (interval != NULL)
-		lUsedMemory += sizeof(KWDGInterval);
-	if (symbolValueSet != NULL)
-		lUsedMemory += sizeof(KWDGSymbolValueSet);
-	if (varPartSet != NULL)
-		lUsedMemory += sizeof(KWDGVarPartSet);
+	if (partValues != NULL)
+		lUsedMemory += partValues->GetUsedMemory();
 	return lUsedMemory;
 }
 
@@ -3964,10 +3953,11 @@ void KWDGPart::Write(ostream& ost) const
 	ost << GetClassLabel() << "\t" << GetObjectLabel() << "\t" << GetPartFrequency() << "\n";
 
 	// Valeurs et cellules de la partie
-	if (GetPartType() == KWType::Symbol and symbolValueSet->GetValueNumber() > 0)
+	//DDDSIMPLIFY
+	if (GetPartType() == KWType::Symbol and GetValueSet()->GetValueNumber() > 0)
 		WriteValues(ost);
 
-	if (GetPartType() == KWType::VarPart and varPartSet->GetValueNumber() > 0)
+	if (GetPartType() == KWType::VarPart and GetValueSet()->GetValueNumber() > 0)
 		WriteValues(ost);
 	// CH IV End
 	if (GetCellNumber() > 0)
@@ -3978,10 +3968,11 @@ void KWDGPart::WriteValues(ostream& ost) const
 {
 	// Des valeurs sont a afficher uniquement dans le cas symbolique et VarPart
 	// (l'intervalle est le libelle de la partie dans le cas continu)
+	//DDDSIMPLIFY
 	if (GetPartType() == KWType::Symbol)
-		symbolValueSet->WriteValues(ost);
+		GetValueSet()->WriteValues(ost);
 	else if (GetPartType() == KWType::VarPart)
-		varPartSet->WriteValues(ost);
+		GetValueSet()->WriteValues(ost);
 }
 
 void KWDGPart::WriteCells(ostream& ost) const
@@ -4010,30 +4001,18 @@ const ALString KWDGPart::GetVarPartLabel() const
 
 const ALString KWDGPart::GetClassLabel() const
 {
-	if (GetPartType() == KWType::Continuous)
-		return interval->GetClassLabel();
-	else if (GetPartType() == KWType::Symbol)
-		return symbolValueSet->GetClassLabel();
-	// CH IV Begin
-	else if (GetPartType() == KWType::VarPart)
-		return varPartSet->GetClassLabel();
-	// CH IV End
-	else
+	if (partValues == NULL)
 		return "Part";
+	else
+		return partValues->GetClassLabel();
 }
 
 const ALString KWDGPart::GetObjectLabel() const
 {
-	if (GetPartType() == KWType::Continuous)
-		return interval->GetObjectLabel();
-	else if (GetPartType() == KWType::Symbol)
-		return symbolValueSet->GetObjectLabel();
-	// CH IV Begin
-	else if (GetPartType() == KWType::VarPart)
-		return varPartSet->GetObjectLabel();
-	// CH IV End
-	else
+	if (partValues == NULL)
 		return "";
+	else
+		return partValues->GetObjectLabel();
 }
 
 KWDGInterval* KWDGPart::NewInterval() const
@@ -4218,8 +4197,12 @@ boolean KWDGInterval::Check() const
 
 void KWDGInterval::Write(ostream& ost) const
 {
-	// Identification
 	ost << GetClassLabel() << "\t" << GetObjectLabel() << "\n";
+}
+
+longint KWDGInterval::GetUsedMemory() const
+{
+	return sizeof(KWDGInterval);
 }
 
 const ALString KWDGInterval::GetClassLabel() const
@@ -4620,6 +4603,21 @@ void KWDGValueSet::WriteValues(ostream& ost) const
 	}
 }
 
+longint KWDGValueSet::GetUsedMemory() const
+{
+	longint lUsedMemory;
+	KWDGValue* value;
+
+	lUsedMemory = sizeof(KWDGValueSet);
+	value = GetHeadValue();
+	while (value != NULL)
+	{
+		lUsedMemory += value->GetUsedMemory();
+		GetNextValue(value);
+	}
+	return lUsedMemory;
+}
+
 const ALString KWDGValueSet::GetClassLabel() const
 {
 	return "Value set";
@@ -4920,6 +4918,11 @@ const ALString KWDGSymbolValue::GetExternalValueLabel() const
 	return sResult;
 }
 
+longint KWDGSymbolValue::GetUsedMemory() const
+{
+	return sizeof(KWDGSymbolValue);
+}
+
 const ALString KWDGSymbolValue::GetClassLabel() const
 {
 	return "Value";
@@ -4960,6 +4963,11 @@ void KWDGVarPartValue::Write(ostream& ost) const
 const ALString KWDGVarPartValue::GetExternalValueLabel() const
 {
 	return GetObjectLabel();
+}
+
+longint KWDGVarPartValue::GetUsedMemory() const
+{
+	return sizeof(KWDGVarPartValue);
 }
 
 const ALString KWDGVarPartValue::GetClassLabel() const

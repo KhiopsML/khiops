@@ -713,6 +713,7 @@ void KWDataGridManager::ExportFrequencyTableFromOneAttribute(KWFrequencyTable* k
 			ivFrequency->SetAt(nTargetIndex, dgCell->GetTargetFrequencyAt(nTargetIndex));
 
 		// Memorisation eventuelle du groupe poubelle
+		//DDDSIMPLIFY
 		if (oneAttributeDataGrid.GetAttributeAt(0)->GetAttributeType() == KWType::Symbol)
 		{
 			// Recopie du nombre de modalites
@@ -2680,6 +2681,7 @@ void KWDataGridManager::InitialiseAttributeNullPart(const KWDGAttribute* sourceA
 		targetPart->GetInterval()->SetUpperBound(KWDGInterval::GetMaxUpperBound());
 	}
 	// Creation d'une partie unique comportant toutes les valeurs, dans le cas symbolique
+	//DDDSIMPLIFY
 	else if (sourceAttribute->GetAttributeType() == KWType::Symbol)
 	{
 		// Creation de l'ensemble des valeur cible
@@ -3874,6 +3876,7 @@ void KWDataGridManager::CreateAttributeQuantileBuilder(const KWDGAttribute* attr
 		nMaxPartNumber = attribute->GetPartNumber();
 	}
 	// Cas d'un attribut categoriel ou de type VarPart
+	//DDDSIMPLIFY
 	else
 	{
 		// Creation du vecteur des frequences par parties

@@ -729,12 +729,12 @@ protected:
 	// Structure d'indexation des parties dans le cas symbolique
 	// Dictionnaire des parties indexe par les valeurs (Symbol) des parties
 	NumericKeyDictionary nkdParts;
-	KWDGPart* starValuePart;
+	KWDGPart* starValuePart; //DDDSIMPLIFY
 	boolean bIsIndexed;
 
 	// CH IV Begin
 	// Structure d'indexation, des parties dans le cas VarPart
-	NumericKeyDictionary nkdVarPartSets;
+	NumericKeyDictionary nkdVarPartSets; //DDDSIMPLIFY
 
 	// Nom de l'attribut de type VarPart dont depend un attribut interne
 	// Par defaut a vide pour un attribut de type Simple (numerique ou categoriel)
@@ -777,14 +777,16 @@ public:
 	virtual void SetPartType(int nValue);
 	int GetPartType() const;
 
-	// Acces aux valeurs, selon le type
-	KWDGPartValues* GetPartValues() const;
+	// Acces specialise aux valeurs, selon le type d'attribut
 	KWDGInterval* GetInterval() const;
-	KWDGValueSet* GetValueSet() const;
 	KWDGSymbolValueSet* GetSymbolValueSet() const;
-	// CH IV Begin
 	KWDGVarPartSet* GetVarPartSet() const;
-	// CH IV End
+
+	// Acces generique au groupe de valeur, dans les cas Symbol ou VarPart
+	KWDGValueSet* GetValueSet() const;
+
+	// Acces generique aux valeurs via la classe ancetre commune a tous les types
+	KWDGPartValues* GetPartValues() const;
 
 	////////////////////////////////////////////////////////////////
 	// Acces aux cellules liee a la partie courante,
@@ -857,9 +859,7 @@ protected:
 	// dans une sous-classe
 	virtual KWDGInterval* NewInterval() const;
 	virtual KWDGSymbolValueSet* NewSymbolValueSet() const;
-	// CH IV Begin
 	virtual KWDGVarPartSet* NewVarPartSet() const;
-	// CH IV End
 
 	// Acces a l'index de l'attribut (0 si NULL)
 	int GetAttributeIndex() const;
@@ -885,13 +885,9 @@ protected:
 	// Effectif total de la partie
 	int nPartFrequency;
 
-	// Gestion des valeurs de la parties
-	// Un seul objet, correspondant au type de la partie, doit etre non nul
-	KWDGInterval* interval;
-	KWDGSymbolValueSet* symbolValueSet;
-	// CH IV Begin
-	KWDGVarPartSet* varPartSet;
-	// CH IV End
+	// Gestion des valeurs de la parties via a un objet ancetre generique,
+	// dont le type de valeur doit etre le meme que celui de l'attribut
+	KWDGPartValues* partValues;
 };
 
 // Comparaison de deux parties, par effectif decroissant puis valeur, ou par intervalle (cf. ComparePart)
@@ -932,6 +928,9 @@ public:
 
 	// Affichage
 	void Write(ostream& ost) const override = 0;
+
+	// Memoire utilisee
+	longint GetUsedMemory() const override = 0;
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -1035,6 +1034,9 @@ public:
 	void Write(ostream& ost) const override;
 	void WriteValues(ostream& ost) const;
 
+	// Memoire utilisee
+	longint GetUsedMemory() const override;
+
 	// Libelles utilisateur
 	const ALString GetClassLabel() const override;
 	const ALString GetObjectLabel() const override;
@@ -1105,6 +1107,9 @@ public:
 
 	// Libelle externe base sur la valeur
 	virtual const ALString GetExternalValueLabel() const = 0;
+
+	// Memoire utilisee
+	virtual longint GetUsedMemory() const override = 0;
 
 	///////////////////////////////
 	///// Implementation
@@ -1207,6 +1212,9 @@ public:
 	// Libelle externe base sur la valeur
 	const ALString GetExternalValueLabel() const override;
 
+	// Memoire utilisee
+	longint GetUsedMemory() const override;
+
 	// Libelles utilisateur
 	const ALString GetClassLabel() const override;
 	const ALString GetObjectLabel() const override;
@@ -1278,6 +1286,9 @@ public:
 
 	// Affichage
 	void Write(ostream& ost) const override;
+
+	// Memoire utilisee
+	longint GetUsedMemory() const override;
 
 	// Libelles utilisateur
 	const ALString GetClassLabel() const override;
@@ -1355,6 +1366,9 @@ public:
 
 	// Libelle externe base sur la valeur
 	const ALString GetExternalValueLabel() const override;
+
+	// Memoire utilisee
+	longint GetUsedMemory() const override;
 
 	// Libelles utilisateur
 	const ALString GetClassLabel() const override;
@@ -1963,67 +1977,44 @@ inline int KWDGPart::GetPartFrequency() const
 
 inline int KWDGPart::GetPartType() const
 {
-	require(interval == NULL or symbolValueSet == NULL or varPartSet == NULL);
-	require((interval == NULL) + (symbolValueSet == NULL) + (varPartSet == NULL) >= 2);
+	require(partValues == NULL or KWType::IsCoclusteringType(partValues->GetValueType()));
 
-	if (interval != NULL)
-		return KWType::Continuous;
-	else if (symbolValueSet != NULL)
-		return KWType::Symbol;
-	// CH IV Begin
-	else if (varPartSet != NULL)
-		return KWType::VarPart;
-	// CH IV End
-	else
+	if (partValues == NULL)
 		return KWType::Unknown;
-}
-
-inline KWDGPartValues* KWDGPart::GetPartValues() const
-{
-	require(KWType::IsCoclusteringType(GetPartType()));
-
-	if (GetPartType() == KWType::Continuous)
-		return interval;
-	else if (GetPartType() == KWType::Symbol)
-		return symbolValueSet;
 	else
-		return varPartSet;
+		return partValues->GetValueType();
 }
 
 inline KWDGInterval* KWDGPart::GetInterval() const
 {
 	require(GetPartType() == KWType::Continuous);
-
-	ensure(interval != NULL);
-	return interval;
-}
-
-inline KWDGValueSet* KWDGPart::GetValueSet() const
-{
-	require(GetPartType() == KWType::Symbol or GetPartType() == KWType::VarPart);
-
-	if (GetPartType() == KWType::Symbol)
-		return symbolValueSet;
-	else
-		return varPartSet;
+	return cast(KWDGInterval*, partValues);
 }
 
 inline KWDGSymbolValueSet* KWDGPart::GetSymbolValueSet() const
 {
 	require(GetPartType() == KWType::Symbol);
-
-	ensure(symbolValueSet != NULL);
-	return symbolValueSet;
+	return cast(KWDGSymbolValueSet*, partValues);
 }
-// CH IV Begin
+
 inline KWDGVarPartSet* KWDGPart::GetVarPartSet() const
 {
 	require(GetPartType() == KWType::VarPart);
-
-	ensure(varPartSet != NULL);
-	return varPartSet;
+	return cast(KWDGVarPartSet*, partValues);
 }
-// CH IV End
+
+inline KWDGValueSet* KWDGPart::GetValueSet() const
+{
+	require(KWType::IsCoclusteringGroupableType(GetPartType()));
+	return cast(KWDGValueSet*, partValues);
+}
+
+inline KWDGPartValues* KWDGPart::GetPartValues() const
+{
+	require(KWType::IsCoclusteringType(GetPartType()));
+	return partValues;
+}
+
 inline int KWDGPart::GetCellNumber() const
 {
 	return nCellNumber;

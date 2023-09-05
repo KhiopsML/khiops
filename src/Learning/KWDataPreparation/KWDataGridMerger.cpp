@@ -416,6 +416,7 @@ void KWDataGridMerger::InitializeAllPartLists()
 
 		// CH IV Begin
 		// Cas d'un attribut categoriel ou varParts (donc eligible au groupe poubelle)
+		//DDDSIMPLIFY
 		if (attribute->GetAttributeType() == KWType::Symbol or attribute->GetAttributeType() == KWType::VarPart)
 		// CH IV End
 		{
@@ -877,6 +878,7 @@ double KWDataGridMerger::SearchBestPartMergeWithGarbageSearch(KWDGMPartMerge*& b
 
 			// CH IV Begin
 			// Cas d'un attribut categoriel ou VarPart pour lequel un groupe poubelle est envisageable
+			//DDDSIMPLIFY
 			if (attribute->GetAttributeType() == KWType::Symbol or
 			    attribute->GetAttributeType() == KWType::VarPart)
 			// CH IV End
@@ -939,6 +941,7 @@ double KWDataGridMerger::SearchBestPartMergeWithGarbageSearch(KWDGMPartMerge*& b
 			// avoir de groupe poubelle) attribut VarPart ET mode poubelle pour ce type d'attributs + nbre
 			// de parties apres fusion >=3 CH AB voir l'impact de la variation d'un cout avec groupe
 			// poubelle lorsque le nombre de PV est reduit du fait de la post-fusion
+			//DDDSIMPLIFY
 			if ((attribute->GetAttributeType() == KWType::Symbol or
 			     (attribute->GetAttributeType() == KWType::VarPart and GetVarPartAttributeGarbage())) and
 			    attributeM->GetPartNumber() - 1 >= 3)
@@ -948,6 +951,7 @@ double KWDataGridMerger::SearchBestPartMergeWithGarbageSearch(KWDGMPartMerge*& b
 
 				// Cas d'un attribut AVEC groupe poubelle apres fusion
 				// Cas ou les deux parties fusionnees deviennent le groupe poubelle
+				//DDDSIMPLIFY
 				if (attribute->GetAttributeType() == KWType::Symbol)
 				{
 					if (partMerge->GetPart1()->GetValueSet()->GetValueNumber() +
@@ -1063,6 +1067,7 @@ double KWDataGridMerger::SearchBestPartMergeWithGarbageSearch(KWDGMPartMerge*& b
 					delete garbagePart;
 			}
 			// CH IV Begin
+			//DDDSIMPLIFY
 			if (attribute->GetAttributeType() == KWType::Symbol or
 			    (attribute->GetAttributeType() == KWType::VarPart and GetVarPartAttributeGarbage()))
 			// CH IV End
@@ -1919,6 +1924,7 @@ boolean KWDGMPart::Check() const
 	bOk = KWDGPart::Check();
 
 	// Verification de l'ensemble de valeurs
+	//DDDSIMPLIFY
 	if (bOk and GetPartType() == KWType::Symbol)
 	{
 		// Verification de la compatibilite entre l'effectif de la partie
@@ -1929,7 +1935,7 @@ boolean KWDGMPart::Check() const
 		// de la grille (les parties et leurs valeurs sont creees avant
 		// la creation des cellules).
 		// La verification n'est pas faite dans tous les cas dans la classe ancetre
-		nTotalValueFrequency = symbolValueSet->ComputeTotalFrequency();
+		nTotalValueFrequency = GetValueSet()->ComputeTotalFrequency();
 		if (bOk and GetPartFrequency() > 0 and nTotalValueFrequency > 0 and
 		    GetPartFrequency() != nTotalValueFrequency)
 		{
@@ -1951,7 +1957,7 @@ boolean KWDGMPart::Check() const
 		// de la grille (les parties et leurs parties de variable sont creees avant
 		// la creation des cellules).
 		// La verification n'est pas faite dans tous les cas dans la classe ancetre
-		nTotalValueFrequency = varPartSet->ComputeTotalFrequency();
+		nTotalValueFrequency = GetValueSet()->ComputeTotalFrequency();
 		if (bOk and GetPartFrequency() > 0 and nTotalValueFrequency > 0 and
 		    GetPartFrequency() != nTotalValueFrequency)
 		{
@@ -2003,6 +2009,7 @@ int KWDGMPartValueNumberCompare(const void* elem1, const void* elem2)
 	assert(partM2->GetPartType() == KWType::Symbol or partM2->GetPartType() == KWType::VarPart);
 
 	// Comparaison du nombre de modalites par valeurs decroissantes
+	//DDDSIMPLIFY
 	if (partM1->GetPartType() == KWType::Symbol)
 		return (partM2->GetValueSet()->GetValueNumber() - partM1->GetValueSet()->GetValueNumber());
 	else
