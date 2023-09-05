@@ -3752,13 +3752,7 @@ boolean KWDGPart::IsSubPart(const KWDGPart* otherPart) const
 	require(otherPart->GetPartType() == GetPartType());
 	require(otherPart->GetAttribute()->GetAttributeName() == GetAttribute()->GetAttributeName());
 
-	// Test d'inclusion selon le ype de la partie
-	if (GetPartType() == KWType::Continuous)
-		return GetInterval()->IsSubInterval(otherPart->GetInterval());
-	else if (GetPartType() == KWType::Symbol)
-		return GetValueSet()->IsSubValueSet(otherPart->GetValueSet());
-	else
-		return GetValueSet()->IsSubValueSet(otherPart->GetValueSet());
+	return GetPartValues()->IsSubPart(otherPart->GetPartValues());
 }
 
 int KWDGPart::ComparePart(const KWDGPart* otherPart) const
@@ -4090,22 +4084,31 @@ int KWDGPartCompareValues(const void* elem1, const void* elem2)
 //////////////////////////////////////////////////////////////////////////////
 // Classe KWDGInterval
 
-boolean KWDGInterval::IsSubInterval(const KWDGInterval* otherInterval) const
+boolean KWDGInterval::IsSubPart(const KWDGPartValues* otherPartValues) const
 {
+	KWDGInterval* otherInterval;
 
-	require(otherInterval != NULL);
+	require(otherPartValues != NULL);
+	require(otherPartValues->GetValueType() == GetValueType());
+
+	// Comparaison des bornes
+	otherInterval = cast(KWDGInterval*, otherPartValues);
 	return GetLowerBound() >= otherInterval->GetLowerBound() and GetUpperBound() <= otherInterval->GetUpperBound();
 }
 
-void KWDGInterval::Import(KWDGInterval* sourceInterval)
+void KWDGInterval::Import(KWDGPartValues* sourcePartValues)
 {
+	KWDGInterval* sourceInterval;
+
 	require(Check());
-	require(sourceInterval != NULL);
-	require(sourceInterval->Check());
-	require(sourceInterval->GetUpperBound() == GetLowerBound() or
-		GetUpperBound() == sourceInterval->GetLowerBound());
+	require(sourcePartValues->Check());
+	require(sourcePartValues != NULL);
+	require(sourcePartValues->GetValueType() == GetValueType());
 
 	// Transfert d'une borne pour fusionner les intervalles
+	sourceInterval = cast(KWDGInterval*, sourcePartValues);
+	assert(sourceInterval->GetUpperBound() == GetLowerBound() or
+	       GetUpperBound() == sourceInterval->GetLowerBound());
 	if (sourceInterval->GetUpperBound() == GetLowerBound())
 		SetLowerBound(sourceInterval->GetLowerBound());
 	else
@@ -4114,47 +4117,40 @@ void KWDGInterval::Import(KWDGInterval* sourceInterval)
 	// Reinitialisation de l'intervalle source
 	sourceInterval->SetLowerBound(0);
 	sourceInterval->SetUpperBound(0);
-
 	ensure(Check());
-}
-
-// CH IV Begin
-void KWDGInterval::UpgradeFrom(const KWDGInterval* sourceInterval)
-{
-	require(Check());
-	require(sourceInterval != NULL);
-	require(sourceInterval->Check());
-	require(sourceInterval->GetUpperBound() == GetLowerBound() or
-		GetUpperBound() == sourceInterval->GetLowerBound());
-
-	// Transfert d'une borne pour fusionner les intervalles
-	if (sourceInterval->GetUpperBound() == GetLowerBound())
-		SetLowerBound(sourceInterval->GetLowerBound());
-	else
-		SetUpperBound(sourceInterval->GetUpperBound());
-
-	ensure(Check());
-}
-// CH IV End
-
-boolean KWDGInterval::IsSubPartValues(const KWDGPartValues* otherPartValues) const
-{
-	return IsSubInterval(cast(KWDGInterval*, otherPartValues));
-}
-
-void KWDGInterval::Import(KWDGPartValues* sourcePartValues)
-{
-	Import(cast(KWDGInterval*, sourcePartValues));
 }
 
 void KWDGInterval::UpgradeFrom(const KWDGPartValues* sourcePartValues)
 {
-	UpgradeFrom(cast(KWDGInterval*, sourcePartValues));
+	KWDGInterval* sourceInterval;
+
+	require(Check());
+	require(sourcePartValues->Check());
+	require(sourcePartValues != NULL);
+	require(sourcePartValues->GetValueType() == GetValueType());
+
+	// Transfert d'une borne pour fusionner les intervalles
+	sourceInterval = cast(KWDGInterval*, sourcePartValues);
+	assert(sourceInterval->GetUpperBound() == GetLowerBound() or
+	       GetUpperBound() == sourceInterval->GetLowerBound());
+	if (sourceInterval->GetUpperBound() == GetLowerBound())
+		SetLowerBound(sourceInterval->GetLowerBound());
+	else
+		SetUpperBound(sourceInterval->GetUpperBound());
+	ensure(Check());
 }
 
 void KWDGInterval::CopyFrom(const KWDGPartValues* sourcePartValues)
 {
-	CopyFrom(cast(KWDGInterval*, sourcePartValues));
+	KWDGInterval* sourceInterval;
+
+	require(sourcePartValues != NULL);
+	require(sourcePartValues->GetValueType() == GetValueType());
+
+	// Copie des bornes
+	sourceInterval = cast(KWDGInterval*, sourcePartValues);
+	cLowerBound = sourceInterval->cLowerBound;
+	cUpperBound = sourceInterval->cUpperBound;
 }
 
 int KWDGInterval::ComparePartValues(const KWDGPartValues* otherPartValues) const
@@ -4234,31 +4230,6 @@ const ALString KWDGInterval::GetObjectLabel() const
 
 //////////////////////////////////////////////////////////////////////////////
 // Classe KWDGValueSet
-
-void KWDGValueSet::CopyFrom(const KWDGValueSet* sourceValueSet)
-{
-	KWDGValue* value;
-	KWDGValue* valueCopy;
-
-	require(sourceValueSet != NULL);
-	require(sourceValueSet->GetValueType() == GetValueType());
-
-	// Nettoyage des valeurs actuelles
-	DeleteAllValues();
-
-	// Recopie de la liste de valeurs source
-	value = sourceValueSet->GetHeadValue();
-	while (value != NULL)
-	{
-		valueCopy = AddValueCopy(value);
-		valueCopy->SetValueFrequency(value->GetValueFrequency());
-		sourceValueSet->GetNextValue(value);
-	}
-	bIsDefaultPart = sourceValueSet->IsDefaultPart();
-
-	// Pour garantir la valeur correcte de nValueNumber si le sourceValueSet a ete compresse avant la copie
-	nValueNumber = sourceValueSet->nValueNumber;
-}
 
 void KWDGValueSet::DeleteValue(KWDGValue* value)
 {
@@ -4344,11 +4315,54 @@ void KWDGValueSet::ExportValues(ObjectArray* oaValues) const
 	}
 }
 
-boolean KWDGValueSet::IsSubValueSet(const KWDGValueSet* otherValueSet) const
+int KWDGValueSet::ComputeTotalFrequency() const
+{
+	int nTotalFrequency;
+	KWDGValue* value;
+
+	// Parcours des valeurs de la partie pour calcul l'effectif cumule
+	nTotalFrequency = 0;
+	value = GetHeadValue();
+	while (value != NULL)
+	{
+		nTotalFrequency += value->GetValueFrequency();
+		GetNextValue(value);
+	}
+	return nTotalFrequency;
+}
+
+void KWDGValueSet::SortValues()
+{
+	InternalSortValues(KWDGValueCompareValue);
+}
+
+void KWDGValueSet::SortValueByDecreasingFrequencies()
+{
+	InternalSortValues(KWDGValueCompareFrequency);
+}
+
+boolean KWDGValueSet::AreValuesSorted() const
+{
+	return InternalAreValuesSorted(KWDGValueCompareValue);
+}
+
+boolean KWDGValueSet::AreValuesSortedByDecreasingFrequencies() const
+{
+	return InternalAreValuesSorted(KWDGValueCompareFrequency);
+}
+
+boolean KWDGValueSet::IsSubPart(const KWDGPartValues* otherPartValues) const
 {
 	boolean bOk = true;
+	KWDGValueSet* otherValueSet;
 	NumericKeyDictionary nkdOtherValues;
 	KWDGValue* value;
+
+	require(otherPartValues != NULL);
+	require(otherPartValues->GetValueType() == GetValueType());
+
+	// Acces a l'autre groupe de valeurs
+	otherValueSet = cast(KWDGValueSet*, otherPartValues);
 
 	// On doit avoir moins de valeurs
 	if (GetValueNumber() > otherValueSet->GetValueNumber())
@@ -4379,27 +4393,15 @@ boolean KWDGValueSet::IsSubValueSet(const KWDGValueSet* otherValueSet) const
 	return bOk;
 }
 
-int KWDGValueSet::ComputeTotalFrequency() const
+void KWDGValueSet::Import(KWDGPartValues* sourcePartValues)
 {
-	int nTotalFrequency;
-	KWDGValue* value;
+	KWDGValueSet* sourceValueSet;
 
-	// Parcours des valeurs de la partie pour calcul l'effectif cumule
-	nTotalFrequency = 0;
-	value = GetHeadValue();
-	while (value != NULL)
-	{
-		nTotalFrequency += value->GetValueFrequency();
-		GetNextValue(value);
-	}
-	return nTotalFrequency;
-}
+	require(sourcePartValues != NULL);
+	require(sourcePartValues->GetValueType() == GetValueType());
 
-void KWDGValueSet::Import(KWDGValueSet* sourceValueSet)
-{
-	require(Check());
-	require(sourceValueSet != NULL);
-	require(sourceValueSet->Check());
+	// Acces au groupe de valeurs source
+	sourceValueSet = cast(KWDGValueSet*, sourcePartValues);
 
 	// Transfert des valeurs de la premiere partie en tete du second
 	sourceValueSet->tailValue->nextValue = headValue;
@@ -4413,19 +4415,23 @@ void KWDGValueSet::Import(KWDGValueSet* sourceValueSet)
 	sourceValueSet->tailValue = NULL;
 	sourceValueSet->nValueNumber = 0;
 	sourceValueSet->bIsDefaultPart = false;
-
 	ensure(Check());
 }
 
-void KWDGValueSet::UpgradeFrom(const KWDGValueSet* sourceValueSet)
+void KWDGValueSet::UpgradeFrom(const KWDGPartValues* sourcePartValues)
 {
+	KWDGValueSet* sourceValueSet;
 	KWDGValue* value;
 	KWDGValue* valueUpgrade;
+	int nOldValueNumber;
 
-	require(sourceValueSet != NULL);
+	require(sourcePartValues != NULL);
+	require(sourcePartValues->GetValueType() == GetValueType());
+
+	// Acces au groupe de valeurs source
+	sourceValueSet = cast(KWDGValueSet*, sourcePartValues);
 
 	// Pour garantir la valeur correcte de nValueNumber si le sourceValueSet a ete compresse avant la copie
-	int nOldValueNumber;
 	nOldValueNumber = nValueNumber;
 
 	// Recopie de la liste de valeurs source
@@ -4440,44 +4446,33 @@ void KWDGValueSet::UpgradeFrom(const KWDGValueSet* sourceValueSet)
 	nValueNumber = nOldValueNumber + sourceValueSet->nValueNumber;
 }
 
-void KWDGValueSet::SortValues()
-{
-	InternalSortValues(KWDGValueCompareValue);
-}
-
-void KWDGValueSet::SortValueByDecreasingFrequencies()
-{
-	InternalSortValues(KWDGValueCompareFrequency);
-}
-
-boolean KWDGValueSet::AreValuesSorted() const
-{
-	return InternalAreValuesSorted(KWDGValueCompareValue);
-}
-
-boolean KWDGValueSet::AreValuesSortedByDecreasingFrequencies() const
-{
-	return InternalAreValuesSorted(KWDGValueCompareFrequency);
-}
-
-boolean KWDGValueSet::IsSubPartValues(const KWDGPartValues* otherPartValues) const
-{
-	return IsSubValueSet(cast(KWDGValueSet*, otherPartValues));
-}
-
-void KWDGValueSet::Import(KWDGPartValues* sourcePartValues)
-{
-	Import(cast(KWDGValueSet*, sourcePartValues));
-}
-
-void KWDGValueSet::UpgradeFrom(const KWDGPartValues* sourcePartValues)
-{
-	UpgradeFrom(cast(KWDGValueSet*, sourcePartValues));
-}
-
 void KWDGValueSet::CopyFrom(const KWDGPartValues* sourcePartValues)
 {
-	CopyFrom(cast(KWDGValueSet*, sourcePartValues));
+	KWDGValueSet* sourceValueSet;
+	KWDGValue* value;
+	KWDGValue* valueCopy;
+
+	require(sourcePartValues != NULL);
+	require(sourcePartValues->GetValueType() == GetValueType());
+
+	// Acces au groupe de valeurs source
+	sourceValueSet = cast(KWDGValueSet*, sourcePartValues);
+
+	// Nettoyage des valeurs actuelles
+	DeleteAllValues();
+
+	// Recopie de la liste de valeurs source
+	value = sourceValueSet->GetHeadValue();
+	while (value != NULL)
+	{
+		valueCopy = AddValueCopy(value);
+		valueCopy->SetValueFrequency(value->GetValueFrequency());
+		sourceValueSet->GetNextValue(value);
+	}
+	bIsDefaultPart = sourceValueSet->IsDefaultPart();
+
+	// Pour garantir la valeur correcte de nValueNumber si le sourceValueSet a ete compresse avant la copie
+	nValueNumber = sourceValueSet->nValueNumber;
 }
 
 int KWDGValueSet::ComparePartValues(const KWDGPartValues* otherPartValues) const

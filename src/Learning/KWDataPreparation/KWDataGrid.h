@@ -906,8 +906,8 @@ public:
 	// Type de valeur gere par la partie
 	virtual int GetValueType() const = 0;
 
-	// Test si la partie de valeur est un sous-ensemble de la partie en parametre
-	virtual boolean IsSubPartValues(const KWDGPartValues* otherPartValues) const = 0;
+	// Test si la partie  est un sous-ensemble de la partie en parametre
+	virtual boolean IsSubPart(const KWDGPartValues* otherPartValues) const = 0;
 
 	// Import des valeurs d'une autre partie
 	// La partie source est reinitialisee
@@ -950,9 +950,6 @@ public:
 	// Creation
 	virtual KWDGValueSet* Create() const = 0;
 
-	// Copie
-	void CopyFrom(const KWDGValueSet* sourceValueSet);
-
 	// Duplication
 	KWDGValueSet* Clone() const;
 
@@ -991,19 +988,8 @@ public:
 	// Export des valeurs dans un tableau (initialement vide)
 	void ExportValues(ObjectArray* oaValues) const;
 
-	// Test si l'ensemble de valeur est inclus dans l'autre ensemble de valeurs en parametres
-	// On ne tient pas compte de la StarValue, et on effectue un test d'inclusion exhaustif pour toutes les valeurs
-	boolean IsSubValueSet(const KWDGValueSet* otherValueSet) const;
-
 	// Calcul de l'effectif cumule des valeurs
 	int ComputeTotalFrequency() const;
-
-	// Import des valeurs d'une partie source, devant etre disjointe de la premiere
-	// partie. La partie source est reinitialise
-	void Import(KWDGValueSet* sourceValueSet);
-
-	// Ajout de nouvelles valeurs recopiees depuis une source
-	void UpgradeFrom(const KWDGValueSet* sourceValueSet);
 
 	// Tri des valeurs
 	void SortValues();
@@ -1017,7 +1003,7 @@ public:
 	boolean AreValuesSortedByDecreasingFrequencies() const;
 
 	// Redefinition des methodes virtuelles
-	boolean IsSubPartValues(const KWDGPartValues* otherPartValues) const override;
+	boolean IsSubPart(const KWDGPartValues* otherPartValues) const override;
 	void Import(KWDGPartValues* sourcePartValues) override;
 	void UpgradeFrom(const KWDGPartValues* sourcePartValues) override;
 	void CopyFrom(const KWDGPartValues* sourcePartValues) override;
@@ -1256,24 +1242,8 @@ public:
 	///////////////////////////////
 	// Services divers
 
-	// Test si l'intervalle est un sous-intervalle
-	boolean IsSubInterval(const KWDGInterval* otherInterval) const;
-
-	// Import des valeurs d'un intervalle source, devant etre adjacent au premier
-	// intervalle. L'intervalle source est reinitialise
-	void Import(KWDGInterval* sourceInterval);
-
-	// CH IV Begin
-	// Mise a jour des valeurs de l'intervalle a partir des valeurs d'un intervalle source, devant etre adjacent au
-	// premier intervalle. L'intervalle source n'est pas modifie
-	// CH IV Refactoring: UpgradeFrom est tres proche de Import: a mutualiser, ou remplacer Import par UpgradeFrom puis Reset???
-	void UpgradeFrom(const KWDGInterval* sourceInterval);
-	// CH IV End
-	// Copie
-	void CopyFrom(const KWDGInterval* sourceInterval);
-
 	// Redefinition des methodes virtuelles
-	boolean IsSubPartValues(const KWDGPartValues* otherPartValues) const override;
+	boolean IsSubPart(const KWDGPartValues* otherPartValues) const override;
 	void Import(KWDGPartValues* sourcePartValues) override;
 	void UpgradeFrom(const KWDGPartValues* sourcePartValues) override;
 	void CopyFrom(const KWDGPartValues* sourcePartValues) override;
@@ -2099,14 +2069,6 @@ inline Continuous KWDGInterval::GetMinLowerBound()
 inline Continuous KWDGInterval::GetMaxUpperBound()
 {
 	return KWContinuous::GetMaxValue();
-}
-
-inline void KWDGInterval::CopyFrom(const KWDGInterval* sourceInterval)
-{
-	require(sourceInterval != NULL);
-
-	cLowerBound = sourceInterval->cLowerBound;
-	cUpperBound = sourceInterval->cUpperBound;
 }
 
 // Classe KWDGValueSet
