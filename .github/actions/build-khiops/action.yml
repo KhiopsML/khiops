@@ -16,7 +16,7 @@ runs:
     - name: Setup MPI
       uses: mpi4py/setup-mpi@v1
     - name: Load Visual C++ Environment Variables (Windows only)
-      if: ${{ runner.os == 'Windows' }}
+      if: runner.os == 'Windows'
       shell: cmd
       run: |
         call "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\VC\\Auxiliary\\Build\\vcvars64.bat"
@@ -25,4 +25,9 @@ runs:
       shell: bash
       run: |-
         cmake --preset ${{ inputs.preset-name }} ${{ inputs.override-flags }}
-        cmake --build --parallel --preset ${{ inputs.preset-name }} --target ${{ inputs.targets }}
+        if [[ "${{ github.inputs.targets }}" != '' ]]
+        then
+          cmake --build --parallel --preset ${{ inputs.preset-name }} --target ${{ inputs.targets }}
+        else
+          cmake --build --parallel --preset ${{ inputs.preset-name }}
+        fi
