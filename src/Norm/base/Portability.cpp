@@ -526,8 +526,8 @@ int OpenApplication(const char* sApplicationExeName, const char* sApplicationLab
 
 #else
 // Implementation du lancement d'executable avec erreur pour les autres OS
-int OpenApplication(const char* sApplicationExeName, const char* sApplicationLabel, const char* sExtension,
-		    const char* sFileToOpen, char* sErrorMessage)
+int OpenApplication(const char* sApplicationExeName, const char* sApplicationLabel, const char* sFileToOpen,
+		    char* sErrorMessage)
 {
 	int ok;
 
