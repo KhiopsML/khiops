@@ -13,7 +13,46 @@ on:
 env:
   KhiopsBatchMode: true
 jobs:
+  # Build the project on each platform for all targets to ensure that all sources and cmake files are correct
+  # The useful binaries are cached for the current run_id. It will be restored only in the same run of the 
+  # build. The cached binaries are delete in the last job (cleanup-cache)
+  build-full-project:
+    strategy:
+      matrix:
+        build-setup:
+          - {os: windows-2022, cmake-preset: windows-msvc}
+          - {os: ubuntu-latest, cmake-preset: linux-gcc}
+          - {os: macos-latest, cmake-preset: macos-clang}
+        config: [debug, release]
+    runs-on: ${{ matrix.build-setup.os }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+      - name: Build all binaries
+        uses: ./.github/actions/build-khiops
+        with:
+          preset-name: ${{ matrix.build-setup.cmake-preset }}-${{ matrix.config }}
+          override-flags: -DTESTING=OFF
+      - name: Cache binaries
+        id: cache-binaries-unix
+        uses: actions/cache@v3
+        with:
+          # We add binaries path one by one to avoid *.pdb and other msvc stuffs that generate a cache of 200Mo for windows
+          path: |
+            ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}-${{ matrix.config }}/bin/MODL
+            ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}-${{ matrix.config }}/bin/MODL_Coclustering
+            ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}-${{ matrix.config }}/bin/KNITransfer
+            ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}-${{ matrix.config }}/bin/MODL.exe
+            ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}-${{ matrix.config }}/bin/MODL_Coclustering.exe
+            ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}-${{ matrix.config }}/bin/KNITransfer.exe
+            ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}-${{ matrix.config }}/bin/KhiopsNativeInterface.dll
+            ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}-${{ matrix.config }}/lib/libKhiopsNativeInterface.*
+            ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}-${{ matrix.config }}/lib/KhiopsNativeInterface.lib
+          key: ${{ github.run_id }}-${{ matrix.build-setup.os }}-${{ matrix.build-setup.cmake-preset
+            }}-${{ matrix.config }}
+          fail-on-cache-miss: false
   run-standard-tests:
+    needs: build-full-project
     strategy:
       fail-fast: false
       matrix:
@@ -24,39 +63,38 @@ jobs:
         running-mode: [parallel, serial]
         config: [debug, release]
     runs-on: ${{ matrix.build-setup.os }}
-    permissions:
-      id-token: write
-      contents: read
-      checks: write
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
+      - name: Restore cached binaries
+        id: restore-binaries
+        uses: actions/cache/restore@v3
+        with:
+          path: |
+            ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}-${{ matrix.config }}/bin/MODL
+            ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}-${{ matrix.config }}/bin/MODL_Coclustering
+            ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}-${{ matrix.config }}/bin/KNITransfer
+            ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}-${{ matrix.config }}/bin/MODL.exe
+            ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}-${{ matrix.config }}/bin/MODL_Coclustering.exe
+            ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}-${{ matrix.config }}/bin/KNITransfer.exe
+            ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}-${{ matrix.config }}/bin/KhiopsNativeInterface.dll
+            ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}-${{ matrix.config }}/lib/libKhiopsNativeInterface.*
+            ${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}-${{ matrix.config }}/lib/KhiopsNativeInterface.lib
+          key: ${{ github.run_id }}-${{ matrix.build-setup.os }}-${{ matrix.build-setup.cmake-preset
+            }}-${{matrix.config }}
+          fail-on-cache-miss: true
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-      - name: Build Khiops executables (parallel)
-      # In parallel, build only MODL
-        if: matrix.running-mode == 'parallel'
-        uses: ./.github/actions/build-khiops
-        with:
-          preset-name: ${{ matrix.build-setup.cmake-preset }}-${{ matrix.config }}
-          targets: MODL
-          override-flags: -DBUILD_JARS=OFF -DTESTING=OFF
-      - name: Build Khiops executables (serial)
-      # In serial, build all binaries
-        if: matrix.running-mode == 'serial'
-        uses: ./.github/actions/build-khiops
-        with:
-          preset-name: ${{ matrix.build-setup.cmake-preset }}-${{ matrix.config }}
-          targets: MODL MODL_Coclustering KNITransfer
-          override-flags: -DBUILD_JARS=OFF -DTESTING=OFF
       - name: Set environment variables
         shell: bash
         run: |
           echo "TEST_PY=test/LearningTest/cmd/python/test_khiops.py" >> "$GITHUB_ENV"
           echo "APPLY_PY=test/LearningTest/cmd/python/apply_command.py" >> "$GITHUB_ENV"
           echo "BIN_PATH=${{ github.workspace }}/build/${{ matrix.build-setup.cmake-preset }}-${{ matrix.config }}/bin" >> "$GITHUB_ENV"
+      - name: Setup MPI
+        uses: mpi4py/setup-mpi@v1
       - name: Run Tests
       # Run test on linux and macOS as describe in the top comment:
       # - In parallel, run only MODL tests
@@ -125,3 +163,32 @@ jobs:
             test/LearningTest/**/results.ref
             test/LearningTest/**/errors.txt
             test/LearningTest/**/comparisonResults.log
+  cleanup-cache:
+    # Clean up all caches belonging to the current run
+    if: ${{ always() }}
+    needs: run-standard-tests
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+        with:
+          sparse-checkout: .git
+      - name: Cleanup cache
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |-
+          gh extension install actions/gh-actions-cache
+          REPO=${{ github.repository }}
+          echo "Fetching list of cache key for the current workflow"
+          cacheKeysForDelete=$(gh actions-cache list --key ${{ github.run_id }} | cut -f 1 )
+          set +e
+          echo "Deleting caches..."
+          for cacheKey in $cacheKeysForDelete
+          do
+            gh actions-cache delete $cacheKey --confirm
+          done
+          echo "Done"
