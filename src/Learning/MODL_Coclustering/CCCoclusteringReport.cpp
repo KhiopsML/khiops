@@ -731,7 +731,7 @@ boolean CCCoclusteringReport::ReadDimensions(CCHierarchicalDataGrid* coclusterin
 				// Affichage en mode debug
 				if (bReadDebug)
 					cout << sKeyWordDimensions << "\t" << sAttributeName << "\t"
-					     << KWType::ToString(KWType::GetSimpleCoclusteringType(nAttributeType))
+					     << KWType::ToString(KWType::GetCoclusteringSimpleType(nAttributeType))
 					     << "\t" << nAttributePartNumber << "\t" << nAttributeValueNumber << "\t"
 					     << sAttributeDescription << endl;
 			}
@@ -2072,7 +2072,7 @@ void CCCoclusteringReport::WriteDimensions(const CCHierarchicalDataGrid* coclust
 		// Caracteristique des attributs
 		// Le nombre de valeur est diminuer en externe de 1 pour tenir compte de de la StarValue en interne
 		ost << dgAttribute->GetAttributeName() << "\t";
-		ost << KWType::ToString(KWType::GetSimpleCoclusteringType(dgAttribute->GetAttributeType())) << "\t";
+		ost << KWType::ToString(KWType::GetCoclusteringSimpleType(dgAttribute->GetAttributeType())) << "\t";
 		ost << dgAttribute->GetPartNumber() << "\t";
 		ost << dgAttribute->GetInitialPartNumber() << "\t";
 		ost << nValueNumber << "\t";
@@ -3126,12 +3126,12 @@ boolean CCCoclusteringReport::ReadJSONDimensionPartitions(CCHierarchicalDataGrid
 
 		// Type de l'attribut
 		bOk = bOk and JSONTokenizer::ReadKeyStringValue("type", sAttributeType, bIsAttributeEnd);
-		if (bOk and KWType::ToString(KWType::GetSimpleCoclusteringType(dgAttribute->GetAttributeType())) !=
+		if (bOk and KWType::ToString(KWType::GetCoclusteringSimpleType(dgAttribute->GetAttributeType())) !=
 				sAttributeType)
 		{
 			JSONTokenizer::AddParseError(
 			    "Read variable type " + sAttributeType + " instead of expected " +
-			    KWType::ToString(KWType::GetSimpleCoclusteringType(dgAttribute->GetAttributeType())));
+			    KWType::ToString(KWType::GetCoclusteringSimpleType(dgAttribute->GetAttributeType())));
 			bOk = false;
 		}
 
@@ -4100,12 +4100,12 @@ boolean CCCoclusteringReport::ReadJSONDimensionHierarchies(CCHierarchicalDataGri
 
 		// Type de l'attribut
 		bOk = bOk and JSONTokenizer::ReadKeyStringValue("type", sAttributeType, bIsAttributeEnd);
-		if (bOk and KWType::ToString(KWType::GetSimpleCoclusteringType(dgAttribute->GetAttributeType())) !=
+		if (bOk and KWType::ToString(KWType::GetCoclusteringSimpleType(dgAttribute->GetAttributeType())) !=
 				sAttributeType)
 		{
 			JSONTokenizer::AddParseError(
 			    "Read variable type " + sAttributeType + " instead of expected " +
-			    KWType::ToString(KWType::GetSimpleCoclusteringType(dgAttribute->GetAttributeType())));
+			    KWType::ToString(KWType::GetCoclusteringSimpleType(dgAttribute->GetAttributeType())));
 			bOk = false;
 		}
 
@@ -4605,7 +4605,7 @@ void CCCoclusteringReport::WriteJSONDimensionSummaries(const CCHierarchicalDataG
 		if (dgAttribute->GetAttributeType() == KWType::VarPart)
 			fJSON->WriteKeyBoolean("isVarPart", true);
 		fJSON->WriteKeyString(
-		    "type", KWType::ToString(KWType::GetSimpleCoclusteringType(dgAttribute->GetAttributeType())));
+		    "type", KWType::ToString(KWType::GetCoclusteringSimpleType(dgAttribute->GetAttributeType())));
 		fJSON->WriteKeyInt("parts", dgAttribute->GetPartNumber());
 		fJSON->WriteKeyInt("initialParts", dgAttribute->GetInitialPartNumber());
 		fJSON->WriteKeyInt("values", nValueNumber);
@@ -4656,7 +4656,7 @@ void CCCoclusteringReport::WriteJSONDimensionPartitions(const CCHierarchicalData
 		fJSON->BeginObject();
 		fJSON->WriteKeyString("name", dgAttribute->GetAttributeName());
 		fJSON->WriteKeyString(
-		    "type", KWType::ToString(KWType::GetSimpleCoclusteringType(dgAttribute->GetAttributeType())));
+		    "type", KWType::ToString(KWType::GetCoclusteringSimpleType(dgAttribute->GetAttributeType())));
 
 		// Traitement des attributs numeriques
 		if (dgAttribute->GetAttributeType() == KWType::Continuous)
@@ -5028,7 +5028,7 @@ void CCCoclusteringReport::WriteJSONDimensionHierarchies(const CCHierarchicalDat
 		fJSON->BeginObject();
 		fJSON->WriteKeyString("name", dgAttribute->GetAttributeName());
 		fJSON->WriteKeyString(
-		    "type", KWType::ToString(KWType::GetSimpleCoclusteringType(dgAttribute->GetAttributeType())));
+		    "type", KWType::ToString(KWType::GetCoclusteringSimpleType(dgAttribute->GetAttributeType())));
 
 		// Exports de toutes les parties de la hierarchie en partant de la racine
 		oaParts.SetSize(0);

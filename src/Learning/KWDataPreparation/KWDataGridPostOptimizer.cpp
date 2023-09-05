@@ -1432,6 +1432,7 @@ void KWDGPOGrouper::InitializePartFrequencyVector(KWDGPOPartFrequencyVector* par
 	require(partFrequencyVector->ComputeTotalFrequency() == 0);
 	require(partFrequencyVector->GetModalityNumber() == 0);
 	require(part != NULL);
+	//DDDSIMPLIFY
 	require(part->GetPartType() == KWType::Symbol or part->GetPartType() == KWType::VarPart);
 	require(part->GetAttribute()->GetAttributeName() == GetPostOptimizationAttributeName());
 	require(nkdHashCells != NULL);
@@ -1440,6 +1441,7 @@ void KWDGPOGrouper::InitializePartFrequencyVector(KWDGPOPartFrequencyVector* par
 	InitializeFrequencyVector(partFrequencyVector);
 
 	// Memorisation du nombre de valeurs associees a la partie
+	//DDDSIMPLIFY
 	if (part->GetPartType() == KWType::Symbol)
 		partFrequencyVector->SetModalityNumber(part->GetValueSet()->GetValueNumber());
 	// CH IV Begin
@@ -1742,6 +1744,7 @@ int KWDGPOGrouper::InitializeGroupIndexesAndGarbageIndex(IntVector* ivGroups, co
 		// Recherche de sa partie groupee correspondante
 
 		// CH IV Begin
+		//DDDSIMPLIFY
 		if (optimizedAttribute->GetAttributeType() == KWType::Symbol)
 		{
 			optimizedPart = optimizedAttribute->LookupSymbolPart(
@@ -1869,6 +1872,7 @@ void KWDGPOGrouper::UpdateDataGridWithGarbageFromGroups(KWDataGrid* optimizedDat
 
 		// CH IV Begin
 		// Cas d'une partie d'un attribut categoriel
+		//DDDSIMPLIFY
 		if (optimizedPart->GetPartType() == KWType::Symbol)
 		{
 			// Mise a jour de la definition du group
@@ -2649,6 +2653,7 @@ double KWDataGridUnivariateCosts::ComputePartCost(const KWFrequencyVector* part)
 	// Attention: on utilise ici un acces direct au nombre de valeur du ValueSet pour permettre
 	// d'utiliser ce parametre dans les calculs de cout
 	// (mais il y a incompletude du ValueSet, qui n'est specifie que pour ce qui est utile pour le calcul des couts)
+	//DDDSIMPLIFY
 	if (partCostParameter->GetPartType() == KWType::Symbol)
 	{
 		// N'etant jamais la partie par defaut, on a le TrueValueNumber egal au ValueNumber
@@ -2725,6 +2730,7 @@ double KWDataGridUnivariateCosts::ComputePartUnionCost(const KWFrequencyVector* 
 	// Attention: on utilise ici un acces direct au nombre de valeur du ValueSet pour permettre
 	// d'utiliser ce parametre dans les calculs de cout
 	// (mais il y a incompletude du ValueSet, qui n'est specifie que pour ce qui est utile pour le calcul des couts)
+	//DDDSIMPLIFY
 	if (partCostParameter->GetPartType() == KWType::Symbol)
 	{
 		cast(KWDGSymbolValueSetCostParameter*, partCostParameter->GetValueSet())->nValueNumber =
@@ -2766,6 +2772,7 @@ double KWDataGridUnivariateCosts::ComputePartDiffCost(const KWFrequencyVector* s
 	// Attention: on utilise ici un acces direct au nombre de valeur du ValueSet pour permettre
 	// d'utiliser ce parametre dans les calculs de cout
 	// (mais il y a incompletude du ValueSet, qui n'est specifie que pour ce qui est utile pour le calcul des couts)
+	//DDDSIMPLIFY
 	if (partCostParameter->GetPartType() == KWType::Symbol)
 	{
 		cast(KWDGSymbolValueSetCostParameter*, partCostParameter->GetValueSet())->nValueNumber =
@@ -2863,11 +2870,12 @@ void KWDGPartCostParameter::SetPartType(int nValue)
 
 	// Creation de l'objet interval ou ensemble de valeur selon le type
 	if (nValue == KWType::Continuous)
-		interval = new KWDGInterval;
+		partValues = new KWDGInterval;
+	//DDDSIMPLIFY
 	else if (nValue == KWType::Symbol)
-		symbolValueSet = new KWDGSymbolValueSetCostParameter;
+		partValues = new KWDGSymbolValueSetCostParameter;
 	else
-		varPartSet = new KWDGVarPartSetCostParameter;
+		partValues = new KWDGVarPartSetCostParameter;
 	// Avant integration : pour quel cas ? valueSet = new KWDGValueSetCostParameter;
 	// CH IV End
 	ensure(GetPartType() != KWType::Unknown);
