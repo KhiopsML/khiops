@@ -414,11 +414,8 @@ void KWDataGridMerger::InitializeAllPartLists()
 		attribute = GetAttributeAt(nAttribute);
 		attributeM = cast(KWDGMAttribute*, attribute);
 
-		// CH IV Begin
-		// Cas d'un attribut categoriel ou varParts (donc eligible au groupe poubelle)
-		//DDDSIMPLIFY
-		if (attribute->GetAttributeType() == KWType::Symbol or attribute->GetAttributeType() == KWType::VarPart)
-		// CH IV End
+		// Cas d'un attribut groupable (donc eligible au groupe poubelle)
+		if (KWType::IsCoclusteringGroupableType(attribute->GetAttributeType()))
 		{
 			// Parcours des parties de l'attribut
 			part = attribute->GetHeadPart();
@@ -876,12 +873,8 @@ double KWDataGridMerger::SearchBestPartMergeWithGarbageSearch(KWDGMPartMerge*& b
 										 nNewInformativeAttributeNumber) -
 					 GetCost();
 
-			// CH IV Begin
-			// Cas d'un attribut categoriel ou VarPart pour lequel un groupe poubelle est envisageable
-			//DDDSIMPLIFY
-			if (attribute->GetAttributeType() == KWType::Symbol or
-			    attribute->GetAttributeType() == KWType::VarPart)
-			// CH IV End
+			// Cas d'un attribut groupable pour lequel un groupe poubelle est envisageable
+			if (KWType::IsCoclusteringGroupableType(attribute->GetAttributeType()))
 			{
 				// Memorisation de la presence d'un groupe poubelle pour restitution ulterieure
 				bGarbageBeforeMerge = attributeM->GetGarbageModalityNumber() > 0;
@@ -935,13 +928,12 @@ double KWDataGridMerger::SearchBestPartMergeWithGarbageSearch(KWDGMPartMerge*& b
 				bestPartMerge = partMerge;
 			}
 
-			// CH IV Begin
 			// Cas ou l'on envisage un groupe poubelle :
 			// attribut categoriel avec un nombre de parties apres fusion est >= 3 (sinon il ne peut pas y
 			// avoir de groupe poubelle) attribut VarPart ET mode poubelle pour ce type d'attributs + nbre
-			// de parties apres fusion >=3 CH AB voir l'impact de la variation d'un cout avec groupe
-			// poubelle lorsque le nombre de PV est reduit du fait de la post-fusion
-			//DDDSIMPLIFY
+			// de parties apres fusion >=3
+			// CH AB voir l'impact de la variation d'un cout avec groupe poubelle lorsque le nombre
+			// de PV est reduit du fait de la post-fusion
 			if ((attribute->GetAttributeType() == KWType::Symbol or
 			     (attribute->GetAttributeType() == KWType::VarPart and GetVarPartAttributeGarbage())) and
 			    attributeM->GetPartNumber() - 1 >= 3)
@@ -951,61 +943,24 @@ double KWDataGridMerger::SearchBestPartMergeWithGarbageSearch(KWDGMPartMerge*& b
 
 				// Cas d'un attribut AVEC groupe poubelle apres fusion
 				// Cas ou les deux parties fusionnees deviennent le groupe poubelle
-				//DDDSIMPLIFY
-				if (attribute->GetAttributeType() == KWType::Symbol)
+				if (partMerge->GetPart1()->GetValueSet()->GetValueNumber() +
+					partMerge->GetPart2()->GetValueSet()->GetValueNumber() >
+				    cast(KWDGPart*, attributeM->slPartValueNumbers->GetHead())
+					->GetValueSet()
+					->GetValueNumber())
 				{
-					if (partMerge->GetPart1()->GetValueSet()->GetValueNumber() +
-						partMerge->GetPart2()->GetValueSet()->GetValueNumber() >
-					    cast(KWDGPart*, attributeM->slPartValueNumbers->GetHead())
-						->GetValueSet()
-						->GetValueNumber())
-					{
-						// Creation du nouveau groupe poubelle
-						garbagePart = new KWDGPart;
-						// Cas categoriel
+					// Creation du nouveau groupe poubelle
+					garbagePart = new KWDGPart;
+					// Cas categoriel
 
-						garbagePart->SetPartType(KWType::Symbol);
-						// Copie des valeurs de la partie 1 de la fusion
-						garbagePart->GetValueSet()->CopyFrom(
-						    partMerge->GetPart1()->GetValueSet());
-						// Mise a jour avec les valeurs de la partie 2 de la fusion
-						garbagePart->GetValueSet()->UpgradeFrom(
-						    partMerge->GetPart2()->GetValueSet());
+					garbagePart->SetPartType(attribute->GetAttributeType());
+					// Copie des valeurs de la partie 1 de la fusion
+					garbagePart->GetValueSet()->CopyFrom(partMerge->GetPart1()->GetValueSet());
+					// Mise a jour avec les valeurs de la partie 2 de la fusion
+					garbagePart->GetValueSet()->UpgradeFrom(partMerge->GetPart2()->GetValueSet());
 
-						attributeM->SetGarbagePart(cast(KWDGPart*, garbagePart));
-					}
-					// Sinon : on garde le meme groupe poubelle
-					else
-						attributeM->SetGarbagePart(
-						    cast(KWDGPart*, attributeM->slPartValueNumbers->GetHead()));
+					attributeM->SetGarbagePart(cast(KWDGPart*, garbagePart));
 				}
-				else if (attribute->GetAttributeType() == KWType::VarPart)
-				{
-					if (partMerge->GetPart1()->GetVarPartSet()->GetValueNumber() +
-						partMerge->GetPart2()->GetVarPartSet()->GetValueNumber() >
-					    cast(KWDGPart*, attributeM->slPartValueNumbers->GetHead())
-						->GetVarPartSet()
-						->GetValueNumber())
-					{
-						// Creation du nouveau groupe poubelle
-						garbagePart = new KWDGPart;
-
-						garbagePart->SetPartType(KWType::VarPart);
-						// Copie des valeurs de la partie 1 de la fusion
-						garbagePart->GetVarPartSet()->CopyFrom(
-						    partMerge->GetPart1()->GetVarPartSet());
-						// Mise a jour avec les valeurs de la partie 2 de la fusion
-						garbagePart->GetVarPartSet()->UpgradeFrom(
-						    partMerge->GetPart2()->GetVarPartSet());
-
-						attributeM->SetGarbagePart(cast(KWDGPart*, garbagePart));
-					}
-					// Sinon : on garde le meme groupe poubelle
-					else
-						attributeM->SetGarbagePart(
-						    cast(KWDGPart*, attributeM->slPartValueNumbers->GetHead()));
-				}
-				// CH IV End
 				// Sinon : on garde le meme groupe poubelle
 				else
 					attributeM->SetGarbagePart(
@@ -1066,11 +1021,10 @@ double KWDataGridMerger::SearchBestPartMergeWithGarbageSearch(KWDGMPartMerge*& b
 				if (garbagePart != NULL)
 					delete garbagePart;
 			}
-			// CH IV Begin
-			//DDDSIMPLIFY
+
+			// Finalisation de la gestion du groupe poubelle
 			if (attribute->GetAttributeType() == KWType::Symbol or
 			    (attribute->GetAttributeType() == KWType::VarPart and GetVarPartAttributeGarbage()))
-			// CH IV End
 			{
 				// Restitution de la poubelle initiale
 				if (not bGarbageBeforeMerge)
@@ -1918,14 +1872,14 @@ boolean KWDGMPart::Check() const
 {
 	boolean bOk = true;
 	int nTotalValueFrequency;
+	ALString sValueClassLabel;
 	ALString sTmp;
 
 	// Verification de base
 	bOk = KWDGPart::Check();
 
-	// Verification de l'ensemble de valeurs
-	//DDDSIMPLIFY
-	if (bOk and GetPartType() == KWType::Symbol)
+	// Verification de l'ensemble de valeurs dans le cas groupable
+	if (bOk and KWType::IsCoclusteringGroupableType(GetPartType()))
 	{
 		// Verification de la compatibilite entre l'effectif de la partie
 		// et l'effectif cumule de ses valeurs
@@ -1939,35 +1893,13 @@ boolean KWDGMPart::Check() const
 		if (bOk and GetPartFrequency() > 0 and nTotalValueFrequency > 0 and
 		    GetPartFrequency() != nTotalValueFrequency)
 		{
+			sValueClassLabel = GetValueSet()->GetHeadValue()->GetClassLabel();
 			AddError(sTmp + "Part frequency (" + IntToString(GetPartFrequency()) +
-				 ") different from the cumulated frequency of its values (" +
+				 ") different from the cumulated frequency of its " + sValueClassLabel + "s (" +
 				 IntToString(nTotalValueFrequency) + ")");
 			bOk = false;
 		}
 	}
-	// CH IV Begin
-	// Verification de l'ensemble des parties de variable
-	else if (bOk and GetPartType() == KWType::VarPart)
-	{
-		// Verification de la compatibilite entre l'effectif de la partie
-		// et l'effectif cumule de ses parties de variables
-		// La verification ne se fait que si la partie a un effectif non nul,
-		// ou si l'effectif cumule des parties de variable est non nul.
-		// Cela permet des verifications partielles en cours d'alimentation
-		// de la grille (les parties et leurs parties de variable sont creees avant
-		// la creation des cellules).
-		// La verification n'est pas faite dans tous les cas dans la classe ancetre
-		nTotalValueFrequency = GetValueSet()->ComputeTotalFrequency();
-		if (bOk and GetPartFrequency() > 0 and nTotalValueFrequency > 0 and
-		    GetPartFrequency() != nTotalValueFrequency)
-		{
-			AddError(sTmp + "Part frequency (" + IntToString(GetPartFrequency()) +
-				 ") different from the cumulated frequency of its var parts (" +
-				 IntToString(nTotalValueFrequency) + ")");
-			bOk = false;
-		}
-	}
-	// CH IV End
 	return bOk;
 }
 
@@ -2001,20 +1933,16 @@ int KWDGMPartValueNumberCompare(const void* elem1, const void* elem2)
 	KWDGMPart* partM1;
 	KWDGMPart* partM2;
 
+	// Acces aux parties
 	partM1 = cast(KWDGMPart*, *(Object**)elem1);
 	partM2 = cast(KWDGMPart*, *(Object**)elem2);
+	assert(KWType::IsCoclusteringGroupableType(partM1->GetPartType()));
+	assert(partM1->GetPartType() == partM1->GetPartType());
 
-	// CH IV Begin
-	assert(partM1->GetPartType() == KWType::Symbol or partM1->GetPartType() == KWType::VarPart);
-	assert(partM2->GetPartType() == KWType::Symbol or partM2->GetPartType() == KWType::VarPart);
+	// CH IV Refactoring: faut-il ajouter une fonction de comparaison secondaire sur les valeurs en cas degalite?
 
-	// Comparaison du nombre de modalites par valeurs decroissantes
-	//DDDSIMPLIFY
-	if (partM1->GetPartType() == KWType::Symbol)
-		return (partM2->GetValueSet()->GetValueNumber() - partM1->GetValueSet()->GetValueNumber());
-	else
-		return (partM2->GetVarPartSet()->GetValueNumber() - partM1->GetVarPartSet()->GetValueNumber());
-	// CH IV End
+	// Comparaison du nombre de modalites par valeurs decroissantes dans le cas groupable
+	return partM2->GetValueSet()->GetValueNumber() - partM1->GetValueSet()->GetValueNumber();
 }
 //////////////////////////////////////////////////////////////////////////////
 // Classe KWDGMCell

@@ -554,10 +554,8 @@ double KWDataGridCosts::ComputeDataGridAllValuesCost(const KWDataGrid* dataGrid)
 	KWDGAttribute* attribute;
 	KWDGPart* part;
 	KWDGValue* value;
-	// CH IV Begin
 	int nInnerAttribute;
 	KWDGAttribute* innerAttribute;
-	// CH IV End
 
 	require(dataGrid != NULL);
 
@@ -589,10 +587,7 @@ double KWDataGridCosts::ComputeDataGridAllValuesCost(const KWDataGrid* dataGrid)
 				attribute->GetNextPart(part);
 			}
 		}
-		// CH IV Begin
-
-		// Prise en compte du cout des valeurs des attributs symboliques internes dans des attributs de type
-		// VarPart
+		// Prise en compte du cout des valeurs des attributs symboliques internes dans des attributs de type VarPart
 		else if (attribute->GetAttributeType() == KWType::VarPart)
 		{
 			for (nInnerAttribute = 0; nInnerAttribute < attribute->GetInnerAttributeNumber();
@@ -624,7 +619,6 @@ double KWDataGridCosts::ComputeDataGridAllValuesCost(const KWDataGrid* dataGrid)
 				}
 			}
 		}
-		// CH IV End
 	}
 	return dAllValuesCost;
 }
@@ -2003,17 +1997,16 @@ double KWVarPartDataGridClusteringCosts::ComputePartCost(const KWDGPart* part) c
 	{
 		dPartCost = KWStat::LnFactorial(part->GetPartFrequency());
 	}
-	// Cout de distribution des valeurs (modele + donnees) dans le cas symbolique
+	// Cout de distribution des valeurs (modele + donnees) dans le cas groupable
 	// On ignore le cout LnFactorial par valeur, qui est constant quelle que soit la grille
 	else
 	{
+		assert(KWType::IsCoclusteringGroupableType(part->GetAttribute()->GetAttributeType()));
+
 		dPartCost = 0;
 		if (part->GetPartFrequency() > 0)
 		{
-			if (part->GetAttribute()->GetAttributeType() == KWType::Symbol)
-				nValueNumber = part->GetValueSet()->GetValueNumber();
-			else
-				nValueNumber = part->GetValueSet()->GetValueNumber();
+			nValueNumber = part->GetValueSet()->GetValueNumber();
 			dPartCost = KWStat::LnFactorial(part->GetPartFrequency());
 
 			// Distribution des valeurs dans la partie
@@ -2043,25 +2036,16 @@ double KWVarPartDataGridClusteringCosts::ComputePartUnionCost(const KWDGPart* pa
 	{
 		dPartUnionCost = KWStat::LnFactorial(nPartFrequency);
 	}
-	// Cout de distribution des valeurs (modele + donnees) dans le cas symbolique
+	// Cout de distribution des valeurs (modele + donnees) dans le cas groupable
 	// On ignore le cout LnFactorial par valeur, qui est constant quelle que soit la grille
-	else if (part1->GetAttribute()->GetAttributeType() == KWType::Symbol)
+	else
 	{
+		assert(KWType::IsCoclusteringGroupableType(part1->GetAttribute()->GetAttributeType()));
+
 		nValueNumber = part1->GetValueSet()->GetValueNumber() + part2->GetValueSet()->GetValueNumber();
 		dPartUnionCost = KWStat::LnFactorial(nPartFrequency);
 
 		// Distribution des valeurs dans la partie
-		dPartUnionCost += KWStat::LnFactorial(nPartFrequency + nValueNumber - 1);
-		dPartUnionCost -= KWStat::LnFactorial(nValueNumber - 1);
-		dPartUnionCost -= KWStat::LnFactorial(nPartFrequency);
-	}
-	// Cout de distribution des parties de variable dans le cas VarPart
-	else
-	{
-		nValueNumber = part1->GetValueSet()->GetValueNumber() + part2->GetValueSet()->GetValueNumber();
-		dPartUnionCost = KWStat::LnFactorial(nPartFrequency);
-
-		// Distribution des parties de variable dans la partie
 		dPartUnionCost += KWStat::LnFactorial(nPartFrequency + nValueNumber - 1);
 		dPartUnionCost -= KWStat::LnFactorial(nValueNumber - 1);
 		dPartUnionCost -= KWStat::LnFactorial(nPartFrequency);
@@ -2168,9 +2152,9 @@ double KWVarPartDataGridClusteringCosts::ComputePartModelCost(const KWDGPart* pa
 	require(part != NULL);
 	require(KWType::IsSimple(part->GetAttribute()->GetAttributeType()));
 
-	// Cout de distribution des valeurs dans le cas categoriel
+	// Cout de distribution des valeurs dans le cas groupable
 	dPartCost = 0;
-	if (part->GetAttribute()->GetAttributeType() == KWType::Symbol)
+	if (KWType::IsCoclusteringGroupableType(part->GetAttribute()->GetAttributeType()))
 	{
 		if (part->GetPartFrequency() > 0)
 		{

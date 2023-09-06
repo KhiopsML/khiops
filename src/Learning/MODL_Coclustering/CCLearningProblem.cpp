@@ -481,7 +481,6 @@ void CCLearningProblem::ExtractClusters(const ALString& sCoclusteringAttributeNa
 				WriteSymbolClusters(coclusteringAttribute, fstClusterTableFile);
 			else if (coclusteringAttribute->GetAttributeType() == KWType::Continuous)
 				WriteContinuousClusters(coclusteringAttribute, fstClusterTableFile);
-			// CH IV Begin
 			else if (coclusteringAttribute->GetAttributeType() == KWType::VarPart)
 			{
 				// Cas d'une variable de type VarPart : ajout d'un descriptif des parties de variable
@@ -489,7 +488,6 @@ void CCLearningProblem::ExtractClusters(const ALString& sCoclusteringAttributeNa
 				WriteVarPartClusters(coclusteringAttribute, fstClusterTableFile);
 				WriteVarPartsInnerAttributes(coclusteringAttribute);
 			}
-			// CH IV End
 
 			// Ecriture du rapport
 			bOk = FileService::CloseOutputFile(sLocalFileName, fstClusterTableFile);

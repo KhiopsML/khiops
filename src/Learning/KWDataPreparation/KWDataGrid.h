@@ -608,18 +608,17 @@ public:
 	// Indicateur d'indexation
 	boolean IsIndexed() const;
 
-	// Recherche de la partie contenant une valeur numerique ou symbolique
+	// Recherche de la partie contenant une valeur numerique, symbolique ou VarPart
 	// (doit etre compatible avec le type de l'attribut)
 	// Attention a ne pas modifier les valeurs (intervalles ou ensemble de valeurs)
 	// pendant l'utilisation de l'indexation
 	KWDGPart* LookupContinuousPart(Continuous cValue);
 	KWDGPart* LookupSymbolPart(const Symbol& sValue);
-
-	// CH IV Begin
-	// Recherche de la partie contenant une partie de variables
-	// (doit etre compatible avec le type de l'attribut)
 	KWDGPart* LookupVarPart(KWDGPart* varPart);
-	// CH IV End
+
+	// Recherche generique de la partie contenant une valeur de ValueSet dans le cas
+	// d'un attribut de type groupable, symbolique ou VarPart
+	KWDGPart* LookupGroupablePart(const KWDGValue* value);
 
 	///////////////////////////////
 	// Services divers
@@ -726,15 +725,13 @@ protected:
 	// Tableau des parties (intervalles) tries de facon croissante
 	ObjectArray oaIntervals;
 
-	// Structure d'indexation des parties dans le cas symbolique
-	// Dictionnaire des parties indexe par les valeurs (Symbol) des parties
+	// Structure d'indexation des parties dans le cas groupable
+	// Dictionnaire des parties indexe par les valeurs des parties, et partie par defaut
 	NumericKeyDictionary nkdParts;
-	KWDGPart* starValuePart; //DDDSIMPLIFY
-	boolean bIsIndexed;
+	KWDGPart* defaultPart;
 
-	// CH IV Begin
-	// Structure d'indexation, des parties dans le cas VarPart
-	NumericKeyDictionary nkdVarPartSets; //DDDSIMPLIFY
+	// Indicateur d'indexation
+	boolean bIsIndexed;
 
 	// Nom de l'attribut de type VarPart dont depend un attribut interne
 	// Par defaut a vide pour un attribut de type Simple (numerique ou categoriel)
@@ -1029,6 +1026,11 @@ public:
 
 	///////////////////////////////
 	///// Implementation
+
+	// Modification du nombre de valeurs
+	// Methode avancee utilisable uniquement en mode emule
+	void SetValueNumber(int nValue);
+
 protected:
 	// Ajout d'une valeur en fin de liste
 	void AddTailValue(KWDGValue* value);
@@ -1041,7 +1043,7 @@ protected:
 	// La valeur speciale est toujours mise en dernier, independament du critere de tri
 	boolean InternalAreValuesSorted(CompareFunction fCompare) const;
 
-	// Methode indiquant si les donnees sont emulee
+	// Methode indiquant si les donnees sont emulees
 	virtual boolean GetEmulated() const;
 
 	// Gestion de la liste doublement chainee des cellules
@@ -1097,6 +1099,10 @@ public:
 	// Memoire utilisee
 	virtual longint GetUsedMemory() const override = 0;
 
+	// Libelles utilisateur
+	const ALString GetClassLabel() const override = 0;
+	const ALString GetObjectLabel() const override = 0;
+
 	///////////////////////////////
 	///// Implementation
 protected:
@@ -1112,6 +1118,9 @@ int KWDGValueCompareValue(const void* elem1, const void* elem2);
 
 // Comparaison de deux valeurs, par effectif decroissant
 int KWDGValueCompareFrequency(const void* elem1, const void* elem2);
+
+// Comparaison de deux objets KWSortableObject contenant des KWDGValue, par valeur
+int KWSortableObjectComparePartValue(const void* elem1, const void* elem2);
 
 //////////////////////////////////////////////////////////////////////////////
 // Classe KWDGSymbolValueSet
@@ -1295,6 +1304,9 @@ public:
 	// Redefinition de la methode virtuelle d'ajout de la copie d'une valeur existante
 	KWDGValue* AddValueCopy(const KWDGValue* sourceValue) override;
 
+	// Libelles utilisateur
+	const ALString GetClassLabel() const override;
+
 	///////////////////////////////
 	///// Implementation
 protected:
@@ -1350,9 +1362,6 @@ protected:
 	// Attributs
 	KWDGPart* varPart;
 };
-
-// Comparaison de deux objets KWSortableObject contenant des KWDGVarPartValue
-int KWSortableObjectCompareVarPart(const void* elem1, const void* elem2);
 
 //////////////////////////////////////////////////////////////////////////////
 // Classe KWDGInnerAttributes
@@ -1412,6 +1421,10 @@ public:
 
 	// Affichage
 	void Write(ostream& ost) const override;
+
+	// Libelles utilisateur
+	const ALString GetClassLabel() const override;
+	const ALString GetObjectLabel() const override;
 
 	///////////////////////////////
 	///// Implementation
@@ -1857,15 +1870,13 @@ inline void KWDGAttribute::GetPrevPart(KWDGPart*& part) const
 inline KWDGPart* KWDGAttribute::GetGarbagePart() const
 {
 	// Pas de require strict sur le type d'attribut, pour simplifier l'usage de cette methode
-	require(nAttributeType == KWType::Symbol or nAttributeType == KWType::VarPart or garbagePart == NULL);
+	require(KWType::IsCoclusteringGroupableType(nAttributeType) or garbagePart == NULL);
 	return garbagePart;
 }
 
 inline void KWDGAttribute::SetGarbagePart(KWDGPart* part)
 {
-	// CH IV Begin
-	require(nAttributeType == KWType::Symbol or nAttributeType == KWType::VarPart);
-	// CH IV End
+	require(KWType::IsCoclusteringGroupableType(nAttributeType));
 	garbagePart = part;
 }
 
@@ -1874,12 +1885,11 @@ inline int KWDGAttribute::GetGarbageModalityNumber() const
 	if (GetGarbagePart() == NULL)
 		return 0;
 	// Sinon
-	// CH IV Begin
-	else if (nAttributeType == KWType::Symbol)
-		return GetGarbagePart()->GetValueSet()->GetValueNumber();
 	else
-		return GetGarbagePart()->GetVarPartSet()->GetValueNumber();
-	// CH IV End
+	{
+		assert(KWType::IsCoclusteringGroupableType(nAttributeType));
+		return GetGarbagePart()->GetValueSet()->GetValueNumber();
+	}
 }
 
 inline KWDGValueSet* KWDGAttribute::GetCatchAllValueSet() const
@@ -1911,7 +1921,7 @@ inline void KWDGAttribute::SetCatchAllValueNumber(int nValue)
 
 inline int KWDGAttribute::GetCatchAllValueNumber() const
 {
-	// require(nAttributeType == KWType::Symbol);
+	// Pas de require sur le type pour simplifier l'ecriture du code
 	//  Cas ou il n'y a pas de groupe fourre-tout
 	if (GetCatchAllValueSet() == NULL)
 		return 0;
@@ -2216,6 +2226,11 @@ inline KWDGValue* KWDGVarPartSet::AddVarPart(KWDGPart* varPart)
 inline KWDGValue* KWDGVarPartSet::AddValueCopy(const KWDGValue* sourceValue)
 {
 	return AddVarPart(cast(KWDGVarPartValue*, sourceValue)->GetVarPart());
+}
+
+inline const ALString KWDGVarPartSet::GetClassLabel() const
+{
+	return "VarPart set";
 }
 
 inline KWDGVarPartValue* KWDGVarPartSet::NewVarPartValue(KWDGPart* varPart) const

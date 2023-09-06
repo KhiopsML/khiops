@@ -460,24 +460,20 @@ protected:
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////
-// Sous-classes de ValueSet de grille servant de parametre de cout
+// Sous-classes de SymbolValueSet de grille servant de parametre de cout
 class KWDGSymbolValueSetCostParameter : public KWDGSymbolValueSet
 {
 protected:
-	friend class KWDataGridUnivariateCosts;
 	boolean GetEmulated() const override;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////
-// CH IV Begin
 // Sous-classes de VarPartSet de grille servant de parametre de cout
 class KWDGVarPartSetCostParameter : public KWDGVarPartSet
 {
 protected:
-	friend class KWDataGridUnivariateCosts;
 	boolean GetEmulated() const override;
 };
-// CH IV End
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 // Sous-classes de cellule de grille servant de parametre de cout

@@ -373,15 +373,7 @@ CCHDGPart* CCHDGAttribute::MergePart(CCHDGPart* part)
 	}
 
 	// Import des valeurs de la partie source vers la partie destination
-	if (GetAttributeType() == KWType::Continuous)
-		targetPart->GetInterval()->Import(sourcePart->GetInterval());
-	// CH IV Begin
-	else if (GetAttributeType() == KWType::Symbol)
-		targetPart->GetValueSet()->Import(sourcePart->GetValueSet());
-	// Cas d'un attribute de type VarPart
-	else
-		targetPart->GetVarPartSet()->Import(sourcePart->GetVarPartSet());
-	// CH IV End
+	targetPart->GetPartValues()->Import(sourcePart->GetPartValues());
 
 	// Import des informations de la partie fusionnees
 	targetPart->SetPartName(part->GetPartName());
