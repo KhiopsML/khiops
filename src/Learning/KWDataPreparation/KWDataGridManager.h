@@ -207,8 +207,8 @@ public:
 	boolean BuildDataGridFromClassStats(KWDataGrid* targetDataGrid, KWClassStats* classStats) const;
 
 	// Creation d'un attribut de grille a partir d'une partition univariee deja stockee
-	// Le parametrage de l'attribut source (granularite, poubelle si categoriel) est copie vers celui de l'attribut
-	// de DataGrid
+	// Le parametrage de l'attribut source (granularite, poubelle si categoriel) est copie
+	// vers celui de l'attribut de DataGrid
 	void BuildDataGridAttributeFromUnivariateStats(KWDGAttribute* targetAttribute,
 						       KWAttributeStats* attributeStats) const;
 
@@ -333,12 +333,9 @@ protected:
 	void InitialiseAttributeGranularizedContinuousParts(const KWDGAttribute* sourceAttribute,
 							    KWDGAttribute* targetAttribute, int nGranularity,
 							    KWQuantileIntervalBuilder* quantileIntervalBuilder) const;
-	void InitialiseAttributeGranularizedSymbolParts(const KWDGAttribute* sourceAttribute,
-							KWDGAttribute* targetAttribute, int nGranularity,
-							KWQuantileGroupBuilder* quantileGroupBuilder) const;
-	void InitialiseAttributeGranularizedVarPartParts(const KWDGAttribute* sourceAttribute,
-							 KWDGAttribute* targetAttribute, int nGranularity,
-							 KWQuantileGroupBuilder* quantileGroupBuilder) const;
+	void InitialiseAttributeGranularizedGroupableParts(const KWDGAttribute* sourceAttribute,
+							   KWDGAttribute* targetAttribute, int nGranularity,
+							   KWQuantileGroupBuilder* quantileGroupBuilder) const;
 
 	// Test si on est dans le cas d'un attribut source pour l'analyse supervisee
 	boolean IsSupervisedInputAttribute(const KWDGAttribute* attribute) const;
@@ -376,24 +373,15 @@ protected:
 	// La valeur speciale recoit pour effectif l'ensemble des effectifs manquants
 	void ExportAttributeSymbolValueFrequencies(KWDGAttribute* targetAttribute) const;
 
-	// Tri des parties d'un attribut source symbolique, selon les groupements
-	// de ces parties dans un attribut cible compatible
+	// Tri des parties d'un attribut source Symbol ou VarPart, selon les groupements
+	// de ces parties dans un attribut cible groupe compatible
 	// Les parties sources se trouvent dans le tableau resultat, trie correctement
 	// par groupe, et en ordre aleatoire a l'interieur de chaque groupe
-	//    oaSortedSourceParts: parties sources triees par groupe
+	//    oaSortedSourceParts: parties sources triees par groupe cible
 	//    oaSortedGroupedParts: parties groupees associees aux parties source
-	void SortAttributeParts(const KWDGAttribute* sourceAttribute, KWDGAttribute* groupedAttribute,
-				ObjectArray* oaSortedSourceParts, ObjectArray* oaSortedGroupedParts) const;
-
-	// Tri des parties d'un attribut source de type VarPart, selon les groupements
-	// de ces parties dans un attribut cible compatible
-	// Les parties sources se trouvent dans le tableau resultat, trie correctement
-	// par groupe, et en ordre aleatoire a l'interieur de chaque groupe
-	//    oaSortedSourceParts: parties sources triees par groupe
-	//    oaSortedGroupedParts: parties groupees associees aux parties source
-	void SortVarPartAttributeParts(const KWDGAttribute* sourceAttribute, KWDGAttribute* groupedAttribute,
-				       ObjectArray* oaSortedSourceParts, ObjectArray* oaSortedGroupedParts) const;
-	// CH IV End
+	void SortAttributePartsByTargetGroups(const KWDGAttribute* sourceAttribute, KWDGAttribute* groupedAttribute,
+					      ObjectArray* oaSortedSourceParts,
+					      ObjectArray* oaSortedGroupedParts) const;
 
 	// Initialisation d'un vecteur de nombres aleatoires compris entre 0 et max exclu, ordonnes et tous differents
 	void InitRandomIndexVector(IntVector* ivRandomIndexes, int nIndexNumber, int nMaxIndex) const;

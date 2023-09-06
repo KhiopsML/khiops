@@ -143,24 +143,16 @@ double KWDataGridPostOptimizer::PostOptimizeDataGrid(const KWDataGrid* initialDa
 				dCost = dataGridUnivariateDiscretizer.PostOptimizeDataGrid(
 				    univariateInitialDataGrid, dataGridCosts, optimizedDataGrid, bDeepPostOptimization);
 			}
-			// Groupement de valeur univariee si attribut Symbol
-			else if (dataGridAttribute->GetAttributeType() == KWType::Symbol)
-			{
-				dataGridUnivariateGrouper.SetPostOptimizationAttributeName(
-				    dataGridAttribute->GetAttributeName());
-				dCost = dataGridUnivariateGrouper.PostOptimizeDataGrid(
-				    univariateInitialDataGrid, dataGridCosts, optimizedDataGrid, bDeepPostOptimization);
-			}
-			// CH IV Begin
-			// Groupement de parties de variable si attribut VarPart
+			// Groupement de valeur univariee si attribut groupable
 			else
 			{
+				assert(KWType::IsCoclusteringGroupableType(dataGridAttribute->GetAttributeType()));
+
 				dataGridUnivariateGrouper.SetPostOptimizationAttributeName(
 				    dataGridAttribute->GetAttributeName());
 				dCost = dataGridUnivariateGrouper.PostOptimizeDataGrid(
 				    univariateInitialDataGrid, dataGridCosts, optimizedDataGrid, bDeepPostOptimization);
 			}
-			// CH IV End
 
 			// Le cout precedent devra etre correct
 			assert(dCost * (1 - dEpsilon) < dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid));
@@ -1432,8 +1424,7 @@ void KWDGPOGrouper::InitializePartFrequencyVector(KWDGPOPartFrequencyVector* par
 	require(partFrequencyVector->ComputeTotalFrequency() == 0);
 	require(partFrequencyVector->GetModalityNumber() == 0);
 	require(part != NULL);
-	//DDDSIMPLIFY
-	require(part->GetPartType() == KWType::Symbol or part->GetPartType() == KWType::VarPart);
+	require(KWType::IsCoclusteringGroupableType(part->GetPartType()));
 	require(part->GetAttribute()->GetAttributeName() == GetPostOptimizationAttributeName());
 	require(nkdHashCells != NULL);
 
@@ -1441,13 +1432,7 @@ void KWDGPOGrouper::InitializePartFrequencyVector(KWDGPOPartFrequencyVector* par
 	InitializeFrequencyVector(partFrequencyVector);
 
 	// Memorisation du nombre de valeurs associees a la partie
-	//DDDSIMPLIFY
-	if (part->GetPartType() == KWType::Symbol)
-		partFrequencyVector->SetModalityNumber(part->GetValueSet()->GetValueNumber());
-	// CH IV Begin
-	else if (part->GetPartType() == KWType::VarPart)
-		partFrequencyVector->SetModalityNumber(part->GetVarPartSet()->GetValueNumber());
-	// CH IV End
+	partFrequencyVector->SetModalityNumber(part->GetValueSet()->GetValueNumber());
 
 	// Parcours des cellules de la partie pour creer les vecteurs d'effectif par cellule
 	cell = part->GetHeadCell();
@@ -1658,15 +1643,8 @@ void KWDGPOGrouper::InitializeGroupIndexes(IntVector* ivGroups, const KWDataGrid
 	nIndex = 0;
 	while (initialPart != NULL)
 	{
-		// CH IV Begin
-		if (optimizedAttribute->GetAttributeType() == KWType::Symbol)
-			// Recherche de sa partie groupee correspondante
-			optimizedPart = optimizedAttribute->LookupSymbolPart(
-			    initialPart->GetValueSet()->GetHeadValue()->GetSymbolValue());
-		else
-			optimizedPart = optimizedAttribute->LookupVarPart(
-			    initialPart->GetVarPartSet()->GetHeadValue()->GetVarPart());
-		// CH IV End
+		// Recherche de sa partie groupee correspondante
+		optimizedPart = optimizedAttribute->LookupGroupablePart(initialPart->GetValueSet()->GetHeadValue());
 
 		// Memorisation de l'index de ce groupe
 		kwsiOptimizedPartIndex = cast(KWSortableIndex*, nkdOptimizedPartIndexes.Lookup(optimizedPart));
@@ -1706,6 +1684,7 @@ int KWDGPOGrouper::InitializeGroupIndexesAndGarbageIndex(IntVector* ivGroups, co
 	optimizedAttribute = optimizedDataGrid->SearchAttribute(GetPostOptimizationAttributeName());
 	check(initialAttribute);
 	check(optimizedAttribute);
+	assert(KWType::IsCoclusteringGroupableType(initialAttribute->GetAttributeType()));
 
 	// Memorisation des index des parties optimisees
 	optimizedPart = optimizedAttribute->GetHeadPart();
@@ -1741,21 +1720,10 @@ int KWDGPOGrouper::InitializeGroupIndexesAndGarbageIndex(IntVector* ivGroups, co
 	nIndex = 0;
 	while (initialPart != NULL)
 	{
-		// Recherche de sa partie groupee correspondante
+		assert(KWType::IsCoclusteringGroupableType(optimizedAttribute->GetAttributeType()));
 
-		// CH IV Begin
-		//DDDSIMPLIFY
-		if (optimizedAttribute->GetAttributeType() == KWType::Symbol)
-		{
-			optimizedPart = optimizedAttribute->LookupSymbolPart(
-			    initialPart->GetValueSet()->GetHeadValue()->GetSymbolValue());
-		}
-		else if (optimizedAttribute->GetAttributeType() == KWType::VarPart)
-		{
-			optimizedPart = optimizedAttribute->LookupVarPart(
-			    initialPart->GetVarPartSet()->GetHeadValue()->GetVarPart());
-		}
-		// CH IV End
+		// Recherche de sa partie groupee correspondante
+		optimizedPart = optimizedAttribute->LookupGroupablePart(initialPart->GetValueSet()->GetHeadValue());
 
 		// Memorisation de l'index de ce groupe
 		kwsiOptimizedPartIndex = cast(KWSortableIndex*, nkdOptimizedPartIndexes.Lookup(optimizedPart));
@@ -1839,6 +1807,7 @@ void KWDGPOGrouper::UpdateDataGridWithGarbageFromGroups(KWDataGrid* optimizedDat
 	// Acces aux attributs des grilles initiale et optimise pour l'attribut de post-optimisation
 	initialAttribute = initialDataGrid->SearchAttribute(sPostOptimizationAttributeName);
 	optimizedAttribute = optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName);
+	assert(KWType::IsCoclusteringGroupableType(initialAttribute->GetAttributeType()));
 
 	// On vide la grille optimisee de ses cellules, en preservant ses attribut et leur partition
 	optimizedDataGrid->DeleteAllCells();
@@ -1869,33 +1838,14 @@ void KWDGPOGrouper::UpdateDataGridWithGarbageFromGroups(KWDataGrid* optimizedDat
 
 		// Recherche de la partie optimisee a mettre a jour
 		optimizedPart = cast(KWDGPart*, oaOptimizedParts.GetAt(nGroup));
+		assert(KWType::IsCoclusteringGroupableType(optimizedAttribute->GetAttributeType()));
 
-		// CH IV Begin
-		// Cas d'une partie d'un attribut categoriel
-		//DDDSIMPLIFY
-		if (optimizedPart->GetPartType() == KWType::Symbol)
-		{
-			// Mise a jour de la definition du group
-			optimizedPart->GetValueSet()->UpgradeFrom(initialPart->GetValueSet());
+		// Mise a jour de la definition du groupe
+		optimizedPart->GetValueSet()->UpgradeFrom(initialPart->GetValueSet());
 
-			// Mise a jour du groupe poubelle comme le groupe contenant le plus de modalites
-			if (optimizedPart->GetValueSet()->GetValueNumber() >
-			    optimizedAttribute->GetGarbageModalityNumber())
-				optimizedAttribute->SetGarbagePart(optimizedPart);
-		}
-
-		// Sinon d'un attribut de type VarPart
-		else if (optimizedPart->GetPartType() == KWType::VarPart)
-		{
-			// Mise a jour de la definition du group
-			optimizedPart->GetVarPartSet()->UpgradeFrom(initialPart->GetVarPartSet());
-
-			// Mise a jour du groupe poubelle comme le groupe contenant le plus de parties de variables
-			if (optimizedPart->GetVarPartSet()->GetValueNumber() >
-			    optimizedAttribute->GetGarbageModalityNumber())
-				optimizedAttribute->SetGarbagePart(optimizedPart);
-		}
-		// CH IV End
+		// Mise a jour du groupe poubelle comme le groupe contenant le plus de valeurs
+		if (optimizedPart->GetValueSet()->GetValueNumber() > optimizedAttribute->GetGarbageModalityNumber())
+			optimizedAttribute->SetGarbagePart(optimizedPart);
 
 		// Partie initiale suivante
 		initialAttribute->GetNextPart(initialPart);
@@ -2649,26 +2599,19 @@ double KWDataGridUnivariateCosts::ComputePartCost(const KWFrequencyVector* part)
 	// Initialisation du parametrage de la partie
 	partCostParameter->nPartFrequency = cast(KWDGPOPartFrequencyVector*, part)->GetFrequency();
 
-	// Specification du nombre de valeurs pour une partie symbolique
+	// Specification du nombre de valeurs pour une partie d'un attribut groupable
 	// Attention: on utilise ici un acces direct au nombre de valeur du ValueSet pour permettre
 	// d'utiliser ce parametre dans les calculs de cout
 	// (mais il y a incompletude du ValueSet, qui n'est specifie que pour ce qui est utile pour le calcul des couts)
-	//DDDSIMPLIFY
-	if (partCostParameter->GetPartType() == KWType::Symbol)
+	if (KWType::IsCoclusteringGroupableType(partCostParameter->GetPartType()))
 	{
-		// N'etant jamais la partie par defaut, on a le TrueValueNumber egal au ValueNumber
+		// On peut modifier directement le nombre de valeur de facon generique, puisque que l'on est en mode emule
+		// via les sous-classes KWDGSymbolValueSetCostParameter et KWDGVarPartSetCostParameter
+		// N'etant jamais la partie par defaut en mode emule, on a le bon nombre de valeurs
 		assert(not partCostParameter->GetValueSet()->IsDefaultPart());
-		cast(KWDGSymbolValueSetCostParameter*, partCostParameter->GetValueSet())->nValueNumber =
-		    cast(KWDGPOPartFrequencyVector*, part)->GetModalityNumber();
+		cast(KWDGValueSet*, partCostParameter->GetValueSet())
+		    ->SetValueNumber(cast(KWDGPOPartFrequencyVector*, part)->GetModalityNumber());
 	}
-	// CH IV Begin
-	else if (partCostParameter->GetPartType() == KWType::VarPart)
-	{
-		cast(KWDGVarPartSetCostParameter*, partCostParameter->GetVarPartSet())->nValueNumber =
-		    cast(KWDGPOPartFrequencyVector*, part)->GetModalityNumber();
-		// il faut que modalityNumber ait ete alimente par le nombre de parties de variable
-	}
-	// CH IV End
 
 	// Cout: cout local de la partie + somme des cout des cellules (maintenu dans la partie)
 	dCost =
@@ -2730,21 +2673,14 @@ double KWDataGridUnivariateCosts::ComputePartUnionCost(const KWFrequencyVector* 
 	// Attention: on utilise ici un acces direct au nombre de valeur du ValueSet pour permettre
 	// d'utiliser ce parametre dans les calculs de cout
 	// (mais il y a incompletude du ValueSet, qui n'est specifie que pour ce qui est utile pour le calcul des couts)
-	//DDDSIMPLIFY
-	if (partCostParameter->GetPartType() == KWType::Symbol)
+	if (KWType::IsCoclusteringGroupableType(partCostParameter->GetPartType()))
 	{
-		cast(KWDGSymbolValueSetCostParameter*, partCostParameter->GetValueSet())->nValueNumber =
-		    cast(KWDGPOPartFrequencyVector*, sourcePart1)->GetModalityNumber() +
-		    cast(KWDGPOPartFrequencyVector*, sourcePart2)->GetModalityNumber();
+		// On peut modifier directement le nombre de valeur de facon generique, puisque que l'on est en mode emule
+		// via les sous-classes KWDGSymbolValueSetCostParameter et KWDGVarPartSetCostParameter
+		cast(KWDGValueSet*, partCostParameter->GetValueSet())
+		    ->SetValueNumber(cast(KWDGPOPartFrequencyVector*, sourcePart1)->GetModalityNumber() +
+				     cast(KWDGPOPartFrequencyVector*, sourcePart2)->GetModalityNumber());
 	}
-	// CH IV Begin
-	else if (partCostParameter->GetPartType() == KWType::VarPart)
-	{
-		cast(KWDGVarPartSetCostParameter*, partCostParameter->GetVarPartSet())->nValueNumber =
-		    cast(KWDGPOPartFrequencyVector*, sourcePart1)->GetModalityNumber() +
-		    cast(KWDGPOPartFrequencyVector*, sourcePart2)->GetModalityNumber();
-	}
-	// CH IV End
 
 	// Cout: cout local de la partie + somme des cout des cellules (maintenu dans la partie)
 	dCost = dataGridCosts->ComputePartCost(partCostParameter);
@@ -2772,21 +2708,14 @@ double KWDataGridUnivariateCosts::ComputePartDiffCost(const KWFrequencyVector* s
 	// Attention: on utilise ici un acces direct au nombre de valeur du ValueSet pour permettre
 	// d'utiliser ce parametre dans les calculs de cout
 	// (mais il y a incompletude du ValueSet, qui n'est specifie que pour ce qui est utile pour le calcul des couts)
-	//DDDSIMPLIFY
-	if (partCostParameter->GetPartType() == KWType::Symbol)
+	if (KWType::IsCoclusteringGroupableType(partCostParameter->GetPartType()))
 	{
-		cast(KWDGSymbolValueSetCostParameter*, partCostParameter->GetValueSet())->nValueNumber =
-		    cast(KWDGPOPartFrequencyVector*, sourcePart)->GetModalityNumber() -
-		    cast(KWDGPOPartFrequencyVector*, removedPart)->GetModalityNumber();
+		// On peut modifier directement le nombre de valeur de facon generique, puisque que l'on est en mode emule
+		// via les sous-classes KWDGSymbolValueSetCostParameter et KWDGVarPartSetCostParameter
+		cast(KWDGValueSet*, partCostParameter->GetValueSet())
+		    ->SetValueNumber(cast(KWDGPOPartFrequencyVector*, sourcePart)->GetModalityNumber() -
+				     cast(KWDGPOPartFrequencyVector*, removedPart)->GetModalityNumber());
 	}
-	// CH IV Begin
-	if (partCostParameter->GetPartType() == KWType::VarPart)
-	{
-		cast(KWDGVarPartSetCostParameter*, partCostParameter->GetVarPartSet())->nValueNumber =
-		    cast(KWDGPOPartFrequencyVector*, sourcePart)->GetModalityNumber() -
-		    cast(KWDGPOPartFrequencyVector*, removedPart)->GetModalityNumber();
-	}
-	// CH IV End
 
 	// Cout: cout local de la partie + somme des cout des cellules (maintenu dans la partie)
 	dCost = dataGridCosts->ComputePartCost(partCostParameter);
@@ -2866,18 +2795,15 @@ void KWDGPartCostParameter::SetPartType(int nValue)
 {
 	require(GetPartType() == KWType::Unknown);
 	// CH IV Begin
-	require(KWType::IsSimple(nValue) or nValue == KWType::VarPart);
+	require(KWType::IsCoclusteringType(nValue));
 
 	// Creation de l'objet interval ou ensemble de valeur selon le type
 	if (nValue == KWType::Continuous)
 		partValues = new KWDGInterval;
-	//DDDSIMPLIFY
 	else if (nValue == KWType::Symbol)
 		partValues = new KWDGSymbolValueSetCostParameter;
 	else
 		partValues = new KWDGVarPartSetCostParameter;
-	// Avant integration : pour quel cas ? valueSet = new KWDGValueSetCostParameter;
-	// CH IV End
 	ensure(GetPartType() != KWType::Unknown);
 }
 

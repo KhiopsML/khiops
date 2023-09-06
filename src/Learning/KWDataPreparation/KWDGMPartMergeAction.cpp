@@ -113,10 +113,7 @@ KWDGMPart* KWDGMPartMergeAction::PerformPartMerge(KWDGMPartMerge* partMerge)
 
 	// Dereferencement des parties de la liste triee par nombre de modalites
 	// Restitution de la poubelle
-	// CH IV Begin
-	//DDDSIMPLIFY
-	if (attribute->GetAttributeType() == KWType::Symbol or attribute->GetAttributeType() == KWType::VarPart)
-	// CH IV End
+	if (KWType::IsCoclusteringGroupableType(attribute->GetAttributeType()))
 	{
 		attribute->RemovePartFromValueNumberList(part1);
 		attribute->RemovePartFromValueNumberList(part2);
@@ -163,14 +160,7 @@ KWDGMPart* KWDGMPartMergeAction::PerformPartMerge(KWDGMPartMerge* partMerge)
 	// Realisation de la fusion des parties
 
 	// Import des valeurs de la partie origine vers la partie destination
-	if (attribute->GetAttributeType() == KWType::Continuous)
-		part2->GetInterval()->Import(part1->GetInterval());
-	// CH IV Begin
-	else if (attribute->GetAttributeType() == KWType::Symbol)
-		part2->GetValueSet()->Import(part1->GetValueSet());
-	else
-		part2->GetVarPartSet()->Import(part1->GetVarPartSet());
-	// CH IV End
+	part2->GetPartValues()->Import(part1->GetPartValues());
 
 	// Transfert des cellules a transferer
 	for (nCell = 0; nCell < oaTransferredCells1.GetSize(); nCell++)
@@ -251,13 +241,12 @@ KWDGMPart* KWDGMPartMergeAction::PerformPartMerge(KWDGMPartMerge* partMerge)
 	// Mise a jour du cout de la partie 2
 	part2->SetCost(dataGridCosts->ComputePartCost(part2));
 
-	// CH IV Begin
-	//DDDSIMPLIFY
-	if (attribute->GetAttributeType() == KWType::Symbol or attribute->GetAttributeType() == KWType::VarPart)
-	// CH IV End
+	// Finalisation de la gestion de la poubelle
+	if (KWType::IsCoclusteringGroupableType(attribute->GetAttributeType()))
 	{
 		// Reinsertion de la partie fusionnee dans la liste triee par nombre de modalites
 		attribute->AddPartToValueNumberList(part2);
+
 		// Mise a jour du groupe poubelle selon les caracteristiques enregistrees dans le partMerge
 		if (bGarbagePresence)
 			attribute->SetGarbagePart(cast(KWDGPart*, attribute->slPartValueNumbers->GetHead()));
