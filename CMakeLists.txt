@@ -43,6 +43,7 @@ option(MPI "Use MPI libraries (ON,OFF)" ON)
 option(TESTING "Build unit tests (ON,OFF)" OFF)
 option(BUILD_LEX_YACC "Re-generate parsing files with lex & yacc" OFF)
 option(BUILD_JARS "Re-generate norm.jar and khiops.jar" OFF)
+option(GENERATE_VIEWS "Generate views sources from dd files" OFF)
 option(C11 "Build whith C++11 libraries (ON,OFF)" ON)
 
 # Print the options
@@ -53,6 +54,7 @@ message("  TESTING=\"${TESTING}\"")
 message("  C11=\"${C11}\"")
 message("  BUILD_LEX_YACC=\"${BUILD_LEX_YACC}\"")
 message("  BUILD_JARS=\"${BUILD_JARS}\"")
+message("  GENERATE_VIEWS=\"${GENERATE_VIEWS}\"")
 message("\n")
 
 # Check if the os is a linux fedora-like distro (CentOS, Rocky etc...)
@@ -105,7 +107,7 @@ message(STATUS "Executables will be stored in ${CMAKE_BINARY_DIR}/bin/")
 message(STATUS "Libraries will be stored in ${CMAKE_BINARY_DIR}/lib/")
 
 # Set module path for the project
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/packaging")
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/packaging" ; "${CMAKE_CURRENT_SOURCE_DIR}/scripts")
 
 # Use "-fPIC" / "-fPIE" for all targets by default, including static libs
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -286,6 +288,9 @@ function(display_variables)
     message(STATUS "${_variableName}=${${_variableName}}")
   endforeach()
 endfunction()
+
+# Load module to generate views from .dd files
+include(generate_gui)
 
 # Add targets for Norm Parallel and Learning modules
 add_subdirectory(src/Norm)

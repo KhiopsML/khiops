@@ -4,7 +4,8 @@
 
 #include "main.h"
 
-void main()
+int main()
 {
 	cout << "Hello" << endl;
+	return 0;
 }

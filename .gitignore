@@ -5,8 +5,8 @@
 .vs/
 .vscode/
 
-# Log file using genere tool
-genere.log
+# Log file using genere tool and the cmake module genere-views
+*.dd.log
 
 # CMake User Preset
 CMakeUserPresets.json
