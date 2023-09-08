@@ -6,6 +6,9 @@ add_subdirectory(genere)
 
 add_subdirectory(basetest)
 add_subdirectory(generetest)
+add_subdirectory(samples/sample1)
+add_subdirectory(samples/sample2)
+add_subdirectory(samples/sample3)
 
 # build norm.jar
 if(BUILD_JARS)
