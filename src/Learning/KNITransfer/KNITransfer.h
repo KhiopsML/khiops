@@ -7,5 +7,3 @@
 #include "KWVersion.h"
 #include "KWLearningProject.h"
 #include "KNITransferProject.h"
-#include "PLParallelTask.h"
-#include "PLUseMPI.h"

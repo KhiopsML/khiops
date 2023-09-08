@@ -69,8 +69,6 @@ if(EXISTS "/etc/os-release")
   endif()
 endif()
 
-message(STATUS "IS_FEDORA_LIKE is ${IS_FEDORA_LIKE}")
-
 # On Fedora distros, the binaries compiled with mpi must be located under the mpi location furthermore they have to be
 # suffixed by the name of the mpi implementation. These 2 items are given by MPI_BIN and MPI_SUFFIX when the module
 # environment is loaded source /etc/profile.d/modules.sh module load mpi/mpich-x86_64
@@ -128,6 +126,10 @@ endif()
 # Process dependencies Find MPI if required
 if(MPI)
   find_package(MPI 2.0 REQUIRED)
+  message(
+    STATUS
+      "MPI command line: ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} ${MPIEXEC_MAX_NUMPROCS} ${MPIEXEC_PREFLAGS} EXECUTABLE ${MPIEXEC_POSTFLAGS} ARGS"
+  )
 endif()
 
 # Set C++ revision globally if required
@@ -180,7 +182,7 @@ function(set_khiops_options target)
     target_compile_definitions(${target} PRIVATE USE_MPI)
   endif()
 
-  target_compile_definitions(${target} PRIVATE $<$<CONFIG:RELEASE>:NDEBUG NOALL>)
+  target_compile_definitions(${target} PRIVATE $<$<CONFIG:RELEASE,RELWITHDEBINFO>:NOALL>)
   target_compile_definitions(${target} PRIVATE $<$<CONFIG:RELWITHDEBINFO>:__ALPHA__>)
 
   if(MSVC)
@@ -216,10 +218,10 @@ function(set_unix_khiops_options target)
   target_link_options(${target} PRIVATE $<$<CONFIG:RELEASE>:-s>)
 
   #
-  # - fno-rtti: no run-time type information in Release .
+  # - fno-rtti: no run-time type information in Release or RelWithDebInfo .
   # - fno-exceptions: disables exceptions support
   #
-  target_compile_options(${target} PRIVATE $<$<CONFIG:RELEASE>:-fno-rtti> -fno-exceptions)
+  target_compile_options(${target} PRIVATE $<$<CONFIG:RELEASE,RELWITHDEBINFO>:-fno-rtti> -fno-exceptions)
 
   # Special options for clang, we remove the following too verbose warnings:
   #
@@ -262,9 +264,6 @@ function(set_msvc_khiops_options target)
 
     # Release only compiling options
   elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
-    # Definitions
-    target_compile_definitions(${target} PRIVATE NDEBUG NOALL)
-
     # Options
     #
     # - /GR-: Do not generate runtime information.

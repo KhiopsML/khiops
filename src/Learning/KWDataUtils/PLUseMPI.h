@@ -14,12 +14,6 @@
 inline void UseMPI()
 {
 #ifdef USE_MPI
-
-// Pour indiquer les libraries a utiliser par le linker
-// Potentiellement inutile apres utilisation de cmake
-#pragma comment(lib, "msmpi")
-#pragma comment(lib, "PLMPI")
-
 	// Mise en place du driver parallel
 	PLParallelTask::SetDriver(PLMPITaskDriver::GetDriver());
 
