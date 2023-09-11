@@ -23,7 +23,7 @@ class KWTimestampTZFormat;
 // Prefixe pour les variables: tstz
 // Pas de constructeur pour pouvoir etre utilise dans l'union de KWValue
 //
-// Les TimestampTZ peuvent comporter ou non information de type time zone (time zone aware ou unaware.
+// Les TimestampTZ peuvent comporter ou non information de type time zone (time zone aware ou unaware)
 class TimestampTZ : public SystemObject
 {
 public:

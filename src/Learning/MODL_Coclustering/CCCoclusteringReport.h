@@ -160,20 +160,16 @@ protected:
 	boolean InternalReadJSONReport(CCHierarchicalDataGrid* coclusteringDataGrid, boolean bHeaderOnly);
 	boolean ReadJSONSummary(CCHierarchicalDataGrid* coclusteringDataGrid);
 	boolean ReadJSONDimensionSummaries(CCHierarchicalDataGrid* coclusteringDataGrid);
-	boolean ReadJSONDimensionPartitions(CCHierarchicalDataGrid* coclusteringDataGrid);
-	boolean ReadJSONInterval(CCHDGAttribute* dgAttribute, KWDGPart* dgPart);
-	boolean ReadJSONValueGroup(CCHDGAttribute* dgAttribute, KWDGPart* dgPart);
-	// CH IV Begin
-	// Est ce que ces methodes doivent prendre en entree des KWDGAttribute ou des CCHDGAttriute
-	// Les innerAttribute peuvent ils etre des CCHDGAttribute ? (CCHDGAttribute* dgAttribute);
-	// Pour l'instant on met des KWDGAttribute pour que cela compile
-	boolean ReadJSONInnerAttribute(KWDGAttribute* innerAttribute, ObjectDictionary* odInnerAttributesAllVarParts);
+	boolean ReadJSONDimensionPartitionsNew(CCHierarchicalDataGrid* coclusteringDataGrid);
+	boolean ReadJSONInnerAttributesDimensionSummaries(KWDGAttribute* dgAttribute);
+	boolean ReadJSONAttributePartition(KWDGAttribute* attribute, CCHierarchicalDataGrid* coclusteringDataGrid);
+	boolean ReadJSONInterval(KWDGAttribute* dgAttribute, KWDGPart* dgPart);
+	boolean ReadJSONValueGroup(KWDGAttribute* dgAttribute, KWDGPart* dgPart);
 	boolean ReadJSONInnerAttributeIntervals(KWDGAttribute* innerAttribute);
 	boolean ReadJSONInnerAttributeValueGroups(KWDGAttribute* innerAttribute);
-	boolean ReadJSONVarPartAttributeValueGroup(CCHDGAttribute* varPartAttribute, KWDGPart* dgPart,
+	boolean ReadJSONVarPartAttributeValueGroup(KWDGAttribute* varPartAttribute, KWDGPart* dgPart,
 						   const ObjectDictionary* odInnerAttributesAllVarParts,
 						   ObjectDictionary* odVarPartAttributeAllVarParts);
-	// CH IV End
 	boolean ReadJSONDimensionHierarchies(CCHierarchicalDataGrid* coclusteringDataGrid);
 	boolean ReadJSONCells(CCHierarchicalDataGrid* coclusteringDataGrid);
 
@@ -181,11 +177,10 @@ protected:
 	void InternalWriteJSONReport(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
 	void WriteJSONSummary(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
 	void WriteJSONDimensionSummaries(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
+	void WriteJSONInnerAttributesDimensionSummaries(const KWDGAttribute* vartPartAttribute, JSONFile* fJSON);
 	void WriteJSONDimensionPartitions(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
-	// CH IV Begin
-	void WriteJSONInnerAttributePartition(const CCHierarchicalDataGrid* coclusteringDataGrid,
-					      KWDGAttribute* innerAttribute, JSONFile* fJSON);
-	// CH IV End
+	void WriteJSONAttributePartition(KWDGAttribute* attribute, const CCHierarchicalDataGrid* coclusteringDataGrid,
+					 JSONFile* fJSON);
 	void WriteJSONDimensionHierarchies(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
 	void WriteJSONCells(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
 

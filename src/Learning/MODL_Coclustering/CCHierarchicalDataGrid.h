@@ -76,8 +76,8 @@ public:
 
 	// Acces aux dictionnaire des bornes de domaine des attribut internes numeriques, via des KWDGInterval
 	// Ce parametrage permet de memoriser les bornes des intervalles extremes pour les attribut internes,
-	// afin d'ecrire les varies bornes plutot que -in et +inf dans les rapports json
-	// Memoire; appartient a l'appele, ainsi que son contenu, qui doit etre gere par l'appelant
+	// afin d'ecrire les vraies bornes plutot que -inf et +inf dans les rapports json
+	// Memoire appartient a l'appele, ainsi que son contenu, qui doit etre gere par l'appelant
 	ObjectDictionary* GetInnerAttributeDomainBounds() const;
 	// CH IV End
 
@@ -89,6 +89,9 @@ public:
 
 	// Verification de l'integrite pour les infos supplementaires sur la hierarchie
 	boolean CheckHierarchy() const;
+
+	// Libelles utilisateur
+	const ALString GetClassLabel() const override;
 
 	///////////////////////////////
 	//// Implementation
@@ -372,6 +375,9 @@ public:
 	// Constructeur
 	CCHDGVarPartSet();
 	~CCHDGVarPartSet();
+
+	// Creation
+	KWDGValueSet* Create() const override;
 
 	// Tri des parties de variable par typicalite decroissante
 	void SortVarPartsByTypicality();

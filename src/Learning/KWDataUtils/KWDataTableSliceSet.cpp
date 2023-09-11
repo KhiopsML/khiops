@@ -1968,7 +1968,7 @@ KWDataTableSliceSet* KWDataTableSliceSet::CreateDataTableSliceSet(const KWClass*
 			nSliceObjectNumber = ((nObjectNumber - nObject) / (nChunkNumber - nChunk));
 			for (i = 0; i < nSliceObjectNumber; i++)
 			{
-				kwoObject = KWObject::CreateObject(dataTableSlice->GetClass(), nObject + 1);
+				kwoObject = KWObject::CreateObject(dataTableSlice->GetClass(), (longint)nObject + 1);
 				nObject++;
 				databaseTextFile.GetObjects()->Add(kwoObject);
 			}

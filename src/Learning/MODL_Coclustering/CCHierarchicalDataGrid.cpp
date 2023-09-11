@@ -179,6 +179,11 @@ boolean CCHierarchicalDataGrid::CheckHierarchy() const
 	return bOk;
 }
 
+const ALString CCHierarchicalDataGrid::GetClassLabel() const
+{
+	return "Hierarchichal data grid";
+}
+
 KWDGAttribute* CCHierarchicalDataGrid::NewAttribute() const
 {
 	return new CCHDGAttribute;
@@ -1059,6 +1064,11 @@ CCHDGVarPartSet::CCHDGVarPartSet() {}
 
 CCHDGVarPartSet::~CCHDGVarPartSet() {}
 
+KWDGValueSet* CCHDGVarPartSet::Create() const
+{
+	return new CCHDGVarPartSet;
+}
+
 void CCHDGVarPartSet::SortVarPartsByTypicality()
 {
 	InternalSortValues(CCHDGVarPartValueCompareDecreasingTypicality);
@@ -1067,23 +1077,23 @@ void CCHDGVarPartSet::SortVarPartsByTypicality()
 boolean CCHDGVarPartSet::CheckHierarchy() const
 {
 	boolean bOk = true;
-	KWDGValue* varPartValue;
+	KWDGValue* value;
 
 	// Pas de controle d'integrite de base (invalide pour els parties non feuilles)
 	// Test des valeurs de la partie
 	if (bOk)
 	{
 		// Parcours des valeurs de la partie
-		varPartValue = GetHeadValue();
-		while (varPartValue != NULL)
+		value = GetHeadValue();
+		while (value != NULL)
 		{
 			// Test de la valeur
-			bOk = cast(CCHDGVarPartValue*, varPartValue)->CheckHierarchy();
+			bOk = cast(CCHDGVarPartValue*, value)->CheckHierarchy();
 			if (not bOk)
 				break;
 
 			// Valeur suivante
-			GetNextValue(varPartValue);
+			GetNextValue(value);
 		}
 	}
 	return bOk;
