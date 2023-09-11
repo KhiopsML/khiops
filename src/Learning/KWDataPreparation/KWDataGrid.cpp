@@ -647,6 +647,11 @@ double KWDataGrid::ComputeMutualEntropy()
 	return dResult;
 }
 
+KWDGAttribute* KWDataGrid::NewAttribute() const
+{
+	return new KWDGAttribute;
+}
+
 boolean KWDataGrid::Check() const
 {
 	boolean bOk = true;
@@ -2195,11 +2200,6 @@ int KWDataGrid::ComputeTotalPartNumber() const
 	return nResult;
 }
 
-KWDGAttribute* KWDataGrid::NewAttribute() const
-{
-	return new KWDGAttribute;
-}
-
 KWDGCell* KWDataGrid::NewCell() const
 {
 	KWDGCell* cell;
@@ -2898,7 +2898,7 @@ boolean KWDGAttribute::Check() const
 	// Test de coherence entre variable interne et variable de grille
 	if (bOk)
 	{
-		// Un variable interne doir avoir une variable de grille la contenant
+		// Une variable interne doit avoir une variable de grille la contenant
 		if (bOk and dataGrid == NULL and sOwnerAttributeName == "")
 		{
 			AddError("Inner variable should have an owner variable");
@@ -3671,9 +3671,6 @@ boolean KWDGPart::Check() const
 	KWDGCell* nextCell;
 	KWDGCell* prevCell;
 	int nTotalValueFrequency;
-	// CH IV Begin
-	int nTotalVarPartFrequency;
-	// CH IV End
 
 	// Test du type
 	if (GetPartType() == KWType::Unknown)
@@ -4880,6 +4877,34 @@ void KWDGInnerAttributes::DeleteAll()
 {
 	odInnerAttributes.RemoveAll();
 	oaInnerAttributes.DeleteAll();
+}
+
+void KWDGInnerAttributes::CleanEmptyInnerAttributes()
+{
+	int nInnerAttribute;
+	int nNewIndex;
+	KWDGAttribute* innerAttribute;
+
+	// Nettoyage des attributs n'ayant aucune partie
+	nNewIndex = 0;
+	for (nInnerAttribute = 0; nInnerAttribute < oaInnerAttributes.GetSize(); nInnerAttribute++)
+	{
+		innerAttribute = GetInnerAttributeAt(nInnerAttribute);
+		if (innerAttribute->GetPartNumber() == 0)
+		{
+			// Suppression de l'indexation dans le dictionnaire
+			odInnerAttributes.RemoveKey(innerAttribute->GetAttributeName());
+
+			delete innerAttribute;
+		}
+		else
+		{
+			oaInnerAttributes.SetAt(nNewIndex, innerAttribute);
+			nNewIndex++;
+		}
+	}
+	oaInnerAttributes.SetSize(nNewIndex);
+	ensure(oaInnerAttributes.GetSize() == odInnerAttributes.GetCount());
 }
 
 void KWDGInnerAttributes::ExportAllInnerAttributeVarParts(ObjectArray* oaInnerAttributeVarParts) const

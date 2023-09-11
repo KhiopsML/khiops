@@ -1266,7 +1266,7 @@ void CCCoclusteringBuilder::CleanVarPartDataGrid(KWDataGrid* dataGrid)
 		if (bIsDefaultPartDeleted and innerAttribute->GetPartNumber() > 0)
 			innerAttribute->GetTailPart()->GetSymbolValueSet()->AddSymbolValue(Symbol::GetStarValue());
 	}
-	// DDDDD dataGrid->GetInnerAttributes()->CleanEmptyInnerAttributes();
+	dataGrid->GetInnerAttributes()->CleanEmptyInnerAttributes();
 	dataGrid->UpdateAllStatistics();
 }
 

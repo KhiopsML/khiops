@@ -265,6 +265,12 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 			}
 
 			// On ne traite pas les grilles avec un seul attribut informatif
+			// Dans le cas d'une grille avec un attribut instances et un attribut VarPart, tant que
+			// l'attribut instances ne contient qu'une seule partie, la granularite n'est pas selectionnee.
+			// La granularisation de l'attribut instances est reduite au fourre-tout (1 seule partie)
+			// tant que le nombre d'observations par instances n'est pas superieur a l'effectif minimal N/2^G
+			// Pour un nombre d'observations egal au nombre de variables pour toutes les instances,
+			// il faut atteindre G tel que G > Gmax - log(K) / log(2)
 			if (granularizedDataGrid.GetInformativeAttributeNumber() <= 1)
 				bIsGranularitySelected = false;
 

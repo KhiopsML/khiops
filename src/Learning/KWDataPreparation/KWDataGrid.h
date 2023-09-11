@@ -304,6 +304,10 @@ public:
 	///////////////////////////////
 	// Services divers
 
+	// Creation d'un attribut
+	// Les creations de partie d'attribut se font depuis une methode NewPart dans les attributs
+	virtual KWDGAttribute* NewAttribute() const;
+
 	// Verification de la validite de la structure du DataGrid
 	// Controle d'integrite global (attributs, parties, cellules...)
 	// Attention: operation couteuse en O(k.n^2)
@@ -382,10 +386,6 @@ protected:
 	////////////////////////////////////////////////////////////////////////////
 	// Methodes de creations virtuelles, permettant de specialiser les entites
 	// d'un DataGrid dans une sous-classe
-
-	// Creation d'un attribut
-	// Les creations de partie d'attribut se font depuis une methode NewPart dans les attributs
-	virtual KWDGAttribute* NewAttribute() const;
 
 	// Creation d'une cellule
 	// Le tableau d'effectif par classe cible doit etre initialise selon GetTagretValueNumber
@@ -487,7 +487,7 @@ public:
 	void SetOwnerAttributeName(ALString sName);
 
 	// Statut du parametrage des attributs internes: partagee ou non (defaut: false)
-	// Ce parametrage est detuit avec l'appelant, sauf s'il est partage
+	// Ce parametrage est detruit avec l'appelant, sauf s'il est partage
 	boolean GetVarPartsShared() const;
 	void SetVarPartsShared(boolean bValue) const;
 
@@ -1394,6 +1394,9 @@ public:
 
 	// Nettoyage
 	void DeleteAll();
+
+	// Nettoyage des attributs qui ne contiennent que des valeurs manquantes
+	void CleanEmptyInnerAttributes();
 
 	// Export de toutes les parties parties de variables des attributs internes dans un tableau (initialement vide)
 	void ExportAllInnerAttributeVarParts(ObjectArray* oaInnerAttributeVarParts) const;
