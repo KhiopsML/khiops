@@ -1,0 +1,16 @@
+Cluster	Value	Frequency	Typicality
+{Craft-repair, Transport-moving, Farming-fishing, ...}	Craft-repair	6112	1
+{Craft-repair, Transport-moving, Farming-fishing, ...}	Transport-moving	2355	0.573309
+{Craft-repair, Transport-moving, Farming-fishing, ...}	Farming-fishing	1490	0.29446
+{Craft-repair, Transport-moving, Farming-fishing, ...}	Protective-serv	983	0.106369
+{Craft-repair, Transport-moving, Farming-fishing, ...}	Armed-Forces	15	0.0033027
+{Machine-op-inspct, Handlers-cleaners}	Machine-op-inspct	3022	1
+{Machine-op-inspct, Handlers-cleaners}	Handlers-cleaners	2072	0.798568
+{Prof-specialty}	Prof-specialty	8981	1
+{Exec-managerial}	Exec-managerial	6086	1
+{Sales}	Sales	5504	1
+{Other-service, Priv-house-serv}	Other-service	4923	1
+{Other-service, Priv-house-serv}	Priv-house-serv	242	0.111602
+{Adm-clerical, Tech-support}	Adm-clerical	5611	1
+{Adm-clerical, Tech-support}	Tech-support	1446	0.187174
+{Adm-clerical, Tech-support}	 * 	0	0

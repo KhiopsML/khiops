@@ -1,0 +1,415 @@
+{
+	"tool": "Khiops Coclustering",
+	"version": "10.1",
+	"shortDescription": "",
+	"coclusteringReport": {
+		"summary": {
+			"instances": 1000,
+			"cells": 40,
+			"nullCost": 10763.32415,
+			"cost": 10445.04227,
+			"level": 0.0295709649,
+			"initialDimensions": 5,
+			"frequencyVariable": "",
+			"dictionary": "Adult",
+			"database": ".\/Adult1000.txt",
+			"samplePercentage": 100,
+			"samplingMode": "Include sample",
+			"selectionVariable": "",
+			"selectionValue": ""
+		},
+		"dimensionSummaries": [
+			{
+				"name": "occupation",
+				"type": "Categorical",
+				"parts": 3,
+				"initialParts": 3,
+				"values": 14,
+				"interest": 1,
+				"description": ""
+			},
+			{
+				"name": "education_num",
+				"type": "Numerical",
+				"parts": 2,
+				"initialParts": 2,
+				"values": 1000,
+				"interest": 1,
+				"description": "",
+				"min": 1,
+				"max": 16
+			},
+			{
+				"name": "marital_status",
+				"type": "Categorical",
+				"parts": 2,
+				"initialParts": 2,
+				"values": 7,
+				"interest": 1,
+				"description": ""
+			},
+			{
+				"name": "sex",
+				"type": "Categorical",
+				"parts": 2,
+				"initialParts": 2,
+				"values": 2,
+				"interest": 1,
+				"description": ""
+			},
+			{
+				"name": "class",
+				"type": "Categorical",
+				"parts": 2,
+				"initialParts": 2,
+				"values": 2,
+				"interest": 1,
+				"description": ""
+			}
+		],
+		"dimensionPartitions": [
+			{
+				"name": "occupation",
+				"type": "Categorical",
+				"valueGroups": [
+					{
+						"cluster": "{Prof-specialty, Exec-managerial, Tech-support, ...}",
+						"values": ["Prof-specialty","Exec-managerial","Tech-support","Sales","Protective-serv"],
+						"valueFrequencies": [186,124,44,112,16],
+						"valueTypicalities": [1,0.908073,0.240546,0.197089,0.0673183]
+					},
+					{
+						"cluster": "{Craft-repair, Transport-moving, Handlers-cleaners, ...}",
+						"values": ["Craft-repair","Transport-moving","Handlers-cleaners","Machine-op-inspct","Farming-fishing","Armed-Forces"],
+						"valueFrequencies": [126,52,43,61,31,1],
+						"valueTypicalities": [1,0.616543,0.30175,0.296152,0.260692,0.0190968]
+					},
+					{
+						"cluster": "{Other-service, Adm-clerical, Priv-house-serv}",
+						"values": ["Other-service","Adm-clerical","Priv-house-serv"],
+						"valueFrequencies": [107,94,3],
+						"valueTypicalities": [1,0.990468,0.0852379]
+					}
+				],
+				"defaultGroupIndex": 1
+			},
+			{
+				"name": "education_num",
+				"type": "Numerical",
+				"intervals": [
+					{
+						"cluster": "]-inf;11.5]",
+						"bounds": [1,11.5]
+					},
+					{
+						"cluster": "]11.5;+inf[",
+						"bounds": [11.5,16]
+					}
+				]
+			},
+			{
+				"name": "marital_status",
+				"type": "Categorical",
+				"valueGroups": [
+					{
+						"cluster": "{Never-married, Divorced, Widowed, ...}",
+						"values": ["Never-married","Divorced","Widowed","Separated","Married-spouse-absent","Married-AF-spouse"],
+						"valueFrequencies": [344,136,33,28,15,1],
+						"valueTypicalities": [1,0.669163,0.275292,0.188924,0.12265,0.03012]
+					},
+					{
+						"cluster": "{Married-civ-spouse}",
+						"values": ["Married-civ-spouse"],
+						"valueFrequencies": [443],
+						"valueTypicalities": [1]
+					}
+				],
+				"defaultGroupIndex": 0
+			},
+			{
+				"name": "sex",
+				"type": "Categorical",
+				"valueGroups": [
+					{
+						"cluster": "{Male}",
+						"values": ["Male"],
+						"valueFrequencies": [671],
+						"valueTypicalities": [1]
+					},
+					{
+						"cluster": "{Female}",
+						"values": ["Female"],
+						"valueFrequencies": [329],
+						"valueTypicalities": [1]
+					}
+				],
+				"defaultGroupIndex": 1
+			},
+			{
+				"name": "class",
+				"type": "Categorical",
+				"valueGroups": [
+					{
+						"cluster": "{less}",
+						"values": ["less"],
+						"valueFrequencies": [768],
+						"valueTypicalities": [1]
+					},
+					{
+						"cluster": "{more}",
+						"values": ["more"],
+						"valueFrequencies": [232],
+						"valueTypicalities": [1]
+					}
+				],
+				"defaultGroupIndex": 1
+			}
+		],
+		"dimensionHierarchies": [
+			{
+				"name": "occupation",
+				"type": "Categorical",
+				"clusters": [
+					{
+						"cluster": "{Prof-specialty, Exec-managerial, Tech-support, ...}",
+						"parentCluster": "A2",
+						"frequency": 482,
+						"interest": 1,
+						"hierarchicalLevel": 1,
+						"rank": 1,
+						"hierarchicalRank": 11,
+						"isLeaf": true
+					},
+					{
+						"cluster": "{Craft-repair, Transport-moving, Handlers-cleaners, ...}",
+						"parentCluster": "A6",
+						"frequency": 314,
+						"interest": 0.968624,
+						"hierarchicalLevel": 1,
+						"rank": 3,
+						"hierarchicalRank": 11,
+						"isLeaf": true
+					},
+					{
+						"cluster": "{Other-service, Adm-clerical, Priv-house-serv}",
+						"parentCluster": "A6",
+						"frequency": 204,
+						"interest": 0.781516,
+						"hierarchicalLevel": 1,
+						"rank": 5,
+						"hierarchicalRank": 11,
+						"isLeaf": true
+					},
+					{
+						"cluster": "A2",
+						"parentCluster": "",
+						"frequency": 1000,
+						"interest": 0.945577,
+						"hierarchicalLevel": -0.0276241,
+						"rank": 2,
+						"hierarchicalRank": 6,
+						"isLeaf": false
+					},
+					{
+						"cluster": "A6",
+						"parentCluster": "A2",
+						"frequency": 518,
+						"interest": 0.894937,
+						"hierarchicalLevel": 0.881083,
+						"rank": 4,
+						"hierarchicalRank": 10,
+						"isLeaf": false
+					}
+				]
+			},
+			{
+				"name": "education_num",
+				"type": "Numerical",
+				"clusters": [
+					{
+						"cluster": "]-inf;11.5]",
+						"parentCluster": "]-inf;+inf[",
+						"frequency": 721,
+						"interest": 1,
+						"hierarchicalLevel": 1,
+						"rank": 1,
+						"hierarchicalRank": 11,
+						"isLeaf": true
+					},
+					{
+						"cluster": "]11.5;+inf[",
+						"parentCluster": "]-inf;+inf[",
+						"frequency": 279,
+						"interest": 1,
+						"hierarchicalLevel": 1,
+						"rank": 3,
+						"hierarchicalRank": 11,
+						"isLeaf": true
+					},
+					{
+						"cluster": "]-inf;+inf[",
+						"parentCluster": "",
+						"frequency": 1000,
+						"interest": 1,
+						"hierarchicalLevel": 0,
+						"rank": 2,
+						"hierarchicalRank": 5,
+						"isLeaf": false
+					}
+				]
+			},
+			{
+				"name": "marital_status",
+				"type": "Categorical",
+				"clusters": [
+					{
+						"cluster": "{Never-married, Divorced, Widowed, ...}",
+						"parentCluster": "C4",
+						"frequency": 557,
+						"interest": 1,
+						"hierarchicalLevel": 1,
+						"rank": 1,
+						"hierarchicalRank": 11,
+						"isLeaf": true
+					},
+					{
+						"cluster": "{Married-civ-spouse}",
+						"parentCluster": "C4",
+						"frequency": 443,
+						"interest": 1,
+						"hierarchicalLevel": 1,
+						"rank": 3,
+						"hierarchicalRank": 11,
+						"isLeaf": true
+					},
+					{
+						"cluster": "C4",
+						"parentCluster": "",
+						"frequency": 1000,
+						"interest": 1,
+						"hierarchicalLevel": 0.453332,
+						"rank": 2,
+						"hierarchicalRank": 8,
+						"isLeaf": false
+					}
+				]
+			},
+			{
+				"name": "sex",
+				"type": "Categorical",
+				"clusters": [
+					{
+						"cluster": "{Male}",
+						"parentCluster": "D5",
+						"frequency": 671,
+						"interest": 1,
+						"hierarchicalLevel": 1,
+						"rank": 1,
+						"hierarchicalRank": 11,
+						"isLeaf": true
+					},
+					{
+						"cluster": "{Female}",
+						"parentCluster": "D5",
+						"frequency": 329,
+						"interest": 1,
+						"hierarchicalLevel": 1,
+						"rank": 3,
+						"hierarchicalRank": 11,
+						"isLeaf": true
+					},
+					{
+						"cluster": "D5",
+						"parentCluster": "",
+						"frequency": 1000,
+						"interest": 1,
+						"hierarchicalLevel": 0.733975,
+						"rank": 2,
+						"hierarchicalRank": 9,
+						"isLeaf": false
+					}
+				]
+			},
+			{
+				"name": "class",
+				"type": "Categorical",
+				"clusters": [
+					{
+						"cluster": "{less}",
+						"parentCluster": "E3",
+						"frequency": 768,
+						"interest": 1,
+						"hierarchicalLevel": 1,
+						"rank": 1,
+						"hierarchicalRank": 11,
+						"isLeaf": true
+					},
+					{
+						"cluster": "{more}",
+						"parentCluster": "E3",
+						"frequency": 232,
+						"interest": 1,
+						"hierarchicalLevel": 1,
+						"rank": 3,
+						"hierarchicalRank": 11,
+						"isLeaf": true
+					},
+					{
+						"cluster": "E3",
+						"parentCluster": "",
+						"frequency": 1000,
+						"interest": 1,
+						"hierarchicalLevel": 0.289554,
+						"rank": 2,
+						"hierarchicalRank": 7,
+						"isLeaf": false
+					}
+				]
+			}
+		],
+		"cellPartIndexes": [
+			[1,0,0,0,0],
+			[1,0,1,0,0],
+			[2,0,0,1,0],
+			[0,1,1,0,1],
+			[0,0,0,1,0],
+			[0,0,0,0,0],
+			[0,0,1,0,0],
+			[0,1,0,1,0],
+			[0,1,0,0,0],
+			[0,0,1,0,1],
+			[1,0,1,0,1],
+			[2,0,0,0,0],
+			[1,0,0,1,0],
+			[0,1,1,0,0],
+			[2,0,1,0,0],
+			[0,1,0,1,1],
+			[2,0,1,1,0],
+			[0,1,0,0,1],
+			[1,1,0,0,0],
+			[0,0,1,1,0],
+			[0,1,1,1,1],
+			[1,1,1,0,0],
+			[1,0,1,1,0],
+			[2,0,1,1,1],
+			[2,0,1,0,1],
+			[2,1,0,1,0],
+			[0,0,1,1,1],
+			[0,1,1,1,0],
+			[2,1,1,0,1],
+			[1,0,0,0,1],
+			[2,1,0,0,0],
+			[0,0,0,0,1],
+			[1,0,1,1,1],
+			[1,0,0,1,1],
+			[1,1,1,0,1],
+			[1,1,0,1,0],
+			[2,1,1,1,1],
+			[2,1,1,0,0],
+			[2,1,1,1,0],
+			[0,0,0,1,1]
+		],
+		"cellFrequencies": [110,102,97,83,72,64,50,45,43,38,37,37,30,26,25,14,13,13,10,10,8,7,6,6,6,6,6,6,5,4,4,3,2,2,2,2,2,2,1,1]
+	},
+	"khiops_encoding": "ascii"
+}

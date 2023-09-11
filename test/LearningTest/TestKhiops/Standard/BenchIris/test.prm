@@ -1,0 +1,84 @@
+// Mon Mar 02 17:01:01 2009
+// modl
+// Output command file
+//
+//This file contains recorded commands, that can be replayed.
+//Commands are based on user interactions:
+//	field update
+//	list index selection
+//	menu action
+//Every command can be commented, using //.
+//For example, commenting the last Exit command will allow other
+//user interactions, after the commands have been replayed.
+//
+//
+
+// -> Data preparation and scoring
+LearningProblemStudy.ClassifierBenchmark   // Evaluate classifiers...
+
+// -> Learning benchmark
+CrossValidationNumber 1        // Cross-validation number
+FoldNumber 10                   // Fold number
+Stratified true               // Stratified
+SignificanceLevel 0.05         // Significance level
+RunReport true                 // Detailed run report
+ReportFileName ./results/benchmark.xls  // Benchmark report
+
+
+
+PredictorSpecs.InsertItemAfter          // Insert after
+PredictorSpecs.PredictorName Selective Naive Bayes         // Name
+PredictorSpecs.InspectItem    // Inspect
+// -> Predictor
+PredictorLabel SNB            // Label
+Exit                           // OK
+// <- Predictor
+
+PredictorSpecs.InsertItemAfter          // Insert after
+PredictorSpecs.PredictorName Naive Bayes         // Name
+PredictorSpecs.InspectItem    // Inspect
+// -> Predictor
+PredictorLabel NB             // Label
+Exit                           // OK
+// <- Predictor
+
+PredictorSpecs.InsertItemAfter          // Insert after
+PredictorSpecs.PredictorName Data Grid // Name
+PredictorSpecs.InspectItem    // Inspect
+// -> Predictor
+PredictorLabel DG             // Label
+Predictor.DataGridOptimizerParameters.OptimizationLevel 3   // Optimization level
+Exit                           // OK
+// <- Predictor
+
+PredictorSpecs.InsertItemAfter          // Insert after
+PredictorSpecs.PredictorName Univariate          // Name
+PredictorSpecs.InspectItem    // Inspect
+// -> Predictor
+PredictorLabel BU              // Label
+Exit                           // OK
+// <- Predictor
+
+
+BenchmarkSpecs.InsertItemAfter      // Insert after
+// -> Benchmark
+BenchmarkClassSpec.ClassFileName ../../../datasets/Iris/Iris.kdic        // Dictionary file
+BenchmarkClassSpec.ClassName Iris              // Dictionary
+BenchmarkClassSpec.TargetAttributeName Class    // Target variable
+Database.DatabaseFiles.List.Key Iris               // List item selection
+Database.DatabaseFiles.DataTableName ../../../datasets/Iris/Iris.txt     // Database file
+Exit                           // OK
+// <- Benchmark
+
+Evaluate                       // Evaluation of classifiers
+Exit                           // OK
+// <- Learning benchmark
+
+Exit                           // Close
+// <- Data preparation and scoring
+
+
+// -> Data preparation and scoring
+OK                             // Close
+// <- Data preparation and scoring
+

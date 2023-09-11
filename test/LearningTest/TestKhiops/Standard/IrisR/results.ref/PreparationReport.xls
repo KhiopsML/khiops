@@ -1,0 +1,218 @@
+#Khiops 10.1
+Descriptive statistics
+
+
+Problem description
+Short description	
+
+Dictionary	Iris
+Variables
+	Categorical	4
+	Numerical	8
+	Total	12
+
+Database	../../../datasets/Iris/Iris.txt
+Sample percentage	70
+Sampling mode	Include sample
+Selection variable	
+Selection value	
+Instances	105
+
+Learning task	Regression analysis
+
+Target variable	Numerical	PetalLength
+
+Values	36
+Min	1
+Max	6.9
+Mean	3.686666667
+Std dev	1.80132579
+Missing number	0
+
+Evaluated variables	11
+Native variables	4
+Constructed variables	7
+Informative variables	9
+
+Max number of constructed variables	0
+Max number of trees	0
+Max number of variable pairs	0
+Discretization	MODL
+Value grouping	MODL
+
+Null model
+	Constr. cost	0.693147
+	Prep. cost	0
+	Data cost	386.913
+
+
+Categorical variables statistics
+
+Rank	Name	Level	Target intervals	Groups	Values	Mode	Mode coverage	Constr. cost	Prep. cost	Data cost	Derivation rule
+R01	SPetalLength	0.212092	5	5	5	1	0.361905	3.09104	57.6475	244.659	AsCategorical(Floor(PetalLength))
+R02	Class	0.174746	3	3	3	Iris-setosa	0.361905	3.09104	27.7604	289.022
+R05	Class1	0.129937	2	2	2		0.638095	3.09104	13.4451	320.705	IfC(EQc(Class, "Iris-setosa"), "setosa", "")
+R08	Class2	0.0691819	3	2	2		0.695238	3.09104	20.5133	337.186	IfC(EQc(Class, "Iris-versicolor"), "versicolor", "")
+
+
+Numerical variables statistics
+
+Rank	Name	Level	Target intervals	Intervals	Values	Min	Max	Mean	Std dev	Missing number	Constr. cost	Prep. cost	Data cost	Derivation rule
+R03	PetalWidth	0.16061	3	3	21	0.1	2.5	1.175238095	0.7880996979	0	3.09104	27.7841	294.477
+R04	LowerPetalLength	0.157721	3	3	10	1	3	2.446666667	0.7433600251	0	3.09104	26.759	296.622	If(LE(PetalLength, 3), PetalLength, 3)
+R06	UpperPetalWidth	0.0912549	2	2	11	1.5	2.5	1.692380952	0.2962287527	0	3.09104	9.37559	339.768	If(GE(PetalWidth, 1.5), PetalWidth, 1.5)
+R07	SepalLength	0.0903617	3	3	31	4.3	7.7	5.827619048	0.8375127846	0	3.09104	27.7674	321.722
+R09	SepalWidth	0.01974	2	3	23	2	4.4	3.081904762	0.4284592446	0	3.09104	15.5614	361.302
+R10	Dummy1	0	1	1	1	0	0	0	0	0	0.693147	0	386.913	Copy(0)
+R11	Dummy2	0	1	1	105	0.005121241265	0.9859650261	0.5173966838	0.2650019122	0	0.693147	0	386.913	Random()
+
+
+--------------------------------------------------------------------------------
+
+Variables detailed statistics
+
+
+Rank	R01
+Variable	Categorical	SPetalLength
+
+Variable stats
+Group	Size	Value list
+{1}	1	1
+{5}	1	5
+{4}	1	4
+{3}	1	3
+{6}	1	6	 * 
+
+% target values
+Group	]-inf;2.4]	]2.4;3.95]	]3.95;4.95]	]4.95;5.95]	]5.95;+inf[	Interest	Frequency	Coverage
+{1}	1	0	0	0	0	0.256249	38	0.361905
+{5}	0	0	0	1	0	0.243293	27	0.257143
+{4}	0	0	1	0	0	0.238036	25	0.238095
+{3}	0	1	0	0	0	0.136651	8	0.0761905
+{6}	0	0	0	0	1	0.125771	7	0.0666667
+Total	0.361905	0.0761905	0.238095	0.257143	0.0666667	1	105	1
+
+Values
+Value	Frequency	Coverage
+1	38	0.361905
+5	27	0.257143
+4	25	0.238095
+3	8	0.0761905
+6	7	0.0666667
+
+----------------------------------------------
+Rank	R02
+Variable	Categorical	Class
+
+Variable stats
+Group	Size	Value list
+{Iris-setosa}	1	Iris-setosa
+{Iris-virginica}	1	Iris-virginica
+{Iris-versicolor}	1	Iris-versicolor	 * 
+
+% target values
+Group	]-inf;2.4]	]2.4;4.85]	]4.85;+inf[	Interest	Frequency	Coverage
+{Iris-setosa}	1	0	0	0.385065	38	0.361905
+{Iris-virginica}	0	0.0285714	0.971429	0.320788	35	0.333333
+{Iris-versicolor}	0	0.90625	0.09375	0.294147	32	0.304762
+Total	0.361905	0.285714	0.352381	1	105	1
+
+Values
+Value	Frequency	Coverage
+Iris-setosa	38	0.361905
+Iris-virginica	35	0.333333
+Iris-versicolor	32	0.304762
+
+----------------------------------------------
+Rank	R03
+Variable	Numerical	PetalWidth
+
+% target values
+Interval	]-inf;2.4]	]2.4;4.75]	]4.75;+inf[	Interest	Frequency	Coverage
+]-inf;0.75]	1	0	0	0.409025	38	0.361905
+]0.75;1.55]	0	0.862069	0.137931	0.277246	29	0.27619
+]1.55;+inf[	0	0.0526316	0.947368	0.313729	38	0.361905
+Total	0.361905	0.257143	0.380952	1	105	1
+
+----------------------------------------------
+Rank	R04
+Variable	Numerical	LowerPetalLength
+
+% target values
+Interval	]-inf;1.45]	]1.45;2.4]	]2.4;+inf[	Interest	Frequency	Coverage
+]-inf;1.45]	1	0	0	0.326327	17	0.161905
+]1.45;2.4]	0	1	0	0.356326	21	0.2
+]2.4;+inf[	0	0	1	0.317347	67	0.638095
+Total	0.161905	0.2	0.638095	1	105	1
+
+----------------------------------------------
+Rank	R05
+Variable	Categorical	Class1
+
+Variable stats
+Group	Size	Value list
+{}	1	
+{setosa}	1	setosa	 * 
+
+% target values
+Group	]-inf;2.4]	]2.4;+inf[	Interest	Frequency	Coverage
+{setosa}	1	0	0.561997	38	0.361905
+{}	0	1	0.438003	67	0.638095
+Total	0.361905	0.638095	1	105	1
+
+Values
+Value	Frequency	Coverage
+	67	0.638095
+setosa	38	0.361905
+
+----------------------------------------------
+Rank	R06
+Variable	Numerical	UpperPetalWidth
+
+% target values
+Interval	]-inf;4.75]	]4.75;+inf[	Interest	Frequency	Coverage
+]-inf;1.55]	0.940299	0.0597015	0.404409	67	0.638095
+]1.55;+inf[	0.0526316	0.947368	0.595591	38	0.361905
+Total	0.619048	0.380952	1	105	1
+
+----------------------------------------------
+Rank	R07
+Variable	Numerical	SepalLength
+
+% target values
+Interval	]-inf;3.55]	]3.55;4.85]	]4.85;+inf[	Interest	Frequency	Coverage
+]-inf;5.45]	0.948718	0.0512821	0	0.452028	39	0.371429
+]5.45;6.15]	0.178571	0.642857	0.178571	0.152867	28	0.266667
+]6.15;+inf[	0	0.157895	0.842105	0.395105	38	0.361905
+Total	0.4	0.247619	0.352381	1	105	1
+
+----------------------------------------------
+Rank	R08
+Variable	Categorical	Class2
+
+Variable stats
+Group	Size	Value list
+{}	1	
+{versicolor}	1	versicolor	 * 
+
+% target values
+Group	]-inf;2.4]	]2.4;4.85]	]4.85;+inf[	Interest	Frequency	Coverage
+{versicolor}	0	0.90625	0.09375	0.592878	32	0.304762
+{}	0.520548	0.0136986	0.465753	0.407122	73	0.695238
+Total	0.361905	0.285714	0.352381	1	105	1
+
+Values
+Value	Frequency	Coverage
+	73	0.695238
+versicolor	32	0.304762
+
+----------------------------------------------
+Rank	R09
+Variable	Numerical	SepalWidth
+
+% target values
+Interval	]-inf;2.4]	]2.4;+inf[	Interest	Frequency	Coverage
+]-inf;2.85]	0	1	0.553199	30	0.285714
+]2.85;3.35]	0.346939	0.653061	0.000981364	49	0.466667
+]3.35;+inf[	0.807692	0.192308	0.445819	26	0.247619
+Total	0.361905	0.638095	1	105	1

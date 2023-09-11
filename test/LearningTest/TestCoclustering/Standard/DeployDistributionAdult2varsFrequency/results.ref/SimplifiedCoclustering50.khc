@@ -1,0 +1,79 @@
+#Khiops 10.1
+Short description	
+Dimensions	2
+Name	Type	Parts	Initial parts	Values	Interest	Description
+occupation	Categorical	2	9	14	1	
+education	Categorical	2	10	16	1	
+
+Coclustering stats
+Instances	48842
+Cells	4
+Null cost	213017
+Cost	204572
+Level	0.03964472319
+Initial dimensions	2
+Frequency variable	frequency
+Dictionary	OccupationEducationFrequency
+Database	OccupationEducationFrequency.txt
+Sample percentage	100
+Sampling mode	Include sample
+Selection variable	
+Selection value	
+
+Hierarchy	occupation
+Cluster	ParentCluster	Frequency	Interest	HierarchicalLevel	Rank	HierarchicalRank
+A7	A1	15067	0.881093	0.866834	2	8
+A3	A1	33775	0.508975	0.514611	12	4
+A1		48842	0.623768	0	4	2
+
+Hierarchy	education
+Cluster	ParentCluster	Frequency	Interest	HierarchicalLevel	Rank	HierarchicalRank
+B5	B2	12110	0.98306	0.776545	2	6
+B4	B2	36732	0.735648	0.6334	14	5
+B2		48842	0.796992	-0.00125728	6	3
+
+Composition	occupation
+Cluster	Value	Frequency	Typicality
+A7	Prof-specialty	8981	1
+A7	Exec-managerial	6086	1
+A3	Craft-repair	6112	1
+A3	Machine-op-inspct	3022	1
+A3	Transport-moving	2355	0.781972
+A3	Handlers-cleaners	2072	0.740515
+A3	Other-service	4923	1
+A3	Farming-fishing	1490	1
+A3	Priv-house-serv	242	0.350275
+A3	Adm-clerical	5611	1
+A3	Protective-serv	983	0.253264
+A3	Sales	5504	1
+A3	Tech-support	1446	1
+A3	Armed-Forces	15	0.00765636
+A3	 * 	0	0
+
+Composition	education
+Cluster	Value	Frequency	Typicality
+B5	Bachelors	8025	1
+B5	Masters	2657	1
+B5	Prof-school	834	1
+B5	Doctorate	594	0.756428
+B4	HS-grad	15784	1
+B4	7th-8th	955	1
+B4	5th-6th	509	0.836335
+B4	1st-4th	247	0.450257
+B4	Preschool	83	0.171295
+B4	10th	1389	1
+B4	9th	756	0.741127
+B4	11th	1812	1
+B4	12th	657	0.4954
+B4	Some-college	10878	1
+B4	Assoc-voc	2061	1
+B4	Assoc-acdm	1601	1
+B4	 * 	0	0
+
+Cells
+occupation	education	Frequency
+A3	B4	29636
+A7	B5	7971
+A7	B4	7096
+A3	B5	4139
+

@@ -1,0 +1,11 @@
+warning : Database ./OccupationEducationFrequency.txt : Record 2 : Ignored record 1, frequency variable (frequency) with non positive value (-10)
+warning : Database ./OccupationEducationFrequency.txt : Record 3 : Ignored record 2, frequency variable (frequency) with non positive value (-1)
+warning : Database ./OccupationEducationFrequency.txt : Record 4 : Ignored record 3, frequency variable (frequency) with non positive value (0)
+warning : Database ./OccupationEducationFrequency.txt : Record 5 : Ignored record 4, frequency variable (frequency) with null rounded value (0.1)
+warning : Database ./OccupationEducationFrequency.txt : Record 6 : Ignored record 5, frequency variable (frequency) with null rounded value (0.4)
+warning : Database ./OccupationEducationFrequency.txt : Record 7 : Record 6, frequency variable (frequency) with non integer value (0.5 -> 1)
+warning : Database ./OccupationEducationFrequency.txt : Record 8 : Record 7, frequency variable (frequency) with non integer value (0.6 -> 1)
+warning : Database ./OccupationEducationFrequency.txt : Record 9 : Ignored record 8, frequency variable (frequency) with value too large (1e+10)
+error : Coclustering OccupationEducationFrequency  : Read database interrupted after record 11 because total frequency is too large (4,000,000,002)
+Coclustering analysis time: 0:00:00.01
+

@@ -1,0 +1,49 @@
+// Wed Apr 15 18:02:49 2009
+// MODL.exe
+// Output command file
+//
+//This file contains recorded commands, that can be replayed.
+//Commands are based on user interactions:
+//	field update
+//	list index selection
+//	menu action
+//Every command can be commented, using //.
+//For example, commenting the last Exit command will allow other
+//user interactions, after the commands have been replayed.
+//
+//
+
+// -> Data preparation and scoring
+ClassManagement.OpenFile       // Open...
+// -> Open
+ClassFileName ../../../MTdatasets/SpliceJunction/SpliceJunction.kdic  // Dictionary file
+OK                             // Open
+
+ClassManagement.ClassName SpliceJunction        // Dictionary
+
+TrainDatabase.DatabaseFiles.List.Key SpliceJunction               // List item selection
+TrainDatabase.DatabaseFiles.DataTableName ../../../MTdatasets/SpliceJunction/SpliceJunction.txt      // Data table file
+TrainDatabase.DatabaseFiles.List.Key SpliceJunction`DNA               // List item selection
+TrainDatabase.DatabaseFiles.DataTableName ../../../MTdatasets/SpliceJunction/SpliceJunctionDNA.txt      // Data table file
+
+TransferDatabase               // Transfer database
+
+// -> Database transfer
+ClassName SpliceJunction             // Transfer dictionary
+SourceDatabase.SampleNumberPercentage 70  // Sample percentage
+TargetDatabase.DatabaseFiles.List.Key SpliceJunction               // List item selection
+TargetDatabase.DatabaseFiles.DataTableName ./results/T_SpliceJunction.txt      // Data table file
+TargetDatabase.DatabaseFiles.List.Key SpliceJunction`DNA               // List item selection
+TargetDatabase.DatabaseFiles.DataTableName ./results/T_SpliceJunctionDNA.txt      // Data table file
+TransferDatabase               // Transfer database
+Exit                           // Close
+// <- Database transfer
+
+Exit                           // Close
+// <- MultiTable Data preparation and scoring
+
+
+// -> MultiTable Data preparation and scoring
+OK                             // Close
+// <- MultiTable Data preparation and scoring
+

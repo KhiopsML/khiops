@@ -1,0 +1,27 @@
+#Khiops 7.7.2i
+
+Root	Dictionary	Occupation	(occupation)
+{
+	Categorical	occupation		;	
+	Table(OccupationSample)	Samples		;	
+};
+
+Dictionary	OccupationSample	(occupation)
+{
+	Numerical	Label		;	
+	Numerical	age		;	
+	Categorical	workclass		;	
+	Numerical	fnlwgt		;	
+	Categorical	education		;	
+	Numerical	education_num		;	
+	Categorical	marital_status		;	
+	Categorical	occupation		;	
+	Categorical	relationship		;	
+	Categorical	race		;	
+	Categorical	sex		;	
+	Numerical	capital_gain		;	
+	Numerical	capital_loss		;	
+	Numerical	hours_per_week		;	
+	Categorical	native_country		;	
+	Categorical	class		;	
+};

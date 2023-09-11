@@ -1,0 +1,145 @@
+#Khiops 10.1
+Short description	
+Dimensions	5
+Name	Type	Parts	Initial parts	Values	Interest	Description
+occupation	Categorical	3	3	14	1	
+education_num	Numerical	2	2	1000	1	
+marital_status	Categorical	2	2	7	1	
+sex	Categorical	2	2	2	1	
+class	Categorical	2	2	2	1	
+
+Coclustering stats
+Instances	1000
+Cells	40
+Null cost	10763.32415
+Cost	10445.04227
+Level	0.0295709649
+Initial dimensions	5
+Frequency variable	
+Dictionary	Adult
+Database	./Adult1000.txt
+Sample percentage	100
+Sampling mode	Include sample
+Selection variable	
+Selection value	
+
+Bounds
+Name	Min	Max
+education_num	1	16
+
+Hierarchy	occupation
+Cluster	ParentCluster	Frequency	Interest	HierarchicalLevel	Rank	HierarchicalRank
+{Prof-specialty, Exec-managerial, Tech-support, ...}	A2	482	1	1	1	11
+{Craft-repair, Transport-moving, Handlers-cleaners, ...}	A6	314	0.968624	1	3	11
+{Other-service, Adm-clerical, Priv-house-serv}	A6	204	0.781516	1	5	11
+A2		1000	0.945577	-0.0276241	2	6
+A6	A2	518	0.894937	0.881083	4	10
+
+Hierarchy	education_num
+Cluster	ParentCluster	Frequency	Interest	HierarchicalLevel	Rank	HierarchicalRank
+]-inf;11.5]	]-inf;+inf[	721	1	1	1	11
+]11.5;+inf[	]-inf;+inf[	279	1	1	3	11
+]-inf;+inf[		1000	1	0	2	5
+
+Hierarchy	marital_status
+Cluster	ParentCluster	Frequency	Interest	HierarchicalLevel	Rank	HierarchicalRank
+{Never-married, Divorced, Widowed, ...}	C4	557	1	1	1	11
+{Married-civ-spouse}	C4	443	1	1	3	11
+C4		1000	1	0.453332	2	8
+
+Hierarchy	sex
+Cluster	ParentCluster	Frequency	Interest	HierarchicalLevel	Rank	HierarchicalRank
+{Male}	D5	671	1	1	1	11
+{Female}	D5	329	1	1	3	11
+D5		1000	1	0.733975	2	9
+
+Hierarchy	class
+Cluster	ParentCluster	Frequency	Interest	HierarchicalLevel	Rank	HierarchicalRank
+{less}	E3	768	1	1	1	11
+{more}	E3	232	1	1	3	11
+E3		1000	1	0.289554	2	7
+
+Composition	occupation
+Cluster	Value	Frequency	Typicality
+{Prof-specialty, Exec-managerial, Tech-support, ...}	Prof-specialty	186	1
+{Prof-specialty, Exec-managerial, Tech-support, ...}	Exec-managerial	124	0.908073
+{Prof-specialty, Exec-managerial, Tech-support, ...}	Tech-support	44	0.240546
+{Prof-specialty, Exec-managerial, Tech-support, ...}	Sales	112	0.197089
+{Prof-specialty, Exec-managerial, Tech-support, ...}	Protective-serv	16	0.0673183
+{Craft-repair, Transport-moving, Handlers-cleaners, ...}	Craft-repair	126	1
+{Craft-repair, Transport-moving, Handlers-cleaners, ...}	Transport-moving	52	0.616543
+{Craft-repair, Transport-moving, Handlers-cleaners, ...}	Handlers-cleaners	43	0.30175
+{Craft-repair, Transport-moving, Handlers-cleaners, ...}	Machine-op-inspct	61	0.296152
+{Craft-repair, Transport-moving, Handlers-cleaners, ...}	Farming-fishing	31	0.260692
+{Craft-repair, Transport-moving, Handlers-cleaners, ...}	Armed-Forces	1	0.0190968
+{Craft-repair, Transport-moving, Handlers-cleaners, ...}	 * 	0	0
+{Other-service, Adm-clerical, Priv-house-serv}	Other-service	107	1
+{Other-service, Adm-clerical, Priv-house-serv}	Adm-clerical	94	0.990468
+{Other-service, Adm-clerical, Priv-house-serv}	Priv-house-serv	3	0.0852379
+
+Composition	marital_status
+Cluster	Value	Frequency	Typicality
+{Never-married, Divorced, Widowed, ...}	Never-married	344	1
+{Never-married, Divorced, Widowed, ...}	Divorced	136	0.669163
+{Never-married, Divorced, Widowed, ...}	Widowed	33	0.275292
+{Never-married, Divorced, Widowed, ...}	Separated	28	0.188924
+{Never-married, Divorced, Widowed, ...}	Married-spouse-absent	15	0.12265
+{Never-married, Divorced, Widowed, ...}	Married-AF-spouse	1	0.03012
+{Never-married, Divorced, Widowed, ...}	 * 	0	0
+{Married-civ-spouse}	Married-civ-spouse	443	1
+
+Composition	sex
+Cluster	Value	Frequency	Typicality
+{Male}	Male	671	1
+{Female}	Female	329	1
+{Female}	 * 	0	0
+
+Composition	class
+Cluster	Value	Frequency	Typicality
+{less}	less	768	1
+{more}	more	232	1
+{more}	 * 	0	0
+
+Cells
+occupation	education_num	marital_status	sex	class	Frequency
+{Craft-repair, Transport-moving, Handlers-cleaners, ...}	]-inf;11.5]	{Never-married, Divorced, Widowed, ...}	{Male}	{less}	110
+{Craft-repair, Transport-moving, Handlers-cleaners, ...}	]-inf;11.5]	{Married-civ-spouse}	{Male}	{less}	102
+{Other-service, Adm-clerical, Priv-house-serv}	]-inf;11.5]	{Never-married, Divorced, Widowed, ...}	{Female}	{less}	97
+{Prof-specialty, Exec-managerial, Tech-support, ...}	]11.5;+inf[	{Married-civ-spouse}	{Male}	{more}	83
+{Prof-specialty, Exec-managerial, Tech-support, ...}	]-inf;11.5]	{Never-married, Divorced, Widowed, ...}	{Female}	{less}	72
+{Prof-specialty, Exec-managerial, Tech-support, ...}	]-inf;11.5]	{Never-married, Divorced, Widowed, ...}	{Male}	{less}	64
+{Prof-specialty, Exec-managerial, Tech-support, ...}	]-inf;11.5]	{Married-civ-spouse}	{Male}	{less}	50
+{Prof-specialty, Exec-managerial, Tech-support, ...}	]11.5;+inf[	{Never-married, Divorced, Widowed, ...}	{Female}	{less}	45
+{Prof-specialty, Exec-managerial, Tech-support, ...}	]11.5;+inf[	{Never-married, Divorced, Widowed, ...}	{Male}	{less}	43
+{Prof-specialty, Exec-managerial, Tech-support, ...}	]-inf;11.5]	{Married-civ-spouse}	{Male}	{more}	38
+{Craft-repair, Transport-moving, Handlers-cleaners, ...}	]-inf;11.5]	{Married-civ-spouse}	{Male}	{more}	37
+{Other-service, Adm-clerical, Priv-house-serv}	]-inf;11.5]	{Never-married, Divorced, Widowed, ...}	{Male}	{less}	37
+{Craft-repair, Transport-moving, Handlers-cleaners, ...}	]-inf;11.5]	{Never-married, Divorced, Widowed, ...}	{Female}	{less}	30
+{Prof-specialty, Exec-managerial, Tech-support, ...}	]11.5;+inf[	{Married-civ-spouse}	{Male}	{less}	26
+{Other-service, Adm-clerical, Priv-house-serv}	]-inf;11.5]	{Married-civ-spouse}	{Male}	{less}	25
+{Prof-specialty, Exec-managerial, Tech-support, ...}	]11.5;+inf[	{Never-married, Divorced, Widowed, ...}	{Female}	{more}	14
+{Other-service, Adm-clerical, Priv-house-serv}	]-inf;11.5]	{Married-civ-spouse}	{Female}	{less}	13
+{Prof-specialty, Exec-managerial, Tech-support, ...}	]11.5;+inf[	{Never-married, Divorced, Widowed, ...}	{Male}	{more}	13
+{Craft-repair, Transport-moving, Handlers-cleaners, ...}	]11.5;+inf[	{Never-married, Divorced, Widowed, ...}	{Male}	{less}	10
+{Prof-specialty, Exec-managerial, Tech-support, ...}	]-inf;11.5]	{Married-civ-spouse}	{Female}	{less}	10
+{Prof-specialty, Exec-managerial, Tech-support, ...}	]11.5;+inf[	{Married-civ-spouse}	{Female}	{more}	8
+{Craft-repair, Transport-moving, Handlers-cleaners, ...}	]11.5;+inf[	{Married-civ-spouse}	{Male}	{less}	7
+{Craft-repair, Transport-moving, Handlers-cleaners, ...}	]-inf;11.5]	{Married-civ-spouse}	{Female}	{less}	6
+{Other-service, Adm-clerical, Priv-house-serv}	]-inf;11.5]	{Married-civ-spouse}	{Female}	{more}	6
+{Other-service, Adm-clerical, Priv-house-serv}	]-inf;11.5]	{Married-civ-spouse}	{Male}	{more}	6
+{Other-service, Adm-clerical, Priv-house-serv}	]11.5;+inf[	{Never-married, Divorced, Widowed, ...}	{Female}	{less}	6
+{Prof-specialty, Exec-managerial, Tech-support, ...}	]-inf;11.5]	{Married-civ-spouse}	{Female}	{more}	6
+{Prof-specialty, Exec-managerial, Tech-support, ...}	]11.5;+inf[	{Married-civ-spouse}	{Female}	{less}	6
+{Other-service, Adm-clerical, Priv-house-serv}	]11.5;+inf[	{Married-civ-spouse}	{Male}	{more}	5
+{Craft-repair, Transport-moving, Handlers-cleaners, ...}	]-inf;11.5]	{Never-married, Divorced, Widowed, ...}	{Male}	{more}	4
+{Other-service, Adm-clerical, Priv-house-serv}	]11.5;+inf[	{Never-married, Divorced, Widowed, ...}	{Male}	{less}	4
+{Prof-specialty, Exec-managerial, Tech-support, ...}	]-inf;11.5]	{Never-married, Divorced, Widowed, ...}	{Male}	{more}	3
+{Craft-repair, Transport-moving, Handlers-cleaners, ...}	]-inf;11.5]	{Married-civ-spouse}	{Female}	{more}	2
+{Craft-repair, Transport-moving, Handlers-cleaners, ...}	]-inf;11.5]	{Never-married, Divorced, Widowed, ...}	{Female}	{more}	2
+{Craft-repair, Transport-moving, Handlers-cleaners, ...}	]11.5;+inf[	{Married-civ-spouse}	{Male}	{more}	2
+{Craft-repair, Transport-moving, Handlers-cleaners, ...}	]11.5;+inf[	{Never-married, Divorced, Widowed, ...}	{Female}	{less}	2
+{Other-service, Adm-clerical, Priv-house-serv}	]11.5;+inf[	{Married-civ-spouse}	{Female}	{more}	2
+{Other-service, Adm-clerical, Priv-house-serv}	]11.5;+inf[	{Married-civ-spouse}	{Male}	{less}	2
+{Other-service, Adm-clerical, Priv-house-serv}	]11.5;+inf[	{Married-civ-spouse}	{Female}	{less}	1
+{Prof-specialty, Exec-managerial, Tech-support, ...}	]-inf;11.5]	{Never-married, Divorced, Widowed, ...}	{Female}	{more}	1
+

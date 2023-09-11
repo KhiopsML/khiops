@@ -1,0 +1,164 @@
+{
+	"tool": "Khiops Coclustering",
+	"version": "10.1",
+	"shortDescription": "",
+	"coclusteringReport": {
+		"summary": {
+			"instances": 8416,
+			"cells": 4,
+			"nullCost": 9241.923273,
+			"cost": 9168.498462,
+			"level": 0.007944754521,
+			"initialDimensions": 2,
+			"frequencyVariable": "",
+			"dictionary": "Mushroom",
+			"database": "..\/..\/..\/datasets\/Mushroom\/Mushroom.txt",
+			"samplePercentage": 100,
+			"samplingMode": "Include sample",
+			"selectionVariable": "",
+			"selectionValue": ""
+		},
+		"dimensionSummaries": [
+			{
+				"name": "GillSize",
+				"type": "Categorical",
+				"parts": 2,
+				"initialParts": 2,
+				"values": 2,
+				"interest": 1,
+				"description": ""
+			},
+			{
+				"name": "GillSpacing",
+				"type": "Categorical",
+				"parts": 2,
+				"initialParts": 2,
+				"values": 2,
+				"interest": 1,
+				"description": ""
+			}
+		],
+		"dimensionPartitions": [
+			{
+				"name": "GillSize",
+				"type": "Categorical",
+				"valueGroups": [
+					{
+						"cluster": "{BROAD}",
+						"values": ["BROAD"],
+						"valueFrequencies": [5880],
+						"valueTypicalities": [1]
+					},
+					{
+						"cluster": "{NARROW}",
+						"values": ["NARROW"],
+						"valueFrequencies": [2536],
+						"valueTypicalities": [1]
+					}
+				],
+				"defaultGroupIndex": 1
+			},
+			{
+				"name": "GillSpacing",
+				"type": "Categorical",
+				"valueGroups": [
+					{
+						"cluster": "{CLOSE}",
+						"values": ["CLOSE"],
+						"valueFrequencies": [6824],
+						"valueTypicalities": [1]
+					},
+					{
+						"cluster": "{CROWDED}",
+						"values": ["CROWDED"],
+						"valueFrequencies": [1592],
+						"valueTypicalities": [1]
+					}
+				],
+				"defaultGroupIndex": 1
+			}
+		],
+		"dimensionHierarchies": [
+			{
+				"name": "GillSize",
+				"type": "Categorical",
+				"clusters": [
+					{
+						"cluster": "{BROAD}",
+						"parentCluster": "A1",
+						"frequency": 5880,
+						"interest": 1,
+						"hierarchicalLevel": 1,
+						"rank": 1,
+						"hierarchicalRank": 4,
+						"isLeaf": true
+					},
+					{
+						"cluster": "{NARROW}",
+						"parentCluster": "A1",
+						"frequency": 2536,
+						"interest": 1,
+						"hierarchicalLevel": 1,
+						"rank": 3,
+						"hierarchicalRank": 4,
+						"isLeaf": true
+					},
+					{
+						"cluster": "A1",
+						"parentCluster": "",
+						"frequency": 8416,
+						"interest": 1,
+						"hierarchicalLevel": 0,
+						"rank": 2,
+						"hierarchicalRank": 2,
+						"isLeaf": false
+					}
+				]
+			},
+			{
+				"name": "GillSpacing",
+				"type": "Categorical",
+				"clusters": [
+					{
+						"cluster": "{CLOSE}",
+						"parentCluster": "B2",
+						"frequency": 6824,
+						"interest": 1,
+						"hierarchicalLevel": 1,
+						"rank": 1,
+						"hierarchicalRank": 4,
+						"isLeaf": true
+					},
+					{
+						"cluster": "{CROWDED}",
+						"parentCluster": "B2",
+						"frequency": 1592,
+						"interest": 1,
+						"hierarchicalLevel": 1,
+						"rank": 3,
+						"hierarchicalRank": 4,
+						"isLeaf": true
+					},
+					{
+						"cluster": "B2",
+						"parentCluster": "",
+						"frequency": 8416,
+						"interest": 1,
+						"hierarchicalLevel": -0.0237761,
+						"rank": 2,
+						"hierarchicalRank": 3,
+						"isLeaf": false
+					}
+				]
+			}
+		],
+		"cellPartIndexes": [
+			[0,0],
+			[1,0],
+			[0,1],
+			[1,1]
+		],
+		"cellFrequencies": [4568,2256,1312,280]
+	},
+	"khiops_encoding": "ascii"
+}

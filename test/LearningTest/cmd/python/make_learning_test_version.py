@@ -146,7 +146,7 @@ def make_learning_test_version(version: str, option: str = ""):
         os.makedirs(target_root)
 
     # Parametrage des noms de fichiers ou repertoire specifiques
-    dataset_dirs = ["datasets", "MTDatasets", "TextDatasets", "UnusedDatasets"]
+    dataset_dirs = ["datasets", "MTdatasets", "TextDatasets", "UnusedDatasets"]
     test_dirs = ["cmd", "doc", "TestCoclustering", "TestKhiops", "TestKNITransfer"]
     forbidden_names = ["__pycache__", "modl", "results", "comparisonResults.log"]
     if option != "references":

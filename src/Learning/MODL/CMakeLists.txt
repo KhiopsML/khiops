@@ -2,10 +2,9 @@
 file(GLOB cppfiles ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 add_executable(MODL${MPI_SUFFIX} ${cppfiles} MODL.rc)
 
+target_link_libraries(MODL${MPI_SUFFIX} PUBLIC DTForest KMDRRuleLibrary KWLearningProblem)
 if(MPI)
-  target_link_libraries(MODL${MPI_SUFFIX} PUBLIC DTForest KMDRRuleLibrary KWLearningProblem PLMPI ${MPI_CXX_LIBRARIES})
-else()
-  target_link_libraries(MODL${MPI_SUFFIX} PUBLIC DTForest KMDRRuleLibrary KWLearningProblem)
+  target_link_libraries(MODL${MPI_SUFFIX} PUBLIC PLMPI ${MPI_CXX_LIBRARIES})
 endif()
 
 set_khiops_options(MODL${MPI_SUFFIX})
@@ -13,6 +12,9 @@ set_khiops_options(MODL${MPI_SUFFIX})
 add_library(MODL_SO SHARED ${cppfiles})
 
 target_link_libraries(MODL_SO PUBLIC DTForest KMDRRuleLibrary KWLearningProblem)
+if(MPI)
+  target_link_libraries(MODL_SO PUBLIC PLMPI ${MPI_CXX_LIBRARIES})
+endif()
 
 set_target_properties(
   MODL_SO

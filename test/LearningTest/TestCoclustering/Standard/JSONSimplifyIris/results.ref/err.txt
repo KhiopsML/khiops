@@ -1,0 +1,4 @@
+Write simplified report ./results\PostProcessedCoclustering_KHC.khc
+
+Write simplified report ./results\PostProcessedCoclustering_JSON.khc
+

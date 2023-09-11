@@ -1,0 +1,35 @@
+#Khiops 10.1
+
+Root	Dictionary	CapColor	(CapColor)
+{
+	Categorical	CapColor		;	
+Unused	Table(CapColor_Odor)	Odors		;	
+Unused	Structure(DataGrid)	P_Coclustering	 = DataGrid(ValueGroups(ValueGroup("YELLOW"), ValueGroup("GRAY", "BUFF"), ValueGroup("WHITE"), ValueGroup("PINK"), ValueGroup("CINNAMON", "GREEN", "PURPLE"), ValueGroup("RED"), ValueGroup("BROWN", " * ")), ValueGroups(ValueGroup("ALMOND", "ANISE"), ValueGroup("FOUL"), ValueGroup("FISHY", "SPICY"), ValueGroup("MUSTY"), ValueGroup("NONE"), ValueGroup("CREOSOTE"), ValueGroup("PUNGENT", " * ")), Frequencies(400, 0, 304, 0, 0, 0, 96, 648, 840, 96, 0, 0, 288, 288, 0, 0, 0, 0, 0, 576, 576, 0, 0, 0, 0, 12, 12, 24, 24, 1360, 448, 80, 64, 624, 1208, 0, 64, 64, 64, 0, 0, 0, 0, 0, 128, 0, 0, 0, 128), 0, Frequencies(10, 9), Frequencies(10, 9))	;	// DataGrid(CapColor, Odor)
+Unused	Structure(VectorC)	P_CapColorLabels	 = VectorC("Jaune", "Gris", "Blanc", "Rose", "Cannelle", "Rouge", "Brun")	;	// Cluster labels for variable CapColor
+Unused	Structure(VectorC)	P_OdorSet	 = TableVectorC(Odors, Odor)	;	// Value distribution for variable Odor
+Unused	Structure(DataGridDeployment)	P_DeployedCoclusteringAtCapColor	 = DataGridDeployment(P_Coclustering, 1, P_OdorSet)	;	// Deployed coclustering for variable CapColor
+Unused	Numerical	P_CapColorIndex	 = PredictedPartIndex(P_DeployedCoclusteringAtCapColor)	;	// Predicted cluster index for variable CapColor
+	Categorical	P_CapColorPredictedLabel	 = ValueAtC(P_CapColorLabels, P_CapColorIndex)	;	// Predicted label for variable CapColor
+Unused	Structure(Vector)	P_CapColorPartDistances	 = PredictedPartDistances(P_DeployedCoclusteringAtCapColor)	;	// Vector of cluster distances for variable CapColor
+	Numerical	P_CapColorDistanceJaune	 = ValueAt(P_CapColorPartDistances, 1)	;	
+	Numerical	P_CapColorDistanceGris	 = ValueAt(P_CapColorPartDistances, 2)	;	
+	Numerical	P_CapColorDistanceBlanc	 = ValueAt(P_CapColorPartDistances, 3)	;	
+	Numerical	P_CapColorDistanceRose	 = ValueAt(P_CapColorPartDistances, 4)	;	
+	Numerical	P_CapColorDistanceCannelle	 = ValueAt(P_CapColorPartDistances, 5)	;	
+	Numerical	P_CapColorDistanceRouge	 = ValueAt(P_CapColorPartDistances, 6)	;	
+	Numerical	P_CapColorDistanceBrun	 = ValueAt(P_CapColorPartDistances, 7)	;	
+Unused	Structure(Vector)	P_OdorPartFrequencies	 = PredictedPartFrequenciesAt(P_DeployedCoclusteringAtCapColor, 2)	;	// Vector of cluster frequencies for variable Odor
+	Numerical	`P_OdorFrequency{ALMOND, ANISE}`	 = ValueAt(P_OdorPartFrequencies, 1)	;	
+	Numerical	`P_OdorFrequency{FOUL}`	 = ValueAt(P_OdorPartFrequencies, 2)	;	
+	Numerical	`P_OdorFrequency{FISHY, SPICY}`	 = ValueAt(P_OdorPartFrequencies, 3)	;	
+	Numerical	`P_OdorFrequency{MUSTY}`	 = ValueAt(P_OdorPartFrequencies, 4)	;	
+	Numerical	`P_OdorFrequency{NONE}`	 = ValueAt(P_OdorPartFrequencies, 5)	;	
+	Numerical	`P_OdorFrequency{CREOSOTE}`	 = ValueAt(P_OdorPartFrequencies, 6)	;	
+	Numerical	`P_OdorFrequency{PUNGENT}`	 = ValueAt(P_OdorPartFrequencies, 7)	;	
+};
+
+Dictionary	CapColor_Odor	(CapColor)
+{
+	Categorical	CapColor		;	
+	Categorical	Odor		;	
+};

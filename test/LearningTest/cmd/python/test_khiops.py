@@ -57,6 +57,7 @@ def retrieve_tool_info(khiops_tool_name):
 def build_tool_exe_path(khiops_tool_exe_name, khiops_tool_version):
     """Build tool exe path name from exe name and version"""
     assert khiops_tool_version is not None
+
     # Version "nul" for results comparison only
     if khiops_tool_version == "nul":
         khiops_tool_exe_path = "nul"

@@ -1,0 +1,188 @@
+#Khiops 7.7.0i
+Dimensions	2
+Name	Type	Parts	Initial parts	Values	Interest	Description
+occupation	Categorical	9	9	14	1	
+education	Categorical	10	10	16	1	
+
+Coclustering stats
+Instances	48842
+Cells	90
+Null cost	213017
+Cost	204572
+Level	0.039643
+Initial dimensions	2
+Frequency variable	frequency
+Dictionary	OccupationEducationFrequency
+Database	OccupationEducationFrequency.txt
+
+Hierarchy	occupation
+Cluster	ParentCluster	Frequency	Interest	HierarchicalLevel	Rank	HierarchicalRank
+{Prof-specialty}	A7	8981	1	1	1	19
+{Exec-managerial}	A7	6086	0.705624	1	3	19
+{Machine-op-inspct, Transport-moving, Handlers-cleaners}	A13	7449	0.742846	1	5	19
+{Other-service}	A15	4923	0.48503	1	7	19
+{Farming-fishing, Priv-house-serv}	A15	1732	0.296401	1	9	19
+{Craft-repair}	A11	6112	0.521102	1	11	19
+{Adm-clerical, Protective-serv}	A8	6594	0.464219	1	13	19
+{Sales}	A10	5504	0.380499	1	15	19
+{Tech-support, Armed-Forces}	A10	1461	0.284537	1	17	19
+A7	A1	15067	0.881093	0.866834	2	8
+A1		48842	0.623768	0	4	2
+A13	A11	14104	0.598031	0.975657	6	14
+A15	A13	6655	0.435938	0.989938	8	16
+A11	A3	20216	0.574772	0.955386	10	12
+A3	A1	33775	0.508975	0.514611	12	4
+A8	A3	13559	0.410874	0.902536	14	9
+A10	A8	6965	0.36037	0.943821	16	11
+
+Hierarchy	education
+Cluster	ParentCluster	Frequency	Interest	HierarchicalLevel	Rank	HierarchicalRank
+{Bachelors}	B5	8025	1	1	1	19
+{Masters}	B9	2657	0.967688	1	3	19
+{Prof-school, Doctorate}	B9	1428	0.916464	1	5	19
+{HS-grad}	B6	15784	0.94096	1	7	19
+{7th-8th, 5th-6th, 1st-4th, ...}	B14	1794	0.638895	1	9	19
+{10th, 9th}	B17	2145	0.57401	1	11	19
+{11th, 12th}	B17	2469	0.552302	1	13	19
+{Some-college}	B12	10878	0.651545	1	15	19
+{Assoc-voc}	B16	2061	0.386297	1	17	19
+{Assoc-acdm}	B16	1601	0.340395	1	19	19
+B5	B2	12110	0.98306	0.776545	2	6
+B9	B5	4085	0.949782	0.923966	4	10
+B2		48842	0.796992	-0.00125728	6	3
+B6	B4	22192	0.837833	0.837966	8	7
+B14	B6	6408	0.583812	0.984703	10	15
+B17	B14	4614	0.562394	0.999825	12	18
+B4	B2	36732	0.735648	0.6334	14	5
+B12	B4	14540	0.579686	0.965478	16	13
+B16	B12	3662	0.366229	0.996514	18	17
+
+Composition	occupation
+Cluster	Value	Frequency	Typicality
+{Prof-specialty}	Prof-specialty	8981	1
+{Exec-managerial}	Exec-managerial	6086	1
+{Machine-op-inspct, Transport-moving, Handlers-cleaners}	Machine-op-inspct	3022	1
+{Machine-op-inspct, Transport-moving, Handlers-cleaners}	Transport-moving	2355	0.781972
+{Machine-op-inspct, Transport-moving, Handlers-cleaners}	Handlers-cleaners	2072	0.740515
+{Other-service}	Other-service	4923	1
+{Farming-fishing, Priv-house-serv}	Farming-fishing	1490	1
+{Farming-fishing, Priv-house-serv}	Priv-house-serv	242	0.350275
+{Craft-repair}	Craft-repair	6112	1
+{Adm-clerical, Protective-serv}	Adm-clerical	5611	1
+{Adm-clerical, Protective-serv}	Protective-serv	983	0.253264
+{Sales}	Sales	5504	1
+{Tech-support, Armed-Forces}	Tech-support	1446	1
+{Tech-support, Armed-Forces}	Armed-Forces	15	0.00765636
+
+Composition	education
+Cluster	Value	Frequency	Typicality
+{Bachelors}	Bachelors	8025	1
+{Masters}	Masters	2657	1
+{Prof-school, Doctorate}	Prof-school	834	1
+{Prof-school, Doctorate}	Doctorate	594	0.756428
+{HS-grad}	HS-grad	15784	1
+{7th-8th, 5th-6th, 1st-4th, ...}	7th-8th	955	1
+{7th-8th, 5th-6th, 1st-4th, ...}	5th-6th	509	0.836335
+{7th-8th, 5th-6th, 1st-4th, ...}	1st-4th	247	0.450257
+{7th-8th, 5th-6th, 1st-4th, ...}	Preschool	83	0.171295
+{10th, 9th}	10th	1389	1
+{10th, 9th}	9th	756	0.741127
+{11th, 12th}	11th	1812	1
+{11th, 12th}	12th	657	0.4954
+{Some-college}	Some-college	10878	1
+{Assoc-voc}	Assoc-voc	2061	1
+{Assoc-acdm}	Assoc-acdm	1601	1
+
+Cells
+occupation	education	Frequency
+{Machine-op-inspct, Transport-moving, Handlers-cleaners}	{HS-grad}	3697
+{Craft-repair}	{HS-grad}	2911
+{Prof-specialty}	{Bachelors}	2486
+{Adm-clerical, Protective-serv}	{HS-grad}	2373
+{Adm-clerical, Protective-serv}	{Some-college}	2166
+{Exec-managerial}	{Bachelors}	2025
+{Other-service}	{HS-grad}	1936
+{Sales}	{HS-grad}	1580
+{Sales}	{Some-college}	1503
+{Prof-specialty}	{Some-college}	1481
+{Prof-specialty}	{Masters}	1369
+{Machine-op-inspct, Transport-moving, Handlers-cleaners}	{Some-college}	1302
+{Exec-managerial}	{Some-college}	1288
+{Sales}	{Bachelors}	1268
+{Craft-repair}	{Some-college}	1258
+{Exec-managerial}	{HS-grad}	1192
+{Other-service}	{Some-college}	1171
+{Prof-specialty}	{Prof-school, Doctorate}	1159
+{Prof-specialty}	{HS-grad}	1156
+{Adm-clerical, Protective-serv}	{Bachelors}	912
+{Exec-managerial}	{Masters}	779
+{Farming-fishing, Priv-house-serv}	{HS-grad}	664
+{Machine-op-inspct, Transport-moving, Handlers-cleaners}	{11th, 12th}	636
+{Machine-op-inspct, Transport-moving, Handlers-cleaners}	{10th, 9th}	624
+{Machine-op-inspct, Transport-moving, Handlers-cleaners}	{7th-8th, 5th-6th, 1st-4th, ...}	567
+{Other-service}	{11th, 12th}	497
+{Tech-support, Armed-Forces}	{Some-college}	430
+{Other-service}	{10th, 9th}	422
+{Craft-repair}	{10th, 9th}	383
+{Craft-repair}	{Assoc-voc}	375
+{Craft-repair}	{11th, 12th}	362
+{Tech-support, Armed-Forces}	{Bachelors}	347
+{Adm-clerical, Protective-serv}	{Assoc-voc}	336
+{Craft-repair}	{Bachelors}	332
+{Adm-clerical, Protective-serv}	{Assoc-acdm}	331
+{Prof-specialty}	{Assoc-voc}	328
+{Other-service}	{7th-8th, 5th-6th, 1st-4th, ...}	324
+{Sales}	{11th, 12th}	302
+{Prof-specialty}	{11th, 12th}	286
+{Farming-fishing, Priv-house-serv}	{Some-college}	279
+{Prof-specialty}	{Assoc-acdm}	279
+{Craft-repair}	{7th-8th, 5th-6th, 1st-4th, ...}	277
+{Tech-support, Armed-Forces}	{HS-grad}	275
+{Machine-op-inspct, Transport-moving, Handlers-cleaners}	{Bachelors}	271
+{Farming-fishing, Priv-house-serv}	{7th-8th, 5th-6th, 1st-4th, ...}	261
+{Other-service}	{Bachelors}	259
+{Exec-managerial}	{Assoc-acdm}	240
+{Prof-specialty}	{10th, 9th}	237
+{Exec-managerial}	{Assoc-voc}	234
+{Sales}	{Assoc-acdm}	209
+{Sales}	{Masters}	206
+{Prof-specialty}	{7th-8th, 5th-6th, 1st-4th, ...}	200
+{Machine-op-inspct, Transport-moving, Handlers-cleaners}	{Assoc-voc}	193
+{Tech-support, Armed-Forces}	{Assoc-voc}	182
+{Adm-clerical, Protective-serv}	{11th, 12th}	181
+{Craft-repair}	{Assoc-acdm}	167
+{Sales}	{10th, 9th}	167
+{Sales}	{Assoc-voc}	163
+{Other-service}	{Assoc-voc}	160
+{Exec-managerial}	{Prof-school, Doctorate}	153
+{Farming-fishing, Priv-house-serv}	{10th, 9th}	139
+{Adm-clerical, Protective-serv}	{Masters}	125
+{Farming-fishing, Priv-house-serv}	{Bachelors}	125
+{Farming-fishing, Priv-house-serv}	{11th, 12th}	122
+{Machine-op-inspct, Transport-moving, Handlers-cleaners}	{Assoc-acdm}	121
+{Tech-support, Armed-Forces}	{Assoc-acdm}	116
+{Other-service}	{Assoc-acdm}	110
+{Adm-clerical, Protective-serv}	{10th, 9th}	100
+{Farming-fishing, Priv-house-serv}	{Assoc-voc}	90
+{Exec-managerial}	{11th, 12th}	69
+{Sales}	{7th-8th, 5th-6th, 1st-4th, ...}	67
+{Exec-managerial}	{10th, 9th}	65
+{Tech-support, Armed-Forces}	{Masters}	63
+{Adm-clerical, Protective-serv}	{7th-8th, 5th-6th, 1st-4th, ...}	50
+{Exec-managerial}	{7th-8th, 5th-6th, 1st-4th, ...}	41
+{Sales}	{Prof-school, Doctorate}	39
+{Other-service}	{Masters}	35
+{Craft-repair}	{Masters}	34
+{Machine-op-inspct, Transport-moving, Handlers-cleaners}	{Masters}	31
+{Farming-fishing, Priv-house-serv}	{Assoc-acdm}	28
+{Adm-clerical, Protective-serv}	{Prof-school, Doctorate}	20
+{Tech-support, Armed-Forces}	{Prof-school, Doctorate}	19
+{Farming-fishing, Priv-house-serv}	{Masters}	15
+{Tech-support, Armed-Forces}	{11th, 12th}	14
+{Craft-repair}	{Prof-school, Doctorate}	13
+{Farming-fishing, Priv-house-serv}	{Prof-school, Doctorate}	9
+{Other-service}	{Prof-school, Doctorate}	9
+{Tech-support, Armed-Forces}	{10th, 9th}	8
+{Machine-op-inspct, Transport-moving, Handlers-cleaners}	{Prof-school, Doctorate}	7
+{Tech-support, Armed-Forces}	{7th-8th, 5th-6th, 1st-4th, ...}	7
+
