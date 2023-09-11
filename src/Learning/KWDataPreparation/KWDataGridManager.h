@@ -27,7 +27,12 @@ public:
 	~KWDataGridManager();
 
 	// Copie du contenu d'une grille source vers une grille cible
+	// Dans le cas VarPart, les attributs internes sont partages avec la grille source
 	void CopyDataGrid(const KWDataGrid* initialDataGrid, KWDataGrid* targetDataGrid) const;
+
+	// Copie profonde du contenu d'une grille source
+	// Dans le cas VarPart, les attributs internes sont clones a partir de la grille source
+	void CopyDataGridWithInnerAttributesCloned(const KWDataGrid* initialDataGrid, KWDataGrid* targetDataGrid) const;
 
 	// Copie de la partie informative du contenu d'une grille source vers une grille cible
 	// La partie informative est constituee des attributs non reduits a une seule partie
@@ -46,7 +51,12 @@ public:
 	// compatible avec celui des attributs initaux de la grille de donnees source
 
 	// Export total (attribut, parties et cellules)
+	// Dans le cas VarPart, les attributs internes sont partages avec la grille source
 	void ExportDataGrid(KWDataGrid* targetDataGrid) const;
+
+	// Export total (attribut, parties et cellules)
+	// Dans le cas VarPart, les attributs internes sont clones a partir de la grille source
+	void ExportDataGridWithInnerAttributesCloned(KWDataGrid* targetDataGrid) const;
 
 	// CH IV Begin
 	// Export total (attribut, parties et cellules) en exploitant une grille de reference,
@@ -81,6 +91,7 @@ public:
 	// dedies aux attributs, parties et cellules
 
 	// Export des attributs uniquement (plus les specifications des classes cibles)
+	// Dans le cas VarPart, les attributs internes sont partages avec la grille source
 	void ExportAttributes(KWDataGrid* targetDataGrid) const;
 
 	// Export des attributs informatifs uniquement (non reduits a une seule partie)
@@ -347,7 +358,10 @@ protected:
 	// Services de creation d'attribut internes
 
 	// Creation d'attributs internes en dupliquant les attributs internes source
-	KWDGInnerAttributes* CloneInnerAttributes(const KWDGInnerAttributes* sourceInnerAttributes) const;
+	// Le parametre targetDataGrid permet de specialiser les classes utiliser pour les clonages
+	// en utilisant lees methode de creation virtuelle specialisees (ex: NewAttribute)
+	KWDGInnerAttributes* CloneInnerAttributes(const KWDGInnerAttributes* sourceInnerAttributes,
+						  const KWDataGrid* targetDataGrid) const;
 
 	// Creation d'attributs internes avec une seule partie par attribut
 	KWDGInnerAttributes* CreateNullInnerAttributes(const KWDGInnerAttributes* sourceInnerAttributes) const;

@@ -24,6 +24,20 @@ void KWDataGridManager::CopyDataGrid(const KWDataGrid* initialDataGrid, KWDataGr
 	dataGridManager.ExportDataGrid(targetDataGrid);
 }
 
+void KWDataGridManager::CopyDataGridWithInnerAttributesCloned(const KWDataGrid* initialDataGrid,
+							      KWDataGrid* targetDataGrid) const
+{
+	KWDataGridManager dataGridManager;
+
+	require(initialDataGrid != NULL);
+	require(targetDataGrid != NULL);
+
+	// Utilisation d'un manager de grille pour effectuier la copie
+	dataGridManager.SetSourceDataGrid(initialDataGrid);
+	targetDataGrid->DeleteAll();
+	dataGridManager.ExportDataGridWithInnerAttributesCloned(targetDataGrid);
+}
+
 void KWDataGridManager::CopyInformativeDataGrid(const KWDataGrid* initialDataGrid, KWDataGrid* targetDataGrid) const
 {
 	KWDataGridManager dataGridManager;
@@ -73,6 +87,46 @@ void KWDataGridManager::ExportDataGrid(KWDataGrid* targetDataGrid) const
 	ensure(not sourceDataGrid->IsVarPartDataGrid() or
 	       targetDataGrid->GetVarPartAttribute()->GetInnerAttributes() ==
 		   sourceDataGrid->GetVarPartAttribute()->GetInnerAttributes());
+}
+
+void KWDataGridManager::ExportDataGridWithInnerAttributesCloned(KWDataGrid* targetDataGrid) const
+{
+	int nAttribute;
+	KWDGAttribute* sourceAttribute;
+	KWDGAttribute* targetAttribute;
+
+	require(Check());
+	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
+
+	// Export de la granularite
+	targetDataGrid->SetGranularity(sourceDataGrid->GetGranularity());
+
+	// Export des attributs
+	ExportAttributes(targetDataGrid);
+
+	// Initialisation des parties des attributs
+	for (nAttribute = 0; nAttribute < targetDataGrid->GetAttributeNumber(); nAttribute++)
+	{
+		targetAttribute = targetDataGrid->GetAttributeAt(nAttribute);
+
+		// Recherche de l'attribut source correspondant
+		sourceAttribute = sourceDataGrid->SearchAttribute(targetAttribute->GetAttributeName());
+		check(sourceAttribute);
+
+		// Pour un attribut simple, export des parties
+		if (KWType::IsSimple(sourceAttribute->GetAttributeType()))
+			InitialiseAttributeParts(sourceAttribute, targetAttribute);
+		// Pour un attribut VarPart, export des parties d'un clone des attributs internes
+		else
+		{
+			InitialiseVarPartAttributeClonedParts(sourceAttribute, targetAttribute);
+			assert(targetAttribute->GetInnerAttributes() != sourceAttribute->GetInnerAttributes());
+		}
+	}
+
+	// Export des cellules
+	ExportCells(targetDataGrid);
+	ensure(CheckDataGrid(targetDataGrid));
 }
 
 // CH IV Begin
@@ -308,7 +362,7 @@ double KWDataGridManager::ExportDataGridWithVarPartMergeOptimization(KWDataGrid*
 		// Pour un attribut simple, export des partie
 		if (KWType::IsSimple(sourceAttribute->GetAttributeType()))
 			InitialiseAttributeParts(sourceAttribute, targetAttribute);
-		// Pour un attribut VarPart, export des partie d'un clone des attributs internes
+		// Pour un attribut VarPart, export des parties d'un clone des attributs internes
 		else
 		{
 			InitialiseVarPartAttributeClonedParts(sourceAttribute, targetAttribute);
@@ -2547,7 +2601,7 @@ void KWDataGridManager::InitialiseAttributeParts(const KWDGAttribute* sourceAttr
 		// Creation de la partie cible
 		targetPart = targetAttribute->AddPart();
 
-		// Copie des valeurs de la partie, quele que soit son type
+		// Copie des valeurs de la partie, quel que soit son type
 		targetPart->GetPartValues()->CopyFrom(sourcePart->GetPartValues());
 
 		// Transfert du parametrage du groupe poubelle (methode tolerante au cas continu)
@@ -2584,13 +2638,14 @@ void KWDataGridManager::InitialiseVarPartAttributeClonedParts(const KWDGAttribut
 	require(targetAttribute->GetPartNumber() == 0);
 
 	// Creation d'un clone des attributs internes
-	clonedInnerAttributes = CloneInnerAttributes(sourceAttribute->GetInnerAttributes());
+	clonedInnerAttributes =
+	    CloneInnerAttributes(sourceAttribute->GetInnerAttributes(), targetAttribute->GetDataGrid());
 
 	// Parametrage des attribut interne de l'attribut cible de type VarPart
 	targetAttribute->SetInnerAttributes(clonedInnerAttributes);
 	targetAttribute->SetVarPartsShared(false);
 
-	// Memorisation de l'association entre VarPart sourcese et cible via un dictionnaire
+	// Memorisation de l'association entre VarPart source et cible via un dictionnaire
 	sourceAttribute->GetInnerAttributes()->ExportAllInnerAttributeVarParts(&oaSourceInnerAttributeVarParts);
 	targetAttribute->GetInnerAttributes()->ExportAllInnerAttributeVarParts(&oaTargetInnerAttributeVarParts);
 	for (n = 0; n < oaSourceInnerAttributeVarParts.GetSize(); n++)
@@ -3294,7 +3349,8 @@ boolean KWDataGridManager::CheckAttributesConsistency(const KWDGAttribute* attri
 	return bOk;
 }
 
-KWDGInnerAttributes* KWDataGridManager::CloneInnerAttributes(const KWDGInnerAttributes* sourceInnerAttributes) const
+KWDGInnerAttributes* KWDataGridManager::CloneInnerAttributes(const KWDGInnerAttributes* sourceInnerAttributes,
+							     const KWDataGrid* targetDataGrid) const
 {
 	KWDGInnerAttributes* resultInnerAttributes;
 	int nInnerAttribute;
@@ -3304,6 +3360,7 @@ KWDGInnerAttributes* KWDataGridManager::CloneInnerAttributes(const KWDGInnerAttr
 	require(sourceInnerAttributes != NULL);
 	require(sourceInnerAttributes->Check());
 	require(sourceInnerAttributes->AreInnerAttributePartsSorted());
+	require(targetDataGrid != NULL);
 
 	// Partage des partitions de la grille source
 	resultInnerAttributes = new KWDGInnerAttributes;
@@ -3314,8 +3371,8 @@ KWDGInnerAttributes* KWDataGridManager::CloneInnerAttributes(const KWDGInnerAttr
 		// Extraction de l'attribut internes source
 		sourceInnerAttribute = sourceInnerAttributes->GetInnerAttributeAt(nInnerAttribute);
 
-		// Creation d'un attribut interne identique
-		targetInnerAttribute = new KWDGAttribute;
+		// Creation d'un attribut interne identique en exploitant le createur virtuelle de la grille cibke en parametre
+		targetInnerAttribute = targetDataGrid->NewAttribute();
 
 		// Parametrage
 		InitialiseAttribute(sourceInnerAttribute, targetInnerAttribute);
