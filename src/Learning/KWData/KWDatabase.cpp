@@ -1341,7 +1341,7 @@ void KWDatabase::TestCreateObjects(int nNumber)
 	// Creation d'objets
 	DeleteAll();
 	for (i = 0; i < nNumber; i++)
-		GetObjects()->Add(KWObject::CreateObject(kwcCreationClass, i + 1));
+		GetObjects()->Add(KWObject::CreateObject(kwcCreationClass, (longint)i + 1));
 }
 
 void KWDatabase::TestRead()
