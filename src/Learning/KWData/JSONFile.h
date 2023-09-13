@@ -270,6 +270,8 @@ protected:
 	static KWIntVectorSorter ivsWindows1252ControlCharUtf8CodeSorter;
 
 	// Instance statique de JSONFile, permettant de forcer l'initialisation des structure d'encodage une fois
-	// pour toute lors de l'appel du constructuer de cette instance
+	// pour toute lors de l'appel du constructeur de cette instance
+	// Ne pas declarer d'autre instances statiques de JSONFile, par exemple via d'autre classes, sinon cela pose
+	// des probleme de memoire non liberee non diagnostique par les outils de getsion de la memoire
 	static JSONFile jsonFileGlobalInitializer;
 };

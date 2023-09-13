@@ -70,6 +70,7 @@ add_library(
   KWValueBlock.cpp
   KWValueDictionary.cpp
   KWValueSparseVector.cpp
+  Profiler.cpp
   ${BISON_KWCParser_OUTPUTS}
   ${FLEX_KWCScanner_OUTPUTS}
   ${FLEX_JsonScanner_OUTPUTS})

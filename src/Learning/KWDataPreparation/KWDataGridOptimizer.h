@@ -16,6 +16,7 @@ class CCCoclusteringOptimizer;
 #include "KWDataGridPostOptimizer.h"
 #include "KWDataGridOptimizerParameters.h"
 #include "SortedList.h"
+#include "Profiler.h"
 #include "Timer.h"
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -97,6 +98,15 @@ public:
 	mutable Timer CCTimerPostOptimize;
 	mutable Timer CCTimerPostIVOptimize;
 
+	//////////////////////////////////////////////////////////////////
+	// Gestion d'un profiler dedie a l'optimisation des grilles
+	// Ce profiler doit etre demarre depuis le point d'entree de l'optimisation,
+	// et utilise par les methodes d'optimisation a profiler
+
+	// Acces au profiler global permettant d'enregistrer toute une session de profiling
+	// de l'optimisation d'une grille de coclustering
+	static Profiler* GetProfiler();
+
 	//////////////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
@@ -162,6 +172,9 @@ protected:
 
 	// Epsilon d'optimisation
 	double dEpsilon;
+
+	// Profiler
+	static Profiler profiler;
 };
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -285,3 +298,11 @@ protected:
 	// Epsilon d'optimisation
 	double dEpsilon;
 };
+
+////////////////////////
+// Methodes en inline
+
+inline Profiler* KWDataGridOptimizer::GetProfiler()
+{
+	return &profiler;
+}
