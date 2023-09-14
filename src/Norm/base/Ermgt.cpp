@@ -333,6 +333,9 @@ void Global::ActivateSignalErrorManagement()
 {
 	require(not bIsSignalErrorManagementActivated);
 
+// Defini seulement en debug ou RelWithDebInfo (alpha)
+#if defined(__ALPHA__) || !defined(NOALL)
+
 	// Initialisation des handler de gestion de signal
 	// On ne gere pas SIGBREAK, qui n'est pas connu sous linux
 	bIsSignalErrorManagementActivated = true;
@@ -342,6 +345,8 @@ void Global::ActivateSignalErrorManagement()
 	signal(SIGILL, SignalHandler);
 	signal(SIGABRT, SignalHandler);
 	signal(SIGFPE, SignalHandler);
+
+#endif
 }
 
 boolean Global::IsSignalErrorManagementActivated()

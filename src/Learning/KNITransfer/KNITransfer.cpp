@@ -8,9 +8,6 @@ int main(int argc, char** argv)
 {
 	KNITransferProject learningProject;
 
-	// Parametrage de l'utilisation de MPI
-	UseMPI();
-
 	// MemSetAllocIndexExit(1290133);
 
 	// Lancement du projet

@@ -137,6 +137,7 @@ public:
 	// A appeler en debut du main des executable.
 	// Attention, comportement indefini dans les environnements multi-thread.
 	// A ne pas appeler pour une DLL (par exemple, crash observe depuis Java sous linux)
+	// Ne fait rien en Debug ou RelWithDebInfo (alpha)
 	static void ActivateSignalErrorManagement();
 	static boolean IsSignalErrorManagementActivated();
 

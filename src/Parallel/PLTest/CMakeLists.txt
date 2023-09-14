@@ -1,8 +1,6 @@
 add_executable(PLTest PLTest.cpp)
-
+set_khiops_options(PLTest)
 target_link_libraries(PLTest PUBLIC PLParallelTask PLSamples)
 if(MPI)
-  target_link_libraries(PLTest PUBLIC PLMPI ${MPI_CXX_LIBRARIES})
+  target_link_libraries(PLTest PUBLIC PLMPI)
 endif()
-
-set_khiops_options(PLTest)
