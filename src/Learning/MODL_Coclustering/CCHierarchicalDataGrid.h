@@ -67,19 +67,9 @@ public:
 	KWDatabase* GetDatabaseSpec();
 	const KWDatabase* GetConstDatabaseSpec() const;
 
-	// CH IV Begin
-	// // CH IV Refactoring: re-ecrire avec un dictionnaire d'intervalles contenant les valeurs extremes
-
 	// Nom de l'attribute d'identifiant (optionnel)
 	void SetIdentifierAttributeName(const ALString& sValue);
 	const ALString& GetIdentifierAttributeName() const;
-
-	// Acces aux dictionnaire des bornes de domaine des attribut internes numeriques, via des KWDGInterval
-	// Ce parametrage permet de memoriser les bornes des intervalles extremes pour les attribut internes,
-	// afin d'ecrire les vraies bornes plutot que -inf et +inf dans les rapports json
-	// Memoire appartient a l'appele, ainsi que son contenu, qui doit etre gere par l'appelant
-	ObjectDictionary* GetInnerAttributeDomainBounds() const;
-	// CH IV End
 
 	/////////////////////////////////////////////////////////////////////////
 	// Services divers
@@ -107,11 +97,9 @@ protected:
 	int nInitialAttributeNumber;
 	ALString sFrequencyAttributeName;
 	KWDatabase databaseSpec;
-	// CH IV Begin
+
 	// CH IV Refactoring: le sIdentifierAttributeName est-il toujours utile???
 	ALString sIdentifierAttributeName;
-	mutable ObjectDictionary odInnerAttributeDomainBounds;
-	// CH IV End
 };
 
 //////////////////////////////////////////////////////////////////////////////

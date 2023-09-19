@@ -3155,8 +3155,8 @@ void CCCoclusteringBuilder::ComputeAttributeTypicalities(CCHierarchicalDataGrid*
 {
 	int nAttribute;
 	CCHDGAttribute* hdgAttribute;
-	int nInnerAttribute;            // CH IV MemBug
-	CCHDGAttribute* innerAttribute; // CH IV MemBug
+	int nInnerAttribute;
+	CCHDGAttribute* innerAttribute;
 
 	require(optimizedDataGrid != NULL);
 
@@ -3170,7 +3170,7 @@ void CCCoclusteringBuilder::ComputeAttributeTypicalities(CCHierarchicalDataGrid*
 		// Pour l'instant, on met toutes les typicalites a 1
 		hdgAttribute->SetInterest(1);
 
-		// CH IV MemBug
+		// Cas d'un attribut VarPart : traitement de ses innerAttributes
 		if (hdgAttribute->GetAttributeType() == KWType::VarPart and hdgAttribute->GetInnerAttributeNumber() > 0)
 		{
 			for (nInnerAttribute = 0; nInnerAttribute < hdgAttribute->GetInnerAttributeNumber();
@@ -3196,7 +3196,6 @@ void CCCoclusteringBuilder::ComputeContinuousAttributeBounds(CCHierarchicalDataG
 	KWDescriptiveContinuousStats* descriptiveContinuousStats;
 	int nInnerAttribute;
 	KWDGAttribute* innerAttribute;
-	KWDGInterval* domainBounds;
 
 	require(optimizedDataGrid != NULL);
 
@@ -3221,7 +3220,6 @@ void CCCoclusteringBuilder::ComputeContinuousAttributeBounds(CCHierarchicalDataG
 		// Memorisation des informations sur les bornes des valeurs des attributs internes numeriques
 		if (hdgAttribute->GetAttributeType() == KWType::VarPart and hdgAttribute->GetInnerAttributeNumber() > 0)
 		{
-			coclusteringDataGrid->GetInnerAttributeDomainBounds()->DeleteAll();
 			for (nInnerAttribute = 0; nInnerAttribute < hdgAttribute->GetInnerAttributeNumber();
 			     nInnerAttribute++)
 			{
@@ -3234,7 +3232,6 @@ void CCCoclusteringBuilder::ComputeContinuousAttributeBounds(CCHierarchicalDataG
 					    cast(KWDescriptiveContinuousStats*,
 						 odDescriptiveStats.Lookup(innerAttribute->GetAttributeName()));
 
-					// CH IV MemBug
 					// Memorisation de ses bornes
 					if (descriptiveContinuousStats != NULL)
 					{
@@ -3243,12 +3240,6 @@ void CCCoclusteringBuilder::ComputeContinuousAttributeBounds(CCHierarchicalDataG
 						cast(CCHDGAttribute*, innerAttribute)
 						    ->SetMax(descriptiveContinuousStats->GetMax());
 					}
-					// CH IV Redondant : a enlever quand le fonctionnement des innerAttributes en tant que CHDGAttribute sera ok
-					domainBounds = new KWDGInterval;
-					domainBounds->SetLowerBound(descriptiveContinuousStats->GetMin());
-					domainBounds->SetUpperBound(descriptiveContinuousStats->GetMax());
-					coclusteringDataGrid->GetInnerAttributeDomainBounds()->SetAt(
-					    innerAttribute->GetAttributeName(), domainBounds);
 				}
 			}
 		}
@@ -4115,11 +4106,9 @@ void CCCoclusteringBuilder::SortAttributePartsAndValues(CCHierarchicalDataGrid* 
 	int nAttribute;
 	KWDGAttribute* dgAttribute;
 	KWDGPart* dgPart;
-	// CH IV MemBug
 	int nInnerAttribute;
 	KWDGAttribute* innerAttribute;
 	KWDGPart* innerPart;
-	// Fin CH IV
 
 	require(optimizedDataGrid != NULL);
 
@@ -4146,7 +4135,7 @@ void CCCoclusteringBuilder::SortAttributePartsAndValues(CCHierarchicalDataGrid* 
 			dgAttribute->GetNextPart(dgPart);
 		}
 
-		// CH IV MemBug
+		// Traitement des innerAttributes dans le cas d'un attribut VarPart
 		if (dgAttribute->GetAttributeType() == KWType::VarPart)
 		{
 			// Parcours des inner attributes
@@ -4171,7 +4160,6 @@ void CCCoclusteringBuilder::SortAttributePartsAndValues(CCHierarchicalDataGrid* 
 				}
 			}
 		}
-		// Fin CH IV
 	}
 }
 
