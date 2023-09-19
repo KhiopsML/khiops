@@ -160,7 +160,7 @@ protected:
 	boolean InternalReadJSONReport(CCHierarchicalDataGrid* coclusteringDataGrid, boolean bHeaderOnly);
 	boolean ReadJSONSummary(CCHierarchicalDataGrid* coclusteringDataGrid);
 	boolean ReadJSONDimensionSummaries(CCHierarchicalDataGrid* coclusteringDataGrid);
-	boolean ReadJSONDimensionPartitionsNew(CCHierarchicalDataGrid* coclusteringDataGrid);
+	boolean ReadJSONDimensionPartitions(CCHierarchicalDataGrid* coclusteringDataGrid);
 	boolean ReadJSONInnerAttributesDimensionSummaries(KWDGAttribute* dgAttribute);
 	boolean ReadJSONAttributePartition(KWDGAttribute* attribute, CCHierarchicalDataGrid* coclusteringDataGrid);
 	boolean ReadJSONInterval(KWDGAttribute* dgAttribute, KWDGPart* dgPart);
@@ -178,6 +178,7 @@ protected:
 	void WriteJSONSummary(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
 	void WriteJSONDimensionSummaries(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
 	void WriteJSONInnerAttributesDimensionSummaries(const KWDGAttribute* vartPartAttribute, JSONFile* fJSON);
+	void WriteJSONDimensionSummary(CCHDGAttribute* attribute, JSONFile* fJSON);
 	void WriteJSONDimensionPartitions(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
 	void WriteJSONAttributePartition(KWDGAttribute* attribute, const CCHierarchicalDataGrid* coclusteringDataGrid,
 					 JSONFile* fJSON);

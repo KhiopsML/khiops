@@ -2708,7 +2708,7 @@ boolean CCCoclusteringReport::InternalReadJSONReport(CCHierarchicalDataGrid* coc
 	if (not bHeaderOnly)
 	{
 		bOk = bOk and JSONTokenizer::ReadExpectedToken(',');
-		bOk = bOk and ReadJSONDimensionPartitionsNew(coclusteringDataGrid);
+		bOk = bOk and ReadJSONDimensionPartitions(coclusteringDataGrid);
 		bOk = bOk and JSONTokenizer::ReadExpectedToken(',');
 		bOk = bOk and ReadJSONDimensionHierarchies(coclusteringDataGrid);
 		bOk = bOk and JSONTokenizer::ReadExpectedToken(',');
@@ -3009,7 +3009,7 @@ boolean CCCoclusteringReport::ReadJSONDimensionSummaries(CCHierarchicalDataGrid*
 		}
 
 		// Fin de l'objet et test si nouvel objet
-		bOk = bOk and JSONTokenizer::CheckObjectEnd("dimensionSummary", bIsEnd);
+		bOk = bOk and JSONTokenizer::CheckObjectEnd("dimensionSummaries", bIsEnd);
 		bOk = bOk and JSONTokenizer::ReadArrayNext(bIsEnd);
 	}
 
@@ -3085,7 +3085,7 @@ boolean CCCoclusteringReport::ReadJSONInnerAttributesDimensionSummaries(KWDGAttr
 	innerAttributes = dgAttribute->GetInnerAttributes();
 
 	// Tableau principal
-	bOk = bOk and JSONTokenizer::ReadKeyArray("innerAttributesDimensionSummaries");
+	bOk = bOk and JSONTokenizer::ReadKeyArray("dimensionSummaries");
 
 	// Lecture des elements du tableau
 	while (bOk and not bIsEnd)
@@ -3171,14 +3171,14 @@ boolean CCCoclusteringReport::ReadJSONInnerAttributesDimensionSummaries(KWDGAttr
 		}
 
 		// Fin de l'objet et test si nouvel objet
-		bOk = bOk and JSONTokenizer::CheckObjectEnd("innerAttributesDimensionSummary", bIsEnd);
+		bOk = bOk and JSONTokenizer::CheckObjectEnd("dimensionSummaries", bIsEnd);
 		bOk = bOk and JSONTokenizer::ReadArrayNext(bIsEnd);
 	}
 
 	return bOk;
 }
 
-boolean CCCoclusteringReport::ReadJSONDimensionPartitionsNew(CCHierarchicalDataGrid* coclusteringDataGrid)
+boolean CCCoclusteringReport::ReadJSONDimensionPartitions(CCHierarchicalDataGrid* coclusteringDataGrid)
 {
 	boolean bOk = true;
 	ObjectDictionary odCheckedParts;
@@ -3279,7 +3279,6 @@ boolean CCCoclusteringReport::ReadJSONAttributePartition(KWDGAttribute* dgAttrib
 	ObjectDictionary odVarPartAttributeAllVarParts;
 	ObjectDictionary odCheckedParts;
 	ALString sPartName;
-	KWDGInterval* domainBounds;
 	int nInnerAttribute;
 	ALString sAttributeName;
 	int nInnerAttributeIndex;
@@ -3299,12 +3298,15 @@ boolean CCCoclusteringReport::ReadJSONAttributePartition(KWDGAttribute* dgAttrib
 		// Creation des attributs internes
 		innerAttributes = dgAttribute->GetInnerAttributes();
 
+		// Tableau principal
+		bOk = bOk and JSONTokenizer::ReadKeyObject("innerVariables");
+
 		// Descriptif des variables internes dans l'attribut de type VarPart
 		bOk = bOk and ReadJSONInnerAttributesDimensionSummaries(dgAttribute);
 		bOk = bOk and JSONTokenizer::ReadExpectedToken(',');
 
 		// Tableau des variables internes dans l'attribut de type VarPart
-		bOk = bOk and JSONTokenizer::ReadKeyArray("innerVariables");
+		bOk = bOk and JSONTokenizer::ReadKeyArray("dimensionPartitions");
 
 		// Lecture des elements du tableau
 		nInnerAttributeIndex = 0;
@@ -3404,7 +3406,6 @@ boolean CCCoclusteringReport::ReadJSONAttributePartition(KWDGAttribute* dgAttrib
 		// numeriques
 		if (bOk)
 		{
-			coclusteringDataGrid->GetInnerAttributeDomainBounds()->DeleteAll();
 			for (nInnerAttribute = 0; nInnerAttribute < dgAttribute->GetInnerAttributeNumber();
 			     nInnerAttribute++)
 			{
@@ -3415,14 +3416,6 @@ boolean CCCoclusteringReport::ReadJSONAttributePartition(KWDGAttribute* dgAttrib
 				// Cas d'un attribut Continuous
 				if (innerAttribute->GetAttributeType() == KWType::Continuous)
 				{
-					domainBounds = new KWDGInterval;
-					domainBounds->SetLowerBound(
-					    innerAttribute->GetHeadPart()->GetInterval()->GetLowerBound());
-					domainBounds->SetUpperBound(
-					    innerAttribute->GetTailPart()->GetInterval()->GetUpperBound());
-					coclusteringDataGrid->GetInnerAttributeDomainBounds()->SetAt(
-					    innerAttribute->GetAttributeName(), domainBounds);
-
 					// On modifie les bornes des intervalles extremes de facon a
 					// pouvoir produire les libelle avec -inf et +inf par
 					// GetObjectLabel
@@ -3434,13 +3427,13 @@ boolean CCCoclusteringReport::ReadJSONAttributePartition(KWDGAttribute* dgAttrib
 			}
 		}
 
-		// Fin du tableau des attributs internes
+		// Fin de l'objet
+		bOk = bOk and JSONTokenizer::ReadExpectedToken('}');
 		bOk = bOk and JSONTokenizer::ReadExpectedToken(',');
 
 		// Lecture des parties "valueGroups", groupes de parties de variables
 		bOk = bOk and JSONTokenizer::ReadKeyArray("valueGroups");
 	}
-	// CH IV End
 
 	// Lecture des parties
 	dgPart = dgAttribute->GetHeadPart();
@@ -4655,7 +4648,6 @@ void CCCoclusteringReport::WriteJSONDimensionSummaries(const CCHierarchicalDataG
 {
 	int nAttribute;
 	CCHDGAttribute* dgAttribute;
-	int nValueNumber;
 
 	require(coclusteringDataGrid != NULL);
 	require(fJSON != NULL);
@@ -4666,30 +4658,7 @@ void CCCoclusteringReport::WriteJSONDimensionSummaries(const CCHierarchicalDataG
 	{
 		dgAttribute = cast(CCHDGAttribute*, coclusteringDataGrid->GetAttributeAt(nAttribute));
 
-		// Nombre initial de valeurs
-		nValueNumber = dgAttribute->GetInitialValueNumber();
-
-		// Caracteristique des attributs
-		// Le nombre de valeur est diminuer en externe de 1 pour tenir compte de de la StarValue en interne
-		fJSON->BeginObject();
-		fJSON->WriteKeyString("name", dgAttribute->GetAttributeName());
-		if (dgAttribute->GetAttributeType() == KWType::VarPart)
-			fJSON->WriteKeyBoolean("isVarPart", true);
-		fJSON->WriteKeyString(
-		    "type", KWType::ToString(KWType::GetCoclusteringSimpleType(dgAttribute->GetAttributeType())));
-		fJSON->WriteKeyInt("parts", dgAttribute->GetPartNumber());
-		fJSON->WriteKeyInt("initialParts", dgAttribute->GetInitialPartNumber());
-		fJSON->WriteKeyInt("values", nValueNumber);
-		fJSON->WriteKeyDouble("interest", dgAttribute->GetInterest());
-		fJSON->WriteKeyString("description", dgAttribute->GetDescription());
-		if (KWFrequencyTable::GetWriteGranularityAndGarbage())
-			fJSON->WriteKeyBoolean("garbage", (dgAttribute->GetGarbageModalityNumber() > 0));
-		if (dgAttribute->GetAttributeType() == KWType::Continuous)
-		{
-			fJSON->WriteKeyDouble("min", dgAttribute->GetMin());
-			fJSON->WriteKeyDouble("max", dgAttribute->GetMax());
-		}
-		fJSON->EndObject();
+		WriteJSONDimensionSummary(dgAttribute, fJSON);
 	}
 	fJSON->EndArray();
 }
@@ -4697,11 +4666,8 @@ void CCCoclusteringReport::WriteJSONDimensionSummaries(const CCHierarchicalDataG
 void CCCoclusteringReport::WriteJSONInnerAttributesDimensionSummaries(const KWDGAttribute* varPartAttribute,
 								      JSONFile* fJSON)
 {
-	int nAttribute;
-	// CH IV MemBug
 	CCHDGAttribute* innerAttribute;
-	//KWDGAttribute* innerAttribute;
-	int nValueNumber;
+	int nAttribute;
 
 	require(varPartAttribute != NULL);
 	require(varPartAttribute->GetAttributeType() == KWType::VarPart);
@@ -4709,43 +4675,44 @@ void CCCoclusteringReport::WriteJSONInnerAttributesDimensionSummaries(const KWDG
 	require(fJSON != NULL);
 
 	// Parcours des innerAttributes pour la section des dimensions
-	fJSON->BeginKeyArray("innerAttributesDimensionSummaries");
+	fJSON->BeginKeyArray("dimensionSummaries");
 	for (nAttribute = 0; nAttribute < varPartAttribute->GetInnerAttributeNumber(); nAttribute++)
 	{
-		// CH IV MemBug
 		innerAttribute = cast(CCHDGAttribute*, varPartAttribute->GetInnerAttributeAt(nAttribute));
-		//innerAttribute = varPartAttribute->GetInnerAttributeAt(nAttribute);
 
-		// Nombre initial de valeurs
-		nValueNumber = innerAttribute->GetInitialValueNumber();
-
-		// Caracteristique des attributs
-		// Le nombre de valeur est diminuer en externe de 1 pour tenir compte de de la StarValue en interne
-		fJSON->BeginObject();
-		fJSON->WriteKeyString("name", innerAttribute->GetAttributeName());
-		fJSON->WriteKeyString(
-		    "type", KWType::ToString(KWType::GetCoclusteringSimpleType(innerAttribute->GetAttributeType())));
-		fJSON->WriteKeyInt("parts", innerAttribute->GetPartNumber());
-		// CH IV MemBug
-		fJSON->WriteKeyInt("initialParts", innerAttribute->GetInitialPartNumber());
-		//fJSON->WriteKeyInt("initialParts", 0);
-		fJSON->WriteKeyInt("values", nValueNumber);
-		fJSON->WriteKeyDouble("interest", innerAttribute->GetInterest());
-		//fJSON->WriteKeyDouble("interest", 0);
-		fJSON->WriteKeyString("description", innerAttribute->GetDescription());
-		//fJSON->WriteKeyString("description", "0");
-		if (KWFrequencyTable::GetWriteGranularityAndGarbage())
-			fJSON->WriteKeyBoolean("garbage", (innerAttribute->GetGarbageModalityNumber() > 0));
-		if (innerAttribute->GetAttributeType() == KWType::Continuous)
-		{
-			fJSON->WriteKeyDouble("min", innerAttribute->GetMin());
-			fJSON->WriteKeyDouble("max", innerAttribute->GetMax());
-			//fJSON->WriteKeyDouble("min", 0);
-			//fJSON->WriteKeyDouble("max", 0);
-		}
-		fJSON->EndObject();
+		WriteJSONDimensionSummary(innerAttribute, fJSON);
 	}
 	fJSON->EndArray();
+}
+
+void CCCoclusteringReport::WriteJSONDimensionSummary(CCHDGAttribute* attribute, JSONFile* fJSON)
+{
+	int nValueNumber;
+
+	// Nombre initial de valeurs
+	nValueNumber = attribute->GetInitialValueNumber();
+
+	// Caracteristique des attributs
+	// Le nombre de valeur est diminuer en externe de 1 pour tenir compte de de la StarValue en interne
+	fJSON->BeginObject();
+	fJSON->WriteKeyString("name", attribute->GetAttributeName());
+	if (attribute->GetAttributeType() == KWType::VarPart)
+		fJSON->WriteKeyBoolean("isVarPart", true);
+	fJSON->WriteKeyString("type",
+			      KWType::ToString(KWType::GetCoclusteringSimpleType(attribute->GetAttributeType())));
+	fJSON->WriteKeyInt("parts", attribute->GetPartNumber());
+	fJSON->WriteKeyInt("initialParts", attribute->GetInitialPartNumber());
+	fJSON->WriteKeyInt("values", nValueNumber);
+	fJSON->WriteKeyDouble("interest", attribute->GetInterest());
+	fJSON->WriteKeyString("description", attribute->GetDescription());
+	if (KWFrequencyTable::GetWriteGranularityAndGarbage())
+		fJSON->WriteKeyBoolean("garbage", (attribute->GetGarbageModalityNumber() > 0));
+	if (attribute->GetAttributeType() == KWType::Continuous)
+	{
+		fJSON->WriteKeyDouble("min", attribute->GetMin());
+		fJSON->WriteKeyDouble("max", attribute->GetMax());
+	}
+	fJSON->EndObject();
 }
 
 void CCCoclusteringReport::WriteJSONDimensionPartitions(const CCHierarchicalDataGrid* coclusteringDataGrid,
@@ -4911,11 +4878,14 @@ void CCCoclusteringReport::WriteJSONAttributePartition(KWDGAttribute* attribute,
 	// Traitement des attributs de type VarPart
 	else if (attribute->GetAttributeType() == KWType::VarPart)
 	{
+		// Parcours des innerVariables de l'attribut
+		fJSON->BeginKeyObject("innerVariables");
+
 		// Descriptif des innerVariables
 		WriteJSONInnerAttributesDimensionSummaries(attribute, fJSON);
 
 		// Parcours des variables de l'attribut
-		fJSON->BeginKeyArray("innerVariables");
+		fJSON->BeginKeyArray("dimensionPartitions");
 		nIndex = 0;
 		for (nIndex = 0; nIndex < attribute->GetInnerAttributeNumber(); nIndex++)
 		{
@@ -4936,6 +4906,8 @@ void CCCoclusteringReport::WriteJSONAttributePartition(KWDGAttribute* attribute,
 			fJSON->EndObject();
 		}
 		fJSON->EndArray();
+
+		fJSON->EndObject();
 
 		// Parcours des groupes de parties de variable
 		fJSON->BeginKeyArray("valueGroups");

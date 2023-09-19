@@ -14,12 +14,7 @@ CCHierarchicalDataGrid::CCHierarchicalDataGrid()
 	nInitialAttributeNumber = 0;
 }
 
-CCHierarchicalDataGrid::~CCHierarchicalDataGrid()
-{
-	// CH IV Begin
-	odInnerAttributeDomainBounds.DeleteAll();
-	// CH IV End
-}
+CCHierarchicalDataGrid::~CCHierarchicalDataGrid() {}
 
 void CCHierarchicalDataGrid::SetShortDescription(const ALString& sValue)
 {
@@ -98,7 +93,6 @@ const KWDatabase* CCHierarchicalDataGrid::GetConstDatabaseSpec() const
 	return &databaseSpec;
 }
 
-// CH IV Begin
 void CCHierarchicalDataGrid::SetIdentifierAttributeName(const ALString& sValue)
 {
 	sIdentifierAttributeName = sValue;
@@ -108,13 +102,6 @@ const ALString& CCHierarchicalDataGrid::GetIdentifierAttributeName() const
 {
 	return sIdentifierAttributeName;
 }
-
-ObjectDictionary* CCHierarchicalDataGrid::GetInnerAttributeDomainBounds() const
-{
-	return &odInnerAttributeDomainBounds;
-}
-
-// CH IV End
 
 void CCHierarchicalDataGrid::DeleteAll()
 {
@@ -127,10 +114,7 @@ void CCHierarchicalDataGrid::DeleteAll()
 	nInitialAttributeNumber = 0;
 	sFrequencyAttributeName = "";
 	databaseSpec.CopyFrom(&nullDatabase);
-	// CH IV Begin
 	sIdentifierAttributeName = "";
-	odInnerAttributeDomainBounds.DeleteAll();
-	// CH IV End
 }
 
 boolean CCHierarchicalDataGrid::CheckHierarchy() const
