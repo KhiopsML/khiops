@@ -478,14 +478,14 @@ void CCLearningProblem::ExtractClusters(const ALString& sCoclusteringAttributeNa
 		{
 			// Ecriture des clusters selon le type de la variable
 			if (coclusteringAttribute->GetAttributeType() == KWType::Symbol)
-				WriteSymbolClusters(coclusteringAttribute, fstClusterTableFile);
+				WriteGroupableClusters(coclusteringAttribute, fstClusterTableFile);
 			else if (coclusteringAttribute->GetAttributeType() == KWType::Continuous)
 				WriteContinuousClusters(coclusteringAttribute, fstClusterTableFile);
 			else if (coclusteringAttribute->GetAttributeType() == KWType::VarPart)
 			{
 				// Cas d'une variable de type VarPart : ajout d'un descriptif des parties de variable
 				// des attributs internes
-				WriteVarPartClusters(coclusteringAttribute, fstClusterTableFile);
+				WriteGroupableClusters(coclusteringAttribute, fstClusterTableFile);
 				WriteVarPartsInnerAttributes(coclusteringAttribute);
 			}
 
@@ -1030,46 +1030,6 @@ KWAttribute* CCLearningProblem::InsertIdentifierAttribute(KWClass* kwcClass)
 	return attribute;
 }
 
-void CCLearningProblem::WriteSymbolClusters(const CCHDGAttribute* symbolCoclusteringAttribute, ostream& ost)
-{
-	KWDGPart* dgPart;
-	CCHDGPart* hdgPart;
-	CCHDGSymbolValueSet* hdgValueSet;
-	KWDGValue* dgValue;
-	CCHDGSymbolValue* hdgValue;
-
-	require(symbolCoclusteringAttribute != NULL);
-	require(symbolCoclusteringAttribute->GetAttributeType() == KWType::Symbol);
-
-	// Entete
-	ost << "Cluster\tValue\tFrequency\tTypicality\n";
-
-	// Parcours des parties
-	dgPart = symbolCoclusteringAttribute->GetHeadPart();
-	while (dgPart != NULL)
-	{
-		hdgPart = cast(CCHDGPart*, dgPart);
-
-		// Parcours des valeurs
-		hdgValueSet = cast(CCHDGSymbolValueSet*, hdgPart->GetValueSet());
-		dgValue = hdgValueSet->GetHeadValue();
-		while (dgValue != NULL)
-		{
-			hdgValue = cast(CCHDGSymbolValue*, dgValue);
-
-			// Caracteristiques des valeurs
-			ost << hdgPart->GetUserLabel() << "\t" << hdgValue->GetSymbolValue() << "\t"
-			    << hdgValue->GetValueFrequency() << "\t" << hdgValue->GetTypicality() << "\n";
-
-			// Valeur suivante
-			hdgValueSet->GetNextValue(dgValue);
-		}
-
-		// Partie suivante
-		symbolCoclusteringAttribute->GetNextPart(dgPart);
-	}
-}
-
 void CCLearningProblem::WriteContinuousClusters(const CCHDGAttribute* continuousCoclusteringAttribute, ostream& ost)
 {
 	KWDGPart* dgPart;
@@ -1101,43 +1061,40 @@ void CCLearningProblem::WriteContinuousClusters(const CCHDGAttribute* continuous
 	}
 }
 
-void CCLearningProblem::WriteVarPartClusters(const CCHDGAttribute* varPartCoclusteringAttribute, ostream& ost)
+void CCLearningProblem::WriteGroupableClusters(const CCHDGAttribute* groupableCoclusteringAttribute, ostream& ost)
 {
 	KWDGPart* dgPart;
 	CCHDGPart* hdgPart;
-	CCHDGVarPartSet* hdgVarPartSet;
+	KWDGValueSet* dgValueSet;
 	KWDGValue* dgValue;
-	CCHDGVarPartValue* hdgValue;
 
-	require(varPartCoclusteringAttribute != NULL);
-	require(varPartCoclusteringAttribute->GetAttributeType() == KWType::VarPart);
+	require(groupableCoclusteringAttribute != NULL);
+	require(KWType::IsCoclusteringGroupableType(groupableCoclusteringAttribute->GetAttributeType()));
 
 	// Entete
-	ost << "Cluster\tVarPart\tFrequency\tTypicality\n";
+	ost << "Cluster\tValue\tFrequency\tTypicality\n";
 
 	// Parcours des parties
-	dgPart = varPartCoclusteringAttribute->GetHeadPart();
+	dgPart = groupableCoclusteringAttribute->GetHeadPart();
 	while (dgPart != NULL)
 	{
 		hdgPart = cast(CCHDGPart*, dgPart);
 
 		// Parcours des valeurs
-		hdgVarPartSet = cast(CCHDGVarPartSet*, hdgPart->GetVarPartSet());
-		dgValue = hdgVarPartSet->GetHeadValue();
+		dgValueSet = hdgPart->GetValueSet();
+		dgValue = dgValueSet->GetHeadValue();
 		while (dgValue != NULL)
 		{
-			hdgValue = cast(CCHDGVarPartValue*, dgValue);
-
 			// Caracteristiques des valeurs
-			ost << hdgPart->GetUserLabel() << "\t" << hdgValue->GetVarPart()->GetVarPartLabel() << "\t"
-			    << hdgValue->GetValueFrequency() << "\t" << hdgValue->GetTypicality() << "\n";
+			ost << hdgPart->GetUserLabel() << "\t" << dgValue->GetObjectLabel() << "\t"
+			    << dgValue->GetValueFrequency() << "\t" << dgValue->GetTypicality() << "\n";
 
 			// Valeur suivante
-			hdgVarPartSet->GetNextValue(dgValue);
+			dgValueSet->GetNextValue(dgValue);
 		}
 
 		// Partie suivante
-		varPartCoclusteringAttribute->GetNextPart(dgPart);
+		groupableCoclusteringAttribute->GetNextPart(dgPart);
 	}
 }
 

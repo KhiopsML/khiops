@@ -994,10 +994,14 @@ public:
 	// Tri des valeurs par effectif decroissant, pour preparer l'affichage
 	void SortValueByDecreasingFrequencies();
 
+	// Tri des valeurs par typicalite decroissante
+	void SortValuesByDecreasingTypicalities();
+
 	// Verification du tri des valeurs par effectif decroissant
 	// Couteux, a utiliser essentiellement dans les assertions
 	boolean AreValuesSorted() const;
 	boolean AreValuesSortedByDecreasingFrequencies() const;
+	boolean AreValuesSortedByDecreasingTypicalities() const;
 
 	// Redefinition des methodes virtuelles
 	boolean IsSubPart(const KWDGPartValues* otherPartValues) const override;
@@ -1082,13 +1086,22 @@ public:
 	virtual void SetValueFrequency(int nFrequency) = 0;
 	virtual int GetValueFrequency() const = 0;
 
+	// Typicalite de la valeur
+	void SetTypicality(double dValue);
+	double GetTypicality() const;
+
 	// Comparaison par valeur
-	// - valeur Syymbol si categoriel
+	// - valeur Symbol si categoriel
 	// - nom d'attribut, puis valeur de partie si VarPart
 	virtual int CompareValue(const KWDGValue* otherValue) const = 0;
 
 	// Compare par effectif decroissant, puis par valeur
 	virtual int CompareFrequency(const KWDGValue* otherValue) const;
+
+	// Comparaison par typicalite, puis
+	// - par effectif si categoriel
+	// - par valeur si VarPart
+	virtual int CompareTypicality(const KWDGValue* otherValue) const = 0;
 
 	// Affichage
 	void Write(ostream& ost) const override = 0;
@@ -1109,6 +1122,7 @@ protected:
 	friend class KWDGValueSet;
 
 	// Attributs
+	double dTypicality;
 	KWDGValue* prevValue;
 	KWDGValue* nextValue;
 };
@@ -1118,6 +1132,9 @@ int KWDGValueCompareValue(const void* elem1, const void* elem2);
 
 // Comparaison de deux valeurs, par effectif decroissant
 int KWDGValueCompareFrequency(const void* elem1, const void* elem2);
+
+// Comparaison de deux typicalite
+int KWDGValueCompareTypicality(const void* elem1, const void* elem2);
 
 // Comparaison de deux objets KWSortableObject contenant des KWDGValue, par valeur
 int KWSortableObjectComparePartValue(const void* elem1, const void* elem2);
@@ -1200,6 +1217,9 @@ public:
 
 	// Comparaison de valeur Symbol
 	int CompareValue(const KWDGValue* otherValue) const override;
+
+	// Comparaison part typicalite, puis par effectif decroissant
+	int CompareTypicality(const KWDGValue* otherValue) const override;
 
 	// Affichage
 	void Write(ostream& ost) const override;
@@ -1342,6 +1362,9 @@ public:
 
 	// Comparaison de valeur, par attribut, puis selon les valeurs de la partie, intervalles ou premiere valeur des groupe
 	int CompareValue(const KWDGValue* otherValue) const override;
+
+	// Comparaison part typicalite, puis par valeur
+	int CompareTypicality(const KWDGValue* otherValue) const override;
 
 	// Affichage
 	void Write(ostream& ost) const override;
@@ -2309,6 +2332,7 @@ inline int KWDGInnerAttributes::GetInnerAttributeNumber() const
 
 inline KWDGValue::KWDGValue()
 {
+	dTypicality = 0;
 	prevValue = NULL;
 	nextValue = NULL;
 }
@@ -2339,6 +2363,17 @@ inline int KWDGValue::CompareFrequency(const KWDGValue* otherValue) const
 	if (nCompare == 0)
 		nCompare = CompareValue(otherValue);
 	return nCompare;
+}
+
+inline void KWDGValue::SetTypicality(double dValue)
+{
+	require(0 <= dValue and dValue <= 1);
+	dTypicality = dValue;
+}
+
+inline double KWDGValue::GetTypicality() const
+{
+	return dTypicality;
 }
 
 // Classe KWDGSymbolValue
@@ -2384,6 +2419,7 @@ inline int KWDGSymbolValue::GetValueFrequency() const
 
 inline int KWDGSymbolValue::CompareValue(const KWDGValue* otherValue) const
 {
+	require(otherValue != NULL);
 	return GetSymbolValue().CompareValue(otherValue->GetSymbolValue());
 }
 

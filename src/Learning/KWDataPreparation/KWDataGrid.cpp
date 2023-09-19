@@ -4177,6 +4177,11 @@ void KWDGValueSet::SortValueByDecreasingFrequencies()
 	InternalSortValues(KWDGValueCompareFrequency);
 }
 
+void KWDGValueSet::SortValuesByDecreasingTypicalities()
+{
+	InternalSortValues(KWDGValueCompareTypicality);
+}
+
 boolean KWDGValueSet::AreValuesSorted() const
 {
 	return InternalAreValuesSorted(KWDGValueCompareValue);
@@ -4185,6 +4190,11 @@ boolean KWDGValueSet::AreValuesSorted() const
 boolean KWDGValueSet::AreValuesSortedByDecreasingFrequencies() const
 {
 	return InternalAreValuesSorted(KWDGValueCompareFrequency);
+}
+
+boolean KWDGValueSet::AreValuesSortedByDecreasingTypicalities() const
+{
+	return InternalAreValuesSorted(KWDGValueCompareTypicality);
 }
 
 boolean KWDGValueSet::IsSubPart(const KWDGPartValues* otherPartValues) const
@@ -4381,6 +4391,14 @@ boolean KWDGValueSet::Check() const
 					 " should have a non-zero frequency");
 				bOk = false;
 				break;
+			}
+			// Erreur si typivcalite incorrecte
+			else if (value->GetTypicality() < 0 or value->GetTypicality() > 1)
+			{
+				AddError(sTmp + value->GetClassLabel() + " " + value->GetObjectLabel() +
+					 " should have a typicality (" + DoubleToString(value->GetTypicality()) +
+					 ") between 0 and 1");
+				bOk = false;
 			}
 			// On continue si pas d'erreur
 			else
@@ -4718,6 +4736,22 @@ int KWDGValueCompareFrequency(const void* elem1, const void* elem2)
 	return value1->CompareFrequency(value2);
 }
 
+int KWDGValueCompareTypicality(const void* elem1, const void* elem2)
+{
+	KWDGValue* value1;
+	KWDGValue* value2;
+
+	require(elem1 != NULL);
+	require(elem2 != NULL);
+
+	// Acces a la valeur
+	value1 = cast(KWDGValue*, *(Object**)elem1);
+	value2 = cast(KWDGValue*, *(Object**)elem2);
+
+	// Comparaison
+	return value1->CompareTypicality(value2);
+}
+
 int KWSortableObjectComparePartValue(const void* elem1, const void* elem2)
 {
 	KWDGValue* value1;
@@ -4735,6 +4769,22 @@ int KWSortableObjectComparePartValue(const void* elem1, const void* elem2)
 
 //////////////////////////////////////////////////////////////////////////////
 // Classe KWDGSymbolValue
+
+int KWDGSymbolValue::CompareTypicality(const KWDGValue* otherValue) const
+{
+	int nCompare;
+
+	require(otherValue != NULL);
+
+	// Comparaison de la typicalite selon la precison du type Continuous, pour eviter les differences a epsilon pres
+	nCompare = -KWContinuous::Compare(KWContinuous::DoubleToContinuous(GetTypicality()),
+					  KWContinuous::DoubleToContinuous(otherValue->GetTypicality()));
+
+	// Comparaison par effectif decroissaqnt si egalite
+	if (nCompare == 0)
+		nCompare = CompareFrequency(otherValue);
+	return nCompare;
+}
 
 void KWDGSymbolValue::Write(ostream& ost) const
 {
@@ -4802,6 +4852,22 @@ int KWDGVarPartValue::CompareValue(const KWDGValue* otherValue) const
 	// Si egalite, comparaison sur les valeurs de la partie (intervalle, ou premiere valeur du groupe)
 	if (nCompare == 0)
 		nCompare = GetVarPart()->ComparePartValues(otherValue->GetVarPart());
+	return nCompare;
+}
+
+int KWDGVarPartValue::CompareTypicality(const KWDGValue* otherValue) const
+{
+	int nCompare;
+
+	require(otherValue != NULL);
+
+	// Comparaison de la typicalite selon la precison du type Continuous, pour eviter les differences a epsilon pres
+	nCompare = -KWContinuous::Compare(KWContinuous::DoubleToContinuous(GetTypicality()),
+					  KWContinuous::DoubleToContinuous(otherValue->GetTypicality()));
+
+	// Comparaison par valeur si egalite
+	if (nCompare == 0)
+		nCompare = CompareValue(otherValue);
 	return nCompare;
 }
 

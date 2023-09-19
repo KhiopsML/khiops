@@ -463,22 +463,26 @@ boolean CCCoclusteringBuilder::ComputeCoclustering()
 	KWDataGridOptimizer::GetProfiler()->BeginMethod("Compute coclustering");
 	KWDataGridOptimizer::GetProfiler()->WriteKeyString("Dictionary", GetDatabase()->GetClassName());
 	KWDataGridOptimizer::GetProfiler()->WriteKeyString("Database", GetDatabase()->GetDatabaseName());
-	KWDataGridOptimizer::GetProfiler()->WriteKeyString("Instances",
-							   IntToString(initialDataGrid->GetGridFrequency()));
-	KWDataGridOptimizer::GetProfiler()->WriteKeyString("Variables",
-							   IntToString(initialDataGrid->GetAttributeNumber()));
-	KWDataGridOptimizer::GetProfiler()->WriteKeyString("Is VarPart",
-							   BooleanToString(initialDataGrid->IsVarPartDataGrid()));
-	if (initialDataGrid->IsVarPartDataGrid())
+	if (initialDataGrid != NULL)
 	{
+		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Instances",
+								   IntToString(initialDataGrid->GetGridFrequency()));
+		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Variables",
+								   IntToString(initialDataGrid->GetAttributeNumber()));
 		KWDataGridOptimizer::GetProfiler()->WriteKeyString(
-		    initialDataGrid->GetAttributeAt(0)->GetAttributeName() + " values",
-		    IntToString(initialDataGrid->GetAttributeAt(0)->GetInitialValueNumber()));
-		KWDataGridOptimizer::GetProfiler()->WriteKeyString(
-		    initialDataGrid->GetAttributeAt(1)->GetAttributeName() + " values",
-		    IntToString(initialDataGrid->GetAttributeAt(1)->GetInitialValueNumber()));
-		KWDataGridOptimizer::GetProfiler()->WriteKeyString(
-		    "Inner variables", IntToString(initialDataGrid->GetInnerAttributes()->GetInnerAttributeNumber()));
+		    "Is VarPart", BooleanToString(initialDataGrid->IsVarPartDataGrid()));
+		if (initialDataGrid->IsVarPartDataGrid())
+		{
+			KWDataGridOptimizer::GetProfiler()->WriteKeyString(
+			    initialDataGrid->GetAttributeAt(0)->GetAttributeName() + " values",
+			    IntToString(initialDataGrid->GetAttributeAt(0)->GetInitialValueNumber()));
+			KWDataGridOptimizer::GetProfiler()->WriteKeyString(
+			    initialDataGrid->GetAttributeAt(1)->GetAttributeName() + " values",
+			    IntToString(initialDataGrid->GetAttributeAt(1)->GetInitialValueNumber()));
+			KWDataGridOptimizer::GetProfiler()->WriteKeyString(
+			    "Inner variables",
+			    IntToString(initialDataGrid->GetInnerAttributes()->GetInnerAttributeNumber()));
+		}
 	}
 
 	// Optimisation de la grille, par appel d'une methode virtuelle
@@ -3290,7 +3294,7 @@ void CCCoclusteringBuilder::ComputeValueTypicalitiesAt(const KWDataGrid* inputIn
 	KWDGPart* dgValuePart;
 	KWDGValue* dgValue;
 	NumericKeyDictionary nkdOptimizedAttributeValues;
-	CCHDGSymbolValue* hdgValue;
+	KWDGValue* dgOptimizedValue;
 	DoubleVector dvTypicalities;
 	DoubleVector dvMaxTypicalities;
 	int nGarbageGroupIndex;
@@ -3539,16 +3543,17 @@ void CCCoclusteringBuilder::ComputeValueTypicalitiesAt(const KWDataGrid* inputIn
 			dgValuePart = cast(KWDGPart*, oaValueParts.GetAt(nValue));
 
 			dgValue = dgValuePart->GetValueSet()->GetHeadValue();
+
 			// Repartition de la typicite du fourre-tout entre ses modalites elementaires
 			for (nIntraCatchAllValue = 0; nIntraCatchAllValue < nValueModalityNumber; nIntraCatchAllValue++)
 			{
 				// Recherche de la valeur correspondante pour l'attribut optimise
-				hdgValue = cast(CCHDGSymbolValue*,
-						nkdOptimizedAttributeValues.Lookup((dgValue->GetNumericKeyValue())));
+				dgOptimizedValue = cast(
+				    KWDGValue*, nkdOptimizedAttributeValues.Lookup((dgValue->GetNumericKeyValue())));
 
 				// Calcul de la typicite elementaire = la typicite du fourre-tout * effectif  de la
 				// modalite elementaire / effectif total du fourre-tout
-				dElementaryTypicality = (dTypicality * hdgValue->GetValueFrequency()) /
+				dElementaryTypicality = (dTypicality * dgOptimizedValue->GetValueFrequency()) /
 							(1.0 * dgValuePart->GetPartFrequency());
 				dvTypicalities.SetAt(nValue + nIntraCatchAllValue, dElementaryTypicality);
 
@@ -3584,19 +3589,22 @@ void CCCoclusteringBuilder::ComputeValueTypicalitiesAt(const KWDataGrid* inputIn
 			dgValue = dgValuePart->GetValueSet()->GetHeadValue();
 
 			// Recherche de la valeur correspondante pour l'attribut optimise
-			hdgValue = cast(CCHDGSymbolValue*,
-					nkdOptimizedAttributeValues.Lookup((dgValue->GetNumericKeyValue())));
+			dgOptimizedValue =
+			    cast(KWDGValue*, nkdOptimizedAttributeValues.Lookup((dgValue->GetNumericKeyValue())));
 
 			// Memorisation de la typicalite normalisee
-			// Mis en defaut avec Breast pour nValue = 14
-			// assert(0 <= dvTypicalities.GetAt(nValue) and dvTypicalities.GetAt(nValue) <=
-			// dvMaxTypicalities.GetAt(nOutGroup));
-
-			if (dvMaxTypicalities.GetAt(nOutGroup) > 0)
-				hdgValue->SetTypicality(dvTypicalities.GetAt(nValue) /
-							dvMaxTypicalities.GetAt(nOutGroup));
+			// Il se peut qu'une modalite ait une typicalite negative, si la post-optimisation des grille
+			// n'a pas pu aller jusqu'a la convergence. Dans ce cas, on met une typicalite a 0, ce qui
+			// indique que la modalite n'est pas a sap lace (de justesse) dans son cluster
+			if (dvTypicalities.GetAt(nValue) <= 0)
+				dgOptimizedValue->SetTypicality(0);
+			// Cas general ou on normalise la typicalite par sa valeur max
 			else
-				hdgValue->SetTypicality(1);
+			{
+				assert(dvMaxTypicalities.GetAt(nOutGroup) > 0);
+				dgOptimizedValue->SetTypicality(dvTypicalities.GetAt(nValue) /
+								dvMaxTypicalities.GetAt(nOutGroup));
+			}
 		}
 		// Sinon : cas du fourre-tout
 		else
@@ -3606,14 +3614,20 @@ void CCCoclusteringBuilder::ComputeValueTypicalitiesAt(const KWDataGrid* inputIn
 			for (nIntraCatchAllValue = 0; nIntraCatchAllValue < nValueModalityNumber; nIntraCatchAllValue++)
 			{
 				// Recherche de la valeur correspondante pour l'attribut optimise
-				hdgValue = cast(CCHDGSymbolValue*,
-						nkdOptimizedAttributeValues.Lookup((dgValue->GetNumericKeyValue())));
+				dgOptimizedValue = cast(
+				    KWDGValue*, nkdOptimizedAttributeValues.Lookup((dgValue->GetNumericKeyValue())));
 
-				if (dvMaxTypicalities.GetAt(nOutGroup) > 0)
-					hdgValue->SetTypicality(dvTypicalities.GetAt(nValue + nIntraCatchAllValue) /
-								dvMaxTypicalities.GetAt(nOutGroup));
+				// Memorisation de la typicalite normalisee dans le cas du fourre-tout
+				if (dvTypicalities.GetAt(nValue + nIntraCatchAllValue) <= 0)
+					dgOptimizedValue->SetTypicality(0);
+				// Cas general ou on normalise la typicalite par sa valeur max
 				else
-					hdgValue->SetTypicality(1);
+				{
+					assert(dvMaxTypicalities.GetAt(nOutGroup) > 0);
+					dgOptimizedValue->SetTypicality(
+					    dvTypicalities.GetAt(nValue + nIntraCatchAllValue) /
+					    dvMaxTypicalities.GetAt(nOutGroup));
+				}
 
 				// Modalite suivante
 				dgValuePart->GetValueSet()->GetNextValue(dgValue);
@@ -4126,7 +4140,7 @@ void CCCoclusteringBuilder::SortAttributePartsAndValues(CCHierarchicalDataGrid* 
 		{
 			// Tri des valeurs de la partie si attribut categoriel
 			if (dgAttribute->GetAttributeType() == KWType::Symbol)
-				cast(CCHDGSymbolValueSet*, dgPart->GetValueSet())->SortValuesByTypicality();
+				dgPart->GetValueSet()->SortValuesByDecreasingTypicalities();
 
 			// Initialisation du nom de la partie
 			cast(CCHDGPart*, dgPart)->SetPartName(dgPart->GetObjectLabel());
@@ -4143,10 +4157,12 @@ void CCCoclusteringBuilder::SortAttributePartsAndValues(CCHierarchicalDataGrid* 
 			     nInnerAttribute++)
 			{
 				innerAttribute = dgAttribute->GetInnerAttributeAt(nInnerAttribute);
+
 				// Nommage des parties terminales et tri des valeurs pour les attributs categoriels
 				innerPart = innerAttribute->GetHeadPart();
 				while (innerPart != NULL)
 				{
+					// CH IV Refactoring
 					// CH IV voir avec Marc si le tri a deja ete fait suite au renommage des methodes de tri
 					// Tri des valeurs de la partie si attribut categoriel
 					//if (innerAttribute->GetAttributeType() == KWType::Symbol)
@@ -4160,6 +4176,7 @@ void CCCoclusteringBuilder::SortAttributePartsAndValues(CCHierarchicalDataGrid* 
 				}
 			}
 		}
+		// Fin CH IV
 	}
 }
 
