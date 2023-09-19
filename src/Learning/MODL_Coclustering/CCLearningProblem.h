@@ -141,11 +141,10 @@ protected:
 	// Cet attribut est de type Symbol et contient le le numero de ligne de l'instance dans son fichier
 	KWAttribute* InsertIdentifierAttribute(KWClass* kwcClass);
 
-	// Ecriture des clusters categoriels et numeriques
-	void WriteSymbolClusters(const CCHDGAttribute* symbolCoclusteringAttribute, ostream& ost);
+	// Ecriture des clusters numeriques ou groupable (Symbol ou VarPart)
 	void WriteContinuousClusters(const CCHDGAttribute* continuousCoclusteringAttribute, ostream& ost);
+	void WriteGroupableClusters(const CCHDGAttribute* groupableCoclusteringAttribute, ostream& ost);
 	// CH IV Begin
-	void WriteVarPartClusters(const CCHDGAttribute* varPartCoclusteringAttribute, ostream& ost);
 	void WriteVarPartsInnerAttributes(const CCHDGAttribute* varPartCoclusteringAttribute);
 	void WriteContinuousInnerAttribute(KWDGAttribute* continuousInnerAttribute, ostream& ost);
 	void WriteSymbolInnerAttribute(KWDGAttribute* symbolInnerAttribute, ostream& ost);

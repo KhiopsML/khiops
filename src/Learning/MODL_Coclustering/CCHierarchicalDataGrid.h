@@ -7,13 +7,6 @@
 class CCHierarchicalDataGrid;
 class CCHDGAttribute;
 class CCHDGPart;
-class CCHDGSymbolValueSet;
-class CCHDGSymbolValue;
-class CCHDGCell;
-// CH IV Begin
-class CCHDGVarPartSet;
-class CCHDGVarPartValue;
-// CH IV End
 
 #include "KWDataGrid.h"
 #include "KWDatabase.h"
@@ -88,7 +81,6 @@ public:
 protected:
 	// Reimplementation des methodes virtuelles
 	KWDGAttribute* NewAttribute() const override;
-	KWDGCell* NewCell() const override;
 
 	// Informations synthetique sur la grille de coclustering
 	ALString sShortDescription;
@@ -268,12 +260,6 @@ public:
 	///////////////////////////////
 	///// Implementation
 protected:
-	// Reimplementation des methodes virtuelles
-	KWDGSymbolValueSet* NewSymbolValueSet() const override;
-	// CH IV Begin
-	KWDGVarPartSet* NewVarPartSet() const override;
-	// CH IV End
-
 	// Reimplementation de la methode indiquant si les donnees sont emulees
 	// pour gerer les effectifs des parties de la hierarchie, n'ayant pas directement de cellules
 	boolean GetEmulated() const override;
@@ -300,125 +286,3 @@ int CCHDGPartCompareLeafRank(const void* elem1, const void* elem2);
 
 // Comparaison de deux parties selon leur rang hierarchique, index d'attribut et partie (pointeur)
 int CCHDGPartCompareHierarchicalRank(const void* elem1, const void* elem2);
-
-//////////////////////////////////////////////////////////////////////////////
-// Classe CCHDGSymbolValueSet
-// Ensemble de valeurs d'une partie symbolique d'un HierarchicalDataGrid
-class CCHDGSymbolValueSet : public KWDGSymbolValueSet
-{
-public:
-	// Constructeur
-	CCHDGSymbolValueSet();
-	~CCHDGSymbolValueSet();
-
-	// Creation
-	KWDGValueSet* Create() const override;
-
-	// Tri des valeurs par typicalite decroissante
-	void SortValuesByTypicality();
-
-	// Controle d'integrite pour la hierarchie
-	boolean CheckHierarchy() const;
-
-	///////////////////////////////
-	///// Implementation
-protected:
-	// Reimplementation des methodes virtuelles
-	KWDGValue* NewSymbolValue(const Symbol& sValue) const override;
-};
-
-//////////////////////////////////////////////////////////////////////////////
-// Classe CCHDGSymbolValue
-// Valeur symbolique d'un HierarchicalDataGrid
-class CCHDGSymbolValue : public KWDGSymbolValue
-{
-public:
-	// Constructeur
-	CCHDGSymbolValue(const Symbol& sValue);
-	~CCHDGSymbolValue();
-
-	// Typicalite
-	void SetTypicality(double dValue);
-	double GetTypicality() const;
-
-	// Controle d'integrite pour la hierarchie
-	boolean CheckHierarchy() const;
-
-	///////////////////////////////
-	///// Implementation
-protected:
-	double dTypicality;
-};
-
-// Comparaison de deux valeurs symboliques, par typicalite decroissante
-int CCHDGValueCompareDecreasingTypicality(const void* elem1, const void* elem2);
-
-// CH IV Begin
-//////////////////////////////////////////////////////////////////////////////
-// Classe CCHDGVarPartSet
-// Ensemble de parties de variable d'une partie de type VarPart d'un HierarchicalDataGrid
-class CCHDGVarPartSet : public KWDGVarPartSet
-{
-public:
-	// Constructeur
-	CCHDGVarPartSet();
-	~CCHDGVarPartSet();
-
-	// Creation
-	KWDGValueSet* Create() const override;
-
-	// Tri des parties de variable par typicalite decroissante
-	void SortVarPartsByTypicality();
-
-	// Controle d'integrite pour la hierarchie
-	boolean CheckHierarchy() const;
-
-	///////////////////////////////
-	///// Implementation
-protected:
-	// Reimplementation des methodes virtuelles
-	KWDGVarPartValue* NewVarPartValue(KWDGPart* varPart) const override;
-};
-
-//////////////////////////////////////////////////////////////////////////////
-// Classe CCHDGVarPartValue
-// Partie de variable d'un HierarchicalDataGrid
-class CCHDGVarPartValue : public KWDGVarPartValue
-{
-public:
-	// Constructeur
-	CCHDGVarPartValue(KWDGPart* varPart);
-	~CCHDGVarPartValue();
-
-	// Typicalite
-	void SetTypicality(double dValue);
-	double GetTypicality() const;
-
-	// Controle d'integrite pour la hierarchie
-	boolean CheckHierarchy() const;
-
-	///////////////////////////////
-	///// Implementation
-protected:
-	double dTypicality;
-};
-
-// Comparaison de deux valeurs symboliques, par typicalite decroissante
-int CCHDGVarPartValueCompareDecreasingTypicality(const void* elem1, const void* elem2);
-
-// CH IV End
-
-//////////////////////////////////////////////////////////////////////////////
-// Classe CCHDGCell
-// Cellule d'un HierarchicalDataGrid
-class CCHDGCell : public KWDGCell
-{
-public:
-	// Constructeur
-	CCHDGCell();
-	~CCHDGCell();
-
-	///////////////////////////////
-	///// Implementation
-protected:
-};

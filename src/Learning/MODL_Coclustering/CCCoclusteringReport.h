@@ -165,11 +165,10 @@ protected:
 	boolean ReadJSONAttributePartition(KWDGAttribute* attribute, CCHierarchicalDataGrid* coclusteringDataGrid);
 	boolean ReadJSONInterval(KWDGAttribute* dgAttribute, KWDGPart* dgPart);
 	boolean ReadJSONValueGroup(KWDGAttribute* dgAttribute, KWDGPart* dgPart);
-	boolean ReadJSONInnerAttributeIntervals(KWDGAttribute* innerAttribute);
-	boolean ReadJSONInnerAttributeValueGroups(KWDGAttribute* innerAttribute);
 	boolean ReadJSONVarPartAttributeValueGroup(KWDGAttribute* varPartAttribute, KWDGPart* dgPart,
 						   const ObjectDictionary* odInnerAttributesAllVarParts,
 						   ObjectDictionary* odVarPartAttributeAllVarParts);
+	boolean ReadJSONTypicalities(KWDGAttribute* dgAttribute, int nValueNumber, DoubleVector* dvValueTypicalities);
 	boolean ReadJSONDimensionHierarchies(CCHierarchicalDataGrid* coclusteringDataGrid);
 	boolean ReadJSONCells(CCHierarchicalDataGrid* coclusteringDataGrid);
 
@@ -177,11 +176,10 @@ protected:
 	void InternalWriteJSONReport(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
 	void WriteJSONSummary(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
 	void WriteJSONDimensionSummaries(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
-	void WriteJSONInnerAttributesDimensionSummaries(const KWDGAttribute* vartPartAttribute, JSONFile* fJSON);
 	void WriteJSONDimensionSummary(CCHDGAttribute* attribute, JSONFile* fJSON);
 	void WriteJSONDimensionPartitions(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
-	void WriteJSONAttributePartition(KWDGAttribute* attribute, const CCHierarchicalDataGrid* coclusteringDataGrid,
-					 JSONFile* fJSON);
+	void WriteJSONAttributePartition(KWDGAttribute* attribute, JSONFile* fJSON);
+	void WriteJSONInnerAttributes(const KWDGInnerAttributes* innerAttributes, JSONFile* fJSON);
 	void WriteJSONDimensionHierarchies(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
 	void WriteJSONCells(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
 
