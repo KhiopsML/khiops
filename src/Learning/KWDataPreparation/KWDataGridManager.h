@@ -58,7 +58,6 @@ public:
 	// Dans le cas VarPart, les attributs internes sont clones a partir de la grille source
 	void ExportDataGridWithInnerAttributesCloned(KWDataGrid* targetDataGrid) const;
 
-	// CH IV Begin
 	// Export total (attribut, parties et cellules) en exploitant une grille de reference,
 	// avec une partie par VarPart
 	// - pour les attributs simples:
@@ -84,7 +83,6 @@ public:
 	// une seule partie de variable
 	// Attention: creation de nouveaux attributs internes qui doivent etre detruit par l'appelant
 	void ExportNullDataGrid(KWDataGrid* targetDataGrid) const;
-	// CH IV End
 
 	/////////////////////////////////////////////////////////////////////////////////////////
 	// Service elementaires de transfert du contenu de la grille source vers la grille cible
@@ -150,10 +148,8 @@ public:
 
 	// Initialisation du dictionnaire des quantile builders
 	// Un quantile builder (Group ou Interval) est initialise par attribut de la grille source.
-	// CH IV Begin
 	// Pour un attribut categoriel, les groupes sont des groupes de modalites
 	// Pour un attribut de type parties de variables, les groupes sont des parties de variable
-	// CH IV End
 	// Il est range dans un dictionnaire a partir du nom de l'attribut source
 	// Une fois initialises, ces quantile builders sont utilises pour les granularisations
 	// En sortie, le vecteur ivMaxPartNumbers contient pour chaque attribut le nombre maximal
@@ -183,8 +179,7 @@ public:
 	////////////////////////////////////////////////////////////////////////////////////////////
 	// Services avances de construction de grille
 
-	// CH IV Begin
-	// Export d'une grille en optimisantv ses clusters de VarPart par fusion de VarParts
+	// Export d'une grille en optimisant ses clusters de VarPart par fusion de VarParts
 	// - dans le cas numerique: fusion des intervalles contigues
 	// - dans le cas categoriel: fusion des modalites de la même variable categorielle
 	// Attention: creation de nouveaux attributs internes qui doivent etre detruit par l'appelant
@@ -200,7 +195,6 @@ public:
 	// et les cellules de la grille cible sont recalculees
 	void UpdateVarPartDataGridFromVarPartGroups(KWDataGrid* targetDataGrid, const IntVector* ivTargetGroupIndexes,
 						    int nTargetGroupNumber) const;
-	// CH IV End
 
 	///////////////////////////////////////////////////////////////////////////
 	// Service de recuperation des partitions univariees pour initialiser
@@ -226,17 +220,17 @@ public:
 	///////////////////////////////////////////////////////////////////////////
 	// Service de calcul des partitions univariees a la granularite courante
 	// pour initialiser la grille cible (de facon compatible avec la grille source)
-	// Dans toutes ces methodes, l egalite entre la granularite de la sourceDataGrid et celle de la targetDataGrid
-	// est assuree
+	// Dans toutes ces methodes, l egalite entre la granularite de la sourceDataGrid
+	// et celle de la targetDataGrid est assuree
 
-	// Creation d'un attribut de grille a partir d'une partition univariee calculee pour la granularite de
-	// l'attribut source
+	// Creation d'un attribut de grille a partir d'une partition univariee calculee
+	// pour la granularite de l'attribut source
 	void BuildDataGridAttributeFromGranularizedPartition(KWDGAttribute* sourceAttribute,
 							     KWDGAttribute* targetAttribute,
 							     KWClassStats* classStats) const;
 
-	// Creation des parties de l'attribut cible numerique selon une partition univariee specifiee dans une table
-	// d'effectifs
+	// Creation des parties de l'attribut cible numerique selon une partition univariee specifiee
+	// dans une table d'effectifs
 	void BuildPartsOfContinuousAttributeFromFrequencyTable(KWDGAttribute* targetAttribute,
 							       KWFrequencyTable* kwftTable,
 							       const ALString& sAttributeName) const;

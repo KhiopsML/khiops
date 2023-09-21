@@ -89,6 +89,7 @@ void Profiler::Stop()
 	sProfilingStatsFileName = "";
 	odMethodTimers.DeleteAll();
 	svMethodNames.SetSize(0);
+	dvMethodLastStopElapsedTimes.SetSize(0);
 	bIsStarted = false;
 }
 
@@ -114,6 +115,7 @@ void Profiler::BeginMethod(const ALString& sMethodName)
 			methodTimer = new Timer;
 			odMethodTimers.SetAt(sMethodName, methodTimer);
 			svMethodNames.Add(sMethodName);
+			dvMethodLastStopElapsedTimes.Add(0);
 		}
 
 		// Mise a jour des stats du timer
@@ -137,6 +139,9 @@ void Profiler::BeginMethod(const ALString& sMethodName)
 void Profiler::EndMethod(const ALString& sMethodName)
 {
 	Timer* methodTimer;
+	int i = 0;
+	int nMethodIndex;
+	double dMethodLastElapsedTime;
 
 	require(sMethodName != "");
 
@@ -152,7 +157,30 @@ void Profiler::EndMethod(const ALString& sMethodName)
 
 		// Ecriture de la trace
 		if (bIsTrace)
+		{
+			// Recherche de l'index de la methode
+			// Une recherche sequentielle est ici suffisante
+			nMethodIndex = -1;
+			for (i = 0; i < svMethodNames.GetSize(); i++)
+			{
+				if (svMethodNames.GetAt(i) == sMethodName)
+				{
+					nMethodIndex = i;
+					break;
+				}
+			}
+			assert(nMethodIndex >= 0);
+
+			// Calcul du temps passe dans le methode depuis son dernier start
+			dMethodLastElapsedTime =
+			    methodTimer->GetElapsedTime() - dvMethodLastStopElapsedTimes.GetAt(nMethodIndex);
+			dvMethodLastStopElapsedTimes.SetAt(nMethodIndex, methodTimer->GetElapsedTime());
+			assert(dMethodLastElapsedTime >= 0);
+
+			// Fermeture de l'objet, en memorisant le temps passe dans la methode
+			fJsonTraceFile->WriteKeyString("time", DoubleToString(dMethodLastElapsedTime));
 			fJsonTraceFile->EndObject();
+		}
 	}
 }
 
