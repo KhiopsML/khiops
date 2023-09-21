@@ -347,6 +347,9 @@ double KWDataGridManager::ExportDataGridWithVarPartMergeOptimization(KWDataGrid*
 	require(sourceDataGrid->GetVarPartAttribute()->GetPartNumber() > 1);
 	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
 
+	// Parametrage du profiler
+	KWDataGridOptimizer::GetProfiler()->BeginMethod("Post VarPart merge");
+
 	// Export des attributs
 	ExportAttributes(targetDataGrid);
 
@@ -427,6 +430,10 @@ double KWDataGridManager::ExportDataGridWithVarPartMergeOptimization(KWDataGrid*
 		    dataGridCosts->ComputeAttributeCost(sourceAttribute, sourceAttribute->GetPartNumber());
 		dFusionDeltaCost += dNewAttributeCost;
 	}
+
+	// Parametrage du profiler
+	KWDataGridOptimizer::GetProfiler()->EndMethod("Post VarPart merge");
+
 	ensure(CheckDataGrid(targetDataGrid));
 	ensure(not sourceDataGrid->IsVarPartDataGrid() or
 	       targetDataGrid->GetVarPartAttribute()->GetInnerAttributes() !=

@@ -65,8 +65,11 @@ protected:
 	// Dictionnaire de timers par methode
 	ObjectDictionary odMethodTimers;
 
-	// Vecteur des nom de methode utilisees
+	// Vecteur des noms de methode utilisees
 	StringVector svMethodNames;
+
+	// Vecteur des temps passes par les methdoes au momment de leur dernier stop
+	DoubleVector dvMethodLastStopElapsedTimes;
 
 	// Fichier json des traces de profiling
 	// On utilise un pointeur pour pemettre de declarer un objet Profiler en variable statique

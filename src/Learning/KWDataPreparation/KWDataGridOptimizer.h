@@ -93,11 +93,6 @@ public:
 	virtual void HandleOptimizationStep(const KWDataGrid* optimizedDataGrid,
 					    const KWDataGrid* initialGranularizedDataGrid, boolean bIsLastSaving) const;
 
-	mutable Timer CCTimerPreOptimize;
-	mutable Timer CCTimerMainOptimize;
-	mutable Timer CCTimerPostOptimize;
-	mutable Timer CCTimerPostIVOptimize;
-
 	//////////////////////////////////////////////////////////////////
 	// Gestion d'un profiler dedie a l'optimisation des grilles
 	// Ce profiler doit etre demarre depuis le point d'entree de l'optimisation,
@@ -244,6 +239,28 @@ protected:
 	double VNSOptimizeDataGrid(const KWDataGrid* initialDataGrid, double dDecreaseFactor, int nMinIndex,
 				   int nMaxIndex, KWDataGrid* optimizedDataGrid, double dOptimizedDataGridCost) const;
 
+	// CH IV Refactoring
+	// Methode de post-optimisation d'un grille optimisee en redecoupant ses parties de variables
+	// Methode temporaire permettant de reutiliser le code de la methode principale VNSOptimizeDataGrid
+	// en isolant cette partie de post-optimisation specifique VarPart, et de supprimer l'ancienne
+	// methode VNSOptimizeVarPartDataGrid
+	// Parametre (a faire evoluer si necessaire):
+	// - initialDataGrid: grille initiale
+	// - neighbourDataGrid: grille courante en cours d'optimisation
+	// - dNeighbourDataGridCost: cout de la grille courante
+	// - mergedDataGrid: grille optimisee si amelioration
+	// En sortie, on rend la nouvelle version de la grille optimisee (ou courante) integrant la post-ptimisation et on renvoie son cout
+	//
+	// A terme, il faudra isoler ce service de post-optimisation pour le deplacer en quatrime sous-methode
+	// en fin de la methode OptimizeSolution
+	// - Pre-optimization
+	// - Greedy merge optimization
+	// - Post-optimization
+	// - Post-optimization IV
+	double PROTO_VNSDataGridPostOptimizeVarPart(const KWDataGrid* initialDataGrid,
+						    KWDataGridMerger* neighbourDataGrid,
+						    double dNeighbourDataGridCost) const;
+
 	// CH IV Begin
 	// Pilotage de la meta heuristique VNS, avec des voisinages successifs de taille décroissante
 	// selon un facteur geometrique (de DecreaseFactor^MinIndex a Factor^MaxIndex)
@@ -251,6 +268,10 @@ protected:
 	// des grilles de meilleur cout apres post-fusion En sortie : optimizedDataGrid contient la grille antecedent
 	// avant post-fusion de la meilleure grille post-fusionne Le cout renvoye est le cout de cette optimizedDataGrid
 	// dBestMergedDataGridCost contient le cout de la meilleure grille apres post-fusion (meilleur cout)
+	// CH IV Refactoring: proto en vue de fusionner la methode avec VNSOptimizeDataGrid (plnate actuellement)
+	double PROTO_VNSOptimizeVarPartDataGrid(const KWDataGrid* initialDataGrid, double dDecreaseFactor,
+						int nMinIndex, int nMaxIndex, KWDataGrid* optimizedDataGrid,
+						double dOptimizedDataGridCost, double& dBestMergedDataGridCost) const;
 	double VNSOptimizeVarPartDataGrid(const KWDataGrid* initialDataGrid, double dDecreaseFactor, int nMinIndex,
 					  int nMaxIndex, KWDataGrid* optimizedDataGrid, double dOptimizedDataGridCost,
 					  double& dBestMergedDataGridCost) const;

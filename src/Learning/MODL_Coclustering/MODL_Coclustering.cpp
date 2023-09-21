@@ -36,7 +36,6 @@ int main(int argc, char** argv)
 	// Choix du repertoire de lancement pour le debugage sous Windows (a commenter apres fin du debug)
 	//SetWindowsDebugDir("y_CoclusteringIV_Standard", "IrisLight");
 	//SetWindowsDebugDir("y_CoclusteringIV_Standard", "Iris");
-	SetWindowsDebugDir("y_CoclusteringIV_Standard", "ExtractClustersIris");
 
 	// Point d'arret sur l'allocation d'un bloc memoire
 	// MemSetAllocIndexExit(77);
