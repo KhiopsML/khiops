@@ -1888,6 +1888,7 @@ void KWGrouperMODL::FastPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSour
 
 // CH IV Begin
 // CH IV Refactoring: nettoyer tout le code commente dans cette methode?
+// CH Reponse Carine : pas encore car methode non finalisee au moment de l'integration du code
 void KWGrouperMODL::EMPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSource, KWFrequencyTable* kwftTarget,
 						    IntVector* ivGroups, int nMaxStepNumber,
 						    SortedList* frequencyList) const

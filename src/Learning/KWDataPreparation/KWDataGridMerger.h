@@ -539,7 +539,8 @@ inline void KWDGMAttribute::RemoveAllPartsFromValueNumberList()
 	KWDGMPart* partM;
 
 	slPartValueNumbers->RemoveAll();
-	// CH IV Refactoring: je ne comprend pas ce qui suit dans cette methode
+
+	// Dereferencement des positions dans la liste qui vient d'etre detruite
 	part = GetHeadPart();
 	while (part != NULL)
 	{

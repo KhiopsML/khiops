@@ -927,6 +927,7 @@ boolean KWAttributeSubsetStats::CreateDataGridCells(const KWTupleTable* tupleTab
 	require(dataGrid->GetAttributeNumber() <= tupleTable->GetAttributeNumber());
 	require(dataGrid->GetCellNumber() == 0);
 	require(dataGrid->Check());
+	require(not dataGrid->IsVarPartDataGrid());
 
 	// Passage en mode update
 	Global::ActivateErrorFlowControl();

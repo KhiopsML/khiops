@@ -349,12 +349,13 @@ boolean CCCoclusteringBuilder::CheckVarPartSpecifications() const
 boolean CCCoclusteringBuilder::ComputeCoclustering()
 {
 	boolean bOk = true;
-	boolean bProfileOptimisation = true;
+	boolean bProfileOptimisation = false;
 	KWTupleTable tupleTable;
 	KWTupleTable tupleFrequencyTable;
 	CCCoclusteringOptimizer dataGridOptimizer;
 	KWDataGrid optimizedDataGrid;
 	KWDataGridManager dataGridManager;
+	ALString sProfileFileName;
 	ALString sTmp;
 	// CH IV Begin
 	ObjectDictionary odObservationNumbers;
@@ -403,8 +404,14 @@ boolean CCCoclusteringBuilder::ComputeCoclustering()
 	// Verification de la memoire necessaire pour construire une grille initiale a partir des tuples
 	nMaxCellNumberConstraint = 0;
 	if (bOk and not TaskProgression::IsInterruptionRequested())
-		bOk =
-		    CheckMemoryForDataGridInitialization(GetDatabase(), tupleTable.GetSize(), nMaxCellNumberConstraint);
+	{
+		if (not GetVarPartCoclustering())
+			bOk = CheckMemoryForDataGridInitialization(GetDatabase(), tupleTable.GetSize(),
+								   nMaxCellNumberConstraint);
+		else
+			bOk = CheckMemoryForVarPartDataGridInitialization(GetDatabase(), tupleTable.GetSize(),
+									  nMaxCellNumberConstraint);
+	}
 
 	// Creation du DataGrid
 	if (bOk and not TaskProgression::IsInterruptionRequested())
@@ -454,9 +461,29 @@ boolean CCCoclusteringBuilder::ComputeCoclustering()
 	// Choix du fichier de trace a parametrer
 	if (bProfileOptimisation)
 	{
+		// Nom du fichier de profiling, avec le nombre d'individus et de variables
+		sProfileFileName = "C:/temp/DataGridOptimizationProfiling_";
+		sProfileFileName += GetDatabase()->GetClassName();
+		if (initialDataGrid->IsVarPartDataGrid())
+		{
+			sProfileFileName += "_I";
+			sProfileFileName += IntToString(initialDataGrid->GetAttributeAt(0)->GetInitialValueNumber());
+			sProfileFileName += "_V";
+			sProfileFileName +=
+			    IntToString(initialDataGrid->GetInnerAttributes()->GetInnerAttributeNumber());
+		}
+		else
+		{
+			sProfileFileName += "_F";
+			sProfileFileName += IntToString(initialDataGrid->GetGridFrequency());
+			sProfileFileName += "_D";
+			sProfileFileName += IntToString(initialDataGrid->GetAttributeNumber());
+		}
+		sProfileFileName += ".txt";
+
+		// Lancement du profiling
 		KWDataGridOptimizer::GetProfiler()->SetTrace(true);
-		KWDataGridOptimizer::GetProfiler()->Start("d:/temp/DataGridOptimizationProfiling" +
-							  GetDatabase()->GetClassName() + ".txt");
+		KWDataGridOptimizer::GetProfiler()->Start(sProfileFileName);
 	}
 
 	// Trace de debut d'optimisation, avec informations sur la grille initiale
@@ -1238,7 +1265,7 @@ KWDataGrid* CCCoclusteringBuilder::CreateVarPartDataGrid(const KWTupleTable* tup
 	{
 		TaskProgression::DisplayLabel("Initialize cells");
 
-		bCellCreationOk = CreateDataGridCells(tupleTable, dataGrid);
+		bCellCreationOk = CreateVarPartDataGridCells(tupleTable, dataGrid);
 	}
 
 	// Nettoyage des eventuelles parties vides du fait d'observations manquantes
@@ -1317,20 +1344,6 @@ void CCCoclusteringBuilder::CleanVarPartDataGrid(KWDataGrid* dataGrid)
 	dataGrid->UpdateAllStatistics();
 }
 
-boolean CCCoclusteringBuilder::CreateDataGridCells(const KWTupleTable* tupleTable, KWDataGrid* dataGrid)
-{
-	boolean bOk;
-
-	// Cas ou le coclustering se ramene a un coclustering standard, appel de la methode standard de creation de
-	// cellules
-	if (not GetVarPartCoclustering())
-		bOk = KWAttributeSubsetStats::CreateDataGridCells(tupleTable, dataGrid);
-	// Cas du coclustering instances x variables
-	else
-		bOk = CreateVarPartDataGridCells(tupleTable, dataGrid);
-	return bOk;
-}
-
 boolean CCCoclusteringBuilder::CreateVarPartDataGridCells(const KWTupleTable* tupleTable, KWDataGrid* dataGrid)
 {
 	boolean bOk = true;
@@ -1357,6 +1370,7 @@ boolean CCCoclusteringBuilder::CreateVarPartDataGridCells(const KWTupleTable* tu
 	require(tupleTable != NULL);
 	require(dataGrid != NULL);
 	require(GetVarPartCoclustering());
+	require(dataGrid->IsVarPartDataGrid());
 	require(Check());
 	require(CheckVarPartSpecifications());
 	require(tupleTable != NULL);
@@ -1555,6 +1569,10 @@ boolean CCCoclusteringBuilder::CreateVarPartDataGridCells(const KWTupleTable* tu
 					cout << *cell;
 			}
 		}
+
+		// Arret si erreur
+		if (not bOk)
+			break;
 	}
 
 	// Fin du mode update
@@ -1669,6 +1687,10 @@ void CCCoclusteringBuilder::HandleOptimizationStep(const KWDataGrid* optimizedDa
 	     (bIsLastSaving and ((coclusteringDataGrid == NULL) or (coclusteringDataGrid->GetGranularity() <
 								    initialGranularizedDataGrid->GetGranularity())))))
 	{
+		// Ajout de trace lie au profiling
+		KWDataGridOptimizer::GetProfiler()->BeginMethod("Save best solution");
+
+		// Memorisation du meilleur cout
 		dAnyTimeBestCost = dCost;
 
 		// Sauvegarde de la grille
@@ -1779,9 +1801,6 @@ void CCCoclusteringBuilder::HandleOptimizationStep(const KWDataGrid* optimizedDa
 		bWriteOk = coclusteringReport.WriteJSONReport(sReportFileName, coclusteringDataGrid);
 		JSONFile::SetVerboseMode(true);
 
-		// Ajout de trace lie au profiling
-		KWDataGridOptimizer::GetProfiler()->WriteKeyString("NEW BEST LEVEL", DoubleToString(dLevel));
-
 		// Sauvegarde au format Khc necessaire
 		if (bWriteOk and GetExportAsKhc())
 		{
@@ -1797,6 +1816,10 @@ void CCCoclusteringBuilder::HandleOptimizationStep(const KWDataGrid* optimizedDa
 		// Memorisation du nouveau nom du dernier fichier sauvegarde
 		if (bWriteOk)
 			sLastActualAnyTimeReportFileName = sReportFileName;
+
+		// Ajout de trace lie au profiling
+		KWDataGridOptimizer::GetProfiler()->WriteKeyString("New best level", DoubleToString(dLevel));
+		KWDataGridOptimizer::GetProfiler()->EndMethod("Save best solution");
 	}
 	else
 	{
@@ -2291,8 +2314,8 @@ boolean CCCoclusteringBuilder::FillVarPartTupleTableFromDatabase(KWDatabase* dat
 				// Test regulierement si il y a assez de memoire
 				if (tupleTable->GetSize() % 65536 == 0)
 				{
-					bOk = CheckMemoryForDataGridInitialization(GetDatabase(), tupleTable->GetSize(),
-										   nMaxCellNumberConstraint);
+					bOk = CheckMemoryForVarPartDataGridInitialization(
+					    GetDatabase(), tupleTable->GetSize(), nMaxCellNumberConstraint);
 					if (not bOk)
 						break;
 				}
@@ -2735,6 +2758,7 @@ boolean CCCoclusteringBuilder::CheckMemoryForDataGridInitialization(KWDatabase* 
 	ALString sMessage;
 	ALString sTmp;
 
+	require(not GetVarPartCoclustering());
 	require(database != NULL);
 	require(database->IsOpenedForRead() or odDescriptiveStats.GetCount() > 0);
 	require(nTupleNumber > 0);
@@ -2797,7 +2821,8 @@ boolean CCCoclusteringBuilder::CheckMemoryForDataGridInitialization(KWDatabase* 
 	// travail, et finales
 	nMaxCellNumber = 0;
 	if (lNecessaryMemory < lAvailableMemory)
-		nMaxCellNumber = (int)((lAvailableMemory - lNecessaryMemory) / (3 * lSizeOfCell));
+		nMaxCellNumber =
+		    (int)min((longint)INT_MAX, ((lAvailableMemory - lNecessaryMemory) / (3 * lSizeOfCell)));
 
 	// Affichage de stats memoire
 	if (bDisplayMemoryStats)
@@ -2805,6 +2830,135 @@ boolean CCCoclusteringBuilder::CheckMemoryForDataGridInitialization(KWDatabase* 
 		cout << "CheckMemoryForDataGridInitialization" << endl;
 		cout << "\tInitial data grid: " << lInitialDataGridSize << endl;
 		cout << "\tWorking data grid: " << lWorkingDataGridSize << endl;
+		cout << "\t  Size of cell: " << lSizeOfCell << endl;
+		cout << "\tMax cell number: " << nMaxCellNumber << endl;
+		cout << "\t  Necessary: " << lNecessaryMemory << endl;
+		cout << "\t  Available: " << lAvailableMemory << endl;
+		cout << "\t  OK: " << (lNecessaryMemory <= lAvailableMemory) << endl;
+	}
+
+	// Test si memoire suffisante
+	if (lNecessaryMemory > lAvailableMemory)
+	{
+		sMessage = "Not enough memory to create initial data grid ";
+		if (database->IsOpenedForRead() and database->GetReadPercentage() < 0.99)
+			sMessage += sTmp + "after reading " + IntToString((int)(100 * database->GetReadPercentage())) +
+				    "% of the database";
+		else
+			sMessage += RMResourceManager::BuildMissingMemoryMessage(lNecessaryMemory);
+		AddError(sMessage);
+		AddMessage(RMResourceManager::BuildMemoryLimitMessage());
+		if (RMResourceConstraints::GetIgnoreMemoryLimit())
+			RMResourceManager::DisplayIgnoreMemoryLimitMessage();
+		else
+			bOk = false;
+	}
+	return bOk;
+}
+
+boolean CCCoclusteringBuilder::CheckMemoryForVarPartDataGridInitialization(KWDatabase* database, int nTupleNumber,
+									   int& nMaxCellNumber) const
+{
+	boolean bOk = true;
+	boolean bDisplayMemoryStats = false;
+	int nDataGridDimensionNumber;
+	int nAttributeNumber;
+	longint lAvailableMemory;
+	longint lNecessaryMemory;
+	longint lInitialDataGridSize;
+	longint lWorkingDataGridSize;
+	longint lSizeOfCell;
+	double dMaxCellNumber;
+	int nInstanceNumber;
+	int nValueNumber;
+	int nAttribute;
+	KWAttribute* attribute;
+	KWDescriptiveStats* descriptiveStats;
+	ALString sMessage;
+	ALString sTmp;
+
+	require(GetVarPartCoclustering());
+	require(database != NULL);
+	require(database->IsOpenedForRead() or odDescriptiveStats.GetCount() > 0);
+	require(nTupleNumber > 0);
+	require(odDescriptiveStats.GetCount() == 0 or
+		odDescriptiveStats.GetCount() ==
+		    GetClass()->GetLoadedAttributeNumber() - (GetFrequencyAttributeName() == "" ? 0 : 1));
+
+	// Calcul des caracteristiques memoire disponibles (le fichier est lu a ce moment)
+	lAvailableMemory = RMResourceManager::GetRemainingAvailableMemory();
+
+	// Nombre de dimensions de la grille
+	nDataGridDimensionNumber = 2;
+
+	// Stats de bases sur les variables et instances
+	nAttributeNumber = GetClass()->GetLoadedAttributeNumber();
+
+	// Recherche du nombre d'instances
+	nInstanceNumber = nTupleNumber;
+	descriptiveStats = cast(KWDescriptiveStats*, odDescriptiveStats.Lookup(GetIdentifierAttributeName()));
+	if (descriptiveStats != NULL)
+		nInstanceNumber = descriptiveStats->GetValueNumber();
+
+	// Prise en compte d'une grille initiale "minimale" estimee de facon fine en prenant en compte les nombres de
+	// valeurs par variable
+	lNecessaryMemory = 0;
+	lInitialDataGridSize = sizeof(KWDataGrid) + sizeof(void*);
+	nInstanceNumber = 0;
+	dMaxCellNumber = 0;
+	for (nAttribute = 0; nAttribute < GetClass()->GetLoadedAttributeNumber(); nAttribute++)
+	{
+		attribute = GetClass()->GetLoadedAttributeAt(nAttribute);
+
+		// Recherche des stats descriptives de l'attribut, sauf si attribut d'effectif ou identifiant
+		if (attribute->GetName() != GetFrequencyAttributeName() and
+		    attribute->GetName() != GetIdentifierAttributeName())
+		{
+			// Nombre de valeur de l'attribut si ses statistiques descriptives sont disponible
+			descriptiveStats = cast(KWDescriptiveStats*, odDescriptiveStats.Lookup(attribute->GetName()));
+			if (descriptiveStats != NULL)
+				nValueNumber = descriptiveStats->GetValueNumber();
+			// Estimation sinon
+			else
+				nValueNumber = (int)sqrt(nTupleNumber);
+
+			// Prise en compte de la taille de stockage de l'attribut, de ses parties et valeurs
+			dMaxCellNumber += nInstanceNumber * nValueNumber;
+			lInitialDataGridSize += sizeof(KWDGAttribute) + sizeof(void*);
+			if (attribute->GetType() == KWType::Continuous)
+				lInitialDataGridSize +=
+				    nValueNumber * (sizeof(KWDGMPart) + sizeof(KWDGInterval) + sizeof(void*));
+			else if (attribute->GetType() == KWType::Symbol)
+				lInitialDataGridSize += nValueNumber * (sizeof(KWDGMPart) + sizeof(KWDGValueSet) +
+									sizeof(KWDGValue) + 2 * sizeof(void*));
+		}
+	}
+	lSizeOfCell = sizeof(KWDGMCell) + nDataGridDimensionNumber * sizeof(void*);
+	lInitialDataGridSize += (longint)ceil(dMaxCellNumber) * lSizeOfCell;
+	lNecessaryMemory += lInitialDataGridSize;
+
+	// Plus une grille de travail, et une pour la meilleure solution (de taille estimee minimale)
+	lWorkingDataGridSize = sizeof(KWDataGridMerger) + nAttributeNumber * sizeof(KWDGMAttribute) +
+			       (longint)ceil(sqrt(dMaxCellNumber)) * nAttributeNumber *
+				   (lSizeOfCell + sizeof(KWDGMPart) + sizeof(KWDGMPartMerge) + sizeof(KWDGInterval) +
+				    sizeof(KWDGValueSet) + sizeof(KWDGValue));
+	lWorkingDataGridSize *= 2;
+	lNecessaryMemory += lWorkingDataGridSize;
+
+	// Estimation du nombre max de cellules que l'on peut charger en memoire, pour les grilles initiales, de
+	// travail, et finales
+	nMaxCellNumber = 0;
+	if (lNecessaryMemory < lAvailableMemory)
+		nMaxCellNumber =
+		    (int)min((longint)INT_MAX, ((lAvailableMemory - lNecessaryMemory) / (3 * lSizeOfCell)));
+
+	// Affichage de stats memoire
+	if (bDisplayMemoryStats)
+	{
+		cout << "CheckMemoryForDataGridInitialization" << endl;
+		cout << "\tInitial data grid: " << lInitialDataGridSize << endl;
+		cout << "\tWorking data grid: " << lWorkingDataGridSize << endl;
+		cout << "\t  Size of cell: " << lSizeOfCell << endl;
 		cout << "\tMax cell number: " << nMaxCellNumber << endl;
 		cout << "\t  Necessary: " << lNecessaryMemory << endl;
 		cout << "\t  Available: " << lAvailableMemory << endl;
@@ -2918,7 +3072,7 @@ boolean CCCoclusteringBuilder::CheckMemoryForDataGridOptimization(KWDataGrid* in
 		}
 		// CH IV End
 	}
-	lSizeOfCell = sizeof(KWDGMCell) + ((longint)2 + GetClass()->GetLoadedAttributeNumber()) * sizeof(void*);
+	lSizeOfCell = sizeof(KWDGMCell) + ((longint)2 + inputInitialDataGrid->GetAttributeNumber()) * sizeof(void*);
 	lWorkingDataGridSize += inputInitialDataGrid->GetCellNumber() * lSizeOfCell +
 				lTotalValueNumber * (sizeof(KWDGValue) + sizeof(void*));
 	lWorkingDataGridSize += inputInitialDataGrid->GetCellNumber() * lSizeOfCell +
@@ -2929,7 +3083,7 @@ boolean CCCoclusteringBuilder::CheckMemoryForDataGridOptimization(KWDataGrid* in
 	// Prise en compte de la memoire de travail pour post-optimisation
 	lDataGridPostOptimizationSize =
 	    inputInitialDataGrid->GetCellNumber() *
-	    (sizeof(KWDGMCell) + ((longint)2 + GetClass()->GetLoadedAttributeNumber()) * sizeof(void*));
+	    (sizeof(KWDGMCell) + ((longint)2 + inputInitialDataGrid->GetAttributeNumber()) * sizeof(void*));
 	lDataGridPostOptimizationSize += inputInitialDataGrid->GetCellNumber() * sizeof(KWDGPOCellFrequencyVector);
 	lDataGridPostOptimizationSize += lInitialMaxPartNumber * (sizeof(KWMODLLineDeepOptimization) + 2 * sizeof(int) +
 								  sizeof(KWDGPOPartFrequencyVector));
@@ -2940,6 +3094,7 @@ boolean CCCoclusteringBuilder::CheckMemoryForDataGridOptimization(KWDataGrid* in
 	{
 		cout << "CheckMemoryForDataGridOptimization" << endl;
 		cout << "\tWorking data grid: " << lWorkingDataGridSize << endl;
+		cout << "\t  Size of cell: " << lSizeOfCell << endl;
 		cout << "\tData grid post-optimization: " << lDataGridPostOptimizationSize << endl;
 		cout << "\t  Necessary: " << lNecessaryMemory << endl;
 		cout << "\t  Available: " << lAvailableMemory << endl;
@@ -3500,7 +3655,8 @@ void CCCoclusteringBuilder::ComputeValueTypicalitiesAt(const KWDataGrid* inputIn
 				}
 
 				// CH IV Refactoring: nettoyer lignes suivantes?
-				// CH DDD
+				// CH IV Refactoring: maintenu pour l'instant afin d'identifier en Release les bases pour lesquelles on obtient un dDeltaCost < 0
+				// Affichage en cas d'anomalie de dDeltaCost negatif
 				if (bDisplay and dDeltaCost < 0)
 					cout << "ComputeValueTypicalities :: dDeltaCost < 0\t" << dDeltaCost << endl;
 
@@ -4162,11 +4318,10 @@ void CCCoclusteringBuilder::SortAttributePartsAndValues(CCHierarchicalDataGrid* 
 				innerPart = innerAttribute->GetHeadPart();
 				while (innerPart != NULL)
 				{
-					// CH IV Refactoring
-					// CH IV voir avec Marc si le tri a deja ete fait suite au renommage des methodes de tri
-					// Tri des valeurs de la partie si attribut categoriel
-					//if (innerAttribute->GetAttributeType() == KWType::Symbol)
-					//cast(CCHDGValueSet*, innerPart->GetValueSet())->SortValuesByTypicality();
+
+					// Tri des valeurs de la partie si attribut interne categoriel
+					if (innerAttribute->GetAttributeType() == KWType::Symbol)
+						innerPart->GetSymbolValueSet()->SortValuesByDecreasingTypicalities();
 
 					// Initialisation du nom de la partie
 					cast(CCHDGPart*, innerPart)->SetPartName(innerPart->GetVarPartLabel());

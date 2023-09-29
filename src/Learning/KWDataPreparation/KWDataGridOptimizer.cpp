@@ -210,16 +210,6 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 			}
 			bIsLastGranularity = true;
 
-			// CH IV Refactoring: nettoyer lignes suivantes?
-			/* CH
-			// Affichage pour grille instances * variables
-			if (bDisplayGranularities and granularizedDataGrid.GetVarPartDataGrid())
-				cout << "Prepartitionnement\t" <<
-			granularizedDataGrid.GetInnerAttributesNames()->GetVarPartGranularity() << "\tGranularite\t" <<
-			nGranularityIndex
-				     << "\tNombre de clusters" << ivCurrentPartNumber << flush;
-			*/
-
 			// Si on n'a pas encore atteint la granularite max
 			if (nGranularityIndex < nGranularityMax)
 			{
@@ -995,54 +985,17 @@ KWDataGridOptimizer::OptimizeWithBestUnivariatePartitionForCurrentGranularity(co
 			if (attributeStats->GetPreparedDataGridStats()->GetGranularity() !=
 			    initialDataGrid->GetGranularity())
 			{
-				// CH IV Refactoring: mieux utiliser les possibibilite de dataGridManager???
-				//
-				// Export de la granularite
-				univariateDataGrid.SetGranularity(initialDataGrid->GetGranularity());
-
-				// Initialisation de la grille cible avec le nombre d'attributs demandes
-				univariateDataGrid.Initialize(1, initialDataGrid->GetTargetValueNumber());
-
-				// Initialisation des valeurs cibles
-				for (nTarget = 0; nTarget < initialDataGrid->GetTargetValueNumber(); nTarget++)
-				{
-					univariateDataGrid.SetTargetValueAt(nTarget,
-									    initialDataGrid->GetTargetValueAt(nTarget));
-				}
-
-				// Extraction de l'attribut source associe
-				assert(initialAttribute != NULL);
-
-				// Initialisation de l'attribut
-				targetAttribute = univariateDataGrid.GetAttributeAt(0);
-				// Recuperation des caracteristiques de l'attribute dont cout de selection/construction
-				// de l'attribut
-				targetAttribute->SetAttributeName(initialAttribute->GetAttributeName());
-				targetAttribute->SetAttributeType(initialAttribute->GetAttributeType());
-				targetAttribute->SetAttributeTargetFunction(
-				    initialAttribute->GetAttributeTargetFunction());
-				targetAttribute->SetCost(initialAttribute->GetCost());
-				targetAttribute->SetInitialValueNumber(initialAttribute->GetInitialValueNumber());
-				targetAttribute->SetGranularizedValueNumber(
-				    initialAttribute->GetGranularizedValueNumber());
-
-				// Transfert du parametrage du fourre-tout
-				targetAttribute->InitializeCatchAllValueSet(initialAttribute->GetCatchAllValueSet());
-
-				dataGridManager.BuildDataGridAttributeFromGranularizedPartition(
-				    initialAttribute, targetAttribute, classStats);
-				bEvaluated = targetAttribute->GetPartNumber() > 1;
-
-				// Export des nouvelles cellules
-				univariateDataGrid.DeleteAllCells();
-				dataGridManager.ExportCells(&univariateDataGrid);
+				dataGridManager.BuildUnivariateDataGridFromGranularizedPartition(
+				    &univariateDataGrid, nAttribute, classStats);
+				bEvaluated = univariateDataGrid.GetAttributeAt(0)->GetPartNumber() > 1;
 			}
 
 			// Cas ou la granularite de la meilleure partition univariee de l'attribut correspond
 			// a la granularite courante de la grille
 			else
 			{
-				dataGridManager.BuildDataGridFromUnivariateStats(&univariateDataGrid, attributeStats);
+				dataGridManager.BuildUnivariateDataGridFromAttributeStats(&univariateDataGrid,
+											  attributeStats);
 
 				// Transfert du parametrage du fourre-tout
 				targetAttribute = univariateDataGrid.GetAttributeAt(0);
@@ -1554,7 +1507,6 @@ double KWDataGridVNSOptimizer::IterativeVNSOptimizeDataGrid(const KWDataGrid* in
 			dMergedCost = dCost;
 			dCost = VNSOptimizeVarPartDataGrid(initialDataGrid, dDecreaseFactor, 0, nIndexNumber,
 							   &currentDataGrid, dCost, dMergedCost);
-
 			if (dMergedCost < dBestMergedCost - dEpsilon)
 			{
 				dBestCost = dCost;
@@ -1613,7 +1565,7 @@ double KWDataGridVNSOptimizer::VNSOptimizeDataGrid(const KWDataGrid* initialData
 	neighbourDataGrid.SetDataGridCosts(dataGridCosts);
 	dBestCost = dOptimizedDataGridCost;
 
-	// On optimize tant qu'on ne depasse pas la taille max de voisinnage
+	// On optimise tant qu'on ne depasse pas la taille max de voisinnage
 	nVNSMaxLevel = nMaxIndex;
 	nIndex = nMinIndex;
 	while (nIndex <= nMaxIndex)
@@ -1676,15 +1628,13 @@ double KWDataGridVNSOptimizer::VNSOptimizeDataGrid(const KWDataGrid* initialData
 }
 
 // CH IV Begin
-double KWDataGridVNSOptimizer::PROTO_VNSDataGridPostOptimizeVarPart(const KWDataGrid* initialDataGrid,
-								    KWDataGridMerger* neighbourDataGrid,
-								    double dNeighbourDataGridCost) const
+double KWDataGridVNSOptimizer::PROTO_VNSDataGridPostOptimizeVarPart(
+    const KWDataGrid* initialDataGrid, KWDataGridMerger* neighbourDataGrid, double dNeighbourDataGridCost,
+    KWDataGrid* mergedDataGrid, KWDataGrid* partitionedReferencePostMergedDataGrid) const
 {
 	double dCost;
 	double dMergedCost;
 	double dFusionDeltaCost;
-	KWDataGrid mergedDataGrid;
-	KWDataGrid partitionedReferencePostMergedDataGrid;
 	KWDataGridManager dataGridManager;
 	ALString sLabel;
 	boolean bDisplayResults = false;
@@ -1714,17 +1664,11 @@ double KWDataGridVNSOptimizer::PROTO_VNSDataGridPostOptimizeVarPart(const KWData
 		dataGridManager.SetSourceDataGrid(neighbourDataGrid);
 		// Creation d'une nouvelle grille avec nouvelle description des PV fusionnees
 		dFusionDeltaCost =
-		    dataGridManager.ExportDataGridWithVarPartMergeOptimization(&mergedDataGrid, dataGridCosts);
-		assert(not mergedDataGrid.GetVarPartsShared());
+		    dataGridManager.ExportDataGridWithVarPartMergeOptimization(mergedDataGrid, dataGridCosts);
+		assert(not mergedDataGrid->GetVarPartsShared());
 
 		// Calcul et verification du cout
 		dMergedCost = dCost + dFusionDeltaCost;
-		// CH IV Refactoring: nettoyer lignes suivantes? DDD?
-		// CH DDD pour debuggage et passage dans methode visualiser calcul pas a pas
-		dMergedCost = dataGridCosts->ComputeDataGridTotalCost(&mergedDataGrid);
-		// Le cout precedent devra etre correct
-		assert(dMergedCost * (1 - dEpsilon) < dataGridCosts->ComputeDataGridTotalCost(&mergedDataGrid));
-		assert(dataGridCosts->ComputeDataGridTotalCost(&mergedDataGrid) < dMergedCost * (1 + dEpsilon));
 
 		// Cas ou le cout de la grille avec PV voisines fusionnees est plus eleve que le cout avant
 		// fusion
@@ -1742,13 +1686,13 @@ double KWDataGridVNSOptimizer::PROTO_VNSDataGridPostOptimizeVarPart(const KWData
 			cout << "Grille avant fusion\n";
 			neighbourDataGrid->Write(cout);
 			cout << "Grille apres fusion\n";
-			mergedDataGrid.Write(cout);
+			mergedDataGrid->Write(cout);
 			debug(false);
 		}
 
 		// Post-optimisation de l'attribut VarPart uniquement dans le cas d'une optimisation approfondie
 		// (i.e. derniere granularite)
-		if (mergedDataGrid.GetInformativeAttributeNumber() > 1 and
+		if (mergedDataGrid->GetInformativeAttributeNumber() > 1 and
 		    optimizationParameters.GetVarPartPostOptimize() and not GetSlightOptimizationMode())
 		{
 			CCVarPartDataGridPostOptimizer varPartDataGridPostOptimizer;
@@ -1763,12 +1707,12 @@ double KWDataGridVNSOptimizer::PROTO_VNSDataGridPostOptimizeVarPart(const KWData
 
 			// Parametrage pour l'attribut VarPart
 			varPartDataGridPostOptimizer.SetPostOptimizationAttributeName(
-			    mergedDataGrid.GetVarPartAttribute()->GetAttributeName());
+			    mergedDataGrid->GetVarPartAttribute()->GetAttributeName());
 
 			if (bDisplayResults)
 			{
 				cout << "VNSOptimizeVarPartDataGrid : grille a post-optimiser" << endl;
-				mergedDataGrid.Write(cout);
+				mergedDataGrid->Write(cout);
 				cout << "Debut PostOptimisation VarPart" << endl;
 				cout << "VNSOptimizeVarPartDataGrid: grille initiale du DataGridOptimizer" << endl;
 				GetDataGridOptimizer()->GetInitialVarPartDataGrid()->Write(cout);
@@ -1780,28 +1724,24 @@ double KWDataGridVNSOptimizer::PROTO_VNSDataGridPostOptimizeVarPart(const KWData
 			// Boucle : on continue a post-optimiser tant qu'au moins un deplacement de VarPart
 			// permet d'ameliorer le critere
 			bImprovement = true;
-			// CH IV Debug
-			// CH IV Refactoring: nettoyer?
 			int nImprovementNumber = 0;
 			while (bImprovement)
 			{
-				// CH IV Debug
-				// CH IV Refactoring: nettoyer?
 				nImprovementNumber++;
 
 				// Construction d'une grille de reference avec des clusters contenant une seule
 				// PV a partir des PV apres fusion Parametrage par la grille initiale de
 				// l'optimiseur
 				dataGridManager.SetSourceDataGrid(GetDataGridOptimizer()->GetInitialVarPartDataGrid());
-				assert(mergedDataGrid.Check());
+				assert(mergedDataGrid->Check());
 				dataGridManager.ExportDataGridWithSingletonVarParts(
-				    &mergedDataGrid, &partitionedReferencePostMergedDataGrid, false);
+				    mergedDataGrid, partitionedReferencePostMergedDataGrid, false);
 				ivGroups.SetSize(
-				    partitionedReferencePostMergedDataGrid.GetVarPartAttribute()->GetPartNumber());
-				assert(partitionedReferencePostMergedDataGrid.Check());
-				assert(partitionedReferencePostMergedDataGrid.GetVarPartsShared());
-				assert(partitionedReferencePostMergedDataGrid.GetInnerAttributes() ==
-				       mergedDataGrid.GetInnerAttributes());
+				    partitionedReferencePostMergedDataGrid->GetVarPartAttribute()->GetPartNumber());
+				assert(partitionedReferencePostMergedDataGrid->Check());
+				assert(partitionedReferencePostMergedDataGrid->GetVarPartsShared());
+				assert(partitionedReferencePostMergedDataGrid->GetInnerAttributes() ==
+				       mergedDataGrid->GetInnerAttributes());
 
 				// Affichage de la grille courante
 				if (bDisplayResults)
@@ -1809,9 +1749,9 @@ double KWDataGridVNSOptimizer::PROTO_VNSDataGridPostOptimizeVarPart(const KWData
 					cout << "nImprovementNumber\t" << nImprovementNumber << endl;
 					cout << "VNSOptimizeVarPartDataGrid: grille post-fusionnee cout\t"
 					     << dMergedCost << endl;
-					mergedDataGrid.Write(cout);
+					mergedDataGrid->Write(cout);
 					cout << "VNSOptimizeVarPartDataGrid : grille de reference" << endl;
-					partitionedReferencePostMergedDataGrid.Write(cout);
+					partitionedReferencePostMergedDataGrid->Write(cout);
 					cout << flush;
 				}
 
@@ -1822,31 +1762,31 @@ double KWDataGridVNSOptimizer::PROTO_VNSDataGridPostOptimizeVarPart(const KWData
 
 				// Exploration des deplacements pour tous les attributs
 				bImprovement = varPartDataGridPostOptimizer.PostOptimizeLightVarPartDataGrid(
-				    &partitionedReferencePostMergedDataGrid, &mergedDataGrid, &ivGroups);
+				    partitionedReferencePostMergedDataGrid, mergedDataGrid, &ivGroups);
 				KWDataGridOptimizer::GetProfiler()->EndMethod("Post-optimization IV");
 
 				if (bImprovement)
 				{
 					// Mise a jour de la grille pour l'optimisation de cet attribut
-					nGroupNumber = mergedDataGrid.GetVarPartAttribute()->GetPartNumber();
-					dataGridManager.SetSourceDataGrid(&partitionedReferencePostMergedDataGrid);
-					dataGridManager.UpdateVarPartDataGridFromVarPartGroups(&mergedDataGrid,
+					nGroupNumber = mergedDataGrid->GetVarPartAttribute()->GetPartNumber();
+					dataGridManager.SetSourceDataGrid(partitionedReferencePostMergedDataGrid);
+					dataGridManager.UpdateVarPartDataGridFromVarPartGroups(mergedDataGrid,
 											       &ivGroups, nGroupNumber);
 
 					if (bDisplayResults)
 					{
 						dNewMergedCost =
-						    dataGridCosts->ComputeDataGridTotalCost(&mergedDataGrid);
+						    dataGridCosts->ComputeDataGridTotalCost(mergedDataGrid);
 						cout << "VNSOptimizeVarPartDataGrid: grille mise a jour best "
 							"deplacement\tCout\t"
 						     << dNewMergedCost << endl;
-						mergedDataGrid.Write(cout);
-						assert(mergedDataGrid.Check());
+						mergedDataGrid->Write(cout);
+						assert(mergedDataGrid->Check());
 					}
 
 					// Mise a jour de la grille fusionnee courante par la grille obtenue par
 					// fusion de la grille comportant les deplacements
-					dataGridManager.SetSourceDataGrid(&mergedDataGrid);
+					dataGridManager.SetSourceDataGrid(mergedDataGrid);
 					dVarPartFusionDeltaCost =
 					    dataGridManager.ExportDataGridWithVarPartMergeOptimization(
 						&mergedMergedDataGrid, dataGridCosts);
@@ -1872,7 +1812,7 @@ double KWDataGridVNSOptimizer::PROTO_VNSDataGridPostOptimizeVarPart(const KWData
 						neighbourDataGrid->DeleteAll();
 						dataGridManager.SetSourceDataGrid(initialDataGrid);
 						dataGridManager.ExportDataGridWithReferenceVarPartClusters(
-						    &mergedDataGrid, neighbourDataGrid);
+						    mergedDataGrid, neighbourDataGrid);
 						if (bDisplayResults)
 						{
 							cout << "VNSOptimizeVarPartDataGrid: grille best "
@@ -1889,58 +1829,24 @@ double KWDataGridVNSOptimizer::PROTO_VNSDataGridPostOptimizeVarPart(const KWData
 					// cas ou la poste optimisation permet d'ameliorer le cout ? on est
 					// quand meme dans le cas if(bImprovement) donc il y a amelioration du
 					// fait de la post-optimisation
-					mergedDataGrid.DeleteAll();
+					mergedDataGrid->DeleteAll();
 					dataGridManager.SetSourceDataGrid(&mergedMergedDataGrid);
-					dataGridManager.ExportDataGrid(&mergedDataGrid);
-					mergedDataGrid.SetVarPartsShared(false);
+					dataGridManager.ExportDataGrid(mergedDataGrid);
+					mergedDataGrid->SetVarPartsShared(false);
 					mergedMergedDataGrid.SetVarPartsShared(true);
 					mergedMergedDataGrid.DeleteAll();
-					assert(mergedDataGrid.Check());
+					assert(mergedDataGrid->Check());
 				}
 				// Nettoyage -> peut etre a supprimer pour mutualiser avec utilisation de cette
 				// grille pour HangleOptimizationStep
-				partitionedReferencePostMergedDataGrid.DeleteAll();
+				partitionedReferencePostMergedDataGrid->DeleteAll();
 				ivGroups.SetSize(0);
 			}
 			if (bDisplayResults)
 				cout << "Fin PostOptimisation VarPart" << endl;
 		}
 	}
-
-	// Si amelioration: on la memorise
-	if (dMergedCost < dNeighbourDataGridCost - dEpsilon)
-	{
-		// Sauvegarde de la meilleure solution
-		if (bCleanNonInformativeVariables)
-		{
-			// On sauvegarde l'antecedent de la meilleure grille post mergee
-			// On ne sauvegarde donc pas la meilleure grille post mergee car cela necessiterait de
-			// modifier la grille initiale qui devrait etre en coherence avec cette grille post
-			// mergee. La grille initiale est conservee pour une granularite donnee La grille de
-			// reference est necessaire pour HandleOptimizationStep
-			dataGridManager.CopyInformativeDataGrid(&mergedDataGrid, neighbourDataGrid);
-		}
-
-		else
-		{
-			dataGridManager.CopyDataGrid(&mergedDataGrid, neighbourDataGrid);
-		}
-
-		// Gestion de la meilleure solution
-		if (dataGridOptimizer != NULL)
-		{
-			assert(mergedDataGrid.GetInformativeAttributeNumber() > 0);
-			dataGridManager.SetSourceDataGrid(GetDataGridOptimizer()->GetInitialVarPartDataGrid());
-			dataGridManager.ExportDataGridWithSingletonVarParts(
-			    &mergedDataGrid, &partitionedReferencePostMergedDataGrid, true);
-			dataGridOptimizer->HandleOptimizationStep(&mergedDataGrid,
-								  &partitionedReferencePostMergedDataGrid, false);
-
-			// Nettoyage
-			partitionedReferencePostMergedDataGrid.DeleteAll();
-		}
-	}
-	ensure(fabs(dMergedCost - dataGridCosts->ComputeDataGridTotalCost(neighbourDataGrid)) < dEpsilon);
+	ensure(fabs(dCost - dataGridCosts->ComputeDataGridTotalCost(neighbourDataGrid)) < dEpsilon);
 	return dMergedCost;
 }
 
@@ -1952,6 +1858,10 @@ double KWDataGridVNSOptimizer::PROTO_VNSOptimizeVarPartDataGrid(const KWDataGrid
 {
 	double dBestCost;
 	double dCost;
+	double dMergedCost;
+	double dBestMergedCost;
+	KWDataGrid mergedDataGrid;
+	KWDataGrid partitionedReferencePostMergedDataGrid;
 	KWDataGridManager dataGridManager;
 	KWDataGridMerger neighbourDataGrid;
 	int nIndex;
@@ -1968,8 +1878,9 @@ double KWDataGridVNSOptimizer::PROTO_VNSOptimizeVarPartDataGrid(const KWDataGrid
 	dataGridManager.SetSourceDataGrid(initialDataGrid);
 	neighbourDataGrid.SetDataGridCosts(dataGridCosts);
 	dBestCost = dOptimizedDataGridCost;
+	dBestMergedCost = dBestCost;
 
-	// On optimize tant qu'on ne depasse pas la taille max de voisinage
+	// On optimise tant qu'on ne depasse pas la taille max de voisinage
 	nVNSMaxLevel = nMaxIndex;
 	nIndex = nMinIndex;
 	while (nIndex <= nMaxIndex)
@@ -1997,13 +1908,17 @@ double KWDataGridVNSOptimizer::PROTO_VNSOptimizeVarPartDataGrid(const KWDataGrid
 
 		// Post-optimisation des parties de variables de la grille
 		// A terme, a deplacer dans OptimizeSolution
+		dMergedCost = dCost;
 		if (initialDataGrid->IsVarPartDataGrid())
-			dCost = PROTO_VNSDataGridPostOptimizeVarPart(initialDataGrid, &neighbourDataGrid, dCost);
+			dMergedCost = PROTO_VNSDataGridPostOptimizeVarPart(initialDataGrid, &neighbourDataGrid, dCost,
+									   &mergedDataGrid,
+									   &partitionedReferencePostMergedDataGrid);
 
 		// Si amelioration: on la memorise
-		if (dCost < dBestCost - dEpsilon)
+		if (dMergedCost < dBestMergedCost - dEpsilon)
 		{
 			dBestCost = dCost;
+			dBestMergedCost = dMergedCost;
 
 			// Sauvegarde de la meilleure solution
 			if (bCleanNonInformativeVariables)
@@ -2023,12 +1938,31 @@ double KWDataGridVNSOptimizer::PROTO_VNSOptimizeVarPartDataGrid(const KWDataGrid
 
 			// Gestion de la meilleure solution
 			if (dataGridOptimizer != NULL)
-				dataGridOptimizer->HandleOptimizationStep(optimizedDataGrid, initialDataGrid, false);
-		}
+			{
+				if (mergedDataGrid.GetInformativeAttributeNumber() == 0)
+					dataGridOptimizer->HandleOptimizationStep(optimizedDataGrid, initialDataGrid,
+										  false);
 
+				else
+				{
+					dataGridManager.SetSourceDataGrid(
+					    GetDataGridOptimizer()->GetInitialVarPartDataGrid());
+					dataGridManager.ExportDataGridWithSingletonVarParts(
+					    &mergedDataGrid, &partitionedReferencePostMergedDataGrid, true);
+					dataGridOptimizer->HandleOptimizationStep(
+					    &mergedDataGrid, &partitionedReferencePostMergedDataGrid, false);
+
+					// Nettoyage
+					partitionedReferencePostMergedDataGrid.DeleteAll();
+				}
+			}
+		}
 		// Sinon: on passe a un niveau de voisinage plus fin
 		else
 			nIndex++;
+
+		// Nettoyage
+		mergedDataGrid.DeleteAll();
 
 		// Test de fin de tache
 		if (TaskProgression::IsInterruptionRequested())
@@ -2043,6 +1977,8 @@ double KWDataGridVNSOptimizer::PROTO_VNSOptimizeVarPartDataGrid(const KWDataGrid
 			break;
 	}
 
+	// Memorisation du meilleur cout parmi les grilles post-fusionnees
+	dBestMergedDataGridCost = dBestMergedCost;
 	ensure(fabs(dBestCost - dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid)) < dEpsilon);
 	return dBestCost;
 }
@@ -2072,12 +2008,14 @@ double KWDataGridVNSOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* init
 	require(nMinIndex <= nMaxIndex);
 	require(fabs(dOptimizedDataGridCost - dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid)) < dEpsilon);
 
-	/* CH IV Refactoring : DDDDD
+	// CH IV Refactoring : DDDDD
 	// Test du remplacement de la methode actuelle, par son proto
-	// BUG actuellement (il faut probablement passer la grille de reference en parametre pour regler le probleme...°
-	return PROTO_VNSOptimizeVarPartDataGrid(initialDataGrid, dDecreaseFactor, nMinIndex, nMaxIndex,
-						optimizedDataGrid, dOptimizedDataGridCost, dBestMergedDataGridCost);
-						*/
+	boolean bProto = false;
+	//DDD bProto = true;
+	if (bProto)
+		return PROTO_VNSOptimizeVarPartDataGrid(initialDataGrid, dDecreaseFactor, nMinIndex, nMaxIndex,
+							optimizedDataGrid, dOptimizedDataGridCost,
+							dBestMergedDataGridCost);
 
 	// Initialisations
 	dataGridManager.SetSourceDataGrid(initialDataGrid);
@@ -2085,7 +2023,7 @@ double KWDataGridVNSOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* init
 	dBestCost = dOptimizedDataGridCost;
 	dBestMergedCost = dBestCost;
 
-	// On optimize tant qu'on ne depasse pas la taille max de voisinage
+	// On optimise tant qu'on ne depasse pas la taille max de voisinage
 	nVNSMaxLevel = nMaxIndex;
 	nIndex = nMinIndex;
 	while (nIndex <= nMaxIndex)
@@ -2131,16 +2069,10 @@ double KWDataGridVNSOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* init
 
 			// Calcul et verification du cout
 			dMergedCost = dCost + dFusionDeltaCost;
-			// CH IV Refactoring: nettoyer lignes suivantes? DDD?
-			// CH DDD pour debuggage et passage dans methode visualiser calcul pas a pas
-			dMergedCost = dataGridCosts->ComputeDataGridTotalCost(&mergedDataGrid);
-			// Le cout precedent devra etre correct
-			assert(dMergedCost * (1 - dEpsilon) < dataGridCosts->ComputeDataGridTotalCost(&mergedDataGrid));
-			assert(dataGridCosts->ComputeDataGridTotalCost(&mergedDataGrid) < dMergedCost * (1 + dEpsilon));
 
 			// Cas ou le cout de la grille avec PV voisines fusionnees est plus eleve que le cout avant
 			// fusion
-			if (dMergedCost > dCost * (1 + dEpsilon) and bDisplayResults)
+			if (bDisplayResults and dMergedCost > dCost * (1 + dEpsilon))
 			{
 				sLabel = "PROBLEME : degradation du cout lors de la fusion des parties de variables "
 					 "contigues";
@@ -2194,13 +2126,10 @@ double KWDataGridVNSOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* init
 				// Boucle : on continue a post-optimiser tant qu'au moins un deplacement de VarPart
 				// permet d'ameliorer le critere
 				bImprovement = true;
-				// CH IV Debug
-				// CH IV Refactoring: nettoyer?
+
 				int nImprovementNumber = 0;
 				while (bImprovement)
 				{
-					// CH IV Debug
-					// CH IV Refactoring: nettoyer?
 					nImprovementNumber++;
 
 					// Construction d'une grille de reference avec des clusters contenant une seule
@@ -2343,7 +2272,6 @@ double KWDataGridVNSOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* init
 				// reference est necessaire pour HandleOptimizationStep
 				dataGridManager.CopyInformativeDataGrid(&neighbourDataGrid, optimizedDataGrid);
 			}
-
 			else
 			{
 				dataGridManager.CopyDataGrid(&neighbourDataGrid, optimizedDataGrid);
@@ -2355,7 +2283,6 @@ double KWDataGridVNSOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* init
 				if (mergedDataGrid.GetInformativeAttributeNumber() == 0)
 					dataGridOptimizer->HandleOptimizationStep(optimizedDataGrid, initialDataGrid,
 										  false);
-
 				else
 				{
 					dataGridManager.SetSourceDataGrid(

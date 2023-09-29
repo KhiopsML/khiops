@@ -92,23 +92,18 @@ public:
 	// Memoire: appartient a l'appelant
 	KWDataGridCosts* CreateDataGridCost() const override;
 
-	// Traite le cas VarPart ou les attributs sont de type Simple ou de type parties de variables
-	// L'attribut de grile de type VarPart cree contient un cluster de parties de variable pour chaque partie de
-	// variable de chaque attribut interne L'effectif de la variable identifiant est alimente par le vecteur
-	// ivObservationNumbers
+	// Creation d'une grille avec une dimension de type VarPart
+	// La dimension VarPart contient un cluster de parties de variable pour chaque partie de
+	// variable de chaque attribut interne
+	// L'effectif de la variable identifiant est alimente par le vecteur ivObservationNumbers
 	KWDataGrid* CreateVarPartDataGrid(const KWTupleTable* tupleTable, ObjectDictionary& odObservationNumbers);
 
 	// Nettoyage des eventuelles parties de variables vides du fait d'observations manquantes
 	void CleanVarPartDataGrid(KWDataGrid* dataGrid);
 
-	// Alimentation des cellules d'un DataGrid dans dont les attributs et parties sont correctement initialises,
+	// Alimentation des cellules d'un VarPartDataGrid dont les attributs et parties sont correctement initialises,
 	// Renvoie true si cellule correctement initialisee, false sinon (sans nettoyage des celulles crees)
-	// Pour les attributs de type VarPart, on parcourt l'ensemble des attributs internes de l'ensemble de ces
-	// attributs pour alimenter les cellules associees a chaque observation (l'observation d'un attribut interne par
-	// attribut de grille de type VarPart) CH IV Refactoring: passer en override de la methode ancetre? OK
-	//   verifier egalement pour les autres methodes CreateVarPartDataGrid, CreateVarPartDataGrid
-	//    qui pourrait etre des redefinitions des methodes de la classe ancetre?
-	boolean CreateDataGridCells(const KWTupleTable* tupleTable, KWDataGrid* dataGrid) override;
+	// Pour la dimension VarPart, on parcourt l'ensemble des attributs internes pour alimenter les cellules associees a chaque observation
 	boolean CreateVarPartDataGridCells(const KWTupleTable* tupleTable, KWDataGrid* dataGrid);
 
 	/////////////////////////////////////////////////////////////////////////////
@@ -225,6 +220,13 @@ protected:
 	//   . cela permet d'avoir un estimation "anytime" de la memoire necessaire pour le coclustering
 	// On renvoie en sortie le nombre max de cellules de la grille initiale
 	boolean CheckMemoryForDataGridInitialization(KWDatabase* database, int nTupleNumber, int& nMaxCellNumber) const;
+
+	// CH IV Begin
+	// Verification de la memoire necessaire pour construire une grille initiale de type VarPart a partir d'un nombre de tuples
+	// On renvoie en sortie le nombre max de cellules de la grille initiale
+	boolean CheckMemoryForVarPartDataGridInitialization(KWDatabase* database, int nTupleNumber,
+							    int& nMaxCellNumber) const;
+	// CH IV End
 
 	// Verification de la memoire necessaire pour optimiser le coclustering, la grille initiale etant construite
 	boolean CheckMemoryForDataGridOptimization(KWDataGrid* inputInitialDataGrid) const;

@@ -336,9 +336,8 @@ protected:
 					       SortedList* frequencyList) const;
 
 	// CH IV Begin
-	// CH IV Refactoring: completer le commentaire?
 	// Post-optimisation selon un algorithme EM
-	// On effectue
+	// On effectue a chaque iteration tous les deplacements elementaires qui ameliorent le cout
 	void EMPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSource, KWFrequencyTable* kwftTarget,
 					     IntVector* ivGroups, int nMaxStepNumber, SortedList* frequencyList) const;
 	// CH IV End

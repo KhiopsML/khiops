@@ -91,6 +91,7 @@ protected:
 	KWDatabase databaseSpec;
 
 	// CH IV Refactoring: le sIdentifierAttributeName est-il toujours utile???
+	// CH IV Refactoring: on le conserve pour l'instant dans l'hypothese ou l'on etende le coclustering IV a plusieurs variables hors variable varPart
 	ALString sIdentifierAttributeName;
 };
 

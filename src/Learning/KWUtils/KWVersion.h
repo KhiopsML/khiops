@@ -62,7 +62,9 @@ const ALString GetLearningSystemType();
 // CH IV Refactoring: commenter les methodes
 // CH IV Refactoring: verifier si ces methodes sont utilisees
 // CH IV Refactoring: envisager d'abandonner la gestion des poubelles
+//    peut etre utile dans la tokenisation pour reduire le cout d'une partition avec gros groupe poubelle ?
 //    pour les attributs de grille de type VarPart et les attributs internes qu'il contiennent?
+// CH IV Refactoring: La methode de postOptimisationVarPart ne prend pas en compte le groupe poubelle
 
 const boolean GetVarPartAttributeGarbage();
 void SetVarPartAttributeGarbage(const boolean bValue);
