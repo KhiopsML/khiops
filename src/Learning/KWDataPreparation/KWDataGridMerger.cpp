@@ -1910,17 +1910,21 @@ int KWDGMPartValueNumberCompare(const void* elem1, const void* elem2)
 {
 	KWDGMPart* partM1;
 	KWDGMPart* partM2;
+	int nCompare;
 
 	// Acces aux parties
 	partM1 = cast(KWDGMPart*, *(Object**)elem1);
 	partM2 = cast(KWDGMPart*, *(Object**)elem2);
 	assert(KWType::IsCoclusteringGroupableType(partM1->GetPartType()));
-	assert(partM1->GetPartType() == partM1->GetPartType());
-
-	// CH IV Refactoring: faut-il ajouter une fonction de comparaison secondaire sur les valeurs en cas degalite?
+	assert(partM1->GetPartType() == partM2->GetPartType());
 
 	// Comparaison du nombre de modalites par valeurs decroissantes dans le cas groupable
-	return partM2->GetValueSet()->GetValueNumber() - partM1->GetValueSet()->GetValueNumber();
+	nCompare = partM2->GetValueSet()->GetValueNumber() - partM1->GetValueSet()->GetValueNumber();
+
+	// En cas d'egalite, comparaison des premieres valeurs
+	if (nCompare == 0)
+		nCompare = partM1->GetValueSet()->GetHeadValue()->CompareValue(partM2->GetValueSet()->GetHeadValue());
+	return nCompare;
 }
 //////////////////////////////////////////////////////////////////////////////
 // Classe KWDGMCell

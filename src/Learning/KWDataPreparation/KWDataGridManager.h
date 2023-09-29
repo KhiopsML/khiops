@@ -200,9 +200,10 @@ public:
 	// Service de recuperation des partitions univariees pour initialiser
 	// la grille cible (de facon compatible avec la grille source)
 
-	// Creation de la grille cible a partir d'une partition univariee
+	// Creation d'une grille cible univariee a partir d'une partition univariee
 	// Ajout de la transmission de la granularite a la grille cible
-	void BuildDataGridFromUnivariateStats(KWDataGrid* targetDataGrid, KWAttributeStats* attributeStats) const;
+	void BuildUnivariateDataGridFromAttributeStats(KWDataGrid* targetDataGrid,
+						       KWAttributeStats* attributeStats) const;
 
 	// Creation de la grille cible a partir du produit cartesien des partitions
 	// univariees des attributs de la grille source
@@ -222,6 +223,11 @@ public:
 	// pour initialiser la grille cible (de facon compatible avec la grille source)
 	// Dans toutes ces methodes, l egalite entre la granularite de la sourceDataGrid
 	// et celle de la targetDataGrid est assuree
+
+	// Creation d'une grille univariee contenant un seul des attributs de la grille initiale ayant pour partition
+	// la partition optimale a la granularite de la grille initiale
+	void BuildUnivariateDataGridFromGranularizedPartition(KWDataGrid* univariateTargetDataGrid, int nAttributeIndex,
+							      KWClassStats* classStats) const;
 
 	// Creation d'un attribut de grille a partir d'une partition univariee calculee
 	// pour la granularite de l'attribut source

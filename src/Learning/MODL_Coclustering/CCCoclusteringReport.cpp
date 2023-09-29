@@ -2970,6 +2970,7 @@ boolean CCCoclusteringReport::ReadJSONDimensionSummaries(CCHierarchicalDataGrid*
 	// CH IV Begin
 	// Prise en compte d'un coclustering de type VarPart
 	// CH IV Refactoring: potentiellement inutile apres la fin du refactoring
+	// CH IV Refactoring: on le conserve pour l'instant dans l'hypothese ou l'on etende le coclustering IV a plusieurs variables hors variable varPart
 	if (bOk and varPartAttribute != NULL)
 	{
 		// Parametrage de l'attribut identifiant, en prenant le premier attribut catgoriel trouve
@@ -2983,6 +2984,7 @@ boolean CCCoclusteringReport::ReadJSONDimensionSummaries(CCHierarchicalDataGrid*
 
 	// Tests d'integrite dans le cas d'un coclustering de type instances * variables
 	// CH IV Refactoring: potentiellement inutile apres la fin du refactoring
+	// CH IV Refactoring: a voir ulterieurement en fonction de l'extension a plus que deux variables
 	if (bOk and coclusteringDataGrid->IsVarPartDataGrid())
 	{
 		assert(varPartAttribute == coclusteringDataGrid->GetVarPartAttribute());
@@ -3908,10 +3910,13 @@ boolean CCCoclusteringReport::ReadJSONTypicalities(KWDGAttribute* dgAttribute, i
 
 		// Tolerance pour les typicalite negatives
 		if (dValueTypicality < 0)
+		{
 			AddWarning(sTmp + "Typicality (" + DoubleToString(dValueTypicality) +
 				   ") less than 0 for variable " + dgAttribute->GetAttributeName() +
 				   " in \"valueTypicalities\" line " +
-				   IntToString(JSONTokenizer::GetCurrentLineIndex()));
+				   IntToString(JSONTokenizer::GetCurrentLineIndex()) + " (replaced by 0)");
+			dValueTypicality = 0;
+		}
 		// Erreur pour les typicalite supereures a 1
 		else if (dValueTypicality > 1)
 		{

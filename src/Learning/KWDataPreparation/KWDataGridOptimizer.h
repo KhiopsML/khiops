@@ -119,8 +119,8 @@ protected:
 	double InitializeWithTerminalDataGrid(const KWDataGrid* initialDataGrid, KWDataGrid* optimizedDataGrid) const;
 
 	// Cette methode calcule pour chaque attribut de la grille initialDataGrid
-	// le partitionnement univarie optimal associe au partitionnement obtenu par projection univarie de la grille
-	// La granularite du partitionnement est celui de la grille initiale
+	// le partitionnement univarie optimal associe au partitionnement obtenu par projection univariee de la grille
+	// La granularite du partitionnement est celle de la grille initiale
 	double OptimizeWithBestUnivariatePartitionForCurrentGranularity(const KWDataGrid* initialDataGrid,
 									KWDataGrid* optimizedDataGrid) const;
 
@@ -258,8 +258,9 @@ protected:
 	// - Post-optimization
 	// - Post-optimization IV
 	double PROTO_VNSDataGridPostOptimizeVarPart(const KWDataGrid* initialDataGrid,
-						    KWDataGridMerger* neighbourDataGrid,
-						    double dNeighbourDataGridCost) const;
+						    KWDataGridMerger* neighbourDataGrid, double dNeighbourDataGridCost,
+						    KWDataGrid* mergedDataGrid,
+						    KWDataGrid* partitionedReferencePostMergedDataGrid) const;
 
 	// CH IV Begin
 	// Pilotage de la meta heuristique VNS, avec des voisinages successifs de taille décroissante

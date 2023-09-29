@@ -3251,10 +3251,6 @@ void KWDGAttribute::Write(ostream& ost) const
 
 	// Affichage des caracteristiques du fourre-tout
 	ost << "CatchAllNumber\t" << GetCatchAllValueNumber() << endl;
-	// CH IV Refactoring: nettoyer les lignes suivantes???
-	// ost << "CatchAll\t" << (GetCatchAllValueSet() != NULL) << endl;
-	// if (GetCatchAllValueSet() != NULL)
-	// GetCatchAllValueSet()->Write(cout);
 
 	//  Affichage des caracteristiques de la poubelle
 	ost << "Garbage\tPossible\tExist\tSize\n";

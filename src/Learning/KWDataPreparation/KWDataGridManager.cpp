@@ -295,7 +295,6 @@ void KWDataGridManager::ExportNullDataGrid(KWDataGrid* targetDataGrid) const
 	       targetDataGrid->GetVarPartAttribute()->GetInnerAttributes() !=
 		   sourceDataGrid->GetVarPartAttribute()->GetInnerAttributes());
 }
-// CH IV End
 
 void KWDataGridManager::InitializeQuantileBuilders(ObjectDictionary* odQuantilesBuilders,
 						   IntVector* ivMaxPartNumbers) const
@@ -1380,8 +1379,8 @@ void KWDataGridManager::AddRandomParts(KWDataGrid* targetDataGrid, const KWDataG
 	ensure(targetDataGrid->GetCellNumber() == 0);
 }
 
-void KWDataGridManager::BuildDataGridFromUnivariateStats(KWDataGrid* targetDataGrid,
-							 KWAttributeStats* attributeStats) const
+void KWDataGridManager::BuildUnivariateDataGridFromAttributeStats(KWDataGrid* targetDataGrid,
+								  KWAttributeStats* attributeStats) const
 {
 	KWDGAttribute* targetAttribute;
 
@@ -1892,6 +1891,31 @@ void KWDataGridManager::BuildDataGridAttributeFromUnivariateStats(KWDGAttribute*
 		// Export des effectif des valeurs de la grille initiale pour finaliser la specification
 		ExportAttributeSymbolValueFrequencies(targetAttribute);
 	}
+}
+
+void KWDataGridManager::BuildUnivariateDataGridFromGranularizedPartition(KWDataGrid* univariateTargetDataGrid,
+									 int nAttributeIndex,
+									 KWClassStats* classStats) const
+{
+	KWDGAttribute* targetAttribute;
+	KWDGAttribute* sourceAttribute;
+
+	require(0 < nAttributeIndex < sourceDataGrid->GetAttributeNumber());
+
+	// Initialisation de la grille cible a une variable
+	InitialiseDataGrid(sourceDataGrid, univariateTargetDataGrid, 1);
+
+	// Initialisation de l'attribut cible
+	sourceAttribute = sourceDataGrid->GetAttributeAt(nAttributeIndex);
+	targetAttribute = univariateTargetDataGrid->GetAttributeAt(0);
+	InitialiseAttribute(sourceAttribute, targetAttribute);
+
+	// Construction de la partition optimale associee a la granularite de l'attribut source selon classStats
+	BuildDataGridAttributeFromGranularizedPartition(sourceAttribute, targetAttribute, classStats);
+
+	// Export des cellules selon la nouvelle partition
+	univariateTargetDataGrid->DeleteAllCells();
+	ExportCells(univariateTargetDataGrid);
 }
 
 void KWDataGridManager::BuildDataGridAttributeFromGranularizedPartition(KWDGAttribute* sourceAttribute,
@@ -3371,6 +3395,7 @@ KWDGInnerAttributes* KWDataGridManager::CloneInnerAttributes(const KWDGInnerAttr
 
 	// Partage des partitions de la grille source
 	resultInnerAttributes = new KWDGInnerAttributes;
+	resultInnerAttributes->SetVarPartGranularity(sourceInnerAttributes->GetVarPartGranularity());
 
 	// Parcours des attributs internes
 	for (nInnerAttribute = 0; nInnerAttribute < sourceInnerAttributes->GetInnerAttributeNumber(); nInnerAttribute++)
@@ -3830,8 +3855,9 @@ void KWDataGridManager::SortAttributePartsByTargetGroups(const KWDGAttribute* so
 	}
 
 	// Tri des association, apres une randomisation pour avoir un ordre aleatoire par groupe
+	// CH IV Refactoring: a revoir plus tard apres avoir integre la retokenisation dans le cadre du GenerateVNS
 	// CH IV Refactoring: Code specifique suite a refactoring et unification avec l'ancienne methode SortVarPartAttributeParts
-	// CH IV Refactoring: Pourquoi le Shuffle est fait dans le cas VarPart et pas VarPart?
+	// CH IV Refactoring: Pourquoi le Shuffle est fait dans le cas Symbol et pas VarPart? on ne sait pas
 	// CH IV Refactoring: Probleme potentiel supplementaire, faire un shuffle suivi d'un sort entraine des instabilite entre
 	// CH IV Refactoring:  windows et linux, car le Sort de windows ne semble pas etre un "stable sort" (qui garantit qu'en
 	// CH IV Refactoring:  cas d'egalite, les items sont dans le meme ordre que l'ordre initial)

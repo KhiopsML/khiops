@@ -115,6 +115,11 @@ public:
 	boolean GetHierarchicalMultinomialPrior() const;
 
 	// Redefinition de la methode d'optimisation
+	// CH IV Begin
+	//Le parcours exhaustif des granularites entieres remplace par un parcours des granularites par puissance de 2
+	// Les methodes specifiques d'export de la grille granularisee de la classe KWHierarchicalMultinomialStudy sont supprimees au profit de l'utilisation
+	// des methodes de KWDataGridManager pour simplifier la maintenance du code de KWTest
+	// CH IV End
 	boolean ComputeStats(const KWTupleTable* tupleTable) override;
 
 	// Redefinition de la structure des cout pour l'etude des prior
@@ -123,25 +128,6 @@ public:
 	/////////////////////////////////////////////////
 	///// Implementation
 protected:
-	// Methode redefinie, pour eviter la pre-granularisation des attributs numeriques
-	boolean CreateAttributeIntervals(const KWTupleTable* tupleTable, KWDGAttribute* dgAttribute) override;
-
-	// Export d'une grille granularisee pour une granularite commune a tous ses attributs
-	//  (attribut, parties et cellules)
-	// Methode adaptee de KWDataGridManager
-	// CH IV Refactoring: maintenir cette classe, ou la supprimer?
-	// CH IV Refactoring: seule difference avec methode de KWDataGridManager (maintenant refactore...): PartileNumber vs Granularity???
-	void ExportGranularizedDataGrid(KWDataGrid* targetDataGrid, int nPartileNumber,
-					ObjectDictionary* odQuantilesBuilders) const;
-	void ExportGranularizedParts(KWDataGrid* targetDataGrid, int nPartileNumber,
-				     ObjectDictionary* odQuantilesBuilders) const;
-	void ExportGranularizedPartsForContinuousAttribute(KWDataGrid* targetDataGrid, KWDGAttribute* sourceAttribute,
-							   KWDGAttribute* targetAttribute, int nPartileNumber,
-							   KWQuantileIntervalBuilder* quantileIntervalBuilder) const;
-	void ExportGranularizedPartsForSymbolAttribute(KWDataGrid* targetDataGrid, KWDGAttribute* sourceAttribute,
-						       KWDGAttribute* targetAttribute, int nGranularity,
-						       KWQuantileGroupBuilder* quantileGroupBuilder) const;
-
 	// Variables
 	boolean bHierarchicalMultinomialPrior;
 	KWDataGridManager dataGridManager;
