@@ -89,7 +89,7 @@ jobs:
         run: |
           yum install -y ./artifacts/khiops-*
       - name: Test Khiops and Khiops Coclustering
-        uses: ./.github/actions/test-khiops
+        uses: ./.github/actions/test-khiops-install
   test-kni-rpm:
     needs: build-rpm-package
     runs-on: ubuntu-latest
@@ -105,7 +105,7 @@ jobs:
     steps:
       - name: Put OS info on the environment
         run: |
-          source /etc/os-release 
+          source /etc/os-release
           echo "ID=$ID" >> "$GITHUB_ENV"
           VERSION=$(echo $PLATFORM_ID | cut -d":" -f2)
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
@@ -117,7 +117,7 @@ jobs:
       - name: Install KNI package
         run: |
           yum update -y
-          yum install -y ./artifacts/kni* 
+          yum install -y ./artifacts/kni*
       - name: Checkout sources
         uses: actions/checkout@v3
         with:

@@ -91,7 +91,7 @@ jobs:
           khiops -v
           khiops_coclustering -v
       - name: Test Khiops and Khiops Coclustering
-        uses: ./.github/actions/test-khiops
+        uses: ./.github/actions/test-khiops-install
   test-kni-deb:
     needs: build-deb-package
     runs-on: ubuntu-latest
