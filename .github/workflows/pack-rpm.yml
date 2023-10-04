@@ -28,7 +28,7 @@ jobs:
           source /etc/profile.d/modules.sh
           module load mpi/mpich-x86_64
           echo "MPI_SUFFIX=$MPI_SUFFIX" >> "$GITHUB_ENV"
-          cmake --preset linux-gcc-release -DTESTING=OFF
+          cmake --preset linux-gcc-release -DBUILD_JARS=ON
       - name: Build Khiops binaries
         run: |
           cmake --build --preset linux-gcc-release --parallel \

@@ -24,7 +24,7 @@ jobs:
           echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
       - name: Configure CMake
         run: |
-          cmake --preset linux-gcc-release -DTESTING=OFF
+          cmake --preset linux-gcc-release -DBUILD_JARS=ON
       - name: Build Khiops binaries
         run: |
           cmake --build --preset linux-gcc-release --parallel \

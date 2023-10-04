@@ -13,8 +13,8 @@
       "generator": "Ninja",
       "cacheVariables": {
         "MPI": "ON",
-        "TESTING": "ON",
-        "BUILD_JARS": "ON",
+        "TESTING": "OFF",
+        "BUILD_JARS": "OFF",
         "BUILD_LEX_YACC": "OFF",
         "C11": "ON"
       },

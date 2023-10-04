@@ -14,7 +14,7 @@ env:
   KhiopsBatchMode: true
 jobs:
   # Build the project on each platform for all targets to ensure that all sources and cmake files are correct
-  # The useful binaries are cached for the current run_id. It will be restored only in the same run of the 
+  # The useful binaries are cached for the current run_id. It will be restored only in the same run of the
   # build. The cached binaries are delete in the last job (cleanup-cache)
   build-full-project:
     strategy:
@@ -34,7 +34,6 @@ jobs:
         uses: ./.github/actions/build-khiops
         with:
           preset-name: ${{ env.PRESET_NAME }}
-          override-flags: -DTESTING=OFF
       - name: Cache binaries
         id: cache-binaries-unix
         uses: actions/cache@v3
@@ -109,8 +108,8 @@ jobs:
           if [[ "${{ matrix.build-setup.os }}"  == 'windows-2022' ]]; then
             export EXT=".exe"
           fi
-          if [[ "${{ matrix.running-mode }}" == "parallel" ]] ; then 
-            export KhiopsMPIProcessNumber=3 
+          if [[ "${{ matrix.running-mode }}" == "parallel" ]] ; then
+            export KhiopsMPIProcessNumber=3
           fi
           if [[ "${{ matrix.config }}" == "release" ]] ; then
             python $TEST_PY Khiops ${BIN_PATH}/MODL${EXT} Standard

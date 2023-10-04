@@ -25,7 +25,7 @@ jobs:
         with:
           preset-name: ${{ matrix.build-setup.cmake-preset }}
           targets: norm_test parallel_test parallel_mpi_test learning_test KNITest
-          override-flags: -DBUILD_JARS=OFF
+          override-flags: -DTESTING=ON
       - name: Run Unit Tests for the Norm Module
         if: success() || failure()
         run: build/${{ matrix.build-setup.cmake-preset }}/bin/norm_test --gtest_output="xml:${{github.workspace}}/reports/report-norm.xml"

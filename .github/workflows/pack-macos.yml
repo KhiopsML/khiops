@@ -15,7 +15,6 @@ jobs:
         with:
           preset-name: ${{env.PRESET_NAME}}
           targets: MODL MODL_Coclustering KhiopsNativeInterface
-          override-flags: -DBUILD_JARS=OFF -DTESTING=OFF
       - name: Build package with CPack
         run: cd build/${{env.PRESET_NAME}} && cpack -G ZIP
       - name: Upload artifacts
