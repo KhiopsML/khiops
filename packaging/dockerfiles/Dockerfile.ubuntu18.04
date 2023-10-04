@@ -1,5 +1,5 @@
 FROM ubuntu:18.04
-LABEL maintainer="bruno.guerraz@orange.com"
+LABEL maintainer="khiops.team@orange.com"
 LABEL description="Container with the dependencies to build and package Khiops"
 
 ENV DEBIAN_FRONTEND=noninteractive
