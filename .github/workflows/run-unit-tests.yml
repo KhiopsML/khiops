@@ -2,7 +2,7 @@
 name: Run Unit Tests
 on:
   workflow_dispatch:
-  push:
+  pull_request:
     paths:
       - '**CMakeLists.txt'
       - src/**.h

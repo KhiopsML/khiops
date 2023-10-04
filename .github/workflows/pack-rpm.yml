@@ -2,6 +2,8 @@
 name: Create RPM package
 on:
   workflow_dispatch:
+  pull_request:
+    paths: ['**CMakeLists.txt', '**.cmake']
 jobs:
   build-rpm-package:
     runs-on: ubuntu-latest
@@ -88,7 +90,7 @@ jobs:
       - name: Install Khiops Desktop (with java)
         run: |
           yum install -y ./artifacts/khiops-*
-      - name: Test Khiops and Khiops Coclustering
+      - name: Test Khiops installation
         uses: ./.github/actions/test-khiops-install
   test-kni-rpm:
     needs: build-rpm-package
@@ -122,5 +124,5 @@ jobs:
         uses: actions/checkout@v3
         with:
           sparse-checkout: .github
-      - name: Test KNI package
+      - name: Test KNI package installation
         uses: ./.github/actions/test-kni
