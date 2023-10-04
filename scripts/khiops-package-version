@@ -1,0 +1,50 @@
+#! /usr/bin/env bash
+# Creates a "package-version" of Khiops
+# - if the commit is tagged:
+#   - if the <TAG> matches the <KHIOPS_VERSION> in the sources:
+#     - package-version = <TAG>
+#   - otherwise:
+#     - warn
+#     - package-version = <KHIOPS_VERSION>-preview-<TAG>
+# - otherwise:
+#   - package-version = <KHIOPS_VERSION>-preview-<SHORT_COMMIT_HASH>
+
+# Common safeguards
+set -euo pipefail
+
+# Save this script's directory
+SCRIPT_DIR="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)"
+
+main () {
+  # The ref_name it should be either a hash or a tag
+  declare ref_name="$1"
+
+  # Whether ref_name is a tag (default false)
+  declare is_tag="${2:-false}"
+
+  # Obtain the khiops version from the source
+  local script_dir
+  local khiops_version
+  khiops_version="$("$SCRIPT_DIR/khiops-version")"
+
+  # See the header of the script for this part
+  local khiops_package_version
+  if [[ "$is_tag" == "true" ]]
+  then
+    if [[ "$ref_name" == "v${khiops_version}" ]]
+    then
+      khiops_package_version="$khiops_version"
+    else
+      khiops_package_version="$khiops_version-preview-$ref_name"
+      echo "::warning: Tag '$ref_name' doesn't match the Khiops source version '$khiops_version'" 1>&2
+      echo "::warning: Creating snapshot package $khiops_package_version" 1>&2
+    fi
+  else
+    short_hash="$(git rev-parse --short --verify "$ref_name" | cut -d' ' -f1)"
+    khiops_package_version="$khiops_version-preview-$short_hash"
+    echo "::warning: Creating snapshot package $khiops_package_version" 1>&2
+  fi
+  echo "$khiops_package_version"
+}
+
+main "$@"
