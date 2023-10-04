@@ -17,9 +17,10 @@ project(
 cmake_policy(SET CMP0015 NEW)
 cmake_policy(SET CMP0048 NEW)
 cmake_policy(SET CMP0053 NEW)
-cmake_policy(SET CMP0063 NEW)
 cmake_policy(SET CMP0054 NEW)
 cmake_policy(SET CMP0058 NEW)
+cmake_policy(SET CMP0063 NEW)
+cmake_policy(SET CMP0083 NEW)
 
 # Do not add warning flags for MSVC cmake_policy(SET CMP0092 NEW)
 
@@ -107,14 +108,6 @@ message(STATUS "Libraries will be stored in ${CMAKE_BINARY_DIR}/lib/")
 # Set module path for the project
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/packaging")
 
-# Use "-fPIC" / "-fPIE" for all targets by default, including static libs
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
-# CMake doesn't add "-pie" by default for executables (CMake issue #14983)
-if(NOT MSVC OR NOT APPLE)
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pie")
-endif()
-
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN 1)
 
@@ -123,7 +116,7 @@ if(CMAKE_BUILD_TYPE EQUAL "Debug")
   set(LLVM_REQUIRES_RTTI 1)
 endif()
 
-# Process dependencies Find MPI if required
+# Process dependencies: Find MPI if required
 if(MPI)
   find_package(MPI 2.0 REQUIRED)
   message(
@@ -160,6 +153,10 @@ if(BUILD_JARS)
   # - find_package(Java 1.8 EXACT REQUIRED COMPONENTS Development)
 endif()
 
+# Check for support of position independent code/executable
+include(CheckPIESupported)
+check_pie_supported()
+
 # Message the current C++ configuration
 message(STATUS "CMake generator is: ${CMAKE_GENERATOR}")
 message(STATUS "CMake compiler is: ${CMAKE_CXX_COMPILER_ID}")
@@ -183,15 +180,16 @@ function(set_khiops_options target)
   get_target_property(target_type ${target} TYPE)
   message(STATUS "Setting up ${target_type} ${target}")
 
-  # General compiler definitions
+  # General compiler properties and definitions
+  set_property(TARGET ${target} PROPERTY POSITION_INDEPENDENT_CODE TRUE)
   target_compile_definitions(${target} PRIVATE UNICODE _UNICODE)
   if(MPI)
     target_compile_definitions(${target} PRIVATE USE_MPI)
   endif()
-
   target_compile_definitions(${target} PRIVATE $<$<CONFIG:RELEASE,RELWITHDEBINFO>:NOALL>)
   target_compile_definitions(${target} PRIVATE $<$<CONFIG:RELWITHDEBINFO>:__ALPHA__>)
 
+  # Delegate to specialized function for Windows and Unix-like
   if(MSVC)
     set_msvc_khiops_options(${target})
   else()
