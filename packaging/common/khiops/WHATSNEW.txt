@@ -1,59 +1,79 @@
-Khiops 10.1.5 release notes
-===========================
+==========================================
+Release Notes for Khiops 10 Version Series
+==========================================
+
+Version 10.2.0
+==============
+**Announcement**: This is a special release marking the open-sourcing of the Khiops AutoML suite.
+New Features:
+- Khiops can now be built in macOS. Currently only a conda package is available for installing (more
+  information at https://khiops.org)
+
 Bug fix:
-- KhiopsNativeInterface crashes with java under linux. 
-  Signals are not intercepted anymore in KNI.
+- Fix a bug in the calculation of descriptive stats for huge databases
+- Fix clusters having negative typicalities in coclustering
 
-Khiops 10.1.4 release notes
-===========================
-Bug fix: 
-- in the sorting algorithm: it could produce corrupted files when the separators of the input 
-  and output files are different.
 
-Khiops 10.1.3 release notes
-===========================
-Bug fix: 
+Version 10.1.5
+==============
+Bug fix:
+- KhiopsNativeInterface crashes with java under Linux. Signals are not intercepted anymore in KNI.
+
+Version 10.1.4
+==============
+Bug fix:
+- in the sorting algorithm: it could produce corrupted files when the separators of the input and
+  output files are different.
+
+Version 10.1.3
+==============
+Bug fix:
 - better error management on non standard file systems (e.g. s3 or hdfs)
 - the results directory is correctly build in predictor evaluation on non standard file systems
 
-Khiops 10.1.2 release notes
-===========================
-Bug fix: 
+Version 10.1.2
+==============
+Bug fix:
 - the results path is correctly build in Khiops-coclustering when the directory is located on
   non standard file systems (e.g. s3 or hdfs)
 
-Khiops 10.1.1 release notes
-===========================
+Version 10.1.1
+==============
 Bug fixes:
-- in the sorting algorithm : in case where the field separator in the output file was different
-  from the input file, with the input file having fields surrounded by double-quotes and
-  containing the input field separator
-- in the construction of trees: in an edge case with a single tree and categorical fields 
-  with very large number of values
+- in the sorting algorithm : in case where the field separator in the output file was different from
+  the input file, with the input file having fields surrounded by double-quotes and containing the
+  input field separator
+- in the construction of trees: in an edge case with a single tree and categorical fields with very
+  large number of values
 - in a multiple-machine cloud environment: fixed the file path management with URI
-- in a multiple-machine cloud environment: fixed management of specialized temporary directories per machine
+- in a multiple-machine cloud environment: fixed management of specialized temporary directories per
+  machine
 
 Improvements:
-- better dimensionning of the deployment task in case of multi-table schema with a large number of orphan secondary records
+- better dimensioning of the deployment task in case of multi-table schema with a large number of
+  orphan secondary records
 - improved detection and diagnostics related to JAVA runtime in Khiops scripts on Windows
 
 
-Khiops 10.1 release notes
-=========================
-Khiops 10.1 is a minor release, with few new features, but many optimization and reliability improvements,
-to better perform in cloud environments and better integrate Khiops within information systems.
+Version 10.1
+============
+Khiops 10.1 is a minor release, with few new features, but many optimization and reliability
+improvements, to better perform in cloud environments and better integrate Khiops within information
+systems.
 
 Main new features
 - Visualization tools:
   - Khiops visualization: new panel "Tree preparation" to visualize the trees.
-  - Khiops covisualization: new tool, replacing the previous one based on the obsolete Flex framework.
+  - Khiops covisualization: new tool, replacing the previous one based on the obsolete Flex
+    framework.
 - Data Table Dictionaries:
   - A new type TimestampTZ: A timestamp with timezone:
     - it uses the ISO 8601 standard (see the Khiops Guide for more details).
     - it is detected automatically in the "Build dictionary from data table" feature.
     - new derivation rules for this type:
-      - CopyTSTZ, FormatTimestampTZ, AsTimestampTZ, UtcTimestamp, LocalTimestamp, SetTimeZoneMinutes,
-        GetTimeZoneMinutes, DiffTimestampTZ, AddSecondsTSTZ, IsTimestampTZValid, BuildTimestampTZ, GetValueTSTZ.
+      - CopyTSTZ, FormatTimestampTZ, AsTimestampTZ, UtcTimestamp, LocalTimestamp,
+        SetTimeZoneMinutes, GetTimeZoneMinutes, DiffTimestampTZ, AddSecondsTSTZ, IsTimestampTZValid,
+        BuildTimestampTZ, GetValueTSTZ.
     - new automatic construction rule in "Variable construction parameters":
       - LocalTimestamp, to obtain a local Timestamp from a TimestampTZ
   - Timestamp type now accepts a format with the character 'T' as separator between date and time.
@@ -87,67 +107,65 @@ Main performance improvements
 Many minor corrections, mainly for edge-case bugs.
 
 
-Khiops 10.0.4 release notes
-===========================
-- bug fix in sort algorithm : the field separator in the output file was not correct
-  for files with a huge number of identical lines.
+Version 10.0.4
+==============
+- bug fix in sort algorithm : the field separator in the output file was not correct for files with
+  a huge number of identical lines.
 
 
-Khiops 10.0.3 release notes
-===========================
-- fix an edge-case bug in multi-table schemas, in case of a root table of moderate size
-  and several subtables, some of them very small and some very large, and duplicate records
-  in the root table
+Version 10.0.3
+==============
+- fix an edge-case bug in multi-table schemas, in case of a root table of moderate size and several
+  subtables, some of them very small and some very large, and duplicate records in the root table
 
-- fix a problem of wrong line numbers reported in case or warning or errors occuring
-  with very large data files
+- fix a problem of wrong line numbers reported in case or warning or errors occuring with very large
+  data files
 
 - fix a bug in json reports for trees
 
 - the file format detector is now more resilient to empty lines in the analyzed data files
 
 
-Khiops 10.0.2 release notes
-===========================
-- fix a bug for file systems with URI schemes (s3 or hdfs) for correct managment
-  of the "result files directory"
+Version 10.0.2
+==============
+- fix a bug for file systems with URI schemes (s3 or hdfs) for correct managment of the "result
+  files directory"
 
 
-Khiops 10.0.1 release notes
-===========================
+Version 10.0.1
+==============
 Improvements:
-- better handling of database encodings (ascii, ansi, utf8) for json report files,
-  to make it easier to manipulate reports from pykhiops:
+- better handling of database encodings (ascii, ansi, utf8) for json report files, to make it easier
+  to manipulate reports from pykhiops:
   cf. "Character encodings" section in the Khiops guide
 
-- the "Detect file format" feature now displays a message in the log window
-  with the recognized format: used header line and field sepatator
+- the "Detect file format" feature now displays a message in the log window with the recognized
+  format: used header line and field separator
 
-- the "Build dictionary" function now proposes a categorical format for fields
-  that only contain the values "", "0", or "1"
+- the "Build dictionary" function now proposes a categorical format for fields that only contain the
+  values "", "0", or "1"
 
-- in modeling dictionaries, the target variable is now set as "Unused" by default
-  to facilitate the deployment of predictors in the case of deployment databases
-  where the target variable is missing
+- in modeling dictionaries, the target variable is now set as "Unused" by default to facilitate the
+  deployment of predictors in the case of deployment databases where the target variable is missing
 
-- the Accidents sample database is now translated into English, with interpretable
-  variable names and values; a simpler version called AccidentsSummary is available
+- the Accidents sample database is now translated into English, with interpretable variable names
+  and values; a simpler version called AccidentsSummary is available
 
-- the khiops and khiops_coclustering shell commands now exploit a common shell command
-  khiops_env which defines all env variables required by Khiops.
-  This new command is self-documented and can be used from a wrapper, such as pykhiops
+- the khiops and khiops_coclustering shell commands now exploit a common shell command khiops_env
+  which defines all env variables required by Khiops. This new command is self-documented and can
+  be used from a wrapper, such as pykhiops
 
-- better messages and documentation in case of unsupported data formats, such as the
-  "classic" Mac OS line endings, deprecated since Max OS X in 1998, or a UTF-8 file
-  with BOM (byte order mark) start characters
+- better messages and documentation in case of unsupported data formats, such as the "classic" Mac
+  OS line endings, deprecated since Max OS X in 1998, or a UTF-8 file with BOM (byte order mark)
+  start characters
 
-- slight improvement of the level criterion for the preparation of univariate and
-  bivariate data in some edge cases
+- slight improvement of the level criterion for the preparation of univariate and bivariate data in
+  some edge cases
 
 - the "Build coclustering" button is renamed to "Train coclustering" in the Khiops coclustering tool
 
-- the environment variables for managing external resources are now KHIOPS_MEMORY_LIMIT and KHIOPS_TMP_DIR,
-  instead of the now obsolete KhiopsTmpDir.
+- the environment variables for managing external resources are now KHIOPS_MEMORY_LIMIT and
+  KHIOPS_TMP_DIR, instead of the now obsolete KhiopsTmpDir.
 
 - AUC is now 0 in the case of an empty test database.
 
@@ -159,25 +177,29 @@ Improvements:
 Issues:
 - fix a bug in the "Extract keys" function, when the output file is specified without a header line
 
-- fix an overestimation of the memory requirement for building the trees in the case of large databases
+- fix an overestimation of the memory requirement for building the trees in the case of large
+  databases
 
 - fix a edge case bug that freezes parallel processes when learning a multi-table scheme
 
-- fix a edge case bug in the SNB classifier, in the case of a very large matrix instances x variables beyond two billion values
+- fix a edge case bug in the SNB classifier, in the case of a very large matrix instances x
+  variables beyond two billion values
 
-- fix a edge case bug in the sorting functionality, when the input files contain fields between double quotes with internal quotes
-  double quotes and/or an input field separator, and when the output field separator is different from the input one
+- fix a edge case bug in the sorting functionality, when the input files contain fields between
+  double quotes with internal quotes double quotes and/or an input field separator, and when the
+  output field separator is different from the input one
 
-- fix a bug in te user interface, when the "Inspect dictionary" action could be called twice simultaneously, resulting in a crash
+- fix a bug in te user interface, when the "Inspect dictionary" action could be called twice
+  simultaneously, resulting in a crash
 
-- fix several resource management issues in the case of a cluster with several heteregeneous machines
+- fix several resource management issues in the case of a cluster with several heteregeneous
+  machines
 
 - Other minor corrections
 
 
-Khiops 10.0 - what 's new
-=========================
-  (c) 2021 Orange Labs - All rights reserved.
+Version 10.0
+============
 
 Khiops is a fully automatic tool for mining large multi-table databases,
 winner of several data mining challenges.
@@ -344,7 +366,7 @@ User interface
         - Variable construction pane: removed
   - new helper button "Detect file format" in each database pane,
     to detect whether there is a header line and what the field separator is
-  - new menu Help, with documentation, licence management and about sub-menus
+  - new menu Help, with documentation, license management and about sub-menus
   - removed options
     - Pane Parameters/Predictors
       - MAP Naive Bayes and Naive Bayes predictors are removed

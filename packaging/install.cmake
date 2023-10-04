@@ -99,7 +99,7 @@ install(
   COMPONENT KHIOPS_CORE)
 
 install(
-  FILES ${PROJECT_SOURCE_DIR}/packaging/common/khiops/whatsnewV10.1.txt
+  FILES ${PROJECT_SOURCE_DIR}/packaging/common/khiops/WHATSNEW.txt
         ${PROJECT_SOURCE_DIR}/packaging/common/khiops/README.txt
   DESTINATION usr/share/doc/khiops
   COMPONENT KHIOPS)
