@@ -225,18 +225,6 @@ function(set_unix_khiops_options target)
   #
   target_compile_options(${target} PRIVATE $<$<CONFIG:RELEASE,RELWITHDEBINFO>:-fno-rtti> -fno-exceptions)
 
-  # Special options for clang, we remove the following too verbose warnings:
-  #
-  # - unsequenced modification
-  # - overloaded virtual functions
-  # - inconsistent missing override
-  #
-  # These warnings should be add back, but we have a lot of work in Khiops
-  if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    target_compile_options(${target} PRIVATE -Wno-unsequenced -Wno-overloaded-virtual
-                                             -Wno-inconsistent-missing-override)
-  endif()
-
 endfunction(set_unix_khiops_options)
 
 # Sets the compiling options for MSVC
