@@ -9,8 +9,10 @@ boolean MovePositionInBinaryFile(FILE* fFile, longint lOffset)
 	boolean bOk;
 
 	// Pour les fichiers de plus de 4 Go, il existe une API speciale (stat64...)
-#if defined __MSC__
+#ifdef _WIN32
 	_fseeki64(fFile, lOffset, SEEK_CUR);
+#elif defined(__APPLE__)
+	fseeko(fFile, lOffset, SEEK_CUR);
 #else
 	fseeko64(fFile, lOffset, SEEK_CUR);
 #endif
@@ -23,10 +25,12 @@ longint TellPositionInBinaryFile(FILE* fFile)
 	longint lCurrentPosition;
 
 	// Pour les fichiers de plus de 4 Go, il existe une API speciale (stat64...)
-#if defined __MSC__
+#ifdef _WIN32
 	lCurrentPosition = _ftelli64(fFile);
+#elif defined(__APPLE__)
+	lCurrentPosition = ftello(fFile);
 #else
-	lCurrentPosition = fseeko64(fFile);
+	lCurrentPosition = ftello64(fFile);
 #endif
 	return lCurrentPosition;
 }
@@ -225,6 +229,7 @@ void CopyFileTwiceThenConcatenate(const ALString& sPathName, boolean bFast)
 	longint lPosition;
 	const int nBufferLength = MemSegmentByteSize;
 	char sBuffer[nBufferLength];
+	int nByteReadNumber;
 	FILE* fFile;
 	FILE* fCopy1;
 	FILE* fCopy2;
@@ -280,14 +285,14 @@ void CopyFileTwiceThenConcatenate(const ALString& sPathName, boolean bFast)
 	{
 		if (lPosition + nBufferLength < lFileSize)
 		{
-			fread(sBuffer, sizeof(char), nBufferLength, fFile);
+			nByteReadNumber = (int)fread(sBuffer, sizeof(char), nBufferLength, fFile);
 			fwrite(sBuffer, sizeof(char), nBufferLength, fCopy1);
 			fwrite(sBuffer, sizeof(char), nBufferLength, fCopy2);
 			lPosition += nBufferLength;
 		}
 		else
 		{
-			fread(sBuffer, sizeof(char), int(lFileSize - lPosition), fFile);
+			nByteReadNumber = (int)fread(sBuffer, sizeof(char), int(lFileSize - lPosition), fFile);
 			fwrite(sBuffer, sizeof(char), int(lFileSize - lPosition), fCopy1);
 			fwrite(sBuffer, sizeof(char), int(lFileSize - lPosition), fCopy2);
 			lPosition = lFileSize;
@@ -333,13 +338,13 @@ void CopyFileTwiceThenConcatenate(const ALString& sPathName, boolean bFast)
 	{
 		if (lPosition + nBufferLength < lFileSize)
 		{
-			fread(sBuffer, sizeof(char), nBufferLength, fCopy1);
+			nByteReadNumber = (int)fread(sBuffer, sizeof(char), nBufferLength, fCopy1);
 			fwrite(sBuffer, sizeof(char), nBufferLength, fConcat);
 			lPosition += nBufferLength;
 		}
 		else
 		{
-			fread(sBuffer, sizeof(char), int(lFileSize - lPosition), fCopy1);
+			nByteReadNumber = (int)fread(sBuffer, sizeof(char), int(lFileSize - lPosition), fCopy1);
 			fwrite(sBuffer, sizeof(char), int(lFileSize - lPosition), fConcat);
 			lPosition = lFileSize;
 		}
@@ -353,13 +358,13 @@ void CopyFileTwiceThenConcatenate(const ALString& sPathName, boolean bFast)
 	{
 		if (lPosition + nBufferLength < lFileSize)
 		{
-			fread(sBuffer, sizeof(char), nBufferLength, fCopy2);
+			nByteReadNumber = (int)fread(sBuffer, sizeof(char), nBufferLength, fCopy2);
 			fwrite(sBuffer, sizeof(char), nBufferLength, fConcat);
 			lPosition += nBufferLength;
 		}
 		else
 		{
-			fread(sBuffer, sizeof(char), int(lFileSize - lPosition), fCopy2);
+			nByteReadNumber = (int)fread(sBuffer, sizeof(char), int(lFileSize - lPosition), fCopy2);
 			fwrite(sBuffer, sizeof(char), int(lFileSize - lPosition), fConcat);
 			lPosition = lFileSize;
 		}

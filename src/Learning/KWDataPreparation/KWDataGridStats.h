@@ -661,6 +661,7 @@ public:
 	// nGranularizedValueNumber + nCatchAllValueNumber = nInitialValueNumber
 	void SetCatchAllValueNumber(int nValue);
 	int GetCatchAllValueNumber() const;
+
 	///////////////////////////////////////
 	// Methodes de test de la classe
 

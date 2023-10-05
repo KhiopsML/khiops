@@ -53,7 +53,7 @@ public:
 
 	// Champs de la cle
 	//    Name
-	const ALString& GetKey() const;
+	const ALString& GetKey() const override;
 
 	////////////////////////////////////////////////////////
 	// Fonctionnalites generiques
@@ -77,22 +77,22 @@ public:
 	};
 
 	// Nombre de champs
-	int GetFieldNumber() const;
+	int GetFieldNumber() const override;
 
 	// Acces generique aux champs, par une valeur de
 	// type chaine de caracteres
 	// (les champs derives sont ignores en ecriture)
-	void SetFieldAt(int nFieldIndex, const char* sValue);
-	const char* GetFieldAt(int nFieldIndex) const;
+	void SetFieldAt(int nFieldIndex, const char* sValue) override;
+	const char* GetFieldAt(int nFieldIndex) const override;
 
 	// Nom d'un champ d'apres son index
-	const ALString GetFieldNameAt(int nFieldIndex) const;
+	const ALString GetFieldNameAt(int nFieldIndex) const override;
 
 	// Libelle d'un champ d'apres son index
-	const ALString GetFieldLabelAt(int nFieldIndex) const;
+	const ALString GetFieldLabelAt(int nFieldIndex) const override;
 
 	// Nom de stockage d'un champ d'apres son index
-	const ALString GetFieldStorageNameAt(int nFieldIndex) const;
+	const ALString GetFieldStorageNameAt(int nFieldIndex) const override;
 
 	// Parametrage du separateur de champs (par defaut: '\t')
 	static void SetFieldSeparator(char cValue);
@@ -171,11 +171,11 @@ public:
 	//// Implementation
 protected:
 	// Implementation des methodes virtuelles de ManagedObject
-	ManagedObject* CloneManagedObject() const;
-	boolean GetFieldStored(int nFieldIndex) const;
-	IntVector* GetStoredFieldIndexes() const;
-	CompareFunction GetCompareKeyFunction() const;
-	char GetSeparator() const;
+	ManagedObject* CloneManagedObject() const override;
+	boolean GetFieldStored(int nFieldIndex) const override;
+	IntVector* GetStoredFieldIndexes() const override;
+	CompareFunction GetCompareKeyFunction() const override;
+	char GetSeparator() const override;
 
 	// Exemplaire d'objet gere
 	static Attribute managedObjectClass;

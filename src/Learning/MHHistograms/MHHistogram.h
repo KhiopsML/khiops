@@ -187,7 +187,7 @@ public:
 	virtual void CopyFrom(const MHHistogram* sourceHistogram);
 
 	// Duplication
-	virtual MHHistogram* Clone() const;
+	MHHistogram* Clone() const;
 
 	// Ecriture sous forme d'un tableau de bins avec leurs caracteristiques
 	virtual void WriteSummary(ostream& ost) const;

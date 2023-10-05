@@ -166,11 +166,6 @@ void MHGenumHistogram::CopyFrom(const MHHistogram* sourceHistogram)
 	MHHistogram::CopyFrom(sourceHistogram);
 }
 
-MHHistogram* MHGenumHistogram::Clone() const
-{
-	return MHHistogram::Clone();
-}
-
 void MHGenumHistogram::WriteSummary(ostream& ost) const
 {
 	// Appel de la methode ancetre

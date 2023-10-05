@@ -23,10 +23,10 @@ public:
 	~MHDiscretizerMODLHistogram();
 
 	// Nom de l'algorithme
-	const ALString GetName() const;
+	const ALString GetName() const override;
 
 	// Constructeur generique
-	KWDiscretizer* Create() const;
+	KWDiscretizer* Create() const override;
 
 	// Utilisation des valeurs sources pour la discretisation. Ici: true
 	boolean IsUsingSourceValues() const override;

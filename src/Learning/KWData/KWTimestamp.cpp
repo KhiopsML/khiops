@@ -120,7 +120,7 @@ const char* const Timestamp::ToString() const
 	if (not Check())
 		sTimestamp[0] = '\0';
 	else
-		sprintf(sTimestamp, "%s %s", GetDate().ToString(), GetTime().ToString());
+		snprintf(sTimestamp, BUFFER_LENGTH, "%s %s", GetDate().ToString(), GetTime().ToString());
 	return sTimestamp;
 }
 

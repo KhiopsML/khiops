@@ -78,7 +78,7 @@ const ALString PEPi::GetObjectLabel() const
 void PEPi::ComputePi()
 {
 	PEPiTask piTask;
-	char cPi[29];
+	char sPiResult[30];
 	ALString sTmp;
 
 	// Parametrage et lancement de la tache de calcul de Pi
@@ -86,8 +86,8 @@ void PEPi::ComputePi()
 	piTask.ComputePi();
 
 	// Collecte des resultats, avec le maximum de precision
-	sprintf(cPi, "%.15g", piTask.GetComputedPi());
-	SetPi(cPi);
+	snprintf(sPiResult, sizeof(sPiResult), "%.15g", piTask.GetComputedPi());
+	SetPi(sPiResult);
 	SetElapsedTime(piTask.GetJobElapsedTime());
 }
 

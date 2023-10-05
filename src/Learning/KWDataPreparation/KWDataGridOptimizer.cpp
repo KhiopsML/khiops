@@ -941,7 +941,6 @@ KWDataGridOptimizer::OptimizeWithBestUnivariatePartitionForCurrentGranularity(co
 	double dBestCost;
 	double dCost;
 	int nAttribute;
-	int nTarget;
 	boolean bEvaluated;
 	boolean bImproved;
 	boolean bDisplayResults = false;
@@ -1687,7 +1686,6 @@ double KWDataGridVNSOptimizer::PROTO_VNSDataGridPostOptimizeVarPart(
 			neighbourDataGrid->Write(cout);
 			cout << "Grille apres fusion\n";
 			mergedDataGrid->Write(cout);
-			debug(false);
 		}
 
 		// Post-optimisation de l'attribut VarPart uniquement dans le cas d'une optimisation approfondie
@@ -2087,7 +2085,6 @@ double KWDataGridVNSOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* init
 				neighbourDataGrid.Write(cout);
 				cout << "Grille apres fusion\n";
 				mergedDataGrid.Write(cout);
-				debug(false);
 			}
 
 			// Post-optimisation de l'attribut VarPart uniquement dans le cas d'une optimisation approfondie

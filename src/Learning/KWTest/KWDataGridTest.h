@@ -286,7 +286,7 @@ public:
 	~KWSGGaussianMixture();
 
 	// Redefinition des methodes virtuelles
-	const ALString GetName() const;
+	const ALString GetName() const override;
 	void GenerateObjectValues(KWObject* kwoObject) override;
 
 	// Parametres de la Gaussienne pour la classe '-' (par defaut: moyenne = (-1 -1) et ecart type = (1 1))

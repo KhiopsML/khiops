@@ -379,7 +379,7 @@ public:
 	~KWVarPartDataGridClusteringCosts();
 
 	// Duplication
-	KWDataGridCosts* Clone() const;
+	KWDataGridCosts* Clone() const override;
 
 	/////////////////////////////////////////////////////////////////////////
 	// Calcul des couts locaux par entite de la grille des donnees

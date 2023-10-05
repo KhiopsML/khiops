@@ -144,7 +144,7 @@ public:
 	~KWDataGridClusteringCostsBivariate();
 
 	// Duplication
-	KWDataGridCosts* Clone() const;
+	KWDataGridCosts* Clone() const override;
 
 	/////////////////////////////////////////////////////////////////////////
 	// Calcul des couts locaux par entite de la grille des donnees
@@ -154,24 +154,24 @@ public:
 	//  La taille de la grille est donnee par son log, pour ne pas depasser les limites informatiques
 	//  Les attributs informatifs sont ceux ayant strictement plus de une partie
 	double ComputeDataGridCost(const KWDataGrid* dataGrid, double dLnGridSize,
-				   int nInformativeAttributeNumber) const;
+				   int nInformativeAttributeNumber) const override;
 
 	// Calcul du cout local d'un attribut, pour un nombre de parties donnees
 	// Le nombre de parties est le nombre total de parties.
 	// En cas de presence d'une poubelle il s'agit du nombre de parties informatives de l'attribut + 1
-	double ComputeAttributeCost(const KWDGAttribute* attribute, int nPartitionSize) const;
+	double ComputeAttributeCost(const KWDGAttribute* attribute, int nPartitionSize) const override;
 
 	// Calcul du cout local d'une partie
-	double ComputePartCost(const KWDGPart* part) const;
+	double ComputePartCost(const KWDGPart* part) const override;
 
 	// Calcul du cout local de l'union de deux parties
-	double ComputePartUnionCost(const KWDGPart* part1, const KWDGPart* part2) const;
+	double ComputePartUnionCost(const KWDGPart* part1, const KWDGPart* part2) const override;
 
 	// Calcul du cout local d'une cellule
-	double ComputeCellCost(const KWDGCell* cell) const;
+	double ComputeCellCost(const KWDGCell* cell) const override;
 
 	// Calcul du cout local d'une valeur d'un attribut symbolique
-	double ComputeValueCost(const KWDGValue* value) const;
+	double ComputeValueCost(const KWDGValue* value) const override;
 
 	// Libelle de la classe
 	const ALString GetClassLabel() const override;
@@ -188,11 +188,11 @@ public:
 	~KWDataGridClusteringCostsBivariateH();
 
 	// Duplication
-	KWDataGridCosts* Clone() const;
+	KWDataGridCosts* Clone() const override;
 
 	// Calcul du cout local d'un DataGrid, selon le prior hierarchique
 	double ComputeDataGridCost(const KWDataGrid* dataGrid, double dLnGridSize,
-				   int nInformativeAttributeNumber) const;
+				   int nInformativeAttributeNumber) const override;
 
 	// Libelle de la classe
 	const ALString GetClassLabel() const override;

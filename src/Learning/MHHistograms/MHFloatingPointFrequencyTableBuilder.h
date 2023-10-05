@@ -270,7 +270,7 @@ public:
 	// Services divers
 
 	// Affichage
-	void Write(ostream& ost) const;
+	void Write(ostream& ost) const override;
 
 	// Ecriture des bornes des bins principaux
 	void WriteMainBins(ostream& ost) const;

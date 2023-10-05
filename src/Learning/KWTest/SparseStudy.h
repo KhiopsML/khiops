@@ -107,7 +107,7 @@ void DoubleVectorAccessTest();
 // Classe KWValueIndexPair
 // Class technique, utilisee uniquement pour l'implementation des blocs sparse
 // Pas de "packing" des attribut pour optimiser la place memoire
-#ifdef _WIN32
+// #ifdef _WIN32
 #pragma pack(push)
 #pragma pack(1)
 class KWValueIndexPairTest : public SystemObject
@@ -117,6 +117,11 @@ class KWValueIndexPairTest : public SystemObject
 	friend class KWContinuousValueBlockTest;
 };
 #pragma pack(pop)
+// Sous linux on doit utiliser __attribute__((packed)); mais pragma pack fonctionne sur clang et gcc, on privilegie donc
+// la version portable. ATTENTION il faut declarer nIndex avant value sinon le packing n'est pas fait sur linux (on ne
+// sait pas pourquoi)
+
+/*
 #else // Linux
 class KWValueIndexPairTest : public SystemObject
 {
@@ -124,7 +129,7 @@ class KWValueIndexPairTest : public SystemObject
 	int nIndex;
 	friend class KWContinuousValueBlockTest;
 } __attribute__((packed));
-#endif
+#endif*/
 
 /////////////////////////////////////////////////////////////////////
 // Classe KWContinuousValueBlock: gestion d'un bloc de valeurs sparse

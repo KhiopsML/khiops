@@ -1900,7 +1900,7 @@ void KWDataGridManager::BuildUnivariateDataGridFromGranularizedPartition(KWDataG
 	KWDGAttribute* targetAttribute;
 	KWDGAttribute* sourceAttribute;
 
-	require(0 < nAttributeIndex < sourceDataGrid->GetAttributeNumber());
+	require(0 < nAttributeIndex and nAttributeIndex < sourceDataGrid->GetAttributeNumber());
 
 	// Initialisation de la grille cible a une variable
 	InitialiseDataGrid(sourceDataGrid, univariateTargetDataGrid, 1);

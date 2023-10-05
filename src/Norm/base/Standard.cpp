@@ -31,9 +31,9 @@ const char* const SecondsToString(double dValue)
 
 	// Formatage du resultat
 	if (nHundredth == 0)
-		sprintf(sBuffer, "%d:%2.2d:%2.2d", nHours, nMinutes, nSeconds);
+		snprintf(sBuffer, BUFFER_LENGTH, "%d:%2.2d:%2.2d", nHours, nMinutes, nSeconds);
 	else
-		sprintf(sBuffer, "%d:%2.2d:%2.2d.%2.2d", nHours, nMinutes, nSeconds, nHundredth);
+		snprintf(sBuffer, BUFFER_LENGTH, "%d:%2.2d:%2.2d.%2.2d", nHours, nMinutes, nSeconds, nHundredth);
 
 	return sBuffer;
 }
@@ -41,7 +41,7 @@ const char* const SecondsToString(double dValue)
 const char* const IntToString(int nValue)
 {
 	char* sBuffer = StandardGetBuffer();
-	sprintf(sBuffer, "%d", nValue);
+	snprintf(sBuffer, BUFFER_LENGTH, "%d", nValue);
 
 	return sBuffer;
 }
@@ -49,7 +49,7 @@ const char* const IntToString(int nValue)
 const char* const LongintToString(longint lValue)
 {
 	char* sBuffer = StandardGetBuffer();
-	sprintf(sBuffer, "%lld", lValue);
+	snprintf(sBuffer, BUFFER_LENGTH, "%lld", lValue);
 
 	return sBuffer;
 }
@@ -58,7 +58,7 @@ const char* const DoubleToString(double dValue)
 {
 	char* sBuffer = StandardGetBuffer();
 
-	sprintf(sBuffer, "%g", dValue);
+	snprintf(sBuffer, BUFFER_LENGTH, "%g", dValue);
 
 	return sBuffer;
 }
@@ -109,9 +109,9 @@ const char* const BooleanToString(boolean bValue)
 	char* sBuffer = StandardGetBuffer();
 
 	if (bValue)
-		sprintf(sBuffer, "%s", "true");
+		snprintf(sBuffer, BUFFER_LENGTH, "%s", "true");
 	else
-		sprintf(sBuffer, "%s", "false");
+		snprintf(sBuffer, BUFFER_LENGTH, "%s", "false");
 
 	return sBuffer;
 }
@@ -119,7 +119,7 @@ const char* const BooleanToString(boolean bValue)
 const char* const PointerToString(const void* pValue)
 {
 	char* sBuffer = StandardGetBuffer();
-	sprintf(sBuffer, "%p", pValue);
+	snprintf(sBuffer, BUFFER_LENGTH, "%p", pValue);
 
 	return sBuffer;
 }

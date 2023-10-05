@@ -942,7 +942,7 @@ public:
 	~KWDGValueSet();
 
 	// Type de valeur gere
-	virtual int GetValueType() const = 0;
+	int GetValueType() const override = 0;
 
 	// Creation
 	virtual KWDGValueSet* Create() const = 0;
@@ -1252,7 +1252,7 @@ public:
 	~KWDGInterval();
 
 	// Type de valeur gere par la partie
-	int GetValueType() const;
+	int GetValueType() const override;
 
 	// Borne inf de l'intervalle
 	// (doit etre egal a KWDGInterval::GetMinLowerBound pour le premier intervalle)
@@ -1348,7 +1348,7 @@ public:
 	int GetValueType() const override;
 
 	// Partie de variable
-	KWDGPart* GetVarPart() const;
+	KWDGPart* GetVarPart() const override;
 
 	// Valeur en tant que cle numerique
 	NUMERIC GetNumericKeyValue() const override;

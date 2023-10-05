@@ -25,10 +25,10 @@ const char* const LongintToHumanReadableString(longint lValue)
 
 	// Affichage exact si des bytes plus petit que 1 KB
 	if (i == 0)
-		sprintf(sBuffer, "%lld %s", lValue, units[i]);
+		snprintf(sBuffer, BUFFER_LENGTH, "%lld %s", lValue, units[i]);
 	// Sinon, affichage avec 1 digit de precision
 	else
-		sprintf(sBuffer, "%.1f %s", lValue / pow(1024.0, i), units[i]);
+		snprintf(sBuffer, BUFFER_LENGTH, "%.1f %s", lValue / pow(1024.0, i), units[i]);
 	return sBuffer;
 }
 
@@ -46,7 +46,7 @@ const char* const LongintToReadableString(longint lValue)
 
 	// Cas des nombre inferieur a 10000
 	if (lAbsoluteValue < 10000)
-		sprintf(sBuffer, "%lld", lValue);
+		snprintf(sBuffer, BUFFER_LENGTH, "%lld", lValue);
 	// Sinon, on insere des separateurs de millier
 	else
 	{
@@ -64,14 +64,14 @@ const char* const LongintToReadableString(longint lValue)
 		// Ecriture
 		nPos = 0;
 		if (lValue < 0)
-			nPos += sprintf(&sBuffer[nPos], "-");
-		nPos += sprintf(&sBuffer[nPos], "%d", (int)lTmp);
+			nPos += snprintf(&sBuffer[nPos], BUFFER_LENGTH - nPos, "-");
+		nPos += snprintf(&sBuffer[nPos], BUFFER_LENGTH - nPos, "%d", (int)lTmp);
 		while (lScale > 1)
 		{
 			lScale /= 1000;
 			lTmp = lTmp2 / lScale;
 			lTmp2 = lTmp2 % lScale;
-			nPos += sprintf(&sBuffer[nPos], ",%03d", (int)lTmp);
+			nPos += snprintf(&sBuffer[nPos], BUFFER_LENGTH - nPos, ",%03d", (int)lTmp);
 		}
 	}
 	return sBuffer;

@@ -6,7 +6,7 @@
 #include "Portability.h"
 #include "MemoryManager.h"
 
-// Pour eviter les warning sur strcpy et sprintf
+// Pour eviter les warning sur strcpy
 #ifdef _MSC_VER
 #define _CRT_SECURE_NO_WARNINGS
 #endif
@@ -216,8 +216,8 @@ const char* CurrentPreciseTimestamp()
 	SYSTEMTIME st;
 
 	GetLocalTime(&st);
-	sprintf_s(sBuffer, 30, "%04d-%02d-%02d %02d:%02d:%02d.%03d%c", st.wYear, st.wMonth, st.wDay, st.wHour,
-		  st.wMinute, st.wSecond, st.wMilliseconds, '\0');
+	snprintf(sBuffer, BUFFER_LENGTH, "%04d-%02d-%02d %02d:%02d:%02d.%03d%c", st.wYear, st.wMonth, st.wDay, st.wHour,
+		 st.wMinute, st.wSecond, st.wMilliseconds, '\0');
 	return sBuffer;
 }
 
@@ -227,8 +227,8 @@ const char* CurrentTimestamp()
 	SYSTEMTIME st;
 
 	GetLocalTime(&st);
-	sprintf_s(sBuffer, 30, "%04d-%02d-%02d %02d:%02d:%02d%c", st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute,
-		  st.wSecond, '\0');
+	snprintf(sBuffer, BUFFER_LENGTH, "%04d-%02d-%02d %02d:%02d:%02d%c", st.wYear, st.wMonth, st.wDay, st.wHour,
+		 st.wMinute, st.wSecond, '\0');
 	return sBuffer;
 }
 
@@ -386,13 +386,13 @@ const char* GetMACAddress()
 				// Memorisation de la nouvelle adresse que si elle est plus grande que la precedente
 				// (ou d'une priorite plus forte, pour favoriser les cates reseau persistantes)
 				// Pour garantir que l'on ne depend pas de l'ordre dans la liste
-				sprintf(sNewMACAddress, "%02x-%02x-%02x-%02x-%02x-%02x",
-					(unsigned char)pAdapterAddresses->PhysicalAddress[0],
-					(unsigned char)pAdapterAddresses->PhysicalAddress[1],
-					(unsigned char)pAdapterAddresses->PhysicalAddress[2],
-					(unsigned char)pAdapterAddresses->PhysicalAddress[3],
-					(unsigned char)pAdapterAddresses->PhysicalAddress[4],
-					(unsigned char)pAdapterAddresses->PhysicalAddress[5]);
+				snprintf(sNewMACAddress, sizeof(sNewMACAddress), "%02x-%02x-%02x-%02x-%02x-%02x",
+					 (unsigned char)pAdapterAddresses->PhysicalAddress[0],
+					 (unsigned char)pAdapterAddresses->PhysicalAddress[1],
+					 (unsigned char)pAdapterAddresses->PhysicalAddress[2],
+					 (unsigned char)pAdapterAddresses->PhysicalAddress[3],
+					 (unsigned char)pAdapterAddresses->PhysicalAddress[4],
+					 (unsigned char)pAdapterAddresses->PhysicalAddress[5]);
 				if (nPriority > nBestPriority || strcmp(sNewMACAddress, sMACAddress) > 0)
 					strcpy(sMACAddress, sNewMACAddress);
 				if (bDisplayDetails)
@@ -535,8 +535,8 @@ static char* GetOsVersion()
 			osInfo.dwOSVersionInfoSize = sizeof(osInfo);
 			if (fxPtr(&osInfo) == 0)
 			{
-				sprintf_s(sWindowsVersion, "windows %d.%d (%d)", osInfo.dwMajorVersion,
-					  osInfo.dwMinorVersion, osInfo.dwBuildNumber);
+				snprintf(sWindowsVersion, sizeof(sWindowsVersion), "windows %d.%d (%d)",
+					 osInfo.dwMajorVersion, osInfo.dwMinorVersion, osInfo.dwBuildNumber);
 			}
 		}
 	}
@@ -547,16 +547,8 @@ const char* GetSystemInfos()
 {
 	char* sInfo = StandardGetBuffer();
 
-	// Nom du processeur
-	sInfo[0] = '\0';
-	SecureStrcpy(sInfo, "cpu=", BUFFER_LENGTH);
-	SecureStrcpy(sInfo, GetProcessorName(), BUFFER_LENGTH);
-	SecureStrcpy(sInfo, "\n", BUFFER_LENGTH);
-
-	// OS
-	SecureStrcpy(sInfo, "os=", BUFFER_LENGTH);
-	SecureStrcpy(sInfo, GetOsVersion(), BUFFER_LENGTH);
-	SecureStrcpy(sInfo, "\n", BUFFER_LENGTH);
+	// Nom du processeur et de l'OS
+	snprintf(sInfo, BUFFER_LENGTH, "cpu=%s\nos=%s\n", GetProcessorName(), GetOsVersion());
 	return sInfo;
 }
 
@@ -834,7 +826,7 @@ const char* CurrentPreciseTimestamp()
 	milliseconds = tv.tv_usec / 1000;
 	/* Print the formatted time, in seconds, followed by a decimal point
 	and the milliseconds. */
-	sprintf(sBuffer, "%s.%03ld", time_string, milliseconds);
+	snprintf(sBuffer, BUFFER_LENGTH, "%s.%03ld", time_string, milliseconds);
 
 	return sBuffer;
 }
@@ -1130,7 +1122,7 @@ int IsVirtual(const char* sInterfaceName)
 		// L'heuristique ne fonctionne pas, on ne sait pas si c'est virtuel ou non
 		return 0;
 
-	sprintf(sDeviceDirectory, "%s%s/device/", sRep, sInterfaceName);
+	snprintf(sDeviceDirectory, sizeof(sDeviceDirectory), "%s%s/device/", sRep, sInterfaceName);
 	if (IsDirectory(sDeviceDirectory))
 		// C'est une interface physique
 		return 0;
@@ -1226,10 +1218,11 @@ const char* GetMACAddress()
 					// Si l'interface est prioritaire
 					if (nPriority >= nBestPriority)
 					{
-						sprintf(sNewMACAddress, "%02x-%02x-%02x-%02x-%02x-%02x",
-							(unsigned char)s->sll_addr[0], (unsigned char)s->sll_addr[1],
-							(unsigned char)s->sll_addr[2], (unsigned char)s->sll_addr[3],
-							(unsigned char)s->sll_addr[4], (unsigned char)s->sll_addr[5]);
+						snprintf(sNewMACAddress, sizeof(sNewMACAddress),
+							 "%02x-%02x-%02x-%02x-%02x-%02x", (unsigned char)s->sll_addr[0],
+							 (unsigned char)s->sll_addr[1], (unsigned char)s->sll_addr[2],
+							 (unsigned char)s->sll_addr[3], (unsigned char)s->sll_addr[4],
+							 (unsigned char)s->sll_addr[5]);
 
 						// On garde la prioritaire
 						// En cas d'egalite, on garde l'adresse qui est la plus grande suivant
@@ -1366,6 +1359,7 @@ const char* GetSystemInfos()
 	int i = 0;
 	int nLineCount;
 	char* sInfo = StandardGetBuffer();
+	int nPos;
 	char c;
 	struct utsname buffer;
 	bool bOk;
@@ -1401,15 +1395,9 @@ const char* GetSystemInfos()
 	if (uname(&buffer) >= 0)
 	{
 		bOk = true;
-		bOk = bOk and SecureStrcpy(sInfo, "system=", BUFFER_LENGTH);
-		bOk = bOk and SecureStrcpy(sInfo, buffer.sysname, BUFFER_LENGTH);
-		bOk = bOk and SecureStrcpy(sInfo, "\n", BUFFER_LENGTH);
-		bOk = bOk and SecureStrcpy(sInfo, "release=", BUFFER_LENGTH);
-		bOk = bOk and SecureStrcpy(sInfo, buffer.release, BUFFER_LENGTH);
-		bOk = bOk and SecureStrcpy(sInfo, "\n", BUFFER_LENGTH);
-		bOk = bOk and SecureStrcpy(sInfo, "version=", BUFFER_LENGTH);
-		bOk = bOk and SecureStrcpy(sInfo, buffer.version, BUFFER_LENGTH);
-		bOk = bOk and SecureStrcpy(sInfo, "\n", BUFFER_LENGTH);
+		nPos = (int)strlen(sInfo);
+		snprintf(&sInfo[nPos], BUFFER_LENGTH - nPos, "system=%s\nrelease=%s\nversion=%s\n", buffer.sysname,
+			 buffer.release, buffer.version);
 	}
 	return sInfo;
 }

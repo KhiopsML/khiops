@@ -3215,7 +3215,7 @@ void yyerrorWithLineCorrection(char const* fmt, int nDeltaLineNumber)
 	nLineNumber = yylineno + nDeltaLineNumber;
 	if (nLineNumber <= 0)
 		nLineNumber = 1;
-	sprintf(sErrorLine, "Line %d", nLineNumber);
+	snprintf(sErrorLine, sizeof(sErrorLine), "Line %d", nLineNumber);
 	sLabel = fmt;
 	Global::AddError("Read dictionary file", sErrorLine, sLabel);
 }

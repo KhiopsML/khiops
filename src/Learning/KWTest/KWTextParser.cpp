@@ -391,6 +391,9 @@ void KWTextParser::BuildLineWordDictionary(char* sLine, ObjectDictionary* odWord
 		// Transformation des caracteres accentues
 		if (bFilterAccentuation)
 		{
+			// Compilation uniquement sous windows pour cette methode prototype,
+			// pour eviter les warnings de type illegal character encoding
+#ifdef _WIN32
 			if (cLineChar == 'é')
 				cLineChar = 'e';
 			else if (cLineChar == 'è')
@@ -421,6 +424,7 @@ void KWTextParser::BuildLineWordDictionary(char* sLine, ObjectDictionary* odWord
 				cLineChar = 'u';
 			else if (cLineChar == 'ç')
 				cLineChar = 'c';
+#endif // _WIN32
 		}
 
 		// Traitement du caractere en fonction de l'etat courant

@@ -54,7 +54,8 @@ inline void MemHeapUpdateAlloc(size_t nSize)
 	if (lMemMaxHeapSize > 0 && MemHeapMemory > lMemMaxHeapSize)
 	{
 		char sMessage[100];
-		sprintf(sMessage, "Memory user overflow: heap size beyond user limit (%lld)\n", lMemMaxHeapSize);
+		snprintf(sMessage, sizeof(sMessage), "Memory user overflow: heap size beyond user limit (%lld)\n",
+			 lMemMaxHeapSize);
 		MemFatalError(sMessage);
 		GlobalExit();
 	}
@@ -1528,7 +1529,8 @@ inline void* MemAlloc(size_t nSize)
 			if (MemGetAllocErrorHandler() != NULL)
 			{
 				char sMessage[100];
-				sprintf(sMessage, "Memory overflow (malloc allocation error (%lld))\n", (longint)nSize);
+				snprintf(sMessage, sizeof(sMessage),
+					 "Memory overflow (malloc allocation error (%lld))\n", (longint)nSize);
 				MemFatalError(sMessage);
 			}
 			return NULL;
@@ -2028,8 +2030,8 @@ void* DebugMemAlloc(size_t nSize)
 		if (MemGetAllocErrorHandler() != NULL)
 		{
 			char sMessage[100];
-			sprintf(sMessage, "Memory overflow (unable to allocate memory (%lld))\n",
-				(longint)(nSize + MemControlOverhead * sizeof(void*)));
+			snprintf(sMessage, sizeof(sMessage), "Memory overflow (unable to allocate memory (%lld))\n",
+				 (longint)(nSize + MemControlOverhead * sizeof(void*)));
 			MemFatalError(sMessage);
 		}
 		return NULL;
