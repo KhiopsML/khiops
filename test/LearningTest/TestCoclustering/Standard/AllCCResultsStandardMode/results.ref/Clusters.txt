@@ -1,0 +1,5 @@
+Cluster	Value	Frequency	Typicality
+{Iris-setosa}	Iris-setosa	50	1
+{Iris-versicolor}	Iris-versicolor	50	1
+{Iris-virginica}	Iris-virginica	50	1
+{Iris-virginica}	 * 	0	0

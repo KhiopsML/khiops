@@ -14,6 +14,8 @@
 //
 
 // -> Khiops Data preparation and scoring
+AnalysisSpec.SystemParameters.APIMode true        // API mode
+AnalysisSpec.SystemParameters.MemoryLimit 2000     // Memory limit in MB
 ClassManagement.OpenFile       // Open...
 
 // -> Open
@@ -21,19 +23,19 @@ ClassFileName ./SpliceJunction.kdic  // Dictionary file
 OK                             // Open
 // <- Open
 
-TransferDatabase               // Transfer database...
+TransferDatabase               // Deploy model...
 
 // -> Database transfer
-ClassName SpliceJunction        // Transfer dictionary
-SourceDatabase.DatabaseFiles.List.Key SpliceJunction               // List item selection
-SourceDatabase.DatabaseFiles.DataTableName ../../../MTdatasets/SpliceJunction/SpliceJunction.txt      // Data table file
-SourceDatabase.DatabaseFiles.List.Key SpliceJunction`DNA               // List item selection
-SourceDatabase.DatabaseFiles.DataTableName ../../../MTdatasets/SpliceJunction/SpliceJunctionDNA.txt      // Data table file
-TargetDatabase.DatabaseFiles.List.Key SpliceJunction              // List item selection
-TargetDatabase.DatabaseFiles.DataTableName ./results/T_SpliceJunction.txt    // Data table file
-TransferDatabase               // Transfer database
+ClassName SpliceJunction        // Deployment dictionary
+SourceDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key SpliceJunction               // List item selection
+SourceDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../MTdatasets/SpliceJunction/SpliceJunction.txt      // Data table file
+SourceDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key SpliceJunction`DNA               // List item selection
+SourceDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../MTdatasets/SpliceJunction/SpliceJunctionDNA.txt      // Data table file
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key SpliceJunction              // List item selection
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ./results/D_SpliceJunction.txt    // Data table file
+TransferDatabase               // Deploy model
 
-TargetDatabase.DatabaseFiles.DataTableName ./results/KNI_SpliceJunction.txt    // Data table file
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ./results/KNI_SpliceJunction.txt    // Data table file
 KNILogFileName results/KNILog.txt      // KNI log file name
 KNIStreamMaxMemory 100         // KNI max stream memory in Mo
 KNITransferDatabase            // KNI transfer database

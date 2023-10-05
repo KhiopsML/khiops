@@ -14,6 +14,8 @@
 //
 
 // -> Khiops Coclustering
+AnalysisSpec.SystemParameters.APIMode true        // API mode
+AnalysisSpec.SystemParameters.MemoryLimit 2000     // Memory limit in MB
 LearningTools.PostProcessCoclustering    // Simplify coclustering...
 
 // -> Coclustering post-processing
@@ -25,8 +27,7 @@ OK                             // Open
 
 PostProcessingSpec.MaxCellNumber 0       // Max cell number
 PostProcessingSpec.MaxPreservedInformation 50      // Max preserved information
-AnalysisResults.ResultFilesDirectory ./results       // Result files directory
-AnalysisResults.PostProcessedCoclusteringFileName PostProcessedCoclustering_KHC.khc     // Post-processed coclustering report
+PostProcessedCoclusteringFileName ./results/PostProcessedCoclustering_KHC.khcj     // Simplified coclustering report
 PostProcessCoclustering        // Simplify coclustering
 
 
@@ -39,8 +40,7 @@ OK                             // Open
 
 PostProcessingSpec.MaxCellNumber 0       // Max cell number
 PostProcessingSpec.MaxPreservedInformation 50      // Max preserved information
-AnalysisResults.ResultFilesDirectory ./results       // Result files directory
-AnalysisResults.PostProcessedCoclusteringFileName PostProcessedCoclustering_JSON.khc     // Post-processed coclustering report
+PostProcessedCoclusteringFileName ./results/PostProcessedCoclustering_JSON.khcj     // Simplified coclustering report
 PostProcessCoclustering        // Simplify coclustering
 
 Exit                           // Close

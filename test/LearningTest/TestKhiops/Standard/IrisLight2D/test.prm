@@ -14,6 +14,8 @@
 //
 
 // -> Data preparation and scoring
+AnalysisSpec.SystemParameters.APIMode true        // API mode
+AnalysisSpec.SystemParameters.MemoryLimit 2000     // Memory limit in MB
 ClassManagement.OpenFile       // Open...
 
 // -> Open
@@ -22,18 +24,17 @@ ClassFileName ./IrisExtended.kdic       // Dictionary file
 OK                             // Open
 // <- Open
 
-ClassManagement.ClassName Iris          // Dictionary
+TrainDatabase.ClassName Iris          // Dictionary
 
-TrainDatabase.DatabaseFiles.List.Key Iris               // List item selection
-TrainDatabase.DatabaseFiles.DataTableName ../../../datasets/Iris/Iris.txt     // Database file
-TrainDatabase.SampleNumberPercentage 70  // Sample percentage
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key Iris               // List item selection
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../datasets/Iris/Iris.txt     // Database file
+TrainDatabase.DatabaseSpec.Sampling.SampleNumberPercentage 70  // Sample percentage
 
 AnalysisSpec.TargetAttributeName Class   // Target variable
 AnalysisSpec.MainTargetModality         // Main target modality
 
-AnalysisSpec.PredictorsSpec.SelectiveNaiveBayesPredictor true // Predicteur Bayesien Naif Selectif
 
-AnalysisResults.ResultFilesDirectory ./results   // Result files directory
+AnalysisResults.ReportFileName ./results/AnalysisResults.khj // Analysis report
 
 AnalysisSpec.PredictorsSpec.ConstructionSpec.MaxAttributePairNumber 100    // Max number of pairs of variables
 
@@ -45,8 +46,11 @@ SpecificAttributePairs.FirstName PetalWidth       // First name
 Exit                           // Close
 // <- Variable pairs parameters
 
+AnalysisSpec.PredictorsSpec.ConstructionSpec.MaxTextFeatureNumber 0    // Max number of text features
 AnalysisSpec.PredictorsSpec.ConstructionSpec.MaxTreeNumber 0  // Max Tree number
 AnalysisSpec.PredictorsSpec.ConstructionSpec.MaxConstructedAttributeNumber 0 // Max number of constructed variables
+AnalysisSpec.PredictorsSpec.ConstructionSpec.KeepSelectedAttributesOnly false    // Keep selected variables only
+AnalysisResults.ExportAsXls true         // Export as xls
 ComputeStats                   // Analyse database
 
 Exit                           // Close

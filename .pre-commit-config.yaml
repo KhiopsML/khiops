@@ -28,6 +28,7 @@ repos:
     hooks:
       - id: pretty-format-json
         args: [--autofix, --no-ensure-ascii, --no-sort-keys]
+        exclude: test/LearningTest/
       - id: trailing-whitespace
         types_or: [c, c++, java, python, markdown]
   - repo: https://github.com/python-jsonschema/check-jsonschema

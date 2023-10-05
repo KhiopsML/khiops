@@ -14,6 +14,8 @@
 //
 
 // -> Khiops Coclustering
+AnalysisSpec.SystemParameters.APIMode true        // API mode
+AnalysisSpec.SystemParameters.MemoryLimit 2000     // Memory limit in MB
 ClassManagement.OpenFile       // Open...
 
 // -> Open
@@ -21,7 +23,7 @@ ClassFileName ./Bivariate.kdic        // Dictionary file
 OK                             // Open
 // <- Open
 
-ClassManagement.ClassName CapColor       // Dictionary
+Database.ClassName CapColor       // Dictionary
 
 // -> Khiops Coclustering
 LearningTools.PostProcessCoclustering    // Simplify coclustering...
@@ -34,8 +36,7 @@ InputCoclusteringFileName ./Coclustering.khc  // Input coclustering file
 OK                             // Open
 // <- Open
 
-AnalysisResults.ResultFilesDirectory ./results // Result files directory
-
+PostProcessedCoclusteringFileName ./results/SimplifiedCoclustering.khcj       // Simplified coclustering report
 PostProcessCoclustering        // Simplify coclustering
 Exit                           // Close
 // <- Coclustering post-processing
@@ -58,8 +59,7 @@ DeploymentSpec.BuildPredictedClusterAttribute true // Build predicted cluster va
 DeploymentSpec.BuildClusterDistanceAttributes true // Build inter-cluster distance variables
 DeploymentSpec.BuildFrequencyRecodingAttributes true         // Build frequency recoding variables
 DeploymentSpec.OutputAttributesPrefix P_ // Output variables prefix
-AnalysisResults.CoclusteringDictionaryFileName CapColorDeployment.kdic // Coclustering dictionary file
-AnalysisResults.ResultFilesDirectory ./results // Result files directory
+CoclusteringDictionaryFileName ./results/CapColorDeployment.kdic // Coclustering dictionary file
 PrepareDeployment              // Prepare deployment
 Exit                           // Close
 // <- Coclustering deployment preparation

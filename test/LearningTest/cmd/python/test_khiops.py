@@ -184,7 +184,7 @@ def test(modl_path, samples_path, sample_test):
             time_file_name = os.path.join(
                 os.getcwd(), os.path.join(test_dir, "results.ref", "time.log")
             )
-            print(time_file_name)  ##
+            print(time_file_name)
             if os.path.isfile(time_file_name):
                 file_time = open(time_file_name, "r")
                 lines = file_time.readlines()

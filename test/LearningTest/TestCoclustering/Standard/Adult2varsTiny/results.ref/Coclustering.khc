@@ -1,0 +1,83 @@
+#Khiops 10.4.6i
+Short description	
+Dimensions	2
+Name	Type	Parts	Initial parts	Values	Interest	Description
+occupation	Categorical	3	3	12	1	
+education	Categorical	3	3	13	1	
+
+Coclustering stats
+Instances	240
+Cells	9
+Null cost	1066.368632
+Cost	1051.316663
+Level	0.01411516443
+Initial dimensions	2
+Frequency variable	
+Dictionary	Adult
+Database	../../../datasets/Adult/Adult.txt
+Sample percentage	0.5
+Sampling mode	Include sample
+Selection variable	native_country
+Selection value	United-States
+
+Hierarchy	occupation
+Cluster	ParentCluster	Frequency	Interest	HierarchicalLevel	Rank	HierarchicalRank
+{Prof-specialty, Exec-managerial, Protective-serv, ...}	A2	90	1	1	1	6
+{Other-service, Craft-repair, Transport-moving}	A4	70	0.812391	1	3	6
+{Sales, Farming-fishing, Adm-clerical, ...}	A4	80	0.655405	1	5	6
+A2		240	0.830416	-0.727419	2	3
+A4	A2	150	0.728665	0.72783	4	5
+
+Hierarchy	education
+Cluster	ParentCluster	Frequency	Interest	HierarchicalLevel	Rank	HierarchicalRank
+{Bachelors, Masters, Assoc-voc, ...}	B1	83	1	1	1	6
+{HS-grad, 11th, 10th, ...}	B3	105	0.903801	1	3	6
+{Some-college, 9th}	B3	52	0.59125	1	5	6
+B1		240	0.869351	0	2	2
+B3	B1	157	0.800281	0.696343	4	4
+
+Composition	occupation
+Cluster	Value	Frequency	Typicality
+{Prof-specialty, Exec-managerial, Protective-serv, ...}	Prof-specialty	54	1
+{Prof-specialty, Exec-managerial, Protective-serv, ...}	Exec-managerial	23	0.342621
+{Prof-specialty, Exec-managerial, Protective-serv, ...}	Protective-serv	6	0.148043
+{Prof-specialty, Exec-managerial, Protective-serv, ...}	Tech-support	7	0.0502739
+{Prof-specialty, Exec-managerial, Protective-serv, ...}	 * 	0	0
+{Other-service, Craft-repair, Transport-moving}	Other-service	33	1
+{Other-service, Craft-repair, Transport-moving}	Craft-repair	27	0.682053
+{Other-service, Craft-repair, Transport-moving}	Transport-moving	10	0.398653
+{Sales, Farming-fishing, Adm-clerical, ...}	Sales	27	1
+{Sales, Farming-fishing, Adm-clerical, ...}	Farming-fishing	11	0.631255
+{Sales, Farming-fishing, Adm-clerical, ...}	Adm-clerical	21	0.428212
+{Sales, Farming-fishing, Adm-clerical, ...}	Handlers-cleaners	12	0.37083
+{Sales, Farming-fishing, Adm-clerical, ...}	Machine-op-inspct	9	0.322156
+
+Composition	education
+Cluster	Value	Frequency	Typicality
+{Bachelors, Masters, Assoc-voc, ...}	Bachelors	39	1
+{Bachelors, Masters, Assoc-voc, ...}	Masters	14	0.756619
+{Bachelors, Masters, Assoc-voc, ...}	Assoc-voc	10	0.272011
+{Bachelors, Masters, Assoc-voc, ...}	Assoc-acdm	10	0.245697
+{Bachelors, Masters, Assoc-voc, ...}	Prof-school	4	0.220568
+{Bachelors, Masters, Assoc-voc, ...}	Doctorate	2	0.166163
+{Bachelors, Masters, Assoc-voc, ...}	12th	4	0.143425
+{Bachelors, Masters, Assoc-voc, ...}	 * 	0	0
+{HS-grad, 11th, 10th, ...}	HS-grad	82	1
+{HS-grad, 11th, 10th, ...}	11th	12	0.318105
+{HS-grad, 11th, 10th, ...}	10th	8	0.271284
+{HS-grad, 11th, 10th, ...}	7th-8th	3	0.0969771
+{Some-college, 9th}	Some-college	47	1
+{Some-college, 9th}	9th	5	0.300942
+
+Cells
+occupation	education	Frequency
+{Prof-specialty, Exec-managerial, Protective-serv, ...}	{Bachelors, Masters, Assoc-voc, ...}	60
+{Sales, Farming-fishing, Adm-clerical, ...}	{HS-grad, 11th, 10th, ...}	52
+{Other-service, Craft-repair, Transport-moving}	{HS-grad, 11th, 10th, ...}	42
+{Other-service, Craft-repair, Transport-moving}	{Some-college, 9th}	25
+{Sales, Farming-fishing, Adm-clerical, ...}	{Bachelors, Masters, Assoc-voc, ...}	20
+{Prof-specialty, Exec-managerial, Protective-serv, ...}	{Some-college, 9th}	19
+{Prof-specialty, Exec-managerial, Protective-serv, ...}	{HS-grad, 11th, 10th, ...}	11
+{Sales, Farming-fishing, Adm-clerical, ...}	{Some-college, 9th}	8
+{Other-service, Craft-repair, Transport-moving}	{Bachelors, Masters, Assoc-voc, ...}	3
+
