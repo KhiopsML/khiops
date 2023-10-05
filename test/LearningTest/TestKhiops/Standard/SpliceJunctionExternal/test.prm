@@ -14,31 +14,36 @@
 //
 
 // -> Data preparation and scoring
+AnalysisSpec.SystemParameters.APIMode true        // API mode
+AnalysisSpec.SystemParameters.MemoryLimit 2000     // Memory limit in MB
 ClassManagement.OpenFile       // Open...
 // -> Open
 ClassFileName ./SpliceJunctionExternal.kdic  // Dictionary file
 OK                             // Open
 
-ClassManagement.ClassName SpliceJunctionExternal        // Dictionary
+TrainDatabase.ClassName SpliceJunctionExternal        // Dictionary
 
-TrainDatabase.DatabaseFiles.List.Key SpliceJunctionExternal               // List item selection
-TrainDatabase.DatabaseFiles.DataTableName ./SpliceJunctionExternal.txt      // Data table file
-TrainDatabase.DatabaseFiles.List.Key SpliceJunction               // List item selection
-TrainDatabase.DatabaseFiles.DataTableName ../../../MTdatasets/SpliceJunction/SpliceJunction.txt      // Data table file
-TrainDatabase.DatabaseFiles.List.Key SpliceJunction`DNA               // List item selection
-TrainDatabase.DatabaseFiles.DataTableName ../../../MTdatasets/SpliceJunction/SpliceJunctionDNA.txt      // Data table file
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key SpliceJunctionExternal               // List item selection
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ./SpliceJunctionExternal.txt      // Data table file
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key SpliceJunction               // List item selection
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../MTdatasets/SpliceJunction/SpliceJunction.txt      // Data table file
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key SpliceJunction`DNA               // List item selection
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../MTdatasets/SpliceJunction/SpliceJunctionDNA.txt      // Data table file
 
-TrainDatabase.SampleNumberPercentage 10  // Sample percentage
+TrainDatabase.DatabaseSpec.Sampling.SampleNumberPercentage 10  // Sample percentage
 
 AnalysisSpec.TargetAttributeName Class   // Target variable
 
-AnalysisSpec.PredictorsSpec.SelectiveNaiveBayesPredictor false // Predicteur Bayesien Naif Selectif
+AnalysisSpec.PredictorsSpec.AdvancedSpec.DataPreparationOnly true      // Do data preparation only
 
-AnalysisResults.ResultFilesDirectory ./results   // Result files directory
+AnalysisResults.ReportFileName ./results/AnalysisResults.khj // Analysis report
 
-AnalysisResults.ResultFilesPrefix C100_   // Result files directory
+AnalysisResults.ReportFileName ./results/C100_AnalysisResults.khj // Analysis report
 AnalysisSpec.PredictorsSpec.ConstructionSpec.MaxConstructedAttributeNumber 100 // Max number of constructed variables
+AnalysisSpec.PredictorsSpec.ConstructionSpec.MaxTextFeatureNumber 0    // Max number of text features
 AnalysisSpec.PredictorsSpec.ConstructionSpec.MaxTreeNumber 0  // Max Tree number
+AnalysisSpec.PredictorsSpec.ConstructionSpec.KeepSelectedAttributesOnly false    // Keep selected variables only
+AnalysisResults.ExportAsXls true         // Export as xls
 ComputeStats                   // Analyse database
 
 Exit                           // Close

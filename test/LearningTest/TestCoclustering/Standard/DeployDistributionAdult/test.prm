@@ -14,6 +14,8 @@
 //
 
 // -> Khiops Coclustering
+AnalysisSpec.SystemParameters.APIMode true        // API mode
+AnalysisSpec.SystemParameters.MemoryLimit 2000     // Memory limit in MB
 ClassManagement.OpenFile       // Open...
 
 // -> Open
@@ -38,19 +40,18 @@ DeploymentSpec.BuildPredictedClusterAttribute true // Build predicted cluster va
 DeploymentSpec.BuildClusterDistanceAttributes true // Build inter-cluster distance variables
 DeploymentSpec.BuildFrequencyRecodingAttributes true         // Build frequency recoding variables
 DeploymentSpec.OutputAttributesPrefix P_ // Output variables prefix
-AnalysisResults.ResultFilesDirectory ./results       // Result files directory
-AnalysisResults.CoclusteringDictionaryFileName DeployOccupation.kdic   // Coclustering dictionary file
+CoclusteringDictionaryFileName ./results/DeployOccupation.kdic   // Coclustering dictionary file
 PrepareDeployment              // Prepare deployment
 
 PostProcessingSpec.MaxPreservedInformation 50      // Max preserved information
-AnalysisResults.CoclusteringDictionaryFileName DeployOccupation50.kdic   // Coclustering dictionary file
+CoclusteringDictionaryFileName ./results/DeployOccupation50.kdic   // Coclustering dictionary file
 PrepareDeployment              // Prepare deployment
 
 Exit                           // Close
 // <- Coclustering deployment preparation
 
 LearningTools.PostProcessCoclustering    // Simplify coclustering...
-AnalysisResults.PostProcessedCoclusteringFileName SimplifiedCoclustering50.khc       // Post-processed coclustering report
+PostProcessedCoclusteringFileName ./results/SimplifiedCoclustering50.khcj       // Simplified coclustering report
 PostProcessCoclustering        // Simplify coclustering
 Exit                           // Close
 // <- Simplify coclustering

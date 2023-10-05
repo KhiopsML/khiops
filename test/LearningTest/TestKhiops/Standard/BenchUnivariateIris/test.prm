@@ -13,6 +13,8 @@
 //
 //
 
+AnalysisSpec.SystemParameters.APIMode true        // API mode
+AnalysisSpec.SystemParameters.MemoryLimit 2000     // Memory limit in MB
 ClassManagement.OpenFile       // Open...
 
 // -> Open
@@ -20,19 +22,19 @@ ClassFileName ../../../datasets/Iris/Iris.kdic       // Dictionary file
 OK                             // Open
 // <- Open
 
-ClassManagement.ClassName Iris          // Dictionary
+TrainDatabase.ClassName Iris          // Dictionary
 
-TrainDatabase.DatabaseFiles.List.Key Iris               // List item selection
-TrainDatabase.DatabaseFiles.DataTableName ../../../datasets/Iris/Iris.txt     // Database file
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key Iris               // List item selection
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../datasets/Iris/Iris.txt     // Database file
 
-TransferDatabase               // Transfer database
+TransferDatabase               // Deploy model
 
 // -> Database transfer
-ClassName Iris             // Transfer dictionary
-SourceDatabase.SampleNumberPercentage 100  // Sample percentage
-TargetDatabase.DatabaseFiles.List.Key Iris               // List item selection
-TargetDatabase.DatabaseFiles.DataTableName ./results/Iris.txt     // Database file
-TransferDatabase               // Transfer database
+ClassName Iris             // Deployment dictionary
+SourceDatabase.DatabaseSpec.Sampling.SampleNumberPercentage 100  // Sample percentage
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key Iris               // List item selection
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ./results/Iris.txt     // Database file
+TransferDatabase               // Deploy model
 Exit                           // Close
 // <- Database transfer
 
@@ -55,44 +57,14 @@ PredictorSpecs.InsertItemAfter          // Insert after
 PredictorSpecs.InspectItem    // Inspect
 // -> Predictor
 PredictorLabel MODL           // Label
-PreprocessingSpec.DiscretizerSpec.SupervisedMethodName MODL  // Name
-PreprocessingSpec.GrouperSpec.SupervisedMethodName MODL // Name
 Exit                           // OK
 // <- Predictor
 
 PredictorSpecs.InsertItemAfter          // Insert after
 PredictorSpecs.InspectItem    // Inspect
 // -> Predictor
-PredictorLabel MEF           // Label
-PreprocessingSpec.DiscretizerSpec.SupervisedMethodName MODLEqualFrequency  // Name
-PreprocessingSpec.GrouperSpec.SupervisedMethodName MODLBasic // Name
-Exit                           // OK
-// <- Predictor
-
-PredictorSpecs.InsertItemAfter          // Insert after
-PredictorSpecs.InspectItem    // Inspect
-// -> Predictor
-PredictorLabel MEW           // Label
-PreprocessingSpec.DiscretizerSpec.SupervisedMethodName MODLEqualWidth  // Name
-PreprocessingSpec.GrouperSpec.SupervisedMethodName MODLBasic // Name
-Exit                           // OK
-// <- Predictor
-
-PredictorSpecs.InsertItemAfter          // Insert after
-PredictorSpecs.InspectItem    // Inspect
-// -> Predictor
-PredictorLabel EF           // Label
-PreprocessingSpec.DiscretizerSpec.SupervisedMethodName EqualFrequency  // Name
-PreprocessingSpec.GrouperSpec.SupervisedMethodName BasicGrouping // Name
-Exit                           // OK
-// <- Predictor
-
-PredictorSpecs.InsertItemAfter          // Insert after
-PredictorSpecs.InspectItem    // Inspect
-// -> Predictor
-PredictorLabel EW           // Label
-PreprocessingSpec.DiscretizerSpec.SupervisedMethodName EqualWidth  // Name
-PreprocessingSpec.GrouperSpec.SupervisedMethodName BasicGrouping // Name
+PredictorLabel MODL_2           // Label
+PreprocessingSpec.MaxPartNumber 2        // Max part number
 Exit                           // OK
 // <- Predictor
 
@@ -103,9 +75,9 @@ BenchmarkSpecs.InsertItemAfter      // Insert after
 BenchmarkClassSpec.ClassFileName ../../../datasets/Iris/Iris.kdic        // Dictionary file
 BenchmarkClassSpec.ClassName Iris              // Dictionary
 BenchmarkClassSpec.TargetAttributeName Class    // Target variable
-Database.DatabaseFiles.List.Key Iris               // List item selection
-Database.DatabaseFiles.DataTableName ../../../datasets/Iris/Iris.txt     // Database file
-Database.DatabaseFiles.DataTableName ./results/Iris.txt     // Database file
+Database.DatabaseSpec.Data.DatabaseFiles.List.Key Iris               // List item selection
+Database.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../datasets/Iris/Iris.txt     // Database file
+Database.DatabaseSpec.Data.DatabaseFiles.DataTableName ./results/Iris.txt     // Database file
 Exit                           // OK
 // <- Benchmark
 

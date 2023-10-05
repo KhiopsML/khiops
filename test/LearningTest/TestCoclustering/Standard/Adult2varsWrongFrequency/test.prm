@@ -14,6 +14,8 @@
 //
 
 // -> Khiops Coclustering
+AnalysisSpec.SystemParameters.APIMode true        // API mode
+AnalysisSpec.SystemParameters.MemoryLimit 2000     // Memory limit in MB
 ClassManagement.OpenFile       // Open...
 
 // -> Open
@@ -21,19 +23,19 @@ ClassFileName ./OccupationEducationFrequency.kdic       // Dictionary file
 OK                             // Open
 // <- Open
 
-Database.DatabaseFiles.List.Key OccupationEducationFrequency               // List item selection
-Database.DatabaseFiles.DataTableName ./OccupationEducationFrequency.txt     // Database file
+Database.DatabaseSpec.Data.DatabaseFiles.List.Key OccupationEducationFrequency               // List item selection
+Database.DatabaseSpec.Data.DatabaseFiles.DataTableName ./OccupationEducationFrequency.txt     // Database file
 
 AnalysisSpec.CoclusteringParameters.Attributes.InsertItemAfter         // Insert variable
 AnalysisSpec.CoclusteringParameters.Attributes.Name occupation     // Name
 AnalysisSpec.CoclusteringParameters.Attributes.InsertItemAfter         // Insert variable
 AnalysisSpec.CoclusteringParameters.Attributes.Name education     // Name
 
-AnalysisSpec.CoclusteringParameters.FrequencyAttribute frequency  // Frequency variable
+AnalysisSpec.CoclusteringParameters.FrequencyAttributeName frequency  // Frequency variable
 
 
 AnalysisSpec.SystemParameters.OptimizationTime 0  // Optimization time in seconds
-AnalysisResults.ResultFilesDirectory ./results // Result files directory
+AnalysisResults.CoclusteringFileName ./results/Coclustering.khcj // Coclustering report
 BuildCoclustering              // Build coclustering
 
 Exit                           // Close

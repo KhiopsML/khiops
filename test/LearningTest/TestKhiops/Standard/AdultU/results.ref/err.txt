@@ -1,0 +1,5 @@
+Train unsupervised model
+Database ../../../datasets/Adult/Adult.txt: Read records: 48,842
+Data preparation time: 0:00:02.49
+Write report ./results/AnalysisResults.khj
+

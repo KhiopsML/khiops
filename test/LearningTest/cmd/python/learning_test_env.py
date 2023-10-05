@@ -106,9 +106,8 @@ def load_learning_test_config():
     # Fill missing keys with empty values, the as when the config file is missing
     if ok:
         if len(learning_test_config_keys) != len(config_dic):
-            missing_keys = ""
             for key in learning_test_config_keys:
-                if not key in config_dic:
+                if key not in config_dic:
                     config_dic[key] = ""
     # Return if ok
     if ok:
@@ -119,7 +118,7 @@ def load_learning_test_config():
         print(
             "The config file "
             + learning_test_config_file_name
-            + " must be in directory LearningTest\cmd\python"
+            + " must be in directory LearningTest\\cmd\\python"
         )
         print("It is optional, in which case all keys are set to empty")
         print(

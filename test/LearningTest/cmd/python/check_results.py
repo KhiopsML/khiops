@@ -229,7 +229,8 @@ def check_file(log_file, path_ref, path_test):
     is_json_file = is_json_file or ".khvj" in os.path.basename(path_ref)
     is_json_file = is_json_file or ".khcj" in os.path.basename(path_ref)
     is_json_file = is_json_file or ".kdicj" in os.path.basename(path_ref)
-    # Cas particulier des fichier .bad qui sont en fait des fichier json (ex: LearningTest\TestKhiops\Advanced\AllResultsApiMode
+    # Cas particulier des fichier .bad qui sont en fait des fichiers json
+    # (ex: LearningTest\TestKhiops\Advanced\AllResultsApiMode
     if ".bad" in os.path.basename(path_ref):
         if (
             os.path.isfile(path_ref.replace(".bad", ".khj"))

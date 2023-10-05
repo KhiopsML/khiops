@@ -1,0 +1,206 @@
+{
+	"tool": "Khiops Coclustering",
+	"version": "10.4.6i",
+	"shortDescription": "",
+	"coclusteringReport": {
+		"summary": {
+			"instances": 150,
+			"cells": 4,
+			"nullCost": 1210.733359,
+			"cost": 1107.814123,
+			"level": 0.08500569963,
+			"initialDimensions": 2,
+			"frequencyVariable": "",
+			"dictionary": "Iris",
+			"database": "..\/..\/..\/datasets\/Iris\/Iris.txt",
+			"samplePercentage": 100,
+			"samplingMode": "Include sample",
+			"selectionVariable": "",
+			"selectionValue": ""
+		},
+		"dimensionSummaries": [
+			{
+				"name": "PetalLength",
+				"type": "Numerical",
+				"parts": 3,
+				"initialParts": 3,
+				"values": 150,
+				"interest": 1,
+				"description": "",
+				"min": 1,
+				"max": 6.9
+			},
+			{
+				"name": "PetalWidth",
+				"type": "Numerical",
+				"parts": 3,
+				"initialParts": 3,
+				"values": 150,
+				"interest": 1,
+				"description": "",
+				"min": 0.1,
+				"max": 2.5
+			}
+		],
+		"dimensionPartitions": [
+			{
+				"name": "PetalLength",
+				"type": "Numerical",
+				"intervals": [
+					{
+						"cluster": "]-inf;2.4]",
+						"bounds": [1,2.4]
+					},
+					{
+						"cluster": "]2.4;4.75]",
+						"bounds": [2.4,4.75]
+					},
+					{
+						"cluster": "]4.75;+inf[",
+						"bounds": [4.75,6.9]
+					}
+				]
+			},
+			{
+				"name": "PetalWidth",
+				"type": "Numerical",
+				"intervals": [
+					{
+						"cluster": "]-inf;0.8]",
+						"bounds": [0.1,0.8]
+					},
+					{
+						"cluster": "]0.8;1.75]",
+						"bounds": [0.8,1.75]
+					},
+					{
+						"cluster": "]1.75;+inf[",
+						"bounds": [1.75,2.5]
+					}
+				]
+			}
+		],
+		"dimensionHierarchies": [
+			{
+				"name": "PetalLength",
+				"type": "Numerical",
+				"clusters": [
+					{
+						"cluster": "]-inf;2.4]",
+						"parentCluster": "]-inf;+inf[",
+						"frequency": 50,
+						"interest": 0.590189,
+						"hierarchicalLevel": 1,
+						"rank": 1,
+						"hierarchicalRank": 6,
+						"isLeaf": true
+					},
+					{
+						"cluster": "]2.4;4.75]",
+						"parentCluster": "]2.4;+inf[",
+						"frequency": 45,
+						"interest": 1,
+						"hierarchicalLevel": 1,
+						"rank": 3,
+						"hierarchicalRank": 6,
+						"isLeaf": true
+					},
+					{
+						"cluster": "]4.75;+inf[",
+						"parentCluster": "]2.4;+inf[",
+						"frequency": 55,
+						"interest": 0.409811,
+						"hierarchicalLevel": 1,
+						"rank": 5,
+						"hierarchicalRank": 6,
+						"isLeaf": true
+					},
+					{
+						"cluster": "]-inf;+inf[",
+						"parentCluster": "",
+						"frequency": 150,
+						"interest": 0.646994,
+						"hierarchicalLevel": 0,
+						"rank": 2,
+						"hierarchicalRank": 2,
+						"isLeaf": false
+					},
+					{
+						"cluster": "]2.4;+inf[",
+						"parentCluster": "]-inf;+inf[",
+						"frequency": 100,
+						"interest": 0.675396,
+						"hierarchicalLevel": 0.746684,
+						"rank": 4,
+						"hierarchicalRank": 4,
+						"isLeaf": false
+					}
+				]
+			},
+			{
+				"name": "PetalWidth",
+				"type": "Numerical",
+				"clusters": [
+					{
+						"cluster": "]-inf;0.8]",
+						"parentCluster": "]-inf;+inf[",
+						"frequency": 50,
+						"interest": 0.612775,
+						"hierarchicalLevel": 1,
+						"rank": 1,
+						"hierarchicalRank": 6,
+						"isLeaf": true
+					},
+					{
+						"cluster": "]0.8;1.75]",
+						"parentCluster": "]0.8;+inf[",
+						"frequency": 54,
+						"interest": 1,
+						"hierarchicalLevel": 1,
+						"rank": 3,
+						"hierarchicalRank": 6,
+						"isLeaf": true
+					},
+					{
+						"cluster": "]1.75;+inf[",
+						"parentCluster": "]0.8;+inf[",
+						"frequency": 46,
+						"interest": 0.387225,
+						"hierarchicalLevel": 1,
+						"rank": 5,
+						"hierarchicalRank": 6,
+						"isLeaf": true
+					},
+					{
+						"cluster": "]-inf;+inf[",
+						"parentCluster": "",
+						"frequency": 150,
+						"interest": 0.683007,
+						"hierarchicalLevel": -0.0668591,
+						"rank": 2,
+						"hierarchicalRank": 3,
+						"isLeaf": false
+					},
+					{
+						"cluster": "]0.8;+inf[",
+						"parentCluster": "]-inf;+inf[",
+						"frequency": 100,
+						"interest": 0.718124,
+						"hierarchicalLevel": 0.671112,
+						"rank": 4,
+						"hierarchicalRank": 5,
+						"isLeaf": false
+					}
+				]
+			}
+		],
+		"cellPartIndexes": [
+			[0,0],
+			[2,2],
+			[1,1],
+			[2,1]
+		],
+		"cellFrequencies": [50,46,45,9]
+	},
+	"khiops_encoding": "ascii"
+}

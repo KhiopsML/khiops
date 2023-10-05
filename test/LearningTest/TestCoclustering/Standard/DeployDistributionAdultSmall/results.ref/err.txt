@@ -1,2 +1,2 @@
-Write deployment dictionary file ./results\DeployOccupation.kdic
+Write deployment dictionary file ./results/DeployOccupation.kdic
 

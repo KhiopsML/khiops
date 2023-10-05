@@ -14,28 +14,30 @@
 //
 
 // -> Data preparation and scoring
+AnalysisSpec.SystemParameters.APIMode true        // API mode
+AnalysisSpec.SystemParameters.MemoryLimit 2000     // Memory limit in MB
 ClassManagement.OpenFile       // Open...
 // -> Open
 ClassFileName ../../../MTdatasets/SpliceJunction/SpliceJunction.kdic  // Dictionary file
 OK                             // Open
 
-ClassManagement.ClassName SpliceJunction        // Dictionary
+TrainDatabase.ClassName SpliceJunction        // Dictionary
 
-TrainDatabase.DatabaseFiles.List.Key SpliceJunction               // List item selection
-TrainDatabase.DatabaseFiles.DataTableName ../../../MTdatasets/SpliceJunction/SpliceJunction.txt      // Data table file
-TrainDatabase.DatabaseFiles.List.Key SpliceJunction`DNA               // List item selection
-TrainDatabase.DatabaseFiles.DataTableName ../../../MTdatasets/SpliceJunction/SpliceJunctionDNA.txt      // Data table file
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key SpliceJunction               // List item selection
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../MTdatasets/SpliceJunction/SpliceJunction.txt      // Data table file
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key SpliceJunction`DNA               // List item selection
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../MTdatasets/SpliceJunction/SpliceJunctionDNA.txt      // Data table file
 
-TransferDatabase               // Transfer database
+TransferDatabase               // Deploy model
 
 // -> Database transfer
-ClassName SpliceJunction             // Transfer dictionary
-SourceDatabase.SampleNumberPercentage 70  // Sample percentage
-TargetDatabase.DatabaseFiles.List.Key SpliceJunction               // List item selection
-TargetDatabase.DatabaseFiles.DataTableName ./results/T_SpliceJunction.txt      // Data table file
-TargetDatabase.DatabaseFiles.List.Key SpliceJunction`DNA               // List item selection
-TargetDatabase.DatabaseFiles.DataTableName ./results/T_SpliceJunctionDNA.txt      // Data table file
-TransferDatabase               // Transfer database
+ClassName SpliceJunction             // Deployment dictionary
+SourceDatabase.DatabaseSpec.Sampling.SampleNumberPercentage 70  // Sample percentage
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key SpliceJunction               // List item selection
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ./results/D_SpliceJunction.txt      // Data table file
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key SpliceJunction`DNA               // List item selection
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ./results/D_SpliceJunctionDNA.txt      // Data table file
+TransferDatabase               // Deploy model
 Exit                           // Close
 // <- Database transfer
 

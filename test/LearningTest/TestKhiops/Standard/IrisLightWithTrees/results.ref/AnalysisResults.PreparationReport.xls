@@ -1,0 +1,118 @@
+#Khiops 10.4.6i
+Descriptive statistics
+
+
+Problem description
+Short description	
+
+Dictionary	Iris
+Variables
+	Categorical	1
+	Numerical	5
+	Total	6
+
+Database	../../../datasets/Iris/Iris.txt
+Sample percentage	70
+Sampling mode	Include sample
+Selection variable	
+Selection value	
+Instances	105
+
+Learning task	Classification analysis
+
+Target variable	Categorical	Class
+
+Target variable stats
+Value	Frequency	Coverage
+Iris-setosa	38	0.361905
+Iris-versicolor	32	0.304762
+Iris-virginica	35	0.333333
+
+Evaluated variables	5
+Native variables	4
+Constructed variables	1
+Informative variables	5
+Selected variables	3
+
+Max number of constructed variables	0
+Max number of text features	0
+Max number of trees	2
+Max number of variable pairs	0
+Discretization	MODL
+Value grouping	MODL
+
+Null model
+	Constr. cost	0.693147
+	Prep. cost	8.64312
+	Data cost	110.25
+
+
+Numerical variables statistics
+
+Rank	Name	Level	Intervals	Values	Min	Max	Mean	Std dev	Missing number	Sparse missing number	Constr. cost	Prep. cost	Data cost	Derivation rule
+R1	PetalWidth	0.65964	3	21	0.1	2.5	1.175238095	0.7880996979	0	0	2.48491	28.4221	9.79546
+R2	PetalArea	0.635515	3	75	0.11	15.87	5.704761905	4.85029407	0	0	2.48491	32.3161	8.78646	Product(PetalLength, PetalWidth)
+R3	PetalLength	0.618227	4	36	1	6.9	3.686666667	1.80132579	0	0	2.48491	31.9046	11.2655
+R4	SepalLength	0.328464	3	31	4.3	7.7	5.827619048	0.8375127846	0	0	2.48491	26.2686	51.5531
+R5	SepalWidth	0.113289	3	23	2	4.4	3.081904762	0.4284592446	0	0	2.48491	23.4061	80.1477
+
+
+--------------------------------------------------------------------------------
+
+Variables detailed statistics
+
+
+Rank	R1
+Variable	Numerical	PetalWidth
+
+% target values
+Interval	Iris-setosa	Iris-versicolor	Iris-virginica	Interest	Frequency	Coverage
+]-inf;0.75]	1	0	0	0.374826	38	0.361905
+]0.75;1.75]	0	0.939394	0.0606061	0.305582	33	0.314286
+]1.75;+inf[	0	0.0294118	0.970588	0.319592	34	0.32381
+Total	0.361905	0.304762	0.333333	1	105	1
+
+----------------------------------------------
+Rank	R2
+Variable	Numerical	PetalArea
+
+% target values
+Interval	Iris-setosa	Iris-versicolor	Iris-virginica	Interest	Frequency	Coverage
+]-inf;2]	1	0	0	0.368325	38	0.361905
+]2;8.73]	0	0.914286	0.0857143	0.29641	35	0.333333
+]8.73;+inf[	0	0	1	0.335265	32	0.304762
+Total	0.361905	0.304762	0.333333	1	105	1
+
+----------------------------------------------
+Rank	R3
+Variable	Numerical	PetalLength
+
+% target values
+Interval	Iris-setosa	Iris-versicolor	Iris-virginica	Interest	Frequency	Coverage
+]-inf;3.15]	0.974359	0.025641	0	0.347012	39	0.371429
+]3.15;4.75]	0	1	0	0.304909	26	0.247619
+]4.75;5.15]	0	0.357143	0.642857	0.066166	14	0.133333
+]5.15;+inf[	0	0	1	0.281913	26	0.247619
+Total	0.361905	0.304762	0.333333	1	105	1
+
+----------------------------------------------
+Rank	R4
+Variable	Numerical	SepalLength
+
+% target values
+Interval	Iris-setosa	Iris-versicolor	Iris-virginica	Interest	Frequency	Coverage
+]-inf;5.45]	0.871795	0.128205	0	0.449729	39	0.371429
+]5.45;6.15]	0.142857	0.678571	0.178571	0.147253	28	0.266667
+]6.15;+inf[	0	0.210526	0.789474	0.403018	38	0.361905
+Total	0.361905	0.304762	0.333333	1	105	1
+
+----------------------------------------------
+Rank	R5
+Variable	Numerical	SepalWidth
+
+% target values
+Interval	Iris-setosa	Iris-versicolor	Iris-virginica	Interest	Frequency	Coverage
+]-inf;2.85]	0	0.6	0.4	0.544113	30	0.285714
+]2.85;3.35]	0.346939	0.265306	0.387755	0.0133569	49	0.466667
+]3.35;+inf[	0.807692	0.0384615	0.153846	0.44253	26	0.247619
+Total	0.361905	0.304762	0.333333	1	105	1

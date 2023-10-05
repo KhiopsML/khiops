@@ -1,8 +1,8 @@
-Write cluster table file ./results\ClustersAge.txt
+Write cluster table file ./results/ClustersAge.txt
 
-Write cluster table file ./results\ClustersOccupation.txt
+Write cluster table file ./results/ClustersOccupation.txt
 
-Write cluster table file ./results\I50_ClustersAge.txt
+Write cluster table file ./results/I50_ClustersAge.txt
 
-Write cluster table file ./results\I50_ClustersOccupation.txt
+Write cluster table file ./results/I50_ClustersOccupation.txt
 
