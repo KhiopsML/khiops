@@ -32,6 +32,6 @@ public:
 	void ExportStats();
 
 	// Acces au probleme d'apprentissage
-	void SetObject(Object* object);
+	void SetObject(Object* object) override;
 	SampleOneLearningProblem* GetSampleOneLearningProblem();
 };

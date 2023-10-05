@@ -191,7 +191,7 @@ using namespace std;
 // Encapsulation de quelques fonctions standards C, en les prefixant par p_
 // Les methodes sont identiques dans le cas gcc, et reimplementees pour MS Visual C++ 2008
 // (qui a "declasse" ces fonctions en DEPRECATED)
-// Il manque les methodes open, sscanf, sprintf
+// Il manque les methodes open, sscanf
 
 // Declaration de la structure stat
 #ifdef _WIN32
@@ -256,10 +256,6 @@ char* StandardGetBuffer();
 // Renvoie une chaine lue depuis un fichier d'entree, et rangee dans le buffer en parametre(fonction "privee")
 void StandardGetInputString(char* sBuffer, FILE* fInput);
 
-// Copie sSource vers sDest seulement si il y a la place
-// Renvoie 0 si erreur, 1 sinon
-int SecureStrcpy(char* sDest, const char* sSource, int nMaxLength);
-
 // Taille maximale des messages systeme
 // Il faut donc prevoir un buffer de cette taille, plus 1 pour le caractere fin de chaine
 #define SYSTEM_MESSAGE_LENGTH 512
@@ -276,6 +272,7 @@ int SecureStrcpy(char* sDest, const char* sSource, int nMaxLength);
 //  sApplicationLabel : libelle associe a l'application, pour fabriquer les message d'erreurs
 //  sFileToOpen : nom du fichier a ouvrir, ayant une extension
 //  sErrorMessage : sortie qui vaut vide si le chargement a reussi, le message d'erreur sinon
+//                  (longueur max a prevoir: SYSTEM_MESSAGE_LENGTH)
 // valeur de retour : true si lancement effectue, false sinon
 int OpenApplication(const char* sApplicationExeName, const char* sApplicationLabel, const char* sFileToOpen,
 		    char* sErrorMessage);
@@ -286,6 +283,7 @@ int OpenApplication(const char* sApplicationExeName, const char* sApplicationLab
 // Chargement d'une librairie partagee.
 //  sLibraryPath : nom et chemin complet de la librairie (avec son extension).
 //  sErrorMessage : sortie qui vaut vide si le chargement a reussi, le message d'erreur sinon
+//                  (longueur max a prevoir: SYSTEM_MESSAGE_LENGTH)
 // valeur de retour : handle sur la librairie ouverte, ou NULL si echec du chargement
 void* LoadSharedLibrary(const char* sLibraryPath, char* sErrorMessage);
 

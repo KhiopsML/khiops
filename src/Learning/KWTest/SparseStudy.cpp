@@ -252,9 +252,6 @@ void BasicVectorAccessTest()
 	}
 }
 
-#include <chrono>
-using namespace std::chrono;
-
 void DoubleVectorAccessTest()
 {
 	const int nSize = 1000;
@@ -264,16 +261,14 @@ void DoubleVectorAccessTest()
 	int i;
 	double dTotal;
 	char* dvVectorAdress;
-	std::chrono::time_point<std::chrono::steady_clock> start;
-	std::chrono::time_point<std::chrono::steady_clock> stop;
-	double dDuration;
+	Timer timer;
 
 	// Initialisation
 	for (i = 0; i < nSize; i++)
 		dvVector[i] = i;
 
 	// Lecture
-	start = high_resolution_clock::now();
+	timer.Start();
 	dTotal = 0;
 	for (nStep = 0; nStep < nStepNumber; nStep++)
 	{
@@ -282,14 +277,13 @@ void DoubleVectorAccessTest()
 			dTotal += dvVector[i];
 		}
 	}
-	stop = high_resolution_clock::now();
-	dDuration = duration_cast<chrono::nanoseconds>(stop - start).count() / 1000000000.0;
+	timer.Stop();
 	cout << "Total: " << dTotal << endl;
-	cout << "Duration: " << dDuration << endl;
+	cout << "Duration: " << timer.GetElapsedTime() << endl;
 
 	// Lecture
 	dvVectorAdress = (char*)(void*)&dvVector;
-	start = high_resolution_clock::now();
+	timer.Start();
 	dTotal = 0;
 	for (nStep = 0; nStep < nStepNumber; nStep++)
 	{
@@ -298,10 +292,9 @@ void DoubleVectorAccessTest()
 			dTotal += *((double*)&dvVectorAdress[i * 8]);
 		}
 	}
-	stop = high_resolution_clock::now();
-	dDuration = duration_cast<chrono::nanoseconds>(stop - start).count() / 1000000000.0;
+	timer.Stop();
 	cout << "Total: " << dTotal << endl;
-	cout << "Duration: " << dDuration << endl;
+	cout << "Duration: " << timer.GetElapsedTime() << endl;
 }
 
 /////////////////////////////////////////////////////////////////////

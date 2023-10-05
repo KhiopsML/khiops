@@ -33,15 +33,15 @@ public:
 	double ComputePartCost(const KWFrequencyVector* part) const override;
 
 	// Calcul du cout global de la partition, definie par le tableau de ses parties
-	double ComputePartitionGlobalCost(const KWFrequencyTable* partTable) const;
+	double ComputePartitionGlobalCost(const KWFrequencyTable* partTable) const override;
 
 	// Affichage du cout de la partition
-	void WritePartitionCost(int nPartNumber, int nGarbageModalityNumber, ostream& ost) const;
+	void WritePartitionCost(int nPartNumber, int nGarbageModalityNumber, ostream& ost) const override;
 
 	// Cout de modele par entite
-	double ComputePartitionConstructionCost(int nPartNumber) const;
-	double ComputePartitionModelCost(int nPartNumber, int nGarbageModalityNumber) const;
-	double ComputePartModelCost(const KWFrequencyVector* part) const;
+	double ComputePartitionConstructionCost(int nPartNumber) const override;
+	double ComputePartitionModelCost(int nPartNumber, int nGarbageModalityNumber) const override;
+	double ComputePartModelCost(const KWFrequencyVector* part) const override;
 
 	// Libelle de la classe
 	const ALString GetClassLabel() const override;

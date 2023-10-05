@@ -60,16 +60,13 @@ public:
 	// Divers
 
 	// Nettoyage
-	void Clean();
+	void Clean() override;
 
 	// Creation virtuelle d'un histogramme dans le bon type
 	MHHistogram* Create() const override;
 
 	// Copie
-	void CopyFrom(const MHHistogram* sourceHistogram);
-
-	// Duplication
-	MHHistogram* Clone() const;
+	void CopyFrom(const MHHistogram* sourceHistogram) override;
 
 	// Ecriture sous forme d'un tableau de bins avec leurs caracteristiques
 	void WriteSummary(ostream& ost) const override;

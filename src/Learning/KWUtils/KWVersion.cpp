@@ -504,7 +504,7 @@ boolean GetLearningCoclusteringIVExpertMode()
 		bIsInitialized = true;
 	}
 	// DDD
-	return true;
+	bLearningCoclusteringIVExpertMode = true;
 	return bLearningCoclusteringIVExpertMode;
 }
 // CH IV End

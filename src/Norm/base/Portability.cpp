@@ -143,7 +143,7 @@ void* p_FindFirstFile(const char* dirname, void* pFileData)
 	char sPath[2048];
 
 	// On veut tous les fichiers et repertoires
-	sprintf(sPath, "%s\\*.*", dirname);
+	snprintf(sPath, sizeof(sPath), "%s\\*.*", dirname);
 
 	// Recherche la premiere entite du repertoire
 	fdFile = (WIN32_FIND_DATAA*)pFileData;
@@ -232,24 +232,6 @@ void StandardGetInputString(char* sBuffer, FILE* fInput)
 		sBuffer[1] = '\0';
 	}
 	assert(strlen(sBuffer) < BUFFER_LENGTH);
-}
-
-int SecureStrcpy(char* sDest, const char* sSource, int nMaxLength)
-{
-	int bOk = 0;
-	int nLenDest;
-	int nLengthSource;
-
-	assert(nMaxLength > 0);
-
-	nLengthSource = (int)strlen(sSource);
-	nLenDest = (int)strlen(sDest);
-	if (nLenDest + nLengthSource < nMaxLength)
-	{
-		strcpy(&sDest[nLenDest], sSource);
-		bOk = 1;
-	}
-	return bOk;
 }
 
 // Implementation Windows du lancement d'excutable
@@ -425,33 +407,26 @@ int OpenApplication(const char* sApplicationExeName, const char* sApplicationLab
 	// Erreur si pas d'association
 	if (!ok)
 	{
-		sprintf(sErrorMessage, "%s tool not found", sApplicationLabel);
+		snprintf(sErrorMessage, SYSTEM_MESSAGE_LENGTH, "%s tool not found", sApplicationLabel);
 	}
 	// Lancement de l'application
 	else
 	{
 		// Preparation des arguments: commande de longueur inconnue, et message d'erreur
-		sCommandLine = new char[strlen(sFileAssociation) + strlen(sFileToOpen) + 10];
-		sprintf(sCommandLine, "\"%s\" \"%s\"", sFileAssociation, sFileToOpen);
+		sCommandLine = StandardGetBuffer();
+		snprintf(sCommandLine, BUFFER_LENGTH, "\"%s\" \"%s\"", sFileAssociation, sFileToOpen);
+		assert(SYSTEM_MESSAGE_LENGTH <= BUFFER_LENGTH);
 		sSystemErrorMessage = StandardGetBuffer();
 
 		// Lancement de la commande
 		ok = StartProcess(sCommandLine, sSystemErrorMessage);
-		delete[] sCommandLine;
 
 		// Message d'erreur
 		if (!ok)
 		{
-			// On passe par SecureStrcpy plutot que par  sprintf en raison de l'incertitude sur les tailles
-			// de parametres
 			assert(sErrorMessage[0] == '\0');
-			SecureStrcpy(sErrorMessage, "unable to launch ", SYSTEM_MESSAGE_LENGTH);
-			SecureStrcpy(sErrorMessage, sApplicationLabel, SYSTEM_MESSAGE_LENGTH);
-			SecureStrcpy(sErrorMessage, " tool using \"", SYSTEM_MESSAGE_LENGTH);
-			SecureStrcpy(sErrorMessage, sFileAssociation, SYSTEM_MESSAGE_LENGTH);
-			SecureStrcpy(sErrorMessage, "\" (", SYSTEM_MESSAGE_LENGTH);
-			SecureStrcpy(sErrorMessage, sSystemErrorMessage, SYSTEM_MESSAGE_LENGTH);
-			SecureStrcpy(sErrorMessage, ")", SYSTEM_MESSAGE_LENGTH);
+			snprintf(sErrorMessage, SYSTEM_MESSAGE_LENGTH, "unable to launch %s tool using \"%s\" (%s)",
+				 sApplicationLabel, sFileAssociation, sSystemErrorMessage);
 		}
 	}
 	return ok;
@@ -487,10 +462,10 @@ int OpenApplication(const char* sApplicationExeName, const char* sApplicationLab
 	if (sApplicationExeName[0] != '\0')
 	{
 		sCommandLine = StandardGetBuffer();
-		sprintf(sCommandLine, "command -v %s > /dev/null", sApplicationExeName);
+		snprintf(sCommandLine, BUFFER_LENGTH, "command -v %s > /dev/null", sApplicationExeName);
 		ok = system(sCommandLine) == 0;
 		if (!ok)
-			sprintf(sErrorMessage, "%s tool not installed", sApplicationLabel);
+			snprintf(sErrorMessage, SYSTEM_MESSAGE_LENGTH, "%s tool not installed", sApplicationLabel);
 	}
 
 	// Lancement si ok
@@ -518,7 +493,8 @@ int OpenApplication(const char* sApplicationExeName, const char* sApplicationLab
 		{
 			ok = 0;
 			assert(strlen(strerror(status)) < SYSTEM_MESSAGE_LENGTH / 2 - 30);
-			sprintf(sErrorMessage, "unable to launch %s tool (%s)", sApplicationLabel, strerror(status));
+			snprintf(sErrorMessage, SYSTEM_MESSAGE_LENGTH, "unable to launch %s tool (%s)",
+				 sApplicationLabel, strerror(status));
 		}
 	}
 	return ok;
@@ -541,7 +517,7 @@ int OpenApplication(const char* sApplicationExeName, const char* sApplicationLab
 
 	// Initialisations
 	ok = 0;
-	sprintf(sErrorMessage, "unable to launch %s application on this OS", sApplicationLabel);
+	snprintf(sErrorMessage, SYSTEM_MESSAGE_LENGTH, "unable to launch %s application on this OS", sApplicationLabel);
 	return ok;
 }
 #endif

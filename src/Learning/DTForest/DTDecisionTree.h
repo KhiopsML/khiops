@@ -66,7 +66,7 @@ public:
 		WithReplacementAdaBoost, // tirage avec remise, choix pondere (algo AdaBoost)
 	};
 
-	boolean ComputeStats();
+	boolean ComputeStats() override;
 
 	/// Duplication de l'arbre
 	DTDecisionTree* Clone();
@@ -167,7 +167,7 @@ public:
 	void WriteNodes(ostream&, const ObjectDictionary*);
 
 	// Ecriture d'un rapport (accessible uniquement si statistiques calculees)
-	void WriteReport(ostream& ost);
+	void WriteReport(ostream& ost) override;
 
 	void WriteDTArrayLineReport(ostream& ost, const ALString& sTitle, ObjectArray* oaLearningReports,
 				    DTDecisionTree* tree);

@@ -440,10 +440,10 @@ class KWDGAttributeCostParameter : public KWDGAttribute
 	// Redefinition pour acces direct au nombre de modalites du groupe poubelle sans passer
 	// par la garbagePart non accessible en mode "emule"
 	void SetGarbageModalityNumber(int nValue);
-	int GetGarbageModalityNumber() const;
+	int GetGarbageModalityNumber() const override;
 
 protected:
-	KWDGPart* NewPart() const;
+	KWDGPart* NewPart() const override;
 	friend class KWDataGridUnivariateCosts;
 	boolean GetEmulated() const override;
 	int nGarbageModalityNumber;
@@ -455,7 +455,7 @@ class KWDGPartCostParameter : public KWDGPart
 {
 protected:
 	friend class KWDataGridUnivariateCosts;
-	void SetPartType(int nValue);
+	void SetPartType(int nValue) override;
 	boolean GetEmulated() const override;
 };
 

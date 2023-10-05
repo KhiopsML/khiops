@@ -101,10 +101,10 @@ public:
 	~KWDiscretizerEqualFrequency();
 
 	// Nom de l'algorithme
-	const ALString GetName() const;
+	const ALString GetName() const override;
 
 	// Constructeur generique
-	KWDiscretizer* Create() const;
+	KWDiscretizer* Create() const override;
 
 	// Discretisation
 	// Chaque intervalle etant defini par ses bornes, il ne peut y avoir
@@ -162,10 +162,10 @@ public:
 	~KWDiscretizerMODLEqualWidth();
 
 	// Nom de l'algorithme
-	const ALString GetName() const;
+	const ALString GetName() const override;
 
 	// Constructeur generique
-	KWDiscretizer* Create() const;
+	KWDiscretizer* Create() const override;
 
 	// Discretisation par minimisation d'un critere de cout
 	// Chaque intervalle etant defini par ses bornes, il ne peut y avoir
@@ -189,10 +189,10 @@ public:
 	~KWDiscretizerMODLEqualFrequency();
 
 	// Nom de l'algorithme
-	const ALString GetName() const;
+	const ALString GetName() const override;
 
 	// Constructeur generique
-	KWDiscretizer* Create() const;
+	KWDiscretizer* Create() const override;
 
 	// Discretisation par minimisation d'un critere de cout
 	// Chaque intervalle etant defini par ses bornes, il peut y avoir

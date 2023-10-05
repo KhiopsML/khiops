@@ -129,7 +129,7 @@ void Profiler::BeginMethod(const ALString& sMethodName)
 			// potentiellement dans les meme sections
 			sJsonKey = sMethodName;
 			sJsonKey += "[";
-			sJsonKey += IntToString(methodTimer->GetStartNumber());
+			sJsonKey += LongintToString(methodTimer->GetStartNumber());
 			sJsonKey += "]";
 			fJsonTraceFile->BeginKeyObject(sJsonKey);
 		}

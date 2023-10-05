@@ -3,15 +3,16 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #include "StreamTest.h"
+
 #ifdef _WIN32
 #include <fcntl.h>
+#endif // _WIN32
 
 // Visual C++: supression des Warning sur les assignation au sein d'un expression conditionnelle (cf.
 // TestStreamLineCount7 et TestStreamLineCount8)
 #ifdef __MSC__
 #pragma warning(disable : 4706) // disable C4706 warning
-#endif
-#endif __MSC__
+#endif                          // __MSC__
 
 void StreamTest(int argc, char** argv)
 {

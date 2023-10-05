@@ -26,7 +26,9 @@ int OpenPdfFile(char* sPdfFilePathName)
 	return ((int)nRet>32);
 	*/
 	char sCommand[1000];
-	sprintf(sCommand, "start %s", sPdfFilePathName);
-	system(sCommand);
+	int nResult;
+
+	snprintf(sCommand, sizeof(sCommand), "start %s", sPdfFilePathName);
+	nResult = system(sCommand);
 	return 0;
 }

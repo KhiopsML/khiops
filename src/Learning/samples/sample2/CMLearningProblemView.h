@@ -21,7 +21,6 @@ public:
 	// Rien pour l'instant
 
 	// Acces au probleme d'apprentissage
-	// void SetObject(Object* object);
 	CMLearningProblem* GetCMLearningProblem();
 };
 

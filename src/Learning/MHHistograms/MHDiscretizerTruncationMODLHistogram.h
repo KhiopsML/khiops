@@ -19,7 +19,7 @@ public:
 	~MHDiscretizerTruncationMODLHistogram();
 
 	// Constructeur generique
-	KWDiscretizer* Create() const;
+	KWDiscretizer* Create() const override;
 
 	/////////////////////////////////////////////////////////////////
 	///// Implementation

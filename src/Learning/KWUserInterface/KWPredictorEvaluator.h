@@ -189,16 +189,16 @@ public:
 	~KWPredictorExternal();
 
 	// Type de predicteur disponible: classification et regression
-	boolean IsTargetTypeManaged(int nType) const;
+	boolean IsTargetTypeManaged(int nType) const override;
 
 	// Constructeur generique
-	KWPredictor* Create() const;
+	KWPredictor* Create() const override;
 
 	// Nom du predicteur
-	const ALString GetName() const;
+	const ALString GetName() const override;
 
 	// Prefixe du predicteur
-	const ALString GetPrefix() const;
+	const ALString GetPrefix() const override;
 
 	// Parametrage du predicteur par un objet KWTrainedPredictor externe
 	// Memoire: le KWTrainedPredictor appartient a l'appele
@@ -214,7 +214,7 @@ public:
 	//// Implementation
 protected:
 	// Redefinition de la methode d'apprentissage
-	boolean InternalTrain();
+	boolean InternalTrain() override;
 
 	// Memorisation
 	KWTrainedPredictor* externalTrainedPredictor;

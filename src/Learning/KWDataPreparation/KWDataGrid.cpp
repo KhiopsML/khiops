@@ -3105,16 +3105,16 @@ boolean KWDGAttribute::Check() const
 					usedVarPart = innerAttribute->GetHeadPart();
 					while (usedVarPart != NULL)
 					{
-						// Recherche de la VarPart parmi les VarPart des partie de la variable de type VarPart
+						// Recherche de la VarPart parmi les VarPart des parties de la variable de type VarPart
 						searchedPart =
 						    cast(KWDGPart*, nkdCheckParts.Lookup((NUMERIC)usedVarPart));
 
 						// Erreur si VarPart non trouvee
 						if (searchedPart == NULL)
 						{
-							part->AddError(sTmp + "Inner variable VarPart " +
-								       usedVarPart->GetObjectLabel() +
-								       " not found amond parts of variables");
+							searchedPart->AddError(sTmp + "Inner variable VarPart " +
+									       usedVarPart->GetObjectLabel() +
+									       " not found amond parts of variables");
 							bOk = false;
 							break;
 						}

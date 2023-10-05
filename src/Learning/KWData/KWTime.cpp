@@ -62,12 +62,13 @@ const char* const Time::ToString() const
 
 		// Cas ou il n'y a pas de fraction de secondes
 		if (nSecondFrac == 0)
-			sprintf(sTime, "%02d:%02d:%02d", GetHour(), GetMinute(), (int)timeValue.timeFields.nSecond);
+			snprintf(sTime, BUFFER_LENGTH, "%02d:%02d:%02d", GetHour(), GetMinute(),
+				 (int)timeValue.timeFields.nSecond);
 		// Cas avec fraction de secondes
 		else
 		{
-			nLength = sprintf(sTime, "%02d:%02d:%02d.%04d", GetHour(), GetMinute(),
-					  (int)timeValue.timeFields.nSecond, nSecondFrac);
+			nLength = snprintf(sTime, BUFFER_LENGTH, "%02d:%02d:%02d.%04d", GetHour(), GetMinute(),
+					   (int)timeValue.timeFields.nSecond, nSecondFrac);
 
 			// Supression des zero en fin pour ne garder que la partie utile des decimales de secondes
 			for (i = 0; i < 4; i++)
@@ -660,9 +661,9 @@ const char* const KWTimeFormat::TimeToString(Time tmValue) const
 		nOffset = 0;
 		assert(nOffset == nHourOffset);
 		if (bMandatoryFirstDigit)
-			nOffset += sprintf(sBuffer, "%02d", tmValue.GetHour());
+			nOffset += snprintf(sBuffer, BUFFER_LENGTH, "%02d", tmValue.GetHour());
 		else
-			nOffset += sprintf(sBuffer, "%d", tmValue.GetHour());
+			nOffset += snprintf(sBuffer, BUFFER_LENGTH, "%d", tmValue.GetHour());
 
 		// Ecriture du premier separateur optionnel
 		if (nSeparatorOffset1 != -1)
@@ -673,9 +674,9 @@ const char* const KWTimeFormat::TimeToString(Time tmValue) const
 
 		// Ecriture du champ minute
 		if (bMandatoryFirstDigit)
-			nOffset += sprintf(sBuffer + nOffset, "%02d", tmValue.GetMinute());
+			nOffset += snprintf(sBuffer + nOffset, BUFFER_LENGTH - nOffset, "%02d", tmValue.GetMinute());
 		else
-			nOffset += sprintf(sBuffer + nOffset, "%d", tmValue.GetMinute());
+			nOffset += snprintf(sBuffer + nOffset, BUFFER_LENGTH - nOffset, "%d", tmValue.GetMinute());
 
 		// Ecriture du deuxieme separateur optionnel
 		if (nSeparatorOffset2 != -1)
@@ -693,9 +694,11 @@ const char* const KWTimeFormat::TimeToString(Time tmValue) const
 		if (nSecondOffset != -1)
 		{
 			if (bMandatoryFirstDigit)
-				nOffset += sprintf(sBuffer + nOffset, "%02d", (int)floor(tmValue.GetSecond()));
+				nOffset += snprintf(sBuffer + nOffset, BUFFER_LENGTH - nOffset, "%02d",
+						    (int)floor(tmValue.GetSecond()));
 			else
-				nOffset += sprintf(sBuffer + nOffset, "%d", (int)floor(tmValue.GetSecond()));
+				nOffset += snprintf(sBuffer + nOffset, BUFFER_LENGTH - nOffset, "%d",
+						    (int)floor(tmValue.GetSecond()));
 		}
 
 		// Ecriture de la partie decimale des secondes
@@ -709,7 +712,7 @@ const char* const KWTimeFormat::TimeToString(Time tmValue) const
 			// Ecriture des fractions de secondes
 			if (nSecondFrac > 0)
 			{
-				nOffset += sprintf(sBuffer + nOffset, ".%04d", nSecondFrac);
+				nOffset += snprintf(sBuffer + nOffset, BUFFER_LENGTH - nOffset, ".%04d", nSecondFrac);
 
 				// Supression des zero en fin pour ne garder que la partie utile des decimales de
 				// secondes

@@ -30,7 +30,7 @@ public:
 	// Divers
 
 	/// Ecriture
-	void Write(ostream& ost) const;
+	void Write(ostream& ost) const override;
 
 	/// Libelles utilisateur
 	const ALString GetClassLabel() const;
