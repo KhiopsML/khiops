@@ -191,8 +191,7 @@ int GenericDictionary::RemoveAllNullValues()
 	nRemovedKeyNumber -= GetCount();
 
 	// Retaillage dynamique
-	assert(GetHashTableSize() < INT_MAX / 4);
-	if (GetCount() < GetHashTableSize() / 8)
+	if (GetCount() > 20 and GetCount() < GetHashTableSize() / 8)
 		ReinitHashTable(DictionaryGetNextTableSize(GetCount() * 2));
 	return nRemovedKeyNumber;
 }
@@ -532,8 +531,7 @@ boolean GenericDictionary::GenericRemoveKey(GenericKey genericKey)
 			FreeAssoc(pAssoc);
 
 			// Retaillage dynamique
-			assert(GetHashTableSize() < INT_MAX / 4);
-			if (GetCount() < GetHashTableSize() / 8)
+			if (GetCount() > 20 and GetCount() < GetHashTableSize() / 8)
 				ReinitHashTable(DictionaryGetNextTableSize(GetCount() * 2));
 
 			return true;

@@ -171,7 +171,6 @@ void KWCDUniqueStringDictionary::RemoveUniqueString(KWCDUniqueStringDataPtr uniq
 	assert(m_nCount >= 0);
 
 	// Retaillage dynamique pour recuperer la memoire inutilisee
-	assert(GetHashTableSize() < INT_MAX / sizeof(void*));
 	if (GetCount() > 20 and GetCount() < GetHashTableSize() / 8)
 		ReinitHashTable(DictionaryGetNextTableSize(2 * GetCount()));
 }
