@@ -131,9 +131,8 @@ KWCDUniqueStringDataPtr KWCDUniqueStringDictionary::AsUniqueString(const ALStrin
 		pvUniqueStringDatas.SetAt(nHashPosition, pUniqueStringData);
 
 		// Retaillage dynamique
-		assert(GetHashTableSize() < INT_MAX / sizeof(void*));
-		if (GetCount() > GetHashTableSize() / 2)
-			ReinitHashTable(DictionaryGetNextTableSize(2 * GetHashTableSize()));
+		if (GetCount() > GetHashTableSize() / 2 and GetHashTableSize() < INT_MAX)
+			ReinitHashTable(DictionaryGetNextTableSize(2 * min(GetHashTableSize(), INT_MAX / 2)));
 	}
 	return pUniqueStringData;
 }

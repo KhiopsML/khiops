@@ -556,7 +556,7 @@ void KWSymbolDictionary::ReinitHashTable(int nNewHashSize)
 	// Affichage du debut de la methode
 	if (bDisplay)
 	{
-		cout << "ReinitHashTable (" << GetCount() << "," << GetHashTableSize() << ")";
+		cout << "Symbol ReinitHashTable (" << GetCount() << "," << GetHashTableSize() << ")";
 		cout << " -> " << nNewHashSize << ": " << flush;
 		timer.Start();
 	}
@@ -769,9 +769,8 @@ KWSymbolDataPtr KWSymbolDictionary::AsSymbol(const char* key, int nLength)
 		pvSymbolDatas.SetAt(nHashPosition, pSymbolData);
 
 		// Retaillage dynamique
-		assert(GetHashTableSize() < INT_MAX / sizeof(void*));
-		if (GetCount() > GetHashTableSize() / 2)
-			ReinitHashTable(DictionaryGetNextTableSize(2 * GetHashTableSize()));
+		if (GetCount() > GetHashTableSize() / 2 and GetHashTableSize() < INT_MAX)
+			ReinitHashTable(DictionaryGetNextTableSize(2 * min(GetHashTableSize(), INT_MAX / 2)));
 	}
 	return pSymbolData;
 }

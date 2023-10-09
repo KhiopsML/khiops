@@ -100,7 +100,7 @@ void KNICreateEnv()
 		Error::SetDisplayErrorFunction(NULL);
 
 		// Affectation des handlers pour l'acces au fichiers
-		if (SystemFileDriverCreator::IsExternalDriversRegistered())
+		if (not SystemFileDriverCreator::IsExternalDriversRegistered())
 			SystemFileDriverCreator::RegisterExternalDrivers();
 	}
 }
