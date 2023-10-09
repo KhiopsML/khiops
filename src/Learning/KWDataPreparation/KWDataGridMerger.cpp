@@ -1242,28 +1242,6 @@ KWDGMPart* KWDataGridMerger::PerformPartMerge(KWDGMPartMerge* bestPartMerge)
 	return mergedPart;
 }
 
-//////////////////////////////////////////////////////////////////
-// Gestion d'une table de hash dediee aux cellules
-
-// Tableau des tailles d'allocations des dictionnaires
-static const UINT nCellDictionaryPrimeSizes[] = {17,       37,       79,        163,       331,      673,      1361,
-						 2729,     5471,     10949,     21911,     43853,    87719,    175447,
-						 350899,   701819,   1403641,   2807303,   5614657,  11229331, 22458671,
-						 44917381, 89834777, 179669557, 359339171, 718678369};
-static const int nCellDictionaryPrimeSizeNumber = sizeof(nCellDictionaryPrimeSizes) / sizeof(UINT);
-
-// Rend la taille de table superieure ou egale a une taille donnee
-static int CellDictionaryGetNextTableSize(UINT nSize)
-{
-	int i;
-	for (i = 0; i < nCellDictionaryPrimeSizeNumber; i++)
-	{
-		if (nCellDictionaryPrimeSizes[i] >= nSize)
-			return nCellDictionaryPrimeSizes[i];
-	}
-	return nSize + 1;
-}
-
 void KWDataGridMerger::CellDictionaryInit()
 {
 	int nCellDictionarySize;
@@ -1282,8 +1260,8 @@ void KWDataGridMerger::CellDictionaryInit()
 	// Initialisation de la table de hash
 	// Calcul de la taille de la table de hash, suffisante pour accueillir
 	// tous les cellules
-	// On prend un nombre premier pour minimiser le nombre de collisions
-	nCellDictionarySize = CellDictionaryGetNextTableSize(2 * (GetCellNumber() + GetAttributeNumber()));
+	nCellDictionarySize =
+	    DictionaryGetNextTableSize(2 * min(INT_MAX / 2, (GetCellNumber() + GetAttributeNumber())));
 	oaCellDictionary.SetSize(0);
 	oaCellDictionary.SetSize(nCellDictionarySize);
 	nCellDictionaryCount = 0;

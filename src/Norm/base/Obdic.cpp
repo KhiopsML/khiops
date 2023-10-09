@@ -16,10 +16,10 @@ void ObjectDictionary::FreeAssoc(ODAssoc* pAssoc)
 }
 
 // Tableau des tailles d'allocations des dictionnaires
-static const int nDictionaryPrimeSizes[] = {17,       37,       79,        163,       331,      673,      1361,
-					    2729,     5471,     10949,     21911,     43853,    87719,    175447,
-					    350899,   701819,   1403641,   2807303,   5614657,  11229331, 22458671,
-					    44917381, 89834777, 179669557, 359339171, 718678369};
+static const int nDictionaryPrimeSizes[] = {17,       37,       79,        163,       331,       673,       1361,
+					    2729,     5471,     10949,     21911,     43853,     87719,     175447,
+					    350899,   701819,   1403641,   2807303,   5614657,   11229331,  22458671,
+					    44917381, 89834777, 179669557, 359339171, 718678369, 1437356741};
 static const int nDictionaryPrimeSizeNumber = sizeof(nDictionaryPrimeSizes) / sizeof(int);
 
 // Rend la taille de table superieure ou egale a une taille donnee
@@ -31,7 +31,7 @@ int DictionaryGetNextTableSize(int nSize)
 		if (nDictionaryPrimeSizes[i] >= nSize)
 			return nDictionaryPrimeSizes[i];
 	}
-	return 2 * nSize + 1;
+	return INT_MAX;
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -272,9 +272,8 @@ Object*& ObjectDictionary::operator[](const char* key)
 		pvODAssocs.SetAt(nHash, pAssoc);
 
 		// Retaillage dynamique
-		assert(GetHashTableSize() < INT_MAX / 4);
-		if (GetCount() > GetHashTableSize())
-			ReinitHashTable(DictionaryGetNextTableSize(2 * GetHashTableSize()));
+		if (GetCount() > GetHashTableSize() / 2 and GetHashTableSize() < INT_MAX)
+			ReinitHashTable(DictionaryGetNextTableSize(2 * min(GetHashTableSize(), INT_MAX / 2)));
 	}
 	return pAssoc->value;
 }
@@ -878,9 +877,8 @@ Object*& NumericKeyDictionary::operator[](NUMERIC key)
 		pvNKDAssocs.SetAt(nHash, pAssoc);
 
 		// Retaillage dynamique
-		assert(GetHashTableSize() < INT_MAX / 4);
-		if (GetCount() > GetHashTableSize())
-			ReinitHashTable(DictionaryGetNextTableSize(2 * GetHashTableSize()));
+		if (GetCount() > GetHashTableSize() / 2 and GetHashTableSize() < INT_MAX)
+			ReinitHashTable(DictionaryGetNextTableSize(2 * min(GetHashTableSize(), INT_MAX / 2)));
 	}
 	return pAssoc->value;
 }

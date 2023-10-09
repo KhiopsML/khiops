@@ -1677,9 +1677,13 @@ boolean CCCoclusteringReport::ReadComposition(CCHierarchicalDataGrid* coclusteri
 					{
 						// Tolerance pour les typicalite negatives
 						if (dTypicality < 0)
+						{
 							AddWarning(sTmp + "Value specification (" + sValueName +
 								   ") with typicality less than 0 for variable " +
-								   dgAttribute->GetAttributeName());
+								   dgAttribute->GetAttributeName() +
+								   " (replaced by 0)");
+							dTypicality = 0;
+						}
 						// Erreur pour les typicalite supereures a 1
 						else
 						{
@@ -3247,7 +3251,26 @@ boolean CCCoclusteringReport::ReadJSONValueGroups(CCHDGAttribute* dgAttribute, K
 	dValueTypicality = 0;
 	while (bOk and not bIsEnd)
 	{
-		bOk = bOk and JSONTokenizer::ReadDoubleValue(true, dValueTypicality);
+		bOk = bOk and JSONTokenizer::ReadDoubleValue(false, dValueTypicality);
+
+		// Tolerance pour les typicalite negatives
+		if (dValueTypicality < 0)
+		{
+			AddWarning(sTmp + "Typicality (" + DoubleToString(dValueTypicality) +
+				   ") less than 0 for variable " + dgAttribute->GetAttributeName() +
+				   " in \"valueTypicalities\" line " +
+				   IntToString(JSONTokenizer::GetCurrentLineIndex()) + " (replaced by 0)");
+			dValueTypicality = 0;
+		}
+		// Erreur pour les typicalite supereures a 1
+		else if (dValueTypicality > 1)
+		{
+			AddError(sTmp + "Typicality (" + DoubleToString(dValueTypicality) +
+				 ") greater than 1 for variable " + dgAttribute->GetAttributeName() +
+				 " in \"valueTypicalities\" line " + IntToString(JSONTokenizer::GetCurrentLineIndex()));
+			bOk = false;
+			break;
+		}
 		bOk = bOk and JSONTokenizer::ReadArrayNext(bIsEnd);
 		if (bOk)
 			dvValueTypicalities.Add(dValueTypicality);
