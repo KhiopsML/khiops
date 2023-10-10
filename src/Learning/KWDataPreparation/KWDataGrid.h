@@ -829,7 +829,7 @@ public:
 	// Controle d'integrite local a la partie (valeurs, cellules de la partie)
 	boolean Check() const override;
 
-	// Memoire utilisee
+	// Memoire utilisee par la partie
 	longint GetUsedMemory() const override;
 
 	// Affichage
@@ -926,7 +926,7 @@ public:
 	// Affichage
 	void Write(ostream& ost) const override = 0;
 
-	// Memoire utilisee
+	// Memoire utilisee par la partie, sans ses valeurs
 	longint GetUsedMemory() const override = 0;
 };
 

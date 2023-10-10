@@ -36,7 +36,7 @@ boolean PLSTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 						     PLSTDatabaseTextFile* outputDatabaseTextFile)
 {
 	boolean bOk = true;
-	boolean bDisplay = false;
+	boolean bDisplay = GetPreparationTraceMode();
 	boolean bCurrentVerboseMode;
 	KWClass* kwcUsedHeaderLineClass;
 	longint lDatabaseClassNecessaryMemory;

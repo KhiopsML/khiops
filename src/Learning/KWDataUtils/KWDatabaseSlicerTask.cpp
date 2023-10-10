@@ -190,8 +190,8 @@ longint KWDatabaseSlicerTask::GetMinOutputNecessaryMemory()
 	lNecessaryMemorySpace = GetEmptyOutputNecessaryMemory();
 
 	// On rajoute au minimum 64 KB par tranche plus deux tailles de buffer pour la tranche courante
-	lNecessaryMemorySpace += 2 * BufferedFile::nDefaultBufferSize +
-				 shared_DataTableSliceSet.GetDataTableSliceSet()->GetSliceNumber() * 64 * lKB;
+	lNecessaryMemorySpace += 2 * (longint)BufferedFile::nDefaultBufferSize +
+				 (longint)shared_DataTableSliceSet.GetDataTableSliceSet()->GetSliceNumber() * 64 * lKB;
 	return lNecessaryMemorySpace;
 }
 
@@ -202,9 +202,9 @@ longint KWDatabaseSlicerTask::GetMaxOutputNecessaryMemory()
 
 	// On rajoute au maximum une taille de buffer standard par tranche plus deux tailles de buffer pour la tranche
 	// courante
-	lNecessaryMemorySpace +=
-	    2 * BufferedFile::nDefaultBufferSize + shared_DataTableSliceSet.GetDataTableSliceSet()->GetSliceNumber() *
-						       longint(BufferedFile::nDefaultBufferSize);
+	lNecessaryMemorySpace += 2 * (longint)BufferedFile::nDefaultBufferSize +
+				 shared_DataTableSliceSet.GetDataTableSliceSet()->GetSliceNumber() *
+				     longint(BufferedFile::nDefaultBufferSize);
 	return lNecessaryMemorySpace;
 }
 

@@ -3141,8 +3141,8 @@ longint KWDGAttribute::GetUsedMemory() const
 	// Prise en compte des parties et des valeurs
 	if (headPart != NULL)
 		lUsedMemory *= nPartNumber * headPart->GetUsedMemory();
-	if (GetAttributeType() == KWType::Symbol)
-		lUsedMemory += nGranularizedValueNumber * sizeof(KWDGValue);
+	if (KWType::IsCoclusteringGroupableType(GetAttributeType()))
+		lUsedMemory += nGranularizedValueNumber * headPart->GetValueSet()->GetHeadValue()->GetUsedMemory();
 
 	// Prise en compte de la structure d'indexation
 	lUsedMemory += oaIntervals.GetUsedMemory();
@@ -4448,17 +4448,7 @@ void KWDGValueSet::WriteValues(ostream& ost) const
 
 longint KWDGValueSet::GetUsedMemory() const
 {
-	longint lUsedMemory;
-	KWDGValue* value;
-
-	lUsedMemory = sizeof(KWDGValueSet);
-	value = GetHeadValue();
-	while (value != NULL)
-	{
-		lUsedMemory += value->GetUsedMemory();
-		GetNextValue(value);
-	}
-	return lUsedMemory;
+	return sizeof(KWDGValueSet);
 }
 
 const ALString KWDGValueSet::GetClassLabel() const
