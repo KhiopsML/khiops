@@ -4,8 +4,8 @@
 
 #pragma once
 
-class KWDataGridOptimizer;
-class KWDataGridVNSOptimizer;
+class NEWKWDataGridOptimizer;
+class NEWKWDataGridVNSOptimizer;
 class CCCoclusteringOptimizer;
 
 #include "KWClassStats.h"
@@ -18,17 +18,16 @@ class CCCoclusteringOptimizer;
 #include "SortedList.h"
 #include "Profiler.h"
 #include "Timer.h"
-#include "NEWKWDataGridOptimizer.h"
 
 //////////////////////////////////////////////////////////////////////////////////
-// Classe KWDataGridOptimizer
+// Classe NEWKWDataGridOptimizer
 // Optimisation d'une grille de donnees parametree par une structure de cout.
-class KWDataGridOptimizer : public Object
+class NEWKWDataGridOptimizer : public Object
 {
 public:
 	// Constructeur
-	KWDataGridOptimizer();
-	~KWDataGridOptimizer();
+	NEWKWDataGridOptimizer();
+	~NEWKWDataGridOptimizer();
 
 	// Reinitialisation
 	virtual void Reset();
@@ -105,6 +104,9 @@ public:
 	//////////////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
+	// CH IV Refactoring: a supprimer
+	friend class KWDataGridOptimizer;
+
 	// Optimisation d'une grille pour la granularite courante
 	// Ajout arguments bIsLastGranularity et dTotalComputeTime
 	double OptimizeGranularizedDataGrid(const KWDataGrid* initialDataGrid, KWDataGrid* optimizedDataGrid,
@@ -176,14 +178,14 @@ protected:
 };
 
 //////////////////////////////////////////////////////////////////////////////////
-// Classe KWDataGridVNSOptimizer
+// Classe NEWKWDataGridVNSOptimizer
 // Optimisation d'une grille de donnees parametree par une structure de cout.
-class KWDataGridVNSOptimizer : public Object
+class NEWKWDataGridVNSOptimizer : public Object
 {
 public:
 	// Constructeur
-	KWDataGridVNSOptimizer();
-	~KWDataGridVNSOptimizer();
+	NEWKWDataGridVNSOptimizer();
+	~NEWKWDataGridVNSOptimizer();
 
 	// Parametrage de la structure des couts de la grille de donnees
 	// Memoire: les specifications sont referencees et destinees a etre partagees par plusieurs algorithmes
@@ -212,8 +214,8 @@ public:
 
 	// Parametrage (facultatif) de l'optimiseur maitre, pour avoir avoir acces a la methode HandleOptimizationStep
 	// appelee a chaque etape produisant une solution intermediaire lors de l'optimisation
-	void SetDataGridOptimizer(const KWDataGridOptimizer* optimizer);
-	const KWDataGridOptimizer* GetDataGridOptimizer() const;
+	void SetDataGridOptimizer(const NEWKWDataGridOptimizer* optimizer);
+	const NEWKWDataGridOptimizer* GetDataGridOptimizer() const;
 
 	//////////////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
@@ -319,7 +321,7 @@ protected:
 	mutable double dVNSNeighbourhoodSize;
 
 	// Optimiseur principal pour declencher la methode de gestion des ameliorations
-	const KWDataGridOptimizer* dataGridOptimizer;
+	const NEWKWDataGridOptimizer* dataGridOptimizer;
 
 	// Epsilon d'optimisation
 	double dEpsilon;
@@ -328,7 +330,7 @@ protected:
 ////////////////////////
 // Methodes en inline
 
-inline Profiler* KWDataGridOptimizer::GetProfiler()
+inline Profiler* NEWKWDataGridOptimizer::GetProfiler()
 {
 	return &profiler;
 }

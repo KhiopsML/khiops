@@ -352,7 +352,7 @@ boolean CCCoclusteringBuilder::ComputeCoclustering()
 	boolean bProfileOptimisation = false;
 	KWTupleTable tupleTable;
 	KWTupleTable tupleFrequencyTable;
-	CCCoclusteringOptimizer dataGridOptimizer;
+	KWDataGridOptimizer dataGridOptimizer;
 	KWDataGrid optimizedDataGrid;
 	KWDataGridManager dataGridManager;
 	ALString sProfileFileName;
@@ -551,7 +551,7 @@ boolean CCCoclusteringBuilder::ComputeCoclustering()
 void CCCoclusteringBuilder::OptimizeDataGrid(const KWDataGrid* inputInitialDataGrid, KWDataGrid* optimizedDataGrid)
 {
 	boolean bDisplayResults = false;
-	CCCoclusteringOptimizer dataGridOptimizer;
+	KWDataGridOptimizer dataGridOptimizer;
 
 	require(inputInitialDataGrid != NULL);
 	require(coclusteringDataGridCosts == NULL);
@@ -578,7 +578,7 @@ void CCCoclusteringBuilder::OptimizeDataGrid(const KWDataGrid* inputInitialDataG
 }
 
 void CCCoclusteringBuilder::InitializeDataGridOptimizer(const KWDataGrid* inputInitialDataGrid,
-							CCCoclusteringOptimizer* dataGridOptimizer)
+							KWDataGridOptimizer* dataGridOptimizer)
 {
 	require(inputInitialDataGrid != NULL);
 	require(dataGridOptimizer != NULL);
@@ -593,7 +593,7 @@ void CCCoclusteringBuilder::InitializeDataGridOptimizer(const KWDataGrid* inputI
 	dataGridOptimizer->SetDataGridCosts(coclusteringDataGridCosts);
 
 	// Parametrage pour l'optimisation anytime: avoir acces aux ameliorations a chaque etape de l'optimisation
-	dataGridOptimizer->SetCoclusteringBuilder(this);
+	dataGridOptimizer->SetAttributeSubsetStats(this);
 
 	// Recopie du parametrage d'optimisation des grilles
 	dataGridOptimizer->GetParameters()->CopyFrom(GetPreprocessingSpec()->GetDataGridOptimizerParameters());
@@ -614,7 +614,7 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 {
 	boolean bDisplayResults = false;
 	boolean bDisplayPartitionLevel = false;
-	CCCoclusteringOptimizer dataGridOptimizer;
+	KWDataGridOptimizer dataGridOptimizer;
 	ObjectDictionary odInnerAttributesQuantileBuilders;
 	KWDataGrid* nullDataGrid;
 	KWDataGrid* partitionedDataGrid;
@@ -4333,40 +4333,4 @@ void CCCoclusteringBuilder::SortAttributePartsAndValues(CCHierarchicalDataGrid* 
 		}
 		// Fin CH IV
 	}
-}
-
-//////////////////////////////////////////////////////////////////////////////////
-// Classe CCCoclusteringOptimizer
-
-CCCoclusteringOptimizer::CCCoclusteringOptimizer()
-{
-	coclusteringBuilder = NULL;
-}
-
-CCCoclusteringOptimizer::~CCCoclusteringOptimizer() {}
-
-void CCCoclusteringOptimizer::Reset()
-{
-	KWDataGridOptimizer::Reset();
-	coclusteringBuilder = NULL;
-}
-
-void CCCoclusteringOptimizer::SetCoclusteringBuilder(const CCCoclusteringBuilder* builder)
-{
-	coclusteringBuilder = builder;
-}
-
-const CCCoclusteringBuilder* CCCoclusteringOptimizer::GetCoclusteringBuilder()
-{
-	return coclusteringBuilder;
-}
-
-void CCCoclusteringOptimizer::HandleOptimizationStep(const KWDataGrid* optimizedDataGrid,
-						     const KWDataGrid* initialGranularizedDataGrid,
-						     boolean bIsLastSaving) const
-{
-	// Integration de la granularite
-	if (coclusteringBuilder != NULL)
-		coclusteringBuilder->HandleOptimizationStep(optimizedDataGrid, initialGranularizedDataGrid,
-							    bIsLastSaving);
 }

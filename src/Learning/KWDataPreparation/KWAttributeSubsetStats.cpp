@@ -611,6 +611,12 @@ KWDataGrid* KWAttributeSubsetStats::CreateDataGrid(const KWTupleTable* tupleTabl
 	return dataGrid;
 }
 
+void KWAttributeSubsetStats::HandleOptimizationStep(const KWDataGrid* optimizedDataGrid,
+						    const KWDataGrid* initialGranularizedDataGrid,
+						    boolean bIsLastSaving) const
+{
+}
+
 boolean KWAttributeSubsetStats::GetPregranularizedNumericalAttributes()
 {
 	return bPregranularizedNumericalAttributes;

@@ -91,6 +91,11 @@ public:
 	// Memoire: appartient a l'appelant
 	KWDataGrid* CreateDataGrid(const KWTupleTable* tupleTable);
 
+	// Methode appelee lors de l'optimisation a chaque etape d'optimisation
+	// Implementation vide par defaut
+	virtual void HandleOptimizationStep(const KWDataGrid* optimizedDataGrid,
+					    const KWDataGrid* initialGranularizedDataGrid, boolean bIsLastSaving) const;
+
 	// Parametrage avance
 	// Pre-granularisation des attributs numeriques cible (regression) et des attributs numeriques explicatifs en
 	// analyse non supervisee (co-clustering) Cette pre-granularisation permet :
