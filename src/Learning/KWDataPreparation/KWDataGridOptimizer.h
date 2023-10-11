@@ -257,10 +257,9 @@ protected:
 	// - Greedy merge optimization
 	// - Post-optimization
 	// - Post-optimization IV
-	double PROTO_VNSDataGridPostOptimizeVarPart(const KWDataGrid* initialDataGrid,
-						    KWDataGridMerger* neighbourDataGrid, double dNeighbourDataGridCost,
-						    KWDataGrid* mergedDataGrid,
-						    KWDataGrid* partitionedReferencePostMergedDataGrid) const;
+	double VNSDataGridPostOptimizeVarPart(const KWDataGrid* initialDataGrid, KWDataGridMerger* neighbourDataGrid,
+					      double dNeighbourDataGridCost, KWDataGrid* mergedDataGrid,
+					      KWDataGrid* partitionedReferencePostMergedDataGrid) const;
 
 	// CH IV Begin
 	// Pilotage de la meta heuristique VNS, avec des voisinages successifs de taille décroissante
@@ -269,13 +268,15 @@ protected:
 	// des grilles de meilleur cout apres post-fusion En sortie : optimizedDataGrid contient la grille antecedent
 	// avant post-fusion de la meilleure grille post-fusionne Le cout renvoye est le cout de cette optimizedDataGrid
 	// dBestMergedDataGridCost contient le cout de la meilleure grille apres post-fusion (meilleur cout)
-	// CH IV Refactoring: proto en vue de fusionner la methode avec VNSOptimizeDataGrid (plnate actuellement)
-	double PROTO_VNSOptimizeVarPartDataGrid(const KWDataGrid* initialDataGrid, double dDecreaseFactor,
-						int nMinIndex, int nMaxIndex, KWDataGrid* optimizedDataGrid,
-						double dOptimizedDataGridCost, double& dBestMergedDataGridCost) const;
+	// CH IV Refactoring: proto en vue de fusionner la methode avec VNSOptimizeDataGrid
 	double VNSOptimizeVarPartDataGrid(const KWDataGrid* initialDataGrid, double dDecreaseFactor, int nMinIndex,
 					  int nMaxIndex, KWDataGrid* optimizedDataGrid, double dOptimizedDataGridCost,
 					  double& dBestMergedDataGridCost) const;
+	// CH IV Refactoring: ancienne version avant decoupage en VNSOptimizeVarPartDataGrid et VNSDataGridPostOptimizeVarPart
+	double DEPRECATED_VNSOptimizeVarPartDataGrid(const KWDataGrid* initialDataGrid, double dDecreaseFactor,
+						     int nMinIndex, int nMaxIndex, KWDataGrid* optimizedDataGrid,
+						     double dOptimizedDataGridCost,
+						     double& dBestMergedDataGridCost) const;
 	// CH IV End
 
 	// Optimisation d'une solution

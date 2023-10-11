@@ -1627,9 +1627,10 @@ double KWDataGridVNSOptimizer::VNSOptimizeDataGrid(const KWDataGrid* initialData
 }
 
 // CH IV Begin
-double KWDataGridVNSOptimizer::PROTO_VNSDataGridPostOptimizeVarPart(
-    const KWDataGrid* initialDataGrid, KWDataGridMerger* neighbourDataGrid, double dNeighbourDataGridCost,
-    KWDataGrid* mergedDataGrid, KWDataGrid* partitionedReferencePostMergedDataGrid) const
+double KWDataGridVNSOptimizer::VNSDataGridPostOptimizeVarPart(const KWDataGrid* initialDataGrid,
+							      KWDataGridMerger* neighbourDataGrid,
+							      double dNeighbourDataGridCost, KWDataGrid* mergedDataGrid,
+							      KWDataGrid* partitionedReferencePostMergedDataGrid) const
 {
 	double dCost;
 	double dMergedCost;
@@ -1848,11 +1849,10 @@ double KWDataGridVNSOptimizer::PROTO_VNSDataGridPostOptimizeVarPart(
 	return dMergedCost;
 }
 
-double KWDataGridVNSOptimizer::PROTO_VNSOptimizeVarPartDataGrid(const KWDataGrid* initialDataGrid,
-								double dDecreaseFactor, int nMinIndex, int nMaxIndex,
-								KWDataGrid* optimizedDataGrid,
-								double dOptimizedDataGridCost,
-								double& dBestMergedDataGridCost) const
+double KWDataGridVNSOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* initialDataGrid, double dDecreaseFactor,
+							  int nMinIndex, int nMaxIndex, KWDataGrid* optimizedDataGrid,
+							  double dOptimizedDataGridCost,
+							  double& dBestMergedDataGridCost) const
 {
 	double dBestCost;
 	double dCost;
@@ -1871,6 +1871,14 @@ double KWDataGridVNSOptimizer::PROTO_VNSOptimizeVarPartDataGrid(const KWDataGrid
 	require(0 <= nMinIndex);
 	require(nMinIndex <= nMaxIndex);
 	require(fabs(dOptimizedDataGridCost - dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid)) < dEpsilon);
+
+	// CH IV Refactoring : DDDDD
+	// Test du remplacement de la methode actuelle, par son proto
+	boolean bDeprecatedVersion = false;
+	if (bDeprecatedVersion)
+		return DEPRECATED_VNSOptimizeVarPartDataGrid(initialDataGrid, dDecreaseFactor, nMinIndex, nMaxIndex,
+							     optimizedDataGrid, dOptimizedDataGridCost,
+							     dBestMergedDataGridCost);
 
 	// Initialisations
 	dataGridManager.SetSourceDataGrid(initialDataGrid);
@@ -1908,9 +1916,9 @@ double KWDataGridVNSOptimizer::PROTO_VNSOptimizeVarPartDataGrid(const KWDataGrid
 		// A terme, a deplacer dans OptimizeSolution
 		dMergedCost = dCost;
 		if (initialDataGrid->IsVarPartDataGrid())
-			dMergedCost = PROTO_VNSDataGridPostOptimizeVarPart(initialDataGrid, &neighbourDataGrid, dCost,
-									   &mergedDataGrid,
-									   &partitionedReferencePostMergedDataGrid);
+			dMergedCost =
+			    VNSDataGridPostOptimizeVarPart(initialDataGrid, &neighbourDataGrid, dCost, &mergedDataGrid,
+							   &partitionedReferencePostMergedDataGrid);
 
 		// Si amelioration: on la memorise
 		if (dMergedCost < dBestMergedCost - dEpsilon)
@@ -1981,10 +1989,11 @@ double KWDataGridVNSOptimizer::PROTO_VNSOptimizeVarPartDataGrid(const KWDataGrid
 	return dBestCost;
 }
 
-double KWDataGridVNSOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* initialDataGrid, double dDecreaseFactor,
-							  int nMinIndex, int nMaxIndex, KWDataGrid* optimizedDataGrid,
-							  double dOptimizedDataGridCost,
-							  double& dBestMergedDataGridCost) const
+double KWDataGridVNSOptimizer::DEPRECATED_VNSOptimizeVarPartDataGrid(const KWDataGrid* initialDataGrid,
+								     double dDecreaseFactor, int nMinIndex,
+								     int nMaxIndex, KWDataGrid* optimizedDataGrid,
+								     double dOptimizedDataGridCost,
+								     double& dBestMergedDataGridCost) const
 {
 	double dBestCost;
 	double dCost;
@@ -2005,15 +2014,6 @@ double KWDataGridVNSOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* init
 	require(0 <= nMinIndex);
 	require(nMinIndex <= nMaxIndex);
 	require(fabs(dOptimizedDataGridCost - dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid)) < dEpsilon);
-
-	// CH IV Refactoring : DDDDD
-	// Test du remplacement de la methode actuelle, par son proto
-	boolean bProto = false;
-	//DDD bProto = true;
-	if (bProto)
-		return PROTO_VNSOptimizeVarPartDataGrid(initialDataGrid, dDecreaseFactor, nMinIndex, nMaxIndex,
-							optimizedDataGrid, dOptimizedDataGridCost,
-							dBestMergedDataGridCost);
 
 	// Initialisations
 	dataGridManager.SetSourceDataGrid(initialDataGrid);

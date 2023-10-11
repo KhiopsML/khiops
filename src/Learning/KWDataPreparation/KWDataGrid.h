@@ -371,6 +371,13 @@ public:
 
 	///////////////////////////////
 	//// Implementation
+
+	// CH IV Refactoring: parametrage d'un libelle associe, pour aider a la mise au point des grilles
+	// CH IV Refactoring: a supprimer une fois les nouveaux algorithmes mi au point
+	// Libelle associe a la grille
+	void SetLabel(const ALString& sValue);
+	const ALString& GetLabel() const;
+
 protected:
 	friend class KWDGAttribute;
 
@@ -435,6 +442,10 @@ protected:
 	// Positionne par l'attribut lors de l'initialsaition de son type s'il est de type VarPart
 	// Permet egalement de savoir si la grille est de type VarPart
 	KWDGAttribute* varPartAttribute;
+
+	// CH IV Refactoring: a supprimer une fois les nouveaux algorithmes mi au point
+	// Libelle associe a la grille
+	ALString sLabel;
 };
 
 // Comparaison de deux grilles de donnees, sur la valeur de tri (SortValue),
