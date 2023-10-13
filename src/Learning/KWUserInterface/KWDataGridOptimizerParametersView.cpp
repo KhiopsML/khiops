@@ -12,7 +12,6 @@ KWDataGridOptimizerParametersView::KWDataGridOptimizerParametersView()
 {
 	SetIdentifier("KWDataGridOptimizerParameters");
 	SetLabel("Data Grid optimization");
-	AddStringField("OptimizationAlgorithm", "Algorithm", "");
 	AddIntField("OptimizationTime", "Optimization time", 0);
 	AddIntField("OptimizationLevel", "Level", 0);
 	AddBooleanField("UnivariateInitialization", "Univariate initialization", false);
@@ -25,7 +24,6 @@ KWDataGridOptimizerParametersView::KWDataGridOptimizerParametersView()
 	AddBooleanField("DisplayDetails", "Display details", false);
 
 	// Parametrage des styles;
-	GetFieldAt("OptimizationAlgorithm")->SetStyle("ComboBox");
 	GetFieldAt("OptimizationTime")->SetStyle("Spinner");
 	GetFieldAt("OptimizationLevel")->SetStyle("Spinner");
 	GetFieldAt("UnivariateInitialization")->SetStyle("CheckBox");
@@ -39,7 +37,6 @@ KWDataGridOptimizerParametersView::KWDataGridOptimizerParametersView()
 	// ## Custom constructor
 
 	// Contrainte sur les valeurs
-	GetFieldAt("OptimizationAlgorithm")->SetParameters("Greedy\nMultiStart\nVNS\nNone");
 	cast(UIIntElement*, GetFieldAt("OptimizationTime"))->SetMinValue(0);
 	cast(UIIntElement*, GetFieldAt("OptimizationTime"))->SetMaxValue(100000000);
 	cast(UIIntElement*, GetFieldAt("OptimizationLevel"))->SetMinValue(0);
@@ -77,7 +74,6 @@ void KWDataGridOptimizerParametersView::EventUpdate(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(KWDataGridOptimizerParameters*, object);
-	editedObject->SetOptimizationAlgorithm(GetStringValueAt("OptimizationAlgorithm"));
 	editedObject->SetOptimizationTime(GetIntValueAt("OptimizationTime"));
 	editedObject->SetOptimizationLevel(GetIntValueAt("OptimizationLevel"));
 	editedObject->SetUnivariateInitialization(GetBooleanValueAt("UnivariateInitialization"));
@@ -101,7 +97,6 @@ void KWDataGridOptimizerParametersView::EventRefresh(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(KWDataGridOptimizerParameters*, object);
-	SetStringValueAt("OptimizationAlgorithm", editedObject->GetOptimizationAlgorithm());
 	SetIntValueAt("OptimizationTime", editedObject->GetOptimizationTime());
 	SetIntValueAt("OptimizationLevel", editedObject->GetOptimizationLevel());
 	SetBooleanValueAt("UnivariateInitialization", editedObject->GetUnivariateInitialization());

@@ -26,10 +26,6 @@ public:
 	int GetMaxPartNumber() const;
 	void SetMaxPartNumber(int nValue);
 
-	// Optimization algorithm: None, Greedy, MultiStart, ou VNS (default)
-	const ALString& GetOptimizationAlgorithm() const;
-	void SetOptimizationAlgorithm(const ALString& sValue);
-
 	// Optimization time (en secondes)
 	// Par defaut: 0, ce qui signifie que ce parametre n'est pas actif
 	// Arret des que possible des que le temps d'optimisation depasse le temps ecoule
@@ -104,7 +100,6 @@ public:
 	//// Implementation
 protected:
 	// Attributs de la classe
-	ALString sOptimizationAlgorithm;
 	int nMaxPartNumber;
 	int nOptimizationTime;
 	int nOptimizationLevel;

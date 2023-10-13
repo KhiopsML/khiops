@@ -5,7 +5,6 @@
 #pragma once
 
 class CCCoclusteringBuilder;
-class CCCoclusteringOptimizer;
 
 #include "PLDatabaseTextFile.h"
 #include "KWTupleTable.h"

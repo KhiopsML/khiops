@@ -7,7 +7,6 @@
 KWDataGridOptimizerParameters::KWDataGridOptimizerParameters()
 {
 	nMaxPartNumber = 0;
-	sOptimizationAlgorithm = "VNS";
 	nOptimizationTime = 0;
 	nOptimizationLevel = 4;
 	bUnivariateInitialization = true;
@@ -34,18 +33,6 @@ void KWDataGridOptimizerParameters::SetMaxPartNumber(int nValue)
 {
 	require(nValue >= 0);
 	nMaxPartNumber = nValue;
-	nFreshness++;
-}
-
-const ALString& KWDataGridOptimizerParameters::GetOptimizationAlgorithm() const
-{
-	return sOptimizationAlgorithm;
-}
-
-void KWDataGridOptimizerParameters::SetOptimizationAlgorithm(const ALString& sValue)
-{
-	require(sValue == "Greedy" or sValue == "MultiStart" or sValue == "VNS" or sValue == "None");
-	sOptimizationAlgorithm = sValue;
 	nFreshness++;
 }
 
@@ -166,7 +153,6 @@ boolean KWDataGridOptimizerParameters::Check() const
 
 void KWDataGridOptimizerParameters::CopyFrom(const KWDataGridOptimizerParameters* kwdgopSource)
 {
-	sOptimizationAlgorithm = kwdgopSource->sOptimizationAlgorithm;
 	nMaxPartNumber = kwdgopSource->nMaxPartNumber;
 	nOptimizationTime = kwdgopSource->nOptimizationTime;
 	nOptimizationLevel = kwdgopSource->nOptimizationLevel;
@@ -200,7 +186,6 @@ int KWDataGridOptimizerParameters::GetFreshness() const
 void KWDataGridOptimizerParameters::Write(ostream& ost) const
 {
 	ost << GetClassLabel() << "(";
-	ost << sOptimizationAlgorithm << ", ";
 	ost << nMaxPartNumber << ", ";
 	ost << nOptimizationTime << ", ";
 	ost << nOptimizationLevel << ", ";
@@ -221,7 +206,7 @@ const ALString KWDataGridOptimizerParameters::GetObjectLabel() const
 {
 	ALString sLabel;
 
-	sLabel = sLabel + sOptimizationAlgorithm + "(" + IntToString(GetOptimizationLevel()) + ")";
+	sLabel = sLabel + "VNS(" + IntToString(GetOptimizationLevel()) + ")";
 	if (GetPreOptimize())
 		sLabel += "+PreOpt";
 	if (GetOptimize())
@@ -266,7 +251,6 @@ void PLShared_DataGridOptimizerParameters::SerializeObject(PLSerializer* seriali
 
 	dataGridOptimizerParameters = cast(KWDataGridOptimizerParameters*, o);
 	serializer->PutInt(dataGridOptimizerParameters->GetMaxPartNumber());
-	serializer->PutString(dataGridOptimizerParameters->GetOptimizationAlgorithm());
 	serializer->PutInt(dataGridOptimizerParameters->GetOptimizationTime());
 	serializer->PutInt(dataGridOptimizerParameters->GetOptimizationLevel());
 	serializer->PutBoolean(dataGridOptimizerParameters->GetUnivariateInitialization());
@@ -288,7 +272,6 @@ void PLShared_DataGridOptimizerParameters::DeserializeObject(PLSerializer* seria
 
 	dataGridOptimizerParameters = cast(KWDataGridOptimizerParameters*, o);
 	dataGridOptimizerParameters->SetMaxPartNumber(serializer->GetInt());
-	dataGridOptimizerParameters->SetOptimizationAlgorithm(serializer->GetString());
 	dataGridOptimizerParameters->SetOptimizationTime(serializer->GetInt());
 	dataGridOptimizerParameters->SetOptimizationLevel(serializer->GetInt());
 	dataGridOptimizerParameters->SetUnivariateInitialization(serializer->GetBoolean());

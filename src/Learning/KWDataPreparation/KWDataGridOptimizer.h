@@ -6,7 +6,6 @@
 
 class KWDataGridOptimizer;
 class KWDataGridVNSOptimizer;
-class CCCoclusteringOptimizer;
 
 #include "KWClassStats.h"
 #include "KWDataGrid.h"
@@ -132,12 +131,6 @@ protected:
 	double OptimizeWithMultipleUnivariatePartitions(const KWDataGrid* initialDataGrid,
 							KWDataGrid* optimizedDataGrid) const;
 
-	// Optimisation greedy (DataGridMerger)
-	double GreedyOptimize(const KWDataGrid* initialDataGrid, KWDataGrid* optimizedDataGrid) const;
-
-	// Optimisation en multi-start
-	double MultiStartOptimize(const KWDataGrid* initialDataGrid, KWDataGrid* optimizedDataGrid) const;
-
 	// Optimisation avec VNS
 	// Traitement plus leger pour les granularites intermediaires en non supervise
 	double VNSOptimize(const KWDataGrid* initialDataGrid, KWDataGrid* optimizedDataGrid,
@@ -252,7 +245,10 @@ protected:
 	// - neighbourDataGrid: grille courante en cours d'optimisation
 	// - dNeighbourDataGridCost: cout de la grille courante
 	// - mergedDataGrid: grille optimisee si amelioration
-	// En sortie, on rend la nouvelle version de la grille optimisee (ou courante) integrant la post-ptimisation et on renvoie son cout
+	// En sortie, la grille courante et son cout sont modifies suite a optimisation.
+	// On rend la grille issue de la post-opimisation VarPart, ainsi que sa grille partitionned re drefrence
+	// Le code retour est le meilleurs cout optenu apres post-optimisation VarPart
+	// Attention, celui-ci est different de celui de la grille courante optimisee
 	//
 	// A terme, il faudra isoler ce service de post-optimisation pour le deplacer en quatrime sous-methode
 	// en fin de la methode OptimizeSolution
@@ -261,7 +257,7 @@ protected:
 	// - Post-optimization
 	// - Post-optimization IV
 	double VNSDataGridPostOptimizeVarPart(const KWDataGrid* initialDataGrid, KWDataGridMerger* neighbourDataGrid,
-					      double dNeighbourDataGridCost, KWDataGrid* mergedDataGrid,
+					      double& dNeighbourDataGridCost, KWDataGrid* mergedDataGrid,
 					      KWDataGrid* partitionedReferencePostMergedDataGrid) const;
 
 	// CH IV Begin
@@ -324,11 +320,3 @@ protected:
 	// Epsilon d'optimisation
 	double dEpsilon;
 };
-
-////////////////////////
-// Methodes en inline
-
-inline Profiler* KWDataGridOptimizer::GetProfiler()
-{
-	return &profiler;
-}
