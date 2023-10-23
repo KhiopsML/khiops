@@ -38,7 +38,7 @@ public:
 	// Renvoie true dans la cas VarPart, false sinon
 	static boolean GetCoclusteringTypeFromLabel(const ALString& sLabel);
 
-	// Parametresd d'optimisation
+	// Parametres d'optimisation
 	KWDataGridOptimizerParameters* GetOptimizationParameters();
 
 	// Libelles utilisateur

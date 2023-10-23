@@ -459,7 +459,7 @@ boolean CCCoclusteringBuilder::ComputeCoclustering()
 
 	// Lancement du profiler pour l'optimisation des grilles
 	// Choix du fichier de trace a parametrer
-	if (bProfileOptimisation)
+	if (bOk and bProfileOptimisation)
 	{
 		// Nom du fichier de profiling, avec le nombre d'individus et de variables
 		sProfileFileName = "C:/temp/DataGridOptimizationProfiling_";
@@ -487,11 +487,11 @@ boolean CCCoclusteringBuilder::ComputeCoclustering()
 	}
 
 	// Trace de debut d'optimisation, avec informations sur la grille initiale
-	KWDataGridOptimizer::GetProfiler()->BeginMethod("Compute coclustering");
-	KWDataGridOptimizer::GetProfiler()->WriteKeyString("Dictionary", GetDatabase()->GetClassName());
-	KWDataGridOptimizer::GetProfiler()->WriteKeyString("Database", GetDatabase()->GetDatabaseName());
-	if (initialDataGrid != NULL)
+	if (bOk and bProfileOptimisation)
 	{
+		KWDataGridOptimizer::GetProfiler()->BeginMethod("Compute coclustering");
+		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Dictionary", GetDatabase()->GetClassName());
+		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Database", GetDatabase()->GetDatabaseName());
 		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Instances",
 								   IntToString(initialDataGrid->GetGridFrequency()));
 		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Variables",
@@ -516,12 +516,12 @@ boolean CCCoclusteringBuilder::ComputeCoclustering()
 	if (bOk and not TaskProgression::IsInterruptionRequested())
 		OptimizeDataGrid(initialDataGrid, &optimizedDataGrid);
 
-	// Trace de fin d'optimisation
-	KWDataGridOptimizer::GetProfiler()->EndMethod("Compute coclustering");
-
 	// Arret du profiler
-	if (bProfileOptimisation)
+	if (bOk and bProfileOptimisation)
+	{
+		KWDataGridOptimizer::GetProfiler()->EndMethod("Compute coclustering");
 		KWDataGridOptimizer::GetProfiler()->Stop();
+	}
 
 	// La solution est sauvegardee periodiquement grace au mode anytime
 	// Nettoyage si aucune solution n'a encore ete trouvee
@@ -598,12 +598,6 @@ void CCCoclusteringBuilder::InitializeDataGridOptimizer(const KWDataGrid* inputI
 	// Recopie du parametrage d'optimisation des grilles
 	dataGridOptimizer->GetParameters()->CopyFrom(GetPreprocessingSpec()->GetDataGridOptimizerParameters());
 	dataGridOptimizer->GetParameters()->SetOptimizationTime(RMResourceConstraints::GetOptimizationTime());
-
-	// Parametrage d'un niveau d'optimisation "illimite" si une limite de temps est indiquee
-	//debug(dataGridOptimizer->GetParameters()->SetOptimizationLevel(0));
-	//debug(cout << "BEWARE: Optimization level set to 0 in debug mode only!!!" << endl);
-	if (dataGridOptimizer->GetParameters()->GetOptimizationTime() > 0)
-		dataGridOptimizer->GetParameters()->SetOptimizationLevel(20);
 
 	// Initialisation des couts par defaut
 	coclusteringDataGridCosts->InitializeDefaultCosts(inputInitialDataGrid);
@@ -1636,6 +1630,7 @@ void CCCoclusteringBuilder::HandleOptimizationStep(const KWDataGrid* optimizedDa
 	boolean bKeepIntermediateReports = false;
 	boolean bWriteOk;
 	boolean bDisplayResults = false;
+	const int nMaxVarPartsDisplayed = 10;
 	const double dEpsilon = 1e-6;
 	double dCost;
 	double dLevel;
@@ -1646,16 +1641,15 @@ void CCCoclusteringBuilder::HandleOptimizationStep(const KWDataGrid* optimizedDa
 	ALString sCoclusteringSizeInfo;
 	int nAttribute;
 	KWDGAttribute* dgAttribute;
-	ALString sTmp;
 	int nGranularityMax;
+	boolean bDisplayGranularity;
+	ALString sMessage;
+	ALString sTmp;
 
 	require(optimizedDataGrid != NULL);
 	require(nAnyTimeOptimizationIndex >= 0);
 
-	nGranularityMax = (int)ceil(log(initialDataGrid->GetGridFrequency() * 1.0) / log(2.0));
-
 	// Memorisation du cout par defaut la premiere fois
-
 	if (not bIsDefaultCostComputed)
 	{
 		assert(nAnyTimeOptimizationIndex == 0);
@@ -1676,8 +1670,7 @@ void CCCoclusteringBuilder::HandleOptimizationStep(const KWDataGrid* optimizedDa
 	// Cout de la nouvelle solution
 	dCost = coclusteringDataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid);
 
-	// Test si amelioration
-	//  ou si la mise a jour est commandee par l'atteinte de la granularite maximale
+	// Test si amelioration ou si la mise a jour est commandee par l'atteinte de la granularite maximale
 	// Les grilles avec un seul attribut informatif ne sont pas sauvegardes
 	// Cela signifie qu'une grille legerement plus chere avec deux attributs informatifs rencontree au cours
 	// de l'optimisation mais non sauvegardee car non optimale du point de vue du cout peut exister mais
@@ -1728,74 +1721,71 @@ void CCCoclusteringBuilder::HandleOptimizationStep(const KWDataGrid* optimizedDa
 		dLevel = 1 - dAnyTimeBestCost / dAnyTimeDefaultCost;
 
 		// Calcul d'un libelle sur la taille de la grille (nombre de parties par dimension)
-		// CH IV Begin
-		// Cas d'un coclustering de variables
-		if (not GetVarPartCoclustering())
+		for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
 		{
-			for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
-			{
-				dgAttribute = coclusteringDataGrid->SearchAttribute(GetAttributeNameAt(nAttribute));
-				if (nAttribute > 0)
-					sCoclusteringSizeInfo += "*";
-				if (dgAttribute == NULL)
-					sCoclusteringSizeInfo += "1";
-				else
-					sCoclusteringSizeInfo += IntToString(dgAttribute->GetPartNumber());
-			}
-		}
-		// Sinon, cas d'une grille individu * variable
-		else
-		{
-			// Calcul d'un libelle sur la taille de la grille (nombre de parties par dimension)
-			for (nAttribute = 0; nAttribute < coclusteringDataGrid->GetAttributeNumber(); nAttribute++)
-			{
-				dgAttribute = coclusteringDataGrid->GetAttributeAt(nAttribute);
-				if (nAttribute > 0)
-					sCoclusteringSizeInfo += "*";
+			dgAttribute = coclusteringDataGrid->SearchAttribute(GetAttributeNameAt(nAttribute));
+			if (nAttribute > 0)
+				sCoclusteringSizeInfo += "*";
+			if (dgAttribute == NULL)
+				sCoclusteringSizeInfo += "1";
+			else
 				sCoclusteringSizeInfo += IntToString(dgAttribute->GetPartNumber());
-			}
+		}
 
+		// Cas d'une grille individu * variable; ajout d'infos la partition des attributs
+		if (GetVarPartCoclustering())
+		{
 			// Calcul d'un libelle sur la taille des partitions des variables internes
-			sCoclusteringSizeInfo += "\tVarPartNumbers :";
+			sCoclusteringSizeInfo += "\tVarParts: ";
+			sCoclusteringSizeInfo += IntToString(
+			    coclusteringDataGrid->GetInnerAttributes()->ComputeTotalInnerAttributeVarParts());
+			sCoclusteringSizeInfo += "=";
 			for (nAttribute = 0;
 			     nAttribute < coclusteringDataGrid->GetInnerAttributes()->GetInnerAttributeNumber();
 			     nAttribute++)
 			{
 				dgAttribute =
 				    coclusteringDataGrid->GetInnerAttributes()->GetInnerAttributeAt(nAttribute);
+				if (nAttribute >= nMaxVarPartsDisplayed)
+				{
+					sCoclusteringSizeInfo += "+...";
+					break;
+				}
 				if (nAttribute > 0)
-					sCoclusteringSizeInfo += "*";
+					sCoclusteringSizeInfo += "+";
 				sCoclusteringSizeInfo += IntToString(dgAttribute->GetPartNumber());
 			}
 
-			// Granularite de pre-partitionnement des attributs internes
-			sCoclusteringSizeInfo += "\tVarPartGranularity :";
+			// Granularite de tokenisation des attributs internes
+			sCoclusteringSizeInfo += "\tTokenization:";
 			sCoclusteringSizeInfo +=
 			    IntToString(coclusteringDataGrid->GetInnerAttributes()->GetVarPartGranularity());
-
-			// Granularite de partitionnement de la grille pre-partitionnee
-			sCoclusteringSizeInfo += "\tDgGranularity :";
-			sCoclusteringSizeInfo += IntToString(coclusteringDataGrid->GetGranularity());
 		}
-		// CH IV End
 
-		// Sauvegarde dans un fichier temporaire
+		// Test si on doit afficher les info de granularite
+		// On doit etre en mode granularite avec une granularite inferieure a la granularite maximale
+		nGranularityMax = (int)ceil(log(initialDataGrid->GetGridFrequency() * 1.0) / log(2.0));
+		bDisplayGranularity = initialGranularizedDataGrid->GetGranularity() > 0 and
+				      initialGranularizedDataGrid->GetGranularity() < nGranularityMax and
+				      initialGranularizedDataGrid->GetLnGridSize() < initialDataGrid->GetLnGridSize();
+
+		// Nom du fichier temporaire
 		nAnyTimeOptimizationIndex++;
 		sReportFileName = AnyTimeBuildTemporaryReportFileName(nAnyTimeOptimizationIndex);
-		// Cas de non affichage d'info de granularite : pas en mode granularite ou granularite maximale
-		if (initialGranularizedDataGrid->GetGranularity() == 0 or
-		    (initialGranularizedDataGrid->GetGranularity() == nGranularityMax or
-		     initialGranularizedDataGrid->GetLnGridSize() == initialDataGrid->GetLnGridSize()))
-			AddSimpleMessage(sTmp + "  " + SecondsToString((int)dOptimizationTime) + "\t" +
-					 "Write intermediate coclustering report " +
-					 FileService::GetFileName(sReportFileName) +
-					 "\tLevel: " + DoubleToString(dLevel) + "\tSize: " + sCoclusteringSizeInfo);
-		else
-			AddSimpleMessage(
-			    sTmp + "  " + SecondsToString((int)dOptimizationTime) + "\t" +
-			    "Write intermediate coclustering report " + FileService::GetFileName(sReportFileName) +
-			    "\tLevel: " + DoubleToString(dLevel) + "\tSize: " + sCoclusteringSizeInfo +
-			    "\tGranularity: " + IntToString(initialGranularizedDataGrid->GetGranularity()));
+
+		// Message utilisateur
+		sMessage = sTmp + "  " + SecondsToString((int)dOptimizationTime);
+		sMessage += sTmp + "\tWrite intermediate report " + FileService::GetFileName(sReportFileName);
+		sMessage += sTmp + "\tLevel: " + DoubleToString(dLevel);
+		sMessage += sTmp + "\tSize: " + sCoclusteringSizeInfo;
+		if (bDisplayGranularity)
+		{
+			sMessage +=
+			    sTmp + "\tGranularity: " + IntToString(initialGranularizedDataGrid->GetGranularity());
+		}
+		AddSimpleMessage(sMessage);
+
+		// Sauvegarde dans un fichier temporaire
 		// On supprime le mode verbeux pour les sauvegardes intermediaires
 		JSONFile::SetVerboseMode(bIsLastSaving);
 		bWriteOk = coclusteringReport.WriteJSONReport(sReportFileName, coclusteringDataGrid);

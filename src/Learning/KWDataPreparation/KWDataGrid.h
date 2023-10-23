@@ -258,7 +258,7 @@ public:
 	////////////////////////////////////////////////////////////////
 	// Acces aux cellules du DataGrid
 
-	// Nombre de cellules
+	// Nombre de cellules non vides
 	int GetCellNumber() const;
 
 	// Parcours de tous les cellules

@@ -15,10 +15,9 @@ void KWDataGridManager::CopyDataGrid(const KWDataGrid* initialDataGrid, KWDataGr
 {
 	KWDataGridManager dataGridManager;
 
-	require(initialDataGrid != NULL);
 	require(targetDataGrid != NULL);
 
-	// Utilisation d'un manager de grille pour effectuier la copie
+	// Utilisation d'un manager de grille pour effectuer la copie
 	dataGridManager.SetSourceDataGrid(initialDataGrid);
 	targetDataGrid->DeleteAll();
 	dataGridManager.ExportDataGrid(targetDataGrid);
@@ -29,7 +28,6 @@ void KWDataGridManager::CopyDataGridWithInnerAttributesCloned(const KWDataGrid* 
 {
 	KWDataGridManager dataGridManager;
 
-	require(initialDataGrid != NULL);
 	require(targetDataGrid != NULL);
 
 	// Utilisation d'un manager de grille pour effectuier la copie
@@ -42,7 +40,6 @@ void KWDataGridManager::CopyInformativeDataGrid(const KWDataGrid* initialDataGri
 {
 	KWDataGridManager dataGridManager;
 
-	require(initialDataGrid != NULL);
 	require(targetDataGrid != NULL);
 
 	// Utilisation d'un manager de grille pour effectuer la copie

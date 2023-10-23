@@ -2339,7 +2339,7 @@ void KWDataGridVNSOptimizer::GenerateNeighbourSolution(const KWDataGrid* initial
 
 	// Parametrage avance temporaire, pour etude sur les multinomiales hierarchiques (Marc Boulle)
 	// Cf. classe d'etude KWHierarchicalMultinomialStudy
-	if (optimizationParameters.GetInternalParameter() == "LargeNeighborhoods")
+	if (optimizationParameters.GetInternalParameter() == "LargeNeighbourhoods")
 	{
 		nMaxContinuousPartNumber = (int)(nGridSize / 2);
 		nMaxSymbolPartNumber = (int)sqrt(nGridSize * 1.0);
