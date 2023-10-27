@@ -11,7 +11,7 @@ project(
   Khiops
   LANGUAGES CXX
   VERSION ${VERSION}
-  HOMEPAGE_URL "khiops.com")
+  HOMEPAGE_URL "https://khiops.org")
 
 # Specify CMake policies
 cmake_policy(SET CMP0015 NEW)

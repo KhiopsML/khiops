@@ -103,7 +103,7 @@ Var /GLOBAL SamplesInstallDir
 !define MUI_ABORTWARNING
 !define MUI_ICON ".\images\installer.ico"
 !define MUI_UNICON "${NSISDIR}\Contrib\Graphics\Icons\win-uninstall.ico"
-BrandingText "Orange Innovation"
+BrandingText "Orange"
 
 # Welcome page
 !define MUI_WELCOMEPAGE_TITLE "Welcome to the Khiops ${KHIOPS_VERSION} Setup Wizard"
@@ -369,7 +369,7 @@ Section "Install" SecInstall
   WriteRegStr HKLM "${UninstallerKey}\Khiops" "UninstallString" '"$INSTDIR\uninstall-khiops.exe"'
   WriteRegStr HKLM "${UninstallerKey}\Khiops" "InstallLocation" "$INSTDIR"
   WriteRegStr HKLM "${UninstallerKey}\Khiops" "DisplayName" "Khiops"
-  WriteRegStr HKLM "${UninstallerKey}\Khiops" "Publisher" "Orange Labs"
+  WriteRegStr HKLM "${UninstallerKey}\Khiops" "Publisher" "Orange"
   WriteRegStr HKLM "${UninstallerKey}\Khiops" "DisplayIcon" "$INSTDIR\bin\icons\installer.ico"
   WriteRegStr HKLM "${UninstallerKey}\Khiops" "DisplayVersion" "${KHIOPS_VERSION}"
   WriteRegStr HKLM "${UninstallerKey}\Khiops" "URLInfoAbout" "http://khiops.org"

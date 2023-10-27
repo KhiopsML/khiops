@@ -13,4 +13,4 @@
 #define KHIOPS_VERSION str(10.1.5)
 
 // Copyright
-#define KHIOPS_COPYRIGHT_LABEL str((c)2023 Orange Labs - All rights reserved.)
+#define KHIOPS_COPYRIGHT_LABEL str((c)2023 Orange - All rights reserved.)

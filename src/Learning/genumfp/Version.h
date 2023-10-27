@@ -13,4 +13,4 @@
 #define GENUMFP_VERSION str(1.0)
 
 // Copyright
-#define GENUMFP_COPYRIGHT_LABEL str((c)2022 Orange Labs.)
+#define GENUMFP_COPYRIGHT_LABEL str((c)2023 Orange.)

@@ -27,7 +27,7 @@ void CCLearningProject::OpenLearningEnvironnement()
 
 	// Parametrage du menu about
 	SetLearningAboutImage("images/khiops_coclustering_about.gif");
-	SetLearningWebSite("www.khiops.com");
+	SetLearningWebSite("https://khiops.org");
 
 	// Documentation
 	sDocumentation += "<h4> Reference Guide and Tutorial </h4>"
