@@ -2148,7 +2148,7 @@ inline boolean KWDGValueSet::IsDefaultPart() const
 
 inline int KWDGValueSet::GetValueNumber() const
 {
-	assert(nValueNumber > 0 or IsDefaultPart() or GetValueType() != KWType::Symbol);
+	assert(nValueNumber > 0 or IsDefaultPart() or GetHeadValue() == NULL or GetValueType() != KWType::Symbol);
 
 	// On assure que le seul cas sans aucune valeur est le cas de la partie par defaut reduite a la StarValue
 	// Cela peut arriver si la partie a ete "nettoyee" pour gagner de la place, notamment quand on exporte
@@ -2158,6 +2158,8 @@ inline int KWDGValueSet::GetValueNumber() const
 	// Dans ce cas, ou rend une nombre de valeurs egal 1 a, ce qui a le merite d'avoir des couts de grille
 	// valides numeriquement, meme s'ils ne corrrespondent pas au vrai model qui aurait du memoriser
 	// le nombre exacte de valeurs du groupe
+	// Ce cas peut egalement se produire dans certaines phases algorithmiques ou
+	// la liste de valeurs est effectivement vide
 	if (nValueNumber == 0 and IsDefaultPart())
 		return 1;
 	else

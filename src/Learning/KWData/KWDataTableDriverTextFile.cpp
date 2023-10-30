@@ -1418,11 +1418,8 @@ int KWDataTableDriverTextFile::ComputeBufferNecessaryMemory(boolean bRead, int n
 			nNecessaryMemory = (int)lFileSize;
 	}
 
-	// Ajout d'un overhead pour la taille des objets en memoire, essentiellement en lecture
-	if (bRead)
-		nNecessaryMemory += nNecessaryMemory / 4;
-	else
-		nNecessaryMemory += nNecessaryMemory / 8;
+	// Ajout d'un overhead pour la taille des objets en memoire
+	nNecessaryMemory += nNecessaryMemory / 4;
 	return nNecessaryMemory;
 }
 

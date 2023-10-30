@@ -199,12 +199,8 @@ double NEWKWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGri
 
 			// Test si on doit traiter la granularite
 			bIsGranularitySelected = false;
-			if (granularizedDataGrid.GetInformativeAttributeNumber() > 1)
+			if (IsOptimizationNeeded(&granularizedDataGrid))
 			{
-				assert(IsOptimizationNeeded(&granularizedDataGrid));
-
-				// On ne traite pas les grilles avec un seul attribut informatif
-				//
 				// Dans le cas d'une grille avec un attribut instances et un attribut VarPart, tant que
 				// l'attribut instances ne contient qu'une seule partie, la granularite n'est pas selectionnee.
 				// La granularisation de l'attribut instances est reduite au fourre-tout (1 seule partie)
@@ -241,7 +237,8 @@ double NEWKWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGri
 			}
 
 			// Exploration de la granularite courante
-			if (bIsGranularitySelected or bIsLastGranularity)
+			if (IsOptimizationNeeded(&granularizedDataGrid) and
+			    (bIsGranularitySelected or bIsLastGranularity))
 			{
 				assert(bIsGranularitySelected or bIsLastGranularity);
 
@@ -1859,11 +1856,19 @@ boolean NEWKWDataGridOptimizer::IsOptimizationNeeded(const KWDataGrid* dataGrid)
 	require(dataGrid != NULL);
 
 	bIsOptimizationNeeded = true;
-	if ((dataGrid->GetTargetAttribute() == NULL and dataGrid->GetTargetValueNumber() == 1) or
-	    (dataGrid->GetTargetAttribute() == NULL and dataGrid->GetInformativeAttributeNumber() == 0) or
-	    (dataGrid->GetTargetAttribute() != NULL and dataGrid->GetTargetAttribute()->GetPartNumber() <= 1) or
-	    (dataGrid->GetTargetAttribute() != NULL and dataGrid->GetInformativeAttributeNumber() <= 1))
-		bIsOptimizationNeeded = false;
+	if (IsSupervisedDataGrid(dataGrid))
+	{
+		if (dataGrid->GetTargetValueNumber() == 1 or
+		    (dataGrid->GetTargetAttribute() != NULL and dataGrid->GetTargetAttribute()->GetPartNumber() <= 1))
+			bIsOptimizationNeeded = false;
+		else if (dataGrid->GetInformativeAttributeNumber() == 0)
+			bIsOptimizationNeeded = false;
+	}
+	else
+	{
+		if (dataGrid->GetInformativeAttributeNumber() <= 1)
+			bIsOptimizationNeeded = false;
+	}
 	return bIsOptimizationNeeded;
 }
 
