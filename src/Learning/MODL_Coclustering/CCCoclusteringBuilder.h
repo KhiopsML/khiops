@@ -155,6 +155,7 @@ protected:
 	// CH IV Begin
 	// Methode d'optimisation d'une grille dediee au cas instances x variables
 	void OptimizeVarPartDataGrid(const KWDataGrid* inputInitialDataGrid, KWDataGrid* optimizedDataGrid);
+	void PROTO_OptimizeVarPartDataGrid(const KWDataGrid* inputInitialDataGrid, KWDataGrid* optimizedDataGrid);
 	// CH IV End
 
 	///////////////////////////////////////////////////////////////////////////////////////

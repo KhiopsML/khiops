@@ -634,6 +634,7 @@ void KWDataGridManager::ExportGranularizedDataGridForVarPartAttributes(
 	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
 	require(nGranularity > 0);
 	require(sourceDataGrid->IsVarPartDataGrid());
+	require(odInnerAttributesQuantilesBuilders != NULL);
 	require(odInnerAttributesQuantilesBuilders->GetCount() ==
 		sourceDataGrid->GetInnerAttributes()->GetInnerAttributeNumber());
 
@@ -686,6 +687,78 @@ void KWDataGridManager::ExportGranularizedDataGridForVarPartAttributes(
 	ensure(not sourceDataGrid->IsVarPartDataGrid() or
 	       targetDataGrid->GetVarPartAttribute()->GetInnerAttributes() !=
 		   sourceDataGrid->GetVarPartAttribute()->GetInnerAttributes());
+}
+
+void KWDataGridManager::ComputeGranularizedTotalPartNumbers(const ObjectDictionary* odQuantilesBuilders,
+							    IntVector* ivGranularityTotalPartNumbers) const
+{
+	boolean bDisplay = false;
+	KWQuantileBuilder* quantileBuilder;
+	ObjectArray oaQuantilesBuilders;
+	int nAttribute;
+	int nGranularity;
+	int nPartileNumber;
+	int nActualPartileNumber;
+	int nTotalActualPartileNumber;
+	boolean bMaximumQuantilization;
+
+	require(odQuantilesBuilders != NULL);
+	require(odQuantilesBuilders->GetCount() > 0);
+	require(ivGranularityTotalPartNumbers != NULL);
+
+	// Export des quantile builder dans un tableau
+	odQuantilesBuilders->ExportObjectArray(&oaQuantilesBuilders);
+	if (bDisplay)
+		cout << "ComputeGranularizedTotalPartNumbers\t" << odQuantilesBuilders->GetCount() << "\n";
+
+	// Parcours des quantile builders pour calculer les nombre totaux de partie
+	ivGranularityTotalPartNumbers->SetSize(0);
+	nGranularity = 0;
+	bMaximumQuantilization = false;
+	while (not bMaximumQuantilization)
+	{
+		// Nombre de partiles theoriques
+		nPartileNumber = (int)pow(2, nGranularity);
+
+		// Parcours des attributs a quantilser
+		bMaximumQuantilization = true;
+		nTotalActualPartileNumber = 0;
+		for (nAttribute = 0; nAttribute < oaQuantilesBuilders.GetSize(); nAttribute++)
+		{
+			quantileBuilder = cast(KWQuantileBuilder*, oaQuantilesBuilders.GetAt(nAttribute));
+
+			// Calcul du nombre effectif de quantiles si necessaire
+			if (nGranularity == 0 or
+			    quantileBuilder->GetComputedQuantileNumber() < quantileBuilder->GetValueNumber())
+				nActualPartileNumber = quantileBuilder->ComputeQuantiles(nPartileNumber);
+			// Sinon, on a atteint le nombre maximum de valeurs a une granularite precedente
+			else
+			{
+				assert(quantileBuilder->GetComputedQuantileNumber() ==
+				       quantileBuilder->GetValueNumber());
+				nActualPartileNumber = quantileBuilder->GetValueNumber();
+			}
+
+			// Mise a jour du total
+			nTotalActualPartileNumber += nActualPartileNumber;
+
+			// On test si on a atteint le maximum
+			bMaximumQuantilization =
+			    bMaximumQuantilization and nActualPartileNumber == quantileBuilder->GetValueNumber();
+		}
+
+		// Memorisation du total
+		ivGranularityTotalPartNumbers->Add(nTotalActualPartileNumber);
+		assert(ivGranularityTotalPartNumbers->GetSize() == nGranularity + 1);
+		assert(nGranularity == 0 or ivGranularityTotalPartNumbers->GetAt(nGranularity) >=
+						ivGranularityTotalPartNumbers->GetAt(nGranularity - 1));
+		if (bDisplay)
+			cout << "\t" << nGranularity << "\t" << ivGranularityTotalPartNumbers->GetAt(nGranularity)
+			     << "\n";
+
+		// Granularite suivante
+		nGranularity++;
+	}
 }
 
 void KWDataGridManager::ExportFrequencyTableFromOneAttribute(KWFrequencyTable* kwFrequencyTable,

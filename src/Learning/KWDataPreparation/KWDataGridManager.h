@@ -155,7 +155,7 @@ public:
 	// En sortie, le vecteur ivMaxPartNumbers contient pour chaque attribut le nombre maximal
 	// de parties attendu apres granularisation
 	// Pour un attribut numerique, il s'agit du nombre de valeurs distinctes
-	// Pour un attribut categoriel,  il s'agit du nombre de parties dont l'effectif est > 1,
+	// Pour un attribut categoriel, il s'agit du nombre de parties dont l'effectif est > 1,
 	// plus une partie en presence de singletons
 	void InitializeQuantileBuilders(ObjectDictionary* odQuantilesBuilders, IntVector* ivMaxPartNumbers) const;
 
@@ -175,6 +175,15 @@ public:
 	void ExportGranularizedDataGridForVarPartAttributes(
 	    KWDataGrid* targetDataGrid, int nGranularity,
 	    const ObjectDictionary* odInnerAttributesQuantilesBuilders) const;
+
+	// Calcul des nombres total de parties reel pour chaque niveau de granularisation
+	// En entree, on a un dictionnaire de quantile builders pour un ensemble d'attribut, de grille ou internes.
+	// En sortie, le vecteur contient pour chaque granularite i de 0 a max la somme des nombres de parties
+	// effectivement obtenus par attributs quand on demande 2^i partiles.
+	// Le max est detremine par la methode, en s'arretant quand a la granularite permettant d'obtenir
+	// le total de parties des quantile buyilders
+	void ComputeGranularizedTotalPartNumbers(const ObjectDictionary* odQuantilesBuilders,
+						 IntVector* ivGranularityTotalPartNumbers) const;
 
 	////////////////////////////////////////////////////////////////////////////////////////////
 	// Services avances de construction de grille

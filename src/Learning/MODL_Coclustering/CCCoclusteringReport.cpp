@@ -3235,7 +3235,6 @@ boolean CCCoclusteringReport::ReadJSONAttributePartition(KWDGAttribute* dgAttrib
 	ObjectDictionary odVarPartAttributeAllVarParts;
 	ObjectDictionary odCheckedParts;
 	ALString sPartName;
-	int nInnerAttribute;
 	ALString sAttributeName;
 	int nInnerAttributeIndex;
 	ALString sTmp;

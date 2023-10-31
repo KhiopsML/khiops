@@ -97,6 +97,9 @@ double NEWKWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGri
 	ALString sSuffix;
 	ALString sTmp;
 
+	require(initialDataGrid != NULL);
+	require(optimizedDataGrid != NULL);
+
 	// Debut de suivi des taches
 	TaskProgression::BeginTask();
 	TaskProgression::DisplayMainLabel("Data Grid optimization");
@@ -932,12 +935,12 @@ double NEWKWDataGridOptimizer::InitializeWithTerminalDataGrid(const KWDataGrid* 
 	dataGridManager.ExportTerminalDataGrid(&terminalDataGrid);
 	dBestCost = dataGridCosts->GetTotalDefaultCost();
 
+	// Memorisation de la meilleure solution initiale
+	SaveDataGrid(&terminalDataGrid, optimizedDataGrid);
+
 	// Tri des parties par attribut, pour preparer les affichages de resultats
 	// ainsi que les resultats de preparation des donnees
 	optimizedDataGrid->SortAttributeParts();
-
-	// Memorisation de la meilleure solution initiale
-	SaveDataGrid(&terminalDataGrid, optimizedDataGrid);
 
 	// Affichage du resulat (ici: grilles initiale et optimisee sont confondues)
 	DisplayOptimizationDetails(optimizedDataGrid, false);
@@ -1856,18 +1859,44 @@ boolean NEWKWDataGridOptimizer::IsOptimizationNeeded(const KWDataGrid* dataGrid)
 	require(dataGrid != NULL);
 
 	bIsOptimizationNeeded = true;
+	int nSourceAttributNumber;
+	int nSourceInformativeAttributNumber;
+
+	// Cas supervise
 	if (IsSupervisedDataGrid(dataGrid))
 	{
+		// Optimisation non necessaire si une seule partie cible
 		if (dataGrid->GetTargetValueNumber() == 1 or
 		    (dataGrid->GetTargetAttribute() != NULL and dataGrid->GetTargetAttribute()->GetPartNumber() <= 1))
 			bIsOptimizationNeeded = false;
-		else if (dataGrid->GetInformativeAttributeNumber() == 0)
-			bIsOptimizationNeeded = false;
+		// Cas avec partie cible avec plusieurs parties
+		{
+			// Calcul du nombre d'attributs sources
+			nSourceAttributNumber = dataGrid->GetAttributeNumber();
+			nSourceInformativeAttributNumber = dataGrid->GetInformativeAttributeNumber();
+
+			// Correction si l'attribut cible fait partie directement de la grille
+			if (dataGrid->GetTargetAttribute() != NULL)
+			{
+				nSourceAttributNumber--;
+				nSourceInformativeAttributNumber--;
+			}
+
+			// Optimisation necessaire en univarie si attribut informatif (plusieurs parties)
+			if (nSourceAttributNumber <= 1)
+				bIsOptimizationNeeded = nSourceInformativeAttributNumber == 1;
+			// Optimisation necessaire en multivarie si au moins deux attributs informatifs
+			else
+				bIsOptimizationNeeded = nSourceInformativeAttributNumber >= 2;
+		}
 	}
+	// Cas non supervise
 	else
 	{
-		if (dataGrid->GetInformativeAttributeNumber() <= 1)
-			bIsOptimizationNeeded = false;
+		assert(dataGrid->GetTargetValueNumber() == 0);
+
+		// Optimisation non necessaire en non supervise s'il n'y a pas au moins deux attributs
+		bIsOptimizationNeeded = (dataGrid->GetInformativeAttributeNumber() >= 2);
 	}
 	return bIsOptimizationNeeded;
 }
