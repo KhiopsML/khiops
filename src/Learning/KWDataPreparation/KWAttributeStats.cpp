@@ -1954,8 +1954,6 @@ int KWAttributeStatsCompareLevel(const void* elem1, const void* elem2)
 {
 	KWAttributeStats* attributeStats1;
 	KWAttributeStats* attributeStats2;
-	longint lLevel1;
-	longint lLevel2;
 	int nCompare;
 
 	// Acces aux objects
@@ -1966,10 +1964,8 @@ int KWAttributeStatsCompareLevel(const void* elem1, const void* elem2)
 	assert(attributeStats1->Check());
 	assert(attributeStats2->Check());
 
-	// Comparaison des levels des attributs (ramanes a longint)
-	lLevel1 = longint(floor(attributeStats1->GetLevel() * 1e10));
-	lLevel2 = longint(floor(attributeStats2->GetLevel() * 1e10));
-	nCompare = -CompareLongint(lLevel1, lLevel2);
+	// Comparaison selon la precison du type Continuous, pour eviter les differences a epsilon pres
+	nCompare = -KWContinuous::CompareIndicatorValue(attributeStats1->GetLevel(), attributeStats2->GetLevel());
 
 	// Comparaison par nom si match nul
 	if (nCompare == 0)

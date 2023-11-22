@@ -424,22 +424,15 @@ int KWSelectedAttributeReport::CompareValue(const KWLearningReport* otherReport)
 {
 	int nCompare;
 	KWSelectedAttributeReport* otherAttributeReport = cast(KWSelectedAttributeReport*, otherReport);
-	longint lSortValue1;
-	longint lSortValue2;
 
-	// On se base sur un comparaison a dix decimales pres
-	lSortValue1 = longint(floor(fabs(GetImportance()) * 1e10));
-	lSortValue2 = longint(floor(fabs(otherAttributeReport->GetImportance()) * 1e10));
-	assert(lSortValue1 >= 0);
-	assert(lSortValue2 >= 0);
-	nCompare = -CompareLongint(lSortValue1, lSortValue2);
+	// Comparaison selon la precison du type Continuous, pour eviter les differences a epsilon pres
+	nCompare = -KWContinuous::CompareIndicatorValue(GetImportance(), otherAttributeReport->GetImportance());
 
 	// En cas d'egalite, on se base sur l'evaluation univariee
 	if (nCompare == 0)
 	{
-		lSortValue1 = longint(floor(fabs(GetUnivariateEvaluation()) * 1e10));
-		lSortValue2 = longint(floor(fabs(otherAttributeReport->GetUnivariateEvaluation()) * 1e10));
-		nCompare = -CompareLongint(lSortValue1, lSortValue2);
+		nCompare = -KWContinuous::CompareIndicatorValue(GetUnivariateEvaluation(),
+								otherAttributeReport->GetUnivariateEvaluation());
 	}
 
 	// En cas d'egalite, on se base sur le nom

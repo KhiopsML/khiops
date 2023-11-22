@@ -582,11 +582,6 @@ inline int DTSplitCompareSortValue(const void* elem1, const void* elem2)
 	// dSortValue2 = report2->GetTreeCost();
 	sSortValue1 = report1->GetSplittableNode()->GetNodeIdentifier();
 	sSortValue2 = report2->GetSplittableNode()->GetNodeIdentifier();
-
-	// On se base sur un comparaison a dix decimales pres
-	// lSortValue1 = longint(floor(dSortValue1 * 1e10));
-	// lSortValue2 = longint(floor(dSortValue2 * 1e10));
-	// nCompare = -CompareLongint(lSortValue1, lSortValue2);
 	nCompare = sSortValue1.Compare(sSortValue2);
 
 	// Comparaison si necessaire sur le nom

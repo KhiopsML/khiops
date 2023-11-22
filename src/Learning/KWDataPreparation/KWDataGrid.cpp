@@ -4762,9 +4762,8 @@ int KWDGSymbolValue::CompareTypicality(const KWDGValue* otherValue) const
 
 	require(otherValue != NULL);
 
-	// Comparaison de la typicalite selon la precison du type Continuous, pour eviter les differences a epsilon pres
-	nCompare = -KWContinuous::Compare(KWContinuous::DoubleToContinuous(GetTypicality()),
-					  KWContinuous::DoubleToContinuous(otherValue->GetTypicality()));
+	// Comparaison selon la precison du type Continuous, pour eviter les differences a epsilon pres
+	nCompare = -KWContinuous::CompareIndicatorValue(GetTypicality(), otherValue->GetTypicality());
 
 	// Comparaison par effectif decroissaqnt si egalite
 	if (nCompare == 0)
@@ -4847,9 +4846,8 @@ int KWDGVarPartValue::CompareTypicality(const KWDGValue* otherValue) const
 
 	require(otherValue != NULL);
 
-	// Comparaison de la typicalite selon la precison du type Continuous, pour eviter les differences a epsilon pres
-	nCompare = -KWContinuous::Compare(KWContinuous::DoubleToContinuous(GetTypicality()),
-					  KWContinuous::DoubleToContinuous(otherValue->GetTypicality()));
+	// Comparaison selon la precison du type Continuous, pour eviter les differences a epsilon pres
+	nCompare = -KWContinuous::CompareIndicatorValue(GetTypicality(), otherValue->GetTypicality());
 
 	// Comparaison par valeur si egalite
 	if (nCompare == 0)
