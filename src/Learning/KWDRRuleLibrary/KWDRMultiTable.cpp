@@ -1853,6 +1853,9 @@ int KWDRTableSortCompareObjects(const void* elem1, const void* elem2)
 			nDiff = sortOperand->GetTimestampTZValue(object1).Compare(
 			    sortOperand->GetTimestampTZValue(object2));
 			break;
+		case KWType::Text:
+			nDiff = sortOperand->GetTextValue(object1).CompareValue(sortOperand->GetTextValue(object2));
+			break;
 		default:
 			nDiff = 0;
 			assert(false);

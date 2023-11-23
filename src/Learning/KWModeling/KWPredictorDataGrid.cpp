@@ -454,8 +454,8 @@ ObjectArray* KWPredictorDataGrid::SelectTrainAttributeStats()
 	// Initialisation de la memoire necessaire pour l'apprentissage
 	lEmptyObjectSize = sizeof(KWObject) + sizeof(KWObject*);
 	lUsedMemory = lEmptyExeSize + GetClassStats()->GetInstanceNumber() * (lEmptyObjectSize + sizeof(KWValue));
-	lUsedMemory +=
-	    3 * GetClassStats()->GetInstanceNumber() * (sizeof(KWDGMCell) + nTargetModalityNumber * sizeof(KWValue));
+	lUsedMemory += 3 * (longint)GetClassStats()->GetInstanceNumber() *
+		       (sizeof(KWDGMCell) + nTargetModalityNumber * sizeof(KWValue));
 
 	// On compte le nombre d'attributs utilisables pour l'apprentissage
 	nUsedAttributes = 0;
@@ -468,14 +468,16 @@ ObjectArray* KWPredictorDataGrid::SelectTrainAttributeStats()
 		if (attributeStats->GetAttributeType() == KWType::Continuous)
 		{
 			lAttributeRequiredMemory = GetClassStats()->GetInstanceNumber() * sizeof(KWValue);
-			lAttributeRequiredMemory += 3 * attributeStats->GetDescriptiveStats()->GetValueNumber() *
+			lAttributeRequiredMemory += 3 *
+						    (longint)attributeStats->GetDescriptiveStats()->GetValueNumber() *
 						    (sizeof(KWDGMPart) + sizeof(KWDGInterval));
 		}
 		// et dans le cas symbolique
 		else
 		{
 			lAttributeRequiredMemory = GetClassStats()->GetInstanceNumber() * sizeof(KWValue);
-			lAttributeRequiredMemory += 3 * attributeStats->GetDescriptiveStats()->GetValueNumber() *
+			lAttributeRequiredMemory += 3 *
+						    (longint)attributeStats->GetDescriptiveStats()->GetValueNumber() *
 						    (sizeof(KWDGMPart) + sizeof(KWDGValueSet) + sizeof(KWDGValue));
 		}
 

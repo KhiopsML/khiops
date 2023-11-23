@@ -232,7 +232,7 @@ public:
 	// a vis des noms, types, et blocs d'attributs, et son nom sera specifie dans l'appele
 	// Memoire: la classe construite en retour appartient a l'appelant
 	KWClass* BuildClassFromAttributeNames(const ALString& sInputClassName,
-					      const StringVector* svInputAttributeNames);
+					      const StringVector* svInputAttributeNames) const;
 
 	// Acces au tableau des tranches
 	// Memoire: le tableau et son contenu appartiennent a l'appelant, mais peuvent etre modifies sous la

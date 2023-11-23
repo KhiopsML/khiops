@@ -791,7 +791,7 @@ boolean KWDataPreparationUnivariateTask::SlaveProcess()
 	// la memoire minimum demandee
 	lAvailableWorkingMemory =
 	    shared_lLargestSliceUsedMemory - lSliceUsedMemory +
-	    +(shared_nLargestSliceAttributeNumber - slice->GetClass()->GetLoadedAttributeNumber()) *
+	    +(shared_nLargestSliceAttributeNumber - (longint)slice->GetClass()->GetLoadedAttributeNumber()) *
 		lNecessaryUnivariateStatsMemory +
 	    shared_lLargestSliceMaxBlockWorkingMemory + shared_lLargestSliceDatabaseAllValuesMemory;
 
@@ -934,7 +934,7 @@ void KWDataPreparationUnivariateTask::InitializeSliceLexicographicSortCriterion(
 	require(masterDataTableSliceSet != NULL);
 
 	// Premier critere: nombre total de valeurs, dense plus sparse
-	slice->GetLexicographicSortCriterion()->Add(double(slice->GetClass()->GetLoadedDenseAttributeNumber() *
+	slice->GetLexicographicSortCriterion()->Add(double((longint)slice->GetClass()->GetLoadedDenseAttributeNumber() *
 							       masterDataTableSliceSet->GetTotalInstanceNumber() +
 							   slice->GetTotalAttributeBlockValueNumber()));
 

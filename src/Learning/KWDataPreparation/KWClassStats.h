@@ -330,6 +330,9 @@ protected:
 	// Nombre de valeurs cibles dans le cas categoriel, considere comme important
 	virtual int GetTargetValueLargeNumber(int nDatabaseSize);
 
+	// Taille de base consideree comme important
+	int GetLargeDatabaseSize();
+
 	// Verification de la specification d'un ensmeble de variable de construction
 	boolean CheckConstructionAttributes(const ObjectDictionary* odConstructedAttributes) const;
 

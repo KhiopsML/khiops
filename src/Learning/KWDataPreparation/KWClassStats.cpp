@@ -129,6 +129,12 @@ boolean KWClassStats::ComputeStats()
 			 LongintToReadableString(lCollectedObjectNumber) + ")");
 		bOk = false;
 	}
+	// Warning si nombre tres important d'instances
+	if (bOk and lCollectedObjectNumber >= GetLargeDatabaseSize())
+	{
+		AddWarning(sTmp + "The train dataset contains many instances (" +
+			   LongintToReadableString(lCollectedObjectNumber) + ")");
+	}
 
 	// Calcul des statistiques de l'attribut cible (ou du nombre d'instances a traiter en non supervise)
 	bOk = bOk and not TaskProgression::IsInterruptionRequested();
@@ -1470,6 +1476,11 @@ int KWClassStats::GetTargetValueLargeNumber(int nDatabaseSize)
 {
 	require(nDatabaseSize >= 0);
 	return 10 + (int)sqrt(1.0 * nDatabaseSize);
+}
+
+int KWClassStats::GetLargeDatabaseSize()
+{
+	return 10000000;
 }
 
 boolean KWClassStats::CheckConstructionAttributes(const ObjectDictionary* odConstructedAttributes) const

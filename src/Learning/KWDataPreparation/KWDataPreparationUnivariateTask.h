@@ -179,7 +179,7 @@ protected:
 	// Sortie:
 	//   . ivUsedAttributeStepIndexes: pour chaque attribut, index de l'etape de chargement (-1 si attribut en
 	//   Unused)
-	// Retourne le nombre de partie de la partition
+	// Retourne le nombre de parties de la partition
 	int ComputeSlicePartition(KWDataTableSlice* slice, int nObjectNumber, longint lAvailableWorkingMemory,
 				  IntVector* ivUsedAttributePartIndexes);
 
