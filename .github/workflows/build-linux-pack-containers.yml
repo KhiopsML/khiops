@@ -1,9 +1,9 @@
 ---
-name: Build development containers
+name: Build Linux containers for packaging
 on:
   workflow_dispatch:
 jobs:
-  build-container:
+  build-packaging-container:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -24,13 +24,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build the image and push it to the registry
+        id: docker-build
         uses: docker/build-push-action@v2
         with:
-          # relative path to the place where source code with Dockerfile is located
-          context: ./packaging/dockerfiles
-          file: ./packaging/dockerfiles/Dockerfile.${{ matrix.os }}
-          # Note: tags must be lower-case
+          file: ./packaging/dockerfiles/linux/Dockerfile.${{ matrix.os }}
           tags: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
           push: true
       - name: Display the image digest
-        run: echo ${{ steps.docker_build.outputs.digest }}
+        run: echo ${{ steps.docker-build.outputs.digest }}

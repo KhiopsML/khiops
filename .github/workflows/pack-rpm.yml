@@ -2,6 +2,8 @@
 name: Create RPM package
 on:
   workflow_dispatch:
+  pull_request:
+    paths: ['**CMakeLists.txt', '**.cmake']
 jobs:
   build-rpm-package:
     runs-on: ubuntu-latest
@@ -28,7 +30,7 @@ jobs:
           source /etc/profile.d/modules.sh
           module load mpi/mpich-x86_64
           echo "MPI_SUFFIX=$MPI_SUFFIX" >> "$GITHUB_ENV"
-          cmake --preset linux-gcc-release -DTESTING=OFF
+          cmake --preset linux-gcc-release -DBUILD_JARS=ON
       - name: Build Khiops binaries
         run: |
           cmake --build --preset linux-gcc-release --parallel \
@@ -88,8 +90,8 @@ jobs:
       - name: Install Khiops Desktop (with java)
         run: |
           yum install -y ./artifacts/khiops-*
-      - name: Test Khiops and Khiops Coclustering
-        uses: ./.github/actions/test-khiops
+      - name: Test Khiops installation
+        uses: ./.github/actions/test-khiops-install
   test-kni-rpm:
     needs: build-rpm-package
     runs-on: ubuntu-latest
@@ -105,7 +107,7 @@ jobs:
     steps:
       - name: Put OS info on the environment
         run: |
-          source /etc/os-release 
+          source /etc/os-release
           echo "ID=$ID" >> "$GITHUB_ENV"
           VERSION=$(echo $PLATFORM_ID | cut -d":" -f2)
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
@@ -117,10 +119,10 @@ jobs:
       - name: Install KNI package
         run: |
           yum update -y
-          yum install -y ./artifacts/kni* 
+          yum install -y ./artifacts/kni*
       - name: Checkout sources
         uses: actions/checkout@v3
         with:
           sparse-checkout: .github
-      - name: Test KNI package
+      - name: Test KNI package installation
         uses: ./.github/actions/test-kni

@@ -11,15 +11,16 @@ project(
   Khiops
   LANGUAGES CXX
   VERSION ${VERSION}
-  HOMEPAGE_URL "khiops.com")
+  HOMEPAGE_URL "https://khiops.org")
 
 # Specify CMake policies
 cmake_policy(SET CMP0015 NEW)
 cmake_policy(SET CMP0048 NEW)
 cmake_policy(SET CMP0053 NEW)
-cmake_policy(SET CMP0063 NEW)
 cmake_policy(SET CMP0054 NEW)
 cmake_policy(SET CMP0058 NEW)
+cmake_policy(SET CMP0063 NEW)
+cmake_policy(SET CMP0083 NEW)
 
 # Do not add warning flags for MSVC cmake_policy(SET CMP0092 NEW)
 
@@ -91,7 +92,7 @@ if(IS_FEDORA_LIKE)
   endif(DEFINED ENV{MPI_SUFFIX})
 endif(IS_FEDORA_LIKE)
 
-# Set built products location:
+# Set the location of the built artifacts:
 #
 # - Shared and static library target directory: lib
 # - Executable target directory: bin
@@ -107,14 +108,6 @@ message(STATUS "Libraries will be stored in ${CMAKE_BINARY_DIR}/lib/")
 # Set module path for the project
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/packaging")
 
-# Use "-fPIC" / "-fPIE" for all targets by default, including static libs
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
-# CMake doesn't add "-pie" by default for executables (CMake issue #14983)
-if(NOT MSVC OR NOT APPLE)
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pie")
-endif()
-
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN 1)
 
@@ -123,7 +116,7 @@ if(CMAKE_BUILD_TYPE EQUAL "Debug")
   set(LLVM_REQUIRES_RTTI 1)
 endif()
 
-# Process dependencies Find MPI if required
+# Process dependencies: Find MPI if required
 if(MPI)
   find_package(MPI 2.0 REQUIRED)
   message(
@@ -142,23 +135,34 @@ elseif(C11)
   set(CMAKE_CXX_STANDARD_REQUIRED ON)
 endif()
 
-# Message the current C++ configuration
-message(STATUS "CMake generator is: ${CMAKE_GENERATOR}")
-message(STATUS "CMake compiler is: ${CMAKE_CXX_COMPILER_ID}")
-message(STATUS "CMake C++ standard is: ${CMAKE_CXX_STANDARD}")
-
 # Find Bison/Flex if required
 if(BUILD_LEX_YACC)
   find_package(BISON REQUIRED)
   find_package(FLEX REQUIRED)
 endif()
 
-# Find Java
+# Find Java if required
 if(BUILD_JARS)
   find_package(Java REQUIRED COMPONENTS Development)
+  include(UseJava)
+  set(KHIOPS_BUILD_JAR_DIR "${CMAKE_BINARY_DIR}/jars")
+  message(STATUS "Java JARs will be stored at ${KHIOPS_BUILD_JAR_DIR}")
+  # Note: For final builds we recommend to use java 1.8 to ensure that the jar is compatible with all posterior java
+  # versions (from # 1.8 to the most recent ones). The following setting accomplish that:
+  #
+  # - find_package(Java 1.8 EXACT REQUIRED COMPONENTS Development)
 endif()
 
-# MSVC: Eliminate some options the old CMake way because VS sets them with default values
+# Check for support of position independent code/executable
+include(CheckPIESupported)
+check_pie_supported()
+
+# Message the current C++ configuration
+message(STATUS "CMake generator is: ${CMAKE_GENERATOR}")
+message(STATUS "CMake compiler is: ${CMAKE_CXX_COMPILER_ID}")
+message(STATUS "CMake C++ standard is: ${CMAKE_CXX_STANDARD}")
+
+# MSVC: Eliminate some options the old CMake way because VS sets them with undesired default values
 #
 # - the C++ exception flags
 # - the runtime information flags
@@ -176,15 +180,16 @@ function(set_khiops_options target)
   get_target_property(target_type ${target} TYPE)
   message(STATUS "Setting up ${target_type} ${target}")
 
-  # General compiler definitions
+  # General compiler properties and definitions
+  set_property(TARGET ${target} PROPERTY POSITION_INDEPENDENT_CODE TRUE)
   target_compile_definitions(${target} PRIVATE UNICODE _UNICODE)
   if(MPI)
     target_compile_definitions(${target} PRIVATE USE_MPI)
   endif()
-
   target_compile_definitions(${target} PRIVATE $<$<CONFIG:RELEASE,RELWITHDEBINFO>:NOALL>)
   target_compile_definitions(${target} PRIVATE $<$<CONFIG:RELWITHDEBINFO>:__ALPHA__>)
 
+  # Delegate to specialized function for Windows and Unix-like
   if(MSVC)
     set_msvc_khiops_options(${target})
   else()
@@ -287,14 +292,35 @@ function(display_variables)
   endforeach()
 endfunction()
 
+# This function set up a JAR target. Arguments:
+#
+# - NAME: Name of the JAR target
+# - IMAGES: Paths of the image files to include in the JAR
+function(add_khiops_jar)
+  # Parse the function arguments
+  set(options "")
+  set(oneValueArgs "NAME")
+  set(multiValueKwargs "JAVA_FILES" "IMAGES")
+  cmake_parse_arguments(ADD_KHIOPS_JAR "${options}" "${oneValueArgs}" "${multiValueKwargs}" ${ARGN})
+
+  # Add the JAR target with its resources and install
+  message(STATUS "Setting up JAR ${ADD_KHIOPS_JAR_NAME}.jar")
+  add_jar(
+    "${ADD_KHIOPS_JAR_NAME}_jar" ${ADD_KHIOPS_JAR_JAVA_FILES}
+    OUTPUT_NAME ${ADD_KHIOPS_JAR_NAME} RESOURCES NAMESPACE "images" ${ADD_KHIOPS_JAR_IMAGES}
+    OUTPUT_DIR "${CMAKE_BINARY_DIR}/jars" COMPONENT KHIOPS)
+  install_jar("${ADD_KHIOPS_JAR_NAME}_jar" DESTINATION usr/share/khiops)
+endfunction()
+
 # Add targets for Norm Parallel and Learning modules
 add_subdirectory(src/Norm)
 add_subdirectory(src/Parallel)
 add_subdirectory(src/Learning)
 
+# Testing settings
 if(TESTING)
+  # Disable gMock from the building of googletest
   set(BUILD_GMOCK OFF)
-  set(INSTALL_GTEST OFF)
 
   # Fetch googletest from its Git repo
   include(FetchContent)
@@ -317,19 +343,21 @@ if(TESTING)
     set_property(TARGET gtest_main PROPERTY MSVC_RUNTIME_LIBRARY MultiThreadedDebug)
   endif()
 
+  # Include and enable googletest
   include(GoogleTest)
   enable_testing()
 
+  # Add testing targets
   add_subdirectory(test/Norm)
   add_subdirectory(test/Parallel)
   add_subdirectory(test/Parallel-mpi)
   add_subdirectory(test/Learning)
   add_subdirectory(test/KNITest)
   add_subdirectory(test/Utils)
-
 endif(TESTING)
 
 # Exclude googletest from the installation
 set(INSTALL_GTEST OFF)
 
+# Add packaging directory for CPack scripts
 include(packaging)

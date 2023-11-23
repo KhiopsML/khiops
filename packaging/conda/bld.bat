@@ -1,2 +1,2 @@
-cmake --preset windows-msvc-release -DBUILD_JARS=OFF -DTESTING=OFF
+cmake --preset windows-msvc-release
 cmake --build --preset windows-msvc-release --parallel --target MODL MODL_Coclustering

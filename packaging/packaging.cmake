@@ -1,9 +1,9 @@
 set(CPACK_PACKAGE_VENDOR Orange)
-set(CPACK_PACKAGE_HOMEPAGE_URL khiops.com)
+set(CPACK_PACKAGE_HOMEPAGE_URL https://khiops.org)
 set(CPACK_PACKAGE_ICON "${PROJECT_SOURCE_DIR}/packaging/common/images/khiops.png")
 set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/LICENSE")
 set(CPACK_PACKAGE_VENDOR "Orange")
-set(CPACK_PACKAGE_CONTACT "Bruno Guerraz <bruno.guerraz@orange.com>")
+set(CPACK_PACKAGE_CONTACT "Khiops Team <khiops.team@orange.com>")
 set(CPACK_SOURCE_IGNORE_FILES .git)
 
 set(CPACK_COMPONENT_KHIOPS_DESCRIPTION
