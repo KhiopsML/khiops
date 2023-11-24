@@ -1245,17 +1245,17 @@ boolean KWDataPreparationUnivariateTask::SplitSlice(KWDataTableSlice* slice, int
 				}
 
 				// Test si interruption sans qu'il y ait d'erreur
-				if (slice->IsError() or TaskProgression::IsInterruptionRequested())
+				if (not bOk or slice->IsError() or TaskProgression::IsInterruptionRequested())
 				{
 					bOk = false;
 
 					// Warning ou erreur selon le cas
-					if (slice->IsError())
-						slice->AddError("Read data table slice interrupted because of errors");
+					if (TaskProgression::IsInterruptionRequested())
+						slice->AddWarning("Read data table slice interrupted by user");
 					else if (allSliceOutputBuffer.IsError())
 						slice->AddError("Error in writing database sub-slice files");
 					else
-						slice->AddWarning("Read data table slice interrupted by user");
+						slice->AddError("Read data table slice interrupted because of errors");
 				}
 			}
 

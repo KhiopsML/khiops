@@ -36,6 +36,7 @@ int main(int argc, char** argv)
 	// Choix du repertoire de lancement pour le debugage sous Windows (a commenter apres fin du debug)
 	// SetWindowsDebugDir("Standard", "IrisLight");
 	// SetWindowsDebugDir("Standard", "Iris2D");
+	SetWindowsDebugDir("Rules", "DateTimeRules");
 
 	// Parametrage des logs memoires depuis les variables d'environnement, pris en compte dans KWLearningProject
 	//   KhiopsMemStatsLogFileName, KhiopsMemStatsLogFrequency, KhiopsMemStatsLogToCollect
