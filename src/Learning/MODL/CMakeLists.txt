@@ -1,6 +1,6 @@
 file(GLOB cppfiles ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 
-# MODL executable On Fedora, binaries built with mpi must be suffixed by _mpich (in stored ${MPI_SUFFIX})
+# on fedora, binaries built with mpi must ended by _mpich suffix
 add_executable(MODL${MPI_SUFFIX} ${cppfiles} MODL.rc)
 target_link_libraries(MODL${MPI_SUFFIX} PUBLIC DTForest KMDRRuleLibrary KWLearningProblem)
 set_khiops_options(MODL${MPI_SUFFIX})
@@ -8,7 +8,6 @@ if(MPI)
   target_link_libraries(MODL${MPI_SUFFIX} PUBLIC PLMPI)
 endif()
 
-# MODL_SO (shared library)
 add_library(MODL_SO SHARED ${cppfiles})
 target_link_libraries(MODL_SO PUBLIC DTForest KMDRRuleLibrary KWLearningProblem)
 if(MPI)
