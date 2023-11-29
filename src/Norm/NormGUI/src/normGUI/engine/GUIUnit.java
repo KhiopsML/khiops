@@ -1061,7 +1061,7 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                         GUIAction guiAction = (GUIAction)vectorOfGUIActions.get(i);
                         if (guiAction.getVisible() && !guiAction.getIdentifier().equals(Exit) &&
                             !guiAction.getIdentifier().equals(Refresh)) {
-                                if (guiAction.getHelpText().length() > 0)
+                                if (!guiAction.getHelpText().equals(""))
                                         hasActionHelpText = true;
                         }
                 }
@@ -1077,7 +1077,7 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                                         hasDataUnitHelpText = ((GUIUnit)guiData).hasHelpText();
                                 // S'il s'agit d'un element
                                 else {
-                                        if (guiData.getHelpText().length() > 0)
+                                        if (!guiData.getHelpText().equals(""))
                                                 hasDataElementHelpText = true;
                                 }
                         }
@@ -1085,7 +1085,7 @@ public abstract class GUIUnit extends GUIData implements ActionListener
 
                 // On ne considere que l'aide sur les unites, l'aide sur les elements terminaux
                 // etant fournie par les info-bulles
-                return (getHelpText().length() > 0 || hasDataUnitHelpText);
+                return ((!getHelpText().equals("")) || hasDataUnitHelpText);
         }
 
         /**

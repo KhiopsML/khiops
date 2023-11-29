@@ -12,7 +12,7 @@ KDTextFeatureSpec::KDTextFeatureSpec()
 {
 	// ## Custom constructor
 
-	sTextFeatures = "ngrams";
+	sTextFeatures = "words";
 
 	// ##
 }

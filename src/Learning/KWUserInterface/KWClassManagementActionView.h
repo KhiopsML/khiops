@@ -39,6 +39,7 @@ public:
 	// Actions de menu
 	void OpenFile();
 	void CloseFile();
+	void ReloadFile();
 	void SaveFile();
 	void SaveFileUnder();
 	void ExportAsJSON();

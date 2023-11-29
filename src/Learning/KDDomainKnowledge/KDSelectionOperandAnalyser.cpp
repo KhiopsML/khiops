@@ -1074,7 +1074,7 @@ void KDClassSelectionStats::Write(ostream& ost) const
 
 const ALString KDClassSelectionStats::GetClassLabel() const
 {
-	return "Class selection stats";
+	return "Dictionary selection stats";
 }
 
 const ALString KDClassSelectionStats::GetObjectLabel() const
@@ -1409,7 +1409,7 @@ void KDClassSelectionOperandStats::Write(ostream& ost) const
 
 const ALString KDClassSelectionOperandStats::GetClassLabel() const
 {
-	return "Class selection operand stats";
+	return "Dictionary selection operand stats";
 }
 
 const ALString KDClassSelectionOperandStats::GetObjectLabel() const

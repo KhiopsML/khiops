@@ -19,12 +19,12 @@ KDTextFeatureSpecView::KDTextFeatureSpecView()
 
 	// ## Custom constructor
 
-	GetFieldAt("TextFeatures")->SetParameters("ngrams\nwords\ntokens");
+	GetFieldAt("TextFeatures")->SetParameters("words\nngrams\ntokens");
 	GetFieldAt("TextFeatures")
 	    ->SetHelpText(
 		"Type of constructed text features :"
+		"\n - words : text words obtained with an automatic tokenization process"
 		"\n - ngrams: ngrams of bytes; generic, fast, robust, but less interpretable"
-		"\n - words : text words obtained with an automatic process; more interpretable than ngrams"
 		"\n - tokens : text tokens whose interpretability and interest depend on the quality of the input text "
 		"preprocessing."
 		"\n"

@@ -115,14 +115,14 @@ public class GUITable extends JTable
          */
         public void buildPopupMenu()
         {
-                // Si la liste contient des actions, on construit le popmenu
+                // Si la liste contient des actions de type popup, on construit le popmenu
                 if (guiList.vectorOfGUIActions.size() > 0) {
                         popMenu = new JPopupMenu();
                         // Pour chaque action
                         for (int i = 0; i < guiList.vectorOfGUIActions.size(); i++) {
                                 GUIAction action = (GUIAction)guiList.vectorOfGUIActions.get(i);
                                 // Si l'action n'est pas un exit ni un refresh (actions standards des unites)
-                                if (action.getVisible() && action.getStyle().equals("") &&
+                                if (action.getVisible() && action.getStyle().equals("PopupMenu") &&
                                     !action.getIdentifier().equals(GUIUnit.Exit) &&
                                     !action.getIdentifier().equals(GUIUnit.Refresh)) {
                                         JMenuItem menuItem = new JMenuItem(action.getLabel());
