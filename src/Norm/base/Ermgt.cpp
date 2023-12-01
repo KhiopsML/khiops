@@ -30,8 +30,15 @@ void Global::AddWarning(const ALString& sCategoryValue, const ALString& sLocalis
 
 void Global::AddError(const ALString& sCategoryValue, const ALString& sLocalisationValue, const ALString& sLabelValue)
 {
-	bIsAtLeastOneError = true;
-	AddErrorObjectValued(Error::GravityError, sCategoryValue, sLocalisationValue, sLabelValue);
+	// Traitement de l'erreur comme un warning
+	if (GetErrorAsWarningMode())
+		AddWarning(sCategoryValue, sLocalisationValue, sLabelValue);
+	// Traitement standard de l'erreur
+	else
+	{
+		bIsAtLeastOneError = true;
+		AddErrorObjectValued(Error::GravityError, sCategoryValue, sLocalisationValue, sLabelValue);
+	}
 }
 
 void Global::AddFatalError(const ALString& sCategoryValue, const ALString& sLocalisationValue,
@@ -264,6 +271,16 @@ boolean Global::GetSilentMode()
 	return bSilentMode;
 }
 
+void Global::SetErrorAsWarningMode(boolean bValue)
+{
+	bErrorAsWarningMode = bValue;
+}
+
+boolean Global::GetErrorAsWarningMode()
+{
+	return bErrorAsWarningMode;
+}
+
 // Les erreurs de l'allocateur sont redirigees sur la gestion centralisee des erreurs
 static int GlobalMemSetAllocErrorHandler()
 {
@@ -363,6 +380,8 @@ longint Global::lErrorFlowWarningNumber = 0;
 longint Global::lErrorFlowErrorNumber = 0;
 
 boolean Global::bSilentMode = false;
+
+boolean Global::bErrorAsWarningMode = false;
 
 ALString Global::sErrorLogFileName;
 
