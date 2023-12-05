@@ -353,13 +353,13 @@ def check_file(log_file, path_ref, path_test):
 
             # cas special du fichier d'erreur en coclustering:
             # on saute les lignes d'ecritire de rapport intermediaire qui different par le temps
-            # ("Write intermediate coclustering report")
+            # ("Write intermediate ...")
             if (
                 is_error_file
                 and length_r > 0
-                and row_r[i].find("Write intermediate coclustering report") != -1
+                and row_r[i].find("Write intermediate ") != -1
                 and length_t > 0
-                and row_t[i].find("Write intermediate coclustering report") != -1
+                and row_t[i].find("Write intermediate ") != -1
             ):
                 continue
 

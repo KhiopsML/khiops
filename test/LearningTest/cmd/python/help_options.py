@@ -3,7 +3,7 @@ import os
 print(
     "KhiopsBatchMode: "
     + str(os.getenv("KhiopsBatchMode"))
-    + "\n\t true, false (default: false)"
+    + "\n\t true, false (default: true)"
 )
 
 print(

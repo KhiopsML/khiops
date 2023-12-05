@@ -3,5 +3,5 @@ Input database ../../../MTdatasets/SpliceJunction/SpliceJunction.txt: Read recor
   Table ../../../MTdatasets/SpliceJunction/SpliceJunctionDNA.txt Records: 135,240
 Output database ./results/D_SpliceJunction.txt: Written records: 2254
   Table ./results/D_SpliceJunctionDNA.txt Records: 135,240
-Model deployment time: 0:00:00.16
+Model deployment time: 0:00:00.17
 

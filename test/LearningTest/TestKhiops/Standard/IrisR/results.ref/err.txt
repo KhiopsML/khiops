@@ -1,6 +1,6 @@
 Train supervised model for regression of target variable PetalLength
 Database ../../../datasets/Iris/Iris.txt: Read records: 150	Selected records: 105
-Data preparation time: 0:00:00.19
+Data preparation time: 0:00:00.21
 SNB train time: 0:00:00
 Build Selective Naive Bayes SNB_Iris
 Build Baseline B_Iris

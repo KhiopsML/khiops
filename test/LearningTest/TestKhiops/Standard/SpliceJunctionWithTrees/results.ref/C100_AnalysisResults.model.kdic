@@ -1,4 +1,4 @@
-#Khiops 10.4.6i
+#Khiops 10.4.8i
 
 Root	Dictionary	SNB_SpliceJunction	(SampleId)
 <InitialDictionary="SpliceJunction"> <PredictorLabel="Selective Naive Bayes"> <PredictorType="Classifier">

@@ -142,10 +142,6 @@ void MHMODLHistogramAnalysisStats::WriteJSONKeyReport(JSONFile* fJSON, const ALS
 	// Nombre d'histogramms interpretables
 	fJSON->WriteKeyInt("interpretableHistogramNumber", GetInterpretableHistogramNumber());
 
-	// Central bin exponents, pour les histogrammes interpretables, et pour le dernier
-	fJSON->WriteKeyInt("centralBinExponent", GetCentralBinExponent());
-	fJSON->WriteKeyInt("lastCentralBinExponent", GetLastCentralBinExponent());
-
 	// Epsilon de troncature
 	fJSON->WriteKeyContinuous("truncationEpsilon", GetTruncationEpsilon());
 
