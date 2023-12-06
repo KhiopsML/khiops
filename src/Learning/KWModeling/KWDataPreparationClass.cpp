@@ -1134,8 +1134,8 @@ int KWDataPreparationAttributeCompareSortValue(const void* elem1, const void* el
 
 	// Comparaison si necessaire sur le nom
 	if (nCompare == 0)
-		nCompare = dataPreparationAttribute1->GetPreparedStats()->GetSortName().Compare(
-		    dataPreparationAttribute2->GetPreparedStats()->GetSortName());
+		nCompare = dataPreparationAttribute1->GetPreparedStats()->CompareName(
+		    dataPreparationAttribute2->GetPreparedStats());
 	return nCompare;
 }
 

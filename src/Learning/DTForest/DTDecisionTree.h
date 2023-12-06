@@ -515,7 +515,7 @@ inline int DTDecisionTreeNodeSplit::CompareName(const DTDecisionTreeNodeSplit* o
 	require(GetAttributeStats() != NULL);
 	require(otherReport->GetAttributeStats() != NULL);
 
-	return GetAttributeStats()->GetAttributeName().Compare(otherReport->GetAttributeStats()->GetAttributeName());
+	return GetAttributeStats()->CompareName(otherReport->GetAttributeStats());
 }
 //
 // inline ObjectArray* DTDecisionTree::GetObjectsDataBase() const

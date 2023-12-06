@@ -368,10 +368,10 @@ void KWAttributeStats::WriteLineReport(ostream& ost)
 			ost << "\t1";
 		}
 	}
-	// Nombre de partie uniquement dans le cas supervise
+	// Dans le cas non supervise, on ecrit eventuellement le nombre de parties
 	else
 	{
-		assert(GetTargetAttributeName() != "");
+		assert(GetTargetAttributeName() == "");
 
 		if (GetPreparedDataGridStats() != NULL)
 		{
@@ -508,7 +508,7 @@ void KWAttributeStats::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary)
 		// Dans le cas non supervise, on ecrit eventuellement le nombre de parties
 		else
 		{
-			assert(GetTargetAttributeName() != "");
+			assert(GetTargetAttributeName() == "");
 			if (GetPreparedDataGridStats() != NULL)
 			{
 				assert(GetPreparedDataGridStats()->GetAttributeNumber() == 1);

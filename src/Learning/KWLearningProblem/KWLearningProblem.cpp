@@ -527,6 +527,13 @@ boolean KWLearningProblem::BuildConstructedClass(KWLearningSpec* learningSpec, K
 	check(kwcClass);
 	assert(kwcClass == KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName()));
 
+	// Parametrage des noms interpretables, commune a tous les types de construction de variable
+	GetAnalysisSpec()
+	    ->GetModelingSpec()
+	    ->GetAttributeConstructionSpec()
+	    ->GetConstructionDomain()
+	    ->SetInterpretableNames(GetAnalysisSpec()->GetModelingSpec()->GetInterpretableNames());
+
 	// Initialisation de la construction de variables multi-tables
 	multiTableFeatureConstruction.SetLearningSpec(learningSpec);
 	multiTableFeatureConstruction.SetConstructionDomain(

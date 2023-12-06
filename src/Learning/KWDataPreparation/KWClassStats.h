@@ -42,7 +42,7 @@ public:
 	//  . Text: en exploitant les variable de type texte (Text ou TextList) presente dans le schema multi-table
 	//  . Tree: en combinant des variables au moyen des arbres
 	//  . 2D: en analysant des paires de variables
-	// De facon a maitriser la combinatoire des interaction possible et a facilite l'interpretabilite
+	// De facon a maitriser la combinatoire des interactions possibles et a facilite l'interpretabilite
 	// des modeles, les familles sont explote selon les relation suivantes:
 	//  . MultiTable et Text sont deux familles independantes (sans variable Text, ou uniquement les variables Text)
 	//    exploitant le schema multi-table

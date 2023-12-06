@@ -1098,7 +1098,7 @@ boolean KDTextFeatureConstruction::CreateConstructedDerivationRuleAttribute(KDCl
 
 ALString KDTextFeatureConstruction::BuildIndexedAttributeName() const
 {
-	const ALString sVariablePrefix = "TextFeature";
+	const ALString sVariablePrefix = "TextFeature_";
 	ALString sVariableName;
 
 	require(nAttributeNameIndex >= 0);

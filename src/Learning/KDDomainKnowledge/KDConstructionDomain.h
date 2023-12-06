@@ -20,9 +20,18 @@ public:
 	KDConstructionDomain();
 	~KDConstructionDomain();
 
+	//////////////////////////////////////////////////////////////
+	// Parametrage experimental de la construction de variables
+
 	// Nommage des variables de facon interpretable
 	//   . true (defaut): un nom parlant est cree
-	//   . false: les variables sont nommee par numerotation
+	//   . false: les variables sont nommees par numerotation
+	// Attention, le renoomage des variables construites a des consequences inattendues
+	// en entrainant une variation dans l'ordre des variables triees par level decroissant,
+	// puis par ordre alphabetique des nosm en cas d'egalite
+	// Comme les les arbres exploitent des sous-ensembles aleatoires de variables bases sur cet ordre
+	// initial, les arbres construits peuvent differer quand on active cette option
+	// A ne pas utiliser en exploitation
 	boolean GetInterpretableNames() const;
 	void SetInterpretableNames(boolean bValue);
 
