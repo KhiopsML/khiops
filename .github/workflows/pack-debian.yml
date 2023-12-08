@@ -82,6 +82,7 @@ jobs:
           apt-get -f install -y
       - name: Check Khiops core installation
         run: |
+          khiops-env --env
           khiops -v
           khiops_coclustering -v
       - name: Install Khiops Desktop (with java)
