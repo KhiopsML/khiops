@@ -105,7 +105,7 @@ jobs:
       matrix:
         os: [debian10, debian11, ubuntu22.04, ubuntu20.04]
     container:
-      image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
+      image: ghcr.io/${{ github.repository }}/khiopsdev-${{ matrix.os }}:latest
     steps:
       - name: Put OS info on the environment
         run: |
