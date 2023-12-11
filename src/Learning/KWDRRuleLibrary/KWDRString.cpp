@@ -968,6 +968,23 @@ boolean KWDRRegex::CheckCompleteness(const KWClass* kwcOwnerClass) const
 	return bOk;
 }
 
+void KWDRRegex::Compile(KWClass* kwcOwnerClass)
+{
+	int nRegexOperandIndex;
+
+	// Appel de la methode ancetre
+	KWDerivationRule::Compile(kwcOwnerClass);
+
+	// Acces a l'index de l'operande de regex: 2, sauf pour pour la regle Match
+	nRegexOperandIndex = 2;
+	if (GetOperandNumber() <= nRegexOperandIndex)
+		nRegexOperandIndex = GetOperandNumber() - 1;
+
+	// On ne verifie pas l'expression si elle a deja ete validee
+	if (not regEx.IsValid() or regEx.GetRegex() != GetOperandAt(nRegexOperandIndex)->GetSymbolConstant().GetValue())
+		regEx.Initialize(GetOperandAt(nRegexOperandIndex)->GetSymbolConstant().GetValue(), this);
+}
+
 //////////////////////////////////////////////////////////////////////////////////////
 
 KWDRRegexMatch::KWDRRegexMatch()
