@@ -59,7 +59,7 @@ const ALString KWKey::GetObjectLabel() const
 		if (svFields.GetAt(i).GetLength() <= nFieldMaxLength)
 			sFieldLabel = svFields.GetAt(i);
 		else
-			sFieldLabel = svFields.GetAt(i).Right(nFieldMaxLength) + "...";
+			sFieldLabel = svFields.GetAt(i).Left(nFieldMaxLength) + "...";
 
 		// Ajout du libelle du champ de cle
 		sLabel += sFieldLabel;

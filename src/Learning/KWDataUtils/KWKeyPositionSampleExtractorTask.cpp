@@ -690,7 +690,7 @@ boolean KWKeyPositionSampleExtractorTask::SlaveProcess()
 						LongintToReadableString(recordKeyPosition->GetLineIndex() -
 									previousRecordKeyPosition->GetLineIndex()) +
 						" lines before",
-					    nCumulatedLineNumber + inputFile.GetCurrentLineIndex() - 1);
+					    nCumulatedLineNumber + inputFile.GetCurrentLineIndex());
 					delete recordKeyPosition;
 					bOk = false;
 					break;

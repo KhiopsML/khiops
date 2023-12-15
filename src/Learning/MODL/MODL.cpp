@@ -34,9 +34,9 @@ int main(int argc, char** argv)
 	Global::ActivateSignalErrorManagement();
 
 	// Choix du repertoire de lancement pour le debugage sous Windows (a commenter apres fin du debug)
-	SetWindowsDebugDir("Standard", "IrisLight");
+	// SetWindowsDebugDir("Standard", "IrisLight");
 	// SetWindowsDebugDir("Standard", "Iris2D");
-	// SetWindowsDebugDir("TextVariables", "BuildNonInterpretableNames");
+	SetWindowsDebugDir("BugsMultiTables", "BugUnsortedRootTable");
 
 	// Parametrage des logs memoires depuis les variables d'environnement, pris en compte dans KWLearningProject
 	//   KhiopsMemStatsLogFileName, KhiopsMemStatsLogFrequency, KhiopsMemStatsLogToCollect
@@ -58,7 +58,7 @@ int main(int argc, char** argv)
 
 	// Simulation du mode parallele pour le debuggage
 	// PLParallelTask::SetParallelSimulated(true);
-	// PLParallelTask::SetSimulatedSlaveNumber(2);
+	// PLParallelTask::SetSimulatedSlaveNumber(3);
 	// PLParallelTask::SetTracerResources(1);
 	// PLParallelTask::SetTracerProtocolActive(true);
 	// PLParallelTask::SetTracerMPIActive(true);
