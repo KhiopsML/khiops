@@ -337,6 +337,9 @@ public:
 	// Verification qu'une regle est completement renseignee et compilable
 	boolean CheckCompleteness(const KWClass* kwcOwnerClass) const override;
 
+	// Compilation pour optimiser la gestion du format
+	void Compile(KWClass* kwcOwnerClass) override;
+
 	///////////////////////////////////////////
 	///// Implementation
 protected:
