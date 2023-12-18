@@ -51,13 +51,13 @@ class KWDGInnerAttributes;
 //        - un attribut de la grille peut etre soit numerique, soit categoriel, soit constitue de parties de variables
 //        - dans la these d'Aichetou
 //          - dedie au cas instances x variables
-//          - chaque variables descriptives est partitionnees en parties, intervalles ou groupes de valeurs
+//          - chaque variable descriptive est partitionnee en parties, intervalles ou groupes de valeurs
 //          - chaque partie de variable est l'analogue d'un mot
-//          - chaque instance est decrites par l'ensmeble des mots correspondant aux valeurs de ses variables
+//          - chaque instance est decrite par l'ensemble des mots correspondant aux valeurs de ses variables
 //          descriptives
-//        - on a une grille à deux dimension, analogue au cas d'une grille textes x mots
+//        - on a une grille à deux dimensions, analogue au cas d'une grille textes x mots
 //          - un attribut de la grille contient des groupes d'instances (textes), par leur identifiant
-//          - l'autre attribut de la grille contients des groupes de parties de variables (mots)
+//          - l'autre attribut de la grille contient des groupes de parties de variables (mots)
 //      - terminologie
 //         VarPart
 //           - nouveau type, pour un attribut de DataGrid
@@ -520,10 +520,11 @@ public:
 	// Attribut continu : nombre total d'instances
 	// Attribut categoriel : nombre de valeurs distinctes (sans la StarValue)
 	// Attribut parties de variables : nombre de parties de variables distinctes
+	// CH IV Refactoring  : le nombre de PV distinctes depend du niveau de tokenisation, pour les innerAttributes et pour l'attribut VarPart
 	void SetInitialValueNumber(int nValue);
 	int GetInitialValueNumber() const;
 
-	// Nomre de valeurs apres granularisation
+	// Nombre de valeurs apres granularisation
 	// Attribut continu : nombre theorique de partiles Ng=2^G
 	// Attribute categoriel : nombre de partiles obtenus suite a la granularisation Vg
 	void SetGranularizedValueNumber(int nValue);
@@ -540,7 +541,6 @@ public:
 	// Initialisation des parties de l'attribut de type VarPart a partir des attributs internes initialises en
 	// creant une partie par partie de variable
 	void CreateVarPartsSet();
-	// CH IV End
 
 	////////////////////////////////////////////////
 	// Gestion des parties de l'attribut

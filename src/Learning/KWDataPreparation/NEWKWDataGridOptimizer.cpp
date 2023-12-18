@@ -283,6 +283,17 @@ double NEWKWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGri
 					    IntToString(
 						optimizedDataGrid->GetInnerAttributes()->GetVarPartGranularity()));
 
+				// CH IV VNS
+				if (bDisplayGranularities)
+				{
+					cout << "OptimizeDataGrid\tGranularite\t" << nGranularityIndex << "\n";
+					if (granularizedDataGrid.IsVarPartDataGrid())
+						cout << "attribut VarPart granularise : initial value number\t"
+						     << granularizedDataGrid.GetVarPartAttribute()
+							    ->GetInitialValueNumber()
+						     << endl;
+				}
+
 				// Optimisation de la grille granularisee
 				// Cas non supervise pour les granularites intermediaires: optimisation legere
 				if (not IsSupervisedDataGrid(initialDataGrid) and not bIsLastGranularity)
@@ -649,7 +660,7 @@ double NEWKWDataGridOptimizer::SlightOptimizeGranularizedDataGrid(const KWDataGr
 	// Parametrage des couts
 	neighbourDataGrid.SetDataGridCosts(GetDataGridCosts());
 
-	// Generation d'une solution dans un voisinnage de la meilleure solution
+	// Generation d'une solution dans un voisinage de la meilleure solution
 	NEWKWDataGridOptimizer::GetProfiler()->BeginMethod("Generate neighbour solution");
 	NEWKWDataGridOptimizer::GetProfiler()->WriteKeyString("Neighbourhood size", "1");
 	GenerateNeighbourSolution(initialDataGrid, optimizedDataGrid, 1, &neighbourDataGrid);
@@ -1763,6 +1774,63 @@ void NEWKWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initial
 	require(neighbourDataGridMerger != NULL);
 	require(0 <= dNoiseRate and dNoiseRate <= 1);
 
+	// CH IV Refactoring : DDDDD
+	// Test du remplacement de la methode actuelle, par son proto
+	boolean bNewPROTO = true;
+	static int nCount = 0;
+	nCount++;
+	if (initialDataGrid->IsVarPartDataGrid() and bNewPROTO and nCount == 1)
+	{
+		// Appel de PROTOGenerateNeighbourSolution, permettant de tester les nouvelle methodes sans les activer vraiment
+		//PROTOGenerateNeighbourSolution(initialDataGrid, optimizedDataGrid, dNoiseRate, neighbourDataGridMerger);
+
+		// CH IV Surtokenisation
+		// Code a reprendre pour construire PROTOGenerateNeighbourSolution
+		KWDataGrid* surtokenizedDataGrid;
+		int nTargetTokenNumber = 100;
+		boolean bDisplayResults = false;
+		int nInitialSeed;
+
+		// Memorisation de la graine initiale
+		nInitialSeed = GetRandomSeed();
+
+		dataGridManager.SetSourceDataGrid(GetInitialVarPartDataGrid());
+
+		surtokenizedDataGrid = new KWDataGrid;
+
+		dataGridManager.ExportDataGridWithRandomizedInnerAttributes(
+		    optimizedDataGrid, GetInitialVarPartDataGrid()->GetInnerAttributes(), surtokenizedDataGrid,
+		    nTargetTokenNumber);
+
+		if (bDisplayResults)
+		{
+			cout << "nTargetTokenNumber\t" << nTargetTokenNumber << endl;
+			surtokenizedDataGrid->Write(cout);
+		}
+
+		surtokenizedDataGrid->DeleteAll();
+		delete surtokenizedDataGrid;
+
+		nTargetTokenNumber = 5;
+		surtokenizedDataGrid = new KWDataGrid;
+
+		dataGridManager.ExportDataGridWithRandomizedInnerAttributes(
+		    optimizedDataGrid, GetInitialVarPartDataGrid()->GetInnerAttributes(), surtokenizedDataGrid,
+		    nTargetTokenNumber);
+
+		if (bDisplayResults)
+		{
+			cout << "nTargetTokenNumber\t" << nTargetTokenNumber << endl;
+			surtokenizedDataGrid->Write(cout);
+		}
+
+		surtokenizedDataGrid->DeleteAll();
+		delete surtokenizedDataGrid;
+
+		// Restitution de la graine initiale
+		SetRandomSeed(nInitialSeed);
+	}
+
 	// Debut de tache
 	TaskProgression::BeginTask();
 	TaskProgression::DisplayMainLabel(sTmp + "New initial solution (" + DoubleToString(dNoiseRate) + ")");
@@ -1781,6 +1849,7 @@ void NEWKWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initial
 	nGridSize = initialDataGrid->GetCellNumber();
 
 	// Calcul du nombre d'attributs a exporter
+	// CH IV Surtokenisation: dans la cas VarPart, considerer tous les attributs comme obligatoires
 	nMaxAttributeNumber = 1 + (int)(log(nGridSize * 1.0) / log(2.0));
 	nAttributeNumber = (int)(dNoiseRate * nMaxAttributeNumber);
 	if (nAttributeNumber < 2)
@@ -1822,6 +1891,101 @@ void NEWKWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initial
 	nMandatoryAttributeNumber = (int)ceil((1 - dNoiseRate) * optimizedDataGrid->GetAttributeNumber());
 	dataGridManager.SetSourceDataGrid(optimizedDataGrid);
 	dataGridManager.ExportRandomAttributes(&mandatoryDataGrid, nMandatoryAttributeNumber);
+
+	// Exports d'attributs supplementaires
+	// Pour un dNoiseRate de 1, tous les attributs sont ajoutes a concurrence de nMaxAttributeNumber
+	dataGridManager.SetSourceDataGrid(initialDataGrid);
+	neighbourDataGridMerger->DeleteAll();
+	dataGridManager.AddRandomAttributes(neighbourDataGridMerger, &mandatoryDataGrid, nAttributeNumber);
+
+	// Export des parties
+	dataGridManager.AddRandomParts(neighbourDataGridMerger, optimizedDataGrid, nRequestedContinuousPartNumber,
+				       nRequestedSymbolPartNumber, 1.0);
+	TaskProgression::DisplayProgression(25);
+
+	// Export des cellules
+	dataGridManager.ExportCells(neighbourDataGridMerger);
+
+	// Fin de tache
+	TaskProgression::EndTask();
+}
+
+void NEWKWDataGridOptimizer::PROTOGenerateNeighbourSolution(const KWDataGrid* initialDataGrid,
+							    const KWDataGrid* optimizedDataGrid, double dNoiseRate,
+							    KWDataGridMerger* neighbourDataGridMerger) const
+{
+	KWDataGridManager dataGridManager;
+	KWDataGrid mandatoryDataGrid;
+	int nMandatoryAttributeNumber;
+	int nMaxAttributeNumber;
+	int nMaxPartNumber;
+	int nMaxContinuousPartNumber;
+	int nMaxSymbolPartNumber;
+	int nRequestedContinuousPartNumber;
+	int nRequestedSymbolPartNumber;
+	int nAttributeNumber;
+	int nGridSize;
+	ALString sTmp;
+
+	require(initialDataGrid != NULL);
+	require(optimizedDataGrid != NULL);
+	require(neighbourDataGridMerger != NULL);
+	require(0 <= dNoiseRate and dNoiseRate <= 1);
+
+	// Debut de tache
+	TaskProgression::BeginTask();
+	TaskProgression::DisplayMainLabel(sTmp + "New surtokenized initial solution (" + DoubleToString(dNoiseRate) +
+					  ")");
+
+	// Initialisation de la taille de la grille prise en compte
+	// La taille de la grille est initialise avec le nombre de cellules non vides de la grille initiale
+	// pour une granularite donnee.
+	// - a noter: on a toujours GetCellNumber <= GetGridFrequency.
+	// - pour la granularite max, cela permet d'avoir un indicateur de sparsite de la grille plus fiable
+	//   que le nombre d'individus (GetGridFrequency), qui reflete la proportion de cellules non vides.
+	// - pour les granularites intermediaires, ce nombre est plus petit, ce qui entrainera la generation
+	//   de grilles voisines aleatoires plus petites, et donc plus rapides a optimiser:
+	//   - dans le cas non supervise, c'est ce que l'on souhaite pour obtenir des premieres solutions rapidement
+	//   - dans le cas supervise, cette taille reduite limite l'espace de recherche avec un impact
+	//     pontiellement negatif sur la qualite des solutions: on considere ce probleme comme negligeable
+	nGridSize = initialDataGrid->GetCellNumber();
+
+	// Calcul du nombre d'attributs a exporter
+	// -> dans le cas VarPart, considerer tous les attributs comme obligatoires
+	nAttributeNumber = optimizedDataGrid->GetAttributeNumber();
+
+	// Calcul des nombres de parties a exporter
+	nMaxContinuousPartNumber = (int)(nGridSize / log(nGridSize + 1.0));
+	nMaxSymbolPartNumber = (int)sqrt(nGridSize * 1.0);
+	nMaxPartNumber = (int)pow(nGridSize * 1.0, 1.0 / nAttributeNumber);
+	if (nMaxPartNumber > nGridSize)
+		nMaxPartNumber = nGridSize;
+	if (nMaxPartNumber < 2)
+		nMaxPartNumber = 2;
+	if (nMaxContinuousPartNumber > nMaxPartNumber)
+		nMaxContinuousPartNumber = nMaxPartNumber;
+	if (nMaxSymbolPartNumber > nMaxPartNumber)
+		nMaxSymbolPartNumber = nMaxPartNumber;
+	nRequestedContinuousPartNumber = 1 + (int)(dNoiseRate * nMaxContinuousPartNumber);
+	nRequestedSymbolPartNumber = 1 + (int)(dNoiseRate * nMaxSymbolPartNumber);
+
+	// Cas VarPart : export de l'ensemble des attributs en tant qu'attributs obligatoires
+	dataGridManager.SetSourceDataGrid(optimizedDataGrid);
+	dataGridManager.ExportRandomAttributes(&mandatoryDataGrid, nAttributeNumber);
+
+	// Creer un copie temporaire du neighbourDataGridMerger pour tester la surtokenisation: neighbourDataGridMergerTest
+	// - copie pointant sur les meme inner attributes
+	// - mis en place de nouveaux inner attributes issus de la surtokenisation
+	// - export; affichage pour mise au point
+	// - nettoyage
+
+	// Potentiellement a faire
+	// - Creer un copie temporaire du neighbourDataGridMerger pour tester la surtokenisation: neighbourDataGridMergerPROTO
+	// - creer prealablement un copie de optimizedDataGrid: surtokenizedOptimizedDataGrid
+	//   - surtokenizer son attribut VarPart via InitializeVarPartAttributeWithNewInnerAttributes
+	// - ajout des parties:
+	//     dataGridManager.AddRandomParts(neighbourDataGridMergerPROTO, surtokenizedOptimizedDataGrid,
+	//                                   nRequestedContinuousPartNumber, nRequestedSymbolPartNumber, 1.0);
 
 	// Exports d'attributs supplementaires
 	// Pour un dNoiseRate de 1, tous les attributs sont ajoutes a concurrence de nMaxAttributeNumber

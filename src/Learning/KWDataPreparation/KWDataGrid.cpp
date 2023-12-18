@@ -4388,7 +4388,7 @@ boolean KWDGValueSet::Check() const
 				bOk = false;
 				break;
 			}
-			// Erreur si typivcalite incorrecte
+			// Erreur si typicalite incorrecte
 			else if (value->GetTypicality() < 0 or value->GetTypicality() > 1)
 			{
 				AddError(sTmp + value->GetClassLabel() + " " + value->GetObjectLabel() +

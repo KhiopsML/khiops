@@ -70,7 +70,7 @@ public:
 						 boolean bSourceSimpleAttributeParts) const;
 
 	// Export total (attribut, parties et cellules) en exploitant une grille de reference,
-	// avec des partie de VarPart de la grille source, exploitant la partition de la grille de refere
+	// avec des partie de VarPart de la grille source, exploitant la partition de la grille de reference
 	// Cette grille de reference n'a pas les memes VarParts que la grille source, alors que la grille en sortie
 	// reutilise les VarPart de la grille source
 	void ExportDataGridWithReferenceVarPartClusters(KWDataGrid* referenceDataGrid, KWDataGrid* targetDataGrid);
@@ -83,6 +83,35 @@ public:
 	// une seule partie de variable
 	// Attention: creation de nouveaux attributs internes qui doivent etre detruit par l'appelant
 	void ExportNullDataGrid(KWDataGrid* targetDataGrid) const;
+
+	// CH IV Surtokenisation
+	// Export total (attribut, parties et cellules)
+	// Cas d'une grille de type VarPart
+	// En entree :
+	// - inputDataGrid : grille dont on souhaite sur-echantillonner le KWDGInnerAttributes
+	// - referenceInnerAttributes : les innerAttributes avec la partition de reference la plus fine sur laquelle on procede au tirage aleatoire
+	// - nTargetTokenNumber : nombre total de parties de variables souhaite sur l'ensemble des innerAttributes
+	// En sortie :
+	// targetDataGrid : nouvelle grille dont le KWDGInnerAttributes a ete sur-echantillonne
+	// Les partitions des attributs Identifier et VarPart ne sont pas modifiees
+	// Les innerAttributes sont sub-tokenises par tirage aleatoire
+	// Le nombre de parties de variables obtenu peut etre inferieur a cet objectif
+	void ExportDataGridWithRandomizedInnerAttributes(const KWDataGrid* inputDataGrid,
+							 const KWDGInnerAttributes* referenceInnerAttributes,
+							 KWDataGrid* targetDataGrid, int nTargetTokenNumber);
+
+	/*Contenu de cette methode :
+	voir si cette methode est necessaire : pas de besoin pour l'adaptation de GenerateNeighbourSolution a la surtokenisation
+	1 / Initialisation des attributs pour la targetDataGrid
+		- InitialiseAttributes
+	    - nouvelle methode CreateRandomInnerAttributes avec le referenceInnerAttributes extrait de
+		l'initiaVarPartDataGrid
+		- remplacement du innerAttributes de la targetDataGrid par ce nouvel innerAttributes
+	2 / Export des parties
+		- construction des parties pour l'attribut VarPart par appel de la nouvelle methode BuildVarPartAttributeFromNewInnerAttributes
+	3 /	ExportCells */
+
+	// Fin CH IV
 
 	/////////////////////////////////////////////////////////////////////////////////////////
 	// Service elementaires de transfert du contenu de la grille source vers la grille cible
@@ -155,7 +184,7 @@ public:
 	// En sortie, le vecteur ivMaxPartNumbers contient pour chaque attribut le nombre maximal
 	// de parties attendu apres granularisation
 	// Pour un attribut numerique, il s'agit du nombre de valeurs distinctes
-	// Pour un attribut categoriel, il s'agit du nombre de parties dont l'effectif est > 1,
+	// Pour un attribut categoriel,  il s'agit du nombre de parties dont l'effectif est > 1,
 	// plus une partie en presence de singletons
 	void InitializeQuantileBuilders(ObjectDictionary* odQuantilesBuilders, IntVector* ivMaxPartNumbers) const;
 
@@ -336,6 +365,20 @@ protected:
 	void InitialiseVarPartAttributeClonedParts(const KWDGAttribute* sourceAttribute,
 						   KWDGAttribute* targetAttribute) const;
 
+	// CH IV Surtokenisation
+	// Initialisation des parties pour un attribut VarPart a partir des PV d'un KWDGInnerAttribute et d'une partition source
+	// En entree :
+	// - sourceVarPartAttribute : attribute de type VarPart
+	// - targetInnerAttributes : KWDGInnerAttributes dont les partitions sont differentes de celles du KWDGInnerAttribute du sourceAttribute
+	// En sortie :
+	// - targetVarPartAttribute :
+	// L'attribut cible contient en entree une nouvelle partition des attributs internes, plus fine que la partition des attributs internes source.
+	// La methode construit les parties de l'attribut VarPart cible en conservant les parties de l'attribut VarPart source et en y mettant les PV des attributs internes surtokenises
+	void InitialiseVarPartAttributeWithNewInnerAttributes(const KWDGAttribute* sourceVarPartAttribute,
+							      KWDGInnerAttributes* targetInnerAttributes,
+							      KWDGAttribute* targetVarPartAttribute) const;
+	// Fin CH IV
+
 	// Initialisation d'une unique parties pour un attribut venant d'etre initialise, sans partie, a partir d'un attribut valide
 	void InitialiseAttributeNullPart(const KWDGAttribute* sourceAttribute, KWDGAttribute* targetAttribute) const;
 
@@ -379,6 +422,18 @@ protected:
 	KWDGInnerAttributes*
 	CreateGranularizedInnerAttributes(const KWDGInnerAttributes* sourceInnerAttributes, int nGranularity,
 					  const ObjectDictionary* odInnerAttributesQuantilesBuilders) const;
+
+	// CH IV Surtokenisation
+	// Creation d'attributs internes par ajout aleatoire de parties de variable dans chaque attribut
+	// parmi les partitions de reference les plus fines pour ces innerAttributes
+	KWDGInnerAttributes* CreateRandomInnerAttributes(const KWDGInnerAttributes* sourceInnerAttributes,
+							 const KWDGInnerAttributes* referenceInnerAttributes,
+							 int nTargetTokenNumber) const;
+	/*Contenu
+	Boucle sur les innerAttributes et appel des methodes AddContinuousAttributeRandomParts et
+	    AddSymbolAttributeRandomParts en garantissant que la somme des nRequestedPartNumber par innerAttribut
+		ne depasse pas les nTargetTokenNumber*/
+	// Fin CH IV
 
 	//////////////////////////////////////////////////////////////////////////////////
 	// Services divers

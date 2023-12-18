@@ -288,6 +288,14 @@ protected:
 	void GenerateNeighbourSolution(const KWDataGrid* initialDataGrid, const KWDataGrid* optimizedDataGrid,
 				       double dNoiseRate, KWDataGridMerger* neighbourDataGridMerger) const;
 
+	// CH IV Refactoring surtokenisation
+	// Creation d'une solution voisine d'une solution optimisee avec perturbation de la tokenisation des innerAttributes dans le car VarPart
+	// On passe en parametre un pourcentage de perturbation compris
+	// entre 0 (pas de perturbation) et 1 (solution aleatoire)
+	void PROTOGenerateNeighbourSolution(const KWDataGrid* initialDataGrid, const KWDataGrid* optimizedDataGrid,
+					    double dNoiseRate, KWDataGridMerger* neighbourDataGridMerger) const;
+	// Fin CH IV
+
 	// Affichage des caracteristiques d'optimisation (selon le niveau d'affichage demande)
 	void DisplayOptimizationHeaderLine() const;
 	void DisplayOptimizationDetails(const KWDataGrid* optimizedDataGrid, boolean bOptimized) const;

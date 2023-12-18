@@ -1,3 +1,7 @@
+// Copyright (c) 2023 Orange. All rights reserved.
+// This software is distributed under the BSD 3-Clause-clear License, the text of which is available
+// at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
+
 /* A Bison parser, made by GNU Bison 3.8.2.  */
 
 /* Bison implementation for Yacc-like parsers in C
@@ -112,8 +116,8 @@ static int nFileParsingErrorNumber = 0;
 /* Debugging YAC */
 
 /*
-#define YYDEBUG 1 
-extern char   *yyptok(int i); 
+#define YYDEBUG 1
+extern char   *yyptok(int i);
 */
 
 #line 127 "KWCYac.cpp"
