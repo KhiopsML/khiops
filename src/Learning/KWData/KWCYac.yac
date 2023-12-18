@@ -657,6 +657,9 @@ metaData:
 			/* Erreur si cle deja existante */
 			if (metaData->IsKeyPresent(*$3))
 			    yyerror("Duplicate key in meta-data for key " + *($3) );
+			/* Erreur si valeur Missing */
+			else if ($5 == KWContinuous::GetMissingValue())
+			    yyerror("Missing value not allowed in meta-data for key " + *($3) );
 			/* Insertion d'une paire avec valeur numerique sinon */
 			else
 			    metaData->SetDoubleValueAt(*($3), $5);
@@ -1405,7 +1408,7 @@ void yyerrorWithLineCorrection(char const *fmt, int nDeltaLineNumber)
   nLineNumber = yylineno+nDeltaLineNumber;
   if (nLineNumber <= 0)
     nLineNumber = 1;
-  snprintf(sErrorLine, sErrorLine, "Line %d", nLineNumber);
+  snprintf(sErrorLine, sizeof(sErrorLine), "Line %d", nLineNumber);
   sLabel = fmt;
   Global::AddError("Read dictionary file",
                     sErrorLine,
