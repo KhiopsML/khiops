@@ -363,7 +363,7 @@ def apply_command_performance(work_dir):
     dir_name = os.path.basename(work_dir)
     root_name = os.path.basename(os.path.dirname(work_dir))
     results_dir = os.path.join(work_dir, "results")
-    if os.path.isdir((results_dir)):
+    if os.path.isdir(results_dir):
         test_pattern = "TestEvaluationReport.xls"
         for file_name in os.listdir(results_dir):
             if test_pattern in file_name:
@@ -389,7 +389,7 @@ def apply_command_performance_ref(work_dir):
     dir_name = os.path.basename(work_dir)
     root_name = os.path.basename(os.path.dirname(work_dir))
     results_dir = os.path.join(work_dir, "results.ref")
-    if os.path.isdir((results_dir)):
+    if os.path.isdir(results_dir):
         test_pattern = "TestEvaluationReport.xls"
         for file_name in os.listdir(results_dir):
             if test_pattern in file_name:

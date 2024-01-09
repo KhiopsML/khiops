@@ -39,7 +39,7 @@ def copyFilesWithoutExtension(src, dest, tabExt):
     for fileName in os.listdir(src):
         if not os.path.isdir(os.path.join(src, fileName)):
             (root, extension) = os.path.splitext(fileName)
-            if not extension in tabExt:
+            if extension not in tabExt:
                 copy(os.path.join(src, fileName), dest)
 
 
