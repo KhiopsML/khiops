@@ -109,7 +109,12 @@ def test(modl_path, samples_path, sample_test):
         for line in lines:
             line = line.strip()
             if line != "":
-                output_lines.append(line)
+                # En parallelle, une ligne vide contient le numero du process entre crochets
+                is_process_id = line[0] == "[" and line[-1] == "]"
+                if is_process_id:
+                    is_process_id = line[1:-1].isdigit()
+                if not is_process_id:
+                    output_lines.append(line)
         return output_lines
 
     # check MODL path
@@ -314,6 +319,7 @@ def test(modl_path, samples_path, sample_test):
             # Pour les test KNI, le stdout contient une ligne avec le nombre de records
             if is_kni:
                 lines = filter_lines(lines, "Recoded record number:")
+                lines = filter_lines(lines, "Error : Finish opening stream error:")
             # Cas particulier du coclustering en mode debug
             if is_coclustering:
                 lines = filter_lines(
@@ -328,11 +334,12 @@ def test(modl_path, samples_path, sample_test):
                 # En parallele, on a l'id du process entre crochets en tete de chaque ligne
                 for line in lines:
                     ok = (
-                        (line[0] == "[" and line[-1] == "]")
-                        or "Memory stats (number of pointers, and memory space)" in line
+                        "Memory stats (number of pointers, and memory space)" in line
                         or "Alloc: " in line
                         or "Requested: " in line
                     )
+                    if not ok:
+                        break
             else:
                 ok = len(lines) == 0
             if not ok:
