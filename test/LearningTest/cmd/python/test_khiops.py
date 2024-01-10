@@ -95,6 +95,28 @@ def test(modl_path, samples_path, sample_test):
     # verifie l'existence du repertoire et du fichier de sample_test
     # et lance la comparaison pour le sample 'sample_test'
 
+    def filter_lines(lines, filtered_pattern):
+        """retourne les lignes sans celles contenant le pattern en parametre"""
+        output_lines = []
+        for line in lines:
+            if filtered_pattern not in line:
+                output_lines.append(line)
+        return output_lines
+
+    def filter_empty_lines(lines):
+        """retourne les lignes sans les lignes vides"""
+        output_lines = []
+        for line in lines:
+            line = line.strip()
+            if line != "":
+                # En parallelle, une ligne vide contient le numero du process entre crochets
+                is_process_id = line[0] == "[" and line[-1] == "]"
+                if is_process_id:
+                    is_process_id = line[1:-1].isdigit()
+                if not is_process_id:
+                    output_lines.append(line)
+        return output_lines
+
     # check MODL path
     if modl_path != "nul":
         if not os.path.isfile(modl_path):
@@ -184,7 +206,7 @@ def test(modl_path, samples_path, sample_test):
             time_file_name = os.path.join(
                 os.getcwd(), os.path.join(test_dir, "results.ref", "time.log")
             )
-            print(time_file_name)  ##
+            print(time_file_name)
             if os.path.isfile(time_file_name):
                 file_time = open(time_file_name, "r")
                 lines = file_time.readlines()
@@ -252,12 +274,6 @@ def test(modl_path, samples_path, sample_test):
         # un plantagephysique de l'allocateur en cas de depassement des contraintes memoires des scenarios
         os.putenv("KhiopsHardMemoryLimitMode", "true")
 
-        # khiops en mode multitable via une variable d'environnement
-        os.putenv("KhiopsMultiTableMode", "true")
-
-        # khiops en mode Text via une  variable d'environnement
-        # os.putenv('KhiopsTextVariableMode', 'true')
-
         # khiops en mode crash test via une variable d'environnement
         os.putenv("KhiopsCrashTestMode", "true")
 
@@ -270,14 +286,12 @@ def test(modl_path, samples_path, sample_test):
             khiops_params.append("-n")
             khiops_params.append(khiops_mpi_process_number)
         khiops_params.append(modl_path)
-        if os.getenv("KhiopsBatchMode") == "true":
+        if os.getenv("KhiopsBatchMode") != "false":
             khiops_params.append("-b")
         khiops_params.append("-i")
         khiops_params.append(os.path.join(os.getcwd(), "test.prm"))
         khiops_params.append("-e")
-        khiops_params.append(
-            os.path.join(os.getcwd(), os.path.join(test_dir, "results", "err.txt"))
-        )
+        khiops_params.append(os.path.join(os.getcwd(), test_dir, "results", "err.txt"))
         if os.getenv("KhiopsOutputScenarioMode") == "true":
             khiops_params.append("-o")
             khiops_params.append(os.path.join(os.getcwd(), "test.output.prm"))
@@ -287,10 +301,69 @@ def test(modl_path, samples_path, sample_test):
 
         # Lancement de khiops
         time_start = time.time()
-        try:
-            subprocess.run(khiops_params)
-        except Exception as error:
-            print("Execution failed:" + str(error))
+        with subprocess.Popen(
+            khiops_params,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True,
+        ) as khiops_process:
+            stdout, stderr = khiops_process.communicate()
+
+        # En cas d'anomalie, memorisation du contenu de des sorties standard
+        if stdout != "":
+            is_kni = "KNI" in modl_path
+            is_coclustering = "Coclustering" in modl_path
+            lines = stdout.split("\n")
+            lines = filter_empty_lines(lines)
+            # Pour les test KNI, le stdout contient une ligne avec le nombre de records
+            if is_kni:
+                lines = filter_lines(lines, "Recoded record number:")
+                lines = filter_lines(lines, "Error : Finish opening stream error:")
+            # Cas particulier du coclustering en mode debug
+            if is_coclustering:
+                lines = filter_lines(
+                    lines, "BEWARE: Optimization level set to 0 in debug mode only!!!"
+                )
+            # Exception egalement pour cas des lancement en mode parallele simule
+            lines = filter_lines(lines, "Warning : simulated parallel mode")
+            # Exception en mode debug, pour les stats memoire
+            if "Memory stats (number of pointers, and memory space)" in stdout:
+                ok = True
+                # Parcours des lignes pour voir si ce sont bien des messages de stats, y compris en parallel
+                # En parallele, on a l'id du process entre crochets en tete de chaque ligne
+                for line in lines:
+                    ok = (
+                        "Memory stats (number of pointers, and memory space)" in line
+                        or "Alloc: " in line
+                        or "Requested: " in line
+                    )
+                    if not ok:
+                        break
+            else:
+                ok = len(lines) == 0
+            if not ok:
+                with open(
+                    os.path.join(os.getcwd(), test_dir, "results", "stdout_error.log"),
+                    "w",
+                ) as stdout_file:
+                    stdout_file.write(stdout)
+        if stderr != "":
+            with open(
+                os.path.join(os.getcwd(), test_dir, "results", "stderr_error.log"), "w"
+            ) as stderr_file:
+                stderr_file.write(stderr)
+        if khiops_process.returncode != 0 and khiops_process.returncode != 2:
+            with open(
+                os.path.join(os.getcwd(), test_dir, "results", "return_code_error.log"),
+                "w",
+            ) as return_code_file:
+                return_code_file.write(
+                    "Wrong return code: "
+                    + str(khiops_process.returncode)
+                    + " (should be 0 or 2)"
+                )
+
         time_stop = time.time()
         print(sample_test.upper() + " test done")
 

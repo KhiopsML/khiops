@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -1959,13 +1959,19 @@ const ALString KWDGMPartMerge::GetObjectLabel() const
 
 int KWDGMPartMergeCompare(const void* elem1, const void* elem2)
 {
-	// On utilise Epsilon=0 en escomptant le resultat du Diff est reproductible si les operandes sont les memes
+	// On utilise Epsilon=0 en escomptant que le resultat du Diff est reproductible si les operandes sont les memes
 	// Pour Epsilon > 0, on court le risque d'avoir diff(PM1,PM2) < Epsilon et diff(PM2,PM3) < Epsilon,
 	// mais diff(PM1,PM3) >= Epsilon (ce bug (avec consequence desatreuse dans une SortedList) est deja arrive)
 	const double dEpsilon = 0;
+	int nCompare;
 	KWDGMPartMerge* partMerge1;
 	KWDGMPartMerge* partMerge2;
 	double dDiff;
+	ALString sFirstPartLabel1;
+	ALString sSecondPartLabel1;
+	ALString sFirstPartLabel2;
+	ALString sSecondPartLabel2;
+	ALString sSwapPartLabel;
 
 	require(elem1 != NULL);
 	require(elem2 != NULL);
@@ -1977,15 +1983,53 @@ int KWDGMPartMergeCompare(const void* elem1, const void* elem2)
 	assert(partMerge2->Check());
 
 	// Calcul de la difference
+	nCompare = 0;
 	dDiff = partMerge1->GetMergeCost() - partMerge2->GetMergeCost();
 	if (dDiff > dEpsilon)
-		return 1;
+		nCompare = 1;
 	else if (dDiff < -dEpsilon)
-		return -1;
-	// Si egalite, on renvoie 0
+		nCompare = -1;
+
+	// Si egalite, on compare sur les nom de des attributs, puis sur celui des parties
 	// On ne peut se baser sur le nombre de cellules des fusions, qui varie a cout egal,
-	// ce qui empeche les optimisation poussees visant a ne reevaluer que les
-	// fusions impactees
-	else
-		return 0;
+	// ce qui empeche les optimisation poussees visant a ne reevaluer que les fusions impactees
+	if (nCompare == 0)
+	{
+		// On se base d'abord sur le libelle de l'attribut
+		// (on pourrait avoir des attribut differents ayant meme libelle de partie)
+		assert(partMerge1->GetPart1()->GetAttribute() == partMerge1->GetPart2()->GetAttribute());
+		assert(partMerge2->GetPart1()->GetAttribute() == partMerge2->GetPart2()->GetAttribute());
+		nCompare = partMerge1->GetPart1()->GetAttribute()->GetAttributeName().Compare(
+		    partMerge2->GetPart1()->GetAttribute()->GetAttributeName());
+
+		// On se base ensuite sur le libelle du plus petit des deux libelles de partie
+		if (nCompare == 0)
+		{
+			// Collecte des libelles de parties pour le Merge 1
+			sFirstPartLabel1 = partMerge1->GetPart1()->GetObjectLabel();
+			sSecondPartLabel1 = partMerge1->GetPart2()->GetObjectLabel();
+			if (sFirstPartLabel1 > sSecondPartLabel1)
+			{
+				sSwapPartLabel = sSecondPartLabel1;
+				sSecondPartLabel1 = sFirstPartLabel1;
+				sFirstPartLabel1 = sSwapPartLabel;
+			}
+
+			// Collecte des libelles de parties pour le Merge 2
+			sFirstPartLabel2 = partMerge2->GetPart1()->GetObjectLabel();
+			sSecondPartLabel2 = partMerge2->GetPart2()->GetObjectLabel();
+			if (sFirstPartLabel2 > sSecondPartLabel2)
+			{
+				sSwapPartLabel = sSecondPartLabel2;
+				sSecondPartLabel2 = sFirstPartLabel2;
+				sFirstPartLabel2 = sSwapPartLabel;
+			}
+
+			// Comparaison des libelles
+			nCompare = sFirstPartLabel1.Compare(sFirstPartLabel2);
+			if (nCompare == 0)
+				nCompare = sSecondPartLabel1.Compare(sSecondPartLabel2);
+		}
+	}
+	return nCompare;
 }

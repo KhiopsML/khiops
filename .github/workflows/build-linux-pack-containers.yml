@@ -8,7 +8,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [debian10, debian11, rocky8, rocky9, ubuntu18.04, ubuntu20.04, ubuntu22.04]
+        os:
+          - debian10
+          - debian11
+          - rocky8
+          - rocky9
+          - ubuntu18.04
+          - ubuntu20.04
+          - ubuntu22.04
     permissions:
       packages: write  # Allows writing in the container registry
     steps:

@@ -4,7 +4,6 @@ import learning_test_env
 import apply_command
 import test_khiops
 
-
 if __name__ == "__main__":
     all_commands, standard_command_number = apply_command.register_all_commands()
 
