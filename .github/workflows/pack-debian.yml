@@ -13,9 +13,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu22.04, ubuntu20.04]
+        os: [debian10, debian11, ubuntu22.04, ubuntu20.04]
     container:
-      image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
+      image: ghcr.io/${{ github.repository }}/khiopsdev-${{ matrix.os }}:latest
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -59,9 +59,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [22.04, 20.04]
+        os: ['debian:10', 'debian:11', 'ubuntu:22.04', 'ubuntu:20.04']
     container:
-      image: ubuntu:${{ matrix.os }}
+      image: ${{ matrix.os }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -82,6 +82,7 @@ jobs:
           apt-get -f install -y
       - name: Check Khiops core installation
         run: |
+          khiops-env --env
           khiops -v
           khiops_coclustering -v
       - name: Install Khiops Desktop (with java)
@@ -103,9 +104,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu22.04, ubuntu20.04]
+        os: [debian10, debian11, ubuntu22.04, ubuntu20.04]
     container:
-      image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
+      image: ghcr.io/${{ github.repository }}/khiopsdev-${{ matrix.os }}:latest
     steps:
       - name: Put OS info on the environment
         run: |
