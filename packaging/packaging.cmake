@@ -146,6 +146,9 @@ set(CPACK_RPM_KHIOPS_POST_INSTALL_SCRIPT_FILE "${PROJECT_SOURCE_DIR}/packaging/l
 set(CPACK_RPM_KNI_POST_INSTALL_SCRIPT_FILE "${PROJECT_SOURCE_DIR}/packaging/linux/redhat/kni.post")
 set(CPACK_RPM_KNI_POSTUN_INSTALL_SCRIPT_FILE "${PROJECT_SOURCE_DIR}/packaging/linux/redhat/kni.postun")
 
+get_cmake_property(CPACK_COMPONENTS_ALL COMPONENTS)
+list(REMOVE_ITEM CPACK_COMPONENTS_ALL "Unspecified")
+
 include(CPack)
 
 # Check if all files are installed within a component. If not, these files will be in the package

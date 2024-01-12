@@ -13,9 +13,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [debian10, debian11, ubuntu22.04, ubuntu20.04]
+        os: [debian10, ubuntu22.04, ubuntu20.04]
     container:
-      image: ghcr.io/${{ github.repository }}/khiopsdev-${{ matrix.os }}:latest
+      image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -59,7 +59,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ['debian:10', 'debian:11', 'ubuntu:22.04', 'ubuntu:20.04']
+        os: ['debian:10', 'ubuntu:22.04', 'ubuntu:20.04']
     container:
       image: ${{ matrix.os }}
     steps:
@@ -104,9 +104,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [debian10, debian11, ubuntu22.04, ubuntu20.04]
+        os: [debian10, ubuntu22.04, ubuntu20.04]
     container:
-      image: ghcr.io/${{ github.repository }}/khiopsdev-${{ matrix.os }}:latest
+      image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
     steps:
       - name: Put OS info on the environment
         run: |
