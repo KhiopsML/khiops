@@ -1,3 +1,4 @@
+import platform
 import os.path
 import sys
 import stat
@@ -283,10 +284,13 @@ def test(modl_path, samples_path, sample_test):
             khiops_params.append(mpiExecPath)
             if os.name == "nt":
                 khiops_params.append("-l")
+            if platform.system() == "Darwin":
+                khiops_params.append("-host")
+                khiops_params.append("localhost")
             khiops_params.append("-n")
             khiops_params.append(khiops_mpi_process_number)
         khiops_params.append(modl_path)
-        if os.getenv("KhiopsBatchMode") != "false":
+        if os.getenv("KhiopsBatchMode") != "lse":
             khiops_params.append("-b")
         khiops_params.append("-i")
         khiops_params.append(os.path.join(os.getcwd(), "test.prm"))

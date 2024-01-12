@@ -1,93 +1,216 @@
-Test de Khiops
-==============
+# Khiops tests suite: LearningTest
 
-LearningTest: creation en mars 2009
-Automatisation des tests du logiciel Khiops
-Versions synchronisees avec les versions majeures de Khiops
-Historisation des versions par la commande MakeLearningTestVersion
+LearningTest
+- created in March 2009
+- automated testing of Khiops software
+- versions synchronized with delivered Khiops versions
+  - one version per delivered Khiops version, with same tag
+  - one version for the current branch under development
 
+Non-regression tests consist of over 600 test sets organized into around 40 families, mainly for Khiops, but also for Khiops coclustering and the KNI DLL.
+They collectively occupy around 11 Gb, including 5 Gb for the databases and 3.5 Gb for the test scripts with the reference results.
 
-Procédure pour effectuer les tests de Khiops sur un autre environement
-----------------------------------------------------------------------
-Installation de LearningTest sur une nouvelle machine
-- copier l'arborescence LearningTest
-- personnalisation de l'environnement par un fichier de config learning_test.config dans le répertoire LearningTest\cmd\python
-    - voir LearningTest\cmd\python\learning_test_env.py pour la documentation sur le contenun de ce fichier de config
-- Installer python
-- mettre python dans le path
+## LearningTest directory contents
 
-Utilisation de LearningTest
-- ouvrir un shell
-- lancer une commande se trouvant dans learningTest\cmd
-- lancer les tests, par exemple
-  - TestKhiops r Standard Adult
-  - TestKhiops r Standard
-  - TestAll r
-- analyser les résultats, par exemple
-	- ApplyCommand errors TestKhiops\Standard, pour avoir une synthése des erreurs/warning sur les tests de TestKhiops\Standard
-	- ApplyCommandAll errors, pour la même commande sur tous les tests
+### Main directories
 
-Principales commandes
-  - helpOptions: doc sur différentes options paramètrables par variable d'environnement
-  - testKhiops [version] [testName] ([subTestName]): lance un test sur un répertoire ou une arborescence de test, sous le directory TestKhiops
-     - version peut être:
-       - "nul" pour ne faire que les comparaisons de résultats
-       - "d" ou "r" pour la version de debug ou release de l'environnement de développement
-       - un exe se trouvant dans LearningTest\cmd\modl\<MODL>.<version>[.exe]
-       - un exe dont la path complet est <version>
-  - TestCoclustering: idem pour Coclustering
-  - TestKNI: idem pour KNI
-  - testAll: pour lancer tous les tests
-  - applyCommand [command] [root_path] ([dir_name]): pour exécuter une commande (un service) sur un ou plusieurs jeux de tests
-  - applyCommandAll: pour exécuter une commande sur tous les jeux de test
-Les commande lancées sans argument sont auto-documentées
+Directories of LearningTest:
+- doc: documentation
+- cmd: command file for test management under windows
+  - cmd/pythons: python scripts for running tests and managing test results
+  - cmd/modl: directory that contains specific versions of exe files to test
+- datasets: standard datasets
+- MTdatasets: multi-table datasets
+- TextDatasets: text datasets
+- UnusedDatasets: datasets not currently in use
+- TestKhiops: tests for Khiops
+- TestCoclustering: tests for Coclustering
+- TestKNITransfer: test for KNI
+
+Each test directory tree, TestKhiops, TestCoclustering, TestKNITransfer is a two-level tree:
+- Level 1: one directory per test family
+- Level 2: one directory per test set
+
+Subdirectories prefixed with y_ or z_ (e.g. z_Work) are temporary test directories.
 
 
-Procédure de test
------------------
-Repertoires:
-  - doc : documentation
-  - cmd : fichier de commandes pour la gestion des tests
-  - datasets : un repertoire par jeu de données, comportant une fichier dictionnaire .kdic et un fichier de donnéee .txt
-  - MTdatasets : un repertoire par jeu de données multi-table, comportant une fichier dictionnaire .kdic et un fichier de donnéee .txt par table
-  - TextDatasets : un repertoire par jeu de données, comportant une fichier dictionnaire .kdic et un fichier de donnéee .txt
-  - TestKhiops
-  	- Standard: fonctionnalités de base
-  	- Classification: tests de classification
-  	- Regression: tests de regression
-  	- SideEffects: tests d'effets de bord
-  	- ...
-  - TestCoclustering
-	  - Standard: fonctionnalités de base
-  	- Bugs: jeux de tests éaborés pour reproduire des bugs et vérifier leur correction
-  - TestKNITransfer:
-  	- Standard: fonctionnalités de base
-  	- MultiTables: test multi-tables
-  	- ...
+### Test set directories
 
-Les sous-repertoires préfixés par y_ ou z_ (ex: z_Work) sont des répertoire de test temporaires.
+Each test directory is organized as follows:
+- test.prm: scenario file to run the test
+- ... : test-specific local data files, if any
+- results: sub-directory containing the results of running the tool with the script
+- results.ref: sub-directory containing reference results
+- comparisonResults.log: test results obtained by comparing results and results.ref
 
-Dans chaque répertoire de test (par exemple: Classification/Iris)
- - un fichier de scénario (test.prm)
- - un sous-répertoire results, contenant les fi chiers produits par le scenario
- - un sous-répertoire results.ref, contenant la version de référence de ces fichiers
+The test.prm scenario files must be written independently of the LearningTest localization, by modifying the paths of the files concerned, which must be relative to the LearningTest tree, with linux-like syntax.
+For example:
+- `./SNB_Modeling.kdic` to access a specific dictionary local to the test directory
+  - except for datasets defined in LearningTest/dataset root trees,
+       datasets can have specific dictionaries or data per test directory
+- `../../../datasets/Adult/Adult.txt` to access a dataset data file
+- `/results/T_Adult.txt` for a result in the results sub-directory
 
-Les fichiers de scénario test.prm doivent étre écrits de façon indépendante de la localisation de LearningTest, en modifiant les paths des fichiers concernés, qui doivent étre relatifs é l'arborescence LearningTest, avec un syntaxe de type linux.
-Exemple:
- - "./SNB_Modeling.kdic" pour accéder à un dictionnaire spécifique local au répertoire de test
-    - hormis les jeux de données définis dans les arborescences racines de type LearningTest/dataset, les jeux de données peuvent avoir des dictionnaires ou des données spécifique par répertoire de test
- - "../../../datasets/Adult/Adult.txt" pour accéder à un fichier de données d'un dataset
- - "./results/T_Adult.txt" pour un résultat dans sous-répertoire des résultats
 
-Ceci est automatisé par les fichiers de commandes se trouvant dans le répertoire cmd.
-- testKhiops lance un test sur un répertoire ou une arborescence de test, sous le directory TestKhiops
-  - testKhiops [version] [Test tree dir]
-- testCoclustering lance un test sur un répertoire ou une arborescence de test, sous le directory TestCoclustering
-- applyCommand lance des commandes un répertoire ou une arborescence de test
-    - utititaire generique: cf script python appele
-    - lancer sans argument pour avoir la liste des commandes possibles
-    - principales commandes: errors (synthése des erreur et warning), logs (logs détaillés des erreurs)
-- testAll lance les tests sur toutes les arborescences de test
-- testAll64bits lance les tests sur toutes les arborescences de test en mode 64 bits
-- applyCommandAll lance des commandes toutes les arborescences de test
+## Running Khiops tests
+
+Installing LearningTest on a new machine
+- copy the LearningTest directory tree
+- Install python
+- put python in the path
+
+### Personnalisation if necessary
+- modify learning_test.config file in directory LearningTest/cmd/python
+~~~~
+# The config file learning_test.config must be in directory LearningTest\cmd\python
+# It is optional, in which case all keys are set to empty
+# It contains the following key=value pairs that allows a personnalisation of the environment:
+#  - path: additional path (eg: to access to java runtime)
+#  - classpath: additional classpath for java libraries
+#  - learningtest_root: alternative root dir to use where LearningTest is located
+#  - learning_release_dir: dir where the release developement binaries are located (to enable the 'r' alias')
+#  - learning_debug_dir: dir where the debug developement binaries are located (to enable the 'd' alias')
+~~~~
+
+## Using LearningTest on any platform
+
+The commands are are available using python scripts located in directory LearningTest/cmd/python (alias [ScriptPath]).
+~~~~
+python [ScriptPath]/[script].py
+~~~~
+
+Commands launched without arguments are self-documented
+
+#### help_options.py
+Show the status of environnement variables used by the scripts.
+Main environment variables are:
+- KhiopsMPIProcessNumber: Number of MPI processes in parallel mode
+- KhiopsCompleteTests: perform all tests, even the longest ones (more than one day overall)
+- KhiopsMinTestTime: run only tests where run time (in file time.log) is beyond a threshold
+- KhiopsMaxTestTime: run only tests where run time (in file time.log) is below a threshold
+
+#### test_khiops.py
+Example:
+- python [ScriptPath]/test_khiops.py Khiops r Standard
+- python [ScriptPath]/test_khiops.py Khiops r Standard IrisLight
+- python [ScriptPath]/test_khiops.py Coclustering r Standard Iris
+~~~~
+test [toolName] [version] [testName] ([subTestName])
+  run tests of one of the Khiops tools
+	tool_name: name of the tool, among Khiops, Coclustering, KNI
+	version: version of the tool, one of the following options
+	  <path_name>: full path of the executable
+	  d: debug version in developpement environnement
+	  r: release version in developpement environnement
+	  ver: <toolname>.<ver>.exe in directory LearningTest\cmd\modl
+	  nul: for comparison with the test results only
+	testName: name of the tool test directory (Standard, MultiTables...)
+	subTestName: optional, name of the tool test sub-directory (Adult,Iris...)
+~~~~
+
+#### test_khiops_all.py
+Example
+- python [ScriptPath]/test_khiops_all.py r
+- python [ScriptPath]/test_khiops_all.py [MODL_PATH] Khiops
+~~~~
+testAll [version] <tool>
+  run all tests for all Khiops tools
+	version: version of the tool
+	  d: debug version in developpement environnement
+	  r: release version in developpement environnement
+	  ver: <toolname>.<ver>.exe in directory LearningTest\cmd\modl
+	  nul: for comparison with the test results only
+	  full exe path, if <tool> parameter is used
+	tool: all tools if not specified, one specified tool otherwise
+	  Khiops
+	  Coclustering
+	  KNI
+~~~~
+
+#### apply_command.py
+Example:
+- python [ScriptPath]/apply_command.py errors TestKhiops/Standard
+
+~~~~
+apply_command [command] [root_path] ([dir_name])
+  apply command on a directory structure
+	command: name of the command
+	rootPath is the path of the root directory
+	dirName is the name of one specific sub-directory
+	         or all (default) for executing on all sub-directories
+   example: applyCommand list TestKhiops\Standard
+   example: applyCommand list TestKhiops\Standard Adult
+
+ List of available standard commands (* for all commands):
+	list: list of sub-directories
+	errors: report errors and warnings
+	logs: detailed report errors and warnings
+	compareTimes: compare time with ref time and report warnings only
+	compareTimesVerbose: compare time with ref time and report all
+	performance: report SNB test accuracy
+	performanceRef: report ref SNB test accuracy
+	clean: delete results files
+	cleanref: delete results.ref files
+	makeref: copy results files to results.ref
+	copyref: copy results.ref files to results
+	checkHDFS: check if parameter files are compliant with HDFS
+	transformHDFS: transform parameter files to be compliant with HDFS
+	transformHDFSresults: transform results files to be compliant with HDFS
+~~~~
+
+#### apply_command_all.py
+Example:
+- python [ScriptPath]/apply_command_all.py errors
+
+~~~~
+applyCommandAll [command] <*>
+  apply command on all test sub-directories
+	command: name of the command
+	*: to include 'unofficial' sub-directories, such as z_work
+  Type applyCommand to see available commands
+~~~~
+
+
+### Using LearningTest under Windows
+
+Commands are available using command files (.cmd) located in  directory LearningTest/cmd, that are simply wrappers to the python scripts:
+- helpOptions
+- testKhiops
+- testCoclustering
+- testKNI
+- testAll
+- applyCommand
+- applyCommandAll
+
+Typical use
+- open a shell
+- run a command found in learningTest/cmd
+- run the tests, for example
+~~~
+	TestKhiops r Standard Adult
+	TestKhiops r Standard
+	TestAll r
+~~~
+- analyze results, for example
+~~~
+	ApplyCommand errors TestKhiops/Standard
+	ApplyCommandAll errors
+~~~
+
+
+## Test methodology
+
+### Test hierarchy
+
+The set of non-regression tests is voluminous. In practice, the tests are run in stages:
+- elementary: TestKhiops Standard IrisLight, less than one second
+- standard: TestKhiops Standard, less than one minute
+- all : TestAll, less than two hours
+- complete: TestAll in KhiopsCompleteTests mode (see help_options), more than one day
+- release: the multiplication of test conditions reinforces the tool's robustness
+  - TestAll under different platforms
+  - TestAll in sequential or parallel mode (cf. KhiopMPIProcessNumber)
+  - Test in debug mode for short test runs (cf KhiopsMinTestTime, KhiopsMaxTestTime)
+
+
 

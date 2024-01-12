@@ -54,7 +54,6 @@ def initialize_parsers():
 
 def check_results(test):
     # compare les fichiers 2 a 2 et ecrit les resultat dans le fichier comparisonResults.log
-    print("--Comparing results...")
     ref_dir = os.path.join(os.getcwd(), test, "results.ref")
     if not os.path.isdir(ref_dir):
         print("reference directory (" + ref_dir + ") not available")
@@ -67,11 +66,14 @@ def check_results(test):
     number_errors = 0
     number_warnings = 0
     number_files = 0
+    missing_result_files = False
     log_file = open(os.path.join(os.getcwd(), test, "comparisonResults.log"), "w")
     write_message(log_file, test.upper() + " comparison\n")
     # Initialisation des parsers
     initialize_parsers()
-    # test des fichiers 2 a 2
+    # test des fichiers 2 a 2 en memorisant les erreurs par extension
+    number_errors_in_err_txt = 0
+    number_errors_per_extension = {}
     for file_name in os.listdir(ref_dir):
         [errors, warnings] = check_file(
             log_file,
@@ -81,6 +83,15 @@ def check_results(test):
         number_files = number_files + 1
         number_errors = number_errors + errors
         number_warnings = number_warnings + warnings
+        # Memorisation des statistiques par extension
+        if errors > 0:
+            if file_name == "err.txt":
+                number_errors_in_err_txt += errors
+            else:
+                _, file_extension = os.path.splitext(file_name)
+                number_errors_per_extension[file_extension] = (
+                    number_errors_per_extension.get(file_extension, 0) + errors
+                )
     # recherche des erreurs fatales
     fatal_error_files = [
         "stdout_error.log",
@@ -91,20 +102,21 @@ def check_results(test):
         if file_name in fatal_error_files:
             number_fatal_errors = number_fatal_errors + 1
     # comparaison du nombre de fichiers
-    if len(os.listdir(ref_dir)) == 0:
+    ref_result_file_number = len(os.listdir(ref_dir))
+    test_result_file_number = len(os.listdir(test_dir))
+    if ref_result_file_number == 0:
         print_message(log_file, "no comparison: missing reference result files")
         number_errors = number_errors + 1
-    if len(os.listdir(ref_dir)) > 0 and len(os.listdir(ref_dir)) != len(
-        os.listdir(test_dir)
-    ):
+    if ref_result_file_number > 0 and ref_result_file_number != test_result_file_number:
         print_message(
             log_file,
-            "number of results files ("
-            + str(len(os.listdir(test_dir)))
+            "\nerror: number of results files ("
+            + str(test_result_file_number)
             + ") should be "
-            + str(len(os.listdir(ref_dir))),
+            + str(ref_result_file_number),
         )
         number_errors = number_errors + 1
+        missing_result_files = test_result_file_number < ref_result_file_number
     # report errors in err.txt file; if no ref file
     if len(os.listdir(ref_dir)) == 0:
         err_file_name = os.path.join(test_dir, "err.txt")
@@ -130,10 +142,54 @@ def check_results(test):
                 )
                 number_errors = number_errors + 1
         err_file.close()
-    print_message(log_file, "\n" + str(number_warnings) + " warning(s)")
-    print_message(log_file, str(number_errors) + " error(s)")
+    # Write summary
+    write_message(log_file, "\nSUMMARY")
+    write_message(log_file, str(number_warnings) + " warning(s)")
+    write_message(log_file, str(number_errors) + " error(s)")
     if number_fatal_errors > 0:
-        print_message(log_file, "FATAL ERROR")
+        write_message(log_file, "FATAL ERROR")
+    # Write additional info related to error per file extension
+    if number_errors > 0:
+        # Sort file extensions
+        file_extensions = []
+        for file_extension in number_errors_per_extension:
+            file_extensions.append(file_extension)
+        file_extensions.sort()
+        # Build messages
+        message_extension = ""
+        specific_message = ""
+        if number_errors_in_err_txt > 0:
+            message_extension += "err.txt"
+            if len(file_extensions) > 0:
+                message_extension += ", "
+            if number_errors_in_err_txt == number_errors:
+                specific_message = "errors only in err.txt"
+        if len(file_extensions) > 0:
+            for i, file_extension in enumerate(file_extensions):
+                if i > 0:
+                    message_extension += ", "
+                message_extension += file_extension
+                if number_errors_per_extension[file_extension] == number_errors:
+                    specific_message = "errors only in " + file_extension + " files"
+        # Build specific message if number or errors only in err.txt and report files
+        if specific_message == "":
+            number_errors_in_report_files = number_errors_per_extension.get(
+                ".khj", 0
+            ) + number_errors_per_extension.get(".khcj", 0)
+            if (
+                number_errors_in_err_txt == number_errors_in_report_files
+                and number_errors_in_err_txt + number_errors_in_report_files
+                == number_errors
+            ):
+                specific_message = "all errors in err.txt and in json report files with the same number"
+        # Build specific message in case of missing files
+        if specific_message == "" and missing_result_files:
+            specific_message = "Missing result files"
+        # Write additional messages
+        if message_extension != "":
+            write_message(log_file, "Error files: " + message_extension)
+        if specific_message != "":
+            write_message(log_file, "Note: " + specific_message)
     log_file.close()
 
     print(
@@ -144,7 +200,7 @@ def check_results(test):
         + " error(s), "
         + str(number_warnings)
         + " warning(s)"
-        + ("\nFATAL ERROR" if number_fatal_errors > 0 else "")
+        + (", FATAL ERROR" if number_fatal_errors > 0 else "")
     )
     print(
         "log writed in "
@@ -518,10 +574,12 @@ def check_file(log_file, path_ref, path_test):
         write_message(log_file, str(warning) + " warning(s) (epsilon difference)")
     if error == 0:
         write_message(log_file, "OK")
-    elif max_threshold > 0:
-        write_message(log_file, "max relative difference: " + str(max_threshold))
     if error > 0:
-        write_message(log_file, str(error) + " error(s)")
+        message = str(error) + " error(s)"
+        if max_threshold > 0:
+            message += " (max relative difference: " + str(max_threshold) + ")"
+        write_message(log_file, message)
+
     return [error, warning]
 
 
@@ -546,7 +604,7 @@ def check_value(val1, val2):
     #   - 1 si les cellules sont identiques
     #   - 2 si les la difference relative est toleree
     #   - 0 si les cellules sont differentes
-    # - threshold: differe,ce relative si result = 2
+    # - threshold: difference relative si result = 2
     # Ok si valeurs egales
     if val1 == val2:
         return [1, 0]
@@ -572,9 +630,9 @@ def check_cell(cell1, cell2):
     # renvoie deux valeur:
     # - result:
     #   - 1 si les cellules sont identiques
-    #   - 2 si les la difference relative est toleree
-    #   - 0 si les cellules sont differentes
-    # - threshold: differe,ce relative si result = 2
+    #   - 2 si les la difference relative est toleree (warning)
+    #   - 0 si les cellules sont differentes (error)
+    # - threshold: difference relative liee au cas erreur ou warning
 
     if cell1 == cell2:
         return [1, 0]
@@ -653,16 +711,26 @@ def check_cell(cell1, cell2):
         else:
             i = 0
             length = len(substrings1)
-            full_eval = 1
-            full_threshold = 0
+            warnings = 0
+            errors = 0
+            max_warning_threshold = 0
+            max_error_threshold = 0
             while i < length:
                 [eval_result, threshold_result] = check_value(
                     substrings1[i], substrings2[i]
                 )
+                # Traitement des erreurs
                 if eval_result == 0:
-                    return [0, 0]
+                    errors += 1
+                    max_error_threshold = max(threshold_result, max_error_threshold)
+                # Traitement des warnings
                 if eval_result == 2:
-                    full_eval = 2
-                full_threshold = max(threshold_result, full_threshold)
+                    warnings += 1
+                    max_warning_threshold = max(threshold_result, max_warning_threshold)
                 i = i + 1
-            return [full_eval, full_threshold]
+            if errors > 0:
+                return [0, max_error_threshold]
+            elif warnings > 0:
+                return [2, max_warning_threshold]
+            else:
+                return [1, 0]
