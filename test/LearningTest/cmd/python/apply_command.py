@@ -131,109 +131,96 @@ def apply_command_list(work_dir):
     print(work_dir)
 
 
-def merge_tests_results(work_dir) -> object:
-    # list test directories with errors or warnings
-    # report log errors and warnings
+def merge_tests_results(work_dir):
+    """Analyse test directories for warning, errors or fatal errors
+    Returns:
+    - warning number
+    - erreur number
+    - fatal error (boolean)
+    - message related to file extensions (optional)
+    - specific message (optional)
+    """
+
+    def extract_number(message):
+        assert message != ""
+        fields = message.split()
+        assert fields[0].isdigit()
+        number = int(fields[0])
+        return number
+
+    # Traitement des erreurs memorisee dans le log
     log_file_name = os.path.join(work_dir, "comparisonResults.log")
-    error_message = ""
-    warning_message = ""
+    error_number = 0
+    warning_number = 0
+    fatal_error = False
+    message_extension = ""
+    specific_message = ""
     if os.path.isfile(log_file_name):
         log_file = open(log_file_name, "r", errors="ignore")
+        begin_summary = False
+        for line in log_file:
+            line = line.strip()
+            # Recherche du debug de la synthese
+            if line == "SUMMARY":
+                begin_summary = True
 
-        error_message_err = ""
-        error_message_kdic = ""
-        error_message_txt = ""
+            # Analyse de la synthese
+            if begin_summary:
+                if line.find("warning(s)") >= 0 and line.find("0 warning(s)") != 0:
+                    warning_number = extract_number(line)
+                if line.find("error(s)") >= 0 and line.find("0 error(s)") != 0:
+                    error_number = extract_number(line)
+                if line == "FATAL ERROR":
+                    fatal_error = True
+                if line.find("Error files: ") == 0:
+                    message_extension = line
+                if line.find("Note: ") == 0:
+                    specific_message = line
 
-        begin_file_err = 0
-        begin_file_kdic = 0
-        begin_file_txt = 0
-        for s in log_file:
-            s = s.replace("\n", "")
-            # on traite de facon particuliere les messages du fichier de log err.txt
-            if s.find("file ") == 0 or s == "":
-                if s.find("results\\err.txt") >= 0:
-                    begin_file_err = 1
-                else:
-                    begin_file_err = 0
-            if begin_file_err == 1:
-                if s.find("error") >= 0 and s.find("0 error") != 0:
-                    error_message_err = s
-            # on traite de facon particuliere les messagess du fichier Modeling.Kdic
-            if s.find("file ") == 0 or s == "":
-                if s.find("results\\Modeling.kdic") >= 0:
-                    begin_file_kdic = 1
-                else:
-                    begin_file_kdic = 0
-            if begin_file_kdic == 1:
-                if s.find("error") >= 0 and s.find("0 error") != 0:
-                    error_message_kdic = s
-            if begin_file_kdic == 1:
-                if s.find("error") >= 0 and s.find("0 error") != 0:
-                    error_message_kdic = s
-            # on traite de facon particuliere les messages des fichiers .txt, hors err.txt
-            if s.find("file ") == 0 or s == "":
-                if (
-                    s.find("results\\") >= 0
-                    and s.find(".txt") >= 0
-                    and s.find("results\\err.txt") == -1
-                ):
-                    begin_file_txt = 1
-                else:
-                    begin_file_txt = 0
-            if begin_file_txt == 1:
-                if s.find("error") >= 0 and s.find("0 error") != 0:
-                    error_message_txt = s
-            # on cherche ici a reperer les erreurs globales agregees
-            if s.find("error") >= 0 and s.find("0 error") != 0:
-                error_message = s
-            if s.find("warning") >= 0 and s.find("0 warning") != 0:
-                warning_message = s
-
-        if error_message_err == error_message and error_message != "":
-            error_message = error_message + "    (all in err.txt)"
-        if error_message_kdic == error_message and error_message != "":
-            error_message = error_message + "    (all in Modeling.Kdic)"
-        if error_message_txt == error_message and error_message != "":
-            error_message = error_message + "    (all in deployed .txt files)"
+        # Fermeture du fichier
         log_file.close()
     else:
-        error_message = "The test has not been launched"
-    return error_message, warning_message
+        error_number = 1
+        specific_message = "The test has not been launched"
+    return (
+        warning_number,
+        error_number,
+        fatal_error,
+        message_extension,
+        specific_message,
+    )
 
 
 def apply_command_errors(work_dir):
     # list test directories with errors or warnings
     # outpout in standard output stream
-    dir_name = os.path.basename(work_dir)
-    root_name = os.path.basename(os.path.dirname(work_dir))
-
-    def print_log_error(message):
-        print(root_name + " " + dir_name + ": " + message)
-
-    error_message, warning_message = merge_tests_results(work_dir)
-    if error_message != "":
-        print_log_error(error_message)
-    if warning_message != "":
-        print_log_error(warning_message)
-
-
-def merge_errors_and_warnings(work_dir):
-    # list test directories with errors or warnings
-    # output return in string
-    dir_name = os.path.basename(work_dir)
-    # output=open(os.path.join(work_dir,work_dir+".compareResults"),'w')
-
-    # def write_log_error(file,message):
-    # file.write(root_name + " " + dir_name + ": "+message)
-    output = ""
-    error_message, warning_message = merge_tests_results(work_dir)
-    if error_message != "":
-        output = output + dir_name + " : " + error_message + "\n"
-    if warning_message != "":
-        output = output + dir_name + " : " + warning_message + "\n"
-    if error_message != "" or warning_message != "":
-        output = output + "\n"
-    return output
+    test_dir_name = os.path.basename(work_dir)
+    family_dir_name = os.path.basename(os.path.dirname(work_dir))
+    tool_name = os.path.basename(os.path.dirname(os.path.dirname(work_dir)))
+    (
+        warning_number,
+        error_number,
+        fatal_error,
+        message_extension,
+        specific_message,
+    ) = merge_tests_results(work_dir)
+    if warning_number != 0 or error_number != 0 or fatal_error:
+        message = "\t" + tool_name + "\t"
+        message += family_dir_name + "\t"
+        message += test_dir_name + "\t"
+        if warning_number > 0:
+            message += "warnings\t" + str(warning_number) + "\t"
+        else:
+            message += "\t\t"
+        if error_number > 0:
+            message += "errors\t" + str(error_number) + "\t"
+        else:
+            message += "\t\t"
+        if fatal_error:
+            message += "FATAL ERROR"
+        message += "\t" + message_extension
+        message += "\t" + specific_message
+        print(message)
 
 
 def apply_command_logs(work_dir):
@@ -241,8 +228,14 @@ def apply_command_logs(work_dir):
     # outpout in standard output stream
     dir_name = os.path.basename(work_dir)
     root_name = os.path.basename(os.path.dirname(work_dir))
-    error_message, warning_message = merge_tests_results(work_dir)
-    if error_message != "" or warning_message != "":
+    (
+        warning_number,
+        error_number,
+        fatal_error,
+        message_extension,
+        specific_message,
+    ) = merge_tests_results(work_dir)
+    if warning_number != 0 or error_number != "" or fatal_error:
         log_file_name = os.path.join(work_dir, "comparisonResults.log")
         if os.path.isfile(log_file_name):
             print("==================================================================")
@@ -1236,6 +1229,8 @@ def execute_command(
     if len(test_list) == 0:
         print("error: no sub-directory is available in " + root_path)
         exit(0)
+    # Sort test list
+    test_list.sort()
     # Execution de la commande
     (command_function, command_label) = available_commands[command_id]
     for name in test_list:
@@ -1253,10 +1248,11 @@ def execute_command(
         os.chdir(work_dir)
         command_function(work_dir)
         os.chdir(root_path)
-    # Message de fin
-    base_name = os.path.basename(root_path)
-    test_dir_name = os.path.dirname(root_path)
-    print("DONE: " + os.path.basename(test_dir_name) + " " + base_name)
+    # Message synthetique de fin si famille de jeu de tests
+    family_dir_name = os.path.basename(root_path)
+    tool_name = os.path.basename(os.path.dirname(root_path))
+    if test_dir_name is None:
+        print("DONE\t" + tool_name + "\t" + family_dir_name)
 
 
 def register_all_commands():
