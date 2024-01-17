@@ -647,7 +647,7 @@ void MHDiscretizerHistogramMODL::GranularizedDiscretizeValues(const ContinuousVe
 			     << KWContinuous::ContinuousToString(dCost) << endl;
 
 		// Memorisation si amelioration du cout
-		if (dCost < dBestCost)
+		if (dCost < dBestCost - dEpsilon)
 		{
 			dBestCost = dCost;
 			if (optimizedHistogramFrequencyTable != NULL)

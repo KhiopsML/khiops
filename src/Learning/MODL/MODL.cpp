@@ -13,6 +13,8 @@ void SetWindowsDebugDir(const ALString& sDatasetFamily, const ALString& sDataset
 	int nRet;
 
 	// A parametrer pour chaque utilisateur
+	// Devra etre fait plus proprement quand tout l'equipe sera sur git, par exemple via une variable
+	// d'environnement et quelques commentaires clairs
 	sUserRootPath = "D:/Users/miib6422/Documents/boullema/LearningTest/TestKhiops/";
 
 	// Pour permettre de continuer a utiliser LearningTest, on ne fait rien s'il y a deja un fichier test.prm

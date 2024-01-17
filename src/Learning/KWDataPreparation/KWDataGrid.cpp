@@ -3558,6 +3558,8 @@ KWDGValue* KWDGValueSet::AddValue(const Symbol& sValue)
 {
 	KWDGValue* value;
 
+	require(not bIsDefaultPart or sValue != Symbol::GetStarValue());
+
 	// Creation de la valeur
 	value = NewValue(sValue);
 
@@ -3583,6 +3585,8 @@ KWDGValue* KWDGValueSet::AddValue(const Symbol& sValue)
 void KWDGValueSet::DeleteValue(KWDGValue* value)
 {
 	require(value != NULL);
+
+	require(not bIsDefaultPart or value->GetValue() != Symbol::GetStarValue());
 
 	// Supression de la liste des valuees
 	nValueNumber--;
