@@ -553,7 +553,8 @@ boolean FileService::GetDirectoryContent(const ALString& sPathName, StringVector
 	}
 
 	// Nettoyage
-	p_FindClose(hFind);
+	if (hFind != NULL)
+		p_FindClose(hFind);
 	p_DeleteFileData(pFileData);
 	p_SetApplicationLocale();
 	return bOk;
