@@ -743,7 +743,7 @@ void MHDiscretizerHistogramMODL_fp::OptimizeGranularity(MHHistogram*& optimizedH
 		delete optimizedHistogramFrequencyTable;
 
 		// Memorisation si amelioration du cout
-		if (dCost < dBestCost)
+		if (dCost < dBestCost - dEpsilon)
 		{
 			dBestCost = dCost;
 

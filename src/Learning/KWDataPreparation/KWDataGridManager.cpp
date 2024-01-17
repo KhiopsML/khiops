@@ -2921,10 +2921,12 @@ void KWDataGridManager::SortAttributeParts(KWDGAttribute* sourceAttribute, KWDGA
 	ObjectArray oaSourceParts;
 	ObjectArray oaAssociations;
 	KWSortableSymbol* association;
-	int nSource;
-	int n;
 	KWDGPart* sourcePart;
 	KWDGPart* groupedPart;
+	IntVector ivRandomIndexes;
+	int nSource;
+	int nRandomIndex;
+	int n;
 
 	require(sourceAttribute != NULL);
 	require(groupedAttribute != NULL);
@@ -2943,11 +2945,21 @@ void KWDataGridManager::SortAttributeParts(KWDGAttribute* sourceAttribute, KWDGA
 	// On exporte les parties sources dans un tableau
 	sourceAttribute->ExportParts(&oaSourceParts);
 
+	// Construction d'un vecteur d'index des parties source pour les gerer en ordre aleatoire
+	ivRandomIndexes.SetSize(oaSourceParts.GetSize());
+	for (n = 0; n < ivRandomIndexes.GetSize(); n++)
+		ivRandomIndexes.SetAt(n, n);
+	ivRandomIndexes.Shuffle();
+
 	// Initialisation d'un tableau d'associations entre index de partie source et
 	// (premiere) valeur de groupe source
 	oaAssociations.SetSize(oaSourceParts.GetSize());
-	for (nSource = 0; nSource < oaSourceParts.GetSize(); nSource++)
+	for (n = 0; n < ivRandomIndexes.GetSize(); n++)
 	{
+		// Attention, le RandomIndex est ici l'index de parcours du vecteur ivRandomIndexes
+		// Qui vient d'etre perturbe aleatoirement
+		nRandomIndex = n;
+		nSource = ivRandomIndexes.GetAt(nRandomIndex);
 		sourcePart = cast(KWDGPart*, oaSourceParts.GetAt(nSource));
 
 		// Recherche de la partie groupee correspondante
@@ -2956,12 +2968,11 @@ void KWDataGridManager::SortAttributeParts(KWDGAttribute* sourceAttribute, KWDGA
 		// Creation de l'association entre index de partie et premiere valeur du groupe
 		association = new KWSortableSymbol;
 		oaAssociations.SetAt(nSource, association);
-		association->SetIndex(nSource);
+		association->SetIndex(nRandomIndex);
 		association->SetSortValue(groupedPart->GetValueSet()->GetHeadValue()->GetValue());
 	}
 
 	// Tri des association, apres une randomisation pour avoir un ordre aleatoire par groupe
-	oaAssociations.Shuffle();
 	oaAssociations.SetCompareFunction(KWSortableSymbolCompareValue);
 	oaAssociations.Sort();
 
@@ -2974,7 +2985,8 @@ void KWDataGridManager::SortAttributeParts(KWDGAttribute* sourceAttribute, KWDGA
 		association = cast(KWSortableSymbol*, oaAssociations.GetAt(n));
 
 		// Recherche de la partie source
-		nSource = association->GetIndex();
+		nRandomIndex = association->GetIndex();
+		nSource = ivRandomIndexes.GetAt(nRandomIndex);
 		sourcePart = cast(KWDGPart*, oaSourceParts.GetAt(nSource));
 
 		// Recherche de la partie groupee correspondante

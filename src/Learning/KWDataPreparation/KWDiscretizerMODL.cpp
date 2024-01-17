@@ -194,7 +194,7 @@ void KWDiscretizerMODL::Discretize(KWFrequencyTable* kwftSource, KWFrequencyTabl
 				delete kwftMergedTable;
 				kwftMergedTable = NULL;
 
-				if (dCost < dBestCost)
+				if (dCost < dBestCost - dEpsilon)
 				{
 					dBestCost = dCost;
 					// Destruction de l'optimum precedent

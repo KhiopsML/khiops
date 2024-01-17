@@ -2127,6 +2127,7 @@ int MHFloatingPointFrequencyTableBuilder::SearchBinIndex(int nSearchedCumulative
 void MHFloatingPointFrequencyTableBuilder::InitializeDomainBounds()
 {
 	boolean bDisplay = false;
+	const double dEpsilon = 1e-7;
 	int nTotalFrequency;
 	int i;
 	double dBestCost;
@@ -2172,13 +2173,13 @@ void MHFloatingPointFrequencyTableBuilder::InitializeDomainBounds()
 			cout << KWContinuous::ContinuousToString(cUpperBound - GetMaxValue()) << "\t";
 			cout << dCost << "\t";
 			cout << dBestCost << "\t";
-			if (dCost < dBestCost)
+			if (dCost < dBestCost - dEpsilon)
 				cout << "Best";
 			cout << "\n";
 		}
 
 		// Memorisation si amelioration
-		if (dCost < dBestCost)
+		if (dCost < dBestCost - dEpsilon)
 		{
 			dBestCost = dCost;
 

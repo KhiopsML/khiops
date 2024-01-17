@@ -1227,7 +1227,7 @@ int KWDatabaseFormatDetector::ComputeSeparatorPriority(char cSeparator) const
 	// Si non trouve, on prend le le cracater lui meme d'abord dans sa plage ascii, puis dans la plage ascii etendue
 	if (nPriority == -1)
 	{
-		if (isprint(cSeparator))
+		if (p_isprint(cSeparator))
 		{
 			if (cSeparator >= 0)
 				nPriority = 1000 + cSeparator;

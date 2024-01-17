@@ -356,7 +356,7 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 				*/
 				{
 					// Cas d'amelioration du cout
-					if (dGranularityBestCost < dBestCost)
+					if (dGranularityBestCost < dBestCost - dEpsilon)
 					{
 						dBestCost = dGranularityBestCost;
 
