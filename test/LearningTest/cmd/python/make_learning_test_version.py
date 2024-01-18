@@ -9,9 +9,8 @@ import os
 import sys
 import os.path
 import shutil
-from hashlib import scrypt
-
 import learning_test_env
+from test_dir_management import *
 
 
 def make_learning_test_version(version: str, option: str = ""):
@@ -21,7 +20,7 @@ def make_learning_test_version(version: str, option: str = ""):
     :param option: option (default: ""),
       "scripts" for scritf files only
       "dataset" for datasets only,
-      "reference" for defailt plus reference results
+      "reference" for default plus reference results
     :return:
     """
 
@@ -36,6 +35,8 @@ def make_learning_test_version(version: str, option: str = ""):
         for name in names:
             if ignore_list is not None:
                 if name not in names:
+                    return False
+                elif RESULTS_REF in ignore_list and is_candidate_results_ref_dir(name):
                     return False
             else:
                 return False
@@ -64,23 +65,30 @@ def make_learning_test_version(version: str, option: str = ""):
         # Test whether we are in an elementary test directory
         is_test_dir = False
         for name in names:
-            if name == "test.prm":
+            if name == TEST_PRM:
                 is_test_dir = True
         # Copy content
         for name in names:
             copy = True
-            if ignore_list is not None and name in ignore_list:
-                copy = False
-            if warning_list is not None and name in warning_list:
-                print(
-                    "warning: found "
-                    + name
-                    + " in directory "
-                    + source_root
-                    + " (ignored)"
-                )
-                copy = False
-            if is_test_dir and script_only and name != "test.prm":
+            if ignore_list is not None:
+                if name in ignore_list:
+                    copy = False
+                elif RESULTS_REF in ignore_list and is_candidate_results_ref_dir(name):
+                    copy = False
+            if warning_list is not None:
+                if name in warning_list:
+                    copy = False
+                elif RESULTS_REF in warning_list and is_candidate_results_ref_dir(name):
+                    copy = False
+                if not copy:
+                    print(
+                        "warning: found "
+                        + name
+                        + " in directory "
+                        + source_root
+                        + " (ignored)"
+                    )
+            if is_test_dir and script_only and name != TEST_PRM:
                 copy = False
             if copy:
                 source_path = os.path.join(source_dir, name)
@@ -148,9 +156,9 @@ def make_learning_test_version(version: str, option: str = ""):
     # Parametrage des noms de fichiers ou repertoire specifiques
     dataset_dirs = ["datasets", "MTdatasets", "TextDatasets", "UnusedDatasets"]
     test_dirs = ["cmd", "doc", "TestCoclustering", "TestKhiops", "TestKNITransfer"]
-    forbidden_names = ["__pycache__", "modl", "results", "comparisonResults.log"]
+    forbidden_names = ["__pycache__", "modl", RESULTS, COMPARISON_RESULTS_LOG]
     if option != "references":
-        forbidden_names.append("results.ref")
+        forbidden_names.append(RESULTS_REF)
 
     # Cas de la copie des jeux de donnees
     if option == "datasets":
@@ -179,7 +187,11 @@ if __name__ == "__main__":
             "Copy LearningTest from local directory in a version under network archive directory"
         )
         print(
-            "  Copy most files, except from datasets result or results.ref, if no option is specified."
+            "  Copy most files, except from datasets, "
+            + RESULTS
+            + ", or "
+            + RESULTS_REF
+            + " directories, if no option is specified."
         )
         print("  Available options:")
         print("    scripts: only script files")

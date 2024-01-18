@@ -51,4 +51,4 @@ if __name__ == "__main__":
             if os.path.isdir(root_path):
                 apply_command.execute_command(all_commands, command, root_path)
             else:
-                print("BUG directory not found: " + root_path)
+                print("error: directory not found: " + root_path)

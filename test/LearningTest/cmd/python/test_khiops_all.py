@@ -4,6 +4,7 @@ import test_families
 import os.path
 import sys
 import stat
+from test_dir_management import *
 
 
 # lance les tests de khiops sur tous les repertoires contenus dans la liste "tool_test_dirs"
@@ -23,7 +24,7 @@ def test_khiops_tool(tool_name, tool_version, tool_test_dirs):
         if os.path.isdir(tool_samples_path):
             for sub_test in os.listdir(tool_samples_path):
                 sub_test_path = os.path.join(tool_samples_path, sub_test)
-                file_path = os.path.join(sub_test_path, "comparisonResults.log")
+                file_path = os.path.join(sub_test_path, COMPARISON_RESULTS_LOG)
                 if os.path.isfile(file_path):
                     os.chmod(file_path, stat.S_IWRITE)
                     os.remove(file_path)
