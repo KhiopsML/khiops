@@ -9,14 +9,30 @@
 // Declaration de la methode de Standard.h permettant d'acceder aux buffers de travail
 extern char* StandardGetBuffer();
 
+// Portable wrapper of std::setlocale:
+// The MacOS libc implementation of setlocale sets errno to zero. So we save the state of `errno`
+// and restore it after the call to setlocale. We do this for all systems just to be sure because
+// the spec does not guarantee that a call to a function doesn't set errno (even if it shouldn't).
+char* p_setlocale(int category, const char* locale)
+{
+	char* currentLocale;
+	int currentErrno;
+
+	currentErrno = errno;
+	currentLocale = setlocale(category, locale);
+	errno = currentErrno;
+
+	return currentLocale;
+}
+
 void p_SetMachineLocale()
 {
-	setlocale(LC_ALL, "");
+	p_setlocale(LC_ALL, "");
 }
 
 void p_SetApplicationLocale()
 {
-	setlocale(LC_ALL, "en_US.UTF-8");
+	p_setlocale(LC_ALL, "en_US.UTF-8");
 }
 
 /////////////////////////////////////////////////////////////////
