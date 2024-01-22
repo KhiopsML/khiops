@@ -123,7 +123,6 @@ boolean KWDatabaseTask::RunDatabaseTask(const KWDatabase* sourceDatabase)
 	boolean bDisplay = false;
 	KWMTDatabaseTextFile refMTDatabaseTextFile;
 	KWSTDatabaseTextFile refSTDatabaseTextFile;
-	ALString sTmp;
 
 	require(sourceDatabase != NULL);
 	require(sourceDatabase->Check());
@@ -740,6 +739,7 @@ boolean KWDatabaseTask::SlaveProcess()
 
 	// La methode finale est toujours appelee, pour les nettoyage potentiels
 	bOk = SlaveProcessStopDatabase(bOk) and bOk;
+
 	return bOk;
 }
 
@@ -997,7 +997,7 @@ boolean KWDatabaseTask::SlaveProcessExploitDatabase()
 
 			// Arret si erreur de lecture
 			// On emet pas de message d'erreur, vcar le message ddetaille a deja ete emis precedemment,
-			// et le message synthétique sera emis par l'appelant
+			// et le message synthetique sera emis par l'appelant
 			if (sourceDatabase->IsError())
 			{
 				bOk = false;
