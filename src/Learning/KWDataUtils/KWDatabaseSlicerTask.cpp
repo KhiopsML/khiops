@@ -585,6 +585,8 @@ boolean KWDatabaseSlicerTask::SlaveProcessStartDatabase()
 	ALString sSliceFileName;
 	ALString sTmp;
 
+	require(allSliceOutputBuffer != NULL);
+
 	// Initialisation des variables en sortie
 	output_lWrittenObjects = 0;
 	output_svSliceFileNames.GetStringVector()->SetSize(0);
@@ -643,6 +645,7 @@ boolean KWDatabaseSlicerTask::SlaveProcessStartDatabase()
 			DeleteSliceFiles();
 		}
 	}
+	ensure(allSliceOutputBuffer != NULL);
 	return bOk;
 }
 
@@ -650,6 +653,7 @@ boolean KWDatabaseSlicerTask::SlaveProcessExploitDatabaseObject(const KWObject* 
 {
 	boolean bOk = true;
 
+	require(allSliceOutputBuffer != NULL);
 	require(shared_DataTableSliceSet.GetDataTableSliceSet() == allSliceOutputBuffer->GetDataTableSliceSet());
 
 	// Ecriture de l'objet pour le dispatcher dans les fichiers de tranche
@@ -662,6 +666,7 @@ boolean KWDatabaseSlicerTask::SlaveProcessExploitDatabaseObject(const KWObject* 
 		AddError("Error in writing database slice files");
 		bOk = false;
 	}
+	ensure(allSliceOutputBuffer != NULL);
 	return bOk;
 }
 
@@ -671,6 +676,8 @@ boolean KWDatabaseSlicerTask::SlaveProcessStopDatabase(boolean bProcessEndedCorr
 	int nSlice;
 	ALString sSliceFileName;
 	boolean bCloseOk;
+
+	require(allSliceOutputBuffer != NULL);
 
 	// Appel de la methode ancetre
 	bOk = KWDatabaseTask::SlaveProcessStopDatabase(bProcessEndedCorrectly);
