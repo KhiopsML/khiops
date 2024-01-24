@@ -40,7 +40,7 @@ jobs:
     strategy:
       matrix:
         build-setup:
-          - {os: windows-2022, cmake-preset: windows-msvc}
+          - {os: windows-latest, cmake-preset: windows-msvc}
           - {os: ubuntu-latest, cmake-preset: linux-gcc}
           - {os: macos-latest, cmake-preset: macos-clang}
         config: [debug, release]
@@ -50,6 +50,13 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
+      - name: Install Ninja (Linux)
+        if: matrix.build-setup.os == 'ubuntu-latest'
+        run: sudo apt-get install ninja-build
+      - name: Install Ninja (macOS)
+        if: matrix.build-setup.os == 'macos-latest'
+        run: brew install ninja
+      # Note: Ninja is already installed in windows runners
       - name: Build all binaries
         uses: ./.github/actions/build-khiops
         with:
@@ -79,7 +86,7 @@ jobs:
       fail-fast: false
       matrix:
         build-setup:
-          - {os: windows-2022, cmake-preset: windows-msvc}
+          - {os: windows-latest, cmake-preset: windows-msvc}
           - {os: ubuntu-latest, cmake-preset: linux-gcc}
           - {os: macos-latest, cmake-preset: macos-clang}
         running-mode: [parallel, serial]
