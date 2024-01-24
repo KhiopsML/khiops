@@ -1,5 +1,18 @@
 import os.path
 import re
+from test_dir_management import *
+
+# Nom du fichier de comparaison
+COMPARISON_LOG_FILE_NAME = COMPARISON_RESULTS_LOG
+
+# Constantes de la section SUMMARY des fichiers de log des resultats de comparaison
+SUMMARY_TITLE = "SUMMARY"
+SUMMARY_WARNING_KEY = "warning(s)"
+SUMMARY_ERROR_KEY = "error(s)"
+SUMMARY_FATAL_ERROR_KEY = "FATAL ERROR"
+SUMMARY_FILE_TYPES_KEY = "Problem file types: "
+SUMMARY_NOTE_KEY = "Note: "
+SUMMARY_PORTABILITY_KEY = "Portability: "
 
 
 def print_message(log_file, message):
@@ -12,14 +25,22 @@ def write_message(log_file, message):
     log_file.write(message.encode("utf-8", "ignore").decode("utf-8") + "\n")
 
 
-def print_detailed_message(log_file, message, number_print):
-    number_print_max = 10
-    if number_print < number_print_max:
-        print(message)
-        log_file.write(message + "\n")
-    if number_print == number_print_max:
-        print("...\n")
-        log_file.write("...\n")
+def read_file_lines(log_file, file_path):
+    """Chargement en memoire des lignes d'un fichier
+    Retourne la liste des fichier si ok, None sinon
+    Ecrit un message dans le log en cas d'erreur
+    """
+    # lecture des lignes du fichier de reference
+    try:
+        with open(file_path, "r", errors="ignore") as file:
+            file_lines = file.readlines()
+    except BaseException as message:
+        write_message(
+            log_file,
+            "Error : can't open file " + file_path + " (" + str(message) + ")",
+        )
+        file_lines = None
+    return file_lines
 
 
 # Parsers en variables globales, compiles une seule fois
@@ -53,102 +74,274 @@ def initialize_parsers():
 
 
 def check_results(test):
-    # compare les fichiers 2 a 2 et ecrit les resultat dans le fichier comparisonResults.log
-    ref_dir = os.path.join(os.getcwd(), test, "results.ref")
-    if not os.path.isdir(ref_dir):
-        print("reference directory (" + ref_dir + ") not available")
-        return 0
-    test_dir = os.path.join(os.getcwd(), test, "results")
-    if not os.path.isdir(test_dir):
-        print("test directory (" + test_dir + ") not available")
-        return 0
+    """Compare les fichiers de resultats de test et de reference 2 a 2
+    et ecrit les resultats dans le fichier de log"""
+
+    assert os.path.isdir(test)
+    test_full_path = os.path.join(os.getcwd(), test)
+
+    # Initialisation des stats de comparaison
     number_fatal_errors = 0
     number_errors = 0
     number_warnings = 0
-    number_files = 0
+    number_compared_files = 0
     missing_result_files = False
-    log_file = open(os.path.join(os.getcwd(), test, "comparisonResults.log"), "w")
-    write_message(log_file, test.upper() + " comparison\n")
-    # Initialisation des parsers
-    initialize_parsers()
-    # test des fichiers 2 a 2 en memorisant les erreurs par extension
     number_errors_in_err_txt = 0
     number_errors_per_extension = {}
-    for file_name in os.listdir(ref_dir):
-        [errors, warnings] = check_file(
-            log_file,
-            os.path.join(ref_dir, file_name),
-            os.path.join(test_dir, file_name),
-        )
-        number_files = number_files + 1
-        number_errors = number_errors + errors
-        number_warnings = number_warnings + warnings
-        # Memorisation des statistiques par extension
-        if errors > 0:
-            if file_name == "err.txt":
-                number_errors_in_err_txt += errors
-            else:
-                _, file_extension = os.path.splitext(file_name)
-                number_errors_per_extension[file_extension] = (
-                    number_errors_per_extension.get(file_extension, 0) + errors
-                )
-    # recherche des erreurs fatales
-    fatal_error_files = [
-        "stdout_error.log",
-        "stderr_error.log",
-        "return_code_error.log",
-    ]
-    for file_name in os.listdir(test_dir):
-        if file_name in fatal_error_files:
-            number_fatal_errors = number_fatal_errors + 1
-    # comparaison du nombre de fichiers
-    ref_result_file_number = len(os.listdir(ref_dir))
-    test_result_file_number = len(os.listdir(test_dir))
-    if ref_result_file_number == 0:
-        print_message(log_file, "no comparison: missing reference result files")
-        number_errors = number_errors + 1
-    if ref_result_file_number > 0 and ref_result_file_number != test_result_file_number:
+    number_errors_per_file = {}
+    erroneous_ref_file_lines = {}
+    erroneous_test_file_lines = {}
+    erroneous_file_names = []
+    message_extension = ""
+    specific_message = ""
+    portability_message = ""
+
+    # Ouverture du fichier de log de comparaison
+    log_file_path = os.path.join(test_full_path, COMPARISON_LOG_FILE_NAME)
+    try:
+        log_file = open(log_file_path, "w")
+    except:
+        print("error : unable to create log file " + log_file_path)
+        return
+    assert log_file is not None
+    write_message(log_file, test + " comparison")
+
+    # Information sur le contexte courant de comparaison des resultats
+    current_context = get_current_results_ref_context()
+    write_message(
+        log_file,
+        "current comparison context : " + str(current_context),
+    )
+
+    # Test de presence du repertoire de test a comparer
+    test_dir = os.path.join(test_full_path, RESULTS)
+    if not os.path.isdir(test_dir):
         print_message(
             log_file,
-            "\nerror: number of results files ("
-            + str(test_result_file_number)
-            + ") should be "
-            + str(ref_result_file_number),
+            "error : no comparison, test directory not available (" + test_dir + ")",
         )
         number_errors = number_errors + 1
-        missing_result_files = test_result_file_number < ref_result_file_number
-    # report errors in err.txt file; if no ref file
-    if len(os.listdir(ref_dir)) == 0:
-        err_file_name = os.path.join(test_dir, "err.txt")
-        err_file = open(err_file_name, "r", errors="ignore")
-        for s in err_file:
-            if s.find("error") >= 0:
-                print_detailed_message(
-                    log_file, err_file_name + ": " + s, number_errors + number_warnings
-                )
+
+    # Recherche du repertoire courant des resultats de reference
+    results_ref, candidate_dirs = get_results_ref_dir(
+        test_full_path, log_file=log_file, show=True
+    )
+    if results_ref is None:
+        print_message(
+            log_file,
+            "error : invalid " + RESULTS_REF + " dirs " + str(candidate_dirs),
+        )
+        number_errors = number_errors + 1
+    elif len(candidate_dirs) >= 2:
+        portability_message = (
+            "used " + results_ref + " dir among " + str(candidate_dirs)
+        )
+        print_message(
+            log_file,
+            portability_message,
+        )
+
+    # Test de presence du repertoire de reference a comparer
+    if number_errors == 0:
+        ref_dir = os.path.join(test_full_path, results_ref)
+        if not os.path.isdir(ref_dir):
+            print_message(
+                log_file,
+                "error : no comparison, reference directory not available ("
+                + ref_dir
+                + ")",
+            )
+            number_errors = number_errors + 1
+
+    # Comparaison effective si possible
+    if number_errors == 0:
+        # Initialisation des parsers
+        initialize_parsers()
+
+        # Acces aux fichiers des repertoire de reference et de test
+        # On les tri pour ameliorer la reproductibilite inter plateformes
+        ref_file_names = os.listdir(ref_dir)
+        ref_file_names.sort()
+        test_file_names = os.listdir(test_dir)
+        test_file_names.sort()
+
+        # Comparaison des nombres de fichiers
+        ref_result_file_number = len(ref_file_names)
+        test_result_file_number = len(test_file_names)
+        if ref_result_file_number == 0:
+            print_message(
+                log_file, "error : no comparison, missing reference result files"
+            )
+            number_errors = number_errors + 1
+        elif ref_result_file_number != test_result_file_number:
+            print_message(
+                log_file,
+                "\nerror : number of results files ("
+                + str(test_result_file_number)
+                + ") should be "
+                + str(ref_result_file_number),
+            )
+            number_errors = number_errors + 1
+            missing_result_files = test_result_file_number < ref_result_file_number
+            # Affichage des nom des fichier supplementaires
+            max_file_reported = 20
+            if test_result_file_number > ref_result_file_number:
+                write_message(log_file, "Additional files in " + RESULTS + " dir:")
+                file_reported = 0
+                for file_name in test_file_names:
+                    if file_name not in ref_file_names:
+                        if file_reported < max_file_reported:
+                            write_message(log_file, "\t" + file_name)
+                        else:
+                            write_message(log_file, "\t...")
+                            break
+                        file_reported += 1
+            elif test_result_file_number < ref_result_file_number:
+                write_message(log_file, "Missing files in " + RESULTS + " dir:")
+                file_reported = 0
+                for file_name in ref_file_names:
+                    if file_name not in test_file_names:
+                        if file_reported < max_file_reported:
+                            write_message(log_file, "\t" + file_name)
+                        else:
+                            write_message(log_file, "\t...")
+                            break
+                        file_reported += 1
+
+        # Comparaison des fichiers 2 a 2 en memorisant les erreurs par extension
+        for file_name in ref_file_names:
+            number_compared_files = number_compared_files + 1
+
+            # En-tete de comparaison des fichiers
+            ref_file_path = os.path.join(ref_dir, file_name)
+            test_file_path = os.path.join(test_dir, file_name)
+            write_message(log_file, "\nfile " + test_file_path)
+
+            # Lecture des fichiers
+            ref_file_lines = read_file_lines(log_file, ref_file_path)
+            test_file_lines = read_file_lines(log_file, test_file_path)
+            if ref_file_lines is None:
                 number_errors = number_errors + 1
-            if (
-                s.find("warning") >= 0
-                and not s.find("converted in 0") >= 0
-                and not s.find("...") >= 0
-            ):
-                print_detailed_message(
-                    log_file, err_file_name + ": " + s, number_errors + number_warnings
-                )
-                number_warnings = number_warnings + 1
-            if s.find("failure") >= 0:
-                print_detailed_message(
-                    log_file, err_file_name + ": " + s, number_errors + number_warnings
-                )
+            if test_file_lines is None:
                 number_errors = number_errors + 1
-        err_file.close()
+            # comparaison si ok
+            if ref_file_lines is not None and test_file_lines is not None:
+                errors, warnings = check_file(
+                    log_file,
+                    ref_file_path,
+                    test_file_path,
+                    ref_file_lines,
+                    test_file_lines,
+                )
+                number_errors = number_errors + errors
+                number_warnings = number_warnings + warnings
+
+                # Memorisation des statistiques par extension
+                if errors > 0:
+                    erroneous_file_names.append(file_name)
+                    number_errors_per_file[file_name] = errors
+                    erroneous_ref_file_lines[file_name] = ref_file_lines
+                    erroneous_test_file_lines[file_name] = test_file_lines
+                    if file_name == ERR_TXT:
+                        number_errors_in_err_txt += errors
+                    else:
+                        _, file_extension = os.path.splitext(file_name)
+                        number_errors_per_extension[file_extension] = (
+                            number_errors_per_extension.get(file_extension, 0) + errors
+                        )
+        # Recherche des erreurs fatales, avec tentative de recuperation
+        # On accepte les erreurs fatales que si on les meme en test et reference,
+        # et uniquement dans le cas du pattern particulier du "Batch mode failure" qui est du
+        # a des scenario n'ayant pas pu s'excuter entierement pour des raison de portabilite
+        fatal_error_recovery = True
+        STDERR_ERROR_LOG_RECOVERY_PATTERN = (
+            "fatal error : Command file : Batch mode failure"
+        )
+        RETURN_CODE_ERROR_LOG_RECOVERY_PATTERN = (
+            "Wrong return code: 1 (should be 0 or 2)"
+        )
+        for file_name in test_file_names:
+            if file_name in FATAL_ERROR_FILES:
+                write_message(log_file, "\nfatal error : found file " + file_name)
+                number_fatal_errors = number_fatal_errors + 1
+
+                # La tentative de recuperation des erreurs fatales echoue si on ne respecte
+                # pas toutes les conditions necessaires
+                if file_name not in [STDERR_ERROR_LOG, RETURN_CODE_ERROR_LOG]:
+                    fatal_error_recovery = False
+                else:
+                    # Les fichiers doivent etre les memes
+                    if (
+                        file_name in erroneous_file_names
+                        or file_name not in ref_file_names
+                    ):
+                        fatal_error_recovery = False
+                    # Test que le fichier est reduit au pattern accepte
+                    if not fatal_error_recovery:
+                        # Lecture des lignes du fichier
+                        test_file_path = os.path.join(test_dir, file_name)
+                        test_file_lines = read_file_lines(log_file, test_file_path)
+                        # Pattern dans le cas de sdterr
+                        if file_name == STDERR_ERROR_LOG:
+                            if (
+                                len(test_file_lines) == 0
+                                or test_file_lines[0].strip()
+                                != STDERR_ERROR_LOG_RECOVERY_PATTERN
+                            ):
+                                fatal_error_recovery = False
+                        # Pattern dans le cas du code retour
+                        if file_name == RETURN_CODE_ERROR_LOG:
+                            if (
+                                len(test_file_lines) == 0
+                                or test_file_lines[0].strip()
+                                != RETURN_CODE_ERROR_LOG_RECOVERY_PATTERN
+                            ):
+                                fatal_error_recovery = False
+        # Message de recuperation si necessaire
+        if number_fatal_errors > 0 and fatal_error_recovery:
+            number_fatal_errors = 0
+            write_message(
+                log_file,
+                "recovery from fatal errors caused solely by a 'Batch mode failure' in another platform",
+            )
+            if portability_message != "":
+                portability_message += ", "
+            portability_message += "recovery of type 'Batch mode failure'"
+        # Ecriture des permieres lignes des fichiers d'erreur fatales si necessaire
+        number_errors += number_fatal_errors
+        if number_fatal_errors > 0:
+            for file_name in test_file_names:
+                if file_name in FATAL_ERROR_FILES:
+                    # Lecture des lignes du fichier
+                    test_file_path = os.path.join(test_dir, file_name)
+                    test_file_lines = read_file_lines(log_file, test_file_path)
+                    write_message(log_file, "fatal error file " + test_file_path)
+                    max_print_lines = 10
+                    for i, line in enumerate(test_file_lines):
+                        if i < max_print_lines:
+                            write_message(log_file, "\t" + line.rstrip())
+                        else:
+                            write_message(log_file, "\t...")
+                            break
+
+    # DDD
+    # print(str(erroneous_file_names))
+    # for file_name in erroneous_file_names:
+    #     print(
+    #         "errors in file "
+    #         + file_name
+    #         + ": "
+    #         + str(len(erroneous_ref_file_lines[file_name]))
+    #         + ": "
+    #         + str(len(erroneous_test_file_lines[file_name]))
+    #     )
+
     # Write summary
-    write_message(log_file, "\nSUMMARY")
-    write_message(log_file, str(number_warnings) + " warning(s)")
-    write_message(log_file, str(number_errors) + " error(s)")
+    write_message(log_file, "\n" + SUMMARY_TITLE)
+    write_message(log_file, str(number_warnings) + " " + SUMMARY_WARNING_KEY)
+    write_message(log_file, str(number_errors) + " " + SUMMARY_ERROR_KEY)
     if number_fatal_errors > 0:
-        write_message(log_file, "FATAL ERROR")
-    # Write additional info related to error per file extension
+        write_message(log_file, SUMMARY_FATAL_ERROR_KEY)
     if number_errors > 0:
         # Sort file extensions
         file_extensions = []
@@ -156,14 +349,12 @@ def check_results(test):
             file_extensions.append(file_extension)
         file_extensions.sort()
         # Build messages
-        message_extension = ""
-        specific_message = ""
         if number_errors_in_err_txt > 0:
-            message_extension += "err.txt"
+            message_extension += ERR_TXT
             if len(file_extensions) > 0:
                 message_extension += ", "
             if number_errors_in_err_txt == number_errors:
-                specific_message = "errors only in err.txt"
+                specific_message = "errors only in " + ERR_TXT
         if len(file_extensions) > 0:
             for i, file_extension in enumerate(file_extensions):
                 if i > 0:
@@ -171,7 +362,7 @@ def check_results(test):
                 message_extension += file_extension
                 if number_errors_per_extension[file_extension] == number_errors:
                     specific_message = "errors only in " + file_extension + " files"
-        # Build specific message if number or errors only in err.txt and report files
+        # Build specific message if number or errors only in " + ERR_TXT + " report files
         if specific_message == "":
             number_errors_in_report_files = number_errors_per_extension.get(
                 ".khj", 0
@@ -181,20 +372,28 @@ def check_results(test):
                 and number_errors_in_err_txt + number_errors_in_report_files
                 == number_errors
             ):
-                specific_message = "all errors in err.txt and in json report files with the same number"
+                specific_message = (
+                    "all errors in "
+                    + ERR_TXT
+                    + " and in json report files with the same number"
+                )
         # Build specific message in case of missing files
         if specific_message == "" and missing_result_files:
             specific_message = "Missing result files"
         # Write additional messages
         if message_extension != "":
-            write_message(log_file, "Error files: " + message_extension)
+            write_message(log_file, SUMMARY_FILE_TYPES_KEY + message_extension)
         if specific_message != "":
-            write_message(log_file, "Note: " + specific_message)
-    log_file.close()
+            write_message(log_file, SUMMARY_NOTE_KEY + specific_message)
 
+    # Write additional info related to portability
+    if portability_message != "":
+        write_message(log_file, SUMMARY_PORTABILITY_KEY + portability_message)
+
+    # Affichage d'un message de fin sur la console
     print(
         "--Comparison done : "
-        + str(number_files)
+        + str(number_compared_files)
         + " files(s) compared, "
         + str(number_errors)
         + " error(s), "
@@ -202,14 +401,166 @@ def check_results(test):
         + " warning(s)"
         + (", FATAL ERROR" if number_fatal_errors > 0 else "")
     )
-    print(
-        "log writed in "
-        + os.path.join(os.getcwd(), test, "comparisonResults.log")
-        + "\n"
-    )
+    print("log writed in " + log_file_path + "\n")
 
 
-def check_file(log_file, path_ref, path_test):
+def check_file(
+    log_file, ref_file_path: str, test_file_path, ref_file_lines, test_file_lines
+):
+    """Comparaison d'un fichier de test et d'un fihcier de reference
+    Parametres:
+    - log file: fichier de log ouvert dans le quel des messages sont ecrits
+    - ref_file_path: chemin du fichier de refence
+    - test_file_path: chemin du fichier de test
+    - ref_file_lines: liste des lignes du fichier de reference
+    - test_file_lines: liste des lignes du fichier de test
+
+    Retourne
+    - error: nombre d'erreurs
+    - warning: nombre de warning
+
+    Les listes de lignes en entree permettent d'eviter de relire un fichier dont on connait le nom
+    et dont on a deja lu les lignes.
+    Cela permet par exemple de reutiliser les methodes de comparaison apres avoir filtre le fichier
+    de sous-parties que l'on ne souhaite pas comparer.
+
+    Compare les fichiers ligne par ligne, cellule par cellule, avec des tolerances selon le type de fichier
+    pour les valeurs numeriques, une diffence relative de 0.00001 est toleree
+    - ecrit les difference dans le fichier log_file et affiche le nb d'erreur dans le terminal
+    - warning : 2 cellules contiennent des valeurs numeriques avec une difference relative toleree
+    - error : les cellules sont differentes
+    """
+
+    def is_specific_line_pair_sequential(line1, line2):
+        """Test si une paire de ligne correspond a un pattern de message sequentiel
+        Premiere ligne avec 100th, 1000th error ou warning
+        Seconde ligne avec '...'
+        """
+        message_type = ""
+        if line1.find("warning : ") == 0:
+            message_type = "warning"
+        elif line1.find("error : ") == 0:
+            message_type = "error"
+        is_specific = message_type != ""
+        # La premiere ligne doit se terminer par un pattern de type '(100th warning)'
+        if is_specific:
+            line1 = line1.strip()
+            expected_end_line1 = "00th " + message_type + ")"
+            is_specific = (
+                line1[len(line1) - len(expected_end_line1) :] == expected_end_line1
+            )
+        # La seconde ligne doit se terminer par ' : ...'
+        if is_specific:
+            is_specific = line2.find(message_type) == 0
+            if is_specific:
+                line2 = line2.strip()
+                expected_end_line2 = " : ..."
+                is_specific = (
+                    line2[len(line2) - len(expected_end_line2) :] == expected_end_line2
+                )
+        return is_specific
+
+    def filter_sequential_messages_in_err_file(log_file, file_lines):
+        """Filtrage des errors et warning sequentiel d'un fichier de log d'erreur
+        En effet, en sequentiel, de nouveaux message de type 100th ou ...
+        sont emis, alors qu'il sont absent en parallele
+        En les filtrant, on rend les version sequentielle et parallele comparable
+        Retourne les ligne filtrees, avec un message dans le log sur le nombre de lignes filtrees
+        """
+        output_lines = []
+        filtered_line_number = 0
+        # Filtrage des lignes
+        i = 0
+        line_number = len(file_lines)
+        while i < line_number:
+            line = file_lines[i]
+            if i == line_number - 1:
+                output_lines.append(line)
+            else:
+                next_line = file_lines[i + 1]
+                # On saute deux lignes si elles sont specifique a des message en sequentiel
+                if is_specific_line_pair_sequential(line, next_line):
+                    i += 1
+                    filtered_line_number += 2
+                else:
+                    output_lines.append(line)
+            i += 1
+        # Message si lignes filtrees
+        if filtered_line_number > 0:
+            write_message(
+                log_file,
+                "Specific sequential messages (100th...): "
+                + str(filtered_line_number)
+                + " lines filtered",
+            )
+        return output_lines
+
+    def filter_sequential_messages_in_json_file(log_file, file_lines):
+        """Filtrage des errors et warning sequentiel d'un fichier json, pour les
+        message emis dans la section "messages"
+        En effet, en sequentiel, de nouveaux message de type 100th ou ...
+        sont emis, alors qu'il sont absent en parallele
+        En les filtrant, on rend les version sequentielle et parallele comparable
+        Retourne les ligne filtrees, avec un message dans le log sur le nombre de lignes filtrees
+        De plus, dans la section message, ont nettoie les lignes de leur '"' et potentiel ',' de fin
+        pour qu'elles aient la meme forme que dans les log
+
+        On ne recherche ici les lignes que dans les section "messages" du json
+        """
+
+        def clean_message_line(line):
+            """Nettoyage d'une ligne de message, entre '"' et potentiellement suivi d'une ','
+            Cela ne gere pas tous les cas d'encodage json, mais cela est suffisant la plupart du temps
+            """
+            cleaned_line = line.strip()
+            if cleaned_line[-1] == ",":
+                cleaned_line = cleaned_line[1:-2]
+            else:
+                cleaned_line = cleaned_line[1:-1]
+            return cleaned_line
+
+        # Recherche des ligne du fichier dans les sections "messages"
+        in_message_section = False
+        output_lines = []
+        filtered_line_number = 0
+        # Filtrage des lignes
+        i = 0
+        line_number = len(file_lines)
+        while i < line_number:
+            line = file_lines[i]
+            # Test si on sort d'une section a traiter
+            if in_message_section:
+                in_message_section = line.strip() != "]"
+            # Analyse des lignes
+            if i == line_number - 1 or not in_message_section:
+                output_lines.append(line)
+            else:
+                next_line = file_lines[i + 1]
+                # Nettoyage des lignes dans la section message
+                line = clean_message_line(line)
+                next_line = clean_message_line(next_line)
+                # On saute deux lignes si elles sont specifique a des message en sequentiel
+                # Les lignes sont préalablement nettoyees de leur '"'
+                if is_specific_line_pair_sequential(line, next_line):
+                    i += 1
+                    filtered_line_number += 2
+                else:
+                    # Dans la section message, on
+                    output_lines.append(line)
+            # Test si on est entre dans une section a traiter
+            if not in_message_section:
+                in_message_section = line.strip() == '"messages": ['
+            i += 1
+        # Message si lignes filtrees
+        if filtered_line_number > 0:
+            write_message(
+                log_file,
+                "Specific sequential messages (100th...): "
+                + str(filtered_line_number)
+                + " lines filtered",
+            )
+        return output_lines
+
     def filter_time(value):
         # Supression d'un pattern de time d'une valeur
         pos_start_time = value.find(" time:")
@@ -231,10 +582,18 @@ def check_file(log_file, path_ref, path_test):
         # Supression d'un pattern de nombre de records secondaires
         pos_start1 = value.find(" after reading ")
         pos_start2 = value.find(" secondary records ")
-        if pos_start1 >= 0 and pos_start2 >= 0:
-            filtered_value = (
-                value[:pos_start1] + " after reading ..." + value[pos_start2:]
-            )
+        if pos_start1 >= 0 and pos_start2 > pos_start1:
+            filtered_value = value[:pos_start1] + " after reading ..."
+        else:
+            filtered_value = value
+        return filtered_value
+
+    def filter_secondary_table_stats(value):
+        # Supression d'un pattern de nombre de records secondaires
+        pos_start1 = value.find("Table ")
+        pos_start2 = value.find(" Records: ")
+        if pos_start1 >= 0 and pos_start2 > pos_start1:
+            filtered_value = value[:pos_start2] + " Records: "
         else:
             filtered_value = value
         return filtered_value
@@ -294,34 +653,25 @@ def check_file(log_file, path_ref, path_test):
             filtered_value = value
         return filtered_value
 
-    # compare les fichiers ligne par ligne, cellule par cellule
-    # pour les valeurs numeriques, une diffence relative de 0.00001 est toleree
-    # ecrit les difference dans le fichier log_file et affiche le nb d'erreur dans le terminal
-    # warning : 2 cellules contiennent des valeurs numeriques avec une difference relative toleree
-    # error : les cellules sont differentes
-    if not os.path.isfile(path_ref):
-        print_message(log_file, "file " + path_ref + " is missing")
-        return [1, 0]
-    if not os.path.isfile(path_test):
-        print_message(log_file, "file " + path_test + " is missing")
-        return [1, 0]
-
-    # En-tete de comparaison des fichiers
-    write_message(log_file, "\nfile " + path_test)
+    # Verifications
+    assert ref_file_path != "", "Missing ref file path"
+    assert test_file_path != "", "Missing test file path"
+    assert ref_file_lines is not None, "Missing ref file lines"
+    assert test_file_lines is not None, "Missing test file lines"
 
     # Recherche du fichier compare et de son extension
-    file_name = os.path.basename(path_ref)
-    assert file_name == os.path.basename(path_test)
+    file_name = os.path.basename(ref_file_path)
+    assert file_name == os.path.basename(test_file_path)
     _, file_extension = os.path.splitext(file_name)
 
     # test si fichier de temps
-    is_time_file = file_name == "time.log"
+    is_time_file = file_name == TIME_LOG
 
     # test si fichier histogramme
     is_histogram_file = "histogram" in file_name and file_extension == ".log"
 
     # test si fichier d'erreur
-    is_error_file = file_name == "err.txt"
+    is_error_file = file_name == ERR_TXT
 
     # test si fichier de benchmark
     is_benchmark_file = file_name == "benchmark.xls"
@@ -330,13 +680,15 @@ def check_file(log_file, path_ref, path_test):
     is_kdic_file = file_extension == ".kdic"
 
     # Test si fichier json
-    is_json_file = file_extension in [".json", ".khj", ".khvj", ".khcj", ".kdicj"]
-    # Cas particulier des fichier .bad qui sont en fait des fichier json (ex: LearningTest\TestKhiops\Advanced\AllResultsApiMode
+    json_file_extensions = [".json", ".khj", ".khvj", ".khcj", ".kdicj"]
+    is_json_file = file_extension in json_file_extensions
+    # Cas particulier des fichier .bad qui sont en fait des fichiers json
+    # (ex: LearningTest\TestKhiops\Advanced\AllResultsApiMode)
     if file_extension == ".bad":
         if (
-            os.path.isfile(path_ref.replace(".bad", ".khj"))
-            or os.path.isfile(path_ref.replace(".bad", ".khj"))
-            or os.path.isfile(path_ref.replace(".bad", ".kdicj"))
+            os.path.isfile(ref_file_path.replace(".bad", ".khj"))
+            or os.path.isfile(ref_file_path.replace(".bad", ".khj"))
+            or os.path.isfile(ref_file_path.replace(".bad", ".kdicj"))
         ):
             is_json_file = True
 
@@ -346,33 +698,29 @@ def check_file(log_file, path_ref, path_test):
 
     # Pas de controle si fichier de temps
     if is_time_file:
-        return [error, warning]
+        write_message(log_file, "OK")
+        return error, warning
 
-    # lecture des lignes de chaque fichier
-    try:
-        with open(path_ref, "r", errors="ignore") as file_ref:
-            file_ref_lines = file_ref.readlines()
-    except BaseException as message:
-        error += 1
-        print_message(
-            log_file, "Error: can't open file " + path_ref + " (" + str(message) + ")"
+    # Filtrage des messages specifiq au sequentiel (100th...)
+    # pour ameliorer la reproductibilite de la comparaison entre sequentiel et parallele
+    if is_error_file:
+        ref_file_lines = filter_sequential_messages_in_err_file(
+            log_file, ref_file_lines
         )
-        return [error, warning]
-    assert file_ref_lines is not None
-    try:
-        with open(path_test, "r", errors="ignore") as file_test:
-            file_test_lines = file_test.readlines()
-    except BaseException as message:
-        error += 1
-        print_message(
-            log_file, "Error: can't open file " + path_test + " (" + str(message) + ")"
+        test_file_lines = filter_sequential_messages_in_err_file(
+            log_file, test_file_lines
         )
-        return [error, warning]
-    assert file_test_lines is not None
+    elif is_json_file:
+        ref_file_lines = filter_sequential_messages_in_json_file(
+            log_file, ref_file_lines
+        )
+        test_file_lines = filter_sequential_messages_in_json_file(
+            log_file, test_file_lines
+        )
 
     # Comparaison des nombres de lignes
-    file_ref_line_number = len(file_ref_lines)
-    file_test_line_number = len(file_test_lines)
+    file_ref_line_number = len(ref_file_lines)
+    file_test_line_number = len(test_file_lines)
     if file_test_line_number != file_ref_line_number:
         write_message(
             log_file,
@@ -389,11 +737,12 @@ def check_file(log_file, path_ref, path_test):
     max_print_error = 10
     max_field_length = 100
     skip_benchmark_lines = False
+    filter_secondary_record_detected = False
     line_number = min(file_ref_line_number, file_test_line_number)
     for index in range(line_number):
         line = index + 1
-        line_ref = file_ref_lines[index].rstrip()
-        line_test = file_test_lines[index].rstrip()
+        line_ref = ref_file_lines[index].rstrip()
+        line_test = test_file_lines[index].rstrip()
 
         # cas special des fichiers de benchmark:
         # on saute les blocs de ligne dont le role est le reporting de temps de calcul
@@ -530,7 +879,8 @@ def check_file(log_file, path_ref, path_test):
                 field_ref = filter_khiops_temp_dir(field_ref)
                 field_test = filter_khiops_temp_dir(field_test)
 
-            # cas special du fichier d'erreur ou khj: on tronque le compte des lignes avec des warning sur le nombre de records secondaires
+            # cas special du fichier d'erreur ou khj
+            # on tronque le compte des lignes avec des warning sur le nombre de records secondaires
             if (
                 (is_error_file or is_json_file)
                 and "warning" in field_ref
@@ -540,8 +890,22 @@ def check_file(log_file, path_ref, path_test):
                 and " after reading " in field_test
                 and " secondary records " in field_test
             ):
+                filter_secondary_record_detected = True
                 field_ref = filter_secondary_record(field_ref)
                 field_test = filter_secondary_record(field_test)
+
+            # Cas particulier du nombre de record secondaire draporte dans le fichier d'erreur,
+            # si des enregistrement secondaire ont ete detectes
+            if (
+                is_error_file
+                and filter_secondary_record_detected
+                and "Table " in field_ref
+                and " Records: " in field_ref
+                and "Table " in field_test
+                and " Records: " in field_test
+            ):
+                field_ref = filter_secondary_table_stats(field_ref)
+                field_test = filter_secondary_table_stats(field_test)
 
             # cas general de comparaison de cellules
             [eval_res, threshold_res] = check_cell(field_ref, field_test)
@@ -580,7 +944,7 @@ def check_file(log_file, path_ref, path_test):
             message += " (max relative difference: " + str(max_threshold) + ")"
         write_message(log_file, message)
 
-    return [error, warning]
+    return error, warning
 
 
 def split_cell(cell):

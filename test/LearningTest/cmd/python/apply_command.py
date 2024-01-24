@@ -3,6 +3,8 @@ import sys
 import stat
 import utils
 import test_khiops
+import check_results as cr
+from test_dir_management import *
 
 
 # Imports de pykhiops a effectuer au cas par cas dans chaque methode, car ralentissant trop les scripts
@@ -127,11 +129,21 @@ def file_compare_line_number(file_name1: str, file_name2: str):
 
 
 def apply_command_list(work_dir):
-    # list directory names
-    print(work_dir)
+    # list directory names, with reference results info
+    results_ref_dir, candidate_dirs = get_results_ref_dir(work_dir, show=True)
+    results_ref_info = ""
+    if results_ref_dir is None:
+        results_ref_info = ", invalid " + RESULTS_REF + " dirs " + str(candidate_dirs)
+    elif results_ref_dir == RESULTS_REF and len(candidate_dirs) == 0:
+        results_ref_info = ", missing " + RESULTS_REF + " dir"
+    elif len(candidate_dirs) >= 2:
+        results_ref_info = (
+            ", used " + results_ref_dir + " dir among " + str(candidate_dirs)
+        )
+    print(work_dir + results_ref_info)
 
 
-def merge_tests_results(work_dir):
+def analyse_tests_results(work_dir):
     """Analyse test directories for warning, errors or fatal errors
     Returns:
     - warning number
@@ -139,6 +151,7 @@ def merge_tests_results(work_dir):
     - fatal error (boolean)
     - message related to file extensions (optional)
     - specific message (optional)
+    - portability message (optional)
     """
 
     def extract_number(message):
@@ -149,33 +162,45 @@ def merge_tests_results(work_dir):
         return number
 
     # Traitement des erreurs memorisee dans le log
-    log_file_name = os.path.join(work_dir, "comparisonResults.log")
+    log_file_name = os.path.join(work_dir, COMPARISON_RESULTS_LOG)
     error_number = 0
     warning_number = 0
     fatal_error = False
     message_extension = ""
     specific_message = ""
+    portability_message = ""
     if os.path.isfile(log_file_name):
         log_file = open(log_file_name, "r", errors="ignore")
         begin_summary = False
         for line in log_file:
             line = line.strip()
             # Recherche du debug de la synthese
-            if line == "SUMMARY":
+            if line == cr.SUMMARY_TITLE:
                 begin_summary = True
 
             # Analyse de la synthese
             if begin_summary:
-                if line.find("warning(s)") >= 0 and line.find("0 warning(s)") != 0:
+                if line.find(cr.SUMMARY_WARNING_KEY) >= 0:
                     warning_number = extract_number(line)
-                if line.find("error(s)") >= 0 and line.find("0 error(s)") != 0:
+                if line.find(cr.SUMMARY_ERROR_KEY) >= 0:
                     error_number = extract_number(line)
-                if line == "FATAL ERROR":
+                if line == cr.SUMMARY_FATAL_ERROR_KEY:
                     fatal_error = True
-                if line.find("Error files: ") == 0:
+                if line.find(cr.SUMMARY_FILE_TYPES_KEY) == 0:
                     message_extension = line
-                if line.find("Note: ") == 0:
+                if line.find(cr.SUMMARY_NOTE_KEY) == 0:
                     specific_message = line
+                if line.find(cr.SUMMARY_PORTABILITY_KEY) == 0:
+                    portability_message = line
+        if not begin_summary:
+            assert error_number == 0
+            error_number = 1
+            specific_message = (
+                "Section '"
+                + cr.SUMMARY_TITLE
+                + "' not found in "
+                + COMPARISON_RESULTS_LOG
+            )
 
         # Fermeture du fichier
         log_file.close()
@@ -188,6 +213,7 @@ def merge_tests_results(work_dir):
         fatal_error,
         message_extension,
         specific_message,
+        portability_message,
     )
 
 
@@ -203,8 +229,14 @@ def apply_command_errors(work_dir):
         fatal_error,
         message_extension,
         specific_message,
-    ) = merge_tests_results(work_dir)
-    if warning_number != 0 or error_number != 0 or fatal_error:
+        portability_message,
+    ) = analyse_tests_results(work_dir)
+    if (
+        warning_number != 0
+        or error_number != 0
+        or fatal_error
+        or portability_message != ""
+    ):
         message = "\t" + tool_name + "\t"
         message += family_dir_name + "\t"
         message += test_dir_name + "\t"
@@ -220,6 +252,7 @@ def apply_command_errors(work_dir):
             message += "FATAL ERROR"
         message += "\t" + message_extension
         message += "\t" + specific_message
+        message += "\t" + portability_message
         print(message)
 
 
@@ -234,9 +267,15 @@ def apply_command_logs(work_dir):
         fatal_error,
         message_extension,
         specific_message,
-    ) = merge_tests_results(work_dir)
-    if warning_number != 0 or error_number != "" or fatal_error:
-        log_file_name = os.path.join(work_dir, "comparisonResults.log")
+        portability_message,
+    ) = analyse_tests_results(work_dir)
+    if (
+        warning_number != 0
+        or error_number != 0
+        or fatal_error
+        or portability_message != ""
+    ):
+        log_file_name = os.path.join(work_dir, COMPARISON_RESULTS_LOG)
         if os.path.isfile(log_file_name):
             print("==================================================================")
             print(root_name + " " + dir_name)
@@ -271,22 +310,34 @@ def apply_command_compare_times(work_dir, verbose=False):
 
     dir_name = os.path.basename(work_dir)
     root_name = os.path.basename(os.path.dirname(work_dir))
-    results_dir_err_file = os.path.join(work_dir, "results", "err.txt")
-    results_ref_dir_err_file = os.path.join(work_dir, "results.ref", "err.txt")
-    if not os.path.isfile(results_dir_err_file):
+    # Recherche du repertoire des resultats de reference
+    results_dir_err_file = os.path.join(work_dir, RESULTS, ERR_TXT)
+    results_ref, _ = get_results_ref_dir(work_dir, show=verbose)
+    is_valid = results_ref is not None
+    if is_valid:
+        results_ref_dir_err_file = os.path.join(work_dir, results_ref, ERR_TXT)
+        if not os.path.isfile(results_dir_err_file):
+            is_valid = False
+            if verbose:
+                print_log_message(
+                    "error : missing " + ERR_TXT + " file in " + RESULTS + " dir"
+                )
+    if is_valid and not os.path.isfile(results_ref_dir_err_file):
+        is_valid = False
         if verbose:
-            print_log_message("Missing results err.txt file")
-    elif not os.path.isfile(results_ref_dir_err_file):
-        if verbose:
-            print_log_message("Missing results.ref err.txt file")
-    else:
+            print_log_message(
+                "error : missing " + ERR_TXT + " file in " + results_ref + " dir"
+            )
+    if is_valid:
         with open(results_dir_err_file, "r") as fErr:
             lines = fErr.readlines()
         # with open(results_ref_dir_err_file, "r", encoding='utf-8') as fErrRef:
         with open(results_ref_dir_err_file, "r") as f_err_ref:
             lines_ref = f_err_ref.readlines()
         if len(lines) != len(lines_ref):
-            print_log_message("ERROR: err.txt files with different number of lines")
+            print_log_message(
+                "ERROR: " + ERR_TXT + " files with different number of lines"
+            )
         else:
             pattern = "time: "
             for i in range(len(lines)):
@@ -355,7 +406,7 @@ def apply_command_performance(work_dir):
     # list test directories with SNB performance
     dir_name = os.path.basename(work_dir)
     root_name = os.path.basename(os.path.dirname(work_dir))
-    results_dir = os.path.join(work_dir, "results")
+    results_dir = os.path.join(work_dir, RESULTS)
     if os.path.isdir(results_dir):
         test_pattern = "TestEvaluationReport.xls"
         for file_name in os.listdir(results_dir):
@@ -381,26 +432,28 @@ def apply_command_performance_ref(work_dir):
     # list test directories with SNB ref performance
     dir_name = os.path.basename(work_dir)
     root_name = os.path.basename(os.path.dirname(work_dir))
-    results_dir = os.path.join(work_dir, "results.ref")
-    if os.path.isdir(results_dir):
-        test_pattern = "TestEvaluationReport.xls"
-        for file_name in os.listdir(results_dir):
-            if test_pattern in file_name:
-                test_eval_file_name = os.path.join(results_dir, file_name)
-                test_eval_file = open(test_eval_file_name, "r")
-                for s in test_eval_file:
-                    if s.find("Selective Naive Bayes", 0) == 0:
-                        # comma to avoid doubling "\n"
-                        print(
-                            root_name
-                            + "\t"
-                            + dir_name
-                            + "\t"
-                            + file_name[: -len(test_pattern)]
-                            + "\t"
-                            + s,
-                        )
-                test_eval_file.close()
+    results_ref, _ = get_results_ref_dir(work_dir, show=True)
+    if results_ref is not None:
+        results_dir = os.path.join(work_dir, results_ref)
+        if os.path.isdir(results_dir):
+            test_pattern = "TestEvaluationReport.xls"
+            for file_name in os.listdir(results_dir):
+                if test_pattern in file_name:
+                    test_eval_file_name = os.path.join(results_dir, file_name)
+                    test_eval_file = open(test_eval_file_name, "r")
+                    for s in test_eval_file:
+                        if s.find("Selective Naive Bayes", 0) == 0:
+                            # comma to avoid doubling "\n"
+                            print(
+                                root_name
+                                + "\t"
+                                + dir_name
+                                + "\t"
+                                + file_name[: -len(test_pattern)]
+                                + "\t"
+                                + s,
+                            )
+                    test_eval_file.close()
 
 
 def apply_command_check_fnb(work_dir):
@@ -430,8 +483,10 @@ def apply_command_check_fnb(work_dir):
     def print_error(message):
         print(tool_name + "\t" + root_name + "\t" + dir_name + "\terror\t" + message)
 
-    test_dir = os.path.join(work_dir, "results")
-    ref_dir = os.path.join(work_dir, "results.ref")
+    test_dir = os.path.join(work_dir, RESULTS)
+    ref_dir, _ = get_results_ref_dir(work_dir, show=True)
+    if ref_dir is None:
+        return
     dir_name = os.path.basename(work_dir)
     root_name = os.path.basename(os.path.dirname(work_dir))
     tool_name = os.path.basename(os.path.dirname(os.path.dirname(work_dir)))
@@ -448,7 +503,7 @@ def apply_command_check_fnb(work_dir):
             "Tool\tRoot\tDir\tFile\tReport\tCriterion\tValue\tRef value\tDiff\n"
         )
 
-    if os.path.isdir(ref_dir):
+    if ref_dir is not None and os.path.isdir(ref_dir):
         for file_name in os.listdir(ref_dir):
             ref_file_path = os.path.join(ref_dir, file_name)
             test_file_path = os.path.join(test_dir, file_name)
@@ -459,7 +514,7 @@ def apply_command_check_fnb(work_dir):
                 continue
 
             # Comparaison du fichier d'erreur
-            if file_name == "err.txt":
+            if file_name == ERR_TXT:
                 if not file_compare(
                     ref_file_path, test_file_path, skip_patterns=["time"]
                 ):
@@ -628,7 +683,7 @@ def apply_command_bench(work_dir):
     class_name = ""
     database_name = ""
     target_attribute_name = ""
-    prm_file_name = os.path.join(work_dir, "test.prm")
+    prm_file_name = os.path.join(work_dir, TEST_PRM)
     prm_file = open(prm_file_name, "r")
     for s in prm_file:
         if s.find("class_file_name") >= 0 and class_file_name == "":
@@ -656,73 +711,74 @@ def apply_command_bench(work_dir):
 
 
 def apply_command_clean(work_dir):
-    # clean results directories
-    test_dir = os.path.join(work_dir, "results")
+    # clean comparison log file
+    file_path = os.path.join(work_dir, cr.COMPARISON_LOG_FILE_NAME)
+    if os.path.isfile(file_path):
+        utils.remove_file(file_path)
+
+    # clean test results directory
+    test_dir = os.path.join(work_dir, RESULTS)
     if os.path.isdir(test_dir):
         for file_name in os.listdir(test_dir):
             file_path = os.path.join(test_dir, file_name)
-            os.chmod(file_path, stat.S_IWRITE)
-            try:
-                os.remove(file_path)
-            except (IOError, os.error) as why:
-                print("Cannot remove file %s: %s" % (file_path, str(why)))
-        try:
-            os.rmdir(test_dir)
-        except (IOError, os.error) as why:
-            print("Cannot remove directory %s: %s" % (test_dir, str(why)))
+            utils.remove_file(file_path)
+        utils.remove_dir(test_dir)
 
 
 def apply_command_clean_ref(work_dir):
-    # clean results.test directories
-    ref_dir = os.path.join(work_dir, "results.ref")
-    if os.path.isdir(ref_dir):
+    # clean reference results directory
+    ref_dir, _ = get_results_ref_dir(work_dir, show=True)
+    if ref_dir is not None and os.path.isdir(ref_dir):
         for file_name in os.listdir(ref_dir):
             file_path = os.path.join(ref_dir, file_name)
-            os.chmod(file_path, stat.S_IWRITE)
-            try:
-                os.remove(file_path)
-            except (IOError, os.error) as why:
-                print("Cannot remove file %s: %s" % (file_path, str(why)))
-        try:
-            os.rmdir(ref_dir)
-        except (IOError, os.error) as why:
-            print("Cannot remove directory %s: %s" % (ref_dir, str(why)))
+            utils.remove_file(file_path)
+
+
+def apply_command_delete_ref(work_dir):
+    # delete reference results files and directories for all reference contexts
+    current_ref_dir, all_ref_dirs = get_results_ref_dir(work_dir, show=True)
+    if current_ref_dir is not None:
+        for ref_dir in all_ref_dirs:
+            for file_name in os.listdir(ref_dir):
+                file_path = os.path.join(ref_dir, file_name)
+                utils.remove_file(file_path)
+            utils.remove_dir(ref_dir)
 
 
 def apply_command_make_ref(work_dir):
-    # copy results files to results.ref
-    test_dir = os.path.join(work_dir, "results")
-    ref_dir = os.path.join(work_dir, "results.ref")
-    if not os.path.isdir(ref_dir):
-        os.mkdir(ref_dir)
-    if os.path.isdir(ref_dir):
-        for file_name in os.listdir(ref_dir):
-            file_path = os.path.join(ref_dir, file_name)
-            os.chmod(file_path, stat.S_IWRITE)
-            os.remove(file_path)
-    if os.path.isdir(test_dir) and os.path.isdir(ref_dir):
-        for file_name in os.listdir(test_dir):
-            utils.copy(
-                os.path.join(test_dir, file_name), os.path.join(ref_dir, file_name)
-            )
+    # copy results files to from test to reference dir
+    test_dir = os.path.join(work_dir, RESULTS)
+    ref_dir, _ = get_results_ref_dir(work_dir, show=True)
+    if ref_dir is not None:
+        if not os.path.isdir(ref_dir):
+            os.mkdir(ref_dir)
+        if os.path.isdir(ref_dir):
+            for file_name in os.listdir(ref_dir):
+                file_path = os.path.join(ref_dir, file_name)
+                utils.remove_file(file_path)
+        if os.path.isdir(test_dir) and os.path.isdir(ref_dir):
+            for file_name in os.listdir(test_dir):
+                utils.copy(
+                    os.path.join(test_dir, file_name), os.path.join(ref_dir, file_name)
+                )
 
 
 def apply_command_copy_ref(work_dir):
-    # copy results.ref files to results
-    test_dir = os.path.join(work_dir, "results")
-    ref_dir = os.path.join(work_dir, "results.ref")
-    if not os.path.isdir(test_dir):
-        os.mkdir(test_dir)
-    if os.path.isdir(test_dir):
-        for file_name in os.listdir(test_dir):
-            file_path = os.path.join(test_dir, file_name)
-            os.chmod(file_path, stat.S_IWRITE)
-            os.remove(file_path)
-    if os.path.isdir(test_dir) and os.path.isdir(ref_dir):
-        for file_name in os.listdir(ref_dir):
-            utils.copy(
-                os.path.join(ref_dir, file_name), os.path.join(test_dir, file_name)
-            )
+    # copy results files to from reference to test dir
+    test_dir = os.path.join(work_dir, RESULTS)
+    ref_dir, _ = get_results_ref_dir(work_dir, show=True)
+    if ref_dir is not None:
+        if not os.path.isdir(test_dir):
+            os.mkdir(test_dir)
+        if os.path.isdir(test_dir):
+            for file_name in os.listdir(test_dir):
+                file_path = os.path.join(test_dir, file_name)
+                utils.remove_file(file_path)
+        if os.path.isdir(test_dir) and os.path.isdir(ref_dir):
+            for file_name in os.listdir(ref_dir):
+                utils.copy(
+                    os.path.join(ref_dir, file_name), os.path.join(test_dir, file_name)
+                )
 
 
 def apply_command_check_hdfs(work_dir):
@@ -745,7 +801,7 @@ def apply_command_check_hdfs(work_dir):
         "ReportFileName",
         "InputCoclusteringFileName",
     ]
-    prm_file_name = os.path.join(work_dir, "test.prm")
+    prm_file_name = os.path.join(work_dir, TEST_PRM)
     print(work_dir)
     with open(prm_file_name, "r") as prm_file:
         line_index = 1
@@ -804,7 +860,7 @@ def apply_command_transform_hdfs(work_dir):
     ]
     # PostProcessedCoclusteringFileName CoclusteringDictionaryFileName removed
     # The name of the coclustering dictionary should not be a path
-    prm_file_name = os.path.join(work_dir, "test.prm")
+    prm_file_name = os.path.join(work_dir, TEST_PRM)
     prm_file = open(prm_file_name, "r", errors="ignore")
     prm_file_lines = prm_file.readlines()
     prm_file.close()
@@ -849,20 +905,24 @@ def apply_command_transform_hdfs(work_dir):
 
         prm_file.write(new_line)
     prm_file.close()
-    # Transform err.txt file in results.ref
+    # Transform errror file in reference results dir
     do_it = False
-    err_ref_file_name = os.path.join(work_dir, "results.ref", "err.txt")
-    if do_it and os.path.isfile(err_ref_file_name):
-        err_file = open(err_ref_file_name, "r")
-        err_file_lines = err_file.readlines()
-        err_file.close()
-        err_file = open(err_ref_file_name, "w")
-        for s in err_file_lines:
-            new_line = s
-            new_line = new_line.replace(" results/", " ./results/")
-            new_line = new_line.replace(" results\\", " ./results\\")
-            err_file.write(new_line)
-        err_file.close()
+    results_ref, _ = get_results_ref_dir(work_dir, show=True)
+    if results_ref is not None:
+        err_ref_file_name = os.path.join(work_dir, results_ref, ERR_TXT)
+        if do_it and os.path.isfile(err_ref_file_name):
+            err_file = open(err_ref_file_name, "r")
+            err_file_lines = err_file.readlines()
+            err_file.close()
+            err_file = open(err_ref_file_name, "w")
+            for s in err_file_lines:
+                new_line = s
+                new_line = new_line.replace(" " + RESULTS + "/", " ./" + RESULTS + "/")
+                new_line = new_line.replace(
+                    " " + RESULTS + "\\", " ./" + RESULTS + "\\"
+                )
+                err_file.write(new_line)
+            err_file.close()
 
 
 def escape_for_json(token):
@@ -882,7 +942,7 @@ def apply_command_transform_hdfs_results(work_dir):
 
     hdfs_local_dir = hdfs_test_dir + test_name + "/" + sub_test_name
 
-    test_dir = os.path.join(work_dir, "results")
+    test_dir = os.path.join(work_dir, RESULTS)
     if os.path.isdir(test_dir):
         for file_name in os.listdir(test_dir):
             file_path = os.path.join(test_dir, file_name)
@@ -905,9 +965,9 @@ def apply_command_transform_hdfs_results(work_dir):
 
                     # current dir ./
                     file_data = file_data.replace(
-                        escape_for_json(hdfs_local_dir + "/results"),
-                        escape_for_json("./results"),
-                    )  # ou "results" sans "./"" ?
+                        escape_for_json(hdfs_local_dir + "/" + RESULTS),
+                        escape_for_json("./" + RESULTS),
+                    )  # ou RESULTS sans "./"" ?
 
                     # files in current dir
 
@@ -928,7 +988,7 @@ def apply_command_transform_hdfs_results(work_dir):
 
                     # current dir ./
                     file_data = file_data.replace(
-                        hdfs_local_dir + "/results", "./results"
+                        hdfs_local_dir + "/" + RESULTS, "./" + RESULTS
                     )
 
                     # files in current dir
@@ -941,43 +1001,41 @@ def apply_command_transform_hdfs_results(work_dir):
 
 
 def apply_command_make_ref_err(work_dir):
-    test_dir = os.path.join(work_dir, "results")
-    ref_dir = os.path.join(work_dir, "results.ref")
-    err_file_name = "err.txt"
-    if not os.path.isdir(ref_dir):
-        os.mkdir(ref_dir)
-    if os.path.isdir(ref_dir):
-        file_path = os.path.join(ref_dir, err_file_name)
-        os.chmod(file_path, stat.S_IWRITE)
-        os.remove(file_path)
-    if os.path.isdir(test_dir) and os.path.isdir(ref_dir):
-        utils.copy(
-            os.path.join(test_dir, err_file_name), os.path.join(ref_dir, err_file_name)
-        )
+    test_dir = os.path.join(work_dir, RESULTS)
+    ref_dir, _ = get_results_ref_dir(work_dir, show=True)
+    if ref_dir is not None:
+        if not os.path.isdir(ref_dir):
+            os.mkdir(ref_dir)
+        if os.path.isdir(ref_dir):
+            file_path = os.path.join(ref_dir, ERR_TXT)
+            utils.remove_file(file_path)
+        if os.path.isdir(test_dir) and os.path.isdir(ref_dir):
+            utils.copy(os.path.join(test_dir, ERR_TXT), os.path.join(ref_dir, ERR_TXT))
 
 
 def apply_command_make_ref_time(work_dir):
-    # copy time file to results.ref
-    test_dir = os.path.join(work_dir, "results")
-    ref_dir = os.path.join(work_dir, "results.ref")
-    time_file_name = "time.log"
-    if not os.path.isdir(ref_dir):
-        os.mkdir(ref_dir)
-    if os.path.isdir(ref_dir):
-        file_path = os.path.join(ref_dir, time_file_name)
-        if os.path.isfile(file_path):
-            os.chmod(file_path, stat.S_IWRITE)
-            os.remove(file_path)
-    if os.path.isdir(test_dir) and os.path.isdir(ref_dir):
-        utils.copy(
-            os.path.join(test_dir, time_file_name),
-            os.path.join(ref_dir, time_file_name),
-        )
+    # copy time file to reference results dir
+    test_dir = os.path.join(work_dir, RESULTS)
+    ref_dir, _ = get_results_ref_dir(work_dir, show=True)
+    if ref_dir is not None:
+        if not os.path.isdir(ref_dir):
+            os.mkdir(ref_dir)
+        if os.path.isdir(ref_dir):
+            file_path = os.path.join(ref_dir, TIME_LOG)
+            if os.path.isfile(file_path):
+                utils.remove_file(file_path)
+        if os.path.isdir(test_dir) and os.path.isdir(ref_dir):
+            utils.copy(
+                os.path.join(test_dir, TIME_LOG),
+                os.path.join(ref_dir, TIME_LOG),
+            )
 
 
 def apply_command_work(work_dir):
-    test_dir = os.path.join(work_dir, "results")
-    ref_dir = os.path.join(work_dir, "results.ref")
+    test_dir = os.path.join(work_dir, RESULTS)
+    ref_dir, _ = get_results_ref_dir(work_dir, show=True)
+    if ref_dir is None:
+        return
     dir_name = os.path.basename(work_dir)
     root_name = os.path.basename(os.path.dirname(work_dir))
     tool_name = os.path.basename(os.path.dirname(os.path.dirname(work_dir)))
@@ -985,7 +1043,7 @@ def apply_command_work(work_dir):
     # Transformation du fichier .prm
     transform_prm = False
     if transform_prm:
-        file_path = os.path.join(work_dir, "test.prm")
+        file_path = os.path.join(work_dir, TEST_PRM)
         try:
             lines = file_read_lines(file_path)
             with open(file_path, "w") as the_file:
@@ -1139,8 +1197,10 @@ def apply_command_work(work_dir):
 
 
 def apply_command_template(work_dir):
-    test_dir = os.path.join(work_dir, "results")
-    ref_dir = os.path.join(work_dir, "results.ref")
+    test_dir = os.path.join(work_dir, RESULTS)
+    ref_dir, _ = get_results_ref_dir(work_dir, show=True)
+    if ref_dir is None:
+        return
     dir_name = os.path.basename(work_dir)
     root_name = os.path.basename(os.path.dirname(work_dir))
     tool_name = os.path.basename(os.path.dirname(os.path.dirname(work_dir)))
@@ -1240,19 +1300,15 @@ def execute_command(
         if not os.path.isdir(work_dir):
             print("error: directory " + work_dir + " does not exist")
             return 0
-        # verification de l'existence d'un fichier .prm
-        if not os.path.isfile(os.path.join(work_dir, "test.prm")):
-            print("error: no test.prm file found in directory " + work_dir)
-            return 0
         # Lancement de la commande dans son repertoire de travail
         os.chdir(work_dir)
         command_function(work_dir)
         os.chdir(root_path)
     # Message synthetique de fin si famille de jeu de tests
     family_dir_name = os.path.basename(root_path)
-    tool_name = os.path.basename(os.path.dirname(root_path))
+    tool_test_sub_dir = os.path.basename(os.path.dirname(root_path))
     if test_dir_name is None:
-        print("DONE\t" + tool_name + "\t" + family_dir_name)
+        print("DONE\t" + tool_test_sub_dir + "\t" + family_dir_name)
 
 
 def register_all_commands():
@@ -1265,7 +1321,10 @@ def register_all_commands():
 
     # Enregistrement des commandes standard
     register_command(
-        all_available_commands, "list", apply_command_list, "list of sub-directories"
+        all_available_commands,
+        "list",
+        apply_command_list,
+        "list of sub-directories, with results.ref info",
     )
     register_command(
         all_available_commands,
@@ -1304,25 +1363,34 @@ def register_all_commands():
         "report ref SNB test accuracy",
     )
     register_command(
-        all_available_commands, "clean", apply_command_clean, "delete results files"
+        all_available_commands,
+        "clean",
+        apply_command_clean,
+        "delete test result files and comparison log file",
     )
     register_command(
         all_available_commands,
         "cleanref",
         apply_command_clean_ref,
-        "delete results.ref files",
+        "delete reference result files for current reference context",
+    )
+    register_command(
+        all_available_commands,
+        "deleteref",
+        apply_command_delete_ref,
+        "delete reference result files and directories for all reference context",
     )
     register_command(
         all_available_commands,
         "makeref",
         apply_command_make_ref,
-        "copy results files to results.ref",
+        "copy test result files to reference dir for current reference context",
     )
     register_command(
         all_available_commands,
         "copyref",
         apply_command_copy_ref,
-        "copy results.ref files to results",
+        "copy reference result files to test dir for current reference context",
     )
     register_command(
         all_available_commands,
@@ -1349,13 +1417,13 @@ def register_all_commands():
         all_available_commands,
         "makereftime",
         apply_command_make_ref_time,
-        "copy time file to results.ref",
+        "copy time file to reference results dir",
     )
     register_command(
         all_available_commands,
         "makereferr",
         apply_command_make_ref_err,
-        "copy err file to results.ref",
+        "copy err file to reference results dir",
     )
     register_command(
         all_available_commands,

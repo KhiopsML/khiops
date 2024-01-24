@@ -24,10 +24,11 @@ def get_test_family(tool):
             "DTClassification",
             "VariableConstruction",
             "NewV10",
-            "KIInterpretation",
             "CrashTests",
             "SmallInstability",
+            "CharacterEncoding",
         ]
+        # V11        "KIInterpretation",
         # V11        "Histograms",
         # V11        "HistogramsLimits",
         # V11        "TextVariables",
