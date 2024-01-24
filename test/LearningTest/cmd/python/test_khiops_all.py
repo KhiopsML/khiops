@@ -45,7 +45,7 @@ def test_khiops_tool(tool_name, tool_version, tool_test_dirs):
             tool_test_sub_dir,
             test,
         )
-        test_khiops.run_test(tool_exe_path, tool_samples_path, None)
+        test_khiops.evaluate_tool_on_family(tool_exe_path, tool_samples_path, None)
 
 
 if __name__ == "__main__":
