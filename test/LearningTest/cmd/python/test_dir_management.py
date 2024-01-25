@@ -24,10 +24,12 @@ TIME_LOG = "time.log"
 STDOUT_ERROR_LOG = "stdout_error.log"
 STDERR_ERROR_LOG = "stderr_error.log"
 RETURN_CODE_ERROR_LOG = "return_code_error.log"
+PROCESS_TIMEOUT_ERROR_LOG = "process_timeout_error.log"
 FATAL_ERROR_FILES = [
     STDOUT_ERROR_LOG,
     STDERR_ERROR_LOG,
     RETURN_CODE_ERROR_LOG,
+    PROCESS_TIMEOUT_ERROR_LOG,
 ]
 
 """

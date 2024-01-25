@@ -1,9 +1,9 @@
 import os.path
 import sys
+import shutil
 import stat
 import subprocess
 import time
-import platform
 import learning_test_env
 import check_results
 from test_dir_management import *
@@ -11,10 +11,16 @@ from test_dir_management import *
 
 # mpiexec sous Windows
 if os.name == "nt":
-    mpiExecPath = "c:\\Program Files\\Microsoft MPI\\Bin\\mpiexec.exe"
+    mpi_exe_name = "mpiexec.exe"
 # mpiexec sous Linux
 else:
-    mpiExecPath = "mpiexec"
+    mpi_exe_name = "mpiexec"
+
+# Verifier que mpiexec est dans le path avec un assert
+assert shutil.which(mpi_exe_name) is not None, (
+    "MPI tool " + mpi_exe_name + " not found in path"
+)
+
 
 """
 A chaque nom d'outil Khiops correspond un nom d'exe et un sous-repertoire de LearningTest associe.
@@ -232,46 +238,46 @@ def evaluate_tool(tool_exe_path, tool_test_family_path, test_name):
                     + ") should be numeric"
                 )
 
-        # On ne lance pas les test trop long ou trop court
-        if khiops_max_test_time is not None or khiops_min_test_time is not None:
-            # Recherche du repertoire de reference
-            results_ref, _ = get_results_ref_dir(test_dir, show=True)
-            # Recherche du temps de test de reference
-            test_time = None
-            if results_ref is not None:
-                time_file_name = os.path.join(
-                    os.getcwd(), os.path.join(test_dir, results_ref, TIME_LOG)
-                )
-                print(time_file_name)
-                if os.path.isfile(time_file_name):
-                    file_time = open(time_file_name, "r")
-                    lines = file_time.readlines()
-                    file_time.close()
-                    if len(lines) > 0:
-                        line = lines[0]
-                        line = line[:-1]
-                        fields = line.split(":")
-                        if len(fields) == 2:
-                            time_field = fields[1]
-                            try:
-                                test_time = float(time_field)
-                            except ValueError:
-                                test_time = None
-            # Arret si test trop long ou trop court
-            if test_time is None or (
-                (khiops_max_test_time is not None and test_time > khiops_max_test_time)
-                or (
-                    khiops_min_test_time is not None
-                    and test_time < khiops_min_test_time
-                )
-            ):
-                print(
-                    test_name
-                    + " test not launched (test time: "
-                    + str(test_time)
-                    + ")\n"
-                )
-                return
+        # Recherche du temps des resultats de reference dans le fichier de temps
+        results_ref, _ = get_results_ref_dir(test_dir)
+        results_ref_test_time = None
+        if results_ref is not None:
+            time_file_name = os.path.join(
+                os.getcwd(), os.path.join(test_dir, results_ref, TIME_LOG)
+            )
+            if os.path.isfile(time_file_name):
+                file_time = open(time_file_name, "r")
+                lines = file_time.readlines()
+                file_time.close()
+                if len(lines) > 0:
+                    line = lines[0]
+                    line = line[:-1]
+                    fields = line.split(":")
+                    if len(fields) == 2:
+                        time_field = fields[1]
+                        try:
+                            results_ref_test_time = float(time_field)
+                        except ValueError:
+                            results_ref_test_time = None
+
+        # Arret si test trop long ou trop court
+        if results_ref_test_time is None or (
+            (
+                khiops_max_test_time is not None
+                and results_ref_test_time > khiops_max_test_time
+            )
+            or (
+                khiops_min_test_time is not None
+                and results_ref_test_time < khiops_min_test_time
+            )
+        ):
+            print(
+                test_name
+                + " test not launched (test time: "
+                + str(results_ref_test_time)
+                + ")\n"
+            )
+            return
 
         # Nettoyage du repertoire de resultats
         result_dir = os.path.join(test_dir, RESULTS)
@@ -298,7 +304,7 @@ def evaluate_tool(tool_exe_path, tool_test_family_path, test_name):
         # Construction des parametres
         khiops_params = []
         if khiops_mpi_process_number is not None:
-            khiops_params.append(mpiExecPath)
+            khiops_params.append(mpi_exe_name)
             if os.name == "nt":
                 khiops_params.append("-l")
             if platform.system() == "Darwin":
@@ -320,18 +326,72 @@ def evaluate_tool(tool_exe_path, tool_test_family_path, test_name):
             khiops_params.append("-p")
             khiops_params.append(os.path.join(os.getcwd(), "task.log"))
 
-        # Lancement de khiops
-        time_start = time.time()
-        with subprocess.Popen(
-            khiops_params,
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            universal_newlines=True,
-        ) as khiops_process:
-            stdout, stderr = khiops_process.communicate()
+        # Calcul d'un time_out en fonction du temps de reference, uniquement si celui est disponible
+        MIN_TIMEOUT = 300
+        TIMEOUT_RATIO = 5
+        MAX_TIMEOUT = 3600
+        timeout = None
+        if results_ref_test_time is not None:
+            timeout = MIN_TIMEOUT + TIMEOUT_RATIO * results_ref_test_time
 
-        # En cas d'anomalie, memorisation du contenu de des sorties standard
+        # Lancement de khiops
+        MAX_RUN_NUMBER = 3
+        timeout_expiration_lines = []
+        overall_time_start = time.time()
+        for run_number in range(MAX_RUN_NUMBER):
+            run_completed = True
+            time_start = time.time()
+            with subprocess.Popen(
+                khiops_params,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True,
+            ) as khiops_process:
+                try:
+                    stdout, stderr = khiops_process.communicate(timeout=timeout)
+                except subprocess.TimeoutExpired:
+                    run_completed = False
+                    khiops_process.kill()
+                    stdout, stderr = khiops_process.communicate()
+            time_stop = time.time()
+            # Memorisation du probleme en cas d'echec
+            if not run_completed:
+                killing_time = time_stop - time_start
+                timeout_expiration_lines.append(
+                    "Trial "
+                    + str(run_number + 1)
+                    + " : process killed after "
+                    + "{:.1f}".format(killing_time)
+                    + "s (reference time="
+                    + "{:.1f}".format(results_ref_test_time)
+                    + "s)"
+                )
+            # Arret si ok
+            if run_completed:
+                break
+            # Arret si on a depense globalement trop de temps
+            overall_time = time_stop - overall_time_start
+            if overall_time > MAX_TIMEOUT and run_number < MAX_RUN_NUMBER - 1:
+                timeout_expiration_lines.append(
+                    "No more trial: overall trial time is "
+                    + "{:.1f}".format(overall_time)
+                    + "s (limit="
+                    + "{:.1f}".format(MAX_TIMEOUT)
+                    + "s)"
+                )
+                break
+
+        # Memorisation des infos sur les run en cas de timeout
+        if len(timeout_expiration_lines) > 0:
+            with open(
+                os.path.join(os.getcwd(), test_dir, RESULTS, PROCESS_TIMEOUT_ERROR_LOG),
+                "w",
+            ) as timeout_file:
+                for line in timeout_expiration_lines:
+                    timeout_file.write(line + "\n")
+
+        # En cas d'anomalie, memorisation du contenu des sorties standard
         if stdout != "":
             is_kni = "KNI" in tool_exe_path
             is_coclustering = "Coclustering" in tool_exe_path
@@ -385,8 +445,7 @@ def evaluate_tool(tool_exe_path, tool_test_family_path, test_name):
                     + str(khiops_process.returncode)
                     + " (should be 0 or 2)"
                 )
-
-        time_stop = time.time()
+        # Message de fin de test
         print(
             tool_test_sub_dir + " " + family_dir_name + " " + test_name + " test done"
         )
