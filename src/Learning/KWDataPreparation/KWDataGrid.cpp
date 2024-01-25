@@ -3586,7 +3586,7 @@ void KWDGValueSet::DeleteValue(KWDGValue* value)
 {
 	require(value != NULL);
 
-	require(not bIsDefaultPart or value->GetValue() != Symbol::GetStarValue());
+	require(bIsDefaultPart or value->GetValue() != Symbol::GetStarValue());
 
 	// Supression de la liste des valuees
 	nValueNumber--;
@@ -3693,7 +3693,6 @@ KWDGValueSet* KWDGValueSet::ConvertToCleanedValueSet()
 	// des modalites)
 	valueSet->DeleteValue(valueSet->GetHeadValue());
 	valueSet->DeleteValue(valueSet->GetTailValue());
-
 	return valueSet;
 }
 
