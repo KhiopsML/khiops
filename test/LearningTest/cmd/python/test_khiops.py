@@ -1,9 +1,9 @@
 import os.path
 import sys
+import shutil
 import stat
 import subprocess
 import time
-import platform
 import learning_test_env
 import check_results
 from test_dir_management import *
@@ -11,10 +11,16 @@ from test_dir_management import *
 
 # mpiexec sous Windows
 if os.name == "nt":
-    mpiExecPath = "c:\\Program Files\\Microsoft MPI\\Bin\\mpiexec.exe"
+    mpi_exe_name = "mpiexec.exe"
 # mpiexec sous Linux
 else:
-    mpiExecPath = "mpiexec"
+    mpi_exe_name = "mpiexec"
+
+# Verifier que mpiexec est dans le path avec un assert
+assert shutil.which(mpi_exe_name) is not None, (
+    "MPI tool " + mpi_exe_name + " not found in path"
+)
+
 
 """
 A chaque nom d'outil Khiops correspond un nom d'exe et un sous-repertoire de LearningTest associe.
@@ -298,7 +304,7 @@ def evaluate_tool(tool_exe_path, tool_test_family_path, test_name):
         # Construction des parametres
         khiops_params = []
         if khiops_mpi_process_number is not None:
-            khiops_params.append(mpiExecPath)
+            khiops_params.append(mpi_exe_name)
             if os.name == "nt":
                 khiops_params.append("-l")
             if platform.system() == "Darwin":
