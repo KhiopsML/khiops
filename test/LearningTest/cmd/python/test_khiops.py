@@ -16,7 +16,7 @@ if os.name == "nt":
 else:
     mpi_exe_name = "mpiexec"
 
-# Verifier que mpiexec est dans le path avec un assert
+# Verification que mpiexec est dans le path
 assert shutil.which(mpi_exe_name) is not None, (
     "MPI tool " + mpi_exe_name + " not found in path"
 )
@@ -96,7 +96,7 @@ def build_tool_exe_path(khiops_tool_exe_name, khiops_tool_version):
     if khiops_tool_version != "nul":
         if not os.path.isfile(khiops_tool_exe_path):
             print("Khiops tool path : " + khiops_tool_exe_path + " does not exist")
-            exit(0)
+            exit(1)
     return khiops_tool_exe_path
 
 
@@ -106,6 +106,33 @@ def evaluate_tool(tool_exe_path, tool_test_family_path, test_name):
     - tool_exe_path: path de l'outil a tester, ou nul si on ne veut faire que la comparaison
     - tool_test_family_path: repertoire racine du repertoire de test
     - test_name: repertoire de test terminal"""
+
+    def get_env_var_positive_value(env_var_name, is_int=False):
+        """Retourne la valeur numerique d'une variable d'environnement representant une duree
+        Renvoie None si la variable n'est pas definie
+        Sort du programme avec une erreur si elle ne correspond pas a une valeur numerique positive
+        """
+        value = os.getenv(env_var_name)
+        if value is not None:
+            try:
+                if is_int:
+                    value = int(value)
+                else:
+                    value = float(value)
+                if value < 0:
+                    raise ValueError("should be positive")
+            except ValueError as exception:
+                value = None
+                print(
+                    "error : env var "
+                    + env_var_name
+                    + " ("
+                    + str(os.getenv(env_var_name))
+                    + ") :",
+                    exception,
+                )
+                exit(1)
+        return value
 
     def filter_lines(lines, filtered_pattern):
         """retourne les lignes sans celles contenant le pattern en parametre"""
@@ -186,9 +213,11 @@ def evaluate_tool(tool_exe_path, tool_test_family_path, test_name):
             khiops_parallel_modules.append(exe_name.lower())
 
     # Recherche du contexte parallele
-    khiops_mpi_process_number = None
-    if module_name in khiops_parallel_modules:
-        khiops_mpi_process_number = os.getenv("KhiopsMPIProcessNumber")
+    khiops_mpi_process_number = get_env_var_positive_value(
+        "KhiopsMPIProcessNumber", is_int=True
+    )
+    if module_name not in khiops_parallel_modules:
+        khiops_mpi_process_number = None
 
     # Affichage du debut des tests ou de la comparaison
     action_name = "Test"
@@ -212,31 +241,11 @@ def evaluate_tool(tool_exe_path, tool_test_family_path, test_name):
 
     # Lancement des tests
     if tool_exe_path != "nul":
-        # Test si l'on ne lance le module que si son temps de calcul est suffisament petit
-        khiops_max_test_time = os.getenv("KhiopsMaxTestTime")
-        if khiops_max_test_time is not None:
-            try:
-                khiops_max_test_time = float(khiops_max_test_time)
-            except ValueError:
-                khiops_max_test_time = None
-                print(
-                    "error: khiops_max_test_time ("
-                    + os.getenv("KhiopsMaxTestTime")
-                    + ") should be numeric"
-                )
-
-        # Test si l'on ne lance le module que si son temps de calcul est suffisament grand
-        khiops_min_test_time = os.getenv("KhiopsMinTestTime")
-        if khiops_min_test_time is not None:
-            try:
-                khiops_min_test_time = float(khiops_min_test_time)
-            except ValueError:
-                khiops_min_test_time = None
-                print(
-                    "error: khiops_min_test_time ("
-                    + os.getenv("KhiopsMinTestTime")
-                    + ") should be numeric"
-                )
+        # Recherche dans les variable d'environnement du paramtrage des temps min et max
+        # pour declencher les test selon le temps des resultat de reference, et de la limite de timeout
+        khiops_min_test_time = get_env_var_positive_value("KhiopsMinTestTime")
+        khiops_max_test_time = get_env_var_positive_value("KhiopsMaxTestTime")
+        khiops_test_timeout_limit = get_env_var_positive_value("KhiopsTestTimeoutLimit")
 
         # Recherche du temps des resultats de reference dans le fichier de temps
         results_ref, _ = get_results_ref_dir(test_dir)
@@ -261,14 +270,16 @@ def evaluate_tool(tool_exe_path, tool_test_family_path, test_name):
                             results_ref_test_time = None
 
         # Arret si test trop long ou trop court
-        if results_ref_test_time is None or (
+        if results_ref_test_time is not None and (
             (
-                khiops_max_test_time is not None
-                and results_ref_test_time > khiops_max_test_time
-            )
-            or (
-                khiops_min_test_time is not None
-                and results_ref_test_time < khiops_min_test_time
+                (
+                    khiops_max_test_time is not None
+                    and results_ref_test_time > khiops_max_test_time
+                )
+                or (
+                    khiops_min_test_time is not None
+                    and results_ref_test_time < khiops_min_test_time
+                )
             )
         ):
             print(
@@ -305,13 +316,14 @@ def evaluate_tool(tool_exe_path, tool_test_family_path, test_name):
         khiops_params = []
         if khiops_mpi_process_number is not None:
             khiops_params.append(mpi_exe_name)
-            if os.name == "nt":
-                khiops_params.append("-l")
+            # Option -l, specifique a mpich, valide au moins pour Windows
+            #  "Label standard out and standard error (stdout and stderr) with the rank of the process"
+            khiops_params.append("-l")
             if platform.system() == "Darwin":
                 khiops_params.append("-host")
                 khiops_params.append("localhost")
             khiops_params.append("-n")
-            khiops_params.append(khiops_mpi_process_number)
+            khiops_params.append(str(khiops_mpi_process_number))
         khiops_params.append(tool_exe_path)
         if os.getenv("KhiopsBatchMode") != "false":
             khiops_params.append("-b")
@@ -332,7 +344,9 @@ def evaluate_tool(tool_exe_path, tool_test_family_path, test_name):
         MAX_TIMEOUT = 3600
         timeout = None
         if results_ref_test_time is not None:
-            timeout = MIN_TIMEOUT + TIMEOUT_RATIO * results_ref_test_time
+            if khiops_test_timeout_limit is None:
+                khiops_test_timeout_limit = MIN_TIMEOUT
+            timeout = khiops_test_timeout_limit + TIMEOUT_RATIO * results_ref_test_time
 
         # Lancement de khiops
         MAX_RUN_NUMBER = 3
@@ -393,6 +407,11 @@ def evaluate_tool(tool_exe_path, tool_test_family_path, test_name):
 
         # En cas d'anomalie, memorisation du contenu des sorties standard
         if stdout != "":
+            # Affichage sur la console, utile par exemple en mode debug pour avoir les stats memoire
+            print(stdout)
+
+            # Pretraitement des lignes pour supprimer les lignes normales
+            # parfois specifiques a certains outils
             is_kni = "KNI" in tool_exe_path
             is_coclustering = "Coclustering" in tool_exe_path
             lines = stdout.split("\n")
@@ -415,35 +434,73 @@ def evaluate_tool(tool_exe_path, tool_test_family_path, test_name):
                 # Parcours des lignes pour voir si ce sont bien des messages de stats, y compris en parallel
                 # En parallele, on a l'id du process entre crochets en tete de chaque ligne
                 for line in lines:
+                    # Recherche d'un pattern de message de l'allocateur
                     ok = (
                         "Memory stats (number of pointers, and memory space)" in line
                         or "Alloc: " in line
                         or "Requested: " in line
                     )
+                    # Recherche additionnelle de "Process " en tete de ligne
+                    # En effet, parfois en parallel, le debut d'un message commencant par "Process " <id>
+                    # est emis sur une lige de stdout, et la fin sur une autre ligne
+                    if not ok:
+                        ok = line.find("Process ") >= 0
+                        break
                     if not ok:
                         break
             else:
                 ok = len(lines) == 0
             if not ok:
-                with open(
-                    os.path.join(os.getcwd(), test_dir, RESULTS, STDOUT_ERROR_LOG),
-                    "w",
-                ) as stdout_file:
-                    stdout_file.write(stdout)
+                try:
+                    with open(
+                        os.path.join(os.getcwd(), test_dir, RESULTS, STDOUT_ERROR_LOG),
+                        "w",
+                    ) as stdout_file:
+                        stdout_file.write(stdout)
+                except Exception as exception:
+                    print(
+                        "Enable to write file "
+                        + STDOUT_ERROR_LOG
+                        + " in "
+                        + RESULTS
+                        + " dir",
+                        exception,
+                    )
         if stderr != "":
-            with open(
-                os.path.join(os.getcwd(), test_dir, RESULTS, STDERR_ERROR_LOG), "w"
-            ) as stderr_file:
-                stderr_file.write(stderr)
+            print(stderr, file=sys.stderr)
+            try:
+                with open(
+                    os.path.join(os.getcwd(), test_dir, RESULTS, STDERR_ERROR_LOG), "w"
+                ) as stderr_file:
+                    stderr_file.write(stderr)
+            except Exception as exception:
+                print(
+                    "Enable to write file "
+                    + STDERR_ERROR_LOG
+                    + " in "
+                    + RESULTS
+                    + " dir",
+                    exception,
+                )
         if khiops_process.returncode != 0 and khiops_process.returncode != 2:
-            with open(
-                os.path.join(os.getcwd(), test_dir, RESULTS, RETURN_CODE_ERROR_LOG),
-                "w",
-            ) as return_code_file:
-                return_code_file.write(
-                    "Wrong return code: "
-                    + str(khiops_process.returncode)
-                    + " (should be 0 or 2)"
+            try:
+                with open(
+                    os.path.join(os.getcwd(), test_dir, RESULTS, RETURN_CODE_ERROR_LOG),
+                    "w",
+                ) as return_code_file:
+                    return_code_file.write(
+                        "Wrong return code: "
+                        + str(khiops_process.returncode)
+                        + " (should be 0 or 2)"
+                    )
+            except Exception as exception:
+                print(
+                    "Enable to write file "
+                    + RETURN_CODE_ERROR_LOG
+                    + " in "
+                    + RESULTS
+                    + " dir",
+                    exception,
                 )
         # Message de fin de test
         print(
@@ -451,12 +508,17 @@ def evaluate_tool(tool_exe_path, tool_test_family_path, test_name):
         )
 
         # Memorisation d'un fichier contenant le temp global
-        file_time = open(
-            os.path.join(os.getcwd(), os.path.join(test_dir, RESULTS, TIME_LOG)),
-            "w",
-        )
-        file_time.write("Overal time: " + str(time_stop - time_start) + "\n")
-        file_time.close()
+        try:
+            with open(
+                os.path.join(os.getcwd(), os.path.join(test_dir, RESULTS, TIME_LOG)),
+                "w",
+            ) as time_file:
+                time_file.write("Overal time: " + str(time_stop - time_start) + "\n")
+        except Exception as exception:
+            print(
+                "Enable to write file " + TIME_LOG + " in " + RESULTS + " dir",
+                exception,
+            )
 
     # Restore initial path
     if os.name == "nt":
@@ -484,8 +546,8 @@ def evaluate_tool_on_family(tool_exe_path, tool_test_family_path, test_name=None
 
     # Error if no sub-directory
     if len(test_list) == 0:
-        print("no test is available in " + tool_test_family_path)
-        exit(0)
+        print("error : no test is available in " + tool_test_family_path)
+        exit(1)
 
     # Case of a specific sub-directory
     if test_name is not None:
@@ -545,7 +607,7 @@ if __name__ == "__main__":
             "\ttestFamilyName: name of the tool test family directory (Standard, MultiTables...)"
         )
         print("\ttestName: optional, name of the tool test directory (Adult,Iris...)")
-        exit(0)
+        exit(1)
 
     sys.stdout = Unbuffered(sys.stdout)
 
@@ -567,8 +629,10 @@ if __name__ == "__main__":
         test_family_name,
     )
     if not os.path.isdir(tool_test_family_path):
-        print("test family directory " + tool_test_family_path + " does not exist")
-        exit(0)
+        print(
+            "error : test family directory " + tool_test_family_path + " does not exist"
+        )
+        exit(1)
 
     # Test is tool test sub dir exists
     test_name = None
@@ -583,8 +647,10 @@ if __name__ == "__main__":
             test_name,
         )
         if not os.path.isdir(samples_sub_path):
-            print("samples sub directory " + samples_sub_path + " does not exist")
-            exit(0)
+            print(
+                "error : samples sub directory " + samples_sub_path + " does not exist"
+            )
+            exit(1)
 
     # Start evaluation
     evaluate_tool_on_family(tool_exe_path, tool_test_family_path, test_name)
