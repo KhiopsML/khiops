@@ -148,7 +148,7 @@ def analyse_tests_results(work_dir):
     Returns:
     - warning number
     - erreur number
-    - fatal error (boolean)
+    - message related to special files (optional)
     - message related to file extensions (optional)
     - specific message (optional)
     - portability message (optional)
@@ -165,7 +165,7 @@ def analyse_tests_results(work_dir):
     log_file_name = os.path.join(work_dir, COMPARISON_RESULTS_LOG)
     error_number = 0
     warning_number = 0
-    fatal_error = False
+    special_file_message = ""
     message_extension = ""
     specific_message = ""
     portability_message = ""
@@ -184,8 +184,10 @@ def analyse_tests_results(work_dir):
                     warning_number = extract_number(line)
                 if line.find(cr.SUMMARY_ERROR_KEY) >= 0:
                     error_number = extract_number(line)
-                if line == cr.SUMMARY_FATAL_ERROR_KEY:
-                    fatal_error = True
+                for key in cr.SUMMARY_SPECIAL_FILE_KEYS:
+                    if line == key:
+                        special_file_message = key
+                        break
                 if line.find(cr.SUMMARY_FILE_TYPES_KEY) == 0:
                     message_extension = line
                 if line.find(cr.SUMMARY_NOTE_KEY) == 0:
@@ -210,7 +212,7 @@ def analyse_tests_results(work_dir):
     return (
         warning_number,
         error_number,
-        fatal_error,
+        special_file_message,
         message_extension,
         specific_message,
         portability_message,
@@ -226,7 +228,7 @@ def apply_command_errors(work_dir):
     (
         warning_number,
         error_number,
-        fatal_error,
+        special_file_message,
         message_extension,
         specific_message,
         portability_message,
@@ -234,7 +236,7 @@ def apply_command_errors(work_dir):
     if (
         warning_number != 0
         or error_number != 0
-        or fatal_error
+        or special_file_message != ""
         or portability_message != ""
     ):
         message = "\t" + tool_name + "\t"
@@ -248,8 +250,8 @@ def apply_command_errors(work_dir):
             message += "errors\t" + str(error_number) + "\t"
         else:
             message += "\t\t"
-        if fatal_error:
-            message += "FATAL ERROR"
+        if special_file_message != "":
+            message += special_file_message
         message += "\t" + message_extension
         message += "\t" + specific_message
         message += "\t" + portability_message
@@ -264,7 +266,7 @@ def apply_command_logs(work_dir):
     (
         warning_number,
         error_number,
-        fatal_error,
+        special_file_message,
         message_extension,
         specific_message,
         portability_message,
@@ -272,7 +274,7 @@ def apply_command_logs(work_dir):
     if (
         warning_number != 0
         or error_number != 0
-        or fatal_error
+        or special_file_message != ""
         or portability_message != ""
     ):
         log_file_name = os.path.join(work_dir, COMPARISON_RESULTS_LOG)
@@ -290,7 +292,7 @@ def apply_command_logs(work_dir):
 
 def apply_command_compare_times(work_dir, verbose=False):
     def print_log_message(message):
-        print(root_name + " " + dir_name + "\t" + message)
+        print("\t" + tool_name + "\t" + root_name + "\t" + dir_name + "\t" + message)
 
     def clean_time_value(value):
         found_pos = value.find(" (")
@@ -310,6 +312,7 @@ def apply_command_compare_times(work_dir, verbose=False):
 
     dir_name = os.path.basename(work_dir)
     root_name = os.path.basename(os.path.dirname(work_dir))
+    tool_name = os.path.basename(os.path.dirname(os.path.dirname(work_dir)))
     # Recherche du repertoire des resultats de reference
     results_dir_err_file = os.path.join(work_dir, RESULTS, ERR_TXT)
     results_ref, _ = get_results_ref_dir(work_dir, show=verbose)
@@ -320,13 +323,21 @@ def apply_command_compare_times(work_dir, verbose=False):
             is_valid = False
             if verbose:
                 print_log_message(
-                    "error : missing " + ERR_TXT + " file in " + RESULTS + " dir"
+                    "\t\t\t\t\terror : missing "
+                    + ERR_TXT
+                    + " file in "
+                    + RESULTS
+                    + " dir"
                 )
     if is_valid and not os.path.isfile(results_ref_dir_err_file):
         is_valid = False
         if verbose:
             print_log_message(
-                "error : missing " + ERR_TXT + " file in " + results_ref + " dir"
+                "\t\t\t\t\terror : missing "
+                + ERR_TXT
+                + " file in "
+                + results_ref
+                + " dir"
             )
     if is_valid:
         with open(results_dir_err_file, "r") as fErr:
@@ -336,7 +347,7 @@ def apply_command_compare_times(work_dir, verbose=False):
             lines_ref = f_err_ref.readlines()
         if len(lines) != len(lines_ref):
             print_log_message(
-                "ERROR: " + ERR_TXT + " files with different number of lines"
+                "\t\t\t\t\terror : " + ERR_TXT + " files with different number of lines"
             )
         else:
             pattern = "time: "

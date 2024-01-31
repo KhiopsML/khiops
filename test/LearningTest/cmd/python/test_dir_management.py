@@ -21,15 +21,17 @@ COMPARISON_RESULTS_LOG = "comparisonResults.log"
 # Fichiers se trouvant d'un repertoire de resultats
 ERR_TXT = "err.txt"
 TIME_LOG = "time.log"
+
+# Fichiers speciaux, par priorite decroissante
+PROCESS_TIMEOUT_ERROR_LOG = "process_timeout_error.log"
+RETURN_CODE_ERROR_LOG = "return_code_error.log"
 STDOUT_ERROR_LOG = "stdout_error.log"
 STDERR_ERROR_LOG = "stderr_error.log"
-RETURN_CODE_ERROR_LOG = "return_code_error.log"
-PROCESS_TIMEOUT_ERROR_LOG = "process_timeout_error.log"
-FATAL_ERROR_FILES = [
+SPECIAL_ERROR_FILES = [
+    PROCESS_TIMEOUT_ERROR_LOG,
+    RETURN_CODE_ERROR_LOG,
     STDOUT_ERROR_LOG,
     STDERR_ERROR_LOG,
-    RETURN_CODE_ERROR_LOG,
-    PROCESS_TIMEOUT_ERROR_LOG,
 ]
 
 """

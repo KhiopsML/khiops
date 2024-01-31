@@ -24,6 +24,12 @@ print(
 )
 
 print(
+    "KhiopsTestTimeoutLimit: "
+    + str(os.getenv("KhiopsTestTimeoutLimit"))
+    + "\n\tkill overlengthy process (default: 300 s)"
+)
+
+print(
     "KhiopsMPIProcessNumber: "
     + str(os.getenv("KhiopsMPIProcessNumber"))
     + "\n\tNumber of MPI process in paralle mode (default: None)"
