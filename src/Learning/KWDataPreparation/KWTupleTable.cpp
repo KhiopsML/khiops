@@ -730,8 +730,8 @@ KWTuple* KWTupleTable::NewTuple() const
 	// en plus des donnees du symbol (le caractere fin de chaine '\0' est deja prevu)
 	pTupleMemory = NewMemoryBlock(nMemorySize);
 
-	// On utilise le "placement new" pour appeler un constructeur avec de la memoire preallouee (attention, C++
-	// avance)
+	// On utilise le "placement new" pour appeler un constructeur avec de la memoire preallouee
+	// (attention, C++ avance)
 	newTuple = new (pTupleMemory) KWTuple;
 	assert((void*)newTuple == pTupleMemory);
 
