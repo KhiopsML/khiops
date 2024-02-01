@@ -17,6 +17,7 @@ KWKeyPositionSampleExtractorTask::KWKeyPositionSampleExtractorTask()
 	nReadSizeMin = 0;
 	nReadSizeMax = 0;
 	nReadBufferSize = 0;
+	lFilePos = 0;
 
 	// Variables partagees
 	DeclareSharedParameter(&shared_ivKeyFieldIndexes);
@@ -690,7 +691,7 @@ boolean KWKeyPositionSampleExtractorTask::SlaveProcess()
 						LongintToReadableString(recordKeyPosition->GetLineIndex() -
 									previousRecordKeyPosition->GetLineIndex()) +
 						" lines before",
-					    nCumulatedLineNumber + inputFile.GetCurrentLineIndex() - 1);
+					    nCumulatedLineNumber + inputFile.GetCurrentLineIndex());
 					delete recordKeyPosition;
 					bOk = false;
 					break;
