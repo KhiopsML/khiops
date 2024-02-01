@@ -391,6 +391,13 @@ def check_results(test):
 
             # Comparaison si ok
             if ref_file_lines is not None and test_file_lines is not None:
+                # Cas des fichier stdout et stderr, que l'on filtre du prefix de process id
+                if file_name in [STDOUT_ERROR_LOG, STDERR_ERROR_LOG]:
+                    ref_file_lines = filter_process_id_prefix_from_lines(ref_file_lines)
+                    test_file_lines = filter_process_id_prefix_from_lines(
+                        test_file_lines
+                    )
+
                 # Mise en forme specifique des message utilisateur (error, warning) pour les traiter des facon identique
                 # dans les cas des fichiers de log utilisateur et json
                 contains_user_messages = False
@@ -1061,6 +1068,22 @@ def filter_sequential_messages_lines(lines, log_file=None):
     return result_lines
 
 
+def filter_process_id_prefix_from_lines(lines):
+    """retourne les lignes sans l'eventuel prefixe de process id, du type '[0] '"""
+    output_lines = []
+    for line in lines:
+        # En parallelle, une ligne vide peut contenir le numero du process entre crochets
+        pos_end = -1
+        is_process_id = len(line) > 0 and line[0] == "["
+        if is_process_id:
+            pos_end = line.find("]")
+            is_process_id = pos_end > 0 and line[1:pos_end].isdigit()
+        if is_process_id:
+            line = line[pos_end + 1 :].lstrip()
+        output_lines.append(line)
+    return output_lines
+
+
 def check_file_lines(
     ref_file_path: str, test_file_path, ref_file_lines, test_file_lines, log_file=None
 ):
@@ -1413,6 +1436,7 @@ def check_file_lines(
 
             # cas general de comparaison de cellules
             [eval_res, threshold_res] = check_cell(field_ref, field_test)
+
             # truncature des champs affiches dans les messages d'erreur
             if len(field_test) > max_field_length:
                 field_test = field_test[0:max_field_length] + "..."

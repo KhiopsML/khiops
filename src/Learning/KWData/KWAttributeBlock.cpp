@@ -208,7 +208,7 @@ boolean KWAttributeBlock::Check() const
 					 metaData.GetExternalValueAt(sDefaultValueMetaDataKey) +
 					 ") should not be specified for a categorical sparse variable block");
 			}
-			else if (not metaData.IsDoubleTypeAt(sDefaultValueMetaDataKey))
+			else if (not metaData.IsStringTypeAt(sDefaultValueMetaDataKey))
 			{
 				bOk = false;
 				AddError("Meta-data " + sDefaultValueMetaDataKey + " (" +
