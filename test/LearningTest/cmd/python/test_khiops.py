@@ -16,12 +16,6 @@ if os.name == "nt":
 else:
     mpi_exe_name = "mpiexec"
 
-# Verification que mpiexec est dans le path
-assert shutil.which(mpi_exe_name) is not None, (
-    "MPI tool " + mpi_exe_name + " not found in path"
-)
-
-
 """
 A chaque nom d'outil Khiops correspond un nom d'exe et un sous-repertoire de LearningTest associe.
 On peut egalement specifier si l'outil est lancable en parallel ou non.
@@ -537,6 +531,10 @@ def evaluate_tool_on_family(tool_exe_path, tool_test_family_path, test_name=None
     - tool_exe_path: path de l'outil a tester, ou nul si on ne veut faire que la comparaison
     - tool_test_family_path: repertoire racine du repertoire de test
     - test_name: repertoire de test terminal"""
+
+    # Echec si le nombre de processus est parametre et mpiexec n'est pas dans le path
+    if shutil.which(mpi_exe_name) is None and "KhiopsMPIProcessNumber" in os.environ:
+        print("error : KhiopsMPIProcessNumber set but mpiexec not found in path.")
 
     # Collect sub-directories of samples_path
     test_list = []
