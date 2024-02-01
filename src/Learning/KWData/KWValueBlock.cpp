@@ -10,14 +10,11 @@
 /////////////////////////////////////////////////////////////////////
 // Classe KWValueBlock
 
-void* KWValueBlock::GenericNewValueBlock(int nSize)
+void* KWValueBlock::GenericAllocValueBlock(int nSize)
 {
-	KWValueBlock* newValueBlock;
 	int nMemorySize;
 	void* pValueBlockMemory;
 	int nSegmentNumber;
-	KWValueIndexPair* valueIndexPairs;
-	int i;
 
 	require(nSize >= 0);
 
@@ -26,9 +23,39 @@ void* KWValueBlock::GenericNewValueBlock(int nSize)
 	{
 		// Calcul de la taille a allouer
 		nMemorySize = sizeof(int) + nSize * sizeof(KWValueIndexPair);
+	}
+	// Cas multi-segment: il faut plusieurs segments pour stocker le bloc
+	//  On passe par un tableau de segments
+	else
+	{
+		// Calcul du nombre de segment
+		nSegmentNumber = (nSize - 1) / nSegmentSize + 1;
 
-		// Creation des donnees d'un bloc
-		pValueBlockMemory = NewMemoryBlock(nMemorySize);
+		// Calcul de la taille a allouer
+		nMemorySize = sizeof(int) + nSegmentNumber * sizeof(KWValueIndexPair*);
+	}
+
+	// Creation du bloc memoire
+	pValueBlockMemory = NewMemoryBlock(nMemorySize);
+	return pValueBlockMemory;
+}
+
+void KWValueBlock::GenericInitValueBlock(void* pValueBlockMemory, int nSize)
+{
+	KWValueBlock* newValueBlock;
+	int nMemorySize;
+	int nSegmentNumber;
+	KWValueIndexPair* valueIndexPairs;
+	int i;
+
+	require(pValueBlockMemory != NULL);
+	require(nSize >= 0);
+
+	// Cas mono-segment: le bloc entier peut tenir dans un segment memoire
+	if (nSize <= nSegmentSize)
+	{
+		// Calcul de la taille allouee
+		nMemorySize = sizeof(int) + nSize * sizeof(KWValueIndexPair);
 
 		// Initialisation avec des zero
 		memset(pValueBlockMemory, 0, nMemorySize * sizeof(char));
@@ -42,7 +69,7 @@ void* KWValueBlock::GenericNewValueBlock(int nSize)
 
 		// On verifie par assertion que le packing des classe utilise est correct
 		assert(sizeof(KWValueIndexPair) == sizeof(KWValue) + sizeof(int));
-		assert(&(newValueBlock->cStartBlock) - (char*)newValueBlock == sizeof(int));
+		assert(nSize == 0 or &(newValueBlock->cStartBlock) - (char*)newValueBlock == sizeof(int));
 	}
 	// Cas multi-segment: il faut plusieurs segments pour stocker le bloc
 	//  On passe par un tableau de segments
@@ -51,11 +78,8 @@ void* KWValueBlock::GenericNewValueBlock(int nSize)
 		// Calcul du nombre de segment
 		nSegmentNumber = (nSize - 1) / nSegmentSize + 1;
 
-		// Calcul de la taille a allouer
+		// Calcul de la taille allouee
 		nMemorySize = sizeof(int) + nSegmentNumber * sizeof(KWValueIndexPair*);
-
-		// Creation des donnees du bloc, avec un tableau de pointeurs vers des blocs
-		pValueBlockMemory = NewMemoryBlock(nMemorySize);
 
 		// On caste la memoire allouee pour pouvoir utiliser les methodes de la classe
 		newValueBlock = (KWValueBlock*)pValueBlockMemory;
@@ -85,7 +109,6 @@ void* KWValueBlock::GenericNewValueBlock(int nSize)
 			memset(valueIndexPairs, 0, nSegmentSize * sizeof(KWValueIndexPair));
 		}
 	}
-	return pValueBlockMemory;
 }
 
 KWValueBlock::~KWValueBlock()
