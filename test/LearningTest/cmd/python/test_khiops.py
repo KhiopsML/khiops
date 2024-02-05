@@ -229,7 +229,7 @@ def evaluate_tool(tool_exe_path, tool_test_family_path, test_name):
         + " (MPI: "
         + str(khiops_mpi_process_number)
         + ", platform: "
-        + platform.system()
+        + get_context_platform_type()
         + ")"
     )
 
@@ -249,7 +249,7 @@ def evaluate_tool(tool_exe_path, tool_test_family_path, test_name):
                 os.getcwd(), os.path.join(test_dir, results_ref, TIME_LOG)
             )
             if os.path.isfile(time_file_name):
-                file_time = open(time_file_name, "r")
+                file_time = open(time_file_name, "r", errors="ignore")
                 lines = file_time.readlines()
                 file_time.close()
                 if len(lines) > 0:
@@ -395,6 +395,7 @@ def evaluate_tool(tool_exe_path, tool_test_family_path, test_name):
             with open(
                 os.path.join(os.getcwd(), test_dir, RESULTS, PROCESS_TIMEOUT_ERROR_LOG),
                 "w",
+                errors="ignore",
             ) as timeout_file:
                 for line in timeout_expiration_lines:
                     timeout_file.write(line + "\n")
@@ -449,6 +450,7 @@ def evaluate_tool(tool_exe_path, tool_test_family_path, test_name):
                     with open(
                         os.path.join(os.getcwd(), test_dir, RESULTS, STDOUT_ERROR_LOG),
                         "w",
+                        errors="ignore",
                     ) as stdout_file:
                         stdout_file.write(stdout)
                 except Exception as exception:
@@ -464,7 +466,9 @@ def evaluate_tool(tool_exe_path, tool_test_family_path, test_name):
             print(stderr, file=sys.stderr)
             try:
                 with open(
-                    os.path.join(os.getcwd(), test_dir, RESULTS, STDERR_ERROR_LOG), "w"
+                    os.path.join(os.getcwd(), test_dir, RESULTS, STDERR_ERROR_LOG),
+                    "w",
+                    errors="ignore",
                 ) as stderr_file:
                     stderr_file.write(stderr)
             except Exception as exception:
@@ -481,6 +485,7 @@ def evaluate_tool(tool_exe_path, tool_test_family_path, test_name):
                 with open(
                     os.path.join(os.getcwd(), test_dir, RESULTS, RETURN_CODE_ERROR_LOG),
                     "w",
+                    errors="ignore",
                 ) as return_code_file:
                     return_code_file.write(
                         "Wrong return code: "
@@ -506,6 +511,7 @@ def evaluate_tool(tool_exe_path, tool_test_family_path, test_name):
             with open(
                 os.path.join(os.getcwd(), os.path.join(test_dir, RESULTS, TIME_LOG)),
                 "w",
+                errors="ignore",
             ) as time_file:
                 time_file.write("Overal time: " + str(time_stop - time_start) + "\n")
         except Exception as exception:

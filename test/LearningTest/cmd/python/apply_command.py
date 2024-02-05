@@ -12,20 +12,20 @@ from test_dir_management import *
 
 
 def file_read_lines(file_name):
-    with open(file_name, "r") as input_file:
+    with open(file_name, "r", errors="ignore") as input_file:
         lines = input_file.readlines()
     return lines
 
 
 def file_write_lines(file_path, lines):
-    with open(file_path, "w") as the_file:
+    with open(file_path, "w", errors="ignore") as the_file:
         for line in lines:
             the_file.write(line)
 
 
 def file_search(file_name, search_text):
     # search in a file
-    the_file = open(file_name, "r")  # Opens the file in read-mode
+    the_file = open(file_name, "r", errors="ignore")  # Opens the file in read-mode
     text = the_file.read()  # Reads the file and assigns the value to a variable
     the_file.close()  # Closes the file (read session)
     if text.find(search_text) >= 0:
@@ -53,11 +53,11 @@ def file_content_search_count(file_lines, search_text):
 
 def file_replace(file_name, source_text, replace_text):
     # search/replace in a file
-    the_file = open(file_name, "r")  # Opens the file in read-mode
+    the_file = open(file_name, "r", errors="ignore")  # Opens the file in read-mode
     text = the_file.read()  # Reads the file and assigns the value to a variable
     the_file.close()  # Closes the file (read session)
     # Opens the file again, this time in write-mode
-    the_file = open(file_name, "w")
+    the_file = open(file_name, "w", errors="ignore")
     # replaces all instance_number of our keyword
     the_file.write(text.replace(source_text, replace_text))
     # and writes the whole output when done, wiping over the old contents of the file
@@ -75,10 +75,10 @@ def file_compare(file_name1: str, file_name2: str, skip_patterns: list = None):
     lines1 = []
     lines2 = []
     if compare_ok:
-        file1 = open(file_name1, "r")
+        file1 = open(file_name1, "r", errors="ignore")
         lines1 = file1.readlines()
         file1.close()
-        file2 = open(file_name2, "r")
+        file2 = open(file_name2, "r", errors="ignore")
         lines2 = file2.readlines()
         file1.close()
         compare_ok = len(lines1) == len(lines2)
@@ -118,10 +118,10 @@ def file_compare_line_number(file_name1: str, file_name2: str):
     """
     compare_ok = os.path.isfile(file_name1) and os.path.isfile(file_name2)
     if compare_ok:
-        file1 = open(file_name1, "r")
+        file1 = open(file_name1, "r", errors="ignore")
         lines1 = file1.readlines()
         file1.close()
-        file2 = open(file_name2, "r")
+        file2 = open(file_name2, "r", errors="ignore")
         lines2 = file2.readlines()
         file1.close()
         compare_ok = len(lines1) == len(lines2)
@@ -283,7 +283,7 @@ def apply_command_logs(work_dir):
             print(root_name + " " + dir_name)
             print("==================================================================")
             print(log_file_name)
-            log_file = open(log_file_name, "r")
+            log_file = open(log_file_name, "r", errors="ignore")
             for s in log_file:
                 s = s.replace("\n", "")
                 print("  " + s)
@@ -340,10 +340,9 @@ def apply_command_compare_times(work_dir, verbose=False):
                 + " dir"
             )
     if is_valid:
-        with open(results_dir_err_file, "r") as fErr:
+        with open(results_dir_err_file, "r", errors="ignore") as fErr:
             lines = fErr.readlines()
-        # with open(results_ref_dir_err_file, "r", encoding='utf-8') as fErrRef:
-        with open(results_ref_dir_err_file, "r") as f_err_ref:
+        with open(results_ref_dir_err_file, "r", errors="ignore") as f_err_ref:
             lines_ref = f_err_ref.readlines()
         if len(lines) != len(lines_ref):
             print_log_message(
@@ -423,7 +422,7 @@ def apply_command_performance(work_dir):
         for file_name in os.listdir(results_dir):
             if test_pattern in file_name:
                 test_eval_file_name = os.path.join(results_dir, file_name)
-                test_eval_file = open(test_eval_file_name, "r")
+                test_eval_file = open(test_eval_file_name, "r", errors="ignore")
                 for s in test_eval_file:
                     if s.find("Selective Naive Bayes", 0) == 0:
                         # comma to avoid doubling "\n"
@@ -451,7 +450,7 @@ def apply_command_performance_ref(work_dir):
             for file_name in os.listdir(results_dir):
                 if test_pattern in file_name:
                     test_eval_file_name = os.path.join(results_dir, file_name)
-                    test_eval_file = open(test_eval_file_name, "r")
+                    test_eval_file = open(test_eval_file_name, "r", errors="ignore")
                     for s in test_eval_file:
                         if s.find("Selective Naive Bayes", 0) == 0:
                             # comma to avoid doubling "\n"
@@ -507,9 +506,9 @@ def apply_command_check_fnb(work_dir):
     root_dir = os.path.dirname(os.path.dirname(os.path.dirname(work_dir)))
     stats_file_name = os.path.join(root_dir, "stats.FNB.log")
     if os.path.isfile(stats_file_name):
-        fstats = open(stats_file_name, "a")
+        fstats = open(stats_file_name, "a", errors="ignore")
     else:
-        fstats = open(stats_file_name, "w")
+        fstats = open(stats_file_name, "w", errors="ignore")
         fstats.write(
             "Tool\tRoot\tDir\tFile\tReport\tCriterion\tValue\tRef value\tDiff\n"
         )
@@ -695,7 +694,7 @@ def apply_command_bench(work_dir):
     database_name = ""
     target_attribute_name = ""
     prm_file_name = os.path.join(work_dir, TEST_PRM)
-    prm_file = open(prm_file_name, "r")
+    prm_file = open(prm_file_name, "r", errors="ignore")
     for s in prm_file:
         if s.find("class_file_name") >= 0 and class_file_name == "":
             class_file_name = extract_info(s)
@@ -814,7 +813,7 @@ def apply_command_check_hdfs(work_dir):
     ]
     prm_file_name = os.path.join(work_dir, TEST_PRM)
     print(work_dir)
-    with open(prm_file_name, "r") as prm_file:
+    with open(prm_file_name, "r", errors="ignore") as prm_file:
         line_index = 1
         for s in prm_file:
             # Test comments
@@ -875,7 +874,7 @@ def apply_command_transform_hdfs(work_dir):
     prm_file = open(prm_file_name, "r", errors="ignore")
     prm_file_lines = prm_file.readlines()
     prm_file.close()
-    prm_file = open(prm_file_name, "w")
+    prm_file = open(prm_file_name, "w", errors="ignore")
     for s in prm_file_lines:
         new_line = s
         # Test comments
@@ -922,10 +921,10 @@ def apply_command_transform_hdfs(work_dir):
     if results_ref is not None:
         err_ref_file_name = os.path.join(work_dir, results_ref, ERR_TXT)
         if do_it and os.path.isfile(err_ref_file_name):
-            err_file = open(err_ref_file_name, "r")
+            err_file = open(err_ref_file_name, "r", errors="ignore")
             err_file_lines = err_file.readlines()
             err_file.close()
-            err_file = open(err_ref_file_name, "w")
+            err_file = open(err_ref_file_name, "w", errors="ignore")
             for s in err_file_lines:
                 new_line = s
                 new_line = new_line.replace(" " + RESULTS + "/", " ./" + RESULTS + "/")
@@ -1007,7 +1006,7 @@ def apply_command_transform_hdfs_results(work_dir):
 
                 # Write the file in place
                 os.chmod(file_path, stat.S_IWRITE | stat.S_IREAD)
-                with open(file_path, "w") as output_file:
+                with open(file_path, "w", errors="ignore") as output_file:
                     output_file.write(file_data)
 
 
@@ -1057,7 +1056,7 @@ def apply_command_work(work_dir):
         file_path = os.path.join(work_dir, TEST_PRM)
         try:
             lines = file_read_lines(file_path)
-            with open(file_path, "w") as the_file:
+            with open(file_path, "w", errors="ignore") as the_file:
                 for line in lines:
                     if line.find("EpsilonBinNumber") >= 0:
                         continue
