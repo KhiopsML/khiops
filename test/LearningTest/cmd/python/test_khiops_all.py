@@ -1,51 +1,60 @@
-import learning_test_env
-import test_khiops
-import test_families
-import os.path
 import sys
 import stat
-from test_dir_management import *
+import os.path
+
+import _learning_test_constants as lt
+import _learning_test_utils as utils
+import _test_families as test_families
+import _learning_test_config as learning_test_config
+import test_khiops
 
 
-# lance les tests de khiops sur tous les repertoires contenus dans la liste "tool_test_dirs"
-def test_khiops_tool(tool_name, tool_version, tool_test_dirs):
-    """Run tool on test dirs"""
-    # Build tool exe path name from version
-    tool_exe_name, tool_test_sub_dir = test_khiops.retrieve_tool_info(tool_name)
+def test_tool(tool_name, tool_version, suite_dir_names):
+    """Lance les tests de khiops sur tous les repertoires contenus dans la liste suite_dir_names"""
+
+    # Constuction du chemin complet de l'exe de l'outil
+    assert tool_name in lt.TOOL_NAMES
+    tool_exe_name = lt.TOOL_EXE_NAMES[tool_name]
+    tool_dir_name = lt.TOOL_DIR_NAMES[tool_name]
     tool_exe_path = test_khiops.build_tool_exe_path(tool_exe_name, tool_version)
-    # Clean results
-    for test in tool_test_dirs:
-        tool_samples_path = os.path.join(
-            learning_test_env.learning_test_root,
-            "LearningTest",
-            tool_test_sub_dir,
-            test,
-        )
-        if os.path.isdir(tool_samples_path):
-            for sub_test in os.listdir(tool_samples_path):
-                sub_test_path = os.path.join(tool_samples_path, sub_test)
-                file_path = os.path.join(sub_test_path, COMPARISON_RESULTS_LOG)
-                if os.path.isfile(file_path):
-                    os.chmod(file_path, stat.S_IWRITE)
-                    os.remove(file_path)
-                result_dir = os.path.join(sub_test_path, "results")
-                if os.path.isdir(result_dir):
-                    for file_name in os.listdir(result_dir):
-                        file_path = os.path.join(result_dir, file_name)
-                        os.chmod(file_path, stat.S_IWRITE)
-                        os.remove(file_path)
-    # Run tests
-    for test in tool_test_dirs:
+
+    # Nettoyage des resultats
+    if tool_version != "nul":
+        for suite_dir_name in suite_dir_names:
+            suite_dir = os.path.join(
+                learning_test_config.learning_test_root,
+                lt.LEARNING_TEST,
+                tool_dir_name,
+                suite_dir_name,
+            )
+            if os.path.isdir(suite_dir):
+                for test_dir_name in os.listdir(suite_dir):
+                    test_dir = os.path.join(suite_dir, test_dir_name)
+                    file_path = os.path.join(test_dir, lt.COMPARISON_RESULTS_LOG)
+                    if os.path.isfile(file_path):
+                        utils.remove_file(file_path)
+                    results_dir = os.path.join(test_dir, lt.RESULTS)
+                    if os.path.isdir(results_dir):
+                        for file_name in os.listdir(results_dir):
+                            file_path = os.path.join(results_dir, file_name)
+                            utils.remove_file(file_path)
+
+    # Lancement des tests
+    for suite_dir_name in suite_dir_names:
         print("\n\n--------------------------------------------------------")
-        print("\tRunning " + tool_name + " " + test + " tests")
+        print("\tRunning " + tool_name + " " + suite_dir_name + " tests")
         print("--------------------------------------------------------")
-        tool_samples_path = os.path.join(
-            learning_test_env.learning_test_root,
-            "LearningTest",
-            tool_test_sub_dir,
-            test,
+        suite_dir = os.path.join(
+            learning_test_config.learning_test_root,
+            lt.LEARNING_TEST,
+            tool_dir_name,
+            suite_dir_name,
         )
-        test_khiops.evaluate_tool_on_family(tool_exe_path, tool_samples_path, None)
+        if os.path.isdir(suite_dir):
+            test_khiops.evaluate_tool_on_suite(tool_exe_path, suite_dir, None)
+        else:
+            # Affichage d'une erreur, mais sans quitter le programme, pour continuer les tests
+            print("error : missing directory for test suite " + suite_dir)
 
 
 if __name__ == "__main__":
@@ -64,10 +73,10 @@ if __name__ == "__main__":
         print("\t  KNI")
         exit(0)
 
-    # Info on complete tests
-    if os.getenv("KhiopsCompleteTests") != "true":
+    # Info sur les tests complets
+    if os.getenv(lt.KHIOPS_COMPLETE_TESTS) != "true":
         print("\n--------------------------------------------------------")
-        print("Set env var KhiopsCompleteTests=true")
+        print("Set env var " + lt.KHIOPS_COMPLETE_TESTS + "=true")
         print("\tto run all long, instable and unusefull tests")
         print("--------------------------------------------------------\n")
     print("\n\n--------------------------------------------------------")
@@ -75,30 +84,39 @@ if __name__ == "__main__":
     sys.stdout = test_khiops.Unbuffered(sys.stdout)
 
     # Passage en mode batch
-    os.environ["KhiopsBatchMode"] = "true"
+    os.environ[lt.KHIOPS_BATCH_MODE] = "true"
 
-    # Retrieve version
-    version = sys.argv[1]
-    assert version is not None
+    # Recherche de la version
+    main_version = sys.argv[1]
+    assert main_version is not None
 
-    # Retrieve tool
-    tool = ""
+    # Recherche de l'outil
+    main_tool_name = ""
     if len(sys.argv) == 3:
-        tool = sys.argv[2]
+        main_tool_name = sys.argv[2]
+        if main_tool_name not in lt.TOOL_NAMES:
+            utils.fatal_error(
+                "tool "
+                + main_tool_name
+                + " should be in "
+                + utils.list_to_label(lt.TOOL_NAMES)
+            )
 
     # Khiops tool
-    if tool == "" or tool == "Khiops":
-        khiops_tests = test_families.get_test_family("Khiops")
-        test_khiops_tool("Khiops", version, khiops_tests)
+    if main_tool_name == "" or main_tool_name == lt.KHIOPS:
+        khiops_suite_dir_names = test_families.get_family_suite_names(lt.KHIOPS)
+        test_tool(lt.KHIOPS, main_version, khiops_suite_dir_names)
 
     # Coclustering tool
-    if tool == "" or tool == "Coclustering":
-        coclustering_tests = test_families.get_test_family("Coclustering")
-        test_khiops_tool("Coclustering", version, coclustering_tests)
+    if main_tool_name == "" or main_tool_name == lt.COCLUSTERING:
+        coclustering_suite_dir_names = test_families.get_family_suite_names(
+            lt.COCLUSTERING
+        )
+        test_tool(lt.COCLUSTERING, main_version, coclustering_suite_dir_names)
 
     # KNI tool
-    if tool == "" or tool == "KNI":
-        KNI_tests = test_families.get_test_family("KNI")
-        test_khiops_tool("KNI", version, KNI_tests)
+    if main_tool_name == "" or main_tool_name == lt.KNI:
+        KNI_suite_dir_names = test_families.get_family_suite_names(lt.KNI)
+        test_tool(lt.KNI, main_version, KNI_suite_dir_names)
 
     print("all tests are done")
