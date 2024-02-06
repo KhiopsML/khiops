@@ -41,11 +41,13 @@ Gestion de la typologie des resultats de test de reference, selon les axes suiva
   - sequential
 - platform
   - fourni par la fonction python platform.system()
+    - plus os.name pour detecter le cas WSL (plateforme=Windows et os=posix)
   - peut etre forcee par la variable d'environnement KhiopsComparisonPlatform
   - valeurs possibles
     - Darwin (Mac)
     - Linux
     - Windows
+    - WSL
 
 On peut memoriser des variantes de resultats de reference selon leur type si necessaire
 Dans ce cas, la typlogie est indiquee en suffix du nom de repertoire 'results.ref'
@@ -82,11 +84,52 @@ RESULTS_REF_TYPES = [COMPUTING, PLATFORM]
 # Valeurs par type de resultats de refences
 RESULTS_REF_TYPE_VALUES = {}
 RESULTS_REF_TYPE_VALUES[COMPUTING] = ["parallel", "sequential"]
-RESULTS_REF_TYPE_VALUES[PLATFORM] = ["Darwin", "Linux", "Windows"]
+RESULTS_REF_TYPE_VALUES[PLATFORM] = ["Darwin", "Linux", "Windows", "WSL"]
 
 # Caracteres separateurs utilises dans l'analyse des type de repertoire de reference
 AND = "-"
 OR = "_"
+
+
+def check_all_type_values():
+    """Verification de la validite des valeurs d'un contexte"""
+    all_values_list = []
+    all_values_dic = {}
+    # Collecte de toutes les valeurs pour verifier leur validite et leur unicite
+    for results_ref_types in RESULTS_REF_TYPES:
+        results_ref_types_values = RESULTS_REF_TYPE_VALUES[results_ref_types]
+        for value in results_ref_types_values:
+            # Une valeur ne doit contenu que des caracteres alphabetiques
+            assert value.isalpha(), (
+                "Value '"
+                + value
+                + "' in '"
+                + results_ref_types
+                + "' must contain alphabetic characters only"
+            )
+            # Une meme valeur ne doit pas etre utilise plusieurs fois, meme pour des type de contexte differents
+            assert all_values_dic.get(value) is None, (
+                "Value '" + value + "' in '" + results_ref_types + "' already used"
+            )
+            all_values_list.append(value)
+            all_values_dic[value] = results_ref_types
+    # Aucune valeur ne doit etre une sous-valeur d'une autre valeur
+    for value1 in all_values_list:
+        for value2 in all_values_list:
+            assert value1 == value2 or value2.find(value1) == -1, (
+                "Value '"
+                + value1
+                + "' in '"
+                + all_values_dic[value1]
+                + "' must dot be a substring of value '"
+                + value2
+                + "'"
+            )
+    return True
+
+
+# Verification une seule fois de la sepcification correcte des resultats de reference
+assert check_all_type_values(), "Invalid specification of reference results dirs"
 
 
 def get_current_results_ref_context(log_file=None, show=False):
@@ -138,6 +181,8 @@ def get_context_platform_type(log_file=None, show=False):
     forced_platform_type = platform_type is not None
     if not forced_platform_type:
         platform_type = platform.system()
+        if platform_type == "Windows" and os.name == "posix":
+            platform_type = "WSL"
     assert platform_type in RESULTS_REF_TYPE_VALUES[PLATFORM], (
         PLATFORM
         + " type ("
@@ -235,6 +280,7 @@ def _search_results_ref_dir(
 
     results_ref_dir = None
     is_valid = True
+
     # Le contexte est suppose etre valide
     assert len(searched_context) == len(RESULTS_REF_TYPES)
     for i in range(len(RESULTS_REF_TYPES)):

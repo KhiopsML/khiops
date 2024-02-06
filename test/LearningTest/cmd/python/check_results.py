@@ -39,7 +39,9 @@ def write_message(message, log_file=None, show=False):
     Affichage sur la console selon le parametre show
     Si ni log_file, ni show ne sont specifier, la methode est en mode silencieux
     """
-    cleaned_message = message.encode("utf-8", "ignore").decode("utf-8")
+    cleaned_message = message.encode(encoding="utf-8", errors="ignore").decode(
+        encoding="utf-8"
+    )
     if show:
         print(cleaned_message)
     # on encode en utf-8 en ignorant les erreurs pour eviter un erreur lors de l'encodage automatique
@@ -167,7 +169,7 @@ def check_results(test):
     # Ouverture du fichier de log de comparaison
     log_file_path = os.path.join(test_full_path, COMPARISON_LOG_FILE_NAME)
     try:
-        log_file = open(log_file_path, "w")
+        log_file = open(log_file_path, "w", errors="ignore")
     except Exception as exception:
         print("error : unable to create log file " + log_file_path, exception)
         return
@@ -243,7 +245,7 @@ def check_results(test):
         #
         # Attention, la methode fsdecode utilise des 'surrogate characters' invisible
         # permettant de garder trace des bytes non utf8 pour le re-encodage par fsencode si necessaire
-        # On passe par une version 'nettoyee' de ces caracteres speciaux pour memoriser
+        # On passe par une version 'nettoyee' purement ascii de ces caracteres speciaux pour memoriser
         # l'association entre un nom de fichier de type string et un nom de type bytes
         # Dans ce cas, il suffit de memoriser dans les resultats de reference la
         # version du nom de fichier sans bytes (valide quelque soit la plateforme)
@@ -254,7 +256,7 @@ def check_results(test):
         recovery = False
         for byte_file_name in ref_byte_file_names:
             file_name = os.fsdecode(byte_file_name)
-            cleaned_file_name = file_name.encode("utf-8", "ignore").decode("utf-8")
+            cleaned_file_name = file_name.encode("ascii", "ignore").decode("ascii")
             if cleaned_file_name != file_name:
                 write_message(
                     "warning : reference file name with a byte encoding ("
@@ -272,7 +274,7 @@ def check_results(test):
         dic_test_byte_file_names = {}
         for byte_file_name in test_byte_file_names:
             file_name = os.fsdecode(byte_file_name)
-            cleaned_file_name = file_name.encode("utf-8", "ignore").decode("utf-8")
+            cleaned_file_name = file_name.encode("ascii", "ignore").decode("ascii")
             if cleaned_file_name != file_name:
                 write_message(
                     "warning : test file name with a byte encoding ("
@@ -289,11 +291,11 @@ def check_results(test):
         # Message de recuperation d'erreur si necessaire
         if recovery:
             write_message(
-                "\nRecovery from errors caused byte encoding of file names in another platform",
+                "\nRecovery from errors caused by byte encoding of file names in another platform",
                 log_file=log_file,
             )
             portability_message = append_message(
-                portability_message, "recovery of type byte enencoding of file names"
+                portability_message, "recovery of type byte enncoding of file names"
             )
 
         # On les tri pour ameliorer la statbilite du reporting inter plateformes
@@ -368,7 +370,7 @@ def check_results(test):
             # En-tete de comparaison des fichiers
             write_message("\nfile " + test_file_path, log_file=log_file)
 
-            # On utilise si possible le path des fichiers en byte pour s'adapter aux contrainte de la plateforme
+            # On utilise si possible le path des fichiers en byte pour s'adapter aux contraintes de la plateforme
             # Les erreurs seront diagnostiquees si necessaire lors de la lecture des fichiers
             used_ref_file_path = ref_file_path
             if dic_ref_byte_file_names.get(file_name) is not None:
@@ -644,6 +646,23 @@ def check_results(test):
         # Analyse specifique de la sous partie des fichiers correspondant aux messages utilisateur,
         # qui ont ete marque en stripant les lignes correspondantes
         if unsorted_user_messages_recovery:
+
+            def filter_record_index_from_lines(lines):
+                """Filtrage avance des lignes en supprimant le debut de ligne jusqu'a l'index de record"""
+                filtered_lines = []
+                warning_pattern = "warning : Data table "
+                record_pattern = " : Record "
+                for line in lines:
+                    pos1 = line.find(warning_pattern)
+                    if pos1 >= 0:
+                        pos2 = line.find(record_pattern)
+                        if pos2 > pos1:
+                            pos3 = line[pos2 + len(record_pattern) :].find(" : ")
+                            if pos3 > 0:
+                                line = line[pos2 + len(record_pattern) + pos3 :]
+                    filtered_lines.append(line)
+                return filtered_lines
+
             # Parcours des fichiers concerne pour reanalyser leur lignes specifiques aux erreurs
             user_message_error_number = 0
             user_message_warning_number = 0
@@ -659,7 +678,7 @@ def check_results(test):
                     test_file_lines = extract_striped_lines(test_file_lines)
                     ref_file_lines = extract_striped_lines(ref_file_lines)
                     # Comparaison de la partie des fichiers pre-traites relative aux messages utilisateur
-                    # La comparaison se fait de facon muette, sans passer par le ficheir de log
+                    # La comparaison se fait de facon muette, sans passer par le fichier de log
                     errors, warnings = check_file_lines(
                         file_name,
                         file_name,
@@ -668,7 +687,10 @@ def check_results(test):
                     )
                     user_message_error_number += errors
                     user_message_warning_number += warnings
-                    # Comparaison apres avoir triee les messages utilisateurs
+                    # Comparaison filtree les messages utilisateurs jusq'aux index des records,
+                    # qui peuvent varier d'une execution a l'autre, puis les avoir trier
+                    test_file_lines = filter_record_index_from_lines(test_file_lines)
+                    ref_file_lines = filter_record_index_from_lines(ref_file_lines)
                     test_file_lines.sort()
                     ref_file_lines.sort()
                     errors, warnings = check_file_lines(
@@ -679,6 +701,7 @@ def check_results(test):
                     )
                     recovered_error_number += errors
                     recovered_warning_number += warnings
+
             # Il faut que les erreurs ne proviennent que des messages utilisateurs
             if unsorted_user_messages_recovery:
                 unsorted_user_messages_recovery = (
@@ -697,7 +720,7 @@ def check_results(test):
             write_message(
                 "\tall errors come from the users messages in  "
                 + ERR_TXT
-                + " and in json reports, with a different order",
+                + " and in json reports, with a different order and possibly different record indexes",
                 log_file=log_file,
             )
             write_message(

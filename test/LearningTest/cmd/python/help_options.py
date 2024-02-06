@@ -64,7 +64,7 @@ print("")
 print(
     "KhiopsComparisonPlatform: "
     + str(os.getenv("KhiopsComparisonPlatform"))
-    + "\n\tplatform (Windows, Linux, Darwin) used to compare test results (default: None, to use that of current OS)"
+    + "\n\tplatform (Windows, Linux, Darwin, WSL) used to compare test results (default: None, to use that of current OS)"
 )
 
 print(
