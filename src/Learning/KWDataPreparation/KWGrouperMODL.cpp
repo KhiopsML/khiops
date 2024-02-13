@@ -594,7 +594,7 @@ void KWGrouperMODL::GroupPreprocessedTable(KWFrequencyTable* kwftSource, KWFrequ
 			dCost = ComputeGroupingCost(kwftOptimizedGranularizedTable, nCurrentPartileNumber);
 
 			// Cas de l'amelioration du cout
-			if (dCost < dBestCost)
+			if (dCost < dBestCost - dEpsilon)
 			{
 				// Memorisation du cout optimal
 				dBestCost = dCost;
@@ -813,7 +813,7 @@ void KWGrouperMODL::SmallSourceNumberGroup(KWFrequencyTable* kwftSource, KWFrequ
 		MergeFrequencyVectors(workingFrequencyVector, kwftSource->GetFrequencyVectorAt(1),
 				      kwftSource->GetFrequencyVectorAt(2));
 		dCost = ComputeGroupCost(workingFrequencyVector) + dCostGroup0;
-		if (dCost < dBestCost)
+		if (dCost < dBestCost - dEpsilon)
 		{
 			dBestCost = dCost;
 			nBestTwoGroupsIndex = 0;
@@ -822,7 +822,7 @@ void KWGrouperMODL::SmallSourceNumberGroup(KWFrequencyTable* kwftSource, KWFrequ
 		MergeFrequencyVectors(workingFrequencyVector, kwftSource->GetFrequencyVectorAt(0),
 				      kwftSource->GetFrequencyVectorAt(2));
 		dCost = ComputeGroupCost(workingFrequencyVector) + dCostGroup1;
-		if (dCost < dBestCost)
+		if (dCost < dBestCost - dEpsilon)
 		{
 			dBestCost = dCost;
 			nBestTwoGroupsIndex = 1;
@@ -831,7 +831,7 @@ void KWGrouperMODL::SmallSourceNumberGroup(KWFrequencyTable* kwftSource, KWFrequ
 		MergeFrequencyVectors(workingFrequencyVector, kwftSource->GetFrequencyVectorAt(0),
 				      kwftSource->GetFrequencyVectorAt(1));
 		dCost = ComputeGroupCost(workingFrequencyVector) + dCostGroup2;
-		if (dCost < dBestCost)
+		if (dCost < dBestCost - dEpsilon)
 		{
 			dBestCost = dCost;
 			nBestTwoGroupsIndex = 2;

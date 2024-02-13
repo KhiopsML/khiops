@@ -183,7 +183,7 @@ int KWDensityEstimationTest::SearchBestInstanceGridSize(ContinuousVector* cvXVal
 			cout << nAxisCellNumber << "\t" << dCost << endl;
 
 		// Test si amelioration
-		if (dCost < dBestCost)
+		if (dCost < dBestCost - dEpsilon)
 		{
 			dBestCost = dCost;
 			nBestAxisCellNumber = nAxisCellNumber;

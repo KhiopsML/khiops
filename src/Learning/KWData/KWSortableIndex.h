@@ -185,7 +185,7 @@ protected:
 // Comparaison de deux objets KWSortableSymbol par reference
 int KWSortableSymbolCompare(const void* elem1, const void* elem2);
 
-// Comparaison de deux objets KWSortableSymbol par valeur
+// Comparaison de deux objets KWSortableSymbol par valeur, puis par index croissant
 int KWSortableSymbolCompareValue(const void* elem1, const void* elem2);
 
 // Comparaison de deux objets KWSortableSymbol par index decroissant, puis par valeur

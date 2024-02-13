@@ -252,7 +252,7 @@ name      {letter}({letter}|{digit})*
                           
                           // Initialisation de la valeur du token
                           c = yytext[0];
-						  if (not isprint(c))
+						  if (not p_isprint(c))
 						  {
   			                sToken += '[';
 						    sToken += IntToString((int)c);
@@ -271,7 +271,7 @@ name      {letter}({letter}|{digit})*
 							    nCorrectedLineNumber--;
 						        break;
 						      }
-						      if (not isprint(c))
+						      if (not p_isprint(c))
 							  {
 							    if (sToken.GetLength() < nMaxLength)
 							    {

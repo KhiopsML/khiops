@@ -335,7 +335,7 @@ void KWDREncrypt::InitWorkingArrays(const Symbol& sKey) const
 	{
 		if (isalnum(i))
 			ivPureAlphanumChars.Add(i);
-		if (isprint(i) and not isalnum(i))
+		if (p_isprint(i) and not isalnum(i))
 			ivPrintableNonAlphanumChars.Add(i);
 	}
 
@@ -365,7 +365,7 @@ void KWDREncrypt::InitWorkingArrays(const Symbol& sKey) const
 		{
 			// Caractere non imprimable transforme en blanc
 			c = i;
-			if (c >= 128 or not isprint(c))
+			if (c >= 128 or not p_isprint(c))
 				c = ' ';
 
 			// Prefixe underscore rajoute

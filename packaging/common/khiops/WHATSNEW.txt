@@ -12,6 +12,8 @@ New Features:
 Bug fix:
 - Fix a bug in the calculation of descriptive stats for huge databases
 - Fix clusters having negative typicalities in coclustering
+- Fix regex derivation rule not working in multi-table dictionaries
+- Fix `AddSeconds` rule not correctly parsing large values
 
 
 Version 10.1.5

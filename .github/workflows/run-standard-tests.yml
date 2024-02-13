@@ -1,7 +1,7 @@
 ---
 name: Run Standard Tests
 # Run minimal end-to-end tests for Khiops, Khiops Coclustering and KNITransfer
-# Tests are lauched on Linux, Windows and macOS ; in serial and in parallel (3 procs)
+# Tests are lauched on Linux, Windows and macOS ; in serial and in parallel (4 procs)
 # On release, it runs Standard test for binary. Plus MultiTables/SpliceJunction for KNITransfer
 # On debug, it runs only Standard/Iris for Coclustering and KNITransfer and Standard/IrisLight for Khiops
 # In case of errors, test results are available as artifacts for 7 days
@@ -118,7 +118,7 @@ jobs:
             export EXT=".exe"
           fi
           if [[ "${{ matrix.running-mode }}" == "parallel" ]] ; then
-            export KhiopsMPIProcessNumber=3
+            export KhiopsMPIProcessNumber=4
           fi
           if [[ "${{ matrix.config }}" == "release" ]] ; then
             python $TEST_PY Khiops ${BIN_PATH}/MODL${EXT} Standard

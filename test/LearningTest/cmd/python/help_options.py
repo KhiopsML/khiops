@@ -1,64 +1,81 @@
 import os
+from test_dir_management import *
 
 print(
     "KhiopsBatchMode: "
     + str(os.getenv("KhiopsBatchMode"))
-    + "\n\t true, false (default: true)"
+    + "\n\ttrue, false (default: true)"
 )
 
 print(
     "KhiopsMinTestTime: "
     + str(os.getenv("KhiopsMinTestTime"))
-    + "\n\t run only tests where run time (in file time.log) is beyond a threshold"
+    + "\n\trun only tests where run time (in file "
+    + TIME_LOG
+    + ") is beyond a threshold"
 )
 
 print(
     "KhiopsMaxTestTime: "
     + str(os.getenv("KhiopsMaxTestTime"))
-    + "\n\t run only tests where run time (in file time.log) is below a threshold"
+    + "\n\trun only tests where run time (in file "
+    + TIME_LOG
+    + ") is below a threshold"
+)
+
+print(
+    "KhiopsTestTimeoutLimit: "
+    + str(os.getenv("KhiopsTestTimeoutLimit"))
+    + "\n\tkill overlengthy process (default: 300 s)"
 )
 
 print(
     "KhiopsMPIProcessNumber: "
     + str(os.getenv("KhiopsMPIProcessNumber"))
-    + "\n\t Number of MPI process in paralle mode (default: none)"
+    + "\n\tNumber of MPI process in paralle mode (default: None)"
 )
 
 print(
     "KhiopsExpertMode: "
     + str(os.getenv("KhiopsExpertMode"))
-    + "\n\t Khiops expert mode true, false (default: false)"
+    + "\n\tKhiops expert mode true, false (default: false)"
 )
 
 print(
     "KhiopsTaskFileMode: "
     + str(os.getenv("KhiopsTaskFileMode"))
-    + "\n\t Create a task file task.log (-t option) (default: none)"
+    + "\n\tCreate a task file task.log (-t option) (default: None)"
 )
 
 print(
     "KhiopsOutputScenarioMode: "
     + str(os.getenv("KhiopsOutputScenarioMode"))
-    + "\n\t Create an output scenario test.output.prm (-o option) (default: none)"
+    + "\n\tCreate an output scenario test.output.prm (-o option) (default: None)"
 )
 
 print(
     "KhiopsCompleteTests: "
     + str(os.getenv("KhiopsCompleteTests"))
-    + "\n\t Perform all tests, even the longest ones (default: false)"
+    + "\n\tPerform all tests, even the longest ones (default: false)"
 )
 
 
 print("")
 print(
+    "KhiopsComparisonPlatform: "
+    + str(os.getenv("KhiopsComparisonPlatform"))
+    + "\n\tplatform (Windows, Linux, Darwin, WSL) used to compare test results (default: None, to use that of current OS)"
+)
+
+print(
     "KhiopsPreparationTraceMode: "
     + str(os.getenv("KhiopsPreparationTraceMode"))
-    + "\n\t Trace for dimensionnining of preparation tasks (default: false)"
+    + "\n\tTrace for dimensionnining of preparation tasks (default: false)"
 )
 print(
     "KhiopsParallelTrace: "
     + str(os.getenv("KhiopsParallelTrace"))
-    + "\n\t Trace for parallel tasks (0 to 3)"
+    + "\n\tTrace for parallel tasks (0 to 3)"
 )
 
 print(

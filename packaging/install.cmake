@@ -31,8 +31,8 @@ install(
 install(
   FILES ${TMP_DIR}/kni.README.txt
   DESTINATION ${DOC_DIR}
-  RENAME README.txt
-  COMPONENT KNI)
+  COMPONENT KNI
+  RENAME README.txt)
 
 # Copy KNI c++ files to temporary directory before to add main functions
 configure_file(${PROJECT_SOURCE_DIR}/src/Learning/KNITransfer/KNIRecodeFile.cpp ${TMP_DIR}/KNIRecodeFile.c COPYONLY)
@@ -114,4 +114,9 @@ install(
   FILES ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops.desktop
         ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops-coclustering.desktop
   DESTINATION usr/share/applications
+  COMPONENT KHIOPS)
+
+install(
+  FILES ${CMAKE_BINARY_DIR}/jars/norm.jar ${CMAKE_BINARY_DIR}/jars/khiops.jar
+  DESTINATION usr/share/khiops
   COMPONENT KHIOPS)

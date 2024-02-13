@@ -385,7 +385,7 @@ void KWTextParser::BuildLineWordDictionary(char* sLine, ObjectDictionary* odWord
 		if (bInspectChars)
 		{
 			cout << i << "\t" << cLineChar << "\t" << isalnum(cLineChar) << "\t" << ispunct(cLineChar)
-			     << "\t" << isspace(cLineChar) << "\t" << isprint(cLineChar) << endl;
+			     << "\t" << isspace(cLineChar) << "\t" << p_isprint(cLineChar) << endl;
 		}
 
 		// Transformation des caracteres accentues

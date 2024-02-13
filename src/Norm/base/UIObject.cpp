@@ -1203,7 +1203,7 @@ JNIEnv* UIObject::GraphicGetJNIEnv()
 		bGraphicIsLoaded = true;
 
 		// Memorisation du locale courant (modifie par Java)
-		sCurrentLocale = setlocale(LC_ALL, NULL);
+		sCurrentLocale = p_setlocale(LC_ALL, NULL);
 
 		// Recherche de la classe JFrame pour savoir si on a acces au GUI
 		cls = env->FindClass("javax/swing/JFrame");
@@ -1564,7 +1564,7 @@ const ALString UIObject::NativeFromJstring(JNIEnv* envValue, const jstring value
 	jbyte* p_bytes;
 
 	// Memorisation du locale courant (modifie par Java: cf GraphicGetJNIEnv)
-	sCurrentLocale = setlocale(LC_ALL, NULL);
+	sCurrentLocale = p_setlocale(LC_ALL, NULL);
 
 	// On utilise directment l'API JNI (sans passer par GraphicGetClassID ou GraphicGetMethodID)
 	// pour eviter les recursion avec GraphicGetJNIEnv
@@ -1595,7 +1595,7 @@ const ALString UIObject::NativeFromJstring(JNIEnv* envValue, const jstring value
 	envValue->ReleaseByteArrayElements(byte_array, p_bytes, 0);
 
 	// Restitution du locale courant
-	setlocale(LC_ALL, sCurrentLocale);
+	p_setlocale(LC_ALL, sCurrentLocale);
 	return sResult;
 }
 
@@ -1612,7 +1612,7 @@ const jstring UIObject::NativeToJstring(JNIEnv* envValue, const ALString& sValue
 	require(envValue != NULL);
 
 	// Memorisation du locale courant (modifie par Java: cf GraphicGetJNIEnv)
-	sCurrentLocale = setlocale(LC_ALL, NULL);
+	sCurrentLocale = p_setlocale(LC_ALL, NULL);
 
 	// On utilise directment l'API JNI (sans passer par GraphicGetClassID ou GraphicGetMethodID)
 	// pour eviter les recursion avec GraphicGetJNIEnv
@@ -1637,7 +1637,7 @@ const jstring UIObject::NativeToJstring(JNIEnv* envValue, const ALString& sValue
 	jstringValue = (jstring)envValue->NewObject(class_java_lang_String, mid_string_ctor, byte_array, codeString);
 
 	// Restitution du locale courant
-	setlocale(LC_ALL, sCurrentLocale);
+	p_setlocale(LC_ALL, sCurrentLocale);
 	return jstringValue;
 }
 

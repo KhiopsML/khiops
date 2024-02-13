@@ -850,7 +850,7 @@ boolean SNBPredictorSNBTrainingTask::MasterInitializeDataTableBinarySliceSet()
 	}
 	// Message d'erreur si pas assez de memoire, meme avec le nombre maximal de slices
 	else
-		AddError("not enough memory to run the task" +
+		AddError("Not enough memory to run the task" +
 			 RMResourceManager::BuildMissingMemoryMessage(lSlaveNecessaryMemory - lGrantedSlaveMemory));
 
 	// Trace de deboggage

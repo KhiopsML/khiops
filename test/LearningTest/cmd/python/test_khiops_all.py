@@ -1,9 +1,10 @@
 import learning_test_env
 import test_khiops
+import test_families
 import os.path
 import sys
-
 import stat
+from test_dir_management import *
 
 
 # lance les tests de khiops sur tous les repertoires contenus dans la liste "tool_test_dirs"
@@ -23,7 +24,7 @@ def test_khiops_tool(tool_name, tool_version, tool_test_dirs):
         if os.path.isdir(tool_samples_path):
             for sub_test in os.listdir(tool_samples_path):
                 sub_test_path = os.path.join(tool_samples_path, sub_test)
-                file_path = os.path.join(sub_test_path, "comparisonResults.log")
+                file_path = os.path.join(sub_test_path, COMPARISON_RESULTS_LOG)
                 if os.path.isfile(file_path):
                     os.chmod(file_path, stat.S_IWRITE)
                     os.remove(file_path)
@@ -44,7 +45,7 @@ def test_khiops_tool(tool_name, tool_version, tool_test_dirs):
             tool_test_sub_dir,
             test,
         )
-        test_khiops.run_test(tool_exe_path, tool_samples_path, None)
+        test_khiops.evaluate_tool_on_family(tool_exe_path, tool_samples_path, None)
 
 
 if __name__ == "__main__":
@@ -86,50 +87,18 @@ if __name__ == "__main__":
         tool = sys.argv[2]
 
     # Khiops tool
-    khiops_tests = [
-        "Standard",
-        "SideEffects",
-        "Rules",
-        "MissingValues",
-        "Advanced",
-        "Bugs",
-        "BugsMultiTables",
-        "MultipleTargets",
-        "MultiTables",
-        "DeployCoclustering",
-        "SparseData",
-        "SparseModeling",
-        "ParallelTask",
-        "NewPriorV9",
-        "DTClassification",
-        "VariableConstruction",
-        "NewV10",
-        "KIInterpretation",
-        "CrashTests",
-        "SmallInstability",
-    ]
-    # V11        "Histograms",
-    # V11        "HistogramsLimits",
-    # V11        "TextVariables",
-
-    # Following tests are very long, instable and not usefull:
-    if os.getenv("KhiopsCompleteTests") == "true":
-        khiops_tests.append("Classification")
-        khiops_tests.append("TextClassification")
-        khiops_tests.append("MTClassification")
-        khiops_tests.append("Regression")
-        khiops_tests.append("ChallengeAutoML")
     if tool == "" or tool == "Khiops":
+        khiops_tests = test_families.get_test_family("Khiops")
         test_khiops_tool("Khiops", version, khiops_tests)
 
     # Coclustering tool
-    coclustering_tests = ["Standard", "Bugs", "NewPriorV9", "SmallInstability"]
     if tool == "" or tool == "Coclustering":
+        coclustering_tests = test_families.get_test_family("Coclustering")
         test_khiops_tool("Coclustering", version, coclustering_tests)
 
     # KNI tool
-    KNI_tests = ["Standard", "MultiTables", "SmallInstability"]
     if tool == "" or tool == "KNI":
+        KNI_tests = test_families.get_test_family("KNI")
         test_khiops_tool("KNI", version, KNI_tests)
 
     print("all tests are done")

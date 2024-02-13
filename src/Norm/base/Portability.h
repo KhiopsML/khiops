@@ -213,16 +213,18 @@ struct tm* p_localtime(const time_t* timer);
 struct tm* p_gmtime(const time_t* timer);
 int p_stat(const char* path, struct_stat* buf);
 FILE* p_fopen(const char* filename, const char* mode);
+char* p_setlocale(int category, const char* locale);
 char* p_strcpy(char* strDestination, const char* strSource);
 char* p_strncpy(char* strDest, const char* strSource, size_t count);
 char* p_strcat(char* strDestination, const char* strSource);
+int p_isprint(int ch);
 
-// Le locale de l'application est parametre de facon a etre independant de la machine,
-// pour assurer l'unicite des conversions numeriques et de leur format d'export, des tris,
-// et des comparaisons entre chaines de caracteres
+// Le locale de l'application est parametre de facon a etre independant de la machine, pour assurer
+// l'unicite des conversions numeriques et de leur format d'export, des tris, et des comparaisons
+// entre chaines de caracteres
 //
-// Parametrage des locales: toute fonction de FileService base sur un nom de fichier entoure son appel
-// d'un parametrage prealable au locale de la machine, puis restore le locale de l'application
+// Parametrage des locales: toute fonction de FileService base sur un nom de fichier entoure son
+// appel d'un parametrage prealable au locale de la machine, puis restore le locale de l'application
 // Dans le cas d'un besoin de parametrage de locale specifique, il est necessaire de repositionner
 // ensuite le locale par defaut par appel a p_SetApplicationLocale.
 void p_SetMachineLocale();
@@ -396,3 +398,14 @@ inline char* p_strcat(char* strDestination, const char* strSource)
 }
 
 #endif // _WIN32
+
+////////////////////////////////////////////////////
+// Implementation portable pour tous les OS
+
+// isprint a un comportement qui depend de l'OS et de la locale
+// Par exemple; la tabulation est printbale sous Windows, mais pas sous linux
+// Limplementation ci-dessous est portable sur tous les OS testes (Windows, Linux, MAC)
+inline int p_isprint(int ch)
+{
+	return (0 <= ch and ch < 128 and isprint(ch) and not iscntrl(ch));
+}

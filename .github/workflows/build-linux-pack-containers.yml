@@ -8,7 +8,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [rocky8, rocky9, ubuntu18.04, ubuntu20.04, ubuntu22.04]
+        os:
+          - debian10
+          - debian11
+          - rocky8
+          - rocky9
+          - ubuntu18.04
+          - ubuntu20.04
+          - ubuntu22.04
     permissions:
       packages: write  # Allows writing in the container registry
     steps:
@@ -23,12 +30,14 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Downcase GitHub repository
+        run: echo "GH_REPOSITORY=${GITHUB_REPOSITORY,,}" >> "${GITHUB_ENV}"
       - name: Build the image and push it to the registry
         id: docker-build
         uses: docker/build-push-action@v2
         with:
-          file: ./packaging/dockerfiles/linux/Dockerfile.${{ matrix.os }}
-          tags: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
+          file: ./packaging/dockerfiles/Dockerfile.${{ matrix.os }}
+          tags: ghcr.io/${{ env.GH_REPOSITORY }}/khiopsdev-${{ matrix.os }}:latest
           push: true
       - name: Display the image digest
         run: echo ${{ steps.docker-build.outputs.digest }}
