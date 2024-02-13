@@ -48,7 +48,7 @@ Khiops 10.0 - what's new
         - distributed as a python package
         - new features are available: see pykhiops release notes
 
-Upward compatibility with Khiops 9
+Backward compatibility with Khiops 9
   - dictionaries of Khiops 9 are readable with Khiops 10
   - visualization reports of Khiops 9 are usable with the former visualization tool
   - python scripts using pykhiops 9 are running, with warnings for the deprecated features
@@ -64,8 +64,9 @@ Upward compatibility with Khiops 9
 Technical prerequisites
 -----------------------
 Configuration:
-   - PC Windows (Seven and higher), 64 bits
+   - Windows 10 or Higher, 64 bits
    - Linux (supported distributions: see https://khiops.org), 64 bits
+   - macOS (via conda, see https://khiops.org), intel and ARM, 64 bits
 
 Windows software:
    - Java Runtime Environment V7 or higher
@@ -81,7 +82,7 @@ Linux software:
 	Automatic detection and silent installation during the Khiops installation process
 
 
-Other configurations (ex. macOS): see https://khiops.org
+macOS and other platforms: see https://khiops.org
 
 
 Khiops files on Windows
