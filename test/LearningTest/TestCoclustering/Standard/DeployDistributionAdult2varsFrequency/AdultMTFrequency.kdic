@@ -1,0 +1,14 @@
+#Khiops 7.7.2i
+
+Root	Dictionary	Occupation	(occupation)
+{
+	Categorical	occupation		;	
+	Table(OccupationSampleFrequency)	Samples		;	
+};
+
+Dictionary	OccupationSampleFrequency	(occupation)
+{
+	Categorical	education		;	
+	Categorical	occupation		;	
+Unused	Numerical	frequency		;	
+};

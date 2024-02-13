@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -106,7 +106,7 @@ int main(int argc, char** argv)
 
 extern "C"
 {
-#ifdef _MSC_VER
+#ifdef _WIN32
 	// Version 32 bits
 	int __stdcall _imp__JNI_CreateJavaVM(void** pvm, void** penv, void* args)
 	{
@@ -126,9 +126,7 @@ extern "C"
 	{
 		exit(11);
 	}
-#endif // _MSC_VER
-
-#ifdef __UNIX__
+#else
 	int JNI_CreateJavaVM(void** pvm, void** penv, void* args)
 	{
 		exit(11);
@@ -137,5 +135,5 @@ extern "C"
 	{
 		exit(11);
 	}
-#endif // __UNIX__
+#endif // _WIN32
 }

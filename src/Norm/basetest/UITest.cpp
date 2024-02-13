@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -223,7 +223,7 @@ void FormattedLabelCard::Test()
 		"<li> Tutorial: KhiopsTutorial.pdf\n"
 		"</ul>\n"
 		"<h3> See doc directory under Khiops installation directory. </h3> <p>\n"
-		"<a href=\"http://www.khiops.com\">Khiops (c) Orange Labs software for data mining</a> \n"
+		"<a href=\"http://khiops.org\">Khiops (c) Orange software for data mining</a> \n"
 		"</html>";
 
 	// Parametrage de la boite et ouverture
@@ -259,7 +259,7 @@ LabelCard::LabelCard()
 	// Chaine de caracteres dans UriLabel
 	AddStringField("FourthText", "", "");
 	GetFieldAt("FourthText")->SetStyle("UriLabel");
-	GetFieldAt("FourthText")->SetParameters("www.khiops.com");
+	GetFieldAt("FourthText")->SetParameters("khiops.org");
 }
 
 LabelCard::~LabelCard() {}
@@ -279,7 +279,7 @@ void LabelCard::Test()
 		"<li> Tutorial: KhiopsTutorial.pdf\n"
 		"</ul>\n"
 		"<h3> See doc directory under Khiops installation directory. </h3> <p>\n"
-		"<a href=\"http://www.khiops.com\">Khiops (c) Orange Labs software for data mining</a> \n";
+		"<a href=\"http://khiops.org\">Khiops (c) Orange software for data mining</a> \n";
 
 	// Parametrage de la boite et ouverture
 	UIObject::SetUIMode(UIObject::Graphic);

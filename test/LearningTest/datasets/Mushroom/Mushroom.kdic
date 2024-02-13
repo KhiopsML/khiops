@@ -1,0 +1,28 @@
+#Khiops 7.7.2i
+
+Dictionary	Mushroom
+{
+	Categorical	Class		;	
+	Categorical	CapShape		;	
+	Categorical	CapSurface		;	
+	Categorical	CapColor		;	
+	Categorical	Bruise		;	
+	Categorical	Odor		;	
+	Categorical	GillAttachment		;	
+	Categorical	GillSpacing		;	
+	Categorical	GillSize		;	
+	Categorical	GillColor		;	
+	Categorical	StalkShape		;	
+	Categorical	StalkRoot		;	
+	Categorical	StalkSurfaceAboveRing		;	
+	Categorical	StalkSurfaceBelowRing		;	
+	Categorical	StalkColorAboveRing		;	
+	Categorical	StalkColorBelowRing		;	
+	Categorical	VeilType		;	
+	Categorical	VeilColor		;	
+	Categorical	RingNumber		;	
+	Categorical	RingType		;	
+	Categorical	SporePrintColor		;	
+	Categorical	Population		;	
+	Categorical	Habitat		;	
+};

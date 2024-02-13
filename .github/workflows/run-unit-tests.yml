@@ -1,53 +1,79 @@
+---
 name: Run Unit Tests
-
 on:
   workflow_dispatch:
-  push:
-
+  pull_request:
+    paths:
+      - '**CMakeLists.txt'
+      - src/**.h
+      - src/**.cpp
+      - src/**.java
+      - src/**.dd
+      - src/**.inc
+      - src/**.lex
+      - src/**.yac
+      - test/**.h
+      - test/**.cpp
 jobs:
   run-unit-tests:
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
-        build-setup: [
-          {os: windows-2022, cmake-preset: windows-msvc-debug},
-          {os: ubuntu-latest, cmake-preset: linux-gcc-debug}]
-
+        build-setup:
+          - {os: windows-2022, cmake-preset: windows-msvc-debug}
+          - {os: ubuntu-latest, cmake-preset: linux-gcc-debug}
+          - {os: macos-latest, cmake-preset: macos-clang-debug}
     runs-on: ${{ matrix.build-setup.os }}
-
     permissions:
       id-token: write
       contents: read
       checks: write
-
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
-
-      - name: Build Khiops
+      - name: Build Khiops test executables
         uses: ./.github/actions/build-khiops
         with:
           preset-name: ${{ matrix.build-setup.cmake-preset }}
-
+          targets: norm_test parallel_test parallel_mpi_test learning_test KNITest
+          override-flags: -DTESTING=ON
       - name: Run Unit Tests for the Norm Module
-        if: success() || failure()
-        run: build/${{ matrix.build-setup.cmake-preset }}/bin/norm_test --gtest_output="xml:${{github.workspace}}/reports/report-norm.xml"
-
+        run: |
+          build/${{ matrix.build-setup.cmake-preset }}/bin/norm_test \
+            --gtest_output="xml:reports/report-norm.xml"
       - name: Run Unit Tests for the Parallel Module
         if: success() || failure()
-        run: build/${{ matrix.build-setup.cmake-preset }}/bin/Parallel_test --gtest_output="xml:${{github.workspace}}/reports/report-parallel.xml"
-
+        run: |
+          build/${{ matrix.build-setup.cmake-preset }}/bin/parallel_test \
+            --gtest_output="xml:reports/report-parallel.xml"
+      - name: Run Unit Tests for the Parallel MPI Module in serial
+        if: success() || failure()
+        run: |
+          build/${{ matrix.build-setup.cmake-preset }}/bin/parallel_mpi_test \
+            --gtest_output="xml:reports/report-parallel-mpi-serial.xml"
+      - name: Run Unit Tests for the Parallel MPI Module in parallel
+        if: success() || failure()
+        run: |
+          mpiexec -n 4 build/${{ matrix.build-setup.cmake-preset }}/bin/parallel_mpi_test \
+            --gtest_output="xml:reports/report-parallel-mpi-parallel.xml"
       - name: Run Unit Tests for the Learning Module
         if: success() || failure()
-        run: build/${{ matrix.build-setup.cmake-preset }}/bin/learning_test --gtest_output="xml:${{github.workspace}}/reports/report-learning.xml"
-
-      - name: Create Unit Test Report
-        uses: dorny/test-reporter@v1
+        run: |
+          build/${{ matrix.build-setup.cmake-preset }}/bin/learning_test \
+            --gtest_output="xml:reports/report-learning.xml"
+      - name: Run Unit Tests for the KNI Module
+        if: success() || failure()
+        run: |
+          build/${{ matrix.build-setup.cmake-preset }}/bin/KNITest \
+            --gtest_output="xml:reports/report-kni.xml"
+      - name: Create Unit Test Reports Dashboards
+        uses: phoenix-actions/test-reporting@v12
         if: success() || failure()
         with:
-            name: Unit Tests
-            path: ${{github.workspace}}/reports/report-*.xml
-            reporter: jest-junit
-
-
-
+          name: Unit Tests Reports (${{ matrix.build-setup.os }})
+          reporter: jest-junit
+          path: reports/report-*.xml
+          path-replace-backslashes: 'true'  # Necessary for windows paths

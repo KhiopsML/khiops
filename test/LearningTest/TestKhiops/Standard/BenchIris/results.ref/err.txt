@@ -1,0 +1,2 @@
+Database ../../../datasets/Iris/Iris.txt : Read records: 150
+Write benchmark evaluation report ./results/benchmark.xls

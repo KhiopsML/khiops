@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -133,13 +133,17 @@ public:
 	// Est-ce qu'il y a eu au moins une erreur
 	static boolean IsAtLeastOneError();
 
+	// Activation de la gestion des signaux via des erreurs, pour afficher des messages d'erreur explicites
+	// A appeler en debut du main des executable.
+	// Attention, comportement indefini dans les environnements multi-thread.
+	// A ne pas appeler pour une DLL (par exemple, crash observe depuis Java sous linux)
+	// Ne fait rien en Debug ou RelWithDebInfo (alpha)
+	static void ActivateSignalErrorManagement();
+	static boolean IsSignalErrorManagementActivated();
+
 	///////////////////////////////////////////////////////////
 	///// Implementation
 protected:
-	// Constructeur, qui au premier appel positionne les handlers de gestion des signaux
-	Global();
-	~Global();
-
 	// Indique s'il faut ignorer le controle de flow des erreurs, au moment de l'affichage
 	// A la difference de IgnoreErrorFlow qui n'effectue qu'un test, on peut exploiter un contexte
 	// d'usage pour l'affichage pour controler finement les erreurs a afficher effectivement
@@ -186,6 +190,9 @@ protected:
 
 	// Methode pour ignorer le controle de flow des erreurs
 	static ErrorFlowIgnoreFunction fErrorFlowIgnoreFunction;
+
+	// Mode d'activation de la gestion des erreurs pour les signaux
+	static boolean bIsSignalErrorManagementActivated;
 };
 
 // Prototype d'une fonction d'affichage d'une erreur a l'utilisateur

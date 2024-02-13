@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -60,13 +60,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Type et operateurs booleens
-#if not defined __UNIX__ or defined __C11__
 typedef bool boolean;
-#else
-typedef int boolean;
-#define true 1
-#define false 0
-#endif // __C11__
 
 // Comparaison par type, pour implementation dans les methodes de comparaison
 // Pour les entiers: une difference suffit? Pour les chaines de caracteres, utilise la methode Compare de ALString.
@@ -252,9 +246,11 @@ void AddUserExitHandler(UserExitHandler fUserExit);
 
 // Verification de l'option de compilation RTTI du C++
 #ifndef NOCASTCONTROL
-#ifndef _CPPRTTI
+
+#if not(defined __GXX_RTTI or defined _CPPRTTI)
 #error "In safe cast version, use RTTI compile option"
 #endif
+
 #endif
 
 // Object buffer pour les controle de cast, pour eviter
@@ -263,7 +259,7 @@ void AddUserExitHandler(UserExitHandler fUserExit);
 class Object;
 extern const Object* objectCastControlBuffer;
 
-#ifdef _MSC_VER
+#ifdef __MSC__
 // C28182: "unreference the NULL pointer..." (pour la macro cast)
 #pragma warning(disable : 28182) // disable 28182 warning
 #endif

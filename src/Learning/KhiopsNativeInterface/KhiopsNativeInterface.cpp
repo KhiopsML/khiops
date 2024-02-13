@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -100,7 +100,8 @@ void KNICreateEnv()
 		Error::SetDisplayErrorFunction(NULL);
 
 		// Affectation des handlers pour l'acces au fichiers
-		SystemFileDriverCreator::RegisterExternalDrivers();
+		if (not SystemFileDriverCreator::IsExternalDriversRegistered())
+			SystemFileDriverCreator::RegisterExternalDrivers();
 	}
 }
 
@@ -441,7 +442,7 @@ KNI_API int KNIOpenStream(const char* sDictionaryFileName, const char* sDictiona
 					     lMB);
 
 		// Ok si la nouvelle limite memoire est possible
-		if (nNewAllStreamsMemoryLimit + nPhysicalMemoryReserve < nPhysicalMemoryLimit)
+		if (nNewAllStreamsMemoryLimit + nPhysicalMemoryReserve <= nPhysicalMemoryLimit)
 		{
 			RMResourceConstraints::SetMemoryLimit(nNewAllStreamsMemoryLimit + nPhysicalMemoryReserve);
 			KNIStream::SetAllStreamsMemoryLimit(nNewAllStreamsMemoryLimit);

@@ -1,14 +1,28 @@
 FROM rockylinux:8
-LABEL maintainer="bruno.guerraz@orange.com"
-LABEL description="Contains all packages to build and package Khiops"
+LABEL maintainer="khiops.team@orange.com"
+LABEL description="Container with the dependencies to build and package Khiops"
 
 RUN true \
-    && dnf upgrade -y \
-    && dnf install -y cmake gcc-c++ \
-    && dnf install -y mpich-devel \
-    && dnf install -y java-17-openjdk-devel \
-    && dnf install -y rpm-build \
-    && dnf install -y nano \
-    && dnf clean all \
-    && rm -rf /var/cache/dnf/ \
-    && true
+  && dnf upgrade -y \
+  && dnf install -y "dnf-command(config-manager)" \
+  # We need the powertools repository for ninja \
+  && dnf config-manager --set-enabled powertools \
+  && dnf upgrade -y \
+  && dnf install -y \
+    cmake \
+    gcc-c++ \
+    java-17-openjdk-devel \
+    mpich-devel \
+    nano \
+    ninja-build \
+    rpm-build \
+    wget \
+  && dnf clean all \
+  && rm -rf /var/cache/dnf/ \
+  # Note: We install cmake from kitware's site to have a more recent version \
+  # If rocky8 eventually supports cmake >= 3.22 we may use dnf again \
+  && wget "https://github.com/Kitware/CMake/releases/download/v3.26.5/cmake-3.26.5-linux-x86_64.sh" \
+  && sh cmake-3.26.5-linux-x86_64.sh --prefix=/usr/local/ --exclude-subdir \
+  && rm -f cmake-3.26.5-linux-x86_64.sh \
+  && dnf remove -y wget "dnf-command(config-manager)" \
+  && true

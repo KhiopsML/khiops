@@ -1,14 +1,22 @@
 FROM ubuntu:22.04
-LABEL maintainer="bruno.guerraz@orange.com"
-LABEL description="Contains all packages to build and package Khiops"
+LABEL maintainer="khiops.team@orange.com"
+LABEL description="Container with the dependencies to build and package Khiops"
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN  true \
-    && apt-get -y update \
-    && apt-get -y --no-install-recommends install cmake build-essential devscripts fakeroot debhelper \
-    && apt-get -y --no-install-recommends install libmpich-dev coreutils nano  \
-    && apt-get -y --no-install-recommends install default-jdk \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean \
-    && true
+RUN true \
+  && apt-get -y update \
+  && apt-get -y --no-install-recommends install \
+    build-essential \
+    cmake \
+    coreutils \
+    debhelper \
+    default-jdk \
+    devscripts \
+    fakeroot \
+    libmpich-dev \
+    nano \
+    ninja-build \
+  && rm -rf /var/lib/apt/lists/* \
+  && apt-get clean \
+  && true

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -290,7 +290,7 @@ void DTDiscretizerMODL::DiscretizeNEW(KWFrequencyTable* kwftSource, KWFrequencyT
 			// delete kwftMergedTable;
 			// kwftMergedTable = NULL;
 
-			if (dCost < dBestCost)
+			if (dCost < dBestCost - dEpsilon)
 			{
 				dBestCost = dCost;
 				// Destruction de l'optimum precedent
@@ -469,7 +469,7 @@ void DTDiscretizerMODL::DiscretizeOLD(KWFrequencyTable* kwftSource, KWFrequencyT
 				delete kwftMergedTable;
 				kwftMergedTable = NULL;
 
-				if (dCost < dBestCost)
+				if (dCost < dBestCost - dEpsilon)
 				{
 					dBestCost = dCost;
 					// Destruction de l'optimum precedent
@@ -630,7 +630,7 @@ void DTDiscretizerMODL::DiscretizeGranularizedFrequencyTableNEW(KWFrequencyTable
 				kwdfvSourceFrequencyVectortarget1->CopyFrom(kwdfvSourceFrequencyVector1);
 				nvfmax = nfv;
 			}
-			if (dCost < dBestCost)
+			if (dCost < dBestCost - dEpsilon)
 			{
 				// cout << "cout best " << nfv + 1 << " : " << dCost << endl;
 				dBestCost = dCost;
@@ -643,7 +643,7 @@ void DTDiscretizerMODL::DiscretizeGranularizedFrequencyTableNEW(KWFrequencyTable
 
 		// cout << "nvfmax / nsourcesize : " << nvfmax << " / " << nsourcesize << endl;
 
-		if (dCostnull < dBestCost)
+		if (dCostnull < dBestCost + dEpsilon)
 		{
 			// cout << "NULL Cost" << endl;
 			// cout << "cout best " << nfv + 1 << " : " << dCost << endl;

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -17,6 +17,7 @@ KWKeyPositionSampleExtractorTask::KWKeyPositionSampleExtractorTask()
 	nReadSizeMin = 0;
 	nReadSizeMax = 0;
 	nReadBufferSize = 0;
+	lFilePos = 0;
 
 	// Variables partagees
 	DeclareSharedParameter(&shared_ivKeyFieldIndexes);
@@ -690,7 +691,7 @@ boolean KWKeyPositionSampleExtractorTask::SlaveProcess()
 						LongintToReadableString(recordKeyPosition->GetLineIndex() -
 									previousRecordKeyPosition->GetLineIndex()) +
 						" lines before",
-					    nCumulatedLineNumber + inputFile.GetCurrentLineIndex() - 1);
+					    nCumulatedLineNumber + inputFile.GetCurrentLineIndex());
 					delete recordKeyPosition;
 					bOk = false;
 					break;

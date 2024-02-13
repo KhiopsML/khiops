@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -123,7 +123,6 @@ boolean KWDatabaseTask::RunDatabaseTask(const KWDatabase* sourceDatabase)
 	boolean bDisplay = false;
 	KWMTDatabaseTextFile refMTDatabaseTextFile;
 	KWSTDatabaseTextFile refSTDatabaseTextFile;
-	ALString sTmp;
 
 	require(sourceDatabase != NULL);
 	require(sourceDatabase->Check());
@@ -740,6 +739,7 @@ boolean KWDatabaseTask::SlaveProcess()
 
 	// La methode finale est toujours appelee, pour les nettoyage potentiels
 	bOk = SlaveProcessStopDatabase(bOk) and bOk;
+
 	return bOk;
 }
 
@@ -970,6 +970,13 @@ boolean KWDatabaseTask::SlaveProcessExploitDatabase()
 				// corrects)
 				if (GetTaskIndex() == 0)
 					sourceDatabase->DisplayReadTaskProgressionLabel(lRecordNumber, lObjectNumber);
+
+				// Arret si interruption utilisateur
+				if (TaskProgression::IsInterruptionRequested())
+				{
+					bOk = false;
+					break;
+				}
 			}
 
 			// Lecture (la gestion de l'avancement se fait dans la methode Read)
@@ -987,17 +994,10 @@ boolean KWDatabaseTask::SlaveProcessExploitDatabase()
 				if (not bOk)
 					break;
 			}
-			// Arret si interruption utilisateur (deja detectee avant et ayant donc rendu un objet NULL)
-			else if (TaskProgression::IsInterruptionRequested())
-			{
-				assert(kwoObject == NULL);
-				bOk = false;
-				break;
-			}
 
 			// Arret si erreur de lecture
 			// On emet pas de message d'erreur, vcar le message ddetaille a deja ete emis precedemment,
-			// et le message synthétique sera emis par l'appelant
+			// et le message synthetique sera emis par l'appelant
 			if (sourceDatabase->IsError())
 			{
 				bOk = false;

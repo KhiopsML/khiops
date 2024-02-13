@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -176,10 +176,18 @@ int KWSortableSymbolCompare(const void* elem1, const void* elem2)
 
 int KWSortableSymbolCompareValue(const void* elem1, const void* elem2)
 {
+	int nCompare;
+
 	// Comparaison sur le critere de tri
-	return cast(KWSortableSymbol*, *(Object**)elem1)
-	    ->GetSortValue()
-	    .CompareValue(cast(KWSortableSymbol*, *(Object**)elem2)->GetSortValue());
+	nCompare = cast(KWSortableSymbol*, *(Object**)elem1)
+		       ->GetSortValue()
+		       .CompareValue(cast(KWSortableSymbol*, *(Object**)elem2)->GetSortValue());
+
+	// Comparaison sur l'index si egal
+	if (nCompare == 0)
+		nCompare = cast(KWSortableSymbol*, *(Object**)elem1)->GetIndex() -
+			   cast(KWSortableSymbol*, *(Object**)elem2)->GetIndex();
+	return nCompare;
 }
 
 int KWSortableSymbolCompareDecreasingIndexValue(const void* elem1, const void* elem2)

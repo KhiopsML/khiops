@@ -1,0 +1,111 @@
+---
+name: Test Khiops Native Interface
+description: Action to test KNI package
+runs:
+  using: composite
+  steps:
+    - name: Check ldconfig
+      shell: bash
+      if: runner.os == 'Linux'
+      run: |
+        if [ $(ldconfig -p | grep -c KhiopsNativeInterface) -eq 0 ] 
+        then
+          echo "::error::KNI is not reachable with ld, check post installation"
+          false
+        fi
+    - name: Checkout sources
+      uses: actions/checkout@v3
+      with:
+        path: khiops
+    - name: Checkout KhiopsNativeInterface-tutorial
+      uses: actions/checkout@v3
+      with:
+        repository: KhiopsML/KhiopsNativeInterface-tutorial
+        path: tutorial
+    - name: Compile C examples (Linux)
+      shell: bash
+      if: runner.os == 'Linux'
+      run: |
+        cd tutorial
+        bash $GITHUB_WORKSPACE/packaging/common/KNI/build-c-linux.sh
+    - name: Compile C examples (Windows)
+      if: runner.os == 'Windows'
+      shell: cmd
+      run: |
+        call "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\VC\\Auxiliary\\Build\\vcvars64.bat"
+        set KNI_HOME=%RUNNER_TEMP%\\KNI
+        cd tutorial
+        call %GITHUB_WORKSPACE%/packaging/common/KNI/build-c--windows.cmd
+    - name: Test mono-table example
+      shell: bash
+      run: |
+        ./tutorial/KNIRecodeFile tutorial/data/ModelingIris.kdic SNB_Iris tutorial/data/Iris.txt R_Iris.txt
+        if [ ! -f R_Iris.txt ] ;
+        then
+          echo "::error::R_Iris.txt is missing"
+          false
+        fi
+        if diff -q R_Iris.txt khiops/packaging/common/KNI/results.ref/R_Iris.txt > /dev/null ; 
+        then
+          echo "Mono table recoding is OK"
+        else
+        echo "::error::Recoding issue with Iris.txt"
+          false
+        fi
+    - name: Test multi-tables example
+      shell: bash
+      run: |-
+        ./tutorial/KNIRecodeMTFiles -d tutorial/data/ModelingSpliceJunction.kdic SNB_SpliceJunction \
+            -i tutorial/data/SpliceJunction.txt 1 -s DNA  tutorial/data/SpliceJunctionDNA.txt 1 -o R_SpliceJunction.txt
+        if [ ! -f R_SpliceJunction.txt ] ;
+        then
+          echo "::error::R_SpliceJunction.txt is missing"
+          false
+        fi
+        if diff -q R_SpliceJunction.txt khiops/packaging/common/KNI/results.ref/R_SpliceJunction.txt > /dev/null ; 
+        then
+          echo "Multi table recoding is OK"
+        else
+          echo "::error::Recoding issue with SpliceJunction.txt"
+          false
+        fi
+    - name: setup jna
+      uses: nvoxland/jar-download-action@v1
+      with:
+        groupId: net.java.dev.jna
+        artifactId: jna
+        version: 5.13.0
+        outputDirectory: ./tutorial/java/
+    - name: Compile java example
+      shell: bash
+      run: |
+        cd tutorial
+        bash  $GITHUB_WORKSPACE/packaging/common/KNI/build-java.sh
+        cd  $GITHUB_WORKSPACE
+    - name: Run java example (Linux)
+      shell: bash
+      if: runner.os == 'Linux'
+      run: |
+        cd tutorial
+        java -cp java/kni.jar:java/jna-5.13.0.jar KNIRecodeFile data/ModelingIris.kdic SNB_Iris data/Iris.txt R_Iris_java.txt 2>&1
+    - name: Test java example (Windows)
+      shell: bash
+      if: runner.os == 'Windows'
+      run: |
+        cd tutorial
+        java -cp java/kni.jar;java/jna-5.13.0.jar KNIRecodeFile data/ModelingIris.kdic SNB_Iris data/Iris.txt R_Iris_java.txt 2>&1
+    - name: Check java results
+      shell: bash
+      run: |-
+        if [ ! -f tutorial/R_Iris_java.txt ] ;
+        then
+          echo "::error::R_Iris_java.txt is missing"
+          false
+        fi
+        if diff -q tutorial/R_Iris_java.txt  $GITHUB_WORKSPACE/packaging/common/KNI/results.ref/R_Iris.txt > /dev/null ; 
+        then
+          echo "Mono table recoding is OK"
+        else
+        echo "::error::Recoding issue with java"
+          false
+        fi

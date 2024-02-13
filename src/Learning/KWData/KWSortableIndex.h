@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -185,7 +185,7 @@ protected:
 // Comparaison de deux objets KWSortableSymbol par reference
 int KWSortableSymbolCompare(const void* elem1, const void* elem2);
 
-// Comparaison de deux objets KWSortableSymbol par valeur
+// Comparaison de deux objets KWSortableSymbol par valeur, puis par index croissant
 int KWSortableSymbolCompareValue(const void* elem1, const void* elem2);
 
 // Comparaison de deux objets KWSortableSymbol par index decroissant, puis par valeur

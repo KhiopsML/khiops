@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -133,7 +133,7 @@ void MemSetAllocBlockExit(void* pBlock);
 void* MemGetAllocBlockExit();
 
 // Methode limitant physiquement la taille totale allouee,  meme en release
-// En cas de passement, une erreur fatale est declenchee, avec sortie par GlobalExit()
+// En cas de depassement, une erreur fatale est declenchee, avec sortie par GlobalExit()
 // Par defaut, 0 signifie pas de limite
 void MemSetMaxHeapSize(longint lSize);
 longint MemGetMaxHeapSize();

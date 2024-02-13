@@ -1,8 +1,7 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
-#ifdef __ANDROID__
 #define KHIOPS_EXPORTS
 #include "MODL_dll.h"
 
@@ -20,12 +19,22 @@
 
 KHIOPS_API int GetVersion()
 {
-	return KHIOPS_API_VERSION_10_0;
+	return 10 * GetMajorVersion(KHIOPS_VERSION) + GetMinorVersion(KHIOPS_VERSION);
 }
 
-char* _strdup(const char* sChar)
+KHIOPS_API const char* GetFullVersion()
 {
-	int len;
+	static ALString sFullVersion;
+
+	// Initialisation la premiere fois
+	if (sFullVersion == "")
+		sFullVersion = KHIOPS_VERSION;
+	return sFullVersion;
+}
+
+inline char* _strdup(const char* sChar)
+{
+	longint len;
 	char* sRet;
 
 	len = strlen(sChar);
@@ -44,7 +53,7 @@ KHIOPS_API int StartKhiops(const char* sInputScenario, const char* sLogFileName,
 	int nDaysBeforeExpiration;
 
 	// Mise en place d'une date de peremption
-	expirationDate.Init(2023, 6, 30);
+	expirationDate.Init(2024, 6, 30);
 	currentDate.SetCurrentDate();
 	nDaysBeforeExpiration = expirationDate.Diff(currentDate);
 	if (nDaysBeforeExpiration < 0)
@@ -55,7 +64,7 @@ KHIOPS_API int StartKhiops(const char* sInputScenario, const char* sLogFileName,
 
 	if (sInputScenario == NULL or sLogFileName == NULL or sTaskFileName == NULL)
 		return EXIT_FAILURE;
-	if (not FileService::IsFile(sInputScenario) or sLogFileName[0] == '\0')
+	if (not FileService::FileExists(sInputScenario) or sLogFileName[0] == '\0')
 		return EXIT_FAILURE;
 
 	argc = 6;
@@ -96,12 +105,12 @@ KHIOPS_API int StartKhiops(const char* sInputScenario, const char* sLogFileName,
  * l'environnement Norm, d'utiliser le mode UIObject::Textual et    *
  * de ne pas linker avec jvm.lib (a eviter absoluement).            *
  * Moyennant ces conditions, on peut livrer un executable en mode   *
- * textuel ne necessitant pas l'intallation prealable du JRE Java   *
+ * textuel ne necessitant pas l'installation prealable du JRE Java   *
  ********************************************************************/
 
 extern "C"
 {
-#ifdef _MSC_VER
+#ifdef _WIN32
 	// Version 32 bits
 	int __stdcall _imp__JNI_CreateJavaVM(void** pvm, void** penv, void* args)
 	{
@@ -113,15 +122,14 @@ extern "C"
 	{
 		exit(11);
 	}
-#endif // _MSC_VER
+#else
 
-#ifdef __UNIX__
 #ifndef __ANDROID__
 	int JNI_CreateJavaVM(void** pvm, void** penv, void* args)
 	{
 		exit(11);
 	}
 #endif // __ANDROID__
-#endif // __UNIX__
+
+#endif // _WIN32
 }
-#endif // __ANDROID__

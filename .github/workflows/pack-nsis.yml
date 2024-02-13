@@ -1,0 +1,112 @@
+---
+name: Build NSIS Windows installer
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '**CMakeLists.txt'
+      - packaging/windows/nsis/*.nsh
+      - packaging/windows/nsis/*.nsi
+  push:
+    tags: [v*]
+jobs:
+  build-nsis-installer:
+    outputs:
+      khiops-package-version: ${{ steps.get-version.outputs.khiops-package-version }}
+    name: Build NSIS Windows installer
+    runs-on: windows-latest
+    steps:
+      - name: Obtain checkout ref
+        shell: bash
+        run: |
+          # We take the "pull request head" ref (by default it is a merged one)
+          if [[ "${{ github.event_name }}" == "pull_request" ]]
+          then
+            CHECKOUT_REF="${{ github.event.pull_request.head.sha }}"
+          # Otherwise the default checkout action ref
+          else
+            CHECKOUT_REF="${{ github.ref_name }}"
+          fi
+          echo "CHECKOUT_REF=$CHECKOUT_REF" >> $GITHUB_ENV
+          echo "Checkout ref: $CHECKOUT_REF"
+      - name: Checkout sources
+        uses: actions/checkout@v4.1.0
+        with:
+          ref: ${{ env.CHECKOUT_REF }}
+      - name: Put the package version on the environment and output
+        id: get-version
+        shell: bash
+        run: |
+          # Build the versions
+          KHIOPS_PACKAGE_VERSION="$(./scripts/khiops-package-version ${{ env.CHECKOUT_REF }})"
+          KHIOPS_PACKAGE_REDUCED_VERSION="$(echo $KHIOPS_PACKAGE_VERSION | cut -d'-' -f1)"
+          echo "KHIOPS_PACKAGE_VERSION=$KHIOPS_PACKAGE_VERSION" >> "$GITHUB_ENV"
+          echo "KHIOPS_PACKAGE_REDUCED_VERSION=$KHIOPS_PACKAGE_REDUCED_VERSION" >> "$GITHUB_ENV"
+          echo "khiops-package-version=$KHIOPS_PACKAGE_VERSION" >> "$GITHUB_OUTPUT"
+      - name: Download Windows install assets
+        uses: robinraju/release-downloader@v1.8
+        with:
+          repository: khiopsml/khiops-win-install-assets
+          latest: true
+      - name: Extract Windows installer assets and load assets-info.env
+        shell: bash
+        run: |
+          assets_tar_gz=$(ls khiops-win-install-assets*.tar.gz)
+          tar -zxvf "$assets_tar_gz"
+          cat assets/assets-info.env >> "$GITHUB_ENV"
+      - name: Build Khiops binaries
+        uses: ./.github/actions/build-khiops
+        with:
+          preset-name: windows-msvc-release
+          targets: MODL MODL_Coclustering norm_jar khiops_jar
+          override-flags: -DTESTING=OFF -DBUILD_JARS=ON
+      - name: Build NSIS package
+        shell: pwsh
+        run: |-
+          cd ./packaging/windows/nsis
+          makensis `
+            /DKHIOPS_VERSION=${{ env.KHIOPS_PACKAGE_VERSION }} `
+            /DKHIOPS_REDUCED_VERSION=${{ env.KHIOPS_PACKAGE_REDUCED_VERSION }} `
+            /DKHIOPS_WINDOWS_BUILD_DIR=..\..\..\build\windows-msvc-release `
+            /DJRE_INSTALLER_PATH=..\..\..\assets\${{ env.JRE_FILENAME }} `
+            /DJRE_VERSION=${{ env.JRE_VERSION }} `
+            /DMSMPI_INSTALLER_PATH=..\..\..\assets\${{ env.MSMPI_FILENAME }} `
+            /DMSMPI_VERSION=${{ env.MSMPI_VERSION }} `
+            /DKHIOPS_VIZ_INSTALLER_PATH=..\..\..\assets\${{ env.KHIOPS_VIZ_FILENAME }} `
+            /DKHIOPS_COVIZ_INSTALLER_PATH=..\..\..\assets\${{ env.KHIOPS_COVIZ_FILENAME }} `
+            /DKHIOPS_SAMPLES_DIR=..\..\..\assets\samples `
+            /DKHIOPS_DOC_DIR=..\..\..\assets\doc `
+            khiops.nsi
+      - name: Upload installer as an artifact
+        uses: actions/upload-artifact@v3.1.2
+        with:
+          name: khiops-installer
+          path: ./packaging/windows/nsis/khiops-${{ env.KHIOPS_PACKAGE_VERSION }}-setup.exe
+  test-nsis-installer:
+    name: Test NSIS Windows installer
+    needs: build-nsis-installer
+    runs-on: windows-2019
+    steps:
+      - name: Download NSIS installer artifact
+        uses: actions/download-artifact@v3.0.2
+        with:
+          name: khiops-installer
+      - name: Install Khiops
+        shell: pwsh
+        run: |
+          # Execute the installer
+          $ErrorActionPreference = 'Stop'
+          $ProgressPreference = 'SilentlyContinue'
+          Start-Process `
+            -FilePath .\khiops-${{ needs.build-nsis-installer.outputs.khiops-package-version }}-setup.exe `
+            -ArgumentList '/S' `
+            -Wait
+          # Add Khiops and MPI to the path
+          $Env:Path += ";${Env:ProgramFiles}\khiops\bin;${Env:ProgramFiles}\Microsoft MPI\Bin"
+          echo "PATH=${Env:PATH}" >> ${Env:GITHUB_ENV}
+          echo ${Env:GITHUB_ENV}
+          type ${Env:GITHUB_ENV}
+      - name: Checkout the khiops sources
+        uses: actions/checkout@v3
+      - name: Test the installation
+        uses: ./.github/actions/test-khiops-install

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -1227,7 +1227,7 @@ int KWDatabaseFormatDetector::ComputeSeparatorPriority(char cSeparator) const
 	// Si non trouve, on prend le le cracater lui meme d'abord dans sa plage ascii, puis dans la plage ascii etendue
 	if (nPriority == -1)
 	{
-		if (isprint(cSeparator))
+		if (p_isprint(cSeparator))
 		{
 			if (cSeparator >= 0)
 				nPriority = 1000 + cSeparator;

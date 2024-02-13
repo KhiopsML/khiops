@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -385,7 +385,7 @@ void KWTextParser::BuildLineWordDictionary(char* sLine, ObjectDictionary* odWord
 		if (bInspectChars)
 		{
 			cout << i << "\t" << cLineChar << "\t" << isalnum(cLineChar) << "\t" << ispunct(cLineChar)
-			     << "\t" << isspace(cLineChar) << "\t" << isprint(cLineChar) << endl;
+			     << "\t" << isspace(cLineChar) << "\t" << p_isprint(cLineChar) << endl;
 		}
 
 		// Transformation des caracteres accentues

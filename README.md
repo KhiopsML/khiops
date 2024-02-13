@@ -1,59 +1,25 @@
-# Khiops project
+<img src=https://github.com/khiopsML/khiops/blob/dev/packaging/common/images/khiops.png width=60 />
 
-# Compilation
+# Khiops
+Khiops is an AutoML suite for supervised and unsupervised learning
 
-```bash
-mkdir build
-cmake -B build -S . -DMPI=ON -DFULL=OFF -DBUILD_JARS=ON -DTESTING=OFF -DCMAKE_BUILD_TYPE=Release
-cmake --build build/ --parallel
-```
+## Installation
+For the installation instructions [go to Khiops website][khiops-web].
 
-# Packaging
+## Documentation
+See the documentation [at the Khiops website][khiops-web]
 
-## CPack: deb, rpm and zip
+## Development
+See the [developer's documentation wiki][wiki-dev].
 
-The different packages are built with cpack. The used generators are:
+## License
+This software is distributed under the BSD 3-Clause-clear License, the text of which is available at
+https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the [LICENSE](./LICENSE) for more
+details.
 
-- DEB for debian
-- ZIP for KNI on windows
-- RPM for redhat
-  
-Run the following command to launch the packaging. The resulting packages are located on `build/packages`.
+## Help Contact
+khiops.team@orange.com
 
-```bash
-cd build
-cpack -G DEB
-```
 
-On Fedorra-like distro, whe have to set `FEDORA` to `ON` to configure the cmake project. Moreover, the environment module mpi must be loaded before configure, build and package processes:
-
-```bash
-source /etc/profile.d/modules.sh
-module load mpi/mpich-x86_64
-mkdir build && cd build
-cmake -B . -S .. -DMPI=ON -DFULL=OFF -DBUILD_JARS=ON -DTESTING=OFF -DCMAKE_BUILD_TYPE=Release -DFEDORA=ON
-cmake --build . --parallel
-cpack -G RPM
-```
-
-### CPack TODOs
-
-- test packaging on macOS with `cpack -G FreeBSD`. It should work (we just have to get kni and khiops-sample out from the install)
-- test NSIS on windows (`cpack -G NSIS64`)
-- rewiew the KNI doc (the same one for Linux and Windows)
-- change the package name to include the disto version on DEB and RPM
-- Questions:
-  - remove packaging/common/khiops/doc/*.docx
-  - remove packaging/common/khiops/doc/KhiopsTutorial.pptx
-  - remove packaging/common/khiops/whatsnewV9.0.1.txt
-
-## Conda
-
-The package version is not imported from the source (TODO) then, we have to set the environment variable `KHIOPS_VERSION` before building the package.
-
-```bash
-# extract package version from sources
-set KHIOPS_VERSION=$(grep "KHIOPS_VERSION" src/Learning/KWUtils/KWKhiopsVersion.h | cut -d"(" -f2 | cut -d")" -f1)
-# build package
-conda-build packaging/conda/
-```
+[khiops-web]: https://khiops.org
+[wiki-dev]: https://github.com/KhiopsML/khiops/wiki

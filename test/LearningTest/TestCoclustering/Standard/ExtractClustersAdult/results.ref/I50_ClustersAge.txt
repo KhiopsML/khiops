@@ -1,0 +1,3 @@
+Cluster	Lower bound	Upper bound
+]-inf;29.5]		29.5
+]29.5;+inf[	29.5	

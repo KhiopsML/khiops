@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -323,11 +323,8 @@ boolean KWTestDatabaseTransfer::STTestTransfer()
 						else
 							sWrongLine = "Wrong";
 
-							// Fin de ligne
-#ifndef __UNIX__
-						sWrongLine += '\r';
-#endif
-						sWrongLine += '\n';
+						// Fin de ligne
+						sWrongLine += FileService::GetEOL();
 
 						// Ajout de lignes
 						bOk = KWArtificialDataset::AddLinesInFile(
@@ -355,11 +352,7 @@ boolean KWTestDatabaseTransfer::STTestTransfer()
 						cout << "empty lines";
 
 						// Fin de ligne
-						sWrongLine = "";
-#ifndef __UNIX__
-						sWrongLine += '\r';
-#endif
-						sWrongLine += '\n';
+						sWrongLine = FileService::GetEOL();
 
 						// Ajout de lignes dans le fichier
 						bOk = KWArtificialDataset::AddLinesInFile(
@@ -392,11 +385,7 @@ boolean KWTestDatabaseTransfer::STTestTransfer()
 						sWrongLine += databaseSource.GetFieldSeparator();
 					}
 					sWrongLine += "exceed";
-
-#ifndef __UNIX__
-					sWrongLine += '\r';
-#endif
-					sWrongLine += '\n';
+					sWrongLine += FileService::GetEOL();
 
 					// Ajout de lignes dans le fichier
 					bOk = KWArtificialDataset::AddLinesInFile(

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -607,6 +607,9 @@ boolean KWDatabaseTransferTask::SlaveProcessStartDatabase()
 				FileService::RemoveFile(sChunkFileName);
 			}
 		}
+		// Destruction du buffer sortie en cas d'echec
+		else
+			delete outputBuffer;
 
 		// Parametrage du bufffer de la base en sortie
 		if (bOk)
@@ -700,12 +703,17 @@ boolean KWDatabaseTransferTask::SlaveProcessStopDatabase(boolean bProcessEndedCo
 		outputBuffer = targetSTDatabase->GetOutputBuffer();
 
 		// Fermeture et destruction du buffer de sortie
-		assert(outputBuffer != NULL);
-		bCloseOk = outputBuffer->Close();
-		if (not bCloseOk)
-			AddError("Cannot close file " + outputBuffer->GetFileName());
-		bOk = bOk and bCloseOk;
-		delete outputBuffer;
+		if (outputBuffer != NULL)
+		{
+			if (outputBuffer->IsOpened())
+			{
+				bCloseOk = outputBuffer->Close();
+				if (not bCloseOk)
+					AddError("Cannot close file " + outputBuffer->GetFileName());
+				bOk = bOk and bCloseOk;
+			}
+			delete outputBuffer;
+		}
 	}
 
 	// Si erreur, supression des fichiers en sortie

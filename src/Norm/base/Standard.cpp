@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -640,18 +640,6 @@ void _CastFailure(const char* __type, const char* __object, const char* __file, 
 	GlobalExit();
 }
 
-// Pauses for a specified number of milliseconds
-// portage Unix
-#ifndef __UNIX__
-void sleep(clock_t wait)
-{
-	clock_t goal;
-	goal = wait + clock();
-	while (goal > clock())
-		;
-}
-#endif // __UNIX__
-
 // Flag de sortie utilisateur
 //(pour conditionner les traitements enregistres en atexit)
 int nStandardGlobalExit = 0;
@@ -702,11 +690,11 @@ void GlobalExit()
 		}
 
 		// Flush et fermeture de tous les fichiers
-#if defined __UNIX__ or defined __WGPP__
-		fflush(NULL);
-#else
+#ifdef _WIN32
 		_flushall();
 		_fcloseall();
+#else
+		fflush(NULL);
 #endif
 
 		// Sortie fatale (seul exit de toutes)

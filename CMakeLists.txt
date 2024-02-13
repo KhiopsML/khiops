@@ -11,15 +11,16 @@ project(
   Khiops
   LANGUAGES CXX
   VERSION ${VERSION}
-  HOMEPAGE_URL "khiops.com")
+  HOMEPAGE_URL "https://khiops.org")
 
 # Specify CMake policies
 cmake_policy(SET CMP0015 NEW)
 cmake_policy(SET CMP0048 NEW)
 cmake_policy(SET CMP0053 NEW)
-cmake_policy(SET CMP0063 NEW)
 cmake_policy(SET CMP0054 NEW)
 cmake_policy(SET CMP0058 NEW)
+cmake_policy(SET CMP0063 NEW)
+cmake_policy(SET CMP0083 NEW)
 
 # Do not add warning flags for MSVC cmake_policy(SET CMP0092 NEW)
 
@@ -40,52 +41,72 @@ set(CMAKE_INSTALL_ALWAYS TRUE)
 
 # Set up the custom configuration options
 option(MPI "Use MPI libraries (ON,OFF)" ON)
-option(FULL "Build test binaries (basetest,PLtest...) (ON,OFF)" ON)
-option(LEARNING "Build Learning project; also builds Parallel (ON,OFF)" ON)
-option(PARALLEL "Build Parallel project only (ON,OFF)" ON)
 option(TESTING "Build unit tests (ON,OFF)" OFF)
 option(BUILD_LEX_YACC "Re-generate parsing files with lex & yacc" OFF)
 option(BUILD_JARS "Re-generate norm.jar and khiops.jar" OFF)
 option(C11 "Build whith C++11 libraries (ON,OFF)" ON)
-option(MODL_SO "Build MODL binaries as shared libraries" OFF)
-option(FEDORA "Build and package on Fedora distros" OFF)
 
 # Print the options
 message("\nKhiops build options:\n")
 message("  CMAKE_BUILD_TYPE=\"${CMAKE_BUILD_TYPE}\"")
 message("  MPI=\"${MPI}\"")
-message("  FULL=\"${FULL}\"")
-message("  LEARNING=\"${LEARNING}\"")
-message("  PARALLEL=\"${PARALLEL}\"")
 message("  TESTING=\"${TESTING}\"")
 message("  C11=\"${C11}\"")
 message("  BUILD_LEX_YACC=\"${BUILD_LEX_YACC}\"")
 message("  BUILD_JARS=\"${BUILD_JARS}\"")
-message("  MODL_SO=\"${MODL_SO}\"")
-message("  FEDORA=\"${FEDORA}\"")
 message("\n")
 
-# Set built products location:
+# Check if the os is a linux fedora-like distro (CentOS, Rocky etc...)
+#
+# The good way to do this is to use cmake_host_system_information but the the os-name is avalaible starting from the
+# cmake version 3.22. Below, we just grep 'fedora' on /etc/os-release file. It is present on the line ID_LIKE="rhel
+# centos fedora"
+set(IS_FEDORA_LIKE false)
+if(EXISTS "/etc/os-release")
+  file(READ "/etc/os-release" OS_RELEASE)
+  string(FIND "${OS_RELEASE}" "fedora" FEDORA_FOUND)
+  if(FEDORA_FOUND GREATER -1)
+    set(IS_FEDORA_LIKE true)
+  endif()
+endif()
+
+# On Fedora distros, the binaries compiled with mpi must be located under the mpi location furthermore they have to be
+# suffixed by the name of the mpi implementation. These 2 items are given by MPI_BIN and MPI_SUFFIX when the module
+# environment is loaded source /etc/profile.d/modules.sh module load mpi/mpich-x86_64
+if(IS_FEDORA_LIKE)
+  if(DEFINED ENV{MPI_BIN})
+    set(MPI_BIN $ENV{MPI_BIN})
+  else()
+    message(
+      FATAL_ERROR
+        "MPI_BIN is not defined, you have to load the mpi module (e.g. source /etc/profile.d/modules.sh && module load mpi/mpich-x86_64)"
+    )
+  endif(DEFINED ENV{MPI_BIN})
+  if(DEFINED ENV{MPI_SUFFIX})
+    set(MPI_SUFFIX $ENV{MPI_SUFFIX})
+  else()
+    message(
+      FATAL_ERROR
+        "MPI_SUFFIX is not defined, you have to load the mpi module (e.g. source /etc/profile.d/modules.sh && module load mpi/mpich-x86_64)"
+    )
+  endif(DEFINED ENV{MPI_SUFFIX})
+endif(IS_FEDORA_LIKE)
+
+# Set the location of the built artifacts:
 #
 # - Shared and static library target directory: lib
 # - Executable target directory: bin
+# - We must use these weird generator expressions to avoid the Debug and Release directories in VS
+# - More info: https://stackoverflow.com/q/47175912
 #
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY $<1:${CMAKE_BINARY_DIR}/lib/>)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY $<1:${CMAKE_BINARY_DIR}/lib/>)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY $<1:${CMAKE_BINARY_DIR}/bin/>)
 message(STATUS "Executables will be stored in ${CMAKE_BINARY_DIR}/bin/")
 message(STATUS "Libraries will be stored in ${CMAKE_BINARY_DIR}/lib/")
 
-# set module path for the project
+# Set module path for the project
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/packaging")
-
-# Use "-fPIC" / "-fPIE" for all targets by default, including static libs
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
-# CMake doesn't add "-pie" by default for executables (CMake issue #14983)
-if(NOT MSVC)
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pie")
-endif(NOT MSVC)
 
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN 1)
@@ -93,28 +114,26 @@ set(CMAKE_VISIBILITY_INLINES_HIDDEN 1)
 # Force clang to use RTTI on Debug
 if(CMAKE_BUILD_TYPE EQUAL "Debug")
   set(LLVM_REQUIRES_RTTI 1)
-endif(CMAKE_BUILD_TYPE EQUAL "Debug")
-
-# Process dependencies Find MPI if required
-if(MPI)
-  find_package(MPI 2.0 REQUIRED)
 endif()
 
-# On Fedora distros, the binaries compiled with mpi must be located under the mpi location furthermore they have to be
-# suffixed by the name of the mpi implementation. These 2 items are given by MPI_BIN and MPI_SUFFIX when the module
-# environment is loaded source /etc/profile.d/modules.sh module load mpi/mpich-x86_64
-if(FEDORA)
-  if(DEFINED ENV{MPI_BIN})
-    set(MPI_BIN $ENV{MPI_BIN})
-  else()
-    message(FATAL "MPI_BIN is not defined, you have to load the mpi module")
-  endif(DEFINED ENV{MPI_BIN})
-  if(DEFINED ENV{MPI_SUFFIX})
-    set(MPI_SUFFIX $ENV{MPI_SUFFIX})
-  else()
-    message(FATAL "MPI_SUFFIX is not defined, you have to load the mpi module")
-  endif(DEFINED ENV{MPI_SUFFIX})
-endif(FEDORA)
+# Process dependencies: Find MPI if required
+if(MPI)
+  find_package(MPI 2.0 REQUIRED)
+  message(
+    STATUS
+      "MPI command line: ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} ${MPIEXEC_MAX_NUMPROCS} ${MPIEXEC_PREFLAGS} EXECUTABLE ${MPIEXEC_POSTFLAGS} ARGS"
+  )
+endif()
+
+# Set C++ revision globally if required
+if(TESTING)
+  # Google test requires C++14
+  set(CMAKE_CXX_STANDARD 14)
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+elseif(C11)
+  set(CMAKE_CXX_STANDARD 11)
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+endif()
 
 # Find Bison/Flex if required
 if(BUILD_LEX_YACC)
@@ -122,12 +141,28 @@ if(BUILD_LEX_YACC)
   find_package(FLEX REQUIRED)
 endif()
 
-# Find Java
+# Find Java if required
 if(BUILD_JARS)
   find_package(Java REQUIRED COMPONENTS Development)
+  include(UseJava)
+  set(KHIOPS_BUILD_JAR_DIR "${CMAKE_BINARY_DIR}/jars")
+  message(STATUS "Java JARs will be stored at ${KHIOPS_BUILD_JAR_DIR}")
+  # Note: For final builds we recommend to use java 1.8 to ensure that the jar is compatible with all posterior java
+  # versions (from # 1.8 to the most recent ones). The following setting accomplish that:
+  #
+  # - find_package(Java 1.8 EXACT REQUIRED COMPONENTS Development)
 endif()
 
-# MSVC: Eliminate some options the old CMake way because VS sets them with default values
+# Check for support of position independent code/executable
+include(CheckPIESupported)
+check_pie_supported()
+
+# Message the current C++ configuration
+message(STATUS "CMake generator is: ${CMAKE_GENERATOR}")
+message(STATUS "CMake compiler is: ${CMAKE_CXX_COMPILER_ID}")
+message(STATUS "CMake C++ standard is: ${CMAKE_CXX_STANDARD}")
+
+# MSVC: Eliminate some options the old CMake way because VS sets them with undesired default values
 #
 # - the C++ exception flags
 # - the runtime information flags
@@ -145,23 +180,16 @@ function(set_khiops_options target)
   get_target_property(target_type ${target} TYPE)
   message(STATUS "Setting up ${target_type} ${target}")
 
-  # General compiler definitions
+  # General compiler properties and definitions
+  set_property(TARGET ${target} PROPERTY POSITION_INDEPENDENT_CODE TRUE)
   target_compile_definitions(${target} PRIVATE UNICODE _UNICODE)
   if(MPI)
     target_compile_definitions(${target} PRIVATE USE_MPI)
   endif()
-
-  if(C11)
-    target_compile_features(${target} PRIVATE cxx_std_11)
-  endif()
-
-  target_compile_definitions(${target} PRIVATE $<$<CONFIG:RELEASE>:NDEBUG NOALL>)
+  target_compile_definitions(${target} PRIVATE $<$<CONFIG:RELEASE,RELWITHDEBINFO>:NOALL>)
   target_compile_definitions(${target} PRIVATE $<$<CONFIG:RELWITHDEBINFO>:__ALPHA__>)
 
-  if(CMAKE_BUILD_TYPE MATCHES Debug)
-    target_compile_definitions(${target} PRIVATE _CPPRTTI) # TODO TO REMOVE for next release
-  endif()
-
+  # Delegate to specialized function for Windows and Unix-like
   if(MSVC)
     set_msvc_khiops_options(${target})
   else()
@@ -171,8 +199,6 @@ endfunction(set_khiops_options)
 
 # Sets the compiling options for unix environments
 function(set_unix_khiops_options target)
-
-  target_compile_definitions(${target} PRIVATE __UNIX__) # TODO TO REMOVE for next release
 
   # Improve size optimisation, to ckeck, MinSizeRel is perhaps enough with -Os
   if(CMAKE_BUILD_TYPE MATCHES MinSizeRel)
@@ -187,18 +213,20 @@ function(set_unix_khiops_options target)
   #
   # - relro: (relocation read-Only linking) the linker resolves all dynamically linked functions at the beginning of the
   #   execution
-  # - noexecstack:do not use executable stack
+  # - noexecstack: do not use executable stack
   #
-  target_link_options(${target} PRIVATE "LINKER:SHELL:-z noexecstack" "LINKER:SHELL:-z relro")
+  if(NOT APPLE) # TODO bring back macOS to hardening
+    target_link_options(${target} PRIVATE "LINKER:SHELL:-z noexecstack" "LINKER:SHELL:-z relro")
+  endif()
 
   # stripping
   target_link_options(${target} PRIVATE $<$<CONFIG:RELEASE>:-s>)
 
   #
-  # - fno-rtti: no run-time type information in Release .
+  # - fno-rtti: no run-time type information in Release or RelWithDebInfo .
   # - fno-exceptions: disables exceptions support
   #
-  target_compile_options(${target} PRIVATE $<$<CONFIG:RELEASE>:-fno-rtti> -fno-exceptions)
+  target_compile_options(${target} PRIVATE $<$<CONFIG:RELEASE,RELWITHDEBINFO>:-fno-rtti> -fno-exceptions)
 
   # Special options for clang, we remove the following too verbose warnings:
   #
@@ -241,9 +269,6 @@ function(set_msvc_khiops_options target)
 
     # Release only compiling options
   elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
-    # Definitions
-    target_compile_definitions(${target} PRIVATE NDEBUG NOALL)
-
     # Options
     #
     # - /GR-: Do not generate runtime information.
@@ -267,28 +292,37 @@ function(display_variables)
   endforeach()
 endfunction()
 
-# Always build Norm
+# This function set up a JAR target. Arguments:
+#
+# - NAME: Name of the JAR target
+# - IMAGES: Paths of the image files to include in the JAR
+function(add_khiops_jar)
+  # Parse the function arguments
+  set(options "")
+  set(oneValueArgs "NAME")
+  set(multiValueKwargs "JAVA_FILES" "IMAGES")
+  cmake_parse_arguments(ADD_KHIOPS_JAR "${options}" "${oneValueArgs}" "${multiValueKwargs}" ${ARGN})
+
+  # Add the JAR target with its resources and install
+  message(STATUS "Setting up JAR ${ADD_KHIOPS_JAR_NAME}.jar")
+  add_jar(
+    "${ADD_KHIOPS_JAR_NAME}_jar" ${ADD_KHIOPS_JAR_JAVA_FILES}
+    OUTPUT_NAME ${ADD_KHIOPS_JAR_NAME} RESOURCES NAMESPACE "images" ${ADD_KHIOPS_JAR_IMAGES}
+    OUTPUT_DIR "${CMAKE_BINARY_DIR}/jars" COMPONENT KHIOPS)
+  install_jar("${ADD_KHIOPS_JAR_NAME}_jar" DESTINATION usr/share/khiops)
+endfunction()
+
+# Add targets for Norm Parallel and Learning modules
 add_subdirectory(src/Norm)
+add_subdirectory(src/Parallel)
+add_subdirectory(src/Learning)
 
-# Build Parallel if specified or when building Learning
-if(PARALLEL OR LEARNING)
-  add_subdirectory(src/Parallel)
-endif(PARALLEL OR LEARNING)
-
-# Build Learning if required
-if(LEARNING)
-  add_subdirectory(src/Learning)
-endif(LEARNING)
-
+# Testing settings
 if(TESTING)
-  # there are two options for googletest, the recommanded one is Fetch and the simple one is find_package both of them
-  # are successfuly tested on Linux, whe have to test them on windows and mac (TODO) On windows (with visual studio):
-  #
-  # - the git fetch is not working
-  # - we have to defined http_proxy and https_proxy environment variables
-  #
-  # GoogleTest requires at least C++14
-  set(CMAKE_CXX_STANDARD 14)
+  # Disable gMock from the building of googletest
+  set(BUILD_GMOCK OFF)
+
+  # Fetch googletest from its Git repo
   include(FetchContent)
   FetchContent_Declare(
     googletest
@@ -308,23 +342,22 @@ if(TESTING)
     set_property(TARGET gtest PROPERTY MSVC_RUNTIME_LIBRARY MultiThreadedDebug)
     set_property(TARGET gtest_main PROPERTY MSVC_RUNTIME_LIBRARY MultiThreadedDebug)
   endif()
+
+  # Include and enable googletest
   include(GoogleTest)
   enable_testing()
 
-  # Always build the tests for Norm
+  # Add testing targets
   add_subdirectory(test/Norm)
-  if(PARALLEL OR LEARNING)
-    add_subdirectory(test/Parallel)
-    # add_subdirectory(test/Parallel-mpi) TODO activate for next release
-  endif(PARALLEL OR LEARNING)
-
-  # Build the test for Learning if required
-  if(LEARNING)
-    add_subdirectory(test/Learning)
-  endif(LEARNING)
+  add_subdirectory(test/Parallel)
+  add_subdirectory(test/Parallel-mpi)
+  add_subdirectory(test/Learning)
+  add_subdirectory(test/KNITest)
+  add_subdirectory(test/Utils)
 endif(TESTING)
 
 # Exclude googletest from the installation
 set(INSTALL_GTEST OFF)
 
+# Add packaging directory for CPack scripts
 include(packaging)

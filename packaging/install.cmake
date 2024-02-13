@@ -1,30 +1,6 @@
 # ######################################## Installation #########################################
 
-# TODO check that we have no "default" component
-
 set(TMP_DIR ${PROJECT_BINARY_DIR}/tmp)
-
-# LICENSE_NUMBER et LICENSE_DIR are replaced in configure_file
-set(LICENSE_NUMBER ${PROJECT_VERSION_MAJOR})
-if(DEBIAN)
-  set(LICENSE_DIR /opt/khiops/key)
-else(DEBIAN)
-  set(LICENSE_DIR /opt/application/khiops/key/)
-endif(DEBIAN)
-
-configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops.in ${TMP_DIR}/khiops @ONLY NEWLINE_STYLE UNIX)
-
-configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_coclustering.in ${TMP_DIR}/khiops_coclustering @ONLY
-               NEWLINE_STYLE UNIX)
-
-configure_file(${PROJECT_SOURCE_DIR}/packaging/common/KNI/PackageRef/samples/C/readme.txt.in ${TMP_DIR}/kni.C.README.txt
-               @ONLY NEWLINE_STYLE UNIX)
-
-configure_file(${PROJECT_SOURCE_DIR}/packaging/common/KNI/PackageRef/samples/java/readme.txt.in
-               ${TMP_DIR}/kni.java.README.txt @ONLY NEWLINE_STYLE UNIX)
-
-configure_file(${PROJECT_SOURCE_DIR}/packaging/common/KNI/README.txt.in ${TMP_DIR}/kni.README.txt @ONLY
-               NEWLINE_STYLE UNIX)
 
 # ######################################## KNI installation
 
@@ -55,58 +31,37 @@ install(
 install(
   FILES ${TMP_DIR}/kni.README.txt
   DESTINATION ${DOC_DIR}
-  RENAME README.txt
-  COMPONENT KNI_DOC)
-
-install(
-  FILES ${TMP_DIR}/kni.C.README.txt
-  DESTINATION ${DOC_DIR}/samples/C
-  RENAME README.txt
-  COMPONENT KNI_DOC)
-
-install(
-  FILES ${TMP_DIR}/kni.java.README.txt
-  DESTINATION ${DOC_DIR}/samples/java
-  RENAME README.txt
-  COMPONENT KNI_DOC)
-
-install(
-  DIRECTORY ${PROJECT_SOURCE_DIR}/packaging/common/KNI/PackageRef/samples
-  DESTINATION ${DOC_DIR}
-  COMPONENT KNI_DOC
-  PATTERN "*.in" EXCLUDE
-  PATTERN ".*" EXCLUDE)
+  COMPONENT KNI
+  RENAME README.txt)
 
 # Copy KNI c++ files to temporary directory before to add main functions
-file(COPY KNITransfer/KNIRecodeFile.cpp DESTINATION ${TMP_DIR}/)
-file(COPY KNITransfer/KNIRecodeMTFiles.cpp DESTINATION ${TMP_DIR}/)
-file(APPEND ${TMP_DIR}/KNIRecodeFile.cpp
-     "\n\nvoid main(int argv, char** argc)\n{\n\tmainKNIRecodeFile(argv, argc);\n}\n")
-file(APPEND ${TMP_DIR}/KNIRecodeMTFiles.cpp
-     "\n\nvoid main(int argv, char** argc)\n{\n\tmainKNIRecodeMTFiles(argv, argc);\n}\n")
+configure_file(${PROJECT_SOURCE_DIR}/src/Learning/KNITransfer/KNIRecodeFile.cpp ${TMP_DIR}/KNIRecodeFile.c COPYONLY)
+configure_file(${PROJECT_SOURCE_DIR}/src/Learning/KNITransfer/KNIRecodeMTFiles.cpp ${TMP_DIR}/KNIRecodeMTFiles.c
+               COPYONLY)
 
-install(
-  FILES ${TMP_DIR}/KNIRecodeFile.cpp
-  RENAME KNIRecodeFile.c
-  DESTINATION ${DOC_DIR}/samples/C
-  COMPONENT KNI_DOC)
+file(APPEND ${TMP_DIR}/KNIRecodeFile.c
+     "\n\nint main(int argv, char** argc)\n{\n\tmainKNIRecodeFile(argv, argc);\n \treturn 0;\n}\n")
+file(APPEND ${TMP_DIR}/KNIRecodeMTFiles.c
+     "\n\nint main(int argv, char** argc)\n{\n\tmainKNIRecodeMTFiles(argv, argc);\n \treturn 0;\n}\n")
 
-install(
-  FILES ${TMP_DIR}/KNIRecodeMTFiles.cpp
-  RENAME KNIRecodeMTFiles.c
-  DESTINATION ${DOC_DIR}/samples/C
-  COMPONENT KNI_DOC)
+# Replace PROJECT_VERSION and scripts
 
-install(
-  FILES KNITransfer/KNIRecodeFile.h KNITransfer/KNIRecodeMTFiles.h
-  DESTINATION ${DOC_DIR}/samples/C
-  COMPONENT KNI_DOC)
+file(READ ${PROJECT_SOURCE_DIR}/packaging/common/KNI/build-c-linux.sh BUILD_C_LINUX)
+file(READ ${PROJECT_SOURCE_DIR}/packaging/common/KNI/build-c-windows.cmd BUILD_C_WINDOWS)
+file(READ ${PROJECT_SOURCE_DIR}/packaging/common/KNI/build-java.sh BUILD_JAVA)
+file(READ ${PROJECT_SOURCE_DIR}/packaging/common/KNI/run-java-linux.sh RUN_JAVA_LINUX)
+file(READ ${PROJECT_SOURCE_DIR}/packaging/common/KNI/run-java-windows.sh RUN_JAVA_WINDOWS)
+
+configure_file(${PROJECT_SOURCE_DIR}/packaging/common/KNI/README.txt.in ${TMP_DIR}/kni.README.txt @ONLY
+               NEWLINE_STYLE UNIX)
+configure_file(${PROJECT_SOURCE_DIR}/packaging/common/KNI/template-README.md ${TMP_DIR}/kni.README.md @ONLY
+               NEWLINE_STYLE UNIX)
 
 # ######################################## Khiops and Khiops Coclustering installation
 
-if(NOT FEDORA)
+if(NOT IS_FEDORA_LIKE)
   install(TARGETS MODL MODL_Coclustering RUNTIME DESTINATION usr/bin COMPONENT KHIOPS_CORE)
-else(NOT FEDORA)
+else()
 
   # On fedora binaries built with mpi must follow these rules :
   #
@@ -115,21 +70,26 @@ else(NOT FEDORA)
   #
   # see https://docs.fedoraproject.org/en-US/packaging-guidelines/MPI/
   #
-  install(TARGETS MODL${MPI_SUFFIX} RUNTIME DESTINATION ./${MPI_BIN}/khiops/ COMPONENT KHIOPS_CORE)
-  install(TARGETS MODL_Coclustering RUNTIME DESTINATION usr/bin COMPONENT KHIOPS_CORE)
+  install(TARGETS MODL${MPI_SUFFIX} RUNTIME DESTINATION ./${MPI_BIN}/khiops COMPONENT KHIOPS_CORE)
+  install(TARGETS MODL_Coclustering${MPI_SUFFIX} RUNTIME DESTINATION ./${MPI_BIN}/khiops COMPONENT KHIOPS_CORE)
 
   # We install the binary under $MPI_BIN and create a symlink to it
-  execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink /usr/bin/MODL${MPI_SUFFIX} ${CMAKE_BINARY_DIR}/MODL)
+  execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${MPI_BIN}/khiops/MODL${MPI_SUFFIX}
+                          ${CMAKE_BINARY_DIR}/MODL)
+  execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${MPI_BIN}/khiops/MODL_Coclustering${MPI_SUFFIX}
+                          ${CMAKE_BINARY_DIR}/MODL_Coclustering)
+
   install(
-    FILES ${CMAKE_BINARY_DIR}/MODL
+    FILES ${CMAKE_BINARY_DIR}/MODL ${CMAKE_BINARY_DIR}/MODL_Coclustering
     DESTINATION usr/bin
     COMPONENT KHIOPS_CORE)
 
-endif(NOT FEDORA)
+endif()
 
-# files located in ${TMP_DIR} dir were generated by configure_file
 install(
-  PROGRAMS ${TMP_DIR}/khiops ${TMP_DIR}/khiops_coclustering
+  PROGRAMS ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops
+           ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_coclustering
+           ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops-env
   DESTINATION usr/bin
   COMPONENT KHIOPS_CORE)
 
@@ -139,10 +99,7 @@ install(
   COMPONENT KHIOPS_CORE)
 
 install(
-  FILES ${PROJECT_SOURCE_DIR}/packaging/common/khiops/doc/KhiopsGuide.pdf
-        ${PROJECT_SOURCE_DIR}/packaging/common/khiops/doc/KhiopsCoclusteringGuide.pdf
-        ${PROJECT_SOURCE_DIR}/packaging/common/khiops/doc/KhiopsTutorial.pdf
-        ${PROJECT_SOURCE_DIR}/packaging/common/khiops/whatsnewV10.0.txt
+  FILES ${PROJECT_SOURCE_DIR}/packaging/common/khiops/WHATSNEW.txt
         ${PROJECT_SOURCE_DIR}/packaging/common/khiops/README.txt
   DESTINATION usr/share/doc/khiops
   COMPONENT KHIOPS)
@@ -160,6 +117,6 @@ install(
   COMPONENT KHIOPS)
 
 install(
-  DIRECTORY ${PROJECT_SOURCE_DIR}/packaging/common/khiops/samples
-  DESTINATION usr/share/doc/khiops
-  COMPONENT KHIOPS_SAMPLES)
+  FILES ${CMAKE_BINARY_DIR}/jars/norm.jar ${CMAKE_BINARY_DIR}/jars/khiops.jar
+  DESTINATION usr/share/khiops
+  COMPONENT KHIOPS)

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -7,6 +7,7 @@
 ObjectArray* SystemFileDriverCreator::oaSystemFileDriver = NULL;
 SystemFileDriverANSI SystemFileDriverCreator::driverANSI;
 int SystemFileDriverCreator::nExternalDriverNumber = 0;
+boolean SystemFileDriverCreator::bIsRegistered = false;
 
 /////////////////////////////////////////////
 // Implementation de la classe SystemFileDriverCreator
@@ -24,20 +25,20 @@ int SystemFileDriverCreator::RegisterExternalDrivers()
 	int i;
 	int nDriver;
 	ALString sTmp;
-	static boolean bIsRegistered = false;
 
 	require(not bIsRegistered);
 
 	if (oaSystemFileDriver == NULL)
 		oaSystemFileDriver = new ObjectArray;
 
-#ifdef __UNIX__
-	sLibraryPath = "/usr/lib/";
-
-#else
+#ifdef _WIN32
 	sLibraryPath = p_getenv("KHIOPS_HOME");
 	sLibraryPath += "\\bin";
-#endif //__UNIX__
+#elif defined __linux__
+	sLibraryPath = "/usr/lib/";
+#elif defined __APPLE__ // TODO: a verifier
+	sLibraryPath = "/usr/lib/";
+#endif
 	bOk = FileService::GetDirectoryContentExtended(sLibraryPath, &svDirectoryNames, &svFileNames);
 	nExternalDriverNumber = 0;
 	if (bOk)
@@ -264,11 +265,13 @@ longint SystemFileDriverCreator::GetMaxPreferredBufferSize()
 boolean SystemFileDriverCreator::IsKhiopsDriverName(const ALString& sFileName)
 {
 	const ALString sPrefix = "libkhiopsdriver_file_";
-#ifdef __UNIX__
-	const ALString sExtension = "so";
-#else  //__UNIX__
+#ifdef _WIN32
 	const ALString sExtension = "dll";
-#endif //__UNIX__
+#elif defined __linux__
+	const ALString sExtension = "so";
+#elif defined __APPLE__ // TODO: a verifier
+	const ALString sExtension = "dylib";
+#endif
 	ALString sScheme;
 	boolean bOk = true;
 	int i;

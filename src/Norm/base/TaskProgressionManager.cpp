@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -59,10 +59,10 @@ void FileTaskProgressionManager::SetTaskProgressionFileName(const ALString& sFil
 
 		// Sur Linux, si le fichier de progression est stdout ou stderr, l'affichage est dans la console
 		// On ajoutera un prefixe a chaque ligne
-#ifdef __UNIX__
+#ifdef __linux_or_apple__
 		if (sFileName == "/dev/stdout" or sFileName == "/dev/stderr")
 			bPrintProgressionInConsole = true;
-#endif // __UNIX__
+#endif
 	}
 }
 

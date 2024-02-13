@@ -1,51 +1,65 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #pragma once
 
-/////////////////////////////////////////////////////////////
-// Portabilite                                             //
-// Des define permettent les variantes de compilateur      //
-//   __UNIX__      Unix(HPUX teste)                        //
-//   _MSC_VER      Visual C++(defini par le compilateur)   //
-//   __WGPP__	   Windows gpp                             //
-//   __clang__	   Compilateur utilise pour Android        //
-// Il faut positionner ci dessous le define necessaire     //
-/////////////////////////////////////////////////////////////
+// Portabilite
+// On utilise les macros suivantes pour identifier l'os
+//		__linux__		noyau linux : Android, Linux et d'autres
+//		__gnu_linux__	linux
+//		__ANDROID__		Android
+//		__APPLE__		MacOS
+//		_WIN32			Windows
+//  et les compilateurs :
+//		__GNUC__		gcc
+//		__clang__		clang
+//		_MSC_VER		Microsoft Visual C++. ATTENTION : egalement definit par clang sur windows !
+//
+// et on ajoute les macros suivantes pour faciliter l'ecriture du code
+//		__MSC__				compilateur microsoft (en dehors de clang)
+//		__linux_or_apple__	linux ou apple ou android
 
-// Verification qu'une plate-forme au moins est active
-#if !defined _MSC_VER && !defined __UNIX__ && !defined __WGPP__ && !defined __ANDROID__
-#error _MSC_VER, __UNIX__, __WGPP__ or __ANDROID__ undefined
+#if defined(_MSC_VER) && !defined(__clang__)
+#define __MSC__
 #endif
 
-// Parametrage our la compilation sur ANDROID
-#ifdef __ANDROID__
-#ifndef __UNIX__
-#define __UNIX__
-#endif //__UNIX__
-#ifndef __clang__
-#error clang compiler must be used on Android platform
-#endif //__clang__
-#endif //__ANDROID__
+// Utilisation de c++11
+#if __cplusplus >= 201103L || (defined(_MSC_VER) && _MSC_VER >= 1900)
+#define __C11__
+#endif
+
+// On n'interdit la compilation sur les environnements POSIX pour windows
+// car le portage vers linux ou mac n'a pas ete realise pas sur ces environnements
+// (on utilise notamment la lecture de fichiers dans /etc/)
+#if defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)
+#error "POSIX environments on windows are not supported"
+#endif
+
+// Verification que l'OS est supporte
+#if !defined(__gnu_linux__) && !defined(__ANDROID__) && !defined(__APPLE__) && !defined(_WIN32)
+#error current OS is not supported
+#endif
+
+// Definition d'une macro pour les OS linux, macOS et android
+#if defined(__linux__) || defined(__APPLE__)
+#define __linux_or_apple__
+#endif
 
 // Tous les include aux librairies systemes sont faite dans ce header,
 // ce qui permet de limiter les eventuels problemes de portabilite
-#ifdef __UNIX__
+#ifdef __linux_or_apple__
 #include <unistd.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <sys/resource.h>
 #include <dlfcn.h>
 #include <sys/time.h>
-#endif
-
-#if defined __UNIX__ || defined __WGPP__
 #include <dirent.h>
 #endif
 
 // Visual C++: supression des Warning
-#ifdef _MSC_VER
+#ifdef __MSC__
 #pragma warning(disable : 4514)  // disable C4514 warning(unreferenced inline function has been removed)
 #pragma warning(disable : 4710)  // disable C4710 warning
 #pragma warning(disable : 4530)  // disable C4530 warning(compilation sans gestion des exceptions)
@@ -54,18 +68,19 @@
 #pragma warning(disable : 26451) // disable C26451 warning(depassement arithmetique)
 #pragma warning(disable : 6011)  // disable 6011 warning(suppression de la reference du pointeur null)
 #define _CRT_SECURE_NO_DEPRECATE // disable CRT deprecated warning.
-#elif __GNUC__
+#else
 
 // Pour clang et gcc, on utilise les options -Wall ou -Wextra
 // qui sont quand meme trop verbeuses, on enleve les warnings suivants
 // Le warning unused-but-set-variable de gcc est interessant pour detecter des problemes potentiels,
 // mais on ne l'active pas en permanence car il y a beaucoup de "faux positifs"
 // Il est conseille de l'active temporairement, par exemple avant chaque release majeure
-
+// TODO a harmoniser avec la suite
 #ifdef __clang__
 #pragma clang diagnostic ignored "-Wsign-compare"
 #pragma clang diagnostic ignored "-Wsequence-point"
 #pragma clang diagnostic ignored "-Wmisleading-indentation"
+// #pragma clang diagnostic ignored "-Winconsistent-missing-override"
 
 // warnings actives en avec le flag extra
 #pragma clang diagnostic ignored "-Wunused-parameter"
@@ -82,12 +97,12 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wignored-qualifiers"
 #endif //__clang__
-#endif // _MSC_VER
+#endif // __MSC__
 
-// Definition de macro pour desctiver les warnings
+// Definition de macro pour desactiver les warnings
 // copier/coller de https://www.fluentcpp.com/2019/08/30/how-to-disable-a-warning-in-cpp/
 // clang-format off
-#if defined(_MSC_VER)
+#if defined(__MSC__)
 	#define DISABLE_WARNING_PUSH __pragma(warning(push))
 	#define DISABLE_WARNING_POP __pragma(warning(pop))
 	#define DISABLE_WARNING(warningNumber) __pragma(warning(disable : warningNumber))
@@ -101,8 +116,10 @@
 	#define DISABLE_WARNING_POP
 #endif
 
+// TODO le seul warning definit ici et qui est utilise est DISABLE_WARNING_UNINITIALIZED
+
 // Definition des macros pour chaque compileur :
-// Il faut definir la macro 4 fois : pour microsoft (_MSC_VER), clang, gcc et les autres
+// Il faut definir la macro 4 fois : pour microsoft (__MSC__), clang, gcc et les autres
 // Les warnings sont identifies par un numero pour microsoft, par une string sur gcc et clang
 // Les warnings definis pour clang ne sont pas forcement definis pour gcc (et vice versa)
 // Pour desactiver un warning dans le code il faut les 3 instructions suivantes
@@ -110,7 +127,7 @@
 //			code pour lequel le warning XXX n'est pas actif
 // 			DISABLE_WARNING_XXX
 // 			DISABLE_WARNING_POP
-#if defined(_MSC_VER)
+#if defined(__MSC__)
 	#define DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER DISABLE_WARNING(4100)
 	#define DISABLE_WARNING_UNREFERENCED_FUNCTION DISABLE_WARNING(4505)
 	#define DISABLE_WARNING_CLASS_MEMACCESS
@@ -136,20 +153,16 @@
 	#define DISABLE_WARNING_UNINITIALIZED
 #endif
 // clang-format on
-#ifdef _MSC_VER
+#ifdef _WIN32
 #include <malloc.h>
 #include <direct.h>
 #include <io.h>
-// Pour enpecher temporairement le formatage clang, qui colle and avec &&
+// Pour empecher temporairement le formatage clang, qui colle and avec &&
 // clang-format off
 #define or ||
 #define and &&
 #define not !
 // clang-format on
-#endif
-
-#ifdef __WGPP__
-#include <io.h>
 #endif
 
 #include <iostream>
@@ -181,18 +194,17 @@ using namespace std;
 // Il manque les methodes open, sscanf, sprintf
 
 // Declaration de la structure stat
-#if defined __UNIX__ or defined __WGPP__
-typedef struct stat struct_stat;
-#else
+#ifdef _WIN32
 typedef struct _stat struct_stat;
+#else
+typedef struct stat struct_stat;
 #endif
 
-// Test si la version de gcc est inferieure a 4.7
-// On en a besoin pour les overrides (v 4.7) et les Rvalue references (v 4.3)  du C++11
-#if defined __UNIX__ and not defined __C11__
+// Si on n'a pas c++11, on definit les mots clefs qu'on utilise dans c++11
+#ifndef __C11__
 #define override
 #define final
-#endif // defined __UNIX__ and not defined __C11__
+#endif //  __C11__
 
 // Liste des methodes reimplementees
 const char* p_getenv(const char* varname);
@@ -201,16 +213,18 @@ struct tm* p_localtime(const time_t* timer);
 struct tm* p_gmtime(const time_t* timer);
 int p_stat(const char* path, struct_stat* buf);
 FILE* p_fopen(const char* filename, const char* mode);
+char* p_setlocale(int category, const char* locale);
 char* p_strcpy(char* strDestination, const char* strSource);
 char* p_strncpy(char* strDest, const char* strSource, size_t count);
 char* p_strcat(char* strDestination, const char* strSource);
+int p_isprint(int ch);
 
-// Le locale de l'application est parametre de facon a etre independant de la machine,
-// pour assurer l'unicite des conversions numeriques et de leur format d'export, des tris,
-// et des comparaisons entre chaines de caracteres
+// Le locale de l'application est parametre de facon a etre independant de la machine, pour assurer
+// l'unicite des conversions numeriques et de leur format d'export, des tris, et des comparaisons
+// entre chaines de caracteres
 //
-// Parametrage des locales: toute fonction de FileService base sur un nom de fichier entoure son appel
-// d'un parametrage prealable au locale de la machine, puis restore le locale de l'application
+// Parametrage des locales: toute fonction de FileService base sur un nom de fichier entoure son
+// appel d'un parametrage prealable au locale de la machine, puis restore le locale de l'application
 // Dans le cas d'un besoin de parametrage de locale specifique, il est necessaire de repositionner
 // ensuite le locale par defaut par appel a p_SetApplicationLocale.
 void p_SetMachineLocale();
@@ -231,7 +245,7 @@ const char* p_GetFileName(void* pFileData);
 int p_IsDirectory(void* pFileData);
 void p_FindClose(void* handle);
 
-// Taille des buffers pour les 2 routines suivantes
+// Taille des buffers pour les routines suivantes
 #define BUFFER_LENGTH 512
 
 // Renvoie un buffer de taille 500 max basee sur une variable statique
@@ -252,14 +266,14 @@ void StandardGetInputString(char* sBuffer, FILE* fInput);
 #define SHARED_LIBRARY_MESSAGE_LENGTH 512
 
 // Chargement d'une librairie partagee.
-// sLibraryPath : nom et chemin complet de la librairie (avec son extension).
-// sErrorMessage : sortie qui vaut vide si le chargement a reussi, le message d'erreur sinon
+//  sLibraryPath : nom et chemin complet de la librairie (avec son extension).
+//  sErrorMessage : sortie qui vaut vide si le chargement a reussi, le message d'erreur sinon
 // valeur de retour : handle sur la librairie ouverte, ou NULL si echec du chargement
 void* LoadSharedLibrary(const char* sLibraryPath, char* sErrorMessage);
 
 // Recuperation de l'adresse d'une fonction d'une librairie partagee.
-// libraryHandle : handle valide sur une librairie deja chargee
-// sfunctionName : nom de la fonction dont on veut recuperer l'adresse
+//  libraryHandle : handle valide sur une librairie deja chargee
+//  sfunctionName : nom de la fonction dont on veut recuperer l'adresse
 // valeur de retour : adresse de la fonction, ou NULL si echec de la recherche
 void* GetSharedLibraryFunction(void* libraryHandle, const char* sfunctionName);
 
@@ -269,8 +283,8 @@ void* GetSharedLibraryFunction(void* libraryHandle, const char* sfunctionName);
 int FreeSharedLibrary(void* libraryHandle);
 
 /////////////////////////////////////////////////////////////////
-// Implementation standard pour gcc, et pour MS VC++ avant 2005
-#if defined __UNIX__ or defined __WGPP__ or _MSC_VER < 1400
+// Implementation standard pour linux
+#ifdef __linux_or_apple__
 
 inline int p_setenv(const char* varname, const char* value)
 {
@@ -289,11 +303,7 @@ inline struct tm* p_gmtime(const time_t* timer)
 
 inline int p_stat(const char* path, struct_stat* buf)
 {
-#if defined __UNIX__ or defined __WGPP__
 	return stat(path, buf);
-#else
-	return _stat(path, buf);
-#endif
 }
 
 inline FILE* p_fopen(const char* filename, const char* mode)
@@ -334,11 +344,11 @@ inline char* p_strcat(char* strDestination, const char* strSource)
 	return strcat(strDestination, strSource);
 }
 
-#endif //  __UNIX__, __WGPP__, _MSC_VER < 1400
+#endif // __linux_or_apple__
 
 ////////////////////////////////////////////////////
-// Reimplementation pour MS Visual C++ 2005, 2008
-#if _MSC_VER >= 1400
+// Reimplementation pour Windows
+#ifdef _WIN32
 
 inline int p_setenv(const char* varname, const char* value)
 {
@@ -387,4 +397,15 @@ inline char* p_strcat(char* strDestination, const char* strSource)
 	return strDestination;
 }
 
-#endif // _MSC_VER >= 1400
+#endif // _WIN32
+
+////////////////////////////////////////////////////
+// Implementation portable pour tous les OS
+
+// isprint a un comportement qui depend de l'OS et de la locale
+// Par exemple; la tabulation est printbale sous Windows, mais pas sous linux
+// Limplementation ci-dessous est portable sur tous les OS testes (Windows, Linux, MAC)
+inline int p_isprint(int ch)
+{
+	return (0 <= ch and ch < 128 and isprint(ch) and not iscntrl(ch));
+}

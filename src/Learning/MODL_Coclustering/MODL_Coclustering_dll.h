@@ -1,10 +1,8 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #pragma once
-
-#ifdef __ANDROID__
 
 /* Use of C linkage from C++ */
 #ifdef __cplusplus
@@ -32,20 +30,28 @@ extern "C"
 #endif
 
 	/*
-	 * Version of KHIOPS_API
-	 */
-#define KHIOPS_COCLUSTERING_API_VERSION_9_0 90
-
-	/*
-	 * Get version of Khiops
-	 * Enable to check the version of the DLL
+	 * Get version of Khiops_coclustering
 	 *
-	 * Success return code:
-	 *    0
-	 * Failure return code:
-	 *    1
+	 * Enable to check the major and minor version of the DLL, which is the same as that of the Khiops tool
+	 * The version is given as an integer (10*major + minor) to ease comparisons
+	 * Exemple:
+	 *   75 for Khiops 7.5
+	 *   100 for Khiops 10.0
+	 *   101 for Khiops 10.1
+	 *
+	 * Return code:
+	 *    version number, an integer constant
 	 */
 	KHIOPS_COCLUSTERING_API int GetVersion();
+
+	/*
+	 * Get full version of Khiops_coclustering
+	 * Enable to check the full version of the DLL
+	 *
+	 * Return code:
+	 *    full version as a sequence-based identifier (ex: "9.0.1")
+	 */
+	KHIOPS_COCLUSTERING_API const char* GetFullVersion();
 
 	/*
 	 * Start Khiops Coclustering with a scenario and a log file. With the standalone Khiops tool,
@@ -64,5 +70,3 @@ extern "C"
 #ifdef __cplusplus
 } /* extern "C" */
 #endif /* __cplusplus */
-
-#endif // __ANDROID__

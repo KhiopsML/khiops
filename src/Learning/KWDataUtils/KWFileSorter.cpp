@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -648,7 +648,7 @@ KWSortBuckets* KWFileSorter::SplitDatabase(int nChunkSizeMin, int nChunkSize, KW
 	sFileURI = bucket->GetChunkFileNames()->GetAt(0);
 
 	// Pour minimiser le nombre de redecoupage (appel recursif de Splitdatabase)
-	// On vise une taille inferieur a la taille max
+	// On vise une taille inferieure a la taille max
 	nConservativeChunkSize = (int)(nChunkSize * dDeWittRatio);
 	if (nConservativeChunkSize < nChunkSizeMin)
 		nConservativeChunkSize = nChunkSizeMin;
@@ -665,6 +665,8 @@ KWSortBuckets* KWFileSorter::SplitDatabase(int nChunkSizeMin, int nChunkSize, KW
 				    ((1 - 1 / dSkew) * (1 - 1 / dSkew) * dSkew) +
 				1000);
 	ensure((nSampleSize * 1.0) / lLineNumber > 0);
+	if (nSampleSize > lLineNumber)
+		nSampleSize = (int)lLineNumber;
 
 	if (bTrace)
 	{

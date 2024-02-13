@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -159,7 +159,18 @@ public:
 protected:
 	// Creation et initialisation de la memoire necessaire au stockage d'un bloc
 	// Permet d'implementer les methodes de creation de bloc dans les sous-classes
-	static void* GenericNewValueBlock(int nSize);
+	//
+	// La classe utilise une fonctionnalite avancee du C++, le "placement new operator",
+	// pour allouer prealablement la memoire donnee au constructeur, qui usuellement
+	// d'une part alloue la memoire, d'autre part l'initialise
+	// Ici, on aura une sequence de trois methodes dans les "placement new" exploites dans
+	// les methodes NewValueBlock des sous-classes:
+	// - appel de GenericAllocValueBlock pour creer un bloc memoire
+	// - appel du placement new du C++ avec ce bloc, qui declenche un appel standard du C++
+	//   (en utilisant un constructeur ne faisant rien)
+	// - appel de GenericInitValueBlock pour initialiser le bloc memoire a la place du constructeur
+	static void* GenericAllocValueBlock(int nSize);
+	static void GenericInitValueBlock(void* pValueBlockMemory, int nSize);
 
 	// Constructeur prive
 	KWValueBlock();
@@ -603,10 +614,12 @@ inline KWContinuousValueBlock* KWContinuousValueBlock::NewValueBlock(int nSize)
 	KWContinuousValueBlock* newValueBlock;
 	void* pValueBlockMemory;
 
-	// On utilise le "placement new" pour appeler un constructeur avec de la memoire preallouee (attention, C++
-	// avance)
-	pValueBlockMemory = GenericNewValueBlock(nSize);
+	// On utilise le "placement new" pour appeler un constructeur avec de la memoire preallouee
+	// (attention, C++ avance)
+	pValueBlockMemory = GenericAllocValueBlock(nSize);
 	newValueBlock = new (pValueBlockMemory) KWContinuousValueBlock;
+	GenericInitValueBlock(pValueBlockMemory, nSize);
+	assert(newValueBlock->nValueNumber == nSize);
 	return newValueBlock;
 }
 
@@ -660,10 +673,12 @@ inline KWSymbolValueBlock* KWSymbolValueBlock::NewValueBlock(int nSize)
 	KWSymbolValueBlock* newValueBlock;
 	void* pValueBlockMemory;
 
-	// On utilise le "placement new" pour appeler un constructeur avec de la memoire preallouee (attention, C++
-	// avance)
-	pValueBlockMemory = GenericNewValueBlock(nSize);
+	// On utilise le "placement new" pour appeler un constructeur avec de la memoire preallouee
+	// (attention, C++ avance)
+	pValueBlockMemory = GenericAllocValueBlock(nSize);
 	newValueBlock = new (pValueBlockMemory) KWSymbolValueBlock;
+	GenericInitValueBlock(pValueBlockMemory, nSize);
+	assert(newValueBlock->nValueNumber == nSize);
 	return newValueBlock;
 }
 
@@ -710,10 +725,12 @@ inline KWObjectArrayValueBlock* KWObjectArrayValueBlock::NewValueBlock(int nSize
 	KWObjectArrayValueBlock* newValueBlock;
 	void* pValueBlockMemory;
 
-	// On utilise le "placement new" pour appeler un constructeur avec de la memoire preallouee (attention, C++
-	// avance)
-	pValueBlockMemory = GenericNewValueBlock(nSize);
+	// On utilise le "placement new" pour appeler un constructeur avec de la memoire preallouee
+	// (attention, C++ avance)
+	pValueBlockMemory = GenericAllocValueBlock(nSize);
 	newValueBlock = new (pValueBlockMemory) KWObjectArrayValueBlock;
+	GenericInitValueBlock(pValueBlockMemory, nSize);
+	assert(newValueBlock->nValueNumber == nSize);
 	return newValueBlock;
 }
 

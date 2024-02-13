@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -194,7 +194,7 @@ void KWDiscretizerMODL::Discretize(KWFrequencyTable* kwftSource, KWFrequencyTabl
 				delete kwftMergedTable;
 				kwftMergedTable = NULL;
 
-				if (dCost < dBestCost)
+				if (dCost < dBestCost - dEpsilon)
 				{
 					dBestCost = dCost;
 					// Destruction de l'optimum precedent

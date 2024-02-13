@@ -1,0 +1,56 @@
+// Fri Dec 02 15:33:16 2011
+// c:\Users\boullema\Learning\Win32\Debug\MODL_Coclustering.exe
+// Output command file
+//
+//This file contains recorded commands, that can be replayed.
+//Commands are based on user interactions:
+//	field update
+//	list item selection
+//	menu action
+//Every command can be commented, using //.
+//For example, commenting the last Exit command will allow other
+//user interactions, after the commands have been replayed.
+//
+//
+
+// -> Khiops Coclustering
+ClassManagement.OpenFile       // Open...
+
+// -> Open
+ClassFileName ../../../MTdatasets/SpliceJunction/SpliceJunction.kdic       // Dictionary file
+OK                             // Open
+// <- Open
+
+ClassManagement.ClassName SpliceJunction // Analysis dictionary
+
+LearningTools.PrepareDeployment          // Prepare deployment...
+
+// -> Coclustering deployment preparation
+SelectInputCoclustering        // Select input coclustering...
+
+// -> Open
+InputCoclusteringFileName ./SpliceJunctionDNACoclustering.khc   // Input coclustering file
+OK                             // Open
+// <- Open
+
+DeploymentSpec.InputClassName SpliceJunction // Input dictionary
+DeploymentSpec.InputObjectArrayAttributeName DNA          // Input array variable
+DeploymentSpec.DeployedAttributeName SampleId    // Coclustering deployed variable
+DeploymentSpec.BuildPredictedClusterAttribute true // Build predicted cluster variable
+DeploymentSpec.BuildClusterDistanceAttributes true // Build inter-cluster distance variables
+DeploymentSpec.BuildFrequencyRecodingAttributes true         // Build frequency recoding variables
+DeploymentSpec.OutputAttributesPrefix P_ // Output variables prefix
+AnalysisResults.ResultFilesDirectory ./results       // Result files directory
+AnalysisResults.CoclusteringDictionaryFileName Coclustering.kdic   // Coclustering dictionary file
+PrepareDeployment              // Prepare deployment
+Exit                           // Close
+// <- Coclustering deployment preparation
+
+Exit                           // Close
+// <- Khiops Coclustering
+
+
+// -> Khiops Coclustering
+OK                             // Close
+// <- Khiops Coclustering
+

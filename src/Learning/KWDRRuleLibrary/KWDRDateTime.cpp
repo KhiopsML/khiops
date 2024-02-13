@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -890,7 +890,7 @@ Timestamp KWDRAddSeconds::ComputeTimestampResult(const KWObject* kwoObject) cons
 
 	// Ajout des jours a la timestamp, si validite des operandes
 	if (tsTimestamp.Check() and cSeconds != KWContinuous::GetMissingValue())
-		tsTimestamp.AddSeconds((int)floor(cSeconds + 0.5));
+		tsTimestamp.AddSeconds(cSeconds);
 	// Sinon, on rend un timestamp invalide
 	else
 		tsTimestamp.Reset();

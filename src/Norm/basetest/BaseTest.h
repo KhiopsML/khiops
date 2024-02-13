@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -18,7 +18,7 @@
 #include "CharVector.h"
 #include "InputBufferedFile.h"
 #include "OutputBufferedFile.h"
-#include "Regex.h"
+#include "Regexp.h"
 #include "DiversTests.h"
 #include "UITestObject.h"
 #include "UITestObjectView.h"

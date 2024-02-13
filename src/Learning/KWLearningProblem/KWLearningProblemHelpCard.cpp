@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -43,35 +43,38 @@ KWLearningProblemHelpCard::~KWLearningProblemHelpCard() {}
 void KWLearningProblemHelpCard::ShowDocumentation()
 {
 	UICard documentationCard;
+	ALString sDocumentationHeader;
 
 	require(GetFieldNumber() == 0);
 
-	// Titre
+	// Parametrage basique de la carte
 	documentationCard.SetIdentifier("Documentation");
 	documentationCard.SetLabel("Documentation " + GetLearningFullApplicationName());
 
-	// Affichage
-	if (sDocumentationText != "")
-	{
-		documentationCard.AddStringField("Information", "", sDocumentationText);
-		documentationCard.GetFieldAt("Information")->SetStyle("FormattedLabel");
-	}
-
-	// Site web
+	// Entete
+	sDocumentationHeader = "<h3> " + GetLearningFullApplicationName() + "</h3>" + sDocumentationHeader +=
+	    "<p> Khiops is an AutoML suite for supervised and unsupervised learning </p>";
 	if (GetLearningWebSite() != "")
 	{
-		// Saut de ligne
-		documentationCard.AddStringField("NewLine", "", "");
-		documentationCard.GetFieldAt("NewLine")->SetStyle("FormattedLabel");
-
-		// Site web
-		documentationCard.AddStringField("WebSite", "Web site",
-						 "<html> <a href=\"\">" + GetLearningWebSite() + "</a>  </html>");
-		documentationCard.GetFieldAt("WebSite")->SetStyle("UriLabel");
-		documentationCard.GetFieldAt("WebSite")->SetParameters(GetLearningWebSite());
+		sDocumentationHeader += "<p> Official website: ";
+		sDocumentationHeader += "<a href=\"\">" + GetLearningWebSite() + "</a> </p>";
+	}
+	documentationCard.AddStringField("Header", "", "<html>" + sDocumentationHeader + "</html>");
+	if (GetLearningWebSite() != "")
+	{
+		documentationCard.GetFieldAt("Header")->SetStyle("UriLabel");
+		documentationCard.GetFieldAt("Header")->SetParameters(GetLearningWebSite());
+	}
+	else
+	{
+		documentationCard.GetFieldAt("Header")->SetStyle("FormattedLabel");
 	}
 
-	// Affichage
+	// Contenus
+	documentationCard.AddStringField("Body", "", "<html>" + sDocumentationText + "</html>");
+	documentationCard.GetFieldAt("Body")->SetStyle("FormattedLabel");
+
+	// Affichage du widget
 	documentationCard.Open();
 }
 

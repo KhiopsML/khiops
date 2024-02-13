@@ -1,213 +1,280 @@
 {
-    "version": 3,
-    "cmakeMinimumRequired": {
-        "major": 3,
-        "minor": 22,
-        "patch": 0
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 22,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "default",
+      "hidden": true,
+      "description": "Khiops default build options",
+      "generator": "Ninja",
+      "cacheVariables": {
+        "MPI": "ON",
+        "TESTING": "OFF",
+        "BUILD_JARS": "OFF",
+        "BUILD_LEX_YACC": "OFF",
+        "C11": "ON"
+      },
+      "binaryDir": "${sourceDir}/build/${presetName}"
     },
-    "configurePresets": [
-        {
-            "name": "default",
-            "hidden": true,
-            "description": "Khiops default build options",
-            "generator": "Ninja",
-            "cacheVariables": {
-                "MPI": "ON",
-                "LEARNING": "ON",
-                "PARALLEL": "ON",
-                "TESTING": "ON",
-                "BUILD_JARS": "ON",
-                "BUILD_LEX_YACC": "OFF",
-                "C11": "ON",
-                "FULL": "ON",
-                "FEDORA": "OFF",
-                "MODL_SO": "OFF"
-            },
-            "binaryDir": "${sourceDir}/build/${presetName}"
-        },
-        {
-            "name": "linux",
-            "hidden": true,
-            "condition": {
-                "type": "equals",
-                "lhs": "${hostSystemName}",
-                "rhs": "Linux"
-            },
-            "vendor": {
-                "microsoft.com/VisualStudioSettings/CMake/1.0": {
-                    "hostOS": ["Linux"]
-                }
-            }
-        },
-        {
-            "name": "windows",
-            "hidden": true,
-            "condition": {
-                "type": "equals",
-                "lhs": "${hostSystemName}",
-                "rhs": "Windows"
-            },
-            "vendor": {
-                "microsoft.com/VisualStudioSettings/CMake/1.0": {
-                    "hostOS": ["Windows"]
-                }
-            }
-        },
-        {
-            "name": "macos",
-            "hidden": true,
-            "condition": {
-                "type": "equals",
-                "lhs": "${hostSystemName}",
-                "rhs": "Darwin"
-            },
-            "vendor": {
-                "microsoft.com/VisualStudioSettings/CMake/1.0": {
-                    "hostOS": ["macOS"]
-                }
-            }
-        },
-        {
-            "name": "gcc",
-            "hidden": true,
-            "cacheVariables": {
-                "CMAKE_C_COMPILER": "gcc",
-                "CMAKE_CXX_COMPILER": "g++"
-            }
-        },
-        {
-            "name": "msvc",
-            "hidden": true,
-            "cacheVariables": {
-                "CMAKE_C_COMPILER": "cl",
-                "CMAKE_CXX_COMPILER": "cl"
-            }
-        },
-        {
-            "name": "clang",
-            "hidden": true,
-            "cacheVariables": {
-                "CMAKE_C_COMPILER": "clang",
-                "CMAKE_CXX_COMPILER": "clang++"
-            }
-        },
-        {
-            "name": "release",
-            "hidden": true,
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release"
-            }
-        },
-        {
-            "name": "debug",
-            "hidden": true,
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
-        },
-        {
-            "name": "relwithdebinfo",
-            "hidden": true,
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "RelWithDebInfo"
-            }
-        },
-        {
-            "name": "minsizerel",
-            "hidden": true,
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "MinSizeRel"
-            }
-        },
-        {
-            "name": "linux-gcc-debug",
-            "inherits": ["default", "linux", "gcc", "debug"],
-            "displayName": "Linux GCC Debug",
-            "description": "Khiops debug build for Linux with GCC"
-        },
-        {
-            "name": "linux-gcc-release",
-            "inherits": ["default", "linux", "gcc", "release"],
-            "displayName": "Linux GCC Release",
-            "description": "Khiops release build for Linux with GCC"
-        },
-        {
-            "name": "linux-clang-debug",
-            "inherits": ["default", "linux", "clang", "debug"],
-            "displayName": "Linux Clang Debug",
-            "description": "Khiops debug build for Linux with Clang"
-        },
-        {
-            "name": "linux-clang-release",
-            "inherits": ["default", "linux", "clang", "release"],
-            "displayName": "Linux Clang Release",
-            "description": "Khiops release build for Linux with Clang"
-        },
-        {
-            "name": "windows-msvc-debug",
-            "inherits": ["default", "windows", "msvc", "debug"],
-            "displayName": "Windows MSVC Debug",
-            "description": "Khiops debug build for Windows with MSVC"
-        },
-        {
-            "name": "windows-msvc-release",
-            "inherits": ["default", "windows", "msvc", "release"],
-            "displayName": "Windows MSVC Release",
-            "description": "Khiops release build for Windows with MSVC"
-        },
-        {
-            "name": "macos-clang-debug",
-            "inherits": ["default", "macos", "clang", "debug"],
-            "displayName": "macOS Clang Debug",
-            "description": "Khiops debug build for macOS with Clang"
-        },
-        {
-            "name": "macos-clang-release",
-            "inherits": ["default", "macos", "clang", "release"],
-            "displayName": "macOS Clang Release",
-            "description": "Khiops release build for macOS with Clang"
+    {
+      "name": "linux",
+      "hidden": true,
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+          "hostOS": [
+            "Linux"
+          ]
         }
-    ],
-    "buildPresets": [
-        {
-            "name": "build-linux-clang-debug",
-            "displayName": "Linux Clang Debug",
-            "configurePreset": "linux-clang-debug"
-        },
-        {
-            "name": "build-linux-clang-release",
-            "displayName": "Linux Clang Release",
-            "configurePreset": "linux-clang-release"
-        },
-        {
-            "name": "build-linux-gcc-debug",
-            "displayName": "Linux GCC Debug",
-            "configurePreset": "linux-gcc-debug"
-        },
-        {
-            "name": "build-linux-gcc-release",
-            "displayName": "Linux GCC Release",
-            "configurePreset": "linux-gcc-release"
-        },
-        {
-            "name": "build-windows-msvc-debug",
-            "displayName": "Windows MSVC Debug",
-            "configurePreset": "windows-msvc-debug"
-        },
-        {
-            "name": "build-windows-msvc-release",
-            "displayName": "Windows MSVC Release",
-            "configurePreset": "windows-msvc-release"
-        },
-        {
-            "name": "build-macos-clang-debug",
-            "displayName": "macOS Clang Debug",
-            "configurePreset": "macos-clang-debug"
-        },
-        {
-            "name": "build-macos-clang-release",
-            "displayName": "macOS Clang Release",
-            "configurePreset": "macos-clang-release"
+      }
+    },
+    {
+      "name": "windows",
+      "hidden": true,
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+          "hostOS": [
+            "Windows"
+          ]
         }
-    ]
+      }
+    },
+    {
+      "name": "macos",
+      "hidden": true,
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+          "hostOS": [
+            "macOS"
+          ]
+        }
+      }
+    },
+    {
+      "name": "gcc",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++"
+      }
+    },
+    {
+      "name": "msvc",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "cl",
+        "CMAKE_CXX_COMPILER": "cl"
+      }
+    },
+    {
+      "name": "clang",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++"
+      }
+    },
+    {
+      "name": "release",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "debug",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "relwithdebinfo",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+      }
+    },
+    {
+      "name": "minsizerel",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "MinSizeRel"
+      }
+    },
+    {
+      "name": "linux-gcc-debug",
+      "inherits": [
+        "default",
+        "linux",
+        "gcc",
+        "debug"
+      ],
+      "displayName": "Linux GCC Debug",
+      "description": "Khiops debug build for Linux with GCC"
+    },
+    {
+      "name": "linux-gcc-release",
+      "inherits": [
+        "default",
+        "linux",
+        "gcc",
+        "release"
+      ],
+      "displayName": "Linux GCC Release",
+      "description": "Khiops release build for Linux with GCC"
+    },
+    {
+      "name": "linux-clang-debug",
+      "inherits": [
+        "default",
+        "linux",
+        "clang",
+        "debug"
+      ],
+      "displayName": "Linux Clang Debug",
+      "description": "Khiops debug build for Linux with Clang"
+    },
+    {
+      "name": "linux-clang-release",
+      "inherits": [
+        "default",
+        "linux",
+        "clang",
+        "release"
+      ],
+      "displayName": "Linux Clang Release",
+      "description": "Khiops release build for Linux with Clang"
+    },
+    {
+      "name": "windows-msvc-debug",
+      "inherits": [
+        "default",
+        "windows",
+        "msvc",
+        "debug"
+      ],
+      "displayName": "Windows MSVC Debug",
+      "description": "Khiops debug build for Windows with MSVC"
+    },
+    {
+      "name": "windows-msvc-release",
+      "inherits": [
+        "default",
+        "windows",
+        "msvc",
+        "release"
+      ],
+      "displayName": "Windows MSVC Release",
+      "description": "Khiops release build for Windows with MSVC"
+    },
+    {
+      "name": "macos-clang-debug",
+      "inherits": [
+        "default",
+        "macos",
+        "clang",
+        "debug"
+      ],
+      "displayName": "macOS Clang Debug",
+      "description": "Khiops debug build for macOS with Clang"
+    },
+    {
+      "name": "macos-clang-release",
+      "inherits": [
+        "default",
+        "macos",
+        "clang",
+        "release"
+      ],
+      "displayName": "macOS Clang Release",
+      "description": "Khiops release build for macOS with Clang"
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "linux-clang-debug",
+      "displayName": "Linux Clang Debug",
+      "configurePreset": "linux-clang-debug"
+    },
+    {
+      "name": "linux-clang-release",
+      "displayName": "Linux Clang Release",
+      "configurePreset": "linux-clang-release"
+    },
+    {
+      "name": "linux-gcc-debug",
+      "displayName": "Linux GCC Debug",
+      "configurePreset": "linux-gcc-debug"
+    },
+    {
+      "name": "linux-gcc-release",
+      "displayName": "Linux GCC Release",
+      "configurePreset": "linux-gcc-release"
+    },
+    {
+      "name": "windows-msvc-debug",
+      "displayName": "Windows MSVC Debug",
+      "configurePreset": "windows-msvc-debug"
+    },
+    {
+      "name": "windows-msvc-release",
+      "displayName": "Windows MSVC Release",
+      "configurePreset": "windows-msvc-release"
+    },
+    {
+      "name": "macos-clang-debug",
+      "displayName": "macOS Clang Debug",
+      "configurePreset": "macos-clang-debug"
+    },
+    {
+      "name": "macos-clang-release",
+      "displayName": "macOS Clang Release",
+      "configurePreset": "macos-clang-release"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "linux-gcc-debug",
+      "configurePreset": "linux-gcc-debug"
+    },
+    {
+      "name": "linux-gcc-release",
+      "configurePreset": "linux-gcc-release"
+    },
+    {
+      "name": "macos-clang-debug",
+      "configurePreset": "macos-clang-debug"
+    },
+    {
+      "name": "macos-clang-release",
+      "configurePreset": "macos-clang-release"
+    },
+    {
+      "name": "windows-msvc-debug",
+      "configurePreset": "windows-msvc-debug"
+    },
+    {
+      "name": "windows-msvc-release",
+      "configurePreset": "windows-msvc-release"
+    }
+  ]
 }

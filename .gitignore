@@ -5,6 +5,9 @@
 .vs/
 .vscode/
 
+# CMake User Preset
+CMakeUserPresets.json
+
 # Build directory
 build/
 
@@ -15,4 +18,9 @@ CMakeFiles/
 test/*/results/
 LearningTest/*/*/*/results/
 LearningTest/*/*/*/results.ref/time.log
+
+# LearningTest 
+results/
+__pycache__/
+comparisonResults.log
 

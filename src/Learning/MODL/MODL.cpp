@@ -1,14 +1,42 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #include "MODL.h"
 
-#ifndef __ANDROID__
+// Debogage sous Windows Visual C++ 2022 (bug https://github.com/microsoft/vscode-cpptools/issues/8084)
+// Choix en dur du repertoire de lancement
+void SetWindowsDebugDir(const ALString& sDatasetFamily, const ALString& sDataset)
+{
+#ifdef _WIN32
+	ALString sUserRootPath;
+	int nRet;
+
+	// A parametrer pour chaque utilisateur
+	// Devra etre fait plus proprement quand tout l'equipe sera sur git, par exemple via une variable
+	// d'environnement et quelques commentaires clairs
+	sUserRootPath = "D:/Users/miib6422/Documents/boullema/LearningTest/TestKhiops/";
+
+	// Pour permettre de continuer a utiliser LearningTest, on ne fait rien s'il y a deja un fichier test.prm
+	// dans le repertoire courante
+	if (FileService::FileExists("test.prm"))
+		return;
+
+	// Changement de repertoire, uniquement pour Windows
+	nRet = _chdir(sUserRootPath + sDatasetFamily + "/" + sDataset);
+#endif
+}
 
 int main(int argc, char** argv)
 {
 	MDKhiopsLearningProject learningProject;
+
+	// Activation de la gestion des signaux via des erreurs, pour afficher des messages d'erreur explicites
+	// A potentiellement commnter sur certian IDE lors des phases de debuggage
+	Global::ActivateSignalErrorManagement();
+
+	// Choix du repertoire de lancement pour le debugage sous Windows (a commenter apres fin du debug)
+	// SetWindowsDebugDir("Standard", "IrisLight");
 
 	// Parametrage des logs memoires depuis les variables d'environnement, pris en compte dans KWLearningProject
 	//   KhiopsMemStatsLogFileName, KhiopsMemStatsLogFrequency, KhiopsMemStatsLogToCollect
@@ -20,19 +48,13 @@ int main(int argc, char** argv)
 	// MemoryStatsManager::OpenLogFile("D:\\temp\\KhiopsMemoryStats\\Test\\KhiopsMemoryStats.log", 10000,
 	// MemoryStatsManager::AllStats);
 
-	// Pour desactiver l'interception du signal "segmentation fault", pour permettre au debugger d'identifier le
-	// probleme
-	debug(signal(SIGSEGV, NULL));
-
 	// Parametrage de l'arret pour la memoire ou les interruptions utilisateurs
 	// MemSetAllocIndexExit(1674366);
 	// TaskProgression::SetExternalInterruptionRequestIndex();
 	// TaskProgression::SetInterruptionRequestIndex(75);
 
-	// #define USE_MPI (on passe par les directive de compilation)
-#if defined(USE_MPI)
-	PLParallelTask::UseMPI(GetLearningVersion());
-#endif // defined(USE_MPI)
+	// Parametrage de l'utilisation de MPI
+	UseMPI();
 
 	// Simulation du mode parallele pour le debuggage
 	// PLParallelTask::SetParallelSimulated(true);
@@ -65,5 +87,3 @@ int main(int argc, char** argv)
 	else
 		return EXIT_SUCCESS;
 }
-
-#endif // __ANDROID__

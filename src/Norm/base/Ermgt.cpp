@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -10,6 +10,8 @@
 boolean Global::bPrintMessagesInConsole = false;
 
 ErrorFlowIgnoreFunction Global::fErrorFlowIgnoreFunction = NULL;
+
+boolean Global::bIsSignalErrorManagementActivated = false;
 
 void Global::AddSimpleMessage(const ALString& sLabelValue)
 {
@@ -38,26 +40,6 @@ void Global::AddFatalError(const ALString& sCategoryValue, const ALString& sLoca
 	AddErrorObjectValued(Error::GravityFatalError, sCategoryValue, sLocalisationValue, sLabelValue);
 }
 
-Global::Global()
-{
-	static boolean bSignalHandlersInitialized = false;
-
-	// Initialisation des handler de gestion de signal
-	// On ne gere pas SIGBREAK, qui n'est pas connu sous linux
-	if (not bSignalHandlersInitialized)
-	{
-		bSignalHandlersInitialized = true;
-		signal(SIGTERM, SignalHandler);
-		signal(SIGSEGV, SignalHandler);
-		signal(SIGINT, SignalHandler);
-		signal(SIGILL, SignalHandler);
-		signal(SIGABRT, SignalHandler);
-		signal(SIGFPE, SignalHandler);
-	}
-}
-
-Global::~Global() {}
-
 boolean Global::IgnoreErrorFlowForDisplay(const Error* e)
 {
 	require(e != NULL);
@@ -69,20 +51,29 @@ boolean Global::IgnoreErrorFlowForDisplay(const Error* e)
 
 void Global::SignalHandler(int nSigNum)
 {
+	// On doit eviter les allocations et les routines d'entree:sortie de bas niveau ou de sdtio.h
 	if (nSigNum == SIGTERM)
-		AddFatalError("Signal", IntToString(nSigNum), "termination request, sent to the program ");
+		cout << "Interrupt signal " << nSigNum << " : termination request, sent to the program " << endl;
 	else if (nSigNum == SIGSEGV)
-		AddFatalError("Signal", IntToString(nSigNum), "invalid memory access (segmentation fault)");
+		cout << "Interrupt signal " << nSigNum << " : invalid memory access (segmentation fault)" << endl;
 	else if (nSigNum == SIGINT)
-		AddFatalError("Signal", IntToString(nSigNum), "external interrupt, usually initiated by the user");
+		cout << "Interrupt signal " << nSigNum << " : external interrupt, usually initiated by the user"
+		     << endl;
 	else if (nSigNum == SIGILL)
-		AddFatalError("Signal", IntToString(nSigNum), "invalid program image, such as invalid instruction");
+		cout << "Interrupt signal " << nSigNum << " : invalid program image, such as invalid instruction"
+		     << endl;
 	else if (nSigNum == SIGABRT)
-		AddFatalError("Signal", IntToString(nSigNum), "abnormal termination condition triggered by abort call");
+		cout << "Interrupt signal " << nSigNum << " : abnormal termination condition triggered by abort call"
+		     << endl;
 	else if (nSigNum == SIGFPE)
-		AddFatalError("Signal", IntToString(nSigNum), "erroneous arithmetic operation such as divide by zero");
+		cout << "Interrupt signal " << nSigNum << " : erroneous arithmetic operation such as divide by zero"
+		     << endl;
 	else
-		AddFatalError("Signal", IntToString(nSigNum), "Unknown error");
+		cout << "Interrupt signal " << nSigNum << " : Unknown error" << endl;
+
+	// Sortie du programe (on n'utilise pas les signaux comme valeurs de retour car on renvoie 1 en cas d'erreur
+	// fatale et 2 en cas d'erreurs)
+	exit(EXIT_FAILURE);
 }
 
 Global Global::singletonSignalManager;
@@ -320,10 +311,10 @@ boolean Global::SetErrorLogFileName(const ALString& sValue)
 		// Si le fichier de log est /dev/stdout ou /dev/stderr
 		// C'est une redirection des messages vers la console
 		// (on ajoutera un prefix a chaque ligne)
-#ifdef __UNIX__
+#ifdef __linux_or_apple__
 		if (sValue == "/dev/stdout" or sValue == "/dev/stderr")
 			bPrintMessagesInConsole = true;
-#endif // __UNIX__
+#endif
 	}
 	return bOk;
 }
@@ -336,6 +327,31 @@ const ALString Global::GetErrorLogFileName()
 boolean Global::IsAtLeastOneError()
 {
 	return bIsAtLeastOneError;
+}
+
+void Global::ActivateSignalErrorManagement()
+{
+	require(not bIsSignalErrorManagementActivated);
+
+// Defini seulement en debug ou RelWithDebInfo (alpha)
+#if defined(__ALPHA__) || !defined(NOALL)
+
+	// Initialisation des handler de gestion de signal
+	// On ne gere pas SIGBREAK, qui n'est pas connu sous linux
+	bIsSignalErrorManagementActivated = true;
+	signal(SIGTERM, SignalHandler);
+	signal(SIGSEGV, SignalHandler);
+	signal(SIGINT, SignalHandler);
+	signal(SIGILL, SignalHandler);
+	signal(SIGABRT, SignalHandler);
+	signal(SIGFPE, SignalHandler);
+
+#endif
+}
+
+boolean Global::IsSignalErrorManagementActivated()
+{
+	return bIsSignalErrorManagementActivated;
 }
 
 int Global::nErrorFlowControlLevel = 0;

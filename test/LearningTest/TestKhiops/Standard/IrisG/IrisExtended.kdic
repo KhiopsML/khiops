@@ -1,0 +1,17 @@
+#Khiops 7.7.2i
+
+Dictionary	Iris
+{
+	Numerical	SepalLength		;	
+	Numerical	SepalWidth		;	
+	Numerical	PetalLength		;	
+	Numerical	PetalWidth		;	
+	Categorical	SPetalLength	 = AsCategorical(Floor(PetalLength))	;	
+	Numerical	LowerPetalLength	 = If(LE(PetalLength, 3), PetalLength, 3)	;	
+	Numerical	UpperPetalWidth	 = If(GE(PetalWidth, 1.5), PetalWidth, 1.5)	;	
+	Categorical	Class1	 = IfC(EQc(Class, "Iris-setosa"), "setosa", "")	;	
+	Categorical	Class2	 = IfC(EQc(Class, "Iris-versicolor"), "versicolor", "")	;	
+	Numerical	Dummy1	 = Copy(0)	;	
+	Numerical	Dummy2	 = Random()	;	
+	Categorical	Class		;	
+};

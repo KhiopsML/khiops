@@ -1,0 +1,118 @@
+#Khiops 7.7.2i
+
+Dictionary	BU1_Iris
+<InitialDictionary="Iris"> <PredictorLabel="Univariate SPetalLength"> <PredictorType="Classifier">
+{
+Unused	Numerical	SepalLength		; <Cost=2.3979> <Level=0.271383>	
+Unused	Numerical	SepalWidth		; <Cost=2.3979> <Level=0.0913455>	
+Unused	Numerical	PetalLength		; <Cost=2.3979> <Level=0.636888>	
+Unused	Numerical	PetalWidth		; <Cost=2.3979> <Level=0.62595>	
+Unused	Categorical	SPetalLength	 = AsCategorical(Floor(PetalLength))	; <Cost=2.3979> <Level=0.670359> <SourceVariable>	
+Unused	Numerical	LowerPetalLength	 = If(LE(PetalLength, 3), PetalLength, 3)	; <Cost=2.3979> <Level=0.405411>	
+Unused	Numerical	UpperPetalWidth	 = If(GE(PetalWidth, 1.5), PetalWidth, 1.5)	; <Cost=2.3979> <Level=0.312189>	
+Unused	Categorical	Class1	 = IfC(EQc(Class, "Iris-setosa"), "setosa", "")	; <Cost=2.3979> <Level=0.447211>	
+Unused	Categorical	Class2	 = IfC(EQc(Class, "Iris-versicolor"), "versicolor", "")	; <Cost=2.3979> <Level=0.479944>	
+Unused	Numerical	Dummy1	 = Copy(0)	; <Cost=2.3979> <Level=0>	
+Unused	Numerical	Dummy2	 = Random()	; <Cost=2.3979> <Level=0>	
+	Categorical	Class		; <TargetVariable>	
+Unused	Structure(DataGrid)	VClass	 = DataGrid(ValueSetC("Iris-setosa", "Iris-versicolor", "Iris-virginica"), Frequencies(31, 37, 31))	; <TargetValues>	
+Unused	Structure(DataGrid)	PSPetalLength	 = DataGrid(ValueGroups(ValueGroup("4", "3"), ValueGroup("1"), ValueGroup("5", "6", " * ")), ValueSetC("Iris-setosa", "Iris-versicolor", "Iris-virginica"), Frequencies(0, 31, 0, 36, 0, 1, 2, 0, 29))	; <Level=0.670359>	// DataGrid(SPetalLength, Class)
+Unused	Structure(Classifier)	BU1Class	 = NBClassifier(DataGridStats(PSPetalLength, SPetalLength), VClass)	;	
+	Categorical	PredictedClass	 = TargetValue(BU1Class)	; <Prediction>	
+	Numerical	ScoreClass	 = TargetProb(BU1Class)	; <Score>	
+Unused	Numerical	`ProbClassIris-setosa`	 = TargetProbAt(BU1Class, "Iris-setosa")	; <TargetProb1="Iris-setosa">	
+Unused	Numerical	`ProbClassIris-versicolor`	 = TargetProbAt(BU1Class, "Iris-versicolor")	; <TargetProb2="Iris-versicolor">	
+Unused	Numerical	`ProbClassIris-virginica`	 = TargetProbAt(BU1Class, "Iris-virginica")	; <TargetProb3="Iris-virginica">	
+};
+
+Dictionary	MNB_Iris
+<InitialDictionary="Iris"> <PredictorLabel="MAP Naive Bayes"> <PredictorType="Classifier">
+{
+Unused	Numerical	SepalLength		; <Cost=2.3979> <Level=0.271383>	
+Unused	Numerical	SepalWidth		; <Cost=2.3979> <Level=0.0913455>	
+Unused	Numerical	PetalLength		; <Cost=2.3979> <Level=0.636888>	
+Unused	Numerical	PetalWidth		; <Cost=2.3979> <Level=0.62595>	
+Unused	Categorical	SPetalLength	 = AsCategorical(Floor(PetalLength))	; <Cost=2.3979> <Level=0.670359>	
+Unused	Numerical	LowerPetalLength	 = If(LE(PetalLength, 3), PetalLength, 3)	; <Cost=2.3979> <Level=0.405411>	
+Unused	Numerical	UpperPetalWidth	 = If(GE(PetalWidth, 1.5), PetalWidth, 1.5)	; <Cost=2.3979> <Level=0.312189>	
+Unused	Categorical	Class1	 = IfC(EQc(Class, "Iris-setosa"), "setosa", "")	; <Cost=2.3979> <Level=0.447211>	
+Unused	Categorical	Class2	 = IfC(EQc(Class, "Iris-versicolor"), "versicolor", "")	; <Cost=2.3979> <Level=0.479944>	
+Unused	Numerical	Dummy1	 = Copy(0)	; <Cost=2.3979> <Level=0>	
+Unused	Numerical	Dummy2	 = Random()	; <Cost=2.3979> <Level=0>	
+	Categorical	Class		; <TargetVariable>	
+Unused	Structure(DataGrid)	VClass	 = DataGrid(ValueSetC("Iris-setosa", "Iris-versicolor", "Iris-virginica"), Frequencies(31, 37, 31))	; <TargetValues>	
+Unused	Structure(DataGrid)	PLowerPetalLength	 = DataGrid(IntervalBounds(2.45), ValueSetC("Iris-setosa", "Iris-versicolor", "Iris-virginica"), Frequencies(31, 0, 0, 37, 0, 31))	; <Level=0.405411>	// DataGrid(LowerPetalLength, Class)
+Unused	Structure(DataGrid)	PClass2	 = DataGrid(ValueGroups(ValueGroup(""), ValueGroup("versicolor", " * ")), ValueSetC("Iris-setosa", "Iris-versicolor", "Iris-virginica"), Frequencies(31, 0, 0, 37, 31, 0))	; <Level=0.479944>	// DataGrid(Class2, Class)
+Unused	Structure(Classifier)	MNBClass	 = NBClassifier(DataGridStats(PClass2, Class2), DataGridStats(PLowerPetalLength, LowerPetalLength), VClass)	;	
+	Categorical	PredictedClass	 = TargetValue(MNBClass)	; <Prediction>	
+	Numerical	ScoreClass	 = TargetProb(MNBClass)	; <Score>	
+Unused	Numerical	`ProbClassIris-setosa`	 = TargetProbAt(MNBClass, "Iris-setosa")	; <TargetProb1="Iris-setosa">	
+Unused	Numerical	`ProbClassIris-versicolor`	 = TargetProbAt(MNBClass, "Iris-versicolor")	; <TargetProb2="Iris-versicolor">	
+Unused	Numerical	`ProbClassIris-virginica`	 = TargetProbAt(MNBClass, "Iris-virginica")	; <TargetProb3="Iris-virginica">	
+};
+
+Dictionary	NB_Iris
+<InitialDictionary="Iris"> <PredictorLabel="Naive Bayes"> <PredictorType="Classifier">
+{
+Unused	Numerical	SepalLength		; <Cost=2.3979> <Level=0.271383>	
+Unused	Numerical	SepalWidth		; <Cost=2.3979> <Level=0.0913455>	
+Unused	Numerical	PetalLength		; <Cost=2.3979> <Level=0.636888>	
+Unused	Numerical	PetalWidth		; <Cost=2.3979> <Level=0.62595>	
+Unused	Categorical	SPetalLength	 = AsCategorical(Floor(PetalLength))	; <Cost=2.3979> <Level=0.670359>	
+Unused	Numerical	LowerPetalLength	 = If(LE(PetalLength, 3), PetalLength, 3)	; <Cost=2.3979> <Level=0.405411>	
+Unused	Numerical	UpperPetalWidth	 = If(GE(PetalWidth, 1.5), PetalWidth, 1.5)	; <Cost=2.3979> <Level=0.312189>	
+Unused	Categorical	Class1	 = IfC(EQc(Class, "Iris-setosa"), "setosa", "")	; <Cost=2.3979> <Level=0.447211>	
+Unused	Categorical	Class2	 = IfC(EQc(Class, "Iris-versicolor"), "versicolor", "")	; <Cost=2.3979> <Level=0.479944>	
+Unused	Numerical	Dummy1	 = Copy(0)	; <Cost=2.3979> <Level=0>	
+Unused	Numerical	Dummy2	 = Random()	; <Cost=2.3979> <Level=0>	
+	Categorical	Class		; <TargetVariable>	
+Unused	Structure(DataGrid)	VClass	 = DataGrid(ValueSetC("Iris-setosa", "Iris-versicolor", "Iris-virginica"), Frequencies(31, 37, 31))	; <TargetValues>	
+Unused	Structure(DataGrid)	PSepalLength	 = DataGrid(IntervalBounds(5.45, 5.75), ValueSetC("Iris-setosa", "Iris-versicolor", "Iris-virginica"), Frequencies(28, 3, 0, 3, 12, 22, 0, 1, 30))	; <Level=0.271383>	// DataGrid(SepalLength, Class)
+Unused	Structure(DataGrid)	PSepalWidth	 = DataGrid(IntervalBounds(3.35), ValueSetC("Iris-setosa", "Iris-versicolor", "Iris-virginica"), Frequencies(11, 20, 36, 1, 29, 2))	; <Level=0.0913455>	// DataGrid(SepalWidth, Class)
+Unused	Structure(DataGrid)	PPetalLength	 = DataGrid(IntervalBounds(2.45, 4.85), ValueSetC("Iris-setosa", "Iris-versicolor", "Iris-virginica"), Frequencies(31, 0, 0, 0, 34, 3, 0, 0, 31))	; <Level=0.636888>	// DataGrid(PetalLength, Class)
+Unused	Structure(DataGrid)	PPetalWidth	 = DataGrid(IntervalBounds(0.7, 1.75), ValueSetC("Iris-setosa", "Iris-versicolor", "Iris-virginica"), Frequencies(31, 0, 0, 0, 36, 1, 0, 2, 29))	; <Level=0.62595>	// DataGrid(PetalWidth, Class)
+Unused	Structure(DataGrid)	PSPetalLength	 = DataGrid(ValueGroups(ValueGroup("4", "3"), ValueGroup("1"), ValueGroup("5", "6", " * ")), ValueSetC("Iris-setosa", "Iris-versicolor", "Iris-virginica"), Frequencies(0, 31, 0, 36, 0, 1, 2, 0, 29))	; <Level=0.670359>	// DataGrid(SPetalLength, Class)
+Unused	Structure(DataGrid)	PLowerPetalLength	 = DataGrid(IntervalBounds(2.45), ValueSetC("Iris-setosa", "Iris-versicolor", "Iris-virginica"), Frequencies(31, 0, 0, 37, 0, 31))	; <Level=0.405411>	// DataGrid(LowerPetalLength, Class)
+Unused	Structure(DataGrid)	PUpperPetalWidth	 = DataGrid(IntervalBounds(1.75), ValueSetC("Iris-setosa", "Iris-versicolor", "Iris-virginica"), Frequencies(31, 0, 36, 1, 2, 29))	; <Level=0.312189>	// DataGrid(UpperPetalWidth, Class)
+Unused	Structure(DataGrid)	PClass1	 = DataGrid(ValueGroups(ValueGroup(""), ValueGroup("setosa", " * ")), ValueSetC("Iris-setosa", "Iris-versicolor", "Iris-virginica"), Frequencies(0, 31, 37, 0, 31, 0))	; <Level=0.447211>	// DataGrid(Class1, Class)
+Unused	Structure(DataGrid)	PClass2	 = DataGrid(ValueGroups(ValueGroup(""), ValueGroup("versicolor", " * ")), ValueSetC("Iris-setosa", "Iris-versicolor", "Iris-virginica"), Frequencies(31, 0, 0, 37, 31, 0))	; <Level=0.479944>	// DataGrid(Class2, Class)
+Unused	Structure(Classifier)	NBClass	 = NBClassifier(DataGridStats(PSepalLength, SepalLength), DataGridStats(PSepalWidth, SepalWidth), DataGridStats(PPetalLength, PetalLength), DataGridStats(PPetalWidth, PetalWidth), DataGridStats(PSPetalLength, SPetalLength), DataGridStats(PLowerPetalLength, LowerPetalLength), DataGridStats(PUpperPetalWidth, UpperPetalWidth), DataGridStats(PClass1, Class1), DataGridStats(PClass2, Class2), VClass)	;	
+	Categorical	PredictedClass	 = TargetValue(NBClass)	; <Prediction>	
+	Numerical	ScoreClass	 = TargetProb(NBClass)	; <Score>	
+Unused	Numerical	`ProbClassIris-setosa`	 = TargetProbAt(NBClass, "Iris-setosa")	; <TargetProb1="Iris-setosa">	
+Unused	Numerical	`ProbClassIris-versicolor`	 = TargetProbAt(NBClass, "Iris-versicolor")	; <TargetProb2="Iris-versicolor">	
+Unused	Numerical	`ProbClassIris-virginica`	 = TargetProbAt(NBClass, "Iris-virginica")	; <TargetProb3="Iris-virginica">	
+};
+
+Dictionary	SNB_Iris
+<InitialDictionary="Iris"> <PredictorLabel="Selective Naive Bayes"> <PredictorType="Classifier">
+{
+Unused	Numerical	SepalLength		; <Cost=2.3979> <Level=0.271383> <Weight=0.243912>	
+Unused	Numerical	SepalWidth		; <Cost=2.3979> <Level=0.0913455> <Weight=0.171241>	
+Unused	Numerical	PetalLength		; <Cost=2.3979> <Level=0.636888> <Weight=0.234383>	
+Unused	Numerical	PetalWidth		; <Cost=2.3979> <Level=0.62595> <Weight=0.446136>	
+Unused	Categorical	SPetalLength	 = AsCategorical(Floor(PetalLength))	; <Cost=2.3979> <Level=0.670359> <Weight=0.329865>	
+Unused	Numerical	LowerPetalLength	 = If(LE(PetalLength, 3), PetalLength, 3)	; <Cost=2.3979> <Level=0.405411> <MAP> <Weight=0.228344>	
+Unused	Numerical	UpperPetalWidth	 = If(GE(PetalWidth, 1.5), PetalWidth, 1.5)	; <Cost=2.3979> <Level=0.312189> <Weight=0.33947>	
+Unused	Categorical	Class1	 = IfC(EQc(Class, "Iris-setosa"), "setosa", "")	; <Cost=2.3979> <Level=0.447211> <Weight=0.139033>	
+Unused	Categorical	Class2	 = IfC(EQc(Class, "Iris-versicolor"), "versicolor", "")	; <Cost=2.3979> <Level=0.479944> <MAP> <Weight=0.588965>	
+Unused	Numerical	Dummy1	 = Copy(0)	; <Cost=2.3979> <Level=0>	
+Unused	Numerical	Dummy2	 = Random()	; <Cost=2.3979> <Level=0>	
+	Categorical	Class		; <TargetVariable>	
+Unused	Structure(DataGrid)	VClass	 = DataGrid(ValueSetC("Iris-setosa", "Iris-versicolor", "Iris-virginica"), Frequencies(31, 37, 31))	; <TargetValues>	
+Unused	Structure(DataGrid)	PSepalLength	 = DataGrid(IntervalBounds(5.45, 5.75), ValueSetC("Iris-setosa", "Iris-versicolor", "Iris-virginica"), Frequencies(28, 3, 0, 3, 12, 22, 0, 1, 30))	; <Level=0.271383>	// DataGrid(SepalLength, Class)
+Unused	Structure(DataGrid)	PSepalWidth	 = DataGrid(IntervalBounds(3.35), ValueSetC("Iris-setosa", "Iris-versicolor", "Iris-virginica"), Frequencies(11, 20, 36, 1, 29, 2))	; <Level=0.0913455>	// DataGrid(SepalWidth, Class)
+Unused	Structure(DataGrid)	PPetalLength	 = DataGrid(IntervalBounds(2.45, 4.85), ValueSetC("Iris-setosa", "Iris-versicolor", "Iris-virginica"), Frequencies(31, 0, 0, 0, 34, 3, 0, 0, 31))	; <Level=0.636888>	// DataGrid(PetalLength, Class)
+Unused	Structure(DataGrid)	PPetalWidth	 = DataGrid(IntervalBounds(0.7, 1.75), ValueSetC("Iris-setosa", "Iris-versicolor", "Iris-virginica"), Frequencies(31, 0, 0, 0, 36, 1, 0, 2, 29))	; <Level=0.62595>	// DataGrid(PetalWidth, Class)
+Unused	Structure(DataGrid)	PSPetalLength	 = DataGrid(ValueGroups(ValueGroup("4", "3"), ValueGroup("1"), ValueGroup("5", "6", " * ")), ValueSetC("Iris-setosa", "Iris-versicolor", "Iris-virginica"), Frequencies(0, 31, 0, 36, 0, 1, 2, 0, 29))	; <Level=0.670359>	// DataGrid(SPetalLength, Class)
+Unused	Structure(DataGrid)	PLowerPetalLength	 = DataGrid(IntervalBounds(2.45), ValueSetC("Iris-setosa", "Iris-versicolor", "Iris-virginica"), Frequencies(31, 0, 0, 37, 0, 31))	; <Level=0.405411>	// DataGrid(LowerPetalLength, Class)
+Unused	Structure(DataGrid)	PUpperPetalWidth	 = DataGrid(IntervalBounds(1.75), ValueSetC("Iris-setosa", "Iris-versicolor", "Iris-virginica"), Frequencies(31, 0, 36, 1, 2, 29))	; <Level=0.312189>	// DataGrid(UpperPetalWidth, Class)
+Unused	Structure(DataGrid)	PClass1	 = DataGrid(ValueGroups(ValueGroup(""), ValueGroup("setosa", " * ")), ValueSetC("Iris-setosa", "Iris-versicolor", "Iris-virginica"), Frequencies(0, 31, 37, 0, 31, 0))	; <Level=0.447211>	// DataGrid(Class1, Class)
+Unused	Structure(DataGrid)	PClass2	 = DataGrid(ValueGroups(ValueGroup(""), ValueGroup("versicolor", " * ")), ValueSetC("Iris-setosa", "Iris-versicolor", "Iris-virginica"), Frequencies(31, 0, 0, 37, 31, 0))	; <Level=0.479944>	// DataGrid(Class2, Class)
+Unused	Structure(Classifier)	SNBClass	 = SNBClassifier(Vector(0.2439124273, 0.1712408907, 0.2343831494, 0.4461358557, 0.329865412, 0.2283435587, 0.3394696782, 0.1390331238, 0.5889654416), DataGridStats(PSepalLength, SepalLength), DataGridStats(PSepalWidth, SepalWidth), DataGridStats(PPetalLength, PetalLength), DataGridStats(PPetalWidth, PetalWidth), DataGridStats(PSPetalLength, SPetalLength), DataGridStats(PLowerPetalLength, LowerPetalLength), DataGridStats(PUpperPetalWidth, UpperPetalWidth), DataGridStats(PClass1, Class1), DataGridStats(PClass2, Class2), VClass)	;	
+	Categorical	PredictedClass	 = TargetValue(SNBClass)	; <Prediction>	
+	Numerical	ScoreClass	 = TargetProb(SNBClass)	; <Score>	
+Unused	Numerical	`ProbClassIris-setosa`	 = TargetProbAt(SNBClass, "Iris-setosa")	; <TargetProb1="Iris-setosa">	
+Unused	Numerical	`ProbClassIris-versicolor`	 = TargetProbAt(SNBClass, "Iris-versicolor")	; <TargetProb2="Iris-versicolor">	
+Unused	Numerical	`ProbClassIris-virginica`	 = TargetProbAt(SNBClass, "Iris-virginica")	; <TargetProb3="Iris-virginica">	
+};

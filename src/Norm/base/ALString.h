@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -104,10 +104,10 @@ public:
 
 	// Constructeur et affectation de deplacement, pour l'optimisation de la
 	// gestion des variables temporaires par le compilateur
-#if not defined __UNIX__ or defined __C11__
+#if defined __C11__
 	ALString(ALString&& stringSrc) noexcept;
 	ALString& operator=(ALString&& stringSrc) noexcept;
-#endif // not defined __UNIX__ or defined __C11__
+#endif
 
 protected:
 	// Longueur/taille en caracteres (note: un caractere supplementaire est toujours alloue)
@@ -307,7 +307,7 @@ inline ALString::ALString()
 {
 	Init();
 }
-#if not defined __UNIX__ or defined __C11__
+#if defined __C11__
 inline ALString::ALString(ALString&& stringSrc) noexcept
 {
 	// On transfere le contenu de la chaine
@@ -329,7 +329,7 @@ inline ALString& ALString::operator=(ALString&& stringSrc) noexcept
 	}
 	return (*this);
 }
-#endif // not defined __UNIX__ or defined __C11__
+#endif // defined __C11__
 inline longint ALString::GetUsedMemory() const
 {
 	return sizeof(ALString) + nDataLength + 1;

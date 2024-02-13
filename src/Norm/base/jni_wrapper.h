@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -45,11 +45,11 @@
 
 /* jni_md.h contains the machine-dependent typedefs for jbyte, jint
    and jlong */
-#ifdef __UNIX__
-#include "jni_md_linux.h"
-#else
+#ifdef _WIN32
 #include "jni_md_windows.h"
-#endif //__UNIX___
+#else
+#include "jni_md_linux.h"
+#endif // _WIN32
 
 #ifdef __cplusplus
 extern "C"

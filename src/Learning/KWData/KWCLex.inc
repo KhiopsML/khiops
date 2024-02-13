@@ -1141,7 +1141,7 @@ YY_RULE_SETUP
                           
                           // Initialisation de la valeur du token
                           c = yytext[0];
-						  if (not isprint(c))
+						  if (not p_isprint(c))
 						  {
   			                sToken += '[';
 						    sToken += IntToString((int)c);
@@ -1160,7 +1160,7 @@ YY_RULE_SETUP
 							    nCorrectedLineNumber--;
 						        break;
 						      }
-						      if (not isprint(c))
+						      if (not p_isprint(c))
 							  {
 							    if (sToken.GetLength() < nMaxLength)
 							    {

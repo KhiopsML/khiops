@@ -1,22 +1,25 @@
-Khiops Native Interface @LICENSE_NUMBER@
-============================
+Khiops Native Interface @PROJECT_VERSION@
+==============================
 
-The purpose of Khiops Native Interface (KNI) is to allow a deep integration of Khiops in 
-information systems, by the mean of the C programming language, using a dynamic link library (DLL).
-This relates especially to the problem of model deployment, which otherwise requires the use of
-input and output data files when using directly the Khiops tool in batch mode.
-See Khiops Guide for an introduction to dictionary files, dictionaries, database files and deployment.
+The purpose of Khiops Native Interface (KNI) is to allow a deeper integration
+of Khiops in information systems, by mean of the C programming language, using
+a dynamic link library (DLL). This relates specially to the problem of model
+deployment, which otherwise requires the use of input and output data files
+when using directly the Khiops tool in batch mode. See Khiops Guide for an
+introduction to dictionary files, dictionaries, database files and deployment.
 
 The Khiops deployment features are thus made public through an API with a DLL.
-Therefore, a Khiops model can be deployed directly from any programming language, such as
-C, C++, Java, Python, Matlab...
-This enables model deployment in real time application (e.g. scoring in a marketing context,
-targeted advertising on the web) without the overhead of temporary data files or launching executables.
+Therefore, a Khiops model can be deployed directly from any programming
+language, such as C, C++, Java, Python, Matlab, etc. This enables real time
+model deployment without the overhead of temporary data files or launching
+executables. This is critical for certain applications in marketing or targeted
+advertising on the web.
 
-All KNI functions are C functions for easier use with other programming languages.
-They return a positive or null value in case of success, and a negative error code in case of failure.
-The functions are not reentrant (thread-safe): the DLL can be used simultaneously by several executables,
-but not simultaneously by several threads in the same executable.
+All KNI functions are C functions for easy use with other programming languages.
+They return a positive or null value in case of success, and a negative error
+code in case of failure. The functions are not reentrant (thread-safe): the DLL
+can be used simultaneously by several executables, but not simultaneously by
+several threads in the same executable.
 
 See KhiopsNativeInterface.h for a detailed description of KNI functions
 
@@ -37,8 +40,3 @@ include: include file, with a detailed description of KNI functions
 lib: 
 	- librairy for windows C/C++ bindings: KhiopsNativeInterface64.lib (64 bits)
 	- shared library for linux libKhiopsNativeInterface.so.@PROJECT_VERSION@
-
-samples: sample directory
-	- sample\data: dictionary and database sample data, and test results
-	- samples\C: sample C source file using KNI functions (see samples\C\README.txt)
-	- samples\java: sample java source file using KNI functions (see samples\java\README.txt)

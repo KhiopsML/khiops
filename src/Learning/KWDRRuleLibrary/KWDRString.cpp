@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -966,6 +966,23 @@ boolean KWDRRegex::CheckCompleteness(const KWClass* kwcOwnerClass) const
 			bOk = regEx.Initialize(GetOperandAt(nRegexOperandIndex)->GetSymbolConstant().GetValue(), this);
 	}
 	return bOk;
+}
+
+void KWDRRegex::Compile(KWClass* kwcOwnerClass)
+{
+	int nRegexOperandIndex;
+
+	// Appel de la methode ancetre
+	KWDerivationRule::Compile(kwcOwnerClass);
+
+	// Acces a l'index de l'operande de regex: 2, sauf pour pour la regle Match
+	nRegexOperandIndex = 2;
+	if (GetOperandNumber() <= nRegexOperandIndex)
+		nRegexOperandIndex = GetOperandNumber() - 1;
+
+	// On ne verifie pas l'expression si elle a deja ete validee
+	if (not regEx.IsValid() or regEx.GetRegex() != GetOperandAt(nRegexOperandIndex)->GetSymbolConstant().GetValue())
+		regEx.Initialize(GetOperandAt(nRegexOperandIndex)->GetSymbolConstant().GetValue(), this);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////

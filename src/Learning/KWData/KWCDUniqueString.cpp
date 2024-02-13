@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -131,9 +131,8 @@ KWCDUniqueStringDataPtr KWCDUniqueStringDictionary::AsUniqueString(const ALStrin
 		pvUniqueStringDatas.SetAt(nHashPosition, pUniqueStringData);
 
 		// Retaillage dynamique
-		assert(GetHashTableSize() < INT_MAX / sizeof(void*));
-		if (GetCount() > GetHashTableSize() / 2)
-			ReinitHashTable(DictionaryGetNextTableSize(2 * GetHashTableSize()));
+		if (GetCount() > GetHashTableSize() / 2 and GetHashTableSize() < INT_MAX)
+			ReinitHashTable(DictionaryGetNextTableSize(2 * min(GetHashTableSize(), INT_MAX / 2)));
 	}
 	return pUniqueStringData;
 }
