@@ -3,13 +3,11 @@ import os.path
 import shutil
 import stat
 
-import _learning_test_constants as lt
-
+import _kht_constants as kht
 
 """
 Fonction utilitaires, notamment pour la gestion des fichiers et des messages
 """
-
 
 """
 Verification de la typologie des repertoires dans LearningTest
@@ -28,32 +26,76 @@ def check_test_dir(checked_dir):
     """Test si un chemin est celui d'un repertoire de test"""
     home_dir = parent_dir_name(checked_dir, 3)
     tool_dir = parent_dir_name(checked_dir, 2)
-    if home_dir != lt.LEARNING_TEST or tool_dir not in lt.TOOL_DIR_NAMES.values():
-        fatal_error(checked_dir + " should be a test directory of " + lt.LEARNING_TEST)
+    if home_dir != kht.LEARNING_TEST or tool_dir not in kht.TOOL_DIR_NAMES.values():
+        fatal_error(checked_dir + " should be a test directory of " + kht.LEARNING_TEST)
 
 
 def check_suite_dir(checked_dir):
     """Test si un chemin est celui d'un repertoire de suite"""
     home_dir = parent_dir_name(checked_dir, 2)
     tool_dir = parent_dir_name(checked_dir, 1)
-    if home_dir != lt.LEARNING_TEST or tool_dir not in lt.TOOL_DIR_NAMES.values():
-        fatal_error(checked_dir + " should be a suite directory of " + lt.LEARNING_TEST)
+    if home_dir != kht.LEARNING_TEST or tool_dir not in kht.TOOL_DIR_NAMES.values():
+        fatal_error(
+            checked_dir + " should be a suite directory of " + kht.LEARNING_TEST
+        )
 
 
 def check_tool_dir(checked_dir):
     """Test si un chemin est celui d'un repertoire d'outil"""
     home_dir = parent_dir_name(checked_dir, 1)
     tool_dir = parent_dir_name(checked_dir, 0)
-    if home_dir != lt.LEARNING_TEST or tool_dir not in lt.TOOL_DIR_NAMES.values():
-        fatal_error(checked_dir + " should be a tool directory of " + lt.LEARNING_TEST)
+    if home_dir != kht.LEARNING_TEST or tool_dir not in kht.TOOL_DIR_NAMES.values():
+        fatal_error(checked_dir + " should be a tool directory of " + kht.LEARNING_TEST)
 
 
 def check_home_dir(checked_dir):
     """Test si un chemin est celui du repertoire de base"""
     home_dir = parent_dir_name(checked_dir, 0)
-    if home_dir != lt.LEARNING_TEST or tool_dir not in lt.TOOL_DIR_NAMES.values():
+    if home_dir != kht.LEARNING_TEST:
         fatal_error(
-            checked_dir + " should be the home directory of " + lt.LEARNING_TEST
+            checked_dir + " should be the home directory of " + kht.LEARNING_TEST
+        )
+
+
+def check_learning_test_dir(checked_dir):
+    """Test si un chemin est correspond a un sous-repertoire de LearningTest
+    Renvoie la profondeur a laquelle se trouver LearningTest
+    - 0: home dir
+    - 1: tool dir
+    - 2: suite dir
+    - 3: test dir
+    """
+    if not os.path.isdir(checked_dir):
+        fatal_error(checked_dir + " should be a directory")
+    path_components = os.path.realpath(checked_dir).split(os.sep)
+    if kht.LEARNING_TEST not in path_components:
+        fatal_error(
+            checked_dir + " should contain the home directory " + kht.LEARNING_TEST
+        )
+    else:
+        depth = 0
+        path_component_number = len(path_components)
+        while depth < path_component_number:
+            if path_components[-(1 + depth)] == kht.LEARNING_TEST:
+                break
+            depth += 1
+        if depth > 3:
+            fatal_error(
+                checked_dir
+                + " should contain the home directory "
+                + kht.LEARNING_TEST
+                + " with a maximum of three levels above it in the directory tree"
+            )
+
+        return depth
+
+
+def check_learning_test_tool_dir(checked_dir):
+    """Test si un chemin est correspond a un sous-repertoire de LearningTest"""
+    path_components = os.path.realpath(checked_dir).split(os.sep)
+    if kht.LEARNING_TEST_TOOL not in path_components:
+        fatal_error(
+            checked_dir + " should contain the tool directory " + kht.LEARNING_TEST_TOOL
         )
 
 
@@ -65,27 +107,29 @@ def check_candidate_root_dir(source_home_dir, candidate_target_root_dir):
         fatal_error(candidate_target_root_dir + " should be a valid directory")
     home_dir = os.path.realpath(source_home_dir)
     root_dir = os.path.realpath(candidate_target_root_dir)
-    if root_dir.find(home_dir):
+    if root_dir.find(home_dir) >= 0:
         fatal_error(
-            candidate_target_root_dir
-            + " must not be a sub_directory of "
-            + source_home_dir
+            "target root dir "
+            + root_dir
+            + " must not be a sub_directory of home dir "
+            + home_dir
         )
 
 
 def get_home_dir(learning_test_dir):
     """Retourne le repertoire de base LearningTest a partir d'un sous-repertoire de profondeur quelconque"""
-    assert lt.LEARNING_TEST in learning_test_dir
+    assert kht.LEARNING_TEST in os.path.realpath(learning_test_dir).split(os.sep), (
+        kht.LEARNING_TEST + " should be a directory in path " + learning_test_dir
+    )
     # On remonte dans le chemin (reel) jusqu'a trouver le repertoire racine
     home_dir = os.path.realpath(learning_test_dir)
-    while os.path.basename(home_dir) != lt.LEARNING_TEST:
+    while os.path.basename(home_dir) != kht.LEARNING_TEST:
         home_dir = os.path.dirname(home_dir)
     return home_dir
 
 
 def get_root_dir(learning_test_dir):
     """Retourne le repertoire contenant LearningTest a partir d'un sous-repertoire de profondeur quelconque"""
-    assert lt.LEARNING_TEST in learning_test_dir
     home_dir = get_home_dir(learning_test_dir)
     root_dir = os.path.dirname(home_dir)
     return root_dir
@@ -131,8 +175,8 @@ def parent_dir_name(dir_path, depth):
     # Nom reel du chemin
     real_parent_path = os.path.realpath(relative_parent_path)
     # On extrait le nom du repertoire
-    parent_dir = os.path.basename(real_parent_path)
-    return parent_dir
+    result_name = os.path.basename(real_parent_path)
+    return result_name
 
 
 """
@@ -377,7 +421,7 @@ Gestion des fichier et repertoires
 
 
 def copy_file(src_file_path, dest_file_path):
-    """Copie d'un fichier, avec message d'eerur"""
+    """Copie d'un fichier, avec message d'erreur"""
     try:
         shutil.copy(src_file_path, dest_file_path)
     except BaseException as message:
@@ -391,6 +435,14 @@ def remove_file(file_path):
         os.remove(file_path)
     except (IOError, os.error) as why:
         print("Cannot remove file %s: %s" % (file_path, str(why)))
+
+
+def make_dir(dest_dir):
+    """Creation d'un repertoire, avec message d'erreur"""
+    try:
+        os.mkdir(dest_dir)
+    except (IOError, os.error) as why:
+        print("Cannot create directory %s: %s" % (dest_dir, str(why)))
 
 
 def remove_dir(dir_to_remove):

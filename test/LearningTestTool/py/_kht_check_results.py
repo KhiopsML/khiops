@@ -1,9 +1,9 @@
 import os.path
 import re
 
-import _learning_test_constants as lt
-import _learning_test_utils as utils
-import _results_management as results
+import _kht_constants as kht
+import _kht_utils as utils
+import _kht_results_management as results
 
 """
 Verification des resultats d'un repertoire de test terminal
@@ -41,7 +41,7 @@ a differents moments du processus de comparaison
 """
 
 # Nom du fichier de comparaison
-COMPARISON_LOG_FILE_NAME = lt.COMPARISON_RESULTS_LOG
+COMPARISON_LOG_FILE_NAME = kht.COMPARISON_RESULTS_LOG
 
 # Constantes de la section SUMMARY des fichiers de log des resultats de comparaison
 SUMMARY_TITLE = "SUMMARY"
@@ -63,55 +63,133 @@ SUMMARY_SPECIAL_FILE_KEYS = [
 
 # Association entre type de fichier special et cle de gestion dans le resume
 SUMMARY_SPECIAL_FILE_KEYS_PER_FILE = {
-    lt.STDOUT_ERROR_LOG: SUMMARY_UNEXPECTED_OUTPUT_KEY,
-    lt.STDERR_ERROR_LOG: SUMMARY_UNEXPECTED_OUTPUT_KEY,
-    lt.PROCESS_TIMEOUT_ERROR_LOG: SUMMARY_TIMEOUT_ERROR_KEY,
-    lt.RETURN_CODE_ERROR_LOG: SUMMARY_FATAL_ERROR_KEY,
+    kht.STDOUT_ERROR_LOG: SUMMARY_UNEXPECTED_OUTPUT_KEY,
+    kht.STDERR_ERROR_LOG: SUMMARY_UNEXPECTED_OUTPUT_KEY,
+    kht.PROCESS_TIMEOUT_ERROR_LOG: SUMMARY_TIMEOUT_ERROR_KEY,
+    kht.RETURN_CODE_ERROR_LOG: SUMMARY_FATAL_ERROR_KEY,
 }
-assert len(SUMMARY_SPECIAL_FILE_KEYS_PER_FILE) == len(lt.SPECIAL_ERROR_FILES)
+assert len(SUMMARY_SPECIAL_FILE_KEYS_PER_FILE) == len(kht.SPECIAL_ERROR_FILES)
+
+# Ensemble des cle pouvant se trouver dans le resume
+ALL_SUMMARY_KEYS = [
+    SUMMARY_WARNING_KEY,
+    SUMMARY_ERROR_KEY,
+    SUMMARY_FILE_TYPES_KEY,
+    SUMMARY_PORTABILITY_KEY,
+] + SUMMARY_SPECIAL_FILE_KEYS
+assert len(set(ALL_SUMMARY_KEYS)) == len(ALL_SUMMARY_KEYS), (
+    "Summary keys " + str(ALL_SUMMARY_KEYS) + " must not contain duplicates"
+)
 
 
-def initialize_parsers():
-    """Initialisation de parsers sont compile une fois pour toutes
-    Retourne les parsers de token, de numeric et de time
+def analyse_comparison_log(test_dir):
     """
-    # Delimiters pour les fichiers json et kdic
-    delimiters = [
-        "\\,",
-        "\\{",
-        "\\}",
-        "\\[",
-        "\\]",
-        "\\:",
-        "\\(",
-        "\\)",
-        "\\<",
-        "\\>",
-        "\\=",
-    ]
-    numeric_pattern = "-?[0-9]+\\.?[0-9]*(?:[Ee]-?[0-9]+)?"
-    string_pattern = (
-        '"[^"]*"'  # Sans les double-quotes dans les strings (dur a parser...)
-    )
-    time_pattern = "\\d{1,2}:\\d{2}:\\d{2}\\.?\\d*"
-    other_tokens = "[\\w]+"
-    tokens = time_pattern + "|" + numeric_pattern + "|" + string_pattern
-    for delimiter in delimiters:
-        tokens += "|" + delimiter
-    tokens += "|" + other_tokens
-    token_parser = re.compile(tokens)
-    numeric_parser = re.compile(numeric_pattern)
-    time_parser = re.compile(time_pattern)
-    return token_parser, numeric_parser, time_parser
+    Analyse du log de comparaison des resultats de test et de reference
+    present dans un repertoire de test
+    Renvoie:
+    - error_number
+      Le nombre d'erreurs deduit du resume
+    - warning_number
+      Le nombre de warnings deduit du resume
+    - summary_infos:
+      Un dictionnaire par avec une ligne de texte par cle de resume (ALL_SUMMARY_KEYS)
+    - files_infos:
+      Un dictionaire par nom de fichier contenant le resultat de la comparaison
+      pour ce fichier, sous la forme d'un texte potentiellement multi-lignes
+      Ce texte contient 'OK' uniquement si aucun problme n'est detecte
+      Il contient des lignes de texte, dont certain sont potentiellement prefixes par 'warning: '
+      ou 'error : ' sinon
+    Si le log de comparaion n'est pas disponible ou exploitable, on retourne None
+    pour tous les elements en sortie
+    """
 
+    def extract_number(message):
+        assert message != ""
+        fields = message.split()
+        assert fields[0].isdigit()
+        number = int(fields[0])
+        return number
 
-# Parsers en variables globales, compiles une seule fois au chargement du module
-# - le parser de tokens permet d'analyser de facon detaillee le contenu d'un
-#   fichier json ou dictionnaire (.kdic) en le decomposant en une suite de tokens
-#   separateur, valeur numerique opu categorielle entre double-quotes.
-# - le parser de numerique est specialise pour les valeurs numeriques au format scientifique
-# - le parser de time est specialise pour le format time hh:mm:ss.ms
-TOKEN_PARSER, NUMERIC_PARSER, TIME_PARSER = initialize_parsers()
+    utils.check_test_dir(test_dir)
+
+    # Initialisation des resultats
+    error_number = 0
+    warning_number = 0
+    summary_infos = {}
+    files_infos = {}
+
+    # Traitement des erreurs memorisee dans le log
+    log_file_path = os.path.join(test_dir, kht.COMPARISON_RESULTS_LOG)
+    if not os.path.isfile(log_file_path):
+        # Erreur speciale si pas de fichier de comparaison
+        error_number = 1
+        summary_infos[SUMMARY_NOTE_KEY] = "The test has not been launched"
+    else:
+        lines = None
+        try:
+            with open(log_file_path, "r", errors="ignore") as log_file:
+                lines = log_file.readlines()
+        except Exception as exception:
+            # Erreur speciale si probleme de lecture du fichier de comparaison
+            lines = None
+            error_number = 1
+            summary_infos[SUMMARY_NOTE_KEY] = (
+                "Unable to read file " + kht.COMPARISON_RESULTS_LOG + str(exception)
+            )
+        # Analyse du contenu du fichier
+        file_pattern = "file "
+        if lines is not None:
+            index = 0
+            while index < len(lines):
+                line = lines[index]
+                index += 1
+                line = line.strip()
+
+                # Analyse des lignes concernant chaque fichier avant le resume
+                if line.find(file_pattern) == 0:
+                    file_path = line[len(file_pattern) :]
+                    file_name = os.path.basename(file_path)
+                    file_info = ""
+                    while index < len(lines):
+                        line = lines[index]
+                        index += 1
+                        line = line.strip()
+                        if line == "":
+                            break
+                        else:
+                            if file_info != "":
+                                file_info += "\n"
+                            file_info += line
+                    files_infos[file_name] = file_info
+                    continue
+
+                # Analyse du resume jsuq'u la fin du fichier si debut de resume trouve
+                if line == SUMMARY_TITLE:
+                    while index < len(lines):
+                        line = lines[index]
+                        index += 1
+                        line = line.strip()
+                        for key in ALL_SUMMARY_KEYS:
+                            if line.find(key) >= 0:
+                                summary_infos[key] = line
+                                if key == SUMMARY_WARNING_KEY:
+                                    warning_number = extract_number(line)
+                                elif key == SUMMARY_ERROR_KEY:
+                                    error_number = extract_number(line)
+
+            # Erreur speciale si le resume n'est pas trouve
+            if len(summary_infos) == 0:
+                assert error_number == 0
+                error_number = 1
+                specific_message = (
+                    "Section '"
+                    + SUMMARY_TITLE
+                    + "' not found in "
+                    + kht.COMPARISON_RESULTS_LOG
+                )
+                summary_infos[SUMMARY_NOTE_KEY] = specific_message
+    # Retour des resultats
+    return error_number, warning_number, summary_infos, files_infos
 
 
 def check_results(test_dir):
@@ -124,7 +202,7 @@ def check_results(test_dir):
 
     # Initialisation des stats de comparaison
     special_error_file_error_numbers = {}
-    for file_name in lt.SPECIAL_ERROR_FILES:
+    for file_name in kht.SPECIAL_ERROR_FILES:
         special_error_file_error_numbers[file_name] = 0
     error_number = 0
     warning_number = 0
@@ -161,7 +239,7 @@ def check_results(test_dir):
     )
 
     # Test de presence du repertoire de test a comparer
-    results_dir = os.path.join(test_dir, lt.RESULTS)
+    results_dir = os.path.join(test_dir, kht.RESULTS)
     if not os.path.isdir(results_dir):
         utils.write_message(
             "error : no comparison, test directory not available (" + results_dir + ")",
@@ -177,7 +255,7 @@ def check_results(test_dir):
     if results_ref is None:
         utils.write_message(
             "error : invalid "
-            + lt.RESULTS_REF
+            + kht.RESULTS_REF
             + " dirs "
             + utils.list_to_label(candidate_dirs),
             log_file=log_file,
@@ -310,7 +388,7 @@ def check_results(test_dir):
                     specific_message, "additional result files"
                 )
                 utils.write_message(
-                    "Additional files in " + lt.RESULTS + " dir:", log_file=log_file
+                    "Additional files in " + kht.RESULTS + " dir:", log_file=log_file
                 )
                 file_reported = 0
                 for file_name in test_file_names:
@@ -327,7 +405,7 @@ def check_results(test_dir):
                     specific_message, "missing result files"
                 )
                 utils.write_message(
-                    "Missing files in " + lt.RESULTS + " dir:", log_file=log_file
+                    "Missing files in " + kht.RESULTS + " dir:", log_file=log_file
                 )
                 file_reported = 0
                 for file_name in ref_file_names:
@@ -378,7 +456,7 @@ def check_results(test_dir):
             # Comparaison si ok
             if ref_file_lines is not None and test_file_lines is not None:
                 # Cas des fichier stdout et stderr, que l'on filtre du prefix de process id presnet en parallele
-                if file_name in [lt.STDOUT_ERROR_LOG, lt.STDERR_ERROR_LOG]:
+                if file_name in [kht.STDOUT_ERROR_LOG, kht.STDERR_ERROR_LOG]:
                     ref_file_lines = utils.filter_process_id_prefix_from_lines(
                         ref_file_lines
                     )
@@ -390,7 +468,7 @@ def check_results(test_dir):
                 # de facon identique dans les cas des fichiers de log utilisateur et json
                 contains_user_messages = False
                 # Cas du fichier de log utilisateur
-                if file_name == lt.ERR_TXT:
+                if file_name == kht.ERR_TXT:
                     contains_user_messages = True
                     # Identification des lignes de message
                     ref_file_lines = strip_user_message_lines(ref_file_lines)
@@ -434,7 +512,7 @@ def check_results(test_dir):
                     error_number_per_file[file_name] = errors
                     erroneous_ref_file_lines[file_name] = ref_file_lines
                     erroneous_test_file_lines[file_name] = test_file_lines
-                    if file_name == lt.ERR_TXT:
+                    if file_name == kht.ERR_TXT:
                         error_number_in_err_txt += errors
                     else:
                         _, file_extension = os.path.splitext(file_name)
@@ -455,7 +533,7 @@ def check_results(test_dir):
         fatal_error_recovery = True
         for file_name in test_file_names:
             # Cas d'une erreur fatale
-            if file_name in lt.SPECIAL_ERROR_FILES:
+            if file_name in kht.SPECIAL_ERROR_FILES:
                 special_error_file_error_numbers[file_name] = (
                     special_error_file_error_numbers[file_name] + 1
                 )
@@ -468,7 +546,7 @@ def check_results(test_dir):
 
                 # La tentative de recuperation des erreurs fatales echoue si on ne respecte
                 # pas toutes les conditions necessaires
-                if file_name not in [lt.STDERR_ERROR_LOG, lt.RETURN_CODE_ERROR_LOG]:
+                if file_name not in [kht.STDERR_ERROR_LOG, kht.RETURN_CODE_ERROR_LOG]:
                     fatal_error_recovery = False
                 else:
                     # Les fichiers doivent etre les memes
@@ -488,7 +566,7 @@ def check_results(test_dir):
                         fatal_error_pattern = (
                             "fatal error : Command file : Batch mode failure"
                         )
-                        if file_name == lt.STDERR_ERROR_LOG:
+                        if file_name == kht.STDERR_ERROR_LOG:
                             if (
                                 len(test_file_lines) == 0
                                 or test_file_lines[0].strip() != fatal_error_pattern
@@ -498,7 +576,7 @@ def check_results(test_dir):
                         return_code_error_pattern = (
                             "Wrong return code: 1 (should be 0 or 2)"
                         )
-                        if file_name == lt.RETURN_CODE_ERROR_LOG:
+                        if file_name == kht.RETURN_CODE_ERROR_LOG:
                             if (
                                 len(test_file_lines) == 0
                                 or test_file_lines[0].strip()
@@ -506,15 +584,15 @@ def check_results(test_dir):
                             ):
                                 fatal_error_recovery = False
         # Message de recuperation si necessaire
-        if special_error_file_error_numbers[lt.RETURN_CODE_ERROR_LOG] > 0:
+        if special_error_file_error_numbers[kht.RETURN_CODE_ERROR_LOG] > 0:
             # Cas de la recuperation
             if fatal_error_recovery:
                 error_number -= special_error_file_error_numbers[
-                    lt.RETURN_CODE_ERROR_LOG
+                    kht.RETURN_CODE_ERROR_LOG
                 ]
-                error_number -= special_error_file_error_numbers[lt.STDERR_ERROR_LOG]
-                special_error_file_error_numbers[lt.RETURN_CODE_ERROR_LOG] = 0
-                special_error_file_error_numbers[lt.STDERR_ERROR_LOG] = 0
+                error_number -= special_error_file_error_numbers[kht.STDERR_ERROR_LOG]
+                special_error_file_error_numbers[kht.RETURN_CODE_ERROR_LOG] = 0
+                special_error_file_error_numbers[kht.STDERR_ERROR_LOG] = 0
                 utils.write_message(
                     "\nRecovery from fatal errors caused solely by a 'Batch mode failure' in another platform",
                     log_file=log_file,
@@ -526,7 +604,7 @@ def check_results(test_dir):
         # Ecriture des premieres lignes des fichiers d'erreur fatales ou de timeout si necessaire
         for file_name in test_file_names:
             if (
-                file_name in lt.SPECIAL_ERROR_FILES
+                file_name in kht.SPECIAL_ERROR_FILES
                 and special_error_file_error_numbers[file_name] > 0
             ):
                 # Lecture des lignes du fichier
@@ -568,8 +646,8 @@ def check_results(test_dir):
         # Filtrage d'un certain type de warning pour recommencer la comaraison
         if varying_warning_messages_in_err_txt_recovery:
             # Acces aux lignes des fichier
-            ref_file_lines = erroneous_ref_file_lines.get(lt.ERR_TXT)
-            test_file_lines = erroneous_test_file_lines.get(lt.ERR_TXT)
+            ref_file_lines = erroneous_ref_file_lines.get(kht.ERR_TXT)
+            test_file_lines = erroneous_test_file_lines.get(kht.ERR_TXT)
 
             # Filtrage des lignes selon le motif en nombre variable
             warning_pattern1 = "warning : Data table slice "
@@ -585,8 +663,8 @@ def check_results(test_dir):
 
             # Comparaison a nouveau des fichiers, en mode non verbeux
             errors, warnings, user_message_warnings = check_file_lines(
-                lt.ERR_TXT,
-                lt.ERR_TXT,
+                kht.ERR_TXT,
+                kht.ERR_TXT,
                 filtered_ref_file_lines,
                 filtered_test_file_lines,
             )
@@ -598,13 +676,13 @@ def check_results(test_dir):
         if varying_warning_messages_in_err_txt_recovery:
             # Messages sur la recuperation
             recovery_summary = (
-                "Recovery from varying warning number in " + lt.ERR_TXT + " file only"
+                "Recovery from varying warning number in " + kht.ERR_TXT + " file only"
             )
             recovery_message = utils.append_message(recovery_message, recovery_summary)
             utils.write_message("\n" + recovery_summary + ":", log_file=log_file)
             utils.write_message(
                 "\tall errors come from the warning in "
-                + lt.ERR_TXT
+                + kht.ERR_TXT
                 + " file only, du to varying number of active process number",
                 log_file=log_file,
             )
@@ -713,7 +791,7 @@ def check_results(test_dir):
             utils.write_message("\n" + recovery_summary + ":", log_file=log_file)
             utils.write_message(
                 "\tall errors come from the users messages in  "
-                + lt.ERR_TXT
+                + kht.ERR_TXT
                 + " and in json reports, with a different order and possibly different record indexes",
                 log_file=log_file,
             )
@@ -738,9 +816,9 @@ def check_results(test_dir):
         if roc_curve_recovery:
             # On doit potentiellement relire ce fichier, car ce type de message correspond
             # a un motif USER qui ne genere pas d'erreur
-            err_file_lines = erroneous_test_file_lines.get(lt.ERR_TXT)
+            err_file_lines = erroneous_test_file_lines.get(kht.ERR_TXT)
             if err_file_lines is None:
-                err_file_path = os.path.join(results_dir, lt.ERR_TXT)
+                err_file_path = os.path.join(results_dir, kht.ERR_TXT)
                 err_file_lines = utils.read_file_lines(err_file_path)
             if err_file_lines is None:
                 roc_curve_recovery = False
@@ -848,7 +926,7 @@ def check_results(test_dir):
 
     # Message dedies aux fichiers speciaux
     special_error_file_message = ""
-    for file_name in lt.SPECIAL_ERROR_FILES:
+    for file_name in kht.SPECIAL_ERROR_FILES:
         if special_error_file_error_numbers[file_name] > 0:
             special_error_file_message = SUMMARY_SPECIAL_FILE_KEYS_PER_FILE[file_name]
             break
@@ -869,10 +947,10 @@ def check_results(test_dir):
         file_extensions.sort()
         # Message specifique si erreurs dans un seul type de fichier
         if error_number_in_err_txt > 0:
-            extension_message = utils.append_message(extension_message, lt.ERR_TXT)
+            extension_message = utils.append_message(extension_message, kht.ERR_TXT)
             if error_number_in_err_txt == error_number:
                 specific_message = utils.append_message(
-                    specific_message, "errors only in " + lt.ERR_TXT
+                    specific_message, "errors only in " + kht.ERR_TXT
                 )
         if len(file_extensions) > 0:
             for file_extension in file_extensions:
@@ -1243,13 +1321,13 @@ def check_file_lines(
     _, file_extension = os.path.splitext(file_name)
 
     # test si fichier de temps
-    is_time_file = file_name == lt.TIME_LOG
+    is_time_file = file_name == kht.TIME_LOG
 
     # test si fichier histogramme
     is_histogram_file = "histogram" in file_name and file_extension == ".log"
 
     # test si fichier d'erreur
-    is_error_file = file_name == lt.ERR_TXT
+    is_error_file = file_name == kht.ERR_TXT
 
     # test si fichier de benchmark
     is_benchmark_file = file_name == "benchmark.xls"
@@ -1636,3 +1714,46 @@ def check_field(field1, field2):
                 return [2, max_warning_threshold]
             else:
                 return [1, 0]
+
+
+def initialize_parsers():
+    """Initialisation de parsers sont compile une fois pour toutes
+    Retourne les parsers de token, de numeric et de time
+    """
+    # Delimiters pour les fichiers json et kdic
+    delimiters = [
+        "\\,",
+        "\\{",
+        "\\}",
+        "\\[",
+        "\\]",
+        "\\:",
+        "\\(",
+        "\\)",
+        "\\<",
+        "\\>",
+        "\\=",
+    ]
+    numeric_pattern = "-?[0-9]+\\.?[0-9]*(?:[Ee]-?[0-9]+)?"
+    string_pattern = (
+        '"[^"]*"'  # Sans les double-quotes dans les strings (dur a parser...)
+    )
+    time_pattern = "\\d{1,2}:\\d{2}:\\d{2}\\.?\\d*"
+    other_tokens = "[\\w]+"
+    tokens = time_pattern + "|" + numeric_pattern + "|" + string_pattern
+    for delimiter in delimiters:
+        tokens += "|" + delimiter
+    tokens += "|" + other_tokens
+    token_parser = re.compile(tokens)
+    numeric_parser = re.compile(numeric_pattern)
+    time_parser = re.compile(time_pattern)
+    return token_parser, numeric_parser, time_parser
+
+
+# Parsers en variables globales, compiles une seule fois au chargement du module
+# - le parser de tokens permet d'analyser de facon detaillee le contenu d'un
+#   fichier json ou dictionnaire (.kdic) en le decomposant en une suite de tokens
+#   separateur, valeur numerique opu categorielle entre double-quotes.
+# - le parser de numerique est specialise pour les valeurs numeriques au format scientifique
+# - le parser de time est specialise pour le format time hh:mm:ss.ms
+TOKEN_PARSER, NUMERIC_PARSER, TIME_PARSER = initialize_parsers()

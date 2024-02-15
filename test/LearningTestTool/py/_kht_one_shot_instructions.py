@@ -2,14 +2,14 @@ import os.path
 import sys
 import stat
 
-import _learning_test_constants as lt
-import _learning_test_utils as utils
-import _check_results as check
-import _results_management as results
-import _standard_commands as standard_commands
+import _kht_constants as kht
+import _kht_utils as utils
+import _kht_check_results as check
+import _kht_results_management as results
+import _kht_standard_instructions as standard_instructions
 
 """
-Commandes pour des usages uniques
+Instruction pour des usages uniques
 Peu documente et developpe rapidment sous forme de prototype
 Exemples:
 - manipulation a faire une fois sur l'ensemble des repertoire de test
@@ -19,44 +19,44 @@ Exemples:
 """
 
 # Imports de pykhiops a effectuer au cas par cas dans chaque methode, car ralentissant trop les scripts
-# import pykhiops as pk
+# import khiops as pk
 
 
-def command_make_ref_time(test_dir):
+def instruction_make_ref_time(test_dir):
     # Copie du fichier de temps vers le repertoire des resultats de reference
-    results_dir = os.path.join(test_dir, lt.RESULTS)
+    results_dir = os.path.join(test_dir, kht.RESULTS)
     results_ref_dir, _ = results.get_results_ref_dir(test_dir, show=True)
     if results_ref_dir is not None:
         if not os.path.isdir(results_ref_dir):
             os.mkdir(results_ref_dir)
         if os.path.isdir(results_ref_dir):
-            file_path = os.path.join(results_ref_dir, lt.TIME_LOG)
+            file_path = os.path.join(results_ref_dir, kht.TIME_LOG)
             if os.path.isfile(file_path):
                 utils.remove_file(file_path)
         if os.path.isdir(results_dir) and os.path.isdir(results_ref_dir):
             utils.copy_file(
-                os.path.join(results_dir, lt.TIME_LOG),
-                os.path.join(results_ref_dir, lt.TIME_LOG),
+                os.path.join(results_dir, kht.TIME_LOG),
+                os.path.join(results_ref_dir, kht.TIME_LOG),
             )
 
 
-def command_make_ref_err(test_dir):
-    results_dir = os.path.join(test_dir, lt.RESULTS)
+def instruction_make_ref_err(test_dir):
+    results_dir = os.path.join(test_dir, kht.RESULTS)
     results_ref_dir, _ = results.get_results_ref_dir(test_dir, show=True)
     if results_ref_dir is not None:
         if not os.path.isdir(results_ref_dir):
             os.mkdir(results_ref_dir)
         if os.path.isdir(results_ref_dir):
-            file_path = os.path.join(results_ref_dir, lt.ERR_TXT)
+            file_path = os.path.join(results_ref_dir, kht.ERR_TXT)
             utils.remove_file(file_path)
         if os.path.isdir(results_dir) and os.path.isdir(results_ref_dir):
             utils.copy_file(
-                os.path.join(results_dir, lt.ERR_TXT),
-                os.path.join(results_ref_dir, lt.ERR_TXT),
+                os.path.join(results_dir, kht.ERR_TXT),
+                os.path.join(results_ref_dir, kht.ERR_TXT),
             )
 
 
-def command_bench(test_dir):
+def instruction_bench(test_dir):
     # Construction de scenario de benchmark
     def extract_info(line):
         start, end = line.split(" ", 1)
@@ -68,7 +68,7 @@ def command_bench(test_dir):
     class_name = ""
     database_name = ""
     target_attribute_name = ""
-    prm_file_path = os.path.join(test_dir, lt.TEST_PRM)
+    prm_file_path = os.path.join(test_dir, kht.TEST_PRM)
     prm_file = open(prm_file_path, "r", errors="ignore")
     for s in prm_file:
         if s.find("class_file_name") >= 0 and class_file_name == "":
@@ -95,8 +95,8 @@ def command_bench(test_dir):
     print("// <- Benchmark")
 
 
-def command_check_fnb(test_dir):
-    from pykhiops import core as pk
+def instruction_check_fnb(test_dir):
+    from khiops import core as pk
 
     def to_s(value):
         return str("{:.4g}".format(value))
@@ -105,7 +105,7 @@ def command_check_fnb(test_dir):
         result_file_name, report, criterion, new_value, ref_value, maximize
     ):
         fstats.write(
-            tool_dir_name + "\t" + suite_dir_name + "\t" + test_dir_name + "\t"
+            "\t" + tool_dir_name + "\t" + suite_dir_name + "\t" + test_dir_name + "\t"
         )
         fstats.write(result_file_name + "\t" + report + "\t" + criterion + "\t")
         fstats.write(to_s(new_value) + "\t" + to_s(ref_value) + "\t")
@@ -122,7 +122,8 @@ def command_check_fnb(test_dir):
 
     def print_error(message):
         print(
-            tool_dir_name
+            "\t"
+            + tool_dir_name
             + "\t"
             + suite_dir_name
             + "\t"
@@ -131,13 +132,28 @@ def command_check_fnb(test_dir):
             + message
         )
 
-    results_dir = os.path.join(test_dir, lt.RESULTS)
+    results_dir = os.path.join(test_dir, kht.RESULTS)
     results_ref_dir, _ = results.get_results_ref_dir(test_dir, show=True)
     if results_ref_dir is None:
         return
     test_dir_name = utils.test_dir_name(test_dir)
     suite_dir_name = utils.suite_dir_name(test_dir)
     tool_dir_name = utils.tool_dir_name(test_dir)
+
+    # Analyse du log de comparaison
+    (
+        error_number,
+        warning_number,
+        summary_infos,
+        files_infos,
+    ) = check.analyse_comparison_log(test_dir)
+
+    # On verifie que les resultats hors SNB sont correct (ex: preparation)
+    preparation_ok = True
+    if error_number >= 0:
+        for file_name in files_infos:
+            if "Preparation" in file_name and ".xls" in file_name:
+                preparation_ok = preparation_ok and files_infos[file_name] == "OK"
 
     # Creation d'un fichier de collecte des stats
     fstats = None
@@ -162,14 +178,14 @@ def command_check_fnb(test_dir):
                 continue
 
             # Comparaison du fichier d'erreur
-            if file_name == lt.ERR_TXT:
-                if not standard_commands.file_compare(
+            if file_name == kht.ERR_TXT:
+                if not standard_instructions.file_compare(
                     ref_file_path, test_file_path, skip_patterns=["time"]
                 ):
                     print_error(file_name + " are different")
             # Comparaison si preparation
             elif "PreparationReport" in file_name:
-                if not standard_commands.file_compare(
+                if not standard_instructions.file_compare(
                     ref_file_path, test_file_path, skip_patterns=["#Khiops "]
                 ):
                     print_error(file_name + " are different")
@@ -319,8 +335,8 @@ def command_check_fnb(test_dir):
     fstats.close()
 
 
-def command_work(test_dir):
-    results_dir = os.path.join(test_dir, lt.RESULTS)
+def instruction_work(test_dir):
+    results_dir = os.path.join(test_dir, kht.RESULTS)
     results_ref_dir, _ = results.get_results_ref_dir(test_dir, show=True)
     if results_ref_dir is None:
         return
@@ -331,7 +347,7 @@ def command_work(test_dir):
     # Transformation du fichier .prm
     transform_prm = False
     if transform_prm:
-        file_path = os.path.join(test_dir, lt.TEST_PRM)
+        file_path = os.path.join(test_dir, kht.TEST_PRM)
         lines = utils.read_file_lines(file_path)
         try:
             with open(file_path, "w", errors="ignore") as the_file:
@@ -484,8 +500,8 @@ def command_work(test_dir):
                                     break
 
 
-def command_template(test_dir):
-    results_dir = os.path.join(test_dir, lt.RESULTS)
+def instruction_template(test_dir):
+    results_dir = os.path.join(test_dir, kht.RESULTS)
     results_ref_dir, _ = results.get_results_ref_dir(test_dir, show=True)
     if results_ref_dir is None:
         return
@@ -495,49 +511,49 @@ def command_template(test_dir):
 
 
 """
-Enregistrement des commandes
+Enregistrement des instructions
 """
 
 
-def register_one_shot_commands():
+def register_one_shot_instructions():
     """
-    Enregistrement des commandes a usage unique
-    Retourne un dictionnaire de commandes
+    Enregistrement des instructions a usage unique
+    Retourne un dictionnaire d'instructions
     """
 
-    # Gestion de l'ensemble des commandes dans un dictionnaire contenant pour chaque identifiant de commande
-    # une paire (comannd, libelle)
-    available_commands = {}
+    # Gestion de l'ensemble des instructions dans un dictionnaire contenant pour chaque identifiant d'instruction
+    # une paire (instruction, libelle)
+    available_instructions = {}
 
-    # Enregistrement des commandes
-    standard_commands.register_command(
-        available_commands,
+    # Enregistrement des instructions
+    standard_instructions.register_instruction(
+        available_instructions,
         "makereftime",
-        command_make_ref_time,
+        instruction_make_ref_time,
         "copy time file to reference results dir",
     )
-    standard_commands.register_command(
-        available_commands,
+    standard_instructions.register_instruction(
+        available_instructions,
         "makereferr",
-        command_make_ref_err,
+        instruction_make_ref_err,
         "copy err file to reference results dir",
     )
-    standard_commands.register_command(
-        available_commands,
+    standard_instructions.register_instruction(
+        available_instructions,
         "bench",
-        command_bench,
+        instruction_bench,
         "build bench parameter file",
     )
-    standard_commands.register_command(
-        available_commands,
+    standard_instructions.register_instruction(
+        available_instructions,
         "checkfnb",
-        command_check_fnb,
+        instruction_check_fnb,
         "check fnb results (deprecated)",
     )
-    standard_commands.register_command(
-        available_commands,
+    standard_instructions.register_instruction(
+        available_instructions,
         "work",
-        command_work,
-        "last work command (temporary and anonymous)",
+        instruction_work,
+        "last work instruction (temporary and anonymous)",
     )
-    return available_commands
+    return available_instructions

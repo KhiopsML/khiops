@@ -3,6 +3,9 @@ Constantes permettant la gestion de la structure des repertoires de LearningTest
 et l'analyse des resultats par repertoire de test
 """
 
+""" Repertoire racine de l'arborescence de de l'outil de test """
+LEARNING_TEST_TOOL = "LearningTestTool"
+
 """ Repertoire racine de l'arborescence de test """
 LEARNING_TEST = "LearningTest"
 
@@ -56,9 +59,14 @@ assert set(TOOL_EXE_NAMES) == set(TOOL_NAMES), "Exe names must be defined for ea
 TOOL_DIR_NAMES = {
     KHIOPS: "TestKhiops",
     COCLUSTERING: "TestCoclustering",
-    KNI: "TestKNITransfer",
+    KNI: "TestKNI",
 }
-assert set(TOOL_DIR_NAMES) == set(TOOL_NAMES), "Sub-dir must be defined for each tool"
+assert set(TOOL_DIR_NAMES) == set(TOOL_NAMES), "Tool dir must be defined for each tool"
+
+# Alias pour des nom speciaux
+ALIAS_CHECK = "check"  # Pour declencher une comparaions entre resultats de test et de reference, plutot qu'un test
+ALIAS_R = "r"  # Designe le repertoire des binaires des outils en release dans l'environnement de developpement
+ALIAS_D = "d"  # Designe le repertoire des binaires des outils en debug dans l'environnement de developpement
 
 """ Dictionnaire inverse des noms d'outil avec les nom d'exe en cle """
 TOOL_NAMES_PER_EXE_NAME = dict((v, k) for k, v in TOOL_EXE_NAMES.items())
@@ -74,6 +82,14 @@ assert set(PARALLEL_TOOL_NAMES) <= set(TOOL_NAMES), (
     "Parallel tools " + str(PARALLEL_TOOL_NAMES) + " must be a subset of Khiops tools"
 )
 
+""" Liste des repertoires de LearningTest contenant les jeux de donnees """
+DATASET_COLLECTION_NAMES = [
+    "datasets",
+    "MTdatasets",
+    "TextDatasets",
+    "UnusedDatasets",
+]
+
 """
 Typologie des resultats de reference
 """
@@ -86,7 +102,7 @@ RESULTS_REF_TYPES = [COMPUTING, PLATFORM]
 """ Valeurs par type de resultats de refences """
 RESULTS_REF_TYPE_VALUES = {
     COMPUTING: ["parallel", "sequential"],
-    PLATFORM: ["Darwin", "Linux", "Windows", "WSL"],
+    PLATFORM: ["Darwin", "Linux", "Windows"],
 }
 assert set(RESULTS_REF_TYPE_VALUES) == set(
     RESULTS_REF_TYPES

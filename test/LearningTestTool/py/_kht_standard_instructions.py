@@ -1,16 +1,13 @@
 import os.path
-import sys
 import stat
 
-import _learning_test_constants as lt
-import _learning_test_utils as utils
-import _check_results as check
-import _results_management as results
-import _one_shot_commands as one_shot_commands
-import test_khiops
+import _kht_constants as kht
+import _kht_utils as utils
+import _kht_check_results as check
+import _kht_results_management as results
 
 """
-Commandes standard pour les usages courant
+Instruction standard pour les usages courant
 Exemples: errors, logs, makeref...
 Documentee et maintenues officiellement
 """
@@ -24,14 +21,17 @@ Fonctions utilitaires generales
 """
 
 
-def register_command(
-    available_commands: dict, command_id: str, command_function, command_label: str
+def register_instruction(
+    available_instructions: dict,
+    instruction_id: str,
+    instruction_function,
+    instruction_label: str,
 ):
-    """Enregistrement d'une commande dans un dictionnaire"""
-    assert command_id not in available_commands
-    assert command_id != ""
-    assert command_label != ""
-    available_commands[command_id] = (command_function, command_label)
+    """Enregistrement d'une instruction dans un dictionnaire"""
+    assert instruction_id not in available_instructions
+    assert instruction_id != ""
+    assert instruction_label != ""
+    available_instructions[instruction_id] = (instruction_function, instruction_label)
 
 
 def file_compare(file_name1: str, file_name2: str, skip_patterns: list = None):
@@ -80,97 +80,21 @@ def file_compare(file_name1: str, file_name2: str, skip_patterns: list = None):
     return compare_ok
 
 
-def analyse_tests_results(test_dir):
-    """Analyse des repertoires de test pour fournir des stats sur les erreurs
-    Retourne:
-    - warning_number,
-    - error_number,
-    - special_file_message,
-    - message_extension,
-    - specific_message,
-    - portability_message,
-    """
-
-    def extract_number(message):
-        assert message != ""
-        fields = message.split()
-        assert fields[0].isdigit()
-        number = int(fields[0])
-        return number
-
-    # Traitement des erreurs memorisee dans le log
-    log_file_path = os.path.join(test_dir, lt.COMPARISON_RESULTS_LOG)
-    error_number = 0
-    warning_number = 0
-    special_file_message = ""
-    message_extension = ""
-    specific_message = ""
-    portability_message = ""
-    if os.path.isfile(log_file_path):
-        log_file = open(log_file_path, "r", errors="ignore")
-        begin_summary = False
-        for line in log_file:
-            line = line.strip()
-            # Recherche du debug de la synthese
-            if line == check.SUMMARY_TITLE:
-                begin_summary = True
-
-            # Analyse de la synthese
-            if begin_summary:
-                if line.find(check.SUMMARY_WARNING_KEY) >= 0:
-                    warning_number = extract_number(line)
-                if line.find(check.SUMMARY_ERROR_KEY) >= 0:
-                    error_number = extract_number(line)
-                for key in check.SUMMARY_SPECIAL_FILE_KEYS:
-                    if line == key:
-                        special_file_message = key
-                        break
-                if line.find(check.SUMMARY_FILE_TYPES_KEY) == 0:
-                    message_extension = line
-                if line.find(check.SUMMARY_NOTE_KEY) == 0:
-                    specific_message = line
-                if line.find(check.SUMMARY_PORTABILITY_KEY) == 0:
-                    portability_message = line
-        if not begin_summary:
-            assert error_number == 0
-            error_number = 1
-            specific_message = (
-                "Section '"
-                + check.SUMMARY_TITLE
-                + "' not found in "
-                + lt.COMPARISON_RESULTS_LOG
-            )
-
-        # Fermeture du fichier
-        log_file.close()
-    else:
-        error_number = 1
-        specific_message = "The test has not been launched"
-    return (
-        warning_number,
-        error_number,
-        special_file_message,
-        message_extension,
-        specific_message,
-        portability_message,
-    )
-
-
 """
-Commandes standard
+Instruction standard
 """
 
 
-def command_list(test_dir):
+def instruction_list(test_dir):
     """Liste des repertoires de test avec infos sur les resultats de reference"""
     results_ref_dir, candidate_dirs = results.get_results_ref_dir(test_dir, show=True)
     results_ref_info = ""
     if results_ref_dir is None:
         results_ref_info = (
-            ", invalid " + lt.RESULTS_REF + " dirs " + str(candidate_dirs)
+            ", invalid " + kht.RESULTS_REF + " dirs " + str(candidate_dirs)
         )
-    elif results_ref_dir == lt.RESULTS_REF and len(candidate_dirs) == 0:
-        results_ref_info = ", missing " + lt.RESULTS_REF + " dir"
+    elif results_ref_dir == kht.RESULTS_REF and len(candidate_dirs) == 0:
+        results_ref_info = ", missing " + kht.RESULTS_REF + " dir"
     elif len(candidate_dirs) >= 2:
         results_ref_info = (
             ", used "
@@ -182,22 +106,30 @@ def command_list(test_dir):
     utils.check_test_dir(test_dir)
 
 
-def command_errors(test_dir):
+def instruction_errors(test_dir):
     """Liste des repertoires de test avec des erreurs ou des warnings"""
     test_dir_name = utils.test_dir_name(test_dir)
     suite_dir_name = utils.suite_dir_name(test_dir)
     tool_dir_name = utils.tool_dir_name(test_dir)
+    # Analyse du log de comparaison
     (
-        warning_number,
         error_number,
-        special_file_message,
-        message_extension,
-        specific_message,
-        portability_message,
-    ) = analyse_tests_results(test_dir)
+        warning_number,
+        summary_infos,
+        files_infos,
+    ) = check.analyse_comparison_log(test_dir)
+    file_types_message = summary_infos.get(check.SUMMARY_FILE_TYPES_KEY, "")
+    note_message = summary_infos.get(check.SUMMARY_NOTE_KEY, "")
+    portability_message = summary_infos.get(check.SUMMARY_PORTABILITY_KEY, "")
+    special_file_message = ""
+    for key in check.SUMMARY_SPECIAL_FILE_KEYS:
+        if key in summary_infos:
+            special_file_message = summary_infos.get(key, "")
+            break
+    # Message si necessaire
     if (
-        warning_number != 0
-        or error_number != 0
+        error_number != 0
+        or warning_number != 0
         or special_file_message != ""
         or portability_message != ""
     ):
@@ -214,32 +146,38 @@ def command_errors(test_dir):
             message += "\t\t"
         if special_file_message != "":
             message += special_file_message
-        message += "\t" + message_extension
-        message += "\t" + specific_message
+        message += "\t" + file_types_message
+        message += "\t" + note_message
         message += "\t" + portability_message
         print(message)
 
 
-def command_logs(test_dir):
+def instruction_logs(test_dir):
     """Liste des repertoires de test avec des logs pour les cas d'erreurs ou de warnings"""
     test_dir_name = utils.test_dir_name(test_dir)
     suite_dir_name = utils.suite_dir_name(test_dir)
     tool_dir_name = utils.tool_dir_name(test_dir)
+    # Analyse du log de comparaison
     (
-        warning_number,
         error_number,
-        special_file_message,
-        message_extension,
-        specific_message,
-        portability_message,
-    ) = analyse_tests_results(test_dir)
+        warning_number,
+        summary_infos,
+        files_infos,
+    ) = check.analyse_comparison_log(test_dir)
+    portability_message = summary_infos.get(check.SUMMARY_PORTABILITY_KEY, "")
+    special_file_message = ""
+    for key in check.SUMMARY_SPECIAL_FILE_KEYS:
+        if key in summary_infos:
+            special_file_message = summary_infos.get(key, "")
+            break
+    # Affichage du contenu du fichier de log si necessaire
     if (
-        warning_number != 0
-        or error_number != 0
+        error_number != 0
+        or warning_number != 0
         or special_file_message != ""
         or portability_message != ""
     ):
-        log_file_path = os.path.join(test_dir, lt.COMPARISON_RESULTS_LOG)
+        log_file_path = os.path.join(test_dir, kht.COMPARISON_RESULTS_LOG)
         if os.path.isfile(log_file_path):
             print("==================================================================")
             print(tool_dir_name + " " + suite_dir_name + " " + test_dir_name)
@@ -252,7 +190,7 @@ def command_logs(test_dir):
             log_file.close()
 
 
-def command_compare_times(test_dir, verbose=False):
+def instruction_compare_times(test_dir, verbose=False):
     def print_log_message(message):
         print(
             "\t"
@@ -286,9 +224,9 @@ def command_compare_times(test_dir, verbose=False):
     tool_dir_name = utils.tool_dir_name(test_dir)
 
     # Recherche du repertoire des resultats de reference
-    results_dir_err_file = os.path.join(test_dir, lt.RESULTS, lt.ERR_TXT)
+    results_dir_err_file = os.path.join(test_dir, kht.RESULTS, kht.ERR_TXT)
     results_ref_dir, _ = results.get_results_ref_dir(test_dir, show=verbose)
-    results_ref_dir_err_file = os.path.join(test_dir, results_ref_dir, lt.ERR_TXT)
+    results_ref_dir_err_file = os.path.join(test_dir, results_ref_dir, kht.ERR_TXT)
     is_valid = results_ref_dir is not None
     if is_valid:
         if not os.path.isfile(results_dir_err_file):
@@ -296,9 +234,9 @@ def command_compare_times(test_dir, verbose=False):
             if verbose:
                 print_log_message(
                     "\t\t\t\t\terror : missing "
-                    + lt.ERR_TXT
+                    + kht.ERR_TXT
                     + " file in "
-                    + lt.RESULTS
+                    + kht.RESULTS
                     + " dir"
                 )
     if is_valid and not os.path.isfile(results_ref_dir_err_file):
@@ -306,7 +244,7 @@ def command_compare_times(test_dir, verbose=False):
         if verbose:
             print_log_message(
                 "\t\t\t\t\terror : missing "
-                + lt.ERR_TXT
+                + kht.ERR_TXT
                 + " file in "
                 + results_ref_dir
                 + " dir"
@@ -319,7 +257,7 @@ def command_compare_times(test_dir, verbose=False):
         if len(lines) != len(lines_ref):
             print_log_message(
                 "\t\t\t\t\terror : "
-                + lt.ERR_TXT
+                + kht.ERR_TXT
                 + " files with different number of lines"
             )
         else:
@@ -340,7 +278,7 @@ def command_compare_times(test_dir, verbose=False):
                             + "???"
                             + "\t"
                             + clean_time_value(time_ref_value)
-                            + "\tERRlt.OR no time found"
+                            + "\tERROR no time found"
                         )
                     else:
                         time_value = line[len(time_label) : -1]
@@ -382,16 +320,16 @@ def command_compare_times(test_dir, verbose=False):
                             )
 
 
-def command_compare_times_verbose(test_dir):
-    command_compare_times(test_dir, verbose=True)
+def instruction_compare_times_verbose(test_dir):
+    instruction_compare_times(test_dir, verbose=True)
 
 
-def command_performance(test_dir):
+def instruction_performance(test_dir):
     """Liste des repertoires de test avec les performances du SNB sur les resultats de test"""
     test_dir_name = utils.test_dir_name(test_dir)
     suite_dir_name = utils.suite_dir_name(test_dir)
     tool_dir_name = utils.tool_dir_name(test_dir)
-    results_dir = os.path.join(test_dir, lt.RESULTS)
+    results_dir = os.path.join(test_dir, kht.RESULTS)
     if os.path.isdir(results_dir):
         test_pattern = "TestEvaluationReport.xls"
         for file_name in os.listdir(results_dir):
@@ -416,7 +354,7 @@ def command_performance(test_dir):
                 test_eval_file.close()
 
 
-def command_performance_ref(test_dir):
+def instruction_performance_ref(test_dir):
     """Liste des repertoires de test avec les performances du SNB sur les resultats de reference"""
     test_dir_name = utils.test_dir_name(test_dir)
     suite_dir_name = utils.suite_dir_name(test_dir)
@@ -434,7 +372,8 @@ def command_performance_ref(test_dir):
                         if s.find("Selective Naive Bayes", 0) == 0:
                             s = s.strip()
                             print(
-                                tool_dir_name
+                                "\t"
+                                + tool_dir_name
                                 + "\t"
                                 + suite_dir_name
                                 + "\t"
@@ -447,14 +386,14 @@ def command_performance_ref(test_dir):
                     test_eval_file.close()
 
 
-def command_clean(test_dir):
+def instruction_clean(test_dir):
     """Nettoyage des resultats de test et du fichier de comparaison"""
     file_path = os.path.join(test_dir, check.COMPARISON_LOG_FILE_NAME)
     if os.path.isfile(file_path):
         utils.remove_file(file_path)
 
     # Nettoyage du repertoire des resultats de test
-    results_dir = os.path.join(test_dir, lt.RESULTS)
+    results_dir = os.path.join(test_dir, kht.RESULTS)
     if os.path.isdir(results_dir):
         for file_name in os.listdir(results_dir):
             file_path = os.path.join(results_dir, file_name)
@@ -462,7 +401,7 @@ def command_clean(test_dir):
         utils.remove_dir(results_dir)
 
 
-def command_clean_ref(test_dir):
+def instruction_clean_ref(test_dir):
     """Nettoyage des resultats de reference"""
     results_ref_dir, _ = results.get_results_ref_dir(test_dir, show=True)
     if results_ref_dir is not None and os.path.isdir(results_ref_dir):
@@ -471,7 +410,7 @@ def command_clean_ref(test_dir):
             utils.remove_file(file_path)
 
 
-def command_delete_ref(test_dir):
+def instruction_delete_ref(test_dir):
     """Destruction des resultats de reference pour tous les contexte (plateformes...)"""
     current_ref_dir, all_ref_dirs = results.get_results_ref_dir(test_dir, show=True)
     if current_ref_dir is not None:
@@ -482,9 +421,9 @@ def command_delete_ref(test_dir):
             utils.remove_dir(results_ref_dir)
 
 
-def command_make_ref(test_dir):
+def instruction_make_ref(test_dir):
     """Copie des resultats de test vers les resultats de reference"""
-    results_dir = os.path.join(test_dir, lt.RESULTS)
+    results_dir = os.path.join(test_dir, kht.RESULTS)
     results_ref_dir, _ = results.get_results_ref_dir(test_dir, show=True)
     if results_ref_dir is not None:
         if not os.path.isdir(results_ref_dir):
@@ -501,9 +440,9 @@ def command_make_ref(test_dir):
                 )
 
 
-def command_copy_ref(test_dir):
+def instruction_copy_ref(test_dir):
     """Copie des resultats de  vers les resultats de test"""
-    results_dir = os.path.join(test_dir, lt.RESULTS)
+    results_dir = os.path.join(test_dir, kht.RESULTS)
     results_ref_dir, _ = results.get_results_ref_dir(test_dir, show=True)
     if results_ref_dir is not None:
         if not os.path.isdir(results_dir):
@@ -520,7 +459,7 @@ def command_copy_ref(test_dir):
                 )
 
 
-def command_check_hdfs(test_dir):
+def instruction_check_hdfs(test_dir):
     def parameter_exist(line, searched_keyword):
         # Test s'il y a au moins un parametre dans une ligne et une valeur pour ce parametre
         fields = (
@@ -540,7 +479,7 @@ def command_check_hdfs(test_dir):
         "ReportFileName",
         "InputCoclusteringFileName",
     ]
-    prm_file_path = os.path.join(test_dir, lt.TEST_PRM)
+    prm_file_path = os.path.join(test_dir, kht.TEST_PRM)
     print(test_dir)
     with open(prm_file_path, "r", errors="ignore") as prm_file:
         line_index = 1
@@ -578,7 +517,7 @@ def command_check_hdfs(test_dir):
             line_index += 1
 
 
-def command_transform_hdfs(test_dir):
+def instruction_transform_hdfs(test_dir):
     def parameter_exist(line, searched_keyword):
         # Test s'il y a au moins un parametre dans une ligne et une valeur pour ce parametre
         fields = (
@@ -599,7 +538,7 @@ def command_transform_hdfs(test_dir):
     ]
     # PostProcessedCoclusteringFileName CoclusteringDictionaryFileName supprime
     # Le nom du dictionnaire de coclustering ne devrait pas etre un chemin
-    prm_file_path = os.path.join(test_dir, lt.TEST_PRM)
+    prm_file_path = os.path.join(test_dir, kht.TEST_PRM)
     prm_file = open(prm_file_path, "r", errors="ignore")
     prm_file_lines = prm_file.readlines()
     prm_file.close()
@@ -616,7 +555,7 @@ def command_transform_hdfs(test_dir):
             ):
                 if s[comment_pos + 2 :].find("//") >= 0:
                     print(
-                        "\tWARNING: Multiple '//' in line (NO TRANSFlt.ORM) -> "
+                        "\tWARNING: Multiple '//' in line (NO TRANSFkht.ORM) -> "
                         + s[:-1]
                     )
                 else:
@@ -649,7 +588,7 @@ def command_transform_hdfs(test_dir):
     do_it = False
     results_ref_dir, _ = results.get_results_ref_dir(test_dir, show=True)
     if results_ref_dir is not None:
-        results_ref_err_file_path = os.path.join(test_dir, results_ref_dir, lt.ERR_TXT)
+        results_ref_err_file_path = os.path.join(test_dir, results_ref_dir, kht.ERR_TXT)
         if do_it and os.path.isfile(results_ref_err_file_path):
             err_file = open(results_ref_err_file_path, "r", errors="ignore")
             err_file_lines = err_file.readlines()
@@ -658,16 +597,16 @@ def command_transform_hdfs(test_dir):
             for s in err_file_lines:
                 new_line = s
                 new_line = new_line.replace(
-                    " " + lt.RESULTS + "/", " ./" + lt.RESULTS + "/"
+                    " " + kht.RESULTS + "/", " ./" + kht.RESULTS + "/"
                 )
                 new_line = new_line.replace(
-                    " " + lt.RESULTS + "\\", " ./" + lt.RESULTS + "\\"
+                    " " + kht.RESULTS + "\\", " ./" + kht.RESULTS + "\\"
                 )
                 err_file.write(new_line)
             err_file.close()
 
 
-def command_transform_hdfs_results(test_dir):
+def instruction_transform_hdfs_results(test_dir):
     def escape_for_json(token):
         return token.replace("/", "\\/")
 
@@ -683,7 +622,7 @@ def command_transform_hdfs_results(test_dir):
 
     hdfs_local_dir = hdfs_test_dir + test_name + "/" + sub_test_name
 
-    results_dir = os.path.join(test_dir, lt.RESULTS)
+    results_dir = os.path.join(test_dir, kht.RESULTS)
     if os.path.isdir(results_dir):
         for file_name in os.listdir(results_dir):
             file_path = os.path.join(results_dir, file_name)
@@ -706,9 +645,9 @@ def command_transform_hdfs_results(test_dir):
 
                     # Repertoire courant ./
                     file_data = file_data.replace(
-                        escape_for_json(hdfs_local_dir + "/" + lt.RESULTS),
-                        escape_for_json("./" + lt.RESULTS),
-                    )  # ou lt.RESULTS sans "./"" ?
+                        escape_for_json(hdfs_local_dir + "/" + kht.RESULTS),
+                        escape_for_json("./" + kht.RESULTS),
+                    )  # ou kht.RESULTS sans "./"" ?
 
                     # Fichiers dans le repertoire courant
 
@@ -729,7 +668,7 @@ def command_transform_hdfs_results(test_dir):
 
                     # Repertoire courant ./
                     file_data = file_data.replace(
-                        hdfs_local_dir + "/" + lt.RESULTS, "./" + lt.RESULTS
+                        hdfs_local_dir + "/" + kht.RESULTS, "./" + kht.RESULTS
                     )
 
                     # Fichiers dans le repertoire courant
@@ -742,108 +681,108 @@ def command_transform_hdfs_results(test_dir):
 
 
 """
-Enregistrement des commandes
+Enregistrement des instructions
 """
 
 
-def register_standard_commands():
-    """Enregistrement des commandes standard
-    Retourne un dictionnaire des commandes
+def register_standard_instructions():
+    """Enregistrement des instructions standards
+    Retourne un dictionnaire des instructions
     """
 
-    # Gestion de l'ensemble des commandes dans un dictionnaire contenant pour chaque identifiant de commande
-    # une paire (comannd, libelle)
-    available_commands = {}
+    # Gestion de l'ensemble des instructions dans un dictionnaire contenant pour chaque identifiant d'instruction
+    # une paire (instruction, libelle)
+    available_instructions = {}
 
-    # Enregistrement des commandes standard
-    register_command(
-        available_commands,
+    # Enregistrement des instructions standard
+    register_instruction(
+        available_instructions,
         "list",
-        command_list,
+        instruction_list,
         "list of sub-directories, with results.ref info",
     )
-    register_command(
-        available_commands,
+    register_instruction(
+        available_instructions,
         "errors",
-        command_errors,
+        instruction_errors,
         "report errors and warnings",
     )
-    register_command(
-        available_commands,
+    register_instruction(
+        available_instructions,
         "logs",
-        command_logs,
+        instruction_logs,
         "detailed report errors and warnings",
     )
-    register_command(
-        available_commands,
+    register_instruction(
+        available_instructions,
         "compareTimes",
-        command_compare_times,
+        instruction_compare_times,
         "compare time with ref time and report warnings only",
     )
-    register_command(
-        available_commands,
+    register_instruction(
+        available_instructions,
         "compareTimesVerbose",
-        command_compare_times_verbose,
+        instruction_compare_times_verbose,
         "compare time with ref time and report all",
     )
-    register_command(
-        available_commands,
+    register_instruction(
+        available_instructions,
         "performance",
-        command_performance,
+        instruction_performance,
         "report SNB test accuracy",
     )
-    register_command(
-        available_commands,
+    register_instruction(
+        available_instructions,
         "performanceRef",
-        command_performance_ref,
+        instruction_performance_ref,
         "report ref SNB test accuracy",
     )
-    register_command(
-        available_commands,
+    register_instruction(
+        available_instructions,
         "clean",
-        command_clean,
+        instruction_clean,
         "delete test result files and comparison log file",
     )
-    register_command(
-        available_commands,
+    register_instruction(
+        available_instructions,
         "cleanref",
-        command_clean_ref,
+        instruction_clean_ref,
         "delete reference result files for current reference context",
     )
-    register_command(
-        available_commands,
+    register_instruction(
+        available_instructions,
         "deleteref",
-        command_delete_ref,
+        instruction_delete_ref,
         "delete reference result files and directories for all reference context",
     )
-    register_command(
-        available_commands,
+    register_instruction(
+        available_instructions,
         "makeref",
-        command_make_ref,
+        instruction_make_ref,
         "copy test result files to reference dir for current reference context",
     )
-    register_command(
-        available_commands,
+    register_instruction(
+        available_instructions,
         "copyref",
-        command_copy_ref,
+        instruction_copy_ref,
         "copy reference result files to test dir for current reference context",
     )
-    register_command(
-        available_commands,
+    register_instruction(
+        available_instructions,
         "checkHDFS",
-        command_check_hdfs,
+        instruction_check_hdfs,
         "check if parameter files are compliant with HDFS",
     )
-    register_command(
-        available_commands,
+    register_instruction(
+        available_instructions,
         "transformHDFS",
-        command_transform_hdfs,
+        instruction_transform_hdfs,
         "transform parameter files to be compliant with HDFS",
     )
-    register_command(
-        available_commands,
+    register_instruction(
+        available_instructions,
         "transformHDFSresults",
-        command_transform_hdfs_results,
+        instruction_transform_hdfs_results,
         "transform results files to be compliant with HDFS",
     )
-    return available_commands
+    return available_instructions

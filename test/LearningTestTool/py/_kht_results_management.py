@@ -1,8 +1,8 @@
 import os
 import platform
 
-import _learning_test_constants as lt
-import _learning_test_utils as utils
+import _kht_constants as kht
+import _kht_utils as utils
 
 """
 Gestion de la typologie des resultats de test de reference, selon les axes suivants definis
@@ -12,13 +12,11 @@ Gestion de la typologie des resultats de test de reference, selon les axes suiva
   - sequential
 - PLATFORM
   - fourni par la fonction python platform.system()
-    - plus os.name pour detecter le cas WSL (plateforme=Windows et os=posix)
   - peut etre forcee par la variable d'environnement KhiopsComparisonPlatform
   - valeurs possibles
     - Darwin (Mac)
     - Linux
     - Windows
-    - WSL
 
 On peut memoriser des variantes de resultats de reference selon leur type si necessaire
 Dans ce cas, la typlogie est indiquee en suffix du nom de repertoire 'results.ref'
@@ -53,8 +51,8 @@ def check_all_type_values():
     all_values_list = []
     all_values_dic = {}
     # Collecte de toutes les valeurs pour verifier leur validite et leur unicite
-    for results_ref_types in lt.RESULTS_REF_TYPES:
-        results_ref_types_values = lt.RESULTS_REF_TYPE_VALUES[results_ref_types]
+    for results_ref_types in kht.RESULTS_REF_TYPES:
+        results_ref_types_values = kht.RESULTS_REF_TYPE_VALUES[results_ref_types]
         for value in results_ref_types_values:
             # Une valeur ne doit contenu que des caracteres alphabetiques
             assert value.isalpha(), (
@@ -106,21 +104,21 @@ def get_context_computing_type(log_file=None, show=False):
     Une trace est ecrite dans un fichier de log et affichees sur la console si besoin
     """
     khiops_mpi_process_number = utils.get_env_var_positive_value(
-        lt.KHIOPS_MPI_PROCESS_NUMBER
+        kht.KHIOPS_MPI_PROCESS_NUMBER
     )
     if khiops_mpi_process_number is None:
         computing_type = "sequential"
     else:
         computing_type = "parallel"
-    assert computing_type in lt.RESULTS_REF_TYPE_VALUES[lt.COMPUTING], (
-        lt.COMPUTING
+    assert computing_type in kht.RESULTS_REF_TYPE_VALUES[kht.COMPUTING], (
+        kht.COMPUTING
         + " type ("
         + computing_type
         + ") should be in "
-        + str(lt.RESULTS_REF_TYPE_VALUES[lt.COMPUTING])
+        + str(kht.RESULTS_REF_TYPE_VALUES[kht.COMPUTING])
     )
     # Affichage d'une trace
-    message = lt.COMPUTING + " type: " + computing_type
+    message = kht.COMPUTING + " type: " + computing_type
     if khiops_mpi_process_number is not None:
         message += " (process number: " + str(khiops_mpi_process_number) + ")"
     utils.write_message(message, log_file=log_file, show=show)
@@ -132,26 +130,21 @@ def get_context_platform_type(log_file=None, show=False):
     Base sur l'OS courant, ou force selon la variable d'environnement KhiopsComparisonPlatform
     Une trace est ecrite dans un fichier de log et affichees sur la console si besoin
     """
-    platform_type = os.getenv(lt.KHIOPS_COMPARISON_PLATFORM)
+    platform_type = os.getenv(kht.KHIOPS_COMPARISON_PLATFORM)
     forced_platform_type = platform_type is not None
     if not forced_platform_type:
         platform_type = platform.system()
-        # Cas particulier de WSL
-        # Seule methode de python faisant reference a WSL: platform.platform()
-        # REnvoie par exemple "Linux-5.15.133.1-microsoft-standard-WSL2-x86_64-with-glibc2.35"
-        if "WSL" in platform.platform():
-            platform_type = "WSL"
-    assert platform_type in lt.RESULTS_REF_TYPE_VALUES[lt.PLATFORM], (
-        lt.PLATFORM
+    assert platform_type in kht.RESULTS_REF_TYPE_VALUES[kht.PLATFORM], (
+        kht.PLATFORM
         + " type ("
         + platform_type
         + ") should be in "
-        + str(lt.RESULTS_REF_TYPE_VALUES[lt.PLATFORM])
+        + str(kht.RESULTS_REF_TYPE_VALUES[kht.PLATFORM])
     )
     # Affichage d'une trace
-    message = lt.PLATFORM + " type: " + platform_type
+    message = kht.PLATFORM + " type: " + platform_type
     if forced_platform_type:
-        message += " (forced using '" + lt.KHIOPS_COMPARISON_PLATFORM + "' env var)"
+        message += " (forced using '" + kht.KHIOPS_COMPARISON_PLATFORM + "' env var)"
     utils.write_message(message, log_file=log_file, show=show)
     return platform_type
 
@@ -180,7 +173,7 @@ def get_results_ref_dir(test_dir, log_file=None, show=False):
 
 def is_candidate_results_ref_dir(dir_name):
     """Test si un nom correspond a un repertoires candidat a etre des resultats de reference"""
-    return dir_name == lt.RESULTS_REF or dir_name.find(lt.RESULTS_REF + lt.AND) == 0
+    return dir_name == kht.RESULTS_REF or dir_name.find(kht.RESULTS_REF + kht.AND) == 0
 
 
 def get_candidate_results_ref_dirs(test_dir):
@@ -195,7 +188,7 @@ def get_candidate_results_ref_dirs(test_dir):
             file_path = os.path.join(test_dir, file_name)
             assert os.path.isdir(file_path), (
                 "file name starting "
-                + lt.RESULTS_REF
+                + kht.RESULTS_REF
                 + " shoud be a directory ("
                 + file_path
                 + ")"
@@ -223,7 +216,7 @@ def _search_results_ref_dir(
         if test_dir_name is not None:
             message += test_dir_name + " : "
         if dir_name != "":
-            message += lt.RESULTS_REF + " dir (" + dir_name + "), "
+            message += kht.RESULTS_REF + " dir (" + dir_name + "), "
         message += error_message
         utils.write_message(message, log_file=log_file, show=show)
 
@@ -231,38 +224,38 @@ def _search_results_ref_dir(
     is_valid = True
 
     # Le contexte est suppose etre valide
-    assert len(searched_context) == len(lt.RESULTS_REF_TYPES)
-    for i in range(len(lt.RESULTS_REF_TYPES)):
+    assert len(searched_context) == len(kht.RESULTS_REF_TYPES)
+    for i in range(len(kht.RESULTS_REF_TYPES)):
         assert (
-            searched_context[i] in lt.RESULTS_REF_TYPE_VALUES[lt.RESULTS_REF_TYPES[i]]
+            searched_context[i] in kht.RESULTS_REF_TYPE_VALUES[kht.RESULTS_REF_TYPES[i]]
         ), (
             "value '"
             + searched_context[i]
             + "' should be in "
-            + lt.RESULTS_REF_TYPES[i]
+            + kht.RESULTS_REF_TYPES[i]
             + " type values "
-            + str(lt.RESULTS_REF_TYPE_VALUES[lt.RESULTS_REF_TYPES[i]])
+            + str(kht.RESULTS_REF_TYPE_VALUES[kht.RESULTS_REF_TYPES[i]])
         )
     # S'il n'y a pas de repertoire, on renvoie le repertoire de reference standard
     if len(candidate_reference_dirs) == 0:
-        return lt.RESULTS_REF
+        return kht.RESULTS_REF
     # Erreur si repertoire invalides
     if is_valid:
         for candidate_dir in candidate_reference_dirs:
-            # On doit commencer par le prefixe de base lt.RESULTS_REF
-            if candidate_dir.find(lt.RESULTS_REF) != 0:
+            # On doit commencer par le prefixe de base kht.RESULTS_REF
+            if candidate_dir.find(kht.RESULTS_REF) != 0:
                 is_valid = False
-                add_error(candidate_dir, "must start with '" + lt.RESULTS_REF + "'")
+                add_error(candidate_dir, "must start with '" + kht.RESULTS_REF + "'")
             # Les valeurs suivantes de la conjonction doivent etre valide
             if is_valid:
-                and_values = candidate_dir.split(lt.AND)
+                and_values = candidate_dir.split(kht.AND)
                 # La premiere valeur est imposes
-                if and_values[0] != lt.RESULTS_REF:
+                if and_values[0] != kht.RESULTS_REF:
                     is_valid = False
                     add_error(
                         candidate_dir,
                         "must start with '"
-                        + lt.RESULTS_REF
+                        + kht.RESULTS_REF
                         + "', with values separated by '-' or '_'",
                     )
                 # Analyse des valeurs suivantes
@@ -276,12 +269,12 @@ def _search_results_ref_dir(
                             add_error(
                                 candidate_dir,
                                 "must not contain empty values separated by '"
-                                + lt.AND
+                                + kht.AND
                                 + "'",
                             )
                         # Analyse des conjonctions de valeurs
                         else:
-                            or_values = and_value.split(lt.OR)
+                            or_values = and_value.split(kht.OR)
                             found_type = ""
                             for value in or_values:
                                 # Les valeurs doivent etre non vide
@@ -290,17 +283,17 @@ def _search_results_ref_dir(
                                     add_error(
                                         candidate_dir,
                                         "must not contain empty values separated by '"
-                                        + lt.OR
+                                        + kht.OR
                                         + "'",
                                     )
                                 # Elles doivent correspond a un des types de contexte
                                 elif found_type == "":
                                     for index, results_ref_type in enumerate(
-                                        lt.RESULTS_REF_TYPES
+                                        kht.RESULTS_REF_TYPES
                                     ):
                                         if (
                                             value
-                                            in lt.RESULTS_REF_TYPE_VALUES[
+                                            in kht.RESULTS_REF_TYPE_VALUES[
                                                 results_ref_type
                                             ]
                                         ):
@@ -317,13 +310,13 @@ def _search_results_ref_dir(
                                 if (
                                     is_valid
                                     and value
-                                    not in lt.RESULTS_REF_TYPE_VALUES[found_type]
+                                    not in kht.RESULTS_REF_TYPE_VALUES[found_type]
                                 ):
                                     is_valid = False
                                     add_error(
                                         candidate_dir,
                                         "values between '"
-                                        + lt.OR
+                                        + kht.OR
                                         + "' ("
                                         + and_value
                                         + ") must correspond to the same type ("
@@ -338,7 +331,7 @@ def _search_results_ref_dir(
                                 add_error(
                                     candidate_dir,
                                     "values between '"
-                                    + lt.OR
+                                    + kht.OR
                                     + "' ("
                                     + and_value
                                     + ") must be sorted",
@@ -348,7 +341,7 @@ def _search_results_ref_dir(
                             # Dans le cas d'un nouveau type de contexte ne comportant qu'une valeur, il faudrait
                             # ajouter une valeur fictive 'other' pour constituer une partition
                             if is_valid and len(or_values) == len(
-                                lt.RESULTS_REF_TYPE_VALUES[found_type]
+                                kht.RESULTS_REF_TYPE_VALUES[found_type]
                             ):
                                 is_valid = False
                                 add_error(
@@ -358,7 +351,7 @@ def _search_results_ref_dir(
                                     + ") must not contain all "
                                     + found_type
                                     + " type values "
-                                    + str(lt.RESULTS_REF_TYPE_VALUES[found_type]),
+                                    + str(kht.RESULTS_REF_TYPE_VALUES[found_type]),
                                 )
                         # Le type de valeur doit etre d'index structement superieur a celui du type courant
                         if is_valid:
@@ -373,16 +366,16 @@ def _search_results_ref_dir(
                                     add_error(
                                         candidate_dir,
                                         "values related to "
-                                        + lt.RESULTS_REF_TYPES[current_type_index]
+                                        + kht.RESULTS_REF_TYPES[current_type_index]
                                         + " type should not be specified several times",
                                     )
                                 else:
                                     add_error(
                                         candidate_dir,
                                         "values related to "
-                                        + lt.RESULTS_REF_TYPES[found_type_index]
+                                        + kht.RESULTS_REF_TYPES[found_type_index]
                                         + " type should be specified before values related to "
-                                        + lt.RESULTS_REF_TYPES[current_type_index]
+                                        + kht.RESULTS_REF_TYPES[current_type_index]
                                         + " type",
                                     )
                             current_type_index = found_type_index
@@ -393,13 +386,13 @@ def _search_results_ref_dir(
     if is_valid:
         assert results_ref_dir is None
         # Construction de tous les contexes possibles
-        results_ref_type_number = len(lt.RESULTS_REF_TYPES)
+        results_ref_type_number = len(kht.RESULTS_REF_TYPES)
         all_evaluated_contexts = [[]]
         for index in range(results_ref_type_number):
             new_contexts = []
-            context_type = lt.RESULTS_REF_TYPES[index]
+            context_type = kht.RESULTS_REF_TYPES[index]
             for context in all_evaluated_contexts:
-                for value in lt.RESULTS_REF_TYPE_VALUES[context_type]:
+                for value in kht.RESULTS_REF_TYPE_VALUES[context_type]:
                     new_context = context.copy()
                     new_context.append(value)
                     new_contexts.append(new_context)
@@ -442,7 +435,7 @@ def _search_results_ref_dir(
                             + " matches "
                             + str(selected_candidate_dir_number)
                             + " variants of "
-                            + lt.RESULTS_REF
+                            + kht.RESULTS_REF
                             + " dirs (e.g. "
                             + str(candidate_dirs_per_match_number[match_number])
                             + ")",
@@ -451,8 +444,8 @@ def _search_results_ref_dir(
                 match_number -= 1
             # Si aucun repertoire specialise trouve, on se rabat sur le repertoire de base
             if is_valid and evaluated_context_results_ref_dir == "":
-                if lt.RESULTS_REF in candidate_reference_dirs:
-                    evaluated_context_results_ref_dir = lt.RESULTS_REF
+                if kht.RESULTS_REF in candidate_reference_dirs:
+                    evaluated_context_results_ref_dir = kht.RESULTS_REF
                     # On memorise que le repertoire a ete utilise au moins une fois
                     used_candidate_dirs[evaluated_context_results_ref_dir] = True
                 else:
@@ -460,7 +453,7 @@ def _search_results_ref_dir(
                     add_error(
                         "",
                         "no "
-                        + lt.RESULTS_REF
+                        + kht.RESULTS_REF
                         + " dir found for context "
                         + str(evaluated_context),
                     )
@@ -480,7 +473,7 @@ def _search_results_ref_dir(
         add_error(
             "",
             "some "
-            + lt.RESULTS_REF
+            + kht.RESULTS_REF
             + " dirs are not active for any context "
             + str(unused_candidate_dirs),
         )
@@ -488,7 +481,7 @@ def _search_results_ref_dir(
     if not is_valid:
         results_ref_dir = None
         # Message synthetique de fin
-        add_error("", "invalid " + lt.RESULTS_REF + " dir")
+        add_error("", "invalid " + kht.RESULTS_REF + " dir")
     return results_ref_dir
 
 
@@ -510,27 +503,27 @@ def test_results_ref_context_management():
             results_ref_dirs.append(specific_dir)
         # Ajout d'un repertoire par valeur, en cumulant les types
         if not concat_values:
-            base_names = [lt.RESULTS_REF]
+            base_names = [kht.RESULTS_REF]
             for i in range(len(list_type_values)):
                 new_base_names = []
                 values = list_type_values[i]
                 for base_name in base_names:
                     for value in values:
-                        dir_name = base_name + lt.AND + value
+                        dir_name = base_name + kht.AND + value
                         results_ref_dirs.append(dir_name)
                         new_base_names.append(dir_name)
                 base_names = new_base_names
         # Ajout d'un repertoire par liste de valeurs, en cumulant les types
         else:
-            dir_name = lt.RESULTS_REF
+            dir_name = kht.RESULTS_REF
             for i in range(len(list_type_values)):
                 values = list_type_values[i]
                 values_string = ""
                 for value in values:
                     if values_string != "":
-                        values_string += lt.OR
+                        values_string += kht.OR
                     values_string += value
-                dir_name += lt.AND + values_string
+                dir_name += kht.AND + values_string
                 results_ref_dirs.append(dir_name)
         return results_ref_dirs
 
@@ -545,72 +538,72 @@ def test_results_ref_context_management():
     # Jeux de test basique
     list_candidate_results_ref_dirs = []
     list_candidate_results_ref_dirs.append([])
-    list_candidate_results_ref_dirs.append([lt.RESULTS])
-    list_candidate_results_ref_dirs.append([lt.RESULTS_REF])
-    list_candidate_results_ref_dirs.append([lt.RESULTS_REF, lt.RESULTS_REF + lt.AND])
+    list_candidate_results_ref_dirs.append([kht.RESULTS])
+    list_candidate_results_ref_dirs.append([kht.RESULTS_REF])
+    list_candidate_results_ref_dirs.append([kht.RESULTS_REF, kht.RESULTS_REF + kht.AND])
     list_candidate_results_ref_dirs.append(
-        [lt.RESULTS_REF, lt.RESULTS_REF + lt.AND + lt.OR]
+        [kht.RESULTS_REF, kht.RESULTS_REF + kht.AND + kht.OR]
     )
-    list_candidate_results_ref_dirs.append([lt.RESULTS_REF, lt.RESULTS_REF + "NO"])
+    list_candidate_results_ref_dirs.append([kht.RESULTS_REF, kht.RESULTS_REF + "NO"])
     list_candidate_results_ref_dirs.append(
-        [lt.RESULTS_REF, lt.RESULTS_REF + lt.AND + "NO"]
+        [kht.RESULTS_REF, kht.RESULTS_REF + kht.AND + "NO"]
     )
     # Jeu de test incomplet
     list_candidate_results_ref_dirs.append(
         [
-            lt.RESULTS_REF
-            + lt.AND
-            + lt.RESULTS_REF_TYPE_VALUES[lt.RESULTS_REF_TYPES[0]][0]
+            kht.RESULTS_REF
+            + kht.AND
+            + kht.RESULTS_REF_TYPE_VALUES[kht.RESULTS_REF_TYPES[0]][0]
         ]
     )
     # Plusieurs valeurs de type different pour un meme type
     list_candidate_results_ref_dirs.append(
         [
-            lt.RESULTS_REF,
-            lt.RESULTS_REF
-            + lt.AND
-            + lt.RESULTS_REF_TYPE_VALUES[lt.RESULTS_REF_TYPES[0]][0]
-            + lt.OR
-            + lt.RESULTS_REF_TYPE_VALUES[lt.RESULTS_REF_TYPES[1]][0],
+            kht.RESULTS_REF,
+            kht.RESULTS_REF
+            + kht.AND
+            + kht.RESULTS_REF_TYPE_VALUES[kht.RESULTS_REF_TYPES[0]][0]
+            + kht.OR
+            + kht.RESULTS_REF_TYPE_VALUES[kht.RESULTS_REF_TYPES[1]][0],
         ]
     )
     # Plusieurs valeurs d'un meme type dans le mauvais ordre
     list_candidate_results_ref_dirs.append(
         [
-            lt.RESULTS_REF,
-            lt.RESULTS_REF
-            + lt.AND
-            + lt.RESULTS_REF_TYPE_VALUES[lt.RESULTS_REF_TYPES[1]][1]
-            + lt.OR
-            + lt.RESULTS_REF_TYPE_VALUES[lt.RESULTS_REF_TYPES[1]][0],
+            kht.RESULTS_REF,
+            kht.RESULTS_REF
+            + kht.AND
+            + kht.RESULTS_REF_TYPE_VALUES[kht.RESULTS_REF_TYPES[1]][1]
+            + kht.OR
+            + kht.RESULTS_REF_TYPE_VALUES[kht.RESULTS_REF_TYPES[1]][0],
         ]
     )
     # Specification multiple des valeurs d'un meme type
     list_candidate_results_ref_dirs.append(
         [
-            lt.RESULTS_REF,
-            lt.RESULTS_REF
-            + lt.AND
-            + lt.RESULTS_REF_TYPE_VALUES[lt.RESULTS_REF_TYPES[0]][0]
-            + lt.AND
-            + lt.RESULTS_REF_TYPE_VALUES[lt.RESULTS_REF_TYPES[0]][1],
+            kht.RESULTS_REF,
+            kht.RESULTS_REF
+            + kht.AND
+            + kht.RESULTS_REF_TYPE_VALUES[kht.RESULTS_REF_TYPES[0]][0]
+            + kht.AND
+            + kht.RESULTS_REF_TYPE_VALUES[kht.RESULTS_REF_TYPES[0]][1],
         ]
     )
     # Specification des valeurs de different type dans le mauvais ordre des types
     list_candidate_results_ref_dirs.append(
         [
-            lt.RESULTS_REF,
-            lt.RESULTS_REF
-            + lt.AND
-            + lt.RESULTS_REF_TYPE_VALUES[lt.RESULTS_REF_TYPES[1]][0]
-            + lt.AND
-            + lt.RESULTS_REF_TYPE_VALUES[lt.RESULTS_REF_TYPES[0]][0],
+            kht.RESULTS_REF,
+            kht.RESULTS_REF
+            + kht.AND
+            + kht.RESULTS_REF_TYPE_VALUES[kht.RESULTS_REF_TYPES[1]][0]
+            + kht.AND
+            + kht.RESULTS_REF_TYPE_VALUES[kht.RESULTS_REF_TYPES[0]][0],
         ]
     )
     # Tests systematiques avec tout ou partie des valeurs par type de resultat de reference
     tested_list_type_values = []
-    for results_ref_type in lt.RESULTS_REF_TYPES:
-        all_type_values = lt.RESULTS_REF_TYPE_VALUES[results_ref_type]
+    for results_ref_type in kht.RESULTS_REF_TYPES:
+        all_type_values = kht.RESULTS_REF_TYPE_VALUES[results_ref_type]
         specific_type_values = all_type_values[:-1]
         tested_list_type_values.append(all_type_values)
         list_candidate_results_ref_dirs.append(
@@ -618,7 +611,7 @@ def test_results_ref_context_management():
         )
         list_candidate_results_ref_dirs.append(
             buil_candidate_results_ref_dirs(
-                [specific_type_values], specific_dir=lt.RESULTS_REF
+                [specific_type_values], specific_dir=kht.RESULTS_REF
             )
         )
         list_candidate_results_ref_dirs.append(
@@ -626,7 +619,7 @@ def test_results_ref_context_management():
         )
         list_candidate_results_ref_dirs.append(
             buil_candidate_results_ref_dirs(
-                [specific_type_values], concat_values=True, specific_dir=lt.RESULTS_REF
+                [specific_type_values], concat_values=True, specific_dir=kht.RESULTS_REF
             )
         )
     list_candidate_results_ref_dirs.append(
@@ -634,7 +627,7 @@ def test_results_ref_context_management():
     )
     list_candidate_results_ref_dirs.append(
         buil_candidate_results_ref_dirs(
-            tested_list_type_values, specific_dir=lt.RESULTS_REF
+            tested_list_type_values, specific_dir=kht.RESULTS_REF
         )
     )
 
