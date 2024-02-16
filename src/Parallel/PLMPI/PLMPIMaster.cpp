@@ -957,8 +957,8 @@ int PLMPIMaster::ComputeGlobalProgression(boolean bSlaveProcess)
 
 void PLMPIMaster::NotifyInterruptionRequested()
 {
-	int nTaskCommSize;
 	int nSlaveRank;
+	int i;
 	PLMPIMsgContext context;
 	PLSerializer serializer;
 
@@ -967,20 +967,17 @@ void PLMPIMaster::NotifyInterruptionRequested()
 		if (GetTracerProtocol()->GetActiveMode())
 			GetTracerProtocol()->AddTrace("Send Interruption requested");
 
-		MPI_Comm_size(*PLMPITaskDriver::GetTaskComm(), &nTaskCommSize);
-		for (nSlaveRank = 1; nSlaveRank < nTaskCommSize; nSlaveRank++)
+		for (i = 0; i < GetTask()->ivGrantedSlaveIds.GetSize(); i++)
 		{
-			if (not PLMPITaskDriver::GetDriver()->IsFileServer(nSlaveRank))
-			{
-				if (GetTracerMPI()->GetActiveMode())
-					GetTracerMPI()->AddSend(nSlaveRank, INTERRUPTION_REQUESTED);
+			nSlaveRank = GetTask()->ivGrantedSlaveIds.GetAt(i);
+			if (GetTracerMPI()->GetActiveMode())
+				GetTracerMPI()->AddSend(nSlaveRank, INTERRUPTION_REQUESTED);
 
-				// Envoi en utilisant un serializer, car dans le messag epeut etre recu par
-				// PLMPISlave et celui-ci attend un serializer
-				context.Isend(MPI_COMM_WORLD, nSlaveRank, INTERRUPTION_REQUESTED);
-				serializer.OpenForWrite(&context);
-				serializer.Close();
-			}
+			// On envoie en utilisant un serializer, car le message peut etre recu par
+			// PLMPISlave et celui-ci attend un serializer
+			context.Isend(MPI_COMM_WORLD, nSlaveRank, INTERRUPTION_REQUESTED);
+			serializer.OpenForWrite(&context);
+			serializer.Close();
 		}
 		bInterruptionRequested = true;
 		bStopOrderDone = true;
