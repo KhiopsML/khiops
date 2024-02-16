@@ -88,10 +88,9 @@ void PLMPIMaster::UpdateMaxErrorFlow()
 				       Global::IsMaxErrorFlowReachedPerGravity(Error::GravityMessage));
 
 		// Envoi du tableau a tous les esclaves
-		MPI_Comm_size(*PLMPITaskDriver::GetTaskComm(), &nTaskCommSize);
-		for (i = 1; i < nTaskCommSize; i++)
+		for (i = 0; i < GetTask()->ivGrantedSlaveIds.GetSize(); i++)
 		{
-			context.Send(*PLMPITaskDriver::GetTaskComm(), i, MAX_ERROR_FLOW);
+			context.Send(MPI_COMM_WORLD, GetTask()->ivGrantedSlaveIds.GetAt(i), MAX_ERROR_FLOW);
 			serializer.OpenForWrite(&context);
 			serializer.PutIntVector(&ivGravityReached);
 			serializer.Close();
@@ -1036,6 +1035,8 @@ void PLMPIMaster::DischargePendingCommunication(int nRank, int nTag)
 			if (PLParallelTask::GetVerbose())
 				TraceWithRank(sTmp + "discharge pending comm from " + IntToString(status.MPI_SOURCE) +
 					      " with tag " + GetTagAsString(status.MPI_TAG));
+			cout << GetProcessId() << " "
+			     << "Discharge pending com" << endl;
 			// Reception du message
 			ReceivePendingMessage(status);
 		}
