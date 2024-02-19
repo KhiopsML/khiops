@@ -1,0 +1,626 @@
+{
+	"tool": "Khiops",
+	"version": "10.2.0",
+	"shortDescription": "",
+	"logs": [
+		{
+			"taskName": "Data preparation",
+			"messages": [
+				"warning : Data table ..\/..\/..\/datasets\/Adult\/Adult.txt : Record 3 : Numerical variable sex: value <Male> converted to <> (Unconverted string)",
+				"warning : Data table ..\/..\/..\/datasets\/Adult\/Adult.txt : Record 4 : Numerical variable sex: value <Male> converted to <> (Unconverted string)",
+				"warning : Data table ..\/..\/..\/datasets\/Adult\/Adult.txt : Record 5 : Numerical variable sex: value <Male> converted to <> (Unconverted string)",
+				"warning : Data table ..\/..\/..\/datasets\/Adult\/Adult.txt : Record 7 : Numerical variable sex: value <Female> converted to <> (Unconverted string)",
+				"warning : Data table ..\/..\/..\/datasets\/Adult\/Adult.txt : Record 8 : Numerical variable sex: value <Female> converted to <> (Unconverted string)",
+				"warning : Data table ..\/..\/..\/datasets\/Adult\/Adult.txt : Record 9 : Numerical variable sex: value <Male> converted to <> (Unconverted string)",
+				"warning : Data table ..\/..\/..\/datasets\/Adult\/Adult.txt : Record 10 : Numerical variable sex: value <Female> converted to <> (Unconverted string)",
+				"warning : Data table ..\/..\/..\/datasets\/Adult\/Adult.txt : Record 11 : Numerical variable sex: value <Male> converted to <> (Unconverted string)",
+				"warning : Data table ..\/..\/..\/datasets\/Adult\/Adult.txt : Record 14 : Numerical variable sex: value <Female> converted to <> (Unconverted string)",
+				"warning : Data table ..\/..\/..\/datasets\/Adult\/Adult.txt : Record 15 : Numerical variable sex: value <Male> converted to <> (Unconverted string)",
+				"warning : Data table ..\/..\/..\/datasets\/Adult\/Adult.txt : Record 16 : Numerical variable sex: value <Male> converted to <> (Unconverted string)",
+				"warning : Data table ..\/..\/..\/datasets\/Adult\/Adult.txt : Record 17 : Numerical variable sex: value <Male> converted to <> (Unconverted string)",
+				"warning : Data table ..\/..\/..\/datasets\/Adult\/Adult.txt : Record 18 : Numerical variable sex: value <Male> converted to <> (Unconverted string)",
+				"warning : Data table ..\/..\/..\/datasets\/Adult\/Adult.txt : Record 19 : Numerical variable sex: value <Male> converted to <> (Unconverted string)",
+				"warning : Data table ..\/..\/..\/datasets\/Adult\/Adult.txt : Record 20 : Numerical variable sex: value <Male> converted to <> (Unconverted string)",
+				"warning : Data table ..\/..\/..\/datasets\/Adult\/Adult.txt : Record 22 : Numerical variable sex: value <Male> converted to <> (Unconverted string)",
+				"warning : Data table ..\/..\/..\/datasets\/Adult\/Adult.txt : Record 24 : Numerical variable sex: value <Male> converted to <> (Unconverted string)",
+				"warning : Data table ..\/..\/..\/datasets\/Adult\/Adult.txt : Record 25 : Numerical variable sex: value <Male> converted to <> (Unconverted string)",
+				"warning : Data table ..\/..\/..\/datasets\/Adult\/Adult.txt : Record 26 : Numerical variable sex: value <Female> converted to <> (Unconverted string)",
+				"warning : Data table ..\/..\/..\/datasets\/Adult\/Adult.txt : Record 27 : Numerical variable sex: value <Male> converted to <> (Unconverted string)",
+				"warning : Data table : ..."
+			]
+		}
+	],
+	"preparationReport": {
+		"reportType": "Preparation",
+		"summary": {
+			"dictionary": "Adult",
+			"variables": {
+				"types": [
+					"Categorical",
+					"Numerical"
+				],
+				"numbers": [
+					8,
+					8
+				]
+			},
+			"database": "..\/..\/..\/datasets\/Adult\/Adult.txt",
+			"samplePercentage": 70,
+			"samplingMode": "Include sample",
+			"selectionVariable": "",
+			"selectionValue": "",
+			"instances": 34291,
+			"learningTask": "Unsupervised analysis",
+			"evaluatedVariables": 16,
+			"featureEngineering": {
+				"maxNumberOfConstructedVariables": 100,
+				"maxNumberOfTrees": 10,
+				"maxNumberOfVariablePairs": 0
+			},
+			"discretization": "EqualWidth",
+			"valueGrouping": "BasicGrouping"
+		},
+		"variablesStatistics": [
+			{
+				"rank": "R01",
+				"name": "Label",
+				"type": "Numerical",
+				"values": 34291,
+				"min": 2,
+				"max": 48842,
+				"mean": 24421.00207,
+				"stdDev": 14110.19055,
+				"missingNumber": 0,
+				"constructionCost": 3.46574
+			},
+			{
+				"rank": "R02",
+				"name": "age",
+				"type": "Numerical",
+				"values": 74,
+				"min": 17,
+				"max": 90,
+				"mean": 38.67338369,
+				"stdDev": 13.77705677,
+				"missingNumber": 0,
+				"constructionCost": 3.46574
+			},
+			{
+				"rank": "R03",
+				"name": "capital_gain",
+				"type": "Numerical",
+				"values": 122,
+				"min": 0,
+				"max": 99999,
+				"mean": 1129.327783,
+				"stdDev": 7735.318813,
+				"missingNumber": 0,
+				"constructionCost": 3.46574
+			},
+			{
+				"rank": "R04",
+				"name": "capital_loss",
+				"type": "Numerical",
+				"values": 95,
+				"min": 0,
+				"max": 4356,
+				"mean": 87.26231373,
+				"stdDev": 403.1609014,
+				"missingNumber": 0,
+				"constructionCost": 3.46574
+			},
+			{
+				"rank": "R05",
+				"name": "class",
+				"type": "Categorical",
+				"values": 2,
+				"mode": "less",
+				"modeFrequency": 26117,
+				"constructionCost": 3.46574
+			},
+			{
+				"rank": "R06",
+				"name": "education",
+				"type": "Categorical",
+				"values": 16,
+				"mode": "HS-grad",
+				"modeFrequency": 11102,
+				"constructionCost": 3.46574
+			},
+			{
+				"rank": "R07",
+				"name": "education_num",
+				"type": "Numerical",
+				"values": 16,
+				"min": 1,
+				"max": 16,
+				"mean": 10.08075005,
+				"stdDev": 2.555450221,
+				"missingNumber": 0,
+				"constructionCost": 3.46574
+			},
+			{
+				"rank": "R08",
+				"name": "fnlwgt",
+				"type": "Numerical",
+				"values": 22525,
+				"min": 12285,
+				"max": 1490400,
+				"mean": 189903.0584,
+				"stdDev": 105303.8837,
+				"missingNumber": 0,
+				"constructionCost": 3.46574
+			},
+			{
+				"rank": "R09",
+				"name": "hours_per_week",
+				"type": "Numerical",
+				"values": 93,
+				"min": 1,
+				"max": 99,
+				"mean": 40.41281969,
+				"stdDev": 12.3602687,
+				"missingNumber": 0,
+				"constructionCost": 3.46574
+			},
+			{
+				"rank": "R10",
+				"name": "marital_status",
+				"type": "Categorical",
+				"values": 7,
+				"mode": "Married-civ-spouse",
+				"modeFrequency": 15609,
+				"constructionCost": 3.46574
+			},
+			{
+				"rank": "R11",
+				"name": "native_country",
+				"type": "Categorical",
+				"values": 40,
+				"mode": "United-States",
+				"modeFrequency": 31389,
+				"constructionCost": 3.46574
+			},
+			{
+				"rank": "R12",
+				"name": "occupation",
+				"type": "Categorical",
+				"values": 14,
+				"mode": "Prof-specialty",
+				"modeFrequency": 6329,
+				"constructionCost": 3.46574
+			},
+			{
+				"rank": "R13",
+				"name": "race",
+				"type": "Categorical",
+				"values": 5,
+				"mode": "White",
+				"modeFrequency": 29301,
+				"constructionCost": 3.46574
+			},
+			{
+				"rank": "R14",
+				"name": "relationship",
+				"type": "Categorical",
+				"values": 6,
+				"mode": "Husband",
+				"modeFrequency": 13771,
+				"constructionCost": 3.46574
+			},
+			{
+				"rank": "R15",
+				"name": "sex",
+				"type": "Numerical",
+				"values": 1,
+				"min": null,
+				"max": null,
+				"mean": null,
+				"stdDev": null,
+				"missingNumber": 34291,
+				"constructionCost": 3.46574
+			},
+			{
+				"rank": "R16",
+				"name": "workclass",
+				"type": "Categorical",
+				"values": 8,
+				"mode": "Private",
+				"modeFrequency": 25762,
+				"constructionCost": 3.46574
+			}
+		],
+		"variablesDetailedStatistics": {
+			"R01": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "Label",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[2,4886.5],
+								[4886.5,9770.5],
+								[9770.5,14655.5],
+								[14655.5,19538],
+								[19538,24423],
+								[24423,29307],
+								[29307,34192.5],
+								[34192.5,39074.5],
+								[39074.5,43958.5],
+								[43958.5,48842]
+							]
+						}
+					],
+					"frequencies": [3437,3426,3415,3422,3466,3463,3385,3390,3450,3437]
+				}
+			},
+			"R02": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "age",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[17,24.5],
+								[24.5,31.5],
+								[31.5,38.5],
+								[38.5,46.5],
+								[46.5,53.5],
+								[53.5,60.5],
+								[60.5,68.5],
+								[68.5,75.5],
+								[75.5,82.5],
+								[82.5,90]
+							]
+						}
+					],
+					"frequencies": [5927,6116,6403,6349,4149,2779,1752,544,196,76]
+				}
+			},
+			"R03": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "capital_gain",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[0,10000],
+								[10000,19200],
+								[19200,30900],
+								[30900,37700],
+								[37700,70000],
+								[70000,99999]
+							]
+						}
+					],
+					"frequencies": [33467,538,93,4,3,186]
+				}
+			},
+			"R04": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "capital_loss",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[0,520],
+								[520,845],
+								[845,1299],
+								[1299,1751],
+								[1751,2176.5],
+								[2176.5,2678],
+								[2678,3089],
+								[3089,3420],
+								[3420,4120],
+								[4120,4356]
+							]
+						}
+					],
+					"frequencies": [32706,18,18,495,812,216,15,2,7,2]
+				}
+			},
+			"R05": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "class",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								["less"],
+								["more"]
+							],
+							"defaultGroupIndex": 1
+						}
+					],
+					"frequencies": [26117,8174]
+				},
+				"inputValues": {
+					"values": ["less","more"],
+					"frequencies": [26117,8174]
+				}
+			},
+			"R06": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "education",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								["HS-grad"],
+								["Some-college"],
+								["Bachelors"],
+								["Prof-school"],
+								["Masters"],
+								["Assoc-voc"],
+								["11th"],
+								["Assoc-acdm"],
+								["10th"],
+								["7th-8th"]
+							],
+							"defaultGroupIndex": 3
+						}
+					],
+					"frequencies": [11102,7645,5645,2552,1842,1453,1277,1133,1004,638]
+				},
+				"inputValues": {
+					"values": ["HS-grad","Some-college","Bachelors","Masters","Assoc-voc","11th","Assoc-acdm","10th","7th-8th","Prof-school","9th","12th","Doctorate","5th-6th","1st-4th","Preschool"],
+					"frequencies": [11102,7645,5645,1842,1453,1277,1133,1004,638,584,528,465,405,357,160,53]
+				}
+			},
+			"R07": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "education_num",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[1,2.5],
+								[2.5,4.5],
+								[4.5,5.5],
+								[5.5,7.5],
+								[7.5,8.5],
+								[8.5,10.5],
+								[10.5,11.5],
+								[11.5,13.5],
+								[13.5,14.5],
+								[14.5,16]
+							]
+						}
+					],
+					"frequencies": [213,995,528,2281,465,18747,1453,6778,1842,989]
+				}
+			},
+			"R08": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "fnlwgt",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[12285,160096],
+								[160096,307930],
+								[307930,455830],
+								[455830,603270],
+								[603270,755900],
+								[755900,897000],
+								[897000,1043000],
+								[1043000,1185000],
+								[1185000,1290000],
+								[1290000,1490400]
+							]
+						}
+					],
+					"frequencies": [13932,16078,3669,463,106,22,10,5,2,4]
+				}
+			},
+			"R09": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "hours_per_week",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[1,10.5],
+								[10.5,20.5],
+								[20.5,30.5],
+								[30.5,40.5],
+								[40.5,50.5],
+								[50.5,59.5],
+								[59.5,69],
+								[69,79],
+								[79,89.5],
+								[89.5,99]
+							]
+						}
+					],
+					"frequencies": [796,2307,2437,18653,6267,1119,1865,483,228,136]
+				}
+			},
+			"R10": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "marital_status",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								["Married-civ-spouse"],
+								["Never-married"],
+								["Divorced"],
+								["Widowed"],
+								["Separated"],
+								["Married-spouse-absent"],
+								["Married-AF-spouse"]
+							],
+							"defaultGroupIndex": 6
+						}
+					],
+					"frequencies": [15609,11400,4655,1093,1075,432,27]
+				},
+				"inputValues": {
+					"values": ["Married-civ-spouse","Never-married","Divorced","Widowed","Separated","Married-spouse-absent","Married-AF-spouse"],
+					"frequencies": [15609,11400,4655,1093,1075,432,27]
+				}
+			},
+			"R11": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "native_country",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								["United-States"],
+								["England"],
+								["Mexico"],
+								["Philippines"],
+								["Germany"],
+								["Puerto-Rico"],
+								["Canada"],
+								["India"],
+								["El-Salvador"],
+								["Cuba"]
+							],
+							"defaultGroupIndex": 1
+						}
+					],
+					"frequencies": [31389,1333,641,211,146,127,125,114,109,96]
+				},
+				"inputValues": {
+					"values": ["United-States","Mexico","Philippines","Germany","Puerto-Rico","Canada","India","El-Salvador","Cuba","England","China","Jamaica","South","Italy","Dominican-Republic","Guatemala","Japan","Haiti","Poland","Vietnam","Columbia","Taiwan","Portugal","Iran","Nicaragua","Peru","Greece","Ecuador","France","Ireland","Hong","Thailand","Cambodia","Yugoslavia","Trinadad&Tobago","Honduras","Hungary","Outlying-US","Scotland","Laos"],
+					"frequencies": [31389,641,211,146,127,125,114,109,96,91,89,83,80,77,74,67,64,58,57,53,52,49,44,41,37,36,34,30,26,25,21,21,19,19,16,15,15,15,13,12]
+				}
+			},
+			"R12": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "occupation",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								["Prof-specialty"],
+								["Craft-repair"],
+								["Exec-managerial"],
+								["Adm-clerical"],
+								["Sales"],
+								["Other-service"],
+								["Tech-support"],
+								["Machine-op-inspct"],
+								["Transport-moving"],
+								["Handlers-cleaners"]
+							],
+							"defaultGroupIndex": 6
+						}
+					],
+					"frequencies": [6329,4309,4290,3887,3872,3457,2922,2092,1696,1437]
+				},
+				"inputValues": {
+					"values": ["Prof-specialty","Craft-repair","Exec-managerial","Adm-clerical","Sales","Other-service","Machine-op-inspct","Transport-moving","Handlers-cleaners","Tech-support","Farming-fishing","Protective-serv","Priv-house-serv","Armed-Forces"],
+					"frequencies": [6329,4309,4290,3887,3872,3457,2092,1696,1437,1034,1009,686,180,13]
+				}
+			},
+			"R13": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "race",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								["White"],
+								["Black"],
+								["Asian-Pac-Islander"],
+								["Amer-Indian-Eskimo"],
+								["Other"]
+							],
+							"defaultGroupIndex": 4
+						}
+					],
+					"frequencies": [29301,3307,1086,331,266]
+				},
+				"inputValues": {
+					"values": ["White","Black","Asian-Pac-Islander","Amer-Indian-Eskimo","Other"],
+					"frequencies": [29301,3307,1086,331,266]
+				}
+			},
+			"R14": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "relationship",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								["Husband"],
+								["Not-in-family"],
+								["Own-child"],
+								["Unmarried"],
+								["Wife"],
+								["Other-relative"]
+							],
+							"defaultGroupIndex": 5
+						}
+					],
+					"frequencies": [13771,8868,5348,3621,1611,1072]
+				},
+				"inputValues": {
+					"values": ["Husband","Not-in-family","Own-child","Unmarried","Wife","Other-relative"],
+					"frequencies": [13771,8868,5348,3621,1611,1072]
+				}
+			},
+			"R16": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "workclass",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								["Private"],
+								["Self-emp-not-inc"],
+								["Local-gov"],
+								["State-gov"],
+								["Self-emp-inc"],
+								["Federal-gov"],
+								["Without-pay"],
+								["Never-worked"]
+							],
+							"defaultGroupIndex": 7
+						}
+					],
+					"frequencies": [25762,2673,2246,1393,1194,1002,12,9]
+				},
+				"inputValues": {
+					"values": ["Private","Self-emp-not-inc","Local-gov","State-gov","Self-emp-inc","Federal-gov","Without-pay","Never-worked"],
+					"frequencies": [25762,2673,2246,1393,1194,1002,12,9]
+				}
+			}
+		}
+	},
+	"khiops_encoding": "ascii"
+}

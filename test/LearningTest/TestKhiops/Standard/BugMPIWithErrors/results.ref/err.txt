@@ -1,0 +1,26 @@
+Train unsupervised model
+warning : Data table ../../../datasets/Adult/Adult.txt : Record 3 : Numerical variable sex: value <Male> converted to <> (Unconverted string)
+warning : Data table ../../../datasets/Adult/Adult.txt : Record 4 : Numerical variable sex: value <Male> converted to <> (Unconverted string)
+warning : Data table ../../../datasets/Adult/Adult.txt : Record 5 : Numerical variable sex: value <Male> converted to <> (Unconverted string)
+warning : Data table ../../../datasets/Adult/Adult.txt : Record 7 : Numerical variable sex: value <Female> converted to <> (Unconverted string)
+warning : Data table ../../../datasets/Adult/Adult.txt : Record 8 : Numerical variable sex: value <Female> converted to <> (Unconverted string)
+warning : Data table ../../../datasets/Adult/Adult.txt : Record 9 : Numerical variable sex: value <Male> converted to <> (Unconverted string)
+warning : Data table ../../../datasets/Adult/Adult.txt : Record 10 : Numerical variable sex: value <Female> converted to <> (Unconverted string)
+warning : Data table ../../../datasets/Adult/Adult.txt : Record 11 : Numerical variable sex: value <Male> converted to <> (Unconverted string)
+warning : Data table ../../../datasets/Adult/Adult.txt : Record 14 : Numerical variable sex: value <Female> converted to <> (Unconverted string)
+warning : Data table ../../../datasets/Adult/Adult.txt : Record 15 : Numerical variable sex: value <Male> converted to <> (Unconverted string)
+warning : Data table ../../../datasets/Adult/Adult.txt : Record 16 : Numerical variable sex: value <Male> converted to <> (Unconverted string)
+warning : Data table ../../../datasets/Adult/Adult.txt : Record 17 : Numerical variable sex: value <Male> converted to <> (Unconverted string)
+warning : Data table ../../../datasets/Adult/Adult.txt : Record 18 : Numerical variable sex: value <Male> converted to <> (Unconverted string)
+warning : Data table ../../../datasets/Adult/Adult.txt : Record 19 : Numerical variable sex: value <Male> converted to <> (Unconverted string)
+warning : Data table ../../../datasets/Adult/Adult.txt : Record 20 : Numerical variable sex: value <Male> converted to <> (Unconverted string)
+warning : Data table ../../../datasets/Adult/Adult.txt : Record 22 : Numerical variable sex: value <Male> converted to <> (Unconverted string)
+warning : Data table ../../../datasets/Adult/Adult.txt : Record 24 : Numerical variable sex: value <Male> converted to <> (Unconverted string)
+warning : Data table ../../../datasets/Adult/Adult.txt : Record 25 : Numerical variable sex: value <Male> converted to <> (Unconverted string)
+warning : Data table ../../../datasets/Adult/Adult.txt : Record 26 : Numerical variable sex: value <Female> converted to <> (Unconverted string)
+warning : Data table ../../../datasets/Adult/Adult.txt : Record 27 : Numerical variable sex: value <Male> converted to <> (Unconverted string)
+warning : Data table : ...
+Database ../../../datasets/Adult/Adult.txt: Read records: 48,842	Selected records: 34,291
+Data preparation time: 0:00:00.32
+Write report ./results/AllReports.khj
+
