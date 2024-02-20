@@ -9,6 +9,11 @@ on:
       - packaging/windows/nsis/*.nsi
   push:
     tags: [v*]
+# Cancel any ongoing run of this workflow on the same PR or ref
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref
+    }}
+  cancel-in-progress: true
 jobs:
   build-nsis-installer:
     outputs:
