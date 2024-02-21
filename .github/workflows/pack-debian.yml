@@ -1,11 +1,20 @@
 ---
-name: Create Debian package
+name: DEB Packages
 on:
   workflow_dispatch:
   pull_request:
-    paths: ['**CMakeLists.txt', '**.cmake']
+    paths:
+      - '**CMakeLists.txt'
+      - '**.cmake'
+      - .github/workflows/pack-debian.yml
+  push:
+    tags: [v*]
+# Cancel any ongoing run of this workflow on the same PR or ref
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
-  build-deb-package:
+  build:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -13,12 +22,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [debian10, ubuntu22.04, ubuntu20.04]
+        os: [debian10, debian11, debian12, ubuntu22.04, ubuntu20.04]
     container:
       image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set environment variables
         run: |
           source /etc/os-release
@@ -42,38 +51,42 @@ jobs:
             mv -v $filename ${filename%_*}-${VERSION_CODENAME}.${filename##*_}
           done
       - name: Upload the packages as artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.ID }}-${{ env.VERSION_CODENAME }}
+          # We add a `deb-` prefix so we can later recover all artifacts with the pattern `deb-*`
+          # Note: The more natural pattern `*-deb` or `*` does not work
+          name: deb-${{ env.ID }}-${{ env.VERSION_CODENAME }}
           path: build/linux-gcc-release/packages/*.deb
+          if-no-files-found: error
   # Test packages on a brand new runner to check:
   # - the installation process (including dependencies installation)
   # - that executable works (run with -v)
   # - that it executes a small test
-  test-deb-package:
-    needs: build-deb-package
+  test:
+    needs: build
     runs-on: ubuntu-latest
+    continue-on-error: true
     defaults:
       run:
         shell: bash
     strategy:
       fail-fast: false
       matrix:
-        os: ['debian:10', 'ubuntu:22.04', 'ubuntu:20.04']
+        os: ['debian:10', 'debian:11', 'debian:12', 'ubuntu:22.04', 'ubuntu:20.04']
     container:
       image: ${{ matrix.os }}
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set environment variables
         run: |
           source /etc/os-release
           echo "ID=$ID" >> "$GITHUB_ENV"
           echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
       - name: Download artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: ${{ env.ID }}-${{ env.VERSION_CODENAME }}
+          name: deb-${{ env.ID }}-${{ env.VERSION_CODENAME }}
           path: artifacts
       - name: Install Khiops core
         run: |
@@ -95,28 +108,29 @@ jobs:
           khiops_coclustering -v
       - name: Test Khiops installation
         uses: ./.github/actions/test-khiops-install
-  test-kni-deb:
-    needs: build-deb-package
+  test-kni:
+    needs: build
     runs-on: ubuntu-latest
+    continue-on-error: true
     defaults:
       run:
         shell: bash
     strategy:
       fail-fast: false
       matrix:
-        os: [debian10, ubuntu22.04, ubuntu20.04]
+        os: [debian10, debian11, debian12, ubuntu22.04, ubuntu20.04]
     container:
       image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
     steps:
       - name: Put OS info on the environment
         run: |
-          source /etc/os-release 
+          source /etc/os-release
           echo "ID=$ID" >> "$GITHUB_ENV"
           echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
       - name: Download artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: ${{ env.ID }}-${{ env.VERSION_CODENAME }}
+          name: deb-${{ env.ID }}-${{ env.VERSION_CODENAME }}
           path: artifacts
       - name: Install KNI Package
         run: |
@@ -124,8 +138,42 @@ jobs:
           dpkg -i ./artifacts/kni* || true
           apt-get -f install -y
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           sparse-checkout: .github
       - name: Test KNI package
         uses: ./.github/actions/test-kni
+  # Release is only executed on tags
+  release:
+    if: github.ref_type == 'tag'
+    # We release even if the tests fail (we delete from the release whatever fails manually)
+    needs: build
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+      - name: Download package artifacts
+        uses: actions/download-artifact@v4
+        with:
+          # See the upload-artifact step in the build job for the explanation of this pattern
+          pattern: deb-*
+          merge-multiple: true
+      - name: Rename packages with tag version
+        run: |
+          SOURCE_VERSION=$(./scripts/khiops-version)
+          for PKG_FILE in *.deb
+          do
+            NEW_PKG_FILE=$(echo $PKG_FILE | sed "s/_${SOURCE_VERSION}-/_${{ github.ref_name }}-/")
+            mv $PKG_FILE $NEW_PKG_FILE
+          done
+      - name: Upload packages to the release
+        uses: ncipollo/release-action@v1.14.0
+        with:
+          allowUpdates: true
+          artifacts: '*.deb'
+          draft: false
+          makeLatest: false
+          prerelease: true
+          updateOnlyUnreleased: true
