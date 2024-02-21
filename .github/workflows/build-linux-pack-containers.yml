@@ -1,9 +1,9 @@
 ---
-name: Build Linux containers for packaging
+name: Dev Linux Images
 on:
   workflow_dispatch:
 jobs:
-  build-packaging-container:
+  build:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -11,6 +11,7 @@ jobs:
         os:
           - debian10
           - debian11
+          - debian12
           - rocky8
           - rocky9
           - ubuntu18.04
