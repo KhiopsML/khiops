@@ -19,6 +19,11 @@ on:
       - src/**.lex
       - src/**.yac
       - test/LearningTest/**
+# Cancel any ongoing run of this workflow on the same PR or ref
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref
+    }}
+  cancel-in-progress: true
 env:
   KhiopsBatchMode: true
 jobs:

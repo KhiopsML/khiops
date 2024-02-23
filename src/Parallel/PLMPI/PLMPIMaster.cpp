@@ -88,10 +88,9 @@ void PLMPIMaster::UpdateMaxErrorFlow()
 				       Global::IsMaxErrorFlowReachedPerGravity(Error::GravityMessage));
 
 		// Envoi du tableau a tous les esclaves
-		MPI_Comm_size(*PLMPITaskDriver::GetTaskComm(), &nTaskCommSize);
-		for (i = 1; i < nTaskCommSize; i++)
+		for (i = 0; i < GetTask()->ivGrantedSlaveIds.GetSize(); i++)
 		{
-			context.Send(*PLMPITaskDriver::GetTaskComm(), i, MAX_ERROR_FLOW);
+			context.Send(MPI_COMM_WORLD, GetTask()->ivGrantedSlaveIds.GetAt(i), MAX_ERROR_FLOW);
 			serializer.OpenForWrite(&context);
 			serializer.PutIntVector(&ivGravityReached);
 			serializer.Close();
@@ -958,8 +957,8 @@ int PLMPIMaster::ComputeGlobalProgression(boolean bSlaveProcess)
 
 void PLMPIMaster::NotifyInterruptionRequested()
 {
-	int nTaskCommSize;
 	int nSlaveRank;
+	int i;
 	PLMPIMsgContext context;
 	PLSerializer serializer;
 
@@ -968,20 +967,17 @@ void PLMPIMaster::NotifyInterruptionRequested()
 		if (GetTracerProtocol()->GetActiveMode())
 			GetTracerProtocol()->AddTrace("Send Interruption requested");
 
-		MPI_Comm_size(*PLMPITaskDriver::GetTaskComm(), &nTaskCommSize);
-		for (nSlaveRank = 1; nSlaveRank < nTaskCommSize; nSlaveRank++)
+		for (i = 0; i < GetTask()->ivGrantedSlaveIds.GetSize(); i++)
 		{
-			if (not PLMPITaskDriver::GetDriver()->IsFileServer(nSlaveRank))
-			{
-				if (GetTracerMPI()->GetActiveMode())
-					GetTracerMPI()->AddSend(nSlaveRank, INTERRUPTION_REQUESTED);
+			nSlaveRank = GetTask()->ivGrantedSlaveIds.GetAt(i);
+			if (GetTracerMPI()->GetActiveMode())
+				GetTracerMPI()->AddSend(nSlaveRank, INTERRUPTION_REQUESTED);
 
-				// Envoi en utilisant un serializer, car dans le messag epeut etre recu par
-				// PLMPISlave et celui-ci attend un serializer
-				context.Isend(MPI_COMM_WORLD, nSlaveRank, INTERRUPTION_REQUESTED);
-				serializer.OpenForWrite(&context);
-				serializer.Close();
-			}
+			// On envoie en utilisant un serializer, car le message peut etre recu par
+			// PLMPISlave et celui-ci attend un serializer
+			context.Isend(MPI_COMM_WORLD, nSlaveRank, INTERRUPTION_REQUESTED);
+			serializer.OpenForWrite(&context);
+			serializer.Close();
 		}
 		bInterruptionRequested = true;
 		bStopOrderDone = true;
@@ -1036,6 +1032,8 @@ void PLMPIMaster::DischargePendingCommunication(int nRank, int nTag)
 			if (PLParallelTask::GetVerbose())
 				TraceWithRank(sTmp + "discharge pending comm from " + IntToString(status.MPI_SOURCE) +
 					      " with tag " + GetTagAsString(status.MPI_TAG));
+			cout << GetProcessId() << " "
+			     << "Discharge pending com" << endl;
 			// Reception du message
 			ReceivePendingMessage(status);
 		}

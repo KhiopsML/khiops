@@ -1,11 +1,18 @@
 ---
-name: Create RPM package
+name: RPM Packages
 on:
   workflow_dispatch:
   pull_request:
-    paths: ['**CMakeLists.txt', '**.cmake']
+    paths: ['**CMakeLists.txt', '**.cmake', .github/workflows/pack-rpm.yml]
+  push:
+    tags: [v*]
+# Cancel any ongoing run of this workflow on the same PR or ref
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref
+    }}
+  cancel-in-progress: true
 jobs:
-  build-rpm-package:
+  build:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -18,8 +25,8 @@ jobs:
       image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
-      - name: set environment variables
+        uses: actions/checkout@v4
+      - name: Put OS info on the environment
         run: |
           source /etc/os-release
           echo "ID=$ID" >> "$GITHUB_ENV"
@@ -48,18 +55,21 @@ jobs:
             mv -v $filename ${filename%.${ARCH}*}.${{ env.VERSION_CODENAME }}.${ARCH}.rpm
           done
       - name: Upload the packages as artifacts
-        uses: actions/upload-artifact@v3.1.2
+        uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.ID }}-${{ env.VERSION_CODENAME }}
+          # We add a `rpm-` prefix so we can later recover all artifacts with the pattern `rpm-*`
+          # Note: The more natural pattern `*-rpm` or `*` does not work
+          name: rpm-${{ env.ID }}-${{ env.VERSION_CODENAME }}
           path: build/linux-gcc-release/packages/*.rpm
           if-no-files-found: error
   # Test packages on a brand new runner to check:
   # - the installation process (including dependencies installation)
   # - that executable works (run with -v)
   # - that it executes a small test
-  test-rpm-package:
-    needs: build-rpm-package
+  test:
+    needs: build
     runs-on: ubuntu-latest
+    continue-on-error: true
     defaults:
       run:
         shell: bash
@@ -71,7 +81,7 @@ jobs:
       image: rockylinux:${{ matrix.rocky_version }}
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set environment variables
         run: |
           source /etc/os-release
@@ -79,9 +89,9 @@ jobs:
           VERSION=$(echo $PLATFORM_ID | cut -d":" -f2)
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
       - name: Download artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: ${{ env.ID }}-${{ env.VERSION }}
+          name: rpm-${{ env.ID }}-${{ env.VERSION }}
           path: artifacts
       - run: yum update -y
       - name: Install Khiops core
@@ -92,9 +102,10 @@ jobs:
           yum install -y ./artifacts/khiops-*
       - name: Test Khiops installation
         uses: ./.github/actions/test-khiops-install
-  test-kni-rpm:
-    needs: build-rpm-package
+  test-kni:
+    needs: build
     runs-on: ubuntu-latest
+    continue-on-error: true
     defaults:
       run:
         shell: bash
@@ -112,17 +123,52 @@ jobs:
           VERSION=$(echo $PLATFORM_ID | cut -d":" -f2)
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
       - name: Download artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: ${{ env.ID }}-${{ env.VERSION }}
+          name: rpm-${{ env.ID }}-${{ env.VERSION }}
           path: artifacts
-      - name: Install KNI package
+      - name: Install KNI Package
         run: |
           yum update -y
           yum install -y ./artifacts/kni*
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           sparse-checkout: .github
-      - name: Test KNI package installation
+      - name: Test KNI package
         uses: ./.github/actions/test-kni
+  # Release is only executed on tags
+  release:
+    if: github.ref_type == 'tag'
+    # We release even if the tests fail (we delete from the release whatever fails manually)
+    needs: build
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+      - name: Download package artifacts
+        uses: actions/download-artifact@v4
+        with:
+          # See the upload-artifact step in the build job for the explanation of this pattern
+          pattern: rpm-*
+          merge-multiple: true
+      - name: Rename packages with tag version
+        run: |
+          SOURCE_VERSION=$(./scripts/khiops-version)
+          for PKG_FILE in *.rpm
+          do
+            NEW_PKG_FILE=$(echo $PKG_FILE | sed "s/-${SOURCE_VERSION}-/-${{ github.ref_name }}-/")
+            mv $PKG_FILE $NEW_PKG_FILE
+          done
+      - name: Upload packages to the release
+        uses: ncipollo/release-action@v1.14.0
+        with:
+          allowUpdates: true
+          artifacts: '*.rpm'
+          body: '**For testing purposes only**'
+          draft: false
+          makeLatest: false
+          prerelease: true
+          updateOnlyUnreleased: true

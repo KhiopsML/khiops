@@ -1,0 +1,24 @@
+FROM debian:12
+LABEL maintainer="khiops.team@orange.com"
+LABEL description="Container with the dependencies to build and package Khiops"
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN true \
+  && apt-get -y update \
+  && apt-get -y --no-install-recommends install \
+    build-essential \
+    cmake \
+    coreutils \
+    debhelper \
+    default-jdk \
+    devscripts \
+    fakeroot \
+    libmpich-dev \
+    nano \
+    ninja-build \
+    wget \
+  && rm -rf /var/lib/apt/lists/* \
+  && apt-get -y remove wget \
+  && apt-get clean \
+  && true
