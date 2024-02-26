@@ -39,5 +39,5 @@ jobs:
           git config --global user.name "khiops bot"
           git commit -am"update to v${{ env.KHIOPS_VERSION }}"
           git push
-          git tag v${{ env.KHIOPS_VERSION }}
+          git tag ${{ env.KHIOPS_VERSION }}
           git push --tags
