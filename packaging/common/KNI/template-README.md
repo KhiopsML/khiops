@@ -1,7 +1,9 @@
 
-# Khiops Native Interface examples @PROJECT_VERSION@
+# Khiops Native Interface  v@PROJECT_VERSION@
 
-The purpose of Khiops Native Interface (KNI) is to allow a deeper integration of Khiops in information systems, by mean of the C programming language, using a dynamic link library (DLL). This relates specially to the problem of model deployment, which otherwise requires the use of input and output data files when using directly the Khiops tool in batch mode. See Khiops Guide for an introduction to dictionary files, dictionaries, database files and deployment.
+This project provides all the basics to use the Khiops Native Interface (KNI): installation and examples.
+
+The purpose of KNI is to allow a deeper integration of Khiops in information systems, by mean of the C programming language, using a dynamic link library (DLL). This relates specially to the problem of model deployment, which otherwise requires the use of input and output data files when using directly the Khiops tool in batch mode. See Khiops Guide for an introduction to dictionary files, dictionaries, database files and deployment.
 
 The Khiops deployment features are thus made public through an API with a DLL. Therefore, a Khiops model can be deployed directly from any programming language, such as C, C++, Java, Python, Matlab, etc. This enables real time model deployment without the overhead of temporary data files or launching executables. This is critical for certain applications in marketing or targeted advertising on the web.
 
@@ -9,18 +11,39 @@ All KNI functions are C functions for easy use with other programming languages.
 
 See [KhiopsNativeInterface.h](include/KhiopsNativeInterface.h) for a detailed description of KNI functions.
 
-> [!IMPORTANT]
+> [!CAUTION]
 > The functions are not reentrant (thread-safe): the DLL can be used simultaneously by several executables, but not simultaneously by several threads in the same executable.
-
 
 
 
 
 # KNI installation
 
-On windows, download and extract the zip file to your machine. Set the environment variable `KNI_HOME` to the extracted directory. This variable is used in the following examples.
+## Windows
 
-On linux TODO
+Download [KNI.zip](https://github.com/KhiopsML/khiops/releases/tag/@PROJECT_VERSION@/KNI.zip) and extract it to your machine. Set the environment variable `KNI_HOME` to the extracted directory. This variable is used in the following examples.
+
+## Linux
+
+On linux, the name of the package begins with **kni** and ends with the **code name** of the OS. The code name is in the release file of the distribution (here, it is jammy):
+```bash
+$ cat /etc/os-release
+PRETTY_NAME="Ubuntu 22.04.4 LTS"
+NAME="Ubuntu"
+VERSION_ID="22.04"
+VERSION="22.04.4 LTS (Jammy Jellyfish)"
+VERSION_CODENAME=jammy
+ID=ubuntu
+ID_LIKE=debian
+HOME_URL="https://www.ubuntu.com/"
+SUPPORT_URL="https://help.ubuntu.com/"
+BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
+PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
+UBUNTU_CODENAME=jammy
+```
+Download the package according to the code name of your OS and install it with dpkg or yum:
+- on debian-like distros: `sudo dpkg -i kni*.deb`
+- on fedora-like distros: `sudo yum localinstall kni*.rpm`
 
 # Application examples
 
