@@ -21,11 +21,11 @@ See [KhiopsNativeInterface.h](include/KhiopsNativeInterface.h) for a detailed de
 
 ## Windows
 
-Download [KNI.zip](https://github.com/KhiopsML/khiops/releases/tag/@PROJECT_VERSION@/KNI.zip) and extract it to your machine. Set the environment variable `KNI_HOME` to the extracted directory. This variable is used in the following examples.
+Download [KNI-@PROJECT_VERSION@.zip](https://github.com/KhiopsML/khiops/releases/tag/@PROJECT_VERSION@/KNI-@PROJECT_VERSION@.zip) and extract it to your machine. Set the environment variable `KNI_HOME` to the extracted directory. This variable is used in the following examples.
 
 ## Linux
 
-On linux, the name of the package begins with **kni** and ends with the **code name** of the OS. The code name is in the release file of the distribution (here, it is jammy):
+On linux, go to the [release page](https://github.com/KhiopsML/khiops/releases/tag/@PROJECT_VERSION@/) and download the kni package. The name of the package begins with **kni** and ends with the **code name** of the OS. The code name is in the release file of the distribution (here, it is jammy):
 ```bash
 $ cat /etc/os-release
 PRETTY_NAME="Ubuntu 22.04.4 LTS"
