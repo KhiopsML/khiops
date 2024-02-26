@@ -31,7 +31,6 @@ jobs:
           cp khiops/src/Learning/KhiopsNativeInterface/KhiopsNativeInterface.h tutorial/include/
           cp khiops/src/Learning/KNITransfer/KNIRecodeFile.h tutorial/cpp/
           cp khiops/src/Learning/KNITransfer/KNIRecodeMTFiles.h tutorial/cpp/
-          cp packaging/common/KNI/java/* tutorial/java/
       - name: Update remote KNI-tutorial
         run: |-
           cd tutorial

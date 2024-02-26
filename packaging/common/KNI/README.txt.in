@@ -21,8 +21,9 @@ code in case of failure. The functions are not reentrant (thread-safe): the DLL
 can be used simultaneously by several executables, but not simultaneously by
 several threads in the same executable.
 
-See KhiopsNativeInterface.h for a detailed description of KNI functions
-
+See KhiopsNativeInterface.h for a detailed description of KNI functions and go
+to https://github.com/KhiopsML/KNI-tutorial/tree/@PROJECT_VERSION@ to see how
+to use the DLL with Java and C.
 
 Files
 -----
