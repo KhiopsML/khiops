@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -118,6 +118,10 @@ public:
 
 	// Comparaison
 	static int Compare(Continuous cValue1, Continuous cValue2);
+
+	// Comparaison de deux valeurs de type indicateur, en principe entre 0 et 1
+	// Permet d'avoir une resultat de comparaison robuste, selon la precision des Continuous
+	static int CompareIndicatorValue(double dValue1, double dValue2);
 
 	// Test des fonctionnalites
 	static void Test();
@@ -533,6 +537,12 @@ inline int KWContinuous::GetDigitNumber()
 inline int KWContinuous::Compare(Continuous cValue1, Continuous cValue2)
 {
 	return (cValue1 == cValue2 ? 0 : (cValue1 > cValue2 ? 1 : -1));
+}
+
+inline int KWContinuous::CompareIndicatorValue(double dValue1, double dValue2)
+{
+	// On ajoute 1 pour avoir une precision de mantisse limitee de facon absolue par rapprt au 0
+	return Compare(DoubleToContinuous(1 + dValue1), DoubleToContinuous(1 + dValue2));
 }
 
 // Classe ContinuousObject

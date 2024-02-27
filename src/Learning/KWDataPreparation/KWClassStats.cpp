@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -128,6 +128,12 @@ boolean KWClassStats::ComputeStats()
 		AddError(sTmp + "Too many instances in the train dataset (" +
 			 LongintToReadableString(lCollectedObjectNumber) + ")");
 		bOk = false;
+	}
+	// Warning si nombre tres important d'instances
+	if (bOk and lCollectedObjectNumber >= GetLargeDatabaseSize())
+	{
+		AddWarning(sTmp + "The train dataset contains many instances (" +
+			   LongintToReadableString(lCollectedObjectNumber) + ")");
 	}
 
 	// Calcul des statistiques de l'attribut cible (ou du nombre d'instances a traiter en non supervise)
@@ -1470,6 +1476,11 @@ int KWClassStats::GetTargetValueLargeNumber(int nDatabaseSize)
 {
 	require(nDatabaseSize >= 0);
 	return 10 + (int)sqrt(1.0 * nDatabaseSize);
+}
+
+int KWClassStats::GetLargeDatabaseSize()
+{
+	return 10000000;
 }
 
 boolean KWClassStats::CheckConstructionAttributes(const ObjectDictionary* odConstructedAttributes) const

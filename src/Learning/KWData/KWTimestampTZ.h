@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -113,15 +113,8 @@ public:
 	//////////////////////////////////////////////////////
 	//// Implementation
 protected:
-	// Stockage d'un TimestampTZ sous forme d'une Date et Time
-	// On n'utilise pas directement les type Date et Time car sous linux il y a un probleme de packing
-	// et le sizeof(TimestampTZ) fait plus de 8 octets si on utilise les type Date et Time
-	// (ce probleme apparait meme si on utilise les primitives specifiques a Linux pour desactiver le packing.
-	// on n'a pas ce probleme sous windows)
-	unsigned long long int lTimestamp;
-
-	// Class de format en friend pour acceder aux informations interne de Date et Time, meme en presence de time
-	// zone
+	// Class de format en friend pour acceder aux informations interne de Date et Time,
+	// meme en presence de timezone
 	friend class KWTimestampTZFormat;
 
 	// Acces aux attributs en mode mise a jour
@@ -134,6 +127,9 @@ protected:
 	Timestamp& GetInternalTimestamp() const;
 	Date& GetInternalDate() const;
 	Time& GetInternalTime() const;
+
+	// Utilisation d'une union DateTime pour acceder au champs Timestamp, dans une structure commune aux type temporels
+	union DateTime timestampTZValue;
 };
 
 // Ecriture dans un stream
@@ -255,25 +251,23 @@ protected:
 
 inline void TimestampTZ::Reset()
 {
-	GetInternalTimestamp().Reset();
+	timestampTZValue.lBytes = 0;
 }
 
 inline boolean TimestampTZ::operator==(const TimestampTZ& tstzValue) const
 {
-	// On passe par les acces internes, qui sont tolerants aux time zones
-	return (GetInternalDate() == tstzValue.GetInternalDate() and GetInternalTime() == tstzValue.GetInternalTime());
+	return (timestampTZValue.lBytes == tstzValue.timestampTZValue.lBytes);
 }
 
 inline boolean TimestampTZ::operator!=(const TimestampTZ& tstzValue) const
 {
-	// On passe par les acces internes, qui sont tolerants aux time zones
-	return (GetInternalDate() != tstzValue.GetInternalDate() or GetInternalTime() != tstzValue.GetInternalTime());
+	return (timestampTZValue.lBytes != tstzValue.timestampTZValue.lBytes);
 }
 
 inline boolean TimestampTZ::Check() const
 {
 	require(not IsForbiddenValue());
-	return GetInternalTimestamp().Check();
+	return timestampTZValue.lBytes != 0;
 }
 
 inline void TimestampTZ::ResetTimeZone()
@@ -385,27 +379,27 @@ inline int TimestampTZ::Compare(const TimestampTZ tsOtherTimestampTZ) const
 
 inline void TimestampTZ::SetForbiddenValue()
 {
-	GetInternalTimestamp().SetForbiddenValue();
+	timestampTZValue.lBytes = DateTime::lForbiddenValue;
 }
 
 inline boolean TimestampTZ::IsForbiddenValue() const
 {
-	return GetInternalTimestamp().IsForbiddenValue();
+	return (timestampTZValue.lBytes == DateTime::lForbiddenValue);
 }
 
 inline Timestamp& TimestampTZ::GetInternalTimestamp() const
 {
-	return (Timestamp&)lTimestamp;
+	return (Timestamp&)timestampTZValue;
 }
 
 inline Date& TimestampTZ::GetInternalDate() const
 {
-	return ((Timestamp&)lTimestamp).GetInternalDate();
+	return ((Timestamp&)timestampTZValue).GetInternalDate();
 }
 
 inline Time& TimestampTZ::GetInternalTime() const
 {
-	return ((Timestamp&)lTimestamp).GetInternalTime();
+	return ((Timestamp&)timestampTZValue).GetInternalTime();
 }
 
 // KWTimestampTZFormat

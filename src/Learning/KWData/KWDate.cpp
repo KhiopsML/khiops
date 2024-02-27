@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -14,8 +14,8 @@ boolean Date::Init(int nYear, int nMonth, int nDay)
 	// Initialisation a invalide
 	Reset();
 
-	// L'annee doit etre comprise entre 1 et 4000
-	if (nYear < 1 or nYear > 4000)
+	// L'annee doit etre valide
+	if (nYear < 1 or nYear > DateTime::nMaxYear)
 		bOk = false;
 	// Le mois doit etre compris entre 1 et 12
 	else if (nMonth < 1 or nMonth > 12)
@@ -192,7 +192,7 @@ boolean Date::AddDays(int nValue)
 	nYear = e / 1461 - 4716 + (14 - nMonth) / 12;
 
 	// Initialisation si annee valide
-	if (1 <= nYear and nYear <= 4000)
+	if (1 <= nYear and nYear <= DateTime::nMaxYear)
 	{
 		SetYear(nYear);
 		SetMonth(nMonth);

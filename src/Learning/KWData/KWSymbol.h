@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -331,17 +331,17 @@ class KWSymbolData : public SystemObject
 	//// Implementation
 protected:
 	// Longueur de la chaine de caracteres
-	inline int GetLength()
+	inline int GetLength() const
 	{
 		return nLength;
 	}
 
 	// Acces a la valeur chaine de caracteres
-	inline char* GetString()
+	inline const char* GetString() const
 	{
 		return cFirstStringChar;
 	}
-	inline char GetAt(int nIndex)
+	inline char GetAt(int nIndex) const
 	{
 		return cFirstStringChar[nIndex];
 	}
@@ -643,6 +643,11 @@ inline void Symbol::Reset()
 	if (symbolData and --symbolData->lRefCount == 0)
 		DeleteSharedSymbolData();
 	symbolData = NULL;
+}
+
+inline int Symbol::GetSymbolNumber()
+{
+	return sdSharedSymbols.GetCount();
 }
 
 #ifdef __C11__

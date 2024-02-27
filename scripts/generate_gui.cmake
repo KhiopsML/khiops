@@ -44,9 +44,8 @@ function(generate_gui_add_view ClassName ClassLabel AttributeFileName LogFile)
     find_package(Python REQUIRED)
     add_custom_command(
       OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${LogFile}
-      COMMAND
-        ${Python_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/ generate_gui_add_view.py
-        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/genere ${ARGN} ${ClassName} ${ClassLabel} ${AttributeFileName} ${LogFile}
+      COMMAND ${Python_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/generate_gui.py ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/genere
+              ${ARGN} ${ClassName} ${ClassLabel} ${AttributeFileName} ${LogFile}
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
       VERBATIM
       DEPENDS ${AttributeFileName}

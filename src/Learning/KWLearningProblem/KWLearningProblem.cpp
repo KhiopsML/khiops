@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -526,6 +526,13 @@ boolean KWLearningProblem::BuildConstructedClass(KWLearningSpec* learningSpec, K
 	kwcClass = learningSpec->GetClass();
 	check(kwcClass);
 	assert(kwcClass == KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName()));
+
+	// Parametrage des noms interpretables, commune a tous les types de construction de variable
+	GetAnalysisSpec()
+	    ->GetModelingSpec()
+	    ->GetAttributeConstructionSpec()
+	    ->GetConstructionDomain()
+	    ->SetInterpretableNames(GetAnalysisSpec()->GetModelingSpec()->GetInterpretableNames());
 
 	// Initialisation de la construction de variables multi-tables
 	multiTableFeatureConstruction.SetLearningSpec(learningSpec);

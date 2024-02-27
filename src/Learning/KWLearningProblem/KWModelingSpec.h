@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -39,6 +39,10 @@ public:
 	// Do data preparation only
 	boolean GetDataPreparationOnly() const;
 	void SetDataPreparationOnly(boolean bValue);
+
+	// Build interpretable names
+	boolean GetInterpretableNames() const;
+	void SetInterpretableNames(boolean bValue);
 
 	// Baseline predictor
 	boolean GetBaselinePredictor() const;
@@ -91,6 +95,7 @@ public:
 protected:
 	// Attributs de la classe
 	boolean bDataPreparationOnly;
+	boolean bInterpretableNames;
 	boolean bBaselinePredictor;
 	int nUnivariatePredictorNumber;
 	boolean bSelectiveNaiveBayesPredictor;
@@ -120,6 +125,16 @@ inline boolean KWModelingSpec::GetDataPreparationOnly() const
 inline void KWModelingSpec::SetDataPreparationOnly(boolean bValue)
 {
 	bDataPreparationOnly = bValue;
+}
+
+inline boolean KWModelingSpec::GetInterpretableNames() const
+{
+	return bInterpretableNames;
+}
+
+inline void KWModelingSpec::SetInterpretableNames(boolean bValue)
+{
+	bInterpretableNames = bValue;
 }
 
 inline boolean KWModelingSpec::GetBaselinePredictor() const

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -1381,7 +1381,7 @@ boolean KWDataTableSliceSet::ReadAllObjectsWithClass(const KWClass* kwcInputClas
 }
 
 KWClass* KWDataTableSliceSet::BuildClassFromAttributeNames(const ALString& sInputClassName,
-							   const StringVector* svInputAttributeNames)
+							   const StringVector* svInputAttributeNames) const
 {
 	KWClass* kwcNewClass;
 	ObjectDictionary odSliceAttributes;
@@ -3179,15 +3179,15 @@ boolean KWDataTableSlice::ReadAll()
 		Global::DesactivateErrorFlowControl();
 
 		// Test si interruption sans qu'il y ait d'erreur
-		if (IsError() or TaskProgression::IsInterruptionRequested())
+		if (not bOk or IsError() or TaskProgression::IsInterruptionRequested())
 		{
 			bOk = false;
 
 			// Warning ou erreur selon le cas
-			if (IsError())
-				AddError("Read data table slice interrupted because of errors");
-			else
+			if (TaskProgression::IsInterruptionRequested())
 				AddWarning("Read data table slice interrupted by user");
+			else
+				AddError("Read data table slice interrupted because of errors");
 		}
 
 		// Fermeture
@@ -3592,6 +3592,7 @@ boolean KWDataTableSlice::PhysicalOpenForRead(KWClass* driverClass, boolean bOpe
 boolean KWDataTableSlice::PhysicalReadObject(KWObject*& kwoObject, boolean bCreate)
 {
 	boolean bOk = true;
+	const int nMaxSymbolNumber = 2000000000;
 	ALString sTmp;
 
 	require(IsOpenedForRead());
@@ -3632,6 +3633,18 @@ boolean KWDataTableSlice::PhysicalReadObject(KWObject*& kwoObject, boolean bCrea
 		{
 			bOk = false;
 			AddError(sTmp + "Read slice file interrupted because of errors after line " +
+				 LongintToString(read_SliceDataTableDriver->GetRecordIndex()) + " (slice " +
+				 FileService::GetURIUserLabel(svDataFileNames.GetAt(read_nDataFileIndex)) + ")");
+		}
+
+		// Arret si trop de valeurs unique dans les Symbol avec risque de depassement de la capacite
+		// des dictionnaires de Symbol
+		if (bOk and Symbol::GetSymbolNumber() > nMaxSymbolNumber)
+		{
+			bOk = false;
+			AddError(sTmp + "Read slice file interrupted " +
+				 "because of too many unique categorical values in the data (beyond " +
+				 LongintToReadableString(nMaxSymbolNumber) + "), after line " +
 				 LongintToString(read_SliceDataTableDriver->GetRecordIndex()) + " (slice " +
 				 FileService::GetURIUserLabel(svDataFileNames.GetAt(read_nDataFileIndex)) + ")");
 		}

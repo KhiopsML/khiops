@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -271,9 +271,15 @@ void CCLearningProblem::BuildCoclustering()
 		// Parametrage du coclustering VarPart
 		coclusteringBuilder.SetVarPartCoclustering(true);
 		coclusteringBuilder.SetLearningSpec(&learningSpec);
-		coclusteringBuilder.GetPreprocessingSpec()->GetDataGridOptimizerParameters()->CopyFrom(
-		    analysisSpec->GetOptimizationParameters());
 	}
+
+	// Parametre d'optimisation avances
+	// Attention, on synchronise les parametre d'optimisation des grilles definies dans les
+	// preprocessing spec accessibles depuis tout LearningServive
+	// En effet, avec le coclustering, ces specification sont accessibles (en mode expert)
+	// uniquement depuis l'onglet AnalysisSpec
+	coclusteringBuilder.GetPreprocessingSpec()->GetDataGridOptimizerParameters()->CopyFrom(
+	    analysisSpec->GetOptimizationParameters());
 
 	// Verification de la validite
 	assert(coclusteringBuilder.Check());

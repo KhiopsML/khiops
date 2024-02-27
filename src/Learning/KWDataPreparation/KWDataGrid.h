@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -51,13 +51,13 @@ class KWDGInnerAttributes;
 //        - un attribut de la grille peut etre soit numerique, soit categoriel, soit constitue de parties de variables
 //        - dans la these d'Aichetou
 //          - dedie au cas instances x variables
-//          - chaque variables descriptives est partitionnees en parties, intervalles ou groupes de valeurs
+//          - chaque variable descriptive est partitionnee en parties, intervalles ou groupes de valeurs
 //          - chaque partie de variable est l'analogue d'un mot
-//          - chaque instance est decrites par l'ensmeble des mots correspondant aux valeurs de ses variables
+//          - chaque instance est decrite par l'ensemble des mots correspondant aux valeurs de ses variables
 //          descriptives
-//        - on a une grille à deux dimension, analogue au cas d'une grille textes x mots
+//        - on a une grille à deux dimensions, analogue au cas d'une grille textes x mots
 //          - un attribut de la grille contient des groupes d'instances (textes), par leur identifiant
-//          - l'autre attribut de la grille contients des groupes de parties de variables (mots)
+//          - l'autre attribut de la grille contient des groupes de parties de variables (mots)
 //      - terminologie
 //         VarPart
 //           - nouveau type, pour un attribut de DataGrid
@@ -258,7 +258,7 @@ public:
 	////////////////////////////////////////////////////////////////
 	// Acces aux cellules du DataGrid
 
-	// Nombre de cellules
+	// Nombre de cellules non vides
 	int GetCellNumber() const;
 
 	// Parcours de tous les cellules
@@ -371,6 +371,13 @@ public:
 
 	///////////////////////////////
 	//// Implementation
+
+	// CH IV Refactoring: parametrage d'un libelle associe, pour aider a la mise au point des grilles
+	// CH IV Refactoring: a supprimer une fois les nouveaux algorithmes mi au point
+	// Libelle associe a la grille
+	void SetLabel(const ALString& sValue);
+	const ALString& GetLabel() const;
+
 protected:
 	friend class KWDGAttribute;
 
@@ -435,6 +442,10 @@ protected:
 	// Positionne par l'attribut lors de l'initialsaition de son type s'il est de type VarPart
 	// Permet egalement de savoir si la grille est de type VarPart
 	KWDGAttribute* varPartAttribute;
+
+	// CH IV Refactoring: a supprimer une fois les nouveaux algorithmes mi au point
+	// Libelle associe a la grille
+	ALString sLabel;
 };
 
 // Comparaison de deux grilles de donnees, sur la valeur de tri (SortValue),
@@ -509,10 +520,11 @@ public:
 	// Attribut continu : nombre total d'instances
 	// Attribut categoriel : nombre de valeurs distinctes (sans la StarValue)
 	// Attribut parties de variables : nombre de parties de variables distinctes
+	// CH IV Refactoring  : le nombre de PV distinctes depend du niveau de tokenisation, pour les innerAttributes et pour l'attribut VarPart
 	void SetInitialValueNumber(int nValue);
 	int GetInitialValueNumber() const;
 
-	// Nomre de valeurs apres granularisation
+	// Nombre de valeurs apres granularisation
 	// Attribut continu : nombre theorique de partiles Ng=2^G
 	// Attribute categoriel : nombre de partiles obtenus suite a la granularisation Vg
 	void SetGranularizedValueNumber(int nValue);
@@ -529,7 +541,6 @@ public:
 	// Initialisation des parties de l'attribut de type VarPart a partir des attributs internes initialises en
 	// creant une partie par partie de variable
 	void CreateVarPartsSet();
-	// CH IV End
 
 	////////////////////////////////////////////////
 	// Gestion des parties de l'attribut
@@ -829,7 +840,7 @@ public:
 	// Controle d'integrite local a la partie (valeurs, cellules de la partie)
 	boolean Check() const override;
 
-	// Memoire utilisee
+	// Memoire utilisee par la partie
 	longint GetUsedMemory() const override;
 
 	// Affichage
@@ -926,7 +937,7 @@ public:
 	// Affichage
 	void Write(ostream& ost) const override = 0;
 
-	// Memoire utilisee
+	// Memoire utilisee par la partie, sans ses valeurs
 	longint GetUsedMemory() const override = 0;
 };
 
@@ -2137,7 +2148,7 @@ inline boolean KWDGValueSet::IsDefaultPart() const
 
 inline int KWDGValueSet::GetValueNumber() const
 {
-	assert(nValueNumber > 0 or IsDefaultPart() or GetValueType() != KWType::Symbol);
+	assert(nValueNumber > 0 or IsDefaultPart() or GetHeadValue() == NULL or GetValueType() != KWType::Symbol);
 
 	// On assure que le seul cas sans aucune valeur est le cas de la partie par defaut reduite a la StarValue
 	// Cela peut arriver si la partie a ete "nettoyee" pour gagner de la place, notamment quand on exporte
@@ -2147,6 +2158,8 @@ inline int KWDGValueSet::GetValueNumber() const
 	// Dans ce cas, ou rend une nombre de valeurs egal 1 a, ce qui a le merite d'avoir des couts de grille
 	// valides numeriquement, meme s'ils ne corrrespondent pas au vrai model qui aurait du memoriser
 	// le nombre exacte de valeurs du groupe
+	// Ce cas peut egalement se produire dans certaines phases algorithmiques ou
+	// la liste de valeurs est effectivement vide
 	if (nValueNumber == 0 and IsDefaultPart())
 		return 1;
 	else

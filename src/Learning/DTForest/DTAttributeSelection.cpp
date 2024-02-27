@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -729,22 +729,17 @@ longint DTTreeAttribute::GetUsedMemory() const
 
 int DTTreeAttributeLevelCompare(const void* elem1, const void* elem2)
 {
-	longint lLevel1;
-	longint lLevel2;
 	int nCompare;
 
 	DTTreeAttribute* i1 = (DTTreeAttribute*)*(Object**)elem1;
 	DTTreeAttribute* i2 = (DTTreeAttribute*)*(Object**)elem2;
 
-	// Comparaison des levels des attributs (ramenes a longint)
-	lLevel1 = longint(floor(i1->dLevel * 1e10));
-	lLevel2 = longint(floor(i2->dLevel * 1e10));
-	nCompare = -CompareLongint(lLevel1, lLevel2);
+	// Comparaison selon la precison du type Continuous, pour eviter les differences a epsilon pres
+	nCompare = -KWContinuous::CompareIndicatorValue(i1->dLevel, i2->dLevel);
 
 	// Comparaison par nom si match nul
 	if (nCompare == 0)
 		nCompare = DTTreeAttributeCompareName(elem1, elem2);
-
 	return nCompare;
 }
 

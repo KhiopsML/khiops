@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -232,7 +232,7 @@ public:
 	// a vis des noms, types, et blocs d'attributs, et son nom sera specifie dans l'appele
 	// Memoire: la classe construite en retour appartient a l'appelant
 	KWClass* BuildClassFromAttributeNames(const ALString& sInputClassName,
-					      const StringVector* svInputAttributeNames);
+					      const StringVector* svInputAttributeNames) const;
 
 	// Acces au tableau des tranches
 	// Memoire: le tableau et son contenu appartiennent a l'appelant, mais peuvent etre modifies sous la

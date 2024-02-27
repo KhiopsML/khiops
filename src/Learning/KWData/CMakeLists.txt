@@ -61,6 +61,7 @@ add_library(
   KWSymbol.cpp
   KWTextService.cpp
   KWTextTokenizer.cpp
+  KWDateTime.cpp
   KWTime.cpp
   KWTimestamp.cpp
   KWTimestampTZ.cpp

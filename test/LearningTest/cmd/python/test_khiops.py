@@ -252,12 +252,6 @@ def test(modl_path, samples_path, sample_test):
         # un plantagephysique de l'allocateur en cas de depassement des contraintes memoires des scenarios
         os.putenv("KhiopsHardMemoryLimitMode", "true")
 
-        # khiops en mode multitable via une variable d'environnement
-        os.putenv("KhiopsMultiTableMode", "true")
-
-        # khiops en mode Text via une  variable d'environnement
-        # os.putenv('KhiopsTextVariableMode', 'true')
-
         # khiops en mode crash test via une variable d'environnement
         os.putenv("KhiopsCrashTestMode", "true")
 
@@ -270,7 +264,7 @@ def test(modl_path, samples_path, sample_test):
             khiops_params.append("-n")
             khiops_params.append(khiops_mpi_process_number)
         khiops_params.append(modl_path)
-        if os.getenv("KhiopsBatchMode") == "true":
+        if os.getenv("KhiopsBatchMode") != "false":
             khiops_params.append("-b")
         khiops_params.append("-i")
         khiops_params.append(os.path.join(os.getcwd(), "test.prm"))

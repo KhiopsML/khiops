@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -3141,8 +3141,8 @@ longint KWDGAttribute::GetUsedMemory() const
 	// Prise en compte des parties et des valeurs
 	if (headPart != NULL)
 		lUsedMemory *= nPartNumber * headPart->GetUsedMemory();
-	if (GetAttributeType() == KWType::Symbol)
-		lUsedMemory += nGranularizedValueNumber * sizeof(KWDGValue);
+	if (KWType::IsCoclusteringGroupableType(GetAttributeType()))
+		lUsedMemory += nGranularizedValueNumber * headPart->GetValueSet()->GetHeadValue()->GetUsedMemory();
 
 	// Prise en compte de la structure d'indexation
 	lUsedMemory += oaIntervals.GetUsedMemory();
@@ -4388,7 +4388,7 @@ boolean KWDGValueSet::Check() const
 				bOk = false;
 				break;
 			}
-			// Erreur si typivcalite incorrecte
+			// Erreur si typicalite incorrecte
 			else if (value->GetTypicality() < 0 or value->GetTypicality() > 1)
 			{
 				AddError(sTmp + value->GetClassLabel() + " " + value->GetObjectLabel() +
@@ -4448,17 +4448,7 @@ void KWDGValueSet::WriteValues(ostream& ost) const
 
 longint KWDGValueSet::GetUsedMemory() const
 {
-	longint lUsedMemory;
-	KWDGValue* value;
-
-	lUsedMemory = sizeof(KWDGValueSet);
-	value = GetHeadValue();
-	while (value != NULL)
-	{
-		lUsedMemory += value->GetUsedMemory();
-		GetNextValue(value);
-	}
-	return lUsedMemory;
+	return sizeof(KWDGValueSet);
 }
 
 const ALString KWDGValueSet::GetClassLabel() const
@@ -4772,9 +4762,8 @@ int KWDGSymbolValue::CompareTypicality(const KWDGValue* otherValue) const
 
 	require(otherValue != NULL);
 
-	// Comparaison de la typicalite selon la precison du type Continuous, pour eviter les differences a epsilon pres
-	nCompare = -KWContinuous::Compare(KWContinuous::DoubleToContinuous(GetTypicality()),
-					  KWContinuous::DoubleToContinuous(otherValue->GetTypicality()));
+	// Comparaison selon la precison du type Continuous, pour eviter les differences a epsilon pres
+	nCompare = -KWContinuous::CompareIndicatorValue(GetTypicality(), otherValue->GetTypicality());
 
 	// Comparaison par effectif decroissaqnt si egalite
 	if (nCompare == 0)
@@ -4857,9 +4846,8 @@ int KWDGVarPartValue::CompareTypicality(const KWDGValue* otherValue) const
 
 	require(otherValue != NULL);
 
-	// Comparaison de la typicalite selon la precison du type Continuous, pour eviter les differences a epsilon pres
-	nCompare = -KWContinuous::Compare(KWContinuous::DoubleToContinuous(GetTypicality()),
-					  KWContinuous::DoubleToContinuous(otherValue->GetTypicality()));
+	// Comparaison selon la precison du type Continuous, pour eviter les differences a epsilon pres
+	nCompare = -KWContinuous::CompareIndicatorValue(GetTypicality(), otherValue->GetTypicality());
 
 	// Comparaison par valeur si egalite
 	if (nCompare == 0)
@@ -5463,6 +5451,16 @@ int KWDGCellCompareDecreasingFrequency(const void* elem1, const void* elem2)
 	if (nCompare == 0)
 		nCompare = KWDGCellCompareValue(elem1, elem2);
 	return nCompare;
+}
+
+void KWDataGrid::SetLabel(const ALString& sValue)
+{
+	sLabel = sValue;
+}
+
+const ALString& KWDataGrid::GetLabel() const
+{
+	return sLabel;
 }
 
 void KWDataGrid::SetTargetAttribute(KWDGAttribute* attribute)

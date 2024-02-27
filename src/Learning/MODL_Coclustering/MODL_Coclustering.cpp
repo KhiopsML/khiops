@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -31,14 +31,15 @@ int main(int argc, char** argv)
 
 	// Activation de la gestion des signaux via des erreurs, pour afficher des messages d'erreur explicites
 	// A potentiellement commenter sur certains IDE lors des phases de debuggage
-	//DDD Global::ActivateSignalErrorManagement();
+	Global::ActivateSignalErrorManagement();
 
 	// Choix du repertoire de lancement pour le debugage sous Windows (a commenter apres fin du debug)
-	//SetWindowsDebugDir("y_CoclusteringIV_Standard", "IrisLight");
+	SetWindowsDebugDir("y_CoclusteringIV_Standard", "IrisLight");
 	//SetWindowsDebugDir("y_CoclusteringIV_Standard", "Iris");
+	//SetWindowsDebugDir("Standard", "Iris");
 
 	// Point d'arret sur l'allocation d'un bloc memoire
-	// MemSetAllocIndexExit(77);
+	// MemSetAllocIndexExit(30406);
 
 	// Lancement du projet
 	learningProject.Start(argc, argv);

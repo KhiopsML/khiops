@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -35,13 +35,6 @@ Symbol Symbol::BuildNewSymbol(const char* sBaseName)
 	assert(sdSharedSymbols.Lookup(sNewSymbol) == NULL);
 
 	return Symbol(sNewSymbol);
-}
-
-int Symbol::GetSymbolNumber()
-{
-	int nSymbolNumber;
-	nSymbolNumber = sdSharedSymbols.GetCount();
-	return nSymbolNumber;
 }
 
 longint Symbol::GetAllSymbolsUsedMemory()
@@ -512,7 +505,7 @@ inline KWSymbolData* KWSymbolData::NewSymbolData(const char* sValue, int nLength
 	pSymbolData->nLength = nLength;
 
 	// Recopie de la chaine de caracteres ('\0' en fin de chaine)
-	memcpy(&(pSymbolData->cFirstStringChar), sValue, nLength + 1);
+	memcpy(&(pSymbolData->cFirstStringChar), sValue, (longint)nLength + 1);
 	return pSymbolData;
 }
 

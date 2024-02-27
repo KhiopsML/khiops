@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -397,17 +397,13 @@ void DTCreationReport::ComputeRankIdentifiers(ObjectArray* oaReports)
 
 int DTTreeSpecsCompareLevels(const void* elem1, const void* elem2)
 {
-	longint lLevel1;
-	longint lLevel2;
 	int nCompare;
 
 	DTDecisionTreeSpec* s1 = (DTDecisionTreeSpec*)*(Object**)elem1;
 	DTDecisionTreeSpec* s2 = (DTDecisionTreeSpec*)*(Object**)elem2;
 
-	// Comparaison des levels des attributs (ramenes a longint)
-	lLevel1 = longint(floor(s1->GetLevel() * 1e10));
-	lLevel2 = longint(floor(s2->GetLevel() * 1e10));
-	nCompare = -CompareLongint(lLevel1, lLevel2);
+	// Comparaison selon la precison du type Continuous, pour eviter les differences a epsilon pres
+	nCompare = -KWContinuous::CompareIndicatorValue(s1->GetLevel(), s2->GetLevel());
 
 	// Comparaison par nom d'arbre, si match nul
 	if (nCompare == 0)

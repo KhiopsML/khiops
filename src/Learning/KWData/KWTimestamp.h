@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -94,23 +94,18 @@ public:
 	//////////////////////////////////////////////////////
 	//// Implementation
 protected:
-	// Stockage d'un Timestamp sous forme d'une Date et Time
-	// On n'utilise pas directement les type Date et Time car sous linux il y a un probleme de packing
-	// et le sizeof(Timestamp) fait plus de 8 octets si on utilise les type Date et Time
-	// (ce probleme apparait meme si on utilise les primitives specifiques a Linux pour desactiver le packing.
-	// on n'a pas ce probleme sous windows)
-	unsigned int nDate;
-	unsigned int nTime;
-
 	// Classes en friend pour acceder aux informations interne de Date et Time
 	friend class KWTimestampFormat;
 	friend class TimestampTZ;
 
 	// Acces aux attributs en mode mise a jour
-	// L'acces par reference permet de les utilisater en affectation
+	// L'acces par reference permet de les utiliser en affectation
 	// Exemple: GetInternalDate() = myDate, ou GetInternalDate().Reset()
 	Date& GetInternalDate() const;
 	Time& GetInternalTime() const;
+
+	// Utilisation d'une union DateTime pour acceder au champs Timestamp, dans une structure commune aux type temporels
+	union DateTime timestampValue;
 };
 
 // Ecriture dans un stream
@@ -234,44 +229,59 @@ protected:
 
 inline void Timestamp::Reset()
 {
-	GetInternalDate().Reset();
-	GetInternalTime().Reset();
+	timestampValue.lBytes = 0;
 }
 
 inline boolean Timestamp::operator==(const Timestamp& tsValue) const
 {
-	return (GetDate() == tsValue.GetDate() and GetTime() == tsValue.GetTime());
+	return (timestampValue.lBytes == tsValue.timestampValue.lBytes);
 }
 
 inline boolean Timestamp::operator!=(const Timestamp& tsValue) const
 {
-	return (GetDate() != tsValue.GetDate() or GetTime() != tsValue.GetTime());
+	return (timestampValue.lBytes != tsValue.timestampValue.lBytes);
 }
 
 inline boolean Timestamp::Check() const
 {
 	require(not IsForbiddenValue());
-	return GetDate().Check() and GetTime().Check();
+	return timestampValue.lBytes != 0;
 }
 
 inline const Date Timestamp::GetDate() const
 {
-	return (const Date)GetInternalDate();
+	Timestamp tsTmp;
+
+	// On met tout a 0, sauf la partie Date que l'on recopie
+	tsTmp.timestampValue.lBytes = 0;
+	tsTmp.timestampValue.parts.nDate = timestampValue.parts.nDate;
+	return (const Date)tsTmp.GetInternalDate();
 }
 
 inline void Timestamp::SetDate(const Date dtValue)
 {
-	GetInternalDate() = dtValue;
+	if (dtValue.Check())
+		GetInternalDate().dateValue.parts.nDate = dtValue.dateValue.parts.nDate;
+	else
+		Reset();
 }
 
 inline const Time Timestamp::GetTime() const
 {
-	return (const Time)GetInternalTime();
+	Timestamp tsTmp;
+
+	// On met tout a 0, sauf la partie Time que l'on recopie
+	tsTmp.timestampValue.lBytes = 0;
+	tsTmp.timestampValue.parts.nTime = timestampValue.parts.nTime;
+	return (const Time)tsTmp.GetInternalTime();
 }
 
 inline void Timestamp::SetTime(const Time tmValue)
 {
-	GetInternalTime() = tmValue;
+	if (tmValue.Check())
+		GetInternalTime().timeValue.parts.nTime = tmValue.timeValue.parts.nTime;
+	else
+		Reset();
 }
 
 inline double Timestamp::GetAbsoluteSecond() const
@@ -328,23 +338,22 @@ inline int Timestamp::Compare(const Timestamp tsOtherTimestamp) const
 
 inline void Timestamp::SetForbiddenValue()
 {
-	GetInternalDate().SetForbiddenValue();
-	GetInternalTime().SetForbiddenValue();
+	timestampValue.lBytes = DateTime::lForbiddenValue;
 }
 
 inline boolean Timestamp::IsForbiddenValue() const
 {
-	return GetDate().IsForbiddenValue() or GetTime().IsForbiddenValue();
+	return (timestampValue.lBytes == DateTime::lForbiddenValue);
 }
 
 inline Date& Timestamp::GetInternalDate() const
 {
-	return (Date&)nDate;
+	return (Date&)timestampValue;
 }
 
 inline Time& Timestamp::GetInternalTime() const
 {
-	return (Time&)nTime;
+	return (Time&)timestampValue;
 }
 
 // KWTimestampFormat

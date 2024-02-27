@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -1113,10 +1113,6 @@ int KWDataPreparationAttributeCompareSortValue(const void* elem1, const void* el
 {
 	KWDataPreparationAttribute* dataPreparationAttribute1;
 	KWDataPreparationAttribute* dataPreparationAttribute2;
-	double dSortValue1;
-	double dSortValue2;
-	longint lSortValue1;
-	longint lSortValue2;
 	int nCompare;
 
 	check(elem1);
@@ -1132,19 +1128,14 @@ int KWDataPreparationAttributeCompareSortValue(const void* elem1, const void* el
 	check(dataPreparationAttribute2);
 	assert(dataPreparationAttribute2->Check());
 
-	// Evaluation univariee des attributs
-	dSortValue1 = dataPreparationAttribute1->GetPreparedStats()->GetSortValue();
-	dSortValue2 = dataPreparationAttribute2->GetPreparedStats()->GetSortValue();
-
-	// On se base sur un comparaison a dix decimales pres
-	lSortValue1 = longint(floor(dSortValue1 * 1e10));
-	lSortValue2 = longint(floor(dSortValue2 * 1e10));
-	nCompare = -CompareLongint(lSortValue1, lSortValue2);
+	// Comparaison selon la precison du type Continuous, pour eviter les differences a epsilon pres
+	nCompare = -KWContinuous::CompareIndicatorValue(dataPreparationAttribute1->GetPreparedStats()->GetSortValue(),
+							dataPreparationAttribute2->GetPreparedStats()->GetSortValue());
 
 	// Comparaison si necessaire sur le nom
 	if (nCompare == 0)
-		nCompare = dataPreparationAttribute1->GetPreparedStats()->GetSortName().Compare(
-		    dataPreparationAttribute2->GetPreparedStats()->GetSortName());
+		nCompare = dataPreparationAttribute1->GetPreparedStats()->CompareName(
+		    dataPreparationAttribute2->GetPreparedStats());
 	return nCompare;
 }
 

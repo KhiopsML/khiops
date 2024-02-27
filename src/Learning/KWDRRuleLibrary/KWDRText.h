@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -18,7 +18,9 @@
 // Toutes les regles de KWDRString sont implementees de facon generique en sous-classes
 // de la classe KWDRStringRule, ce qui permet de redefinir tres simplement chaque
 // regle correspondante pour le type Text
+// Seul la regle KWDRTextLoadFile est specifique au type Text
 
+class KWDRTextLoadFile;
 class KWDRTextLength;
 class KWDRTextLeft;
 class KWDRTextRight;
@@ -42,9 +44,32 @@ class KWDRTextHash;
 class KWDRTextEncrypt;
 
 #include "KWDRString.h"
+#include "InputBufferedFile.h"
+#include "HugeBuffer.h"
 
 // Enregistrement de ces regles
 void KWDRRegisterTextRules();
+
+////////////////////////////////////////////////////////////////////////////
+// Classe KWDRTextLoadFile
+// Chargement d'un fichier sous forme d'une variable Text
+// Le fichier peut etre local ou avoir un nom ayant une URI
+// Le chargement se fait a concurrence de la taille max d'une variable de type Text
+// Les caractere '\0', '\r' et '\n' sont remplace par des blancs pour ne pas poser
+// de probleme quand on ecrit les base en sortie
+class KWDRTextLoadFile : public KWDerivationRule
+{
+public:
+	// Constructeur
+	KWDRTextLoadFile();
+	~KWDRTextLoadFile();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	Symbol ComputeTextResult(const KWObject* kwoObject) const override;
+};
 
 ////////////////////////////////////////////////////////////////////////////
 // Classe KWDRTextLength

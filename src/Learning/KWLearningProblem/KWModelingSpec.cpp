@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -11,6 +11,7 @@
 KWModelingSpec::KWModelingSpec()
 {
 	bDataPreparationOnly = false;
+	bInterpretableNames = false;
 	bBaselinePredictor = false;
 	nUnivariatePredictorNumber = 0;
 	bSelectiveNaiveBayesPredictor = false;
@@ -18,6 +19,9 @@ KWModelingSpec::KWModelingSpec()
 	bDataGridPredictor = false;
 
 	// ## Custom constructor
+
+	// Par defaut, on construit des nom de variables interpretables
+	bInterpretableNames = true;
 
 	// Par defaut, on a le predicteur de base (regression uniquement) et le SNB,
 	// que l'on peut desactiver soit directement, soit par DataPreparationOnly
@@ -39,6 +43,7 @@ void KWModelingSpec::CopyFrom(const KWModelingSpec* aSource)
 	require(aSource != NULL);
 
 	bDataPreparationOnly = aSource->bDataPreparationOnly;
+	bInterpretableNames = aSource->bInterpretableNames;
 	bBaselinePredictor = aSource->bBaselinePredictor;
 	nUnivariatePredictorNumber = aSource->nUnivariatePredictorNumber;
 	bSelectiveNaiveBayesPredictor = aSource->bSelectiveNaiveBayesPredictor;
@@ -66,6 +71,7 @@ KWModelingSpec* KWModelingSpec::Clone() const
 void KWModelingSpec::Write(ostream& ost) const
 {
 	ost << "Do data preparation only\t" << BooleanToString(GetDataPreparationOnly()) << "\n";
+	ost << "Build interpretable names\t" << BooleanToString(GetInterpretableNames()) << "\n";
 	ost << "Baseline predictor\t" << BooleanToString(GetBaselinePredictor()) << "\n";
 	ost << "Number of univariate predictors\t" << GetUnivariatePredictorNumber() << "\n";
 	ost << "Selective Naive Bayes predictor\t" << BooleanToString(GetSelectiveNaiveBayesPredictor()) << "\n";

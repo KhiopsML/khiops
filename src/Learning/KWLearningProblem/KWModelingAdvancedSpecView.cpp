@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -13,9 +13,11 @@ KWModelingAdvancedSpecView::KWModelingAdvancedSpecView()
 	SetIdentifier("KWModelingAdvancedSpec");
 	SetLabel("Advanced predictor parameters");
 	AddBooleanField("DataPreparationOnly", "Do data preparation only", false);
+	AddBooleanField("InterpretableNames", "Build interpretable names", false);
 
 	// Parametrage des styles;
 	GetFieldAt("DataPreparationOnly")->SetStyle("CheckBox");
+	GetFieldAt("InterpretableNames")->SetStyle("CheckBox");
 
 	// ## Custom constructor
 
@@ -23,9 +25,14 @@ KWModelingAdvancedSpecView::KWModelingAdvancedSpecView()
 	AddCardField("SelectiveNaiveBayesParameters", "Selective Naive Bayes parameters",
 		     new SNBPredictorSelectiveNaiveBayesView);
 
+	// Parametrage de nom interpretables apres les parametre du SNB
+	// Uniquement en mode expert
+	MoveFieldBefore("SelectiveNaiveBayesParameters", "InterpretableNames");
+	GetFieldAt("InterpretableNames")->SetVisible(GetLearningExpertMode());
+
 	// Declaration des actions
-	// On utilise exceptionnellement un format html pour le libelle des actions, pour l'avoir centre et sur deux
-	// lignes
+	// On utilise exceptionnellement un format html pour le libelle des actions,
+	// pour l'avoir centre et sur deux lignes
 	AddAction("InspectConstructionDomain",
 		  "<html> <center> Variable construction <br> parameters </center> </html>",
 		  (ActionMethod)(&KWModelingAdvancedSpecView::InspectConstructionDomain));
@@ -50,6 +57,13 @@ KWModelingAdvancedSpecView::KWModelingAdvancedSpecView()
 	GetFieldAt("DataPreparationOnly")
 	    ->SetHelpText("Do the data preparation step only."
 			  "\n Do not perform the modeling step in supervised analysis.");
+	GetFieldAt("InterpretableNames")
+	    ->SetHelpText("Build interpretable names for the automatically multi-table and text constructed variables."
+			  "\n Expert mode only"
+			  "\n Non-interpretable names based solely on alphanumeric characters may be required "
+			  "\n when data is to be exported to databases with column naming constraints."
+			  "\n Please note: only multi-table and text features are supported, and the analysis results"
+			  "\n for pairs and trees may vary when this option is activated");
 	GetActionAt("InspectConstructionDomain")
 	    ->SetHelpText(
 		"Advanced parameters to select the construction rules used for automatic variable construction.");
@@ -84,6 +98,7 @@ void KWModelingAdvancedSpecView::EventUpdate(Object* object)
 
 	editedObject = cast(KWModelingSpec*, object);
 	editedObject->SetDataPreparationOnly(GetBooleanValueAt("DataPreparationOnly"));
+	editedObject->SetInterpretableNames(GetBooleanValueAt("InterpretableNames"));
 
 	// ## Custom update
 
@@ -98,6 +113,7 @@ void KWModelingAdvancedSpecView::EventRefresh(Object* object)
 
 	editedObject = cast(KWModelingSpec*, object);
 	SetBooleanValueAt("DataPreparationOnly", editedObject->GetDataPreparationOnly());
+	SetBooleanValueAt("InterpretableNames", editedObject->GetInterpretableNames());
 
 	// ## Custom refresh
 

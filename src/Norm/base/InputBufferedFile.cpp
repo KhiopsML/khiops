@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -608,7 +608,7 @@ boolean InputBufferedFile::GetNextField(char*& sField, int& nFieldLength, int& n
 	// Supression des blancs en fin (TrimRight)
 	// Attention: on utilise iswspace et non isspace, systematiquement dans tous les sources
 	// Une tentative de passage a isspace a entraine une degradation des performances de presque 25%
-	// dans un traitement complet impliquant des lecture de fichier
+	// dans un traitement complet impliquant des lectures de fichier
 	i--;
 	while (i >= 0)
 	{

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -35,6 +35,8 @@ int main(int argc, char** argv)
 
 	// Choix du repertoire de lancement pour le debugage sous Windows (a commenter apres fin du debug)
 	// SetWindowsDebugDir("Standard", "IrisLight");
+	// SetWindowsDebugDir("Standard", "Iris2D");
+	SetWindowsDebugDir("BugsMultiTables", "BugUnsortedRootTable");
 
 	// Parametrage des logs memoires depuis les variables d'environnement, pris en compte dans KWLearningProject
 	//   KhiopsMemStatsLogFileName, KhiopsMemStatsLogFrequency, KhiopsMemStatsLogToCollect
@@ -56,7 +58,7 @@ int main(int argc, char** argv)
 
 	// Simulation du mode parallele pour le debuggage
 	// PLParallelTask::SetParallelSimulated(true);
-	// PLParallelTask::SetSimulatedSlaveNumber(2);
+	// PLParallelTask::SetSimulatedSlaveNumber(3);
 	// PLParallelTask::SetTracerResources(1);
 	// PLParallelTask::SetTracerProtocolActive(true);
 	// PLParallelTask::SetTracerMPIActive(true);

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -2454,19 +2454,9 @@ void KWDataGridTest::InitializeOptimizationParametersArray()
 	// for (nLevel = 1; nLevel <= 3; nLevel++)
 	for (nLevel = 1; nLevel <= 20; nLevel++)
 	{
-		// VNS
 		optimizationParameters = new KWDataGridOptimizerParameters;
 		optimizationParameters->SetOptimizationLevel(nLevel);
-		// optimizationParameters->SetDisplayDetails(true);
 		oaOptimizationParameters.Add(optimizationParameters);
-
-		/*
-		// MultiStart
-		optimizationParameters = new KWDataGridOptimizerParameters;
-		optimizationParameters->SetOptimizationAlgorithm("MultiStart");
-		optimizationParameters->SetOptimizationLevel(nLevel);
-		oaOptimizationParameters.Add(optimizationParameters);
-		*/
 	}
 
 	// Ajout de nouveaux parametrages
@@ -2526,24 +2516,6 @@ void KWDataGridTest::InitializeOptimizationParametersArray()
 		// Optimization par defaut avec level a 1
 		optimizationParameters = new KWDataGridOptimizerParameters;
 		optimizationParameters->SetOptimizationLevel(1);
-		oaOptimizationParameters.Add(optimizationParameters);
-
-		// Optimization greedy uniquement
-		optimizationParameters = new KWDataGridOptimizerParameters;
-		optimizationParameters->SetOptimizationAlgorithm("Greedy");
-		optimizationParameters->SetOptimizationLevel(0);
-		optimizationParameters->SetUnivariateInitialization(false);
-		optimizationParameters->SetOptimize(true);
-		optimizationParameters->SetPostOptimize(false);
-		oaOptimizationParameters.Add(optimizationParameters);
-
-		// Optimization greedy plus post-optimisation
-		optimizationParameters = new KWDataGridOptimizerParameters;
-		optimizationParameters->SetOptimizationAlgorithm("Greedy");
-		optimizationParameters->SetOptimizationLevel(0);
-		optimizationParameters->SetUnivariateInitialization(false);
-		optimizationParameters->SetOptimize(true);
-		optimizationParameters->SetPostOptimize(true);
 		oaOptimizationParameters.Add(optimizationParameters);
 		*/
 	}

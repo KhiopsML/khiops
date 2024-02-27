@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -791,7 +791,7 @@ boolean KWDataPreparationUnivariateTask::SlaveProcess()
 	// la memoire minimum demandee
 	lAvailableWorkingMemory =
 	    shared_lLargestSliceUsedMemory - lSliceUsedMemory +
-	    +(shared_nLargestSliceAttributeNumber - slice->GetClass()->GetLoadedAttributeNumber()) *
+	    +(shared_nLargestSliceAttributeNumber - (longint)slice->GetClass()->GetLoadedAttributeNumber()) *
 		lNecessaryUnivariateStatsMemory +
 	    shared_lLargestSliceMaxBlockWorkingMemory + shared_lLargestSliceDatabaseAllValuesMemory;
 
@@ -934,7 +934,7 @@ void KWDataPreparationUnivariateTask::InitializeSliceLexicographicSortCriterion(
 	require(masterDataTableSliceSet != NULL);
 
 	// Premier critere: nombre total de valeurs, dense plus sparse
-	slice->GetLexicographicSortCriterion()->Add(double(slice->GetClass()->GetLoadedDenseAttributeNumber() *
+	slice->GetLexicographicSortCriterion()->Add(double((longint)slice->GetClass()->GetLoadedDenseAttributeNumber() *
 							       masterDataTableSliceSet->GetTotalInstanceNumber() +
 							   slice->GetTotalAttributeBlockValueNumber()));
 
@@ -1245,17 +1245,17 @@ boolean KWDataPreparationUnivariateTask::SplitSlice(KWDataTableSlice* slice, int
 				}
 
 				// Test si interruption sans qu'il y ait d'erreur
-				if (slice->IsError() or TaskProgression::IsInterruptionRequested())
+				if (not bOk or slice->IsError() or TaskProgression::IsInterruptionRequested())
 				{
 					bOk = false;
 
 					// Warning ou erreur selon le cas
-					if (slice->IsError())
-						slice->AddError("Read data table slice interrupted because of errors");
+					if (TaskProgression::IsInterruptionRequested())
+						slice->AddWarning("Read data table slice interrupted by user");
 					else if (allSliceOutputBuffer.IsError())
 						slice->AddError("Error in writing database sub-slice files");
 					else
-						slice->AddWarning("Read data table slice interrupted by user");
+						slice->AddError("Read data table slice interrupted because of errors");
 				}
 			}
 

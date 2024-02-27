@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -18,6 +18,7 @@ KWClassManagementActionView::KWClassManagementActionView()
 	// Declaration des actions
 	AddAction("OpenFile", "Open...", (ActionMethod)(&KWClassManagementActionView::OpenFile));
 	AddAction("CloseFile", "Close", (ActionMethod)(&KWClassManagementActionView::CloseFile));
+	AddAction("ReloadFile", "Reload", (ActionMethod)(&KWClassManagementActionView::ReloadFile));
 	AddAction("SaveFile", "Save", (ActionMethod)(&KWClassManagementActionView::SaveFile));
 	AddAction("SaveFileUnder", "Save as...", (ActionMethod)(&KWClassManagementActionView::SaveFileUnder));
 	AddAction("ExportAsJSON", "Export as JSON...", (ActionMethod)(&KWClassManagementActionView::ExportAsJSON));
@@ -26,13 +27,16 @@ KWClassManagementActionView::KWClassManagementActionView()
 
 	// Ajout d'accelerateurs sur les actions principales
 	GetActionAt("OpenFile")->SetAccelKey("control O");
+	GetActionAt("ReloadFile")->SetAccelKey("control R");
 	GetActionAt("SaveFile")->SetAccelKey("control S");
+	GetActionAt("ManageClasses")->SetAccelKey("control M");
 
 	// Info-bulles
 	GetActionAt("OpenFile")
 	    ->SetHelpText("Open a dictionary file to load its dictionaries into memory"
 			  "\n and make them available for data analysis.");
 	GetActionAt("CloseFile")->SetHelpText("Remove the dictionaries from memory.");
+	GetActionAt("ReloadFile")->SetHelpText("Reload the current dictionary file into memory.");
 	GetActionAt("SaveFile")->SetHelpText("Save the dictionaries in the current dictionary file.");
 	GetActionAt("SaveFileUnder")->SetHelpText("Save the dictionaries in a new dictionary file.");
 	GetActionAt("ExportAsJSON")->SetHelpText("Export the dictionaries under a JSON format.");
@@ -131,6 +135,15 @@ void KWClassManagementActionView::CloseFile()
 
 	// Copie du nom du dictionnaire dans les bases
 	CopyDictionaryNameToDatabases();
+}
+
+void KWClassManagementActionView::ReloadFile()
+{
+	require(CheckDictionaryName());
+
+	// On lit le dictionnaire
+	if (GetClassManagement()->GetClassFileName() != "")
+		GetClassManagement()->ReadClasses();
 }
 
 void KWClassManagementActionView::SaveFile()

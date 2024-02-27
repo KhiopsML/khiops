@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -121,8 +121,7 @@ void KWPreprocessingSpec::WriteLineReport(int nTargetAttributeType, ostream& ost
 	ost << nMinPartFrequency << "\t";
 	ost << discretizerSpec.GetMethodName(nTargetAttributeType) << "\t" << discretizerSpec.GetParam() << "\t";
 	ost << grouperSpec.GetMethodName(nTargetAttributeType) << "\t" << grouperSpec.GetParam() << "\t";
-	ost << dataGridOptimizerParameters.GetOptimizationAlgorithm() << "\t"
-	    << dataGridOptimizerParameters.GetOptimizationLevel() << "\t"
+	ost << "VNS\t" << dataGridOptimizerParameters.GetOptimizationLevel() << "\t"
 	    << dataGridOptimizerParameters.GetUnivariateInitialization() << "\t"
 	    << dataGridOptimizerParameters.GetPreOptimize() << "\t" << dataGridOptimizerParameters.GetOptimize() << "\t"
 	    << dataGridOptimizerParameters.GetPostOptimize() << "\t";

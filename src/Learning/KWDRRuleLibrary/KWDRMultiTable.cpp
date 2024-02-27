@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -1852,6 +1852,9 @@ int KWDRTableSortCompareObjects(const void* elem1, const void* elem2)
 		case KWType::TimestampTZ:
 			nDiff = sortOperand->GetTimestampTZValue(object1).Compare(
 			    sortOperand->GetTimestampTZValue(object2));
+			break;
+		case KWType::Text:
+			nDiff = sortOperand->GetTextValue(object1).CompareValue(sortOperand->GetTextValue(object2));
 			break;
 		default:
 			nDiff = 0;

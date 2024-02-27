@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -90,6 +90,11 @@ public:
 	// Renvoie NULL si probleme ou interruption utilisateur
 	// Memoire: appartient a l'appelant
 	KWDataGrid* CreateDataGrid(const KWTupleTable* tupleTable);
+
+	// Methode appelee lors de l'optimisation a chaque etape d'optimisation
+	// Implementation vide par defaut
+	virtual void HandleOptimizationStep(const KWDataGrid* optimizedDataGrid,
+					    const KWDataGrid* initialGranularizedDataGrid, boolean bIsLastSaving) const;
 
 	// Parametrage avance
 	// Pre-granularisation des attributs numeriques cible (regression) et des attributs numeriques explicatifs en

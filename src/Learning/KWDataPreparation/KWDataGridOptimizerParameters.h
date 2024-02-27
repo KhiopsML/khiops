@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2024 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -25,10 +25,6 @@ public:
 	// Ce parametre est determine automatiquement par l'algorithme s'il vaut 0
 	int GetMaxPartNumber() const;
 	void SetMaxPartNumber(int nValue);
-
-	// Optimization algorithm: None, Greedy, MultiStart, ou VNS (default)
-	const ALString& GetOptimizationAlgorithm() const;
-	void SetOptimizationAlgorithm(const ALString& sValue);
 
 	// Optimization time (en secondes)
 	// Par defaut: 0, ce qui signifie que ce parametre n'est pas actif
@@ -104,7 +100,6 @@ public:
 	//// Implementation
 protected:
 	// Attributs de la classe
-	ALString sOptimizationAlgorithm;
 	int nMaxPartNumber;
 	int nOptimizationTime;
 	int nOptimizationLevel;
