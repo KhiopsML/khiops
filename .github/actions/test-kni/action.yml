@@ -87,13 +87,13 @@ runs:
       if: runner.os == 'Linux'
       run: |
         cd tutorial
-        java -cp java/kni.jar:java/jna-5.13.0.jar KNIRecodeFile data/ModelingIris.kdic SNB_Iris data/Iris.txt R_Iris_java.txt 2>&1
+        bash $GITHUB_WORKSPACE/packaging/common/KNI/run-java-linux.sh
     - name: Test java example (Windows)
       shell: bash
       if: runner.os == 'Windows'
       run: |
         cd tutorial
-        java -cp java/kni.jar;java/jna-5.13.0.jar KNIRecodeFile data/ModelingIris.kdic SNB_Iris data/Iris.txt R_Iris_java.txt 2>&1
+        bash $GITHUB_WORKSPACE/packaging/common/KNI/run-java-windows.sh
     - name: Check java results
       shell: bash
       run: |-
