@@ -135,7 +135,7 @@ jobs:
         id: install-kni
         shell: bash
         run: |
-          7z x KNI-${{ needs.build.outputs.khiops-version }}.zip -o${GITHUB_WORKSPACE}/KNI
+          7z x KNI-${{ needs.build.outputs.khiops-version }}.zip -oKNI
           ls 
           ls KNI
       - name: Checkout sources
