@@ -1,5 +1,5 @@
 ---
-name: Update KhiopsNativeInterface-tutorial repository
+name: Update KNI-tutorial repository
 on:
   workflow_dispatch:
 jobs:
