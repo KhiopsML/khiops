@@ -96,7 +96,7 @@ jobs:
         with:
           name: KNI
           path: ./build/windows-msvc-release/packages/KNI-${{ env.KHIOPS_VERSION }}.zip
-  test:
+  test-khiops:
     needs: build
     runs-on: windows-2019
     steps:
@@ -123,10 +123,30 @@ jobs:
         uses: actions/checkout@v4
       - name: Test the installation
         uses: ./.github/actions/test-khiops-install
+  test-kni:
+    needs: build
+    runs-on: windows-2022
+    steps:
+      - name: Download KNI zip
+        uses: actions/download-artifact@v4
+        with:
+          name: KNI
+      - name: Install KNI
+        id: install-kni
+        shell: bash
+        run: |
+          7z x KNI-${{ needs.build.outputs.khiops-version }}.zip -o${GITHUB_WORKSPACE}/KNI
+          ls 
+          ls KNI
+      - name: Checkout sources
+        uses: actions/checkout@v4
+      - name: Test KNI zip
+        uses: ./.github/actions/test-kni
+
   # Release is only executed on tags
   release:
     if: github.ref_type == 'tag'
-    needs: [build, test]
+    needs: [build, test-khiops, test-kni]
     runs-on: ubuntu-latest
     permissions:
       contents: write

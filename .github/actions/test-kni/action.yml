@@ -33,9 +33,11 @@ runs:
       shell: cmd
       run: |
         call "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\VC\\Auxiliary\\Build\\vcvars64.bat"
-        set KNI_HOME=%RUNNER_TEMP%\\KNI
         cd tutorial
-        call %GITHUB_WORKSPACE%/packaging/common/KNI/build-c--windows.cmd
+        set KNI_HOME=%GITHUB_WORKSPACE%/KNI
+        ls %GITHUB_WORKSPACE%
+        ls %GITHUB_WORKSPACE%/KNI
+        call %GITHUB_WORKSPACE%/packaging/common/KNI/build-c-windows.cmd
     - name: Test mono-table example
       shell: bash
       run: |
