@@ -45,11 +45,11 @@ The Khiops deployment features are thus made public through an API with a DLL.
 Therefore, a Khiops model can be deployed directly from any programming
 language, such as C, C++, Java, Python, Matlab, etc. This enables real time
 model deployment without the overhead of temporary data files or launching
-executables. This is critical for certain applications in marketing or targeted
-advertising on the web.
+executables. This is critical for certain applications, such as marketing or
+targeted advertising on the web.
  .
 All KNI functions are C functions for easy use with other programming languages.
-They return a positive or null value in case of success, and a negative error
+They return a positive or zero value in case of success, and a negative error
 code in case of failure. The functions are not reentrant (thread-safe): the DLL
 can be used simultaneously by several executables, but not simultaneously by
 several threads in the same executable.

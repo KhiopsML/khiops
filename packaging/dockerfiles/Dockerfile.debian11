@@ -7,21 +7,20 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN true \
   && apt-get -y update \
   && apt-get -y --no-install-recommends install \
-    build-essential \
-    coreutils \
-    debhelper \
-    default-jdk \
-    devscripts \
-    fakeroot \
-    libmpich-dev \
-    nano \
-    ninja-build \
-    wget \
+  build-essential \
+  coreutils \
+  debhelper \
+  default-jdk \
+  devscripts \
+  fakeroot \
+  libmpich-dev \
+  nano \
+  ninja-build \
+  curl \
   && rm -rf /var/lib/apt/lists/* \
   # Note: We install cmake from kitware's site to have a more recent version \
-  && wget "https://github.com/Kitware/CMake/releases/download/v3.26.5/cmake-3.26.5-linux-x86_64.sh" \
+  && curl -LO "https://github.com/Kitware/CMake/releases/download/v3.26.5/cmake-3.26.5-linux-x86_64.sh" \
   && sh cmake-3.26.5-linux-x86_64.sh --prefix=/usr/local/ --exclude-subdir \
   && rm -f cmake-3.26.5-linux-x86_64.sh \
-  && apt-get -y remove wget \
   && apt-get clean \
   && true
