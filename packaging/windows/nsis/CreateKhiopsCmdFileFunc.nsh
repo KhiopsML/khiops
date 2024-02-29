@@ -66,7 +66,7 @@ Function CreateKhiopsCmdFile
   FileWrite $0 `if not %_KHIOPS_BATCH_MODE%.==true. if not exist "%KHIOPS_JAVA_PATH%\jvm.dll" goto ERR_JAVA$\r$\n`
   FileWrite $0 `$\r$\n`
   FileWrite $0 `REM Set path$\r$\n`
-  FileWrite $0 `set path=%KHIOPS_PATH%;%KHIOPS_JAVA_PATH%;%path%$\r$\n`
+  FileWrite $0 `set path=%KHIOPS_PATH%;%KHIOPS_JAVA_HOME%\bin;%KHIOPS_JAVA_PATH%;%path%$\r$\n`
   FileWrite $0 `set classpath=%KHIOPS_CLASSPATH%;%classpath%$\r$\n`
   FileWrite $0 `$\r$\n`
   FileWrite $0 `$\r$\n`
@@ -85,7 +85,9 @@ Function CreateKhiopsCmdFile
   ${Else}
       FileWrite $0 `%KHIOPS_MPI_COMMAND% "%KHIOPS_PATH%$_BinSuffix\$_ToolName" -o "%KHIOPS_LAST_RUN_DIR%\$_ScenarioFileName" -e "%KHIOPS_LAST_RUN_DIR%\$_LogFileName"$\r$\n`
   ${EndIf}
-  FileWrite $0 `goto END$\r$\n`
+  FileWrite $0 `if %errorlevel% EQU 0 goto END$\r$\n`
+  FileWrite $0 `if %errorlevel% EQU 2 goto END$\r$\n`
+  FileWrite $0 `goto ERR_RETURN_CODE$\r$\n`
   FileWrite $0 `$\r$\n`
   FileWrite $0 `REM Start with parameters$\r$\n`
   FileWrite $0 `:PARAMS$\r$\n`
@@ -94,7 +96,9 @@ Function CreateKhiopsCmdFile
   ${Else}
     FileWrite $0 `%KHIOPS_MPI_COMMAND% "%KHIOPS_PATH%$_BinSuffix\$_ToolName" %*$\r$\n`
   ${EndIf}
-  FileWrite $0 `goto END$\r$\n`
+  FileWrite $0 `if %errorlevel% EQU 0 goto END$\r$\n`
+  FileWrite $0 `if %errorlevel% EQU 2 goto END$\r$\n`
+  FileWrite $0 `goto ERR_RETURN_CODE$\r$\n`
   FileWrite $0 `$\r$\n`
   FileWrite $0 `$\r$\n`
   FileWrite $0 `REM ========================================================$\r$\n`
@@ -107,6 +111,10 @@ Function CreateKhiopsCmdFile
   FileWrite $0 `:ERR_JAVA$\r$\n`
   FileWrite $0 `start "KHIOPS CONFIG PROBLEM" echo ERROR Java not correctly installed, jvm.dll not found under java directory tree %_KHIOPS_JAVA_HOME% (%_KHIOPS_JAVA_HOME_ORIGIN%): see khiops_env.cmd file in %KHIOPS_HOME%\bin, after line 'Set user Java Home'$\r$\n`
   FileWrite $0 `exit /b 1$\r$\n`
+  FileWrite $0 `$\r$\n`
+  FileWrite $0 `:ERR_RETURN_CODE$\r$\n`
+  FileWrite $0 `start "KHIOPS EXECUTION PROBLEM" cmd /k "echo ERROR Khiops ended with return code %errorlevel% & echo Contents of the log file at %KHIOPS_LAST_RUN_DIR%\$_LogFileName: & type %KHIOPS_LAST_RUN_DIR%\$_LogFileName"$\r$\n`
+  FileWrite $0 `goto END$\r$\n`
   FileWrite $0 `$\r$\n`
   FileWrite $0 `:END$\r$\n`
   FileWrite $0 `endlocal$\r$\n`
