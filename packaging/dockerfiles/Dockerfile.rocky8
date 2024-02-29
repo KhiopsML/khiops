@@ -9,20 +9,15 @@ RUN true \
   && dnf config-manager --set-enabled powertools \
   && dnf upgrade -y \
   && dnf install -y \
-    cmake \
-    gcc-c++ \
-    java-17-openjdk-devel \
-    mpich-devel \
-    nano \
-    ninja-build \
-    rpm-build \
-    wget \
+  cmake \
+  gcc-c++ \
+  java-17-openjdk-devel \
+  mpich-devel \
+  nano \
+  ninja-build \
+  rpm-build \
+  curl \
   && dnf clean all \
   && rm -rf /var/cache/dnf/ \
-  # Note: We install cmake from kitware's site to have a more recent version \
-  # If rocky8 eventually supports cmake >= 3.22 we may use dnf again \
-  && wget "https://github.com/Kitware/CMake/releases/download/v3.26.5/cmake-3.26.5-linux-x86_64.sh" \
-  && sh cmake-3.26.5-linux-x86_64.sh --prefix=/usr/local/ --exclude-subdir \
-  && rm -f cmake-3.26.5-linux-x86_64.sh \
-  && dnf remove -y wget "dnf-command(config-manager)" \
+  && dnf remove -y "dnf-command(config-manager)" \
   && true
