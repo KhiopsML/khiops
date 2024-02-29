@@ -1,3 +1,2 @@
-cd java
-javac -cp jna-5.13.0.jar KNIRecodeFile.java KNI.java
-jar cf kni.jar *.class
+javac -cp jna.jar java/KNIRecodeFile.java java/KNI.java
+jar cf kni.jar -C java KNI.class -C java KNIRecodeFile.class

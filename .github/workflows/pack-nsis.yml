@@ -63,7 +63,7 @@ jobs:
         uses: ./.github/actions/build-khiops
         with:
           preset-name: windows-msvc-release
-          targets: MODL MODL_Coclustering norm_jar khiops_jar
+          targets: MODL MODL_Coclustering norm_jar khiops_jar KhiopsNativeInterface
           override-flags: -DTESTING=OFF -DBUILD_JARS=ON
       - name: Build NSIS package
         shell: pwsh
@@ -82,12 +82,21 @@ jobs:
             /DKHIOPS_SAMPLES_DIR=..\..\..\assets\samples `
             /DKHIOPS_DOC_DIR=..\..\..\assets\doc `
             khiops.nsi
+      - name: Build ZIP packages
+        shell: bash
+        run: |-
+          cd build/windows-msvc-release && CPACK -G ZIP 
       - name: Upload the Installer Artifact
         uses: actions/upload-artifact@v4
         with:
           name: khiops-setup
           path: ./packaging/windows/nsis/khiops-${{ env.KHIOPS_VERSION }}-setup.exe
-  test:
+      - name: Upload the KNI zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: KNI
+          path: ./build/windows-msvc-release/packages/KNI-${{ env.KHIOPS_VERSION }}.zip
+  test-khiops:
     needs: build
     runs-on: windows-2019
     steps:
@@ -114,10 +123,27 @@ jobs:
         uses: actions/checkout@v4
       - name: Test the installation
         uses: ./.github/actions/test-khiops-install
+  test-kni:
+    needs: build
+    runs-on: windows-2022
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+      - name: Download KNI zip
+        uses: actions/download-artifact@v4
+        with:
+          name: KNI
+      - name: Install KNI
+        shell: bash
+        run: |
+          7z x KNI-${{ needs.build.outputs.khiops-version }}.zip -o${GITHUB_WORKSPACE}/KNI
+      - name: Test KNI zip
+        uses: ./.github/actions/test-kni
+
   # Release is only executed on tags
   release:
     if: github.ref_type == 'tag'
-    needs: [build, test]
+    needs: [build, test-khiops, test-kni]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -126,17 +152,21 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: khiops-setup
+      - name: Download KNI installer artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: KNI
       - name: Rename packages with tag version
         run: |
           SOURCE_VERSION="${{ needs.build.outputs.khiops-version }}"
           PKG_FILE=$(ls *-setup.exe)
           NEW_PKG_FILE=$(echo $PKG_FILE | sed "s/-${SOURCE_VERSION}-/-${{ github.ref_name }}-/")
           mv $PKG_FILE $NEW_PKG_FILE
-      - name: Upload NSIS installer to the release
+      - name: Upload NSIS installer and KNI to the release
         uses: ncipollo/release-action@v1.14.0
         with:
           allowUpdates: true
-          artifacts: khiops-*-setup.exe
+          artifacts: khiops-*-setup.exe,KNI-*.zip
           body: '**For testing purposes only**'
           draft: false
           makeLatest: false
