@@ -79,7 +79,7 @@ BEGIN
             VALUE "FileDescription","Genere Tool"
             VALUE "FileVersion", GENERE_VERSION
             VALUE "InternalName", "genere.exe"
-            VALUE "LegalCopyright", GENERE_COPYRIGHT_LABEL
+            VALUE "LegalCopyright", GENUMFP_COPYRIGHT_LABEL
             VALUE "OriginalFilename", "genere.exe"
             VALUE "ProductName", "genere"
             VALUE "ProductVersion", GENERE_VERSION
