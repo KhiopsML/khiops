@@ -8,11 +8,8 @@ target_link_libraries(MODL_Coclustering${MPI_SUFFIX} PUBLIC KMDRRuleLibrary KWLe
 
 # TODOMERGE: Renommer MODL_Coclustering_SO -> MODL_Coclustering_dll
 
-target_link_libraries(MODL_Coclustering_SO PUBLIC KMDRRuleLibrary KWLearningProblem)
-
-target_link_libraries(MODL_Coclustering${MPI_SUFFIX} PUBLIC KMDRRuleLibrary KWLearningProblem)
-
 add_library(MODL_Coclustering_SO SHARED ${cppfiles} ${ddlogfiles})
+target_link_libraries(MODL_Coclustering_SO PUBLIC KMDRRuleLibrary KWLearningProblem)
 
 set_target_properties(
   MODL_Coclustering_SO

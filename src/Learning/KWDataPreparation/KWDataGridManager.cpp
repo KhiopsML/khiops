@@ -4162,8 +4162,6 @@ void KWDataGridManager::SortAttributePartsByTargetGroups(const KWDGAttribute* so
 	ObjectArray oaSourceParts;
 	ObjectArray oaAssociations;
 	KWSortableObject* association;
-	int nSource;
-	int n;
 	KWDGPart* sourcePart;
 	KWDGPart* groupedPart;
 	IntVector ivRandomIndexes;
