@@ -3,9 +3,9 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #pragma once
+
 ////////////////////////////////////////////////////////////
-// 2015-03-30 17:27:37
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "UserInterface.h"
@@ -27,17 +27,20 @@ public:
 	PEPiView();
 	~PEPiView();
 
-	////////////////////////////////////////////////////////
+	// Acces a l'objet edite
+	PEPi* GetPEPi();
+
+	///////////////////////////////////////////////////////////
 	// Redefinition des methodes a reimplementer obligatoirement
 
 	// Mise a jour de l'objet par les valeurs de l'interface
-	void EventUpdate(Object* object);
+	void EventUpdate(Object* object) override;
 
 	// Mise a jour des valeurs de l'interface par l'objet
-	void EventRefresh(Object* object);
+	void EventRefresh(Object* object) override;
 
 	// Libelles utilisateur
-	const ALString GetClassLabel() const;
+	const ALString GetClassLabel() const override;
 
 	// ## Custom declarations
 
@@ -48,7 +51,7 @@ public:
 
 	// ##
 	////////////////////////////////////////////////////////
-	//// Implementation
+	///// Implementation
 protected:
 	// ## Custom implementation
 	//  Action de calcul

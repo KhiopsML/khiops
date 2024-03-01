@@ -11,20 +11,17 @@ MDKhiopsLearningProject::~MDKhiopsLearningProject() {}
 void MDKhiopsLearningProject::OpenLearningEnvironnement()
 {
 	ALString sDocumentation;
+	ALString sQuickStartInfo;
 
 	// Appel de la methode ancetre
 	KWLearningProject::OpenLearningEnvironnement();
-
-	// Declaration des licences
-	if (LMLicenseManager::IsEnabled())
-		LMLicenseManager::DeclarePredefinedLicense(LMLicenseManager::Khiops);
 
 	// Enregistrement des regles pour les outils de l'eco-systeme Khiops: Enneade
 	KMDRRegisterAllRules();
 
 	// Enregistrement de methodes de pretraitement specifiques aux arbres de decision
-	KWDiscretizer::RegisterDiscretizer(new DTDiscretizerMODL);
-	KWGrouper::RegisterGrouper(new DTGrouperMODL);
+	KWDiscretizer::RegisterDiscretizer(KWType::Symbol, new DTDiscretizerMODL);
+	KWGrouper::RegisterGrouper(KWType::Symbol, new DTGrouperMODL);
 
 	// Parametrage de l'icone de l'application
 	UIObject::SetIconImage("images/khiops.gif");

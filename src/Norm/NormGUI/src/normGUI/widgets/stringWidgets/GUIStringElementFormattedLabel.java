@@ -16,8 +16,6 @@ import normGUI.engine.GUIStringElement;
  * Represente l'element graphique correspondant au style JLabel. Affichage d'une
  * chaine de caracteres dans une zone de texte potentiellement au format html.
  * Utilisation de JLabel.
- *
- * @author Marc Boulle
  */
 public class GUIStringElementFormattedLabel extends GUIStringElement
 {

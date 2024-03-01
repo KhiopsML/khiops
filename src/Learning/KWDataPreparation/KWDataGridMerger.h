@@ -35,6 +35,10 @@ public:
 	void SetDataGridCosts(const KWDataGridCosts* kwdgcCosts);
 	const KWDataGridCosts* GetDataGridCosts() const;
 
+	// Nombre maximum de parties par dimension (defaut: 0, signifie pas de contrainte)
+	int GetMaxPartNumber() const;
+	void SetMaxPartNumber(int nValue);
+
 	// Optimisation du groupage du DataGrid
 	// Renvoie le cout optimise
 	double Merge();
@@ -186,6 +190,9 @@ protected:
 	// (probleme si depassement de capacite des entiers lors du produit)
 	int ComputeProductModulo(int nFactor1, int nFactor2, int nModuloRange) const;
 
+	// Contrainte sur le nombre max de partie par dimension
+	int nMaxPartNumber;
+
 	// Table de hashage des cellules, geree au moyen d'un tableau, et de l'attribut
 	// hashNextCell des cellules pour gerer les collision
 	ObjectArray oaCellDictionary;
@@ -312,7 +319,7 @@ protected:
 	friend class CCCoclusteringBuilder;
 
 	//////////////////////////////////////////////////////////////
-	// Gestion des fusions dans lesquelles la partie est implique
+	// Gestion des fusions dans lesquelles la partie est impliquee
 	// Les fusions sont accessible par cle de la partie extremite de la fusion
 
 	// Ajout d'une fusion
@@ -404,7 +411,7 @@ public:
 	~KWDGMPartMerge();
 
 	/////////////////////////////////////////////////////
-	// Gestions des parties impliques dans le groupage
+	// Gestions des parties impliquees dans le groupage
 
 	// Parametrage de la partie origine
 	void SetPart1(KWDGMPart* part);
@@ -525,12 +532,24 @@ inline void KWDGMAttribute::RemovePartFromValueNumberList(KWDGMPart* partM)
 	slPartValueNumbers->RemoveAt(partM->GetPosition());
 	partM->SetPosition(NULL);
 }
-
+// CH IV Begin
 inline void KWDGMAttribute::RemoveAllPartsFromValueNumberList()
 {
-	slPartValueNumbers->RemoveAll();
-}
+	KWDGPart* part;
+	KWDGMPart* partM;
 
+	slPartValueNumbers->RemoveAll();
+
+	// Dereferencement des positions dans la liste qui vient d'etre detruite
+	part = GetHeadPart();
+	while (part != NULL)
+	{
+		partM = cast(KWDGMPart*, part);
+		partM->SetPosition(NULL);
+		GetNextPart(part);
+	}
+}
+// CH IV End
 inline void KWDGMAttribute::AddPartMerge(KWDGMPartMerge* partMerge)
 {
 	require(partMerge != NULL);
@@ -630,7 +649,7 @@ inline void KWDGMPart::AddPartMerge(KWDGMPartMerge* partMerge)
 	require(partMerge->GetPart1() == this or partMerge->GetPart2() == this);
 	require(LookupPartMerge(partMerge->GetOppositePart(this)) == NULL);
 
-	nkdPartMerges.SetAt((NUMERIC)partMerge->GetOppositePart(this), partMerge);
+	nkdPartMerges.SetAt(partMerge->GetOppositePart(this), partMerge);
 }
 
 inline KWDGMPartMerge* KWDGMPart::LookupPartMerge(KWDGMPart* oppositePart) const
@@ -640,7 +659,7 @@ inline KWDGMPartMerge* KWDGMPart::LookupPartMerge(KWDGMPart* oppositePart) const
 	require(oppositePart != NULL);
 	require(oppositePart->GetAttribute() == GetAttribute());
 
-	partMerge = cast(KWDGMPartMerge*, nkdPartMerges.Lookup((NUMERIC)oppositePart));
+	partMerge = cast(KWDGMPartMerge*, nkdPartMerges.Lookup(oppositePart));
 	ensure(partMerge == NULL or partMerge->GetOppositePart(this) == oppositePart);
 	return partMerge;
 }
@@ -649,7 +668,7 @@ inline void KWDGMPart::RemovePartMerge(KWDGMPart* oppositePart)
 {
 	require(LookupPartMerge(oppositePart) != NULL);
 
-	nkdPartMerges.RemoveKey((NUMERIC)oppositePart);
+	nkdPartMerges.RemoveKey(oppositePart);
 }
 
 inline POSITION KWDGMPart::GetStartPartMerge() const
@@ -668,7 +687,7 @@ inline void KWDGMPart::GetNextPartMerge(POSITION& positionPartMerge, KWDGMPartMe
 	partMerge = cast(KWDGMPartMerge*, object);
 	ensure(partMerge->Check());
 	ensure(partMerge->GetPart1() == this or partMerge->GetPart2() == this);
-	ensure((NUMERIC)partMerge->GetOppositePart(this) == key);
+	ensure(partMerge->GetOppositePart(this) == key);
 }
 
 inline void KWDGMPart::RemoveAllPartMerges()

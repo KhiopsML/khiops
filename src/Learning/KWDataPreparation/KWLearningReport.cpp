@@ -117,7 +117,7 @@ int KWLearningReport::CompareValue(const KWLearningReport* otherReport) const
 	else
 		lSortValue2 = -longint(-otherReport->GetSortValue() * 1e10);
 
-	// Comparaison par
+	// Comparaison sur les valeurs entieres
 	nCompare = -CompareLongint(lSortValue1, lSortValue2);
 
 	// En cas d'egalite, on se base sur le nom

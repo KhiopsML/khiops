@@ -27,8 +27,6 @@ import normGUI.engine.GUIUnit;
 
 /**
  * Cette classe represente une unite d'interface de type fiche
- *
- * @author Marc Boulle
  */
 public class GUICardTabbedPanes extends GUICard implements ChangeListener, FocusListener
 {
@@ -179,13 +177,6 @@ public class GUICardTabbedPanes extends GUICard implements ChangeListener, Focus
                                 refreshMenus();
                                 tabbedPanes.addChangeListener(this);
                                 tabbedPanes.addFocusListener(this);
-
-                                // On agrandit un peut la largeur preferee, trop juste avec la methode par
-                                // defaut
-                                Dimension preferredDimension = tabbedPanes.getPreferredSize();
-                                preferredDimension.setSize(preferredDimension.getWidth() + 25,
-                                                           preferredDimension.getHeight());
-                                tabbedPanes.setPreferredSize(preferredDimension);
                         }
                 }
 

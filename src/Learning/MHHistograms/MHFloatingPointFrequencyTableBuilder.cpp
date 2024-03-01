@@ -33,10 +33,10 @@ void MHFloatingPointFrequencyTableBuilder::InitializeBins(const ContinuousVector
 
 	// Calcul des statistiques sur les valeurs
 	nDistinctValueNumber = 0;
-	cMinValue = KWContinuous::GetMaxValue();
-	cMaxValue = KWContinuous::GetMinValue();
-	cMaxNegativeValue = KWContinuous::GetMinValue();
-	cMinPositiveValue = KWContinuous::GetMaxValue();
+	cMinValue = GetSystemMaxValue();
+	cMaxValue = GetSystemMinValue();
+	cMaxNegativeValue = GetSystemMinValue();
+	cMinPositiveValue = GetSystemMaxValue();
 	for (i = 0; i < cvSourceBinUpperValues->GetSize(); i++)
 	{
 		// Initialisation dans le cas minmaliste d'un seul vecteur en entree
@@ -56,8 +56,8 @@ void MHFloatingPointFrequencyTableBuilder::InitializeBins(const ContinuousVector
 
 		// Verification
 		assert(i == 0 or cBinLowerValue >= cvSourceBinUpperValues->GetAt(i - 1));
-		assert(cBinUpperValue <= KWContinuous::GetMaxValue());
-		assert(cBinLowerValue >= KWContinuous::GetMinValue());
+		assert(cBinLowerValue >= GetSystemMinValue());
+		assert(cBinUpperValue <= GetSystemMaxValue());
 		assert(cBinLowerValue != KWContinuous::GetMissingValue());
 		assert(cBinUpperValue != KWContinuous::GetMissingValue());
 		assert(cBinLowerValue >= 0 or cBinLowerValue <= -KWContinuous::GetEpsilonValue());
@@ -885,7 +885,7 @@ void MHFloatingPointFrequencyTableBuilder::BuildFrequencyTable(int nHierarchyLev
 	Continuous cUpperBound;
 	ContinuousVector cvBounds;
 	IntVector ivFrequencies;
-	MHHistogramVector_fp* frequencyVector;
+	MHMODLHistogramVector* frequencyVector;
 	int i;
 	int nIndex;
 
@@ -1056,20 +1056,20 @@ void MHFloatingPointFrequencyTableBuilder::BuildFrequencyTable(int nHierarchyLev
 	assert(ivFrequencies.GetSize() <= 1 << nHierarchyLevel);
 	assert(ivFrequencies.GetSize() == cvBounds.GetSize() - 1);
 
-	// Creation de la table parametree pour la creation de MHHistogramVector_fp
-	histogramFrequencyTable = new MHHistogramTable_fp;
-	histogramFrequencyTable->Initialize(ivFrequencies.GetSize());
+	// Creation de la table parametree pour la creation de MHMODLHistogramVector
+	histogramFrequencyTable = new MHMODLHistogramTable;
+	histogramFrequencyTable->SetFrequencyVectorNumber(ivFrequencies.GetSize());
 
 	// Parametrage avec les specifications de granularisation
 	histogramFrequencyTable->SetGranularizedValueNumber(GetTotalBinNumberAt(nHierarchyLevel));
-	cast(MHHistogramTable_fp*, histogramFrequencyTable)->SetCentralBinExponent(GetCentralBinExponent());
-	cast(MHHistogramTable_fp*, histogramFrequencyTable)->SetHierarchyLevel(nHierarchyLevel);
-	cast(MHHistogramTable_fp*, histogramFrequencyTable)->SetMinBinLength(GetMinBinLength());
+	cast(MHMODLHistogramTable*, histogramFrequencyTable)->SetCentralBinExponent(GetCentralBinExponent());
+	cast(MHMODLHistogramTable*, histogramFrequencyTable)->SetHierarchyLevel(nHierarchyLevel);
+	cast(MHMODLHistogramTable*, histogramFrequencyTable)->SetMinBinLength(GetMinBinLength());
 
 	// Alimentation de la table
 	for (i = 0; i < ivFrequencies.GetSize(); i++)
 	{
-		frequencyVector = cast(MHHistogramVector_fp*, histogramFrequencyTable->GetFrequencyVectorAt(i));
+		frequencyVector = cast(MHMODLHistogramVector*, histogramFrequencyTable->GetFrequencyVectorAt(i));
 
 		// Parametrage du vecteur
 		assert(cvBounds.GetAt(i) < cvBounds.GetAt(i + 1));
@@ -1085,7 +1085,8 @@ void MHFloatingPointFrequencyTableBuilder::BuildFrequencyTable(int nHierarchyLev
 		cout << "\tLower bound\tUpper bound\tFrequency\n";
 		for (i = 0; i < ivFrequencies.GetSize(); i++)
 		{
-			frequencyVector = cast(MHHistogramVector_fp*, histogramFrequencyTable->GetFrequencyVectorAt(i));
+			frequencyVector =
+			    cast(MHMODLHistogramVector*, histogramFrequencyTable->GetFrequencyVectorAt(i));
 			cout << "\t" << frequencyVector->GetLowerBound();
 			cout << "\t" << frequencyVector->GetUpperBound();
 			cout << "\t" << frequencyVector->GetFrequency() << "\n";
@@ -1094,17 +1095,17 @@ void MHFloatingPointFrequencyTableBuilder::BuildFrequencyTable(int nHierarchyLev
 	ensure(histogramFrequencyTable->GetTotalFrequency() == GetTotalFrequency());
 	ensure(histogramFrequencyTable->GetGranularizedValueNumber() >=
 	       histogramFrequencyTable->GetFrequencyVectorNumber());
-	ensure(cast(MHHistogramVector_fp*, histogramFrequencyTable->GetFrequencyVectorAt(0))->GetLowerBound() <=
+	ensure(cast(MHMODLHistogramVector*, histogramFrequencyTable->GetFrequencyVectorAt(0))->GetLowerBound() <=
 	       GetMinValue());
-	ensure(cast(MHHistogramVector_fp*, histogramFrequencyTable->GetFrequencyVectorAt(
-					       histogramFrequencyTable->GetFrequencyVectorNumber() - 1))
+	ensure(cast(MHMODLHistogramVector*, histogramFrequencyTable->GetFrequencyVectorAt(
+						histogramFrequencyTable->GetFrequencyVectorNumber() - 1))
 		   ->GetUpperBound() >= GetMaxValue());
 }
 
 void MHFloatingPointFrequencyTableBuilder::BuildNulFrequencyTable(KWFrequencyTable*& histogramFrequencyTable) const
 {
 	BuildFrequencyTable(0, histogramFrequencyTable);
-	cast(MHHistogramTable_fp*, histogramFrequencyTable)->SetCentralBinExponent(GetMaxCentralBinExponent());
+	cast(MHMODLHistogramTable*, histogramFrequencyTable)->SetCentralBinExponent(GetMaxCentralBinExponent());
 }
 
 void MHFloatingPointFrequencyTableBuilder::ExtractFloatingPointBinBounds(Continuous cValue, int nHierarchyBitNumber,
@@ -1322,18 +1323,18 @@ longint MHFloatingPointFrequencyTableBuilder::ExtractMantissaBinInMainBinIndex(C
 									       int nMantissaBitNumber,
 									       int nCentralExponent)
 {
-	longint liMantissaBinIndex;
+	longint lMantissaBinIndex;
 
 	require(cValue != KWContinuous::GetMissingValue());
 	require(0 <= nMantissaBitNumber and nMantissaBitNumber <= GetMaxMantissaBinBitNumber());
 
 	// Cas d'une valeur dans un central bin
 	if (ldexp(-1, nCentralExponent) < cValue and cValue <= ldexp(1, nCentralExponent))
-		liMantissaBinIndex = ExtractMantissaBinInCentralBinIndex(cValue, nMantissaBitNumber, nCentralExponent);
+		lMantissaBinIndex = ExtractMantissaBinInCentralBinIndex(cValue, nMantissaBitNumber, nCentralExponent);
 	// Cas d'une valeur dans un exponent bin
 	else
-		liMantissaBinIndex = ExtractMantissaBinInExponentBinIndex(cValue, nMantissaBitNumber);
-	return liMantissaBinIndex;
+		lMantissaBinIndex = ExtractMantissaBinInExponentBinIndex(cValue, nMantissaBitNumber);
+	return lMantissaBinIndex;
 }
 
 longint MHFloatingPointFrequencyTableBuilder::ExtractMantissaBinInExponentBinIndex(Continuous cValue,
@@ -1744,7 +1745,7 @@ void MHFloatingPointFrequencyTableBuilder::WriteFrequencyTable(KWFrequencyTable*
 							       ostream& ost) const
 {
 	int i;
-	MHHistogramVector_fp* frequencyVector;
+	MHMODLHistogramVector* frequencyVector;
 
 	require(histogramFrequencyTable != NULL);
 
@@ -1754,7 +1755,7 @@ void MHFloatingPointFrequencyTableBuilder::WriteFrequencyTable(KWFrequencyTable*
 	// Vecteurs
 	for (i = 0; i < histogramFrequencyTable->GetFrequencyVectorNumber(); i++)
 	{
-		frequencyVector = cast(MHHistogramVector_fp*, histogramFrequencyTable->GetFrequencyVectorAt(i));
+		frequencyVector = cast(MHMODLHistogramVector*, histogramFrequencyTable->GetFrequencyVectorAt(i));
 		ost << frequencyVector->GetLowerBound() << "\t";
 		ost << frequencyVector->GetUpperBound() << "\t";
 		ost << frequencyVector->GetUpperBound() - frequencyVector->GetLowerBound() << "\t";
@@ -1803,20 +1804,23 @@ boolean MHFloatingPointFrequencyTableBuilder::Check() const
 			if (nMainBinIndex == 0)
 			{
 				bOk = bOk and (cLowerBound < GetMinValue() and GetMinValue() <= cUpperBound);
+				assert(bOk);
 
 				// Verification de la borne inf du domain si elle a ete initialisee
 				if (AreDomainBoundsInitialized())
 				{
 					bOk = bOk and GetDomainLowerBound() < GetMinValue();
+					assert(bOk);
 
 					// La borne inf est dans le meme bin que la valeur min, sauf dans de la limite
-					// de a precision des Continuous
+					// de la precision des Continuous
 					bOk = bOk and
 					      (cLowerBound <= GetDomainLowerBound() or
 					       (0 < cLowerBound and cLowerBound < KWContinuous::GetEpsilonValue() and
 						GetDomainLowerBound() == 0) or
 					       (-KWContinuous::GetEpsilonValue() < cLowerBound and cLowerBound < 0 and
 						GetDomainLowerBound() == -KWContinuous::GetEpsilonValue()));
+					assert(bOk);
 				}
 			}
 			assert(bOk);
@@ -2124,6 +2128,16 @@ int MHFloatingPointFrequencyTableBuilder::SearchBinIndex(int nSearchedCumulative
 	return nIndex;
 }
 
+Continuous MHFloatingPointFrequencyTableBuilder::GetSystemMinValue() const
+{
+	return KWContinuous::GetMinValue();
+}
+
+Continuous MHFloatingPointFrequencyTableBuilder::GetSystemMaxValue() const
+{
+	return KWContinuous::GetMaxValue();
+}
+
 void MHFloatingPointFrequencyTableBuilder::InitializeDomainBounds()
 {
 	boolean bDisplay = false;
@@ -2157,7 +2171,7 @@ void MHFloatingPointFrequencyTableBuilder::InitializeDomainBounds()
 
 		// Calcul du cout total d'encodage
 		dCost = nTotalFrequency * log(cUpperBound - cLowerBound);
-		dCost += MHMODLHistogramCosts_fp::ComputeDomainBoundsMantissaCost(i);
+		dCost += MHMODLHistogramCosts::ComputeDomainBoundsMantissaCost(i);
 
 		// Affichage
 		if (bDisplay)
@@ -2191,29 +2205,6 @@ void MHFloatingPointFrequencyTableBuilder::InitializeDomainBounds()
 			nDomainBoundsMantissaBitNumber = i;
 		}
 	}
-
-	// Cas ou on force le comportant des bin de taille fixe
-	if (MHMODLHistogramCosts_fp::EnforceFixedSizeBinsBehavior())
-	{
-		double dEpsilonBinLength;
-
-		// Calcul de la taille du epsilon bin de taille fixe
-		dEpsilonBinLength = pow(2, -(GetMaxHierarchyLevel() - GetMaxCentralBinExponent()));
-		assert(dEpsilonBinLength * pow(2, GetMaxHierarchyLevel()) >= GetMaxValue() - GetMinValue());
-		assert(dEpsilonBinLength * pow(2, GetMaxHierarchyLevel() - 1) < GetMaxValue() - GetMinValue());
-
-		// Calcul des bornes inf et sup des premiers intervalles de l'histogramme sur la base de cet epsilon bin
-		cDomainLowerBound = floor(GetMinValue() / dEpsilonBinLength) * dEpsilonBinLength;
-		assert(cDomainLowerBound <= GetMinValue());
-		if (cDomainLowerBound < GetMinValue() - dEpsilonBinLength)
-			cDomainLowerBound += dEpsilonBinLength;
-		if (cDomainLowerBound == GetMinValue())
-			cDomainLowerBound -= dEpsilonBinLength;
-		cDomainUpperBound = ceil(GetMaxValue() / dEpsilonBinLength) * dEpsilonBinLength;
-		assert(cDomainUpperBound >= GetMaxValue());
-		if (cDomainUpperBound >= GetMaxValue() + dEpsilonBinLength)
-			cDomainUpperBound -= dEpsilonBinLength;
-	}
 	ensure(AreDomainBoundsInitialized());
 }
 
@@ -2241,12 +2232,6 @@ void MHFloatingPointFrequencyTableBuilder::UpdateMaxSafeHierarchyLevel()
 		// Diminution du niveau de hierarchie max
 		nMaxSafeHierarchyLevel--;
 	}
-
-	// Dans le cas particulier ou il ne reste que deux bins, on ne prend pas de risque en limitant a un seul bin,
-	// pour eviter les probleme d'arrondis des bornes inf et sup autours des valeur min et max du jeu de donnees,
-	// qui pourraient fausser artificiellement la densite
-	if (GetTotalBinNumberAt(nMaxSafeHierarchyLevel) == 2)
-		nMaxSafeHierarchyLevel = 0;
 }
 
 void MHFloatingPointFrequencyTableBuilder::InitializeTestValues(ContinuousVector* cvValues)

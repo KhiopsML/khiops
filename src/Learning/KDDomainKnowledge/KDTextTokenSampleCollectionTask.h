@@ -6,8 +6,11 @@
 
 class KDTextTokenSampleCollectionTask;
 
+#include "KDTextFeatureSpec.h"
 #include "KWDatabaseTask.h"
-#include "KDTokenFrequency.h"
+#include "KWTokenFrequency.h"
+#include "KWTextService.h"
+#include "KWTextTokenizer.h"
 
 /////////////////////////////////////////////////////////////////////////////////
 // Classe KDTextTokenSampleCollectionTask
@@ -28,141 +31,84 @@ public:
 	//   . ivTokenNumbers: nombre de tokens a extraire par variable de type texte, dans le meme ordre que les
 	//   variables de type texte
 	// Sortie:
-	// 	 . oaCollectedTokenSamples: tableau de samples de token (ObjectArray de KDTokenFrequency), dans le meme
+	// 	 . oaCollectedTokenSamples: tableau de samples de token (ObjectArray de KWTokenFrequency), dans le meme
 	// ordre que les variables de type texte Methode interruptible, retourne false si erreur ou interruption (avec
 	// message), true sinon Memoire: le tableau en sortie appartient a l'appelant, et doit etre initialement vide.
 	// Les tableaux en sortie et leur contenu en tokens appartiennent a l'appele
 	boolean CollectTokenSamples(const KWDatabase* sourceDatabase, const IntVector* ivTokenNumbers,
 				    ObjectArray* oaCollectedTokenSamples);
 
+	// Parametrage du type d'attributs de type texte: ngrams (par defaut)
+	void SetTextFeatures(const ALString& sValue);
+	const ALString& GetTextFeatures() const;
+
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
 	//////////////////////////////////////////////////////////////////////////////////////////
-	// Specification, implementation et test de la tache KDTextTokenSampleCollectionTask
-	//
-	// Objectif:
-	//  . implementer la collecte des echantillons de tokens selon les specification de la methode
-	//    CollectTokenSamples, dont une implementation prototype basique est disponible (cf. ci-dessous)
-	//
-	// Probleme 1: implementation en parallele efficace:
-	//     . implementation en tant que sous-tache de KWDatabaseTask
-	//        . appel de la methode principale RunDatabaseTask(sourceDatabase) depuis CollectTokenSamples
-	//        . cf. exemple minimaliste dans la tache KWDatabaseCheckTask
-	//        . cf. exemple basique dans la tache KWDatabaseBasicStatsTask
-	//        . cf. exemple analogue et plus complexe dans la tache KDSelectionOperandSamplingTask
-	//     . dimensionnement correct de la tache
-	//     . reproductibilite des resultats, en sequentiel ou parallele, quel que soit le nombre de coeurs
-	//         . cf. KDSelectionOperandSamplingTask
-	//     . efficacite des IO
-	//         . ne faire qu'une passe sur la base initiale
-	//         . eventuellement, on peut réutiliser des fichiers temporaires pour stocker et trier
-	//           les paire (token, frequency)
-	//         . sinon, mettre au point un échantillonnage reproductible en parallele
-	//
-	// Probleme 2: choix de tokenisation
-	//    . contexte: analyse des textes suivant deux mode
-	//        . par defaut: n-gramme de bytes
-	//            . pros:
-	//              . bonnes performances, surtout avec des petit corpus
-	//              . robuste aux texte mal rediges (ex: sms, tweets...)
-	//              . ne demande pas de passe préalable de collecte de stats sur les texte
-	//              . universel: pourrait permettre d'analyser le contenu d'executables pour detecter des virus
-	//              . rapide a calculer
-	//            . cons
-	//              . beaucoup de variable generes, dont de nombreuse inutiles
-	//              . boite noire, non interpretable
-	//              . faut-il une version de collecte des ngrammes les plus frequents, en alternative au projections
-	//              aleatoire via des tables de hashage?
-	//        . sur option: tokenisation, en utilisant les tokens les plus frequents du corpus
-	//            . pros:
-	//              . interpretabilite
-	//              . variables generees en nombre plus restreint, liees au corpus
-	//              . peu ameliorer les performances dans certains cas
-	//              . permet d'incorporer des connaissance du domaine, en pretraitant le corpus correctement
-	//            . cons
-	//              . une passe de collecte des tokens prealable est necessaire, avec impact sur les IO
-	//              . moins automatique, depend de la qualite des pretraitements
-	//   . options de tokenisation a investiguer
-	//        . dans l'implementation prototype, les deux options suivantes on ete testees
-	//            . decoupage en mot separes par des espaces (cf. PROTOAnalyseTextValueBasic)
-	//            . decoupage en mots separes par des espaces, en isolant des sequences de ponctuation (cf.
-	//            PROTOAnalyseTextValueUsingPunctuation) . l'option avec ponctuation obtient de bien meilleurs
-	//            resultats
-	//        . faut-il incorporer des pretraitements plus evolues?
-	//            . options basiques "universelles"
-	//              . suppression des caracteres accentues?
-	//              . passage en minuscules?
-	//              . traitement a part des chiffres?
-	//              ...
-	//            . options avancees dependant de la langue
-	//              . stemmatisation?
-	//              . lemmatisation?
-	//              . correction orthographique?
-	//              ...
-	//         . parametrage utilisateur
-	//              . minimaliste: une case a cocher ngrams/tokens?
-	//              . idem, mais avec quelques options basiques incorporees?
-	//              . choix a trois options: ngrammes/tokenisation elementaire/tokenisation basique?
-	//              . boite de dialogue avec choix de pretraitements inspirés de Patatext, dont les plus standard
-	//              sont coches par defaut?
-	//   . autre piste a explorer
-	//      . developper une bibliotheque de regles de derivation dediees au pretraitement des textes
-	//   . petit probleme a resoudre
-	//       . construction des noms de variables compatible avec utf8
-	//         . que faire si un token extrait n'est pas utf8?
-	//
-	// Plan de travail
-	//   . etape 1: specifier et valider les choix de conception et d'implementation, pour les problemes 1 et 2
-	//   (independamment) . etape 2: implementation, tests dans un environnement independant
-	//       . utilisation des bibliotheques Norm, Parallel et Learning
-	//       . activation des variables de type Text et TextList par la variable d'environnement
-	//       KhiopsTextVariableMode=true . implementation dans sous-classe de  KDTextTokenSampleCollectionTask .
-	//       test de la collecte des token independante de Learning (parametrage par un dictionnaire et une base de
-	//       donnees . utilisation des base de texte disponibles dans LearningTest\TextDatasets
-	//   . etape 3: integration dans Learning
-	//       . test d'integration
-	//       . refactoring si necessaire
-	//       . necessite d'avoir les potentiels prétraitement de texte disponible a la fois depuis la classe
-	//       KDTextTokenSampleCollectionTask
-	//         pour extraire les tokens et dans des regles de derivation pour le deploiement (cf. classe
-	//         KWDRTextTokens)
-
-	//////////////////////////////////////////////////////////////////////////////////////////
 	// Implementation prototype permettant de tester les entree-sortie de la tache et son
 	// integration dans le frawework de construction de variables de type texte
 	//
-	// Implementation basique non paralleise, sans dimensionnement, et avec probleme de scalabilite
+	// Implementation basique non parallelise, sans dimensionnement, et avec probleme de scalabilite
 	// A terme, cette implementation sera supprimee
 
-	// Prototype "virtuel" de la methode principale
-	// Construit un resultat conforme au specification avec des token "synthetiques", sans aucune analyse de la base
-	boolean PROTOVirtualCollectTokenSamples(const KWDatabase* sourceDatabase);
+	// Prototype basique de la methode principale
+	// Construit un resultat conforme au specification avec des tokens "synthetiques", sans aucune analyse de la
+	// base Permet de tester l'integration basique de la classe
+	boolean DummyCollectTokenSamples(const KWDatabase* sourceDatabase);
 
-	// Prototype de la methode principale, avec analyse de la base
 	// Implementation en sequentiel, sans dimensionnement et sans passer par les methode de la tache
-	boolean PROTOCollectTokenSamples(const KWDatabase* sourceDatabase);
+	boolean SequentialCollectTokenSamples(const KWDatabase* sourceDatabase);
 
-	// Prototype d'analyse d'un objet
-	boolean PROTOAanalyseDatabaseObject(const KWObject* kwoObject, ObjectArray* oaTokenDictionaries);
+	// Analyse de la base de donnees pour en extraire les tokens a l'aide de tokenizer par attribut de type texte
+	// La base en parametre est ouverte et ses objets analyses, puis la base est fermee
+	boolean AnalyseDatabase(KWDatabase* database, ObjectArray* oaTextTokenizers);
 
-	// Prototype d'analyse d'une variable de type texte
-	// redirige sur la variance choisie
-	void PROTOAnalyseTextValue(const Symbol& sTextValue, ObjectDictionary* odTokenDictionary);
+	// Analyse d'un objet pour en extraire les tokens a l'aide de tokenizer par attribut de type texte
+	boolean AnalyseDatabaseObject(const KWObject* kwoObject, ObjectArray* oaTextTokenizers);
 
-	// Prototype d'analyse d'une variable de type texte
-	// Le texte est tokenise en sequences de caracteres de type espace (ignorees),
-	//  ou de tout autre caracteres (gardees)
-	void PROTOAnalyseTextValueBasic(const Symbol& sTextValue, ObjectDictionary* odTokenDictionary);
+	// Calcul du nombre de token a collecter en mode flux pour assurer la stabilite des resultats
+	// En mode flux, on fait une premier passe avec ce nombre de tokens pour avoir les tokens les
+	// plus frequents, mais avec une incertitude sur les comptes
+	// On effectue alors une second passe avec les tokens ainsi identifie, et on ne garde que
+	// les plus frequents selon le nombre demande. Meme s'il n'y a pas de garantie theorique,
+	// cela assure en pratique la stabilite des resultats dans la plupart des cas
+	int GetMaxStreamCollectedTokenNumber(int nRequestedTokenNumber) const;
 
-	// Prototype d'analyse d'une variable de type texte
-	// Le texte est tokenise en sequences de caracteres de type espace (ignorees),
-	//  de caracteres ponctuation uniquement (gardees),
-	//  ou de tout autre caracteres (gardees)
-	void PROTOAnalyseTextValueUsingPunctuation(const Symbol& sTextValue, ObjectDictionary* odTokenDictionary);
+	//////////////////////////////////////////////////////////////////////////////////////////
+	// Implementation de la collecte des tokens en parallele
+	// Deux passes sont necessaire
+	//   - la premiere passe collecte en flux un echantillons de tokens parmi les plus frequents
+	//     pour gerer l'incertitude kiee aunstream, on collecte plus de tokens que demande
+	//   - la deusieme passe prend ces tokens en entree et calcule de facon exacte leur effectif
+	//     ce qui permet de renvoyer la sous partie des tokens les plus freqntes, tries
+	//     par effectif decroissant
+	// Chaque passe est executee en parallele, la premiere puis la seconde
+	// Les deux passe etant basees essentiellement sur la tokenisation des textes sont tres proche.
+	// On choisit d'implementer ces deux taches dans la meme classe pour factoriser le code, en jouant
+	// sur des variante dun parametregae en entree et en sortie.
 
-	// Prototype d'analyse d'une variable de type TextList
-	void PROTOAanalyseTextListValue(const SymbolVector* svTextListValue, ObjectDictionary* odTokenDictionary);
+	// Pilotage de l'ensemble des deux passes
+	boolean InternalCollectTokenSamples(const KWDatabase* sourceDatabase);
+
+	// Verification de la coherence des parametres de pilotage des deuxn passes
+	boolean CheckPassParameters() const;
+
+	//////////////////////////////////////////////////////////////////////////////////////////
+	// Gestion des indicateur de performances
+	// Cela permet d'afficher la performance en memoire et temps de calcul le temps de la mise
+	// au point des algorithme
+
+	// Debut de la collecte des indicateurs de performance
+	// On indique si on souhaite les afficher effectivement par la syuite
+	void StartCollectPerformanceIndicators(boolean bDisplay);
+
+	// Fin de la collecte des indicateurs
+	void StopCollectPerformanceIndicators();
+
+	// Affichage des indicateurs collectes, en associant un livelle ainsi qu'un tableau de tokenizer
+	// pour afficher le nombre de tokens collectes
+	void DisplayPerformanceIndicators(const ALString& sLabel, const ObjectArray* oaTokenizers);
 
 	//////////////////////////////////////////////////////////////////////////////////////////
 	// Implementation des methodes de KWDatabaseTask pour paralleliser la collecter des tokens
@@ -175,13 +121,37 @@ protected:
 	boolean MasterPrepareTaskInput(double& dTaskPercent, boolean& bIsTaskFinished) override;
 	boolean MasterAggregateResults() override;
 	boolean MasterFinalize(boolean bProcessEndedCorrectly) override;
-	boolean SlaveInitializePrepareDatabase() override;
-	boolean SlaveInitializeOpenDatabase() override;
-	boolean SlaveProcessStartDatabase() override;
-	boolean SlaveProcessExploitDatabase() override;
+	boolean SlaveInitialize() override;
+	boolean SlaveProcess() override;
 	boolean SlaveProcessExploitDatabaseObject(const KWObject* kwoObject) override;
-	boolean SlaveProcessStopDatabase(boolean bProcessEndedCorrectly) override;
 	boolean SlaveFinalize(boolean bProcessEndedCorrectly) override;
+
+	///////////////////////////////////////////////////////////
+	// Parametres partages par le maitre et les esclaves
+
+	// Type de token
+	PLShared_String shared_sTextFeatures;
+
+	// Indicateur pour savoir si n est dans la premiere passe
+	PLShared_Boolean shared_bIsFirstPass;
+
+	// Activation du calcul des effectif exact des tokens, c'est a dire qu'une deuxieme passe est necessaire
+	PLShared_Boolean shared_bComputeExactTokenFrequencies;
+
+	// Vecteur des nombres de tokens par texte a collecter, pour la premiere passe
+	PLShared_IntVector shared_ivFirstPassTokenNumbers;
+
+	// Tableau des tokens specifique dont il faut calcul l'effectif, pour la deuxieme passe
+	PLShared_ObjectArray* shared_oaSecondPassSpecificTokens;
+
+	//////////////////////////////////////////////////////
+	// Parametre en entree et sortie des esclaves
+
+	// Tableau des tokens en sortie d'un esclaves
+	// Dans la premiere passe, il s'agit d'un echantillon de tokens collecte par l'esclave
+	// Dans le seconde passe, il s'agit des token dont il faut calculer l'effectif, avec l'effectif
+	// calcule localement par l'esclave
+	PLShared_ObjectArray* output_oaTokens;
 
 	////////////////////////////////////////////////////
 	// Variables du maitre
@@ -189,6 +159,21 @@ protected:
 	// Nombre de tokens a extraire par variable de typen texte, copie du parametre principal en entree
 	const IntVector* ivMasterTokenNumbers;
 
-	// Tableuax de samples de topkesn extraits par variable de type txete, copy du parametre principale en sortie
+	// Tableau de samples de topkesn extraits par variable de type txete, copie du parametre principale en sortie
+	// En fin de premiere passe, contient l'echantillon de tokens collectes
+	// En fin de deuxieme passe, contient les tokens collectes avec leur effectif exact
 	ObjectArray* oaMasterCollectedTokenSamples;
+
+	// Tableau des tokenisers de travail, un par texte a analyser
+	ObjectArray oaMasterTextTokenizers;
+
+	// Indicateur de performance
+	Timer performanceTimer;
+	longint lPerformanceInitialHeapMemory;
+
+	////////////////////////////////////////////////////
+	// Variables de l'esclave
+
+	// Tableau des tokenisers de travail, un par texte a analyser
+	ObjectArray oaSlaveTextTokenizers;
 };

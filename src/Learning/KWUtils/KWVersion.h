@@ -7,12 +7,6 @@
 #include "Standard.h"
 #include "ALString.h"
 
-// Gestion de la compatibilite ascendante entre Khiops V9 et Khiops V10
-// Tout le code dedie a cette gestion et entre define, pour tester sa supression
-// et faciliter sa supression effective apres la sortie de Khiops V10
-// Ce code est tricky, en mode quick and dirty
-#define DEPRECATED_V10
-
 // Extraction de la version majeure d'une version complete
 // Par exemple: renvoie 10 pour la version 10.1.4i
 int GetMajorVersion(const ALString& sFullVersion);
@@ -64,6 +58,21 @@ void SetLearningWebSite(const ALString& sValue);
 // Type de systeme: 32 ou 64 bit
 const ALString GetLearningSystemType();
 
+// CH IV Begin
+// CH IV Refactoring: commenter les methodes
+// CH IV Refactoring: verifier si ces methodes sont utilisees
+// CH IV Refactoring: envisager d'abandonner la gestion des poubelles
+//    peut etre utile dans la tokenisation pour reduire le cout d'une partition avec gros groupe poubelle ?
+//    pour les attributs de grille de type VarPart et les attributs internes qu'il contiennent?
+// CH IV Refactoring: La methode de postOptimisationVarPart ne prend pas en compte le groupe poubelle
+
+const boolean GetVarPartAttributeGarbage();
+void SetVarPartAttributeGarbage(const boolean bValue);
+
+const boolean GetInnerAttributeGarbage();
+void SetInnerAttributeGarbage(const boolean bValue);
+// CH IV End
+
 //////////////////////////////////////////////////////////////////////////////////////
 // Politique d'affichage des noms
 
@@ -103,25 +112,19 @@ boolean GetLearningDefaultRawGuiModeMode();
 // pour forcer un comportement different
 boolean GetLearningRawGuiModeMode();
 
-// Indicateur du mode base de donnees multi-table de l'outil
-// Ce mode est controlable par la variable d'environnement KhiopsMultiTableMode a true ou false
-boolean GetLearningMultiTableMode();
-
 // Indicateur du mode expert de l'outil (permet d'activer certains services additionnels)
 // Ce mode expert est controlable par la variable d'environnement KhiopsExpertMode a true ou false
 boolean GetLearningExpertMode();
 
-// Indicateur du mode de l'outil avec gestion des parametre de crash test
+// Indicateur du mode de l'outil avec gestion d'un controle stricte des limites memoire (defaut: false)
+// Quand il est a true, tout dépassement d'une limite memoire specifie par l'utilisateur provoque
+// un crash memoire, gere par un parametrage de l'allocateur
+// Ce mode expert est controlable par la variable d'environnement KhiopsHardMemoryLimitMode a true ou false
+boolean GetLearningHardMemoryLimitMode();
+
+// Indicateur du mode de l'outil avec gestion des parametres de crash test
 // Ce mode expert est controlable par la variable d'environnement KhiopsCrashTestMode a true ou false
 boolean GetLearningCrashTestMode();
-
-// Indicateur du mode de l'outil avec gestion des variables de type Text
-// Ce mode expert est controlable par la variable d'environnement KhiopsTextVariableMode a true ou false
-boolean GetLearningTextVariableMode();
-
-// Indicateur du mode de l'outil avec gestion de l'interpretation des model
-// Ce mode expert est controlable par la variable d'environnement KhiopsInterpretationMode a true ou false
-boolean GetLearningInterpretationMode();
 
 // Indicateur du mode trace pour le dimensionnement des taches de preparation
 // Ce mode expert est controlable par la variable d'environnement KhiopsPreparationTraceMode a true ou false
@@ -135,13 +138,16 @@ boolean GetIOTraceMode();
 // Ce mode expert est controlable par la variable d'environnement KhiopsForestExpertMode a true ou false
 boolean GetForestExpertMode();
 
-// Indicateur du mode expert pour forcer le mode Khiops V9 du predicteur SNB
-// Ce mode expert est controlable par la variable d'environnement KhiopsForceSNBV9ExpertMode a true ou false
-boolean GetForceSNBV9ExpertMode();
-
 // Indicateur du mode expert de l'outil de coclustering (permet d'activer certains services additionnels)
 // Ce mode expert est controlable par la variable d'environnement KhiopsCoclusteringExpertMode a true ou false
 boolean GetLearningCoclusteringExpertMode();
+
+// CH IV Begin
+// Indicateur du mode expert de l'outil de coclustering (permet d'activer la fonctionnalite de coclustering instances *
+// variables) Ce mode expert est controlable par la variable d'environnement KhiopsCoclusteringIVExpertMode a true ou
+// false
+boolean GetLearningCoclusteringIVExpertMode();
+// CH IV End
 
 // Indicateur du mode parallelisation expert de l'outil (en mode expert uniquement)
 // Permet d'activer certains services additionnels du mode parallele

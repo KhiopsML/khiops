@@ -648,6 +648,10 @@ void KWSymbolDictionary::RemoveAll()
 	    (sUserName == "miib6422") and GetLearningExpertMode() and this == &(Symbol::sdSharedSymbols);
 	debug(bShowAllocErrorMessages = false);
 
+	// Desactivation de cette option y compris en mode release, car cela provoque du reporting verbeux en cas
+	// d'erreur fatale A reactiver si necessaire
+	bShowAllocErrorMessages = false;
+
 	// Nettoyage des cles de la table de hashage
 	nMessageIndex = 0;
 	for (nHashPosition = 0; nHashPosition < pvSymbolDatas.GetSize(); nHashPosition++)
@@ -809,7 +813,6 @@ void KWSymbolDictionary::RemoveSymbol(KWSymbolDataPtr symbolData)
 	assert(m_nCount >= 0);
 
 	// Retaillage dynamique pour recuperer la memoire inutilisee
-	assert(GetHashTableSize() < INT_MAX / sizeof(void*));
 	if (GetCount() > 20 and GetCount() < GetHashTableSize() / 8)
 		ReinitHashTable(DictionaryGetNextTableSize(2 * GetCount()));
 }

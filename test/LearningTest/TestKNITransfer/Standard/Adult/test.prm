@@ -13,21 +13,23 @@
 //
 //
 
+AnalysisSpec.SystemParameters.APIMode true        // API mode
+AnalysisSpec.SystemParameters.MemoryLimit 2000     // Memory limit in MB
 ClassManagement.OpenFile       // Open...
 ClassFileName ./AdultModeling.kdic       // Dictionary file
 OK                             // Open
 
-TransferDatabase               // Transfer database
+TransferDatabase               // Deploy model
 
 // -> Database transfer
-ClassName SNB_Adult             // Transfer dictionary
-SourceDatabase.DatabaseFiles.List.Key SNB_Adult               // List item selection
-SourceDatabase.DatabaseFiles.DataTableName ../../../datasets/Adult/Adult.txt     // Database file
-TargetDatabase.DatabaseFiles.List.Key SNB_Adult               // List item selection
-TargetDatabase.DatabaseFiles.DataTableName ./results/T_Adult.txt     // Database file
-TransferDatabase               // Transfer database
+ClassName SNB_Adult             // Deployment dictionary
+SourceDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key SNB_Adult               // List item selection
+SourceDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../datasets/Adult/Adult.txt     // Database file
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key SNB_Adult               // List item selection
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ./results/D_Adult.txt     // Database file
+TransferDatabase               // Deploy model
 
-TargetDatabase.DatabaseFiles.DataTableName ./results/KNI_Adult.txt     // Database file
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ./results/KNI_Adult.txt     // Database file
 KNILogFileName results/KNILog.txt      // KNI log file name
 KNIStreamMaxMemory 100         // KNI max stream memory in Mo
 KNITransferDatabase            // KNI transfer database

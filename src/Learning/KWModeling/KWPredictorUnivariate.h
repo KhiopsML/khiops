@@ -140,8 +140,8 @@ protected:
 	// Vecteur des valeurs min et max par intervalle, pour l'ecriture des discretisations JSON
 	// Dans le cas d'une evaluation de grille, il faut memorise ces vecteurs pour pouvoir
 	// appeler la methode d'ecriture du rapport JSON de la classe ancetre
-	ContinuousVector cvJSONEvaluatedAttributeMinValues;
-	ContinuousVector cvJSONEvaluatedAttributeMaxValues;
+	ContinuousVector cvJSONEvaluatedAttributeDomainLowerBounds;
+	ContinuousVector cvJSONEvaluatedAttributeDomainUpperBounds;
 };
 
 ////////////////////////////////////////////////////////////////////////////////

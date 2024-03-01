@@ -54,12 +54,12 @@ public:
 	void ActionInspectProfessionnalAddress();
 
 	// Acces a l'objet edite par la vue
-	void SetObject(Object* object);
+	void SetObject(Object* object) override;
 	PRWorker* GetWorker();
 
 	// ##
 	////////////////////////////////////////////////////////
-	//// Implementation
+	///// Implementation
 protected:
 	// ## Custom implementation
 

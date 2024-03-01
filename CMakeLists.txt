@@ -44,6 +44,7 @@ option(MPI "Use MPI libraries (ON,OFF)" ON)
 option(TESTING "Build unit tests (ON,OFF)" OFF)
 option(BUILD_LEX_YACC "Re-generate parsing files with lex & yacc" OFF)
 option(BUILD_JARS "Re-generate norm.jar and khiops.jar" OFF)
+option(GENERATE_VIEWS "Generate views sources from dd files" OFF)
 option(C11 "Build whith C++11 libraries (ON,OFF)" ON)
 
 # Print the options
@@ -54,6 +55,7 @@ message("  TESTING=\"${TESTING}\"")
 message("  C11=\"${C11}\"")
 message("  BUILD_LEX_YACC=\"${BUILD_LEX_YACC}\"")
 message("  BUILD_JARS=\"${BUILD_JARS}\"")
+message("  GENERATE_VIEWS=\"${GENERATE_VIEWS}\"")
 message("\n")
 
 # Check if the os is a linux fedora-like distro (CentOS, Rocky etc...)
@@ -106,7 +108,7 @@ message(STATUS "Executables will be stored in ${CMAKE_BINARY_DIR}/bin/")
 message(STATUS "Libraries will be stored in ${CMAKE_BINARY_DIR}/lib/")
 
 # Set module path for the project
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/packaging")
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/packaging" ; "${CMAKE_CURRENT_SOURCE_DIR}/scripts")
 
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN 1)
@@ -228,18 +230,6 @@ function(set_unix_khiops_options target)
   #
   target_compile_options(${target} PRIVATE $<$<CONFIG:RELEASE,RELWITHDEBINFO>:-fno-rtti> -fno-exceptions)
 
-  # Special options for clang, we remove the following too verbose warnings:
-  #
-  # - unsequenced modification
-  # - overloaded virtual functions
-  # - inconsistent missing override
-  #
-  # These warnings should be add back, but we have a lot of work in Khiops
-  if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    target_compile_options(${target} PRIVATE -Wno-unsequenced -Wno-overloaded-virtual
-                                             -Wno-inconsistent-missing-override)
-  endif()
-
 endfunction(set_unix_khiops_options)
 
 # Sets the compiling options for MSVC
@@ -311,6 +301,9 @@ function(add_khiops_jar)
     OUTPUT_DIR "${CMAKE_BINARY_DIR}/jars" COMPONENT KHIOPS)
   install_jar("${ADD_KHIOPS_JAR_NAME}_jar" DESTINATION usr/share/khiops)
 endfunction()
+
+# Load module to generate views from .dd files
+include(generate_gui)
 
 # Add targets for Norm Parallel and Learning modules
 add_subdirectory(src/Norm)

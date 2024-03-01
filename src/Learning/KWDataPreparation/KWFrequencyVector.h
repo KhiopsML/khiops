@@ -76,14 +76,14 @@ public:
 	// Taille du vecteur d'effectif
 	int GetSize() const override;
 
+	// Calcul de l'effectif total
+	int ComputeTotalFrequency() const override;
+
 	// Copie a partir d'un vecteur source
 	void CopyFrom(const KWFrequencyVector* kwfvSource) override;
 
 	// Duplication (y compris du contenu)
 	KWFrequencyVector* Clone() const override;
-
-	// Calcul de l'effectif total
-	int ComputeTotalFrequency() const override;
 
 	// Rapport synthetique destine a rentrer dans une sous partie d'un tableau
 	void WriteHeaderLineReport(ostream& ost) const override;
@@ -112,19 +112,17 @@ public:
 	KWFrequencyTable();
 	~KWFrequencyTable();
 
-	// Initialisation avec la taille du tableau en nombre de vecteurs d'effectifs
-	// Le createur de vecteur d'effectif (pour choisir la representation creuse ou pleine) doit etre initialise
-	// A l'issue de cette methode, le contenu precedant est detruit et
-	// une nouvelle table est initialise avec creation d'autant de vecteurs
-	// d'effectifs que specifie
-	void Initialize(int nFrequencyVectorNumber);
-
 	// Object createur de vecteur d'effectif
 	// Par defaut le createur de vecteur d'effectif produit des vecteurs pleins (KWDenseFrequencyVector)
 	// Si necessaire, il peut etre parametre pour produire des vecteurs creux (KWDGPOPartFrequencyVector) notamment
 	// lors de l'utilisation par les grilles La table doit dans ce cas etre vide
 	const KWFrequencyVector* GetFrequencyVectorCreator() const;
 	void SetFrequencyVectorCreator(const KWFrequencyVector* fvCreator);
+
+	// Initialisation avec la taille du tableau en nombre de vecteurs d'effectifs
+	// Le createur de vecteur d'effectif (pour choisir la representation creuse ou pleine) doit etre initialise
+	// La table est retaillee si necessaire, en ajoutant ou supprimant des vecteurs d'effectif en fin de table
+	void SetFrequencyVectorNumber(int nFrequencyVectorNumber);
 
 	// Taille de la table en nombre de vecteurs d'effectifs
 	int GetFrequencyVectorNumber() const;
@@ -187,6 +185,9 @@ public:
 	// Duplication (y compris du contenu)
 	KWFrequencyTable* Clone() const;
 
+	// Verification de l'absence de vecteur d'effectif null (sauf si table vide)
+	boolean CheckNoEmptyFrequencyVectors() const;
+
 	// Import a partir d'une table source
 	// Comme un CopyFrom, sauf que les FrequencyVector de la table source sont transferres tel quels
 	// dans la table destination, avant nettoyage de la table source par RemoveAllFrequencyVectors
@@ -196,9 +197,6 @@ public:
 	// Toutes les caracteristiques de la table sont reinitialisees (sauf le FrequencyVectorCreator)
 	void RemoveAllFrequencyVectors();
 	void DeleteAllFrequencyVectors();
-
-	// Verification de l'integrite
-	boolean Check() const override;
 
 	// Calcul de la table "modele nul" a un seul vecteur a partir d'une table source
 	// Uniquement pour les tables de vecteur d'effectifs plein (KWDenseFrequencyVector)

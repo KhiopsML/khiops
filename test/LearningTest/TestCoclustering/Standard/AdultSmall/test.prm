@@ -14,6 +14,8 @@
 //
 
 // -> Khiops Coclustering
+AnalysisSpec.SystemParameters.APIMode true        // API mode
+AnalysisSpec.SystemParameters.MemoryLimit 2000     // Memory limit in MB
 ClassManagement.OpenFile       // Open...
 
 // -> Open
@@ -21,8 +23,8 @@ ClassFileName ../../../datasets/Adult/Adult.kdic       // Dictionary file
 OK                             // Open
 // <- Open
 
-Database.DatabaseFiles.List.Key Adult               // List item selection
-Database.DatabaseFiles.DataTableName ./Adult1000.txt     // Database file
+Database.DatabaseSpec.Data.DatabaseFiles.List.Key Adult               // List item selection
+Database.DatabaseSpec.Data.DatabaseFiles.DataTableName ./Adult1000.txt     // Database file
 
 //AnalysisSpec.CoclusteringParameters.Attributes.InsertItemAfter         // Insert variable
 //AnalysisSpec.CoclusteringParameters.Attributes.Name age // Name
@@ -44,7 +46,7 @@ AnalysisSpec.CoclusteringParameters.Attributes.InsertItemAfter         // Insert
 AnalysisSpec.CoclusteringParameters.Attributes.Name class     // Name
 
 AnalysisSpec.SystemParameters.OptimizationTime 0  // Optimization time in seconds
-AnalysisResults.ResultFilesDirectory ./results // Result files directory
+AnalysisResults.CoclusteringFileName ./results/Coclustering.khcj // Coclustering report
 
 BuildCoclustering              // Build coclustering
 

@@ -14,7 +14,7 @@ GenumCommandLine::~GenumCommandLine() {}
 boolean GenumCommandLine::ComputeHistogram(int argc, char** argv)
 {
 	boolean bOk = true;
-	MHDiscretizerHistogramMODL histogramBuilder;
+	MHDiscretizerGenumHistogram histogramBuilder;
 	ContinuousVector* cvValues;
 	MHHistogram* optimizedHistogram;
 	const MHHistogramInterval* histogramInterval;
@@ -47,7 +47,7 @@ boolean GenumCommandLine::ComputeHistogram(int argc, char** argv)
 				nTotalFrequency = optimizedHistogram->ComputeTotalFrequency();
 
 				// Affichage des caracteristiques des bins
-				fstHistogram << "Lower value,Upper value,Length,Frequency,Probability,Density\n";
+				fstHistogram << "LowerBound,UpperBound,Length,Frequency,Probability,Density\n";
 				for (nBin = 0; nBin < optimizedHistogram->GetIntervalNumber(); nBin++)
 				{
 					histogramInterval = optimizedHistogram->GetConstIntervalAt(nBin);
@@ -330,7 +330,7 @@ boolean GenumCommandLine::InitializeParameters(int argc, char** argv)
 			if (sArgument == "-v")
 			{
 				cout << GetClassLabel() << " " << GENUM_VERSION << "\n ";
-				cout << "Copyright (C) 2022 Orange labs\n";
+				cout << "Copyright (C) 2023 Orange labs\n";
 				bOk = false;
 			}
 			// Aide
@@ -347,7 +347,7 @@ boolean GenumCommandLine::InitializeParameters(int argc, char** argv)
 	{
 		if (argc != 3)
 		{
-			cout << GetClassLabel() << ": invalid number of parameters\n ";
+			cout << GetClassLabel() << ": invalid number of parameters\n";
 			cout << "Try '" << GetClassLabel() << "' -h' for more information.\n";
 			bOk = false;
 		}
@@ -374,7 +374,7 @@ void GenumCommandLine::ShowHelp()
 	// Aide principale
 	cout << "Usage: " << GetClassLabel() << " [VALUES] [HISTOGRAM]\n ";
 	cout << "Compute histogram from the values in VALUES file, using the G-Enum method.\n";
-	cout << " The resulting histogram is output in HISTOGRAM file, with the lower value, upper value,\n";
+	cout << " The resulting histogram is output in HISTOGRAM file, with the lower bound, upper bound,\n";
 	cout << "  length, frequency, probability and density per bin.\n ";
 
 	// Options generales

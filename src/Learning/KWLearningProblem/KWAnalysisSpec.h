@@ -14,9 +14,10 @@
 
 #include "KWVersion.h"
 #include "KWModelingSpec.h"
+#include "KWAttributeConstructionSpec.h"
 #include "KWRecoderSpec.h"
 #include "KWPreprocessingSpec.h"
-#include "KWAttributeConstructionSpec.h"
+#include "MHHistogramSpec.h"
 
 // ##
 
@@ -66,6 +67,9 @@ public:
 	// Parametrage des pretraitements
 	KWPreprocessingSpec* GetPreprocessingSpec();
 
+	// Parametrage des histogrammes, qui sont definis dans une librairies a part
+	MHHistogramSpec* GetHistogramSpec();
+
 	// ##
 
 	////////////////////////////////////////////////////////
@@ -80,6 +84,7 @@ protected:
 	KWModelingSpec* modelingSpec;
 	KWRecoderSpec* recoderSpec;
 	KWPreprocessingSpec* preprocessingSpec;
+	MHHistogramSpec* histogramSpec;
 
 	// ##
 };

@@ -1,0 +1,274 @@
+#Khiops 10.4.6i
+Descriptive statistics
+
+
+Problem description
+Short description	
+
+Dictionary	SpliceJunction
+Variables
+	Categorical	12
+	Numerical	90
+	Table	1
+	Total	103
+
+Database	../../../MTdatasets/SpliceJunction/SpliceJunction.txt
+Sample percentage	10
+Sampling mode	Include sample
+Selection variable	
+Selection value	
+Instances	303
+
+Learning task	Classification analysis
+
+Target variable	Categorical	Class
+
+Target variable stats
+Value	Frequency	Coverage
+EI	67	0.221122
+IE	69	0.227723
+N	167	0.551155
+
+Evaluated variables	101
+Native variables	1
+Constructed variables	100
+Informative variables	7
+
+Max number of constructed variables	100
+Max number of text features	0
+Max number of trees	0
+Max number of variable pairs	0
+Discretization	MODL
+Value grouping	MODL
+
+Null model
+	Constr. cost	0.693147
+	Prep. cost	10.7442
+	Data cost	296.926
+
+
+Categorical variables statistics
+
+Rank	Name	Level	Groups	Values	Mode	Mode coverage	Missing number	Sparse missing number	Constr. cost	Prep. cost	Data cost	Derivation rule
+R001	Mode(DNA.Char) where Pos <= 30.5	0.0744365	2	4	C	0.40264	0	0	7.76817	23.5167	254.125	TableMode(`DNA where Pos <= 30.5`, Char)
+R002	Mode(DNA.Char) where Pos in ]15.5, 30.5]	0.0508826	3	4	C	0.376238	0	0	9.15447	31.5551	251.964	TablePartitionMode(`TablePartition(DNA) per Pos(4)`, Char)
+R003	Mode(DNA.Char)	0.0461059	3	4	C	0.392739	0	0	4.27667	30.8759	258.994	TableMode(DNA, Char)
+R074	Mode(DNA.Char) where Char = C	0	1	1	C	1	0	0	0.693147	10.7442	296.926	TableMode(`DNA where Char = C`, Char)
+R075	Mode(DNA.Char) where Char = G	0	1	2	G	0.9967	1	0	0.693147	10.7442	296.926	TableMode(`DNA where Char = G`, Char)
+R076	Mode(DNA.Char) where Char not in {C, G}	0	1	2	T	0.50495	0	0	0.693147	10.7442	296.926	TableMode(`DNA where Char not in {C, G}`, Char)
+R077	Mode(DNA.Char) where Pos <= 15.5	0	1	4	C	0.425743	0	0	0.693147	10.7442	296.926	TablePartitionMode(`TablePartition(DNA) per Pos(4)`, Char)
+R078	Mode(DNA.Char) where Pos > 30.5	0	1	4	G	0.363036	0	0	0.693147	10.7442	296.926	TableMode(`DNA where Pos > 30.5`, Char)
+R079	Mode(DNA.Char) where Pos > 45.5	0	1	4	C	0.320132	0	0	0.693147	10.7442	296.926	TablePartitionMode(`TablePartition(DNA) per Pos(4)`, Char)
+R080	Mode(DNA.Char) where Pos in ]30.5, 45.5]	0	1	4	G	0.336634	0	0	0.693147	10.7442	296.926	TablePartitionMode(`TablePartition(DNA) per Pos(4)`, Char)
+R081	SampleId	0	1	303	AGMRSKPNI-NEG-1141	0.00330033	0	0	0.693147	10.7442	296.926
+
+
+Numerical variables statistics
+
+Rank	Name	Level	Intervals	Values	Min	Max	Mean	Std dev	Missing number	Sparse missing number	Constr. cost	Prep. cost	Data cost	Derivation rule
+R004	Mean(DNA.Pos) where Char = G	0.0274408	2	281	16	46.55555556	31.84768883	4.848828493	1	0	9.15447	19.4458	271.302	TableMean(`DNA where Char = G`, Pos)
+R005	Median(DNA.Pos) where Char = G	0.0225808	3	59	8	48	32.44701987	6.725618787	1	0	9.15447	29.3732	262.873	TableMedian(`DNA where Char = G`, Pos)
+R006	Count(DNA) where Char = G	0.0160697	2	26	0	32	15.81188119	5.174919597	0	0	9.15447	21.0465	273.207	TableCount(`DNA where Char = G`)
+R007	Median(DNA.Pos) where Char = C	0.0101423	2	63	9	56.5	29.24587459	7.66919868	0	0	9.15447	19.4456	276.636	TableMedian(`DNA where Char = C`, Pos)
+R008	Count(DNA)	0	1	1	60	60	60	0	0	0	0.693147	10.7442	296.926	TableCount(DNA)
+R009	Count(DNA) where Char = A	0	1	25	0	27	13.53135314	4.652779483	0	0	0.693147	10.7442	296.926	TableCount(`DNA where Char = A`)
+R010	Count(DNA) where Char = C	0	1	29	2	34	16.48844884	5.649179844	0	0	0.693147	10.7442	296.926	TableCount(`DNA where Char = C`)
+R011	Count(DNA) where Char = T	0	1	29	2	34	14.16171617	5.235407476	0	0	0.693147	10.7442	296.926	TableCount(`DNA where Char = T`)
+R012	Count(DNA) where Char not in {C, G, T, A}	0	1	2	0	1	0.006600660066	0.08097586895	0	0	0.693147	10.7442	296.926	TableCount(`DNA where Char not in {C, G, T, A}`)
+R013	Count(DNA) where Char not in {C, G}	0	1	33	10	47	27.69966997	6.838946411	0	0	0.693147	10.7442	296.926	TableCount(`DNA where Char not in {C, G}`)
+R014	Count(DNA) where Pos <= 15.5	0	1	1	15	15	15	0	0	0	0.693147	10.7442	296.926	TablePartitionCount(`TablePartition(DNA) per Pos(4)`)
+R015	Count(DNA) where Pos <= 30.5	0	1	1	30	30	30	0	0	0	0.693147	10.7442	296.926	TableCount(`DNA where Pos <= 30.5`)
+R016	Count(DNA) where Pos <= 7.5	0	1	1	7	7	7	0	0	0	0.693147	10.7442	296.926	TablePartitionCount(`TablePartition(DNA) per Pos(8)`)
+R017	Count(DNA) where Pos > 30.5	0	1	1	30	30	30	0	0	0	0.693147	10.7442	296.926	TableCount(`DNA where Pos > 30.5`)
+R018	Count(DNA) where Pos > 45.5	0	1	1	15	15	15	0	0	0	0.693147	10.7442	296.926	TablePartitionCount(`TablePartition(DNA) per Pos(4)`)
+R019	Count(DNA) where Pos > 53.5	0	1	1	7	7	7	0	0	0	0.693147	10.7442	296.926	TablePartitionCount(`TablePartition(DNA) per Pos(8)`)
+R020	Count(DNA) where Pos in ]15.5, 22.5]	0	1	1	7	7	7	0	0	0	0.693147	10.7442	296.926	TablePartitionCount(`TablePartition(DNA) per Pos(8)`)
+R021	Count(DNA) where Pos in ]15.5, 30.5]	0	1	1	15	15	15	0	0	0	0.693147	10.7442	296.926	TablePartitionCount(`TablePartition(DNA) per Pos(4)`)
+R022	Count(DNA) where Pos in ]22.5, 30.5]	0	1	1	8	8	8	0	0	0	0.693147	10.7442	296.926	TablePartitionCount(`TablePartition(DNA) per Pos(8)`)
+R023	Count(DNA) where Pos in ]30.5, 38.5]	0	1	1	8	8	8	0	0	0	0.693147	10.7442	296.926	TablePartitionCount(`TablePartition(DNA) per Pos(8)`)
+R024	Count(DNA) where Pos in ]30.5, 45.5]	0	1	1	15	15	15	0	0	0	0.693147	10.7442	296.926	TablePartitionCount(`TablePartition(DNA) per Pos(4)`)
+R025	Count(DNA) where Pos in ]45.5, 53.5]	0	1	1	8	8	8	0	0	0	0.693147	10.7442	296.926	TablePartitionCount(`TablePartition(DNA) per Pos(8)`)
+R026	Count(DNA) where Pos in ]7.5, 15.5]	0	1	1	8	8	8	0	0	0	0.693147	10.7442	296.926	TablePartitionCount(`TablePartition(DNA) per Pos(8)`)
+R027	CountDistinct(DNA.Char)	0	1	4	2	5	3.99669967	0.1519586064	0	0	0.693147	10.7442	296.926	TableCountDistinct(DNA, Char)
+R028	CountDistinct(DNA.Char) where Char = C	0	1	1	1	1	1	0	0	0	0.693147	10.7442	296.926	TableCountDistinct(`DNA where Char = C`, Char)
+R029	CountDistinct(DNA.Char) where Char = G	0	1	2	0	1	0.99669967	0.05735362111	0	0	0.693147	10.7442	296.926	TableCountDistinct(`DNA where Char = G`, Char)
+R030	CountDistinct(DNA.Char) where Char not in {C, G}	0	1	3	1	3	2	0.1148969979	0	0	0.693147	10.7442	296.926	TableCountDistinct(`DNA where Char not in {C, G}`, Char)
+R031	CountDistinct(DNA.Char) where Pos <= 15.5	0	1	4	2	5	3.848184818	0.3854468996	0	0	0.693147	10.7442	296.926	TablePartitionCountDistinct(`TablePartition(DNA) per Pos(4)`, Char)
+R032	CountDistinct(DNA.Char) where Pos <= 30.5	0	1	4	2	5	3.97029703	0.2049927413	0	0	0.693147	10.7442	296.926	TableCountDistinct(`DNA where Pos <= 30.5`, Char)
+R033	CountDistinct(DNA.Char) where Pos > 30.5	0	1	4	2	5	3.98019802	0.1805856636	0	0	0.693147	10.7442	296.926	TableCountDistinct(`DNA where Pos > 30.5`, Char)
+R034	CountDistinct(DNA.Char) where Pos > 45.5	0	1	3	2	4	3.821782178	0.42362664	0	0	0.693147	10.7442	296.926	TablePartitionCountDistinct(`TablePartition(DNA) per Pos(4)`, Char)
+R035	CountDistinct(DNA.Char) where Pos in ]15.5, 30.5]	0	1	3	2	4	3.884488449	0.3492429139	0	0	0.693147	10.7442	296.926	TablePartitionCountDistinct(`TablePartition(DNA) per Pos(4)`, Char)
+R036	CountDistinct(DNA.Char) where Pos in ]30.5, 45.5]	0	1	4	2	5	3.914191419	0.3027322058	0	0	0.693147	10.7442	296.926	TablePartitionCountDistinct(`TablePartition(DNA) per Pos(4)`, Char)
+R037	Max(DNA.Pos)	0	1	1	60	60	60	0	0	0	0.693147	10.7442	296.926	TableMax(DNA, Pos)
+R038	Max(DNA.Pos) where Char = C	0	1	24	27	60	56.38283828	4.743448064	0	0	0.693147	10.7442	296.926	TableMax(`DNA where Char = C`, Pos)
+R039	Max(DNA.Pos) where Char = G	0	1	22	35	60	56.96357616	4.098376087	1	0	0.693147	10.7442	296.926	TableMax(`DNA where Char = G`, Pos)
+R040	Max(DNA.Pos) where Char not in {C, G}	0	1	11	43	60	58.88118812	1.816429214	0	0	0.693147	10.7442	296.926	TableMax(`DNA where Char not in {C, G}`, Pos)
+R041	Max(DNA.Pos) where Pos <= 15.5	0	1	1	15	15	15	0	0	0	0.693147	10.7442	296.926	TablePartitionMax(`TablePartition(DNA) per Pos(4)`, Pos)
+R042	Max(DNA.Pos) where Pos <= 30.5	0	1	1	30	30	30	0	0	0	0.693147	10.7442	296.926	TableMax(`DNA where Pos <= 30.5`, Pos)
+R043	Max(DNA.Pos) where Pos > 30.5	0	1	1	60	60	60	0	0	0	0.693147	10.7442	296.926	TableMax(`DNA where Pos > 30.5`, Pos)
+R044	Max(DNA.Pos) where Pos > 45.5	0	1	1	60	60	60	0	0	0	0.693147	10.7442	296.926	TablePartitionMax(`TablePartition(DNA) per Pos(4)`, Pos)
+R045	Max(DNA.Pos) where Pos in ]15.5, 30.5]	0	1	1	30	30	30	0	0	0	0.693147	10.7442	296.926	TablePartitionMax(`TablePartition(DNA) per Pos(4)`, Pos)
+R046	Max(DNA.Pos) where Pos in ]30.5, 45.5]	0	1	1	45	45	45	0	0	0	0.693147	10.7442	296.926	TablePartitionMax(`TablePartition(DNA) per Pos(4)`, Pos)
+R047	Mean(DNA.Pos)	0	1	1	30.5	30.5	30.5	0	0	0	0.693147	10.7442	296.926	TableMean(DNA, Pos)
+R048	Mean(DNA.Pos) where Char = C	0	1	274	14.25	46.33333333	29.71814213	5.029068147	0	0	0.693147	10.7442	296.926	TableMean(`DNA where Char = C`, Pos)
+R049	Mean(DNA.Pos) where Char not in {C, G}	0	1	283	20.6	39.91304348	30.33646503	2.577046027	0	0	0.693147	10.7442	296.926	TableMean(`DNA where Char not in {C, G}`, Pos)
+R050	Mean(DNA.Pos) where Pos <= 15.5	0	1	1	8	8	8	0	0	0	0.693147	10.7442	296.926	TablePartitionMean(`TablePartition(DNA) per Pos(4)`, Pos)
+R051	Mean(DNA.Pos) where Pos <= 30.5	0	1	1	15.5	15.5	15.5	0	0	0	0.693147	10.7442	296.926	TableMean(`DNA where Pos <= 30.5`, Pos)
+R052	Mean(DNA.Pos) where Pos > 30.5	0	1	1	45.5	45.5	45.5	0	0	0	0.693147	10.7442	296.926	TableMean(`DNA where Pos > 30.5`, Pos)
+R053	Mean(DNA.Pos) where Pos > 45.5	0	1	1	53	53	53	0	0	0	0.693147	10.7442	296.926	TablePartitionMean(`TablePartition(DNA) per Pos(4)`, Pos)
+R054	Mean(DNA.Pos) where Pos in ]15.5, 30.5]	0	1	1	23	23	23	0	0	0	0.693147	10.7442	296.926	TablePartitionMean(`TablePartition(DNA) per Pos(4)`, Pos)
+R055	Mean(DNA.Pos) where Pos in ]30.5, 45.5]	0	1	1	38	38	38	0	0	0	0.693147	10.7442	296.926	TablePartitionMean(`TablePartition(DNA) per Pos(4)`, Pos)
+R056	Median(DNA.Pos)	0	1	1	30.5	30.5	30.5	0	0	0	0.693147	10.7442	296.926	TableMedian(DNA, Pos)
+R057	Median(DNA.Pos) where Char not in {C, G}	0	1	42	17	45	30.31023102	4.073920227	0	0	0.693147	10.7442	296.926	TableMedian(`DNA where Char not in {C, G}`, Pos)
+R058	Median(DNA.Pos) where Pos <= 15.5	0	1	1	8	8	8	0	0	0	0.693147	10.7442	296.926	TablePartitionMedian(`TablePartition(DNA) per Pos(4)`, Pos)
+R059	Median(DNA.Pos) where Pos <= 30.5	0	1	1	15.5	15.5	15.5	0	0	0	0.693147	10.7442	296.926	TableMedian(`DNA where Pos <= 30.5`, Pos)
+R060	Median(DNA.Pos) where Pos > 30.5	0	1	1	45.5	45.5	45.5	0	0	0	0.693147	10.7442	296.926	TableMedian(`DNA where Pos > 30.5`, Pos)
+R061	Median(DNA.Pos) where Pos > 45.5	0	1	1	53	53	53	0	0	0	0.693147	10.7442	296.926	TablePartitionMedian(`TablePartition(DNA) per Pos(4)`, Pos)
+R062	Median(DNA.Pos) where Pos in ]15.5, 30.5]	0	1	1	23	23	23	0	0	0	0.693147	10.7442	296.926	TablePartitionMedian(`TablePartition(DNA) per Pos(4)`, Pos)
+R063	Median(DNA.Pos) where Pos in ]30.5, 45.5]	0	1	1	38	38	38	0	0	0	0.693147	10.7442	296.926	TablePartitionMedian(`TablePartition(DNA) per Pos(4)`, Pos)
+R064	Min(DNA.Pos)	0	1	1	1	1	1	0	0	0	0.693147	10.7442	296.926	TableMin(DNA, Pos)
+R065	Min(DNA.Pos) where Char = C	0	1	21	1	36	4.151815182	4.732102465	0	0	0.693147	10.7442	296.926	TableMin(`DNA where Char = C`, Pos)
+R066	Min(DNA.Pos) where Char = G	0	1	26	1	33	4.715231788	5.556903091	1	0	0.693147	10.7442	296.926	TableMin(`DNA where Char = G`, Pos)
+R067	Min(DNA.Pos) where Char not in {C, G}	0	1	8	1	8	2.254125413	1.488606169	0	0	0.693147	10.7442	296.926	TableMin(`DNA where Char not in {C, G}`, Pos)
+R068	Min(DNA.Pos) where Pos <= 15.5	0	1	1	1	1	1	0	0	0	0.693147	10.7442	296.926	TablePartitionMin(`TablePartition(DNA) per Pos(4)`, Pos)
+R069	Min(DNA.Pos) where Pos <= 30.5	0	1	1	1	1	1	0	0	0	0.693147	10.7442	296.926	TableMin(`DNA where Pos <= 30.5`, Pos)
+R070	Min(DNA.Pos) where Pos > 30.5	0	1	1	31	31	31	0	0	0	0.693147	10.7442	296.926	TableMin(`DNA where Pos > 30.5`, Pos)
+R071	Min(DNA.Pos) where Pos > 45.5	0	1	1	46	46	46	0	0	0	0.693147	10.7442	296.926	TablePartitionMin(`TablePartition(DNA) per Pos(4)`, Pos)
+R072	Min(DNA.Pos) where Pos in ]15.5, 30.5]	0	1	1	16	16	16	0	0	0	0.693147	10.7442	296.926	TablePartitionMin(`TablePartition(DNA) per Pos(4)`, Pos)
+R073	Min(DNA.Pos) where Pos in ]30.5, 45.5]	0	1	1	31	31	31	0	0	0	0.693147	10.7442	296.926	TablePartitionMin(`TablePartition(DNA) per Pos(4)`, Pos)
+R082	StdDev(DNA.Pos)	0	1	1	17.31810228	17.31810228	17.31810228	0	0	0	0.693147	10.7442	296.926	TableStdDev(DNA, Pos)
+R083	StdDev(DNA.Pos) where Char = C	0	1	300	5.465943945	21.52579848	16.51728209	2.350365912	0	0	0.693147	10.7442	296.926	TableStdDev(`DNA where Char = C`, Pos)
+R084	StdDev(DNA.Pos) where Char = G	0	1	301	8.314794193	21.35025371	16.21388635	2.414371221	1	0	0.693147	10.7442	296.926	TableStdDev(`DNA where Char = G`, Pos)
+R085	StdDev(DNA.Pos) where Char not in {C, G}	0	1	301	11.07066199	19.76587969	17.01671662	1.194228217	0	0	0.693147	10.7442	296.926	TableStdDev(`DNA where Char not in {C, G}`, Pos)
+R086	StdDev(DNA.Pos) where Pos <= 15.5	0	1	1	4.320493799	4.320493799	4.320493799	0	0	0	0.693147	10.7442	296.926	TablePartitionStdDev(`TablePartition(DNA) per Pos(4)`, Pos)
+R087	StdDev(DNA.Pos) where Pos <= 30.5	0	1	1	8.655441448	8.655441448	8.655441448	0	0	0	0.693147	10.7442	296.926	TableStdDev(`DNA where Pos <= 30.5`, Pos)
+R088	StdDev(DNA.Pos) where Pos > 30.5	0	1	1	8.655441448	8.655441448	8.655441448	0	0	0	0.693147	10.7442	296.926	TableStdDev(`DNA where Pos > 30.5`, Pos)
+R089	StdDev(DNA.Pos) where Pos > 45.5	0	1	1	4.320493799	4.320493799	4.320493799	0	0	0	0.693147	10.7442	296.926	TablePartitionStdDev(`TablePartition(DNA) per Pos(4)`, Pos)
+R090	StdDev(DNA.Pos) where Pos in ]15.5, 30.5]	0	1	1	4.320493799	4.320493799	4.320493799	0	0	0	0.693147	10.7442	296.926	TablePartitionStdDev(`TablePartition(DNA) per Pos(4)`, Pos)
+R091	StdDev(DNA.Pos) where Pos in ]30.5, 45.5]	0	1	1	4.320493799	4.320493799	4.320493799	0	0	0	0.693147	10.7442	296.926	TablePartitionStdDev(`TablePartition(DNA) per Pos(4)`, Pos)
+R092	Sum(DNA.Pos)	0	1	1	1830	1830	1830	0	0	0	0.693147	10.7442	296.926	TableSum(DNA, Pos)
+R093	Sum(DNA.Pos) where Char = C	0	1	233	54	1063	488.0660066	178.1871738	0	0	0.693147	10.7442	296.926	TableSum(`DNA where Char = C`, Pos)
+R094	Sum(DNA.Pos) where Char = G	0	1	250	111	938	503.2649007	169.8386146	1	0	0.693147	10.7442	296.926	TableSum(`DNA where Char = G`, Pos)
+R095	Sum(DNA.Pos) where Char not in {C, G}	0	1	255	309	1474	840.330033	216.9412705	0	0	0.693147	10.7442	296.926	TableSum(`DNA where Char not in {C, G}`, Pos)
+R096	Sum(DNA.Pos) where Pos <= 15.5	0	1	1	120	120	120	0	0	0	0.693147	10.7442	296.926	TablePartitionSum(`TablePartition(DNA) per Pos(4)`, Pos)
+R097	Sum(DNA.Pos) where Pos <= 30.5	0	1	1	465	465	465	0	0	0	0.693147	10.7442	296.926	TableSum(`DNA where Pos <= 30.5`, Pos)
+R098	Sum(DNA.Pos) where Pos > 30.5	0	1	1	1365	1365	1365	0	0	0	0.693147	10.7442	296.926	TableSum(`DNA where Pos > 30.5`, Pos)
+R099	Sum(DNA.Pos) where Pos > 45.5	0	1	1	795	795	795	0	0	0	0.693147	10.7442	296.926	TablePartitionSum(`TablePartition(DNA) per Pos(4)`, Pos)
+R100	Sum(DNA.Pos) where Pos in ]15.5, 30.5]	0	1	1	345	345	345	0	0	0	0.693147	10.7442	296.926	TablePartitionSum(`TablePartition(DNA) per Pos(4)`, Pos)
+R101	Sum(DNA.Pos) where Pos in ]30.5, 45.5]	0	1	1	570	570	570	0	0	0	0.693147	10.7442	296.926	TablePartitionSum(`TablePartition(DNA) per Pos(4)`, Pos)
+
+
+--------------------------------------------------------------------------------
+
+Variables detailed statistics
+
+
+Rank	R001
+Variable	Categorical	Mode(DNA.Char) where Pos <= 30.5
+
+Variable stats
+Group	Size	Value list
+{C, T}	2	C	T
+{G, A}	2	G	A	 * 
+
+% target values
+Group	EI	IE	N	Interest	Frequency	Coverage
+{G, A}	0.324786	0	0.675214	0.752073	117	0.386139
+{C, T}	0.155914	0.370968	0.473118	0.247927	186	0.613861
+Total	0.221122	0.227723	0.551155	1	303	1
+
+Values
+Value	Frequency	Coverage
+C	122	0.40264
+T	64	0.211221
+G	61	0.20132
+A	56	0.184818
+
+----------------------------------------------
+Rank	R002
+Variable	Categorical	Mode(DNA.Char) where Pos in ]15.5, 30.5]
+
+Variable stats
+Group	Size	Value list
+{A, G}	2	A	G	 * 
+{C}	1	C
+{T}	1	T
+
+% target values
+Group	EI	IE	N	Interest	Frequency	Coverage
+{A, G}	0.296875	0.0234375	0.679688	0.593857	128	0.422442
+{T}	0.0491803	0.409836	0.540984	0.251263	61	0.20132
+{C}	0.22807	0.359649	0.412281	0.15488	114	0.376238
+Total	0.221122	0.227723	0.551155	1	303	1
+
+Values
+Value	Frequency	Coverage
+C	114	0.376238
+A	69	0.227723
+T	61	0.20132
+G	59	0.194719
+
+----------------------------------------------
+Rank	R003
+Variable	Categorical	Mode(DNA.Char)
+
+Variable stats
+Group	Size	Value list
+{C}	1	C
+{T, A}	2	T	A	 * 
+{G}	1	G
+
+% target values
+Group	EI	IE	N	Interest	Frequency	Coverage
+{G}	0.441558	0.038961	0.519481	0.518478	77	0.254125
+{C}	0.142857	0.411765	0.445378	0.33703	119	0.392739
+{T, A}	0.149533	0.158879	0.691589	0.144491	107	0.353135
+Total	0.221122	0.227723	0.551155	1	303	1
+
+Values
+Value	Frequency	Coverage
+C	119	0.392739
+G	77	0.254125
+T	57	0.188119
+A	50	0.165017
+
+----------------------------------------------
+Rank	R004
+Variable	Numerical	Mean(DNA.Pos) where Char = G
+
+% target values
+Interval	EI	IE	N	Interest	Frequency	Coverage
+]-inf;31.698]	0.225166	0.0794702	0.695364	0.57478	151	0.49835
+]31.698;+inf[	0.217105	0.375	0.407895	0.42522	152	0.50165
+Total	0.221122	0.227723	0.551155	1	303	1
+
+----------------------------------------------
+Rank	R005
+Variable	Numerical	Median(DNA.Pos) where Char = G
+
+% target values
+Interval	EI	IE	N	Interest	Frequency	Coverage
+]-inf;27.75]	0.152778	0.0416667	0.805556	0.478566	72	0.237624
+]27.75;37.25]	0.273292	0.192547	0.534161	0.0530889	161	0.531353
+]37.25;+inf[	0.171429	0.5	0.328571	0.468345	70	0.231023
+Total	0.221122	0.227723	0.551155	1	303	1
+
+----------------------------------------------
+Rank	R006
+Variable	Numerical	Count(DNA) where Char = G
+
+% target values
+Interval	EI	IE	N	Interest	Frequency	Coverage
+]-inf;19.5]	0.161017	0.288136	0.550847	0.187162	236	0.778878
+]19.5;+inf[	0.432836	0.0149254	0.552239	0.812838	67	0.221122
+Total	0.221122	0.227723	0.551155	1	303	1
+
+----------------------------------------------
+Rank	R007
+Variable	Numerical	Median(DNA.Pos) where Char = C
+
+% target values
+Interval	EI	IE	N	Interest	Frequency	Coverage
+]-inf;27.75]	0.233333	0.353333	0.413333	0.454456	150	0.49505
+]27.75;+inf[	0.20915	0.104575	0.686275	0.545544	153	0.50495
+Total	0.221122	0.227723	0.551155	1	303	1

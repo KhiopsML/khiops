@@ -8,7 +8,6 @@ KWDatabaseTransferView::KWDatabaseTransferView()
 {
 	KWSTDatabaseTextFileView refSTDatabaseTextFileView;
 	KWMTDatabaseTextFileView refMTDatabaseTextFileView;
-	int i;
 
 	// Creation des bases de facon generique
 	sourceDatabase = KWDatabase::CreateDefaultDatabaseTechnology();
@@ -43,21 +42,9 @@ KWDatabaseTransferView::KWDatabaseTransferView()
 
 	// Ajout du parametrage de la base destination, creee de facon generique
 	targetDatabaseView = KWDatabaseView::CreateDefaultDatabaseTechnologyView();
-	targetDatabaseView->SetModeWriteOnly(true);
+	targetDatabaseView->ToWriteOnlyMode();
 	targetDatabaseView->SetObject(targetDatabase);
 	AddCardField("TargetDatabase", "Output database", targetDatabaseView);
-
-	// Parametrage de la visibilite des specifications de la base de destination
-	for (i = 0; i < targetDatabaseView->GetFieldNumber(); i++)
-		targetDatabaseView->GetFieldAtIndex(i)->SetVisible(false);
-	targetDatabaseView->GetFieldAt("HeaderLineUsed")->SetVisible(true);
-	targetDatabaseView->GetFieldAt("FieldSeparator")->SetVisible(true);
-
-	// Parametrage de l'edition des fichiers, selon la technologie
-	if (targetDatabaseView->GetTechnologyName() == refSTDatabaseTextFileView.GetTechnologyName())
-		targetDatabaseView->GetFieldAt("DatabaseName")->SetVisible(true);
-	else if (targetDatabaseView->GetTechnologyName() == refMTDatabaseTextFileView.GetTechnologyName())
-		targetDatabaseView->GetFieldAt("DatabaseFiles")->SetVisible(true);
 
 	// Ajout d'un champ de saisie dans la fiche de la base en sortie pour choisir
 	// le format tabular (dense uniquement) ou sparse (tabular etendu avec des blocs sparse)
@@ -75,8 +62,8 @@ KWDatabaseTransferView::KWDatabaseTransferView()
 	GetFieldAt("ClassName")->SetHelpText("Dictionary used to select or derive new variables.");
 	targetDatabaseView->GetFieldAt("OutputFormat")
 	    ->SetHelpText("Output format :"
-			  "\n . tabular: standard tabular format"
-			  "\n . sparse: extended tabular format, with sparse fields in case of blocks of variables");
+			  "\n - tabular: standard tabular format"
+			  "\n - sparse: extended tabular format, with sparse fields in case of blocks of variables");
 	GetActionAt("TransferDatabase")
 	    ->SetHelpText(
 		"Deploy model."
@@ -103,17 +90,22 @@ KWDatabaseTransferView::~KWDatabaseTransferView()
 	delete targetDatabase;
 }
 
-void KWDatabaseTransferView::InitializeSourceDatabase(KWDatabase* database)
+void KWDatabaseTransferView::InitializeSourceDatabase(KWDatabase* database, const ALString& sDatabaseClassFileName)
 {
 	KWDatabase* defaultDatabase;
 	KWDatabase* initializationDatabase;
 	ALString sTargetDatabaseName;
-	const ALString sPrefix = "T_";
+	const ALString sPrefix = "D_";
 	ALString sPathName;
 	ALString sFileName;
 	KWMTDatabase* targetMTDatabase;
 	KWMTDatabaseMapping* mapping;
 	int nMapping;
+
+	require(database != NULL);
+
+	// Memorisation du fichier dictionnaire
+	sClassFileName = sDatabaseClassFileName;
 
 	// Creation generique d'une base par defaut
 	defaultDatabase = KWDatabase::CreateDefaultDatabaseTechnology();
@@ -163,7 +155,6 @@ void KWDatabaseTransferView::InitializeSourceDatabase(KWDatabase* database)
 
 void KWDatabaseTransferView::Open()
 {
-	boolean bIsMultiTableTechnology;
 	KWClass* kwcClass;
 	ALString sClassNames;
 	const int nMaxTotalShownLineNumber = 12;
@@ -174,9 +165,6 @@ void KWDatabaseTransferView::Open()
 	// Warning s'il n'y a pas de dictionnaire
 	if (KWClassDomain::GetCurrentDomain()->GetClassNumber() == 0)
 		AddWarning("No available dictionary");
-
-	// On determine si on est dans le cas multi-table par recherche d'une sous-vue sur les fichiers
-	bIsMultiTableTechnology = targetDatabaseView->GetFieldIndex("DatabaseFiles") != -1;
 
 	// Collecte de la liste des dictionnaires disponibles et de stats
 	// sur la taille de leur mapping
@@ -192,7 +180,7 @@ void KWDatabaseTransferView::Open()
 		sClassNames += kwcClass->GetName();
 
 		// Mise a jour des nombre max de mappings
-		if (bIsMultiTableTechnology)
+		if (targetDatabaseView->IsMultiTableTechnology())
 		{
 			nMaxInputNativeRelationAttributeNumber =
 			    max(nMaxInputNativeRelationAttributeNumber,
@@ -210,7 +198,7 @@ void KWDatabaseTransferView::Open()
 	GetFieldAt("ClassName")->SetParameters(sClassNames);
 
 	// Parametrage des tailles des liste de fichier des mapping en entree et en sortie dans le cas multi-table
-	if (bIsMultiTableTechnology)
+	if (targetDatabaseView->IsMultiTableTechnology())
 	{
 		// Cas ou on depasse le max de ce qui est affichable
 		if (nMaxInputNativeRelationAttributeNumber + nMaxOutputNativeRelationAttributeNumber >
@@ -223,10 +211,8 @@ void KWDatabaseTransferView::Open()
 		}
 
 		// On limite le nombre de ligne de mapping
-		cast(UIObjectArrayView*, sourceDatabaseView->GetFieldAt("DatabaseFiles"))
-		    ->SetLineNumber(1 + nMaxInputNativeRelationAttributeNumber);
-		cast(UIObjectArrayView*, targetDatabaseView->GetFieldAt("DatabaseFiles"))
-		    ->SetLineNumber(1 + nMaxOutputNativeRelationAttributeNumber);
+		sourceDatabaseView->SetEditableTableNumber(1 + nMaxInputNativeRelationAttributeNumber);
+		targetDatabaseView->SetEditableTableNumber(1 + nMaxOutputNativeRelationAttributeNumber);
 	}
 
 	// Appel de la methode ancetre pour l'ouverture
@@ -252,11 +238,6 @@ void KWDatabaseTransferView::TransferDatabase()
 	KWDatabaseTransferTask transferTask;
 	longint lRecordNumber;
 
-	// Execution controlee par licence
-	if (LMLicenseManager::IsEnabled())
-		if (not LMLicenseManager::RequestLicenseKey())
-			return;
-
 	// Verification du directory des fichiers temporaires
 	if (not FileService::CreateApplicationTmpDir())
 		return;
@@ -265,10 +246,6 @@ void KWDatabaseTransferView::TransferDatabase()
 	sClassName = GetStringValueAt("ClassName");
 	sourceDatabase->SetClassName(sClassName);
 	targetDatabase->SetClassName(sClassName);
-
-	// On passe par une autre table en sortie, pour pouvoir specifier son chemin si elle n'en a pas
-	workingTargetDatabase = targetDatabase->Clone();
-	workingTargetDatabase->AddPathToUsedFiles(FileService::GetPathName(sourceDatabase->GetDatabaseName()));
 
 	// La classe doit etre valide
 	transferClass = NULL;
@@ -293,11 +270,16 @@ void KWDatabaseTransferView::TransferDatabase()
 	}
 
 	// Le nom de la base cible doit etre renseigne
-	if (bOk and workingTargetDatabase->GetDatabaseName() == "")
+	if (bOk and targetDatabase->GetDatabaseName() == "")
 	{
 		bOk = false;
 		AddError("Missing output database name");
 	}
+
+	// On passe par une autre table en sortie, pour pouvoir specifier son chemin si elle n'en a pas
+	workingTargetDatabase = targetDatabase->Clone();
+	if (bOk)
+		workingTargetDatabase->AddPathToUsedFiles(FileService::GetPathName(sourceDatabase->GetDatabaseName()));
 
 	// Verification de la validite des specifications des bases source et cible
 	bOk = bOk and sourceDatabase->Check();
@@ -376,13 +358,8 @@ void KWDatabaseTransferView::TransferDatabase()
 
 				// Acces au repertoire du fichier a transferer
 				sOutputPathName = FileService::GetPathName(specTarget->GetFilePathName());
-				if (sOutputPathName != "" and not PLRemoteFileService::DirExists(sOutputPathName))
-				{
-					bOk = PLRemoteFileService::MakeDirectories(sOutputPathName);
-					if (not bOk)
-						specTarget->AddError("Unable to create output directory (" +
-								     sOutputPathName + ")");
-				}
+				bOk = bOk and
+				      KWResultFilePathBuilder::CheckResultDirectory(sOutputPathName, GetClassLabel());
 			}
 		}
 
@@ -454,16 +431,10 @@ void KWDatabaseTransferView::BuildTransferredClass()
 	int nRef;
 	FileSpec* specRef;
 	FileSpec specTransferredDictionaryFile;
-	ALString sTargetPath;
 	ALString sTransferredClassFileName;
 	KWClassDomain transferredClassDomain;
 	KWClass* transferredClass;
-	ALString sOutputPathName;
-
-	// Execution controlee par licence
-	if (LMLicenseManager::IsEnabled())
-		if (not LMLicenseManager::RequestLicenseKey())
-			return;
+	KWResultFilePathBuilder resultFilePathBuilder;
 
 	// Memorisation des donnees modifies (non geres par les View)
 	sClassName = GetStringValueAt("ClassName");
@@ -487,20 +458,38 @@ void KWDatabaseTransferView::BuildTransferredClass()
 	if (bOk)
 	{
 		// On initialise avec le nom du dictionnaire en prenant le chemin de la base cible (ou source si vide)
-		sTargetPath = FileService::GetPathName(targetDatabase->GetDatabaseName());
-		if (sTargetPath == "")
-			sTargetPath = FileService::GetPathName(sourceDatabase->GetDatabaseName());
-		sTransferredClassFileName = FileService::BuildFilePathName(sTargetPath, "Transfer.kdic");
+		if (sourceDatabase->GetDatabaseName() != "")
+		{
+			// On combine les repertoire des base source et cible pour fabriquer le repertoire source de
+			// reference
+			resultFilePathBuilder.SetInputFilePathName(sourceDatabase->GetDatabaseName());
+			resultFilePathBuilder.SetOutputFilePathName(targetDatabase->GetDatabaseName());
+			resultFilePathBuilder.SetInputFilePathName(resultFilePathBuilder.BuildResultFilePathName());
+		}
+		else if (targetDatabase->GetDatabaseName() != "")
+			resultFilePathBuilder.SetInputFilePathName(targetDatabase->GetDatabaseName());
+		else if (sClassFileName != "")
+			resultFilePathBuilder.SetInputFilePathName(sClassFileName);
+		else
+			resultFilePathBuilder.SetInputFilePathName(".");
+		resultFilePathBuilder.SetOutputFilePathName("Deployed.kdic");
+		resultFilePathBuilder.SetFileSuffix("kdic");
+		sTransferredClassFileName = resultFilePathBuilder.BuildResultFilePathName();
 
 		// Ouverture du FileChooser pour obtenir le nom du fichier a transfere, ou vide si annulation
 		sTransferredClassFileName =
 		    registerCard.ChooseFile("Save as", "Save", "FileChooser", "Dictionary\nkdic", "ClassFileName",
-					    "Transferred dictionary file", sTransferredClassFileName);
+					    "Deployed dictionary file", sTransferredClassFileName);
 
 		// Verification du nom du fichier de dictionnaire
 		if (sTransferredClassFileName != "")
 		{
-			specTransferredDictionaryFile.SetLabel("transferred dictionary");
+			// Construction du chemin complet du dictionnaire a sauver
+			resultFilePathBuilder.SetOutputFilePathName(sTransferredClassFileName);
+			sTransferredClassFileName = resultFilePathBuilder.BuildResultFilePathName();
+
+			// Specification du fichier en sortie
+			specTransferredDictionaryFile.SetLabel("deployed dictionary");
 			specTransferredDictionaryFile.SetFilePathName(sTransferredClassFileName);
 
 			// Test de non collision avec des fichiers de la base source
@@ -517,7 +506,7 @@ void KWDatabaseTransferView::BuildTransferredClass()
 				}
 				oaSourceDatabaseFileSpecs.DeleteAll();
 				if (not bOk)
-					AddError("The transferred dictionary file name should differ from that of the "
+					AddError("The deployed dictionary file name should differ from that of the "
 						 "input database");
 			}
 
@@ -535,7 +524,7 @@ void KWDatabaseTransferView::BuildTransferredClass()
 				}
 				oaTargetDatabaseFileSpecs.DeleteAll();
 				if (not bOk)
-					AddError("The transferred dictionary file name should differ from that of the "
+					AddError("The deployed dictionary file name should differ from that of the "
 						 "output database");
 			}
 		}
@@ -543,22 +532,11 @@ void KWDatabaseTransferView::BuildTransferredClass()
 		// Construction et sauvegarde du dictionnaire
 		if (bOk and sTransferredClassFileName != "")
 		{
-			AddSimpleMessage("Write transferred dictionary file " + sTransferredClassFileName);
+			AddSimpleMessage("Write deployed dictionary file " + sTransferredClassFileName);
 			transferredClass = InternalBuildTransferredClass(&transferredClassDomain, transferClass);
 
-			// Creation si necessaire du repertoire cible
-			sOutputPathName = FileService::GetPathName(sTransferredClassFileName);
-			if (sOutputPathName != "" and not FileService::DirExists(sOutputPathName))
-			{
-				bOk = PLRemoteFileService::MakeDirectories(sOutputPathName);
-				if (not bOk)
-					AddError("Unable to create directory (" + sOutputPathName +
-						 ") for transferred dictionary");
-			}
-
-			// Transfer si OK
-			if (bOk)
-				transferredClassDomain.WriteFile(sTransferredClassFileName);
+			// Ecriture du dictionnaire
+			transferredClassDomain.WriteFile(sTransferredClassFileName);
 
 			// Nettoyage
 			transferredClassDomain.DeleteAllClasses();
@@ -607,7 +585,7 @@ boolean KWDatabaseTransferView::IsDenseOutputFormat() const
 KWClass* KWDatabaseTransferView::InternalBuildTransferredClass(KWClassDomain* transferredClassDomain,
 							       const KWClass* transferClass)
 {
-	const ALString sPrefix = "T_";
+	const ALString sPrefix = "D_";
 	boolean bTransferReferenceClass;
 	KWAttribute* attribute;
 	KWAttributeBlock* attributeBlock;
@@ -640,9 +618,9 @@ KWClass* KWDatabaseTransferView::InternalBuildTransferredClass(KWClassDomain* tr
 	// Creation du dictionnaire transferee
 	transferredClass = new KWClass;
 	transferredClass->SetName(sPrefix + transferClass->GetName());
-	transferredClass->SetLabel("Transferred dictionary");
+	transferredClass->SetLabel("Deployed dictionary");
 	if (transferClass->GetLabel() != "")
-		transferredClass->SetLabel("Transferred dictionary: " + transferClass->GetLabel());
+		transferredClass->SetLabel("Deployed dictionary: " + transferClass->GetLabel());
 
 	// Insertion de la classes transferee dans son domaine
 	transferredClassDomain->InsertClass(transferredClass);
@@ -1014,7 +992,7 @@ KWClassDomain* KWDatabaseTransferView::InternalBuildDenseClassDomain(const KWCla
 		nkdAllUsedOperands.GetNextAssoc(current, key, oElement);
 
 		// On retrouve l'operande et son attribut sparse associe dans la paire (key, oElement)
-		operand = (KWDerivationRuleOperand*)key;
+		operand = cast(KWDerivationRuleOperand*, (Object*)key.ToPointer());
 
 		// Traitement des operandes avec origine attribut
 		if (operand->GetOrigin() == KWDerivationRuleOperand::OriginAttribute and

@@ -837,6 +837,10 @@ const ALString FileService::BuildFilePathName(const ALString& sPathName, const A
 	int nPos;
 	ALString sScheme;
 	char cFileSeparator;
+	ALString sPathOfFileName;
+	boolean bIsStartingCurrentPath;
+
+	require(not IsAbsoluteFilePathName(sFileName));
 
 	if (sPathName == "")
 		return sFileName;
@@ -876,10 +880,22 @@ const ALString FileService::BuildFilePathName(const ALString& sPathName, const A
 					nSeparatorPos--;
 			}
 
-			// On renvoie le nom complet, en ayant supprime les doublons de separateur
-			// et en ayant utilise le separateur du systeme en cours
-			return sNormalizedPathName.Left(nSeparatorPos) + cFileSeparator + sFileName;
+			// On supprime les doublons de separateur
+			sNormalizedPathName = sNormalizedPathName.Left(nSeparatorPos);
 		}
+
+		// caracteristique du path du fichier
+		sPathOfFileName = GetPathName(sFileName);
+		bIsStartingCurrentPath =
+		    sFileName == "." or
+		    (sFileName.GetLength() >= 2 and sFileName.GetAt(0) == '.' and IsFileSeparator(sFileName.GetAt(1)));
+
+		// Construction du chemin complet, en traitant le cas particulier du repertoire courant suivi
+		// d'un fichier lui meme avec un path de type courant
+		if (sNormalizedPathName == "." and sPathOfFileName != "" and sPathOfFileName.GetAt(0) == '.')
+			return sFileName;
+		else if (sNormalizedPathName.GetLength() > 1 and bIsStartingCurrentPath)
+			return sNormalizedPathName + sFileName.Right(sFileName.GetLength() - 1);
 		else
 			return sNormalizedPathName + cFileSeparator + sFileName;
 	}
@@ -2232,6 +2248,8 @@ void FileService::Test()
 	svURItests.Add("hdfs://datanode-wrong-uri");
 	svURItests.Add("s3:///good-URI/test");
 	svURItests.Add("s3://host/good-URI/test");
+	svURItests.Add("gcs:///good-URI.txt");
+	svURItests.Add("gcs:///");
 
 	// Test oriente linux
 	svURItests.Add("file:///home/test.txt");
@@ -2677,7 +2695,6 @@ boolean FileSpec::CheckReferenceFileSpec(const FileSpec* refFileSpec) const
 		    FileService::GetURIScheme(sPathName) == FileService::GetURIScheme(sRefPathName) and
 		    FileService::GetURIHostName(sPathName) == FileService::GetURIHostName(sRefPathName))
 		{
-
 			// On enleve la partie URI des chemins (file://hostname/)
 			sPathName = FileService::GetURIFilePathName(sPathName);
 			sRefPathName = FileService::GetURIFilePathName(sRefPathName);

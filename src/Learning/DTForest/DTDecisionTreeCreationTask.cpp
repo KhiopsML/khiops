@@ -525,7 +525,7 @@ boolean DTDecisionTreeCreationTask::MasterFinalize(boolean bProcessEndedCorrectl
 			    KWAttributeStats*, odMasterOutputAttributeStats.Lookup(treeSpec->GetTreeVariableName()));
 			assert(attributeStats != NULL);
 
-			key = (NUMERIC)treeSpec->ComputeHashValue();
+			key = treeSpec->ComputeHashValue();
 
 			// filtrer les arbres qui sont similaires
 			if (ndTreeSingleton.Lookup(key) == NULL)
@@ -570,7 +570,8 @@ boolean DTDecisionTreeCreationTask::MasterFinalize(boolean bProcessEndedCorrectl
 			}
 		}
 
-		masterOutputCreationReport.ComputeRankIdentifiers();
+		// Parametrage des classStats pour specialiser le contenu des rapports
+		masterOutputCreationReport.SetClassStats(GetClassStats());
 
 		// message et warning final
 		if (oaMasterOutputAttributeStats->GetSize() > 0)
@@ -775,7 +776,6 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 			    (slaveTupleTableLoader.GetInputExtraAttributeType() == KWType::Continuous and
 				     randomForestParameter.GetDiscretizationTargetMethod() ==
 					 DTForestParameter::DISCRETIZATION_EQUAL_FREQUENCY
-
 				 ? true
 				 : false);
 
@@ -941,7 +941,7 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 						reportTreeSpec = new DTDecisionTreeSpec;
 						reportTreeSpec->InitFromDecisionTree(dttree);
 						// detection des doublons
-						key = (NUMERIC)reportTreeSpec->ComputeHashValue();
+						key = reportTreeSpec->ComputeHashValue();
 						// filtre les arbre qui
 						//  1 sont similaire key exist deja
 						//  2 au moins une profondeur de 3 (2 niveau de groupage discretisation)
@@ -2455,7 +2455,6 @@ SymbolVector* DTDecisionTreeCreationTask::MODLDiscretizeContinuousTarget(KWTuple
 	cvInputIntervalValues.CopyFrom(&cvInput);
 	if (randomForestParameter.GetDiscretizationTargetMethod() == DTForestParameter::DISCRETIZATION_MODL)
 	{
-
 		cvInputIntervalValues.Shuffle();
 		if (cvInputIntervalValues.GetSize() > nMaxIntervalsNumber - 1)
 			cvInputIntervalValues.SetSize(nMaxIntervalsNumber - 1);
@@ -2485,7 +2484,6 @@ SymbolVector* DTDecisionTreeCreationTask::MODLDiscretizeContinuousTarget(KWTuple
 	svTargetValues = new SymbolVector;
 	if (randomForestParameter.GetDiscretizationTargetMethod() == DTForestParameter::DISCRETIZATION_MODL)
 	{
-
 		for (int nInterval = 0; nInterval < cvChosenIntervals.GetSize(); nInterval++)
 		{
 			s = "I" + ALString(IntToString(nInterval));
@@ -2579,7 +2577,6 @@ void DTDecisionTreeCreationTask::ReferenceTargetIntervalValues(const ObjectDicti
 {
 	ObjectArray oaAttributeStats;
 	ContinuousVector cv;
-	SymbolVector* svTargetValues = NULL;
 	ContinuousVector* cvTargetValues = NULL;
 	KWQuantileIntervalBuilder quantileBuilder;
 

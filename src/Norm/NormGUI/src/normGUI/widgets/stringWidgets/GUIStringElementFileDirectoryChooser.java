@@ -30,8 +30,6 @@ import normGUI.engine.GUIUnit;
  * fichier (JFileChooser). Cette fenetre s'ouvre en pointant sur le repertoire
  * du dernier fichier selectionne. Utilisation de JPanel, JTextField, JButton et
  * JFileChooser.
- *
- * @author Marc Boulle
  */
 public class GUIStringElementFileDirectoryChooser extends GUIStringElement implements ActionListener
 {

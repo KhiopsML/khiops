@@ -19,7 +19,7 @@ warning : Coclustering report ./AdultCoclustering.khc (line 50) : Part ({Adm-cle
 warning : Coclustering report ./AdultCoclustering.khc (line 51) : Part (B18) with missing hierarchical rank for variable occupation
 warning : Coclustering report ./AdultCoclustering.khc (line 52) : Part (B5) with missing hierarchical rank for variable occupation
 warning : Coclustering report : ...
-Write simplified report ./results\PostProcessedCoclustering_10000cells.khc
+Write simplified report ./results/PostProcessedCoclustering_10000cells.khcj
 
 warning : Coclustering report ./AdultCoclustering.khc (line 30) : Part (]-inf;18.5]) with missing hierarchical rank for variable age
 warning : Coclustering report ./AdultCoclustering.khc (line 31) : Part (]18.5;23.5]) with missing hierarchical rank for variable age
@@ -42,7 +42,7 @@ warning : Coclustering report ./AdultCoclustering.khc (line 50) : Part ({Adm-cle
 warning : Coclustering report ./AdultCoclustering.khc (line 51) : Part (B18) with missing hierarchical rank for variable occupation
 warning : Coclustering report ./AdultCoclustering.khc (line 52) : Part (B5) with missing hierarchical rank for variable occupation
 warning : Coclustering report : ...
-Write simplified report ./results\PostProcessedCoclustering_100cells.khc
+Write simplified report ./results/PostProcessedCoclustering_100cells.khcj
 
 warning : Coclustering report ./AdultCoclustering.khc (line 30) : Part (]-inf;18.5]) with missing hierarchical rank for variable age
 warning : Coclustering report ./AdultCoclustering.khc (line 31) : Part (]18.5;23.5]) with missing hierarchical rank for variable age
@@ -65,7 +65,7 @@ warning : Coclustering report ./AdultCoclustering.khc (line 50) : Part ({Adm-cle
 warning : Coclustering report ./AdultCoclustering.khc (line 51) : Part (B18) with missing hierarchical rank for variable occupation
 warning : Coclustering report ./AdultCoclustering.khc (line 52) : Part (B5) with missing hierarchical rank for variable occupation
 warning : Coclustering report : ...
-Write simplified report ./results\PostProcessedCoclustering_50info.khc
+Write simplified report ./results/PostProcessedCoclustering_50info.khcj
 
 warning : Coclustering report ./AdultCoclustering.khc (line 30) : Part (]-inf;18.5]) with missing hierarchical rank for variable age
 warning : Coclustering report ./AdultCoclustering.khc (line 31) : Part (]18.5;23.5]) with missing hierarchical rank for variable age
@@ -88,7 +88,7 @@ warning : Coclustering report ./AdultCoclustering.khc (line 50) : Part ({Adm-cle
 warning : Coclustering report ./AdultCoclustering.khc (line 51) : Part (B18) with missing hierarchical rank for variable occupation
 warning : Coclustering report ./AdultCoclustering.khc (line 52) : Part (B5) with missing hierarchical rank for variable occupation
 warning : Coclustering report : ...
-Write simplified report ./results\PostProcessedCoclustering_max5age.khc
+Write simplified report ./results/PostProcessedCoclustering_max5age.khcj
 
 warning : Coclustering report ./AdultCoclustering.khc (line 30) : Part (]-inf;18.5]) with missing hierarchical rank for variable age
 warning : Coclustering report ./AdultCoclustering.khc (line 31) : Part (]18.5;23.5]) with missing hierarchical rank for variable age
@@ -111,5 +111,5 @@ warning : Coclustering report ./AdultCoclustering.khc (line 50) : Part ({Adm-cle
 warning : Coclustering report ./AdultCoclustering.khc (line 51) : Part (B18) with missing hierarchical rank for variable occupation
 warning : Coclustering report ./AdultCoclustering.khc (line 52) : Part (B5) with missing hierarchical rank for variable occupation
 warning : Coclustering report : ...
-Write simplified report ./results\PostProcessedCoclustering_max5occupation.khc
+Write simplified report ./results/PostProcessedCoclustering_max5occupation.khcj
 

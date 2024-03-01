@@ -8,6 +8,38 @@ KWPredictorSpecView::KWPredictorSpecView()
 {
 	bIsViewInitialized = false;
 	bStaticPredictorView = true;
+
+	// Declaration des actions, similaire a ce qui est dans KWModelingAdvancedSpecView
+	AddAction("InspectConstructionDomain",
+		  "<html> <center> Variable construction <br> parameters </center> </html>",
+		  (ActionMethod)(&KWPredictorSpecView::InspectConstructionDomain));
+	AddAction("InspectTextFeaturesParameters", "<html> <center> Text feature <br> parameters </center> </html>",
+		  (ActionMethod)(&KWPredictorSpecView::InspectTextFeaturesParameters));
+	AddAction("InspectAttributePairsParameters", "<html> <center> Variable pairs <br> parameters </center> </html>",
+		  (ActionMethod)(&KWPredictorSpecView::InspectAttributePairsParameters));
+	AddAction("InspectAttributeCreationParameters",
+		  "<html> <center> Tree construction <br> parameters </center> </html>",
+		  (ActionMethod)(&KWPredictorSpecView::InspectAttributeCreationParameters));
+	GetActionAt("InspectConstructionDomain")->SetStyle("Button");
+	GetActionAt("InspectTextFeaturesParameters")->SetStyle("Button");
+	GetActionAt("InspectAttributePairsParameters")->SetStyle("Button");
+	GetActionAt("InspectAttributeCreationParameters")->SetStyle("Button");
+
+	// Action d'edition des parametre des arbres disponible uniquement en mode avance
+	GetActionAt("InspectAttributeCreationParameters")
+	    ->SetVisible(KDDataPreparationAttributeCreationTask::GetGlobalCreationTask() != NULL and
+			 KDDataPreparationAttributeCreationTaskView::GetGlobalCreationTaskView() != NULL);
+
+	// Info-bulles
+	GetActionAt("InspectConstructionDomain")
+	    ->SetHelpText(
+		"Advanced parameters to select the construction rules used for automatic variable construction.");
+	GetActionAt("InspectTextFeaturesParameters")
+	    ->SetHelpText("Advanced parameters for the construction of text features.");
+	GetActionAt("InspectAttributePairsParameters")
+	    ->SetHelpText("Advanced parameters to select the variable pairs to analyze.");
+	GetActionAt("InspectAttributeCreationParameters")
+	    ->SetHelpText("Advanced parameters for the constuction of tree based variables.");
 }
 
 KWPredictorSpecView::~KWPredictorSpecView() {}
@@ -49,6 +81,81 @@ void KWPredictorSpecView::SetStaticPredictorView(boolean bValue)
 boolean KWPredictorSpecView::GetStaticPredictorView() const
 {
 	return bStaticPredictorView;
+}
+
+void KWPredictorSpecView::InspectConstructionDomain()
+{
+	KWPredictorSpec* predictorSpec;
+	KDConstructionDomainView constructionDomainView;
+
+	// Acces a l'objet edite
+	predictorSpec = cast(KWPredictorSpec*, GetObject());
+	check(predictorSpec);
+
+	// Ouverture de la sous-fiche
+	constructionDomainView.SetObject(predictorSpec->GetAttributeConstructionSpec()->GetConstructionDomain());
+	constructionDomainView.Open();
+}
+
+void KWPredictorSpecView::InspectTextFeaturesParameters()
+{
+	KWPredictorSpec* predictorSpec;
+	KDTextFeatureSpecView textFeatureSpecView;
+
+	// Acces a l'objet edite
+	predictorSpec = cast(KWPredictorSpec*, GetObject());
+	check(predictorSpec);
+
+	// Ouverture de la sous-fiche
+	textFeatureSpecView.SetObject(predictorSpec->GetAttributeConstructionSpec()->GetTextFeatureSpec());
+	textFeatureSpecView.Open();
+}
+
+void KWPredictorSpecView::InspectAttributeCreationParameters()
+{
+	KWPredictorSpec* predictorSpec;
+	KDDataPreparationAttributeCreationTaskView* attributeCreationView;
+
+	// Acces a l'objet edite
+	predictorSpec = cast(KWPredictorSpec*, GetObject());
+	check(predictorSpec);
+
+	// Message si pas d'objet edite
+	if (predictorSpec->GetAttributeConstructionSpec()->GetAttributeCreationParameters() == NULL)
+		AddMessage("No parameter available");
+	// Message si pas de vue d'edition des parametres
+	else if (KDDataPreparationAttributeCreationTaskView::GetGlobalCreationTaskView() == NULL)
+		AddMessage("No view available to update parameters");
+	// Sinon, edition de l'objet
+	else
+	{
+		attributeCreationView = KDDataPreparationAttributeCreationTaskView::GetGlobalCreationTaskView();
+
+		// Ouverture de la sous-fiche
+		attributeCreationView->SetObject(
+		    predictorSpec->GetAttributeConstructionSpec()->GetAttributeCreationParameters());
+		attributeCreationView->Open();
+	}
+}
+
+void KWPredictorSpecView::InspectAttributePairsParameters()
+{
+	KWPredictorSpec* predictorSpec;
+	KWAttributePairsSpecView attributePairsSpecView;
+
+	// Acces a l'objet edite
+	predictorSpec = cast(KWPredictorSpec*, GetObject());
+	check(predictorSpec);
+
+	// Ouverture de la sous-fiche
+	attributePairsSpecView.SetObject(predictorSpec->GetAttributeConstructionSpec()->GetAttributePairsSpec());
+	attributePairsSpecView.Open();
+
+	// Supression des paires en doublon
+	predictorSpec->GetAttributeConstructionSpec()->GetAttributePairsSpec()->DeleteDuplicateAttributePairs();
+
+	// Verification que le nombre de paires max est superieure ou egal au nombre de paires specifique
+	predictorSpec->GetAttributeConstructionSpec()->GetAttributePairsSpec()->CheckAttributePairNumbers();
 }
 
 void KWPredictorSpecView::SetObject(Object* object)
@@ -124,13 +231,6 @@ boolean KWPredictorSpecView::InitializeStaticView(KWPredictorSpec* predictorSpec
 
 	// Ajout d'une sous fiche pour la construction de variable
 	attributeConstructionSpecView = new KWAttributeConstructionSpecView;
-#ifdef DEPRECATED_V10
-	{
-		// (sans les fonctionnalite de recodage)
-		attributeConstructionSpecView->GetFieldAt("RecodingClass")->SetVisible(false);
-		attributeConstructionSpecView->GetActionAt("InspectRecodingSpec")->SetVisible(false);
-	}
-#endif // DEPRECATED_V10
 	AddCardField("AttributeConstructionSpec", "Variable construction", attributeConstructionSpecView);
 
 	// Ajout d'une sous fiche pour le preprocessing
@@ -232,13 +332,9 @@ void KWPredictorSpecView::Test()
 	// Enregistrement de predicteurs
 	KWPredictor::RegisterPredictor(new KWPredictorUnivariate);
 	KWPredictor::RegisterPredictor(new KWPredictorNaiveBayes);
-	KWPredictor::RegisterPredictor(new KWPredictorSelectiveNaiveBayes);
-
-	// Enregistrement de vues sur les predicteurs
-	KWPredictorView::RegisterPredictorView(new KWPredictorSelectiveNaiveBayesView);
 
 	// Parametrage de la fenetre
-	predictorSpec.SetPredictorName("Selective Naive Bayes");
+	predictorSpec.SetPredictorName("Naive Bayes");
 	predictorSpec.SetTargetAttributeType(KWType::Symbol);
 	predictorSpecView.SetStaticPredictorView(false);
 

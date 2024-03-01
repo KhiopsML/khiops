@@ -1085,7 +1085,7 @@ int KWContinuous::StringToContinuousError(const char* const sValue, Continuous& 
 
 		// On saute les blancs initiaux
 		nOffset = 0;
-		while (isspace(sValue[nOffset]))
+		while (iswspace(sValue[nOffset]))
 			nOffset++;
 
 		// Analyse du signe optionnel
@@ -1567,7 +1567,7 @@ const char* const KWContinuous::StandardContinuousToString(Continuous cValue)
 	if (cValue == GetMissingValue())
 		sBuffer[0] = '\0';
 	else
-		sprintf(sBuffer, "%.10g", cValue);
+		snprintf(sBuffer, BUFFER_LENGTH, "%.10g", cValue);
 	return sBuffer;
 }
 
@@ -1860,7 +1860,7 @@ void KWContinuous::CompareStringToContinuous(Continuous cValue, boolean bShow)
 		return;
 
 	// Conversion
-	sprintf(sValue, "%.15g", cValue);
+	snprintf(sValue, sizeof(sValue), "%.15g", cValue);
 	dRefValue = StandardStringToContinuous(sValue);
 	dNewValue = StringToContinuous(sValue);
 
@@ -1884,7 +1884,7 @@ const char* const KWContinuous::MaxPrecisionDoubleToString(double dValue)
 {
 	char* sBuffer = StandardGetBuffer();
 
-	sprintf(sBuffer, "%.15g", dValue);
+	snprintf(sBuffer, BUFFER_LENGTH, "%.15g", dValue);
 
 	return sBuffer;
 }
@@ -1939,7 +1939,7 @@ void KWContinuous::TestPerformanceStringToContinuous(int nMaxLowerBaseValue, dou
 				{
 					// Nombre positif avec exposant positif
 					cValue = (cUpperBaseValue + nLowerBaseValue) * dPositivePower10[nExponent];
-					sprintf(sValue, "%.15g", cValue);
+					snprintf(sValue, sizeof(sValue), "%.15g", cValue);
 					if (bRefConversion)
 						StandardStringToContinuous(sValue);
 					if (bNewConversion)
@@ -1949,7 +1949,7 @@ void KWContinuous::TestPerformanceStringToContinuous(int nMaxLowerBaseValue, dou
 
 					// Nombre positif avec exposant negatif
 					cValue = (cUpperBaseValue + nLowerBaseValue) * dNegativePower10[nExponent];
-					sprintf(sValue, "%.15g", cValue);
+					snprintf(sValue, sizeof(sValue), "%.15g", cValue);
 					if (bRefConversion)
 						StandardStringToContinuous(sValue);
 					if (bNewConversion)
@@ -1959,7 +1959,7 @@ void KWContinuous::TestPerformanceStringToContinuous(int nMaxLowerBaseValue, dou
 
 					// Nombre negatif avec exposant positif
 					cValue = -(cUpperBaseValue + nLowerBaseValue) * dPositivePower10[nExponent];
-					sprintf(sValue, "%.15g", cValue);
+					snprintf(sValue, sizeof(sValue), "%.15g", cValue);
 					if (bRefConversion)
 						StandardStringToContinuous(sValue);
 					if (bNewConversion)
@@ -1969,7 +1969,7 @@ void KWContinuous::TestPerformanceStringToContinuous(int nMaxLowerBaseValue, dou
 
 					// Nombre negatif avec exposant negatif
 					cValue = -(cUpperBaseValue + nLowerBaseValue) * dNegativePower10[nExponent];
-					sprintf(sValue, "%.15g", cValue);
+					snprintf(sValue, sizeof(sValue), "%.15g", cValue);
 					if (bRefConversion)
 						StandardStringToContinuous(sValue);
 					if (bNewConversion)

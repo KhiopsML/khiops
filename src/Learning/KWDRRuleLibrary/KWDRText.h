@@ -31,7 +31,6 @@ class KWDRTextTranslate;
 class KWDRTextSearch;
 class KWDRTextReplace;
 class KWDRTextReplaceAll;
-class KWDRTextReplaceValues;
 class KWDRTextRegexMatch;
 class KWDRTextRegexSearch;
 class KWDRTextRegexReplace;

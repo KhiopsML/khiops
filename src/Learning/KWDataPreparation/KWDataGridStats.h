@@ -22,6 +22,9 @@ class PLShared_DGSAttributeSymbolValues;
 #include "KWType.h"
 #include "KWSymbol.h"
 #include "KWContinuous.h"
+#include "TSV.h"
+#include "KWFrequencyVector.h"
+#include "KWClass.h"
 #include "JSONFile.h"
 #include "PLSharedObject.h"
 
@@ -251,19 +254,19 @@ public:
 	////////////////////////////////////////////////////////
 	// Gestion d'un rapport JSON
 	//
-	// Il faut avoir parametrer un veceteur des valeurs min et max par attribut
-	// pour permettre l'ecritures des partition en intervalles, avec les valeurs
-	// des bornes extremes.
+	// Il faut avoir parametrer un vecteur des bornes inf et sup de domaine numerique
+	// par attribut pour permettre l'ecritures des partition en intervalles, avec les valeurs
+	// des bornes extremes (soit bornes de domaines, soit valeur min et max par attribut).
 	// Ces vecteur appartienne a l'appelant, et ne doivent etre parametre que le temps
 	// de l'appel des methodes d'ecriture JSON
 
-	// Vecteur des valeurs min par attribut
-	void SetJSONAttributeMinValues(const ContinuousVector* cvValues);
-	const ContinuousVector* GetJSONAttributeMinValues() const;
+	// Vecteur des bornes inf et sup de domaine numerique par attribut
+	void SetJSONAttributeDomainLowerBounds(const ContinuousVector* cvValues);
+	const ContinuousVector* GetJSONAttributeDomainLowerBounds() const;
 
 	// Vecteur des valeurs max par attribut
-	void SetJSONAttributeMaxValues(const ContinuousVector* cvValues);
-	const ContinuousVector* GetJSONAttributeMaxValues() const;
+	void SetJSONAttributeDomainUpperBounds(const ContinuousVector* cvValues);
+	const ContinuousVector* GetJSONAttributeDomainUpperBounds() const;
 
 	// Ecriture du contenu d'un rapport JSON
 	virtual void WriteJSONFields(JSONFile* fJSON);
@@ -386,12 +389,6 @@ protected:
 	void InternalComputePartIndexes(int nCellIndex, IntVector* ivPartIndexes, int nFirstAttributeIndex,
 					int nLastAttributeIndex) const;
 
-	// Nombre max d'item dans les rapports (redirige sur KWLearningReport)
-	int GetMaxModalityNumber() const;
-
-	// Calcul d'un nombre max d'item, en se limitant au parametre MaxModalityNumber
-	int ComputeMaxWrittenItemNumber(int nItemNumber) const;
-
 	// Tableau des attributs du DataGrid
 	ObjectArray oaAttributes;
 
@@ -408,8 +405,8 @@ protected:
 	int nGranularity;
 
 	// Vecteur des valeurs min et max par intervalle, pour l'ecriture des discretisation JSON
-	const ContinuousVector* cvJSONAttributeMinValues;
-	const ContinuousVector* cvJSONAttributeMaxValues;
+	const ContinuousVector* cvJSONAttributeDomainLowerBounds;
+	const ContinuousVector* cvJSONAttributeDomainUpperBounds;
 
 	friend class PLShared_DataGridStats;
 };
@@ -664,6 +661,7 @@ public:
 	// nGranularizedValueNumber + nCatchAllValueNumber = nInitialValueNumber
 	void SetCatchAllValueNumber(int nValue);
 	int GetCatchAllValueNumber() const;
+
 	///////////////////////////////////////
 	// Methodes de test de la classe
 
@@ -924,7 +922,7 @@ public:
 protected:
 	Object* Create() const override;
 
-	// Test de la serialisation de la grilel passe en parametre (celle-ci est detruite a la fin du test)
+	// Test de la serialisation de la grille passee en parametre (celle-ci est detruite a la fin du test)
 	static boolean TestDataGrid(KWDataGridStats* testDataGrid);
 };
 
@@ -1201,15 +1199,6 @@ inline void KWDataGridStats::ComputeTargetPartIndexes(int nCellIndex, IntVector*
 	require(ivPartIndexes != NULL);
 	require(ivPartIndexes->GetSize() == GetAttributeNumber());
 	InternalComputePartIndexes(nCellIndex, ivPartIndexes, GetFirstTargetAttributeIndex(), GetAttributeNumber() - 1);
-}
-
-inline int KWDataGridStats::ComputeMaxWrittenItemNumber(int nItemNumber) const
-{
-	require(nItemNumber >= 0);
-	if (nItemNumber <= GetMaxModalityNumber())
-		return nItemNumber;
-	else
-		return GetMaxModalityNumber();
 }
 
 inline int KWDataGridStats::InternalComputeCellIndex(const IntVector* ivPartIndexes, int nFirstAttributeIndex,

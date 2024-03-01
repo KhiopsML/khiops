@@ -35,8 +35,8 @@ public:
 	// Acces aux attributs
 
 	// Frequency variable
-	const ALString& GetFrequencyAttribute() const;
-	void SetFrequencyAttribute(const ALString& sValue);
+	const ALString& GetFrequencyAttributeName() const;
+	void SetFrequencyAttributeName(const ALString& sValue);
 
 	///////////////////////////////////////////////////////////
 	// Divers
@@ -50,8 +50,15 @@ public:
 
 	// ## Custom declarations
 
-	// Tableau des attributes (KWAttributeName), parametres d'un coclustering
-	ObjectArray* GetAttributes();
+	//////////////////////////////////////////////////////////////////////////////////////
+	// Specification utilisateur du coclustering de variables
+	//   - un tableau de nom d'attributs numeriques ou categoriel du dictionnaire
+	//   - une variable d'effectif (optionnel)
+	//
+	// Les variables de la specification doivent etre en Used dans le dictionnaire
+
+	// Tableau des attributes (KWAttributeName), parametres d'un coclustering de variables
+	ObjectArray* GetAttributeNames();
 
 	// Nombre max d'attributs pour le coclustering
 	static int GetMaxCoclusteringAttributeNumber();
@@ -62,12 +69,12 @@ public:
 	///// Implementation
 protected:
 	// Attributs de la classe
-	ALString sFrequencyAttribute;
+	ALString sFrequencyAttributeName;
 
 	// ## Custom implementation
 
 	// Tableau des variables
-	ObjectArray oaAttributes;
+	ObjectArray oaAttributeNames;
 
 	// ##
 };
@@ -75,14 +82,14 @@ protected:
 ////////////////////////////////////////////////////////////
 // Implementations inline
 
-inline const ALString& CCCoclusteringSpec::GetFrequencyAttribute() const
+inline const ALString& CCCoclusteringSpec::GetFrequencyAttributeName() const
 {
-	return sFrequencyAttribute;
+	return sFrequencyAttributeName;
 }
 
-inline void CCCoclusteringSpec::SetFrequencyAttribute(const ALString& sValue)
+inline void CCCoclusteringSpec::SetFrequencyAttributeName(const ALString& sValue)
 {
-	sFrequencyAttribute = sValue;
+	sFrequencyAttributeName = sValue;
 }
 
 // ## Custom inlines

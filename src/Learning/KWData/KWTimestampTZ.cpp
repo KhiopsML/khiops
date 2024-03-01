@@ -51,8 +51,8 @@ const char* const TimestampTZ::ToString() const
 	if (not Check())
 		sTimestampTZ[0] = '\0';
 	else
-		sprintf(sTimestampTZ, "%s %s%s", GetInternalDate().ToString(), GetInternalTime().ToString(),
-			GetInternalDate().TimeZoneToString(true));
+		snprintf(sTimestampTZ, BUFFER_LENGTH, "%s %s%s", GetInternalDate().ToString(),
+			 GetInternalTime().ToString(), GetInternalDate().TimeZoneToString(true));
 	return sTimestampTZ;
 }
 

@@ -62,7 +62,7 @@ public:
 	void Add(int nValue);
 
 	// Taille du vecteur
-	int GetSize();
+	int GetSize() const;
 
 	// Acces au vecteur
 	const IntVector* GetConstIntVector() const;
@@ -96,7 +96,7 @@ public:
 	void Add(longint lValue);
 
 	// Taille du vecteur
-	int GetSize();
+	int GetSize() const;
 
 	// Acces au vecteur
 	const LongintVector* GetConstLongintVector() const;
@@ -185,6 +185,47 @@ protected:
 ////////////////////////////////////////////////////////////
 // Implementations inline
 
+inline int PLShared_IntVector::GetAt(int nIndex) const
+{
+	require(bIsReadable);
+	require(bIsDeclared);
+
+	return GetConstIntVector()->GetAt(nIndex);
+}
+
+inline void PLShared_IntVector::SetAt(int nIndex, int nValue)
+{
+	require(bIsWritable);
+	GetIntVector()->SetAt(nIndex, nValue);
+}
+
+inline void PLShared_IntVector::Add(int nValue)
+{
+	require(bIsWritable);
+	GetIntVector()->Add(nValue);
+}
+
+inline int PLShared_IntVector::GetSize() const
+{
+	return GetConstIntVector()->GetSize();
+}
+
+inline const IntVector* PLShared_IntVector::GetConstIntVector() const
+{
+	require(bIsReadable);
+	require(bIsDeclared);
+
+	return cast(IntVector*, GetObject());
+}
+
+inline IntVector* PLShared_IntVector::GetIntVector()
+{
+	require(bIsWritable);
+	require(bIsDeclared);
+
+	return cast(IntVector*, GetObject());
+}
+
 inline longint PLShared_LongintVector::GetAt(int nIndex) const
 {
 	require(bIsReadable);
@@ -205,7 +246,7 @@ inline void PLShared_LongintVector::Add(longint lValue)
 	GetLongintVector()->Add(lValue);
 }
 
-inline int PLShared_LongintVector::GetSize()
+inline int PLShared_LongintVector::GetSize() const
 {
 	require(bIsReadable);
 	require(bIsDeclared);

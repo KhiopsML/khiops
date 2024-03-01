@@ -19,7 +19,6 @@ class KWDRTranslate;
 class KWDRSearch;
 class KWDRReplace;
 class KWDRReplaceAll;
-class KWDRReplaceValues;
 class KWDRRegexMatch;
 class KWDRRegexSearch;
 class KWDRRegexReplace;
@@ -64,8 +63,10 @@ protected:
 	// Conversion optimisee d'une chaine de caractere en Symbol
 	// On exploite ici la longueur de la chaine qui est disponible
 	// Remarque: on ne peut pas ajouter un constructeur de Symbol avec une
-	// ALString en parametre car cela est ambigu pour le compilateur C++
-	// par rapport au constructeur avec un const char* en parametre
+	//  ALString en parametre car cela est ambigu pour le compilateur C++
+	//  par rapport au constructeur avec un const char* en parametre
+	// Remarque: pour a l'inverse reutiliser les methodes de ALString a partir de Symbol,
+	//  se referer a la classe KWSymbolAsString
 	Symbol StringToSymbol(const ALString& sValue) const;
 };
 

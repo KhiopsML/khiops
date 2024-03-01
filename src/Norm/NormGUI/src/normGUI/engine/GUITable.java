@@ -20,8 +20,6 @@ import javax.swing.event.ListSelectionListener;
 
 /**
  * Definit le tableau associe a la liste
- *
- * @author Marc Boulle
  */
 public class GUITable extends JTable
 {

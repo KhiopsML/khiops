@@ -45,6 +45,8 @@ public:
 	void SortedListTest();
 	void ObjectDictionaryTest();
 	void NumericKeyDictionaryTest();
+	void LongintDictionaryTest();
+	void LongintNumericKeyDictionaryTest();
 	void DoubleVectorTest();
 	void IntVectorTest();
 	void LongintVectorTest();

@@ -14,6 +14,8 @@
 //
 
 // -> Data preparation and scoring
+AnalysisSpec.SystemParameters.APIMode true        // API mode
+AnalysisSpec.SystemParameters.MemoryLimit 2000     // Memory limit in MB
 ClassManagement.OpenFile       // Open...
 
 // -> Open
@@ -22,35 +24,37 @@ ClassFileName ./IrisExtended.kdic       // Dictionary file
 OK                             // Open
 // <- Open
 
-ClassManagement.ClassName Iris          // Dictionary
+TrainDatabase.ClassName Iris          // Dictionary
 
-TrainDatabase.DatabaseFiles.List.Key Iris               // List item selection
-TrainDatabase.DatabaseFiles.DataTableName ../../../datasets/Iris/Iris.txt     // Database file
-TrainDatabase.SampleNumberPercentage 70  // Sample percentage
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key Iris               // List item selection
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../datasets/Iris/Iris.txt     // Database file
+TrainDatabase.DatabaseSpec.Sampling.SampleNumberPercentage 70  // Sample percentage
 
 AnalysisSpec.TargetAttributeName PetalLength   // Target variable
 
-AnalysisResults.ResultFilesDirectory ./results   // Result files directory
+AnalysisResults.ReportFileName ./results/AnalysisResults.khj // Analysis report
 
-AnalysisSpec.PredictorsSpec.SelectiveNaiveBayesPredictor true // Predicteur Bayesien Naif Selectif
-AnalysisSpec.PredictorsSpec.AdvancedSpec.UnivariatePredictorNumber 1      // Nombre de predicteurs univaries
+AnalysisSpec.PredictorsSpec.ExpertSpec.UnivariatePredictorNumber 1      // Nombre de predicteurs univaries
 
+AnalysisSpec.PredictorsSpec.ConstructionSpec.MaxTextFeatureNumber 0    // Max number of text features
 AnalysisSpec.PredictorsSpec.ConstructionSpec.MaxTreeNumber 0  // Max Tree number
 AnalysisSpec.PredictorsSpec.ConstructionSpec.MaxConstructedAttributeNumber 0 // Max number of constructed variables
+AnalysisSpec.PredictorsSpec.ConstructionSpec.KeepSelectedAttributesOnly false    // Keep selected variables only
+AnalysisResults.ExportAsXls true         // Export as xls
 ComputeStats                   // Analyse database
 
 ClassManagement.OpenFile       // Open...
-ClassFileName ./results/Modeling.kdic       // Dictionary file
+ClassFileName ./results/AnalysisResults.model.kdic       // Dictionary file
 OK                             // Open
 
-TransferDatabase               // Transfer database
+TransferDatabase               // Deploy model
 
 // -> Database transfer
-ClassName SNB_Iris             // Transfer dictionary
-SourceDatabase.SampleNumberPercentage 70  // Sample percentage
-TargetDatabase.DatabaseFiles.List.Key SNB_Iris               // List item selection
-TargetDatabase.DatabaseFiles.DataTableName ./results/T_IrisR.txt     // Database file
-TransferDatabase               // Transfer database
+ClassName SNB_Iris             // Deployment dictionary
+SourceDatabase.DatabaseSpec.Sampling.SampleNumberPercentage 70  // Sample percentage
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key SNB_Iris               // List item selection
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ./results/D_IrisR.txt     // Database file
+TransferDatabase               // Deploy model
 Exit                           // Close
 // <- Database transfer
 

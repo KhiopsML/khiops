@@ -14,6 +14,8 @@
 //
 
 // -> Khiops Coclustering
+AnalysisSpec.SystemParameters.APIMode true        // API mode
+AnalysisSpec.SystemParameters.MemoryLimit 2000     // Memory limit in MB
 LearningTools.PostProcessCoclustering    // Simplify coclustering...
 
 // -> Coclustering post-processing
@@ -25,30 +27,28 @@ OK                             // Open
 // <- Open
 
 PostProcessingSpec.MaxCellNumber 10000     // Max cell number
-AnalysisResults.ResultFilesDirectory ./results       // Result files directory
-AnalysisResults.PostProcessedCoclusteringFileName PostProcessedCoclustering_10000cells.khc   // Post-processed coclustering report
+PostProcessedCoclusteringFileName ./results/PostProcessedCoclustering_10000cells.khcj         // Simplified coclustering report
 PostProcessCoclustering        // Simplify coclustering
 
 PostProcessingSpec.MaxCellNumber 100     // Max cell number
-AnalysisResults.ResultFilesDirectory ./results       // Result files directory
-AnalysisResults.PostProcessedCoclusteringFileName PostProcessedCoclustering_100cells.khc   // Post-processed coclustering report
+PostProcessedCoclusteringFileName ./results/PostProcessedCoclustering_100cells.khcj   // Simplified coclustering report
 PostProcessCoclustering        // Simplify coclustering
 
 PostProcessingSpec.MaxCellNumber 0       // Max cell number
 PostProcessingSpec.MaxPreservedInformation 50      // Max preserved information
-AnalysisResults.PostProcessedCoclusteringFileName PostProcessedCoclustering_50info.khc     // Post-processed coclustering report
+PostProcessedCoclusteringFileName ./results/PostProcessedCoclustering_50info.khcj     // Simplified coclustering report
 PostProcessCoclustering        // Simplify coclustering
 
 PostProcessingSpec.MaxPreservedInformation 0       // Max preserved information
 PostProcessingSpec.PostProcessedAttributes.List.Key age      // List item selection
 PostProcessingSpec.PostProcessedAttributes.MaxPartNumber 5   // Max part number
-AnalysisResults.PostProcessedCoclusteringFileName PostProcessedCoclustering_max5age.khc    // Post-processed coclustering report
+PostProcessedCoclusteringFileName ./results/PostProcessedCoclustering_max5age.khcj    // Simplified coclustering report
 PostProcessCoclustering        // Simplify coclustering
 
 PostProcessingSpec.PostProcessedAttributes.MaxPartNumber 0   // Max part number
 PostProcessingSpec.PostProcessedAttributes.List.Key occupation         // List item selection
 PostProcessingSpec.PostProcessedAttributes.MaxPartNumber 5   // Max part number
-AnalysisResults.PostProcessedCoclusteringFileName PostProcessedCoclustering_max5occupation.khc       // Post-processed coclustering report
+PostProcessedCoclusteringFileName ./results/PostProcessedCoclustering_max5occupation.khcj       // Simplified coclustering report
 PostProcessCoclustering        // Simplify coclustering
 
 Exit                           // Close

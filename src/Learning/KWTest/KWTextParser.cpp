@@ -378,49 +378,53 @@ void KWTextParser::BuildLineWordDictionary(char* sLine, ObjectDictionary* odWord
 	nWordChar = 0;
 	nWordState = StateEmpty;
 	if (bInspectChars)
-		cout << "Offset\tChar\tisalnum\tispunct\tisspace\tisprint" << endl;
+		cout << "Offset\tChar\tisalnum\tispunct\tiswspace\tisprint" << endl;
 	while (sLine[i] != '\0')
 	{
 		cLineChar = sLine[i];
 		if (bInspectChars)
 		{
 			cout << i << "\t" << cLineChar << "\t" << isalnum(cLineChar) << "\t" << ispunct(cLineChar)
-			     << "\t" << isspace(cLineChar) << "\t" << p_isprint(cLineChar) << endl;
+			     << "\t" << iswspace(cLineChar) << "\t" << p_isprint(cLineChar) << endl;
 		}
 
 		// Transformation des caracteres accentues
 		if (bFilterAccentuation)
 		{
-			if (cLineChar == 'é')
+			// Compilation uniquement sous windows pour cette methode prototype,
+			// pour eviter les warnings de type illegal character encoding
+#ifdef _WIN32
+			if (cLineChar == 'ï¿½')
 				cLineChar = 'e';
-			else if (cLineChar == 'è')
+			else if (cLineChar == 'ï¿½')
 				cLineChar = 'e';
-			else if (cLineChar == 'ê')
+			else if (cLineChar == 'ï¿½')
 				cLineChar = 'e';
-			else if (cLineChar == 'ë')
+			else if (cLineChar == 'ï¿½')
 				cLineChar = 'e';
-			else if (cLineChar == 'É')
+			else if (cLineChar == 'ï¿½')
 				cLineChar = 'e';
-			else if (cLineChar == 'à')
+			else if (cLineChar == 'ï¿½')
 				cLineChar = 'a';
-			else if (cLineChar == 'â')
+			else if (cLineChar == 'ï¿½')
 				cLineChar = 'a';
-			else if (cLineChar == 'ä')
+			else if (cLineChar == 'ï¿½')
 				cLineChar = 'a';
-			else if (cLineChar == 'ô')
+			else if (cLineChar == 'ï¿½')
 				cLineChar = 'o';
-			else if (cLineChar == 'ö')
+			else if (cLineChar == 'ï¿½')
 				cLineChar = 'o';
-			else if (cLineChar == 'î')
+			else if (cLineChar == 'ï¿½')
 				cLineChar = 'i';
-			else if (cLineChar == 'ï')
+			else if (cLineChar == 'ï¿½')
 				cLineChar = 'i';
-			else if (cLineChar == 'û')
+			else if (cLineChar == 'ï¿½')
 				cLineChar = 'u';
-			else if (cLineChar == 'ü')
+			else if (cLineChar == 'ï¿½')
 				cLineChar = 'u';
-			else if (cLineChar == 'ç')
+			else if (cLineChar == 'ï¿½')
 				cLineChar = 'c';
+#endif // _WIN32
 		}
 
 		// Traitement du caractere en fonction de l'etat courant

@@ -12,7 +12,6 @@ class KWLearningProblemView;
 #include "KWDatabaseView.h"
 #include "KWDatabaseTransferView.h"
 #include "KIPredictorInterpretationView.h"
-#include "LMLicenseManager.h"
 
 ////////////////////////////////////////////////////////////
 // Classe KWLearningProblemActionView

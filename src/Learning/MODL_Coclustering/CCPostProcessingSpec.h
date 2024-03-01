@@ -14,6 +14,7 @@
 
 #include "CCPostProcessedAttribute.h"
 #include "CCCoclusteringReport.h"
+#include "CCAnalysisSpec.h"
 
 // ##
 
@@ -34,7 +35,11 @@ public:
 	///////////////////////////////////////////////////////////
 	// Acces aux attributs
 
-	// ShortDescription
+	// Coclustering type
+	const ALString& GetCoclusteringType() const;
+	void SetCoclusteringType(const ALString& sValue);
+
+	// Short description
 	const ALString& GetShortDescription() const;
 	void SetShortDescription(const ALString& sValue);
 
@@ -67,8 +72,8 @@ public:
 	void SetMaxTotalPartNumber(int nValue);
 
 	// Frequency variable
-	const ALString& GetFrequencyAttribute() const;
-	void SetFrequencyAttribute(const ALString& sValue);
+	const ALString& GetFrequencyAttributeName() const;
+	void SetFrequencyAttributeName(const ALString& sValue);
 
 	///////////////////////////////////////////////////////////
 	// Divers
@@ -106,6 +111,7 @@ public:
 	///// Implementation
 protected:
 	// Attributs de la classe
+	ALString sCoclusteringType;
 	ALString sShortDescription;
 	int nInstanceNumber;
 	int nNonEmptyCellNumber;
@@ -114,7 +120,7 @@ protected:
 	int nMaxPreservedInformation;
 	int nTotalPartNumber;
 	int nMaxTotalPartNumber;
-	ALString sFrequencyAttribute;
+	ALString sFrequencyAttributeName;
 
 	// ## Custom implementation
 
@@ -126,6 +132,16 @@ protected:
 
 ////////////////////////////////////////////////////////////
 // Implementations inline
+
+inline const ALString& CCPostProcessingSpec::GetCoclusteringType() const
+{
+	return sCoclusteringType;
+}
+
+inline void CCPostProcessingSpec::SetCoclusteringType(const ALString& sValue)
+{
+	sCoclusteringType = sValue;
+}
 
 inline const ALString& CCPostProcessingSpec::GetShortDescription() const
 {
@@ -207,14 +223,14 @@ inline void CCPostProcessingSpec::SetMaxTotalPartNumber(int nValue)
 	nMaxTotalPartNumber = nValue;
 }
 
-inline const ALString& CCPostProcessingSpec::GetFrequencyAttribute() const
+inline const ALString& CCPostProcessingSpec::GetFrequencyAttributeName() const
 {
-	return sFrequencyAttribute;
+	return sFrequencyAttributeName;
 }
 
-inline void CCPostProcessingSpec::SetFrequencyAttribute(const ALString& sValue)
+inline void CCPostProcessingSpec::SetFrequencyAttributeName(const ALString& sValue)
 {
-	sFrequencyAttribute = sValue;
+	sFrequencyAttributeName = sValue;
 }
 
 // ## Custom inlines

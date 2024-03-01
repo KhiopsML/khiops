@@ -13,7 +13,6 @@
 #include "KWFileSorter.h"
 #include "KWClassDomain.h"
 #include "KWClassAttributeHelpList.h"
-#include "LMLicenseManager.h"
 
 ////////////////////////////////////////////////////////////
 // Classe KWDataTableSorterView

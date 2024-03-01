@@ -4,10 +4,8 @@
 
 #pragma once
 
-#include "MHHistogramSpec.h"
-#include "MHHistogramSpecView.h"
-#include "MHDiscretizerHistogramMODL.h"
-#include "MHBin.h"
+#include "MHGenumHistogramSpec.h"
+#include "MHDiscretizerGenumHistogram.h"
 #include "Version.h"
 
 ////////////////////////////////////////////////////////////////
@@ -59,6 +57,6 @@ protected:
 	// Nom du fichier contenant l'histogramme resultat
 	ALString sHistogramFileName;
 
-	// Objet de parametrage des histogramme
-	MHHistogramSpec histogramSpec;
+	// Objet de parametrage des histogrammes
+	MHGenumHistogramSpec histogramSpec;
 };

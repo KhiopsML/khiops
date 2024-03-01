@@ -19,7 +19,7 @@ KWRecodingSpecView::KWRecodingSpecView()
 	AddStringField("RecodeSymbolAttributes", "Categorical recoding method", "");
 	AddStringField("RecodeContinuousAttributes", "Numerical recoding method", "");
 	AddStringField("RecodeBivariateAttributes", "Pairs recoding method", "");
-	AddBooleanField("RecodeProbabilisticDistance", "Recode using probabilistic distance (expert mode)", false);
+	AddBooleanField("RecodeProbabilisticDistance", "Recode using prob distance (expert)", false);
 
 	// Parametrage des styles;
 	GetFieldAt("FilterAttributes")->SetStyle("CheckBox");
@@ -62,35 +62,35 @@ KWRecodingSpecView::KWRecodingSpecView()
 	    ->SetHelpText("Keep the initial numerical variables before preprocessing.");
 	GetFieldAt("RecodeSymbolAttributes")
 	    ->SetHelpText("Categorical recoding method."
-			  "\n part Id: identifier of the part (group of values)"
-			  "\n part label: comprehensible label of the part, like in reports"
-			  "\n binarization: 0-1 binarization of the part (generates as many Boolean variables as "
+			  "\n - part Id: identifier of the part (group of values)"
+			  "\n - part label: comprehensible label of the part, like in reports"
+			  "\n - binarization: 0-1 binarization of the part (generates as many Boolean variables as "
 			  "number of groups of values)"
-			  "\n conditional info: negative log of the conditional probability of the source variable "
+			  "\n - conditional info: negative log of the conditional probability of the source variable "
 			  "given the target variable (-log(p(X|Y))"
-			  "\n none: do not recode the variable");
+			  "\n - none: do not recode the variable");
 	GetFieldAt("RecodeContinuousAttributes")
 	    ->SetHelpText(
 		"Numerical recoding method."
-		"\n part Id: identifier of the part (interval)"
-		"\n part label: comprehensible label of the part, like in reports"
-		"\n binarization: 0-1 binarization of the part (generates as many Boolean variables as number of "
+		"\n - part Id: identifier of the part (interval)"
+		"\n - part label: comprehensible label of the part, like in reports"
+		"\n - binarization: 0-1 binarization of the part (generates as many Boolean variables as number of "
 		"intervals)"
-		"\n conditional info: negative log of the conditional probability of the source variable given the "
+		"\n - conditional info: negative log of the conditional probability of the source variable given the "
 		"target variable (-log(p(X|Y))."
-		"\n center-reduction: (X - Mean(X)) / StdDev(X)"
-		"\n normalization: (X - Min(X)) / (Max(X) - Min(X))"
-		"\n rank normalization: mean normalized rank (rank between 0 and 1) of the instances of the interval"
-		"\n none: do not recode the variable");
+		"\n - center-reduction: (X - Mean(X)) / StdDev(X)"
+		"\n - normalization: (X - Min(X)) / (Max(X) - Min(X))"
+		"\n - rank normalization: mean normalized rank (rank between 0 and 1) of the instances of the interval"
+		"\n - none: do not recode the variable");
 	GetFieldAt("RecodeBivariateAttributes")
-	    ->SetHelpText(
-		"Pairs recoding method."
-		"\n part Id: identifier of the part (bivariate cell)"
-		"\n part label: comprehensible label of the part, like in reports"
-		"\n binarization: 0-1 binarization of the part (generates as many Boolean variables as number of cells)"
-		"\n conditional info: negative log of the conditional probability of the source variable given the "
-		"target variable (-log(p(X|Y))"
-		"\n none: do not recode the variable pair");
+	    ->SetHelpText("Pairs recoding method."
+			  "\n - part Id: identifier of the part (bivariate cell)"
+			  "\n - part label: comprehensible label of the part, like in reports"
+			  "\n - binarization: 0-1 binarization of the part (generates as many Boolean variables as "
+			  "number of cells)"
+			  "\n - conditional info: negative log of the conditional probability of the source variable "
+			  "given the target variable (-log(p(X|Y))"
+			  "\n - none: do not recode the variable pair");
 
 	// ##
 }

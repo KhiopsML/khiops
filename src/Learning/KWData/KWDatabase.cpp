@@ -193,10 +193,15 @@ void KWDatabase::AddSuffixToUsedFiles(const ALString& sSuffix)
 void KWDatabase::AddPathToUsedFiles(const ALString& sPathName)
 {
 	ALString sNewDatabaseName;
+	KWResultFilePathBuilder resultFilePathBuilder;
 
-	if (GetDatabaseName() != "" and sPathName != "" and not FileService::IsPathInFilePath(GetDatabaseName()))
+	if (GetDatabaseName() != "" and sPathName != "")
 	{
-		sNewDatabaseName = FileService::BuildFilePathName(sPathName, GetDatabaseName());
+		// On passe par le service de construction des chemins de fichier en sortie
+		// avec un fichier bidon en entree pour qu'il extrait correctement la path en entree
+		resultFilePathBuilder.SetInputFilePathName(FileService::BuildFilePathName(sPathName, "dummy.txt"));
+		resultFilePathBuilder.SetOutputFilePathName(GetDatabaseName());
+		sNewDatabaseName = resultFilePathBuilder.BuildResultFilePathName();
 		SetDatabaseName(sNewDatabaseName);
 	}
 }
@@ -1336,7 +1341,7 @@ void KWDatabase::TestCreateObjects(int nNumber)
 	// Creation d'objets
 	DeleteAll();
 	for (i = 0; i < nNumber; i++)
-		GetObjects()->Add(KWObject::CreateObject(kwcCreationClass, i + 1));
+		GetObjects()->Add(KWObject::CreateObject(kwcCreationClass, (longint)i + 1));
 }
 
 void KWDatabase::TestRead()

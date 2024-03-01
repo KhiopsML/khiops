@@ -18,10 +18,6 @@ public:
 	CMDRMajorityClassifier();
 	~CMDRMajorityClassifier();
 
-	// Verification que la regle est completement renseignee et compilable
-	// boolean CheckOperandsFamily(const KWDerivationRule* ruleFamily) const;
-	// boolean CheckOperandsCompletness(KWClass* kwcOwnerClass) const;
-
 	// Reimplementation de la methode Create
 	KWDerivationRule* Create() const;
 
@@ -39,4 +35,7 @@ protected:
 
 	// Vecteurs des frequences cibles
 	IntVector ivFrequencies;
+
+	// Effectif total
+	int nTotalFrequency;
 };

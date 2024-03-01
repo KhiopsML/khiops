@@ -1,4 +1,4 @@
-#Khiops 10.1
+#Khiops 10.4.6i
 
 // Root entity: curve, defined by its identifier (Date) and its array of points
 Root	Dictionary	PowerCurve	(Date)

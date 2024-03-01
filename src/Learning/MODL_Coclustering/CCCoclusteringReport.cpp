@@ -110,6 +110,9 @@ boolean CCCoclusteringReport::ReadGenericReportHeader(const ALString& sFileName,
 						      CCHierarchicalDataGrid* coclusteringDataGrid,
 						      int& nInstanceNumber, int& nCellNumber)
 {
+	require(sFileName != "");
+	require(coclusteringDataGrid != NULL);
+
 	boolean bOk;
 	int nFileFormat;
 	ALString sKhiopsEncoding;
@@ -224,6 +227,11 @@ const ALString CCCoclusteringReport::GetJSONReportSuffix()
 	return "khcj";
 }
 
+const ALString CCCoclusteringReport::GetKhcReportSuffix()
+{
+	return "khc";
+}
+
 boolean CCCoclusteringReport::ReadJSONReport(const ALString& sFileName, CCHierarchicalDataGrid* coclusteringDataGrid)
 {
 	boolean bOk = true;
@@ -234,6 +242,7 @@ boolean CCCoclusteringReport::ReadJSONReport(const ALString& sFileName, CCHierar
 	// Initialisation du tokenizer pour analiser le rapport
 	nHeaderInstanceNumber = 0;
 	nHeaderCellNumber = 0;
+	sReportFileName = sFileName;
 	bOk = JSONTokenizer::OpenForRead(GetClassLabel(), sFileName);
 	if (bOk)
 	{
@@ -243,6 +252,7 @@ boolean CCCoclusteringReport::ReadJSONReport(const ALString& sFileName, CCHierar
 		// Fermeture du tokenizer
 		JSONTokenizer::Close();
 	}
+	sReportFileName = "";
 	nHeaderInstanceNumber = 0;
 	nHeaderCellNumber = 0;
 	return bOk;
@@ -260,6 +270,7 @@ boolean CCCoclusteringReport::ReadJSONReportHeader(const ALString& sFileName,
 	// Initialisation du tokenizer pour analiser le rapport
 	nHeaderInstanceNumber = 0;
 	nHeaderCellNumber = 0;
+	sReportFileName = sFileName;
 	bOk = JSONTokenizer::OpenForRead(GetClassLabel(), sFileName);
 	if (bOk)
 	{
@@ -271,6 +282,7 @@ boolean CCCoclusteringReport::ReadJSONReportHeader(const ALString& sFileName,
 		// Fermeture du tokenizer
 		JSONTokenizer::Close();
 	}
+	sReportFileName = "";
 	nHeaderInstanceNumber = 0;
 	nHeaderCellNumber = 0;
 	return bOk;
@@ -284,6 +296,7 @@ boolean CCCoclusteringReport::WriteJSONReport(const ALString& sJSONReportName,
 	ALString sLocalTempFileName;
 
 	require(coclusteringDataGrid != NULL);
+	require(coclusteringDataGrid->Check());
 
 	// Preparation de la copie sur HDFS si necessaire
 	bOk = PLRemoteFileService::BuildOutputWorkingFile(sJSONReportName, sLocalTempFileName);
@@ -358,8 +371,9 @@ int CCCoclusteringReport::DetectFileFormatAndEncoding(const ALString& sFileName,
 
 		// Message d'erreur si pas de format reconnu
 		if (nFileFormat == None)
-			AddError("Format of file " + sFileName + " should either khc or " +
-				 CCCoclusteringReport::GetJSONReportSuffix());
+			AddError("Format of file " + sFileName + " should either " +
+				 CCCoclusteringReport::GetJSONReportSuffix() + " or " +
+				 CCCoclusteringReport::GetKhcReportSuffix());
 
 		// Recherche de l'encodage dans le cas json
 		if (nFileFormat == JSON)
@@ -631,7 +645,7 @@ boolean CCCoclusteringReport::ReadDimensions(CCHierarchicalDataGrid* coclusterin
 				AddError(sTmp + "Variable " + sAttributeName + " used twice");
 			}
 
-			// Type, avec gestion des noms DEPRECATED des types
+			// Type, avec gestion des noms DEPRECATED des types, pour compatibilite ascendante
 			sField = ReadNextField();
 			if (strcmp(sField, "Symbol") == 0)
 				nAttributeType = KWType::Symbol;
@@ -717,8 +731,9 @@ boolean CCCoclusteringReport::ReadDimensions(CCHierarchicalDataGrid* coclusterin
 				// Affichage en mode debug
 				if (bReadDebug)
 					cout << sKeyWordDimensions << "\t" << sAttributeName << "\t"
-					     << KWType::ToString(nAttributeType) << "\t" << nAttributePartNumber << "\t"
-					     << nAttributeValueNumber << "\t" << sAttributeDescription << endl;
+					     << KWType::ToString(KWType::GetCoclusteringSimpleType(nAttributeType))
+					     << "\t" << nAttributePartNumber << "\t" << nAttributeValueNumber << "\t"
+					     << sAttributeDescription << endl;
 			}
 
 			// Ligne suivante
@@ -1538,8 +1553,8 @@ boolean CCCoclusteringReport::ReadComposition(CCHierarchicalDataGrid* coclusteri
 	ALString sTmp;
 	CCHDGAttribute* dgAttribute;
 	KWDGPart* dgPart;
-	CCHDGValueSet* dgValueSet;
-	CCHDGValue* dgValue;
+	KWDGSymbolValueSet* dgValueSet;
+	KWDGSymbolValue* dgValue;
 	int nAttribute;
 	ObjectDictionary* odPartDictionary;
 	ALString sAttributeName;
@@ -1629,8 +1644,8 @@ boolean CCCoclusteringReport::ReadComposition(CCHierarchicalDataGrid* coclusteri
 						// On rajoute si necessaire la StarValue au dernier groupe specifie
 						if (dgPart != NULL and not bStarValueFound)
 						{
-							dgValueSet = cast(CCHDGValueSet*, dgPart->GetValueSet());
-							dgValueSet->AddValue(Symbol::GetStarValue());
+							dgValueSet = cast(KWDGSymbolValueSet*, dgPart->GetValueSet());
+							dgValueSet->AddSymbolValue(Symbol::GetStarValue());
 						}
 						break;
 					}
@@ -1716,8 +1731,8 @@ boolean CCCoclusteringReport::ReadComposition(CCHierarchicalDataGrid* coclusteri
 							sValue = (Symbol)sValueName;
 
 						// Memorisation de la valeur
-						dgValueSet = cast(CCHDGValueSet*, dgPart->GetValueSet());
-						dgValue = cast(CCHDGValue*, dgValueSet->AddValue(sValue));
+						dgValueSet = cast(KWDGSymbolValueSet*, dgPart->GetValueSet());
+						dgValue = cast(KWDGSymbolValue*, dgValueSet->AddSymbolValue(sValue));
 						dgValue->SetValueFrequency(nFrequency);
 						dgValue->SetTypicality(dTypicality);
 
@@ -1744,7 +1759,7 @@ boolean CCCoclusteringReport::ReadComposition(CCHierarchicalDataGrid* coclusteri
 				{
 					// Verification de la compatibilite entre l'effectif de la partie
 					// et l'effectif cumule de ses valeurs
-					dgValueSet = cast(CCHDGValueSet*, dgPart->GetValueSet());
+					dgValueSet = cast(KWDGSymbolValueSet*, dgPart->GetValueSet());
 					nTotalValueFrequency = dgValueSet->ComputeTotalFrequency();
 					if (dgPart->GetPartFrequency() != nTotalValueFrequency)
 					{
@@ -2057,7 +2072,7 @@ void CCCoclusteringReport::WriteDimensions(const CCHierarchicalDataGrid* coclust
 		// Caracteristique des attributs
 		// Le nombre de valeur est diminuer en externe de 1 pour tenir compte de de la StarValue en interne
 		ost << dgAttribute->GetAttributeName() << "\t";
-		ost << KWType::ToString(dgAttribute->GetAttributeType()) << "\t";
+		ost << KWType::ToString(KWType::GetCoclusteringSimpleType(dgAttribute->GetAttributeType())) << "\t";
 		ost << dgAttribute->GetPartNumber() << "\t";
 		ost << dgAttribute->GetInitialPartNumber() << "\t";
 		ost << nValueNumber << "\t";
@@ -2215,9 +2230,8 @@ void CCCoclusteringReport::WriteComposition(const CCHierarchicalDataGrid* coclus
 	int nAttribute;
 	KWDGPart* dgPart;
 	CCHDGPart* hdgPart;
-	CCHDGValueSet* hdgValueSet;
+	KWDGValueSet* dgValueSet;
 	KWDGValue* dgValue;
-	CCHDGValue* hdgValue;
 
 	require(coclusteringDataGrid != NULL);
 
@@ -2226,8 +2240,8 @@ void CCCoclusteringReport::WriteComposition(const CCHierarchicalDataGrid* coclus
 	{
 		dgAttribute = cast(CCHDGAttribute*, coclusteringDataGrid->GetAttributeAt(nAttribute));
 
-		// Traitement uniquement des attributs categoriels
-		if (dgAttribute->GetAttributeType() == KWType::Symbol)
+		// Traitement uniquement des attributs groupables
+		if (KWType::IsCoclusteringGroupableType(dgAttribute->GetAttributeType()))
 		{
 			// Entete
 			ost << sKeyWordComposition << "\t" << dgAttribute->GetAttributeName() << "\n";
@@ -2240,20 +2254,17 @@ void CCCoclusteringReport::WriteComposition(const CCHierarchicalDataGrid* coclus
 				hdgPart = cast(CCHDGPart*, dgPart);
 
 				// Parcours des valeurs
-				hdgValueSet = cast(CCHDGValueSet*, hdgPart->GetValueSet());
-				dgValue = hdgValueSet->GetHeadValue();
+				dgValueSet = hdgPart->GetValueSet();
+				dgValue = dgValueSet->GetHeadValue();
 				while (dgValue != NULL)
 				{
-					hdgValue = cast(CCHDGValue*, dgValue);
-
 					// Caracteristiques des valeurs
 					// (y compris la valeur par defaut, pour etre coherent avec l'export JSON)
-					ost << hdgPart->GetPartName() << "\t" << hdgValue->GetValue() << "\t"
-					    << hdgValue->GetValueFrequency() << "\t" << hdgValue->GetTypicality()
-					    << "\n";
+					ost << hdgPart->GetPartName() << "\t" << dgValue->GetObjectLabel() << "\t"
+					    << dgValue->GetValueFrequency() << "\t" << dgValue->GetTypicality() << "\n";
 
 					// Valeur suivante
-					hdgValueSet->GetNextValue(dgValue);
+					dgValueSet->GetNextValue(dgValue);
 				}
 
 				// Partie suivante
@@ -2428,7 +2439,7 @@ boolean CCCoclusteringReport::OpenInputCoclusteringReportFile(const ALString& sF
 
 	// Creation d'un buffer de lecture si necessaire
 	if (bOk)
-		sFileBuffer = NewCharArray(nMaxFieldSize + 1);
+		sFileBuffer = NewCharArray((longint)nMaxFieldSize + 1);
 	else
 	{
 		sReportFileName = "";
@@ -2581,6 +2592,10 @@ boolean CCCoclusteringReport::InternalReadJSONReport(CCHierarchicalDataGrid* coc
 	ALString sValue;
 
 	require(JSONTokenizer::IsOpened());
+	require(coclusteringDataGrid != NULL);
+
+	// Gestion des erreurs
+	Global::ActivateErrorFlowControl();
 
 	// Debut de fichier
 	bOk = bOk and JSONTokenizer::ReadExpectedToken('{');
@@ -2653,6 +2668,9 @@ boolean CCCoclusteringReport::InternalReadJSONReport(CCHierarchicalDataGrid* coc
 		bOk = bOk and JSONTokenizer::ReadExpectedToken(',');
 		bOk = bOk and ReadJSONCells(coclusteringDataGrid);
 	}
+
+	// Gestion des erreurs
+	Global::DesactivateErrorFlowControl();
 	return bOk;
 }
 
@@ -2673,6 +2691,9 @@ boolean CCCoclusteringReport::ReadJSONSummary(CCHierarchicalDataGrid* coclusteri
 	ALString sSelectionAttribute;
 	ALString sSelectionValue;
 	ALString sTmp;
+	// CH IV Begin
+	ALString sIdentifierVariable;
+	// CH IV End
 
 	require(coclusteringDataGrid != NULL);
 	require(coclusteringDataGrid->GetAttributeNumber() == 0);
@@ -2769,7 +2790,13 @@ boolean CCCoclusteringReport::ReadJSONDimensionSummaries(CCHierarchicalDataGrid*
 	Continuous cMin;
 	Continuous cMax;
 	int nPart;
+	ALString sKey;
+	boolean bIsVarPart;
 	ALString sValue;
+	int nAttribute;
+	CCHDGAttribute* varPartAttribute;
+	KWDGInnerAttributes* innerAttributes;
+	ALString sTmp;
 
 	require(coclusteringDataGrid != NULL);
 	require(coclusteringDataGrid->GetAttributeNumber() == 0);
@@ -2778,6 +2805,7 @@ boolean CCCoclusteringReport::ReadJSONDimensionSummaries(CCHierarchicalDataGrid*
 	bOk = bOk and JSONTokenizer::ReadKeyArray("dimensionSummaries");
 
 	// Lecture des elements du tableau
+	varPartAttribute = NULL;
 	while (bOk and not bIsEnd)
 	{
 		// Initialisations
@@ -2806,8 +2834,38 @@ boolean CCCoclusteringReport::ReadJSONDimensionSummaries(CCHierarchicalDataGrid*
 			AddError("Variable " + sAttributeName + " used twice");
 		}
 
-		// Type de l'attribut
-		bOk = bOk and JSONTokenizer::ReadKeyStringValue("type", sAttributeType, bIsEnd);
+		// CH IV Begin
+		// Lecture de la prochaine cle explicitement, pour traiter la cle optionnelle "isVarPart" precedent la
+		// cle "type", depuis la prise en compte du coclustering instances x variables
+		bOk = bOk and JSONTokenizer::ReadStringValue(sKey);
+
+		// Lecture du champ optionnel "isVarPart"
+		bIsVarPart = false;
+		if (bOk and sKey == "isVarPart")
+		{
+			bOk = bOk and JSONTokenizer::ReadExpectedToken(':');
+			bOk = bOk and JSONTokenizer::ReadBooleanValue(bIsVarPart);
+			bOk = bOk and JSONTokenizer::ReadObjectNext(bIsEnd);
+
+			// Lecture ensuite du champ "type"
+			bOk = bOk and JSONTokenizer::ReadKeyStringValue("type", sAttributeType, bIsEnd);
+		}
+		// Lecture directe du champ "type"
+		else if (bOk and sKey == "type")
+		{
+			bOk = bOk and JSONTokenizer::ReadExpectedToken(':');
+			bOk = bOk and JSONTokenizer::ReadStringValue(sAttributeType);
+			bOk = bOk and JSONTokenizer::ReadObjectNext(bIsEnd);
+		}
+		// Erreur sinon
+		else if (bOk and sKey != "isVarPart" and sKey != "type")
+		{
+			bOk = false;
+			JSONTokenizer::AddParseError("Read key \"" + sKey +
+						     "\" instead of expected of \"isVarPart\" or \"type\"");
+		}
+
+		// Verification du type de l'attribut
 		nAttributeType = KWType::ToType(sAttributeType);
 		if (bOk and not KWType::IsSimple(nAttributeType))
 		{
@@ -2815,6 +2873,17 @@ boolean CCCoclusteringReport::ReadJSONDimensionSummaries(CCHierarchicalDataGrid*
 			JSONTokenizer::AddParseError("Type of variable " + sAttributeName + " (" + sAttributeType +
 						     ") should be Numerical or Categorical");
 		}
+		else if (bOk and bIsVarPart and nAttributeType != KWType::Symbol)
+		{
+			bOk = false;
+			JSONTokenizer::AddParseError("Type of VarPart variable " + sAttributeName + " (" +
+						     sAttributeType + ") should be Categorical");
+		}
+
+		// Changement du type de l'attribut en VarPart si specifie
+		if (bOk and bIsVarPart)
+			nAttributeType = KWType::VarPart;
+		// CH IV End
 
 		// Champs restants de l'attribut
 		bOk = bOk and JSONTokenizer::ReadKeyIntValue("parts", true, nAttributePartNumber, bIsEnd);
@@ -2849,6 +2918,14 @@ boolean CCCoclusteringReport::ReadJSONDimensionSummaries(CCHierarchicalDataGrid*
 			}
 		}
 
+		// Erreur si tentative d'ajout d'un second attribut de type VarPart
+		if (bOk and varPartAttribute != NULL and nAttributeType == KWType::VarPart)
+		{
+			bOk = false;
+			AddError("Incorrect use of two variables of type VarPart: " +
+				 varPartAttribute->GetAttributeName() + " and " + sAttributeName);
+		}
+
 		// Specification de l'attribut
 		if (bOk)
 		{
@@ -2863,6 +2940,16 @@ boolean CCCoclusteringReport::ReadJSONDimensionSummaries(CCHierarchicalDataGrid*
 			dgAttribute->SetInterest(dAttributeInterest);
 			dgAttribute->SetDescription(sAttributeDescription);
 
+			// Memorisation dans le cas d'un attribut de type VarPart
+			if (nAttributeType == KWType::VarPart)
+			{
+				varPartAttribute = dgAttribute;
+
+				// Creation des attributs internes
+				innerAttributes = new KWDGInnerAttributes;
+				dgAttribute->SetInnerAttributes(innerAttributes);
+			}
+
 			// Valeur min et max dans le cas numerique
 			if (nAttributeType == KWType::Continuous)
 			{
@@ -2876,23 +2963,185 @@ boolean CCCoclusteringReport::ReadJSONDimensionSummaries(CCHierarchicalDataGrid*
 		}
 
 		// Fin de l'objet et test si nouvel objet
-		bOk = bOk and JSONTokenizer::CheckObjectEnd("dimensionSummary", bIsEnd);
+		bOk = bOk and JSONTokenizer::CheckObjectEnd("dimensionSummaries", bIsEnd);
 		bOk = bOk and JSONTokenizer::ReadArrayNext(bIsEnd);
 	}
+
+	// CH IV Begin
+	// Prise en compte d'un coclustering de type VarPart
+	// CH IV Refactoring: potentiellement inutile apres la fin du refactoring
+	// CH IV Refactoring: on le conserve pour l'instant dans l'hypothese ou l'on etende le coclustering IV a plusieurs variables hors variable varPart
+	if (bOk and varPartAttribute != NULL)
+	{
+		// Parametrage de l'attribut identifiant, en prenant le premier attribut catgoriel trouve
+		for (nAttribute = 0; nAttribute < coclusteringDataGrid->GetAttributeNumber(); nAttribute++)
+		{
+			dgAttribute = cast(CCHDGAttribute*, coclusteringDataGrid->GetAttributeAt(nAttribute));
+			if (dgAttribute->GetAttributeType() == KWType::Symbol)
+				coclusteringDataGrid->SetIdentifierAttributeName(dgAttribute->GetAttributeName());
+		}
+	}
+
+	// Tests d'integrite dans le cas d'un coclustering de type instances * variables
+	// CH IV Refactoring: potentiellement inutile apres la fin du refactoring
+	// CH IV Refactoring: a voir ulterieurement en fonction de l'extension a plus que deux variables
+	if (bOk and coclusteringDataGrid->IsVarPartDataGrid())
+	{
+		assert(varPartAttribute == coclusteringDataGrid->GetVarPartAttribute());
+
+		// Verification du nombre d'attributs
+		if (coclusteringDataGrid->GetAttributeNumber() != 2)
+		{
+			AddError(
+			    sTmp +
+			    "Number of variables for instance * variables coclustering should be 2 and is equal to (" +
+			    IntToString(coclusteringDataGrid->GetAttributeNumber()) + ")");
+			bOk = false;
+		}
+	}
+	if (bOk and coclusteringDataGrid->IsVarPartDataGrid())
+	{
+		// Verification du type des attributs : categoriel (ou numerique) pour le 1er, VarPart pour le second
+		if (not KWType::IsSimple(coclusteringDataGrid->GetAttributeAt(0)->GetAttributeType()) or
+		    coclusteringDataGrid->GetAttributeAt(1)->GetAttributeType() != KWType::VarPart)
+		{
+			bOk = false;
+			AddError("Incorrect type of variables for instance * variables coclustering ");
+		}
+	}
+	// CH IV End
+
+	return bOk;
+}
+
+boolean CCCoclusteringReport::ReadJSONInnerAttributesDimensionSummaries(KWDGAttribute* dgAttribute)
+{
+	boolean bOk = true;
+	boolean bIsEnd = false;
+	CCHDGAttribute* innerAttribute;
+	ALString sAttributeName;
+	ALString sAttributeType;
+	int nAttributeType;
+	int nAttributePartNumber;
+	int nAttributeInitialPartNumber;
+	int nAttributeValueNumber;
+	double dAttributeInterest;
+	ALString sAttributeDescription;
+	Continuous cMin;
+	Continuous cMax;
+	int nPart;
+	ALString sKey;
+	ALString sValue;
+	ALString sTmp;
+	KWDGInnerAttributes* innerAttributes;
+
+	require(dgAttribute != NULL);
+
+	// Attributs internes
+	innerAttributes = dgAttribute->GetInnerAttributes();
+
+	// Tableau principal
+	bOk = bOk and JSONTokenizer::ReadKeyArray("dimensionSummaries");
+
+	// Lecture des elements du tableau
+	while (bOk and not bIsEnd)
+	{
+		// Initialisations
+		sAttributeName = "";
+		nAttributeType = 0;
+		nAttributePartNumber = 0;
+		nAttributeInitialPartNumber = 0;
+		nAttributeValueNumber = 0;
+		dAttributeInterest = 0;
+		cMin = 0;
+		cMax = 0;
+
+		// Debut de l'objet
+		bOk = bOk and JSONTokenizer::ReadExpectedToken('{');
+
+		// Nom de l'attribut
+		bOk = bOk and JSONTokenizer::ReadKeyStringValue("name", sAttributeName, bIsEnd);
+		if (bOk and sAttributeName == "")
+		{
+			bOk = false;
+			AddError("Missing variable name");
+		}
+
+		if (bOk and innerAttributes->LookupInnerAttribute(sAttributeName) != NULL)
+		{
+			bOk = false;
+			AddError("Inner variable " + sAttributeName + " used twice");
+		}
+
+		// Lecture du champ "type"
+		bOk = bOk and JSONTokenizer::ReadKeyStringValue("type", sAttributeType, bIsEnd);
+
+		// Verification du type de l'attribut
+		nAttributeType = KWType::ToType(sAttributeType);
+		if (bOk and not KWType::IsSimple(nAttributeType))
+		{
+			bOk = false;
+			JSONTokenizer::AddParseError("Type of inner variable " + sAttributeName + " (" +
+						     sAttributeType + ") should be Numerical or Categorical");
+		}
+
+		// Champs restants de l'attribut
+		bOk = bOk and JSONTokenizer::ReadKeyIntValue("parts", true, nAttributePartNumber, bIsEnd);
+		bOk = bOk and JSONTokenizer::ReadKeyIntValue("initialParts", true, nAttributeInitialPartNumber, bIsEnd);
+		bOk = bOk and JSONTokenizer::ReadKeyIntValue("values", true, nAttributeValueNumber, bIsEnd);
+		bOk = bOk and JSONTokenizer::ReadKeyDoubleValue("interest", true, dAttributeInterest, bIsEnd);
+		bOk = bOk and JSONTokenizer::ReadKeyStringValue("description", sAttributeDescription, bIsEnd);
+
+		// Valeur min et max dans le cas numerique
+		if (bOk and nAttributeType == KWType::Continuous)
+		{
+			bOk = bOk and JSONTokenizer::ReadKeyContinuousValue("min", false, cMin, bIsEnd);
+			bOk = bOk and JSONTokenizer::ReadKeyContinuousValue("max", false, cMax, bIsEnd);
+		}
+
+		// Creation et specification de l'attribut interne
+		if (bOk)
+		{
+			innerAttribute = new CCHDGAttribute;
+			innerAttribute->SetAttributeName(sAttributeName);
+			innerAttribute->SetAttributeType(nAttributeType);
+			innerAttribute->SetInitialPartNumber(nAttributeInitialPartNumber);
+			innerAttribute->SetInitialValueNumber(nAttributeValueNumber);
+			innerAttribute->SetGranularizedValueNumber(nAttributeValueNumber);
+			innerAttribute->SetInterest(dAttributeInterest);
+			innerAttribute->SetDescription(sAttributeDescription);
+			innerAttribute->SetOwnerAttributeName(dgAttribute->GetAttributeName());
+
+			// Valeur min et max dans le cas numerique
+			if (nAttributeType == KWType::Continuous)
+			{
+				innerAttribute->SetMin(cMin);
+				innerAttribute->SetMax(cMax);
+			}
+
+			// Creation de parties
+			for (nPart = 0; nPart < nAttributePartNumber; nPart++)
+				innerAttribute->AddPart();
+
+			innerAttributes->AddInnerAttribute(innerAttribute);
+		}
+
+		// Fin de l'objet et test si nouvel objet
+		bOk = bOk and JSONTokenizer::CheckObjectEnd("dimensionSummaries", bIsEnd);
+		bOk = bOk and JSONTokenizer::ReadArrayNext(bIsEnd);
+	}
+
 	return bOk;
 }
 
 boolean CCCoclusteringReport::ReadJSONDimensionPartitions(CCHierarchicalDataGrid* coclusteringDataGrid)
 {
 	boolean bOk = true;
-	ObjectDictionary odChekedParts;
+	ObjectDictionary odCheckedParts;
 	ALString sPartName;
 	boolean bIsAttributeEnd;
-	boolean bIsPartEnd;
 	int nAttributeIndex;
-	int nPartIndex;
 	CCHDGAttribute* dgAttribute;
-	KWDGPart* dgPart;
 	ALString sAttributeName;
 	ALString sAttributeType;
 	int nAttributeType;
@@ -2945,157 +3194,16 @@ boolean CCCoclusteringReport::ReadJSONDimensionPartitions(CCHierarchicalDataGrid
 
 		// Type de l'attribut
 		bOk = bOk and JSONTokenizer::ReadKeyStringValue("type", sAttributeType, bIsAttributeEnd);
-		if (bOk and dgAttribute->GetAttributeName() != sAttributeName)
+		if (bOk and KWType::ToString(KWType::GetCoclusteringSimpleType(dgAttribute->GetAttributeType())) !=
+				sAttributeType)
 		{
-			JSONTokenizer::AddParseError("Read variable type " + sAttributeType + " instead of expected " +
-						     KWType::ToString(dgAttribute->GetAttributeType()));
+			JSONTokenizer::AddParseError(
+			    "Read variable type " + sAttributeType + " instead of expected " +
+			    KWType::ToString(KWType::GetCoclusteringSimpleType(dgAttribute->GetAttributeType())));
 			bOk = false;
 		}
 
-		// Initialisation des parties
-		if (bOk)
-		{
-			// Tableau d'intervalles ou de groupes de valeurs selon le type d'attribut
-			if (dgAttribute->GetAttributeType() == KWType::Continuous)
-				bOk = bOk and JSONTokenizer::ReadKeyArray("intervals");
-			else if (dgAttribute->GetAttributeType() == KWType::Symbol)
-				bOk = bOk and JSONTokenizer::ReadKeyArray("valueGroups");
-
-			// Lecture des parties
-			dgPart = dgAttribute->GetHeadPart();
-			bIsPartEnd = false;
-			nPartIndex = 0;
-			while (bOk and not bIsPartEnd)
-			{
-				// Acces a la partie si elle est disponible
-				if (dgPart == NULL)
-				{
-					JSONTokenizer::AddParseError(
-					    "Variable " + sAttributeName + " added part (index " +
-					    IntToString(nPartIndex + 1) + ") beyond the expected number of parts (" +
-					    IntToString(dgAttribute->GetPartNumber()) + ")");
-					bOk = false;
-					break;
-				}
-				else
-					nPartIndex++;
-
-				// Intervalles ou de groupes de valeurs selon le type d'attribut
-				if (bOk)
-				{
-					if (dgAttribute->GetAttributeType() == KWType::Continuous)
-						bOk = bOk and ReadJSONInterval(dgAttribute, dgPart);
-					else if (dgAttribute->GetAttributeType() == KWType::Symbol)
-						bOk = bOk and ReadJSONValueGroups(dgAttribute, dgPart);
-				}
-
-				// Test si identifiabnt de partie unique
-				if (bOk)
-				{
-					sPartName = cast(CCHDGPart*, dgPart)->GetPartName();
-					if (odChekedParts.Lookup(sPartName) != NULL)
-					{
-						JSONTokenizer::AddParseError("\"cluster\" " + sPartName +
-									     " used twice");
-						bOk = false;
-					}
-					else
-						odChekedParts.SetAt(sPartName, dgPart);
-				}
-
-				// Test si nouvelle partie
-				bOk = bOk and JSONTokenizer::ReadArrayNext(bIsPartEnd);
-
-				// Partie suivante
-				if (bOk)
-					dgAttribute->GetNextPart(dgPart);
-				else
-					break;
-			}
-
-			// Erreur s'il manque des parties
-			if (bOk and nPartIndex < dgAttribute->GetPartNumber())
-			{
-				JSONTokenizer::AddParseError("Variable " + sAttributeName + " with " +
-							     IntToString(nPartIndex) + " specified parts " +
-							     ") below the expected number of parts (" +
-							     IntToString(dgAttribute->GetPartNumber()) + ")");
-				bOk = false;
-				break;
-			}
-		}
-
-		// Fin de l'objet
-		if (bOk)
-		{
-			// Dans le cas numerique
-			if (dgAttribute->GetAttributeType() == KWType::Continuous)
-			{
-				// Lecture de la fin de l'objet
-				bOk = bOk and JSONTokenizer::ReadExpectedToken('}');
-
-				// Cas particulier ou le premier intervalle est Missing: il faut modifier la borne inf
-				// du second pour la mettre a missing
-				if (bOk and dgAttribute->GetPartNumber() >= 2 and
-				    dgAttribute->GetHeadPart()->GetInterval()->GetLowerBound() ==
-					KWContinuous::GetMissingValue())
-				{
-					// Acces au premier intervalle
-					dgPart = dgAttribute->GetHeadPart();
-					assert(dgPart->GetInterval()->GetUpperBound() ==
-					       KWContinuous::GetMissingValue());
-
-					// Modification du deuxieme intervalle
-					dgAttribute->GetNextPart(dgPart);
-					assert(dgPart->GetInterval()->GetLowerBound() !=
-					       KWContinuous::GetMissingValue());
-					dgPart->GetInterval()->SetLowerBound(KWContinuous::GetMissingValue());
-				}
-			}
-			// Dans le cas categoriel
-			else if (dgAttribute->GetAttributeType() == KWType::Symbol)
-			{
-				// Lecture de l'index du groupe par defaut avant la fin de l'objet
-				bIsPartEnd = false;
-				bOk = bOk and JSONTokenizer::ReadExpectedToken(',');
-				bOk = bOk and JSONTokenizer::ReadKeyIntValue("defaultGroupIndex", true,
-									     nDefaultGroupIndex, bIsPartEnd);
-				if (bOk and not bIsPartEnd)
-				{
-					bOk = false;
-					JSONTokenizer::AddParseError(
-					    "Read token " +
-					    JSONTokenizer::GetTokenLabel(JSONTokenizer::GetLastToken()) +
-					    " instead of expected  '}'");
-					bOk = false;
-				}
-
-				// Finalisation de la partition en groupes de valeurs
-				if (bOk and
-				    (nDefaultGroupIndex < 0 or nDefaultGroupIndex >= dgAttribute->GetPartNumber()))
-				{
-					bOk = false;
-					JSONTokenizer::AddParseError("Variable " + sAttributeName +
-								     " with invalid default group index (" +
-								     IntToString(nDefaultGroupIndex) + ")");
-				}
-				if (bOk)
-				{
-					// Recherche du groupe par defaut
-					nPartIndex = 0;
-					dgPart = dgAttribute->GetHeadPart();
-					while (nPartIndex < nDefaultGroupIndex)
-					{
-						nPartIndex++;
-						dgAttribute->GetNextPart(dgPart);
-					}
-
-					// Ajout de la valeur par defaut dans ce groupe
-					assert(dgPart != NULL);
-					cast(CCHDGValueSet*, dgPart->GetValueSet())->AddValue(Symbol::GetStarValue());
-				}
-			}
-		}
+		bOk = bOk and ReadJSONAttributePartition(dgAttribute, coclusteringDataGrid);
 
 		// Test si nouvel objet
 		bOk = bOk and JSONTokenizer::ReadArrayNext(bIsAttributeEnd);
@@ -3113,7 +3221,366 @@ boolean CCCoclusteringReport::ReadJSONDimensionPartitions(CCHierarchicalDataGrid
 	return bOk;
 }
 
-boolean CCCoclusteringReport::ReadJSONInterval(CCHDGAttribute* dgAttribute, KWDGPart* dgPart)
+boolean CCCoclusteringReport::ReadJSONAttributePartition(KWDGAttribute* dgAttribute,
+							 CCHierarchicalDataGrid* coclusteringDataGrid)
+{
+	boolean bOk = true;
+	boolean bIsPartEnd;
+	KWDGInnerAttributes* innerAttributes;
+	CCHDGAttribute* innerAttribute;
+	KWDGPart* dgPart;
+	int nPartIndex;
+	boolean bIsInnerAttributeEnd;
+	ObjectDictionary odInnerAttributesAllVarParts;
+	ObjectDictionary odVarPartAttributeAllVarParts;
+	ObjectDictionary odCheckedParts;
+	ALString sPartName;
+	int nInnerAttribute;
+	ALString sAttributeName;
+	int nInnerAttributeIndex;
+	ALString sTmp;
+	int nInnerAttributeType;
+	int nDefaultGroupIndex;
+	ALString sInnerAttributeType;
+
+	// Tableau d'intervalles ou de groupes de valeurs selon le type d'attribut
+	if (dgAttribute->GetAttributeType() == KWType::Continuous)
+		bOk = bOk and JSONTokenizer::ReadKeyArray("intervals");
+	else if (dgAttribute->GetAttributeType() == KWType::Symbol)
+		bOk = bOk and JSONTokenizer::ReadKeyArray("valueGroups");
+	// Cas d'un attribut VarPart
+	else if (dgAttribute->GetAttributeType() == KWType::VarPart)
+	{
+		// Creation des attributs internes
+		innerAttributes = dgAttribute->GetInnerAttributes();
+
+		// Tableau principal
+		bOk = bOk and JSONTokenizer::ReadKeyObject("innerVariables");
+
+		// Descriptif des variables internes dans l'attribut de type VarPart
+		bOk = bOk and ReadJSONInnerAttributesDimensionSummaries(dgAttribute);
+		bOk = bOk and JSONTokenizer::ReadExpectedToken(',');
+
+		// Tableau des variables internes dans l'attribut de type VarPart
+		bOk = bOk and JSONTokenizer::ReadKeyArray("dimensionPartitions");
+
+		// Lecture des elements du tableau
+		nInnerAttributeIndex = 0;
+		bIsInnerAttributeEnd = false;
+		while (bOk and not bIsInnerAttributeEnd)
+		{
+			// Recherche de l'attribut courant
+			if (nInnerAttributeIndex < dgAttribute->GetInnerAttributeNumber())
+			{
+				// Extraction de l'attribut interne
+				innerAttribute =
+				    cast(CCHDGAttribute*, dgAttribute->GetInnerAttributeAt(nInnerAttributeIndex));
+				nInnerAttributeIndex++;
+			}
+			// Erreur si trop de variables
+			else
+			{
+				JSONTokenizer::AddParseError(
+				    sTmp + "Too many inner variables in section \"innerVariables\" (expected number: " +
+				    IntToString(dgAttribute->GetInnerAttributeNumber()) + ")");
+				bOk = false;
+				break;
+			}
+
+			// Initialisations
+			sAttributeName = "";
+			nInnerAttributeType = 0;
+			nDefaultGroupIndex = 0;
+
+			// Debut de l'objet
+			bOk = bOk and JSONTokenizer::ReadExpectedToken('{');
+
+			// Nom de l'attribut
+			bOk = bOk and JSONTokenizer::ReadKeyStringValue("name", sAttributeName, bIsInnerAttributeEnd);
+			if (bOk and innerAttribute->GetAttributeName() != sAttributeName)
+			{
+				JSONTokenizer::AddParseError("Read variable \"" + sAttributeName +
+							     "\" instead of expected \"" +
+							     innerAttribute->GetAttributeName() + "\"");
+				bOk = false;
+			}
+
+			// Type de l'attribut
+			bOk = bOk and
+			      JSONTokenizer::ReadKeyStringValue("type", sInnerAttributeType, bIsInnerAttributeEnd);
+			if (bOk and KWType::ToString(KWType::GetCoclusteringSimpleType(
+					innerAttribute->GetAttributeType())) != sInnerAttributeType)
+			{
+				JSONTokenizer::AddParseError("Read variable type " + sInnerAttributeType +
+							     " instead of expected " +
+							     KWType::ToString(KWType::GetCoclusteringSimpleType(
+								 innerAttribute->GetAttributeType())));
+				bOk = false;
+			}
+
+			bOk = bOk and ReadJSONAttributePartition(innerAttribute, coclusteringDataGrid);
+
+			// Memorisation des informations sur les parties de l'attribut
+			if (bOk)
+			{
+				// Memorisation de chaque partie
+				dgPart = innerAttribute->GetHeadPart();
+				while (dgPart != NULL)
+				{
+					sPartName = cast(CCHDGPart*, dgPart)->GetPartName();
+
+					// Test d'unicite du libelle de partie parmi l'ensemble de tous les libelles de partie
+					if (odInnerAttributesAllVarParts.Lookup(sPartName) != NULL)
+					{
+						JSONTokenizer::AddParseError("Attribute contains value \"" + sPartName +
+									     "\" already used previously");
+						bOk = false;
+						break;
+					}
+
+					// Memorisation de la PV avec son label dans un dictionnaire temporaire
+					odInnerAttributesAllVarParts.SetAt(sPartName, dgPart);
+
+					// Partie suivante
+					innerAttribute->GetNextPart(dgPart);
+				}
+			}
+
+			// Test si nouvel objet
+			bOk = bOk and JSONTokenizer::ReadArrayNext(bIsInnerAttributeEnd);
+		}
+
+		// Nettoyage des attributs internes si erreur
+		if (not bOk)
+		{
+			innerAttributes->DeleteAll();
+			delete innerAttributes;
+			dgAttribute->SetInnerAttributes(NULL);
+		}
+
+		// Memorisation des informations sur les bornes des valeurs des attributs internes
+		// numeriques
+		if (bOk)
+		{
+			for (nInnerAttribute = 0; nInnerAttribute < dgAttribute->GetInnerAttributeNumber();
+			     nInnerAttribute++)
+			{
+				innerAttribute =
+				    cast(CCHDGAttribute*,
+					 dgAttribute->GetInnerAttributes()->GetInnerAttributeAt(nInnerAttribute));
+
+				// Cas d'un attribut Continuous
+				if (innerAttribute->GetAttributeType() == KWType::Continuous)
+				{
+					// On modifie les bornes des intervalles extremes de facon a
+					// pouvoir produire les libelle avec -inf et +inf par
+					// GetObjectLabel
+					innerAttribute->GetHeadPart()->GetInterval()->SetLowerBound(
+					    KWDGInterval::GetMinLowerBound());
+					innerAttribute->GetTailPart()->GetInterval()->SetUpperBound(
+					    KWDGInterval::GetMaxUpperBound());
+				}
+			}
+		}
+
+		// Fin de l'objet
+		bOk = bOk and JSONTokenizer::ReadExpectedToken('}');
+		bOk = bOk and JSONTokenizer::ReadExpectedToken(',');
+
+		// Lecture des parties "valueGroups", groupes de parties de variables
+		bOk = bOk and JSONTokenizer::ReadKeyArray("valueGroups");
+	}
+
+	// Lecture des parties
+	dgPart = dgAttribute->GetHeadPart();
+	bIsPartEnd = false;
+	nPartIndex = 0;
+	while (bOk and not bIsPartEnd)
+	{
+		// Acces a la partie si elle est disponible
+		if (dgPart == NULL)
+		{
+			// Cas d'un attribut de la grille
+			if (not dgAttribute->IsInnerAttribute())
+			{
+
+				JSONTokenizer::AddParseError("Variable " + sAttributeName + " added part (index " +
+							     IntToString(nPartIndex + 1) +
+							     ") beyond the expected number of parts (" +
+							     IntToString(dgAttribute->GetPartNumber()) + ")");
+				bOk = false;
+				break;
+			}
+			// Cas d'un innerAttribute
+			// CH IV Dans le cas d'un innerAttribute, les parties ne sont pas encore crees, on ne connait pas leur nombre
+			// L'initialisation des dgAttribute effectuee dans ReadJSONDimensionSummaries n'est pas effectuee pour ces attributes
+			else
+			{
+				dgAttribute->AddPart();
+			}
+		}
+		else
+			nPartIndex++;
+
+		// Intervalles, groupes de valeurs ou groupe de parties de variables selon le type
+		// d'attribut
+		if (bOk)
+		{
+			if (dgAttribute->GetAttributeType() == KWType::Continuous)
+				bOk = bOk and ReadJSONInterval(dgAttribute, dgPart);
+			else if (dgAttribute->GetAttributeType() == KWType::Symbol)
+				bOk = bOk and ReadJSONValueGroup(dgAttribute, dgPart);
+			// CH IV Begin
+			else if (dgAttribute->GetAttributeType() == KWType::VarPart)
+			{
+				// Dans le cas instances x variables, on procede a des tests pousses sur
+				// la coherences des varPartIds
+				//  - tous les varPartIds declare dans les variables internes doivent
+				//  etre uniques
+				//  - tous les varPartIds utilises dans les grpoupes de parties de
+				//  variable de l'attribut VarPart doivent
+				//    etre uniques, et correspondre a des varPartIds declares dans les
+				//    attributs internes
+				//  - les deux ensembles de varPartIds doivent etre exactement les meme
+				//  (tous ceux declares sont utilises)
+				// Par contre, lors de la regeneration du fichier json, ces libellés
+				// sont déduits des parties, et ne sont pas necessairement ceux qui
+				// etaient en entree (mais la structure est preservee).
+				bOk = bOk and ReadJSONVarPartAttributeValueGroup(dgAttribute, dgPart,
+										 &odInnerAttributesAllVarParts,
+										 &odVarPartAttributeAllVarParts);
+			}
+			// CH IV End
+		}
+
+		// Test si identifiant de partie unique
+		if (bOk)
+		{
+			sPartName = cast(CCHDGPart*, dgPart)->GetPartName();
+			if (odCheckedParts.Lookup(sPartName) != NULL)
+			{
+				JSONTokenizer::AddParseError("\"cluster\" " + sPartName + " used twice");
+				bOk = false;
+			}
+			else
+				odCheckedParts.SetAt(sPartName, dgPart);
+		}
+
+		// Test si nouvelle partie
+		bOk = bOk and JSONTokenizer::ReadArrayNext(bIsPartEnd);
+
+		// Partie suivante
+		if (bOk)
+			dgAttribute->GetNextPart(dgPart);
+		else
+			break;
+	}
+
+	// Erreur s'il manque des parties
+	if (bOk and nPartIndex < dgAttribute->GetPartNumber())
+	{
+		JSONTokenizer::AddParseError("Variable " + sAttributeName + " with " + IntToString(nPartIndex) +
+					     " specified parts " + ") below the expected number of parts (" +
+					     IntToString(dgAttribute->GetPartNumber()) + ")");
+		bOk = false;
+	}
+
+	// Erreur si le nombre de parties de variable collectees dans les groupes de partie de variable
+	// est different du nombre de parties de variables specifie dans les variables internes
+	if (bOk and dgAttribute->GetAttributeType() == KWType::VarPart and
+	    odInnerAttributesAllVarParts.GetCount() != odVarPartAttributeAllVarParts.GetCount())
+	{
+		assert(odVarPartAttributeAllVarParts.GetCount() < odInnerAttributesAllVarParts.GetCount());
+		JSONTokenizer::AddParseError(
+		    "VarPart variable " + sAttributeName + " contains " +
+		    IntToString(odVarPartAttributeAllVarParts.GetCount()) +
+		    " variable parts in its groups, below the expected number of variable parts (" +
+		    IntToString(odInnerAttributesAllVarParts.GetCount()) + ") specified globally in inner variables");
+		bOk = false;
+	}
+
+	// Fin de l'objet
+	if (bOk)
+	{
+		// Dans le cas numerique
+		if (dgAttribute->GetAttributeType() == KWType::Continuous)
+		{
+			// Lecture de la fin de l'objet
+			bOk = bOk and JSONTokenizer::ReadExpectedToken('}');
+
+			// Cas particulier ou le premier intervalle est Missing: il faut modifier la borne inf
+			// du second pour la mettre a missing
+			if (bOk and dgAttribute->GetPartNumber() >= 2 and
+			    dgAttribute->GetHeadPart()->GetInterval()->GetLowerBound() ==
+				KWContinuous::GetMissingValue())
+			{
+				// Acces au premier intervalle
+				dgPart = dgAttribute->GetHeadPart();
+				assert(dgPart->GetInterval()->GetUpperBound() == KWContinuous::GetMissingValue());
+
+				// Modification du deuxieme intervalle
+				dgAttribute->GetNextPart(dgPart);
+				assert(dgPart->GetInterval()->GetLowerBound() != KWContinuous::GetMissingValue());
+				dgPart->GetInterval()->SetLowerBound(KWContinuous::GetMissingValue());
+			}
+		}
+		// Dans le cas categoriel
+		else if (dgAttribute->GetAttributeType() == KWType::Symbol)
+		{
+			nDefaultGroupIndex = 0;
+
+			// Lecture de l'index du groupe par defaut avant la fin de l'objet
+			bIsPartEnd = false;
+			bOk = bOk and JSONTokenizer::ReadExpectedToken(',');
+			bOk = bOk and
+			      JSONTokenizer::ReadKeyIntValue("defaultGroupIndex", true, nDefaultGroupIndex, bIsPartEnd);
+			if (bOk and not bIsPartEnd)
+			{
+				bOk = false;
+				JSONTokenizer::AddParseError(
+				    "Read token " + JSONTokenizer::GetTokenLabel(JSONTokenizer::GetLastToken()) +
+				    " instead of expected  '}'");
+				bOk = false;
+			}
+
+			// Finalisation de la partition en groupes de valeurs
+			if (bOk and (nDefaultGroupIndex < 0 or nDefaultGroupIndex >= dgAttribute->GetPartNumber()))
+			{
+				bOk = false;
+				JSONTokenizer::AddParseError("Variable " + sAttributeName +
+							     " with invalid default group index (" +
+							     IntToString(nDefaultGroupIndex) + ")");
+			}
+			if (bOk)
+			{
+				// Recherche du groupe par defaut
+				nPartIndex = 0;
+				dgPart = dgAttribute->GetHeadPart();
+				while (nPartIndex < nDefaultGroupIndex)
+				{
+					nPartIndex++;
+					dgAttribute->GetNextPart(dgPart);
+				}
+
+				// Ajout de la valeur par defaut dans ce groupe
+				assert(dgPart != NULL);
+				cast(KWDGSymbolValueSet*, dgPart->GetValueSet())
+				    ->AddSymbolValue(Symbol::GetStarValue());
+			}
+		}
+		// CH IV Begin
+		// Dans le cas VarPart
+		else if (dgAttribute->GetAttributeType() == KWType::VarPart)
+		{
+			// Lecture de la fin de l'objet
+			bOk = bOk and JSONTokenizer::ReadExpectedToken('}');
+		}
+		// CH IV End
+	}
+	return bOk;
+}
+
+boolean CCCoclusteringReport::ReadJSONInterval(KWDGAttribute* dgAttribute, KWDGPart* dgPart)
 {
 	boolean bOk = true;
 	boolean bIsEnd;
@@ -3123,6 +3590,9 @@ boolean CCCoclusteringReport::ReadJSONInterval(CCHDGAttribute* dgAttribute, KWDG
 	ALString sClusterName;
 	Continuous cLowerBound;
 	Continuous cUpperBound;
+
+	require(dgAttribute != NULL);
+	require(dgPart != NULL);
 
 	// Debut de l'objet
 	bOk = bOk and JSONTokenizer::ReadExpectedToken('{');
@@ -3175,23 +3645,25 @@ boolean CCCoclusteringReport::ReadJSONInterval(CCHDGAttribute* dgAttribute, KWDG
 	return bOk;
 }
 
-boolean CCCoclusteringReport::ReadJSONValueGroups(CCHDGAttribute* dgAttribute, KWDGPart* dgPart)
+boolean CCCoclusteringReport::ReadJSONValueGroup(KWDGAttribute* dgAttribute, KWDGPart* dgPart)
 {
 	boolean bOk = true;
 	ObjectDictionary odChekedValues;
 	boolean bIsEnd;
-	CCHDGValueSet* dgValueSet;
-	CCHDGValue* dgValue;
+	KWDGSymbolValueSet* dgValueSet;
+	KWDGValue* dgValue;
 	CCHDGPart* hdgPart;
 	ALString sClusterName;
 	ALString sValue;
 	int nValueFrequency;
-	double dValueTypicality;
 	StringVector svValues;
 	IntVector ivValueFrequencies;
 	DoubleVector dvValueTypicalities;
 	int i;
 	ALString sTmp;
+
+	require(dgAttribute != NULL);
+	require(dgPart != NULL);
 
 	// Debut de l'objet
 	bOk = bOk and JSONTokenizer::ReadExpectedToken('{');
@@ -3216,12 +3688,148 @@ boolean CCCoclusteringReport::ReadJSONValueGroups(CCHDGAttribute* dgAttribute, K
 		{
 			if (odChekedValues.Lookup(sValue) != NULL)
 			{
-				JSONTokenizer::AddParseError("\"values\" contains a duplicate values (" + sValue + ")");
+				JSONTokenizer::AddParseError("\"values\" contains a duplicate value (" + sValue + ")");
 				bOk = false;
 			}
 			else
 			{
-				odChekedValues.SetAt(sValue, &odChekedValues), svValues.Add(sValue);
+				odChekedValues.SetAt(sValue, &odChekedValues);
+				svValues.Add(sValue);
+			}
+		}
+	}
+	bOk = bOk and JSONTokenizer::ReadExpectedToken(',');
+
+	// Tableau des effectifs
+	bOk = bOk and JSONTokenizer::ReadKeyArray("valueFrequencies");
+	bIsEnd = false;
+	nValueFrequency = 0;
+	while (bOk and not bIsEnd)
+	{
+		bOk = bOk and JSONTokenizer::ReadIntValue(true, nValueFrequency);
+		bOk = bOk and JSONTokenizer::ReadArrayNext(bIsEnd);
+		if (bOk)
+			ivValueFrequencies.Add(nValueFrequency);
+	}
+	if (bOk and svValues.GetSize() != ivValueFrequencies.GetSize())
+	{
+		JSONTokenizer::AddParseError("Vector \"valueFrequencies\" should be of same size as vector \"values\"");
+		bOk = false;
+	}
+
+	// Typicalite, sauf si la variable est interne
+	if (not dgAttribute->IsInnerAttribute())
+	{
+		bOk = bOk and JSONTokenizer::ReadExpectedToken(',');
+
+		// Tableau des typicalites
+		bOk = bOk and ReadJSONTypicalities(dgAttribute, svValues.GetSize(), &dvValueTypicalities);
+	}
+
+	// Fin de l'objet
+	bOk = bOk and JSONTokenizer::ReadExpectedToken('}');
+
+	// Memorisation des informations sur le groupe de valeurs
+	if (bOk)
+	{
+		hdgPart = cast(CCHDGPart*, dgPart);
+		dgValueSet = cast(KWDGSymbolValueSet*, dgPart->GetValueSet());
+		hdgPart->SetPartName(sClusterName);
+		hdgPart->SetShortDescription("");
+		hdgPart->SetDescription("");
+
+		// Memorisation des valeurs
+		for (i = 0; i < svValues.GetSize(); i++)
+		{
+			dgValue = dgValueSet->AddSymbolValue((Symbol)svValues.GetAt(i));
+			dgValue->SetValueFrequency(ivValueFrequencies.GetAt(i));
+			if (not dgAttribute->IsInnerAttribute())
+				dgValue->SetTypicality(dvValueTypicalities.GetAt(i));
+		}
+	}
+	return bOk;
+}
+
+boolean CCCoclusteringReport::ReadJSONVarPartAttributeValueGroup(KWDGAttribute* varPartAttribute, KWDGPart* dgPart,
+								 const ObjectDictionary* odInnerAttributesAllVarParts,
+								 ObjectDictionary* odVarPartAttributeAllVarParts)
+{
+	boolean bOk = true;
+	boolean bIsEnd;
+	KWDGVarPartSet* dgVarPartSet;
+	KWDGValue* dgValue;
+	CCHDGPart* hdgPart;
+	ALString sClusterName;
+	ALString sValue;
+	int nValueFrequency;
+	StringVector svValues;
+	IntVector ivValueFrequencies;
+	DoubleVector dvValueTypicalities;
+	int i;
+	KWDGPart* dgVarPart;
+	KWDGPart* dgCheckedVarPart;
+	ALString sTmp;
+
+	require(varPartAttribute != NULL);
+	require(varPartAttribute->GetAttributeType() == KWType::VarPart);
+	require(dgPart != NULL);
+	require(odInnerAttributesAllVarParts != NULL);
+	require(odVarPartAttributeAllVarParts != NULL);
+
+	// Debut de l'objet
+	bOk = bOk and JSONTokenizer::ReadExpectedToken('{');
+
+	// Nom du cluster
+	bIsEnd = false;
+	bOk = bOk and JSONTokenizer::ReadKeyStringValue("cluster", sClusterName, bIsEnd);
+	if (bOk and sClusterName == "")
+	{
+		JSONTokenizer::AddParseError("\"cluster\" should have a non empty value");
+		bOk = false;
+	}
+
+	// Tableau des libelles des parties de variable, analogue des valeurs d'un variable categorielle
+	bOk = bOk and JSONTokenizer::ReadKeyArray("values");
+	bIsEnd = false;
+	while (bOk and not bIsEnd)
+	{
+		bOk = bOk and JSONTokenizer::ReadStringValue(sValue);
+		bOk = bOk and JSONTokenizer::ReadArrayNext(bIsEnd);
+		if (bOk)
+		{
+			// Verification de l'existence de la partie de variable
+			dgVarPart = cast(KWDGPart*, odInnerAttributesAllVarParts->Lookup(sValue));
+			if (dgVarPart == NULL)
+			{
+				JSONTokenizer::AddParseError("\"values\" of VarPart variable " +
+							     varPartAttribute->GetAttributeName() +
+							     " contains variable part \"" + sValue +
+							     "\" which was not specified among all the \"cluster\" "
+							     "vectors in the \"innerVariables\" section");
+				bOk = false;
+				break;
+			}
+
+			// Verification de l'unicite des partie de variables dans l'ensemble des groupes de l'attribut
+			// de type VarPart
+			dgCheckedVarPart = cast(KWDGPart*, odVarPartAttributeAllVarParts->Lookup(sValue));
+			if (dgCheckedVarPart != NULL)
+			{
+				JSONTokenizer::AddParseError("\"values\" of VarPart variable " +
+							     varPartAttribute->GetAttributeName() +
+							     " contains a duplicate variable part (" + sValue + ")");
+				bOk = false;
+			}
+
+			// Prise en compte si ok
+			if (bOk)
+			{
+				assert(dgVarPart != NULL);
+				assert(dgCheckedVarPart == NULL);
+				svValues.Add(sValue);
+
+				// Memorisation dans le dictionnaire des controle d'unicite
+				odVarPartAttributeAllVarParts->SetAt(sValue, dgVarPart);
 			}
 		}
 	}
@@ -3244,6 +3852,53 @@ boolean CCCoclusteringReport::ReadJSONValueGroups(CCHDGAttribute* dgAttribute, K
 		bOk = false;
 	}
 	bOk = bOk and JSONTokenizer::ReadExpectedToken(',');
+
+	// Tableau des typicalites
+	bOk = bOk and ReadJSONTypicalities(varPartAttribute, svValues.GetSize(), &dvValueTypicalities);
+
+	// Fin de l'objet
+	bOk = bOk and JSONTokenizer::ReadExpectedToken('}');
+
+	// Memorisation des informations sur le groupe de parties de variable
+	if (bOk)
+	{
+		hdgPart = cast(CCHDGPart*, dgPart);
+		dgVarPartSet = dgPart->GetVarPartSet();
+		hdgPart->SetPartName(sClusterName);
+		hdgPart->SetShortDescription("");
+		hdgPart->SetDescription("");
+
+		// Memorisation des parties de variable identifiees par leur label
+		for (i = 0; i < svValues.GetSize(); i++)
+		{
+			// Recherche de la partie de variable d'apres son libelle
+			dgVarPart = cast(KWDGPart*, odInnerAttributesAllVarParts->Lookup((Symbol)svValues.GetAt(i)));
+			assert(dgVarPart != NULL);
+
+			// Ajout de la PV identifiee par son Label au cluster de PV
+			dgValue = dgVarPartSet->AddVarPart(dgVarPart);
+
+			// Memorisation de l'effectif et de la typicite
+			dgValue->SetValueFrequency(ivValueFrequencies.GetAt(i));
+			dgValue->SetTypicality(dvValueTypicalities.GetAt(i));
+		}
+	}
+
+	return bOk;
+}
+
+boolean CCCoclusteringReport::ReadJSONTypicalities(KWDGAttribute* dgAttribute, int nValueNumber,
+						   DoubleVector* dvValueTypicalities)
+{
+	boolean bOk = true;
+	boolean bIsEnd;
+	double dValueTypicality;
+	ALString sTmp;
+
+	require(dgAttribute != NULL);
+	require(nValueNumber >= 0);
+	require(dvValueTypicalities != NULL);
+	require(dvValueTypicalities->GetSize() == 0);
 
 	// Tableau des typicalites
 	bOk = bOk and JSONTokenizer::ReadKeyArray("valueTypicalities");
@@ -3273,37 +3928,17 @@ boolean CCCoclusteringReport::ReadJSONValueGroups(CCHDGAttribute* dgAttribute, K
 		}
 		bOk = bOk and JSONTokenizer::ReadArrayNext(bIsEnd);
 		if (bOk)
-			dvValueTypicalities.Add(dValueTypicality);
+			dvValueTypicalities->Add(dValueTypicality);
 	}
-	if (bOk and svValues.GetSize() != dvValueTypicalities.GetSize())
+	if (bOk and nValueNumber != dvValueTypicalities->GetSize())
 	{
 		JSONTokenizer::AddParseError(
 		    "Vector \"valueTypicalities\" should be of same size as vector \"values\"");
 		bOk = false;
 	}
-
-	// Fin de l'objet
-	bOk = bOk and JSONTokenizer::ReadExpectedToken('}');
-
-	// Memorisation des informations sur le groupe de valeurs
-	if (bOk)
-	{
-		hdgPart = cast(CCHDGPart*, dgPart);
-		dgValueSet = cast(CCHDGValueSet*, dgPart->GetValueSet());
-		hdgPart->SetPartName(sClusterName);
-		hdgPart->SetShortDescription("");
-		hdgPart->SetDescription("");
-
-		// Memorisation des valeurs
-		for (i = 0; i < svValues.GetSize(); i++)
-		{
-			dgValue = cast(CCHDGValue*, dgValueSet->AddValue((Symbol)svValues.GetAt(i)));
-			dgValue->SetValueFrequency(ivValueFrequencies.GetAt(i));
-			dgValue->SetTypicality(dvValueTypicalities.GetAt(i));
-		}
-	}
 	return bOk;
 }
+// CH IV End
 
 boolean CCCoclusteringReport::ReadJSONDimensionHierarchies(CCHierarchicalDataGrid* coclusteringDataGrid)
 {
@@ -3382,10 +4017,12 @@ boolean CCCoclusteringReport::ReadJSONDimensionHierarchies(CCHierarchicalDataGri
 
 		// Type de l'attribut
 		bOk = bOk and JSONTokenizer::ReadKeyStringValue("type", sAttributeType, bIsAttributeEnd);
-		if (bOk and dgAttribute->GetAttributeName() != sAttributeName)
+		if (bOk and KWType::ToString(KWType::GetCoclusteringSimpleType(dgAttribute->GetAttributeType())) !=
+				sAttributeType)
 		{
-			JSONTokenizer::AddParseError("Read variable type " + sAttributeType + " instead of expected " +
-						     KWType::ToString(dgAttribute->GetAttributeType()));
+			JSONTokenizer::AddParseError(
+			    "Read variable type " + sAttributeType + " instead of expected " +
+			    KWType::ToString(KWType::GetCoclusteringSimpleType(dgAttribute->GetAttributeType())));
 			bOk = false;
 		}
 
@@ -3641,6 +4278,8 @@ boolean CCCoclusteringReport::ReadJSONCells(CCHierarchicalDataGrid* coclustering
 	int nFrequency;
 	ALString sTmp;
 
+	require(coclusteringDataGrid != NULL);
+
 	// Initialisation des tableau de parties par partition d'attribut
 	oaAttributePartArrays.SetSize(coclusteringDataGrid->GetAttributeNumber());
 	for (nAttribute = 0; nAttribute < coclusteringDataGrid->GetAttributeNumber(); nAttribute++)
@@ -3825,6 +4464,9 @@ void CCCoclusteringReport::InternalWriteJSONReport(const CCHierarchicalDataGrid*
 
 void CCCoclusteringReport::WriteJSONSummary(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON)
 {
+	require(coclusteringDataGrid != NULL);
+	require(fJSON != NULL);
+
 	// On passe en mode camel case, pour reutiliser les memes identifieurs que dans les rapports de coclustering
 	fJSON->SetCamelCaseKeys(true);
 
@@ -3859,9 +4501,9 @@ void CCCoclusteringReport::WriteJSONDimensionSummaries(const CCHierarchicalDataG
 {
 	int nAttribute;
 	CCHDGAttribute* dgAttribute;
-	int nValueNumber;
 
 	require(coclusteringDataGrid != NULL);
+	require(fJSON != NULL);
 
 	// Parcours des attributs pour la section des dimensions
 	fJSON->BeginKeyArray("dimensionSummaries");
@@ -3869,171 +4511,236 @@ void CCCoclusteringReport::WriteJSONDimensionSummaries(const CCHierarchicalDataG
 	{
 		dgAttribute = cast(CCHDGAttribute*, coclusteringDataGrid->GetAttributeAt(nAttribute));
 
-		// Nombre initial de valeurs
-		nValueNumber = dgAttribute->GetInitialValueNumber();
-
-		// Caracteristique des attributs
-		// Le nombre de valeur est diminuer en externe de 1 pour tenir compte de de la StarValue en interne
-		fJSON->BeginObject();
-		fJSON->WriteKeyString("name", dgAttribute->GetAttributeName());
-		fJSON->WriteKeyString("type", KWType::ToString(dgAttribute->GetAttributeType()));
-		fJSON->WriteKeyInt("parts", dgAttribute->GetPartNumber());
-		fJSON->WriteKeyInt("initialParts", dgAttribute->GetInitialPartNumber());
-		fJSON->WriteKeyInt("values", nValueNumber);
-		fJSON->WriteKeyDouble("interest", dgAttribute->GetInterest());
-		fJSON->WriteKeyString("description", dgAttribute->GetDescription());
-		if (KWFrequencyTable::GetWriteGranularityAndGarbage())
-			fJSON->WriteKeyBoolean("garbage", (dgAttribute->GetGarbageModalityNumber() > 0));
-		if (dgAttribute->GetAttributeType() == KWType::Continuous)
-		{
-			fJSON->WriteKeyDouble("min", dgAttribute->GetMin());
-			fJSON->WriteKeyDouble("max", dgAttribute->GetMax());
-		}
-		fJSON->EndObject();
+		WriteJSONDimensionSummary(dgAttribute, fJSON);
 	}
 	fJSON->EndArray();
+}
+
+void CCCoclusteringReport::WriteJSONDimensionSummary(CCHDGAttribute* attribute, JSONFile* fJSON)
+{
+	int nValueNumber;
+
+	// Nombre initial de valeurs
+	nValueNumber = attribute->GetInitialValueNumber();
+
+	// Caracteristique des attributs
+	// Le nombre de valeur est diminuer en externe de 1 pour tenir compte de de la StarValue en interne
+	fJSON->BeginObject();
+	fJSON->WriteKeyString("name", attribute->GetAttributeName());
+	if (attribute->GetAttributeType() == KWType::VarPart)
+		fJSON->WriteKeyBoolean("isVarPart", true);
+	fJSON->WriteKeyString("type",
+			      KWType::ToString(KWType::GetCoclusteringSimpleType(attribute->GetAttributeType())));
+	fJSON->WriteKeyInt("parts", attribute->GetPartNumber());
+	fJSON->WriteKeyInt("initialParts", attribute->GetInitialPartNumber());
+	fJSON->WriteKeyInt("values", nValueNumber);
+	fJSON->WriteKeyDouble("interest", attribute->GetInterest());
+	fJSON->WriteKeyString("description", attribute->GetDescription());
+	if (KWFrequencyTable::GetWriteGranularityAndGarbage())
+		fJSON->WriteKeyBoolean("garbage", (attribute->GetGarbageModalityNumber() > 0));
+	if (attribute->GetAttributeType() == KWType::Continuous)
+	{
+		fJSON->WriteKeyDouble("min", attribute->GetMin());
+		fJSON->WriteKeyDouble("max", attribute->GetMax());
+	}
+	fJSON->EndObject();
 }
 
 void CCCoclusteringReport::WriteJSONDimensionPartitions(const CCHierarchicalDataGrid* coclusteringDataGrid,
 							JSONFile* fJSON)
 {
-	CCHDGAttribute* dgAttribute;
 	int nAttribute;
-	KWDGPart* dgPart;
-	CCHDGPart* hdgPart;
-	CCHDGValueSet* hdgValueSet;
-	KWDGValue* dgValue;
-	CCHDGValue* hdgValue;
-	int nIndex;
-	int nDefaultGroupIndex;
-	KWDGInterval* dgInterval;
+	KWDGAttribute* attribute;
 
 	require(coclusteringDataGrid != NULL);
+	require(fJSON != NULL);
 
 	// Parcours des attributs
 	fJSON->BeginKeyArray("dimensionPartitions");
 	for (nAttribute = 0; nAttribute < coclusteringDataGrid->GetAttributeNumber(); nAttribute++)
 	{
-		dgAttribute = cast(CCHDGAttribute*, coclusteringDataGrid->GetAttributeAt(nAttribute));
+		attribute = coclusteringDataGrid->GetAttributeAt(nAttribute);
 
-		// Debut de l'objet
-		fJSON->BeginObject();
-		fJSON->WriteKeyString("name", dgAttribute->GetAttributeName());
-		fJSON->WriteKeyString("type", KWType::ToString(dgAttribute->GetAttributeType()));
-
-		// Traitement des attributs numeriques
-		if (dgAttribute->GetAttributeType() == KWType::Continuous)
-		{
-			// Parcours des parties
-			fJSON->BeginKeyArray("intervals");
-			nIndex = 0;
-			dgPart = dgAttribute->GetHeadPart();
-			while (dgPart != NULL)
-			{
-				hdgPart = cast(CCHDGPart*, dgPart);
-				dgInterval = cast(KWDGInterval*, hdgPart->GetInterval());
-
-				// Ecritures des bornes
-				fJSON->BeginObject();
-				fJSON->WriteKeyString("cluster", hdgPart->GetPartName());
-				fJSON->BeginKeyList("bounds");
-				if (dgInterval->GetUpperBound() != KWContinuous::GetMissingValue())
-				{
-					// Borne inf, ou min pour le premier intervalle non Missing
-					if (nIndex == 0)
-						fJSON->WriteContinuous(dgAttribute->GetMin());
-					else
-						fJSON->WriteContinuous(dgInterval->GetLowerBound());
-
-					// Borne sup, ou max pour le premier intervalle non Missing
-					if (dgPart == dgAttribute->GetTailPart())
-						fJSON->WriteContinuous(dgAttribute->GetMax());
-					else
-						fJSON->WriteContinuous(dgInterval->GetUpperBound());
-
-					// Index suivant d'intervalle non missing
-					nIndex++;
-				}
-				fJSON->EndList();
-				fJSON->EndObject();
-
-				// Partie suivante
-				dgAttribute->GetNextPart(dgPart);
-			}
-			fJSON->EndArray();
-		}
-
-		// Traitement des attributs categoriels
-		if (dgAttribute->GetAttributeType() == KWType::Symbol)
-		{
-			// Parcours des parties
-			fJSON->BeginKeyArray("valueGroups");
-			nDefaultGroupIndex = -1;
-			nIndex = 0;
-			dgPart = dgAttribute->GetHeadPart();
-			while (dgPart != NULL)
-			{
-				hdgPart = cast(CCHDGPart*, dgPart);
-				hdgValueSet = cast(CCHDGValueSet*, hdgPart->GetValueSet());
-
-				// Memorisation de l'index du groupe par defaut
-				if (hdgValueSet->IsDefaultPart())
-					nDefaultGroupIndex = nIndex;
-				nIndex++;
-
-				// Parcours des valeurs, sauf si effectif null (cas de la StarValue)
-				fJSON->BeginObject();
-				fJSON->WriteKeyString("cluster", hdgPart->GetPartName());
-				fJSON->BeginKeyList("values");
-				dgValue = hdgValueSet->GetHeadValue();
-				while (dgValue != NULL)
-				{
-					hdgValue = cast(CCHDGValue*, dgValue);
-					if (hdgValue->GetValueFrequency() > 0)
-						fJSON->WriteString(hdgValue->GetValue().GetValue());
-					hdgValueSet->GetNextValue(dgValue);
-				}
-				fJSON->EndList();
-
-				// Effectifs des valeurs
-				fJSON->BeginKeyList("valueFrequencies");
-				dgValue = hdgValueSet->GetHeadValue();
-				while (dgValue != NULL)
-				{
-					hdgValue = cast(CCHDGValue*, dgValue);
-					if (hdgValue->GetValueFrequency() > 0)
-						fJSON->WriteInt(hdgValue->GetValueFrequency());
-					hdgValueSet->GetNextValue(dgValue);
-				}
-				fJSON->EndList();
-
-				// Typicalite des valeurs
-				fJSON->BeginKeyList("valueTypicalities");
-				dgValue = hdgValueSet->GetHeadValue();
-				while (dgValue != NULL)
-				{
-					hdgValue = cast(CCHDGValue*, dgValue);
-					if (hdgValue->GetValueFrequency() > 0)
-						fJSON->WriteDouble(hdgValue->GetTypicality());
-					hdgValueSet->GetNextValue(dgValue);
-				}
-				fJSON->EndList();
-				fJSON->EndObject();
-
-				// Partie suivante
-				dgAttribute->GetNextPart(dgPart);
-			}
-			fJSON->EndArray();
-
-			// Index du groupe par defaut
-			assert(nDefaultGroupIndex >= 0);
-			fJSON->WriteKeyInt("defaultGroupIndex", nDefaultGroupIndex);
-		}
-
-		// Fin de l'objet
-		fJSON->EndObject();
+		// Ecriture de la partition de l'attribut
+		// Dans le cas d'un attribut de type VarPart, declenche l'ecriture de ses innerAttributes
+		WriteJSONAttributePartition(attribute, fJSON);
 	}
 	fJSON->EndArray();
+}
+
+void CCCoclusteringReport::WriteJSONAttributePartition(KWDGAttribute* attribute, JSONFile* fJSON)
+{
+	CCHDGAttribute* dgAttribute;
+	KWDGPart* dgPart;
+	CCHDGPart* hdgPart;
+	KWDGInterval* dgInterval;
+	KWDGValue* dgValue;
+	KWDGValueSet* dgValueSet;
+	int nIndex;
+	int nDefaultGroupIndex;
+
+	require(attribute != NULL);
+
+	// Debut de l'objet
+	fJSON->BeginObject();
+	fJSON->WriteKeyString("name", attribute->GetAttributeName());
+	fJSON->WriteKeyString("type",
+			      KWType::ToString(KWType::GetCoclusteringSimpleType(attribute->GetAttributeType())));
+
+	// Traitement des attributs numeriques
+	if (attribute->GetAttributeType() == KWType::Continuous)
+	{
+		dgAttribute = cast(CCHDGAttribute*, attribute);
+
+		// Parcours des parties
+		fJSON->BeginKeyArray("intervals");
+		nIndex = 0;
+		dgPart = attribute->GetHeadPart();
+		while (dgPart != NULL)
+		{
+			hdgPart = cast(CCHDGPart*, dgPart);
+			dgInterval = dgPart->GetInterval();
+
+			// Ecritures des bornes
+			fJSON->BeginObject();
+			fJSON->WriteKeyString("cluster", hdgPart->GetPartName());
+			fJSON->BeginKeyList("bounds");
+			if (dgInterval->GetUpperBound() != KWContinuous::GetMissingValue())
+			{
+				// Borne inf, ou min pour le premier intervalle non Missing
+				if (nIndex == 0)
+					fJSON->WriteContinuous(dgAttribute->GetMin());
+				else
+					fJSON->WriteContinuous(dgInterval->GetLowerBound());
+
+				// Borne sup, ou max pour le premier intervalle non Missing
+				if (dgPart == attribute->GetTailPart())
+					fJSON->WriteContinuous(dgAttribute->GetMax());
+				else
+					fJSON->WriteContinuous(dgInterval->GetUpperBound());
+
+				// Index suivant d'intervalle non missing
+				nIndex++;
+			}
+			fJSON->EndList();
+			fJSON->EndObject();
+
+			// Partie suivante
+			attribute->GetNextPart(dgPart);
+		}
+		fJSON->EndArray();
+	}
+	// Traitement des attributs groupables
+	else
+	{
+		assert(KWType::IsCoclusteringGroupableType(attribute->GetAttributeType()));
+
+		// Ecriture des attributs internes dans le cas d'un attribut VarPart
+		if (attribute->GetAttributeType() == KWType::VarPart)
+			WriteJSONInnerAttributes(attribute->GetInnerAttributes(), fJSON);
+
+		// Parcours des groupes de parties de variable
+		fJSON->BeginKeyArray("valueGroups");
+		nDefaultGroupIndex = -1;
+		nIndex = 0;
+		dgPart = attribute->GetHeadPart();
+		while (dgPart != NULL)
+		{
+			dgValueSet = dgPart->GetValueSet();
+			hdgPart = cast(CCHDGPart*, dgPart);
+
+			// Memorisation de l'index du groupe par defaut
+			if (dgValueSet->IsDefaultPart())
+				nDefaultGroupIndex = nIndex;
+			nIndex++;
+
+			// Parcours des valeurs, sauf si effectif nul (cas de la valeur par defaut)
+			fJSON->BeginObject();
+			fJSON->WriteKeyString("cluster", hdgPart->GetPartName());
+			fJSON->BeginKeyList("values");
+			dgValue = dgValueSet->GetHeadValue();
+			while (dgValue != NULL)
+			{
+				if (dgValue->GetValueFrequency() > 0)
+					fJSON->WriteString(dgValue->GetObjectLabel());
+				dgValueSet->GetNextValue(dgValue);
+			}
+			fJSON->EndList();
+
+			// Effectifs des valeurs
+			fJSON->BeginKeyList("valueFrequencies");
+			dgValue = dgValueSet->GetHeadValue();
+			while (dgValue != NULL)
+			{
+				if (dgValue->GetValueFrequency() > 0)
+					fJSON->WriteInt(dgValue->GetValueFrequency());
+				dgValueSet->GetNextValue(dgValue);
+			}
+			fJSON->EndList();
+
+			// Typicalite des valeurs, sauf pour un attribut interne
+			if (not attribute->IsInnerAttribute())
+			{
+				fJSON->BeginKeyList("valueTypicalities");
+				dgValue = dgValueSet->GetHeadValue();
+				while (dgValue != NULL)
+				{
+					if (dgValue->GetValueFrequency() > 0)
+						fJSON->WriteDouble(dgValue->GetTypicality());
+					dgValueSet->GetNextValue(dgValue);
+				}
+				fJSON->EndList();
+			}
+
+			// Fin de l'objet
+			fJSON->EndObject();
+
+			// Partie suivante
+			attribute->GetNextPart(dgPart);
+		}
+		fJSON->EndArray();
+
+		// Index du groupe par defaut, exploite uniquement pour les	attribut Symbol
+		assert(nDefaultGroupIndex >= 0 or attribute->GetAttributeType() != KWType::Symbol);
+		if (nDefaultGroupIndex >= 0)
+			fJSON->WriteKeyInt("defaultGroupIndex", nDefaultGroupIndex);
+	}
+
+	// Fin de l'objet
+	fJSON->EndObject();
+}
+
+void CCCoclusteringReport::WriteJSONInnerAttributes(const KWDGInnerAttributes* innerAttributes, JSONFile* fJSON)
+{
+	CCHDGAttribute* innerAttribute;
+	int nAttribute;
+
+	require(innerAttributes != NULL);
+	require(fJSON != NULL);
+
+	// Section des attributs internes
+	fJSON->BeginKeyObject("innerVariables");
+
+	// Parcours des innerAttributes pour la section des dimensions
+	fJSON->BeginKeyArray("dimensionSummaries");
+	for (nAttribute = 0; nAttribute < innerAttributes->GetInnerAttributeNumber(); nAttribute++)
+	{
+		innerAttribute = cast(CCHDGAttribute*, innerAttributes->GetInnerAttributeAt(nAttribute));
+		WriteJSONDimensionSummary(innerAttribute, fJSON);
+	}
+	fJSON->EndArray();
+
+	// Parcours des innerAttributes pour la section des partitions
+	fJSON->BeginKeyArray("dimensionPartitions");
+	for (nAttribute = 0; nAttribute < innerAttributes->GetInnerAttributeNumber(); nAttribute++)
+	{
+		innerAttribute = cast(CCHDGAttribute*, innerAttributes->GetInnerAttributeAt(nAttribute));
+		WriteJSONAttributePartition(innerAttribute, fJSON);
+	}
+	fJSON->EndArray();
+
+	// Fin de la section
+	fJSON->EndObject();
 }
 
 void CCCoclusteringReport::WriteJSONDimensionHierarchies(const CCHierarchicalDataGrid* coclusteringDataGrid,
@@ -4046,6 +4753,7 @@ void CCCoclusteringReport::WriteJSONDimensionHierarchies(const CCHierarchicalDat
 	int nPart;
 
 	require(coclusteringDataGrid != NULL);
+	require(fJSON != NULL);
 
 	// Parcours des attributs
 	fJSON->BeginKeyArray("dimensionHierarchies");
@@ -4056,7 +4764,8 @@ void CCCoclusteringReport::WriteJSONDimensionHierarchies(const CCHierarchicalDat
 		// Debut de l'objet
 		fJSON->BeginObject();
 		fJSON->WriteKeyString("name", dgAttribute->GetAttributeName());
-		fJSON->WriteKeyString("type", KWType::ToString(dgAttribute->GetAttributeType()));
+		fJSON->WriteKeyString(
+		    "type", KWType::ToString(KWType::GetCoclusteringSimpleType(dgAttribute->GetAttributeType())));
 
 		// Exports de toutes les parties de la hierarchie en partant de la racine
 		oaParts.SetSize(0);
@@ -4113,6 +4822,7 @@ void CCCoclusteringReport::WriteJSONCells(const CCHierarchicalDataGrid* cocluste
 	int nCell;
 
 	require(coclusteringDataGrid != NULL);
+	require(fJSON != NULL);
 
 	// Tri des cellules par valeurs des parties d'attribut (et non par adresse)
 	// en les rentrant prealablement dans un tableau
@@ -4148,7 +4858,7 @@ void CCCoclusteringReport::WriteJSONCells(const CCHierarchicalDataGrid* cocluste
 			nIndex++;
 
 			// Memorisation de l'index associe a la partoe
-			nkdPartIndexes->SetAt((NUMERIC)dgPart, siPartIndex);
+			nkdPartIndexes->SetAt(dgPart, siPartIndex);
 
 			// Partie suivante
 			dgAttribute->GetNextPart(dgPart);
@@ -4172,7 +4882,7 @@ void CCCoclusteringReport::WriteJSONCells(const CCHierarchicalDataGrid* cocluste
 
 				// Recherche de l'index associe a la partie
 				nkdPartIndexes = cast(NumericKeyDictionary*, oaAttributePartIndexes.GetAt(nAttribute));
-				siPartIndex = cast(KWSortableIndex*, nkdPartIndexes->Lookup((NUMERIC)dgPart));
+				siPartIndex = cast(KWSortableIndex*, nkdPartIndexes->Lookup(dgPart));
 
 				// Ecriture de l'index
 				fJSON->WriteInt(siPartIndex->GetIndex());

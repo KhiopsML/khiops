@@ -2,34 +2,21 @@
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
-////////////////////////////////////////////////////////////
-// Wed Jun 27 17:02:15 2007
-// File generated  with GenereTable
-// Insert your specific code inside "//## " sections
-
 #include "CMModelingSpecView.h"
 
 CMModelingSpecView::CMModelingSpecView()
 {
 	SetIdentifier("CMModelingSpec");
-	SetLabel("CM Specifications");
+	SetLabel("Classifier specifications");
 
-	AddBooleanField("Majoritaire", "Majoritary classifier", true);
+	AddBooleanField("MajorityClassifier", "Majority classifier", true);
 
 	// Deplacement du nouveau champ vers le haut, avant ceux de la classe ancetre
 	ALString sFirstFieldId = GetFieldAtIndex(0)->GetIdentifier();
-	MoveFieldBefore("Majoritaire", sFirstFieldId);
-
-	// ## Custom constructor
+	MoveFieldBefore("MajorityClassifier", sFirstFieldId);
 }
 
-CMModelingSpecView::~CMModelingSpecView()
-{
-
-	// ## Custom destructor
-
-	// ##
-}
+CMModelingSpecView::~CMModelingSpecView() {}
 
 void CMModelingSpecView::EventUpdate(Object* object)
 {
@@ -40,11 +27,7 @@ void CMModelingSpecView::EventUpdate(Object* object)
 	KWModelingSpecView::EventUpdate(object);
 	editedObject = cast(CMModelingSpec*, object);
 
-	editedObject->SetCMClassifier(GetBooleanValueAt("Majoritaire"));
-
-	// ## Custom update
-
-	// ##
+	editedObject->SetTrainMajorityClassifier(GetBooleanValueAt("MajorityClassifier"));
 }
 
 void CMModelingSpecView::EventRefresh(Object* object)
@@ -56,18 +39,13 @@ void CMModelingSpecView::EventRefresh(Object* object)
 	KWModelingSpecView::EventRefresh(object);
 	editedObject = cast(CMModelingSpec*, object);
 
-	SetBooleanValueAt("Majoritaire", editedObject->GetCMClassifier());
-	// ## Custom refresh
-
-	// ##
+	SetBooleanValueAt("MajorityClassifier", editedObject->GetTrainMajorityClassifier());
 }
 
 const ALString CMModelingSpecView::GetClassLabel() const
 {
-	return "Classifier CM";
+	return "Majority classifier";
 }
-
-// ## Method implementation
 
 void CMModelingSpecView::SetObject(Object* object)
 {
@@ -81,5 +59,3 @@ void CMModelingSpecView::SetObject(Object* object)
 	// Memorisation de l'objet pour la fiche courante
 	UIObjectView::SetObject(object);
 }
-
-// ##

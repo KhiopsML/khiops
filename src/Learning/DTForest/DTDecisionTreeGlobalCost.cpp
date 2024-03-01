@@ -170,11 +170,11 @@ double DTDecisionTreeGlobalCost::ComputeStructureCost(int nInstanceNumber, int n
 	// Cas ou il y au moins un noeud interne
 	if (nLeaveNumber > 0)
 	{
-		if (this->nDTCriterion == 0)
+		if (nDTCriterion == 0)
 		{
 			dStructureCost += DTStat::LnCatalan(nLeaveNumber - 1);
 		}
-		else if (this->nDTCriterion == 1)
+		else if (nDTCriterion == 1)
 		{
 			dStructureCost += DTStat::LnSchroder(nLeaveNumber - 1);
 		}
@@ -417,9 +417,9 @@ void DTDecisionTreeGlobalCost::ComputeHypotheticalAugmentedTreeCost(DTDecisionTr
 	else
 	{
 		// Nombre de valeurs distinctes pour l'attribut
-		nVariableValueNumber =
-		    0; // NV9  cast(KWAttributeStats*,
-		       // sourceNode->GetNodeClassStats()->LookupAttributeStats(sAttributeName))->GetDescriptiveStats()->GetValueNumber();
+		nVariableValueNumber = 0;
+		// NV9  cast(KWAttributeStats*, sourceNode->GetNodeClassStats()->LookupAttributeStats(sAttributeName))
+		// ->GetDescriptiveStats()->GetValueNumber();
 	}
 	assert(nVariableValueNumber > 0);
 

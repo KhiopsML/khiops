@@ -13,21 +13,23 @@
 //
 //
 
+AnalysisSpec.SystemParameters.APIMode true        // API mode
+AnalysisSpec.SystemParameters.MemoryLimit 2000     // Memory limit in MB
 ClassManagement.OpenFile       // Open...
 ClassFileName ./IrisModeling.kdic       // Dictionary file
 OK                             // Open
 
-TransferDatabase               // Transfer database
+TransferDatabase               // Deploy model
 
 // -> Database transfer
-ClassName SNB_Iris             // Transfer dictionary
-SourceDatabase.DatabaseFiles.List.Key SNB_Iris               // List item selection
-SourceDatabase.DatabaseFiles.DataTableName ../../../datasets/Iris/Iris.txt     // Database file
-TargetDatabase.DatabaseFiles.List.Key SNB_Iris               // List item selection
-TargetDatabase.DatabaseFiles.DataTableName ./results/T_Iris.txt     // Database file
-TransferDatabase               // Transfer database
+ClassName SNB_Iris             // Deployment dictionary
+SourceDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key SNB_Iris               // List item selection
+SourceDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../datasets/Iris/Iris.txt     // Database file
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key SNB_Iris               // List item selection
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ./results/D_Iris.txt     // Database file
+TransferDatabase               // Deploy model
 
-TargetDatabase.DatabaseFiles.DataTableName ./results/KNI_Iris.txt     // Database file
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ./results/KNI_Iris.txt     // Database file
 KNILogFileName results/KNILog.txt      // KNI log file name
 KNIStreamMaxMemory 100         // KNI max stream memory in Mo
 KNITransferDatabase            // KNI transfer database

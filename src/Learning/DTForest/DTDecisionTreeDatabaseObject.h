@@ -42,7 +42,7 @@ public:
 	void SetTargetCorrectlyPredicted(boolean);
 
 	static void WriteHeaderLine(ostream& ost);
-	void Write(ostream& ost) const;
+	void Write(ostream& ost) const override;
 
 	// probas correspondant au noeud auquel appartient l'instance
 	const ContinuousVector* GetTrainNodeProbs() const;

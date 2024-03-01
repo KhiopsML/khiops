@@ -38,6 +38,8 @@ public:
 	boolean GetHeaderLineUsed() const;
 
 	// Separateur de champs utilise (par defaut: '\t')
+	// Note: le separateur en sortie est le meme que celui en entree
+	// car le chunk builder ne change pas le separateur
 	void SetInputFieldSeparator(char cValue);
 	char GetInputFieldSeparator() const;
 

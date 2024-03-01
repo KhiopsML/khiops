@@ -11,13 +11,10 @@ CCLearningProject::~CCLearningProject() {}
 void CCLearningProject::OpenLearningEnvironnement()
 {
 	ALString sDocumentation;
+	ALString sQuickStartInfo;
 
 	// Appel de la methode ancetre
 	KWLearningProject::OpenLearningEnvironnement();
-
-	// Declaration des licences
-	if (LMLicenseManager::IsEnabled())
-		LMLicenseManager::DeclarePredefinedLicense(LMLicenseManager::KhiopsCoclustering);
 
 	// Parametrage du nom du module applicatif
 	SetLearningModuleName("Coclustering");

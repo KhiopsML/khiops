@@ -1,4 +1,8 @@
+<<<<<<<< HEAD:test/LearningTest/TestKhiops/Standard/IrisU/results.ref/PreparationReport.xls
 #Khiops 10.1.5
+========
+#Khiops 10.4.6i
+>>>>>>>> dev-v11:test/LearningTest/TestKhiops/Standard-unstable/IrisU2D/results.ref/AnalysisResults.PreparationReport.xls
 Descriptive statistics
 
 
@@ -25,23 +29,40 @@ Native variables	5
 Constructed variables	7
 
 Max number of constructed variables	0
+<<<<<<<< HEAD:test/LearningTest/TestKhiops/Standard/IrisU/results.ref/PreparationReport.xls
 Max number of trees	0
 Max number of variable pairs	100
 Discretization	EqualWidth
 Value grouping	BasicGrouping
+========
+Max number of text features	0
+Max number of trees	0
+Max number of variable pairs	100
+Discretization	MODL
+Value grouping	MODL
+>>>>>>>> dev-v11:test/LearningTest/TestKhiops/Standard-unstable/IrisU2D/results.ref/AnalysisResults.PreparationReport.xls
 
 
 Categorical variables statistics
 
+<<<<<<<< HEAD:test/LearningTest/TestKhiops/Standard/IrisU/results.ref/PreparationReport.xls
 Rank	Name	Values	Mode	Mode coverage	Constr. cost	Derivation rule
 R01	Class	3	Iris-setosa	0.361905	3.17805
 R02	Class1	2		0.638095	3.17805	IfC(EQc(Class, "Iris-setosa"), "setosa", "")
 R03	Class2	2		0.695238	3.17805	IfC(EQc(Class, "Iris-versicolor"), "versicolor", "")
 R09	SPetalLength	5	1	0.361905	3.17805	AsCategorical(Floor(PetalLength))
+========
+Rank	Name	Values	Mode	Mode coverage	Missing number	Sparse missing number	Constr. cost	Derivation rule
+R01	Class	3	Iris-setosa	0.361905	0	0	3.17805
+R02	Class1	2		0.638095	67	0	3.17805	IfC(EQc(Class, "Iris-setosa"), "setosa", "")
+R03	Class2	2		0.695238	73	0	3.17805	IfC(EQc(Class, "Iris-versicolor"), "versicolor", "")
+R09	SPetalLength	5	1	0.361905	0	0	3.17805	AsCategorical(Floor(PetalLength))
+>>>>>>>> dev-v11:test/LearningTest/TestKhiops/Standard-unstable/IrisU2D/results.ref/AnalysisResults.PreparationReport.xls
 
 
 Numerical variables statistics
 
+<<<<<<<< HEAD:test/LearningTest/TestKhiops/Standard/IrisU/results.ref/PreparationReport.xls
 Rank	Name	Values	Min	Max	Mean	Std dev	Missing number	Constr. cost	Derivation rule
 R04	Dummy1	1	0	0	0	0	0	3.17805	Copy(0)
 R05	Dummy2	105	0.005121241265	0.9859650261	0.5173966838	0.2650019122	0	3.17805	Random()
@@ -51,6 +72,17 @@ R08	PetalWidth	21	0.1	2.5	1.175238095	0.7880996979	0	3.17805
 R10	SepalLength	31	4.3	7.7	5.827619048	0.8375127846	0	3.17805
 R11	SepalWidth	23	2	4.4	3.081904762	0.4284592446	0	3.17805
 R12	UpperPetalWidth	11	1.5	2.5	1.692380952	0.2962287527	0	3.17805	If(GE(PetalWidth, 1.5), PetalWidth, 1.5)
+========
+Rank	Name	Values	Min	Max	Mean	Std dev	Missing number	Sparse missing number	Constr. cost	Derivation rule
+R04	Dummy1	1	0	0	0	0	0	0	3.17805	Copy(0)
+R05	Dummy2	105	0.005121241265	0.9859650261	0.5173966838	0.2650019122	0	0	3.17805	Random()
+R06	LowerPetalLength	10	1	3	2.446666667	0.7433600251	0	0	3.17805	If(LE(PetalLength, 3), PetalLength, 3)
+R07	PetalLength	36	1	6.9	3.686666667	1.80132579	0	0	3.17805
+R08	PetalWidth	21	0.1	2.5	1.175238095	0.7880996979	0	0	3.17805
+R10	SepalLength	31	4.3	7.7	5.827619048	0.8375127846	0	0	3.17805
+R11	SepalWidth	23	2	4.4	3.081904762	0.4284592446	0	0	3.17805
+R12	UpperPetalWidth	11	1.5	2.5	1.692380952	0.2962287527	0	0	3.17805	If(GE(PetalWidth, 1.5), PetalWidth, 1.5)
+>>>>>>>> dev-v11:test/LearningTest/TestKhiops/Standard-unstable/IrisU2D/results.ref/AnalysisResults.PreparationReport.xls
 
 
 --------------------------------------------------------------------------------
@@ -110,6 +142,7 @@ Variable	Numerical	Dummy2
 
 Variable stats
 Interval	Frequency	Coverage
+<<<<<<<< HEAD:test/LearningTest/TestKhiops/Standard/IrisU/results.ref/PreparationReport.xls
 ]-inf;0.102]	7	0.0666667
 ]0.102;0.206]	9	0.0857143
 ]0.206;0.296]	8	0.0761905
@@ -120,6 +153,9 @@ Interval	Frequency	Coverage
 ]0.698;0.8]	13	0.12381
 ]0.8;0.894]	10	0.0952381
 ]0.894;+inf[	9	0.0857143
+========
+]-inf;+inf[	105	1
+>>>>>>>> dev-v11:test/LearningTest/TestKhiops/Standard-unstable/IrisU2D/results.ref/AnalysisResults.PreparationReport.xls
 
 
 ----------------------------------------------
@@ -129,11 +165,17 @@ Variable	Numerical	LowerPetalLength
 Variable stats
 Interval	Frequency	Coverage
 ]-inf;1.25]	4	0.0380952
+<<<<<<<< HEAD:test/LearningTest/TestKhiops/Standard/IrisU/results.ref/PreparationReport.xls
 ]1.25;1.45]	13	0.12381
 ]1.45;1.65]	15	0.142857
 ]1.65;1.8]	4	0.0380952
 ]1.8;2.4]	2	0.0190476
 ]2.4;+inf[	67	0.638095
+========
+]1.25;1.75]	32	0.304762
+]1.75;2.95]	2	0.0190476
+]2.95;+inf[	67	0.638095
+>>>>>>>> dev-v11:test/LearningTest/TestKhiops/Standard-unstable/IrisU2D/results.ref/AnalysisResults.PreparationReport.xls
 
 
 ----------------------------------------------
@@ -142,6 +184,7 @@ Variable	Numerical	PetalLength
 
 Variable stats
 Interval	Frequency	Coverage
+<<<<<<<< HEAD:test/LearningTest/TestKhiops/Standard/IrisU/results.ref/PreparationReport.xls
 ]-inf;1.55]	27	0.257143
 ]1.55;2.4]	11	0.104762
 ]2.4;3.4]	2	0.0190476
@@ -151,6 +194,13 @@ Interval	Frequency	Coverage
 ]5.15;5.75]	15	0.142857
 ]5.75;6.4]	8	0.0761905
 ]6.4;+inf[	3	0.0285714
+========
+]-inf;1.25]	4	0.0380952
+]1.25;1.75]	32	0.304762
+]1.75;3.85]	7	0.0666667
+]3.85;6.15]	59	0.561905
+]6.15;+inf[	3	0.0285714
+>>>>>>>> dev-v11:test/LearningTest/TestKhiops/Standard-unstable/IrisU2D/results.ref/AnalysisResults.PreparationReport.xls
 
 
 ----------------------------------------------
@@ -159,6 +209,7 @@ Variable	Numerical	PetalWidth
 
 Variable stats
 Interval	Frequency	Coverage
+<<<<<<<< HEAD:test/LearningTest/TestKhiops/Standard/IrisU/results.ref/PreparationReport.xls
 ]-inf;0.35]	31	0.295238
 ]0.35;0.75]	7	0.0666667
 ]0.75;1.05]	5	0.047619
@@ -168,6 +219,13 @@ Interval	Frequency	Coverage
 ]1.75;2.05]	16	0.152381
 ]2.05;2.25]	7	0.0666667
 ]2.25;+inf[	11	0.104762
+========
+]-inf;0.15]	6	0.0571429
+]0.15;0.25]	20	0.190476
+]0.25;0.45]	11	0.104762
+]0.45;0.85]	1	0.00952381
+]0.85;+inf[	67	0.638095
+>>>>>>>> dev-v11:test/LearningTest/TestKhiops/Standard-unstable/IrisU2D/results.ref/AnalysisResults.PreparationReport.xls
 
 
 ----------------------------------------------
@@ -197,6 +255,7 @@ Variable	Numerical	SepalLength
 
 Variable stats
 Interval	Frequency	Coverage
+<<<<<<<< HEAD:test/LearningTest/TestKhiops/Standard/IrisU/results.ref/PreparationReport.xls
 ]-inf;4.65]	7	0.0666667
 ]4.65;4.95]	11	0.104762
 ]4.95;5.35]	16	0.152381
@@ -207,6 +266,10 @@ Interval	Frequency	Coverage
 ]6.65;7.05]	12	0.114286
 ]7.05;7.3]	3	0.0285714
 ]7.3;+inf[	5	0.047619
+========
+]-inf;7]	97	0.92381
+]7;+inf[	8	0.0761905
+>>>>>>>> dev-v11:test/LearningTest/TestKhiops/Standard-unstable/IrisU2D/results.ref/AnalysisResults.PreparationReport.xls
 
 
 ----------------------------------------------
@@ -215,6 +278,7 @@ Variable	Numerical	SepalWidth
 
 Variable stats
 Interval	Frequency	Coverage
+<<<<<<<< HEAD:test/LearningTest/TestKhiops/Standard/IrisU/results.ref/PreparationReport.xls
 ]-inf;2.25]	2	0.0190476
 ]2.25;2.45]	3	0.0285714
 ]2.45;2.75]	14	0.133333
@@ -225,6 +289,11 @@ Interval	Frequency	Coverage
 ]3.65;3.95]	7	0.0666667
 ]3.95;4.15]	2	0.0190476
 ]4.15;+inf[	2	0.0190476
+========
+]-inf;2.45]	5	0.047619
+]2.45;3.25]	72	0.685714
+]3.25;+inf[	28	0.266667
+>>>>>>>> dev-v11:test/LearningTest/TestKhiops/Standard-unstable/IrisU2D/results.ref/AnalysisResults.PreparationReport.xls
 
 
 ----------------------------------------------
@@ -233,6 +302,7 @@ Variable	Numerical	UpperPetalWidth
 
 Variable stats
 Interval	Frequency	Coverage
+<<<<<<<< HEAD:test/LearningTest/TestKhiops/Standard/IrisU/results.ref/PreparationReport.xls
 ]-inf;1.65]	70	0.666667
 ]1.65;1.75]	1	0.00952381
 ]1.75;1.85]	9	0.0857143
@@ -243,4 +313,8 @@ Interval	Frequency	Coverage
 ]2.25;2.35]	8	0.0761905
 ]2.35;2.45]	2	0.0190476
 ]2.45;+inf[	1	0.00952381
+========
+]-inf;1.55]	67	0.638095
+]1.55;+inf[	38	0.361905
+>>>>>>>> dev-v11:test/LearningTest/TestKhiops/Standard-unstable/IrisU2D/results.ref/AnalysisResults.PreparationReport.xls
 

@@ -1,14 +1,11 @@
 add_subdirectory(DTForest)
 add_subdirectory(genum)
-add_subdirectory(genumfp)
-
+add_subdirectory(khisto)
 add_subdirectory(KDDomainKnowledge)
 add_subdirectory(KhiopsNativeInterface)
 add_subdirectory(KIInterpretation)
-
 add_subdirectory(KMDRRuleLibrary)
 add_subdirectory(KNITransfer)
-
 add_subdirectory(KWData)
 add_subdirectory(KWDataPreparation)
 add_subdirectory(KWDataUtils)
@@ -21,6 +18,9 @@ add_subdirectory(MHHistograms)
 add_subdirectory(MODL)
 add_subdirectory(MODL_Coclustering)
 add_subdirectory(SNBPredictor)
+add_subdirectory(samples/sample3)
+
+add_subdirectory(KWTest)
 
 # Add khiops.jar (CMake names the target khiops_jar)
 if(BUILD_JARS)

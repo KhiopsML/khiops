@@ -18,8 +18,6 @@ KWCrashTestParametersView::KWCrashTestParametersView()
 		    int(KWDatabaseMemoryGuard::GetCrashTestMaxSecondaryRecordNumber()));
 	AddIntField("CrashTestSingleInstanceMemoryLimit", "Crash test - memory limit per multi-table instance in MB",
 		    int(KWDatabaseMemoryGuard::GetCrashTestSingleInstanceMemoryLimit()));
-	AddIntField("CrashTestMaxHeapSizePerCore", "Crash test - memory limit per core in MB",
-		    int(MemGetMaxHeapSize() / lMB));
 
 	// Gestion des parametre des crash test
 	GetFieldAt("CrashTestTask")->SetStyle("ComboBox");
@@ -32,7 +30,6 @@ KWCrashTestParametersView::KWCrashTestParametersView()
 	    ->SetDefaultValue(InputBufferedFile::GetMaxLineLength());
 	cast(UIIntElement*, GetFieldAt("CrashTestMaxSecondaryRecordNumber"))->SetMinValue(0);
 	cast(UIIntElement*, GetFieldAt("CrashTestSingleInstanceMemoryLimit"))->SetMinValue(0);
-	cast(UIIntElement*, GetFieldAt("CrashTestMaxHeapSizePerCore"))->SetMinValue(0);
 
 	// Initialisation des valeurs des parametres de crash concernant les taches
 	InitializeTaskCrashTestFields();
@@ -56,10 +53,6 @@ KWCrashTestParametersView::KWCrashTestParametersView()
 			  "\n By default, this parameter is set to 0, meaning that the limit is not active."
 			  "\n If the limit is exceeded, an error is issued and the derived variables of the instance "
 			  "are missing.");
-	GetFieldAt("CrashTestMaxHeapSizePerCore")
-	    ->SetHelpText("Memory limit per core in MB."
-			  "\n By default, this parameter is set to 0, meaning that the limit is not active."
-			  "\n If the limit is exceeded, the program ends in a fatal error.");
 	GetActionAt("ResetParameters")->SetHelpText("Reset all crash parametres to their defaut value.");
 }
 
@@ -75,7 +68,6 @@ void KWCrashTestParametersView::EventUpdate(Object* object)
 	KWDatabaseMemoryGuard::SetCrashTestMaxSecondaryRecordNumber(GetIntValueAt("CrashTestMaxSecondaryRecordNumber"));
 	KWDatabaseMemoryGuard::SetCrashTestSingleInstanceMemoryLimit(
 	    GetIntValueAt("CrashTestSingleInstanceMemoryLimit") * lMB);
-	MemSetMaxHeapSize(GetIntValueAt("CrashTestMaxHeapSizePerCore") * lMB);
 }
 
 void KWCrashTestParametersView::EventRefresh(Object* object)
@@ -89,7 +81,6 @@ void KWCrashTestParametersView::EventRefresh(Object* object)
 		      int(KWDatabaseMemoryGuard::GetCrashTestMaxSecondaryRecordNumber()));
 	SetIntValueAt("CrashTestSingleInstanceMemoryLimit",
 		      int(KWDatabaseMemoryGuard::GetCrashTestSingleInstanceMemoryLimit() / lMB));
-	SetIntValueAt("CrashTestMaxHeapSizePerCore", int(MemGetMaxHeapSize() / lMB));
 }
 
 void KWCrashTestParametersView::ResetParameters()
@@ -101,7 +92,6 @@ void KWCrashTestParametersView::ResetParameters()
 	InputBufferedFile::SetMaxLineLength(8 * lMB);
 	KWDatabaseMemoryGuard::SetCrashTestMaxSecondaryRecordNumber(0);
 	KWDatabaseMemoryGuard::SetCrashTestSingleInstanceMemoryLimit(0);
-	MemSetMaxHeapSize(0);
 }
 
 const ALString KWCrashTestParametersView::GetClassLabel() const

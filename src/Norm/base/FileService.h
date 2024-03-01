@@ -162,6 +162,8 @@ public:
 	static const ALString BuildFileName(const ALString& sFilePrefix, const ALString& sFileSuffix);
 
 	// Construction d'un chemin complet de fichier
+	// Si le FileName est lui-meme un chemin non absolu, cela permet egalement de concatener le chemin
+	// en sortie au chemin en entree
 	static const ALString BuildFilePathName(const ALString& sPathName, const ALString& sFileName);
 
 	// Indique si un chemin est absolu (comprend la racine)

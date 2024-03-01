@@ -1,6 +1,6 @@
 Deploy model SNB_Iris
 Input database ../../../datasets/Iris/Iris.txt: Read records: 150
-Output database ./results/T_Iris.txt: Written records: 150
+Output database ./results/D_Iris.txt: Written records: 150
 Model deployment time: 0:00:00.01
 
 Create database file ./results/KNI_Iris.txt with KNI

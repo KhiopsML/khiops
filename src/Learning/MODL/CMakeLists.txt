@@ -13,6 +13,7 @@ target_link_libraries(MODL_SO PUBLIC DTForest KMDRRuleLibrary KWLearningProblem)
 if(MPI)
   target_link_libraries(MODL_SO PUBLIC PLMPI)
 endif()
+# TODOMERGE: MODL_SO.dll -> MODL_dll
 set_target_properties(
   MODL_SO
   PROPERTIES PUBLIC_HEADER MODL_dll.h

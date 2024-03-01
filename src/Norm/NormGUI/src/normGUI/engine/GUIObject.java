@@ -20,8 +20,6 @@ import javax.swing.JTextField;
 
 /**
  * Definit un objet d'interface
- *
- * @author Marc Boulle
  */
 public abstract class GUIObject
 {
@@ -247,7 +245,7 @@ public abstract class GUIObject
         }
 
         /**
-         * Method utilitaire d'affichage du contenu d'un GridBagConstrainte
+         * Methode utilitaire d'affichage du contenu d'un GridBagConstrainte
          */
         public void displayGridBagConstraint(String title, GridBagConstraints constraint)
         {
@@ -361,6 +359,19 @@ public abstract class GUIObject
                 JTextField textField = new JTextField();
                 dim = textField.getPreferredSize();
                 return (int)(dim.getHeight());
+        }
+
+        /**
+         * Largeur minimale d'une fenetre pour un titre donne
+         */
+        static public int getMinFramedWidth(String title)
+        {
+                // Estimation pour tenir compte des boutons systemes
+                int frameEmptySize = getComponentPreferredWidth(12);
+
+                // Prise en compte du titre
+                int titleSize = getComponentPreferredWidth(title.length());
+                return frameEmptySize + titleSize;
         }
 
         /**

@@ -10,9 +10,9 @@ class MHFloatingPointFrequencyTableBuilder;
 #include "MHContinuousLimits.h"
 #include "Vector.h"
 #include "KWStat.h"
-#include "MHHistogramVector_fp.h"
-#include "MHMODLHistogramCost_fp.h"
-#include "MHHistogramVector_fp.h"
+#include "MHMODLHistogramVector.h"
+#include "MHMODLHistogramCost.h"
+#include "MHMODLHistogramVector.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // Service  de calcul d'intervalles en representation virgule flottantes
@@ -270,7 +270,7 @@ public:
 	// Services divers
 
 	// Affichage
-	void Write(ostream& ost) const;
+	void Write(ostream& ost) const override;
 
 	// Ecriture des bornes des bins principaux
 	void WriteMainBins(ostream& ost) const;
@@ -300,7 +300,7 @@ public:
 	//// Implementation
 protected:
 	// Acces en friend pour la sous-classe dediee troncature
-	friend class MHTruncationDiscretizerHistogramMODL_fp;
+	friend class MHDiscretizerTruncationMODLHistogram;
 
 	// Recherche de l'index d'un bin pour un effctif cumule donne
 	int SearchBinIndex(int nSearchedCumulativeFrequency) const;
@@ -309,7 +309,11 @@ protected:
 	// Sous-partie de la methode InitializeValues definie en methodes virtuelles
 	// pour pouvoir etre specialisees
 
-	// Initialisation des bornes du domaines, appele en fin de la methode InitializeValues
+	// Valeurs extremes systemes, utilises pour les assertions
+	virtual Continuous GetSystemMinValue() const;
+	virtual Continuous GetSystemMaxValue() const;
+
+	// Initialisation des bornes du domaine, appele en fin de la methode InitializeValues
 	virtual void InitializeDomainBounds();
 
 	// Indique si les bornes ont ete initialisee

@@ -211,7 +211,7 @@ inline int KWKey::Compare(const KWKey* key) const
 
 	for (i = 0; i < key->GetSize(); i++)
 	{
-		value1 = this->GetAt(i);
+		value1 = GetAt(i);
 		value2 = key->GetAt(i);
 		nCompare = value1.Compare(value2);
 		if (nCompare != 0)

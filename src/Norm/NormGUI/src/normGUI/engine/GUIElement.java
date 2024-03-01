@@ -21,8 +21,6 @@ import javax.swing.table.TableCellRenderer;
 /**
  * Definit un element d'interface. Un element d'interface est un composant d'une
  * unite (fiche ou liste)
- *
- * @author Marc Boulle
  */
 public abstract class GUIElement extends GUIData implements FocusListener
 {
@@ -40,8 +38,6 @@ public abstract class GUIElement extends GUIData implements FocusListener
 
         /**
          * Definit un element dans un tableau, son editeur et son rendu
-         *
-         * @author Marc Boulle
          */
         protected abstract class CellElement
           extends AbstractCellEditor implements TableCellEditor, TableCellRenderer, FocusListener

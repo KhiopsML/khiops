@@ -2,6 +2,7 @@
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
+#include "MemoryManager.h"
 #include "Standard.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -53,7 +54,8 @@ inline void MemHeapUpdateAlloc(size_t nSize)
 	if (lMemMaxHeapSize > 0 && MemHeapMemory > lMemMaxHeapSize)
 	{
 		char sMessage[100];
-		sprintf(sMessage, "Memory user overflow: heap size beyond user limit (%lld)\n", lMemMaxHeapSize);
+		snprintf(sMessage, sizeof(sMessage), "Memory user overflow: heap size beyond user limit (%lld)\n",
+			 lMemMaxHeapSize);
 		MemFatalError(sMessage);
 		GlobalExit();
 	}
@@ -1288,9 +1290,10 @@ void HeapClose()
 
 // Visual C++: supression des Warning
 #ifdef __MSC__
-#pragma warning(disable : 6385) // disable C6385 warning (pour un controle excessif sur pHeap->fixedSizeHeapHeadSegments
-				// dans HeapCheckFixedSizeHeapLecture)
-#endif                          // __MSC__
+// disable C6385 warning
+// (pour un controle excessif sur pHeap->fixedSizeHeapHeadSegments dans HeapCheckFixedSizeHeapLecture)
+#pragma warning(disable : 6385)
+#endif // __MSC__
 
 // Verification d'un segment d'un FixedSizeHeap
 int HeapCheckFixedSizeHeap(MemSegment* psegSearched)
@@ -1526,7 +1529,8 @@ inline void* MemAlloc(size_t nSize)
 			if (MemGetAllocErrorHandler() != NULL)
 			{
 				char sMessage[100];
-				sprintf(sMessage, "Memory overflow (malloc allocation error (%lld))\n", (longint)nSize);
+				snprintf(sMessage, sizeof(sMessage),
+					 "Memory overflow (malloc allocation error (%lld))\n", (longint)nSize);
 				MemFatalError(sMessage);
 			}
 			return NULL;
@@ -2026,8 +2030,8 @@ void* DebugMemAlloc(size_t nSize)
 		if (MemGetAllocErrorHandler() != NULL)
 		{
 			char sMessage[100];
-			sprintf(sMessage, "Memory overflow (unable to allocate memory (%lld))\n",
-				(longint)(nSize + MemControlOverhead * sizeof(void*)));
+			snprintf(sMessage, sizeof(sMessage), "Memory overflow (unable to allocate memory (%lld))\n",
+				 (longint)(nSize + MemControlOverhead * sizeof(void*)));
 			MemFatalError(sMessage);
 		}
 		return NULL;

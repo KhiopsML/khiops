@@ -24,7 +24,6 @@ OK                             // Open
 ClassManagement.ClassName Iris // Analysis dictionary
 TrainDatabase.DatabaseFiles.List.Key Iris          // List item selection
 TrainDatabase.DatabaseFiles.DataTableName iris.txt    // Data table file
-TrainDatabase.FillTestDatabaseSettings   // Fill test database settings
 
 AnalysisSpec.TargetAttributeName Class   // Target variable
 

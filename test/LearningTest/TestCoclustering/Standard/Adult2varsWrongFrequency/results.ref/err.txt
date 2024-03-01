@@ -7,5 +7,5 @@ warning : Database ./OccupationEducationFrequency.txt : Record 7 : Record 6, fre
 warning : Database ./OccupationEducationFrequency.txt : Record 8 : Record 7, frequency variable (frequency) with non integer value (0.6 -> 1)
 warning : Database ./OccupationEducationFrequency.txt : Record 9 : Ignored record 8, frequency variable (frequency) with value too large (1e+10)
 error : Coclustering OccupationEducationFrequency  : Read database interrupted after record 11 because total frequency is too large (4,000,000,002)
-Coclustering analysis time: 0:00:00.01
+Coclustering analysis time: 0:00:00.02
 

@@ -353,10 +353,10 @@ boolean CCDeploymentSpec::CheckAttributeConsistencyWithPostProcessedSpec(const K
 	// Verification de l'attribut de frequence
 	if (bOk)
 	{
-		if (postProcessingSpec->GetFrequencyAttribute() != "")
+		if (postProcessingSpec->GetFrequencyAttributeName() != "")
 		{
 			kwaFrequencyAttribute =
-			    kwcDistributionClass->LookupAttribute(postProcessingSpec->GetFrequencyAttribute());
+			    kwcDistributionClass->LookupAttribute(postProcessingSpec->GetFrequencyAttributeName());
 			if (kwaFrequencyAttribute == NULL or kwaFrequencyAttribute->GetType() != KWType::Continuous)
 				bOk = false;
 		}

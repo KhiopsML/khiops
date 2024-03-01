@@ -234,9 +234,9 @@ void KWDerivationRule::BuildAllUsedOperands(NumericKeyDictionary* nkdAllUsedOper
 		operand = GetOperandAt(nOperand);
 
 		// Ajout de l'operande si non deja traite
-		if (nkdAllUsedOperands->Lookup((NUMERIC)operand) == NULL)
+		if (nkdAllUsedOperands->Lookup(operand) == NULL)
 		{
-			nkdAllUsedOperands->SetAt((NUMERIC)operand, operand);
+			nkdAllUsedOperands->SetAt(operand, operand);
 
 			// Recherche recursive si presence effective d'une regle
 			if (operand->GetOrigin() == KWDerivationRuleOperand::OriginRule and
@@ -312,10 +312,10 @@ void KWDerivationRule::BuildAllUsedAttributes(const KWAttribute* derivedAttribut
 				if (originAttribute != NULL)
 				{
 					// Analyse de l'attribut si necessaire
-					if (nkdAllUsedAttributes->Lookup((NUMERIC)originAttribute) == NULL)
+					if (nkdAllUsedAttributes->Lookup(originAttribute) == NULL)
 					{
 						// Memorisation de l'attribut dans le dictionnaire
-						nkdAllUsedAttributes->SetAt((NUMERIC)originAttribute, originAttribute);
+						nkdAllUsedAttributes->SetAt(originAttribute, originAttribute);
 
 						// Acces a la regle d'attribut ou de bloc
 						originRule = originAttribute->GetAnyDerivationRule();
@@ -362,11 +362,10 @@ void KWDerivationRule::BuildAllUsedAttributes(const KWAttribute* derivedAttribut
 
 						// Identification de l'attribut utilise dans le bloc en operande
 						if (originAttribute != NULL and
-						    nkdAllUsedAttributes->Lookup((NUMERIC)originAttribute) == NULL)
+						    nkdAllUsedAttributes->Lookup(originAttribute) == NULL)
 						{
 							// Memorisation de l'attribut dans le dictionnaire
-							nkdAllUsedAttributes->SetAt((NUMERIC)originAttribute,
-										    originAttribute);
+							nkdAllUsedAttributes->SetAt(originAttribute, originAttribute);
 
 							// Acces a la regle d'attribut ou de bloc
 							if (originAttributeBlock->GetDerivationRule() != NULL)
@@ -897,7 +896,7 @@ boolean KWDerivationRule::CheckBlockAttributesAt(const KWClass* kwcOwnerClass, c
 				else
 				{
 					nVarKey = originAttributeBlock->GetContinuousVarKey(originAttribute);
-					nkdOriginAttributesByVarKeys.SetAt((NUMERIC)(longint)nVarKey, originAttribute);
+					nkdOriginAttributesByVarKeys.SetAt(nVarKey, originAttribute);
 				}
 
 				// Arret si derniere variable du bloc trouvee
@@ -925,8 +924,7 @@ boolean KWDerivationRule::CheckBlockAttributesAt(const KWClass* kwcOwnerClass, c
 				{
 					nVarKey = attributeBlock->GetContinuousVarKey(checkedAttribute);
 					originAttribute =
-					    cast(KWAttribute*,
-						 nkdOriginAttributesByVarKeys.Lookup((NUMERIC)(longint)nVarKey));
+					    cast(KWAttribute*, nkdOriginAttributesByVarKeys.Lookup(nVarKey));
 				}
 
 				// Erreur si attribut non trouve
@@ -1033,7 +1031,7 @@ boolean KWDerivationRule::ContainsCycle(NumericKeyDictionary* nkdGreyAttributes,
 				if (calledAttributeBlock == NULL)
 				{
 					// L'attribut est marque en Grey: presence d'une cycle
-					if (nkdGreyAttributes->Lookup((NUMERIC)calledAttribute) != NULL)
+					if (nkdGreyAttributes->Lookup(calledAttribute) != NULL)
 					{
 						calledAttribute->GetParentClass()->AddError(
 						    "Existing derivation cycle caused by the recursive use of "
@@ -1042,7 +1040,7 @@ boolean KWDerivationRule::ContainsCycle(NumericKeyDictionary* nkdGreyAttributes,
 						bContainsCycle = true;
 					}
 					// Attribut non marque: il faut continuer l'analyse
-					else if (nkdBlackAttributes->Lookup((NUMERIC)calledAttribute) == NULL)
+					else if (nkdBlackAttributes->Lookup(calledAttribute) == NULL)
 						bContainsCycle = calledAttribute->ContainsCycle(nkdGreyAttributes,
 												nkdBlackAttributes);
 				}
@@ -1050,7 +1048,7 @@ boolean KWDerivationRule::ContainsCycle(NumericKeyDictionary* nkdGreyAttributes,
 				else
 				{
 					// Le bloc est marque en Grey: presence d'une cycle
-					if (nkdGreyAttributes->Lookup((NUMERIC)calledAttributeBlock) != NULL)
+					if (nkdGreyAttributes->Lookup(calledAttributeBlock) != NULL)
 					{
 						calledAttribute->GetParentClass()->AddError(
 						    "Existing derivation cycle caused by the recursive use of "
@@ -1059,7 +1057,7 @@ boolean KWDerivationRule::ContainsCycle(NumericKeyDictionary* nkdGreyAttributes,
 						bContainsCycle = true;
 					}
 					// Bloc non marque: il faut continuer l'analyse
-					else if (nkdBlackAttributes->Lookup((NUMERIC)calledAttributeBlock) == NULL)
+					else if (nkdBlackAttributes->Lookup(calledAttributeBlock) == NULL)
 						bContainsCycle = calledAttributeBlock->ContainsCycle(
 						    nkdGreyAttributes, nkdBlackAttributes);
 				}
@@ -1071,7 +1069,7 @@ boolean KWDerivationRule::ContainsCycle(NumericKeyDictionary* nkdGreyAttributes,
 				if (calledAttributeBlock != NULL)
 				{
 					// Le bloc est marque en Grey: presence d'une cycle
-					if (nkdGreyAttributes->Lookup((NUMERIC)calledAttributeBlock) != NULL)
+					if (nkdGreyAttributes->Lookup(calledAttributeBlock) != NULL)
 					{
 						calledAttributeBlock->GetParentClass()->AddError(
 						    "Existing derivation cycle caused by the recursive use of sparse "
@@ -1080,7 +1078,7 @@ boolean KWDerivationRule::ContainsCycle(NumericKeyDictionary* nkdGreyAttributes,
 						bContainsCycle = true;
 					}
 					// Bloc non marque: il faut continuer l'analyse
-					else if (nkdBlackAttributes->Lookup((NUMERIC)calledAttributeBlock) == NULL)
+					else if (nkdBlackAttributes->Lookup(calledAttributeBlock) == NULL)
 						bContainsCycle = calledAttributeBlock->ContainsCycle(
 						    nkdGreyAttributes, nkdBlackAttributes);
 				}

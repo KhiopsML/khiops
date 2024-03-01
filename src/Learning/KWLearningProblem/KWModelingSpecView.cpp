@@ -12,6 +12,10 @@ KWModelingSpecView::KWModelingSpecView()
 	// Ajout de sous-fiches
 	AddCardField("ConstructionSpec", "Feature engineering", new KWAttributeConstructionSpecView);
 	AddCardField("AdvancedSpec", "Advanced predictor parameters", new KWModelingAdvancedSpecView);
+	AddCardField("ExpertSpec", "Expert predictor parameters", new KWModelingExpertSpecView);
+
+	// Fonctionnalites avancees, disponible uniquement en mode expert
+	GetFieldAt("ExpertSpec")->SetVisible(GetLearningExpertMode());
 
 	// Passage en ergonomie onglets
 	SetStyle("TabbedPanes");
@@ -19,34 +23,7 @@ KWModelingSpecView::KWModelingSpecView()
 	// Short cuts
 	GetFieldAt("ConstructionSpec")->SetShortCut('F');
 	GetFieldAt("AdvancedSpec")->SetShortCut('V');
-
-#ifdef DEPRECATED_V10
-	{
-		// DEPRECATED V10: champs obsolete dans cette fiche, conserves de facon cachee en V10 pour compatibilite
-		// ascendante des scenarios Champs a supprimer a terme de cette vue, et les deux  champs sont a
-		// supprimer de KWModelingSpec.dd pour la generation de code
-		AddBooleanField("BaselinePredictor", "Baseline predictor", false);
-		AddIntField("UnivariatePredictorNumber", "Number of univariate predictors", 0);
-		//
-		GetFieldAt("BaselinePredictor")->SetStyle("CheckBox");
-		GetFieldAt("UnivariatePredictorNumber")->SetStyle("Spinner");
-		//
-		cast(UIIntElement*, GetFieldAt("UnivariatePredictorNumber"))->SetMinValue(0);
-		cast(UIIntElement*, GetFieldAt("UnivariatePredictorNumber"))->SetMaxValue(100000);
-		//
-		GetFieldAt("BaselinePredictor")
-		    ->SetHelpText("Build a base line predictor"
-				  "\n The baseline classifier predicts the train majority class."
-				  "\n The baseline regressor predicts the train mean of the target variable.");
-		GetFieldAt("UnivariatePredictorNumber")
-		    ->SetHelpText("Number of univariate predictors to build."
-				  "\n The univariate predictors are chosen according to their predictive importance,"
-				  "\n which is assessed during the analysis of the train database.");
-		//
-		GetFieldAt("BaselinePredictor")->SetVisible(false);
-		GetFieldAt("UnivariatePredictorNumber")->SetVisible(false);
-	}
-#endif // DEPRECATED_V10
+	GetFieldAt("ExpertSpec")->SetShortCut('X');
 }
 
 KWModelingSpecView::~KWModelingSpecView() {}
@@ -64,18 +41,6 @@ void KWModelingSpecView::EventUpdate(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(KWModelingSpec*, object);
-
-#ifdef DEPRECATED_V10
-	{
-		// DEPRECATED V10: champs obsolete dans cette fiche, conserves de facon cachee en V10 pour compatibilite
-		// ascendante des scenarios Mise a jour que pour la version obsolete de l'ongelt
-		if (GetObjectLabel().Find("deprecated") >= 0)
-		{
-			editedObject->SetBaselinePredictor(GetBooleanValueAt("BaselinePredictor"));
-			editedObject->SetUnivariatePredictorNumber(GetIntValueAt("UnivariatePredictorNumber"));
-		}
-	}
-#endif // DEPRECATED_V10
 }
 
 void KWModelingSpecView::EventRefresh(Object* object)
@@ -85,18 +50,6 @@ void KWModelingSpecView::EventRefresh(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(KWModelingSpec*, object);
-
-#ifdef DEPRECATED_V10
-	{
-		// DEPRECATED V10: champs obsolete dans cette fiche, conserves de facon cachee en V10 pour compatibilite
-		// ascendante des scenarios Mise a jour que pour la version obsolete de l'ongelt
-		if (GetObjectLabel().Find("deprecated") >= 0)
-		{
-			SetBooleanValueAt("BaselinePredictor", editedObject->GetBaselinePredictor());
-			SetIntValueAt("UnivariatePredictorNumber", editedObject->GetUnivariatePredictorNumber());
-		}
-	}
-#endif // DEPRECATED_V10
 }
 
 const ALString KWModelingSpecView::GetClassLabel() const
@@ -117,6 +70,7 @@ void KWModelingSpecView::SetObject(Object* object)
 	cast(KWAttributeConstructionSpecView*, GetFieldAt("ConstructionSpec"))
 	    ->SetObject(modelingSpec->GetAttributeConstructionSpec());
 	cast(KWModelingAdvancedSpecView*, GetFieldAt("AdvancedSpec"))->SetObject(modelingSpec);
+	cast(KWModelingExpertSpecView*, GetFieldAt("ExpertSpec"))->SetObject(modelingSpec);
 
 	// Memorisation de l'objet pour la fiche courante
 	UIObjectView::SetObject(object);

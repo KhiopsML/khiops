@@ -11,10 +11,8 @@ void KWDRRegisterAllRules()
 	KWDRRegisterStandardRules();
 	KWDRRegisterMathRules();
 	KWDRRegisterStringRules();
-	if (GetLearningTextVariableMode())
-		KWDRRegisterTextRules();
-	if (GetLearningTextVariableMode())
-		KWDRRegisterTextListRules();
+	KWDRRegisterTextRules();
+	KWDRRegisterTextListRules();
 	KWDRRegisterCompareRules();
 	KWDRRegisterLogicalRules();
 	KWDRRegisterDateTimeRules();

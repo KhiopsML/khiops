@@ -4,19 +4,11 @@
 
 #pragma once
 
-////////////////////////////////////////////////////////////
-// File generated with Genere tool
-// Insert your specific code inside "//## " sections
-
 #include "Object.h"
-
-// ## Custom includes
 
 #include "KWClassSpec.h"
 #include "KWClassDomain.h"
 #include "PLRemoteFileService.h"
-
-// ##
 
 ////////////////////////////////////////////////////////////
 // Classe KWClassManagement
@@ -28,10 +20,6 @@ public:
 	KWClassManagement();
 	~KWClassManagement();
 
-	// Copie et duplication
-	void CopyFrom(const KWClassManagement* aSource);
-	KWClassManagement* Clone() const;
-
 	///////////////////////////////////////////////////////////
 	// Acces aux attributs
 
@@ -42,18 +30,6 @@ public:
 	// Dictionary file
 	const ALString& GetClassFileName() const;
 	void SetClassFileName(const ALString& sValue);
-
-	///////////////////////////////////////////////////////////
-	// Divers
-
-	// Ecriture
-	void Write(ostream& ost) const override;
-
-	// Libelles utilisateur
-	const ALString GetClassLabel() const override;
-	const ALString GetObjectLabel() const override;
-
-	// ## Custom declarations
 
 	// Acces aux specs des classes
 	ObjectArray* GetClassSpecs();
@@ -85,7 +61,15 @@ public:
 	//  La classe racine s'il n'y en a qu'une
 	const ALString SearchDefaultClassName() const;
 
-	// ##
+	///////////////////////////////////////////////////////////
+	// Divers
+
+	// Ecriture
+	void Write(ostream& ost) const override;
+
+	// Libelles utilisateur
+	const ALString GetClassLabel() const override;
+	const ALString GetObjectLabel() const override;
 
 	////////////////////////////////////////////////////////
 	///// Implementation
@@ -94,37 +78,6 @@ protected:
 	ALString sClassName;
 	ALString sClassFileName;
 
-	// ## Custom implementation
-
 	// Specs des classes
 	ObjectArray oaClassSpecs;
-
-	// ##
 };
-
-////////////////////////////////////////////////////////////
-// Implementations inline
-
-inline const ALString& KWClassManagement::GetClassName() const
-{
-	return sClassName;
-}
-
-inline void KWClassManagement::SetClassName(const ALString& sValue)
-{
-	sClassName = sValue;
-}
-
-inline const ALString& KWClassManagement::GetClassFileName() const
-{
-	return sClassFileName;
-}
-
-inline void KWClassManagement::SetClassFileName(const ALString& sValue)
-{
-	sClassFileName = sValue;
-}
-
-// ## Custom inlines
-
-// ##

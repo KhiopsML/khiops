@@ -45,6 +45,9 @@ public:
 
 	// ## Custom declarations
 
+	// Redefinition de l'action d'inspectioin d'un item
+	void ActionInspectItem() override;
+
 	// ##
 
 	////////////////////////////////////////////////////////

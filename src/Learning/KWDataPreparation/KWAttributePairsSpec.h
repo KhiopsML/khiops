@@ -32,12 +32,6 @@ public:
 	boolean GetAllAttributePairs() const;
 	void SetAllAttributePairs(boolean bValue);
 
-#ifdef DEPRECATED_V10
-	// Only pairs with variable (deprecated)
-	const ALString& GetMandatoryAttributeInPairs() const;
-	void SetMandatoryAttributeInPairs(const ALString& sValue);
-#endif // DEPRECATED_V10
-
 	////////////////////////////////////////////////////////////////////////
 	// Specification des paires d'attributs specifiques
 	//
@@ -133,10 +127,6 @@ protected:
 	// Attributs de la classe
 	int nMaxAttributePairNumber;
 	boolean bAllAttributePairs;
-
-#ifdef DEPRECATED_V10
-	ALString sMandatoryAttributeInPairs;
-#endif // DEPRECATED_V10
 
 	// Tableau des paires
 	ObjectArray oaSpecificAttributePairs;

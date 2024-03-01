@@ -462,7 +462,7 @@ boolean KWValueBlock::ReadCKey(const char* sInputField, int& nCurrentOffset, ALS
 	require(nCurrentOffset >= 0);
 
 	// On tente de lire une cle
-	bOk = ReadSymbolValue(sInputField, nCurrentOffset, sKey, nFieldError);
+	bOk = ReadStringValue(sInputField, nCurrentOffset, sKey, nFieldError);
 	if (bOk and sKey.GetLength() == 0)
 	{
 		bOk = false;
@@ -593,6 +593,20 @@ boolean KWValueBlock::ReadContinuousValue(const char* sInputField, int& nCurrent
 
 boolean KWValueBlock::ReadSymbolValue(const char* sInputField, int& nCurrentOffset, ALString& sValue, int& nFieldError)
 {
+	boolean bOk;
+
+	bOk = ReadStringValue(sInputField, nCurrentOffset, sValue, nFieldError);
+	if (bOk)
+	{
+		// On supprime les blancs en debut et fin
+		sValue.TrimLeft();
+		sValue.TrimRight();
+	}
+	return bOk;
+}
+
+boolean KWValueBlock::ReadStringValue(const char* sInputField, int& nCurrentOffset, ALString& sValue, int& nFieldError)
+{
 	char c;
 
 	require(sInputField != NULL);
@@ -627,12 +641,7 @@ boolean KWValueBlock::ReadSymbolValue(const char* sInputField, int& nCurrentOffs
 					sValue += '\'';
 				// Test de fin de champ sinon
 				else if (c == ' ' or c == ':' or c == '\0')
-				{
-					// On supprime les blancs en debut et fin
-					sValue.TrimLeft();
-					sValue.TrimRight();
 					return true;
-				}
 				// Erreur sinon
 				else
 				{

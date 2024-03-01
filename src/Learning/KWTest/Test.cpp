@@ -131,7 +131,12 @@ void Test(int argc, char** argv)
 	// KWSymbolValueBlock::Test();
 	// KWObjectArrayValueBlock::Test();
 	// KWCDUniqueString::Test();
-	SNBIndexVector::Test();
+	// SNBIndexVector::Test();
+	// KWTextService::Test();
+	// KWTextNgramTokenizer::Test();
+	// KWTextWordTokenizer::Test();
+	// KWTextTokenizer::Test();
+	KWResultFilePathBuilder::Test();
 }
 
 void KWTestAllComponents(boolean bLong)
@@ -260,7 +265,7 @@ int main(int argc, char** argv)
 	boolean bBigBatch;
 
 	// Parametrage de l'utilisation de MPI
-	UseMPI();
+	//DDD UseMPI();
 
 	// Initialisation de l'environnement
 	learningProject.Begin();

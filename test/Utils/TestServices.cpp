@@ -184,7 +184,6 @@ boolean TestAndCompareResults(const char* sTestPath, const char* test_suite, con
 	ALString sFileName;
 	FILE* stream;
 	int fdInit;
-	int fd;
 
 	// Nommmage du ficher de sortie d'apres test suit et test name de googleTest
 	sFileName = sTmp + test_suite + "_" + test_name + ".txt";

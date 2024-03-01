@@ -19,6 +19,8 @@ KWDataGridOptimizerParametersView::KWDataGridOptimizerParametersView()
 	AddBooleanField("PreOptimize", "Pre-optimize each solution", false);
 	AddBooleanField("Optimize", "Optimize each solution", false);
 	AddBooleanField("PostOptimize", "Post-optimize each solution", false);
+	AddBooleanField("VarPartPostMerge", "VarPart post-merge each solution", false);
+	AddBooleanField("VarPartPostOptimize", "VarPart post-optimize each solution", false);
 	AddStringField("InternalParameter", "Internal parameter", "");
 	AddBooleanField("DisplayDetails", "Display details", false);
 
@@ -30,6 +32,8 @@ KWDataGridOptimizerParametersView::KWDataGridOptimizerParametersView()
 	GetFieldAt("PreOptimize")->SetStyle("CheckBox");
 	GetFieldAt("Optimize")->SetStyle("CheckBox");
 	GetFieldAt("PostOptimize")->SetStyle("CheckBox");
+	GetFieldAt("VarPartPostMerge")->SetStyle("CheckBox");
+	GetFieldAt("VarPartPostOptimize")->SetStyle("CheckBox");
 	GetFieldAt("DisplayDetails")->SetStyle("CheckBox");
 
 	// ## Custom constructor
@@ -43,6 +47,12 @@ KWDataGridOptimizerParametersView::KWDataGridOptimizerParametersView()
 
 	// Parametre interne non accessible depuis l'interface, meme en mode expert
 	GetFieldAt("InternalParameter")->SetVisible(false);
+
+	// CH IV Begin
+	// Parametres de coclustering instances x variables en mode expert
+	GetFieldAt("VarPartPostMerge")->SetVisible(GetLearningCoclusteringIVExpertMode());
+	GetFieldAt("VarPartPostOptimize")->SetVisible(GetLearningCoclusteringIVExpertMode());
+	// CH IV End
 
 	// ##
 }
@@ -74,6 +84,8 @@ void KWDataGridOptimizerParametersView::EventUpdate(Object* object)
 	editedObject->SetPreOptimize(GetBooleanValueAt("PreOptimize"));
 	editedObject->SetOptimize(GetBooleanValueAt("Optimize"));
 	editedObject->SetPostOptimize(GetBooleanValueAt("PostOptimize"));
+	editedObject->SetVarPartPostMerge(GetBooleanValueAt("VarPartPostMerge"));
+	editedObject->SetVarPartPostOptimize(GetBooleanValueAt("VarPartPostOptimize"));
 	editedObject->SetInternalParameter(GetStringValueAt("InternalParameter"));
 	editedObject->SetDisplayDetails(GetBooleanValueAt("DisplayDetails"));
 
@@ -96,6 +108,8 @@ void KWDataGridOptimizerParametersView::EventRefresh(Object* object)
 	SetBooleanValueAt("PreOptimize", editedObject->GetPreOptimize());
 	SetBooleanValueAt("Optimize", editedObject->GetOptimize());
 	SetBooleanValueAt("PostOptimize", editedObject->GetPostOptimize());
+	SetBooleanValueAt("VarPartPostMerge", editedObject->GetVarPartPostMerge());
+	SetBooleanValueAt("VarPartPostOptimize", editedObject->GetVarPartPostOptimize());
 	SetStringValueAt("InternalParameter", editedObject->GetInternalParameter());
 	SetBooleanValueAt("DisplayDetails", editedObject->GetDisplayDetails());
 

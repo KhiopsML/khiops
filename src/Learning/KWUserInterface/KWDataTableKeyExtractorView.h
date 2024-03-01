@@ -10,7 +10,6 @@
 #include "KWMTDatabaseTextFile.h"
 #include "KWSTDatabaseTextFileView.h"
 #include "KWClassDomain.h"
-#include "LMLicenseManager.h"
 #include "KWFileKeyExtractorTask.h"
 #include "KWMTClassBuilderView.h"
 

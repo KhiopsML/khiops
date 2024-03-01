@@ -17,8 +17,6 @@ import javax.swing.text.PlainDocument;
 
 /**
  * Definit une comboBox avec auto completion
- *
- * @author Marc Boulle
  */
 public class GUIComboBoxAutoComplete extends JComboBox implements JComboBox.KeySelectionManager
 {

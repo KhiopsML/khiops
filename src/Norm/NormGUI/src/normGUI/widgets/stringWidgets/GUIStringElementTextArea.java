@@ -20,8 +20,6 @@ import normGUI.engine.GUIStringElement;
  * d'une chaine de caracteres dans une zone de texte multiligne. La zone de
  * texte multiligne est disposee dans un JScrollPane. Utilisation de JTextArea,
  * JScrollPane.
- *
- * @author Marc Boulle
  */
 public class GUIStringElementTextArea extends GUIStringElement
 {

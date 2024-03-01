@@ -109,7 +109,7 @@ public:
 	KWDataPreparationAttribute();
 	~KWDataPreparationAttribute();
 
-	// Index d'acces dans le container GetDataPreparationAttributes de KWDataPreparationBase
+	// Index d'acces a l'attribut
 	void SetIndex(int nValue);
 	int GetIndex() const;
 

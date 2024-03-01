@@ -46,6 +46,7 @@ public:
 	// Rapport
 	const ALString& GetReportFileName() const;
 	void SetReportFileName(const ALString& sValue);
+
 	///////////////////////////////////////////////////////////
 	// Divers
 
@@ -74,7 +75,7 @@ public:
 	// ##
 
 	////////////////////////////////////////////////////////
-	//// Implementation
+	///// Implementation
 protected:
 	// Attributs de la classe
 	ALString sFirstName;

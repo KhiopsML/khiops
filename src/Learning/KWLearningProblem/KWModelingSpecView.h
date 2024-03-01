@@ -8,6 +8,7 @@
 #include "KWModelingSpec.h"
 #include "KWAttributeConstructionSpecView.h"
 #include "KWModelingAdvancedSpecView.h"
+#include "KWModelingExpertSpecView.h"
 
 ////////////////////////////////////////////////////////////
 // Classe KWModelingSpecView

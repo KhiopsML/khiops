@@ -98,7 +98,7 @@ Symbol KWDRFormatContinuous::ComputeSymbolResult(const KWObject* kwoObject) cons
 			nLength--;
 		if (cValue < 0)
 			nLength++;
-		sprintf(sBuffer, "%0*.*f", nLength, nPrecision, (double)cValue);
+		snprintf(sBuffer, sizeof(sBuffer), "%0*.*f", nLength, nPrecision, (double)cValue);
 		return (Symbol)sBuffer;
 	}
 }

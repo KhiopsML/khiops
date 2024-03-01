@@ -7,12 +7,14 @@
 #include "UserInterface.h"
 #include "KWPredictorSpec.h"
 #include "KWPredictorView.h"
-#include "KWPreprocessingSpecView.h"
 #include "KWAttributeConstructionSpecView.h"
+#include "KDConstructionDomainView.h"
+#include "KDTextFeatureSpecView.h"
+#include "KWAttributePairsSpecView.h"
+#include "KDDataPreparationAttributeCreationTaskView.h"
+#include "KWPreprocessingSpecView.h"
 #include "KWPredictorUnivariate.h"
 #include "KWPredictorNaiveBayes.h"
-#include "KWPredictorSelectiveNaiveBayes.h"
-#include "KWPredictorSelectiveNaiveBayesView.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 // Classe generique portant sur la vue des specifications
@@ -46,6 +48,18 @@ public:
 	// est administre dans les classes KWPredictor et KWPredictorView
 	void SetStaticPredictorView(boolean bValue);
 	boolean GetStaticPredictorView() const;
+
+	// Inspection des parametres de construction de variable
+	void InspectConstructionDomain();
+
+	// Inspection des parametres de construction de variables de type texte
+	void InspectTextFeaturesParameters();
+
+	// Inspection des parametres de construction des arbres
+	void InspectAttributeCreationParameters();
+
+	// Inspection des parametres d'analyse des paires de variables
+	void InspectAttributePairsParameters();
 
 	// Parametrage des specifications
 	// Lors du premier parametrage, l'interface est choisi en fonction

@@ -15,7 +15,7 @@
 
 // ## Custom includes
 
-#include "KWPredictorSelectiveNaiveBayesView.h"
+#include "SNBPredictorSelectiveNaiveBayesView.h"
 
 // ##
 

@@ -18,9 +18,11 @@ class KWDataGridUnivariateCosts;
 class KWDataGridCostParameter;
 class KWDGAttributeCostParameter;
 class KWDGPartCostParameter;
-class KWDGValueSetCostParameter;
+class KWDGSymbolValueSetCostParameter;
+class KWDGVarPartSetCostParameter;
 class KWDGCellCostParameter;
 class KWDGPOCellFrequencyVector;
+class CCVarPartDataGridPostOptimizer;
 
 //////////////////////////////////////////////////////////////////////////////////
 // Classe KWDataGridPostOptimizer
@@ -424,7 +426,7 @@ class KWDataGridCostParameter : public KWDataGrid
 {
 protected:
 	friend class KWDataGridUnivariateCosts;
-	boolean GetEmulated() const;
+	boolean GetEmulated() const override;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -438,12 +440,12 @@ class KWDGAttributeCostParameter : public KWDGAttribute
 	// Redefinition pour acces direct au nombre de modalites du groupe poubelle sans passer
 	// par la garbagePart non accessible en mode "emule"
 	void SetGarbageModalityNumber(int nValue);
-	int GetGarbageModalityNumber() const;
+	int GetGarbageModalityNumber() const override;
 
 protected:
-	KWDGPart* NewPart() const;
+	KWDGPart* NewPart() const override;
 	friend class KWDataGridUnivariateCosts;
-	boolean GetEmulated() const;
+	boolean GetEmulated() const override;
 	int nGarbageModalityNumber;
 };
 
@@ -453,17 +455,24 @@ class KWDGPartCostParameter : public KWDGPart
 {
 protected:
 	friend class KWDataGridUnivariateCosts;
-	void SetPartType(int nValue);
-	boolean GetEmulated() const;
+	void SetPartType(int nValue) override;
+	boolean GetEmulated() const override;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////
-// Sous-classes de ValueSet de grille servant de parametre de cout
-class KWDGValueSetCostParameter : public KWDGValueSet
+// Sous-classes de SymbolValueSet de grille servant de parametre de cout
+class KWDGSymbolValueSetCostParameter : public KWDGSymbolValueSet
 {
 protected:
-	friend class KWDataGridUnivariateCosts;
-	boolean GetEmulated() const;
+	boolean GetEmulated() const override;
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////
+// Sous-classes de VarPartSet de grille servant de parametre de cout
+class KWDGVarPartSetCostParameter : public KWDGVarPartSet
+{
+protected:
+	boolean GetEmulated() const override;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -472,7 +481,7 @@ class KWDGCellCostParameter : public KWDGCell
 {
 protected:
 	friend class KWDataGridUnivariateCosts;
-	boolean GetEmulated() const;
+	boolean GetEmulated() const override;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -663,3 +672,87 @@ protected:
 	// Object identifiant la cellule
 	const Object* oHashObject;
 };
+
+// CH IV Begin
+// CH IV Refactoring: renommages internes apres analyse
+//////////////////////////////////////////////////////////////////////////////////
+// Classe CCVarPartDataGridPostOptimizer
+// Post-optimisation de l'attribut VarPart d'une grille de donnees de type VarPart [[[parametree par une structure de
+// cout ]]] L'attribut Identifier est fige durant toute cette post-optimisation La post-optimisation procede par des
+// deplacements de PV elementaires d'une grille de reference vers des clusters permettant une fusion de cette PV avec
+// d'autres PV presentes
+class CCVarPartDataGridPostOptimizer : public Object
+{
+public:
+	// Constructeur
+	CCVarPartDataGridPostOptimizer();
+	~CCVarPartDataGridPostOptimizer();
+
+	// Nom de l'attribut de type VarPart post-optimise
+	void SetPostOptimizationAttributeName(const ALString& sValue);
+	const ALString& GetPostOptimizationAttributeName() const;
+
+	// PostOptimise les attributs internes numeriques et categoriels
+	// En entree:
+	//  - referenceDataGrid contient la grille de reference avec des clusters contenant une seule PV
+	//    a partir des PV de la grille optimisee
+	// En sortie:
+	//	- optimizedDataGrid : grille dont on post-optimise les parties de variable
+	//	- ivGroups : vecteur d'index qui indique pour chaque PV l'index du cluster de PV
+	//    auquel elle appartient, mis a jour au cours de cette post-optimisation
+	// Renvoie true s'il existe au moins une amelioration
+	// La variation de cout se calcule en partant de la meme grille de reference pour tous les deplacements
+	boolean PostOptimizeLightVarPartDataGrid(const KWDataGrid* referenceDataGrid, KWDataGrid* optimizedDataGrid,
+						 IntVector* ivGroups) const;
+
+	/////////////////////////////////////////////////////////////////
+	//// Implementation
+protected:
+	// Methodes dediees de calcul de variation de cout par attribut, par cluster ...
+
+	// Variation de cout lors du deplacement d'un intervalle entier d'un attribut interne numerique vers un cluster
+	// qui permet au moins une fusion d'intervalles En entree :
+	// - l'attribut VarPart
+	// - la variation du nombre de clusters : 1 si le depart de l'intervalle vide completement son cluster de
+	// depart, 0 sinon
+	// - la variation du nombre de parties de variable : 1 si l'intervalle fusionne avec un intervalle de son
+	// cluster d'arrivee, 2 s'il fusionne avec deux intervalles de son cluster d'arrivee
+	double ComputeVarPartsContinuousAttributeVariationCost(KWDGAttribute* attribute, int nClusterNumberVariation,
+							       int nVarPartsNumberVariation,
+							       ALString sInnerAttributeName) const;
+
+	double ComputeVarPartsSymbolAttributeVariationCost(KWDGAttribute* attribute, int nClusterNumberVariation,
+							   int nVarPartsNumberVariation, ALString sInnerAttributeName,
+							   KWDGPart* varPartIn, KWDGPart* varPartOut,
+							   KWDGPart* innerPart) const;
+
+	// Variation de cout d'un cluster lors du depart ou de l'arrivee d'une partie de variable
+	// En entree :
+	// nObservationNumberVariation : variation de l'effectif du cluster i.e. effectif de la partie de variable qui
+	// quitte/arrive dans le cluster (part) L'effectif est positif si le cluster accueille une nouvelle partie de
+	// variable, negatif si la partie de variable part du cluster nVarPartsNumberVariation : variation du nombre de
+	// parties de variable du cluster
+	//								-1 si la partie de variable quitte le cluster
+	//								0 si la partie de variable arrive dans le
+	// cluster avec une
+	// fusion simple 								-1 si la partie de variable
+	// arrive dans le cluster avec une fusion double
+
+	// Si on prend en entree KWDGPart* de la PV deplacee avec ses cellules, on aura l'effectif total et la liste des
+	// cellules pour calculer la variation de cout du aux cellules A faire par cluster, depart et arrivee ou
+	// globalement ? Tester la grille exportee avec un cluster par PV deplacee En entree cluster de depart ou
+	// d'arrivee bDeparture : la partie de variable part du cluster
+	double ComputeClusterVariationCost(KWDGPart* cluster, int nObservationNumberVariation,
+					   int nVarPartsNumberVariation, boolean bDeparture) const;
+
+	// Variation de cout des cellules d'un cluster suite au depart ou a l'arrivee d'une des PV du cluster
+	// bDeparture : true la PV part du cluster; false la PV arrive dans le cluster
+	double ComputeClusterCellVariationCost(KWDGPart* cluster, KWDGPart* varPart, boolean bDeparture) const;
+
+	// Seuil d'amelioration
+	double dEpsilon;
+
+	// Nom de l'attribut VarPart de post-optimisation
+	ALString sPostOptimizationAttributeName;
+};
+// CH IV Begin

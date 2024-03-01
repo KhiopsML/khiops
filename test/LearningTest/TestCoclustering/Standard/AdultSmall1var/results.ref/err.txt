@@ -1,4 +1,4 @@
 Database ./Adult1000.txt : Read records: 1000
 No informative coclustering found in data
-Coclustering analysis time: 0:00:00.02
+Coclustering analysis time: 0:00:00.05
 

@@ -61,8 +61,11 @@ public:
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Gestion des rapports au format json
 
-	// Suffix des fichiers de rapports au format json: json, ou khcj depuis les rapports au format Khiops V10
+	// Suffix des fichiers de rapports au format json: khcj depuis les rapports au format Khiops V10
 	static const ALString GetJSONReportSuffix();
+
+	// Suffix des fichiers de rapports au format khc DEPRACATED
+	static const ALString GetKhcReportSuffix();
 
 	// Lecture des informations de coclustering a partir d'un fichier de rapport au format json
 	boolean ReadJSONReport(const ALString& sFileName, CCHierarchicalDataGrid* coclusteringDataGrid);
@@ -158,8 +161,14 @@ protected:
 	boolean ReadJSONSummary(CCHierarchicalDataGrid* coclusteringDataGrid);
 	boolean ReadJSONDimensionSummaries(CCHierarchicalDataGrid* coclusteringDataGrid);
 	boolean ReadJSONDimensionPartitions(CCHierarchicalDataGrid* coclusteringDataGrid);
-	boolean ReadJSONInterval(CCHDGAttribute* dgAttribute, KWDGPart* dgPart);
-	boolean ReadJSONValueGroups(CCHDGAttribute* dgAttribute, KWDGPart* dgPart);
+	boolean ReadJSONInnerAttributesDimensionSummaries(KWDGAttribute* dgAttribute);
+	boolean ReadJSONAttributePartition(KWDGAttribute* attribute, CCHierarchicalDataGrid* coclusteringDataGrid);
+	boolean ReadJSONInterval(KWDGAttribute* dgAttribute, KWDGPart* dgPart);
+	boolean ReadJSONValueGroup(KWDGAttribute* dgAttribute, KWDGPart* dgPart);
+	boolean ReadJSONVarPartAttributeValueGroup(KWDGAttribute* varPartAttribute, KWDGPart* dgPart,
+						   const ObjectDictionary* odInnerAttributesAllVarParts,
+						   ObjectDictionary* odVarPartAttributeAllVarParts);
+	boolean ReadJSONTypicalities(KWDGAttribute* dgAttribute, int nValueNumber, DoubleVector* dvValueTypicalities);
 	boolean ReadJSONDimensionHierarchies(CCHierarchicalDataGrid* coclusteringDataGrid);
 	boolean ReadJSONCells(CCHierarchicalDataGrid* coclusteringDataGrid);
 
@@ -167,7 +176,10 @@ protected:
 	void InternalWriteJSONReport(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
 	void WriteJSONSummary(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
 	void WriteJSONDimensionSummaries(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
+	void WriteJSONDimensionSummary(CCHDGAttribute* attribute, JSONFile* fJSON);
 	void WriteJSONDimensionPartitions(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
+	void WriteJSONAttributePartition(KWDGAttribute* attribute, JSONFile* fJSON);
+	void WriteJSONInnerAttributes(const KWDGInnerAttributes* innerAttributes, JSONFile* fJSON);
 	void WriteJSONDimensionHierarchies(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
 	void WriteJSONCells(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
 
@@ -207,7 +219,4 @@ protected:
 	static const ALString sKeyWordAnnotation;
 	static const ALString sKeyWordTrue;
 	static const ALString sKeyWordFalse;
-
-	// Classe declaree temporairement en amie
-	friend class CCLearningProblemPostOptimizationView;
 };

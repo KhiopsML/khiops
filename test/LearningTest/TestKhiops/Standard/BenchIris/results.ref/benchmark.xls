@@ -1,4 +1,4 @@
-#Khiops 10.1
+#Khiops 10.4.6i
 Predictor evaluation report
 
 
@@ -13,11 +13,11 @@ Database	Dictionary	Class	Variables	Cont. var.	Cat. var.	Instances	Values	Maj. a
 
 
 
-Predictor	Label	Constr. vars	Tree vars	Var pairs	Grouped target	Discretization	Min freq.	Max nb	Param. D.	Value grouping	Min freq.	Max nb	Param. G.	DG algorithm	Level	Univariate initialization	Pre-optimize	Optimize	Post-optimize	
-Selective Naive Bayes	SNB	0	0	0	false	MODL	0	0	0	MODL	0	0	0	VNS	4	1	1	1	1	
-Naive Bayes	NB	0	0	0	false	MODL	0	0	0	MODL	0	0	0	VNS	4	1	1	1	1	
-Data Grid	DG	0	0	0	false	MODL	0	0	0	MODL	0	0	0	VNS	4	1	1	1	1	
-Univariate	BU	0	0	0	false	MODL	0	0	0	MODL	0	0	0	VNS	4	1	1	1	1	
+Predictor	Label	Constr. vars	Text vars	Tree vars	Var pairs	Grouped target	Max parts	Min freq	Discretization	Param. D.	Value grouping	Param. G.	DG algorithm	Level	Univariate initialization	Pre-optimize	Optimize	Post-optimize	
+Selective Naive Bayes	SNB	0	0	0	0	false	0	0	MODL	0	MODL	0	VNS	4	1	1	1	1	
+Naive Bayes	NB	0	0	0	0	false	0	0	MODL	0	MODL	0	VNS	4	1	1	1	1	
+Data Grid	DG	0	0	0	0	false	0	0	MODL	0	MODL	0	VNS	4	1	1	1	1	
+Univariate	BU	0	0	0	0	false	0	0	MODL	0	MODL	0	VNS	4	1	1	1	1	
 
 
 Train acc	SNB	NB	DG	BU
@@ -117,16 +117,16 @@ SignificantTests	 0/1/0	 1/0/0	 0/0/1	 0/0/1
 Rank	3	4	2	1
 
 Total Time	SNB	NB	DG	BU
-Mean	0.0317	0.0215	0.0584	0.0212
-GeometricMean	0.0298481	0.0214942	0.0583663	0.0211963
-SignificantTests	 0/1/0	 0/1/0	 1/0/0	 0/0/1
-Rank	3	2	4	1
+Mean	0.0285	0.0188	0.0487	0.0191
+GeometricMean	0.0269697	0.0187957	0.0486658	0.0190549
+SignificantTests	 0/1/0	 0/0/1	 1/0/0	 0/0/1
+Rank	3	1	4	2
 
 Pre Time	SNB	NB	DG	BU
-Mean	0.027	0.0213	0.0216	0.0211
-GeometricMean	0.0249806	0.0212951	0.0215899	0.0210979
+Mean	0.0239	0.0188	0.0184	0.0191
+GeometricMean	0.0222341	0.0187957	0.0183884	0.0190549
 SignificantTests	 0/1/0	 0/1/0	 0/1/0	 0/1/0
-Rank	4	2	3	1
+Rank	4	2	1	3
 
 
 Experiment details
@@ -214,12 +214,12 @@ Iris	2	0	0	4	0	1	1.3	0.458258	-1	1	0	-1
 Total Time
 Dataset	SNB			NB			DG			BU		
 	Mean	StandardDeviation	SignificantTests	Mean	StandardDeviation	SignificantTests	Mean	StandardDeviation	SignificantTests	Mean	StandardDeviation	SignificantTests
-Iris	0.0317	0.0141283	0	0.0215	0.0005	0	0.0584	0.00200998	1	0.0212	0.0004	-1
+Iris	0.0285	0.0119436	0	0.0188	0.0004	-1	0.0487	0.00184662	1	0.0191	0.00137477	-1
 
 Pre Time
 Dataset	SNB			NB			DG			BU		
 	Mean	StandardDeviation	SignificantTests	Mean	StandardDeviation	SignificantTests	Mean	StandardDeviation	SignificantTests	Mean	StandardDeviation	SignificantTests
-Iris	0.027	0.0140285	0	0.0213	0.000458258	0	0.0216	0.000663325	0	0.0211	0.0003	0
+Iris	0.0239	0.0117852	0	0.0188	0.0004	0	0.0184	0.000663325	0	0.0191	0.00137477	0
 
 
 Run details
@@ -434,26 +434,26 @@ Iris	10	2	4	1	1
 
 Total Time
 Dataset	Run	SNB	NB	DG	BU
-Iris	1	0.074	0.021	0.057	0.022
-Iris	2	0.026	0.022	0.056	0.021
-Iris	3	0.026	0.022	0.061	0.021
-Iris	4	0.027	0.021	0.057	0.021
-Iris	5	0.027	0.022	0.058	0.021
-Iris	6	0.027	0.022	0.058	0.021
-Iris	7	0.029	0.022	0.063	0.022
-Iris	8	0.028	0.021	0.058	0.021
-Iris	9	0.027	0.021	0.059	0.021
-Iris	10	0.026	0.021	0.057	0.021
+Iris	1	0.064	0.019	0.047	0.018
+Iris	2	0.024	0.019	0.047	0.019
+Iris	3	0.025	0.019	0.052	0.023
+Iris	4	0.029	0.019	0.048	0.018
+Iris	5	0.023	0.019	0.048	0.019
+Iris	6	0.025	0.019	0.047	0.019
+Iris	7	0.024	0.018	0.052	0.019
+Iris	8	0.024	0.019	0.048	0.019
+Iris	9	0.024	0.019	0.05	0.019
+Iris	10	0.023	0.018	0.048	0.018
 
 Pre Time
 Dataset	Run	SNB	NB	DG	BU
-Iris	1	0.069	0.021	0.022	0.021
-Iris	2	0.022	0.021	0.021	0.021
-Iris	3	0.022	0.022	0.021	0.021
-Iris	4	0.022	0.021	0.021	0.021
-Iris	5	0.022	0.021	0.022	0.021
-Iris	6	0.022	0.022	0.022	0.021
-Iris	7	0.024	0.022	0.023	0.022
-Iris	8	0.024	0.021	0.022	0.021
-Iris	9	0.022	0.021	0.021	0.021
-Iris	10	0.021	0.021	0.021	0.021
+Iris	1	0.059	0.019	0.018	0.018
+Iris	2	0.02	0.019	0.018	0.019
+Iris	3	0.02	0.019	0.02	0.023
+Iris	4	0.024	0.019	0.018	0.018
+Iris	5	0.019	0.019	0.018	0.019
+Iris	6	0.02	0.019	0.019	0.019
+Iris	7	0.019	0.018	0.019	0.019
+Iris	8	0.02	0.019	0.018	0.019
+Iris	9	0.019	0.019	0.018	0.019
+Iris	10	0.019	0.018	0.018	0.018

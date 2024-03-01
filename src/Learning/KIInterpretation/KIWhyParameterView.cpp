@@ -2,19 +2,6 @@
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
-/*
- * #%L
- * Software Name: Khiops Interpretation
- * Version : 9.0
- * %%
- * Copyright (C) 2019 Orange
- * This software is the confidential and proprietary information of Orange.
- * You shall not disclose such confidential information and shall use it only
- * in accordance with the terms of the license agreement you entered into
- * with Orange.
- * #L%
- */
-
 #include "KIWhyParameterView.h"
 
 KIWhyParameterView::KIWhyParameterView()
@@ -50,7 +37,7 @@ KIWhyParameterView::KIWhyParameterView()
 		"Normalized odds ratio\nWeight of evidence\nInformation difference\nDifference of probabilities\n") +
 	    ALString("Log minimum of variable probabilities difference\nMinimum of variable probabilities "
 		     "difference\nModality probability\n") +
-	    ALString("Log modality probability\nBayes distance\nBayes distance without prior\nKullback"));
+	    ALString("Log modality probability\nBayes distance\nBayes distance without prior\nKullback\nShapley"));
 
 	// Parametrage des styles;
 	GetFieldAt("WhyNumber")->SetStyle("Spinner");
@@ -59,7 +46,6 @@ KIWhyParameterView::KIWhyParameterView()
 	cast(UIIntElement*, GetFieldAt("VarMax"))->SetMinValue(0);
 	cast(UIIntElement*, GetFieldAt("WhyNumber"))->SetMinValue(0);
 
-	GetFieldAt("SortWhy")->SetVisible(GetLearningExpertMode());
 	GetFieldAt("ExpertMode")->SetVisible(GetLearningExpertMode());
 	GetFieldAt("WhyType")->SetVisible(GetLearningExpertMode());
 }

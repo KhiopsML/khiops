@@ -1704,16 +1704,15 @@ boolean KDClassSymbolSelectionOperandStats::Check() const
 				selectionValue = cast(KDSelectionValue*, oaParts->GetAt(j));
 
 				// Verification de l'unicite globale des valeurs
-				bOk = bOk and nkdSelectionValues.Lookup(
-						  (NUMERIC)selectionValue->GetValue().GetNumericKey()) == NULL;
+				bOk = bOk and
+				      nkdSelectionValues.Lookup(selectionValue->GetValue().GetNumericKey()) == NULL;
 
 				// Arret si erreur
 				if (not bOk)
 					break;
 
 				// Enregistrement de la valeur
-				nkdSelectionValues.SetAt((NUMERIC)selectionValue->GetValue().GetNumericKey(),
-							 selectionValue);
+				nkdSelectionValues.SetAt(selectionValue->GetValue().GetNumericKey(), selectionValue);
 			}
 		}
 	}

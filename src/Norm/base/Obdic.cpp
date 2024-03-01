@@ -4,17 +4,6 @@
 
 #include "Object.h"
 
-void ObjectDictionary::FreeAssoc(ODAssoc* pAssoc)
-{
-	DeleteCharArray(pAssoc->key);
-	pAssoc->key = NULL;
-
-	pAssoc->pNext = pFreeList;
-	pFreeList = pAssoc;
-	nCount--;
-	assert(nCount >= 0);
-}
-
 // Tableau des tailles d'allocations des dictionnaires
 static const int nDictionaryPrimeSizes[] = {17,       37,       79,        163,       331,       673,       1361,
 					    2729,     5471,     10949,     21911,     43853,     87719,     175447,
@@ -63,194 +52,410 @@ void CPlex::FreeDataChain(CPlex* pToDelete)
 /////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////
 
-ObjectDictionary::ObjectDictionary()
+GenericDictionary::GenericDictionary()
 {
 	assert(nBlockSize > 0);
 
 	nCount = 0;
 	pFreeList = NULL;
 	pBlocks = NULL;
+
+	// Par defaut: cle chaine de caractere et valeur de type Object*
+	bIsStringKey = true;
+	bIsObjectValue = true;
 }
 
-void ObjectDictionary::InitHashTable(int nHashSize)
+void GenericDictionary::RemoveAll()
 {
-	assert(nCount == 0);
-	assert(nHashSize > 0);
-
-	pvODAssocs.SetSize(nHashSize);
-}
-
-void ObjectDictionary::ReinitHashTable(int nNewHashSize)
-{
-	PointerVector pvNewODAssocs;
-	int i;
 	int nHash;
-	ODAssoc* pAssoc;
-	ODAssoc* pAssocNext;
+	GDAssoc* pAssoc;
 
-	// Creation d'une nouvelle table de hashage
-	pvNewODAssocs.SetSize(nNewHashSize);
-
-	// Recalcul des caracteristiques des elements par rapport a la nouvelle taille de la table de hashage
-	for (i = 0; i < pvODAssocs.GetSize(); i++)
+	// Nettoyage des cles de la table de hashage
+	if (bIsStringKey)
 	{
-		for (pAssoc = (ODAssoc*)pvODAssocs.GetAt(i); pAssoc != NULL;)
+		for (nHash = 0; nHash < pvGDAssocs.GetSize(); nHash++)
 		{
+			for (pAssoc = (GDAssoc*)pvGDAssocs.GetAt(nHash); pAssoc != NULL; pAssoc = pAssoc->pNext)
+			{
+				assert(pAssoc->key.genericKey != 0);
+				DeleteCharArray(pAssoc->key.sKey);
+				pAssoc->key.genericKey = 0;
+			}
+		}
+	}
+
+	// Reinitialisation des variables
+	pvGDAssocs.SetSize(0);
+	nCount = 0;
+	pFreeList = NULL;
+	CPlex::FreeDataChain(pBlocks);
+	pBlocks = NULL;
+}
+
+void GenericDictionary::DeleteAll()
+{
+	int nHash;
+	GDAssoc* pAssoc;
+	POSITION current;
+	GenericKey genericKey;
+	GenericValue genericValue;
+
+	// Destruction des cles et des valeurs de la table de hashage dans le
+	if (bIsStringKey)
+	{
+		for (nHash = 0; nHash < pvGDAssocs.GetSize(); nHash++)
+		{
+			for (pAssoc = (GDAssoc*)pvGDAssocs.GetAt(nHash); pAssoc != NULL; pAssoc = pAssoc->pNext)
+			{
+				DeleteCharArray(pAssoc->key.sKey);
+				pAssoc->key.genericKey = 0;
+				if (bIsObjectValue)
+				{
+					if (pAssoc->value.oValue != NULL)
+						delete pAssoc->value.oValue;
+				}
+			}
+		}
+	}
+	// Destuction si necessaire des valeurs dans le cas de cles numeriques
+	else if (bIsObjectValue)
+	{
+		assert(not bIsStringKey);
+		current = GenericGetStartPosition();
+		while (current != NULL)
+		{
+			GenericGetNextAssoc(current, genericKey, genericValue);
+			if (genericValue.oValue != NULL) // Destruction de l'element contenu
+				delete genericValue.oValue;
+		}
+	}
+
+	// Reinitialisation des variables
+	pvGDAssocs.SetSize(0);
+	nCount = 0;
+	pFreeList = NULL;
+	CPlex::FreeDataChain(pBlocks);
+	pBlocks = NULL;
+}
+
+int GenericDictionary::RemoveAllNullValues()
+{
+	int nRemovedKeyNumber = 0;
+	int i;
+	GDAssoc* pAssocPrev;
+	GDAssoc* pAssoc;
+	GDAssoc* pAssocNext;
+
+	require(not bIsObjectValue);
+
+	// Parcours de toute la table de hashage
+	nRemovedKeyNumber = GetCount();
+	for (i = 0; i < pvGDAssocs.GetSize(); i++)
+	{
+		// Parcours de la liste chainee
+		pAssocPrev = NULL;
+		for (pAssoc = (GDAssoc*)pvGDAssocs.GetAt(i); pAssoc != NULL;)
+		{
+			assert(pAssoc == (GDAssoc*)pvGDAssocs.GetAt(i) or pAssocPrev != NULL);
+			assert(pAssocPrev == NULL or pAssocPrev->pNext == pAssoc);
+
 			// Sauvegarde du suivant
 			pAssocNext = pAssoc->pNext;
 
-			// Reconversion de pAssoc, vers la nouvelle table de hashage
-			nHash = HashKey(pAssoc->key) % nNewHashSize;
-			pAssoc->nHashValue = nHash;
-			pAssoc->pNext = (ODAssoc*)pvNewODAssocs.GetAt(nHash);
-			pvNewODAssocs.SetAt(nHash, pAssoc);
+			// Supression si la valeur est nulle
+			if (pAssoc->value.lValue == 0)
+			{
+				// Supression de l'element, soit du tableau, soit supprimant son chainage
+				if (pAssocPrev == NULL)
+				{
+					assert(pAssoc == (GDAssoc*)pvGDAssocs.GetAt(i));
+					pvGDAssocs.SetAt(i, pAssocNext);
+				}
+				else
+				{
+					assert(pAssoc != (GDAssoc*)pvGDAssocs.GetAt(i));
+					pAssocPrev->pNext = pAssoc->pNext;
+				}
+				FreeAssoc(pAssoc);
+			}
+			// Passage au prev suivant
+			else
+				pAssocPrev = pAssoc;
 
 			// Passage au suivant
 			pAssoc = pAssocNext;
 		}
 	}
 
-	// Echange du contenu entre l'ancienne et la nouvelle table de hashage
-	// Le contenu de la nouvelle table de hashage courante est transferer dans la table courante
-	// Le contenu de l'ancienne table de hashage, transfere dans la variable locale pvNewODAssocs, est detruit
-	pvODAssocs.SwapFrom(&pvNewODAssocs);
+	// Calcul par difference du nombre de cke supprimmees
+	nRemovedKeyNumber -= GetCount();
+
+	// Retaillage dynamique
+	if (GetCount() > 20 and GetCount() < GetHashTableSize() / 8)
+		ReinitHashTable(DictionaryGetNextTableSize(GetCount() * 2));
+	return nRemovedKeyNumber;
 }
 
-void ObjectDictionary::RemoveAll()
+void GenericDictionary::ExportObjectArray(ObjectArray* oaResult) const
 {
-	int nHash;
-	ODAssoc* pAssoc;
+	POSITION current;
+	GenericKey genericKey;
+	GenericValue genericValue;
+	int nIndex;
 
-	// Nettoyage des cles de la table de hashage
-	for (nHash = 0; nHash < pvODAssocs.GetSize(); nHash++)
+	require(bIsObjectValue);
+	require(oaResult != NULL);
+
+	// Initialisation du resultat
+	oaResult->SetSize(GetCount());
+
+	// Parcours du dictionnaire
+	current = GenericGetStartPosition();
+	nIndex = 0;
+	while (current != NULL)
 	{
-		for (pAssoc = (ODAssoc*)pvODAssocs.GetAt(nHash); pAssoc != NULL; pAssoc = pAssoc->pNext)
+		GenericGetNextAssoc(current, genericKey, genericValue);
+		oaResult->SetAt(nIndex, genericValue.oValue);
+		nIndex++;
+	}
+	ensure(oaResult->GetSize() == GetCount());
+}
+
+void GenericDictionary::ExportObjectList(ObjectList* olResult) const
+{
+	POSITION current;
+	GenericKey genericKey;
+	GenericValue genericValue;
+
+	require(bIsObjectValue);
+	require(olResult != NULL);
+
+	// Initialisation du resultat
+	olResult->RemoveAll();
+
+	// Parcours du dictionnaire
+	current = GenericGetStartPosition();
+	while (current != NULL)
+	{
+		GenericGetNextAssoc(current, genericKey, genericValue);
+		olResult->AddTail(genericValue.oValue);
+	}
+	ensure(olResult->GetCount() == GetCount());
+}
+
+void GenericDictionary::UpgradeAll(longint liDeltaValue)
+{
+	int i;
+	GDAssoc* pAssoc;
+
+	require(not bIsObjectValue);
+
+	// Parcours de toute la table de hashage
+	for (i = 0; i < pvGDAssocs.GetSize(); i++)
+	{
+		// Parcours de la liste chainee
+		for (pAssoc = (GDAssoc*)pvGDAssocs.GetAt(i); pAssoc != NULL; pAssoc = pAssoc->pNext)
+			pAssoc->value.lValue += liDeltaValue;
+	}
+}
+
+void GenericDictionary::BoundedUpgradeAll(longint liDeltaValue, longint lLowerBound, longint lUpperBound)
+{
+	int i;
+	GDAssoc* pAssoc;
+	longint lNewValue;
+
+	require(not bIsObjectValue);
+	require(lLowerBound <= lUpperBound);
+
+	// Parcours de toute la table de hashage
+	for (i = 0; i < pvGDAssocs.GetSize(); i++)
+	{
+		// Parcours de la liste chainee
+		for (pAssoc = (GDAssoc*)pvGDAssocs.GetAt(i); pAssoc != NULL; pAssoc = pAssoc->pNext)
 		{
-			assert(pAssoc->key != NULL);
-			DeleteCharArray(pAssoc->key);
-			pAssoc->key = NULL;
+			lNewValue = pAssoc->value.lValue + liDeltaValue;
+			lNewValue = max(lNewValue, lLowerBound);
+			lNewValue = min(lNewValue, lUpperBound);
+			pAssoc->value.lValue = lNewValue;
 		}
 	}
-
-	// Reinitialisation des variables
-	pvODAssocs.SetSize(0);
-	nCount = 0;
-	pFreeList = NULL;
-	CPlex::FreeDataChain(pBlocks);
-	pBlocks = NULL;
 }
 
-void ObjectDictionary::DeleteAll()
+longint GenericDictionary::ComputeMinValue() const
 {
-	int nHash;
-	ODAssoc* pAssoc;
+	longint lMinValue;
+	int i;
+	GDAssoc* pAssoc;
 
-	// Destruction des elements de la table de hashage
-	for (nHash = 0; nHash < pvODAssocs.GetSize(); nHash++)
+	require(not bIsObjectValue);
+
+	// Parcours de toute la table de hashage
+	if (pvGDAssocs.GetSize() > 0)
 	{
-		for (pAssoc = (ODAssoc*)pvODAssocs.GetAt(nHash); pAssoc != NULL; pAssoc = pAssoc->pNext)
+		lMinValue = LLONG_MAX;
+		for (i = 0; i < pvGDAssocs.GetSize(); i++)
 		{
-			DeleteCharArray(pAssoc->key);
-			pAssoc->key = NULL;
-			if (pAssoc->value != NULL)
-				delete pAssoc->value;
+			// Parcours de la liste chainee
+			for (pAssoc = (GDAssoc*)pvGDAssocs.GetAt(i); pAssoc != NULL; pAssoc = pAssoc->pNext)
+				lMinValue = min(lMinValue, pAssoc->value.lValue);
 		}
 	}
-
-	// Reinitialisation des variables
-	pvODAssocs.SetSize(0);
-	nCount = 0;
-	pFreeList = NULL;
-	CPlex::FreeDataChain(pBlocks);
-	pBlocks = NULL;
+	else
+		lMinValue = 0;
+	return lMinValue;
 }
 
-ObjectDictionary::~ObjectDictionary()
+longint GenericDictionary::ComputeMaxValue() const
 {
-	RemoveAll();
-	assert(nCount == 0);
+	longint lMaxValue;
+	int i;
+	GDAssoc* pAssoc;
+
+	require(not bIsObjectValue);
+
+	// Parcours de toute la table de hashage
+	if (pvGDAssocs.GetSize() > 0)
+	{
+		lMaxValue = LLONG_MIN;
+		for (i = 0; i < pvGDAssocs.GetSize(); i++)
+		{
+			// Parcours de la liste chainee
+			for (pAssoc = (GDAssoc*)pvGDAssocs.GetAt(i); pAssoc != NULL; pAssoc = pAssoc->pNext)
+				lMaxValue += max(lMaxValue, pAssoc->value.lValue);
+		}
+	}
+	else
+		lMaxValue = 0;
+	return lMaxValue;
+}
+
+longint GenericDictionary::ComputeTotalValue() const
+{
+	longint lTotalValue;
+	int i;
+	GDAssoc* pAssoc;
+
+	require(not bIsObjectValue);
+
+	// Parcours de toute la table de hashage
+	lTotalValue = 0;
+	for (i = 0; i < pvGDAssocs.GetSize(); i++)
+	{
+		// Parcours de la liste chainee
+		for (pAssoc = (GDAssoc*)pvGDAssocs.GetAt(i); pAssoc != NULL; pAssoc = pAssoc->pNext)
+			lTotalValue += pAssoc->value.lValue;
+	}
+	return lTotalValue;
+}
+
+void GenericDictionary::Write(ostream& ost) const
+{
+	POSITION current;
+	GenericKey genericKey;
+	GenericValue genericValue;
+	const int nMax = 10;
+	int n;
+
+	ost << GetClassLabel() << " [" << GetCount() << "]\n";
+	current = GenericGetStartPosition();
+	n = 0;
+	while (current != NULL)
+	{
+		n++;
+		GenericGetNextAssoc(current, genericKey, genericValue);
+
+		// Affichage de la cle selon son type
+		if (bIsStringKey)
+			ost << "\t" << genericKey.sKey << ":";
+		else
+			ost << "\t" << genericKey.genericKey << ":";
+
+		// Affichage de la valeur selon son type
+		if (bIsObjectValue)
+		{
+			if (genericValue.oValue == NULL)
+				ost << "\tnull\n";
+			else
+				ost << "\t" << *genericValue.oValue << "\n";
+		}
+		else
+			ost << "\t" << genericValue.genericValue << "\n";
+
+		// Gestion du nombre limite de valeurs a afficher
+		if (n >= nMax)
+		{
+			ost << "\t...\n";
+			break;
+		}
+	}
+}
+
+longint GenericDictionary::GetUsedMemory() const
+{
+	longint lUsedMemory;
+	POSITION position;
+	GenericKey genericKey;
+	GenericValue genericValue;
+
+	lUsedMemory = sizeof(GenericDictionary) + pvGDAssocs.GetUsedMemory() + nCount * sizeof(GDAssoc) +
+		      (nCount * sizeof(CPlex)) / nBlockSize;
+
+	// Prise en compte des tailles des cles
+	position = GenericGetStartPosition();
+	while (position != NULL)
+	{
+		GenericGetNextAssoc(position, genericKey, genericValue);
+		if (bIsStringKey)
+			lUsedMemory += strlen(genericKey.sKey);
+	}
+	return lUsedMemory;
+}
+
+longint GenericDictionary::GetOverallUsedMemory() const
+{
+	longint lUsedMemory;
+	POSITION position;
+	GenericKey genericKey;
+	GenericValue genericValue;
+
+	lUsedMemory = sizeof(GenericDictionary) + pvGDAssocs.GetUsedMemory() + nCount * sizeof(GDAssoc) +
+		      (nCount * sizeof(CPlex)) / nBlockSize;
+
+	// Prise en compte des tailles des cles et des objets
+	position = GenericGetStartPosition();
+	while (position != NULL)
+	{
+		GenericGetNextAssoc(position, genericKey, genericValue);
+		if (bIsStringKey)
+			lUsedMemory += strlen(genericKey.sKey);
+		if (bIsObjectValue)
+		{
+			if (genericValue.oValue != NULL)
+				lUsedMemory += genericValue.oValue->GetUsedMemory();
+		}
+	}
+	return lUsedMemory;
+}
+
+longint GenericDictionary::GetUsedMemoryPerElement() const
+{
+	return sizeof(void*) + sizeof(GDAssoc);
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// Gestion des associations
-// Comme pour l'implementation des ObjectList, sauf que l'on gere
-// ici une liste simplement chainee
 
-UINT ObjectDictionary::HashKey(const char* key) const
-{
-	return HashValue(key);
-}
-
-ODAssoc* ObjectDictionary::GetAssocAt(const char* key, UINT& nHash) const
-{
-	ODAssoc* pAssoc;
-
-	require(key != NULL);
-
-	// Cas particulier d'un dictionnaire vide
-	if (pvODAssocs.GetSize() == 0)
-	{
-		assert(nCount == 0);
-
-		// Calcul de sa cle par rapport a la premiere taille de dictionnaire
-		nHash = HashKey(key) % DictionaryGetNextTableSize(1);
-		return NULL;
-	}
-
-	// Calcul de la cle par rapport a la taille courante de la table de hashage
-	nHash = HashKey(key) % pvODAssocs.GetSize();
-
-	// Recherche si elle existe
-	for (pAssoc = (ODAssoc*)pvODAssocs.GetAt(nHash); pAssoc != NULL; pAssoc = pAssoc->pNext)
-	{
-		assert(pAssoc->key != NULL);
-		if (strcmp(pAssoc->key, key) == 0)
-			return pAssoc;
-	}
-	return NULL;
-}
-
-ODAssoc* ObjectDictionary::NewAssoc()
-{
-	if (pFreeList == NULL)
-	{
-		// Ajout d'un nouveau bloc
-		CPlex* newBlock = CPlex::Create(pBlocks, nBlockSize, sizeof(ODAssoc));
-		// Chainage dans la liste des bloc libres
-		ODAssoc* pAssoc = (ODAssoc*)newBlock->data();
-		// Chainage en ordre inverse pour faciliter le debuggage
-		pAssoc += nBlockSize - 1;
-		for (int i = nBlockSize - 1; i >= 0; i--, pAssoc--)
-		{
-			pAssoc->pNext = pFreeList;
-			pFreeList = pAssoc;
-		}
-	}
-	assert(pFreeList != NULL);
-
-	ODAssoc* pAssoc = pFreeList;
-	pFreeList = pFreeList->pNext;
-	nCount++;
-	assert(nCount > 0);
-	pAssoc->key = NULL;
-	pAssoc->value = NULL;
-
-	return pAssoc;
-}
-
-/////////////////////////////////////////////////////////////////////////////
-
-Object*& ObjectDictionary::operator[](const char* key)
+GDAssoc* GenericDictionary::GenericGetAssocAt(GenericKey genericKey)
 {
 	UINT nHash;
-	ODAssoc* pAssoc;
+	GDAssoc* pAssoc;
 	int nLength;
 
-	require(key != NULL);
+	require(genericKey.genericKey != 0 or not bIsStringKey);
 
-	if ((pAssoc = GetAssocAt(key, nHash)) == NULL)
+	if ((pAssoc = GetAssocAt(genericKey, nHash)) == NULL)
 	{
-		if (pvODAssocs.GetSize() == 0)
+		if (pvGDAssocs.GetSize() == 0)
 		{
 			assert(nCount == 0);
 			InitHashTable(DictionaryGetNextTableSize(1));
@@ -259,60 +464,74 @@ Object*& ObjectDictionary::operator[](const char* key)
 		// Cree une nouvelle Association
 		pAssoc = NewAssoc();
 		pAssoc->nHashValue = nHash;
-		if (pAssoc->key != NULL)
-			DeleteCharArray(pAssoc->key);
-		assert(strlen(key) <= INT_MAX);
-		nLength = (int)strlen(key);
-		pAssoc->key = NewCharArray(nLength + 1);
-		pAssoc->key[nLength] = '\0';
-		memcpy(pAssoc->key, key, nLength);
+		if (bIsStringKey)
+		{
+			if (pAssoc->key.sKey != NULL)
+				DeleteCharArray(pAssoc->key.sKey);
+			assert(strlen(genericKey.sKey) <= INT_MAX);
+			nLength = (int)strlen(genericKey.sKey);
+			pAssoc->key.sKey = NewCharArray(nLength + 1);
+			pAssoc->key.sKey[nLength] = '\0';
+			memcpy(pAssoc->key.sKey, genericKey.sKey, nLength);
+		}
+		else
+			pAssoc->key = genericKey;
 
 		// Ajout dans la table de hashage
-		pAssoc->pNext = (ODAssoc*)pvODAssocs.GetAt(nHash);
-		pvODAssocs.SetAt(nHash, pAssoc);
+		pAssoc->pNext = (GDAssoc*)pvGDAssocs.GetAt(nHash);
+		pvGDAssocs.SetAt(nHash, pAssoc);
 
 		// Retaillage dynamique
 		if (GetCount() > GetHashTableSize() / 2 and GetHashTableSize() < INT_MAX)
 			ReinitHashTable(DictionaryGetNextTableSize(2 * min(GetHashTableSize(), INT_MAX / 2)));
 	}
-	return pAssoc->value;
+	return pAssoc;
 }
 
-boolean ObjectDictionary::RemoveKey(const char* key)
+boolean GenericDictionary::GenericRemoveKey(GenericKey genericKey)
 {
-	ODAssoc* pHeadAssoc;
-	ODAssoc* pAssocPrev;
-	ODAssoc* pAssoc;
+	GDAssoc* pHeadAssoc;
+	GDAssoc* pAssocPrev;
+	GDAssoc* pAssoc;
 	int nHash;
+	boolean bKeyFound;
 
-	require(key != NULL);
+	require(genericKey.genericKey != 0 or not bIsStringKey);
 
 	// Cas d'une table vide: rien a faire
-	if (pvODAssocs.GetSize() == 0)
+	if (pvGDAssocs.GetSize() == 0)
 		return false;
 
 	// Recherche du premier element de la table de hashage correspondant a la cle
-	nHash = HashKey(key) % pvODAssocs.GetSize();
-	pHeadAssoc = (ODAssoc*)pvODAssocs.GetAt(nHash);
+	nHash = HashKey(genericKey) % pvGDAssocs.GetSize();
+	pHeadAssoc = (GDAssoc*)pvGDAssocs.GetAt(nHash);
 
 	// Parcours de la liste chainee des elements pour supprimer l'element correspondant exactement a la cle
 	pAssocPrev = NULL;
 	for (pAssoc = pHeadAssoc; pAssoc != NULL; pAssoc = pAssoc->pNext)
 	{
+		// Test si cle trouve selon le type de cle
+		if (bIsStringKey)
+		{
+			assert(genericKey.genericKey != 0);
+			bKeyFound = strcmp(pAssoc->key.sKey, genericKey.sKey) == 0;
+		}
+		else
+			bKeyFound = pAssoc->key.genericKey == genericKey.genericKey;
+
 		// Supression si on a trouve la cle
-		if (strcmp(pAssoc->key, key) == 0)
+		if (bKeyFound)
 		{
 			assert(pAssoc == pHeadAssoc or pAssocPrev != NULL);
 			// Supression de l'element, soit du tableau, soit supprimant son chainage
 			if (pAssoc == pHeadAssoc)
-				pvODAssocs.SetAt(nHash, pAssoc->pNext); // remove from list
+				pvGDAssocs.SetAt(nHash, pAssoc->pNext);
 			else
 				pAssocPrev->pNext = pAssoc->pNext;
 			FreeAssoc(pAssoc);
 
 			// Retaillage dynamique
-			assert(GetHashTableSize() < INT_MAX / 4);
-			if (GetCount() < GetHashTableSize() / 8)
+			if (GetCount() > 20 and GetCount() < GetHashTableSize() / 8)
 				ReinitHashTable(DictionaryGetNextTableSize(GetCount() * 2));
 
 			return true;
@@ -324,23 +543,24 @@ boolean ObjectDictionary::RemoveKey(const char* key)
 	return false;
 }
 
-void ObjectDictionary::GetNextAssoc(POSITION& rNextPosition, ALString& rKey, Object*& rValue) const
+void GenericDictionary::GenericGetNextAssoc(POSITION& rNextPosition, GenericKey& genericKey,
+					    GenericValue& genericValue) const
 {
-	ODAssoc* pAssocRet;
+	GDAssoc* pAssocRet;
 	int nBucket;
-	ODAssoc* pAssocNext;
+	GDAssoc* pAssocNext;
 
-	require(pvODAssocs.GetSize() != 0);
+	require(pvGDAssocs.GetSize() != 0);
 	require(rNextPosition != NULL);
 
-	pAssocRet = (ODAssoc*)rNextPosition;
+	pAssocRet = (GDAssoc*)rNextPosition;
 	assert(pAssocRet != NULL);
 
-	if (pAssocRet == (ODAssoc*)BEFORE_START_POSITION)
+	if (pAssocRet == (GDAssoc*)BEFORE_START_POSITION)
 	{
 		// Recherche de la premiere association
-		for (nBucket = 0; nBucket < pvODAssocs.GetSize(); nBucket++)
-			if ((pAssocRet = (ODAssoc*)pvODAssocs.GetAt(nBucket)) != NULL)
+		for (nBucket = 0; nBucket < pvGDAssocs.GetSize(); nBucket++)
+			if ((pAssocRet = (GDAssoc*)pvGDAssocs.GetAt(nBucket)) != NULL)
 				break;
 		assert(pAssocRet != NULL);
 	}
@@ -349,180 +569,175 @@ void ObjectDictionary::GetNextAssoc(POSITION& rNextPosition, ALString& rKey, Obj
 	if ((pAssocNext = pAssocRet->pNext) == NULL)
 	{
 		// Passage au prochain bucket
-		for (nBucket = pAssocRet->nHashValue + 1; nBucket < pvODAssocs.GetSize(); nBucket++)
-			if ((pAssocNext = (ODAssoc*)pvODAssocs.GetAt(nBucket)) != NULL)
+		for (nBucket = pAssocRet->nHashValue + 1; nBucket < pvGDAssocs.GetSize(); nBucket++)
+			if ((pAssocNext = (GDAssoc*)pvGDAssocs.GetAt(nBucket)) != NULL)
 				break;
 	}
 
 	rNextPosition = (POSITION)pAssocNext;
 
 	// Initialisation des resultats
-	rKey = pAssocRet->key;
-	rValue = pAssocRet->value;
+	genericKey = pAssocRet->key;
+	genericValue = pAssocRet->value;
 }
 
-void ObjectDictionary::CopyFrom(const ObjectDictionary* odSource)
+void GenericDictionary::GenericCopyFrom(const GenericDictionary* gdSource)
 {
 	POSITION current;
-	ALString sKey;
-	Object* oElement;
+	GenericKey genericKey;
+	GenericValue genericValue;
 
-	require(odSource != NULL);
+	require(gdSource != NULL);
 
 	// Cas particulier ou source egale cible
-	if (odSource == this)
+	if (gdSource == this)
 		return;
 
 	// Nettoyage
 	RemoveAll();
 
 	// Recopie du contenu du dictionnaire source
-	current = odSource->GetStartPosition();
+	current = gdSource->GenericGetStartPosition();
 	while (current != NULL)
 	{
-		odSource->GetNextAssoc(current, sKey, oElement);
-		SetAt(sKey, oElement);
+		gdSource->GenericGetNextAssoc(current, genericKey, genericValue);
+		GenericSetAt(genericKey, genericValue);
 	}
 }
 
-ObjectDictionary* ObjectDictionary::Clone(void) const
+void GenericDictionary::ReinitHashTable(int nNewHashSize)
 {
-	ObjectDictionary* clone;
+	PointerVector pvNewGDAssocs;
+	int i;
+	int nHash;
+	GDAssoc* pAssoc;
+	GDAssoc* pAssocNext;
 
-	// Innitialisation du resultat
-	clone = new ObjectDictionary;
+	// Creation d'une nouvelle table de hashage
+	pvNewGDAssocs.SetSize(nNewHashSize);
 
-	// Recopie
-	clone->CopyFrom(this);
-	return clone;
-}
-
-void ObjectDictionary::ExportObjectArray(ObjectArray* oaResult) const
-{
-	POSITION current;
-	ALString sKey;
-	Object* oElement;
-	int nIndex;
-
-	require(oaResult != NULL);
-
-	// Initialisation du resultat
-	oaResult->SetSize(GetCount());
-
-	// Parcours du dictionnaire
-	current = GetStartPosition();
-	nIndex = 0;
-	while (current != NULL)
+	// Recalcul des caracteristiques des elements par rapport a la nouvelle taille de la table de hashage
+	for (i = 0; i < pvGDAssocs.GetSize(); i++)
 	{
-		GetNextAssoc(current, sKey, oElement);
-		oaResult->SetAt(nIndex, oElement);
-		nIndex++;
-	}
-	ensure(oaResult->GetSize() == GetCount());
-}
-
-void ObjectDictionary::ExportObjectList(ObjectList* olResult) const
-{
-	POSITION current;
-	ALString sKey;
-	Object* oElement;
-
-	require(olResult != NULL);
-
-	// Initialisation du resultat
-	olResult->RemoveAll();
-
-	// Parcours du dictionnaire
-	current = GetStartPosition();
-	while (current != NULL)
-	{
-		GetNextAssoc(current, sKey, oElement);
-		olResult->AddTail(oElement);
-	}
-	ensure(olResult->GetCount() == GetCount());
-}
-
-void ObjectDictionary::Write(ostream& ost) const
-{
-	POSITION current;
-	ALString sKey;
-	Object* oElement;
-	const int nMax = 10;
-	int n;
-
-	ost << GetClassLabel() << " [" << GetCount() << "]\n";
-	current = GetStartPosition();
-	n = 0;
-	while (current != NULL)
-	{
-		n++;
-		GetNextAssoc(current, sKey, oElement);
-		ost << "\t" << sKey << ":";
-		if (oElement == NULL)
-			ost << "\tnull\n";
-		else
-			ost << "\t" << *oElement << "\n";
-		if (n >= nMax)
+		for (pAssoc = (GDAssoc*)pvGDAssocs.GetAt(i); pAssoc != NULL;)
 		{
-			ost << "\t...\n";
-			break;
+			// Sauvegarde du suivant
+			pAssocNext = pAssoc->pNext;
+
+			// Reconversion de pAssoc, vers la nouvelle table de hashage
+			nHash = HashKey(pAssoc->key) % nNewHashSize;
+			pAssoc->nHashValue = nHash;
+			pAssoc->pNext = (GDAssoc*)pvNewGDAssocs.GetAt(nHash);
+			pvNewGDAssocs.SetAt(nHash, pAssoc);
+
+			// Passage au suivant
+			pAssoc = pAssocNext;
 		}
 	}
+
+	// Echange du contenu entre l'ancienne et la nouvelle table de hashage
+	// Le contenu de la nouvelle table de hashage courante est transferer dans la table courante
+	// Le contenu de l'ancienne table de hashage, transfere dans la variable locale pvNewGDAssocs, est detruit
+	pvGDAssocs.SwapFrom(&pvNewGDAssocs);
 }
 
-longint ObjectDictionary::GetUsedMemory() const
+GDAssoc* GenericDictionary::NewAssoc()
 {
-	longint lUsedMemory;
-	POSITION position;
-	Object* oValue;
-	ALString sKey;
-
-	lUsedMemory = sizeof(ObjectDictionary) + pvODAssocs.GetUsedMemory() + nCount * sizeof(ODAssoc) +
-		      (nCount * sizeof(CPlex)) / nBlockSize;
-
-	// Prise en compte des tailles des cles
-	position = GetStartPosition();
-	while (position != NULL)
+	if (pFreeList == NULL)
 	{
-		GetNextAssoc(position, sKey, oValue);
-		lUsedMemory += sKey.GetAllocLength();
+		// Ajout d'un nouveau bloc
+		CPlex* newBlock = CPlex::Create(pBlocks, nBlockSize, sizeof(GDAssoc));
+		// Chainage dans la liste des bloc libres
+		GDAssoc* pAssoc = (GDAssoc*)newBlock->data();
+		// Chainage en ordre inverse pour faciliter le debuggage
+		pAssoc += nBlockSize - 1;
+		for (int i = nBlockSize - 1; i >= 0; i--, pAssoc--)
+		{
+			pAssoc->pNext = pFreeList;
+			pFreeList = pAssoc;
+		}
 	}
-	return lUsedMemory;
+	assert(pFreeList != NULL);
+
+	GDAssoc* pAssoc = pFreeList;
+	pFreeList = pFreeList->pNext;
+	nCount++;
+	assert(nCount > 0);
+	pAssoc->key.genericKey = 0;
+	pAssoc->value.genericValue = 0;
+
+	return pAssoc;
 }
 
-longint ObjectDictionary::GetOverallUsedMemory() const
+void GenericDictionary::FreeAssoc(GDAssoc* pAssoc)
 {
-	longint lUsedMemory;
-	POSITION position;
-	Object* oValue;
-	ALString sKey;
+	if (bIsStringKey)
+		DeleteCharArray(pAssoc->key.sKey);
+	pAssoc->key.genericKey = 0;
+	pAssoc->pNext = pFreeList;
+	pFreeList = pAssoc;
+	nCount--;
+	assert(nCount >= 0);
+}
 
-	lUsedMemory = sizeof(ObjectDictionary) + pvODAssocs.GetUsedMemory() + nCount * sizeof(ODAssoc) +
-		      (nCount * sizeof(CPlex)) / nBlockSize;
+GDAssoc* GenericDictionary::GetAssocAt(GenericKey genericKey, UINT& nHash) const
+{
+	GDAssoc* pAssoc;
 
-	// Prise en compte des tailles des cles et des objets
-	position = GetStartPosition();
-	while (position != NULL)
+	require(genericKey.genericKey != 0 or not bIsStringKey);
+
+	// Cas particulier d'un dictionnaire vide
+	if (pvGDAssocs.GetSize() == 0)
 	{
-		GetNextAssoc(position, sKey, oValue);
-		lUsedMemory += sKey.GetAllocLength();
-		if (oValue != NULL)
-			lUsedMemory += oValue->GetUsedMemory();
+		assert(nCount == 0);
+
+		// Calcul de sa cle par rapport a la premiere taille de dictionnaire
+		nHash = HashKey(genericKey) % DictionaryGetNextTableSize(1);
+		return NULL;
 	}
-	return lUsedMemory;
+
+	// Calcul de la cle par rapport a la taille courante de la table de hashage
+	nHash = HashKey(genericKey) % pvGDAssocs.GetSize();
+
+	// Recherche si elle existe
+	for (pAssoc = (GDAssoc*)pvGDAssocs.GetAt(nHash); pAssoc != NULL; pAssoc = pAssoc->pNext)
+	{
+		if (bIsStringKey)
+		{
+			assert(pAssoc->key.genericKey != 0);
+			if (strcmp(pAssoc->key.sKey, genericKey.sKey) == 0)
+				return pAssoc;
+		}
+		else
+		{
+			if (pAssoc->key.genericKey == genericKey.genericKey)
+				return pAssoc;
+		}
+	}
+	return NULL;
 }
 
-longint ObjectDictionary::GetUsedMemoryPerElement() const
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+
+void ObjectDictionary::CopyFrom(const ObjectDictionary* odSource)
 {
-	return sizeof(void*) + sizeof(ODAssoc);
+	GenericCopyFrom(odSource);
+}
+
+ObjectDictionary* ObjectDictionary::Clone() const
+{
+	ObjectDictionary* odClone;
+
+	odClone = new ObjectDictionary;
+	odClone->CopyFrom(this);
+	return odClone;
 }
 
 const ALString ObjectDictionary::GetClassLabel() const
 {
 	return "Dictionary";
 }
-
-/////////////////////////////////////////////////////////////////////////////
 
 void ObjectDictionary::Test()
 {
@@ -632,7 +847,7 @@ void ObjectDictionary::Test()
 
 	/////
 	cout << "Test de performance A\n";
-	nMaxSize = AcquireRangedInt("Nombre maxi d'elements inseres (Random)", 1, 1000000, 50000);
+	nMaxSize = AcquireRangedInt("Nombre maxi d'elements inseres (Random)", 1, 10000000, 100000);
 	nNbIter = AcquireRangedInt("Nombre d'iterations", 1, 1000, 20);
 
 	nStartClock = clock();
@@ -657,7 +872,7 @@ void ObjectDictionary::Test()
 		cout << "\tFound = " << nFound << "\n";
 	}
 	nStopClock = clock();
-	cout << "SYS TIME\tObjectDictionary access\t" << (nStopClock - nStartClock) * 1.0 / CLOCKS_PER_SEC << "\n\n";
+	cout << "SYS TIME\tObjectDictionary access\t" << (nStopClock - nStartClock) * 1.0 / CLOCKS_PER_SEC << "\n";
 	cout << "SYS MEMORY\tUsed memory\t" << odPerf.GetCount() << "\t" << odPerf.GetUsedMemory() << "\t"
 	     << odPerf.GetOverallUsedMemory() << endl;
 
@@ -703,413 +918,30 @@ void ObjectDictionary::Test()
 	assert(nFound == nMaxSize);
 	assert(odPerf.GetCount() == 0);
 	nStopClock = clock();
-	cout << "SYS TIME\tObjectDictionary remove\t" << (nStopClock - nStartClock) * 1.0 / CLOCKS_PER_SEC << "\n\n";
+	cout << "SYS TIME\tObjectDictionary remove\t" << (nStopClock - nStartClock) * 1.0 / CLOCKS_PER_SEC << "\n";
 }
 
 /////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////
 
-NumericKeyDictionary::NumericKeyDictionary()
+void NumericKeyDictionary::CopyFrom(const NumericKeyDictionary* odSource)
 {
-	assert(nBlockSize > 0);
-
-	nCount = 0;
-	pFreeList = NULL;
-	pBlocks = NULL;
+	GenericCopyFrom(odSource);
 }
 
-void NumericKeyDictionary::InitHashTable(int nHashSize)
+NumericKeyDictionary* NumericKeyDictionary::Clone() const
 {
-	assert(nCount == 0);
-	assert(nHashSize > 0);
+	NumericKeyDictionary* odClone;
 
-	pvNKDAssocs.SetSize(nHashSize);
-}
-
-void NumericKeyDictionary::ReinitHashTable(int nNewHashSize)
-{
-	PointerVector pvNewNKDAssocs;
-	int i;
-	int nHash;
-	NKDAssoc* pAssoc;
-	NKDAssoc* pAssocNext;
-
-	// Creation d'une nouvelle table de hashage
-	pvNewNKDAssocs.SetSize(nNewHashSize);
-
-	// Recalcul des carcateristiques des elements par rapport a la nouvelle taille de la table de hashage
-	for (i = 0; i < pvNKDAssocs.GetSize(); i++)
-	{
-		for (pAssoc = (NKDAssoc*)pvNKDAssocs.GetAt(i); pAssoc != NULL;)
-		{
-			// Sauvegarde du suivant
-			pAssocNext = pAssoc->pNext;
-
-			// Reconversion de pAssoc, vers la nouvelle table de hashage
-			nHash = HashKey(pAssoc->key) % nNewHashSize;
-			pAssoc->nHashValue = nHash;
-			pAssoc->pNext = (NKDAssoc*)pvNewNKDAssocs.GetAt(nHash);
-			pvNewNKDAssocs.SetAt(nHash, pAssoc);
-
-			// Passage au suivant
-			pAssoc = pAssocNext;
-		}
-	}
-
-	// Echange du contenu entre l'ancienne et la nouvelle table de hashage
-	// Le contenu de la nouvelle table de hashage courante est transferer dans la table courante
-	// Le contenu de l'ancienne table de hashage, transfere dans la variable locale pvNewNKDAssocs, est detruit
-	pvNKDAssocs.SwapFrom(&pvNewNKDAssocs);
-}
-
-void NumericKeyDictionary::RemoveAll()
-{
-	// Reinitialisation des variables
-	pvNKDAssocs.SetSize(0);
-	nCount = 0;
-	pFreeList = NULL;
-	CPlex::FreeDataChain(pBlocks);
-	pBlocks = NULL;
-}
-
-void NumericKeyDictionary::DeleteAll(void)
-{
-	POSITION current;
-	NUMERIC key;
-	Object* oElement;
-
-	current = GetStartPosition();
-	while (current != NULL)
-	{
-		GetNextAssoc(current, key, oElement);
-		if (oElement != NULL) // Destruction de l'element contenu
-			delete oElement;
-	}
-	RemoveAll();
-}
-
-NumericKeyDictionary::~NumericKeyDictionary()
-{
-	RemoveAll();
-	assert(nCount == 0);
-}
-
-/////////////////////////////////////////////////////////////////////////////
-// Gestion des associations
-// Comme pour l'implementation des ObjectList, sauf que l'on gere
-// ici une liste simplement chainee
-
-NKDAssoc* NumericKeyDictionary::GetAssocAt(NUMERIC key, UINT& nHash) const
-{
-	NKDAssoc* pAssoc;
-
-	// Cas particulier d'un dictionnaire vide
-	if (pvNKDAssocs.GetSize() == 0)
-	{
-		assert(nCount == 0);
-
-		// Calcul de sa cle par rapport a la premiere taille de dictionnaire
-		nHash = HashKey(key) % DictionaryGetNextTableSize(1);
-		return NULL;
-	}
-
-	// Calcul de la cle par rapport a la taille courante de la table de hashage
-	nHash = HashKey(key) % pvNKDAssocs.GetSize();
-	// Recherche si elle existe
-	for (pAssoc = (NKDAssoc*)pvNKDAssocs.GetAt(nHash); pAssoc != NULL; pAssoc = pAssoc->pNext)
-	{
-		if (pAssoc->key == key)
-			return pAssoc;
-	}
-	return NULL;
-}
-
-NKDAssoc* NumericKeyDictionary::NewAssoc()
-{
-	if (pFreeList == NULL)
-	{
-		// Ajout d'un nouveau bloc
-		CPlex* newBlock = CPlex::Create(pBlocks, nBlockSize, sizeof(NKDAssoc));
-		// Chainage dans la liste des bloc libres
-		NKDAssoc* pAssoc = (NKDAssoc*)newBlock->data();
-		// Chainage en ordre inverse pour faciliter le debuggage
-		pAssoc += nBlockSize - 1;
-		for (int i = nBlockSize - 1; i >= 0; i--, pAssoc--)
-		{
-			pAssoc->pNext = pFreeList;
-			pFreeList = pAssoc;
-		}
-	}
-	assert(pFreeList != NULL);
-
-	NKDAssoc* pAssoc = pFreeList;
-	pFreeList = pFreeList->pNext;
-	nCount++;
-	pAssoc->key = NULL;
-	pAssoc->value = NULL;
-	assert(nCount > 0);
-
-	return pAssoc;
-}
-
-/////////////////////////////////////////////////////////////////////////////
-
-Object*& NumericKeyDictionary::operator[](NUMERIC key)
-{
-	UINT nHash;
-	NKDAssoc* pAssoc;
-
-	if ((pAssoc = GetAssocAt(key, nHash)) == NULL)
-	{
-		if (pvNKDAssocs.GetSize() == 0)
-		{
-			assert(nCount == 0);
-			InitHashTable(DictionaryGetNextTableSize(1));
-		}
-
-		// Cree une nouvelle Association
-		pAssoc = NewAssoc();
-		pAssoc->nHashValue = nHash;
-		pAssoc->key = key;
-
-		// Ajout dans la table de hashage
-		pAssoc->pNext = (NKDAssoc*)pvNKDAssocs.GetAt(nHash);
-		pvNKDAssocs.SetAt(nHash, pAssoc);
-
-		// Retaillage dynamique
-		if (GetCount() > GetHashTableSize() / 2 and GetHashTableSize() < INT_MAX)
-			ReinitHashTable(DictionaryGetNextTableSize(2 * min(GetHashTableSize(), INT_MAX / 2)));
-	}
-	return pAssoc->value;
-}
-
-boolean NumericKeyDictionary::RemoveKey(NUMERIC key)
-{
-	NKDAssoc* pHeadAssoc;
-	NKDAssoc* pAssocPrev;
-	NKDAssoc* pAssoc;
-	int nHash;
-
-	// Cas d'une table vide: rien a faire
-	if (pvNKDAssocs.GetSize() == 0)
-		return false;
-
-	// Recherche du premier element de la table de hashage correspondant a la cle
-	nHash = HashKey(key) % pvNKDAssocs.GetSize();
-	pHeadAssoc = (NKDAssoc*)pvNKDAssocs.GetAt(nHash);
-
-	// Parcours de la liste chainee des elements pour supprimer l'element correspondant exactement a la cle
-	pAssocPrev = NULL;
-	for (pAssoc = pHeadAssoc; pAssoc != NULL; pAssoc = pAssoc->pNext)
-	{
-		if (pAssoc->key == key)
-		{
-			assert(pAssoc == pHeadAssoc or pAssocPrev != NULL);
-			// Supression de l'element, soit du tableau, soit supprimant son chainage
-			if (pAssoc == pHeadAssoc)
-				pvNKDAssocs.SetAt(nHash, pAssoc->pNext); // remove from list
-			else
-				pAssocPrev->pNext = pAssoc->pNext;
-			FreeAssoc(pAssoc);
-
-			// Retaillage dynamique
-			assert(GetHashTableSize() < INT_MAX / 4);
-			if (GetCount() < GetHashTableSize() / 8)
-				ReinitHashTable(DictionaryGetNextTableSize(GetCount() * 2));
-
-			return true;
-		}
-		pAssocPrev = pAssoc;
-	}
-
-	// La cle n'a pas ete trouve
-	return false;
-}
-
-/////////////////////////////////////////////////////////////////////////////
-// Iterating
-
-void NumericKeyDictionary::GetNextAssoc(POSITION& rNextPosition, NUMERIC& rKey, Object*& rValue) const
-{
-	NKDAssoc* pAssocRet;
-	int nBucket;
-	NKDAssoc* pAssocNext;
-
-	require(pvNKDAssocs.GetSize() != 0);
-	require(rNextPosition != NULL);
-
-	pAssocRet = (NKDAssoc*)rNextPosition;
-	assert(pAssocRet != NULL);
-
-	if (pAssocRet == (NKDAssoc*)BEFORE_START_POSITION)
-	{
-		// Recherche de la premiere association
-		for (nBucket = 0; nBucket < pvNKDAssocs.GetSize(); nBucket++)
-			if ((pAssocRet = (NKDAssoc*)pvNKDAssocs.GetAt(nBucket)) != NULL)
-				break;
-		assert(pAssocRet != NULL); // must find something
-	}
-
-	// Recherche de l'association suivante
-	if ((pAssocNext = pAssocRet->pNext) == NULL)
-	{
-		// Passage au prochain bucket
-		for (nBucket = pAssocRet->nHashValue + 1; nBucket < pvNKDAssocs.GetSize(); nBucket++)
-			if ((pAssocNext = (NKDAssoc*)pvNKDAssocs.GetAt(nBucket)) != NULL)
-				break;
-	}
-
-	rNextPosition = (POSITION)pAssocNext;
-
-	// fill in return data
-	rKey = pAssocRet->key;
-	rValue = pAssocRet->value;
-}
-
-void NumericKeyDictionary::CopyFrom(const NumericKeyDictionary* nkdSource)
-{
-	POSITION current;
-	NUMERIC key;
-	Object* oElement;
-
-	require(nkdSource != NULL);
-
-	// Cas particulier ou source egale cible
-	if (nkdSource == this)
-		return;
-
-	// Nettoyage
-	RemoveAll();
-
-	// Recopie du contenu du dictionnaire source
-	current = nkdSource->GetStartPosition();
-	while (current != NULL)
-	{
-		nkdSource->GetNextAssoc(current, key, oElement);
-		SetAt(key, oElement);
-	}
-}
-
-NumericKeyDictionary* NumericKeyDictionary::Clone(void) const
-{
-	NumericKeyDictionary* clone;
-
-	// Inbitialisation du resultat
-	clone = new NumericKeyDictionary;
-
-	// Recopie
-	clone->CopyFrom(this);
-	return clone;
-}
-
-void NumericKeyDictionary::ExportObjectArray(ObjectArray* oaResult) const
-{
-	POSITION current;
-	NUMERIC key;
-	Object* oElement;
-	int nIndex;
-
-	require(oaResult != NULL);
-
-	// Initialisation du resultat
-	oaResult->SetSize(GetCount());
-
-	// Parcours du dictionnaire
-	current = GetStartPosition();
-	nIndex = 0;
-	while (current != NULL)
-	{
-		GetNextAssoc(current, key, oElement);
-		oaResult->SetAt(nIndex, oElement);
-		nIndex++;
-	}
-	ensure(oaResult->GetSize() == GetCount());
-}
-
-void NumericKeyDictionary::ExportObjectList(ObjectList* olResult) const
-{
-	POSITION current;
-	NUMERIC key;
-	Object* oElement;
-
-	require(olResult != NULL);
-
-	// Initialisation du resultat
-	olResult->RemoveAll();
-
-	// Parcours du dictionnaire
-	current = GetStartPosition();
-	while (current != NULL)
-	{
-		GetNextAssoc(current, key, oElement);
-		olResult->AddTail(oElement);
-	}
-	ensure(olResult->GetCount() == GetCount());
-}
-
-void NumericKeyDictionary::Write(ostream& ost) const
-{
-	POSITION current;
-	NUMERIC key;
-	Object* oElement;
-	const int nMax = 10;
-	int n;
-
-	ost << GetClassLabel() << " [" << GetCount() << "]\n";
-	current = GetStartPosition();
-	n = 0;
-	while (current != NULL)
-	{
-		n++;
-		GetNextAssoc(current, key, oElement);
-		ost << "\t" << key << ":";
-		if (oElement == NULL)
-			ost << "\tnull\n";
-		else
-			ost << "\t" << *oElement << "\n";
-		if (n >= nMax)
-		{
-			ost << "\t...\n";
-			break;
-		}
-	}
-}
-
-longint NumericKeyDictionary::GetUsedMemory() const
-{
-	return sizeof(NumericKeyDictionary) + pvNKDAssocs.GetUsedMemory() + nCount * sizeof(NKDAssoc) +
-	       (nCount * sizeof(CPlex)) / nBlockSize;
-}
-
-longint NumericKeyDictionary::GetOverallUsedMemory() const
-{
-	longint lUsedMemory;
-	POSITION position;
-	Object* oValue;
-	NUMERIC key;
-
-	lUsedMemory = GetUsedMemory();
-	position = GetStartPosition();
-	while (position != NULL)
-	{
-		GetNextAssoc(position, key, oValue);
-		if (oValue != NULL)
-			lUsedMemory += oValue->GetUsedMemory();
-	}
-	return lUsedMemory;
-}
-
-longint NumericKeyDictionary::GetUsedMemoryPerElement() const
-{
-	return sizeof(void*) + sizeof(NKDAssoc);
+	odClone = new NumericKeyDictionary;
+	odClone->CopyFrom(this);
+	return odClone;
 }
 
 const ALString NumericKeyDictionary::GetClassLabel() const
 {
 	return "Numeric key dictionary";
 }
-
-/////////////////////////////////////////////////////////////////////////////
 
 void NumericKeyDictionary::Test()
 {
@@ -1171,7 +1003,7 @@ void NumericKeyDictionary::Test()
 
 	/////
 	cout << "Test de performance\n";
-	nMaxSize = AcquireRangedInt("Nombre maxi d'elements inseres (Random)", 1, 1000000, 50000);
+	nMaxSize = AcquireRangedInt("Nombre maxi d'elements inseres (Random)", 1, 10000000, 1000000);
 	nNbIter = AcquireRangedInt("Nombre d'iterations", 1, 1000, 20);
 
 	// Creation d'un grand tableau de cles numeriques toutes differentes
@@ -1179,6 +1011,7 @@ void NumericKeyDictionary::Test()
 	for (i = 0; i < oaLargeNumericKeyArray.GetSize(); i++)
 		oaLargeNumericKeyArray.SetAt(i, new SampleObject);
 	//
+	nkdPerf.RemoveAll();
 	nStartClock = clock();
 	for (int nIter = 0; nIter < nNbIter; nIter++)
 	{
@@ -1201,12 +1034,463 @@ void NumericKeyDictionary::Test()
 		cout << "\tFound = " << nFound << "\n";
 	}
 	nStopClock = clock();
-	cout << "SYS TIME\tNumericKeyDictionary access\t" << (nStopClock - nStartClock) * 1.0 / CLOCKS_PER_SEC
-	     << "\n\n";
+	cout << "SYS TIME\tNumericKeyDictionary access\t" << (nStopClock - nStartClock) * 1.0 / CLOCKS_PER_SEC << "\n";
+	cout << "SYS MEMORY\tUsed memory\t" << nkdPerf.GetCount() << "\t" << nkdPerf.GetUsedMemory() << "\t"
+	     << nkdPerf.GetOverallUsedMemory() << endl;
+
+	/////
+	cout << "Test de performance avec des entiers\n";
+	nMaxSize = AcquireRangedInt("Nombre maxi d'entiers inseres (Random)", 1, 10000000, 1000000);
+	nNbIter = AcquireRangedInt("Nombre d'iterations", 1, 1000, 20);
+
+	//
+	nkdPerf.RemoveAll();
+	nStartClock = clock();
+	for (int nIter = 0; nIter < nNbIter; nIter++)
+	{
+		// Insertions
+		for (nInsert = 0; nInsert < nMaxSize; nInsert++)
+		{
+			numPerf = RandomInt(nMaxSize - 1);
+			nkdPerf.SetAt(numPerf, &soTest);
+		}
+		cout << "\tIteration " << nIter << "\tSize = " << nkdPerf.GetCount();
+
+		// Recherches
+		nFound = 0;
+		for (nInsert = 0; nInsert < nMaxSize; nInsert++)
+		{
+			numPerf = nInsert;
+			if (nkdPerf.Lookup(numPerf) != NULL)
+				nFound++;
+		}
+		cout << "\tFound = " << nFound << "\n";
+	}
+	nStopClock = clock();
+	cout << "SYS TIME\tNumericKeyDictionary access\t" << (nStopClock - nStartClock) * 1.0 / CLOCKS_PER_SEC << "\n";
 	cout << "SYS MEMORY\tUsed memory\t" << nkdPerf.GetCount() << "\t" << nkdPerf.GetUsedMemory() << "\t"
 	     << nkdPerf.GetOverallUsedMemory() << endl;
 
 	// Nettoyage
 	oaSmallNumericKeyArray.DeleteAll();
 	oaLargeNumericKeyArray.DeleteAll();
+}
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+
+void LongintDictionary::CopyFrom(const LongintDictionary* lidSource)
+{
+	GenericCopyFrom(lidSource);
+}
+
+LongintDictionary* LongintDictionary::Clone() const
+{
+	LongintDictionary* lidClone;
+
+	lidClone = new LongintDictionary;
+	lidClone->CopyFrom(this);
+	return lidClone;
+}
+
+const ALString LongintDictionary::GetClassLabel() const
+{
+	return "Longint dictionary ";
+}
+
+void LongintDictionary::Test()
+{
+	LongintDictionary ldTest;
+	LongintDictionary ldPerf;
+	ObjectArray oaConverted;
+	ObjectList olConverted;
+	ALString sKey;
+	ALString sPerf;
+	int i;
+	int nMaxSize;
+	int nNb;
+	int nNbIter;
+	int nInsert;
+	int nFound;
+	int nIter;
+	int nStartClock;
+	int nStopClock;
+	longint lTotal;
+	POSITION position;
+	longint lValue;
+	longint lInitialHeapMemory;
+	longint lFinalHeapMemory;
+	ObjectDictionary odPerf;
+	LongintObject* loCount;
+	Object* oValue;
+	int nRemovedKeyNumber;
+
+	/////
+	cout << "Test des fonctionnalites de base\n";
+	//
+	cout << "\tInsertion de 10 valeurs\n";
+	for (i = 0; i < 10; i++)
+	{
+		ldTest.SetAt(IntToString(i), i);
+	}
+	cout << ldTest;
+
+	//
+	cout << "\tTest d'existence\n";
+	for (i = 8; i < 11; i++)
+	{
+		sKey = IntToString(i);
+		cout << "\t\tLookup (" << sKey << "): " << ldTest.Lookup(sKey) << "\n";
+	}
+
+	//
+	cout << "\tLoop of clean and decrement\n";
+	while (ldTest.GetCount() > 0)
+	{
+		cout << "\t\t(" << ldTest.GetCount() << ", " << ldTest.ComputeTotalValue() << ")";
+		nRemovedKeyNumber = ldTest.RemoveAllNullValues();
+		cout << "\t[-" << nRemovedKeyNumber << "]\t";
+		cout << "\t(" << ldTest.GetCount() << ", " << ldTest.ComputeTotalValue() << ")";
+		ldTest.UpgradeAll(-1);
+		cout << " ->\t(" << ldTest.GetCount() << ", " << ldTest.ComputeTotalValue() << ")\n";
+	}
+
+	//
+	cout << "Insertion puis supression d'un element temporaire a detruire\n";
+	sKey = "Temporary";
+	ldTest.SetAt(sKey, -1);
+	cout << "Inserted: " << ldTest.Lookup("Temporary") << endl;
+	ldTest.RemoveKey(sKey);
+	cout << "Removed: " << ldTest.Lookup("Temporary") << endl;
+
+	/////
+	cout << "Test de changement de taille dynamique\n";
+	nMaxSize = AcquireRangedInt("Nombre d'elements inseres)", 1, 100000, 1000);
+	nNbIter = AcquireRangedInt("Nombre d'iterations", 1, 100000, 1000);
+
+	nStartClock = clock();
+	for (nNb = 0; nNb < nNbIter; nNb++)
+	{
+		ldPerf.RemoveAll();
+		for (nInsert = 0; nInsert < nMaxSize; nInsert++)
+		{
+			sPerf = IntToString(nInsert);
+			ldPerf.SetAt(sPerf, nInsert);
+		}
+	}
+	nStopClock = clock();
+	cout << "  HashTableSize = " << ldPerf.GetHashTableSize() << "\n";
+	cout << "SYS TIME\tLongintDictionary change size\t" << (nStopClock - nStartClock) * 1.0 / CLOCKS_PER_SEC
+	     << "\n";
+
+	/////
+	cout << "Test de performance de base\n";
+	nMaxSize = AcquireRangedInt("Nombre maxi d'elements inseres (Random)", 1, 10000000, 100000);
+	nNbIter = AcquireRangedInt("Nombre d'iterations", 1, 1000, 20);
+
+	ldPerf.RemoveAll();
+	nStartClock = clock();
+	for (nIter = 0; nIter < nNbIter; nIter++)
+	{
+		// Insertions
+		for (nInsert = 0; nInsert < nMaxSize; nInsert++)
+		{
+			sPerf = IntToString(RandomInt(nMaxSize - 1));
+			ldPerf.SetAt(sPerf, 1);
+		}
+		cout << "\tIteration " << nIter << "\tSize = " << ldPerf.GetCount();
+
+		// Recherches
+		nFound = 0;
+		for (nInsert = 0; nInsert <= nMaxSize; nInsert++)
+		{
+			sPerf = IntToString(nInsert);
+			if (ldPerf.Lookup(sPerf) != 0)
+				nFound++;
+		}
+		cout << "\tFound = " << nFound << "\n";
+	}
+	nStopClock = clock();
+	cout << "SYS TIME\tLongintDictionary access\t" << (nStopClock - nStartClock) * 1.0 / CLOCKS_PER_SEC << "\n";
+	cout << "SYS MEMORY\tUsed memory\t" << ldPerf.GetCount() << "\t" << ldPerf.GetUsedMemory() << "\t"
+	     << ldPerf.GetOverallUsedMemory() << endl;
+
+	////////////////////////////////////////////////////////////////////////////////
+	cout << "\nTest de performance de comptage\n";
+	nMaxSize = AcquireRangedInt("Nombre max d'elements", 1, 10000000, 1000000);
+	nNbIter = AcquireRangedInt("Nombre d'iterations", 1, 100000000, 10000000);
+
+	ldPerf.RemoveAll();
+	lInitialHeapMemory = MemGetHeapMemory();
+	nStartClock = clock();
+	// Insertions
+	for (nInsert = 0; nInsert < nNbIter; nInsert++)
+	{
+		sPerf = IntToString(RandomInt(nMaxSize - 1));
+		ldPerf.UpgradeAt(sPerf, 1);
+	}
+	// Comptage
+	lTotal = 0;
+	position = ldPerf.GetStartPosition();
+	while (position != NULL)
+	{
+		ldPerf.GetNextAssoc(position, sKey, lValue);
+		lTotal += lValue;
+	}
+	assert(lTotal == nNbIter);
+	cout << "\tTotal = " << lTotal << "\n";
+	nStopClock = clock();
+	lFinalHeapMemory = MemGetHeapMemory();
+	cout << "SYS TIME\tLongintDictionary counts\t" << (nStopClock - nStartClock) * 1.0 / CLOCKS_PER_SEC << "\n";
+	cout << "SYS MEMORY\tUsed memory\t" << ldPerf.GetCount() << "\t" << ldPerf.GetUsedMemory() << "\t"
+	     << ldPerf.GetOverallUsedMemory() << "\t" << lFinalHeapMemory - lInitialHeapMemory << endl;
+
+	/////
+	cout << "\nTest de performance de comptage via un dictionnaire de LongintObject\n";
+	ldPerf.RemoveAll();
+	odPerf.RemoveAll();
+	lInitialHeapMemory = MemGetHeapMemory();
+	nStartClock = clock();
+	// Insertions
+	for (nInsert = 0; nInsert < nNbIter; nInsert++)
+	{
+		sPerf = IntToString(RandomInt(nMaxSize - 1));
+		loCount = cast(LongintObject*, odPerf.Lookup(sPerf));
+		if (loCount == NULL)
+		{
+			loCount = new LongintObject;
+			loCount->SetLongint(1);
+			odPerf.SetAt(sPerf, loCount);
+		}
+		else
+			loCount->SetLongint(loCount->GetLongint() + 1);
+	}
+	// Comptage
+	lTotal = 0;
+	position = odPerf.GetStartPosition();
+	while (position != NULL)
+	{
+		odPerf.GetNextAssoc(position, sKey, oValue);
+		loCount = cast(LongintObject*, oValue);
+		lTotal += loCount->GetLongint();
+	}
+	assert(lTotal == nNbIter);
+	cout << "\tTotal = " << lTotal << "\n";
+	nStopClock = clock();
+	lFinalHeapMemory = MemGetHeapMemory();
+	cout << "SYS TIME\tLongintDictionary counts\t" << (nStopClock - nStartClock) * 1.0 / CLOCKS_PER_SEC << "\n";
+	cout << "SYS MEMORY\tUsed memory\t" << odPerf.GetCount() << "\t" << odPerf.GetUsedMemory() << "\t"
+	     << odPerf.GetOverallUsedMemory() << "\t" << lFinalHeapMemory - lInitialHeapMemory << endl;
+	odPerf.DeleteAll();
+}
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+
+void LongintNumericKeyDictionary::CopyFrom(const LongintNumericKeyDictionary* linkdSource)
+{
+	GenericCopyFrom(linkdSource);
+}
+
+LongintNumericKeyDictionary* LongintNumericKeyDictionary::Clone() const
+{
+	LongintNumericKeyDictionary* linkdClone;
+
+	linkdClone = new LongintNumericKeyDictionary;
+	linkdClone->CopyFrom(this);
+	return linkdClone;
+}
+
+const ALString LongintNumericKeyDictionary::GetClassLabel() const
+{
+	return "Longint numeric key dictionary ";
+}
+
+void LongintNumericKeyDictionary::Test()
+{
+	LongintNumericKeyDictionary lnkdTest;
+	LongintNumericKeyDictionary lnkdPerf;
+	ObjectArray oaConverted;
+	ObjectList olConverted;
+	NUMERIC liKey;
+	NUMERIC liPerf;
+	int i;
+	int nMaxSize;
+	int nNb;
+	int nNbIter;
+	int nInsert;
+	int nFound;
+	int nIter;
+	int nStartClock;
+	int nStopClock;
+	longint lTotal;
+	POSITION position;
+	longint lValue;
+	longint lInitialHeapMemory;
+	longint lFinalHeapMemory;
+	NumericKeyDictionary nkdPerf;
+	LongintObject* loCount;
+	Object* oValue;
+	int nRemovedKeyNumber;
+
+	/////
+	cout << "Test des fonctionnalites de base\n";
+	//
+	cout << "\tInsertion de 10 valeurs\n";
+	for (i = 0; i < 10; i++)
+	{
+		lnkdTest.SetAt(i, i);
+	}
+	cout << lnkdTest;
+
+	//
+	cout << "\tTest d'existence\n";
+	for (i = 8; i < 11; i++)
+	{
+		liKey = i;
+		cout << "\t\tLookup (" << liKey << "): " << lnkdTest.Lookup(liKey) << "\n";
+	}
+
+	//
+	cout << "\tLoop of clean and decrement\n";
+	while (lnkdTest.GetCount() > 0)
+	{
+		cout << "\t\t(" << lnkdTest.GetCount() << ", " << lnkdTest.ComputeTotalValue() << ")";
+		nRemovedKeyNumber = lnkdTest.RemoveAllNullValues();
+		cout << "\t[-" << nRemovedKeyNumber << "]\t";
+		cout << "\t(" << lnkdTest.GetCount() << ", " << lnkdTest.ComputeTotalValue() << ")";
+		lnkdTest.UpgradeAll(-1);
+		cout << " ->\t(" << lnkdTest.GetCount() << ", " << lnkdTest.ComputeTotalValue() << ")\n";
+	}
+
+	//
+	cout << "Insertion puis supression d'un element temporaire a detruire\n";
+	liKey = -1;
+	lnkdTest.SetAt(liKey, -1);
+	cout << "Inserted " << liKey << ": " << lnkdTest.Lookup(liKey) << endl;
+	lnkdTest.RemoveKey(liKey);
+	cout << "Removed " << liKey << ": " << lnkdTest.Lookup(liKey) << endl;
+
+	/////
+	cout << "Test de changement de taille dynamique\n";
+	nMaxSize = AcquireRangedInt("Nombre d'elements inseres)", 1, 100000, 1000);
+	nNbIter = AcquireRangedInt("Nombre d'iterations", 1, 100000, 1000);
+
+	nStartClock = clock();
+	for (nNb = 0; nNb < nNbIter; nNb++)
+	{
+		lnkdPerf.RemoveAll();
+		for (nInsert = 0; nInsert < nMaxSize; nInsert++)
+		{
+			liPerf = nInsert;
+			lnkdPerf.SetAt(liPerf, nInsert);
+		}
+	}
+	nStopClock = clock();
+	cout << "  HashTableSize = " << lnkdPerf.GetHashTableSize() << "\n";
+	cout << "SYS TIME\tLongintNumericKeyDictionary change size\t"
+	     << (nStopClock - nStartClock) * 1.0 / CLOCKS_PER_SEC << "\n";
+
+	/////
+	cout << "Test de performance de base\n";
+	nMaxSize = AcquireRangedInt("Nombre maxi d'elements inseres (Random)", 1, 10000000, 100000);
+	nNbIter = AcquireRangedInt("Nombre d'iterations", 1, 1000, 20);
+
+	lnkdPerf.RemoveAll();
+	nStartClock = clock();
+	for (nIter = 0; nIter < nNbIter; nIter++)
+	{
+		// Insertions
+		for (nInsert = 0; nInsert < nMaxSize; nInsert++)
+		{
+			liPerf = RandomInt(nMaxSize - 1);
+			lnkdPerf.SetAt(liPerf, 1);
+		}
+		cout << "\tIteration " << nIter << "\tSize = " << lnkdPerf.GetCount();
+
+		// Recherches
+		nFound = 0;
+		for (nInsert = 0; nInsert <= nMaxSize; nInsert++)
+		{
+			liPerf = nInsert;
+			if (lnkdPerf.Lookup(liPerf) != 0)
+				nFound++;
+		}
+		cout << "\tFound = " << nFound << "\n";
+	}
+	nStopClock = clock();
+	cout << "SYS TIME\tLongintNumericKeyDictionary access\t" << (nStopClock - nStartClock) * 1.0 / CLOCKS_PER_SEC
+	     << "\n";
+	cout << "SYS MEMORY\tUsed memory\t" << lnkdPerf.GetCount() << "\t" << lnkdPerf.GetUsedMemory() << "\t"
+	     << lnkdPerf.GetOverallUsedMemory() << endl;
+
+	////////////////////////////////////////////////////////////////////////////////
+	cout << "\nTest de performance de comptage\n";
+	nMaxSize = AcquireRangedInt("Nombre max d'elements", 1, 10000000, 1000000);
+	nNbIter = AcquireRangedInt("Nombre d'iterations", 1, 100000000, 10000000);
+
+	lnkdPerf.RemoveAll();
+	lInitialHeapMemory = MemGetHeapMemory();
+	nStartClock = clock();
+	// Insertions
+	for (nInsert = 0; nInsert < nNbIter; nInsert++)
+	{
+		liPerf = RandomInt(nMaxSize - 1);
+		lnkdPerf.UpgradeAt(liPerf, 1);
+	}
+	// Comptage
+	lTotal = 0;
+	position = lnkdPerf.GetStartPosition();
+	while (position != NULL)
+	{
+		lnkdPerf.GetNextAssoc(position, liPerf, lValue);
+		lTotal += lValue;
+	}
+	assert(lTotal == nNbIter);
+	cout << "\tTotal = " << lTotal << "\n";
+	nStopClock = clock();
+	lFinalHeapMemory = MemGetHeapMemory();
+	cout << "SYS TIME\tLongintNumericKeyDictionary counts\t" << (nStopClock - nStartClock) * 1.0 / CLOCKS_PER_SEC
+	     << "\n";
+	cout << "SYS MEMORY\tUsed memory\t" << lnkdPerf.GetCount() << "\t" << lnkdPerf.GetUsedMemory() << "\t"
+	     << lnkdPerf.GetOverallUsedMemory() << "\t" << lFinalHeapMemory - lInitialHeapMemory << endl;
+
+	/////
+	cout << "\nTest de performance de comptage via un dictionnaire de LongintObject\n";
+	lnkdPerf.RemoveAll();
+	nkdPerf.RemoveAll();
+	lInitialHeapMemory = MemGetHeapMemory();
+	nStartClock = clock();
+	// Insertions
+	for (nInsert = 0; nInsert < nNbIter; nInsert++)
+	{
+		liPerf = RandomInt(nMaxSize - 1);
+		loCount = cast(LongintObject*, nkdPerf.Lookup(liPerf));
+		if (loCount == NULL)
+		{
+			loCount = new LongintObject;
+			loCount->SetLongint(1);
+			nkdPerf.SetAt(liPerf, loCount);
+		}
+		else
+			loCount->SetLongint(loCount->GetLongint() + 1);
+	}
+	// Comptage
+	lTotal = 0;
+	position = nkdPerf.GetStartPosition();
+	while (position != NULL)
+	{
+		nkdPerf.GetNextAssoc(position, liPerf, oValue);
+		loCount = cast(LongintObject*, oValue);
+		lTotal += loCount->GetLongint();
+	}
+	assert(lTotal == nNbIter);
+	cout << "\tTotal = " << lTotal << "\n";
+	nStopClock = clock();
+	lFinalHeapMemory = MemGetHeapMemory();
+	cout << "SYS TIME\tLongintNumericKeyDictionary counts\t" << (nStopClock - nStartClock) * 1.0 / CLOCKS_PER_SEC
+	     << "\n";
+	cout << "SYS MEMORY\tUsed memory\t" << nkdPerf.GetCount() << "\t" << nkdPerf.GetUsedMemory() << "\t"
+	     << nkdPerf.GetOverallUsedMemory() << "\t" << lFinalHeapMemory - lInitialHeapMemory << endl;
+	nkdPerf.DeleteAll();
 }

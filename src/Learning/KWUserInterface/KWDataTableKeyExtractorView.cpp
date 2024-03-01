@@ -8,7 +8,6 @@ KWDataTableKeyExtractorView::KWDataTableKeyExtractorView()
 {
 	KWSTDatabaseTextFileView* sourceDataTableView;
 	KWSTDatabaseTextFileView* targetDataTableView;
-	int i;
 
 	// Parametrage general
 	SetIdentifier("KWDataTableKeyExtractor");
@@ -29,32 +28,15 @@ KWDataTableKeyExtractorView::KWDataTableKeyExtractorView()
 
 	// Ajout du parametrage de la base d'origine
 	sourceDataTableView = new KWSTDatabaseTextFileView;
+	sourceDataTableView->ToBasicReadMode();
 	sourceDataTableView->SetObject(&sourceDataTable);
 	AddCardField("SourceDataTable", "Input data table", sourceDataTableView);
 
-	// Parametrage de la visibilite des specifications de la base de destination
-	for (i = 0; i < sourceDataTableView->GetFieldNumber(); i++)
-		sourceDataTableView->GetFieldAtIndex(i)->SetVisible(false);
-	for (i = 0; i < sourceDataTableView->GetActionNumber(); i++)
-		sourceDataTableView->GetActionAtIndex(i)->SetVisible(false);
-	sourceDataTableView->GetFieldAt("DatabaseName")->SetVisible(true);
-	sourceDataTableView->GetFieldAt("HeaderLineUsed")->SetVisible(true);
-	sourceDataTableView->GetFieldAt("FieldSeparator")->SetVisible(true);
-	sourceDataTableView->GetFieldAt("DatabaseFormatDetector")->SetVisible(true);
-
 	// Ajout du parametrage de la base destination
 	targetDataTableView = new KWSTDatabaseTextFileView;
+	targetDataTableView->ToWriteOnlyMode();
 	targetDataTableView->SetObject(&targetDataTable);
 	AddCardField("TargetDataTable", "Extracted key data table", targetDataTableView);
-
-	// Parametrage de la visibilite des specifications de la base de destination
-	for (i = 0; i < targetDataTableView->GetFieldNumber(); i++)
-		targetDataTableView->GetFieldAtIndex(i)->SetVisible(false);
-	for (i = 0; i < targetDataTableView->GetActionNumber(); i++)
-		targetDataTableView->GetActionAtIndex(i)->SetVisible(false);
-	targetDataTableView->GetFieldAt("DatabaseName")->SetVisible(true);
-	targetDataTableView->GetFieldAt("HeaderLineUsed")->SetVisible(true);
-	targetDataTableView->GetFieldAt("FieldSeparator")->SetVisible(true);
 
 	// Info-bulles
 	GetFieldAt("ClassName")->SetHelpText("Dictionary that describes the content of the input data table.");
@@ -169,11 +151,6 @@ void KWDataTableKeyExtractorView::ExtractKeysFromDataTable()
 	require(sourceDataTable.GetObjects()->GetSize() == 0);
 	require(workingTargetDataTable.GetObjects()->GetSize() == 0);
 
-	// Execution controlee par licence
-	if (LMLicenseManager::IsEnabled())
-		if (not LMLicenseManager::RequestLicenseKey())
-			return;
-
 	// Verification du directory des fichiers temporaires
 	if (not FileService::CreateApplicationTmpDir())
 		return;
@@ -188,13 +165,7 @@ void KWDataTableKeyExtractorView::ExtractKeysFromDataTable()
 
 	// On tente de cree le repertoire cible, et on sort en cas d'echec
 	sOutputPathName = FileService::GetPathName(workingTargetDataTable.GetDatabaseName());
-	bOk = true;
-	if (sOutputPathName != "" and not PLRemoteFileService::DirExists(sOutputPathName))
-	{
-		bOk = PLRemoteFileService::MakeDirectories(sOutputPathName);
-		if (not bOk)
-			AddError("Unable to create output directory (" + sOutputPathName + ")");
-	}
+	bOk = KWResultFilePathBuilder::CheckResultDirectory(sOutputPathName, GetClassLabel());
 	if (not bOk)
 		return;
 

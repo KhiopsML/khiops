@@ -9,6 +9,7 @@ void TableGenerator::GenerateAttributeH(ostream& ost) const
 	int nCurrent;
 	Attribute* att;
 
+	GenerateCopyrightHeader(ost);
 	ost << "#pragma once\n";
 	ost << "\n";
 	GenerateFileHeader(ost);
@@ -18,7 +19,7 @@ void TableGenerator::GenerateAttributeH(ostream& ost) const
 	ost << "#include \"Object.h\""
 	    << "\n";
 	if (GetSuperClassName() != "")
-		ost << "#include \"" << GetSuperClassName() << ".h\""
+		ost << "#include \"" << GetModelSuperClassName() << ".h\""
 		    << "\n";
 
 	ost << ""
@@ -28,30 +29,24 @@ void TableGenerator::GenerateAttributeH(ostream& ost) const
 	ost << ""
 	    << "\n";
 	GenereClassHeaderComment(ost, "");
-	if (GetSuperClassName() == "")
-	{
-		ost << "class " << GetClassName() << " : public Object"
-		    << "\n";
-	}
-	else
-		ost << "class " << GetClassName() << " : public " << GetSuperClassName() << "\n";
+	ost << "class " << GetModelClassName() << " : public " << GetModelSuperClassName() << "\n";
 	ost << "{"
 	    << "\n";
 	ost << "public:"
 	    << "\n";
 	ost << "\t// Constructeur"
 	    << "\n";
-	ost << "\t" << GetClassName() << "();"
+	ost << "\t" << GetModelClassName() << "();"
 	    << "\n";
-	ost << "\t~" << GetClassName() << "();"
+	ost << "\t~" << GetModelClassName() << "();"
 	    << "\n";
 	ost << ""
 	    << "\n";
 	ost << "\t// Copie et duplication"
 	    << "\n";
-	ost << "\tvoid CopyFrom(const " << GetClassName() << "* aSource);"
+	ost << "\tvoid CopyFrom(const " << GetModelClassName() << "* aSource);"
 	    << "\n";
-	ost << "\t" << GetClassName() << "* Clone() const;"
+	ost << "\t" << GetModelClassName() << "* Clone() const;"
 	    << "\n";
 
 	// Declaration des getters et setters
@@ -156,8 +151,8 @@ void TableGenerator::GenerateAttributeH(ostream& ost) const
 
 		if (not att->GetDerived())
 		{
-			ost << "inline " << att->GetMethodDecl() << " " << GetClassName() << "::Get" << att->GetName()
-			    << "() const"
+			ost << "inline " << att->GetMethodDecl() << " " << GetModelClassName() << "::Get"
+			    << att->GetName() << "() const"
 			    << "\n";
 			ost << "{"
 			    << "\n";
@@ -167,7 +162,7 @@ void TableGenerator::GenerateAttributeH(ostream& ost) const
 			    << "\n";
 			ost << ""
 			    << "\n";
-			ost << "inline void " << GetClassName() << "::Set" << att->GetName() << "("
+			ost << "inline void " << GetModelClassName() << "::Set" << att->GetName() << "("
 			    << att->GetMethodDecl() << " " << att->GetPrefix() << "Value)"
 			    << "\n";
 			ost << "{"

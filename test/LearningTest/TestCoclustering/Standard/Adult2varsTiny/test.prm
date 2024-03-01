@@ -14,6 +14,8 @@
 //
 
 // -> Khiops Coclustering
+AnalysisSpec.SystemParameters.APIMode true        // API mode
+AnalysisSpec.SystemParameters.MemoryLimit 2000     // Memory limit in MB
 ClassManagement.OpenFile       // Open...
 
 // -> Open
@@ -21,11 +23,11 @@ ClassFileName ../../../datasets/Adult/Adult.kdic       // Dictionary file
 OK                             // Open
 // <- Open
 
-Database.DatabaseFiles.List.Key Adult               // List item selection
-Database.DatabaseFiles.DataTableName ../../../datasets/Adult/Adult.txt     // Database file
-Database.SampleNumberPercentage 0.5 // Sample percentage
-Database.SelectionAttribute native_country   // Selection variable
-Database.SelectionValue United-States        // Selection value
+Database.DatabaseSpec.Data.DatabaseFiles.List.Key Adult               // List item selection
+Database.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../datasets/Adult/Adult.txt     // Database file
+Database.DatabaseSpec.Sampling.SampleNumberPercentage 0.5 // Sample percentage
+Database.DatabaseSpec.Selection.SelectionAttribute native_country   // Selection variable
+Database.DatabaseSpec.Selection.SelectionValue United-States        // Selection value
 
 AnalysisSpec.CoclusteringParameters.Attributes.InsertItemAfter         // Insert variable
 AnalysisSpec.CoclusteringParameters.Attributes.Name occupation     // Name
@@ -33,7 +35,7 @@ AnalysisSpec.CoclusteringParameters.Attributes.InsertItemAfter         // Insert
 AnalysisSpec.CoclusteringParameters.Attributes.Name education     // Name
 
 AnalysisSpec.SystemParameters.OptimizationTime 0  // Optimization time in seconds
-AnalysisResults.ResultFilesDirectory ./results // Result files directory
+AnalysisResults.CoclusteringFileName ./results/Coclustering.khcj // Coclustering report
 BuildCoclustering              // Build coclustering
 
 Exit                           // Close

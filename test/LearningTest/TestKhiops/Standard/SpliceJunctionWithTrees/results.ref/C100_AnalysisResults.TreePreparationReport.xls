@@ -1,0 +1,98 @@
+#Khiops 10.4.6i
+Descriptive statistics
+
+
+Problem description
+Short description	
+
+Dictionary	SpliceJunction
+Variables
+	Categorical	12
+	Numerical	90
+	Table	1
+	Total	103
+
+Database	../../../MTdatasets/SpliceJunction/SpliceJunction.txt
+Sample percentage	10
+Sampling mode	Include sample
+Selection variable	
+Selection value	
+Instances	303
+
+Learning task	Classification analysis
+
+Target variable	Categorical	Class
+
+Target variable stats
+Value	Frequency	Coverage
+EI	67	0.221122
+IE	69	0.227723
+N	167	0.551155
+
+Evaluated variables	2
+Informative variables	2
+Selected variables	0
+
+Discretization	MODL
+Value grouping	MODL
+
+Null model
+	Constr. cost	0.693147
+	Prep. cost	10.7442
+	Data cost	296.926
+
+
+Categorical variables statistics
+
+Rank	Name	Level	Groups	Values	Mode	Mode coverage	Missing number	Sparse missing number	Constr. cost	Prep. cost	Data cost	Derivation rule
+R1	Tree_1	0.0257056	3	3	L2	0.422442	0	0	29.2106	29.7139	241.512	SwitchC(GroupIndex(ValueGroups(ValueGroup("C", "T"), ValueGroup("A", "G", " * ")), `Mode(DNA.Char) where Pos in ]15.5, 30.5]`), "L0", SwitchC(IntervalIndex(IntervalBounds(34.75), `Median(DNA.Pos) where Char = G`), "L0", "L3", "L4"), "L2")
+R2	Tree_4	0.020723	2	3	L1	0.49835	0	0	29.2106	21.7369	251.026	SwitchC(IntervalIndex(IntervalBounds(31.698), `Mean(DNA.Pos) where Char = G`), "L0", "L1", SwitchC(GroupIndex(ValueGroups(ValueGroup("C", "T"), ValueGroup("A", "G", " * ")), `Mode(DNA.Char) where Pos in ]15.5, 30.5]`), "L0", "L3", "L4"))
+
+
+--------------------------------------------------------------------------------
+
+Variables detailed statistics
+
+
+Rank	R1
+Variable	Categorical	Tree_1
+
+Variable stats
+Group	Size	Value list
+{L2}	1	L2
+{L4}	1	L4
+{L3}	1	L3	 * 
+
+% target values
+Group	EI	IE	N	Interest	Frequency	Coverage
+{L4}	0.181818	0.556818	0.261364	0.487083	88	0.290429
+{L2}	0.296875	0.0234375	0.679688	0.468243	128	0.422442
+{L3}	0.149425	0.195402	0.655172	0.0446743	87	0.287129
+Total	0.221122	0.227723	0.551155	1	303	1
+
+Values
+Value	Frequency	Coverage
+L2	128	0.422442
+L4	88	0.290429
+L3	87	0.287129
+
+----------------------------------------------
+Rank	R2
+Variable	Categorical	Tree_4
+
+Variable stats
+Group	Size	Value list
+{L1, L4}	2	L1	L4	 * 
+{L3}	1	L3
+
+% target values
+Group	EI	IE	N	Interest	Frequency	Coverage
+{L3}	0.142857	0.533333	0.32381	0.546708	105	0.346535
+{L1, L4}	0.262626	0.0656566	0.671717	0.453292	198	0.653465
+Total	0.221122	0.227723	0.551155	1	303	1
+
+Values
+Value	Frequency	Coverage
+L1	151	0.49835
+L3	105	0.346535
+L4	47	0.155116

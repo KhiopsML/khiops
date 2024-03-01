@@ -32,7 +32,7 @@ int main(int argc, char** argv)
 	MDKhiopsLearningProject learningProject;
 
 	// Activation de la gestion des signaux via des erreurs, pour afficher des messages d'erreur explicites
-	// A potentiellement commnter sur certian IDE lors des phases de debuggage
+	// A potentiellement commenter sur certains IDE lors des phases de debuggage
 	Global::ActivateSignalErrorManagement();
 
 	// Choix du repertoire de lancement pour le debugage sous Windows (a commenter apres fin du debug)
@@ -49,7 +49,7 @@ int main(int argc, char** argv)
 	// MemoryStatsManager::AllStats);
 
 	// Parametrage de l'arret pour la memoire ou les interruptions utilisateurs
-	// MemSetAllocIndexExit(1674366);
+	// MemSetAllocIndexExit(37140);
 	// TaskProgression::SetExternalInterruptionRequestIndex();
 	// TaskProgression::SetInterruptionRequestIndex(75);
 
@@ -58,7 +58,7 @@ int main(int argc, char** argv)
 
 	// Simulation du mode parallele pour le debuggage
 	// PLParallelTask::SetParallelSimulated(true);
-	// PLParallelTask::SetSimulatedSlaveNumber(7);
+	// PLParallelTask::SetSimulatedSlaveNumber(2);
 	// PLParallelTask::SetTracerResources(1);
 	// PLParallelTask::SetTracerProtocolActive(true);
 	// PLParallelTask::SetTracerMPIActive(true);
@@ -80,8 +80,7 @@ int main(int argc, char** argv)
 	// Nombre total d'interruptions utilisateurs
 	// cout << "Interruption request number: " << TaskProgression::GetInterruptionRequestNumber() << endl;
 
-	// On renvoie 0 si tout s'est bien passe, 1 en cas de FatalError (dans Standard.cpp) et 2 si il y eu au moins
-	// une erreur
+	// On renvoie 0 si tout s'est bien passe, 1 en cas de FatalError (dans Standard.cpp) et 2 si il y eu au moins une erreur
 	if (GetProcessId() == 0 and Global::IsAtLeastOneError())
 		return EXIT_FAILURE + 1;
 	else

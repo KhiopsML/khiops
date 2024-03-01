@@ -212,47 +212,6 @@ Object* PLShared_IntVector::Create() const
 	return new IntVector;
 }
 
-int PLShared_IntVector::GetAt(int nIndex) const
-{
-	require(bIsReadable);
-	require(bIsDeclared);
-
-	return GetConstIntVector()->GetAt(nIndex);
-}
-
-void PLShared_IntVector::SetAt(int nIndex, int nValue)
-{
-	require(bIsWritable);
-	GetIntVector()->SetAt(nIndex, nValue);
-}
-
-void PLShared_IntVector::Add(int nValue)
-{
-	require(bIsWritable);
-	GetIntVector()->Add(nValue);
-}
-
-int PLShared_IntVector::GetSize()
-{
-	return GetConstIntVector()->GetSize();
-}
-
-const IntVector* PLShared_IntVector::GetConstIntVector() const
-{
-	require(bIsReadable);
-	require(bIsDeclared);
-
-	return cast(IntVector*, GetObject());
-}
-
-IntVector* PLShared_IntVector::GetIntVector()
-{
-	require(bIsWritable);
-	require(bIsDeclared);
-
-	return cast(IntVector*, GetObject());
-}
-
 /////////////////////////////////////////////
 // Implementation de la classe PLShared_LongintVector
 

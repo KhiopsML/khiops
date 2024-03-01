@@ -35,14 +35,14 @@ class KWCDUniqueStringDictionary;
 //
 // La gestion des KWCDUniqueString est similaire à celle des Symbol, mais elle differe
 // sur les points suivants:
-//  . les Symbol sont trs optimises en memoire, et ne donne acces qu'a des char*, alors
+//  . les Symbol sont tres optimises en memoire, et ne donne acces qu'a des char*, alors
 //    que les UniqueString contiennent directement un ALString, directement utilisable
 //  . les Symbol sont dedies a la gestion des valeurs se trouvant dans une base de donnees,
 //    alors que les UniqueString sont dedies a la specification des dictionnaire, ce qui
 //    justifie qu'il soient dans des epscace de gestion separes, ce qui evitera a priori
 //    le morcellement de la memoire allouee
 //  . les Symbol ont un API evoluee, facilitant leur manipulation simple partout dans
-//    les algorithment de traitemenbt de donnees, alors que les Unbique string ont une API
+//    les algorithmes de traitement de donnees, alors que les Unbique string ont une API
 //    rudimentaire, parce qu'il ne sont utilisee que dans les classe de gestion des dictionnaires
 //
 // Techniquement, un KWCDUniqueString est un pointeur gere sur une structure KWCDUniqueStringData.

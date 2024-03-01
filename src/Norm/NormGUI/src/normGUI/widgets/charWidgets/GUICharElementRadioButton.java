@@ -20,8 +20,6 @@ import normGUI.engine.GUICharElement;
  * de caracteres dans des boutons radio. Un seul choix est possible. Les
  * differents boutons sont deduits a partir de l'attribut parameters, chaque
  * libelle de bouton etant separe par un ; Utilisation de JPanel, JRadioButton.
- *
- * @author Marc Boulle
  */
 public class GUICharElementRadioButton extends GUICharElement
 {
