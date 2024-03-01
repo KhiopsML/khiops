@@ -1,5 +1,5 @@
 Database ../../../datasets/Mushroom/Mushroom.txt : Read records: 8416
-  0:00:00	Write intermediate coclustering report Coclustering(1).khcj	Level: 0.00794475	Size: 2*2
+  0:00:00	Write intermediate report Coclustering(1).khcj	Level: 0.00794475	Size: 2*2
 Write coclustering report ./results/Coclustering.khcj
 Coclustering analysis time: 0:00:00.02
 

@@ -50,7 +50,6 @@ void PLMPIMaster::UpdateMaxErrorFlow()
 {
 	boolean bNeedToUpdate;
 	IntVector ivGravityReached;
-	int nTaskCommSize;
 	PLSerializer serializer;
 	PLMPIMsgContext context;
 	int i;

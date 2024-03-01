@@ -1,4 +1,4 @@
-#Khiops 10.4.8i
+#Khiops 10.4.6i
 Predictor evaluation report
 
 
@@ -119,14 +119,14 @@ SignificantTests	 0/4/0	 0/4/0
 Rank	1	1
 
 Total Time	MODL	MODL_2
-Mean	0.0060459	0.00476354
-GeometricMean	0.00593088	0.00476347
+Mean	0.00480153	0.00449023
+GeometricMean	0.00479343	0.00449016
 SignificantTests	 0/4/0	 0/4/0
 Rank	2	1
 
 Pre Time	MODL	MODL_2
-Mean	0.0060459	0.00476354
-GeometricMean	0.00593088	0.00476347
+Mean	0.00480153	0.00449023
+GeometricMean	0.00479343	0.00449016
 SignificantTests	 0/4/0	 0/4/0
 Rank	2	1
 
@@ -242,14 +242,14 @@ SignificantTests	 0/4/0	 0/4/0
 Rank	1	1
 
 Total Time	MODL	MODL_2
-Mean	0.0060459	0.00476354
-GeometricMean	0.00593088	0.00476347
+Mean	0.00480153	0.00449023
+GeometricMean	0.00479343	0.00449016
 SignificantTests	 0/4/0	 0/4/0
 Rank	2	1
 
 Pre Time	MODL	MODL_2
-Mean	0.0060459	0.00476354
-GeometricMean	0.00593088	0.00476347
+Mean	0.00480153	0.00449023
+GeometricMean	0.00479343	0.00449016
 SignificantTests	 0/4/0	 0/4/0
 Rank	2	1
 
@@ -399,18 +399,18 @@ Iris	PetalWidth	1	0	0	1	0	0
 Total Time
 Dataset	Attribute	MODL			MODL_2		
 		Mean	StandardDeviation	SignificantTests	Mean	StandardDeviation	SignificantTests
-Iris	SepalLength	0.0060459	0.00117368	0	0.00476354	2.45375e-05	0
-Iris	SepalWidth	0.0060459	0.00117368	0	0.00476354	2.45375e-05	0
-Iris	PetalLength	0.0060459	0.00117368	0	0.00476354	2.45375e-05	0
-Iris	PetalWidth	0.0060459	0.00117368	0	0.00476354	2.45375e-05	0
+Iris	SepalLength	0.00480153	0.00027875	0	0.00449023	2.42e-05	0
+Iris	SepalWidth	0.00480153	0.00027875	0	0.00449023	2.42e-05	0
+Iris	PetalLength	0.00480153	0.00027875	0	0.00449023	2.42e-05	0
+Iris	PetalWidth	0.00480153	0.00027875	0	0.00449023	2.42e-05	0
 
 Pre Time
 Dataset	Attribute	MODL			MODL_2		
 		Mean	StandardDeviation	SignificantTests	Mean	StandardDeviation	SignificantTests
-Iris	SepalLength	0.0060459	0.00117368	0	0.00476354	2.45375e-05	0
-Iris	SepalWidth	0.0060459	0.00117368	0	0.00476354	2.45375e-05	0
-Iris	PetalLength	0.0060459	0.00117368	0	0.00476354	2.45375e-05	0
-Iris	PetalWidth	0.0060459	0.00117368	0	0.00476354	2.45375e-05	0
+Iris	SepalLength	0.00480153	0.00027875	0	0.00449023	2.42e-05	0
+Iris	SepalWidth	0.00480153	0.00027875	0	0.00449023	2.42e-05	0
+Iris	PetalLength	0.00480153	0.00027875	0	0.00449023	2.42e-05	0
+Iris	PetalWidth	0.00480153	0.00027875	0	0.00449023	2.42e-05	0
 
 Clusters
 Dataset	Attribute	MODL			MODL_2		
@@ -609,25 +609,25 @@ Iris	PetalWidth	2	1	1
 
 Total Time
 Dataset	Attribute	Run	MODL	MODL_2
-Iris	SepalLength	1	0.00721958	0.00478808
-Iris	SepalLength	2	0.00487222	0.004739
-Iris	SepalWidth	1	0.00721958	0.00478808
-Iris	SepalWidth	2	0.00487222	0.004739
-Iris	PetalLength	1	0.00721958	0.00478808
-Iris	PetalLength	2	0.00487222	0.004739
-Iris	PetalWidth	1	0.00721958	0.00478808
-Iris	PetalWidth	2	0.00487222	0.004739
+Iris	SepalLength	1	0.00508028	0.00446603
+Iris	SepalLength	2	0.00452278	0.00451442
+Iris	SepalWidth	1	0.00508028	0.00446603
+Iris	SepalWidth	2	0.00452278	0.00451442
+Iris	PetalLength	1	0.00508028	0.00446603
+Iris	PetalLength	2	0.00452278	0.00451442
+Iris	PetalWidth	1	0.00508028	0.00446603
+Iris	PetalWidth	2	0.00452278	0.00451442
 
 Pre Time
 Dataset	Attribute	Run	MODL	MODL_2
-Iris	SepalLength	1	0.00721958	0.00478808
-Iris	SepalLength	2	0.00487222	0.004739
-Iris	SepalWidth	1	0.00721958	0.00478808
-Iris	SepalWidth	2	0.00487222	0.004739
-Iris	PetalLength	1	0.00721958	0.00478808
-Iris	PetalLength	2	0.00487222	0.004739
-Iris	PetalWidth	1	0.00721958	0.00478808
-Iris	PetalWidth	2	0.00487222	0.004739
+Iris	SepalLength	1	0.00508028	0.00446603
+Iris	SepalLength	2	0.00452278	0.00451442
+Iris	SepalWidth	1	0.00508028	0.00446603
+Iris	SepalWidth	2	0.00452278	0.00451442
+Iris	PetalLength	1	0.00508028	0.00446603
+Iris	PetalLength	2	0.00452278	0.00451442
+Iris	PetalWidth	1	0.00508028	0.00446603
+Iris	PetalWidth	2	0.00452278	0.00451442
 
 Clusters
 Dataset	Attribute	Run	MODL	MODL_2

@@ -1,7 +1,7 @@
 Train supervised model for classification of target variable Class
 Database ../../../datasets/Iris/Iris.txt: Read records: 150	Selected records: 105
 Evaluation of variable pairs
-Data preparation time: 0:00:00.10
+Data preparation time: 0:00:00.09
 SNB train time: 0:00:00
 Build Selective Naive Bayes SNB_Iris
 Train evaluation of Selective Naive Bayes on database ../../../datasets/Iris/Iris.txt

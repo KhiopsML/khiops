@@ -1,7 +1,7 @@
 Train supervised model for classification of target variable class
 Database ../../../datasets/Adult/Adult.txt: Read records: 48,842	Selected records: 34,291
-Data preparation time: 0:00:00.35
-SNB train time: 0:00:00.71
+Data preparation time: 0:00:00.30
+SNB train time: 0:00:00.68
 Build Selective Naive Bayes SNB_Adult
 Build Univariate BU1_Adult
 Train evaluation of Selective Naive Bayes on database ../../../datasets/Adult/Adult.txt
@@ -13,7 +13,7 @@ Write report ./results/AnalysisResults.khj
 Deploy model SNB_Adult
 Input database ../../../datasets/Adult/Adult.txt: Read records: 48,842
 Output database ./results/D_Adult.txt: Written records: 34,291
-Model deployment time: 0:00:00.10
+Model deployment time: 0:00:00.09
 
 Predictor evaluation of Univariate relationship on database ../../../datasets/Adult/Adult.txt
 Predictor evaluation of Selective Naive Bayes on database ../../../datasets/Adult/Adult.txt

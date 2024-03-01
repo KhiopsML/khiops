@@ -155,7 +155,7 @@ def make_learning_test_version(version: str, option: str = ""):
 
     # Parametrage des noms de fichiers ou repertoire specifiques
     dataset_dirs = ["datasets", "MTdatasets", "TextDatasets", "UnusedDatasets"]
-    test_dirs = ["cmd", "doc", "TestCoclustering", "TestKhiops", "TestKNITransfer"]
+    test_dirs = ["cmd", "doc", "TestCoclustering", "TestKhiops", "TestKNI"]
     forbidden_names = ["__pycache__", "modl", RESULTS, COMPARISON_RESULTS_LOG]
     if option != "references":
         forbidden_names.append(RESULTS_REF)

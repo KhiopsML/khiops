@@ -1,4 +1,4 @@
-#Khiops 10.4.8i
+#Khiops 10.4.6i
 
 Dictionary	BU1_Adult
 <InitialDictionary="Adult"> <PredictorLabel="Univariate relationship"> <PredictorType="Classifier">

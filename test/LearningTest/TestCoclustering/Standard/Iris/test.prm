@@ -16,6 +16,9 @@
 // -> Khiops Coclustering
 AnalysisSpec.SystemParameters.APIMode true        // API mode
 AnalysisSpec.SystemParameters.MemoryLimit 2000     // Memory limit in MB
+
+//AnalysisSpec.DataGridOptimizerParameters.DisplayDetails true // Display details
+
 ClassManagement.OpenFile       // Open...
 
 // -> Open

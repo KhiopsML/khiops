@@ -1,8 +1,4 @@
-<<<<<<<< HEAD:test/LearningTest/TestKhiops/Standard/IrisU/results.ref/PreparationReport2D.xls
-#Khiops 10.1.5
-========
-#Khiops 10.4.6i
->>>>>>>> dev-v11:test/LearningTest/TestKhiops/Standard-unstable/IrisU2D/results.ref/AnalysisResults.Preparation2DReport.xls
+#Khiops 10.4.9i
 Descriptive statistics
 
 
@@ -66,15 +62,9 @@ R32	SepalLength	UpperPetalWidth	0.0164148	2	2	2	4	6.71557	13.838	741.251
 R33	Class1	SepalWidth	0.00749643	2	2	3	5	6.71557	20.8147	427.509
 R34	Class2	LowerPetalLength	0.0065114	2	2	2	3	6.71557	13.7255	430.955
 R35	Class	SepalWidth	0.00543684	2	3	2	6	6.71557	22.1365	474.893
-<<<<<<<< HEAD:test/LearningTest/TestKhiops/Standard/IrisU/results.ref/PreparationReport2D.xls
-R36	LowerPetalLength	UpperPetalWidth	0.00366071	2	2	2	3	6.71557	13.838	751.129
-R37	PetalWidth	SepalWidth	0.00221737	2	3	2	6	6.71557	20.9273	745.158
-R38	SPetalLength	SepalWidth	0.00143264	2	3	3	9	6.71557	40.2319	497.662
-========
 R36	SPetalLength	SepalWidth	0.00373995	2	3	3	9	6.71557	38.9735	497.662
 R37	LowerPetalLength	UpperPetalWidth	0.00366071	2	2	2	3	6.71557	13.838	751.129
 R38	PetalWidth	SepalWidth	0.00221737	2	3	2	6	6.71557	20.9273	745.158
->>>>>>>> dev-v11:test/LearningTest/TestKhiops/Standard-unstable/IrisU2D/results.ref/AnalysisResults.Preparation2DReport.xls
 R39	Class	Dummy2	0	0	1	1	1	0.693147	8.64312	497.163
 R40	Class1	Dummy2	0	0	1	1	1	0.693147	4.66344	453.12
 R41	Class2	Dummy2	0	0	1	1	1	0.693147	4.66344	448.998
@@ -1310,8 +1300,6 @@ C1	{Iris-setosa}	]-inf;2.95]	1	0.00952381
 Rank	R36
 Variables
 	Type	Name
-<<<<<<<< HEAD:test/LearningTest/TestKhiops/Standard/IrisU/results.ref/PreparationReport2D.xls
-========
 	Categorical	SPetalLength
 	Numerical	SepalWidth
 
@@ -1353,7 +1341,6 @@ C2	{1}	]-inf;2.95]	1	0.00952381
 Rank	R37
 Variables
 	Type	Name
->>>>>>>> dev-v11:test/LearningTest/TestKhiops/Standard-unstable/IrisU2D/results.ref/AnalysisResults.Preparation2DReport.xls
 	Numerical	LowerPetalLength
 	Numerical	UpperPetalWidth
 
@@ -1383,11 +1370,7 @@ C2	]2.4;+inf[	]-inf;1.55]	29	0.27619
 	Total		105	1
 
 ----------------------------------------------
-<<<<<<<< HEAD:test/LearningTest/TestKhiops/Standard/IrisU/results.ref/PreparationReport2D.xls
-Rank	R37
-========
 Rank	R38
->>>>>>>> dev-v11:test/LearningTest/TestKhiops/Standard-unstable/IrisU2D/results.ref/AnalysisResults.Preparation2DReport.xls
 Variables
 	Type	Name
 	Numerical	PetalWidth
@@ -1422,47 +1405,3 @@ C3	]1.45;+inf[	]-inf;2.95]	14	0.133333
 C5	]0.75;1.45]	]2.95;+inf[	3	0.0285714
 C1	]-inf;0.75]	]-inf;2.95]	1	0.00952381
 	Total		105	1
-<<<<<<<< HEAD:test/LearningTest/TestKhiops/Standard/IrisU/results.ref/PreparationReport2D.xls
-
-----------------------------------------------
-Rank	R38
-Variables
-	Type	Name
-	Categorical	SPetalLength
-	Numerical	SepalWidth
-
-Variables stats
-SPetalLength
-Group	Frequency	Coverage	Size	Value list
-{4, 3, 6}	40	0.380952	3	4	3	6	 * 
-{1}	38	0.361905	1	1
-{5}	27	0.257143	1	5
-SepalWidth
-Interval	Frequency	Coverage
-]-inf;2.95]	36	0.342857
-]2.95;3.25]	41	0.390476
-]3.25;+inf[	28	0.266667
-
-Cell frequencies
-	SepalWidth
-SPetalLength	]-inf;2.95]	]2.95;3.25]	]3.25;+inf[	Total	Coverage
-{4, 3, 6}	26	10	4	40	0.380952
-{1}	1	15	22	38	0.361905
-{5}	9	16	2	27	0.257143
-Total	36	41	28	105
-Coverage	0.342857	0.390476	0.266667
-
-Cells	9
-Cell Id	SPetalLength	SepalWidth	Frequency	Coverage
-C1	{4, 3, 6}	]-inf;2.95]	26	0.247619
-C8	{1}	]3.25;+inf[	22	0.209524
-C6	{5}	]2.95;3.25]	16	0.152381
-C5	{1}	]2.95;3.25]	15	0.142857
-C4	{4, 3, 6}	]2.95;3.25]	10	0.0952381
-C3	{5}	]-inf;2.95]	9	0.0857143
-C7	{4, 3, 6}	]3.25;+inf[	4	0.0380952
-C9	{5}	]3.25;+inf[	2	0.0190476
-C2	{1}	]-inf;2.95]	1	0.00952381
-	Total		105	1
-========
->>>>>>>> dev-v11:test/LearningTest/TestKhiops/Standard-unstable/IrisU2D/results.ref/AnalysisResults.Preparation2DReport.xls

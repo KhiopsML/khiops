@@ -14,7 +14,8 @@
 //
 
 // -> Data preparation and scoring
-
+AnalysisSpec.SystemParameters.APIMode true        // API mode
+AnalysisSpec.SystemParameters.MemoryLimit 2000     // Memory limit in MB
 ClassManagement.OpenFile       // Open...
 
 // -> Open
@@ -22,11 +23,14 @@ ClassFileName ./AdultWrongTypes.kdic       // Dictionary file
 OK                             // Open
 // <- Open
 
-TrainDatabase.DatabaseFiles.List.Key Adult         // List item selection
-TrainDatabase.DatabaseFiles.DataTableName ../../../datasets/Adult/Adult.txt      // Data table file
+TrainDatabase.ClassName Adult          // Dictionary
+
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key Adult               // List item selection
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../datasets/Adult/Adult.txt     // Database file
+TrainDatabase.DatabaseSpec.Sampling.SampleNumberPercentage 70  // Sample percentage
 
 
-AnalysisResults.ResultFilesDirectory ./results  // Result files directory
+AnalysisResults.ReportFileName ./results/AnalysisResults.khj // Analysis report
 
 ComputeStats                   // Analyse database
 
@@ -37,3 +41,4 @@ Exit                           // Close
 // -> Data preparation and scoring
 OK                             // Close
 // <- Data preparation and scoring
+

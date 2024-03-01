@@ -20,7 +20,6 @@ CMakeFiles/
 # Test exceptions
 test/*/results/
 test/LearningTest/*/*/*/results/
-test/LearningTest/*/*/*/results.ref/time.log
 comparisonResults.log
 
 # Python
