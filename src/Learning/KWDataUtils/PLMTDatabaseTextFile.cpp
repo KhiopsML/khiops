@@ -54,7 +54,7 @@ boolean PLMTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 						     PLMTDatabaseTextFile* outputDatabaseTextFile)
 {
 	boolean bOk = true;
-	boolean bDisplay = false;
+	boolean bDisplay = GetPreparationTraceMode();
 	boolean bCurrentVerboseMode;
 	KWMTDatabaseMapping* mapping;
 	KWMTDatabaseMapping* outputMapping;

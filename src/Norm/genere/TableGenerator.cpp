@@ -522,7 +522,7 @@ void TableGenerator::GenereWith(const ALString& sName, const ALString& sSpecific
 
 void TableGenerator::GenerateCopyrightHeader(ostream& ost) const
 {
-	ost << "// Copyright (c) 2023 Orange. All rights reserved.\n";
+	ost << "// Copyright (c) 2024 Orange. All rights reserved.\n";
 	ost << "// This software is distributed under the BSD 3-Clause-clear License, the text of which is available\n";
 	ost << "// at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the \"LICENSE\" file for more "
 	       "details.\n";

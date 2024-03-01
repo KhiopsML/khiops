@@ -5,7 +5,6 @@
 #pragma once
 
 class CCCoclusteringBuilder;
-class CCCoclusteringOptimizer;
 
 #include "PLDatabaseTextFile.h"
 #include "KWTupleTable.h"
@@ -130,7 +129,7 @@ public:
 	// Supression du dernier fichier temporaire sauvegarde
 	void RemoveLastSavedReportFile() const;
 
-	// Methode appelee lors de l'optimisation a chaque etape d'optimisation
+	// Methode redefinie, appelee lors de l'optimisation a chaque etape d'optimisation
 	// A chaque amelioration, un nouveau fichier de sauvegarde est cree avec un index croissant,
 	// le fichier precedent etant detruit.
 	// Un message utilisateur est egalement emis.
@@ -138,7 +137,7 @@ public:
 	// bIsLastSaving : si true, la sauvegarde est effectue meme s'il n'y a pas amelioration
 	// Permet de recalculer la hierarchie du coclustering apres l'atteinte de la granularite maximale
 	void HandleOptimizationStep(const KWDataGrid* optimizedDataGrid, const KWDataGrid* initialGranularizedDataGrid,
-				    boolean bIsLastSaving) const;
+				    boolean bIsLastSaving) const override;
 
 	// Libelles utilisateur: nom du module de l'application (GetLearningModuleName())
 	const ALString GetClassLabel() const override;
@@ -151,11 +150,12 @@ protected:
 
 	// Initialisation d'un optimiseur de grille dedie coclustering
 	void InitializeDataGridOptimizer(const KWDataGrid* inputInitialDataGrid,
-					 CCCoclusteringOptimizer* dataGridOptimizer);
+					 KWDataGridOptimizer* dataGridOptimizer);
 
 	// CH IV Begin
 	// Methode d'optimisation d'une grille dediee au cas instances x variables
 	void OptimizeVarPartDataGrid(const KWDataGrid* inputInitialDataGrid, KWDataGrid* optimizedDataGrid);
+	void PROTO_OptimizeVarPartDataGrid(const KWDataGrid* inputInitialDataGrid, KWDataGrid* optimizedDataGrid);
 	// CH IV End
 
 	///////////////////////////////////////////////////////////////////////////////////////
@@ -335,32 +335,4 @@ protected:
 
 	// Export des rapports au format Khc
 	boolean bExportAsKhc;
-};
-
-//////////////////////////////////////////////////////////////////////////////////
-// Classe CCCoclusteringOptimizer
-// Specialisation de l'optimisation des grille pour passer en mode anytime
-class CCCoclusteringOptimizer : public KWDataGridOptimizer
-{
-public:
-	// Constructeur
-	CCCoclusteringOptimizer();
-	~CCCoclusteringOptimizer();
-
-	// Reinitialisation
-	void Reset() override;
-
-	// Parametrage du contexte de gestion de la partie anytime de l'optimisation
-	void SetCoclusteringBuilder(const CCCoclusteringBuilder* builder);
-	const CCCoclusteringBuilder* GetCoclusteringBuilder();
-
-	// Methode appelee lors de l'optimisation a chaque etape d'optimisation ameliorant la solution
-	// Reimplementation de la methode virtuelle de la classe mere
-	void HandleOptimizationStep(const KWDataGrid* optimizedDataGrid, const KWDataGrid* initialGranularizedDataGrid,
-				    boolean bIsLastSaving) const override;
-
-	/////////////////////////////////////////////////
-	///// Implementation
-protected:
-	const CCCoclusteringBuilder* coclusteringBuilder;
 };

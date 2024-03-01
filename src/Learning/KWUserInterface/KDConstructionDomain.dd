@@ -1,7 +1,6 @@
 Rank;Name;Type;Style;Label
-1;InterpretableNames;boolean;CheckBox;Build interpretable names
-2;RuleOptimization;boolean;CheckBox;Optimize constructed rules
-3;SparseOptimization;boolean;CheckBox;Build sparse rules
-4;SparseBlockMinSize;int;Spinner;Sparse blokc min size
-5;ImportAttributeConstructionCosts;boolean;CheckBox;Import variable construction costs (expert)
-6;ConstructionRegularization;boolean;CheckBox;Construction regularization (expert)
+1;RuleOptimization;boolean;CheckBox;Optimize constructed rules
+2;SparseOptimization;boolean;CheckBox;Build sparse rules
+3;SparseBlockMinSize;int;Spinner;Sparse blokc min size
+4;ImportAttributeConstructionCosts;boolean;CheckBox;Import variable construction costs (expert)
+5;ConstructionRegularization;boolean;CheckBox;Construction regularization (expert)

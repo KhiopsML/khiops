@@ -216,7 +216,7 @@ public:
 	///////////////////////////////////////////////////////////////////////
 	// Services divers
 
-	// Calcul d'un nom decrivant le ou les attributs natifs (dans ce cas, les noms sont separes par "`")
+	// Calcul d'un nom decrivant le ou les attributs natifs
 	const ALString ComputeNativeAttributeName() const;
 
 	// Test de validite

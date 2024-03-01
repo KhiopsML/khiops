@@ -269,13 +269,13 @@ void KWAttributeStats::WriteHeaderLineReport(ostream& ost)
 			ost << "\tTarget intervals";
 		else if (GetTargetAttributeType() == KWType::Symbol and IsTargetGrouped())
 			ost << "\tTarget groups";
-
-		// Nombre de parties sources
-		if (nAttributeType == KWType::Continuous)
-			ost << "\tIntervals";
-		else if (nAttributeType == KWType::Symbol)
-			ost << "\tGroups";
 	}
+
+	// Nombre de parties sources, y compris en non supervise
+	if (nAttributeType == KWType::Continuous)
+		ost << "\tIntervals";
+	else if (nAttributeType == KWType::Symbol)
+		ost << "\tGroups";
 
 	// Statistiques descriptives
 	ost << "\t";
@@ -330,7 +330,7 @@ void KWAttributeStats::WriteLineReport(ostream& ost)
 	// Initialisation
 	nSource = -1;
 
-	// Evaluation de la variable si discretisation pertinente
+	// Evaluation de la variable si discretisation ou groupement pertinente
 	// dans le cas supervise uniquement
 	if (GetTargetAttributeName() != "")
 	{
@@ -365,6 +365,23 @@ void KWAttributeStats::WriteLineReport(ostream& ost)
 			if (GetTargetAttributeType() == KWType::Continuous or
 			    (GetTargetAttributeType() == KWType::Symbol and IsTargetGrouped()))
 				ost << "\t1";
+			ost << "\t1";
+		}
+	}
+	// Dans le cas non supervise, on ecrit eventuellement le nombre de parties
+	else
+	{
+		assert(GetTargetAttributeName() == "");
+
+		if (GetPreparedDataGridStats() != NULL)
+		{
+			assert(GetPreparedDataGridStats()->GetAttributeNumber() == 1);
+
+			ost << "\t" << GetPreparedDataGridStats()->GetAttributeAt(0)->GetPartNumber();
+		}
+		// Pas d'infos sinon
+		else
+		{
 			ost << "\t1";
 		}
 	}
@@ -442,7 +459,7 @@ void KWAttributeStats::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary)
 		// Initialisation
 		nSource = -1;
 
-		// Evaluation de la variable si discretisation pertinente
+		// Evaluation de la variable si discretisation ou groupement pertinent
 		// dans le cas supervise uniquement
 		if (GetTargetAttributeName() != "")
 		{
@@ -486,6 +503,17 @@ void KWAttributeStats::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary)
 
 				// Nombre de parties sources (intervalles ou groupes)
 				fJSON->WriteKeyInt("parts", 1);
+			}
+		}
+		// Dans le cas non supervise, on ecrit eventuellement le nombre de parties
+		else
+		{
+			assert(GetTargetAttributeName() == "");
+			if (GetPreparedDataGridStats() != NULL)
+			{
+				assert(GetPreparedDataGridStats()->GetAttributeNumber() == 1);
+				fJSON->WriteKeyInt("parts",
+						   GetPreparedDataGridStats()->GetAttributeAt(0)->GetPartNumber());
 			}
 		}
 
@@ -550,7 +578,7 @@ void KWAttributeStats::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary)
 			{
 				descriptiveContinuousStats = cast(KWDescriptiveContinuousStats*, GetDescriptiveStats());
 
-				// On prend les bornes issues de l'histogramme dans le cas d'un discretisation non
+				// On prend les bornes issues de l'histogramme dans le cas d'une discretisation non
 				// supervisee MODL
 				if (modlHistogramResults != NULL)
 				{
@@ -1954,8 +1982,6 @@ int KWAttributeStatsCompareLevel(const void* elem1, const void* elem2)
 {
 	KWAttributeStats* attributeStats1;
 	KWAttributeStats* attributeStats2;
-	longint lLevel1;
-	longint lLevel2;
 	int nCompare;
 
 	// Acces aux objects
@@ -1966,10 +1992,8 @@ int KWAttributeStatsCompareLevel(const void* elem1, const void* elem2)
 	assert(attributeStats1->Check());
 	assert(attributeStats2->Check());
 
-	// Comparaison des levels des attributs (ramanes a longint)
-	lLevel1 = longint(floor(attributeStats1->GetLevel() * 1e10));
-	lLevel2 = longint(floor(attributeStats2->GetLevel() * 1e10));
-	nCompare = -CompareLongint(lLevel1, lLevel2);
+	// Comparaison selon la precison du type Continuous, pour eviter les differences a epsilon pres
+	nCompare = -KWContinuous::CompareIndicatorValue(attributeStats1->GetLevel(), attributeStats2->GetLevel());
 
 	// Comparaison par nom si match nul
 	if (nCompare == 0)

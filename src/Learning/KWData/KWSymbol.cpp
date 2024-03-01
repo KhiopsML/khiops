@@ -37,13 +37,6 @@ Symbol Symbol::BuildNewSymbol(const char* sBaseName)
 	return Symbol(sNewSymbol);
 }
 
-int Symbol::GetSymbolNumber()
-{
-	int nSymbolNumber;
-	nSymbolNumber = sdSharedSymbols.GetCount();
-	return nSymbolNumber;
-}
-
 longint Symbol::GetAllSymbolsUsedMemory()
 {
 	longint lUsedMemory;
@@ -512,7 +505,7 @@ inline KWSymbolData* KWSymbolData::NewSymbolData(const char* sValue, int nLength
 	pSymbolData->nLength = nLength;
 
 	// Recopie de la chaine de caracteres ('\0' en fin de chaine)
-	memcpy(&(pSymbolData->cFirstStringChar), sValue, nLength + 1);
+	memcpy(&(pSymbolData->cFirstStringChar), sValue, (longint)nLength + 1);
 	return pSymbolData;
 }
 

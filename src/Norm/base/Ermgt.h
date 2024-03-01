@@ -121,6 +121,12 @@ public:
 	static void SetSilentMode(boolean bValue);
 	static boolean GetSilentMode();
 
+	// Traitement des erreur comme des warning
+	//     Par defaut: false
+	// Dans ce mode, les erreurs ne sont emises sous sorme de warning
+	static void SetErrorAsWarningMode(boolean bValue);
+	static boolean GetErrorAsWarningMode();
+
 	// Gestion d'un fichier de log des erreurs
 	//    Par defaut: aucun
 	// Quand on precise un fichier de log des erreurs, toute
@@ -176,6 +182,9 @@ protected:
 
 	// Mode silencieux
 	static boolean bSilentMode;
+
+	// Mode du traitement des erreurs comme des warning
+	static boolean bErrorAsWarningMode;
 
 	// Gestion du fichier d'erreur
 	static ALString sErrorLogFileName;

@@ -94,11 +94,13 @@ boolean Timestamp::AddSeconds(double dSeconds)
 		dDaySeconds -= 60.0 * nMinute;
 		assert(0 <= dDaySeconds and dDaySeconds < 60);
 
-		// Mise a jour
-		GetInternalTime().Init(nHour, nMinute, dDaySeconds);
+		// Mise a jour, sans passer par Init qui reinitialise les autre champs de DateTime
+		GetInternalTime().SetHour(nHour);
+		GetInternalTime().SetMinute(nMinute);
+		GetInternalTime().SetSecond(dDaySeconds);
 	}
 
-	// Reinitialistaion si non valide
+	// Reinitialistation si non valide
 	if (not bOk)
 	{
 		Reset();
@@ -109,8 +111,13 @@ boolean Timestamp::AddSeconds(double dSeconds)
 
 void Timestamp::SetCurrentTimestamp()
 {
-	GetInternalDate().SetCurrentDate();
-	GetInternalTime().SetCurrentTime();
+	Date dtValue;
+	Time tmValue;
+
+	dtValue.SetCurrentDate();
+	tmValue.SetCurrentTime();
+	SetDate(dtValue);
+	SetTime(tmValue);
 }
 
 const char* const Timestamp::ToString() const
@@ -133,7 +140,18 @@ void Timestamp::UnitTest(int nYear, int nMonth, int nDay, int nHour, int nMinute
 {
 	Timestamp tsValue;
 	Timestamp tsCopy;
+	DoubleVector dvSeconds;
+	int i;
 
+	// Liste des increments en secondes a prendre en compte
+	dvSeconds.Add(0);
+	dvSeconds.Add(0.1);
+	dvSeconds.Add(1);
+	dvSeconds.Add(60);
+	dvSeconds.Add(3600);
+	dvSeconds.Add(86400);
+
+	// Tests complets
 	tsValue.Init(nYear, nMonth, nDay, nHour, nMinute, dSecond);
 	tsCopy = tsValue;
 	cout << "(" << nYear << ", " << nMonth << ", " << nDay << ", " << nHour << ", " << nMinute << ", " << dSecond
@@ -146,30 +164,16 @@ void Timestamp::UnitTest(int nYear, int nMonth, int nDay, int nHour, int nMinute
 	if (tsValue.Check())
 	{
 		cout << tsValue.GetAbsoluteSecond() << "\t";
-		tsCopy = tsValue;
-		tsCopy.AddSeconds(0);
-		cout << tsCopy << " ,\t" << flush;
-		cout << tsValue.Diff(tsCopy) << "\t";
-		tsCopy = tsValue;
-		tsCopy.AddSeconds(0.1);
-		cout << tsCopy << " ,\t";
-		cout << tsValue.Diff(tsCopy) << "\t";
-		tsCopy = tsValue;
-		tsCopy.AddSeconds(1);
-		cout << tsCopy << " ,\t";
-		cout << tsValue.Diff(tsCopy) << "\t";
-		tsCopy = tsValue;
-		tsCopy.AddSeconds(60);
-		cout << tsCopy << " ,\t";
-		cout << tsValue.Diff(tsCopy) << "\t";
-		tsCopy = tsValue;
-		tsCopy.AddSeconds(3600);
-		cout << tsCopy << " ,\t";
-		cout << tsValue.Diff(tsCopy) << "\t";
-		tsCopy = tsValue;
-		tsCopy.AddSeconds(86400);
-		cout << tsCopy << " ,\t";
-		cout << tsValue.Diff(tsCopy) << "\t";
+
+		// Prise en compte de tous les increments en secondes
+		for (i = 0; i < dvSeconds.GetSize(); i++)
+		{
+			tsCopy = tsValue;
+			tsCopy.AddSeconds(dvSeconds.GetAt(i));
+			cout << tsCopy << " ,\t" << flush;
+			cout << tsValue.Diff(tsCopy) << "\t";
+			assert(fabs(tsValue.Diff(tsCopy) + dvSeconds.GetAt(i)) < 1e-3);
+		}
 	}
 	cout << endl;
 }
@@ -191,8 +195,7 @@ void Timestamp::Test()
 	int nTotalSecondNumber;
 
 	cout << "sizeof(Timestamp): " << sizeof(Timestamp) << endl;
-	assert(sizeof(Timestamp) == sizeof(Date) + sizeof(Time));
-	assert(sizeof(Timestamp) == 2 * sizeof(int));
+	assert(sizeof(Timestamp) == sizeof(longint));
 	tsCurrent.SetCurrentTimestamp();
 	cout << "SYSTEM\tCurrent Timestamp\t" << tsCurrent << "\t" << tsCurrent.GetDate().GetWeekDay() << endl;
 
@@ -216,6 +219,7 @@ void Timestamp::Test()
 		tsTimestamp = tsOrigin;
 		tsTimestamp.AddSeconds(86400.0 * (i - nOriginAbsoluteDay));
 		assert(tsTimestamp.GetDate().GetAbsoluteDay() == i);
+		assert(tsTimestamp.Diff(tsOrigin) == 86400.0 * (i - nOriginAbsoluteDay));
 		if (tsTimestamp.GetDate().GetYear() != tsPreviousTimestamp.GetDate().GetYear())
 			nTotalYearNumber++;
 		if (tsTimestamp.GetDate().GetMonth() != tsPreviousTimestamp.GetDate().GetMonth())

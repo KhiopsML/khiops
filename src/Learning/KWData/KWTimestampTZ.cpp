@@ -71,8 +71,7 @@ void TimestampTZ::Test()
 	int i;
 
 	cout << "sizeof(TimestampTZ): " << sizeof(TimestampTZ) << endl;
-	assert(sizeof(TimestampTZ) == sizeof(Date) + sizeof(Time));
-	assert(sizeof(TimestampTZ) == 2 * sizeof(int));
+	assert(sizeof(TimestampTZ) == sizeof(longint));
 
 	// Test de quelques time zones
 	tsOrigin.Init(2000, 01, 01, 13, 0, 0);

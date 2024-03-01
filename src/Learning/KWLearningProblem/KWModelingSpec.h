@@ -40,6 +40,10 @@ public:
 	boolean GetDataPreparationOnly() const;
 	void SetDataPreparationOnly(boolean bValue);
 
+	// Build interpretable names
+	boolean GetInterpretableNames() const;
+	void SetInterpretableNames(boolean bValue);
+
 	// Baseline predictor
 	boolean GetBaselinePredictor() const;
 	void SetBaselinePredictor(boolean bValue);
@@ -91,6 +95,7 @@ public:
 protected:
 	// Attributs de la classe
 	boolean bDataPreparationOnly;
+	boolean bInterpretableNames;
 	boolean bBaselinePredictor;
 	int nUnivariatePredictorNumber;
 	boolean bSelectiveNaiveBayesPredictor;
@@ -120,6 +125,16 @@ inline boolean KWModelingSpec::GetDataPreparationOnly() const
 inline void KWModelingSpec::SetDataPreparationOnly(boolean bValue)
 {
 	bDataPreparationOnly = bValue;
+}
+
+inline boolean KWModelingSpec::GetInterpretableNames() const
+{
+	return bInterpretableNames;
+}
+
+inline void KWModelingSpec::SetInterpretableNames(boolean bValue)
+{
+	bInterpretableNames = bValue;
 }
 
 inline boolean KWModelingSpec::GetBaselinePredictor() const

@@ -3235,7 +3235,6 @@ boolean CCCoclusteringReport::ReadJSONAttributePartition(KWDGAttribute* dgAttrib
 	ObjectDictionary odVarPartAttributeAllVarParts;
 	ObjectDictionary odCheckedParts;
 	ALString sPartName;
-	int nInnerAttribute;
 	ALString sAttributeName;
 	int nInnerAttributeIndex;
 	ALString sTmp;
@@ -3358,31 +3357,6 @@ boolean CCCoclusteringReport::ReadJSONAttributePartition(KWDGAttribute* dgAttrib
 			dgAttribute->SetInnerAttributes(NULL);
 		}
 
-		// Memorisation des informations sur les bornes des valeurs des attributs internes
-		// numeriques
-		if (bOk)
-		{
-			for (nInnerAttribute = 0; nInnerAttribute < dgAttribute->GetInnerAttributeNumber();
-			     nInnerAttribute++)
-			{
-				innerAttribute =
-				    cast(CCHDGAttribute*,
-					 dgAttribute->GetInnerAttributes()->GetInnerAttributeAt(nInnerAttribute));
-
-				// Cas d'un attribut Continuous
-				if (innerAttribute->GetAttributeType() == KWType::Continuous)
-				{
-					// On modifie les bornes des intervalles extremes de facon a
-					// pouvoir produire les libelle avec -inf et +inf par
-					// GetObjectLabel
-					innerAttribute->GetHeadPart()->GetInterval()->SetLowerBound(
-					    KWDGInterval::GetMinLowerBound());
-					innerAttribute->GetTailPart()->GetInterval()->SetUpperBound(
-					    KWDGInterval::GetMaxUpperBound());
-				}
-			}
-		}
-
 		// Fin de l'objet
 		bOk = bOk and JSONTokenizer::ReadExpectedToken('}');
 		bOk = bOk and JSONTokenizer::ReadExpectedToken(',');
@@ -3422,8 +3396,8 @@ boolean CCCoclusteringReport::ReadJSONAttributePartition(KWDGAttribute* dgAttrib
 		else
 			nPartIndex++;
 
-		// Intervalles, groupes de valeurs ou groupe de parties de variables selon le type
-		// d'attribut
+		// Intervalles, groupes de valeurs ou groupe de parties de variables
+		// selon le type d'attribut
 		if (bOk)
 		{
 			if (dgAttribute->GetAttributeType() == KWType::Continuous)
@@ -3523,6 +3497,11 @@ boolean CCCoclusteringReport::ReadJSONAttributePartition(KWDGAttribute* dgAttrib
 				assert(dgPart->GetInterval()->GetLowerBound() != KWContinuous::GetMissingValue());
 				dgPart->GetInterval()->SetLowerBound(KWContinuous::GetMissingValue());
 			}
+
+			// On modifie les bornes des intervalles extremes de facon a
+			// pouvoir produire les libelle avec -inf et +inf par GetObjectLabel
+			dgAttribute->GetHeadPart()->GetInterval()->SetLowerBound(KWDGInterval::GetMinLowerBound());
+			dgAttribute->GetTailPart()->GetInterval()->SetUpperBound(KWDGInterval::GetMaxUpperBound());
 		}
 		// Dans le cas categoriel
 		else if (dgAttribute->GetAttributeType() == KWType::Symbol)

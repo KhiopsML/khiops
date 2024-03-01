@@ -121,8 +121,7 @@ void KWPreprocessingSpec::WriteLineReport(int nTargetAttributeType, ostream& ost
 	ost << nMinPartFrequency << "\t";
 	ost << discretizerSpec.GetMethodName(nTargetAttributeType) << "\t" << discretizerSpec.GetParam() << "\t";
 	ost << grouperSpec.GetMethodName(nTargetAttributeType) << "\t" << grouperSpec.GetParam() << "\t";
-	ost << dataGridOptimizerParameters.GetOptimizationAlgorithm() << "\t"
-	    << dataGridOptimizerParameters.GetOptimizationLevel() << "\t"
+	ost << "VNS\t" << dataGridOptimizerParameters.GetOptimizationLevel() << "\t"
 	    << dataGridOptimizerParameters.GetUnivariateInitialization() << "\t"
 	    << dataGridOptimizerParameters.GetPreOptimize() << "\t" << dataGridOptimizerParameters.GetOptimize() << "\t"
 	    << dataGridOptimizerParameters.GetPostOptimize() << "\t";

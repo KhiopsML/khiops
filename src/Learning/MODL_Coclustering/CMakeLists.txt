@@ -2,7 +2,7 @@ file(GLOB cppfiles ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 generate_gui_add_view_get_log_list(ddlogfiles)
 
 # on fedora, binaries built with mpi must ended by _mpich suffix
-add_executable(MODL_Coclustering${MPI_SUFFIX} ${cppfiles} ${ddlogfiles})
+add_executable(MODL_Coclustering${MPI_SUFFIX} ${cppfiles} MODL_Coclustering.rc ${ddlogfiles})
 set_khiops_options(MODL_Coclustering${MPI_SUFFIX})
 target_link_libraries(MODL_Coclustering${MPI_SUFFIX} PUBLIC KMDRRuleLibrary KWLearningProblem)
 
@@ -10,7 +10,7 @@ target_link_libraries(MODL_Coclustering${MPI_SUFFIX} PUBLIC KMDRRuleLibrary KWLe
 
 target_link_libraries(MODL_Coclustering_SO PUBLIC KMDRRuleLibrary KWLearningProblem)
 
-target_link_libraries(MODL_Coclustering${MPI_SUFFIX} PUBLIC KWLearningProblem DTForest KMDRRuleLibrary)
+target_link_libraries(MODL_Coclustering${MPI_SUFFIX} PUBLIC KMDRRuleLibrary KWLearningProblem)
 
 add_library(MODL_Coclustering_SO SHARED ${cppfiles} ${ddlogfiles})
 

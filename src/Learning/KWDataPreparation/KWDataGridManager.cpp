@@ -17,10 +17,9 @@ void KWDataGridManager::CopyDataGrid(const KWDataGrid* initialDataGrid, KWDataGr
 {
 	KWDataGridManager dataGridManager;
 
-	require(initialDataGrid != NULL);
 	require(targetDataGrid != NULL);
 
-	// Utilisation d'un manager de grille pour effectuier la copie
+	// Utilisation d'un manager de grille pour effectuer la copie
 	dataGridManager.SetSourceDataGrid(initialDataGrid);
 	targetDataGrid->DeleteAll();
 	dataGridManager.ExportDataGrid(targetDataGrid);
@@ -31,7 +30,6 @@ void KWDataGridManager::CopyDataGridWithInnerAttributesCloned(const KWDataGrid* 
 {
 	KWDataGridManager dataGridManager;
 
-	require(initialDataGrid != NULL);
 	require(targetDataGrid != NULL);
 
 	// Utilisation d'un manager de grille pour effectuier la copie
@@ -44,7 +42,6 @@ void KWDataGridManager::CopyInformativeDataGrid(const KWDataGrid* initialDataGri
 {
 	KWDataGridManager dataGridManager;
 
-	require(initialDataGrid != NULL);
 	require(targetDataGrid != NULL);
 
 	// Utilisation d'un manager de grille pour effectuer la copie
@@ -296,6 +293,69 @@ void KWDataGridManager::ExportNullDataGrid(KWDataGrid* targetDataGrid) const
 	ensure(not sourceDataGrid->IsVarPartDataGrid() or
 	       targetDataGrid->GetVarPartAttribute()->GetInnerAttributes() !=
 		   sourceDataGrid->GetVarPartAttribute()->GetInnerAttributes());
+}
+
+void KWDataGridManager::ExportDataGridWithRandomizedInnerAttributes(const KWDataGrid* inputDataGrid,
+								    const KWDGInnerAttributes* referenceInnerAttributes,
+								    KWDataGrid* targetDataGrid, int nTargetTokenNumber)
+{
+	int nCurrentTokenNumber;
+	int nReferenceTokenNumber;
+	int nAttribute;
+	KWDGAttribute* targetAttribute;
+	KWDGAttribute* sourceAttribute;
+	KWDGInnerAttributes* surtokenizedInnerAttributes;
+
+	require(Check());
+	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
+	require(sourceDataGrid->IsVarPartDataGrid());
+
+	// Nombre de tokens de la grille en entree
+	nCurrentTokenNumber =
+	    inputDataGrid->GetVarPartAttribute()->GetInnerAttributes()->ComputeTotalInnerAttributeVarParts();
+
+	// Nombre de tokens des innerAttributes de reference
+	nReferenceTokenNumber = referenceInnerAttributes->ComputeTotalInnerAttributeVarParts();
+
+	assert(nReferenceTokenNumber > nCurrentTokenNumber);
+
+	// Cas ou le nombre de tokens objectif est inferieur au nombre de tokens en entree : recopie de la grille en entree a l'identique
+	// Cas ou le nombre de tokens de la partition de reference est inferieur au nombre de tokens en entree : pas de sur-tokenisation possible
+	if (nTargetTokenNumber <= nCurrentTokenNumber or nReferenceTokenNumber < nCurrentTokenNumber)
+		CopyDataGrid(inputDataGrid, targetDataGrid);
+	// Sinon
+	else
+	{
+		// Export des attributs (avec innerAtributes non surtokenises a ce stade)
+		ExportAttributes(targetDataGrid);
+
+		// Initialisation des parties des attributs
+		for (nAttribute = 0; nAttribute < targetDataGrid->GetAttributeNumber(); nAttribute++)
+		{
+			targetAttribute = targetDataGrid->GetAttributeAt(nAttribute);
+
+			// Recherche de l'attribut source correspondant
+			sourceAttribute = sourceDataGrid->SearchAttribute(targetAttribute->GetAttributeName());
+			check(sourceAttribute);
+
+			// Pour un attribut simple, export des parties
+			if (KWType::IsSimple(sourceAttribute->GetAttributeType()))
+				InitialiseAttributeParts(sourceAttribute, targetAttribute);
+			// Pour l'attribut VarPart, export des parties apres surtokenisation des attributs internes
+			else
+			{
+				// Creation d'un nouveau KWDGInnerAttributes surtokenise
+				surtokenizedInnerAttributes = CreateRandomInnerAttributes(
+				    inputDataGrid->GetInnerAttributes(), GetSourceDataGrid()->GetInnerAttributes(),
+				    nTargetTokenNumber);
+
+				// Creation de l'attribut VarPart associe a ces innerAttributes selon la meme partition que l'attribut en entree
+				InitialiseVarPartAttributeWithNewInnerAttributes(
+				    inputDataGrid->GetVarPartAttribute(), surtokenizedInnerAttributes, targetAttribute);
+			}
+		}
+		ExportCells(targetDataGrid);
+	}
 }
 
 void KWDataGridManager::InitializeQuantileBuilders(ObjectDictionary* odQuantilesBuilders,
@@ -639,6 +699,7 @@ void KWDataGridManager::ExportGranularizedDataGridForVarPartAttributes(
 	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
 	require(nGranularity > 0);
 	require(sourceDataGrid->IsVarPartDataGrid());
+	require(odInnerAttributesQuantilesBuilders != NULL);
 	require(odInnerAttributesQuantilesBuilders->GetCount() ==
 		sourceDataGrid->GetInnerAttributes()->GetInnerAttributeNumber());
 
@@ -691,6 +752,78 @@ void KWDataGridManager::ExportGranularizedDataGridForVarPartAttributes(
 	ensure(not sourceDataGrid->IsVarPartDataGrid() or
 	       targetDataGrid->GetVarPartAttribute()->GetInnerAttributes() !=
 		   sourceDataGrid->GetVarPartAttribute()->GetInnerAttributes());
+}
+
+void KWDataGridManager::ComputeGranularizedTotalPartNumbers(const ObjectDictionary* odQuantilesBuilders,
+							    IntVector* ivGranularityTotalPartNumbers) const
+{
+	boolean bDisplay = false;
+	KWQuantileBuilder* quantileBuilder;
+	ObjectArray oaQuantilesBuilders;
+	int nAttribute;
+	int nGranularity;
+	int nPartileNumber;
+	int nActualPartileNumber;
+	int nTotalActualPartileNumber;
+	boolean bMaximumQuantilization;
+
+	require(odQuantilesBuilders != NULL);
+	require(odQuantilesBuilders->GetCount() > 0);
+	require(ivGranularityTotalPartNumbers != NULL);
+
+	// Export des quantile builder dans un tableau
+	odQuantilesBuilders->ExportObjectArray(&oaQuantilesBuilders);
+	if (bDisplay)
+		cout << "ComputeGranularizedTotalPartNumbers\t" << odQuantilesBuilders->GetCount() << "\n";
+
+	// Parcours des quantile builders pour calculer les nombre totaux de partie
+	ivGranularityTotalPartNumbers->SetSize(0);
+	nGranularity = 0;
+	bMaximumQuantilization = false;
+	while (not bMaximumQuantilization)
+	{
+		// Nombre de partiles theoriques
+		nPartileNumber = (int)pow(2, nGranularity);
+
+		// Parcours des attributs a quantilser
+		bMaximumQuantilization = true;
+		nTotalActualPartileNumber = 0;
+		for (nAttribute = 0; nAttribute < oaQuantilesBuilders.GetSize(); nAttribute++)
+		{
+			quantileBuilder = cast(KWQuantileBuilder*, oaQuantilesBuilders.GetAt(nAttribute));
+
+			// Calcul du nombre effectif de quantiles si necessaire
+			if (nGranularity == 0 or
+			    quantileBuilder->GetComputedQuantileNumber() < quantileBuilder->GetValueNumber())
+				nActualPartileNumber = quantileBuilder->ComputeQuantiles(nPartileNumber);
+			// Sinon, on a atteint le nombre maximum de valeurs a une granularite precedente
+			else
+			{
+				assert(quantileBuilder->GetComputedQuantileNumber() ==
+				       quantileBuilder->GetValueNumber());
+				nActualPartileNumber = quantileBuilder->GetValueNumber();
+			}
+
+			// Mise a jour du total
+			nTotalActualPartileNumber += nActualPartileNumber;
+
+			// On test si on a atteint le maximum
+			bMaximumQuantilization =
+			    bMaximumQuantilization and nActualPartileNumber == quantileBuilder->GetValueNumber();
+		}
+
+		// Memorisation du total
+		ivGranularityTotalPartNumbers->Add(nTotalActualPartileNumber);
+		assert(ivGranularityTotalPartNumbers->GetSize() == nGranularity + 1);
+		assert(nGranularity == 0 or ivGranularityTotalPartNumbers->GetAt(nGranularity) >=
+						ivGranularityTotalPartNumbers->GetAt(nGranularity - 1));
+		if (bDisplay)
+			cout << "\t" << nGranularity << "\t" << ivGranularityTotalPartNumbers->GetAt(nGranularity)
+			     << "\n";
+
+		// Granularite suivante
+		nGranularity++;
+	}
 }
 
 void KWDataGridManager::ExportFrequencyTableFromOneAttribute(KWFrequencyTable* kwFrequencyTable,
@@ -938,7 +1071,7 @@ void KWDataGridManager::ExportDataGridWithReferenceVarPartClusters(KWDataGrid* r
 	initialAttribute = sourceDataGrid->GetVarPartAttribute();
 	referenceAttribute = referenceDataGrid->GetVarPartAttribute();
 
-	// Initialisation du vecteur d'index de grpupe cible
+	// Initialisation du vecteur d'index de groupe cible
 	ivTargetGroupIndexes.SetSize(initialAttribute->GetPartNumber());
 	nTargetGroupNumber = referenceAttribute->GetPartNumber();
 
@@ -1012,7 +1145,7 @@ void KWDataGridManager::ExportDataGridWithReferenceVarPartClusters(KWDataGrid* r
 	}
 
 	// Mise a jour de la grille cible sur la base de la nouvelle partition specifiee
-	// Les cellule sont reexportee par la methode appelee
+	// Les cellules sont reexportees par la methode appelee
 	UpdateVarPartDataGridFromVarPartGroups(targetDataGrid, &ivTargetGroupIndexes, nTargetGroupNumber);
 
 	ensure(targetDataGrid->GetVarPartAttribute()->GetInnerAttributes() ==
@@ -1902,7 +2035,7 @@ void KWDataGridManager::BuildUnivariateDataGridFromGranularizedPartition(KWDataG
 	KWDGAttribute* targetAttribute;
 	KWDGAttribute* sourceAttribute;
 
-	require(0 < nAttributeIndex and nAttributeIndex < sourceDataGrid->GetAttributeNumber());
+	require(0 <= nAttributeIndex and nAttributeIndex < sourceDataGrid->GetAttributeNumber());
 
 	// Initialisation de la grille cible a une variable
 	InitialiseDataGrid(sourceDataGrid, univariateTargetDataGrid, 1);
@@ -2642,7 +2775,7 @@ void KWDataGridManager::InitialiseAttributeParts(const KWDGAttribute* sourceAttr
 			targetAttribute->SetGarbagePart(targetPart);
 
 		// Memorisation de l'effectif de la partie pour les attribut internes
-		// Pour les autre attribut, c'es calcule a partir des cellules
+		// Pour les autre attributs, c'es calcule a partir des cellules
 		if (sourceAttribute->IsInnerAttribute())
 			targetPart->SetPartFrequency(sourcePart->GetPartFrequency());
 
@@ -2717,6 +2850,107 @@ void KWDataGridManager::InitialiseVarPartAttributeClonedParts(const KWDGAttribut
 		sourceAttribute->GetNextPart(sourcePart);
 	}
 	assert(targetAttribute->GetPartNumber() == sourceAttribute->GetPartNumber());
+}
+
+void KWDataGridManager::InitialiseVarPartAttributeWithNewInnerAttributes(const KWDGAttribute* sourceVarPartAttribute,
+									 KWDGInnerAttributes* newInnerAttributes,
+									 KWDGAttribute* targetVarPartAttribute) const
+{
+	ObjectArray oaSourceInnerAttributeVarParts;
+	ObjectArray oaNewInnerAttributeVarParts;
+	ObjectArray* oaVarPart;
+	NumericKeyDictionary nkdTargetInnerAttributeVarParts;
+	int nSourceIndex;
+	int nTargetIndex;
+	KWDGPart* sourcePart;
+	KWDGPart* targetPart;
+	KWDGPart* sourceVarPart;
+	KWDGPart* targetVarPart;
+	KWDGValue* sourceValue;
+	boolean bOk;
+	boolean bDisplayResults = false;
+
+	require(CheckAttributesConsistency(sourceVarPartAttribute, targetVarPartAttribute));
+	require(targetVarPartAttribute->GetAttributeType() == KWType::VarPart);
+	require(targetVarPartAttribute->GetPartNumber() == 0);
+
+	targetVarPartAttribute->SetInnerAttributes(newInnerAttributes);
+	targetVarPartAttribute->SetVarPartsShared(false);
+
+	// Memorisation de l'association entre VarPart source et une a plusieurs VarParts dans les nouveaux innerAttributes
+	sourceVarPartAttribute->GetInnerAttributes()->ExportAllInnerAttributeVarParts(&oaSourceInnerAttributeVarParts);
+	newInnerAttributes->ExportAllInnerAttributeVarParts(&oaNewInnerAttributeVarParts);
+	nTargetIndex = 0;
+	for (nSourceIndex = 0; nSourceIndex < oaSourceInnerAttributeVarParts.GetSize(); nSourceIndex++)
+	{
+		sourceVarPart = cast(KWDGPart*, oaSourceInnerAttributeVarParts.GetAt(nSourceIndex));
+
+		oaVarPart = new ObjectArray;
+		bOk = true;
+		while (bOk and nTargetIndex < oaNewInnerAttributeVarParts.GetSize())
+		{
+			targetVarPart = cast(KWDGPart*, oaNewInnerAttributeVarParts.GetAt(nTargetIndex));
+
+			if (targetVarPart->GetAttribute()->GetAttributeName() ==
+				sourceVarPart->GetAttribute()->GetAttributeName() and
+			    targetVarPart->IsSubPart(sourceVarPart))
+			{
+				oaVarPart->Add(targetVarPart);
+				nTargetIndex++;
+			}
+			else
+				bOk = false;
+		}
+
+		nkdTargetInnerAttributeVarParts.SetAt(sourceVarPart, oaVarPart);
+	}
+
+	// Recopie des parties de l'attribut source, en utilisant les VarPartCibles
+	sourcePart = sourceVarPartAttribute->GetHeadPart();
+	while (sourcePart != NULL)
+	{
+		// Creation de la partie cible
+		targetPart = targetVarPartAttribute->AddPart();
+
+		// Transfert des parties de parties de variable avec de nouvelles parties de variable
+		sourceValue = sourcePart->GetVarPartSet()->GetHeadValue();
+		while (sourceValue != NULL)
+		{
+			sourceVarPart = sourceValue->GetVarPart();
+
+			// Memorisation de la partie cible correspondante
+			oaVarPart = cast(ObjectArray*, nkdTargetInnerAttributeVarParts.Lookup(sourceVarPart));
+			for (nTargetIndex = 0; nTargetIndex < oaVarPart->GetSize(); nTargetIndex++)
+			{
+				targetPart->GetVarPartSet()->AddVarPart(
+				    cast(KWDGPart*, oaVarPart->GetAt(nTargetIndex)));
+			}
+
+			// Ajout de cette partie pour l'attribut interne
+			sourcePart->GetVarPartSet()->GetNextValue(sourceValue);
+		}
+
+		// Transfert du parametrage du groupe poubelle
+		if (sourcePart == sourceVarPartAttribute->GetGarbagePart())
+			targetVarPartAttribute->SetGarbagePart(targetPart);
+
+		// Partie suivante
+		sourceVarPartAttribute->GetNextPart(sourcePart);
+	}
+
+	// Affichage des resultats
+	if (bDisplayResults)
+	{
+		cout << "InitialiseVarPartAttribute" << endl;
+		cout << "Attribut varPart input" << endl;
+		sourceVarPartAttribute->Write(cout);
+		cout << "Attribut varPart surtokenise" << endl;
+		targetVarPartAttribute->Write(cout);
+	}
+
+	// Nettoyage
+	nkdTargetInnerAttributeVarParts.DeleteAll();
+	assert(targetVarPartAttribute->GetPartNumber() == sourceVarPartAttribute->GetPartNumber());
 }
 
 void KWDataGridManager::InitialiseAttributeNullPart(const KWDGAttribute* sourceAttribute,
@@ -2810,6 +3044,12 @@ void KWDataGridManager::InitialiseAttributeRandomParts(const KWDGAttribute* sour
 
 				// Initialisation de ses bornes
 				targetPart->GetInterval()->CopyFrom(sourcePart->GetInterval());
+
+				// CH IV Surtokenisation
+				// Mise a jour des effectifs dans le cas d'un innerAttribute
+				if (sourceAttribute->IsInnerAttribute())
+					targetPart->SetPartFrequency(targetPart->GetPartFrequency() +
+								     sourcePart->GetPartFrequency());
 			}
 			// Sinon, mise a jour de la borne sup de l'intervalle cible en cours
 			else
@@ -2893,6 +3133,12 @@ void KWDataGridManager::InitialiseAttributeRandomParts(const KWDGAttribute* sour
 					targetPart->GetValueSet()->UpgradeFrom(sourcePart->GetValueSet());
 				}
 
+				// CH IV Surtokenisation
+				// Mise a jour des effectifs dans le cas d'un innerAttribute
+				if (sourceAttribute->IsInnerAttribute())
+					targetPart->SetPartFrequency(targetPart->GetPartFrequency() +
+								     sourcePart->GetPartFrequency());
+
 				// La partie cible est valide si son nombre de partie sources est atteint
 				if (nTargetPart < ivValueIndexes.GetSize() and
 				    nSourcePart >= ivValueIndexes.GetAt(nTargetPart))
@@ -2903,6 +3149,11 @@ void KWDataGridManager::InitialiseAttributeRandomParts(const KWDGAttribute* sour
 					targetPart = NULL;
 				}
 			}
+
+			// CH IV Surtokenisation
+			if (sourceAttribute->IsInnerAttribute())
+				targetAttribute->SortParts();
+
 			assert(targetAttribute->GetPartNumber() == ivValueIndexes.GetSize() + 1);
 		}
 	}
@@ -2996,6 +3247,12 @@ void KWDataGridManager::AddAttributeRandomParts(const KWDGAttribute* sourceAttri
 
 				// Reinitialisation de ses bornes
 				targetPart->GetInterval()->CopyFrom(sourcePart->GetInterval());
+
+				// CH IV Surtokenisation
+				// Mise a jour des effectifs dans le cas d'un innerAttribute
+				if (sourceAttribute->IsInnerAttribute())
+					targetPart->SetPartFrequency(targetPart->GetPartFrequency() +
+								     sourcePart->GetPartFrequency());
 			}
 			// Sinon, mise a jour de la borne sup de l'intervalle cible en cours
 			else
@@ -3083,6 +3340,12 @@ void KWDataGridManager::AddAttributeRandomParts(const KWDGAttribute* sourceAttri
 					targetPart->GetValueSet()->UpgradeFrom(sourcePart->GetValueSet());
 				}
 
+				// CH IV Surtokenisation
+				// Mise a jour des effectifs dans le cas d'un innerAttribute
+				if (sourceAttribute->IsInnerAttribute())
+					targetPart->SetPartFrequency(targetPart->GetPartFrequency() +
+								     sourcePart->GetPartFrequency());
+
 				// La partie cible est valide si elle finalise une partie mandatorye
 				if (nSourcePart == oaSourceParts.GetSize() - 1 or
 				    mandatoryPart != cast(KWDGPart*, oaMandatoryParts.GetAt(nSourcePart + 1)))
@@ -3101,6 +3364,11 @@ void KWDataGridManager::AddAttributeRandomParts(const KWDGAttribute* sourceAttri
 					targetPart = NULL;
 				}
 			}
+
+			// CH IV Surtokenisation
+			if (sourceAttribute->IsInnerAttribute())
+				targetAttribute->SortParts();
+
 			assert(targetAttribute->GetPartNumber() >= mandatoryAttribute->GetPartNumber());
 		}
 	}
@@ -3376,7 +3644,8 @@ boolean KWDataGridManager::CheckAttributesConsistency(const KWDGAttribute* attri
 	bOk = bOk and attribute1->GetAttributeName() == attribute2->GetAttributeName();
 	bOk = bOk and attribute1->GetAttributeType() == attribute2->GetAttributeType();
 	bOk = bOk and attribute1->GetAttributeTargetFunction() == attribute2->GetAttributeTargetFunction();
-	bOk = bOk and attribute1->GetInitialValueNumber() == attribute2->GetInitialValueNumber();
+	bOk = bOk and (attribute1->GetAttributeType() == KWType::VarPart or
+		       attribute1->GetInitialValueNumber() == attribute2->GetInitialValueNumber());
 	bOk = bOk and attribute1->GetOwnerAttributeName() == attribute2->GetOwnerAttributeName();
 	bOk = bOk and attribute1->GetCost() == attribute2->GetCost();
 	return bOk;
@@ -3405,7 +3674,7 @@ KWDGInnerAttributes* KWDataGridManager::CloneInnerAttributes(const KWDGInnerAttr
 		// Extraction de l'attribut internes source
 		sourceInnerAttribute = sourceInnerAttributes->GetInnerAttributeAt(nInnerAttribute);
 
-		// Creation d'un attribut interne identique en exploitant le createur virtuelle de la grille cibke en parametre
+		// Creation d'un attribut interne identique en exploitant le createur virtuelle de la grille cible en parametre
 		targetInnerAttribute = targetDataGrid->NewAttribute();
 
 		// Parametrage
@@ -3522,6 +3791,84 @@ KWDataGridManager::CreateGranularizedInnerAttributes(const KWDGInnerAttributes* 
 	ensure(resultInnerAttributes->ComputeTotalInnerAttributeFrequency() ==
 	       sourceInnerAttributes->ComputeTotalInnerAttributeFrequency());
 	ensure(sourceInnerAttributes->ContainsSubVarParts(resultInnerAttributes));
+	return resultInnerAttributes;
+}
+
+KWDGInnerAttributes* KWDataGridManager::CreateRandomInnerAttributes(const KWDGInnerAttributes* sourceInnerAttributes,
+								    const KWDGInnerAttributes* referenceInnerAttributes,
+								    int nTargetTokenNumber) const
+{
+	KWDGInnerAttributes* resultInnerAttributes;
+	int nInnerAttribute;
+	KWDGAttribute* sourceInnerAttribute;
+	KWDGAttribute* targetInnerAttribute;
+	KWDGAttribute* referenceInnerAttribute;
+	int nRequestedTotalPartNumber;
+	int nRequestedPartNumber;
+	int nAddedPartNumber;
+	int nMeanRequestedPartNumber;
+	boolean bDisplayResults = false;
+
+	// Creation du nouvel innerAttributes
+	resultInnerAttributes = new KWDGInnerAttributes;
+	resultInnerAttributes->SetVarPartGranularity(sourceInnerAttributes->GetVarPartGranularity());
+
+	// Nombre de tokens que l'on doit ajouter sur l'ensemble des attributs
+	nRequestedTotalPartNumber = nTargetTokenNumber - sourceInnerAttributes->ComputeTotalInnerAttributeVarParts();
+
+	// Nombre de tokens que l'on devrait ajouter en moyenne a chaque innerAttribute
+	nMeanRequestedPartNumber =
+	    (int)ceil(nRequestedTotalPartNumber / sourceInnerAttributes->GetInnerAttributeNumber());
+
+	// Initialisation du nombre de tokens effectivement ajoute
+	nAddedPartNumber = 0;
+	nInnerAttribute = 0;
+
+	// Ajout de tokens aux innerAttributes
+	// Boucle sur les innerAttributes
+	for (nInnerAttribute = 0; nInnerAttribute < sourceInnerAttributes->GetInnerAttributeNumber(); nInnerAttribute++)
+	{
+		sourceInnerAttribute = sourceInnerAttributes->GetInnerAttributeAt(nInnerAttribute);
+		referenceInnerAttribute = referenceInnerAttributes->GetInnerAttributeAt(nInnerAttribute);
+
+		// Creation d'un attribut interne
+		targetInnerAttribute = new KWDGAttribute;
+
+		// Parametrage
+		InitialiseAttribute(sourceInnerAttribute, targetInnerAttribute);
+		resultInnerAttributes->AddInnerAttribute(targetInnerAttribute);
+
+		// Calcul du nombre de tokens a ajoute pour cet attribut en fonctionn des tokens deja attribues et du nombre cible a ne pas depasser
+		nRequestedPartNumber = min(nMeanRequestedPartNumber, nTargetTokenNumber - nAddedPartNumber);
+
+		if (nAddedPartNumber < nTargetTokenNumber)
+		{
+			if (nRequestedPartNumber == 0)
+				nRequestedPartNumber++;
+			// Ajout de parties aleatoires
+			AddAttributeRandomParts(referenceInnerAttribute, sourceInnerAttribute, targetInnerAttribute,
+						nRequestedPartNumber);
+		}
+		else
+			// Recopie de l'attribut
+			InitialiseAttributeParts(sourceInnerAttribute, targetInnerAttribute);
+
+		// Mise a jour du nombre de parties ajoutees
+		nAddedPartNumber += targetInnerAttribute->GetPartNumber() - sourceInnerAttribute->GetPartNumber();
+	}
+
+	// Affichage des innerAttributes
+	if (bDisplayResults)
+	{
+		cout << "CreateRandomInnerAttributes : sortie" << endl;
+		cout << "Inner attributes source" << endl;
+		sourceInnerAttributes->Write(cout);
+		cout << "Inner attributes reference" << endl;
+		referenceInnerAttributes->Write(cout);
+		cout << "Inner attributes surtokenise\t" << nTargetTokenNumber << endl;
+		resultInnerAttributes->Write(cout);
+	}
+
 	return resultInnerAttributes;
 }
 

@@ -752,7 +752,7 @@ longint KWDataTableDriverTextFile::GetEstimatedObjectNumber()
 			lHeaderLigneSize = temporaryFile.GetPositionInFile();
 
 			// Calcul du nombre de lignes hors ligne d'entete
-			lLineNumber = temporaryFile.GetBufferLineNumber() - 1;
+			lLineNumber = (longint)temporaryFile.GetBufferLineNumber() - 1;
 
 			// Calcul de la taille correspondante occupee dans le fichier
 			lTotalLineSize = temporaryFile.GetCurrentBufferSize() - lHeaderLigneSize;
@@ -1026,7 +1026,7 @@ longint KWDataTableDriverTextFile::GetUsedMemory() const
 	return lUsedMemory;
 }
 
-longint KWDataTableDriverTextFile::GetInMemoryEstimatedObjectNumber(longint lInputFileSize)
+longint KWDataTableDriverTextFile::GetInMemoryEstimatedObjectNumber(longint lInputFileSize) const
 {
 	boolean bDisplay = false;
 	longint lEstimatedObjectNumber;
@@ -1113,14 +1113,14 @@ longint KWDataTableDriverTextFile::GetEstimatedUsedInputDiskSpacePerObject() con
 	// Estimation de la taille d'un objet natif
 	lNativeObjectSize = nMinRecordSize; // Fin de ligne plus un minimum
 	lNativeObjectSize +=
-	    nDenseNativeValueNumber * nDenseValueSize; // Valeurs dense de l'objet (valeur + separateur)
+	    (longint)nDenseNativeValueNumber * nDenseValueSize; // Valeurs dense de l'objet (valeur + separateur)
 	lNativeObjectSize +=
-	    nTextNativeValueNumber *
+	    (longint)nTextNativeValueNumber *
 	    nTextValueSize; // Longueur moyenne d'un champ texte (entre un ancien et un nouveau tweet...)
-	lNativeObjectSize += nSparseNativeValueNumber *
+	lNativeObjectSize += (longint)nSparseNativeValueNumber *
 			     nSparseValueSize; // Valeurs sparse de l'objet (cle + ':' + valeur + blanc + separateur)
 	lNativeObjectSize +=
-	    GetClass()->GetKeyAttributeNumber() * nKeyFieldSize; // Taille des champs de la cle (heuristique)
+	    (longint)GetClass()->GetKeyAttributeNumber() * nKeyFieldSize; // Taille des champs de la cle (heuristique)
 
 	// Affichage
 	if (bDisplay)
@@ -1197,12 +1197,13 @@ longint KWDataTableDriverTextFile::GetEstimatedUsedMemoryPerObject() const
 	// Estimation de la memoire necessaire pour stocker un objet
 	lObjectSize = sizeof(KWObject) + 2 * sizeof(void*); // KWObject a vide
 	lObjectSize +=
-	    nPhysicalDenseLoadedValueNumber * (sizeof(KWValue) + nDenseValueSize);         // Valeurs dense de l'objet
-	lObjectSize += nPhysicalTextLoadedValueNumber * nTextValueSize;                    // Valeurs Text de l'objet
-	lObjectSize += nPhysicalSparseLoadedValueNumber * (sizeof(int) + sizeof(KWValue)); // Valeurs sparse de l'objet
-	lObjectSize += nPhysicalSparseLoadedValueBlockNumber * sizeof(KWSymbolValueBlock);
+	    nPhysicalDenseLoadedValueNumber * (sizeof(KWValue) + nDenseValueSize); // Valeurs dense de l'objet
+	lObjectSize += (longint)nPhysicalTextLoadedValueNumber * nTextValueSize;   // Valeurs Text de l'objet
 	lObjectSize +=
-	    GetClass()->GetKeyAttributeNumber() *
+	    (longint)nPhysicalSparseLoadedValueNumber * (sizeof(int) + sizeof(KWValue)); // Valeurs sparse de l'objet
+	lObjectSize += (longint)nPhysicalSparseLoadedValueBlockNumber * sizeof(KWSymbolValueBlock);
+	lObjectSize +=
+	    (longint)GetClass()->GetKeyAttributeNumber() *
 	    (Symbol::GetUsedMemoryPerSymbol() + nKeyFieldSize); // Taille des Symbol de la cle (sans leur contenu)
 
 	// Affichage
@@ -1279,10 +1280,10 @@ longint KWDataTableDriverTextFile::GetEstimatedUsedOutputDiskSpacePerObject(cons
 	// Estimation de la memoire necessaire pour stocker un objet a ecrire
 	// (generalisation de l'objet natif)
 	lWrittenObjectSize = nMinRecordSize;
-	lWrittenObjectSize += nDenseLoadedValueNumber * nDenseValueSize;
-	lWrittenObjectSize += nTextLoadedValueNumber * nTextValueSize;
-	lWrittenObjectSize += nSparseLoadedValueNumber * nSparseValueSize;
-	lWrittenObjectSize += kwcLogicalClass->GetKeyAttributeNumber() * nKeyFieldSize;
+	lWrittenObjectSize += (longint)nDenseLoadedValueNumber * nDenseValueSize;
+	lWrittenObjectSize += (longint)nTextLoadedValueNumber * nTextValueSize;
+	lWrittenObjectSize += (longint)nSparseLoadedValueNumber * nSparseValueSize;
+	lWrittenObjectSize += (longint)kwcLogicalClass->GetKeyAttributeNumber() * nKeyFieldSize;
 
 	// Affichage
 	if (bDisplay)
@@ -1418,11 +1419,8 @@ int KWDataTableDriverTextFile::ComputeBufferNecessaryMemory(boolean bRead, int n
 			nNecessaryMemory = (int)lFileSize;
 	}
 
-	// Ajout d'un overhead pour la taille des objets en memoire, essentiellement en lecture
-	if (bRead)
-		nNecessaryMemory += nNecessaryMemory / 4;
-	else
-		nNecessaryMemory += nNecessaryMemory / 8;
+	// Ajout d'un overhead pour la taille des objets en memoire
+	nNecessaryMemory += nNecessaryMemory / 4;
 	return nNecessaryMemory;
 }
 

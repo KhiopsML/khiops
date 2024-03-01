@@ -1,4 +1,3 @@
 Rank;Name;Type;Style;Label
 1; FilePath ;ALString;   ;File
 2; DirectFileChooser;boolean;  ; Direct file chooser
-

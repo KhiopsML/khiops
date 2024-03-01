@@ -181,7 +181,8 @@ int KWDataPreparationTask::ComputeMaxLoadableAttributeNumber(const KWLearningSpe
 		// esclaves en les faisant travailler plusieurs fois chacun, de facon a minimer l'attente du dernier
 		// esclave
 		if (lMaxAttributeNumber * nMaxProcessBySlave * nSlaveNumber > nUsedAttributeNumber)
-			lMaxAttributeNumber = 1 + nUsedAttributeNumber / (nSlaveNumber * nMaxProcessBySlave);
+			lMaxAttributeNumber =
+			    1 + (longint)nUsedAttributeNumber / ((longint)nSlaveNumber * nMaxProcessBySlave);
 
 		// On ajuste le nombre d'attribut pour qu'il soit si possible equilibre par process esclave
 		nMaxAttributeNumber = (int)lMaxAttributeNumber;
@@ -351,10 +352,10 @@ longint KWDataPreparationTask::ComputeNecessaryUnivariateStatsMemory(const KWLea
 	// L'estimation est tres approximative, et est consideree comme raisonnable que ce soit dans le cas supervise
 	// ou non supervise, meme avec des histogrammes
 	lAttributeStatSize +=
-	    nMeanValueNumber * lSymbolSize + sizeof(KWAttributeStats) + sizeof(KWDescriptiveContinuousStats) +
+	    (longint)nMeanValueNumber * lSymbolSize + sizeof(KWAttributeStats) + sizeof(KWDescriptiveContinuousStats) +
 	    sizeof(KWDataGridStats) + 2 * (sizeof(KWDGSAttributeGrouping) + KWClass::GetNameMaxLength()) +
-	    (nMeanPartNumber + nMeanValueNumber + nTargetModalityNumber) * (sizeof(KWValue) + sizeof(int)) +
-	    nMeanPartNumber * nTargetModalityNumber * sizeof(int);
+	    (longint)(nMeanPartNumber + nMeanValueNumber + nTargetModalityNumber) * (sizeof(KWValue) + sizeof(int)) +
+	    (longint)nMeanPartNumber * nTargetModalityNumber * sizeof(int);
 	return lAttributeStatSize;
 }
 
@@ -389,11 +390,11 @@ longint KWDataPreparationTask::ComputeNecessaryBivariateStatsMemory(const KWLear
 		nTargetModalityNumber = nMeanPartNumber;
 
 	// Taille occupee par une paire d'attribut
-	lAttributePairStatSize =
-	    lAttributeBaseStatSize + nMeanValueNumber * lSymbolSize + sizeof(KWDataGridStats) +
-	    3 * (sizeof(KWDGSAttributeGrouping) + KWClass::GetNameMaxLength()) +
-	    (2 * nMeanPartNumber + 2 * nMeanValueNumber + nTargetModalityNumber) * (sizeof(KWValue) + sizeof(int)) +
-	    nMeanPartNumber * nMeanPartNumber * nTargetModalityNumber * sizeof(int);
+	lAttributePairStatSize = lAttributeBaseStatSize + nMeanValueNumber * lSymbolSize + sizeof(KWDataGridStats) +
+				 3 * (sizeof(KWDGSAttributeGrouping) + KWClass::GetNameMaxLength()) +
+				 (longint)(2 * nMeanPartNumber + 2 * nMeanValueNumber + nTargetModalityNumber) *
+				     (sizeof(KWValue) + sizeof(int)) +
+				 (longint)nMeanPartNumber * nMeanPartNumber * nTargetModalityNumber * sizeof(int);
 	return lAttributePairStatSize;
 }
 
@@ -487,15 +488,23 @@ longint KWDataPreparationTask::ComputeNecessaryWorkingMemory(const KWLearningSpe
 	kwcClass = learningSpec->GetClass();
 	check(kwcClass);
 
-	// Calcul de la taille a vide d'un objet (avec au minimum un champs, en prenant en compte le cas sparse)
+	// Calcul de la taille a vide d'un objet
+	// On compate au minimum un champs, en prenant en compte le cas sparse
+	// et un eventuel attribut Symbol ayant autant de valeurs que d'instances
 	lEmptyObjectSize = sizeof(KWObject) + sizeof(KWObject*) + sizeof(KWValue*) + GetNecessaryMemoryPerDenseValue();
+	if (kwcClass->GetLoadedAttributeBlockNumber() > 0)
+		lEmptyObjectSize += GetNecessaryMemoryPerEmptyValueBlock();
+	if (kwcClass->GetUsedDenseAttributeNumberForType(KWType::Symbol) +
+		kwcClass->GetUsedDenseAttributeNumberForType(KWType::Text) >
+	    0)
+		lEmptyObjectSize += Symbol::GetUsedMemoryPerSymbol();
 
 	// Prise en compte d'un dictionnaire et d'une base minimale
 	lClassAttributeMemorySize = ComputeNecessaryClassAttributeMemory();
 	lWorkingMemorySize += dummyClass.GetUsedMemory();
 	lWorkingMemorySize += lClassAttributeMemorySize;
 	lWorkingMemorySize += dummyDatabase.GetUsedMemory();
-	lWorkingMemorySize += 2 * KWClass::GetNameMaxLength();
+	lWorkingMemorySize += 2 * (longint)KWClass::GetNameMaxLength();
 
 	// Taille de la base chargee en memoire avec deux champs dont un categoriel
 	// On a ainsi une petite marge pour un dimensionnement minimal
@@ -570,14 +579,14 @@ longint KWDataPreparationTask::ComputeNecessaryWorkingMemory(const KWLearningSpe
 
 		// Un grille bivariee maximale complete initiale (cf. KWAttributeSubsetStats.CreateDatagrid)
 		lInitialDatagridSize =
-		    nDatabaseObjectNumber * sizeof(KWDGMCell) +
-		    (nSourceValueNumber + nTargetValueNumber) *
+		    (longint)nDatabaseObjectNumber * sizeof(KWDGMCell) +
+		    (longint)(nSourceValueNumber + nTargetValueNumber) *
 			(sizeof(KWDGMPart) + max(sizeof(KWDGInterval), sizeof(KWDGValueSet) + sizeof(KWDGValue)));
 		lWorkingMemorySize += lInitialDatagridSize;
 
 		// Plus une grille univariee pour la post-optimisation (cf.
 		// KWDataGridPostOptimizer::BuildUnivariateInitialDataGrid)
-		lInitialUnivariateDatagridSize = (int)ceil(sqrt(nDatabaseObjectNumber * 1.0)) *
+		lInitialUnivariateDatagridSize = (longint)ceil(sqrt(nDatabaseObjectNumber * 1.0)) *
 						 (sizeof(KWDGMCell) + sizeof(KWDGMPart) +
 						  max(sizeof(KWDGInterval), sizeof(KWDGValueSet) + sizeof(KWDGValue)));
 		lWorkingMemorySize += lInitialUnivariateDatagridSize;
@@ -585,8 +594,8 @@ longint KWDataPreparationTask::ComputeNecessaryWorkingMemory(const KWLearningSpe
 		// Plus deux grilles reduites de travail (cf. VNSOptimizer)
 		lWorkingDatagridSize =
 		    nDatabaseObjectNumber * (sizeof(KWDGMCell) + 2 * sizeof(KWDGValue)) +
-		    (int)ceil(sqrt(nDatabaseObjectNumber * 1.0) +
-			      min(nTargetValueNumber * 1.0, sqrt(nDatabaseObjectNumber * 1.0))) *
+		    (longint)ceil(sqrt(nDatabaseObjectNumber * 1.0) +
+				  min(nTargetValueNumber * 1.0, sqrt(nDatabaseObjectNumber * 1.0))) *
 			(sizeof(KWDGMPart) + max(sizeof(KWDGInterval), sizeof(KWDGValueSet) + sizeof(KWDGValue)));
 		lWorkingMemorySize += 2 * lWorkingDatagridSize;
 
@@ -910,10 +919,10 @@ longint KWDataPreparationTask::ComputeDatabaseMinimumAllValuesMemory(int nDenseS
 	require(nObjectNumber >= 0);
 
 	// Memoire pour les valeurs des attributs dense
-	lDatabaseAllValuesMemory = (nDenseSymbolAttributeNumber + nDenseContinuousAttributeNumber) *
+	lDatabaseAllValuesMemory = (longint)(nDenseSymbolAttributeNumber + nDenseContinuousAttributeNumber) *
 				   GetNecessaryMemoryPerDenseValue() * nObjectNumber;
 
-	// Prise uen compte d'un overhead en cas d'attributs d'ense Symbol
+	// Prise en compte d'un overhead en cas d'attributs d'ense Symbol
 	if (nDenseSymbolAttributeNumber > 0)
 		lDatabaseAllValuesMemory += ComputeEstimatedAttributeSymbolValuesMemory(
 		    nObjectNumber * GetExpectedMeanSymbolValueLength(), nObjectNumber);
@@ -990,7 +999,7 @@ longint KWDataPreparationTask::GetNecessaryMemoryPerSparseValue() const
 
 longint KWDataPreparationTask::GetExpectedMeanSymbolValueLength() const
 {
-	// On se base arbitrairement su une longueur moyenne egale a celle d'un champ
+	// On se base arbitrairement sur une longueur moyenne egale a celle d'un champ
 	return sizeof(KWValue);
 }
 

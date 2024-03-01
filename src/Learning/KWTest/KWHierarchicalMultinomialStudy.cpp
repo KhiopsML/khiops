@@ -196,7 +196,7 @@ void KWHierarchicalMultinomialStudy::StudyDatasetBivariate(const ALString& sClas
 	// Parametrage avance des algorithmes
 	learningSpec.GetPreprocessingSpec()->GetDataGridOptimizerParameters()->SetOptimizationLevel(6);
 	learningSpec.GetPreprocessingSpec()->GetDataGridOptimizerParameters()->SetInternalParameter(
-	    "LargeNeighborhoods");
+	    "LargeNeighbourhoods");
 
 	// Apprentissage de l'attribut cible si necessaire
 	nPairNumber = 10000;
@@ -407,7 +407,7 @@ void KWHierarchicalMultinomialStudy::StudyBivariateSample(int nSize, double dSig
 	// Parametrage avance des algorithmes
 	learningSpec.GetPreprocessingSpec()->GetDataGridOptimizerParameters()->SetOptimizationLevel(6);
 	learningSpec.GetPreprocessingSpec()->GetDataGridOptimizerParameters()->SetInternalParameter(
-	    "LargeNeighborhoods");
+	    "LargeNeighbourhoods");
 
 	// Calcul des statistiques bivariees de facon standard
 	if (bStandardTrain)

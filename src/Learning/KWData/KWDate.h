@@ -8,6 +8,7 @@ class Date;
 class KWDateFormat;
 
 #include "Object.h"
+#include "KWDateTime.h"
 #include "Vector.h"
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -28,7 +29,7 @@ public:
 	void Reset();
 
 	// Initialisation
-	// Renvoie true si l'initialisation est valide (entre 01/01/0001 et 31/12/4000)
+	// Renvoie true si l'initialisation est valide (entre 01/01/0001 et 31/12/9999)
 	boolean Init(int nYear, int nMonth, int nDay);
 
 	// Operateurs de comparaison
@@ -113,6 +114,7 @@ protected:
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	// La date peut stocker une partie time zone, utile quand elle est utilisee par les TimestampTZ
 	// qui doivent gerer les time zones
+	friend class Timestamp;
 	friend class TimestampTZ;
 	friend class KWTimestampTZFormat;
 
@@ -146,30 +148,8 @@ protected:
 	// Affichage de la partie time zone au format zzzzzz si bExtended vaut true, zzzzz sinon
 	const char* const TimeZoneToString(boolean bExtended) const;
 
-	// Stockage optimise d'une Date sous forme d'un entier
-	// On utilise un champ de bits pour stocker a la fois les information de Date et de time zone, utilises
-	// potentiellement dans les cas des TimestampTZ
-	// Bits 1 a 12: annee (entre 0 et 4000)
-	// Bits 13 a 16: mois (entre 1 et 12)
-	// Bits 17 a 21: jour (entre 1 et 31, ou 0 si invalide)
-	// Bit 22: signe de la timezone (0 si negatif, 1 si positif)
-	// Bits 23 a 26: heure de la timezone (entre 0 et 14)
-	// Bits 27 a 32: minute de la timezone (entre 0 et 59)
-	// Une time est invalide si elle vaut 0 (heure a 0; validite de 1 a 24), et interdite si elle vaut 0xFFFFFFFF
-	// La partie time zone est invalide si elle vaut 0 (une time zone -00:00 est codee +00:00 pour etre valide).
-	union DateValue
-	{
-		unsigned int nDate;
-		struct DateFields
-		{
-			unsigned int nYear : 12;
-			unsigned int nMonth : 4;
-			unsigned int nDay : 5;
-			unsigned int nTimeZoneSign : 1;
-			unsigned int nTimeZoneHour : 4;
-			unsigned int nTimeZoneMinute : 6;
-		} dateFields;
-	} dateValue;
+	// Utilisation d'une union DateTime pour acceder au champs Date, dans une structure commune aux type temporels
+	union DateTime dateValue;
 };
 
 // Ecriture dans un stream
@@ -291,41 +271,41 @@ protected:
 
 inline void Date::Reset()
 {
-	dateValue.nDate = 0;
+	dateValue.lBytes = 0;
 }
 
 inline boolean Date::operator==(const Date& dtValue) const
 {
-	return (dateValue.nDate == dtValue.dateValue.nDate);
+	return (dateValue.lBytes == dtValue.dateValue.lBytes);
 }
 
 inline boolean Date::operator!=(const Date& dtValue) const
 {
-	return (dateValue.nDate != dtValue.dateValue.nDate);
+	return (dateValue.lBytes != dtValue.dateValue.lBytes);
 }
 
 inline boolean Date::Check() const
 {
 	require(not IsForbiddenValue());
-	return dateValue.nDate != 0;
+	return dateValue.lBytes != 0;
 }
 
 inline int Date::GetYear() const
 {
 	require(Check());
-	return dateValue.dateFields.nYear;
+	return dateValue.fields.nYear;
 }
 
 inline int Date::GetMonth() const
 {
 	require(Check());
-	return dateValue.dateFields.nMonth;
+	return dateValue.fields.nMonth;
 }
 
 inline int Date::GetDay() const
 {
 	require(Check());
-	return dateValue.dateFields.nDay;
+	return dateValue.fields.nDay;
 }
 
 inline int Date::Diff(const Date dtOtherDate) const
@@ -355,30 +335,30 @@ inline int Date::Compare(const Date dtOtherDate) const
 
 inline void Date::SetYear(int nValue)
 {
-	require(1 <= nValue and nValue <= 4000);
-	dateValue.dateFields.nYear = nValue;
+	require(1 <= nValue and nValue <= DateTime::nMaxYear);
+	dateValue.fields.nYear = nValue;
 }
 
 inline void Date::SetMonth(int nValue)
 {
 	require(1 <= nValue and nValue <= 12);
-	dateValue.dateFields.nMonth = nValue;
+	dateValue.fields.nMonth = nValue;
 }
 
 inline void Date::SetDay(int nValue)
 {
 	require(1 <= nValue and nValue <= 31);
-	dateValue.dateFields.nDay = nValue;
+	dateValue.fields.nDay = nValue;
 }
 
 inline void Date::SetForbiddenValue()
 {
-	dateValue.nDate = 0xFFFFFFFF;
+	dateValue.lBytes = DateTime::lForbiddenValue;
 }
 
 inline boolean Date::IsForbiddenValue() const
 {
-	return (dateValue.nDate == 0xFFFFFFFF);
+	return (dateValue.lBytes == DateTime::lForbiddenValue);
 }
 
 inline boolean Date::InitTimeZone(int nSign, int nHour, int nMinute)
@@ -410,6 +390,10 @@ inline boolean Date::InitTimeZone(int nSign, int nHour, int nMinute)
 
 inline boolean Date::SetTimeZoneTotalMinutes(int nValue)
 {
+	int nSign;
+	int nHour;
+	int nMinute;
+
 	// Initialisation de la timezone a invalide
 	ResetTimeZone();
 
@@ -417,12 +401,12 @@ inline boolean Date::SetTimeZoneTotalMinutes(int nValue)
 	if (-12 * 60 <= nValue and nValue <= 14 * 60)
 	{
 		if (nValue >= 0)
-			SetTimeZoneSign(1);
+			nSign = 1;
 		else
-			SetTimeZoneSign(-1);
-		SetTimeZoneHour(abs(nValue) / 60);
-		SetTimeZoneMinute(abs(nValue) % 60);
-		return true;
+			nSign = -1;
+		nHour = abs(nValue) / 60;
+		nMinute = abs(nValue) % 60;
+		return InitTimeZone(nSign, nHour, nMinute);
 	}
 	return false;
 }
@@ -436,51 +420,48 @@ inline int Date::GetTimeZoneTotalMinutes() const
 inline void Date::SetTimeZoneSign(int nValue)
 {
 	require(nValue == -1 or nValue == 1);
-	dateValue.dateFields.nTimeZoneSign = (nValue + 1) / 2;
+	dateValue.fields.nTimeZoneSign = (nValue + 1) / 2;
 }
 
 inline int Date::GetTimeZoneSign() const
 {
 	require(CheckTimeZone());
-	return (dateValue.dateFields.nTimeZoneSign * 2) - 1;
+	return (dateValue.fields.nTimeZoneSign * 2) - 1;
 }
 
 inline void Date::SetTimeZoneHour(int nValue)
 {
 	require(0 <= nValue and nValue <= 14);
-	dateValue.dateFields.nTimeZoneHour = nValue;
+	dateValue.fields.nTimeZoneHour = nValue;
 }
 
 inline int Date::GetTimeZoneHour() const
 {
 	require(CheckTimeZone());
-	return dateValue.dateFields.nTimeZoneHour;
+	return dateValue.fields.nTimeZoneHour;
 }
 
 inline void Date::SetTimeZoneMinute(int nValue)
 {
 	require(0 <= nValue and nValue <= 59);
-	dateValue.dateFields.nTimeZoneMinute = nValue;
+	dateValue.SetTimeZoneMinute(nValue);
 }
 
 inline int Date::GetTimeZoneMinute() const
 {
 	require(CheckTimeZone());
-	return dateValue.dateFields.nTimeZoneMinute;
+	return dateValue.GetTimeZoneMinute();
 }
 
 inline void Date::ResetTimeZone()
 {
-	dateValue.dateFields.nTimeZoneSign = 0;
-	dateValue.dateFields.nTimeZoneHour = 0;
-	dateValue.dateFields.nTimeZoneMinute = 0;
+	dateValue.SetTimeZone(0);
 }
 
 inline boolean Date::CheckTimeZone() const
 {
 	require(not IsForbiddenValue());
-	return dateValue.dateFields.nTimeZoneSign != 0 or dateValue.dateFields.nTimeZoneHour != 0 or
-	       dateValue.dateFields.nTimeZoneMinute != 0;
+	return dateValue.GetTimeZone() != 0;
 }
 
 // KWDateFormat

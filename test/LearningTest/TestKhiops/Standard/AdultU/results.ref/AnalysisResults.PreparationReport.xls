@@ -1,4 +1,4 @@
-#Khiops 10.4.6i
+#Khiops 10.4.8i
 Descriptive statistics
 
 
@@ -32,28 +32,28 @@ Value grouping	MODL
 
 Categorical variables statistics
 
-Rank	Name	Values	Mode	Mode coverage	Missing number	Sparse missing number	Constr. cost
-R05	class	2	less	0.760718	0	0	3.46574
-R06	education	16	HS-grad	0.323164	0	0	3.46574
-R10	marital_status	7	Married-civ-spouse	0.458192	0	0	3.46574
-R11	native_country	41	United-States	0.914971	0	0	3.46574
-R12	occupation	14	Prof-specialty	0.183879	0	0	3.46574
-R13	race	5	White	0.855043	0	0	3.46574
-R14	relationship	6	Husband	0.403669	0	0	3.46574
-R15	sex	2	Male	0.668482	0	0	3.46574
-R16	workclass	8	Private	0.751505	0	0	3.46574
+Rank	Name	Groups	Values	Mode	Mode coverage	Missing number	Sparse missing number	Constr. cost
+R05	class	2	2	less	0.760718	0	0	3.46574
+R06	education	16	16	HS-grad	0.323164	0	0	3.46574
+R10	marital_status	7	7	Married-civ-spouse	0.458192	0	0	3.46574
+R11	native_country	40	41	United-States	0.914971	0	0	3.46574
+R12	occupation	14	14	Prof-specialty	0.183879	0	0	3.46574
+R13	race	5	5	White	0.855043	0	0	3.46574
+R14	relationship	6	6	Husband	0.403669	0	0	3.46574
+R15	sex	2	2	Male	0.668482	0	0	3.46574
+R16	workclass	8	8	Private	0.751505	0	0	3.46574
 
 
 Numerical variables statistics
 
-Rank	Name	Values	Min	Max	Mean	Std dev	Missing number	Sparse missing number	Constr. cost
-R01	Label	48842	1	48842	24421.5	14099.47092	0	0	3.46574
-R02	age	74	17	90	38.64358544	13.71036958	0	0	3.46574
-R03	capital_gain	123	0	99999	1079.067626	7451.94277	0	0	3.46574
-R04	capital_loss	99	0	4356	87.50231358	403.0004265	0	0	3.46574
-R07	education_num	16	1	16	10.07808853	2.570946436	0	0	3.46574
-R08	fnlwgt	28523	12285	1490400	189664.1346	105602.9443	0	0	3.46574
-R09	hours_per_week	96	1	99	40.42238238	12.39131717	0	0	3.46574
+Rank	Name	Intervals	Values	Min	Max	Mean	Std dev	Missing number	Sparse missing number	Constr. cost
+R01	Label	1	48842	1	48842	24421.5	14099.47092	0	0	3.46574
+R02	age	21	74	17	90	38.64358544	13.71036958	0	0	3.46574
+R03	capital_gain	38	123	0	99999	1079.067626	7451.94277	0	0	3.46574
+R04	capital_loss	51	99	0	4356	87.50231358	403.0004265	0	0	3.46574
+R07	education_num	16	16	1	16	10.07808853	2.570946436	0	0	3.46574
+R08	fnlwgt	1240	28523	12285	1490400	189664.1346	105602.9443	0	0	3.46574
+R09	hours_per_week	70	96	1	99	40.42238238	12.39131717	0	0	3.46574
 
 
 --------------------------------------------------------------------------------

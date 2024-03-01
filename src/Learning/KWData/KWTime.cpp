@@ -58,20 +58,21 @@ const char* const Time::ToString() const
 		sTime[0] = '\0';
 	else
 	{
-		nSecondFrac = timeValue.timeFields.nFrac;
+		nSecondFrac = timeValue.fields.nFrac;
 
 		// Cas ou il n'y a pas de fraction de secondes
 		if (nSecondFrac == 0)
 			snprintf(sTime, BUFFER_LENGTH, "%02d:%02d:%02d", GetHour(), GetMinute(),
-				 (int)timeValue.timeFields.nSecond);
+				 (int)timeValue.fields.nSecond);
 		// Cas avec fraction de secondes
 		else
 		{
-			nLength = snprintf(sTime, BUFFER_LENGTH, "%02d:%02d:%02d.%04d", GetHour(), GetMinute(),
-					   (int)timeValue.timeFields.nSecond, nSecondFrac);
+			nLength =
+			    snprintf(sTime, BUFFER_LENGTH, "%02d:%02d:%02d.%0*d", GetHour(), GetMinute(),
+				     (int)timeValue.fields.nSecond, DateTime::nFracSecondsDigitNumber, nSecondFrac);
 
 			// Supression des zero en fin pour ne garder que la partie utile des decimales de secondes
-			for (i = 0; i < 4; i++)
+			for (i = 0; i < DateTime::nFracSecondsDigitNumber; i++)
 			{
 				if (sTime[nLength - 1 - i] == '0')
 					sTime[nLength - 1 - i] = '\0';
@@ -524,20 +525,16 @@ Time KWTimeFormat::StringToTime(const char* const sValue) const
 			assert(sValue[nOffset - 1] == '.');
 
 			// Parcours de la fin de chaine a partir du sepateur decimal des secondes
-			nUnit = 1000;
+			nUnit = DateTime::nMaxFracSeconds;
 			for (i = nOffset; i < nLength; i++)
 			{
 				cChar0 = sValue[i];
 				bCheck = isdigit(cChar0);
-				if (bCheck)
-				{
-					// On ne prend en compte que les decimales utiles au 1/10000 ieme
-					if (nUnit > 0)
-					{
-						nSecondFrac += nUnit * (cChar0 - '0');
-						nUnit /= 10;
-					}
-				}
+
+				// On ne prend en compte que les decimales utiles de la fraction de secondes
+				nUnit /= 10;
+				if (bCheck and nUnit > 0)
+					nSecondFrac += nUnit * (cChar0 - '0');
 				else
 					break;
 			}
@@ -613,20 +610,16 @@ Time KWTimeFormat::StringToTime(const char* const sValue) const
 			if (bCheck and nDecimalPointOffset != -1)
 			{
 				// Parcours de la fin de chaine a partir du sepateur decimal des secondes
-				nUnit = 1000;
+				nUnit = DateTime::nMaxFracSeconds;
 				for (i = nDecimalPointOffset + 1; i < nLength; i++)
 				{
 					cChar0 = sValue[i];
 					bCheck = isdigit(cChar0);
-					if (bCheck)
-					{
-						// On ne prend en compte que les decimales utiles au 1/10000 ieme
-						if (nUnit > 0)
-						{
-							nSecondFrac += nUnit * (cChar0 - '0');
-							nUnit /= 10;
-						}
-					}
+
+					// On ne prend en compte que les decimales utiles de la fraction de secondes
+					nUnit /= 10;
+					if (bCheck and nUnit > 0)
+						nSecondFrac += nUnit * (cChar0 - '0');
 					else
 						break;
 				}
@@ -636,7 +629,7 @@ Time KWTimeFormat::StringToTime(const char* const sValue) const
 
 	// Conversion vers la Time
 	if (bCheck)
-		tmConvertedString.Init(nHour, nMinute, nSecond + nSecondFrac / 10000.0);
+		tmConvertedString.Init(nHour, nMinute, nSecond + nSecondFrac / (double)DateTime::nMaxFracSeconds);
 
 	return tmConvertedString;
 }
@@ -645,7 +638,7 @@ const char* const KWTimeFormat::TimeToString(Time tmValue) const
 {
 	char* sBuffer = StandardGetBuffer();
 	int nOffset;
-	const double dEpsilon = 1e-5;
+	const double dEpsilon = 0.5 / DateTime::nMaxFracSeconds;
 	int nSecond;
 	int nSecondFrac;
 	int i;
@@ -705,18 +698,20 @@ const char* const KWTimeFormat::TimeToString(Time tmValue) const
 		if (nDecimalPointOffset != -1)
 		{
 			// Calcul des fractions de secondes
-			nSecondFrac = (int)floor((tmValue.GetSecond() - nSecond + dEpsilon) * 10000);
-			if (nSecondFrac == 10000)
+			nSecondFrac =
+			    (int)floor((tmValue.GetSecond() - nSecond + dEpsilon) * DateTime::nMaxFracSeconds);
+			if (nSecondFrac == DateTime::nMaxFracSeconds)
 				nSecondFrac--;
 
 			// Ecriture des fractions de secondes
 			if (nSecondFrac > 0)
 			{
-				nOffset += snprintf(sBuffer + nOffset, BUFFER_LENGTH - nOffset, ".%04d", nSecondFrac);
+				nOffset += snprintf(sBuffer + nOffset, BUFFER_LENGTH - nOffset, ".%0*d",
+						    DateTime::nFracSecondsDigitNumber, nSecondFrac);
 
 				// Supression des zero en fin pour ne garder que la partie utile des decimales de
 				// secondes
-				for (i = 0; i < 4; i++)
+				for (i = 0; i < DateTime::nFracSecondsDigitNumber; i++)
 				{
 					if (sBuffer[nOffset - 1 - i] == '0')
 						sBuffer[nOffset - 1 - i] = '\0';

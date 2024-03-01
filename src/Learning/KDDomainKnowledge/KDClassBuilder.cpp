@@ -222,7 +222,7 @@ ALString KDClassBuilder::BuildPartAttributeName(const KDConstructedPart* part) c
 
 ALString KDClassBuilder::BuildIndexedAttributeName() const
 {
-	const ALString sAttributePrefix = "ConstructedFeature";
+	const ALString sAttributePrefix = "MultiTableFeature_";
 	ALString sAttributeName;
 
 	require(nAttributeNameIndex >= 0);

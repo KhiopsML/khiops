@@ -1225,7 +1225,7 @@ longint KDClassSelectionData::GetUsedMemory() const
 
 const ALString KDClassSelectionData::GetClassLabel() const
 {
-	return "Class selection data";
+	return "Dictionary selection data";
 }
 
 const ALString KDClassSelectionData::GetObjectLabel() const
@@ -1275,7 +1275,7 @@ longint KDClassSelectionOperandData::GetUsedMemory() const
 
 const ALString KDClassSelectionOperandData::GetClassLabel() const
 {
-	return "Class selection operand data";
+	return "Dictionary selection operand data";
 }
 
 const ALString KDClassSelectionOperandData::GetObjectLabel() const
