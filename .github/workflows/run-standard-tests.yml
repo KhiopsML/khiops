@@ -48,6 +48,7 @@ jobs:
         uses: ./.github/actions/build-khiops
         with:
           preset-name: ${{ env.PRESET_NAME }}
+          targets: all
       - name: Cache binaries
         id: cache-binaries-unix
         uses: actions/cache@v3
