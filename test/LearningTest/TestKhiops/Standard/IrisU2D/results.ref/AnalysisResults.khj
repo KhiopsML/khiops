@@ -1,6 +1,6 @@
 {
 	"tool": "Khiops",
-	"version": "10.4.8i",
+	"version": "10.4.9-a1",
 	"shortDescription": "",
 	"preparationReport": {
 		"reportType": "Preparation",
@@ -1117,19 +1117,6 @@
 			},
 			{
 				"rank": "R36",
-				"name1": "SPetalLength",
-				"name2": "SepalWidth",
-				"level": 0.00373995,
-				"variables": 2,
-				"parts1": 3,
-				"parts2": 3,
-				"cells": 9,
-				"constructionCost": 6.71557,
-				"preparationCost": 38.9735,
-				"dataCost": 497.662
-			},
-			{
-				"rank": "R37",
 				"name1": "LowerPetalLength",
 				"name2": "UpperPetalWidth",
 				"level": 0.00366071,
@@ -1142,7 +1129,7 @@
 				"dataCost": 751.129
 			},
 			{
-				"rank": "R38",
+				"rank": "R37",
 				"name1": "PetalWidth",
 				"name2": "SepalWidth",
 				"level": 0.00221737,
@@ -1153,6 +1140,19 @@
 				"constructionCost": 6.71557,
 				"preparationCost": 20.9273,
 				"dataCost": 745.158
+			},
+			{
+				"rank": "R38",
+				"name1": "SPetalLength",
+				"name2": "SepalWidth",
+				"level": 0.00143264,
+				"variables": 2,
+				"parts1": 3,
+				"parts2": 3,
+				"cells": 9,
+				"constructionCost": 6.71557,
+				"preparationCost": 40.2319,
+				"dataCost": 497.662
 			},
 			{
 				"rank": "R39",
@@ -2604,47 +2604,6 @@
 					"isSupervised": false,
 					"dimensions": [
 						{
-							"variable": "SPetalLength",
-							"type": "Categorical",
-							"partitionType": "Value groups",
-							"partition": [
-								["4"],
-								["1"],
-								["5"]
-							],
-							"defaultGroupIndex": 0
-						},
-						{
-							"variable": "SepalWidth",
-							"type": "Numerical",
-							"partitionType": "Intervals",
-							"partition": [
-								[2,2.95],
-								[2.95,3.25],
-								[3.25,4.4]
-							]
-						}
-					],
-					"cellIds": ["C1","C2","C3","C4","C5","C6","C7","C8","C9"],
-					"cellPartIndexes": [
-						[0,0],
-						[1,0],
-						[2,0],
-						[0,1],
-						[1,1],
-						[2,1],
-						[0,2],
-						[1,2],
-						[2,2]
-					],
-					"cellFrequencies": [26,1,9,10,15,16,4,22,2]
-				}
-			},
-			"R37": {
-				"dataGrid": {
-					"isSupervised": false,
-					"dimensions": [
-						{
 							"variable": "LowerPetalLength",
 							"type": "Numerical",
 							"partitionType": "Intervals",
@@ -2672,7 +2631,7 @@
 					"cellFrequencies": [38,29,38]
 				}
 			},
-			"R38": {
+			"R37": {
 				"dataGrid": {
 					"isSupervised": false,
 					"dimensions": [
@@ -2706,6 +2665,47 @@
 						[2,1]
 					],
 					"cellFrequencies": [1,21,14,37,3,29]
+				}
+			},
+			"R38": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "SPetalLength",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								["4","3","6"],
+								["1"],
+								["5"]
+							],
+							"defaultGroupIndex": 0
+						},
+						{
+							"variable": "SepalWidth",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[2,2.95],
+								[2.95,3.25],
+								[3.25,4.4]
+							]
+						}
+					],
+					"cellIds": ["C1","C2","C3","C4","C5","C6","C7","C8","C9"],
+					"cellPartIndexes": [
+						[0,0],
+						[1,0],
+						[2,0],
+						[0,1],
+						[1,1],
+						[2,1],
+						[0,2],
+						[1,2],
+						[2,2]
+					],
+					"cellFrequencies": [26,1,9,10,15,16,4,22,2]
 				}
 			}
 		}

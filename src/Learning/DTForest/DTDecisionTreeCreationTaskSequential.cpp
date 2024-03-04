@@ -308,8 +308,6 @@ boolean DTDecisionTreeCreationTaskSequential::CreatePreparedAttributes(KWLearnin
 
 					attribute = treespec.BuildAttribute(svariablename);
 					ndTreeSingleton.SetAt(key, attribute);
-					// TODO MB : Remplacement de la ligne suivante
-					// ComputeConstructedVariableCost(attribute);
 					SetConstructedAttributeCost(attribute, treespec.GetConstructionCost() +
 										   learningSpec->GetSelectionCost());
 					oaCreatedAttributes.Add(attribute);

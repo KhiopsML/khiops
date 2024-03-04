@@ -953,8 +953,6 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 							    ALString(IntToString(attributegenerator->GetIndex() + 1)));
 							attribute = reportTreeSpec->BuildAttribute(svariablename);
 							ndTreeSingleton.SetAt(key, attribute);
-							// TODO MB : Remplacement de la ligne suivante
-							// ComputeConstructedVariableCost(attribute);
 							SetConstructedAttributeCost(
 							    attribute, reportTreeSpec->GetConstructionCost() +
 									   shared_learningSpec.GetLearningSpec()

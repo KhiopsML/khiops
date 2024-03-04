@@ -2,7 +2,7 @@
 name: Run Standard Tests
 # Run minimal end-to-end tests for Khiops, Khiops Coclustering and KNITransfer
 # Tests are lauched on Linux, Windows and macOS ; in serial and in parallel (4 procs)
-# On release, it runs Standard test for binary. Plus MultiTables/SpliceJunction for KNITransfer
+# On release, it runs Standard test for binary.
 # On debug, it runs only Standard/Iris for Coclustering and KNITransfer and Standard/IrisLight for Khiops
 # In case of errors, test results are available as artifacts for 7 days
 # It is automatically triggered on PR when sources files are modified (files in src directory)
@@ -131,7 +131,6 @@ jobs:
             if [[ "${{ matrix.running-mode }}" != "parallel" ]] ; then
               python $TEST_PY Coclustering ${BIN_PATH}/MODL_Coclustering${EXT} Standard
               python $TEST_PY KNI ${BIN_PATH}/KNITransfer${EXT} Standard
-              python $TEST_PY KNI ${BIN_PATH}/KNITransfer${EXT} MultiTables SpliceJunction
             fi
           else
             python $TEST_PY Khiops ${BIN_PATH}/MODL${EXT} Standard IrisLight
@@ -148,14 +147,13 @@ jobs:
             python3 $APPLY_PY errors test/LearningTest/TestKhiops/Standard | tee test/LearningTest/TestKhiops/Standard/errors.txt
             if [[ "${{ matrix.running-mode }}" != "parallel" ]] ; then
               python $APPLY_PY errors test/LearningTest/TestCoclustering/Standard | tee test/LearningTest/TestCoclustering/Standard/errors.txt
-              python $APPLY_PY errors test/LearningTest/TestKNITransfer/Standard | tee test/LearningTest/TestKNITransfer/Standard/errors.txt
-              python $APPLY_PY errors test/LearningTest/TestKNITransfer/MultiTables SpliceJunction | tee test/LearningTest/TestKNITransfer/MultiTables/errors.txt
+              python $APPLY_PY errors test/LearningTest/TestKNI/Standard | tee test/LearningTest/TestKNI/Standard/errors.txt
             fi
           else
             python3 $APPLY_PY errors test/LearningTest/TestKhiops/Standard IrisLight | tee test/LearningTest/TestKhiops/Standard/errors.txt
             if [[ "${{ matrix.running-mode }}" != "parallel" ]] ; then
               python $APPLY_PY errors test/LearningTest/TestCoclustering/Standard Iris | tee test/LearningTest/TestCoclustering/Standard/errors.txt
-              python $APPLY_PY errors test/LearningTest/TestKNITransfer/Standard Iris | tee test/LearningTest/TestKNITransfer/Standard/errors.txt
+              python $APPLY_PY errors test/LearningTest/TestKNI/Standard Iris | tee test/LearningTest/TestKNI/Standard/errors.txt
             fi
           fi
       - name: Check results

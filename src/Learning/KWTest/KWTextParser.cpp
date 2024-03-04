@@ -394,35 +394,35 @@ void KWTextParser::BuildLineWordDictionary(char* sLine, ObjectDictionary* odWord
 			// Compilation uniquement sous windows pour cette methode prototype,
 			// pour eviter les warnings de type illegal character encoding
 #ifdef _WIN32
-			if (cLineChar == '�')
+			if (cLineChar == 'é')
 				cLineChar = 'e';
-			else if (cLineChar == '�')
+			else if (cLineChar == 'è')
 				cLineChar = 'e';
-			else if (cLineChar == '�')
+			else if (cLineChar == 'ê')
 				cLineChar = 'e';
-			else if (cLineChar == '�')
+			else if (cLineChar == 'ë')
 				cLineChar = 'e';
-			else if (cLineChar == '�')
+			else if (cLineChar == 'É')
 				cLineChar = 'e';
-			else if (cLineChar == '�')
+			else if (cLineChar == 'à')
 				cLineChar = 'a';
-			else if (cLineChar == '�')
+			else if (cLineChar == 'â')
 				cLineChar = 'a';
-			else if (cLineChar == '�')
+			else if (cLineChar == 'ä')
 				cLineChar = 'a';
-			else if (cLineChar == '�')
+			else if (cLineChar == 'ô')
 				cLineChar = 'o';
-			else if (cLineChar == '�')
+			else if (cLineChar == 'ö')
 				cLineChar = 'o';
-			else if (cLineChar == '�')
+			else if (cLineChar == 'î')
 				cLineChar = 'i';
-			else if (cLineChar == '�')
+			else if (cLineChar == 'ï')
 				cLineChar = 'i';
-			else if (cLineChar == '�')
+			else if (cLineChar == 'û')
 				cLineChar = 'u';
-			else if (cLineChar == '�')
+			else if (cLineChar == 'ü')
 				cLineChar = 'u';
-			else if (cLineChar == '�')
+			else if (cLineChar == 'ç')
 				cLineChar = 'c';
 #endif // _WIN32
 		}

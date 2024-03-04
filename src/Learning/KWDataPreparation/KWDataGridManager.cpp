@@ -4,8 +4,6 @@
 
 #include "KWDataGridManager.h"
 
-// TODOMERGE: MB checker qu'il n'y a pas de souci
-
 KWDataGridManager::KWDataGridManager()
 {
 	sourceDataGrid = NULL;
@@ -4161,7 +4159,8 @@ void KWDataGridManager::SortAttributePartsByTargetGroups(const KWDGAttribute* so
 	boolean bIsIndexed;
 	ObjectArray oaSourceParts;
 	ObjectArray oaAssociations;
-	KWSortableObject* association;
+	KWSortableSymbol* associationSymbol;
+	KWSortableObject* associationVarPart;
 	KWDGPart* sourcePart;
 	KWDGPart* groupedPart;
 	IntVector ivRandomIndexes;
@@ -4188,11 +4187,23 @@ void KWDataGridManager::SortAttributePartsByTargetGroups(const KWDGAttribute* so
 	// On exporte les parties sources dans un tableau
 	sourceAttribute->ExportParts(&oaSourceParts);
 
+	// Tri des association, apres une randomisation pour avoir un ordre aleatoire par groupe
+	// CH IV Refactoring: a revoir plus tard apres avoir integre la retokenisation dans le cadre du GenerateVNS
+	// CH IV Refactoring: Code specifique suite a refactoring et unification avec l'ancienne methode SortVarPartAttributeParts
+	// CH IV Refactoring: Pourquoi le Shuffle est fait dans le cas Symbol et pas VarPart? on ne sait pas
+	// CH IV Refactoring: Probleme potentiel supplementaire, faire un shuffle suivi d'un sort entraine des instabilite entre
+	// CH IV Refactoring:  windows et linux, car le Sort de windows ne semble pas etre un "stable sort" (qui garantit qu'en
+	// CH IV Refactoring:  cas d'egalite, les items sont dans le meme ordre que l'ordre initial)
+	//
+	// CH IV Refactoring: Probleme des instabilites corrige en V10.2.0, et correction reportee, mais uniquement dans le cas
+	// CH IV Refactoring:  des valeurs Sumbol d'un variable categorielle: corrction a transposer dans le cas VarPart
+
 	// Construction d'un vecteur d'index des parties source pour les gerer en ordre aleatoire
 	ivRandomIndexes.SetSize(oaSourceParts.GetSize());
 	for (n = 0; n < ivRandomIndexes.GetSize(); n++)
 		ivRandomIndexes.SetAt(n, n);
-	ivRandomIndexes.Shuffle();
+	if (sourceAttribute->GetAttributeType() == KWType::Symbol)
+		ivRandomIndexes.Shuffle();
 
 	// Initialisation d'un tableau d'associations entre index de partie source et
 	// (premiere) valeur de groupe source
@@ -4209,24 +4220,29 @@ void KWDataGridManager::SortAttributePartsByTargetGroups(const KWDGAttribute* so
 		groupedPart = groupedAttribute->LookupGroupablePart(sourcePart->GetValueSet()->GetHeadValue());
 
 		// Creation de l'association entre index de partie et premiere valeur du groupe
-		association = new KWSortableObject;
-		oaAssociations.SetAt(nSource, association);
-		association->SetIndex(nSource);
-		association->SetSortValue(groupedPart->GetValueSet()->GetHeadValue());
+		if (sourceAttribute->GetAttributeType() == KWType::Symbol)
+		{
+			associationSymbol = new KWSortableSymbol;
+			oaAssociations.SetAt(nSource, associationSymbol);
+			associationSymbol->SetIndex(nRandomIndex);
+			associationSymbol->SetSortValue(groupedPart->GetValueSet()->GetHeadValue()->GetSymbolValue());
+		}
+		else
+		{
+			// CH IV Refactoring: a revoir et unifier avec la getion des valeurs Symbol
+			associationVarPart = new KWSortableObject;
+			oaAssociations.SetAt(nSource, associationVarPart);
+			associationVarPart->SetIndex(nSource);
+			associationVarPart->SetSortValue(groupedPart->GetValueSet()->GetHeadValue());
+		}
 	}
 
 	// Tri des association, apres une randomisation pour avoir un ordre aleatoire par groupe
-	// CH IV Refactoring: a revoir plus tard apres avoir integre la retokenisation dans le cadre du GenerateVNS
-	// CH IV Refactoring: Code specifique suite a refactoring et unification avec l'ancienne methode SortVarPartAttributeParts
-	// CH IV Refactoring: Pourquoi le Shuffle est fait dans le cas Symbol et pas VarPart? on ne sait pas
-	// CH IV Refactoring: Probleme potentiel supplementaire, faire un shuffle suivi d'un sort entraine des instabilite entre
-	// CH IV Refactoring:  windows et linux, car le Sort de windows ne semble pas etre un "stable sort" (qui garantit qu'en
-	// CH IV Refactoring:  cas d'egalite, les items sont dans le meme ordre que l'ordre initial)
 	if (sourceAttribute->GetAttributeType() == KWType::Symbol)
-		oaAssociations.Shuffle();
-
-	// Tri des association, apres une randomisation pour avoir un ordre aleatoire par groupe
-	oaAssociations.SetCompareFunction(KWSortableObjectComparePartValue);
+		oaAssociations.SetCompareFunction(KWSortableSymbolCompareValue);
+	else
+		// CH IV Refactoring: a revoir et unifier avec la getion des valeurs Symbol
+		oaAssociations.SetCompareFunction(KWSortableObjectComparePartValue);
 	oaAssociations.Sort();
 
 	// On range dans le tableau en sortie les parties sources, triees par groupe
@@ -4235,11 +4251,20 @@ void KWDataGridManager::SortAttributePartsByTargetGroups(const KWDGAttribute* so
 	oaSortedGroupedParts->SetSize(oaSourceParts.GetSize());
 	for (n = 0; n < oaAssociations.GetSize(); n++)
 	{
-		association = cast(KWSortableObject*, oaAssociations.GetAt(n));
+		if (sourceAttribute->GetAttributeType() == KWType::Symbol)
+		{
+			associationSymbol = cast(KWSortableSymbol*, oaAssociations.GetAt(n));
+			nRandomIndex = associationSymbol->GetIndex();
+			nSource = ivRandomIndexes.GetAt(nRandomIndex);
+		}
+		else
+		{
+			// CH IV Refactoring: a revoir et unifier avec la getion des valeurs Symbol
+			associationVarPart = cast(KWSortableObject*, oaAssociations.GetAt(n));
+			nSource = associationVarPart->GetIndex();
+		}
 
 		// Recherche de la partie source
-		nRandomIndex = association->GetIndex();
-		nSource = ivRandomIndexes.GetAt(nRandomIndex);
 		sourcePart = cast(KWDGPart*, oaSourceParts.GetAt(nSource));
 
 		// Recherche de la partie groupee correspondante

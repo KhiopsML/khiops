@@ -13,4 +13,4 @@
 #define GENERE_VERSION str(1.0)
 
 // Copyright
-#define GENUMFP_COPYRIGHT_LABEL str((c)2024 Orange.)
+#define GENERE_COPYRIGHT_LABEL str((c)2024 Orange.)

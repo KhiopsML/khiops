@@ -1016,6 +1016,7 @@ void PLMPIMaster::AddError(const ALString& sLabel) const
 
 void PLMPIMaster::DischargePendingCommunication(int nRank, int nTag)
 {
+	boolean bDisplay = false;
 	MPI_Status status;
 	int nThereArePendingMessages;
 	ALString sTmp;
@@ -1031,8 +1032,10 @@ void PLMPIMaster::DischargePendingCommunication(int nRank, int nTag)
 			if (PLParallelTask::GetVerbose())
 				TraceWithRank(sTmp + "discharge pending comm from " + IntToString(status.MPI_SOURCE) +
 					      " with tag " + GetTagAsString(status.MPI_TAG));
-			cout << GetProcessId() << " "
-			     << "Discharge pending com" << endl;
+			if (bDisplay)
+				cout << GetProcessId() << " "
+				     << "Discharge pending com" << endl;
+
 			// Reception du message
 			ReceivePendingMessage(status);
 		}

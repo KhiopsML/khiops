@@ -139,6 +139,7 @@ void KWDensityEstimationTest::TestOneDataset()
 int KWDensityEstimationTest::SearchBestInstanceGridSize(ContinuousVector* cvXValues, ContinuousVector* cvYValues)
 {
 	boolean bDisplay = false;
+	const double dEpsilon = 1e-5;
 	int nTotalFrequency;
 	int nAxisCellNumber;
 	int nPreviousCellFrequency;
@@ -147,8 +148,6 @@ int KWDensityEstimationTest::SearchBestInstanceGridSize(ContinuousVector* cvXVal
 	double dCost;
 	double dBestCost;
 	int nBestAxisCellNumber;
-	// TODOMERGE: MB regarder cette m***
-	const double dEpsilon = 1e-5;
 
 	require(cvXValues != NULL);
 	require(cvYValues != NULL);

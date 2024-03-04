@@ -1746,8 +1746,8 @@ void DTGrouperMODL::MultipleClassesGroupWithGarbageSearch(KWFrequencyTable* kwft
 		nMinFrequency = ComputeMinGroupFrequency(oaInitialGroups, nTotalFrequency, nMaxInitialGroupNumber);
 
 		// Fusion des petits groupes
-		// CH V9 TODO ? Utiliser les deux modes bOneSingleGarbageGroup true et false ? False effectue moins de
-		// fusions -> ces groupes pourront etre fusionnes ensuite
+		// CH V9 TODO ? Utiliser les deux modes bOneSingleGarbageGroup true et false ?
+		// False effectue moins de fusions -> ces groupes pourront etre fusionnes ensuite
 		MergeSmallGroups(oaInitialGroups, nMinFrequency, false, ivFewerInitialIndexes);
 	}
 	assert(oaInitialGroups != NULL);

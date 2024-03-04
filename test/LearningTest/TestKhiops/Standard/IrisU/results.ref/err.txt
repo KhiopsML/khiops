@@ -1,6 +1,0 @@
-Train unsupervised model
-Database ../../../datasets/Iris/Iris.txt: Read records: 150	Selected records: 105
-Evaluation of variable pairs
-Data preparation time: 0:00:00.33
-Write report ./results/AnalysisResults.khj
-

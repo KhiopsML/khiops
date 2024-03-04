@@ -1829,10 +1829,8 @@ void AnyCharFileGenerator()
 	char cChar;
 
 	FileService::OpenOutputFile(sFileName, fTest);
-	// TODOMERGE: MB couper en deux lignes (format)
-	fTest << "Index\tChar\t<Char>"
-		 "\tisupper\tislower\tisdigit\tisxdigit\tisalnum\tisspace\tispunct\tp_"
-		 "isprint\tisprint\tisgraph\tiscntrl\tisascii\n";
+	fTest << "Index\tChar\t<Char>\tisupper\tislower\tisdigit\tisxdigit\tisalnum\t"
+	      << "isspace\tispunct\tp_isprint\tisprint\tisgraph\tiscntrl\tisascii\n";
 	for (i = 0; i < 20; i++)
 	{
 		for (nChar = 1; nChar < 256; nChar++)
