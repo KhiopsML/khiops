@@ -2,27 +2,31 @@ Khiops Native Interface @PROJECT_VERSION@
 ==============================
 
 The purpose of Khiops Native Interface (KNI) is to allow a deeper integration
-of Khiops in information systems, by mean of the C programming language, using
-a dynamic link library (DLL). This relates specially to the problem of model
-deployment, which otherwise requires the use of input and output data files
-when using directly the Khiops tool in batch mode. See Khiops Guide for an
-introduction to dictionary files, dictionaries, database files and deployment.
+of Khiops in information systems, by means of the C programming language, using
+a shared library (`.dll` in Windows or `.so` in Linux). This relates specially 
+to the problem of model deployment, which otherwise requires the use of input 
+and  output data files when using directly the Khiops tool in batch mode. See 
+Khiops Guide for an introduction to dictionary files, dictionaries, database files 
+and deployment.
 
-The Khiops deployment features are thus made public through an API with a DLL.
+The Khiops deployment API is made public through a shared library.
 Therefore, a Khiops model can be deployed directly from any programming
 language, such as C, C++, Java, Python, Matlab, etc. This enables real time
 model deployment without the overhead of temporary data files or launching
-executables. This is critical for certain applications in marketing or targeted
-advertising on the web.
+executables. This is critical for certain applications, such as marketing or 
+targeted advertising on the web..
 
 All KNI functions are C functions for easy use with other programming languages.
-They return a positive or null value in case of success, and a negative error
-code in case of failure. The functions are not reentrant (thread-safe): the DLL
+They return a positive or zero value in case of success, and a negative error
+code in case of failure.
+
+**Warning** The functions are not reentrant (thread-safe): the library
 can be used simultaneously by several executables, but not simultaneously by
 several threads in the same executable.
 
-See KhiopsNativeInterface.h for a detailed description of KNI functions
-
+See KhiopsNativeInterface.h for a detailed description of KNI functions and
+for examples of use in Java and C go to the KNI tutorial repo
+https://github.com/KhiopsML/KNI-tutorial/tree/@PROJECT_VERSION@.
 
 Files
 -----
@@ -31,12 +35,12 @@ README.txt: this file
 
 LICENSE: license file
 
-bin: DLL for windows
-	KhiopsNativeInterface64.dll: windows 64 bits
-	
+bin: DLL for Windows
+	KhiopsNativeInterface.dll: windows 64 bits
+
 include: include file, with a detailed description of KNI functions
 	KhiopsNativeInterface.h
 
-lib: 
-	- librairy for windows C/C++ bindings: KhiopsNativeInterface64.lib (64 bits)
-	- shared library for linux libKhiopsNativeInterface.so.@PROJECT_VERSION@
+lib:
+	- library for Windows C/C++ bindings: KhiopsNativeInterface.lib (64 bits)
+	- shared library for Linux libKhiopsNativeInterface.so.@PROJECT_VERSION@

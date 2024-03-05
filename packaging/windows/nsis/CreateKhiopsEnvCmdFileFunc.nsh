@@ -48,7 +48,8 @@ Function CreateKhiopsEnvCmdFile
     FileWrite $0 `echo KHIOPS_PATH: path of Khiops' executable, to add in path$\r$\n`
     FileWrite $0 `echo KHIOPS_MPI_COMMAND: MPI command to call the Khiops tool$\r$\n`
     FileWrite $0 `echo KHIOPS_MPI_LIB: MPI library path used by the Khiops tool$\r$\n`
-    FileWrite $0 `echo KHIOPS_JAVA_PATH: path of Java tool, to add in path$\r$\n`
+    FileWrite $0 `echo KHIOPS_JAVA_PATH: directory of the jvm.dll, to add in path$\r$\n`
+    FileWrite $0 `echo KHIOPS_JAVA_HOME: path of the Java home directory, to add in path its subdirectory "bin"$\r$\n`
     FileWrite $0 `echo KHIOPS_CLASSPATH: Khiops java libraries, to add in classpath$\r$\n`
     FileWrite $0 `echo.$\r$\n`
     FileWrite $0 `echo If they are not already defined, the following variables used by$\r$\n`
@@ -126,12 +127,12 @@ Function CreateKhiopsEnvCmdFile
     FileWrite $0 `$\r$\n`
     FileWrite $0 `REM Set user Java Home$\r$\n`
     FileWrite $0 `REM Uncomment the following line your own Java version$\r$\n`
-    FileWrite $0 `REM set _KHIOPS_JAVA_HOME=C:\Program Files\Java\jre${JavaRequiredFullVersion}$\r$\n`
+    FileWrite $0 `REM set KHIOPS_JAVA_HOME=C:\Program Files\Java\jre${JavaRequiredFullVersion}$\r$\n`
     FileWrite $0 `$\r$\n`
     FileWrite $0 `:JAVA_HOME_0$\r$\n`
     FileWrite $0 `set _KHIOPS_JAVA_HOME_ORIGIN=java home set by user$\r$\n`
     FileWrite $0 `REM Search if set by user$\r$\n`
-    FileWrite $0 `if not "%_KHIOPS_JAVA_HOME%".=="". goto JAVA_HOME_LAST$\r$\n`
+    FileWrite $0 `if not "%KHIOPS_JAVA_HOME%".=="". goto JAVA_HOME_LAST$\r$\n`
     FileWrite $0 `$\r$\n`
     FileWrite $0 `:JAVA_HOME_1$\r$\n`
     FileWrite $0 `set _KHIOPS_JAVA_HOME_ORIGIN=found java recent version in registry$\r$\n`
@@ -139,9 +140,9 @@ Function CreateKhiopsEnvCmdFile
     FileWrite $0 `REM Search Java Version from registry and set _KHIOPS_JAVA_VERSION env var$\r$\n`
     FileWrite $0 `for /F "tokens=2*" %%f in ('reg query "HKEY_LOCAL_MACHINE\SOFTWARE\JavaSoft\JRE" -v CurrentVersion 2^>nul') do set _KHIOPS_JAVA_VERSION=%%g$\r$\n`
     FileWrite $0 `$\r$\n`
-    FileWrite $0 `REM Search Java Home from registry and set _KHIOPS_JAVA_HOME env var$\r$\n`
-    FileWrite $0 `for /F "tokens=2*" %%f in ('reg query "HKEY_LOCAL_MACHINE\SOFTWARE\JavaSoft\JRE\%_KHIOPS_JAVA_VERSION%" -v JavaHome 2^>nul') do set _KHIOPS_JAVA_HOME=%%g$\r$\n`
-    FileWrite $0 `if not "%_KHIOPS_JAVA_HOME%".=="". goto JAVA_HOME_LAST$\r$\n`
+    FileWrite $0 `REM Search Java Home from registry and set KHIOPS_JAVA_HOME env var$\r$\n`
+    FileWrite $0 `for /F "tokens=2*" %%f in ('reg query "HKEY_LOCAL_MACHINE\SOFTWARE\JavaSoft\JRE\%_KHIOPS_JAVA_VERSION%" -v JavaHome 2^>nul') do set KHIOPS_JAVA_HOME=%%g$\r$\n`
+    FileWrite $0 `if not "%KHIOPS_JAVA_HOME%".=="". goto JAVA_HOME_LAST$\r$\n`
     FileWrite $0 `$\r$\n`
     FileWrite $0 `:JAVA_HOME_2$\r$\n`
     FileWrite $0 `set _KHIOPS_JAVA_HOME_ORIGIN=found java version in registry$\r$\n`
@@ -149,9 +150,9 @@ Function CreateKhiopsEnvCmdFile
     FileWrite $0 `REM Search Java Version from registry and set _KHIOPS_JAVA_VERSION env var$\r$\n`
     FileWrite $0 `for /F "tokens=2*" %%f in ('reg query "HKEY_LOCAL_MACHINE\SOFTWARE\JavaSoft\Java Runtime Environment" -v CurrentVersion 2^>nul') do set _KHIOPS_JAVA_VERSION=%%g$\r$\n`
     FileWrite $0 `$\r$\n`
-    FileWrite $0 `REM Search Java Home from registry and set _KHIOPS_JAVA_HOME env var$\r$\n`
-    FileWrite $0 `for /F "tokens=2*" %%f in ('reg query "HKEY_LOCAL_MACHINE\SOFTWARE\JavaSoft\Java Runtime Environment\%_KHIOPS_JAVA_VERSION%" -v JavaHome 2^>nul') do set _KHIOPS_JAVA_HOME=%%g$\r$\n`
-    FileWrite $0 `if not "%_KHIOPS_JAVA_HOME%".=="". goto JAVA_HOME_LAST$\r$\n`
+    FileWrite $0 `REM Search Java Home from registry and set KHIOPS_JAVA_HOME env var$\r$\n`
+    FileWrite $0 `for /F "tokens=2*" %%f in ('reg query "HKEY_LOCAL_MACHINE\SOFTWARE\JavaSoft\Java Runtime Environment\%_KHIOPS_JAVA_VERSION%" -v JavaHome 2^>nul') do set KHIOPS_JAVA_HOME=%%g$\r$\n`
+    FileWrite $0 `if not "%KHIOPS_JAVA_HOME%".=="". goto JAVA_HOME_LAST$\r$\n`
     FileWrite $0 `$\r$\n`
     FileWrite $0 `:JAVA_HOME_3$\r$\n`
     FileWrite $0 `set _KHIOPS_JAVA_HOME_ORIGIN=found in java installation sub dirs$\r$\n`
@@ -165,12 +166,12 @@ Function CreateKhiopsEnvCmdFile
     FileWrite $0 `:JAVA_HOME_4$\r$\n`
     FileWrite $0 `set _KHIOPS_JAVA_HOME_ORIGIN=default installation settings$\r$\n`
     FileWrite $0 `REM Set default Java Home if not found in registry$\r$\n`
-    FileWrite $0 `if "%_KHIOPS_JAVA_HOME%".=="". set _KHIOPS_JAVA_HOME=C:\Program Files\Java\jre${JavaRequiredFullVersion}$\r$\n`
+    FileWrite $0 `if "%KHIOPS_JAVA_HOME%".=="". set KHIOPS_JAVA_HOME=C:\Program Files\Java\jre${JavaRequiredFullVersion}$\r$\n`
     FileWrite $0 `$\r$\n`
     FileWrite $0 `:JAVA_HOME_LAST$\r$\n`
     FileWrite $0 `REM Add java runtime dir to KHIOPS_JAVA_PATH$\r$\n`
-    FileWrite $0 `if exist "%_KHIOPS_JAVA_HOME%\bin\client\jvm.dll" set KHIOPS_JAVA_PATH=%_KHIOPS_JAVA_HOME%\bin\client$\r$\n`
-    FileWrite $0 `if exist "%_KHIOPS_JAVA_HOME%\bin\server\jvm.dll" set KHIOPS_JAVA_PATH=%_KHIOPS_JAVA_HOME%\bin\server$\r$\n`
+    FileWrite $0 `if exist "%KHIOPS_JAVA_HOME%\bin\client\jvm.dll" set KHIOPS_JAVA_PATH=%KHIOPS_JAVA_HOME%\bin\client$\r$\n`
+    FileWrite $0 `if exist "%KHIOPS_JAVA_HOME%\bin\server\jvm.dll" set KHIOPS_JAVA_PATH=%KHIOPS_JAVA_HOME%\bin\server$\r$\n`
     FileWrite $0 `$\r$\n`
     FileWrite $0 `:JAVA_END$\r$\n`
     FileWrite $0 `$\r$\n`
@@ -181,6 +182,7 @@ Function CreateKhiopsEnvCmdFile
     FileWrite $0 `echo KHIOPS_MPI_COMMAND %KHIOPS_MPI_COMMAND%$\r$\n`
     FileWrite $0 `echo KHIOPS_MPI_LIB %KHIOPS_MPI_LIB%$\r$\n`
     FileWrite $0 `echo KHIOPS_JAVA_PATH %KHIOPS_JAVA_PATH%$\r$\n`
+    FileWrite $0 `echo KHIOPS_JAVA_HOME %KHIOPS_JAVA_HOME%$\r$\n`
     FileWrite $0 `echo KHIOPS_CLASSPATH %KHIOPS_CLASSPATH%$\r$\n`
     FileWrite $0 `echo KHIOPS_LAST_RUN_DIR %KHIOPS_LAST_RUN_DIR%$\r$\n`
     FileWrite $0 `echo KHIOPS_PROC_NUMBER %KHIOPS_PROC_NUMBER%$\r$\n`
