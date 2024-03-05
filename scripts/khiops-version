@@ -1,7 +1,7 @@
 #! /usr/bin/env bash
-
 # Obtains the khiops version stored in the sources
 
+# Common safeguards
 set -euo pipefail
 
 # Obtain the khiops repo location
@@ -10,8 +10,8 @@ KHIOPS_REPO_DIR=$(dirname "$SCRIPT_DIR")
 
 # Get the version
 # - Get the version definition line in the KWKhiopsVersion.h file
-# - Get the third token, it should be something like str(10.1.1)
+# - Get the third token, it should be something like KHIOPS_STR(10.1.1)
 # - Extract the version
 grep "KHIOPS_VERSION" "$KHIOPS_REPO_DIR"/src/Learning/KWUtils/KWKhiopsVersion.h \
   | cut -d' ' -f3 \
-  | sed 's/str(\(.*\))/\1/'
+  | sed 's/KHIOPS_STR(\(.*\))/\1/'
