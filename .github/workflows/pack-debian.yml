@@ -65,7 +65,6 @@ jobs:
   test:
     needs: build
     runs-on: ubuntu-latest
-    continue-on-error: true
     defaults:
       run:
         shell: bash
@@ -94,6 +93,7 @@ jobs:
           dpkg -i ./artifacts/khiops-core* || true
           apt-get -f install -y
       - name: Check Khiops core installation
+        continue-on-error: ${{ matrix.os == 'debian:11' }}
         run: |
           khiops-env --env
           khiops -v
@@ -103,10 +103,12 @@ jobs:
           dpkg -i ./khiops_* || true
           apt-get -f install -y
       - name: Check Khiops installation
+        continue-on-error: ${{ matrix.os == 'debian:11' }}
         run: |
           khiops -v
           khiops_coclustering -v
       - name: Test Khiops installation
+        continue-on-error: ${{ matrix.os == 'debian:11' || matrix.os == 'debian:12' }}
         uses: ./.github/actions/test-khiops-install
   test-kni:
     needs: build
