@@ -77,7 +77,7 @@ public:
 
 	// Variante de l'estimation du nombre d'objets dans la base, en memoire et sans acces disque,
 	// en analysant la structure du dictionnaire avec dimensionnement heuristique
-	longint GetInMemoryEstimatedObjectNumber(longint lInputFileSize);
+	longint GetInMemoryEstimatedObjectNumber(longint lInputFileSize) const;
 
 	// Estimation heuristique de la place disque par record d'un fichier a lire en se basant sur les variable native
 	// du dictionnaire

@@ -732,7 +732,7 @@ void KWDataPreparationBivariateTask::ComputeTaskInputs()
 	GetAttributePairsSpec()->SelectAttributePairStats(masterClassStats->GetAttributeStats(),
 							  &oaInputAttributePairStats);
 
-	// Memorisation de toutes les stats univariees d'attributs impliquees dans les parires
+	// Memorisation de toutes les stats univariees d'attributs impliquees dans les paires
 	for (n = 0; n < oaInputAttributePairStats.GetSize(); n++)
 	{
 		attributePairStats = cast(KWAttributePairStats*, oaInputAttributePairStats.GetAt(n));

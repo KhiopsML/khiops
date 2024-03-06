@@ -520,21 +520,21 @@ void KDSelectionOperandDataSampler::ExtractSelectionObjects(const KWObject* kwoO
 	require(lMainObjectIndex >= 0);
 	require(lSubObjectIndex >= 0);
 	require(nkdAllSubObjects != NULL);
-	require(nkdAllSubObjects->Lookup((NUMERIC)kwoObject) == NULL);
+	require(nkdAllSubObjects->Lookup(kwoObject) == NULL);
 
 	// Si objet principal, memorisation des objets des tables externes analyses
 	bExtractObjectValues = true;
 	if (lMainObjectIndex > 0)
 	{
 		// Si objet reference, memorisation de l'objet dans liste des objet references analyses
-		if (nkdAllReferencedObjects.Lookup((NUMERIC)kwoObject) != NULL)
+		if (nkdAllReferencedObjects.Lookup(kwoObject) != NULL)
 		{
 			// Arret si objet enregistre dans les objets references deja analyses
-			if (nkdAllAnalyzedReferencedObjects.Lookup((NUMERIC)kwoObject) != NULL)
+			if (nkdAllAnalyzedReferencedObjects.Lookup(kwoObject) != NULL)
 				return;
 
 			// Enregistrement sinon
-			nkdAllAnalyzedReferencedObjects.SetAt((NUMERIC)kwoObject, cast(Object*, kwoObject));
+			nkdAllAnalyzedReferencedObjects.SetAt(kwoObject, cast(Object*, kwoObject));
 
 			// On n'extrait pas les valeurs de l'objet: ce sera fait specifiquement pour les tables externes
 			// apres l'analyse de tous les objets principaux
@@ -544,7 +544,7 @@ void KDSelectionOperandDataSampler::ExtractSelectionObjects(const KWObject* kwoO
 		else
 		{
 			lSubObjectIndex++;
-			nkdAllSubObjects->SetAt((NUMERIC)kwoObject, cast(Object*, kwoObject));
+			nkdAllSubObjects->SetAt(kwoObject, cast(Object*, kwoObject));
 		}
 	}
 	// Si objet d'un table externe
@@ -552,10 +552,10 @@ void KDSelectionOperandDataSampler::ExtractSelectionObjects(const KWObject* kwoO
 	{
 		// Memorisation dans la liste des objets explores pour n'explorer les objets externes qu'une seule fois
 		lSubObjectIndex++;
-		nkdAllSubObjects->SetAt((NUMERIC)kwoObject, cast(Object*, kwoObject));
+		nkdAllSubObjects->SetAt(kwoObject, cast(Object*, kwoObject));
 
 		// On extrait les valeurs de l'objet que s'il a ete reference depuis les objets principaux
-		bExtractObjectValues = (nkdAllAnalyzedReferencedObjects.Lookup((NUMERIC)kwoObject) != NULL);
+		bExtractObjectValues = (nkdAllAnalyzedReferencedObjects.Lookup(kwoObject) != NULL);
 	}
 
 	// Acces a la classe
@@ -584,7 +584,7 @@ void KDSelectionOperandDataSampler::ExtractSelectionObjects(const KWObject* kwoO
 			kwoSubObject = kwoObject->GetObjectValueAt(attribute->GetLoadIndex());
 
 			// Propagation au sous-objet
-			if (kwoSubObject != NULL and nkdAllSubObjects->Lookup((NUMERIC)kwoSubObject) == NULL)
+			if (kwoSubObject != NULL and nkdAllSubObjects->Lookup(kwoSubObject) == NULL)
 				ExtractSelectionObjects(kwoSubObject, lMainObjectIndex, lSubObjectIndex,
 							nkdAllSubObjects);
 		}
@@ -603,8 +603,7 @@ void KDSelectionOperandDataSampler::ExtractSelectionObjects(const KWObject* kwoO
 					kwoSubObject = cast(KWObject*, oaSubObjects->GetAt(i));
 
 					// Propagation au sous-objet
-					if (kwoSubObject != NULL and
-					    nkdAllSubObjects->Lookup((NUMERIC)kwoSubObject) == NULL)
+					if (kwoSubObject != NULL and nkdAllSubObjects->Lookup(kwoSubObject) == NULL)
 						ExtractSelectionObjects(kwoSubObject, lMainObjectIndex, lSubObjectIndex,
 									nkdAllSubObjects);
 				}
@@ -635,8 +634,7 @@ void KDSelectionOperandDataSampler::ExtractSelectionObjects(const KWObject* kwoO
 					kwoSubObject = cast(KWObject*, oaSubObjects->GetAt(i));
 
 					// Propagation au sous-objet
-					if (kwoSubObject != NULL and
-					    nkdAllSubObjects->Lookup((NUMERIC)kwoSubObject) == NULL)
+					if (kwoSubObject != NULL and nkdAllSubObjects->Lookup(kwoSubObject) == NULL)
 						ExtractSelectionObjects(kwoSubObject, lMainObjectIndex, lSubObjectIndex,
 									nkdAllSubObjects);
 				}
@@ -839,7 +837,7 @@ void KDSelectionOperandDataSampler::ExtractAllSelectionReferencedObjects(KWMTDat
 			rootObject = cast(KWObject*, oaRootObjects.GetAt(nObject));
 
 			// Analyse de l'objet pour enregistrer les objets des classes de selection
-			if (nkdAllSubObjects.Lookup((NUMERIC)rootObject) == NULL)
+			if (nkdAllSubObjects.Lookup(rootObject) == NULL)
 				ExtractSelectionObjects(rootObject, 0, lSubObjectIndex, &nkdAllSubObjects);
 		}
 	}
@@ -908,11 +906,11 @@ void KDSelectionOperandDataSampler::RegisterReferencedObject(KWObject* kwoObject
 	require(kwoObject != NULL);
 
 	// Arret si objet null ou deja enregistre
-	if (kwoObject == NULL or nkdAllReferencedObjects.Lookup((NUMERIC)kwoObject) != NULL)
+	if (kwoObject == NULL or nkdAllReferencedObjects.Lookup(kwoObject) != NULL)
 		return;
 
 	// Memorisation de l'objet
-	nkdAllReferencedObjects.SetAt((NUMERIC)kwoObject, kwoObject);
+	nkdAllReferencedObjects.SetAt(kwoObject, kwoObject);
 
 	// Acces a la classe
 	kwcClass = kwoObject->GetClass();
@@ -1227,7 +1225,7 @@ longint KDClassSelectionData::GetUsedMemory() const
 
 const ALString KDClassSelectionData::GetClassLabel() const
 {
-	return "Class selection data";
+	return "Dictionary selection data";
 }
 
 const ALString KDClassSelectionData::GetObjectLabel() const
@@ -1277,7 +1275,7 @@ longint KDClassSelectionOperandData::GetUsedMemory() const
 
 const ALString KDClassSelectionOperandData::GetClassLabel() const
 {
-	return "Class selection operand data";
+	return "Dictionary selection operand data";
 }
 
 const ALString KDClassSelectionOperandData::GetObjectLabel() const

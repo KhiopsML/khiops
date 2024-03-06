@@ -25,8 +25,8 @@ add_library(
   KWData STATIC
   JSONFile.cpp
   JSONTokenizer.cpp
-  KWAttributeBlock.cpp
   KWAttribute.cpp
+  KWAttributeBlock.cpp
   KWAttributeName.cpp
   KWAttributePairName.cpp
   KWCDUniqueString.cpp
@@ -59,14 +59,19 @@ add_library(
   KWSTDatabaseTextFile.cpp
   KWStructureRule.cpp
   KWSymbol.cpp
+  KWTextService.cpp
+  KWTextTokenizer.cpp
+  KWDateTime.cpp
   KWTime.cpp
   KWTimestamp.cpp
   KWTimestampTZ.cpp
-  KWTypeAutomaticRecognition.cpp
+  KWTokenFrequency.cpp
   KWType.cpp
+  KWTypeAutomaticRecognition.cpp
   KWValueBlock.cpp
   KWValueDictionary.cpp
   KWValueSparseVector.cpp
+  Profiler.cpp
   ${BISON_KWCParser_OUTPUTS}
   ${FLEX_KWCScanner_OUTPUTS}
   ${FLEX_JsonScanner_OUTPUTS})

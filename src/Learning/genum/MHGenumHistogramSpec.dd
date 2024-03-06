@@ -1,0 +1,3 @@
+Rank;Name;Type;Style;Label
+1;OutlierManagementHeuristic   ;boolean ;CheckBox ;Outlier management heuristic
+2;EpsilonBinNumber      ;int     ;           ;Epsilon bin number

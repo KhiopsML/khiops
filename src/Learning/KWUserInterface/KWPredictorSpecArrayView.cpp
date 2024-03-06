@@ -177,14 +177,10 @@ void KWPredictorSpecArrayView::Test()
 	// Enregistrement de predicteurs
 	KWPredictor::RegisterPredictor(new KWPredictorUnivariate);
 	KWPredictor::RegisterPredictor(new KWPredictorNaiveBayes);
-	KWPredictor::RegisterPredictor(new KWPredictorSelectiveNaiveBayes);
-
-	// Enregistrement de vues sur les predicteurs
-	KWPredictorView::RegisterPredictorView(new KWPredictorSelectiveNaiveBayesView);
 
 	// Ouverture de la liste d'edition des specifications des predicteurs
 	predictorSpecArrayView = new KWPredictorSpecArrayView;
-	predictorSpecArrayView->SetPredictorFilter("Univariate;Selective Naive Bayes");
+	predictorSpecArrayView->SetPredictorFilter("Univariate;Naive Bayes");
 	predictorSpecArrayView->SetObjectArray(&oaPredictorSpecs);
 	predictorSpecArrayView->Open();
 

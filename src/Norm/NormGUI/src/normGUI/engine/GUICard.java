@@ -13,8 +13,6 @@ import javax.swing.JPanel;
 
 /**
  * Definit une unite d'interface de type fiche
- *
- * @author Marc Boulle
  */
 public class GUICard extends GUIUnit
 {
@@ -215,7 +213,7 @@ public class GUICard extends GUIUnit
                                                 GridBagConstraints localConstraints = new GridBagConstraints();
                                                 Insets currentInsets = constraints.insets;
 
-                                                // Personnalisation des gridbagconstraints lovcaux pour afficher le
+                                                // Personnalisation des gridbagconstraints locaux pour afficher le
                                                 // bouton a droite avec une marge verticale minimale
                                                 localConstraints.gridx = 2;
                                                 localConstraints.fill = GridBagConstraints.NONE;

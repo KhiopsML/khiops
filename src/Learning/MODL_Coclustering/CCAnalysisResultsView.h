@@ -46,8 +46,11 @@ public:
 
 	// ## Custom declarations
 
-	// Parametrage de la visibilite des fichiers resultats
-	void SetResultFieldsVisible(boolean bValue);
+	// Actions de menu
+	void VisualizeResults();
+
+	// Libelles de l'objet
+	const ALString GetObjectLabel() const override;
 
 	// ##
 	////////////////////////////////////////////////////////

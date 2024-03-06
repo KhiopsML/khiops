@@ -8,7 +8,7 @@
 
 #include "CCLearningProblem.h"
 
-#include "KWClassManagementView.h"
+#include "KWClassManagementActionView.h"
 #include "KWDatabaseView.h"
 #include "CCAnalysisSpecView.h"
 #include "CCAnalysisResultsView.h"
@@ -16,7 +16,6 @@
 #include "KWClassBuilderView.h"
 #include "KWClassAttributeHelpList.h"
 #include "KWDatabaseAttributeValuesHelpList.h"
-#include "LMLicenseManager.h"
 #include "KWLearningProblemHelpCard.h"
 
 ////////////////////////////////////////////////////////////
@@ -48,10 +47,21 @@ public:
 	/////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
+	// Construction de dictionnaire a partir d'un fichier
+	// On fait une detection automatique de format suivi d'une construction de dictionnaire,
+	// pour permettre l'analyse de donnees sans dictionnaire prealable
+	// On renvoie true OK
+	// Sinon, un nouveau dictionnaire de nom base sur le nom du fichier, est cree est disponible en memoire
+	// Il n'est pas sauve dansd le fichier des dictionnaires
+	boolean BuildClassFromDataTable();
+
 	// Rafraichissement des listes d'aide
 	void RefreshHelpLists();
 
 	// Gestion des listes d'aide
 	KWClassAttributeHelpList simpleAttributeHelpList;
 	KWClassAttributeHelpList continuousAttributeHelpList;
+	// CH IV Begin
+	KWClassAttributeHelpList categoricalAttributeHelpList;
+	// CH IV End
 };

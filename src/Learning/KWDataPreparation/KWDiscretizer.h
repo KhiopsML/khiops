@@ -81,7 +81,7 @@ public:
 	virtual void Discretize(KWFrequencyTable* kwftSource, KWFrequencyTable*& kwftTarget) const;
 
 	/////////////////////////////////////////////////////////////////////////////
-	// Methodes de partitonnement d'une serie de valeur
+	// Methodes de partitonnement d'une serie de valeurs
 	// Methode a appeler dans le cas ou l'option UseSourceValues est a true
 	//
 	// On calcule la meilleure table de contingence cible par partitionnement de
@@ -95,34 +95,39 @@ public:
 	//    nTargetValueNumber: nombre de valeurs cibles possibles
 	//    code retour: evaluation de la qualite du resultat par l'algorithme
 	//          renvoie 0 si pas de nouvelle table, ou si methode sans evaluation
+	// Parametres cree en sortie
+	//    kwftTarget: table de contingence, systematiquement presente en cas de succes
+	//    cvBounds: bornes des intervalles, presente uniquement si les bornes sont definies par les valeurs
 	//
 	// MEMORY: La liberation des parametres en retour est de la responsabilite
 	// de l'appelant. Attention, ces parametres peuvent etre NULL.
 
 	// Calcul de la loi agregee pour des regroupements de lignes adjacentes
 	virtual void DiscretizeValues(ContinuousVector* cvSourceValues, IntVector* ivTargetIndexes,
-				      int nTargetValueNumber, KWFrequencyTable*& kwftTarget) const;
+				      int nTargetValueNumber, KWFrequencyTable*& kwftTarget,
+				      ContinuousVector*& cvBounds) const;
 
 	/////////////////////////////////////////////////////////////////////////
-	// Administration des discretiseurs
+	// Administration des discretiseurs, soit supervise, soit non supervise
+	// selon le TargetAttributeType (Symbol ou None)
 
 	// Enregistrement dans la base des discretiseurs
 	// Il ne doit pas y avoir deux discretiseurs enregistres avec le meme nom
 	// Memoire: les discretiseurs enregistres sont geres par l'appele
-	static void RegisterDiscretizer(KWDiscretizer* discretiser);
+	static void RegisterDiscretizer(int nTargetAttributeType, KWDiscretizer* discretiser);
 
 	// Recherche par cle
 	// Retourne NULL si absent
-	static KWDiscretizer* LookupDiscretizer(const ALString& sName);
+	static KWDiscretizer* LookupDiscretizer(int nTargetAttributeType, const ALString& sName);
 
 	// Recherche par cle et duplication
 	// Permet d'obtenir un discretiseur pret a etre instancie
 	// Retourne NULL si absent
-	static KWDiscretizer* CloneDiscretizer(const ALString& sName);
+	static KWDiscretizer* CloneDiscretizer(int nTargetAttributeType, const ALString& sName);
 
 	// Export de tous les discretiseurs enregistres
 	// Memoire: le contenu du tableau appartient a l'appele
-	static void ExportAllDiscretizers(ObjectArray* oaDiscretizers);
+	static void ExportAllDiscretizers(int nTargetAttributeType, ObjectArray* oaDiscretizers);
 
 	// Suppresion/destruction de tous les predicteurs enregistrees
 	static void RemoveAllDiscretizers();
@@ -141,13 +146,17 @@ public:
 	/////////////////////////////////////////////////////////////////
 	//// Implementation
 protected:
+	// Acces aux discretiseurs selon l'attribut cible
+	static ObjectDictionary* GetDiscretizers(int nTargetAttributeType);
+
 	// Parametres de l'algorithme
 	double dParam;
 	int nMinIntervalFrequency;
 	int nMaxIntervalNumber;
 
 	// Administration des discretiseurs
-	static ObjectDictionary* odDiscretizers;
+	static ObjectDictionary odSupervisedDiscretizers;
+	static ObjectDictionary odUnsupervisedDiscretizers;
 };
 
 // Fonction de comparaison sur le nom d'un discretiseur

@@ -1716,8 +1716,7 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 						assert(kwoUsedObject->GetClass() != attribute->GetClass());
 
 						// Transfert si objet a garder
-						if (nkdUnusedNativeAttributesToKeep->Lookup((NUMERIC)attribute) ==
-						    attribute)
+						if (nkdUnusedNativeAttributesToKeep->Lookup(attribute) == attribute)
 						{
 							GetAt(liInternalLoadIndex.GetDenseIndex())
 							    .SetObject(kwoUsedObject);
@@ -1743,8 +1742,7 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 					if (oaUsedObjectArray != NULL)
 					{
 						// Transfert si objet a garder
-						if (nkdUnusedNativeAttributesToKeep->Lookup((NUMERIC)attribute) ==
-						    attribute)
+						if (nkdUnusedNativeAttributesToKeep->Lookup(attribute) == attribute)
 						{
 							// Transfert du tableau
 							GetAt(liInternalLoadIndex.GetDenseIndex())

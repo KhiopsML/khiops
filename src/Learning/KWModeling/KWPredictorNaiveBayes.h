@@ -53,6 +53,13 @@ protected:
 	void InternalTrainWNB(KWDataPreparationClass* dataPreparationClass,
 			      ObjectArray* oaDataPreparationUsedAttributes, ContinuousVector* cvDataPreparationWeights);
 
+	// Extraction d'un tableau de preparation d'attribut (KWDataPreparationStats)
+	// a partir d'un tableau d'attribut prepares (KWDataPreparationAttribute)
+	// Memoire: le tableau en sortie appartient a l'appelant, son contenu correspond au preparation references par
+	// cahque attribut prepare
+	void ExtractDataPreparationStats(const ObjectArray* oaDataPreparationAttributes,
+					 ObjectArray* oaDataPreparationAttributeStats);
+
 	////////////////////////////////////////////////////////////////////////////////////
 	// Apprentissage dans le cas d'un classifier
 
@@ -63,7 +70,7 @@ protected:
 					ContinuousVector* cvDataPreparationWeights);
 
 	// Ajout de l'attribut classifieur
-	KWAttribute* AddClassifierAttribute(KWTrainedClassifier* trainedRegressor,
+	KWAttribute* AddClassifierAttribute(KWTrainedClassifier* trainedClassifier,
 					    ObjectArray* oaDataPreparationUsedAttributes,
 					    ContinuousVector* cvDataPreparationWeights);
 

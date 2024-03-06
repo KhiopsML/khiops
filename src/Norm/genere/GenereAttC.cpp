@@ -11,17 +11,18 @@ void TableGenerator::GenerateAttributeC(ostream& ost) const
 	int nCount;
 	boolean bSkipLine;
 
+	GenerateCopyrightHeader(ost);
 	GenerateFileHeader(ost);
 
 	ost << ""
 	    << "\n";
-	ost << "#include \"" << GetClassName() << ".h\""
+	ost << "#include \"" << GetModelClassName() << ".h\""
 	    << "\n";
 
 	// Constructeur
 	ost << ""
 	    << "\n";
-	ost << GetClassName() << "::" << GetClassName() << "()"
+	ost << GetModelClassName() << "::" << GetModelClassName() << "()"
 	    << "\n";
 	ost << "{"
 	    << "\n";
@@ -46,7 +47,7 @@ void TableGenerator::GenerateAttributeC(ostream& ost) const
 
 	ost << ""
 	    << "\n";
-	ost << GetClassName() << "::~" << GetClassName() << "()"
+	ost << GetModelClassName() << "::~" << GetModelClassName() << "()"
 	    << "\n";
 	ost << "{"
 	    << "\n";
@@ -57,7 +58,7 @@ void TableGenerator::GenerateAttributeC(ostream& ost) const
 	// Copie
 	ost << ""
 	    << "\n";
-	ost << "void " << GetClassName() << "::CopyFrom(const " << GetClassName() << "* aSource)"
+	ost << "void " << GetModelClassName() << "::CopyFrom(const " << GetModelClassName() << "* aSource)"
 	    << "\n";
 	ost << "{"
 	    << "\n";
@@ -65,7 +66,7 @@ void TableGenerator::GenerateAttributeC(ostream& ost) const
 	    << "\n";
 	bSkipLine = false;
 	if (GetSuperClassName() != "")
-		ost << "\t" << GetSuperClassName() << "::CopyFrom(aSource);\n\n";
+		ost << "\t" << GetModelSuperClassName() << "::CopyFrom(aSource);\n\n";
 	for (nCurrent = 0; nCurrent < GetFieldNumber(); nCurrent++)
 	{
 		att = GetFieldAt(nCurrent);
@@ -88,15 +89,15 @@ void TableGenerator::GenerateAttributeC(ostream& ost) const
 	// Duplication
 	ost << ""
 	    << "\n";
-	ost << GetClassName() << "* " << GetClassName() << "::Clone() const"
+	ost << GetModelClassName() << "* " << GetModelClassName() << "::Clone() const"
 	    << "\n";
 	ost << "{"
 	    << "\n";
-	ost << "\t" << GetClassName() << "* aClone;"
+	ost << "\t" << GetModelClassName() << "* aClone;"
 	    << "\n";
 	ost << ""
 	    << "\n";
-	ost << "\taClone = new " << GetClassName() << ";"
+	ost << "\taClone = new " << GetModelClassName() << ";"
 	    << "\n";
 	ost << "\taClone->CopyFrom(this);"
 	    << "\n";
@@ -111,17 +112,17 @@ void TableGenerator::GenerateAttributeC(ostream& ost) const
 	    << "\n";
 
 	// Write
-	ost << "void " << GetClassName() << "::Write(ostream& ost) const"
+	ost << "void " << GetModelClassName() << "::Write(ostream& ost) const"
 	    << "\n";
 	ost << "{"
 	    << "\n";
 	if (GetSuperClassName() != "")
-		ost << "\t" << GetSuperClassName() << "::Write(ost);\n";
+		ost << "\t" << GetModelSuperClassName() << "::Write(ost);\n";
 	for (nCurrent = 0; nCurrent < GetFieldNumber(); nCurrent++)
 	{
 		att = GetFieldAt(nCurrent);
 
-		if (att->GetVisible() == true)
+		if (att->GetVisible())
 		{
 			ost << "\tost << \"" << att->GetLabel() << "\\t\" << "
 			    << att->GetTypeVarToStream("Get" + att->GetName() + "()") << " << \"\\n\";"
@@ -134,7 +135,7 @@ void TableGenerator::GenerateAttributeC(ostream& ost) const
 	    << "\n";
 
 	// GetClassLabel
-	ost << "const ALString " << GetClassName() << "::GetClassLabel() const"
+	ost << "const ALString " << GetModelClassName() << "::GetClassLabel() const"
 	    << "\n";
 	ost << "{"
 	    << "\n";
@@ -160,7 +161,7 @@ void TableGenerator::GenerateAttributeC(ostream& ost) const
 				    << "\n";
 			}
 
-			ost << att->GetDerivedGetterType() << " " << GetClassName() << "::Get" << att->GetName()
+			ost << att->GetDerivedGetterType() << " " << GetModelClassName() << "::Get" << att->GetName()
 			    << "() const"
 			    << "\n";
 			ost << "{"
@@ -182,7 +183,7 @@ void TableGenerator::GenerateAttributeC(ostream& ost) const
 	// Methode GetObjectLabel
 	ost << ""
 	    << "\n";
-	ost << "const ALString " << GetClassName() << "::GetObjectLabel() const"
+	ost << "const ALString " << GetModelClassName() << "::GetObjectLabel() const"
 	    << "\n";
 	ost << "{"
 	    << "\n";
@@ -197,5 +198,5 @@ void TableGenerator::GenerateAttributeC(ostream& ost) const
 	ost << ""
 	    << "\n";
 
-	GenerateUserCodeTrailer(ost, "", "Method implementation", false);
+	GenerateUserCodeTrailer(ost, "", "Method implementation", true);
 }

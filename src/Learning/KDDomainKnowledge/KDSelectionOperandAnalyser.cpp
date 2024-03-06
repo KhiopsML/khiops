@@ -1074,7 +1074,7 @@ void KDClassSelectionStats::Write(ostream& ost) const
 
 const ALString KDClassSelectionStats::GetClassLabel() const
 {
-	return "Class selection stats";
+	return "Dictionary selection stats";
 }
 
 const ALString KDClassSelectionStats::GetObjectLabel() const
@@ -1409,7 +1409,7 @@ void KDClassSelectionOperandStats::Write(ostream& ost) const
 
 const ALString KDClassSelectionOperandStats::GetClassLabel() const
 {
-	return "Class selection operand stats";
+	return "Dictionary selection operand stats";
 }
 
 const ALString KDClassSelectionOperandStats::GetObjectLabel() const
@@ -1704,16 +1704,15 @@ boolean KDClassSymbolSelectionOperandStats::Check() const
 				selectionValue = cast(KDSelectionValue*, oaParts->GetAt(j));
 
 				// Verification de l'unicite globale des valeurs
-				bOk = bOk and nkdSelectionValues.Lookup(
-						  (NUMERIC)selectionValue->GetValue().GetNumericKey()) == NULL;
+				bOk = bOk and
+				      nkdSelectionValues.Lookup(selectionValue->GetValue().GetNumericKey()) == NULL;
 
 				// Arret si erreur
 				if (not bOk)
 					break;
 
 				// Enregistrement de la valeur
-				nkdSelectionValues.SetAt((NUMERIC)selectionValue->GetValue().GetNumericKey(),
-							 selectionValue);
+				nkdSelectionValues.SetAt(selectionValue->GetValue().GetNumericKey(), selectionValue);
 			}
 		}
 	}

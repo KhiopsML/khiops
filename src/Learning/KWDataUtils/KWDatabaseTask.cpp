@@ -739,7 +739,6 @@ boolean KWDatabaseTask::SlaveProcess()
 
 	// La methode finale est toujours appelee, pour les nettoyage potentiels
 	bOk = SlaveProcessStopDatabase(bOk) and bOk;
-
 	return bOk;
 }
 

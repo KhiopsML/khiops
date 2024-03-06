@@ -47,9 +47,8 @@ public:
 
 	// ## Custom declarations
 
-	// Type de variables construite
-	boolean IsNGram() const;
-	boolean IsToken() const;
+	// Verification de l'intefrite avec message d'erreur
+	boolean Check() const override;
 
 	// ##
 

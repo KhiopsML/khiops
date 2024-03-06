@@ -191,7 +191,7 @@ using namespace std;
 // Encapsulation de quelques fonctions standards C, en les prefixant par p_
 // Les methodes sont identiques dans le cas gcc, et reimplementees pour MS Visual C++ 2008
 // (qui a "declasse" ces fonctions en DEPRECATED)
-// Il manque les methodes open, sscanf, sprintf
+// Il manque les methodes open, sscanf
 
 // Declaration de la structure stat
 #ifdef _WIN32
@@ -258,16 +258,34 @@ char* StandardGetBuffer();
 // Renvoie une chaine lue depuis un fichier d'entree, et rangee dans le buffer en parametre(fonction "privee")
 void StandardGetInputString(char* sBuffer, FILE* fInput);
 
-/////////////////////////////////////////////////////////////////
-// chargement de librairies partagees
-
-// Taille maximale des messages construits par LoadSharedLibrary
+// Taille maximale des messages systeme
 // Il faut donc prevoir un buffer de cette taille, plus 1 pour le caractere fin de chaine
-#define SHARED_LIBRARY_MESSAGE_LENGTH 512
+#define SYSTEM_MESSAGE_LENGTH 512
+
+////////////////////////////////////////////////////////////////////
+// Lancement d'une application pour ouvir un fichier par programme
+
+// Lancement d'une application sur un fichier en fonction de son extension
+// S'il le nom de l'exe dont la presencer est a verifier n'est pas specifie et s'il n'y a pas d'application
+// associee a l'extension, on se base sur l'extension ".txt" pour utiliser l'editeur de texte systeme
+// Le comportement est implemente au mieux pour assurer une portabilite entre windows et linux
+// Parametres
+//  sApplicationExeName : nom de l'exe (sans le ".exe" sous Windows) (facultatif)
+//  sApplicationLabel : libelle associe a l'application, pour fabriquer les message d'erreurs
+//  sFileToOpen : nom du fichier a ouvrir, ayant une extension
+//  sErrorMessage : sortie qui vaut vide si le chargement a reussi, le message d'erreur sinon
+//                  (longueur max a prevoir: SYSTEM_MESSAGE_LENGTH)
+// valeur de retour : true si lancement effectue, false sinon
+int OpenApplication(const char* sApplicationExeName, const char* sApplicationLabel, const char* sFileToOpen,
+		    char* sErrorMessage);
+
+/////////////////////////////////////////////////////////////////
+// Chargement de librairies partagees
 
 // Chargement d'une librairie partagee.
 //  sLibraryPath : nom et chemin complet de la librairie (avec son extension).
 //  sErrorMessage : sortie qui vaut vide si le chargement a reussi, le message d'erreur sinon
+//                  (longueur max a prevoir: SYSTEM_MESSAGE_LENGTH)
 // valeur de retour : handle sur la librairie ouverte, ou NULL si echec du chargement
 void* LoadSharedLibrary(const char* sLibraryPath, char* sErrorMessage);
 

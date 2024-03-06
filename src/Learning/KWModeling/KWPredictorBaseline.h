@@ -19,17 +19,17 @@ public:
 	~KWPredictorBaseline();
 
 	// Constructeur generique
-	KWPredictor* Create() const;
+	KWPredictor* Create() const override;
 
 	// Nom du classifier
-	const ALString GetName() const;
+	const ALString GetName() const override;
 
 	// Prefixe du predicteur
-	const ALString GetPrefix() const;
+	const ALString GetPrefix() const override;
 
 	/////////////////////////////////////////////////////////
 	//// Implementation
 protected:
 	// Redefinition de la methode d'apprentissage
-	boolean InternalTrain();
+	boolean InternalTrain() override;
 };

@@ -85,7 +85,7 @@ void DTBaseLoader::BuildTrainOutOfBagBaseLoader(DTBaseLoader* blTrain, DTBaseLoa
 	SymbolVector* svOutOfBag = new SymbolVector;
 	KWTupleTable* targetTupleTableTrain = new KWTupleTable;
 	KWTupleTable* targetTupleTableOutOfBag = new KWTupleTable;
-	int instancesNumber = this->database->GetSize();
+	int instancesNumber = database->GetSize();
 	NumericKeyDictionary nkdDatabaseObjects;
 
 	// creation train
@@ -142,9 +142,8 @@ void DTBaseLoader::BuildTrainOutOfBagBaseLoader(DTBaseLoader* blTrain, DTBaseLoa
 	tlOutOfBag->SetInputExtraAttributeName(learningSpec->GetTargetAttributeName());
 	tlOutOfBag->SetInputExtraAttributeType(learningSpec->GetTargetAttributeType());
 
-	DTBaseLoader::LoadTupleTableFromSymbolValues(learningSpec->GetClass(),
-						     this->learningSpec->GetTargetAttributeName(), svOutOfBag,
-						     targetTupleTableOutOfBag);
+	DTBaseLoader::LoadTupleTableFromSymbolValues(learningSpec->GetClass(), learningSpec->GetTargetAttributeName(),
+						     svOutOfBag, targetTupleTableOutOfBag);
 	tlOutOfBag->SetInputExtraAttributeTupleTable(targetTupleTableOutOfBag);
 
 	if (tlOutOfBag->GetInputExtraAttributeType() == KWType::Continuous)
@@ -214,7 +213,8 @@ void DTBaseLoader::Write(ostream& ost)
 
 		const Symbol sInstanceModality = tuple->GetSymbolAt(0);
 
-		ost << "class : " << sInstanceModality.GetValue() << "Freq : " << tuple->GetFrequency() << endl;
+		ost << "class : " << TSV::Export(sInstanceModality.GetValue()) << "Freq : " << tuple->GetFrequency()
+		    << endl;
 		// targetModalitiesCount->SetAt(sInstanceModality.GetNumericKey(), modalityCount);
 	}
 }

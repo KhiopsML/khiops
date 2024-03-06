@@ -15,8 +15,6 @@ import javax.swing.text.PlainDocument;
 
 /**
  * Definit un element de type booleen
- *
- * @author Marc Boulle
  */
 public abstract class GUIBooleanElement extends GUIElement
 {
@@ -114,8 +112,6 @@ public abstract class GUIBooleanElement extends GUIElement
 /**
  * Definit l'element graphique par defaut permettant l'affichage de booleens.
  * Cette classe utilise un JTextField.
- *
- * @author Marc Boulle
  */
 class GUIBooleanElementTextField extends GUIBooleanElement
 {

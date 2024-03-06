@@ -246,20 +246,20 @@ void TestAdult()
 
 	// Saut du header
 	FileService::OpenInputBinaryFile(sDataPath, fRef);
-	ch = getc(fRef);
+	ch = (char)getc(fRef);
 	while (ch != '\n' and ch != EOF)
 	{
-		ch = getc(fRef);
+		ch = (char)getc(fRef);
 	}
 
 	// Copie du fichier tel quel
 	sRefFilePath = sTestPath + "results" + FileService::GetFileSeparator() + "ref_Adult.txt";
 	FileService::OpenOutputBinaryFile(sRefFilePath, fWithoutHeader);
-	ch = getc(fRef);
+	ch = (char)getc(fRef);
 	while (ch != EOF)
 	{
 		putc(ch, fWithoutHeader);
-		ch = getc(fRef);
+		ch = (char)getc(fRef);
 	}
 	FileService::CloseInputBinaryFile(sDataPath, fRef);
 	FileService::CloseOutputBinaryFile(sRefFilePath, fWithoutHeader);

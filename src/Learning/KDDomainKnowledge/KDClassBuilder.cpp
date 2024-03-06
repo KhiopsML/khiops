@@ -222,7 +222,7 @@ ALString KDClassBuilder::BuildPartAttributeName(const KDConstructedPart* part) c
 
 ALString KDClassBuilder::BuildIndexedAttributeName() const
 {
-	const ALString sAttributePrefix = "ConstructedFeature";
+	const ALString sAttributePrefix = "MultiTableFeature_";
 	ALString sAttributeName;
 
 	require(nAttributeNameIndex >= 0);
@@ -1610,7 +1610,7 @@ void KDClassBuilder::ReorderAttributesInClassDomain(const KWClassDomain* kwcdIni
 			kwcClass->MoveAttributeToClassTail(attribute);
 
 			// Memorisation dans un dictionnaire
-			nkdConstructedAttributes.SetAt((NUMERIC)attribute, attribute);
+			nkdConstructedAttributes.SetAt(attribute, attribute);
 		}
 	}
 
@@ -1698,7 +1698,7 @@ void KDClassBuilder::ReorderAttributeBlocksInClassDomain(const SortedList* slUse
 				assert(constructedPartition->GetPartitionAttribute() != NULL);
 
 				// Memorisation de la partition pour laquelle des attributs ont ete crees
-				nkdUsedPartitions.SetAt((NUMERIC)constructedPartition, constructedPartition);
+				nkdUsedPartitions.SetAt(constructedPartition, constructedPartition);
 			}
 		}
 	}
@@ -2448,7 +2448,7 @@ void KDSparseUsedConstructedRule::WriteLineReport(ostream& ost) const
 	ost << "\t";
 	ost << nUsingRuleNumber << "\t";
 	if (usedConstructedRule != NULL)
-		cout << *usedConstructedRule;
+		ost << *usedConstructedRule;
 	ost << "\t";
 	if (usedConstructedRule != NULL)
 		ost << usedConstructedRule->BuildAttributeName(false);

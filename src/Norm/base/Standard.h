@@ -5,6 +5,7 @@
 #pragma once
 
 #include "Longint.h"
+#include "MemoryManager.h"
 #include "Portability.h"
 
 ////////////////////////////////////////////////////////////////////////////
@@ -128,7 +129,7 @@ longint AcquireLongint(const char* const sLabel, longint lDefaultValue);
 longint AcquireRangedLongint(const char* const sLabel, longint lMin, longint lMax, longint lDefaultValue);
 
 // Gestion d'un mode batch global(par defaut false)
-// En mode batch, les fonctions Acquire... en mode batch retournent systematique la valeur
+// En mode batch, les fonctions Acquire... en mode batch retournent systematiquement la valeur
 // par defaut en parametre, sans interaction utilisateur
 void SetAcquireBatchMode(boolean bValue);
 boolean GetAcquireBatchMode();
@@ -289,6 +290,22 @@ extern const Object* objectCastControlBuffer;
 #define debug(exp) exp
 #endif
 
+// Reference: Numerical recipes: the art of scientific computing THIRD EDITION
+// Chapter 7: Random numbers, p 352
+// Generateur sans etat et sans graine
+inline unsigned long long int IthRandomUnsignedLongint(unsigned long long int n)
+{
+	unsigned long long int v = n * 3935559000370003845LL + 2691343689449507681LL;
+	v ^= v >> 21;
+	v ^= v << 37;
+	v ^= v >> 4;
+	v *= 4768777513237032717LL;
+	v ^= v << 20;
+	v ^= v >> 41;
+	v ^= v << 5;
+	return v;
+}
+
 // Fonction de hash Jenkins one at a time
 inline int HashValue(const char* sString)
 {
@@ -331,6 +348,3 @@ void SetProcessId(int nValue);
 void TraceMaster(const char* sTrace);
 void TraceSlave(const char* sTrace);
 void TraceWithRank(const char* sTrace);
-
-// Gestion de la memoire
-#include "MemoryManager.h"

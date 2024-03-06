@@ -66,7 +66,7 @@ public:
 		WithReplacementAdaBoost, // tirage avec remise, choix pondere (algo AdaBoost)
 	};
 
-	boolean ComputeStats();
+	boolean ComputeStats() override;
 
 	/// Duplication de l'arbre
 	DTDecisionTree* Clone();
@@ -160,14 +160,14 @@ public:
 	int GetUsableAttributesNumber() const;
 	void SetUsableAttributesNumber(const int);
 
-	boolean Check() const;
+	boolean Check() const override;
 
 	void Write(ostream&);
 
 	void WriteNodes(ostream&, const ObjectDictionary*);
 
 	// Ecriture d'un rapport (accessible uniquement si statistiques calculees)
-	void WriteReport(ostream& ost);
+	void WriteReport(ostream& ost) override;
 
 	void WriteDTArrayLineReport(ostream& ost, const ALString& sTitle, ObjectArray* oaLearningReports,
 				    DTDecisionTree* tree);
@@ -515,7 +515,7 @@ inline int DTDecisionTreeNodeSplit::CompareName(const DTDecisionTreeNodeSplit* o
 	require(GetAttributeStats() != NULL);
 	require(otherReport->GetAttributeStats() != NULL);
 
-	return GetAttributeStats()->GetAttributeName().Compare(otherReport->GetAttributeStats()->GetAttributeName());
+	return GetAttributeStats()->CompareName(otherReport->GetAttributeStats());
 }
 //
 // inline ObjectArray* DTDecisionTree::GetObjectsDataBase() const
@@ -582,11 +582,6 @@ inline int DTSplitCompareSortValue(const void* elem1, const void* elem2)
 	// dSortValue2 = report2->GetTreeCost();
 	sSortValue1 = report1->GetSplittableNode()->GetNodeIdentifier();
 	sSortValue2 = report2->GetSplittableNode()->GetNodeIdentifier();
-
-	// On se base sur un comparaison a dix decimales pres
-	// lSortValue1 = longint(floor(dSortValue1 * 1e10));
-	// lSortValue2 = longint(floor(dSortValue2 * 1e10));
-	// nCompare = -CompareLongint(lSortValue1, lSortValue2);
 	nCompare = sSortValue1.Compare(sSortValue2);
 
 	// Comparaison si necessaire sur le nom

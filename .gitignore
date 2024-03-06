@@ -5,6 +5,9 @@
 .vs/
 .vscode/
 
+# Log file using genere tool and the cmake module genere-views
+*.dd.log
+
 # CMake User Preset
 CMakeUserPresets.json
 
@@ -16,11 +19,8 @@ CMakeFiles/
 
 # Test exceptions
 test/*/results/
-LearningTest/*/*/*/results/
-LearningTest/*/*/*/results.ref/time.log
-
-# LearningTest 
-results/
-__pycache__/
+test/LearningTest/*/*/*/results/
 comparisonResults.log
 
+# Python
+*.pyc

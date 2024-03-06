@@ -6,13 +6,17 @@
 
 KWDataGridOptimizerParameters::KWDataGridOptimizerParameters()
 {
-	sOptimizationAlgorithm = "VNS";
+	nMaxPartNumber = 0;
 	nOptimizationTime = 0;
 	nOptimizationLevel = 4;
 	bUnivariateInitialization = true;
 	bPreOptimize = true;
 	bOptimize = true;
 	bPostOptimize = true;
+	// CH IV Begin
+	bVarPartPostMerge = true;
+	bVarPartPostOptimize = true;
+	// CH IV End
 	sInternalParameter = "";
 	bDisplayDetails = false;
 	nFreshness = 0;
@@ -20,15 +24,16 @@ KWDataGridOptimizerParameters::KWDataGridOptimizerParameters()
 
 KWDataGridOptimizerParameters::~KWDataGridOptimizerParameters() {}
 
-const ALString& KWDataGridOptimizerParameters::GetOptimizationAlgorithm() const
+int KWDataGridOptimizerParameters::GetMaxPartNumber() const
 {
-	return sOptimizationAlgorithm;
+	return nMaxPartNumber;
 }
 
-void KWDataGridOptimizerParameters::SetOptimizationAlgorithm(const ALString& sValue)
+void KWDataGridOptimizerParameters::SetMaxPartNumber(int nValue)
 {
-	require(sValue == "Greedy" or sValue == "MultiStart" or sValue == "VNS" or sValue == "None");
-	sOptimizationAlgorithm = sValue;
+	require(nValue >= 0);
+	nMaxPartNumber = nValue;
+	nFreshness++;
 }
 
 int KWDataGridOptimizerParameters::GetOptimizationTime() const
@@ -98,7 +103,27 @@ void KWDataGridOptimizerParameters::SetPostOptimize(boolean bValue)
 	bPostOptimize = bValue;
 	nFreshness++;
 }
+// CH IV Begin
+boolean KWDataGridOptimizerParameters::GetVarPartPostMerge() const
+{
+	return bVarPartPostMerge;
+}
 
+void KWDataGridOptimizerParameters::SetVarPartPostMerge(boolean bValue)
+{
+	bVarPartPostMerge = bValue;
+}
+
+boolean KWDataGridOptimizerParameters::GetVarPartPostOptimize() const
+{
+	return bVarPartPostOptimize;
+}
+
+void KWDataGridOptimizerParameters::SetVarPartPostOptimize(boolean bValue)
+{
+	bVarPartPostOptimize = bValue;
+}
+// CH IV End
 const ALString& KWDataGridOptimizerParameters::GetInternalParameter() const
 {
 	return sInternalParameter;
@@ -107,6 +132,7 @@ const ALString& KWDataGridOptimizerParameters::GetInternalParameter() const
 void KWDataGridOptimizerParameters::SetInternalParameter(const ALString& sValue)
 {
 	sInternalParameter = sValue;
+	nFreshness++;
 }
 
 boolean KWDataGridOptimizerParameters::GetDisplayDetails() const
@@ -127,13 +153,17 @@ boolean KWDataGridOptimizerParameters::Check() const
 
 void KWDataGridOptimizerParameters::CopyFrom(const KWDataGridOptimizerParameters* kwdgopSource)
 {
-	sOptimizationAlgorithm = kwdgopSource->sOptimizationAlgorithm;
+	nMaxPartNumber = kwdgopSource->nMaxPartNumber;
 	nOptimizationTime = kwdgopSource->nOptimizationTime;
 	nOptimizationLevel = kwdgopSource->nOptimizationLevel;
 	bUnivariateInitialization = kwdgopSource->bUnivariateInitialization;
 	bPreOptimize = kwdgopSource->bPreOptimize;
 	bOptimize = kwdgopSource->bOptimize;
 	bPostOptimize = kwdgopSource->bPostOptimize;
+	// CH IV Begin
+	bVarPartPostMerge = kwdgopSource->bVarPartPostMerge;
+	bVarPartPostOptimize = kwdgopSource->bVarPartPostOptimize;
+	// CH IV End
 	sInternalParameter = kwdgopSource->sInternalParameter;
 	bDisplayDetails = kwdgopSource->bDisplayDetails;
 }
@@ -153,6 +183,20 @@ int KWDataGridOptimizerParameters::GetFreshness() const
 	return nFreshness;
 }
 
+void KWDataGridOptimizerParameters::Write(ostream& ost) const
+{
+	ost << GetClassLabel() << "(";
+	ost << nMaxPartNumber << ", ";
+	ost << nOptimizationTime << ", ";
+	ost << nOptimizationLevel << ", ";
+	ost << bUnivariateInitialization << ", ";
+	ost << bPreOptimize << ", ";
+	ost << bOptimize << ", ";
+	ost << bPostOptimize << ", ";
+	ost << sInternalParameter << ", ";
+	ost << bDisplayDetails << ")";
+}
+
 const ALString KWDataGridOptimizerParameters::GetClassLabel() const
 {
 	return "Data Grid optimization";
@@ -162,13 +206,19 @@ const ALString KWDataGridOptimizerParameters::GetObjectLabel() const
 {
 	ALString sLabel;
 
-	sLabel = sLabel + sOptimizationAlgorithm + "(" + IntToString(GetOptimizationLevel()) + ")";
+	sLabel = sLabel + "VNS(" + IntToString(GetOptimizationLevel()) + ")";
 	if (GetPreOptimize())
 		sLabel += "+PreOpt";
 	if (GetOptimize())
 		sLabel += "+Opt";
 	if (GetPostOptimize())
 		sLabel += "+PostOpt";
+	// CH IV Begin
+	if (GetVarPartPostMerge())
+		sLabel += "+VarPartPostMerge";
+	if (GetVarPartPostOptimize())
+		sLabel += "+VarPartPostOpt";
+	// CH IV End
 	if (GetInternalParameter() != "")
 		sLabel += "(" + sInternalParameter + ")";
 	return sLabel;
@@ -200,13 +250,17 @@ void PLShared_DataGridOptimizerParameters::SerializeObject(PLSerializer* seriali
 	require(serializer->IsOpenForWrite());
 
 	dataGridOptimizerParameters = cast(KWDataGridOptimizerParameters*, o);
-	serializer->PutString(dataGridOptimizerParameters->GetOptimizationAlgorithm());
+	serializer->PutInt(dataGridOptimizerParameters->GetMaxPartNumber());
 	serializer->PutInt(dataGridOptimizerParameters->GetOptimizationTime());
 	serializer->PutInt(dataGridOptimizerParameters->GetOptimizationLevel());
 	serializer->PutBoolean(dataGridOptimizerParameters->GetUnivariateInitialization());
 	serializer->PutBoolean(dataGridOptimizerParameters->GetPreOptimize());
 	serializer->PutBoolean(dataGridOptimizerParameters->GetOptimize());
 	serializer->PutBoolean(dataGridOptimizerParameters->GetPostOptimize());
+	// CH IV Begin
+	serializer->PutBoolean(dataGridOptimizerParameters->GetVarPartPostMerge());
+	serializer->PutBoolean(dataGridOptimizerParameters->GetVarPartPostOptimize());
+	// CH IV End
 	serializer->PutBoolean(dataGridOptimizerParameters->GetDisplayDetails());
 }
 
@@ -217,13 +271,17 @@ void PLShared_DataGridOptimizerParameters::DeserializeObject(PLSerializer* seria
 	require(serializer->IsOpenForRead());
 
 	dataGridOptimizerParameters = cast(KWDataGridOptimizerParameters*, o);
-	dataGridOptimizerParameters->SetOptimizationAlgorithm(serializer->GetString());
+	dataGridOptimizerParameters->SetMaxPartNumber(serializer->GetInt());
 	dataGridOptimizerParameters->SetOptimizationTime(serializer->GetInt());
 	dataGridOptimizerParameters->SetOptimizationLevel(serializer->GetInt());
 	dataGridOptimizerParameters->SetUnivariateInitialization(serializer->GetBoolean());
 	dataGridOptimizerParameters->SetPreOptimize(serializer->GetBoolean());
 	dataGridOptimizerParameters->SetOptimize(serializer->GetBoolean());
 	dataGridOptimizerParameters->SetPostOptimize(serializer->GetBoolean());
+	// CH IV Begin
+	dataGridOptimizerParameters->SetVarPartPostMerge(serializer->GetBoolean());
+	dataGridOptimizerParameters->SetVarPartPostOptimize(serializer->GetBoolean());
+	// CH IV End
 	dataGridOptimizerParameters->SetDisplayDetails(serializer->GetBoolean());
 }
 

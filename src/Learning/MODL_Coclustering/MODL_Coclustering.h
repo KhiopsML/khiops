@@ -6,4 +6,3 @@
 
 #include "KWVersion.h"
 #include "CCLearningProject.h"
-#include "LMLicenseManager.h"

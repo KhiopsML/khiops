@@ -37,13 +37,6 @@ Symbol Symbol::BuildNewSymbol(const char* sBaseName)
 	return Symbol(sNewSymbol);
 }
 
-int Symbol::GetSymbolNumber()
-{
-	int nSymbolNumber;
-	nSymbolNumber = sdSharedSymbols.GetCount();
-	return nSymbolNumber;
-}
-
 longint Symbol::GetAllSymbolsUsedMemory()
 {
 	longint lUsedMemory;
@@ -512,7 +505,7 @@ inline KWSymbolData* KWSymbolData::NewSymbolData(const char* sValue, int nLength
 	pSymbolData->nLength = nLength;
 
 	// Recopie de la chaine de caracteres ('\0' en fin de chaine)
-	memcpy(&(pSymbolData->cFirstStringChar), sValue, nLength + 1);
+	memcpy(&(pSymbolData->cFirstStringChar), sValue, (longint)nLength + 1);
 	return pSymbolData;
 }
 
@@ -647,6 +640,10 @@ void KWSymbolDictionary::RemoveAll()
 	bShowAllocErrorMessages =
 	    (sUserName == "miib6422") and GetLearningExpertMode() and this == &(Symbol::sdSharedSymbols);
 	debug(bShowAllocErrorMessages = false);
+
+	// Desactivation de cette option y compris en mode release, car cela provoque du reporting verbeux en cas
+	// d'erreur fatale A reactiver si necessaire
+	bShowAllocErrorMessages = false;
 
 	// Nettoyage des cles de la table de hashage
 	nMessageIndex = 0;
@@ -809,7 +806,6 @@ void KWSymbolDictionary::RemoveSymbol(KWSymbolDataPtr symbolData)
 	assert(m_nCount >= 0);
 
 	// Retaillage dynamique pour recuperer la memoire inutilisee
-	assert(GetHashTableSize() < INT_MAX / sizeof(void*));
 	if (GetCount() > 20 and GetCount() < GetHashTableSize() / 8)
 		ReinitHashTable(DictionaryGetNextTableSize(2 * GetCount()));
 }

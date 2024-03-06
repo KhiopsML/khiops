@@ -5,7 +5,6 @@
 #pragma once
 
 class CCCoclusteringBuilder;
-class CCCoclusteringOptimizer;
 
 #include "PLDatabaseTextFile.h"
 #include "KWTupleTable.h"
@@ -15,7 +14,10 @@ class CCCoclusteringOptimizer;
 #include "KWDataGridPostOptimizer.h"
 #include "KWDataPreparationClass.h"
 #include "CCHierarchicalDataGrid.h"
+#include "CCAnalysisSpec.h"
 #include "CCCoclusteringReport.h"
+#include "CCCoclusteringSpec.h"
+#include "CCVarPartCoclusteringSpec.h"
 
 /////////////////////////////////////////////////////////////////////////////////
 // Construction et services autour du coclustering
@@ -28,14 +30,54 @@ public:
 	CCCoclusteringBuilder();
 	~CCCoclusteringBuilder();
 
+	// Type de coclustering
+	// A true pour un coclustering de type VarPart, instances * variables
+	// A false sinon pour un coclustering de variables (valeur par defaut)
+	boolean GetVarPartCoclustering() const;
+	void SetVarPartCoclustering(boolean bValue);
+
+	/////////////////////////////////////////////////////////////////////////////
+	// Specification dans le cas d'un coclustering de variables
+	// Les variables sont specifiees dans la classe ancetre KWAttributeSubsetStats
+
 	// Variable d'effectif (optionnelle)
 	// Chaque enregistrement est pondere (selon un nombre entier positif) par le contenu de cette variable
 	// lors de la creation de la grille initiale
-	const ALString& GetFrequencyAttribute() const;
-	void SetFrequencyAttribute(const ALString& sValue);
+	const ALString& GetFrequencyAttributeName() const;
+	void SetFrequencyAttributeName(const ALString& sValue);
+
+	/////////////////////////////////////////////////////////////////////////////
+	// Specification dans le cas d'un coclustering instances x variables
+
+	// Variable d'identifiant (optionnelle)
+	// Pour un coclustering instances * variables, permet de renseigner la variable d'identifiant des instances
+	// Sinon, cette variable est creee automatiquement
+	const ALString& GetIdentifierAttributeName() const;
+	void SetIdentifierAttributeName(const ALString& sValue);
+
+	// Variable de type VarPart, proprietaire des variables internes,
+	// dans le cas d'un coclustering instances * variables
+	const ALString& GetVarPartAttributeName() const;
+	void SetVarPartAttributeName(const ALString& sValue);
+
+	// Nombre d'attributs de grille dans le cas instances x variables, c'est a dire deux
+	int GetVarPartCoclusteringAttributeNumber() const;
+
+	// Vecteur des noms de variables internes, exploitee par la variable de type VarPart
+	// dans le cas d'un coclustering instances * variables
+	StringVector* GetInnerAttributesNames();
+
+	/////////////////////////////////////////////////////////////////////////////
+	// Exploitation des specifications du coclustering, principalement le calcul du modele
 
 	// Verification de la validite des specifications
 	boolean CheckSpecifications() const override;
+
+	// Verification de la validite des specifications dans le cas standard coclustering de variables
+	boolean CheckStandardSpecifications() const;
+
+	// Verification de la validite des specifications dans le cas coclustering instances x variables
+	boolean CheckVarPartSpecifications() const;
 
 	// Calcul du coclustering, renvoie false en cas d'erreur ou d'interruption utilisateur
 	boolean ComputeCoclustering();
@@ -44,7 +86,26 @@ public:
 	// Test si le coclustering est calcule et informatif (au moins deux dimensions)
 	boolean IsCoclusteringInformative() const;
 
-	/////////////////////////////////////////////////////
+	// CH IV Begin
+	// Creation d'une structure de cout pour le probleme de coclustering, standard ou VarPart
+	// Memoire: appartient a l'appelant
+	KWDataGridCosts* CreateDataGridCost() const override;
+
+	// Creation d'une grille avec une dimension de type VarPart
+	// La dimension VarPart contient un cluster de parties de variable pour chaque partie de
+	// variable de chaque attribut interne
+	// L'effectif de la variable identifiant est alimente par le vecteur ivObservationNumbers
+	KWDataGrid* CreateVarPartDataGrid(const KWTupleTable* tupleTable, ObjectDictionary& odObservationNumbers);
+
+	// Nettoyage des eventuelles parties de variables vides du fait d'observations manquantes
+	void CleanVarPartDataGrid(KWDataGrid* dataGrid);
+
+	// Alimentation des cellules d'un VarPartDataGrid dont les attributs et parties sont correctement initialises,
+	// Renvoie true si cellule correctement initialisee, false sinon (sans nettoyage des celulles crees)
+	// Pour la dimension VarPart, on parcourt l'ensemble des attributs internes pour alimenter les cellules associees a chaque observation
+	boolean CreateVarPartDataGridCells(const KWTupleTable* tupleTable, KWDataGrid* dataGrid);
+
+	/////////////////////////////////////////////////////////////////////////////
 	// Acces aux resultats de coclustering
 
 	// Grille de coclustering
@@ -61,14 +122,14 @@ public:
 	void SetReportFileName(const ALString& sFileName);
 	const ALString& GetReportFileName() const;
 
-	// Export JSON (defaut: true)
-	boolean GetExportJSON() const;
-	void SetExportJSON(boolean bValue);
+	// Export Khc (defaut: true)
+	boolean GetExportAsKhc() const;
+	void SetExportAsKhc(boolean bValue);
 
 	// Supression du dernier fichier temporaire sauvegarde
 	void RemoveLastSavedReportFile() const;
 
-	// Methode appelee lors de l'optimisation a chaque etape d'optimisation
+	// Methode redefinie, appelee lors de l'optimisation a chaque etape d'optimisation
 	// A chaque amelioration, un nouveau fichier de sauvegarde est cree avec un index croissant,
 	// le fichier precedent etant detruit.
 	// Un message utilisateur est egalement emis.
@@ -76,7 +137,7 @@ public:
 	// bIsLastSaving : si true, la sauvegarde est effectue meme s'il n'y a pas amelioration
 	// Permet de recalculer la hierarchie du coclustering apres l'atteinte de la granularite maximale
 	void HandleOptimizationStep(const KWDataGrid* optimizedDataGrid, const KWDataGrid* initialGranularizedDataGrid,
-				    boolean bIsLastSaving) const;
+				    boolean bIsLastSaving) const override;
 
 	// Libelles utilisateur: nom du module de l'application (GetLearningModuleName())
 	const ALString GetClassLabel() const override;
@@ -86,6 +147,16 @@ public:
 protected:
 	// Methode virtuelle d'optimisation d'une grille
 	virtual void OptimizeDataGrid(const KWDataGrid* inputInitialDataGrid, KWDataGrid* optimizedDataGrid);
+
+	// Initialisation d'un optimiseur de grille dedie coclustering
+	void InitializeDataGridOptimizer(const KWDataGrid* inputInitialDataGrid,
+					 KWDataGridOptimizer* dataGridOptimizer);
+
+	// CH IV Begin
+	// Methode d'optimisation d'une grille dediee au cas instances x variables
+	void OptimizeVarPartDataGrid(const KWDataGrid* inputInitialDataGrid, KWDataGrid* optimizedDataGrid);
+	void PROTO_OptimizeVarPartDataGrid(const KWDataGrid* inputInitialDataGrid, KWDataGrid* optimizedDataGrid);
+	// CH IV End
 
 	///////////////////////////////////////////////////////////////////////////////////////
 	// Gestion preventive de l'utilisation des ressources memoire, avec message d'erreur
@@ -106,11 +177,40 @@ protected:
 	// On renvoie true en cas de succes, false sinon avec un message d'erreur
 	boolean FillTupleTableFromDatabase(KWDatabase* database, KWTupleTable* tupleTable);
 
+	// CH IV Begin
+	// Cas du coclustering avec attribut de type VarPart
+	// En plus d'une table de tuples comme dans FillTupleTableFromDatabase, on alimente egalement un vecteur
+	// qui associe a chaque tuple le nombre d'observations dans l'attribut de type VarPart
+	// Un tuple est ecarte si son attribut identifiant n' est pas renseigne ou si aucune valeur n'est renseignee
+	// pour les attributs internes En sortie, le dictionnaire odObservationNumbers contient pour chaque modalite de
+	// l'identifiant, le nombre d'observations stocke dans un IntObject
+	boolean FillVarPartTupleTableFromDatabase(KWDatabase* database, KWTupleTable* tupleTable,
+						  ObjectDictionary& odObservationNumbers);
+
+	// Creation de la partition d'un attribut de DataGrid de type Identifiant dans un coclustering Identifiant *
+	// Parties de variables En entree, le dictionnaire odObservationNumbers contient pour chaque modalite de
+	// l'identifiant, le nombre d'observations Ces effectifs permettent d'initialiser les effectifs de l'attribut
+	// Cas d'un attribut Identifier de type Symbol
+	boolean CreateIdentifierAttributeValueSets(const KWTupleTable* tupleTable, KWDGAttribute* dgAttribute,
+						   ObjectDictionary& odObservationNumbers);
+
+	// Cas d'un attribut Identifier de type Continuous
+	boolean CreateIdentifierAttributeIntervals(const KWTupleTable* tupleTable, KWDGAttribute* dgAttribute,
+						   ObjectDictionary& odObservationNumbers);
+
+	// Renvoie le nombre d'observations associe a un enregistrement, avec eventuellement affichage de warning
+	// Renvoie 0 si l'enregistrement est non utilisable (valeur manquante pour l'attribut Identifiant ou aucune
+	// observation) L'attribut Identifiant est exclu du calcul du nombre d'observations
+	int GetDatabaseObjectObservationNumber(const KWObject* kwoObject, longint lRecordIndex,
+					       const KWAttribute* identifierAttribute,
+					       const ObjectArray* oaInnerAttributes);
+	// CH IV End
+
 	// Renvoie l'effectif associe a un enregistrement, avec eventuellement affichage de warning
-	// Renvoie 1 si l'index de l'attribut d'eefctif est invalide
+	// Renvoie 1 si l'attribut d'effectif est NULL
 	// Renvoie 0 si erreur dans la specification de l'effectif
-	int GetDatabaseObjectFrequency(KWObject* kwoObject, KWLoadIndex liFrequencyAttributeLoadIndex,
-				       longint lRecordIndex);
+	int GetDatabaseObjectFrequency(const KWObject* kwoObject, longint lRecordIndex,
+				       const KWAttribute* frequencyAttribute);
 
 	// Verification de la memoire necessaire pour construire une grille initiale a partir d'un nombre de tuples
 	// La base en entree peut etre entierement traitee:
@@ -120,6 +220,13 @@ protected:
 	//   . cela permet d'avoir un estimation "anytime" de la memoire necessaire pour le coclustering
 	// On renvoie en sortie le nombre max de cellules de la grille initiale
 	boolean CheckMemoryForDataGridInitialization(KWDatabase* database, int nTupleNumber, int& nMaxCellNumber) const;
+
+	// CH IV Begin
+	// Verification de la memoire necessaire pour construire une grille initiale de type VarPart a partir d'un nombre de tuples
+	// On renvoie en sortie le nombre max de cellules de la grille initiale
+	boolean CheckMemoryForVarPartDataGridInitialization(KWDatabase* database, int nTupleNumber,
+							    int& nMaxCellNumber) const;
+	// CH IV End
 
 	// Verification de la memoire necessaire pour optimiser le coclustering, la grille initiale etant construite
 	boolean CheckMemoryForDataGridOptimization(KWDataGrid* inputInitialDataGrid) const;
@@ -190,8 +297,20 @@ protected:
 	// parties feuilles
 	void SortAttributePartsAndValues(CCHierarchicalDataGrid* optimizedDataGrid) const;
 
+	// Type de coclustering
+	boolean bVarPartCoclustering;
+
 	// Attributs d'effectif
-	ALString sFrequencyAttribute;
+	ALString sFrequencyAttributeName;
+
+	// Attribut d'identifiant
+	ALString sIdentifierAttributeName;
+
+	// Nom de la variable de type VarPart
+	ALString sVarPartAttributeName;
+
+	// Nom des variables internes
+	StringVector svInnerAttributeNames;
 
 	// Structure de cout de la grille
 	KWDataGridCosts* coclusteringDataGridCosts;
@@ -214,31 +333,6 @@ protected:
 	mutable double dAnyTimeBestCost;
 	mutable boolean bIsDefaultCostComputed;
 
-	// Export des rapport au format JSON
-	boolean bExportJSON;
-};
-
-//////////////////////////////////////////////////////////////////////////////////
-// Classe CCCoclusteringOptimizer
-// Specialisation de l'optimisation des grille pour passer en mode anytime
-class CCCoclusteringOptimizer : public KWDataGridOptimizer
-{
-public:
-	// Constructeur
-	CCCoclusteringOptimizer();
-	~CCCoclusteringOptimizer();
-
-	// Parametrage du contexte de gestion de la partie anytime de l'optimisation
-	void SetCoclusteringBuilder(const CCCoclusteringBuilder* builder);
-	const CCCoclusteringBuilder* GetCoclusteringBuilder();
-
-	// Methode appelee lors de l'optimisation a chaque etape d'optimisation ameliorant la solution
-	// Reimplementation de la methode virtuelle de la classe mere
-	void HandleOptimizationStep(const KWDataGrid* optimizedDataGrid, const KWDataGrid* initialGranularizedDataGrid,
-				    boolean bIsLastSaving) const override;
-
-	/////////////////////////////////////////////////
-	///// Implementation
-protected:
-	const CCCoclusteringBuilder* coclusteringBuilder;
+	// Export des rapports au format Khc
+	boolean bExportAsKhc;
 };

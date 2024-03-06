@@ -14,6 +14,9 @@
 //
 
 
+AnalysisSpec.SystemParameters.APIMode true        // API mode
+AnalysisSpec.SystemParameters.MemoryLimit 2000     // Memory limit in MB
+
 LearningTools.ExtractClusters  // Extract clusters...
 
 SelectInputCoclustering        // Select input coclustering...
@@ -24,24 +27,22 @@ InputCoclusteringFileName ./AdultCoclustering.khc   // Input coclustering file
 OK                             // Open
 // <- Open
 
-AnalysisResults.ResultFilesDirectory ./results       // Result files directory
-CoclusteringAttributeSpec.CoclusteringAttribute age         // Coclustering variable
-AnalysisResults.ClusterFileName ClustersAge.txt     // Cluster table file
+
+CoclusteringAttribute age         // Coclustering variable
+ClusterFileName ./results/ClustersAge.txt     // Cluster table file
 ExtractClusters                // Extract clusters
 
-CoclusteringAttributeSpec.CoclusteringAttribute occupation         // Coclustering variable
-AnalysisResults.ClusterFileName ClustersOccupation.txt     // Cluster table file
+CoclusteringAttribute occupation         // Coclustering variable
+ClusterFileName ./results/ClustersOccupation.txt     // Cluster table file
 ExtractClusters                // Extract clusters
 
 PostProcessingSpec.MaxPreservedInformation 50      // Max preserved information
-AnalysisResults.ResultFilesPrefix I50_      // Result files prefix
-
-CoclusteringAttributeSpec.CoclusteringAttribute age         // Coclustering variable
-AnalysisResults.ClusterFileName ClustersAge.txt     // Cluster table file
+CoclusteringAttribute age         // Coclustering variable
+ClusterFileName ./results/I50_ClustersAge.txt     // Cluster table file
 ExtractClusters                // Extract clusters
 
-CoclusteringAttributeSpec.CoclusteringAttribute occupation         // Coclustering variable
-AnalysisResults.ClusterFileName ClustersOccupation.txt     // Cluster table file
+CoclusteringAttribute occupation         // Coclustering variable
+ClusterFileName ./results/I50_ClustersOccupation.txt     // Cluster table file
 ExtractClusters                // Extract clusters
 
 Exit                           // Close

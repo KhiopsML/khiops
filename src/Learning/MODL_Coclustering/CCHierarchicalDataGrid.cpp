@@ -93,6 +93,16 @@ const KWDatabase* CCHierarchicalDataGrid::GetConstDatabaseSpec() const
 	return &databaseSpec;
 }
 
+void CCHierarchicalDataGrid::SetIdentifierAttributeName(const ALString& sValue)
+{
+	sIdentifierAttributeName = sValue;
+}
+
+const ALString& CCHierarchicalDataGrid::GetIdentifierAttributeName() const
+{
+	return sIdentifierAttributeName;
+}
+
 void CCHierarchicalDataGrid::DeleteAll()
 {
 	const KWDatabase nullDatabase;
@@ -104,6 +114,7 @@ void CCHierarchicalDataGrid::DeleteAll()
 	nInitialAttributeNumber = 0;
 	sFrequencyAttributeName = "";
 	databaseSpec.CopyFrom(&nullDatabase);
+	sIdentifierAttributeName = "";
 }
 
 boolean CCHierarchicalDataGrid::CheckHierarchy() const
@@ -152,14 +163,14 @@ boolean CCHierarchicalDataGrid::CheckHierarchy() const
 	return bOk;
 }
 
+const ALString CCHierarchicalDataGrid::GetClassLabel() const
+{
+	return "Hierarchichal data grid";
+}
+
 KWDGAttribute* CCHierarchicalDataGrid::NewAttribute() const
 {
 	return new CCHDGAttribute;
-}
-
-KWDGCell* CCHierarchicalDataGrid::NewCell() const
-{
-	return new CCHDGCell;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -256,7 +267,9 @@ CCHDGPart* CCHDGAttribute::NewHierarchyPart()
 	CCHDGPart* part;
 
 	require(GetAttributeType() != KWType::Unknown);
-	require(KWType::IsSimple(GetAttributeType()));
+	// CH IV Begin
+	require(KWType::IsCoclusteringType(GetAttributeType()));
+	// CH IV End
 
 	// Creation d'une nouvelle partie en fonction du type de l'attribut
 	part = cast(CCHDGPart*, NewPart());
@@ -344,10 +357,7 @@ CCHDGPart* CCHDGAttribute::MergePart(CCHDGPart* part)
 	}
 
 	// Import des valeurs de la partie source vers la partie destination
-	if (GetAttributeType() == KWType::Continuous)
-		targetPart->GetInterval()->Import(sourcePart->GetInterval());
-	else
-		targetPart->GetValueSet()->Import(sourcePart->GetValueSet());
+	targetPart->GetPartValues()->Import(sourcePart->GetPartValues());
 
 	// Import des informations de la partie fusionnees
 	targetPart->SetPartName(part->GetPartName());
@@ -412,7 +422,7 @@ void CCHDGAttribute::ExportHierarchyParts(ObjectArray* oaParts) const
 	if (rootPart != NULL)
 	{
 		oaParts->Add(rootPart);
-		nkdExportedParts.SetAt((NUMERIC)rootPart, rootPart);
+		nkdExportedParts.SetAt(rootPart, rootPart);
 	}
 
 	// On boucle sur l'ajout de parties tant que l'on en trouve de nouvelles
@@ -426,16 +436,16 @@ void CCHDGAttribute::ExportHierarchyParts(ObjectArray* oaParts) const
 
 			// Ajout si necessaire des parties filles
 			if (hdgPart->GetChildPart1() != NULL and
-			    nkdExportedParts.Lookup((NUMERIC)hdgPart->GetChildPart1()) == NULL)
+			    nkdExportedParts.Lookup(hdgPart->GetChildPart1()) == NULL)
 			{
 				oaParts->Add(hdgPart->GetChildPart1());
-				nkdExportedParts.SetAt((NUMERIC)hdgPart->GetChildPart1(), hdgPart->GetChildPart1());
+				nkdExportedParts.SetAt(hdgPart->GetChildPart1(), hdgPart->GetChildPart1());
 			}
 			if (hdgPart->GetChildPart2() != NULL and
-			    nkdExportedParts.Lookup((NUMERIC)hdgPart->GetChildPart2()) == NULL)
+			    nkdExportedParts.Lookup(hdgPart->GetChildPart2()) == NULL)
 			{
 				oaParts->Add(hdgPart->GetChildPart2());
-				nkdExportedParts.SetAt((NUMERIC)hdgPart->GetChildPart2(), hdgPart->GetChildPart2());
+				nkdExportedParts.SetAt(hdgPart->GetChildPart2(), hdgPart->GetChildPart2());
 			}
 		}
 		nFirstPart = nLastPart;
@@ -820,20 +830,11 @@ boolean CCHDGPart::CheckHierarchy() const
 		bOk = false;
 	}
 
-	// Verification de l'ensemble de valeurs dans le cas categoriel
-	if (GetPartType() == KWType::Symbol)
-		bOk = bOk and cast(CCHDGValueSet*, valueSet)->CheckHierarchy();
-
 	// Verifications complementaires de chainahe coherent de la hierarchie, sans message d'erreur
 	assert(not bOk or parentPart == NULL or parentPart->childPart1 == this or parentPart->childPart2 == this);
 	assert(not bOk or childPart1 == NULL or childPart1->parentPart == this);
 	assert(not bOk or childPart2 == NULL or childPart2->parentPart == this);
 	return bOk;
-}
-
-KWDGValueSet* CCHDGPart::NewValueSet() const
-{
-	return new CCHDGValueSet;
 }
 
 boolean CCHDGPart::GetEmulated() const
@@ -906,116 +907,3 @@ int CCHDGPartCompareHierarchicalRank(const void* elem1, const void* elem2)
 	}
 	return nCompare;
 }
-
-//////////////////////////////////////////////////////////////////////////////
-// Classe CCHDGValueSet
-
-CCHDGValueSet::CCHDGValueSet() {}
-
-CCHDGValueSet::~CCHDGValueSet() {}
-
-void CCHDGValueSet::SortValuesByTypicality()
-{
-	InternalSortValues(CCHDGValueCompareDecreasingTypicality);
-}
-
-boolean CCHDGValueSet::CheckHierarchy() const
-{
-	boolean bOk = true;
-	KWDGValue* value;
-
-	// Pas de controle d'integrite de base (invalide pour els parties non feuilles)
-	// Test des valeurs de la partie
-	if (bOk)
-	{
-		// Parcours des valeurs de la partie
-		value = GetHeadValue();
-		while (value != NULL)
-		{
-			// Test de la valeur
-			bOk = cast(CCHDGValue*, value)->CheckHierarchy();
-			if (not bOk)
-				break;
-
-			// Valeur suivante
-			GetNextValue(value);
-		}
-	}
-	return bOk;
-}
-
-KWDGValue* CCHDGValueSet::NewValue(const Symbol& sValue) const
-{
-	return new CCHDGValue(sValue);
-}
-
-//////////////////////////////////////////////////////////////////////////////
-// Classe CCHDGValue
-
-CCHDGValue::CCHDGValue(const Symbol& sValue) : KWDGValue(sValue)
-{
-	dTypicality = 0;
-}
-
-CCHDGValue::~CCHDGValue() {}
-
-void CCHDGValue::SetTypicality(double dValue)
-{
-	require(0 <= dTypicality and dTypicality <= 1);
-	dTypicality = dValue;
-}
-
-double CCHDGValue::GetTypicality() const
-{
-	return dTypicality;
-}
-
-boolean CCHDGValue::CheckHierarchy() const
-{
-	boolean bOk = true;
-	ALString sTmp;
-
-	// Methode d'integrite de base
-	require(KWDGValue::Check());
-
-	// Typicalite
-	if (bOk and (dTypicality < 0 or dTypicality > 1))
-	{
-		AddError(sTmp + "Typicality (" + DoubleToString(dTypicality) + ") should be between 0 and 1");
-		bOk = false;
-	}
-	return bOk;
-}
-
-int CCHDGValueCompareDecreasingTypicality(const void* elem1, const void* elem2)
-{
-	const double dPrecision = 1e-7;
-	CCHDGValue* value1;
-	CCHDGValue* value2;
-	double dCompare;
-	int nCompare;
-
-	require(elem1 != NULL);
-	require(elem2 != NULL);
-
-	// Acces a la valueies
-	value1 = cast(CCHDGValue*, *(Object**)elem1);
-	value2 = cast(CCHDGValue*, *(Object**)elem2);
-
-	// Comparaison a une precision pres (compatible avec l'affichage)
-	dCompare = -value1->GetTypicality() + value2->GetTypicality();
-	if (dCompare > dPrecision)
-		nCompare = 1;
-	else if (dCompare < -dPrecision)
-		nCompare = -1;
-	else
-		nCompare = KWDGValueCompareDecreasingFrequency(elem1, elem2);
-	return nCompare;
-}
-
-//////////////////////////////////////////////////////////////////////////////
-// Classe CCHDGCell
-
-CCHDGCell::CCHDGCell() {}
-
-CCHDGCell::~CCHDGCell() {}

@@ -23,12 +23,12 @@ class KWObjectArrayValueBlock;
 
 // Desactivation generale de warnings pour le Visual C++
 // Ce header etant inclu partout, les pragma va annuler les warning globalement
-#ifdef _MSC_VER
+#ifdef __MSC__
 #pragma warning(disable : 4100) // C4100: unreferenced formal parameter
 #pragma warning(disable : 4702) // C4702: unreachable code (mal gere par Visual C++)
 #pragma warning(disable : 4511) // C4511: le constructeur de copie n'a pas pu etre genere
 #pragma warning(disable : 4512) // C4512: l'operateur d'assignation n'a pas pu etre genere
-#endif                          // _MSC_VER
+#endif                          // __MSC__
 
 ///////////////////////////////////////////////////////////
 // Definition des types d'attributs d'une KWClass
@@ -52,8 +52,11 @@ public:
 		SymbolValueBlock,      // Type bloc de valeurs Symbol
 		ContinuousValueBlock,  // Type bloc de valeurs Continuous
 		ObjectArrayValueBlock, // Type bloc de valeurs ObjectArray
-		None,                  // Type absent deliberement, pour le non supervise
-		Unknown                // Type inconnu (non valide)
+		// CH IV Begin
+		VarPart, // Type parties de variables (coclustering instances * variables)
+		// CH IV End
+		None,   // Type absent deliberement, pour le non supervise
+		Unknown // Type inconnu (non valide)
 	};
 
 	// Verification de validite d'un type
@@ -98,6 +101,17 @@ public:
 
 	// Type de base associe a un bloc de valeurs
 	static int GetBlockBaseType(int nType);
+
+	// CH IV Begin
+	// Indique si le type peut etre utilise pour un attribut de grille: (Continuous, Symbol ou VarPart)
+	static boolean IsCoclusteringType(int nType);
+
+	// Indique si le type peut etre utilise pour un attribut groupable de grille: (Symbol ou VarPart)
+	static boolean IsCoclusteringGroupableType(int nType);
+
+	// Renvoie le type elementaire d'un attribut de grille: (Continuous, ou Symbol pour un type Symbol ou VarPart)
+	static int GetCoclusteringSimpleType(int nType);
+	// CH IV End
 
 	// Indique si le type est un type de predicteur: (Continuous, Symbol ou None)
 	static boolean IsPredictorType(int nType);
@@ -294,18 +308,12 @@ inline boolean KWType::IsComplex(int nType)
 
 inline boolean KWType::IsStored(int nType)
 {
-	if (GetLearningTextVariableMode())
-		return (nType >= 0 and nType <= Text);
-	else
-		return (nType >= 0 and nType <= TimestampTZ);
+	return (nType >= 0 and nType <= Text);
 }
 
 inline boolean KWType::IsTextBased(int nType)
 {
-	if (GetLearningTextVariableMode())
-		return (nType == Text or nType == TextList);
-	else
-		return false;
+	return (nType == Text or nType == TextList);
 }
 
 inline boolean KWType::IsRelation(int nType)
@@ -355,6 +363,30 @@ inline int KWType::GetBlockBaseType(int nType)
 		return ObjectArray;
 	else
 		return Unknown;
+}
+
+inline boolean KWType::IsCoclusteringType(int nType)
+{
+	return (nType == Continuous or nType == Symbol or nType == VarPart);
+}
+
+inline boolean KWType::IsCoclusteringGroupableType(int nType)
+{
+	return (nType == Symbol or nType == VarPart);
+}
+
+inline int KWType::GetCoclusteringSimpleType(int nType)
+{
+	require(IsCoclusteringType(nType));
+	if (nType == Continuous)
+		return Continuous;
+	else
+		return Symbol;
+}
+
+inline boolean KWType::IsPredictorType(int nType)
+{
+	return (nType == Continuous or nType == Symbol or nType == None);
 }
 
 inline void KWValue::Init()

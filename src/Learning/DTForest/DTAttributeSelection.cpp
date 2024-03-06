@@ -30,7 +30,7 @@ void DTAttributeSelection::Write(ostream& ost) const
 	for (nAttribute = 0; nAttribute < oaTreeAttributeSelection.GetSize(); nAttribute++)
 	{
 		taAttribute = cast(DTTreeAttribute*, oaTreeAttributeSelection.GetAt(nAttribute));
-		ost << "\t" << taAttribute->GetName() << "\n";
+		ost << "\t" << TSV::Export(taAttribute->GetName()) << "\n";
 	}
 }
 
@@ -585,10 +585,10 @@ void DTAttributeSelection::WriteReport(ostream& ost)
 	{
 		taAttribute = cast(DTTreeAttribute*, oaTreeAttributeSelection.GetAt(nAttribute));
 		if (taAttribute->aAttribute->GetAttributeBlock() == NULL)
-			ost << "attribut : " << taAttribute->GetName() << endl;
+			ost << "attribut : " << TSV::Export(taAttribute->GetName()) << endl;
 		else
-			ost << "  - block : " << taAttribute->aAttribute->GetAttributeBlock()->GetName()
-			    << "attribut : " << taAttribute->GetName() << endl;
+			ost << "  - block : " << TSV::Export(taAttribute->aAttribute->GetAttributeBlock()->GetName())
+			    << "attribut : " << TSV::Export(taAttribute->GetName()) << endl;
 	}
 }
 
@@ -729,22 +729,17 @@ longint DTTreeAttribute::GetUsedMemory() const
 
 int DTTreeAttributeLevelCompare(const void* elem1, const void* elem2)
 {
-	longint lLevel1;
-	longint lLevel2;
 	int nCompare;
 
 	DTTreeAttribute* i1 = (DTTreeAttribute*)*(Object**)elem1;
 	DTTreeAttribute* i2 = (DTTreeAttribute*)*(Object**)elem2;
 
-	// Comparaison des levels des attributs (ramenes a longint)
-	lLevel1 = longint(floor(i1->dLevel * 1e10));
-	lLevel2 = longint(floor(i2->dLevel * 1e10));
-	nCompare = -CompareLongint(lLevel1, lLevel2);
+	// Comparaison selon la precison du type Continuous, pour eviter les differences a epsilon pres
+	nCompare = -KWContinuous::CompareIndicatorValue(i1->dLevel, i2->dLevel);
 
 	// Comparaison par nom si match nul
 	if (nCompare == 0)
 		nCompare = DTTreeAttributeCompareName(elem1, elem2);
-
 	return nCompare;
 }
 

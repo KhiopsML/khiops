@@ -1,7 +1,7 @@
 Train supervised model for classification of target variable Class
 Database ../../../datasets/Iris/Iris.txt: Read records: 150	Selected records: 105
 Evaluation of variable pairs
-Data preparation time: 0:00:00.64
+Data preparation time: 0:00:00.52
 SNB train time: 0:00:00
 Build Selective Naive Bayes SNB_Iris
 Build Univariate BU1_Iris
@@ -9,10 +9,10 @@ Train evaluation of Selective Naive Bayes on database ../../../datasets/Iris/Iri
 Train evaluation of Univariate PetalWidth on database ../../../datasets/Iris/Iris.txt
 Test evaluation of Selective Naive Bayes on database ../../../datasets/Iris/Iris.txt
 Test evaluation of Univariate PetalWidth on database ../../../datasets/Iris/Iris.txt
-Write report ./results\AllReports.khj
+Write report ./results/AnalysisResults.khj
 
 Deploy model SNB_Iris
 Input database ../../../datasets/Iris/Iris.txt: Read records: 150
-Output database ./results/T_Iris.txt: Written records: 105
+Output database ./results/D_Iris.txt: Written records: 105
 Model deployment time: 0:00:00.01
 

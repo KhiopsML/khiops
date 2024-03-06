@@ -11,8 +11,8 @@ KWPredictorEvaluator::KWPredictorEvaluator()
 {
 	kwcdInitialClassesDomain = NULL;
 	kwcdInitialCurrentDomain = NULL;
-	sEvaluationFileName = "EvaluationReport.xls";
-	bExportJSON = true;
+	sEvaluationFileName = "EvaluationReport." + GetJSONReportSuffix();
+	bExportAsXls = false;
 
 	// Creation d'une base dans la technologie par defaut
 	evaluationDatabase = KWDatabase::CreateDefaultDatabaseTechnology();
@@ -40,14 +40,14 @@ void KWPredictorEvaluator::SetEvaluationFileName(const ALString& sValue)
 	sEvaluationFileName = sValue;
 }
 
-boolean KWPredictorEvaluator::GetExportJSON() const
+boolean KWPredictorEvaluator::GetExportAsXls() const
 {
-	return bExportJSON;
+	return bExportAsXls;
 }
 
-void KWPredictorEvaluator::SetExportJSON(boolean bValue)
+void KWPredictorEvaluator::SetExportAsXls(boolean bValue)
 {
-	bExportJSON = bValue;
+	bExportAsXls = bValue;
 }
 
 const ALString KWPredictorEvaluator::GetJSONReportSuffix()
@@ -57,34 +57,12 @@ const ALString KWPredictorEvaluator::GetJSONReportSuffix()
 
 const ALString KWPredictorEvaluator::GetEvaluationFilePathName() const
 {
-	ALString sEvaluationPathName;
-	ALString sEvaluationFilePathName;
-
-	// Acces au repertoire du fichier d'evaluation
-	sEvaluationPathName = FileService::GetPathName(GetEvaluationFileName());
-
-	// On prend celui de la base si celui-ci est vide
-	if (sEvaluationPathName == "")
-	{
-		sEvaluationPathName = FileService::GetPathName(evaluationDatabase->GetDatabaseName());
-
-		// Calcul du chemin complet du rapport d'evaluation
-		sEvaluationFilePathName = FileService::BuildFilePathName(
-		    sEvaluationPathName, FileService::GetFileName(GetEvaluationFileName()));
-	}
-	// Sinon, on garde le nom complet initial
-	else
-		sEvaluationFilePathName = GetEvaluationFileName();
-	return sEvaluationFilePathName;
+	return GetResultFilePathBuilder()->BuildResultFilePathName();
 }
 
-const ALString KWPredictorEvaluator::GetJSONFilePathName() const
+const ALString KWPredictorEvaluator::GetXlsEvaluationFilePathName() const
 {
-	ALString sJSONFilePathName;
-
-	if (GetEvaluationFileName() != "" and GetExportJSON())
-		sJSONFilePathName = FileService::SetFileSuffix(GetEvaluationFilePathName(), GetJSONReportSuffix());
-	return sJSONFilePathName;
+	return GetResultFilePathBuilder()->BuildOtherResultFilePathName("xls");
 }
 
 const ALString& KWPredictorEvaluator::GetMainTargetModality() const
@@ -294,20 +272,6 @@ void KWPredictorEvaluator::EvaluatePredictorSpecs()
 	// Test de coherence des predicteurs
 	bOk = CheckEvaluatedTrainedPredictors(&oaEvaluatedTrainedPredictors);
 
-	// On tente de cree le repertoire cible du rapport d'evaluation
-	// (c'est le meme pour le rapport JSON)
-	if (bOk)
-	{
-		sOutputPathName = FileService::GetPathName(GetEvaluationFilePathName());
-		if (sOutputPathName != "" and not PLRemoteFileService::DirExists(sOutputPathName))
-		{
-			bOk = PLRemoteFileService::MakeDirectories(sOutputPathName);
-			if (not bOk)
-				AddError("Unable to create output directory (" + sOutputPathName +
-					 ") for evaluation file");
-		}
-	}
-
 	// Evaluation des predicteurs s'ils sont coherents
 	if (bOk)
 	{
@@ -422,21 +386,14 @@ void KWPredictorEvaluator::WriteEvaluationReport(const ALString& sEvaluationRepo
 	sLowerEvaluationLabel = sEvaluationLabel;
 	sLowerEvaluationLabel.MakeLower();
 
-	// DEPRECATED
-	// Pour etre compatible avec les fichiers de rapport existant, qui sont en read-only
-	if (FileService::GetURIScheme(sEvaluationReportName) == "")
-	{
-		if (FileService::FileExists(sEvaluationReportName))
-			FileService::SetFileMode(sEvaluationReportName, false);
-	}
-
 	// Destruction du rapport d'evaluation existant
 	PLRemoteFileService::RemoveFile(sEvaluationReportName);
 
 	// Ecriture du rapport d'evaluation
 	if (oaPredictorEvaluations->GetSize() == 0)
-		Global::AddWarning(
-		    "", "", sEvaluationLabel + " evaluation report is not written since no predictor was evaluated");
+		Global::AddWarning("", "",
+				   sEvaluationLabel +
+				       " xls evaluation report is not written since no predictor was evaluated");
 	else
 	{
 		predictorEvaluation = cast(KWPredictorEvaluation*, oaPredictorEvaluations->GetAt(0));
@@ -448,37 +405,39 @@ void KWPredictorEvaluator::WriteEvaluationReport(const ALString& sEvaluationRepo
 	MemoryStatsManager::AddLog(GetClassLabel() + " " + sEvaluationReportName + " Write report End");
 }
 
-void KWPredictorEvaluator::WriteJSONReport(const ALString& sJSONReportName, const ALString& sEvaluationLabel,
-					   ObjectArray* oaPredictorEvaluations)
+void KWPredictorEvaluator::WriteJSONEvaluationReport(const ALString& sEvaluationReportName,
+						     const ALString& sEvaluationLabel,
+						     ObjectArray* oaPredictorEvaluations)
 {
 	ALString sLowerEvaluationLabel;
 	KWPredictorEvaluation* predictorEvaluation;
 	JSONFile fJSON;
 
 	require(oaPredictorEvaluations != NULL);
-	require(sJSONReportName != "");
+	require(sEvaluationReportName != "");
 
 	// Libelle d'evaluation en minuscule
 	sLowerEvaluationLabel = sEvaluationLabel;
 	sLowerEvaluationLabel.MakeLower();
 
 	// Destruction du rapport JSON existant
-	PLRemoteFileService::RemoveFile(sJSONReportName);
+	PLRemoteFileService::RemoveFile(sEvaluationReportName);
 
 	// Ecriture du rapport d'evaluation
 	if (oaPredictorEvaluations->GetSize() == 0)
-		Global::AddWarning("", "",
-				   sEvaluationLabel + " JSON report is not written since no predictor was evaluated");
+		Global::AddWarning(
+		    "", "", sEvaluationLabel + " evaluation report is not written since no predictor was evaluated");
 	else
 	{
 		predictorEvaluation = cast(KWPredictorEvaluation*, oaPredictorEvaluations->GetAt(0));
-		predictorEvaluation->WriteFullReportFile(sJSONReportName, sEvaluationLabel, oaPredictorEvaluations);
+		predictorEvaluation->WriteFullReportFile(sEvaluationReportName, sEvaluationLabel,
+							 oaPredictorEvaluations);
 
 		// Message synthetique
-		AddSimpleMessage("Write " + sLowerEvaluationLabel + " evaluation report " + sJSONReportName);
+		AddSimpleMessage("Write " + sLowerEvaluationLabel + " evaluation report " + sEvaluationReportName);
 
 		// Ouverture du fichier JSON
-		fJSON.SetFileName(sJSONReportName);
+		fJSON.SetFileName(sEvaluationReportName);
 		fJSON.OpenForWrite();
 
 		// Ecriture de son contenu
@@ -626,7 +585,7 @@ boolean KWPredictorEvaluator::CheckEvaluatedTrainedPredictors(ObjectArray* oaEva
 		}
 	}
 
-	// Controle d'existence de l'eventuelle variable de selection pour tous els predicteurs a evaluer
+	// Controle d'existence de l'eventuelle variable de selection pour tous les predicteurs a evaluer
 	if (bArePredictorsConsistent and evaluationDatabase->GetSelectionAttribute() != "")
 	{
 		// Comparaison des informations avec les autres predicteurs
@@ -665,9 +624,10 @@ void KWPredictorEvaluator::EvaluateTrainedPredictors(ObjectArray* oaEvaluatedTra
 	int nRef;
 	FileSpec* specRef;
 	FileSpec specEvaluationReportFile;
-	FileSpec specJSONReportFile;
+	FileSpec specXlsReportFile;
 
 	require(oaEvaluatedTrainedPredictors != NULL);
+	require(CheckEvaluatedTrainedPredictors(oaEvaluatedTrainedPredictors));
 	require(oaEvaluatedPredictorSpecs.GetSize() == 0 or GetInitialClassesDomain() != NULL);
 	require(kwcdInitialCurrentDomain != NULL);
 	require(oaOutputPredictorEvaluations != NULL);
@@ -680,9 +640,12 @@ void KWPredictorEvaluator::EvaluateTrainedPredictors(ObjectArray* oaEvaluatedTra
 	if (kwcdInitialClassesDomain != NULL)
 		KWClassDomain::SetCurrentDomain(kwcdInitialClassesDomain);
 
-	// Verification de la coherence des predicteurs
-	if (bOk)
-		bOk = CheckEvaluatedTrainedPredictors(oaEvaluatedTrainedPredictors);
+	// Le nom de la base d'evaluation doit etre renseigne
+	if (bOk and evaluationDatabase->GetDatabaseName() == "")
+	{
+		bOk = false;
+		AddError("Missing evaluation database name");
+	}
 
 	// Le nom du rapport d'evaluation doit etre renseigne
 	if (bOk and GetEvaluationFileName() == "")
@@ -691,12 +654,9 @@ void KWPredictorEvaluator::EvaluateTrainedPredictors(ObjectArray* oaEvaluatedTra
 		AddError("Missing evaluation report name");
 	}
 
-	// Le nom de la base d'evaluation doit etre renseigne
-	if (bOk and evaluationDatabase->GetDatabaseName() == "")
-	{
-		bOk = false;
-		AddError("Missing evaluation database name");
-	}
+	// Verification du nom du rapport en sortie et du chemin en sortie
+	if (bOk)
+		bOk = GetResultFilePathBuilder()->CheckResultDirectory(GetClassLabel());
 
 	// Verification de la validite des specifications de la base d'evaluation
 	bOk = bOk and evaluationDatabase->Check();
@@ -724,26 +684,25 @@ void KWPredictorEvaluator::EvaluateTrainedPredictors(ObjectArray* oaEvaluatedTra
 		if (not bOk)
 			AddError("The evaluation report file name should differ from that of the evaluation database");
 
-		// Le nom du rapport JSON doit etre different du ou des fichiers de la base source
-		if (bOk and GetJSONFilePathName() != "")
+		// Le nom du rapport xls etre different du ou des fichiers de la base source
+		if (bOk and GetXlsEvaluationFilePathName() != "")
 		{
-			specJSONReportFile.SetLabel("JSON report");
-			specJSONReportFile.SetFilePathName(GetJSONFilePathName());
+			specXlsReportFile.SetLabel("xls report");
+			specXlsReportFile.SetFilePathName(GetXlsEvaluationFilePathName());
 			for (nRef = 0; nRef < oaEvaluationDatabaseFileSpecs.GetSize(); nRef++)
 			{
 				specRef = cast(FileSpec*, oaEvaluationDatabaseFileSpecs.GetAt(nRef));
 				specRef->SetLabel("evaluation " + specRef->GetLabel());
-				bOk = bOk and specJSONReportFile.CheckReferenceFileSpec(specRef);
+				bOk = bOk and specXlsReportFile.CheckReferenceFileSpec(specRef);
 				if (not bOk)
 					break;
 			}
 			if (not bOk)
-				AddError(
-				    "The JSON report file name should differ from that of the evaluation database");
+				AddError("The xls report file name should differ from that of the evaluation database");
 
 			// Et il doit etre different du rapport d'evaluation
 			if (bOk)
-				bOk = specJSONReportFile.CheckReferenceFileSpec(&specEvaluationReportFile);
+				bOk = specXlsReportFile.CheckReferenceFileSpec(&specEvaluationReportFile);
 		}
 	}
 
@@ -815,12 +774,13 @@ void KWPredictorEvaluator::EvaluateTrainedPredictors(ObjectArray* oaEvaluatedTra
 		// Evaluation des predicteurs
 		EvaluatePredictors(&oaPredictors, GetEvaluationDatabase(), "Predictor", oaOutputPredictorEvaluations);
 
-		// Ecriture du rapport d'evaluation
-		WriteEvaluationReport(GetEvaluationFilePathName(), "Predictor", oaOutputPredictorEvaluations);
+		// Ecriture du rapport d'evaluation au format JSON
+		WriteJSONEvaluationReport(GetEvaluationFilePathName(), "Predictor", oaOutputPredictorEvaluations);
 
-		// Ecriture du rapport JSON
-		if (GetJSONFilePathName() != "")
-			WriteJSONReport(GetJSONFilePathName(), "Predictor", oaOutputPredictorEvaluations);
+		// Ecriture du rapport d'evaluation au fprmat xls
+		if (GetXlsEvaluationFilePathName() != "")
+			WriteEvaluationReport(GetXlsEvaluationFilePathName(), "Predictor",
+					      oaOutputPredictorEvaluations);
 
 		// Nettoyage du tableau de predicteurs, en dereferencant prealablement
 		// leur predicteur appris (pour eviter une double destruction)
@@ -999,6 +959,16 @@ void KWPredictorEvaluator::RenameDatabaseClasses(KWDatabase* database, KWClassDo
 			}
 		}
 	}
+}
+
+const KWResultFilePathBuilder* KWPredictorEvaluator::GetResultFilePathBuilder() const
+{
+	require(evaluationDatabase != NULL);
+
+	resultFilePathBuilder.SetInputFilePathName(evaluationDatabase->GetDatabaseName());
+	resultFilePathBuilder.SetOutputFilePathName(GetEvaluationFileName());
+	resultFilePathBuilder.SetFileSuffix(GetJSONReportSuffix());
+	return &resultFilePathBuilder;
 }
 
 //////////////////////////////////////////////////////////////////////////////

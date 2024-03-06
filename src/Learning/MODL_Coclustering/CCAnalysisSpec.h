@@ -4,17 +4,9 @@
 
 #pragma once
 
-////////////////////////////////////////////////////////////
-// File generated with Genere tool
-// Insert your specific code inside "//## " sections
-
-#include "Object.h"
-
-// ## Custom includes
-
 #include "CCCoclusteringSpec.h"
-
-// ##
+#include "CCVarPartCoclusteringSpec.h"
+#include "KWDataGridOptimizerParameters.h"
 
 ////////////////////////////////////////////////////////////
 // Classe CCAnalysisSpec
@@ -26,42 +18,39 @@ public:
 	CCAnalysisSpec();
 	~CCAnalysisSpec();
 
-	// Copie et duplication
-	void CopyFrom(const CCAnalysisSpec* aSource);
-	CCAnalysisSpec* Clone() const;
+	// Parametrage du type de coclustering
+	// A true pour un coclustering de type VarPart, instances * variables
+	// A false sinon pour un coclustering de variables (valeur par defaut)
+	void SetVarPartCoclustering(boolean bValue);
+	boolean GetVarPartCoclustering() const;
 
-	///////////////////////////////////////////////////////////
-	// Divers
+	// Parametrage du coclustering
+	CCCoclusteringSpec* GetCoclusteringSpec();
 
-	// Ecriture
-	void Write(ostream& ost) const override;
+	// Parametrage du coclustering VarPart instances x variables
+	CCVarPartCoclusteringSpec* GetVarPartCoclusteringSpec();
+
+	// Libelles correspondant aux type de coclustering
+	// pour les cas VartPart (coclustering instances x variables) ou standard (coclustering de variables)
+	static const ALString GetCoclusteringLabelFromType(boolean bIsVarPartCoclustering);
+
+	// Type correspond a un libelle de coclustering
+	// Renvoie true dans la cas VarPart, false sinon
+	static boolean GetCoclusteringTypeFromLabel(const ALString& sLabel);
+
+	// Parametres d'optimisation
+	KWDataGridOptimizerParameters* GetOptimizationParameters();
 
 	// Libelles utilisateur
 	const ALString GetClassLabel() const override;
 	const ALString GetObjectLabel() const override;
 
-	// ## Custom declarations
-
-	// Parametrage du coclustering
-	CCCoclusteringSpec* GetCoclusteringSpec();
-
-	// ##
-
 	////////////////////////////////////////////////////////
 	///// Implementation
 protected:
 	// Attributs de la classe
-
-	// ## Custom implementation
-
+	boolean bVarPartCoclustering;
 	CCCoclusteringSpec coclusteringSpec;
-
-	// ##
+	CCVarPartCoclusteringSpec varPartCoclusteringSpec;
+	KWDataGridOptimizerParameters optimizationParameters;
 };
-
-////////////////////////////////////////////////////////////
-// Implementations inline
-
-// ## Custom inlines
-
-// ##

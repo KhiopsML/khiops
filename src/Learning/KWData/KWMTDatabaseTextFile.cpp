@@ -92,10 +92,15 @@ void KWMTDatabaseTextFile::AddPathToUsedFiles(const ALString& sPathName)
 	int nMapping;
 	KWMTDatabaseMapping* mapping;
 	ALString sDataTableName;
+	KWResultFilePathBuilder resultFilePathBuilder;
 
 	// Renommage si nom existant
 	if (GetDatabaseName() != "" and sPathName != "")
 	{
+		// On passe ar le service de construction des chemins de fichier en sortie
+		// avec un fichier bidon en entree pour qu'il extrait correctement la path en entree
+		resultFilePathBuilder.SetInputFilePathName(FileService::BuildFilePathName(sPathName, "dummy.txt"));
+
 		// Personnalisation des noms de table du mapping (qui comprennent la table racine)
 		for (nMapping = 0; nMapping < GetMultiTableMappings()->GetSize(); nMapping++)
 		{
@@ -103,10 +108,11 @@ void KWMTDatabaseTextFile::AddPathToUsedFiles(const ALString& sPathName)
 
 			// Nom par defaut de la base de donnee cible
 			sDataTableName = mapping->GetDataTableName();
-			if (sDataTableName != "" and not FileService::IsPathInFilePath(sDataTableName))
+			if (sDataTableName != "")
 			{
 				// On construit le nom complet du fichier
-				sDataTableName = FileService::BuildFilePathName(sPathName, sDataTableName);
+				resultFilePathBuilder.SetOutputFilePathName(sDataTableName);
+				sDataTableName = resultFilePathBuilder.BuildResultFilePathName();
 
 				// Parametrage avec le nouveau nom
 				mapping->SetDataTableName(sDataTableName);

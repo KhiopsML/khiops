@@ -1,0 +1,20 @@
+#Khiops 10.4.6i
+
+Dictionary	SNB_Iris
+<InitialDictionary="Iris"> <PredictorLabel="Selective Naive Bayes"> <PredictorType="Classifier">
+{
+Unused	Numerical	SepalLength		; <Cost=1.38629> <Level=0.170653>	
+Unused	Numerical	SepalWidth		; <Cost=1.38629> <Level=0.000285089>	
+Unused	Numerical	PetalLength		; <Cost=1.38629> <Importance=0.598968> <Level=0.493781> <Weight=0.726562>	
+Unused	Numerical	PetalWidth		; <Cost=1.38629> <Importance=0.680511> <Level=0.598749> <Weight=0.773438>	
+Unused	Categorical	Class		; <TargetVariable>	
+Unused	Numerical	NoSetosa	 = NEQc(Class, "Iris-setosa")	;	
+Unused	Structure(DataGrid)	VClass	 = DataGrid(ValueSetC("Iris-versicolor", "Iris-virginica"), Frequencies(32, 35))	; <TargetValues>	
+Unused	Structure(DataGrid)	PPetalLength	 = DataGrid(IntervalBounds(4.95), ValueSetC("Iris-versicolor", "Iris-virginica"), Frequencies(30, 2, 3, 32))	; <Level=0.493781>	// DataGrid(PetalLength, Class)
+Unused	Structure(DataGrid)	PPetalWidth	 = DataGrid(IntervalBounds(1.75), ValueSetC("Iris-versicolor", "Iris-virginica"), Frequencies(31, 1, 2, 33))	; <Level=0.598749>	// DataGrid(PetalWidth, Class)
+Unused	Structure(Classifier)	SNBClass	 = SNBClassifier(Vector(0.7265625, 0.7734375), DataGridStats(PPetalLength, PetalLength), DataGridStats(PPetalWidth, PetalWidth), VClass)	;	
+	Categorical	PredictedClass	 = TargetValue(SNBClass)	; <Prediction>	
+Unused	Numerical	ScoreClass	 = TargetProb(SNBClass)	; <Score>	
+	Numerical	`ProbClassIris-versicolor`	 = TargetProbAt(SNBClass, "Iris-versicolor")	; <TargetProb1="Iris-versicolor">	
+	Numerical	`ProbClassIris-virginica`	 = TargetProbAt(SNBClass, "Iris-virginica")	; <TargetProb2="Iris-virginica">	
+};

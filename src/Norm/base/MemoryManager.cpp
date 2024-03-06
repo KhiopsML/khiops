@@ -2,6 +2,7 @@
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
+#include "MemoryManager.h"
 #include "Standard.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -41,21 +42,35 @@ static longint lMemMaxHeapSize = 0;
 static void MemFatalError(const char* sAllocErrorMessage);
 
 // Mise a jour des statiques globales
-inline void MemHeapUpdateAlloc(size_t nSize)
+// On renvoie true si on a assez de memoire
+inline boolean MemHeapUpdateAlloc(size_t nSize)
 {
-	// Mise a jour des stats
-	MemHeapMemory += nSize;
-	if (MemHeapMemory > MemHeapMaxRequestedMemory)
-		MemHeapMaxRequestedMemory = MemHeapMemory;
-	MemHeapTotalRequestedMemory += nSize;
-
-	// test de depassement memoire
+	// Test de depassement memoire
 	if (lMemMaxHeapSize > 0 && MemHeapMemory > lMemMaxHeapSize)
 	{
-		char sMessage[100];
-		sprintf(sMessage, "Memory user overflow: heap size beyond user limit (%lld)\n", lMemMaxHeapSize);
-		MemFatalError(sMessage);
-		GlobalExit();
+		// Erreur fatale s'il y a un handler de gestion de la memoire
+		if (MemGetAllocErrorHandler() != NULL)
+		{
+			char sMessage[100];
+			snprintf(sMessage, sizeof(sMessage),
+				 "Memory user overflow: heap size beyond user limit (%lld)\n", lMemMaxHeapSize);
+			MemFatalError(sMessage);
+			GlobalExit();
+		}
+
+		// Si pas d'erreur fatale, on indique juste que l'allocation n'est possible et on on renverra NULL
+		return false;
+	}
+	// Mise a jour des stats sinon
+	else
+	{
+		MemHeapMemory += nSize;
+		if (MemHeapMemory > MemHeapMaxRequestedMemory)
+			MemHeapMaxRequestedMemory = MemHeapMemory;
+		MemHeapTotalRequestedMemory += nSize;
+
+		// On indique que l'allocation est possible
+		return true;
 	}
 }
 
@@ -97,8 +112,10 @@ static void MemAllocFatalErrorReserveMemory()
 {
 	if (pMemFatalErrorReserveMemory == NULL)
 	{
-		MemHeapUpdateAlloc(nMemFatalErrorReserveMemorySize);
-		pMemFatalErrorReserveMemory = p_hugemalloc(nMemFatalErrorReserveMemorySize);
+		if (MemHeapUpdateAlloc(nMemFatalErrorReserveMemorySize))
+			pMemFatalErrorReserveMemory = p_hugemalloc(nMemFatalErrorReserveMemorySize);
+		else
+			pMemFatalErrorReserveMemory = NULL;
 	}
 }
 #endif // RELEASENEWMEM
@@ -591,10 +608,14 @@ void MemStatsInit()
 {
 	if (memDetailedStats == NULL)
 	{
-		MemHeapUpdateAlloc((MEMSTATSMAXSIZE + 1) * sizeof(longint));
-		memDetailedStats = (longint*)p_hugemalloc((MEMSTATSMAXSIZE + 1) * sizeof(longint));
-		for (int i = 0; i <= MEMSTATSMAXSIZE; i++)
-			memDetailedStats[i] = 0;
+		if (MemHeapUpdateAlloc((MEMSTATSMAXSIZE + 1) * sizeof(longint)))
+		{
+			memDetailedStats = (longint*)p_hugemalloc((MEMSTATSMAXSIZE + 1) * sizeof(longint));
+			for (int i = 0; i <= MEMSTATSMAXSIZE; i++)
+				memDetailedStats[i] = 0;
+		}
+		else
+			memDetailedStats = NULL;
 		memTotalStats = 0;
 		memTotalSizeStats = 0;
 	}
@@ -804,10 +825,17 @@ inline void MemBlockSetSizeValueAt(void* pBlock, int nOffset, size_t nSize)
 
 inline MemSegment* SegNew()
 {
+	MemSegment* segment;
+
 	// Allocation du segment
-	MemHeapCurrentSegmentNumber++;
-	MemHeapUpdateAlloc(MemSystemSegmentByteSize);
-	return (MemSegment*)p_hugemalloc(MemSystemSegmentByteSize);
+	if (MemHeapUpdateAlloc(MemSystemSegmentByteSize))
+	{
+		MemHeapCurrentSegmentNumber++;
+		segment = (MemSegment*)p_hugemalloc(MemSystemSegmentByteSize);
+	}
+	else
+		segment = NULL;
+	return segment;
 }
 
 inline void SegInit(MemSegment* self)
@@ -1197,8 +1225,8 @@ void HeapInit()
 
 			// Allocation de la structure de la heap
 			assert(pHeap == NULL);
-			MemHeapUpdateAlloc(nHeapTotalAllocSize);
-			pHeap = (MemHeap*)p_hugemalloc(nHeapTotalAllocSize);
+			if (MemHeapUpdateAlloc(nHeapTotalAllocSize))
+				pHeap = (MemHeap*)p_hugemalloc(nHeapTotalAllocSize);
 			if (pHeap == NULL)
 			{
 				MemFatalError("Memory overflow (heap allocation error)\n");
@@ -1288,9 +1316,10 @@ void HeapClose()
 
 // Visual C++: supression des Warning
 #ifdef __MSC__
-#pragma warning(disable : 6385) // disable C6385 warning (pour un controle excessif sur pHeap->fixedSizeHeapHeadSegments
-				// dans HeapCheckFixedSizeHeapLecture)
-#endif                          // __MSC__
+// disable C6385 warning
+// (pour un controle excessif sur pHeap->fixedSizeHeapHeadSegments dans HeapCheckFixedSizeHeapLecture)
+#pragma warning(disable : 6385)
+#endif // __MSC__
 
 // Verification d'un segment d'un FixedSizeHeap
 int HeapCheckFixedSizeHeap(MemSegment* psegSearched)
@@ -1519,14 +1548,17 @@ inline void* MemAlloc(size_t nSize)
 		assert(nRequestedSize >= nTrueSize);
 
 		// Allocation classique
-		MemHeapUpdateAlloc(nRequestedSize);
-		pBlock = (void*)p_hugemalloc(nRequestedSize);
+		if (MemHeapUpdateAlloc(nRequestedSize))
+			pBlock = (void*)p_hugemalloc(nRequestedSize);
+		else
+			pBlock = NULL;
 		if (pBlock == NULL)
 		{
 			if (MemGetAllocErrorHandler() != NULL)
 			{
 				char sMessage[100];
-				sprintf(sMessage, "Memory overflow (malloc allocation error (%lld))\n", (longint)nSize);
+				snprintf(sMessage, sizeof(sMessage),
+					 "Memory overflow (malloc allocation error (%lld))\n", (longint)nSize);
 				MemFatalError(sMessage);
 			}
 			return NULL;
@@ -2026,8 +2058,8 @@ void* DebugMemAlloc(size_t nSize)
 		if (MemGetAllocErrorHandler() != NULL)
 		{
 			char sMessage[100];
-			sprintf(sMessage, "Memory overflow (unable to allocate memory (%lld))\n",
-				(longint)(nSize + MemControlOverhead * sizeof(void*)));
+			snprintf(sMessage, sizeof(sMessage), "Memory overflow (unable to allocate memory (%lld))\n",
+				 (longint)(nSize + MemControlOverhead * sizeof(void*)));
 			MemFatalError(sMessage);
 		}
 		return NULL;

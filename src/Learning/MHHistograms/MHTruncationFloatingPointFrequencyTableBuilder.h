@@ -56,7 +56,10 @@ protected:
 	// Transformation d'un vecteur de valeurs
 	void TransformValues(const ContinuousVector* cvSourceValues, ContinuousVector* cvOutputTransformedValues) const;
 
-	// Initialisation des bornes du domaines, redefiniee dans la cas de la troncature
+	// Redefinition des metrhodes virtuelles dans la cas de la troncature
+	Continuous GetSystemMinValue() const override;
+	Continuous GetSystemMaxValue() const override;
+	void UpdateMaxSafeHierarchyLevel() override;
 	void InitializeDomainBounds() override;
 
 	// Gestion de l'epsilon de troncature

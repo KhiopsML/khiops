@@ -8,14 +8,15 @@ if(MPI)
   target_link_libraries(MODL${MPI_SUFFIX} PUBLIC PLMPI)
 endif()
 
-add_library(MODL_SO SHARED ${cppfiles})
-target_link_libraries(MODL_SO PUBLIC DTForest KMDRRuleLibrary KWLearningProblem)
+add_library(MODL_DLL SHARED ${cppfiles})
+target_link_libraries(MODL_DLL PUBLIC DTForest KMDRRuleLibrary KWLearningProblem)
 if(MPI)
-  target_link_libraries(MODL_SO PUBLIC PLMPI)
+  target_link_libraries(MODL_DLL PUBLIC PLMPI)
 endif()
+
 set_target_properties(
-  MODL_SO
+  MODL_DLL
   PROPERTIES PUBLIC_HEADER MODL_dll.h
              SOVERSION ${PROJECT_VERSION_MAJOR}
              VERSION ${PROJECT_VERSION})
-set_khiops_options(MODL_SO)
+set_khiops_options(MODL_DLL)

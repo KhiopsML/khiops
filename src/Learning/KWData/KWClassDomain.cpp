@@ -47,19 +47,30 @@ boolean KWClassDomain::WriteFile(const ALString& sFileName) const
 {
 	fstream fst;
 	boolean bOk;
+	ALString sCorrectedFileName;
 	ALString sLocalFileName;
+	KWClass classRef;
+
+	// Correction du nom si necessaire
+	sCorrectedFileName = KWResultFilePathBuilder::UpdateFileSuffix(sFileName, "kdic");
 
 	// Affichage de stats memoire
-	MemoryStatsManager::AddLog(GetClassLabel() + " " + sFileName + " WriteFile Begin");
+	MemoryStatsManager::AddLog(GetClassLabel() + " " + sCorrectedFileName + " WriteFile Begin");
+
+	// Verification et modification du suffixe du fichier si necessaire
+	bOk = KWResultFilePathBuilder::CheckFileSuffix(sFileName, "kdic", classRef.GetClassLabel());
+	bOk = bOk and KWResultFilePathBuilder::CheckResultDirectory(FileService::GetPathName(sFileName),
+								    classRef.GetClassLabel());
 
 	// Preparation de la copie sur HDFS si necessaire
-	bOk = PLRemoteFileService::BuildOutputWorkingFile(sFileName, sLocalFileName);
+	if (bOk)
+		bOk = PLRemoteFileService::BuildOutputWorkingFile(sCorrectedFileName, sLocalFileName);
 
 	// Ouverture du fichier en ecriture
 	if (bOk)
 		bOk = FileService::OpenOutputFile(sLocalFileName, fst);
 
-	// Si OK: ecriture des classe
+	// Si OK: ecriture des classes
 	if (bOk)
 	{
 		if (GetLearningReportHeaderLine() != "")
@@ -75,11 +86,11 @@ boolean KWClassDomain::WriteFile(const ALString& sFileName) const
 	if (bOk)
 	{
 		// Copie vers HDFS si necessaire
-		PLRemoteFileService::CleanOutputWorkingFile(sFileName, sLocalFileName);
+		PLRemoteFileService::CleanOutputWorkingFile(sCorrectedFileName, sLocalFileName);
 	}
 
 	// Affichage de stats memoire
-	MemoryStatsManager::AddLog(GetClassLabel() + " " + sFileName + " WriteFile End");
+	MemoryStatsManager::AddLog(GetClassLabel() + " " + sCorrectedFileName + " WriteFile End");
 	return bOk;
 }
 
@@ -92,6 +103,8 @@ boolean KWClassDomain::WriteFileFromClass(const KWClass* rootClass, const ALStri
 	int nClass;
 	KWClass* kwcElement;
 
+	// Pas de gestion des fichiers cloud, car utilise actuellement uniquement en local
+	require(FileService::GetURIScheme(sFileName) == "");
 	require(rootClass != NULL);
 	require(rootClass->GetDomain() == this);
 
@@ -142,10 +155,22 @@ boolean KWClassDomain::WriteJSONFile(const ALString& sJSONFileName) const
 	JSONFile fJSON;
 	int i;
 	KWClass* kwcElement;
+	ALString sCorrectedJSONFileName;
+	KWClass classRef;
+
+	// Correction du nom si necessaire
+	sCorrectedJSONFileName = KWResultFilePathBuilder::UpdateFileSuffix(sJSONFileName, "kdicj");
+
+	// Verification et modification du suffixe du fichier si necessaire
+	bOk = KWResultFilePathBuilder::CheckFileSuffix(sJSONFileName, "kdicj", classRef.GetClassLabel());
+	bOk = bOk and KWResultFilePathBuilder::CheckResultDirectory(FileService::GetPathName(sJSONFileName),
+								    classRef.GetClassLabel());
 
 	// Ouverture du fichier JSON
-	fJSON.SetFileName(sJSONFileName);
-	bOk = fJSON.OpenForWrite();
+	// La prise en compte des fichiers cloud est geree par la classe JSONFile
+	fJSON.SetFileName(sCorrectedJSONFileName);
+	if (bOk)
+		bOk = fJSON.OpenForWrite();
 
 	// Si OK: ecriture des classe
 	if (bOk)
@@ -169,7 +194,7 @@ boolean KWClassDomain::WriteJSONFile(const ALString& sJSONFileName) const
 
 		// Destruction du fichier si erreur
 		if (not bOk)
-			FileService::RemoveFile(sJSONFileName);
+			FileService::RemoveFile(sCorrectedJSONFileName);
 	}
 	return bOk;
 }
@@ -697,8 +722,8 @@ void KWClassDomain::Compile()
 				// Test une seule fois, pour le premier attribut du block
 				if (attribute->IsFirstInBlock())
 				{
-					if (nkdGreyAttributes.Lookup((NUMERIC)attributeBlock) == NULL and
-					    nkdBlackAttributes.Lookup((NUMERIC)attributeBlock) == NULL)
+					if (nkdGreyAttributes.Lookup(attributeBlock) == NULL and
+					    nkdBlackAttributes.Lookup(attributeBlock) == NULL)
 					{
 						if (attributeBlock->ContainsCycle(&nkdGreyAttributes,
 										  &nkdBlackAttributes))
@@ -710,8 +735,8 @@ void KWClassDomain::Compile()
 				}
 			}
 			// Test si l'attribut est en White (ni Grey, ni Black)
-			else if (nkdGreyAttributes.Lookup((NUMERIC)attribute) == NULL and
-				 nkdBlackAttributes.Lookup((NUMERIC)attribute) == NULL)
+			else if (nkdGreyAttributes.Lookup(attribute) == NULL and
+				 nkdBlackAttributes.Lookup(attribute) == NULL)
 			{
 				if (attribute->ContainsCycle(&nkdGreyAttributes, &nkdBlackAttributes))
 				{

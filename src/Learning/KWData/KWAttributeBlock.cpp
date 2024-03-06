@@ -673,8 +673,8 @@ void KWAttributeBlock::SortAttributesByVarKey()
 		while (attribute != NULL)
 		{
 			nVarKey = GetContinuousVarKey(attribute);
-			assert(nkdBlockAttributesByVarKeys.Lookup((NUMERIC)(longint)nVarKey) == NULL);
-			nkdBlockAttributesByVarKeys.SetAt((NUMERIC)(longint)nVarKey, attribute);
+			assert(nkdBlockAttributesByVarKeys.Lookup(nVarKey) == NULL);
+			nkdBlockAttributesByVarKeys.SetAt(nVarKey, attribute);
 			ivVarKeys.Add(nVarKey);
 
 			// Arret si derniere variable du bloc trouvee
@@ -691,8 +691,7 @@ void KWAttributeBlock::SortAttributesByVarKey()
 		// Parcours des cles dans l'ordre pour reordonnancer les attributs
 		for (i = 0; i < ivVarKeys.GetSize(); i++)
 		{
-			attribute = cast(KWAttribute*,
-					 nkdBlockAttributesByVarKeys.Lookup((NUMERIC)(longint)ivVarKeys.GetAt(i)));
+			attribute = cast(KWAttribute*, nkdBlockAttributesByVarKeys.Lookup(ivVarKeys.GetAt(i)));
 			parentClass->MoveAttributeToBlockTail(attribute);
 		}
 	}
@@ -723,15 +722,15 @@ boolean KWAttributeBlock::ContainsCycle(NumericKeyDictionary* nkdGreyAttributes,
 	require(GetParentClass()->IsCompiled());
 
 	// Marquage de l'attribut en Grey
-	nkdGreyAttributes->SetAt((NUMERIC)this, (Object*)this);
+	nkdGreyAttributes->SetAt(this, (Object*)this);
 
 	// Analyse de l'eventuelle regle de derivation attachee au bloc
 	if (GetDerivationRule() != NULL)
 		bContainsCycle = GetDerivationRule()->ContainsCycle(nkdGreyAttributes, nkdBlackAttributes);
 
 	// Marquage du bloc d'attributs en Black
-	nkdGreyAttributes->SetAt((NUMERIC)this, NULL);
-	nkdBlackAttributes->SetAt((NUMERIC)this, (Object*)this);
+	nkdGreyAttributes->SetAt(this, NULL);
+	nkdBlackAttributes->SetAt(this, (Object*)this);
 
 	return bContainsCycle;
 }

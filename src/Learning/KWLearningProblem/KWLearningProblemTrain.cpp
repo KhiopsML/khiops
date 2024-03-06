@@ -94,6 +94,12 @@ void KWLearningProblem::CollectTrainedPredictorClasses(ObjectArray* oaTrainedPre
 void KWLearningProblem::CollectPredictors(KWClassStats* classStats, ObjectArray* oaPredictors)
 {
 	const KWPredictorBaseline refPredictorBaseline;
+	const SNBPredictorSelectiveNaiveBayes refPredictorSelectiveNaiveBayes;
+	const KWPredictorNaiveBayes refPredictorNaiveBayes;
+	const KWPredictorDataGrid refPredictorDataGrid;
+	KWPredictor* predictorSelectiveNaiveBayes;
+	KWPredictorNaiveBayes* predictorNaiveBayes;
+	KWPredictorDataGrid* predictorDataGrid;
 	KWPredictorBaseline* predictorBaseline;
 
 	require(classStats != NULL);
@@ -102,8 +108,45 @@ void KWLearningProblem::CollectPredictors(KWClassStats* classStats, ObjectArray*
 	require(classStats != NULL);
 	require(classStats->IsStatsComputed());
 
-	// Predicteur Baseline
-	if (analysisSpec->GetModelingSpec()->GetBaselinePredictor())
+	// Predicteur Bayesien Naif Selectif
+	if (analysisSpec->GetModelingSpec()->GetSelectiveNaiveBayesPredictor())
+	{
+		predictorSelectiveNaiveBayes = KWPredictor::ClonePredictor(refPredictorSelectiveNaiveBayes.GetName(),
+									   classStats->GetTargetAttributeType());
+		if (predictorSelectiveNaiveBayes != NULL)
+		{
+			predictorSelectiveNaiveBayes->CopyFrom(
+			    analysisSpec->GetModelingSpec()->GetPredictorSelectiveNaiveBayes());
+			oaPredictors->Add(predictorSelectiveNaiveBayes);
+		}
+	}
+
+	// Predicteur Bayesien Naif
+	if (analysisSpec->GetModelingSpec()->GetNaiveBayesPredictor())
+	{
+		predictorNaiveBayes =
+		    cast(KWPredictorNaiveBayes*, KWPredictor::ClonePredictor(refPredictorNaiveBayes.GetName(),
+									     classStats->GetTargetAttributeType()));
+		if (predictorNaiveBayes != NULL)
+			oaPredictors->Add(predictorNaiveBayes);
+	}
+
+	// Predicteur Data Grid
+	if (analysisSpec->GetModelingSpec()->GetDataGridPredictor())
+	{
+		predictorDataGrid =
+		    cast(KWPredictorDataGrid*, KWPredictor::ClonePredictor(refPredictorDataGrid.GetName(),
+									   classStats->GetTargetAttributeType()));
+		if (predictorDataGrid != NULL)
+		{
+			predictorDataGrid->CopyFrom(analysisSpec->GetModelingSpec()->GetPredictorDataGrid());
+			oaPredictors->Add(predictorDataGrid);
+		}
+	}
+
+	// Predicteur Baseline, uniquement en regression
+	if (analysisSpec->GetModelingSpec()->GetBaselinePredictor() and
+	    classStats->GetTargetAttributeType() == KWType::Continuous)
 	{
 		predictorBaseline =
 		    cast(KWPredictorBaseline*, KWPredictor::ClonePredictor(refPredictorBaseline.GetName(),

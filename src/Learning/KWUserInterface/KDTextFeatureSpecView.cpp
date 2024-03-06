@@ -19,13 +19,21 @@ KDTextFeatureSpecView::KDTextFeatureSpecView()
 
 	// ## Custom constructor
 
-	GetFieldAt("TextFeatures")->SetParameters("n-grams\nwords");
-
+	GetFieldAt("TextFeatures")->SetParameters("words\nngrams\ntokens");
 	GetFieldAt("TextFeatures")
-	    ->SetHelpText("Type of contructed texte features:"
-			  "\n . n-grams: n-grams of bytes; fast, robust, but not interpretable"
-			  "\n . words: interpretable tokens extracted from text variables,"
-			  "\n    whose interest depends on the quality of the text preprocessing.");
+	    ->SetHelpText(
+		"Type of constructed text features :"
+		"\n - words : text words obtained with an automatic tokenization process"
+		"\n - ngrams: ngrams of bytes; generic, fast, robust, but less interpretable"
+		"\n - tokens : text tokens whose interpretability and interest depend on the quality of the input text "
+		"preprocessing."
+		"\n"
+		"\n The \"words\" automatic tokenization process uses separator or control characters as delimiters."
+		"\n The obtained words are either sequences of punctuation characters or sequences of any other "
+		"character."
+		"\n"
+		"\n The \"tokens\" tokenization process simply uses the blank character as delimiter."
+		"\n This method assumes  that the text has been already preprocessed (eg. lemmatization).");
 
 	// ##
 }

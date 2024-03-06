@@ -10,8 +10,6 @@ import javax.swing.table.AbstractTableModel;
 /**
  * Definit le modele de tableau. Cette classe communique avec le tableau
  * (GUITable) et avec la partie c++ (UIList)
- *
- * @author Marc Boulle
  */
 public class GUITableModel extends AbstractTableModel
 {

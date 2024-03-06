@@ -55,8 +55,8 @@ public:
 	// dont l'URI est passee en parametre.
 	// Renvoie FileSystem::nDefaultPreferredBufferSize (8 Mo) si aucune taille n'est a privilegiee ou si le driver
 	// necessaire pour acceder au fichier n'est pas enregistre. Quelle que soit la taille specifiee dans la driver,
-	// la valeur renvoyee est comprise entre FileSystem::nMinPreferredBufferSize (1 Mo) et
-	// FileSystem::nMaxPreferredBufferSize (64 Mo)
+	// la valeur renvoyee est comprise entre SystemFile::nMinPreferredBufferSize (1 Mo) et
+	// SystemFile::nMaxPreferredBufferSize (64 Mo)
 	static int GetPreferredBufferSize(const ALString& sURI);
 
 	// Creation d'un nom de fichier temporaire en ecriture si necessaire,

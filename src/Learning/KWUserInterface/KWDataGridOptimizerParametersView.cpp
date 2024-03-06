@@ -12,30 +12,31 @@ KWDataGridOptimizerParametersView::KWDataGridOptimizerParametersView()
 {
 	SetIdentifier("KWDataGridOptimizerParameters");
 	SetLabel("Data Grid optimization");
-	AddStringField("OptimizationAlgorithm", "Algorithm", "");
 	AddIntField("OptimizationTime", "Optimization time", 0);
 	AddIntField("OptimizationLevel", "Level", 0);
 	AddBooleanField("UnivariateInitialization", "Univariate initialization", false);
 	AddBooleanField("PreOptimize", "Pre-optimize each solution", false);
 	AddBooleanField("Optimize", "Optimize each solution", false);
 	AddBooleanField("PostOptimize", "Post-optimize each solution", false);
+	AddBooleanField("VarPartPostMerge", "VarPart post-merge each solution", false);
+	AddBooleanField("VarPartPostOptimize", "VarPart post-optimize each solution", false);
 	AddStringField("InternalParameter", "Internal parameter", "");
 	AddBooleanField("DisplayDetails", "Display details", false);
 
 	// Parametrage des styles;
-	GetFieldAt("OptimizationAlgorithm")->SetStyle("ComboBox");
 	GetFieldAt("OptimizationTime")->SetStyle("Spinner");
 	GetFieldAt("OptimizationLevel")->SetStyle("Spinner");
 	GetFieldAt("UnivariateInitialization")->SetStyle("CheckBox");
 	GetFieldAt("PreOptimize")->SetStyle("CheckBox");
 	GetFieldAt("Optimize")->SetStyle("CheckBox");
 	GetFieldAt("PostOptimize")->SetStyle("CheckBox");
+	GetFieldAt("VarPartPostMerge")->SetStyle("CheckBox");
+	GetFieldAt("VarPartPostOptimize")->SetStyle("CheckBox");
 	GetFieldAt("DisplayDetails")->SetStyle("CheckBox");
 
 	// ## Custom constructor
 
 	// Contrainte sur les valeurs
-	GetFieldAt("OptimizationAlgorithm")->SetParameters("Greedy\nMultiStart\nVNS\nNone");
 	cast(UIIntElement*, GetFieldAt("OptimizationTime"))->SetMinValue(0);
 	cast(UIIntElement*, GetFieldAt("OptimizationTime"))->SetMaxValue(100000000);
 	cast(UIIntElement*, GetFieldAt("OptimizationLevel"))->SetMinValue(0);
@@ -43,6 +44,12 @@ KWDataGridOptimizerParametersView::KWDataGridOptimizerParametersView()
 
 	// Parametre interne non accessible depuis l'interface, meme en mode expert
 	GetFieldAt("InternalParameter")->SetVisible(false);
+
+	// CH IV Begin
+	// Parametres de coclustering instances x variables en mode expert
+	GetFieldAt("VarPartPostMerge")->SetVisible(GetLearningCoclusteringIVExpertMode());
+	GetFieldAt("VarPartPostOptimize")->SetVisible(GetLearningCoclusteringIVExpertMode());
+	// CH IV End
 
 	// ##
 }
@@ -67,13 +74,14 @@ void KWDataGridOptimizerParametersView::EventUpdate(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(KWDataGridOptimizerParameters*, object);
-	editedObject->SetOptimizationAlgorithm(GetStringValueAt("OptimizationAlgorithm"));
 	editedObject->SetOptimizationTime(GetIntValueAt("OptimizationTime"));
 	editedObject->SetOptimizationLevel(GetIntValueAt("OptimizationLevel"));
 	editedObject->SetUnivariateInitialization(GetBooleanValueAt("UnivariateInitialization"));
 	editedObject->SetPreOptimize(GetBooleanValueAt("PreOptimize"));
 	editedObject->SetOptimize(GetBooleanValueAt("Optimize"));
 	editedObject->SetPostOptimize(GetBooleanValueAt("PostOptimize"));
+	editedObject->SetVarPartPostMerge(GetBooleanValueAt("VarPartPostMerge"));
+	editedObject->SetVarPartPostOptimize(GetBooleanValueAt("VarPartPostOptimize"));
 	editedObject->SetInternalParameter(GetStringValueAt("InternalParameter"));
 	editedObject->SetDisplayDetails(GetBooleanValueAt("DisplayDetails"));
 
@@ -89,13 +97,14 @@ void KWDataGridOptimizerParametersView::EventRefresh(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(KWDataGridOptimizerParameters*, object);
-	SetStringValueAt("OptimizationAlgorithm", editedObject->GetOptimizationAlgorithm());
 	SetIntValueAt("OptimizationTime", editedObject->GetOptimizationTime());
 	SetIntValueAt("OptimizationLevel", editedObject->GetOptimizationLevel());
 	SetBooleanValueAt("UnivariateInitialization", editedObject->GetUnivariateInitialization());
 	SetBooleanValueAt("PreOptimize", editedObject->GetPreOptimize());
 	SetBooleanValueAt("Optimize", editedObject->GetOptimize());
 	SetBooleanValueAt("PostOptimize", editedObject->GetPostOptimize());
+	SetBooleanValueAt("VarPartPostMerge", editedObject->GetVarPartPostMerge());
+	SetBooleanValueAt("VarPartPostOptimize", editedObject->GetVarPartPostOptimize());
 	SetStringValueAt("InternalParameter", editedObject->GetInternalParameter());
 	SetBooleanValueAt("DisplayDetails", editedObject->GetDisplayDetails());
 

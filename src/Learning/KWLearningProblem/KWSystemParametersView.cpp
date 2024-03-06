@@ -6,7 +6,6 @@
 
 KWSystemParametersView::KWSystemParametersView()
 {
-	int nModalityNumber;
 	int nErrorMessageNumber;
 	int nMaxMemory;
 	int nMinMemory;
@@ -19,7 +18,7 @@ KWSystemParametersView::KWSystemParametersView()
 
 	SetIdentifier("KWSystemParameters");
 	SetLabel("System parameters");
-	AddIntField("MaxItemNumberInReports", "Max number of items in reports", 0);
+	AddBooleanField("APIMode", "API mode", false);
 	AddIntField("MaxErrorMessageNumberInLog", "Max number of error messages in log", 0);
 	AddIntField("OptimizationTime", "Min optimization time in seconds", 0);
 	AddIntField("MemoryLimit", "Memory limit in MB", 0);
@@ -30,7 +29,7 @@ KWSystemParametersView::KWSystemParametersView()
 	AddStringField("TemporaryDirectoryName", "Temp file directory", "");
 
 	// Parametrage des styles
-	GetFieldAt("MaxItemNumberInReports")->SetStyle("Spinner");
+	GetFieldAt("APIMode")->SetStyle("CheckBox");
 	GetFieldAt("MaxErrorMessageNumberInLog")->SetStyle("Spinner");
 	GetFieldAt("OptimizationTime")->SetStyle("Spinner");
 	GetFieldAt("MemoryLimit")->SetStyle("Slider");
@@ -39,18 +38,6 @@ KWSystemParametersView::KWSystemParametersView()
 	GetFieldAt("ParallelLogFileName")->SetStyle("DirectoryChooser");
 	GetFieldAt("ParallelSimulated")->SetStyle("CheckBox");
 	GetFieldAt("TemporaryDirectoryName")->SetStyle("DirectoryChooser");
-
-	// Parametrage des limites du nombre max d'items dans les rapports
-	cast(UIIntElement*, GetFieldAt("MaxItemNumberInReports"))->SetMinValue(10);
-	cast(UIIntElement*, GetFieldAt("MaxItemNumberInReports"))->SetMaxValue(1000000);
-	nModalityNumber = KWLearningSpec::GetMaxModalityNumber();
-	if (nModalityNumber < 10)
-		nModalityNumber = 10;
-	if (nModalityNumber > 1000000)
-		nModalityNumber = 1000000;
-	KWLearningSpec::SetMaxModalityNumber(nModalityNumber);
-	cast(UIIntElement*, GetFieldAt("MaxItemNumberInReports"))
-	    ->SetDefaultValue(KWLearningSpec::GetMaxModalityNumber());
 
 	// Parametrage des limites du nombre max de messages d'erreur dans les log
 	cast(UIIntElement*, GetFieldAt("MaxErrorMessageNumberInLog"))->SetMinValue(10);
@@ -93,12 +80,6 @@ KWSystemParametersView::KWSystemParametersView()
 
 	// Valeur par defaut de la memoire (variable d'environement ou 90% de le memoire max)
 	sMemoryLimit = p_getenv("KHIOPS_MEMORY_LIMIT");
-	if (sMemoryLimit == "")
-	{
-		sMemoryLimit = p_getenv("KhiopsMemoryLimit"); // DEPRECATED
-		if (sMemoryLimit != "")
-			AddWarning("'KhiopsMemoryLimit' is deprecated and is now replaced by 'KHIOPS_MEMORY_LIMIT'");
-	}
 	lEnvMemoryLimit = 0;
 	if (sMemoryLimit != "")
 	{
@@ -112,7 +93,6 @@ KWSystemParametersView::KWSystemParametersView()
 	}
 	else
 		nDefaultMemory = nMaxMemory - nMaxMemory / 10;
-
 	cast(UIIntElement*, GetFieldAt("MemoryLimit"))->SetMinValue(nMinMemory);
 	cast(UIIntElement*, GetFieldAt("MemoryLimit"))->SetMaxValue(nMaxMemory);
 	cast(UIIntElement*, GetFieldAt("MemoryLimit"))->SetDefaultValue(nDefaultMemory);
@@ -120,6 +100,10 @@ KWSystemParametersView::KWSystemParametersView()
 
 	// Ignorer les limites memoire
 	SetBooleanValueAt("IgnoreMemoryLimit", RMResourceConstraints::GetIgnoreMemoryLimit());
+
+	// Controle dur des limites memoire si specifie
+	if (GetLearningHardMemoryLimitMode() and not RMResourceConstraints::GetIgnoreMemoryLimit())
+		MemSetMaxHeapSize(RMResourceConstraints::GetMemoryLimit() * lMB);
 
 	// Limites du nombre de coeurs
 	cast(UIIntElement*, GetFieldAt("MaxCoreNumber"))->SetMinValue(1);
@@ -142,7 +126,12 @@ KWSystemParametersView::KWSystemParametersView()
 	GetFieldAt("OptimizationTime")->SetVisible(false);
 	GetFieldAt("IgnoreMemoryLimit")->SetVisible(false);
 
-	// Mode parallele simule uniquement en mode expert
+	// API mode uniquement en mode expert, apres avoir force l'initialisation de la valeur par defaut par la
+	// variable d'environnement
+	KWResultFilePathBuilder::GetLearningApiMode();
+	GetFieldAt("APIMode")->SetVisible(GetLearningExpertMode());
+
+	// Mode parallele simule uniquement en mode expert parallele
 	if (not GetParallelExpertMode())
 		GetFieldAt("ParallelSimulated")->SetVisible(false);
 
@@ -151,11 +140,11 @@ KWSystemParametersView::KWSystemParametersView()
 		GetFieldAt("ParallelLogFileName")->SetVisible(false);
 
 	// Info-bulles
-	GetFieldAt("MaxItemNumberInReports")
-	    ->SetHelpText("Max number of items in reports."
-			  "\n Allows to control the size of reports, by limiting the number of reported items,"
-			  "\n such as the number of lines or rows in contingency tables, the number of"
-			  "\n detailed groups of values or the number of values in each detailed group.");
+	GetFieldAt("APIMode")->SetHelpText("API mode for the management of results files."
+					   "\n By default, the result files are stored in the train database "
+					   "directory, unless an absolute path is specified,"
+					   "\n and the file extension is forced if necessary."
+					   "\n In API mode, the path of the result files are taken as is.");
 	GetFieldAt("MaxErrorMessageNumberInLog")
 	    ->SetHelpText(
 		"Max number of error messages in log."
@@ -197,11 +186,15 @@ void KWSystemParametersView::EventUpdate(Object* object)
 
 	// On parametre directement les variables statiques correspondantes
 	// en ignorant l'objet passe en parametres
-	KWLearningSpec::SetMaxModalityNumber(GetIntValueAt("MaxItemNumberInReports"));
+	KWResultFilePathBuilder::SetLearningApiMode(GetBooleanValueAt("APIMode"));
 	Global::SetMaxErrorFlowNumber(GetIntValueAt("MaxErrorMessageNumberInLog"));
 	RMResourceConstraints::SetOptimizationTime(GetIntValueAt("OptimizationTime"));
 	RMResourceConstraints::SetMemoryLimit(GetIntValueAt("MemoryLimit"));
 	RMResourceConstraints::SetIgnoreMemoryLimit(GetBooleanValueAt("IgnoreMemoryLimit"));
+
+	// Controle dur des limites memoire si specifie
+	if (GetLearningHardMemoryLimitMode() and not RMResourceConstraints::GetIgnoreMemoryLimit())
+		MemSetMaxHeapSize(RMResourceConstraints::GetMemoryLimit() * lMB);
 
 	// Calcul du nombre de processus utilises
 	nRequestedCore = GetIntValueAt("MaxCoreNumber");
@@ -215,7 +208,7 @@ void KWSystemParametersView::EventRefresh(Object* object)
 {
 	// On parametre directement les variables statiques correspondantes
 	// en ignorant l'objet passe en parametres
-	SetIntValueAt("MaxItemNumberInReports", KWLearningSpec::GetMaxModalityNumber());
+	SetBooleanValueAt("APIMode", KWResultFilePathBuilder::GetLearningApiMode());
 	SetIntValueAt("MaxErrorMessageNumberInLog", Global::GetMaxErrorFlowNumber());
 	SetIntValueAt("OptimizationTime", RMResourceConstraints::GetOptimizationTime());
 	SetIntValueAt("MemoryLimit", RMResourceConstraints::GetMemoryLimit());

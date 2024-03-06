@@ -331,17 +331,17 @@ class KWSymbolData : public SystemObject
 	//// Implementation
 protected:
 	// Longueur de la chaine de caracteres
-	inline int GetLength()
+	inline int GetLength() const
 	{
 		return nLength;
 	}
 
 	// Acces a la valeur chaine de caracteres
-	inline char* GetString()
+	inline const char* GetString() const
 	{
 		return cFirstStringChar;
 	}
-	inline char GetAt(int nIndex)
+	inline char GetAt(int nIndex) const
 	{
 		return cFirstStringChar[nIndex];
 	}
@@ -383,7 +383,7 @@ protected:
 	int nLength;
 
 	// Stockage de la valeur du symbole (de taille quelconque)
-	// On utilise une taille de 4 pour que la memoire total soit un multiple de 8 octets en 64 bits
+	// On utilise une taille de 8 pour que la memoire total soit un multiple de 8 octets en 64 bits
 	static const int nMinStringSize = 8;
 	char cFirstStringChar[nMinStringSize]; // Pour acceder au debut de la chaine
 
@@ -643,6 +643,11 @@ inline void Symbol::Reset()
 	if (symbolData and --symbolData->lRefCount == 0)
 		DeleteSharedSymbolData();
 	symbolData = NULL;
+}
+
+inline int Symbol::GetSymbolNumber()
+{
+	return sdSharedSymbols.GetCount();
 }
 
 #ifdef __C11__

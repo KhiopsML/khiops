@@ -21,9 +21,11 @@ void SectionTable::Write(ostream& ost) const
 
 int SectionTable::Load(fstream& fst)
 {
+	const ALString sCommentSeparator = "//";
+	const ALString sSectionSeparator = "##";
+	const boolean bCleanLastSourceLine = false;
 	char sBuffer[1000];
 	ALString sWork;
-	const ALString sSectionSeparator = "//##";
 
 	// Donnees courantes lors du parsing, correctement initialisees
 	int nCurrentState;
@@ -67,28 +69,45 @@ int SectionTable::Load(fstream& fst)
 			sWork = sCurrentLine;
 			sWork.TrimLeft();
 			sWork.TrimRight();
-			if (sWork == sSectionSeparator)
+
+			// Cas d'un commentaire
+			if (sWork.GetLength() >= sCommentSeparator.GetLength() and
+			    sWork.Left(sCommentSeparator.GetLength()) == sCommentSeparator)
 			{
-				nCurrentTransition = nTransitionEndSection;
-				sCurrentIdentifier = "";
-			}
-			else
-			{
-				if (sWork.GetLength() >= sSectionSeparator.GetLength() and
-				    sWork.Left(sSectionSeparator.GetLength()) == sSectionSeparator)
+				// Supression du debut de commentaire pour analyser son contenu
+				sWork = sWork.Right(sWork.GetLength() - sCommentSeparator.GetLength());
+				sWork.TrimLeft();
+
+				// Analyse pour reperer les sections
+				if (sWork == sSectionSeparator)
 				{
-					nCurrentTransition = nTransitionBeginSection;
-					sWork = sWork.Mid(sSectionSeparator.GetLength());
-					sWork.TrimLeft();
-					sWork.TrimRight();
-					sCurrentIdentifier = sWork;
-					assert(sCurrentIdentifier.GetLength() > 0);
+					nCurrentTransition = nTransitionEndSection;
+					sCurrentIdentifier = "";
 				}
 				else
 				{
-					nCurrentTransition = nTransitionNormal;
-					sCurrentIdentifier = "";
+					if (sWork.GetLength() >= sSectionSeparator.GetLength() and
+					    sWork.Left(sSectionSeparator.GetLength()) == sSectionSeparator)
+					{
+						nCurrentTransition = nTransitionBeginSection;
+						sWork = sWork.Mid(sSectionSeparator.GetLength());
+						sWork.TrimLeft();
+						sWork.TrimRight();
+						sCurrentIdentifier = sWork;
+						assert(sCurrentIdentifier.GetLength() > 0);
+					}
+					else
+					{
+						nCurrentTransition = nTransitionNormal;
+						sCurrentIdentifier = "";
+					}
 				}
+			}
+			// Cas hors commentaire
+			else
+			{
+				nCurrentTransition = nTransitionNormal;
+				sCurrentIdentifier = "";
 			}
 		}
 
@@ -197,13 +216,17 @@ int SectionTable::Load(fstream& fst)
 	assert(nCurrentState == nStateEnd);
 
 	// Nettoyage de l'eventuelle derniere section pour ne pas generer de ligne en fin de fichier dans le cas d'un
-	// fichier d'implementation (.cpp) pour rester compatible avec le prettry print de codemaid On teste sur le
+	// fichier d'implementation (.cpp) pour rester compatible avec le pretty print de codemaid On teste sur le
 	// dernier caractere pour ne pas traiter les headers (.h), qui ne sont pas pretty printes de la meme facon
-	if (oaTable.GetSize() > 0 and GetFileName() != " " and GetFileName().Right(1) != "h")
+	// Desactive depuis le passage sur github et le nouveau pretty print + pre-commit hook
+	if (bCleanLastSourceLine)
 	{
-		if (currentSection->GetLines().GetLength() > 0 and currentSection->GetLines().Right(1) == "\n")
-			currentSection->SetLines(
-			    currentSection->GetLines().Left(currentSection->GetLines().GetLength() - 1));
+		if (oaTable.GetSize() > 0 and GetFileName() != " " and GetFileName().Right(1) != "h")
+		{
+			if (currentSection->GetLines().GetLength() > 0 and currentSection->GetLines().Right(1) == "\n")
+				currentSection->SetLines(
+				    currentSection->GetLines().Left(currentSection->GetLines().GetLength() - 1));
+		}
 	}
 
 	// Calcul de l'index

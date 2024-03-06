@@ -8,6 +8,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
+import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -38,8 +39,6 @@ import javax.swing.SwingUtilities;
 /**
  * Definit une unite d'interface. Une unite d'interface peut etre une fiche ou
  * une liste
- *
- * @author Marc Boulle
  */
 public abstract class GUIUnit extends GUIData implements ActionListener
 {
@@ -1012,14 +1011,18 @@ public abstract class GUIUnit extends GUIData implements ActionListener
         private long getUIObjectHandle() { return uiObjectHandle; }
 
         /**
-         * Indique si l'unite possede au moins une action (rexcursivement) a representer
-         * sous la forme de bouton
+         * Indique si l'unite possede au moins une action a representer sous la forme de
+         * bouton
          *
          * @return Un booleen indiquant si l'unite possede au moins une action a
          *         representer sous la forme de bouton
          */
         public boolean hasActionButton()
         {
+                // Pas de recherche recursive
+                boolean recursiveSearch = false;
+
+                // Recherche dans la fenetre en cours
                 if (vectorOfGUIActions == null)
                         vectorOfGUIActions = new Vector<GUIAction>();
                 for (int i = 0; i < getActionCount(); i++) {
@@ -1027,14 +1030,17 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                         if (guiAction.getVisible() && guiAction.isButton())
                                 return true;
                 }
+
                 // Recherche dans les sous-fenetres
-                for (int i = 0; i < getDataCount(); i++) {
-                        GUIData guiData = (GUIData)vectorOfGUIDatas.get(i);
-                        if (guiData.getVisible()) {
-                                // Si le champ est une sous fiche, on ne le considere comme visible
-                                // que s'il a lui-meme des action visibles
-                                if (guiData instanceof GUIUnit && ((GUIUnit)guiData).hasActionButton())
-                                        return true;
+                if (recursiveSearch) {
+                        for (int i = 0; i < getDataCount(); i++) {
+                                GUIData guiData = (GUIData)vectorOfGUIDatas.get(i);
+                                if (guiData.getVisible()) {
+                                        // Si le champ est une sous fiche, on ne le considere comme visible
+                                        // que s'il a lui-meme des action visibles
+                                        if (guiData instanceof GUIUnit && ((GUIUnit)guiData).hasActionButton())
+                                                return true;
+                                }
                         }
                 }
                 return false;
@@ -1055,7 +1061,7 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                         GUIAction guiAction = (GUIAction)vectorOfGUIActions.get(i);
                         if (guiAction.getVisible() && !guiAction.getIdentifier().equals(Exit) &&
                             !guiAction.getIdentifier().equals(Refresh)) {
-                                if (guiAction.getHelpText().length() > 0)
+                                if (!guiAction.getHelpText().equals(""))
                                         hasActionHelpText = true;
                         }
                 }
@@ -1071,7 +1077,7 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                                         hasDataUnitHelpText = ((GUIUnit)guiData).hasHelpText();
                                 // S'il s'agit d'un element
                                 else {
-                                        if (guiData.getHelpText().length() > 0)
+                                        if (!guiData.getHelpText().equals(""))
                                                 hasDataElementHelpText = true;
                                 }
                         }
@@ -1079,7 +1085,7 @@ public abstract class GUIUnit extends GUIData implements ActionListener
 
                 // On ne considere que l'aide sur les unites, l'aide sur les elements terminaux
                 // etant fournie par les info-bulles
-                return (getHelpText().length() > 0 || hasDataUnitHelpText);
+                return ((!getHelpText().equals("")) || hasDataUnitHelpText);
         }
 
         /**
@@ -1269,8 +1275,14 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                 // Initialisation des valeurs
                 graphicRefreshAll();
 
-                // On retaille la fenetre
+                // Ajustement de la taille de la fenetre pour tenir compte de la longueur du titre
                 frame.pack();
+                int minFrameWidth = getMinFramedWidth(getLabel());
+                Dimension currentPreferredSize = frame.getPreferredSize();
+                if (currentPreferredSize.getWidth() <= minFrameWidth) {
+                        frame.setPreferredSize(new Dimension(minFrameWidth, (int)currentPreferredSize.getHeight()));
+                        frame.pack();
+                }
 
                 // Creation et enregistrement d'une gestion personnaliser de la fermeture
                 // de la fenetre pour gerer la synchronisation avec le programme

@@ -14,6 +14,9 @@
 //
 
 // -> Khiops Coclustering
+AnalysisSpec.SystemParameters.APIMode true        // API mode
+AnalysisSpec.SystemParameters.MemoryLimit 2000     // Memory limit in MB
+
 ClassManagement.OpenFile       // Open...
 
 // -> Open
@@ -21,7 +24,7 @@ ClassFileName ../../../MTdatasets/SpliceJunction/SpliceJunction.kdic       // Di
 OK                             // Open
 // <- Open
 
-ClassManagement.ClassName SpliceJunction // Analysis dictionary
+Database.ClassName SpliceJunction // Analysis dictionary
 
 LearningTools.PrepareDeployment          // Prepare deployment...
 
@@ -40,8 +43,7 @@ DeploymentSpec.BuildPredictedClusterAttribute true // Build predicted cluster va
 DeploymentSpec.BuildClusterDistanceAttributes true // Build inter-cluster distance variables
 DeploymentSpec.BuildFrequencyRecodingAttributes true         // Build frequency recoding variables
 DeploymentSpec.OutputAttributesPrefix P_ // Output variables prefix
-AnalysisResults.ResultFilesDirectory ./results       // Result files directory
-AnalysisResults.CoclusteringDictionaryFileName Coclustering.kdic   // Coclustering dictionary file
+CoclusteringDictionaryFileName ./results/Coclustering.kdic   // Coclustering dictionary file
 PrepareDeployment              // Prepare deployment
 Exit                           // Close
 // <- Coclustering deployment preparation

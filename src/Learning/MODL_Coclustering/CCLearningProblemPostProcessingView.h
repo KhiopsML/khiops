@@ -10,8 +10,6 @@
 
 #include "CCLearningProblemToolView.h"
 #include "CCPostProcessingSpecView.h"
-#include "CCAnalysisResultsView.h"
-#include "LMLicenseManager.h"
 
 ////////////////////////////////////////////////////////////
 // Classe CCLearningProblemPostProcessingView
@@ -21,6 +19,12 @@ public:
 	// Constructeur
 	CCLearningProblemPostProcessingView();
 	~CCLearningProblemPostProcessingView();
+
+	// Mise a jour de l'objet par les valeurs de l'interface
+	void EventUpdate(Object* object) override;
+
+	// Mise a jour des valeurs de l'interface par l'objet
+	void EventRefresh(Object* object) override;
 
 	// Actions disponibles
 	void PostProcessCoclustering();

@@ -104,21 +104,9 @@ int KWLearningReport::CompareName(const KWLearningReport* otherReport) const
 int KWLearningReport::CompareValue(const KWLearningReport* otherReport) const
 {
 	int nCompare;
-	longint lSortValue1;
-	longint lSortValue2;
 
-	// On se base sur un comparaison a dix decimales pres
-	if (GetSortValue() >= 0)
-		lSortValue1 = longint(GetSortValue() * 1e10);
-	else
-		lSortValue1 = -longint(-GetSortValue() * 1e10);
-	if (otherReport->GetSortValue() >= 0)
-		lSortValue2 = longint(otherReport->GetSortValue() * 1e10);
-	else
-		lSortValue2 = -longint(-otherReport->GetSortValue() * 1e10);
-
-	// Comparaison par
-	nCompare = -CompareLongint(lSortValue1, lSortValue2);
+	// Comparaison selon la precison du type Continuous, pour eviter les differences a epsilon pres
+	nCompare = -KWContinuous::CompareIndicatorValue(GetSortValue(), otherReport->GetSortValue());
 
 	// En cas d'egalite, on se base sur le nom
 	if (nCompare == 0)

@@ -161,6 +161,151 @@ void PLShared_ObjectArray::Test()
 }
 
 ///////////////////////////////////////////////////////////////////////
+// Implementation de  PLShared_ObjectArrayArray
+
+// On appel le constructeur de la classe mere avec un tableau partage de TokenFrequency
+PLShared_ObjectArrayArray::PLShared_ObjectArrayArray(const PLSharedObject* object)
+    : PLShared_ObjectArray(new PLShared_ObjectArray(object))
+{
+}
+
+PLShared_ObjectArrayArray::~PLShared_ObjectArrayArray()
+{
+	// Dans les destructeurs, les methodes ne sont pas virtuelles, et il fait appeler
+	// explicitement la methode Clean pour declencher celle de la classe en cours
+	Clean();
+}
+
+void PLShared_ObjectArrayArray::Clean()
+{
+	// Specialisation de la methode pour detruire le contenu des tableaux
+	if (oValue != NULL)
+		DeleteAllArrays(cast(ObjectArray*, oValue));
+
+	// Appel de la methode ancetre
+	PLShared_ObjectArray::Clean();
+}
+
+void PLShared_ObjectArrayArray::Test()
+{
+	const int nMainArraySize = 4;
+	const int nSubArraySize = 3;
+	PLShared_ObjectArrayArray shared_oaaIn(new PLShared_SampleObject);
+	PLShared_ObjectArrayArray shared_oaaOut(new PLShared_SampleObject);
+	PLShared_ObjectArrayArray shared_oaa(new PLShared_SampleObject);
+	PLSerializer serializer;
+	ObjectArray oaToSerialize;
+	ObjectArray* oaCurrent;
+	int i;
+	int j;
+	ALString sTmp;
+
+	// Declaration des variables partagee pour pouvoir les utiliser
+	shared_oaaIn.bIsDeclared = true;
+	shared_oaaOut.bIsDeclared = true;
+
+	// Initialisation
+	for (i = 0; i < nMainArraySize; i++)
+	{
+		if (i == nMainArraySize / 2)
+			shared_oaaOut.GetObjectArray()->Add(NULL);
+		else
+		{
+			oaCurrent = new ObjectArray;
+			shared_oaaOut.GetObjectArray()->Add(oaCurrent);
+			for (j = 0; j < nSubArraySize; j++)
+			{
+				if (j == nSubArraySize / 2)
+					oaCurrent->Add(NULL);
+				else
+					oaCurrent->Add(new SampleObject(100 * (i + 1) + j + 1,
+									sTmp + "sub-array " + IntToString(i + 1) +
+									    " - objet " + IntToString(j + 1)));
+			}
+		}
+	}
+
+	// Serialisation
+	serializer.OpenForWrite(NULL);
+	shared_oaaOut.Serialize(&serializer);
+	serializer.Close();
+
+	// Deserialisation
+	serializer.OpenForRead(NULL);
+	shared_oaaIn.Deserialize(&serializer);
+	serializer.Close();
+
+	// Affichage des resultats
+	cout << "Initial value " << shared_oaaOut << endl;
+	cout << "Serialized value " << shared_oaaIn << endl;
+	cout << endl << "Serialized form " << serializer << endl;
+
+	/////////////////////////////////////////////////
+	// Utilisation des methodes AddToSerializer et GetFromSerializer
+
+	// Initialisation
+	for (i = 0; i < nMainArraySize; i++)
+	{
+		if (i == nMainArraySize / 2)
+			shared_oaaOut.GetObjectArray()->Add(NULL);
+		else
+		{
+			oaCurrent = new ObjectArray;
+			oaToSerialize.Add(oaCurrent);
+			for (j = 0; j < nSubArraySize; j++)
+			{
+				if (j == nSubArraySize / 2)
+					oaCurrent->Add(NULL);
+				else
+					oaCurrent->Add(new SampleObject(100 * (i + 1) + j + 1,
+									sTmp + "sub-array " + IntToString(i + 1) +
+									    " - objet " + IntToString(j + 1)));
+			}
+		}
+	}
+	cout << endl;
+	cout << "Initial value " << oaToSerialize << endl;
+
+	// Serialisation
+	serializer.Initialize();
+	serializer.OpenForWrite(NULL);
+	shared_oaa.SerializeObject(&serializer, &oaToSerialize);
+	serializer.Close();
+
+	// Nettoyage de l'objet initial, en utilisant la methode interne de nettoyage
+	shared_oaa.DeleteAllArrays(&oaToSerialize);
+
+	// Deserialisation
+	serializer.OpenForRead(NULL);
+	shared_oaa.DeserializeObject(&serializer, &oaToSerialize);
+	serializer.Close();
+	cout << "Deserialized value " << oaToSerialize << endl;
+
+	// Nettoyage
+	shared_oaa.DeleteAllArrays(&oaToSerialize);
+}
+
+void PLShared_ObjectArrayArray::DeleteAllArrays(ObjectArray* oaaArray) const
+{
+	int i;
+	ObjectArray* oaArray;
+
+	require(oaaArray != NULL);
+
+	// Detruire des tableau et de leur contenu
+	for (i = 0; i < oaaArray->GetSize(); i++)
+	{
+		oaArray = cast(ObjectArray*, oaaArray->GetAt(i));
+		if (oaArray != NULL)
+		{
+			oaArray->DeleteAll();
+			delete oaArray;
+		}
+	}
+	oaaArray->SetSize(0);
+}
+
+///////////////////////////////////////////////////////////////////////
 // Implementation de  PLShared_StringObject
 
 PLShared_StringObject::PLShared_StringObject() {}

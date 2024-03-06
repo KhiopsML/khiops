@@ -3,14 +3,19 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #pragma once
-#define str(s) #s
+#define KHIOPS_STR(s) #s
 
 // Constantes definies a la fois dans les sources et dans les ressources Visual Studio.
 // Les ressources permettent d'afficher des informations sur les executables
 // dans le TaskManager de Windows (par exemple)
 
 // Version de Khiops
-#define KHIOPS_VERSION str(10.2.0)
+#define KHIOPS_VERSION KHIOPS_STR(10.5.0-a1)
+// Les versions release distribuees sont bases sur trois numeros, par exemple KHIOPS_STR(10.2.0)
+// Les versions alpha, beta ou release candidate ont un suffixe supplementaire, par exemple :
+// - KHIOPS_STR(10.5.0-a1)
+// - KHIOPS_STR(10.5.0-b3)
+// - KHIOPS_STR(10.5.0-rc2)
 
 // Copyright
-#define KHIOPS_COPYRIGHT_LABEL str((c)2024 Orange - All rights reserved.)
+#define KHIOPS_COPYRIGHT_LABEL KHIOPS_STR((c)2024 Orange - All rights reserved.)

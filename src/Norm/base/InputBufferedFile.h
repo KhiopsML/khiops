@@ -171,13 +171,9 @@ public:
 	//
 	// Une fois extrait, les caracteres d'espaces sont supprimes en debut et fin de champ
 	//
-	// Ensuite, les tabulations sont remplaces par des espaces
-	// Permet d'eviter les tabulations dans les noms de variables et les valeurs categorielles,
-	// qui posent probleme pour les saisies a l'interface et les rapports de sortie (tabules)
-	//
 	// Les methodes de lecture par champ ou par ligne peuvent etre associee a des code d'erreurs
 	// de facon non verbeuse. C'est a l'appelant de traiter ces erreurs.
-	// En fin de ligne uniquement, atteint par des lecture de ligne ou du dernier champ de chaque ligne,
+	// En fin de ligne uniquement, atteint par des lectures de ligne ou du dernier champ de chaque ligne,
 	// on peut detecter qu'un ligne est trop longue.
 
 	// Type d'erreur liees au parsing d'un champs
@@ -186,8 +182,6 @@ public:
 	enum
 	{
 		FieldNoError,           // Pas d'erreur
-		FieldTabReplaced,       // Tabulations remplacees par des blancs
-		FieldCtrlZReplaced,     // Ctrl-Z (ascii 26) remplaces par des blancs
 		FieldMiddleDoubleQuote, // Double-quote non double au milieu d'un champ commencant par un double-quote
 		FieldMissingEndDoubleQuote, // Manque un double-quote en fin d'un champ commencant par un double-quote
 		FieldTooLong                // Champ trop long (le champ sera tronque)
@@ -221,7 +215,7 @@ public:
 	void SkipLastFields(boolean& bLineTooLong);
 
 	// Lecture de la prochaine ligne a partir de la position courante
-	// La ligne, qui est une sous-partie du buffer en cours, est alimentee mme si elle est trop longue
+	// La ligne, qui est une sous-partie du buffer en cours, est alimentee meme si elle est trop longue
 	void GetNextLine(CharVector* cvLine, boolean& bLineTooLong);
 
 	// Saut d'une ligne a partir de la position courante

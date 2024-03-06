@@ -6,7 +6,10 @@
 
 int DTTreeSpecsCompareLevels(const void* elem1, const void* elem2);
 
-DTCreationReport::DTCreationReport() {}
+DTCreationReport::DTCreationReport()
+{
+	classStats = NULL;
+}
 
 DTCreationReport::~DTCreationReport()
 {
@@ -15,6 +18,7 @@ DTCreationReport::~DTCreationReport()
 
 void DTCreationReport::Clean()
 {
+	classStats = NULL;
 	svCreatedTreeNames.SetSize(0);
 	odCreatedTrees.DeleteAll();
 }
@@ -78,6 +82,16 @@ const DTDecisionTreeSpec* DTCreationReport::LookupTree(const ALString& sName) co
 	return cast(const DTDecisionTreeSpec*, odCreatedTrees.Lookup(sName));
 }
 
+void DTCreationReport::SetClassStats(KWClassStats* stats)
+{
+	classStats = stats;
+}
+
+KWClassStats* DTCreationReport::GetClassStats() const
+{
+	return classStats;
+}
+
 void DTCreationReport::WriteJSONFields(JSONFile* fJSON)
 {
 	require(fJSON != NULL);
@@ -93,22 +107,40 @@ void DTCreationReport::WriteJSONTreeReport(JSONFile* fJSON, boolean bSummary)
 	const DTDecisionTreeSpec* treeSpec;
 	DTDecisionTreeNodeSpec* treeNodeSpec;
 	ALString sName;
+	KWAttributeStats* attributeStats;
 
-	// Recherche des rapports a ecrire
-	for (nIndex = 0; nIndex < GetTreeNumber(); nIndex++)
+	// Recherche des rapports a ecrire, dans le cas ou on ne garde que les attributs selectionnes par le predicteur
+	if (classStats != NULL and classStats->GetKeepSelectedAttributesOnly())
 	{
-		sName = GetTreeNameAt(nIndex);
-		treeSpec = LookupTree(sName);
+		for (i = 0; i < classStats->GetTreeAttributeStats()->GetSize(); i++)
+		{
+			attributeStats = cast(KWAttributeStats*, classStats->GetTreeAttributeStats()->GetAt(i));
 
-		oaSortedReports.Add((Object*)treeSpec);
+			// Ajout si la preparation est utilise par un predicteur
+			if (classStats->GetRecursivelySelectedDataPreparationStats()->Lookup(attributeStats) != NULL)
+			{
+				sName = attributeStats->GetSortName();
+				treeSpec = LookupTree(sName);
+				oaSortedReports.Add((Object*)treeSpec);
+			}
+		}
+	}
+	// Recherche des rapports a ecrire, dans le cas sans filtrage
+	else
+	{
+		for (nIndex = 0; nIndex < GetTreeNumber(); nIndex++)
+		{
+			sName = GetTreeNameAt(nIndex);
+			treeSpec = LookupTree(sName);
+			oaSortedReports.Add((Object*)treeSpec);
+		}
 	}
 
 	// Affichage si tableau non vide
 	if (oaSortedReports.GetSize() > 0)
 	{
-		// Tri par importance
-		oaSortedReports.SetCompareFunction(DTTreeSpecsCompareLevels);
-		oaSortedReports.Sort();
+		// Calcul des rangs des arbres, avec tri des rapport
+		ComputeRankIdentifiers(&oaSortedReports);
 
 		// Ecriture du tableau des statistic global des arbres au format JSON
 		// fJSON->BeginKeyArray("decisionTreeStatistics");
@@ -320,10 +352,9 @@ KWAttributeStats* DTCreationReport::GetAttributeStats(const ALString sVariableNa
 	return NULL;
 }
 
-void DTCreationReport::ComputeRankIdentifiers()
+void DTCreationReport::ComputeRankIdentifiers(ObjectArray* oaReports)
 {
 	const double dEpsilon = 1e-10;
-	ObjectArray oaSortedReports;
 	DTDecisionTreeSpec* treeSpec;
 	int nReport;
 	int i;
@@ -331,23 +362,22 @@ void DTCreationReport::ComputeRankIdentifiers()
 	int nDigitNumber;
 	ALString sNewIdentifier;
 
-	// require(oaDecisionTreesSpecs != NULL);
+	require(oaReports != NULL);
 
 	// Affichage si tableau non vide
-	if (odCreatedTrees.GetCount() > 0)
+	if (oaReports->GetSize() > 0)
 	{
-		// Tri par importance
-		odCreatedTrees.ExportObjectArray(&oaSortedReports);
-		oaSortedReports.SetCompareFunction(DTTreeSpecsCompareLevels);
-		oaSortedReports.Sort();
+		// Tri par level
+		oaReports->SetCompareFunction(DTTreeSpecsCompareLevels);
+		oaReports->Sort();
 
 		// Calcul du nombre max de chiffres necessaires
-		nMaxDigitNumber = 1 + (int)floor(dEpsilon + log((double)odCreatedTrees.GetCount()) / log(10.0));
+		nMaxDigitNumber = 1 + (int)floor(dEpsilon + log((double)oaReports->GetSize()) / log(10.0));
 
 		// Parcours des rapports
-		for (nReport = 0; nReport < oaSortedReports.GetSize(); nReport++)
+		for (nReport = 0; nReport < oaReports->GetSize(); nReport++)
 		{
-			treeSpec = cast(DTDecisionTreeSpec*, oaSortedReports.GetAt(nReport));
+			treeSpec = cast(DTDecisionTreeSpec*, oaReports->GetAt(nReport));
 
 			// Calcul du nombre de chiffre necessaires
 			nDigitNumber = 1 + (int)floor(dEpsilon + log((double)(nReport + 1)) / log(10.0));
@@ -367,17 +397,13 @@ void DTCreationReport::ComputeRankIdentifiers()
 
 int DTTreeSpecsCompareLevels(const void* elem1, const void* elem2)
 {
-	longint lLevel1;
-	longint lLevel2;
 	int nCompare;
 
 	DTDecisionTreeSpec* s1 = (DTDecisionTreeSpec*)*(Object**)elem1;
 	DTDecisionTreeSpec* s2 = (DTDecisionTreeSpec*)*(Object**)elem2;
 
-	// Comparaison des levels des attributs (ramenes a longint)
-	lLevel1 = longint(floor(s1->GetLevel() * 1e10));
-	lLevel2 = longint(floor(s2->GetLevel() * 1e10));
-	nCompare = -CompareLongint(lLevel1, lLevel2);
+	// Comparaison selon la precison du type Continuous, pour eviter les differences a epsilon pres
+	nCompare = -KWContinuous::CompareIndicatorValue(s1->GetLevel(), s2->GetLevel());
 
 	// Comparaison par nom d'arbre, si match nul
 	if (nCompare == 0)

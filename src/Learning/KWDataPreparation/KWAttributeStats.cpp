@@ -12,6 +12,7 @@ KWAttributeStats::KWAttributeStats()
 	// le type de l'attribut via SetAttributeType()
 	kwDescriptiveStats = NULL;
 	symbolValueStats = NULL;
+	modlHistogramResults = NULL;
 }
 
 KWAttributeStats::~KWAttributeStats()
@@ -25,10 +26,15 @@ KWAttributeStats::~KWAttributeStats()
 		delete kwDescriptiveStats;
 	kwDescriptiveStats = NULL;
 
-	// Nettoyage des statistqiues par valeur
+	// Nettoyage des statistiques par valeur
 	if (symbolValueStats != NULL)
 		delete symbolValueStats;
 	symbolValueStats = NULL;
+
+	// Nettoage des histogrammes MODL
+	if (modlHistogramResults != NULL)
+		delete modlHistogramResults;
+	modlHistogramResults = NULL;
 }
 
 void KWAttributeStats::SetAttributeName(const ALString& sValue)
@@ -220,17 +226,10 @@ void KWAttributeStats::WriteReport(ostream& ost)
 			sValue = symbolValues->GetValueAt(nValue);
 			nFrequency = symbolValueStats->GetUnivariateCellFrequencyAt(nValue);
 
-			// Arret si nombre max de modalites atteint
-			if (nValue == GetMaxModalityNumber())
-			{
-				ost << "...\n";
-				break;
-			}
-
 			// Cas standard
 			if (sValue != Symbol::GetStarValue())
-				ost << sValue << "\t" << nFrequency << "\t" << nFrequency * 1.0 / GetInstanceNumber()
-				    << "\n";
+				ost << TSV::Export(sValue.GetValue()) << "\t" << nFrequency << "\t"
+				    << nFrequency * 1.0 / GetInstanceNumber() << "\n";
 			else
 				ost << "...\n";
 		}
@@ -239,8 +238,12 @@ void KWAttributeStats::WriteReport(ostream& ost)
 
 boolean KWAttributeStats::IsReported() const
 {
-	return GetSortValue() > 0 or (GetTargetAttributeType() == KWType::None and preparedDataGridStats != NULL and
-				      preparedDataGridStats->ComputeTotalCellNumber() > 1);
+	return GetSortValue() > 0 or
+	       (GetTargetAttributeType() == KWType::None and preparedDataGridStats != NULL and
+		preparedDataGridStats->ComputeTotalCellNumber() > 1) or
+	       (GetTargetAttributeType() == KWType::None and preparedDataGridStats != NULL and
+		GetAttributeType() == KWType::Continuous and kwDescriptiveStats != NULL and
+		kwDescriptiveStats->GetValueNumber() > 1);
 }
 
 void KWAttributeStats::WriteHeaderLineReport(ostream& ost)
@@ -266,13 +269,13 @@ void KWAttributeStats::WriteHeaderLineReport(ostream& ost)
 			ost << "\tTarget intervals";
 		else if (GetTargetAttributeType() == KWType::Symbol and IsTargetGrouped())
 			ost << "\tTarget groups";
-
-		// Nombre de parties sources
-		if (nAttributeType == KWType::Continuous)
-			ost << "\tIntervals";
-		else if (nAttributeType == KWType::Symbol)
-			ost << "\tGroups";
 	}
+
+	// Nombre de parties sources, y compris en non supervise
+	if (nAttributeType == KWType::Continuous)
+		ost << "\tIntervals";
+	else if (nAttributeType == KWType::Symbol)
+		ost << "\tGroups";
 
 	// Statistiques descriptives
 	ost << "\t";
@@ -322,12 +325,12 @@ void KWAttributeStats::WriteLineReport(ostream& ost)
 
 	// Nom de l'attribut
 	ost << GetIdentifier();
-	ost << "\t" << GetAttributeName();
+	ost << "\t" << TSV::Export(GetAttributeName());
 
 	// Initialisation
 	nSource = -1;
 
-	// Evaluation de la variable si discretisation pertinente
+	// Evaluation de la variable si discretisation ou groupement pertinente
 	// dans le cas supervise uniquement
 	if (GetTargetAttributeName() != "")
 	{
@@ -362,6 +365,23 @@ void KWAttributeStats::WriteLineReport(ostream& ost)
 			if (GetTargetAttributeType() == KWType::Continuous or
 			    (GetTargetAttributeType() == KWType::Symbol and IsTargetGrouped()))
 				ost << "\t1";
+			ost << "\t1";
+		}
+	}
+	// Dans le cas non supervise, on ecrit eventuellement le nombre de parties
+	else
+	{
+		assert(GetTargetAttributeName() == "");
+
+		if (GetPreparedDataGridStats() != NULL)
+		{
+			assert(GetPreparedDataGridStats()->GetAttributeNumber() == 1);
+
+			ost << "\t" << GetPreparedDataGridStats()->GetAttributeAt(0)->GetPartNumber();
+		}
+		// Pas d'infos sinon
+		else
+		{
 			ost << "\t1";
 		}
 	}
@@ -419,8 +439,8 @@ void KWAttributeStats::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary)
 	int nSource;
 	int nTarget;
 	ALString sUsedRule;
-	ContinuousVector cvAttributeMinValues;
-	ContinuousVector cvAttributeMaxValues;
+	ContinuousVector cvAttributeDomainLowerBounds;
+	ContinuousVector cvAttributeDomainUpperBounds;
 	KWDescriptiveContinuousStats* descriptiveContinuousStats;
 
 	require(IsStatsComputed());
@@ -439,7 +459,7 @@ void KWAttributeStats::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary)
 		// Initialisation
 		nSource = -1;
 
-		// Evaluation de la variable si discretisation pertinente
+		// Evaluation de la variable si discretisation ou groupement pertinent
 		// dans le cas supervise uniquement
 		if (GetTargetAttributeName() != "")
 		{
@@ -483,6 +503,17 @@ void KWAttributeStats::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary)
 
 				// Nombre de parties sources (intervalles ou groupes)
 				fJSON->WriteKeyInt("parts", 1);
+			}
+		}
+		// Dans le cas non supervise, on ecrit eventuellement le nombre de parties
+		else
+		{
+			assert(GetTargetAttributeName() == "");
+			if (GetPreparedDataGridStats() != NULL)
+			{
+				assert(GetPreparedDataGridStats()->GetAttributeNumber() == 1);
+				fJSON->WriteKeyInt("parts",
+						   GetPreparedDataGridStats()->GetAttributeAt(0)->GetPartNumber());
 			}
 		}
 
@@ -541,33 +572,58 @@ void KWAttributeStats::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary)
 		if (preparedDataGridStats != NULL)
 		{
 			// Collecte des valeurs min et max des attributs
-			cvAttributeMinValues.SetSize(preparedDataGridStats->GetAttributeNumber());
-			cvAttributeMaxValues.SetSize(preparedDataGridStats->GetAttributeNumber());
+			cvAttributeDomainLowerBounds.SetSize(preparedDataGridStats->GetAttributeNumber());
+			cvAttributeDomainUpperBounds.SetSize(preparedDataGridStats->GetAttributeNumber());
 			if (GetAttributeType() == KWType::Continuous)
 			{
 				descriptiveContinuousStats = cast(KWDescriptiveContinuousStats*, GetDescriptiveStats());
-				cvAttributeMinValues.SetAt(0, descriptiveContinuousStats->GetMin());
-				cvAttributeMaxValues.SetAt(0, descriptiveContinuousStats->GetMax());
+
+				// On prend les bornes issues de l'histogramme dans le cas d'une discretisation non
+				// supervisee MODL
+				if (modlHistogramResults != NULL)
+				{
+					assert(GetTargetAttributeType() == KWType::None);
+					assert(GetPreprocessingSpec()
+						   ->GetDiscretizerSpec()
+						   ->GetDiscretizer(GetTargetAttributeType())
+						   ->IsMODLFamily());
+
+					// Parametrage des bornes du domaine de l'histogramme
+					cvAttributeDomainLowerBounds.SetAt(0,
+									   modlHistogramResults->GetDomainLowerBound());
+					cvAttributeDomainUpperBounds.SetAt(0,
+									   modlHistogramResults->GetDomainUpperBound());
+				}
+				// Sinon, on prend les valeurs extremes de l'attribut
+				else
+				{
+					cvAttributeDomainLowerBounds.SetAt(0, descriptiveContinuousStats->GetMin());
+					cvAttributeDomainUpperBounds.SetAt(0, descriptiveContinuousStats->GetMax());
+				}
 			}
 			if (GetTargetAttributeType() == KWType::Continuous)
 			{
 				descriptiveContinuousStats =
 				    cast(KWDescriptiveContinuousStats*, GetTargetDescriptiveStats());
-				cvAttributeMinValues.SetAt(1, descriptiveContinuousStats->GetMin());
-				cvAttributeMaxValues.SetAt(1, descriptiveContinuousStats->GetMax());
+				cvAttributeDomainLowerBounds.SetAt(1, descriptiveContinuousStats->GetMin());
+				cvAttributeDomainUpperBounds.SetAt(1, descriptiveContinuousStats->GetMax());
 			}
 
 			// Parametrage de la grille
-			preparedDataGridStats->SetJSONAttributeMinValues(&cvAttributeMinValues);
-			preparedDataGridStats->SetJSONAttributeMaxValues(&cvAttributeMaxValues);
+			preparedDataGridStats->SetJSONAttributeDomainLowerBounds(&cvAttributeDomainLowerBounds);
+			preparedDataGridStats->SetJSONAttributeDomainUpperBounds(&cvAttributeDomainUpperBounds);
 
 			// Ecriture du rapport JSON
 			preparedDataGridStats->WriteJSONKeyReport(fJSON, "dataGrid");
 
 			// Nettoyage du parametrage
-			preparedDataGridStats->SetJSONAttributeMinValues(NULL);
-			preparedDataGridStats->SetJSONAttributeMaxValues(NULL);
+			preparedDataGridStats->SetJSONAttributeDomainLowerBounds(NULL);
+			preparedDataGridStats->SetJSONAttributeDomainUpperBounds(NULL);
 		}
+
+		// Ecriture des details sur les histogrammes MODL si presents et si plus de une valeur
+		if (modlHistogramResults != NULL)
+			modlHistogramResults->WriteJSONKeyReport(fJSON, "modlHistograms");
 
 		// Valeurs dans le cas categoriel
 		if (symbolValueStats != NULL and symbolValueStats->GetAttributeAt(0)->GetPartNumber() > 1)
@@ -601,6 +657,8 @@ longint KWAttributeStats::GetUsedMemory() const
 		lUsedMemory += kwDescriptiveStats->GetUsedMemory();
 	if (symbolValueStats != NULL)
 		lUsedMemory += symbolValueStats->GetUsedMemory();
+	if (modlHistogramResults != NULL)
+		lUsedMemory += modlHistogramResults->GetUsedMemory();
 	return lUsedMemory;
 }
 
@@ -612,15 +670,20 @@ void KWAttributeStats::CleanDataPreparationResults()
 	// Nettoyage supplementaire
 	if (kwDescriptiveStats != NULL)
 		kwDescriptiveStats->Init();
+	if (modlHistogramResults != NULL)
+		delete modlHistogramResults;
+	modlHistogramResults = NULL;
 }
 
 void KWAttributeStats::UnsupervisedDiscretize(const KWTupleTable* tupleTable)
 {
+	const KWDiscretizer* unsupervisedDiscretiser;
 	KWLoadIndex liAttributeLoadIndex;
 	KWAttribute* attribute;
-	KWFrequencyTable* kwftPreparedTable;
 	ContinuousVector* cvSourceValues;
 	IntVector* ivTargetIndexes;
+	KWFrequencyTable* kwftPreparedTable;
+	ContinuousVector* cvBounds;
 
 	require(Check());
 	require(GetTargetAttributeType() == KWType::None);
@@ -638,18 +701,27 @@ void KWAttributeStats::UnsupervisedDiscretize(const KWTupleTable* tupleTable)
 		ivTargetIndexes = new IntVector;
 		ivTargetIndexes->SetSize(cvSourceValues->GetSize());
 
+		// Recherche du discretiseur a utiliser
+		unsupervisedDiscretiser =
+		    GetPreprocessingSpec()->GetDiscretizerSpec()->GetDiscretizer(GetTargetAttributeType());
+		assert(unsupervisedDiscretiser->IsUsingSourceValues());
+
 		// Utilisation du discretiseur specifie dans les pretraitements,
 		// avec utilisation des valeurs sources (puisqu'on est dans le cas non supervise)
-		assert(GetPreprocessingSpec()
-			   ->GetDiscretizerSpec()
-			   ->GetDiscretizer(GetTargetAttributeType())
-			   ->IsUsingSourceValues());
 		kwftPreparedTable = NULL;
-		GetPreprocessingSpec()
-		    ->GetDiscretizerSpec()
-		    ->GetDiscretizer(GetTargetAttributeType())
-		    ->DiscretizeValues(cvSourceValues, ivTargetIndexes, 1, kwftPreparedTable);
+		unsupervisedDiscretiser->DiscretizeValues(cvSourceValues, ivTargetIndexes, 1, kwftPreparedTable,
+							  cvBounds);
 		assert(kwftPreparedTable != NULL);
+
+		// Memorisation des histogrammes MODL
+		if (unsupervisedDiscretiser->IsMODLFamily())
+		{
+			// Acces generique aux resultats, potentiellement NULL si pas d'histogramme disponible
+			modlHistogramResults =
+			    cast(KWDiscretizerMODLFamily*, unsupervisedDiscretiser)->BuildMODLHistogramResults();
+			assert(modlHistogramResults == NULL or
+			       modlHistogramResults->GetDiscretizerName() == unsupervisedDiscretiser->GetName());
+		}
 
 		// Nettoyage
 		delete cvSourceValues;
@@ -660,17 +732,19 @@ void KWAttributeStats::UnsupervisedDiscretize(const KWTupleTable* tupleTable)
 		kwftPreparedTable->SetGranularizedValueNumber(kwftPreparedTable->GetTotalFrequency());
 
 		// Creation de la grille de preparation
-		BuildPreparedDiscretizationDataGridStats(tupleTable, kwftPreparedTable);
+		BuildPreparedDiscretizationDataGridStats(tupleTable, kwftPreparedTable, cvBounds);
 
 		// Nettoyage des donnees de travail initiales
 		delete kwftPreparedTable;
+		if (cvBounds != NULL)
+			delete cvBounds;
 	}
-	// Cas standard: on se contente de produire une grille a un seul intervalle
+	// Cas sans pretraitement: on se contente de produire une grille a un seul intervalle
 	else
 	{
 		// Creation d'une table d'effectifs mono-cellule
 		kwftPreparedTable = new KWFrequencyTable;
-		kwftPreparedTable->Initialize(1);
+		kwftPreparedTable->SetFrequencyVectorNumber(1);
 		cast(KWDenseFrequencyVector*, kwftPreparedTable->GetFrequencyVectorAt(0))
 		    ->GetFrequencyVector()
 		    ->SetSize(1);
@@ -679,7 +753,7 @@ void KWAttributeStats::UnsupervisedDiscretize(const KWTupleTable* tupleTable)
 		    ->SetAt(0, tupleTable->GetTotalFrequency());
 
 		// Creation de la grille de preparation
-		BuildPreparedDiscretizationDataGridStats(tupleTable, kwftPreparedTable);
+		BuildPreparedDiscretizationDataGridStats(tupleTable, kwftPreparedTable, NULL);
 
 		// Nettoyage des donnees de travail initiales
 		delete kwftPreparedTable;
@@ -744,7 +818,7 @@ void KWAttributeStats::UnsupervisedGroup(const KWTupleTable* tupleTable)
 		delete svInitialSourceModalities;
 		delete kwftPreparedTable;
 	}
-	// Cas standard: on se contente de produire une grille a un seul groupe
+	// Cas sans pretraitement: on se contente de produire une grille a un seul groupe
 	else
 	{
 		// Creation d'une table de contingence mono-cellule
@@ -753,7 +827,9 @@ void KWAttributeStats::UnsupervisedGroup(const KWTupleTable* tupleTable)
 		svInitialSourceModalities = new SymbolVector;
 		svInitialSourceModalities->Add(cast(KWDescriptiveSymbolStats*, GetDescriptiveStats())->GetMode());
 		kwftPreparedTable = new KWFrequencyTable;
-		kwftPreparedTable->Initialize(1);
+		kwftPreparedTable->SetFrequencyVectorNumber(1);
+		kwftPreparedTable->SetInitialValueNumber(1);
+		kwftPreparedTable->SetGranularizedValueNumber(1);
 
 		// Acces au vecteur de la ligne et parametrage de sa taille (sense etre en representation dense)
 		kwdfvFrequencyVector = cast(KWDenseFrequencyVector*, kwftPreparedTable->GetFrequencyVectorAt(0));
@@ -781,10 +857,11 @@ void KWAttributeStats::Discretize(const KWTupleTable* tupleTable)
 {
 	KWDiscretizerMODLFamily* discretizerMODLFamily;
 	KWAttribute* attribute;
-	KWFrequencyTable* kwftInitialTable;
-	KWFrequencyTable* kwftPreparedTable;
 	ContinuousVector* cvSourceValues;
 	IntVector* ivTargetIndexes;
+	KWFrequencyTable* kwftInitialTable;
+	KWFrequencyTable* kwftPreparedTable;
+	ContinuousVector* cvBounds;
 	int i;
 	KWDenseFrequencyVector* kwdfvFrequencyVector;
 	IntVector* ivFrequencyVector;
@@ -805,8 +882,9 @@ void KWAttributeStats::Discretize(const KWTupleTable* tupleTable)
 	// discretisation ne peuvent etre implementee comme des transformations
 	// generiques de tables d'effectifs : elles ont besoin (au moins EqualWidth)
 	// des valeurs des instances
-	kwftPreparedTable = NULL;
 	kwftInitialTable = NULL;
+	kwftPreparedTable = NULL;
+	cvBounds = NULL;
 	if (GetTargetDescriptiveStats()->GetValueNumber() >= 2)
 	{
 		if (GetPreprocessingSpec()
@@ -824,7 +902,8 @@ void KWAttributeStats::Discretize(const KWTupleTable* tupleTable)
 			    ->GetDiscretizerSpec()
 			    ->GetDiscretizer(GetTargetAttributeType())
 			    ->DiscretizeValues(cvSourceValues, ivTargetIndexes,
-					       GetTargetDescriptiveStats()->GetValueNumber(), kwftPreparedTable);
+					       GetTargetDescriptiveStats()->GetValueNumber(), kwftPreparedTable,
+					       cvBounds);
 
 			// Nettoyage
 			delete cvSourceValues;
@@ -899,7 +978,7 @@ void KWAttributeStats::Discretize(const KWTupleTable* tupleTable)
 
 		// Creation d'une table de contingence resultat avec une seule ligne
 		kwftPreparedTable = new KWFrequencyTable;
-		kwftPreparedTable->Initialize(1);
+		kwftPreparedTable->SetFrequencyVectorNumber(1);
 
 		// Acces au vecteur de la ligne et parametrage de sa taille (sense etre en representation dense)
 		kwdfvFrequencyVector = cast(KWDenseFrequencyVector*, kwftPreparedTable->GetFrequencyVectorAt(0));
@@ -928,10 +1007,12 @@ void KWAttributeStats::Discretize(const KWTupleTable* tupleTable)
 	assert(kwftPreparedTable != NULL);
 
 	// Creation de la grille de preparation
-	BuildPreparedDiscretizationDataGridStats(tupleTable, kwftPreparedTable);
+	BuildPreparedDiscretizationDataGridStats(tupleTable, kwftPreparedTable, cvBounds);
 
 	// Nettoyage des donnees de travail initiales
 	delete kwftPreparedTable;
+	if (cvBounds != NULL)
+		delete cvBounds;
 
 	// Calcul si necessaire d'une evaluation
 	ComputeDefaultEvaluation();
@@ -969,7 +1050,7 @@ KWAttributeStats::ComputeInitialContinuousFrequencyTableWithoutPureIntervals(con
 
 	// Initialisation de la taille des resultats
 	resultTable = new KWFrequencyTable;
-	resultTable->Initialize(nSourceValueNumber);
+	resultTable->SetFrequencyVectorNumber(nSourceValueNumber);
 	for (nSource = 0; nSource < nSourceValueNumber; nSource++)
 	{
 		// Acces au vecteur du partile (sense etre en representation dense)
@@ -1121,7 +1202,7 @@ KWFrequencyTable* KWAttributeStats::ComputeInitialContinuousFrequencyTable(const
 	if (ivIntervalFirstObjects.GetSize() > 0)
 	{
 		resultTable = new KWFrequencyTable;
-		resultTable->Initialize(ivIntervalFirstObjects.GetSize());
+		resultTable->SetFrequencyVectorNumber(ivIntervalFirstObjects.GetSize());
 
 		for (nSource = 0; nSource < ivIntervalFirstObjects.GetSize(); nSource++)
 		{
@@ -1241,7 +1322,8 @@ IntVector* KWAttributeStats::ComputeInitialTargetIndexes(const KWTupleTable* tup
 }
 
 void KWAttributeStats::BuildPreparedDiscretizationDataGridStats(const KWTupleTable* tupleTable,
-								const KWFrequencyTable* kwftDiscretizedTable)
+								const KWFrequencyTable* kwftDiscretizedTable,
+								const ContinuousVector* cvBounds)
 {
 	KWDGSAttributeDiscretization* attributeDiscretization;
 	KWDGSAttributeSymbolValues* attributeSymbolValues;
@@ -1267,6 +1349,13 @@ void KWAttributeStats::BuildPreparedDiscretizationDataGridStats(const KWTupleTab
 	require(kwftDiscretizedTable != NULL);
 	require(kwftDiscretizedTable->GetTotalFrequency() == tupleTable->GetTotalFrequency());
 	require(kwftDiscretizedTable->GetFrequencyVectorNumber() >= 1);
+	require(cvBounds != NULL or kwftDiscretizedTable->CheckNoEmptyFrequencyVectors());
+	require(cvBounds == NULL or cvBounds->GetSize() == kwftDiscretizedTable->GetFrequencyVectorNumber() - 1);
+	require(cvBounds == NULL or cvBounds->GetSize() == 0 or
+		tupleTable->GetAt(0)->GetContinuousAt(0) <= cvBounds->GetAt(0));
+	require(cvBounds == NULL or cvBounds->GetSize() == 0 or
+		cvBounds->GetAt(cvBounds->GetSize() - 1) <
+		    tupleTable->GetAt(tupleTable->GetSize() - 1)->GetContinuousAt(0));
 	require(preparedDataGridStats == NULL);
 
 	// Creation de la partition source
@@ -1281,39 +1370,57 @@ void KWAttributeStats::BuildPreparedDiscretizationDataGridStats(const KWTupleTab
 
 	// Parcours des valeurs (intervalles) de la table discretisee
 	// pour parametrer la partition source (discretisation) de la grille preparee
-	nTuple = 0;
-	tuple = NULL;
-	for (nIntervalIndex = 0; nIntervalIndex < kwftDiscretizedTable->GetFrequencyVectorNumber() - 1;
-	     nIntervalIndex++)
+	// Cas avec vecteur de bornes
+	if (cvBounds != NULL)
 	{
-		// La frequence de l'intervalle est extrait de la table de contingence
-		nIntervalFrequency =
-		    kwftDiscretizedTable->GetFrequencyVectorAt(nIntervalIndex)->ComputeTotalFrequency();
-
-		// Borne sup de l'intervalle en cours en recherchant a partir du tuple courant
-		// le prochain tuple permettant d'atteindre l'effectif de l'intervalle
-		nFrequency = 0;
-		while (nFrequency < nIntervalFrequency)
+		for (nIntervalIndex = 0; nIntervalIndex < kwftDiscretizedTable->GetFrequencyVectorNumber() - 1;
+		     nIntervalIndex++)
 		{
-			tuple = tupleTable->GetAt(nTuple);
-			nTuple++;
-			nFrequency += tuple->GetFrequency();
+			assert(nIntervalIndex == 0 or
+			       cvBounds->GetAt(nIntervalIndex) > cvBounds->GetAt(nIntervalIndex - 1));
+			attributeDiscretization->SetIntervalBoundAt(nIntervalIndex, cvBounds->GetAt(nIntervalIndex));
 		}
-		assert(nFrequency == nIntervalFrequency);
-		cBound1 = tuple->GetContinuousAt(0);
+	}
+	// Cas sans vecteur de bornes
+	else
+	{
+		nTuple = 0;
+		tuple = NULL;
+		for (nIntervalIndex = 0; nIntervalIndex < kwftDiscretizedTable->GetFrequencyVectorNumber() - 1;
+		     nIntervalIndex++)
+		{
+			// La frequence de l'intervalle est extrait de la table de contingence
+			nIntervalFrequency =
+			    kwftDiscretizedTable->GetFrequencyVectorAt(nIntervalIndex)->ComputeTotalFrequency();
 
-		// Borne inf de l'intervalle suivant
-		cBound2 = tupleTable->GetAt(nTuple)->GetContinuousAt(0);
-		assert(cBound2 > cBound1);
+			// Borne sup de l'intervalle en cours en recherchant a partir du tuple courant
+			// le prochain tuple permettant d'atteindre l'effectif de l'intervalle
+			nFrequency = 0;
+			while (nFrequency < nIntervalFrequency)
+			{
+				tuple = tupleTable->GetAt(nTuple);
+				nTuple++;
+				nFrequency += tuple->GetFrequency();
+			}
+			assert(nFrequency == nIntervalFrequency);
 
-		// Calcul de la borne sup de l'intervalle courant, comme moyenne de la valeur
-		// des deux objets de part et d'autre de l'intervalle
-		cIntervalBound = KWContinuous::GetHumanReadableLowerMeanValue(cBound1, cBound2);
+			// Valeur sup de l'intervalle courant
+			cBound1 = tuple->GetContinuousAt(0);
 
-		// Borne retenue: moyenne des deux bornes
-		attributeDiscretization->SetIntervalBoundAt(nIntervalIndex, cIntervalBound);
+			// Valeur inf de l'intervalle suivant
+			cBound2 = tupleTable->GetAt(nTuple)->GetContinuousAt(0);
+			assert(cBound2 > cBound1);
+
+			// Calcul de la borne sup de l'intervalle courant, comme moyenne de la valeur
+			// des deux objets de part et d'autre de l'intervalle
+			cIntervalBound = KWContinuous::GetHumanReadableLowerMeanValue(cBound1, cBound2);
+
+			// Borne retenue: moyenne des deux bornes
+			attributeDiscretization->SetIntervalBoundAt(nIntervalIndex, cIntervalBound);
+		}
 	}
 
+	// Parametrage de la grille
 	// Cas non supervise
 	if (GetTargetAttributeType() == KWType::None)
 	{
@@ -1438,7 +1545,7 @@ void KWAttributeStats::Group(const KWTupleTable* tupleTable)
 	else
 	{
 		kwftPreparedTable = new KWFrequencyTable;
-		kwftPreparedTable->Initialize(1);
+		kwftPreparedTable->SetFrequencyVectorNumber(1);
 
 		// Acces au vecteur de la ligne et parametrage de sa taille (sense etre en representation dense)
 		kwdfvFrequencyVector = cast(KWDenseFrequencyVector*, kwftPreparedTable->GetFrequencyVectorAt(0));
@@ -1517,7 +1624,7 @@ void KWAttributeStats::BuildInitialFrequencyTable(const KWTupleTable* tupleTable
 	svInitialSourceModalities = new SymbolVector;
 	svInitialSourceModalities->SetSize(nSourceValueNumber);
 	kwftInitialTable = new KWFrequencyTable;
-	kwftInitialTable->Initialize(nSourceValueNumber);
+	kwftInitialTable->SetFrequencyVectorNumber(nSourceValueNumber);
 	// Initialisation par defaut des nombres de valeurs
 	kwftInitialTable->SetInitialValueNumber(nSourceValueNumber);
 	kwftInitialTable->SetGranularizedValueNumber(nSourceValueNumber);
@@ -1875,8 +1982,6 @@ int KWAttributeStatsCompareLevel(const void* elem1, const void* elem2)
 {
 	KWAttributeStats* attributeStats1;
 	KWAttributeStats* attributeStats2;
-	longint lLevel1;
-	longint lLevel2;
 	int nCompare;
 
 	// Acces aux objects
@@ -1887,10 +1992,8 @@ int KWAttributeStatsCompareLevel(const void* elem1, const void* elem2)
 	assert(attributeStats1->Check());
 	assert(attributeStats2->Check());
 
-	// Comparaison des levels des attributs (ramanes a longint)
-	lLevel1 = longint(floor(attributeStats1->GetLevel() * 1e10));
-	lLevel2 = longint(floor(attributeStats2->GetLevel() * 1e10));
-	nCompare = -CompareLongint(lLevel1, lLevel2);
+	// Comparaison selon la precison du type Continuous, pour eviter les differences a epsilon pres
+	nCompare = -KWContinuous::CompareIndicatorValue(attributeStats1->GetLevel(), attributeStats2->GetLevel());
 
 	// Comparaison par nom si match nul
 	if (nCompare == 0)
@@ -1923,6 +2026,8 @@ void PLShared_AttributeStats::SerializeObject(PLSerializer* serializer, const Ob
 	PLShared_DescriptiveContinuousStats sharedDescriptiveContinuousStats;
 	PLShared_DescriptiveSymbolStats sharedDescriptiveSymbolStats;
 	PLShared_DataGridStats shared_dataGridStat;
+	const KWDiscretizer* unsupervisedDiscretiser;
+	ALString sMODLUnsupervisedDiscretizerName;
 
 	require(serializer->IsOpenForWrite());
 	require(o != NULL);
@@ -1947,6 +2052,25 @@ void PLShared_AttributeStats::SerializeObject(PLSerializer* serializer, const Ob
 	assert(attributeStats->GetAttributeType() != KWType::Symbol or attributeStats->symbolValueStats != NULL);
 	if (attributeStats->GetAttributeType() == KWType::Symbol)
 		shared_dataGridStat.SerializeObject(serializer, attributeStats->symbolValueStats);
+
+	// Serialisation des histogrammes MODL s'il sont presents
+	serializer->PutBoolean(attributeStats->modlHistogramResults != NULL);
+	if (attributeStats->modlHistogramResults != NULL)
+	{
+		// Serialisation du nom du discretiseur a l'origine des histogrammes
+		sMODLUnsupervisedDiscretizerName = attributeStats->modlHistogramResults->GetDiscretizerName();
+		serializer->PutString(attributeStats->modlHistogramResults->GetDiscretizerName());
+
+		// Recherche du discretiseur correspondant
+		unsupervisedDiscretiser =
+		    KWDiscretizer::LookupDiscretizer(KWType::None, sMODLUnsupervisedDiscretizerName);
+		assert(unsupervisedDiscretiser->IsMODLFamily());
+
+		// On passe par son shared object pour serialiser
+		cast(KWDiscretizerMODLFamily*, unsupervisedDiscretiser)
+		    ->GetMODLHistogramResultsSharedObject()
+		    ->SerializeObject(serializer, attributeStats->modlHistogramResults);
+	}
 }
 
 void PLShared_AttributeStats::DeserializeObject(PLSerializer* serializer, Object* o) const
@@ -1956,6 +2080,8 @@ void PLShared_AttributeStats::DeserializeObject(PLSerializer* serializer, Object
 	PLShared_DescriptiveSymbolStats sharedDescriptiveSymbolStats;
 	PLShared_DataGridStats shared_dataGridStat;
 	boolean bIsStatsComputed;
+	const KWDiscretizer* unsupervisedDiscretiser;
+	ALString sMODLUnsupervisedDiscretizerName;
 
 	require(serializer->IsOpenForRead());
 	require(o != NULL);
@@ -1983,6 +2109,27 @@ void PLShared_AttributeStats::DeserializeObject(PLSerializer* serializer, Object
 	assert(attributeStats->GetAttributeType() != KWType::Symbol or attributeStats->symbolValueStats != NULL);
 	if (attributeStats->GetAttributeType() == KWType::Symbol)
 		shared_dataGridStat.DeserializeObject(serializer, attributeStats->symbolValueStats);
+
+	// Serialisation des histogrammes MODL s'il sont present
+	if (serializer->GetBoolean())
+	{
+		assert(attributeStats->modlHistogramResults == NULL);
+
+		// Deserialisation du nom du discretiseru a l'origine des histogrammes
+		sMODLUnsupervisedDiscretizerName = serializer->GetString();
+
+		// Recherche du discretiseur correspondant
+		unsupervisedDiscretiser =
+		    KWDiscretizer::LookupDiscretizer(KWType::None, sMODLUnsupervisedDiscretizerName);
+		assert(unsupervisedDiscretiser->IsMODLFamily());
+
+		// On passe par son shared object pour deserialiser
+		attributeStats->modlHistogramResults =
+		    cast(KWDiscretizerMODLFamily*, unsupervisedDiscretiser)->CreateMODLHistogramResults();
+		cast(KWDiscretizerMODLFamily*, unsupervisedDiscretiser)
+		    ->GetMODLHistogramResultsSharedObject()
+		    ->DeserializeObject(serializer, attributeStats->modlHistogramResults);
+	}
 }
 
 Object* PLShared_AttributeStats::Create() const

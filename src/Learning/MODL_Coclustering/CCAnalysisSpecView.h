@@ -4,21 +4,13 @@
 
 #pragma once
 
-////////////////////////////////////////////////////////////
-// File generated with Genere tool
-// Insert your specific code inside "//## " sections
-
 #include "UserInterface.h"
-
 #include "CCAnalysisSpec.h"
-
-// ## Custom includes
-
 #include "CCCoclusteringSpecView.h"
+#include "CCVarPartCoclusteringSpecView.h"
+#include "KWDataGridOptimizerParametersView.h"
 #include "KWSystemParametersView.h"
 #include "KWCrashTestParametersView.h"
-
-// ##
 
 ////////////////////////////////////////////////////////////
 // Classe CCAnalysisSpecView
@@ -31,9 +23,6 @@ public:
 	CCAnalysisSpecView();
 	~CCAnalysisSpecView();
 
-	// Acces a l'objet edite
-	CCAnalysisSpec* GetCCAnalysisSpec();
-
 	///////////////////////////////////////////////////////////
 	// Redefinition des methodes a reimplementer obligatoirement
 
@@ -43,23 +32,9 @@ public:
 	// Mise a jour des valeurs de l'interface par l'objet
 	void EventRefresh(Object* object) override;
 
-	// Libelles utilisateur
-	const ALString GetClassLabel() const override;
-
-	// ## Custom declarations
-
 	// Parametrage de l'objet edite
 	void SetObject(Object* object) override;
 
-	// ##
-	////////////////////////////////////////////////////////
-	///// Implementation
-protected:
-	// ## Custom implementation
-
-	// ##
+	// Libelles utilisateur
+	const ALString GetClassLabel() const override;
 };
-
-// ## Custom inlines
-
-// ##

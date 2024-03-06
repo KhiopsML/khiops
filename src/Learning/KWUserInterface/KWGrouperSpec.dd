@@ -1,5 +1,0 @@
-Rank;Name;Type;Style;Label
-1;SupervisedMethodName  ;ALString;ComboBox;Supervised method
-2;UnsupervisedMethodName;ALString;ComboBox;Unsupervised method
-3;MinGroupFrequency     ;int     ;Spinner ;Min group frequency
-4;MaxGroupNumber        ;int     ;Spinner ;Max group number

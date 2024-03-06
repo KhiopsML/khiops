@@ -240,7 +240,7 @@ void DTGrouperMODL::GranularizeFrequencyTable(KWFrequencyTable* kwftSource, KWFr
 			// Creation de la table d'effectif cible
 			kwftTarget = new KWFrequencyTable;
 			kwftTarget->SetFrequencyVectorCreator(GetFrequencyVectorCreator()->Clone());
-			kwftTarget->Initialize(nActualPartileNumber);
+			kwftTarget->SetFrequencyVectorNumber(nActualPartileNumber);
 
 			// Initialisation du nombre de valeurs initiales et apres granularisation
 			kwftTarget->SetInitialValueNumber(kwftSource->GetInitialValueNumber());
@@ -313,7 +313,7 @@ void DTGrouperMODL::TestGranularizeFrequencyTable()
 	nSourceNumber = 100;
 	nTargetNumber = 2;
 	nTableFrequency = 1000;
-	kwftTest.Initialize(nSourceNumber);
+	kwftTest.SetFrequencyVectorNumber(nSourceNumber);
 
 	// Initialisation de la taille des vecteurs de la table
 	for (nSource = 0; nSource < nSourceNumber; nSource++)
@@ -663,7 +663,7 @@ void DTGrouperMODL::SmallSourceNumberGroup(KWFrequencyTable* kwftSource, KWFrequ
 		{
 			kwftTarget = new KWFrequencyTable;
 			kwftTarget->SetFrequencyVectorCreator(kwftSource->GetFrequencyVectorCreator()->Clone());
-			kwftTarget->Initialize(1);
+			kwftTarget->SetFrequencyVectorNumber(1);
 			kwftTarget->SetInitialValueNumber(kwftSource->GetInitialValueNumber());
 			kwftTarget->SetGranularizedValueNumber(kwftSource->GetGranularizedValueNumber());
 			// Parametrage granularite et poubelle
@@ -746,7 +746,7 @@ void DTGrouperMODL::SmallSourceNumberGroup(KWFrequencyTable* kwftSource, KWFrequ
 		{
 			kwftTarget = new KWFrequencyTable;
 			kwftTarget->SetFrequencyVectorCreator(kwftSource->GetFrequencyVectorCreator()->Clone());
-			kwftTarget->Initialize(1);
+			kwftTarget->SetFrequencyVectorNumber(1);
 			// Parametrage granularite et poubelle
 			kwftTarget->SetGranularity(kwftSource->GetGranularity());
 			kwftTarget->SetGarbageModalityNumber(kwftSource->GetGarbageModalityNumber());
@@ -767,7 +767,7 @@ void DTGrouperMODL::SmallSourceNumberGroup(KWFrequencyTable* kwftSource, KWFrequ
 		{
 			kwftTarget = new KWFrequencyTable;
 			kwftTarget->SetFrequencyVectorCreator(kwftSource->GetFrequencyVectorCreator()->Clone());
-			kwftTarget->Initialize(2);
+			kwftTarget->SetFrequencyVectorNumber(2);
 			kwftTarget->SetInitialValueNumber(kwftSource->GetInitialValueNumber());
 			kwftTarget->SetGranularizedValueNumber(kwftSource->GetGranularizedValueNumber());
 			// Parametrage granularite et poubelle
@@ -1746,8 +1746,8 @@ void DTGrouperMODL::MultipleClassesGroupWithGarbageSearch(KWFrequencyTable* kwft
 		nMinFrequency = ComputeMinGroupFrequency(oaInitialGroups, nTotalFrequency, nMaxInitialGroupNumber);
 
 		// Fusion des petits groupes
-		// CH V9 TODO ? Utiliser les deux modes bOneSingleGarbageGroup true et false ? False effectue moins de
-		// fusions -> ces groupes pourront etre fusionnes ensuite
+		// CH V9 TODO ? Utiliser les deux modes bOneSingleGarbageGroup true et false ?
+		// False effectue moins de fusions -> ces groupes pourront etre fusionnes ensuite
 		MergeSmallGroups(oaInitialGroups, nMinFrequency, false, ivFewerInitialIndexes);
 	}
 	assert(oaInitialGroups != NULL);

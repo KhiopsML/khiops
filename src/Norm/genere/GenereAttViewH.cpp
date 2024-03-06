@@ -6,6 +6,7 @@
 
 void TableGenerator::GenerateAttributeViewH(ostream& ost) const
 {
+	GenerateCopyrightHeader(ost);
 	ost << "#pragma once\n";
 	ost << "\n";
 	GenerateFileHeader(ost);
@@ -16,10 +17,10 @@ void TableGenerator::GenerateAttributeViewH(ostream& ost) const
 	    << "\n";
 	ost << ""
 	    << "\n";
-	ost << "#include \"" << GetClassName() << ".h\""
+	ost << "#include \"" << GetModelClassName() << ".h\""
 	    << "\n";
 	if (GetSuperClassName() != "")
-		ost << "#include \"" << GetSuperClassName() << "View.h\""
+		ost << "#include \"" << GetViewSuperClassName() << ".h\""
 		    << "\n";
 
 	ost << ""
@@ -29,28 +30,24 @@ void TableGenerator::GenerateAttributeViewH(ostream& ost) const
 	ost << ""
 	    << "\n";
 	GenereClassHeaderComment(ost, "View");
-	ost << "// Editeur de " << GetClassName() << "\n";
-	if (GetSuperClassName() == "")
-		ost << "class " << GetClassName() << "View : public UIObjectView"
-		    << "\n";
-	else
-		ost << "class " << GetClassName() << "View : public " << GetSuperClassName() << "View\n";
+	ost << "// Editeur de " << GetModelClassName() << "\n";
+	ost << "class " << GetViewClassName() << " : public " << GetViewSuperClassName() << "\n";
 	ost << "{"
 	    << "\n";
 	ost << "public:"
 	    << "\n";
 	ost << "\t// Constructeur"
 	    << "\n";
-	ost << "\t" << GetClassName() << "View();"
+	ost << "\t" << GetViewClassName() << "();"
 	    << "\n";
-	ost << "\t~" << GetClassName() << "View();"
+	ost << "\t~" << GetViewClassName() << "();"
 	    << "\n";
 	ost << ""
 	    << "\n";
 
 	ost << "\t// Acces a l'objet edite"
 	    << "\n";
-	ost << "\t" << GetClassName() << "* Get" << GetClassName() << "();"
+	ost << "\t" << GetModelClassName() << "* Get" << GetModelClassName() << "();"
 	    << "\n";
 	ost << ""
 	    << "\n";

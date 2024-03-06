@@ -36,7 +36,7 @@ boolean KWDatabaseFormatDetector::GetUsingClass()
 	return bUsingClass;
 }
 
-void KWDatabaseFormatDetector::DetectFileFormat()
+boolean KWDatabaseFormatDetector::DetectFileFormat()
 {
 	boolean bOk = true;
 	KWClass* kwcDatabaseClass;
@@ -95,15 +95,8 @@ void KWDatabaseFormatDetector::DetectFileFormat()
 
 	// Verification si utilisation d'un dictionnaire
 	kwcDatabaseClass = NULL;
-	if (GetUsingClass())
+	if (GetUsingClass() and analysedDatabase->GetClassName() != "")
 	{
-		// Verification de la presence d'un nom de base
-		if (bOk and analysedDatabase->GetClassName() == "")
-		{
-			AddError("Missing dictionary name for database " + analysedDatabase->GetDatabaseName());
-			bOk = false;
-		}
-
 		// Recherche du dictionnaire associee a la base
 		if (bOk)
 		{
@@ -168,15 +161,16 @@ void KWDatabaseFormatDetector::DetectFileFormat()
 	// Detection de format
 	if (bOk)
 	{
-		if (GetUsingClass())
-			DetectFileFormatUsingClass(kwcDatabaseClass, &inputFile);
+		if (GetUsingClass() and analysedDatabase->GetClassName() != "")
+			bOk = DetectFileFormatUsingClass(kwcDatabaseClass, &inputFile);
 		else
-			DetectFileFormatWithoutClass(&inputFile);
+			bOk = DetectFileFormatWithoutClass(&inputFile);
 	}
 
 	// Fermeture du fichier
 	if (inputFile.IsOpened())
 		inputFile.Close();
+	return bOk;
 }
 
 void KWDatabaseFormatDetector::ShowFirstLines(int nMaxLineNumber)
@@ -1224,7 +1218,7 @@ int KWDatabaseFormatDetector::ComputeSeparatorPriority(char cSeparator) const
 	// Recherche de la position dans les separateurs preferes
 	nPriority = sPreferredSeparators.Find(cSeparator);
 
-	// Si non trouve, on prend le le cracater lui meme d'abord dans sa plage ascii, puis dans la plage ascii etendue
+	// Si non trouve, on prend le le caractere lui meme d'abord dans sa plage ascii, puis dans la plage ascii etendue
 	if (nPriority == -1)
 	{
 		if (p_isprint(cSeparator))
@@ -1366,7 +1360,7 @@ void KWDatabaseFormatDetector::BuildMandatoryDataItemNames(const KWClass* kwcCla
 
 		// Memorisation si l'attribut est natif
 		if (attribute->IsNative())
-			nkdNeededAttributes.SetAt((NUMERIC)attribute, cast(Object*, attribute));
+			nkdNeededAttributes.SetAt(attribute, cast(Object*, attribute));
 
 		// Analyse de la regle de derivation
 		// Dans le cas d'un bloc, il faut en effet la reanalyser pour chaque attribut du bloc
@@ -1390,7 +1384,7 @@ void KWDatabaseFormatDetector::BuildMandatoryDataItemNames(const KWClass* kwcCla
 				svMandatoryDataItemNames->Add(attribute->GetName());
 			// Enregistrement du bloc sinon
 			else
-				nkdNeededAttributeBlocks.SetAt((NUMERIC)attribute->GetAttributeBlock(),
+				nkdNeededAttributeBlocks.SetAt(attribute->GetAttributeBlock(),
 							       attribute->GetAttributeBlock());
 		}
 	}
@@ -1470,9 +1464,8 @@ int KWDatabaseFormatDetector::ComputeLineFieldNumber(RewindableInputBufferedFile
 	{
 		bEndOfLine = inputFile->GetNextField(sField, nFieldLength, nFieldError, bLineTooLong);
 
-		// Memorisation des erreurs, en considerant qu'un tabulation remplacee par un blanc n'est pas une erreur
-		if (bLineTooLong or (nFieldError != InputBufferedFile::FieldNoError and
-				     nFieldError != InputBufferedFile::FieldTabReplaced))
+		// Memorisation des erreurs
+		if (bLineTooLong or (nFieldError != InputBufferedFile::FieldNoError))
 		{
 			bIsError = true;
 
@@ -1666,9 +1659,8 @@ boolean KWDatabaseFormatDetector::ReadLineFields(RewindableInputBufferedFile* in
 	{
 		bEndOfLine = inputFile->GetNextField(sField, nFieldLength, nFieldError, bLineTooLong);
 
-		// Memorisation des erreurs, en considerant qu'un tabulation remplacee par un blanc n'est pas une erreur
-		if (bLineTooLong or (nFieldError != InputBufferedFile::FieldNoError and
-				     nFieldError != InputBufferedFile::FieldTabReplaced))
+		// Memorisation des erreurs
+		if (bLineTooLong or (nFieldError != InputBufferedFile::FieldNoError))
 		{
 			bOk = false;
 			break;
@@ -1885,8 +1877,7 @@ boolean KWHeaderLineAnalyser::FillFromFile(InputBufferedFile* inputFile)
 		bEndOfLine = inputFile->GetNextField(sField, nFieldLength, nFieldError, bLineTooLong);
 
 		// Arret si erreur
-		if (bLineTooLong or (nFieldError != InputBufferedFile::FieldNoError and
-				     nFieldError != InputBufferedFile::FieldTabReplaced))
+		if (bLineTooLong or (nFieldError != InputBufferedFile::FieldNoError))
 		{
 			bOk = false;
 			break;

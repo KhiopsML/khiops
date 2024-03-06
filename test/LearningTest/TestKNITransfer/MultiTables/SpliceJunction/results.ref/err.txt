@@ -1,9 +1,0 @@
-Deploy model SpliceJunction
-Input database ../../../MTdatasets/SpliceJunction/SpliceJunction.txt: Read records: 3178
-  Table ../../../MTdatasets/SpliceJunction/SpliceJunctionDNA.txt Records: 190,680
-Output database ./results/T_SpliceJunction.txt: Written records: 3178
-Model deployment time: 0:00:00.13
-
-Create database file ./results/KNI_SpliceJunction.txt with KNI
-Deploy model SpliceJunction: Written records : 3178
-KNI deployment time: 0:00:00.14

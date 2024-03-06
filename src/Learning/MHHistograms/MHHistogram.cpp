@@ -88,23 +88,6 @@ int MHHistogram::ComputeSingleValueIntervalNumber() const
 	return nNumber;
 }
 
-int MHHistogram::ComputePICHIntervalNumber() const
-{
-	int nNumber;
-	MHHistogramInterval* interval;
-	int n;
-
-	// Calcul du nombre d'intervalles PICH
-	nNumber = 0;
-	for (n = 0; n < oaIntervals.GetSize(); n++)
-	{
-		interval = cast(MHHistogramInterval*, oaIntervals.GetAt(n));
-		if (interval->GetPICH())
-			nNumber++;
-	}
-	return nNumber;
-}
-
 int MHHistogram::ComputeSingularIntervalNumber() const
 {
 	int nNumber;
@@ -161,7 +144,7 @@ boolean MHHistogram::IsSpikeIntervalAt(int nIntervalIndex) const
 
 	require(0 <= nIntervalIndex and nIntervalIndex < GetIntervalNumber());
 
-	// Il doit etre de type peak etsingleton
+	// Il doit etre de type peak et singleton
 	bIsSpike = GetConstIntervalAt(nIntervalIndex)->IsSingleValue() and IsPeakIntervalAt(nIntervalIndex);
 
 	return bIsSpike;
@@ -184,7 +167,6 @@ int MHHistogram::ComputePeakIntervalNumber() const
 
 boolean MHHistogram::IsPeakIntervalAt(int nIntervalIndex) const
 {
-
 	boolean bIsSingular;
 
 	require(0 <= nIntervalIndex and nIntervalIndex < GetIntervalNumber());
@@ -224,46 +206,6 @@ int MHHistogram::ComputeTotalFrequency() const
 	return nTotalFrequency;
 }
 
-int MHHistogram::ComputeTotalBinLength() const
-{
-	int nTotalBinLength;
-	int n;
-	MHHistogramInterval* interval;
-
-	// Calcul de l'effectif total
-	nTotalBinLength = 0;
-	for (n = 0; n < oaIntervals.GetSize(); n++)
-	{
-		interval = cast(MHHistogramInterval*, oaIntervals.GetAt(n));
-		nTotalBinLength += interval->GetBinLength();
-	}
-	return nTotalBinLength;
-}
-
-double MHHistogram::ComputeLargeScaleTotalBinLength() const
-{
-	double dTotalBinLength;
-	int n;
-	MHHistogramInterval* interval;
-
-	// Cas de la representation a virgule flottante
-	if (GetMinBinLength() > 0)
-		dTotalBinLength = floor(0.9 + (GetConstIntervalAt(GetIntervalNumber() - 1)->GetUpperBound() -
-					       GetConstIntervalAt(0)->GetLowerBound()) /
-						  GetMinBinLength());
-	// Calcul de l'effectif total sinon
-	else
-	{
-		dTotalBinLength = 0;
-		for (n = 0; n < oaIntervals.GetSize(); n++)
-		{
-			interval = cast(MHHistogramInterval*, oaIntervals.GetAt(n));
-			dTotalBinLength += interval->GetBinLength();
-		}
-	}
-	return dTotalBinLength;
-}
-
 void MHHistogram::SetDistinctValueNumber(int nValue)
 {
 	require(nValue >= 0);
@@ -301,15 +243,14 @@ const ALString& MHHistogram::GetHistogramCriterion() const
 	return sHistogramCriterion;
 }
 
-void MHHistogram::SetCoarseningIndex(int nValue)
+void MHHistogram::SetRaw(boolean bValue)
 {
-	require(nValue >= 0);
-	nCoarseningIndex = nValue;
+	bRaw = bValue;
 }
 
-int MHHistogram::GetCoarseningIndex() const
+boolean MHHistogram::GetRaw() const
 {
-	return nCoarseningIndex;
+	return bRaw;
 }
 
 void MHHistogram::SetTruncationEpsilon(double dValue)
@@ -352,6 +293,7 @@ void MHHistogram::SetNullCost(double dValue)
 
 double MHHistogram::GetNullCost() const
 {
+	ensure(dNullCost >= 0);
 	return dNullCost;
 }
 
@@ -363,6 +305,7 @@ void MHHistogram::SetReferenceNullCost(double dValue)
 
 double MHHistogram::GetReferenceNullCost() const
 {
+	ensure(dReferenceNullCost >= 0);
 	return dReferenceNullCost;
 }
 
@@ -374,6 +317,7 @@ void MHHistogram::SetCost(double dValue)
 
 double MHHistogram::GetCost() const
 {
+	ensure(dCost >= 0);
 	return dCost;
 }
 
@@ -388,75 +332,25 @@ double MHHistogram::GetPartitionCost() const
 	return dPartitionCost;
 }
 
-double MHHistogram::GetGranularizedNullCost() const
-{
-	double dGranularizedNullCost;
-	int nTotalFrequency;
-	int nTotalBinLength;
-
-	dGranularizedNullCost = GetNullCost();
-	if (GetHistogramCriterion() == "G-Enum")
-	{
-		nTotalFrequency = ComputeTotalFrequency();
-		nTotalBinLength = ComputeTotalBinLength();
-		if (GetGranularity() > 0 and nTotalBinLength > 0)
-			dGranularizedNullCost += nTotalFrequency * (log(GetGranularity()) - log(nTotalBinLength));
-	}
-	return dGranularizedNullCost;
-}
-
-double MHHistogram::GetGranularizedCost() const
-{
-	double dGranularizedCost;
-	int nTotalFrequency;
-	int nTotalBinLength;
-
-	dGranularizedCost = GetCost();
-	if (GetHistogramCriterion() == "G-Enum")
-	{
-		nTotalFrequency = ComputeTotalFrequency();
-		nTotalBinLength = ComputeTotalBinLength();
-		if (GetGranularity() > 0 and nTotalBinLength > 0)
-			dGranularizedCost += nTotalFrequency * (log(GetGranularity()) - log(nTotalBinLength));
-	}
-	return dGranularizedCost;
-}
-
 double MHHistogram::GetLevel() const
 {
-	if (GetNullCost() == 0)
-		return 0;
-	else
-		return 1 - GetCost() / GetNullCost();
+	double dLevel;
+
+	dLevel = 0;
+	if (GetNullCost() != 0)
+		dLevel = 1 - GetCost() / GetNullCost();
+	return dLevel;
 }
 
-double MHHistogram::GetGranularizedLevel() const
+double MHHistogram::GetNormalizedLevel() const
 {
-	double dGranularizedLevel;
-	double dRefNullCost;
+	double dNormalizedLevel;
 
-	// Cas des histogrammes standard
-	if (GetHistogramCriterion() == "G-Enum")
-	{
-		if (GetGranularizedNullCost() == 0)
-			return 0;
-		else
-			return 1 - GetGranularizedCost() / GetGranularizedNullCost();
-	}
-	// Cas des histogrammes avec representation virgule flotante
-	else if (GetHistogramCriterion() == "G-Enum-fp")
-	{
-		// Cout du model null sur une plafge de valeur de reference [1, 2] avec 2^30 mantissa bins
-		dRefNullCost =
-		    2 * KWStat::NaturalNumbersUniversalCodeLength(1) + ComputeTotalFrequency() * 30.0 * log(2);
-
-		// Tentative heuristique de critere normalise
-		return (GetNullCost() - GetCost()) / GetReferenceNullCost();
-	}
-	// Cas autre
-	else
-		dGranularizedLevel = GetLevel();
-	return dGranularizedLevel;
+	// Tentative heuristique de critere normalise
+	dNormalizedLevel = 0;
+	if (GetReferenceNullCost() != 0)
+		dNormalizedLevel = (GetNullCost() - GetCost()) / GetReferenceNullCost();
+	return dNormalizedLevel;
 }
 
 void MHHistogram::SetComputationTime(double dValue)
@@ -596,41 +490,13 @@ double MHHistogram::GetMinBinLength() const
 	return dMinBinLength;
 }
 
-int MHHistogram::GetOutlierDataSubsetNumber() const
-{
-	if (GetIntervalNumber() == 0)
-		return 0;
-	else if (GetConstIntervalAt(0)->GetDataSubsetIndex() == 0)
-		return 0;
-	else
-		return GetConstIntervalAt(GetIntervalNumber() - 1)->GetDataSubsetIndex() -
-		       GetConstIntervalAt(0)->GetDataSubsetIndex() + 1;
-}
-
-int MHHistogram::GetOutlierBoundaryIntervalNumber() const
-{
-	int nOutlierBoundaryIntervalNumber;
-	int n;
-	MHHistogramInterval* interval;
-
-	// calcul de l'effectif total
-	nOutlierBoundaryIntervalNumber = 0;
-	for (n = 0; n < oaIntervals.GetSize(); n++)
-	{
-		interval = cast(MHHistogramInterval*, oaIntervals.GetAt(n));
-		if (interval->GetPreviousDataSubsetBoundary())
-			nOutlierBoundaryIntervalNumber++;
-	}
-	return nOutlierBoundaryIntervalNumber;
-}
-
 void MHHistogram::Clean()
 {
 	nDistinctValueNumber = 0;
 	cDomainLowerBound = 0;
 	cDomainUpperBound = 0;
 	nDomainBoundsMantissaBitNumber = 0;
-	nCoarseningIndex = 0;
+	bRaw = false;
 	dTruncationEpsilon = 0;
 	nRemovedSingularIntervalsNumber = 0;
 	nGranularity = 0;
@@ -652,11 +518,17 @@ void MHHistogram::Clean()
 	oaIntervals.DeleteAll();
 }
 
+MHHistogram* MHHistogram::Create() const
+{
+	return new MHHistogram;
+}
+
 void MHHistogram::CopyFrom(const MHHistogram* sourceHistogram)
 {
 	int i;
 
 	require(sourceHistogram != NULL);
+	require(sourceHistogram->Check());
 
 	// Recopie des caracteristique generales
 	nDistinctValueNumber = sourceHistogram->GetDistinctValueNumber();
@@ -664,7 +536,7 @@ void MHHistogram::CopyFrom(const MHHistogram* sourceHistogram)
 	cDomainLowerBound = sourceHistogram->cDomainLowerBound;
 	cDomainUpperBound = sourceHistogram->cDomainUpperBound;
 	nDomainBoundsMantissaBitNumber = sourceHistogram->nDomainBoundsMantissaBitNumber;
-	nCoarseningIndex = sourceHistogram->nCoarseningIndex;
+	bRaw = sourceHistogram->bRaw;
 	dTruncationEpsilon = sourceHistogram->dTruncationEpsilon;
 	nRemovedSingularIntervalsNumber = sourceHistogram->nRemovedSingularIntervalsNumber;
 	nGranularity = sourceHistogram->nGranularity;
@@ -689,23 +561,20 @@ void MHHistogram::CopyFrom(const MHHistogram* sourceHistogram)
 	oaIntervals.DeleteAll();
 	for (i = 0; i < sourceHistogram->GetIntervalNumber(); i++)
 		oaIntervals.Add(sourceHistogram->GetConstIntervalAt(i)->Clone());
+	ensure(Check());
 }
 
 MHHistogram* MHHistogram::Clone() const
 {
 	MHHistogram* cloneHistogram;
 
-	cloneHistogram = new MHHistogram;
+	cloneHistogram = Create();
 	cloneHistogram->CopyFrom(this);
 	return cloneHistogram;
 }
 
-void MHHistogram::Write(ostream& ost) const
+void MHHistogram::WriteSummary(ostream& ost) const
 {
-	int nTotalFrequency;
-	int n;
-	MHHistogramInterval* interval;
-
 	// Titre
 	ost << GetHistogramCriterion() << " histogram\n";
 
@@ -713,7 +582,7 @@ void MHHistogram::Write(ostream& ost) const
 	ost << "\tDomain lower bound\t" << KWContinuous::ContinuousToString(GetDomainLowerBound()) << "\n";
 	ost << "\tDomain upper bound\t" << KWContinuous::ContinuousToString(GetDomainUpperBound()) << "\n";
 	ost << "\tDomain bounds mantissa bits\t" << GetDomainBoundsMantissaBitNumber() << "\n";
-	ost << "\tCoarsening index\t" << GetCoarseningIndex() << "\n";
+	ost << "\tRaw\t" << GetRaw() << "\n";
 	ost << "\tTruncation epsilon\t" << GetTruncationEpsilon() << "\n";
 	ost << "\tRemoved singular intervals number\t" << GetRemovedSingularIntervalsNumber() << "\n";
 	ost << "\tGranularity\t" << GetGranularity() << "\n";
@@ -726,8 +595,6 @@ void MHHistogram::Write(ostream& ost) const
 	ost << "\tMax central bin exponent\t" << GetMaxCentralBinExponent() << "\n";
 	ost << "\tMain bin number\t" << GetMainBinNumber() << "\n";
 	ost << "\tMin bin length\t" << GetMinBinLength() << "\n";
-	ost << "\tOutlier data subsets\t" << GetOutlierDataSubsetNumber() << "\n";
-	ost << "\tOutlier boundary intervals\t" << GetOutlierBoundaryIntervalNumber() << "\n";
 
 	// Statistiques sur les intervalles
 	ost << "\tIntervals\t" << GetIntervalNumber() << "\n";
@@ -737,31 +604,37 @@ void MHHistogram::Write(ostream& ost) const
 	ost << "\tSingular intervals\t" << ComputeSingularIntervalNumber() << "\n";
 	ost << "\tSpike intervals\t" << ComputeSpikeIntervalNumber() << "\n";
 	ost << "\tPeak intervals\t" << ComputePeakIntervalNumber() << "\n";
-	ost << "\tOutlier PICH intervals\t" << ComputePICHIntervalNumber() << "\n";
 
 	// Informations sur le jeu de donnees
 	ost << "\tInstances\t" << ComputeTotalFrequency() << "\n";
 	ost << "\tValues\t" << GetDistinctValueNumber() << "\n";
-	ost << "\tBins\t" << KWContinuous::ContinuousToString(ComputeLargeScaleTotalBinLength()) << "\n";
 	ost << "\tMin\t" << KWContinuous::ContinuousToString(GetMinValue()) << "\n";
 	ost << "\tMax\t" << KWContinuous::ContinuousToString(GetMaxValue()) << "\n";
 
 	// Informations sur les couts
-	ost << "\tNull cost\t" << GetNullCost() << "\n";
-	ost << "\tReference null cost\t" << GetReferenceNullCost() << "\n";
-	ost << "\tCost\t" << GetCost() << "\n";
-	ost << "\tLevel\t" << GetLevel() << "\n";
-	ost << "\tNull cost(G)\t" << GetGranularizedNullCost() << "\n";
-	ost << "\tCost(G)\t" << GetGranularizedCost() << "\n";
-	ost << "\tLevel(G)\t" << GetGranularizedLevel() << "\n";
-	ost << "\tPartition cost\t" << GetPartitionCost() << "\n";
+	ost << "\tNull cost\t" << KWContinuous::ContinuousToString(GetNullCost()) << "\n";
+	ost << "\tCost\t" << KWContinuous::ContinuousToString(GetCost()) << "\n";
+	ost << "\tPartition cost\t" << KWContinuous::ContinuousToString(GetPartitionCost()) << "\n";
+	ost << "\tLevel\t" << KWContinuous::ContinuousToString(GetLevel()) << "\n";
+	ost << "\tReference null cost\t" << KWContinuous::ContinuousToString(GetReferenceNullCost()) << "\n";
+	ost << "\tLevel(N)\t" << KWContinuous::ContinuousToString(GetNormalizedLevel()) << "\n";
 	ost << "\tComputation time\t" << GetComputationTime() << "\n";
+}
+
+void MHHistogram::Write(ostream& ost) const
+{
+	int nTotalFrequency;
+	int n;
+	MHHistogramInterval* interval;
+
+	// Ecriture du resume
+	WriteSummary(ost);
 	ost << "\n";
 
 	// Calcul de l'effectif total
 	nTotalFrequency = ComputeTotalFrequency();
 
-	// Parcours des intervalle pour les ecrire
+	// Parcours des intervalles pour les ecrire
 	for (n = 0; n < oaIntervals.GetSize(); n++)
 	{
 		interval = cast(MHHistogramInterval*, oaIntervals.GetAt(n));
@@ -804,10 +677,13 @@ boolean MHHistogram::Check() const
 	for (n = 0; n < oaIntervals.GetSize(); n++)
 	{
 		interval = cast(MHHistogramInterval*, oaIntervals.GetAt(n));
-		bOk = interval->Check();
+		assert(CheckIntervalType(interval));
+		bOk = bOk and interval->Check();
 		if (not bOk)
 			AddError(sTmp + "Wrong specification of interval " + IntToString(n + 1) + " " +
 				 interval->GetObjectLabel());
+
+		// Concordance des bornes des intervalles successifs
 		if (bOk and n > 0)
 		{
 			previousInterval = cast(MHHistogramInterval*, oaIntervals.GetAt(n - 1));
@@ -818,10 +694,36 @@ boolean MHHistogram::Check() const
 					 ") is different from the lower bound of interval " + IntToString(n + 1) +
 					 " (" + KWContinuous::ContinuousToString(interval->GetLowerBound()) + ")");
 		}
+
+		// Coherence des bornes des intervalles extremes avec celles du domaine
+		if (bOk and n == 0)
+		{
+			bOk = interval->GetLowerBound() >= GetDomainLowerBound();
+			if (not bOk)
+				AddError(sTmp + "Lower bound of first interval (" +
+					 KWContinuous::ContinuousToString(interval->GetLowerBound()) +
+					 ") must be above from the domain lower bound (" +
+					 KWContinuous::ContinuousToString(GetDomainLowerBound()) + ")");
+		}
+		if (bOk and n == oaIntervals.GetSize() - 1)
+		{
+			bOk = interval->GetUpperBound() <= GetDomainUpperBound();
+			if (not bOk)
+				AddError(sTmp + "Upper bound of last interval (" +
+					 KWContinuous::ContinuousToString(interval->GetUpperBound()) +
+					 ") must be beyond from the domain upper bound (" +
+					 KWContinuous::ContinuousToString(GetDomainUpperBound()) + ")");
+		}
 		if (not bOk)
 			break;
 	}
 	return bOk;
+}
+
+boolean MHHistogram::CheckIntervalType(const MHHistogramInterval* interval) const
+{
+	require(interval != NULL);
+	return cast(MHHistogramInterval*, interval) != NULL;
 }
 
 boolean MHHistogram::CheckValues(const ContinuousVector* cvValues) const
@@ -917,13 +819,8 @@ MHHistogramInterval::MHHistogramInterval()
 	cLowerBound = 0;
 	cUpperBound = 0;
 	nFrequency = 0;
-	nBinLength = 0;
 	cLowerValue = 0;
 	cUpperValue = 0;
-	nDataSubsetIndex = 0;
-	bPreviousDataSubsetBoundary = false;
-	bPICH = false;
-	nPICHSplitIndex = 0;
 	dCost = 0;
 }
 
@@ -985,59 +882,6 @@ boolean MHHistogramInterval::IsSingleValue() const
 	return GetLowerValue() == GetUpperValue();
 }
 
-void MHHistogramInterval::SetBinLength(int nValue)
-{
-	require(nValue >= 0);
-	nBinLength = nValue;
-}
-
-int MHHistogramInterval::GetBinLength() const
-{
-	return nBinLength;
-}
-
-void MHHistogramInterval::SetDataSubsetIndex(int nValue)
-{
-	require(nValue >= 0);
-	nDataSubsetIndex = nValue;
-}
-
-int MHHistogramInterval::GetDataSubsetIndex() const
-{
-	return nDataSubsetIndex;
-}
-
-void MHHistogramInterval::SetPreviousDataSubsetBoundary(boolean bValue)
-{
-	bPreviousDataSubsetBoundary = bValue;
-}
-
-boolean MHHistogramInterval::GetPreviousDataSubsetBoundary() const
-{
-	return bPreviousDataSubsetBoundary;
-}
-
-void MHHistogramInterval::SetPICH(boolean bValue)
-{
-	bPICH = bValue;
-}
-
-boolean MHHistogramInterval::GetPICH() const
-{
-	return bPICH;
-}
-
-void MHHistogramInterval::SetPICHSplitIndex(int nValue)
-{
-	require(nValue >= 0);
-	nPICHSplitIndex = nValue;
-}
-
-int MHHistogramInterval::GetPICHSplitIndex() const
-{
-	return nPICHSplitIndex;
-}
-
 void MHHistogramInterval::SetCost(double dValue)
 {
 	dCost = dValue;
@@ -1097,6 +941,11 @@ int MHHistogramInterval::CompareDensity(const MHHistogramInterval* otherInterval
 	return nCompare;
 }
 
+MHHistogramInterval* MHHistogramInterval::Create() const
+{
+	return new MHHistogramInterval;
+}
+
 void MHHistogramInterval::CopyFrom(const MHHistogramInterval* sourceInterval)
 {
 	require(sourceInterval != NULL);
@@ -1104,13 +953,8 @@ void MHHistogramInterval::CopyFrom(const MHHistogramInterval* sourceInterval)
 	cLowerBound = sourceInterval->cLowerBound;
 	cUpperBound = sourceInterval->cUpperBound;
 	nFrequency = sourceInterval->nFrequency;
-	nBinLength = sourceInterval->nBinLength;
 	cLowerValue = sourceInterval->cLowerValue;
 	cUpperValue = sourceInterval->cUpperValue;
-	nDataSubsetIndex = sourceInterval->nDataSubsetIndex;
-	bPreviousDataSubsetBoundary = sourceInterval->bPreviousDataSubsetBoundary;
-	bPICH = sourceInterval->bPICH;
-	nPICHSplitIndex = sourceInterval->nPICHSplitIndex;
 	dCost = sourceInterval->dCost;
 }
 
@@ -1118,7 +962,7 @@ MHHistogramInterval* MHHistogramInterval::Clone() const
 {
 	MHHistogramInterval* cloneInterval;
 
-	cloneInterval = new MHHistogramInterval;
+	cloneInterval = Create();
 	cloneInterval->CopyFrom(this);
 	return cloneInterval;
 }
@@ -1126,8 +970,7 @@ MHHistogramInterval* MHHistogramInterval::Clone() const
 void MHHistogramInterval::WriteHeaderLineReport(ostream& ost) const
 {
 	ost << "Lower bound\tUpper bound\tFrequency\tLength\tProbability\tDensity\t";
-	ost << "Lower value\tUpper value\tBin length\t";
-	ost << "Data subset\tBoundary\tPICH\tPICH split\tInterval Cost";
+	ost << "Lower value\tUpper value\tInterval Cost";
 }
 
 void MHHistogramInterval::WriteLineReport(int nTotalFrequency, ostream& ost) const
@@ -1143,11 +986,6 @@ void MHHistogramInterval::WriteLineReport(int nTotalFrequency, ostream& ost) con
 		ost << KWContinuous::ContinuousToString(GetDensity(nTotalFrequency)) << "\t";
 	ost << KWContinuous::ContinuousToString(cLowerValue) << "\t";
 	ost << KWContinuous::ContinuousToString(cUpperValue) << "\t";
-	ost << nBinLength << "\t";
-	ost << nDataSubsetIndex << "\t";
-	ost << bPreviousDataSubsetBoundary << "\t";
-	ost << bPICH << "\t";
-	ost << nPICHSplitIndex << "\t";
 	ost << dCost;
 }
 
@@ -1186,8 +1024,6 @@ boolean MHHistogramInterval::Check() const
 	    bOk and (cLowerBound <= -KWContinuous::GetEpsilonValue() or KWContinuous::GetEpsilonValue() <= cUpperBound);
 	bOk = bOk and cLowerBound < cUpperBound;
 	bOk = bOk and cLowerValue <= cUpperValue;
-	bOk = bOk and (not bPreviousDataSubsetBoundary or nDataSubsetIndex > 0);
-	bOk = bOk and (not bPICH or nDataSubsetIndex > 0);
 	return bOk;
 }
 

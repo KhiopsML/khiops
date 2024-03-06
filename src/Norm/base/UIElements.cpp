@@ -1601,7 +1601,7 @@ boolean UIAction::Check() const
 	ALString sTmp;
 
 	// Verification du style
-	if (GetStyle() != "" and GetStyle() != "Button" and GetStyle() != "SmallButton")
+	if (GetStyle() != "" and GetStyle() != "PopupMenu" and GetStyle() != "Button" and GetStyle() != "SmallButton")
 	{
 		bOk = false;
 		AddError("Le style " + GetStyle() + " est inconnu");

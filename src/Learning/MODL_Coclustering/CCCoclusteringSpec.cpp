@@ -19,7 +19,7 @@ CCCoclusteringSpec::~CCCoclusteringSpec()
 {
 	// ## Custom destructor
 
-	oaAttributes.DeleteAll();
+	oaAttributeNames.DeleteAll();
 
 	// ##
 }
@@ -28,7 +28,7 @@ void CCCoclusteringSpec::CopyFrom(const CCCoclusteringSpec* aSource)
 {
 	require(aSource != NULL);
 
-	sFrequencyAttribute = aSource->sFrequencyAttribute;
+	sFrequencyAttributeName = aSource->sFrequencyAttributeName;
 
 	// ## Custom copyfrom
 
@@ -53,7 +53,7 @@ CCCoclusteringSpec* CCCoclusteringSpec::Clone() const
 
 void CCCoclusteringSpec::Write(ostream& ost) const
 {
-	ost << "Frequency variable\t" << GetFrequencyAttribute() << "\n";
+	ost << "Frequency variable\t" << GetFrequencyAttributeName() << "\n";
 }
 
 const ALString CCCoclusteringSpec::GetClassLabel() const
@@ -70,9 +70,9 @@ const ALString CCCoclusteringSpec::GetObjectLabel() const
 	return sLabel;
 }
 
-ObjectArray* CCCoclusteringSpec::GetAttributes()
+ObjectArray* CCCoclusteringSpec::GetAttributeNames()
 {
-	return &oaAttributes;
+	return &oaAttributeNames;
 }
 
 int CCCoclusteringSpec::GetMaxCoclusteringAttributeNumber()

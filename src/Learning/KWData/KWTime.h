@@ -8,6 +8,7 @@ class Time;
 class KWTimeFormat;
 
 #include "Object.h"
+#include "KWDateTime.h"
 #include "Vector.h"
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -57,7 +58,7 @@ public:
 	// Servives avances
 	// La Time doit etre valide
 
-	// Nombre total  de secondes de la journee; avec une precision potentielle jusqu'au 1/10000 de seconde
+	// Nombre total  de secondes de la journee; avec une precision potentielle jusqu'au 1/1000 de seconde
 	double GetDaySecond() const;
 
 	// Heure decimale, entre 0 et 23.99...
@@ -89,28 +90,17 @@ public:
 	//////////////////////////////////////////////////////
 	//// Implementation
 protected:
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	// La time peut stocker une partie timestamp
+	friend class Timestamp;
+
 	// Modification des champs de la Time
 	void SetHour(int nValue);
 	void SetMinute(int nValue);
 	void SetSecond(double dValue);
 
-	// Stockage optimise d'une Time sous forme d'un entier
-	// Bits 1 a 5: heure de 0 a 23, plus 1
-	// Bits 6 a 11: minutes de 0 a 59
-	// Bits 12 a 17: secondes de 0 a 59
-	// Bits 20 a 32: partie decimale des secondes; de 0 a 9999 (en 1/10000 de seconde)
-	// Une time est invalide si elle vaut 0 (heure a 0; validite de 1 a 24), et interdite si elle vaut 0xFFFFFFFF
-	union TimeValue
-	{
-		unsigned int nTime;
-		struct TimeFields
-		{
-			unsigned int nHour : 5;
-			unsigned int nMinute : 6;
-			unsigned int nSecond : 6;
-			unsigned int nFrac : 15;
-		} timeFields;
-	} timeValue;
+	// Utilisation d'une union DateTime pour acceder au champs Time, dans une structure commune aux type temporels
+	union DateTime timeValue;
 };
 
 // Ecriture dans un stream
@@ -248,41 +238,41 @@ protected:
 
 inline void Time::Reset()
 {
-	timeValue.nTime = 0;
+	timeValue.lBytes = 0;
 }
 
 inline boolean Time::operator==(const Time& tmValue) const
 {
-	return (timeValue.nTime == tmValue.timeValue.nTime);
+	return (timeValue.lBytes == tmValue.timeValue.lBytes);
 }
 
 inline boolean Time::operator!=(const Time& tmValue) const
 {
-	return (timeValue.nTime != tmValue.timeValue.nTime);
+	return (timeValue.lBytes != tmValue.timeValue.lBytes);
 }
 
 inline boolean Time::Check() const
 {
 	require(not IsForbiddenValue());
-	return timeValue.nTime != 0;
+	return timeValue.lBytes != 0;
 }
 
 inline int Time::GetHour() const
 {
 	require(Check());
-	return timeValue.timeFields.nHour - 1;
+	return timeValue.fields.nHour - 1;
 }
 
 inline int Time::GetMinute() const
 {
 	require(Check());
-	return timeValue.timeFields.nMinute;
+	return timeValue.fields.nMinute;
 }
 
 inline double Time::GetSecond() const
 {
 	require(Check());
-	return timeValue.timeFields.nSecond + timeValue.timeFields.nFrac / 10000.0;
+	return timeValue.fields.nSecond + timeValue.fields.nFrac / (double)DateTime::nMaxFracSeconds;
 }
 
 inline double Time::GetDaySecond() const
@@ -340,39 +330,39 @@ inline int Time::Compare(const Time tmOtherTime) const
 inline void Time::SetHour(int nValue)
 {
 	require(0 <= nValue and nValue < 24);
-	timeValue.timeFields.nHour = nValue + 1;
+	timeValue.fields.nHour = nValue + 1;
 }
 
 inline void Time::SetMinute(int nValue)
 {
 	require(0 <= nValue and nValue < 60);
-	timeValue.timeFields.nMinute = nValue;
+	timeValue.fields.nMinute = nValue;
 }
 
 inline void Time::SetSecond(double dValue)
 {
-	const double dEpsilon = 1e-5;
+	const double dEpsilon = 0.5 / DateTime::nMaxFracSeconds;
 	int nSecond;
 	int nSecondFrac;
 	require(0 <= dValue and dValue < 60);
 	nSecond = (int)floor(dValue + dEpsilon);
 	if (nSecond == 60)
 		nSecond--;
-	nSecondFrac = (int)floor((dValue - nSecond + dEpsilon) * 10000);
-	if (nSecondFrac == 10000)
+	nSecondFrac = (int)floor((dValue - nSecond + dEpsilon) * DateTime::nMaxFracSeconds);
+	if (nSecondFrac == DateTime::nMaxFracSeconds)
 		nSecondFrac--;
-	timeValue.timeFields.nSecond = nSecond;
-	timeValue.timeFields.nFrac = nSecondFrac;
+	timeValue.fields.nSecond = nSecond;
+	timeValue.fields.nFrac = nSecondFrac;
 }
 
 inline void Time::SetForbiddenValue()
 {
-	timeValue.nTime = 0xFFFFFFFF;
+	timeValue.lBytes = DateTime::lForbiddenValue;
 }
 
 inline boolean Time::IsForbiddenValue() const
 {
-	return (timeValue.nTime == 0xFFFFFFFF);
+	return (timeValue.lBytes == DateTime::lForbiddenValue);
 }
 
 // KWTimeFormat

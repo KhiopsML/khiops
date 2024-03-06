@@ -16,8 +16,6 @@ import javax.swing.filechooser.FileNameExtensionFilter;
  * fichier (JFileChooser). Cette fenetre s'ouvre en pointant sur le repertoire
  * du dernier fichier selectionne. REf:
  * https://docs.oracle.com/javase/tutorial/uiswing/components/filechooser.html
- *
- * @author Marc Boulle
  */
 public class GUIFileDirectoryChooser extends GUIObject
 {

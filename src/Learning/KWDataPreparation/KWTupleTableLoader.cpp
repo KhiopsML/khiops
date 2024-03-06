@@ -690,7 +690,7 @@ void KWTupleTableLoader::BlockLoadUnivariateInitialize(const ALString& sInputAtt
 void KWTupleTableLoader::BlockLoadUnivariateFinalize(const ALString& sInputAttributeBlockName,
 						     KWTupleTable* outputTupleTable) const
 {
-	boolean bDisplay = false;
+	const boolean bDisplay = false;
 	KWAttributeBlock* attributeBlock;
 	int nObjectNumber;
 	int nMissingValueNumber;
@@ -703,6 +703,7 @@ void KWTupleTableLoader::BlockLoadUnivariateFinalize(const ALString& sInputAttri
 	int nValueFrequency;
 
 	require(outputTupleTable != NULL);
+	require(outputTupleTable->GetSparseMissingValueNumber() == 0);
 	require(kwcInputClass->LookupAttribute(outputTupleTable->GetAttributeNameAt(0)) != NULL);
 	require(outputTupleTable->GetUpdateMode());
 
@@ -715,10 +716,13 @@ void KWTupleTableLoader::BlockLoadUnivariateFinalize(const ALString& sInputAttri
 	assert(KWType::IsSimple(attributeBlock->GetType()));
 	assert(attributeBlock->GetLoaded());
 
-	// Ajout des tuple manquants s'il manque des renregistrements
+	// Ajout des tuple manquants s'il manque des enregistrements
 	nMissingValueNumber = nObjectNumber - outputTupleTable->GetTotalFrequency();
 	if (nMissingValueNumber > 0)
 	{
+		// Mise a jour du nombre des valeurs manquantes sparse
+		outputTupleTable->SetSparseMissingValueNumber(nMissingValueNumber);
+
 		// Cas sans attribut supplementaire
 		if (GetInputExtraAttributeName() == "")
 		{
@@ -801,7 +805,7 @@ void KWTupleTableLoader::BlockLoadUnivariateFinalize(const ALString& sInputAttri
 
 					// Si egalite, on compabilise le nombre de valeur correspondant a la valeur
 					// courante de l'attribut supplementaire Dans la base de tuple (bivariee),
-					// plusieurs tuples successifs peuvent avaoir meme valeur
+					// plusieurs tuples successifs peuvent avoir la meme valeur
 					if (nCompare == 0)
 						nValueFrequency += tuple->GetFrequency();
 					// Arret si depassement de la valeur
@@ -815,7 +819,7 @@ void KWTupleTableLoader::BlockLoadUnivariateFinalize(const ALString& sInputAttri
 					nTuple++;
 				}
 
-				// Calcul du nombre de valeur manquantes
+				// Calcul du nombre de valeurs manquantes
 				nMissingValueNumber = extraTuple->GetFrequency() - nValueFrequency;
 
 				// Mise a jour en cas d'effectif manquant
@@ -1558,7 +1562,7 @@ void KWTupleTableLoader::Test()
 					cout << "SYSTEM MEM\t" << odBlockTupleTables.GetOverallUsedMemory() << endl
 					     << endl;
 
-					// Dinlaisation du chargement et affichage du resultat
+					// Finalisation du chargement et affichage du resultat
 					for (i = 0; i < oaBlockAttributes.GetSize(); i++)
 					{
 						attribute = cast(KWAttribute*, oaBlockAttributes.GetAt(i));

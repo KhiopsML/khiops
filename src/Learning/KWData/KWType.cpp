@@ -39,6 +39,10 @@ const ALString KWType::ToString(int nType)
 		return "NumericalBlock";
 	case ObjectArrayValueBlock:
 		return "TableBlock";
+	// CH IV Begin
+	case VarPart:
+		return "VarPart";
+	// CH IV End
 	case None:
 		return "None";
 	case Unknown:
@@ -78,15 +82,14 @@ int KWType::ToType(const ALString& sType)
 		return ContinuousValueBlock;
 	else if (sType == "TableBlock")
 		return ObjectArrayValueBlock;
+	// CH IV Begin
+	else if (sType == "VarPart")
+		return VarPart;
+	// CH IV End
 	else if (sType == "None")
 		return None;
 	else
 		return Unknown;
-}
-
-boolean KWType::IsPredictorType(int nType)
-{
-	return (nType == Continuous or nType == Symbol or nType == None);
 }
 
 const ALString KWType::GetPredictorLabel(int nType)

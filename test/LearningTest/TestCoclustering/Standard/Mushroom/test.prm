@@ -14,6 +14,8 @@
 //
 
 // -> Khiops Coclustering
+AnalysisSpec.SystemParameters.APIMode true        // API mode
+AnalysisSpec.SystemParameters.MemoryLimit 2000     // Memory limit in MB
 ClassManagement.OpenFile       // Open...
 
 // -> Open
@@ -21,8 +23,8 @@ ClassFileName ../../../datasets/Mushroom/Mushroom.kdic       // Dictionary file
 OK                             // Open
 // <- Open
 
-Database.DatabaseFiles.List.Key Mushroom               // List item selection
-Database.DatabaseFiles.DataTableName ../../../datasets/Mushroom/Mushroom.txt      // Database file
+Database.DatabaseSpec.Data.DatabaseFiles.List.Key Mushroom               // List item selection
+Database.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../datasets/Mushroom/Mushroom.txt      // Database file
 
 AnalysisSpec.CoclusteringParameters.Attributes.InsertItemAfter         // Insert variable
 AnalysisSpec.CoclusteringParameters.Attributes.Name CapColor     // Name
@@ -30,7 +32,7 @@ AnalysisSpec.CoclusteringParameters.Attributes.InsertItemAfter         // Insert
 AnalysisSpec.CoclusteringParameters.Attributes.Name Odor     // Name
 
 AnalysisSpec.SystemParameters.OptimizationTime 0  // Optimization time in seconds
-AnalysisResults.ResultFilesDirectory ./results // Result files directory
+AnalysisResults.CoclusteringFileName ./results/Coclustering.khcj // Coclustering report
 
 BuildCoclustering              // Build coclustering
 

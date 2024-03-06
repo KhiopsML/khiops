@@ -18,8 +18,6 @@ import normGUI.engine.GUIUnit;
 /**
  * Represente l'element graphique de style CheckBox permettant l'affichage de
  * booleens dans une case a cocher. Utilisation d'une JCheckBox.
- *
- * @author Marc Boulle
  */
 public class GUIBooleanElementCheckBox extends GUIBooleanElement
 {

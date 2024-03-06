@@ -1316,7 +1316,7 @@ void SNBGeneralizedClassifierSelectionDataCostCalculator::InitializeTargetValueG
 		ivTargetValueGroupMatching->SetSize(GetTargetValueNumber());
 		for (nTargetValue = 0; nTargetValue < GetTargetValueNumber(); nTargetValue++)
 			ivTargetValueGroupMatching->SetAt(nTargetValue, -1);
-		nkdTargetValueGroupMatchingsByAttribute.SetAt((NUMERIC)attribute, ivTargetValueGroupMatching);
+		nkdTargetValueGroupMatchingsByAttribute.SetAt(attribute, ivTargetValueGroupMatching);
 
 		// Acces a la partition des valeurs cibles de l'attribut
 		targetPartition = attribute->GetTargetPartition();
@@ -1647,12 +1647,12 @@ void SNBGeneralizedClassifierSelectionDataCostCalculator::UpdateTargetPartitionW
 		if (nkdSubparts == NULL)
 		{
 			nkdSubparts = new NumericKeyDictionary;
-			nkdInitialParts.SetAt((NUMERIC)groupTargetPart, nkdSubparts);
+			nkdInitialParts.SetAt(groupTargetPart, nkdSubparts);
 
 			// Memorisation de la premiere sous partie et de son effectif
 			newGroupTargetPart = groupTargetPart;
 			newGroupTargetPart->SetFrequency(GetTargetValueFrequencyAt(nTargetValue));
-			nkdSubparts->SetAt((NUMERIC)targetPartIndex, newGroupTargetPart);
+			nkdSubparts->SetAt(targetPartIndex, newGroupTargetPart);
 
 			// Mise a jour d'une signature par ajout d'un removedAttributeIndex de groupe
 			UpdateSignatureWithAddedAttribute(attribute, nTargetValue, newGroupTargetPart);
@@ -1661,7 +1661,7 @@ void SNBGeneralizedClassifierSelectionDataCostCalculator::UpdateTargetPartitionW
 		else
 		{
 			// Recherche de la sous-partie
-			newGroupTargetPart = cast(SNBGroupTargetPart*, nkdSubparts->Lookup((NUMERIC)targetPartIndex));
+			newGroupTargetPart = cast(SNBGroupTargetPart*, nkdSubparts->Lookup(targetPartIndex));
 
 			// Creation si necessaire
 			if (newGroupTargetPart == NULL)
@@ -1677,7 +1677,7 @@ void SNBGeneralizedClassifierSelectionDataCostCalculator::UpdateTargetPartitionW
 
 				// Memorisation de la sous partie et de son effectif
 				newGroupTargetPart->SetFrequency(GetTargetValueFrequencyAt(nTargetValue));
-				nkdSubparts->SetAt((NUMERIC)targetPartIndex, newGroupTargetPart);
+				nkdSubparts->SetAt(targetPartIndex, newGroupTargetPart);
 
 				// Ajout de la nouvelle partie dans la partition cible
 				oaTargetPartition.Add(newGroupTargetPart);
@@ -1903,7 +1903,7 @@ boolean SNBGeneralizedClassifierSelectionDataCostCalculator::Check() const
 		if (nkdGroupTargetPartSet.Lookup(groupTargetPart) == NULL)
 		{
 			// Enregistrement dans un dictionnaire
-			nkdGroupTargetPartSet.SetAt((NUMERIC)groupTargetPart, groupTargetPart);
+			nkdGroupTargetPartSet.SetAt(groupTargetPart, groupTargetPart);
 
 			// Verification de l'unicite des signatures en utilisant une liste triee
 			if (slCheckedTargetPartition.Find(groupTargetPart) == NULL)
@@ -1959,7 +1959,7 @@ boolean SNBGeneralizedClassifierSelectionDataCostCalculator::Check() const
 			{
 				groupTargetPart = cast(SNBGroupTargetPart*, oaTargetPartition.GetAt(nGroupTargetPart));
 				bOk = bOk and groupTargetPart != NULL;
-				bOk = bOk and nkdGroupTargetPartSet.Lookup((NUMERIC)groupTargetPart) != NULL;
+				bOk = bOk and nkdGroupTargetPartSet.Lookup(groupTargetPart) != NULL;
 
 				// Mise a jour de l'effectif total
 				bOk = bOk and 0 < groupTargetPart->GetFrequency() and
@@ -2031,7 +2031,7 @@ int SNBGeneralizedClassifierSelectionDataCostCalculator::GetTargetValueGroupInde
 	require(0 <= nTargetValue && nTargetValue < GetTargetValueNumber());
 
 	ivAttributeTargetValueGroupMatching =
-	    cast(const IntVector*, nkdTargetValueGroupMatchingsByAttribute.Lookup((NUMERIC)attribute));
+	    cast(const IntVector*, nkdTargetValueGroupMatchingsByAttribute.Lookup(attribute));
 	return ivAttributeTargetValueGroupMatching->GetAt(nTargetValue);
 }
 
@@ -2217,7 +2217,7 @@ int SNBGroupTargetPartSignatureSchema::GetSignatureIndexAt(const SNBDataTableBin
 	KWSortableIndex* attributeSignatureIndex;
 	int nSignature;
 
-	attributeSignatureIndex = cast(KWSortableIndex*, nkdAttributeIndexes.Lookup((NUMERIC)attribute));
+	attributeSignatureIndex = cast(KWSortableIndex*, nkdAttributeIndexes.Lookup(attribute));
 	if (attributeSignatureIndex == NULL)
 		nSignature = -1;
 	else
@@ -2239,7 +2239,7 @@ void SNBGroupTargetPartSignatureSchema::AddAttribute(SNBDataTableBinarySliceSetA
 	// Memorisation de son removedAttributeIndex dans la signature
 	attributeSignatureIndex = new KWSortableIndex;
 	attributeSignatureIndex->SetIndex(oaAttributes.GetSize() - 1);
-	nkdAttributeIndexes.SetAt((NUMERIC)attribute, attributeSignatureIndex);
+	nkdAttributeIndexes.SetAt(attribute, attributeSignatureIndex);
 
 	ensure(Contains(attribute));
 	ensure(Check());
@@ -2256,11 +2256,11 @@ void SNBGroupTargetPartSignatureSchema::RemoveAttribute(const SNBDataTableBinary
 	require(Check());
 
 	// Recherche de l'indice de l'attribut a supprimer
-	removedAttributeIndex = cast(KWSortableIndex*, nkdAttributeIndexes.Lookup((NUMERIC)attribute));
+	removedAttributeIndex = cast(KWSortableIndex*, nkdAttributeIndexes.Lookup(attribute));
 	nRemovedAttribute = removedAttributeIndex->GetIndex();
 
 	// Supression de l'indice de l'attribut dans le dictionnaire d'indexes
-	nkdAttributeIndexes.RemoveKey((NUMERIC)attribute);
+	nkdAttributeIndexes.RemoveKey(attribute);
 	delete removedAttributeIndex;
 
 	// Deplacement du dernier attribut a la place de celui supprime (retaillage ensuite)
@@ -2269,7 +2269,7 @@ void SNBGroupTargetPartSignatureSchema::RemoveAttribute(const SNBDataTableBinary
 		lastAttribute =
 		    cast(SNBDataTableBinarySliceSetAttribute*, oaAttributes.GetAt(oaAttributes.GetSize() - 1));
 		oaAttributes.SetAt(nRemovedAttribute, lastAttribute);
-		lastAttributeIndex = cast(KWSortableIndex*, nkdAttributeIndexes.Lookup((NUMERIC)lastAttribute));
+		lastAttributeIndex = cast(KWSortableIndex*, nkdAttributeIndexes.Lookup(lastAttribute));
 		lastAttributeIndex->SetIndex(nRemovedAttribute);
 	}
 	oaAttributes.SetSize(oaAttributes.GetSize() - 1);
@@ -2300,9 +2300,8 @@ boolean SNBGroupTargetPartSignatureSchema::Check() const
 		{
 			attribute = cast(SNBDataTableBinarySliceSetAttribute*, oaAttributes.GetAt(nSignature));
 			bOk = bOk and attribute != NULL;
-			bOk = bOk and nkdAttributeIndexes.Lookup((NUMERIC)attribute) != NULL;
-			attributeSignatureIndex =
-			    cast(KWSortableIndex*, nkdAttributeIndexes.Lookup((NUMERIC)attribute));
+			bOk = bOk and nkdAttributeIndexes.Lookup(attribute) != NULL;
+			attributeSignatureIndex = cast(KWSortableIndex*, nkdAttributeIndexes.Lookup(attribute));
 			bOk = bOk and attributeSignatureIndex->GetIndex() == nSignature;
 			if (not bOk)
 				break;

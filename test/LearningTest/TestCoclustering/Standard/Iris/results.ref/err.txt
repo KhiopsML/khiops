@@ -1,8 +1,8 @@
 Database ../../../datasets/Iris/Iris.txt : Read records: 150
-  0:00:00	Write intermediate coclustering report Coclustering(1).khc	Level: 0.043904	Size: 2*2*1	Granularity: 1
-  0:00:00	Write intermediate coclustering report Coclustering(2).khc	Level: 0.095524	Size: 3*3*3	Granularity: 2
-  0:00:00	Write intermediate coclustering report Coclustering(3).khc	Level: 0.130686	Size: 3*3*3	Granularity: 3
-  0:00:00	Write intermediate coclustering report Coclustering(4).khc	Level: 0.156121	Size: 3*3*3
-Write coclustering report ./results\Coclustering.khc
+  0:00:00	Write intermediate report Coclustering(1).khcj	Level: 0.043904	Size: 2*2	Granularity: 1
+  0:00:00	Write intermediate report Coclustering(2).khcj	Level: 0.095524	Size: 3*3*3	Granularity: 2
+  0:00:00	Write intermediate report Coclustering(3).khcj	Level: 0.130686	Size: 3*3*3	Granularity: 3
+  0:00:00	Write intermediate report Coclustering(4).khcj	Level: 0.156121	Size: 3*3*3
+Write coclustering report ./results/Coclustering.khcj
 Coclustering analysis time: 0:00:00.03
 

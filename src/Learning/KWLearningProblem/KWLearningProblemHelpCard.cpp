@@ -13,32 +13,41 @@ KWLearningProblemHelpCard::KWLearningProblemHelpCard()
 	SetLabel("Help");
 
 	// Declaration des actions
+	AddAction("ShowQuickStart", "Quick start...", (ActionMethod)(&KWLearningProblemHelpCard::ShowQuickStart));
 	AddAction("ShowDocumentation", "Documentation...",
 		  (ActionMethod)(&KWLearningProblemHelpCard::ShowDocumentation));
-	if (LMLicenseManager::IsEnabled())
-		AddAction("LicenseManagement", "License management...",
-			  (ActionMethod)(&KWLearningProblemHelpCard::LicenseManagement));
 	AddAction("ShowAbout", "About " + GetLearningFullApplicationName() + "... ",
 		  (ActionMethod)(&KWLearningProblemHelpCard::ShowAbout));
 
 	// Action de documentation non visible si pas de texte
 	GetActionAt("ShowDocumentation")->SetVisible(sDocumentationText != "");
 
-	// Info-bulles
-	if (LMLicenseManager::IsEnabled())
-		GetActionAt("LicenseManagement")
-		    ->SetHelpText("Open a dialog box that displays the information relative to license management"
-				  "\n and describes the process to obtain or renew a license.");
-
 	// Short cuts
 	SetShortCut('H');
+	GetActionAt("ShowQuickStart")->SetShortCut('Q');
 	GetActionAt("ShowAbout")->SetShortCut('A');
-	if (LMLicenseManager::IsEnabled())
-		GetActionAt("LicenseManagement")->SetShortCut('L');
 	GetActionAt("ShowDocumentation")->SetShortCut('D');
 }
 
 KWLearningProblemHelpCard::~KWLearningProblemHelpCard() {}
+
+void KWLearningProblemHelpCard::ShowQuickStart()
+{
+	UICard quickStartCard;
+
+	require(GetFieldNumber() == 0);
+
+	// Titre
+	quickStartCard.SetIdentifier("QuickStart");
+	quickStartCard.SetLabel(GetLearningFullApplicationName() + " quick start");
+
+	// Parametrage du texte a afficher
+	quickStartCard.AddStringField("Information", "", sQuickStartText);
+	quickStartCard.GetFieldAt("Information")->SetStyle("FormattedLabel");
+
+	// Affichage
+	quickStartCard.Open();
+}
 
 void KWLearningProblemHelpCard::ShowDocumentation()
 {
@@ -76,12 +85,6 @@ void KWLearningProblemHelpCard::ShowDocumentation()
 
 	// Affichage du widget
 	documentationCard.Open();
-}
-
-void KWLearningProblemHelpCard::LicenseManagement()
-{
-	if (LMLicenseManager::IsEnabled())
-		LMLicenseManager::OpenLicenseManagementCard();
 }
 
 void KWLearningProblemHelpCard::ShowAbout()
@@ -130,7 +133,17 @@ void KWLearningProblemHelpCard::ShowAbout()
 	aboutCard.Open();
 }
 
-void KWLearningProblemHelpCard::SetDocumentationText(const ALString sValue)
+void KWLearningProblemHelpCard::SetQuickStartText(const ALString& sValue)
+{
+	sQuickStartText = sValue;
+}
+
+const ALString& KWLearningProblemHelpCard::GetQuickStartText()
+{
+	return sQuickStartText;
+}
+
+void KWLearningProblemHelpCard::SetDocumentationText(const ALString& sValue)
 {
 	sDocumentationText = sValue;
 }
@@ -140,4 +153,5 @@ const ALString& KWLearningProblemHelpCard::GetDocumentationText()
 	return sDocumentationText;
 }
 
+ALString KWLearningProblemHelpCard::sQuickStartText;
 ALString KWLearningProblemHelpCard::sDocumentationText;

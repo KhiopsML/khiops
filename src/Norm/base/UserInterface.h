@@ -1149,7 +1149,7 @@ public:
 	void SetLastColumnExtraWidth(int nValue);
 	int GetLastColumnExtraWidth() const;
 
-	// Redefinition du SetEditable (pour la propagation aux composant et les
+	// Redefinition du SetEditable (pour la propagation aux composants et les
 	// actions d'edition de la liste)
 	void SetEditable(boolean bValue) override;
 
@@ -1734,8 +1734,10 @@ public:
 	////////////////////////////////////////////////////////////////////////
 	// Style: par defaut vide
 	// Valeurs possibles:
-	//     vide: action maquettee dans les menus, et en plus dans les popup
-	//           pour les actions de liste
+	//     vide: action maquettee dans les menus, y compris dans les UIList
+	//           pour les actions d'edition predefinies
+	//     PopupMenu: action maquettee dans les menus popup dans la cas d'une
+	//           action de UIList
 	//     Button: action maquettee sous forme de boutton
 	//     SmallButton: action maquettee sous forme de boutton de plus petite taille
 	//                  et insere a gauche dans la colonne des libelles

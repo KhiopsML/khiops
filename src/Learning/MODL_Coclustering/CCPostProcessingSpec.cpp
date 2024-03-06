@@ -36,6 +36,7 @@ void CCPostProcessingSpec::CopyFrom(const CCPostProcessingSpec* aSource)
 {
 	require(aSource != NULL);
 
+	sCoclusteringType = aSource->sCoclusteringType;
 	sShortDescription = aSource->sShortDescription;
 	nInstanceNumber = aSource->nInstanceNumber;
 	nNonEmptyCellNumber = aSource->nNonEmptyCellNumber;
@@ -44,7 +45,7 @@ void CCPostProcessingSpec::CopyFrom(const CCPostProcessingSpec* aSource)
 	nMaxPreservedInformation = aSource->nMaxPreservedInformation;
 	nTotalPartNumber = aSource->nTotalPartNumber;
 	nMaxTotalPartNumber = aSource->nMaxTotalPartNumber;
-	sFrequencyAttribute = aSource->sFrequencyAttribute;
+	sFrequencyAttributeName = aSource->sFrequencyAttributeName;
 
 	// ## Custom copyfrom
 
@@ -78,7 +79,8 @@ CCPostProcessingSpec* CCPostProcessingSpec::Clone() const
 
 void CCPostProcessingSpec::Write(ostream& ost) const
 {
-	ost << "ShortDescription\t" << GetShortDescription() << "\n";
+	ost << "Coclustering type\t" << GetCoclusteringType() << "\n";
+	ost << "Short description\t" << GetShortDescription() << "\n";
 	ost << "Instance number\t" << GetInstanceNumber() << "\n";
 	ost << "Non empty cell number\t" << GetNonEmptyCellNumber() << "\n";
 	ost << "Cell number\t" << GetCellNumber() << "\n";
@@ -86,7 +88,7 @@ void CCPostProcessingSpec::Write(ostream& ost) const
 	ost << "Max preserved information\t" << GetMaxPreservedInformation() << "\n";
 	ost << "Total part number\t" << GetTotalPartNumber() << "\n";
 	ost << "Max total part number\t" << GetMaxTotalPartNumber() << "\n";
-	ost << "Frequency variable\t" << GetFrequencyAttribute() << "\n";
+	ost << "Frequency variable\t" << GetFrequencyAttributeName() << "\n";
 }
 
 const ALString CCPostProcessingSpec::GetClassLabel() const
@@ -279,7 +281,7 @@ void CCPostProcessingSpec::UpdateCoclusteringSpec(const ALString& sCoclusteringR
 	nMaxCellNumber = 0;
 	nMaxPreservedInformation = 0;
 	nTotalPartNumber = 0;
-	sFrequencyAttribute = "";
+	sFrequencyAttributeName = "";
 	oaPostProcessedAttributes.DeleteAll();
 
 	// Si pas de fichier, cela revient a reinitialiser les infos de coclustering
@@ -293,11 +295,17 @@ void CCPostProcessingSpec::UpdateCoclusteringSpec(const ALString& sCoclusteringR
 	// On rappatrie les informations du rapport
 	if (bOk)
 	{
+		// CH IV Begin
+		// Attribute identifiant (coclustering instances * variables)
+		sCoclusteringType =
+		    CCAnalysisSpec::GetCoclusteringLabelFromType(coclusteringDataGrid.IsVarPartDataGrid());
+		// CH IV End
+
 		// Description courte
 		sShortDescription = coclusteringDataGrid.GetShortDescription();
 
 		// Variable de frequence
-		sFrequencyAttribute = coclusteringDataGrid.GetFrequencyAttributeName();
+		sFrequencyAttributeName = coclusteringDataGrid.GetFrequencyAttributeName();
 
 		// Information sur les attributs de coclustering
 		nCellNumber = 1;
@@ -322,12 +330,14 @@ void CCPostProcessingSpec::UpdateCoclusteringSpec(const ALString& sCoclusteringR
 	{
 		// Evaluation si le coclustering est le meme
 		bSameCoclustering = true;
+		bSameCoclustering =
+		    bSameCoclustering and (sCoclusteringType == refPostProcessingSpec.sCoclusteringType);
 		bSameCoclustering = bSameCoclustering and (nInstanceNumber == refPostProcessingSpec.nInstanceNumber);
 		bSameCoclustering =
 		    bSameCoclustering and (nNonEmptyCellNumber == refPostProcessingSpec.nNonEmptyCellNumber);
 		bSameCoclustering = bSameCoclustering and (nCellNumber == refPostProcessingSpec.nCellNumber);
 		bSameCoclustering =
-		    bSameCoclustering and (sFrequencyAttribute == refPostProcessingSpec.sFrequencyAttribute);
+		    bSameCoclustering and (sFrequencyAttributeName == refPostProcessingSpec.sFrequencyAttributeName);
 		bSameCoclustering = bSameCoclustering and (oaPostProcessedAttributes.GetSize() ==
 							   refPostProcessingSpec.oaPostProcessedAttributes.GetSize());
 		if (bSameCoclustering)

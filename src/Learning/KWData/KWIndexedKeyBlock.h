@@ -102,7 +102,7 @@ public:
 	///// Implementation
 protected:
 	///////////////////////////////////////////////////////////////////
-	// Les cles categorielles sont geree au moyen d'un dictionnaire
+	// Les cles categorielles sont gerees au moyen d'un dictionnaire
 	// a cles numerique, efficace en temps de calcul, mais avec une
 	// empreinte memoire non negligeable
 
@@ -190,7 +190,7 @@ protected:
 	// au lieu de symbol et d'objets(Key, Index) est tres avantageuse
 	// a la fois en memoire et en temps.
 	//
-	// Cette fonctionnalite es utile en particulier pour indexer un bloc de
+	// Cette fonctionnalite est utile en particulier pour indexer un bloc de
 	// valeurs sparses dont les variables sont identifiees par des cles entieres
 
 	// Indexation des cles selon un mode specifie, pour permettre de tester

@@ -611,11 +611,11 @@ boolean KWDRObjectArrayRule::CheckObjectArray(const ObjectArray* oaObjects) cons
 			return false;
 
 		// Erreur si doublon
-		if (nkdObjects.Lookup((NUMERIC)kwoObject) != NULL)
+		if (nkdObjects.Lookup(kwoObject) != NULL)
 			return false;
 		// Sinon, insertion dans un dictionnaire
 		else
-			nkdObjects.SetAt((NUMERIC)kwoObject, kwoObject);
+			nkdObjects.SetAt(kwoObject, kwoObject);
 	}
 	return true;
 }
@@ -1120,13 +1120,13 @@ ObjectArray* KWDRTableUnion::ComputeObjectArrayResult(const KWObject* kwoObject)
 					kwoContainedObject = cast(KWObject*, oaObjectArrayOperand->GetAt(nObject));
 
 					// Prise en compte sauf si doublon
-					if (nkdAllObjects.Lookup((NUMERIC)kwoContainedObject) == NULL)
+					if (nkdAllObjects.Lookup(kwoContainedObject) == NULL)
 					{
 						// Ajout dans le tableau resultat
 						oaResult.Add(kwoContainedObject);
 
 						// Memorisation dans le dictionnaire assurant l'unicite des elements
-						nkdAllObjects.SetAt((NUMERIC)kwoContainedObject, kwoContainedObject);
+						nkdAllObjects.SetAt(kwoContainedObject, kwoContainedObject);
 					}
 				}
 			}
@@ -1203,7 +1203,7 @@ ObjectArray* KWDRTableIntersection::ComputeObjectArrayResult(const KWObject* kwo
 			for (nObject = 0; nObject < oaObjectArrayOperand->GetSize(); nObject++)
 			{
 				kwoContainedObject = cast(KWObject*, oaObjectArrayOperand->GetAt(nObject));
-				nkdReferenceObjects->SetAt((NUMERIC)kwoContainedObject, kwoContainedObject);
+				nkdReferenceObjects->SetAt(kwoContainedObject, kwoContainedObject);
 			}
 		}
 
@@ -1228,9 +1228,8 @@ ObjectArray* KWDRTableIntersection::ComputeObjectArrayResult(const KWObject* kwo
 					kwoContainedObject = cast(KWObject*, oaObjectArrayOperand->GetAt(nObject));
 
 					// Prise en compte si existant dans le dictionnaire de reference
-					if (nkdReferenceObjects->Lookup((NUMERIC)kwoContainedObject) != NULL)
-						nkdSelectedObjects->SetAt((NUMERIC)kwoContainedObject,
-									  kwoContainedObject);
+					if (nkdReferenceObjects->Lookup(kwoContainedObject) != NULL)
+						nkdSelectedObjects->SetAt(kwoContainedObject, kwoContainedObject);
 				}
 
 				// On change de dictionnaire de reference
@@ -1253,7 +1252,7 @@ ObjectArray* KWDRTableIntersection::ComputeObjectArrayResult(const KWObject* kwo
 			for (nObject = 0; nObject < oaObjectArrayOperand->GetSize(); nObject++)
 			{
 				kwoContainedObject = cast(KWObject*, oaObjectArrayOperand->GetAt(nObject));
-				if (nkdReferenceObjects->Lookup((NUMERIC)kwoContainedObject) != NULL)
+				if (nkdReferenceObjects->Lookup(kwoContainedObject) != NULL)
 					oaResult.Add(kwoContainedObject);
 			}
 		}
@@ -1308,13 +1307,13 @@ ObjectArray* KWDRTableDifference::ComputeObjectArrayResult(const KWObject* kwoOb
 		for (nObject = 0; nObject < oaObjectArrayOperand1->GetSize(); nObject++)
 		{
 			kwoContainedObject = cast(KWObject*, oaObjectArrayOperand1->GetAt(nObject));
-			nkdObjects1.SetAt((NUMERIC)kwoContainedObject, kwoContainedObject);
+			nkdObjects1.SetAt(kwoContainedObject, kwoContainedObject);
 		}
 		for (nObject = 0; nObject < oaObjectArrayOperand2->GetSize(); nObject++)
 		{
 			kwoContainedObject = cast(KWObject*, oaObjectArrayOperand2->GetAt(nObject));
-			if (nkdObjects1.Lookup((NUMERIC)kwoContainedObject) != NULL)
-				nkdIntersectionObjects.SetAt((NUMERIC)kwoContainedObject, kwoContainedObject);
+			if (nkdObjects1.Lookup(kwoContainedObject) != NULL)
+				nkdIntersectionObjects.SetAt(kwoContainedObject, kwoContainedObject);
 		}
 		nkdObjects1.RemoveAll();
 
@@ -1322,13 +1321,13 @@ ObjectArray* KWDRTableDifference::ComputeObjectArrayResult(const KWObject* kwoOb
 		for (nObject = 0; nObject < oaObjectArrayOperand1->GetSize(); nObject++)
 		{
 			kwoContainedObject = cast(KWObject*, oaObjectArrayOperand1->GetAt(nObject));
-			if (nkdIntersectionObjects.Lookup((NUMERIC)kwoContainedObject) == NULL)
+			if (nkdIntersectionObjects.Lookup(kwoContainedObject) == NULL)
 				oaResult.Add(kwoContainedObject);
 		}
 		for (nObject = 0; nObject < oaObjectArrayOperand2->GetSize(); nObject++)
 		{
 			kwoContainedObject = cast(KWObject*, oaObjectArrayOperand2->GetAt(nObject));
-			if (nkdIntersectionObjects.Lookup((NUMERIC)kwoContainedObject) == NULL)
+			if (nkdIntersectionObjects.Lookup(kwoContainedObject) == NULL)
 				oaResult.Add(kwoContainedObject);
 		}
 	}
@@ -1415,15 +1414,14 @@ ObjectArray* KWDRTableSubUnion::ComputeObjectArrayResult(const KWObject* kwoObje
 							    cast(KWObject*, oaObjectArrayOperand->GetAt(nSubObject));
 
 							// Prise en compte sauf si doublon
-							if (nkdAllObjects.Lookup((NUMERIC)kwoContainedSubObject) ==
-							    NULL)
+							if (nkdAllObjects.Lookup(kwoContainedSubObject) == NULL)
 							{
 								// Ajout dans le tableau resultat
 								oaResult.Add(kwoContainedSubObject);
 
 								// Memorisation dans le dictionnaire assurant l'unicite
 								// des elements
-								nkdAllObjects.SetAt((NUMERIC)kwoContainedSubObject,
+								nkdAllObjects.SetAt(kwoContainedSubObject,
 										    kwoContainedSubObject);
 							}
 						}
@@ -1517,7 +1515,7 @@ ObjectArray* KWDRTableSubIntersection::ComputeObjectArrayResult(const KWObject* 
 					{
 						kwoContainedSubObject =
 						    cast(KWObject*, oaObjectArrayOperand->GetAt(nSubObject));
-						nkdReferenceSubObjects->SetAt((NUMERIC)kwoContainedSubObject,
+						nkdReferenceSubObjects->SetAt(kwoContainedSubObject,
 									      kwoContainedSubObject);
 					}
 				}
@@ -1548,11 +1546,10 @@ ObjectArray* KWDRTableSubIntersection::ComputeObjectArrayResult(const KWObject* 
 							    cast(KWObject*, oaObjectArrayOperand->GetAt(nSubObject));
 
 							// Prise en compte si existant dans le dictionnaire de reference
-							if (nkdReferenceSubObjects->Lookup(
-								(NUMERIC)kwoContainedSubObject) != NULL)
-								nkdSelectedSubObjects->SetAt(
-								    (NUMERIC)kwoContainedSubObject,
-								    kwoContainedSubObject);
+							if (nkdReferenceSubObjects->Lookup(kwoContainedSubObject) !=
+							    NULL)
+								nkdSelectedSubObjects->SetAt(kwoContainedSubObject,
+											     kwoContainedSubObject);
 						}
 					}
 
@@ -1580,7 +1577,7 @@ ObjectArray* KWDRTableSubIntersection::ComputeObjectArrayResult(const KWObject* 
 				{
 					kwoContainedSubObject =
 					    cast(KWObject*, oaObjectArrayOperand->GetAt(nSubObject));
-					if (nkdReferenceSubObjects->Lookup((NUMERIC)kwoContainedSubObject) != NULL)
+					if (nkdReferenceSubObjects->Lookup(kwoContainedSubObject) != NULL)
 						oaResult.Add(kwoContainedSubObject);
 				}
 			}
@@ -1633,10 +1630,10 @@ ObjectArray* KWDREntitySet::ComputeObjectArrayResult(const KWObject* kwoObject) 
 		if (kwoObjectOperand != NULL)
 		{
 			// Prise en compte sauf si doublon
-			if (nkdAllObjects.Lookup((NUMERIC)kwoObjectOperand) == NULL)
+			if (nkdAllObjects.Lookup(kwoObjectOperand) == NULL)
 			{
 				// Memorisation dans le dictionnaire assurant l'unicite des elements
-				nkdAllObjects.SetAt((NUMERIC)kwoObjectOperand, kwoObjectOperand);
+				nkdAllObjects.SetAt(kwoObjectOperand, kwoObjectOperand);
 
 				// Ajout dans le tableau resultat
 				oaResult.Add(kwoObjectOperand);
@@ -1855,6 +1852,9 @@ int KWDRTableSortCompareObjects(const void* elem1, const void* elem2)
 		case KWType::TimestampTZ:
 			nDiff = sortOperand->GetTimestampTZValue(object1).Compare(
 			    sortOperand->GetTimestampTZValue(object2));
+			break;
+		case KWType::Text:
+			nDiff = sortOperand->GetTextValue(object1).CompareValue(sortOperand->GetTextValue(object2));
 			break;
 		default:
 			nDiff = 0;

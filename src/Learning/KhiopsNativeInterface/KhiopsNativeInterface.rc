@@ -16,7 +16,8 @@
 // Anglais (États-Unis) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
-LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+LANGUAGE LANG_ENGLISH,
+    SUBLANG_ENGLISH_US
 
 #ifdef APSTUDIO_INVOKED
     /////////////////////////////////////////////////////////////////////////////
@@ -51,16 +52,21 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 	// Version
 	//
 
-	VS_VERSION_INFO VERSIONINFO
-	    FILEVERSION 0,
-    0, 0, 0 PRODUCTVERSION 0, 0, 0, 0 FILEFLAGSMASK 0x3fL
+	VS_VERSION_INFO VERSIONINFO FILEVERSION 0,
+    0, 0, 0 PRODUCTVERSION 0, 0, 0,
+    0 FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
     FILEFLAGS 0x1L
 #else
     FILEFLAGS 0x0L
 #endif
-    FILEOS 0x40004L FILETYPE 0x1L FILESUBTYPE 0x0L BEGIN BLOCK "StringFileInfo" BEGIN BLOCK "040c04b0" BEGIN VALUE "CompanyName",
-    "Orange" VALUE "FileDescription", "Khiops Native Interface Library" VALUE "FileVersion", KHIOPS_VERSION VALUE "InternalName", "KhiopsNativeInterface.dll" VALUE "LegalCopyright", KHIOPS_COPYRIGHT_LABEL VALUE "OriginalFilename", "KhiopsNativeInterface.dll" VALUE "ProductName", "Khiops Native Interface" VALUE "ProductVersion", KHIOPS_VERSION END END BLOCK "VarFileInfo" BEGIN VALUE "Translation", 0x40c, 1200 END END
+    FILEOS 0x40004L FILETYPE 0x1L FILESUBTYPE 0x0L BEGIN BLOCK "StringFileInfo" BEGIN BLOCK "040c04b0" BEGIN VALUE
+							       "CompanyName",
+    "Orange" VALUE "FileDescription", "Khiops Native Interface Library" VALUE "FileVersion",
+    KHIOPS_VERSION VALUE "InternalName", "KhiopsNativeInterface.dll" VALUE "LegalCopyright",
+    KHIOPS_COPYRIGHT_LABEL VALUE "OriginalFilename", "KhiopsNativeInterface.dll" VALUE "ProductName",
+    "Khiops Native Interface" VALUE "ProductVersion",
+    KHIOPS_VERSION END END BLOCK "VarFileInfo" BEGIN VALUE "Translation", 0x40c, 1200 END END
 
 /////////////////////////////////////////////////////////////////////////////
 //

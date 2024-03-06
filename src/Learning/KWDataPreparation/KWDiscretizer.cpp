@@ -92,13 +92,15 @@ void KWDiscretizer::Discretize(KWFrequencyTable* kwftSource, KWFrequencyTable*& 
 }
 
 void KWDiscretizer::DiscretizeValues(ContinuousVector* cvSourceValues, IntVector* ivTargetIndexes,
-				     int nTargetValueNumber, KWFrequencyTable*& kwftTarget) const
+				     int nTargetValueNumber, KWFrequencyTable*& kwftTarget,
+				     ContinuousVector*& cvBounds) const
 {
 	require(cvSourceValues != NULL);
 	require(ivTargetIndexes != NULL);
 	require(nTargetValueNumber >= 0);
 	require(IsUsingSourceValues());
 	kwftTarget = NULL;
+	cvBounds = NULL;
 	assert(false);
 }
 
@@ -126,43 +128,36 @@ const ALString KWDiscretizer::GetObjectLabel() const
 
 ///////////////////////////////////////////////////////////////////////////
 
-void KWDiscretizer::RegisterDiscretizer(KWDiscretizer* discretizer)
+void KWDiscretizer::RegisterDiscretizer(int nTargetAttributeType, KWDiscretizer* discretizer)
 {
+	require(nTargetAttributeType == KWType::Symbol or nTargetAttributeType == KWType::None);
 	require(discretizer != NULL);
 	require(discretizer->GetName() != "");
-	require(odDiscretizers == NULL or odDiscretizers->Lookup(discretizer->GetName()) == NULL);
-
-	// Creation si necessaire du dictionnaire de Discretizers
-	if (odDiscretizers == NULL)
-		odDiscretizers = new ObjectDictionary;
+	require(GetDiscretizers(nTargetAttributeType)->Lookup(discretizer->GetName()) == NULL);
 
 	// Memorisation du Discretizer
-	odDiscretizers->SetAt(discretizer->GetName(), discretizer);
+	GetDiscretizers(nTargetAttributeType)->SetAt(discretizer->GetName(), discretizer);
 }
 
-KWDiscretizer* KWDiscretizer::LookupDiscretizer(const ALString& sName)
+KWDiscretizer* KWDiscretizer::LookupDiscretizer(int nTargetAttributeType, const ALString& sName)
 {
 	KWDiscretizer* discretizer;
 
-	// Creation si necessaire du dictionnaire de Discretizers
-	if (odDiscretizers == NULL)
-		odDiscretizers = new ObjectDictionary;
+	require(nTargetAttributeType == KWType::Symbol or nTargetAttributeType == KWType::None);
 
 	// Recherche du predicteur du bon type
-	discretizer = cast(KWDiscretizer*, odDiscretizers->Lookup(sName));
+	discretizer = cast(KWDiscretizer*, GetDiscretizers(nTargetAttributeType)->Lookup(sName));
 	return discretizer;
 }
 
-KWDiscretizer* KWDiscretizer::CloneDiscretizer(const ALString& sName)
+KWDiscretizer* KWDiscretizer::CloneDiscretizer(int nTargetAttributeType, const ALString& sName)
 {
 	KWDiscretizer* referenceDiscretizer;
 
-	// Creation si necessaire du dictionnaire de Discretizers
-	if (odDiscretizers == NULL)
-		odDiscretizers = new ObjectDictionary;
+	require(nTargetAttributeType == KWType::Symbol or nTargetAttributeType == KWType::None);
 
 	// Recherche d'un Discretizer de meme nom
-	referenceDiscretizer = cast(KWDiscretizer*, odDiscretizers->Lookup(sName));
+	referenceDiscretizer = cast(KWDiscretizer*, GetDiscretizers(nTargetAttributeType)->Lookup(sName));
 
 	// Retour de son Clone si possible
 	if (referenceDiscretizer != NULL)
@@ -171,17 +166,15 @@ KWDiscretizer* KWDiscretizer::CloneDiscretizer(const ALString& sName)
 		return NULL;
 }
 
-void KWDiscretizer::ExportAllDiscretizers(ObjectArray* oaDiscretizers)
+void KWDiscretizer::ExportAllDiscretizers(int nTargetAttributeType, ObjectArray* oaDiscretizers)
 {
 	require(oaDiscretizers != NULL);
 
-	// Creation si necessaire du dictionnaire de predicteurs
-	if (odDiscretizers == NULL)
-		odDiscretizers = new ObjectDictionary;
+	require(nTargetAttributeType == KWType::Symbol or nTargetAttributeType == KWType::None);
 
 	// Recherche des predicteurs du bon type
 	oaDiscretizers->RemoveAll();
-	odDiscretizers->ExportObjectArray(oaDiscretizers);
+	GetDiscretizers(nTargetAttributeType)->ExportObjectArray(oaDiscretizers);
 
 	// Tri des predicteurs avant de retourner le tableau
 	oaDiscretizers->SetCompareFunction(KWDiscretizerCompareName);
@@ -190,27 +183,27 @@ void KWDiscretizer::ExportAllDiscretizers(ObjectArray* oaDiscretizers)
 
 void KWDiscretizer::RemoveAllDiscretizers()
 {
-	if (odDiscretizers != NULL)
-	{
-		odDiscretizers->RemoveAll();
-		delete odDiscretizers;
-		odDiscretizers = NULL;
-	}
-	ensure(odDiscretizers == NULL);
+	odSupervisedDiscretizers.RemoveAll();
+	odUnsupervisedDiscretizers.RemoveAll();
 }
 
 void KWDiscretizer::DeleteAllDiscretizers()
 {
-	if (odDiscretizers != NULL)
-	{
-		odDiscretizers->DeleteAll();
-		delete odDiscretizers;
-		odDiscretizers = NULL;
-	}
-	ensure(odDiscretizers == NULL);
+	odSupervisedDiscretizers.DeleteAll();
+	odUnsupervisedDiscretizers.DeleteAll();
 }
 
-ObjectDictionary* KWDiscretizer::odDiscretizers = NULL;
+ObjectDictionary* KWDiscretizer::GetDiscretizers(int nTargetAttributeType)
+{
+	require(nTargetAttributeType == KWType::Symbol or nTargetAttributeType == KWType::None);
+	if (nTargetAttributeType == KWType::Symbol)
+		return &odSupervisedDiscretizers;
+	else
+		return &odUnsupervisedDiscretizers;
+}
+
+ObjectDictionary KWDiscretizer::odSupervisedDiscretizers;
+ObjectDictionary KWDiscretizer::odUnsupervisedDiscretizers;
 
 int KWDiscretizerCompareName(const void* first, const void* second)
 {

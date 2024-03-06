@@ -16,6 +16,7 @@
         "TESTING": "OFF",
         "BUILD_JARS": "OFF",
         "BUILD_LEX_YACC": "OFF",
+        "GENERATE_VIEWS": "OFF",
         "C11": "ON"
       },
       "binaryDir": "${sourceDir}/build/${presetName}"

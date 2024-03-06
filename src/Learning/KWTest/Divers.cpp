@@ -1829,9 +1829,8 @@ void AnyCharFileGenerator()
 	char cChar;
 
 	FileService::OpenOutputFile(sFileName, fTest);
-	fTest << "Index\tChar\t<Char>"
-		 "\tisupper\tislower\tisdigit\tisxdigit\tisalnum\tisspace\tispunct\tp_"
-		 "isprint\tisprint\tisgraph\tiscntrl\tisascii\n";
+	fTest << "Index\tChar\t<Char>\tisupper\tislower\tisdigit\tisxdigit\tisalnum\t"
+	      << "isspace\tispunct\tp_isprint\tisprint\tisgraph\tiscntrl\tisascii\n";
 	for (i = 0; i < 20; i++)
 	{
 		for (nChar = 1; nChar < 256; nChar++)
@@ -1859,7 +1858,7 @@ void AnyCharFileGenerator()
 			fTest << (isdigit(nChar) != 0) << "\t";
 			fTest << (isxdigit(nChar) != 0) << "\t";
 			fTest << (isalnum(nChar) != 0) << "\t";
-			fTest << (isspace(nChar) != 0) << "\t";
+			fTest << (iswspace((char)nChar) != 0) << "\t";
 			fTest << (ispunct(nChar) != 0) << "\t";
 			fTest << (p_isprint(nChar) != 0) << "\t";
 			fTest << (isprint(nChar) != 0) << "\t";

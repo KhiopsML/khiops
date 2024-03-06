@@ -64,20 +64,6 @@ protected:
 	// Libelles utilisateur
 	const ALString GetObjectLabel() const override;
 
-#ifdef DEPRECATED_V10
-	// DEPRECATED V10
-	// Utilisation d'une copie a part de KWAttributeConstructionSpec
-	// pour detecter l'utilisation a tort de l'onglet obsolete
-	KWAttributeConstructionSpec DEPRECATEDAttributeConstructionSpec;
-	KWAttributeConstructionSpec DEPRECATEDAttributeConstructionSpecReference;
-
-	// DEPRECATED V10
-	// Utilisation d'une copie a part de KWModelingSpec
-	// pour detecter l'utilisation a tort de l'onglet obsolete
-	KWModelingSpec* DEPRECATEDModelingSpec;
-	KWModelingSpec* DEPRECATEDModelingSpecReference;
-#endif // DEPRECATED_V10
-
 	// ##
 };
 

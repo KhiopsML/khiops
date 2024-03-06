@@ -2347,7 +2347,7 @@ void DTDecisionTree::WriteReport(ostream& ost)
 	    << "\n";
 	ost << "\n";
 	ost << "Database"
-	    << "\t" << GetLearningSpec()->GetClass()->GetName() << "\n";
+	    << "\t" << TSV::Export(GetLearningSpec()->GetClass()->GetName()) << "\n";
 
 	// Nombres d'attributs
 	ost << "Variables"
@@ -2378,19 +2378,17 @@ void DTDecisionTree::WriteReport(ostream& ost)
 	{
 		// Attribut cible
 		ost << "\nTarget variable"
-		    << "\t" << GetTargetAttributeName() << "\n";
+		    << "\t" << TSV::Export(GetTargetAttributeName()) << "\n";
 
 		// Valeur cible principale
 		if (GetMainTargetModality() != Symbol())
 		{
 			ost << "Main target value"
-			    << "\t" << GetMainTargetModality() << "\n";
+			    << "\t" << TSV::Export(GetMainTargetModality().GetValue()) << "\n";
 		}
 
 		// Statistiques descriptives
-		if (GetTargetAttributeType() == KWType::Continuous or
-		    (GetTargetAttributeType() == KWType::Symbol and
-		     GetTargetDescriptiveStats()->GetValueNumber() > GetMaxModalityNumber()))
+		if (GetTargetAttributeType() == KWType::Continuous or GetTargetAttributeType() == KWType::Symbol)
 			GetTargetDescriptiveStats()->WriteReport(ost);
 
 		// Detail des valeurs
@@ -2405,21 +2403,12 @@ void DTDecisionTree::WriteReport(ostream& ost)
 			for (i = 0; i < valueStats->GetPartNumber(); i++)
 			{
 				// Affichage
-				ost << "\t" << valueStats->GetValueAt(i);
+				ost << "\t" << TSV::Export(valueStats->GetValueAt(i).GetValue());
 				ost << "\t" << GetTargetValueStats()->GetUnivariateCellFrequencyAt(i);
 				ost << "\t"
 				    << GetTargetValueStats()->GetUnivariateCellFrequencyAt(i) * 1.0 /
 					   GetInstanceNumber();
 				ost << "\n";
-
-				// Test si nombre max atteint
-				if (GetTargetValueStats()->GetAttributeAt(0)->GetPartNumber() >
-					GetMaxModalityNumber() and
-				    i == GetMaxModalityNumber() - 1)
-				{
-					ost << "\t...\n";
-					break;
-				}
 			}
 		}
 		ost << "\n";
@@ -2554,7 +2543,7 @@ void DTDecisionTree::UpdateDatabaseObjectsTargetModalities()
 	assert(nkdDatabaseObjects->GetCount() > 0);
 	assert(svReferenceTargetModalities->GetSize() > 0);
 
-	const ALString sTargetName = this->GetLearningSpec()->GetTargetAttributeName();
+	const ALString sTargetName = GetLearningSpec()->GetTargetAttributeName();
 
 	// POSITION position = nkdDatabaseObjects->GetStartPosition();
 	// NUMERIC key;
@@ -2814,7 +2803,7 @@ DTDecisionTree::ComputeAdaBoostCumulatedWeights(const NumericKeyDictionary* rand
 			result->Add(result->GetAt(i - 1) + dbo->GetBoostingTreeWeight());
 
 		// garder la memoire de l'ordre des KWObjects qui correspond aux valeurs cumulees
-		kwoObjectsList->Add((KWObject*)key);
+		kwoObjectsList->Add(cast(KWObject*, (Object*)key.ToPointer()));
 
 		i++;
 	}

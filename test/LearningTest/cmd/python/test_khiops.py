@@ -37,7 +37,7 @@ khiops_exe_names = {
 khiops_test_sub_dirs = {
     "Khiops": "TestKhiops",
     "Coclustering": "TestCoclustering",
-    "KNI": "TestKNITransfer",
+    "KNI": "TestKNI",
 }
 
 """ Liste des outils de Khiops qui tournent en parallele (les seuls que l'on peut lancer avec mpiexec) """

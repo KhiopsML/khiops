@@ -48,7 +48,7 @@ void KWDatabaseFormatDetectorView::SetUsingClass(boolean bValue)
 	sMessage = "Detect the format of the database.";
 	sMessage += "\n Heuristic help that scans the first few lines to guess the file format";
 	if (bValue)
-		sMessage += "\n while being consistent w.r.t. the dictionary";
+		sMessage += "\n while being consistent w.r.t. the dictionary if specified.";
 	else
 		sMessage += ".";
 	sMessage += "\n The header line and field separator are updated on success,";

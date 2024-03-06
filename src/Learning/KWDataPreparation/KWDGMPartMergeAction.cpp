@@ -113,7 +113,7 @@ KWDGMPart* KWDGMPartMergeAction::PerformPartMerge(KWDGMPartMerge* partMerge)
 
 	// Dereferencement des parties de la liste triee par nombre de modalites
 	// Restitution de la poubelle
-	if (attribute->GetAttributeType() == KWType::Symbol)
+	if (KWType::IsCoclusteringGroupableType(attribute->GetAttributeType()))
 	{
 		attribute->RemovePartFromValueNumberList(part1);
 		attribute->RemovePartFromValueNumberList(part2);
@@ -160,10 +160,7 @@ KWDGMPart* KWDGMPartMergeAction::PerformPartMerge(KWDGMPartMerge* partMerge)
 	// Realisation de la fusion des parties
 
 	// Import des valeurs de la partie origine vers la partie destination
-	if (attribute->GetAttributeType() == KWType::Continuous)
-		part2->GetInterval()->Import(part1->GetInterval());
-	else
-		part2->GetValueSet()->Import(part1->GetValueSet());
+	part2->GetPartValues()->Import(part1->GetPartValues());
 
 	// Transfert des cellules a transferer
 	for (nCell = 0; nCell < oaTransferredCells1.GetSize(); nCell++)
@@ -244,10 +241,12 @@ KWDGMPart* KWDGMPartMergeAction::PerformPartMerge(KWDGMPartMerge* partMerge)
 	// Mise a jour du cout de la partie 2
 	part2->SetCost(dataGridCosts->ComputePartCost(part2));
 
-	if (attribute->GetAttributeType() == KWType::Symbol)
+	// Finalisation de la gestion de la poubelle
+	if (KWType::IsCoclusteringGroupableType(attribute->GetAttributeType()))
 	{
 		// Reinsertion de la partie fusionnee dans la liste triee par nombre de modalites
 		attribute->AddPartToValueNumberList(part2);
+
 		// Mise a jour du groupe poubelle selon les caracteristiques enregistrees dans le partMerge
 		if (bGarbagePresence)
 			attribute->SetGarbagePart(cast(KWDGPart*, attribute->slPartValueNumbers->GetHead()));
@@ -398,8 +397,8 @@ void KWDGMPartMergeAction::GlobalUpdateImpactedPartMerges(ObjectArray* oaTransfe
 	for (nCell = 0; nCell < oaTransferredCells1->GetSize(); nCell++)
 	{
 		cell = cast(KWDGMCell*, oaTransferredCells1->GetAt(nCell));
-		assert(nkdTransferredCells1.Lookup((NUMERIC)cell) == NULL);
-		nkdTransferredCells1.SetAt((NUMERIC)cell, cell);
+		assert(nkdTransferredCells1.Lookup(cell) == NULL);
+		nkdTransferredCells1.SetAt(cell, cell);
 	}
 	assert(oaTransferredCells1->GetSize() == nkdTransferredCells1.GetCount());
 
@@ -408,13 +407,13 @@ void KWDGMPartMergeAction::GlobalUpdateImpactedPartMerges(ObjectArray* oaTransfe
 	{
 		// Rangement dans le premier dictionnaire
 		cell = cast(KWDGMCell*, oaMergedCells1->GetAt(nCell));
-		assert(nkdMergedCells1.Lookup((NUMERIC)cell) == NULL);
-		nkdMergedCells1.SetAt((NUMERIC)cell, cell);
+		assert(nkdMergedCells1.Lookup(cell) == NULL);
+		nkdMergedCells1.SetAt(cell, cell);
 
 		// Rangement dans le second dictionnaire, avec la meme cle
 		mergedCell = cast(KWDGMCell*, oaMergedCells2->GetAt(nCell));
-		assert(nkdMergedCells2.Lookup((NUMERIC)cell) == NULL);
-		nkdMergedCells2.SetAt((NUMERIC)cell, mergedCell);
+		assert(nkdMergedCells2.Lookup(cell) == NULL);
+		nkdMergedCells2.SetAt(cell, mergedCell);
 	}
 	assert(oaMergedCells1->GetSize() == nkdMergedCells1.GetCount());
 	assert(oaMergedCells2->GetSize() == nkdMergedCells2.GetCount());
@@ -496,7 +495,7 @@ void KWDGMPartMergeAction::GlobalUpdateImpactedPartMergesForAttribute(
 	for (nCell = 0; nCell < oaTransferredCells1->GetSize(); nCell++)
 	{
 		cell = cast(KWDGMCell*, oaTransferredCells1->GetAt(nCell));
-		assert(nkdTransferredCells1->Lookup((NUMERIC)cell) == cell);
+		assert(nkdTransferredCells1->Lookup(cell) == cell);
 
 		// Affichage
 		if (bDisplay)
@@ -534,14 +533,14 @@ void KWDGMPartMergeAction::GlobalUpdateImpactedPartMergesForAttribute(
 						cout << "\t" << dMergeDeltaCost << "\tPas de collision\n";
 				}
 				//   Collision avec autre cellule transferee: pas d'impact
-				else if (nkdTransferredCells1->Lookup((NUMERIC)oppositeCell) != NULL)
+				else if (nkdTransferredCells1->Lookup(oppositeCell) != NULL)
 				{
 					if (bDisplay)
 						cout << "\t" << dMergeDeltaCost
 						     << "\tCollision avec une autre cellule transfere\n";
 				}
 				//   Collision avec cellule fusionnee: mise a jour necessaire
-				else if (nkdMergedCells1->Lookup((NUMERIC)oppositeCell) != NULL)
+				else if (nkdMergedCells1->Lookup(oppositeCell) != NULL)
 				{
 					// On supprime le cout de merge des cellules origines
 					evaluationCell->MergeFrequenciesFrom(cell, oppositeCell);
@@ -549,7 +548,7 @@ void KWDGMPartMergeAction::GlobalUpdateImpactedPartMergesForAttribute(
 							    cell->GetCost() - oppositeCell->GetCost());
 
 					// Recherche de de la cellule interne destination de la fusion
-					mergedCell = cast(KWDGMCell*, nkdMergedCells2->Lookup((NUMERIC)oppositeCell));
+					mergedCell = cast(KWDGMCell*, nkdMergedCells2->Lookup(oppositeCell));
 					check(mergedCell);
 
 					// Calcul du cout de la fusion interne initiale
@@ -606,7 +605,7 @@ void KWDGMPartMergeAction::GlobalUpdateImpactedPartMergesForAttribute(
 				partMerge->SetMergeCost(partMerge->GetMergeCost() + dMergeDeltaCost);
 
 				// On memorise la fusion modifiee
-				nkdUpdatedPartMerges.SetAt((NUMERIC)partMerge, partMerge);
+				nkdUpdatedPartMerges.SetAt(partMerge, partMerge);
 			}
 		}
 	}
@@ -615,7 +614,7 @@ void KWDGMPartMergeAction::GlobalUpdateImpactedPartMergesForAttribute(
 	for (nCell = 0; nCell < oaMergedCells1->GetSize(); nCell++)
 	{
 		cell = cast(KWDGMCell*, oaMergedCells1->GetAt(nCell));
-		assert(nkdMergedCells1->Lookup((NUMERIC)cell) == cell);
+		assert(nkdMergedCells1->Lookup(cell) == cell);
 
 		// Affichage
 		if (bDisplay)
@@ -653,7 +652,7 @@ void KWDGMPartMergeAction::GlobalUpdateImpactedPartMergesForAttribute(
 						cout << "\t" << dMergeDeltaCost << "\tPas de collision\n";
 				}
 				//   Collision avec cellule transferee: mise a jour necessaire
-				else if (nkdTransferredCells1->Lookup((NUMERIC)oppositeCell) != NULL)
+				else if (nkdTransferredCells1->Lookup(oppositeCell) != NULL)
 				{
 					// On supprime le cout de merge des cellules origines
 					evaluationCell->MergeFrequenciesFrom(cell, oppositeCell);
@@ -661,7 +660,7 @@ void KWDGMPartMergeAction::GlobalUpdateImpactedPartMergesForAttribute(
 							    cell->GetCost() - oppositeCell->GetCost());
 
 					// Recherche de la cellule interne destination de la fusion
-					mergedCell = cast(KWDGMCell*, nkdMergedCells2->Lookup((NUMERIC)cell));
+					mergedCell = cast(KWDGMCell*, nkdMergedCells2->Lookup(cell));
 					check(mergedCell);
 
 					// Calcul du cout de la fusion interne initiale
@@ -682,7 +681,7 @@ void KWDGMPartMergeAction::GlobalUpdateImpactedPartMergesForAttribute(
 					}
 				}
 				//   Collision avec cellule fusionnee: mise a jour necessaire
-				else if (nkdMergedCells1->Lookup((NUMERIC)oppositeCell) != NULL)
+				else if (nkdMergedCells1->Lookup(oppositeCell) != NULL)
 				{
 					// On supprime le cout de merge des cellules origines
 					evaluationCell->MergeFrequenciesFrom(cell, oppositeCell);
@@ -690,12 +689,11 @@ void KWDGMPartMergeAction::GlobalUpdateImpactedPartMergesForAttribute(
 							    cell->GetCost() - oppositeCell->GetCost());
 
 					// Recherche de la cellule interne destination de la fusion
-					mergedCell = cast(KWDGMCell*, nkdMergedCells2->Lookup((NUMERIC)cell));
+					mergedCell = cast(KWDGMCell*, nkdMergedCells2->Lookup(cell));
 					check(mergedCell);
 
 					// Recherche de la cellule fusionnee extremite
-					oppositeCell2 =
-					    cast(KWDGMCell*, nkdMergedCells2->Lookup((NUMERIC)oppositeCell));
+					oppositeCell2 = cast(KWDGMCell*, nkdMergedCells2->Lookup(oppositeCell));
 					assert(oppositeCell2 == dataGridMerger->CellDictionaryLookupModifiedCell(
 								    mergedCell, oppositePart));
 
@@ -731,7 +729,7 @@ void KWDGMPartMergeAction::GlobalUpdateImpactedPartMergesForAttribute(
 			if (oppositeCell == NULL)
 			{
 				// Recherche de la cellule interne destination de la fusion
-				mergedCell = cast(KWDGMCell*, nkdMergedCells2->Lookup((NUMERIC)cell));
+				mergedCell = cast(KWDGMCell*, nkdMergedCells2->Lookup(cell));
 				check(mergedCell);
 
 				// Recherche d'une collision destination
@@ -779,7 +777,7 @@ void KWDGMPartMergeAction::GlobalUpdateImpactedPartMergesForAttribute(
 				partMerge->SetMergeCost(partMerge->GetMergeCost() + dMergeDeltaCost);
 
 				// On memorise la fusion modifiee
-				nkdUpdatedPartMerges.SetAt((NUMERIC)partMerge, partMerge);
+				nkdUpdatedPartMerges.SetAt(partMerge, partMerge);
 			}
 		}
 	}
@@ -863,7 +861,7 @@ NumericKeyDictionary* KWDGMPartMergeAction::InitializeImpactedPartMergesForAttri
 	while (cell1 != NULL)
 	{
 		impactedPart = cast(KWDGMPart*, cell1->GetPartAt(nImpactedAttribute));
-		nkdImpactedParts1.SetAt((NUMERIC)impactedPart, impactedPart);
+		nkdImpactedParts1.SetAt(impactedPart, impactedPart);
 		part1->GetNextCell(cell1);
 	}
 	nkdImpactedParts1.ExportObjectArray(&oaImpactedParts1);
@@ -881,7 +879,7 @@ NumericKeyDictionary* KWDGMPartMergeAction::InitializeImpactedPartMergesForAttri
 			// Creation et enregistrement d'un tableau de fusions
 			partMergeArray = new KWDGMPartMergeArray;
 			partMergeArray->SetPart1(impactedPart);
-			nkdAttributeImpactedPartMerges->SetAt((NUMERIC)impactedPart, partMergeArray);
+			nkdAttributeImpactedPartMerges->SetAt(impactedPart, partMergeArray);
 
 			// Recherche des fusions impactees
 			position = impactedPart->GetStartPartMerge();
@@ -890,10 +888,10 @@ NumericKeyDictionary* KWDGMPartMergeAction::InitializeImpactedPartMergesForAttri
 				impactedPart->GetNextPartMerge(position, impactedPartMerge);
 
 				// Traitement de la fusion si elle n'a pas deja ete enregistree
-				if (nkdImpactedPartMerges.Lookup((NUMERIC)impactedPartMerge) == NULL)
+				if (nkdImpactedPartMerges.Lookup(impactedPartMerge) == NULL)
 				{
 					// Enregistrement de la fusion
-					nkdImpactedPartMerges.SetAt((NUMERIC)impactedPartMerge, impactedPartMerge);
+					nkdImpactedPartMerges.SetAt(impactedPartMerge, impactedPartMerge);
 
 					// Memorisation dans le tableau des fusions associees a la partie
 					partMergeArray->GetPartMerges()->Add(impactedPartMerge);
@@ -916,8 +914,8 @@ NumericKeyDictionary* KWDGMPartMergeAction::InitializeImpactedPartMergesForAttri
 
 				// On prend en compte les parties non deja recenses parmi
 				// les parties origines
-				if (nkdImpactedParts1.Lookup((NUMERIC)impactedPart) == NULL)
-					nkdImpactedParts2.SetAt((NUMERIC)impactedPart, impactedPart);
+				if (nkdImpactedParts1.Lookup(impactedPart) == NULL)
+					nkdImpactedParts2.SetAt(impactedPart, impactedPart);
 				part2->GetNextCell(cell2);
 			}
 			nkdImpactedParts2.ExportObjectArray(&oaImpactedParts2);
@@ -932,8 +930,8 @@ NumericKeyDictionary* KWDGMPartMergeAction::InitializeImpactedPartMergesForAttri
 
 				// On prend en compte les parties non deja recenses parmi
 				// les parties origines
-				if (nkdImpactedParts1.Lookup((NUMERIC)impactedPart) == NULL)
-					nkdImpactedParts2.SetAt((NUMERIC)impactedPart, impactedPart);
+				if (nkdImpactedParts1.Lookup(impactedPart) == NULL)
+					nkdImpactedParts2.SetAt(impactedPart, impactedPart);
 				impactedAttribute->GetNextPart(part);
 			}
 			nkdImpactedParts2.ExportObjectArray(&oaImpactedParts2);
@@ -949,7 +947,7 @@ NumericKeyDictionary* KWDGMPartMergeAction::InitializeImpactedPartMergesForAttri
 			// Creation et enregistrement d'un tableau de fusions
 			partMergeArray = new KWDGMPartMergeArray;
 			partMergeArray->SetPart1(impactedPart);
-			nkdAttributeImpactedPartMerges->SetAt((NUMERIC)impactedPart, partMergeArray);
+			nkdAttributeImpactedPartMerges->SetAt(impactedPart, partMergeArray);
 
 			// Il faut cree les fusions intra parties externes origines
 			for (nOtherPart = nPart + 1; nOtherPart < oaImpactedParts1.GetSize(); nOtherPart++)
@@ -1196,9 +1194,9 @@ boolean KWDGMPartMergeAction::CheckImpactedPartMerges() const
 					    cast(KWDGMPartMerge*, partMergeArray->GetPartMerges()->GetAt(nMerge));
 
 					// Test d'unicite en utilisant un dictionnaire global
-					if (nkdAllPartMerges.Lookup((NUMERIC)partMerge) == NULL)
+					if (nkdAllPartMerges.Lookup(partMerge) == NULL)
 					{
-						nkdAllPartMerges.SetAt((NUMERIC)partMerge, partMerge);
+						nkdAllPartMerges.SetAt(partMerge, partMerge);
 					}
 					// Erreur si fusion enregistree plus d'une fois
 					else

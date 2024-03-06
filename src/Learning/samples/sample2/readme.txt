@@ -6,8 +6,7 @@ Fonctionnalites:
 	Construction d'un predicteur Classe majoritaire
 
 Fichiers sources:
-	ClassifieurMajoritaire.cpp	Lancement de la vue principale
-	ClassifieurMajoritaire.h
+	main.cpp	Lancement de la vue principale
 	CMLearningProject.cpp		Lancement du projet
 	CMLearningProject.h
 	CMLearningProblem.cpp		Gestion de l'apprentissage avec Classifieur Majoritaire

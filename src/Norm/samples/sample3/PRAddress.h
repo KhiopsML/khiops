@@ -38,6 +38,7 @@ public:
 	// Ville
 	const ALString& GetCity() const;
 	void SetCity(const ALString& sValue);
+
 	///////////////////////////////////////////////////////////
 	// Divers
 
@@ -53,7 +54,7 @@ public:
 	// ##
 
 	////////////////////////////////////////////////////////
-	//// Implementation
+	///// Implementation
 protected:
 	// Attributs de la classe
 	ALString sZipCode;

@@ -1,8 +1,8 @@
 Database ../../../datasets/Mushroom/Mushroom.txt : Read records: 8416
-  0:00:00	Write intermediate coclustering report Coclustering(1).khc	Level: 0.00515959	Size: 2*2	Granularity: 2
-  0:00:00	Write intermediate coclustering report Coclustering(2).khc	Level: 0.0453955	Size: 4*3	Granularity: 3
-  0:00:00	Write intermediate coclustering report Coclustering(3).khc	Level: 0.108244	Size: 6*6
-  0:00:00	Write intermediate coclustering report Coclustering(4).khc	Level: 0.109924	Size: 7*7
-Write coclustering report ./results\Coclustering.khc
+  0:00:00	Write intermediate report Coclustering(1).khcj	Level: 0.00515959	Size: 2*2	Granularity: 2
+  0:00:00	Write intermediate report Coclustering(2).khcj	Level: 0.0453955	Size: 4*3	Granularity: 3
+  0:00:00	Write intermediate report Coclustering(3).khcj	Level: 0.108244	Size: 6*6
+  0:00:00	Write intermediate report Coclustering(4).khcj	Level: 0.109924	Size: 7*7
+Write coclustering report ./results/Coclustering.khcj
 Coclustering analysis time: 0:00:00.04
 
