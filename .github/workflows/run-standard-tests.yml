@@ -1,5 +1,5 @@
 ---
-name: Run Standard Tests
+name: Standard Tests
 # Run minimal end-to-end tests for Khiops, Khiops Coclustering and KNITransfer
 # Tests are lauched on Linux, Windows and macOS ; in serial and in parallel (4 procs)
 # On release, it runs Standard test for binary.
@@ -8,6 +8,11 @@ name: Run Standard Tests
 # It is automatically triggered on PR when sources files are modified (files in src directory)
 on:
   workflow_dispatch:
+    inputs:
+      debug-test-all:
+        type: boolean
+        default: false
+        description: Run all Standard tests on Debug
   pull_request:
     paths:
       - '**CMakeLists.txt'
@@ -19,6 +24,7 @@ on:
       - src/**.lex
       - src/**.yac
       - test/LearningTest/**
+      - .github/workflows/run-standard-tests.yml
 # Cancel any ongoing run of this workflow on the same PR or ref
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref
@@ -43,7 +49,7 @@ jobs:
       PRESET_NAME: ${{ matrix.build-setup.cmake-preset }}-${{ matrix.config }}
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Build all binaries
         uses: ./.github/actions/build-khiops
         with:
@@ -51,7 +57,7 @@ jobs:
           targets: all
       - name: Cache binaries
         id: cache-binaries-unix
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           # We add binaries path one by one to avoid *.pdb and other msvc stuffs that generate a cache of 200Mo for windows
           path: |
@@ -126,7 +132,7 @@ jobs:
           if [[ "${{ matrix.running-mode }}" == "parallel" ]] ; then
             export KhiopsMPIProcessNumber=4
           fi
-          if [[ "${{ matrix.config }}" == "release" ]] ; then
+          if [[ "${{ matrix.config }}" == "release" || "${{ inputs.debug-test-all }}" == "true" ]] ; then
             python $TEST_PY Khiops ${BIN_PATH}/MODL${EXT} Standard
             if [[ "${{ matrix.running-mode }}" != "parallel" ]] ; then
               python $TEST_PY Coclustering ${BIN_PATH}/MODL_Coclustering${EXT} Standard
@@ -143,7 +149,7 @@ jobs:
         shell: bash
         if: success() || failure()
         run: |
-          if [[ "${{ matrix.config }}" == "release" ]] ; then
+          if [[ "${{ matrix.config }}" == "release" || "${{ inputs.debug-test-all }}" == "true" ]] ; then
             python3 $APPLY_PY errors test/LearningTest/TestKhiops/Standard | tee test/LearningTest/TestKhiops/Standard/errors.txt
             if [[ "${{ matrix.running-mode }}" != "parallel" ]] ; then
               python $APPLY_PY errors test/LearningTest/TestCoclustering/Standard | tee test/LearningTest/TestCoclustering/Standard/errors.txt
@@ -169,7 +175,7 @@ jobs:
           fi
       - name: Upload test results
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-results-${{ env.PRESET_NAME }}-${{ matrix.running-mode}}
           retention-days: 7
@@ -180,14 +186,14 @@ jobs:
             test/LearningTest/**/comparisonResults.log
   cleanup-cache:
     # Clean up all caches belonging to the current run
-    if: ${{ always() }}
+    if: always()
     needs: run-standard-tests
     runs-on: ubuntu-latest
     permissions:
       actions: write
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           sparse-checkout: .git
       - name: Cleanup cache
