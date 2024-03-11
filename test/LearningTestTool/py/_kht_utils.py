@@ -2,8 +2,11 @@ import os
 import os.path
 import shutil
 import stat
+import argparse
 
 import _kht_constants as kht
+import _kht_families as test_families
+
 
 """
 Fonction utilitaires, notamment pour la gestion des fichiers et des messages
@@ -14,8 +17,7 @@ Verification de la typologie des repertoires dans LearningTest
 - test dir: repertoire d'un test elementaire (ex: `IrisLight`)
 - suite dir: repertoire d'une famille de test, contenant un sous-repertoire par test (ex: Standard)
 - tool dir: repertoire pour un outil, contenant un sous-repertoire par suite de test: (ex: TestKhiops)
-- home dir: repertoire LearningTest, contenant les tool dirs
-- root dir: repertoire contenant le home dir
+- home dir: repertoire LearningTest, contenant les tool dirs, designe en externe par 'LearningTest dir'
 
 Les methodes suivante verifie qu'un path, relatif ou absolu, se termine par un repertoire de la typologie.
 En cas d'erreur, un message est affiche est on sort du programme
@@ -49,15 +51,15 @@ def check_tool_dir(checked_dir):
 
 
 def check_home_dir(checked_dir):
-    """Test si un chemin est celui du repertoire de base"""
+    """Test si un chemin est celui du repertoire LearningTest"""
     home_dir = parent_dir_name(checked_dir, 0)
     if home_dir != kht.LEARNING_TEST:
         fatal_error(
-            checked_dir + " should be the home directory of " + kht.LEARNING_TEST
+            checked_dir + " should be the '" + kht.LEARNING_TEST + "' directory"
         )
 
 
-def check_learning_test_dir(checked_dir):
+def get_learning_test_sub_dir_depth(checked_dir):
     """Test si un chemin est correspond a un sous-repertoire de LearningTest
     Renvoie la profondeur a laquelle se trouver LearningTest
     - 0: home dir
@@ -70,7 +72,10 @@ def check_learning_test_dir(checked_dir):
     path_components = os.path.realpath(checked_dir).split(os.sep)
     if kht.LEARNING_TEST not in path_components:
         fatal_error(
-            checked_dir + " should contain the home directory " + kht.LEARNING_TEST
+            checked_dir
+            + " must be in a tree whose root is called '"
+            + kht.LEARNING_TEST
+            + "'"
         )
     else:
         depth = 0
@@ -82,57 +87,24 @@ def check_learning_test_dir(checked_dir):
         if depth > 3:
             fatal_error(
                 checked_dir
-                + " should contain the home directory "
+                + " must be in a tree whose root is called '"
                 + kht.LEARNING_TEST
-                + " with a maximum of three levels above it in the directory tree"
+                + "' with a maximum of three levels above it in the directory tree"
             )
 
         return depth
 
 
-def check_learning_test_tool_dir(checked_dir):
-    """Test si un chemin est correspond a un sous-repertoire de LearningTest"""
-    path_components = os.path.realpath(checked_dir).split(os.sep)
-    if kht.LEARNING_TEST_TOOL not in path_components:
-        fatal_error(
-            checked_dir + " should contain the tool directory " + kht.LEARNING_TEST_TOOL
-        )
-
-
-def check_candidate_root_dir(source_home_dir, candidate_target_root_dir):
-    """Test si un chemin peut servir a about a un repertoire racine
-    Il ne doit pas etre un sous-repertoire du repertoire de base"""
-    check_home_dir(source_home_dir)
-    if not os.path.isdir(candidate_target_root_dir):
-        fatal_error(candidate_target_root_dir + " should be a valid directory")
-    home_dir = os.path.realpath(source_home_dir)
-    root_dir = os.path.realpath(candidate_target_root_dir)
-    if root_dir.find(home_dir) >= 0:
-        fatal_error(
-            "target root dir "
-            + root_dir
-            + " must not be a sub_directory of home dir "
-            + home_dir
-        )
-
-
-def get_home_dir(learning_test_dir):
+def get_home_dir(home_dir):
     """Retourne le repertoire de base LearningTest a partir d'un sous-repertoire de profondeur quelconque"""
-    assert kht.LEARNING_TEST in os.path.realpath(learning_test_dir).split(os.sep), (
-        kht.LEARNING_TEST + " should be a directory in path " + learning_test_dir
+    assert kht.LEARNING_TEST in os.path.realpath(home_dir).split(os.sep), (
+        kht.LEARNING_TEST + " should be a directory in path " + home_dir
     )
     # On remonte dans le chemin (reel) jusqu'a trouver le repertoire racine
-    home_dir = os.path.realpath(learning_test_dir)
+    home_dir = os.path.realpath(home_dir)
     while os.path.basename(home_dir) != kht.LEARNING_TEST:
         home_dir = os.path.dirname(home_dir)
     return home_dir
-
-
-def get_root_dir(learning_test_dir):
-    """Retourne le repertoire contenant LearningTest a partir d'un sous-repertoire de profondeur quelconque"""
-    home_dir = get_home_dir(learning_test_dir)
-    root_dir = os.path.dirname(home_dir)
-    return root_dir
 
 
 def test_dir_name(test_dir):
@@ -231,59 +203,180 @@ def list_to_label(value_list):
 
 
 """
-Gestion de la valeur des variables d'environnement
+Gestion des arguments commun de la ligne de commande, pour la librairie argparse
 """
 
 
-def get_env_var_positive_value(env_var_name, is_int=False):
-    """Retourne la valeur numerique d'une variable d'environnement representant une valeur positive
-    Renvoie None si la variable n'est pas definie
-    Sort du programme avec une erreur si elle ne correspond pas a une valeur numerique positive
+def get_formatter_class(script_name):
+    """Variante de la classe de formatage a utiliser pour la creation des ArgumentParser
+    - pour montrer une option par ligne, en indentant legerement l'espace des noms des options
+    - pour permettre des aide multi-lignes, notamment dans l'epilogue
+    (je ne sais pas pourquoi il faut pas passer par un lambda expression: pas grave)
     """
-    value = os.getenv(env_var_name)
-    if value is not None:
-        try:
-            if is_int:
-                value = int(value)
-            else:
-                value = float(value)
-            if value < 0:
-                raise ValueError("should be positive")
-        except ValueError as valueException:
-            value = None
-            fatal_error(
-                "env var "
-                + env_var_name
-                + " ("
-                + str(os.getenv(env_var_name))
-                + ") : "
-                + str(valueException),
-            )
-    return value
+    argument_parser_formatter_class = lambda prog: argparse.RawTextHelpFormatter(
+        script_name, max_help_position=26
+    )
+    return argument_parser_formatter_class
 
 
-def get_env_var_boolean_value(env_var_name, default_value):
-    """Retourne la valeur booleenn d'une variable d'environnement
-    Renvoie:
-    - True si la valeur est "true"
-    - False si la valeur est "false"
-    - la valeur par defaut sinon
+def argument_parser_add_source_argument(parser):
+    """Ajout de l'argument source, sous repertoire dans l'arborescence LearningTest"""
+    parser.add_argument(
+        "source",
+        help="source directory, sub-dir in a " + kht.LEARNING_TEST + " tree",
+    )
+
+
+def argument_parser_add_dest_argument(parser):
+    """Ajout de l'argument dest, repertoire devant contenir une sous-partie d'une arborescence LearningTest"""
+    parser.add_argument(
+        "dest",
+        help="destination directory that contains the output "
+        + kht.LEARNING_TEST
+        + " tree",
+    )
+
+
+def argument_parser_add_family_argument(parser):
+    """Ajout de l'argument de famile de suites"""
+    parser.add_argument(
+        "-f",
+        "--family",
+        help="family of test suites among "
+        + ", ".join(test_families.TEST_FAMILIES)
+        + " (default: "
+        + test_families.FULL
+        + ")",
+        choices=test_families.TEST_FAMILIES,
+        default=test_families.FULL,
+        metavar="name",
+        action="store",
+    )
+
+
+def argument_parser_add_processes_argument(parser):
+    """Ajout de l'argument du nombre de process"""
+    parser.add_argument(
+        "-p",
+        "--processes",
+        help="number of processes (default: 1)",
+        dest="n",
+        type=int,
+        default=1,
+        metavar="n",
+        action="store",
+    )
+
+
+def argument_parser_add_forced_platform_argument(parser):
+    """Ajout de l'argument de plateforme forcee en remplacement de la plateforme courante"""
+    parser.add_argument(
+        "--forced-platform",
+        help="platform "
+        + list_to_label(kht.RESULTS_REF_TYPE_VALUES[kht.PLATFORM])
+        + " used to compare results (default: current platform)",
+        choices=kht.RESULTS_REF_TYPE_VALUES[kht.PLATFORM],
+        metavar="plt",
+        action="store",
+    )
+
+
+def argument_parser_add_limit_test_time_arguments(parser):
+    """Ajout des argument de limite des temps de test"""
+    parser.add_argument(
+        "--min-test-time",
+        help="only for test dirs where reference test time (in file "
+        + kht.TIME_LOG
+        + ") is beyond a threshold",
+        type=float,
+        metavar="t",
+        action="store",
+    )
+    parser.add_argument(
+        "--max-test-time",
+        help="only for test dirs where reference test time (in file "
+        + kht.TIME_LOG
+        + ") is below a threshold",
+        type=float,
+        metavar="t",
+        action="store",
+    )
+
+
+def argument_parser_check_source_argument(parser, source):
+    """Verification de l'argument source, a appeler apres les verification standard de parse_args()
+    On renvoie la decomposition du repertoire source sous la forme des champs:
+    home_dir, tool_dir_name, suite_dir_name, test_dir_name
     """
-    value = os.getenv(env_var_name)
-    if value is not None:
-        if value.lower() == "true":
-            return True
-        elif value.lower() == "false":
-            return False
-        else:
-            fatal_error(
-                "env var "
-                + env_var_name
-                + " ("
-                + str(os.getenv(env_var_name))
-                + ") : should be 'false' or 'true'",
-            )
-    return default_value
+    # Verification du repertoire a tester
+    learning_test_depth = get_learning_test_sub_dir_depth(source)
+    source_tool_dir_name = None
+    source_suite_dir_name = None
+    source_test_dir_name = None
+    if learning_test_depth == 3:
+        source_tool_dir_name = parent_dir_name(source, 2)
+        source_suite_dir_name = parent_dir_name(source, 1)
+        source_test_dir_name = parent_dir_name(source, 0)
+    elif learning_test_depth == 2:
+        source_tool_dir_name = parent_dir_name(source, 1)
+        source_suite_dir_name = parent_dir_name(source, 0)
+    elif learning_test_depth == 1:
+        source_tool_dir_name = parent_dir_name(source, 0)
+    if (
+        source_tool_dir_name is not None
+        and source_tool_dir_name not in kht.TOOL_DIR_NAMES.values()
+    ):
+        parser.error(
+            "argument source: "
+            + source_tool_dir_name
+            + " in "
+            + os.path.realpath(source)
+            + " should be a tool dir "
+            + utils.list_to_label(kht.TOOL_DIR_NAMES.values())
+        )
+    source_home_dir = get_home_dir(source)
+    return (
+        source_home_dir,
+        source_tool_dir_name,
+        source_suite_dir_name,
+        source_test_dir_name,
+    )
+
+
+def argument_parser_check_destination_dir(parser, source_home_dir, destination_dir):
+    """Test si un chemin peut servir a about a un repertoire racine
+    Il ne doit pas etre un sous-repertoire du repertoire de base"""
+    check_home_dir(source_home_dir)
+    home_dir = os.path.realpath(source_home_dir)
+    target_dir = os.path.realpath(destination_dir)
+    if target_dir.find(home_dir) >= 0:
+        parser.error(
+            "argument dest: "
+            "destination dir "
+            + destination_dir
+            + " must not in the directory tree "
+            + home_dir
+        )
+
+
+def argument_parser_check_processes_argument(parser, processes):
+    """Verification de l'argument processes, a appeler apres les verification standard de parse_args()"""
+    max_process_number = 128
+    if processes < 1:
+        parser.error("argument -p/--processes: min value is 1")
+    elif processes > max_process_number:
+        parser.error("argument -p/--processes: max value is " + str(max_process_number))
+
+
+def argument_parser_check_limit_test_time_arguments(
+    parser, min_test_time, max_test_time
+):
+    """Verification des arguments de limites des temps de test,
+    a appeler apres les verification standard de parse_args()"""
+    if min_test_time is not None and min_test_time < 0:
+        parser.error("argument --min-test-time must be positive")
+    if max_test_time is not None and max_test_time < 0:
+        parser.error("argument --max-test-time must be positive")
 
 
 """
@@ -342,8 +435,9 @@ Exemples:
 
 
 def find_pattern_in_line(line, pattern):
-    """Renvoie la position de la premier sous-chaine d'un pattern si une ligne contient un pattern
+    """Renvoie la position de la premiere sous-chaine d'un pattern si une ligne contient un pattern
     Retourne -1 sinon"""
+    assert isinstance(pattern, list)
     pos = 0
     first_pos = None
     for sub_pattern in pattern:
@@ -361,14 +455,18 @@ def find_pattern_in_line(line, pattern):
 def find_pattern_in_lines(lines, pattern):
     """Recherche d'un pattern un ensemble de lignes
     Renvoie l'index de la premiere ligne contenant le pattern, -1 sinon"""
+    assert isinstance(lines, list)
+    assert isinstance(pattern, list)
     for i, line in enumerate(lines):
-        if find_pattern_in_line(line, pattern):
+        if find_pattern_in_line(line, pattern) != -1:
             return i
     return -1
 
 
 def filter_lines_with_pattern(lines, pattern):
     """Retourne les lignes sans celles contenant le pattern en parametre"""
+    assert isinstance(lines, list)
+    assert isinstance(pattern, list)
     output_lines = []
     for line in lines:
         if not find_pattern_in_line(line, pattern):
@@ -378,10 +476,11 @@ def filter_lines_with_pattern(lines, pattern):
 
 def filter_copyright_lines(lines):
     """Retourne les lignes sans les lignes de copyright, presentes en mode UI"""
+    assert isinstance(lines, list)
     output_lines = lines
     is_copyright = False
     if len(lines) >= 2:
-        is_copyright = find_pattern_in_lines(
+        is_copyright = find_pattern_in_line(
             lines[1], ["(c)", "Orange - All rights reserved."]
         )
     if is_copyright:
@@ -451,3 +550,17 @@ def remove_dir(dir_to_remove):
         os.rmdir(dir_to_remove)
     except (IOError, os.error) as why:
         print("Cannot remove directory %s: %s" % (dir_to_remove, str(why)))
+
+
+def sub_dirs(source_dir):
+    """Renvoie la liste des sous-repertoire d'un repertoire, sans message d'erreur"""
+    result_sub_dirs = []
+    if os.path.isdir(source_dir):
+        try:
+            list_dir = os.listdir(source_dir)
+            for name in list_dir:
+                if os.path.isdir(os.path.join(source_dir, name)):
+                    result_sub_dirs.append(name)
+        except (IOError, os.error):
+            pass
+    return result_sub_dirs

@@ -1,188 +1,297 @@
 import os
 import sys
 import os.path
+import argparse
 
 import _kht_constants as kht
 import _kht_utils as utils
 import _kht_families as test_families
 import _kht_check_results as check
-import kht_save
+import kht_export
 
 """
 Collecte de tout ou partie des resultats de test
 """
 
-# Liste des options de collecte
+# Liste des types de collecte
 COLLECT_ALL = "all"
-COLLECT_MESSAGES = "messages"
+COLLECT_WARNINGS = "warnings"
 COLLECT_ERRORS = "errors"
-COLLECT_OPTIONS = [COLLECT_ALL, COLLECT_MESSAGES, COLLECT_ERRORS]
-assert len(set(COLLECT_OPTIONS)) == len(COLLECT_OPTIONS), (
-    "Collect options " + str(COLLECT_OPTIONS) + " must not contain duplicates"
+COLLECT_TYPES = [COLLECT_ALL, COLLECT_WARNINGS, COLLECT_ERRORS]
+assert len(set(COLLECT_TYPES)) == len(COLLECT_TYPES), (
+    "Collect types " + str(COLLECT_TYPES) + " must not contain duplicates"
 )
 
-# Libelles des options de sauvegarde
-COLLECT_OPTION_LABELS = {
+# Libelles des types de collecte
+COLLECT_TYPE_LABELS = {
     COLLECT_ALL: "collect all test dir results",
-    COLLECT_MESSAGES: "collect test dir results only in case of errors or messages",
+    COLLECT_WARNINGS: "collect test dir results only in case of wanings or errors",
     COLLECT_ERRORS: "collect test dir results only in case or errors",
 }
-assert set(COLLECT_OPTION_LABELS) == set(
-    COLLECT_OPTION_LABELS
-), "A label must be defined for each save option"
+assert set(COLLECT_TYPE_LABELS) == set(
+    COLLECT_TYPES
+), "A label must be defined for each collect type"
 
 
-def collect_learning_test_results(home_dir, target_root_dir, collect_option, family):
+def collect_learning_test_results(
+    home_dir,
+    input_tool_dir_name,
+    input_suite_dir_name,
+    input_test_dir_name,
+    destination,
+    family,
+    collect_type,
+):
     """
     Sauvegarde de l'arborescence de LearningTest
-    - home_dir: repertoire de l'aborescence source
-    - target_root_dir: repertoire cible contenant l'arborescence sauvegardee
-    - collect_option: option pour sauvegarder tout ou partie de l'arborescence
-    - family: famille utilise pour choisir la sous-partie a exporter
-    L'aborescence des resultats est sauvegardee dans <target_root_dir>/LearningTest_<family>_results
+    Toute ou partie de l'arborescence source est sauvegardee selon la specification
+     des operandes tool_dir_name, suite_dir_name, test_dir_name, qui peuvent etre None sinon.
+    - home_dir: repertoire principal de l'aborescence source
+    - tool_dir_name, suite_dir_name, test_dir_name: pour ne sauvegarder qu'une sous-partie
+      de l'arborescence source si ces oprande ne sont pas None
+    - destination: repertoire cible contenant l'arborescence sauvegardee
+    - family: famille utilise pour choisir la sous-partie des suites a collecter
+    - collect_type: pour choisir une sous-partie dees repertoires de tests a collecter
     """
     assert os.path.isdir(home_dir)
-    assert os.path.isdir(target_root_dir)
-    assert collect_option in COLLECT_OPTIONS
     assert family in test_families.TEST_FAMILIES
+    assert collect_type in COLLECT_TYPES
 
     # Nom du repertoire cible
-    target_home_dir = os.path.join(
-        target_root_dir, kht.LEARNING_TEST + "_results_" + collect_option + "_" + family
-    )
+    target_home_dir = os.path.join(destination, kht.LEARNING_TEST + "_results")
 
     # Verification qu'il n'existe pas deja
     if os.path.isdir(target_home_dir):
-        utils.fatal_error("target home dir already exist on " + target_home_dir)
+        utils.fatal_error("directory " + target_home_dir + " already exists")
+
+    # Creation du repertoire cible
+    try:
+        os.makedirs(target_home_dir)
+    except (IOError, os.error) as why:
+        utils.fatal_error(
+            "unable to create target dir " + target_home_dir + " " + str(why)
+        )
 
     # Parametrage des noms de fichiers ou repertoire specifiques a ne pas prendre en compte
     forbidden_names = ["__pycache__"]
 
-    # Creation du repertoire cible
-    os.makedirs(target_home_dir)
+    # Tous les outils sont a prendre en compte si on est a la racine
+    if input_tool_dir_name is None:
+        used_tool_names = kht.TOOL_NAMES
+    # Sinon, seul l'outil correspondant au tool dir est a tester
+    else:
+        tool_name = kht.TOOL_NAMES_PER_DIR_NAME[input_tool_dir_name]
+        used_tool_names = [tool_name]
+
+    # Memorisation des repertoires intermediaires crees pour ne les creer que si necessaire
+    created_tool_dirs = {}
+    created_suite_dirs = {}
 
     # Parcours des repertoires des outils pour en recuperer les resultats des suites de la famille
-    collecte_test_dir_number = 0
-    for tool_name in kht.TOOL_NAMES:
+    collected_test_dir_number = 0
+    for tool_name in used_tool_names:
         tool_dir_name = kht.TOOL_DIR_NAMES[tool_name]
-        test_suites = test_families.FAMILY_TEST_SUITES[family, tool_name]
-        # Creation du repertoire de l'outil
+        # Chemin du repertoire de l'outil cible
         target_tool_dir = os.path.join(
             target_home_dir,
             tool_dir_name,
         )
-        if len(test_suites) > 0:
-            utils.make_dir(target_tool_dir)
+        # Recherche des suites a utiliser
+        if input_suite_dir_name is not None:
+            assert tool_dir_name is not None
+            suite_dir_names = [input_suite_dir_name]
+        elif family == test_families.ALL:
+            suite_dir_names = utils.sub_dirs(os.path.join(home_dir, tool_dir_name))
+        else:
+            suite_dir_names = test_families.FAMILY_TEST_SUITES[family, tool_name]
         # Parcours des suites de la famille
-        for suite_dir_name in test_suites:
+        for suite_dir_name in suite_dir_names:
             source_suite_dir = os.path.join(
                 home_dir,
                 tool_dir_name,
                 suite_dir_name,
             )
             if os.path.isdir(source_suite_dir):
-                # Creation du repertoire de suite
+                # Chemin du repertoire de suite cible
                 target_suite_dir = os.path.join(
                     target_home_dir,
                     tool_dir_name,
                     suite_dir_name,
                 )
-                utils.make_dir(target_suite_dir)
+                # Repertoires de test a utiliser
+                if input_test_dir_name is not None:
+                    test_dir_names = [input_test_dir_name]
+                else:
+                    test_dir_names = os.listdir(source_suite_dir)
                 # Parcours des repertoires de test de la suite
-                for test_dir_name in os.listdir(source_suite_dir):
+                for test_dir_name in test_dir_names:
                     source_test_dir = os.path.join(source_suite_dir, test_dir_name)
+                    collect_results = False
                     if os.path.isdir(source_test_dir):
-                        # Analyse du log de comparaison
-                        (
-                            error_number,
-                            warning_number,
-                            summary_infos,
-                            files_infos,
-                        ) = check.analyse_comparison_log(source_test_dir)
-                        note_message = summary_infos.get(check.SUMMARY_NOTE_KEY, "")
-                        portability_message = summary_infos.get(
-                            check.SUMMARY_PORTABILITY_KEY, ""
-                        )
-                        # On decide s'il faut collecter les results en fonction des options
-                        collect_results = False
-                        if collect_option == COLLECT_ALL:
+                        # On decide s'il faut collecter les results en fonction des type de collecte
+                        # Cas d'une collecte systematique
+                        if collect_type == COLLECT_ALL:
                             collect_results = True
-                        elif collect_option == COLLECT_MESSAGES:
-                            collect_results = (
-                                error_number > 0
-                                or warning_number > 0
-                                or note_message != ""
-                                or portability_message != ""
+                        # Cas ou cela depend des message ou erreurs du log de comparaison
+                        else:
+                            # Le log de comparaison doit etre disponible
+                            log_file_path = os.path.join(
+                                source_test_dir, kht.COMPARISON_RESULTS_LOG
                             )
-                        elif collect_option == COLLECT_ERRORS:
-                            collect_results = error_number > 0
+                            collect_results = os.path.isfile(log_file_path)
+                            # Analyse du log de comparaison s'il est disponible
+                            if collect_results:
+                                (
+                                    error_number,
+                                    warning_number,
+                                    summary_infos,
+                                    files_infos,
+                                ) = check.analyse_comparison_log(source_test_dir)
+                                # Cas de la collecte en cas de warnings
+                                if collect_type == COLLECT_WARNINGS:
+                                    collect_results = (
+                                        error_number > 0 or warning_number > 0
+                                    )
+                                # Cas de la collecte d'erreurs
+                                elif collect_type == COLLECT_ERRORS:
+                                    collect_results = error_number > 0
 
-                        # Copie du repertoire de test si necessaire
-                        if collect_results:
-                            target_test_dir = os.path.join(
-                                target_suite_dir, test_dir_name
-                            )
-                            collecte_test_dir_number += 1
-                            kht_save.copy_subdirs(
-                                source_test_dir,
-                                target_test_dir,
-                                ignore_list=forbidden_names,
-                            )
+                    # Copie du repertoire de test si necessaire
+                    if collect_results:
+                        # Creation des repertoires intermediaires uniquement si necessaire
+                        if target_tool_dir not in created_tool_dirs:
+                            utils.make_dir(target_tool_dir)
+                            created_tool_dirs[target_tool_dir] = True
+                        if target_suite_dir not in created_suite_dirs:
+                            utils.make_dir(target_suite_dir)
+                            created_suite_dirs[target_suite_dir] = True
+
+                        # Copie du repertoire de test
+                        target_test_dir = os.path.join(target_suite_dir, test_dir_name)
+                        collected_test_dir_number += 1
+                        kht_export.copy_subdirs(
+                            source_test_dir,
+                            target_test_dir,
+                            ignore_list=forbidden_names,
+                        )
             else:
                 print("error : suite directory not found: " + source_suite_dir)
-    print("\tCollected test dir number: " + str(collecte_test_dir_number))
+    print("\tCollected test dir number: " + str(collected_test_dir_number))
 
 
 def main():
-    """Fonction principale de collecte des resultats de LearningTest"""
-    # Aide si mauvais nombre de parametres
-    if len(sys.argv) != 4 and len(sys.argv) != 5:
-        script_name = os.path.basename(__file__)
-        base_script_name = os.path.splitext(script_name)[0]
-        print(
-            base_script_name
-            + " (home dir) (target root dir) (collect option) [family (default: full)]\n"
-            "  Collect " + kht.LEARNING_TEST + " results"
-        )
-        print("  Available collect options are:")
-        for collect_option in COLLECT_OPTIONS:
-            print(
-                "    " + collect_option + ": " + COLLECT_OPTION_LABELS[collect_option]
+    def build_usage_help(
+        help_command,
+        help_tool_dir_name=None,
+        help_suite_dir_name=None,
+        help_test_dir_name=None,
+        help_options=None,
+    ):
+        """Construction d'une lige d'aide pour un usage de la command test"""
+        source_dir = os.path.join(".", kht.LEARNING_TEST)
+        if help_test_dir_name is not None:
+            source_dir = os.path.join(
+                source_dir, help_tool_dir_name, help_suite_dir_name, help_test_dir_name
             )
-        print(
-            "  The available families of test suites are "
-            + utils.list_to_label(test_families.TEST_FAMILIES)
-        )
-        print(
-            "  The home dir is saved under a directory named <target root dir>/"
-            + kht.LEARNING_TEST
-            + "_results_<collect option>_<family>"
-        )
-        exit(0)
+        elif help_suite_dir_name is not None:
+            source_dir = os.path.join(
+                source_dir, help_tool_dir_name, help_suite_dir_name
+            )
+        elif help_tool_dir_name is not None:
+            source_dir = os.path.join(source_dir, help_tool_dir_name)
+        usage_help = help_command + " " + source_dir + " (target dir)"
+        if help_options is not None:
+            usage_help += " " + help_options
+        return usage_help
 
-    # Recherche des parametres
-    home_dir = sys.argv[1]
-    target_root_dir = sys.argv[2]
-    collect_option = sys.argv[3]
-    if collect_option not in COLLECT_OPTIONS:
-        utils.fatal_error(
-            "collect option ("
-            + collect_option
-            + ") must be in "
-            + utils.list_to_label(COLLECT_OPTIONS)
-        )
-    test_family = test_families.DEFAULT_TEST_FAMILY
-    if len(sys.argv) == 5:
-        test_family = sys.argv[4]
-        test_families.check_family(test_family)
+    # Nom du script
+    script_file_name = os.path.basename(__file__)
+    script_name = os.path.splitext(script_file_name)[0]
 
-    # Analyse de la validite des parametres
-    utils.check_home_dir(home_dir)
-    utils.check_candidate_root_dir(home_dir, target_root_dir)
+    # Ajout d'exemples d'utilisation
+    epilog = ""
+    epilog += "Usage examples"
+    epilog += "\n  " + build_usage_help(script_name)
+    epilog += "\n  " + build_usage_help(
+        script_name, help_options="-f basic --collect-type errors"
+    )
+    epilog += "\n  " + build_usage_help(
+        script_name,
+        kht.TOOL_DIR_NAMES[kht.KHIOPS],
+        help_options="--collect-type errors",
+    )
+    epilog += "\n  " + build_usage_help(
+        script_name,
+        kht.TOOL_DIR_NAMES[kht.KHIOPS],
+        "Standard",
+        "Iris",
+    )
+
+    # Affichage de la liste des types de collecte, en la formattant au mieux
+    collect_types_help = ""
+    max_collect_type_len = 0
+    for collect_type in COLLECT_TYPES:
+        max_collect_type_len = max(max_collect_type_len, len(collect_type))
+    for collect_type in COLLECT_TYPES:
+        label = COLLECT_TYPE_LABELS[collect_type]
+        collect_types_help += (
+            "\n  " + collect_type.ljust(max_collect_type_len + 1) + label
+        )
+        if collect_type == COLLECT_ALL:
+            collect_types_help += " (default type)"
+
+    # Parametrage de l'analyse de la ligne de commande
+    parser = argparse.ArgumentParser(
+        prog=script_name,
+        description="collect a subset of a source "
+        + kht.LEARNING_TEST
+        + " test dirs in a target dir named "
+        + kht.LEARNING_TEST
+        + "_results under the destination directory",
+        epilog=epilog,
+        formatter_class=utils.get_formatter_class(script_name),
+    )
+
+    # Arguments positionnels
+    utils.argument_parser_add_source_argument(parser)
+    utils.argument_parser_add_dest_argument(parser)
+
+    # Arguments optionnels standards
+    utils.argument_parser_add_family_argument(parser)
+
+    # Argument sur le types de collecte
+    parser.add_argument(
+        "--collect-type",
+        help="collect type" + collect_types_help,
+        choices=COLLECT_TYPES,
+        default=COLLECT_ALL,
+        metavar="type",
+        action="store",
+    )
+
+    # Analyse de la ligne de commande
+    args = parser.parse_args()
+
+    # Verification de l'argument source
+    (
+        home_dir,
+        tool_dir_name,
+        suite_dir_name,
+        test_dir_name,
+    ) = utils.argument_parser_check_source_argument(parser, args.source)
+
+    # Verification de l'argument destination
+    utils.argument_parser_check_destination_dir(parser, home_dir, args.dest)
 
     # Lancement de la commande
     collect_learning_test_results(
-        home_dir, target_root_dir, collect_option, test_family
+        home_dir,
+        tool_dir_name,
+        suite_dir_name,
+        test_dir_name,
+        args.dest,
+        args.family,
+        args.collect_type,
     )
 
 

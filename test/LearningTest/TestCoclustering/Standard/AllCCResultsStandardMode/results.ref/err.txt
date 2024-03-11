@@ -12,7 +12,7 @@ Database ./SubDir/Iris.txt : Read records: 150
   0:00:00	Write intermediate report Coclustering.bad(3).khcj	Level: 0.130686	Size: 3*3*3	Granularity: 3
   0:00:00	Write intermediate report Coclustering.bad(4).khcj	Level: 0.156121	Size: 3*3*3
 Write coclustering report ./SubDir\../results\Coclustering.bad.khcj
-Coclustering analysis time: 0:00:00.03
+Coclustering analysis time: 0:00:00.04
 
 error : File coclustering report  : Missing file name
 Write simplified report ./results\SimplifiedCoclustering.khcj

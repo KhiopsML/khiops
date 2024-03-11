@@ -1,8 +1,11 @@
 import os.path
 import sys
+import argparse
 
 import _kht_constants as kht
 import _kht_utils as utils
+import _kht_families as test_families
+import _kht_results_management as results
 import _kht_standard_instructions as standard_instructions
 import _kht_one_shot_instructions as one_shot_instructions
 
@@ -11,69 +14,15 @@ Gestion de l'ensemble des instructions
 """
 
 
-def display_instructions(
-    available_instructions: dict, minimum_instruction_number, show_all=False
+def apply_instruction_on_suite_dir(
+    instruction_function,
+    suite_dir,
+    input_test_dir_name,
+    min_test_time=None,
+    max_test_time=None,
 ):
-    """Affichage des instructions disponibles avec leur identifiant et libelle"""
-    assert minimum_instruction_number is None or minimum_instruction_number > 0
-    # Affichage de l'aide generique globale
-    script_name = os.path.basename(__file__)
-    base_script_name = os.path.splitext(script_name)[0]
-    print(
-        base_script_name + " (instruction) (suite|test dir)\n"
-        "  Apply instruction (ex: errors) on a suite or test directory"
-    )
-    print("  Examples")
-    print(
-        "   "
-        + base_script_name
-        + " list "
-        + os.path.join(
-            "<root dir>",
-            kht.LEARNING_TEST,
-            kht.TOOL_DIR_NAMES[kht.KHIOPS],
-            "Standard",
-        )
-    )
-    print(
-        "   "
-        + base_script_name
-        + " errors "
-        + os.path.join(
-            "<root dir>",
-            kht.LEARNING_TEST,
-            kht.TOOL_DIR_NAMES[kht.KHIOPS],
-            "Standard",
-            "Iris",
-        )
-    )
-    print("  Type " + base_script_name + " all to show available one shot instructions")
-    print("  Standard instructions")
-    # Affichage de la liste des instructions disponibles
-    for i, instruction_id in enumerate(available_instructions):
-        (instruction_function, instruction_label) = available_instructions[
-            instruction_id
-        ]
-        print("\t" + instruction_id + ": " + instruction_label)
-        if i == minimum_instruction_number - 1:
-            if show_all:
-                print("  One shot instructions")
-            else:
-                break
-
-
-def execute_instruction_on_suite_dir(
-    available_instructions: dict, instruction_id, suite_dir, test_name=None
-):
-    """Usage interne
-    Comme la fonction principale kht_apply du main(),
-     avec un dictionnaire des instructions en premier parametre
-    """
-    assert instruction_id != ""
+    """Application d'une instruction sur une suite ou sur un repertoire de est specifique"""
     assert suite_dir != ""
-    # Verification des operandes
-    if instruction_id not in available_instructions:
-        utils.fatal_error("wrong instruction " + instruction_id)
 
     # Erreur si repertoire de suite absent
     if not os.path.isdir(suite_dir):
@@ -82,42 +31,103 @@ def execute_instruction_on_suite_dir(
     # Collecte des sous-repertoire de test
     test_list = []
     # Cas avec un repertoire de test specifique
-    if test_name is not None:
-        if os.path.isdir(os.path.join(suite_dir, test_name)):
-            test_list.append(test_name)
+    if input_test_dir_name is not None:
+        if os.path.isdir(os.path.join(suite_dir, input_test_dir_name)):
+            test_list.append(input_test_dir_name)
     # Cas avec une suite de test
     else:
-        for file_name in os.listdir(suite_dir):
-            if os.path.isdir(os.path.join(suite_dir, file_name)):
-                test_list.append(file_name)
-
-    # Erreur si pas de sous-repertoires
-    if len(test_list) == 0:
-        utils.fatal_error("no test dir is available in " + suite_dir)
+        for name in os.listdir(suite_dir):
+            if os.path.isdir(os.path.join(suite_dir, name)):
+                test_list.append(name)
 
     # Tri pour assurer la reproductibilite inter plateforme
     test_list.sort()
 
     # Execution de l'instruction
-    (instruction_function, instruction_label) = available_instructions[instruction_id]
     for test_dir_name in test_list:
         # lanceur d'instruction sur un directory
         test_dir = os.path.realpath(os.path.join(suite_dir, test_dir_name))
         # verification de l'existence du directory
         if not os.path.isdir(test_dir):
             utils.fatal_error("directory " + test_dir + " does not exist")
-        # Lancement de l'instruction dans son repertoire de travail
-        current_dir = os.getcwd()
-        os.chdir(test_dir)
-        instruction_function(test_dir)
-        os.chdir(current_dir)
+        # On ne prend en compte que les tests compatibles avedc les contraintes de temps
+        if results.is_results_ref_dir_time_selected(
+            test_dir, min_test_time, max_test_time
+        ):
+            # Application de l'instruction
+            current_dir = os.getcwd()
+            os.chdir(test_dir)
+            instruction_function(test_dir)
+            os.chdir(current_dir)
     # Message synthetique de fin
     suite_dir_name = utils.dir_name(suite_dir)
     tool_dir_name = utils.parent_dir_name(suite_dir, 1)
-    if test_name is None:
+    if input_test_dir_name is None:
         print("DONE\t" + tool_dir_name + "\t" + suite_dir_name)
     else:
-        print("done\t" + tool_dir_name + "\t" + suite_dir_name + "\t" + test_name)
+        print(
+            "done\t"
+            + tool_dir_name
+            + "\t"
+            + suite_dir_name
+            + "\t"
+            + input_test_dir_name
+        )
+
+
+def apply_instruction_on_learning_test_tree(
+    home_dir,
+    input_tool_dir_name,
+    input_suite_dir_name,
+    input_test_dir_name,
+    instruction_function,
+    family,
+    **kwargs
+):
+    """Applique une instruction un ensemble de suites de tests
+    Toute ou partie de l'arborescence est prise en compte selon la specification
+     des operandes tool_dir_name, suite_dir_name, test_dir_name, qui peuvent etre None sinon.
+    - home_dir: repertoire principal de l'aborescence source
+    - tool_dir_name, suite_dir_name, test_dir_name: pour ne prendre en compte qu'une sous-partie
+      de l'arborescence source si ces oprande ne sont pas None
+    - instruction_function: instruction a appliquee
+    - family: famille utilise pour choisir la sous-partie des suites a exporter
+    - kwargs: argument optionnels de la ligne de commande
+    """
+
+    # Tous les outils sont a prendre en compte si on est a la racine
+    if input_tool_dir_name is None:
+        used_tool_names = kht.TOOL_NAMES
+    # Sinon, seul l'outil correspondant au tool dir est a tester
+    else:
+        tool_name = kht.TOOL_NAMES_PER_DIR_NAME[input_tool_dir_name]
+        used_tool_names = [tool_name]
+
+    # Cas d'un seul outil avec un repertoire de suite au de test specifique
+    # Dans ce cas, on ignore la famille
+    if input_suite_dir_name is not None:
+        suite_dir = os.path.join(home_dir, input_tool_dir_name, input_suite_dir_name)
+        apply_instruction_on_suite_dir(
+            instruction_function, suite_dir, input_test_dir_name, **kwargs
+        )
+    # Cas d'un ou plusieurs outils, ou il faut utiliser les suites de la famille specifiee
+    else:
+        assert len(used_tool_names) >= 1
+        for tool_name in used_tool_names:
+            tool_dir_name = kht.TOOL_DIR_NAMES[tool_name]
+            if family == test_families.ALL:
+                test_suites = utils.sub_dirs(os.path.join(home_dir, tool_dir_name))
+            else:
+                test_suites = test_families.FAMILY_TEST_SUITES[family, tool_name]
+            # Parcours de toutes les suites
+            for name in test_suites:
+                suite_dir = os.path.join(home_dir, tool_dir_name, name)
+                if os.path.isdir(suite_dir):
+                    apply_instruction_on_suite_dir(
+                        instruction_function, suite_dir, None, **kwargs
+                    )
+                else:
+                    print("error : suite directory not found: " + suite_dir)
 
 
 def register_all_instructions():
@@ -134,54 +144,135 @@ def register_all_instructions():
 def main():
     """Fonction principale d'application systematique d'une instruction sur une suite de test"""
 
+    def build_usage_help(
+        help_command,
+        help_instruction,
+        help_tool_dir_name=None,
+        help_suite_dir_name=None,
+        help_test_dir_name=None,
+        help_options=None,
+    ):
+        """Construction d'une lige d'aide pour un usage de la command test"""
+        source_dir = os.path.join(".", kht.LEARNING_TEST)
+        if help_test_dir_name is not None:
+            source_dir = os.path.join(
+                source_dir, help_tool_dir_name, help_suite_dir_name, help_test_dir_name
+            )
+        elif help_suite_dir_name is not None:
+            source_dir = os.path.join(
+                source_dir, help_tool_dir_name, help_suite_dir_name
+            )
+        elif help_tool_dir_name is not None:
+            source_dir = os.path.join(source_dir, help_tool_dir_name)
+        usage_help = help_command + " " + source_dir + " " + help_instruction
+        if help_options is not None:
+            usage_help += " " + help_options
+        return usage_help
+
+    # Enregistrement de toutes les instructions
     (
         all_instructions,
         standard_instruction_number,
     ) = register_all_instructions()
 
-    # Affichage des instructions si pas de parametres ou mauvais nombre de parametres
-    if len(sys.argv) <= 2:
-        show_one_shot_instructions = len(sys.argv) == 2 and sys.argv[1] == "all"
-        display_instructions(
-            all_instructions,
-            standard_instruction_number,
-            show_all=show_one_shot_instructions,
+    # Nom du script
+    script_file_name = os.path.basename(__file__)
+    script_name = os.path.splitext(script_file_name)[0]
+
+    # Ajout d'exemples d'utilisation
+    epilog = ""
+    epilog += "Usage examples"
+    epilog += "\n  " + build_usage_help(script_name, "errors")
+    epilog += "\n  " + build_usage_help(
+        script_name,
+        "logs",
+        kht.TOOL_DIR_NAMES[kht.KHIOPS],
+        "Standard",
+        "Iris",
+    )
+    epilog += "\n  " + build_usage_help(
+        script_name,
+        "errors",
+        kht.TOOL_DIR_NAMES[kht.COCLUSTERING],
+        help_options="-f basic",
+    )
+
+    # Affichage de la liste des instructions disponibles, en la formattant au mieux
+    instructions_help = ""
+    max_id_len = 0
+    for instruction_id in all_instructions:
+        max_id_len = max(max_id_len, len(instruction_id))
+    for index, instruction_id in enumerate(all_instructions):
+        (instruction_function, instruction_label) = all_instructions[instruction_id]
+        if index == standard_instruction_number:
+            instructions_help += "\none-shot instructions"
+        instructions_help += (
+            "\n  " + instruction_id.ljust(max_id_len + 1) + instruction_label
         )
-        exit(0)
 
-    # Recherche des parametres sur la ligne d'instruction
-    instruction_name = sys.argv[1]
-    suite_or_test_dir = sys.argv[2]
+    # Parametrage de l'analyse de la ligne de commande
+    parser = argparse.ArgumentParser(
+        prog=script_name,
+        description="apply instruction (ex: errors) on a subset of test dirs",
+        epilog=epilog,
+        formatter_class=utils.get_formatter_class(script_name),
+    )
 
-    # Analyse du repertoire a tester
-    learning_test_depth = utils.check_learning_test_dir(suite_or_test_dir)
-    tool_dir_name = ""
-    suite_dir_name = ""
-    test_dir_name = None
-    if learning_test_depth == 3:
-        tool_dir_name = utils.parent_dir_name(suite_or_test_dir, 2)
-        suite_dir_name = utils.parent_dir_name(suite_or_test_dir, 1)
-        test_dir_name = utils.parent_dir_name(suite_or_test_dir, 0)
-    elif learning_test_depth == 2:
-        tool_dir_name = utils.parent_dir_name(suite_or_test_dir, 1)
-        suite_dir_name = utils.parent_dir_name(suite_or_test_dir, 0)
-    else:
-        utils.fatal_error(suite_or_test_dir + " should be a suite or test dir")
-    assert tool_dir_name != ""
-    if tool_dir_name not in kht.TOOL_DIR_NAMES.values():
-        utils.fatal_error(
-            tool_dir_name
-            + " in "
-            + os.path.realpath(suite_or_test_dir)
-            + " should be a tool dir "
-            + utils.list_to_label(kht.TOOL_DIR_NAMES.values())
+    # Arguments positionnels
+    utils.argument_parser_add_source_argument(parser)
+    parser.add_argument(
+        "instruction",
+        help="instruction to apply" + instructions_help,
+    )
+
+    # Arguments optionnels standards
+    utils.argument_parser_add_family_argument(parser)
+    utils.argument_parser_add_processes_argument(parser)
+    utils.argument_parser_add_forced_platform_argument(parser)
+    utils.argument_parser_add_limit_test_time_arguments(parser)
+
+    # Analyse de la ligne de commande
+    args = parser.parse_args()
+
+    # Verification de l'argument source
+    (
+        home_dir,
+        tool_dir_name,
+        suite_dir_name,
+        test_dir_name,
+    ) = utils.argument_parser_check_source_argument(parser, args.source)
+
+    # Verification de l'argument instruction
+    # On n'utilise pas le parametre 'choices' de add_argument pour eviter
+    # d'avoir des messages d'erreur tres long comportant toutes les valeurs possibles
+    if args.instruction not in all_instructions:
+        parser.error(
+            "argument instruction: unknown instruction '" + args.instruction + "'"
         )
-    home_dir = utils.get_home_dir(suite_or_test_dir)
-    suite_dir = os.path.join(home_dir, tool_dir_name, suite_dir_name)
 
-    # Lancement de l'instruction
-    execute_instruction_on_suite_dir(
-        all_instructions, instruction_name, suite_dir, test_dir_name
+    # Verification des arguments optionnels
+    utils.argument_parser_check_processes_argument(parser, args.n)
+    utils.argument_parser_check_limit_test_time_arguments(
+        parser, args.min_test_time, args.max_test_time
+    )
+
+    # Memorisation des variables globales de gestion du contexte des resultats de reference
+    results.process_number = args.n
+    results.forced_platform = args.forced_platform
+
+    # Acces a l'instruction a executer
+    (instruction_function, instruction_label) = all_instructions[args.instruction]
+
+    # Lancement de la commande
+    apply_instruction_on_learning_test_tree(
+        home_dir,
+        tool_dir_name,
+        suite_dir_name,
+        test_dir_name,
+        instruction_function,
+        args.family,
+        min_test_time=args.min_test_time,
+        max_test_time=args.max_test_time,
     )
 
 

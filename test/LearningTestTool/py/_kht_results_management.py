@@ -8,11 +8,11 @@ import _kht_utils as utils
 Gestion de la typologie des resultats de test de reference, selon les axes suivants definis
  dans (RESULTS_REF_TYPES)
 - COMPUTING
-  - parallel: si la variable d'environnement KhiopsMPIProcessNumber est definie
+  - parallel: si la variable process_number a une valeur strictement plus grande que 1
   - sequential
 - PLATFORM
   - fourni par la fonction python platform.system()
-  - peut etre forcee par la variable d'environnement KhiopsComparisonPlatform
+  - peut etre forcee par la variable forced_platform
   - valeurs possibles
     - Darwin (Mac)
     - Linux
@@ -44,6 +44,15 @@ Examples d'ensemble correct de noms de repertoire
 - [results.ref, results.ref-Darwin_Linux]: : repertoire de reference avec specialisation dans le cas de Max ou Linux
 - [results.ref, results.ref-Parallel, results.ref-Parallel-Darwin_Linux]
 """
+
+"""Variable globale de gestion du contexte des resultsta de reference"""
+
+# Nombre de process utilisex
+process_number = 1
+
+# Memorisation d'une plateforme force pour la comparaison entre resultstats de test de de reference
+# Par defaut, on utilise la platforme courante
+forced_platform = None
 
 
 def check_all_type_values():
@@ -100,13 +109,10 @@ def get_current_results_ref_context(log_file=None, show=False):
 
 def get_context_computing_type(log_file=None, show=False):
     """Retourne le type de computing courant
-    Base sur la variable d'environnement KhiopsMPIProcessNumber
+    Base sur la variable process_number
     Une trace est ecrite dans un fichier de log et affichees sur la console si besoin
     """
-    khiops_mpi_process_number = utils.get_env_var_positive_value(
-        kht.KHIOPS_MPI_PROCESS_NUMBER
-    )
-    if khiops_mpi_process_number is None:
+    if process_number is None:
         computing_type = "sequential"
     else:
         computing_type = "parallel"
@@ -119,20 +125,20 @@ def get_context_computing_type(log_file=None, show=False):
     )
     # Affichage d'une trace
     message = kht.COMPUTING + " type: " + computing_type
-    if khiops_mpi_process_number is not None:
-        message += " (process number: " + str(khiops_mpi_process_number) + ")"
+    if process_number > 1:
+        message += " (process number: " + str(process_number) + ")"
     utils.write_message(message, log_file=log_file, show=show)
     return computing_type
 
 
 def get_context_platform_type(log_file=None, show=False):
     """Retourne le type de computing courant
-    Base sur l'OS courant, ou force selon la variable d'environnement KhiopsComparisonPlatform
+    Base sur l'OS courant, ou force selon la variable forced_platform
     Une trace est ecrite dans un fichier de log et affichees sur la console si besoin
     """
-    platform_type = os.getenv(kht.KHIOPS_COMPARISON_PLATFORM)
-    forced_platform_type = platform_type is not None
-    if not forced_platform_type:
+    if forced_platform is not None:
+        platform_type = forced_platform
+    else:
         platform_type = platform.system()
     assert platform_type in kht.RESULTS_REF_TYPE_VALUES[kht.PLATFORM], (
         kht.PLATFORM
@@ -143,23 +149,27 @@ def get_context_platform_type(log_file=None, show=False):
     )
     # Affichage d'une trace
     message = kht.PLATFORM + " type: " + platform_type
-    if forced_platform_type:
-        message += " (forced using '" + kht.KHIOPS_COMPARISON_PLATFORM + "' env var)"
+    if forced_platform is not None:
+        message += " (forced using cmamand line option)"
     utils.write_message(message, log_file=log_file, show=show)
     return platform_type
 
 
-def get_results_ref_dir(test_dir, log_file=None, show=False):
+def get_results_ref_dir(test_dir, forced_context=None, log_file=None, show=False):
     """Recherche du repertoire de reference correspondant au contexte courant
     Retourne:
     - le nom du repertoire, ou None en cas d'erreur
     - la liste des repertoires de references candidats, qu'il y a ait erreur ou non
+    On utilise le contexte courant, sauf si un contexte est force en entree
     On retourne results.ref s'il n'y a aucun repertoire de reference ou si c'est le seul rerpertoire candidat
     Les erreurs sont ecrites dans un fichier de log et affichees sur la console si besoin
     """
     utils.check_test_dir(test_dir)
     test_dir_name = utils.test_dir_name(test_dir)
-    results_ref_context = get_current_results_ref_context()
+    if forced_context is None:
+        results_ref_context = get_current_results_ref_context()
+    else:
+        results_ref_context = forced_context
     candidate_results_ref_dirs = get_candidate_results_ref_dirs(test_dir)
     results_ref_dir = _search_results_ref_dir(
         candidate_results_ref_dirs,
@@ -169,6 +179,53 @@ def get_results_ref_dir(test_dir, log_file=None, show=False):
         show=show,
     )
     return results_ref_dir, candidate_results_ref_dirs
+
+
+def get_results_ref_dir_time(test_dir):
+    """Recherche du temps de dans le fichier time.log  du repertoire de reference
+     correspondant au contexte courant
+    Retourne le temps en secondes si le fichier existe et si le temps est valide
+    Retourne none sinon
+    """
+    results_ref_dir, _ = get_results_ref_dir(test_dir)
+    results_ref_test_time = None
+    if results_ref_dir is not None:
+        time_file_path = os.path.join(
+            os.getcwd(), os.path.join(test_dir, results_ref_dir, kht.TIME_LOG)
+        )
+        if os.path.isfile(time_file_path):
+            file_time = open(time_file_path, "r", errors="ignore")
+            lines = file_time.readlines()
+            file_time.close()
+            if len(lines) > 0:
+                line = lines[0]
+                line = line[:-1]
+                fields = line.split(
+                    " "
+                )  # Pour etre resilient aux formats 'Overal time: <time>' ou '<time>'
+                time_field = fields[-1]
+                try:
+                    results_ref_test_time = float(time_field)
+                except ValueError:
+                    results_ref_test_time = None
+    return results_ref_test_time
+
+
+def is_results_ref_dir_time_selected(test_dir, min_test_time, max_test_time):
+    """Indique si un repertoire de test doit etre selectionne.
+    Si un temps de test est disponible dans le repertoire de resultats de reference du contexe courant,
+     il doit etre compatible avec les contraintes specifiees
+    """
+    results_ref_test_time = get_results_ref_dir_time(test_dir)
+    # Non selection si test trop long ou trop court
+    if results_ref_test_time is not None and (
+        (
+            (max_test_time is not None and results_ref_test_time > max_test_time)
+            or (min_test_time is not None and results_ref_test_time < min_test_time)
+        )
+    ):
+        return False
+    return True
 
 
 def is_candidate_results_ref_dir(dir_name):

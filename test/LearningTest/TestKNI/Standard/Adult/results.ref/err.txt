@@ -1,8 +1,8 @@
 Deploy model SNB_Adult
 Input database ../../../datasets/Adult/Adult.txt: Read records: 48,842
 Output database ./results/D_Adult.txt: Written records: 48,842
-Model deployment time: 0:00:00.12
+Model deployment time: 0:00:00.15
 
 Create database file ./results/KNI_Adult.txt with KNI
 Deploy model SNB_Adult: Written records : 48,842
-KNI deployment time: 0:00:00.18
+KNI deployment time: 0:00:00.19

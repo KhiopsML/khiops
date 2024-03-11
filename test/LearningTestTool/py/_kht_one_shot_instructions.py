@@ -554,6 +554,6 @@ def register_one_shot_instructions():
         available_instructions,
         "work",
         instruction_work,
-        "last work instruction (temporary and anonymous)",
+        "last work instruction (temporary and uncommented)",
     )
     return available_instructions

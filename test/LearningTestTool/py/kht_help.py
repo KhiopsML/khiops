@@ -1,40 +1,51 @@
+import os
+import argparse
+
 import _kht_constants as kht
 
 
-def main():
+def help_commands():
     """Aide sur l'ensemble des commandes utilisateurs de LearningTest"""
     print("Available " + kht.LEARNING_TEST + " commands are")
     print(
-        "- kht_test (tool binaries dir) (suite|test dir)"
-        "\n    Test tool on a specific test directory"
+        "- kht_test source binaries [options]"
+        "\n    test a tool on a subset of test dirs"
     )
     print(
-        "- kht_test_all (tool binaries dir) (home|tool dir) [family (default: full)]"
-        "\n    Test all tools on a all test directories"
+        "- kht_apply source instruction [options]"
+        "\n    apply instruction (ex: errors) on a subset of test dirs"
     )
     print(
-        "- kht_apply (instruction) (family|test dir)"
-        "\n    Apply and instruction (ex: errors) on a specific test directory"
+        "- kht_export source dest [options]"
+        "\n    export a subset of a source "
+        + kht.LEARNING_TEST
+        + " tree to a target dir"
     )
     print(
-        "- kht_apply_all (instruction) (home|tool dir) [family (default: full)]"
-        "\n    Apply an instruction (ex: errors) on a family"
+        "- kht_collect_results source dest [options]"
+        "\n    collect a subset of a source "
+        + kht.LEARNING_TEST
+        + " test dirs in a target dir"
     )
     print(
-        "- kht_collect_results (home dir) (target root dir) (collect option) [family (default: full)]"
-        "\n    Collect test results"
+        "- kht_env"
+        "\n    show the status of the main environment variables used by the tool binaries"
     )
-    print(
-        "- kht_export (LearningTest home dir) (target root dir) [family (default: full)]"
-        "\n    Export sub-part of LearningTest tree"
+    print("Type the name of a specific command with '-h' for detailed help")
+
+
+def main():
+    """Fonction principale de d'affichage de l'aide sur les commandes de LearningTest"""
+    # Parametrage de l'analyse de la ligne de commande
+    script_name = os.path.basename(__file__)
+    base_script_name = os.path.splitext(script_name)[0]
+    parser = argparse.ArgumentParser(
+        prog=base_script_name,
+        description="show help for all " + kht.LEARNING_TEST + " commands",
     )
-    print(
-        "- kht_save (home dir) (target root dir) (save option)"
-        "\n    Save " + kht.LEARNING_TEST + " directory tree"
-    )
-    print("- kht_env" "\n    Show the status of all en vars that impact the tests")
-    print("- kht_help" "\n    Show this help for all kht commands")
-    print("Type the name of a specific command for detailed help")
+    # Analyse de la ligne de commande et execution
+    parser.parse_args()
+    help_commands()
 
 
 if __name__ == "__main__":

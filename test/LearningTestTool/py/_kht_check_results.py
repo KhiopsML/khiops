@@ -99,8 +99,7 @@ def analyse_comparison_log(test_dir):
       Ce texte contient 'OK' uniquement si aucun problme n'est detecte
       Il contient des lignes de texte, dont certain sont potentiellement prefixes par 'warning: '
       ou 'error : ' sinon
-    Si le log de comparaion n'est pas disponible ou exploitable, on retourne None
-    pour tous les elements en sortie
+    Si le log de comparaison n'est pas disponible ou exploitable, on retourne une erreur
     """
 
     def extract_number(message):
@@ -125,7 +124,6 @@ def analyse_comparison_log(test_dir):
         error_number = 1
         summary_infos[SUMMARY_NOTE_KEY] = "The test has not been launched"
     else:
-        lines = None
         try:
             with open(log_file_path, "r", errors="ignore") as log_file:
                 lines = log_file.readlines()
@@ -192,11 +190,17 @@ def analyse_comparison_log(test_dir):
     return error_number, warning_number, summary_infos, files_infos
 
 
-def check_results(test_dir):
+def check_results(test_dir, forced_context=None):
     """
     Fonction principale de comparaison des resultats de test et de reference
      Les fichiers sont compares 2 a 2 et la synthese de la comparaison est ecrite
      dans un fichier de log, avec un resume en fin de fichier, facile a parser
+    On retourne True s'il n'y a aucune erreur
+
+    Le parametrage d'un contexte force en entree permete d'effectuer la comparaison avec
+    un contexte (parallel|sequential, platform) alternatif. Dans ce cas:
+    - l'objectif est essentiellement de renvoyer un indicateur global de succes de la comparaison
+    - on n'ecrit pas de fichier de comparaison
     """
     utils.check_test_dir(test_dir)
 
@@ -219,24 +223,29 @@ def check_results(test_dir):
     portability_message = ""
     recovery_message = ""
 
-    # Ouverture du fichier de log de comparaison
-    log_file_path = os.path.join(test_dir, COMPARISON_LOG_FILE_NAME)
-    try:
-        log_file = open(log_file_path, "w", errors="ignore")
-    except Exception as exception:
-        print("error : unable to create log file " + log_file_path, exception)
-        return
-    assert log_file is not None
-    utils.write_message(
-        utils.test_dir_name(test_dir) + " comparison", log_file=log_file
-    )
+    # Ouverture du fichier de log de comparaison, sauf si lle contexte est force
+    log_file = None
+    if forced_context is None:
+        log_file_path = os.path.join(test_dir, COMPARISON_LOG_FILE_NAME)
+        try:
+            log_file = open(log_file_path, "w", errors="ignore")
+        except Exception as exception:
+            print("error : unable to create log file " + log_file_path, exception)
+            return
+        assert log_file is not None
+        utils.write_message(
+            utils.test_dir_name(test_dir) + " comparison", log_file=log_file
+        )
 
     # Information sur le contexte courant de comparaison des resultats
-    current_context = results.get_current_results_ref_context()
-    utils.write_message(
-        "current comparison context : " + str(current_context),
-        log_file=log_file,
-    )
+    if forced_context is None:
+        current_context = results.get_current_results_ref_context()
+        utils.write_message(
+            "current comparison context : " + str(current_context),
+            log_file=log_file,
+        )
+    else:
+        current_context = forced_context
 
     # Test de presence du repertoire de test a comparer
     results_dir = os.path.join(test_dir, kht.RESULTS)
@@ -250,7 +259,7 @@ def check_results(test_dir):
 
     # Recherche du repertoire courant des resultats de reference
     results_ref, candidate_dirs = results.get_results_ref_dir(
-        test_dir, log_file=log_file, show=True
+        test_dir, forced_context=forced_context, log_file=log_file, show=True
     )
     if results_ref is None:
         utils.write_message(
@@ -288,7 +297,7 @@ def check_results(test_dir):
 
     # Comparaison effective si possible
     if error_number == 0:
-        # Acces aux fichiers des repertoire de reference et de test
+        # Acces aux fichiers des repertoires de reference et de test
         # On passe par le format bytes des nom de fichier pour avoir acces
         # aux fichier quelque soit la plateforme
         # - Windows ne supporte que l'utf8
@@ -473,8 +482,8 @@ def check_results(test_dir):
                     # Identification des lignes de message
                     ref_file_lines = strip_user_message_lines(ref_file_lines)
                     test_file_lines = strip_user_message_lines(test_file_lines)
-                # Cas des fichier json (il faut passer le path en entier pour gerer certaines exceptions)
-                elif is_file_with_json_extension(ref_file_path):
+                # Cas des fichier json
+                elif is_file_with_json_extension(file_name):
                     contains_user_messages = True
                     # Pretraitement des lignes de message pour les mettre dans le meme format
                     # que pour les fichier d'erreur
@@ -693,7 +702,7 @@ def check_results(test_dir):
             # On transforme les erreur en warning
             warning_number += error_number
             error_number = 0
-            # On reinitialise egalement les stats d'erreur pour les extensuon concernees
+            # On reinitialise egalement les stats d'erreur pour les extensions concernees
             error_number_in_err_txt = 0
 
     # Tentative de recuperation des erreurs si la seule difference est une difference d'ordre
@@ -802,7 +811,7 @@ def check_results(test_dir):
             # On transforme les erreur en warning
             warning_number += error_number
             error_number = 0
-            # On reinitialise egalement les stats d'erreur pour les extensuon concernees
+            # On reinitialise egalement les stats d'erreur pour les extensions concernees
             error_number_per_extension[".khj"] = 0
             error_number_per_extension[".khcj"] = 0
             error_number_in_err_txt = 0
@@ -812,7 +821,7 @@ def check_results(test_dir):
     if error_number > 0:
         roc_curve_recovery = True
 
-        # On verifie d'abord qu'il y a un warning correspondant dans le log utiliusateur
+        # On verifie d'abord qu'il y a un warning correspondant dans le log utilisateur
         if roc_curve_recovery:
             # On doit potentiellement relire ce fichier, car ce type de message correspond
             # a un motif USER qui ne genere pas d'erreur
@@ -920,9 +929,90 @@ def check_results(test_dir):
             # On transforme les erreur en warning
             warning_number += error_number
             error_number = 0
-            # On reinitialise egalement les stats d'erreur pour les extensuon concernees
+            # On reinitialise egalement les stats d'erreur pour les extensions concernees
             error_number_per_extension[".khj"] = 0
             error_number_per_extension[".xls"] = 0
+
+    # Tentative de recuperation des erreurs dans le cas tres particulier des caracteres accentues sous Windows,
+    # ou on observe un comportement local a la machine de developement sous Windows different de celui
+    # observe sur la machine Windows cloud, pourl aquelle certains fichiers sources avec caracteres
+    # accentues n'ont pas pu etre dezippes correctement et conduisent a des erreurs de lecture
+    # Dans ce cas uniquement, on tente de se comparer a une version linux de reference, pour laquelle
+    # on a le meme probleme et on observe le meme comportement
+    # Pas de recuperation d'erreur avancee si un contexte est force
+    if error_number > 0 and forced_context is None:
+        zip_encoding_recovery = True
+
+        # On verifie d'abord que les conditions sont reunies
+        linux_context = None
+        if zip_encoding_recovery:
+            # On doit etre sous Windows
+            zip_encoding_recovery = results.get_context_platform_type() == "Windows"
+
+            # Le fichier err.txt doit comporter une erreur de lecture
+            if zip_encoding_recovery:
+                read_error_pattern = ["error : File ./", " : Unable to open file ("]
+                err_file_path = os.path.join(results_dir, kht.ERR_TXT)
+                err_file_lines = utils.read_file_lines(err_file_path)
+                zip_encoding_recovery = err_file_lines is not None
+                # On doit trouver le pattern d'erreur
+                if zip_encoding_recovery:
+                    line_index = utils.find_pattern_in_lines(
+                        err_file_lines, read_error_pattern
+                    )
+                    zip_encoding_recovery = line_index >= 0
+                    # La ligne concernee doit avoir un probleme de caracrete accentue
+                    if zip_encoding_recovery:
+                        erronneous_line = err_file_lines[line_index]
+                        ascii_erronneous_line = erronneous_line.encode(
+                            "ascii", "ignore"
+                        ).decode("ascii")
+                        zip_encoding_recovery = ascii_erronneous_line != erronneous_line
+
+            # Il doit y avoir un des resultats de references specifiques pour Linux
+            if zip_encoding_recovery:
+                assert forced_context is None
+                windows_results_ref_dir, _ = results.get_results_ref_dir(test_dir)
+                linux_context = [results.get_context_computing_type(), "Linux"]
+                linux_results_ref_dir, _ = results.get_results_ref_dir(
+                    test_dir, forced_context=linux_context
+                )
+                zip_encoding_recovery = windows_results_ref_dir != linux_results_ref_dir
+
+        # Comparaison des resultats de test avec ceux de reference sous linux
+        if zip_encoding_recovery:
+            results_ref_dir = os.path.join(test_dir, linux_results_ref_dir)
+            assert linux_context is not None
+            # Comparaison "pragmatique" entre les fichiers des repertoires de test et de reference
+            # en forcant le contexte, sans tentative de recuperation d'erreur avancee
+            zip_encoding_recovery = check_results(
+                test_dir, forced_context=linux_context
+            )
+
+        # Recuperation effective des erreurs si possible
+        if zip_encoding_recovery:
+            # Messages sur la recuperation
+            recovery_summary = (
+                "Recovery from poor handling of accented file names by zip"
+            )
+            recovery_message = utils.append_message(recovery_message, recovery_summary)
+            utils.write_message("\n" + recovery_summary + ":", log_file=log_file)
+            utils.write_message(
+                "\tcomparison for Windows test results is performed using Linux reference results",
+                log_file=log_file,
+            )
+            utils.write_message(
+                "\t" + str(error_number) + " errors  converted to warnings",
+                log_file=log_file,
+            )
+            # On transforme les erreur en warning
+            warning_number += error_number
+            error_number = 0
+            # On reinitialise egalement les stats d'erreur
+            for extension in error_number_per_extension:
+                error_number_per_extension[extension] = 0
+            for file_name in kht.SPECIAL_ERROR_FILES:
+                special_error_file_error_numbers[file_name] = 0
 
     # Message dedies aux fichiers speciaux
     special_error_file_message = ""
@@ -976,17 +1066,19 @@ def check_results(test_dir):
             SUMMARY_PORTABILITY_KEY + portability_message, log_file=log_file
         )
 
-    # Affichage d'un message de fin sur la console
-    final_message = "--Comparison done : "
-    final_message += str(compared_files_number) + " files(s) compared, "
-    final_message += str(error_number) + " error(s), "
-    final_message += str(warning_number) + " warning(s)"
-    if special_error_file_message != "":
-        final_message += ", " + special_error_file_message
-    if recovery_message != "":
-        final_message += ", Recovery from errors"
-    print(final_message)
-    print("  log file: " + log_file_path + "\n")
+    # Affichage d'un message de fin sur la console si le contexte n'est pas force
+    if forced_context is None:
+        final_message = "--Comparison done : "
+        final_message += str(compared_files_number) + " files(s) compared, "
+        final_message += str(error_number) + " error(s), "
+        final_message += str(warning_number) + " warning(s)"
+        if special_error_file_message != "":
+            final_message += ", " + special_error_file_message
+        if recovery_message != "":
+            final_message += ", Recovery from errors"
+        print(final_message)
+        print("  log file: " + log_file_path + "\n")
+    return error_number == 0
 
 
 def is_file_with_json_extension(file_path):
@@ -995,20 +1087,13 @@ def is_file_with_json_extension(file_path):
     file_name = os.path.basename(file_path)
     _, file_extension = os.path.splitext(file_name)
 
-    # Test si fichier json
+    # Extension json de base
     json_file_extensions = [".json", ".khj", ".khvj", ".khcj", ".kdicj"]
+    # On rajoute les extension en les suffisant par "bad" pour permettre
+    # de gerer des tests de fichier corrects avec une extension erronnee
+    for extension in json_file_extensions.copy():
+        json_file_extensions.append(extension + "bad")
     is_json_file = file_extension in json_file_extensions
-    # Cas particulier des fichier .bad qui sont en fait des fichiers json
-    # On teste ici l'existence d'un fichier ne differenent que par l'extenion
-    # Attention: test adhoc en dur pour quelques jeu de test de LearningTesrt
-    # (ex: LearningTest\TestKhiops\Advanced\AllResultsApiMode)
-    if file_extension == ".bad":
-        if (
-            os.path.isfile(file_path.replace(".bad", ".khj"))
-            or os.path.isfile(file_path.replace(".bad", ".khj"))
-            or os.path.isfile(file_path.replace(".bad", ".kdicj"))
-        ):
-            is_json_file = True
     return is_json_file
 
 
@@ -1206,15 +1291,20 @@ RESILIENCE_USER_MESSAGE_PATTERNS = [
 
 
 def check_file_lines(
-    ref_file_path: str, test_file_path, ref_file_lines, test_file_lines, log_file=None
+    ref_file_path: str,
+    test_file_path: str,
+    ref_file_lines,
+    test_file_lines,
+    log_file=None,
 ):
-    """Comparaison d'un fichier de test et d'un fihcier de reference
+    """
+    Comparaison d'un fichier de test et d'un fichier de reference
     Parametres:
     - ref_file_path: chemin du fichier de reference
     - test_file_path: chemin du fichier de test
     - ref_file_lines: liste des lignes du fichier de reference
     - test_file_lines: liste des lignes du fichier de test
-    - log file: fichier de log ouvert dans le quel des messages sont ecrits (seulement si log_file est sepcifie)
+    - log file: fichier de log ouvert dans le quel des messages sont ecrits (seulement si log_file est specifie)
 
     Retourne
     - errors: nombre d'erreurs

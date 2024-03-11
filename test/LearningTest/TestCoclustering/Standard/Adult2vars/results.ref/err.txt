@@ -4,5 +4,5 @@ Database ../../../datasets/Adult/Adult.txt : Read records: 48,842	Selected recor
   0:00:00	Write intermediate report Coclustering(3).khcj	Level: 0.038056	Size: 8*9
   0:00:00	Write intermediate report Coclustering(4).khcj	Level: 0.0381382	Size: 9*9
 Write coclustering report ./results/Coclustering.khcj
-Coclustering analysis time: 0:00:00.10
+Coclustering analysis time: 0:00:00.09
 

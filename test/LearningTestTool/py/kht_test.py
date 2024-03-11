@@ -4,11 +4,13 @@ import platform
 import shutil
 import subprocess
 import time
+import argparse
 
 import _kht_constants as kht
 import _kht_utils as utils
-import _kht_check_results as check
+import _kht_families as test_families
 import _kht_results_management as results
+import _kht_check_results as check
 
 # mpiexec sous Windows
 if os.name == "nt":
@@ -24,13 +26,16 @@ def build_tool_exe_path(tool_binaries_dir, tool_name):
     - un repertoire devant contenir les binaire de l'outil a tester
     - 'r' ou 'd', alias pour le repertoire des binaires en release ou debug de l'envbironnement de developpement
     - 'check': pour effectuer seulment une comparaison entre resultats de test et de reference
-    On renvoie le path complet d'un binaire d'un outil si un repertoire est specifie, 'check' sinon
-    On sort en erreur fatale avec un message d'erreur utilisateur si les parametres sont invalides
+    On renvoie:
+    - le path complet d'un binaire d'un outil si un repertoire est specifie, 'check' sinon, None si erreur
+    - le message d'erreeur en cas d'error
     """
     assert tool_name in kht.TOOL_NAMES
+    tool_exe_path = None
+    error_message = ""
     # Cas particulier de la comparaison seulement
     if tool_binaries_dir == "check":
-        return "check"
+        return "check", error_message
 
     # Recherche du repertoire des binaires de l'environnement de developpement
     alias_info = ""
@@ -40,8 +45,6 @@ def build_tool_exe_path(tool_binaries_dir, tool_name):
     actual_tool_binaries_dir = ""
     if tool_binaries_dir in [kht.ALIAS_D, kht.ALIAS_R]:
         script_path = __file__
-        debug_tool_binaries_dir = ""
-        release_tool_binaries_dir = ""
         # Repertoire ou sont construit les produits de compilation
         build_dir = os.path.realpath(
             os.path.join(
@@ -54,11 +57,10 @@ def build_tool_exe_path(tool_binaries_dir, tool_name):
             )
         )
         # Suffixe du nom du repertoire contenant les binaires
+        searched_suffix = ""
         if tool_binaries_dir == kht.ALIAS_D:
-            alias_label = "debug"
             searched_suffix = "-debug"
         elif tool_binaries_dir == kht.ALIAS_R:
-            alias_label = "release"
             searched_suffix = "-release"
         # Recherche des sous repertoire contenant le bon suffixe, plus un sous-repertoire bin
         candidate_binaries_dirs = []
@@ -73,23 +75,24 @@ def build_tool_exe_path(tool_binaries_dir, tool_name):
                         candidate_binaries_dirs.append(binaries_dir)
         # Erreur si repertoire des binaires non trouve
         if len(candidate_binaries_dirs) == 0:
-            utils.fatal_error(
+            error_message = (
                 "Tool binaries dir for alias '"
                 + tool_binaries_dir
-                + " not found in current khiops repo under the bin dir "
+                + "' not found in current khiops repo under the bin dir "
                 + build_dir
             )
         # Erreur si plusieurs repertoires des binaires non trouve
-        if len(candidate_binaries_dirs) > 1:
-            utils.fatal_error(
+        elif len(candidate_binaries_dirs) > 1:
+            error_message = (
                 "Multiple tool binaries dir found for alias '"
                 + tool_binaries_dir
-                + " in current khiops repo under the bin dir :"
+                + "' in current khiops repo under the bin dir :"
                 + utils.list_to_label(candidate_binaries_dirs)
             )
         # On a trouve un repertoire des binaires
-        assert len(candidate_binaries_dirs) == 1
-        actual_tool_binaries_dir = candidate_binaries_dirs[0]
+        else:
+            assert len(candidate_binaries_dirs) == 1
+            actual_tool_binaries_dir = candidate_binaries_dirs[0]
 
         # Infos sur l'alias, pour les messages d'erreur
         alias_info = (
@@ -102,11 +105,11 @@ def build_tool_exe_path(tool_binaries_dir, tool_name):
     # Cas d'un repertoire des binaires specifie directement
     else:
         actual_tool_binaries_dir = os.path.realpath(tool_binaries_dir)
-    assert actual_tool_binaries_dir != ""
+    assert actual_tool_binaries_dir != "" or error_message != ""
 
     # Test qu'il s'agit bien d'un repertoire
-    if not os.path.isdir(actual_tool_binaries_dir):
-        utils.fatal_error(
+    if error_message == "" and not os.path.isdir(actual_tool_binaries_dir):
+        error_message = (
             tool_name
             + " binary "
             + actual_tool_binaries_dir
@@ -115,29 +118,41 @@ def build_tool_exe_path(tool_binaries_dir, tool_name):
             + " is not a valid directory"
         )
 
-    # Construction du parth du binaire de l'outil
-    tool_exe_name = kht.TOOL_EXE_NAMES[tool_name]
-    if current_platform == "Windows":
-        tool_exe_name += ".exe"
-    tool_exe_path = os.path.join(actual_tool_binaries_dir, tool_exe_name)
-    if not os.path.isfile(tool_exe_path):
-        utils.fatal_error(
-            tool_name
-            + " binary ("
-            + tool_exe_name
-            + ") not found in tool binaries dir "
-            + actual_tool_binaries_dir
-            + alias_info
-        )
-    return tool_exe_path
+    # Construction du path du binaire de l'outil
+    if error_message == "":
+        tool_exe_name = kht.TOOL_EXE_NAMES[tool_name]
+        if current_platform == "Windows":
+            tool_exe_name += ".exe"
+        tool_exe_path = os.path.join(actual_tool_binaries_dir, tool_exe_name)
+        if not os.path.isfile(tool_exe_path):
+            tool_exe_path = None
+            error_message = (
+                tool_name
+                + " binary ("
+                + tool_exe_name
+                + ") not found in tool binaries dir "
+                + actual_tool_binaries_dir
+                + alias_info
+            )
+    return tool_exe_path, error_message
 
 
-def evaluate_tool_on_test_dir(tool_exe_path, suite_dir, test_name):
+def evaluate_tool_on_test_dir(
+    tool_exe_path,
+    suite_dir,
+    test_dir_name,
+    min_test_time=None,
+    max_test_time=None,
+    test_timeout_limit=None,
+    task_file=False,
+    output_scenario=False,
+    user_interface=False,
+):
     """Evaluation d'un outil sur un repertoire de test terminal et comparaison des resultats
     Parametres:
     - tool_exe_path: path de l'outil a tester, ou nul si on ne veut faire que la comparaison
     - suite_dir: repertoire racine du repertoire de test
-    - test_name: repertoire de test terminal"""
+    - test_dir_name: repertoire de test terminal"""
 
     # Verification du chemin de l'exe
     if tool_exe_path != kht.ALIAS_CHECK:
@@ -145,7 +160,7 @@ def evaluate_tool_on_test_dir(tool_exe_path, suite_dir, test_name):
             utils.fatal_error("tool path : " + tool_exe_path + " is not correct")
 
     # Verification de l'integrite du repertoire de test
-    test_dir = os.path.join(suite_dir, test_name)
+    test_dir = os.path.join(suite_dir, test_dir_name)
     utils.check_test_dir(test_dir)
 
     # Extraction des repertoires principaux
@@ -170,11 +185,9 @@ def evaluate_tool_on_test_dir(tool_exe_path, suite_dir, test_name):
     os.chdir(test_dir)
 
     # Recherche du contexte parallele
-    khiops_mpi_process_number = utils.get_env_var_positive_value(
-        kht.KHIOPS_MPI_PROCESS_NUMBER, is_int=True
-    )
+    tool_process_number = results.process_number
     if tool_name not in kht.PARALLEL_TOOL_NAMES:
-        khiops_mpi_process_number = None
+        tool_process_number = 1
 
     # Affichage du debut des tests ou de la comparaison
     action_name = "Test"
@@ -190,9 +203,9 @@ def evaluate_tool_on_test_dir(tool_exe_path, suite_dir, test_name):
         + " "
         + suite_dir_name
         + " "
-        + test_name
-        + " (MPI: "
-        + str(khiops_mpi_process_number)
+        + test_dir_name
+        + " (processes: "
+        + str(tool_process_number)
         + ", platform: "
         + results.get_context_platform_type()
         + ")"
@@ -223,56 +236,15 @@ def evaluate_tool_on_test_dir(tool_exe_path, suite_dir, test_name):
                 + tool_dir_name
             )
 
-        # Recherche dans les variables d'environnement du paramtrage des temps min et max
-        # pour declencher les test selon le temps des resultat de reference, et de la limite de timeout
-        khiops_min_test_time = utils.get_env_var_positive_value(
-            kht.KHIOPS_MIN_TEST_TIME
-        )
-        khiops_max_test_time = utils.get_env_var_positive_value(
-            kht.KHIOPS_MAX_TEST_TIME
-        )
-        khiops_test_timeout_limit = utils.get_env_var_positive_value(
-            kht.KHIOPS_TEST_TIMEOUT_LIMIT
-        )
-
         # Recherche du temps des resultats de reference dans le fichier de temps
-        results_ref_dir, _ = results.get_results_ref_dir(test_dir)
-        results_ref_test_time = None
-        if results_ref_dir is not None:
-            time_file_path = os.path.join(
-                os.getcwd(), os.path.join(test_dir, results_ref_dir, kht.TIME_LOG)
-            )
-            if os.path.isfile(time_file_path):
-                file_time = open(time_file_path, "r", errors="ignore")
-                lines = file_time.readlines()
-                file_time.close()
-                if len(lines) > 0:
-                    line = lines[0]
-                    line = line[:-1]
-                    fields = line.split(
-                        " "
-                    )  # Pour etre resilient aux formats 'Overal time: <time>' ou '<time>'
-                    time_field = fields[-1]
-                    try:
-                        results_ref_test_time = float(time_field)
-                    except ValueError:
-                        results_ref_test_time = None
+        results_ref_test_time = results.get_results_ref_dir_time(test_dir)
 
         # Arret si test trop long ou trop court
-        if results_ref_test_time is not None and (
-            (
-                (
-                    khiops_max_test_time is not None
-                    and results_ref_test_time > khiops_max_test_time
-                )
-                or (
-                    khiops_min_test_time is not None
-                    and results_ref_test_time < khiops_min_test_time
-                )
-            )
+        if not results.is_results_ref_dir_time_selected(
+            test_dir, min_test_time, max_test_time
         ):
             print(
-                test_name
+                test_dir_name
                 + " test not launched (test time: "
                 + str(results_ref_test_time)
                 + ")\n"
@@ -288,7 +260,6 @@ def evaluate_tool_on_test_dir(tool_exe_path, suite_dir, test_name):
 
         # khiops en mode expert via une variable d'environnement
         os.putenv(kht.KHIOPS_EXPERT_MODE, "true")
-        # os.putenv('KhiopsForestExpertMode', 'true')
 
         # khiops en mode HardMemoryLimit via une variable d'environnement pour provoquer
         # un plantage physique de l'allocateur en cas de depassement des contraintes memoires des scenarios
@@ -299,7 +270,7 @@ def evaluate_tool_on_test_dir(tool_exe_path, suite_dir, test_name):
 
         # Construction des parametres
         khiops_params = []
-        if khiops_mpi_process_number is not None:
+        if tool_process_number > 1:
             khiops_params.append(mpi_exe_name)
             # Option -l, specifique a mpich, valide au moins pour Windows:
             #    "Label standard out and standard error (stdout and stderr) with the rank of the process"
@@ -308,9 +279,9 @@ def evaluate_tool_on_test_dir(tool_exe_path, suite_dir, test_name):
                 khiops_params.append("-host")
                 khiops_params.append("localhost")
             khiops_params.append("-n")
-            khiops_params.append(str(khiops_mpi_process_number))
+            khiops_params.append(str(tool_process_number))
         khiops_params.append(tool_exe_path)
-        if utils.get_env_var_boolean_value(kht.KHIOPS_BATCH_MODE, True):
+        if not user_interface:
             khiops_params.append("-b")
         khiops_params.append("-i")
         khiops_params.append(os.path.join(os.getcwd(), kht.TEST_PRM))
@@ -318,21 +289,23 @@ def evaluate_tool_on_test_dir(tool_exe_path, suite_dir, test_name):
         khiops_params.append(
             os.path.join(os.getcwd(), test_dir, kht.RESULTS, kht.ERR_TXT)
         )
-        if utils.get_env_var_boolean_value(kht.KHIOPS_OUTPOUT_SCENARIO_MODE, False):
+        if output_scenario:
             khiops_params.append("-o")
-            khiops_params.append(os.path.join(os.getcwd(), "test.output.prm"))
-        if utils.get_env_var_boolean_value(kht.KHIOPS_TASK_FILE_MODE, False):
+            khiops_params.append(
+                os.path.join(os.getcwd(), test_dir, kht.RESULTS, "output_test.prm")
+            )
+        if task_file:
             khiops_params.append("-p")
-            khiops_params.append(os.path.join(os.getcwd(), "task.log"))
+            khiops_params.append(
+                os.path.join(os.getcwd(), test_dir, kht.RESULTS, "task_progression.log")
+            )
 
         # Calcul d'un time_out en fonction du temps de reference, uniquement si celui est disponible
         timeout = None
         if results_ref_test_time is not None:
-            if khiops_test_timeout_limit is None:
-                khiops_test_timeout_limit = kht.MIN_TIMEOUT
-            timeout = (
-                khiops_test_timeout_limit + kht.TIMEOUT_RATIO * results_ref_test_time
-            )
+            if test_timeout_limit is None:
+                test_timeout_limit = kht.MIN_TIMEOUT
+            timeout = test_timeout_limit + kht.TIMEOUT_RATIO * results_ref_test_time
 
         # Lancement de khiops
         timeout_expiration_lines = []
@@ -526,7 +499,7 @@ def evaluate_tool_on_test_dir(tool_exe_path, suite_dir, test_name):
                     exception,
                 )
         # Message de fin de test
-        print(tool_dir_name + " " + suite_dir_name + " " + test_name + " test done")
+        print(tool_dir_name + " " + suite_dir_name + " " + test_dir_name + " test done")
 
         # Memorisation d'un fichier contenant le temp global
         try:
@@ -552,48 +525,16 @@ def evaluate_tool_on_test_dir(tool_exe_path, suite_dir, test_name):
 
     # Comparaison des resultats
     os.chdir(suite_dir)
-    test_dir = os.path.join(suite_dir, test_name)
+    test_dir = os.path.join(suite_dir, test_dir_name)
     check.check_results(test_dir)
 
 
-def evaluate_tool_on_suite_dir(tool_exe_path, suite_dir, test_name=None):
+def evaluate_tool_on_suite_dir(tool_exe_path, suite_dir, test_dir_name=None, **kwargs):
     """Evaluation d'un outil sur une suite de test et comparaison des resultats
     Parametres:
     - tool_exe_path: path de l'outil a tester, ou nul si on ne veut faire que la comparaison
     - suite_dir: repertoire de la suite de test
-    - test_name: repertoire de test terminal"""
-
-    # Echec si le nombre de processus est parametre et mpiexec n'est pas dans le path
-    if (
-        shutil.which(mpi_exe_name) is None
-        and kht.KHIOPS_MPI_PROCESS_NUMBER in os.environ
-    ):
-        utils.fatal_error(
-            "env var '"
-            + kht.KHIOPS_MPI_PROCESS_NUMBER
-            + "' set but mpiexec not found in path."
-        )
-
-    # Echec si on est en mode interactif des elements de configuration minimaux sont absents
-    if not utils.get_env_var_boolean_value(kht.KHIOPS_BATCH_MODE, True):
-        # Pour l'instant, verification uniquement sous Windows
-        current_platform = results.get_context_platform_type()
-        if current_platform == "Windows":
-            # Verification de a presence de Java
-            # Ne suffit pas pour verifier que jvm.dll est dans le path, mais c'est deja ca
-            path_to_java = shutil.which("java.exe")
-            if path_to_java is None:
-                utils.fatal_error(
-                    "en var '" + kht.KHIOPS_BATCH_MODE + "' set to 'true', "
-                    "but Java not found in path"
-                )
-            # Verification de la presence de norm.jar dans le casspath
-            classpath = os.getenv("classpath")
-            if classpath is None or "norm.jar" not in classpath:
-                utils.fatal_error(
-                    "en var '" + kht.KHIOPS_BATCH_MODE + "' set to 'true', "
-                    "but 'norm.jar' not found in classpath"
-                )
+    - test_dir_name: repertoire de test terminal"""
 
     # Erreur si repertoire de suite absent
     if not os.path.isdir(suite_dir):
@@ -610,12 +551,13 @@ def evaluate_tool_on_suite_dir(tool_exe_path, suite_dir, test_name=None):
         utils.fatal_error("no test dir is available in " + suite_dir)
 
     # Cas d'un repertoire de test specifique
-    if test_name is not None:
-        evaluate_tool_on_test_dir(tool_exe_path, suite_dir, test_name)
+    if test_dir_name is not None:
+        evaluate_tool_on_test_dir(tool_exe_path, suite_dir, test_dir_name, **kwargs)
+
     # Cas de tous les sous-repertoires
     else:
         for name in test_list:
-            evaluate_tool_on_test_dir(tool_exe_path, suite_dir, name)
+            evaluate_tool_on_test_dir(tool_exe_path, suite_dir, name, **kwargs)
         # Message global
         suite_dir_name = utils.dir_name(suite_dir)
         tool_dir_name = utils.parent_dir_name(suite_dir, 1)
@@ -625,119 +567,344 @@ def evaluate_tool_on_suite_dir(tool_exe_path, suite_dir, test_name=None):
         print(action_name + " DONE\t" + tool_dir_name + "\t" + suite_dir_name)
 
 
-# Pour ouvir un fichier avec un flush systematique
-class Unbuffered(object):
-    def __init__(self, stream):
-        self.stream = stream
-
-    def write(self, data):
-        # on encode en utf-8 en ignorant les erreurs pour eviter un erreur lors de l'encodage automatique
-        self.stream.write(data.encode("utf-8", "ignore").decode("utf-8"))
-        self.stream.flush()
-
-    def writelines(self, datas):
-        # on encode en utf-8 en ignorant les erreurs pour eviter un erreur lors de l'encodage automatique
-        self.stream.writelines(
-            [data.encode("utf-8", "ignore").decode("utf-8") for data in datas]
+def evaluate_tool(tool_name, tool_exe_path, home_dir, test_suites, **kwargs):
+    """Lance les tests d'un outil sur un ensemble de suites de tests"""
+    assert tool_name in kht.TOOL_NAMES
+    utils.check_home_dir(home_dir)
+    # Recherche du repertoire lie a l'outil
+    tool_dir_name = kht.TOOL_DIR_NAMES[tool_name]
+    # Lancement des tests sur les repertoires valides
+    for suite_dir_name in test_suites:
+        suite_dir = os.path.join(
+            home_dir,
+            tool_dir_name,
+            suite_dir_name,
         )
-        self.stream.flush()
+        if os.path.isdir(suite_dir):
+            print("\n\n--------------------------------------------------------")
+            print("\tRunning " + tool_name + " " + suite_dir_name + " tests")
+            print("--------------------------------------------------------")
+            suite_dir = os.path.join(
+                home_dir,
+                tool_dir_name,
+                suite_dir_name,
+            )
+            evaluate_tool_on_suite_dir(tool_exe_path, suite_dir, **kwargs)
 
-    def __getattr__(self, attr):
-        return getattr(self.stream, attr)
+
+def evaluate_all_tools_on_learning_test_tree(
+    home_dir,
+    input_tool_dir_name,
+    input_suite_dir_name,
+    input_test_dir_name,
+    binaries_dir,
+    family,
+    **kwargs
+):
+    """Lance les tests des outils un ensemble de suites de tests
+    Toute ou partie de l'arborescence est prise en compte selon la specification
+     des operandes tool_dir_name, suite_dir_name, test_dir_name, qui peuvent etre None sinon.
+    - home_dir: repertoire principal de l'aborescence source
+    - tool_dir_name, suite_dir_name, test_dir_name: pour ne prendre en compte qu'une sous-partie
+      de l'arborescence source si ces oprande ne sont pas None
+    - binaries_dir: repertorie des executables des outils
+    - family: famille utilise pour choisir la sous-partie des suites a exporter
+    - kwargs: argument optionnels de la ligne de commande
+    """
+    # Tous les outils sont a prendre en compte si on est a la racine
+    if input_tool_dir_name is None:
+        used_tool_names = kht.TOOL_NAMES
+    # Sinon, seul l'outil correspondant au tool dir est a tester
+    else:
+        tool_name = kht.TOOL_NAMES_PER_DIR_NAME[input_tool_dir_name]
+        used_tool_names = [tool_name]
+
+    # Parcours des repertoires des outils verifier les repertoires de suite et nettoyer les resultats
+    suite_errors = False
+    for tool_name in used_tool_names:
+        tool_dir_name = kht.TOOL_DIR_NAMES[tool_name]
+        tool_exe_path, error_message = build_tool_exe_path(binaries_dir, tool_name)
+        # Recherche des suites a utiliser
+        if input_suite_dir_name is not None:
+            assert tool_dir_name is not None
+            suite_dir_names = [input_suite_dir_name]
+        elif family == test_families.ALL:
+            suite_dir_names = utils.sub_dirs(os.path.join(home_dir, tool_dir_name))
+        else:
+            suite_dir_names = test_families.FAMILY_TEST_SUITES[family, tool_name]
+        # Parcours des suites de la famille
+        for suite_dir_name in suite_dir_names:
+            suite_dir = os.path.join(
+                home_dir,
+                tool_dir_name,
+                suite_dir_name,
+            )
+            if os.path.isdir(suite_dir):
+                # Repertoires de test a utiliser
+                if input_test_dir_name is not None:
+                    test_dir_names = [input_test_dir_name]
+                else:
+                    test_dir_names = os.listdir(suite_dir)
+                # Parcours des repertoires de test de la suite
+                for test_dir_name in test_dir_names:
+                    # Nettoyage sauf si seulement comparaisons des resultats
+                    if tool_exe_path != kht.ALIAS_CHECK:
+                        test_dir = os.path.join(suite_dir, test_dir_name)
+                        if os.path.isdir(test_dir):
+                            # Nettoyage uniquement si test compatible avec les contraIntes de temps
+                            if results.is_results_ref_dir_time_selected(
+                                test_dir,
+                                kwargs["min_test_time"],
+                                kwargs["max_test_time"],
+                            ):
+                                file_path = os.path.join(
+                                    test_dir, kht.COMPARISON_RESULTS_LOG
+                                )
+                                if os.path.isfile(file_path):
+                                    utils.remove_file(file_path)
+                                results_dir = os.path.join(test_dir, kht.RESULTS)
+                                if os.path.isdir(results_dir):
+                                    for file_name in os.listdir(results_dir):
+                                        file_path = os.path.join(results_dir, file_name)
+                                        utils.remove_file(file_path)
+                                    utils.remove_dir(results_dir)
+            # Message d'erreur si suite inexistante
+            else:
+                if not suite_errors:
+                    print("")
+                    suite_errors = True
+                print("error : suite directory not found: " + suite_dir)
+
+    # Cas d'un seul outil avec un repertoire de suite au de test specifique
+    # Dans ce cas, on ignore la famille
+    if input_suite_dir_name is not None:
+        assert input_tool_dir_name is not None
+        tool_name = kht.TOOL_NAMES_PER_DIR_NAME[input_tool_dir_name]
+        tool_exe_path, error_message = build_tool_exe_path(binaries_dir, tool_name)
+        if tool_exe_path is None:
+            utils.fatal_error(error_message)
+        suite_dir = os.path.join(home_dir, input_tool_dir_name, input_suite_dir_name)
+        evaluate_tool_on_suite_dir(
+            tool_exe_path,
+            suite_dir,
+            input_test_dir_name,
+            **kwargs,
+        )
+    # Cas d'un ou plusieurs outils, ou il faut utiliser les suites de la famille specifiee
+    else:
+        # Tous les outils sont a prendre en compte si on est a la racine
+        if input_tool_dir_name is None:
+            used_tool_names = kht.TOOL_NAMES
+        # Sinon, seul l'outil correspondant au tool dir est a tester
+        else:
+            tool_name = kht.TOOL_NAMES_PER_DIR_NAME[input_tool_dir_name]
+            used_tool_names = [tool_name]
+
+        # Parcours des outils a evaluer
+        for tool_name in used_tool_names:
+            tool_dir_name = kht.TOOL_DIR_NAMES[tool_name]
+            if family == test_families.ALL:
+                test_suites = utils.sub_dirs(os.path.join(home_dir, tool_dir_name))
+            else:
+                test_suites = test_families.FAMILY_TEST_SUITES[family, tool_name]
+            # On ne teste la validite de l'exe que s'il y au moins une suite dans la famille
+            if len(test_suites) > 0:
+                # On sort avec un message d'erreur si l'exe n'esiste pas
+                # Cela n'est fait a priori sur tous les outils
+                # Cela permet de lancer un test complet sur une famille, meme si l'exe de KNI
+                # (exploite en dernier) n'est pas disponible
+                tool_exe_path, error_message = build_tool_exe_path(
+                    binaries_dir, tool_name
+                )
+                if tool_exe_path is None:
+                    utils.fatal_error(error_message)
+                evaluate_tool(
+                    tool_name,
+                    tool_exe_path,
+                    home_dir,
+                    test_suites,
+                    **kwargs,
+                )
 
 
 def main():
     """Fonction principale de lancement d'un test"""
 
-    # Aide si mauvais nombre de parametres
-    if len(sys.argv) != 3:
-        script_name = os.path.basename(__file__)
-        base_script_name = os.path.splitext(script_name)[0]
-        print(
-            base_script_name + " (tool binaries dir) (suite|test dir)\n"
-            "  Test tool on a suite or test directory"
-        )
-        print("  The tool binaries dir must contain the executable of the tested tool,")
-        print("   or one of the following aliases:")
-        print("    d: debug binary dir in developpement environnement")
-        print("    r: release binary dir in developpement environnement")
-        print("    check: only compare test and reference results")
-        print("  Examples")
-        print(
-            "   "
-            + base_script_name
-            + " r "
-            + os.path.join(
-                "<root dir>",
-                kht.LEARNING_TEST,
-                kht.TOOL_DIR_NAMES[kht.KHIOPS],
-                "Standard",
+    def build_usage_help(
+        help_command,
+        help_binary_dir,
+        help_tool_dir_name=None,
+        help_suite_dir_name=None,
+        help_test_dir_name=None,
+        help_options=None,
+    ):
+        """Construction d'une lige d'aide pour un usage de la command test"""
+        source_dir = os.path.join(".", kht.LEARNING_TEST)
+        if help_test_dir_name is not None:
+            source_dir = os.path.join(
+                source_dir, help_tool_dir_name, help_suite_dir_name, help_test_dir_name
             )
-        )
-        print(
-            "   "
-            + base_script_name
-            + ' "C:\\Program Files\\khiops\\bin" '
-            + os.path.join(
-                "<root dir>",
-                kht.LEARNING_TEST,
-                kht.TOOL_DIR_NAMES[kht.KHIOPS],
-                "Standard",
-                "Iris",
+        elif help_suite_dir_name is not None:
+            source_dir = os.path.join(
+                source_dir, help_tool_dir_name, help_suite_dir_name
             )
+        elif help_tool_dir_name is not None:
+            source_dir = os.path.join(source_dir, help_tool_dir_name)
+        usage_help = help_command + " " + source_dir + " " + help_binary_dir
+        if help_options is not None:
+            usage_help += " " + help_options
+        return usage_help
+
+    # Nom du script
+    script_file_name = os.path.basename(__file__)
+    script_name = os.path.splitext(script_file_name)[0]
+
+    # Ajout d'exemples d'utilisation
+    epilog = ""
+    epilog += "Usage examples"
+    epilog += "\n  " + build_usage_help(script_name, "r", help_options="-p 4")
+    epilog += "\n  " + build_usage_help(
+        script_name,
+        '"C:\\Program Files\\khiops\\bin"',
+        kht.TOOL_DIR_NAMES[kht.KHIOPS],
+        "Standard",
+        "Iris",
+    )
+    epilog += "\n  " + build_usage_help(
+        script_name,
+        "d",
+        kht.TOOL_DIR_NAMES[kht.COCLUSTERING],
+        help_options="--max-test-time 5 --test-timeout-limit 1000",
+    )
+    epilog += "\n  " + build_usage_help(script_name, "check", help_options="-f basic")
+
+    # Parametrage de l'analyse de la ligne de commande
+    parser = argparse.ArgumentParser(
+        prog=script_name,
+        description="test a tool on a subset of test dirs",
+        epilog=epilog,
+        formatter_class=utils.get_formatter_class(script_name),
+    )
+
+    # Arguments positionnels
+    utils.argument_parser_add_source_argument(parser)
+    parser.add_argument(
+        "binaries",
+        help="tool binaries dir,"
+        " or one of the following aliases:\n"
+        "  r, d: release or debug binary dir in developpement environnement\n"
+        "  check: for comparison of test and reference results only\n",
+    )
+
+    # Arguments optionnels standards
+    utils.argument_parser_add_family_argument(parser)
+    utils.argument_parser_add_processes_argument(parser)
+    utils.argument_parser_add_forced_platform_argument(parser)
+    utils.argument_parser_add_limit_test_time_arguments(parser)
+
+    # Temps de gestion d'un timeout
+    parser.add_argument(
+        "--test-timeout-limit",
+        help="kill overlengthy process exeeding timeout limit",
+        type=float,
+        metavar="t",
+        action="store",
+    )
+
+    # Mode avec fichier de tache
+    parser.add_argument(
+        "--task-file",
+        help="create a task progression file task_progression.log in results dir",
+        action="store_true",
+    )
+
+    # Mode avec scenario en sortie
+    parser.add_argument(
+        "--output-scenario",
+        help="create an output scenario output_test.prm in results dir",
+        action="store_true",
+    )
+
+    # Mode interface utilisateur
+    parser.add_argument(
+        "--user-interface",
+        help="run in user interface mode"
+        " (path to java and classpath with norm.jar must be defined)",
+        action="store_true",
+    )
+
+    # Analyse de la ligne de commande
+    args = parser.parse_args()
+
+    # Verifications supplementaires des arguments
+    # On nomme les arguments concerne de la meme facon que pour le comportement par defaut
+    # des controles automatiques du parser
+    # Le rappel des nom des argument est redondant avec la definition des arguments ajoutes,
+    # mais ce n'est pas trop lourd a maintenir
+    # (il n'y a pas d'api officielle d'introspection de la classe argparse)
+
+    # Verification de l'argument source
+    (
+        home_dir,
+        tool_dir_name,
+        suite_dir_name,
+        test_dir_name,
+    ) = utils.argument_parser_check_source_argument(parser, args.source)
+
+    # Verification des arguments optionnels
+    utils.argument_parser_check_processes_argument(parser, args.n)
+    utils.argument_parser_check_limit_test_time_arguments(
+        parser, args.min_test_time, args.max_test_time
+    )
+    if args.test_timeout_limit is not None and args.test_timeout_limit < 0:
+        parser.error("argument --test-timeout-limit must be positive")
+
+    # Echec si le nombre de processus est parametre et mpiexec n'est pas dans le path
+    if args.n > 1 and shutil.which(mpi_exe_name) is None:
+        parser.error(
+            "argument -p/--processes: process number "
+            + str(args.n)
+            + " is greater than 1 but mpiexec not found in path."
         )
-        print(
-            "   "
-            + base_script_name
-            + " check "
-            + os.path.join(
-                "<root dir>",
-                kht.LEARNING_TEST,
-                kht.TOOL_DIR_NAMES[kht.COCLUSTERING],
-                "Standard",
-            )
-        )
-        exit(1)
 
-    # Pour flusher systematuqment sur la sortie standard
-    sys.stdout = Unbuffered(sys.stdout)
+    # Echec si on est en mode interactif des elements de configuration minimaux sont absents
+    if args.user_interface:
+        # Pour l'instant, verification uniquement sous Windows
+        current_platform = results.get_context_platform_type()
+        if current_platform == "Windows":
+            # Verification de a presence de Java
+            # Ne suffit pas pour verifier que jvm.dll est dans le path, mais c'est deja ca
+            path_to_java = shutil.which("java.exe")
+            if path_to_java is None:
+                parser.error(
+                    "argument --user-interface is set but Java  not found in path"
+                )
+            # Verification de la presence de norm.jar dans le classpath
+            classpath = os.getenv("classpath")
+            if classpath is None or "norm.jar" not in classpath:
+                parser.error(
+                    "argument --user-interface is set but 'norm.jar' not found in classpath"
+                )
 
-    # Recherche des parametres
-    tool_binaries_dir = sys.argv[1]
-    suite_or_test_dir = sys.argv[2]
+    # Memorisation des variables globales de gestion du contexte des resultats de reference
+    results.process_number = args.n
+    results.forced_platform = args.forced_platform
 
-    # Analyse du repertoire a tester
-    learning_test_depth = utils.check_learning_test_dir(suite_or_test_dir)
-    tool_dir_name = ""
-    suite_dir_name = ""
-    test_dir_name = None
-    if learning_test_depth == 3:
-        tool_dir_name = utils.parent_dir_name(suite_or_test_dir, 2)
-        suite_dir_name = utils.parent_dir_name(suite_or_test_dir, 1)
-        test_dir_name = utils.parent_dir_name(suite_or_test_dir, 0)
-    elif learning_test_depth == 2:
-        tool_dir_name = utils.parent_dir_name(suite_or_test_dir, 1)
-        suite_dir_name = utils.parent_dir_name(suite_or_test_dir, 0)
-    else:
-        utils.fatal_error(suite_or_test_dir + " should be a suite or test dir")
-    assert tool_dir_name != ""
-    if tool_dir_name not in kht.TOOL_DIR_NAMES.values():
-        utils.fatal_error(
-            tool_dir_name
-            + " in "
-            + os.path.realpath(suite_or_test_dir)
-            + " should be a tool dir "
-            + utils.list_to_label(kht.TOOL_DIR_NAMES.values())
-        )
-    home_dir = utils.get_home_dir(suite_or_test_dir)
-    suite_dir = os.path.join(home_dir, tool_dir_name, suite_dir_name)
-
-    # Recherche des infos sur l'outil
-    tool_name = kht.TOOL_NAMES_PER_DIR_NAME[tool_dir_name]
-    tool_exe_path = build_tool_exe_path(tool_binaries_dir, tool_name)
-
-    # Evaluation
-    evaluate_tool_on_suite_dir(tool_exe_path, suite_dir, test_dir_name)
+    # Lancement de la commande
+    evaluate_all_tools_on_learning_test_tree(
+        home_dir,
+        tool_dir_name,
+        suite_dir_name,
+        test_dir_name,
+        args.binaries,
+        args.family,
+        min_test_time=args.min_test_time,
+        max_test_time=args.max_test_time,
+        test_timeout_limit=args.test_timeout_limit,
+        task_file=args.task_file,
+        output_scenario=args.output_scenario,
+        user_interface=args.user_interface,
+    )
 
 
 if __name__ == "__main__":

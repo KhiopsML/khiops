@@ -114,19 +114,6 @@ OR = "_"
 
 
 """
-Variables d'environnement de pilotage des tests
-"""
-KHIOPS_MPI_PROCESS_NUMBER = "KhiopsMPIProcessNumber"
-KHIOPS_MIN_TEST_TIME = "KhiopsMinTestTime"
-KHIOPS_MAX_TEST_TIME = "KhiopsMaxTestTime"
-KHIOPS_TEST_TIMEOUT_LIMIT = "KhiopsTestTimeoutLimit"
-KHIOPS_BATCH_MODE = "KhiopsBatchMode"
-KHIOPS_TASK_FILE_MODE = "KhiopsTaskFileMode"
-KHIOPS_OUTPOUT_SCENARIO_MODE = "KhiopsOutputScenarioMode"
-KHIOPS_COMPARISON_PLATFORM = "KhiopsComparisonPlatform"
-KHIOPS_COMPLETE_TESTS = "KhiopsCompleteTests"
-
-"""
 Variables d'environnement influant le comportement des outils Khiops
 """
 # Variables documentees pour l'utilisateur

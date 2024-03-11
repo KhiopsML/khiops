@@ -127,12 +127,7 @@ def instruction_errors(test_dir):
             special_file_message = summary_infos.get(key, "")
             break
     # Message si necessaire
-    if (
-        error_number != 0
-        or warning_number != 0
-        or special_file_message != ""
-        or portability_message != ""
-    ):
+    if error_number != 0 or warning_number != 0:
         message = (
             "\t" + tool_dir_name + "\t" + suite_dir_name + "\t" + test_dir_name + "\t"
         )
@@ -190,7 +185,7 @@ def instruction_logs(test_dir):
             log_file.close()
 
 
-def instruction_compare_times(test_dir, verbose=False):
+def instruction_times(test_dir, verbose=True):
     def print_log_message(message):
         print(
             "\t"
@@ -320,8 +315,8 @@ def instruction_compare_times(test_dir, verbose=False):
                             )
 
 
-def instruction_compare_times_verbose(test_dir):
-    instruction_compare_times(test_dir, verbose=True)
+def instruction_times_alert(test_dir):
+    instruction_times(test_dir, verbose=False)
 
 
 def instruction_performance(test_dir):
@@ -699,7 +694,7 @@ def register_standard_instructions():
         available_instructions,
         "list",
         instruction_list,
-        "list of sub-directories, with results.ref info",
+        "list of sub-directories, with reference results context info",
     )
     register_instruction(
         available_instructions,
@@ -711,19 +706,19 @@ def register_standard_instructions():
         available_instructions,
         "logs",
         instruction_logs,
-        "detailed report errors and warnings",
+        "report errors and warnings with all details",
     )
     register_instruction(
         available_instructions,
-        "compareTimes",
-        instruction_compare_times,
-        "compare time with ref time and report warnings only",
-    )
-    register_instruction(
-        available_instructions,
-        "compareTimesVerbose",
-        instruction_compare_times_verbose,
+        "times",
+        instruction_times,
         "compare time with ref time and report all",
+    )
+    register_instruction(
+        available_instructions,
+        "times-alert",
+        instruction_times_alert,
+        "compare time with ref time and report alerts only",
     )
     register_instruction(
         available_instructions,
@@ -733,7 +728,7 @@ def register_standard_instructions():
     )
     register_instruction(
         available_instructions,
-        "performanceRef",
+        "performanceref",
         instruction_performance_ref,
         "report ref SNB test accuracy",
     )
@@ -741,47 +736,47 @@ def register_standard_instructions():
         available_instructions,
         "clean",
         instruction_clean,
-        "delete test result files and comparison log file",
+        "delete results dir and comparison log file",
     )
     register_instruction(
         available_instructions,
         "cleanref",
         instruction_clean_ref,
-        "delete reference result files for current reference context",
+        "delete reference results files for current context",
     )
     register_instruction(
         available_instructions,
         "deleteref",
         instruction_delete_ref,
-        "delete reference result files and directories for all reference context",
+        "delete reference results files and dirs for all contexts",
     )
     register_instruction(
         available_instructions,
         "makeref",
         instruction_make_ref,
-        "copy test result files to reference dir for current reference context",
+        "copy test results files to reference dir for current context",
     )
     register_instruction(
         available_instructions,
         "copyref",
         instruction_copy_ref,
-        "copy reference result files to test dir for current reference context",
+        "copy reference results files to test dir for current context",
     )
     register_instruction(
         available_instructions,
-        "checkHDFS",
+        "check-hdfs",
         instruction_check_hdfs,
         "check if parameter files are compliant with HDFS",
     )
     register_instruction(
         available_instructions,
-        "transformHDFS",
+        "transform-hdfs",
         instruction_transform_hdfs,
         "transform parameter files to be compliant with HDFS",
     )
     register_instruction(
         available_instructions,
-        "transformHDFSresults",
+        "transform-hdfs-results",
         instruction_transform_hdfs_results,
         "transform results files to be compliant with HDFS",
     )
