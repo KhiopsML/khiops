@@ -9,7 +9,9 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Check out sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+      - name: Install Ninja
+        run: brew install ninja
       - name: Build Khiops executables
         uses: ./.github/actions/build-khiops
         with:
@@ -18,7 +20,7 @@ jobs:
       - name: Build package with CPack
         run: cd build/${{env.PRESET_NAME}} && cpack -G ZIP
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3.1.2
+        uses: actions/upload-artifact@v4
         with:
           name: macos
           path: build/${{env.PRESET_NAME}}/packages/*.zip

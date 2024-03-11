@@ -1,6 +1,6 @@
 ---
 name: Build Khiops
-description: Action to execute CMake configure/build presets
+description: Executes CMake configure/build presets
 inputs:
   preset-name:
     description: The CMake preset name
@@ -9,16 +9,14 @@ inputs:
     description: "List of overriding flags for the preset defaults (ex: '-DUSE_MPI=OFF\
       \ -DBUILD_JARS=ON')"
   targets:
-    description: "List of targets to be built (ex: 'MODL norm_test')"
+    description: "List of targets (ex: 'MODL norm_test')"
 runs:
   using: composite
   steps:
     - name: Setup MPI
       uses: mpi4py/setup-mpi@v1
-    - name: Setup Ninja
-      uses: ashutoshvarma/setup-ninja@v1.1
     - name: Load Visual C++ Environment Variables (Windows only)
-      if: ${{ runner.os == 'Windows' }}
+      if: runner.os == 'Windows'
       shell: cmd
       run: |
         call "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\VC\\Auxiliary\\Build\\vcvars64.bat"
