@@ -8,6 +8,12 @@ name: Run Standard Tests
 # It is automatically triggered on PR when sources files are modified (files in src directory)
 on:
   workflow_dispatch:
+    inputs:
+      warning_as_error:
+        type: boolean
+        description: Treat warnings as errors
+        required: false
+        default: false
   pull_request:
     paths:
       - '**CMakeLists.txt'
@@ -108,8 +114,9 @@ jobs:
       - name: Set environment variables
         shell: bash
         run: |
-          echo "TEST_PY=test/LearningTest/cmd/python/test_khiops.py" >> "$GITHUB_ENV"
-          echo "APPLY_PY=test/LearningTest/cmd/python/apply_command.py" >> "$GITHUB_ENV"
+          echo "TEST_PY=test/LearningTestTool/py/kht_test.py" >> "$GITHUB_ENV"
+          echo "APPLY_PY=test/LearningTestTool/py/kht_apply.py" >> "$GITHUB_ENV"
+          echo "COLLECT_PY=test/LearningTestTool/py/kht_collect_results.py" >> "$GITHUB_ENV"
           echo "BIN_PATH=${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin" >> "$GITHUB_ENV"
       - name: Setup MPI
         uses: mpi4py/setup-mpi@v1
@@ -120,64 +127,65 @@ jobs:
       # - In release run all Standard tests
         shell: bash
         run: |
-          if [[ "${{ matrix.build-setup.os }}"  == 'windows-2022' ]]; then
-            export EXT=".exe"
-          fi
           if [[ "${{ matrix.running-mode }}" == "parallel" ]] ; then
             export KhiopsMPIProcessNumber=4
           fi
           if [[ "${{ matrix.config }}" == "release" ]] ; then
-            python $TEST_PY Khiops ${BIN_PATH}/MODL${EXT} Standard
+            python $TEST_PY test/LearningTest/TestKhiops/Standard ${BIN_PATH}
             if [[ "${{ matrix.running-mode }}" != "parallel" ]] ; then
-              python $TEST_PY Coclustering ${BIN_PATH}/MODL_Coclustering${EXT} Standard
-              python $TEST_PY KNI ${BIN_PATH}/KNITransfer${EXT} Standard
+              python $TEST_PY test/LearningTest/TestCoclustering/Standard ${BIN_PATH}
+              python $TEST_PY test/LearningTest/TestKNI/Standard ${BIN_PATH}
             fi
           else
-            python $TEST_PY Khiops ${BIN_PATH}/MODL${EXT} Standard IrisLight
+            python $TEST_PY test/LearningTest/TestKhiops/Standard/IrisLight ${BIN_PATH}
             if [[ "${{ matrix.running-mode }}" != "parallel" ]] ; then
-              python $TEST_PY Coclustering ${BIN_PATH}/MODL_Coclustering${EXT} Standard Iris
-              python $TEST_PY KNI ${BIN_PATH}/KNITransfer${EXT} Standard Iris
+              python $TEST_PY test/LearningTest/TestCoclustering/Standard/Iris ${BIN_PATH}
+              python $TEST_PY test/LearningTest/TestKNI/Standard/Iris ${BIN_PATH}
             fi
           fi
       - name: Collect results
         shell: bash
         if: success() || failure()
         run: |
+          mkdir results
           if [[ "${{ matrix.config }}" == "release" ]] ; then
-            python3 $APPLY_PY errors test/LearningTest/TestKhiops/Standard | tee test/LearningTest/TestKhiops/Standard/errors.txt
+            python $APPLY_PY test/LearningTest/TestKhiops/Standard errors | tee -a results/errors.txt
             if [[ "${{ matrix.running-mode }}" != "parallel" ]] ; then
-              python $APPLY_PY errors test/LearningTest/TestCoclustering/Standard | tee test/LearningTest/TestCoclustering/Standard/errors.txt
-              python $APPLY_PY errors test/LearningTest/TestKNI/Standard | tee test/LearningTest/TestKNI/Standard/errors.txt
+              python $APPLY_PY test/LearningTest/TestCoclustering/Standard errors | tee -a results/errors.txt
+              python $APPLY_PY test/LearningTest/TestKNI/Standard errors | tee -a results/errors.txt
             fi
           else
-            python3 $APPLY_PY errors test/LearningTest/TestKhiops/Standard IrisLight | tee test/LearningTest/TestKhiops/Standard/errors.txt
+            python $APPLY_PY test/LearningTest/TestKhiops/Standard/IrisLight errors | tee -a results/errors.txt
             if [[ "${{ matrix.running-mode }}" != "parallel" ]] ; then
-              python $APPLY_PY errors test/LearningTest/TestCoclustering/Standard Iris | tee test/LearningTest/TestCoclustering/Standard/errors.txt
-              python $APPLY_PY errors test/LearningTest/TestKNI/Standard Iris | tee test/LearningTest/TestKNI/Standard/errors.txt
+              python $APPLY_PY test/LearningTest/TestCoclustering/Standard/Iris errors | tee -a results/errors.txt
+              python $APPLY_PY test/LearningTest/TestKNI/Standard/Iris errors | tee -a results/errors.txt
             fi
           fi
+          python $COLLECT_PY test/LearningTest/ results --collect-type warnings -f basic
       - name: Check results
+        # We escape eol in the results file to print multilines in the github UI https://github.com/orgs/community/discussions/26288
         shell: bash
         run: |
-          if grep -qr "error" --include="errors.txt" test/LearningTest/ ; then
-            echo "::error::Errors in test"
+          MSG=$(<results/errors.txt)
+          MSG="${MSG//'%'/'%25'}"
+          MSG="${MSG//$'\n'/'%0A'}"
+          MSG="${MSG//$'\r'/'%0D'}"
+          if grep -q -e "error" -e "The test has not been launched" results/errors.txt ; then
+            echo "::error::$MSG"
             false
           fi
-          if grep -qr "The test has not been launched" --include="errors.txt" test/LearningTest/ ; then
-            echo "::error::Test not launched"
+          if [ "${{ github.event.inputs.warning_as_error }}" == "true" ] && grep -q "warning" results/errors.txt  ; then
+            echo "::error::$MSG"
             false
           fi
       - name: Upload test results
         if: failure()
         uses: actions/upload-artifact@v3
         with:
-          name: test-results-${{ env.PRESET_NAME }}-${{ matrix.running-mode}}
+          name: test-results-${{ env.PRESET_NAME }}-${{ matrix.running-mode }}
           retention-days: 7
           path: |-
-            test/LearningTest/**/results
-            test/LearningTest/**/results.ref
-            test/LearningTest/**/errors.txt
-            test/LearningTest/**/comparisonResults.log
+            results/
   cleanup-cache:
     # Clean up all caches belonging to the current run
     if: ${{ always() }}
