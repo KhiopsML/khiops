@@ -1,0 +1,15 @@
+Standard random int mean	5.00008e+08
+SYS TIME	Standard random int	0.997458
+
+Standard random double mean	0.500041
+SYS TIME	Standard random double	0.836175
+
+Standard ith random int mean	5.00002e+08
+SYS TIME	Standard ith random int	1.3094
+
+Standard ith random longint mean	5.00002e+08
+SYS TIME	Standard ith random longint	1.03061
+
+Standard ith random double mean	0.499946
+SYS TIME	Standard ith random double	1.6411
+

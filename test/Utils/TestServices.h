@@ -31,8 +31,10 @@
 // Cet appel a la macro va lancer la methode Integer::Test() en redirigeant la
 // sortie standard vers le fichier ./results/Integer_full.txt et ensuite
 // comparer ce fichier avec le fichier de reference
-//  ./results.ref/Integer_full.txt. Ce fichier doit avoir ete cree par ailleurs
-//  lors de la mise au point de la methode Integer::Test().
+//  ./results.ref/Integer_full.txt.
+// Lors de la mise au point, le fichier Integer_full.txt est cree dans le repertoire
+// results et le test echoue car il n'y a pas de fichier de referecnce. Il suffit
+// de copier ce fichier dans le repertoire results.ref pour que le test reussisse.
 //
 // Le test est reussi lorsque les 2 fichiers sont identiques (a l'exception des
 // lignes qui commencent par "SYS" qui peuvent etre differentes)
@@ -58,6 +60,7 @@
 
 // Comparaison de 2 fichiers ligne par ligne
 // Les fichiers peuvent differer pour les lignes qui commencent par 'SYS'
+// Il y a egalement une tolerance pour le caractere separateur dans les chemins '\' qui est remplace par '/'
 // Renvoie true si les 2 fichiers existent et sont identiques
 boolean FileCompareForTest(const ALString& sFileNameReference, const ALString& sFileNameTest);
 

@@ -1,0 +1,22 @@
+Nombre d'elements differents (0 to 1000000) [1000]:
+Nombre de doublons par element (1 to 1000) [10]:
+Nombre de parcours de listes (1 to 1000) [1000]:
+Creation des elements
+Initialisation de la liste a partir d'un tableau
+Depth=11
+SYS TIME	SortedList from ObjectArray	0:00:00
+Verification de la validite du tri
+SYS TIME	SortedList check	0:00:00
+Parcours de la liste dans les deux sens
+SYS TIME	Sorted list access	0:00:00.14
+Parcours de la liste dans les deux sens sans les doublons
+SYS TIME	SortedList access without ties	0:00:00.59
+Supresssion des elements a partir des extremites
+SYS TIME	SortedList remove	0:00:00
+Ajout de tous les elements un a un
+Depth=11
+SYS TIME	SortedList add	0:00:00
+Verification de la validite du tri
+SYS TIME	SortedList check	0:00:00
+Suppression des elements en ordre aleatoire
+SYS TIME	SortedList remove	0:00:00

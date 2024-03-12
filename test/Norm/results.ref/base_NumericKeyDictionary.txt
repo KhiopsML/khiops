@@ -1,0 +1,61 @@
+Test des fonctionnalites de base
+Insertion de 10 NUMERICs
+	Numeric key dictionary size	10
+Test d'existence
+	Lookup ( [8,]): 1
+	Lookup ( [9,]): 1
+	Lookup ( [10,]): 0
+Insertion puis supression d'un element temporaire a detruire
+Inserted: 1
+Removed: 1
+Removed and deleted: 1
+Test de performance
+Nombre maxi d'elements inseres (Random) (1 to 10000000) [1000000]:
+Nombre d'iterations (1 to 1000) [20]:
+	Iteration 0	Size = 632008	Found = 632008
+	Iteration 1	Size = 864602	Found = 864602
+	Iteration 2	Size = 950520	Found = 950520
+	Iteration 3	Size = 981739	Found = 981739
+	Iteration 4	Size = 993458	Found = 993458
+	Iteration 5	Size = 997504	Found = 997504
+	Iteration 6	Size = 999082	Found = 999082
+	Iteration 7	Size = 999652	Found = 999652
+	Iteration 8	Size = 999886	Found = 999886
+	Iteration 9	Size = 999959	Found = 999959
+	Iteration 10	Size = 999985	Found = 999985
+	Iteration 11	Size = 999993	Found = 999993
+	Iteration 12	Size = 1000000	Found = 1000000
+	Iteration 13	Size = 1000000	Found = 1000000
+	Iteration 14	Size = 1000000	Found = 1000000
+	Iteration 15	Size = 1000000	Found = 1000000
+	Iteration 16	Size = 1000000	Found = 1000000
+	Iteration 17	Size = 1000000	Found = 1000000
+	Iteration 18	Size = 1000000	Found = 1000000
+	Iteration 19	Size = 1000000	Found = 1000000
+SYS TIME	NumericKeyDictionary access	9.5322
+SYS MEMORY	Used memory	1000000	55478896	87478896
+Test de performance avec des entiers
+Nombre maxi d'entiers inseres (Random) (1 to 10000000) [1000000]:
+Nombre d'iterations (1 to 1000) [20]:
+	Iteration 0	Size = 632150	Found = 632150
+	Iteration 1	Size = 865060	Found = 865060
+	Iteration 2	Size = 950481	Found = 950481
+	Iteration 3	Size = 981796	Found = 981796
+	Iteration 4	Size = 993388	Found = 993388
+	Iteration 5	Size = 997488	Found = 997488
+	Iteration 6	Size = 999093	Found = 999093
+	Iteration 7	Size = 999691	Found = 999691
+	Iteration 8	Size = 999890	Found = 999890
+	Iteration 9	Size = 999961	Found = 999961
+	Iteration 10	Size = 999984	Found = 999984
+	Iteration 11	Size = 999994	Found = 999994
+	Iteration 12	Size = 999999	Found = 999999
+	Iteration 13	Size = 1000000	Found = 1000000
+	Iteration 14	Size = 1000000	Found = 1000000
+	Iteration 15	Size = 1000000	Found = 1000000
+	Iteration 16	Size = 1000000	Found = 1000000
+	Iteration 17	Size = 1000000	Found = 1000000
+	Iteration 18	Size = 1000000	Found = 1000000
+	Iteration 19	Size = 1000000	Found = 1000000
+SYS TIME	NumericKeyDictionary access	8.98947
+SYS MEMORY	Used memory	1000000	55478896	87478896

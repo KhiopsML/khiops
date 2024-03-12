@@ -1,0 +1,59 @@
+SYS MEMORY	Memoire physique theorique adressable	1.0 TB
+SYS MEMORY	Memoire physique totale	31.1 GB
+SYS MEMORY	Memoire physique disponible	16.6 GB
+SYS MEMORY	Memoire virtuelle utilisee	17.3 MB
+SYS MEMORY	Memoire heap utilisee	6.0 MB
+Keep default alloc error handler (y/n) [y]:
+Huge alloc (may cause a fatal error) (y/n) [n]:
+Test of alloc of large vectors
+Size of vectors (1 to 100000000) [1000]:
+Alloc number (0 to 10000000) [1000]:
+Print progression dots (y/n) [n]:
+Allocated vectors:	1000
+SYS TIME	Allocation	0.00390966
+
+Sequential use of allocated vectors (y/n) [y]:
+SYS TIME	Sequential use of vectors	0.00555581
+
+Random use of allocated vectors (y/n) [y]:
+SYS TIME	Random use of vectors	0.0174723
+
+Free memory (y/n) [y]:
+SYS TIME	Free memory	0.00312161
+
+Extensive memory benchmark
+Percentage of available memory to exploit (0 to 100) [10]:
+SYS MEMORY	Memoire utilisee pour le benchmark	3182 Mo
+	Allocation de grands nombres de vecteurs d'entiers
+	  Size: taille des vecteur d'entier
+	  Nb: nombre d'allocations demandees
+	  NbAlloc: nombre d'allocations effectuees
+	  Memory: taille totale allouee en Mo
+	  T new: temps d'allocation
+	  T delete: temps de liberation
+SYS MEMORY	Size	Nb	NbAlloc	Memory	T new	T delete
+SYS MEMORY	100	8343162	8343162	3182	8.09301	6.65809
+SYS MEMORY	200	4171581	4171581	3182	6.82108	5.88356
+SYS MEMORY	400	2085790	2085790	3182	6.22782	5.39748
+SYS MEMORY	800	1042895	1042895	3182	6.0149	5.11637
+SYS MEMORY	1600	521447	521447	3182	5.88141	5.04072
+SYS MEMORY	3200	260723	260723	3182	6.05762	4.99589
+SYS MEMORY	6400	130361	130361	3182	6.14159	5.04456
+SYS MEMORY	12800	65180	65180	3182	1.05667	0.17259
+SYS MEMORY	25600	32590	32590	3182	1.04247	0.172041
+SYS MEMORY	51200	16295	16295	3182	1.041	0.168846
+SYS MEMORY	102400	8147	8147	3182	1.02105	0.163151
+SYS MEMORY	204800	4073	4073	3182	1.00512	0.159692
+SYS MEMORY	409600	2036	2036	3181	1.00663	0.158729
+SYS MEMORY	819200	1018	1018	3181	0.997742	0.159667
+Massive segment allocation
+Iteration number (0 to 10) [1]:
+Alloc number (0 to 10000000) [10000]:
+SYS Creation of segments	0	10000	0.204948	1.2 GB	1.2 GB
+SYS Deletion of segments	0	10000	0.00328832	6.3 MB	1.2 GB
+SYS Creation of segments	0	10000	0.038881	1.2 GB	1.2 GB
+SYS Bloc deletion of segments	0	10000	0.00487856	6.3 MB	1.2 GB
+SYS Creation of segments	0	10000	0.0382119	1.2 GB	1.2 GB
+SYS Reverse deletion of segments	0	10000	0.00332919	6.3 MB	1.2 GB
+SYS Creation of segments	0	10000	0.0349078	1.2 GB	1.2 GB
+SYS Random deletion of segments	0	10000	0.00623976	6.3 MB	1.2 GB

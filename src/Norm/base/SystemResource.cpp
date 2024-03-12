@@ -1403,3 +1403,18 @@ const char* GetSystemInfos()
 }
 
 #endif // __linux_or_apple__
+
+void TestSystemResource()
+{
+	// Ressources systeme
+	cout << "SYS MAC Address\t" << GetMACAddress() << endl;
+	cout << "SYS machine GUID " << GetMachineGUID() << endl;
+	cout << "SYS RESOURCE\tProcessor number\t" << SystemGetProcessorNumber() << "\n";
+	cout << "SYS RESOURCE\tDisk Free Space on current directory\t"
+	     << LongintToHumanReadableString(DiskGetFreeSpace(".")) << "\n";
+	cout << "SYS RESOURCE\tCurrent timestamp\t" << CurrentTimestamp() << "\n";
+	cout << "SYS RESOURCE\tCurrent precise timestamp\t" << CurrentPreciseTimestamp() << "\n";
+	cout << "Sleep(0.1)\n";
+	SystemSleep(0.1);
+	cout << "SYS RESOURCE\tCurrent precise timestamp\t" << CurrentPreciseTimestamp() << "\n";
+}

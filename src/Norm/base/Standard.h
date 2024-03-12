@@ -348,3 +348,6 @@ void SetProcessId(int nValue);
 void TraceMaster(const char* sTrace);
 void TraceSlave(const char* sTrace);
 void TraceWithRank(const char* sTrace);
+
+//  Test du generateur aleatoire
+void TestRandom();

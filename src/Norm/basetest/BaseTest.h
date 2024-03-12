@@ -6,14 +6,11 @@
 
 #include "Timer.h"
 #include "Standard.h"
-#include "Ermgt.h"
 #include "ALString.h"
 #include "Object.h"
 #include "SortedList.h"
 #include "UITestClassSpecArrayView.h"
 #include "UITest.h"
-#include "MemoryManager.h"
-#include "MemoryStatsManager.h"
 #include "SystemResource.h"
 #include "CharVector.h"
 #include "InputBufferedFile.h"
@@ -22,6 +19,7 @@
 #include "DiversTests.h"
 #include "UITestObject.h"
 #include "UITestObjectView.h"
+#include "MemoryTest.h"
 
 // Classe de test des composants de base
 class TestBaseComponents : public UICard

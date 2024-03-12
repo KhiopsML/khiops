@@ -1,0 +1,71 @@
+1. Chaine variable locale initiale: 
+2. Chaine initialisee a partir d'une constante: Hello
+3. Chaine concatenee a partir d'une constante: Hello World!
+4. Chaine concatenee a partir d'une chaine: Hello World!Hello World!
+5. Chaine initialisee a partir d'une chaine: Hello World!Hello World!
+6. Chaine allouee par new: 
+7. Chaine allouee initialisee par une chaine de la stack: Hello World!Hello World!
+i	ll int	double	(ll)double	string(ll)	(ll)string
+0	1	1	1	1	1
+1	10	10	10	10	10
+2	100	100	100	100	100
+3	1000	1000	1000	1000	1000
+4	10000	10000	10000	10000	10000
+5	100000	100000	100000	100000	100000
+6	1000000	1e+06	1000000	1000000	1000000
+7	10000000	1e+07	10000000	10000000	10000000
+8	100000000	1e+08	100000000	100000000	100000000
+9	1000000000	1e+09	1000000000	1000000000	1000000000
+10	10000000000	1e+10	10000000000	10000000000	10000000000
+11	100000000000	1e+11	100000000000	100000000000	100000000000
+12	1000000000000	1e+12	1000000000000	1000000000000	1000000000000
+13	10000000000000	1e+13	10000000000000	10000000000000	10000000000000
+14	100000000000000	1e+14	100000000000000	100000000000000	100000000000000
+15	1000000000000000	1e+15	1000000000000000	1000000000000000	1000000000000000
+16	10000000000000000	1e+16	10000000000000000	10000000000000000	10000000000000000
+17	100000000000000000	1e+17	100000000000000000	100000000000000000	100000000000000000
+18	1000000000000000000	1e+18	1000000000000000000	1000000000000000000	1000000000000000000
+Test de conversion de double vers string
+0	1	1
+1	0.1	0.1
+2	0.01	0.01
+3	0.001	0.001
+4	0.0001	0.0001
+5	1e-05	1e-05
+6	1e-06	1e-06
+7	1e-07	1e-07
+8	1e-08	1e-08
+9	1e-09	1e-09
+10	1e-10	1e-10
+11	1e-11	1e-11
+12	1e-12	1e-12
+13	1e-13	1e-13
+14	1e-14	1e-14
+15	1e-15	1e-15
+16	1e-16	1e-16
+17	1e-17	1e-17
+18	1e-18	1e-18
+19	1e-19	1e-19
+<AbCdE> -Upper-> <ABCDE>
+<AbCdE> -Lower-> <abcde>
+<AbCdE> Compare <ABCDE> -> 1
+<AbCdE> CompareNoCase <ABCDE> -> 0
+Utilisation de cout avec une string: AbCdE!
+<  Coucou  > -trim-> <Coucou>
+<   > -trim-> <>
+
+Test de concatenation
+Nombre de milliers d'iterations (concatenations) (1 to 1000000) [1000]:
+	Start (concatenations)
+	Result length: 3000 (123123123123123123123123123123...)
+SYS TIME	String concatenations	0.027761
+
+
+Test de performance
+Nombre de milliers d'iterations (comparaison de chaines) (1 to 1000000) [1000]:
+	Start (comparaison de valeurs des chaines)
+SYS TIME	String comparisons	1000000	0.007548
+
+	Start (comparaison des pointeurs des chaines)
+SYS TIME	String pointer comparisons	0	0.001434
+

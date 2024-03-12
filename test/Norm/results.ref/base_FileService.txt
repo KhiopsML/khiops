@@ -1,0 +1,215 @@
+Test de la classe FileService
+SYS PATH	Separateur des fichiers dans les chemins : /
+SYS PATH	Separateur de chemins dans le path : :
+SYS PATH	Liste des repertoires du path : /home/boeg7312/.local/bin:/home/boeg7312/bin:/home/boeg7312/miniconda3/condabin:/home/boeg7312/google-cloud-sdk/bin:/home/boeg7312/.krew/bin:/home/boeg7312/.local/bin:/home/boeg7312/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin:/home/boeg7312/.local/bin:/home/boeg7312/dvpt/khiops/test/LearningTestTool/sh:.
+SYS PATH	Recherche du repertoire des fichiers temporaires : /tmp/user/1000
+SYS PATH	Espace disque disponible dans le repertoire des fichiers temporaires : 613.1 GB
+SYS PATH	Espace disque disponible dans un repertoire inexistant : 0
+Test si le repertoire des fichiers temporaires est absolu: 1
+
+Dans la suite, le repertoire des fichiers temporaires est designe par TMPDIR
+
+SYS PATH	Ouverture d'un fichier au nom incorrect: error : File ////toto//// : Unable to open file (No such file or directory)
+0
+
+Indique si un chemin de fichier comporte une partie chemin
+toto.txt->0
+/toto.txt->1
+chemin/toto.txt->1
+/chemin/toto.txt->1
+
+Indique si un chemin de fichier est absolu
+toto.txt->0
+/toto.txt->1
+chemin/toto.txt->0
+/chemin/toto.txt->1
+
+Extraction de la partie chemin depuis un chemin de fichier
+toto.txt->
+/toto.txt->/
+chemin/toto.txt->chemin/
+
+Extraction de la partie fichier depuis un chemin de fichier
+toto.txt->toto.txt
+/toto.txt->toto.txt
+chemin/toto.txt->toto.txt
+
+Extraction de la partie prefixe de fichier depuis un chemin de fichier
+toto.txt->toto
+/toto.txt->toto
+chemin/toto.txt->toto
+
+Extraction de la partie suffixe de fichier depuis un chemin de fichier
+toto.txt->txt
+/toto.txt->txt
+chemin/toto.txt->txt
+
+Extract path name
+SYS PATH	/standard/linux/path/file.txt => /standard/linux/path/
+SYS PATH	/standard/linux/path////file.txt => /standard/linux/path/
+SYS PATH	/file.txt => /
+SYS PATH	//////file.txt => /
+hdfs:///standard/path/file.txt => hdfs:///standard/path/
+hdfs:///standard/path////file.txt => hdfs:///standard/path/
+hdfs:///file.txt => hdfs:///
+gs:///////file.txt => gs:///
+
+Build path
+/standard/path/ => /standard/path/file.txt
+/standard/path => /standard/path/file.txt
+/standard/path/// => /standard/path/file.txt
+/ => /file.txt
+//// => /file.txt
+gs:///standard/path/// => gs:///standard/path/file.txt
+gs:/// => gs:///file.txt
+gs:////// => gs:///file.txt
+. => ./file.txt
+. (.) => ./file.txt
+. (..) => ../file.txt
+
+Construction d'un chemin complet de fichier
+TMPDIR + toto.txt
+-> TMPDIR/toto.txt
+
+Modification de parties d'un nom de fichier
+	Initial file path name: toto.txt
+	Empty dir: toto.txt
+	New dir: newdir/toto.txt
+	Empty file: TMPDIR
+	New file: TMPDIR/newfile
+	Empty prefix: TMPDIR/.txt
+	New prefix: TMPDIR/newprefix.txt
+	Empty suffix: TMPDIR/toto
+	New suffix: TMPDIR/toto.newsuffix
+
+Calcul d'un nom de fichier inexistant a partir d'un nom de base
+toto.txt -> toto.txt
+
+Ouverture d'un fichier en ecriture
+OK file toto.txt opened
+	ecriture dans le fichier
+
+Test d'existence du fichier existant toto.txt
+OK toto.txt exists
+
+Test d'existence du fichier inexistant toto.txt.unknown
+OK toto.txt.unknown not exists
+
+Recherche du fichier toto.txt dans le PATH et TMP
+present : toto.txt
+
+Test de la taille d'un fichiers en bytes
+SYS PATH	File size	toto.txt -> 25890
+
+Test d'ouverture d'un fichier en lecture
+OK file toto.txt opened
+	lecture dans le fichier des 5 premieres lignes
+	0 ligne test d'ecriture
+	1 ligne test d'ecriture
+	2 ligne test d'ecriture
+	3 ligne test d'ecriture
+Test de creation de repertoire TMPDIR/NewDir: 1
+Test de supression de repertoire TMPDIR/NewDir: 1
+Test de creation de repertoires TMPDIR/NewSuperDir/NewDir: 1
+Test de gestion des fichiers temporaires applicatifs
+	Application tmp dir: TMPDIR/~ApplicationTmp
+Contenu du repertoire temporaire TMPDIR/~ApplicationTmp
+SYS PATH	Dir ~TmpDir_2
+SYS PATH	Dir ~AppDir
+SYS PATH	Dir ~TmpDir
+SYS PATH	Dir ~TmpDir_1
+SYS PATH	File ~TmpFile_1
+SYS PATH	File ~TmpFile_2
+SYS PATH	File ~AppFile
+SYS PATH	File ~TmpFile
+SYS PATH	File ~~anchor~~
+SYS PATH	File ~AppFile_1
+Destruction recursive du repertoire temporaire TMPDIR/~ApplicationTmp	1
+hdfs:///tmp/test.txt
+	 well-formed : 1
+	 scheme : hdfs
+	 file name : /tmp/test.txt
+	 host name : 
+
+hdfs://datanode/tmp/test.txt
+	 well-formed : 1
+	 scheme : hdfs
+	 file name : /tmp/test.txt
+	 host name : datanode
+
+hdfs://datanode-wrong-uri
+	 well-formed : 0
+	 scheme : hdfs
+	 file name : hdfs://datanode-wrong-uri
+	 host name : 
+
+s3:///good-URI/test
+	 well-formed : 1
+	 scheme : s3
+	 file name : /good-URI/test
+	 host name : 
+
+s3://host/good-URI/test
+	 well-formed : 1
+	 scheme : s3
+	 file name : /good-URI/test
+	 host name : host
+
+gcs:///good-URI.txt
+	 well-formed : 1
+	 scheme : gcs
+	 file name : /good-URI.txt
+	 host name : 
+
+gcs:///
+	 well-formed : 1
+	 scheme : gcs
+	 file name : /
+	 host name : 
+
+file:///home/test.txt
+	 well-formed : 1
+	 scheme : file
+	 file name : /home/test.txt
+	 host name : 
+
+file://host-name/home/test.txt
+	 well-formed : 1
+	 scheme : file
+	 file name : /home/test.txt
+	 host name : host-name
+
+file:///home/test.txt
+	 well-formed : 1
+	 scheme : file
+	 file name : /home/test.txt
+	 host name : 
+
+file:///./test.txt
+	 well-formed : 1
+	 scheme : file
+	 file name : ./test.txt
+	 host name : 
+
+file:///../test.txt
+	 well-formed : 1
+	 scheme : file
+	 file name : ..\test.txt
+	 host name : 
+
+file:///c:\home\test.txt
+	 well-formed : 1
+	 scheme : file
+	 file name : /c:\home\test.txt
+	 host name : 
+
+file://host-name/c:\home\test.txt
+	 well-formed : 1
+	 scheme : file
+	 file name : /c:\home\test.txt
+	 host name : host-name
+
+Test de reservation de taille pour un fichier en ecriture de taille 2.0 MB: TMPDIR/TestReserveSize.txt
+	Number A	1048576
+	Number B	1048576
+	File check	true

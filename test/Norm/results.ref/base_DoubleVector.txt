@@ -1,0 +1,126 @@
+Taille du vecteur (0 to 10000) [1000]:
+Double vector (size=1000)
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	...
+
+Remplissage avec des 1
+Double vector (size=1000)
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	...
+
+Duplication
+Double vector (size=1000)
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	...
+
+Nouvelle taille du vecteur, avec conservation des valeurs (0 to 10000) [2000]:
+Double vector (size=2000)
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	...
+
+Nouvelle taille du vecteur (0 to 10000) [1000]:
+Double vector (size=1000)
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	...
+
+Nombre d'agrandissements (0 to 1000000) [9000]:
+Double vector (size=10000)
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	...
+
+Remplissage aleatoire
+Double vector (size=10000)
+	0.242586
+	0.145007
+	0.138744
+	0.873303
+	0.600536
+	0.212086
+	0.531353
+	0.444202
+	0.71113
+	0.965628
+	...
+
+Tri
+Double vector (size=10000)
+	0.000345436
+	0.000396313
+	0.00051966
+	0.000552054
+	0.000708985
+	0.00087116
+	0.00150381
+	0.00156227
+	0.00163018
+	0.00165661
+	...
+
+Perturbation aleatoire
+Double vector (size=10000)
+	0.770317
+	0.682546
+	0.089165
+	0.774897
+	0.595273
+	0.956148
+	0.734223
+	0.243586
+	0.925469
+	0.188898
+	...
+

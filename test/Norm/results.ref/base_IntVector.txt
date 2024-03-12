@@ -1,0 +1,135 @@
+Taille du vecteur (0 to 1000000) [1000]:
+Int vector (size=1000)
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	...
+
+Remplissage avec des 1
+Int vector (size=1000)
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	...
+
+Duplication
+Int vector (size=1000)
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	...
+
+Nouvelle taille du vecteur, avec conservation des valeurs (0 to 1000000) [2000]:
+Int vector (size=2000)
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	...
+
+Nouvelle taille du vecteur (0 to 1000000) [1000]:
+Int vector (size=1000)
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	...
+
+Nombre d'agrandissements (0 to 1000000) [9000]:
+Int vector (size=10000)
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	...
+
+Remplissage aleatoire
+Int vector (size=10000)
+	2426
+	1450
+	1387
+	8733
+	6005
+	2121
+	5314
+	4442
+	7112
+	9657
+	...
+
+Tri
+Int vector (size=10000)
+	3
+	3
+	5
+	5
+	7
+	8
+	15
+	15
+	16
+	16
+	...
+
+Perturbation aleatoire
+Int vector (size=10000)
+	7703
+	6826
+	891
+	7749
+	5953
+	9562
+	7342
+	2436
+	9255
+	1889
+	...
+
+Taille max des vecteurs pour les benchmarks intensifs (1000 to 100000000) [1000000]:
+Nombre de benchmarks intensifs (0 to 100000) [100]:
+Sort benchmark (y/n) [y]:
+....................................................................................................
+Total size allocated	6.42089e+07
+SYS TIME	Benchmark	6.01864
+
+Taille max des vecteurs pour les allocations de tres grande taille (1000 to 1000000000) [1000000]:
+SYS MEMORY	 1000 2000 4000 8000 16000 32000 64000 128000 256000 512000

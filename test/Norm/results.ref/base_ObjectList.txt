@@ -1,0 +1,22 @@
+Nombre d'insertion (0 to 10000000) [1000]:
+SYS TIME	ObjectList insertion	0.000158
+
+SYS MEMORY	Used memory	1000	25048	57048
+
+List [1000]
+	 [0,]
+	 [0,]
+	 [0,]
+	 [0,]
+	 [0,]
+	 [0,]
+	 [0,]
+	 [0,]
+	 [0,]
+	 [0,]
+	 [0,]
+	...
+
+Nombre de parcours de la liste (0 to 100000) [1000]:
+SYS TIME	ObjectList access	0.011649
+

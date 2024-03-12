@@ -1,0 +1,86 @@
+Test des fonctionnalites de base
+	Insertion de 10 SampleObject
+Dictionary [10]
+	neuf:	 [0,neuf]
+	un:	 [0,un]
+	quatre:	 [0,quatre]
+	six:	 [0,six]
+	cinq:	 [0,cinq]
+	trois:	 [0,trois]
+	sept:	 [0,sept]
+	deux:	 [0,deux]
+	huit:	 [0,huit]
+	zero:	 [0,zero]
+	...
+	Test d'existence
+		Lookup (huit): 1
+		Lookup (neuf): 1
+		Lookup (dix): 0
+Insertion puis supression d'un element temporaire a detruire
+Inserted: 1
+Removed: 1
+Removed and deleted: 1
+Conversion en ObjectArray
+	At 0; neuf
+	At 1; un
+	At 2; quatre
+	At 3; six
+	At 4; cinq
+	At 5; trois
+	At 6; sept
+	At 7; deux
+	At 8; huit
+	At 9; zero
+
+Conversion en ObjectList
+	neuf
+	un
+	quatre
+	six
+	cinq
+	trois
+	sept
+	deux
+	huit
+	zero
+
+Test de changement de taille dynamique
+Nombre d'elements inseres) (1 to 100000) [1000]:
+Nombre d'iterations (1 to 100000) [1000]:
+  HashTableSize = 2729
+SYS TIME	ObjectDictionary change size	0.672772
+
+Test de performance A
+Nombre maxi d'elements inseres (Random) (1 to 10000000) [100000]:
+Nombre d'iterations (1 to 1000) [20]:
+	Iteration 0	Size = 63482	Found = 63482
+	Iteration 1	Size = 86479	Found = 86479
+	Iteration 2	Size = 95062	Found = 95062
+	Iteration 3	Size = 98198	Found = 98198
+	Iteration 4	Size = 99367	Found = 99367
+	Iteration 5	Size = 99779	Found = 99779
+	Iteration 6	Size = 99919	Found = 99919
+	Iteration 7	Size = 99973	Found = 99973
+	Iteration 8	Size = 99990	Found = 99990
+	Iteration 9	Size = 99998	Found = 99998
+	Iteration 10	Size = 100000	Found = 100000
+	Iteration 11	Size = 100000	Found = 100000
+	Iteration 12	Size = 100000	Found = 100000
+	Iteration 13	Size = 100000	Found = 100000
+	Iteration 14	Size = 100000	Found = 100000
+	Iteration 15	Size = 100000	Found = 100000
+	Iteration 16	Size = 100000	Found = 100000
+	Iteration 17	Size = 100000	Found = 100000
+	Iteration 18	Size = 100000	Found = 100000
+	Iteration 19	Size = 100000	Found = 100000
+SYS TIME	ObjectDictionary access	1.44445
+SYS MEMORY	Used memory	100000	6606986	9806986
+Test de performance B
+Nombre de chaines inserees (1 to 10000000) [10000]:
+SYS TIME	ObjectDictionary insertion	0.00406
+
+Nombre de recherches (1 to 100000000) [100000]:
+SYS TIME	ObjectDictionary lookup	0.00325
+
+Nombre de supressions: 10000
+SYS TIME	ObjectDictionary remove	0.003043

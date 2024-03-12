@@ -1,0 +1,138 @@
+Taille du vecteur (0 to 1000000) [1000]:
+String vector (size=1000)
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	...
+
+Remplissage avec des s1
+String vector (size=1000)
+	s1
+	s1
+	s1
+	s1
+	s1
+	s1
+	s1
+	s1
+	s1
+	s1
+	...
+
+Duplication
+String vector (size=1000)
+	s1
+	s1
+	s1
+	s1
+	s1
+	s1
+	s1
+	s1
+	s1
+	s1
+	...
+
+Nouvelle taille du vecteur, avec conservation des valeurs (0 to 1000000) [2000]:
+String vector (size=2000)
+	s1
+	s1
+	s1
+	s1
+	s1
+	s1
+	s1
+	s1
+	s1
+	s1
+	...
+
+Nouvelle taille du vecteur (0 to 1000000) [1000]:
+String vector (size=1000)
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	...
+
+Nombre d'agrandissements (0 to 1000000) [9000]:
+String vector (size=10000)
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	...
+
+Remplissage aleatoire
+String vector (size=10000)
+	s2426
+	s1450
+	s1387
+	s8733
+	s6005
+	s2121
+	s5314
+	s4442
+	s7112
+	s9657
+	...
+
+Tri
+String vector (size=10000)
+	s100
+	s1000
+	s1000
+	s10000
+	s10000
+	s10000
+	s10000
+	s1001
+	s1006
+	s1007
+	...
+
+Perturbation aleatoire
+String vector (size=10000)
+	s792
+	s7184
+	s1802
+	s7979
+	s6400
+	s9602
+	s7638
+	s3200
+	s9340
+	s2710
+	...
+
+Taille max des vecteurs pour les benchmarks intensifs (1000 to 100000000) [1000000]:
+Nombre de benchmarks intensifs (0 to 100000) [100]:
+Sort benchmark (y/n) [y]:
+....................................................................................................
+Total size allocated	4.93649e+07
+SYS TIME	Benchmark	23.7065
+
+Taille max des vecteurs pour les allocations de tres grande taille (1000 to 1000000000) [1000000]:
+SYS MEMORY	 1000 2000 4000 8000 16000 32000 64000 128000 256000 512000
+Nombre total d'allocation de chaines de tres grande taille (0 to 1000000) [100000]:
+SYS MEMORY	Total size allocated	5.50486e+10
+SYS TIME	5.05635

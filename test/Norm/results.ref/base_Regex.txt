@@ -1,0 +1,31 @@
+Bonjour	1
+		0	-1		
+	Bonjour	1	0	Bonsoir	Bonsoir
+	Bonjour Mr Dupond	0	0	Bonsoir Mr Dupond	Bonsoir Mr Dupond
+	Bonjour Mr Dupond et Mr Durand	0	0	Bonsoir Mr Dupond et Mr Durand	Bonsoir Mr Dupond et Mr Durand
+nd	1
+		0	-1		
+	Bonjour	0	-1	Bonjour	Bonjour
+	Bonjour Mr Dupond	0	15	Bonjour Mr Dupo	Bonjour Mr Dupo
+	Bonjour Mr Dupond et Mr Durand	0	15	Bonjour Mr Dupo et Mr Durand	Bonjour Mr Dupo et Mr Dura
+(r)	1
+		0	-1		
+	Bonjour	0	6	BonjouR	BonjouR
+	Bonjour Mr Dupond	0	6	BonjouR Mr Dupond	BonjouR MR Dupond
+	Bonjour Mr Dupond et Mr Durand	0	6	BonjouR Mr Dupond et Mr Durand	BonjouR MR Dupond et MR DuRand
+(Mr)	1
+		0	-1		
+	Bonjour	0	-1	Bonjour	Bonjour
+	Bonjour Mr Dupond	0	8	Bonjour |Mr| Dupond	Bonjour |Mr| Dupond
+	Bonjour Mr Dupond et Mr Durand	0	8	Bonjour |Mr| Dupond et Mr Durand	Bonjour |Mr| Dupond et |Mr| Durand
+(Mr) (\w+)	1
+		0	-1		
+	Bonjour	0	-1	Bonjour	Bonjour
+	Bonjour Mr Dupond	0	8	Bonjour Dupond Mr	Bonjour Dupond Mr
+	Bonjour Mr Dupond et Mr Durand	0	8	Bonjour Dupond Mr et Mr Durand	Bonjour Dupond Mr et Durand Mr
+(\w+) (\w+) (\w+)	1
+		0	-1		
+	Bonjour	0	-1	Bonjour	Bonjour
+	Bonjour Mr Dupond	1	0	Mr Dupond	Mr Dupond
+	Bonjour Mr Dupond et Mr Durand	0	0	Mr Dupond et Mr Durand	Mr Dupond Mr Durand
+aaaaaaaaaa...: 1000000

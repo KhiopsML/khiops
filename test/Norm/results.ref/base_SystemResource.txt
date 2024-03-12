@@ -1,0 +1,9 @@
+SYS MAC Address	d0-3c-1f-5f-98-17
+SYS machine GUID 8192163be6ccc1a3d8c6d266634eb2c9
+
+SYS RESOURCE	Processor number	8
+SYS RESOURCE	Disk Free Space on current directory	613.1 GB
+SYS RESOURCE	Current timestamp	2024-03-11 15:45:22
+SYS RESOURCE	Current precise timestamp	2024-03-11 15:45:22.380
+Sleep(0.1)
+SYS RESOURCE	Current precise timestamp	2024-03-11 15:45:22.480
