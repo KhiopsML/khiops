@@ -163,14 +163,15 @@ void TestMemory()
 		cout << "\t  T delete: temps de liberation" << endl;
 
 		// Entete
-		cout << "SYS MEMORY\tSize\tNb\tNbAlloc\tMemory\tT new\tT delete" << endl;
+		cout << "Size\tNb\tNbAlloc\tMemory\tT new\tT delete" << endl;
 
 		// Initialisation des parametres de benchmark
 		nAllocSize = 100;
 		while (nAllocSize <= 1000000)
 		{
+			cout << "SYS"
+			     << "\t" << flush;
 			nAllocNumber = (int)(dBenchmarkMemory / (nAllocSize * sizeof(int)));
-			cout << "SYS MEMORY\t" << flush;
 			cout << nAllocSize << "\t" << flush;
 			cout << nAllocNumber << "\t" << flush;
 
@@ -229,9 +230,11 @@ void TestMemory()
 			oaAllocatedObjects.SetAt(i, cvVector);
 		}
 		timer.Stop();
-		cout << "SYS Creation of segments\t" << nIter << "\t" << nAllocNumber << "\t" << timer.GetElapsedTime()
+		cout << "Creation of segments\t" << nIter << "\t" << nAllocNumber << "\t"
+		     << "SYS"
 		     << "\t" << LongintToHumanReadableString(MemGetHeapMemory()) << "\t"
-		     << LongintToHumanReadableString(MemGetCurrentProcessVirtualMemory()) << endl;
+		     << LongintToHumanReadableString(MemGetCurrentProcessVirtualMemory()) << "\t"
+		     << timer.GetElapsedTime() << endl;
 		timer.Reset();
 		timer.Start();
 		for (i = 0; i < nAllocNumber; i++)
@@ -240,9 +243,11 @@ void TestMemory()
 			delete cvVector;
 		}
 		timer.Stop();
-		cout << "SYS Deletion of segments\t" << nIter << "\t" << nAllocNumber << "\t" << timer.GetElapsedTime()
+		cout << "Deletion of segments\t" << nIter << "\t" << nAllocNumber << "\t"
+		     << "SYS"
 		     << "\t" << LongintToHumanReadableString(MemGetHeapMemory()) << "\t"
-		     << LongintToHumanReadableString(MemGetCurrentProcessVirtualMemory()) << endl;
+		     << LongintToHumanReadableString(MemGetCurrentProcessVirtualMemory()) << "\t"
+		     << timer.GetElapsedTime() << endl;
 		timer.Reset();
 		timer.Start();
 		for (i = 0; i < nAllocNumber; i++)
@@ -252,9 +257,11 @@ void TestMemory()
 			oaAllocatedObjects.SetAt(i, cvVector);
 		}
 		timer.Stop();
-		cout << "SYS Creation of segments\t" << nIter << "\t" << nAllocNumber << "\t" << timer.GetElapsedTime()
+		cout << "Creation of segments\t" << nIter << "\t" << nAllocNumber << "\t"
+		     << "SYS"
 		     << "\t" << LongintToHumanReadableString(MemGetHeapMemory()) << "\t"
-		     << LongintToHumanReadableString(MemGetCurrentProcessVirtualMemory()) << endl;
+		     << LongintToHumanReadableString(MemGetCurrentProcessVirtualMemory()) << "\t"
+		     << timer.GetElapsedTime() << endl;
 		timer.Reset();
 		timer.Start();
 		for (j = 0; j < 10; j++)
@@ -268,9 +275,11 @@ void TestMemory()
 			}
 		}
 		timer.Stop();
-		cout << "SYS Bloc deletion of segments\t" << nIter << "\t" << nAllocNumber << "\t"
-		     << timer.GetElapsedTime() << "\t" << LongintToHumanReadableString(MemGetHeapMemory()) << "\t"
-		     << LongintToHumanReadableString(MemGetCurrentProcessVirtualMemory()) << endl;
+		cout << "Bloc deletion of segments\t" << nIter << "\t" << nAllocNumber << "\t"
+		     << "SYS"
+		     << "\t" << LongintToHumanReadableString(MemGetHeapMemory()) << "\t"
+		     << LongintToHumanReadableString(MemGetCurrentProcessVirtualMemory()) << "\t"
+		     << timer.GetElapsedTime() << endl;
 		timer.Reset();
 		timer.Start();
 		for (i = 0; i < nAllocNumber; i++)
@@ -280,9 +289,11 @@ void TestMemory()
 			oaAllocatedObjects.SetAt(i, cvVector);
 		}
 		timer.Stop();
-		cout << "SYS Creation of segments\t" << nIter << "\t" << nAllocNumber << "\t" << timer.GetElapsedTime()
+		cout << "Creation of segments\t" << nIter << "\t" << nAllocNumber << "\t"
+		     << "SYS"
 		     << "\t" << LongintToHumanReadableString(MemGetHeapMemory()) << "\t"
-		     << LongintToHumanReadableString(MemGetCurrentProcessVirtualMemory()) << endl;
+		     << LongintToHumanReadableString(MemGetCurrentProcessVirtualMemory()) << "\t"
+		     << timer.GetElapsedTime() << endl;
 		timer.Reset();
 		timer.Start();
 		for (i = nAllocNumber - 1; i >= 0; i--)
@@ -291,9 +302,11 @@ void TestMemory()
 			delete cvVector;
 		}
 		timer.Stop();
-		cout << "SYS Reverse deletion of segments\t" << nIter << "\t" << nAllocNumber << "\t"
-		     << timer.GetElapsedTime() << "\t" << LongintToHumanReadableString(MemGetHeapMemory()) << "\t"
-		     << LongintToHumanReadableString(MemGetCurrentProcessVirtualMemory()) << endl;
+		cout << "Reverse deletion of segments\t" << nIter << "\t" << nAllocNumber << "\t"
+		     << "SYS"
+		     << "\t" << LongintToHumanReadableString(MemGetHeapMemory()) << "\t"
+		     << LongintToHumanReadableString(MemGetCurrentProcessVirtualMemory()) << "\t"
+		     << timer.GetElapsedTime() << endl;
 		timer.Reset();
 		timer.Start();
 		for (i = 0; i < nAllocNumber; i++)
@@ -303,9 +316,11 @@ void TestMemory()
 			oaAllocatedObjects.SetAt(i, cvVector);
 		}
 		timer.Stop();
-		cout << "SYS Creation of segments\t" << nIter << "\t" << nAllocNumber << "\t" << timer.GetElapsedTime()
+		cout << "Creation of segments\t" << nIter << "\t" << nAllocNumber << "\t"
+		     << "SYS"
 		     << "\t" << LongintToHumanReadableString(MemGetHeapMemory()) << "\t"
-		     << LongintToHumanReadableString(MemGetCurrentProcessVirtualMemory()) << endl;
+		     << LongintToHumanReadableString(MemGetCurrentProcessVirtualMemory()) << "\t"
+		     << timer.GetElapsedTime() << endl;
 		oaAllocatedObjects.Shuffle();
 		timer.Reset();
 		timer.Start();
@@ -315,8 +330,10 @@ void TestMemory()
 			delete cvVector;
 		}
 		timer.Stop();
-		cout << "SYS Random deletion of segments\t" << nIter << "\t" << nAllocNumber << "\t"
-		     << timer.GetElapsedTime() << "\t" << LongintToHumanReadableString(MemGetHeapMemory()) << "\t"
-		     << LongintToHumanReadableString(MemGetCurrentProcessVirtualMemory()) << endl;
+		cout << "Random deletion of segments\t" << nIter << "\t" << nAllocNumber << "\t"
+		     << "SYS"
+		     << "\t" << LongintToHumanReadableString(MemGetHeapMemory()) << "\t"
+		     << LongintToHumanReadableString(MemGetCurrentProcessVirtualMemory()) << "\t"
+		     << timer.GetElapsedTime() << endl;
 	}
 }

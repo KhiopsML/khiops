@@ -58,14 +58,14 @@ Test de concatenation
 Nombre de milliers d'iterations (concatenations) (1 to 1000000) [1000]:
 	Start (concatenations)
 	Result length: 3000 (123123123123123123123123123123...)
-SYS TIME	String concatenations	0.027761
+SYS TIME	String concatenations	0.002481
 
 
 Test de performance
 Nombre de milliers d'iterations (comparaison de chaines) (1 to 1000000) [1000]:
 	Start (comparaison de valeurs des chaines)
-SYS TIME	String comparisons	1000000	0.007548
+String comparisons	1000000	SYS	0
 
 	Start (comparaison des pointeurs des chaines)
-SYS TIME	String pointer comparisons	0	0.001434
+String pointer comparisons	0	SYS	1e-06
 

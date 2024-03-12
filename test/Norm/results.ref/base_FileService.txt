@@ -1,10 +1,10 @@
 Test de la classe FileService
-SYS PATH	Separateur des fichiers dans les chemins : /
+SYS PATH	Separateur des fichiers dans les chemins : / error
 SYS PATH	Separateur de chemins dans le path : :
 SYS PATH	Liste des repertoires du path : /home/boeg7312/.local/bin:/home/boeg7312/bin:/home/boeg7312/miniconda3/condabin:/home/boeg7312/google-cloud-sdk/bin:/home/boeg7312/.krew/bin:/home/boeg7312/.local/bin:/home/boeg7312/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin:/home/boeg7312/.local/bin:/home/boeg7312/dvpt/khiops/test/LearningTestTool/sh:.
-SYS PATH	Recherche du repertoire des fichiers temporaires : /tmp/user/1000
+SYS PATH	Recherche du repertoire des fichiers temporaires : @TMP_DIR@
 SYS PATH	Espace disque disponible dans le repertoire des fichiers temporaires : 613.1 GB
-SYS PATH	Espace disque disponible dans un repertoire inexistant : 0
+SYS PATH	Espace disque disponible dans un repertoire inexistant : 0 error
 Test si le repertoire des fichiers temporaires est absolu: 1
 
 Dans la suite, le repertoire des fichiers temporaires est designe par TMPDIR
@@ -125,16 +125,16 @@ SYS PATH	File ~TmpFile
 SYS PATH	File ~~anchor~~
 SYS PATH	File ~AppFile_1
 Destruction recursive du repertoire temporaire TMPDIR/~ApplicationTmp	1
-hdfs:///tmp/test.txt
+hdfs:///toto/test.txt
 	 well-formed : 1
 	 scheme : hdfs
-	 file name : /tmp/test.txt
+	 file name : /toto/test.txt
 	 host name : 
 
-hdfs://datanode/tmp/test.txt
+hdfs://datanode/toto/test.txt
 	 well-formed : 1
 	 scheme : hdfs
-	 file name : /tmp/test.txt
+	 file name : /toto/test.txt
 	 host name : datanode
 
 hdfs://datanode-wrong-uri

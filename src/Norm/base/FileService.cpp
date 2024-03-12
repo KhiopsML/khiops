@@ -2243,8 +2243,8 @@ void FileService::Test()
 
 	// Test des URI
 	StringVector svURItests;
-	svURItests.Add("hdfs:///tmp/test.txt");
-	svURItests.Add("hdfs://datanode/tmp/test.txt");
+	svURItests.Add("hdfs:///toto/test.txt");
+	svURItests.Add("hdfs://datanode/toto/test.txt");
 	svURItests.Add("hdfs://datanode-wrong-uri");
 	svURItests.Add("s3:///good-URI/test");
 	svURItests.Add("s3://host/good-URI/test");

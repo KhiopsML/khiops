@@ -33,8 +33,13 @@
 // comparer ce fichier avec le fichier de reference
 //  ./results.ref/Integer_full.txt.
 // Lors de la mise au point, le fichier Integer_full.txt est cree dans le repertoire
-// results et le test echoue car il n'y a pas de fichier de referecnce. Il suffit
+// results et le test echoue car il n'y a pas de fichier de reference. Il suffit
 // de copier ce fichier dans le repertoire results.ref pour que le test reussisse.
+// Pour que le test soit valide sur differentes machines, il faut si necessaire remplacer
+// dans le fichier de reference les chemins propres à l'environnement par des tags, a savoir :
+//  - le repertoire temporaire par @TMP_DIR@
+//	- le repertoire qui contient le projet khiops par @ROOT_DIR@
+// Cela concerne essentiellement les tests impliquant des fichiers temporaires.
 //
 // Le test est reussi lorsque les 2 fichiers sont identiques (a l'exception des
 // lignes qui commencent par "SYS" qui peuvent etre differentes)
@@ -59,8 +64,8 @@
 	}
 
 // Comparaison de 2 fichiers ligne par ligne
-// Les fichiers peuvent differer pour les lignes qui commencent par 'SYS'
-// Il y a egalement une tolerance pour le caractere separateur dans les chemins '\' qui est remplace par '/'
+// Si deux lignes contiennet le token 'SYS', elles sont comparees uniquement jusqu'a ce token: tout ce qui est derriere
+// est ignore. Il y a egalement une tolerance pour le caractere separateur dans les chemins '\' qui est remplace par '/'
 // Renvoie true si les 2 fichiers existent et sont identiques
 boolean FileCompareForTest(const ALString& sFileNameReference, const ALString& sFileNameTest);
 

@@ -5,7 +5,7 @@
 #include "ALString.h"
 
 // Pour une chaine vide, les donnees vont pointer ici
-// Cela permet d'eviter de nombreux tests de pointeur à NULL lors de
+// Cela permet d'eviter de nombreux tests de pointeur ï¿½ NULL lors de
 // l'appel des fonction de la librairie C standard
 char ALSCHARNIL = '\0';
 
@@ -586,8 +586,9 @@ void ALString::Test()
 		}
 	}
 	nStopClock = clock();
-	cout << "SYS TIME\tString comparisons\t" << lCompareOk << "\t"
-	     << (nStopClock - nStartClock) * 1.0 / CLOCKS_PER_SEC << "\n\n";
+	cout << "String comparisons\t" << lCompareOk << "\t"
+	     << "SYS"
+	     << "\t" << (nStopClock - nStartClock) * 1.0 / CLOCKS_PER_SEC << "\n\n";
 	//
 	cout << "\tStart (comparaison des pointeurs des chaines)\n";
 	nStartClock = clock();
@@ -601,8 +602,9 @@ void ALString::Test()
 		}
 	}
 	nStopClock = clock();
-	cout << "SYS TIME\tString pointer comparisons\t" << lCompareOk << "\t"
-	     << (nStopClock - nStartClock) * 1.0 / CLOCKS_PER_SEC << "\n\n";
+	cout << "String pointer comparisons\t" << lCompareOk << "\t"
+	     << "SYS"
+	     << "\t" << (nStopClock - nStartClock) * 1.0 / CLOCKS_PER_SEC << "\n\n";
 
 	delete sTestAlloc;
 	delete sTestComp;
