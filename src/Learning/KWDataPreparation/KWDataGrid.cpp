@@ -4738,8 +4738,9 @@ int KWDGValueCompareTypicality(const void* elem1, const void* elem2)
 	return value1->CompareTypicality(value2);
 }
 
-int KWSortableObjectComparePartValue(const void* elem1, const void* elem2)
+int KWSortableObjectCompareValue(const void* elem1, const void* elem2)
 {
+	int nCompare;
 	KWDGValue* value1;
 	KWDGValue* value2;
 
@@ -4750,7 +4751,14 @@ int KWSortableObjectComparePartValue(const void* elem1, const void* elem2)
 	value1 = cast(KWDGValue*, cast(KWSortableObject*, *(Object**)elem1)->GetSortValue());
 	value2 = cast(KWDGValue*, cast(KWSortableObject*, *(Object**)elem2)->GetSortValue());
 
-	return value1->CompareValue(value2);
+	// Comparaison sur la valeur
+	nCompare = value1->CompareValue(value2);
+
+	// Comparaison sur l'index si egal
+	if (nCompare == 0)
+		nCompare = cast(KWSortableObject*, *(Object**)elem1)->GetIndex() -
+			   cast(KWSortableObject*, *(Object**)elem2)->GetIndex();
+	return nCompare;
 }
 
 //////////////////////////////////////////////////////////////////////////////

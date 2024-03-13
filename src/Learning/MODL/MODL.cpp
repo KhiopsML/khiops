@@ -15,7 +15,7 @@ void SetWindowsDebugDir(const ALString& sDatasetFamily, const ALString& sDataset
 	// A parametrer pour chaque utilisateur
 	// Devra etre fait plus proprement quand tout l'equipe sera sur git, par exemple via une variable
 	// d'environnement et quelques commentaires clairs
-	sUserRootPath = "D:/Users/miib6422/Documents/boullema/LearningTest/TestKhiops/";
+	sUserRootPath = "D:/Users/miib6422/Documents/boullema/LearningTest.V10.5.0-a1/LearningTest/TestKhiops/";
 
 	// Pour permettre de continuer a utiliser LearningTest, on ne fait rien s'il y a deja un fichier test.prm
 	// dans le repertoire courante
@@ -37,8 +37,7 @@ int main(int argc, char** argv)
 
 	// Choix du repertoire de lancement pour le debugage sous Windows (a commenter apres fin du debug)
 	// SetWindowsDebugDir("Standard", "IrisLight");
-	// SetWindowsDebugDir("Standard", "Iris2D");
-	SetWindowsDebugDir("BugsMultiTables", "BugUnsortedRootTable");
+	// SetWindowsDebugDir("Standard", "IrisU2D");
 
 	// Parametrage des logs memoires depuis les variables d'environnement, pris en compte dans KWLearningProject
 	//   KhiopsMemStatsLogFileName, KhiopsMemStatsLogFrequency, KhiopsMemStatsLogToCollect
