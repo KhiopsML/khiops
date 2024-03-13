@@ -1070,7 +1070,7 @@ protected:
 
 //////////////////////////////////////////////////////////////////////////////
 // Classe KWDGValue
-// Classe virtuelle pour mutualiser la gestion des valeur de type Symbol ou VarPart
+// Classe virtuelle pour mutualiser la gestion des valeurs de type Symbol ou VarPart
 class KWDGValue : public Object
 {
 public:
@@ -1147,8 +1147,9 @@ int KWDGValueCompareFrequency(const void* elem1, const void* elem2);
 // Comparaison de deux typicalite
 int KWDGValueCompareTypicality(const void* elem1, const void* elem2);
 
-// Comparaison de deux objets KWSortableObject contenant des KWDGValue, par valeur
-int KWSortableObjectComparePartValue(const void* elem1, const void* elem2);
+// Comparaison de deux objets KWSortableObject contenant des KWDGValue, par valeur puis par index
+// Permet un comparaison generique pour des valeurs de type Symbol ou VarPart
+int KWSortableObjectCompareValue(const void* elem1, const void* elem2);
 
 //////////////////////////////////////////////////////////////////////////////
 // Classe KWDGSymbolValueSet
