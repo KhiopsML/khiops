@@ -77,9 +77,6 @@ public:
 	// Index d'un attribut dans sa slice
 	int GetRelativeIndexAtAttribute(int nAttribute) const;
 
-	// True si l'attribute est sparse
-	boolean IsAttributeSparseAt(int nAttribute) const;
-
 	//////////////////////////////
 	// Services divers
 
@@ -128,9 +125,6 @@ protected:
 
 	// Indexes des attributs relatifs a ses slices
 	IntVector ivAttributeRelativeIndexes;
-
-	// Indique si un attribut est sparse
-	IntVector ivAttributeSparseModes;
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -166,6 +160,10 @@ public:
 	// Index de l'attribut dans la DataPreparationClass
 	void SetDataPreparationClassIndex(int nValue);
 	int GetDataPreparationClassIndex() const;
+
+	// True si l'attribut appartien a un bloc sparse
+	void SetSparse(boolean bSparseMode);
+	boolean IsSparse() const;
 
 	// Creation de la table de probabilites a partir d'un attribut prepare
 	void InitializeFromDataPreparationAttribute(KWDataPreparationAttribute* dataPreparationAttribute);
@@ -209,6 +207,10 @@ public:
 	///////////////////////////////////////////////////////////////////////////////////////////////////
 	//// Implementation
 protected:
+	// Acces privee au conteneur de serialisation de cette classe et a la tache d'apprentissage
+	friend class PLShared_DataTableBinarySliceSetAttribute;
+	friend class SNBPredictorSNBTrainingTask;
+
 	// Nom de l'attribut
 	ALString sNativeAttributeName;
 
@@ -224,15 +226,14 @@ protected:
 	// Indice dans l'ordre de la classe de preparation original
 	int nDataPreparationClassIndex;
 
+	// True si l'attribut appartient a un bloc sparse
+	boolean bIsSparse;
+
 	// Statistiques de preparation de l'attribut
 	KWDataPreparationStats* dataPreparationStats;
 
 	// Table de probabilites conditionelles
 	KWProbabilityTable conditionalProbas;
-
-	// Acces privee au conteneur de serialisatio de cette classe et a la tache d'apprentissage
-	friend class PLShared_DataTableBinarySliceSetAttribute;
-	friend class SNBPredictorSNBTrainingTask;
 };
 
 // Comparaison par le nom natif de l'attribut
@@ -323,6 +324,9 @@ public:
 	///////////////////////////////////////////////////////////////////////////////////////////////////
 	//// Implementation
 protected:
+	// Acces prive a la tache parallele d'apprentissage pour reconstituer serialisation de l'objet
+	friend class SNBPredictorSNBTrainingTask;
+
 	// Tableau de SNBDataTableBinarySliceSetAttribute's
 	ObjectArray oaAttributes;
 
@@ -332,8 +336,8 @@ protected:
 	// Relation [nom attribut recode -> attribut]
 	ObjectDictionary odAttributesByRecodedAttributeName;
 
-	// Acces prive a la tache parallele d'apprentissage pour reconstituer serialisation de l'objet
-	friend class SNBPredictorSNBTrainingTask;
+	// Indique si un attribut est sparse
+	IntVector ivAttributeSparseModes;
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -456,7 +460,8 @@ public:
 	// Initialisation
 
 	// Initialisation partielle
-	void PartiallyInitialize(int nChunk, const SNBDataTableBinarySliceSetLayout* someLayout);
+	void PartiallyInitialize(int nChunk, const SNBDataTableBinarySliceSetLayout* someLayout,
+				 const SNBDataTableBinarySliceSetSchema* schema);
 
 	// True si le parametrage du layout et du index du chunk est coherent
 	boolean IsPartiallyInitialized() const;
@@ -488,6 +493,10 @@ public:
 
 	// Nombre total de `int`s du chunk
 	longint GetDataSize() const;
+
+	// True si l'attribut est sparse
+	void SetAttributeSparseAt(int nAttribute, boolean bSparseMode);
+	boolean IsAttributeSparseAt(int nAttribute) const;
 
 	//////////////////////////////////////
 	// Services Divers
@@ -521,12 +530,15 @@ protected:
 
 	// Tailles des donnees des attributs
 	IntVector ivAttributeDataSizes;
+
+	// Mode de sparsite des attributes
+	IntVector ivAttributeSparseModes;
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 // Buffer de lecture pour un chunk d'un SNBDataTableBinarySliceSet
-// Son initialisation entraine l'ecriture des fichiers de donnees binaires a partir d'un
-// KWDataTableSliceSet et une classe de recodage.
+// En cas d'avoir plus d'une slice (groupe d'attributs) son initialisation entraine l'ecriture des
+// fichiers de donnees binaires a partir d'un KWDataTableSliceSet et une classe de recodage.
 // Apres initialisation les fichiers sont Read-Only jusqu'a une nouvelle initialisation
 class SNBDataTableBinarySliceSetChunkBuffer : public Object
 {
@@ -550,17 +562,23 @@ public:
 	// True si initalisee
 	boolean IsInitialized() const;
 
+	// Nettoyage : libere la memoire et efface les fichiers de donnees
+	void CleanWorkingData();
+
 	// Index du chunk associe a buffer
 	int GetChunkIndex() const;
 
-	// Nettoyage : libere la memoire et efface les fichiers de donnees
-	void CleanWorkingData();
+	// Fichier de stockage du chunk ("" si pas de slicing)
+	const ALString GetChunkFilePath() const;
+
+	// Layout physique du chunk
+	const SNBDataTableBinarySliceSetChunkPhysicalLayout* GetPhysicalLayout() const;
 
 	////////////////////////////////
 	// Acces aux donnees
 
-	// Recollection des indices d'un chunk pour un attribut
-	boolean CollectRecodedAttributeIndexes(int nAttribute, SNBDataTableBinarySliceSetColumn*& outputColumn);
+	// Acces a la colonne d'un attribut (outputColumn pointe directement au pointeur interne)
+	boolean GetAttributeColumnView(int nAttribute, SNBDataTableBinarySliceSetColumn*& outputColumn);
 
 	//////////////////////////////
 	// Services divers
@@ -570,9 +588,6 @@ public:
 
 	// Label de classe
 	const ALString GetClassLabel() const override;
-
-	// Ecriture des contenus
-	void WriteContentsAsTSV(ostream& ost, const SNBDataTableBinarySliceSetSchema* schema);
 
 	// Estimation de l'empreinte memoire
 	static longint ComputeNecessaryMemory(int nInstanceNumber, int nChunkNumber, int nAttributeNumber,
@@ -682,7 +697,7 @@ public:
 	boolean IsInitialized() const;
 
 	// Initialisation du schema d'attributs a partir d'un KWClassStats
-	void InitializeSchemaFromClassStats(KWClassStats* classStats, int nMaxAttributes);
+	void InitializeDataPreparationClassAndSchemaFromClassStats(KWClassStats* classStats, int nMaxAttributes);
 
 	// True s'il y a des attributs utiles
 	boolean HasUsableAttributes() const;
@@ -734,32 +749,27 @@ public:
 	int GetInstanceNumber() const;
 
 	// Nombre d'instances dans les chunks initialises
-	int GetActiveInstanceNumber() const;
+	int GetInitializedChunkInstanceNumber() const;
 
 	// Indice de la modalite cible pour une instance
 	int GetTargetValueIndexAt(int nInstance) const;
 
 	// Indice de la modalite cible pour une instance active (i.e. dans un chunk initialize)
-	int GetTargetValueIndexAtActiveInstance(int nActiveInstance) const;
+	int GetTargetValueIndexAtInitializedChunkInstance(int nChunkInstance) const;
 
 	// Exporte dans un vecteur de sortie les frequences des parties de la cible pour l'attribut specifie
 	// Utilisee pour la regression et classification avec cible groupee
 	void ExportTargetPartFrequencies(const SNBDataTableBinarySliceSetAttribute* attribute,
 					 IntVector* ivOutput) const;
 
-	// Met a jour un vecteur de scores avec le score de l'attribut pour une cible donnee
-	// Pour un individu i dans le vecteur d'entree, valeur cible, attribut k et poids w
-	// la transformation est donee par :
-	//
-	//   score_i -> score_i + w * log P( X_k = x_ik | Y = y_j )
-	//
-	boolean UpdateTargetValueScores(SNBDataTableBinarySliceSetAttribute* attribute, int nTarget, Continuous cWeight,
-					ContinuousVector* cvScores);
+	// Acces a la colonne d'un attribut (outputColumn pointe directement au pointeur interne)
+	boolean GetAttributeColumnView(SNBDataTableBinarySliceSetAttribute* attribute,
+				       SNBDataTableBinarySliceSetColumn*& outputColumn);
 
 	// Ecriture tabulaire des contenus
 	void WriteContentsAsTSV(ostream& ost);
 
-	// True s'il y a eu un de lecture dans un appel a CollectRecodedAttributeIndexes
+	// True s'il y a eu un de lecture dans un appel a GetAttributeColumnView
 	boolean IsError() const;
 
 	//////////////////////////////
@@ -777,9 +787,6 @@ public:
 
 	// Estimation de l'empreinte memoire des valeurs cibles
 	static longint ComputeTargetValuesNecessaryMemory(int nInstanceNumber);
-
-	// True si l'attribute est predictive de la cible
-	static boolean IsPredictive(KWDataPreparationAttribute* dataPreparationAttribute);
 
 	//////////////////////////////////////////////////////////////////////////
 	//// Implementation
@@ -833,3 +840,56 @@ protected:
 	// La tache parallele d'apprentissage est friend pour faire des initialisations partielles
 	friend class SNBPredictorSNBTrainingTask;
 };
+
+///////////////////////////
+// Methodes en inline
+inline Continuous SNBDataTableBinarySliceSetAttribute::GetLnSourceConditionalProb(int nSourceModalityIndex,
+										  int nTargetModalityIndex) const
+{
+	return conditionalProbas.GetSourceConditionalLogProbAt(nSourceModalityIndex, nTargetModalityIndex);
+}
+
+inline boolean SNBDataTableBinarySliceSet::GetAttributeColumnView(SNBDataTableBinarySliceSetAttribute* attribute,
+								  SNBDataTableBinarySliceSetColumn*& outputColumn)
+{
+	require(IsInitialized());
+	return chunkBuffer.GetAttributeColumnView(attribute->GetIndex(), outputColumn);
+}
+inline int SNBDataTableBinarySliceSetColumn::GetValueNumber() const
+{
+	int nValueNumber;
+
+	if (IsSparse())
+		nValueNumber = GetDataSize() / 2;
+	else
+		nValueNumber = GetDataSize();
+
+	return nValueNumber;
+}
+
+inline int SNBDataTableBinarySliceSetColumn::GetDenseValueAt(int nValueIndex) const
+{
+	require(not IsSparse());
+	require(0 <= nValueIndex and nValueIndex < GetValueNumber());
+	return ivData.GetAt(nValueIndex);
+}
+
+inline int SNBDataTableBinarySliceSetColumn::GetSparseValueAt(int nValueIndex) const
+{
+	require(IsSparse());
+	require(0 <= nValueIndex and nValueIndex < GetValueNumber());
+	return ivData.GetAt(2 * nValueIndex + 1);
+}
+
+inline int SNBDataTableBinarySliceSetColumn::GetSparseValueInstanceIndexAt(int nValueIndex) const
+{
+	require(IsSparse());
+	require(0 <= nValueIndex and nValueIndex < GetValueNumber());
+	return ivData.GetAt(2 * nValueIndex);
+}
+
+inline int SNBDataTableBinarySliceSet::GetInitializedChunkInstanceNumber() const
+{
+	require(IsInitialized());
+	return layout.GetInstanceNumberAtChunk(chunkBuffer.GetChunkIndex());
+}

@@ -449,6 +449,23 @@ int KWDRDataGrid::GetUncheckedAttributeNumber() const
 	return nUncheckedAttributeNumber;
 }
 
+int KWDRDataGrid::ComputeUncheckedTotalFrequency() const
+{
+	KWDerivationRule* dataGridFrequenciesGenericRule;
+	KWDRFrequencies* dataGridFrequenciesRule;
+
+	require(GetOperandNumber() > 1);
+
+	// Erreur si pas de regle de derivation dans l'operande destinee aux frequences (le dernier)
+	dataGridFrequenciesGenericRule = GetOperandAt(GetOperandNumber() - 1)->GetDerivationRule();
+	if (dataGridFrequenciesGenericRule == NULL)
+		return -1;
+
+	// Calcul de l'effectif total de la grille de reference
+	dataGridFrequenciesRule = cast(KWDRFrequencies*, dataGridFrequenciesGenericRule);
+	return dataGridFrequenciesRule->ComputeTotalFrequency();
+}
+
 KWDerivationRule* KWDRDataGrid::Create() const
 {
 	return new KWDRDataGrid;
@@ -1303,7 +1320,7 @@ boolean KWDRDataGridRule::CheckOperandsCompleteness(const KWClass* kwcOwnerClass
 	return bOk;
 }
 
-boolean KWDRDataGridRule::CheckPredictorCompletness(int nPredictorType, const KWClass* kwcOwnerClass) const
+boolean KWDRDataGridRule::CheckPredictorCompleteness(int nPredictorType, const KWClass* kwcOwnerClass) const
 {
 	boolean bOk = true;
 	int nDataGridAttributeNumber;
