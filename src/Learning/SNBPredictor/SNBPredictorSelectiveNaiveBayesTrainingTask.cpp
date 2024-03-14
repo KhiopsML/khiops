@@ -429,7 +429,7 @@ longint SNBPredictorSNBTrainingTask::ComputeGlobalSlaveNecessaryMemory(int nSlic
 	// La memoire global du buffer et du scorer s'estime avec les estimations des objets necessaires avec un seul
 	// chunk
 	lGlobalDataCostCalculatorMemory = ComputeGlobalSlaveScorerNecessaryMemory();
-	lGlobalBinarySliceSetBufferMemory = SNBDataTableBinarySliceSetBuffer::ComputeNecessaryMemory(
+	lGlobalBinarySliceSetBufferMemory = SNBDataTableBinarySliceSetChunkBuffer::ComputeNecessaryMemory(
 	    nInstanceNumber, 1, nAttributeNumber, nSliceNumber);
 
 	// Estimation de la memoire necessaire pour le recodage
@@ -496,7 +496,7 @@ longint SNBPredictorSNBTrainingTask::ComputeSlaveNecessaryMemory(int nSlaveProce
 	lBinarySliceSetSelfMemory = sizeof(SNBDataTableBinarySliceSet) - sizeof(SNBDataTableBinarySliceSetSchema) -
 				    sizeof(SNBDataTableBinarySliceSetLayout) -
 				    sizeof(SNBDataTableBinarySliceSetRandomizedAttributeIterator) -
-				    sizeof(SNBDataTableBinarySliceSetBuffer);
+				    sizeof(SNBDataTableBinarySliceSetChunkBuffer);
 	lSelectionScorerMemory = ComputeSlaveScorerNecessaryMemory();
 
 	// Memoire du scorer sans ses contenus
@@ -716,12 +716,12 @@ longint SNBPredictorSNBTrainingTask::ComputeGlobalSlaveNecessaryDisk() const
 	int nAttributeNumber;
 	longint lGlobalSlaveDisk;
 
-	// On estime la capacite totale du disque par la taille du SNBDataTableBinarySliceSetBuffer avec
+	// On estime la capacite totale du disque par la taille du SNBDataTableBinarySliceSetChunkBuffer avec
 	// un seul esclave et une seule slice (un peu sur-estimee)
 	nInstanceNumber = masterSnbPredictor->GetInstanceNumber();
 	nAttributeNumber = masterSnbPredictor->GetTrainingAttributeNumber();
 	lGlobalSlaveDisk =
-	    SNBDataTableBinarySliceSetBuffer::ComputeNecessaryMemory(nInstanceNumber, 1, nAttributeNumber, 1);
+	    SNBDataTableBinarySliceSetChunkBuffer::ComputeNecessaryMemory(nInstanceNumber, 1, nAttributeNumber, 1);
 
 	return lGlobalSlaveDisk;
 }
@@ -833,14 +833,9 @@ boolean SNBPredictorSNBTrainingTask::MasterInitializeDataTableBinarySliceSet()
 	{
 		// Initialisation du SNBDataTableBinarySliceSet du maitre
 		masterBinarySliceSet = new SNBDataTableBinarySliceSet;
-		masterBinarySliceSet->InitializeSchemaFromClassStats(
-		    masterSnbPredictor->GetClassStats(),
-		    masterSnbPredictor->GetTrainParameters()->GetMaxEvaluatedAttributeNumber());
-		masterBinarySliceSet->layout.Initialize(masterSnbPredictor->GetInstanceNumber(), nSlaveProcessNumber,
-							masterBinarySliceSet->GetAttributeNumber(), nSliceNumber);
-		masterBinarySliceSet->randomizedAttributeIterator.Initialize(&masterBinarySliceSet->schema,
-									     &masterBinarySliceSet->layout);
-		masterBinarySliceSet->InitializeTargetValueIndexes(masterSnbPredictor->GetClassStats());
+		masterBinarySliceSet->InitializeWithoutChunkBuffer(
+		    masterSnbPredictor->GetClassStats(), nSlaveProcessNumber,
+		    masterSnbPredictor->GetTrainParameters()->GetMaxEvaluatedAttributeNumber(), nSliceNumber);
 
 		// Changement le domaine de travail a celui de la classe de recodage
 		recoderClass = masterBinarySliceSet->GetDataPreparationClass()->GetDataPreparationClass();
@@ -892,21 +887,10 @@ boolean SNBPredictorSNBTrainingTask::MasterInitializeDataTableBinarySliceSet()
 boolean SNBPredictorSNBTrainingTask::IsMasterDataTableBinarySliceSetInitialized() const
 {
 	boolean bOk = true;
-	int nChunk;
 
 	bOk = bOk and masterBinarySliceSet != NULL;
+	bOk = bOk and masterBinarySliceSet->IsInitializedWithoutBuffer();
 	bOk = bOk and masterBinarySliceSet->dataPreparationClass != NULL;
-	bOk = bOk and masterBinarySliceSet->schema.IsInitialized();
-	bOk = bOk and masterBinarySliceSet->layout.IsInitialized();
-	bOk = bOk and masterBinarySliceSet->randomizedAttributeIterator.IsInitialized();
-	bOk = bOk and masterBinarySliceSet->ivTargetValueIndexes.GetSize() > 0;
-	bOk = bOk and masterBinarySliceSet->nInitializedChunkIndex < 0;
-	bOk = bOk and not masterBinarySliceSet->dataBuffer.IsInitialized();
-	if (bOk)
-	{
-		for (nChunk = 0; nChunk < masterBinarySliceSet->layout.GetChunkNumber(); nChunk++)
-			bOk = bOk and not masterBinarySliceSet->dataBuffer.IsInitializedOnlyAtChunk(nChunk);
-	}
 	return bOk;
 }
 
@@ -1487,12 +1471,10 @@ boolean SNBPredictorSNBTrainingTask::SlaveInitializeDataTableBinarySliceSet()
 	slaveBinarySliceSet->schema.InitializeFromAttributes(oaAttributes);
 
 	// Initialisation du buffer de lecture de donnees pour le chunk l'esclave
-	slaveBinarySliceSet->dataBuffer.SetLayout(&slaveBinarySliceSet->layout);
-	slaveBinarySliceSet->dataBuffer.InitializeBuffer();
-	slaveBinarySliceSet->nInitializedChunkIndex = GetSlaveChunkIndex();
-	bOk = slaveBinarySliceSet->dataBuffer.InitializeOnlyAtChunk(GetSlaveChunkIndex(), slaveRecoderClass,
-								    shared_dataTableSliceSet.GetDataTableSliceSet(),
-								    &slaveBinarySliceSet->schema);
+	slaveBinarySliceSet->chunkBuffer.SetLayout(&slaveBinarySliceSet->layout);
+	bOk = slaveBinarySliceSet->chunkBuffer.Initialize(GetSlaveChunkIndex(), slaveRecoderClass,
+							  shared_dataTableSliceSet.GetDataTableSliceSet(),
+							  &slaveBinarySliceSet->schema);
 
 	// En parallele on decharge la classe de recodage
 	if (IsParallel())
@@ -1505,12 +1487,7 @@ boolean SNBPredictorSNBTrainingTask::SlaveInitializeDataTableBinarySliceSet()
 
 boolean SNBPredictorSNBTrainingTask::IsSlaveDataTableBinarySliceSetInitialized() const
 {
-	return slaveBinarySliceSet != NULL and slaveBinarySliceSet->dataPreparationClass == NULL and
-	       slaveBinarySliceSet->schema.IsInitialized() and slaveBinarySliceSet->layout.IsInitialized() and
-	       not slaveBinarySliceSet->randomizedAttributeIterator.IsInitialized() and
-	       slaveBinarySliceSet->ivTargetValueIndexes.GetSize() > 0 and
-	       slaveBinarySliceSet->nInitializedChunkIndex >= 0 and
-	       slaveBinarySliceSet->dataBuffer.IsInitializedOnlyAtChunk(GetSlaveChunkIndex());
+	return slaveBinarySliceSet != NULL and slaveBinarySliceSet->IsInitialized();
 }
 
 void SNBPredictorSNBTrainingTask::SlaveInitializeUnloadRecoderClass()
@@ -1553,7 +1530,7 @@ boolean SNBPredictorSNBTrainingTask::SlaveProcess()
 boolean SNBPredictorSNBTrainingTask::SlaveFinalize(boolean bProcessEndedCorrectly)
 {
 	require(IsSlaveDataTableBinarySliceSetInitialized());
-	require(slaveBinarySliceSet->Check());
+	require(slaveBinarySliceSet == NULL or slaveBinarySliceSet->Check());
 	require(slaveRecoderClass != NULL or IsParallel());
 
 	// Nettoyage des objets de travail l'esclave
@@ -2609,7 +2586,7 @@ boolean SNBPredictorSNBDirectTrainingTask::SlaveFinalize(boolean bProcessEndedCo
 {
 	boolean bOk;
 
-	require(slaveWeightedSelectionScorer != NULL or not bProcessEndedCorrectly);
+	require(not bProcessEndedCorrectly or slaveWeightedSelectionScorer != NULL);
 
 	// Nettoyage du scorer de l'esclave, qui peut etre nul s'il y a eu un probleme d'initialisation
 	if (slaveWeightedSelectionScorer != NULL)

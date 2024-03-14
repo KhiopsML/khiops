@@ -9,7 +9,8 @@ class SNBDataTableBinarySliceSetAttribute;
 class PLShared_DataTableBinarySliceSetAttribute;
 class SNBDataTableBinarySliceSetSchema;
 class SNBDataTableBinarySliceSetRandomizedAttributeIterator;
-class SNBDataTableBinarySliceSetBuffer;
+class SNBDataTableBinarySliceSetColumn;
+class SNBDataTableBinarySliceSetChunkBuffer;
 class SNBDataTableBinarySliceSet;
 
 #include "KWDataPreparationClass.h"
@@ -76,11 +77,8 @@ public:
 	// Index d'un attribut dans sa slice
 	int GetRelativeIndexAtAttribute(int nAttribute) const;
 
-	// Nombre de `int`s contenus dans un bloc
-	longint GetBlockSizeAt(int nChunk, int nSlice) const;
-
-	// Offset en bytes d'un bloc dans son fichier de chunk
-	longint GetBlockOffsetAt(int nChunk, int nSlice) const;
+	// True si l'attribute est sparse
+	boolean IsAttributeSparseAt(int nAttribute) const;
 
 	//////////////////////////////
 	// Services divers
@@ -131,11 +129,8 @@ protected:
 	// Indexes des attributs relatifs a ses slices
 	IntVector ivAttributeRelativeIndexes;
 
-	// Tableau de LongintVectors's contenant les tailles des des blocs
-	ObjectArray oaBlockSizes;
-
-	// Tableau de LongintVector's contenant les offsets des blocs
-	ObjectArray oaBlockOffsets;
+	// Indique si un attribut est sparse
+	IntVector ivAttributeSparseModes;
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -376,7 +371,7 @@ public:
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////
 	//// Implementation
-private:
+protected:
 	// Ensemble d'attributs de la database
 	const SNBDataTableBinarySliceSetSchema* schema;
 
@@ -391,16 +386,154 @@ private:
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-// Buffer de lecture de une SNBDataTableBinarySliceSet
-// Son initialisation entraine l'ecriture des fichiers de donnees binaires a partir
-// d'un KWDataTableSliceSet et une classe de recodage
-// Apres initialisation les fichiers sont Read-Only jusqu'a une nouvelle initialisation
-class SNBDataTableBinarySliceSetBuffer : public Object
+// Colonne pour la lecture de donnees d'un attribut d'un SNBDataTableBinarySliceSet
+//
+class SNBDataTableBinarySliceSetColumn : public Object
 {
 public:
 	// Constructeur
-	SNBDataTableBinarySliceSetBuffer();
-	~SNBDataTableBinarySliceSetBuffer();
+	SNBDataTableBinarySliceSetColumn();
+	~SNBDataTableBinarySliceSetColumn();
+
+	// Parametrage du mode sparse
+	void SetSparse(boolean bSparseValue);
+	boolean IsSparse() const;
+
+	/////////////////////////////////////////////////////////////////////////////
+	// API d'acces aux donnes (read-only)
+
+	// Nombre de valeurs stockes
+	int GetValueNumber() const;
+
+	// Acces a une valeur normal
+	int GetDenseValueAt(int nValueIndex) const;
+
+	// Acces a une valeur sparse
+	int GetSparseValueAt(int nValueIndex) const;
+
+	// Acces a l'index d'instance d'une valeur sparse
+	int GetSparseValueInstanceIndexAt(int nValueIndex) const;
+
+	////////////////////////////////////////////////////////////////////
+	// API de bas niveau independante du type stocke (read-write)
+
+	// Taille des donnees (en nombre de `int`s) de la colonne
+	boolean SetDataSize(int nSize);
+	int GetDataSize() const;
+
+	// Acces aux donnees
+	void SetDataAt(int nDataIndex, int nDataValue);
+	int GetDataAt(int nDataIndex) const;
+
+	// Ajout a la fin du tableau de donnees
+	void AddData(int nDataValue);
+
+	//////////////////////////////////////
+	// Services Divers
+	boolean Check() const override;
+
+	///////////////////////////////////////////////////////////////////////////////////////////////////
+	//// Implementation
+protected:
+	// True si les donnees sont stockes en mode sparse
+	boolean bIsSparse;
+
+	// Tableau des donnees de l'attribut
+	IntVector ivData;
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+// Layout physique d'un chunk
+//
+class SNBDataTableBinarySliceSetChunkPhysicalLayout : public Object
+{
+public:
+	// Constructeur
+	SNBDataTableBinarySliceSetChunkPhysicalLayout();
+	~SNBDataTableBinarySliceSetChunkPhysicalLayout();
+
+	/////////////////////////////////////
+	// Initialisation
+
+	// Initialisation partielle
+	void PartiallyInitialize(int nChunk, const SNBDataTableBinarySliceSetLayout* someLayout);
+
+	// True si le parametrage du layout et du index du chunk est coherent
+	boolean IsPartiallyInitialized() const;
+
+	// Finalise l'initialisation une fois saisies les tailles des donnees d'attributs
+	void FinishInitialization();
+
+	// True si l'initialisation est complete
+	boolean IsInitialized() const;
+
+	/////////////////////////////////////////////
+	// Acces aux informations
+
+	// Indice du chunk
+	int GetChunkIndex() const;
+
+	// Layout logique du binary slice set
+	const SNBDataTableBinarySliceSetLayout* GetLayout() const;
+
+	// Nombre de `int`s contenus dans un bloc
+	longint GetBlockSizeAt(int nSlice) const;
+
+	// Offset (en nombre de `int`s) d'un bloc dans son fichier de chunk
+	longint GetBlockOffsetAt(int nSlice) const;
+
+	// Taille en `int`s des donnes d'un attribut
+	void SetAttributeDataSizeAt(int nAttribute, int lAttributeDataSize);
+	int GetAttributeDataSizeAt(int nAttribute) const;
+
+	// Nombre total de `int`s du chunk
+	longint GetDataSize() const;
+
+	//////////////////////////////////////
+	// Services Divers
+
+	// Ecriture vers un stream
+	void Write(ostream& ost) const override;
+
+	// Test d'integrite
+	boolean Check() const override;
+
+	///////////////////////////////////////////////////////////////////////////////////////////////////
+	//// Implementation
+protected:
+	/////////////////////////
+	// Parametres
+
+	// Indice du chunk
+	int nChunkIndex;
+
+	// Layout logique du binary slice set
+	const SNBDataTableBinarySliceSetLayout* layout;
+
+	///////////////////////////////////
+	// Objets de travail
+
+	// Tailles des blocs du chunk
+	LongintVector lvBlockSizes;
+
+	// Offsets des blocks du chunk
+	LongintVector lvBlockOffsets;
+
+	// Tailles des donnees des attributs
+	IntVector ivAttributeDataSizes;
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+// Buffer de lecture pour un chunk d'un SNBDataTableBinarySliceSet
+// Son initialisation entraine l'ecriture des fichiers de donnees binaires a partir d'un
+// KWDataTableSliceSet et une classe de recodage.
+// Apres initialisation les fichiers sont Read-Only jusqu'a une nouvelle initialisation
+class SNBDataTableBinarySliceSetChunkBuffer : public Object
+{
+public:
+	// Constructeur
+	SNBDataTableBinarySliceSetChunkBuffer();
+	~SNBDataTableBinarySliceSetChunkBuffer();
 
 	/////////////////////////////
 	// Initialisation
@@ -411,21 +544,14 @@ public:
 	const SNBDataTableBinarySliceSetLayout* GetLayout() const;
 
 	// Initialisation
-	boolean Initialize(KWClass* recoderClass, KWDataTableSliceSet* sliceSet,
+	boolean Initialize(int nChunk, KWClass* recoderClass, KWDataTableSliceSet* sliceSet,
 			   const SNBDataTableBinarySliceSetSchema* schema);
 
-	// Initialisation pour un seul chunk
-	boolean InitializeOnlyAtChunk(int nChunk, KWClass* recoderClass, KWDataTableSliceSet* sliceSet,
-				      SNBDataTableBinarySliceSetSchema* schema);
-
-	// True si tous les chunks sont initialises
+	// True si initalisee
 	boolean IsInitialized() const;
 
-	// True si le chunk specifie est initialise
-	boolean IsInitializedAtChunk(int nChunk) const;
-
-	// True si le buffer est initialize pour un seul chunk
-	boolean IsInitializedOnlyAtChunk(int nChunk) const;
+	// Index du chunk associe a buffer
+	int GetChunkIndex() const;
 
 	// Nettoyage : libere la memoire et efface les fichiers de donnees
 	void CleanWorkingData();
@@ -434,7 +560,7 @@ public:
 	// Acces aux donnees
 
 	// Recollection des indices d'un chunk pour un attribut
-	boolean CollectRecodedAttributeIndexes(int nChunk, int nAttribute, IntVector*& ivOutput);
+	boolean CollectRecodedAttributeIndexes(int nAttribute, SNBDataTableBinarySliceSetColumn*& outputColumn);
 
 	//////////////////////////////
 	// Services divers
@@ -459,15 +585,15 @@ protected:
 	// Initialisation
 
 	// Initialisation du buffer de lecture
-	boolean InitializeBuffer();
+	boolean InitializeColumns();
 
 	// Initialization du fichier de donnees d'un chunk a partir d'un slice set et une classe de recodage
-	boolean InitializeDataFileAtChunk(int nChunk, KWClass* recoderClass, KWDataTableSliceSet* sliceSet,
-					  const SNBDataTableBinarySliceSetSchema* schema);
+	boolean InitializeDataFileFromSliceSetAt(KWClass* recoderClass, KWDataTableSliceSet* sliceSet,
+						 const SNBDataTableBinarySliceSetSchema* schema);
 
 	// Charge un bloc en memoire depuis un KWDataTableSliceSet
-	boolean LoadBlockFromSliceSetAt(int nChunk, int nSlice, KWClass* recoderClass, KWDataTableSliceSet* sliceSet,
-					const SNBDataTableBinarySliceSetSchema* schema);
+	boolean InitializeBlockFromSliceSetAt(int nSlice, KWClass* recoderClass, KWDataTableSliceSet* sliceSet,
+					      const SNBDataTableBinarySliceSetSchema* schema);
 
 	// Charge dans la classe de recodage (recoderClass) les attributs de la slice indiquee
 	// Les index de chargement sont stockes dans le vecteur livLoadedRecodedAttributeIndexes
@@ -479,7 +605,7 @@ protected:
 	const ALString CreateTempFileForChunk(int nChunk) const;
 
 	// Mini API d'ecriture de fichier de donnees utilisee dans l'initialisation
-	boolean OpenOutputDataFileAtChunk(int nChunk);
+	boolean OpenOutputDataFile();
 	boolean WriteToDataFile(int* writeBuffer, int nIntNumber) const;
 	boolean CloseOutputDataFile();
 
@@ -487,13 +613,10 @@ protected:
 	// Chargement de fichiers de donnees en memoire
 
 	// Chargement d'un bloc : si le bloc est deja en memoire on ne fait rien
-	boolean LoadBlockAt(int nChunk, int nSlice);
-
-	// Acces aux chemins des fichiers de stockage de la database
-	ALString GetDataFilePathAtChunk(int nChunk) const;
+	boolean LoadBlockAt(int nSlice);
 
 	// Verifie la taille des fichiers en fonction du layout
-	boolean CheckDataFileAtChunk(int nChunk) const;
+	boolean CheckChunkFile() const;
 
 	/////////////////////////
 	// Parametres
@@ -504,20 +627,17 @@ protected:
 	///////////////////////////////////
 	// Objets de travail
 
+	// Indice du chunk lie a ce buffer
+	int nChunkIndex;
+
+	// Layout physique du chunk
+	SNBDataTableBinarySliceSetChunkPhysicalLayout physicalLayout;
+
 	// Chemins des fichiers pour chaque chunk initialisee
-	StringVector svChunkFilePaths;
+	ALString sChunkFilePath;
 
 	// Tableau contenant les donnees en memoire
 	ObjectArray oaLoadedBlock;
-
-	// True si il n'y que un seul chunk initialise
-	boolean bIsSingleChunkBuffer;
-
-	// Indice du seul chunk initialize si bIsSingleChunkBuffer
-	int nSingleInitializedChunkIndex;
-
-	// Indice du chunk charge en memoire
-	int nLoadedBlockChunkIndex;
 
 	// Indice de la slice charge en memoire
 	int nLoadedBlockSliceIndex;
@@ -531,10 +651,6 @@ protected:
 
 	// Indice du fichier ouvert pendant l'initialisation
 	int nOpenFileChunkIndex;
-
-	// TODO FOR FELIPE: a supprimer
-	//// Taille du buffer en nombre de int's
-	// static const int nIntBufferSize = MemSegmentByteSize / sizeof(int);
 
 	// La tache parallele d'apprentissage est friend pour faire des initialisations partielles
 	friend class SNBPredictorSNBTrainingTask;
@@ -556,16 +672,17 @@ public:
 	// Initialisation
 
 	// Initialisation complete
-	void Initialize(KWClassStats* classStats, int nChunkNumber, int nMaxAttributes, int nSliceNumber);
+	void InitializeWithoutChunkBuffer(KWClassStats* classStats, int nChunkNumber, int nMaxAttributes,
+					  int nSliceNumber);
+
+	// True si le schema est specifie et il y au moins un chunk initialise pour lire
+	boolean IsInitializedWithoutBuffer() const;
+
+	// True si le schema est specifie et un chunk est pret a lire
+	boolean IsInitialized() const;
 
 	// Initialisation du schema d'attributs a partir d'un KWClassStats
 	void InitializeSchemaFromClassStats(KWClassStats* classStats, int nMaxAttributes);
-
-	// True si le schema est specifie et tous les chunks initialises pour lire
-	boolean IsInitialized() const;
-
-	// True si le schema est specifie et il y au moins un chunk initialise pour lire
-	boolean IsPartiallyInitialized() const;
 
 	// True s'il y a des attributs utiles
 	boolean HasUsableAttributes() const;
@@ -579,7 +696,7 @@ public:
 	// Nombre d'attributs
 	int GetAttributeNumber() const;
 
-	// Nombre d'attributs initiales (inclu les non predictifs)
+	// Nombre d'attributs initiales (inclue les non predictifs)
 	int GetInitialAttributeNumber() const;
 
 	// Acces aux attributs par index
@@ -682,11 +799,8 @@ protected:
 	// Index de partie associe a une valeur d'une cible continue
 	int ComputeContinuousTargetValuePartIndex(Continuous cTargetValue, const KWClassStats* classStats) const;
 
-	// Initialisation du buffer et tous les fichiers de chunk
-	boolean InitializeAllChunks(KWDataTableSliceSet* sliceSet);
-
 	// Initialisation partielle du buffer pour le chunk specifie
-	boolean InitializeBufferOnlyAtChunk(int nChunk, KWDataTableSliceSet* sliceSet);
+	boolean InitializeBufferAtChunk(int nChunk, KWDataTableSliceSet* sliceSet);
 
 	/////////////////////////////////
 	// Objects de travail
@@ -705,16 +819,13 @@ protected:
 	SNBDataTableBinarySliceSetRandomizedAttributeIterator randomizedAttributeIterator;
 
 	// Buffer de lecture par blocs
-	SNBDataTableBinarySliceSetBuffer dataBuffer;
+	SNBDataTableBinarySliceSetChunkBuffer chunkBuffer;
 
 	// Nombre d'attributs initiaux
 	int nInitialAttributeNumber;
 
 	// Indices des valeurs de la cible
 	IntVector ivTargetValueIndexes;
-
-	// Index du seul chunk initialise pour l'initialisation partielle du buffer
-	int nInitializedChunkIndex;
 
 	// True s'il a eu un erreur de lecture du disque
 	boolean bIsError;
