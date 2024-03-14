@@ -6,17 +6,18 @@
 
 class SNBPredictorSelectiveNaiveBayes;
 
+#include "KWDataPreparationClass.h"
 #include "KWPredictorNaiveBayes.h"
 #include "KWSelectionParameters.h"
 #include "SNBPredictorSelectiveNaiveBayesTrainingTask.h"
 #include "SNBAttributeSelectionScorer.h"
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-// Predicteur bayesien naif selectif
-// Il doit etre parametre par un objet KWClassStats correctement initialise pour l'apprentissage.
-// Les statistiques ne seront reevaluees que si necessaire
-// L'algorithme de optimisation de la selection de variables
-// est sous-traitee a une tache parallele SNBPredictorSelectiveNaiveBayesTrainingTask
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Predicteur Bayesien naif selectif
+//  - Il doit etre parametre par un objet KWClassStats correctement initialise pour l'apprentissage
+//  - Les statistiques ne seront reevaluees que si necessaire
+//  - L'algorithme de optimisation de la selection de variables est sous-traitee a une tache
+//  parallele SNBPredictorSelectiveNaiveBayesTrainingTask
 class SNBPredictorSelectiveNaiveBayes : public KWPredictorNaiveBayes
 {
 public:
@@ -31,7 +32,7 @@ public:
 	KWPredictor* Create() const override;
 
 	// Recopie des specifications du predicteurs
-	void CopyFrom(const KWPredictor* kwpSource) override;
+	void CopyFrom(const KWPredictor* sourcePredictor) override;
 
 	// Nom du predictor
 	const ALString GetName() const override;
@@ -40,7 +41,7 @@ public:
 	const ALString GetPrefix() const override;
 
 	//////////////////////////////////////////////////////////////////////////////////////
-	// Parametrage utilisateur des attributs a evaluer ou selectionner
+	// Acces aux parametrages utilisateur des attributs a evaluer ou selectionner
 	// Rappel: on peut acceder a GetTrainParameters() par une methode ancetre
 
 	// Parametres de selection de variables
@@ -51,35 +52,48 @@ public:
 	// Memoire: appartient a l'appele
 	KWPredictorSelectionReport* GetPredictorSelectionReport();
 
-	// Nombre d'attributs a utiliser pendant l'apprentissage
-	int GetTrainingAttributeNumber();
-
-	///////////////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////////
 	//// Implementation
 protected:
-	// Ajout de meta-donnees (Weight, MAP) aux attributs du classifieur appris
-	void FillPredictorAttributeMetaData(KWClass* kwcClass);
+	// Ajout de meta-donnees (Weight & Importance) aux attributs du classifieur appris
+	void FillPredictorAttributeMetaData();
 
 	////////////////////////////
 	// Entrainement
 
-	// Reimplementation de l'apprentissage
+	// Reimplementation des methodes virtuelles prives de KWPredictiorNaiveBayes
 	boolean InternalTrain() override;
-
-	// Finalisation de l'entrainement du MAP a partir d'une selection
-	void InternalTrainMAP(KWDataPreparationClass* dataPreparationClass,
-			      SNBHardAttributeSelection* mapAttributeSelection);
+	void CreatePredictorAttributesInClass(KWDataPreparationClass* dataPreparationClass,
+					      ObjectArray* oaUsedDataPreparationAttributes,
+					      ContinuousVector* cvAttributeWeights) override;
+	void CreatePredictorReport() override;
 
 	// Finalisation de l'entrainement quand il n'y a pas d'attribut informatif
-	void InternalTrainEmptyPredictor();
+	void InternalTrainFinalizeWithEmptyPredictor();
 
 	// Finalisation de l'entrainement quand il n'y a qu'un seul attribut informatif
-	void InternalTrainUnivariatePredictor();
+	void InternalTrainFinalizeWithUnivariatePredictor();
 
-	// Rapport d'entrainement
-	// Redefinition de la methode de creation du rapport, pour integrer la description
-	// des variables selectionnees (renvoie un KWPredictorSelectionReport)
-	void CreatePredictorReport() override;
+	//////////////////////////////////////////////////////////////////////////////
+	// Methodes pour le dimensionnement de la tache d'entrainement
+
+	// Nombre d'attributs a utiliser pendant l'apprentissage
+	int ComputeTrainingAttributeNumber() const;
+
+	// Nombre d'attributs sparse a utiliser pendant l'apprentissage
+	int ComputeTrainingSparseAttributeNumber();
+
+	// Ratio de la taille moyen par individu maximale (local) et la taille moyen par individu
+	double ComputeSparseMemoryFactor();
+
+	// Nombre de valeurs missing sparse des donnees en entree
+	longint ComputeTrainingAttributesSparseMissingValueNumber() const;
+
+	// Nombre de valeurs missing sparse par attribut
+	// Retourne un vecteur de taille [nombre d'attributs utilises pour l'apprentissage]
+	// Le compte est zero pour les attributs denses (ie. normaux, paires et arbres)
+	// Memoire : Appelant
+	IntVector* ComputeTrainingSparseMissingValueNumberPerAttribute() const;
 
 	////////////////////////////////
 	// Objets de travail
@@ -87,8 +101,6 @@ protected:
 	// Parametres de selection de variables
 	KWSelectionParameters selectionParameters;
 
-	// Acces interne aux taches d'apprentissage
-	friend class SNBPredictorSNBTrainingTask;
-	friend class SNBPredictorSNBEnsembleTrainingTask;
-	friend class SNBPredictorSNBDirectTrainingTask;
+	// Acces interne a la tache d'apprentissage
+	friend class SNBPredictorSelectiveNaiveBayesTrainingTask;
 };

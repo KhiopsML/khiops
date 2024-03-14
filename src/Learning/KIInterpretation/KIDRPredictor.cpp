@@ -262,7 +262,8 @@ void KIDRClassifierInterpretation::Compile(KWClass* kwcOwnerClass)
 				const KWDRDataGridStats* dataGridStats = classifier->GetDataGridStatsAt(nDataGridIndex);
 
 				// Recherche de l'index de la partie cible de la grille
-				int nTargetIndex = classifier->GetDataGridSetTargetIndexAt(nDataGridIndex, nClassIndex);
+				int nTargetIndex =
+				    classifier->GetDataGridSetTargetCellIndexAt(nDataGridIndex, nClassIndex);
 
 				// Parcours de toutes les parties sources
 				for (int nSourceIndex = 0; nSourceIndex < dataGridStats->GetDataGridSourceCellNumber();
@@ -691,7 +692,7 @@ Continuous KIDRClassifierContribution::ComputeInformationDifference(int nAttribu
 	cScoreWithoutOneVariableCorrected =
 	    (cScoreWithoutOneVariable + (0.5 / (nTargetValuesNumber * nDatabaseSize))) / (1.0 + (0.5 / nDatabaseSize));
 
-	// Vincent2009 - j'ai retiré la correction et ajouté celle au-dessus
+	// Vincent2009 - j'ai retirï¿½ la correction et ajoutï¿½ celle au-dessus
 	// Correction de Laplace pour eviter les divisions par zero
 	// cInitialScore = (cInitialScore * nDatabaseSize + 1) / (nDatabaseSize + nTargetValuesNumber);
 	// cScoreWithoutOneVariable = (cScoreWithoutOneVariable * nDatabaseSize + 1) / (nDatabaseSize +
@@ -1041,7 +1042,7 @@ Continuous KIDRClassifierContribution::ComputeNormalizedOddsRatio(int nAttribute
 	delete cvScoreVector;
 
 	// Commentaires sur ce code voir fonction "Weight of Evidence"
-	// on calcule le odd ratio entre P(C|X) et (P(C|X) privé de la variable
+	// on calcule le odd ratio entre P(C|X) et (P(C|X) privï¿½ de la variable
 	// puis on normalise pour avoir des valeurs entre -1 et +1
 	// cela corresponds au fait de faire passer le weight of evidence dans une sigmoide
 	cInitialScoreCorrected =
@@ -1717,7 +1718,7 @@ ContinuousVector* KIDRClassifierReinforcement::ComputeScoreVectorVariation(Conti
 			 ExtractLogPosteriorProba(nClassIndex, nAttributeIndex, nNewModalityIndex)));
 
 		// De la forme
-		// -> Add(P – W *((OLD) – (NEW)))
+		// -> Add(P ï¿½ W *((OLD) ï¿½ (NEW)))
 	}
 
 	return cvNewScoreVector;

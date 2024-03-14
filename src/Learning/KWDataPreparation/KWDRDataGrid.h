@@ -130,6 +130,9 @@ public:
 	// Nombre de parties d'un attribut, en mode non checke
 	int GetUncheckedAttributePartNumberAt(int nAttributeIndex) const;
 
+	// Calcul de l'effectif total de la grille, en mode non checke (renvoie -1 si erreur)
+	int ComputeUncheckedTotalFrequency() const;
+
 	//////////////////////////////////////////////////////
 	// Redefinition des methodes standard
 
@@ -278,7 +281,7 @@ public:
 	// (moins un de la grille), pour la prediction de la derniere dimension
 	// Verification egalement du type du dernier argument
 	//   Symbol pour un classifier, Continuous pour un regresseur
-	boolean CheckPredictorCompletness(int nPredictorType, const KWClass* kwcOwnerClass) const;
+	boolean CheckPredictorCompleteness(int nPredictorType, const KWClass* kwcOwnerClass) const;
 
 	// Verification que la grille  est univariee et qu'il y a un argument,
 	// ce qui correspond a la specification d'un partitionnement elementaire de l'attribut cible
