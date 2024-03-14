@@ -48,7 +48,7 @@ SNBTargetPart* SNBPredictorSelectionDataCostCalculator::GetOrCreatePart()
 	boolean bAllocOk;
 
 	require(GetDataTableBinarySliceSet() != NULL);
-	require(GetDataTableBinarySliceSet()->IsPartiallyInitialized());
+	require(GetDataTableBinarySliceSet()->IsInitialized());
 
 	// S'il y a un objet SNBTargetPart disponible dans le cache on le retourne
 	if (olDeletedPartsCache.GetCount() > 0)
@@ -72,7 +72,7 @@ void SNBPredictorSelectionDataCostCalculator::ReleasePart(SNBTargetPart* targetP
 {
 	require(targetPart != NULL);
 	require(GetDataTableBinarySliceSet() != NULL);
-	require(GetDataTableBinarySliceSet()->IsPartiallyInitialized());
+	require(GetDataTableBinarySliceSet()->IsInitializedWithoutBuffer());
 	require(targetPart->GetScores()->GetSize() == GetDataTableBinarySliceSet()->GetActiveInstanceNumber());
 
 	// On garde dans le cache la SNBTargetPart eliminee pour une utilisation ulteriure si besoin
@@ -235,7 +235,7 @@ double SNBClassifierSelectionDataCostCalculator::ComputeSelectionDataCost()
 	double dLaplaceNumerator;
 
 	require(Check());
-	require(GetDataTableBinarySliceSet()->IsPartiallyInitialized());
+	require(GetDataTableBinarySliceSet()->IsInitialized());
 
 	// Entete de la trace
 	if (bLocalTrace)
@@ -396,7 +396,7 @@ boolean SNBClassifierSelectionDataCostCalculator::UpdateTargetPartScoresWithWeig
 
 	require(attribute != NULL);
 	require(GetDataTableBinarySliceSet() != NULL);
-	require(GetDataTableBinarySliceSet()->IsPartiallyInitialized());
+	require(GetDataTableBinarySliceSet()->IsInitialized());
 	require(Check());
 
 	// Calcul des probabilites conditionnelles par classe cible
@@ -464,9 +464,9 @@ boolean SNBClassifierSelectionDataCostCalculator::Check() const
 boolean SNBClassifierSelectionDataCostCalculator::CheckParts() const
 {
 	boolean bOk = true;
+	ALString sTmp = "";
 	int nTarget;
 	SNBTargetPart* targetPart;
-	ALString sTmp;
 
 	for (nTarget = 0; nTarget < GetTargetDescriptiveStats()->GetValueNumber(); nTarget++)
 	{
@@ -1354,8 +1354,7 @@ void SNBGeneralizedClassifierSelectionDataCostCalculator::InitializeTargetValueG
 				     nTargetValueIndex <= targetValueGroupsPartition->GetGroupLastValueIndexAt(nGroup);
 				     nTargetValueIndex++)
 				{
-					// Memorisation du groupe par defaut si l'on rencontre la valeur speciale
-					// StarValue
+					// Memorisation du groupe par defaut si l'on rencontre la valeur speciale StarValue
 					if (nDefaultGroup == -1 and targetValueGroupsPartition->GetValueAt(
 									nTargetValueIndex) == Symbol::GetStarValue())
 					{
