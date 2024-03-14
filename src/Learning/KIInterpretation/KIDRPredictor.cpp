@@ -262,7 +262,8 @@ void KIDRClassifierInterpretation::Compile(KWClass* kwcOwnerClass)
 				const KWDRDataGridStats* dataGridStats = classifier->GetDataGridStatsAt(nDataGridIndex);
 
 				// Recherche de l'index de la partie cible de la grille
-				int nTargetIndex = classifier->GetDataGridSetTargetIndexAt(nDataGridIndex, nClassIndex);
+				int nTargetIndex =
+				    classifier->GetDataGridSetTargetCellIndexAt(nDataGridIndex, nClassIndex);
 
 				// Parcours de toutes les parties sources
 				for (int nSourceIndex = 0; nSourceIndex < dataGridStats->GetDataGridSourceCellNumber();

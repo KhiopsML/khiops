@@ -449,6 +449,23 @@ int KWDRDataGrid::GetUncheckedAttributeNumber() const
 	return nUncheckedAttributeNumber;
 }
 
+int KWDRDataGrid::ComputeUncheckedTotalFrequency() const
+{
+	KWDerivationRule* dataGridFrequenciesGenericRule;
+	KWDRFrequencies* dataGridFrequenciesRule;
+
+	require(GetOperandNumber() > 1);
+
+	// Erreur si pas de regle de derivation dans l'operande destinee aux frequences (le dernier)
+	dataGridFrequenciesGenericRule = GetOperandAt(GetOperandNumber() - 1)->GetDerivationRule();
+	if (dataGridFrequenciesGenericRule == NULL)
+		return -1;
+
+	// Calcul de l'effectif total de la grille de reference
+	dataGridFrequenciesRule = cast(KWDRFrequencies*, dataGridFrequenciesGenericRule);
+	return dataGridFrequenciesRule->ComputeTotalFrequency();
+}
+
 KWDerivationRule* KWDRDataGrid::Create() const
 {
 	return new KWDRDataGrid;
@@ -580,6 +597,15 @@ boolean KWDRDataGrid::CheckOperandsFamily(const KWDerivationRule* ruleFamily) co
 		}
 		else
 		{
+			// DDD
+			KWDerivationRule* rule = operand->GetDerivationRule();
+			if (rule->GetName() != "Frequencies")
+			{
+
+				cout << "== Last call ==\n" << *this->GetOwnerClass() << endl;
+				cout << *this << endl;
+			}
+
 			frequencies = cast(KWDRFrequencies*, operand->GetDerivationRule());
 
 			// Calcul du nombre total de cellules a partir des partitions univariees
@@ -1303,7 +1329,7 @@ boolean KWDRDataGridRule::CheckOperandsCompleteness(const KWClass* kwcOwnerClass
 	return bOk;
 }
 
-boolean KWDRDataGridRule::CheckPredictorCompletness(int nPredictorType, const KWClass* kwcOwnerClass) const
+boolean KWDRDataGridRule::CheckPredictorCompleteness(int nPredictorType, const KWClass* kwcOwnerClass) const
 {
 	boolean bOk = true;
 	int nDataGridAttributeNumber;
@@ -1497,12 +1523,19 @@ Continuous KWDRCellIndexWithMissing::ComputeContinuousResult(const KWObject* kwo
 	// Calcul et memorisation de l'index de cellule
 	ComputeCellIndex(kwoObject);
 
-	// On renvoie -1 en cas de valeur manquante
-	if (bIsMissingValue)
+	// On renvoie -1 en cas de valeur manquante ou l'index au cas echeant
+	if (bIsMissingValue and not bReturnMissingValueCell)
 		return -1;
 	else
-		// Sinon, on renvoie l'index de la cellule
 		return (Continuous)(nCellIndex + 1);
+}
+
+// DDD
+void KWDRCellIndexWithMissing::CopyFrom(const KWDerivationRule* source)
+{
+	KWDRDataGridRule::CopyFrom(source);
+	const KWDRCellIndexWithMissing* sourceCellRule = cast(const KWDRCellIndexWithMissing*, source);
+	bReturnMissingValueCell = sourceCellRule->bReturnMissingValueCell;
 }
 
 ///////////////////////////////////////////////////////////////

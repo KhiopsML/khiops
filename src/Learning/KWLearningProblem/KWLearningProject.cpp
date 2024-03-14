@@ -326,8 +326,7 @@ void KWLearningProject::OpenLearningEnvironnement()
 	PLParallelTask::RegisterTask(new KWRegressorEvaluationTask);
 	PLParallelTask::RegisterTask(new KWClassifierUnivariateEvaluationTask);
 	PLParallelTask::RegisterTask(new KWRegressorUnivariateEvaluationTask);
-	PLParallelTask::RegisterTask(new SNBPredictorSNBDirectTrainingTask);
-	PLParallelTask::RegisterTask(new SNBPredictorSNBEnsembleTrainingTask);
+	PLParallelTask::RegisterTask(new SNBPredictorSelectiveNaiveBayesTrainingTask);
 	PLParallelTask::RegisterTask(new KDSelectionOperandSamplingTask);
 	PLParallelTask::RegisterTask(new DTDecisionTreeCreationTask);
 	PLParallelTask::RegisterTask(new KDTextTokenSampleCollectionTask);

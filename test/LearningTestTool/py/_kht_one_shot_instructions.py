@@ -1,6 +1,7 @@
 import os.path
 import sys
 import stat
+import warnings
 
 import _kht_constants as kht
 import _kht_utils as utils
@@ -500,6 +501,137 @@ def instruction_work(test_dir):
                                     break
 
 
+def instruction_compare_snb_perfs(test_dir):
+    # Obtain basic information of the test
+    results_dir = os.path.join(test_dir, kht.RESULTS)
+    results_ref_dir, _ = results.get_results_ref_dir(test_dir, show=True)
+    if results_ref_dir is None:
+        return
+    test_dir_name = utils.test_dir_name(test_dir)
+    suite_dir_name = utils.suite_dir_name(test_dir)
+    tool_dir_name = utils.tool_dir_name(test_dir)
+
+    # Obtain the sub-tests names
+    khj_file_names = [
+        name for name in os.listdir(results_ref_dir) if name.endswith("khj")
+    ]
+    sub_test_names = []
+    for name in khj_file_names:
+        sub_test_name = name.replace(".khj", "")
+        if "AnalysisResults" in name:
+            sub_test_name = sub_test_name.replace("AnalysisResults", "")
+            if not sub_test_name:
+                sub_test_name = "None"
+        if "EvaluationReport" in name:
+            sub_test_name = sub_test_name.replace("EvaluationReport", "")
+            if not sub_test_name:
+                sub_test_name = "None"
+        sub_test_names.append(sub_test_name)
+
+    # Exctract performances measures with khiops-python
+    from khiops import core as kh
+
+    # Ignore warnings about colliding characters in reports
+    warnings.filterwarnings("ignore", message=r".*colliding")
+
+    # Shorten the test dir to show
+    test_dir_show_name = f"{test_dir_name[:12]}"
+    line_prefix = f"{tool_dir_name}\t{suite_dir_name}\t{test_dir_show_name}"
+    for file_name, sub_test_name in zip(khj_file_names, sub_test_names):
+
+        # Shorten sub test to show
+        sub_test_show_name = f"{sub_test_name[:12]}"
+
+        # Read the sub-test report files
+        error_reason = None
+        try:
+            all_reports_ref = kh.read_analysis_results_file(
+                os.path.join(results_ref_dir, file_name)
+            )
+        except FileNotFoundError:
+            error_reason = "ReportRefNotFound"
+        except kh.KhiopsJSONError as error:
+            error_reason = str(error)
+        if error_reason is None:
+            try:
+                all_reports = kh.read_analysis_results_file(
+                    os.path.join(results_dir, file_name)
+                )
+            except FileNotFoundError:
+                error_reason = "ReportNotFound"
+            except kh.KhiopsJSONError as error:
+                error_reason = str(error)
+        if error_reason is None:
+            if len(all_reports_ref.get_reports()) != len(all_reports.get_reports()):
+                error_reason = "NumReportNonEq"
+
+        # Print error line on failure
+        if error_reason is not None:
+            print(f"{line_prefix}\t{sub_test_show_name}\tERROR\t{error_reason}")
+            return
+
+        # Get the number of selected variables
+        model_report_ref = all_reports_ref.modeling_report
+        model_report = all_reports.modeling_report
+        if (
+            model_report_ref is not None
+            and "Selective Naive Bayes" in model_report_ref.get_predictor_names()
+        ):
+            snb_var_number_ref = (
+                all_reports_ref.modeling_report.get_snb_predictor().variable_number
+            )
+            snb_var_number = (
+                all_reports.modeling_report.get_snb_predictor().variable_number
+            )
+        else:
+            snb_var_number_ref = -1
+            snb_var_number = -1
+
+        # Print the metric, metric_ref and the relative error of metric w/r metric_ref
+        for report_ref, report in zip(
+            all_reports_ref.get_reports(), all_reports.get_reports()
+        ):
+            if not isinstance(report, kh.EvaluationReport):
+                continue
+            try:
+                snb_perf_ref = report_ref.get_snb_performance()
+            except ValueError as error:
+                print(f"{line_prefix}\t{sub_test_show_name}\tERROR\tSNB: {error}")
+                continue
+            try:
+                snb_perf = report.get_snb_performance()
+            except ValueError as error:
+                print(f"{line_prefix}\t{sub_test_show_name}\tERROR\tSNBRef: {error}")
+                continue
+
+            # Obtain the evaluation type (Train,Test,None)
+            evaluation_type = report.evaluation_type
+            if not evaluation_type:
+                evaluation_type = "None"
+
+            for metric_name in snb_perf_ref.get_metric_names():
+                metric_ref = snb_perf_ref.get_metric(metric_name)
+                metric = snb_perf.get_metric(metric_name)
+                if metric_ref is None:
+                    print(
+                        f"{line_prefix}\t{sub_test_show_name}\tSKIPPED\tNullRefMetric"
+                    )
+                elif metric is None:
+                    print(f"{line_prefix}\t{sub_test_show_name}\tERROR\tNullMetric")
+                else:
+                    if metric_ref == 0 and metric == 0:
+                        rel_diff = 0
+                    elif metric_ref == 0:
+                        rel_diff = (metric - 1e-9) / (1e-9)
+                    else:
+                        rel_diff = (metric - metric_ref) / (metric_ref)
+                    if 0 < abs(rel_diff) < 1e-9:
+                        rel_diff = 0
+                    print(
+                        f"{line_prefix}\t{sub_test_show_name}\t{evaluation_type}\t{metric_name}\t{metric}\t{metric_ref}\t{rel_diff:.6g}\t{snb_var_number}\t{snb_var_number_ref}"
+                    )
+
+
 def instruction_template(test_dir):
     results_dir = os.path.join(test_dir, kht.RESULTS)
     results_ref_dir, _ = results.get_results_ref_dir(test_dir, show=True)
@@ -555,5 +687,11 @@ def register_one_shot_instructions():
         "work",
         instruction_work,
         "last work instruction (temporary and uncommented)",
+    )
+    standard_instructions.register_instruction(
+        available_instructions,
+        "compare-snb-perfs",
+        instruction_compare_snb_perfs,
+        "compares the performances of all SNB predictors",
     )
     return available_instructions

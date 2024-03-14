@@ -23,8 +23,8 @@ public:
 	SNBIndexVector();
 	~SNBIndexVector();
 
-	// Taille des index de valeur, a parametrer quand la taille du vecteur est nulle
-	// Les index utilisable sont alors dans l'intervalles 0 <= index < IndexSize
+	// Taille des indexes de valeur, a parametrer quand la taille du vecteur est nulle Les index
+	// utilisable sont alors dans l'intervalles 0 <= index < IndexSize
 	void SetValueIndexSize(int nValue);
 	int GetValueIndexSize() const;
 
@@ -42,7 +42,7 @@ public:
 
 	// Copie a partir d'un vecteur source
 	// (retaillage si necessaire)
-	void CopyFrom(const SNBIndexVector* snbivSource);
+	void CopyFrom(const SNBIndexVector* ivSource);
 
 	// Duplication
 	SNBIndexVector* Clone() const;
