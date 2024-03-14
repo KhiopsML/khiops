@@ -95,8 +95,6 @@ void SNBDataTableBinarySliceSetLayout::Initialize(int nSomeInstanceNumber, int n
 		ivSliceAttributeOffsets.SetAt(nSlice, nSliceAttributeOffset);
 		nSliceAttributeOffset += nSliceAttributeNumber;
 	}
-	ivAttributeSparseModes.SetSize(nAttributeNumber);
-	ivAttributeSparseModes.Initialize();
 
 	ensure(nChunkInstanceOffset == nInstanceNumber);
 	ensure(nSliceAttributeOffset == nAttributeNumber);
@@ -202,12 +200,6 @@ int SNBDataTableBinarySliceSetLayout::GetRelativeIndexAtAttribute(int nAttribute
 	require(0 <= nAttribute and nAttribute < GetAttributeNumber());
 	require(IsInitialized());
 	return ivAttributeRelativeIndexes.GetAt(nAttribute);
-}
-
-boolean SNBDataTableBinarySliceSetLayout::IsAttributeSparseAt(int nAttribute) const
-{
-	require(IsInitialized());
-	return (boolean)ivAttributeSparseModes.GetAt(nAttribute);
 }
 
 boolean SNBDataTableBinarySliceSetLayout::Check() const
@@ -322,11 +314,12 @@ longint SNBDataTableBinarySliceSetLayout::ComputeNecessaryMemory(int nInstanceNu
 
 SNBDataTableBinarySliceSetAttribute::SNBDataTableBinarySliceSetAttribute()
 {
-	nIndex = -1;
-	nDataPreparationClassIndex = -1;
+	sNativeAttributeName = "";
 	sRecodedAttributeName = "";
 	sPreparedAttributeName = "";
-	sNativeAttributeName = "";
+	nIndex = -1;
+	nDataPreparationClassIndex = -1;
+	bIsSparse = false;
 	dataPreparationStats = NULL;
 }
 
@@ -384,6 +377,16 @@ int SNBDataTableBinarySliceSetAttribute::GetDataPreparationClassIndex() const
 	return nDataPreparationClassIndex;
 }
 
+void SNBDataTableBinarySliceSetAttribute::SetSparse(boolean bSparseMode)
+{
+	bIsSparse = bSparseMode;
+}
+
+boolean SNBDataTableBinarySliceSetAttribute::IsSparse() const
+{
+	return bIsSparse;
+}
+
 void SNBDataTableBinarySliceSetAttribute::InitializeFromDataPreparationAttribute(
     KWDataPreparationAttribute* dataPreparationAttribute)
 {
@@ -424,12 +427,6 @@ double SNBDataTableBinarySliceSetAttribute::GetLevel() const
 {
 	require(dataPreparationStats != NULL);
 	return dataPreparationStats->GetLevel();
-}
-
-Continuous SNBDataTableBinarySliceSetAttribute::GetLnSourceConditionalProb(int nSourceModalityIndex,
-									   int nTargetModalityIndex) const
-{
-	return conditionalProbas.GetSourceConditionalLogProbAt(nSourceModalityIndex, nTargetModalityIndex);
 }
 
 const KWDataGridStats* SNBDataTableBinarySliceSetAttribute::GetPreparedDataGridStats() const
@@ -561,6 +558,7 @@ void PLShared_DataTableBinarySliceSetAttribute::SerializeObject(PLSerializer* se
 	serializer->PutString(attribute->sRecodedAttributeName);
 	serializer->PutInt(attribute->nIndex);
 	serializer->PutInt(attribute->nDataPreparationClassIndex);
+	serializer->PutBoolean(attribute->bIsSparse);
 }
 
 void PLShared_DataTableBinarySliceSetAttribute::DeserializeObject(PLSerializer* serializer, Object* o) const
@@ -583,6 +581,7 @@ void PLShared_DataTableBinarySliceSetAttribute::DeserializeObject(PLSerializer* 
 	attribute->sRecodedAttributeName = serializer->GetString();
 	attribute->nIndex = serializer->GetInt();
 	attribute->nDataPreparationClassIndex = serializer->GetInt();
+	attribute->bIsSparse = serializer->GetBoolean();
 }
 
 Object* PLShared_DataTableBinarySliceSetAttribute::Create() const
@@ -615,12 +614,12 @@ void SNBDataTableBinarySliceSetSchema::InitializeFromDataPreparationClass(
 		svUsableDataPreparationAttributeRecodedNames->GetSize());
 
 	// Initialisation presque complete des attributs
-	// L'index de l'attribut relatif a la KWDataPreparationClasse s'initialise dans une deuxieme passe
+	// L'index de l'attribut relatif a la KWDataPreparationClass s'initialise dans une deuxieme passe
 	for (nAttribute = 0; nAttribute < oaUsableDataPreparationAttributes->GetSize(); nAttribute++)
 	{
 		dataPreparationAttribute =
 		    cast(KWDataPreparationAttribute*, oaUsableDataPreparationAttributes->GetAt(nAttribute));
-		assert(SNBDataTableBinarySliceSet::IsPredictive(dataPreparationAttribute));
+		assert(dataPreparationAttribute->IsInformativeOnTarget());
 
 		// Initialisation de l'attribut
 		attribute = new SNBDataTableBinarySliceSetAttribute;
@@ -629,6 +628,8 @@ void SNBDataTableBinarySliceSetSchema::InitializeFromDataPreparationClass(
 		attribute->SetPreparedAttributeName(dataPreparationAttribute->GetPreparedAttribute()->GetName());
 		attribute->SetRecodedAttributeName(svUsableDataPreparationAttributeRecodedNames->GetAt(nAttribute));
 		attribute->SetDataPreparationClassIndex(dataPreparationAttribute->GetIndex());
+		if (dataPreparationAttribute->GetNativeAttribute()->GetAttributeBlock() != NULL)
+			attribute->SetSparse(true);
 		attribute->InitializeFromDataPreparationAttribute(dataPreparationAttribute);
 		oaAttributes.Add(attribute);
 		odAttributesByNativeAttributeName.SetAt(dataPreparationAttribute->ComputeNativeAttributeName(),
@@ -981,39 +982,6 @@ boolean SNBDataTableBinarySliceSetColumn::IsSparse() const
 	return bIsSparse;
 }
 
-int SNBDataTableBinarySliceSetColumn::GetValueNumber() const
-{
-	int nValueNumber;
-
-	if (IsSparse())
-		nValueNumber = GetDataSize() / 2;
-	else
-		nValueNumber = GetDataSize();
-
-	return nValueNumber;
-}
-
-int SNBDataTableBinarySliceSetColumn::GetDenseValueAt(int nValueIndex) const
-{
-	require(not IsSparse());
-	require(0 <= nValueIndex and nValueIndex < GetValueNumber());
-	return ivData.GetAt(nValueIndex);
-}
-
-int SNBDataTableBinarySliceSetColumn::GetSparseValueAt(int nValueIndex) const
-{
-	require(IsSparse());
-	require(0 <= nValueIndex and nValueIndex < GetValueNumber());
-	return ivData.GetAt(2 * nValueIndex + 1);
-}
-
-int SNBDataTableBinarySliceSetColumn::GetSparseValueInstanceIndexAt(int nValueIndex) const
-{
-	require(IsSparse());
-	require(0 <= nValueIndex and nValueIndex < GetValueNumber());
-	return ivData.GetAt(2 * nValueIndex);
-}
-
 boolean SNBDataTableBinarySliceSetColumn::SetDataSize(int nSize)
 {
 	return ivData.SetLargeSize(nSize);
@@ -1048,11 +1016,18 @@ boolean SNBDataTableBinarySliceSetColumn::Check() const
 	// En sparse il doit avoir une quantite pair de donnees
 	bOk = bOk and (not bIsSparse or ivData.GetSize() % 2 == 0);
 
-	// Verification que toutes les donnees sont des indices positifs
+	// Verification des rangs des donnees
 	for (nData = 0; nData < ivData.GetSize(); nData++)
-		bOk = bOk and ivData.GetAt(nData) >= 0;
+	{
+		// Cas sparse : toutes les valeurs sont non-negatifs
+		if (bIsSparse)
+			bOk = bOk and ivData.GetAt(nData) >= 0;
+		// Cas dense : toutes les valeurs sont non-negatifs ou -1 (manquantes)
+		else
+			bOk = bOk and ivData.GetAt(nData) >= -1;
+	}
 
-	// En cas sparse: Verification que les indexes d'instance sont croisantes
+	// Cas sparse: Verification que les indexes d'instance sont croissantes
 	if (bIsSparse and ivData.GetSize() > 0)
 	{
 		nPreviousInstanceIndex = ivData.GetAt(0);
@@ -1064,7 +1039,6 @@ boolean SNBDataTableBinarySliceSetColumn::Check() const
 			nPreviousInstanceIndex = ivData.GetAt(nData);
 		}
 	}
-
 	return bOk;
 }
 
@@ -1080,14 +1054,19 @@ SNBDataTableBinarySliceSetChunkPhysicalLayout::SNBDataTableBinarySliceSetChunkPh
 SNBDataTableBinarySliceSetChunkPhysicalLayout::~SNBDataTableBinarySliceSetChunkPhysicalLayout() {}
 
 void SNBDataTableBinarySliceSetChunkPhysicalLayout::PartiallyInitialize(
-    int nChunk, const SNBDataTableBinarySliceSetLayout* someLayout)
+    int nChunk, const SNBDataTableBinarySliceSetLayout* someLayout, const SNBDataTableBinarySliceSetSchema* schema)
 {
 	int nSlice;
 	int nAttribute;
+
 	require(someLayout != NULL);
 	require(someLayout->IsInitialized());
 	require(someLayout->Check());
 	require(0 <= nChunk and nChunk < someLayout->GetChunkNumber());
+	require(schema != NULL);
+	require(schema->IsInitialized());
+	require(schema->Check());
+	require(someLayout->GetAttributeNumber() == schema->GetAttributeNumber());
 
 	// Parametrage de l'index du chunk et du layout
 	nChunkIndex = nChunk;
@@ -1105,12 +1084,19 @@ void SNBDataTableBinarySliceSetChunkPhysicalLayout::PartiallyInitialize(
 	for (nAttribute = 0; nAttribute < layout->GetAttributeNumber(); nAttribute++)
 		ivAttributeDataSizes.SetAt(nAttribute, -1);
 
+	// Initialization des mode sparse des attributes
+	ivAttributeSparseModes.SetSize(schema->GetAttributeNumber());
+	ivAttributeSparseModes.Initialize();
+	for (nAttribute = 0; nAttribute < schema->GetAttributeNumber(); nAttribute++)
+		ivAttributeSparseModes.SetAt(nAttribute, schema->GetAttributeAt(nAttribute)->IsSparse());
+
 	ensure(IsPartiallyInitialized());
 }
 
 boolean SNBDataTableBinarySliceSetChunkPhysicalLayout::IsPartiallyInitialized() const
 {
-	return nChunkIndex >= 0 and layout != NULL;
+	return nChunkIndex >= 0 and layout != NULL and lvBlockSizes.GetSize() > 0 and lvBlockOffsets.GetSize() > 0 and
+	       ivAttributeDataSizes.GetSize() > 0 and ivAttributeSparseModes.GetSize() > 0;
 }
 
 const SNBDataTableBinarySliceSetLayout* SNBDataTableBinarySliceSetChunkPhysicalLayout::GetLayout() const
@@ -1164,6 +1150,20 @@ longint SNBDataTableBinarySliceSetChunkPhysicalLayout::GetDataSize() const
 		lSize += GetAttributeDataSizeAt(nAttribute);
 
 	return lSize;
+}
+
+void SNBDataTableBinarySliceSetChunkPhysicalLayout::SetAttributeSparseAt(int nAttribute, boolean bSparseMode)
+{
+	require(IsInitialized());
+	require(0 <= nAttribute and nAttribute < layout->GetAttributeNumber());
+	ivAttributeSparseModes.SetAt(nAttribute, bSparseMode);
+}
+
+boolean SNBDataTableBinarySliceSetChunkPhysicalLayout::IsAttributeSparseAt(int nAttribute) const
+{
+	require(IsInitialized());
+	require(0 <= nAttribute and nAttribute < layout->GetAttributeNumber());
+	return ivAttributeSparseModes.GetAt(nAttribute);
 }
 
 void SNBDataTableBinarySliceSetChunkPhysicalLayout::FinishInitialization()
@@ -1259,7 +1259,7 @@ void SNBDataTableBinarySliceSetChunkPhysicalLayout::Write(ostream& ost) const
 			ost << "\n";
 		}
 	}
-	cout << "\n";
+	ost << "\n";
 }
 
 boolean SNBDataTableBinarySliceSetChunkPhysicalLayout::Check() const
@@ -1313,8 +1313,6 @@ SNBDataTableBinarySliceSetChunkBuffer::SNBDataTableBinarySliceSetChunkBuffer()
 {
 	nChunkIndex = -1;
 	layout = NULL;
-	// TODO FOR FELIPE: a supprimer
-	// buffer = NewIntArray(nIntBufferSize);
 	fChunkDataFile = NULL;
 	nLoadedBlockSliceIndex = -1;
 }
@@ -1322,8 +1320,6 @@ SNBDataTableBinarySliceSetChunkBuffer::SNBDataTableBinarySliceSetChunkBuffer()
 SNBDataTableBinarySliceSetChunkBuffer::~SNBDataTableBinarySliceSetChunkBuffer()
 {
 	CleanWorkingData();
-	// TODO FOR FELIPE: a supprimer
-	// DeleteIntArray(buffer);
 }
 
 void SNBDataTableBinarySliceSetChunkBuffer::SetLayout(const SNBDataTableBinarySliceSetLayout* someLayout)
@@ -1364,7 +1360,7 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::Initialize(int nChunk, KWClass* r
 
 	// Initialization partielle du layout physique
 	// Elle continue a s'initialiser lors des appels a la methode InitializeBlockFromSliceSetAt
-	physicalLayout.PartiallyInitialize(nChunkIndex, layout);
+	physicalLayout.PartiallyInitialize(nChunkIndex, layout, schema);
 
 	// Initialization des objets colonnes
 	InitializeColumns();
@@ -1522,7 +1518,8 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::InitializeBlockFromSliceSetAt(
 	int nSliceAttribute;
 	int nAttribute;
 	SNBDataTableBinarySliceSetColumn* column;
-	Continuous cIndex;
+	Continuous cAttributeValueIndex;
+	int nAttributeValueIndex;
 	PeriodicTest periodicTestInterruption;
 
 	require(physicalLayout.IsPartiallyInitialized());
@@ -1552,7 +1549,7 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::InitializeBlockFromSliceSetAt(
 	{
 		nAttribute = nSliceAttributeOffset + nSliceAttribute;
 		column = cast(SNBDataTableBinarySliceSetColumn*, oaLoadedBlock.GetAt(nSliceAttribute));
-		column->SetSparse(layout->IsAttributeSparseAt(nAttribute));
+		column->SetSparse(schema->GetAttributeAt(nAttribute)->IsSparse());
 		if (column->IsSparse())
 			column->SetDataSize(0);
 		else
@@ -1577,6 +1574,7 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::InitializeBlockFromSliceSetAt(
 		{
 			// Lecture de l'objet
 			kwoPartIndices = sliceSet->Read();
+
 			bOk = bOk and (kwoPartIndices != NULL);
 			if (not bOk)
 				break;
@@ -1585,16 +1583,33 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::InitializeBlockFromSliceSetAt(
 			for (nSliceAttribute = 0; nSliceAttribute < nSliceAttributeNumber; nSliceAttribute++)
 			{
 				nAttribute = nSliceAttributeOffset + nSliceAttribute;
+				// Obtention de l'index ded l'attribut
 				column = cast(SNBDataTableBinarySliceSetColumn*, oaLoadedBlock.GetAt(nSliceAttribute));
-				cIndex = kwoPartIndices->GetContinuousValueAt(
+				cAttributeValueIndex = kwoPartIndices->GetContinuousValueAt(
 				    livLoadedRecodedAttributeIndexes.GetAt(nSliceAttribute));
+
+				// Ajustement a zero si positif
+				if (cAttributeValueIndex > 0)
+					nAttributeValueIndex = lrint(cAttributeValueIndex) - 1;
+				// Pas d'ajustement si egal a -1
+				else
+				{
+					assert(cAttributeValueIndex == -1.0 or column->IsSparse());
+					nAttributeValueIndex = int(cAttributeValueIndex);
+				}
+
+				// Cas sparse : Ajout en mode sparse seulement pour les valeurs non manquantes
 				if (column->IsSparse())
 				{
-					column->AddData(nChunkInstance);
-					column->AddData(lrint(cIndex) - 1);
+					if (nAttributeValueIndex >= 0)
+					{
+						column->AddData(nChunkInstance);
+						column->AddData(nAttributeValueIndex);
+					}
 				}
+				// Cas dense : Ajout normal pour n'importe quel valeur
 				else
-					column->SetDataAt(nChunkInstance, lrint(cIndex) - 1);
+					column->SetDataAt(nChunkInstance, nAttributeValueIndex);
 			}
 			delete kwoPartIndices;
 
@@ -1713,7 +1728,6 @@ void SNBDataTableBinarySliceSetChunkBuffer::LoadRecodedAttributesAtSlice(
 	int nSliceAttribute;
 	SNBDataTableBinarySliceSetAttribute* attribute;
 	KWAttribute* recodedAttribute;
-	int nLoadedAttribute;
 
 	require(recoderClass->Check());
 	require(livLoadedRecodedAttributeIndexes != NULL);
@@ -1721,7 +1735,7 @@ void SNBDataTableBinarySliceSetChunkBuffer::LoadRecodedAttributesAtSlice(
 	// Dechargements de tous les attributs et deactivation de la cible
 	recoderClass->SetAllAttributesLoaded(false);
 
-	// Chargement dans la classe de recodage des attributs de la slice
+	// Chargement dans la classe de recodage des attributs de la slice et compilation
 	for (nSliceAttribute = 0; nSliceAttribute < layout->GetAttributeNumberAtSlice(nSlice); nSliceAttribute++)
 	{
 		attribute = schema->GetAttributeAt(layout->GetAttributeOffsetAtSlice(nSlice) + nSliceAttribute);
@@ -1731,12 +1745,13 @@ void SNBDataTableBinarySliceSetChunkBuffer::LoadRecodedAttributesAtSlice(
 	}
 	recoderClass->GetDomain()->Compile();
 
-	// Memorisation des load index des attributs charges
-	livLoadedRecodedAttributeIndexes->SetSize(recoderClass->GetLoadedAttributeNumber());
-	for (nLoadedAttribute = 0; nLoadedAttribute < recoderClass->GetLoadedAttributeNumber(); nLoadedAttribute++)
+	// Memorisation des load index des attributs charges dans l'ordre des attributs de la slice
+	livLoadedRecodedAttributeIndexes->SetSize(layout->GetAttributeNumberAtSlice(nSlice));
+	for (nSliceAttribute = 0; nSliceAttribute < layout->GetAttributeNumberAtSlice(nSlice); nSliceAttribute++)
 	{
-		recodedAttribute = recoderClass->GetLoadedAttributeAt(nLoadedAttribute);
-		livLoadedRecodedAttributeIndexes->SetAt(nLoadedAttribute, recodedAttribute->GetLoadIndex());
+		attribute = schema->GetAttributeAt(layout->GetAttributeOffsetAtSlice(nSlice) + nSliceAttribute);
+		recodedAttribute = recoderClass->LookupAttribute(attribute->GetRecodedAttributeName());
+		livLoadedRecodedAttributeIndexes->SetAt(nSliceAttribute, recodedAttribute->GetLoadIndex());
 	}
 	ensure(recoderClass->GetLoadedAttributeNumber() == layout->GetAttributeNumberAtSlice(nSlice));
 	ensure(livLoadedRecodedAttributeIndexes->GetSize() == layout->GetAttributeNumberAtSlice(nSlice));
@@ -1775,8 +1790,19 @@ void SNBDataTableBinarySliceSetChunkBuffer::CleanWorkingData()
 	nLoadedBlockSliceIndex = -1;
 }
 
-boolean
-SNBDataTableBinarySliceSetChunkBuffer::CollectRecodedAttributeIndexes(int nAttribute,
+const ALString SNBDataTableBinarySliceSetChunkBuffer::GetChunkFilePath() const
+{
+	require(IsInitialized());
+	return sChunkFilePath;
+}
+
+const SNBDataTableBinarySliceSetChunkPhysicalLayout* SNBDataTableBinarySliceSetChunkBuffer::GetPhysicalLayout() const
+{
+	require(IsInitialized());
+	return &physicalLayout;
+}
+
+boolean SNBDataTableBinarySliceSetChunkBuffer::GetAttributeColumnView(int nAttribute,
 								      SNBDataTableBinarySliceSetColumn*& outputColumn)
 {
 	boolean bOk = true;
@@ -1838,7 +1864,7 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::LoadBlockAt(int nSlice)
 			nAttribute = layout->GetAttributeOffsetAtSlice(nSlice) + nSliceAttribute;
 			column = cast(SNBDataTableBinarySliceSetColumn*,
 				      oaLoadedBlock.GetAt(layout->GetRelativeIndexAtAttribute(nAttribute)));
-			column->SetSparse(layout->IsAttributeSparseAt(nAttribute));
+			column->SetSparse(physicalLayout.IsAttributeSparseAt(nAttribute));
 			column->SetDataSize(physicalLayout.GetAttributeDataSizeAt(nAttribute));
 			bOk = column->SetDataSize(physicalLayout.GetAttributeDataSizeAt(nAttribute));
 			if (not bOk)
@@ -1869,11 +1895,14 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::LoadBlockAt(int nSlice)
 		lRemainingIndexNumber = physicalLayout.GetBlockSizeAt(nSlice);
 		while (lRemainingIndexNumber > 0 and not ferror(fChunkDataFile) and not feof(fChunkDataFile))
 		{
-			// Lecture selon la taille necessaire, selon que l'on soit arrive ou non a la fin de la slice
+			// Cas a l'interieur de la slice : Nombre d'indexes a lire dans la limite de la taille du buffer
 			if (lRemainingIndexNumber >= nIntBufferSize)
 				nToReadIndexNumber = nIntBufferSize;
+			// Cas a la fin de la slice : Nombre d'indexes restant dans la slice
 			else
 				nToReadIndexNumber = (int)lRemainingIndexNumber;
+
+			// Lecture depuis le fichier
 			lReadIndexNumber = (longint)fread(buffer, sizeof(int), nToReadIndexNumber, fChunkDataFile);
 			lRemainingIndexNumber -= lReadIndexNumber;
 			assert(lReadIndexNumber == (longint)nToReadIndexNumber);
@@ -2006,98 +2035,6 @@ const ALString SNBDataTableBinarySliceSetChunkBuffer::GetClassLabel() const
 	return "Data Table Binary Slice Set Buffer";
 }
 
-void SNBDataTableBinarySliceSetChunkBuffer::WriteContentsAsTSV(ostream& ost,
-							       const SNBDataTableBinarySliceSetSchema* schema)
-{
-	const int nMaxInstanceNumber = 200;
-	int nDisplayedInstanceNumber;
-	boolean bOk = true;
-	int nSlice;
-	int nInstance;
-	int nAttribute;
-	int nChunkInstance;
-	SNBDataTableBinarySliceSetColumn* column;
-	IntVector ivCurrentValueIndexes;
-
-	if (layout == NULL)
-		ost << "No layout defined\n";
-	else
-	{
-		if (IsInitialized())
-		{
-			// Entete du bloc
-			ost << "Chunk #" << nChunkIndex << ": Initialized\n";
-			if (sChunkFilePath != "")
-				ost << "File: " << FileService::GetURIFilePathName(sChunkFilePath) << "\n";
-			else
-				ost << "File: None (no slicing)\n";
-			ost << physicalLayout << "\n";
-			ivCurrentValueIndexes.SetSize(layout->GetAttributeNumber());
-			for (nAttribute = 0; nAttribute < layout->GetAttributeNumber(); nAttribute++)
-				ivCurrentValueIndexes.SetAt(nAttribute, -1);
-			for (nSlice = 0; nSlice < layout->GetSliceNumber(); nSlice++)
-			{
-				nInstance = layout->GetInstanceOffsetAtChunk(nChunkIndex);
-				ost << "chunk\tslice\tind\tchind";
-				for (nAttribute = layout->GetAttributeOffsetAtSlice(nSlice);
-				     nAttribute < layout->GetAttributeOffsetAtSlice(nSlice) +
-						      layout->GetAttributeNumberAtSlice(nSlice);
-				     nAttribute++)
-				{
-					ost << "\t" << schema->GetAttributeAt(nAttribute)->GetNativeAttributeName();
-					if (layout->IsAttributeSparseAt(nAttribute))
-						ost << "[S]";
-				}
-				ost << "\n";
-
-				// Ecriture des contenus du fichier
-				nDisplayedInstanceNumber =
-				    min(nMaxInstanceNumber, layout->GetInstanceNumberAtChunk(nChunkIndex));
-				for (nChunkInstance = 0; nChunkInstance < nDisplayedInstanceNumber; nChunkInstance++)
-				{
-					ost << nChunkIndex << "\t" << nSlice << "\t" << nInstance << "\t"
-					    << nChunkInstance;
-					for (nAttribute = layout->GetAttributeOffsetAtSlice(nSlice);
-					     nAttribute < layout->GetAttributeOffsetAtSlice(nSlice) +
-							      layout->GetAttributeNumberAtSlice(nSlice);
-					     nAttribute++)
-					{
-						bOk = CollectRecodedAttributeIndexes(nAttribute, column);
-						if (column->IsSparse())
-						{
-							ost << "\t";
-							if (ivCurrentValueIndexes.GetAt(nAttribute) == -1)
-								ivCurrentValueIndexes.SetAt(nAttribute, 0);
-
-							else if (ivCurrentValueIndexes.GetAt(nAttribute) ==
-								 column->GetValueNumber())
-								continue;
-
-							if (column->GetSparseValueInstanceIndexAt(
-								ivCurrentValueIndexes.GetAt(nAttribute)) ==
-							    nChunkInstance)
-							{
-								ost << column->GetSparseValueAt(
-								    ivCurrentValueIndexes.GetAt(nAttribute));
-								ivCurrentValueIndexes.UpgradeAt(nAttribute, 1);
-							}
-						}
-						else
-						{
-							ivCurrentValueIndexes.SetAt(nAttribute, nChunkInstance);
-							ost << "\t" << column->GetDenseValueAt(nChunkInstance);
-						}
-					}
-					ost << endl;
-					nInstance++;
-				}
-			}
-		}
-		else
-			ost << ": Not initialized\n";
-	}
-}
-
 longint SNBDataTableBinarySliceSetChunkBuffer::ComputeNecessaryMemory(int nInstanceNumber, int nChunkNumber,
 								      int nAttributeNumber, int nSliceNumber)
 {
@@ -2143,7 +2080,7 @@ void SNBDataTableBinarySliceSet::InitializeWithoutChunkBuffer(KWClassStats* clas
 							      int nMaxAttributes, int nSliceNumber)
 {
 	// Initialisation du schema d'attributs
-	InitializeSchemaFromClassStats(classStats, nMaxAttributes);
+	InitializeDataPreparationClassAndSchemaFromClassStats(classStats, nMaxAttributes);
 
 	// S'il y a des attributs informatifs on pursuit l'initialisation
 	if (HasUsableAttributes())
@@ -2160,15 +2097,21 @@ void SNBDataTableBinarySliceSet::InitializeWithoutChunkBuffer(KWClassStats* clas
 	}
 }
 
-void SNBDataTableBinarySliceSet::InitializeSchemaFromClassStats(KWClassStats* classStats, int nMaxAttributes)
+void SNBDataTableBinarySliceSet::InitializeDataPreparationClassAndSchemaFromClassStats(KWClassStats* classStats,
+										       int nMaxAttributes)
 {
 	int nEffectiveMaxAttributes;
 	ObjectArray oaSortedAttributes;
+	ObjectArray* oaDataGridBlockDataPreparationAttributes;
 	int nAttribute;
 	KWDataPreparationAttribute* dataPreparationAttribute;
-	KWAttribute* recodedAttribute;
 	ObjectArray oaUsedDataPreparationAttributes;
-	StringVector svUsedDataPreparationAttributesRecodedNames;
+	StringVector svUsedDataPreparationAttributeRecodedNames;
+	ALString sAttributeBlockName;
+	ObjectDictionary odDataPreparationAttributesByBlock;
+	POSITION position;
+	Object* oElement;
+	KWAttribute* dataGridBlockAttribute;
 
 	require(classStats != NULL);
 	require(classStats->Check());
@@ -2197,29 +2140,89 @@ void SNBDataTableBinarySliceSet::InitializeSchemaFromClassStats(KWClassStats* cl
 	else
 		nEffectiveMaxAttributes = nInitialAttributeNumber;
 
-	// Extraction des attributs a utiliser (predictifs + limite du nombre par l'utilisateur)
-	// On ajoute egalement chaque attribut recode a la DataPreparationClass et on memorise ses noms
+	// Selection des attributs pour l'apprentissage (les plus predictifs dans limite du nombre par l'utilisateur)
+	oaDataGridBlockDataPreparationAttributes = NULL;
 	for (nAttribute = 0; nAttribute < oaSortedAttributes.GetSize(); nAttribute++)
 	{
 		dataPreparationAttribute = cast(KWDataPreparationAttribute*, oaSortedAttributes.GetAt(nAttribute));
 
-		if (IsPredictive(dataPreparationAttribute))
+		// On ajoute l'attribut seulement s'il est informatif
+		if (dataPreparationAttribute->IsInformativeOnTarget())
 		{
-			recodedAttribute = dataPreparationAttribute->AddPreparedIndexingAttribute();
+			// Ajout a aux tables d'objets et de noms d'attributs recodes
 			oaUsedDataPreparationAttributes.Add(dataPreparationAttribute);
-			svUsedDataPreparationAttributesRecodedNames.Add(recodedAttribute->GetName());
+			svUsedDataPreparationAttributeRecodedNames.Add(
+			    "Index" + dataPreparationAttribute->GetPreparedAttribute()->GetName());
+
+			// Cas d'un attribut d'un bloc sparse : Initialisation partielle
+			// La finalisation se fait tout a la fin du parcours d'attributs car on a besoin de trier par cle du bloc
+			if (dataPreparationAttribute->IsNativeAttributeInBlock())
+			{
+				assert(dataPreparationAttribute->GetNativeAttributeNumber() == 1);
+
+				// Recherche du KWDRDataGridBlock associe a l'attribut dans la classe
+				sAttributeBlockName =
+				    dataPreparationAttribute->GetNativeAttribute()->GetAttributeBlock()->GetName();
+				oaDataGridBlockDataPreparationAttributes =
+				    cast(ObjectArray*, odDataPreparationAttributesByBlock.Lookup(sAttributeBlockName));
+
+				// S'il n'y a pas de KWDRDataGridBlock pour l'attribut :
+				// - Creation d'un data grid bloc (attribut conteneur et regle)
+				// - Memorisation de l'attribut du data grid bloc dans une liste et
+				//   de la relation [data grid block attribute -> liste d'attributs prepares du bloc]
+				// S'il y a deja un KWBRDataGridBlock pour l'attribut :
+				// - Mise a jour de la liste d'attributs prepares du bloc
+				if (oaDataGridBlockDataPreparationAttributes == NULL)
+				{
+					oaDataGridBlockDataPreparationAttributes = new ObjectArray;
+					odDataPreparationAttributesByBlock.SetAt(
+					    sAttributeBlockName, oaDataGridBlockDataPreparationAttributes);
+				}
+				oaDataGridBlockDataPreparationAttributes->Add(dataPreparationAttribute);
+			}
+			// Cas d'un attribut non sparse : Ajout conventionel de l'attribut de recodage
+			else
+			{
+				// DDD
+				//dataPreparationAttribute->AddPreparedIndexingAttribute();
+
+				dataPreparationAttribute->AddPreparedIndexingAttributeWithMissing();
+			}
 		}
 
 		if (oaUsedDataPreparationAttributes.GetSize() == nEffectiveMaxAttributes)
 			break;
 	}
 
+	// Finalization de l'ajout d'attributs de recodage pour les attributs des blocs sparse
+	position = odDataPreparationAttributesByBlock.GetStartPosition();
+	while (position != NULL)
+	{
+		odDataPreparationAttributesByBlock.GetNextAssoc(position, sAttributeBlockName, oElement);
+		oaDataGridBlockDataPreparationAttributes = cast(ObjectArray*, oElement);
+		dataGridBlockAttribute =
+		    dataPreparationClass->AddDataGridBlock(oaDataGridBlockDataPreparationAttributes, "TmpPB");
+		dataPreparationClass->AddPreparedIndexingAttributeBlock(dataGridBlockAttribute,
+									oaDataGridBlockDataPreparationAttributes);
+		oaDataGridBlockDataPreparationAttributes->RemoveAll();
+		delete oaDataGridBlockDataPreparationAttributes;
+	}
+
+	// DDD
+	//dataPreparationClass->GetDataPreparationClass()->Write(cout);
+
 	// Initialisation du schema
 	schema.InitializeFromDataPreparationClass(dataPreparationClass, &oaUsedDataPreparationAttributes,
-						  &svUsedDataPreparationAttributesRecodedNames);
+						  &svUsedDataPreparationAttributeRecodedNames);
 
-	ensure(oaUsedDataPreparationAttributes.GetSize() == svUsedDataPreparationAttributesRecodedNames.GetSize());
+	// Nettoyage
+	oaDataGridBlockDataPreparationAttributes = NULL;
+	odDataPreparationAttributesByBlock.RemoveAll();
+
+	ensure(oaUsedDataPreparationAttributes.GetSize() == svUsedDataPreparationAttributeRecodedNames.GetSize());
 	ensure(oaUsedDataPreparationAttributes.GetSize() <= nEffectiveMaxAttributes);
+	ensure(oaDataGridBlockDataPreparationAttributes == NULL);
+	ensure(odDataPreparationAttributesByBlock.GetCount() == 0);
 	ensure(dataPreparationClass != NULL);
 	ensure(schema.IsInitialized() or not HasUsableAttributes());
 	ensure(nInitialAttributeNumber > 0 or not HasUsableAttributes());
@@ -2237,21 +2240,6 @@ boolean SNBDataTableBinarySliceSet::InitializeBufferAtChunk(int nChunk, KWDataTa
 	bOk = chunkBuffer.Initialize(nChunk, dataPreparationClass->GetDataPreparationClass(), sliceSet, &schema);
 
 	return bOk;
-}
-
-boolean SNBDataTableBinarySliceSet::IsPredictive(KWDataPreparationAttribute* dataPreparationAttribute)
-{
-	KWDataPreparationStats* preparedStats;
-
-	require(dataPreparationAttribute != NULL);
-	require(dataPreparationAttribute->GetPreparedStats() != NULL);
-	require(dataPreparationAttribute->GetPreparedStats()->GetPreparedDataGridStats() != NULL);
-
-	preparedStats = dataPreparationAttribute->GetPreparedStats();
-
-	return preparedStats->GetPreparedDataGridStats() != NULL and
-	       preparedStats->GetPreparedDataGridStats()->ComputeSourceGridSize() > 1 and
-	       preparedStats->GetSortValue() > 0;
 }
 
 void SNBDataTableBinarySliceSet::InitializeTargetValueIndexes(KWClassStats* classStats)
@@ -2488,12 +2476,6 @@ int SNBDataTableBinarySliceSet::GetInstanceNumber() const
 	return layout.GetInstanceNumber();
 }
 
-int SNBDataTableBinarySliceSet::GetActiveInstanceNumber() const
-{
-	require(IsInitialized());
-	return layout.GetInstanceNumberAtChunk(chunkBuffer.GetChunkIndex());
-}
-
 int SNBDataTableBinarySliceSet::GetTargetValueIndexAt(int nInstance) const
 {
 	require(0 <= nInstance and nInstance < layout.GetInstanceNumber());
@@ -2501,10 +2483,10 @@ int SNBDataTableBinarySliceSet::GetTargetValueIndexAt(int nInstance) const
 	return ivTargetValueIndexes.GetAt(nInstance);
 }
 
-int SNBDataTableBinarySliceSet::GetTargetValueIndexAtActiveInstance(int nActiveInstance) const
+int SNBDataTableBinarySliceSet::GetTargetValueIndexAtInitializedChunkInstance(int nChunkInstance) const
 {
 	require(IsInitialized());
-	return GetTargetValueIndexAt(layout.GetInstanceOffsetAtChunk(chunkBuffer.GetChunkIndex()) + nActiveInstance);
+	return GetTargetValueIndexAt(layout.GetInstanceOffsetAtChunk(chunkBuffer.GetChunkIndex()) + nChunkInstance);
 }
 
 void SNBDataTableBinarySliceSet::ExportTargetPartFrequencies(const SNBDataTableBinarySliceSetAttribute* attribute,
@@ -2521,64 +2503,90 @@ void SNBDataTableBinarySliceSet::ExportTargetPartFrequencies(const SNBDataTableB
 	preparedDataGridStats->ExportAttributePartFrequenciesAt(nTargetAttribute, ivOutput);
 }
 
-boolean SNBDataTableBinarySliceSet::UpdateTargetValueScores(SNBDataTableBinarySliceSetAttribute* attribute, int nTarget,
-							    Continuous cDeltaWeight, ContinuousVector* cvScores)
-{
-	boolean bOk = true;
-	SNBDataTableBinarySliceSetColumn* column;
-	int nChunkInstanceNumber;
-	int nChunkInstance;
-	Continuous cLogProb;
-	int nColumnValueIndex;
-	int nColumnValueNumber;
-
-	require(IsInitialized());
-	require(cvScores != NULL);
-	require(cvScores->GetSize() == GetActiveInstanceNumber());
-	require(ContainsAttribute(attribute));
-
-	// Lecture des indexes de recodage pour l'attribut et chunk courant
-	column = NULL;
-	bOk = chunkBuffer.CollectRecodedAttributeIndexes(attribute->GetIndex(), column);
-	if (not bOk)
-		bIsError = true;
-	if (bOk)
-	{
-		// Mise a jour des log-probabilites de la cible dans le vecteur de sortie
-		// Cas sparse : On ne met a jour que les scores des instances ou l'attribut n'est pas manquante
-		if (column->IsSparse())
-		{
-			nColumnValueNumber = column->GetValueNumber();
-			for (nColumnValueIndex = 0; nColumnValueIndex < nColumnValueNumber; nColumnValueIndex++)
-			{
-				nChunkInstance = column->GetSparseValueInstanceIndexAt(nColumnValueIndex);
-				cLogProb = attribute->GetLnSourceConditionalProb(
-				    column->GetSparseValueAt(nColumnValueIndex), nTarget);
-				cvScores->UpgradeAt(nChunkInstance, cDeltaWeight * cLogProb);
-			}
-		}
-		// Cas sparse : On ne met a jour les scores de toutes les instances
-		else
-		{
-			nChunkInstanceNumber = layout.GetInstanceNumberAtChunk(chunkBuffer.GetChunkIndex());
-			for (nChunkInstance = 0; nChunkInstance < nChunkInstanceNumber; nChunkInstance++)
-			{
-				cLogProb = attribute->GetLnSourceConditionalProb(
-				    column->GetDenseValueAt(nChunkInstance), nTarget);
-				cvScores->UpgradeAt(nChunkInstance, cDeltaWeight * cLogProb);
-			}
-		}
-	}
-	return bOk;
-}
-
 void SNBDataTableBinarySliceSet::WriteContentsAsTSV(ostream& ost)
 {
-	if (layout.IsInitialized())
+	const int nMaxInstanceNumber = 200;
+	int nDisplayedInstanceNumber;
+	boolean bOk = true;
+	int nSlice;
+	int nInstance;
+	int nAttribute;
+	int nChunkInstance;
+	SNBDataTableBinarySliceSetColumn* column;
+	IntVector ivCurrentValueIndexes;
+
+	if (chunkBuffer.IsInitialized())
 	{
 		ost << "Binary Slice Set\n";
 		ost << layout << "\n\n";
-		chunkBuffer.WriteContentsAsTSV(ost, &schema);
+		// Entete du bloc
+		ost << "Chunk #" << chunkBuffer.GetChunkIndex() << ": Initialized\n";
+		if (chunkBuffer.GetChunkFilePath() != "")
+			ost << "File: " << FileService::GetURIFilePathName(chunkBuffer.GetChunkFilePath()) << "\n";
+		else
+			ost << "File: None (no slicing)\n";
+		ost << *chunkBuffer.GetPhysicalLayout() << "\n";
+		ivCurrentValueIndexes.SetSize(layout.GetAttributeNumber());
+		for (nAttribute = 0; nAttribute < layout.GetAttributeNumber(); nAttribute++)
+			ivCurrentValueIndexes.SetAt(nAttribute, -1);
+		for (nSlice = 0; nSlice < layout.GetSliceNumber(); nSlice++)
+		{
+			nInstance = layout.GetInstanceOffsetAtChunk(chunkBuffer.GetChunkIndex());
+			ost << "chunk\tslice\tind\tchind\ttarget";
+			for (nAttribute = layout.GetAttributeOffsetAtSlice(nSlice);
+			     nAttribute <
+			     layout.GetAttributeOffsetAtSlice(nSlice) + layout.GetAttributeNumberAtSlice(nSlice);
+			     nAttribute++)
+			{
+				ost << "\t" << schema.GetAttributeAt(nAttribute)->GetNativeAttributeName();
+				if (GetAttributeAt(nAttribute)->IsSparse())
+					ost << "[S]";
+			}
+			ost << "\n";
+
+			// Ecriture des contenus du bloc
+			column = NULL;
+			nDisplayedInstanceNumber =
+			    min(nMaxInstanceNumber, layout.GetInstanceNumberAtChunk(chunkBuffer.GetChunkIndex()));
+			for (nChunkInstance = 0; nChunkInstance < nDisplayedInstanceNumber; nChunkInstance++)
+			{
+				ost << chunkBuffer.GetChunkIndex() << "\t" << nSlice << "\t" << nInstance << "\t"
+				    << nChunkInstance << "\t"
+				    << GetTargetValueIndexAtInitializedChunkInstance(nChunkInstance);
+				for (nAttribute = layout.GetAttributeOffsetAtSlice(nSlice);
+				     nAttribute < layout.GetAttributeOffsetAtSlice(nSlice) +
+						      layout.GetAttributeNumberAtSlice(nSlice);
+				     nAttribute++)
+				{
+					bOk = GetAttributeColumnView(GetAttributeAt(nAttribute), column);
+					if (column->IsSparse())
+					{
+						ost << "\t";
+						if (ivCurrentValueIndexes.GetAt(nAttribute) == -1)
+							ivCurrentValueIndexes.SetAt(nAttribute, 0);
+
+						else if (ivCurrentValueIndexes.GetAt(nAttribute) ==
+							 column->GetValueNumber())
+							continue;
+
+						if (column->GetSparseValueInstanceIndexAt(
+							ivCurrentValueIndexes.GetAt(nAttribute)) == nChunkInstance)
+						{
+							ost << column->GetSparseValueAt(
+							    ivCurrentValueIndexes.GetAt(nAttribute));
+							ivCurrentValueIndexes.UpgradeAt(nAttribute, 1);
+						}
+					}
+					else
+					{
+						ivCurrentValueIndexes.SetAt(nAttribute, nChunkInstance);
+						ost << "\t" << column->GetDenseValueAt(nChunkInstance);
+					}
+				}
+				ost << endl;
+				nInstance++;
+			}
+		}
 		ost << "----------\n";
 	}
 	else

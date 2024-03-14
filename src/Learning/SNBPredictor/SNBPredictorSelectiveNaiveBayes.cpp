@@ -98,6 +98,15 @@ boolean SNBPredictorSelectiveNaiveBayes::InternalTrain()
 	return bOk;
 }
 
+void SNBPredictorSelectiveNaiveBayes::InternalTrainFinishTrainedPredictor(KWDataPreparationClass* dataPreparationClass,
+									  ObjectArray* oaUsedDataPreparationAttributes,
+									  ContinuousVector* cvAttributeWeights)
+{
+	KWPredictorNaiveBayes::InternalTrainFinishTrainedPredictor(dataPreparationClass,
+								   oaUsedDataPreparationAttributes, cvAttributeWeights);
+	FillPredictorAttributeMetaData();
+}
+
 void SNBPredictorSelectiveNaiveBayes::InternalTrainEmptyPredictor()
 {
 	ObjectArray oaEmptyAttributes;
@@ -149,9 +158,8 @@ void SNBPredictorSelectiveNaiveBayes::InternalTrainUnivariatePredictor()
 	cvSingleAttributeWeight.SetAt(dataPreparationAttribute->GetIndex(), 1.0);
 
 	// Creation de la classe du predicteur
-	InternalTrainWNB(&dataPreparationClass, dataPreparationClass.GetDataPreparationAttributes(),
-			 &cvSingleAttributeWeight);
-	FillPredictorAttributeMetaData(GetTrainedPredictor()->GetPredictorClass());
+	InternalTrainFinishTrainedPredictor(&dataPreparationClass, dataPreparationClass.GetDataPreparationAttributes(),
+					    &cvSingleAttributeWeight);
 }
 
 // TODO: Eliminer une fois le MAP elimine de Khiops
@@ -188,16 +196,21 @@ void SNBPredictorSelectiveNaiveBayes::InternalTrainMAP(KWDataPreparationClass* d
 	delete oaMapAttributes;
 }
 
-void SNBPredictorSelectiveNaiveBayes::FillPredictorAttributeMetaData(KWClass* predictorClass)
+void SNBPredictorSelectiveNaiveBayes::FillPredictorAttributeMetaData()
 {
 	const ALString sWeightMetaDataKey = "Weight";
 	const ALString sImportanceMetaDataKey = "Importance";
+	KWClass* predictorClass;
 	ObjectDictionary oaAttributes;
 	KWAttribute* attribute;
 	int nAttribute;
 	KWSelectedAttributeReport* attributeReport;
 
-	require(predictorClass != NULL);
+	require(GetTrainedPredictor() != NULL);
+	require(GetTrainedPredictor()->GetPredictorClass() != NULL);
+
+	// Acces a la classe du predicteur
+	predictorClass = GetTrainedPredictor()->GetPredictorClass();
 
 	// Nettoyage initial des meta-donnees
 	predictorClass->RemoveAllAttributesMetaDataKey(sWeightMetaDataKey);

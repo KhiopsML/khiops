@@ -6,6 +6,7 @@
 
 class SNBPredictorSelectiveNaiveBayes;
 
+#include "KWDataPreparationClass.h"
 #include "KWPredictorNaiveBayes.h"
 #include "KWSelectionParameters.h"
 #include "SNBPredictorSelectiveNaiveBayesTrainingTask.h"
@@ -58,13 +59,17 @@ public:
 	//// Implementation
 protected:
 	// Ajout de meta-donnees (Weight, MAP) aux attributs du classifieur appris
-	void FillPredictorAttributeMetaData(KWClass* kwcClass);
+	void FillPredictorAttributeMetaData();
 
 	////////////////////////////
 	// Entrainement
 
-	// Reimplementation de l'apprentissage
+	// Reimplementation des methodes de KWPredictiorNaiveBayes
 	boolean InternalTrain() override;
+	void InternalTrainFinishTrainedPredictor(KWDataPreparationClass* dataPreparationClass,
+						 ObjectArray* oaUsedDataPreparationAttributes,
+						 ContinuousVector* cvAttributeWeights) override;
+	void CreatePredictorReport() override;
 
 	// Finalisation de l'entrainement du MAP a partir d'une selection
 	void InternalTrainMAP(KWDataPreparationClass* dataPreparationClass,
@@ -75,11 +80,6 @@ protected:
 
 	// Finalisation de l'entrainement quand il n'y a qu'un seul attribut informatif
 	void InternalTrainUnivariatePredictor();
-
-	// Rapport d'entrainement
-	// Redefinition de la methode de creation du rapport, pour integrer la description
-	// des variables selectionnees (renvoie un KWPredictorSelectionReport)
-	void CreatePredictorReport() override;
 
 	////////////////////////////////
 	// Objets de travail

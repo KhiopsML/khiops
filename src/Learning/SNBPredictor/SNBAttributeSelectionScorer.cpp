@@ -89,11 +89,15 @@ boolean SNBAttributeSelectionScorer::CreateDataCostCalculator()
 
 	// Creation de l'instance de la calculatrice en fonction de la cible; nettoyage si echec
 	if (GetTargetAttributeType() == KWType::Symbol and IsTargetGrouped())
+	{
 		dataCostCalculator = new SNBGeneralizedClassifierSelectionDataCostCalculator;
+	}
 	else if (GetTargetAttributeType() == KWType::Symbol)
 		dataCostCalculator = new SNBClassifierSelectionDataCostCalculator;
 	else if (GetTargetAttributeType() == KWType::Continuous)
+	{
 		dataCostCalculator = new SNBRegressorSelectionDataCostCalculator;
+	}
 	else
 	{
 		CleanDataCostCalculator();
@@ -153,7 +157,7 @@ double SNBAttributeSelectionScorer::ComputeSelectionScore()
 double SNBAttributeSelectionScorer::ComputeSelectionDataCost()
 {
 	require(IsDataCostCalculatorInitialized());
-	return dataCostCalculator->ComputeSelectionDataCost();
+	return dataCostCalculator->GetSelectionDataCost();
 }
 
 double SNBAttributeSelectionScorer::ComputeSelectionModelCost() const
@@ -359,18 +363,8 @@ boolean SNBHardAttributeSelectionScorer::AddAttribute(SNBDataTableBinarySliceSet
 	// Mise a jour de la calculatrice de cout de donnees
 	// La maj de la partition cible doit se faire *avant* celle des vecteurs de scores
 	if (IsDataCostCalculatorInitialized())
-	{
-		dataCostCalculator->UpdateTargetPartitionWithAddedAttribute(attribute);
-		bOk = bOk and dataCostCalculator->UpdateTargetPartScoresWithWeightedAttribute(attribute, 1.0);
-	}
+		bOk = bOk and dataCostCalculator->IncreaseAttributeWeight(attribute, 1.0, true);
 
-	// Trace de deboggage
-	if (IsDataCostCalculatorInitialized() and dataCostCalculator->GetDisplay())
-	{
-		cout << "Adding\t" << attribute->GetNativeAttributeName() << "\n";
-		dataCostCalculator->Write(cout);
-		cout << "\n";
-	}
 	ensure(Check());
 	ensure(attributeSelection.Contains(attribute));
 	return bOk;
@@ -397,18 +391,8 @@ boolean SNBHardAttributeSelectionScorer::RemoveAttribute(SNBDataTableBinarySlice
 	// Mise a jour de la calculatrice de cout de donnees
 	// La mise a jour de la partition cible doit se faire *apres* celle des vecteurs de scores
 	if (IsDataCostCalculatorInitialized())
-	{
-		bOk = bOk and dataCostCalculator->UpdateTargetPartScoresWithWeightedAttribute(attribute, -1.0);
-		dataCostCalculator->UpdateTargetPartitionWithRemovedAttribute(attribute);
-	}
+		bOk = bOk and dataCostCalculator->IncreaseAttributeWeight(attribute, -1.0, true);
 
-	// Trace de deboggage
-	if (IsDataCostCalculatorInitialized() and dataCostCalculator->GetDisplay())
-	{
-		cout << "Removing\t" << attribute->GetNativeAttributeName() << "\n";
-		dataCostCalculator->Write(cout);
-		cout << "\n";
-	}
 	ensure(Check());
 	ensure(not attributeSelection.Contains(attribute));
 	return bOk;
@@ -425,21 +409,13 @@ boolean SNBHardAttributeSelectionScorer::UndoLastModification()
 	{
 		attributeSelection.RemoveAttribute(lastModificationAttribute);
 		if (IsDataCostCalculatorInitialized())
-		{
-			bOk = bOk and dataCostCalculator->UpdateTargetPartScoresWithWeightedAttribute(
-					  lastModificationAttribute, -1.0);
-			dataCostCalculator->UpdateTargetPartitionWithRemovedAttribute(lastModificationAttribute);
-		}
+			bOk = bOk and dataCostCalculator->UndoLastModification();
 	}
 	else
 	{
 		attributeSelection.AddAttribute(lastModificationAttribute);
 		if (IsDataCostCalculatorInitialized())
-		{
-			dataCostCalculator->UpdateTargetPartitionWithAddedAttribute(lastModificationAttribute);
-			bOk = bOk and dataCostCalculator->UpdateTargetPartScoresWithWeightedAttribute(
-					  lastModificationAttribute, 1.0);
-		}
+			bOk = bOk and dataCostCalculator->UndoLastModification();
 	}
 	lastModificationAttribute = NULL;
 	dLastModificationSelectionModelAllAttributeCost = 0.0;
@@ -881,6 +857,7 @@ boolean SNBWeightedAttributeSelectionScorer::IncreaseAttributeWeight(SNBDataTabl
 	double dAlpha;
 	double dAttributeCost;
 	double dEffectiveDeltaWeight;
+	boolean bUpdateTargetPartition;
 
 	require(Check());
 	require(attribute != NULL);
@@ -910,19 +887,11 @@ boolean SNBWeightedAttributeSelectionScorer::IncreaseAttributeWeight(SNBDataTabl
 	// vecteurs de scores
 	if (IsDataCostCalculatorInitialized())
 	{
-		if (dWeight == 0.0)
-			dataCostCalculator->UpdateTargetPartitionWithAddedAttribute(attribute);
-		bOk = bOk and
-		      dataCostCalculator->UpdateTargetPartScoresWithWeightedAttribute(attribute, dEffectiveDeltaWeight);
+		bUpdateTargetPartition = dWeight == 0.0;
+		bOk = bOk and dataCostCalculator->IncreaseAttributeWeight(attribute, dEffectiveDeltaWeight,
+									  bUpdateTargetPartition);
 	}
 
-	// Trace de deboggage
-	if (IsDataCostCalculatorInitialized() and dataCostCalculator->GetDisplay())
-	{
-		cout << "Increasing by\t" << dDeltaWeight << "\t" << attribute->GetNativeAttributeName() << "\n";
-		dataCostCalculator->Write(cout);
-		cout << "\n";
-	}
 	ensure(IsUndoAllowed());
 	ensure(Check());
 	return bOk;
@@ -936,6 +905,7 @@ boolean SNBWeightedAttributeSelectionScorer::DecreaseAttributeWeight(SNBDataTabl
 	double dAlpha;
 	double dAttributeCost;
 	double dEffectiveDeltaWeight;
+	boolean bUpdateTargetPartition;
 
 	require(Check());
 	require(attribute != NULL);
@@ -962,23 +932,11 @@ boolean SNBWeightedAttributeSelectionScorer::DecreaseAttributeWeight(SNBDataTabl
 	    (pow(dWeight - dEffectiveDeltaWeight, dAlpha) - pow(dWeight, dAlpha)) * dAttributeCost;
 
 	// Mise a jour de la calculatrice de cout de donnees
-	// En cas d'elimination de l'attribut de la selection : Mise a jour de la partition cible *apres* celle des
-	// vecteurs de scores
 	if (IsDataCostCalculatorInitialized())
 	{
-		bOk = bOk and dataCostCalculator->UpdateTargetPartScoresWithWeightedAttribute(attribute,
-											      -dEffectiveDeltaWeight);
-		if (not weightedAttributeSelection.Contains(attribute))
-			dataCostCalculator->UpdateTargetPartitionWithRemovedAttribute(attribute);
-	}
-
-	// Trace de deboggage
-	if (IsDataCostCalculatorInitialized() and dataCostCalculator->GetDisplay())
-	{
-		cout << "Decreasing by"
-		     << "\t" << dDeltaWeight << "\t" << attribute->GetNativeAttributeName() << "\n";
-		dataCostCalculator->Write(cout);
-		cout << "\n";
+		bUpdateTargetPartition = not weightedAttributeSelection.Contains(attribute);
+		bOk = bOk and dataCostCalculator->DecreaseAttributeWeight(attribute, dEffectiveDeltaWeight,
+									  bUpdateTargetPartition);
 	}
 
 	ensure(IsUndoAllowed());
@@ -992,49 +950,18 @@ boolean SNBWeightedAttributeSelectionScorer::UndoLastModification()
 	require(IsUndoAllowed());
 	require(Check());
 
+	// Remise au dernier etat
 	dSelectionModelAllAttributeCost = dLastModificationSelectionModelAllAttributeCost;
 	if (bWasLastModificationIncrease)
-	{
 		weightedAttributeSelection.DecreaseAttributeWeight(lastModificationAttribute,
 								   dLastModificationDeltaWeight);
-		if (IsDataCostCalculatorInitialized())
-		{
-			bOk = bOk and dataCostCalculator->UpdateTargetPartScoresWithWeightedAttribute(
-					  lastModificationAttribute, -dLastModificationDeltaWeight);
-			if (not weightedAttributeSelection.Contains(lastModificationAttribute))
-				dataCostCalculator->UpdateTargetPartitionWithRemovedAttribute(
-				    lastModificationAttribute);
-
-			if (dataCostCalculator->GetDisplay())
-			{
-				cout << "Increase undone\t" << dLastModificationDeltaWeight << "\t"
-				     << lastModificationAttribute->GetNativeAttributeName() << "\n";
-				dataCostCalculator->Write(cout);
-				cout << "\n";
-			}
-		}
-	}
 	else
-	{
-		if (IsDataCostCalculatorInitialized())
-		{
-			if (not weightedAttributeSelection.Contains(lastModificationAttribute))
-				dataCostCalculator->UpdateTargetPartitionWithAddedAttribute(lastModificationAttribute);
-			bOk = bOk and dataCostCalculator->UpdateTargetPartScoresWithWeightedAttribute(
-					  lastModificationAttribute, dLastModificationDeltaWeight);
-
-			if (dataCostCalculator->GetDisplay())
-			{
-				cout << "Decrease undone\t" << dLastModificationDeltaWeight << "\t"
-				     << lastModificationAttribute->GetNativeAttributeName() << "\n";
-				dataCostCalculator->Write(cout);
-				cout << "\n";
-			}
-		}
 		weightedAttributeSelection.IncreaseAttributeWeight(lastModificationAttribute,
 								   dLastModificationDeltaWeight);
-	}
+	if (IsDataCostCalculatorInitialized())
+		bOk = bOk and dataCostCalculator->UndoLastModification();
 
+	// Remise a zero du etat de l'undo
 	lastModificationAttribute = NULL;
 	dLastModificationDeltaWeight = 0.0;
 	dLastModificationSelectionModelAllAttributeCost = 0.0;

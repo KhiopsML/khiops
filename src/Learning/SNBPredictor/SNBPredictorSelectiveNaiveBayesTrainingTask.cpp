@@ -175,7 +175,7 @@ void SNBPredictorSNBTrainingTask::InternalTrain(SNBPredictorSelectiveNaiveBayes*
 		bMasterIsTrainingSuccessfulWithoutRunningTask = true;
 	}
 
-	// Nettoyage du predicteur appelant et du binary slice set
+	// Nettoyage du predicteur appelant
 	masterSnbPredictor = NULL;
 
 	ensure(masterSnbPredictor == NULL);
@@ -1480,6 +1480,9 @@ boolean SNBPredictorSNBTrainingTask::SlaveInitializeDataTableBinarySliceSet()
 	if (IsParallel())
 		SlaveInitializeUnloadRecoderClass();
 
+	// DDD
+	//slaveBinarySliceSet->WriteContentsAsTSV(cout);
+
 	ensure(not bOk or IsSlaveDataTableBinarySliceSetInitialized());
 	ensure(not bOk or slaveBinarySliceSet->Check());
 	return bOk;
@@ -2011,7 +2014,7 @@ void SNBPredictorSNBEnsembleTrainingTask::MasterFinalizeTrainingAndReports()
 	if (masterWeightCalculator->GetWeightingMethod() !=
 	    SNBAttributeSelectionWeightCalculator::WeightingMethod::None)
 	{
-		masterSnbPredictor->InternalTrainWNB(
+		masterSnbPredictor->InternalTrainFinishTrainedPredictor(
 		    masterBinarySliceSet->GetDataPreparationClass(),
 		    masterBinarySliceSet->GetDataPreparationClass()->GetDataPreparationAttributes(),
 		    cvAttributeWeights);
@@ -2019,10 +2022,6 @@ void SNBPredictorSNBEnsembleTrainingTask::MasterFinalizeTrainingAndReports()
 	else
 		masterSnbPredictor->InternalTrainMAP(masterBinarySliceSet->GetDataPreparationClass(),
 						     masterMapSelection);
-
-	// Ajout de la meta-data des variables au rapport
-	masterSnbPredictor->FillPredictorAttributeMetaData(
-	    masterSnbPredictor->GetTrainedPredictor()->GetPredictorClass());
 
 	// Nettoyage
 	delete cvAttributeWeights;
@@ -2499,24 +2498,9 @@ void SNBPredictorSNBDirectTrainingTask::MasterFinalizeTrainingAndReports()
 		    masterWeightedSelectionScorer->GetAttributeSelection()->GetAttributeWeightAt(attribute));
 	}
 
-	// Creation de la classe du predicteur
-	masterSnbPredictor->GetTrainedPredictor()->SetPredictorClass(
-	    masterBinarySliceSet->GetDataPreparationClass()->GetDataPreparationClass(),
-	    masterSnbPredictor->GetTargetAttributeType(), masterSnbPredictor->GetObjectLabel());
-	if (masterSnbPredictor->GetTargetAttributeType() == KWType::Symbol)
-	{
-		masterSnbPredictor->InternalTrainWNBClassifier(
-		    masterSnbPredictor->GetTrainedClassifier(), masterBinarySliceSet->GetDataPreparationClass(),
-		    &oaSelectedDataPreparationAttributes, &cvAttributeWeights);
-	}
-	else if (masterSnbPredictor->GetTargetAttributeType() == KWType::Continuous)
-	{
-		masterSnbPredictor->InternalTrainWNBRegressor(
-		    masterSnbPredictor->GetTrainedRegressor(), masterBinarySliceSet->GetDataPreparationClass(),
-		    &oaSelectedDataPreparationAttributes, &cvAttributeWeights);
-	}
-	masterSnbPredictor->FillPredictorAttributeMetaData(
-	    masterSnbPredictor->GetTrainedPredictor()->GetPredictorClass());
+	// Finalisation de classe du predicteur entraine
+	masterSnbPredictor->InternalTrainFinishTrainedPredictor(
+	    masterBinarySliceSet->GetDataPreparationClass(), &oaSelectedDataPreparationAttributes, &cvAttributeWeights);
 }
 
 boolean SNBPredictorSNBDirectTrainingTask::SlaveInitialize()
