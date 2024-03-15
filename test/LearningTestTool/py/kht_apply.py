@@ -137,7 +137,9 @@ def register_all_instructions():
 
     instructions1 = standard_instructions.register_standard_instructions()
     instructions2 = one_shot_instructions.register_one_shot_instructions()
-    all_instructions = instructions1 | instructions2
+    # L'operateur d'union entre dictionnaires '|' n'est supporte que depuis python 3.9
+    all_instructions = instructions1
+    all_instructions.update(instructions2)
     return all_instructions, len(instructions1)
 
 

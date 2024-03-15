@@ -7,9 +7,6 @@
 #include <stdlib.h>
 #include "JSONTokenizer.h"
 
-// TODO MB: A tester pour mieux personnaliser la prise en compte de flex et bison dans Visual C++
-// https://sourceforge.net/p/winflexbison/wiki/Visual%20Studio%20custom%20build%20rules/
-
 // Valeur des tokens
 static ALString sJsonTokenString;
 static ALString sJsonTokenStringCopy;
