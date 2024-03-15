@@ -1326,22 +1326,27 @@ static void GetFileFirstLine(const char* sFileName, char* sContent, int nMaxSize
 const char* GetMachineGUID()
 {
 #ifdef __APPLE__
-	const int nLineSize = 120;
-	static char sLine[nLineSize];
+	const int nMaxLineSize = 120;
+	static char sLine[nMaxLineSize];
 	strcpy(sLine, "not yet implemented");
 	return sLine;
 #else  // __APPLE__
-	const int nLineSize = 40;
-	static char sLine[nLineSize];
+	const int nMaxLineSize = 40;
+	static char sLine[nMaxLineSize];
+	int nLineSize;
 
 	// On test successivement 3 fichiers ou devrait se situer le UID
 	// Les fichiers peuvent etre presents et vides
-	GetFileFirstLine("/etc/machine-id", sLine, nLineSize);
+	GetFileFirstLine("/etc/machine-id", sLine, nMaxLineSize);
 	if (strlen(sLine) == 0)
-		GetFileFirstLine("/var/lib/dbus/machine-id", sLine, nLineSize);
+		GetFileFirstLine("/var/lib/dbus/machine-id", sLine, nMaxLineSize);
 	if (strlen(sLine) == 0)
-		GetFileFirstLine("/var/db/dbus/machine-id", sLine, nLineSize);
+		GetFileFirstLine("/var/db/dbus/machine-id", sLine, nMaxLineSize);
 
+	// Remplacement si necessaire du derniere caractere '\n'
+	nLineSize = (int)strlen(sLine);
+	if (nLineSize > 0 and sLine[nLineSize - 1] == '\n')
+		sLine[nLineSize - 1] = '\0';
 	return sLine;
 #endif // __APPLE__
 }

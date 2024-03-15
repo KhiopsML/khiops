@@ -1768,17 +1768,19 @@ const ALString FileService::GetURIFilePathName(const ALString& sFileURI)
 			// Ok si un slash a ete trouve
 			if (nNextSlashPos != -1)
 			{
-#ifdef _WIN32
-				// Sur windows on renvoie C:\XXX et non /C:\XXX
-				sFilePathName = sFileURI.Right(sFileURI.GetLength() - nNextSlashPos - 1);
-#else
-				// Par contre, sur linux on renvoie le slash : /home/XXX
+				// On renvoie le slash : /home/XXX
 				// Mais si c'est un chemin relatif, on ne prend pas le slash
 				if (sFileURI.GetLength() > nNextSlashPos and sFileURI.GetAt(nNextSlashPos + 1) == '.')
 					sFilePathName = sFileURI.Right(sFileURI.GetLength() - nNextSlashPos - 1);
 				else
 					sFilePathName = sFileURI.Right(sFileURI.GetLength() - nNextSlashPos);
-#endif // _WIN32
+
+#ifdef _WIN32
+				// Sur windows, cas particulier de la racine d'un drive:  on renvoie C:\XXX et non /C:\XXX
+				if (sFilePathName.GetLength() > 3 and sFilePathName[0] == '/' and
+				    isalpha(sFilePathName[1]) and sFilePathName[2] == ':')
+					sFilePathName = sFilePathName.Right(sFilePathName.GetLength() - 1);
+#endif
 			}
 		}
 	}
@@ -1963,6 +1965,7 @@ void FileService::Test()
 	StringVector svDirectoryNames;
 	fstream fst;
 	boolean bOk;
+	boolean bOsSpecificResult;
 
 	// Test de base
 	cout << "Test de la classe FileService" << endl;
@@ -1979,7 +1982,9 @@ void FileService::Test()
 	cout << endl << "Dans la suite, le repertoire des fichiers temporaires est designe par TMPDIR" << endl << endl;
 
 	// Test d'ouverture d'un fichier au nom incorrect
-	cout << "SYS PATH\tOuverture d'un fichier au nom incorrect: " << OpenInputFile("////toto////", fst) << endl;
+	cout << "SYS PATH\t";
+	bOk = OpenInputFile("////toto////", fst);
+	cout << "Ouverture d'un fichier au nom incorrect: " << bOk << endl;
 
 	// Test de presence de chemin
 	cout << endl << "Indique si un chemin de fichier comporte une partie chemin" << endl;
@@ -1996,9 +2001,11 @@ void FileService::Test()
 	// Indique si un chemin est absolu
 	cout << endl << "Indique si un chemin de fichier est absolu" << endl;
 	cout << GetPortableTmpFilePathName(sFileName) << "->" << IsAbsoluteFilePathName(sFileName) << endl;
-	cout << GetPortableTmpFilePathName(sFilePathName) << "->" << IsAbsoluteFilePathName(sFilePathName) << endl;
+	cout << "SYS PATH\t" << GetPortableTmpFilePathName(sFilePathName) << "->"
+	     << IsAbsoluteFilePathName(sFilePathName) << endl;
 	cout << GetPortableTmpFilePathName(sFilePathName2) << "->" << IsAbsoluteFilePathName(sFilePathName2) << endl;
-	cout << GetPortableTmpFilePathName(sFilePathName3) << "->" << IsAbsoluteFilePathName(sFilePathName3) << endl;
+	cout << "SYS PATH\t" << GetPortableTmpFilePathName(sFilePathName3) << "->"
+	     << IsAbsoluteFilePathName(sFilePathName3) << endl;
 
 	// Extraction de nom de chemin
 	cout << endl << "Extraction de la partie chemin depuis un chemin de fichier" << endl;
@@ -2266,9 +2273,21 @@ void FileService::Test()
 	for (i = 0; i < svURItests.GetSize(); i++)
 	{
 		cout << svURItests.GetAt(i) << endl;
+
+		// Affichage des resultats
 		cout << "\t well-formed : " << FileService::IsURIWellFormed(svURItests.GetAt(i)) << endl;
 		cout << "\t scheme : " << FileService::GetURIScheme(svURItests.GetAt(i)) << endl;
-		cout << "\t file name : " << FileService::GetURIFilePathName(svURItests.GetAt(i)) << endl;
+
+		// Le resultat pour le FilePathName depend de l'OS dans le cas d'un chemin de type windows "C:\...")
+		// On desactive la comparaison complete dans les cas limites en prefixant par "SYS"
+		bOsSpecificResult = FileService::GetURIFilePathName(svURItests.GetAt(i)).Find(":") >= 0 and
+				    FileService::GetURIFilePathName(svURItests.GetAt(i)).Find(":") <= 3;
+		cout << "\t file name : ";
+		if (bOsSpecificResult)
+			cout << "SYS PATH ";
+		cout << FileService::GetURIFilePathName(svURItests.GetAt(i)) << endl;
+
+		// Hostname
 		cout << "\t host name : " << FileService::GetURIHostName(svURItests.GetAt(i)) << endl;
 		cout << endl;
 	}

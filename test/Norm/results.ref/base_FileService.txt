@@ -9,8 +9,8 @@ Test si le repertoire des fichiers temporaires est absolu: 1
 
 Dans la suite, le repertoire des fichiers temporaires est designe par TMPDIR
 
-SYS PATH	Ouverture d'un fichier au nom incorrect: error : File ////toto//// : Unable to open file (No such file or directory)
-0
+SYS PATH	error : File ////toto//// : Unable to open file (No such file or directory)
+Ouverture d'un fichier au nom incorrect: 0
 
 Indique si un chemin de fichier comporte une partie chemin
 toto.txt->0
@@ -20,9 +20,9 @@ chemin/toto.txt->1
 
 Indique si un chemin de fichier est absolu
 toto.txt->0
-/toto.txt->1
+SYS PATH	/toto.txt->0
 chemin/toto.txt->0
-/chemin/toto.txt->1
+SYS PATH	/chemin/toto.txt->0
 
 Extraction de la partie chemin depuis un chemin de fichier
 toto.txt->
@@ -200,13 +200,13 @@ file:///../test.txt
 file:///c:\home\test.txt
 	 well-formed : 1
 	 scheme : file
-	 file name : /c:\home\test.txt
+	 file name : SYS PATH c:\home\test.txt
 	 host name : 
 
 file://host-name/c:\home\test.txt
 	 well-formed : 1
 	 scheme : file
-	 file name : /c:\home\test.txt
+	 file name : SYS PATH c:\home\test.txt
 	 host name : host-name
 
 Test de reservation de taille pour un fichier en ecriture de taille 2.0 MB: TMPDIR/TestReserveSize.txt
