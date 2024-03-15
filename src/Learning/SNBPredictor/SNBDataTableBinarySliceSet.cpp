@@ -320,6 +320,7 @@ SNBDataTableBinarySliceSetAttribute::SNBDataTableBinarySliceSetAttribute()
 	nIndex = -1;
 	nDataPreparationClassIndex = -1;
 	bIsSparse = false;
+	nDefaultSparseValue = -1;
 	dataPreparationStats = NULL;
 }
 
@@ -387,17 +388,55 @@ boolean SNBDataTableBinarySliceSetAttribute::IsSparse() const
 	return bIsSparse;
 }
 
-void SNBDataTableBinarySliceSetAttribute::InitializeFromDataPreparationAttribute(
+int SNBDataTableBinarySliceSetAttribute::GetDefaultSparseValueIndex() const
+{
+	return nDefaultSparseValue;
+}
+
+void SNBDataTableBinarySliceSetAttribute::InitializeDataFromDataPreparationAttribute(
     KWDataPreparationAttribute* dataPreparationAttribute)
 {
+	KWDataGridStats* preparedAttributeDataGridStats;
+	KWAttributeBlock* nativeAttributeBlock;
+	Continuous cSparseDefaultValue;
+	Symbol sSparseDefaultValue;
+
 	require(dataPreparationAttribute != NULL);
 	require(dataPreparationAttribute->Check());
 
 	// Parametrage des statistiques de preparation de l'attribut
 	dataPreparationStats = dataPreparationAttribute->GetPreparedStats();
 
+	// Initialisation de l'index valeur par defaut dans le cas sparse
+	preparedAttributeDataGridStats = dataPreparationStats->GetPreparedDataGridStats();
+	if (IsSparse())
+	{
+		assert(preparedAttributeDataGridStats->GetAttributeNumber() == 2);
+		nativeAttributeBlock = dataPreparationAttribute->GetNativeAttribute()->GetAttributeBlock();
+		assert(nativeAttributeBlock != NULL);
+
+		// On compile le block pour pouvoir avoir la valeur par defaut disponible
+		// TODO: Verifier que cela ne pose pas de probleme de performance
+		nativeAttributeBlock->Compile();
+
+		if (dataPreparationAttribute->GetNativeAttribute()->GetType() == KWType::Continuous)
+		{
+			cSparseDefaultValue = nativeAttributeBlock->GetContinuousDefaultValue();
+			nDefaultSparseValue =
+			    preparedAttributeDataGridStats->GetAttributeAt(0)->ComputeContinuousPartIndex(
+				cSparseDefaultValue);
+		}
+		else
+		{
+			assert(dataPreparationAttribute->GetNativeAttribute()->GetType() == KWType::Symbol);
+			sSparseDefaultValue = nativeAttributeBlock->GetSymbolDefaultValue();
+			nDefaultSparseValue = preparedAttributeDataGridStats->GetAttributeAt(0)->ComputeSymbolPartIndex(
+			    sSparseDefaultValue);
+		}
+	}
+
 	// Creation de la table de probabilites conditionelles
-	conditionalProbas.ImportDataGridStats(dataPreparationStats->GetPreparedDataGridStats(), false, true);
+	conditionalProbas.ImportDataGridStats(preparedAttributeDataGridStats, false, true);
 
 	ensure(dataPreparationStats->Check());
 	ensure(conditionalProbas.Check());
@@ -450,6 +489,7 @@ boolean SNBDataTableBinarySliceSetAttribute::Check() const
 	bOk = bOk and dataPreparationStats != NULL;
 	bOk = bOk and dataPreparationStats->Check();
 	bOk = bOk and conditionalProbas.Check();
+	bOk = bOk and (not bIsSparse or nDefaultSparseValue >= 0);
 
 	return bOk;
 }
@@ -460,8 +500,12 @@ void SNBDataTableBinarySliceSetAttribute::Write(ostream& ost) const
 	ost << "Attribute #" << GetIndex() << ": " << GetNativeAttributeName() << "\n"
 	    << "Prepared attribute name: " << GetPreparedAttributeName() << "\n"
 	    << "Recoded attribute name: " << GetRecodedAttributeName() << "\n"
-	    << "Initial class index: " << GetDataPreparationClassIndex() << "\n"
-	    << "Preparation stats: ";
+	    << "Initial class index: " << GetDataPreparationClassIndex() << "\n";
+	if (IsSparse())
+		ost << "Storage: sparse (default index: " << GetDefaultSparseValueIndex() << ")\n";
+	else
+		ost << "Storage: dense\n";
+	ost << "Preparation stats: ";
 	dataPreparationStats->WriteLineReport(ost);
 	ost << "\nProbability table:\n" << conditionalProbas << "\n";
 }
@@ -553,15 +597,17 @@ void PLShared_DataTableBinarySliceSetAttribute::SerializeObject(PLSerializer* se
 	attribute = cast(SNBDataTableBinarySliceSetAttribute*, o);
 
 	// Serialisation
+	// Nota : L'objet dataPreparationStats doit etre serialise independamment
 	serializer->PutString(attribute->sNativeAttributeName);
 	serializer->PutString(attribute->sPreparedAttributeName);
 	serializer->PutString(attribute->sRecodedAttributeName);
 	serializer->PutInt(attribute->nIndex);
 	serializer->PutInt(attribute->nDataPreparationClassIndex);
 	serializer->PutBoolean(attribute->bIsSparse);
+	serializer->PutInt(attribute->nDefaultSparseValue);
 }
 
-void PLShared_DataTableBinarySliceSetAttribute::DeserializeObject(PLSerializer* serializer, Object* o) const
+void PLShared_DataTableBinarySliceSetAttribute::DeserializeObject(PLSerializer* serializer, Object* object) const
 {
 	SNBDataTableBinarySliceSetAttribute* attribute;
 	PLShared_AttributeStats shared_HelperAttributeStats;
@@ -569,19 +615,21 @@ void PLShared_DataTableBinarySliceSetAttribute::DeserializeObject(PLSerializer* 
 
 	require(serializer != NULL);
 	require(serializer->IsOpenForRead());
-	require(o != NULL);
+	require(object != NULL);
 
 	// Acces a l'attribut
-	attribute = cast(SNBDataTableBinarySliceSetAttribute*, o);
+	attribute = cast(SNBDataTableBinarySliceSetAttribute*, object);
 	assert(attribute->dataPreparationStats == NULL);
 
-	// Deserialization
+	// Deserialisation
+	// Nota : L'objet dataPreparationStats doit etre deserialise independamment
 	attribute->sNativeAttributeName = serializer->GetString();
 	attribute->sPreparedAttributeName = serializer->GetString();
 	attribute->sRecodedAttributeName = serializer->GetString();
 	attribute->nIndex = serializer->GetInt();
 	attribute->nDataPreparationClassIndex = serializer->GetInt();
 	attribute->bIsSparse = serializer->GetBoolean();
+	attribute->nDefaultSparseValue = serializer->GetInt();
 }
 
 Object* PLShared_DataTableBinarySliceSetAttribute::Create() const
@@ -608,6 +656,7 @@ void SNBDataTableBinarySliceSetSchema::InitializeFromDataPreparationClass(
 	SNBDataTableBinarySliceSetAttribute* attribute;
 	NumericKeyDictionary nkdAttributesByDataPreparationAttribute;
 
+	require(dataPreparationClass->Check());
 	require(oaUsableDataPreparationAttributes->GetSize() <=
 		dataPreparationClass->GetDataPreparationAttributes()->GetSize());
 	require(oaUsableDataPreparationAttributes->GetSize() ==
@@ -628,9 +677,10 @@ void SNBDataTableBinarySliceSetSchema::InitializeFromDataPreparationClass(
 		attribute->SetPreparedAttributeName(dataPreparationAttribute->GetPreparedAttribute()->GetName());
 		attribute->SetRecodedAttributeName(svUsableDataPreparationAttributeRecodedNames->GetAt(nAttribute));
 		attribute->SetDataPreparationClassIndex(dataPreparationAttribute->GetIndex());
-		if (dataPreparationAttribute->GetNativeAttribute()->GetAttributeBlock() != NULL)
+		if (dataPreparationAttribute->GetNativeAttribute()->GetAttributeBlock() != NULL and
+		    not GetSNBForceDenseMode())
 			attribute->SetSparse(true);
-		attribute->InitializeFromDataPreparationAttribute(dataPreparationAttribute);
+		attribute->InitializeDataFromDataPreparationAttribute(dataPreparationAttribute);
 		oaAttributes.Add(attribute);
 		odAttributesByNativeAttributeName.SetAt(dataPreparationAttribute->ComputeNativeAttributeName(),
 							attribute);
@@ -955,8 +1005,8 @@ longint SNBDataTableBinarySliceSetRandomizedAttributeIterator::ComputeNecessaryM
 
 	// Formule pour la memoire (les SNBDataTableBinarySliceSetAttribute pointes n'appartient pas a cette classe):
 	//   Tableau de nSliceNumber tableaux contenant nMaxAttributePerSlice KWLearningAttribute*'s
-	//   (oaInitialSliceAttributes) + Tableau de nAttributeNumber SNBDataTableBinarySliceSetAttribute*'s
-	//   (oaRandomizedAttributes)
+	//   (oaInitialSliceAttributes) +
+	//   Tableau de nAttributeNumber SNBDataTableBinarySliceSetAttribute*'s (oaRandomizedAttributes)
 	nMaxAttributesPerSlice = nAttributeNumber / nSliceNumber;
 	return nSliceNumber * (oaDummy.GetUsedMemoryPerElement() + sizeof(ObjectArray) +
 			       nMaxAttributesPerSlice * oaDummy.GetUsedMemoryPerElement()) +
@@ -1164,6 +1214,27 @@ boolean SNBDataTableBinarySliceSetChunkPhysicalLayout::IsAttributeSparseAt(int n
 	require(IsInitialized());
 	require(0 <= nAttribute and nAttribute < layout->GetAttributeNumber());
 	return ivAttributeSparseModes.GetAt(nAttribute);
+}
+
+double SNBDataTableBinarySliceSetChunkPhysicalLayout::GetSparsityRate() const
+{
+	longint lChunkValueNumber;
+	int nAttribute;
+
+	require(IsInitialized());
+
+	// On calcule le nombre total des `int`s stockes
+	lChunkValueNumber = 0;
+	for (nAttribute = 0; nAttribute < layout->GetAttributeNumber(); nAttribute++)
+	{
+		if (IsAttributeSparseAt(nAttribute))
+			lChunkValueNumber += GetAttributeDataSizeAt(nAttribute) / 2;
+		else
+			lChunkValueNumber += GetAttributeDataSizeAt(nAttribute);
+	}
+
+	return lChunkValueNumber /
+	       (1.0 * layout->GetInstanceNumberAtChunk(GetChunkIndex()) * layout->GetAttributeNumber());
 }
 
 void SNBDataTableBinarySliceSetChunkPhysicalLayout::FinishInitialization()
@@ -1583,7 +1654,7 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::InitializeBlockFromSliceSetAt(
 			for (nSliceAttribute = 0; nSliceAttribute < nSliceAttributeNumber; nSliceAttribute++)
 			{
 				nAttribute = nSliceAttributeOffset + nSliceAttribute;
-				// Obtention de l'index ded l'attribut
+				// Obtention de l'index de l'attribut
 				column = cast(SNBDataTableBinarySliceSetColumn*, oaLoadedBlock.GetAt(nSliceAttribute));
 				cAttributeValueIndex = kwoPartIndices->GetContinuousValueAt(
 				    livLoadedRecodedAttributeIndexes.GetAt(nSliceAttribute));
@@ -2156,7 +2227,7 @@ void SNBDataTableBinarySliceSet::InitializeDataPreparationClassAndSchemaFromClas
 
 			// Cas d'un attribut d'un bloc sparse : Initialisation partielle
 			// La finalisation se fait tout a la fin du parcours d'attributs car on a besoin de trier par cle du bloc
-			if (dataPreparationAttribute->IsNativeAttributeInBlock())
+			if (dataPreparationAttribute->IsNativeAttributeInBlock() and not GetSNBForceDenseMode())
 			{
 				assert(dataPreparationAttribute->GetNativeAttributeNumber() == 1);
 
@@ -2183,13 +2254,19 @@ void SNBDataTableBinarySliceSet::InitializeDataPreparationClassAndSchemaFromClas
 			// Cas d'un attribut non sparse : Ajout conventionel de l'attribut de recodage
 			else
 			{
-				// DDD
-				//dataPreparationAttribute->AddPreparedIndexingAttribute();
+				KWAttribute* attr = dataPreparationAttribute->AddPreparedIndexingAttributeWithMissing();
+				KWDRCellIndexWithMissing* rule =
+				    cast(KWDRCellIndexWithMissing*, attr->GetDerivationRule());
+				if (GetSNBIgnoreDenseMissingValuesOnTrainMode())
+					rule->bReturnMissingValueCell = false;
+				else
+					rule->bReturnMissingValueCell = true;
 
-				dataPreparationAttribute->AddPreparedIndexingAttributeWithMissing();
+				//dataPreparationAttribute->AddPreparedIndexingAttribute();
 			}
 		}
 
+		// Arret des ajouts si l'on atteint le nombre maximal d'attributs
 		if (oaUsedDataPreparationAttributes.GetSize() == nEffectiveMaxAttributes)
 			break;
 	}
@@ -2208,9 +2285,6 @@ void SNBDataTableBinarySliceSet::InitializeDataPreparationClassAndSchemaFromClas
 		delete oaDataGridBlockDataPreparationAttributes;
 	}
 
-	// DDD
-	//dataPreparationClass->GetDataPreparationClass()->Write(cout);
-
 	// Initialisation du schema
 	schema.InitializeFromDataPreparationClass(dataPreparationClass, &oaUsedDataPreparationAttributes,
 						  &svUsedDataPreparationAttributeRecodedNames);
@@ -2225,6 +2299,7 @@ void SNBDataTableBinarySliceSet::InitializeDataPreparationClassAndSchemaFromClas
 	ensure(odDataPreparationAttributesByBlock.GetCount() == 0);
 	ensure(dataPreparationClass != NULL);
 	ensure(schema.IsInitialized() or not HasUsableAttributes());
+	ensure(schema.GetAttributeNumber() > 0);
 	ensure(nInitialAttributeNumber > 0 or not HasUsableAttributes());
 	ensure(Check());
 }
@@ -2242,7 +2317,7 @@ boolean SNBDataTableBinarySliceSet::InitializeBufferAtChunk(int nChunk, KWDataTa
 	return bOk;
 }
 
-void SNBDataTableBinarySliceSet::InitializeTargetValueIndexes(KWClassStats* classStats)
+void SNBDataTableBinarySliceSet::InitializeTargetValueIndexes(const KWClassStats* classStats)
 {
 	require(ivTargetValueIndexes.GetSize() == 0);
 
@@ -2254,7 +2329,7 @@ void SNBDataTableBinarySliceSet::InitializeTargetValueIndexes(KWClassStats* clas
 	ensure(ivTargetValueIndexes.GetSize() == classStats->GetInstanceNumber());
 }
 
-void SNBDataTableBinarySliceSet::InitializeSymbolTargetValueIndexes(KWClassStats* classStats)
+void SNBDataTableBinarySliceSet::InitializeSymbolTargetValueIndexes(const KWClassStats* classStats)
 {
 	const KWDGSAttributePartition* partition;
 	int nInstance;
@@ -2284,7 +2359,7 @@ void SNBDataTableBinarySliceSet::InitializeSymbolTargetValueIndexes(KWClassStats
 	nkdPartsToIndexes.DeleteAll();
 }
 
-void SNBDataTableBinarySliceSet::InitializeContinuousTargetValueIndexes(KWClassStats* classStats)
+void SNBDataTableBinarySliceSet::InitializeContinuousTargetValueIndexes(const KWClassStats* classStats)
 {
 	IntVector ivPartFrequencies;
 	int nTotalFrequency;
@@ -2315,36 +2390,36 @@ void SNBDataTableBinarySliceSet::InitializeContinuousTargetValueIndexes(KWClassS
 	for (nInstance = 0; nInstance < classStats->GetInstanceNumber(); nInstance++)
 	{
 		cTargetValue = classStats->GetContinuousTargetValues()->GetAt(nInstance);
-		nTargetValuePartIndex = ComputeContinuousTargetValuePartIndex(cTargetValue, classStats);
+		nTargetValuePartIndex = ComputeContinuousTargetValuePartIndex(
+		    cTargetValue,
+		    cast(const KWDGSAttributeContinuousValues*, classStats->GetTargetValueStats()->GetAttributeAt(0)));
 		ivTargetValueIndexes.Add(ivContinuousInstanceMeanIndex.GetAt(nTargetValuePartIndex));
 	}
 }
 
-int SNBDataTableBinarySliceSet::ComputeContinuousTargetValuePartIndex(Continuous cTargetValue,
-								      const KWClassStats* classStats) const
+int SNBDataTableBinarySliceSet::ComputeContinuousTargetValuePartIndex(
+    Continuous cTargetValue, const KWDGSAttributeContinuousValues* attributePartition) const
 {
-	const KWDGSAttributeContinuousValues* partition;
 	int nLowerIndex;
 	int nUpperIndex;
 	int nIndex;
 
-	require(classStats->GetTargetValueStats() != NULL);
-	require(classStats->GetTargetValueStats()->Check());
-	require(classStats->GetTargetValueStats()->GetAttributeNumber() > 0);
+	require(attributePartition != NULL);
+	require(attributePartition->Check());
+	require(attributePartition->GetPartNumber() > 0);
 
 	// Initialization du pointeur de la partition des valeurs cibles et les indexes de recherche
-	partition = cast(KWDGSAttributeContinuousValues*, classStats->GetTargetValueStats()->GetAttributeAt(0));
 	nLowerIndex = 0;
-	nUpperIndex = partition->GetPartNumber() - 1;
+	nUpperIndex = attributePartition->GetPartNumber() - 1;
 	nIndex = (nLowerIndex + nUpperIndex) / 2;
 
 	// Recherche dichotomique de l'index de la partie ou se trouve la valeur cible
 	// La recherche doit *toujours* reussir
 	while (nLowerIndex <= nUpperIndex)
 	{
-		if (cTargetValue < partition->GetValueAt(nIndex))
+		if (cTargetValue < attributePartition->GetValueAt(nIndex))
 			nUpperIndex = nIndex - 1;
-		else if (cTargetValue > partition->GetValueAt(nIndex))
+		else if (cTargetValue > attributePartition->GetValueAt(nIndex))
 			nLowerIndex = nIndex + 1;
 		else
 			break;

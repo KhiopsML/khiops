@@ -4,7 +4,7 @@
 
 #include "SNBPredictorSelectiveNaiveBayesTrainingTask.h"
 
-SNBPredictorSNBTrainingTask::SNBPredictorSNBTrainingTask()
+SNBPredictorSelectiveNaiveBayesTrainingTask::SNBPredictorSelectiveNaiveBayesTrainingTask()
 {
 	// Initialisation des variables du maitre
 	masterSnbPredictor = NULL;
@@ -13,18 +13,19 @@ SNBPredictorSNBTrainingTask::SNBPredictorSNBTrainingTask()
 	masterInitialDatabase = NULL;
 	masterBinarySliceSet = NULL;
 	masterRandomAttribute = NULL;
-	bMasterIsOnFastAddRun = true;
 	dMasterModificationScore = DBL_MAX;
 	dMasterModificationDataCost = DBL_MAX;
 	dMasterModificationModelCost = DBL_MAX;
+	dMasterModificationDeltaWeight = DBL_MAX;
 	dMasterCurrentScore = DBL_MAX;
 	dMasterCurrentModelCost = DBL_MAX;
 	dMasterCurrentDataCost = DBL_MAX;
 	dMasterEmptySelectionScore = DBL_MAX;
 	dMasterEmptySelectionModelCost = DBL_MAX;
 	dMasterEmptySelectionDataCost = DBL_MAX;
+	dMasterCorrectionDataCost = 0.0;
 	dMasterMapScore = DBL_MAX;
-	dMasterPreviousRunScore = DBL_MAX;
+	dMasterLastFFBWRunScore = DBL_MAX;
 	nMasterOuterIteration = -1;
 	nMasterOuterIterationNumber = -1;
 	nMasterFastForwardBackwardRun = -1;
@@ -32,16 +33,19 @@ SNBPredictorSNBTrainingTask::SNBPredictorSNBTrainingTask()
 	bMasterUndoLastModification = false;
 	dMasterPrecisionEpsilon = -1.0;
 	bMasterInitializeSlaveScorers = false;
+	nMasterTaskState = TaskState::PrecisionEpsilonComputation;
 	nMasterRandomSeed = 1;
 	nMasterFastRunStepFinishedTaskNumber = 0;
 	dMasterTaskProgress = 0;
 	bMasterIsTrainingSuccessfulWithoutRunningTask = false;
+	masterWeightedSelectionScorer = NULL;
 
 	// Initialisation des variables de l'esclave
 	nSlaveProcessChunkIndex = -1;
 	slaveRecoderClass = NULL;
 	slaveDummyDatabase = NULL;
 	slaveBinarySliceSet = NULL;
+	slaveWeightedSelectionScorer = NULL;
 
 	// Declaration des variables partagees
 	DeclareSharedParameter(&shared_learningSpec);
@@ -66,21 +70,32 @@ SNBPredictorSNBTrainingTask::SNBPredictorSNBTrainingTask()
 	DeclareSharedParameter(&shared_bIsPreparationCostEnabled);
 
 	// Declaration des entrees et sortie des taches
+	DeclareTaskInput(&input_nTaskState);
 	DeclareTaskInput(&input_nModificationAttribute);
-	DeclareTaskInput(&input_bIsForwardModification);
+	DeclareTaskInput(&input_dModificationDeltaWeight);
 	DeclareTaskInput(&input_bUndoLastModification);
 	DeclareTaskInput(&input_bInitializeWorkingData);
 	DeclareTaskOutput(&output_dDataCost);
 }
 
-SNBPredictorSNBTrainingTask::~SNBPredictorSNBTrainingTask()
+SNBPredictorSelectiveNaiveBayesTrainingTask::~SNBPredictorSelectiveNaiveBayesTrainingTask()
 {
 	delete shared_oaBinarySliceSetAttributes;
 	delete shared_odAttributeStats;
 	delete shared_odAttributePairStats;
 }
 
-void SNBPredictorSNBTrainingTask::InternalTrain(SNBPredictorSelectiveNaiveBayes* snbPredictor)
+PLParallelTask* SNBPredictorSelectiveNaiveBayesTrainingTask::Create() const
+{
+	return new SNBPredictorSelectiveNaiveBayesTrainingTask;
+}
+
+const ALString SNBPredictorSelectiveNaiveBayesTrainingTask::GetTaskName() const
+{
+	return "Selective Naive Bayes Training";
+}
+
+void SNBPredictorSelectiveNaiveBayesTrainingTask::InternalTrain(SNBPredictorSelectiveNaiveBayes* snbPredictor)
 {
 	ObjectArray oaAllAttributeStats;
 	int nTrainingAttributeNumber;
@@ -183,12 +198,12 @@ void SNBPredictorSNBTrainingTask::InternalTrain(SNBPredictorSelectiveNaiveBayes*
 	ensure(masterInitialDatabase == NULL);
 }
 
-boolean SNBPredictorSNBTrainingTask::IsTrainingSuccessful() const
+boolean SNBPredictorSelectiveNaiveBayesTrainingTask::IsTrainingSuccessful() const
 {
 	return bMasterIsTrainingSuccessfulWithoutRunningTask or IsJobSuccessful();
 }
 
-boolean SNBPredictorSNBTrainingTask::ComputeResourceRequirements()
+boolean SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeResourceRequirements()
 {
 	const boolean bLocalTrace = false;
 	const int nAbsoluteMaxSlaveProcessNumber = 10000;
@@ -278,7 +293,7 @@ boolean SNBPredictorSNBTrainingTask::ComputeResourceRequirements()
 	return true;
 }
 
-int SNBPredictorSNBTrainingTask::ComputeMaxSlaveProcessNumber(int nAbsoluteMaxSlaveProcessNumber) const
+int SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeMaxSlaveProcessNumber(int nAbsoluteMaxSlaveProcessNumber) const
 {
 	const double dAtomicProcessingTime = 1.4e-7;
 	const double dCommunicationTime = 8.1e-5;
@@ -368,12 +383,12 @@ int SNBPredictorSNBTrainingTask::ComputeMaxSlaveProcessNumber(int nAbsoluteMaxSl
 	return nBestProcessNumber;
 }
 
-int SNBPredictorSNBTrainingTask::ComputeMaxSliceNumber() const
+int SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeMaxSliceNumber() const
 {
 	return max(1, int(sqrt(masterSnbPredictor->GetTrainingAttributeNumber())));
 }
 
-longint SNBPredictorSNBTrainingTask::ComputeSharedNecessaryMemory(longint lSliceSetBufferMemory)
+longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeSharedNecessaryMemory(longint lSliceSetBufferMemory)
 {
 	const boolean bLocalTrace = false;
 	longint lBinarySliceSetSchemaMemory;
@@ -412,7 +427,22 @@ longint SNBPredictorSNBTrainingTask::ComputeSharedNecessaryMemory(longint lSlice
 	return lSharedMemory;
 }
 
-longint SNBPredictorSNBTrainingTask::ComputeGlobalSlaveNecessaryMemory(int nSliceNumber, longint lSliceSetBufferMemory)
+longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeMasterNecessaryMemory() const
+{
+	require(masterSnbPredictor != NULL);
+	require(masterSnbPredictor->Check());
+	require(masterSnbPredictor->GetTargetValueStats() != NULL);
+	require(masterSnbPredictor->GetTargetValueStats()->GetAttributeNumber() > 0);
+
+	// NB : La methode appellee ignore tous les parametres sauf nAttributeNumber
+	//      lorsque bIncludeDataCostCalculator == false
+	return SNBAttributeSelectionScorer::ComputeNecessaryMemory(1, masterSnbPredictor->GetTrainingAttributeNumber(),
+								   1, masterSnbPredictor->GetTargetAttributeType(),
+								   masterSnbPredictor->IsTargetGrouped(), false);
+}
+
+longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeGlobalSlaveNecessaryMemory(int nSliceNumber,
+										       longint lSliceSetBufferMemory)
 {
 	const boolean bLocalTrace = false;
 	int nInstanceNumber;
@@ -426,8 +456,8 @@ longint SNBPredictorSNBTrainingTask::ComputeGlobalSlaveNecessaryMemory(int nSlic
 	nInstanceNumber = masterSnbPredictor->GetInstanceNumber();
 	nAttributeNumber = masterSnbPredictor->GetTrainingAttributeNumber();
 
-	// La memoire global du buffer et du scorer s'estime avec les estimations des objets necessaires avec un seul
-	// chunk
+	// La memoire global du buffer et du scorer s'estime
+	// avec les estimations des objets necessaires avec un seul chunk
 	lGlobalDataCostCalculatorMemory = ComputeGlobalSlaveScorerNecessaryMemory();
 	lGlobalBinarySliceSetBufferMemory = SNBDataTableBinarySliceSetChunkBuffer::ComputeNecessaryMemory(
 	    nInstanceNumber, 1, nAttributeNumber, nSliceNumber);
@@ -445,11 +475,10 @@ longint SNBPredictorSNBTrainingTask::ComputeGlobalSlaveNecessaryMemory(int nSlic
 	// NB: Cette chiffre est sur-estimee dans le cas de plus d'un esclave. La vraie quantite necessaire est
 	//
 	//   lTrueGlobalSlaveMemory = lGlobalBinarySliceSetBufferMemory
-	//                            + max(lGlobalDataCostCalculatorMemory - nSlaveNumber * lRecodingObjectsMemory,
-	//                            0ll)
+	//                            + max(lGlobalDataCostCalculatorMemory - nSlaveNumber * lRecodingObjectsMemory, 0ll)
 	//
 	// car chaque esclave demande un dictionnaire.
-	// Neanmoins, si l'on prends notre l'estimation avec M slices en tant demande minimal de memoire on a la
+	// Neanmoins, si l'on prends notre l'estimation avec M slices en tant demande minimal de memoire, on a la
 	// garantie que pour n'importe quel nombre de processus il y a une nombre de slices ou on peut tourner la tache
 	// (M slices dans le pire cas). La raison est que lTrueGlobalSlaveMemory <= lGlobalSlaveMemory pour n'importe
 	// quel nombre d'esclaves et slices.
@@ -474,7 +503,35 @@ longint SNBPredictorSNBTrainingTask::ComputeGlobalSlaveNecessaryMemory(int nSlic
 	return lGlobalSlaveMemory;
 }
 
-longint SNBPredictorSNBTrainingTask::ComputeSlaveNecessaryMemory(int nSlaveProcessNumber, int nSliceNumber)
+longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeGlobalSlaveScorerNecessaryMemory() const
+{
+	longint lFullScorerMemory;
+	longint lSelectionScorerBufferMemory;
+
+	require(masterSnbPredictor != NULL);
+	require(masterSnbPredictor->Check());
+	require(masterSnbPredictor->GetTargetValueStats() != NULL);
+	require(masterSnbPredictor->GetTargetValueStats()->GetAttributeNumber() > 0);
+
+	// NB : La methode appelle ignore tous les parametres sauf nAttributeNumber
+	//      lorsque bIncludeDataCostCalculator == false
+	lFullScorerMemory = SNBAttributeSelectionScorer::ComputeNecessaryMemory(
+	    masterSnbPredictor->GetInstanceNumber(), masterSnbPredictor->GetTrainingAttributeNumber(),
+	    masterSnbPredictor->GetTargetValueStats()->GetAttributeAt(0)->GetPartNumber(),
+	    masterSnbPredictor->GetTargetAttributeType(), masterSnbPredictor->IsTargetGrouped(), true);
+
+	lSelectionScorerBufferMemory =
+	    lFullScorerMemory -
+	    SNBAttributeSelectionScorer::ComputeNecessaryMemory(
+		masterSnbPredictor->GetInstanceNumber(), masterSnbPredictor->GetTrainingAttributeNumber(),
+		masterSnbPredictor->GetTargetValueStats()->GetAttributeAt(0)->GetPartNumber(),
+		masterSnbPredictor->GetTargetAttributeType(), masterSnbPredictor->IsTargetGrouped(), false);
+
+	return lSelectionScorerBufferMemory;
+}
+
+longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeSlaveNecessaryMemory(int nSlaveProcessNumber,
+										 int nSliceNumber)
 {
 	const boolean bLocalTrace = false;
 	int nInstanceNumber;
@@ -520,7 +577,22 @@ longint SNBPredictorSNBTrainingTask::ComputeSlaveNecessaryMemory(int nSlaveProce
 	return lSlaveMemory;
 }
 
-longint SNBPredictorSNBTrainingTask::ComputeOverallAttributeStatsNecessaryMemory()
+longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeSlaveScorerNecessaryMemory() const
+{
+	require(masterSnbPredictor != NULL);
+	require(masterSnbPredictor->Check());
+	require(masterSnbPredictor->GetTargetValueStats() != NULL);
+	require(masterSnbPredictor->GetTargetValueStats()->GetAttributeNumber() > 0);
+
+	// NB : La methode appellee ignore tous les parametres sauf nAttributeNumber
+	//      lorsque bIncludeDataCostCalculator == false
+	return SNBAttributeSelectionScorer::ComputeNecessaryMemory(
+	    masterSnbPredictor->GetInstanceNumber(), masterSnbPredictor->GetTrainingAttributeNumber(),
+	    masterSnbPredictor->GetTargetValueStats()->GetAttributeAt(0)->GetPartNumber(),
+	    masterSnbPredictor->GetTargetAttributeType(), masterSnbPredictor->IsTargetGrouped(), false);
+}
+
+longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeOverallAttributeStatsNecessaryMemory()
 {
 	longint lOverallDataPreparatrionStatsMemory;
 	ObjectDictionary dummyDictionary;
@@ -542,7 +614,7 @@ longint SNBPredictorSNBTrainingTask::ComputeOverallAttributeStatsNecessaryMemory
 	return lOverallDataPreparatrionStatsMemory;
 }
 
-longint SNBPredictorSNBTrainingTask::ComputeDataPreparationClassNecessaryMemory()
+longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeDataPreparationClassNecessaryMemory()
 {
 	int nAttribute;
 	ObjectArray* oaAllPreparedStats;
@@ -564,7 +636,8 @@ longint SNBPredictorSNBTrainingTask::ComputeDataPreparationClassNecessaryMemory(
 	return lDataPreparationClassMemory;
 }
 
-longint SNBPredictorSNBTrainingTask::ComputeRecodingObjectsNecessaryMemory(longint lSliceSetBufferMemory)
+longint
+SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeRecodingObjectsNecessaryMemory(longint lSliceSetBufferMemory)
 {
 	const boolean bLocalTrace = false;
 	const double dCompilationFactor = 1.5;
@@ -601,7 +674,8 @@ longint SNBPredictorSNBTrainingTask::ComputeRecodingObjectsNecessaryMemory(longi
 
 	return lRecodingObjectsMemory;
 }
-longint SNBPredictorSNBTrainingTask::ComputeSliceSetTotalReadBufferNecessaryMemory(longint lSliceSetBufferMemory)
+longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeSliceSetTotalReadBufferNecessaryMemory(
+    longint lSliceSetBufferMemory)
 {
 	// Sur-estimation donnee pour le max de:
 	//   - taille du buffer * nombre de slices du KWDataTableSliceSet en entree
@@ -610,8 +684,8 @@ longint SNBPredictorSNBTrainingTask::ComputeSliceSetTotalReadBufferNecessaryMemo
 		   shared_dataTableSliceSet.GetDataTableSliceSet()->GetSliceNumber() * lSliceSetBufferMemory);
 }
 
-longint
-SNBPredictorSNBTrainingTask::ComputeDataPreparationAttributeNecessaryMemory(const KWDataGridStats* dataGridStats) const
+longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeDataPreparationAttributeNecessaryMemory(
+    const KWDataGridStats* dataGridStats) const
 {
 	longint lDataPreparationAttributeMemory;
 	int nAttribute;
@@ -704,13 +778,13 @@ SNBPredictorSNBTrainingTask::ComputeDataPreparationAttributeNecessaryMemory(cons
 	return lDataPreparationAttributeMemory;
 }
 
-longint SNBPredictorSNBTrainingTask::ComputeMasterNecessaryDisk()
+longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeMasterNecessaryDisk()
 {
 	// On sur-estime le disque necessaire pour le fichier du dictionnaire de recodage avec son empreinte en memoire
 	return ComputeDataPreparationClassNecessaryMemory();
 }
 
-longint SNBPredictorSNBTrainingTask::ComputeGlobalSlaveNecessaryDisk() const
+longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeGlobalSlaveNecessaryDisk() const
 {
 	int nInstanceNumber;
 	int nAttributeNumber;
@@ -726,13 +800,13 @@ longint SNBPredictorSNBTrainingTask::ComputeGlobalSlaveNecessaryDisk() const
 	return lGlobalSlaveDisk;
 }
 
-longint SNBPredictorSNBTrainingTask::ComputeSlaveNecessaryDisk()
+longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeSlaveNecessaryDisk()
 {
 	// On sur-estime le disque necessaire pour le fichier dictionnaire de recodage avec son empreinte en memoire
 	return ComputeDataPreparationClassNecessaryMemory();
 }
 
-boolean SNBPredictorSNBTrainingTask::MasterInitialize()
+boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitialize()
 {
 	boolean bOk = true;
 
@@ -767,7 +841,7 @@ boolean SNBPredictorSNBTrainingTask::MasterInitialize()
 	return bOk;
 }
 
-boolean SNBPredictorSNBTrainingTask::MasterInitializeDataTableBinarySliceSet()
+boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeDataTableBinarySliceSet()
 {
 	const boolean bLocalTrace = false;
 	int nSlaveProcessNumber;
@@ -793,8 +867,8 @@ boolean SNBPredictorSNBTrainingTask::MasterInitializeDataTableBinarySliceSet()
 	nDataTableSliceSetSliceNumber = 0;
 	recoderClass = NULL;
 
-	// Recherche d'un nombre de slices qui permet d'executer la tache avec le minimum pour les buffer du
-	// KWDataTableSliceSet
+	// Recherche d'un nombre de slices qui permet d'executer la tache
+	// avec le minimum pour les buffers du KWDataTableSliceSet
 	for (nSliceNumber = 1; nSliceNumber <= nMaxSliceNumber; nSliceNumber++)
 	{
 		lSlaveNecessaryMemory =
@@ -812,8 +886,7 @@ boolean SNBPredictorSNBTrainingTask::MasterInitializeDataTableBinarySliceSet()
 	// Calcul et parametrage de la memoire necessaire pour les buffer de lecture du KWDataTableSliceSet
 	//
 	// En gros on rajoute a la memoire deja pris en compte (config avec buffer de taille minimale) le minimum entre:
-	//   - l'excedant entre la memoire necessaire avec un buffer de taille par defaut et celle avec un de taille
-	//   minimale
+	//   - l'excedant entre la memoire nec. avec un buffer de taille par defaut et celle avec un de taille minimale
 	//   - l'excedant entre la memoire attribuee et la memoire necessaire avec un buffer de taille minimale
 	//
 	if (bOk)
@@ -884,7 +957,7 @@ boolean SNBPredictorSNBTrainingTask::MasterInitializeDataTableBinarySliceSet()
 	return bOk;
 }
 
-boolean SNBPredictorSNBTrainingTask::IsMasterDataTableBinarySliceSetInitialized() const
+boolean SNBPredictorSelectiveNaiveBayesTrainingTask::IsMasterDataTableBinarySliceSetInitialized() const
 {
 	boolean bOk = true;
 
@@ -894,7 +967,7 @@ boolean SNBPredictorSNBTrainingTask::IsMasterDataTableBinarySliceSetInitialized(
 	return bOk;
 }
 
-boolean SNBPredictorSNBTrainingTask::MasterInitializeSharedVariables()
+boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeSharedVariables()
 {
 	boolean bOk = true;
 	int nAttribute;
@@ -944,7 +1017,7 @@ boolean SNBPredictorSNBTrainingTask::MasterInitializeSharedVariables()
 	return bOk;
 }
 
-boolean SNBPredictorSNBTrainingTask::MasterInitializeRecoderClassSharedVariables()
+boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeRecoderClassSharedVariables()
 {
 	boolean bOk = true;
 	KWClass* recoderClass;
@@ -989,7 +1062,7 @@ boolean SNBPredictorSNBTrainingTask::MasterInitializeRecoderClassSharedVariables
 	return bOk;
 }
 
-void SNBPredictorSNBTrainingTask::MasterInitializeOptimizationVariables()
+void SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeOptimizationVariables()
 {
 	require(masterBinarySliceSet != NULL);
 
@@ -998,7 +1071,6 @@ void SNBPredictorSNBTrainingTask::MasterInitializeOptimizationVariables()
 	SetRandomSeed(1);
 
 	// Variables de l'etat des iterations
-	bMasterIsOnFastAddRun = true;
 	bMasterUndoLastModification = false;
 	nMasterOuterIteration = 0;
 	nMasterFastForwardBackwardRun = 0;
@@ -1006,45 +1078,66 @@ void SNBPredictorSNBTrainingTask::MasterInitializeOptimizationVariables()
 	masterRandomAttribute = masterBinarySliceSet->GetRandomAttributeAt(0);
 	nMasterFastRunStepFinishedTaskNumber = 0;
 	bMasterInitializeSlaveScorers = false;
+	nMasterTaskState = TaskState::PrecisionEpsilonComputation;
+
+	nMasterOuterIterationNumber = int(ceil(log2(masterBinarySliceSet->GetInstanceNumber() + 1)));
 
 	// Scores et couts
 	dMasterModificationScore = 0.0;
 	dMasterModificationModelCost = 0.0;
 	dMasterModificationDataCost = 0.0;
-	dMasterCurrentScore = 0.0;
+	dMasterCurrentScore = DBL_MAX;
 	dMasterCurrentModelCost = 0.0;
 	dMasterCurrentDataCost = 0.0;
 	dMasterEmptySelectionScore = 0.0;
 	dMasterEmptySelectionModelCost = 0.0;
 	dMasterEmptySelectionDataCost = 0.0;
-	dMasterPreviousRunScore = 0.0;
+	dMasterLastFFBWRunScore = DBL_MAX;
 	dMasterMapScore = 0.0;
 
 	// L'epsilon de precision a besoin d'une passe pour la base de donnees et se calcule au debut de la tache
-	// dMasterPrecisionEpsilon = <apres la premiere passe>;
+	dMasterPrecisionEpsilon = 0.0;
+
+	// Delta poids de la modification courante
+	dMasterModificationDeltaWeight = 1.0;
+
+	// Calculatrice du score du maitre (calculatrice de couts de donnes non initialise)
+	masterWeightedSelectionScorer = new SNBAttributeSelectionScorer;
+	masterWeightedSelectionScorer->SetLearningSpec(shared_learningSpec.GetLearningSpec());
+	masterWeightedSelectionScorer->SetDataTableBinarySliceSet(masterBinarySliceSet);
+	masterWeightedSelectionScorer->SetPriorWeight(masterSnbPredictor->GetSelectionParameters()->GetPriorWeight());
+	masterWeightedSelectionScorer->SetConstructionCostEnabled(
+	    masterSnbPredictor->GetSelectionParameters()->GetConstructionCost());
+	masterWeightedSelectionScorer->SetPreparationCostEnabled(
+	    masterSnbPredictor->GetSelectionParameters()->GetPreparationCost());
+	masterWeightedSelectionScorer->SetPriorExponent(
+	    masterSnbPredictor->GetSelectionParameters()->GetPriorExponent());
 
 	ensure(CheckCurrentAttribute());
 }
 
-boolean SNBPredictorSNBTrainingTask::MasterPrepareTaskInput(double& dTaskPercent, boolean& bIsTaskFinished)
+boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterPrepareTaskInput(double& dTaskPercent,
+									    boolean& bIsTaskFinished)
 {
 	require(0 <= nMasterRandomAttribute and nMasterRandomAttribute < masterBinarySliceSet->GetAttributeNumber());
 	require(masterRandomAttribute != NULL);
 
 	if (not IsOuterIterationFinished())
 	{
+		input_nTaskState = nMasterTaskState;
+
 		// Premiere passe : Calcul du score de une selection vide pour estimer l'epsilon de precision
-		if (not IsPrecisionEpsilonCalculated())
+		if (nMasterTaskState == TaskState::PrecisionEpsilonComputation)
 		{
 			input_bUndoLastModification = false;
-			input_bIsForwardModification = false;
 			input_nModificationAttribute = -1;
 			input_bInitializeWorkingData = false;
 		}
 		// Passe normal : Calcul du score d'une modification de la selection courant
 		else
 		{
-			input_bIsForwardModification = IsOnFastForwardRun();
+			assert(nMasterTaskState == TaskState::FastForwardRun or
+			       nMasterTaskState == TaskState::FastBackwardRun);
 			input_bUndoLastModification = bMasterUndoLastModification;
 			input_nModificationAttribute = masterRandomAttribute->GetIndex();
 			input_bInitializeWorkingData = bMasterInitializeSlaveScorers;
@@ -1057,44 +1150,18 @@ boolean SNBPredictorSNBTrainingTask::MasterPrepareTaskInput(double& dTaskPercent
 	else
 		bIsTaskFinished = true;
 
+	if (not IsOuterIterationFinished() and nMasterTaskState != TaskState::PrecisionEpsilonComputation)
+		input_dModificationDeltaWeight = dMasterModificationDeltaWeight;
+
 	return true;
 }
 
-boolean SNBPredictorSNBTrainingTask::MasterAggregateResults()
+boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterAggregateResults()
 {
 	// Mise a jour du compte de taches
 	nMasterFastRunStepFinishedTaskNumber++;
 
-	if (IsPrecisionEpsilonCalculated())
-	{
-		// Mise a jour du cout de donnes courant avec celui issu de l'esclave
-		dMasterModificationDataCost += output_dDataCost;
-
-		// Fin de toutes les tache d'un pas de la passe
-		if (AllFastRunStepTasksAreFinished())
-		{
-			// Mise a jour de la selection s'il y a une amelioration
-			UpdateSelection();
-
-			// Mise a jour de l'attribut de l'iteration
-			UpdateCurrentAttribute();
-
-			// Si on est a la fin de la passe rapide on commence une autre (potentiellement une nouvelle
-			// iteration externe)
-			if (IsFastRunFinished())
-				InitializeNextFastRun();
-
-			// Remise a zero du score et couts de la modification courant
-			dMasterModificationScore = 0.0;
-			dMasterModificationModelCost = 0.0;
-			dMasterModificationDataCost = 0.0;
-
-			// Remise a zero du compteur des taches & liberation de la barriere de synchronization
-			nMasterFastRunStepFinishedTaskNumber = 0;
-			SetAllSlavesAtWork();
-		}
-	}
-	else
+	if (nMasterTaskState == TaskState::PrecisionEpsilonComputation)
 	{
 		// Mise a jour du cout de donnes de la selection vide avec celui issu de l'esclave
 		dMasterEmptySelectionDataCost += output_dDataCost;
@@ -1108,1158 +1175,89 @@ boolean SNBPredictorSNBTrainingTask::MasterAggregateResults()
 			// Remise a zero du compteur des taches & liberation de la barriere de synchronization
 			nMasterFastRunStepFinishedTaskNumber = 0;
 			SetAllSlavesAtWork();
+
+			// Passage a l'etat FFW
+			nMasterTaskState = TaskState::FastForwardRun;
 		}
 	}
+	else
+	{
+		assert(nMasterTaskState == TaskState::FastForwardRun or nMasterTaskState == TaskState::FastBackwardRun);
+
+		// Mise a jour du cout de donnes courant avec celui issu de l'esclave
+		dMasterModificationDataCost += output_dDataCost;
+
+		// Fin de toutes les tache d'un pas de la passe
+		if (AllFastRunStepTasksAreFinished())
+		{
+			// Mise a jour de la selection s'il y a une amelioration
+			UpdateSelection();
+
+			// Mise a jour de l'attribut de l'iteration
+			UpdateCurrentAttribute();
+
+			// Si on est a la fin de la passe rapide on commence une autre
+			// (potentiellement une nouvelle iteration externe)
+			if (IsFastRunFinished())
+				InitializeNextFastRun();
+
+			// Remise a zero du score et couts de la modification courant
+			dMasterModificationScore = 0.0;
+			dMasterModificationModelCost = 0.0;
+			dMasterModificationDataCost = 0.0;
+
+			// Remise a zero du compteur des taches & liberation de la barriere de synchronization
+			nMasterFastRunStepFinishedTaskNumber = 0;
+			SetAllSlavesAtWork();
+		}
+	}
+
+	ensure(not(nMasterTaskState == TaskState::PrecisionEpsilonComputation) or dMasterPrecisionEpsilon > 0);
 	ensure(0 <= nMasterFastRunStepFinishedTaskNumber and nMasterFastRunStepFinishedTaskNumber < GetProcessNumber());
 	ensure(CheckCurrentAttribute());
 	return true;
 }
 
-boolean SNBPredictorSNBTrainingTask::IsOuterIterationFinished() const
+boolean SNBPredictorSelectiveNaiveBayesTrainingTask::IsOuterIterationFinished() const
 {
 	require(IsRunning());
 	require(IsMasterProcess());
 	return nMasterOuterIteration == nMasterOuterIterationNumber;
 }
 
-boolean SNBPredictorSNBTrainingTask::IsPrecisionEpsilonCalculated() const
+void SNBPredictorSelectiveNaiveBayesTrainingTask::UpdateTaskProgressionLabel() const
 {
+	ALString sLabel;
+
 	require(IsRunning());
 	require(IsMasterProcess());
-	return dMasterPrecisionEpsilon > 0;
+
+	if (nMasterTaskState == TaskState::FastForwardRun)
+		sLabel = "Increasing variable weights by ";
+	else
+	{
+		assert(nMasterTaskState == TaskState::FastBackwardRun);
+		sLabel = "Decreasing variable weights by ";
+	}
+	sLabel += DoubleToString(dMasterModificationDeltaWeight);
+	TaskProgression::DisplayLabel(sLabel);
 }
 
-boolean SNBPredictorSNBTrainingTask::IsOnFastForwardRun() const
-{
-	require(IsRunning());
-	require(IsMasterProcess());
-	return bMasterIsOnFastAddRun;
-}
-
-boolean SNBPredictorSNBTrainingTask::AllFastRunStepTasksAreFinished() const
+boolean SNBPredictorSelectiveNaiveBayesTrainingTask::AllFastRunStepTasksAreFinished() const
 {
 	require(IsRunning());
 	require(IsMasterProcess());
 	return nMasterFastRunStepFinishedTaskNumber == GetProcessNumber();
 }
 
-boolean SNBPredictorSNBTrainingTask::IsFastRunFinished() const
-{
-	boolean bIsRunFinished;
-
-	require(IsRunning());
-	require(IsMasterProcess());
-
-	if (IsOnFastForwardRun())
-		bIsRunFinished = nMasterRandomAttribute == masterBinarySliceSet->GetAttributeNumber();
-	else
-		bIsRunFinished = nMasterRandomAttribute == -1;
-
-	return bIsRunFinished;
-}
-
-void SNBPredictorSNBTrainingTask::InitializeNextFastRun()
-{
-	require(IsMasterProcess());
-
-	// Fin d'une passe FastForward : On initialise une passe FastBackward
-	if (IsOnFastForwardRun())
-	{
-		if (IsSelectionEmpty())
-			InitializeNextFastForwardRun();
-		else
-		{
-			dMasterPreviousRunScore = dMasterCurrentScore;
-			bMasterIsOnFastAddRun = false;
-			nMasterRandomAttribute = masterBinarySliceSet->GetAttributeNumber() - 1;
-		}
-	}
-	// Fin d'une passe FastBackward : On initialise un passe FastForward (potentiellement une nouvelle iteration
-	// externe)
-	else
-		InitializeNextFastForwardRun();
-
-	UpdateCurrentAttribute();
-
-	// Mise a jour de la progression
-	UpdateTaskProgressionLabel();
-}
-
-void SNBPredictorSNBTrainingTask::ComputeEmptySelectionScoreAndPrecisionEpsilon()
-{
-	const boolean bLocalTrace = false;
-
-	require(not IsPrecisionEpsilonCalculated());
-
-	// Mise a jour du score de la selection vide
-	dMasterEmptySelectionModelCost = ComputeSelectionModelCost();
-	dMasterEmptySelectionScore = dMasterEmptySelectionModelCost + dMasterEmptySelectionDataCost;
-
-	// Calcul du epsilon de precision permettant de se comparer de facon relative a ce cout par defaut
-	// La comparaison en "absolu" pose des problemes numeriques
-	dMasterPrecisionEpsilon = 1e-2 * (1 + fabs(dMasterEmptySelectionScore));
-	dMasterPrecisionEpsilon /= (1 + shared_learningSpec.GetLearningSpec()->GetInstanceNumber());
-
-	// Initialisation du reste de couts et scores
-	dMasterCurrentScore = dMasterEmptySelectionScore;
-	dMasterCurrentModelCost = dMasterEmptySelectionScore;
-	dMasterCurrentDataCost = dMasterEmptySelectionDataCost;
-	dMasterPreviousRunScore = dMasterEmptySelectionScore;
-	dMasterMapScore = dMasterEmptySelectionScore;
-
-	// Trace de debbogage
-	if (bLocalTrace)
-	{
-		cout << "Empty selection model cost = " << dMasterEmptySelectionModelCost << "\n";
-		cout << "Empty selection data cost  = " << dMasterEmptySelectionDataCost << "\n";
-		cout << "Precision Epsilon          = " << dMasterPrecisionEpsilon << "\n";
-		cout << "----------------------------------------------\n";
-		cout << "Variable\tModif\tWeight\tModelCost\tDataCost\tDecision\tNewCost\n";
-	}
-
-	ensure(IsPrecisionEpsilonCalculated());
-}
-
-boolean SNBPredictorSNBTrainingTask::CheckCurrentAttribute() const
-{
-	boolean bOk = true;
-
-	if (not IsFastRunFinished())
-	{
-		bOk = bOk and masterRandomAttribute != NULL;
-		bOk = bOk and 0 <= nMasterRandomAttribute and
-		      nMasterRandomAttribute < masterBinarySliceSet->GetAttributeNumber();
-	}
-	else
-	{
-		bOk = bOk and masterRandomAttribute == NULL;
-		bOk = (IsOnFastForwardRun() and nMasterRandomAttribute == masterBinarySliceSet->GetAttributeNumber()) or
-		      (not IsOnFastForwardRun() and nMasterRandomAttribute == -1);
-	}
-
-	return bOk;
-}
-
-boolean SNBPredictorSNBTrainingTask::MasterFinalize(boolean bProcessEndedCorrectly)
-{
-	boolean bOk;
-	ALString sTmp;
-
-	require(masterSnbPredictor != NULL);
-	require(masterInitialDatabase != NULL);
-	require(masterInitialDatabase->Check());
-
-	// Remise a l'etat initial du LearningSpec, du domaine de travail et du RNG
-	shared_learningSpec.FinalizeSpecification(masterInitialClass, masterInitialDatabase);
-	KWClassDomain::SetCurrentDomain(masterInitialDomain);
-	SetRandomSeed(nMasterRandomSeed);
-
-	// Sauvegarde des resultats de l'entrainement si tout c'est bien deroule
-	if (bProcessEndedCorrectly)
-		MasterFinalizeTrainingAndReports();
-
-	// Nettoyage des conteneurs partagees
-	shared_odAttributeStats->GetObjectDictionary()->RemoveAll();
-	shared_odAttributePairStats->GetObjectDictionary()->RemoveAll();
-	shared_oaBinarySliceSetAttributes->GetObjectArray()->RemoveAll();
-	shared_ivTargetValueIndexes.GetIntVector()->SetSize(0);
-	shared_ivGrantedSlaveProcessIds.GetIntVector()->SetSize(0);
-
-	// Nettoyage du SNBDataTableBinarySliceSet
-	if (masterBinarySliceSet != NULL)
-	{
-		if (bProcessEndedCorrectly)
-			masterBinarySliceSet->CleanWorkingData(false);
-		delete masterBinarySliceSet;
-		masterBinarySliceSet = NULL;
-	}
-
-	// En parallele : Nettoyage du fichier dictionnaire auxilier
-	if (IsParallel())
-	{
-		bOk = FileService::RemoveFile(
-		    FileService::GetURIFilePathName(shared_sRecoderClassDomainFileURI.GetValue()));
-		if (not bOk)
-			AddWarning(sTmp + "Failed to remove temporary dictionary " +
-				   shared_sRecoderClassDomainFileURI.GetValue());
-	}
-
-	ensure(shared_learningSpec.GetLearningSpec()->Check());
-	ensure(masterSnbPredictor->GetClassStats() != NULL);
-	ensure(masterSnbPredictor->GetClassStats()->Check());
-	ensure(masterSnbPredictor->GetClass() != NULL);
-	ensure(masterSnbPredictor->GetClass()->Check());
-	ensure(masterSnbPredictor->GetDatabase() != NULL);
-	ensure(masterSnbPredictor->GetDatabase()->Check());
-	ensure(masterBinarySliceSet == NULL);
-
-	return true;
-}
-
-boolean SNBPredictorSNBTrainingTask::SlaveInitialize()
-{
-	int nSlaveProcess;
-	boolean bOk = true;
-
-	// Initialisation de l'identifiant du chunk attribue a l'esclave
-	nSlaveProcessChunkIndex = -1;
-	for (nSlaveProcess = 0; nSlaveProcess < shared_ivGrantedSlaveProcessIds.GetSize(); nSlaveProcess++)
-	{
-		if (GetProcessId() == shared_ivGrantedSlaveProcessIds.GetAt(nSlaveProcess))
-			nSlaveProcessChunkIndex = nSlaveProcess;
-	}
-
-	// Initialisation du KWLearningSpec et de la SNBDataTableBinarySliceSet
-	bOk = bOk and SlaveInitializeLearningSpec();
-	if (bOk)
-		bOk = bOk and SlaveInitializeDataTableBinarySliceSet();
-
-	ensure(0 <= nSlaveProcessChunkIndex and nSlaveProcessChunkIndex < shared_nChunkNumber);
-	return bOk;
-}
-
-boolean SNBPredictorSNBTrainingTask::SlaveInitializeLearningSpec()
-{
-	boolean bOk = true;
-	boolean bIsRecoderClassFileLocal;
-	ALString sRecoderClassTmpFilePath;
-
-	// En parallele: Le domain doit etre vide
-	// En sequentiel : Le domain doit contenir la classe de recodage
-	require((IsParallel() and KWClassDomain::GetCurrentDomain()->GetClassNumber() == 0) or
-		(not IsParallel() and
-		 KWClassDomain::GetCurrentDomain()->LookupClass(shared_sRecoderClassName.GetValue()) != NULL and
-		 shared_sRecoderClassDomainFileURI.GetValue() == ""));
-
-	// En parallele : Transfert du fichier de dictionnaire du domaine de la classe de recodage, parsing et
-	// compilation
-	if (IsParallel())
-	{
-		bIsRecoderClassFileLocal =
-		    GetLocalHostName() == FileService::GetURIHostName(shared_sRecoderClassDomainFileURI.GetValue());
-		if (bIsRecoderClassFileLocal)
-			sRecoderClassTmpFilePath =
-			    FileService::GetURIFilePathName(shared_sRecoderClassDomainFileURI.GetValue());
-		else
-		{
-			sRecoderClassTmpFilePath =
-			    FileService::CreateUniqueTmpFile(shared_sRecoderClassName.GetValue() + ".kdic", this);
-			bOk = bOk and PLRemoteFileService::CopyFile(shared_sRecoderClassDomainFileURI.GetValue(),
-								    sRecoderClassTmpFilePath);
-		}
-
-		// Parsing du fichier dictionnaire
-		if (bOk)
-			bOk = bOk and KWClassDomain::GetCurrentDomain()->ReadFile(sRecoderClassTmpFilePath);
-
-		// Recherche de la classe a traiter
-		if (bOk)
-		{
-			slaveRecoderClass =
-			    KWClassDomain::GetCurrentDomain()->LookupClass(shared_sRecoderClassName.GetValue());
-			bOk = bOk and slaveRecoderClass != NULL;
-			if (not bOk)
-				AddError("Dictionary " + shared_sRecoderClassName.GetValue() + " not found");
-		}
-
-		// Verfication d'integrite du dictionnaire
-		if (bOk)
-			bOk = bOk and slaveRecoderClass->Check();
-
-		// Compilation du dictionnaire
-		if (bOk)
-		{
-			KWClassDomain::GetCurrentDomain()->Compile();
-			bOk = bOk and slaveRecoderClass->IsCompiled();
-			if (not bOk)
-				AddError("Failed to compile dictionary " + shared_sRecoderClassName.GetValue());
-		}
-
-		// Nettoyage du fichier dictionnaire temporaire
-		if (not bIsRecoderClassFileLocal)
-			FileService::RemoveFile(sRecoderClassTmpFilePath);
-	}
-	// En sequentiel : Recherche de la classe dans le domaine courant et compilation
-	else
-	{
-		slaveRecoderClass = KWClassDomain::GetCurrentDomain()->LookupClass(shared_sRecoderClassName.GetValue());
-		bOk = bOk and slaveRecoderClass != NULL;
-		if (bOk)
-		{
-			KWClassDomain::GetCurrentDomain()->Compile();
-			bOk = bOk and slaveRecoderClass->IsCompiled();
-			if (not bOk)
-				AddError("Failed to compile dictionary " + shared_sRecoderClassName.GetValue());
-		}
-		else
-			AddError("Dictionary " + shared_sRecoderClassName.GetValue() + " not found in current domain");
-	}
-
-	// Finalization du LearningSpec de l'esclave avec une database bidon
-	if (bOk)
-	{
-		slaveDummyDatabase = new KWSTDatabase;
-		slaveDummyDatabase->SetClassName(slaveRecoderClass->GetName());
-		slaveDummyDatabase->SetDatabaseName(slaveRecoderClass->GetName());
-		shared_learningSpec.GetLearningSpec()->SetCheckTargetAttribute(false);
-		shared_learningSpec.FinalizeSpecification(slaveRecoderClass, slaveDummyDatabase);
-	}
-
-	ensure(not bOk or slaveRecoderClass != NULL);
-	ensure(not bOk or slaveRecoderClass->IsCompiled());
-	ensure(not bOk or shared_learningSpec.GetLearningSpec()->Check());
-	return bOk;
-}
-
-boolean SNBPredictorSNBTrainingTask::SlaveInitializeDataTableBinarySliceSet()
-{
-	boolean bOk = true;
-	int nAttribute;
-	ObjectArray* oaAttributes;
-	SNBDataTableBinarySliceSetAttribute* attribute;
-	ObjectDictionary* odAttributeStats;
-	ObjectDictionary* odAttributePairStats;
-	KWAttributeStats* attributeStats;
-	KWAttributePairStats* attributePairStats;
-	ALString sTmp;
-
-	require(IsSlaveProcess());
-	require(slaveBinarySliceSet == NULL);
-	require(shared_learningSpec.GetLearningSpec()->Check());
-	require(slaveRecoderClass != NULL);
-	require(slaveRecoderClass->Check());
-
-	// Alias locaux pour la lisibilite
-	oaAttributes = shared_oaBinarySliceSetAttributes->GetObjectArray();
-	odAttributeStats = shared_odAttributeStats->GetObjectDictionary();
-	odAttributePairStats = shared_odAttributePairStats->GetObjectDictionary();
-
-	// Creation du binary slice set
-	slaveBinarySliceSet = new SNBDataTableBinarySliceSet;
-
-	// Reconstituon du nombre d'attributs initial et des valeurs de la cible
-	slaveBinarySliceSet->nInitialAttributeNumber = shared_nInitialAttributeNumber;
-	slaveBinarySliceSet->ivTargetValueIndexes.CopyFrom(shared_ivTargetValueIndexes.GetConstIntVector());
-
-	// Reconstition du layout
-	slaveBinarySliceSet->layout.Initialize(shared_nInstanceNumber, shared_nChunkNumber, shared_nAttributeNumber,
-					       shared_nSliceNumber);
-
-	// Reconstitution des attributs a partir des objets attributs et stats transferes
-	for (nAttribute = 0; nAttribute < oaAttributes->GetSize(); nAttribute++)
-	{
-		// Recuperation des objets attributs (ils viennent sans spec et sans stats)
-		attribute = cast(SNBDataTableBinarySliceSetAttribute*, oaAttributes->GetAt(nAttribute));
-
-		// Recuperation des stats de l'attribut et construction de la table de probabilites conditionnelles
-		// (il doit avoir un et un seul KWDataPreparationStats associe a un nom)
-		attributeStats = cast(KWAttributeStats*, odAttributeStats->Lookup(attribute->GetNativeAttributeName()));
-		attributePairStats =
-		    cast(KWAttributePairStats*, odAttributePairStats->Lookup(attribute->GetNativeAttributeName()));
-		assert(not(attributeStats == NULL and attributePairStats == NULL));
-		assert(not(attributeStats != NULL and attributePairStats != NULL));
-		if (attributeStats != NULL)
-			attribute->dataPreparationStats = attributeStats;
-		else
-			attribute->dataPreparationStats = attributePairStats;
-		attribute->dataPreparationStats->SetLearningSpec(shared_learningSpec.GetLearningSpec());
-		attribute->conditionalProbas.ImportDataGridStats(
-		    attribute->dataPreparationStats->GetPreparedDataGridStats(), false, true);
-	}
-
-	// Reconstitution du SNBDataTableBinarySliceSetSchema a parter des attributs reconstruits
-	slaveBinarySliceSet->schema.InitializeFromAttributes(oaAttributes);
-
-	// Initialisation du buffer de lecture de donnees pour le chunk l'esclave
-	slaveBinarySliceSet->chunkBuffer.SetLayout(&slaveBinarySliceSet->layout);
-	bOk = slaveBinarySliceSet->chunkBuffer.Initialize(GetSlaveChunkIndex(), slaveRecoderClass,
-							  shared_dataTableSliceSet.GetDataTableSliceSet(),
-							  &slaveBinarySliceSet->schema);
-
-	// En parallele on decharge la classe de recodage
-	if (IsParallel())
-		SlaveInitializeUnloadRecoderClass();
-
-	// DDD
-	//slaveBinarySliceSet->WriteContentsAsTSV(cout);
-
-	ensure(not bOk or IsSlaveDataTableBinarySliceSetInitialized());
-	ensure(not bOk or slaveBinarySliceSet->Check());
-	return bOk;
-}
-
-boolean SNBPredictorSNBTrainingTask::IsSlaveDataTableBinarySliceSetInitialized() const
-{
-	return slaveBinarySliceSet != NULL and slaveBinarySliceSet->IsInitialized();
-}
-
-void SNBPredictorSNBTrainingTask::SlaveInitializeUnloadRecoderClass()
-{
-	KWClass* dummyClass;
-	KWAttribute* dummyAttribute;
-
-	require(IsParallel());
-	require(slaveRecoderClass != NULL);
-
-	// Creation d'une classe bidon
-	dummyClass = new KWClass;
-	dummyAttribute = new KWAttribute;
-	dummyAttribute->SetName("DummyAttribute");
-	dummyAttribute->SetType(KWType::Symbol);
-	dummyClass->SetName("DummyClass");
-	dummyClass->InsertAttribute(dummyAttribute);
-	slaveDummyDatabase->SetClassName(dummyClass->GetName());
-	slaveDummyDatabase->SetDatabaseName(dummyClass->GetName());
-
-	// Remplacement de la classe de recodage par la classe bidon dans le learning spec
-	slaveRecoderClass = NULL;
-	KWClassDomain::GetCurrentDomain()->DeleteAllClasses();
-	KWClassDomain::GetCurrentDomain()->InsertClass(dummyClass);
-	KWClassDomain::GetCurrentDomain()->Compile();
-	shared_learningSpec.FinalizeSpecification(dummyClass, slaveDummyDatabase);
-
-	ensure(slaveRecoderClass == NULL);
-	ensure(shared_learningSpec.GetLearningSpec()->Check());
-}
-
-boolean SNBPredictorSNBTrainingTask::SlaveProcess()
-{
-	require(IsSlaveDataTableBinarySliceSetInitialized());
-	require(slaveBinarySliceSet->Check());
-
-	return true;
-}
-
-boolean SNBPredictorSNBTrainingTask::SlaveFinalize(boolean bProcessEndedCorrectly)
-{
-	require(IsSlaveDataTableBinarySliceSetInitialized());
-	require(slaveBinarySliceSet == NULL or slaveBinarySliceSet->Check());
-	require(slaveRecoderClass != NULL or IsParallel());
-
-	// Nettoyage des objets de travail l'esclave
-	if (slaveBinarySliceSet != NULL)
-	{
-		slaveBinarySliceSet->schema.oaAttributes.RemoveAll();
-		delete slaveBinarySliceSet;
-		slaveBinarySliceSet = NULL;
-	}
-	if (slaveDummyDatabase != NULL)
-	{
-		delete slaveDummyDatabase;
-		slaveDummyDatabase = NULL;
-	}
-
-	// Nettoyage du domaine en parallele
-	if (IsParallel())
-		KWClassDomain::GetCurrentDomain()->DeleteAllClasses();
-	// Nettoyage que du pointeur en sequentiel
-	else
-		slaveRecoderClass = NULL;
-
-	ensure(slaveBinarySliceSet == NULL);
-	ensure(slaveRecoderClass == NULL);
-	return true;
-}
-
-int SNBPredictorSNBTrainingTask::GetSlaveChunkIndex() const
-{
-	require(IsRunning());
-
-	return nSlaveProcessChunkIndex;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-// Classe SNBPredictorSNBEnsembleTrainingTask
-
-SNBPredictorSNBEnsembleTrainingTask::SNBPredictorSNBEnsembleTrainingTask()
-{
-	masterHardSelectionScorer = NULL;
-	masterMapSelection = NULL;
-	masterWeightCalculator = NULL;
-	slaveSelectionScorer = NULL;
-}
-
-SNBPredictorSNBEnsembleTrainingTask::~SNBPredictorSNBEnsembleTrainingTask() {}
-
-PLParallelTask* SNBPredictorSNBEnsembleTrainingTask::Create() const
-{
-	return new SNBPredictorSNBEnsembleTrainingTask;
-}
-
-const ALString SNBPredictorSNBEnsembleTrainingTask::GetTaskName() const
-{
-	return "Selective Naive Bayes Training (Legacy)";
-}
-
-boolean SNBPredictorSNBEnsembleTrainingTask::MasterPrepareTaskInput(double& dTaskPercent, boolean& bIsTaskFinished)
-{
-	boolean bOk;
-
-	bOk = SNBPredictorSNBTrainingTask::MasterPrepareTaskInput(dTaskPercent, bIsTaskFinished);
-
-	if (IsOuterIterationFinished())
-	{
-		masterWeightCalculator->AddSelectionOptimizationRecord(
-		    SNBAttributeSelectionOptimizationRecord::Final, NULL, dMasterModificationModelCost,
-		    dMasterModificationDataCost, masterHardSelectionScorer->GetAttributeSelection());
-	}
-
-	return bOk;
-}
-
-boolean SNBPredictorSNBEnsembleTrainingTask::MasterFinalize(boolean bProcessEndedCorrectly)
-{
-	boolean bOk;
-
-	// Appel a la methode ancetre
-	bOk = SNBPredictorSNBTrainingTask::MasterFinalize(bProcessEndedCorrectly);
-
-	// Nettoyage des objets de travail du maitre
-	if (masterHardSelectionScorer != NULL)
-	{
-		delete masterHardSelectionScorer;
-		masterHardSelectionScorer = NULL;
-	}
-	if (masterMapSelection != NULL)
-	{
-		delete masterMapSelection;
-		masterMapSelection = NULL;
-	}
-	if (masterWeightCalculator != NULL)
-	{
-		delete masterWeightCalculator;
-		masterWeightCalculator = NULL;
-	}
-
-	return bOk;
-}
-
-longint SNBPredictorSNBEnsembleTrainingTask::ComputeMasterNecessaryMemory() const
-{
-	require(masterSnbPredictor != NULL);
-	require(masterSnbPredictor->Check());
-	require(masterSnbPredictor->GetTargetValueStats() != NULL);
-	require(masterSnbPredictor->GetTargetValueStats()->GetAttributeNumber() > 0);
-
-	// NB : La methode appelle ignore tous les parametres sauf nAttributeNumber
-	//      lorsque bIncludeDataCostCalculator == false
-	return SNBHardAttributeSelectionScorer::ComputeNecessaryMemory(
-	    masterSnbPredictor->GetInstanceNumber(), masterSnbPredictor->GetTrainingAttributeNumber(),
-	    masterSnbPredictor->GetTargetValueStats()->GetAttributeAt(0)->GetPartNumber(),
-	    masterSnbPredictor->GetTargetAttributeType(), masterSnbPredictor->IsTargetGrouped(), false);
-}
-
-longint SNBPredictorSNBEnsembleTrainingTask::ComputeGlobalSlaveScorerNecessaryMemory() const
-{
-	longint lFullScorerMemory;
-	longint lSelectionScorerBufferMemory;
-	require(masterSnbPredictor != NULL);
-	require(masterSnbPredictor->Check());
-	require(masterSnbPredictor->GetTargetValueStats() != NULL);
-	require(masterSnbPredictor->GetTargetValueStats()->GetAttributeNumber() > 0);
-
-	// NB : La methode appelle ignore tous les parametres sauf nAttributeNumber
-	//      lorsque bIncludeDataCostCalculator == false
-	lFullScorerMemory = SNBHardAttributeSelectionScorer::ComputeNecessaryMemory(
-	    masterSnbPredictor->GetInstanceNumber(), masterSnbPredictor->GetTrainingAttributeNumber(),
-	    masterSnbPredictor->GetTargetValueStats()->GetAttributeAt(0)->GetPartNumber(),
-	    masterSnbPredictor->GetTargetAttributeType(), masterSnbPredictor->IsTargetGrouped(), true);
-
-	lSelectionScorerBufferMemory =
-	    lFullScorerMemory -
-	    SNBHardAttributeSelectionScorer::ComputeNecessaryMemory(
-		masterSnbPredictor->GetInstanceNumber(), masterSnbPredictor->GetTrainingAttributeNumber(),
-		masterSnbPredictor->GetTargetValueStats()->GetAttributeAt(0)->GetPartNumber(),
-		masterSnbPredictor->GetTargetAttributeType(), masterSnbPredictor->IsTargetGrouped(), false);
-
-	return lSelectionScorerBufferMemory;
-}
-
-longint SNBPredictorSNBEnsembleTrainingTask::ComputeSlaveScorerNecessaryMemory() const
-{
-	require(masterSnbPredictor != NULL);
-	require(masterSnbPredictor->Check());
-	require(masterSnbPredictor->GetTargetValueStats() != NULL);
-	require(masterSnbPredictor->GetTargetValueStats()->GetAttributeNumber() > 0);
-
-	// NB : La methode appelle ignore tous les parametres sauf nAttributeNumber
-	//      lorsque bIncludeDataCostCalculator == false
-	return SNBHardAttributeSelectionScorer::ComputeNecessaryMemory(
-	    masterSnbPredictor->GetInstanceNumber(), masterSnbPredictor->GetTrainingAttributeNumber(),
-	    masterSnbPredictor->GetTargetValueStats()->GetAttributeAt(0)->GetPartNumber(),
-	    masterSnbPredictor->GetTargetAttributeType(), masterSnbPredictor->IsTargetGrouped(), false);
-}
-
-void SNBPredictorSNBEnsembleTrainingTask::MasterInitializeOptimizationVariables()
-{
-	double dStartNumber;
-
-	// Appel a la methode ancetre
-	SNBPredictorSNBTrainingTask::MasterInitializeOptimizationVariables();
-
-	// Calculatrice du score du maitre (calculatrice de couts de donnes non initialise)
-	masterHardSelectionScorer = new SNBHardAttributeSelectionScorer;
-	masterHardSelectionScorer->SetLearningSpec(shared_learningSpec.GetLearningSpec());
-	masterHardSelectionScorer->SetDataTableBinarySliceSet(masterBinarySliceSet);
-	masterHardSelectionScorer->SetPriorWeight(masterSnbPredictor->GetSelectionParameters()->GetPriorWeight());
-	masterHardSelectionScorer->SetConstructionCostEnabled(
-	    masterSnbPredictor->GetSelectionParameters()->GetConstructionCost());
-	masterHardSelectionScorer->SetPreparationCostEnabled(
-	    masterSnbPredictor->GetSelectionParameters()->GetPreparationCost());
-
-	// Calculatrice de poids
-	masterWeightCalculator = new SNBAttributeSelectionWeightCalculator;
-	masterWeightCalculator->SetDataTableBinarySliceSet(masterBinarySliceSet);
-	if (masterSnbPredictor->GetSelectionParameters()->GetSelectionCriterion() == "CMA")
-		masterWeightCalculator->SetWeightingMethod(
-		    SNBAttributeSelectionWeightCalculator::WeightingMethod::PredictorCompressionRate);
-	else if (masterSnbPredictor->GetSelectionParameters()->GetSelectionCriterion() == "MA")
-		masterWeightCalculator->SetWeightingMethod(
-		    SNBAttributeSelectionWeightCalculator::WeightingMethod::PredictorProb);
-	else
-		masterWeightCalculator->SetWeightingMethod(
-		    SNBAttributeSelectionWeightCalculator::WeightingMethod::None);
-	masterWeightCalculator->SetTraceLevel(masterSnbPredictor->GetSelectionParameters()->GetTraceLevel());
-	masterWeightCalculator->SetTraceSelectedAttributes(
-	    masterSnbPredictor->GetSelectionParameters()->GetTraceSelectedAttributes());
-	masterWeightCalculator->Reset();
-
-	// Nombre de starts : Si le niveau d'optimisation a ete specifie par l'utilisateur (i.e > 0) on le prend
-	if (masterSnbPredictor->GetSelectionParameters()->GetOptimizationLevel() > 0)
-		nMasterOuterIterationNumber = masterSnbPredictor->GetSelectionParameters()->GetOptimizationLevel();
-	// Sinon on calcule le nombre de starts par ~ log2(K+1) + log2(N+1) + 1
-	// L'iteration additionnelle est pour tenir en compte la premiere passe sans randomisation
-	else
-	{
-		dStartNumber = log2(masterBinarySliceSet->GetInstanceNumber() + 1.0);
-		dStartNumber += log2(masterBinarySliceSet->GetInitialAttributeNumber() + 1.0);
-		nMasterOuterIterationNumber = int(ceil(dStartNumber)) + 1;
-	}
-
-	ensure(masterHardSelectionScorer->Check());
-	ensure(masterWeightCalculator->Check());
-}
-
-void SNBPredictorSNBEnsembleTrainingTask::UpdateTaskProgressionLabel() const
-{
-	ALString sLabel;
-
-	require(IsRunning());
-	require(IsMasterProcess());
-
-	sLabel = "Model No.";
-	sLabel += IntToString(nMasterOuterIteration + 1);
-	if (IsOnFastForwardRun())
-		sLabel += ": adding attributes";
-	else
-		sLabel += ": removing attributes";
-	TaskProgression::DisplayLabel(sLabel);
-}
-
-void SNBPredictorSNBEnsembleTrainingTask::UpdateSelection()
-{
-	require(IsMasterProcess());
-
-	// Passe fast forward (ajout)
-	if (IsOnFastForwardRun())
-	{
-		// Mise a jour du score de la modification
-		masterHardSelectionScorer->AddAttribute(masterRandomAttribute);
-		dMasterModificationModelCost = masterHardSelectionScorer->ComputeSelectionModelCost();
-		dMasterModificationScore += dMasterModificationModelCost + dMasterModificationDataCost;
-		masterWeightCalculator->AddSelectionOptimizationRecord(
-		    SNBAttributeSelectionOptimizationRecord::AddAttribute, masterRandomAttribute,
-		    dMasterModificationModelCost, dMasterModificationDataCost,
-		    masterHardSelectionScorer->GetAttributeSelection());
-
-		// Mise a jour de la selection si le score est ameliore
-		if (dMasterModificationScore < dMasterCurrentScore - dMasterPrecisionEpsilon)
-		{
-			dMasterCurrentScore = dMasterModificationScore;
-			dMasterCurrentModelCost = dMasterModificationModelCost;
-			dMasterCurrentDataCost = dMasterModificationDataCost;
-			bMasterUndoLastModification = false;
-			masterWeightCalculator->AddSelectionOptimizationRecord(
-			    SNBAttributeSelectionOptimizationRecord::BestAdd, masterRandomAttribute,
-			    dMasterModificationModelCost, dMasterModificationDataCost,
-			    masterHardSelectionScorer->GetAttributeSelection());
-		}
-		else
-		{
-			masterHardSelectionScorer->UndoLastModification();
-			bMasterUndoLastModification = true;
-		}
-
-		// L'initialisation du scorer s'execute une seule fois par start, apres le premiere passe FastAdd
-		if (bMasterInitializeSlaveScorers)
-			bMasterInitializeSlaveScorers = false;
-	}
-	// Passe fast backward (enlevement)
-	else
-	{
-		// Mise a jour du score de la modification
-		masterHardSelectionScorer->RemoveAttribute(masterRandomAttribute);
-		dMasterModificationModelCost = ComputeSelectionModelCost();
-		dMasterModificationScore += dMasterModificationModelCost + dMasterModificationDataCost;
-		masterWeightCalculator->AddSelectionOptimizationRecord(
-		    SNBAttributeSelectionOptimizationRecord::Remove, masterRandomAttribute,
-		    dMasterModificationModelCost, dMasterModificationDataCost,
-		    masterHardSelectionScorer->GetAttributeSelection());
-
-		// Mise a jour de la selection si le score est ameliore
-		if (dMasterModificationScore < dMasterCurrentScore + dMasterPrecisionEpsilon)
-		{
-			dMasterCurrentScore = dMasterModificationScore;
-			dMasterCurrentModelCost = dMasterModificationModelCost;
-			dMasterCurrentDataCost = dMasterModificationDataCost;
-			bMasterUndoLastModification = false;
-			masterWeightCalculator->AddSelectionOptimizationRecord(
-			    SNBAttributeSelectionOptimizationRecord::BestRemove, masterRandomAttribute,
-			    dMasterModificationModelCost, dMasterModificationDataCost,
-			    masterHardSelectionScorer->GetAttributeSelection());
-		}
-		else
-		{
-			masterHardSelectionScorer->UndoLastModification();
-			bMasterUndoLastModification = true;
-		}
-	}
-}
-
-void SNBPredictorSNBEnsembleTrainingTask::UpdateCurrentAttribute()
-{
-	require(IsMasterProcess());
-	require(not IsFastRunFinished());
-
-	// Passe fast forward (ajout) : Le prochain attribut aleatoire *ne doit pas* etre selectionne
-	if (IsOnFastForwardRun())
-	{
-		if (masterRandomAttribute != NULL)
-			nMasterRandomAttribute++;
-		while (nMasterRandomAttribute < masterBinarySliceSet->GetAttributeNumber())
-		{
-			masterRandomAttribute = masterBinarySliceSet->GetRandomAttributeAt(nMasterRandomAttribute);
-			if (not SelectionContainsAttribute(masterRandomAttribute))
-				break;
-			nMasterRandomAttribute++;
-		}
-	}
-	// Passe fast backward (enlevement) : Le prochain attribut aleatoire *doit* etre selectionne
-	else
-	{
-		if (masterRandomAttribute != NULL)
-			nMasterRandomAttribute--;
-		while (nMasterRandomAttribute >= 0)
-		{
-			masterRandomAttribute = masterBinarySliceSet->GetRandomAttributeAt(nMasterRandomAttribute);
-			if (SelectionContainsAttribute(masterRandomAttribute))
-				break;
-			nMasterRandomAttribute--;
-		}
-	}
-
-	// Shuffle de l'iterateur aleatoire si l'on arrive a la fin d'une passe fast forward ou backward
-	if (IsFastRunFinished())
-	{
-		masterRandomAttribute = NULL;
-		masterBinarySliceSet->ShuffleRandomAttributeIterator();
-	}
-
-	ensure(CheckCurrentAttribute());
-}
-
-boolean
-SNBPredictorSNBEnsembleTrainingTask::SelectionContainsAttribute(SNBDataTableBinarySliceSetAttribute* attribute) const
-{
-	require(IsRunning());
-	require(IsMasterProcess());
-	return masterHardSelectionScorer->GetAttributeSelection()->Contains(attribute);
-}
-
-boolean SNBPredictorSNBEnsembleTrainingTask::IsSelectionEmpty() const
-{
-	require(IsRunning());
-	require(IsMasterProcess());
-	return masterHardSelectionScorer->GetAttributeSelection()->GetAttributeNumber() == 0;
-}
-
-void SNBPredictorSNBEnsembleTrainingTask::InitializeNextFastForwardRun()
-{
-	require(not IsOnFastForwardRun());
-
-	bMasterIsOnFastAddRun = true;
-	nMasterRandomAttribute = 0;
-
-	// Nouvelle passe FastForwardBackward ssi le score est ameliore par rapport a la passe FastForward d'avant
-	if (dMasterCurrentScore < dMasterPreviousRunScore - dMasterPrecisionEpsilon)
-		nMasterFastForwardBackwardRun++;
-	else
-		nMasterFastForwardBackwardRun = nMaxFastForwardBackwardRuns;
-	dMasterPreviousRunScore = dMasterCurrentScore;
-
-	// Fin de la passe MultiStart
-	if (nMasterFastForwardBackwardRun == nMaxFastForwardBackwardRuns)
-	{
-		masterWeightCalculator->AddSelectionOptimizationRecord(
-		    SNBAttributeSelectionOptimizationRecord::LocalOptimum, NULL, dMasterCurrentModelCost,
-		    dMasterCurrentDataCost, masterHardSelectionScorer->GetAttributeSelection());
-
-		// Mise a jour du MAP en cas d'amelioration
-		if (dMasterCurrentScore < dMasterMapScore - dMasterPrecisionEpsilon)
-		{
-			masterWeightCalculator->AddSelectionOptimizationRecord(
-			    SNBAttributeSelectionOptimizationRecord::GlobalOptimum, NULL, dMasterCurrentModelCost,
-			    dMasterCurrentDataCost, masterHardSelectionScorer->GetAttributeSelection());
-
-			dMasterMapScore = dMasterCurrentScore;
-			if (masterMapSelection != NULL)
-				delete masterMapSelection;
-			masterMapSelection = masterHardSelectionScorer->CollectAttributeSelection();
-		}
-
-		// Reinitialisation de la passe MultiStart
-		nMasterOuterIteration++;
-		nMasterFastForwardBackwardRun = 0;
-		dMasterCurrentScore = dMasterEmptySelectionScore;
-		dMasterCurrentModelCost = dMasterEmptySelectionModelCost;
-		dMasterCurrentDataCost = dMasterEmptySelectionDataCost;
-		dMasterPreviousRunScore = dMasterEmptySelectionScore;
-		bMasterInitializeSlaveScorers = true;
-		masterHardSelectionScorer->InitializeWorkingData();
-		masterWeightCalculator->AddSelectionOptimizationRecord(
-		    SNBAttributeSelectionOptimizationRecord::ForcedRemoveAll, NULL, dMasterEmptySelectionModelCost,
-		    dMasterEmptySelectionDataCost, masterHardSelectionScorer->GetAttributeSelection());
-
-		// Shuffle additionel pour la compatibilite backwards
-		masterBinarySliceSet->ShuffleRandomAttributeIterator();
-	}
-
-	// Mise a jour du label de la progression
-	UpdateTaskProgressionLabel();
-}
-
-void SNBPredictorSNBEnsembleTrainingTask::ComputeEmptySelectionScoreAndPrecisionEpsilon()
-{
-	// Appel a la methode ancetre
-	SNBPredictorSNBTrainingTask::ComputeEmptySelectionScoreAndPrecisionEpsilon();
-
-	// Initialisation des enregistrements de l'optimisation
-	masterWeightCalculator->AddSelectionOptimizationRecord(
-	    SNBAttributeSelectionOptimizationRecord::Start, NULL, dMasterEmptySelectionModelCost,
-	    dMasterEmptySelectionDataCost, masterHardSelectionScorer->GetAttributeSelection());
-}
-
-double SNBPredictorSNBEnsembleTrainingTask::ComputeSelectionModelCost()
-{
-	require(IsRunning());
-	require(IsMasterProcess());
-	return masterHardSelectionScorer->ComputeSelectionModelCost();
-}
-
-void SNBPredictorSNBEnsembleTrainingTask::MasterFinalizeTrainingAndReports()
-{
-	int nAttribute;
-	SNBDataTableBinarySliceSetAttribute* attribute;
-	KWSelectedAttributeReport* attributeReport;
-	KWPredictorSelectionReport* selectionReport;
-	int nMaxSelectedAttributes;
-	ContinuousVector* cvAttributeWeights;
-
-	require(IsMasterProcess());
-
-	// Calcul des attributs en fonction de l'historique d'evaluation
-	masterWeightCalculator->ComputeAttributeWeigths();
-	cvAttributeWeights = masterWeightCalculator->CollectAttributeWeights();
-
-	// Nettoyage du rapport de selection d'attributs
-	selectionReport = masterSnbPredictor->GetPredictorSelectionReport();
-	selectionReport->GetSelectedAttributes()->DeleteAll();
-
-	// Creation des rapports des attributs selectionnes et ajout au rapport de selection
-	for (nAttribute = 0; nAttribute < masterBinarySliceSet->GetAttributeNumber(); nAttribute++)
-	{
-		// Ajout du rapport de l'attribut s'il est selectionne ou s'il a un poids non nul
-		attribute = masterBinarySliceSet->GetAttributeAt(nAttribute);
-		if (cvAttributeWeights->GetAt(attribute->GetDataPreparationClassIndex()) > 0)
-		{
-			attributeReport = new KWSelectedAttributeReport;
-			attributeReport->SetPreparedAttributeName(attribute->GetPreparedAttributeName());
-			attributeReport->SetNativeAttributeName(attribute->GetNativeAttributeName());
-			attributeReport->SetUnivariateEvaluation(attribute->GetLevel());
-			attributeReport->SetWeight(
-			    cvAttributeWeights->GetAt(attribute->GetDataPreparationClassIndex()));
-			selectionReport->GetSelectedAttributes()->Add(attributeReport);
-		}
-	}
-
-	// Tri du rapport d'attributs selectionnes selon poids dans le predicteur et level
-	selectionReport->GetSelectedAttributes()->SetCompareFunction(KWLearningReportCompareSortValue);
-	selectionReport->GetSelectedAttributes()->Sort();
-
-	// Supression des attributs avec moins importants si demande
-	nMaxSelectedAttributes = masterSnbPredictor->GetSelectionParameters()->GetMaxSelectedAttributeNumber();
-	if (nMaxSelectedAttributes > 0)
-	{
-		for (nAttribute = nMaxSelectedAttributes;
-		     nAttribute < selectionReport->GetSelectedAttributes()->GetSize(); nAttribute++)
-		{
-			attributeReport = cast(KWSelectedAttributeReport*,
-					       selectionReport->GetSelectedAttributes()->GetAt(nAttribute));
-			delete attributeReport;
-		}
-		selectionReport->GetSelectedAttributes()->SetSize(nMaxSelectedAttributes);
-	}
-
-	// Creation de la classe du predicteur
-	if (masterWeightCalculator->GetWeightingMethod() !=
-	    SNBAttributeSelectionWeightCalculator::WeightingMethod::None)
-	{
-		masterSnbPredictor->InternalTrainFinishTrainedPredictor(
-		    masterBinarySliceSet->GetDataPreparationClass(),
-		    masterBinarySliceSet->GetDataPreparationClass()->GetDataPreparationAttributes(),
-		    cvAttributeWeights);
-	}
-	else
-		masterSnbPredictor->InternalTrainMAP(masterBinarySliceSet->GetDataPreparationClass(),
-						     masterMapSelection);
-
-	// Nettoyage
-	delete cvAttributeWeights;
-}
-
-boolean SNBPredictorSNBEnsembleTrainingTask::SlaveInitialize()
-{
-	boolean bOk;
-
-	require(slaveSelectionScorer == NULL);
-
-	// Appel a la methode ancetre
-	bOk = SNBPredictorSNBTrainingTask::SlaveInitialize();
-
-	// Initialisation de scorer
-	if (bOk)
-	{
-		slaveSelectionScorer = new SNBHardAttributeSelectionScorer;
-		slaveSelectionScorer->SetLearningSpec(shared_learningSpec.GetLearningSpec());
-		slaveSelectionScorer->SetDataTableBinarySliceSet(slaveBinarySliceSet);
-		slaveSelectionScorer->SetPriorWeight(shared_dPriorWeight);
-		slaveSelectionScorer->SetConstructionCostEnabled(shared_bIsConstructionCostEnabled);
-		slaveSelectionScorer->SetPreparationCostEnabled(shared_bIsPreparationCostEnabled);
-		bOk = bOk and slaveSelectionScorer->CreateDataCostCalculator();
-	}
-	if (bOk)
-		slaveSelectionScorer->InitializeWorkingData();
-
-	ensure(not bOk or (slaveSelectionScorer->IsDataCostCalculatorCreated() and slaveSelectionScorer->Check()));
-	return bOk;
-}
-
-boolean SNBPredictorSNBEnsembleTrainingTask::SlaveProcess()
-{
-	boolean bOk = true;
-
-	// Appel a la methode ancetre
-	bOk = bOk and SNBPredictorSNBTrainingTask::SlaveProcess();
-
-	if (bOk and input_bInitializeWorkingData)
-		slaveSelectionScorer->InitializeWorkingData();
-
-	if (bOk and input_nModificationAttribute >= 0)
-	{
-		if (input_bUndoLastModification and not input_bInitializeWorkingData)
-			bOk = bOk and slaveSelectionScorer->UndoLastModification();
-
-		if (bOk)
-		{
-			if (input_bIsForwardModification)
-				bOk = bOk and slaveSelectionScorer->AddAttribute(
-						  slaveBinarySliceSet->GetAttributeAt(input_nModificationAttribute));
-			else
-				bOk = bOk and slaveSelectionScorer->RemoveAttribute(
-						  slaveBinarySliceSet->GetAttributeAt(input_nModificationAttribute));
-		}
-	}
-	output_dDataCost = slaveSelectionScorer->ComputeSelectionDataCost();
-
-	return bOk;
-}
-
-boolean SNBPredictorSNBEnsembleTrainingTask::SlaveFinalize(boolean bProcessEndedCorrectly)
-{
-	boolean bOk;
-
-	// Appel a la methode ancetre
-	bOk = SNBPredictorSNBTrainingTask::SlaveFinalize(bProcessEndedCorrectly);
-
-	// Nettoyage du scorer de l'esclave
-	if (slaveSelectionScorer != NULL)
-	{
-		delete slaveSelectionScorer;
-		slaveSelectionScorer = NULL;
-	}
-
-	return bOk;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-// Classe SNBPredictorSNBDirectTrainingTask
-
-SNBPredictorSNBDirectTrainingTask::SNBPredictorSNBDirectTrainingTask()
-{
-	masterWeightedSelectionScorer = NULL;
-	slaveWeightedSelectionScorer = NULL;
-	dMasterModificationDeltaWeight = DBL_MAX;
-	DeclareTaskInput(&input_dModificationDeltaWeight);
-}
-
-SNBPredictorSNBDirectTrainingTask::~SNBPredictorSNBDirectTrainingTask() {}
-
-PLParallelTask* SNBPredictorSNBDirectTrainingTask::Create() const
-{
-	return new SNBPredictorSNBDirectTrainingTask;
-}
-
-const ALString SNBPredictorSNBDirectTrainingTask::GetTaskName() const
-{
-	return "Selective Naive Bayes Training";
-}
-
-boolean SNBPredictorSNBDirectTrainingTask::MasterPrepareTaskInput(double& dTaskPercent, boolean& bIsTaskFinished)
-{
-	boolean bOk;
-
-	bOk = SNBPredictorSNBTrainingTask::MasterPrepareTaskInput(dTaskPercent, bIsTaskFinished);
-
-	if (not IsOuterIterationFinished() and IsPrecisionEpsilonCalculated())
-		input_dModificationDeltaWeight = dMasterModificationDeltaWeight;
-
-	return bOk;
-}
-
-boolean SNBPredictorSNBDirectTrainingTask::MasterFinalize(boolean bProcessEndedCorrectly)
-{
-	boolean bOk;
-
-	// Appel a la methode ancetre
-	bOk = SNBPredictorSNBTrainingTask::MasterFinalize(bProcessEndedCorrectly);
-
-	// Nettoyage des variables de travail du maitre
-	if (masterWeightedSelectionScorer != NULL)
-	{
-		delete masterWeightedSelectionScorer;
-		masterWeightedSelectionScorer = NULL;
-	}
-
-	return bOk;
-}
-
-longint SNBPredictorSNBDirectTrainingTask::ComputeMasterNecessaryMemory() const
-{
-	require(masterSnbPredictor != NULL);
-	require(masterSnbPredictor->Check());
-	require(masterSnbPredictor->GetTargetValueStats() != NULL);
-	require(masterSnbPredictor->GetTargetValueStats()->GetAttributeNumber() > 0);
-
-	// NB : La methode appellee ignore tous les parametres sauf nAttributeNumber
-	//      lorsque bIncludeDataCostCalculator == false
-	return SNBWeightedAttributeSelectionScorer::ComputeNecessaryMemory(
-	    1, masterSnbPredictor->GetTrainingAttributeNumber(), 1, masterSnbPredictor->GetTargetAttributeType(),
-	    masterSnbPredictor->IsTargetGrouped(), false);
-}
-
-longint SNBPredictorSNBDirectTrainingTask::ComputeGlobalSlaveScorerNecessaryMemory() const
-{
-	longint lFullScorerMemory;
-	longint lSelectionScorerBufferMemory;
-
-	require(masterSnbPredictor != NULL);
-	require(masterSnbPredictor->Check());
-	require(masterSnbPredictor->GetTargetValueStats() != NULL);
-	require(masterSnbPredictor->GetTargetValueStats()->GetAttributeNumber() > 0);
-
-	// NB : La methode appelle ignore tous les parametres sauf nAttributeNumber
-	//      lorsque bIncludeDataCostCalculator == false
-	lFullScorerMemory = SNBWeightedAttributeSelectionScorer::ComputeNecessaryMemory(
-	    masterSnbPredictor->GetInstanceNumber(), masterSnbPredictor->GetTrainingAttributeNumber(),
-	    masterSnbPredictor->GetTargetValueStats()->GetAttributeAt(0)->GetPartNumber(),
-	    masterSnbPredictor->GetTargetAttributeType(), masterSnbPredictor->IsTargetGrouped(), true);
-
-	lSelectionScorerBufferMemory =
-	    lFullScorerMemory -
-	    SNBWeightedAttributeSelectionScorer::ComputeNecessaryMemory(
-		masterSnbPredictor->GetInstanceNumber(), masterSnbPredictor->GetTrainingAttributeNumber(),
-		masterSnbPredictor->GetTargetValueStats()->GetAttributeAt(0)->GetPartNumber(),
-		masterSnbPredictor->GetTargetAttributeType(), masterSnbPredictor->IsTargetGrouped(), false);
-
-	return lSelectionScorerBufferMemory;
-}
-longint SNBPredictorSNBDirectTrainingTask::ComputeSlaveScorerNecessaryMemory() const
-{
-	require(masterSnbPredictor != NULL);
-	require(masterSnbPredictor->Check());
-	require(masterSnbPredictor->GetTargetValueStats() != NULL);
-	require(masterSnbPredictor->GetTargetValueStats()->GetAttributeNumber() > 0);
-
-	// NB : La methode appellee ignore tous les parametres sauf nAttributeNumber
-	//      lorsque bIncludeDataCostCalculator == false
-	return SNBWeightedAttributeSelectionScorer::ComputeNecessaryMemory(
-	    masterSnbPredictor->GetInstanceNumber(), masterSnbPredictor->GetTrainingAttributeNumber(),
-	    masterSnbPredictor->GetTargetValueStats()->GetAttributeAt(0)->GetPartNumber(),
-	    masterSnbPredictor->GetTargetAttributeType(), masterSnbPredictor->IsTargetGrouped(), false);
-}
-
-void SNBPredictorSNBDirectTrainingTask::MasterInitializeOptimizationVariables()
-{
-	// Appel a la methode ancetre
-	SNBPredictorSNBTrainingTask::MasterInitializeOptimizationVariables();
-
-	// Delta poids de la modification courante
-	dMasterModificationDeltaWeight = 0.5;
-
-	// Calculatrice du score du maitre (calculatrice de couts de donnes non initialise)
-	masterWeightedSelectionScorer = new SNBWeightedAttributeSelectionScorer;
-	masterWeightedSelectionScorer->SetLearningSpec(shared_learningSpec.GetLearningSpec());
-	masterWeightedSelectionScorer->SetDataTableBinarySliceSet(masterBinarySliceSet);
-	masterWeightedSelectionScorer->SetPriorWeight(masterSnbPredictor->GetSelectionParameters()->GetPriorWeight());
-	masterWeightedSelectionScorer->SetConstructionCostEnabled(
-	    masterSnbPredictor->GetSelectionParameters()->GetConstructionCost());
-	masterWeightedSelectionScorer->SetPreparationCostEnabled(
-	    masterSnbPredictor->GetSelectionParameters()->GetPreparationCost());
-	masterWeightedSelectionScorer->SetPriorExponent(
-	    masterSnbPredictor->GetSelectionParameters()->GetPriorExponent());
-
-	// Nombre maximale d'iterations externes
-	nMasterOuterIterationNumber = int(ceil(log(masterBinarySliceSet->GetInstanceNumber() + 1)) / log(2.0));
-
-	// NB : Il y a un erreur de parenthese dans la derniere formule mais on la garde pour la compatibilite
-	// ascendante La formule correcte est la suivante (elle donne +1 dans certaines cas) :
-	//
-	//  nMasterOuterIterationNumber = int(ceil(log2(masterBinarySliceSet->GetInstanceNumber() + 1)));
-}
-
-void SNBPredictorSNBDirectTrainingTask::UpdateTaskProgressionLabel() const
-{
-	ALString sLabel;
-
-	require(IsRunning());
-	require(IsMasterProcess());
-
-	if (IsOnFastForwardRun())
-		sLabel = "Increasing variable weights by ";
-	else
-		sLabel = "Decreasing variable weights by ";
-	sLabel += DoubleToString(dMasterModificationDeltaWeight);
-	TaskProgression::DisplayLabel(sLabel);
-}
-
-void SNBPredictorSNBDirectTrainingTask::UpdateSelection()
+void SNBPredictorSelectiveNaiveBayesTrainingTask::UpdateSelection()
 {
 	const boolean bLocalTrace = false;
 
 	require(IsMasterProcess());
 
 	// Passe FastForward
-	if (IsOnFastForwardRun())
+	if (nMasterTaskState == TaskState::FastForwardRun)
 	{
 		// Mise a jour du score de la modification
 		masterWeightedSelectionScorer->IncreaseAttributeWeight(masterRandomAttribute,
@@ -2288,10 +1286,12 @@ void SNBPredictorSNBDirectTrainingTask::UpdateSelection()
 	// Passe FastBackward
 	else
 	{
+		assert(nMasterTaskState == TaskState::FastBackwardRun);
+
 		// Mise a jour du score de la modification
 		masterWeightedSelectionScorer->DecreaseAttributeWeight(masterRandomAttribute,
 								       dMasterModificationDeltaWeight);
-		dMasterModificationModelCost = ComputeSelectionModelCost();
+		dMasterModificationModelCost = masterWeightedSelectionScorer->ComputeSelectionModelCost();
 		dMasterModificationScore += dMasterModificationModelCost + dMasterModificationDataCost;
 
 		// Mise a jour de la selection ssi le score est ameliore
@@ -2313,22 +1313,22 @@ void SNBPredictorSNBDirectTrainingTask::UpdateSelection()
 	if (bLocalTrace)
 	{
 		cout << masterRandomAttribute->GetNativeAttributeName() << "\t"
-		     << (IsOnFastForwardRun() ? "increase" : "decrease") << "\t" << dMasterModificationDeltaWeight
-		     << "\t" << dMasterModificationModelCost << "\t" << dMasterModificationDataCost << "\t"
-		     << (bMasterUndoLastModification ? "rejected" : "accepted");
+		     << (nMasterTaskState == TaskState::FastForwardRun ? "increase" : "decrease") << "\t"
+		     << dMasterModificationDeltaWeight << "\t" << dMasterModificationModelCost << "\t"
+		     << dMasterModificationDataCost << "\t" << (bMasterUndoLastModification ? "rejected" : "accepted");
 		if (not bMasterUndoLastModification)
 			cout << "\t" << dMasterCurrentScore;
 		cout << "\n";
 	}
 }
 
-void SNBPredictorSNBDirectTrainingTask::UpdateCurrentAttribute()
+void SNBPredictorSelectiveNaiveBayesTrainingTask::UpdateCurrentAttribute()
 {
 	require(IsMasterProcess());
 	require(not IsFastRunFinished());
 
 	// Passe FastForward
-	if (IsOnFastForwardRun())
+	if (nMasterTaskState == TaskState::FastForwardRun)
 	{
 		if (masterRandomAttribute != NULL)
 			nMasterRandomAttribute++;
@@ -2339,12 +1339,13 @@ void SNBPredictorSNBDirectTrainingTask::UpdateCurrentAttribute()
 	// Passe FastBackward : Le prochain attribut aleatoire *doit* etre selectionne
 	else
 	{
+		assert(nMasterTaskState == TaskState::FastBackwardRun);
 		if (masterRandomAttribute != NULL)
 			nMasterRandomAttribute--;
 		while (nMasterRandomAttribute >= 0)
 		{
 			masterRandomAttribute = masterBinarySliceSet->GetRandomAttributeAt(nMasterRandomAttribute);
-			if (SelectionContainsAttribute(masterRandomAttribute))
+			if (masterWeightedSelectionScorer->GetAttributeSelection()->Contains(masterRandomAttribute))
 				break;
 			nMasterRandomAttribute--;
 		}
@@ -2360,32 +1361,118 @@ void SNBPredictorSNBDirectTrainingTask::UpdateCurrentAttribute()
 	ensure(CheckCurrentAttribute());
 }
 
-boolean
-SNBPredictorSNBDirectTrainingTask::SelectionContainsAttribute(SNBDataTableBinarySliceSetAttribute* attribute) const
+boolean SNBPredictorSelectiveNaiveBayesTrainingTask::IsFastRunFinished() const
 {
+	boolean bIsRunFinished;
+
 	require(IsRunning());
 	require(IsMasterProcess());
-	return masterWeightedSelectionScorer->GetAttributeSelection()->Contains(attribute);
+
+	if (nMasterTaskState == TaskState::FastForwardRun)
+		bIsRunFinished = nMasterRandomAttribute == masterBinarySliceSet->GetAttributeNumber();
+	else
+		bIsRunFinished = nMasterRandomAttribute == -1;
+
+	return bIsRunFinished;
 }
 
-boolean SNBPredictorSNBDirectTrainingTask::IsSelectionEmpty() const
+void SNBPredictorSelectiveNaiveBayesTrainingTask::InitializeNextFastRun()
 {
-	require(IsRunning());
 	require(IsMasterProcess());
-	return masterWeightedSelectionScorer->GetAttributeSelection()->GetAttributeNumber() == 0;
+	require(nMasterTaskState == TaskState::FastForwardRun or nMasterTaskState == TaskState::FastBackwardRun);
+
+	// Fin d'une passe FastForward : On initialise une passe FastBackward
+	if (nMasterTaskState == TaskState::FastForwardRun)
+	{
+		// Si la selection est vide : On saute a la prochaine passe FastForward
+		if (masterWeightedSelectionScorer->GetAttributeSelection()->GetAttributeNumber() == 0)
+			InitializeNextFastForwardRun();
+		// Sinon on initialise une passe FastBackward
+		else
+		{
+			nMasterTaskState = TaskState::FastBackwardRun;
+			nMasterRandomAttribute = masterBinarySliceSet->GetAttributeNumber() - 1;
+		}
+	}
+	// Fin d'une passe FastBackward : On initialise un passe FastForward et potentiellement une
+	// nouvelle iteration externe
+	else
+		InitializeNextFastForwardRun();
+
+	// Mise-a-jour de l'attribut courant
+	UpdateCurrentAttribute();
+
+	// Mise a jour de la progression
+	UpdateTaskProgressionLabel();
 }
 
-void SNBPredictorSNBDirectTrainingTask::InitializeNextFastForwardRun()
+void SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeEmptySelectionScoreAndPrecisionEpsilon()
 {
-	bMasterIsOnFastAddRun = true;
+	const boolean bLocalTrace = false;
+
+	require(nMasterTaskState == TaskState::PrecisionEpsilonComputation);
+	require(dMasterPrecisionEpsilon == 0.0);
+
+	// Mise a jour du score de la selection vide
+	dMasterEmptySelectionModelCost = masterWeightedSelectionScorer->ComputeSelectionModelCost();
+	dMasterEmptySelectionScore = dMasterEmptySelectionModelCost + dMasterEmptySelectionDataCost;
+
+	// Calcul du epsilon de precision permettant de se comparer de facon relative a ce cout par defaut
+	// La comparaison en "absolu" pose des problemes numeriques
+	dMasterPrecisionEpsilon = 1e-2 * (1 + fabs(dMasterEmptySelectionScore));
+	dMasterPrecisionEpsilon /= (1 + shared_learningSpec.GetLearningSpec()->GetInstanceNumber());
+
+	// Initialisation du reste de couts et scores
+	dMasterCurrentScore = dMasterEmptySelectionScore;
+	dMasterCurrentModelCost = dMasterEmptySelectionModelCost;
+	dMasterCurrentDataCost = dMasterEmptySelectionDataCost;
+	dMasterLastFFBWRunScore = dMasterEmptySelectionScore;
+	dMasterMapScore = dMasterEmptySelectionScore;
+
+	// Trace de debbogage
+	if (bLocalTrace)
+	{
+		cout << "Empty selection model cost = " << dMasterEmptySelectionModelCost << "\n";
+		cout << "Empty selection data cost  = " << dMasterEmptySelectionDataCost << "\n";
+		cout << "Precision Epsilon          = " << dMasterPrecisionEpsilon << "\n";
+		cout << "----------------------------------------------\n";
+		cout << "Variable\tModif\tWeight\tModelCost\tDataCost\tDecision\tNewCost\n";
+	}
+
+	ensure(dMasterPrecisionEpsilon > 0.0);
+}
+
+boolean SNBPredictorSelectiveNaiveBayesTrainingTask::CheckCurrentAttribute() const
+{
+	boolean bOk = true;
+
+	if (not IsFastRunFinished())
+	{
+		bOk = bOk and masterRandomAttribute != NULL;
+		bOk = bOk and 0 <= nMasterRandomAttribute and
+		      nMasterRandomAttribute < masterBinarySliceSet->GetAttributeNumber();
+	}
+	else
+	{
+		bOk = bOk and masterRandomAttribute == NULL;
+		bOk = (nMasterTaskState == TaskState::FastForwardRun and
+		       nMasterRandomAttribute == masterBinarySliceSet->GetAttributeNumber()) or
+		      (nMasterTaskState != TaskState::FastForwardRun and nMasterRandomAttribute == -1);
+	}
+
+	return bOk;
+}
+
+void SNBPredictorSelectiveNaiveBayesTrainingTask::InitializeNextFastForwardRun()
+{
+	// Refaite de la meme passe FFWBW ssi le score est ameliore par rapport a la passe FFBW d'avant
 	nMasterRandomAttribute = 0;
-
-	// Nouvelle passe FastForwardBackward ssi le score est ameliore par rapport a la passe FastForward d'avant
-	if (dMasterCurrentScore < dMasterPreviousRunScore - dMasterPrecisionEpsilon)
+	if (dMasterCurrentScore < dMasterLastFFBWRunScore - dMasterPrecisionEpsilon)
 		nMasterFastForwardBackwardRun++;
+	// Sinon on passe a la suivante passe FFWBW (diminution de poids)
 	else
 		nMasterFastForwardBackwardRun = nMaxFastForwardBackwardRuns;
-	dMasterPreviousRunScore = dMasterCurrentScore;
+	dMasterLastFFBWRunScore = dMasterCurrentScore;
 
 	// Fin de l'iteration externe
 	if (nMasterFastForwardBackwardRun == nMaxFastForwardBackwardRuns)
@@ -2393,18 +1480,14 @@ void SNBPredictorSNBDirectTrainingTask::InitializeNextFastForwardRun()
 		// Reinitialisation de l'iteration externe et mise a jour du poids marginal
 		nMasterOuterIteration++;
 		nMasterFastForwardBackwardRun = 0;
-		dMasterModificationDeltaWeight = 1.0 / pow(2.0, nMasterOuterIteration + 1);
+		dMasterModificationDeltaWeight /= 2.0;
 	}
+
+	// Changement a l'etat de la tache a FFW
+	nMasterTaskState = TaskState::FastForwardRun;
 }
 
-double SNBPredictorSNBDirectTrainingTask::ComputeSelectionModelCost()
-{
-	require(IsRunning());
-	require(IsMasterProcess());
-	return masterWeightedSelectionScorer->ComputeSelectionModelCost();
-}
-
-void SNBPredictorSNBDirectTrainingTask::MasterFinalizeTrainingAndReports()
+void SNBPredictorSelectiveNaiveBayesTrainingTask::MasterFinalizeTrainingAndReports()
 {
 	ContinuousVector cvAttributeWeights;
 	int nAttribute;
@@ -2416,7 +1499,6 @@ void SNBPredictorSNBDirectTrainingTask::MasterFinalizeTrainingAndReports()
 	ObjectArray oaSelectedAttributes;
 	ObjectArray oaSelectedDataPreparationAttributes;
 	ObjectArray* oaDataPreparationAttributes;
-	NumericKeyDictionary nkdSelectedDataPreparationAttributeSet;
 
 	require(IsMasterProcess());
 	require(masterBinarySliceSet->Check());
@@ -2498,22 +1580,105 @@ void SNBPredictorSNBDirectTrainingTask::MasterFinalizeTrainingAndReports()
 		    masterWeightedSelectionScorer->GetAttributeSelection()->GetAttributeWeightAt(attribute));
 	}
 
-	// Finalisation de classe du predicteur entraine
-	masterSnbPredictor->InternalTrainFinishTrainedPredictor(
-	    masterBinarySliceSet->GetDataPreparationClass(), &oaSelectedDataPreparationAttributes, &cvAttributeWeights);
+	// Creation des regles du prediction dans la classe de preparation
+	masterSnbPredictor->CreatePredictorAttributesInClass(masterBinarySliceSet->GetDataPreparationClass(),
+							     &oaSelectedDataPreparationAttributes, &cvAttributeWeights);
 }
 
-boolean SNBPredictorSNBDirectTrainingTask::SlaveInitialize()
+boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterFinalize(boolean bProcessEndedCorrectly)
 {
-	boolean bOk;
+	boolean bOk = true;
+	ALString sTmp;
 
-	// Appel a la methode ancetre
-	bOk = SNBPredictorSNBTrainingTask::SlaveInitialize();
+	require(masterSnbPredictor != NULL);
+	require(masterInitialDatabase != NULL);
+	require(masterInitialDatabase->Check());
+
+	// Remise a l'etat initial du LearningSpec, du domaine de travail et du RNG
+	shared_learningSpec.FinalizeSpecification(masterInitialClass, masterInitialDatabase);
+	KWClassDomain::SetCurrentDomain(masterInitialDomain);
+	SetRandomSeed(nMasterRandomSeed);
+
+	// Sauvegarde des resultats de l'entrainement si tout c'est bien deroule
+	if (bProcessEndedCorrectly)
+		MasterFinalizeTrainingAndReports();
+
+	// Nettoyage des conteneurs partagees
+	shared_odAttributeStats->GetObjectDictionary()->RemoveAll();
+	shared_odAttributePairStats->GetObjectDictionary()->RemoveAll();
+	shared_oaBinarySliceSetAttributes->GetObjectArray()->RemoveAll();
+	shared_ivTargetValueIndexes.GetIntVector()->SetSize(0);
+	shared_ivGrantedSlaveProcessIds.GetIntVector()->SetSize(0);
+
+	// Nettoyage des variables de travail du maitre
+	if (masterBinarySliceSet != NULL)
+	{
+		if (bProcessEndedCorrectly)
+			masterBinarySliceSet->CleanWorkingData(false);
+		delete masterBinarySliceSet;
+		masterBinarySliceSet = NULL;
+	}
+	if (masterWeightedSelectionScorer != NULL)
+	{
+		delete masterWeightedSelectionScorer;
+		masterWeightedSelectionScorer = NULL;
+	}
+
+	// En parallele : Nettoyage du fichier dictionnaire auxilier
+	if (IsParallel())
+	{
+		bOk = FileService::RemoveFile(
+		    FileService::GetURIFilePathName(shared_sRecoderClassDomainFileURI.GetValue()));
+		if (not bOk)
+			AddWarning(sTmp + "Failed to remove temporary dictionary " +
+				   shared_sRecoderClassDomainFileURI.GetValue());
+	}
+
+	ensure(shared_learningSpec.GetLearningSpec()->Check());
+	ensure(masterSnbPredictor->GetClassStats() != NULL);
+	ensure(masterSnbPredictor->GetClassStats()->Check());
+	ensure(masterSnbPredictor->GetClass() != NULL);
+	ensure(masterSnbPredictor->GetClass()->Check());
+	ensure(masterSnbPredictor->GetDatabase() != NULL);
+	ensure(masterSnbPredictor->GetDatabase()->Check());
+	ensure(masterWeightedSelectionScorer == NULL);
+	ensure(masterBinarySliceSet == NULL);
+
+	return bOk;
+}
+
+boolean SNBPredictorSelectiveNaiveBayesTrainingTask::SlaveInitialize()
+{
+	int nSlaveProcess;
+	boolean bOk = true;
+
+	// DDD
+	ALString sTmp;
+
+	// Initialisation de l'identifiant du chunk attribue a l'esclave
+	nSlaveProcessChunkIndex = -1;
+	for (nSlaveProcess = 0; nSlaveProcess < shared_ivGrantedSlaveProcessIds.GetSize(); nSlaveProcess++)
+	{
+		if (GetProcessId() == shared_ivGrantedSlaveProcessIds.GetAt(nSlaveProcess))
+			nSlaveProcessChunkIndex = nSlaveProcess;
+	}
+
+	// Initialisation du KWLearningSpec et de la SNBDataTableBinarySliceSet
+	bOk = bOk and SlaveInitializeLearningSpec();
+	if (bOk)
+		bOk = bOk and SlaveInitializeDataTableBinarySliceSet();
+
+	// DDD
+	//AddSimpleMessage(sTmp + "Sparse rate chunk #" + IntToString(slaveBinarySliceSet->chunkBuffer.GetChunkIndex()) +
+	//		 ": " + DoubleToString(slaveBinarySliceSet->chunkBuffer.GetPhysicalLayout()->GetSparsityRate()));
+
+	// DDD
+	//slaveBinarySliceSet->WriteContentsAsTSV(cout);
 
 	// Initialisation de scorer
 	if (bOk)
 	{
-		slaveWeightedSelectionScorer = new SNBWeightedAttributeSelectionScorer;
+		slaveWeightedSelectionScorer = new SNBAttributeSelectionScorer;
 		slaveWeightedSelectionScorer->SetLearningSpec(shared_learningSpec.GetLearningSpec());
 		slaveWeightedSelectionScorer->SetDataTableBinarySliceSet(slaveBinarySliceSet);
 		slaveWeightedSelectionScorer->SetPriorWeight(shared_dPriorWeight);
@@ -2526,51 +1691,287 @@ boolean SNBPredictorSNBDirectTrainingTask::SlaveInitialize()
 
 	ensure(not bOk or
 	       (slaveWeightedSelectionScorer->IsDataCostCalculatorCreated() and slaveWeightedSelectionScorer->Check()));
+	ensure(0 <= nSlaveProcessChunkIndex and nSlaveProcessChunkIndex < shared_nChunkNumber);
 	return bOk;
 }
 
-boolean SNBPredictorSNBDirectTrainingTask::SlaveProcess()
+boolean SNBPredictorSelectiveNaiveBayesTrainingTask::SlaveInitializeLearningSpec()
+{
+	boolean bOk = true;
+	boolean bIsRecoderClassFileLocal;
+	ALString sRecoderClassTmpFilePath;
+
+	// En parallele: Le domain doit etre vide
+	// En sequentiel : Le domain doit contenir la classe de recodage
+	require((IsParallel() and KWClassDomain::GetCurrentDomain()->GetClassNumber() == 0) or
+		(not IsParallel() and
+		 KWClassDomain::GetCurrentDomain()->LookupClass(shared_sRecoderClassName.GetValue()) != NULL and
+		 shared_sRecoderClassDomainFileURI.GetValue() == ""));
+
+	// En parallele : Transfert du fichier de dict. du domaine de la classe de recodage, parsing et compilation
+	if (IsParallel())
+	{
+		bIsRecoderClassFileLocal =
+		    GetLocalHostName() == FileService::GetURIHostName(shared_sRecoderClassDomainFileURI.GetValue());
+		if (bIsRecoderClassFileLocal)
+			sRecoderClassTmpFilePath =
+			    FileService::GetURIFilePathName(shared_sRecoderClassDomainFileURI.GetValue());
+		else
+		{
+			sRecoderClassTmpFilePath =
+			    FileService::CreateUniqueTmpFile(shared_sRecoderClassName.GetValue() + ".kdic", this);
+			bOk = bOk and PLRemoteFileService::CopyFile(shared_sRecoderClassDomainFileURI.GetValue(),
+								    sRecoderClassTmpFilePath);
+		}
+
+		// Parsing du fichier dictionnaire
+		if (bOk)
+			bOk = bOk and KWClassDomain::GetCurrentDomain()->ReadFile(sRecoderClassTmpFilePath);
+
+		// Recherche de la classe a traiter
+		if (bOk)
+		{
+			slaveRecoderClass =
+			    KWClassDomain::GetCurrentDomain()->LookupClass(shared_sRecoderClassName.GetValue());
+			bOk = bOk and slaveRecoderClass != NULL;
+			if (not bOk)
+				AddError("Dictionary " + shared_sRecoderClassName.GetValue() + " not found");
+		}
+
+		// Verfication d'integrite du dictionnaire
+		if (bOk)
+			bOk = bOk and slaveRecoderClass->Check();
+
+		// Compilation du dictionnaire
+		if (bOk)
+		{
+			KWClassDomain::GetCurrentDomain()->Compile();
+			bOk = bOk and slaveRecoderClass->IsCompiled();
+			if (not bOk)
+				AddError("Failed to compile dictionary " + shared_sRecoderClassName.GetValue());
+		}
+
+		// Nettoyage du fichier dictionnaire temporaire
+		if (not bIsRecoderClassFileLocal)
+			FileService::RemoveFile(sRecoderClassTmpFilePath);
+	}
+	// En sequentiel : Recherche de la classe dans le domaine courant et compilation
+	else
+	{
+		slaveRecoderClass = KWClassDomain::GetCurrentDomain()->LookupClass(shared_sRecoderClassName.GetValue());
+		bOk = bOk and slaveRecoderClass != NULL;
+		if (bOk)
+		{
+			KWClassDomain::GetCurrentDomain()->Compile();
+			bOk = bOk and slaveRecoderClass->IsCompiled();
+			if (not bOk)
+				AddError("Failed to compile dictionary " + shared_sRecoderClassName.GetValue());
+		}
+		else
+			AddError("Dictionary " + shared_sRecoderClassName.GetValue() + " not found in current domain");
+	}
+
+	// Finalization du LearningSpec de l'esclave avec une database bidon
+	if (bOk)
+	{
+		slaveDummyDatabase = new KWSTDatabase;
+		slaveDummyDatabase->SetClassName(slaveRecoderClass->GetName());
+		slaveDummyDatabase->SetDatabaseName(slaveRecoderClass->GetName());
+		shared_learningSpec.GetLearningSpec()->SetCheckTargetAttribute(false);
+		shared_learningSpec.FinalizeSpecification(slaveRecoderClass, slaveDummyDatabase);
+	}
+
+	ensure(not bOk or slaveRecoderClass != NULL);
+	ensure(not bOk or slaveRecoderClass->IsCompiled());
+	ensure(not bOk or shared_learningSpec.GetLearningSpec()->Check());
+	return bOk;
+}
+
+boolean SNBPredictorSelectiveNaiveBayesTrainingTask::SlaveInitializeDataTableBinarySliceSet()
+{
+	boolean bOk = true;
+	int nAttribute;
+	ObjectArray* oaAttributes;
+	SNBDataTableBinarySliceSetAttribute* attribute;
+	ObjectDictionary* odAttributeStats;
+	ObjectDictionary* odAttributePairStats;
+	KWAttributeStats* attributeStats;
+	KWAttributePairStats* attributePairStats;
+	ALString sTmp;
+
+	require(IsSlaveProcess());
+	require(slaveBinarySliceSet == NULL);
+	require(shared_learningSpec.GetLearningSpec()->Check());
+	require(slaveRecoderClass != NULL);
+	require(slaveRecoderClass->Check());
+
+	// Alias locaux pour la lisibilite
+	oaAttributes = shared_oaBinarySliceSetAttributes->GetObjectArray();
+	odAttributeStats = shared_odAttributeStats->GetObjectDictionary();
+	odAttributePairStats = shared_odAttributePairStats->GetObjectDictionary();
+
+	// Creation du binary slice set
+	slaveBinarySliceSet = new SNBDataTableBinarySliceSet;
+
+	// Reconstituon du nombre d'attributs initial et des valeurs de la cible
+	slaveBinarySliceSet->nInitialAttributeNumber = shared_nInitialAttributeNumber;
+	slaveBinarySliceSet->ivTargetValueIndexes.CopyFrom(shared_ivTargetValueIndexes.GetConstIntVector());
+
+	// Reconstition du layout
+	slaveBinarySliceSet->layout.Initialize(shared_nInstanceNumber, shared_nChunkNumber, shared_nAttributeNumber,
+					       shared_nSliceNumber);
+
+	// Reconstitution des attributs a partir des objets attributs et stats transferes
+	for (nAttribute = 0; nAttribute < oaAttributes->GetSize(); nAttribute++)
+	{
+		// Recuperation des objets attributs (ils viennent sans spec et sans stats)
+		attribute = cast(SNBDataTableBinarySliceSetAttribute*, oaAttributes->GetAt(nAttribute));
+
+		// Recuperation des stats de l'attribut et construction de la table de probabilites conditionnelles
+		// (il doit avoir un et un seul KWDataPreparationStats associe a un nom)
+		attributeStats = cast(KWAttributeStats*, odAttributeStats->Lookup(attribute->GetNativeAttributeName()));
+		attributePairStats =
+		    cast(KWAttributePairStats*, odAttributePairStats->Lookup(attribute->GetNativeAttributeName()));
+		assert(not(attributeStats == NULL and attributePairStats == NULL));
+		assert(not(attributeStats != NULL and attributePairStats != NULL));
+		if (attributeStats != NULL)
+			attribute->dataPreparationStats = attributeStats;
+		else
+			attribute->dataPreparationStats = attributePairStats;
+		attribute->dataPreparationStats->SetLearningSpec(shared_learningSpec.GetLearningSpec());
+		attribute->conditionalProbas.ImportDataGridStats(
+		    attribute->dataPreparationStats->GetPreparedDataGridStats(), false, true);
+	}
+
+	// Reconstitution du SNBDataTableBinarySliceSetSchema a parter des attributs reconstruits
+	slaveBinarySliceSet->schema.InitializeFromAttributes(oaAttributes);
+
+	// Initialisation du buffer de lecture de donnees pour le chunk l'esclave
+	slaveBinarySliceSet->chunkBuffer.SetLayout(&slaveBinarySliceSet->layout);
+	bOk = slaveBinarySliceSet->chunkBuffer.Initialize(GetSlaveChunkIndex(), slaveRecoderClass,
+							  shared_dataTableSliceSet.GetDataTableSliceSet(),
+							  &slaveBinarySliceSet->schema);
+
+	// En parallele on decharge la classe de recodage
+	if (IsParallel())
+		SlaveInitializeUnloadRecoderClass();
+
+	ensure(not bOk or IsSlaveDataTableBinarySliceSetInitialized());
+	ensure(not bOk or slaveBinarySliceSet->Check());
+	return bOk;
+}
+
+boolean SNBPredictorSelectiveNaiveBayesTrainingTask::IsSlaveDataTableBinarySliceSetInitialized() const
+{
+	return slaveBinarySliceSet != NULL and slaveBinarySliceSet->IsInitialized();
+}
+
+void SNBPredictorSelectiveNaiveBayesTrainingTask::SlaveInitializeUnloadRecoderClass()
+{
+	KWClass* dummyClass;
+	KWAttribute* dummyAttribute;
+
+	require(IsParallel());
+	require(slaveRecoderClass != NULL);
+
+	// Creation d'une classe bidon
+	dummyClass = new KWClass;
+	dummyAttribute = new KWAttribute;
+	dummyAttribute->SetName("DummyAttribute");
+	dummyAttribute->SetType(KWType::Symbol);
+	dummyClass->SetName("DummyClass");
+	dummyClass->InsertAttribute(dummyAttribute);
+	slaveDummyDatabase->SetClassName(dummyClass->GetName());
+	slaveDummyDatabase->SetDatabaseName(dummyClass->GetName());
+
+	// Remplacement de la classe de recodage par la classe bidon dans le learning spec
+	slaveRecoderClass = NULL;
+	KWClassDomain::GetCurrentDomain()->DeleteAllClasses();
+	KWClassDomain::GetCurrentDomain()->InsertClass(dummyClass);
+	KWClassDomain::GetCurrentDomain()->Compile();
+	shared_learningSpec.FinalizeSpecification(dummyClass, slaveDummyDatabase);
+
+	ensure(slaveRecoderClass == NULL);
+	ensure(shared_learningSpec.GetLearningSpec()->Check());
+}
+
+boolean SNBPredictorSelectiveNaiveBayesTrainingTask::SlaveProcess()
 {
 	boolean bOk = true;
 
-	// Appel a la methode ancetre
-	bOk = bOk and SNBPredictorSNBTrainingTask::SlaveProcess();
+	require(IsSlaveDataTableBinarySliceSetInitialized());
+	require(slaveBinarySliceSet->Check());
 
 	// (Re)initialisation du scorer si demande
 	if (bOk and input_bInitializeWorkingData)
 		slaveWeightedSelectionScorer->InitializeWorkingData();
 
-	// Modification d'un poids d'un attribut si demande
-	if (bOk and input_nModificationAttribute >= 0)
-	{
-		// Annulation de la derniere modification si demande
-		if (input_bUndoLastModification and not input_bInitializeWorkingData)
-			bOk = bOk and slaveWeightedSelectionScorer->UndoLastModification();
+	// Annulation de la derniere modification si demande
+	if (bOk and input_bUndoLastModification and not input_bInitializeWorkingData)
+		bOk = bOk and slaveWeightedSelectionScorer->UndoLastModification();
 
-		// Modification du poids de l'attribut
-		if (bOk)
+	// Calcul du score pour les differents etats de la tache
+	if (bOk)
+	{
+		// Calcul du epsilon : Calcul du cout
+		if (input_nTaskState == TaskState::PrecisionEpsilonComputation)
 		{
-			if (input_bIsForwardModification)
-				bOk = bOk and slaveWeightedSelectionScorer->IncreaseAttributeWeight(
-						  slaveBinarySliceSet->GetAttributeAt(input_nModificationAttribute),
-						  input_dModificationDeltaWeight);
-			else
-				bOk = bOk and slaveWeightedSelectionScorer->DecreaseAttributeWeight(
-						  slaveBinarySliceSet->GetAttributeAt(input_nModificationAttribute),
-						  input_dModificationDeltaWeight);
+			assert(input_dModificationDeltaWeight == 0.0);
+			assert(slaveWeightedSelectionScorer->GetAttributeSelection()->GetAttributeNumber() == 0);
+			output_dDataCost = slaveWeightedSelectionScorer->GetSelectionDataCost();
+		}
+		// Passe FastForward : Increment du poids et calcul du cout
+		else if (input_nTaskState == TaskState::FastForwardRun)
+		{
+			assert(input_nModificationAttribute >= 0);
+			assert(input_dModificationDeltaWeight != 0.0);
+			bOk = bOk and slaveWeightedSelectionScorer->IncreaseAttributeWeight(
+					  slaveBinarySliceSet->GetAttributeAt(input_nModificationAttribute),
+					  input_dModificationDeltaWeight);
+			output_dDataCost = slaveWeightedSelectionScorer->GetSelectionDataCost();
+		}
+		// Passe FastBackward : Decrement du poids et calcul du cout
+		else
+		{
+			assert(input_nTaskState == TaskState::FastBackwardRun);
+			assert(input_nModificationAttribute >= 0);
+			assert(input_dModificationDeltaWeight != 0.0);
+			bOk = bOk and slaveWeightedSelectionScorer->DecreaseAttributeWeight(
+					  slaveBinarySliceSet->GetAttributeAt(input_nModificationAttribute),
+					  input_dModificationDeltaWeight);
+			output_dDataCost = slaveWeightedSelectionScorer->GetSelectionDataCost();
 		}
 	}
-	// Calcul du cout de donnees
-	output_dDataCost = slaveWeightedSelectionScorer->ComputeSelectionDataCost();
 
 	return bOk;
 }
 
-boolean SNBPredictorSNBDirectTrainingTask::SlaveFinalize(boolean bProcessEndedCorrectly)
+boolean SNBPredictorSelectiveNaiveBayesTrainingTask::SlaveFinalize(boolean bProcessEndedCorrectly)
 {
-	boolean bOk;
-
+	require(IsSlaveDataTableBinarySliceSetInitialized());
+	require(slaveBinarySliceSet == NULL or slaveBinarySliceSet->Check());
+	require(slaveRecoderClass != NULL or IsParallel());
 	require(not bProcessEndedCorrectly or slaveWeightedSelectionScorer != NULL);
+
+	// Nettoyage des objets de travail l'esclave
+	if (slaveBinarySliceSet != NULL)
+	{
+		slaveBinarySliceSet->schema.oaAttributes.RemoveAll();
+		delete slaveBinarySliceSet;
+		slaveBinarySliceSet = NULL;
+	}
+	if (slaveDummyDatabase != NULL)
+	{
+		delete slaveDummyDatabase;
+		slaveDummyDatabase = NULL;
+	}
+
+	// Nettoyage du domaine en parallele
+	if (IsParallel())
+		KWClassDomain::GetCurrentDomain()->DeleteAllClasses();
+	// Nettoyage que du pointeur en sequentiel
+	else
+		slaveRecoderClass = NULL;
 
 	// Nettoyage du scorer de l'esclave, qui peut etre nul s'il y a eu un probleme d'initialisation
 	if (slaveWeightedSelectionScorer != NULL)
@@ -2579,8 +1980,15 @@ boolean SNBPredictorSNBDirectTrainingTask::SlaveFinalize(boolean bProcessEndedCo
 		slaveWeightedSelectionScorer = NULL;
 	}
 
-	// Appel a la methode ancetre
-	bOk = SNBPredictorSNBTrainingTask::SlaveFinalize(bProcessEndedCorrectly);
+	ensure(slaveBinarySliceSet == NULL);
+	ensure(slaveRecoderClass == NULL);
 
-	return bOk;
+	return true;
+}
+
+int SNBPredictorSelectiveNaiveBayesTrainingTask::GetSlaveChunkIndex() const
+{
+	require(IsRunning());
+	require(IsSlaveProcess());
+	return nSlaveProcessChunkIndex;
 }

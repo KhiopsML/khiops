@@ -165,8 +165,14 @@ public:
 	void SetSparse(boolean bSparseMode);
 	boolean IsSparse() const;
 
-	// Creation de la table de probabilites a partir d'un attribut prepare
-	void InitializeFromDataPreparationAttribute(KWDataPreparationAttribute* dataPreparationAttribute);
+	// Index de la valeur par defaut dans le cas sparse (-1 si dense)
+	int GetDefaultSparseValueIndex() const;
+
+	// Initialisations plus complexes a partir d'un attribut prepare :
+	// - Table de probabilites de la source-cible
+	// - Index de la valeur par defaut dans le cas sparse
+	// - Sauvegarde du KWDataGridStats de la preparation
+	void InitializeDataFromDataPreparationAttribute(KWDataPreparationAttribute* dataPreparationAttribute);
 
 	////////////////////////////////////////////////////////////////
 	// Informations du KWDataPreparationAttribute source
@@ -209,7 +215,7 @@ public:
 protected:
 	// Acces privee au conteneur de serialisation de cette classe et a la tache d'apprentissage
 	friend class PLShared_DataTableBinarySliceSetAttribute;
-	friend class SNBPredictorSNBTrainingTask;
+	friend class SNBPredictorSelectiveNaiveBayesTrainingTask;
 
 	// Nom de l'attribut
 	ALString sNativeAttributeName;
@@ -228,6 +234,9 @@ protected:
 
 	// True si l'attribut appartient a un bloc sparse
 	boolean bIsSparse;
+
+	// Index de la valeur par defaut dans le cas sparse
+	int nDefaultSparseValue;
 
 	// Statistiques de preparation de l'attribut
 	KWDataPreparationStats* dataPreparationStats;
@@ -325,7 +334,7 @@ public:
 	//// Implementation
 protected:
 	// Acces prive a la tache parallele d'apprentissage pour reconstituer serialisation de l'objet
-	friend class SNBPredictorSNBTrainingTask;
+	friend class SNBPredictorSelectiveNaiveBayesTrainingTask;
 
 	// Tableau de SNBDataTableBinarySliceSetAttribute's
 	ObjectArray oaAttributes;
@@ -498,6 +507,9 @@ public:
 	void SetAttributeSparseAt(int nAttribute, boolean bSparseMode);
 	boolean IsAttributeSparseAt(int nAttribute) const;
 
+	// Taux d'sparsite
+	double GetSparsityRate() const;
+
 	//////////////////////////////////////
 	// Services Divers
 
@@ -564,6 +576,9 @@ public:
 
 	// Nettoyage : libere la memoire et efface les fichiers de donnees
 	void CleanWorkingData();
+
+	/////////////////////////////////////////////////
+	// Informations diverses
 
 	// Index du chunk associe a buffer
 	int GetChunkIndex() const;
@@ -660,15 +675,8 @@ protected:
 	// File pointer pour la lecture/ecriture de fichiers
 	FILE* fChunkDataFile;
 
-	// TODO FOR FELIPE: a supprimer
-	//// Buffer pour la lecture/ecriture de fichiers
-	// int* buffer;
-
-	// Indice du fichier ouvert pendant l'initialisation
-	int nOpenFileChunkIndex;
-
 	// La tache parallele d'apprentissage est friend pour faire des initialisations partielles
-	friend class SNBPredictorSNBTrainingTask;
+	friend class SNBPredictorSelectiveNaiveBayesTrainingTask;
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -763,7 +771,7 @@ public:
 					 IntVector* ivOutput) const;
 
 	// Acces a la colonne d'un attribut (outputColumn pointe directement au pointeur interne)
-	boolean GetAttributeColumnView(SNBDataTableBinarySliceSetAttribute* attribute,
+	boolean GetAttributeColumnView(const SNBDataTableBinarySliceSetAttribute* attribute,
 				       SNBDataTableBinarySliceSetColumn*& outputColumn);
 
 	// Ecriture tabulaire des contenus
@@ -795,16 +803,17 @@ protected:
 	// Initialisation
 
 	// Initialisation des indexes des parties de la target value
-	void InitializeTargetValueIndexes(KWClassStats* classStats);
+	void InitializeTargetValueIndexes(const KWClassStats* classStats);
 
 	// Initialisation des indexes des parties pour une target value categorielle
-	void InitializeSymbolTargetValueIndexes(KWClassStats* classStats);
+	void InitializeSymbolTargetValueIndexes(const KWClassStats* classStats);
 
 	// Initialisation des indexes des parties pour une target value numerique
-	void InitializeContinuousTargetValueIndexes(KWClassStats* classStats);
+	void InitializeContinuousTargetValueIndexes(const KWClassStats* classStats);
 
 	// Index de partie associe a une valeur d'une cible continue
-	int ComputeContinuousTargetValuePartIndex(Continuous cTargetValue, const KWClassStats* classStats) const;
+	int ComputeContinuousTargetValuePartIndex(Continuous cTargetValue,
+						  const KWDGSAttributeContinuousValues* attributeStats) const;
 
 	// Initialisation partielle du buffer pour le chunk specifie
 	boolean InitializeBufferAtChunk(int nChunk, KWDataTableSliceSet* sliceSet);
@@ -838,7 +847,7 @@ protected:
 	boolean bIsError;
 
 	// La tache parallele d'apprentissage est friend pour faire des initialisations partielles
-	friend class SNBPredictorSNBTrainingTask;
+	friend class SNBPredictorSelectiveNaiveBayesTrainingTask;
 };
 
 ///////////////////////////
@@ -849,7 +858,7 @@ inline Continuous SNBDataTableBinarySliceSetAttribute::GetLnSourceConditionalPro
 	return conditionalProbas.GetSourceConditionalLogProbAt(nSourceModalityIndex, nTargetModalityIndex);
 }
 
-inline boolean SNBDataTableBinarySliceSet::GetAttributeColumnView(SNBDataTableBinarySliceSetAttribute* attribute,
+inline boolean SNBDataTableBinarySliceSet::GetAttributeColumnView(const SNBDataTableBinarySliceSetAttribute* attribute,
 								  SNBDataTableBinarySliceSetColumn*& outputColumn)
 {
 	require(IsInitialized());

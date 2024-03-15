@@ -108,7 +108,10 @@ boolean SNBPredictorSelectionDataCostCalculator::IncreaseAttributeWeight(SNBData
 	if (bUpdateTargetPartition)
 		UpdateTargetPartitionWithAddedAttribute(attribute);
 	bOk = bOk and UpdateTargetPartScoresWithWeightedAttribute(attribute, cDeltaWeight);
-	bOk = bOk and UpdateDataCostWithAttribute(attribute);
+	if (attribute->IsSparse())
+		bOk = bOk and UpdateDataCostWithSparseAttribute(attribute);
+	else
+		bOk = bOk and UpdateDataCost();
 
 	// Annule le undo si echec
 	if (not bOk)
@@ -143,7 +146,10 @@ boolean SNBPredictorSelectionDataCostCalculator::DecreaseAttributeWeight(SNBData
 	bOk = bOk and UpdateTargetPartScoresWithWeightedAttribute(attribute, -cDeltaWeight);
 	if (bUpdateTargetPartition)
 		UpdateTargetPartitionWithRemovedAttribute(attribute);
-	bOk = bOk and UpdateDataCostWithAttribute(attribute);
+	if (attribute->IsSparse())
+		bOk = bOk and UpdateDataCostWithSparseAttribute(attribute);
+	else
+		bOk = bOk and UpdateDataCost();
 
 	// Annule le undo si echec
 	if (not bOk)
@@ -178,7 +184,7 @@ boolean SNBPredictorSelectionDataCostCalculator::UndoLastModification()
 									  cLastModificationDeltaWeight);
 	}
 
-	// Remise a zero des variables pour defaire une modification
+	// Remise a zero des variables pour defaire la derniere modification
 	lastModificationAttribute = NULL;
 	cLastModificationDeltaWeight = 0.0;
 	dLastModificationSelectionDataCost = 0.0;
@@ -265,6 +271,7 @@ boolean SNBPredictorSelectionDataCostCalculator::IsUndoAllowed()
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 // Classe SNBSingletonTargetPart
+
 SNBSingletonTargetPart::SNBSingletonTargetPart()
 {
 	nTargetValue = -1;
@@ -425,8 +432,28 @@ void SNBClassifierSelectionDataCostCalculator::InitializeDataCostState()
 	dvLastModificationInstanceNonNormalizedDataCosts.CopyFrom(&dvInstanceNonNormalizedDataCosts);
 }
 
+void SNBClassifierSelectionDataCostCalculator::UpdateTargetPartitionWithAddedAttribute(
+    const SNBDataTableBinarySliceSetAttribute* attribute)
+{
+	require(attribute != NULL);
+	require(GetDataTableBinarySliceSet() != NULL);
+	require(Check());
+
+	// Pas d'impact sur la structure de la partition cible pour un classifieur normal
+}
+
+void SNBClassifierSelectionDataCostCalculator::UpdateTargetPartitionWithRemovedAttribute(
+    const SNBDataTableBinarySliceSetAttribute* attribute)
+{
+	require(attribute != NULL);
+	require(GetDataTableBinarySliceSet() != NULL);
+	require(Check());
+
+	// Pas d'impact sur la structure de la partition cible pour un classifieur normal
+}
+
 boolean SNBClassifierSelectionDataCostCalculator::UpdateTargetPartScoresWithWeightedAttribute(
-    SNBDataTableBinarySliceSetAttribute* attribute, Continuous cDeltaWeight)
+    const SNBDataTableBinarySliceSetAttribute* attribute, Continuous cDeltaWeight)
 {
 	boolean bOk = true;
 	SNBDataTableBinarySliceSetColumn* chunkColumn;
@@ -462,14 +489,14 @@ boolean SNBClassifierSelectionDataCostCalculator::UpdateTargetPartScoresWithWeig
 					targetPart->GetScores()->UpgradeAt(nChunkInstance, cDeltaWeight * cLogProb);
 				}
 			}
-			// Mise a jour des scores de la partie cible courante seulement pour les valeurs non manquantes
+			// Mise a jour des scores de la partie cible courante seulement pour les valeurs non manquantes (index > -1)
 			else
 			{
 				nColumnValueNumber = chunkColumn->GetValueNumber();
 				for (nChunkInstance = 0; nChunkInstance < nColumnValueNumber; nChunkInstance++)
 				{
 					nChunkInstanceValue = chunkColumn->GetDenseValueAt(nChunkInstance);
-					if (nChunkInstanceValue > -1)
+					if (not GetSNBIgnoreDenseMissingValuesOnTrainMode() or nChunkInstanceValue > -1)
 					{
 						cLogProb = attribute->GetLnSourceConditionalProb(nChunkInstanceValue,
 												 nTargetPart);
@@ -483,86 +510,82 @@ boolean SNBClassifierSelectionDataCostCalculator::UpdateTargetPartScoresWithWeig
 	return bOk;
 }
 
-boolean
-SNBClassifierSelectionDataCostCalculator::UpdateDataCostWithAttribute(SNBDataTableBinarySliceSetAttribute* attribute)
+boolean SNBClassifierSelectionDataCostCalculator::UpdateDataCost()
+{
+	const boolean bLocalTrace = false;
+	boolean bOk = true;
+	int nTargetPart;
+	int nChunkInstanceNumber;
+	int nChunkInstance;
+	double dInstanceNonNormalizedDataCost;
+
+	// Entete de trace de debbogage
+	if (bLocalTrace)
+	{
+		cout << "\t[D]Instance\tTarget\tTargetPart\tProb\tCost";
+		for (nTargetPart = 0; nTargetPart < oaTargetParts.GetSize(); nTargetPart++)
+			cout << "\tScore" << nTargetPart + 1;
+		cout << "\n";
+	}
+
+	// Mise-a-jour du score en recalculant tous les couts par instance
+	dSelectionDataCost = 0.0;
+	nChunkInstanceNumber = GetDataTableBinarySliceSet()->GetInitializedChunkInstanceNumber();
+	for (nChunkInstance = 0; nChunkInstance < nChunkInstanceNumber; nChunkInstance++)
+	{
+		dInstanceNonNormalizedDataCost = ComputeInstanceNonNormalizedDataCost(nChunkInstance);
+		dSelectionDataCost += dInstanceNonNormalizedDataCost;
+		dvInstanceNonNormalizedDataCosts.SetAt(nChunkInstance, dInstanceNonNormalizedDataCost);
+	}
+	dSelectionDataCost += nChunkInstanceNumber * log(dLaplaceDenominator);
+
+	return bOk;
+}
+
+boolean SNBClassifierSelectionDataCostCalculator::UpdateDataCostWithSparseAttribute(
+    SNBDataTableBinarySliceSetAttribute* attribute)
 {
 	const boolean bLocalTrace = false;
 	boolean bOk = true;
 	int nTargetPart;
 	int nChunkColumnValueNumber;
 	int nChunkColumnValue;
-	int nChunkInstanceNumber;
 	int nChunkInstance;
 	SNBDataTableBinarySliceSetColumn* chunkColumn;
 	double dOldInstanceNonNormalizedDataCost;
 	double dInstanceNonNormalizedDataCost;
 
 	require(attribute != NULL);
+	require(attribute->IsSparse());
 	require(GetDataTableBinarySliceSet()->ContainsAttribute(attribute));
 
 	// Entete de trace de debbogage
 	if (bLocalTrace)
 	{
-		cout << "\tInstance\tTarget\tTargetPart\tProb\tCost";
+		cout << attribute->GetNativeAttributeName() << "\t[S]Instance\tTarget\tTargetPart\tProb\tCost";
 		for (nTargetPart = 0; nTargetPart < oaTargetParts.GetSize(); nTargetPart++)
 			cout << "\tScore" << nTargetPart + 1;
 		cout << "\n";
 	}
 
-	// Cas sparse : Mise-a-jour du en calculant le delta dans les instances non-manquantes
-	if (attribute->IsSparse())
+	// Mise-a-jour du score en calculant seulement le delta dans les instances non-manquantes
+	// Nota: Pas necessaire de normaliser avec le denominateur de Laplace car on ne recommence pas de
+	// zero comme dans le cas dense
+	chunkColumn = NULL;
+	bOk = bOk and GetDataTableBinarySliceSet()->GetAttributeColumnView(attribute, chunkColumn);
+	if (bOk)
 	{
-		chunkColumn = NULL;
-		bOk = bOk and GetDataTableBinarySliceSet()->GetAttributeColumnView(attribute, chunkColumn);
-		if (bOk)
+		nChunkColumnValueNumber = chunkColumn->GetValueNumber();
+		for (nChunkColumnValue = 0; nChunkColumnValue < nChunkColumnValueNumber; nChunkColumnValue++)
 		{
-			nChunkColumnValueNumber = chunkColumn->GetValueNumber();
-			for (nChunkColumnValue = 0; nChunkColumnValue < nChunkColumnValueNumber; nChunkColumnValue++)
-			{
-				nChunkInstance = chunkColumn->GetSparseValueInstanceIndexAt(nChunkColumnValue);
-				dOldInstanceNonNormalizedDataCost =
-				    dvInstanceNonNormalizedDataCosts.GetAt(nChunkInstance);
-				dInstanceNonNormalizedDataCost = ComputeInstanceNonNormalizedDataCost(nChunkInstance);
-				dSelectionDataCost +=
-				    dInstanceNonNormalizedDataCost - dOldInstanceNonNormalizedDataCost;
-				dvInstanceNonNormalizedDataCosts.SetAt(nChunkInstance, dInstanceNonNormalizedDataCost);
-			}
-		}
-	}
-	// Cas dense : Mise-a-jour en recalculant tous les couts par instance
-	else
-	{
-		dSelectionDataCost = 0.0;
-		nChunkInstanceNumber = GetDataTableBinarySliceSet()->GetInitializedChunkInstanceNumber();
-		for (nChunkInstance = 0; nChunkInstance < nChunkInstanceNumber; nChunkInstance++)
-		{
+			nChunkInstance = chunkColumn->GetSparseValueInstanceIndexAt(nChunkColumnValue);
+			dOldInstanceNonNormalizedDataCost = dvInstanceNonNormalizedDataCosts.GetAt(nChunkInstance);
 			dInstanceNonNormalizedDataCost = ComputeInstanceNonNormalizedDataCost(nChunkInstance);
-			dSelectionDataCost += dInstanceNonNormalizedDataCost;
+			dSelectionDataCost += dInstanceNonNormalizedDataCost - dOldInstanceNonNormalizedDataCost;
 			dvInstanceNonNormalizedDataCosts.SetAt(nChunkInstance, dInstanceNonNormalizedDataCost);
 		}
-		dSelectionDataCost += nChunkInstanceNumber * log(dLaplaceDenominator);
 	}
 	return bOk;
-}
-
-void SNBClassifierSelectionDataCostCalculator::UpdateTargetPartitionWithAddedAttribute(
-    SNBDataTableBinarySliceSetAttribute* attribute)
-{
-	require(attribute != NULL);
-	require(GetDataTableBinarySliceSet() != NULL);
-	require(Check());
-
-	// Pas d'impact sur la structure de la partition cible pour un classifieur normal
-}
-
-void SNBClassifierSelectionDataCostCalculator::UpdateTargetPartitionWithRemovedAttribute(
-    SNBDataTableBinarySliceSetAttribute* attribute)
-{
-	require(attribute != NULL);
-	require(GetDataTableBinarySliceSet() != NULL);
-	require(Check());
-
-	// Pas d'impact sur la structure de la partition cible pour un classifieur normal
 }
 
 SNBTargetPart* SNBClassifierSelectionDataCostCalculator::CreatePart()
@@ -876,155 +899,8 @@ void SNBRegressorSelectionDataCostCalculator::Delete()
 	oaTargetParts.SetSize(0);
 }
 
-boolean SNBRegressorSelectionDataCostCalculator::UpdateTargetPartScoresWithWeightedAttribute(
-    SNBDataTableBinarySliceSetAttribute* attribute, Continuous cDeltaWeight)
-{
-	boolean bOk = true;
-	int nRank;
-	int nTargetPart;
-	SNBIntervalTargetPart* targetPart;
-	IntVector ivAttributeTargetPartFrequencies;
-	int nAttributeTargetCumulativeFrequency;
-	int nAttributeTargetPartFrequency;
-	int nAttributeTargetPart;
-	SNBDataTableBinarySliceSetColumn* chunkColumn;
-	int nColumnValueNumber;
-	int nColumnValueIndex;
-	int nChunkInstance;
-	int nChunkInstanceValue;
-	Continuous cLogProb;
-
-	// Memorisation des indexes de parties cibles multivaries pour chaque une des parties cibles de l'attribut
-	GetDataTableBinarySliceSet()->ExportTargetPartFrequencies(attribute, &ivAttributeTargetPartFrequencies);
-	ivAttributeTargetPartIndexByTargetPartIndex.SetSize(oaTargetParts.GetSize());
-	nAttributeTargetCumulativeFrequency = 0;
-	nAttributeTargetPart = 0;
-	for (nTargetPart = 0; nTargetPart < oaTargetParts.GetSize(); nTargetPart++)
-	{
-		targetPart = cast(SNBIntervalTargetPart*, oaTargetParts.GetAt(nTargetPart));
-
-		if (targetPart->GetCumulativeFrequency() > nAttributeTargetCumulativeFrequency)
-		{
-			nAttributeTargetPartFrequency = ivAttributeTargetPartFrequencies.GetAt(nAttributeTargetPart);
-			nAttributeTargetCumulativeFrequency += nAttributeTargetPartFrequency;
-			nAttributeTargetPart++;
-		}
-		ivAttributeTargetPartIndexByTargetPartIndex.SetAt(nTargetPart, nAttributeTargetPart - 1);
-	}
-
-	// Acces a la colonne de donnees de l'attribut
-	chunkColumn = NULL;
-	bOk = bOk and GetDataTableBinarySliceSet()->GetAttributeColumnView(attribute, chunkColumn);
-
-	// Mise a jour des scores des parties cibles
-	if (bOk)
-	{
-		for (nTargetPart = 0; nTargetPart < oaTargetParts.GetSize(); nTargetPart++)
-		{
-			targetPart = cast(SNBIntervalTargetPart*, oaTargetParts.GetAt(nTargetPart));
-
-			// Mise a jour des scores de la partie cible courante seulement pour les valeurs presentes de la colonne sparse
-			if (chunkColumn->IsSparse())
-			{
-				nColumnValueNumber = chunkColumn->GetValueNumber();
-				for (nColumnValueIndex = 0; nColumnValueIndex < nColumnValueNumber; nColumnValueIndex++)
-				{
-					nChunkInstance = chunkColumn->GetSparseValueInstanceIndexAt(nColumnValueIndex);
-					nChunkInstanceValue = chunkColumn->GetSparseValueAt(nColumnValueIndex);
-					cLogProb = attribute->GetLnSourceConditionalProb(
-					    nChunkInstanceValue,
-					    ivAttributeTargetPartIndexByTargetPartIndex.GetAt(nTargetPart));
-					targetPart->GetScores()->UpgradeAt(nChunkInstance, cDeltaWeight * cLogProb);
-				}
-			}
-			// Mise a jour des scores de la partie cible courante seulement pour les valeurs non manquantes
-			else
-			{
-				nColumnValueNumber = chunkColumn->GetValueNumber();
-				for (nChunkInstance = 0; nChunkInstance < nColumnValueNumber; nChunkInstance++)
-				{
-					nChunkInstanceValue = chunkColumn->GetDenseValueAt(nChunkInstance);
-					if (nChunkInstanceValue > -1)
-					{
-						cLogProb = attribute->GetLnSourceConditionalProb(
-						    nChunkInstanceValue,
-						    ivAttributeTargetPartIndexByTargetPartIndex.GetAt(nTargetPart));
-						targetPart->GetScores()->UpgradeAt(nChunkInstance,
-										   cDeltaWeight * cLogProb);
-					}
-				}
-			}
-		}
-	}
-	return bOk;
-}
-
-boolean
-SNBRegressorSelectionDataCostCalculator::UpdateDataCostWithAttribute(SNBDataTableBinarySliceSetAttribute* attribute)
-{
-	const boolean bLocalTrace = false;
-	boolean bOk = true;
-	int nRank;
-	int nTargetPart;
-	SNBIntervalTargetPart* targetPart;
-	int nChunkColumnValueNumber;
-	int nChunkColumnValue;
-	int nChunkInstanceNumber;
-	int nChunkInstance;
-	SNBDataTableBinarySliceSetColumn* chunkColumn;
-	double dOldInstanceNonNormalizedDataCost;
-	double dInstanceNonNormalizedDataCost;
-
-	require(attribute != NULL);
-	require(GetDataTableBinarySliceSet()->ContainsAttribute(attribute));
-
-	// Entete de trace de debbogage
-	if (bLocalTrace)
-	{
-		cout << "\tInstance\tTarget\tTargetPart\tProb\tCost";
-		for (nTargetPart = 0; nTargetPart < oaTargetParts.GetSize(); nTargetPart++)
-			cout << "\tScore" << nTargetPart + 1;
-		cout << "\n";
-	}
-
-	// Cas sparse : Mise-a-jour du en calculant le delta dans les instances non-manquantes
-	if (attribute->IsSparse())
-	{
-		chunkColumn = NULL;
-		bOk = bOk and GetDataTableBinarySliceSet()->GetAttributeColumnView(attribute, chunkColumn);
-		if (bOk)
-		{
-			nChunkColumnValueNumber = chunkColumn->GetValueNumber();
-			for (nChunkColumnValue = 0; nChunkColumnValue < nChunkColumnValueNumber; nChunkColumnValue++)
-			{
-				nChunkInstance = chunkColumn->GetSparseValueInstanceIndexAt(nChunkColumnValue);
-				dOldInstanceNonNormalizedDataCost =
-				    dvInstanceNonNormalizedDataCosts.GetAt(nChunkInstance);
-				dInstanceNonNormalizedDataCost = ComputeInstanceNonNormalizedDataCost(nChunkInstance);
-				dSelectionDataCost +=
-				    dInstanceNonNormalizedDataCost - dOldInstanceNonNormalizedDataCost;
-				dvInstanceNonNormalizedDataCosts.SetAt(nChunkInstance, dInstanceNonNormalizedDataCost);
-			}
-		}
-	}
-	// Cas dense : Mise-a-jour en recalculant tous les couts par instance
-	else
-	{
-		dSelectionDataCost = 0.0;
-		nChunkInstanceNumber = GetDataTableBinarySliceSet()->GetInitializedChunkInstanceNumber();
-		for (nChunkInstance = 0; nChunkInstance < nChunkInstanceNumber; nChunkInstance++)
-		{
-			dInstanceNonNormalizedDataCost = ComputeInstanceNonNormalizedDataCost(nChunkInstance);
-			dSelectionDataCost += dInstanceNonNormalizedDataCost;
-			dvInstanceNonNormalizedDataCosts.SetAt(nChunkInstance, dInstanceNonNormalizedDataCost);
-		}
-		dSelectionDataCost += nChunkInstanceNumber * log(dLaplaceDenominator);
-	}
-	return bOk;
-}
-
 void SNBRegressorSelectionDataCostCalculator::UpdateTargetPartitionWithAddedAttribute(
-    SNBDataTableBinarySliceSetAttribute* attribute)
+    const SNBDataTableBinarySliceSetAttribute* attribute)
 {
 	POSITION position;
 	POSITION targetPosition;
@@ -1038,9 +914,6 @@ void SNBRegressorSelectionDataCostCalculator::UpdateTargetPartitionWithAddedAttr
 	int nTargetPart;
 
 	require(Check());
-
-	// DDD
-	//cout << "Adding " << attribute->GetNativeAttributeName() << "\n";
 
 	// Calcul des effectifs par partie de l'attribut cible
 	GetDataTableBinarySliceSet()->ExportTargetPartFrequencies(attribute, &ivTargetPartFrequencies);
@@ -1077,8 +950,7 @@ void SNBRegressorSelectionDataCostCalculator::UpdateTargetPartitionWithAddedAttr
 				    (targetPart->GetCumulativeFrequency() - targetPart->GetFrequency()));
 				newTargetPart->SetRefCount(1);
 
-				// Initialisation de son vecteur de probabilites conditionnelles a partir
-				// de la partie dont elle est issue
+				// Initialisation de ses probas conditionnelles a partir de la partie dont elle est issue
 				newTargetPart->GetScores()->CopyFrom(targetPart->GetScores());
 
 				// Mise a jour de la partie courante
@@ -1124,7 +996,7 @@ void SNBRegressorSelectionDataCostCalculator::UpdateTargetPartitionWithAddedAttr
 		}
 	}
 
-	// Transformation de la liste de parties en tableau indexe par rang pour en accelerer l'acces dans ComputeSelectionDataCost
+	// Transformation de la liste de parties en tableau indexe par rang pour en accelerer l'acces dans GetSelectionDataCost
 	olTargetPartition.ExportObjectArray(&oaTargetParts);
 	nRank = 0;
 	for (nTargetPart = 0; nTargetPart < oaTargetParts.GetSize(); nTargetPart++)
@@ -1143,7 +1015,7 @@ void SNBRegressorSelectionDataCostCalculator::UpdateTargetPartitionWithAddedAttr
 }
 
 void SNBRegressorSelectionDataCostCalculator::UpdateTargetPartitionWithRemovedAttribute(
-    SNBDataTableBinarySliceSetAttribute* attribute)
+    const SNBDataTableBinarySliceSetAttribute* attribute)
 {
 	IntVector ivTargetPartFrequencies;
 	int nTarget;
@@ -1157,9 +1029,6 @@ void SNBRegressorSelectionDataCostCalculator::UpdateTargetPartitionWithRemovedAt
 	int nTargetPart;
 
 	require(Check());
-
-	// DDD
-	//cout << "Removing " << attribute->GetNativeAttributeName() << "\n";
 
 	// Calcul des effectifs par partie de l'attribut cible
 	GetDataTableBinarySliceSet()->ExportTargetPartFrequencies(attribute, &ivTargetPartFrequencies);
@@ -1230,7 +1099,7 @@ void SNBRegressorSelectionDataCostCalculator::UpdateTargetPartitionWithRemovedAt
 		}
 	}
 
-	// Transformation de la liste de parties en tableau indexe par rang pour en accelerer l'acces dans ComputeSelectionDataCost
+	// Transformation de la liste de parties en tableau indexe par rang pour en accelerer l'acces dans GetSelectionDataCost
 	olTargetPartition.ExportObjectArray(&oaTargetParts);
 	nRank = 0;
 	for (nTargetPart = 0; nTargetPart < oaTargetParts.GetSize(); nTargetPart++)
@@ -1245,6 +1114,166 @@ void SNBRegressorSelectionDataCostCalculator::UpdateTargetPartitionWithRemovedAt
 		}
 	}
 	ensure(Check());
+}
+boolean SNBRegressorSelectionDataCostCalculator::UpdateTargetPartScoresWithWeightedAttribute(
+    const SNBDataTableBinarySliceSetAttribute* attribute, Continuous cDeltaWeight)
+{
+	boolean bOk = true;
+	int nTargetPart;
+	SNBIntervalTargetPart* targetPart;
+	IntVector ivAttributeTargetPartFrequencies;
+	int nAttributeTargetCumulativeFrequency;
+	int nAttributeTargetPartFrequency;
+	int nAttributeTargetPart;
+	SNBDataTableBinarySliceSetColumn* chunkColumn;
+	int nColumnValueNumber;
+	int nColumnValueIndex;
+	int nChunkInstance;
+	int nChunkInstanceValue;
+	Continuous cLogProb;
+
+	// Memorisation des indexes de parties cibles multivaries pour chaque une des parties cibles de l'attribut
+	GetDataTableBinarySliceSet()->ExportTargetPartFrequencies(attribute, &ivAttributeTargetPartFrequencies);
+	ivAttributeTargetPartIndexByTargetPartIndex.SetSize(oaTargetParts.GetSize());
+	nAttributeTargetCumulativeFrequency = 0;
+	nAttributeTargetPart = 0;
+	for (nTargetPart = 0; nTargetPart < oaTargetParts.GetSize(); nTargetPart++)
+	{
+		targetPart = cast(SNBIntervalTargetPart*, oaTargetParts.GetAt(nTargetPart));
+
+		if (targetPart->GetCumulativeFrequency() > nAttributeTargetCumulativeFrequency)
+		{
+			nAttributeTargetPartFrequency = ivAttributeTargetPartFrequencies.GetAt(nAttributeTargetPart);
+			nAttributeTargetCumulativeFrequency += nAttributeTargetPartFrequency;
+			nAttributeTargetPart++;
+		}
+		ivAttributeTargetPartIndexByTargetPartIndex.SetAt(nTargetPart, nAttributeTargetPart - 1);
+	}
+
+	// Acces a la colonne de donnees de l'attribut
+	chunkColumn = NULL;
+	bOk = bOk and GetDataTableBinarySliceSet()->GetAttributeColumnView(attribute, chunkColumn);
+
+	// Mise a jour des scores des parties cibles
+	if (bOk)
+	{
+		for (nTargetPart = 0; nTargetPart < oaTargetParts.GetSize(); nTargetPart++)
+		{
+			targetPart = cast(SNBIntervalTargetPart*, oaTargetParts.GetAt(nTargetPart));
+
+			// Mise a jour des scores de la partie cible courante seulement pour les valeurs presentes de la colonne sparse
+			if (chunkColumn->IsSparse())
+			{
+				nColumnValueNumber = chunkColumn->GetValueNumber();
+				for (nColumnValueIndex = 0; nColumnValueIndex < nColumnValueNumber; nColumnValueIndex++)
+				{
+					nChunkInstance = chunkColumn->GetSparseValueInstanceIndexAt(nColumnValueIndex);
+					nChunkInstanceValue = chunkColumn->GetSparseValueAt(nColumnValueIndex);
+					cLogProb = attribute->GetLnSourceConditionalProb(
+					    nChunkInstanceValue,
+					    ivAttributeTargetPartIndexByTargetPartIndex.GetAt(nTargetPart));
+					targetPart->GetScores()->UpgradeAt(nChunkInstance, cDeltaWeight * cLogProb);
+				}
+			}
+			// Mise a jour des scores de la partie cible courante seulement pour les valeurs non manquantes
+			else
+			{
+				nColumnValueNumber = chunkColumn->GetValueNumber();
+				for (nChunkInstance = 0; nChunkInstance < nColumnValueNumber; nChunkInstance++)
+				{
+					nChunkInstanceValue = chunkColumn->GetDenseValueAt(nChunkInstance);
+					if (nChunkInstanceValue > -1 or not GetSNBIgnoreDenseMissingValuesOnTrainMode())
+					{
+						cLogProb = attribute->GetLnSourceConditionalProb(
+						    nChunkInstanceValue,
+						    ivAttributeTargetPartIndexByTargetPartIndex.GetAt(nTargetPart));
+						targetPart->GetScores()->UpgradeAt(nChunkInstance,
+										   cDeltaWeight * cLogProb);
+					}
+				}
+			}
+		}
+	}
+	return bOk;
+}
+
+boolean SNBRegressorSelectionDataCostCalculator::UpdateDataCost()
+{
+	const boolean bLocalTrace = false;
+	boolean bOk = true;
+	int nTargetPart;
+	int nChunkInstanceNumber;
+	int nChunkInstance;
+	double dInstanceNonNormalizedDataCost;
+
+	// Entete de trace de debbogage
+	if (bLocalTrace)
+	{
+		cout << "\tInstance\tTarget\tTargetPart\tProb\tCost";
+		for (nTargetPart = 0; nTargetPart < oaTargetParts.GetSize(); nTargetPart++)
+			cout << "\tScore" << nTargetPart + 1;
+		cout << "\n";
+	}
+
+	// Mise-a-jour du score en recalculant tous les couts par instance
+	dSelectionDataCost = 0.0;
+	nChunkInstanceNumber = GetDataTableBinarySliceSet()->GetInitializedChunkInstanceNumber();
+	for (nChunkInstance = 0; nChunkInstance < nChunkInstanceNumber; nChunkInstance++)
+	{
+		dInstanceNonNormalizedDataCost = ComputeInstanceNonNormalizedDataCost(nChunkInstance);
+		dSelectionDataCost += dInstanceNonNormalizedDataCost;
+		dvInstanceNonNormalizedDataCosts.SetAt(nChunkInstance, dInstanceNonNormalizedDataCost);
+	}
+	dSelectionDataCost += nChunkInstanceNumber * log(dLaplaceDenominator);
+
+	return bOk;
+}
+
+boolean SNBRegressorSelectionDataCostCalculator::UpdateDataCostWithSparseAttribute(
+    SNBDataTableBinarySliceSetAttribute* attribute)
+{
+	const boolean bLocalTrace = false;
+	boolean bOk = true;
+	int nTargetPart;
+	int nChunkColumnValueNumber;
+	int nChunkColumnValue;
+	int nChunkInstance;
+	SNBDataTableBinarySliceSetColumn* chunkColumn;
+	double dOldInstanceNonNormalizedDataCost;
+	double dInstanceNonNormalizedDataCost;
+
+	require(attribute != NULL);
+	require(attribute->IsSparse());
+	require(GetDataTableBinarySliceSet()->ContainsAttribute(attribute));
+
+	// Entete de trace de debbogage
+	if (bLocalTrace)
+	{
+		cout << "\tInstance\tTarget\tTargetPart\tProb\tCost";
+		for (nTargetPart = 0; nTargetPart < oaTargetParts.GetSize(); nTargetPart++)
+			cout << "\tScore" << nTargetPart + 1;
+		cout << "\n";
+	}
+
+	// Mise-a-jour du score en calculant seulement le delta dans les instances non-manquantes
+	// Nota: Pas necessaire de normaliser avec le denominateur de Laplace car on ne recommence pas de
+	// zero comme dans le cas dense
+	chunkColumn = NULL;
+	bOk = bOk and GetDataTableBinarySliceSet()->GetAttributeColumnView(attribute, chunkColumn);
+	if (bOk)
+	{
+		nChunkColumnValueNumber = chunkColumn->GetValueNumber();
+		for (nChunkColumnValue = 0; nChunkColumnValue < nChunkColumnValueNumber; nChunkColumnValue++)
+		{
+			nChunkInstance = chunkColumn->GetSparseValueInstanceIndexAt(nChunkColumnValue);
+			dOldInstanceNonNormalizedDataCost = dvInstanceNonNormalizedDataCosts.GetAt(nChunkInstance);
+			dInstanceNonNormalizedDataCost = ComputeInstanceNonNormalizedDataCost(nChunkInstance);
+			dSelectionDataCost += dInstanceNonNormalizedDataCost - dOldInstanceNonNormalizedDataCost;
+			dvInstanceNonNormalizedDataCosts.SetAt(nChunkInstance, dInstanceNonNormalizedDataCost);
+		}
+	}
+
+	return bOk;
 }
 
 SNBTargetPart* SNBRegressorSelectionDataCostCalculator::CreatePart()
@@ -1511,7 +1540,7 @@ int SNBGroupTargetPartSignatureSchema::GetSignatureIndexAt(const SNBDataTableBin
 	return nSignature;
 }
 
-void SNBGroupTargetPartSignatureSchema::AddAttribute(SNBDataTableBinarySliceSetAttribute* attribute)
+void SNBGroupTargetPartSignatureSchema::AddAttribute(const SNBDataTableBinarySliceSetAttribute* attribute)
 {
 	KWSortableIndex* attributeSignatureIndex;
 
@@ -1519,7 +1548,7 @@ void SNBGroupTargetPartSignatureSchema::AddAttribute(SNBDataTableBinarySliceSetA
 	require(Check());
 
 	// Ajout de l'attribut a la fin de la signature
-	oaAttributes.Add(attribute);
+	oaAttributes.Add(const_cast<SNBDataTableBinarySliceSetAttribute*>(attribute));
 
 	// Memorisation de son removedAttributeIndex dans la signature
 	attributeSignatureIndex = new KWSortableIndex;
@@ -1960,7 +1989,7 @@ void SNBGeneralizedClassifierSelectionDataCostCalculator::CleanTargetValueGroupM
 }
 
 void SNBGeneralizedClassifierSelectionDataCostCalculator::UpdateTargetPartitionWithAddedAttribute(
-    SNBDataTableBinarySliceSetAttribute* attribute)
+    const SNBDataTableBinarySliceSetAttribute* attribute)
 {
 	int nTargetValue;
 	NumericKeyDictionary nkdInitialParts;
@@ -2081,7 +2110,7 @@ void SNBGeneralizedClassifierSelectionDataCostCalculator::UpdateSignatureWithAdd
 }
 
 void SNBGeneralizedClassifierSelectionDataCostCalculator::UpdateTargetPartitionWithRemovedAttribute(
-    SNBDataTableBinarySliceSetAttribute* attribute)
+    const SNBDataTableBinarySliceSetAttribute* attribute)
 {
 	int nTargetValue;
 	SortedList slRemainingParts(KWGroupTargetPartCompareTargetSignature);
@@ -2175,8 +2204,25 @@ void SNBGeneralizedClassifierSelectionDataCostCalculator::UpdateTargetPartitionW
 
 	ensure(Check());
 }
+
+void SNBGeneralizedClassifierSelectionDataCostCalculator::UpgradeTargetSignatureWithRemovedAttribute(
+    const SNBDataTableBinarySliceSetAttribute* attribute, int nTargetValue, SNBGroupTargetPart* groupTargetPart) const
+{
+	int nAttributeSignature;
+
+	require(0 <= nTargetValue and nTargetValue < GetTargetValueNumber());
+	require(groupTargetPart->Check());
+	require(CheckTargetSignature(groupTargetPart, nTargetValue));
+
+	// La fin de signature remplace la place de l'attribut supprime
+	nAttributeSignature = signatureSchema.GetSignatureIndexAt(attribute);
+	groupTargetPart->GetSignature()->SetAt(
+	    nAttributeSignature, groupTargetPart->GetGroupIndexAt(groupTargetPart->GetSignatureSize() - 1));
+	groupTargetPart->GetSignature()->SetSize(groupTargetPart->GetSignatureSize() - 1);
+}
+
 boolean SNBGeneralizedClassifierSelectionDataCostCalculator::UpdateTargetPartScoresWithWeightedAttribute(
-    SNBDataTableBinarySliceSetAttribute* attribute, Continuous cDeltaWeight)
+    const SNBDataTableBinarySliceSetAttribute* attribute, Continuous cDeltaWeight)
 {
 	boolean bOk = true;
 	SNBDataTableBinarySliceSetColumn* chunkColumn;
@@ -2239,7 +2285,39 @@ boolean SNBGeneralizedClassifierSelectionDataCostCalculator::UpdateTargetPartSco
 	return bOk;
 }
 
-boolean SNBGeneralizedClassifierSelectionDataCostCalculator::UpdateDataCostWithAttribute(
+boolean SNBGeneralizedClassifierSelectionDataCostCalculator::UpdateDataCost()
+{
+	const boolean bLocalTrace = false;
+	boolean bOk = true;
+	int nTargetPart;
+	int nChunkInstanceNumber;
+	int nChunkInstance;
+	double dInstanceNonNormalizedDataCost;
+
+	// Entete de trace de debbogage
+	if (bLocalTrace)
+	{
+		cout << "\tInstance\tTarget\tTargetPart\tProb\tCost";
+		for (nTargetPart = 0; nTargetPart < oaTargetParts.GetSize(); nTargetPart++)
+			cout << "\tScore" << nTargetPart + 1;
+		cout << "\n";
+	}
+
+	// Mise-a-jour du score en recalculant tous les couts par instance
+	dSelectionDataCost = 0.0;
+	nChunkInstanceNumber = GetDataTableBinarySliceSet()->GetInitializedChunkInstanceNumber();
+	for (nChunkInstance = 0; nChunkInstance < nChunkInstanceNumber; nChunkInstance++)
+	{
+		dInstanceNonNormalizedDataCost = ComputeInstanceNonNormalizedDataCost(nChunkInstance);
+		dSelectionDataCost += dInstanceNonNormalizedDataCost;
+		dvInstanceNonNormalizedDataCosts.SetAt(nChunkInstance, dInstanceNonNormalizedDataCost);
+	}
+	dSelectionDataCost += nChunkInstanceNumber * log(dLaplaceDenominator);
+
+	return bOk;
+}
+
+boolean SNBGeneralizedClassifierSelectionDataCostCalculator::UpdateDataCostWithSparseAttribute(
     SNBDataTableBinarySliceSetAttribute* attribute)
 {
 	const boolean bLocalTrace = false;
@@ -2247,13 +2325,13 @@ boolean SNBGeneralizedClassifierSelectionDataCostCalculator::UpdateDataCostWithA
 	int nTargetPart;
 	int nChunkColumnValueNumber;
 	int nChunkColumnValue;
-	int nChunkInstanceNumber;
 	int nChunkInstance;
 	SNBDataTableBinarySliceSetColumn* chunkColumn;
 	double dOldInstanceNonNormalizedDataCost;
 	double dInstanceNonNormalizedDataCost;
 
 	require(attribute != NULL);
+	require(attribute->IsSparse());
 	require(GetDataTableBinarySliceSet()->ContainsAttribute(attribute));
 
 	// Entete de trace de debbogage
@@ -2265,56 +2343,24 @@ boolean SNBGeneralizedClassifierSelectionDataCostCalculator::UpdateDataCostWithA
 		cout << "\n";
 	}
 
-	// Cas sparse : Mise-a-jour du en calculant le delta dans les instances non-manquantes
-	if (attribute->IsSparse())
+	// Mise-a-jour du score en calculant seulement le delta dans les instances non-manquantes
+	// Nota: Pas necessaire de normaliser avec le denominateur de Laplace car on ne recommence pas de
+	// zero comme dans le cas dense
+	chunkColumn = NULL;
+	bOk = bOk and GetDataTableBinarySliceSet()->GetAttributeColumnView(attribute, chunkColumn);
+	if (bOk)
 	{
-		chunkColumn = NULL;
-		bOk = bOk and GetDataTableBinarySliceSet()->GetAttributeColumnView(attribute, chunkColumn);
-		if (bOk)
+		nChunkColumnValueNumber = chunkColumn->GetValueNumber();
+		for (nChunkColumnValue = 0; nChunkColumnValue < nChunkColumnValueNumber; nChunkColumnValue++)
 		{
-			nChunkColumnValueNumber = chunkColumn->GetValueNumber();
-			for (nChunkColumnValue = 0; nChunkColumnValue < nChunkColumnValueNumber; nChunkColumnValue++)
-			{
-				nChunkInstance = chunkColumn->GetSparseValueInstanceIndexAt(nChunkColumnValue);
-				dOldInstanceNonNormalizedDataCost =
-				    dvInstanceNonNormalizedDataCosts.GetAt(nChunkInstance);
-				dInstanceNonNormalizedDataCost = ComputeInstanceNonNormalizedDataCost(nChunkInstance);
-				dSelectionDataCost +=
-				    dInstanceNonNormalizedDataCost - dOldInstanceNonNormalizedDataCost;
-				dvInstanceNonNormalizedDataCosts.SetAt(nChunkInstance, dInstanceNonNormalizedDataCost);
-			}
-		}
-	}
-	// Cas dense : Mise-a-jour en recalculant tous les couts par instance
-	else
-	{
-		dSelectionDataCost = 0.0;
-		nChunkInstanceNumber = GetDataTableBinarySliceSet()->GetInitializedChunkInstanceNumber();
-		for (nChunkInstance = 0; nChunkInstance < nChunkInstanceNumber; nChunkInstance++)
-		{
+			nChunkInstance = chunkColumn->GetSparseValueInstanceIndexAt(nChunkColumnValue);
+			dOldInstanceNonNormalizedDataCost = dvInstanceNonNormalizedDataCosts.GetAt(nChunkInstance);
 			dInstanceNonNormalizedDataCost = ComputeInstanceNonNormalizedDataCost(nChunkInstance);
-			dSelectionDataCost += dInstanceNonNormalizedDataCost;
+			dSelectionDataCost += dInstanceNonNormalizedDataCost - dOldInstanceNonNormalizedDataCost;
 			dvInstanceNonNormalizedDataCosts.SetAt(nChunkInstance, dInstanceNonNormalizedDataCost);
 		}
-		dSelectionDataCost += nChunkInstanceNumber * log(dLaplaceDenominator);
 	}
 	return bOk;
-}
-
-void SNBGeneralizedClassifierSelectionDataCostCalculator::UpgradeTargetSignatureWithRemovedAttribute(
-    const SNBDataTableBinarySliceSetAttribute* attribute, int nTargetValue, SNBGroupTargetPart* groupTargetPart) const
-{
-	int nAttributeSignature;
-
-	require(0 <= nTargetValue and nTargetValue < GetTargetValueNumber());
-	require(groupTargetPart->Check());
-	require(CheckTargetSignature(groupTargetPart, nTargetValue));
-
-	// La fin de signature remplace la place de l'attribut supprime
-	nAttributeSignature = signatureSchema.GetSignatureIndexAt(attribute);
-	groupTargetPart->GetSignature()->SetAt(
-	    nAttributeSignature, groupTargetPart->GetGroupIndexAt(groupTargetPart->GetSignatureSize() - 1));
-	groupTargetPart->GetSignature()->SetSize(groupTargetPart->GetSignatureSize() - 1);
 }
 
 SNBTargetPart* SNBGeneralizedClassifierSelectionDataCostCalculator::CreatePart()

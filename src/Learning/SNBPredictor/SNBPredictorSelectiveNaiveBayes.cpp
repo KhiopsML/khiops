@@ -85,10 +85,10 @@ void SNBPredictorSelectiveNaiveBayes::CreatePredictorReport()
 boolean SNBPredictorSelectiveNaiveBayes::InternalTrain()
 {
 	boolean bOk;
-	SNBPredictorSNBTrainingTask* trainingTask;
+	SNBPredictorSelectiveNaiveBayesTrainingTask* trainingTask;
 
 	// Delegation de l'entrainement a la tache d'apprentissage
-	trainingTask = new SNBPredictorSNBDirectTrainingTask;
+	trainingTask = new SNBPredictorSelectiveNaiveBayesTrainingTask;
 	trainingTask->InternalTrain(this);
 	bOk = trainingTask->IsTrainingSuccessful();
 
@@ -98,12 +98,12 @@ boolean SNBPredictorSelectiveNaiveBayes::InternalTrain()
 	return bOk;
 }
 
-void SNBPredictorSelectiveNaiveBayes::InternalTrainFinishTrainedPredictor(KWDataPreparationClass* dataPreparationClass,
-									  ObjectArray* oaUsedDataPreparationAttributes,
-									  ContinuousVector* cvAttributeWeights)
+void SNBPredictorSelectiveNaiveBayes::CreatePredictorAttributesInClass(KWDataPreparationClass* dataPreparationClass,
+								       ObjectArray* oaUsedDataPreparationAttributes,
+								       ContinuousVector* cvAttributeWeights)
 {
-	KWPredictorNaiveBayes::InternalTrainFinishTrainedPredictor(dataPreparationClass,
-								   oaUsedDataPreparationAttributes, cvAttributeWeights);
+	KWPredictorNaiveBayes::CreatePredictorAttributesInClass(dataPreparationClass, oaUsedDataPreparationAttributes,
+								cvAttributeWeights);
 	FillPredictorAttributeMetaData();
 }
 
@@ -158,42 +158,8 @@ void SNBPredictorSelectiveNaiveBayes::InternalTrainUnivariatePredictor()
 	cvSingleAttributeWeight.SetAt(dataPreparationAttribute->GetIndex(), 1.0);
 
 	// Creation de la classe du predicteur
-	InternalTrainFinishTrainedPredictor(&dataPreparationClass, dataPreparationClass.GetDataPreparationAttributes(),
-					    &cvSingleAttributeWeight);
-}
-
-// TODO: Eliminer une fois le MAP elimine de Khiops
-void SNBPredictorSelectiveNaiveBayes::InternalTrainMAP(KWDataPreparationClass* dataPreparationClass,
-						       SNBHardAttributeSelection* mapAttributeSelection)
-{
-	ObjectArray* oaMapAttributes;
-	ObjectArray oaMapDataPreparationAttributes;
-	int nAttribute;
-	SNBDataTableBinarySliceSetAttribute* attribute;
-	KWDataPreparationAttribute* dataPreparationAttribute;
-
-	require(mapAttributeSelection != NULL);
-	require(mapAttributeSelection->GetAttributeNumber());
-
-	// Obtention des attributes selectionnes dans l'ordre original de la classe
-	oaMapAttributes = mapAttributeSelection->CollectAttributes();
-	oaMapAttributes->SetCompareFunction(SNBDataTableBinarySliceSetAttributeCompareDataPreparationClassIndex);
-	oaMapAttributes->Sort();
-
-	// Obtention des KWDataPreparationAttribute's selectionnes et apprentissage avec
-	oaMapDataPreparationAttributes.SetSize(oaMapAttributes->GetSize());
-	for (nAttribute = 0; nAttribute < oaMapAttributes->GetSize(); nAttribute++)
-	{
-		attribute = cast(SNBDataTableBinarySliceSetAttribute*, oaMapAttributes->GetAt(nAttribute));
-		dataPreparationAttribute =
-		    cast(KWDataPreparationAttribute*, dataPreparationClass->GetDataPreparationAttributes()->GetAt(
-							  attribute->GetDataPreparationClassIndex()));
-		oaMapDataPreparationAttributes.SetAt(nAttribute, dataPreparationAttribute);
-	}
-	InternalTrainNB(dataPreparationClass, &oaMapDataPreparationAttributes);
-
-	// Nettoyage
-	delete oaMapAttributes;
+	CreatePredictorAttributesInClass(&dataPreparationClass, dataPreparationClass.GetDataPreparationAttributes(),
+					 &cvSingleAttributeWeight);
 }
 
 void SNBPredictorSelectiveNaiveBayes::FillPredictorAttributeMetaData()

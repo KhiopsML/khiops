@@ -38,8 +38,7 @@ class SNBGeneralizedClassifierSelectionDataCostCalculator;
 // Le sous-classes implementent les cas ou la partition de la cible est compose de :
 //   - SNBSingletonTargetPart : Cas de la classification, utilise par SNBClassifierSelectionDataCostCalculator
 //   - SNBIntervalTargetPart : Cas de la regression, utilise par KWRegressionSelectionDataCostCalculator
-//   - SNBGroupTargetPart : Cas de la classification generalisee, utilise par
-//   SNBGeneralizedClassifierSelectionDataCostCalculator
+//   - SNBGroupTargetPart : Cas de la classification generalisee, utilise par SNBGeneralizedClassifierSelectionDataCostCalculator
 class SNBTargetPart : public Object
 {
 public:
@@ -47,8 +46,7 @@ public:
 	SNBTargetPart();
 	~SNBTargetPart();
 
-	// Score non-normalise de la partie pour chaque instance i : log P(Y = C_j) + Sum_k w_k * log P( X_ik | Y = C_j
-	// )
+	// Score non-normalise de la partie pour chaque instance i : log P(Y = C_j) + Sum_k w_k * log P( X_ik | Y = C_j )
 	//   C_j  : j-eme partie cible (celle representee par cet objet)
 	//   X_ik : Valeur du k-eme attribut pour l'instance i
 	//   w_k  : Poids du k-eme attribut
@@ -77,21 +75,21 @@ protected:
 //
 // Notons que modalite j est associee a un objet KWSingletonPart qui contient son vecteur de scores.
 // Pour le calcul, d'abord on ecrit la "vraisemblance ponderee" (voir nota ci-dessous)
-//  de l'instance i via un softmax :
+// de l'instance i via un softmax :
 //
 //   P( Y = C_m | X ) ~  P(Y = C_m) * Prod_k P(X_ik | Y = C_m)^w_k
 //        (regress)   ~  P(Rang(Y) = R_m) * Prod_k P(X_ik | Y = R_m)^w_k
 //                    ~  P(Y in Part(R_m)) * Prod_k P(X_ik | Y in Part(R_m))
-
+//
 //        (group)     ~  P(Y = C_m | Y in G_l) P( Y in G_l ) * Prod_k P( X_ik | Y in G_l)
-
+//
 //                    ~   (#C_m)/(# Inst. in G_l) * (# Inst. in G_l)/N * Prod_k( X_ik | Y in G_l)
-
+//
 //                    = exp(score_im) / Sum_j exp(score_ij)
-
+//
 // P(Rang(Y) = R_m) = P(Y in I_l) * P(Rang(Y) = R_m | Y in P_l)
 //                  = 1/N_l * P(Rang(Y) = R_m | Y in P_l)
-
+//
 // ou l'indice m = m(i) est tel que la valeur de Y dans l'instance i est C_m, i.e y_i = C_m.
 // Maintenant on passe le numerateur au denominateur
 //
@@ -108,15 +106,15 @@ protected:
 //    exp(cout_i) -> (exp(cout_i) * N + epsilon) / (N + J * epsilon)                        (2)
 //
 // ou l'epsilon de Laplace a ete calcule pendant l'initialisation. On define S_i et T comme le
-// numerateur et le denominateur de formule de Laplace (2). On utilise aussi une exponentielle tronquee
-// pour eviter des overflows :
+// numerateur et le denominateur de formule de Laplace (2). On utilise aussi une exponentielle
+// tronquee pour eviter des overflows :
 //
 //   exp_tr(x) = min(exp(x), dMaxExpScore)
 //
 // ou dMaxExpScore a ete pre-calculee dans l'initialisation.
 //
-// Pour chaque instance i, l'algorithme
-// ci-dessous calcule d'abord l'inverse exp(-cout_i) en parcourant toutes les modalites cibles.
+// Pour chaque instance i, l'algorithme ci-dessous calcule d'abord l'inverse exp(-cout_i) en
+// parcourant toutes les modalites cibles.
 // Ensuite il applique l'approximation de Laplace pour obtenir S_i pour chaque instance i. Un fois
 // parcourues toutes les instances on rend
 //
@@ -190,18 +188,23 @@ protected:
 	virtual void InitializeDataCostState() = 0;
 
 	// Mise a jour de la partition de la cible quand un attribut rentre dans la selection
-	virtual void UpdateTargetPartitionWithAddedAttribute(SNBDataTableBinarySliceSetAttribute* attribute) = 0;
+	virtual void UpdateTargetPartitionWithAddedAttribute(const SNBDataTableBinarySliceSetAttribute* attribute) = 0;
 
 	// Mise a jour de la partition de la cible quand un attribut sort de la selection
-	virtual void UpdateTargetPartitionWithRemovedAttribute(SNBDataTableBinarySliceSetAttribute* attribute) = 0;
+	virtual void
+	UpdateTargetPartitionWithRemovedAttribute(const SNBDataTableBinarySliceSetAttribute* attribute) = 0;
 
-	// Mise-a-jour des scores avec un modification de poids d'un attribut
-	virtual boolean UpdateTargetPartScoresWithWeightedAttribute(SNBDataTableBinarySliceSetAttribute* attribute,
-								    Continuous cDeltaWeight) = 0;
+	// Mise a jour des scores avec un modification de poids d'un attribut
+	virtual boolean
+	UpdateTargetPartScoresWithWeightedAttribute(const SNBDataTableBinarySliceSetAttribute* attribute,
+						    Continuous cDeltaWeight) = 0;
 
-	// Mise-a-jour du cout de selection a partir de l'etat actuel des scores de la calculatrice
-	// L'attribut en parametre est necessaire pour gerer le cas sparse
-	virtual boolean UpdateDataCostWithAttribute(SNBDataTableBinarySliceSetAttribute* attribute) = 0;
+	// Mise a jour du cout de selection a partir de l'etat actuel des scores de la calculatrice
+	virtual boolean UpdateDataCost() = 0;
+
+	// Mise a jour du cout de selection a partir de l'etat actuel des scores de la calculatrice dans le cas d'un attribut sparse
+	// Il est necessaire pour savoir les indexes des instances a changer
+	virtual boolean UpdateDataCostWithSparseAttribute(SNBDataTableBinarySliceSetAttribute* attribute) = 0;
 
 	// True si l'on peut faire la derniere modification
 	boolean IsUndoAllowed();
@@ -239,7 +242,8 @@ protected:
 	// Cout de la selection courante
 	double dSelectionDataCost;
 
-	// Couts par instance de la selection courante
+	// Couts non normalise par instance de la selection courante
+	// Sa memorisation est necessaire pour gerer le cas sparse
 	DoubleVector dvInstanceNonNormalizedDataCosts;
 
 	// Attribut de la derniere modification
@@ -319,14 +323,15 @@ public:
 	///////////////////////////////////////////////////////////////////////////////////////////////////
 	/// Implementation
 protected:
-	// Reimplementation des methodes internes
+	// Reimplementation de l'interface SNBPredictorSelectionDataCostCalculator
 	void InitializeTargetPartition() override;
 	void InitializeDataCostState() override;
-	void UpdateTargetPartitionWithAddedAttribute(SNBDataTableBinarySliceSetAttribute* attribute) override;
-	void UpdateTargetPartitionWithRemovedAttribute(SNBDataTableBinarySliceSetAttribute* attribute) override;
-	boolean UpdateTargetPartScoresWithWeightedAttribute(SNBDataTableBinarySliceSetAttribute* attribute,
+	void UpdateTargetPartitionWithAddedAttribute(const SNBDataTableBinarySliceSetAttribute* attribute) override;
+	void UpdateTargetPartitionWithRemovedAttribute(const SNBDataTableBinarySliceSetAttribute* attribute) override;
+	boolean UpdateTargetPartScoresWithWeightedAttribute(const SNBDataTableBinarySliceSetAttribute* attribute,
 							    Continuous cDeltaWeight) override;
-	boolean UpdateDataCostWithAttribute(SNBDataTableBinarySliceSetAttribute* attribute) override;
+	boolean UpdateDataCost() override;
+	boolean UpdateDataCostWithSparseAttribute(SNBDataTableBinarySliceSetAttribute* attribute) override;
 
 	// Calcul du cout de selection non normalise pour une instance donnee
 	double ComputeInstanceNonNormalizedDataCost(int nInstance) const;
@@ -407,14 +412,15 @@ public:
 	///////////////////////////////////////////////////////////////////////////////////////////////////
 	/// Implementation
 protected:
-	// Reimplementation des methodes internes
+	// Reimplementation de l'interface SNBPredictorSelectionDataCostCalculator
 	void InitializeTargetPartition() override;
 	void InitializeDataCostState() override;
-	void UpdateTargetPartitionWithAddedAttribute(SNBDataTableBinarySliceSetAttribute* attribute) override;
-	void UpdateTargetPartitionWithRemovedAttribute(SNBDataTableBinarySliceSetAttribute* attribute) override;
-	boolean UpdateTargetPartScoresWithWeightedAttribute(SNBDataTableBinarySliceSetAttribute* attribute,
+	void UpdateTargetPartitionWithAddedAttribute(const SNBDataTableBinarySliceSetAttribute* attribute) override;
+	void UpdateTargetPartitionWithRemovedAttribute(const SNBDataTableBinarySliceSetAttribute* attribute) override;
+	boolean UpdateTargetPartScoresWithWeightedAttribute(const SNBDataTableBinarySliceSetAttribute* attribute,
 							    Continuous cDeltaWeight) override;
-	boolean UpdateDataCostWithAttribute(SNBDataTableBinarySliceSetAttribute* attribute) override;
+	boolean UpdateDataCost() override;
+	boolean UpdateDataCostWithSparseAttribute(SNBDataTableBinarySliceSetAttribute* attribute) override;
 
 	// Calcul du cout de selection non normalise pour une instance donnee
 	double ComputeInstanceNonNormalizedDataCost(int nInstance) const;
@@ -458,7 +464,7 @@ public:
 	int GetSignatureIndexAt(const SNBDataTableBinarySliceSetAttribute* attribute) const;
 
 	// Ajout d'un index d'attribut dans la signature: son index est le dernier de la signature
-	void AddAttribute(SNBDataTableBinarySliceSetAttribute* attribute);
+	void AddAttribute(const SNBDataTableBinarySliceSetAttribute* attribute);
 
 	// Supression d'un attribut de la signature
 	// Le dernier attribut de la signatureprend l'index de l'attribut supprime
@@ -567,14 +573,15 @@ public:
 	/////////////////////////////////////////////////////////
 	/// Implementation
 protected:
-	// Reimplementation des methodes internes
+	// Reimplementation de l'interface SNBPredictorSelectionDataCostCalculator
 	void InitializeTargetPartition() override;
 	void InitializeDataCostState() override;
-	void UpdateTargetPartitionWithAddedAttribute(SNBDataTableBinarySliceSetAttribute* attribute) override;
-	void UpdateTargetPartitionWithRemovedAttribute(SNBDataTableBinarySliceSetAttribute* attribute) override;
-	boolean UpdateTargetPartScoresWithWeightedAttribute(SNBDataTableBinarySliceSetAttribute* attribute,
-							    Continuous cDeltaWeight);
-	boolean UpdateDataCostWithAttribute(SNBDataTableBinarySliceSetAttribute* attribute) override;
+	void UpdateTargetPartitionWithAddedAttribute(const SNBDataTableBinarySliceSetAttribute* attribute) override;
+	void UpdateTargetPartitionWithRemovedAttribute(const SNBDataTableBinarySliceSetAttribute* attribute) override;
+	boolean UpdateTargetPartScoresWithWeightedAttribute(const SNBDataTableBinarySliceSetAttribute* attribute,
+							    Continuous cDeltaWeight) override;
+	boolean UpdateDataCost() override;
+	boolean UpdateDataCostWithSparseAttribute(SNBDataTableBinarySliceSetAttribute* attribute) override;
 
 	// Calcul du cout de selection non normalise pour une instance donnee
 	double ComputeInstanceNonNormalizedDataCost(int nInstance) const;
@@ -606,7 +613,7 @@ protected:
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 	// Variables de travail utilisees pour accelerer le calcul du cout de donnees
 	// Ces variables de travail sont preallouees une fois pour toutes, et utilisee uniquement dans la
-	// methode ComputeSelectionDataCost
+	// methode GetSelectionDataCost
 
 	// Tableau codifiant la relation [TargetValueIndex -> GroupTargetPart]
 	ObjectArray oaTargetPartsByTargetValueIndex;
@@ -673,7 +680,7 @@ inline double SNBClassifierSelectionDataCostCalculator::ComputeInstanceNonNormal
 		     << -log(dInstanceLaplaceNumerator / dLaplaceDenominator);
 		for (nTargetPart = 0; nTargetPart < oaTargetParts.GetSize(); nTargetPart++)
 		{
-			targetPart = cast(SNBIntervalTargetPart*, oaTargetParts.GetAt(nTargetPart));
+			targetPart = cast(SNBTargetPart*, oaTargetParts.GetAt(nTargetPart));
 			cout << "\t" << targetPart->GetScores()->GetAt(nChunkInstance);
 		}
 		cout << "\n";

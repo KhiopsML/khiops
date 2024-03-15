@@ -1357,13 +1357,6 @@ Object* KWDRDataGridStatsBlock::ComputeStructureResult(const KWObject* kwoObject
 							 KWType::SymbolValueBlock, &ivUsedRecodingDataGridIndexes);
 	}
 
-	// DDD
-	//cout << "INPUT" << endl;
-	//cout << *GetSecondOperand()->GetContinuousValueBlock(kwoObject) << endl;
-	//cout << "OUTPUT" << endl;
-	//cout << *resultCellIndexBlock << endl;
-	//cout << "------" << endl;
-
 	// On retourne la structure elle meme, pour disposer de ses services
 	return (Object*)this;
 }
