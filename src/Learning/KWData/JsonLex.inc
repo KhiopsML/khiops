@@ -1,6 +1,6 @@
-#line 1 "JsonLex.inc"
+#line 1 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/JsonLex.inc"
 
-#line 3 "JsonLex.inc"
+#line 3 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/JsonLex.inc"
 
 #define  YY_INT_ALIGNED short int
 
@@ -769,9 +769,6 @@ char *yytext;
 #include <stdlib.h>
 #include "JSONTokenizer.h"
 
-// TODO MB: A tester pour mieux personnaliser la prise en compte de flex et bison dans Visual C++
-// https://sourceforge.net/p/winflexbison/wiki/Visual%20Studio%20custom%20build%20rules/
-
 // Valeur des tokens
 static ALString sJsonTokenString;
 static ALString sJsonTokenStringCopy;
@@ -783,9 +780,9 @@ static boolean bJsonTokenBoolean = false;
 #pragma warning(disable : 4505) // C4505: la fonction locale non référencée a été supprimée
 #pragma warning(disable : 4996) // C4996: warning for deprecated POSIX names isatty and fileno
 #endif                          // __MSC__
-#line 786 "JsonLex.inc"
+#line 783 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/JsonLex.inc"
 /* pour avoir acces aux numeros de lignes, et moins cher que le -l de la ligne de commande */
-#line 788 "JsonLex.inc"
+#line 785 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/JsonLex.inc"
 
 #define INITIAL 0
 
@@ -994,10 +991,10 @@ YY_DECL
 		}
 
 	{
-#line 45 "JsonLex.lex"
+#line 42 "JsonLex.lex"
 
 
-#line 1000 "JsonLex.inc"
+#line 997 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/JsonLex.inc"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -1066,53 +1063,53 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 47 "JsonLex.lex"
+#line 44 "JsonLex.lex"
 {return '{';}
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 48 "JsonLex.lex"
+#line 45 "JsonLex.lex"
 {return '}';}
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 49 "JsonLex.lex"
+#line 46 "JsonLex.lex"
 {return '[';}
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 50 "JsonLex.lex"
+#line 47 "JsonLex.lex"
 {return ']';}
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 51 "JsonLex.lex"
+#line 48 "JsonLex.lex"
 {return ',';}
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 52 "JsonLex.lex"
+#line 49 "JsonLex.lex"
 {return ':';}
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 53 "JsonLex.lex"
+#line 50 "JsonLex.lex"
 {bJsonTokenBoolean = true; return JSONTokenizer::Boolean;}
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 54 "JsonLex.lex"
+#line 51 "JsonLex.lex"
 {bJsonTokenBoolean = false; return JSONTokenizer::Boolean;}
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 55 "JsonLex.lex"
+#line 52 "JsonLex.lex"
 {return JSONTokenizer::Null;}
 	YY_BREAK
 case 10:
 /* rule 10 can match eol */
 YY_RULE_SETUP
-#line 59 "JsonLex.lex"
+#line 56 "JsonLex.lex"
 {
                     yytext[yyleng-1] = '\0';
                     JSONTokenizer::JsonToCString((char*)&yytext[1], sJsonTokenString);
@@ -1129,7 +1126,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 73 "JsonLex.lex"
+#line 70 "JsonLex.lex"
 {
                     cJsonTokenDouble = KWContinuous::StringToContinuous((char*)yytext);
                     return(JSONTokenizer::Number);
@@ -1138,20 +1135,20 @@ YY_RULE_SETUP
 case 12:
 /* rule 12 can match eol */
 YY_RULE_SETUP
-#line 78 "JsonLex.lex"
+#line 75 "JsonLex.lex"
 {/*IGNORE*/}
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 80 "JsonLex.lex"
+#line 77 "JsonLex.lex"
 {sJsonTokenString = yytext; return JSONTokenizer::Error;}
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 82 "JsonLex.lex"
+#line 79 "JsonLex.lex"
 ECHO;
 	YY_BREAK
-#line 1154 "JsonLex.inc"
+#line 1151 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/JsonLex.inc"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2168,5 +2165,5 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 82 "JsonLex.lex"
+#line 79 "JsonLex.lex"
 
