@@ -1,0 +1,99 @@
+Distinct values (3 quantiles)
+  Values (10): 0, 1, 2, 3, 4, 5, 6, 7, 8, 9
+Quantiles (3) -> 3 intervals
+	3		2.5
+	4	2.5	6.5
+	3	6.5	1e+100
+Build quantiles from frequencies: true
+Distinct values (4 quantiles)
+  Values (10): 0, 1, 2, 3, 4, 5, 6, 7, 8, 9
+Quantiles (4) -> 4 intervals
+	2		1.5
+	3	1.5	4.5
+	3	4.5	7.5
+	2	7.5	1e+100
+Build quantiles from frequencies: true
+Distinct values (5 quantiles)
+  Values (10): 0, 1, 2, 3, 4, 5, 6, 7, 8, 9
+Quantiles (5) -> 5 intervals
+	2		1.5
+	2	1.5	3.5
+	2	3.5	5.5
+	2	5.5	7.5
+	2	7.5	1e+100
+Build quantiles from frequencies: true
+Few values (3 quantiles)
+  Values (10): 0, 0, 0, 1, 1, 1, 2, 2, 2, 3
+Quantiles (3) -> 3 intervals
+	3		0.5
+	3	0.5	1.5
+	4	1.5	1e+100
+Build quantiles from frequencies: true
+Few values (4 quantiles)
+  Values (10): 0, 0, 0, 1, 1, 1, 2, 2, 2, 3
+Quantiles (4) -> 4 intervals
+	3		0.5
+	3	0.5	1.5
+	3	1.5	2.5
+	1	2.5	1e+100
+Build quantiles from frequencies: true
+Few values (5 quantiles)
+  Values (10): 0, 0, 0, 1, 1, 1, 2, 2, 2, 3
+Quantiles (5) -> 4 intervals
+	3		0.5
+	3	0.5	1.5
+	3	1.5	2.5
+	1	2.5	1e+100
+Build quantiles from frequencies: true
+Few values (variant) (3 quantiles)
+  Values (10): 0, 1, 1, 1, 2, 2, 2, 3, 3, 3
+Quantiles (3) -> 3 intervals
+	4		1.5
+	3	1.5	2.5
+	3	2.5	1e+100
+Build quantiles from frequencies: true
+Few values (variant) (4 quantiles)
+  Values (10): 0, 1, 1, 1, 2, 2, 2, 3, 3, 3
+Quantiles (4) -> 4 intervals
+	1		0.5
+	3	0.5	1.5
+	3	1.5	2.5
+	3	2.5	1e+100
+Build quantiles from frequencies: true
+Few values (variant) (5 quantiles)
+  Values (10): 0, 1, 1, 1, 2, 2, 2, 3, 3, 3
+Quantiles (5) -> 4 intervals
+	1		0.5
+	3	0.5	1.5
+	3	1.5	2.5
+	3	2.5	1e+100
+Build quantiles from frequencies: true
+Two values, rare at begin (4 quantiles)
+  Values (10): 0, 1, 1, 1, 1, 1, 1, 1, 1, 1
+Quantiles (4) -> 2 intervals
+	1		0.5
+	9	0.5	1e+100
+Build quantiles from frequencies: true
+Two values, rare at end (4 quantiles)
+  Values (10): 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+Quantiles (4) -> 2 intervals
+	9		0.5
+	1	0.5	1e+100
+Build quantiles from frequencies: true
+One value (4 quantiles)
+  Values (10): 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+Quantiles (4) -> 1 intervals
+	10		1e+100
+Build quantiles from frequencies: true
+One value plus one missing (4 quantiles)
+  Values (10): , 0, 0, 0, 0, 0, 0, 0, 0, 0
+Quantiles (4) -> 2 intervals
+	1		
+	9		1e+100
+Build quantiles from frequencies: true
+Missing values plus one actual value (4 quantiles)
+  Values (10): , , , , , , , , , 0
+Quantiles (4) -> 2 intervals
+	9		
+	1		1e+100
+Build quantiles from frequencies: true

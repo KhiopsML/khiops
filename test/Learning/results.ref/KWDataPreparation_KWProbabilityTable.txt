@@ -1,0 +1,309 @@
+Unsupervised (1)
+--------------------
+Variable	Numerical	Att1
+
+Variable stats
+Interval	Frequency	Coverage
+]-inf;1]	1	0.333333
+]1;+inf[	2	0.666667
+
+
+Probability table
+Target conditional probability table
+	T1	T2
+S1	0.357143	0.642857
+
+Unsupervised (2)
+--------------------
+Variables
+	Type	Name
+	Categorical	Att1
+	Numerical	Att2
+
+Variables stats
+Att1
+Group	Frequency	Coverage	Size	Value list
+{V1, V2, V3}	4	0.571429	3	V1	V2	V3
+{V4, V5}	3	0.428571	2	V4	V5	 * 
+Att2
+Interval	Frequency	Coverage
+]-inf;1]	3	0.428571
+]1;+inf[	4	0.571429
+
+Cell frequencies
+	Att2
+Att1	]-inf;1]	]1;+inf[	Total	Coverage
+{V1, V2, V3}	1	3	4	0.571429
+{V4, V5}	2	1	3	0.428571
+Total	3	4	7
+Coverage	0.428571	0.571429
+
+Cells	4
+Cell Id	Att1	Att2	Frequency	Coverage
+C3	{V1, V2, V3}	]1;+inf[	3	0.428571
+C2	{V4, V5}	]-inf;1]	2	0.285714
+C1	{V1, V2, V3}	]-inf;1]	1	0.142857
+C4	{V4, V5}	]1;+inf[	1	0.142857
+	Total		7	1
+
+Probability table
+Target conditional probability table
+	T1	T2	T3	T4
+S1	0.15	0.283333	0.416667	0.15
+
+Unsupervised simple(3)
+--------------------
+Variables
+	Type	Name
+	Categorical	Att1
+	Categorical	Att2
+	Numerical	Att3
+
+Variables stats
+Att1
+Value	Frequency	Coverage
+V1	7	0.466667
+V2	8	0.533333
+Att2
+Value	Frequency	Coverage
+V1	8	0.533333
+V2	7	0.466667
+Att3
+Value	Frequency	Coverage
+1	7	0.466667
+2	8	0.533333
+
+Cells	8
+Cell Id	Att1	Att2	Att3	Frequency	Coverage
+C3	V1	V2	1	3	0.2
+C6	V2	V1	2	3	0.2
+C5	V1	V1	2	2	0.133333
+C2	V2	V1	1	2	0.133333
+C8	V2	V2	2	2	0.133333
+C1	V1	V1	1	1	0.0666667
+C7	V1	V2	2	1	0.0666667
+C4	V2	V2	1	1	0.0666667
+	Total			15	1
+
+Probability table
+Target conditional probability table
+	T1	T2	T3	T4	T5	T6	T7	T8
+S1	0.0685484	0.133065	0.197581	0.0685484	0.133065	0.197581	0.0685484	0.133065
+
+Supervised (1, 1)
+--------------------
+Target variable	Numerical	Att2
+
+Target variable stats
+Interval	Frequency	Coverage
+]-inf;1]	3	0.428571
+]1;+inf[	4	0.571429
+
+Variable	Categorical	Att1
+
+Variable stats
+Group	Size	Value list
+{V1, V2, V3}	3	V1	V2	V3
+{V4, V5}	2	V4	V5	 * 
+
+% target values
+Group	]-inf;1]	]1;+inf[	Interest	Frequency	Coverage
+{V4, V5}	0.666667	0.333333	0.5546	3	0.428571
+{V1, V2, V3}	0.25	0.75	0.4454	4	0.571429
+Total	0.428571	0.571429	1	7	1
+
+Probability table
+Target conditional probability table
+	T1	T2
+S1	0.264706	0.735294
+S2	0.653846	0.346154
+
+Supervised simple (2, 1)
+--------------------
+Target variable	Numerical	Att3
+
+Target variable stats
+Value	Frequency	Coverage
+1	7	0.466667
+2	8	0.533333
+
+Variables
+	Type	Name
+	Categorical	Att1
+	Categorical	Att2
+
+Variables stats
+Att1
+Value	Frequency	Coverage
+V1	7	0.466667
+V2	8	0.533333
+Att2
+Value	Frequency	Coverage
+V1	8	0.533333
+V2	7	0.466667
+
+Cell frequencies
+	Att2
+Att1	V1	V2	Total	Coverage
+V1	3	4	7	0.466667
+V2	5	3	8	0.533333
+Total	8	7	15
+Coverage	0.533333	0.466667
+
+Cells	4
+Cell Id	Att1	Att2	1	2	Interest	Frequency	Coverage
+C3	V1	V2	0.75	0.25	0.715512	4	0.266667
+C1	V1	V1	0.333333	0.666667	0.118034	3	0.2
+C4	V2	V2	0.333333	0.666667	0.118034	3	0.2
+C2	V2	V1	0.4	0.6	0.0484194	5	0.333333
+	Total		0.466667	0.533333	1	15	1
+
+Probability table
+Target conditional probability table
+	T1	T2
+S1	0.34	0.66
+S2	0.402439	0.597561
+S3	0.742424	0.257576
+S4	0.34	0.66
+
+Supervised(1, 2)
+--------------------
+Target variables
+	Type	Name
+	Numerical	Att2
+	Numerical	Att3
+
+Target variables stats
+Att2
+Interval	Frequency	Coverage
+]-inf;1]	8	0.533333
+]1;+inf[	7	0.466667
+Att3
+Interval	Frequency	Coverage
+]-inf;1]	7	0.466667
+]1;+inf[	8	0.533333
+
+Variable	Categorical	Att1
+
+Variable stats
+Group	Size	Value list
+{V1, V2, V3}	3	V1	V2	V3
+{V4, V5}	2	V4	V5	 * 
+
+% target values
+	Att2		Att3		
+Group	]-inf;1]	]1;+inf[	]-inf;1]	]1;+inf[	Frequency	Coverage
+{V1, V2, V3}	0.428571	0.571429	0.571429	0.428571	7	0.466667
+{V4, V5}	0.625	0.375	0.375	0.625	8	0.533333
+Total	0.533333	0.466667	1	1	15	1
+
+Probability table
+Target conditional probability table
+	T1	T2	T3	T4
+S1	0.146552	0.422414	0.284483	0.146552
+S2	0.25	0.128788	0.371212	0.25
+
+Supervised(2, 2)
+--------------------
+Target variables
+	Type	Name
+	Numerical	Att3
+	Numerical	Att4
+
+Target variables stats
+Att3
+Interval	Frequency	Coverage
+]-inf;1]	16	0.516129
+]1;+inf[	15	0.483871
+Att4
+Interval	Frequency	Coverage
+]-inf;1]	15	0.483871
+]1;+inf[	16	0.516129
+
+Variables
+	Type	Name
+	Categorical	Att1
+	Categorical	Att2
+
+Variables stats
+Att1
+Group	Frequency	Coverage	Size	Value list
+{V1, V2, V3}	16	0.516129	3	V1	V2	V3
+{V4, V5}	15	0.483871	2	V4	V5	 * 
+Att2
+Group	Frequency	Coverage	Size	Value list
+{V1, V2, V3}	15	0.483871	3	V1	V2	V3
+{V4, V5}	16	0.516129	2	V4	V5	 * 
+
+Cell frequencies
+	Att2
+Att1	{V1, V2, V3}	{V4, V5}	Total	Coverage
+{V1, V2, V3}	7	9	16	0.516129
+{V4, V5}	8	7	15	0.483871
+Total	15	16	31
+Coverage	0.483871	0.516129
+
+Cells	4
+			Att3		Att4		
+Cell Id	Att1	Att2	]-inf;1]	]1;+inf[	]-inf;1]	]1;+inf[	Frequency	Coverage
+C1	{V1, V2, V3}	{V1, V2, V3}	0.571429	0.428571	0.428571	0.571429	7	0.225806
+C2	{V4, V5}	{V1, V2, V3}	0.375	0.625	0.625	0.375	8	0.258065
+C3	{V1, V2, V3}	{V4, V5}	0.555556	0.444444	0.444444	0.555556	9	0.290323
+C4	{V4, V5}	{V4, V5}	0.571429	0.428571	0.428571	0.571429	7	0.225806
+	Total		0.516129	0.483871	1	1	31	1
+
+Probability table
+Target conditional probability table
+	T1	T2	T3	T4
+S1	0.144737	0.285088	0.425439	0.144737
+S2	0.25	0.373077	0.126923	0.25
+S3	0.332192	0.113014	0.222603	0.332192
+S4	0.144737	0.285088	0.425439	0.144737
+
+Supervised (1, 1)
+--------------------
+Target variable	Numerical	Att2
+
+Target variable stats
+Value	Frequency	Coverage
+1	6	0.333333
+2	6	0.333333
+3	6	0.333333
+
+Variable	Numerical	Att1
+
+% target values
+Value	1	2	3	Interest	Frequency	Coverage
+1	0.333333	0.333333	0.333333	0	3	0.166667
+2	0.333333	0.333333	0.333333	0	6	0.333333
+3	0.333333	0.333333	0.333333	0	9	0.5
+Total	0.333333	0.333333	0.333333	1	18	1
+
+Target probability table
+Target conditional probability table
+	T1	T2	T3
+S1	0.333333	0.333333	0.333333
+S2	0.333333	0.333333	0.333333
+S3	0.333333	0.333333	0.333333
+
+Target probability table (log)
+Target conditional probability table (log)
+	T1	T2	T3
+S1	-1.09861	-1.09861	-1.09861
+S2	-1.09861	-1.09861	-1.09861
+S3	-1.09861	-1.09861	-1.09861
+
+Source probability table
+Source conditional probability table
+	T1	T2	T3
+S1	0.17094	0.17094	0.17094
+S2	0.333333	0.333333	0.333333
+S3	0.495726	0.495726	0.495726
+
+Source probability table (log)
+Source conditional probability table (log)
+	T1	T2	T3
+S1	-1.76644	-1.76644	-1.76644
+S2	-1.09861	-1.09861	-1.09861
+S3	-0.701731	-0.701731	-0.701731
+
