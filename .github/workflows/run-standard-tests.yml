@@ -38,6 +38,7 @@ jobs:
   # build. The cached binaries are delete in the last job (cleanup-cache)
   build-full-project:
     strategy:
+      fail-fast: false
       matrix:
         build-setup:
           - {os: windows-2022, cmake-preset: windows-msvc}
