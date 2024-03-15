@@ -124,6 +124,8 @@ public:
 	int GetDataGridSetTargetPartNumber() const;
 	int GetDataGridSetTargetFrequencyAt(int nTargetValue) const;
 	int GetDataGridSetTargetCellIndexAt(int nDataGrid, int nTargetValue) const;
+	double GetMissingLogProbaAt(int nDataGrid, int nTargetValue) const;
+	double GetMissingScoreAt(int nTargetValue) const;
 
 	// Memoire utilisee
 	longint GetUsedMemory() const override;
@@ -165,8 +167,16 @@ protected:
 	// Vecteurs des effectifs par partie cible
 	IntVector ivDataGridSetTargetFrequencies;
 
+	// Log-vraisemblances des valeurs manquantes pour chaque cible et grille (variable)
+	// Les grilles denses sont mis a zero
+	DoubleVector dvMissingLogProbas;
+
+	// Valeurs de reference de la log-likelihood pour chaque cible:
+	// Ce sont ceux ou tous les valeurs sparse sont missing
+	DoubleVector dvMissingScores;
+
 	// Index des parties cibles de grille pour chaque partie cible de l'ensemble
-	// Vecteur de taille nTargetPartNumber*DataGridRuleNumber
+	// Vecteur de taille nTargetPartNumber * DataGridRuleNumber
 	// Dans le cas de plusieurs grilles, les parties resultent de l'union des parties
 	// cibles sur l'ensemble des grilles
 	IntVector ivDataGridTargetIndexes;
@@ -415,8 +425,8 @@ protected:
 	void ComputeSingleTargetValueCumulativeInstanceNumbers(IntVector* ivResultVector) const;
 
 	// Calcul des delta de valeurs pour la gestion des valeurs extremes
-	Continuous ComputeTotalDeltaTargetValue() const;
-	Continuous ComputeMeanDeltaTargetValue() const;
+	Continuous ComputeTargetValueRange() const;
+	Continuous ComputeMeanTargetValueRange() const;
 
 	// Calcul du nombre de valeurs manquantes
 	int ComputeMissingValueNumber() const;
@@ -441,8 +451,8 @@ protected:
 	ContinuousVector cvCumulativeSquareTargetValues;
 
 	// Delta de valeur pour la gestion des valeurs extremes
-	Continuous cTotalDeltaTargetValue;
-	Continuous cMeanDeltaTargetValue;
+	Continuous cTargetValueRange;
+	Continuous cMeanTargetValueRange;
 
 	// Nombre de valeurs manquantes
 	// En cas de valeurs manquantes en apprentissage, le regresseur ne predit que des valeurs manquantes

@@ -4,6 +4,9 @@
 
 #include "KWPredictorNaiveBayes.h"
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+// Classe KWPredictorNaiveBayes
+
 KWPredictorNaiveBayes::KWPredictorNaiveBayes() {}
 
 KWPredictorNaiveBayes::~KWPredictorNaiveBayes() {}
@@ -59,12 +62,12 @@ boolean KWPredictorNaiveBayes::InternalTrain()
 void KWPredictorNaiveBayes::InternalTrainNB(KWDataPreparationClass* dataPreparationClass,
 					    ObjectArray* oaUsedDataPreparationAttributes)
 {
-	InternalTrainFinishTrainedPredictor(dataPreparationClass, oaUsedDataPreparationAttributes, NULL);
+	CreatePredictorAttributesInClass(dataPreparationClass, oaUsedDataPreparationAttributes, NULL);
 }
 
-void KWPredictorNaiveBayes::InternalTrainFinishTrainedPredictor(KWDataPreparationClass* dataPreparationClass,
-								ObjectArray* oaUsedDataPreparationAttributes,
-								ContinuousVector* cvAttributeWeights)
+void KWPredictorNaiveBayes::CreatePredictorAttributesInClass(KWDataPreparationClass* dataPreparationClass,
+							     ObjectArray* oaUsedDataPreparationAttributes,
+							     ContinuousVector* cvAttributeWeights)
 {
 	boolean bPredictorWithWeights;
 	ObjectArray oaFilteredDataPreparationAttributes;
@@ -73,8 +76,6 @@ void KWPredictorNaiveBayes::InternalTrainFinishTrainedPredictor(KWDataPreparatio
 	int nAttribute;
 
 	require(dataPreparationClass != NULL);
-	// DDD
-	//cout << *dataPreparationClass->GetDataPreparationClass() << endl;
 	require(dataPreparationClass->CheckDataPreparation());
 	require(oaUsedDataPreparationAttributes != NULL);
 	require(cvAttributeWeights == NULL or
@@ -84,9 +85,8 @@ void KWPredictorNaiveBayes::InternalTrainFinishTrainedPredictor(KWDataPreparatio
 	require(GetTrainedPredictor() != NULL);
 	require(GetTrainedPredictor()->GetPredictorClass() == NULL);
 
-	bPredictorWithWeights = cvAttributeWeights != NULL;
-
 	// Indirection sur un vecteur de poids filtre, selon le vecteur de poids en entree
+	bPredictorWithWeights = cvAttributeWeights != NULL;
 	if (bPredictorWithWeights)
 		cvFiltereredDataPreparationWeights = new ContinuousVector;
 	else
@@ -95,37 +95,41 @@ void KWPredictorNaiveBayes::InternalTrainFinishTrainedPredictor(KWDataPreparatio
 	// Ajout d'attributs au predicteur:
 	//   - Cas avec poids : attributs informatifs et avec poids positif
 	//   - Cas sans poids : attributs informatif
-	// Ajout d'attributs informatifs et:
 	for (nAttribute = 0; nAttribute < oaUsedDataPreparationAttributes->GetSize(); nAttribute++)
 	{
 		dataPreparationAttribute =
 		    cast(KWDataPreparationAttribute*, oaUsedDataPreparationAttributes->GetAt(nAttribute));
-		if (not dataPreparationAttribute->IsInformativeOnTarget())
-			continue;
-		if (bPredictorWithWeights and cvAttributeWeights->GetAt(nAttribute) > 0)
+		if (dataPreparationAttribute->IsInformativeOnTarget())
 		{
-			oaFilteredDataPreparationAttributes.Add(dataPreparationAttribute);
-			cvFiltereredDataPreparationWeights->Add(cvAttributeWeights->GetAt(nAttribute));
+			if (bPredictorWithWeights and cvAttributeWeights->GetAt(nAttribute) > 0)
+			{
+				oaFilteredDataPreparationAttributes.Add(dataPreparationAttribute);
+				cvFiltereredDataPreparationWeights->Add(cvAttributeWeights->GetAt(nAttribute));
+			}
+			else if (not bPredictorWithWeights)
+				oaFilteredDataPreparationAttributes.Add(dataPreparationAttribute);
 		}
 	}
 
-	// Parametrage de la classe du predicteur du predicteur entraine
+	// Parametrage de la classe du predicteur entraine
 	GetTrainedPredictor()->SetPredictorClass(dataPreparationClass->GetDataPreparationClass(),
 						 GetTargetAttributeType(), GetObjectLabel());
 
 	// Construction des attributs de prediction selon le type de predicteur
 	if (GetTargetAttributeType() == KWType::Symbol)
-		InternalTrainFinishTrainedClassifier(dataPreparationClass, &oaFilteredDataPreparationAttributes,
-						     cvFiltereredDataPreparationWeights);
+		CreateClassifierAttributesInClass(dataPreparationClass, &oaFilteredDataPreparationAttributes,
+						  cvFiltereredDataPreparationWeights);
 	else if (GetTargetAttributeType() == KWType::Continuous)
-		InternalTrainFinishTrainedRegressor(dataPreparationClass, &oaFilteredDataPreparationAttributes,
-						    cvFiltereredDataPreparationWeights);
+		CreateRegressorAttributesInClass(dataPreparationClass, &oaFilteredDataPreparationAttributes,
+						 cvFiltereredDataPreparationWeights);
+
+	// Nettoyage des objets liees a la preparation :
+	//   La memoire de la classe dataPreparationClass->GetDataPreparationClass() n'est plus responsabilite de dataPreparationClass
+	//   Elle appartient maintenant a GetTrainedPredictor()
+	dataPreparationClass->RemoveDataPreparation();
 
 	// Memorisation du nombre d'attribut utilises par le classifier
 	GetPredictorReport()->SetUsedAttributeNumber(oaFilteredDataPreparationAttributes.GetSize());
-
-	// Nettoyage de la preparation, la classe de preparation etant maintenant reference par le predicteur
-	dataPreparationClass->RemoveDataPreparation();
 
 	// Nettoyage
 	delete cvFiltereredDataPreparationWeights;
@@ -149,12 +153,9 @@ void KWPredictorNaiveBayes::ExtractDataPreparationStats(const ObjectArray* oaDat
 	}
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-// Naive Bayes Classifier Family (Includes SNB, NB and Univariate)
-
-void KWPredictorNaiveBayes::InternalTrainFinishTrainedClassifier(KWDataPreparationClass* dataPreparationClass,
-								 ObjectArray* oaUsedDataPreparationAttributes,
-								 ContinuousVector* cvAttributeWeights)
+void KWPredictorNaiveBayes::CreateClassifierAttributesInClass(KWDataPreparationClass* dataPreparationClass,
+							      ObjectArray* oaUsedDataPreparationAttributes,
+							      ContinuousVector* cvAttributeWeights)
 {
 	KWAttribute* classifierAttribute;
 	ObjectArray oaDataPreparationAttributeStats;
@@ -175,94 +176,10 @@ void KWPredictorNaiveBayes::InternalTrainFinishTrainedClassifier(KWDataPreparati
 	    dataPreparationClass->GetDataPreparationTargetAttribute()->GetPreparedAttribute());
 
 	// Ajout de l'attribut classifieur et des attributs de prediction
-	// DDD
-	//classifierAttribute = OLDAddClassifierAttribute(GetTrainedClassifier(), oaUsedDataPreparationAttributes, cvAttributeWeights);
 	classifierAttribute =
 	    AddClassifierAttribute(dataPreparationClass, oaUsedDataPreparationAttributes, cvAttributeWeights);
 	AddClassifierPredictionAttributes(classifierAttribute);
 	GetTrainedClassifier()->GetPredictorClass()->CompleteTypeInfo();
-	// DDD
-	//cout << "+++++++++++++++++++++++++++" << endl;
-	//GetTrainedClassifier()->GetPredictorClass()->Write(cout);
-	//cout << "+++++++++++++++++++++++++++" << endl;
-}
-
-KWAttribute* KWPredictorNaiveBayes::OLDAddClassifierAttribute(KWTrainedClassifier* trainedClassifier,
-							      ObjectArray* oaUsedDataPreparationAttributes,
-							      ContinuousVector* cvDataPreparationWeights)
-{
-	boolean bTrace = false;
-	int nAttribute;
-	KWDataPreparationAttribute* dataPreparationAttribute;
-	KWDRContinuousVector* weightRule;
-	KWDerivationRuleOperand* operand;
-	KWDRDataGridStats* dgsRule;
-	KWDRNBClassifier* classifierRule;
-	KWAttribute* classifierAttribute;
-
-	require(trainedClassifier != NULL);
-	require(oaUsedDataPreparationAttributes != NULL);
-	require(cvDataPreparationWeights == NULL or
-		cvDataPreparationWeights->GetSize() >= oaUsedDataPreparationAttributes->GetSize());
-
-	// Creation d'une regle de ponderation des grilles
-	weightRule = NULL;
-	if (cvDataPreparationWeights != NULL)
-	{
-		weightRule = new KWDRContinuousVector;
-		weightRule->SetValueNumber(oaUsedDataPreparationAttributes->GetSize());
-		for (nAttribute = 0; nAttribute < oaUsedDataPreparationAttributes->GetSize(); nAttribute++)
-			weightRule->SetValueAt(nAttribute, cvDataPreparationWeights->GetAt(nAttribute));
-	}
-
-	// Creation d'une regle de regression destinee a accueilir les grilles, avec ou sans les poids
-	if (weightRule == NULL)
-		classifierRule = new KWDRNBClassifier;
-	else
-	{
-		classifierRule = new KWDRSNBClassifier;
-		classifierRule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginRule);
-		classifierRule->GetFirstOperand()->SetDerivationRule(weightRule);
-	}
-	classifierRule->DeleteAllVariableOperands();
-
-	// Ajout d'un attribut de type grille de donnees par attribut prepare
-	for (nAttribute = 0; nAttribute < oaUsedDataPreparationAttributes->GetSize(); nAttribute++)
-	{
-		dataPreparationAttribute =
-		    cast(KWDataPreparationAttribute*, oaUsedDataPreparationAttributes->GetAt(nAttribute));
-
-		// Affichage des statistiques de preparation
-		if (bTrace)
-		{
-			cout << dataPreparationAttribute->GetObjectLabel() << endl;
-			cout << *dataPreparationAttribute->GetPreparedStats()->GetPreparedDataGridStats() << endl;
-		}
-
-		// Creation d'une regle DataGridStats
-		dgsRule = dataPreparationAttribute->CreatePreparedStatsRule();
-
-		// Ajout d'un operande DataGridStats au predicteur
-		operand = new KWDerivationRuleOperand;
-		operand->SetOrigin(KWDerivationRuleOperand::OriginRule);
-		operand->SetDerivationRule(dgsRule);
-		operand->SetType(dgsRule->GetType());
-		operand->SetStructureName(dgsRule->GetStructureName());
-		classifierRule->AddOperand(operand);
-	}
-
-	// Ajout d'un dernier operande pour les valeurs cible
-	operand = new KWDerivationRuleOperand;
-	operand->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
-	operand->SetType(trainedClassifier->GetTargetValuesAttribute()->GetType());
-	operand->SetAttributeName(trainedClassifier->GetTargetValuesAttribute()->GetName());
-	operand->SetStructureName(trainedClassifier->GetTargetValuesAttribute()->GetStructureName());
-	classifierRule->AddOperand(operand);
-
-	// Creation d'un attribut de classification
-	classifierAttribute =
-	    trainedClassifier->CreatePredictionAttribute(GetPrefix() + GetTargetAttributeName(), classifierRule);
-	return classifierAttribute;
 }
 
 KWAttribute* KWPredictorNaiveBayes::AddClassifierAttribute(KWDataPreparationClass* dataPreparationClass,
@@ -322,10 +239,6 @@ KWAttribute* KWPredictorNaiveBayes::AddClassifierAttribute(KWDataPreparationClas
 
 	// Completion automatique des types
 	classifierClass->CompleteTypeInfo();
-
-	// DDD
-	//cout << "========================" << endl;
-	//cout << *dataPreparationClass->GetDataPreparationClass() << endl;
 
 	return classifierAttribute;
 }
@@ -425,12 +338,9 @@ void KWPredictorNaiveBayes::AddClassifierPredictionAttributes(KWAttribute* class
 	}
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-// Regressor
-
-void KWPredictorNaiveBayes::InternalTrainFinishTrainedRegressor(KWDataPreparationClass* dataPreparationClass,
-								ObjectArray* oaUsedDataPreparationAttributes,
-								ContinuousVector* cvDataPreparationWeights)
+void KWPredictorNaiveBayes::CreateRegressorAttributesInClass(KWDataPreparationClass* dataPreparationClass,
+							     ObjectArray* oaUsedDataPreparationAttributes,
+							     ContinuousVector* cvAttributeWeights)
 {
 	KWAttribute* rankRegressorAttribute;
 	KWAttribute* regressorAttribute;
@@ -439,8 +349,8 @@ void KWPredictorNaiveBayes::InternalTrainFinishTrainedRegressor(KWDataPreparatio
 
 	require(dataPreparationClass != NULL);
 	require(oaUsedDataPreparationAttributes != NULL);
-	require(cvDataPreparationWeights == NULL or
-		cvDataPreparationWeights->GetSize() >= oaUsedDataPreparationAttributes->GetSize());
+	require(cvAttributeWeights == NULL or
+		cvAttributeWeights->GetSize() >= oaUsedDataPreparationAttributes->GetSize());
 	require(GetTargetAttributeType() == KWType::Continuous);
 	require(GetTrainedRegressor() != NULL);
 	require(GetTrainedRegressor()->GetPredictorClass() != NULL);
@@ -455,33 +365,25 @@ void KWPredictorNaiveBayes::InternalTrainFinishTrainedRegressor(KWDataPreparatio
 
 	// Ajout de l'attribut regresseur de rang
 	rankRegressorAttribute =
-	    AddRankRegressorAttribute(dataPreparationClass, oaUsedDataPreparationAttributes, cvDataPreparationWeights);
-	// DDD
-	//rankRegressorAttribute = OLDAddRankRegressorAttribute(GetTrainedRegressor(),
-	//						      oaUsedDataPreparationAttributes, cvDataPreparationWeights);
+	    AddRankRegressorAttribute(dataPreparationClass, oaUsedDataPreparationAttributes, cvAttributeWeights);
 
 	// Ajout des attribut de prediction pour la regression de rang
-	AddRankRegressorPredictionAttributes(GetTrainedRegressor(), rankRegressorAttribute);
+	AddRankRegressorPredictionAttributes(rankRegressorAttribute);
 
 	// Ajout de l'attribut regresseur de valeur
-	regressorAttribute = AddRegressorAttribute(GetTrainedRegressor(), rankRegressorAttribute, targetValuesAttribute,
-						   cvDataPreparationWeights);
+	regressorAttribute = AddRegressorAttribute(rankRegressorAttribute, targetValuesAttribute, cvAttributeWeights);
 
 	// Ajout des attribut de prediction pour la regression de valeur
 	AddRegressorPredictionAttributes(GetTrainedRegressor(), regressorAttribute, targetValuesAttribute);
 
 	// Completion automatique des informations de la classe (nom de classe par regle...)
 	GetTrainedRegressor()->GetPredictorClass()->CompleteTypeInfo();
-
-	// DDD
-	//cout << *GetTrainedRegressor()->GetPredictorClass() << endl;
 }
 
 KWAttribute* KWPredictorNaiveBayes::AddRankRegressorAttribute(KWDataPreparationClass* dataPreparationClass,
 							      ObjectArray* oaUsedDataPreparationAttributes,
 							      ContinuousVector* cvAttributeWeights)
 {
-	boolean bTrace = false;
 	KWClass* rankRegressorClass;
 	KWDRContinuousVector* weightRule;
 	int nAttribute;
@@ -523,8 +425,7 @@ KWAttribute* KWPredictorNaiveBayes::AddRankRegressorAttribute(KWDataPreparationC
 	rankRegressorRule->DeleteAllVariableOperands();
 
 	// S'il y a des attributs predictifs:
-	//   Ajout a la regle du regresseur des operands DataGrid, DataGridStats, DataGridBlock et
-	//   DataGridStatsBlock
+	//   Ajout a la regle du regresseur des operands DataGrid, DataGridStats, DataGridBlock et DataGridStatsBlock
 	if (oaUsedDataPreparationAttributes->GetSize() > 0)
 	{
 		AddPredictorDataGridStatsAndBlockOperands(rankRegressorRule, weightRule, dataPreparationClass,
@@ -533,7 +434,7 @@ KWAttribute* KWPredictorNaiveBayes::AddRankRegressorAttribute(KWDataPreparationC
 	}
 	// S'il n'y a aucun attribut predictif:
 	//   Le regresseur de rang a besoin neanmoins de l'effectif total, qui venait avec les grilles en
-	//   entree On genere une grille a une cellule pour indiquer cet effectif
+	//   entree; on genere une grille a une cellule pour indiquer cet effectif
 	else
 	{
 		// Creation d'une grille a une cellule
@@ -569,158 +470,48 @@ KWAttribute* KWPredictorNaiveBayes::AddRankRegressorAttribute(KWDataPreparationC
 	return rankRegressorAttribute;
 }
 
-KWAttribute* KWPredictorNaiveBayes::OLDAddRankRegressorAttribute(KWTrainedRegressor* trainedRegressor,
-								 ObjectArray* oaUsedDataPreparationAttributes,
-								 ContinuousVector* cvDataPreparationWeights)
+void KWPredictorNaiveBayes::AddRankRegressorPredictionAttributes(KWAttribute* rankRegressorAttribute)
 {
-	boolean bTrace = false;
-	int nAttribute;
-	KWDataPreparationAttribute* dataPreparationAttribute;
-	KWDRContinuousVector* weightRule;
-	KWDerivationRuleOperand* operand;
-	KWDRDataGridStats* dgsRule;
-	KWDRNBRankRegressor* rankRegressorRule;
-	KWAttribute* rankRegressorAttribute;
-	KWDRDataGrid* dgEmptyRule;
-	KWDataGridStats emptyDataGridStats;
-	KWDGSAttributeDiscretization* emptyDataGridAttribute;
-
-	require(trainedRegressor != NULL);
-	require(oaUsedDataPreparationAttributes != NULL);
-	require(cvDataPreparationWeights == NULL or
-		cvDataPreparationWeights->GetSize() >= oaUsedDataPreparationAttributes->GetSize());
-
-	// Creation d'une regle de ponderation des grilles
-	weightRule = NULL;
-	if (cvDataPreparationWeights != NULL)
-	{
-		weightRule = new KWDRContinuousVector;
-		weightRule->SetValueNumber(oaUsedDataPreparationAttributes->GetSize());
-		for (nAttribute = 0; nAttribute < oaUsedDataPreparationAttributes->GetSize(); nAttribute++)
-			weightRule->SetValueAt(nAttribute, cvDataPreparationWeights->GetAt(nAttribute));
-	}
-
-	// Creation d'une regle de regression destinee a accueilir les grilles, avec ou sans les poids
-	if (weightRule == NULL)
-		rankRegressorRule = new KWDRNBRankRegressor;
-	else
-	{
-		rankRegressorRule = new KWDRSNBRankRegressor;
-		rankRegressorRule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginRule);
-		rankRegressorRule->GetFirstOperand()->SetDerivationRule(weightRule);
-	}
-	rankRegressorRule->DeleteAllVariableOperands();
-
-	// Ajout d'un attribut de type grille de donnees par attribut prepare
-	for (nAttribute = 0; nAttribute < oaUsedDataPreparationAttributes->GetSize(); nAttribute++)
-	{
-		dataPreparationAttribute =
-		    cast(KWDataPreparationAttribute*, oaUsedDataPreparationAttributes->GetAt(nAttribute));
-
-		// Affichage des statistiques de preparation
-		if (bTrace)
-		{
-			cout << dataPreparationAttribute->GetObjectLabel() << endl;
-			cout << *dataPreparationAttribute->GetPreparedStats()->GetPreparedDataGridStats() << endl;
-		}
-
-		// Creation d'une regle DataGridStats
-		dgsRule = dataPreparationAttribute->CreatePreparedStatsRule();
-
-		// Ajout d'un operande DataGridStats au predicteur
-		operand = new KWDerivationRuleOperand;
-		operand->SetOrigin(KWDerivationRuleOperand::OriginRule);
-		operand->SetDerivationRule(dgsRule);
-		operand->SetType(dgsRule->GetType());
-		operand->SetStructureName(dgsRule->GetStructureName());
-		rankRegressorRule->AddOperand(operand);
-	}
-
-	// Cas particulier ou il n'y a aucun attribut predictif
-	// Le regresseur de rang a besoin neanmoins de l'effectif total, qui venait avec les grilles en entree
-	// On genere une grille a une cellule pour indiquer cet effectif
-	if (oaUsedDataPreparationAttributes->GetSize() == 0)
-	{
-		// Creation d'une grille a une cellule
-		emptyDataGridAttribute = new KWDGSAttributeDiscretization;
-		emptyDataGridAttribute->SetAttributeName("Empty");
-		emptyDataGridStats.AddAttribute(emptyDataGridAttribute);
-		emptyDataGridStats.CreateAllCells();
-		emptyDataGridStats.SetUnivariateCellFrequencyAt(0, GetInstanceNumber());
-		assert(emptyDataGridStats.Check());
-
-		// Creation d'une regle de type grille
-		dgEmptyRule = new KWDRDataGrid;
-		dgEmptyRule->ImportDataGridStats(&emptyDataGridStats, false);
-
-		// Creation d'une regle DataGridStats
-		dgsRule = new KWDRDataGridStats;
-		dgsRule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginRule);
-		dgsRule->GetFirstOperand()->SetDerivationRule(dgEmptyRule);
-		dgsRule->DeleteAllVariableOperands();
-
-		// Ajout d'un operande DataGridStats au predicteur
-		operand = new KWDerivationRuleOperand;
-		operand->SetOrigin(KWDerivationRuleOperand::OriginRule);
-		operand->SetDerivationRule(dgsRule);
-		operand->SetType(dgsRule->GetType());
-		operand->SetStructureName(dgsRule->GetStructureName());
-		rankRegressorRule->AddOperand(operand);
-	}
-
-	// Creation d'un attribut de regression
-	rankRegressorAttribute = trainedRegressor->CreatePredictionAttribute(
-	    GetPrefix() + "R" + GetTargetAttributeName(), rankRegressorRule);
-	return rankRegressorAttribute;
-}
-
-void KWPredictorNaiveBayes::AddRankRegressorPredictionAttributes(KWTrainedRegressor* trainedRegressor,
-								 KWAttribute* rankRegressorAttribute)
-{
+	const int nPartileNumber = 5;
 	KWDRTargetRankMean* meanRankRule;
 	KWAttribute* meanRankAttribute;
 	KWDRTargetRankStandardDeviation* standardDeviationRankRule;
 	KWAttribute* standardDeviationRankAttribute;
-	KWDRTargetRankCumulativeProbAt* cumulativeProbRankRule;
-	KWAttribute* cumulativeProbRankAttribute;
-	const int nPartileNumber = 5;
+	KWPredictionAttributeSpec* attributeSpec;
 	int nPartile;
 	Continuous cNormalizedRank;
 	ALString sPartileName;
-	KWDRTargetRankDensityAt* densityRankRule;
-	KWAttribute* densityRankAttribute;
+	KWDRTargetRankCumulativeProbAt* cumulativeProbRankRule;
+	KWAttribute* cumulativeProbRankAttribute;
 	KWDRValueRank* valueRankRule;
 	KWAttribute* valueRankAttribute;
-	KWAttribute* targetValuesAttribute;
-	KWPredictionAttributeSpec* attributeSpec;
+	KWDRTargetRankDensityAt* densityRankRule;
+	KWAttribute* densityRankAttribute;
 	ALString sTmp;
 
-	require(trainedRegressor != NULL);
+	require(GetTrainedRegressor() != NULL);
 	require(rankRegressorAttribute != NULL);
-	require(trainedRegressor->GetPredictorClass()->LookupAttribute(rankRegressorAttribute->GetName()) ==
-		rankRegressorAttribute);
-	require(trainedRegressor->GetTargetValuesAttribute() != NULL);
-	require(trainedRegressor->GetPredictorClass()->LookupAttribute(
-		    trainedRegressor->GetTargetValuesAttribute()->GetName()) ==
-		trainedRegressor->GetTargetValuesAttribute());
+	require(rankRegressorAttribute ==
+		GetTrainedRegressor()->GetPredictorClass()->LookupAttribute(rankRegressorAttribute->GetName()));
+	require(GetTrainedRegressor()->GetTargetValuesAttribute() != NULL);
+	require(GetTrainedRegressor()->GetTargetValuesAttribute() ==
+		GetTrainedRegressor()->GetPredictorClass()->LookupAttribute(
+		    GetTrainedRegressor()->GetTargetValuesAttribute()->GetName()));
 
-	// Creation d'une regle de calcul de rang moyen
+	// Creation et ajout de l'attribute pour la regle KWDRTargetMeanRank
 	meanRankRule = new KWDRTargetRankMean;
 	meanRankRule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
 	meanRankRule->GetFirstOperand()->SetAttributeName(rankRegressorAttribute->GetName());
+	meanRankAttribute =
+	    GetTrainedRegressor()->CreatePredictionAttribute("MR" + GetTargetAttributeName(), meanRankRule);
+	GetTrainedRegressor()->SetMeanRankAttribute(meanRankAttribute);
 
-	// Ajout de l'attribut dans la classe
-	meanRankAttribute = trainedRegressor->CreatePredictionAttribute("MR" + GetTargetAttributeName(), meanRankRule);
-	trainedRegressor->SetMeanRankAttribute(meanRankAttribute);
-
-	// Creation d'une regle StandardDeviationRank
+	// Creation et ajout de l'attribut pour la regle StandardDeviationRank
 	standardDeviationRankRule = new KWDRTargetRankStandardDeviation;
 	standardDeviationRankRule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
 	standardDeviationRankRule->GetFirstOperand()->SetAttributeName(rankRegressorAttribute->GetName());
-
-	// Ajout de l'attribut dans la classe
-	standardDeviationRankAttribute =
-	    trainedRegressor->CreatePredictionAttribute("SDR" + GetTargetAttributeName(), standardDeviationRankRule);
+	standardDeviationRankAttribute = GetTrainedRegressor()->CreatePredictionAttribute(
+	    "SDR" + GetTargetAttributeName(), standardDeviationRankRule);
 
 	// Creation d'une specification d'attribut pour ajouter StandardDeviationRank au predicteur
 	attributeSpec = new KWPredictionAttributeSpec;
@@ -729,7 +520,7 @@ void KWPredictorNaiveBayes::AddRankRegressorPredictionAttributes(KWTrainedRegres
 	attributeSpec->SetMandatory(false);
 	attributeSpec->SetEvaluation(false);
 	attributeSpec->SetAttribute(standardDeviationRankAttribute);
-	trainedRegressor->AddPredictionAttributeSpec(attributeSpec);
+	GetTrainedRegressor()->AddPredictionAttributeSpec(attributeSpec);
 
 	// Creation d'attributs pour la fonction de repartition
 	for (nPartile = 1; nPartile <= nPartileNumber; nPartile++)
@@ -737,15 +528,13 @@ void KWPredictorNaiveBayes::AddRankRegressorPredictionAttributes(KWTrainedRegres
 		cNormalizedRank = Continuous(nPartile) / nPartileNumber;
 		sPartileName = IntToString(nPartile);
 
-		// Creation d'une regle CumulativeProbRank
+		// Creation et ajout de l'attribut pour la regle CumulativeProbRank
 		cumulativeProbRankRule = new KWDRTargetRankCumulativeProbAt;
 		cumulativeProbRankRule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
 		cumulativeProbRankRule->GetFirstOperand()->SetAttributeName(rankRegressorAttribute->GetName());
 		cumulativeProbRankRule->GetSecondOperand()->SetOrigin(KWDerivationRuleOperand::OriginConstant);
 		cumulativeProbRankRule->GetSecondOperand()->SetContinuousConstant(cNormalizedRank);
-
-		// Ajout de l'attribut dans la classe
-		cumulativeProbRankAttribute = trainedRegressor->CreatePredictionAttribute(
+		cumulativeProbRankAttribute = GetTrainedRegressor()->CreatePredictionAttribute(
 		    "CPR" + sPartileName + GetTargetAttributeName(), cumulativeProbRankRule);
 
 		// Creation d'une specification d'attribut pour ajouter cumulativeProbRank au predicteur
@@ -755,60 +544,54 @@ void KWPredictorNaiveBayes::AddRankRegressorPredictionAttributes(KWTrainedRegres
 		attributeSpec->SetMandatory(false);
 		attributeSpec->SetEvaluation(false);
 		attributeSpec->SetAttribute(cumulativeProbRankAttribute);
-		trainedRegressor->AddPredictionAttributeSpec(attributeSpec);
+		GetTrainedRegressor()->AddPredictionAttributeSpec(attributeSpec);
 
 		// Libelle sur l'attribut en complement de la meta-donnees geree par l'attributeSpec
 		cumulativeProbRankAttribute->SetLabel(sTmp + "Partile " + IntToString(nPartile) + " on " +
 						      IntToString(nPartileNumber));
 	}
 
-	// Acces a l'attribut sur les valeurs cibles
-	targetValuesAttribute = trainedRegressor->GetTargetValuesAttribute();
-	check(targetValuesAttribute);
-
-	// Creation de la regle de derivation ValueRank
+	// Creation et ajout l'attribut pour la regle ValueRank
 	valueRankRule = new KWDRValueRank;
 	valueRankRule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
-	valueRankRule->GetFirstOperand()->SetAttributeName(targetValuesAttribute->GetName());
+	valueRankRule->GetFirstOperand()->SetAttributeName(
+	    GetTrainedRegressor()->GetTargetValuesAttribute()->GetName());
 	valueRankRule->GetSecondOperand()->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
 	valueRankRule->GetSecondOperand()->SetAttributeName(GetTargetAttributeName());
-
-	// Creation de l'attribut ValueRank
 	valueRankAttribute =
-	    trainedRegressor->CreatePredictionAttribute("Rank" + GetTargetAttributeName(), valueRankRule);
-	trainedRegressor->SetTargetAttributeRank(valueRankAttribute);
+	    GetTrainedRegressor()->CreatePredictionAttribute("Rank" + GetTargetAttributeName(), valueRankRule);
+	GetTrainedRegressor()->SetTargetAttributeRank(valueRankAttribute);
 
-	// Creation d'une regle DensityRank
+	// Creation et ajout l'attribut pour la regle DensityRank
 	densityRankRule = new KWDRTargetRankDensityAt;
 	densityRankRule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
 	densityRankRule->GetFirstOperand()->SetAttributeName(rankRegressorAttribute->GetName());
 	densityRankRule->GetSecondOperand()->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
 	densityRankRule->GetSecondOperand()->SetAttributeName(valueRankAttribute->GetName());
-
-	// Ajout de l'attribut dans la classe
 	densityRankAttribute =
-	    trainedRegressor->CreatePredictionAttribute("DR" + GetTargetAttributeName(), densityRankRule);
-	trainedRegressor->SetDensityRankAttribute(densityRankAttribute);
+	    GetTrainedRegressor()->CreatePredictionAttribute("DR" + GetTargetAttributeName(), densityRankRule);
+	GetTrainedRegressor()->SetDensityRankAttribute(densityRankAttribute);
+
+	ensure(GetTrainedRegressor()->Check());
 }
 
-KWAttribute* KWPredictorNaiveBayes::AddRegressorAttribute(KWTrainedRegressor* trainedRegressor,
-							  KWAttribute* rankRegressorAttribute,
+KWAttribute* KWPredictorNaiveBayes::AddRegressorAttribute(KWAttribute* rankRegressorAttribute,
 							  KWAttribute* targetValuesAttribute,
-							  ContinuousVector* cvDataPreparationWeights)
+							  ContinuousVector* cvAttributeWeights)
 {
 	KWDRNBRegressor* regressorRule;
 	KWAttribute* regressorAttribute;
 
-	require(trainedRegressor != NULL);
+	require(GetTrainedRegressor() != NULL);
 	require(rankRegressorAttribute != NULL);
-	require(trainedRegressor->GetPredictorClass()->LookupAttribute(rankRegressorAttribute->GetName()) ==
-		rankRegressorAttribute);
+	require(rankRegressorAttribute ==
+		GetTrainedRegressor()->GetPredictorClass()->LookupAttribute(rankRegressorAttribute->GetName()));
 	require(targetValuesAttribute != NULL);
-	require(trainedRegressor->GetPredictorClass()->LookupAttribute(targetValuesAttribute->GetName()) ==
+	require(GetTrainedRegressor()->GetPredictorClass()->LookupAttribute(targetValuesAttribute->GetName()) ==
 		targetValuesAttribute);
 
-	// Creation d'une regle de regression
-	if (cvDataPreparationWeights == NULL)
+	// Creation et ajout de l'attribut pour la regle du regresseur
+	if (cvAttributeWeights == NULL)
 		regressorRule = new KWDRNBRegressor;
 	else
 		regressorRule = new KWDRSNBRegressor;
@@ -816,10 +599,9 @@ KWAttribute* KWPredictorNaiveBayes::AddRegressorAttribute(KWTrainedRegressor* tr
 	regressorRule->GetFirstOperand()->SetAttributeName(rankRegressorAttribute->GetName());
 	regressorRule->GetSecondOperand()->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
 	regressorRule->GetSecondOperand()->SetAttributeName(targetValuesAttribute->GetName());
-
-	// Ajout de l'attribut dans la classe
 	regressorAttribute =
-	    trainedRegressor->CreatePredictionAttribute(GetPrefix() + GetTargetAttributeName(), regressorRule);
+	    GetTrainedRegressor()->CreatePredictionAttribute(GetPrefix() + GetTargetAttributeName(), regressorRule);
+
 	return regressorAttribute;
 }
 
@@ -903,7 +685,6 @@ void KWPredictorNaiveBayes::AddPredictorDataGridStatsAndBlockOperands(KWDerivati
 	KWAttribute* dataGridBlockAttribute;
 	KWAttributeBlock* nativeAttributeBlock;
 	KWDRDataGridStatsBlock* dataGridStatsBlockRule;
-	KWAttribute* dataGridStatsBlockAttribute;
 	int nCurrentWeightIndex;
 
 	require(not cvAttributeWeights == NULL or weightRule == NULL);
@@ -919,7 +700,7 @@ void KWPredictorNaiveBayes::AddPredictorDataGridStatsAndBlockOperands(KWDerivati
 		// Si l'attribut est dans un bloc on reporte son aggregation a la fin de la methode
 		// DDD
 		//if (false)
-		if (dataPreparationAttribute->IsNativeAttributeInBlock())
+		if (not GetSNBForceDenseMode() and dataPreparationAttribute->IsNativeAttributeInBlock())
 		{
 			assert(dataPreparationAttribute->GetNativeAttributeNumber() == 1);
 			sAttributeBlockName =
@@ -989,15 +770,11 @@ void KWPredictorNaiveBayes::AddPredictorDataGridStatsAndBlockOperands(KWDerivati
 		operand->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
 		operand->SetAttributeBlockName(sAttributeBlockName);
 		dataGridStatsBlockRule->AddOperand(operand);
-		dataGridStatsBlockAttribute = new KWAttribute;
-		dataGridStatsBlockAttribute->SetName("PBStats" + sAttributeBlockName);
-		dataGridStatsBlockAttribute->SetDerivationRule(dataGridStatsBlockRule);
-		dataPreparationClass->GetDataPreparationClass()->InsertAttribute(dataGridStatsBlockAttribute);
 
-		// Ajout de l'attribut du DataGridBlockStats comme operande du classifieur
+		// Ajout de la regle DataGridBlockStats comme operande du classifieur
 		operand = new KWDerivationRuleOperand;
-		operand->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
-		operand->SetAttributeName(dataGridStatsBlockAttribute->GetName());
+		operand->SetOrigin(KWDerivationRuleOperand::OriginRule);
+		operand->SetDerivationRule(dataGridStatsBlockRule);
 		predictorRule->AddOperand(operand);
 
 		// Ajout des poids des attributs du bloc

@@ -335,6 +335,8 @@ public:
 	// Memoire utilisee par la regle de derivation
 	longint GetUsedMemory() const override;
 
+	//
+
 	///////////////////////////////////////////////////////
 	///// Implementation
 protected:
@@ -352,7 +354,7 @@ protected:
 	mutable ObjectArray oaDataGridStatsRules;
 };
 
-///////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 // Classe KWDRDataGridStatsBlockTest
 // Classe de test de KWDRDataGridStatsBlock
 // Classe interne uniquement

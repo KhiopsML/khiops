@@ -13,9 +13,9 @@
 #include "KWDataGridStats.h"
 #include "KWClassifierPostOptimizer.h"
 
-//////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 // Predicteur bayesien naif
-// Le parametrage des ClassStats est obligatoire
+// Le parametrage d'une instance KWClassStats est obligatoire
 class KWPredictorNaiveBayes : public KWPredictor
 {
 public:
@@ -35,24 +35,23 @@ public:
 	// Prefixe du predicteur
 	const ALString GetPrefix() const override;
 
-	/////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////////
 	//// Implementation
 protected:
 	// Redefinition de la methode d'apprentissage
 	boolean InternalTrain() override;
 
-	// Construction d'un predicteur bayesien naif a partir d'un tableau d'attributs prepares
-	// La methode filtre les attributs inutiles (partition source singleton ou poids nul)
+	// Creation de la regle d'un predicteur bayesien naif dans la classe de preparation (dataPreparationClass) a partir de:
+	// - Les attributs prepares a utiliser (oaUsedDataPreparationAttributes)
+	// - Les poids des attributs (cvAttributeWeights)
+	//
+	// Cette creation filtre les attributs inutiles (partition source singleton ou poids nul)
 	// Cela permet de specifier facilement des variantes de predicteur Bayesien dans des sous classes
-	// Parametres:
-	//     dataPreparationClass: classe de preparation a completer avec les attributs du predicteur
-	//     oaUsedDataPreparationAttributes: les attributs prepares a utiliser
-	//	   cvAttributeWeights: poids des attributs (indexes par leur index dans la dataPreparationClass)
+	virtual void CreatePredictorAttributesInClass(KWDataPreparationClass* dataPreparationClass,
+						      ObjectArray* oaUsedDataPreparationAttributes,
+						      ContinuousVector* cvAttributeWeights);
 	void InternalTrainNB(KWDataPreparationClass* dataPreparationClass,
 			     ObjectArray* oaUsedDataPreparationAttributes);
-	virtual void InternalTrainFinishTrainedPredictor(KWDataPreparationClass* dataPreparationClass,
-							 ObjectArray* oaUsedDataPreparationAttributes,
-							 ContinuousVector* cvAttributeWeights);
 
 	// Extraction d'un tableau de preparation d'attribut (KWDataPreparationStats)
 	// a partir d'un tableau d'attribut prepares (KWDataPreparationAttribute)
@@ -65,18 +64,14 @@ protected:
 	// Apprentissage dans le cas d'un classifieur
 
 	// Pilotage de l'apprentissage dans le cas d'un classifieur
-	void InternalTrainFinishTrainedClassifier(KWDataPreparationClass* dataPreparationClass,
-						  ObjectArray* oaUsedDataPreparationAttributes,
-						  ContinuousVector* cvAttributeWeights);
+	void CreateClassifierAttributesInClass(KWDataPreparationClass* dataPreparationClass,
+					       ObjectArray* oaUsedDataPreparationAttributes,
+					       ContinuousVector* cvAttributeWeights);
 
 	// Ajout de l'attribut classifieur
 	KWAttribute* AddClassifierAttribute(KWDataPreparationClass* dataPreparationClass,
 					    ObjectArray* oaUsedDataPreparationAttributes,
 					    ContinuousVector* cvAttributeWeights);
-	// DDD
-	KWAttribute* OLDAddClassifierAttribute(KWTrainedClassifier* trainedClassifier,
-					       ObjectArray* oaUsedDataPreparationAttributes,
-					       ContinuousVector* cvAttributeWeights);
 
 	// Ajout des attribut de prediction pour la classification
 	// Ajout egalement de l'attribut de prediction biaise en faveur du critere de classification
@@ -87,27 +82,21 @@ protected:
 	// Apprentissage dans le cas d'un regresseur
 
 	// Pilotage de l'apprentissage dans le cas d'un regresseur
-	void InternalTrainFinishTrainedRegressor(KWDataPreparationClass* dataPreparationClass,
-						 ObjectArray* oaUsedDataPreparationAttributes,
-						 ContinuousVector* cvAttributeWeights);
+	void CreateRegressorAttributesInClass(KWDataPreparationClass* dataPreparationClass,
+					      ObjectArray* oaUsedDataPreparationAttributes,
+					      ContinuousVector* cvAttributeWeights);
 
 	// Ajout de l'attribut regresseur de rang
 	KWAttribute* AddRankRegressorAttribute(KWDataPreparationClass* dataPreparationClass,
 					       ObjectArray* oaUsedDataPreparationAttributes,
 					       ContinuousVector* cvAttributeWeights);
 
-	// DDD
-	KWAttribute* OLDAddRankRegressorAttribute(KWTrainedRegressor* trainedRegressor,
-						  ObjectArray* oaUsedDataPreparationAttributes,
-						  ContinuousVector* cvAttributeWeights);
-
 	// Ajout des attribut de prediction pour la regression de rang
-	void AddRankRegressorPredictionAttributes(KWTrainedRegressor* trainedRegressor,
-						  KWAttribute* rankRegressorAttribute);
+	void AddRankRegressorPredictionAttributes(KWAttribute* rankRegressorAttribute);
 
 	// Ajout de l'attribut regresseur de valeur
-	KWAttribute* AddRegressorAttribute(KWTrainedRegressor* trainedRegressor, KWAttribute* rankRegressorAttribute,
-					   KWAttribute* targetValuesAttribute, ContinuousVector* cvAttributeWeights);
+	KWAttribute* AddRegressorAttribute(KWAttribute* rankRegressorAttribute, KWAttribute* targetValuesAttribute,
+					   ContinuousVector* cvAttributeWeights);
 
 	// Ajout des attribut de prediction pour la regression de valeur
 	void AddRegressorPredictionAttributes(KWTrainedRegressor* trainedRegressor, KWAttribute* regressorAttribute,

@@ -1514,12 +1514,19 @@ Continuous KWDRCellIndexWithMissing::ComputeContinuousResult(const KWObject* kwo
 	// Calcul et memorisation de l'index de cellule
 	ComputeCellIndex(kwoObject);
 
-	// On renvoie -1 en cas de valeur manquante
-	if (bIsMissingValue)
+	// On renvoie -1 en cas de valeur manquante ou l'index au cas echeant
+	if (bIsMissingValue and not bReturnMissingValueCell)
 		return -1;
 	else
-		// Sinon, on renvoie l'index de la cellule
 		return (Continuous)(nCellIndex + 1);
+}
+
+// DDD
+void KWDRCellIndexWithMissing::CopyFrom(const KWDerivationRule* source)
+{
+	KWDRDataGridRule::CopyFrom(source);
+	const KWDRCellIndexWithMissing* sourceCellRule = cast(const KWDRCellIndexWithMissing*, source);
+	bReturnMissingValueCell = sourceCellRule->bReturnMissingValueCell;
 }
 
 ///////////////////////////////////////////////////////////////

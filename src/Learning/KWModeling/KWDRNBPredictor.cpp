@@ -752,6 +752,9 @@ void KWDRNBClassifier::Compile(KWClass* kwcOwnerClass)
 	ObjectArray oaOperandDataGridRules;
 	KWDRDataGridBlock* dataGridBlockRule;
 	KWDRDataGrid* dataGridRule;
+	const KWDRDataGridStats* constDataGridStatsRule;
+	ObjectArray oaOperandDataGridStatsRules;
+	int nMissingValueIndex;
 
 	// Appel de la methode ancetre (compile les operands)
 	KWDerivationRule::Compile(kwcOwnerClass);
@@ -795,6 +798,8 @@ void KWDRNBClassifier::Compile(KWClass* kwcOwnerClass)
 
 		// Calcul de la correspondance entre les index cibles de l'ensemble des grille et les index cibles de chaque grille
 		ivDataGridTargetIndexes.SetSize(ivDataGridSetTargetFrequencies.GetSize() * nDataGridRuleNumber);
+		dvMissingLogProbas.SetSize(ivDataGridSetTargetFrequencies.GetSize() * nDataGridRuleNumber);
+		dvMissingLogProbas.Initialize();
 		nDataGridRule = 0;
 		for (nDataGridOrBlockRule = 0; nDataGridOrBlockRule < oaDataGridStatsAndBlockRules.GetSize();
 		     nDataGridOrBlockRule++)
@@ -807,6 +812,7 @@ void KWDRNBClassifier::Compile(KWClass* kwcOwnerClass)
 
 			// Memorisation dans un tableau la seule grille de la regle ou les grilles du bloc de l'operand
 			oaOperandDataGridRules.SetSize(0);
+			oaOperandDataGridStatsRules.SetSize(0);
 			if (naiveBayesPredictorRuleHelper.RuleHasDataGridStatsAtOperand(this, nDataGridOrBlockOperand))
 			{
 				dataGridStatsRule =
@@ -815,6 +821,7 @@ void KWDRNBClassifier::Compile(KWClass* kwcOwnerClass)
 				    KWDRDataGrid*,
 				    dataGridStatsRule->GetFirstOperand()->GetReferencedDerivationRule(kwcOwnerClass));
 				oaOperandDataGridRules.Add(dataGridRule);
+				oaOperandDataGridStatsRules.Add(dataGridStatsRule);
 			}
 			else
 			{
@@ -832,6 +839,14 @@ void KWDRNBClassifier::Compile(KWClass* kwcOwnerClass)
 						     kwcOwnerClass));
 					oaOperandDataGridRules.Add(dataGridRule);
 				}
+				for (nOperand = 0; nOperand < dataGridStatsBlockRule->GetDataGridStatsNumber();
+				     nOperand++)
+				{
+					constDataGridStatsRule =
+					    dataGridStatsBlockRule->GetDataGridStatsAtBlockIndex(nOperand);
+					oaOperandDataGridStatsRules.Add(
+					    const_cast<KWDRDataGridStats*>(constDataGridStatsRule));
+				}
 			}
 
 			// Memorisation des indexes des cibles pour chacune des grilles de l'operand
@@ -839,6 +854,8 @@ void KWDRNBClassifier::Compile(KWClass* kwcOwnerClass)
 			     nOperandDataGridRule++)
 			{
 				dataGridRule = cast(KWDRDataGrid*, oaOperandDataGridRules.GetAt(nOperandDataGridRule));
+				dataGridStatsRule =
+				    cast(KWDRDataGridStats*, oaOperandDataGridStatsRules.GetAt(nOperandDataGridRule));
 
 				// Recherche de la partition cible de la grille
 				univariatePartitionRule =
@@ -848,18 +865,50 @@ void KWDRNBClassifier::Compile(KWClass* kwcOwnerClass)
 				assert(univariatePartitionRule->GetAttributeType() == KWType::Symbol);
 				assert(univariatePartitionRule->IsCompiled());
 
+				// Calcul de l'index de la grille ou tombent les valeurs manquantes
+				nMissingValueIndex = -1;
+				if (dataGridRule->GetAttributeTypeAt(0) == KWType::Continuous)
+					nMissingValueIndex = dataGridRule->GetContinuousAttributePartIndexAt(
+					    0, KWContinuous::GetMissingValue());
+				else
+					nMissingValueIndex = dataGridRule->GetSymbolAttributePartIndexAt(0, Symbol(""));
+
 				// Calcul de la correspondance entre index cible et index des partie cible de la grille
+				// Calcul de la log-vraisemblance dans le cas des valeurs manquantes seulement pour les DataGridStatsBlock
 				for (nTargetValue = 0; nTargetValue < nTargetValueNumber; nTargetValue++)
 				{
 					ivDataGridTargetIndexes.SetAt(nDataGridRule * nTargetValueNumber + nTargetValue,
 								      univariatePartitionRule->GetSymbolPartIndex(
 									  svTargetValues.GetAt(nTargetValue)));
+					if (not naiveBayesPredictorRuleHelper.RuleHasDataGridStatsAtOperand(
+						this, nDataGridOrBlockOperand))
+					{
+						dvMissingLogProbas.SetAt(
+						    nDataGridRule * nTargetValueNumber + nTargetValue,
+						    dataGridStatsRule->GetDataGridSourceConditionalLogProbAt(
+							nMissingValueIndex, nTargetValue));
+					}
 				}
 				nDataGridRule++;
 			}
 		}
 		assert(nDataGridRule == nDataGridRuleNumber);
+
+		// Calcul de la valeur de reference de la log-vraisemblance pour chaque cible et grille
+		dvMissingScores.SetSize(nTargetValueNumber);
+		dvMissingScores.Initialize();
+		for (nTargetValue = 0; nTargetValue < nTargetValueNumber; nTargetValue++)
+		{
+			for (nDataGridRule = 0; nDataGridRule < nDataGridRuleNumber; nDataGridRule++)
+			{
+				dvMissingScores.UpgradeAt(
+				    nTargetValue,
+				    cvWeights.GetAt(nDataGridRule) *
+					dvMissingLogProbas.GetAt(nDataGridRule * nTargetValueNumber + nTargetValue));
+			}
+		}
 		assert(ivDataGridTargetIndexes.GetSize() == nDataGridRuleNumber * nTargetValueNumber);
+		assert(dvMissingLogProbas.GetSize() == nDataGridRuleNumber * nTargetValueNumber);
 
 		// Trace de debogage
 		if (bLocalTrace)
@@ -884,6 +933,21 @@ void KWDRNBClassifier::Compile(KWClass* kwcOwnerClass)
 									      nTargetValue);
 				cout << endl;
 			}
+			cout << "MissingLogProbas";
+			for (nDataGridRule = 0; nDataGridRule < nDataGridRuleNumber; nDataGridRule++)
+				cout << "\tDataGrid " << nDataGridRule;
+			cout << endl;
+			for (nTargetValue = 0; nTargetValue < nTargetValueNumber; nTargetValue++)
+			{
+				for (nDataGridRule = 0; nDataGridRule < nDataGridRuleNumber; nDataGridRule++)
+					cout << "\t"
+					     << dvMissingLogProbas.GetAt(nDataGridRule * nTargetValueNumber +
+									 nTargetValue);
+				cout << endl;
+			}
+			cout << "MissingScores" << endl;
+			for (nTargetValue = 0; nTargetValue < nTargetValueNumber; nTargetValue++)
+				cout << dvMissingScores.GetAt(nTargetValue) << endl;
 		}
 		assert(nDataGridRuleNumber >= oaDataGridStatsAndBlockRules.GetSize());
 	}
@@ -953,6 +1017,21 @@ int KWDRNBClassifier::GetDataGridSetTargetCellIndexAt(int nDataGrid, int nTarget
 	return ivDataGridTargetIndexes.GetAt(nDataGrid * ivDataGridSetTargetFrequencies.GetSize() + nTarget);
 }
 
+double KWDRNBClassifier::GetMissingLogProbaAt(int nDataGrid, int nTarget) const
+{
+	require(IsOptimized());
+	require(0 <= nDataGrid and nDataGrid < cvWeights.GetSize());
+	require(0 <= nTarget and nTarget < ivDataGridTargetIndexes.GetSize());
+	return dvMissingLogProbas.GetAt(nDataGrid * ivDataGridSetTargetFrequencies.GetSize() + nTarget);
+}
+
+double KWDRNBClassifier::GetMissingScoreAt(int nTarget) const
+{
+	require(IsOptimized());
+	require(0 <= nTarget and nTarget < dvMissingScores.GetSize());
+	return dvMissingScores.GetAt(nTarget);
+}
+
 boolean KWDRNBClassifier::IsOptimized() const
 {
 	return IsCompiled() and nOptimizationFreshness == GetOwnerClass()->GetCompileFreshness();
@@ -1011,6 +1090,7 @@ void KWDRNBClassifier::ComputeTargetProbs() const
 		// Initialisation avec le prior
 		assert(GetDataGridSetTargetFrequencyAt(nTarget) > 0);
 		dTargetLogProb = log(GetDataGridSetTargetFrequencyAt(nTarget) * 1.0 / nTargetTotalFrequency);
+		dTargetLogProb += GetMissingScoreAt(nTarget);
 
 		// Ajout des probabilites conditionnelles par grille
 		nDataGrid = 0;
@@ -1025,9 +1105,10 @@ void KWDRNBClassifier::ComputeTargetProbs() const
 				nSourceCellIndex = dataGridStatsRule->GetCellIndex();
 				nTargetCellIndex = GetDataGridSetTargetCellIndexAt(nDataGrid, nTarget);
 
-				// Si la valeurs n'est pas manquante: Mise a jour du terme de proba pondere par son poids
-				// DDD (pas de 'if')
-				if (not dataGridStatsRule->IsMissingValue())
+				// Si la valeur n'est pas manquante: Mise a jour du terme de proba pondere par son poids
+				// DDD
+				if (not GetSNBIgnoreDenseMissingValuesOnDeployMode() or
+				    not dataGridStatsRule->IsMissingValue())
 				{
 					dTargetLogProb += GetDataGridWeightAt(nDataGrid) *
 							  dataGridStatsRule->GetDataGridSourceConditionalLogProbAt(
@@ -1053,16 +1134,18 @@ void KWDRNBClassifier::ComputeTargetProbs() const
 					dataGridStatsRule = dataGridStatsBlockRule->GetDataGridStatsAt(nValue);
 					// DDD
 					//cout << " source = " << nSourceCellIndex << "  target = " << nTargetCellIndex << " [S] " << nValue << "/" << dataGridStatsBlockRule->GetCellIndexBlockSize() << endl;
-					dTargetLogProb += GetDataGridWeightAt(nDataGrid + nDataGridIndexWithinBlock) *
-							  dataGridStatsRule->GetDataGridSourceConditionalLogProbAt(
-							      nSourceCellIndex, nTargetCellIndex);
+					dTargetLogProb +=
+					    GetDataGridWeightAt(nDataGrid + nDataGridIndexWithinBlock) *
+					    (dataGridStatsRule->GetDataGridSourceConditionalLogProbAt(
+						 nSourceCellIndex, nTargetCellIndex) -
+					     GetMissingLogProbaAt(nDataGrid + nDataGridIndexWithinBlock, nTarget));
 				}
 				nDataGrid += dataGridStatsBlockRule->GetDataGridBlock()->GetDataGridNumber();
 			}
 		}
 
 		// Memorisation du resultat
-		cvTargetProbs.SetAt(nTarget, (Continuous)dTargetLogProb);
+		cvTargetProbs.SetAt(nTarget, dTargetLogProb);
 
 		// Memorisation du max
 		if (dTargetLogProb > dMaxTargetLogProb)
@@ -1099,14 +1182,13 @@ void KWDRNBClassifier::ComputeTargetProbs() const
 	//   p_Laplace = (p*N + 0.5/J)/(N + 0.5)
 	//   p_Laplace = (p + 0.5/JN)/(1 + 0.5/N)
 	// (on se base sur N+1 pour eviter le cas N=0)
-	dLaplaceEpsilon = (Continuous)0.5 / (GetDataGridSetTargetPartNumber() * (nTargetTotalFrequency + 1));
-	dLaplaceDenominator = (Continuous)(1.0 + 0.5 / (nTargetTotalFrequency + 1));
+	dLaplaceEpsilon = 0.5 / (GetDataGridSetTargetPartNumber() * (nTargetTotalFrequency + 1));
+	dLaplaceDenominator = (1.0 + 0.5 / (nTargetTotalFrequency + 1));
 	for (nTarget = 0; nTarget < GetDataGridSetTargetPartNumber(); nTarget++)
-		cvTargetProbs.SetAt(
-		    nTarget, (Continuous)((cvTargetProbs.GetAt(nTarget) + dLaplaceEpsilon) / dLaplaceDenominator));
+		cvTargetProbs.SetAt(nTarget, (cvTargetProbs.GetAt(nTarget) + dLaplaceEpsilon) / dLaplaceDenominator);
 
 	// Calcul d'une probabilite par defaut pour les classes inconnues
-	cUnknownTargetProb = (Continuous)(dLaplaceEpsilon / dLaplaceDenominator);
+	cUnknownTargetProb = dLaplaceEpsilon / dLaplaceDenominator;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2022,8 +2104,8 @@ KWDRNBRegressor::KWDRNBRegressor()
 	GetSecondOperand()->SetStructureName("DataGrid");
 
 	// Donnees d'optimisation
-	cTotalDeltaTargetValue = 0;
-	cMeanDeltaTargetValue = 0;
+	cTargetValueRange = 0;
+	cMeanTargetValueRange = 0;
 	nMissingValueNumber = 0;
 	rankRegressorRule = NULL;
 	targetDataGridRule = NULL;
@@ -2073,36 +2155,33 @@ boolean KWDRNBRegressor::CheckOperandsCompleteness(const KWClass* kwcOwnerClass)
 	return bOk;
 }
 
-void KWDRNBRegressor::Compile(KWClass* kwcOwnerClass)
+void KWDRNBRegressor::Compile(KWClass* ownerClass)
 {
 	// Appel de la methode ancetre
-	KWDerivationRule::Compile(kwcOwnerClass);
+	KWDerivationRule::Compile(ownerClass);
 
 	// Optimisation si necessaire, en comparant a la fraicheur de la classe entiere
-	if (nOptimizationFreshness < kwcOwnerClass->GetCompileFreshness())
+	if (nOptimizationFreshness < ownerClass->GetCompileFreshness())
 	{
-		// Memorisation de la fraicheur
-		nOptimizationFreshness = kwcOwnerClass->GetCompileFreshness();
+		// Mise-a-jour de la fraicheur
+		nOptimizationFreshness = ownerClass->GetCompileFreshness();
 
 		// Memorisation des operandes
 		rankRegressorRule =
-		    cast(KWDRNBRankRegressor*, GetFirstOperand()->GetReferencedDerivationRule(kwcOwnerClass));
-		targetDataGridRule =
-		    cast(KWDRDataGrid*, GetSecondOperand()->GetReferencedDerivationRule(kwcOwnerClass));
+		    cast(KWDRNBRankRegressor*, GetFirstOperand()->GetReferencedDerivationRule(ownerClass));
+		targetDataGridRule = cast(KWDRDataGrid*, GetSecondOperand()->GetReferencedDerivationRule(ownerClass));
 		targetValuesRules =
 		    cast(KWDRContinuousValueSet*,
-			 targetDataGridRule->GetFirstOperand()->GetReferencedDerivationRule(kwcOwnerClass));
-		targetFrequenciesRule =
-		    cast(KWDRFrequencies*,
-			 targetDataGridRule->GetSecondOperand()->GetReferencedDerivationRule(kwcOwnerClass));
+			 targetDataGridRule->GetFirstOperand()->GetReferencedDerivationRule(ownerClass));
+		targetFrequenciesRule = cast(
+		    KWDRFrequencies*, targetDataGridRule->GetSecondOperand()->GetReferencedDerivationRule(ownerClass));
 
 		// Calcul des effectifs cumules des valeurs par index de valeur
 		ComputeSingleTargetValueCumulativeInstanceNumbers(&ivSingleTargetValueCumulativeInstanceNumbers);
 
 		// Calcul de l'ecart moyen inter-valeurs (Max-Min)/N, ou 1/N si Min=Max
-		cTotalDeltaTargetValue = ComputeTotalDeltaTargetValue();
-		cMeanDeltaTargetValue = ComputeMeanDeltaTargetValue();
-		assert(cMeanDeltaTargetValue > 0);
+		cTargetValueRange = ComputeTargetValueRange();
+		cMeanTargetValueRange = ComputeMeanTargetValueRange();
 
 		// Calcul du nombre de valeurs manquantes
 		nMissingValueNumber = ComputeMissingValueNumber();
@@ -2213,14 +2292,14 @@ Continuous KWDRNBRegressor::ComputeTargetDensityAt(Continuous cValue) const
 	cDensity = 0;
 	if (GetSingleTargetValueNumber() == 0)
 	{
-		if (cValue <= -cMeanDeltaTargetValue / 2)
-			cDensity = exp(-fabs(cValue + cMeanDeltaTargetValue / 2) / cTotalDeltaTargetValue) /
-				   (4 * cTotalDeltaTargetValue);
-		else if (cValue <= cMeanDeltaTargetValue / 2)
-			cDensity = 1 / (2 * cMeanDeltaTargetValue);
+		if (cValue <= -cMeanTargetValueRange / 2)
+			cDensity = exp(-fabs(cValue + cMeanTargetValueRange / 2) / cTargetValueRange) /
+				   (4 * cTargetValueRange);
+		else if (cValue <= cMeanTargetValueRange / 2)
+			cDensity = 1 / (2 * cMeanTargetValueRange);
 		else
-			cDensity = exp(-fabs(cValue - cMeanDeltaTargetValue / 2) / cTotalDeltaTargetValue) /
-				   (4 * cTotalDeltaTargetValue);
+			cDensity = exp(-fabs(cValue - cMeanTargetValueRange / 2) / cTargetValueRange) /
+				   (4 * cTargetValueRange);
 	}
 	// Cas ou la valeur est inferieure a la valeur min
 	else if (cValue <= GetSingleTargetValueAt(0))
@@ -2234,12 +2313,12 @@ Continuous KWDRNBRegressor::ComputeTargetDensityAt(Continuous cValue) const
 
 		// Le premier demi intervalle est decoupe pour moitie en exponentielle decroissante,
 		// pour moitie en densite constante
-		cClosestValue = GetSingleTargetValueAt(0) - cMeanDeltaTargetValue / 2;
+		cClosestValue = GetSingleTargetValueAt(0) - cMeanTargetValueRange / 2;
 		if (cValue <= cClosestValue)
-			cDensity = cIntervalProb * exp(-fabs(cValue - cClosestValue) / cTotalDeltaTargetValue) /
-				   (2 * cTotalDeltaTargetValue);
+			cDensity = cIntervalProb * exp(-fabs(cValue - cClosestValue) / cTargetValueRange) /
+				   (2 * cTargetValueRange);
 		else
-			cDensity = cIntervalProb / cMeanDeltaTargetValue;
+			cDensity = cIntervalProb / cMeanTargetValueRange;
 	}
 	// Cas ou la valeur est superieure a la valeur max
 	else if (cValue > GetSingleTargetValueAt(GetSingleTargetValueNumber() - 1))
@@ -2253,12 +2332,12 @@ Continuous KWDRNBRegressor::ComputeTargetDensityAt(Continuous cValue) const
 
 		// Le dernier demi intervalle est decoupe pour moitie en en densite constante
 		// pour moitie en exponentielle decroissante
-		cClosestValue = GetSingleTargetValueAt(0) + cMeanDeltaTargetValue / 2;
+		cClosestValue = GetSingleTargetValueAt(0) + cMeanTargetValueRange / 2;
 		if (cValue <= cClosestValue)
-			cDensity = cIntervalProb / cMeanDeltaTargetValue;
+			cDensity = cIntervalProb / cMeanTargetValueRange;
 		else
-			cDensity = cIntervalProb * exp(-fabs(cValue - cClosestValue) / cTotalDeltaTargetValue) /
-				   (2 * cTotalDeltaTargetValue);
+			cDensity = cIntervalProb * exp(-fabs(cValue - cClosestValue) / cTargetValueRange) /
+				   (2 * cTargetValueRange);
 	}
 	// Cas general :
 	// On utilise la methode GetLowerMeanValue (plutot que GetHumanReadableLowerMeanValue), car les
@@ -2368,18 +2447,18 @@ Symbol KWDRNBRegressor::ComputeTargetQuantileDistribution() const
 			if (nValue == 0)
 			{
 				// Le premier demi intervalle est decoupe pour moitie en exponentielle decroissante,
-				// pour moitie en densite constante (entre v0-cMeanDeltaTargetValue/2 et v0)
+				// pour moitie en densite constante (entre v0-cMeanTargetValueRange/2 et v0)
 				// On decoupe la queue exponentielle en deux partie d'eqale probabilite
 				cValueCumulativeProb += cValueIntervalProb / 8;
-				cBound = GetSingleTargetValueAt(nValue) - cMeanDeltaTargetValue / 2 -
-					 cTotalDeltaTargetValue * (Continuous)log(2.0);
+				cBound = GetSingleTargetValueAt(nValue) - cMeanTargetValueRange / 2 -
+					 cTargetValueRange * (Continuous)log(2.0);
 				sQuantileDistribution += KWContinuous::ContinuousToString(cValueCumulativeProb);
 				sQuantileDistribution += ' ';
 				sQuantileDistribution += KWContinuous::ContinuousToString(cBound);
 
 				// Deuxieme partie de la queue de distribution exponentielle
 				cValueCumulativeProb += cValueIntervalProb / 8;
-				cBound = GetSingleTargetValueAt(nValue) - cMeanDeltaTargetValue / 2;
+				cBound = GetSingleTargetValueAt(nValue) - cMeanTargetValueRange / 2;
 				sQuantileDistribution += ' ';
 				sQuantileDistribution += KWContinuous::ContinuousToString(cValueCumulativeProb);
 				sQuantileDistribution += ' ';
@@ -2412,7 +2491,7 @@ Symbol KWDRNBRegressor::ComputeTargetQuantileDistribution() const
 				// pour moitie en exponentielle decroissante
 				// Partie constante suivant la derniere la premiere valeur
 				cValueCumulativeProb += cValueIntervalProb / 4;
-				cBound = GetSingleTargetValueAt(nValue) + cMeanDeltaTargetValue / 2;
+				cBound = GetSingleTargetValueAt(nValue) + cMeanTargetValueRange / 2;
 				sQuantileDistribution += ' ';
 				sQuantileDistribution += KWContinuous::ContinuousToString(cValueCumulativeProb);
 				sQuantileDistribution += ' ';
@@ -2420,8 +2499,8 @@ Symbol KWDRNBRegressor::ComputeTargetQuantileDistribution() const
 
 				// On decoupe la queue exponentielle en deux partie d'eqale probabilite
 				cValueCumulativeProb += cValueIntervalProb / 8;
-				cBound = GetSingleTargetValueAt(nValue) + cMeanDeltaTargetValue / 2 +
-					 cTotalDeltaTargetValue * (Continuous)log(2.0);
+				cBound = GetSingleTargetValueAt(nValue) + cMeanTargetValueRange / 2 +
+					 cTargetValueRange * (Continuous)log(2.0);
 				sQuantileDistribution += ' ';
 				sQuantileDistribution += KWContinuous::ContinuousToString(cValueCumulativeProb);
 				sQuantileDistribution += ' ';
@@ -2494,12 +2573,12 @@ void KWDRNBRegressor::ComputeCumulativeTargetValues(ContinuousVector* cvResultVe
 
 	require(IsCompiled());
 	require(cvResultVector != NULL);
-	require(cTotalDeltaTargetValue == ComputeTotalDeltaTargetValue());
-	require(cMeanDeltaTargetValue == ComputeMeanDeltaTargetValue());
+	require(cTargetValueRange == ComputeTargetValueRange());
+	require(cMeanTargetValueRange == ComputeMeanTargetValueRange());
 
 	// Calcul des valeurs extremes
-	cFirstValue = -cMeanDeltaTargetValue / 4;
-	cLastValue = cMeanDeltaTargetValue / 4;
+	cFirstValue = -cMeanTargetValueRange / 4;
+	cLastValue = cMeanTargetValueRange / 4;
 	if (GetSingleTargetValueNumber() > 0)
 	{
 		cFirstValue += 3 * GetSingleTargetValueAt(0) / 4;
@@ -2569,8 +2648,8 @@ void KWDRNBRegressor::ComputeCumulativeSquareTargetValues(ContinuousVector* cvRe
 
 	require(IsCompiled());
 	require(cvResultVector != NULL);
-	require(cTotalDeltaTargetValue == ComputeTotalDeltaTargetValue());
-	require(cMeanDeltaTargetValue == ComputeMeanDeltaTargetValue());
+	require(cTargetValueRange == ComputeTargetValueRange());
+	require(cMeanTargetValueRange == ComputeMeanTargetValueRange());
 
 	// Calcul des valeurs extremes
 	if (GetSingleTargetValueNumber() == 0)
@@ -2583,17 +2662,17 @@ void KWDRNBRegressor::ComputeCumulativeSquareTargetValues(ContinuousVector* cvRe
 		cFirstValue = GetSingleTargetValueAt(0);
 		cLastValue = GetSingleTargetValueAt(GetSingleTargetValueNumber() - 1);
 	}
-	cFirstValue = (cFirstValue * cFirstValue + cFirstValue * (cFirstValue - cMeanDeltaTargetValue / 2) +
-		       (cFirstValue - cMeanDeltaTargetValue / 2) * (cFirstValue - cMeanDeltaTargetValue / 2)) /
+	cFirstValue = (cFirstValue * cFirstValue + cFirstValue * (cFirstValue - cMeanTargetValueRange / 2) +
+		       (cFirstValue - cMeanTargetValueRange / 2) * (cFirstValue - cMeanTargetValueRange / 2)) /
 			  24 +
-		      ((cFirstValue - cTotalDeltaTargetValue) * (cFirstValue - cTotalDeltaTargetValue) +
-		       cTotalDeltaTargetValue * cTotalDeltaTargetValue) /
+		      ((cFirstValue - cTargetValueRange) * (cFirstValue - cTargetValueRange) +
+		       cTargetValueRange * cTargetValueRange) /
 			  4;
-	cLastValue = (cLastValue * cLastValue + cLastValue * (cLastValue + cMeanDeltaTargetValue / 2) +
-		      (cLastValue + cMeanDeltaTargetValue / 2) * (cLastValue + cMeanDeltaTargetValue / 2)) /
+	cLastValue = (cLastValue * cLastValue + cLastValue * (cLastValue + cMeanTargetValueRange / 2) +
+		      (cLastValue + cMeanTargetValueRange / 2) * (cLastValue + cMeanTargetValueRange / 2)) /
 			 24 +
-		     ((cLastValue + cTotalDeltaTargetValue) * (cLastValue + cTotalDeltaTargetValue) +
-		      cTotalDeltaTargetValue * cTotalDeltaTargetValue) /
+		     ((cLastValue + cTargetValueRange) * (cLastValue + cTargetValueRange) +
+		      cTargetValueRange * cTargetValueRange) /
 			 4;
 
 	// Calcul du vecteur des valeurs cumulees
@@ -2650,45 +2729,51 @@ void KWDRNBRegressor::ComputeCumulativeSquareTargetValues(ContinuousVector* cvRe
 	assert(nValue == GetSingleTargetValueNumber());
 }
 
-Continuous KWDRNBRegressor::ComputeTotalDeltaTargetValue() const
+Continuous KWDRNBRegressor::ComputeTargetValueRange() const
 {
-	Continuous cTotalDeltaValue;
+	Continuous cTargetValueRange;
 
 	require(IsCompiled());
 
-	if (GetSingleTargetValueNumber() <= 1)
-		cTotalDeltaValue = 1.0;
+	if (GetSingleTargetValueNumber() > 1)
+		cTargetValueRange =
+		    GetSingleTargetValueAt(GetSingleTargetValueNumber() - 1) - GetSingleTargetValueAt(0);
 	else
-		cTotalDeltaValue = GetSingleTargetValueAt(GetSingleTargetValueNumber() - 1) - GetSingleTargetValueAt(0);
-	return cTotalDeltaValue;
+		cTargetValueRange = 1.0;
+
+	ensure(cTargetValueRange > 0);
+	return cTargetValueRange;
 }
 
-Continuous KWDRNBRegressor::ComputeMeanDeltaTargetValue() const
+Continuous KWDRNBRegressor::ComputeMeanTargetValueRange() const
 {
-	Continuous cMeanDeltaValue;
+	Continuous cMeanTargetValueRange;
 
 	require(IsCompiled());
 
-	if (GetSingleTargetValueNumber() <= 1)
-		cMeanDeltaValue = 1.0;
+	if (GetSingleTargetValueNumber() > 1)
+		cMeanTargetValueRange =
+		    GetSingleTargetValueAt(GetSingleTargetValueNumber() - 1) - GetSingleTargetValueAt(0);
 	else
-		cMeanDeltaValue = GetSingleTargetValueAt(GetSingleTargetValueNumber() - 1) - GetSingleTargetValueAt(0);
+		cMeanTargetValueRange = 1.0;
 	if (GetSingleTargetValueNumber() >= 0)
-		cMeanDeltaValue /= GetSingleTargetValueCumulativeFrequencyAt(GetSingleTargetValueNumber() - 1);
-	return cMeanDeltaValue;
+		cMeanTargetValueRange /= GetSingleTargetValueCumulativeFrequencyAt(GetSingleTargetValueNumber() - 1);
+
+	ensure(cMeanTargetValueRange > 0);
+	return cMeanTargetValueRange;
 }
 
 int KWDRNBRegressor::ComputeMissingValueNumber() const
 {
 	int nResult;
-	int i;
+	int nTargetValue;
 
 	require(IsCompiled());
 
 	nResult = 0;
-	for (i = 0; i < GetSingleTargetValueNumber(); i++)
+	for (nTargetValue = 0; nTargetValue < GetSingleTargetValueNumber(); nTargetValue++)
 	{
-		if (GetSingleTargetValueAt(i) == KWContinuous::GetMissingValue())
+		if (GetSingleTargetValueAt(nTargetValue) == KWContinuous::GetMissingValue())
 			nResult++;
 	}
 	return nResult;

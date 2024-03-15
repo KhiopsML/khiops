@@ -171,3 +171,17 @@ boolean GetLearningPriorStudyMode();
 // Permet d'activer certains services de recodage additionnels
 // Ce mode est controlable par la variable d'environnement KhiopsDistanceStudyMode a true ou false
 boolean GetDistanceStudyMode();
+
+// Indicateur du mode ou le SNB force l'utilisation des variables denses pour les block sparse
+boolean GetSNBForceDenseMode();
+
+// Indicateur du mode ou le SNB ignore les valeurs manquantes
+// des variables denses pendant l'entrainement
+boolean GetSNBIgnoreDenseMissingValuesOnTrainMode();
+
+// Indicateur du mode ou le SNB ignore les valeurs manquantes
+// des variables denses pendant le deploiment
+boolean GetSNBIgnoreDenseMissingValuesOnDeployMode();
+
+// Indicateur du mode ou le deploiement du SNB considere les valeurs missing des block sparse
+boolean GetSNBDeploySparseBlocksWithMissingValues();

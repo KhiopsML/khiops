@@ -13,11 +13,11 @@ class SNBPredictorSelectiveNaiveBayes;
 #include "SNBAttributeSelectionScorer.h"
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-// Predicteur bayesien naif selectif
+// Predicteur Bayesien naif selectif
 // Il doit etre parametre par un objet KWClassStats correctement initialise pour l'apprentissage.
 // Les statistiques ne seront reevaluees que si necessaire
-// L'algorithme de optimisation de la selection de variables
-// est sous-traitee a une tache parallele SNBPredictorSelectiveNaiveBayesTrainingTask
+// L'algorithme de optimisation de la selection de variables est sous-traitee a une tache parallele
+// SNBPredictorSelectiveNaiveBayesTrainingTask
 class SNBPredictorSelectiveNaiveBayes : public KWPredictorNaiveBayes
 {
 public:
@@ -32,7 +32,7 @@ public:
 	KWPredictor* Create() const override;
 
 	// Recopie des specifications du predicteurs
-	void CopyFrom(const KWPredictor* kwpSource) override;
+	void CopyFrom(const KWPredictor* sourcePredictor) override;
 
 	// Nom du predictor
 	const ALString GetName() const override;
@@ -58,7 +58,7 @@ public:
 	///////////////////////////////////////////////////////////////////////////////////////////////////
 	//// Implementation
 protected:
-	// Ajout de meta-donnees (Weight, MAP) aux attributs du classifieur appris
+	// Ajout de meta-donnees (Weight & Importance) aux attributs du classifieur appris
 	void FillPredictorAttributeMetaData();
 
 	////////////////////////////
@@ -66,14 +66,10 @@ protected:
 
 	// Reimplementation des methodes de KWPredictiorNaiveBayes
 	boolean InternalTrain() override;
-	void InternalTrainFinishTrainedPredictor(KWDataPreparationClass* dataPreparationClass,
-						 ObjectArray* oaUsedDataPreparationAttributes,
-						 ContinuousVector* cvAttributeWeights) override;
+	void CreatePredictorAttributesInClass(KWDataPreparationClass* dataPreparationClass,
+					      ObjectArray* oaUsedDataPreparationAttributes,
+					      ContinuousVector* cvAttributeWeights) override;
 	void CreatePredictorReport() override;
-
-	// Finalisation de l'entrainement du MAP a partir d'une selection
-	void InternalTrainMAP(KWDataPreparationClass* dataPreparationClass,
-			      SNBHardAttributeSelection* mapAttributeSelection);
 
 	// Finalisation de l'entrainement quand il n'y a pas d'attribut informatif
 	void InternalTrainEmptyPredictor();
@@ -87,8 +83,6 @@ protected:
 	// Parametres de selection de variables
 	KWSelectionParameters selectionParameters;
 
-	// Acces interne aux taches d'apprentissage
-	friend class SNBPredictorSNBTrainingTask;
-	friend class SNBPredictorSNBEnsembleTrainingTask;
-	friend class SNBPredictorSNBDirectTrainingTask;
+	// Acces interne a la tache d'apprentissage
+	friend class SNBPredictorSelectiveNaiveBayesTrainingTask;
 };

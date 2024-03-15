@@ -353,6 +353,10 @@ public:
 	// Calcul de l'attribut derive
 	// Renvoie un index compirs entre 1 et N (nombre de cellules)
 	Continuous ComputeContinuousResult(const KWObject* kwoObject) const override;
+
+	// DDD
+	boolean bReturnMissingValueCell = true;
+	void CopyFrom(const KWDerivationRule* source) override;
 };
 
 ///////////////////////////////////////////////////////////////
