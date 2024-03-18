@@ -219,17 +219,13 @@ SNBTargetPart* SNBPredictorSelectionDataCostCalculator::GetOrCreatePart()
 			targetPart = NULL;
 		}
 	}
+	ensure(targetPart->GetScores()->GetSize() == GetDataTableBinarySliceSet()->GetInitializedChunkInstanceNumber());
 	return targetPart;
 }
 
 void SNBPredictorSelectionDataCostCalculator::ReleasePart(SNBTargetPart* targetPart)
 {
 	require(targetPart != NULL);
-	require(GetDataTableBinarySliceSet() != NULL);
-	require(GetDataTableBinarySliceSet()->Check());
-	require(GetDataTableBinarySliceSet()->IsInitialized());
-	require(targetPart->GetScores()->GetSize() ==
-		GetDataTableBinarySliceSet()->GetInitializedChunkInstanceNumber());
 
 	// On garde dans le cache la SNBTargetPart eliminee pour une utilisation ulteriure si besoin
 	olReleasedPartsCache.AddHead(targetPart);

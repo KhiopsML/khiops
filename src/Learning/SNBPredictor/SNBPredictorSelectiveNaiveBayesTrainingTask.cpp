@@ -97,9 +97,7 @@ const ALString SNBPredictorSelectiveNaiveBayesTrainingTask::GetTaskName() const
 
 void SNBPredictorSelectiveNaiveBayesTrainingTask::InternalTrain(SNBPredictorSelectiveNaiveBayes* snbPredictor)
 {
-	ObjectArray oaAllAttributeStats;
 	int nTrainingAttributeNumber;
-	KWDataPreparationClass dataPreparationClass;
 	Timer timerTraining;
 	ALString sTimeString;
 	ALString sTmp;
@@ -205,7 +203,7 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::IsTrainingSuccessful() cons
 
 boolean SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeResourceRequirements()
 {
-	const boolean bLocalTrace = false;
+	const boolean bDisplay = true;
 	const int nAbsoluteMaxSlaveProcessNumber = 10000;
 	int nMaxSlaveProcessNumber;
 	int nMaxSliceNumber;
@@ -222,7 +220,7 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeResourceRequirements
 	longint lGlobalSlaveDisk;
 
 	// Entete trace
-	if (bLocalTrace)
+	if (bDisplay)
 		cout << "Tracing resource estimations\n";
 
 	// Estimation du nombre optimal de processus esclaves pour l'apprentissage
@@ -271,7 +269,7 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeResourceRequirements
 	GetResourceRequirements()->GetSlaveRequirement()->GetDisk()->Set(lSlaveDisk);
 
 	// Trace de deboggage
-	if (bLocalTrace)
+	if (bDisplay)
 	{
 		cout << "proc max                   = " << nMaxSlaveProcessNumber << "\n";
 		cout << "slice max                  = " << nMaxSliceNumber << "\n";
@@ -360,7 +358,7 @@ int SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeMaxSlaveProcessNumber(in
 	if (dSequentialTime < dOptimalTime)
 		nOptimalProcessNumber = 1;
 
-	// Optimum parallele: recherche en arriere d'un nombre de processus moindre sans trop de perte en temps
+	// Optimum parallele : recherche en arriere d'un nombre de processus moindre sans trop de perte en temps
 	if (nOptimalProcessNumber > 1)
 	{
 		nBestProcessNumber = nOptimalProcessNumber;
@@ -376,7 +374,7 @@ int SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeMaxSlaveProcessNumber(in
 				break;
 		}
 	}
-	// Optimum sequentiel: On reste en sequentiel
+	// Optimum sequentiel : On reste en sequentiel
 	else
 		nBestProcessNumber = 1;
 
@@ -390,7 +388,7 @@ int SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeMaxSliceNumber() const
 
 longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeSharedNecessaryMemory(longint lSliceSetBufferMemory)
 {
-	const boolean bLocalTrace = false;
+	const boolean bDisplay = false;
 	longint lBinarySliceSetSchemaMemory;
 	longint lOverallAttributeStatsMemory;
 	longint lRecodingObjectsMemory;
@@ -410,7 +408,7 @@ longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeSharedNecessaryMemor
 	lSharedMemory = lBinarySliceSetSchemaMemory + lOverallAttributeStatsMemory + lRecodingObjectsMemory;
 
 	// Trace de deboggage
-	if (bLocalTrace)
+	if (bDisplay)
 	{
 		cout << "Shared memory estimation (s.set buffer size "
 		     << LongintToHumanReadableString(lSliceSetBufferMemory) << ") :\n";
@@ -444,7 +442,7 @@ longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeMasterNecessaryMemor
 longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeGlobalSlaveNecessaryMemory(int nSliceNumber,
 										       longint lSliceSetBufferMemory)
 {
-	const boolean bLocalTrace = false;
+	const boolean bDisplay = false;
 	int nInstanceNumber;
 	int nAttributeNumber;
 	int nSparseAttributeNumber;
@@ -492,7 +490,7 @@ longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeGlobalSlaveNecessary
 	// Le compromis est que on interdit certains solutions avec un moindre nombre de slices.
 
 	// Trace de deboggage
-	if (bLocalTrace)
+	if (bDisplay)
 	{
 		cout << "Global slave memory estimation (" << nSliceNumber << " slices, s.set buffer "
 		     << LongintToHumanReadableString(lSliceSetBufferMemory) << "):\n";
@@ -539,7 +537,7 @@ longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeGlobalSlaveScorerNec
 longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeSlaveNecessaryMemory(int nSlaveProcessNumber,
 										 int nSliceNumber)
 {
-	const boolean bLocalTrace = false;
+	const boolean bDisplay = false;
 	int nInstanceNumber;
 	int nAttributeNumber;
 	longint lLayoutMemory;
@@ -566,7 +564,7 @@ longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeSlaveNecessaryMemory
 	lSlaveMemory = lLayoutMemory + lTargetValuesMemory + lBinarySliceSetSelfMemory;
 
 	// Trace de deboggage
-	if (bLocalTrace)
+	if (bDisplay)
 	{
 		cout << "Slave memory estimation (" << nSlaveProcessNumber << " slave processes, " << nSliceNumber
 		     << " slices):\n";
@@ -643,7 +641,7 @@ longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeDataPreparationClass
 longint
 SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeRecodingObjectsNecessaryMemory(longint lSliceSetBufferMemory)
 {
-	const boolean bLocalTrace = false;
+	const boolean bDisplay = false;
 	const double dCompilationFactor = 1.5;
 	const double dPhysicalClassFactor = 2.0;
 	longint lDataPreparationClassMemory;
@@ -661,7 +659,7 @@ SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeRecodingObjectsNecessaryMemo
 				 lSliceSetTotalReadBufferMemory;
 
 	// Trace de deboggage
-	if (bLocalTrace)
+	if (bDisplay)
 	{
 		cout << "Recoding objects memory  (s.set buffer " << LongintToHumanReadableString(lSliceSetBufferMemory)
 		     << "):\n";
@@ -850,7 +848,7 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitialize()
 
 boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeDataTableBinarySliceSet()
 {
-	const boolean bLocalTrace = false;
+	const boolean bDisplay = true;
 	int nSlaveProcessNumber;
 	boolean bOk = false;
 	int nSliceNumber;
@@ -967,7 +965,7 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeDataTableBi
 			 RMResourceManager::BuildMissingMemoryMessage(lSlaveNecessaryMemory - lGrantedSlaveMemory));
 
 	// Trace de deboggage
-	if (bLocalTrace)
+	if (bDisplay)
 	{
 		cout << "-------------------------------------------------------\n";
 		cout << "status                      = " << (bOk ? "OK" : "KO") << "\n";
@@ -1303,7 +1301,7 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::AllFastRunStepTasksAreFinis
 
 void SNBPredictorSelectiveNaiveBayesTrainingTask::UpdateSelection()
 {
-	const boolean bLocalTrace = false;
+	const boolean bDisplay = false;
 
 	require(IsMasterProcess());
 
@@ -1361,7 +1359,7 @@ void SNBPredictorSelectiveNaiveBayesTrainingTask::UpdateSelection()
 	}
 
 	// Trace de deboggage
-	if (bLocalTrace)
+	if (bDisplay)
 	{
 		cout << masterRandomAttribute->GetNativeAttributeName() << "\t"
 		     << (nMasterTaskState == TaskState::FastForwardRun ? "increase" : "decrease") << "\t"
@@ -1459,7 +1457,7 @@ void SNBPredictorSelectiveNaiveBayesTrainingTask::InitializeNextFastRun()
 
 void SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeEmptySelectionScoreAndPrecisionEpsilon()
 {
-	const boolean bLocalTrace = false;
+	const boolean bDisplay = false;
 
 	require(nMasterTaskState == TaskState::PrecisionEpsilonComputation);
 	require(dMasterPrecisionEpsilon == 0.0);
@@ -1481,7 +1479,7 @@ void SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeEmptySelectionScoreAndP
 	dMasterMapScore = dMasterEmptySelectionScore;
 
 	// Trace de debbogage
-	if (bLocalTrace)
+	if (bDisplay)
 	{
 		cout << "Empty selection model cost = " << dMasterEmptySelectionModelCost << "\n";
 		cout << "Empty selection data cost  = " << dMasterEmptySelectionDataCost << "\n";

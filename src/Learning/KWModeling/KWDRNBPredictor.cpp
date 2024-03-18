@@ -332,13 +332,10 @@ boolean KWDRNBClassifier::CheckOperandsCompleteness(const KWClass* kwcOwnerClass
 	KWDRDataGrid* targetDataGridRule;
 	KWDRUnivariatePartition* univariatePartitionRule;
 	KWDRSymbolValueSet symbolValueSetRefRule;
-	int nTargetTotalFrequency;
-	KWDRFrequencies* frequenciesRule;
 	int nOperand;
 	KWDRDataGridStats* dataGridStatsRule;
 	KWDRDataGridStatsBlock* dataGridStatsBlockRule;
 	KWDRDataGrid* dataGridRule;
-	int nDataGridTotalFrequency;
 	KWDRSymbolValueSet* symbolValueSetRule;
 	KWDRSymbolValueSet refCheckedSymbolValueSetRule;
 	KWDRDataGridBlock* dataGridBlockRule;
@@ -1291,14 +1288,8 @@ boolean KWDRNBRankRegressor::CheckOperandsFamily(const KWDerivationRule* ruleFam
 boolean KWDRNBRankRegressor::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
-	int nOperand;
-	KWDRDataGridStats* dataGridStatsRule;
-	KWDRDataGridStatsBlock* dataGridStatsBlockRule;
 	KWDRDataGridBlock* dataGridBlockRule;
 	KWDRDataGrid* firstDataGridRule;
-	KWDRFrequencies* frequenciesRule;
-	int nTotalFrequency;
-	int nReferenceTotalFrequency;
 	ALString sTmp;
 
 	// Methode ancetre

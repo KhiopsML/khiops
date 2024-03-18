@@ -60,56 +60,38 @@ boolean KWPredictorNaiveBayes::InternalTrain()
 }
 
 void KWPredictorNaiveBayes::InternalTrainNB(KWDataPreparationClass* dataPreparationClass,
-					    ObjectArray* oaUsedDataPreparationAttributes)
+					    ObjectArray* oaSelectedDataPreparationAttributes)
 {
-	CreatePredictorAttributesInClass(dataPreparationClass, oaUsedDataPreparationAttributes, NULL);
+	CreatePredictorAttributesInClass(dataPreparationClass, oaSelectedDataPreparationAttributes, NULL);
 }
 
 void KWPredictorNaiveBayes::CreatePredictorAttributesInClass(KWDataPreparationClass* dataPreparationClass,
-							     ObjectArray* oaUsedDataPreparationAttributes,
-							     ContinuousVector* cvAttributeWeights)
+							     ObjectArray* oaSelectedDataPreparationAttributes,
+							     ContinuousVector* cvSelectedAttributeWeights)
 {
-	boolean bPredictorWithWeights;
-	ObjectArray oaFilteredDataPreparationAttributes;
-	ContinuousVector* cvFiltereredDataPreparationWeights;
-	KWDataPreparationAttribute* dataPreparationAttribute;
+	ObjectArray oaSelectedAttributeStats;
 	int nAttribute;
+	KWDataPreparationAttribute* dataPreparationAttribute;
 
 	require(dataPreparationClass != NULL);
 	require(dataPreparationClass->CheckDataPreparation());
-	require(oaUsedDataPreparationAttributes != NULL);
-	require(cvAttributeWeights == NULL or
-		cvAttributeWeights->GetSize() == oaUsedDataPreparationAttributes->GetSize());
+	require(oaSelectedDataPreparationAttributes != NULL);
+	require(cvSelectedAttributeWeights == NULL or
+		cvSelectedAttributeWeights->GetSize() == oaSelectedDataPreparationAttributes->GetSize());
 	require(GetTargetDescriptiveStats()->GetValueNumber() > 0);
 	require(GetPredictorReport() != NULL);
 	require(GetTrainedPredictor() != NULL);
 	require(GetTrainedPredictor()->GetPredictorClass() == NULL);
 
-	// Indirection sur un vecteur de poids filtre, selon le vecteur de poids en entree
-	bPredictorWithWeights = cvAttributeWeights != NULL;
-	if (bPredictorWithWeights)
-		cvFiltereredDataPreparationWeights = new ContinuousVector;
-	else
-		cvFiltereredDataPreparationWeights = NULL;
-
-	// Ajout d'attributs au predicteur:
-	//   - Cas avec poids : attributs informatifs et avec poids positif
-	//   - Cas sans poids : attributs informatif
-	for (nAttribute = 0; nAttribute < oaUsedDataPreparationAttributes->GetSize(); nAttribute++)
+	// Extraction de la partie preparation de chaque attribut selectionne et recollection recursive ensuite
+	oaSelectedAttributeStats.SetSize(oaSelectedDataPreparationAttributes->GetSize());
+	for (nAttribute = 0; nAttribute < oaSelectedDataPreparationAttributes->GetSize(); nAttribute++)
 	{
 		dataPreparationAttribute =
-		    cast(KWDataPreparationAttribute*, oaUsedDataPreparationAttributes->GetAt(nAttribute));
-		if (dataPreparationAttribute->IsInformativeOnTarget())
-		{
-			if (bPredictorWithWeights and cvAttributeWeights->GetAt(nAttribute) > 0)
-			{
-				oaFilteredDataPreparationAttributes.Add(dataPreparationAttribute);
-				cvFiltereredDataPreparationWeights->Add(cvAttributeWeights->GetAt(nAttribute));
-			}
-			else if (not bPredictorWithWeights)
-				oaFilteredDataPreparationAttributes.Add(dataPreparationAttribute);
-		}
+		    cast(KWDataPreparationAttribute*, oaSelectedDataPreparationAttributes->GetAt(nAttribute));
+		oaSelectedAttributeStats.SetAt(nAttribute, dataPreparationAttribute->GetPreparedStats());
 	}
+	CollectSelectedPreparationStats(&oaSelectedAttributeStats);
 
 	// Parametrage de la classe du predicteur entraine
 	GetTrainedPredictor()->SetPredictorClass(dataPreparationClass->GetDataPreparationClass(),
@@ -117,11 +99,11 @@ void KWPredictorNaiveBayes::CreatePredictorAttributesInClass(KWDataPreparationCl
 
 	// Construction des attributs de prediction selon le type de predicteur
 	if (GetTargetAttributeType() == KWType::Symbol)
-		CreateClassifierAttributesInClass(dataPreparationClass, &oaFilteredDataPreparationAttributes,
-						  cvFiltereredDataPreparationWeights);
+		CreateClassifierAttributesInClass(dataPreparationClass, oaSelectedDataPreparationAttributes,
+						  cvSelectedAttributeWeights);
 	else if (GetTargetAttributeType() == KWType::Continuous)
-		CreateRegressorAttributesInClass(dataPreparationClass, &oaFilteredDataPreparationAttributes,
-						 cvFiltereredDataPreparationWeights);
+		CreateRegressorAttributesInClass(dataPreparationClass, oaSelectedDataPreparationAttributes,
+						 cvSelectedAttributeWeights);
 
 	// Nettoyage des objets liees a la preparation :
 	//   La memoire de la classe dataPreparationClass->GetDataPreparationClass() n'est plus responsabilite de dataPreparationClass
@@ -129,10 +111,9 @@ void KWPredictorNaiveBayes::CreatePredictorAttributesInClass(KWDataPreparationCl
 	dataPreparationClass->RemoveDataPreparation();
 
 	// Memorisation du nombre d'attribut utilises par le classifier
-	GetPredictorReport()->SetUsedAttributeNumber(oaFilteredDataPreparationAttributes.GetSize());
+	GetPredictorReport()->SetUsedAttributeNumber(oaSelectedDataPreparationAttributes->GetSize());
 
-	// Nettoyage
-	delete cvFiltereredDataPreparationWeights;
+	ensure(GetTrainedPredictor()->Check());
 }
 
 void KWPredictorNaiveBayes::ExtractDataPreparationStats(const ObjectArray* oaDataPreparationAttributes,
@@ -158,12 +139,12 @@ void KWPredictorNaiveBayes::CreateClassifierAttributesInClass(KWDataPreparationC
 							      ContinuousVector* cvAttributeWeights)
 {
 	KWAttribute* classifierAttribute;
-	ObjectArray oaDataPreparationAttributeStats;
 
 	require(dataPreparationClass != NULL);
+	require(dataPreparationClass->Check());
 	require(oaUsedDataPreparationAttributes != NULL);
 	require(cvAttributeWeights == NULL or
-		cvAttributeWeights->GetSize() >= oaUsedDataPreparationAttributes->GetSize());
+		cvAttributeWeights->GetSize() == oaUsedDataPreparationAttributes->GetSize());
 	require(GetTargetAttributeType() == KWType::Symbol);
 	require(GetTrainedClassifier() != NULL);
 
@@ -179,6 +160,8 @@ void KWPredictorNaiveBayes::CreateClassifierAttributesInClass(KWDataPreparationC
 	classifierAttribute =
 	    AddClassifierAttribute(dataPreparationClass, oaUsedDataPreparationAttributes, cvAttributeWeights);
 	AddClassifierPredictionAttributes(classifierAttribute);
+
+	// Completion automatique de types
 	GetTrainedClassifier()->GetPredictorClass()->CompleteTypeInfo();
 }
 
@@ -236,9 +219,6 @@ KWAttribute* KWPredictorNaiveBayes::AddClassifierAttribute(KWDataPreparationClas
 	// Creation d'un attribut de classification
 	classifierAttribute =
 	    GetTrainedClassifier()->CreatePredictionAttribute(GetPrefix() + GetTargetAttributeName(), classifierRule);
-
-	// Completion automatique des types
-	classifierClass->CompleteTypeInfo();
 
 	return classifierAttribute;
 }
@@ -339,39 +319,41 @@ void KWPredictorNaiveBayes::AddClassifierPredictionAttributes(KWAttribute* class
 }
 
 void KWPredictorNaiveBayes::CreateRegressorAttributesInClass(KWDataPreparationClass* dataPreparationClass,
-							     ObjectArray* oaUsedDataPreparationAttributes,
-							     ContinuousVector* cvAttributeWeights)
+							     ObjectArray* oaSelectedDataPreparationAttributes,
+							     ContinuousVector* cvSelectedAttributeWeights)
 {
+	ObjectArray oaSelectedAttributeStats;
+	KWAttribute* targetAttribute;
 	KWAttribute* rankRegressorAttribute;
 	KWAttribute* regressorAttribute;
 	KWAttribute* targetValuesAttribute;
-	ObjectArray oaDataPreparationAttributeStats;
 
 	require(dataPreparationClass != NULL);
-	require(oaUsedDataPreparationAttributes != NULL);
-	require(cvAttributeWeights == NULL or
-		cvAttributeWeights->GetSize() >= oaUsedDataPreparationAttributes->GetSize());
+	require(oaSelectedDataPreparationAttributes != NULL);
+	require(cvSelectedAttributeWeights == NULL or
+		cvSelectedAttributeWeights->GetSize() >= oaSelectedDataPreparationAttributes->GetSize());
 	require(GetTargetAttributeType() == KWType::Continuous);
 	require(GetTrainedRegressor() != NULL);
 	require(GetTrainedRegressor()->GetPredictorClass() != NULL);
 
 	// Memorisation de la reference a l'attribut cible
-	GetTrainedRegressor()->SetTargetAttribute(
-	    GetTrainedRegressor()->GetPredictorClass()->LookupAttribute(GetTargetAttributeName()));
+	targetAttribute = GetTrainedRegressor()->GetPredictorClass()->LookupAttribute(GetTargetAttributeName());
+	GetTrainedRegressor()->SetTargetAttribute(targetAttribute);
 
 	// Recherche de l'attribut memorisant les valeurs cibles
 	targetValuesAttribute = dataPreparationClass->GetDataPreparationTargetAttribute()->GetPreparedAttribute();
 	GetTrainedRegressor()->SetTargetValuesAttribute(targetValuesAttribute);
 
 	// Ajout de l'attribut regresseur de rang
-	rankRegressorAttribute =
-	    AddRankRegressorAttribute(dataPreparationClass, oaUsedDataPreparationAttributes, cvAttributeWeights);
+	rankRegressorAttribute = AddRankRegressorAttribute(dataPreparationClass, oaSelectedDataPreparationAttributes,
+							   cvSelectedAttributeWeights);
 
 	// Ajout des attribut de prediction pour la regression de rang
 	AddRankRegressorPredictionAttributes(rankRegressorAttribute);
 
 	// Ajout de l'attribut regresseur de valeur
-	regressorAttribute = AddRegressorAttribute(rankRegressorAttribute, targetValuesAttribute, cvAttributeWeights);
+	regressorAttribute =
+	    AddRegressorAttribute(rankRegressorAttribute, targetValuesAttribute, cvSelectedAttributeWeights);
 
 	// Ajout des attribut de prediction pour la regression de valeur
 	AddRegressorPredictionAttributes(GetTrainedRegressor(), regressorAttribute, targetValuesAttribute);
@@ -571,8 +553,6 @@ void KWPredictorNaiveBayes::AddRankRegressorPredictionAttributes(KWAttribute* ra
 	densityRankAttribute =
 	    GetTrainedRegressor()->CreatePredictionAttribute("DR" + GetTargetAttributeName(), densityRankRule);
 	GetTrainedRegressor()->SetDensityRankAttribute(densityRankAttribute);
-
-	ensure(GetTrainedRegressor()->Check());
 }
 
 KWAttribute* KWPredictorNaiveBayes::AddRegressorAttribute(KWAttribute* rankRegressorAttribute,
@@ -698,8 +678,6 @@ void KWPredictorNaiveBayes::AddPredictorDataGridStatsAndBlockOperands(KWDerivati
 		    cast(KWDataPreparationAttribute*, oaUsedDataPreparationAttributes->GetAt(nAttribute));
 
 		// Si l'attribut est dans un bloc on reporte son aggregation a la fin de la methode
-		// DDD
-		//if (false)
 		if (not GetSNBForceDenseMode() and dataPreparationAttribute->IsNativeAttributeInBlock())
 		{
 			assert(dataPreparationAttribute->GetNativeAttributeNumber() == 1);

@@ -127,9 +127,9 @@ protected:
 	IntVector ivAttributeRelativeIndexes;
 };
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // Attribut d'un SNBDataTableBinarySliceSet
-// Cette classe est (majoritairement) une facade d'un KWDataPreparationStats d'un attribut prepare
+// Cette classe est (largement) une facade d'un KWDataPreparationStats d'un attribut prepare
 // avec une interface qui donne access aux informations necessaires pour l'apprentissage du modele
 class SNBDataTableBinarySliceSetAttribute : public Object
 {
@@ -164,9 +164,6 @@ public:
 	// True si l'attribut appartien a un bloc sparse
 	void SetSparse(boolean bSparseMode);
 	boolean IsSparse() const;
-
-	// Index de la valeur par defaut dans le cas sparse (-1 si dense)
-	int GetDefaultSparseValueIndex() const;
 
 	// Initialisations plus complexes a partir d'un attribut prepare :
 	// - Table de probabilites de la source-cible
@@ -234,9 +231,6 @@ protected:
 
 	// True si l'attribut appartient a un bloc sparse
 	boolean bIsSparse;
-
-	// Index de la valeur par defaut dans le cas sparse
-	int nDefaultSparseValue;
 
 	// Statistiques de preparation de l'attribut
 	KWDataPreparationStats* dataPreparationStats;
@@ -654,7 +648,7 @@ protected:
 	// Chargement d'un bloc : si le bloc est deja en memoire on ne fait rien
 	boolean LoadBlockAt(int nSlice);
 
-	// Verifie la taille des fichiers en fonction du layout
+	// Verifie la taille des fichiers en fonction du layout physique
 	boolean CheckChunkFile() const;
 
 	/////////////////////////
@@ -684,7 +678,8 @@ protected:
 	// File pointer pour la lecture/ecriture de fichiers
 	FILE* fChunkDataFile;
 
-	// La tache parallele d'apprentissage est friend pour faire des initialisations partielles
+	// Acces privee a la tache d'apprentissage est friend
+	// Ceci est necessaire pour qu'elle puisse faire des initialisation partielles
 	friend class SNBPredictorSelectiveNaiveBayesTrainingTask;
 };
 
