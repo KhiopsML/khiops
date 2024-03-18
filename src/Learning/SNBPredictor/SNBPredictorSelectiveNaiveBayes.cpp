@@ -47,39 +47,9 @@ KWSelectionParameters* SNBPredictorSelectiveNaiveBayes::GetSelectionParameters()
 	return &selectionParameters;
 }
 
-int SNBPredictorSelectiveNaiveBayes::GetTrainingAttributeNumber()
-{
-	int nTotalInformativeAttributeNumber;
-	int nTrainingAttributeNumber;
-
-	require(GetClassStats() != NULL);
-	require(GetClassStats()->Check());
-	require(GetTrainParameters()->GetMaxEvaluatedAttributeNumber() >= 0);
-
-	nTotalInformativeAttributeNumber = GetClassStats()->GetTotalInformativeAttributeNumber();
-
-	if (GetTrainParameters()->GetMaxEvaluatedAttributeNumber() > 0)
-		nTrainingAttributeNumber =
-		    min(nTotalInformativeAttributeNumber, GetTrainParameters()->GetMaxEvaluatedAttributeNumber());
-	else
-		nTrainingAttributeNumber = nTotalInformativeAttributeNumber;
-
-	return nTrainingAttributeNumber;
-}
-
 KWPredictorSelectionReport* SNBPredictorSelectiveNaiveBayes::GetPredictorSelectionReport()
 {
 	return cast(KWPredictorSelectionReport*, GetPredictorReport());
-}
-
-void SNBPredictorSelectiveNaiveBayes::CreatePredictorReport()
-{
-	require(bIsTraining);
-	require(predictorReport == NULL);
-
-	predictorReport = new KWPredictorSelectionReport;
-	predictorReport->SetLearningSpec(GetLearningSpec());
-	predictorReport->SetPredictorName(GetName());
 }
 
 boolean SNBPredictorSelectiveNaiveBayes::InternalTrain()
@@ -98,6 +68,16 @@ boolean SNBPredictorSelectiveNaiveBayes::InternalTrain()
 	return bOk;
 }
 
+void SNBPredictorSelectiveNaiveBayes::CreatePredictorReport()
+{
+	require(bIsTraining);
+	require(predictorReport == NULL);
+
+	predictorReport = new KWPredictorSelectionReport;
+	predictorReport->SetLearningSpec(GetLearningSpec());
+	predictorReport->SetPredictorName(GetName());
+}
+
 void SNBPredictorSelectiveNaiveBayes::CreatePredictorAttributesInClass(KWDataPreparationClass* dataPreparationClass,
 								       ObjectArray* oaUsedDataPreparationAttributes,
 								       ContinuousVector* cvAttributeWeights)
@@ -107,7 +87,224 @@ void SNBPredictorSelectiveNaiveBayes::CreatePredictorAttributesInClass(KWDataPre
 	FillPredictorAttributeMetaData();
 }
 
-void SNBPredictorSelectiveNaiveBayes::InternalTrainEmptyPredictor()
+int SNBPredictorSelectiveNaiveBayes::ComputeTrainingAttributeNumber() const
+{
+	int nTrainingAttributeNumber;
+
+	require(GetClassStats() != NULL);
+	require(GetClassStats()->Check());
+	require(trainParameters.GetMaxEvaluatedAttributeNumber() >= 0);
+
+	if (trainParameters.GetMaxEvaluatedAttributeNumber() > 0)
+	{
+		nTrainingAttributeNumber = min(GetClassStats()->GetTotalInformativeAttributeNumber(),
+					       trainParameters.GetMaxEvaluatedAttributeNumber());
+	}
+	else
+		nTrainingAttributeNumber = GetClassStats()->GetTotalInformativeAttributeNumber();
+
+	return nTrainingAttributeNumber;
+}
+
+int SNBPredictorSelectiveNaiveBayes::ComputeTrainingSparseAttributeNumber()
+{
+	ObjectArray oaDataPreparationStats;
+	int nTrainingSparseAttributeNumber;
+	int nAttribute;
+	KWDataPreparationStats* dataPreparationStats;
+	KWAttribute* attribute;
+
+	// Obtention des statistiques des attributs triees par level
+	oaDataPreparationStats.CopyFrom(GetClassStats()->GetAllPreparedStats());
+	oaDataPreparationStats.SetCompareFunction(KWLearningReportCompareSortValue);
+	oaDataPreparationStats.Sort();
+
+	// Calcul du nombre total d'attributs sparse
+	nTrainingSparseAttributeNumber = 0;
+	for (nAttribute = 0; nAttribute < oaDataPreparationStats.GetSize(); nAttribute++)
+	{
+		dataPreparationStats = cast(KWDataPreparationStats*, oaDataPreparationStats.GetAt(nAttribute));
+
+		// Arret si l'attribut n'est pas informatif: Tout le reste ne le sera pas non plus
+		if (not dataPreparationStats->IsInformative())
+			break;
+
+		// Arret si on depase le nombre d'attributs a utiliser dans l'entrainement
+		if (nAttribute >= ComputeTrainingAttributeNumber())
+			break;
+
+		// On ignore l'attribut s'il est un paire
+		if (dataPreparationStats->GetAttributeNumber() > 1)
+			continue;
+
+		// Verification que l'attribut est sparse
+		// - Attribut Sparse => Attribut natif => Il est dans la classe d'apprentissage
+		// - Attribut Sparse => Block non nulle
+		attribute = GetClass()->LookupAttribute(dataPreparationStats->GetAttributeNameAt(0));
+		if (attribute != NULL and attribute->GetAttributeBlock() != NULL)
+			nTrainingSparseAttributeNumber++;
+	}
+
+	return nTrainingSparseAttributeNumber;
+}
+
+longint SNBPredictorSelectiveNaiveBayes::ComputeTrainingAttributesSparseMissingValueNumber() const
+{
+	int nAttribute;
+	ObjectArray oaDataPreparationStats;
+	longint lSparseMissingValueNumber;
+	KWDataPreparationStats* dataPreparationStats;
+	KWAttributeStats* attributeStats;
+
+	// Obtention des statistiques des attributs triees par level
+	oaDataPreparationStats.CopyFrom(GetClassStats()->GetAllPreparedStats());
+	oaDataPreparationStats.SetCompareFunction(KWLearningReportCompareSortValue);
+	oaDataPreparationStats.Sort();
+
+	// Calcul du nombre total des valeurs missing
+	lSparseMissingValueNumber = 0;
+	for (nAttribute = 0; nAttribute < oaDataPreparationStats.GetSize(); nAttribute++)
+	{
+		// Arret si on depase le nombre d'attributs a utiliser dans l'entrainement
+		if (nAttribute > ComputeTrainingAttributeNumber())
+			break;
+
+		// On ignore l'attribut s'il est une paire
+		dataPreparationStats = cast(KWDataPreparationStats*, oaDataPreparationStats.GetAt(nAttribute));
+		if (dataPreparationStats->GetAttributeNumber() > 1)
+			continue;
+
+		// On re-cast en attribut stats pour recuperer le nombre de valeurs manquantes sparse
+		attributeStats = cast(KWAttributeStats*, dataPreparationStats);
+		lSparseMissingValueNumber +=
+		    longint(attributeStats->GetDescriptiveStats()->GetSparseMissingValueNumber());
+	}
+
+	return lSparseMissingValueNumber;
+}
+
+double SNBPredictorSelectiveNaiveBayes::ComputeSparseMemoryFactor()
+{
+	KWDataTableSliceSet* sliceSet;
+	longint lDenseContinuousAttributeMemory;
+	int nAttribute;
+	KWDataPreparationStats* dataPreparationStats;
+	KWAttributeStats* attributeStats;
+	longint lSeparatorMemoryPerInstance;
+	LongintVector lvChunkSparseMemory;
+	DoubleVector dvChunkSparseMemoryPerInstance;
+	int nSlice;
+	KWDataTableSlice* slice;
+	int nChunk;
+	longint lTotalSparseMemory;
+	double dChunkDensityFactor;
+
+	require(GetClassStats() != NULL);
+	require(GetClassStats()->GetDataTableSliceSet() != NULL);
+	require(GetClassStats()->GetDataTableSliceSet()->Check());
+
+	// Acces au slice set
+	sliceSet = GetClassStats()->GetDataTableSliceSet();
+
+	// Estimation de la memoire totale des valeurs numeriques presents
+	//
+	//   #valeurs_numeriques_presents * sizeof(char)
+	//
+	// Elle est une sous-estimation parce que on suppose que chaque valeur utilise un byte
+	lDenseContinuousAttributeMemory = 0l;
+	for (nAttribute = 0; nAttribute < GetClassStats()->GetAllPreparedStats()->GetSize(); nAttribute++)
+	{
+		// On ignore l'attribut s'il est une paire
+		dataPreparationStats =
+		    cast(KWDataPreparationStats*, GetClassStats()->GetAllPreparedStats()->GetAt(nAttribute));
+		if (dataPreparationStats->GetAttributeNumber() > 1)
+			continue;
+
+		// On ignore l'attribut s'il n'est pas numerique
+		attributeStats = cast(KWAttributeStats*, dataPreparationStats);
+		if (attributeStats->GetAttributeType() != KWType::Continuous)
+			continue;
+
+		// On ignore l'attribut s'il est sparse
+		if (GetClass()->LookupAttribute(attributeStats->GetAttributeName())->GetAttributeBlock() != NULL)
+			continue;
+
+		// Ajout de la memoire des valeurs presents de l'attribut courant au total
+		lDenseContinuousAttributeMemory +=
+		    (longint(GetInstanceNumber()) - attributeStats->GetDescriptiveStats()->GetMissingValueNumber()) *
+		    sizeof(char);
+	}
+
+	// Calcul de la memoire des separateurs des bloc sparses per chunk
+	//
+	// (#blocs + #attributs_denses + 1) * sizeof(char)
+	//                              ^^^
+	//                          fin de ligne
+	lSeparatorMemoryPerInstance =
+	    longint(sliceSet->GetTotalDenseAttributeNumber() + sliceSet->GetTotalAttributeBlockNumber() + 1) *
+	    sizeof(char);
+
+	// Calcul de la memoire par instance des valeurs sparse dans chaque chunk:
+	// 1) Initialisation des vecteurs de tailles de chaque chunk et de densites par instance de chaque chunk
+	lvChunkSparseMemory.SetSize(sliceSet->GetChunkNumber());
+	lvChunkSparseMemory.Initialize();
+	dvChunkSparseMemoryPerInstance.SetSize(sliceSet->GetChunkNumber());
+	dvChunkSparseMemoryPerInstance.Initialize();
+	for (nSlice = 0; nSlice < sliceSet->GetSliceNumber(); nSlice++)
+	{
+		slice = cast(KWDataTableSlice*, GetClassStats()->GetDataTableSliceSet()->GetSliceAt(nSlice));
+		slice->GetDenseSymbolAttributeDiskSizes();
+		for (nChunk = 0; nChunk < sliceSet->GetChunkNumber(); nChunk++)
+		{
+			lvChunkSparseMemory.UpgradeAt(nChunk, slice->GetDataFileSizes()->GetAt(nChunk));
+			dvChunkSparseMemoryPerInstance.UpgradeAt(
+			    nChunk, double(slice->GetDataFileSizes()->GetAt(nChunk)) /
+					sliceSet->GetChunkInstanceNumbers()->GetAt(nChunk));
+		}
+	}
+
+	// 2)  Ajustement des vecteurs et calcul de la taille totale des valeurs sparses
+	lTotalSparseMemory = 0;
+	for (nChunk = 0; nChunk < sliceSet->GetChunkNumber(); nChunk++)
+	{
+		// Enlevement des densites de la partie des valeurs denses et des separateurs
+		dvChunkSparseMemoryPerInstance.UpgradeAt(nChunk, -lDenseContinuousAttributeMemory /
+								     double(GetInstanceNumber()));
+		dvChunkSparseMemoryPerInstance.UpgradeAt(nChunk, -sliceSet->GetTotalDenseSymbolAttributeDiskSize() /
+								     double(GetInstanceNumber()));
+		dvChunkSparseMemoryPerInstance.UpgradeAt(nChunk, double(-lSeparatorMemoryPerInstance));
+		dvChunkSparseMemoryPerInstance.SetAt(nChunk, max(dvChunkSparseMemoryPerInstance.GetAt(nChunk), 0.0));
+
+		// Enlevement des tailles de la partie des valeurs denses et des separateurs
+		lvChunkSparseMemory.UpgradeAt(
+		    nChunk, -longint(lDenseContinuousAttributeMemory *
+				     double(sliceSet->GetChunkInstanceNumbers()->GetAt(nChunk)) / GetInstanceNumber()));
+		lvChunkSparseMemory.UpgradeAt(
+		    nChunk, -longint(sliceSet->GetTotalDenseSymbolAttributeDiskSize() *
+				     double(sliceSet->GetChunkInstanceNumbers()->GetAt(nChunk)) / GetInstanceNumber()));
+		lvChunkSparseMemory.UpgradeAt(nChunk, -lSeparatorMemoryPerInstance *
+							  sliceSet->GetChunkInstanceNumbers()->GetAt(nChunk));
+		lvChunkSparseMemory.SetAt(nChunk, max(lvChunkSparseMemory.GetAt(nChunk), 0ll));
+
+		// Mise-a-jour de la memoire total des valeurs sparse
+		lTotalSparseMemory += lvChunkSparseMemory.GetAt(nChunk);
+	}
+
+	// Calcul du facteur:
+	//
+	//   max_chunk(memoire des donnees sparse par instance dans un chunk) / (memoire des donnees sparse par instance)
+	//
+	// Cappe a 1 pour au cas ou il y a eu des erreurs d'arrondi
+	dvChunkSparseMemoryPerInstance.Sort();
+	dChunkDensityFactor =
+	    double(dvChunkSparseMemoryPerInstance.GetAt(dvChunkSparseMemoryPerInstance.GetSize() - 1)) /
+	    (double(lTotalSparseMemory) / sliceSet->GetTotalInstanceNumber());
+	dChunkDensityFactor = max(dChunkDensityFactor, 1.0);
+
+	return dChunkDensityFactor;
+}
+
+void SNBPredictorSelectiveNaiveBayes::InternalTrainFinalizeWithEmptyPredictor()
 {
 	ObjectArray oaEmptyAttributes;
 	KWDataPreparationClass dataPreparationClass;
@@ -121,7 +318,7 @@ void SNBPredictorSelectiveNaiveBayes::InternalTrainEmptyPredictor()
 	InternalTrainNB(&dataPreparationClass, &oaEmptyAttributes);
 }
 
-void SNBPredictorSelectiveNaiveBayes::InternalTrainUnivariatePredictor()
+void SNBPredictorSelectiveNaiveBayes::InternalTrainFinalizeWithUnivariatePredictor()
 {
 	KWDataPreparationClass dataPreparationClass;
 	ObjectArray oaDataPreparationAttributes;
@@ -130,7 +327,7 @@ void SNBPredictorSelectiveNaiveBayes::InternalTrainUnivariatePredictor()
 	ContinuousVector cvSingleAttributeWeight;
 
 	require(GetClassStats() != NULL);
-	require(GetTrainingAttributeNumber() == 1);
+	require(ComputeTrainingAttributeNumber() == 1);
 
 	// Initialisation de la KWDataPreparationClass
 	dataPreparationClass.SetLearningSpec(GetLearningSpec());

@@ -496,13 +496,9 @@ boolean SNBClassifierSelectionDataCostCalculator::UpdateTargetPartScoresWithWeig
 				for (nChunkInstance = 0; nChunkInstance < nColumnValueNumber; nChunkInstance++)
 				{
 					nChunkInstanceValue = chunkColumn->GetDenseValueAt(nChunkInstance);
-					if (not GetSNBIgnoreDenseMissingValuesOnTrainMode() or nChunkInstanceValue > -1)
-					{
-						cLogProb = attribute->GetLnSourceConditionalProb(nChunkInstanceValue,
-												 nTargetPart);
-						targetPart->GetScores()->UpgradeAt(nChunkInstance,
-										   cDeltaWeight * cLogProb);
-					}
+					cLogProb =
+					    attribute->GetLnSourceConditionalProb(nChunkInstanceValue, nTargetPart);
+					targetPart->GetScores()->UpgradeAt(nChunkInstance, cDeltaWeight * cLogProb);
 				}
 			}
 		}
@@ -1176,21 +1172,17 @@ boolean SNBRegressorSelectionDataCostCalculator::UpdateTargetPartScoresWithWeigh
 					targetPart->GetScores()->UpgradeAt(nChunkInstance, cDeltaWeight * cLogProb);
 				}
 			}
-			// Mise a jour des scores de la partie cible courante seulement pour les valeurs non manquantes
+			// Mise a jour des scores de la partie cible courante pour les valeurs denses
 			else
 			{
 				nColumnValueNumber = chunkColumn->GetValueNumber();
 				for (nChunkInstance = 0; nChunkInstance < nColumnValueNumber; nChunkInstance++)
 				{
 					nChunkInstanceValue = chunkColumn->GetDenseValueAt(nChunkInstance);
-					if (nChunkInstanceValue > -1 or not GetSNBIgnoreDenseMissingValuesOnTrainMode())
-					{
-						cLogProb = attribute->GetLnSourceConditionalProb(
-						    nChunkInstanceValue,
-						    ivAttributeTargetPartIndexByTargetPartIndex.GetAt(nTargetPart));
-						targetPart->GetScores()->UpgradeAt(nChunkInstance,
-										   cDeltaWeight * cLogProb);
-					}
+					cLogProb = attribute->GetLnSourceConditionalProb(
+					    nChunkInstanceValue,
+					    ivAttributeTargetPartIndexByTargetPartIndex.GetAt(nTargetPart));
+					targetPart->GetScores()->UpgradeAt(nChunkInstance, cDeltaWeight * cLogProb);
 				}
 			}
 		}
@@ -2265,20 +2257,16 @@ boolean SNBGeneralizedClassifierSelectionDataCostCalculator::UpdateTargetPartSco
 					targetPart->GetScores()->UpgradeAt(nChunkInstance, cDeltaWeight * cLogProb);
 				}
 			}
-			// Mise a jour des scores de la partie cible courante seulement pour les valeurs non manquantes
+			// Mise a jour des scores de la partie cible pour une colonne dense
 			else
 			{
 				nColumnValueNumber = chunkColumn->GetValueNumber();
 				for (nChunkInstance = 0; nChunkInstance < nColumnValueNumber; nChunkInstance++)
 				{
 					nChunkInstanceValue = chunkColumn->GetDenseValueAt(nChunkInstance);
-					if (nChunkInstanceValue > -1)
-					{
-						cLogProb = attribute->GetLnSourceConditionalProb(nChunkInstanceValue,
-												 nAttributeTargetPart);
-						targetPart->GetScores()->UpgradeAt(nChunkInstance,
-										   cDeltaWeight * cLogProb);
-					}
+					cLogProb = attribute->GetLnSourceConditionalProb(nChunkInstanceValue,
+											 nAttributeTargetPart);
+					targetPart->GetScores()->UpgradeAt(nChunkInstance, cDeltaWeight * cLogProb);
 				}
 			}
 		}

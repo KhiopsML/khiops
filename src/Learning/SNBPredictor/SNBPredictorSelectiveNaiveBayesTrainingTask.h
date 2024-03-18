@@ -294,6 +294,9 @@ protected:
 	// Nom de la classe de recodage
 	PLShared_String shared_sRecoderClassName;
 
+	// Nombre maximale des valeurs sparse a retenir dans un bloc
+	PLShared_Longint shared_lMaxSparseValuesPerBlock;
+
 	// URI du fichier contenant le domaine de la classe de recodage
 	PLShared_String shared_sRecoderClassDomainFileURI;
 

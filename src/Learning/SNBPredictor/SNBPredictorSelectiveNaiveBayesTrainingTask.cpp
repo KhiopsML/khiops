@@ -49,6 +49,7 @@ SNBPredictorSelectiveNaiveBayesTrainingTask::SNBPredictorSelectiveNaiveBayesTrai
 	// Declaration des variables partagees
 	DeclareSharedParameter(&shared_learningSpec);
 	DeclareSharedParameter(&shared_sRecoderClassName);
+	DeclareSharedParameter(&shared_lMaxSparseValuesPerBlock);
 	DeclareSharedParameter(&shared_sRecoderClassDomainFileURI);
 	DeclareSharedParameter(&shared_ivGrantedSlaveProcessIds);
 	DeclareSharedParameter(&shared_nInstanceNumber);
@@ -123,7 +124,7 @@ void SNBPredictorSelectiveNaiveBayesTrainingTask::InternalTrain(SNBPredictorSele
 	bMasterIsTrainingSuccessfulWithoutRunningTask = false;
 
 	// Entrainement seulement s'il y a des attributs informatifs
-	nTrainingAttributeNumber = masterSnbPredictor->GetTrainingAttributeNumber();
+	nTrainingAttributeNumber = masterSnbPredictor->ComputeTrainingAttributeNumber();
 	if (nTrainingAttributeNumber > 0)
 	{
 		// Debut timer apprentissage
@@ -132,7 +133,7 @@ void SNBPredictorSelectiveNaiveBayesTrainingTask::InternalTrain(SNBPredictorSele
 		// Predicteur univarie s'il n'y a que un attribut informatif ou un seul attribut a evaluer
 		if (nTrainingAttributeNumber == 1)
 		{
-			masterSnbPredictor->InternalTrainUnivariatePredictor();
+			masterSnbPredictor->InternalTrainFinalizeWithUnivariatePredictor();
 			bMasterIsTrainingSuccessfulWithoutRunningTask = true;
 		}
 		// Execution effective de la tache d'entrainement s'il y a plus d'un attribut informatif
@@ -185,7 +186,7 @@ void SNBPredictorSelectiveNaiveBayesTrainingTask::InternalTrain(SNBPredictorSele
 	// S'il n'y a pas d'attribut informatif on entraine un predicteur vide
 	else
 	{
-		masterSnbPredictor->InternalTrainEmptyPredictor();
+		masterSnbPredictor->InternalTrainFinalizeWithEmptyPredictor();
 		bMasterIsTrainingSuccessfulWithoutRunningTask = true;
 	}
 
@@ -321,7 +322,7 @@ int SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeMaxSlaveProcessNumber(in
 	// Memorisation des quantites pour la lisibilite des formules
 	nInstanceNumber = (longint)masterSnbPredictor->GetInstanceNumber();
 	nIterationNumber = (longint)(log2(nInstanceNumber + 1));
-	nAttributeNumber = (longint)masterSnbPredictor->GetTrainingAttributeNumber();
+	nAttributeNumber = (longint)masterSnbPredictor->ComputeTrainingAttributeNumber();
 	nTargetValueNumber = (longint)masterSnbPredictor->GetTargetDescriptiveStats()->GetValueNumber();
 
 	// En regression groupee le nombre de parties de la cible est estime par sqrt(N)
@@ -384,7 +385,7 @@ int SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeMaxSlaveProcessNumber(in
 
 int SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeMaxSliceNumber() const
 {
-	return max(1, int(sqrt(masterSnbPredictor->GetTrainingAttributeNumber())));
+	return max(1, int(sqrt(masterSnbPredictor->ComputeTrainingAttributeNumber())));
 }
 
 longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeSharedNecessaryMemory(longint lSliceSetBufferMemory)
@@ -435,9 +436,9 @@ longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeMasterNecessaryMemor
 
 	// NB : La methode appellee ignore tous les parametres sauf nAttributeNumber
 	//      lorsque bIncludeDataCostCalculator == false
-	return SNBAttributeSelectionScorer::ComputeNecessaryMemory(1, masterSnbPredictor->GetTrainingAttributeNumber(),
-								   1, masterSnbPredictor->GetTargetAttributeType(),
-								   masterSnbPredictor->IsTargetGrouped(), false);
+	return SNBAttributeSelectionScorer::ComputeNecessaryMemory(
+	    1, masterSnbPredictor->ComputeTrainingAttributeNumber(), 1, masterSnbPredictor->GetTargetAttributeType(),
+	    masterSnbPredictor->IsTargetGrouped(), false);
 }
 
 longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeGlobalSlaveNecessaryMemory(int nSliceNumber,
@@ -446,20 +447,27 @@ longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeGlobalSlaveNecessary
 	const boolean bLocalTrace = false;
 	int nInstanceNumber;
 	int nAttributeNumber;
+	int nSparseAttributeNumber;
+	longint lSparseMissingValueNumber;
 	longint lGlobalDataCostCalculatorMemory;
 	longint lGlobalBinarySliceSetBufferMemory;
 	longint lRecodingObjectsMemory;
 	longint lGlobalSlaveMemory;
+	double dSparseMemoryFactor;
 
 	// Aliases locales pour la lisibilite
 	nInstanceNumber = masterSnbPredictor->GetInstanceNumber();
-	nAttributeNumber = masterSnbPredictor->GetTrainingAttributeNumber();
+	nAttributeNumber = masterSnbPredictor->ComputeTrainingAttributeNumber();
+	nSparseAttributeNumber = masterSnbPredictor->ComputeTrainingSparseAttributeNumber();
+	lSparseMissingValueNumber = masterSnbPredictor->ComputeTrainingAttributesSparseMissingValueNumber();
+	dSparseMemoryFactor = masterSnbPredictor->ComputeSparseMemoryFactor();
 
 	// La memoire global du buffer et du scorer s'estime
 	// avec les estimations des objets necessaires avec un seul chunk
 	lGlobalDataCostCalculatorMemory = ComputeGlobalSlaveScorerNecessaryMemory();
 	lGlobalBinarySliceSetBufferMemory = SNBDataTableBinarySliceSetChunkBuffer::ComputeNecessaryMemory(
-	    nInstanceNumber, 1, nAttributeNumber, nSliceNumber);
+	    nInstanceNumber, 1, nAttributeNumber - nSparseAttributeNumber, nSparseAttributeNumber, nSliceNumber,
+	    lSparseMissingValueNumber, dSparseMemoryFactor);
 
 	// Estimation de la memoire necessaire pour le recodage
 	lRecodingObjectsMemory = ComputeRecodingObjectsNecessaryMemory(lSliceSetBufferMemory);
@@ -477,10 +485,9 @@ longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeGlobalSlaveNecessary
 	//                            + max(lGlobalDataCostCalculatorMemory - nSlaveNumber * lRecodingObjectsMemory, 0ll)
 	//
 	// car chaque esclave demande un dictionnaire.
-	// Neanmoins, si l'on prends notre l'estimation avec M slices en tant demande minimal de memoire, on a la
-	// garantie que pour n'importe quel nombre de processus il y a une nombre de slices ou on peut tourner la tache
-	// (M slices dans le pire cas). La raison est que lTrueGlobalSlaveMemory <= lGlobalSlaveMemory pour n'importe
-	// quel nombre d'esclaves et slices.
+	// Neanmoins, si l'on prends notre l'estimation avec M slices en tant demande minimal de memoire on a la garantie que pour
+	// n'importe quel nombre de processus il y a une nombre de slices ou on peut tourner la tache (M slices dans le pire cas).
+	// La raison est que lTrueGlobalSlaveMemory <= lGlobalSlaveMemory pour n'importe quel nombre d'esclaves et slices.
 	//
 	// Le compromis est que on interdit certains solutions avec un moindre nombre de slices.
 
@@ -489,6 +496,7 @@ longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeGlobalSlaveNecessary
 	{
 		cout << "Global slave memory estimation (" << nSliceNumber << " slices, s.set buffer "
 		     << LongintToHumanReadableString(lSliceSetBufferMemory) << "):\n";
+		cout << "sparse memory factor          = " << dSparseMemoryFactor << "\n";
 		cout << "binary slice set buffer   mem = "
 		     << LongintToHumanReadableString(lGlobalBinarySliceSetBufferMemory) << "\n";
 		cout << "data cost calculator      mem = "
@@ -512,17 +520,16 @@ longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeGlobalSlaveScorerNec
 	require(masterSnbPredictor->GetTargetValueStats() != NULL);
 	require(masterSnbPredictor->GetTargetValueStats()->GetAttributeNumber() > 0);
 
-	// NB : La methode appelle ignore tous les parametres sauf nAttributeNumber
-	//      lorsque bIncludeDataCostCalculator == false
+	// NB : La methode appelle ignore tous les parametres sauf nAttributeNumber lorsque bIncludeDataCostCalculator == false
 	lFullScorerMemory = SNBAttributeSelectionScorer::ComputeNecessaryMemory(
-	    masterSnbPredictor->GetInstanceNumber(), masterSnbPredictor->GetTrainingAttributeNumber(),
+	    masterSnbPredictor->GetInstanceNumber(), masterSnbPredictor->ComputeTrainingAttributeNumber(),
 	    masterSnbPredictor->GetTargetValueStats()->GetAttributeAt(0)->GetPartNumber(),
 	    masterSnbPredictor->GetTargetAttributeType(), masterSnbPredictor->IsTargetGrouped(), true);
 
 	lSelectionScorerBufferMemory =
 	    lFullScorerMemory -
 	    SNBAttributeSelectionScorer::ComputeNecessaryMemory(
-		masterSnbPredictor->GetInstanceNumber(), masterSnbPredictor->GetTrainingAttributeNumber(),
+		masterSnbPredictor->GetInstanceNumber(), masterSnbPredictor->ComputeTrainingAttributeNumber(),
 		masterSnbPredictor->GetTargetValueStats()->GetAttributeAt(0)->GetPartNumber(),
 		masterSnbPredictor->GetTargetAttributeType(), masterSnbPredictor->IsTargetGrouped(), false);
 
@@ -543,7 +550,7 @@ longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeSlaveNecessaryMemory
 
 	// Aliases locales pour la lisibilite
 	nInstanceNumber = masterSnbPredictor->GetInstanceNumber();
-	nAttributeNumber = masterSnbPredictor->GetTrainingAttributeNumber();
+	nAttributeNumber = masterSnbPredictor->ComputeTrainingAttributeNumber();
 
 	// Memoire de toutes les parties de la SNBDataTableBinarySliceSet sauf le buffer et ses contenus
 	lLayoutMemory = SNBDataTableBinarySliceSetLayout::ComputeNecessaryMemory(nInstanceNumber, nSlaveProcessNumber,
@@ -554,8 +561,6 @@ longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeSlaveNecessaryMemory
 				    sizeof(SNBDataTableBinarySliceSetRandomizedAttributeIterator) -
 				    sizeof(SNBDataTableBinarySliceSetChunkBuffer);
 	lSelectionScorerMemory = ComputeSlaveScorerNecessaryMemory();
-
-	// Memoire du scorer sans ses contenus
 
 	// La memoire de l'esclave est celle des
 	lSlaveMemory = lLayoutMemory + lTargetValuesMemory + lBinarySliceSetSelfMemory;
@@ -586,7 +591,7 @@ longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeSlaveScorerNecessary
 	// NB : La methode appellee ignore tous les parametres sauf nAttributeNumber
 	//      lorsque bIncludeDataCostCalculator == false
 	return SNBAttributeSelectionScorer::ComputeNecessaryMemory(
-	    masterSnbPredictor->GetInstanceNumber(), masterSnbPredictor->GetTrainingAttributeNumber(),
+	    masterSnbPredictor->GetInstanceNumber(), masterSnbPredictor->ComputeTrainingAttributeNumber(),
 	    masterSnbPredictor->GetTargetValueStats()->GetAttributeAt(0)->GetPartNumber(),
 	    masterSnbPredictor->GetTargetAttributeType(), masterSnbPredictor->IsTargetGrouped(), false);
 }
@@ -787,16 +792,18 @@ longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeGlobalSlaveNecessary
 {
 	int nInstanceNumber;
 	int nAttributeNumber;
-	longint lGlobalSlaveDisk;
+	int nSparseAttributeNumber;
+	longint lSparseMissingValueNumber;
 
 	// On estime la capacite totale du disque par la taille du SNBDataTableBinarySliceSetChunkBuffer avec
 	// un seul esclave et une seule slice (un peu sur-estimee)
 	nInstanceNumber = masterSnbPredictor->GetInstanceNumber();
-	nAttributeNumber = masterSnbPredictor->GetTrainingAttributeNumber();
-	lGlobalSlaveDisk =
-	    SNBDataTableBinarySliceSetChunkBuffer::ComputeNecessaryMemory(nInstanceNumber, 1, nAttributeNumber, 1);
-
-	return lGlobalSlaveDisk;
+	nAttributeNumber = masterSnbPredictor->ComputeTrainingAttributeNumber();
+	nSparseAttributeNumber = masterSnbPredictor->ComputeTrainingSparseAttributeNumber();
+	lSparseMissingValueNumber = masterSnbPredictor->ComputeTrainingAttributesSparseMissingValueNumber();
+	return SNBDataTableBinarySliceSetChunkBuffer::ComputeNecessaryMemory(
+	    nInstanceNumber, 1, nAttributeNumber - nSparseAttributeNumber, nSparseAttributeNumber, 1,
+	    lSparseMissingValueNumber, 1.0);
 }
 
 longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeSlaveNecessaryDisk()
@@ -824,16 +831,17 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitialize()
 
 	// Estimation de l'unite de progression
 	// Le nombre de taches est estime comme ceci :
-	//   [#iterations externes] x [# max passes FFWBW] x [2 x #attributs] x [#eslaves]
-	//                                                        ^^^^^
-	//                                                (1 passe FFW et 1 FBW)
+	//   [#iterations externes] x [# max passes FFWBW] x [1.2 x #attributs] x [#eslaves]
+	//                                                       ^^^^^
+	//                                             (+1 pour FFW et + .2 pour FBW)
 	// L'unite de progres est donc 1/#taches
-	// Elle est sous-estime car le nombre de passes FFWBW n'atteint pas toujours le nombre max
+	// Elle est n'est pas exacte car le nombre de taches FBW depends du nombre de variables embarquees
+	// On dans ce cas la 20% qui est l'ordre magnitud de variables selectionnees a la fin
 	if (bOk)
 	{
 		dMasterTaskProgress = 1.0 / nMasterOuterIterationNumber;
 		dMasterTaskProgress /= nMaxFastForwardBackwardRuns;
-		dMasterTaskProgress /= 2.0 * masterBinarySliceSet->GetAttributeNumber();
+		dMasterTaskProgress /= 1.2 * masterBinarySliceSet->GetAttributeNumber();
 		dMasterTaskProgress /= GetTaskResourceGrant()->GetSlaveNumber();
 	}
 
@@ -852,6 +860,10 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeDataTableBi
 	longint lSlaveExtraMemory;
 	longint lDataTableSliceSetTotalReadBufferMemory;
 	int nDataTableSliceSetSliceNumber;
+	int nDenseAttributeNumber;
+	longint lNonBufferSlaveGlobalMemory;
+	longint lSlaveDenseValuesMemoryPerBlock;
+	longint lSlaveMaxSparseValuesMemoryPerBlock;
 	KWClass* recoderClass;
 
 	require(masterBinarySliceSet == NULL);
@@ -882,14 +894,18 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeDataTableBi
 		}
 	}
 
-	// Calcul et parametrage de la memoire necessaire pour les buffer de lecture du KWDataTableSliceSet
-	//
-	// En gros on rajoute a la memoire deja pris en compte (config avec buffer de taille minimale) le minimum entre:
-	//   - l'excedant entre la memoire nec. avec un buffer de taille par defaut et celle avec un de taille minimale
-	//   - l'excedant entre la memoire attribuee et la memoire necessaire avec un buffer de taille minimale
-	//
+	// Si une configuration de memoire a ete trouve :
+	// - Initialisation du buffer du slice set en entree
+	// - Initialisation du binary slice set
+	// - Estimation du nombre maximal de valeurs sparse dans un bloc
 	if (bOk)
 	{
+		// Calcul et parametrage de la memoire necessaire pour les buffer de lecture du KWDataTableSliceSet
+		//
+		// En gros on rajoute a la memoire deja pris en compte (config avec buffer de taille minimale) le minimum entre:
+		//   - l'excedant entre la memoire necessaire avec un buffer de taille par defaut et celle avec un de taille minimale
+		//   - l'excedant entre la memoire attribuee et la memoire necessaire avec un buffer de taille minimale
+		//
 		nDataTableSliceSetSliceNumber = shared_dataTableSliceSet.GetDataTableSliceSet()->GetSliceNumber();
 		lDataTableSliceSetTotalReadBufferMemory =
 		    ComputeSliceSetTotalReadBufferNecessaryMemory(MemSegmentByteSize) +
@@ -898,11 +914,41 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeDataTableBi
 			    ComputeSliceSetTotalReadBufferNecessaryMemory(MemSegmentByteSize));
 		shared_dataTableSliceSet.GetDataTableSliceSet()->SetTotalBufferSize(
 		    lDataTableSliceSetTotalReadBufferMemory);
-	}
 
-	// Si une configuration de memoire a ete trouve : Initialisation du binary slice set
-	if (bOk)
-	{
+		// Calcul du nombre maximal de valeurs sparse a retenir en memoire
+		// Calcule seulement quand il y a des variables sparse
+		if (masterSnbPredictor->ComputeTrainingSparseAttributeNumber() > 0)
+		{
+			// Estimation du nombre de valeurs denses dans un bloc
+			nDenseAttributeNumber = masterSnbPredictor->ComputeTrainingAttributeNumber() -
+						masterSnbPredictor->ComputeTrainingSparseAttributeNumber();
+			lSlaveDenseValuesMemoryPerBlock = longint(nDenseAttributeNumber) *
+							  masterSnbPredictor->GetInstanceNumber() * sizeof(int) /
+							  longint(nSlaveProcessNumber * nSliceNumber);
+
+			// Estimation de la memoire max des valeurs sparse dans un bloc
+			//
+			// [grant esclave]
+			//   - [estimation memoire esclave]
+			//   - [estimation memoire global esclave hors buffer]
+			//   - [memoire des attributs denses du bloc]
+			//
+			lNonBufferSlaveGlobalMemory =
+			    max(0ll,
+				ComputeGlobalSlaveScorerNecessaryMemory() -
+				    ComputeRecodingObjectsNecessaryMemory(lDataTableSliceSetTotalReadBufferMemory)) /
+			    nSlaveProcessNumber;
+			lSlaveMaxSparseValuesMemoryPerBlock =
+			    GetSlaveResourceGrant()->GetMemory() -
+			    ComputeSlaveNecessaryMemory(nSlaveProcessNumber, nSliceNumber) -
+			    lNonBufferSlaveGlobalMemory - lSlaveDenseValuesMemoryPerBlock;
+
+			// Calcul du nombre des valeurs sparse max dans un bloc
+			shared_lMaxSparseValuesPerBlock = lSlaveMaxSparseValuesMemoryPerBlock / sizeof(int);
+		}
+		else
+			shared_lMaxSparseValuesPerBlock = 0;
+
 		// Initialisation du SNBDataTableBinarySliceSet du maitre
 		masterBinarySliceSet = new SNBDataTableBinarySliceSet;
 		masterBinarySliceSet->InitializeWithoutChunkBuffer(
@@ -924,23 +970,28 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeDataTableBi
 	if (bLocalTrace)
 	{
 		cout << "-------------------------------------------------------\n";
-		cout << "status                    = " << (bOk ? "OK" : "KO") << "\n";
-		cout << "granted slave proc        = " << GetTaskResourceGrant()->GetSlaveNumber() << "\n";
-		cout << "slice set tot buffer  mem = "
+		cout << "status                      = " << (bOk ? "OK" : "KO") << "\n";
+		cout << "granted slave proc          = " << GetTaskResourceGrant()->GetSlaveNumber() << "\n";
+		cout << "sparse attr. number         = " << masterSnbPredictor->ComputeTrainingSparseAttributeNumber()
+		     << "\n";
+		cout << "slice set tot buffer    mem = "
 		     << LongintToHumanReadableString(lDataTableSliceSetTotalReadBufferMemory) << " = "
 		     << lDataTableSliceSetTotalReadBufferMemory << " bytes\n";
-		cout << "granted master        mem = "
+		cout << "granted master          mem = "
 		     << LongintToHumanReadableString(GetTaskResourceGrant()->GetMasterMemory()) << " = "
 		     << GetTaskResourceGrant()->GetMasterMemory() << " bytes\n";
-		cout << "granted shared        mem = "
+		cout << "granted shared          mem = "
 		     << LongintToHumanReadableString(GetTaskResourceGrant()->GetSharedMemory()) << " = "
 		     << GetTaskResourceGrant()->GetSharedMemory() << " bytes\n";
-		cout << "granted slave         mem = "
+		cout << "granted slave           mem = "
 		     << LongintToHumanReadableString(GetTaskResourceGrant()->GetSlaveMemory()) << " = "
 		     << GetTaskResourceGrant()->GetSlaveMemory() << " bytes\n";
+		cout << "sparse block    max     mem = "
+		     << LongintToHumanReadableString(shared_lMaxSparseValuesPerBlock * sizeof(int)) << " = "
+		     << shared_lMaxSparseValuesPerBlock << " bytes\n";
 		if (bOk)
 		{
-			cout << "reco dict real        mem = "
+			cout << "reco dict real          mem = "
 			     << LongintToHumanReadableString(recoderClass->GetUsedMemory()) << " = "
 			     << recoderClass->GetUsedMemory() << " bytes\n";
 			cout << "-------\n";
@@ -950,6 +1001,7 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeDataTableBi
 		cout << endl;
 	}
 
+	ensure(shared_lMaxSparseValuesPerBlock >= 0ll);
 	ensure(not bOk or IsMasterDataTableBinarySliceSetInitialized());
 	ensure(not bOk or masterBinarySliceSet->Check());
 
@@ -1651,9 +1703,6 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::SlaveInitialize()
 	int nSlaveProcess;
 	boolean bOk = true;
 
-	// DDD
-	ALString sTmp;
-
 	// Initialisation de l'identifiant du chunk attribue a l'esclave
 	nSlaveProcessChunkIndex = -1;
 	for (nSlaveProcess = 0; nSlaveProcess < shared_ivGrantedSlaveProcessIds.GetSize(); nSlaveProcess++)
@@ -1666,13 +1715,6 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::SlaveInitialize()
 	bOk = bOk and SlaveInitializeLearningSpec();
 	if (bOk)
 		bOk = bOk and SlaveInitializeDataTableBinarySliceSet();
-
-	// DDD
-	//AddSimpleMessage(sTmp + "Sparse rate chunk #" + IntToString(slaveBinarySliceSet->chunkBuffer.GetChunkIndex()) +
-	//		 ": " + DoubleToString(slaveBinarySliceSet->chunkBuffer.GetPhysicalLayout()->GetSparsityRate()));
-
-	// DDD
-	//slaveBinarySliceSet->WriteContentsAsTSV(cout);
 
 	// Initialisation de scorer
 	if (bOk)
@@ -1847,9 +1889,9 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::SlaveInitializeDataTableBin
 
 	// Initialisation du buffer de lecture de donnees pour le chunk l'esclave
 	slaveBinarySliceSet->chunkBuffer.SetLayout(&slaveBinarySliceSet->layout);
-	bOk = slaveBinarySliceSet->chunkBuffer.Initialize(GetSlaveChunkIndex(), slaveRecoderClass,
-							  shared_dataTableSliceSet.GetDataTableSliceSet(),
-							  &slaveBinarySliceSet->schema);
+	bOk = slaveBinarySliceSet->chunkBuffer.Initialize(
+	    GetSlaveChunkIndex(), slaveRecoderClass, shared_dataTableSliceSet.GetDataTableSliceSet(),
+	    &slaveBinarySliceSet->schema, shared_lMaxSparseValuesPerBlock);
 
 	// En parallele on decharge la classe de recodage
 	if (IsParallel())

@@ -311,7 +311,7 @@ public:
 	// Acces a un attribute par son nom
 	SNBDataTableBinarySliceSetAttribute* GetAttributeAtNativeName(const ALString& sName) const;
 
-	// Acces a un attribut par son nom recode
+	// Acces a un attribut par son attribut recode
 	SNBDataTableBinarySliceSetAttribute* GetAttributeAtRecodedAttribute(const KWAttribute* recodedAttribute) const;
 
 	//////////////////////////////
@@ -569,7 +569,7 @@ public:
 
 	// Initialisation
 	boolean Initialize(int nChunk, KWClass* recoderClass, KWDataTableSliceSet* sliceSet,
-			   const SNBDataTableBinarySliceSetSchema* schema);
+			   const SNBDataTableBinarySliceSetSchema* schema, longint lMaxSparseValuesPerBlock);
 
 	// True si initalisee
 	boolean IsInitialized() const;
@@ -605,8 +605,9 @@ public:
 	const ALString GetClassLabel() const override;
 
 	// Estimation de l'empreinte memoire
-	static longint ComputeNecessaryMemory(int nInstanceNumber, int nChunkNumber, int nAttributeNumber,
-					      int nSliceNumber);
+	static longint ComputeNecessaryMemory(int nInstanceNumber, int nChunkNumber, int nDenseAttributeNumber,
+					      int nSparseAttributeNumber, int nSliceNumber,
+					      longint nSparseMissingValueNumber, double dMaxChunkDensity);
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////
 	//// Implementation
@@ -619,17 +620,25 @@ protected:
 
 	// Initialization du fichier de donnees d'un chunk a partir d'un slice set et une classe de recodage
 	boolean InitializeDataFileFromSliceSetAt(KWClass* recoderClass, KWDataTableSliceSet* sliceSet,
-						 const SNBDataTableBinarySliceSetSchema* schema);
+						 const SNBDataTableBinarySliceSetSchema* schema,
+						 longint lMaxSparseValuesPerBlock);
 
-	// Charge un bloc en memoire depuis un KWDataTableSliceSet
+	// Chargement d'un bloc du SNBDataTableBinarySliceSet en memoire depuis un KWDataTableSliceSet
 	boolean InitializeBlockFromSliceSetAt(int nSlice, KWClass* recoderClass, KWDataTableSliceSet* sliceSet,
-					      const SNBDataTableBinarySliceSetSchema* schema);
+					      const SNBDataTableBinarySliceSetSchema* schema,
+					      longint lMaxSparseValuesPerBlock);
 
-	// Charge dans la classe de recodage (recoderClass) les attributs de la slice indiquee
-	// Les index de chargement sont stockes dans le vecteur livLoadedRecodedAttributeIndexes
-	void LoadRecodedAttributesAtSlice(int nSlice, KWClass* recoderClass,
-					  const SNBDataTableBinarySliceSetSchema* schema,
-					  KWLoadIndexVector* livLoadedRecodedAttributeIndexes) const;
+	// Chargement dans la classe de recodage (recoderClass) les attributs de la slice indiquee
+	// Creation des indexes pour pouvoir faire la transposition:
+	// - Les KWLoadIndex des attributs charges sont stockes dans le vecteur livLoadedRecodedAttributes
+	// - Les KWLoadIndex des blocs sont stockes dans le vecteur livLoadedRecodedAttributeBlocks
+	// - Les sparse index (index locaux des attributs charges dans un block) sont stockes dans le
+	//   tableau d'IntVector oaSparseAttributeBinarySliceSetIndexesPerBlock; un pour chaque bloc qui
+	//   contient un attribut charge
+	void LoadSliceRecodedAttributesAndCreateIndexes(
+	    int nSlice, KWClass* recoderClass, const SNBDataTableBinarySliceSetSchema* schema,
+	    KWLoadIndexVector* livLoadedRecodedAttributes, KWLoadIndexVector* livLoadedRecodedAttributeBlocks,
+	    ObjectArray* oaSparseAttributeBinarySliceSetIndexesPerBlock) const;
 
 	// Creation du fichier temporaire de chunk; retourne le chemin du fichier cree
 	const ALString CreateTempFileForChunk(int nChunk) const;
@@ -816,7 +825,7 @@ protected:
 						  const KWDGSAttributeContinuousValues* attributeStats) const;
 
 	// Initialisation partielle du buffer pour le chunk specifie
-	boolean InitializeBufferAtChunk(int nChunk, KWDataTableSliceSet* sliceSet);
+	boolean InitializeBufferAtChunk(int nChunk, KWDataTableSliceSet* sliceSet, longint lMaxSparseValuesPerBlock);
 
 	/////////////////////////////////
 	// Objects de travail
