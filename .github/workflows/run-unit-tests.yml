@@ -74,7 +74,7 @@ jobs:
         run: |
           build/${{ matrix.build-setup.cmake-preset }}/bin/KNITest \
             --gtest_output="xml:reports/report-kni.xml"
-      - name: Check assertions 
+      - name: Check assertions
         if: success() || failure()
         run: |
           if (grep -q -E -r "Assert failed in file|Require failed in file|Ensure failed in file|Check failed in file" \

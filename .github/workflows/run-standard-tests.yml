@@ -54,6 +54,7 @@ jobs:
         uses: ./.github/actions/build-khiops
         with:
           preset-name: ${{ env.PRESET_NAME }}
+          override-flags: -DTESTING=OFF
           targets: all
       - name: Cache binaries
         id: cache-binaries-unix

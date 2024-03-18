@@ -43,7 +43,7 @@ set(CMAKE_INSTALL_ALWAYS TRUE)
 
 # Set up the custom configuration options
 option(MPI "Use MPI libraries (ON,OFF)" ON)
-option(TESTING "Build unit tests (ON,OFF)" OFF)
+option(TESTING "Build unit tests (ON,OFF)" ON)
 option(BUILD_LEX_YACC "Re-generate parsing files with lex & yacc" OFF)
 option(BUILD_JARS "Re-generate norm.jar and khiops.jar" OFF)
 option(GENERATE_VIEWS "Generate views sources from dd files" OFF)

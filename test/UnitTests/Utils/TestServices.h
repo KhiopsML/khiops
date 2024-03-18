@@ -64,7 +64,7 @@
 	}
 
 // Comparaison de 2 fichiers ligne par ligne
-// Si deux lignes contiennet le token 'SYS', elles sont comparees uniquement jusqu'a ce token: tout ce qui est derriere
+// Si deux lignes contiennent le token 'SYS', elles sont comparees uniquement jusqu'a ce token: tout ce qui est derriere
 // est ignore. Il y a egalement une tolerance pour le caractere separateur dans les chemins '\' qui est remplace par '/'
 // Renvoie true si les 2 fichiers existent et sont identiques
 boolean FileCompareForTest(const ALString& sFileNameReference, const ALString& sFileNameTest);
