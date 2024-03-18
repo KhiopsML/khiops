@@ -629,9 +629,6 @@ Object* KWDRNBClassifier::ComputeStructureResult(const KWObject* kwoObject) cons
 	// Calcul du vecteur de probabilites conditionnelles
 	ComputeTargetProbs();
 
-	// DDD
-	//cout << "instance " << kwoObject->GetCreationIndex() << endl;
-
 	return (Object*)this;
 }
 
@@ -1102,16 +1099,12 @@ void KWDRNBClassifier::ComputeTargetProbs() const
 				nTargetCellIndex = GetDataGridSetTargetCellIndexAt(nDataGrid, nTarget);
 
 				// Si la valeur n'est pas manquante: Mise a jour du terme de proba pondere par son poids
-				// DDD
-				if (not GetSNBIgnoreDenseMissingValuesOnDeployMode() or
-				    not dataGridStatsRule->IsMissingValue())
+				if (not dataGridStatsRule->IsMissingValue())
 				{
 					dTargetLogProb += GetDataGridWeightAt(nDataGrid) *
 							  dataGridStatsRule->GetDataGridSourceConditionalLogProbAt(
 							      nSourceCellIndex, nTargetCellIndex);
 				}
-				// DDD
-				//cout << " source = " << nSourceCellIndex << "  target = " << nTargetCellIndex << (constDataGridStatsRule->IsMissingValue() ? " [M]" : "") << endl;
 				nDataGrid++;
 			}
 			else
@@ -1128,8 +1121,6 @@ void KWDRNBClassifier::ComputeTargetProbs() const
 
 					// Mise a jour du terme de proba pondere par son poids
 					dataGridStatsRule = dataGridStatsBlockRule->GetDataGridStatsAt(nValue);
-					// DDD
-					//cout << " source = " << nSourceCellIndex << "  target = " << nTargetCellIndex << " [S] " << nValue << "/" << dataGridStatsBlockRule->GetCellIndexBlockSize() << endl;
 					dTargetLogProb +=
 					    GetDataGridWeightAt(nDataGrid + nDataGridIndexWithinBlock) *
 					    (dataGridStatsRule->GetDataGridSourceConditionalLogProbAt(
@@ -1148,14 +1139,6 @@ void KWDRNBClassifier::ComputeTargetProbs() const
 			dMaxTargetLogProb = dTargetLogProb;
 	}
 	assert(dMaxTargetLogProb > KWContinuous::GetMinValue());
-
-	// DDD
-	//cout << "Raw :";
-	//for (nTargetValue = 0; nTargetValue < cvTargetProbs.GetSize(); nTargetValue++)
-	//{
-	//	cout << "\t" << cvTargetProbs.GetAt(nTargetValue);
-	//}
-	//cout << endl;
 
 	// Calcul des probabilites des valeurs cibles, en normalisant par le dMaxTargetLogProb
 	// pour eviter les valeurs extremes
