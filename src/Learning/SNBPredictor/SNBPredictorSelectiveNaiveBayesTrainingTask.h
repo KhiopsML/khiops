@@ -246,8 +246,6 @@ protected:
 	// Delta poids de la modification courante
 	double dMasterModificationDeltaWeight;
 
-	double dMasterCorrectionDataCost;
-
 	// Score de la derniere passe fast forward
 	double dMasterLastFFBWRunScore;
 
@@ -344,16 +342,16 @@ protected:
 	////////////////////////////////////////////
 	// Entrees et sorties des taches
 
-	// True si l'esclave doit defaire la derniere modification de la selection
-	PLShared_Boolean input_bUndoLastModification;
-
 	// Etat de la tache (cf. enum TaskState)
 	PLShared_Int input_nTaskState;
+
+	// True si l'esclave doit defaire la derniere modification de la selection
+	PLShared_Boolean input_bUndoLastModification;
 
 	// Attribut de la derniere modification
 	PLShared_Int input_nModificationAttribute;
 
-	// Difference de poids de la modification courant (entree esclave)
+	// Difference de poids de la modification courant
 	PLShared_Double input_dModificationDeltaWeight;
 
 	// True si la derniere modification etait faite sur une passe forward

@@ -825,6 +825,10 @@ void KWTupleTableLoader::BlockLoadUnivariateFinalize(const ALString& sInputAttri
 				// Mise a jour en cas d'effectif manquant
 				if (nMissingValueNumber > 0)
 				{
+					// Mise a jour du nombre des valeurs manquantes sparse
+					outputTupleTable->SetSparseMissingValueNumber(
+					    outputTupleTable->GetSparseMissingValueNumber() + nMissingValueNumber);
+
 					// Specification de la valeur pour l'attribut supplementaire (index 1)
 					if (GetInputExtraAttributeType() == KWType::Symbol)
 						outputTupleTable->GetInputTuple()->SetSymbolAt(
