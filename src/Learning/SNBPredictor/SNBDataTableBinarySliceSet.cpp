@@ -320,7 +320,6 @@ SNBDataTableBinarySliceSetAttribute::SNBDataTableBinarySliceSetAttribute()
 	nIndex = -1;
 	nDataPreparationClassIndex = -1;
 	bIsSparse = false;
-	nDefaultSparseValue = -1;
 	dataPreparationStats = NULL;
 }
 
@@ -388,11 +387,6 @@ boolean SNBDataTableBinarySliceSetAttribute::IsSparse() const
 	return bIsSparse;
 }
 
-int SNBDataTableBinarySliceSetAttribute::GetDefaultSparseValueIndex() const
-{
-	return nDefaultSparseValue;
-}
-
 void SNBDataTableBinarySliceSetAttribute::InitializeDataFromDataPreparationAttribute(
     KWDataPreparationAttribute* dataPreparationAttribute)
 {
@@ -415,33 +409,32 @@ void SNBDataTableBinarySliceSetAttribute::InitializeDataFromDataPreparationAttri
 		nativeAttributeBlock = dataPreparationAttribute->GetNativeAttribute()->GetAttributeBlock();
 		assert(nativeAttributeBlock != NULL);
 
-		// On compile le block pour pouvoir avoir la valeur par defaut disponible
+		// On compile le bloc pour avoir la valeur par defaut disponible
 		// TODO: Verifier que cela ne pose pas de probleme de performance
-		nativeAttributeBlock->Compile();
+		// DDD
+		//	nativeAttributeBlock->Compile();
 
-		if (dataPreparationAttribute->GetNativeAttribute()->GetType() == KWType::Continuous)
-		{
-			cSparseDefaultValue = nativeAttributeBlock->GetContinuousDefaultValue();
-			nDefaultSparseValue =
-			    preparedAttributeDataGridStats->GetAttributeAt(0)->ComputeContinuousPartIndex(
-				cSparseDefaultValue);
-		}
-		else
-		{
-			assert(dataPreparationAttribute->GetNativeAttribute()->GetType() == KWType::Symbol);
-			sSparseDefaultValue = nativeAttributeBlock->GetSymbolDefaultValue();
-			nDefaultSparseValue = preparedAttributeDataGridStats->GetAttributeAt(0)->ComputeSymbolPartIndex(
-			    sSparseDefaultValue);
-		}
+		//	if (dataPreparationAttribute->GetNativeAttribute()->GetType() == KWType::Continuous)
+		//	{
+		//		cSparseDefaultValue = nativeAttributeBlock->GetContinuousDefaultValue();
+		//		nDefaultSparseValue = preparedAttributeDataGridStats->GetAttributeAt(0)->ComputeContinuousPartIndex(cSparseDefaultValue);
+		//	}
+		//	else
+		//	{
+		//		assert(dataPreparationAttribute->GetNativeAttribute()->GetType() == KWType::Symbol);
+		//		sSparseDefaultValue = nativeAttributeBlock->GetSymbolDefaultValue();
+		//		nDefaultSparseValue = preparedAttributeDataGridStats->GetAttributeAt(0)->ComputeSymbolPartIndex(sSparseDefaultValue);
+		//	}
+		//}
+
+		// Creation de la table de probabilites conditionelles
+		conditionalProbas.ImportDataGridStats(preparedAttributeDataGridStats, false, true);
+
+		ensure(dataPreparationStats->Check());
+		ensure(conditionalProbas.Check());
+		ensure(GetTargetPartition()->GetAttributeType() == KWType::Symbol or
+		       GetTargetPartition()->GetAttributeType() == KWType::Continuous);
 	}
-
-	// Creation de la table de probabilites conditionelles
-	conditionalProbas.ImportDataGridStats(preparedAttributeDataGridStats, false, true);
-
-	ensure(dataPreparationStats->Check());
-	ensure(conditionalProbas.Check());
-	ensure(GetTargetPartition()->GetAttributeType() == KWType::Symbol or
-	       GetTargetPartition()->GetAttributeType() == KWType::Continuous);
 }
 
 double SNBDataTableBinarySliceSetAttribute::GetConstructionCost() const
@@ -489,7 +482,6 @@ boolean SNBDataTableBinarySliceSetAttribute::Check() const
 	bOk = bOk and dataPreparationStats != NULL;
 	bOk = bOk and dataPreparationStats->Check();
 	bOk = bOk and conditionalProbas.Check();
-	bOk = bOk and (not bIsSparse or nDefaultSparseValue >= 0);
 
 	return bOk;
 }
@@ -502,7 +494,7 @@ void SNBDataTableBinarySliceSetAttribute::Write(ostream& ost) const
 	    << "Recoded attribute name: " << GetRecodedAttributeName() << "\n"
 	    << "Initial class index: " << GetDataPreparationClassIndex() << "\n";
 	if (IsSparse())
-		ost << "Storage: sparse (default index: " << GetDefaultSparseValueIndex() << ")\n";
+		ost << "Storage: sparse\n";
 	else
 		ost << "Storage: dense\n";
 	ost << "Preparation stats: ";
@@ -604,7 +596,6 @@ void PLShared_DataTableBinarySliceSetAttribute::SerializeObject(PLSerializer* se
 	serializer->PutInt(attribute->nIndex);
 	serializer->PutInt(attribute->nDataPreparationClassIndex);
 	serializer->PutBoolean(attribute->bIsSparse);
-	serializer->PutInt(attribute->nDefaultSparseValue);
 }
 
 void PLShared_DataTableBinarySliceSetAttribute::DeserializeObject(PLSerializer* serializer, Object* object) const
@@ -629,7 +620,6 @@ void PLShared_DataTableBinarySliceSetAttribute::DeserializeObject(PLSerializer* 
 	attribute->nIndex = serializer->GetInt();
 	attribute->nDataPreparationClassIndex = serializer->GetInt();
 	attribute->bIsSparse = serializer->GetBoolean();
-	attribute->nDefaultSparseValue = serializer->GetInt();
 }
 
 Object* PLShared_DataTableBinarySliceSetAttribute::Create() const
@@ -2403,6 +2393,7 @@ void SNBDataTableBinarySliceSet::InitializeDataPreparationClassAndSchemaFromClas
 	ensure(oaDataGridBlockDataPreparationAttributes == NULL);
 	ensure(odDataPreparationAttributesByBlock.GetCount() == 0);
 	ensure(dataPreparationClass != NULL);
+	ensure(dataPreparationClass->Check());
 	ensure(schema.IsInitialized() or not HasUsableAttributes());
 	ensure(schema.GetAttributeNumber() > 0);
 	ensure(nInitialAttributeNumber > 0 or not HasUsableAttributes());

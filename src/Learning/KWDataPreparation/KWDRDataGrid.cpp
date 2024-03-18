@@ -597,6 +597,15 @@ boolean KWDRDataGrid::CheckOperandsFamily(const KWDerivationRule* ruleFamily) co
 		}
 		else
 		{
+			// DDD
+			KWDerivationRule* rule = operand->GetDerivationRule();
+			if (rule->GetName() != "Frequencies")
+			{
+
+				cout << "== Last call ==\n" << *this->GetOwnerClass() << endl;
+				cout << *this << endl;
+			}
+
 			frequencies = cast(KWDRFrequencies*, operand->GetDerivationRule());
 
 			// Calcul du nombre total de cellules a partir des partitions univariees
