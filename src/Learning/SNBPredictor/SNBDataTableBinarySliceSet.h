@@ -821,8 +821,8 @@ protected:
 	/////////////////////////////////
 	// Objects de travail
 
-	// KWDataPreparationClass propietaire des tous les KWDataPreparationAttribute's si initialise avec un
-	// KWClassStats
+	// KWDataPreparationClass propietaire des tous les KWDataPreparationAttribute's
+	// si initialise avec un KWClassStats
 	KWDataPreparationClass* dataPreparationClass;
 
 	// Layout de la base de donnes

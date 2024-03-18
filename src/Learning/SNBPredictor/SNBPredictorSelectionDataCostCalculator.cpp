@@ -377,7 +377,7 @@ void SNBClassifierSelectionDataCostCalculator::InitializeTargetPartition()
 		targetPart->SetTargetValueIndex(nTargetValue);
 		dTargetAbsoluteProb =
 		    GetTargetValueStats()->GetUnivariateCellFrequencyAt(nTargetValue) * 1.0 / GetInstanceNumber();
-		cTargetPartEmptyDataCost = (Continuous)log(dTargetAbsoluteProb);
+		cTargetPartEmptyDataCost = log(dTargetAbsoluteProb);
 		for (nChunkInstance = 0;
 		     nChunkInstance < GetDataTableBinarySliceSet()->GetInitializedChunkInstanceNumber();
 		     nChunkInstance++)
@@ -1115,6 +1115,7 @@ void SNBRegressorSelectionDataCostCalculator::UpdateTargetPartitionWithRemovedAt
 	}
 	ensure(Check());
 }
+
 boolean SNBRegressorSelectionDataCostCalculator::UpdateTargetPartScoresWithWeightedAttribute(
     const SNBDataTableBinarySliceSetAttribute* attribute, Continuous cDeltaWeight)
 {
@@ -1230,7 +1231,7 @@ boolean SNBRegressorSelectionDataCostCalculator::UpdateDataCost()
 }
 
 boolean SNBRegressorSelectionDataCostCalculator::UpdateDataCostWithSparseAttribute(
-    SNBDataTableBinarySliceSetAttribute* attribute)
+    const SNBDataTableBinarySliceSetAttribute* attribute)
 {
 	const boolean bLocalTrace = false;
 	boolean bOk = true;

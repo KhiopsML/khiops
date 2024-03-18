@@ -23,7 +23,6 @@ SNBPredictorSelectiveNaiveBayesTrainingTask::SNBPredictorSelectiveNaiveBayesTrai
 	dMasterEmptySelectionScore = DBL_MAX;
 	dMasterEmptySelectionModelCost = DBL_MAX;
 	dMasterEmptySelectionDataCost = DBL_MAX;
-	dMasterCorrectionDataCost = 0.0;
 	dMasterMapScore = DBL_MAX;
 	dMasterLastFFBWRunScore = DBL_MAX;
 	nMasterOuterIteration = -1;
