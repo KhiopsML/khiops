@@ -336,6 +336,9 @@ protected:
 	// Poids du prior du critere de selection
 	PLShared_Double shared_dPriorWeight;
 
+	// Exposant du prior du critere de selection
+	PLShared_Double shared_dPriorExponent;
+
 	// True si le cout de construction est considere dans le critere de selection
 	PLShared_Boolean shared_bIsConstructionCostEnabled;
 

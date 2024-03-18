@@ -55,15 +55,18 @@ KWPredictorSelectionReport* SNBPredictorSelectiveNaiveBayes::GetPredictorSelecti
 boolean SNBPredictorSelectiveNaiveBayes::InternalTrain()
 {
 	boolean bOk;
-	SNBPredictorSelectiveNaiveBayesTrainingTask* trainingTask;
+	SNBPredictorSelectiveNaiveBayesTrainingTask trainingTask;
+
+	// DDD
+	trainingTask.SetParallelSimulated(true);
+	trainingTask.SetSimulatedSlaveNumber(1);
 
 	// Delegation de l'entrainement a la tache d'apprentissage
-	trainingTask = new SNBPredictorSelectiveNaiveBayesTrainingTask;
-	trainingTask->InternalTrain(this);
-	bOk = trainingTask->IsTrainingSuccessful();
+	trainingTask.InternalTrain(this);
+	bOk = trainingTask.IsTrainingSuccessful();
 
-	// Nettoyage
-	delete trainingTask;
+	// DDD
+	trainingTask.InternalTrain(this);
 
 	return bOk;
 }

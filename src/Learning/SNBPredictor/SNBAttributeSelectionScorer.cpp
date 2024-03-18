@@ -15,14 +15,15 @@ SNBAttributeSelectionScorer::SNBAttributeSelectionScorer()
 	bIsDataCostCalculatorInitialized = false;
 	bIsConstructionCostEnabled = true;
 	bIsPreparationCostEnabled = true;
-	dPenalizationExponent = 0.0;
 	lastModificationAttribute = NULL;
 	dLastModificationDeltaWeight = 0.0;
 	dLastModificationSelectionModelAllAttributeCost = 0.0;
 	bWasLastModificationIncrease = false;
 
-	// Le poids par defaut du prior a 0.25 releve d'une etude empirique
-	dPriorWeight = 0.25;
+	// Le poids et exposant du prior (valeurs 0.1 et 0.95 resp.) relevent des etudes empiriques
+	// Les valeurs par defaut des prior soulevent d'un etude empirique
+	dPriorWeight = 0.1;
+	dPriorExponent = 0.95;
 }
 
 SNBAttributeSelectionScorer::~SNBAttributeSelectionScorer()
@@ -42,9 +43,10 @@ SNBDataTableBinarySliceSet* SNBAttributeSelectionScorer::GetDataTableBinarySlice
 	return binarySliceSet;
 }
 
-void SNBAttributeSelectionScorer::SetPriorWeight(double dValue)
+void SNBAttributeSelectionScorer::SetPriorWeight(double dSomePriorWeight)
 {
-	dPriorWeight = dValue;
+	require(dSomePriorWeight >= 0.0);
+	dPriorWeight = dSomePriorWeight;
 }
 
 double SNBAttributeSelectionScorer::GetPriorWeight() const
@@ -52,19 +54,20 @@ double SNBAttributeSelectionScorer::GetPriorWeight() const
 	return dPriorWeight;
 }
 
-void SNBAttributeSelectionScorer::SetPriorExponent(double dExponent)
+void SNBAttributeSelectionScorer::SetPriorExponent(double dSomePriorExponent)
 {
-	dPenalizationExponent = dExponent;
+	require(dSomePriorExponent >= 0.0);
+	dPriorExponent = dSomePriorExponent;
 }
 
 double SNBAttributeSelectionScorer::GetPriorExponent() const
 {
-	return dPenalizationExponent;
+	return dPriorExponent;
 }
 
-void SNBAttributeSelectionScorer::SetConstructionCostEnabled(boolean bValue)
+void SNBAttributeSelectionScorer::SetConstructionCostEnabled(boolean bIsEnabled)
 {
-	bIsConstructionCostEnabled = bValue;
+	bIsConstructionCostEnabled = bIsEnabled;
 }
 
 boolean SNBAttributeSelectionScorer::IsConstructionCostEnabled() const
@@ -72,9 +75,9 @@ boolean SNBAttributeSelectionScorer::IsConstructionCostEnabled() const
 	return bIsConstructionCostEnabled;
 }
 
-void SNBAttributeSelectionScorer::SetPreparationCostEnabled(boolean bValue)
+void SNBAttributeSelectionScorer::SetPreparationCostEnabled(boolean bIsEnabled)
 {
-	bIsPreparationCostEnabled = bValue;
+	bIsPreparationCostEnabled = bIsEnabled;
 }
 
 boolean SNBAttributeSelectionScorer::IsPreparationCostEnabled() const
@@ -103,20 +106,16 @@ boolean SNBAttributeSelectionScorer::CreateDataCostCalculator()
 {
 	require(Check());
 
-	// Nettoyage au prealable
+	// Nettoyage de la calculatrice de cout de donnees
 	CleanDataCostCalculator();
 
 	// Creation de l'instance de la calculatrice en fonction de la cible; nettoyage si echec
 	if (GetTargetAttributeType() == KWType::Symbol and IsTargetGrouped())
-	{
 		dataCostCalculator = new SNBGeneralizedClassifierSelectionDataCostCalculator;
-	}
 	else if (GetTargetAttributeType() == KWType::Symbol)
 		dataCostCalculator = new SNBClassifierSelectionDataCostCalculator;
 	else if (GetTargetAttributeType() == KWType::Continuous)
-	{
 		dataCostCalculator = new SNBRegressorSelectionDataCostCalculator;
-	}
 	else
 	{
 		CleanDataCostCalculator();

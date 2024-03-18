@@ -201,7 +201,7 @@ protected:
 	double dPriorWeight;
 
 	// Exposant du prior des poids (de la penalisation)
-	double dPenalizationExponent;
+	double dPriorExponent;
 
 	///////////////////////////////////
 	// Variables de travail
