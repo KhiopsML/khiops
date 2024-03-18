@@ -12,8 +12,8 @@ on:
       - src/**.inc
       - src/**.lex
       - src/**.yac
-      - test/**.h
-      - test/**.cpp
+      - test/UnitTests/**.h
+      - test/UnitTests/**.cpp
 # Cancel any ongoing run of this workflow on the same PR or ref
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref
@@ -78,12 +78,12 @@ jobs:
         if: success() || failure()
         run: |
           if (grep -q -E -r "Assert failed in file|Require failed in file|Ensure failed in file|Check failed in file" \
-            test/KNITest/results/ \
-            test/Norm/results/ \
-            test/Learning/results/ \
-            test/Norm/results/ \
-            test/Parallel/results/ \
-            test/Parallel-mpi/results/); then
+            test/UnitTests/KNItestresults/ \
+            test/UnitTests/Norm/results/ \
+            test/UnitTests/Learning/results/ \
+            test/UnitTests/Norm/results/ \
+            test/UnitTests/Parallel/results/ \
+            test/UnitTests/Parallel-mpi/results/); then
             echo "::error::At least one test binary has failed with an assertion (assert, check, require, ensure..). Check result files available for download as artifacts."
           fi
       - name: Upload test results
@@ -93,12 +93,12 @@ jobs:
           name: unit-tests-results-${{ matrix.build-setup.os }}
           retention-days: 7
           path: |-
-            test/KNITest/results/
-            test/Norm/results/
-            test/Learning/results/
-            test/Norm/results/
-            test/Parallel/results/
-            test/Parallel-mpi/results/
+            test/UnitTests/KNItest/results/
+            test/UnitTests/Norm/results/
+            test/UnitTests/Learning/results/
+            test/UnitTests/Norm/results/
+            test/UnitTests/Parallel/results/
+            test/UnitTests/Parallel-mpi/results/
       - name: Create Unit Test Reports Dashboards
         uses: phoenix-actions/test-reporting@v12
         if: success() || failure()

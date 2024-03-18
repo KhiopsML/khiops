@@ -343,12 +343,12 @@ if(TESTING)
   enable_testing()
 
   # Add testing targets
-  add_subdirectory(test/Norm)
-  add_subdirectory(test/Parallel)
-  add_subdirectory(test/Parallel-mpi)
-  add_subdirectory(test/Learning)
-  add_subdirectory(test/KNITest)
-  add_subdirectory(test/Utils)
+  add_subdirectory(test/UnitTests/Norm)
+  add_subdirectory(test/UnitTests/Parallel)
+  add_subdirectory(test/UnitTests/Parallel-mpi)
+  add_subdirectory(test/UnitTests/Learning)
+  add_subdirectory(test/UnitTests/KNITest)
+  add_subdirectory(test/UnitTests/Utils)
 endif(TESTING)
 
 # Exclude googletest from the installation

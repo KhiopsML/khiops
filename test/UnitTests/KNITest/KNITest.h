@@ -10,4 +10,4 @@
 #include <string.h>
 
 #include "KhiopsNativeInterface.h"
-#include "../../src/Learning/KNITransfer/KNIRecodeFile.h"
+#include "../../../src/Learning/KNITransfer/KNIRecodeFile.h"

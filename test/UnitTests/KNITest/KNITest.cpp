@@ -9,7 +9,7 @@
 
 #include "KNITest.h"
 #include "TestServices.h"
-#include "../../src/Learning/KNITransfer/KNIRecodeFile.cpp"
+#include "../../../src/Learning/KNITransfer/KNIRecodeFile.cpp"
 
 #define MAXITER 1000
 #define MAXBUFFERSIZE 1000
@@ -199,7 +199,7 @@ void TestIris()
 
 	sTestPath = FileService::GetPathName(__FILE__);
 	sDictionaryPath = FileService::BuildFilePathName(sTestPath, "ModelingIris.kdic");
-	sDataPath = FileService::BuildFilePathName(sTestPath, "../LearningTest/datasets/Iris/Iris.txt");
+	sDataPath = FileService::BuildFilePathName(sTestPath, "../../LearningTest/datasets/Iris/Iris.txt");
 	sOutputPath = sTestPath + "results" + FileService::GetFileSeparator() + "R_Iris.txt";
 	sRefFilePath = sTestPath + "results.ref" + FileService::GetFileSeparator() + "R_Iris.txt";
 
@@ -232,8 +232,8 @@ void TestAdult()
 	boolean bOk;
 
 	sTestPath = FileService::GetPathName(__FILE__);
-	sDictionaryPath = FileService::BuildFilePathName(sTestPath, "../LearningTest/datasets/Adult/Adult.kdic");
-	sDataPath = FileService::BuildFilePathName(sTestPath, "../LearningTest/datasets/Adult/Adult.txt");
+	sDictionaryPath = FileService::BuildFilePathName(sTestPath, "../../LearningTest/datasets/Adult/Adult.kdic");
+	sDataPath = FileService::BuildFilePathName(sTestPath, "../../LearningTest/datasets/Adult/Adult.txt");
 	sOutputPath = sTestPath + "results" + FileService::GetFileSeparator() + "R_Adult.txt";
 
 	// Test de deploiement

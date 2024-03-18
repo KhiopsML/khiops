@@ -18,7 +18,7 @@ build/
 CMakeFiles/
 
 # Test exceptions
-test/*/results/
+test/UnitTests/*/results/
 test/LearningTest/*/*/*/results/
 comparisonResults.log
 

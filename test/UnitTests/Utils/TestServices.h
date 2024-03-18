@@ -38,7 +38,7 @@
 // Pour que le test soit valide sur differentes machines, il faut si necessaire remplacer
 // dans le fichier de reference les chemins propres à l'environnement par des tags, a savoir :
 //  - le repertoire temporaire par @TMP_DIR@
-//	- le repertoire qui contient le projet khiops par @ROOT_DIR@
+//	- le repertoire qui contient le projet des tests unitaires par @ROOT_DIR@
 // Cela concerne essentiellement les tests impliquant des fichiers temporaires.
 //
 // Le test est reussi lorsque les 2 fichiers sont identiques (a l'exception des
