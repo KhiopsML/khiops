@@ -66,6 +66,7 @@ SNBPredictorSelectiveNaiveBayesTrainingTask::SNBPredictorSelectiveNaiveBayesTrai
 	DeclareSharedParameter(&shared_dataTableSliceSet);
 	DeclareSharedParameter(&shared_ivTargetValueIndexes);
 	DeclareSharedParameter(&shared_dPriorWeight);
+	DeclareSharedParameter(&shared_dPriorExponent);
 	DeclareSharedParameter(&shared_bIsConstructionCostEnabled);
 	DeclareSharedParameter(&shared_bIsPreparationCostEnabled);
 
@@ -151,6 +152,7 @@ void SNBPredictorSelectiveNaiveBayesTrainingTask::InternalTrain(SNBPredictorSele
 			shared_dataTableSliceSet.SetDataTableSliceSet(
 			    masterSnbPredictor->GetClassStats()->GetDataTableSliceSet());
 			shared_dPriorWeight = masterSnbPredictor->GetSelectionParameters()->GetPriorWeight();
+			shared_dPriorExponent = masterSnbPredictor->GetSelectionParameters()->GetPriorExponent();
 			shared_bIsConstructionCostEnabled =
 			    masterSnbPredictor->GetSelectionParameters()->GetConstructionCost();
 			shared_bIsPreparationCostEnabled =
@@ -1721,6 +1723,7 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::SlaveInitialize()
 		slaveWeightedSelectionScorer->SetLearningSpec(shared_learningSpec.GetLearningSpec());
 		slaveWeightedSelectionScorer->SetDataTableBinarySliceSet(slaveBinarySliceSet);
 		slaveWeightedSelectionScorer->SetPriorWeight(shared_dPriorWeight);
+		slaveWeightedSelectionScorer->SetPriorExponent(shared_dPriorExponent);
 		slaveWeightedSelectionScorer->SetConstructionCostEnabled(shared_bIsConstructionCostEnabled);
 		slaveWeightedSelectionScorer->SetPreparationCostEnabled(shared_bIsPreparationCostEnabled);
 		bOk = bOk and slaveWeightedSelectionScorer->CreateDataCostCalculator();
