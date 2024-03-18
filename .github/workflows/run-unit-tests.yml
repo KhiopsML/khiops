@@ -74,6 +74,31 @@ jobs:
         run: |
           build/${{ matrix.build-setup.cmake-preset }}/bin/KNITest \
             --gtest_output="xml:reports/report-kni.xml"
+      - name: Check assertions 
+        if: success() || failure()
+        run: |
+          if (grep -q -E -r "Assert failed in file|Require failed in file|Ensure failed in file|Check failed in file" \
+            test/KNITest/results/ \
+            test/Norm/results/ \
+            test/Learning/results/ \
+            test/Norm/results/ \
+            test/Parallel/results/ \
+            test/Parallel-mpi/results/); then
+            echo "::error::At least one test binary has failed with an assertion (assert, check, require, ensure..). Check result files available for download as artifacts."
+          fi
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: unit-tests-results-${{ matrix.build-setup.os }}
+          retention-days: 7
+          path: |-
+            test/KNITest/results/
+            test/Norm/results/
+            test/Learning/results/
+            test/Norm/results/
+            test/Parallel/results/
+            test/Parallel-mpi/results/
       - name: Create Unit Test Reports Dashboards
         uses: phoenix-actions/test-reporting@v12
         if: success() || failure()
