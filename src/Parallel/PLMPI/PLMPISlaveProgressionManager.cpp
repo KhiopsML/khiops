@@ -69,11 +69,6 @@ void PLMPISlaveProgressionManager::SetProgression(int nValue)
 	}
 }
 
-boolean PLMPISlaveProgressionManager::IsInterruptionResponsive() const
-{
-	return true;
-}
-
 void PLMPISlaveProgressionManager::SetSlaveState(State nState)
 {
 	nSlaveState = nState;

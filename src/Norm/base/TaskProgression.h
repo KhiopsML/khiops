@@ -113,6 +113,11 @@ public:
 	// Cette methode peut etre appelee meme hors des taches (sans effet dans ce cas)
 	static boolean IsInterruptionRequested();
 
+	// Parametrage d'un comportement ou les taches ne sont interruptible ou non (defaut: true)
+	// Dans le cas non interruptible, IsInterruptionRequested renvoie false systematiquement
+	static void SetInterruptible(boolean bValue);
+	static boolean GetInterruptible();
+
 	// Libelle principal
 	static void DisplayMainLabel(const ALString& sValue);
 
@@ -124,6 +129,12 @@ public:
 
 	// Remise a vide des libelles MainLabel, Label et de la progression
 	static void CleanLabels();
+
+	// Test si un rafraichissement est necessaire
+	// A chaque appel, un compteur est incremente, et on ne repond true qu'environ une fois sur 100
+	// Permet de conditionner la fabrication des libelle a afficher et les test d'interruption
+	// dans les boucle de traitement intensifs, pour limiter la charge de traitement d'avancement des taches
+	static boolean IsRefreshNecessary();
 
 	///////////////////////////////////////////////////////////
 	// Parametrage avance de la gestion des taches
@@ -235,6 +246,9 @@ protected:
 	// Date du dernier affichage global
 	static clock_t tLastDisplayTime;
 
+	// Fraicheur de l'affichage, permettant de controler la methode IsRefreshNecessary
+	static longint lDisplayFreshness;
+
 	// Memorisation des derniers affichages effectue par niveau, pour bufferisation
 	static StringVector svLastDisplayedMainLabels;
 	static IntVector ivLastDisplayedProgressions;
@@ -255,6 +269,9 @@ protected:
 	// Index de demande d'interruption
 	static longint lInterruptionRequestIndex;
 
+	// Indique si les taches sont interruptibles
+	static boolean bInterruptible;
+
 	// Gestion du lancement differe du suivi de progression
 	static clock_t tStartRequested;
 	static boolean bIsManagerStarted;
@@ -274,4 +291,20 @@ protected:
 inline boolean TaskProgression::IsInTask()
 {
 	return (nCurrentLevel >= 0);
+}
+
+inline boolean TaskProgression::IsRefreshNecessary()
+{
+	lDisplayFreshness++;
+	return (lDisplayFreshness % 128) == 0;
+}
+
+inline void TaskProgression::SetInterruptible(boolean bValue)
+{
+	bInterruptible = bValue;
+}
+
+inline boolean TaskProgression::GetInterruptible()
+{
+	return bInterruptible;
 }

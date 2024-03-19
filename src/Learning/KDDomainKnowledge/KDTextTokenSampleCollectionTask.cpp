@@ -297,7 +297,6 @@ boolean KDTextTokenSampleCollectionTask::SequentialCollectTokenSamples(const KWD
 boolean KDTextTokenSampleCollectionTask::AnalyseDatabase(KWDatabase* database, ObjectArray* oaTextTokenizers)
 {
 	boolean bOk = true;
-	PeriodicTest periodicTestInterruption;
 	KWObject* kwoObject;
 	longint lObjectNumber;
 	longint lRecordNumber;
@@ -356,7 +355,7 @@ boolean KDTextTokenSampleCollectionTask::AnalyseDatabase(KWDatabase* database, O
 			}
 
 			// Suivi de la tache
-			if (periodicTestInterruption.IsTestAllowed(lRecordNumber))
+			if (TaskProgression::IsRefreshNecessary())
 				TaskProgression::DisplayProgression((int)(100 * database->GetReadPercentage()));
 		}
 		Global::DesactivateErrorFlowControl();

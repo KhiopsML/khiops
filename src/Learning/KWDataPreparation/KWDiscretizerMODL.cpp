@@ -1547,7 +1547,6 @@ void KWDiscretizerMODL::IntervalListPostOptimization(const KWFrequencyTable* kwf
 	int nIntervalNumber;
 	int nSurnumerousIntervalNumber;
 	int nStepNumber;
-	PeriodicTest periodicTestOptimize;
 
 	require(kwftSource != NULL);
 	require(headInterval != NULL);
@@ -1590,7 +1589,7 @@ void KWDiscretizerMODL::IntervalListPostOptimization(const KWFrequencyTable* kwf
 		nStepNumber++;
 
 		// Test si arret de tache demandee
-		if (periodicTestOptimize.IsTestAllowed(0) and TaskProgression::IsInterruptionRequested())
+		if (TaskProgression::IsRefreshNecessary() and TaskProgression::IsInterruptionRequested())
 			break;
 
 		// Calcul du nombre d'inetrvalles surnumeraires pour la prise en compte de
@@ -1763,7 +1762,6 @@ void KWDiscretizerMODL::IntervalListBoundaryPostOptimization(const KWFrequencyTa
 	double dBestDeltaCost;
 	int nIntervalNumber;
 	int nStepNumber;
-	PeriodicTest periodicTestOptimize;
 
 	require(kwftSource != NULL);
 	require(headInterval != NULL);
@@ -1801,7 +1799,7 @@ void KWDiscretizerMODL::IntervalListBoundaryPostOptimization(const KWFrequencyTa
 		nStepNumber++;
 
 		// Test si arret de tache demandee
-		if (periodicTestOptimize.IsTestAllowed(0) and TaskProgression::IsInterruptionRequested())
+		if (TaskProgression::IsRefreshNecessary() and TaskProgression::IsInterruptionRequested())
 			break;
 
 		// Recherche du meilleur MergeSplit et de son cout

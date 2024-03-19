@@ -31,7 +31,6 @@ public:
 	void SetMainLabel(const ALString& sValue) override;
 	void SetLabel(const ALString& sValue) override;
 	void SetProgression(int nValue) override;
-	boolean IsInterruptionResponsive() const override;
 
 	// Etat de l'esclave (VOID,PROCESS,FINALIZE)
 	void SetSlaveState(State nState);

@@ -230,11 +230,6 @@ void FileTaskProgressionManager::SetProgression(int nValue)
 	}
 }
 
-boolean FileTaskProgressionManager::IsInterruptionResponsive() const
-{
-	return true;
-}
-
 void FileTaskProgressionManager::AddCompletedTaskMessage(const ALString& sMessage)
 {
 	StringObject* soMessage;

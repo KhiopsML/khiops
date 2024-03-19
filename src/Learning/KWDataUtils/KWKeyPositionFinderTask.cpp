@@ -985,7 +985,6 @@ boolean KWKeyPositionFinderTask::SlaveProcess()
 	KWKey* inputKey;
 	int nInputKeyIndex;
 	longint lLinePosition;
-	PeriodicTest periodicTestInterruption;
 	double dProgression;
 	longint lBeginPos;
 	longint lMaxEndPos;
@@ -1076,8 +1075,7 @@ boolean KWKeyPositionFinderTask::SlaveProcess()
 				lLinePosition = inputFile.GetPositionInFile();
 
 				// Gestion de la progresssion
-				if (periodicTestInterruption.IsTestAllowed(nCumulatedLineNumber +
-									   inputFile.GetCurrentLineIndex()))
+				if (TaskProgression::IsRefreshNecessary())
 				{
 					// Calcul de la progression par rapport a la proportion de la portion du fichier
 					// traitee parce que l'on ne sait pas le nombre total de ligne que l'on va

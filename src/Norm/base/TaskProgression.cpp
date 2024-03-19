@@ -12,6 +12,7 @@ int TaskProgression::nMaxDisplayedLevelNumber = 20;
 int TaskProgression::nCurrentLevel = -1;
 ALString TaskProgression::sTitle = "";
 clock_t TaskProgression::tLastDisplayTime = 0;
+longint TaskProgression::lDisplayFreshness = 0;
 StringVector TaskProgression::svLastDisplayedMainLabels;
 IntVector TaskProgression::ivLastDisplayedProgressions;
 StringVector TaskProgression::svLastDisplayedLabels;
@@ -22,6 +23,7 @@ clock_t TaskProgression::tLastInterruptionTest = 0;
 boolean TaskProgression::bIsInterruptionRequested = false;
 longint TaskProgression::lInterruptionRequestNumber = 0;
 longint TaskProgression::lInterruptionRequestIndex = 0;
+boolean TaskProgression::bInterruptible = true;
 clock_t TaskProgression::tStartRequested = 0;
 const double TaskProgression::dMinElapsedTime = 0.3;
 boolean TaskProgression::bIsManagerStarted = false;
@@ -75,6 +77,11 @@ boolean TaskProgression::IsInterruptionRequested()
 	clock_t tTime;
 	double dElapsedTime;
 
+	// On renvoie false tout de suite si les taches ne sont pas interruptibles
+	// Sauf si une interruption a ete forcee par la methode ForceInterruptionRequested
+	if (not bInterruptible and not bIsInterruptionRequested)
+		return false;
+
 	// Incrementation du nombre de demandes d'interruptions
 	lInterruptionRequestNumber++;
 
@@ -100,33 +107,23 @@ boolean TaskProgression::IsInterruptionRequested()
 		}
 
 		// Test d'interruption utilisateur
-		// Si le TaskProgressionManager courant est reactif, on test immediatement si il
-		// y a interruption. Dans le cas contraire (i.e. java), on temporise pour ne pas tester
-		// trop souvent.
-		if (currentManager->IsInterruptionResponsive())
+		// Comme le TaskProgressionManager peut ne pas etre reactif, on temporise pour ne pas tester trop souvent
+		DifferedStart();
+		if (bIsManagerStarted)
 		{
-			bIsInterruptionRequested = currentManager->IsInterruptionRequested();
-			return bIsInterruptionRequested;
-		}
-		else
-		{
-			DifferedStart();
-			if (bIsManagerStarted)
+			tTime = clock();
+			dElapsedTime = ((double)(tTime - tLastInterruptionTest)) / CLOCKS_PER_SEC;
+			if (tLastInterruptionTest == 0 or dElapsedTime > dMinElapsedTime)
 			{
-				tTime = clock();
-				dElapsedTime = ((double)(tTime - tLastInterruptionTest)) / CLOCKS_PER_SEC;
-				if (tLastInterruptionTest == 0 or dElapsedTime > dMinElapsedTime)
-				{
-					tLastInterruptionTest = tTime;
-					bIsInterruptionRequested = currentManager->IsInterruptionRequested();
-					return bIsInterruptionRequested;
-				}
-				else
-					return false;
+				tLastInterruptionTest = tTime;
+				bIsInterruptionRequested = currentManager->IsInterruptionRequested();
+				return bIsInterruptionRequested;
 			}
 			else
 				return false;
 		}
+		else
+			return false;
 	}
 	else
 		return false;

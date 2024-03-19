@@ -178,7 +178,6 @@ boolean PEFileSearchTask::SlaveProcess()
 	boolean bIsOpen;
 	boolean bTrace = false;
 	longint lLinePosition;
-	PeriodicTest periodicTestInterruption;
 	longint lBeginPos;
 	longint lMaxEndPos;
 	longint lNextLinePos;
@@ -257,8 +256,7 @@ boolean PEFileSearchTask::SlaveProcess()
 			lLinePosition = inputBuffer.GetPositionInFile();
 
 			// Gestion de la progresssion
-			if (periodicTestInterruption.IsTestAllowed(nCumulatedLineNumber +
-								   inputBuffer.GetCurrentLineIndex()))
+			if (TaskProgression::IsRefreshNecessary())
 			{
 				// Calcul de la progression par rapport a la proportion de la portion du fichier traitee
 				// parce que l'on ne sait pas le nombre total de ligne que l'on va traiter

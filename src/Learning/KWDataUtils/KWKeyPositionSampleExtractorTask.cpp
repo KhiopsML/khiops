@@ -575,7 +575,6 @@ boolean KWKeyPositionSampleExtractorTask::SlaveProcess()
 	ObjectArray* oaKeyPositionSample;
 	KWKeyPosition* previousRecordKeyPosition;
 	KWKeyPosition* recordKeyPosition;
-	PeriodicTest periodicTestInterruption;
 	double dProgression;
 	int nCompareKey;
 	longint lBeginPos;
@@ -639,8 +638,7 @@ boolean KWKeyPositionSampleExtractorTask::SlaveProcess()
 		while (bOk and not inputFile.IsBufferEnd())
 		{
 			// Gestion de la progresssion
-			if (periodicTestInterruption.IsTestAllowed(nCumulatedLineNumber +
-								   inputFile.GetCurrentLineIndex()))
+			if (TaskProgression::IsRefreshNecessary())
 			{
 				// Calcul de la progression par rapport a la proportion de la portion du fichier traitee
 				// parce que l'on ne sait pas le nombre total de ligne que l'on va traiter

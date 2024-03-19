@@ -534,7 +534,6 @@ boolean KWClassifierPostOptimizer::LoadWorkingData(KWPredictor* predictor, KWTra
 	KWLoadIndex liTargetAttributeLoadIndex;
 	KWLoadIndexVector livProbAttributeLoadIndexes;
 	KWLoadIndex liProbAttributeLoadIndex;
-	PeriodicTest periodicTestInterruption;
 
 	require(predictor->GetTrainParameters()->GetClassifierCriterion() != "None");
 	require(trainedClassifier->GetTargetValueNumber() > 1);
@@ -652,7 +651,7 @@ boolean KWClassifierPostOptimizer::LoadWorkingData(KWPredictor* predictor, KWTra
 			}
 
 			// Suivi de la tache
-			if (periodicTestInterruption.IsTestAllowed(lRecordNumber))
+			if (TaskProgression::IsRefreshNecessary())
 			{
 				TaskProgression::DisplayProgression(
 				    (int)(100 * evaluationDatabase->GetReadPercentage()));

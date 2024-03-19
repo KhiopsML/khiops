@@ -523,7 +523,6 @@ boolean KWFileKeyExtractorTask::SlaveProcess()
 	longint lNextLinePos;
 	boolean bLineTooLong;
 	int nCumulatedLineNumber;
-	PeriodicTest periodicTestInterruption;
 	boolean bIsLineOK;
 	ALString sTmp;
 
@@ -616,8 +615,7 @@ boolean KWFileKeyExtractorTask::SlaveProcess()
 			while (bOk and not inputFile.IsBufferEnd())
 			{
 				// Gestion de la progresssion
-				if (periodicTestInterruption.IsTestAllowed(nCumulatedLineNumber +
-									   inputFile.GetCurrentLineIndex()))
+				if (TaskProgression::IsRefreshNecessary())
 				{
 					// Calcul de la progression par rapport a la proportion de la portion du fichier
 					// traitee parce que l'on ne sait pas le nombre total de ligne que l'on va
@@ -694,7 +692,7 @@ boolean KWFileKeyExtractorTask::SlaveProcess()
 		}
 	}
 
-	// On ajoute un test sur l'interruption car pour les petits fichiers IsTestAllowed n'est jamais declenchee dans
+	// On ajoute un test sur l'interruption car pour les petits fichiers IsRefreshNecessary n'est jamais declenchee dans
 	// la boucle precedente et l'interruption n'est pas detectee, il faut neanmoins detruire les fichiers
 	// temporaires
 	if (TaskProgression::IsInterruptionRequested())

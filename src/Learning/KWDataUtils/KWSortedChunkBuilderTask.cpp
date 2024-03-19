@@ -611,7 +611,6 @@ boolean KWSortedChunkBuilderTask::SlaveProcess()
 	longint lNextLinePos;
 	boolean bLineTooLong;
 	int nCumulatedLineNumber;
-	PeriodicTest periodicTestInterruption;
 	boolean bIsLineOk;
 
 	if (not input_bLastRound)
@@ -681,8 +680,7 @@ boolean KWSortedChunkBuilderTask::SlaveProcess()
 				while (bOk and not inputFile.IsBufferEnd())
 				{
 					// Gestion de la progresssion
-					if (periodicTestInterruption.IsTestAllowed(nCumulatedLineNumber +
-										   inputFile.GetCurrentLineIndex()))
+					if (TaskProgression::IsRefreshNecessary())
 					{
 						// Calcul de la progression par rapport a la proportion de la portion du
 						// fichier traitee parce que l'on ne sait pas le nombre total de ligne

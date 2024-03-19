@@ -162,9 +162,6 @@ protected:
 	// coherente des flags internes de gestion du fichier
 	virtual void ResetDatabaseFile();
 
-	// Memorisation de l'etat de suivi des taches
-	PeriodicTest periodicTestInterruption;
-
 	// Utilisation d'une ligne d'en-tete
 	boolean bHeaderLineUsed;
 

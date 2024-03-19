@@ -701,7 +701,6 @@ boolean KWKeySampleExtractorTask::SlaveProcess()
 {
 	boolean bOk = true;
 	KWKey* recordKey;
-	PeriodicTest periodicTestInterruption;
 	double dProgression;
 	int nCount;
 	longint lBeginPos;
@@ -757,7 +756,7 @@ boolean KWKeySampleExtractorTask::SlaveProcess()
 		{
 			// Gestion de la progesssion
 			nCount++;
-			if (periodicTestInterruption.IsTestAllowed(nCount))
+			if (TaskProgression::IsRefreshNecessary())
 			{
 				dProgression = inputFile.GetCurrentLineIndex() * 1.0 / inputFile.GetBufferLineNumber();
 				TaskProgression::DisplayProgression((int)floor(dProgression * 100));
