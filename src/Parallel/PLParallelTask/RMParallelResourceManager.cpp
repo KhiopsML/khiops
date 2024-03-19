@@ -2357,7 +2357,7 @@ boolean PLSolution::FitMinimalRequirements(int nRT, longint& lMissingResource, b
 					if (hostClassSolution->GetHostCountPerProcNumber()->GetAt(nProcNumber) != 0)
 					{
 						// Resources necessaires sur ce host
-						lUsedResource = lMasterSum + (nProcNumber - 1) * lSlaveMin;
+						lUsedResource = lMasterSum + ((longint)nProcNumber - 1) * lSlaveMin;
 
 						// Ressources disponibles sur le host
 						lLocalMissingResource = lUsedResource - lAvailableResource;

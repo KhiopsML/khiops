@@ -8,6 +8,7 @@ PESerializerLongTestTask::PESerializerLongTestTask()
 {
 	DeclareTaskInput(&input_sString);
 	DeclareTaskInput(&input_nStringLength);
+	nMaxStringSize = 0;
 }
 
 PESerializerLongTestTask::~PESerializerLongTestTask() {}

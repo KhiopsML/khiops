@@ -4,7 +4,11 @@
 
 #include "PELullabyTask.h"
 
-PELullabyTask::PELullabyTask() {}
+PELullabyTask::PELullabyTask()
+{
+	nMyTaskIndex = 0;
+	nStepSize = 0;
+}
 
 PELullabyTask::~PELullabyTask() {}
 

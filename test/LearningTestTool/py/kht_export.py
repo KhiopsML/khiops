@@ -146,9 +146,7 @@ def export_learning_test_tree(
                         # Creation du repertoire de suite uniquement si necessaire
                         if not target_suite_dir_created:
                             utils.make_dir(target_suite_dir)
-                            target_suite_dir_created = os.path.isdir(
-                                target_suite_dir
-                            )
+                            target_suite_dir_created = os.path.isdir(target_suite_dir)
                         # Cas d'un repertoire
                         if os.path.isdir(source_test_dir):
                             # Copie du repertoire de test

@@ -17,12 +17,12 @@ int MessageWithTaskIndexCompare(const void* elem1, const void* elem2)
 	message2 = cast(MessageWithTaskIndex*, *(Object**)elem2);
 
 	// Comparaison sur le TaskIndex puis sur le numero de ligne, puis sur l'ordre de reception
-	lIndexComp = message1->GetTaskIndex() - message2->GetTaskIndex();
+	lIndexComp = (longint)message1->GetTaskIndex() - message2->GetTaskIndex();
 	if (lIndexComp == 0)
 	{
 		lIndexComp = message1->GetMessage()->GetIndex() - message2->GetMessage()->GetIndex();
 		if (lIndexComp == 0)
-			lIndexComp = message1->GetAddIndex() - message2->GetAddIndex();
+			lIndexComp = (longint)message1->GetAddIndex() - message2->GetAddIndex();
 	}
 	return (int)((lIndexComp > 0) - (lIndexComp < 0)); // 1 si > 0; -1 si >0; 0 sinon
 }

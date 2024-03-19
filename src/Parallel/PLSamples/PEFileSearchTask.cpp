@@ -20,6 +20,7 @@ PEFileSearchTask::PEFileSearchTask()
 	// Variables du maitre
 	lInputFileSize = 0;
 	lFoundLineNumber = 0;
+	lFilePos = 0;
 }
 
 PEFileSearchTask::~PEFileSearchTask() {}

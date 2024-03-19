@@ -16,6 +16,8 @@ PLMPISlaveProgressionManager::PLMPISlaveProgressionManager(void)
 	nOldProgression = 0;
 	sendRequest = MPI_REQUEST_NULL;
 	ivMaxErrorReached = NULL;
+	nSlaveState = State::VOID;
+	sBuffer[0] = '\0';
 }
 
 PLMPISlaveProgressionManager::~PLMPISlaveProgressionManager(void)
