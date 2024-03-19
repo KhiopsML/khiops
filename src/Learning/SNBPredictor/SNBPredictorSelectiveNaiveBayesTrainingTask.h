@@ -4,7 +4,7 @@
 
 #pragma once
 
-class SNBPredictorSNBTrainingTask;
+class SNBPredictorSelectiveNaiveBayesTrainingTask;
 class SNBPredictorSNBEnsembleTrainingTask;
 class SNBPredictorSNBDirectTrainingTask;
 
@@ -12,14 +12,13 @@ class SNBPredictorSNBDirectTrainingTask;
 #include "SNBPredictorSelectiveNaiveBayes.h"
 #include "SNBDataTableBinarySliceSet.h"
 #include "SNBAttributeSelectionScorer.h"
-#include "SNBAttributeSelectionWeightCalculator.h"
 
-class SNBPredictorSNBTrainingTask : public PLParallelTask
+class SNBPredictorSelectiveNaiveBayesTrainingTask : public PLParallelTask
 {
 public:
 	// Constructeur
-	SNBPredictorSNBTrainingTask();
-	~SNBPredictorSNBTrainingTask();
+	SNBPredictorSelectiveNaiveBayesTrainingTask();
+	~SNBPredictorSelectiveNaiveBayesTrainingTask();
 
 	// Point d'entree de la tache
 	void InternalTrain(SNBPredictorSelectiveNaiveBayes* snbPredictor);
@@ -30,7 +29,9 @@ public:
 	///////////////////////////////////////////////////////////////////////////////////////////////////
 	///  Implementation
 protected:
-	// Reimplementation des methodes privees de PLParallelTask
+	// Reimplementation des methodes virtuelles privees de la classe ParallelTask
+	PLParallelTask* Create() const override;
+	const ALString GetTaskName() const override;
 	boolean ComputeResourceRequirements() override;
 	boolean MasterInitialize() override;
 	boolean MasterPrepareTaskInput(double& dTaskPercent, boolean& bIsTaskFinished) override;
@@ -53,7 +54,7 @@ protected:
 	longint ComputeSharedNecessaryMemory(longint lSliceSetReadBufferMemory);
 
 	// Estimation de la memoire du maitre
-	virtual longint ComputeMasterNecessaryMemory() const = 0;
+	longint ComputeMasterNecessaryMemory() const;
 
 	// Estimation de la memoire necessaire pour le recodage
 	longint ComputeDataPreparationClassNecessaryMemory();
@@ -71,16 +72,16 @@ protected:
 	longint ComputeDataPreparationAttributeNecessaryMemory(const KWDataGridStats* dataGridStats) const;
 
 	// Estimation de la memoire globale necessaire pour tous les esclaves
-	virtual longint ComputeGlobalSlaveNecessaryMemory(int nSliceNumber, longint lSliceSetReadBufferMemory);
+	longint ComputeGlobalSlaveNecessaryMemory(int nSliceNumber, longint lSliceSetReadBufferMemory);
 
 	// Estimation de la memoire globale des scores de tous les esclaves
-	virtual longint ComputeGlobalSlaveScorerNecessaryMemory() const = 0;
+	longint ComputeGlobalSlaveScorerNecessaryMemory() const;
 
 	// Estimation heuristique de la memoire de l'esclave pour l'apprentissage
-	virtual longint ComputeSlaveNecessaryMemory(int nProcessNumber, int nSliceNumber);
+	longint ComputeSlaveNecessaryMemory(int nProcessNumber, int nSliceNumber);
 
 	// Estimation heuristique de la memoire de l'esclave pour le scorer des selections
-	virtual longint ComputeSlaveScorerNecessaryMemory() const = 0;
+	longint ComputeSlaveScorerNecessaryMemory() const;
 
 	// Estimatio heuristique du disque du maitre
 	longint ComputeMasterNecessaryDisk();
@@ -107,7 +108,7 @@ protected:
 	boolean MasterInitializeRecoderClassSharedVariables();
 
 	// Initialisation des variables de control de l'optimisation
-	virtual void MasterInitializeOptimizationVariables();
+	void MasterInitializeOptimizationVariables();
 
 	//////////////////////////////////////////////////////////////////
 	// Implementation du SlaveInitialize
@@ -131,23 +132,17 @@ protected:
 	// True si l'iteration externe est finie
 	boolean IsOuterIterationFinished() const;
 
-	// True si l'epsilon de precision est deja calcule
-	boolean IsPrecisionEpsilonCalculated() const;
-
-	// True si l'on est dans une iteration FastForward
-	boolean IsOnFastForwardRun() const;
-
 	// Mise a jour de la progression de la tache
-	virtual void UpdateTaskProgressionLabel() const = 0;
+	void UpdateTaskProgressionLabel() const;
 
 	// True si toutes les taches d'une passe sont finies
 	boolean AllFastRunStepTasksAreFinished() const;
 
 	// Mise a jour de la selection apres l'evaluation d'une modification
-	virtual void UpdateSelection() = 0;
+	void UpdateSelection();
 
 	// Mise a jour de l'attribut courant de l'iteration
-	virtual void UpdateCurrentAttribute() = 0;
+	void UpdateCurrentAttribute();
 
 	// True si la passe rapide est finie
 	boolean IsFastRunFinished() const;
@@ -156,28 +151,19 @@ protected:
 	void InitializeNextFastRun();
 
 	// Calcule le score de la selection vide et l'epsilon de precision
-	virtual void ComputeEmptySelectionScoreAndPrecisionEpsilon();
+	void ComputeEmptySelectionScoreAndPrecisionEpsilon();
 
 	// True si l'attribut courant est valide
 	boolean CheckCurrentAttribute() const;
 
-	// True si la selection courant contient l'attribut specifie
-	virtual boolean SelectionContainsAttribute(SNBDataTableBinarySliceSetAttribute* attribute) const = 0;
-
-	// True si la selection est vide
-	virtual boolean IsSelectionEmpty() const = 0;
-
 	// Initialise une nouvelle passe rapide forward (potentiellement une nouvelle iteration externe)
-	virtual void InitializeNextFastForwardRun() = 0;
-
-	// Calcule le cout du modele courant
-	virtual double ComputeSelectionModelCost() = 0;
+	void InitializeNextFastForwardRun();
 
 	///////////////////////////////////////////////
 	// Implementation du MasterFinalize
 
 	// Finalisation de l'entrainement et enregistrement
-	virtual void MasterFinalizeTrainingAndReports() = 0;
+	void MasterFinalizeTrainingAndReports();
 
 	////////////////////////////////////////////////
 	// Methodes des esclaves
@@ -203,9 +189,11 @@ protected:
 	//////////////////////////////////////////
 	// Objets de travail du maitre
 
-	// SNBDataTableBinarySliceSet du maitre
-	// Pas de buffer initalise
+	// Binary slice set du maitre (sans buffer initalise)
 	SNBDataTableBinarySliceSet* masterBinarySliceSet;
+
+	// Calculatrice de score de selection du maitre
+	SNBAttributeSelectionScorer* masterWeightedSelectionScorer;
 
 	// Index de l'iteration externe
 	int nMasterOuterIteration;
@@ -218,9 +206,6 @@ protected:
 
 	// Index de l'iteration Fast Forward Backward
 	int nMasterFastForwardBackwardRun;
-
-	// True si l'iteration FFBW est dans la phase Forward
-	boolean bMasterIsOnFastAddRun;
 
 	// Index de l'attribut aleatoire courant
 	int nMasterRandomAttribute;
@@ -237,6 +222,17 @@ protected:
 	// True si dans le prochain les esclaven doivent reinitialiser ses scores
 	boolean bMasterInitializeSlaveScorers;
 
+	// Etats de la tache
+	enum TaskState
+	{
+		PrecisionEpsilonComputation,
+		FastForwardRun,
+		FastBackwardRun,
+	};
+
+	// Etat actuel de la tache
+	int nMasterTaskState;
+
 	// Meilleur score de l'iteration externe courante
 	double dMasterCurrentScore;
 	double dMasterCurrentModelCost;
@@ -247,8 +243,11 @@ protected:
 	double dMasterModificationModelCost;
 	double dMasterModificationDataCost;
 
+	// Delta poids de la modification courante
+	double dMasterModificationDeltaWeight;
+
 	// Score de la derniere passe fast forward
-	double dMasterPreviousRunScore;
+	double dMasterLastFFBWRunScore;
 
 	// Score de la selection vide
 	double dMasterEmptySelectionScore;
@@ -283,6 +282,9 @@ protected:
 	// Database d'apprentissage de l'esclave
 	SNBDataTableBinarySliceSet* slaveBinarySliceSet;
 
+	// Calculatrice de score de selection du esclave
+	SNBAttributeSelectionScorer* slaveWeightedSelectionScorer;
+
 	////////////////////////////////////////////////////
 	// Variables partagees
 
@@ -291,6 +293,9 @@ protected:
 
 	// Nom de la classe de recodage
 	PLShared_String shared_sRecoderClassName;
+
+	// Nombre maximale des valeurs sparse a retenir dans un bloc
+	PLShared_Longint shared_lMaxSparseValuesPerBlock;
 
 	// URI du fichier contenant le domaine de la classe de recodage
 	PLShared_String shared_sRecoderClassDomainFileURI;
@@ -331,6 +336,9 @@ protected:
 	// Poids du prior du critere de selection
 	PLShared_Double shared_dPriorWeight;
 
+	// Exposant du prior du critere de selection
+	PLShared_Double shared_dPriorExponent;
+
 	// True si le cout de construction est considere dans le critere de selection
 	PLShared_Boolean shared_bIsConstructionCostEnabled;
 
@@ -340,11 +348,17 @@ protected:
 	////////////////////////////////////////////
 	// Entrees et sorties des taches
 
+	// Etat de la tache (cf. enum TaskState)
+	PLShared_Int input_nTaskState;
+
 	// True si l'esclave doit defaire la derniere modification de la selection
 	PLShared_Boolean input_bUndoLastModification;
 
 	// Attribut de la derniere modification
 	PLShared_Int input_nModificationAttribute;
+
+	// Difference de poids de la modification courant
+	PLShared_Double input_dModificationDeltaWeight;
 
 	// True si la derniere modification etait faite sur une passe forward
 	PLShared_Boolean input_bIsForwardModification;
@@ -354,103 +368,4 @@ protected:
 
 	// Cout de donnes de la modification dans le chunk de l'esclave
 	PLShared_Double output_dDataCost;
-};
-
-class SNBPredictorSNBEnsembleTrainingTask : public SNBPredictorSNBTrainingTask
-{
-public:
-	// Constructeur
-	SNBPredictorSNBEnsembleTrainingTask();
-	~SNBPredictorSNBEnsembleTrainingTask();
-
-	///////////////////////////////////////////////////////////////////////////////////////////////////
-	///  Implementation
-protected:
-	// Reimplementation des methodes privees de PLParallelTask
-	PLParallelTask* Create() const override;
-	const ALString GetTaskName() const override;
-	boolean MasterPrepareTaskInput(double& dTaskPercent, boolean& bIsTaskFinished) override;
-	boolean MasterFinalize(boolean bProcessEndedCorrectly) override;
-	boolean SlaveInitialize() override;
-	boolean SlaveProcess() override;
-	boolean SlaveFinalize(boolean bProcessEndedCorrectly) override;
-
-	// Reimplementation des methodes privees de SNBPredictorSNBTrainingTask
-	longint ComputeMasterNecessaryMemory() const override;
-	longint ComputeGlobalSlaveScorerNecessaryMemory() const override;
-	longint ComputeSlaveScorerNecessaryMemory() const override;
-	void MasterInitializeOptimizationVariables() override;
-	void UpdateTaskProgressionLabel() const override;
-	void UpdateSelection() override;
-	void UpdateCurrentAttribute() override;
-	boolean SelectionContainsAttribute(SNBDataTableBinarySliceSetAttribute* attribute) const override;
-	boolean IsSelectionEmpty() const override;
-	void InitializeNextFastForwardRun() override;
-	void ComputeEmptySelectionScoreAndPrecisionEpsilon() override;
-	double ComputeSelectionModelCost() override;
-	void MasterFinalizeTrainingAndReports() override;
-
-	/////////////////////////////////////////////////////
-	// Objets de travail
-
-	// Calculatrice de score de selection du maitre
-	SNBHardAttributeSelectionScorer* masterHardSelectionScorer;
-
-	// Calculatrice de poids des attributs
-	SNBAttributeSelectionWeightCalculator* masterWeightCalculator;
-
-	// Selection d'attributs MAP
-	SNBHardAttributeSelection* masterMapSelection;
-
-	// Calculatrice de score de selection de l'esclave
-	SNBHardAttributeSelectionScorer* slaveSelectionScorer;
-};
-
-class SNBPredictorSNBDirectTrainingTask : public SNBPredictorSNBTrainingTask
-{
-public:
-	// Constructeur
-	SNBPredictorSNBDirectTrainingTask();
-	~SNBPredictorSNBDirectTrainingTask();
-
-	///////////////////////////////////////////////////////////////////////////////////////////////////
-	/// Implementation
-protected:
-	// Reimplementation des methodes virtuelles privees de la classe ParallelTask
-	PLParallelTask* Create() const override;
-	const ALString GetTaskName() const override;
-	boolean MasterPrepareTaskInput(double& dTaskPercent, boolean& bIsTaskFinished) override;
-	boolean MasterFinalize(boolean bProcessEndedCorrectly) override;
-	boolean SlaveInitialize() override;
-	boolean SlaveProcess() override;
-	boolean SlaveFinalize(boolean bProcessEndedCorrectly) override;
-
-	// Reimplementation des methodes virtuelles privees de SNBPredictorSNBTrainingTask
-	longint ComputeMasterNecessaryMemory() const override;
-	longint ComputeGlobalSlaveScorerNecessaryMemory() const override;
-	longint ComputeSlaveScorerNecessaryMemory() const override;
-	void MasterInitializeOptimizationVariables() override;
-	void UpdateTaskProgressionLabel() const override;
-	void UpdateSelection() override;
-	void UpdateCurrentAttribute() override;
-	boolean SelectionContainsAttribute(SNBDataTableBinarySliceSetAttribute* attribute) const override;
-	boolean IsSelectionEmpty() const override;
-	void InitializeNextFastForwardRun() override;
-	double ComputeSelectionModelCost() override;
-	void MasterFinalizeTrainingAndReports() override;
-
-	// Maximum de passes FastForwardBackward pour chaque MultiStart
-	const int nMaxFastForwardBackwardRuns = 2;
-
-	// Delta poids de la modification courant
-	double dMasterModificationDeltaWeight;
-
-	// Calculatrice de score de selection du maitre
-	SNBWeightedAttributeSelectionScorer* masterWeightedSelectionScorer;
-
-	// Calculatrice de score de selection du esclave
-	SNBWeightedAttributeSelectionScorer* slaveWeightedSelectionScorer;
-
-	// Difference de poids de la modification courant (entree esclave)
-	PLShared_Double input_dModificationDeltaWeight;
 };

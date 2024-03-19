@@ -25,11 +25,11 @@ KWSelectionParameters::KWSelectionParameters()
 	sOptimizationAlgorithm = "MS_FFWBW";
 
 	// Par defaut, on prend en compte les prior dans le SNB
-	// Le poids de prior a 0.25 releve d'une etude empirique
-	dPriorWeight = 0.25;
+	// Le poids et exposant du prior (valeurs 0.1 et 0.95 resp.) relevent des etudes empiriques
+	dPriorWeight = 0.1;
+	dPriorExponent = 0.95;
 	bConstructionCost = true;
 	bPreparationCost = true;
-	dPriorExponent = 0.95;
 	// ##
 }
 

@@ -155,7 +155,7 @@ public:
 	void DeleteAllAttributes();
 
 	/////////////////////////////////////////////////////////////////////////////////////
-	// Acces aux tuples de la table (en mode consultation)
+	// Acces aux tuples de la table
 
 	// Nombre de tuples
 	int GetSize() const;
