@@ -112,7 +112,7 @@ def get_context_computing_type(log_file=None, show=False):
     Base sur la variable process_number
     Une trace est ecrite dans un fichier de log et affichees sur la console si besoin
     """
-    if process_number is None:
+    if process_number is None or process_number == 1:
         computing_type = "sequential"
     else:
         computing_type = "parallel"
