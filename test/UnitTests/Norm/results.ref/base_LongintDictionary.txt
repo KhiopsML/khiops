@@ -1,0 +1,74 @@
+Test des fonctionnalites de base
+	Insertion de 10 valeurs
+Longint dictionary  [10]
+	5:	5
+	2:	2
+	7:	7
+	1:	1
+	0:	0
+	3:	3
+	8:	8
+	4:	4
+	6:	6
+	9:	9
+	...
+	Test d'existence
+		Lookup (8): 8
+		Lookup (9): 9
+		Lookup (10): 0
+	Loop of clean and decrement
+		(10, 45)	[-1]		(9, 45) ->	(9, 36)
+		(9, 36)	[-1]		(8, 36) ->	(8, 28)
+		(8, 28)	[-1]		(7, 28) ->	(7, 21)
+		(7, 21)	[-1]		(6, 21) ->	(6, 15)
+		(6, 15)	[-1]		(5, 15) ->	(5, 10)
+		(5, 10)	[-1]		(4, 10) ->	(4, 6)
+		(4, 6)	[-1]		(3, 6) ->	(3, 3)
+		(3, 3)	[-1]		(2, 3) ->	(2, 1)
+		(2, 1)	[-1]		(1, 1) ->	(1, 0)
+		(1, 0)	[-1]		(0, 0) ->	(0, 0)
+Insertion puis supression d'un element temporaire a detruire
+Inserted: -1
+Removed: 0
+Test de changement de taille dynamique
+Nombre d'elements inseres) (1 to 100000) [1000]:
+Nombre d'iterations (1 to 100000) [1000]:
+  HashTableSize = 2729
+SYS TIME	LongintDictionary change size	0.682495
+Test de performance de base
+Nombre maxi d'elements inseres (Random) (1 to 10000000) [100000]:
+Nombre d'iterations (1 to 1000) [20]:
+	Iteration 0	Size = 63202	Found = 63202
+	Iteration 1	Size = 86472	Found = 86472
+	Iteration 2	Size = 95058	Found = 95058
+	Iteration 3	Size = 98171	Found = 98171
+	Iteration 4	Size = 99340	Found = 99340
+	Iteration 5	Size = 99737	Found = 99737
+	Iteration 6	Size = 99902	Found = 99902
+	Iteration 7	Size = 99968	Found = 99968
+	Iteration 8	Size = 99990	Found = 99990
+	Iteration 9	Size = 99995	Found = 99995
+	Iteration 10	Size = 100000	Found = 100000
+	Iteration 11	Size = 100000	Found = 100000
+	Iteration 12	Size = 100000	Found = 100000
+	Iteration 13	Size = 100000	Found = 100000
+	Iteration 14	Size = 100000	Found = 100000
+	Iteration 15	Size = 100000	Found = 100000
+	Iteration 16	Size = 100000	Found = 100000
+	Iteration 17	Size = 100000	Found = 100000
+	Iteration 18	Size = 100000	Found = 100000
+	Iteration 19	Size = 100000	Found = 100000
+SYS TIME	LongintDictionary access	1.3488
+SYS MEMORY	Used memory	100000	6606986	6606986
+
+Test de performance de comptage
+Nombre max d'elements (1 to 10000000) [1000000]:
+Nombre d'iterations (1 to 100000000) [10000000]:
+	Total = 10000000
+SYS TIME	LongintDictionary counts	4.95287
+SYS MEMORY	Used memory	999948	61365764	61365764	149802496
+
+Test de performance de comptage via un dictionnaire de LongintObject
+	Total = 10000000
+SYS TIME	LongintDictionary counts	5.39525
+SYS MEMORY	Used memory	999946	61365683	77364819	214282048

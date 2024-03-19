@@ -65,3 +65,6 @@ int GetMaxOpenedFileNumber();
 // Informations systeme (os version, nom etc...)
 // la chaine retournee depend de l'OS, il y a plusieurs lignes (clef/valeur)
 const char* GetSystemInfos();
+
+// Affichage des ressources systeme dans la console
+void TestSystemResource();

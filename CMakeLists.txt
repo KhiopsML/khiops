@@ -43,7 +43,7 @@ set(CMAKE_INSTALL_ALWAYS TRUE)
 
 # Set up the custom configuration options
 option(MPI "Use MPI libraries (ON,OFF)" ON)
-option(TESTING "Build unit tests (ON,OFF)" OFF)
+option(TESTING "Build unit tests (ON,OFF)" ON)
 option(BUILD_LEX_YACC "Re-generate parsing files with lex & yacc" OFF)
 option(BUILD_JARS "Re-generate norm.jar and khiops.jar" OFF)
 option(GENERATE_VIEWS "Generate views sources from dd files" OFF)
@@ -343,12 +343,12 @@ if(TESTING)
   enable_testing()
 
   # Add testing targets
-  add_subdirectory(test/Norm)
-  add_subdirectory(test/Parallel)
-  add_subdirectory(test/Parallel-mpi)
-  add_subdirectory(test/Learning)
-  add_subdirectory(test/KNITest)
-  add_subdirectory(test/Utils)
+  add_subdirectory(test/UnitTests/Norm)
+  add_subdirectory(test/UnitTests/Parallel)
+  add_subdirectory(test/UnitTests/Parallel-mpi)
+  add_subdirectory(test/UnitTests/Learning)
+  add_subdirectory(test/UnitTests/KNITest)
+  add_subdirectory(test/UnitTests/Utils)
 endif(TESTING)
 
 # Exclude googletest from the installation
