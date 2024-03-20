@@ -2129,7 +2129,7 @@ int PLParallelTask::InternalComputeStairBufferSize(int nBufferSizeMin, int nBuff
 
 	// Fin de traitement : quand il n'y a du travail que pour la moitie des esclaves
 	lFileSizeRemaining = lFileSize - lFileProcessed;
-	if (lFileSizeRemaining < (nProcessNumber / 2) * nComputedBufferSizeMax)
+	if (lFileSizeRemaining < (nProcessNumber / 2) * (longint)nComputedBufferSizeMax)
 	{
 		bStop = true;
 	}

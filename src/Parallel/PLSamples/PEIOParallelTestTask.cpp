@@ -15,6 +15,7 @@ PEIOParallelTestTask::PEIOParallelTestTask()
 	lTotalFieldNumber = 0;
 	lTotalLineNumber = 0;
 	lTotalFileSizes = 0;
+	nFileIndex = 0;
 }
 
 PEIOParallelTestTask::~PEIOParallelTestTask() {}

@@ -16,6 +16,8 @@ PLMPISlaveProgressionManager::PLMPISlaveProgressionManager(void)
 	nOldProgression = 0;
 	sendRequest = MPI_REQUEST_NULL;
 	ivMaxErrorReached = NULL;
+	nSlaveState = State::VOID;
+	sBuffer[0] = '\0';
 }
 
 PLMPISlaveProgressionManager::~PLMPISlaveProgressionManager(void)
@@ -67,11 +69,6 @@ void PLMPISlaveProgressionManager::SetProgression(int nValue)
 		serializer.ExportBufferMonoBlock(sBuffer, 12);
 		MPI_Isend(sBuffer, 12, MPI_CHAR, 0, SLAVE_PROGRESSION, MPI_COMM_WORLD, &sendRequest);
 	}
-}
-
-boolean PLMPISlaveProgressionManager::IsInterruptionResponsive() const
-{
-	return true;
 }
 
 void PLMPISlaveProgressionManager::SetSlaveState(State nState)

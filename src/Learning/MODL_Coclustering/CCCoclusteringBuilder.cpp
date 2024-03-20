@@ -1725,7 +1725,7 @@ boolean CCCoclusteringBuilder::CreateVarPartDataGridCells(const KWTupleTable* tu
 		tuple = tupleTable->GetAt(nTuple);
 
 		// Progression
-		if (periodicTestDisplay.IsTestAllowed(nTuple))
+		if (TaskProgression::IsRefreshNecessary())
 		{
 			TaskProgression::DisplayProgression((int)(50 + nTuple * 50.0 / tupleTable->GetSize()));
 			if (TaskProgression::IsInterruptionRequested())
@@ -2230,7 +2230,6 @@ boolean CCCoclusteringBuilder::FillTupleTableFromDatabase(KWDatabase* database, 
 	longint lRecordNumber;
 	int nObjectFrequency;
 	longint lTotalFrequency;
-	PeriodicTest periodicTestInterruption;
 	ALString sTmp;
 
 	require(not GetVarPartCoclustering());
@@ -2366,7 +2365,7 @@ boolean CCCoclusteringBuilder::FillTupleTableFromDatabase(KWDatabase* database, 
 			}
 
 			// Suivi de la tache
-			if (periodicTestInterruption.IsTestAllowed(lRecordNumber))
+			if (TaskProgression::IsRefreshNecessary())
 			{
 				TaskProgression::DisplayProgression((int)(100 * database->GetReadPercentage()));
 				database->DisplayReadTaskProgressionLabel(lRecordNumber, lObjectNumber);
@@ -2434,7 +2433,6 @@ boolean CCCoclusteringBuilder::FillVarPartTupleTableFromDatabase(KWDatabase* dat
 	longint lRecordNumber;
 	int nObjectFrequency;
 	longint lTotalFrequency;
-	PeriodicTest periodicTestInterruption;
 	int nObjectObservationNumber;
 	IntObject* ioObservationNumber;
 	ALString sTmp;
@@ -2623,7 +2621,7 @@ boolean CCCoclusteringBuilder::FillVarPartTupleTableFromDatabase(KWDatabase* dat
 			}
 
 			// Suivi de la tache
-			if (periodicTestInterruption.IsTestAllowed(lRecordNumber))
+			if (TaskProgression::IsRefreshNecessary())
 			{
 				TaskProgression::DisplayProgression((int)(100 * database->GetReadPercentage()));
 				database->DisplayReadTaskProgressionLabel(lRecordNumber, lObjectNumber);
@@ -2747,7 +2745,7 @@ boolean CCCoclusteringBuilder::CreateIdentifierAttributeIntervals(const KWTupleT
 			tuple = attributeTupleTable.GetAt(nTuple);
 
 			// Progression
-			if (periodicTestDisplay.IsTestAllowed(nTuple))
+			if (TaskProgression::IsRefreshNecessary())
 			{
 				// Cas d'un attribut de grille standard, non interne dans un attribut VarPart
 				if (not dgAttribute->IsInnerAttribute())
@@ -2870,7 +2868,7 @@ boolean CCCoclusteringBuilder::CreateIdentifierAttributeValueSets(const KWTupleT
 		       attributeTupleTable.GetAt(nTuple - 1)->GetSymbolAt(0).CompareValue(tuple->GetSymbolAt(0)) < 0);
 
 		// Progression
-		if (periodicTestDisplay.IsTestAllowed(nTuple))
+		if (TaskProgression::IsRefreshNecessary())
 		{
 			// Cas d'un attribut de grille standard, non interne dans un attribut VarPart
 			// Sinon GetDataGrid() n'est pas defini

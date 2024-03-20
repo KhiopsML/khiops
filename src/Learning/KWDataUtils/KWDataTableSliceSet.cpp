@@ -1285,7 +1285,6 @@ boolean KWDataTableSliceSet::Close()
 boolean KWDataTableSliceSet::ReadAllObjectsWithClass(const KWClass* kwcInputClass, ObjectArray* oaReadObjects)
 {
 	boolean bOk = true;
-	PeriodicTest periodicTestInterruption;
 	KWObject* kwoObject;
 	longint lRecordNumber;
 	ALString sTmp;
@@ -1332,7 +1331,7 @@ boolean KWDataTableSliceSet::ReadAllObjectsWithClass(const KWClass* kwcInputClas
 			}
 
 			// Suivi de la tache
-			if (periodicTestInterruption.IsTestAllowed(lRecordNumber))
+			if (TaskProgression::IsRefreshNecessary())
 				TaskProgression::DisplayProgression((int)(100 * GetReadPercentage()));
 		}
 		Global::DesactivateErrorFlowControl();
@@ -3136,7 +3135,6 @@ boolean KWDataTableSlice::Close()
 boolean KWDataTableSlice::ReadAll()
 {
 	boolean bOk = true;
-	PeriodicTest periodicTestInterruption;
 	KWObject* kwoObject;
 	longint lRecordNumber;
 
@@ -3173,7 +3171,7 @@ boolean KWDataTableSlice::ReadAll()
 			}
 
 			// Suivi de la tache
-			if (periodicTestInterruption.IsTestAllowed(lRecordNumber))
+			if (TaskProgression::IsRefreshNecessary())
 				TaskProgression::DisplayProgression((int)(100 * GetReadPercentage()));
 		}
 		Global::DesactivateErrorFlowControl();
@@ -3916,7 +3914,7 @@ boolean KWDataTableDriverSlice::ReadObject(KWObject* kwoObject)
 	require(kwoObject->GetClass() == GetClass());
 
 	// On retourne NULL, sans message, si interruption utilisateur
-	if (periodicTestInterruption.IsTestAllowed(lRecordIndex))
+	if (TaskProgression::IsRefreshNecessary())
 	{
 		if (TaskProgression::IsInterruptionRequested())
 			return false;

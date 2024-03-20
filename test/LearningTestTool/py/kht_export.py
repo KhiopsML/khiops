@@ -137,28 +137,18 @@ def export_learning_test_tree(
                 # Parcours des repertoires de test de la suite
                 for test_dir_name in test_dir_names:
                     source_test_dir = os.path.join(source_suite_dir, test_dir_name)
-                    # Gestion des fichiers de la suite (ex: readme), a conserver
-                    if os.path.isfile(source_test_dir):
-                        if export_test_dirs:
-                            source_file_name = source_test_dir
-                            target_file_name = os.path.join(
-                                target_suite_dir, test_dir_name
-                            )
-                            utils.copy_file(source_file_name, target_file_name)
-                    # Gestion des repertoires de la suite: a exporter ou analyser
-                    if os.path.isdir(source_test_dir):
-                        # Export du repertoire de test si necessaire
-                        if export_test_dirs:
-                            # Creation du repertoire de l'outil uniquement si necessaire
-                            if not target_tool_dir_created:
-                                utils.make_dir(target_tool_dir)
-                                target_tool_dir_created = os.path.isdir(target_tool_dir)
-                            # Creation du repertoire de suite uniquement si necessaire
-                            if not target_suite_dir_created:
-                                utils.make_dir(target_suite_dir)
-                                target_suite_dir_created = os.path.isdir(
-                                    target_suite_dir
-                                )
+                    # Export du contenu de la suite si necessaire
+                    if export_test_dirs:
+                        # Creation du repertoire de l'outil uniquement si necessaire
+                        if not target_tool_dir_created:
+                            utils.make_dir(target_tool_dir)
+                            target_tool_dir_created = os.path.isdir(target_tool_dir)
+                        # Creation du repertoire de suite uniquement si necessaire
+                        if not target_suite_dir_created:
+                            utils.make_dir(target_suite_dir)
+                            target_suite_dir_created = os.path.isdir(target_suite_dir)
+                        # Cas d'un repertoire
+                        if os.path.isdir(source_test_dir):
                             # Copie du repertoire de test
                             target_test_dir = os.path.join(
                                 target_suite_dir, test_dir_name
@@ -169,6 +159,15 @@ def export_learning_test_tree(
                                 target_test_dir,
                                 ignore_list=forbidden_names,
                             )
+                        # Cas d'un fichier de la suite (ex: readme), a conserver
+                        if os.path.isfile(source_test_dir):
+                            source_file_name = source_test_dir
+                            target_file_name = os.path.join(
+                                target_suite_dir, test_dir_name
+                            )
+                            utils.copy_file(source_file_name, target_file_name)
+                    # Gestion des repertoires de la suite a analyser
+                    if os.path.isdir(source_test_dir):
                         # Analyse du scenario pour detecter les jeux de donnees utilises
                         test_prm_path = os.path.join(source_test_dir, kht.TEST_PRM)
                         if os.path.isfile(test_prm_path):

@@ -1342,7 +1342,6 @@ void KWGrouperMODL::FastPostOptimizeGroups(KWFrequencyTable* kwftSource, KWFrequ
 	double dBestDeltaCost;
 	double dBestInDeltaCost;
 	int nBestInGroup;
-	PeriodicTest periodicTestOptimize;
 
 	require(kwftSource != NULL);
 	require(kwftTarget != NULL);
@@ -1388,7 +1387,7 @@ void KWGrouperMODL::FastPostOptimizeGroups(KWFrequencyTable* kwftSource, KWFrequ
 		nStepNumber++;
 
 		// Test si arret de tache demandee
-		if (periodicTestOptimize.IsTestAllowed(0) and TaskProgression::IsInterruptionRequested())
+		if (TaskProgression::IsRefreshNecessary() and TaskProgression::IsInterruptionRequested())
 			break;
 
 		// Perturbation aleatoire des index de modalites et de groupes
@@ -1420,7 +1419,7 @@ void KWGrouperMODL::FastPostOptimizeGroups(KWFrequencyTable* kwftSource, KWFrequ
 				nInGroup = ivGroupIndexes.GetAt((nStart + n2) % nGroupNumber);
 
 				// Test si arret de tache demandee
-				if (periodicTestOptimize.IsTestAllowed(0) and
+				if (TaskProgression::IsRefreshNecessary() and
 				    TaskProgression::IsInterruptionRequested())
 					break;
 
@@ -1454,7 +1453,7 @@ void KWGrouperMODL::FastPostOptimizeGroups(KWFrequencyTable* kwftSource, KWFrequ
 			}
 
 			// Test si arret de tache demandee
-			if (periodicTestOptimize.IsTestAllowed(0) and TaskProgression::IsInterruptionRequested())
+			if (TaskProgression::IsRefreshNecessary() and TaskProgression::IsInterruptionRequested())
 				break;
 
 			// On effectue si necessaire le meilleur transfert de groupe
@@ -1528,7 +1527,6 @@ void KWGrouperMODL::FastPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSour
 	double dBestDeltaCost;
 	double dBestInDeltaCost;
 	int nBestInGroup;
-	PeriodicTest periodicTestOptimize;
 	POSITION position;
 	KWFrequencyVector* frequencyVector;
 	int nGarbageModalityNumber;
@@ -1602,7 +1600,7 @@ void KWGrouperMODL::FastPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSour
 		nStepNumber++;
 
 		// Test si arret de tache demandee
-		if (periodicTestOptimize.IsTestAllowed(0) and TaskProgression::IsInterruptionRequested())
+		if (TaskProgression::IsRefreshNecessary() and TaskProgression::IsInterruptionRequested())
 			break;
 
 		// Perturbation aleatoire des index de modalites et de groupes
@@ -1640,7 +1638,7 @@ void KWGrouperMODL::FastPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSour
 				nInGroup = ivGroupIndexes.GetAt((nStart + n2) % nGroupNumber);
 
 				// Test si arret de tache demandee
-				if (periodicTestOptimize.IsTestAllowed(0) and
+				if (TaskProgression::IsRefreshNecessary() and
 				    TaskProgression::IsInterruptionRequested())
 					break;
 
@@ -1805,7 +1803,7 @@ void KWGrouperMODL::FastPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSour
 			}
 
 			// Test si arret de tache demandee
-			if (periodicTestOptimize.IsTestAllowed(0) and TaskProgression::IsInterruptionRequested())
+			if (TaskProgression::IsRefreshNecessary() and TaskProgression::IsInterruptionRequested())
 				break;
 
 			// On effectue si necessaire le meilleur transfert de groupe
@@ -1913,7 +1911,6 @@ void KWGrouperMODL::EMPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSource
 	double dBestDeltaCost;
 	double dBestInDeltaCost;
 	int nBestInGroup;
-	PeriodicTest periodicTestOptimize;
 	POSITION position;
 	KWFrequencyTable kwftImproved;
 	SortedList improvedFrequencyList(KWFrequencyVectorModalityNumberCompare);
@@ -1993,7 +1990,7 @@ void KWGrouperMODL::EMPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSource
 		nStepNumber++;
 
 		// Test si arret de tache demandee
-		if (periodicTestOptimize.IsTestAllowed(0) and TaskProgression::IsInterruptionRequested())
+		if (TaskProgression::IsRefreshNecessary() and TaskProgression::IsInterruptionRequested())
 			break;
 
 		// Parcours de toutes les modalites
@@ -2026,7 +2023,7 @@ void KWGrouperMODL::EMPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSource
 			for (nInGroup = 0; nInGroup < nGroupNumber; nInGroup++)
 			{
 				// Test si arret de tache demandee
-				if (periodicTestOptimize.IsTestAllowed(0) and
+				if (TaskProgression::IsRefreshNecessary() and
 				    TaskProgression::IsInterruptionRequested())
 					break;
 
@@ -2179,7 +2176,7 @@ void KWGrouperMODL::EMPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSource
 			}
 
 			// Test si arret de tache demandee
-			if (periodicTestOptimize.IsTestAllowed(0) and TaskProgression::IsInterruptionRequested())
+			if (TaskProgression::IsRefreshNecessary() and TaskProgression::IsInterruptionRequested())
 				break;
 
 			// On memorise le meilleur transfert de la modalite courante vers un nouveau groupe s'il existe

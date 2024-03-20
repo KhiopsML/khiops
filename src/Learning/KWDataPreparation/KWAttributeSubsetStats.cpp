@@ -690,7 +690,7 @@ boolean KWAttributeSubsetStats::CreateAttributeIntervals(const KWTupleTable* tup
 			tuple = attributeTupleTable.GetAt(nTuple);
 
 			// Progression
-			if (periodicTestDisplay.IsTestAllowed(nTuple))
+			if (TaskProgression::IsRefreshNecessary())
 			{
 				// CH IV Begin
 				// Cas d'un attribut de grille, qui n'est pas un attribut interne d'un attribut VarPart
@@ -786,7 +786,7 @@ boolean KWAttributeSubsetStats::CreateAttributeValueSets(const KWTupleTable* tup
 		       attributeTupleTable.GetAt(nTuple - 1)->GetSymbolAt(0).CompareValue(tuple->GetSymbolAt(0)) < 0);
 
 		// Progression
-		if (periodicTestDisplay.IsTestAllowed(nTuple))
+		if (TaskProgression::IsRefreshNecessary())
 		{
 			// CH IV Begin
 			// Cas d'un attribut de grille, qui n'est pas un attribut interne d'un attribut VarPart
@@ -965,7 +965,7 @@ boolean KWAttributeSubsetStats::CreateDataGridCells(const KWTupleTable* tupleTab
 		tuple = tupleTable->GetAt(nTuple);
 
 		// Progression
-		if (periodicTestDisplay.IsTestAllowed(nTuple))
+		if (TaskProgression::IsRefreshNecessary())
 		{
 			TaskProgression::DisplayProgression((int)(50 + nTuple * 50.0 / tupleTable->GetSize()));
 			if (TaskProgression::IsInterruptionRequested())

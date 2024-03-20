@@ -170,7 +170,7 @@ boolean PLFileConcatenater::Concatenate(const StringVector* svChunkURIs, const O
 		nInputPreferredSize = SystemFile::nMinPreferredBufferSize;
 	nOutputPreferredSize = PLRemoteFileService::GetPreferredBufferSize(sOutputFileName);
 
-	if (lRemainingMemory >= nInputPreferredSize + nOutputPreferredSize)
+	if (lRemainingMemory >= (longint)nInputPreferredSize + nOutputPreferredSize)
 	{
 		nOutputBufferSize = nOutputPreferredSize;
 		lInputBufferSize = lRemainingMemory - nOutputBufferSize;
@@ -180,8 +180,8 @@ boolean PLFileConcatenater::Concatenate(const StringVector* svChunkURIs, const O
 			lInputBufferSize = (lInputBufferSize / nInputPreferredSize) * nInputPreferredSize;
 
 		// On n'utilise pas plus de 8 preferred size
-		if (lInputBufferSize > 8 * nOutputPreferredSize)
-			lInputBufferSize = 8 * nOutputPreferredSize;
+		if (lInputBufferSize > 8 * (longint)nOutputPreferredSize)
+			lInputBufferSize = 8 * (longint)nOutputPreferredSize;
 	}
 	else
 	{

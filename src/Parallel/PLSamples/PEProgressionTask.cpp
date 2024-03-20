@@ -8,6 +8,7 @@ PEProgressionTask::PEProgressionTask()
 {
 	nMethodToTest = 0;
 	bBoostMode = false;
+	nIterationNumber = 0;
 	DeclareTaskInput(&input_nIterationNumber);
 }
 PEProgressionTask::~PEProgressionTask() {}
@@ -74,7 +75,7 @@ boolean PEProgressionTask::Test(int nMethod, boolean bValue)
 boolean PEProgressionTask::Test()
 {
 	int nMethod;
-	int bOk;
+	boolean bOk;
 	bOk = true;
 	for (nMethod = MASTER_INITIALIZE; nMethod < END; nMethod++)
 	{

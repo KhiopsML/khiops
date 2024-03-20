@@ -1291,7 +1291,6 @@ boolean SNBDataTableBinarySliceSetBuffer::LoadBlockFromSliceSetAt(int nChunk, in
 	int nAttribute;
 	IntVector* ivAttributeIndexes;
 	Continuous cIndex;
-	PeriodicTest periodicTestInterruption;
 
 	// Chargement des attributs de la slice dans le dictionnaire de recodage
 	LoadRecodedAttributesAtSlice(nSlice, recoderClass, schema, &livLoadedRecodedAttributeIndexes);
@@ -1332,7 +1331,7 @@ boolean SNBDataTableBinarySliceSetBuffer::LoadBlockFromSliceSetAt(int nChunk, in
 		// chunk. Moralement, l'ecriture du fichier devrait etre aussi suivi mais cela entrainarait utiliser des
 		// etats en plus, des calculs plus tordus et une perte de localite de cette partie du code. La lecture
 		// du bloc depuis le fichier binaire est tres rapide et n'a pas besoin de suivi.
-		if (TaskProgression::IsInTask() and periodicTestInterruption.IsTestAllowed(nInstance))
+		if (TaskProgression::IsInTask() and TaskProgression::IsRefreshNecessary())
 		{
 			// Mise-a-jour de la barre d'avancement
 			dProgressPercentSlice = 100.0 * (nInstance + 1) / nChunkInstanceNumber;

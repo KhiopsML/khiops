@@ -33,10 +33,6 @@ public:
 	virtual void SetMainLabel(const ALString& sValue) = 0;
 	virtual void SetLabel(const ALString& sValue) = 0;
 	virtual void SetProgression(int nValue) = 0;
-
-	// Doit renvoyer true ou false sans aucun calcul pour indiquer si on doit
-	// temporiser ou non le test des interruptions (false pour temporiser).
-	virtual boolean IsInterruptionResponsive() const = 0;
 };
 
 /////////////////////////////////////////////////////////////////////////
@@ -67,7 +63,6 @@ public:
 	void SetMainLabel(const ALString& sValue) override;
 	void SetLabel(const ALString& sValue) override;
 	void SetProgression(int nValue) override;
-	boolean IsInterruptionResponsive() const override;
 
 	/////////////////////////////////////////////////////////////
 	///// Implementation

@@ -233,10 +233,10 @@ void PLShared_LongintVector::Test()
 
 	// Initialisation d'une variable partagee en entree
 	for (i = 0; i < 5; i++)
-		ivInitialValue.Add(i + 1);
+		ivInitialValue.Add((longint)i + 1);
 	shared_valueIn.GetLongintVector()->CopyFrom(&ivInitialValue);
 	for (i = 0; i < 5; i++)
-		shared_valueIn.Add(101 + i);
+		shared_valueIn.Add(101 + (longint)i);
 
 	// Serialisation
 	serializer.OpenForWrite(NULL);

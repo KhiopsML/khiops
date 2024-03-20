@@ -1111,7 +1111,6 @@ boolean KWDataPreparationUnivariateTask::SplitSlice(KWDataTableSlice* slice, int
 	int nSubSliceBlockIndex;
 	int nSliceDenseSymbolAttributeIndex;
 	int nSubSliceDenseAttributeIndex;
-	PeriodicTest periodicTestInterruption;
 	KWObject* kwoObject;
 	longint lRecordNumber;
 	ALString sSliceBaseName;
@@ -1239,7 +1238,7 @@ boolean KWDataPreparationUnivariateTask::SplitSlice(KWDataTableSlice* slice, int
 					}
 
 					// Suivi de la tache
-					if (periodicTestInterruption.IsTestAllowed(lRecordNumber))
+					if (TaskProgression::IsRefreshNecessary())
 						TaskProgression::DisplayProgression(
 						    (int)(100 * slice->GetReadPercentage()));
 				}

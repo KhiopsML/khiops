@@ -12,7 +12,6 @@
 #endif
 
 class Timer;
-class PeriodicTest;
 
 //////////////////////////////////////////////////////////
 // Classe Timer
@@ -74,27 +73,6 @@ protected:
 	time_t tLastStartTime;
 	time_t tElapsedTime;
 #endif // __C11__
-};
-
-//////////////////////////////////////////////////////////
-// Classe PeriodicTest
-// Utilitaire pour effectuer des test selon une frequence d'evenement et de temps controlee
-class PeriodicTest : public Object
-{
-public:
-	// Constructeur
-	PeriodicTest();
-	~PeriodicTest();
-
-	// Indique si on peut effectuer un test, pour un nombre d'evenement donne
-	// Les tests sont effectues au plus selon une periodicite en nombre d'evenements et en secondes
-	boolean IsTestAllowed(longint lEventNumber) const;
-
-	////////////////////////////////////////////////////////
-	///// Implementation
-protected:
-	// Timer pour gerer la periodicite
-	mutable Timer timer;
 };
 
 //////////////////////////////////
@@ -213,29 +191,3 @@ inline double Timer::GetElapsedTime() const
 		return ((double)tElapsedTime) / 1e6;
 }
 #endif // __C11__
-
-/////////////////////////////////////////
-// Implementation inline de PeriodicTest
-
-inline PeriodicTest::PeriodicTest()
-{
-	timer.Start();
-}
-
-inline PeriodicTest::~PeriodicTest()
-{
-	timer.Stop();
-}
-
-inline boolean PeriodicTest::IsTestAllowed(longint lEventNumber) const
-{
-	if (lEventNumber % 128 == 0 and timer.GetElapsedTime() > 0.25)
-	{
-		// On reinitialise le timer
-		timer.Reset();
-		timer.Start();
-		return true;
-	}
-	else
-		return false;
-}

@@ -7,15 +7,25 @@
 PLMPIMaster::PLMPIMaster(PLParallelTask* t)
 {
 	ALString sTmp;
-	bInterruptionRequested = false;
-	bIsMaxErrorReached = 0;
-	bIsMaxWarningReached = 0;
-	bIsMaxMessageReached = 0;
 	nWorkingSlaves = 0;
 	task = t;
+	bNewMessage = false;
 	bSpawnedDone = false;
+	bStopOrderDone = false;
+	bInterruptionRequested = false;
+	bSlaveError = false;
+	bMasterError = false;
+	bIsMaxErrorReached = false;
+	bIsMaxWarningReached = false;
+	bIsMaxMessageReached = false;
+	dGlobalProgression = 0;
+	nOldProgression = 0;
+	bIsProcessing = false;
+	nInitialisationCount = 0;
+	nFinalisationCount = 0;
 	nFirstSlaveInitializeMessageRank = -1;
 	nFirstSlaveFinalizeMessageRank = -1;
+	sBufferDischarge[0] = '\0';
 }
 
 PLMPIMaster::~PLMPIMaster()
@@ -223,7 +233,7 @@ boolean PLMPIMaster::Run()
 		slave->SetRank(context.GetRank());
 		slave->SetHostName(sHostName);
 		slave->SetProgression(0);
-		slave->SetTaskPercent(1 / task->nWorkingProcessNumber); // Pour l'initialisation
+		slave->SetTaskPercent(1.0 / task->nWorkingProcessNumber); // Pour l'initialisation
 		GetTask()->oaSlaves.Add(slave);
 
 		// Ajout de l'esclave dans le dictionaire hsostName / liste des esclaves

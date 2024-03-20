@@ -18,6 +18,8 @@ PESerializerTestTask::PESerializerTestTask()
 	DeclareSharedParameter(&shared_nLargeCharVectorSize);
 	DeclareSharedParameter(&shared_nLargeStringSize);
 
+	nLargeCharVectorSize = 0;
+	nLargeStringSize = 0;
 	sSimpleStringToSerialize = "A simple string";
 	sSimpleCharVectorToSerialize = "A simple CharVector !!";
 }

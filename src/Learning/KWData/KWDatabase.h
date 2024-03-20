@@ -574,10 +574,6 @@ protected:
 	Continuous cSelectionContinuous;
 	IntVector ivMarkedInstances;
 
-	// Memorisation de l'etat de suivi des taches
-	PeriodicTest periodicTestInterruption;
-	PeriodicTest periodicTestDisplay;
-
 	// Formats par defaut des types complexes, pour gerer les conversions vers les chaines de caracteres
 	KWDateFormat dateDefaultConverter;
 	KWTimeFormat timeDefaultConverter;

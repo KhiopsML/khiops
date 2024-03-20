@@ -348,6 +348,11 @@ boolean UIObject::SetUIMode(int nValue)
 	boolean bOk = true;
 	require(nValue == Textual or nValue == Graphic);
 
+	// On parametre la gestion des taches comme interruptible par l'utilisateur uniquement en mode Graphic
+	// Cela permet d'optimiser les temps de traitement en mode batch en evitant l'overhead
+	// de gestion des interruptions utilisateurs
+	TaskProgression::SetInterruptible(nValue == Graphic);
+
 	// En mode Graphic, on verifie qu'on peut instancier une JVM correctement
 	// Sinon on force le mode Textual et on renvoie false
 	if (nValue == Graphic)

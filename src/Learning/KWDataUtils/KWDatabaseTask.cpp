@@ -758,7 +758,6 @@ boolean KWDatabaseTask::SlaveProcessStartDatabase()
 	ALString sChunkFileName;
 	int nBufferSize;
 	longint lChunkSize;
-	PeriodicTest periodicTestInterruption;
 	ALString sTmp;
 
 	// Initialisation des variables de travail
@@ -929,7 +928,6 @@ boolean KWDatabaseTask::SlaveProcessExploitDatabase()
 	KWObjectKey lastRootObjectKey;
 	KWObject* kwoObject;
 	ALString sChunkFileName;
-	PeriodicTest periodicTestInterruption;
 	PLDataTableDriverTextFile* rootDriver;
 	double dProgression;
 	ALString sTmp;
@@ -959,7 +957,7 @@ boolean KWDatabaseTask::SlaveProcessExploitDatabase()
 		while (not sourceDatabase->IsEnd())
 		{
 			// Suivi de la tache
-			if (periodicTestInterruption.IsTestAllowed(lRecordNumber))
+			if (TaskProgression::IsRefreshNecessary())
 			{
 				// Avancement
 				dProgression = rootDriver->GetReadPercentage();

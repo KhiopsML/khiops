@@ -206,6 +206,7 @@ public:
 
 	// Si on echoue a passer en mode Graphic (probleme java), on passe
 	// inconditionnellement en Textual et on renvoie false
+	// Les taches sont interruptible par l'utilisateur uniquement en mode Graphic
 	static boolean SetUIMode(int nValue);
 	static int GetUIMode();
 
@@ -500,7 +501,6 @@ public:
 	void SetMainLabel(const ALString& sValue) override;
 	void SetLabel(const ALString& sValue) override;
 	void SetProgression(int nValue) override;
-	boolean IsInterruptionResponsive() const override;
 
 	// Acces au gestion de suivi global
 	static UITaskProgression* GetManager();

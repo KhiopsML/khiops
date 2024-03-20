@@ -171,13 +171,11 @@ protected:
 	// Parametre avance. Par defaut: 0 signifie qu'il n'y a pas de contrainte
 	int nMaxCellNumberConstraint;
 
-	// Gestion des tests pour le suivi des taches
-	PeriodicTest periodicTestDisplay;
-	friend class PLShared_AttributeSubsetStats;
-
 	// Pre-granularisation des attributs numeriques cible (regression) et des attributs numeriques explicatifs en
 	// analyse non supervisee (co-clustering)
 	static boolean bPregranularizedNumericalAttributes;
+
+	friend class PLShared_AttributeSubsetStats;
 };
 
 ///////////////////////////////////////////////////////
