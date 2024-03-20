@@ -1,5 +1,6 @@
 import os
 import os.path
+import sys
 import shutil
 import stat
 import argparse
@@ -564,3 +565,34 @@ def sub_dirs(source_dir):
         except (IOError, os.error):
             pass
     return result_sub_dirs
+
+
+def set_flushed_outputs():
+    """Flush systematique des sorties standard et d'erreur"""
+    sys.stdout = Unbuffered(sys.stdout)
+    sys.stderr = Unbuffered(sys.stderr)
+
+
+class Unbuffered:
+    """Pour ouvrir un fichier avec un flush systematique
+    usage: par exemple, appeler sys.stdout = Unbuffered(sys.stdout) pour que toutes les sorties standard
+     soit immediatement affichees dans le shell, sans bufferisation
+    """
+
+    def __init__(self, stream):
+        self.stream = stream
+
+    def write(self, data):
+        # on encode en utf-8 en ignorant les erreurs pour eviter un erreur lors de l'encodage automatique
+        self.stream.write(data.encode("utf-8", "ignore").decode("utf-8"))
+        self.stream.flush()
+
+    def writelines(self, datas):
+        # on encode en utf-8 en ignorant les erreurs pour eviter un erreur lors de l'encodage automatique
+        self.stream.writelines(
+            [data.encode("utf-8", "ignore").decode("utf-8") for data in datas]
+        )
+        self.stream.flush()
+
+    def __getattr__(self, attr):
+        return getattr(self.stream, attr)

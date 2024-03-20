@@ -63,4 +63,5 @@ def main():
 
 
 if __name__ == "__main__":
+    utils.set_flushed_outputs()
     main()
