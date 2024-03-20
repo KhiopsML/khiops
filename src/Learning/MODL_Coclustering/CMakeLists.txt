@@ -13,7 +13,7 @@ set_target_properties(
   MODL_Coclustering_DLL
   PROPERTIES PUBLIC_HEADER MODL_Coclustering_dll.h
              SOVERSION ${PROJECT_VERSION_MAJOR}
-             VERSION ${PROJECT_VERSION})
+             VERSION ${KHIOPS_VERSION})
 set_khiops_options(MODL_Coclustering_DLL)
 
 # Generate cpp files from dd file

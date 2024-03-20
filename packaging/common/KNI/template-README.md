@@ -1,5 +1,5 @@
 
-# Khiops Native Interface  v@PROJECT_VERSION@
+# Khiops Native Interface  v@KHIOPS_VERSION@
 
 This project provides all the basics to use the Khiops Native Interface (KNI): installation and examples.
 
@@ -18,7 +18,7 @@ See [KhiopsNativeInterface.h](include/KhiopsNativeInterface.h) for a detailed de
 
 ## Windows
 
-Download [KNI-@PROJECT_VERSION@.zip](https://github.com/KhiopsML/khiops/releases/tag/@PROJECT_VERSION@/KNI-@PROJECT_VERSION@.zip) and extract it to your machine. Set the environment variable `KNI_HOME` to the extracted directory. This variable is used in the following examples.
+Download [KNI-@KHIOPS_VERSION@.zip](https://github.com/KhiopsML/khiops/releases/tag/@PROJECT_VERSION@/KNI-@KHIOPS_VERSION@.zip) and extract it to your machine. Set the environment variable `KNI_HOME` to the extracted directory. This variable is used in the following examples.
 
 ## Linux
 

@@ -44,7 +44,7 @@ file(APPEND ${TMP_DIR}/KNIRecodeFile.c
 file(APPEND ${TMP_DIR}/KNIRecodeMTFiles.c
      "\n\nint main(int argv, char** argc)\n{\n\tmainKNIRecodeMTFiles(argv, argc);\n \treturn 0;\n}\n")
 
-# Replace PROJECT_VERSION and scripts
+# Replace PROJECT_VERSION, KHIOPS_VERSION and scripts
 
 file(READ ${PROJECT_SOURCE_DIR}/packaging/common/KNI/build-c-linux.sh BUILD_C_LINUX)
 file(READ ${PROJECT_SOURCE_DIR}/packaging/common/KNI/build-c-windows.cmd BUILD_C_WINDOWS)

@@ -68,7 +68,8 @@ fi
 # Java configuration
 # JAVA_HOME automatic setting
 
-if [[ -n $JAVA_HOME ]]; then
+# Set java environment for GUI if Khiops GUI is installed
+if [[ -f "/usr/share/khiops/khiops.jar" && -n "$JAVA_HOME" ]]; then
    KHIOPS_CLASSPATH=/usr/share/khiops/norm.jar:/usr/share/khiops/khiops.jar
    KHIOPS_JAVA_PATH=$(find -L "$JAVA_HOME" -name libjvm.so | xargs dirname)
 fi
