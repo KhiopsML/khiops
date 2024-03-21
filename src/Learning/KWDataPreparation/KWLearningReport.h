@@ -213,6 +213,10 @@ public:
 	// Memoire utilisee
 	longint GetUsedMemory() const override;
 
+	// Libelles
+	const ALString GetClassLabel() const override;
+	const ALString GetObjectLabel() const override;
+
 	/////////////////////////////////////////////////
 	///// Implementation
 protected:

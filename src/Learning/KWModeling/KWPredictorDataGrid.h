@@ -79,6 +79,11 @@ protected:
 	// Redefinition de la methode d'apprentissage
 	boolean InternalTrain() override;
 
+	// Redefinition de la collecte des KWDataPreparationStats selectionnes recursivement ou non par le predicteur
+	// On exploite ici les attributs effectivement utilises par la grille, et non ceux potentiellement utilises
+	// par l'objet temporaire KWAttributeSubsetStats issu de l'apprentissage, qui est detruit apres le traitement
+	void CollectSelectedPreparationStats(ObjectArray* oaUsedDataPreparationStats) override;
+
 	// Apprentissage non supervise
 	void InternalTrainUnsupervisedDG(KWDataPreparationClass* dataPreparationClass,
 					 ObjectArray* oaDataPreparationUsedAttributes);

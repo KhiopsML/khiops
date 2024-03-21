@@ -297,6 +297,47 @@ boolean KWPredictorDataGrid::InternalTrain()
 	return false;
 }
 
+void KWPredictorDataGrid::CollectSelectedPreparationStats(ObjectArray* oaUsedDataPreparationStats)
+{
+	KWAttributeSubsetStats* attributeSubsetStats;
+	ObjectArray oaDataGridUsedDataPreparationStats;
+	KWDataPreparationStats* dataPreparationStats;
+	int nAttribute;
+	ALString sAttributeName;
+
+	require(nkdSelectedDataPreparationStats.GetCount() == 0);
+	require(nkdRecursivelySelectedDataPreparationStats.GetCount() == 0);
+	require(oaUsedDataPreparationStats != NULL);
+	require(GetClassStats() != NULL);
+	require(GetClass() != NULL);
+	require(GetClass() == GetClassStats()->GetClass());
+
+	// On recherche l'unique preparation d'attribut dans le cas d'une grille, si elle est disponible
+	assert(oaUsedDataPreparationStats->GetSize() <= 1);
+	if (oaUsedDataPreparationStats->GetSize() == 1)
+	{
+		dataPreparationStats = cast(KWDataPreparationStats*, oaUsedDataPreparationStats->GetAt(0));
+		check(dataPreparationStats);
+		attributeSubsetStats = cast(KWAttributeSubsetStats*, dataPreparationStats);
+
+		// Collecte des preparation d'attribut effectivement utulises par la grille apprise
+		for (nAttribute = 0;
+		     nAttribute < attributeSubsetStats->GetPreparedDataGridStats()->GetSourceAttributeNumber();
+		     nAttribute++)
+		{
+			sAttributeName = attributeSubsetStats->GetPreparedDataGridStats()
+					     ->GetAttributeAt(nAttribute)
+					     ->GetAttributeName();
+			dataPreparationStats =
+			    cast(KWDataPreparationStats*, GetClassStats()->LookupAttributeStats(sAttributeName));
+			oaDataGridUsedDataPreparationStats.Add(dataPreparationStats);
+		}
+
+		// Appel de la methode ancetre en se basant les attributs de la grille
+		KWPredictorNaiveBayes::CollectSelectedPreparationStats(&oaDataGridUsedDataPreparationStats);
+	}
+}
+
 void KWPredictorDataGrid::InternalTrainUnsupervisedDG(KWDataPreparationClass* dataPreparationClass,
 						      ObjectArray* oaDataPreparationUsedAttributes)
 {
