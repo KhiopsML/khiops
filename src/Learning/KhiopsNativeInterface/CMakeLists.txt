@@ -6,6 +6,6 @@ set_target_properties(
   KhiopsNativeInterface
   PROPERTIES PUBLIC_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/KhiopsNativeInterface.h
              SOVERSION ${PROJECT_VERSION_MAJOR}
-             VERSION ${PROJECT_VERSION})
+             VERSION ${KHIOPS_VERSION})
 
 set_khiops_options(KhiopsNativeInterface)
