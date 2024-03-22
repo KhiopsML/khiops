@@ -18,4 +18,4 @@ set_target_properties(
   PROPERTIES PUBLIC_HEADER MODL_dll.h
              SOVERSION ${PROJECT_VERSION_MAJOR}
              VERSION ${KHIOPS_VERSION})
-set_khiops_options(MODL_DLL)
+set_khiops_options(MODL_SO)
