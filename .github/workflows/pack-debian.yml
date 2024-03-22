@@ -8,7 +8,7 @@ on:
       - '**.cmake'
       - .github/workflows/pack-debian.yml
   push:
-    tags: [v*]
+    tags: ['*']
 # Cancel any ongoing run of this workflow on the same PR or ref
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}

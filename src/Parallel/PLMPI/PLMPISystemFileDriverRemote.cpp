@@ -4,7 +4,10 @@
 
 #include "PLMPISystemFileDriverRemote.h"
 
-PLMPISystemFileDriverRemote::PLMPISystemFileDriverRemote() {}
+PLMPISystemFileDriverRemote::PLMPISystemFileDriverRemote()
+{
+	nLocalErrno = 0;
+}
 
 PLMPISystemFileDriverRemote::~PLMPISystemFileDriverRemote() {}
 
@@ -212,8 +215,9 @@ void* PLMPISystemFileDriverRemote::Open(const char* sFilePathName, char cMode)
 	RemoteFile* file;
 
 	require(cMode == 'r');
-
 	require(FileService::GetURIScheme(sFilePathName) == GetScheme());
+
+	nLocalErrno = 0;
 
 	// Lancement des serveurs de fichier
 	if (GetProcessId() == 0)
@@ -234,6 +238,7 @@ void* PLMPISystemFileDriverRemote::Open(const char* sFilePathName, char cMode)
 		// Arret des serveurs de fichier
 		if (GetProcessId() == 0)
 			PLMPITaskDriver::GetDriver()->StopFileServers();
+		nLocalErrno = 121; // EREMOTEIO
 		return NULL;
 	}
 }
@@ -274,7 +279,7 @@ longint PLMPISystemFileDriverRemote::Fread(void* ptr, size_t size, size_t count,
 	assert(file->bIsOpen == true);
 
 	lRes = -1;
-	errno = 0;
+	nLocalErrno = 0;
 	bOk = PLMPITaskDriver::GetDriver()->GetFileServerRank(FileService::GetURIHostName(file->sFileName), this);
 
 	if (bOk)
@@ -294,7 +299,7 @@ longint PLMPISystemFileDriverRemote::Fread(void* ptr, size_t size, size_t count,
 		context.Recv(MPI_COMM_WORLD, PLMPITaskDriver::GetDriver()->nFileServerRank, FILE_SERVER_FREAD);
 		serializer.OpenForRead(&context);
 		lRes = serializer.GetLongint();
-		errno = serializer.GetInt();
+		nLocalErrno = serializer.GetInt();
 		serializer.Close();
 
 		// Reception du buffer (on n'utilise pas de serializer pour ne pas avoir a recopier la memoire)
@@ -316,8 +321,9 @@ longint PLMPISystemFileDriverRemote::Fread(void* ptr, size_t size, size_t count,
 		// Mise a jour de la position courante
 		file->lPos += lRes;
 	}
-	if (errno != 0)
+	if (nLocalErrno != 0)
 		lRes = -1;
+
 	return lRes;
 }
 
@@ -335,7 +341,7 @@ boolean PLMPISystemFileDriverRemote::SeekPositionInFile(longint lPosition, void*
 
 const char* PLMPISystemFileDriverRemote::GetLastErrorMessage() const
 {
-	return strerror(errno);
+	return strerror(nLocalErrno);
 }
 
 longint PLMPISystemFileDriverRemote::Fwrite(const void* ptr, size_t size, size_t count, void* stream)

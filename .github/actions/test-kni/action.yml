@@ -33,13 +33,23 @@ runs:
       shell: cmd
       run: |
         call "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\VC\\Auxiliary\\Build\\vcvars64.bat"
-        set KNI_HOME=%RUNNER_TEMP%\\KNI
         cd tutorial
-        call %GITHUB_WORKSPACE%/packaging/common/KNI/build-c--windows.cmd
-    - name: Test mono-table example
+        set KNI_HOME=%GITHUB_WORKSPACE%/KNI
+        call %GITHUB_WORKSPACE%/packaging/common/KNI/build-c-windows.cmd
+    - name: Run mono-table example (Linux)
+      if: runner.os == 'Linux'
       shell: bash
       run: |
-        ./tutorial/KNIRecodeFile tutorial/data/ModelingIris.kdic SNB_Iris tutorial/data/Iris.txt R_Iris.txt
+        ./tutorial/KNIRecodeFile tutorial/data/ModelingIris.kdic SNB_Iris tutorial/data/Iris.txt R_Iris.txt || true
+    - name: Run mono-table example (Windows)
+      if: runner.os == 'Windows'
+      shell: cmd
+      run: |
+        set path=%GITHUB_WORKSPACE%/KNI/bin;%path%
+        call %GITHUB_WORKSPACE%/tutorial/KNIRecodeFile.exe tutorial/data/ModelingIris.kdic SNB_Iris tutorial/data/Iris.txt R_Iris.txt
+    - name: Check mono-table example
+      shell: bash
+      run: |
         if [ ! -f R_Iris.txt ] ;
         then
           echo "::error::R_Iris.txt is missing"
@@ -49,14 +59,25 @@ runs:
         then
           echo "Mono table recoding is OK"
         else
-        echo "::error::Recoding issue with Iris.txt"
+          echo "::error::Recoding issue with Iris.txt"
           false
         fi
-    - name: Test multi-tables example
+    - name: Run multi-tables example (Linux)
+      if: runner.os == 'Linux'
       shell: bash
       run: |-
         ./tutorial/KNIRecodeMTFiles -d tutorial/data/ModelingSpliceJunction.kdic SNB_SpliceJunction \
-            -i tutorial/data/SpliceJunction.txt 1 -s DNA  tutorial/data/SpliceJunctionDNA.txt 1 -o R_SpliceJunction.txt
+            -i tutorial/data/SpliceJunction.txt 1 -s DNA  tutorial/data/SpliceJunctionDNA.txt 1 -o R_SpliceJunction.txt || true
+    - name: Run multi-tables example (Windows)
+      if: runner.os == 'Windows'
+      shell: cmd
+      run: |-
+        set path=%GITHUB_WORKSPACE%/KNI/bin;%path%
+        call %GITHUB_WORKSPACE%/tutorial/KNIRecodeMTFiles.exe -d tutorial/data/ModelingSpliceJunction.kdic SNB_SpliceJunction ^
+        -i tutorial/data/SpliceJunction.txt 1 -s DNA  tutorial/data/SpliceJunctionDNA.txt 1 -o R_SpliceJunction.txt
+    - name: Check multi-table example
+      shell: bash
+      run: |
         if [ ! -f R_SpliceJunction.txt ] ;
         then
           echo "::error::R_SpliceJunction.txt is missing"
@@ -70,30 +91,27 @@ runs:
           false
         fi
     - name: setup jna
-      uses: nvoxland/jar-download-action@v1
-      with:
-        groupId: net.java.dev.jna
-        artifactId: jna
-        version: 5.13.0
-        outputDirectory: ./tutorial/java/
+      shell: bash
+      run: |
+        curl https://repo1.maven.org/maven2/net/java/dev/jna/jna/5.13.0/jna-5.13.0.jar --output ./tutorial/jna.jar
     - name: Compile java example
       shell: bash
       run: |
         cd tutorial
         bash  $GITHUB_WORKSPACE/packaging/common/KNI/build-java.sh
-        cd  $GITHUB_WORKSPACE
     - name: Run java example (Linux)
       shell: bash
       if: runner.os == 'Linux'
       run: |
         cd tutorial
-        java -cp java/kni.jar:java/jna-5.13.0.jar KNIRecodeFile data/ModelingIris.kdic SNB_Iris data/Iris.txt R_Iris_java.txt 2>&1
+        bash $GITHUB_WORKSPACE/packaging/common/KNI/run-java-linux.sh
     - name: Test java example (Windows)
-      shell: bash
+      shell: cmd
       if: runner.os == 'Windows'
       run: |
         cd tutorial
-        java -cp java/kni.jar;java/jna-5.13.0.jar KNIRecodeFile data/ModelingIris.kdic SNB_Iris data/Iris.txt R_Iris_java.txt 2>&1
+        set KNI_HOME=%GITHUB_WORKSPACE%/KNI
+        call %GITHUB_WORKSPACE%/packaging/common/KNI/run-java-windows.cmd
     - name: Check java results
       shell: bash
       run: |-
@@ -102,10 +120,11 @@ runs:
           echo "::error::R_Iris_java.txt is missing"
           false
         fi
-        if diff -q tutorial/R_Iris_java.txt  $GITHUB_WORKSPACE/packaging/common/KNI/results.ref/R_Iris.txt > /dev/null ; 
+        if diff -q tutorial/R_Iris_java.txt  packaging/common/KNI/results.ref/R_Iris.txt > /dev/null ; 
         then
           echo "Mono table recoding is OK"
+          true
         else
-        echo "::error::Recoding issue with java"
+          echo "::error::Recoding issue with java"
           false
         fi

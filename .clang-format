@@ -12,6 +12,7 @@ AlignOperands: true
 SortIncludes: false
 UseTab: ForContinuationAndIndentation
 AllowShortFunctionsOnASingleLine: Empty
+WhitespaceSensitiveMacros: [KHIOPS_STR]
 ---
 BasedOnStyle: Mozilla
 Language: Java

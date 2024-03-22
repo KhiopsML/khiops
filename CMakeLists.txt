@@ -3,8 +3,10 @@ cmake_minimum_required(VERSION 3.16.3)
 
 # Get project version from the cpp file
 file(READ "src/Learning/KWUtils/KWKhiopsVersion.h" CPP_FILE)
-string(REGEX MATCH "VERSION str\\(([0-9]*.[0-9]*.[0-9]*)" _ ${CPP_FILE})
-set(VERSION ${CMAKE_MATCH_1})
+string(REGEX MATCH "#define KHIOPS_VERSION KHIOPS_STR\\(([^)]*)\\)" _ ${CPP_FILE})
+set(KHIOPS_VERSION ${CMAKE_MATCH_1})
+string(REGEX REPLACE "-.*" "" VERSION ${KHIOPS_VERSION})
+message(STATUS "Building Khiops Version: ${KHIOPS_VERSION} (CMake version : ${VERSION})")
 
 # Specify the project's language to C++
 project(

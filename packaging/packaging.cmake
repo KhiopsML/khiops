@@ -45,11 +45,11 @@ The Khiops deployment features are thus made public through an API with a DLL.
 Therefore, a Khiops model can be deployed directly from any programming
 language, such as C, C++, Java, Python, Matlab, etc. This enables real time
 model deployment without the overhead of temporary data files or launching
-executables. This is critical for certain applications in marketing or targeted
-advertising on the web.
+executables. This is critical for certain applications, such as marketing or
+targeted advertising on the web.
  .
 All KNI functions are C functions for easy use with other programming languages.
-They return a positive or null value in case of success, and a negative error
+They return a positive or zero value in case of success, and a negative error
 code in case of failure. The functions are not reentrant (thread-safe): the DLL
 can be used simultaneously by several executables, but not simultaneously by
 several threads in the same executable.
@@ -69,10 +69,10 @@ set(CPACK_PACKAGING_INSTALL_PREFIX "/")
 set(CPACK_ARCHIVE_COMPONENT_INSTALL ON)
 
 # user friendly archive names
-set(CPACK_ARCHIVE_KNI_FILE_NAME kni-${CMAKE_PROJECT_VERSION})
-set(CPACK_ARCHIVE_KNI_DOC_FILE_NAME kni-doc-${CMAKE_PROJECT_VERSION})
-set(CPACK_ARCHIVE_KHIOPS_FILE_NAME khiops-${CMAKE_PROJECT_VERSION})
-set(CPACK_ARCHIVE_KHIOPS_CORE_FILE_NAME khiops-core-${CMAKE_PROJECT_VERSION})
+set(CPACK_ARCHIVE_KNI_FILE_NAME kni-${KHIOPS_VERSION})
+set(CPACK_ARCHIVE_KNI_DOC_FILE_NAME kni-doc-${KHIOPS_VERSION})
+set(CPACK_ARCHIVE_KHIOPS_FILE_NAME khiops-${KHIOPS_VERSION})
+set(CPACK_ARCHIVE_KHIOPS_CORE_FILE_NAME khiops-core-${KHIOPS_VERSION})
 
 # ########### DEB Generator #############################
 
@@ -82,6 +82,9 @@ set(CPACK_DEBIAN_PACKAGE_RELEASE 1)
 
 # package name for deb.
 set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+
+# Packages version: the full KHIOPS_VERSION (N.N.N_aN) instead of the PROJECT_VERSION (N.N.N)
+set(CPACK_DEBIAN_PACKAGE_VERSION ${KHIOPS_VERSION})
 
 set(CPACK_DEB_COMPONENT_INSTALL YES)
 set(CPACK_DEBIAN_PACKAGE_SECTION "math")
@@ -97,7 +100,7 @@ set(CPACK_DEBIAN_KNI_DOC_PACKAGE_NAME kni-doc)
 # packages depends
 set(CPACK_DEBIAN_KHIOPS_CORE_PACKAGE_DEPENDS "mpich (>= 3.0)")
 set(CPACK_DEBIAN_KHIOPS_PACKAGE_DEPENDS
-    "khiops-core (=${CMAKE_PROJECT_VERSION}-${CPACK_DEBIAN_PACKAGE_RELEASE}), default-jre (>=1.8)")
+    "khiops-core (=${KHIOPS_VERSION}-${CPACK_DEBIAN_PACKAGE_RELEASE}), default-jre (>=1.8)")
 
 # packages recommends
 set(CPACK_DEBIAN_KHIOPS_CORE_PACKAGE_RECOMMENDS "khiops, khiops-visualization")
@@ -120,6 +123,9 @@ set(CPACK_RPM_PACKAGE_VENDOR Orange)
 
 set(CPACK_RPM_KHIOPS_PACKAGE_AUTOREQ ON)
 
+# Packages version: the full KHIOPS_VERSION (N.N.N_aN) instead of the PROJECT_VERSION (N.N.N)
+set(CPACK_RPM_PACKAGE_VERSION ${KHIOPS_VERSION})
+
 # packages names
 set(CPACK_RPM_KHIOPS_PACKAGE_NAME khiops)
 set(CPACK_RPM_KHIOPS_CORE_PACKAGE_NAME khiops-core)
@@ -136,7 +142,7 @@ set(CPACK_RPM_KNI_PACKAGE_SUMMARY "Khiops Native Interface")
 set(CPACK_RPM_KNI_DOC_PACKAGE_SUMMARY "Khiops Native Interface documentation")
 
 # packages requires
-set(CPACK_RPM_KHIOPS_PACKAGE_REQUIRES "khiops-core = ${CMAKE_PROJECT_VERSION}-${CPACK_RPM_PACKAGE_RELEASE}")
+set(CPACK_RPM_KHIOPS_PACKAGE_REQUIRES "khiops-core = ${KHIOPS_VERSION}-${CPACK_RPM_PACKAGE_RELEASE}")
 set(CPACK_RPM_KHIOPS_PACKAGE_REQUIRES "java >= 1.8")
 set(CPACK_RPM_KHIOPS_CORE_PACKAGE_REQUIRES "util-linux")
 

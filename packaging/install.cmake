@@ -44,13 +44,13 @@ file(APPEND ${TMP_DIR}/KNIRecodeFile.c
 file(APPEND ${TMP_DIR}/KNIRecodeMTFiles.c
      "\n\nint main(int argv, char** argc)\n{\n\tmainKNIRecodeMTFiles(argv, argc);\n \treturn 0;\n}\n")
 
-# Replace PROJECT_VERSION and scripts
+# Replace PROJECT_VERSION, KHIOPS_VERSION and scripts
 
 file(READ ${PROJECT_SOURCE_DIR}/packaging/common/KNI/build-c-linux.sh BUILD_C_LINUX)
 file(READ ${PROJECT_SOURCE_DIR}/packaging/common/KNI/build-c-windows.cmd BUILD_C_WINDOWS)
 file(READ ${PROJECT_SOURCE_DIR}/packaging/common/KNI/build-java.sh BUILD_JAVA)
 file(READ ${PROJECT_SOURCE_DIR}/packaging/common/KNI/run-java-linux.sh RUN_JAVA_LINUX)
-file(READ ${PROJECT_SOURCE_DIR}/packaging/common/KNI/run-java-windows.sh RUN_JAVA_WINDOWS)
+file(READ ${PROJECT_SOURCE_DIR}/packaging/common/KNI/run-java-windows.cmd RUN_JAVA_WINDOWS)
 
 configure_file(${PROJECT_SOURCE_DIR}/packaging/common/KNI/README.txt.in ${TMP_DIR}/kni.README.txt @ONLY
                NEWLINE_STYLE UNIX)
