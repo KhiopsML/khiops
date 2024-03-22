@@ -45,6 +45,9 @@ public:
 	boolean ReserveExtraSize(longint lSize, void* stream) override;
 
 	// TODO ?? boolean CopyFileToLocal(const char* sSourceFilePathName, const char* sDestFilePathName);
+private:
+	// errno local, on n'utilise pas errno car il est modifie par MPI (MPI_REcv notamment)
+	int nLocalErrno;
 };
 
 // Handle sur un fichier distant
