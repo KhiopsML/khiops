@@ -861,8 +861,8 @@ longint MemGetFreePhysicalMemory()
 	if (pagesize == -1 or pagepurge == -1 or pagefree == -1)
 		return 0;
 	return pagesize * (pagepurge + pagefree);
-#else  // __APPLE_
-       // Lecture du fichier /proc/meminfo pour extraire la memoire dispoible et la memoire en cache
+#else  // __APPLE_                                                                                                     \
+       // Lecture du fichier /proc/meminfo pour extraire la memoire dispoible et la memoire en cache                   \
        // On additionne la memoire disponible et 80% de la memoire cache (borne a 2Go)
 	FILE* file;
 	const int nLineSize = 4096;

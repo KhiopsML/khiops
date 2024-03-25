@@ -48,21 +48,29 @@ jobs:
         uses: ./.github/actions/build-khiops
         with:
           preset-name: ${{ env.PRESET_NAME }}
-      - name: Cache binaries
-        id: cache-binaries-unix
+      - name: Cache binaries (windows)
+        id: cache-binaries-windows
+        if: ${{ runner.os == 'Windows' }}
         uses: actions/cache@v3
         with:
           # We add binaries path one by one to avoid *.pdb and other msvc stuffs that generate a cache of 200Mo for windows
           path: |
-            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/MODL
-            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/MODL_Coclustering
-            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/KNITransfer
             ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/MODL.exe
             ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/MODL_Coclustering.exe
             ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/KNITransfer.exe
             ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/KhiopsNativeInterface.dll
-            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/lib/libKhiopsNativeInterface.*
             ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/lib/KhiopsNativeInterface.lib
+          key: ${{ github.run_id }}-${{ matrix.build-setup.os }}-${{ env.PRESET_NAME
+            }}
+          fail-on-cache-miss: false
+      - name: Cache binaries (macOS, Linux)
+        id: cache-binaries-unix
+        if: ${{ runner.os != 'Windows' }}
+        uses: actions/cache@v3
+        with:
+          path: |
+            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/*          
+            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/lib/libKhiopsNativeInterface.*
           key: ${{ github.run_id }}-${{ matrix.build-setup.os }}-${{ env.PRESET_NAME
             }}
           fail-on-cache-miss: false
@@ -83,23 +91,36 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
-      - name: Restore cached binaries
-        id: restore-binaries
+      - name: Restore cached binaries (windows)
+        if: ${{ runner.os == 'Windows' }}
+        id: restore-binaries-windows
         uses: actions/cache/restore@v3
         with:
           path: |
-            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/MODL
-            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/MODL_Coclustering
-            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/KNITransfer
             ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/MODL.exe
             ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/MODL_Coclustering.exe
             ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/KNITransfer.exe
             ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/KhiopsNativeInterface.dll
-            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/lib/libKhiopsNativeInterface.*
             ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/lib/KhiopsNativeInterface.lib
           key: ${{ github.run_id }}-${{ matrix.build-setup.os }}-${{ env.PRESET_NAME
             }}
           fail-on-cache-miss: true
+      - name: Restore cached binaries (macOS, Linux)
+        if: ${{ runner.os != 'Windows' }}
+        id: restore-binaries
+        uses: actions/cache/restore@v3
+        with:
+          path: |
+            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/*           
+            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/lib/libKhiopsNativeInterface.*
+          key: ${{ github.run_id }}-${{ matrix.build-setup.os }}-${{ env.PRESET_NAME
+            }}
+          fail-on-cache-miss: true
+      - name: Rename mpi binaries
+        if: ${{ runner.os == 'Linux' }}
+        shell: bash
+        run: |
+          mv ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/MODL_openmpi ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/MODL
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
@@ -107,11 +128,26 @@ jobs:
       - name: Set environment variables
         shell: bash
         run: |
-          echo "TEST_PY=test/LearningTest/cmd/python/test_khiops.py" >> "$GITHUB_ENV"
-          echo "APPLY_PY=test/LearningTest/cmd/python/apply_command.py" >> "$GITHUB_ENV"
+          echo "TEST_PY=test/LearningTestTool/py/kht_test.py" >> "$GITHUB_ENV"
+          echo "APPLY_PY=test/LearningTestTool/py/kht_apply.py" >> "$GITHUB_ENV"
+          echo "COLLECT_PY=test/LearningTestTool/py/kht_collect_results.py" >> "$GITHUB_ENV"
           echo "BIN_PATH=${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin" >> "$GITHUB_ENV"
-      - name: Setup MPI
+      - name: Setup MPI (windows)
+        if: ${{ runner.os == 'Windows' }}
         uses: mpi4py/setup-mpi@v1
+      - name: Setup MPI (macOS)
+        if: ${{ runner.os == 'macOS' }}
+        shell: bash
+        run: |
+          brew install mpich
+      - name: Setup MPI (Linux)
+        if: ${{ runner.os == 'Linux' }}
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install openmpi-bin
+          sudo update-alternatives --set mpi /usr/bin/mpicc.openmpi
+          sudo update-alternatives --set mpirun /usr/bin/mpirun.openmpi
       - name: Run Tests
       # Run test on linux and macOS as describe in the top comment:
       # - In parallel, run only MODL tests
@@ -126,59 +162,61 @@ jobs:
             export KhiopsMPIProcessNumber=4
           fi
           if [[ "${{ matrix.config }}" == "release" ]] ; then
-            python $TEST_PY Khiops ${BIN_PATH}/MODL${EXT} Standard
+            python $TEST_PY test/LearningTest/TestKhiops/Standard ${BIN_PATH}
             if [[ "${{ matrix.running-mode }}" != "parallel" ]] ; then
-              python $TEST_PY Coclustering ${BIN_PATH}/MODL_Coclustering${EXT} Standard
-              python $TEST_PY KNI ${BIN_PATH}/KNITransfer${EXT} Standard
-              python $TEST_PY KNI ${BIN_PATH}/KNITransfer${EXT} MultiTables SpliceJunction
+              python $TEST_PY test/LearningTest/TestCoclustering/Standard ${BIN_PATH}
+              python $TEST_PY test/LearningTest/TestKNI/Standard ${BIN_PATH}
             fi
           else
-            python $TEST_PY Khiops ${BIN_PATH}/MODL${EXT} Standard IrisLight
+            python $TEST_PY test/LearningTest/TestKhiops/Standard/IrisLight ${BIN_PATH}
             if [[ "${{ matrix.running-mode }}" != "parallel" ]] ; then
-              python $TEST_PY Coclustering ${BIN_PATH}/MODL_Coclustering${EXT} Standard Iris
-              python $TEST_PY KNI ${BIN_PATH}/KNITransfer${EXT} Standard Iris
+              python $TEST_PY test/LearningTest/TestCoclustering/Standard/Iris ${BIN_PATH}
+              python $TEST_PY test/LearningTest/TestKNI/Standard/Iris ${BIN_PATH}
             fi
           fi
       - name: Collect results
         shell: bash
         if: success() || failure()
         run: |
+          mkdir results
           if [[ "${{ matrix.config }}" == "release" ]] ; then
-            python3 $APPLY_PY errors test/LearningTest/TestKhiops/Standard | tee test/LearningTest/TestKhiops/Standard/errors.txt
+            python $APPLY_PY test/LearningTest/TestKhiops/Standard errors | tee -a results/errors.txt
             if [[ "${{ matrix.running-mode }}" != "parallel" ]] ; then
-              python $APPLY_PY errors test/LearningTest/TestCoclustering/Standard | tee test/LearningTest/TestCoclustering/Standard/errors.txt
-              python $APPLY_PY errors test/LearningTest/TestKNITransfer/Standard | tee test/LearningTest/TestKNITransfer/Standard/errors.txt
-              python $APPLY_PY errors test/LearningTest/TestKNITransfer/MultiTables SpliceJunction | tee test/LearningTest/TestKNITransfer/MultiTables/errors.txt
+              python $APPLY_PY test/LearningTest/TestCoclustering/Standard errors | tee -a results/errors.txt
+              python $APPLY_PY test/LearningTest/TestKNI/Standard errors | tee -a results/errors.txt
             fi
           else
-            python3 $APPLY_PY errors test/LearningTest/TestKhiops/Standard IrisLight | tee test/LearningTest/TestKhiops/Standard/errors.txt
+            python $APPLY_PY test/LearningTest/TestKhiops/Standard/IrisLight errors | tee -a results/errors.txt
             if [[ "${{ matrix.running-mode }}" != "parallel" ]] ; then
-              python $APPLY_PY errors test/LearningTest/TestCoclustering/Standard Iris | tee test/LearningTest/TestCoclustering/Standard/errors.txt
-              python $APPLY_PY errors test/LearningTest/TestKNITransfer/Standard Iris | tee test/LearningTest/TestKNITransfer/Standard/errors.txt
+              python $APPLY_PY test/LearningTest/TestCoclustering/Standard/Iris errors | tee -a results/errors.txt
+              python $APPLY_PY test/LearningTest/TestKNI/Standard/Iris errors | tee -a results/errors.txt
             fi
           fi
+          python $COLLECT_PY test/LearningTest/ results --collect-type warnings -f basic
       - name: Check results
+        # We escape eol in the results file to print multilines in the github UI https://github.com/orgs/community/discussions/26288
         shell: bash
         run: |
-          if grep -qr "error" --include="errors.txt" test/LearningTest/ ; then
-            echo "::error::Errors in test"
+          MSG=$(<results/errors.txt)
+          MSG="${MSG//'%'/'%25'}"
+          MSG="${MSG//$'\n'/'%0A'}"
+          MSG="${MSG//$'\r'/'%0D'}"
+          if grep -q -e "error" -e "The test has not been launched" results/errors.txt ; then
+            echo "::error::$MSG"
             false
           fi
-          if grep -qr "The test has not been launched" --include="errors.txt" test/LearningTest/ ; then
-            echo "::error::Test not launched"
+          if [ "${{ github.event.inputs.warning_as_error }}" == "true" ] && grep -q "warning" results/errors.txt  ; then
+            echo "::error::$MSG"
             false
           fi
       - name: Upload test results
         if: failure()
         uses: actions/upload-artifact@v3
         with:
-          name: test-results-${{ env.PRESET_NAME }}-${{ matrix.running-mode}}
+          name: test-results-${{ env.PRESET_NAME }}-${{ matrix.running-mode }}
           retention-days: 7
           path: |-
-            test/LearningTest/**/results
-            test/LearningTest/**/results.ref
-            test/LearningTest/**/errors.txt
-            test/LearningTest/**/comparisonResults.log
+            results/
   cleanup-cache:
     # Clean up all caches belonging to the current run
     if: ${{ always() }}

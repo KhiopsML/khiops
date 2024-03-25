@@ -1,8 +1,0 @@
-#!/bin/bash
-set -e
-
-# set mpich for default mpi
-update-alternatives --set mpirun /usr/bin/mpirun.mpich
-
-
-

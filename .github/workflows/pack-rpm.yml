@@ -2,6 +2,12 @@
 name: RPM Packages
 on:
   workflow_dispatch:
+    inputs:
+      mpi_implementation:
+        description: mpi implementation
+        type: choice
+        default: openmpi
+        options: [mpich, openmpi]
   pull_request:
     paths: ['**CMakeLists.txt', '**.cmake', .github/workflows/pack-rpm.yml]
   push:
@@ -22,7 +28,7 @@ jobs:
       matrix:
         os: [rocky8, rocky9]
     container:
-      image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
+      image: ghcr.io/khiopsml/khiops/khiopsdev-new-${{ matrix.os }}:latest
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -32,17 +38,22 @@ jobs:
           echo "ID=$ID" >> "$GITHUB_ENV"
           VERSION_CODENAME=$(echo $PLATFORM_ID | cut -d":" -f2)
           echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
+          if [ -z "${{ github.event.inputs.mpi_implementation }}" ] ; 
+          then
+            echo "MPI_IMPLEMENTATION=openmpi" >> "$GITHUB_ENV"
+          else
+            echo "MPI_IMPLEMENTATION=${{ github.event.inputs.mpi_implementation }}" >> "$GITHUB_ENV"
+          fi
       - name: Configure CMake
         run: |
           source /etc/profile.d/modules.sh
-          module load mpi/mpich-x86_64
-          echo "MPI_SUFFIX=$MPI_SUFFIX" >> "$GITHUB_ENV"
+          module unload mpi
+          module load mpi/${{ env.MPI_IMPLEMENTATION}}-x86_64
           cmake --preset linux-gcc-release -DBUILD_JARS=ON
       - name: Build Khiops binaries
         run: |
           cmake --build --preset linux-gcc-release --parallel \
-            --target MODL${{ env.MPI_SUFFIX }} MODL_Coclustering${{ env.MPI_SUFFIX }} \
-            KhiopsNativeInterface norm_jar khiops_jar
+            --target MODL MODL_Coclustering KhiopsNativeInterface norm_jar khiops_jar
       - name: Build package with CPack
         run: cd build/linux-gcc-release && cpack -G RPM
       - name: Rename packages with codename
@@ -88,6 +99,12 @@ jobs:
           echo "ID=$ID" >> "$GITHUB_ENV"
           VERSION=$(echo $PLATFORM_ID | cut -d":" -f2)
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          if [ -z "${{ github.event.inputs.mpi_implementation }}" ] ; 
+          then
+            echo "MPI_IMPLEMENTATION=openmpi" >> "$GITHUB_ENV"
+          else
+            echo "MPI_IMPLEMENTATION=${{ github.event.inputs.mpi_implementation }}" >> "$GITHUB_ENV"
+          fi
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -97,9 +114,19 @@ jobs:
       - name: Install Khiops core
         run: |
           yum install -y ./artifacts/khiops-core*
+      - name: Check Khiops core installation
+        run: |
+          khiops-env --env
+          khiops -v
+          khiops_coclustering -v
       - name: Install Khiops Desktop (with java)
         run: |
           yum install -y ./artifacts/khiops-*
+      - name: Check Khiops  installation
+        run: |
+          khiops-env --env
+          khiops -v
+          khiops_coclustering -v
       - name: Test Khiops installation
         uses: ./.github/actions/test-khiops-install
   test-kni:
@@ -114,7 +141,7 @@ jobs:
       matrix:
         os: [rocky8, rocky9]
     container:
-      image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
+      image: ghcr.io/khiopsml/khiops/khiopsdev-new-${{ matrix.os }}:latest
     steps:
       - name: Put OS info on the environment
         run: |

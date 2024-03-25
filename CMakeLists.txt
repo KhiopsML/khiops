@@ -127,6 +127,32 @@ if(MPI)
   )
 endif()
 
+# Detects the mpi implementation
+if(UNIX AND MPI)
+  string(FIND "${MPI_LIBRARIES}" openmpi POS)
+  if(POS GREATER -1)
+    set(MPI_IMPL "openmpi")
+  endif()
+
+  string(FIND "${MPI_LIBRARIES}" mpich POS)
+  if(POS GREATER -1)
+    set(MPI_IMPL "mpich")
+  endif()
+
+  string(FIND "${MPI_LIBRARIES}" intel POS)
+  if(POS GREATER -1)
+    set(MPI_IMPL "intel")
+  endif()
+  if(MPI_IMPL)
+    message(STATUS "auto-detected MPI implementation: ${MPI_IMPL}")
+  endif()
+
+  # Set MPI suffix if it is not defined with the environment variables (like on Fedora distros)
+  if(NOT MPI_SUFFIX)
+    set(MPI_SUFFIX "_${MPI_IMPL}")
+  endif()
+endif()
+
 # Set C++ revision globally if required
 if(TESTING)
   # Google test requires C++14
@@ -350,12 +376,12 @@ if(TESTING)
   enable_testing()
 
   # Add testing targets
-  add_subdirectory(test/Norm)
-  add_subdirectory(test/Parallel)
-  add_subdirectory(test/Parallel-mpi)
-  add_subdirectory(test/Learning)
-  add_subdirectory(test/KNITest)
-  add_subdirectory(test/Utils)
+  add_subdirectory(test/UnitTests/Norm)
+  add_subdirectory(test/UnitTests/Parallel)
+  add_subdirectory(test/UnitTests/Parallel-mpi)
+  add_subdirectory(test/UnitTests/Learning)
+  add_subdirectory(test/UnitTests/KNITest)
+  add_subdirectory(test/UnitTests/Utils)
 endif(TESTING)
 
 # Exclude googletest from the installation

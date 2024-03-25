@@ -1288,9 +1288,10 @@ void HeapClose()
 
 // Visual C++: supression des Warning
 #ifdef __MSC__
-#pragma warning(disable : 6385) // disable C6385 warning (pour un controle excessif sur pHeap->fixedSizeHeapHeadSegments
-				// dans HeapCheckFixedSizeHeapLecture)
-#endif                          // __MSC__
+#pragma warning(                                                                                                       \
+	disable : 6385) // disable C6385 warning (pour un controle excessif sur pHeap->fixedSizeHeapHeadSegments       \
+			// dans HeapCheckFixedSizeHeapLecture)
+#endif                  // __MSC__
 
 // Verification d'un segment d'un FixedSizeHeap
 int HeapCheckFixedSizeHeap(MemSegment* psegSearched)
