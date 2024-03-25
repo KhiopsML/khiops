@@ -223,9 +223,8 @@ double DTDecisionTreeCost::ComputeNodeCost(DTDecisionTreeNode* node, DTDecisionT
 
 					// Extraction du nombre d'intervalles de la regle de discretisation Is
 					// nPartNumber = oaGroups->GetSize();
-					attributeStats =
-					    NULL; // NV9 cast(KWAttributeStats*,
-						  // node->GetNodeAttributeStats()->Lookup(->LookupAttributeStats(sAttributeName));
+					attributeStats = NULL; // NV9 cast(KWAttributeStats*,
+					    // node->GetNodeAttributeStats()->Lookup(->LookupAttributeStats(sAttributeName));
 
 					// cout << "sAttributeName = " << sAttributeName << endl;
 

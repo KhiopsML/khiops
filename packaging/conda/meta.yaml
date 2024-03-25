@@ -26,35 +26,15 @@ build:
   detect_binary_files_with_prefix: false # [osx]
   {% endif %}
 
-# Note on version pinning:
-# OSX:
-# - mpich=3.4.3 because 4.* is still unstable
-# - requires conda-forge
-# Linux:
-# - mpich=4.0.3 because of bugs of the 3.* series
-# - requires conda-forge
 requirements:
   build:
-    - mpich 4.0.3        # [linux]
-    - mpich-mpicc  4.0.3 # [linux]
-    - mpich-mpicxx 4.0.3 # [linux]
-    - mpich 3.4.3        # [osx]
-    - mpich-mpicc  3.4.3 # [osx]
-    - mpich-mpicxx 3.4.3 # [osx]
-    - msmpi              # [win]
     - cmake
     - ninja
     - {{ compiler('cxx') }}
   host:
-    - mpich 4.0.3        # [linux]
-    - mpich-mpicxx 4.0.3 # [linux]
-    - mpich 3.4.3        # [osx]
-    - mpich-mpicxx 3.4.3 # [osx]
-    - msmpi              # [win]
+    - {{ mpi }}
   run:
-    - mpich 4.0.3   # [linux]
-    - mpich 3.4.3   # [osx]
-    - msmpi         # [win]
+    - {{ mpi }}
 
 outputs:
   - name: khiops-core

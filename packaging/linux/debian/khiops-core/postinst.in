@@ -1,0 +1,7 @@
+#!/bin/bash
+set -e
+
+# set openmpi for default mpi
+update-alternatives --set mpirun /usr/bin/mpirun.@MPI_IMPL@
+
+

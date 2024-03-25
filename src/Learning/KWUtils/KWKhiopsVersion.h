@@ -10,12 +10,12 @@
 // dans le TaskManager de Windows (par exemple)
 
 // Version de Khiops
-#define KHIOPS_VERSION KHIOPS_STR(10.2.1)
+#define KHIOPS_VERSION KHIOPS_STR(10.2.2-b.0)
 // Les versions release distribuees sont bases sur trois numeros, par exemple KHIOPS_STR(10.2.0)
 // Les versions alpha, beta ou release candidate ont un suffixe supplementaire, par exemple :
-// - KHIOPS_STR(10.5.0-a1)
-// - KHIOPS_STR(10.5.0-b3)
-// - KHIOPS_STR(10.5.0-rc2)
+// - KHIOPS_STR(10.5.0-a.1)
+// - KHIOPS_STR(10.5.0-b.3)
+// - KHIOPS_STR(10.5.0-rc.2)
 
 // Copyright
 #define KHIOPS_COPYRIGHT_LABEL KHIOPS_STR((c)2024 Orange - All rights reserved.)

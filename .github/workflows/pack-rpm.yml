@@ -2,6 +2,12 @@
 name: RPM Packages
 on:
   workflow_dispatch:
+    inputs:
+      mpi_implementation:
+        description: mpi implementation
+        type: choice
+        default: openmpi
+        options: [mpich, openmpi]
   pull_request:
     paths: ['**CMakeLists.txt', '**.cmake', .github/workflows/pack-rpm.yml]
   push:
@@ -32,17 +38,17 @@ jobs:
           echo "ID=$ID" >> "$GITHUB_ENV"
           VERSION_CODENAME=$(echo $PLATFORM_ID | cut -d":" -f2)
           echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
+          echo "MPI_IMPLEMENTATION=${{ inputs.mpi_implementation || 'openmpi' }}" >> "$GITHUB_ENV"
       - name: Configure CMake
         run: |
           source /etc/profile.d/modules.sh
-          module load mpi/mpich-x86_64
-          echo "MPI_SUFFIX=$MPI_SUFFIX" >> "$GITHUB_ENV"
+          module unload mpi
+          module load mpi/${MPI_IMPLEMENTATION}-x86_64
           cmake --preset linux-gcc-release -DBUILD_JARS=ON
       - name: Build Khiops binaries
         run: |
           cmake --build --preset linux-gcc-release --parallel \
-            --target MODL${{ env.MPI_SUFFIX }} MODL_Coclustering${{ env.MPI_SUFFIX }} \
-            KhiopsNativeInterface norm_jar khiops_jar
+            --target MODL MODL_Coclustering KhiopsNativeInterface norm_jar khiops_jar
       - name: Build package with CPack
         run: cd build/linux-gcc-release && cpack -G RPM
       - name: Rename packages with codename
@@ -88,6 +94,7 @@ jobs:
           echo "ID=$ID" >> "$GITHUB_ENV"
           VERSION=$(echo $PLATFORM_ID | cut -d":" -f2)
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "MPI_IMPLEMENTATION=${{ inputs.mpi_implementation || 'openmpi' }}" >> "$GITHUB_ENV"
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -97,9 +104,19 @@ jobs:
       - name: Install Khiops core
         run: |
           yum install -y ./artifacts/khiops-core*
+      - name: Check Khiops core installation
+        run: |
+          khiops-env --env
+          khiops -s
+          khiops_coclustering -s
       - name: Install Khiops Desktop (with java)
         run: |
           yum install -y ./artifacts/khiops-*
+      - name: Check Khiops  installation
+        run: |
+          khiops-env --env
+          khiops -s
+          khiops_coclustering -s
       - name: Test Khiops installation
         uses: ./.github/actions/test-khiops-install
   test-kni:
@@ -157,12 +174,14 @@ jobs:
       - name: Rename packages with tag version
         run: |
           # Renames the packge only if the source version differs from the tag
-          SOURCE_VERSION=$(./scripts/khiops-version)
+          SOURCE_VERSION=$(./scripts/khiops-version | sed 's/-/_/')
+          TAG_VERSION=$(echo "${{ github.ref_name }}" | sed 's/-/_/')
           for PKG_FILE in *.rpm
           do
-            NEW_PKG_FILE=$(echo $PKG_FILE | sed "s/-${SOURCE_VERSION}-/-${{ github.ref_name }}-/")
+            NEW_PKG_FILE=$(echo $PKG_FILE | sed "s/-${SOURCE_VERSION}-/-${TAG_VERSION}-/")
             if [[ "$PKG_FILE" != "$NEW_PKG_FILE" ]]
             then
+              echo "Renaming '$PKG_FILE' to '$NEW_PKG_FILE'"
               mv $PKG_FILE $NEW_PKG_FILE
             fi
           done
