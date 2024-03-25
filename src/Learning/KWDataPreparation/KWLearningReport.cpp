@@ -575,6 +575,29 @@ longint KWDataPreparationStats::GetUsedMemory() const
 	return lUsedMemory;
 }
 
+const ALString KWDataPreparationStats::GetClassLabel() const
+{
+	if (GetAttributeNumber() > 1)
+		return "Variables";
+	else
+		return "Variable";
+}
+
+const ALString KWDataPreparationStats::GetObjectLabel() const
+{
+	ALString sLabel;
+	int i;
+
+	// Calcul d'un nom par concatenation des noms des attributs
+	for (i = 0; i < GetAttributeNumber(); i++)
+	{
+		if (i > 0)
+			sLabel += "`";
+		sLabel += GetAttributeNameAt(i);
+	}
+	return sLabel;
+}
+
 double KWDataPreparationStats::GetSortValue() const
 {
 	require(IsStatsComputed());

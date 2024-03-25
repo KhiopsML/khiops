@@ -2,6 +2,7 @@ import os
 import argparse
 
 import _kht_constants as kht
+import _kht_utils as utils
 
 
 def help_commands():

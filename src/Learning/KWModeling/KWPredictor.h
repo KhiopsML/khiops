@@ -219,7 +219,7 @@ protected:
 	// Dictionnaire des KWDataPreparationStats du ClassStats selectionnes
 	NumericKeyDictionary nkdSelectedDataPreparationStats;
 
-	// Dictionnaire des KWDataPreparationStats du selectionnes recursivement
+	// Dictionnaire des KWDataPreparationStats du ClassStats selectionnes recursivement
 	NumericKeyDictionary nkdRecursivelySelectedDataPreparationStats;
 
 	// Resultats d'apprentissage, a creer et alimenter par la methode InternalTrain
