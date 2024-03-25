@@ -156,11 +156,15 @@ jobs:
           merge-multiple: true
       - name: Rename packages with tag version
         run: |
+          # Renames the packge only if the source version differs from the tag
           SOURCE_VERSION=$(./scripts/khiops-version)
           for PKG_FILE in *.rpm
           do
             NEW_PKG_FILE=$(echo $PKG_FILE | sed "s/-${SOURCE_VERSION}-/-${{ github.ref_name }}-/")
-            mv $PKG_FILE $NEW_PKG_FILE
+            if [[ "$PKG_FILE" != "$NEW_PKG_FILE" ]]
+            then
+              mv $PKG_FILE $NEW_PKG_FILE
+            fi
           done
       - name: Upload packages to the release
         uses: ncipollo/release-action@v1.14.0
