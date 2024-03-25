@@ -2,6 +2,14 @@
 Release Notes for Khiops 10 Version Series
 ==========================================
 
+Version 10.2.1
+==============
+Bug fix:
+- Fix a bug that appears when reading temporary files in multi-machines mode.
+
+Minor improvments:
+- improve java management in linux packages
+
 Version 10.2.0
 ==============
 **Announcement**: This is a special release marking the open-sourcing of the Khiops AutoML suite.
