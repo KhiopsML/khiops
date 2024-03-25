@@ -417,9 +417,8 @@ void DTDecisionTreeGlobalCost::ComputeHypotheticalAugmentedTreeCost(DTDecisionTr
 	else
 	{
 		// Nombre de valeurs distinctes pour l'attribut
-		nVariableValueNumber =
-		    0; // NV9  cast(KWAttributeStats*,
-		       // sourceNode->GetNodeClassStats()->LookupAttributeStats(sAttributeName))->GetDescriptiveStats()->GetValueNumber();
+		nVariableValueNumber = 0; // NV9  cast(KWAttributeStats*,
+		    // sourceNode->GetNodeClassStats()->LookupAttributeStats(sAttributeName))->GetDescriptiveStats()->GetValueNumber();
 	}
 	assert(nVariableValueNumber > 0);
 

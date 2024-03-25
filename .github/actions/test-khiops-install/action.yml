@@ -41,8 +41,10 @@ runs:
     - name: Check Khiops installation
       shell: bash
       run: |
-        "$KHIOPS_SCRIPT" -v
-        "$KHIOPS_CC_SCRIPT" -v
+        export KHIOPS_PROC_NUMBER=4 
+        export OMPI_MCA_rmaps_base_oversubscribe=true
+        "$KHIOPS_SCRIPT" -s
+        "$KHIOPS_CC_SCRIPT" -s
     - name: Run Khiops tests
       shell: bash
       run: |
@@ -61,11 +63,11 @@ runs:
         touch test/LearningTest/TestCoclustering/Standard/Iris/results/time.log
         touch test/LearningTest/TestKhiops/Standard/Iris/results/time.log
         echo "Check test results"
-        cd test/LearningTest/cmd/python/
-        $PYTHON test_khiops.py Khiops nul Standard
-        $PYTHON test_khiops.py Coclustering nul Standard
-        $PYTHON apply_command.py errors ../../TestKhiops/Standard/ Iris | tee /tmp/khiops-log.txt
-        $PYTHON apply_command.py errors ../../TestCoclustering/Standard/ Iris | tee /tmp/coclustering-log.txt
+        cd test/LearningTestTool/py/
+        $PYTHON kht_test.py ../../LearningTest/TestKhiops/Standard/Iris check
+        $PYTHON kht_test.py ../../LearningTest/TestCoclustering/Standard/Iris check
+        $PYTHON kht_apply.py ../../LearningTest/TestKhiops/Standard/Iris errors | tee /tmp/khiops-log.txt
+        $PYTHON kht_apply.py ../../LearningTest/TestCoclustering/Standard/Iris errors | tee /tmp/coclustering-log.txt
         if (grep -q error /tmp/khiops-log.txt || grep -q error /tmp/coclustering-log.txt); then
           echo "::error::Errors in Khiops run"
           false
