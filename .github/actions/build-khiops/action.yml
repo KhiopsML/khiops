@@ -13,8 +13,23 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Setup MPI
+    - name: Setup MPI (windows)
+      if: ${{ runner.os == 'Windows' }}
       uses: mpi4py/setup-mpi@v1
+    - name: Setup MPI (macOS)
+      if: ${{ runner.os == 'macOS' }}
+      shell: bash
+      run: |
+        brew install mpich
+    - name: Setup MPI (Linux)
+      if: ${{ runner.os == 'Linux' }}
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install openmpi-bin libopenmpi-dev
+        sudo update-alternatives --set mpi /usr/bin/mpicc.openmpi
+        sudo update-alternatives --set mpirun /usr/bin/mpirun.openmpi
+        sudo update-alternatives --set mpi-x86_64-linux-gnu /usr/lib/x86_64-linux-gnu/openmpi/include
     - name: Setup Ninja
       uses: ashutoshvarma/setup-ninja@v1.1
     - name: Load Visual C++ Environment Variables (Windows only)

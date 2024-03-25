@@ -310,12 +310,12 @@ def evaluate_tool(tool_exe_path, tool_test_family_path, test_name):
         khiops_params = []
         if khiops_mpi_process_number is not None:
             khiops_params.append(mpi_exe_name)
-            # Option -l, specifique a mpich, valide au moins pour Windows
-            #  "Label standard out and standard error (stdout and stderr) with the rank of the process"
-            khiops_params.append("-l")
-            if platform.system() == "Darwin":
-                khiops_params.append("-host")
-                khiops_params.append("localhost")
+            # if platform.system() == "Darwin":
+            #     khiops_params.append("-host")
+            #     khiops_params.append("localhost")
+            # if platform.system() != "Windows":
+            #     khiops_params.append("--allow-run-as-root")
+            #     khiops_params.append("--oversubscribe")
             khiops_params.append("-n")
             khiops_params.append(str(khiops_mpi_process_number))
         khiops_params.append(tool_exe_path)

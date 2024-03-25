@@ -54,14 +54,14 @@ then
     if source /etc/profile.d/modules.sh &> /dev/null
     then
          # find the good module
-        mpich_module="$(module avail |& sed -E -e 's/[[:blank:]]+/\n/g' | grep  mpich-[0-9] | grep $(arch) | sort | tail -n 1)"
-        if [ -z "$mpich_module" ] ; then
-            mpich_module=$(module avail |& sed -E -e 's/[[:blank:]]+/\n/g' | grep  mpich-$(arch))
-        fi
+        # mpich_module="$(module avail |& sed -E -e 's/[[:blank:]]+/\n/g' | grep  mpich-[0-9] | grep $(arch) | sort | tail -n 1)"
+        # if [ -z "$mpich_module" ] ; then
+        #     mpich_module=$(module avail |& sed -E -e 's/[[:blank:]]+/\n/g' | grep  mpich-$(arch))
+        # fi
 
         # and load it
         module unload mpi
-        module load $mpich_module
+        module load mpi/openmpi-x86_64
     fi
 fi
 
@@ -82,7 +82,7 @@ fi
 if command -v mpiexec &> /dev/null
 then
     MPIEXEC_PATH=$(command -v mpiexec)
-    KHIOPS_MPI_COMMAND="${MPIEXEC_PATH} -bind-to hwthread -map-by core -n $KHIOPS_PROC_NUMBER"
+    KHIOPS_MPI_COMMAND="${MPIEXEC_PATH} --quiet --oversubscribe -bind-to hwthread -map-by core -n $KHIOPS_PROC_NUMBER"
 else
     echo "We didn't find mpiexec in the regular path. Parallel computation is unavailable: Khiops is launched in serial"
     KHIOPS_MPI_COMMAND="" 

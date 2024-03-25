@@ -110,8 +110,22 @@ jobs:
           echo "TEST_PY=test/LearningTest/cmd/python/test_khiops.py" >> "$GITHUB_ENV"
           echo "APPLY_PY=test/LearningTest/cmd/python/apply_command.py" >> "$GITHUB_ENV"
           echo "BIN_PATH=${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin" >> "$GITHUB_ENV"
-      - name: Setup MPI
+      - name: Setup MPI (windows)
+        if: ${{ runner.os == 'Windows' }}
         uses: mpi4py/setup-mpi@v1
+      - name: Setup MPI (macOS)
+        if: ${{ runner.os == 'macOS' }}
+        shell: bash
+        run: |
+          brew install mpich
+      - name: Setup MPI (Linux)
+        if: ${{ runner.os == 'Linux' }}
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install openmpi-bin
+          sudo update-alternatives --set mpi /usr/bin/mpicc.openmpi
+          sudo update-alternatives --set mpirun /usr/bin/mpirun.openmpi
       - name: Run Tests
       # Run test on linux and macOS as describe in the top comment:
       # - In parallel, run only MODL tests
@@ -119,6 +133,8 @@ jobs:
       # - In release run all Standard tests
         shell: bash
         run: |
+          export OMPI_MCA_orte_execute_quiet=true
+          export OMPI_MCA_rmaps_base_oversubscribe=true
           if [[ "${{ matrix.build-setup.os }}"  == 'windows-2022' ]]; then
             export EXT=".exe"
           fi
@@ -126,7 +142,7 @@ jobs:
             export KhiopsMPIProcessNumber=4
           fi
           if [[ "${{ matrix.config }}" == "release" ]] ; then
-            python $TEST_PY Khiops ${BIN_PATH}/MODL${EXT} Standard
+            python3 $TEST_PY Khiops ${BIN_PATH}/MODL${EXT} Standard
             if [[ "${{ matrix.running-mode }}" != "parallel" ]] ; then
               python $TEST_PY Coclustering ${BIN_PATH}/MODL_Coclustering${EXT} Standard
               python $TEST_PY KNI ${BIN_PATH}/KNITransfer${EXT} Standard
@@ -144,14 +160,14 @@ jobs:
         if: success() || failure()
         run: |
           if [[ "${{ matrix.config }}" == "release" ]] ; then
-            python3 $APPLY_PY errors test/LearningTest/TestKhiops/Standard | tee test/LearningTest/TestKhiops/Standard/errors.txt
+            python $APPLY_PY errors test/LearningTest/TestKhiops/Standard | tee test/LearningTest/TestKhiops/Standard/errors.txt
             if [[ "${{ matrix.running-mode }}" != "parallel" ]] ; then
               python $APPLY_PY errors test/LearningTest/TestCoclustering/Standard | tee test/LearningTest/TestCoclustering/Standard/errors.txt
               python $APPLY_PY errors test/LearningTest/TestKNITransfer/Standard | tee test/LearningTest/TestKNITransfer/Standard/errors.txt
               python $APPLY_PY errors test/LearningTest/TestKNITransfer/MultiTables SpliceJunction | tee test/LearningTest/TestKNITransfer/MultiTables/errors.txt
             fi
           else
-            python3 $APPLY_PY errors test/LearningTest/TestKhiops/Standard IrisLight | tee test/LearningTest/TestKhiops/Standard/errors.txt
+            python $APPLY_PY errors test/LearningTest/TestKhiops/Standard IrisLight | tee test/LearningTest/TestKhiops/Standard/errors.txt
             if [[ "${{ matrix.running-mode }}" != "parallel" ]] ; then
               python $APPLY_PY errors test/LearningTest/TestCoclustering/Standard Iris | tee test/LearningTest/TestCoclustering/Standard/errors.txt
               python $APPLY_PY errors test/LearningTest/TestKNITransfer/Standard Iris | tee test/LearningTest/TestKNITransfer/Standard/errors.txt

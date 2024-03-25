@@ -363,3 +363,9 @@ set(INSTALL_GTEST OFF)
 
 # Add packaging directory for CPack scripts
 include(packaging)
+
+get_cmake_property(_variableNames VARIABLES)
+list(SORT _variableNames)
+foreach(_variableName ${_variableNames})
+  message(STATUS "${_variableName}=${${_variableName}}")
+endforeach()

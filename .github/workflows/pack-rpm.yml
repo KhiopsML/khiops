@@ -22,7 +22,7 @@ jobs:
       matrix:
         os: [rocky8, rocky9]
     container:
-      image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
+      image: ghcr.io/khiopsml/khiops/khiopsdev-new-${{ matrix.os }}:latest
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -35,7 +35,8 @@ jobs:
       - name: Configure CMake
         run: |
           source /etc/profile.d/modules.sh
-          module load mpi/mpich-x86_64
+          module unload mpi
+          module load mpi/openmpi-x86_64
           echo "MPI_SUFFIX=$MPI_SUFFIX" >> "$GITHUB_ENV"
           cmake --preset linux-gcc-release -DBUILD_JARS=ON
       - name: Build Khiops binaries
@@ -114,7 +115,7 @@ jobs:
       matrix:
         os: [rocky8, rocky9]
     container:
-      image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
+      image: ghcr.io/khiopsml/khiops/khiopsdev-new-${{ matrix.os }}:latest
     steps:
       - name: Put OS info on the environment
         run: |
