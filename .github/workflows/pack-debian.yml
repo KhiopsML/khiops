@@ -166,7 +166,10 @@ jobs:
           for PKG_FILE in *.deb
           do
             NEW_PKG_FILE=$(echo $PKG_FILE | sed "s/_${SOURCE_VERSION}-/_${{ github.ref_name }}-/")
-            mv $PKG_FILE $NEW_PKG_FILE
+            if [[ "$PKG_FILE" != "$NEW_PKG_FILE" ]]
+            then
+              mv $PKG_FILE $NEW_PKG_FILE
+            fi
           done
       - name: Upload packages to the release
         uses: ncipollo/release-action@v1.14.0
