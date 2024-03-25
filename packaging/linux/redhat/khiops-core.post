@@ -1,4 +1,4 @@
-module unload mpi
-source /etc/profile.d/modules.sh
-mpich_module=$(module avail |& sed -E -e 's/[[:blank:]]+/\n/g' | grep  mpich | tail -n 1)
-module load "$mpich_module"
+#module unload mpi
+#source /etc/profile.d/modules.sh
+#openmpi_module=$(module avail |& sed -E -e 's/[[:blank:]]+/\n/g' | grep  mpich | tail -n 1)
+#module load "$openmpi_module"
