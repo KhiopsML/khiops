@@ -8,8 +8,9 @@
 # CMake User Preset
 CMakeUserPresets.json
 
-# Build directory
+# Build directories
 build/
+khiops-conda/
 
 # Cmake exceptions
 CMakeFiles/
@@ -19,7 +20,7 @@ test/*/results/
 LearningTest/*/*/*/results/
 LearningTest/*/*/*/results.ref/time.log
 
-# LearningTest 
+# LearningTest
 results/
 __pycache__/
 comparisonResults.log
