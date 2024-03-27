@@ -1,0 +1,6 @@
+---
+# We need MacOS SDK 10.10 to be able to build on macOS Intel
+# Download: https://github.com/phracker/MacOSX-SDKs/releases/download/11.3/MacOSX10.10.sdk.tar.xz
+# Decompress then to /opt: tar -zxvf MacOSX10.10.sdk.tar.xz -C /opt
+CONDA_BUILD_SYSROOT:
+  - /opt/MacOSX10.10.sdk  # [osx and not arm64]
