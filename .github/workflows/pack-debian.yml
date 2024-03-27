@@ -35,8 +35,8 @@ jobs:
           echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
       - name: Configure CMake
         run: |
-          update-alternatives -set mpi /usr/bin/mpicc.openmpi
-          update-alternatives -set mpirun /usr/bin/mpirun.openmpi
+          update-alternatives --set mpi /usr/bin/mpicc.openmpi
+          update-alternatives --set mpirun /usr/bin/mpirun.openmpi
           cmake --preset linux-gcc-release -DBUILD_JARS=ON
       - name: Build Khiops binaries
         run: |
@@ -92,6 +92,7 @@ jobs:
           path: artifacts
       - name: Install Khiops core
         run: |
+          export DEBIAN_FRONTEND="noninteractive"
           apt-get update
           dpkg -i ./artifacts/khiops-core* || true
           apt-get -f install -y
@@ -102,10 +103,11 @@ jobs:
           khiops_coclustering -v
       - name: Install Khiops Desktop (with java)
         run: |
-          dpkg -i ./khiops_* || true
+          dpkg -i ./artifacts//khiops_* || true
           apt-get -f install -y
       - name: Check Khiops installation
         run: |
+          khiops-env --env
           khiops -v
           khiops_coclustering -v
       - name: Test Khiops installation

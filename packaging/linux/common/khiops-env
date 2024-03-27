@@ -82,7 +82,7 @@ fi
 if command -v mpiexec &> /dev/null
 then
     MPIEXEC_PATH=$(command -v mpiexec)
-    KHIOPS_MPI_COMMAND="${MPIEXEC_PATH} --quiet --oversubscribe -bind-to hwthread -map-by core -n $KHIOPS_PROC_NUMBER"
+    KHIOPS_MPI_COMMAND="${MPIEXEC_PATH} --allow-run-as-root --quiet --oversubscribe -n $KHIOPS_PROC_NUMBER"
 else
     echo "We didn't find mpiexec in the regular path. Parallel computation is unavailable: Khiops is launched in serial"
     KHIOPS_MPI_COMMAND="" 

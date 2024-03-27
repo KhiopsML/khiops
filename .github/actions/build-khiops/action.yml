@@ -29,7 +29,6 @@ runs:
         sudo apt-get install openmpi-bin libopenmpi-dev
         sudo update-alternatives --set mpi /usr/bin/mpicc.openmpi
         sudo update-alternatives --set mpirun /usr/bin/mpirun.openmpi
-        sudo update-alternatives --set mpi-x86_64-linux-gnu /usr/lib/x86_64-linux-gnu/openmpi/include
     - name: Setup Ninja
       uses: ashutoshvarma/setup-ninja@v1.1
     - name: Load Visual C++ Environment Variables (Windows only)
