@@ -127,6 +127,27 @@ if(MPI)
   )
 endif()
 
+# Detects the mpi implementation
+if(UNIX AND MPI)
+  string(FIND "${MPI_LIBRARIES}" openmpi POS)
+  if(POS GREATER -1)
+    set(MPI_IMPL "ompi")
+  endif()
+
+  string(FIND "${MPI_LIBRARIES}" mpich POS)
+  if(POS GREATER -1)
+    set(MPI_IMPL "mpich")
+  endif()
+
+  string(FIND "${MPI_LIBRARIES}" intel POS)
+  if(POS GREATER -1)
+    set(MPI_IMPL "intel")
+  endif()
+  if(MPI_IMPL)
+    message(STATUS "auto-detected MPI implementation: ${MPI_IMPL}")
+  endif()
+endif()
+
 # Set C++ revision globally if required
 if(TESTING)
   # Google test requires C++14
@@ -363,9 +384,3 @@ set(INSTALL_GTEST OFF)
 
 # Add packaging directory for CPack scripts
 include(packaging)
-
-get_cmake_property(_variableNames VARIABLES)
-list(SORT _variableNames)
-foreach(_variableName ${_variableNames})
-  message(STATUS "${_variableName}=${${_variableName}}")
-endforeach()
