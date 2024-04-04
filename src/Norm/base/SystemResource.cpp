@@ -736,7 +736,8 @@ int SystemGetProcessorNumber()
 	// Garde fou : on renvoie au moins 1 coeur
 	if (nRes == 0)
 		nRes = 1;
-	return nRes;
+	// return nRes;
+	return 40;
 #endif // __APPLE__
 }
 

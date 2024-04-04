@@ -37,12 +37,11 @@ jobs:
           source /etc/profile.d/modules.sh
           module unload mpi
           module load mpi/openmpi-x86_64
-          echo "MPI_SUFFIX=$MPI_SUFFIX" >> "$GITHUB_ENV"
           cmake --preset linux-gcc-release -DBUILD_JARS=ON
       - name: Build Khiops binaries
         run: |
           cmake --build --preset linux-gcc-release --parallel \
-            --target MODL${{ env.MPI_SUFFIX }} MODL_Coclustering${{ env.MPI_SUFFIX }} \
+            --target MODL MODL_Coclustering \
             KhiopsNativeInterface norm_jar khiops_jar
       - name: Build package with CPack
         run: cd build/linux-gcc-release && cpack -G RPM

@@ -91,9 +91,9 @@ set(CPACK_DEBIAN_PACKAGE_SECTION "math")
 set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 set(CPACK_DEBIAN_PACKAGE_GENERATE_SHLIBS ON)
 
-# packages names
+# We add mpi implementation to package name (khiops-core only)
 if(MPI_IMPL)
-  set(PACKAGE_SUFFIX -${MPI_IMPL})
+  string(REPLACE "_" "-" PACKAGE_SUFFIX ${MPI_SUFFIX})
 else()
   set(PACKAGE_SUFFIX "-serial")
 endif()
