@@ -66,6 +66,7 @@ boolean FileCompareForTest(const ALString& sFileNameReference, const ALString& s
 	boolean bOk1;
 	boolean bOk2;
 	boolean bSame = true;
+	boolean bDifferentLineNumber = false;
 	const char sSys[] = "SYS";
 	int nLineIndex;
 	const int nMaxSize = 5000; // Permet de stocker un path tres long
@@ -109,6 +110,7 @@ boolean FileCompareForTest(const ALString& sFileNameReference, const ALString& s
 	if (not fileTest)
 	{
 		fclose(fileRef);
+		cout << "Unable to open test file" << endl;
 		return false;
 	}
 
@@ -118,10 +120,12 @@ boolean FileCompareForTest(const ALString& sFileNameReference, const ALString& s
 	{
 		nLineIndex++;
 
-		// Si il manque des lignes, il y a une erreur
+		// Si il manque des lignes en test, il y a une erreur
 		if (fgets(lineTest, sizeof(lineTest), fileTest) == NULL)
 		{
 			bSame = false;
+			bDifferentLineNumber = true;
+			cout << endl << "error not enough lines in test (Test: " << nLineIndex << " lines)" << endl;
 			break;
 		}
 
@@ -157,7 +161,17 @@ boolean FileCompareForTest(const ALString& sFileNameReference, const ALString& s
 				break;
 		}
 	}
-	if (not bSame)
+
+	// Si il y a trop de lignes en test, il y a une erreur
+	if (fgets(lineTest, sizeof(lineTest), fileTest) != NULL)
+	{
+		bSame = false;
+		bDifferentLineNumber = true;
+		cout << endl << "error too many lines in test (Ref: " << nLineIndex << " lines)" << endl;
+	}
+
+	// Erreur si ligne differente, sans probleme de difference de nombre de lignes
+	if (not bSame and not bDifferentLineNumber)
 	{
 		cout << endl << "error at line " << nLineIndex << endl;
 		cout << "Ref:  " << sLineRef << endl;
@@ -208,6 +222,9 @@ boolean TestAndCompareResults(const char* sTestPath, const char* test_suite, con
 	ALString sFileName;
 	FILE* stream;
 	int fdInit;
+
+	// Parametrage de l'arret pour la memoire
+	//MemSetAllocIndexExit(3391);
 
 	// On passe en mode batch pour avoir des parametres par defaut, sans interaction utilisateur
 	SetAcquireBatchMode(true);

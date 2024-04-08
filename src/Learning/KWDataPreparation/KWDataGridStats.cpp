@@ -2764,6 +2764,8 @@ KWDGSAttributeDiscretization* KWDGSAttributeDiscretization::CreateTestAttribute(
 	attribute->SetAttributeName("Att");
 
 	// Creation des bornes des intervalles
+	attribute->SetInitialValueNumber(nPartNumber);
+	attribute->SetGranularizedValueNumber(nPartNumber);
 	attribute->SetPartNumber(nPartNumber);
 	for (nBound = 0; nBound < attribute->GetIntervalBoundNumber(); nBound++)
 		attribute->SetIntervalBoundAt(nBound, (Continuous)(1.0 + nBound));
@@ -3294,6 +3296,8 @@ KWDGSAttributeGrouping* KWDGSAttributeGrouping::CreateTestAttribute(int nPartNum
 	attribute->SetValueAt(attribute->GetKeptValueNumber() - 1, Symbol::GetStarValue());
 
 	// Creation des groupes
+	attribute->GetKeptValueNumber();
+	attribute->SetGranularizedValueNumber(nPartNumber);
 	attribute->SetPartNumber(nPartNumber);
 	for (nGroup = 0; nGroup < attribute->GetGroupNumber(); nGroup++)
 		attribute->SetGroupFirstValueIndexAt(nGroup, nGroup * nGroupSize);
@@ -3498,6 +3502,8 @@ KWDGSAttributeContinuousValues* KWDGSAttributeContinuousValues::CreateTestAttrib
 	attribute->SetAttributeName("Att");
 
 	// Creation des valeurs
+	attribute->SetInitialValueNumber(nPartNumber);
+	attribute->SetGranularizedValueNumber(nPartNumber);
 	attribute->SetPartNumber(nPartNumber);
 	for (nValue = 0; nValue < attribute->GetValueNumber(); nValue++)
 		attribute->SetValueAt(nValue, (Continuous)(1.0 + nValue));
@@ -3712,6 +3718,8 @@ KWDGSAttributeSymbolValues* KWDGSAttributeSymbolValues::CreateTestAttribute(int 
 	attribute->SetAttributeName("Att");
 
 	// Creation des valeurs
+	attribute->SetInitialValueNumber(nPartNumber);
+	attribute->SetGranularizedValueNumber(nPartNumber);
 	attribute->SetPartNumber(nPartNumber);
 	for (nValue = 0; nValue < attribute->GetValueNumber(); nValue++)
 		attribute->SetValueAt(nValue, Symbol(sValuePrefix + IntToString(nValue + 1)));

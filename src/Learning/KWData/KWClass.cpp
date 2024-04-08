@@ -2314,7 +2314,7 @@ KWClass* KWClass::CreateClass(const ALString& sClassName, int nKeySize, int nSym
 	for (i = 0; i < nTextListNumber; i++)
 	{
 		attribute = new KWAttribute;
-		attribute->SetName(sPrefix + KWType::ToString(KWType::Text) + IntToString(i + 1));
+		attribute->SetName(sPrefix + KWType::ToString(KWType::TextList) + IntToString(i + 1));
 		attribute->SetLabel("Label of " + attribute->GetName());
 		attribute->SetType(KWType::TextList);
 		kwcClass->InsertAttribute(attribute);

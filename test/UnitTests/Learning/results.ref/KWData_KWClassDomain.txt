@@ -29,6 +29,7 @@ Dictionary	Class2	(Key1, Key2)
 	Timestamp	Timestamp1		;	// Label of Timestamp1
 	TimestampTZ	TimestampTZ1		;	// Label of TimestampTZ1
 	Text	Text1		;	// Label of Text1
+	TextList	TextList1		;	// Label of TextList1
 	Entity(Class1)	Entity1		;	// Label of Entity1
 	Entity(Class1)	Entity2		;	// Label of Entity2
 	Entity(Class1)	Entity3		;	// Label of Entity3
@@ -77,6 +78,7 @@ Dictionary	Class2	(Key1, Key2)
 	Timestamp	Timestamp1		;	// Label of Timestamp1
 	TimestampTZ	TimestampTZ1		;	// Label of TimestampTZ1
 	Text	Text1		;	// Label of Text1
+	TextList	TextList1		;	// Label of TextList1
 	Entity(Class1)	Entity1		;	// Label of Entity1
 	Entity(Class1)	Entity2		;	// Label of Entity2
 	Entity(Class1)	Entity3		;	// Label of Entity3
