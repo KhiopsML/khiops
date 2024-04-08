@@ -1,47 +1,71 @@
-{% set version_match = load_file_regex(load_file="src/Learning/KWUtils/KWKhiopsVersion.h", regex_pattern="(\\d+\\.\\d+\\.\\d+)") %}
-{% set name = "khiops-bin" %}
-
 package:
-  name: "{{ name }}"
-  version: "{{ version_match.groups()[0] }}"
+  name: khiops-core
+  version: {{ os.environ.get('KHIOPS_VERSION') }}
 
 source:
   path: ../../
 
 build:
   number: 0
-  include_test: False
+  script_env:
+    # Variables for signing the MODL executables in osx-arm64.
+    {% if "KHIOPS_APPLE_CERTIFICATE_COMMON_NAME" in os.environ %}
+    - KHIOPS_APPLE_CERTIFICATE_COMMON_NAME # [osx]
+    # Only available when "KHIOPS_APPLE_CERTIFICATE_BASE64" is defined in the environment.
+    {% if "KHIOPS_APPLE_CERTIFICATE_BASE64" in os.environ %}
+    - KHIOPS_APPLE_CERTIFICATE_BASE64      # [osx]
+    - KHIOPS_APPLE_CERTIFICATE_PASSWORD    # [osx]
+    - KHIOPS_APPLE_TMP_KEYCHAIN_PASSWORD   # [osx]
+    {% endif %}
+    {% endif %}
+  # Binary relocation of MODL and MODL_Coclustering is done in build.sh script
+  # This is to be able to sign it, see the script for more details.
+  # Only done when "KHIOPS_APPLE_CERTIFICATE_COMMON_NAME is defined in the environment.
+  {% if "KHIOPS_APPLE_CERTIFICATE_COMMON_NAME" in os.environ %}
+  binary_relocation: false               # [osx]
+  detect_binary_files_with_prefix: false # [osx]
+  {% endif %}
 
+# Note on version pinning:
+# OSX:
+# - mpich=3.4.3 because 4.* is still unstable
+# - requires conda-forge
+# Linux:
+# - mpich=4.0.3 because of bugs of the 3.* series
+# - requires conda-forge
 requirements:
   build:
-    - mpich # [not win]
-    - msmpi # [win]
+    - mpich 4.0.3        # [linux]
+    - mpich-mpicc  4.0.3 # [linux]
+    - mpich-mpicxx 4.0.3 # [linux]
+    - mpich 3.4.3        # [osx]
+    - mpich-mpicc  3.4.3 # [osx]
+    - mpich-mpicxx 3.4.3 # [osx]
+    - msmpi              # [win]
     - cmake
-    - ninja # [win]
+    - ninja
     - {{ compiler('cxx') }}
   host:
-    - mpich # [not win]
-    - msmpi # [win]
+    - mpich 4.0.3        # [linux]
+    - mpich-mpicxx 4.0.3 # [linux]
+    - mpich 3.4.3        # [osx]
+    - mpich-mpicxx 3.4.3 # [osx]
+    - msmpi              # [win]
   run:
-    - mpich # [not win]
-    - msmpi # [win]
+    - mpich 4.0.3   # [linux]
+    - mpich 3.4.3   # [osx]
+    - msmpi         # [win]
 
 outputs:
- - name: "{{ name }}"
-   build:
-     activate_in_script: True
-   script: install-khiops.sh   # [not win]
-   script: install-khiops.bat  # [win]
-
-test:
-  commands:
-    - MODL -v
-    - MODL_Coclustering -v
+  - name: khiops-core
+    test:
+      commands:
+        - MODL -v
+        - MODL_Coclustering -v
 
 about:
-  home: www.khiops.org
+  home: https://khiops.org
   license: BSD+3-clause
-  license_file: LICENSE
-  summary: "Khiops is a data preparation and scoring tool for supervised learning and unsupervised learning"
-  doc_url: "https://www.khiops.com"
-  dev_url: "https://gitlab.com/khiops/khiops"
+  summary: Khiops is an AutoML suite for supervised and unsupervised learning
+  doc_url: https://khiops.org
+  dev_url: https://github.com/khiopsml/khiops
