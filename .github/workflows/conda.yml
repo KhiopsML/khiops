@@ -30,11 +30,13 @@ jobs:
         include:
           # We use the oldest ubuntu available to have forward compatibility of the libc
           - os: ubuntu-20.04
-            os-family: linux
+            os-family: linux-64
           - os: windows-2022
-            os-family: windows
+            os-family: win-64
           - os: macos-13
-            os-family: macos
+            os-family: osx-64
+          - os: macos-14
+            os-family: osx-arm64
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout Sources
@@ -86,13 +88,14 @@ jobs:
       fail-fast: false
       matrix:
         env:
-          - {os: ubuntu-20.04, os-family: linux}
-          - {os: ubuntu-22.04, os-family: linux}
-          - {os: windows-2019, os-family: windows}
-          - {os: windows-2022, os-family: windows}
-          - {os: macos-11, os-family: macos}
-          - {os: macos-12, os-family: macos}
-          - {os: macos-13, os-family: macos}
+          - {os: ubuntu-20.04, os-family: linux-64}
+          - {os: ubuntu-22.04, os-family: linux-64}
+          - {os: windows-2019, os-family: win-64}
+          - {os: windows-2022, os-family: win-64}
+          - {os: macos-11, os-family: osx-64}
+          - {os: macos-12, os-family: osx-64}
+          - {os: macos-13, os-family: osx-64}
+          - {os: macos-14, os-family: osx-arm64}
     runs-on: ${{ matrix.env.os }}
     steps:
       - name: Install Miniconda
