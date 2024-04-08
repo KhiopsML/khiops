@@ -9,7 +9,7 @@
 
 #include "KNITest.h"
 #include "TestServices.h"
-#include "../../src/Learning/KNITransfer/KNIRecodeFile.cpp"
+#include "../../../src/Learning/KNITransfer/KNIRecodeFile.cpp"
 
 #define MAXITER 1000
 #define MAXBUFFERSIZE 1000
@@ -199,7 +199,7 @@ void TestIris()
 
 	sTestPath = FileService::GetPathName(__FILE__);
 	sDictionaryPath = FileService::BuildFilePathName(sTestPath, "ModelingIris.kdic");
-	sDataPath = FileService::BuildFilePathName(sTestPath, "../LearningTest/datasets/Iris/Iris.txt");
+	sDataPath = FileService::BuildFilePathName(sTestPath, "../../LearningTest/datasets/Iris/Iris.txt");
 	sOutputPath = sTestPath + "results" + FileService::GetFileSeparator() + "R_Iris.txt";
 	sRefFilePath = sTestPath + "results.ref" + FileService::GetFileSeparator() + "R_Iris.txt";
 
@@ -232,8 +232,8 @@ void TestAdult()
 	boolean bOk;
 
 	sTestPath = FileService::GetPathName(__FILE__);
-	sDictionaryPath = FileService::BuildFilePathName(sTestPath, "../LearningTest/datasets/Adult/Adult.kdic");
-	sDataPath = FileService::BuildFilePathName(sTestPath, "../LearningTest/datasets/Adult/Adult.txt");
+	sDictionaryPath = FileService::BuildFilePathName(sTestPath, "../../LearningTest/datasets/Adult/Adult.kdic");
+	sDataPath = FileService::BuildFilePathName(sTestPath, "../../LearningTest/datasets/Adult/Adult.txt");
 	sOutputPath = sTestPath + "results" + FileService::GetFileSeparator() + "R_Adult.txt";
 
 	// Test de deploiement
@@ -246,20 +246,20 @@ void TestAdult()
 
 	// Saut du header
 	FileService::OpenInputBinaryFile(sDataPath, fRef);
-	ch = getc(fRef);
+	ch = (char)getc(fRef);
 	while (ch != '\n' and ch != EOF)
 	{
-		ch = getc(fRef);
+		ch = (char)getc(fRef);
 	}
 
 	// Copie du fichier tel quel
 	sRefFilePath = sTestPath + "results" + FileService::GetFileSeparator() + "ref_Adult.txt";
 	FileService::OpenOutputBinaryFile(sRefFilePath, fWithoutHeader);
-	ch = getc(fRef);
+	ch = (char)getc(fRef);
 	while (ch != EOF)
 	{
 		putc(ch, fWithoutHeader);
-		ch = getc(fRef);
+		ch = (char)getc(fRef);
 	}
 	FileService::CloseInputBinaryFile(sDataPath, fRef);
 	FileService::CloseOutputBinaryFile(sRefFilePath, fWithoutHeader);

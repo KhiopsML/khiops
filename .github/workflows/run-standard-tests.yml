@@ -48,21 +48,29 @@ jobs:
         uses: ./.github/actions/build-khiops
         with:
           preset-name: ${{ env.PRESET_NAME }}
-      - name: Cache binaries
-        id: cache-binaries-unix
+      - name: Cache binaries (windows)
+        id: cache-binaries-windows
+        if: ${{ runner.os == 'Windows' }}
         uses: actions/cache@v3
         with:
           # We add binaries path one by one to avoid *.pdb and other msvc stuffs that generate a cache of 200Mo for windows
           path: |
-            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/MODL
-            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/MODL_Coclustering
-            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/KNITransfer
             ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/MODL.exe
             ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/MODL_Coclustering.exe
             ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/KNITransfer.exe
             ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/KhiopsNativeInterface.dll
-            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/lib/libKhiopsNativeInterface.*
             ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/lib/KhiopsNativeInterface.lib
+          key: ${{ github.run_id }}-${{ matrix.build-setup.os }}-${{ env.PRESET_NAME
+            }}
+          fail-on-cache-miss: false
+      - name: Cache binaries (macOS, Linux)
+        id: cache-binaries-unix
+        if: ${{ runner.os != 'Windows' }}
+        uses: actions/cache@v3
+        with:
+          path: |
+            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/*          
+            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/lib/libKhiopsNativeInterface.*
           key: ${{ github.run_id }}-${{ matrix.build-setup.os }}-${{ env.PRESET_NAME
             }}
           fail-on-cache-miss: false
@@ -83,23 +91,36 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
-      - name: Restore cached binaries
-        id: restore-binaries
+      - name: Restore cached binaries (windows)
+        if: ${{ runner.os == 'Windows' }}
+        id: restore-binaries-windows
         uses: actions/cache/restore@v3
         with:
           path: |
-            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/MODL
-            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/MODL_Coclustering
-            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/KNITransfer
             ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/MODL.exe
             ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/MODL_Coclustering.exe
             ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/KNITransfer.exe
             ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/KhiopsNativeInterface.dll
-            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/lib/libKhiopsNativeInterface.*
             ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/lib/KhiopsNativeInterface.lib
           key: ${{ github.run_id }}-${{ matrix.build-setup.os }}-${{ env.PRESET_NAME
             }}
           fail-on-cache-miss: true
+      - name: Restore cached binaries (macOS, Linux)
+        if: ${{ runner.os != 'Windows' }}
+        id: restore-binaries
+        uses: actions/cache/restore@v3
+        with:
+          path: |
+            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/*           
+            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/lib/libKhiopsNativeInterface.*
+          key: ${{ github.run_id }}-${{ matrix.build-setup.os }}-${{ env.PRESET_NAME
+            }}
+          fail-on-cache-miss: true
+      - name: Rename mpi binaries
+        if: ${{ runner.os == 'Linux' }}
+        shell: bash
+        run: |
+          mv ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/MODL_openmpi ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/MODL
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
@@ -134,8 +155,6 @@ jobs:
       # - In release run all Standard tests
         shell: bash
         run: |
-          export OMPI_MCA_orte_execute_quiet=true
-          export OMPI_MCA_rmaps_base_oversubscribe=true
           if [[ "${{ matrix.build-setup.os }}"  == 'windows-2022' ]]; then
             export EXT=".exe"
           fi
@@ -159,6 +178,7 @@ jobs:
         shell: bash
         if: success() || failure()
         run: |
+          mkdir results
           if [[ "${{ matrix.config }}" == "release" ]] ; then
             python $APPLY_PY test/LearningTest/TestKhiops/Standard errors | tee -a results/errors.txt
             if [[ "${{ matrix.running-mode }}" != "parallel" ]] ; then

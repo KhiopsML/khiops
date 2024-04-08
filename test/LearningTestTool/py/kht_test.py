@@ -17,7 +17,7 @@ if os.name == "nt":
     mpi_exe_name = "mpiexec.exe"
 # mpiexec sous Linux
 else:
-    mpi_exe_name = "mpiexec"
+    mpi_exe_name = "mpirun"
 
 
 def build_tool_exe_path(tool_binaries_dir, tool_name):
@@ -274,10 +274,19 @@ def evaluate_tool_on_test_dir(
             khiops_params.append(mpi_exe_name)
             # Option -l, specifique a mpich, valide au moins pour Windows:
             #    "Label standard out and standard error (stdout and stderr) with the rank of the process"
-            khiops_params.append("-l")
+            if platform.system() == "Windows":
+                khiops_params.append("-l")
             if platform.system() == "Darwin":
                 khiops_params.append("-host")
                 khiops_params.append("localhost")
+            # Options specifiques a Open MPI
+            if platform.system() == "Linux":
+                # permet de lancer plus de processus qu'il n'y a de coeurs
+                khiops_params.append("--oversubscribe")
+                # permet de lancer en tant que root
+                khiops_params.append("--allow-run-as-root ")
+                # Ajoute le rang du processus dans les traces
+                khiops_params.append("--tag-output")
             khiops_params.append("-n")
             khiops_params.append(str(tool_process_number))
         khiops_params.append(tool_exe_path)
@@ -389,7 +398,8 @@ def evaluate_tool_on_test_dir(
             lines = utils.filter_copyright_lines(
                 lines
             )  # Supression eventuelle des lignes de copyright
-            lines = utils.filter_empty_lines(lines)  # Suopression des lignes vides
+            # Suopression des lignes vides
+            lines = utils.filter_empty_lines(lines)
 
             # Pour les test KNI, le stdout contient une ligne avec le nombre de records
             if is_kni:

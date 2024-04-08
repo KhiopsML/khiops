@@ -66,13 +66,17 @@ boolean FileCompareForTest(const ALString& sFileNameReference, const ALString& s
 	boolean bOk1;
 	boolean bOk2;
 	boolean bSame = true;
-	const char sys[] = "SYS";
+	const char sSys[] = "SYS";
 	int nLineIndex;
-	const int sizeMax = 512;
-	char lineRef[sizeMax];
-	char lineTest[sizeMax];
+	const int nMaxSize = 5000; // Permet de stocker un path tres long
+	char lineRef[nMaxSize];
+	char lineTest[nMaxSize];
+	ALString sLineTest;
+	ALString sLineRef;
+	int nLineLength;
 	const ALString sRootDir = GetRootDir();
 	const ALString sTmpDir = FileService::GetTmpDir();
+	int nPos;
 
 	// Initialisations
 	bOk1 = false;
@@ -94,50 +98,70 @@ boolean FileCompareForTest(const ALString& sFileNameReference, const ALString& s
 	}
 
 	// Ouverture des fichiers
-	bOk1 = FileService::OpenInputBinaryFile(sFileNameReference, fileRef);
-	if (bOk1)
+	fileRef = p_fopen(sFileNameReference, "r");
+	if (fileRef == NULL)
 	{
-		bOk2 = FileService::OpenInputBinaryFile(sFileNameTest, fileTest);
-		if (not bOk2)
-		{
-			fclose(fileRef);
-			return false;
-		}
+		cout << "Unable to open ref file" << endl;
+		return false;
+	}
+
+	fileTest = p_fopen(sFileNameTest, "r");
+	if (not fileTest)
+	{
+		fclose(fileRef);
+		return false;
 	}
 
 	// Comparaison ligne par ligne
-	if (bOk1 and bOk2)
+	nLineIndex = 0;
+	while (fgets(lineRef, sizeof(lineRef), fileRef) != NULL)
 	{
-		nLineIndex = 0;
-		while (fgets(lineRef, sizeof(lineRef), fileRef) != NULL)
+		nLineIndex++;
+
+		// Si il manque des lignes, il y a une erreur
+		if (fgets(lineTest, sizeof(lineTest), fileTest) == NULL)
 		{
-			nLineIndex++;
-			if (fgets(lineTest, sizeof(lineTest), fileTest) == NULL)
-			{
-				bSame = false;
-				break;
-			}
-
-			// Remplacement du repêrtoire de travail par @ROOT_DIR@
-			// du repertoire temporaire par @TMP_DIR@
-			// et du separateur windows par le separateur unix
-			SearchAndReplace(lineTest, sRootDir, "@ROOT_DIR@");
-			SearchAndReplace(lineTest, sTmpDir, "@TMP_DIR@");
-			SearchAndReplace(lineTest, "\\", "/");
-
-			// Si les 2 lignes sont differentes et qu'elles ne commencent pas toutes
-			// les 2 par SYS, les fichiers sont differents
-			if (not(memcmp(lineRef, sys, strlen(sys) - 1) == 0 and
-				memcmp(lineTest, sys, strlen(sys) - 1) == 0) and
-			    (strcmp(lineRef, lineTest) != 0))
-			{
-				bSame = false;
-				break;
-			}
+			bSame = false;
+			break;
 		}
 
+		// Nettoyage des fin de ligne avant de passer aux ALString
+		nLineLength = (int)strlen(lineTest);
+		if (nLineLength > 0 and lineTest[nLineLength - 1] == '\n')
+			lineTest[nLineLength - 1] = '\0';
+		nLineLength = (int)strlen(lineRef);
+		if (nLineLength > 0 and lineRef[nLineLength - 1] == '\n')
+			lineRef[nLineLength - 1] = '\0';
+		sLineTest = ALString(lineTest);
+		sLineRef = ALString(lineRef);
+
+		// Remplacement du repertoire de travail par @ROOT_DIR@
+		// du repertoire temporaire par @TMP_DIR@
+		SearchAndReplace(sLineTest, sRootDir, "@ROOT_DIR@");
+		SearchAndReplace(sLineTest, sTmpDir, "@TMP_DIR@");
+
+		// On cherche la premiere occurence de 'SYS' dans la ligne de ref
+		nPos = sLineRef.Find(sSys);
+
+		// Est-ce que les lignes sont identiques ?
+		bSame = strncmp(sLineRef, sLineTest, nPos) == 0;
+
+		// Si les 2 lignes sont differentes (jusqu'au token SYS)
 		if (not bSame)
-			cout << endl << "error at line " << nLineIndex << endl << "=> " << lineTest << endl;
+		{
+			// On remplace le separateur windows par le separateur unix pour etre
+			// tolerant dans les chemins et on compare a nouveau les lignes
+			SearchAndReplace(sLineTest, "\\", "/");
+			bSame = strncmp(sLineRef, sLineTest, nPos) == 0;
+			if (not bSame)
+				break;
+		}
+	}
+	if (not bSame)
+	{
+		cout << endl << "error at line " << nLineIndex << endl;
+		cout << "Ref:  " << sLineRef << endl;
+		cout << "Test: " << sLineTest << endl;
 	}
 
 	// Fermeture des fichiers
@@ -184,7 +208,9 @@ boolean TestAndCompareResults(const char* sTestPath, const char* test_suite, con
 	ALString sFileName;
 	FILE* stream;
 	int fdInit;
-	int fd;
+
+	// On passe en mode batch pour avoir des parametres par defaut, sans interaction utilisateur
+	SetAcquireBatchMode(true);
 
 	// Nommmage du ficher de sortie d'apres test suit et test name de googleTest
 	sFileName = sTmp + test_suite + "_" + test_name + ".txt";
@@ -219,6 +245,8 @@ boolean TestAndCompareResults(const char* sTestPath, const char* test_suite, con
 	bOk = FileCompareForTest(sTmp + sTestPath + "results.ref" + FileService::GetFileSeparator() + sFileName,
 				 sTestFileName);
 
+	// Restitution du mode standard
+	SetAcquireBatchMode(false);
 	EXPECT_TRUE(bOk);
 	return true;
 }

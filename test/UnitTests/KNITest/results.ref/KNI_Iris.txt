@@ -1,7 +1,7 @@
 Begin test KNI
 SYS KNI version: 110
 SYS KNI full version: 10.1.5
-Open stream @ROOT_DIR@/test/KNITest/ModelingIris.kdic SNB_Iris: 1
+Open stream @ROOT_DIR@/UnitTests/KNITest/ModelingIris.kdic SNB_Iris: 1
 Recode stream record Iris-setosa	Iris-setosa	0.9960418693	0.001979090503	0.001979040221: 0
 Recode stream record Iris-virginica	Iris-virginica	0.00198971666	0.03512915094	0.9628811324: 0
 Recode invalid stream record : -14
@@ -14,12 +14,12 @@ Recode stream record with negative output size : -15
 Wrong parameter tests
 Open stream with NULL dictionary file NULL SNB_Iris: -2
 Open stream with missing dictionary file WrongFile SNB_Iris: -3
-Open stream with invalid dictionary file @ROOT_DIR@/test/KNITest/../LearningTest/datasets/Iris/Iris.txt SNB_Iris: -4
-Open stream with NULL dictionary @ROOT_DIR@/test/KNITest/ModelingIris.kdic NULL: -5
-Open stream with missing dictionary @ROOT_DIR@/test/KNITest/ModelingIris.kdic WrongDic: -6
-Open stream with NULL header line @ROOT_DIR@/test/KNITest/ModelingIris.kdic SNB_Iris: -8
-Open stream with bad header line @ROOT_DIR@/test/KNITest/ModelingIris.kdic SNB_Iris: -23
-Open stream with eol separator @ROOT_DIR@/test/KNITest/ModelingIris.kdic SNB_Iris: -9
+Open stream with invalid dictionary file @ROOT_DIR@/UnitTests/KNITest/../../LearningTest/datasets/Iris/Iris.txt SNB_Iris: -4
+Open stream with NULL dictionary @ROOT_DIR@/UnitTests/KNITest/ModelingIris.kdic NULL: -5
+Open stream with missing dictionary @ROOT_DIR@/UnitTests/KNITest/ModelingIris.kdic WrongDic: -6
+Open stream with NULL header line @ROOT_DIR@/UnitTests/KNITest/ModelingIris.kdic SNB_Iris: -8
+Open stream with bad header line @ROOT_DIR@/UnitTests/KNITest/ModelingIris.kdic SNB_Iris: -23
+Open stream with eol separator @ROOT_DIR@/UnitTests/KNITest/ModelingIris.kdic SNB_Iris: -9
 Recode with wrong stream : -10
 Close wrong stream (-1): -10
 Close wrong stream (0): -10
@@ -30,7 +30,7 @@ SYS	=> stream index 317
 	=> Error -22
 Muliple close stream
 
-Recode records of @ROOT_DIR@/test/KNITest/../LearningTest/datasets/Iris/Iris.txt to @ROOT_DIR@/test/KNITest/results/R_Iris.txt
+Recode records of @ROOT_DIR@/UnitTests/KNITest/../../LearningTest/datasets/Iris/Iris.txt to @ROOT_DIR@/UnitTests/KNITest/results/R_Iris.txt
 Recoded record number: 150
 
 End test KNI
