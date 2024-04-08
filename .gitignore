@@ -15,12 +15,9 @@ build/
 CMakeFiles/
 
 # Test exceptions
-test/*/results/
-LearningTest/*/*/*/results/
-LearningTest/*/*/*/results.ref/time.log
-
-# LearningTest 
-results/
-__pycache__/
+test/UnitTests/*/results/
+test/LearningTest/*/*/*/results/
 comparisonResults.log
 
+# Python
+*.pyc

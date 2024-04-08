@@ -1,10 +1,47 @@
 import os.path
 import re
 
-from test_dir_management import *
+import _kht_constants as kht
+import _kht_utils as utils
+import _kht_results_management as results
+
+"""
+Verification des resultats d'un repertoire de test terminal
+
+La comparaison est effectue entre les resultats de test, et les resultats de reference
+correspondant au contexte en cours (plateforme, parallel ou sequuentiel...).
+Elle se fait sur tous les ficgier du repertoire de facon hierarchique
+- nombre de fichier de chaque repertoire
+- noms des fichiers
+- pour chaque fichier
+  - nombre de ligne
+  - contenu
+    - comparaison des lignes
+      - si necessaire, comparaison des champs des lignes, pour un separateur tabulation
+        - si necessaire, comparaions des tokens du champs,
+          dans le cas de la tokenisation d'un fichier json ou kdic
+
+La comparaison se fait en etant tolerant aux variations 'normales' selon le contexte d'execution
+- il peut y avoir des resultats de reference different selon le contexte
+- on filtre prealablement certaines informations non presentes systematiquement
+  - copyright
+  - prefix de type '[0] ' lie au process, genere par mpiexec en parallele
+  - statistique sur la memoire ne mode debug
+  ...
+- il y a une tolerance sur les valeur numeriques, ce qui entraine alors des warning et non des erreurs
+- ...
+
+En cas d'erreurs residuelles, plusieurs strategies de recouvrement des erreurs sont utilises,
+a differents moments du processus de comparaison
+- tolerance sur echec de scenario, si cela correspond au resultats de reference
+- tolerance aux noms de fichier utilisant des caracteres accentues systeme dependant
+- tolerance sur les messages d'erreurs differents en parallele et en sequentiel
+- tolerance sur les message d'erreur lies au manque de ressource
+...
+"""
 
 # Nom du fichier de comparaison
-COMPARISON_LOG_FILE_NAME = COMPARISON_RESULTS_LOG
+COMPARISON_LOG_FILE_NAME = kht.COMPARISON_RESULTS_LOG
 
 # Constantes de la section SUMMARY des fichiers de log des resultats de comparaison
 SUMMARY_TITLE = "SUMMARY"
@@ -15,145 +52,165 @@ SUMMARY_NOTE_KEY = "Note: "
 SUMMARY_PORTABILITY_KEY = "Portability: "
 
 # Constantes pour la gestion des fichiers speciaux, par priorite decroissante
-SUMMARY_TIMOUT_ERROR_KEY = "TIMOUT ERROR"
+SUMMARY_TIMEOUT_ERROR_KEY = "TIMEOUT ERROR"
 SUMMARY_FATAL_ERROR_KEY = "FATAL ERROR"
 SUMMARY_UNEXPECTED_OUTPUT_KEY = "UNEXPECTED OUTPUT"
 SUMMARY_SPECIAL_FILE_KEYS = [
-    SUMMARY_TIMOUT_ERROR_KEY,
+    SUMMARY_TIMEOUT_ERROR_KEY,
     SUMMARY_FATAL_ERROR_KEY,
     SUMMARY_UNEXPECTED_OUTPUT_KEY,
 ]
 
 # Association entre type de fichier special et cle de gestion dans le resume
-SUMMARY_SPECIAL_FILE_KEYS_PER_FILE = {}
-SUMMARY_SPECIAL_FILE_KEYS_PER_FILE[STDOUT_ERROR_LOG] = SUMMARY_UNEXPECTED_OUTPUT_KEY
-SUMMARY_SPECIAL_FILE_KEYS_PER_FILE[STDERR_ERROR_LOG] = SUMMARY_UNEXPECTED_OUTPUT_KEY
-SUMMARY_SPECIAL_FILE_KEYS_PER_FILE[PROCESS_TIMEOUT_ERROR_LOG] = SUMMARY_TIMOUT_ERROR_KEY
-SUMMARY_SPECIAL_FILE_KEYS_PER_FILE[RETURN_CODE_ERROR_LOG] = SUMMARY_FATAL_ERROR_KEY
-assert len(SUMMARY_SPECIAL_FILE_KEYS_PER_FILE) == len(SPECIAL_ERROR_FILES)
+SUMMARY_SPECIAL_FILE_KEYS_PER_FILE = {
+    kht.STDOUT_ERROR_LOG: SUMMARY_UNEXPECTED_OUTPUT_KEY,
+    kht.STDERR_ERROR_LOG: SUMMARY_UNEXPECTED_OUTPUT_KEY,
+    kht.PROCESS_TIMEOUT_ERROR_LOG: SUMMARY_TIMEOUT_ERROR_KEY,
+    kht.RETURN_CODE_ERROR_LOG: SUMMARY_FATAL_ERROR_KEY,
+}
+assert len(SUMMARY_SPECIAL_FILE_KEYS_PER_FILE) == len(kht.SPECIAL_ERROR_FILES)
+
+# Ensemble des cle pouvant se trouver dans le resume
+ALL_SUMMARY_KEYS = [
+    SUMMARY_WARNING_KEY,
+    SUMMARY_ERROR_KEY,
+    SUMMARY_FILE_TYPES_KEY,
+    SUMMARY_PORTABILITY_KEY,
+] + SUMMARY_SPECIAL_FILE_KEYS
+assert len(set(ALL_SUMMARY_KEYS)) == len(ALL_SUMMARY_KEYS), (
+    "Summary keys " + str(ALL_SUMMARY_KEYS) + " must not contain duplicates"
+)
 
 
-def write_message(message, log_file=None, show=False):
-    """Ecriture d'un message dans un fichier de log
-    Ecriture dans un fichier de log selon le le parametre log_file
-    Affichage sur la console selon le parametre show
-    Si ni log_file, ni show ne sont specifier, la methode est en mode silencieux
+def analyse_comparison_log(test_dir):
     """
-    cleaned_message = message.encode(encoding="utf-8", errors="ignore").decode(
-        encoding="utf-8"
-    )
-    if show:
-        print(cleaned_message)
-    # on encode en utf-8 en ignorant les erreurs pour eviter un erreur lors de l'encodage automatique
-    if log_file is not None:
-        log_file.write(cleaned_message + "\n")
-
-
-def read_file_lines(file_path, log_file=None, show=False):
-    """Chargement en memoire des lignes d'un fichier
-    Retourne la liste des fichier si ok, None sinon
-    Ecrit un message dans le log en cas d'erreur
+    Analyse du log de comparaison des resultats de test et de reference
+    present dans un repertoire de test
+    Renvoie:
+    - error_number
+      Le nombre d'erreurs deduit du resume
+    - warning_number
+      Le nombre de warnings deduit du resume
+    - summary_infos:
+      Un dictionnaire par avec une ligne de texte par cle de resume (ALL_SUMMARY_KEYS)
+    - files_infos:
+      Un dictionaire par nom de fichier contenant le resultat de la comparaison
+      pour ce fichier, sous la forme d'un texte potentiellement multi-lignes
+      Ce texte contient 'OK' uniquement si aucun problme n'est detecte
+      Il contient des lignes de texte, dont certain sont potentiellement prefixes par 'warning: '
+      ou 'error : ' sinon
+    Si le log de comparaison n'est pas disponible ou exploitable, on retourne une erreur
     """
-    # lecture des lignes du fichier
-    try:
-        with open(file_path, "r", errors="ignore") as file:
-            file_lines = file.readlines()
-    except BaseException as exception:
-        write_message(
-            "Error : can't open file " + file_path + " (" + str(exception) + ")",
-            log_file=log_file,
-            show=show,
-        )
-        file_lines = None
-    return file_lines
 
+    def extract_number(message):
+        assert message != ""
+        fields = message.split()
+        assert fields[0].isdigit()
+        number = int(fields[0])
+        return number
 
-def write_file_lines(
-    file_path, file_lines, striped_lines_suffix="\n", log_file=None, show=False
-):
-    """Ecriture d'une liste de ligne dans un fichier
-    Ajoute un suffix aux lignes sans caractere fin de ligne
-    Ecrit un message dans le log en cas d'erreur
-    """
-    # lecture des lignes du fichier
-    try:
-        with open(file_path, "w", errors="ignore") as file:
-            for line in file_lines:
-                file.write(line)
-                if len(line) == 0 or line[-1] != "\n":
-                    file.write(striped_lines_suffix)
-    except BaseException as exception:
-        write_message(
-            "Error : can't open output file " + file_path + " (" + str(exception) + ")",
-            log_file=log_file,
-            show=show,
-        )
+    utils.check_test_dir(test_dir)
 
+    # Initialisation des resultats
+    error_number = 0
+    warning_number = 0
+    summary_infos = {}
+    files_infos = {}
 
-def find_in_lines(lines, substring):
-    """Recherche d'une chaine de caractere parmi un ensemble de lignes
-    Renvoie l'index de la premiere ligne dans laquelle la chaine apparait, -1 sinon"""
-    for i, line in enumerate(lines):
-        if line.find(substring) >= 0:
-            return i
-    return -1
-
-
-def append_message(initial_messages, message):
-    """Ajout d'un message a un message existant, en ajoutant si necessaire ', '
-     pour separer les messages si les deux sont non vides
-    Retourne un message complete du nouveau message"""
-    if message == "":
-        return initial_messages
-    elif initial_messages == "":
-        return message
+    # Traitement des erreurs memorisee dans le log
+    log_file_path = os.path.join(test_dir, kht.COMPARISON_RESULTS_LOG)
+    if not os.path.isfile(log_file_path):
+        # Erreur speciale si pas de fichier de comparaison
+        error_number = 1
+        summary_infos[SUMMARY_NOTE_KEY] = "The test has not been launched"
     else:
-        return initial_messages + ", " + message
+        try:
+            with open(log_file_path, "r", errors="ignore") as log_file:
+                lines = log_file.readlines()
+        except Exception as exception:
+            # Erreur speciale si probleme de lecture du fichier de comparaison
+            lines = None
+            error_number = 1
+            summary_infos[SUMMARY_NOTE_KEY] = (
+                "Unable to read file " + kht.COMPARISON_RESULTS_LOG + str(exception)
+            )
+        # Analyse du contenu du fichier
+        file_pattern = "file "
+        if lines is not None:
+            index = 0
+            while index < len(lines):
+                line = lines[index]
+                index += 1
+                line = line.strip()
+
+                # Analyse des lignes concernant chaque fichier avant le resume
+                if line.find(file_pattern) == 0:
+                    file_path = line[len(file_pattern) :]
+                    file_name = os.path.basename(file_path)
+                    file_info = ""
+                    while index < len(lines):
+                        line = lines[index]
+                        index += 1
+                        line = line.strip()
+                        if line == "":
+                            break
+                        else:
+                            if file_info != "":
+                                file_info += "\n"
+                            file_info += line
+                    files_infos[file_name] = file_info
+                    continue
+
+                # Analyse du resume jsuq'u la fin du fichier si debut de resume trouve
+                if line == SUMMARY_TITLE:
+                    while index < len(lines):
+                        line = lines[index]
+                        index += 1
+                        line = line.strip()
+                        for key in ALL_SUMMARY_KEYS:
+                            if line.find(key) >= 0:
+                                summary_infos[key] = line
+                                if key == SUMMARY_WARNING_KEY:
+                                    warning_number = extract_number(line)
+                                elif key == SUMMARY_ERROR_KEY:
+                                    error_number = extract_number(line)
+
+            # Erreur speciale si le resume n'est pas trouve
+            if len(summary_infos) == 0:
+                assert error_number == 0
+                error_number = 1
+                specific_message = (
+                    "Section '"
+                    + SUMMARY_TITLE
+                    + "' not found in "
+                    + kht.COMPARISON_RESULTS_LOG
+                )
+                summary_infos[SUMMARY_NOTE_KEY] = specific_message
+    # Retour des resultats
+    return error_number, warning_number, summary_infos, files_infos
 
 
-# Parsers en variables globales, compiles une seule fois
-token_parser = None
-time_parser = None
-numeric_parser = None
+def check_results(test_dir, forced_context=None):
+    """
+    Fonction principale de comparaison des resultats de test et de reference
+     Les fichiers sont compares 2 a 2 et la synthese de la comparaison est ecrite
+     dans un fichier de log, avec un resume en fin de fichier, facile a parser
+    On retourne True s'il n'y a aucune erreur
 
-
-def initialize_parsers():
-    """Initialisation des parsers globaux"""
-    global token_parser
-    global time_parser
-    global numeric_parser
-    if token_parser is not None:
-        return
-    # Delimiters pour els fichiers json et kdic
-    delimiters = ["\,", "\{", "\}", "\[", "\]", "\:", "\(", "\)", "\<", "\>", "\="]
-    numeric_pattern = "-?[0-9]+\.?[0-9]*(?:[Ee]-?[0-9]+)?"
-    string_pattern = (
-        '"[^"]*"'  # Sans les double-quotes dans les strings (dur a parser...)
-    )
-    time_pattern = "\d{1,2}:\d{2}:\d{2}\.?\d*"
-    other_tokens = "[\w]+"
-    tokens = time_pattern + "|" + numeric_pattern + "|" + string_pattern
-    for delimiter in delimiters:
-        tokens += "|" + delimiter
-    tokens += "|" + other_tokens
-    token_parser = re.compile(tokens)
-    numeric_parser = re.compile(numeric_pattern)
-    time_parser = re.compile(time_pattern)
-
-
-def check_results(test):
-    """Compare les fichiers de resultats de test et de reference 2 a 2
-    et ecrit les resultats dans le fichier de log"""
-
-    assert os.path.isdir(test)
-    test_full_path = os.path.join(os.getcwd(), test)
+    Le parametrage d'un contexte force en entree permete d'effectuer la comparaison avec
+    un contexte (parallel|sequential, platform) alternatif. Dans ce cas:
+    - l'objectif est essentiellement de renvoyer un indicateur global de succes de la comparaison
+    - on n'ecrit pas de fichier de comparaison
+    """
+    utils.check_test_dir(test_dir)
 
     # Initialisation des stats de comparaison
     special_error_file_error_numbers = {}
-    for file_name in SPECIAL_ERROR_FILES:
+    for file_name in kht.SPECIAL_ERROR_FILES:
         special_error_file_error_numbers[file_name] = 0
     error_number = 0
-    warnings_number = 0
+    warning_number = 0
+    user_message_warning_number = 0
     compared_files_number = 0
     error_number_in_err_txt = 0
     error_number_per_extension = {}
@@ -162,65 +219,76 @@ def check_results(test):
     erroneous_test_file_lines = {}
     erroneous_file_names = []
     extension_message = ""
-    recovery_message = ""
     specific_message = ""
     portability_message = ""
+    recovery_message = ""
 
-    # Ouverture du fichier de log de comparaison
-    log_file_path = os.path.join(test_full_path, COMPARISON_LOG_FILE_NAME)
-    try:
-        log_file = open(log_file_path, "w", errors="ignore")
-    except Exception as exception:
-        print("error : unable to create log file " + log_file_path, exception)
-        return
-    assert log_file is not None
-    write_message(test + " comparison", log_file=log_file)
+    # Ouverture du fichier de log de comparaison, sauf si lle contexte est force
+    log_file = None
+    if forced_context is None:
+        log_file_path = os.path.join(test_dir, COMPARISON_LOG_FILE_NAME)
+        try:
+            log_file = open(log_file_path, "w", errors="ignore")
+        except Exception as exception:
+            print("error : unable to create log file " + log_file_path, exception)
+            return
+        assert log_file is not None
+        utils.write_message(
+            utils.test_dir_name(test_dir) + " comparison", log_file=log_file
+        )
 
     # Information sur le contexte courant de comparaison des resultats
-    current_context = get_current_results_ref_context()
-    write_message(
-        "current comparison context : " + str(current_context),
-        log_file=log_file,
-    )
+    if forced_context is None:
+        current_context = results.get_current_results_ref_context()
+        utils.write_message(
+            "current comparison context : " + str(current_context),
+            log_file=log_file,
+        )
+    else:
+        current_context = forced_context
 
     # Test de presence du repertoire de test a comparer
-    test_dir = os.path.join(test_full_path, RESULTS)
-    if not os.path.isdir(test_dir):
-        write_message(
-            "error : no comparison, test directory not available (" + test_dir + ")",
+    results_dir = os.path.join(test_dir, kht.RESULTS)
+    if not os.path.isdir(results_dir):
+        utils.write_message(
+            "error : no comparison, test directory not available (" + results_dir + ")",
             log_file=log_file,
             show=True,
         )
         error_number = error_number + 1
 
     # Recherche du repertoire courant des resultats de reference
-    results_ref, candidate_dirs = get_results_ref_dir(
-        test_full_path, log_file=log_file, show=True
+    results_ref, candidate_dirs = results.get_results_ref_dir(
+        test_dir, forced_context=forced_context, log_file=log_file, show=True
     )
     if results_ref is None:
-        write_message(
-            "error : invalid " + RESULTS_REF + " dirs " + str(candidate_dirs),
+        utils.write_message(
+            "error : invalid "
+            + kht.RESULTS_REF
+            + " dirs "
+            + utils.list_to_label(candidate_dirs),
             log_file=log_file,
             show=True,
         )
         error_number = error_number + 1
     elif len(candidate_dirs) >= 2:
         portability_message = (
-            "used " + results_ref + " dir among " + str(candidate_dirs)
+            "used " + results_ref + " dir among " + utils.list_to_label(candidate_dirs)
         )
-        write_message(
+        utils.write_message(
             portability_message,
             log_file=log_file,
             show=True,
         )
 
     # Test de presence du repertoire de reference a comparer
+    results_ref_dir = ""
     if error_number == 0:
-        ref_dir = os.path.join(test_full_path, results_ref)
-        if not os.path.isdir(ref_dir):
-            write_message(
+        results_ref_dir = os.path.join(test_dir, results_ref)
+        if not os.path.isdir(results_ref_dir):
+            utils.write_message(
                 "error : no comparison, reference directory not available ("
-                + ref_dir
+                + results_ref_dir
                 + ")",
                 log_file=log_file,
                 show=True,
@@ -229,16 +297,13 @@ def check_results(test):
 
     # Comparaison effective si possible
     if error_number == 0:
-        # Initialisation des parsers
-        initialize_parsers()
-
-        # Acces aux fichiers des repertoire de reference et de test
+        # Acces aux fichiers des repertoires de reference et de test
         # On passe par le format bytes des nom de fichier pour avoir acces
         # aux fichier quelque soit la plateforme
         # - Windows ne supporte que l'utf8
         # - Linux stocke les nom directement sous la forme de bytes
-        ref_byte_file_names = os.listdir(os.fsencode(ref_dir))
-        test_byte_file_names = os.listdir(os.fsencode(test_dir))
+        ref_byte_file_names = os.listdir(os.fsencode(results_ref_dir))
+        test_byte_file_names = os.listdir(os.fsencode(results_dir))
 
         # On memorise les noms de fichiers sous forme de string pour faciliter le reporting
         # Tout en gardant l'association entre le nom python (utf8) et les nom en bytes
@@ -258,14 +323,15 @@ def check_results(test):
             file_name = os.fsdecode(byte_file_name)
             cleaned_file_name = file_name.encode("ascii", "ignore").decode("ascii")
             if cleaned_file_name != file_name:
-                write_message(
+                utils.write_message(
                     "warning : reference file name with a byte encoding ("
                     + str(byte_file_name)
-                    + ") used under utf8 name ("
+                    + ") used under ascii name ("
                     + cleaned_file_name
-                    + ")"
+                    + ")",
+                    log_file=log_file,
                 )
-                warnings_number += 1
+                warning_number += 1
                 recovery = True
             ref_file_names.append(cleaned_file_name)
             dic_ref_byte_file_names[cleaned_file_name] = byte_file_name
@@ -276,29 +342,30 @@ def check_results(test):
             file_name = os.fsdecode(byte_file_name)
             cleaned_file_name = file_name.encode("ascii", "ignore").decode("ascii")
             if cleaned_file_name != file_name:
-                write_message(
+                utils.write_message(
                     "warning : test file name with a byte encoding ("
                     + str(byte_file_name)
-                    + ") used under utf8 name ("
+                    + ") used under ascii name ("
                     + cleaned_file_name
-                    + ")"
+                    + ")",
+                    log_file=log_file,
                 )
-                warnings_number += 1
+                warning_number += 1
                 recovery = True
             test_file_names.append(cleaned_file_name)
             dic_test_byte_file_names[cleaned_file_name] = byte_file_name
 
         # Message de recuperation d'erreur si necessaire
         if recovery:
-            write_message(
+            utils.write_message(
                 "\nRecovery from errors caused by byte encoding of file names in another platform",
                 log_file=log_file,
             )
-            portability_message = append_message(
-                portability_message, "recovery of type byte enncoding of file names"
+            recovery_message = utils.append_message(
+                recovery_message, "Recovery of type byte encoding of file names"
             )
 
-        # On les tri pour ameliorer la statbilite du reporting inter plateformes
+        # On tri par nom de fichier pour ameliorer la stabilite du reporting inter plateformes
         ref_file_names.sort()
         test_file_names.sort()
 
@@ -306,14 +373,14 @@ def check_results(test):
         ref_result_file_number = len(ref_file_names)
         test_result_file_number = len(test_file_names)
         if ref_result_file_number == 0:
-            write_message(
+            utils.write_message(
                 "error : no comparison, missing reference result files",
                 log_file=log_file,
                 show=True,
             )
             error_number = error_number + 1
         elif ref_result_file_number != test_result_file_number:
-            write_message(
+            utils.write_message(
                 "\nerror : number of results files ("
                 + str(test_result_file_number)
                 + ") should be "
@@ -322,40 +389,40 @@ def check_results(test):
                 show=True,
             )
             error_number = error_number + 1
-            # Affichage des nom des fichier supplementaires
+            # Affichage des noms des fichier supplementaires
             max_file_reported = 20
             if test_result_file_number > ref_result_file_number:
                 # Message specifique en cas de fichiers en trop
-                specific_message = append_message(
+                specific_message = utils.append_message(
                     specific_message, "additional result files"
                 )
-                write_message(
-                    "Additional files in " + RESULTS + " dir:", log_file=log_file
+                utils.write_message(
+                    "Additional files in " + kht.RESULTS + " dir:", log_file=log_file
                 )
                 file_reported = 0
                 for file_name in test_file_names:
                     if file_name not in ref_file_names:
                         if file_reported < max_file_reported:
-                            write_message("\t" + file_name, log_file=log_file)
+                            utils.write_message("\t" + file_name, log_file=log_file)
                         else:
-                            write_message("\t...", log_file=log_file)
+                            utils.write_message("\t...", log_file=log_file)
                             break
                         file_reported += 1
             elif test_result_file_number < ref_result_file_number:
                 # Message specifique en cas de fichiers manquants
-                specific_message = append_message(
+                specific_message = utils.append_message(
                     specific_message, "missing result files"
                 )
-                write_message(
-                    "Missing files in " + RESULTS + " dir:", log_file=log_file
+                utils.write_message(
+                    "Missing files in " + kht.RESULTS + " dir:", log_file=log_file
                 )
                 file_reported = 0
                 for file_name in ref_file_names:
                     if file_name not in test_file_names:
                         if file_reported < max_file_reported:
-                            write_message("\t" + file_name, log_file=log_file)
+                            utils.write_message("\t" + file_name, log_file=log_file)
                         else:
-                            write_message("\t...", log_file=log_file)
+                            utils.write_message("\t...", log_file=log_file)
                             break
                         file_reported += 1
 
@@ -364,28 +431,32 @@ def check_results(test):
             compared_files_number = compared_files_number + 1
 
             # Path des fichier utilises pour le reporting
-            ref_file_path = os.path.join(ref_dir, file_name)
-            test_file_path = os.path.join(test_dir, file_name)
+            ref_file_path = os.path.join(results_ref_dir, file_name)
+            test_file_path = os.path.join(results_dir, file_name)
 
             # En-tete de comparaison des fichiers
-            write_message("\nfile " + test_file_path, log_file=log_file)
+            utils.write_message("\nfile " + test_file_path, log_file=log_file)
 
-            # On utilise si possible le path des fichiers en byte pour s'adapter aux contraintes de la plateforme
+            # On utilise si possible le path des fichiers en bytes pour s'adapter aux contraintes de la plateforme
             # Les erreurs seront diagnostiquees si necessaire lors de la lecture des fichiers
             used_ref_file_path = ref_file_path
             if dic_ref_byte_file_names.get(file_name) is not None:
                 used_ref_file_path = os.path.join(
-                    os.fsencode(ref_dir), dic_ref_byte_file_names.get(file_name)
+                    os.fsencode(results_ref_dir), dic_ref_byte_file_names.get(file_name)
                 )
             used_test_file_path = test_file_path
             if dic_test_byte_file_names.get(file_name) is not None:
                 used_test_file_path = os.path.join(
-                    os.fsencode(test_dir), dic_test_byte_file_names.get(file_name)
+                    os.fsencode(results_dir), dic_test_byte_file_names.get(file_name)
                 )
 
             # Lecture des fichiers
-            ref_file_lines = read_file_lines(used_ref_file_path, log_file=log_file)
-            test_file_lines = read_file_lines(used_test_file_path, log_file=log_file)
+            ref_file_lines = utils.read_file_lines(
+                used_ref_file_path, log_file=log_file
+            )
+            test_file_lines = utils.read_file_lines(
+                used_test_file_path, log_file=log_file
+            )
             if ref_file_lines is None:
                 error_number = error_number + 1
             if test_file_lines is None:
@@ -393,26 +464,29 @@ def check_results(test):
 
             # Comparaison si ok
             if ref_file_lines is not None and test_file_lines is not None:
-                # Cas des fichier stdout et stderr, que l'on filtre du prefix de process id
-                if file_name in [STDOUT_ERROR_LOG, STDERR_ERROR_LOG]:
-                    ref_file_lines = filter_process_id_prefix_from_lines(ref_file_lines)
-                    test_file_lines = filter_process_id_prefix_from_lines(
+                # Cas des fichier stdout et stderr, que l'on filtre du prefix de process id presnet en parallele
+                if file_name in [kht.STDOUT_ERROR_LOG, kht.STDERR_ERROR_LOG]:
+                    ref_file_lines = utils.filter_process_id_prefix_from_lines(
+                        ref_file_lines
+                    )
+                    test_file_lines = utils.filter_process_id_prefix_from_lines(
                         test_file_lines
                     )
 
-                # Mise en forme specifique des message utilisateur (error, warning) pour les traiter des facon identique
-                # dans les cas des fichiers de log utilisateur et json
+                # Mise en forme specifique des messages utilisateurs (error, warning) pour les traiter
+                # de facon identique dans les cas des fichiers de log utilisateur et json
                 contains_user_messages = False
                 # Cas du fichier de log utilisateur
-                if file_name == ERR_TXT:
+                if file_name == kht.ERR_TXT:
                     contains_user_messages = True
                     # Identification des lignes de message
                     ref_file_lines = strip_user_message_lines(ref_file_lines)
                     test_file_lines = strip_user_message_lines(test_file_lines)
-                # Cas des fichier json (il faut passer le path en entier pour gerer certaines exceptions)
-                elif is_file_with_json_extension(ref_file_path):
+                # Cas des fichier json
+                elif is_file_with_json_extension(file_name):
                     contains_user_messages = True
-                    # Pretraitement des ligne de message pour les mettre dans le meme format que pour les fichier d'erreur
+                    # Pretraitement des lignes de message pour les mettre dans le meme format
+                    # que pour les fichier d'erreur
                     ref_file_lines = strip_user_message_lines_in_json_file(
                         ref_file_lines
                     )
@@ -430,7 +504,7 @@ def check_results(test):
                     )
 
                 # Comparaison des fichiers pre-traites
-                errors, warnings = check_file_lines(
+                errors, warnings, user_message_warnings = check_file_lines(
                     ref_file_path,
                     test_file_path,
                     ref_file_lines,
@@ -438,7 +512,8 @@ def check_results(test):
                     log_file=log_file,
                 )
                 error_number += errors
-                warnings_number += warnings
+                warning_number += warnings
+                user_message_warning_number += user_message_warnings
 
                 # Memorisation des statistiques par extension
                 if errors > 0:
@@ -446,40 +521,41 @@ def check_results(test):
                     error_number_per_file[file_name] = errors
                     erroneous_ref_file_lines[file_name] = ref_file_lines
                     erroneous_test_file_lines[file_name] = test_file_lines
-                    if file_name == ERR_TXT:
+                    if file_name == kht.ERR_TXT:
                         error_number_in_err_txt += errors
                     else:
                         _, file_extension = os.path.splitext(file_name)
                         error_number_per_extension[file_extension] = (
                             error_number_per_extension.get(file_extension, 0) + errors
                         )
+
+        # Message synthetique de recuperation des warnng sur les message utilisateur si necessaire
+        if user_message_warning_number > 0:
+            recovery_message = utils.append_message(
+                recovery_message, "Recovery from varying patterns in user messages"
+            )
+
         # Recherche des erreurs fatales, avec tentative de recuperation
-        # On accepte les erreurs fatales que si on les meme en test et reference,
+        # On accepte les erreurs fatales que si on ales meme en test et reference,
         # et uniquement dans le cas du pattern particulier du "Batch mode failure" qui est du
         # a des scenario n'ayant pas pu s'excuter entierement pour des raison de portabilite
         fatal_error_recovery = True
-        STDERR_ERROR_LOG_RECOVERY_PATTERN = (
-            "fatal error : Command file : Batch mode failure"
-        )
-        RETURN_CODE_ERROR_LOG_RECOVERY_PATTERN = (
-            "Wrong return code: 1 (should be 0 or 2)"
-        )
         for file_name in test_file_names:
             # Cas d'une erreur fatale
-            if file_name in SPECIAL_ERROR_FILES:
+            if file_name in kht.SPECIAL_ERROR_FILES:
                 special_error_file_error_numbers[file_name] = (
                     special_error_file_error_numbers[file_name] + 1
                 )
                 error_number += 1
                 special_error = SUMMARY_SPECIAL_FILE_KEYS_PER_FILE[file_name].lower()
-                write_message(
+                utils.write_message(
                     "\n" + special_error + " : found file " + file_name,
                     log_file=log_file,
                 )
 
                 # La tentative de recuperation des erreurs fatales echoue si on ne respecte
                 # pas toutes les conditions necessaires
-                if file_name not in [STDERR_ERROR_LOG, RETURN_CODE_ERROR_LOG]:
+                if file_name not in [kht.STDERR_ERROR_LOG, kht.RETURN_CODE_ERROR_LOG]:
                     fatal_error_recovery = False
                 else:
                     # Les fichiers doivent etre les memes
@@ -491,60 +567,69 @@ def check_results(test):
                     # Test que le fichier est reduit au pattern accepte
                     if not fatal_error_recovery:
                         # Lecture des lignes du fichier
-                        test_file_path = os.path.join(test_dir, file_name)
-                        test_file_lines = read_file_lines(
+                        test_file_path = os.path.join(results_dir, file_name)
+                        test_file_lines = utils.read_file_lines(
                             test_file_path, log_file=log_file
                         )
                         # Pattern dans le cas de sdterr
-                        if file_name == STDERR_ERROR_LOG:
+                        fatal_error_pattern = (
+                            "fatal error : Command file : Batch mode failure"
+                        )
+                        if file_name == kht.STDERR_ERROR_LOG:
                             if (
                                 len(test_file_lines) == 0
-                                or test_file_lines[0].strip()
-                                != STDERR_ERROR_LOG_RECOVERY_PATTERN
+                                or test_file_lines[0].strip() != fatal_error_pattern
                             ):
                                 fatal_error_recovery = False
                         # Pattern dans le cas du code retour
-                        if file_name == RETURN_CODE_ERROR_LOG:
+                        return_code_error_pattern = (
+                            "Wrong return code: 1 (should be 0 or 2)"
+                        )
+                        if file_name == kht.RETURN_CODE_ERROR_LOG:
                             if (
                                 len(test_file_lines) == 0
                                 or test_file_lines[0].strip()
-                                != RETURN_CODE_ERROR_LOG_RECOVERY_PATTERN
+                                != return_code_error_pattern
                             ):
                                 fatal_error_recovery = False
         # Message de recuperation si necessaire
-        if special_error_file_error_numbers[RETURN_CODE_ERROR_LOG] > 0:
+        if special_error_file_error_numbers[kht.RETURN_CODE_ERROR_LOG] > 0:
             # Cas de la recuperation
             if fatal_error_recovery:
-                error_number -= special_error_file_error_numbers[RETURN_CODE_ERROR_LOG]
-                error_number -= special_error_file_error_numbers[STDERR_ERROR_LOG]
-                special_error_file_error_numbers[RETURN_CODE_ERROR_LOG] = 0
-                special_error_file_error_numbers[STDERR_ERROR_LOG] = 0
-                write_message(
+                error_number -= special_error_file_error_numbers[
+                    kht.RETURN_CODE_ERROR_LOG
+                ]
+                error_number -= special_error_file_error_numbers[kht.STDERR_ERROR_LOG]
+                special_error_file_error_numbers[kht.RETURN_CODE_ERROR_LOG] = 0
+                special_error_file_error_numbers[kht.STDERR_ERROR_LOG] = 0
+                utils.write_message(
                     "\nRecovery from fatal errors caused solely by a 'Batch mode failure' in another platform",
                     log_file=log_file,
                 )
-                portability_message = append_message(
-                    portability_message, "recovery of type 'Batch mode failure'"
+                recovery_message = utils.append_message(
+                    recovery_message, "Recovery of type 'Batch mode failure'"
                 )
 
         # Ecriture des premieres lignes des fichiers d'erreur fatales ou de timeout si necessaire
         for file_name in test_file_names:
             if (
-                file_name in SPECIAL_ERROR_FILES
+                file_name in kht.SPECIAL_ERROR_FILES
                 and special_error_file_error_numbers[file_name] > 0
             ):
                 # Lecture des lignes du fichier
-                test_file_path = os.path.join(test_dir, file_name)
-                test_file_lines = read_file_lines(test_file_path, log_file=log_file)
-                write_message(
+                test_file_path = os.path.join(results_dir, file_name)
+                test_file_lines = utils.read_file_lines(
+                    test_file_path, log_file=log_file
+                )
+                utils.write_message(
                     "\nspecial error file " + test_file_path, log_file=log_file
                 )
                 max_print_lines = 10
                 for i, line in enumerate(test_file_lines):
                     if i < max_print_lines:
-                        write_message("\t" + line.rstrip(), log_file=log_file)
+                        utils.write_message("\t" + line.rstrip(), log_file=log_file)
                     else:
-                        write_message("\t...", log_file=log_file)
+                        utils.write_message("\t...", log_file=log_file)
                         break
 
     # Il y a plusieurs tentatives de recuperation des erreurs pour des jeux de test ou des variation normales
@@ -570,28 +655,25 @@ def check_results(test):
         # Filtrage d'un certain type de warning pour recommencer la comaraison
         if varying_warning_messages_in_err_txt_recovery:
             # Acces aux lignes des fichier
-            ref_file_lines = erroneous_ref_file_lines.get(ERR_TXT)
-            test_file_lines = erroneous_test_file_lines.get(ERR_TXT)
+            ref_file_lines = erroneous_ref_file_lines.get(kht.ERR_TXT)
+            test_file_lines = erroneous_test_file_lines.get(kht.ERR_TXT)
 
             # Filtrage des lignes selon le motif en nombre variable
             warning_pattern1 = "warning : Data table slice "
             warning_pattern2 = " : Read data table slice interrupted by user"
             filtered_ref_file_lines = []
+            filtered_test_file_lines = []
             for line in ref_file_lines:
                 if line.find(warning_pattern1) != 0 or line.find(warning_pattern2) < 0:
                     filtered_ref_file_lines.append(line)
-                filtered_test_file_lines = []
-                for line in test_file_lines:
-                    if (
-                        line.find(warning_pattern1) != 0
-                        or line.find(warning_pattern2) < 0
-                    ):
-                        filtered_test_file_lines.append(line)
+            for line in test_file_lines:
+                if line.find(warning_pattern1) != 0 or line.find(warning_pattern2) < 0:
+                    filtered_test_file_lines.append(line)
 
-            # Comparaison a nouveau des fichier, en mode non verbeux
-            errors, warnings = check_file_lines(
-                ERR_TXT,
-                ERR_TXT,
+            # Comparaison a nouveau des fichiers, en mode non verbeux
+            errors, warnings, user_message_warnings = check_file_lines(
+                kht.ERR_TXT,
+                kht.ERR_TXT,
                 filtered_ref_file_lines,
                 filtered_test_file_lines,
             )
@@ -603,24 +685,24 @@ def check_results(test):
         if varying_warning_messages_in_err_txt_recovery:
             # Messages sur la recuperation
             recovery_summary = (
-                "Recovery from varying warning number in " + ERR_TXT + " file only"
+                "Recovery from varying warning number in " + kht.ERR_TXT + " file only"
             )
-            recovery_message = recovery_summary.lower()
-            write_message("\n" + recovery_summary + ":", log_file=log_file)
-            write_message(
+            recovery_message = utils.append_message(recovery_message, recovery_summary)
+            utils.write_message("\n" + recovery_summary + ":", log_file=log_file)
+            utils.write_message(
                 "\tall errors come from the warning in "
-                + ERR_TXT
+                + kht.ERR_TXT
                 + " file only, du to varying number of active process number",
                 log_file=log_file,
             )
-            write_message(
+            utils.write_message(
                 "\t" + str(error_number) + " errors converted to warnings",
                 log_file=log_file,
             )
             # On transforme les erreur en warning
-            warnings_number += error_number
+            warning_number += error_number
             error_number = 0
-            # On reinitialise egalement les stats d'erreur pour les extensuon concernees
+            # On reinitialise egalement les stats d'erreur pour les extensions concernees
             error_number_in_err_txt = 0
 
     # Tentative de recuperation des erreurs si la seule difference est une difference d'ordre
@@ -650,22 +732,22 @@ def check_results(test):
             def filter_record_index_from_lines(lines):
                 """Filtrage avance des lignes en supprimant le debut de ligne jusqu'a l'index de record"""
                 filtered_lines = []
-                warning_pattern = "warning : Data table "
-                record_pattern = " : Record "
-                for line in lines:
-                    pos1 = line.find(warning_pattern)
+                record_index_pattern = [
+                    "warning : Data table ",
+                    " : Record ",
+                    " : Field ",
+                ]
+                for input_line in lines:
+                    pos1 = utils.find_pattern_in_line(input_line, record_index_pattern)
                     if pos1 >= 0:
-                        pos2 = line.find(record_pattern)
-                        if pos2 > pos1:
-                            pos3 = line[pos2 + len(record_pattern) :].find(" : ")
-                            if pos3 > 0:
-                                line = line[pos2 + len(record_pattern) + pos3 :]
-                    filtered_lines.append(line)
+                        input_line = input_line[
+                            input_line.find(record_index_pattern[-1]) :
+                        ]
+                    filtered_lines.append(input_line)
                 return filtered_lines
 
             # Parcours des fichiers concerne pour reanalyser leur lignes specifiques aux erreurs
             user_message_error_number = 0
-            user_message_warning_number = 0
             recovered_error_number = 0
             recovered_warning_number = 0
             for file_name in erroneous_file_names:
@@ -679,21 +761,20 @@ def check_results(test):
                     ref_file_lines = extract_striped_lines(ref_file_lines)
                     # Comparaison de la partie des fichiers pre-traites relative aux messages utilisateur
                     # La comparaison se fait de facon muette, sans passer par le fichier de log
-                    errors, warnings = check_file_lines(
+                    errors, warnings, user_message_warnings = check_file_lines(
                         file_name,
                         file_name,
                         ref_file_lines,
                         test_file_lines,
                     )
                     user_message_error_number += errors
-                    user_message_warning_number += warnings
-                    # Comparaison filtree les messages utilisateurs jusq'aux index des records,
+                    # Comparaison filtree les messages utilisateurs jusqu'aux index des records,
                     # qui peuvent varier d'une execution a l'autre, puis les avoir trier
                     test_file_lines = filter_record_index_from_lines(test_file_lines)
                     ref_file_lines = filter_record_index_from_lines(ref_file_lines)
                     test_file_lines.sort()
                     ref_file_lines.sort()
-                    errors, warnings = check_file_lines(
+                    errors, warnings, user_message_warnings = check_file_lines(
                         file_name,
                         file_name,
                         ref_file_lines,
@@ -715,22 +796,22 @@ def check_results(test):
         if unsorted_user_messages_recovery:
             # Messages sur la recuperation
             recovery_summary = "Recovery from unsorted user messages"
-            recovery_message = recovery_summary.lower()
-            write_message("\n" + recovery_summary + ":", log_file=log_file)
-            write_message(
+            recovery_message = utils.append_message(recovery_message, recovery_summary)
+            utils.write_message("\n" + recovery_summary + ":", log_file=log_file)
+            utils.write_message(
                 "\tall errors come from the users messages in  "
-                + ERR_TXT
+                + kht.ERR_TXT
                 + " and in json reports, with a different order and possibly different record indexes",
                 log_file=log_file,
             )
-            write_message(
+            utils.write_message(
                 "\t" + str(error_number) + " errors converted to warnings",
                 log_file=log_file,
             )
             # On transforme les erreur en warning
-            warnings_number += error_number
+            warning_number += error_number
             error_number = 0
-            # On reinitialise egalement les stats d'erreur pour les extensuon concernees
+            # On reinitialise egalement les stats d'erreur pour les extensions concernees
             error_number_per_extension[".khj"] = 0
             error_number_per_extension[".khcj"] = 0
             error_number_in_err_txt = 0
@@ -740,26 +821,28 @@ def check_results(test):
     if error_number > 0:
         roc_curve_recovery = True
 
-        # On verifie d'abord qu'il y a un warning correspondant dans le log utiliusateur
+        # On verifie d'abord qu'il y a un warning correspondant dans le log utilisateur
         if roc_curve_recovery:
             # On doit potentiellement relire ce fichier, car ce type de message correspond
-            # a un motif resilient qui ne genere pas d'erreur
-            err_file_lines = erroneous_test_file_lines.get(ERR_TXT)
+            # a un motif USER qui ne genere pas d'erreur
+            err_file_lines = erroneous_test_file_lines.get(kht.ERR_TXT)
             if err_file_lines is None:
-                err_file_path = os.path.join(test_dir, ERR_TXT)
-                err_file_lines = read_file_lines(err_file_path)
+                err_file_path = os.path.join(results_dir, kht.ERR_TXT)
+                err_file_lines = utils.read_file_lines(err_file_path)
             if err_file_lines is None:
                 roc_curve_recovery = False
             else:
                 searched_warning = (
-                    "warning : Evaluation Selective Naive Bayes : Not enough memory to compute the exact AUC:"
-                    " estimation made on a sub-sample of size"
+                    "warning : Evaluation Selective Naive Bayes : "
+                    + "Not enough memory to compute the exact AUC:"
+                    + " estimation made on a sub-sample of size"
                 )
                 roc_curve_recovery = (
-                    find_in_lines(err_file_lines, searched_warning) >= 0
+                    utils.find_pattern_in_lines(err_file_lines, [searched_warning]) >= 0
                 )
 
         # Comptage des erreurs pour les fichier d'evaluation au format xls
+        error_number_in_json_report_files = 0
         if roc_curve_recovery:
             error_number_in_evaluation_xls = 0
             for file_name in erroneous_file_names:
@@ -768,7 +851,7 @@ def check_results(test):
                     error_number_in_evaluation_xls += error_number_per_file.get(
                         file_name
                     )
-            # On test si les nombre d'erreurs se rappartis dans le fichier de log utilisateur,
+            # On teste si les nombre d'erreurs se rappartis dans le fichier de log utilisateur,
             # les rapports json et les fichiers d'evalauation au format xls
             error_number_in_json_report_files = error_number_per_extension.get(
                 ".khj", 0
@@ -781,19 +864,20 @@ def check_results(test):
             )
 
         # Analyse specifique des rapports json en excluant la partie lie a la courbe de ROC
+        roc_curve_error_number = 0
+        roc_curve_warning_number = 0
         if roc_curve_recovery:
             for file_name in erroneous_file_names:
                 _, file_extension = os.path.splitext(file_name)
                 if file_extension == ".khj":
                     # Parcours des fichiers concerne pour reanalyser leur lignes specifiques aux erreurs
-                    roc_curve_error_number = 0
-                    roc_curve_warning_number = 0
                     test_file_lines = erroneous_test_file_lines.get(file_name)
                     ref_file_lines = erroneous_ref_file_lines.get(file_name)
                     assert test_file_lines is not None
                     assert ref_file_lines is not None
-                    # Extraction des qui correspond au calcul de l'AUC et des courbes de ROC
+                    # Extraction des champs qui correspondent au calcul de l'AUC et des courbes de ROC
                     for key in ["auc", "values"]:
+                        # Selection d'un champ selon sa valeur
                         selected_test_file_lines = (
                             extract_key_matching_lines_in_json_file(
                                 test_file_lines, key
@@ -804,7 +888,7 @@ def check_results(test):
                         )
                         # Comparaison de la partie des fichiers pre-traites relative aux messages utilisateur
                         # La comparaison se fait de facon muette, sans passer par le ficheir de log
-                        errors, warnings = check_file_lines(
+                        errors, warnings, user_message_warnings = check_file_lines(
                             file_name,
                             file_name,
                             selected_test_file_lines,
@@ -812,6 +896,7 @@ def check_results(test):
                         )
                         roc_curve_error_number += errors
                         roc_curve_warning_number += warnings
+
             # Le recouvrement est possible si le nombre d'erreurs trouves specifiquement pour le calcul
             # de l'AUC et des courbes de ROC correspond au nombre d'eerur total
             assert roc_curve_error_number <= error_number_in_json_report_files
@@ -823,44 +908,127 @@ def check_results(test):
         if roc_curve_recovery:
             # Messages sur la recuperation
             recovery_summary = "Recovery from AUC rough estimate"
-            recovery_message = recovery_summary.lower()
-            write_message("\n" + recovery_summary + ":", log_file=log_file)
-            write_message(
+            recovery_message = utils.append_message(recovery_message, recovery_summary)
+            utils.write_message("\n" + recovery_summary + ":", log_file=log_file)
+            utils.write_message(
                 "\tall errors in json report file come from AUC rough estimate",
                 log_file=log_file,
             )
-            write_message(
+            utils.write_message(
                 "\t"
                 + str(roc_curve_error_number)
                 + " errors in json report files converted to warnings",
                 log_file=log_file,
             )
-            write_message(
+            utils.write_message(
                 "\t"
                 + str(error_number - roc_curve_error_number)
                 + " errors in evaluation xls files ignored and converted to warnings",
                 log_file=log_file,
             )
             # On transforme les erreur en warning
-            warnings_number += error_number
+            warning_number += error_number
             error_number = 0
-            # On reinitialise egalement les stats d'erreur pour les extensuon concernees
+            # On reinitialise egalement les stats d'erreur pour les extensions concernees
             error_number_per_extension[".khj"] = 0
             error_number_per_extension[".xls"] = 0
 
+    # Tentative de recuperation des erreurs dans le cas tres particulier des caracteres accentues sous Windows,
+    # ou on observe un comportement local a la machine de developement sous Windows different de celui
+    # observe sur la machine Windows cloud, pourl aquelle certains fichiers sources avec caracteres
+    # accentues n'ont pas pu etre dezippes correctement et conduisent a des erreurs de lecture
+    # Dans ce cas uniquement, on tente de se comparer a une version linux de reference, pour laquelle
+    # on a le meme probleme et on observe le meme comportement
+    # Pas de recuperation d'erreur avancee si un contexte est force
+    if error_number > 0 and forced_context is None:
+        zip_encoding_recovery = True
+
+        # On verifie d'abord que les conditions sont reunies
+        linux_context = None
+        if zip_encoding_recovery:
+            # On doit etre sous Windows
+            zip_encoding_recovery = results.get_context_platform_type() == "Windows"
+
+            # Le fichier err.txt doit comporter une erreur de lecture
+            if zip_encoding_recovery:
+                read_error_pattern = ["error : File ./", " : Unable to open file ("]
+                err_file_path = os.path.join(results_dir, kht.ERR_TXT)
+                err_file_lines = utils.read_file_lines(err_file_path)
+                zip_encoding_recovery = err_file_lines is not None
+                # On doit trouver le pattern d'erreur
+                if zip_encoding_recovery:
+                    line_index = utils.find_pattern_in_lines(
+                        err_file_lines, read_error_pattern
+                    )
+                    zip_encoding_recovery = line_index >= 0
+                    # La ligne concernee doit avoir un probleme de caracrete accentue
+                    if zip_encoding_recovery:
+                        erronneous_line = err_file_lines[line_index]
+                        ascii_erronneous_line = erronneous_line.encode(
+                            "ascii", "ignore"
+                        ).decode("ascii")
+                        zip_encoding_recovery = ascii_erronneous_line != erronneous_line
+
+            # Il doit y avoir un des resultats de references specifiques pour Linux
+            if zip_encoding_recovery:
+                assert forced_context is None
+                windows_results_ref_dir, _ = results.get_results_ref_dir(test_dir)
+                linux_context = [results.get_context_computing_type(), "Linux"]
+                linux_results_ref_dir, _ = results.get_results_ref_dir(
+                    test_dir, forced_context=linux_context
+                )
+                zip_encoding_recovery = windows_results_ref_dir != linux_results_ref_dir
+
+        # Comparaison des resultats de test avec ceux de reference sous linux
+        if zip_encoding_recovery:
+            results_ref_dir = os.path.join(test_dir, linux_results_ref_dir)
+            assert linux_context is not None
+            # Comparaison "pragmatique" entre les fichiers des repertoires de test et de reference
+            # en forcant le contexte, sans tentative de recuperation d'erreur avancee
+            zip_encoding_recovery = check_results(
+                test_dir, forced_context=linux_context
+            )
+
+        # Recuperation effective des erreurs si possible
+        if zip_encoding_recovery:
+            # Messages sur la recuperation
+            recovery_summary = (
+                "Recovery from poor handling of accented file names by zip"
+            )
+            recovery_message = utils.append_message(recovery_message, recovery_summary)
+            utils.write_message("\n" + recovery_summary + ":", log_file=log_file)
+            utils.write_message(
+                "\tcomparison for Windows test results is performed using Linux reference results",
+                log_file=log_file,
+            )
+            utils.write_message(
+                "\t" + str(error_number) + " errors  converted to warnings",
+                log_file=log_file,
+            )
+            # On transforme les erreur en warning
+            warning_number += error_number
+            error_number = 0
+            # On reinitialise egalement les stats d'erreur
+            for extension in error_number_per_extension:
+                error_number_per_extension[extension] = 0
+            for file_name in kht.SPECIAL_ERROR_FILES:
+                special_error_file_error_numbers[file_name] = 0
+
     # Message dedies aux fichiers speciaux
     special_error_file_message = ""
-    for file_name in SPECIAL_ERROR_FILES:
+    for file_name in kht.SPECIAL_ERROR_FILES:
         if special_error_file_error_numbers[file_name] > 0:
             special_error_file_message = SUMMARY_SPECIAL_FILE_KEYS_PER_FILE[file_name]
             break
 
     # Ecriture d'un resume synthetique
-    write_message("\n" + SUMMARY_TITLE, log_file=log_file)
-    write_message(str(warnings_number) + " " + SUMMARY_WARNING_KEY, log_file=log_file)
-    write_message(str(error_number) + " " + SUMMARY_ERROR_KEY, log_file=log_file)
+    utils.write_message("\n" + SUMMARY_TITLE, log_file=log_file)
+    utils.write_message(
+        str(warning_number) + " " + SUMMARY_WARNING_KEY, log_file=log_file
+    )
+    utils.write_message(str(error_number) + " " + SUMMARY_ERROR_KEY, log_file=log_file)
     if special_error_file_message != "":
-        write_message(special_error_file_message, log_file=log_file)
+        utils.write_message(special_error_file_message, log_file=log_file)
     if error_number > 0:
         # Tri des extensions
         file_extensions = []
@@ -869,40 +1037,48 @@ def check_results(test):
         file_extensions.sort()
         # Message specifique si erreurs dans un seul type de fichier
         if error_number_in_err_txt > 0:
-            extension_message += ERR_TXT
+            extension_message = utils.append_message(extension_message, kht.ERR_TXT)
             if error_number_in_err_txt == error_number:
-                specific_message = append_message(
-                    specific_message, "errors only in " + ERR_TXT
+                specific_message = utils.append_message(
+                    specific_message, "errors only in " + kht.ERR_TXT
                 )
         if len(file_extensions) > 0:
             for file_extension in file_extensions:
-                extension_message += file_extension
+                extension_message = utils.append_message(
+                    extension_message, file_extension
+                )
                 if error_number_per_extension[file_extension] == error_number:
-                    specific_message = append_message(
+                    specific_message = utils.append_message(
                         specific_message, "errors only in " + file_extension + " files"
                     )
         # Ecriture des messages additionnels
         if extension_message != "":
-            write_message(SUMMARY_FILE_TYPES_KEY + extension_message, log_file=log_file)
+            utils.write_message(
+                SUMMARY_FILE_TYPES_KEY + extension_message, log_file=log_file
+            )
         if specific_message != "":
-            write_message(SUMMARY_NOTE_KEY + specific_message, log_file=log_file)
+            utils.write_message(SUMMARY_NOTE_KEY + specific_message, log_file=log_file)
 
     # Ecriture d'un message additionnel lie a la portabilite
-    portability_message = append_message(portability_message, recovery_message)
+    portability_message = utils.append_message(portability_message, recovery_message)
     if portability_message != "":
-        write_message(SUMMARY_PORTABILITY_KEY + portability_message, log_file=log_file)
+        utils.write_message(
+            SUMMARY_PORTABILITY_KEY + portability_message, log_file=log_file
+        )
 
-    # Affichage d'un message de fin sur la console
-    final_message = "--Comparison done : "
-    final_message += str(compared_files_number) + " files(s) compared, "
-    final_message += str(error_number) + " error(s), "
-    final_message += str(warnings_number) + " warning(s)"
-    if special_error_file_message != "":
-        final_message += ", " + special_error_file_message
-    if recovery_message != "":
-        final_message += ", Recovery from errors"
-    print(final_message)
-    print("log writed in " + log_file_path + "\n")
+    # Affichage d'un message de fin sur la console si le contexte n'est pas force
+    if forced_context is None:
+        final_message = "--Comparison done : "
+        final_message += str(compared_files_number) + " files(s) compared, "
+        final_message += str(error_number) + " error(s), "
+        final_message += str(warning_number) + " warning(s)"
+        if special_error_file_message != "":
+            final_message += ", " + special_error_file_message
+        if recovery_message != "":
+            final_message += ", Recovery from errors"
+        print(final_message)
+        print("  log file: " + log_file_path + "\n")
+    return error_number == 0
 
 
 def is_file_with_json_extension(file_path):
@@ -911,20 +1087,13 @@ def is_file_with_json_extension(file_path):
     file_name = os.path.basename(file_path)
     _, file_extension = os.path.splitext(file_name)
 
-    # Test si fichier json
+    # Extension json de base
     json_file_extensions = [".json", ".khj", ".khvj", ".khcj", ".kdicj"]
+    # On rajoute les extension en les suffisant par "bad" pour permettre
+    # de gerer des tests de fichier corrects avec une extension erronnee
+    for extension in json_file_extensions.copy():
+        json_file_extensions.append(extension + "bad")
     is_json_file = file_extension in json_file_extensions
-    # Cas particulier des fichier .bad qui sont en fait des fichiers json
-    # On test ici l'existence d'un fichier ne differenent que par l'extenion
-    # Attention: test adhoc en dur pour quelques jeu de test de LearningTesrt
-    # (ex: LearningTest\TestKhiops\Advanced\AllResultsApiMode)
-    if file_extension == ".bad":
-        if (
-            os.path.isfile(file_path.replace(".bad", ".khj"))
-            or os.path.isfile(file_path.replace(".bad", ".khj"))
-            or os.path.isfile(file_path.replace(".bad", ".kdicj"))
-        ):
-            is_json_file = True
     return is_json_file
 
 
@@ -961,18 +1130,18 @@ def strip_user_message_lines_in_json_file(lines):
     ce type d'analyse et de diagnostic
     """
 
-    def clean_message_line(line):
+    def clean_message(message):
         """Nettoyage d'une ligne de message, entre '"' et potentiellement suivi d'une ','
         Cela ne gere pas tous les cas d'encodage json, mais cela est suffisant la plupart du temps
         """
-        cleaned_line = line.strip()
+        cleaned_message = message.strip()
         # Cas d'un milieur de section, avec ',' en fin de ligne
-        if cleaned_line[-1] == ",":
-            cleaned_line = cleaned_line[1:-2]
+        if cleaned_message[-1] == ",":
+            cleaned_message = cleaned_message[1:-2]
         # Cas d'une fin de section
         else:
-            cleaned_line = cleaned_line[1:-1]
-        return cleaned_line
+            cleaned_message = cleaned_message[1:-1]
+        return cleaned_message
 
     # Recherche des ligne du fichier dans les sections "messages"
     in_message_section = False
@@ -985,7 +1154,7 @@ def strip_user_message_lines_in_json_file(lines):
             in_message_section = line.strip() != "]"
             # Nettoyage des lignes dans la section message
             if in_message_section:
-                line = clean_message_line(line)
+                line = clean_message(line)
         # Cas hors de la section des message
         else:
             # Detection du debut de section
@@ -1082,7 +1251,7 @@ def filter_sequential_messages_lines(lines, log_file=None):
         i += 1
     # Message si lignes filtrees
     if filtered_line_number > 0:
-        write_message(
+        utils.write_message(
             "Specific sequential messages (100th...): "
             + str(filtered_line_number)
             + " lines filtered",
@@ -1091,50 +1260,71 @@ def filter_sequential_messages_lines(lines, log_file=None):
     return result_lines
 
 
-def filter_process_id_prefix_from_lines(lines):
-    """retourne les lignes sans l'eventuel prefixe de process id, du type '[0] '"""
-    output_lines = []
-    for line in lines:
-        # En parallelle, une ligne vide peut contenir le numero du process entre crochets
-        pos_end = -1
-        is_process_id = len(line) > 0 and line[0] == "["
-        if is_process_id:
-            pos_end = line.find("]")
-            is_process_id = pos_end > 0 and line[1:pos_end].isdigit()
-        if is_process_id:
-            line = line[pos_end + 1 :].lstrip()
-        output_lines.append(line)
-    return output_lines
+""" Liste de motifs pour lesquels ont admet une variation normale s'il font parti de la comparaison
+ dans une paire de lignes. Dans ce cas, on ignore la comparaison
+"""
+RESILIENCE_USER_MESSAGE_PATTERNS = [
+    [
+        "system resources are not sufficient to run the task (need ",
+        " of additional memory)",
+    ],
+    [
+        "error : ",
+        "Database basic stats ",
+        "Too much memory necessary to store the values of the target variable ",
+        " (more than ",
+    ],
+    [
+        "warning : Evaluation Selective Naive Bayes : Not enough memory to compute the exact AUC: "
+        + "estimation made on a sub-sample of size "
+    ],
+    [
+        "warning : Database ",
+        ": Record ",
+        " : Single instance ",
+        "uses too much memory (more than ",
+        " after reading ",
+        " secondary records ",
+    ],
+    ["error : ", " : Not enough memory "],
+]
 
 
 def check_file_lines(
-    ref_file_path: str, test_file_path, ref_file_lines, test_file_lines, log_file=None
+    ref_file_path: str,
+    test_file_path: str,
+    ref_file_lines,
+    test_file_lines,
+    log_file=None,
 ):
-    """Comparaison d'un fichier de test et d'un fihcier de reference
+    """
+    Comparaison d'un fichier de test et d'un fichier de reference
     Parametres:
-    - ref_file_path: chemin du fichier de refence
+    - ref_file_path: chemin du fichier de reference
     - test_file_path: chemin du fichier de test
     - ref_file_lines: liste des lignes du fichier de reference
     - test_file_lines: liste des lignes du fichier de test
-    - log file: fichier de log ouvert dans le quel des messages sont ecrits (seulement si log_file est sepcifie)
+    - log file: fichier de log ouvert dans le quel des messages sont ecrits (seulement si log_file est specifie)
 
     Retourne
-    - error: nombre d'erreurs
-    - warning: nombre de warning
+    - errors: nombre d'erreurs
+    - warnings: nombre de warning
+    - user_message_warnings: nombre de warning lie a une tolerance sur la variation des messages utilisateurs
+      (ex: "too much memory")
 
-    Les nom des fichiers en parametre permettent de specialiser les comparaisons selon le type de fichier
+    Les noms des fichiers en parametre permettent de specialiser les comparaisons selon le type de fichier
     Les listes de lignes en entree permettent d'eviter de relire un fichier dont on connait le nom
     et dont on a deja lu les lignes.
     Cela permet par exemple de reutiliser les methodes de comparaison apres avoir filtre le fichier
     de sous-parties que l'on ne souhaite pas comparer.
 
-    Compare les fichiers ligne par ligne, cellule par cellule (separateur '\t'), et token par token
+    Compare les fichiers ligne par ligne, champ par champ (separateur '\t'), et token par token
     dans le cas des fichier json ou dictionnaire
     On a avec des tolerances selon le type de fichier.
     Pour les valeurs numeriques, une difference relative de 0.00001 est toleree
     - ecrit les difference dans le fichier log_file et affiche le nb d'erreur dans le terminal
-    - warning : 2 cellules contiennent des valeurs numeriques avec une difference relative toleree
-    - error : les cellules sont differentes
+    - warning : 2 champs contiennent des valeurs numeriques avec une difference relative toleree
+    - error : les champs sont differents
     """
 
     def filter_time(value):
@@ -1150,38 +1340,6 @@ def check_file_lines(
             else:
                 end_value = ""
             filtered_value = begin_value + " time: ..." + filter_time(end_value)
-        else:
-            filtered_value = value
-        return filtered_value
-
-    def filter_secondary_record(value):
-        # Supression d'un pattern de nombre de records secondaires
-
-        pos_start1 = value.find(" uses too much memory (more than ")
-        if pos_start1 == -1:
-            return value
-        pos_start2 = value.find(" after reading ")
-        if pos_start2 == -1:
-            return value
-        pos_start3 = value.find(" secondary records ")
-        if pos_start3 == -1:
-            return value
-        if pos_start1 >= 0 and pos_start2 > pos_start1 and pos_start3 > pos_start2:
-            filtered_value = value[:pos_start1] + " uses too much memory..."
-        else:
-            filtered_value = value
-        return filtered_value
-
-    def filter_secondary_table_stats(value):
-        # Supression d'un pattern de nombre de records secondaires
-        pos_start1 = value.find("Table ")
-        if pos_start1 == -1:
-            return value
-        pos_start2 = value.find(" Records: ")
-        if pos_start2 == -1:
-            return value
-        if pos_start1 >= 0 and pos_start2 > pos_start1:
-            filtered_value = value[:pos_start2] + " Records: "
         else:
             filtered_value = value
         return filtered_value
@@ -1220,20 +1378,20 @@ def check_file_lines(
                 end_value = ""
             # Filtrage de l'eventuel nom de fichier en remplacant les chiffres  par le pattern XXX
             # pour se rendre independant des eventuels index de fichiers temporaires
-            i = 0
-            while i < len(filename):
-                c = filename[i]
+            pos = 0
+            while pos < len(filename):
+                c = filename[pos]
                 if c != "_" and not c.isdigit():
                     filtered_filename += c
                 else:
                     filtered_filename += "XXX"
-                    while i < len(filename):
-                        c = filename[i]
+                    while pos < len(filename):
+                        c = filename[pos]
                         if c != "_" and not c.isdigit():
                             filtered_filename += c
                             break
-                        i += 1
-                i += 1
+                        pos += 1
+                pos += 1
             filtered_value = (
                 begin_value + " KHIOPS_TMP_DIR/" + filtered_filename + end_value
             )
@@ -1253,41 +1411,38 @@ def check_file_lines(
     _, file_extension = os.path.splitext(file_name)
 
     # test si fichier de temps
-    is_time_file = file_name == TIME_LOG
+    is_time_file = file_name == kht.TIME_LOG
 
     # test si fichier histogramme
     is_histogram_file = "histogram" in file_name and file_extension == ".log"
 
     # test si fichier d'erreur
-    is_error_file = file_name == ERR_TXT
+    is_error_file = file_name == kht.ERR_TXT
 
     # test si fichier de benchmark
     is_benchmark_file = file_name == "benchmark.xls"
-
-    # test si fichier dictionnaire
-    is_kdic_file = file_extension == ".kdic"
 
     # Test si fichier json
     is_json_file = is_file_with_json_extension(file_name)
 
     # initialisation des nombres d'erreurs et de warning
-    error = 0
-    warning = 0
-    numerical_warning = 0  # Lie a une tolerance dee difference de valeur numerique
-    resilience_warning = (
+    errors = 0
+    warnings = 0
+    numerical_warnings = 0  # Lie a une tolerance dee difference de valeur numerique
+    user_message_warnings = (
         0  # Lie a un pattern de message avec tolerance (ex: "Not enough memory")
     )
 
     # Pas de controle si fichier de temps
     if is_time_file:
-        write_message("OK", log_file=log_file)
-        return error, warning
+        utils.write_message("OK", log_file=log_file)
+        return errors, warnings, user_message_warnings
 
     # Comparaison des nombres de lignes
     file_ref_line_number = len(ref_file_lines)
     file_test_line_number = len(test_file_lines)
     if file_test_line_number != file_ref_line_number:
-        write_message(
+        utils.write_message(
             "test file has "
             + str(file_test_line_number)
             + " lines and reference file has "
@@ -1295,21 +1450,20 @@ def check_file_lines(
             + " lines",
             log_file=log_file,
         )
-        error = error + 1
+        errors = errors + 1
 
     # comparaison ligne a ligne
     max_threshold = 0
     max_print_error = 10
     max_field_length = 100
     skip_benchmark_lines = False
-    filter_secondary_record_detected = False
     line_number = min(file_ref_line_number, file_test_line_number)
     for index in range(line_number):
         line = index + 1
         line_ref = ref_file_lines[index].rstrip()
         line_test = test_file_lines[index].rstrip()
 
-        # cas special des fichiers de benchmark:
+        # Cas special des fichiers de benchmark:
         # on saute les blocs de ligne dont le role est le reporting de temps de calcul
         # ("Time" dans le premier champ d'entete)
         if is_benchmark_file and line_ref.find("Time") != -1:
@@ -1326,16 +1480,26 @@ def check_file_lines(
         if line_ref == line_test:
             continue
 
-        # cas special du fichier d'erreur: on tronque les lignes qui font du reporting de temps de calcul (" time:")
+        # Cas special du fichier d'erreur: on tronque les lignes qui font du reporting de temps de calcul (" time:")
         if (
             is_error_file
-            and line_ref.find(" time:") != -1
-            and line_test.find(" time:") != -1
+            and line_ref.find(" time: ") != -1
+            and line_test.find(" time: ") != -1
         ):
             line_ref = filter_time(line_ref)
             line_test = filter_time(line_test)
 
-        # cas special du fichier d'erreur:
+        # Cas special du fichier d'erreur: on tronque les lignes de stats sur les records des tables
+        if is_error_file:
+            record_stats_pattern = ["  Table ", " Records: "]
+            if (
+                utils.find_pattern_in_line(line_ref, record_stats_pattern) == 0
+                and utils.find_pattern_in_line(line_test, record_stats_pattern) == 0
+            ):
+                line_ref = line_ref[: line_ref.find(record_stats_pattern[-1])]
+                line_test = line_test[: line_test.find(record_stats_pattern[-1])]
+
+        # Cas special du fichier d'erreur:
         # on saute les lignes qui font du reporting de temps de calcul ("interrupted ")
         if (
             is_error_file
@@ -1344,7 +1508,7 @@ def check_file_lines(
         ):
             continue
 
-        # cas special du fichier d'erreur, pour le message "(Operation canceled)" qui n'est pas case sensitive
+        # Cas special du fichier d'erreur, pour le message "(Operation canceled)" qui n'est pas case sensitive
         if is_error_file:
             if line_ref.find("(Operation canceled)") != -1:
                 line_ref = line_ref.replace(
@@ -1355,8 +1519,8 @@ def check_file_lines(
                     "(Operation canceled)", "(operation canceled)"
                 )
 
-        # cas special du fichier d'erreur en coclustering:
-        # on saute les lignes d'ecritire de rapport intermediaire qui different par le temps
+        # Cas special du fichier d'erreur en coclustering:
+        # on saute les lignes d'ecriture de rapport intermediaire qui different par le temps
         # ("Write intermediate coclustering report")
         if (
             is_error_file
@@ -1365,7 +1529,7 @@ def check_file_lines(
         ):
             continue
 
-        # cas special du fichier d'histogramme:
+        # Cas special du fichier d'histogramme:
         # on tronque les lignes qui font du reporting de temps de calcul (" time\t")
         if (
             is_histogram_file
@@ -1374,36 +1538,58 @@ def check_file_lines(
         ):
             line_ref = line_ref[: line_ref.find("time")]
             line_test = line_test[: line_test.find("time")]
-        # cas special du fichier d'histogramme:
-        # on ignore le champ tronque les lignes qui font du reporting de temps de calcul (" time\t")
+        # Cas special du fichier d'histogramme:
+        # on ignore les ligne avec le numero de version
         if (
             is_histogram_file
             and line_ref.find("Version") != -1
             and line_test.find("Version") != -1
         ):
-            line_ref = ""
-            line_test = ""
-
-        # cas special du caractere # en tete de premiere ligne de fichier (identifiant de version d'application)
-        if line == 1 and line_ref.find("#") == 0 and line_test.find("#") == 0:
             continue
 
-        # idem pour des informations de licences d'un fichier d'erreur
+        # Cas special du caractere # en tete de premiere ligne de fichier
+        # pour l'identifiant de version d'application (ex: #Khiops 10.2.0)
+        tool_version_pattern = ["#", " "]
         if (
-            is_error_file
-            and line == 2
-            and line_ref.find("Khiops ") == 0
-            and line_test.find("Khiops ") == 0
+            line == 1
+            and utils.find_pattern_in_line(line_ref, tool_version_pattern) == 0
+            and utils.find_pattern_in_line(line_test, tool_version_pattern) == 0
         ):
             continue
 
-        # cas special du champ version des fichiers json (identifiant de version d'application)
+        # Cas special du champ version des fichiers json (identifiant de version d'application)
         if (
             is_json_file
             and line_ref.find('"version": ') >= 0
             and line_test.find('"version": ') >= 0
         ):
             continue
+
+        # Traitement des patterns toleres pour la comparaison
+        if is_error_file or is_json_file:
+            resilience_found = False
+            for pattern in RESILIENCE_USER_MESSAGE_PATTERNS:
+                if (
+                    utils.find_pattern_in_line(line_ref, pattern) != -1
+                    and utils.find_pattern_in_line(line_test, pattern) != -1
+                ):
+                    # On renvoie un warning, en indiquant qu'il s'agit d'un warning de resilience
+                    warnings += 1
+                    user_message_warnings += 1
+                    # Ecriture d'un warning
+                    utils.write_message(
+                        "warning : line "
+                        + str(line)
+                        + " "
+                        + line_test.strip()
+                        + " -> "
+                        + line_ref.strip(),
+                        log_file=log_file,
+                    )
+                    resilience_found = True
+                    break
+            if resilience_found:
+                continue
 
         # Sinon, on analyse les champs
         line_fields_ref = line_ref.split("\t")
@@ -1413,8 +1599,8 @@ def check_file_lines(
         field_number_ref = len(line_fields_ref)
         field_number_test = len(line_fields_test)
         if field_number_ref != field_number_test:
-            if error < max_print_error:
-                write_message(
+            if errors < max_print_error:
+                utils.write_message(
                     "test file (line "
                     + str(line)
                     + ") has "
@@ -1424,9 +1610,9 @@ def check_file_lines(
                     + " columns",
                     log_file=log_file,
                 )
-            elif error == max_print_error:
-                write_message("...", log_file=log_file)
-            error = error + 1
+            elif errors == max_print_error:
+                utils.write_message("...", log_file=log_file)
+            errors = errors + 1
 
         # comparaison des champs
         field_number_length = min(field_number_ref, field_number_test)
@@ -1434,7 +1620,7 @@ def check_file_lines(
             field_ref = line_fields_ref[i]
             field_test = line_fields_test[i]
 
-            # parcours des lignes cellule par cellule
+            # parcours des lignes champ par champs
             # cas special du fichier d'erreur ou json: on tronque les chemins vers les repertoires temporaires de Khiops
             if (
                 (is_error_file or is_json_file)
@@ -1444,21 +1630,8 @@ def check_file_lines(
                 field_ref = filter_khiops_temp_dir(field_ref)
                 field_test = filter_khiops_temp_dir(field_test)
 
-            # cas special du fichier d'erreur ou khj
-            # on tronque le compte des lignes avec des warning sur le nombre de records secondaires
-            if is_error_file or is_json_file:
-                filter_secondary_record_detected = True
-                field_ref = filter_secondary_record(field_ref)
-                field_test = filter_secondary_record(field_test)
-
-            # Cas particulier du nombre de record secondaire raporte dans le fichier d'erreur,
-            # si des enregistrement secondaire ont ete detectes
-            if is_error_file:
-                field_ref = filter_secondary_table_stats(field_ref)
-                field_test = filter_secondary_table_stats(field_test)
-
-            # cas general de comparaison de cellules
-            [eval_res, threshold_res] = check_cell(field_ref, field_test)
+            # cas general de comparaison de champs
+            [eval_res, threshold_res] = check_field(field_ref, field_test)
 
             # truncature des champs affiches dans les messages d'erreur
             if len(field_test) > max_field_length:
@@ -1467,11 +1640,11 @@ def check_file_lines(
                 field_ref = field_ref[0:max_field_length] + "..."
             # messages d'erreur
             if eval_res == 0:
-                if error < max_print_error or threshold_res > max_threshold:
-                    write_message(
-                        "l"
+                if errors < max_print_error or threshold_res > max_threshold:
+                    utils.write_message(
+                        "line "
                         + str(line)
-                        + " c"
+                        + " field "
                         + str(i + 1)
                         + " "
                         + field_test
@@ -1479,61 +1652,62 @@ def check_file_lines(
                         + field_ref,
                         log_file=log_file,
                     )
-                elif error == max_print_error:
-                    write_message("...", log_file=log_file)
-                error += 1
+                elif errors == max_print_error:
+                    utils.write_message("...", log_file=log_file)
+                errors += 1
             elif eval_res == 2:
-                warning += 1
-                if threshold_res == 0:
-                    resilience_warning += 1
-                else:
-                    numerical_warning += 1
+                warnings += 1
+                if threshold_res > 0:
+                    numerical_warnings += 1
             max_threshold = max(threshold_res, max_threshold)
-    if warning > 0:
-        if numerical_warning > 0:
-            write_message(
-                str(numerical_warning) + " warning(s) (epsilon difference)",
+    if warnings > 0:
+        if numerical_warnings > 0:
+            utils.write_message(
+                str(numerical_warnings) + " warning(s) (epsilon difference)",
                 log_file=log_file,
             )
-        if resilience_warning > 0:
-            write_message(
-                str(resilience_warning)
-                + " warning(s) (resilience to specific message patterns)",
+        if user_message_warnings > 0:
+            utils.write_message(
+                str(user_message_warnings)
+                + " warning(s) (resilience to specific user message patterns)",
                 log_file=log_file,
             )
-    if error == 0:
-        write_message("OK", log_file=log_file)
-    if error > 0:
-        message = str(error) + " error(s)"
+    if errors == 0:
+        utils.write_message("OK", log_file=log_file)
+    if errors > 0:
+        message = str(errors) + " error(s)"
         if max_threshold > 0:
             message += " (max relative difference: " + str(max_threshold) + ")"
-        write_message(message, log_file=log_file)
+        utils.write_message(message, log_file=log_file)
+    return errors, warnings, user_message_warnings
 
-    return error, warning
 
-
-def split_cell(cell):
+def split_field(field_value):
+    """Decoupage d'un champ (champ d'une ligne avec separateur tabulation)
+    en un ensemble de tokens elementaire pour le parsing d'un fichier json ou kdic
+    Permet ensuite de comparer chaque valeur de token, pour avoir une tolerance par rapport aux
+    mirco-variations des valeurs numeriques"""
     # Pour gerer les double-quotes a l'interieur des strings, pour les format json et kdic
-    cell = cell.replace('\\"', "'")
-    cell = cell.replace('""', "'")
-    substrings = token_parser.findall(cell)
-    return substrings
+    field_value = field_value.replace('\\"', "'")
+    field_value = field_value.replace('""', "'")
+    sub_fields = TOKEN_PARSER.findall(field_value)
+    return sub_fields
 
 
-# return true if time format
 def is_time(val):
-    # si format time (?h:mm:ss), on ignore en renvoyant OK
-    return time_parser.match(val.strip())
+    """Indique si une valeur est de type temps hh:mm:ss.ms"""
+    return TIME_PARSER.match(val.strip())
 
 
 def check_value(val1, val2):
-    # Comparaison de deux valeurs numeriques
-    # renvoie deux valeur:
-    # - result:
-    #   - 1 si les cellules sont identiques
-    #   - 2 si les la difference relative est toleree
-    #   - 0 si les cellules sont differentes
-    # - threshold: difference relative si result = 2
+    """Comparaison de deux valeurs numeriques
+    Renvoie deux valeur:
+    - result:
+      - 1 si les valeurs sont identiques
+      - 2 si les la difference relative est toleree
+      - 0 si les valeurs sont differentes
+    - threshold: difference relative si result = 2
+    """
     # Ok si valeurs egales
     if val1 == val2:
         return [1, 0]
@@ -1553,88 +1727,67 @@ def check_value(val1, val2):
         return [0, 0]
 
 
-# Liste de motifs pour lesquels ont admet une variation normale s'il font parti de la comparaison
-# dans une paire de cellules
-# Dans ce cas, on ignore la comparaison
-RESILIENCE_PATTERNS = [
-    "system resources",  # Gestion des ressources systemes
-    "Unable to access file",  # Acces a un fichier
-    "Unable to open file",  # Ouverture d'un fichier
-    " : Not enough memory to ",  # Manque de memoire
-    " : Not enough memory for ",  # Manque de memoire (variante)
-    "Too much memory necessary to store the values",  # Manque de memoire (variante)
-]
-
-
-def check_cell(cell1, cell2):
-    # comparaison de deux cellules
-    # pour les valeurs numeriques, une diffence relative de 0.00001 est toleree
-    # renvoie deux valeur:
-    # - result:
-    #   - 1 si les cellules sont identiques
-    #   - 2 si les la difference relative est toleree (warning)
-    #   - 0 si les cellules sont differentes (error)
-    # - threshold: difference relative liee au cas erreur ou warning
-
-    if cell1 == cell2:
+def check_field(field1, field2):
+    """ " Comparaison de deux champs
+    Pour les valeurs numeriques, une diffence relative de 0.00001 est toleree
+    Renvoie deux valeur:
+    - result:
+      - 1 si les champs sont identiques
+      - 2 si les la difference relative est toleree (warning)
+      - 0 si les champs sont differents (error)
+    - threshold: difference relative liee au cas erreur ou warning
+    """
+    if field1 == field2:
         return [1, 0]
 
-    # si les deux cellules sont des time, on renvoie OK pour ignorer la comparaison
-    if is_time(cell1) and is_time(cell2):
+    # si les deux champs sont des time, on renvoie OK pour ignorer la comparaison
+    if is_time(field1) and is_time(field2):
         return [1, 0]
-
-    # Traitement des patterns toleres pour la comparaison
-    for pattern in RESILIENCE_PATTERNS:
-        if cell1.find(pattern) != -1 and cell2.find(pattern) != -1:
-            # On renvoie un warning, mais avec 0 indique la tolerance
-            return [2, 0]
 
     # uniformisation entre windows et linux pour les chemins de fichier
     # on va remplacer les \ par des /
-    string1 = cell1.replace("\\", "/")
-    string2 = cell2.replace("\\", "/")
-
+    string1 = field1.replace("\\", "/")
+    string2 = field2.replace("\\", "/")
     # Tolerance temporaire pour le passage au format hdfs
-    # hdfs_value1 = cell1.replace("./", "")
+    # hdfs_value1 = field1.replace("./", "")
     # hdfs_value1 = hdfs_value1.replace(".\\/..\\/", "")
     # hdfs_value1 = hdfs_value1.replace("..\\/", "")
     # hdfs_value1 = hdfs_value1.replace(".\\/", "")
-    # hdfs_value2 = cell2.replace("./", "")
+    # hdfs_value2 = field2.replace("./", "")
     # hdfs_value2 = hdfs_value2.replace(".\\/..\\/", "")
     # hdfs_value2 = hdfs_value2.replace("..\\/", "")
     # hdfs_value2 = hdfs_value2.replace(".\\/", "")
     # if hdfs_value1 == hdfs_value2:
     #     return [1, 0]
-
     if string1 == string2:
         return [1, 0]
 
-    # sinon c'est peut etre un pbm d'arrondi
+    # sinon c'est peut etre un probleme d'arrondi
     # on accepte les differences relatives faibles
-    if numeric_parser.match(cell1) and numeric_parser.match(cell2):
-        [eval_result, threshold_result] = check_value(cell1, cell2)
+    if NUMERIC_PARSER.match(field1) and NUMERIC_PARSER.match(field2):
+        [eval_result, threshold_result] = check_value(field1, field2)
         return [eval_result, threshold_result]
     else:
         # on arrive pas a le convertir en float, ce n'est pas un nombre
-        # on decoupe chaque cellule sous la forme d'un ensemble de sous-chaines qui sont soit
+        # on decoupe chaque champ sous la forme d'un ensemble de sous-chaines qui sont soit
         # des libelles, soit des float
-        substrings1 = split_cell(cell1)
-        substrings2 = split_cell(cell2)
+        sub_fields1 = split_field(field1)
+        sub_fields2 = split_field(field2)
 
         # nombre de sous-chaines differentes: il y a erreur
-        if len(substrings1) != len(substrings2):
+        if len(sub_fields1) != len(sub_fields2):
             return [0, 0]
         # comparaison pas a pas
         else:
             i = 0
-            length = len(substrings1)
+            length = len(sub_fields1)
             warnings = 0
             errors = 0
             max_warning_threshold = 0
             max_error_threshold = 0
             while i < length:
                 [eval_result, threshold_result] = check_value(
-                    substrings1[i], substrings2[i]
+                    sub_fields1[i], sub_fields2[i]
                 )
                 # Traitement des erreurs
                 if eval_result == 0:
@@ -1651,3 +1804,46 @@ def check_cell(cell1, cell2):
                 return [2, max_warning_threshold]
             else:
                 return [1, 0]
+
+
+def initialize_parsers():
+    """Initialisation de parsers sont compile une fois pour toutes
+    Retourne les parsers de token, de numeric et de time
+    """
+    # Delimiters pour les fichiers json et kdic
+    delimiters = [
+        "\\,",
+        "\\{",
+        "\\}",
+        "\\[",
+        "\\]",
+        "\\:",
+        "\\(",
+        "\\)",
+        "\\<",
+        "\\>",
+        "\\=",
+    ]
+    numeric_pattern = "-?[0-9]+\\.?[0-9]*(?:[Ee]-?[0-9]+)?"
+    string_pattern = (
+        '"[^"]*"'  # Sans les double-quotes dans les strings (dur a parser...)
+    )
+    time_pattern = "\\d{1,2}:\\d{2}:\\d{2}\\.?\\d*"
+    other_tokens = "[\\w]+"
+    tokens = time_pattern + "|" + numeric_pattern + "|" + string_pattern
+    for delimiter in delimiters:
+        tokens += "|" + delimiter
+    tokens += "|" + other_tokens
+    token_parser = re.compile(tokens)
+    numeric_parser = re.compile(numeric_pattern)
+    time_parser = re.compile(time_pattern)
+    return token_parser, numeric_parser, time_parser
+
+
+# Parsers en variables globales, compiles une seule fois au chargement du module
+# - le parser de tokens permet d'analyser de facon detaillee le contenu d'un
+#   fichier json ou dictionnaire (.kdic) en le decomposant en une suite de tokens
+#   separateur, valeur numerique opu categorielle entre double-quotes.
+# - le parser de numerique est specialise pour les valeurs numeriques au format scientifique
+# - le parser de time est specialise pour le format time hh:mm:ss.ms
+TOKEN_PARSER, NUMERIC_PARSER, TIME_PARSER = initialize_parsers()

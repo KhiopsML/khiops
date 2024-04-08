@@ -1,53 +1,22 @@
 import os
 import platform
 
+import _kht_constants as kht
+import _kht_utils as utils
 
 """
-Constantes permettant la gestion de la structure des repertoires de LearningTest
-et l'analyse des resultats par repertorie de test
-"""
-
-# Repertoire racine de l'arborescence de test
-LEARNING_TEST = "LearningTest"
-
-# Repertoires des resultats de test et de reference
-RESULTS = "results"
-RESULTS_REF = "results.ref"
-
-# Fichiers se trouvant d'un repertoire de test
-TEST_PRM = "test.prm"
-COMPARISON_RESULTS_LOG = "comparisonResults.log"
-
-# Fichiers se trouvant d'un repertoire de resultats
-ERR_TXT = "err.txt"
-TIME_LOG = "time.log"
-
-# Fichiers speciaux, par priorite decroissante
-PROCESS_TIMEOUT_ERROR_LOG = "process_timeout_error.log"
-RETURN_CODE_ERROR_LOG = "return_code_error.log"
-STDOUT_ERROR_LOG = "stdout_error.log"
-STDERR_ERROR_LOG = "stderr_error.log"
-SPECIAL_ERROR_FILES = [
-    PROCESS_TIMEOUT_ERROR_LOG,
-    RETURN_CODE_ERROR_LOG,
-    STDOUT_ERROR_LOG,
-    STDERR_ERROR_LOG,
-]
-
-"""
-Gestion de la typologie des resultats de test de reference, selon les axes suivants
-- computing
-  - parallel: si la variable d'environnement KhiopsMPIProcessNumber est definie
+Gestion de la typologie des resultats de test de reference, selon les axes suivants definis
+ dans (RESULTS_REF_TYPES)
+- COMPUTING
+  - parallel: si la variable process_number a une valeur strictement plus grande que 1
   - sequential
-- platform
+- PLATFORM
   - fourni par la fonction python platform.system()
-    - plus os.name pour detecter le cas WSL (plateforme=Windows et os=posix)
-  - peut etre forcee par la variable d'environnement KhiopsComparisonPlatform
+  - peut etre forcee par la variable forced_platform
   - valeurs possibles
     - Darwin (Mac)
     - Linux
     - Windows
-    - WSL
 
 On peut memoriser des variantes de resultats de reference selon leur type si necessaire
 Dans ce cas, la typlogie est indiquee en suffix du nom de repertoire 'results.ref'
@@ -76,19 +45,14 @@ Examples d'ensemble correct de noms de repertoire
 - [results.ref, results.ref-Parallel, results.ref-Parallel-Darwin_Linux]
 """
 
-# Type de resultats de reference
-COMPUTING = "computing"
-PLATFORM = "platform"
-RESULTS_REF_TYPES = [COMPUTING, PLATFORM]
+"""Variable globale de gestion du contexte des resultsta de reference"""
 
-# Valeurs par type de resultats de refences
-RESULTS_REF_TYPE_VALUES = {}
-RESULTS_REF_TYPE_VALUES[COMPUTING] = ["parallel", "sequential"]
-RESULTS_REF_TYPE_VALUES[PLATFORM] = ["Darwin", "Linux", "Windows", "WSL"]
+# Nombre de process utilisex
+process_number = 1
 
-# Caracteres separateurs utilises dans l'analyse des type de repertoire de reference
-AND = "-"
-OR = "_"
+# Memorisation d'une plateforme force pour la comparaison entre resultstats de test de de reference
+# Par defaut, on utilise la platforme courante
+forced_platform = None
 
 
 def check_all_type_values():
@@ -96,8 +60,8 @@ def check_all_type_values():
     all_values_list = []
     all_values_dic = {}
     # Collecte de toutes les valeurs pour verifier leur validite et leur unicite
-    for results_ref_types in RESULTS_REF_TYPES:
-        results_ref_types_values = RESULTS_REF_TYPE_VALUES[results_ref_types]
+    for results_ref_types in kht.RESULTS_REF_TYPES:
+        results_ref_types_values = kht.RESULTS_REF_TYPE_VALUES[results_ref_types]
         for value in results_ref_types_values:
             # Une valeur ne doit contenu que des caracteres alphabetiques
             assert value.isalpha(), (
@@ -128,7 +92,7 @@ def check_all_type_values():
     return True
 
 
-# Verification une seule fois de la sepcification correcte des resultats de reference
+# Verification une seule fois de la specification correcte des resultats de reference
 assert check_all_type_values(), "Invalid specification of reference results dirs"
 
 
@@ -138,97 +102,135 @@ def get_current_results_ref_context(log_file=None, show=False):
     Une trace est ecrite dans un fichier de log et affichees sur la console si besoin
     """
     return [
-        get_context_computing_type(log_file, show),
-        get_context_platform_type(log_file, show),
+        get_context_computing_type(log_file=log_file, show=show),
+        get_context_platform_type(log_file=log_file, show=show),
     ]
 
 
 def get_context_computing_type(log_file=None, show=False):
     """Retourne le type de computing courant
-    Base sur la variable d'environnement KhiopsMPIProcessNumber
+    Base sur la variable process_number
     Une trace est ecrite dans un fichier de log et affichees sur la console si besoin
     """
-    khiops_mpi_process_number = os.getenv("KhiopsMPIProcessNumber")
-    if khiops_mpi_process_number is None:
+    if process_number is None or process_number == 1:
         computing_type = "sequential"
     else:
         computing_type = "parallel"
-    assert computing_type in RESULTS_REF_TYPE_VALUES[COMPUTING], (
-        COMPUTING
+    assert computing_type in kht.RESULTS_REF_TYPE_VALUES[kht.COMPUTING], (
+        kht.COMPUTING
         + " type ("
         + computing_type
         + ") should be in "
-        + str(RESULTS_REF_TYPE_VALUES[COMPUTING])
+        + str(kht.RESULTS_REF_TYPE_VALUES[kht.COMPUTING])
     )
-    # Affichhe d'une trace
-    if log_file is not None or show:
-        message = COMPUTING + " type: " + computing_type
-        if khiops_mpi_process_number is not None:
-            message += " (process number: " + str(khiops_mpi_process_number) + ")"
-        if log_file is not None:
-            log_file.write(message + "\n")
-        if show:
-            print(message)
+    # Affichage d'une trace
+    message = kht.COMPUTING + " type: " + computing_type
+    if process_number > 1:
+        message += " (process number: " + str(process_number) + ")"
+    utils.write_message(message, log_file=log_file, show=show)
     return computing_type
 
 
 def get_context_platform_type(log_file=None, show=False):
     """Retourne le type de computing courant
-    Base sur l'OS courant, ou force selon la variable d'environnement KhiopsComparisonPlatform
+    Base sur l'OS courant, ou force selon la variable forced_platform
     Une trace est ecrite dans un fichier de log et affichees sur la console si besoin
     """
-    platform_type = os.getenv("KhiopsComparisonPlatform")
-    forced_platform_type = platform_type is not None
-    if not forced_platform_type:
+    if forced_platform is not None:
+        platform_type = forced_platform
+    else:
         platform_type = platform.system()
-        if platform_type == "Windows" and os.name == "posix":
-            platform_type = "WSL"
-    assert platform_type in RESULTS_REF_TYPE_VALUES[PLATFORM], (
-        PLATFORM
+    assert platform_type in kht.RESULTS_REF_TYPE_VALUES[kht.PLATFORM], (
+        kht.PLATFORM
         + " type ("
         + platform_type
         + ") should be in "
-        + str(RESULTS_REF_TYPE_VALUES[PLATFORM])
+        + str(kht.RESULTS_REF_TYPE_VALUES[kht.PLATFORM])
     )
-    # Affichhe d'une trace
-    if log_file is not None or show:
-        message = PLATFORM + " type: " + platform_type
-        if forced_platform_type:
-            message += " (forced using 'KhiopsComparisonPlatform' env var)"
-        if log_file is not None:
-            log_file.write(message + "\n")
-        if show:
-            print(message)
+    # Affichage d'une trace
+    message = kht.PLATFORM + " type: " + platform_type
+    if forced_platform is not None:
+        message += " (forced using cmamand line option)"
+    utils.write_message(message, log_file=log_file, show=show)
     return platform_type
 
 
-def get_results_ref_dir(test_dir, log_file=None, show=False):
+def get_results_ref_dir(test_dir, forced_context=None, log_file=None, show=False):
     """Recherche du repertoire de reference correspondant au contexte courant
     Retourne:
     - le nom du repertoire, ou None en cas d'erreur
     - la liste des repertoires de references candidats, qu'il y a ait erreur ou non
+    On utilise le contexte courant, sauf si un contexte est force en entree
     On retourne results.ref s'il n'y a aucun repertoire de reference ou si c'est le seul rerpertoire candidat
     Les erreurs sont ecrites dans un fichier de log et affichees sur la console si besoin
     """
-    assert LEARNING_TEST in test_dir, (
-        test_dir + " must be in a sub-directory of " + LEARNING_TEST
-    )
-    results_ref_context = get_current_results_ref_context()
+    utils.check_test_dir(test_dir)
+    test_dir_name = utils.test_dir_name(test_dir)
+    if forced_context is None:
+        results_ref_context = get_current_results_ref_context()
+    else:
+        results_ref_context = forced_context
     candidate_results_ref_dirs = get_candidate_results_ref_dirs(test_dir)
     results_ref_dir = _search_results_ref_dir(
         candidate_results_ref_dirs,
         results_ref_context,
-        test_dir_name=os.path.basename(test_dir),
+        test_dir_name=test_dir_name,
         log_file=log_file,
         show=show,
     )
     return results_ref_dir, candidate_results_ref_dirs
 
 
-def is_candidate_results_ref_dir(test_dir):
+def get_results_ref_dir_time(test_dir):
+    """Recherche du temps de dans le fichier time.log  du repertoire de reference
+     correspondant au contexte courant
+    Retourne le temps en secondes si le fichier existe et si le temps est valide
+    Retourne none sinon
+    """
+    results_ref_dir, _ = get_results_ref_dir(test_dir)
+    results_ref_test_time = None
+    if results_ref_dir is not None:
+        time_file_path = os.path.join(
+            os.getcwd(), os.path.join(test_dir, results_ref_dir, kht.TIME_LOG)
+        )
+        if os.path.isfile(time_file_path):
+            file_time = open(time_file_path, "r", errors="ignore")
+            lines = file_time.readlines()
+            file_time.close()
+            if len(lines) > 0:
+                line = lines[0]
+                line = line[:-1]
+                fields = line.split(
+                    " "
+                )  # Pour etre resilient aux formats 'Overal time: <time>' ou '<time>'
+                time_field = fields[-1]
+                try:
+                    results_ref_test_time = float(time_field)
+                except ValueError:
+                    results_ref_test_time = None
+    return results_ref_test_time
+
+
+def is_results_ref_dir_time_selected(test_dir, min_test_time, max_test_time):
+    """Indique si un repertoire de test doit etre selectionne.
+    Si un temps de test est disponible dans le repertoire de resultats de reference du contexe courant,
+     il doit etre compatible avec les contraintes specifiees
+    """
+    results_ref_test_time = get_results_ref_dir_time(test_dir)
+    # Non selection si test trop long ou trop court
+    if results_ref_test_time is not None and (
+        (
+            (max_test_time is not None and results_ref_test_time > max_test_time)
+            or (min_test_time is not None and results_ref_test_time < min_test_time)
+        )
+    ):
+        return False
+    return True
+
+
+def is_candidate_results_ref_dir(dir_name):
     """Test si un nom correspond a un repertoires candidat a etre des resultats de reference"""
-    basename = os.path.basename(test_dir)
-    return basename == RESULTS_REF or basename.find(RESULTS_REF + AND) == 0
+    return dir_name == kht.RESULTS_REF or dir_name.find(kht.RESULTS_REF + kht.AND) == 0
 
 
 def get_candidate_results_ref_dirs(test_dir):
@@ -238,12 +240,12 @@ def get_candidate_results_ref_dirs(test_dir):
     test_dir_names = os.listdir(test_dir)
     test_dir_names.sort()
     for file_name in test_dir_names:
+        # Memorisation du repertoire par contexte si repertoire valide
         if is_candidate_results_ref_dir(file_name):
             file_path = os.path.join(test_dir, file_name)
-            # Memorisation du repertoire par contexte si repertoire valide
             assert os.path.isdir(file_path), (
                 "file name starting "
-                + RESULTS_REF
+                + kht.RESULTS_REF
                 + " shoud be a directory ("
                 + file_path
                 + ")"
@@ -266,72 +268,71 @@ def _search_results_ref_dir(
     en utilisant le nom du repertoire de test s'il est specifie
     """
 
-    def add_error(candidate_dir, error_message):
+    def add_error(dir_name, error_message):
         message = "error : "
         if test_dir_name is not None:
             message += test_dir_name + " : "
-        if candidate_dir != "":
-            message += RESULTS_REF + " dir (" + candidate_dir + "), "
+        if dir_name != "":
+            message += kht.RESULTS_REF + " dir (" + dir_name + "), "
         message += error_message
-        if log_file is not None:
-            log_file.write(message + "\n")
-        if show:
-            print(message)
+        utils.write_message(message, log_file=log_file, show=show)
 
     results_ref_dir = None
     is_valid = True
 
     # Le contexte est suppose etre valide
-    assert len(searched_context) == len(RESULTS_REF_TYPES)
-    for i in range(len(RESULTS_REF_TYPES)):
-        assert searched_context[i] in RESULTS_REF_TYPE_VALUES[RESULTS_REF_TYPES[i]], (
+    assert len(searched_context) == len(kht.RESULTS_REF_TYPES)
+    for i in range(len(kht.RESULTS_REF_TYPES)):
+        assert (
+            searched_context[i] in kht.RESULTS_REF_TYPE_VALUES[kht.RESULTS_REF_TYPES[i]]
+        ), (
             "value '"
             + searched_context[i]
             + "' should be in "
-            + RESULTS_REF_TYPES[i]
+            + kht.RESULTS_REF_TYPES[i]
             + " type values "
-            + str(RESULTS_REF_TYPE_VALUES[RESULTS_REF_TYPES[i]])
+            + str(kht.RESULTS_REF_TYPE_VALUES[kht.RESULTS_REF_TYPES[i]])
         )
     # S'il n'y a pas de repertoire, on renvoie le repertoire de reference standard
     if len(candidate_reference_dirs) == 0:
-        return RESULTS_REF
+        return kht.RESULTS_REF
     # Erreur si repertoire invalides
     if is_valid:
         for candidate_dir in candidate_reference_dirs:
-            # On doit commencer par le prefixe de base RESULTS_REF
-            if candidate_dir.find(RESULTS_REF) != 0:
+            # On doit commencer par le prefixe de base kht.RESULTS_REF
+            if candidate_dir.find(kht.RESULTS_REF) != 0:
                 is_valid = False
-                add_error(candidate_dir, "must start with '" + RESULTS_REF + "'")
+                add_error(candidate_dir, "must start with '" + kht.RESULTS_REF + "'")
             # Les valeurs suivantes de la conjonction doivent etre valide
             if is_valid:
-                and_values = candidate_dir.split(AND)
+                and_values = candidate_dir.split(kht.AND)
                 # La premiere valeur est imposes
-                if and_values[0] != RESULTS_REF:
+                if and_values[0] != kht.RESULTS_REF:
                     is_valid = False
                     add_error(
                         candidate_dir,
                         "must start with '"
-                        + RESULTS_REF
+                        + kht.RESULTS_REF
                         + "', with values separated by '-' or '_'",
                     )
                 # Analyse des valeurs suivantes
                 else:
                     current_type_index = -1
                     for i, and_value in enumerate(and_values[1:]):
+                        found_type_index = -1
                         # Les valeurs doivent etre non vide
                         if and_value == "":
                             is_valid = False
                             add_error(
                                 candidate_dir,
                                 "must not contain empty values separated by '"
-                                + AND
+                                + kht.AND
                                 + "'",
                             )
                         # Analyse des conjonctions de valeurs
                         else:
-                            or_values = and_value.split(OR)
+                            or_values = and_value.split(kht.OR)
                             found_type = ""
-                            found_type_index = -1
                             for value in or_values:
                                 # Les valeurs doivent etre non vide
                                 if value == "":
@@ -339,14 +340,21 @@ def _search_results_ref_dir(
                                     add_error(
                                         candidate_dir,
                                         "must not contain empty values separated by '"
-                                        + OR
+                                        + kht.OR
                                         + "'",
                                     )
                                 # Elles doivent correspond a un des types de contexte
                                 elif found_type == "":
-                                    for index, type in enumerate(RESULTS_REF_TYPES):
-                                        if value in RESULTS_REF_TYPE_VALUES[type]:
-                                            found_type = type
+                                    for index, results_ref_type in enumerate(
+                                        kht.RESULTS_REF_TYPES
+                                    ):
+                                        if (
+                                            value
+                                            in kht.RESULTS_REF_TYPE_VALUES[
+                                                results_ref_type
+                                            ]
+                                        ):
+                                            found_type = results_ref_type
                                             found_type_index = index
                                             break
                                     if found_type == "":
@@ -358,13 +366,14 @@ def _search_results_ref_dir(
                                 # Elles doivent toute correspondre au meme type de contexte
                                 if (
                                     is_valid
-                                    and value not in RESULTS_REF_TYPE_VALUES[found_type]
+                                    and value
+                                    not in kht.RESULTS_REF_TYPE_VALUES[found_type]
                                 ):
                                     is_valid = False
                                     add_error(
                                         candidate_dir,
                                         "values between '"
-                                        + OR
+                                        + kht.OR
                                         + "' ("
                                         + and_value
                                         + ") must correspond to the same type ("
@@ -379,7 +388,7 @@ def _search_results_ref_dir(
                                 add_error(
                                     candidate_dir,
                                     "values between '"
-                                    + OR
+                                    + kht.OR
                                     + "' ("
                                     + and_value
                                     + ") must be sorted",
@@ -389,7 +398,7 @@ def _search_results_ref_dir(
                             # Dans le cas d'un nouveau type de contexte ne comportant qu'une valeur, il faudrait
                             # ajouter une valeur fictive 'other' pour constituer une partition
                             if is_valid and len(or_values) == len(
-                                RESULTS_REF_TYPE_VALUES[found_type]
+                                kht.RESULTS_REF_TYPE_VALUES[found_type]
                             ):
                                 is_valid = False
                                 add_error(
@@ -399,7 +408,7 @@ def _search_results_ref_dir(
                                     + ") must not contain all "
                                     + found_type
                                     + " type values "
-                                    + str(RESULTS_REF_TYPE_VALUES[found_type]),
+                                    + str(kht.RESULTS_REF_TYPE_VALUES[found_type]),
                                 )
                         # Le type de valeur doit etre d'index structement superieur a celui du type courant
                         if is_valid:
@@ -414,16 +423,16 @@ def _search_results_ref_dir(
                                     add_error(
                                         candidate_dir,
                                         "values related to "
-                                        + RESULTS_REF_TYPES[current_type_index]
+                                        + kht.RESULTS_REF_TYPES[current_type_index]
                                         + " type should not be specified several times",
                                     )
                                 else:
                                     add_error(
                                         candidate_dir,
                                         "values related to "
-                                        + RESULTS_REF_TYPES[found_type_index]
+                                        + kht.RESULTS_REF_TYPES[found_type_index]
                                         + " type should be specified before values related to "
-                                        + RESULTS_REF_TYPES[current_type_index]
+                                        + kht.RESULTS_REF_TYPES[current_type_index]
                                         + " type",
                                     )
                             current_type_index = found_type_index
@@ -434,13 +443,13 @@ def _search_results_ref_dir(
     if is_valid:
         assert results_ref_dir is None
         # Construction de tous les contexes possibles
-        results_ref_type_number = len(RESULTS_REF_TYPES)
+        results_ref_type_number = len(kht.RESULTS_REF_TYPES)
         all_evaluated_contexts = [[]]
         for index in range(results_ref_type_number):
             new_contexts = []
-            context_type = RESULTS_REF_TYPES[index]
+            context_type = kht.RESULTS_REF_TYPES[index]
             for context in all_evaluated_contexts:
-                for value in RESULTS_REF_TYPE_VALUES[context_type]:
+                for value in kht.RESULTS_REF_TYPE_VALUES[context_type]:
                     new_context = context.copy()
                     new_context.append(value)
                     new_contexts.append(new_context)
@@ -483,7 +492,7 @@ def _search_results_ref_dir(
                             + " matches "
                             + str(selected_candidate_dir_number)
                             + " variants of "
-                            + RESULTS_REF
+                            + kht.RESULTS_REF
                             + " dirs (e.g. "
                             + str(candidate_dirs_per_match_number[match_number])
                             + ")",
@@ -492,8 +501,8 @@ def _search_results_ref_dir(
                 match_number -= 1
             # Si aucun repertoire specialise trouve, on se rabat sur le repertoire de base
             if is_valid and evaluated_context_results_ref_dir == "":
-                if RESULTS_REF in candidate_reference_dirs:
-                    evaluated_context_results_ref_dir = RESULTS_REF
+                if kht.RESULTS_REF in candidate_reference_dirs:
+                    evaluated_context_results_ref_dir = kht.RESULTS_REF
                     # On memorise que le repertoire a ete utilise au moins une fois
                     used_candidate_dirs[evaluated_context_results_ref_dir] = True
                 else:
@@ -501,7 +510,7 @@ def _search_results_ref_dir(
                     add_error(
                         "",
                         "no "
-                        + RESULTS_REF
+                        + kht.RESULTS_REF
                         + " dir found for context "
                         + str(evaluated_context),
                     )
@@ -521,7 +530,7 @@ def _search_results_ref_dir(
         add_error(
             "",
             "some "
-            + RESULTS_REF
+            + kht.RESULTS_REF
             + " dirs are not active for any context "
             + str(unused_candidate_dirs),
         )
@@ -529,12 +538,12 @@ def _search_results_ref_dir(
     if not is_valid:
         results_ref_dir = None
         # Message synthetique de fin
-        add_error("", "invalid " + RESULTS_REF + " dir")
+        add_error("", "invalid " + kht.RESULTS_REF + " dir")
     return results_ref_dir
 
 
 def test_results_ref_context_management():
-    """Test de la gestion des contexte des repertoires de rfeference"""
+    """Test de la gestion des contexte des repertoires de reference"""
 
     def buil_candidate_results_ref_dirs(
         list_type_values, concat_values=False, specific_dir=None
@@ -551,28 +560,28 @@ def test_results_ref_context_management():
             results_ref_dirs.append(specific_dir)
         # Ajout d'un repertoire par valeur, en cumulant les types
         if not concat_values:
-            base_names = [RESULTS_REF]
+            base_names = [kht.RESULTS_REF]
             for i in range(len(list_type_values)):
                 new_base_names = []
                 values = list_type_values[i]
                 for base_name in base_names:
                     for value in values:
-                        results_ref_dir = base_name + AND + value
-                        results_ref_dirs.append(results_ref_dir)
-                        new_base_names.append(results_ref_dir)
+                        dir_name = base_name + kht.AND + value
+                        results_ref_dirs.append(dir_name)
+                        new_base_names.append(dir_name)
                 base_names = new_base_names
         # Ajout d'un repertoire par liste de valeurs, en cumulant les types
         else:
-            results_ref_dir = RESULTS_REF
+            dir_name = kht.RESULTS_REF
             for i in range(len(list_type_values)):
                 values = list_type_values[i]
                 values_string = ""
                 for value in values:
                     if values_string != "":
-                        values_string += OR
+                        values_string += kht.OR
                     values_string += value
-                results_ref_dir += AND + values_string
-                results_ref_dirs.append(results_ref_dir)
+                dir_name += kht.AND + values_string
+                results_ref_dirs.append(dir_name)
         return results_ref_dirs
 
     print("--- Test context management of reference results directories ---")
@@ -586,72 +595,80 @@ def test_results_ref_context_management():
     # Jeux de test basique
     list_candidate_results_ref_dirs = []
     list_candidate_results_ref_dirs.append([])
-    list_candidate_results_ref_dirs.append([RESULTS])
-    list_candidate_results_ref_dirs.append([RESULTS_REF])
-    list_candidate_results_ref_dirs.append([RESULTS_REF, RESULTS_REF + AND])
-    list_candidate_results_ref_dirs.append([RESULTS_REF, RESULTS_REF + AND + OR])
-    list_candidate_results_ref_dirs.append([RESULTS_REF, RESULTS_REF + "NO"])
-    list_candidate_results_ref_dirs.append([RESULTS_REF, RESULTS_REF + AND + "NO"])
+    list_candidate_results_ref_dirs.append([kht.RESULTS])
+    list_candidate_results_ref_dirs.append([kht.RESULTS_REF])
+    list_candidate_results_ref_dirs.append([kht.RESULTS_REF, kht.RESULTS_REF + kht.AND])
+    list_candidate_results_ref_dirs.append(
+        [kht.RESULTS_REF, kht.RESULTS_REF + kht.AND + kht.OR]
+    )
+    list_candidate_results_ref_dirs.append([kht.RESULTS_REF, kht.RESULTS_REF + "NO"])
+    list_candidate_results_ref_dirs.append(
+        [kht.RESULTS_REF, kht.RESULTS_REF + kht.AND + "NO"]
+    )
     # Jeu de test incomplet
     list_candidate_results_ref_dirs.append(
-        [RESULTS_REF + AND + RESULTS_REF_TYPE_VALUES[RESULTS_REF_TYPES[0]][0]]
+        [
+            kht.RESULTS_REF
+            + kht.AND
+            + kht.RESULTS_REF_TYPE_VALUES[kht.RESULTS_REF_TYPES[0]][0]
+        ]
     )
     # Plusieurs valeurs de type different pour un meme type
     list_candidate_results_ref_dirs.append(
         [
-            RESULTS_REF,
-            RESULTS_REF
-            + AND
-            + RESULTS_REF_TYPE_VALUES[RESULTS_REF_TYPES[0]][0]
-            + OR
-            + RESULTS_REF_TYPE_VALUES[RESULTS_REF_TYPES[1]][0],
+            kht.RESULTS_REF,
+            kht.RESULTS_REF
+            + kht.AND
+            + kht.RESULTS_REF_TYPE_VALUES[kht.RESULTS_REF_TYPES[0]][0]
+            + kht.OR
+            + kht.RESULTS_REF_TYPE_VALUES[kht.RESULTS_REF_TYPES[1]][0],
         ]
     )
     # Plusieurs valeurs d'un meme type dans le mauvais ordre
     list_candidate_results_ref_dirs.append(
         [
-            RESULTS_REF,
-            RESULTS_REF
-            + AND
-            + RESULTS_REF_TYPE_VALUES[RESULTS_REF_TYPES[1]][1]
-            + OR
-            + RESULTS_REF_TYPE_VALUES[RESULTS_REF_TYPES[1]][0],
+            kht.RESULTS_REF,
+            kht.RESULTS_REF
+            + kht.AND
+            + kht.RESULTS_REF_TYPE_VALUES[kht.RESULTS_REF_TYPES[1]][1]
+            + kht.OR
+            + kht.RESULTS_REF_TYPE_VALUES[kht.RESULTS_REF_TYPES[1]][0],
         ]
     )
-    # Spefication multiple des valeurs d'un meme type
+    # Specification multiple des valeurs d'un meme type
     list_candidate_results_ref_dirs.append(
         [
-            RESULTS_REF,
-            RESULTS_REF
-            + AND
-            + RESULTS_REF_TYPE_VALUES[RESULTS_REF_TYPES[0]][0]
-            + AND
-            + RESULTS_REF_TYPE_VALUES[RESULTS_REF_TYPES[0]][1],
+            kht.RESULTS_REF,
+            kht.RESULTS_REF
+            + kht.AND
+            + kht.RESULTS_REF_TYPE_VALUES[kht.RESULTS_REF_TYPES[0]][0]
+            + kht.AND
+            + kht.RESULTS_REF_TYPE_VALUES[kht.RESULTS_REF_TYPES[0]][1],
         ]
     )
-    # Spefication des valeurs de different type dans le mauvais ordre des types
+    # Specification des valeurs de different type dans le mauvais ordre des types
     list_candidate_results_ref_dirs.append(
         [
-            RESULTS_REF,
-            RESULTS_REF
-            + AND
-            + RESULTS_REF_TYPE_VALUES[RESULTS_REF_TYPES[1]][0]
-            + AND
-            + RESULTS_REF_TYPE_VALUES[RESULTS_REF_TYPES[0]][0],
+            kht.RESULTS_REF,
+            kht.RESULTS_REF
+            + kht.AND
+            + kht.RESULTS_REF_TYPE_VALUES[kht.RESULTS_REF_TYPES[1]][0]
+            + kht.AND
+            + kht.RESULTS_REF_TYPE_VALUES[kht.RESULTS_REF_TYPES[0]][0],
         ]
     )
-    # Tests systematiques avec tout ou partie des valeurs par type
-    list_type_values = []
-    for type in RESULTS_REF_TYPES:
-        all_type_values = RESULTS_REF_TYPE_VALUES[type]
+    # Tests systematiques avec tout ou partie des valeurs par type de resultat de reference
+    tested_list_type_values = []
+    for results_ref_type in kht.RESULTS_REF_TYPES:
+        all_type_values = kht.RESULTS_REF_TYPE_VALUES[results_ref_type]
         specific_type_values = all_type_values[:-1]
-        list_type_values.append(all_type_values)
+        tested_list_type_values.append(all_type_values)
         list_candidate_results_ref_dirs.append(
             buil_candidate_results_ref_dirs([all_type_values])
         )
         list_candidate_results_ref_dirs.append(
             buil_candidate_results_ref_dirs(
-                [specific_type_values], specific_dir=RESULTS_REF
+                [specific_type_values], specific_dir=kht.RESULTS_REF
             )
         )
         list_candidate_results_ref_dirs.append(
@@ -659,23 +676,25 @@ def test_results_ref_context_management():
         )
         list_candidate_results_ref_dirs.append(
             buil_candidate_results_ref_dirs(
-                [specific_type_values], concat_values=True, specific_dir=RESULTS_REF
+                [specific_type_values], concat_values=True, specific_dir=kht.RESULTS_REF
             )
         )
     list_candidate_results_ref_dirs.append(
-        buil_candidate_results_ref_dirs(list_type_values)
+        buil_candidate_results_ref_dirs(tested_list_type_values)
     )
     list_candidate_results_ref_dirs.append(
-        buil_candidate_results_ref_dirs(list_type_values, specific_dir=RESULTS_REF)
+        buil_candidate_results_ref_dirs(
+            tested_list_type_values, specific_dir=kht.RESULTS_REF
+        )
     )
 
     # Test de recherche du repertoire de reference
-    for i, candidate_results_ref_dirs in enumerate(list_candidate_results_ref_dirs):
+    for index, candidate_results_ref_dirs in enumerate(list_candidate_results_ref_dirs):
         print(
             "Candidate reference dirs "
             + str(len(candidate_results_ref_dirs))
             + " [test "
-            + str(i + 1)
+            + str(index + 1)
             + "]:"
         )
         for candidate in candidate_results_ref_dirs:
