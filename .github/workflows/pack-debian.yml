@@ -2,6 +2,13 @@
 name: DEB Packages
 on:
   workflow_dispatch:
+    inputs:
+      mpi_implementation:
+        description: mpi implementation
+        type: choice
+        options: 
+          - mpich
+          - openmpi
   pull_request:
     paths:
       - '**CMakeLists.txt'
@@ -35,8 +42,8 @@ jobs:
           echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
       - name: Configure CMake
         run: |
-          update-alternatives --set mpi /usr/bin/mpicc.openmpi
-          update-alternatives --set mpirun /usr/bin/mpirun.openmpi
+          update-alternatives --set mpi /usr/bin/mpicc.${{ github.event.inputs.mpi_implementation }}
+          update-alternatives --set mpirun /usr/bin/mpirun.${{ github.event.inputs.mpi_implementation }}
           cmake --preset linux-gcc-release -DBUILD_JARS=ON
       - name: Build Khiops binaries
         run: |
