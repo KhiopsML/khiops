@@ -204,20 +204,15 @@ KWClass* KWClassDomain::LookupClass(const ALString& sClassName) const
 	return cast(KWClass*, odClasses.Lookup(sClassName));
 }
 
-boolean KWClassDomain::InsertClass(KWClass* newObject)
+void KWClassDomain::InsertClass(KWClass* newObject)
 {
 	require(newObject != NULL);
 	require(newObject->GetDomain() == NULL);
+	require(LookupClass(newObject->GetName()) == NULL);
 
-	if (odClasses.Lookup(newObject->GetName()) == NULL)
-	{
-		odClasses.SetAt(newObject->GetName(), newObject);
-		newObject->domain = this;
-		nUpdateNumber++;
-		return true;
-	}
-	else
-		return false;
+	odClasses.SetAt(newObject->GetName(), newObject);
+	newObject->domain = this;
+	nUpdateNumber++;
 }
 
 void KWClassDomain::InsertClassWithNewName(KWClass* newObject, const ALString& sNewName)
@@ -241,42 +236,35 @@ void KWClassDomain::InsertClassWithNewName(KWClass* newObject, const ALString& s
 	nUpdateNumber++;
 }
 
-boolean KWClassDomain::RemoveClass(const ALString& sClassName)
+void KWClassDomain::RemoveClass(const ALString& sClassName)
 {
 	KWClass* kwcToRemove;
 
+	require(LookupClass(sClassName) != NULL);
+
 	kwcToRemove = LookupClass(sClassName);
-	if (odClasses.RemoveKey(sClassName))
-	{
-		nUpdateNumber++;
-		check(kwcToRemove);
-		kwcToRemove->domain = NULL;
-		return true;
-	}
-	else
-		return false;
+	check(kwcToRemove);
+	odClasses.RemoveKey(sClassName);
+	nUpdateNumber++;
+	kwcToRemove->domain = NULL;
 }
 
-boolean KWClassDomain::DeleteClass(const ALString& sClassName)
+void KWClassDomain::DeleteClass(const ALString& sClassName)
 {
 	KWClass* kwcToDelete;
 
+	require(LookupClass(sClassName) != NULL);
+
 	kwcToDelete = LookupClass(sClassName);
-	if (odClasses.RemoveKey(sClassName))
-	{
-		check(kwcToDelete);
-		delete kwcToDelete;
-		nUpdateNumber++;
-		return true;
-	}
-	else
-		return false;
+	check(kwcToDelete);
+	odClasses.RemoveKey(sClassName);
+	delete kwcToDelete;
+	nUpdateNumber++;
 }
 
-boolean KWClassDomain::RenameClass(KWClass* refClass, const ALString& sNewName)
+void KWClassDomain::RenameClass(KWClass* refClass, const ALString& sNewName)
 {
 	ALString sOldName;
-	KWClass* existingClass;
 	KWClass* kwcClass;
 	KWAttribute* attribute;
 	KWDerivationRule* currentDerivationRule;
@@ -286,57 +274,46 @@ boolean KWClassDomain::RenameClass(KWClass* refClass, const ALString& sNewName)
 	require(refClass == cast(KWClass*, odClasses.Lookup(refClass->GetName())));
 	require(refClass->domain == this);
 	require(refClass->CheckName(sNewName, refClass));
+	require(LookupClass(sNewName) == NULL);
 
-	// Si le nom n'est pas nouveau, le renommage est implicitement deja effectue
-	if (refClass->GetName() == sNewName)
-		return true;
-
-	// Test d'existence du nouveau nom
-	existingClass = cast(KWClass*, odClasses.Lookup(sNewName));
-	if (existingClass != NULL)
-		return false;
 	// Renommage par manipulation dans le dictionnaire
 	// Les classes referencees par les autres attributs restent coherentes:
 	// seul le nom de la classe a change
-	else
+	// Propagation du renommage a toutes les regles de derivation
+	// des classes du domaine referencant l'attribut
+	for (i = 0; i < GetClassNumber(); i++)
 	{
-		// Propagation du renommage a toutes les regles de derivation
-		// des classes du domaine referencant l'attribut
-		for (i = 0; i < GetClassNumber(); i++)
+		kwcClass = GetClassAt(i);
+
+		// Parcours des attributs de la classe
+		attribute = kwcClass->GetHeadAttribute();
+		currentDerivationRule = NULL;
+		while (attribute != NULL)
 		{
-			kwcClass = GetClassAt(i);
-
-			// Parcours des attributs de la classe
-			attribute = kwcClass->GetHeadAttribute();
-			currentDerivationRule = NULL;
-			while (attribute != NULL)
+			// Detection de changement de regle de derivation (notamment pour les blocs)
+			if (attribute->GetAnyDerivationRule() != currentDerivationRule)
 			{
-				// Detection de changement de regle de derivation (notamment pour les blocs)
-				if (attribute->GetAnyDerivationRule() != currentDerivationRule)
-				{
-					currentDerivationRule = attribute->GetAnyDerivationRule();
+				currentDerivationRule = attribute->GetAnyDerivationRule();
 
-					// Renommage dans les regles de derivation (et au plus une seule fois par bloc)
-					if (currentDerivationRule != NULL)
-						currentDerivationRule->RenameClass(refClass, sNewName);
-				}
-
-				// Attribut suivant
-				kwcClass->GetNextAttribute(attribute);
+				// Renommage dans les regles de derivation (et au plus une seule fois par bloc)
+				if (currentDerivationRule != NULL)
+					currentDerivationRule->RenameClass(refClass, sNewName);
 			}
-		}
 
-		// Renommage de la classe dans le domaine
-		sOldName = refClass->GetName();
-		odClasses.RemoveKey(refClass->GetName());
-		refClass->usName.SetValue(sNewName);
-		odClasses.SetAt(refClass->GetName(), refClass);
-		nUpdateNumber++;
-		return true;
+			// Attribut suivant
+			kwcClass->GetNextAttribute(attribute);
+		}
 	}
+
+	// Renommage de la classe dans le domaine
+	sOldName = refClass->GetName();
+	odClasses.RemoveKey(refClass->GetName());
+	refClass->usName.SetValue(sNewName);
+	odClasses.SetAt(refClass->GetName(), refClass);
+	nUpdateNumber++;
 }
 
-boolean KWClassDomain::RenameAttribute(KWAttribute* refAttribute, const ALString& sNewAttributeName)
+void KWClassDomain::RenameAttribute(KWAttribute* refAttribute, const ALString& sNewAttributeName)
 {
 	KWClass* refClass;
 	KWClass* kwcClass;
@@ -350,50 +327,43 @@ boolean KWClassDomain::RenameAttribute(KWAttribute* refAttribute, const ALString
 	require(refAttribute->GetParentClass() ==
 		cast(KWClass*, odClasses.Lookup(refAttribute->GetParentClass()->GetName())));
 	require(refAttribute->GetParentClass()->domain == this);
+	require(refAttribute->GetParentClass()->LookupAttribute(sNewAttributeName) == NULL);
 
-	// Test si renommage possible sur la classe de depart
+	// Propagation du renommage a toutes les regles de derivation
+	// des classes du domaine referencant l'attribut
 	refClass = refAttribute->GetParentClass();
-	if (refClass->LookupAttribute(sNewAttributeName) != NULL)
-		return false;
-	// Propagation du renommage si necessaire
-	else
+	for (i = 0; i < GetClassNumber(); i++)
 	{
-		// Propagation du renommage a toutes les regles de derivation
-		// des classes du domaine referencant l'attribut
-		for (i = 0; i < GetClassNumber(); i++)
+		kwcClass = GetClassAt(i);
+
+		// Parcours des attributs de la classe
+		// (sauf classe de depart deja traitee)
+		if (kwcClass != refClass)
 		{
-			kwcClass = GetClassAt(i);
-
-			// Parcours des attributs de la classe
-			// (sauf classe de depart deja traitee)
-			if (kwcClass != refClass)
+			attribute = kwcClass->GetHeadAttribute();
+			currentDerivationRule = NULL;
+			while (attribute != NULL)
 			{
-				attribute = kwcClass->GetHeadAttribute();
-				currentDerivationRule = NULL;
-				while (attribute != NULL)
+				// Detection de changement de regle de derivation (notamment pour les blocs)
+				if (attribute->GetAnyDerivationRule() != currentDerivationRule)
 				{
-					// Detection de changement de regle de derivation (notamment pour les blocs)
-					if (attribute->GetAnyDerivationRule() != currentDerivationRule)
-					{
-						currentDerivationRule = attribute->GetAnyDerivationRule();
+					currentDerivationRule = attribute->GetAnyDerivationRule();
 
-						// Renommage dans les regles de derivation (et au plus une seule fois
-						// par bloc)
-						if (currentDerivationRule != NULL)
-							currentDerivationRule->RenameAttribute(kwcClass, refAttribute,
-											       sNewAttributeName);
-					}
-
-					// Attribut suivant
-					kwcClass->GetNextAttribute(attribute);
+					// Renommage dans les regles de derivation (et au plus une seule fois
+					// par bloc)
+					if (currentDerivationRule != NULL)
+						currentDerivationRule->RenameAttribute(kwcClass, refAttribute,
+										       sNewAttributeName);
 				}
+
+				// Attribut suivant
+				kwcClass->GetNextAttribute(attribute);
 			}
 		}
-
-		// Renommage de l'attribut sur la classe de depart
-		refClass->RenameAttribute(refAttribute, sNewAttributeName);
-		return true;
 	}
+
+	// Renommage de l'attribut sur la classe de depart
+	refClass->RenameAttribute(refAttribute, sNewAttributeName);
 }
 
 ObjectArray* KWClassDomain::AllClasses() const
@@ -1320,7 +1290,7 @@ KWClassDomain* KWClassDomain::LookupDomain(const ALString& sName)
 		return cast(KWClassDomain*, odDomains->Lookup(sName));
 }
 
-boolean KWClassDomain::InsertDomain(KWClassDomain* newObject)
+void KWClassDomain::InsertDomain(KWClassDomain* newObject)
 {
 	require(newObject != NULL);
 	require(newObject->GetName() != "");
@@ -1337,23 +1307,17 @@ boolean KWClassDomain::InsertDomain(KWClassDomain* newObject)
 	}
 
 	// Insertion
-	if (odDomains->Lookup(newObject->GetName()) == NULL)
-	{
-		odDomains->SetAt(newObject->GetName(), newObject);
-		nCDUpdateNumber++;
-		return true;
-	}
-	else
-		return false;
+	odDomains->SetAt(newObject->GetName(), newObject);
+	nCDUpdateNumber++;
 }
 
-boolean KWClassDomain::RemoveDomain(const ALString& sName)
+void KWClassDomain::RemoveDomain(const ALString& sName)
 {
 	KWClassDomain* domainToRemove;
 
-	if (odDomains == NULL)
-		return false;
-	else
+	require(LookupDomain(sName) != NULL);
+
+	if (odDomains != NULL)
 	{
 		// Gestion du domaine par defaut
 		domainToRemove = LookupDomain(sName);
@@ -1361,27 +1325,22 @@ boolean KWClassDomain::RemoveDomain(const ALString& sName)
 			kwcdCurrentDomain = NULL;
 
 		// Suppression du domaine
-		if (odDomains->RemoveKey(sName))
-		{
-			nCDUpdateNumber++;
+		odDomains->RemoveKey(sName);
+		nCDUpdateNumber++;
 
-			// Nettoyage eventuel du container de domaines
-			if (GetDomainNumber() == 0)
-				RemoveAllDomains();
-			return true;
-		}
-		else
-			return false;
+		// Nettoyage eventuel du container de domaines
+		if (GetDomainNumber() == 0)
+			RemoveAllDomains();
 	}
 }
 
-boolean KWClassDomain::DeleteDomain(const ALString& sName)
+void KWClassDomain::DeleteDomain(const ALString& sName)
 {
 	KWClassDomain* domainToDelete;
 
-	if (odDomains == NULL)
-		return false;
-	else
+	require(LookupDomain(sName) != NULL);
+
+	if (odDomains != NULL)
 	{
 		// Gestion du domaine par defaut
 		domainToDelete = LookupDomain(sName);
@@ -1389,42 +1348,28 @@ boolean KWClassDomain::DeleteDomain(const ALString& sName)
 			kwcdCurrentDomain = NULL;
 
 		// Destruction du domaine
-		if (odDomains->RemoveKey(sName))
-		{
-			check(domainToDelete);
-			delete domainToDelete;
-			nCDUpdateNumber++;
+		odDomains->RemoveKey(sName);
+		check(domainToDelete);
+		delete domainToDelete;
+		nCDUpdateNumber++;
 
-			// Nettoyage eventuel du container de domaines
-			if (GetDomainNumber() == 0)
-				RemoveAllDomains();
-			return true;
-		}
-		else
-			return false;
+		// Nettoyage eventuel du container de domaines
+		if (GetDomainNumber() == 0)
+			RemoveAllDomains();
 	}
 }
 
-boolean KWClassDomain::RenameDomain(KWClassDomain* domain, const ALString& sNewName)
+void KWClassDomain::RenameDomain(KWClassDomain* domain, const ALString& sNewName)
 {
-	KWClassDomain* existingDomain;
-
 	require(domain != NULL);
 	require(odDomains != NULL and domain == cast(KWClassDomain*, odDomains->Lookup(domain->GetName())));
+	require(LookupDomain(sNewName) == NULL);
 
-	// Test d'existence du nouveau nom
-	existingDomain = cast(KWClassDomain*, odDomains->Lookup(sNewName));
-	if (existingDomain != NULL)
-		return false;
 	// Renommage par manipulation dans le dictionnaire
-	else
-	{
-		odDomains->RemoveKey(domain->GetName());
-		domain->usName.SetValue(sNewName);
-		odDomains->SetAt(domain->GetName(), domain);
-		nCDUpdateNumber++;
-		return true;
-	}
+	odDomains->RemoveKey(domain->GetName());
+	domain->usName.SetValue(sNewName);
+	odDomains->SetAt(domain->GetName(), domain);
+	nCDUpdateNumber++;
 }
 
 int KWClassDomain::GetDomainNumber()

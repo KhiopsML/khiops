@@ -224,7 +224,9 @@ boolean TestAndCompareResults(const char* sTestPath, const char* test_suite, con
 	int fdInit;
 
 	// Parametrage de l'arret pour la memoire
-	//MemSetAllocIndexExit(3391);
+	// Le framework de gestion des tests unitaires n'ayant pas de main(), cela semble etre
+	// l'endroit pertinent pour la detection des fuites memoire
+	// MemSetAllocIndexExit(3391);
 
 	// On passe en mode batch pour avoir des parametres par defaut, sans interaction utilisateur
 	SetAcquireBatchMode(true);

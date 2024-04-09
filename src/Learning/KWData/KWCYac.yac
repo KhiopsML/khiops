@@ -247,7 +247,6 @@ kwclassBegin: kwclassHeader comments
 		  KWClass* kwcClass=$1;
 		  KWAttribute* attribute=$2;
 		  assert(kwcLoadCurrentClass == $1);
-		  boolean bOk;
 
 		  /* Si attribut non valide: on ne fait rien */
 		  if (attribute == NULL)
@@ -279,8 +278,7 @@ kwclassBegin: kwclassHeader comments
 		  /* Si OK, d'insertion */
 		  else
 		  {
-		    bOk = kwcClass->InsertAttribute(attribute);
-			assert(bOk);
+		    kwcClass->InsertAttribute(attribute);
 		  }
 
 		  $$ = kwcClass;       
@@ -399,7 +397,6 @@ oaAttributeArrayDeclaration :
 		  ObjectArray* oaAttributes = $1;
 		  KWAttribute* attribute=$2;
 		  KWClass* kwcClass=kwcLoadCurrentClass;
-		  boolean bOk;
 		  check(oaAttributes);
 
 		  /* Si attribut non valide: on ne fait rien */
@@ -432,9 +429,8 @@ oaAttributeArrayDeclaration :
 		  /* Si OK, d'insertion */
 		  else
 		  {
-		    bOk = kwcClass->InsertAttribute(attribute);
+		    kwcClass->InsertAttribute(attribute);
 		    oaAttributes->Add(attribute);
-			assert(bOk);
 		  }
 
 		  $$ = oaAttributes;       
@@ -444,7 +440,6 @@ oaAttributeArrayDeclaration :
 		  ObjectArray* oaAttributes;
 		  KWAttribute* attribute=$1;
 		  KWClass* kwcClass=kwcLoadCurrentClass;
-		  boolean bOk;
 
 		  /* Creation d'un tableau */
 		  oaAttributes = new ObjectArray;
@@ -479,9 +474,8 @@ oaAttributeArrayDeclaration :
 		  /* Si OK, d'insertion */
 		  else
 		  {
-		    bOk = kwcClass->InsertAttribute(attribute);
+		    kwcClass->InsertAttribute(attribute);
 		    oaAttributes->Add(attribute);
-			assert(bOk);
 		  }
 
 		  $$ = oaAttributes;       
