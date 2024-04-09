@@ -53,15 +53,8 @@ if ! command -v mpiexec &> /dev/null
 then
     if source /etc/profile.d/modules.sh &> /dev/null
     then
-         # find the good module
-        # mpich_module="$(module avail |& sed -E -e 's/[[:blank:]]+/\n/g' | grep  mpich-[0-9] | grep $(arch) | sort | tail -n 1)"
-        # if [ -z "$mpich_module" ] ; then
-        #     mpich_module=$(module avail |& sed -E -e 's/[[:blank:]]+/\n/g' | grep  mpich-$(arch))
-        # fi
-
-        # and load it
         module unload mpi
-        module load mpi/openmpi-x86_64
+        module load mpi/@MPI_IMPL@-x86_64
     fi
 fi
 
@@ -79,12 +72,14 @@ if [[ -z $KHIOPS_PROC_NUMBER ]]; then
     KHIOPS_PROC_NUMBER=$(( $(lscpu -b -p=Core,Socket | grep -v '^#' | sort -u | wc -l) + 1 ))
 fi
 
-if command -v mpiexec &> /dev/null
+${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG}
+
+if command -v @MPIEXEC@ &> /dev/null
 then
-    MPIEXEC_PATH=$(command -v mpiexec)
-    KHIOPS_MPI_COMMAND="${MPIEXEC_PATH} --allow-run-as-root --quiet --oversubscribe -n $KHIOPS_PROC_NUMBER"
+    MPIEXEC_PATH=$(command -v @MPIEXEC@)
+    KHIOPS_MPI_COMMAND="${MPIEXEC_PATH} -bind-to hwthread -map-by core @MPIEXEC_NUMPROC_FLAG@ $KHIOPS_PROC_NUMBER"
 else
-    echo "We didn't find mpiexec in the regular path. Parallel computation is unavailable: Khiops is launched in serial"
+    echo "We didn't find @MPIEXEC@ in the regular path. Parallel computation is unavailable: Khiops is launched in serial"
     KHIOPS_MPI_COMMAND="" 
 fi
 

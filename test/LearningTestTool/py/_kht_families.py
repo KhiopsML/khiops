@@ -22,9 +22,11 @@ def check_family(family):
 
 # Liste des familles, de la plus simple a la plus complete
 BASIC = "basic"  # Famille elementaire, tres rapide a tester
-FULL = "full"  # Famille correspondant a tous les tests de non regression (environ une heure a tester)
+# Famille correspondant a tous les tests de non regression (environ une heure a tester)
+FULL = "full"
 FULL_NO_KNI = "full-no-kni"  # Idem, sans KNI
-COMPLETE = "complete"  # Famille complete, tres lourde a tester (environ une journee)
+# Famille complete, tres lourde a tester (environ une journee)
+COMPLETE = "complete"
 ALL = "all"  # Tous les repertoire de suite exhaustivement: ne pas utiliser pour les test, mais pour leur gestion
 TEST_FAMILIES = [BASIC, FULL, FULL_NO_KNI, COMPLETE, ALL]
 assert len(set(TEST_FAMILIES)) == len(TEST_FAMILIES), (
@@ -36,7 +38,7 @@ DEFAULT_TEST_FAMILY = FULL
 assert DEFAULT_TEST_FAMILY in TEST_FAMILIES
 
 # Cas de la version V11, qui inclus des suites de test additionnelles
-KHIOPS_V11 = True
+KHIOPS_V11 = False
 
 # Ensuite des suites de test par famille et par outils
 # Pour le cas particlier le la famille ALL, les suite ne sont pas specifiee:

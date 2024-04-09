@@ -45,46 +45,6 @@ jobs:
           preset-name: ${{ matrix.build-setup.cmake-preset }}
           targets: norm_test parallel_test parallel_mpi_test learning_test KNITest
           override-flags: -DTESTING=ON
-      - name: Run Unit Tests for the Norm Module
-        run: |
-          build/${{ matrix.build-setup.cmake-preset }}/bin/norm_test \
-            --gtest_output="xml:reports/report-norm.xml"
-      - name: Run Unit Tests for the Parallel Module
-        if: always()
-        run: |
-          build/${{ matrix.build-setup.cmake-preset }}/bin/parallel_test \
-            --gtest_output="xml:reports/report-parallel.xml"
-      - name: Run Unit Tests for the Parallel MPI Module in serial
-        if: always()
-        run: |
-          build/${{ matrix.build-setup.cmake-preset }}/bin/parallel_mpi_test \
-            --gtest_output="xml:reports/report-parallel-mpi-serial.xml"
-      - name: Run Unit Tests for the Parallel MPI Module in parallel (Linux)
-        if: ${{ always() && runner.os == 'Linux' }}
-        run: |
-          mpirun --oversubscribe --use-hwthread-cpus -n 4 build/${{ matrix.build-setup.cmake-preset }}/bin/parallel_mpi_test \
-            --gtest_output="xml:reports/report-parallel-mpi-parallel.xml"
-      - name: Run Unit Tests for the Parallel MPI Module in parallel (Windows and
-          macOS)
-        if: ${{ always() && runner.os != 'Linux' }}
-        run: |
-          mpiexec -n 4 build/${{ matrix.build-setup.cmake-preset }}/bin/parallel_mpi_test \
-              --gtest_output="xml:reports/report-parallel-mpi-parallel.xml"
-      - name: Run Unit Tests for the Learning Module
-        if: always()
-        run: |
-          build/${{ matrix.build-setup.cmake-preset }}/bin/learning_test \
-            --gtest_output="xml:reports/report-learning.xml"
-      - name: Run Unit Tests for the KNI Module
-        if: always()
-        run: |
-          build/${{ matrix.build-setup.cmake-preset }}/bin/KNITest \
-            --gtest_output="xml:reports/report-kni.xml"
-      - name: Create Unit Test Reports Dashboards
-        uses: phoenix-actions/test-reporting@v12
-        if: always()
-        with:
-          name: Unit Tests Reports (${{ matrix.build-setup.os }})
-          reporter: jest-junit
-          path: reports/report-*.xml
-          path-replace-backslashes: 'true'  # Necessary for windows paths
+      - name: Run Unit Tests
+        run: |-
+          ctest --preset ${{ matrix.build-setup.cmake-preset }}

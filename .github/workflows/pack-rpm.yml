@@ -6,6 +6,7 @@ on:
       mpi_implementation:
         description: mpi implementation
         type: choice
+        default: openmpi
         options: [mpich, openmpi]
   pull_request:
     paths: ['**CMakeLists.txt', '**.cmake', .github/workflows/pack-rpm.yml]

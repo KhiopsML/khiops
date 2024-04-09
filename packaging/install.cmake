@@ -59,14 +59,26 @@ configure_file(${PROJECT_SOURCE_DIR}/packaging/common/KNI/template-README.md ${T
 
 # ######################################## Khiops and Khiops Coclustering installation
 
+# replace MPIEXEC MPIEXEC_NUMPROC_FLAG and MPI_IMPL
+configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops-env.in ${TMP_DIR}/khiops-env @ONLY
+               NEWLINE_STYLE UNIX)
+
 if(NOT IS_FEDORA_LIKE)
   install(TARGETS MODL MODL_Coclustering RUNTIME DESTINATION usr/bin COMPONENT KHIOPS_CORE)
+
+  # We install the binary with mpi suffix and create a symlink without the suffix
+  get_target_property(MODL_NAME MODL OUTPUT_NAME)
+  execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink /usr/bin/${MODL_NAME} ${CMAKE_BINARY_DIR}/MODL)
+  install(
+    FILES ${CMAKE_BINARY_DIR}/MODL
+    DESTINATION usr/bin
+    COMPONENT KHIOPS_CORE)
 else()
 
   # On fedora binaries built with mpi must follow these rules :
   #
   # - the binaries MUST be suffixed with $MPI_SUFFIX
-  # - MPI implementation specific files MUST be installed in the directories used by the used MPI compiler e.g. $MPI_BIN
+  # - MPI implementation specific files MUST be installed in the directories used by the MPI compiler e.g. $MPI_BIN
   #
   # see https://docs.fedoraproject.org/en-US/packaging-guidelines/MPI/
   #
@@ -74,8 +86,8 @@ else()
   install(TARGETS MODL_Coclustering RUNTIME DESTINATION /usr/bin COMPONENT KHIOPS_CORE)
 
   # We install the binary under $MPI_BIN and create a symlink to it
-  execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${MPI_BIN}/khiops/MODL${MPI_SUFFIX}
-                          ${CMAKE_BINARY_DIR}/MODL)
+  get_target_property(MODL_NAME MODL OUTPUT_NAME)
+  execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${MPI_BIN}/khiops/${MODL_NAME} ${CMAKE_BINARY_DIR}/MODL)
   install(
     FILES ${CMAKE_BINARY_DIR}/MODL
     DESTINATION usr/bin
@@ -85,8 +97,7 @@ endif()
 
 install(
   PROGRAMS ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops
-           ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_coclustering
-           ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops-env
+           ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_coclustering ${TMP_DIR}/khiops-env
   DESTINATION usr/bin
   COMPONENT KHIOPS_CORE)
 
