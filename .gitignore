@@ -18,9 +18,9 @@ build/
 CMakeFiles/
 
 # Test exceptions
-test/UnitTests/*/results/
-test/LearningTest/*/*/*/results/
+test/**/results/
 comparisonResults.log
 
 # Python
 *.pyc
+__pycache__/
