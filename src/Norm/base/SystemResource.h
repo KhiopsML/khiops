@@ -61,3 +61,7 @@ const char* GetMachineGUID();
 
 // Nombre maximum de fichier ouverts en meme temps par un processus
 int GetMaxOpenedFileNumber();
+
+// Informations systeme (os version, nom etc...)
+// la chaine retournee depend de l'OS, il y a plusieurs lignes (clef/valeur)
+const char* GetSystemInfos();
