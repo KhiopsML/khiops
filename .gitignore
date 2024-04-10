@@ -21,6 +21,12 @@ CMakeFiles/
 test/**/results/
 comparisonResults.log
 
+# Visualization file and summaries produced by the MemoryStatsVisualizer tool
+KhiopsMemoryStats.html
+KhiopsMemoryStats.Summary.txt
+KhiopsMemoryStats.aggregate_stats.xlsx
+KhiopsMemoryStats.all_stats.xlsx
+
 # Python
 *.pyc
 __pycache__/
