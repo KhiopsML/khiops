@@ -484,6 +484,74 @@ int GetMaxOpenedFileNumber()
 	return _getmaxstdio();
 }
 
+// Pur acceder aux information du processeur
+#include <intrin.h>
+
+// Acces au nom du processeur pour alimenter les SystemInfos
+// https : //vcpptips.wordpress.com/2012/12/30/how-to-get-the-cpu-name/
+static char* GetProcessorName()
+{
+	static char CPUBrandString[0x40];
+	int CPUInfo[4] = {-1};
+	__cpuid(CPUInfo, 0x80000000);
+	int nExIds = CPUInfo[0];
+
+	memset(CPUBrandString, 0, sizeof(CPUBrandString));
+
+	// Get the information associated with each extended ID.
+	for (int i = 0x80000000; i <= nExIds; ++i)
+	{
+		__cpuid(CPUInfo, i);
+		// Interpret CPU brand string.
+		if (i == 0x80000002)
+			memcpy(CPUBrandString, CPUInfo, sizeof(CPUInfo));
+		else if (i == 0x80000003)
+			memcpy(CPUBrandString + 16, CPUInfo, sizeof(CPUInfo));
+		else if (i == 0x80000004)
+			memcpy(CPUBrandString + 32, CPUInfo, sizeof(CPUInfo));
+	}
+	return CPUBrandString;
+}
+
+typedef NTSTATUS(WINAPI* RtlGetVersionPtr)(PRTL_OSVERSIONINFOW);
+
+// Acces a la version de windows pour alimenter les SystemInfos
+// https://stackoverflow.com/questions/36543301/detecting-windows-10-version/36543774#36543774
+static char* GetOsVersion()
+{
+	static char sWindowsVersion[100];
+
+	sWindowsVersion[0] = '\0';
+
+	// Acces a la DLL
+	HMODULE hMod = ::GetModuleHandleW(L"ntdll.dll");
+	if (hMod)
+	{
+		// Recherche de la fonction donnant les information de version
+		RtlGetVersionPtr fxPtr = (RtlGetVersionPtr)::GetProcAddress(hMod, "RtlGetVersion");
+		if (fxPtr != nullptr)
+		{
+			RTL_OSVERSIONINFOW osInfo = {0};
+			osInfo.dwOSVersionInfoSize = sizeof(osInfo);
+			if (fxPtr(&osInfo) == 0)
+			{
+				snprintf(sWindowsVersion, sizeof(sWindowsVersion), "windows %d.%d (%d)",
+					 osInfo.dwMajorVersion, osInfo.dwMinorVersion, osInfo.dwBuildNumber);
+			}
+		}
+	}
+	return sWindowsVersion;
+}
+
+const char* GetSystemInfos()
+{
+	char* sInfo = StandardGetBuffer();
+
+	// Nom du processeur et de l'OS
+	snprintf(sInfo, BUFFER_LENGTH, "cpu=%s\nos=%s\n", GetProcessorName(), GetOsVersion());
+	return sInfo;
+}
+
 #endif // _WIN32
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -1282,4 +1350,54 @@ int GetMaxOpenedFileNumber()
 	getrlimit(RLIMIT_NOFILE, &lim);
 	return lim.rlim_cur;
 }
+
+const char* GetSystemInfos()
+{
+	FILE* file = NULL;
+	int i = 0;
+	int nLineCount;
+	char* sInfo = StandardGetBuffer();
+	int nPos;
+	char c;
+	struct utsname buffer;
+	bool bOk;
+
+	sInfo[0] = '\0';
+
+#ifndef __APPLE__
+	// Parcours du fichier os-release
+	file = p_fopen("/etc/os-release", "rb");
+	if (file == NULL)
+		sInfo[0] = '\0';
+	else
+	{
+		// on ne garde que les 3 premieres lignes
+		c = ' ';
+		nLineCount = 0;
+		while (nLineCount < 3 and i < BUFFER_LENGTH)
+		{
+			c = fgetc(file);
+			if (c == EOF)
+				break;
+			if (c == '\n')
+				nLineCount++;
+			sInfo[i] = c;
+			i++;
+		}
+		sInfo[i] = '\0';
+		fclose(file);
+	}
+#endif // __APPLE__
+
+	// Ajout de l'architecture (fonctionne sur Linux et macOS)
+	if (uname(&buffer) >= 0)
+	{
+		bOk = true;
+		nPos = (int)strlen(sInfo);
+		snprintf(&sInfo[nPos], BUFFER_LENGTH - nPos, "system=%s\nrelease=%s\nversion=%s\n", buffer.sysname,
+			 buffer.release, buffer.version);
+	}
+	return sInfo;
+}
+
 #endif // __linux_or_apple__
