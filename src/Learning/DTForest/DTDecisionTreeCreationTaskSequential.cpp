@@ -1525,8 +1525,7 @@ DTDecisionTreeCreationTaskSequential::InitializeEqualFreqDiscretization(KWTupleT
 	newTarget->SetName(learningSpec->GetTargetAttributeName() + "_categorical");
 	newTarget->SetType(KWType::Symbol);
 	newClass->InsertAttribute(newTarget);
-	bOk = KWClassDomain::GetCurrentDomain()->InsertClass(newClass);
-	assert(bOk);
+	KWClassDomain::GetCurrentDomain()->InsertClass(newClass);
 	newClass->Compile();
 	KWClassDomain::GetCurrentDomain()->Compile();
 	assert(newClass->Check());

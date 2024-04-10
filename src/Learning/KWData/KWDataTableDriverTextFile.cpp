@@ -102,7 +102,6 @@ boolean KWDataTableDriverTextFile::BuildDataTableClass(KWClass* kwcDataTableClas
 	ALString sField;
 	KWAttribute* attribute;
 	ALString sAttributeName;
-	boolean bAttributeOk;
 	ALString sTmp;
 
 	require(inputBuffer == NULL);
@@ -165,8 +164,7 @@ boolean KWDataTableDriverTextFile::BuildDataTableClass(KWClass* kwcDataTableClas
 				attribute = new KWAttribute;
 				attribute->SetType(KWType::Symbol);
 				attribute->SetName(sAttributeName);
-				bAttributeOk = kwcDataTableClass->InsertAttribute(attribute);
-				assert(bAttributeOk);
+				kwcDataTableClass->InsertAttribute(attribute);
 			}
 
 			// Message si beaucoup de champs

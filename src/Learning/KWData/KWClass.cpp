@@ -50,34 +50,28 @@ void KWClass::SetKeyAttributeNameAt(int nIndex, const ALString& sValue)
 	nFreshness++;
 }
 
-boolean KWClass::InsertAttribute(KWAttribute* attribute)
+void KWClass::InsertAttribute(KWAttribute* attribute)
 {
 	require(attribute != NULL);
 	require(CheckName(attribute->GetName(), attribute));
 	require(attribute->parentClass == NULL);
+	require(LookupAttribute(attribute->GetName()) == NULL);
+	require(LookupAttributeBlock(attribute->GetName()) == NULL);
 
-	// Test d'existence d'un attribut ou d'un bloc de meme nom
-	if (odAttributes.Lookup(attribute->GetName()) != NULL or odAttributeBlocks.Lookup(attribute->GetName()) != NULL)
-		return false;
-	// Insertion de l'attribut dans le dictionnaire et en fin de liste
-	else
-	{
-		// Ajout dans le dictionnaire des attributs
-		odAttributes.SetAt(attribute->GetName(), attribute);
-		attribute->parentClass = this;
+	// Ajout dans le dictionnaire des attributs
+	odAttributes.SetAt(attribute->GetName(), attribute);
+	attribute->parentClass = this;
 
-		// Ajout dans la liste
-		attribute->listPosition = olAttributes.AddTail(attribute);
+	// Ajout dans la liste
+	attribute->listPosition = olAttributes.AddTail(attribute);
 
-		// Fraicheur
-		nFreshness++;
+	// Fraicheur
+	nFreshness++;
 
-		assert(odAttributes.GetCount() == olAttributes.GetCount());
-		return true;
-	}
+	assert(odAttributes.GetCount() == olAttributes.GetCount());
 }
 
-boolean KWClass::InsertAttributeBefore(KWAttribute* attribute, KWAttribute* attributeRef)
+void KWClass::InsertAttributeBefore(KWAttribute* attribute, KWAttribute* attributeRef)
 {
 	require(attributeRef != NULL);
 	require(attributeRef == cast(KWAttribute*, odAttributes.Lookup(attributeRef->GetName())));
@@ -87,29 +81,23 @@ boolean KWClass::InsertAttributeBefore(KWAttribute* attribute, KWAttribute* attr
 	require(attribute != NULL);
 	require(CheckName(attribute->GetName(), this));
 	require(attribute->parentClass == NULL);
+	require(LookupAttribute(attribute->GetName()) == NULL);
+	require(LookupAttributeBlock(attribute->GetName()) == NULL);
 
-	// Test d'existence d'un attribut ou d'un bloc de meme nom
-	if (odAttributes.Lookup(attribute->GetName()) != NULL or odAttributeBlocks.Lookup(attribute->GetName()) != NULL)
-		return false;
-	// Insertion de l'attribut dans le dictionnaire et dans la liste
-	else
-	{
-		// Ajout dans le dictionnaire
-		odAttributes.SetAt(attribute->GetName(), attribute);
-		attribute->parentClass = this;
+	// Ajout dans le dictionnaire
+	odAttributes.SetAt(attribute->GetName(), attribute);
+	attribute->parentClass = this;
 
-		// Ajout dans la liste
-		attribute->listPosition = olAttributes.InsertBefore(attributeRef->listPosition, attribute);
+	// Ajout dans la liste
+	attribute->listPosition = olAttributes.InsertBefore(attributeRef->listPosition, attribute);
 
-		// Fraicheur
-		nFreshness++;
+	// Fraicheur
+	nFreshness++;
 
-		assert(odAttributes.GetCount() == olAttributes.GetCount());
-		return true;
-	}
+	assert(odAttributes.GetCount() == olAttributes.GetCount());
 }
 
-boolean KWClass::InsertAttributeAfter(KWAttribute* attribute, KWAttribute* attributeRef)
+void KWClass::InsertAttributeAfter(KWAttribute* attribute, KWAttribute* attributeRef)
 {
 	require(attributeRef != NULL);
 	require(attributeRef == cast(KWAttribute*, odAttributes.Lookup(attributeRef->GetName())));
@@ -118,29 +106,23 @@ boolean KWClass::InsertAttributeAfter(KWAttribute* attribute, KWAttribute* attri
 	require(attribute != NULL);
 	require(CheckName(attribute->GetName(), attribute));
 	require(attribute->parentClass == NULL);
+	require(LookupAttribute(attribute->GetName()) == NULL);
+	require(LookupAttributeBlock(attribute->GetName()) == NULL);
 
-	// Test d'existence d'un attribut ou d'un bloc de meme nom
-	if (odAttributes.Lookup(attribute->GetName()) != NULL or odAttributeBlocks.Lookup(attribute->GetName()) != NULL)
-		return false;
-	// Insertion de l'attribut dans le dictionnaire et dans la liste
-	else
-	{
-		// Ajout dans le dictionnaire
-		odAttributes.SetAt(attribute->GetName(), attribute);
-		attribute->parentClass = this;
+	// Ajout dans le dictionnaire
+	odAttributes.SetAt(attribute->GetName(), attribute);
+	attribute->parentClass = this;
 
-		// Ajout dans la liste
-		attribute->listPosition = olAttributes.InsertAfter(attributeRef->listPosition, attribute);
+	// Ajout dans la liste
+	attribute->listPosition = olAttributes.InsertAfter(attributeRef->listPosition, attribute);
 
-		// Fraicheur
-		nFreshness++;
+	// Fraicheur
+	nFreshness++;
 
-		assert(odAttributes.GetCount() == olAttributes.GetCount());
-		return true;
-	}
+	assert(odAttributes.GetCount() == olAttributes.GetCount());
 }
 
-boolean KWClass::RenameAttribute(KWAttribute* refAttribute, const ALString& sNewName)
+void KWClass::RenameAttribute(KWAttribute* refAttribute, const ALString& sNewName)
 {
 	KWAttribute* attribute;
 	KWDerivationRule* currentDerivationRule;
@@ -148,42 +130,36 @@ boolean KWClass::RenameAttribute(KWAttribute* refAttribute, const ALString& sNew
 	require(refAttribute != NULL);
 	require(refAttribute == cast(KWAttribute*, odAttributes.Lookup(refAttribute->GetName())));
 	require(refAttribute->parentClass == this);
+	require(LookupAttribute(sNewName) == NULL);
 	require(CheckName(sNewName, refAttribute));
 
-	// Test d'existence d'un attribut ou d'un bloc de meme nom
-	if (odAttributes.Lookup(sNewName) != NULL or odAttributeBlocks.Lookup(sNewName) != NULL)
-		return false;
 	// Renommage par manipulation dans le dictionnaire
-	else
+	// Propagation du renommage a toutes les regles de derivation
+	// des classes du domaine referencant l'attribut
+	attribute = GetHeadAttribute();
+	currentDerivationRule = NULL;
+	while (attribute != NULL)
 	{
-		// Propagation du renommage a toutes les regles de derivation
-		// des classes du domaine referencant l'attribut
-		attribute = GetHeadAttribute();
-		currentDerivationRule = NULL;
-		while (attribute != NULL)
+		// Detection de changement de regle de derivation (notamment pour les blocs)
+		if (attribute->GetAnyDerivationRule() != currentDerivationRule)
 		{
-			// Detection de changement de regle de derivation (notamment pour les blocs)
-			if (attribute->GetAnyDerivationRule() != currentDerivationRule)
-			{
-				currentDerivationRule = attribute->GetAnyDerivationRule();
+			currentDerivationRule = attribute->GetAnyDerivationRule();
 
-				// Renommage dans les regles de derivation (et au plus une seule fois par bloc)
-				if (currentDerivationRule != NULL)
-					currentDerivationRule->RenameAttribute(this, refAttribute, sNewName);
-			}
-
-			// Attribut suivant
-			GetNextAttribute(attribute);
+			// Renommage dans les regles de derivation (et au plus une seule fois par bloc)
+			if (currentDerivationRule != NULL)
+				currentDerivationRule->RenameAttribute(this, refAttribute, sNewName);
 		}
 
-		// Renommage de l'attribut dans la classe
-		odAttributes.RemoveKey(refAttribute->GetName());
-		refAttribute->usName.SetValue(sNewName);
-		odAttributes.SetAt(refAttribute->GetName(), refAttribute);
-		assert(odAttributes.GetCount() == olAttributes.GetCount());
-		nFreshness++;
-		return true;
+		// Attribut suivant
+		GetNextAttribute(attribute);
 	}
+
+	// Renommage de l'attribut dans la classe
+	odAttributes.RemoveKey(refAttribute->GetName());
+	refAttribute->usName.SetValue(sNewName);
+	odAttributes.SetAt(refAttribute->GetName(), refAttribute);
+	assert(odAttributes.GetCount() == olAttributes.GetCount());
+	nFreshness++;
 }
 
 void KWClass::UnsafeRenameAttribute(KWAttribute* refAttribute, const ALString& sNewName)
@@ -820,7 +796,7 @@ KWAttributeBlock* KWClass::CreateAttributeBlock(const ALString& sBlockName, KWAt
 	return attributeBlock;
 }
 
-boolean KWClass::InsertAttributeInBlock(KWAttribute* attribute, KWAttributeBlock* attributeBlockRef)
+void KWClass::InsertAttributeInBlock(KWAttribute* attribute, KWAttributeBlock* attributeBlockRef)
 {
 	require(attribute != NULL);
 	require(CheckName(attribute->GetName(), attribute));
@@ -833,31 +809,24 @@ boolean KWClass::InsertAttributeInBlock(KWAttribute* attribute, KWAttributeBlock
 		attributeBlockRef->GetFirstAttribute());
 	require(LookupAttribute(attributeBlockRef->GetLastAttribute()->GetName()) ==
 		attributeBlockRef->GetLastAttribute());
+	require(LookupAttribute(attribute->GetName()) == NULL);
+	require(LookupAttributeBlock(attribute->GetName()) == NULL);
 
-	// Test d'existence d'un attribut ou d'un bloc de meme nom
-	if (odAttributes.Lookup(attribute->GetName()) != NULL or odAttributeBlocks.Lookup(attribute->GetName()) != NULL)
-		return false;
-	// Insertion de l'attribut dans le dictionnaire et en fin de liste
-	else
-	{
-		// Ajout dans le dictionnaire des attributs
-		odAttributes.SetAt(attribute->GetName(), attribute);
-		attribute->parentClass = this;
+	// Ajout dans le dictionnaire des attributs
+	odAttributes.SetAt(attribute->GetName(), attribute);
+	attribute->parentClass = this;
 
-		// Ajout dans la liste, apres le dernier attribut du bloc
-		attribute->listPosition =
-		    olAttributes.InsertAfter(attributeBlockRef->lastAttribute->listPosition, attribute);
+	// Ajout dans la liste, apres le dernier attribut du bloc
+	attribute->listPosition = olAttributes.InsertAfter(attributeBlockRef->lastAttribute->listPosition, attribute);
 
-		// Mise a jour des informations sur le block
-		attribute->attributeBlock = attributeBlockRef;
-		attributeBlockRef->lastAttribute = attribute;
+	// Mise a jour des informations sur le block
+	attribute->attributeBlock = attributeBlockRef;
+	attributeBlockRef->lastAttribute = attribute;
 
-		// Fraicheur
-		nFreshness++;
+	// Fraicheur
+	nFreshness++;
 
-		assert(odAttributes.GetCount() == olAttributes.GetCount());
-		return true;
-	}
+	assert(odAttributes.GetCount() == olAttributes.GetCount());
 }
 
 KWAttributeBlock* KWClass::LookupAttributeBlock(const ALString& sBlockName) const
@@ -2314,7 +2283,7 @@ KWClass* KWClass::CreateClass(const ALString& sClassName, int nKeySize, int nSym
 	for (i = 0; i < nTextListNumber; i++)
 	{
 		attribute = new KWAttribute;
-		attribute->SetName(sPrefix + KWType::ToString(KWType::Text) + IntToString(i + 1));
+		attribute->SetName(sPrefix + KWType::ToString(KWType::TextList) + IntToString(i + 1));
 		attribute->SetLabel("Label of " + attribute->GetName());
 		attribute->SetType(KWType::TextList);
 		kwcClass->InsertAttribute(attribute);

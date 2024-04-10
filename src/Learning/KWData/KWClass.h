@@ -122,23 +122,22 @@ public:
 	KWAttribute* LookupAttribute(const ALString& sAttributeName) const;
 
 	// Ajout d'un attribut en fin de liste, et par rapport a un autre attribut
-	// Renvoie true si OK, false sinon (attribut ou bloc existant)
-	boolean InsertAttribute(KWAttribute* attribute);
+	// Le nom de l'attribut ne doit pas deja exister
+	void InsertAttribute(KWAttribute* attribute);
 
 	// Insertion avant ou apres un attribut existant
 	// Erreur de programmation si attribut de reference inexistant,
 	// ou au milieu d'un bloc (on peut etre au debut d'un bloc pour
 	// le InsertBefore ou a la fin d'un bloc pour le InsertAfter)
-	// Renvoie true si OK, false sinon (attribut ou bloc existant)
-	boolean InsertAttributeBefore(KWAttribute* attribute, KWAttribute* attributeRef);
-	boolean InsertAttributeAfter(KWAttribute* attribute, KWAttribute* attributeRef);
+	// Le nom de l'attribut ne doit pas deja exister
+	void InsertAttributeBefore(KWAttribute* attribute, KWAttribute* attributeRef);
+	void InsertAttributeAfter(KWAttribute* attribute, KWAttribute* attributeRef);
 
 	// Renommage d'un attribut
-	// Retourne true si OK. Sans effet si le nom cible existe deja
-	// parmi les attribut ou les blocs.
+	// Le nom cible ne doit pas exister parmi les attribut ou les blocs.
 	// Propagation a toutes les references a cet attribut dans les regles
 	// de derivations des attributs de la classe
-	boolean RenameAttribute(KWAttribute* refAttribute, const ALString& sNewName);
+	void RenameAttribute(KWAttribute* refAttribute, const ALString& sNewName);
 
 	// Renommage d'un attribut sans se soucier des utilisation dans les regles
 	// Le nom doit etre inexistant dans la classe
@@ -248,8 +247,8 @@ public:
 					       KWAttribute* lastAttribute);
 
 	// Ajout d'un attribut en fin d'un bloc existant
-	// Renvoie true si OK, false sinon (attribut ou bloc existant)
-	boolean InsertAttributeInBlock(KWAttribute* attribute, KWAttributeBlock* attributeBlockRef);
+	// Le nom de l'attribut ne doit pas deja exister
+	void InsertAttributeInBlock(KWAttribute* attribute, KWAttributeBlock* attributeBlockRef);
 
 	// Recherche d'un bloc par son nom
 	// Retourne NUL si bloc inexistant

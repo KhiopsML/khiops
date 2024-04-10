@@ -72,24 +72,24 @@ public:
 	// Recherche (retourne NULL si echec)
 	KWClass* LookupClass(const ALString& sClassName) const;
 
-	// Insertion (echec si classe de meme nom existante)
-	boolean InsertClass(KWClass* newObject);
+	// Insertion d'une nouvelle classe
+	void InsertClass(KWClass* newObject);
 
 	// Insertion avec nouveau non (ce nom ne doit pas deja exister)
 	// Apres insertion, la classe a changee de nom
 	void InsertClassWithNewName(KWClass* newObject, const ALString& sNewName);
 
 	// Supression
-	boolean RemoveClass(const ALString& sClassName);
+	void RemoveClass(const ALString& sClassName);
 
 	// Supression et destruction
-	boolean DeleteClass(const ALString& sClassName);
+	void DeleteClass(const ALString& sClassName);
 
 	// Renommage d'une classe ou d'un attribut
-	// Retourne true si OK. Sans effet si le nom cible existe deja.
+	// Le nom cible ne doit pas exister
 	// Propagation a toutes les utilisations dans les regles de derivation
-	boolean RenameClass(KWClass* refClass, const ALString& sNewClassName);
-	boolean RenameAttribute(KWAttribute* refAttribute, const ALString& sNewAttributeName);
+	void RenameClass(KWClass* refClass, const ALString& sNewClassName);
+	void RenameAttribute(KWAttribute* refAttribute, const ALString& sNewAttributeName);
 
 	// Acces massifs
 	int GetClassNumber() const;
@@ -180,17 +180,17 @@ public:
 	static KWClassDomain* LookupDomain(const ALString& sName);
 
 	// Insertion
-	static boolean InsertDomain(KWClassDomain* newObject);
+	static void InsertDomain(KWClassDomain* newObject);
 
 	// Supression
-	static boolean RemoveDomain(const ALString& sName);
+	static void RemoveDomain(const ALString& sName);
 
 	// Supression et destruction
-	static boolean DeleteDomain(const ALString& sName);
+	static void DeleteDomain(const ALString& sName);
 
 	// Renommage du domaine
 	// Retourne true si OK. Sans effet si le nom cible existe deja.
-	static boolean RenameDomain(KWClassDomain* domain, const ALString& sNewName);
+	static void RenameDomain(KWClassDomain* domain, const ALString& sNewName);
 
 	// Acces massifs
 	static int GetDomainNumber();

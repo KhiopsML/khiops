@@ -2206,7 +2206,6 @@ KWLearningSpec* DTDecisionTreeCreationTask::InitializeRegressionLearningSpec(con
 	// on transforme la cible continue en cible categorielle, en effectuant au prealable une dicretisation equalFreq
 	// sur la cible continue
 
-	boolean bOk = true;
 	DTBaseLoader bl;
 	KWLearningSpec* newLearningSpec = NULL;
 	KWClass* newClass = NULL;
@@ -2222,8 +2221,7 @@ KWLearningSpec* DTDecisionTreeCreationTask::InitializeRegressionLearningSpec(con
 	newTarget->SetName(learningSpec->GetTargetAttributeName() + "_categorical");
 	newTarget->SetType(KWType::Symbol);
 	newClass->InsertAttribute(newTarget);
-	bOk = KWClassDomain::GetCurrentDomain()->InsertClass(newClass);
-	assert(bOk);
+	KWClassDomain::GetCurrentDomain()->InsertClass(newClass);
 	newClass->Compile();
 	KWClassDomain::GetCurrentDomain()->Compile();
 	assert(newClass->Check());
