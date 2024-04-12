@@ -50,7 +50,7 @@ jobs:
           preset-name: ${{ env.PRESET_NAME }}
       - name: Cache binaries (windows)
         id: cache-binaries-windows
-        if: ${{ runner.os == 'Windows' }}
+        if: runner.os == 'Windows'
         uses: actions/cache@v3
         with:
           # We add binaries path one by one to avoid *.pdb and other msvc stuffs that generate a cache of 200Mo for windows
@@ -65,7 +65,7 @@ jobs:
           fail-on-cache-miss: false
       - name: Cache binaries (macOS, Linux)
         id: cache-binaries-unix
-        if: ${{ runner.os != 'Windows' }}
+        if: runner.os != 'Windows'
         uses: actions/cache@v3
         with:
           path: |
@@ -92,7 +92,7 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v3
       - name: Restore cached binaries (windows)
-        if: ${{ runner.os == 'Windows' }}
+        if: runner.os == 'Windows'
         id: restore-binaries-windows
         uses: actions/cache/restore@v3
         with:
@@ -106,7 +106,7 @@ jobs:
             }}
           fail-on-cache-miss: true
       - name: Restore cached binaries (macOS, Linux)
-        if: ${{ runner.os != 'Windows' }}
+        if: runner.os != 'Windows'
         id: restore-binaries
         uses: actions/cache/restore@v3
         with:
@@ -117,7 +117,7 @@ jobs:
             }}
           fail-on-cache-miss: true
       - name: Rename mpi binaries
-        if: ${{ runner.os == 'Linux' }}
+        if: runner.os == 'Linux'
         shell: bash
         run: |
           mv ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/MODL_openmpi ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/MODL
@@ -133,15 +133,15 @@ jobs:
           echo "COLLECT_PY=test/LearningTestTool/py/kht_collect_results.py" >> "$GITHUB_ENV"
           echo "BIN_PATH=${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin" >> "$GITHUB_ENV"
       - name: Setup MPI (windows)
-        if: ${{ runner.os == 'Windows' }}
+        if: runner.os == 'Windows'
         uses: mpi4py/setup-mpi@v1
       - name: Setup MPI (macOS)
-        if: ${{ runner.os == 'macOS' }}
+        if: runner.os == 'macOS'
         shell: bash
         run: |
           brew install mpich
       - name: Setup MPI (Linux)
-        if: ${{ runner.os == 'Linux' }}
+        if: runner.os == 'Linux'
         shell: bash
         run: |
           sudo apt-get update
@@ -205,7 +205,7 @@ jobs:
             echo "::error::$MSG"
             false
           fi
-          if [ "${{ github.event.inputs.warning_as_error }}" == "true" ] && grep -q "warning" results/errors.txt  ; then
+          if [ "${{ inputs.warning_as_error }}" == "true" ] && grep -q "warning" results/errors.txt  ; then
             echo "::error::$MSG"
             false
           fi
@@ -219,7 +219,7 @@ jobs:
             results/
   cleanup-cache:
     # Clean up all caches belonging to the current run
-    if: ${{ always() }}
+    if: always()
     needs: run-standard-tests
     runs-on: ubuntu-latest
     permissions:

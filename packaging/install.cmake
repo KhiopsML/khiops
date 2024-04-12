@@ -1,7 +1,5 @@
 # ######################################## Installation #########################################
 
-set(TMP_DIR ${PROJECT_BINARY_DIR}/tmp)
-
 # ######################################## KNI installation
 
 # Specification of the paths according to the OS

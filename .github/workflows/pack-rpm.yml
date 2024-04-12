@@ -38,17 +38,12 @@ jobs:
           echo "ID=$ID" >> "$GITHUB_ENV"
           VERSION_CODENAME=$(echo $PLATFORM_ID | cut -d":" -f2)
           echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
-          if [ -z "${{ github.event.inputs.mpi_implementation }}" ] ; 
-          then
-            echo "MPI_IMPLEMENTATION=openmpi" >> "$GITHUB_ENV"
-          else
-            echo "MPI_IMPLEMENTATION=${{ github.event.inputs.mpi_implementation }}" >> "$GITHUB_ENV"
-          fi
+          echo "MPI_IMPLEMENTATION=${{ inputs.mpi_implementation || 'openmpi' }}" >> "$GITHUB_ENV"
       - name: Configure CMake
         run: |
           source /etc/profile.d/modules.sh
           module unload mpi
-          module load mpi/${{ env.MPI_IMPLEMENTATION}}-x86_64
+          module load mpi/${MPI_IMPLEMENTATION}-x86_64
           cmake --preset linux-gcc-release -DBUILD_JARS=ON
       - name: Build Khiops binaries
         run: |
@@ -99,12 +94,7 @@ jobs:
           echo "ID=$ID" >> "$GITHUB_ENV"
           VERSION=$(echo $PLATFORM_ID | cut -d":" -f2)
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
-          if [ -z "${{ github.event.inputs.mpi_implementation }}" ] ; 
-          then
-            echo "MPI_IMPLEMENTATION=openmpi" >> "$GITHUB_ENV"
-          else
-            echo "MPI_IMPLEMENTATION=${{ github.event.inputs.mpi_implementation }}" >> "$GITHUB_ENV"
-          fi
+          echo "MPI_IMPLEMENTATION=${{ inputs.mpi_implementation || 'openmpi' }}" >> "$GITHUB_ENV"
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -117,16 +107,16 @@ jobs:
       - name: Check Khiops core installation
         run: |
           khiops-env --env
-          khiops -v
-          khiops_coclustering -v
+          khiops -s
+          khiops_coclustering -s
       - name: Install Khiops Desktop (with java)
         run: |
           yum install -y ./artifacts/khiops-*
       - name: Check Khiops  installation
         run: |
           khiops-env --env
-          khiops -v
-          khiops_coclustering -v
+          khiops -s
+          khiops_coclustering -s
       - name: Test Khiops installation
         uses: ./.github/actions/test-khiops-install
   test-kni:

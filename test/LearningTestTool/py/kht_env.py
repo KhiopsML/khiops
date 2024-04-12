@@ -23,6 +23,9 @@ def help_env_vars():
         "trace for dimensionnining of preparation tasks (default: false)",
     )
     print_env_var_help(kht.KHIOPS_PARALLEL_TRACE, "trace for parallel tasks (0 to 3)")
+    print_env_var_help(
+        kht.KHIOPS_FILE_SERVER_ACTIVATED, "activate MPI file server (false,true)"
+    )
 
     # Aide particulier sur le pilotage des traces memoire
     print(

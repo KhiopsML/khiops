@@ -14,15 +14,15 @@ runs:
   using: composite
   steps:
     - name: Setup MPI (windows)
-      if: ${{ runner.os == 'Windows' }}
+      if: runner.os == 'Windows'
       uses: mpi4py/setup-mpi@v1
     - name: Setup MPI (macOS)
-      if: ${{ runner.os == 'macOS' }}
+      if: runner.os == 'macOS'
       shell: bash
       run: |
         brew install mpich
     - name: Setup MPI (Linux)
-      if: ${{ runner.os == 'Linux' }}
+      if: runner.os == 'Linux'
       shell: bash
       run: |
         sudo apt-get update
@@ -32,7 +32,7 @@ runs:
     - name: Setup Ninja
       uses: ashutoshvarma/setup-ninja@v1.1
     - name: Load Visual C++ Environment Variables (Windows only)
-      if: ${{ runner.os == 'Windows' }}
+      if: runner.os == 'Windows'
       shell: cmd
       run: |
         call "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\VC\\Auxiliary\\Build\\vcvars64.bat"

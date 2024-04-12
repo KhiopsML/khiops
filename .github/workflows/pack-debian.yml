@@ -41,17 +41,12 @@ jobs:
           source /etc/os-release
           echo "ID=$ID" >> "$GITHUB_ENV"
           echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
-          if [ -z "${{ github.event.inputs.mpi_implementation }}" ] ; 
-          then
-            echo "MPI_IMPLEMENTATION=openmpi" >> "$GITHUB_ENV"
-          else
-            echo "MPI_IMPLEMENTATION=${{ github.event.inputs.mpi_implementation }}" >> "$GITHUB_ENV"
-          fi
-
+          echo "MPI_IMPLEMENTATION=${{ inputs.mpi_implementation || 'openmpi' }}" >> "$GITHUB_ENV"
+          
       - name: Configure CMake
         run: |
-          update-alternatives --set mpi /usr/bin/mpicc.${{ env.MPI_IMPLEMENTATION }}
-          update-alternatives --set mpirun /usr/bin/mpirun.${{ env.MPI_IMPLEMENTATION }}
+          update-alternatives --set mpi /usr/bin/mpicc.$MPI_IMPLEMENTATION
+          update-alternatives --set mpirun /usr/bin/mpirun.$MPI_IMPLEMENTATION
           cmake --preset linux-gcc-release -DBUILD_JARS=ON
       - name: Build Khiops binaries
         run: |
@@ -99,12 +94,7 @@ jobs:
           source /etc/os-release
           echo "ID=$ID" >> "$GITHUB_ENV"
           echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
-          if [ -z "${{ github.event.inputs.mpi_implementation }}" ] ; 
-          then
-            echo "MPI_IMPLEMENTATION=openmpi" >> "$GITHUB_ENV"
-          else
-            echo "MPI_IMPLEMENTATION=${{ github.event.inputs.mpi_implementation }}" >> "$GITHUB_ENV"
-          fi
+          echo "MPI_IMPLEMENTATION=${{ inputs.mpi_implementation || 'openmpi' }}" >> "$GITHUB_ENV"
 
       - name: Download artifacts
         uses: actions/download-artifact@v4
@@ -118,21 +108,19 @@ jobs:
           dpkg -i ./artifacts/khiops-core* || true
           apt-get -f install -y
       - name: Check Khiops core installation
-        #continue-on-error: ${{ matrix.os == 'debian:11' }}
         run: |
           khiops-env --env
-          khiops -v
-          khiops_coclustering -v
+          khiops -s
+          khiops_coclustering -s
       - name: Install Khiops Desktop (with java)
         run: |
           dpkg -i ./artifacts//khiops_* || true
           apt-get -f install -y
       - name: Check Khiops installation
-        #continue-on-error: ${{ matrix.os == 'debian:11' }}
         run: |
           khiops-env --env
-          khiops -v
-          khiops_coclustering -v
+          khiops -s
+          khiops_coclustering -s
       - name: Test Khiops installation
         continue-on-error: ${{ matrix.os == 'debian:11' }}
         uses: ./.github/actions/test-khiops-install
