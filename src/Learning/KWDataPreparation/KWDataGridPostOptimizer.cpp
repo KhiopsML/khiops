@@ -560,6 +560,19 @@ void KWDGPODiscretizer::InitializeCellFrequencyVector(KWDGPOCellFrequencyVector*
 // Index de l'attribut a post-optimiser (et donc a ignorer pour le calcul de la signature exogene
 static int nKWDGPODiscretizerPostOptimizationAttributeIndex = -1;
 
+// Bug detecte sur debian 12 avec la version 12.2.0 de gcc. Ce bug apparait en release mais pas en debug.
+// On force la compilation en O1 car il doit y avoir une sur-optimisation de gcc en mode 02 :
+// il y a un segmentation fault, gdb indique que cell1 est a NULL.
+// En ajoutant la ligne suivante (inutile) apres les cast, le bug disparait
+// if (cell1==NULL or cell2==NULL) exit(1);
+// Bug similaire dans KWSortableIndex.h, classe KWIntVectorSorter
+#if defined NDEBUG && defined __GNUC__ && !defined __clang__
+#if __GNUC__ >= 12
+#pragma GCC push_options
+#pragma GCC optimize("O1")
+#endif
+#endif
+
 // Fonction de comparaison de deux cellules basee sur leur signature exogene
 int KWDGPODiscretizerCompareCell(const void* elem1, const void* elem2)
 {
@@ -595,6 +608,12 @@ int KWDGPODiscretizerCompareCell(const void* elem1, const void* elem2)
 	}
 	return 0;
 }
+
+#if defined NDEBUG && defined __GNUC__ && !defined __clang__
+#if __GNUC__ >= 12
+#pragma GCC pop_options
+#endif
+#endif
 
 void KWDGPODiscretizer::InitializeHashCellDictionary(NumericKeyDictionary* nkdHashCells,
 						     const KWDataGrid* dataGrid) const
@@ -1495,6 +1514,15 @@ void KWDGPOGrouper::InitializeCellFrequencyVector(KWDGPOCellFrequencyVector* cel
 // Index de l'attribut a post-optimiser (et donc a ignorer pour le calcul de la signature exogene
 static int nKWDGPOGrouperPostOptimizationAttributeIndex = -1;
 
+// On force l'optimisation en O1 car il y a un probleme avec gcc v12
+// Cf. pbm similaire pour la methode KWDGPODiscretizerCompareCell
+#if defined NDEBUG && defined __GNUC__ && !defined __clang__
+#if __GNUC__ >= 12
+#pragma GCC push_options
+#pragma GCC optimize("O1")
+#endif
+#endif
+
 // Fonction de comparaison de deux cellules basee sur leur signature exogene
 int KWDGPOGrouperCompareCell(const void* elem1, const void* elem2)
 {
@@ -1530,6 +1558,12 @@ int KWDGPOGrouperCompareCell(const void* elem1, const void* elem2)
 	}
 	return 0;
 }
+
+#if defined NDEBUG && defined __GNUC__ && !defined __clang__
+#if __GNUC__ >= 12
+#pragma GCC pop_options
+#endif
+#endif
 
 void KWDGPOGrouper::InitializeHashCellDictionary(NumericKeyDictionary* nkdHashCells, const KWDataGrid* dataGrid) const
 {
