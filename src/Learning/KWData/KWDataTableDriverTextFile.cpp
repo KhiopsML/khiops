@@ -385,10 +385,16 @@ KWObject* KWDataTableDriverTextFile::Read()
 				kwoObject = NULL;
 				break;
 			}
-			// Sinon, on sort pour ne pas comptabiliser le champs,
-			// uniquement si on est dans le cas d'un dictionnaire sans attribut natif
+			// Sinon, on sort si on est dans le cas d'un dictionnaire sans attribut natif
 			else if (kwcClass->GetNativeDataItemNumber() == 0)
+			{
+				// On comptabilise le champ dans le cas d'un champ dans le fichier pour indiquer que l'on a bien
+				// lu tous les champs de la ligne, dans ce cas particulier d'un ligne vide interpretee comme
+				// une ligne comportant un seul champ avec valeur manquante
+				if (livDataItemLoadIndexes.GetSize() == 1)
+					nField++;
 				break;
+			}
 		}
 
 		// Alimentation des champs de la derniere cle lue si necessaire
@@ -1896,7 +1902,8 @@ boolean KWDataTableDriverTextFile::ComputeDataItemLoadIndexes(const KWClass* kwc
 	// Affichage du resultat d'indexation
 	if (bDisplay)
 	{
-		cout << "Compute data item indexes of dictionary " << kwcClass->GetName() << endl;
+		cout << "Compute data item indexes of dictionary " << kwcClass->GetName() << " " << GetDataTableName()
+		     << endl;
 
 		// Cas avec classe de ligne d'entete
 		if (kwcHeaderLineClass != NULL)
@@ -1940,6 +1947,11 @@ boolean KWDataTableDriverTextFile::ComputeDataItemLoadIndexes(const KWClass* kwc
 				}
 			}
 		}
+
+		// Affichage des dictionnaires
+		cout << "Logical class\n" << *kwcLogicalClass << endl;
+		if (kwcHeaderLineClass != NULL)
+			cout << "Header line class\n" << *kwcHeaderLineClass << endl;
 	}
 	assert(not bOk or lastReadRootKey.GetSize() > 0 or not kwcClass->GetRoot());
 	return bOk;
