@@ -27,17 +27,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          # We use the oldest ubuntu available to have forward compatibility of the libc
-          - os: ubuntu-20.04
-            os-family: linux-64
-          - os: windows-2022
-            os-family: win-64
-          - os: macos-13
-            os-family: osx-64
-          - os: macos-14
-            os-family: osx-arm64
-    runs-on: ${{ matrix.os }}
+        env:
+          # Linux: We use the Khiops dev debian:10 container to build with glibc 2.28
+          #        It ensures compatibility with glibc >= 2.28 (in particular Rocky 8)
+          - {os: ubuntu-22.04, os-family: linux-64, json-image: '{"image": "ghcr.io/khiopsml/khiops/khiopsdev-debian10:latest"}'}
+          - {os: windows-2022, os-family: win-64, json-image: '{"image": null}'}
+          - {os: macos-13, os-family: osx-64, json-image: '{"image": null}'}
+          - {os: macos-14, os-family: osx-arm64, json-image: '{"image": null}'}
+    runs-on: ${{ matrix.env.os }}
+    container: ${{ fromJSON(matrix.env.json-image) }}
     steps:
       - name: Checkout Sources
         uses: actions/checkout@v4
@@ -68,17 +66,17 @@ jobs:
 
           # The conda version cannot have '-' as a character so we eliminate it
           echo "KHIOPS_VERSION=$(echo $KHIOPS_RAW_VERSION | sed 's/-//')" >> "$GITHUB_ENV"
-      - name: Build conda packages (Windows)
+      - name: Build Conda Package (Windows)
         if: runner.os == 'Windows'
         run: conda build --output-folder ./build/conda ./packaging/conda
       # In Linux/macOS we need the conda-forge channel to install their pinned versions
-      - name: Build conda packages (Linux/macOS)
+      - name: Build Conda Package (Linux/macOS)
         if: runner.os != 'Windows'
         run: conda build --channel conda-forge --output-folder ./build/conda ./packaging/conda
       - name: Upload conda packages artifact
         uses: actions/upload-artifact@v4
         with:
-          name: khiops-conda-${{ matrix.os-family }}
+          name: khiops-conda-${{ matrix.env.os-family }}
           path: ./build/conda
           retention-days: 7
   # Test Conda package on brand new environments

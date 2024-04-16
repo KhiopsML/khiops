@@ -4,20 +4,31 @@
 set -euo pipefail
 
 # Choose the build preset for macOS/Linux
-if [[ "$(uname)" == "Darwin" ]]
+if [[ "$(uname)" == "Linux" ]]
 then
-  CMAKE_PRESET="macos-clang-release"
-else
   CMAKE_PRESET="linux-gcc-release"
+  cmake --fresh --preset $CMAKE_PRESET -DBUILD_JARS=OFF -DTESTING=OFF -DMPI_SUFFIX=_openmpi
+else
+  CMAKE_PRESET="macos-clang-release"
+  cmake --fresh --preset $CMAKE_PRESET -DBUILD_JARS=OFF -DTESTING=OFF
 fi
 
 # Build MODL and MODL_Coclustering
-cmake --fresh --preset $CMAKE_PRESET -DBUILD_JARS=OFF -DTESTING=OFF
 cmake --build --preset $CMAKE_PRESET --parallel --target MODL MODL_Coclustering
 
-# Copy the MODL binaries to the Conda PREFIX path
-cp "./build/$CMAKE_PRESET/bin/MODL" "$PREFIX/bin"
-cp "./build/$CMAKE_PRESET/bin/MODL_Coclustering" "$PREFIX/bin"
+# Move the MODL binaries to the Conda PREFIX path
+mv ./build/$CMAKE_PRESET/bin/MODL* "$PREFIX/bin"
+
+# Rename MODL in Linux since it has a prefix depending of the MPI version
+if [[ "$(uname)" == "Linux" ]]
+then
+  if [[ -f "$PREFIX/bin/MODL_mpich" ]]
+  then
+    mv "$PREFIX/bin/MODL_mpich" "$PREFIX/bin/MODL"
+  else
+    mv "$PREFIX/bin/MODL_openmpi" "$PREFIX/bin/MODL"
+  fi
+fi
 
 # Custom rpath relocation and signing executables for macOS in arm64
 #
@@ -30,8 +41,8 @@ cp "./build/$CMAKE_PRESET/bin/MODL_Coclustering" "$PREFIX/bin"
 # application pressing on "Allow" works).
 #
 # However, in the default settings, `conda build` relocalizes the executable by changing rpath of
-# the library paths at $PREFIX by relative ones and in doing so it nullifies any signature. So we
-# do ourselves this procedure first and then sign the binary.
+# the library paths at $PREFIX by relative ones and in doing so it nullifies any signature. So we do
+# ourselves this procedure first and then sign the binary.
 #
 # Note that in meta.yaml for osx-arm64 we have custom build.binary_relocation and
 # build.detect_binary_files_with_prefix option
