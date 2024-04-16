@@ -108,7 +108,7 @@ jobs:
           khiops -v
           khiops_coclustering -v
       - name: Test Khiops installation
-        continue-on-error: ${{ matrix.os == 'debian:11' || matrix.os == 'debian:12' }}
+        continue-on-error: ${{ matrix.os == 'debian:11' }}
         uses: ./.github/actions/test-khiops-install
   test-kni:
     needs: build
