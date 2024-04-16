@@ -65,13 +65,13 @@ then
     fi
 fi
 
-# Java configuration
-# JAVA_HOME automatic setting
-
-# Set java environment for GUI if Khiops GUI is installed
-if [[ -f "/usr/share/khiops/khiops.jar" && -n "$JAVA_HOME" ]]; then
-   KHIOPS_CLASSPATH=/usr/share/khiops/norm.jar:/usr/share/khiops/khiops.jar
-   KHIOPS_JAVA_PATH=$(find -L "$JAVA_HOME" -name libjvm.so | xargs dirname)
+# Set java environment if Khiops GUI is installed
+if [ -f "/usr/share/khiops/khiops.jar" ]; then
+    if [ -z "$JAVA_HOME" ]; then 
+        JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:bin/java::" )
+    fi
+    KHIOPS_JAVA_PATH=$(find -L "$JAVA_HOME" -name libjvm.so | xargs dirname)
+    KHIOPS_CLASSPATH=/usr/share/khiops/norm.jar:/usr/share/khiops/khiops.jar
 fi
 
 # Number of processes in use (must be set according to the physical cores number + 1)
