@@ -70,7 +70,6 @@ set(CPACK_ARCHIVE_COMPONENT_INSTALL ON)
 
 # user friendly archive names
 set(CPACK_ARCHIVE_KNI_FILE_NAME kni-${KHIOPS_VERSION})
-set(CPACK_ARCHIVE_KNI_DOC_FILE_NAME kni-doc-${KHIOPS_VERSION})
 set(CPACK_ARCHIVE_KHIOPS_FILE_NAME khiops-${KHIOPS_VERSION})
 set(CPACK_ARCHIVE_KHIOPS_CORE_FILE_NAME khiops-core-${KHIOPS_VERSION})
 
@@ -102,6 +101,9 @@ set(CPACK_DEBIAN_KHIOPS_PACKAGE_NAME khiops)
 set(CPACK_DEBIAN_KHIOPS_CORE_PACKAGE_NAME khiops-core${PACKAGE_SUFFIX})
 set(CPACK_DEBIAN_KNI_PACKAGE_NAME kni)
 set(CPACK_DEBIAN_KNI_DOC_PACKAGE_NAME kni-doc)
+
+# manage package renaming
+set(CPACK_DEBIAN_KHIOPS_CORE_PACKAGE_REPLACES "khiops-core (<< 10.2.2~ )")
 
 # packages depends
 
@@ -154,6 +156,9 @@ set(CPACK_RPM_KHIOPS_PACKAGE_SUMMARY "Khiops tools")
 set(CPACK_RPM_KHIOPS_CORE_PACKAGE_SUMMARY "Khiops tools (core)")
 set(CPACK_RPM_KNI_PACKAGE_SUMMARY "Khiops Native Interface")
 set(CPACK_RPM_KNI_DOC_PACKAGE_SUMMARY "Khiops Native Interface documentation")
+
+# manage package renaming
+set(CPACK_RPM_KHIOPS_CORE_PACKAGE_OBSOLETES "khiops-core <= 10.2.1-2")
 
 # packages requires
 set(CPACK_RPM_KHIOPS_PACKAGE_REQUIRES "khiops-core${PACKAGE_SUFFIX} = ${KHIOPS_VERSION}-${CPACK_RPM_PACKAGE_RELEASE}")

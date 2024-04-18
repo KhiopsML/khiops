@@ -71,9 +71,9 @@ if(NOT IS_FEDORA_LIKE)
 
   # We install the binary with mpi suffix and create a symlink without the suffix
   get_target_property(MODL_NAME MODL OUTPUT_NAME)
-  execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink /usr/bin/${MODL_NAME} ${CMAKE_BINARY_DIR}/MODL)
+  execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink /usr/bin/${MODL_NAME} ${TMP_DIR}/MODL)
   install(
-    FILES ${CMAKE_BINARY_DIR}/MODL
+    FILES ${TMP_DIR}/MODL
     DESTINATION usr/bin
     COMPONENT KHIOPS_CORE)
 else()
@@ -90,9 +90,9 @@ else()
 
   # We install the binary under $MPI_BIN and create a symlink to it
   get_target_property(MODL_NAME MODL OUTPUT_NAME)
-  execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${MPI_BIN}/khiops/${MODL_NAME} ${CMAKE_BINARY_DIR}/MODL)
+  execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${MPI_BIN}/khiops/${MODL_NAME} ${TMP_DIR}/MODL)
   install(
-    FILES ${CMAKE_BINARY_DIR}/MODL
+    FILES ${TMP_DIR}/MODL
     DESTINATION usr/bin
     COMPONENT KHIOPS_CORE)
 
