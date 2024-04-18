@@ -21,14 +21,14 @@ def apply_instruction_on_suite_dir(
     min_test_time=None,
     max_test_time=None,
 ):
-    """Application d'une instruction sur une suite ou sur un repertoire de est specifique"""
+    """Application d'une instruction sur une suite ou sur un repertoire de test specifique"""
     assert suite_dir != ""
 
     # Erreur si repertoire de suite absent
     if not os.path.isdir(suite_dir):
         utils.fatal_error("missing directory for test suite " + suite_dir)
 
-    # Collecte des sous-repertoire de test
+    # Collecte des sous-repertoires de test
     test_list = []
     # Cas avec un repertoire de test specifique
     if input_test_dir_name is not None:
@@ -154,7 +154,7 @@ def main():
         help_test_dir_name=None,
         help_options=None,
     ):
-        """Construction d'une lige d'aide pour un usage de la command test"""
+        """Construction d'une ligne d'aide pour un usage de la commande test"""
         source_dir = os.path.join(".", kht.LEARNING_TEST)
         if help_test_dir_name is not None:
             source_dir = os.path.join(

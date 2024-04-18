@@ -182,7 +182,7 @@ def export_learning_test_tree(
                                     if pos_comment >= 0:
                                         line = line[:pos_comment]
                                         line = line.strip()
-                                    # Parsing de la ligne pour recherche les nom de dataset en derniere position
+                                    # Parsing de la ligne pour recherche les noms de dataset en derniere position
                                     # En effet, les patterns de type "ClassFileName ../../../datasets/Adult/Adult.kdic"
                                     # peuvent etre separes par un ou plusieurs caracteres blancs ou tabulation
                                     line = line.replace("\t", " ")
@@ -241,7 +241,7 @@ def export_learning_test_tree(
                         dataset_collection,
                     )
                     utils.make_dir(target_dataset_collection_dir)
-                    # Creation des repertoire elementaire de jeux de donnees
+                    # Creation des repertoires elementaires de jeux de donnees
                     for dataset_name in used_dataset_names:
                         source_dataset_dir = os.path.join(
                             home_dir, dataset_collection, dataset_name
@@ -332,7 +332,7 @@ def main():
         help_test_dir_name=None,
         help_options=None,
     ):
-        """Construction d'une lige d'aide pour un usage de la command test"""
+        """Construction d'une ligne d'aide pour un usage de la commande test"""
         source_dir = os.path.join(".", kht.LEARNING_TEST)
         if help_test_dir_name is not None:
             source_dir = os.path.join(

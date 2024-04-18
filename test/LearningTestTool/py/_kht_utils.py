@@ -27,17 +27,23 @@ En cas d'erreur, un message est affiche est on sort du programme
 
 def check_test_dir(checked_dir):
     """Test si un chemin est celui d'un repertoire de test"""
-    home_dir = parent_dir_name(checked_dir, 3)
-    tool_dir = parent_dir_name(checked_dir, 2)
-    if home_dir != kht.LEARNING_TEST or tool_dir not in kht.TOOL_DIR_NAMES.values():
+    home_dir_name = parent_dir_name(checked_dir, 3)
+    tool_dir_name = parent_dir_name(checked_dir, 2)
+    if (
+        home_dir_name != kht.LEARNING_TEST
+        or tool_dir_name not in kht.TOOL_DIR_NAMES.values()
+    ):
         fatal_error(checked_dir + " should be a test directory of " + kht.LEARNING_TEST)
 
 
 def check_suite_dir(checked_dir):
     """Test si un chemin est celui d'un repertoire de suite"""
-    home_dir = parent_dir_name(checked_dir, 2)
-    tool_dir = parent_dir_name(checked_dir, 1)
-    if home_dir != kht.LEARNING_TEST or tool_dir not in kht.TOOL_DIR_NAMES.values():
+    home_dir_name = parent_dir_name(checked_dir, 2)
+    tool_dir_name = parent_dir_name(checked_dir, 1)
+    if (
+        home_dir_name != kht.LEARNING_TEST
+        or tool_dir_name not in kht.TOOL_DIR_NAMES.values()
+    ):
         fatal_error(
             checked_dir + " should be a suite directory of " + kht.LEARNING_TEST
         )
@@ -45,16 +51,19 @@ def check_suite_dir(checked_dir):
 
 def check_tool_dir(checked_dir):
     """Test si un chemin est celui d'un repertoire d'outil"""
-    home_dir = parent_dir_name(checked_dir, 1)
-    tool_dir = parent_dir_name(checked_dir, 0)
-    if home_dir != kht.LEARNING_TEST or tool_dir not in kht.TOOL_DIR_NAMES.values():
+    home_dir_name = parent_dir_name(checked_dir, 1)
+    tool_dir_name = parent_dir_name(checked_dir, 0)
+    if (
+        home_dir_name != kht.LEARNING_TEST
+        or tool_dir_name not in kht.TOOL_DIR_NAMES.values()
+    ):
         fatal_error(checked_dir + " should be a tool directory of " + kht.LEARNING_TEST)
 
 
 def check_home_dir(checked_dir):
     """Test si un chemin est celui du repertoire LearningTest"""
-    home_dir = parent_dir_name(checked_dir, 0)
-    if home_dir != kht.LEARNING_TEST:
+    home_dir_name = parent_dir_name(checked_dir, 0)
+    if home_dir_name != kht.LEARNING_TEST:
         fatal_error(
             checked_dir + " should be the '" + kht.LEARNING_TEST + "' directory"
         )
@@ -333,7 +342,7 @@ def argument_parser_check_source_argument(parser, source):
             + " in "
             + os.path.realpath(source)
             + " should be a tool dir "
-            + utils.list_to_label(kht.TOOL_DIR_NAMES.values())
+            + list_to_label(kht.TOOL_DIR_NAMES.values())
         )
     source_home_dir = get_home_dir(source)
     return (
@@ -387,7 +396,7 @@ Gestion du contenu d'un fichier
 
 def read_file_lines(file_path, log_file=None, show=False):
     """Chargement en memoire des lignes d'un fichier
-    Retourne la liste des fichier si ok, None sinon
+    Retourne la liste des fichiers si ok, None sinon
     Ecrit un message dans le log en cas d'erreur
     """
     # lecture des lignes du fichier
@@ -516,7 +525,7 @@ def filter_empty_lines(lines):
 
 
 """
-Gestion des fichier et repertoires
+Gestion des fichiers et repertoires
 """
 
 
@@ -529,7 +538,7 @@ def copy_file(src_file_path, dest_file_path):
 
 
 def remove_file(file_path):
-    """Supression d'un fichier, avec message d'erreur"""
+    """Suppression d'un fichier, avec message d'erreur"""
     try:
         os.chmod(file_path, stat.S_IWRITE)
         os.remove(file_path)
@@ -546,7 +555,7 @@ def make_dir(dest_dir):
 
 
 def remove_dir(dir_to_remove):
-    """Supression d'un repertoire cense etre vide, avec message d'erreur"""
+    """Suppression d'un repertoire cense etre vide, avec message d'erreur"""
     try:
         os.rmdir(dir_to_remove)
     except (IOError, os.error) as why:
