@@ -24,7 +24,7 @@ jobs:
       matrix:
         os: [debian10, debian11, debian12, ubuntu22.04, ubuntu20.04]
     container:
-      image: ghcr.io/khiopsml/khiops/khiopsdev-test-${{ matrix.os }}:latest
+      image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -122,7 +122,7 @@ jobs:
       matrix:
         os: [debian10, debian11, debian12, ubuntu22.04, ubuntu20.04]
     container:
-      image: ghcr.io/khiopsml/khiops/khiopsdev-test-${{ matrix.os }}:latest
+      image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
     steps:
       - name: Put OS info on the environment
         run: |

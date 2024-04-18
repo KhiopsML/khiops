@@ -4,6 +4,7 @@
 # Visual Studio
 .vs/
 .vscode/
+.devcontainer/
 
 # Log file using genere tool and the cmake module genere-views
 *.dd.log

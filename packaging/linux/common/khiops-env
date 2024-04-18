@@ -67,11 +67,19 @@ fi
 
 # Set java environment if Khiops GUI is installed
 if [ -f "/usr/share/khiops/khiops.jar" ]; then
-    if [ -z "$JAVA_HOME" ]; then 
+    if [ -z "$JAVA_HOME" ] && [ -f /usr/bin/java ]; then 
         JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:bin/java::" )
     fi
-    KHIOPS_JAVA_PATH=$(find -L "$JAVA_HOME" -name libjvm.so | xargs dirname)
-    KHIOPS_CLASSPATH=/usr/share/khiops/norm.jar:/usr/share/khiops/khiops.jar
+    if [ ! -d "$JAVA_HOME" ]; then
+        echo "The JAVA_HOME directory doesn't exist (${JAVA_HOME})."
+        unset JAVA_HOME
+    fi
+    if [ -n "$JAVA_HOME" ]; then
+        KHIOPS_JAVA_PATH=$(find -L "$JAVA_HOME" -name libjvm.so | xargs dirname)
+        KHIOPS_CLASSPATH=/usr/share/khiops/norm.jar:/usr/share/khiops/khiops.jar
+    else
+        echo "Java not found. Khiops cannot launch a graphical interface. Please install a Java Runtime Environment (>= 1.8)." 
+    fi
 fi
 
 # Number of processes in use (must be set according to the physical cores number + 1)
