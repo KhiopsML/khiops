@@ -122,8 +122,6 @@ set(CPACK_DEBIAN_KHIOPS_CORE_PACKAGE_RECOMMENDS "khiops, khiops-visualization")
 set(CPACK_DEBIAN_KHIOPS_KNI_RECOMMENDS kni-doc)
 
 # packages posinst and triggers
-
-set(CPACK_DEBIAN_KHIOPS_PACKAGE_CONTROL_EXTRA "${PROJECT_SOURCE_DIR}/packaging/linux/debian/khiops/postinst")
 set(CPACK_DEBIAN_KHIOPS_CORE_PACKAGE_CONTROL_EXTRA "${TMP_DIR}/postinst")
 set(CPACK_DEBIAN_KNI_PACKAGE_CONTROL_EXTRA "${PROJECT_SOURCE_DIR}/packaging/linux/debian/kni/triggers")
 
@@ -166,8 +164,6 @@ set(CPACK_RPM_KHIOPS_PACKAGE_REQUIRES "java >= 1.8")
 set(CPACK_RPM_KHIOPS_CORE_PACKAGE_REQUIRES "util-linux")
 
 # packages post/postun install scripts
-
-set(CPACK_RPM_KHIOPS_POST_INSTALL_SCRIPT_FILE "${PROJECT_SOURCE_DIR}/packaging/linux/redhat/khiops.post")
 set(CPACK_RPM_KNI_POST_INSTALL_SCRIPT_FILE "${PROJECT_SOURCE_DIR}/packaging/linux/redhat/kni.post")
 set(CPACK_RPM_KNI_POSTUN_INSTALL_SCRIPT_FILE "${PROJECT_SOURCE_DIR}/packaging/linux/redhat/kni.postun")
 
