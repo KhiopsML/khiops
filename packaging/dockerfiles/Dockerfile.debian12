@@ -11,7 +11,7 @@ RUN true \
   cmake \
   coreutils \
   debhelper \
-  default-jdk \
+  openjdk-17-jdk\
   devscripts \
   fakeroot \
   libmpich-dev \
