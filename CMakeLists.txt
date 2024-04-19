@@ -81,7 +81,7 @@ if(IS_FEDORA_LIKE)
   else()
     message(
       FATAL_ERROR
-        "MPI_BIN is not defined, you have to load the mpi module (e.g. source /etc/profile.d/modules.sh && module load mpi/mpich-x86_64)"
+        "MPI_BIN is not defined, you have to load the mpi module e.g.:\n source /etc/profile.d/modules.sh && module load mpi/mpich-x86_64"
     )
   endif(DEFINED ENV{MPI_BIN})
   if(DEFINED ENV{MPI_SUFFIX})
@@ -89,7 +89,7 @@ if(IS_FEDORA_LIKE)
   else()
     message(
       FATAL_ERROR
-        "MPI_SUFFIX is not defined, you have to load the mpi module (e.g. source /etc/profile.d/modules.sh && module load mpi/mpich-x86_64)"
+        "MPI_SUFFIX is not defined, you have to load the mpi module e.g.:\n source /etc/profile.d/modules.sh && module load mpi/mpich-x86_64"
     )
   endif(DEFINED ENV{MPI_SUFFIX})
 endif(IS_FEDORA_LIKE)
