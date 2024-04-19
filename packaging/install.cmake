@@ -55,6 +55,14 @@ configure_file(${PROJECT_SOURCE_DIR}/packaging/common/KNI/README.txt.in ${TMP_DI
 configure_file(${PROJECT_SOURCE_DIR}/packaging/common/KNI/template-README.md ${TMP_DIR}/kni.README.md @ONLY
                NEWLINE_STYLE UNIX)
 
+# ######################################## KNITransfer installation
+
+if(CMAKE_HOST_SYSTEM_NAME STREQUAL Windows)
+  install(TARGETS KNITransfer RUNTIME DESTINATION "./" COMPONENT KNI_TRANSFER)
+else()
+  install(TARGETS KNITransfer RUNTIME DESTINATION usr/bin COMPONENT KNI_TRANSFER)
+endif()
+
 # ######################################## Khiops and Khiops Coclustering installation
 
 if(UNIX)
