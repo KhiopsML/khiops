@@ -174,12 +174,14 @@ jobs:
       - name: Rename packages with tag version
         run: |
           # Renames the packge only if the source version differs from the tag
-          SOURCE_VERSION=$(./scripts/khiops-version)
+          SOURCE_VERSION=$(./scripts/khiops-version | sed 's/-/_/')
+          TAG_VERSION=$(echo "${{ github.ref_name }}" | sed 's/-/_/')
           for PKG_FILE in *.rpm
           do
-            NEW_PKG_FILE=$(echo $PKG_FILE | sed "s/-${SOURCE_VERSION}-/-${{ github.ref_name }}-/")
+            NEW_PKG_FILE=$(echo $PKG_FILE | sed "s/-${SOURCE_VERSION}-/-${TAG_VERSION}-/")
             if [[ "$PKG_FILE" != "$NEW_PKG_FILE" ]]
             then
+              echo "Renaming '$PKG_FILE' to '$NEW_PKG_FILE'"
               mv $PKG_FILE $NEW_PKG_FILE
             fi
           done
