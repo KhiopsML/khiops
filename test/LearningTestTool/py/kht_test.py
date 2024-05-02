@@ -570,7 +570,7 @@ def evaluate_tool_on_suite_dir(tool_exe_path, suite_dir, test_dir_name=None, **k
 def evaluate_tool(tool_name, tool_exe_path, home_dir, test_suites, **kwargs):
     """Lance les tests d'un outil sur un ensemble de suites de tests"""
     assert tool_name in kht.TOOL_NAMES
-    utils.check_home_dir(home_dir)
+    assert utils.check_home_dir(home_dir)
     # Recherche du repertoire lie a l'outil
     tool_dir_name = kht.TOOL_DIR_NAMES[tool_name]
     # Lancement des tests sur les repertoires valides

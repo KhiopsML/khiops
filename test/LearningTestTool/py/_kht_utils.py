@@ -27,46 +27,61 @@ En cas d'erreur, un message est affiche est on sort du programme
 
 def check_test_dir(checked_dir):
     """Test si un chemin est celui d'un repertoire de test"""
-    home_dir_name = parent_dir_name(checked_dir, 3)
-    tool_dir_name = parent_dir_name(checked_dir, 2)
+    checked_home_dir_path = parent_dir_path(checked_dir, 3)
+    checked_tool_dir_name = parent_dir_name(checked_dir, 2)
     if (
-        home_dir_name != kht.LEARNING_TEST
-        or tool_dir_name not in kht.TOOL_DIR_NAMES.values()
+        not check_home_dir(checked_home_dir_path)
+        or checked_tool_dir_name not in kht.TOOL_DIR_NAMES.values()
     ):
         fatal_error(checked_dir + " should be a test directory of " + kht.LEARNING_TEST)
+    return True
 
 
 def check_suite_dir(checked_dir):
     """Test si un chemin est celui d'un repertoire de suite"""
-    home_dir_name = parent_dir_name(checked_dir, 2)
-    tool_dir_name = parent_dir_name(checked_dir, 1)
+    checked_home_dir_path = parent_dir_path(checked_dir, 3)
+    checked_tool_dir_name = parent_dir_name(checked_dir, 1)
     if (
-        home_dir_name != kht.LEARNING_TEST
-        or tool_dir_name not in kht.TOOL_DIR_NAMES.values()
+        not check_home_dir(checked_home_dir_path)
+        or checked_tool_dir_name not in kht.TOOL_DIR_NAMES.values()
     ):
         fatal_error(
             checked_dir + " should be a suite directory of " + kht.LEARNING_TEST
         )
+    return True
 
 
 def check_tool_dir(checked_dir):
     """Test si un chemin est celui d'un repertoire d'outil"""
-    home_dir_name = parent_dir_name(checked_dir, 1)
-    tool_dir_name = parent_dir_name(checked_dir, 0)
+    checked_home_dir_path = parent_dir_path(checked_dir, 3)
+    checked_tool_dir_name = parent_dir_name(checked_dir, 0)
     if (
-        home_dir_name != kht.LEARNING_TEST
-        or tool_dir_name not in kht.TOOL_DIR_NAMES.values()
+        not check_home_dir(checked_home_dir_path)
+        or checked_tool_dir_name not in kht.TOOL_DIR_NAMES.values()
     ):
         fatal_error(checked_dir + " should be a tool directory of " + kht.LEARNING_TEST)
+    return True
 
 
-def check_home_dir(checked_dir):
+def check_home_dir(checked_dir, fatal_error_if_false=True):
     """Test si un chemin est celui du repertoire LearningTest"""
-    home_dir_name = parent_dir_name(checked_dir, 0)
-    if home_dir_name != kht.LEARNING_TEST:
+    checked_home_dir_path = parent_dir_path(checked_dir, 0)
+    # On n'impose pas que le repertoire racine ait le nom predefini kht.LEARNING_TEST
+    # On verifie juste que le repertoire contient au moins un des repertoires d'outil
+    for name in kht.TOOL_DIR_NAMES.values():
+        checked_tool_dir_name = os.path.join(checked_home_dir_path, name)
+        if os.path.isdir(checked_tool_dir_name):
+            return True
+    # Echec si aucun repertoire d'outil trouve
+    if fatal_error_if_false:
         fatal_error(
-            checked_dir + " should be the '" + kht.LEARNING_TEST + "' directory"
+            checked_dir
+            + " should be a valid '"
+            + kht.LEARNING_TEST
+            + "' home dir, containing at least one the tools directory "
+            + list_to_label(kht.TOOL_DIR_NAMES.values())
         )
+    return False
 
 
 def get_learning_test_sub_dir_depth(checked_dir):
@@ -79,42 +94,35 @@ def get_learning_test_sub_dir_depth(checked_dir):
     """
     if not os.path.isdir(checked_dir):
         fatal_error(checked_dir + " should be a directory")
-    path_components = os.path.realpath(checked_dir).split(os.sep)
-    if kht.LEARNING_TEST not in path_components:
-        fatal_error(
-            checked_dir
-            + " must be in a tree whose root is called '"
-            + kht.LEARNING_TEST
-            + "'"
-        )
-    else:
-        depth = 0
-        path_component_number = len(path_components)
-        while depth < path_component_number:
-            if path_components[-(1 + depth)] == kht.LEARNING_TEST:
-                break
-            depth += 1
-        if depth > 3:
-            fatal_error(
-                checked_dir
-                + " must be in a tree whose root is called '"
-                + kht.LEARNING_TEST
-                + "' with a maximum of three levels above it in the directory tree"
-            )
-
-        return depth
+    checked_home_dir_path = os.path.realpath(checked_dir)
+    depth = 0
+    while depth < 4:
+        if check_home_dir(checked_home_dir_path, fatal_error_if_false=False):
+            return depth
+        checked_home_dir_path = os.path.dirname(checked_home_dir_path)
+        depth += 1
+    fatal_error(
+        checked_dir
+        + " must be in a directory tree located a maximum of three levels above a valid '"
+        + kht.LEARNING_TEST
+        + "' home dir, containing at least one the tools directory "
+        + list_to_label(kht.TOOL_DIR_NAMES.values())
+    )
 
 
 def get_home_dir(home_dir):
     """Retourne le repertoire de base LearningTest a partir d'un sous-repertoire de profondeur quelconque"""
-    assert kht.LEARNING_TEST in os.path.realpath(home_dir).split(os.sep), (
-        kht.LEARNING_TEST + " should be a directory in path " + home_dir
-    )
     # On remonte dans le chemin (reel) jusqu'a trouver le repertoire racine
-    home_dir = os.path.realpath(home_dir)
-    while os.path.basename(home_dir) != kht.LEARNING_TEST:
-        home_dir = os.path.dirname(home_dir)
-    return home_dir
+    checked_home_dir_path = os.path.realpath(home_dir)
+    depth = 0
+    while depth < 4:
+        if check_home_dir(checked_home_dir_path, fatal_error_if_false=False):
+            return checked_home_dir_path
+        checked_home_dir_path = os.path.dirname(checked_home_dir_path)
+        depth += 1
+    assert False, (
+        "No valid '" + kht.LEARNING_TEST + "' home dir found in path " + home_dir
+    )
 
 
 def test_dir_name(test_dir):
@@ -137,8 +145,8 @@ def dir_name(dir_path):
     return parent_dir_name(dir_path, 0)
 
 
-def parent_dir_name(dir_path, depth):
-    """Renvoie le nom d'un repertoire parent a une profondeur donnee
+def parent_dir_path(dir_path, depth):
+    """Renvoie le chemin d'un repertoire parent a une profondeur donnee
     Le nom est le nom reel absolu, meme si le parametre en entree est un chemin relatif
     Ainsi, utiliser depth=0 permet d'avoir le nom reel du repertoire de base dans tous les cas
 
@@ -156,8 +164,23 @@ def parent_dir_name(dir_path, depth):
         relative_parent_path += "/.."
     # Nom reel du chemin
     real_parent_path = os.path.realpath(relative_parent_path)
+    return real_parent_path
+
+
+def parent_dir_name(dir_path, depth):
+    """Renvoie le nom d'un repertoire parent a une profondeur donnee
+    Le nom est le nom reel absolu, meme si le parametre en entree est un chemin relatif
+    Ainsi, utiliser depth=0 permet d'avoir le nom reel du repertoire de base dans tous les cas
+
+    Example: pour un test path dir_path=<root_path>/LearningTest/TestKhiops/Standard/Iris/.
+    - test dir: parent_dir_name(dir_path, 0) -> Iris
+    - suite dir: parent_dir_name(dir_path, 1) -> Standard
+    - tool dir: parent_dir_name(dir_path, 2) -> TestKhiops
+    - home dir: parent_dir_name(dir_path, 3) -> LearningTest
+    """
+    parent_path = parent_dir_path(dir_path, depth)
     # On extrait le nom du repertoire
-    result_name = os.path.basename(real_parent_path)
+    result_name = os.path.basename(parent_path)
     return result_name
 
 
