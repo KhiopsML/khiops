@@ -1393,7 +1393,7 @@ void KWDatabase::TestRead()
 
 void KWDatabase::BuildPhysicalClass()
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	boolean bDebug = false;
 	KWClassDomain* kwcdPhysicalDomain;
 	boolean bPhysicalDomainNeeded;
@@ -1429,7 +1429,7 @@ void KWDatabase::BuildPhysicalClass()
 	require(kwcPhysicalClass == NULL);
 
 	// Affichage du debut de methode
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "\nBuildPhysicalClass(" << kwcClass->GetName() << ") (process " << GetProcessId() << ")\n";
 
@@ -1596,7 +1596,7 @@ void KWDatabase::BuildPhysicalClass()
 	}
 
 	// Affichage des classes et attributs necessaires
-	if (bDisplay)
+	if (bTrace)
 	{
 		// Affichages des classes necessaires
 		cout << "Needed classes\n";
@@ -1614,6 +1614,8 @@ void KWDatabase::BuildPhysicalClass()
 		// Affichage des attributs necessaires
 		cout << "Needed attributes\t" << nkdAllNeededAttributes.GetCount() << endl;
 		nkdAllNeededAttributes.ExportObjectArray(&oaNeededAttributes);
+		oaNeededAttributes.SetCompareFunction(KWAttributeCompareName);
+		oaNeededAttributes.Sort();
 		for (nAttribute = 0; nAttribute < oaNeededAttributes.GetSize(); nAttribute++)
 		{
 			attribute = cast(KWAttribute*, oaNeededAttributes.GetAt(nAttribute));
@@ -1637,7 +1639,7 @@ void KWDatabase::BuildPhysicalClass()
 		}
 	}
 	oaNeededAttributes.RemoveAll();
-	if (bDisplay)
+	if (bTrace)
 		cout << "Need physical domain\t" << bPhysicalDomainNeeded << endl;
 
 	// Si domaine physique non necessaire, destruction et remplacement par
@@ -1795,7 +1797,7 @@ void KWDatabase::BuildPhysicalClass()
 				       oaNeededAttributes.GetSize());
 
 			// Affichage de la classe
-			if (bDisplay)
+			if (bTrace)
 			{
 				cout << "Physical class\t" << kwcCurrentPhysicalClass->GetName()
 				     << " (Used: " << kwcCurrentPhysicalClass->GetUsedAttributeNumber()
@@ -1907,15 +1909,18 @@ void KWDatabase::BuildPhysicalClass()
 			}
 		}
 
-		// Affichage du domaine physique
-		if (bDisplay)
-			cout << "PhysicalDomain\n" << *kwcdPhysicalDomain << endl;
+		// Affichage des domaines logique et physique
+		if (bTrace)
+		{
+			cout << "\n=== Logical domain === \n" << *kwcClass->GetDomain() << endl;
+			cout << "=== Physical domain === \n" << *kwcdPhysicalDomain << endl;
+		}
 
 		// Compilation du domaine
 		kwcdPhysicalDomain->Compile();
 
 		// Parcours des classes du domaine courant pour identifier les blocs d'attribut a reindexer
-		if (bDisplay)
+		if (bTrace)
 			cout << "Compute loaded block attribute mutation indexes" << endl;
 		for (nClass = 0; nClass < kwcdPhysicalDomain->GetClassNumber(); nClass++)
 		{
@@ -1949,7 +1954,7 @@ void KWDatabase::BuildPhysicalClass()
 				attributeBlock->ComputeLoadedAttributeMutationIndexes(initialAttributeBlock);
 
 				// Affichage des index de mutation
-				if (bDisplay)
+				if (bTrace)
 				{
 					if (attributeBlock->GetLoadedAttributeMutationIndexes() != NULL)
 					{
@@ -1987,7 +1992,7 @@ void KWDatabase::BuildPhysicalClass()
 		assert(kwcInitialClass != NULL);
 
 		// Affichage
-		if (bDisplay)
+		if (bTrace)
 			cout << "Specify data items to compute\t" << kwcCurrentPhysicalClass->GetName() << "\n";
 
 		// Parcours des elements de donnees de la classe physique pour determiner ceux qui sont a calculer
@@ -2017,7 +2022,7 @@ void KWDatabase::BuildPhysicalClass()
 						    ->Add(dataItem);
 
 					// Affichage
-					if (bDisplay)
+					if (bTrace)
 					{
 						cout << "\t", cout << KWType::ToString(attribute->GetType()) << "\t";
 						cout << attribute->GetName() << "\t";
@@ -2051,7 +2056,7 @@ void KWDatabase::BuildPhysicalClass()
 						    ->Add(dataItem);
 
 					// Affichage
-					if (bDisplay)
+					if (bTrace)
 					{
 						cout << "\t",
 						    cout << KWType::ToString(attributeBlock->GetType()) << "\t";

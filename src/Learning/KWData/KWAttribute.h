@@ -200,8 +200,7 @@ protected:
 	friend class KWObject;
 	friend class KWMTDatabase;
 
-	// Rang de l'attribut parmi les attributs charges en memoire, pour un attribut natif inutilise de type Object ou
-	// ObjectArray
+	// Rang de l'attribut parmi les attributs charges en memoire, pour un attribut natif ou cree inutilise de type Relation
 	KWLoadIndex GetInternalLoadIndex() const;
 
 	// Construction de l'objet de format pour les type complexes
@@ -442,7 +441,7 @@ inline KWLoadIndex KWAttribute::GetInternalLoadIndex() const
 	require(parentClass != NULL);
 	require(parentClass->IsIndexed());
 	require(KWType::IsRelation(GetType()));
-	require(GetDerivationRule() == NULL);
+	require(not GetReference());
 	require(not GetLoaded());
 	ensure(parentClass->GetLoadedDataItemNumber() <= liLoadIndex.GetDenseIndex() and
 	       liLoadIndex.GetDenseIndex() < parentClass->GetTotalInternallyLoadedDataItemNumber());

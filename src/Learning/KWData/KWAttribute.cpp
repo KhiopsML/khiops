@@ -666,7 +666,7 @@ int KWAttributeCompareBlockName(const void* elem1, const void* elem2)
 	attribute1 = cast(KWAttribute*, *(Object**)elem1);
 	attribute2 = cast(KWAttribute*, *(Object**)elem2);
 
-	// Difference
+	// Difference sur le nom de bloc puis d'attribut
 	if (attribute1->GetAttributeBlock() == attribute2->GetAttributeBlock())
 		nDiff = attribute1->GetName().Compare(attribute2->GetName());
 	else if (attribute1->GetAttributeBlock() == NULL)

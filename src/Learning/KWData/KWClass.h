@@ -546,19 +546,23 @@ protected:
 	int GetTotalInternallyLoadedDataItemNumber() const;
 
 	///////////////////////////////////////////////////////////////////////////////////////////////
-	// Gestion des attributs Object et ObjectArray natifs, non utilises (not Used) et non
-	// charges en memoire (not Loaded) selon les specifications.
+	// Gestion des attributs Object et ObjectArray natifs ou crees par une regle (non references),
+	// non utilises (not Used) et non charges en memoire (not Loaded) selon les specifications.
 	// Il faut prevoir de les charger en interne au cas ou ils serait utilises comme arguments de regles
 	// de derivation renvoyant des Object ou ObjectArray. En effet, dans ce cas, les attributs
 	// issu de regles peuvent referencer des Object natifs, qui ne doivent pas etre detruits.
 
-	// Attributs Relation natifs non charges en memoire
-	int GetUnloadedNativeRelationAttributeNumber() const;
-	KWAttribute* GetUnloadedNativeRelationAttributeAt(int nIndex) const;
+	// Attributs Relation natifs ou cree et non references non charges en memoire
+	// Ces attribut appartient a l'objet courant et devront etre detruits avec celui-ci
+	int GetUnloadedOwnedRelationAttributeNumber() const;
+	KWAttribute* GetUnloadedOwnedRelationAttributeAt(int nIndex) const;
 
 	// Prise en compte des attributs utilises non charges en memoire suite a une lecture de dictionnaire (cf.
 	// KWAttribute::ReadNotLoadedMetaData)
 	void ReadNotLoadedMetaData();
+
+	// Affichage d'un tableau d'attributs
+	void WriteAttributes(const ALString& sTitle, const ObjectArray* oaAttributes, ostream& ost) const;
 
 	// Nom de la classe
 	KWCDUniqueString usName;
@@ -606,7 +610,7 @@ protected:
 	ObjectArray oaLoadedTextAttributes;
 	ObjectArray oaLoadedTextListAttributes;
 	ObjectArray oaLoadedRelationAttributes;
-	ObjectArray oaUnloadedNativeRelationAttributes;
+	ObjectArray oaUnloadedOwnedRelationAttributes;
 
 	// Tableau de tous les valeurs denses (attributs dense ou blocs) charges en memoire
 	// pour permettre une verification des LoadIndex, dont la partie DenseIndex
@@ -909,18 +913,18 @@ inline const ObjectArray* KWClass::GetConstDatabaseTemporayDataItemsToComputeAnd
 inline int KWClass::GetTotalInternallyLoadedDataItemNumber() const
 {
 	require(IsIndexed());
-	return oaLoadedDataItems.GetSize() + oaUnloadedNativeRelationAttributes.GetSize();
+	return oaLoadedDataItems.GetSize() + oaUnloadedOwnedRelationAttributes.GetSize();
 }
 
-inline int KWClass::GetUnloadedNativeRelationAttributeNumber() const
+inline int KWClass::GetUnloadedOwnedRelationAttributeNumber() const
 {
 	require(IsIndexed());
-	return oaUnloadedNativeRelationAttributes.GetSize();
+	return oaUnloadedOwnedRelationAttributes.GetSize();
 }
 
-inline KWAttribute* KWClass::GetUnloadedNativeRelationAttributeAt(int nIndex) const
+inline KWAttribute* KWClass::GetUnloadedOwnedRelationAttributeAt(int nIndex) const
 {
-	return cast(KWAttribute*, oaUnloadedNativeRelationAttributes.GetAt(nIndex));
+	return cast(KWAttribute*, oaUnloadedOwnedRelationAttributes.GetAt(nIndex));
 }
 
 inline boolean KWClass::IsCompiled() const

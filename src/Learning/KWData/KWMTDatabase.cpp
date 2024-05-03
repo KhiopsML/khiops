@@ -1281,6 +1281,7 @@ void KWMTDatabase::BuildPhysicalClass()
 
 void KWMTDatabase::ComputeUnusedNativeAttributesToKeep(NumericKeyDictionary* nkdAttributes)
 {
+	const boolean bTrace = false;
 	ObjectArray oaImpactedClasses;
 	NumericKeyDictionary nkdImpactedClasses;
 	KWClass* kwcCurrentClass;
@@ -1294,7 +1295,7 @@ void KWMTDatabase::ComputeUnusedNativeAttributesToKeep(NumericKeyDictionary* nkd
 	require(nkdAttributes != NULL);
 	require(nkdAttributes->GetCount() == 0);
 
-	// Initialisation des classe a traiter avec la classe principale
+	// Initialisation des classes a traiter avec la classe principale
 	oaImpactedClasses.Add(kwcClass);
 	nkdImpactedClasses.SetAt(kwcClass, kwcClass);
 
@@ -1328,6 +1329,23 @@ void KWMTDatabase::ComputeUnusedNativeAttributesToKeep(NumericKeyDictionary* nkd
 					nkdImpactedClasses.SetAt(attribute->GetClass(), attribute->GetClass());
 				}
 			}
+		}
+	}
+
+	// Affichage des attributs a garder
+	if (bTrace)
+	{
+		// Export des attrribut a garder
+		nkdAttributes->ExportObjectArray(&oaAttributesToKeep);
+		oaAttributesToKeep.SetCompareFunction(KWAttributeCompareName);
+		oaAttributesToKeep.Sort();
+
+		// Affichage
+		cout << "Unused native attributes to keep\n";
+		for (nAttribute = 0; nAttribute < oaAttributesToKeep.GetSize(); nAttribute++)
+		{
+			attribute = cast(KWAttribute*, oaAttributesToKeep.GetAt(nAttribute));
+			cout << "\t" << attribute->GetClass()->GetName() << "\t" << attribute->GetName() << "\n";
 		}
 	}
 }
@@ -1385,8 +1403,10 @@ void KWMTDatabase::ComputeUnusedNativeAttributesToKeepForRule(NumericKeyDictiona
 					if (attribute->GetAnyDerivationRule() != NULL)
 						ComputeUnusedNativeAttributesToKeepForRule(
 						    nkdAttributes, nkdAnalysedRules, attribute->GetAnyDerivationRule());
-					// Memorisation de l'attribut natif sinon
-					else
+
+					// Memorisation de l'attribut natif ou cree sinon, s'il n'est pas utilise
+					if (not attribute->IsInBlock() and not attribute->GetReference() and
+					    not attribute->GetUsed())
 						nkdAttributes->SetAt(attribute, attribute);
 				}
 			}

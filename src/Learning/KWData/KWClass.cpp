@@ -373,6 +373,7 @@ void KWClass::GetPrevAttribute(KWAttribute*& attribute) const
 
 void KWClass::IndexClass()
 {
+	const boolean bTrace = false;
 	KWAttribute* attribute;
 	KWAttributeBlock* attributeBlock;
 	int nIndex;
@@ -399,7 +400,7 @@ void KWClass::IndexClass()
 	oaLoadedTextAttributes.SetSize(0);
 	oaLoadedTextListAttributes.SetSize(0);
 	oaLoadedRelationAttributes.SetSize(0);
-	oaUnloadedNativeRelationAttributes.SetSize(0);
+	oaUnloadedOwnedRelationAttributes.SetSize(0);
 	oaLoadedDataItems.SetSize(0);
 	livKeyAttributeLoadIndexes.SetSize(0);
 
@@ -552,13 +553,13 @@ void KWClass::IndexClass()
 			}
 		}
 
-		// Cas des attributs Object ou ObjectArray natifs non utilises ni charges en memoire
+		// Cas des attributs Object ou ObjectArray natifs ou crees par une regle, non utilises ni charges en memoire
 		if (not attribute->GetLoaded())
 		{
-			if (not attribute->IsInBlock() and attribute->GetDerivationRule() == NULL)
+			if (KWType::IsRelation(attribute->GetType()))
 			{
-				if (KWType::IsRelation(attribute->GetType()))
-					oaUnloadedNativeRelationAttributes.Add(attribute);
+				if (not attribute->IsInBlock() and not attribute->GetReference())
+					oaUnloadedOwnedRelationAttributes.Add(attribute);
 			}
 		}
 
@@ -601,13 +602,13 @@ void KWClass::IndexClass()
 
 	// Calcul des index internes des attributs natifs a stocker
 	nInternalLoadIndex = oaLoadedDataItems.GetSize();
-	for (nIndex = 0; nIndex < oaUnloadedNativeRelationAttributes.GetSize(); nIndex++)
+	for (nIndex = 0; nIndex < oaUnloadedOwnedRelationAttributes.GetSize(); nIndex++)
 	{
-		attribute = cast(KWAttribute*, oaUnloadedNativeRelationAttributes.GetAt(nIndex));
+		attribute = cast(KWAttribute*, oaUnloadedOwnedRelationAttributes.GetAt(nIndex));
 		attribute->liLoadIndex.SetDenseIndex(nInternalLoadIndex);
 		nInternalLoadIndex++;
 	}
-	assert(nInternalLoadIndex == oaLoadedDataItems.GetSize() + oaUnloadedNativeRelationAttributes.GetSize());
+	assert(nInternalLoadIndex == oaLoadedDataItems.GetSize() + oaUnloadedOwnedRelationAttributes.GetSize());
 
 	// Memorisation des index de chargement des attributs de la cle
 	livKeyAttributeLoadIndexes.SetSize(GetKeyAttributeNumber());
@@ -626,6 +627,22 @@ void KWClass::IndexClass()
 			livKeyAttributeLoadIndexes.SetSize(0);
 			break;
 		}
+	}
+
+	// Affichage des tableaux d'attributs indexes
+	if (bTrace)
+	{
+		cout << "Index dictionary\t" << GetName() << "\n";
+		if (GetDomain() != NULL)
+			cout << " Domain\t" << GetDomain()->GetName() << "\n";
+		WriteAttributes("  Used attributes", &oaUsedAttributes, cout);
+		WriteAttributes("  Loaded attributes", &oaLoadedAttributes, cout);
+		WriteAttributes("  Loaded dense attributes", &oaLoadedDenseAttributes, cout);
+		WriteAttributes("  Loaded dense Categorical attributes", &oaLoadedDenseSymbolAttributes, cout);
+		WriteAttributes("  Loaded Text attributes attributes", &oaLoadedTextAttributes, cout);
+		WriteAttributes("  Loaded TextList  attributes", &oaLoadedTextListAttributes, cout);
+		WriteAttributes("  Loaded Relation attributes", &oaLoadedRelationAttributes, cout);
+		WriteAttributes("  Unloaded native Relation attributes", &oaUnloadedOwnedRelationAttributes, cout);
 	}
 }
 
@@ -1697,7 +1714,7 @@ longint KWClass::GetUsedMemory() const
 	lUsedMemory += oaLoadedTextAttributes.GetUsedMemory();
 	lUsedMemory += oaLoadedTextListAttributes.GetUsedMemory();
 	lUsedMemory += oaLoadedRelationAttributes.GetUsedMemory();
-	lUsedMemory += oaUnloadedNativeRelationAttributes.GetUsedMemory();
+	lUsedMemory += oaUnloadedOwnedRelationAttributes.GetUsedMemory();
 	lUsedMemory += oaLoadedDataItems.GetUsedMemory();
 	lUsedMemory += ivUsedAttributeNumbers.GetUsedMemory();
 	lUsedMemory += ivUsedDenseAttributeNumbers.GetUsedMemory();
@@ -2747,5 +2764,20 @@ void KWClass::ReadNotLoadedMetaData()
 	{
 		attribute->ReadNotLoadedMetaData();
 		GetNextAttribute(attribute);
+	}
+}
+
+void KWClass::WriteAttributes(const ALString& sTitle, const ObjectArray* oaAttributes, ostream& ost) const
+{
+	KWAttribute* attribute;
+	int i;
+
+	require(oaAttributes != NULL);
+
+	ost << sTitle << "\n";
+	for (i = 0; i < oaAttributes->GetSize(); i++)
+	{
+		attribute = cast(KWAttribute*, oaAttributes->GetAt(i));
+		ost << "\t" << i + 1 << "\t" << attribute->GetName() << "\n";
 	}
 }

@@ -284,6 +284,7 @@ void KWLearningProblemView::ComputeStats()
 
 	// OK si prerequis corrects
 	if (bOk and FileService::CreateApplicationTmpDir() and GetLearningProblem()->CheckTrainDatabaseName() and
+	    GetLearningProblem()->CheckClass() and GetLearningProblem()->CheckTargetAttribute() and
 	    GetLearningProblem()->GetTrainDatabase()->Check() and
 	    (GetLearningProblem()->GetTestDatabase()->GetDatabaseName() == "" or
 	     GetLearningProblem()->GetTestDatabase()->Check()) and
