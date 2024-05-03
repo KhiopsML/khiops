@@ -38,6 +38,7 @@ int main(int argc, char** argv)
 	// Choix du repertoire de lancement pour le debugage sous Windows (a commenter apres fin du debug)
 	// SetWindowsDebugDir("Standard", "IrisLight");
 	// SetWindowsDebugDir("Standard", "IrisU2D");
+	// SetWindowsDebugDir("z_TableCreationRules", "TableViewUnused");
 
 	// Parametrage des logs memoires depuis les variables d'environnement, pris en compte dans KWLearningProject
 	//   KhiopsMemStatsLogFileName, KhiopsMemStatsLogFrequency, KhiopsMemStatsLogToCollect
@@ -50,7 +51,7 @@ int main(int argc, char** argv)
 	// MemoryStatsManager::AllStats);
 
 	// Parametrage de l'arret pour la memoire ou les interruptions utilisateurs
-	// MemSetAllocIndexExit(37140);
+	// MemSetAllocIndexExit(49924);
 	// TaskProgression::SetExternalInterruptionRequestIndex();
 	// TaskProgression::SetInterruptionRequestIndex(75);
 

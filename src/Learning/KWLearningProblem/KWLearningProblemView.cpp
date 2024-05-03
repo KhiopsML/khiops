@@ -204,9 +204,7 @@ void KWLearningProblemView::CheckData()
 {
 	// OK si nom du fichier renseigne et classe correcte
 	if (FileService::CreateApplicationTmpDir() and GetLearningProblem()->CheckTrainDatabaseName() and
-	    GetLearningProblem()->GetTrainDatabase()->CheckSelectionValue(
-		GetLearningProblem()->GetTrainDatabase()->GetSelectionValue()) and
-	    GetLearningProblem()->CheckClass())
+	    GetLearningProblem()->CheckClass() and GetLearningProblem()->GetTrainDatabase()->Check())
 	{
 		GetLearningProblem()->CheckData();
 		AddSimpleMessage("");
@@ -252,11 +250,8 @@ void KWLearningProblemView::BuildConstructedDictionary()
 {
 	// OK si prerequis corrects
 	if (FileService::CreateApplicationTmpDir() and GetLearningProblem()->CheckTrainDatabaseName() and
-	    GetLearningProblem()->GetTrainDatabase()->Check() and
-	    GetLearningProblem()->GetTrainDatabase()->CheckSelectionValue(
-		GetLearningProblem()->GetTrainDatabase()->GetSelectionValue()) and
-	    GetLearningProblem()->CheckClass() and GetLearningProblem()->CheckTargetAttribute() and
-	    GetLearningProblem()->CheckResultFileNames())
+	    GetLearningProblem()->CheckClass() and GetLearningProblem()->GetTrainDatabase()->Check() and
+	    GetLearningProblem()->CheckTargetAttribute() and GetLearningProblem()->CheckResultFileNames())
 	{
 		// Verification supplementaire
 		if (GetLearningProblem()
@@ -287,12 +282,10 @@ void KWLearningProblemView::ComputeStats()
 
 	// OK si prerequis corrects
 	if (bOk and FileService::CreateApplicationTmpDir() and GetLearningProblem()->CheckTrainDatabaseName() and
+	    GetLearningProblem()->CheckClass() and GetLearningProblem()->CheckTargetAttribute() and
 	    GetLearningProblem()->GetTrainDatabase()->Check() and
-	    GetLearningProblem()->GetTrainDatabase()->CheckSelectionValue(
-		GetLearningProblem()->GetTrainDatabase()->GetSelectionValue()) and
 	    GetLearningProblem()->GetTestDatabase()->CheckSelectionValue(
 		GetLearningProblem()->GetTestDatabase()->GetSelectionValue()) and
-	    GetLearningProblem()->CheckClass() and GetLearningProblem()->CheckTargetAttribute() and
 	    GetLearningProblem()->CheckResultFileNames() and
 	    GetLearningProblem()
 		->GetAnalysisSpec()
