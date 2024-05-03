@@ -227,7 +227,7 @@ protected:
 	void CleanAllNonNativeAttributes();
 
 	// Nettoyage des attributs natifs de type Relation charges en memoire (nettoyage recursif)
-	// L'objet reste utilisable: seuls ses attribut de type Relation sont detruits et mis a NULL
+	// L'objet reste utilisable: seuls ses attributs de type Relation sont detruits et mis a NULL
 	friend class KWMTDatabase;
 	void CleanNativeRelationAttributes();
 
@@ -257,11 +257,18 @@ protected:
 	// Index de creation permettant de memoriser un numero de ligne lors de la lecture d'un fichier (0 si non
 	// initialise) Permet d'implementer les regles de derivation Index et Random avec des resultats reproductibles
 	// lors de la lecture des meme bases
-	// Cet index est attribue a la creation de l'objet et n'est jamais modifie (hormis son signe)
-	// Pour optimiser la taille memoire des KWObject, on se sert de l'index pour stocker egalement le type de taille
-	// d'objet
-	//  . petite taille: index positif
-	//  . grande taille: index negatif
+	// Cet index est attribue a la creation de l'objet et n'est jamais modifie
+	// Pour optimiser la taille memoire des KWObject, on se sert de l'index pour stocker trois informations
+	// - index de creation
+	//   - on stocke deux fois la valeur de l'index de creation
+	// - taille du vecteur d'attribut (cf. Set|GetSmallSize)
+	//   - stocke dans le signe: tres rapide a tester, utilise pour chaque acces a une valeur
+	//     - petite taille: index positif
+	//     - grande taille: index negatif
+	// - utilisation de type vue (cf. Set|GetViewTypeUse)
+	//   - stocke dans le premier bit
+	//     - utilisation de type vue: valeur 1
+	//     - utilisation standard: valeur 0
 	longint lCreationIndex;
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -285,9 +292,23 @@ protected:
 		KWValue** attributeValueArrays;
 	} values;
 
-	// Indicateur de petite taille (cf. lCreationIndex)
+	// Indicateur de petite taille, selon le nombre d'attribut de l'objet (cf. lCreationIndex)
 	boolean GetSmallSize() const;
 	void SetSmallSize(boolean bValue);
+
+	//DDD
+	friend class KWDRProtoBuildTableView;
+
+	// Indicateur de type vue pour un object, selon le type de creation d'un objet (cf. lCreationIndex)
+	// - utilisation standard:
+	//   - les attributs natifs de type Entity ou Table sont crees a partir des lectures dans une database
+	//   - il sont detruits avec l'objet
+	// - utilisation de type vue:
+	//   - les attributs natifs de type Entity ou Table sont recopies a partir d'objets sources au moment
+	//     de la creation de l'objet via une regle de derivation de creation de Table
+	//   - il ne sont pas detruits avec l'objet, car deja detruits avec l'objet source
+	boolean GetViewTypeUse() const;
+	void SetViewTypeUse(boolean bValue);
 
 	// Creation/destruction d'un container d'attribut de taille donnee
 	ObjectValues NewValueVector(int nSize);
@@ -336,10 +357,11 @@ inline const KWClass* KWObject::GetClass() const
 
 inline longint KWObject::GetCreationIndex() const
 {
+	assert(lCreationIndex != 0);
 	if (lCreationIndex > 0)
-		return lCreationIndex;
+		return lCreationIndex / 2;
 	else
-		return -lCreationIndex;
+		return -lCreationIndex / 2;
 }
 
 inline boolean KWObject::GetSmallSize() const
@@ -350,10 +372,44 @@ inline boolean KWObject::GetSmallSize() const
 
 inline void KWObject::SetSmallSize(boolean bValue)
 {
+	assert(lCreationIndex != 0);
 	if (lCreationIndex < 0 and bValue)
 		lCreationIndex = -lCreationIndex;
 	else if (lCreationIndex > 0 and not bValue)
 		lCreationIndex = -lCreationIndex;
+	ensure(GetSmallSize() == bValue);
+}
+
+inline boolean KWObject::GetViewTypeUse() const
+{
+	assert(lCreationIndex != 0);
+	if (lCreationIndex > 0)
+		return lCreationIndex % 2;
+	else
+		return (-lCreationIndex) % 2;
+}
+
+inline void KWObject::SetViewTypeUse(boolean bValue)
+{
+	assert(lCreationIndex != 0);
+	if (GetViewTypeUse() != bValue)
+	{
+		if (lCreationIndex > 0)
+		{
+			if (bValue)
+				lCreationIndex += 1;
+			else
+				lCreationIndex -= 1;
+		}
+		else
+		{
+			if (bValue)
+				lCreationIndex -= 1;
+			else
+				lCreationIndex += 1;
+		}
+	}
+	ensure(GetViewTypeUse() == bValue);
 }
 
 inline KWValue& KWObject::GetAt(int nValueIndex) const
