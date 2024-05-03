@@ -132,7 +132,7 @@ protected:
 	// Construction de la classe physique
 	// Completion en identifiant les attributs natif Object ou ObjecArray utilises par des regles
 	// de derivation et ne devant pas etre detruit suite a leur traitement par la classe physique.
-	// Ces attributs natifs spnt geres dans les "UnusedNative...Attribute" de la classe (KWClass),
+	// Ces attributs natifs sont geres dans les "UnusedNative...Attribute" de la classe (KWClass),
 	// qui, lors de la compilation, prevoit un emplacement memoire systematique pour les stocker
 	// et assurer leur memorisation au cas ou ils seraient referencables par des regles de derivation.
 	// La KWMTDatabase determine les attribut natifs non utilise a garder, pour piloter efficacement

@@ -150,7 +150,8 @@ public:
 	const ALString& GetObjectClassName() const;
 	void SetObjectClassName(const ALString& sValue);
 
-	// Utilisation des attributs de type objets par referencement (sinon: sous-partie)
+	// Utilisation des attributs de type Relation en retour de regle par referencement d'onjet existant
+	// Sinon, les attributs sont crees par la regle
 	// Par defaut: true
 	virtual boolean GetReference() const;
 
