@@ -28,7 +28,7 @@ def build_tool_exe_path(tool_binaries_dir, tool_name):
     - 'check': pour effectuer seulment une comparaison entre resultats de test et de reference
     On renvoie:
     - le path complet d'un binaire d'un outil si un repertoire est specifie, 'check' sinon, None si erreur
-    - le message d'erreeur en cas d'error
+    - le message d'erreur en cas d'error
     """
     assert tool_name in kht.TOOL_NAMES
     tool_exe_path = None
@@ -81,7 +81,7 @@ def build_tool_exe_path(tool_binaries_dir, tool_name):
                 + "' not found in current khiops repo under the bin dir "
                 + build_dir
             )
-        # Erreur si plusieurs repertoires des binaires non trouve
+        # Erreur si plusieurs repertoires des binaires non trouves
         elif len(candidate_binaries_dirs) > 1:
             error_message = (
                 "Multiple tool binaries dir found for alias '"
@@ -385,11 +385,11 @@ def evaluate_tool_on_test_dir(
             lines = stdout.split("\n")
             lines = utils.filter_process_id_prefix_from_lines(
                 lines
-            )  # Supression de l'eventuel prefix de type '[0] '
+            )  # Suppression de l'eventuel prefix de type '[0] '
             lines = utils.filter_copyright_lines(
                 lines
-            )  # Supression eventuelle des lignes de copyright
-            lines = utils.filter_empty_lines(lines)  # Suopression des lignes vides
+            )  # Suppression eventuelle des lignes de copyright
+            lines = utils.filter_empty_lines(lines)  # Suppression des lignes vides
 
             # Pour les test KNI, le stdout contient une ligne avec le nombre de records
             if is_kni:
@@ -570,7 +570,7 @@ def evaluate_tool_on_suite_dir(tool_exe_path, suite_dir, test_dir_name=None, **k
 def evaluate_tool(tool_name, tool_exe_path, home_dir, test_suites, **kwargs):
     """Lance les tests d'un outil sur un ensemble de suites de tests"""
     assert tool_name in kht.TOOL_NAMES
-    utils.check_home_dir(home_dir)
+    assert utils.check_home_dir(home_dir)
     # Recherche du repertoire lie a l'outil
     tool_dir_name = kht.TOOL_DIR_NAMES[tool_name]
     # Lancement des tests sur les repertoires valides
@@ -602,7 +602,7 @@ def evaluate_all_tools_on_learning_test_tree(
     **kwargs
 ):
     """Lance les tests des outils un ensemble de suites de tests
-    Toute ou partie de l'arborescence est prise en compte selon la specification
+    Tout ou partie de l'arborescence est prise en compte selon la specification
      des operandes tool_dir_name, suite_dir_name, test_dir_name, qui peuvent etre None sinon.
     - home_dir: repertoire principal de l'aborescence source
     - tool_dir_name, suite_dir_name, test_dir_name: pour ne prendre en compte qu'une sous-partie
@@ -738,7 +738,7 @@ def main():
         help_test_dir_name=None,
         help_options=None,
     ):
-        """Construction d'une lige d'aide pour un usage de la command test"""
+        """Construction d'une ligne d'aide pour un usage de la commande test"""
         source_dir = os.path.join(".", kht.LEARNING_TEST)
         if help_test_dir_name is not None:
             source_dir = os.path.join(
@@ -839,7 +839,7 @@ def main():
     # Verifications supplementaires des arguments
     # On nomme les arguments concerne de la meme facon que pour le comportement par defaut
     # des controles automatiques du parser
-    # Le rappel des nom des argument est redondant avec la definition des arguments ajoutes,
+    # Le rappel des noms des arguments est redondant avec la definition des arguments ajoutes,
     # mais ce n'est pas trop lourd a maintenir
     # (il n'y a pas d'api officielle d'introspection de la classe argparse)
 
