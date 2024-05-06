@@ -10,10 +10,12 @@ RUN true \
   build-essential \
   coreutils \
   debhelper \
-  default-jdk \
+  openjdk-11-jdk \
   devscripts \
   fakeroot \
   libmpich-dev \
+  openmpi-bin \
+  libopenmpi-dev \
   nano \
   ninja-build \
   curl \

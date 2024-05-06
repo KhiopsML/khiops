@@ -602,6 +602,33 @@ int GetParallelTraceMode()
 	return nParallelTraceMode;
 }
 
+boolean GetFileServerActivated()
+{
+	static boolean bIsInitialized = false;
+	static boolean bFileServerActivated = false;
+	int nValue;
+
+	// Determination du mode parallele au premier appel
+	if (not bIsInitialized)
+	{
+		ALString sFileServerActivated;
+
+		// Recherche de la variable d'environnement
+		sFileServerActivated = p_getenv("KhiopsFileServerActivated");
+		sFileServerActivated.MakeLower();
+
+		// Determination du mode parallele
+		if (sFileServerActivated == "true")
+			bFileServerActivated = true;
+		else if (sFileServerActivated == "false")
+			bFileServerActivated = false;
+
+		// Memorisation du flag d'initialisation
+		bIsInitialized = true;
+	}
+	return bFileServerActivated;
+}
+
 boolean GetLearningPriorStudyMode()
 {
 	static boolean bIsInitialized = false;

@@ -145,6 +145,7 @@ void KWLearningProject::StartMaster(int argc, char** argv)
 	CommandLineOption* optionLicenceInfo;
 	CommandLineOption* optionLicenceUpdate;
 	CommandLineOption* optionGetVersion;
+	CommandLineOption* optionStatus;
 
 	require(PLParallelTask::IsMasterProcess());
 
@@ -198,6 +199,15 @@ void KWLearningProject::StartMaster(int argc, char** argv)
 	optionGetVersion->SetMethod(ShowVersion);
 	optionGetVersion->SetSingle(true);
 	UIObject::GetCommandLineOptions()->AddOption(optionGetVersion);
+
+	optionStatus = new CommandLineOption;
+	optionStatus->SetFlag('s');
+	optionStatus->AddDescriptionLine("print system information");
+	optionStatus->SetGroup(1);
+	optionStatus->SetFinal(true);
+	optionStatus->SetMethod(ShowSystemInformation);
+	optionStatus->SetSingle(true);
+	UIObject::GetCommandLineOptions()->AddOption(optionStatus);
 
 	// Analyse de la ligne de commande
 	UIObject::ParseMainParameters(argc, argv);
@@ -458,5 +468,31 @@ boolean KWLearningProject::ShowVersion(const ALString&)
 	if (GetLearningModuleName() != "")
 		cout << GetLearningModuleName() << " ";
 	cout << GetLearningVersion() << endl;
+	return true;
+}
+
+boolean KWLearningProject::ShowSystemInformation(const ALString& sValue)
+{
+	int i;
+	const SystemFileDriver* fileDriver;
+	ALString sTmp;
+
+	// Version
+	ShowVersion(sTmp);
+
+	// Drivers
+	for (i = 0; i < SystemFileDriverCreator::GetExternalDriverNumber(); i++)
+	{
+		fileDriver = SystemFileDriverCreator::GetRegisteredDriverAt(i);
+		cout << " \tDriver '" << fileDriver->GetDriverName() << "' for URI scheme '" << fileDriver->GetScheme()
+		     << "'" << endl;
+	}
+
+	// Resources
+	cout << *RMResourceManager::GetResourceSystem();
+
+	// System
+	cout << "System\n";
+	cout << GetSystemInfos();
 	return true;
 }

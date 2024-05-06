@@ -27,17 +27,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          # We use the oldest ubuntu available to have forward compatibility of the libc
-          - os: ubuntu-20.04
-            os-family: linux-64
-          - os: windows-2022
-            os-family: win-64
-          - os: macos-13
-            os-family: osx-64
-          - os: macos-14
-            os-family: osx-arm64
-    runs-on: ${{ matrix.os }}
+        setup:
+          # Linux: We use the Khiops dev debian:10 container to build with glibc 2.28
+          #        It ensures compatibility with glibc >= 2.28 (in particular Rocky 8)
+          - {os: ubuntu-22.04, os-family: linux-64, json-image: '{"image": "ghcr.io/khiopsml/khiops/khiopsdev-debian10:latest"}'}
+          - {os: windows-2022, os-family: win-64, json-image: '{"image": null}'}
+          - {os: macos-13, os-family: osx-64, json-image: '{"image": null}'}
+          - {os: macos-14, os-family: osx-arm64, json-image: '{"image": null}'}
+    container: ${{ fromJSON(matrix.setup.json-image) }}
+    runs-on: ${{ matrix.setup.os }}
     steps:
       - name: Checkout Sources
         uses: actions/checkout@v4
@@ -78,7 +76,7 @@ jobs:
       - name: Upload conda packages artifact
         uses: actions/upload-artifact@v4
         with:
-          name: khiops-conda-${{ matrix.os-family }}
+          name: khiops-conda-${{ matrix.setup.os-family }}
           path: ./build/conda
           retention-days: 7
   # Test Conda package on brand new environments

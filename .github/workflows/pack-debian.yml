@@ -2,6 +2,14 @@
 name: DEB Packages
 on:
   workflow_dispatch:
+    inputs:
+      mpi_implementation:
+        description: mpi implementation
+        type: choice
+        default: openmpi
+        options: 
+          - mpich
+          - openmpi
   pull_request:
     paths:
       - '**CMakeLists.txt'
@@ -24,7 +32,7 @@ jobs:
       matrix:
         os: [debian10, debian11, debian12, ubuntu22.04, ubuntu20.04]
     container:
-      image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
+      image: ghcr.io/khiopsml/khiops/khiopsdev-new-${{ matrix.os }}:latest
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -33,8 +41,12 @@ jobs:
           source /etc/os-release
           echo "ID=$ID" >> "$GITHUB_ENV"
           echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
+          echo "MPI_IMPLEMENTATION=${{ inputs.mpi_implementation || 'openmpi' }}" >> "$GITHUB_ENV"
+          
       - name: Configure CMake
         run: |
+          update-alternatives --set mpi /usr/bin/mpicc.$MPI_IMPLEMENTATION
+          update-alternatives --set mpirun /usr/bin/mpirun.$MPI_IMPLEMENTATION
           cmake --preset linux-gcc-release -DBUILD_JARS=ON
       - name: Build Khiops binaries
         run: |
@@ -82,6 +94,8 @@ jobs:
           source /etc/os-release
           echo "ID=$ID" >> "$GITHUB_ENV"
           echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
+          echo "MPI_IMPLEMENTATION=${{ inputs.mpi_implementation || 'openmpi' }}" >> "$GITHUB_ENV"
+
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -89,24 +103,24 @@ jobs:
           path: artifacts
       - name: Install Khiops core
         run: |
+          export DEBIAN_FRONTEND="noninteractive"
           apt-get update
           dpkg -i ./artifacts/khiops-core* || true
           apt-get -f install -y
       - name: Check Khiops core installation
-        continue-on-error: ${{ matrix.os == 'debian:11' }}
         run: |
           khiops-env --env
-          khiops -v
-          khiops_coclustering -v
+          khiops -s
+          khiops_coclustering -s
       - name: Install Khiops Desktop (with java)
         run: |
-          dpkg -i ./khiops_* || true
+          dpkg -i ./artifacts//khiops_* || true
           apt-get -f install -y
       - name: Check Khiops installation
-        continue-on-error: ${{ matrix.os == 'debian:11' }}
         run: |
-          khiops -v
-          khiops_coclustering -v
+          khiops-env --env
+          khiops -s
+          khiops_coclustering -s
       - name: Test Khiops installation
         continue-on-error: ${{ matrix.os == 'debian:11' }}
         uses: ./.github/actions/test-khiops-install
@@ -122,7 +136,7 @@ jobs:
       matrix:
         os: [debian10, debian11, debian12, ubuntu22.04, ubuntu20.04]
     container:
-      image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
+      image: ghcr.io/khiopsml/khiops/khiopsdev-new-${{ matrix.os }}:latest
     steps:
       - name: Put OS info on the environment
         run: |
@@ -164,15 +178,18 @@ jobs:
           merge-multiple: true
       - name: Rename packages with tag version
         run: |
-          SOURCE_VERSION=$(./scripts/khiops-version)
-          for PKG_FILE in *.deb
-          do
-            NEW_PKG_FILE=$(echo $PKG_FILE | sed "s/_${SOURCE_VERSION}-/_${{ github.ref_name }}-/")
-            if [[ "$PKG_FILE" != "$NEW_PKG_FILE" ]]
-            then
-              mv $PKG_FILE $NEW_PKG_FILE
-            fi
-          done
+         # Renames the packge only if the source version differs from the tag
+         SOURCE_VERSION=$(./scripts/khiops-version | sed 's/-/_/')
+         TAG_VERSION=$(echo "${{ github.ref_name }}" | sed 's/-/_/')
+         for PKG_FILE in *.deb
+         do
+           NEW_PKG_FILE=$(echo $PKG_FILE | sed "s/_${SOURCE_VERSION}-/_${TAG_VERSION}-/")
+           if [[ "$PKG_FILE" != "$NEW_PKG_FILE" ]]
+           then
+             echo "Renaming '$PKG_FILE' to '$NEW_PKG_FILE'"
+             mv $PKG_FILE $NEW_PKG_FILE
+           fi
+         done
       - name: Upload packages to the release
         uses: ncipollo/release-action@v1.14.0
         with:

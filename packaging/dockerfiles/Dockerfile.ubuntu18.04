@@ -11,10 +11,12 @@ RUN true \
   cmake \
   coreutils \
   debhelper \
-  default-jdk \
+  openjdk-8-jdk \
   devscripts \
   fakeroot \
   libmpich-dev \
+  openmpi-bin \
+  libopenmpi-dev \
   nano \
   ninja-build \
   curl \

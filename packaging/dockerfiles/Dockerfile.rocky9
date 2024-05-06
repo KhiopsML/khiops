@@ -10,8 +10,10 @@ RUN true \
   && dnf upgrade -y \
   && dnf install -y \
   gcc-c++ \
-  java-17-openjdk-devel \
+  java-1.8.0-openjdk-devel \
   mpich-devel \
+  openmpi \
+  openmpi-devel \
   nano \
   ninja-build \
   rpm-build \

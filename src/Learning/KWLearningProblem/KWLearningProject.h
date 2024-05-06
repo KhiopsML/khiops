@@ -117,4 +117,5 @@ protected:
 	static boolean ShowLicenseInfo(const ALString&);
 	static boolean UpdateLicense(const ALString& sFileName);
 	static boolean ShowVersion(const ALString&);
+	static boolean ShowSystemInformation(const ALString& sValue);
 };
