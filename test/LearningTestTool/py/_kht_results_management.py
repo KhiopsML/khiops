@@ -50,7 +50,7 @@ Examples d'ensemble correct de noms de repertoire
 # Nombre de process utilisex
 process_number = 1
 
-# Memorisation d'une plateforme force pour la comparaison entre resultstats de test de de reference
+# Memorisation d'une plateforme force pour la comparaison entre resultats de test de de reference
 # Par defaut, on utilise la platforme courante
 forced_platform = None
 
@@ -234,8 +234,8 @@ def is_candidate_results_ref_dir(dir_name):
 
 
 def get_candidate_results_ref_dirs(test_dir):
-    """Recherche de la liste des nom repertoires candidats a etre des resultats de reference
-    Il s'agit des repertoire de nom results.ref, avec ou sans contexte"""
+    """Recherche de la liste des noms repertoires candidats a etre des resultats de reference
+    Il s'agit des repertoires de nom results.ref, avec ou sans contexte"""
     candidate_results_ref_dirs = []
     test_dir_names = os.listdir(test_dir)
     test_dir_names.sort()
@@ -454,9 +454,9 @@ def _search_results_ref_dir(
                     new_context.append(value)
                     new_contexts.append(new_context)
             all_evaluated_contexts = new_contexts
-        # Parcours de tous les contextes possibles pour verifier si l'ensemble des repertoire de reference est coherent
+        # Parcours de tous les contextes possibles pour verifier si l'ensemble des repertoires de reference est coherent
         for evaluated_context in all_evaluated_contexts:
-            # Initialisation d'un liste comportant la liste des repertoire candidats par nombre de "match"
+            # Initialisation d'un liste comportant la liste des repertoires candidats par nombre de "match"
             # On va prioriser les "match" les plus specialises, apres avoire verifie qu'il n'y a pas d'ambiguite
             candidate_dirs_per_match_number = [None]
             for i in range(results_ref_type_number):

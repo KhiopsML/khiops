@@ -12,7 +12,7 @@ import _kht_standard_instructions as standard_instructions
 Instruction pour des usages uniques
 Peu documente et developpe rapidment sous forme de prototype
 Exemples:
-- manipulation a faire une fois sur l'ensemble des repertoire de test
+- manipulation a faire une fois sur l'ensemble des repertoires de test
 - modification des scenario selon evoilution de l'ergonomie de Khiops core
 - evaluation de l'impcat sur les performances d'une evolution des algorithme de Khiops core
 - ...
