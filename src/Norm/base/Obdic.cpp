@@ -761,6 +761,9 @@ void ObjectDictionary::Test()
 	int nStartClock;
 	int nStopClock;
 
+	// Initialisation de la graine pour rendre le test reproductible
+	SetRandomSeed(1);
+
 	// Initialisation de 11 Strings
 	soArray[0].SetString("zero");
 	soArray[1].SetString("un");
@@ -1125,6 +1128,9 @@ void LongintDictionary::Test()
 	Object* oValue;
 	int nRemovedKeyNumber;
 
+	// Initialisation de la graine pour rendre le test reproductible
+	SetRandomSeed(1);
+
 	/////
 	cout << "Test des fonctionnalites de base\n";
 	//
@@ -1332,6 +1338,9 @@ void LongintNumericKeyDictionary::Test()
 	LongintObject* loCount;
 	Object* oValue;
 	int nRemovedKeyNumber;
+
+	// Initialisation de la graine pour rendre le test reproductible
+	SetRandomSeed(1);
 
 	/////
 	cout << "Test des fonctionnalites de base\n";
