@@ -12,8 +12,8 @@ on:
       - src/**.inc
       - src/**.lex
       - src/**.yac
-      - test/UnitTests/**.h
-      - test/UnitTests/**.cpp
+      - test/**.h
+      - test/**.cpp
 # Cancel any ongoing run of this workflow on the same PR or ref
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref
@@ -45,65 +45,6 @@ jobs:
           preset-name: ${{ matrix.build-setup.cmake-preset }}
           targets: norm_test parallel_test parallel_mpi_test learning_test KNITest
           override-flags: -DTESTING=ON
-      - name: Run Unit Tests for the Norm Module
-        run: |
-          build/${{ matrix.build-setup.cmake-preset }}/bin/norm_test \
-            --gtest_output="xml:reports/report-norm.xml"
-      - name: Run Unit Tests for the Parallel Module
-        if: success() || failure()
-        run: |
-          build/${{ matrix.build-setup.cmake-preset }}/bin/parallel_test \
-            --gtest_output="xml:reports/report-parallel.xml"
-      - name: Run Unit Tests for the Parallel MPI Module in serial
-        if: success() || failure()
-        run: |
-          build/${{ matrix.build-setup.cmake-preset }}/bin/parallel_mpi_test \
-            --gtest_output="xml:reports/report-parallel-mpi-serial.xml"
-      - name: Run Unit Tests for the Parallel MPI Module in parallel
-        if: success() || failure()
-        run: |
-          mpiexec -n 4 build/${{ matrix.build-setup.cmake-preset }}/bin/parallel_mpi_test \
-            --gtest_output="xml:reports/report-parallel-mpi-parallel.xml"
-      - name: Run Unit Tests for the Learning Module
-        if: success() || failure()
-        run: |
-          build/${{ matrix.build-setup.cmake-preset }}/bin/learning_test \
-            --gtest_output="xml:reports/report-learning.xml"
-      - name: Run Unit Tests for the KNI Module
-        if: success() || failure()
-        run: |
-          build/${{ matrix.build-setup.cmake-preset }}/bin/KNITest \
-            --gtest_output="xml:reports/report-kni.xml"
-      - name: Check assertions
-        if: success() || failure()
-        run: |
-          if (grep -q -E -r "Assert failed in file|Require failed in file|Ensure failed in file|Check failed in file" \
-            test/UnitTests/KNItestresults/ \
-            test/UnitTests/Norm/results/ \
-            test/UnitTests/Learning/results/ \
-            test/UnitTests/Norm/results/ \
-            test/UnitTests/Parallel/results/ \
-            test/UnitTests/Parallel-mpi/results/); then
-            echo "::error::At least one test binary has failed with an assertion (assert, check, require, ensure..). Check result files available for download as artifacts."
-          fi
-      - name: Upload test results
-        if: failure()
-        uses: actions/upload-artifact@v3
-        with:
-          name: unit-tests-results-${{ matrix.build-setup.os }}
-          retention-days: 7
-          path: |-
-            test/UnitTests/KNItest/results/
-            test/UnitTests/Norm/results/
-            test/UnitTests/Learning/results/
-            test/UnitTests/Norm/results/
-            test/UnitTests/Parallel/results/
-            test/UnitTests/Parallel-mpi/results/
-      - name: Create Unit Test Reports Dashboards
-        uses: phoenix-actions/test-reporting@v12
-        if: success() || failure()
-        with:
-          name: Unit Tests Reports (${{ matrix.build-setup.os }})
-          reporter: jest-junit
-          path: reports/report-*.xml
-          path-replace-backslashes: 'true'  # Necessary for windows paths
+      - name: Run Unit Tests
+        run: |-
+          ctest --preset ${{ matrix.build-setup.cmake-preset }}

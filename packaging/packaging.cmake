@@ -70,7 +70,6 @@ set(CPACK_ARCHIVE_COMPONENT_INSTALL ON)
 
 # user friendly archive names
 set(CPACK_ARCHIVE_KNI_FILE_NAME kni-${KHIOPS_VERSION})
-set(CPACK_ARCHIVE_KNI_DOC_FILE_NAME kni-doc-${KHIOPS_VERSION})
 set(CPACK_ARCHIVE_KHIOPS_FILE_NAME khiops-${KHIOPS_VERSION})
 set(CPACK_ARCHIVE_KHIOPS_CORE_FILE_NAME khiops-core-${KHIOPS_VERSION})
 
@@ -91,23 +90,39 @@ set(CPACK_DEBIAN_PACKAGE_SECTION "math")
 set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 set(CPACK_DEBIAN_PACKAGE_GENERATE_SHLIBS ON)
 
-# packages names
+# We add mpi implementation to package name (khiops-core only)
+if(MPI_IMPL)
+  string(REPLACE "_" "-" PACKAGE_SUFFIX ${MPI_SUFFIX})
+else()
+  set(PACKAGE_SUFFIX "-serial")
+endif()
+
 set(CPACK_DEBIAN_KHIOPS_PACKAGE_NAME khiops)
-set(CPACK_DEBIAN_KHIOPS_CORE_PACKAGE_NAME khiops-core)
+set(CPACK_DEBIAN_KHIOPS_CORE_PACKAGE_NAME khiops-core${PACKAGE_SUFFIX})
 set(CPACK_DEBIAN_KNI_PACKAGE_NAME kni)
 set(CPACK_DEBIAN_KNI_DOC_PACKAGE_NAME kni-doc)
 
+# manage package renaming
+set(CPACK_DEBIAN_KHIOPS_CORE_PACKAGE_REPLACES "khiops-core (<< 10.2.2~ )")
+
 # packages depends
-set(CPACK_DEBIAN_KHIOPS_CORE_PACKAGE_DEPENDS "mpich (>= 3.0)")
+
+if("${MPI_IMPL}" STREQUAL "openmpi")
+  set(CPACK_DEBIAN_KHIOPS_CORE_PACKAGE_DEPENDS "openmpi-bin")
+elseif("${MPI_IMPL}" STREQUAL "mpich")
+  set(CPACK_DEBIAN_KHIOPS_CORE_PACKAGE_DEPENDS "mpich")
+elseif("${MPI_IMPL}" STREQUAL "intel")
+  set(CPACK_DEBIAN_KHIOPS_CORE_PACKAGE_DEPENDS "intel-hpckit")
+endif()
 set(CPACK_DEBIAN_KHIOPS_PACKAGE_DEPENDS
-    "khiops-core (=${KHIOPS_VERSION}-${CPACK_DEBIAN_PACKAGE_RELEASE}), default-jre (>=1.8)")
+    "khiops-core${PACKAGE_SUFFIX} (=${KHIOPS_VERSION}-${CPACK_DEBIAN_PACKAGE_RELEASE}), default-jre (>=1.8)")
 
 # packages recommends
 set(CPACK_DEBIAN_KHIOPS_CORE_PACKAGE_RECOMMENDS "khiops, khiops-visualization")
 set(CPACK_DEBIAN_KHIOPS_KNI_RECOMMENDS kni-doc)
 
 # packages posinst and triggers
-set(CPACK_DEBIAN_KHIOPS_CORE_PACKAGE_CONTROL_EXTRA "${PROJECT_SOURCE_DIR}/packaging/linux/debian/khiops-core/postinst")
+set(CPACK_DEBIAN_KHIOPS_CORE_PACKAGE_CONTROL_EXTRA "${TMP_DIR}/postinst")
 set(CPACK_DEBIAN_KNI_PACKAGE_CONTROL_EXTRA "${PROJECT_SOURCE_DIR}/packaging/linux/debian/kni/triggers")
 
 # set(CPACK_DEBIAN_PACKAGE_DEBUG ON)
@@ -127,7 +142,7 @@ set(CPACK_RPM_PACKAGE_VERSION ${KHIOPS_VERSION})
 
 # packages names
 set(CPACK_RPM_KHIOPS_PACKAGE_NAME khiops)
-set(CPACK_RPM_KHIOPS_CORE_PACKAGE_NAME khiops-core)
+set(CPACK_RPM_KHIOPS_CORE_PACKAGE_NAME khiops-core${PACKAGE_SUFFIX})
 set(CPACK_RPM_KNI_PACKAGE_NAME kni)
 set(CPACK_RPM_KNI_DOC_PACKAGE_NAME kni-doc)
 
@@ -140,13 +155,15 @@ set(CPACK_RPM_KHIOPS_CORE_PACKAGE_SUMMARY "Khiops tools (core)")
 set(CPACK_RPM_KNI_PACKAGE_SUMMARY "Khiops Native Interface")
 set(CPACK_RPM_KNI_DOC_PACKAGE_SUMMARY "Khiops Native Interface documentation")
 
+# manage package renaming
+set(CPACK_RPM_KHIOPS_CORE_PACKAGE_OBSOLETES "khiops-core <= 10.2.1-2")
+
 # packages requires
-set(CPACK_RPM_KHIOPS_PACKAGE_REQUIRES "khiops-core = ${KHIOPS_VERSION}-${CPACK_RPM_PACKAGE_RELEASE}")
+set(CPACK_RPM_KHIOPS_PACKAGE_REQUIRES "khiops-core${PACKAGE_SUFFIX} = ${KHIOPS_VERSION}-${CPACK_RPM_PACKAGE_RELEASE}")
 set(CPACK_RPM_KHIOPS_PACKAGE_REQUIRES "java >= 1.8")
 set(CPACK_RPM_KHIOPS_CORE_PACKAGE_REQUIRES "util-linux")
 
 # packages post/postun install scripts
-set(CPACK_RPM_KHIOPS_CORE_POST_INSTALL_SCRIPT_FILE "${PROJECT_SOURCE_DIR}/packaging/linux/redhat/khiops-core.post")
 set(CPACK_RPM_KNI_POST_INSTALL_SCRIPT_FILE "${PROJECT_SOURCE_DIR}/packaging/linux/redhat/kni.post")
 set(CPACK_RPM_KNI_POSTUN_INSTALL_SCRIPT_FILE "${PROJECT_SOURCE_DIR}/packaging/linux/redhat/kni.postun")
 

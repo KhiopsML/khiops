@@ -185,6 +185,31 @@ def parent_dir_name(dir_path, depth):
 
 
 """
+Gestion des noms des binaires
+"""
+
+
+def is_valid_tool_full_exe_name(tool_exe_name):
+    """Indique si le nom du binaire fait partie des noms valides, avec prise
+    en compte des suffixes mpi pour les exe paralellisable"""
+
+    return (
+        tool_exe_name in kht.TOOL_EXE_NAMES.values()
+        or extract_tool_exe_name(tool_exe_name) in kht.PARALLEL_TOOL_NAMES
+    )
+
+
+def extract_tool_exe_name(tool_full_exe_name):
+    """Extrait le nom du binaire a partir d'un nom ayant potentiellement un suffixe mpi"""
+
+    if tool_full_exe_name in kht.TOOL_EXE_NAMES.values():
+        return tool_full_exe_name
+    for suffix in kht.TOOL_MPI_SUFFIXES:
+        if tool_full_exe_name.endswith(suffix):
+            return tool_full_exe_name.removesuffix(suffix)
+
+
+"""
 Gestion des messages utilisateurs
 """
 

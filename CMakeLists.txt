@@ -109,6 +109,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY $<1:${CMAKE_BINARY_DIR}/bin/>)
 message(STATUS "Executables will be stored in ${CMAKE_BINARY_DIR}/bin/")
 message(STATUS "Libraries will be stored in ${CMAKE_BINARY_DIR}/lib/")
 
+# Temporary directory used in install and packaging steps
+set(TMP_DIR ${PROJECT_BINARY_DIR}/tmp)
+
 # Set module path for the project
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/packaging" ; "${CMAKE_CURRENT_SOURCE_DIR}/scripts")
 
@@ -127,6 +130,34 @@ if(MPI)
     STATUS
       "MPI command line: ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} ${MPIEXEC_MAX_NUMPROCS} ${MPIEXEC_PREFLAGS} EXECUTABLE ${MPIEXEC_POSTFLAGS} ARGS"
   )
+endif()
+
+# Detects the mpi implementation
+if(UNIX AND MPI)
+  string(FIND "${MPI_LIBRARIES}" openmpi POS)
+  if(POS GREATER -1)
+    set(MPI_IMPL "openmpi")
+  endif()
+
+  string(FIND "${MPI_LIBRARIES}" mpich POS)
+  if(POS GREATER -1)
+    set(MPI_IMPL "mpich")
+  endif()
+
+  string(FIND "${MPI_LIBRARIES}" intel POS)
+  if(POS GREATER -1)
+    set(MPI_IMPL "intel")
+  endif()
+  if(MPI_IMPL)
+    message(STATUS "Auto-detected MPI implementation: ${MPI_IMPL}")
+  else()
+    message(STATUS "Unable to detect the MPI implementation: no suffix will be added to binaries name")
+  endif()
+
+  # Set MPI suffix if it is not defined with the environment variables (like on Fedora distros)
+  if(NOT MPI_SUFFIX AND MPI_IMPL)
+    set(MPI_SUFFIX "_${MPI_IMPL}")
+  endif()
 endif()
 
 # Set C++ revision globally if required
