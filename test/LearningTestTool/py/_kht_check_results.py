@@ -14,11 +14,11 @@ Elle se fait sur tous les ficgier du repertoire de facon hierarchique
 - nombre de fichier de chaque repertoire
 - noms des fichiers
 - pour chaque fichier
-  - nombre de ligne
+  - nombre de lignes
   - contenu
     - comparaison des lignes
       - si necessaire, comparaison des champs des lignes, pour un separateur tabulation
-        - si necessaire, comparaions des tokens du champs,
+        - si necessaire, comparaison des tokens du champ,
           dans le cas de la tokenisation d'un fichier json ou kdic
 
 La comparaison se fait en etant tolerant aux variations 'normales' selon le contexte d'execution
@@ -298,15 +298,15 @@ def check_results(test_dir, forced_context=None):
     # Comparaison effective si possible
     if error_number == 0:
         # Acces aux fichiers des repertoires de reference et de test
-        # On passe par le format bytes des nom de fichier pour avoir acces
+        # On passe par le format bytes des noms de fichier pour avoir acces
         # aux fichier quelque soit la plateforme
         # - Windows ne supporte que l'utf8
-        # - Linux stocke les nom directement sous la forme de bytes
+        # - Linux stocke les noms directement sous la forme de bytes
         ref_byte_file_names = os.listdir(os.fsencode(results_ref_dir))
         test_byte_file_names = os.listdir(os.fsencode(results_dir))
 
         # On memorise les noms de fichiers sous forme de string pour faciliter le reporting
-        # Tout en gardant l'association entre le nom python (utf8) et les nom en bytes
+        # Tout en gardant l'association entre le nom python (utf8) et les noms en bytes
         #
         # Attention, la methode fsdecode utilise des 'surrogate characters' invisible
         # permettant de garder trace des bytes non utf8 pour le re-encodage par fsencode si necessaire
@@ -389,7 +389,7 @@ def check_results(test_dir, forced_context=None):
                 show=True,
             )
             error_number = error_number + 1
-            # Affichage des noms des fichier supplementaires
+            # Affichage des noms des fichiers supplementaires
             max_file_reported = 20
             if test_result_file_number > ref_result_file_number:
                 # Message specifique en cas de fichiers en trop
@@ -430,7 +430,7 @@ def check_results(test_dir, forced_context=None):
         for file_name in ref_file_names:
             compared_files_number = compared_files_number + 1
 
-            # Path des fichier utilises pour le reporting
+            # Path des fichiers utilises pour le reporting
             ref_file_path = os.path.join(results_ref_dir, file_name)
             test_file_path = os.path.join(results_dir, file_name)
 
@@ -464,7 +464,7 @@ def check_results(test_dir, forced_context=None):
 
             # Comparaison si ok
             if ref_file_lines is not None and test_file_lines is not None:
-                # Cas des fichier stdout et stderr, que l'on filtre du prefix de process id presnet en parallele
+                # Cas des fichiers stdout et stderr, que l'on filtre du prefix de process id presnet en parallele
                 if file_name in [kht.STDOUT_ERROR_LOG, kht.STDERR_ERROR_LOG]:
                     ref_file_lines = utils.filter_process_id_prefix_from_lines(
                         ref_file_lines
@@ -482,7 +482,7 @@ def check_results(test_dir, forced_context=None):
                     # Identification des lignes de message
                     ref_file_lines = strip_user_message_lines(ref_file_lines)
                     test_file_lines = strip_user_message_lines(test_file_lines)
-                # Cas des fichier json
+                # Cas des fichiers json
                 elif is_file_with_json_extension(file_name):
                     contains_user_messages = True
                     # Pretraitement des lignes de message pour les mettre dans le meme format
@@ -1143,7 +1143,7 @@ def strip_user_message_lines_in_json_file(lines):
             cleaned_message = cleaned_message[1:-1]
         return cleaned_message
 
-    # Recherche des ligne du fichier dans les sections "messages"
+    # Recherche des lignes du fichier dans les sections "messages"
     in_message_section = False
     result_lines = []
     # Pretraitement des lignes
@@ -1184,7 +1184,7 @@ def extract_key_matching_lines_in_json_file(lines, pattern):
 
 
 def extract_striped_lines(lines):
-    """Retourne la sous_liste des ligne stripees de la liste en entree"""
+    """Retourne la sous_liste des lignes stripees de la liste en entree"""
     striped_lines = []
     for line in lines:
         if is_line_striped(line):
@@ -1195,14 +1195,14 @@ def extract_striped_lines(lines):
 def filter_sequential_messages_lines(lines, log_file=None):
     """Filtrage des errors et warning sequentiel d'un ensemble de lignes
 
-    En sequentiel, de nouveaux message de type 100th ou ...
+    En sequentiel, de nouveaux messages de type 100th ou ...
     sont emis, alors qu'il sont absents en parallele
-    En les filtrant, on rend les version sequentielle et parallele comparable
+    En les filtrant, on rend les versions sequentielle et parallele comparables
     Retourne les ligne filtrees, avec un message dans le log sur le nombre de lignes filtrees
     """
 
     def is_specific_line_pair_sequential(line1, line2):
-        """Test si une paire de ligne correspond a un pattern de message sequentiel
+        """Test si une paire de lignes correspond a un pattern de message sequentiel
         Premiere ligne avec 100th, 1000th error ou warning
         Seconde ligne avec '...'
         """
@@ -1308,8 +1308,8 @@ def check_file_lines(
 
     Retourne
     - errors: nombre d'erreurs
-    - warnings: nombre de warning
-    - user_message_warnings: nombre de warning lie a une tolerance sur la variation des messages utilisateurs
+    - warnings: nombre de warnings
+    - user_message_warnings: nombre de warnings lie a une tolerance sur la variation des messages utilisateurs
       (ex: "too much memory")
 
     Les noms des fichiers en parametre permettent de specialiser les comparaisons selon le type de fichier
@@ -1319,7 +1319,7 @@ def check_file_lines(
     de sous-parties que l'on ne souhaite pas comparer.
 
     Compare les fichiers ligne par ligne, champ par champ (separateur '\t'), et token par token
-    dans le cas des fichier json ou dictionnaire
+    dans le cas des fichiers json ou dictionnaire
     On a avec des tolerances selon le type de fichier.
     Pour les valeurs numeriques, une difference relative de 0.00001 est toleree
     - ecrit les difference dans le fichier log_file et affiche le nb d'erreur dans le terminal
@@ -1328,7 +1328,7 @@ def check_file_lines(
     """
 
     def filter_time(value):
-        # Supression d'un pattern de time d'une valeur
+        # Suppression d'un pattern de time d'une valeur
         pos_start_time = value.find(" time:")
         if pos_start_time >= 0:
             begin_value = value[:pos_start_time]

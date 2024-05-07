@@ -70,16 +70,16 @@ TOOL_DIR_NAMES = {
 }
 assert set(TOOL_DIR_NAMES) == set(TOOL_NAMES), "Tool dir must be defined for each tool"
 
-# Alias pour des nom speciaux
-ALIAS_CHECK = "check"  # Pour declencher une comparaions entre resultats de test et de reference, plutot qu'un test
+# Alias pour des noms speciaux
+ALIAS_CHECK = "check"  # Pour declencher une comparaison entre resultats de test et de reference, plutot qu'un test
 ALIAS_R = "r"  # Designe le repertoire des binaires des outils en release dans l'environnement de developpement
 ALIAS_D = "d"  # Designe le repertoire des binaires des outils en debug dans l'environnement de developpement
 
-""" Dictionnaire inverse des noms d'outil avec les nom d'exe en cle """
+""" Dictionnaire inverse des noms d'outil avec les noms d'exe en cle """
 TOOL_NAMES_PER_EXE_NAME = dict((v, k) for k, v in TOOL_EXE_NAMES.items())
 assert set(TOOL_NAMES_PER_EXE_NAME.values()) == set(TOOL_NAMES)
 
-""" Dictionnaire inverse des noms d'outil avec les nom des sous-repertoires en cle """
+""" Dictionnaire inverse des noms d'outil avec les noms des sous-repertoires en cle """
 TOOL_NAMES_PER_DIR_NAME = dict((v, k) for k, v in TOOL_DIR_NAMES.items())
 assert set(TOOL_NAMES_PER_DIR_NAME.values()) == set(TOOL_NAMES)
 
