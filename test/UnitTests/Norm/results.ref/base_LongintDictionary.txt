@@ -34,20 +34,20 @@ Test de changement de taille dynamique
 Nombre d'elements inseres) (1 to 100000) [1000]:
 Nombre d'iterations (1 to 100000) [1000]:
   HashTableSize = 2729
-SYS TIME	LongintDictionary change size	0.682495
+SYS TIME	LongintDictionary change size	0.153191
 Test de performance de base
 Nombre maxi d'elements inseres (Random) (1 to 10000000) [100000]:
 Nombre d'iterations (1 to 1000) [20]:
-	Iteration 0	Size = 63202	Found = 63202
-	Iteration 1	Size = 86472	Found = 86472
-	Iteration 2	Size = 95058	Found = 95058
-	Iteration 3	Size = 98171	Found = 98171
-	Iteration 4	Size = 99340	Found = 99340
-	Iteration 5	Size = 99737	Found = 99737
-	Iteration 6	Size = 99902	Found = 99902
+	Iteration 0	Size = 63191	Found = 63191
+	Iteration 1	Size = 86377	Found = 86377
+	Iteration 2	Size = 94988	Found = 94988
+	Iteration 3	Size = 98217	Found = 98217
+	Iteration 4	Size = 99369	Found = 99369
+	Iteration 5	Size = 99774	Found = 99774
+	Iteration 6	Size = 99913	Found = 99913
 	Iteration 7	Size = 99968	Found = 99968
-	Iteration 8	Size = 99990	Found = 99990
-	Iteration 9	Size = 99995	Found = 99995
+	Iteration 8	Size = 99992	Found = 99992
+	Iteration 9	Size = 99997	Found = 99997
 	Iteration 10	Size = 100000	Found = 100000
 	Iteration 11	Size = 100000	Found = 100000
 	Iteration 12	Size = 100000	Found = 100000
@@ -58,17 +58,17 @@ Nombre d'iterations (1 to 1000) [20]:
 	Iteration 17	Size = 100000	Found = 100000
 	Iteration 18	Size = 100000	Found = 100000
 	Iteration 19	Size = 100000	Found = 100000
-SYS TIME	LongintDictionary access	1.3488
+SYS TIME	LongintDictionary access	0.916553
 SYS MEMORY	Used memory	100000	6606986	6606986
 
 Test de performance de comptage
 Nombre max d'elements (1 to 10000000) [1000000]:
 Nombre d'iterations (1 to 100000000) [10000000]:
 	Total = 10000000
-SYS TIME	LongintDictionary counts	4.95287
-SYS MEMORY	Used memory	999948	61365764	61365764	149802496
+SYS TIME	LongintDictionary counts	3.9873
+SYS MEMORY	Used memory	999962	61366311	61366311	92787648
 
 Test de performance de comptage via un dictionnaire de LongintObject
 	Total = 10000000
-SYS TIME	LongintDictionary counts	5.39525
-SYS MEMORY	Used memory	999946	61365683	77364819	214282048
+SYS TIME	LongintDictionary counts	4.16964
+SYS MEMORY	Used memory	999959	61366191	77365535	116901952
