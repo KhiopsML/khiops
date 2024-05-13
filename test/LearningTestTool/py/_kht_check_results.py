@@ -18,7 +18,7 @@ Elle se fait sur tous les fichiers du repertoire de facon hierarchique
   - contenu
     - comparaison des lignes
       - si necessaire, comparaison des champs des lignes, pour un separateur tabulation
-        - si necessaire, comparaison des tokens du champs,
+        - si necessaire, comparaison des tokens du champ,
           dans le cas de la tokenisation d'un fichier json ou kdic
 
 La comparaison se fait en etant tolerant aux variations 'normales' selon le contexte d'execution

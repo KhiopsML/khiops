@@ -159,6 +159,10 @@ boolean GetParallelExpertMode();
 // aux methodes de PLParallelTask)
 int GetParallelTraceMode();
 
+// Indicateur du lancement d'un serveur de fichier sur un systeme mono-machine. Les serveurs sont normalement instancies sur
+// un cluster de machine. Cet indicateur permet de tester le driver de fichier distant sans cluster.
+boolean GetFileServerActivated();
+
 // Indicateur du mode d'etude des prior dans le cadre de la construction de variable (en mode expert uniquement)
 // Ce mode est controlable par la variable d'environnement KhiopsPriorStudyMode a true ou false
 boolean GetLearningPriorStudyMode();

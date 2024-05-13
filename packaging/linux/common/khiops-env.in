@@ -53,15 +53,8 @@ if ! command -v mpiexec &> /dev/null
 then
     if source /etc/profile.d/modules.sh &> /dev/null
     then
-         # find the good module
-        mpich_module="$(module avail |& sed -E -e 's/[[:blank:]]+/\n/g' | grep  mpich-[0-9] | grep $(arch) | sort | tail -n 1)"
-        if [ -z "$mpich_module" ] ; then
-            mpich_module=$(module avail |& sed -E -e 's/[[:blank:]]+/\n/g' | grep  mpich-$(arch))
-        fi
-
-        # and load it
         module unload mpi
-        module load $mpich_module
+        module load mpi/@MPI_IMPL@-x86_64
     fi
 fi
 
@@ -82,17 +75,16 @@ if [ -f "/usr/share/khiops/khiops.jar" ]; then
     fi
 fi
 
-# Number of processes in use (must be set according to the physical cores number + 1)
+# Number of processes in use (must be set according to the physical cores number)
 if [[ -z $KHIOPS_PROC_NUMBER ]]; then
-    KHIOPS_PROC_NUMBER=$(( $(lscpu -b -p=Core,Socket | grep -v '^#' | sort -u | wc -l) + 1 ))
+    KHIOPS_PROC_NUMBER=$(lscpu -b -p=Core,Socket | grep -v '^#' | sort -u | wc -l)
 fi
 
-if command -v mpiexec &> /dev/null
+if command -v @MPIEXEC@ &> /dev/null
 then
-    MPIEXEC_PATH=$(command -v mpiexec)
-    KHIOPS_MPI_COMMAND="${MPIEXEC_PATH} -bind-to hwthread -map-by core -n $KHIOPS_PROC_NUMBER"
+    KHIOPS_MPI_COMMAND="@MPIEXEC@ -bind-to hwthread -map-by core @KHIOPS_MPI_EXTRA_FLAG@ @MPIEXEC_NUMPROC_FLAG@ $KHIOPS_PROC_NUMBER"
 else
-    echo "We didn't find mpiexec in the regular path. Parallel computation is unavailable: Khiops is launched in serial"
+    echo "We didn't find @MPIEXEC@ in the regular path. Parallel computation is unavailable: Khiops is launched in serial"
     KHIOPS_MPI_COMMAND="" 
 fi
 

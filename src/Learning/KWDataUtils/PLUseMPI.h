@@ -21,8 +21,12 @@ inline void UseMPI()
 	PLParallelTask::GetDriver()->InitializeResourceSystem();
 
 	// Chargement du driver pour l'acces aux fichiers distants (file://)
-	if (RMResourceManager::GetResourceSystem()->GetHostNumber() > 1 or PLTaskDriver::GetFileServerOnSingleHost())
+	if (RMResourceManager::GetResourceSystem()->GetHostNumber() > 1 or GetFileServerActivated())
 		SystemFileDriverCreator::RegisterDriver(new PLMPISystemFileDriverRemote);
+
+	// Activation du serveure de fichier en mono-machine si necessaire
+	if (GetFileServerActivated())
+		PLTaskDriver::SetFileServerOnSingleHost(true);
 
 	// Verification des versions de chaque processus
 	PLParallelTask::SetVersion(GetLearningVersion());

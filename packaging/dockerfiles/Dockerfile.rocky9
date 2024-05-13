@@ -12,6 +12,8 @@ RUN true \
   gcc-c++ \
   java-1.8.0-openjdk-devel \
   mpich-devel \
+  openmpi \
+  openmpi-devel \
   nano \
   ninja-build \
   rpm-build \

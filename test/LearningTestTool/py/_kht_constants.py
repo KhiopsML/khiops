@@ -55,6 +55,13 @@ TOOL_EXE_NAMES = {
 }
 assert set(TOOL_EXE_NAMES) == set(TOOL_NAMES), "Exe names must be defined for each tool"
 
+"""
+Liste des suffixes MPI pour les outils pouvant tourner en parallele
+Le binaire parallelisable est pris en priorité sans suffixe, si il n'existe pas on prend
+le binaire avec un suffixe mpi
+"""
+TOOL_MPI_SUFFIXES = {"_openmpi", "_mpich"}
+
 """ Dictionnaire des noms des sous-repertoires de LearningTest avec le nom d'outil en cle """
 TOOL_DIR_NAMES = {
     KHIOPS: "TestKhiops",
@@ -115,10 +122,12 @@ OR = "_"
 
 """
 Variables d'environnement influant le comportement des outils Khiops
+Ces variables sont decrites dans la methode help_env_vars de kht_env
 """
 # Variables documentees pour l'utilisateur
 KHIOPS_PREPARATION_TRACE_MODE = "KhiopsPreparationTraceMode"
 KHIOPS_PARALLEL_TRACE = "KhiopsParallelTrace"
+KHIOPS_FILE_SERVER_ACTIVATED = "KhiopsFileServerActivated"
 KHIOPS_MEM_STATS_LOG_FILE_NAME = "KhiopsMemStatsLogFileName"
 KHIOPS_MEM_STATS_LOG_FREQUENCY = "KhiopsMemStatsLogFrequency"
 KHIOPS_MEM_STATS_LOG_TO_COLLECT = "KhiopsMemStatsLogToCollect"

@@ -12,14 +12,16 @@
 # CMake User Preset
 CMakeUserPresets.json
 
-# Build directory
+# Build directories
 build/
+khiops-conda/
 
 # Cmake exceptions
 CMakeFiles/
 
 # Test exceptions
-test/**/results/
+test/UnitTests/*/results/
+test/LearningTest/*/*/*/results/
 comparisonResults.log
 
 # Visualization file and summaries produced by the MemoryStatsVisualizer tool

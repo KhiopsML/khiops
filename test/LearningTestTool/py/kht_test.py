@@ -17,7 +17,7 @@ if os.name == "nt":
     mpi_exe_name = "mpiexec.exe"
 # mpiexec sous Linux
 else:
-    mpi_exe_name = "mpiexec"
+    mpi_exe_name = "mpirun"
 
 
 def build_tool_exe_path(tool_binaries_dir, tool_name):
@@ -126,14 +126,63 @@ def build_tool_exe_path(tool_binaries_dir, tool_name):
         tool_exe_path = os.path.join(actual_tool_binaries_dir, tool_exe_name)
         if not os.path.isfile(tool_exe_path):
             tool_exe_path = None
-            error_message = (
-                tool_name
-                + " binary ("
-                + tool_exe_name
-                + ") not found in tool binaries dir "
-                + actual_tool_binaries_dir
-                + alias_info
-            )
+            # si le binaire n'existe pas, c'est peut-etre un binaire parallele qui a un suffixe
+            if tool_name in kht.PARALLEL_TOOL_NAMES:
+                tool_with_suffixes = []
+                tested_binaries_name = []
+                # construction de la liste des binaires avec suffixe qui sont presents dans le repertoire bin
+                for suffix in kht.TOOL_MPI_SUFFIXES:
+                    tool_exe_name = kht.TOOL_EXE_NAMES[tool_name] + suffix
+                    if platform == "Windows":
+                        tool_exe_name += ".exe"
+                    tested_binaries_name.append(tool_exe_name)
+                    tool_exe_path = os.path.join(
+                        actual_tool_binaries_dir, tool_exe_name
+                    )
+                    if os.path.isfile(tool_exe_path):
+                        tool_with_suffixes.append(tool_exe_path)
+                # Si il y en a plusieurs ou aucun, il y a une erreur
+                if len(tool_with_suffixes) == 0:
+                    tool_exe_path = None
+                    tool_full_name = ""
+                    for name in tested_binaries_name:
+                        tool_full_name += name + " "
+                    tool_full_name += kht.TOOL_EXE_NAMES[tool_name]
+                    error_message = (
+                        "no binaries found for "
+                        + tool_name
+                        + " ("
+                        + tool_full_name.rstrip()
+                        + ") in "
+                        + actual_tool_binaries_dir
+                        + alias_info
+                    )
+                elif len(tool_with_suffixes) > 1:
+                    tool_exe_path = None
+                    conflict_names = ""
+                    for name in tool_with_suffixes:
+                        conflict_names += os.path.basename(name) + " "
+                    error_message = (
+                        "multiple binaries found for "
+                        + tool_name
+                        + " ("
+                        + conflict_names.rstrip()
+                        + ") in "
+                        + actual_tool_binaries_dir
+                        + alias_info
+                    )
+                else:
+                    tool_exe_path = tool_with_suffixes[0]
+            # Message d'erreur par defaut
+            if tool_exe_path == None and error_message == "":
+                error_message = (
+                    tool_name
+                    + " binary ("
+                    + tool_exe_name
+                    + ") not found in tool binaries dir "
+                    + actual_tool_binaries_dir
+                    + alias_info
+                )
     return tool_exe_path, error_message
 
 
@@ -215,7 +264,10 @@ def evaluate_tool_on_test_dir(
     # Lancement des tests
     if tool_exe_path != kht.ALIAS_CHECK:
         # Recherche du nom du l'executable Khiops (sans l'extension)
-        tool_exe_name, _ = os.path.splitext(os.path.basename(tool_exe_path))
+        tool_exe_full_name, _ = os.path.splitext(os.path.basename(tool_exe_path))
+
+        # ... et sans le suffixe mpi
+        tool_exe_name = utils.extract_tool_exe_name(tool_exe_full_name)
 
         # Recherche du nom de l'outil correspondant
         if tool_exe_name not in kht.TOOL_EXE_NAMES.values():
@@ -274,10 +326,19 @@ def evaluate_tool_on_test_dir(
             khiops_params.append(mpi_exe_name)
             # Option -l, specifique a mpich, valide au moins pour Windows:
             #    "Label standard out and standard error (stdout and stderr) with the rank of the process"
-            khiops_params.append("-l")
+            if platform.system() == "Windows":
+                khiops_params.append("-l")
             if platform.system() == "Darwin":
                 khiops_params.append("-host")
                 khiops_params.append("localhost")
+            # Options specifiques a Open MPI
+            if platform.system() == "Linux":
+                # permet de lancer plus de processus qu'il n'y a de coeurs
+                khiops_params.append("--oversubscribe")
+                # permet de lancer en tant que root
+                khiops_params.append("--allow-run-as-root")
+                # Ajoute le rang du processus dans les traces
+                khiops_params.append("--tag-output")
             khiops_params.append("-n")
             khiops_params.append(str(tool_process_number))
         khiops_params.append(tool_exe_path)
