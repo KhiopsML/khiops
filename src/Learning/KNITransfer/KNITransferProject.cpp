@@ -14,7 +14,7 @@ void KNITransferProject::OpenLearningEnvironnement()
 	KWLearningProject::OpenLearningEnvironnement();
 
 	// Parametrage du nom du module applicatif
-	SetLearningModuleName("KNI Transfer");
+	SetLearningModuleName("KNITransfer");
 }
 
 KWLearningProblem* KNITransferProject::CreateLearningProblem()
