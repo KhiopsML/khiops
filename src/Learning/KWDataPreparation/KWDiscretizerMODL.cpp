@@ -27,9 +27,11 @@ const PLSharedObject* KWDiscretizerMODLFamily::GetMODLHistogramResultsSharedObje
 //////////////////////////////////////////////////////////////////////////////////
 // Classe KWDiscretizerMODL
 
-double KWDiscretizerMODL::dPriorityDeltaCost = -1e9;
+const double KWDiscretizerMODL::dPriorityDeltaCost = -1e9;
 
-double KWDiscretizerMODL::dInfiniteCost = 1e20;
+const double KWDiscretizerMODL::dInfiniteCost = 1e20;
+
+const double KWDiscretizerMODL::dEpsilon = 1e-6;
 
 KWDiscretizerMODL::KWDiscretizerMODL()
 {
@@ -40,7 +42,6 @@ KWDiscretizerMODL::KWDiscretizerMODL()
 	nMergeSplitNumber = 0;
 	nMergeMergeSplitNumber = 0;
 	discretizationCosts = new KWMODLDiscretizationCosts;
-	dEpsilon = 1e-6;
 }
 
 KWDiscretizerMODL::~KWDiscretizerMODL()

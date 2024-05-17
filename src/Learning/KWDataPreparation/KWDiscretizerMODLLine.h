@@ -61,11 +61,20 @@ public:
 	// Display
 	void Write(ostream& ost) const override;
 
-	///////////////////// Implementation ///////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////
+	//// Implementation
+
+	// Variante tronquee de la variation de cout, a utiliser uniquement dans les methodes de comparaison
+	// Cela permet de stabilise le comportement des algoritjme quand on change de d'OS ou de processeur
+	// en minimisant les cas de changement d'ordre a epsilon pret
+	// Cette variante tronque est stockee ici pour des raison d'optimisation des methodes de comparaison
+	double GetTruncatedDeltaCost() const;
+
 protected:
 	KWFrequencyVector* kwfvFrequencyVector;
 	double dCost;
 	double dDeltaCost;
+	double dTruncatedDeltaCost;
 	POSITION position;
 };
 
@@ -118,13 +127,22 @@ public:
 	// Display
 	void Write(ostream& ost) const override;
 
-	///////////////////// Implementation ///////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////
+	//// Implementation
+
+	// Variante tronquee de la variation de cout, a utiliser uniquement dans les methodes de comparaison
+	// Cela permet de stabilise le comportement des algoritjme quand on change de d'OS ou de processeur
+	// en minimisant les cas de changement d'ordre a epsilon pret
+	// Cette variante tronque est stockee ici pour des raison d'optimisation des methodes de comparaison
+	double GetTruncatedDeltaCost() const;
+
 protected:
 	KWFrequencyVector* kwfvFirstSubLineFrequencyVector;
 	int nFirstSubLineIndex;
 	double dFirstSubLineCost;
 	double dSecondSubLineCost;
 	double dDeltaCost;
+	double dTruncatedDeltaCost;
 	POSITION position;
 };
 
@@ -183,7 +201,8 @@ public:
 	// Display
 	void Write(ostream& ost) const override;
 
-	///////////////////// Implementation ///////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////
+	//// Implementation
 protected:
 	KWFrequencyVector* kwfvFrequencyVector;
 	int nIndex;
@@ -299,7 +318,8 @@ public:
 	void WriteHeaderLineReport(ostream& ost) const;
 	void WriteLineReport(ostream& ost) const;
 
-	///////////////////// Implementation ///////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////
+	//// Implementation
 protected:
 	int nIntervalNumber;
 	double dDiscretizationCost;
@@ -316,6 +336,7 @@ inline KWMODLLineMerge::KWMODLLineMerge(const KWFrequencyVector* kwfvFrequencyVe
 	require(kwfvFrequencyVectorCreator != NULL);
 	dCost = 0;
 	dDeltaCost = 0;
+	dTruncatedDeltaCost = 0;
 	position = NULL;
 	kwfvFrequencyVector = kwfvFrequencyVectorCreator->Create();
 }
@@ -343,11 +364,17 @@ inline double KWMODLLineMerge::GetCost() const
 inline void KWMODLLineMerge::SetDeltaCost(double dValue)
 {
 	dDeltaCost = dValue;
+	dTruncatedDeltaCost = KWContinuous::DoubleToContinuous(dDeltaCost);
 }
 
 inline double KWMODLLineMerge::GetDeltaCost() const
 {
 	return dDeltaCost;
+}
+
+inline double KWMODLLineMerge::GetTruncatedDeltaCost() const
+{
+	return dTruncatedDeltaCost;
 }
 
 inline void KWMODLLineMerge::SetPosition(POSITION pos)
@@ -360,7 +387,6 @@ inline POSITION KWMODLLineMerge::GetPosition() const
 	return position;
 }
 
-/////////////////////////////////////////////////////////////////////
 // Classe KWMODLLineSplit
 
 inline KWMODLLineSplit::KWMODLLineSplit(const KWFrequencyVector* kwfvFrequencyVectorCreator)
@@ -370,6 +396,7 @@ inline KWMODLLineSplit::KWMODLLineSplit(const KWFrequencyVector* kwfvFrequencyVe
 	dFirstSubLineCost = 0;
 	dSecondSubLineCost = 0;
 	dDeltaCost = 0;
+	dTruncatedDeltaCost = 0;
 	position = 0;
 	kwfvFirstSubLineFrequencyVector = kwfvFrequencyVectorCreator->Create();
 }
@@ -418,11 +445,17 @@ inline double KWMODLLineSplit::GetSecondSubLineCost() const
 inline void KWMODLLineSplit::SetDeltaCost(double dValue)
 {
 	dDeltaCost = dValue;
+	dTruncatedDeltaCost = KWContinuous::DoubleToContinuous(dDeltaCost);
 }
 
 inline double KWMODLLineSplit::GetDeltaCost() const
 {
 	return dDeltaCost;
+}
+
+inline double KWMODLLineSplit::GetTruncatedDeltaCost() const
+{
+	return dTruncatedDeltaCost;
 }
 
 inline void KWMODLLineSplit::SetPosition(POSITION pos)
@@ -435,7 +468,6 @@ inline POSITION KWMODLLineSplit::GetPosition() const
 	return position;
 }
 
-/////////////////////////////////////////////////////////////////////
 // Classe KWMODLLine
 
 inline KWMODLLine::KWMODLLine(const KWFrequencyVector* kwfvFrequencyVectorCreator)

@@ -105,7 +105,7 @@ int KWLearningReport::CompareValue(const KWLearningReport* otherReport) const
 {
 	int nCompare;
 
-	// Comparaison selon la precison du type Continuous, pour eviter les differences a epsilon pres
+	// Comparaison selon la precision du type Continuous, pour eviter les differences a epsilon pres
 	nCompare = -KWContinuous::CompareIndicatorValue(GetSortValue(), otherReport->GetSortValue());
 
 	// En cas d'egalite, on se base sur le nom
