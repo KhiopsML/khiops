@@ -538,9 +538,10 @@ def filter_copyright_lines(lines):
     output_lines = lines
     is_copyright = False
     if len(lines) >= 2:
-        is_copyright = find_pattern_in_line(
-            lines[1], ["(c)", "Orange - All rights reserved."]
-        ) != -1
+        is_copyright = (
+            find_pattern_in_line(lines[1], ["(c)", "Orange - All rights reserved."])
+            != -1
+        )
     if is_copyright:
         output_lines = lines[2:]
     return output_lines

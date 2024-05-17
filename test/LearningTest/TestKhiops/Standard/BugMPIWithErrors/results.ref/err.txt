@@ -27,6 +27,6 @@ warning : Data table : ...
 warning : Data table ../../../datasets/Adult/Adult.txt : Record 14282 : Numerical variable sex: value <Male> converted to <> (Unconverted string) (10,000th warning)
 warning : Data table : ...
 Database ../../../datasets/Adult/Adult.txt: Read records: 48,842	Selected records: 34,291
-Data preparation time: 0:00:01.80
+Data preparation time: 0:00:01.69
 Write report ./results/AnalysisResults.khj
 

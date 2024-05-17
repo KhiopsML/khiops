@@ -573,7 +573,6 @@ boolean GetFileServerActivated()
 {
 	static boolean bIsInitialized = false;
 	static boolean bFileServerActivated = false;
-	int nValue;
 
 	// Determination du mode parallele au premier appel
 	if (not bIsInitialized)

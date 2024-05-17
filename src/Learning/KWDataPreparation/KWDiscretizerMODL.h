@@ -518,16 +518,16 @@ protected:
 
 	// Cout pour favoriser les optimisations tendant a reduire la contrainte
 	// d'effectif minimum, et les rendre prioritaire
-	static double dPriorityDeltaCost;
+	static const double dPriorityDeltaCost;
 
 	// Cout infini pour gerer les optimisations impossibles
-	static double dInfiniteCost;
+	static const double dInfiniteCost;
+
+	// Epsilon pour gerer le probleme de precision numerique
+	static const double dEpsilon;
 
 	// Couts de partitionnement pour la discretisation
 	KWUnivariatePartitionCosts* discretizationCosts;
-
-	// Epsilon pour gerer le probleme de precision numerique
-	double dEpsilon;
 };
 
 // Comparaison de deux objets KWMODLLineOptimization sur la variation de cout de Merge
