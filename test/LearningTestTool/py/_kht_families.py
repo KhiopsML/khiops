@@ -22,11 +22,9 @@ def check_family(family):
 
 # Liste des familles, de la plus simple a la plus complete
 BASIC = "basic"  # Famille elementaire, tres rapide a tester
-# Famille correspondant a tous les tests de non regression (environ une heure a tester)
-FULL = "full"
+FULL = "full"  # Famille correspondant a tous les tests de non regression (environ une heure a tester)
 FULL_NO_KNI = "full-no-kni"  # Idem, sans KNI
-# Famille complete, tres lourde a tester (environ une journee)
-COMPLETE = "complete"
+COMPLETE = "complete"  # Famille complete, tres lourde a tester (environ une journee)
 ALL = "all"  # Tous les repertoire de suite exhaustivement: ne pas utiliser pour les test, mais pour leur gestion
 TEST_FAMILIES = [BASIC, FULL, FULL_NO_KNI, COMPLETE, ALL]
 assert len(set(TEST_FAMILIES)) == len(TEST_FAMILIES), (

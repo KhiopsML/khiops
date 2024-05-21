@@ -10,8 +10,8 @@ Verification des resultats d'un repertoire de test terminal
 
 La comparaison est effectue entre les resultats de test, et les resultats de reference
 correspondant au contexte en cours (plateforme, parallel ou sequuentiel...).
-Elle se fait sur tous les ficgier du repertoire de facon hierarchique
-- nombre de fichier de chaque repertoire
+Elle se fait sur tous les fichiers du repertoire de facon hierarchique
+- nombre de fichiers de chaque repertoire
 - noms des fichiers
 - pour chaque fichier
   - nombre de lignes
