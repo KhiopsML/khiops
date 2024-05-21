@@ -456,6 +456,13 @@ public:
 
 	///////////////////////////////
 	///// Implementation
+
+	// Variante tronquee de la variation de cout, a utiliser uniquement dans les methodes de comparaison
+	// Cela permet de stabilise le comportement des algoritjme quand on change de d'OS ou de processeur
+	// en minimisant les cas de changement d'ordre a epsilon pret
+	// Cette variante tronque est stockee ici pour des raison d'optimisation des methodes de comparaison
+	double GetTruncatedMergeCost() const;
+
 protected:
 	// Parties origine et destination
 	KWDGMPart* part1;
@@ -463,6 +470,7 @@ protected:
 
 	// Cout de fusion
 	double dMergeCost;
+	double dTruncatedMergeCost;
 
 	// Position dans une liste
 	POSITION position;
@@ -730,6 +738,7 @@ inline KWDGMPartMerge::KWDGMPartMerge()
 	part1 = NULL;
 	part2 = NULL;
 	dMergeCost = 0;
+	dTruncatedMergeCost = 0;
 	position = NULL;
 	bGarbagePresence = false;
 }
@@ -776,11 +785,17 @@ inline void KWDGMPartMerge::SetMergeCost(double dValue)
 	// comparaisons)
 	require(position == NULL);
 	dMergeCost = dValue;
+	dTruncatedMergeCost = KWContinuous::DoubleToContinuous(dMergeCost);
 }
 
 inline double KWDGMPartMerge::GetMergeCost() const
 {
 	return dMergeCost;
+}
+
+inline double KWDGMPartMerge::GetTruncatedMergeCost() const
+{
+	return dTruncatedMergeCost;
 }
 
 inline void KWDGMPartMerge::SetPosition(POSITION pos)

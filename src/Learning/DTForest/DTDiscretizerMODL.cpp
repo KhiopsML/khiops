@@ -19,7 +19,6 @@ DTDiscretizerMODL::DTDiscretizerMODL()
 	nMergeMergeSplitNumber = 0;
 	delete discretizationCosts;
 	discretizationCosts = new DTMODLDiscretizationCosts;
-	dEpsilon = 1e-6;
 	nnew = 1;
 	ntest = 0;
 }
