@@ -1614,18 +1614,40 @@ void KWDiscretizerMODL::MergeMergeSplitFrequencyVectors(KWFrequencyVector* kwfvS
 	ensure(CheckFrequencyVector(kwfvSourceFrequencyVector3));
 }
 
+int KWMODLLineOptimizationCompareMergeDeltaCost(const void* elem1, const void* elem2)
+{
+	KWMODLLineOptimization* line1;
+	KWMODLLineOptimization* line2;
+	double dDeltaDeltaCost;
+
+	line1 = cast(KWMODLLineOptimization*, *(Object**)elem1);
+	line2 = cast(KWMODLLineOptimization*, *(Object**)elem2);
+
+	// Comparaison de la variation de cout suite a un Merge, avec tolerance pour favoriser la stabilite
+	dDeltaDeltaCost = line1->GetMerge()->GetTruncatedDeltaCost() - line2->GetMerge()->GetTruncatedDeltaCost();
+	if (dDeltaDeltaCost < 0)
+		return -1;
+	else if (dDeltaDeltaCost > 0)
+		return 1;
+	else
+		return 0;
+}
+
 int KWMODLLineDeepOptimizationCompareMergeSplitDeltaCost(const void* elem1, const void* elem2)
 {
 	KWMODLLineDeepOptimization* line1;
 	KWMODLLineDeepOptimization* line2;
+	double dDeltaDeltaCost;
 
 	line1 = cast(KWMODLLineDeepOptimization*, *(Object**)elem1);
 	line2 = cast(KWMODLLineDeepOptimization*, *(Object**)elem2);
 
 	// Comparaison de la variation de cout suite a une MergeSplit
-	if (line1->GetMergeSplit()->GetDeltaCost() < line2->GetMergeSplit()->GetDeltaCost())
+	dDeltaDeltaCost =
+	    line1->GetMergeSplit()->GetTruncatedDeltaCost() - line2->GetMergeSplit()->GetTruncatedDeltaCost();
+	if (dDeltaDeltaCost < 0)
 		return -1;
-	else if (line1->GetMergeSplit()->GetDeltaCost() > line2->GetMergeSplit()->GetDeltaCost())
+	else if (dDeltaDeltaCost > 0)
 		return 1;
 	else
 		return 0;
@@ -1635,14 +1657,16 @@ int KWMODLLineDeepOptimizationCompareSplitDeltaCost(const void* elem1, const voi
 {
 	KWMODLLineDeepOptimization* line1;
 	KWMODLLineDeepOptimization* line2;
+	double dDeltaDeltaCost;
 
 	line1 = cast(KWMODLLineDeepOptimization*, *(Object**)elem1);
 	line2 = cast(KWMODLLineDeepOptimization*, *(Object**)elem2);
 
-	// Comparaison de la variation de cout suite a une MergeSplit
-	if (line1->GetSplit()->GetDeltaCost() < line2->GetSplit()->GetDeltaCost())
+	// Comparaison de la variation de cout suite a une Split
+	dDeltaDeltaCost = line1->GetSplit()->GetTruncatedDeltaCost() - line2->GetSplit()->GetTruncatedDeltaCost();
+	if (dDeltaDeltaCost < 0)
 		return -1;
-	else if (line1->GetSplit()->GetDeltaCost() > line2->GetSplit()->GetDeltaCost())
+	else if (dDeltaDeltaCost > 0)
 		return 1;
 	else
 		return 0;
@@ -1652,14 +1676,17 @@ int KWMODLLineDeepOptimizationCompareMergeMergeSplitDeltaCost(const void* elem1,
 {
 	KWMODLLineDeepOptimization* line1;
 	KWMODLLineDeepOptimization* line2;
+	double dDeltaDeltaCost;
 
 	line1 = cast(KWMODLLineDeepOptimization*, *(Object**)elem1);
 	line2 = cast(KWMODLLineDeepOptimization*, *(Object**)elem2);
 
-	// Comparaison de la variation de cout suite a une MergeSplit
-	if (line1->GetMergeMergeSplit()->GetDeltaCost() < line2->GetMergeMergeSplit()->GetDeltaCost())
+	// Comparaison de la variation de cout suite a une MergeMergeSplit
+	dDeltaDeltaCost =
+	    line1->GetMergeMergeSplit()->GetTruncatedDeltaCost() - line2->GetMergeMergeSplit()->GetTruncatedDeltaCost();
+	if (dDeltaDeltaCost < 0)
 		return -1;
-	else if (line1->GetMergeMergeSplit()->GetDeltaCost() > line2->GetMergeMergeSplit()->GetDeltaCost())
+	else if (dDeltaDeltaCost > 0)
 		return 1;
 	else
 		return 0;
