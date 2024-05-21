@@ -527,7 +527,7 @@ def filter_lines_with_pattern(lines, pattern):
     assert isinstance(pattern, list)
     output_lines = []
     for line in lines:
-        if not find_pattern_in_line(line, pattern):
+        if find_pattern_in_line(line, pattern) == -1:
             output_lines.append(line)
     return output_lines
 
@@ -538,8 +538,9 @@ def filter_copyright_lines(lines):
     output_lines = lines
     is_copyright = False
     if len(lines) >= 2:
-        is_copyright = find_pattern_in_line(
-            lines[1], ["(c)", "Orange - All rights reserved."]
+        is_copyright = (
+            find_pattern_in_line(lines[1], ["(c)", "Orange - All rights reserved."])
+            != -1
         )
     if is_copyright:
         output_lines = lines[2:]

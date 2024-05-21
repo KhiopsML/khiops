@@ -187,7 +187,7 @@ def main():
         help_test_dir_name=None,
         help_options=None,
     ):
-        """Construction d'une lige d'aide pour un usage de la command test"""
+        """Construction d'une ligne d'aide pour un usage de la commande test"""
         source_dir = os.path.join(".", kht.LEARNING_TEST)
         if help_test_dir_name is not None:
             source_dir = os.path.join(
