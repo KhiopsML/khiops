@@ -305,6 +305,15 @@ boolean KWDerivationRuleOperand::CheckCompleteness(const KWClass* kwcOwnerClass)
 		return false;
 	}
 
+	// Une regle de creation de table ne peut etre utilisee comme operande d'une regle de derivation
+	if (GetOrigin() == OriginRule and GetDerivationRule() != NULL and
+	    KWType::IsRelation(GetDerivationRule()->GetType()) and not GetDerivationRule()->GetReference())
+	{
+		AddError(KWType::ToString(GetDerivationRule()->GetType()) +
+			 " creation rule not allowed in an operand of a rule");
+		return false;
+	}
+
 	// On ne peut peut pas acceder a un bloc via une regle, qui ne peut parametrer
 	// l'ensemble des variables a utiliser, avec leur varkeys
 	if (GetOrigin() == OriginRule and GetDerivationRule() != NULL and KWType::IsValueBlock(GetType()))

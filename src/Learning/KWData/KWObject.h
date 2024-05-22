@@ -296,8 +296,8 @@ protected:
 	boolean GetSmallSize() const;
 	void SetSmallSize(boolean bValue);
 
-	//DDD
-	friend class KWDRProtoBuildTableView;
+	// Classe des regles de derivation de creation d'objet en friend, pour acceder a SetViewTypeUsed
+	friend class KWDRRelationCreationRule;
 
 	// Indicateur de type vue pour un object, selon le type de creation d'un objet (cf. lCreationIndex)
 	// - utilisation standard:
