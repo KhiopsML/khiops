@@ -57,77 +57,80 @@ configure_file(${PROJECT_SOURCE_DIR}/packaging/common/KNI/template-README.md ${T
 
 # ######################################## Khiops and Khiops Coclustering installation
 
-# replace MPIEXEC MPIEXEC_NUMPROC_FLAG and MPI_IMPL KHIOPS_MPI_EXTRA_FLAG
-if("${MPI_IMPL}" STREQUAL "openmpi")
-  set(KHIOPS_MPI_EXTRA_FLAG "--allow-run-as-root")
-endif()
-configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops-env.in ${TMP_DIR}/khiops-env @ONLY
-               NEWLINE_STYLE UNIX)
-configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/debian/khiops-core/postinst.in ${TMP_DIR}/postinst @ONLY
-               NEWLINE_STYLE UNIX)
+if(UNIX)
 
-if(NOT IS_FEDORA_LIKE)
-  install(TARGETS MODL MODL_Coclustering RUNTIME DESTINATION usr/bin COMPONENT KHIOPS_CORE)
+  # replace MPIEXEC MPIEXEC_NUMPROC_FLAG and MPI_IMPL KHIOPS_MPI_EXTRA_FLAG
+  if("${MPI_IMPL}" STREQUAL "openmpi")
+    set(KHIOPS_MPI_EXTRA_FLAG "--allow-run-as-root")
+  endif()
+  configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops-env.in ${TMP_DIR}/khiops-env @ONLY
+                 NEWLINE_STYLE UNIX)
+  configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/debian/khiops-core/postinst.in ${TMP_DIR}/postinst @ONLY
+                 NEWLINE_STYLE UNIX)
 
-  # We install the binary with mpi suffix and create a symlink without the suffix
-  get_target_property(MODL_NAME MODL OUTPUT_NAME)
-  execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink /usr/bin/${MODL_NAME} ${TMP_DIR}/MODL)
+  if(NOT IS_FEDORA_LIKE)
+    install(TARGETS MODL MODL_Coclustering RUNTIME DESTINATION usr/bin COMPONENT KHIOPS_CORE)
+
+    # We install the binary with mpi suffix and create a symlink without the suffix
+    get_target_property(MODL_NAME MODL OUTPUT_NAME)
+    execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink /usr/bin/${MODL_NAME} ${TMP_DIR}/MODL)
+    install(
+      FILES ${TMP_DIR}/MODL
+      DESTINATION usr/bin
+      COMPONENT KHIOPS_CORE)
+  else()
+
+    # On fedora binaries built with mpi must follow these rules :
+    #
+    # - the binaries MUST be suffixed with $MPI_SUFFIX
+    # - MPI implementation specific files MUST be installed in the directories used by the MPI compiler e.g. $MPI_BIN
+    #
+    # see https://docs.fedoraproject.org/en-US/packaging-guidelines/MPI/
+    #
+    install(TARGETS MODL RUNTIME DESTINATION ./${MPI_BIN}/khiops COMPONENT KHIOPS_CORE)
+    install(TARGETS MODL_Coclustering RUNTIME DESTINATION /usr/bin COMPONENT KHIOPS_CORE)
+
+    # We install the binary under $MPI_BIN and create a symlink to it
+    get_target_property(MODL_NAME MODL OUTPUT_NAME)
+    execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${MPI_BIN}/khiops/${MODL_NAME} ${TMP_DIR}/MODL)
+    install(
+      FILES ${TMP_DIR}/MODL
+      DESTINATION usr/bin
+      COMPONENT KHIOPS_CORE)
+
+  endif()
+
   install(
-    FILES ${TMP_DIR}/MODL
+    PROGRAMS ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops
+             ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_coclustering ${TMP_DIR}/khiops-env
     DESTINATION usr/bin
     COMPONENT KHIOPS_CORE)
-else()
 
-  # On fedora binaries built with mpi must follow these rules :
-  #
-  # - the binaries MUST be suffixed with $MPI_SUFFIX
-  # - MPI implementation specific files MUST be installed in the directories used by the MPI compiler e.g. $MPI_BIN
-  #
-  # see https://docs.fedoraproject.org/en-US/packaging-guidelines/MPI/
-  #
-  install(TARGETS MODL RUNTIME DESTINATION ./${MPI_BIN}/khiops COMPONENT KHIOPS_CORE)
-  install(TARGETS MODL_Coclustering RUNTIME DESTINATION /usr/bin COMPONENT KHIOPS_CORE)
-
-  # We install the binary under $MPI_BIN and create a symlink to it
-  get_target_property(MODL_NAME MODL OUTPUT_NAME)
-  execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${MPI_BIN}/khiops/${MODL_NAME} ${TMP_DIR}/MODL)
   install(
-    FILES ${TMP_DIR}/MODL
-    DESTINATION usr/bin
+    FILES ${PROJECT_SOURCE_DIR}/LICENSE
+    DESTINATION usr/share/doc/khiops
     COMPONENT KHIOPS_CORE)
 
-endif()
+  install(
+    FILES ${PROJECT_SOURCE_DIR}/packaging/common/khiops/WHATSNEW.txt
+          ${PROJECT_SOURCE_DIR}/packaging/common/khiops/README.txt
+    DESTINATION usr/share/doc/khiops
+    COMPONENT KHIOPS)
 
-install(
-  PROGRAMS ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops
-           ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_coclustering ${TMP_DIR}/khiops-env
-  DESTINATION usr/bin
-  COMPONENT KHIOPS_CORE)
+  install(
+    FILES ${PROJECT_SOURCE_DIR}/packaging/common/images/khiops.png
+          ${PROJECT_SOURCE_DIR}/packaging/common/images/khiops_coclustering.png
+    DESTINATION usr/share/pixmaps
+    COMPONENT KHIOPS)
 
-install(
-  FILES ${PROJECT_SOURCE_DIR}/LICENSE
-  DESTINATION usr/share/doc/khiops
-  COMPONENT KHIOPS_CORE)
+  install(
+    FILES ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops.desktop
+          ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops-coclustering.desktop
+    DESTINATION usr/share/applications
+    COMPONENT KHIOPS)
 
-install(
-  FILES ${PROJECT_SOURCE_DIR}/packaging/common/khiops/WHATSNEW.txt
-        ${PROJECT_SOURCE_DIR}/packaging/common/khiops/README.txt
-  DESTINATION usr/share/doc/khiops
-  COMPONENT KHIOPS)
-
-install(
-  FILES ${PROJECT_SOURCE_DIR}/packaging/common/images/khiops.png
-        ${PROJECT_SOURCE_DIR}/packaging/common/images/khiops_coclustering.png
-  DESTINATION usr/share/pixmaps
-  COMPONENT KHIOPS)
-
-install(
-  FILES ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops.desktop
-        ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops-coclustering.desktop
-  DESTINATION usr/share/applications
-  COMPONENT KHIOPS)
-
-install(
-  FILES ${CMAKE_BINARY_DIR}/jars/norm.jar ${CMAKE_BINARY_DIR}/jars/khiops.jar
-  DESTINATION usr/share/khiops
-  COMPONENT KHIOPS)
+  install(
+    FILES ${CMAKE_BINARY_DIR}/jars/norm.jar ${CMAKE_BINARY_DIR}/jars/khiops.jar
+    DESTINATION usr/share/khiops
+    COMPONENT KHIOPS)
+endif(UNIX)
