@@ -80,11 +80,11 @@ if [[ -z $KHIOPS_PROC_NUMBER ]]; then
     KHIOPS_PROC_NUMBER=$(lscpu -b -p=Core,Socket | grep -v '^#' | sort -u | wc -l)
 fi
 
-if command -v @MPIEXEC@ &> /dev/null
+if command -v mpiexec &> /dev/null
 then
-    KHIOPS_MPI_COMMAND="@MPIEXEC@ -bind-to hwthread -map-by core @KHIOPS_MPI_EXTRA_FLAG@ @MPIEXEC_NUMPROC_FLAG@ $KHIOPS_PROC_NUMBER"
+    KHIOPS_MPI_COMMAND="mpiexec --allow-run-as-root --quiet @KHIOPS_MPI_EXTRA_FLAG@ @MPIEXEC_NUMPROC_FLAG@ $KHIOPS_PROC_NUMBER"
 else
-    echo "We didn't find @MPIEXEC@ in the regular path. Parallel computation is unavailable: Khiops is launched in serial"
+    echo "We didn't find mpiexec in the regular path. Parallel computation is unavailable: Khiops is launched in serial"
     KHIOPS_MPI_COMMAND="" 
 fi
 
