@@ -119,7 +119,9 @@ set(CPACK_DEBIAN_KHIOPS_PACKAGE_DEPENDS
 
 # packages recommends
 set(CPACK_DEBIAN_KHIOPS_CORE_PACKAGE_RECOMMENDS "khiops, khiops-visualization")
-set(CPACK_DEBIAN_KHIOPS_KNI_RECOMMENDS kni-doc)
+
+# packages provides
+set(CPACK_DEBIAN_KHIOPS_CORE_PACKAGE_PROVIDES "khiops-core")
 
 # packages posinst and triggers
 set(CPACK_DEBIAN_KHIOPS_CORE_PACKAGE_CONTROL_EXTRA "${TMP_DIR}/postinst")
@@ -162,6 +164,9 @@ set(CPACK_RPM_KHIOPS_CORE_PACKAGE_OBSOLETES "khiops-core <= 10.2.1-2")
 set(CPACK_RPM_KHIOPS_PACKAGE_REQUIRES "khiops-core${PACKAGE_SUFFIX} = ${KHIOPS_VERSION}-${CPACK_RPM_PACKAGE_RELEASE}")
 set(CPACK_RPM_KHIOPS_PACKAGE_REQUIRES "java >= 1.8")
 set(CPACK_RPM_KHIOPS_CORE_PACKAGE_REQUIRES "util-linux")
+
+# packages provides
+set(CPACK_RPM_KHIOPS_CORE_PACKAGE_PROVIDES "khiops-core = ${KHIOPS_VERSION}")
 
 # packages post/postun install scripts
 set(CPACK_RPM_KNI_POST_INSTALL_SCRIPT_FILE "${PROJECT_SOURCE_DIR}/packaging/linux/redhat/kni.post")
