@@ -124,11 +124,6 @@ jobs:
           key: ${{ github.run_id }}-${{ matrix.build-setup.os }}-${{ env.PRESET_NAME
             }}
           fail-on-cache-miss: true
-      - name: Rename mpi binaries
-        if: runner.os == 'Linux'
-        shell: bash
-        run: |
-          mv ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/MODL_openmpi ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/MODL
       - name: Setup Python
         uses: actions/setup-python@v4
         with:

@@ -44,11 +44,11 @@ jobs:
           source /etc/profile.d/modules.sh
           module unload mpi
           module load mpi/${MPI_IMPLEMENTATION}-x86_64
-          cmake --preset linux-gcc-release -DBUILD_JARS=ON
+          cmake --preset linux-gcc-release -DBUILD_JARS=ON  -DTESTING=OFF
       - name: Build Khiops binaries
         run: |
           cmake --build --preset linux-gcc-release --parallel \
-            --target MODL MODL_Coclustering KhiopsNativeInterface norm_jar khiops_jar
+            --target MODL MODL_Coclustering KhiopsNativeInterface KNITransfer norm_jar khiops_jar
       - name: Build package with CPack
         run: cd build/linux-gcc-release && cpack -G RPM
       - name: Rename packages with codename
