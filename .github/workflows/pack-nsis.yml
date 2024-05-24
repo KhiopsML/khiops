@@ -64,6 +64,7 @@ jobs:
         with:
           preset-name: windows-msvc-release
           targets: MODL MODL_Coclustering norm_jar khiops_jar KhiopsNativeInterface
+            KNITransfer
           override-flags: -DTESTING=OFF -DBUILD_JARS=ON
       - name: Build NSIS package
         shell: pwsh
@@ -95,7 +96,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: KNI
-          path: ./build/windows-msvc-release/packages/KNI-${{ env.KHIOPS_VERSION }}.zip
+          path: |
+            ./build/windows-msvc-release/packages/KNI-${{ env.KHIOPS_VERSION }}.zip
+            ./build/windows-msvc-release/packages/kni-transfer-${{ env.KHIOPS_VERSION }}.zip
   test-khiops:
     needs: build
     runs-on: windows-2019
@@ -172,7 +175,7 @@ jobs:
         uses: ncipollo/release-action@v1.14.0
         with:
           allowUpdates: true
-          artifacts: khiops-*-setup.exe,KNI-*.zip
+          artifacts: khiops-*-setup.exe,KNI-*.zip,kni-transfer-*.zip
           body: '**For testing purposes only**'
           draft: false
           makeLatest: false
