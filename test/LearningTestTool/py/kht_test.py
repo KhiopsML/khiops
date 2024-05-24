@@ -337,8 +337,8 @@ def evaluate_tool_on_test_dir(
                 khiops_params.append("--oversubscribe")
                 # permet de lancer en tant que root
                 khiops_params.append("--allow-run-as-root")
-                # Ajoute le rang du processus dans les traces
-                khiops_params.append("--tag-output")
+                # Supprime les traces en cas d'erreur fatale de khiops
+                khiops_params.append("--quiet")
             khiops_params.append("-n")
             khiops_params.append(str(tool_process_number))
         khiops_params.append(tool_exe_path)

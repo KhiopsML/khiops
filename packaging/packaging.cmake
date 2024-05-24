@@ -115,11 +115,13 @@ elseif("${MPI_IMPL}" STREQUAL "intel")
   set(CPACK_DEBIAN_KHIOPS_CORE_PACKAGE_DEPENDS "intel-hpckit")
 endif()
 set(CPACK_DEBIAN_KHIOPS_PACKAGE_DEPENDS
-    "khiops-core${PACKAGE_SUFFIX} (=${KHIOPS_VERSION}-${CPACK_DEBIAN_PACKAGE_RELEASE}), default-jre (>=1.8)")
+    "khiops-core (=${KHIOPS_VERSION}-${CPACK_DEBIAN_PACKAGE_RELEASE}), default-jre (>=1.8)")
 
 # packages recommends
 set(CPACK_DEBIAN_KHIOPS_CORE_PACKAGE_RECOMMENDS "khiops, khiops-visualization")
-set(CPACK_DEBIAN_KHIOPS_KNI_RECOMMENDS kni-doc)
+
+# packages provides
+set(CPACK_DEBIAN_KHIOPS_CORE_PACKAGE_PROVIDES "khiops-core (= ${KHIOPS_VERSION}-${CPACK_DEBIAN_PACKAGE_RELEASE})")
 
 # packages posinst and triggers
 set(CPACK_DEBIAN_KHIOPS_CORE_PACKAGE_CONTROL_EXTRA "${TMP_DIR}/postinst")
@@ -159,9 +161,12 @@ set(CPACK_RPM_KNI_DOC_PACKAGE_SUMMARY "Khiops Native Interface documentation")
 set(CPACK_RPM_KHIOPS_CORE_PACKAGE_OBSOLETES "khiops-core <= 10.2.1-2")
 
 # packages requires
-set(CPACK_RPM_KHIOPS_PACKAGE_REQUIRES "khiops-core${PACKAGE_SUFFIX} = ${KHIOPS_VERSION}-${CPACK_RPM_PACKAGE_RELEASE}")
+set(CPACK_RPM_KHIOPS_PACKAGE_REQUIRES "khiops-core = ${KHIOPS_VERSION}-${CPACK_RPM_PACKAGE_RELEASE}")
 set(CPACK_RPM_KHIOPS_PACKAGE_REQUIRES "java >= 1.8")
 set(CPACK_RPM_KHIOPS_CORE_PACKAGE_REQUIRES "util-linux")
+
+# packages provides
+set(CPACK_RPM_KHIOPS_CORE_PACKAGE_PROVIDES "khiops-core = ${KHIOPS_VERSION}")
 
 # packages post/postun install scripts
 set(CPACK_RPM_KNI_POST_INSTALL_SCRIPT_FILE "${PROJECT_SOURCE_DIR}/packaging/linux/redhat/kni.post")
