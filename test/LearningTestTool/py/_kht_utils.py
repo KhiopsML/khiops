@@ -402,12 +402,12 @@ def argument_parser_check_source_argument(parser, source):
 
 
 def argument_parser_check_destination_dir(parser, source_home_dir, destination_dir):
-    """Test si un chemin peut servir a about a un repertoire racine
+    """Test si un chemin peut servir a aboutir a un repertoire racine
     Il ne doit pas etre un sous-repertoire du repertoire de base"""
     check_home_dir(source_home_dir)
     home_dir = os.path.realpath(source_home_dir)
     target_dir = os.path.realpath(destination_dir)
-    if target_dir.find(home_dir) >= 0:
+    if (target_dir + os.path.sep).find(home_dir + os.path.sep) >= 0:
         parser.error(
             "argument dest: "
             "destination dir "
