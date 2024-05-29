@@ -209,7 +209,7 @@ void PLSerializer::PutLongint(longint lValue)
 	require(bIsOpenForWrite);
 
 	// Serialisation du type en mode debug seulement
-	debug(PutType(cTypeLongint););
+	debug(PutType(cTypeLongint));
 	PutBufferChars((const char*)&lValue, sizeof(longint));
 }
 
