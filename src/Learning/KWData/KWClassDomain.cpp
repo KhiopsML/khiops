@@ -1167,7 +1167,7 @@ void KWClassDomain::Test()
 
 	// Creation des classes
 	kwcClass1 = KWClass::CreateClass("Class1", 3, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, true, NULL);
-	kwcClass2 = KWClass::CreateClass("Class2", 2, 0, 0, 1, 1, 1, 1, 1, 1, 3, 3, 0, true, kwcClass1);
+	kwcClass2 = KWClass::CreateClass("Class2", 2, 0, 0, 1, 1, 1, 1, 1, 0, 3, 3, 0, true, kwcClass1);
 	kwcClass3 = KWClass::CreateClass("Class3", 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, true, kwcClass2);
 	kwcClass3->SetRoot(true);
 	KWClassDomain::GetCurrentDomain()->InsertClass(kwcClass1);

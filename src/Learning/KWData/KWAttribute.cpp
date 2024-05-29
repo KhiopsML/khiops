@@ -321,23 +321,26 @@ boolean KWAttribute::Check() const
 		}
 	}
 
-	// Warning si classe sans type Relation
+	// Erreur si classe sans type Relation
 	if (not KWType::IsGeneralRelation(GetType()) and attributeClass != NULL)
 	{
-		AddWarning("Dictionary (" + attributeClass->GetName() +
-			   ") referenced by a variable with non relation type");
+		AddError("Dictionary (" + attributeClass->GetName() +
+			 ") referenced by a variable with non relation type");
+		bOk = false;
 	}
 
-	// Warning si nom de structure sans type Structure
+	// Erreur si nom de structure sans type Structure
 	if (GetType() != KWType::Structure and GetStructureName() != "")
 	{
-		AddWarning("Structure name used with a non Structure type");
+		AddError("Structure name used with a non Structure type");
+		bOk = false;
 	}
 
-	// Warning si type Structure sans regle associee
-	if (GetType() == KWType::Structure and kwdrRule == NULL)
+	// Erreur si type non stocke et non data
+	if (not KWType::IsStored(GetType()) and not KWType::IsRelation(GetType()) and kwdrRule == NULL)
 	{
-		AddWarning("Structure type should be related to a derivation rule");
+		AddError(KWType::ToString(GetType()) + " type should be related to a derivation rule");
+		bOk = false;
 	}
 
 	// Verification de la regle de derivation
