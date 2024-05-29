@@ -704,7 +704,7 @@ void KWAttributeBlock::Compile()
 	loadedAttributesIndexedKeyBlock->IndexKeys();
 
 	// Compilation de la regle du bloc
-	if (kwdrRule != NULL)
+	if (kwdrRule != NULL and not kwdrRule->IsCompiled())
 		kwdrRule->Compile(GetParentClass());
 
 	// Calcul des valeur par defaut

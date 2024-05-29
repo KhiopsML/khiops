@@ -415,7 +415,7 @@ void KWAttribute::Compile()
 	require(Check());
 
 	// Compilation de l'eventuelle regle de derivation
-	if (GetDerivationRule() != NULL)
+	if (GetDerivationRule() != NULL and not GetDerivationRule()->IsCompiled())
 		GetDerivationRule()->Compile(parentClass);
 
 	// Compilation de l'eventuel bloc, uniquement si l'attribut est le premier du bloc

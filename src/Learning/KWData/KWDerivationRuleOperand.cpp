@@ -806,11 +806,8 @@ void KWDerivationRuleOperand::Compile(KWClass* kwcOwnerClass)
 			liDataItemLoadIndex = attribute->GetLoadIndex();
 
 			// Compilation d'eventuelle regle portee par l'attribut
-			if (attribute->GetDerivationRule() != NULL)
-			{
-				check(attribute->GetDerivationRule());
+			if (attribute->GetDerivationRule() != NULL and not attribute->GetDerivationRule()->IsCompiled())
 				attribute->GetDerivationRule()->Compile(scopeClass);
-			}
 		}
 		// Cas d'un bloc d'attributs
 		else
@@ -820,11 +817,9 @@ void KWDerivationRuleOperand::Compile(KWClass* kwcOwnerClass)
 			liDataItemLoadIndex = attributeBlock->GetLoadIndex();
 
 			// Compilation d'eventuelle regle portee par l'attribut
-			if (attributeBlock->GetDerivationRule() != NULL)
-			{
-				check(attributeBlock->GetDerivationRule());
+			if (attributeBlock->GetDerivationRule() != NULL and
+			    not attributeBlock->GetDerivationRule()->IsCompiled())
 				attributeBlock->GetDerivationRule()->Compile(scopeClass);
-			}
 		}
 	}
 
@@ -832,7 +827,8 @@ void KWDerivationRuleOperand::Compile(KWClass* kwcOwnerClass)
 	if (GetOrigin() == OriginRule)
 	{
 		check(GetDerivationRule());
-		GetDerivationRule()->Compile(scopeClass);
+		if (not GetDerivationRule()->IsCompiled())
+			GetDerivationRule()->Compile(scopeClass);
 	}
 	debug(ensure(IsCompiled()));
 }
