@@ -1108,7 +1108,7 @@ inline void KWDerivationRuleOperand::SetType(int nValue)
 	}
 	usSupplementTypeName.SetValue("");
 	cType = (char)nValue;
-	debug(nFreshness++;)
+	debug(nFreshness++);
 }
 
 inline int KWDerivationRuleOperand::GetType() const
@@ -1127,7 +1127,7 @@ inline void KWDerivationRuleOperand::SetObjectClassName(const ALString& sValue)
 	require(KWType::IsGeneralRelation(GetType()));
 	require(sValue == "" or KWClass::CheckName(sValue, KWClass::Class, this));
 	usSupplementTypeName.SetValue(sValue);
-	debug(nFreshness++;)
+	debug(nFreshness++);
 }
 
 inline const ALString& KWDerivationRuleOperand::GetStructureName() const
@@ -1141,7 +1141,7 @@ inline void KWDerivationRuleOperand::SetStructureName(const ALString& sValue)
 	require(GetType() == KWType::Structure);
 	require(sValue == "" or KWClass::CheckName(sValue, KWClass::Structure, this));
 	usSupplementTypeName.SetValue(sValue);
-	debug(nFreshness++;)
+	debug(nFreshness++);
 }
 
 inline const ALString& KWDerivationRuleOperand::GetSupplementTypeName() const
@@ -1166,14 +1166,14 @@ inline void KWDerivationRuleOperand::SetScopeLevel(int nValue)
 {
 	require(nValue >= 0);
 	cScopeLevel = (char)nValue;
-	debug(nFreshness++;)
+	debug(nFreshness++);
 }
 
 inline void KWDerivationRuleOperand::SetOrigin(int nValue)
 {
 	require(nValue == OriginConstant or nValue == OriginAttribute or nValue == OriginRule or nValue == OriginAny);
 	cOrigin = (char)nValue;
-	debug(nFreshness++;)
+	debug(nFreshness++);
 }
 
 inline int KWDerivationRuleOperand::GetOrigin() const
@@ -1185,7 +1185,7 @@ inline void KWDerivationRuleOperand::SetContinuousConstant(Continuous cValue)
 {
 	require(GetType() == KWType::Continuous);
 	kwvConstant.SetContinuous(cValue);
-	debug(nFreshness++;)
+	debug(nFreshness++);
 }
 
 inline Continuous KWDerivationRuleOperand::GetContinuousConstant() const
@@ -1198,7 +1198,7 @@ inline void KWDerivationRuleOperand::SetSymbolConstant(const Symbol& sValue)
 {
 	require(GetType() == KWType::Symbol);
 	kwvConstant.SetSymbol(sValue);
-	debug(nFreshness++;)
+	debug(nFreshness++);
 }
 
 inline Symbol& KWDerivationRuleOperand::GetSymbolConstant() const
@@ -1214,7 +1214,7 @@ inline void KWDerivationRuleOperand::SetStringConstant(const ALString& sValue)
 		kwvConstant.SetSymbol(Symbol(sValue));
 	else
 		kwvConstant.SetContinuous(KWContinuous::StringToContinuous(sValue));
-	debug(nFreshness++;)
+	debug(nFreshness++);
 }
 
 inline const ALString KWDerivationRuleOperand::GetStringConstant() const
@@ -1230,7 +1230,7 @@ inline void KWDerivationRuleOperand::SetAttributeName(const ALString& sName)
 {
 	require(sName == "" or KWClass::CheckName(sName, KWClass::Attribute, this));
 	usDataItemName.SetValue(sName);
-	debug(nFreshness++;)
+	debug(nFreshness++);
 }
 
 inline const ALString& KWDerivationRuleOperand::GetAttributeName() const
@@ -1243,7 +1243,7 @@ inline void KWDerivationRuleOperand::SetAttributeBlockName(const ALString& sName
 {
 	require(sName == "" or KWClass::CheckName(sName, KWClass::AttributeBlock, this));
 	usDataItemName.SetValue(sName);
-	debug(nFreshness++;)
+	debug(nFreshness++);
 }
 
 inline const ALString& KWDerivationRuleOperand::GetAttributeBlockName() const
@@ -1256,7 +1256,7 @@ inline void KWDerivationRuleOperand::SetDataItemName(const ALString& sName)
 {
 	require(sName == "" or KWClass::CheckName(sName, KWClass::Attribute, this));
 	usDataItemName.SetValue(sName);
-	debug(nFreshness++;)
+	debug(nFreshness++);
 }
 
 inline const ALString& KWDerivationRuleOperand::GetDataItemName() const
@@ -1275,7 +1275,7 @@ inline const ALString KWDerivationRuleOperand::GetDataItemLabel() const
 inline void KWDerivationRuleOperand::SetDerivationRule(KWDerivationRule* kwdrValue)
 {
 	rule = kwdrValue;
-	debug(nFreshness++;)
+	debug(nFreshness++);
 }
 
 inline KWDerivationRule* KWDerivationRuleOperand::GetDerivationRule() const
@@ -1285,7 +1285,8 @@ inline KWDerivationRule* KWDerivationRuleOperand::GetDerivationRule() const
 
 inline Continuous KWDerivationRuleOperand::GetContinuousValue(const KWObject* kwoObject) const
 {
-	debug(require(IsCompiled());) require(kwoObject != NULL);
+	debug(require(IsCompiled()));
+	require(kwoObject != NULL);
 	require(kwoObject->GetClass() == kwcClass or GetScopeLevel() > 0);
 	require(GetType() == KWType::Continuous);
 
@@ -1297,7 +1298,8 @@ inline Continuous KWDerivationRuleOperand::GetContinuousValue(const KWObject* kw
 
 inline Symbol KWDerivationRuleOperand::GetSymbolValue(const KWObject* kwoObject) const
 {
-	debug(require(IsCompiled());) require(kwoObject != NULL);
+	debug(require(IsCompiled()));
+	require(kwoObject != NULL);
 	require(kwoObject->GetClass() == kwcClass or GetScopeLevel() > 0);
 	require(GetType() == KWType::Symbol);
 
@@ -1309,7 +1311,8 @@ inline Symbol KWDerivationRuleOperand::GetSymbolValue(const KWObject* kwoObject)
 
 inline Date KWDerivationRuleOperand::GetDateValue(const KWObject* kwoObject) const
 {
-	debug(require(IsCompiled());) require(kwoObject != NULL);
+	debug(require(IsCompiled()));
+	require(kwoObject != NULL);
 	require(kwoObject->GetClass() == kwcClass or GetScopeLevel() > 0);
 	require(GetType() == KWType::Date);
 
@@ -1321,7 +1324,8 @@ inline Date KWDerivationRuleOperand::GetDateValue(const KWObject* kwoObject) con
 
 inline Time KWDerivationRuleOperand::GetTimeValue(const KWObject* kwoObject) const
 {
-	debug(require(IsCompiled());) require(kwoObject != NULL);
+	debug(require(IsCompiled()));
+	require(kwoObject != NULL);
 	require(kwoObject->GetClass() == kwcClass or GetScopeLevel() > 0);
 	require(GetType() == KWType::Time);
 
@@ -1333,7 +1337,8 @@ inline Time KWDerivationRuleOperand::GetTimeValue(const KWObject* kwoObject) con
 
 inline Timestamp KWDerivationRuleOperand::GetTimestampValue(const KWObject* kwoObject) const
 {
-	debug(require(IsCompiled());) require(kwoObject != NULL);
+	debug(require(IsCompiled()));
+	require(kwoObject != NULL);
 	require(kwoObject->GetClass() == kwcClass or GetScopeLevel() > 0);
 	require(GetType() == KWType::Timestamp);
 
@@ -1345,7 +1350,8 @@ inline Timestamp KWDerivationRuleOperand::GetTimestampValue(const KWObject* kwoO
 
 inline TimestampTZ KWDerivationRuleOperand::GetTimestampTZValue(const KWObject* kwoObject) const
 {
-	debug(require(IsCompiled());) require(kwoObject != NULL);
+	debug(require(IsCompiled()));
+	require(kwoObject != NULL);
 	require(kwoObject->GetClass() == kwcClass or GetScopeLevel() > 0);
 	require(GetType() == KWType::TimestampTZ);
 
@@ -1357,7 +1363,8 @@ inline TimestampTZ KWDerivationRuleOperand::GetTimestampTZValue(const KWObject* 
 
 inline Symbol KWDerivationRuleOperand::GetTextValue(const KWObject* kwoObject) const
 {
-	debug(require(IsCompiled());) require(kwoObject != NULL);
+	debug(require(IsCompiled()));
+	require(kwoObject != NULL);
 	require(kwoObject->GetClass() == kwcClass or GetScopeLevel() > 0);
 	require(GetType() == KWType::Text);
 
@@ -1369,7 +1376,8 @@ inline Symbol KWDerivationRuleOperand::GetTextValue(const KWObject* kwoObject) c
 
 inline SymbolVector* KWDerivationRuleOperand::GetTextListValue(const KWObject* kwoObject) const
 {
-	debug(require(IsCompiled());) require(kwoObject != NULL);
+	debug(require(IsCompiled()));
+	require(kwoObject != NULL);
 	require(kwoObject->GetClass() == kwcClass or GetScopeLevel() > 0);
 	require(GetType() == KWType::TextList);
 
@@ -1381,7 +1389,8 @@ inline SymbolVector* KWDerivationRuleOperand::GetTextListValue(const KWObject* k
 
 inline KWObject* KWDerivationRuleOperand::GetObjectValue(const KWObject* kwoObject) const
 {
-	debug(require(IsCompiled());) require(kwoObject != NULL);
+	debug(require(IsCompiled()));
+	require(kwoObject != NULL);
 	require(kwoObject->GetClass() == kwcClass or GetScopeLevel() > 0);
 	require(GetType() == KWType::Object);
 
@@ -1393,7 +1402,8 @@ inline KWObject* KWDerivationRuleOperand::GetObjectValue(const KWObject* kwoObje
 
 inline ObjectArray* KWDerivationRuleOperand::GetObjectArrayValue(const KWObject* kwoObject) const
 {
-	debug(require(IsCompiled());) require(kwoObject != NULL);
+	debug(require(IsCompiled()));
+	require(kwoObject != NULL);
 	require(kwoObject->GetClass() == kwcClass or GetScopeLevel() > 0);
 	require(GetType() == KWType::ObjectArray);
 
@@ -1405,7 +1415,8 @@ inline ObjectArray* KWDerivationRuleOperand::GetObjectArrayValue(const KWObject*
 
 inline Object* KWDerivationRuleOperand::GetStructureValue(const KWObject* kwoObject) const
 {
-	debug(require(IsCompiled());) require(kwoObject != NULL);
+	debug(require(IsCompiled()));
+	require(kwoObject != NULL);
 	require(kwoObject->GetClass() == kwcClass or GetScopeLevel() > 0);
 	require(GetType() == KWType::Structure);
 
@@ -1417,7 +1428,8 @@ inline Object* KWDerivationRuleOperand::GetStructureValue(const KWObject* kwoObj
 
 inline KWContinuousValueBlock* KWDerivationRuleOperand::GetContinuousValueBlock(const KWObject* kwoObject) const
 {
-	debug(require(IsCompiled());) require(kwoObject != NULL);
+	debug(require(IsCompiled()));
+	require(kwoObject != NULL);
 	require(kwoObject->GetClass() == kwcClass or GetScopeLevel() > 0);
 	require(GetType() == KWType::ContinuousValueBlock);
 	require(cCompiledOrigin != CompiledOriginRule);
@@ -1429,7 +1441,8 @@ inline KWContinuousValueBlock* KWDerivationRuleOperand::GetContinuousValueBlock(
 
 inline KWSymbolValueBlock* KWDerivationRuleOperand::GetSymbolValueBlock(const KWObject* kwoObject) const
 {
-	debug(require(IsCompiled());) require(kwoObject != NULL);
+	debug(require(IsCompiled()));
+	require(kwoObject != NULL);
 	require(kwoObject->GetClass() == kwcClass or GetScopeLevel() > 0);
 	require(GetType() == KWType::SymbolValueBlock);
 	require(cCompiledOrigin != CompiledOriginRule);
@@ -1440,7 +1453,8 @@ inline KWSymbolValueBlock* KWDerivationRuleOperand::GetSymbolValueBlock(const KW
 
 inline KWObjectArrayValueBlock* KWDerivationRuleOperand::GetObjectArrayValueBlock(const KWObject* kwoObject) const
 {
-	debug(require(IsCompiled());) require(kwoObject != NULL);
+	debug(require(IsCompiled()));
+	require(kwoObject != NULL);
 	require(kwoObject->GetClass() == kwcClass or GetScopeLevel() > 0);
 	require(GetType() == KWType::ObjectArrayValueBlock);
 	require(cCompiledOrigin != CompiledOriginRule);

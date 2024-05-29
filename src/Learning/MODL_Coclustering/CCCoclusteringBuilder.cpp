@@ -4089,14 +4089,15 @@ void CCCoclusteringBuilder::ComputePartInterests(const KWDataGridMerger* optimiz
 
 		// Normalisation des typicites par leur max
 		part1 = hdgAttribute->GetHeadPart();
-		debug(part2 = dgAttribute->GetHeadPart();) nPart = 0;
+		debug(part2 = dgAttribute->GetHeadPart());
+		nPart = 0;
 		while (part1 != NULL)
 		{
 			hdgPart = cast(CCHDGPart*, part1);
-			debug(assert(part1->GetObjectLabel() == part2->GetObjectLabel());)
+			debug(assert(part1->GetObjectLabel() == part2->GetObjectLabel()));
 
-			    // Initialisation du niveau hierarchique
-			    hdgPart->SetHierarchicalLevel(1);
+			// Initialisation du niveau hierarchique
+			hdgPart->SetHierarchicalLevel(1);
 
 			// Mise a jour de la typicalite
 			assert(0 <= dvInterests.GetAt(nPart) and dvInterests.GetAt(nPart) <= dMaxInterest);
@@ -4110,7 +4111,8 @@ void CCCoclusteringBuilder::ComputePartInterests(const KWDataGridMerger* optimiz
 
 			// Partie suivante
 			hdgAttribute->GetNextPart(part1);
-			debug(dgAttribute->GetNextPart(part2);) nPart++;
+			debug(dgAttribute->GetNextPart(part2));
+			nPart++;
 		}
 	}
 }

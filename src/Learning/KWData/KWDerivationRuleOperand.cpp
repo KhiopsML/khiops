@@ -16,7 +16,9 @@ KWDerivationRuleOperand::KWDerivationRuleOperand()
 	kwvConstant.Init();
 	rule = NULL;
 	kwcClass = NULL;
-	debug(nFreshness = 0;) debug(nClassFreshness = 0;) debug(nCompileFreshness = 0;)
+	debug(nFreshness = 0);
+	debug(nClassFreshness = 0);
+	debug(nCompileFreshness = 0);
 }
 
 KWDerivationRuleOperand::~KWDerivationRuleOperand()
@@ -922,8 +924,10 @@ KWDerivationRuleOperand* KWDerivationRuleOperand::Clone() const
 	// La nouvelle version est a recompiler
 	kwdroClone->kwcClass = NULL;
 	kwdroClone->liDataItemLoadIndex.Reset();
-	debug(kwdroClone->nFreshness = nFreshness;) debug(kwdroClone->nClassFreshness = 0;)
-	    debug(kwdroClone->nCompileFreshness = 0;) return kwdroClone;
+	debug(kwdroClone->nFreshness = nFreshness);
+	debug(kwdroClone->nClassFreshness = 0);
+	debug(kwdroClone->nCompileFreshness = 0);
+	return kwdroClone;
 }
 
 boolean KWDerivationRuleOperand::Check() const
