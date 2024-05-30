@@ -17,7 +17,7 @@
 #include "KWDRVector.h"
 #include "KWDRHashMap.h"
 #include "KWDRMultiTable.h"
-#include "KWDRTableCreation.h"
+#include "KWDRBuildRelation.h"
 #include "KWDRTextualAnalysis.h"
 
 // Enregistrement de toutes les regles de derivation

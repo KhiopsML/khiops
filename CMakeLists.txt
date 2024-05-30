@@ -41,7 +41,7 @@ endif(NOT CMAKE_BUILD_TYPE)
 # Remove always the files from a precedent installation
 set(CMAKE_INSTALL_ALWAYS TRUE)
 
-# Set up the custom configuration options
+# Set up the custom configuration options (if customisation is required, update the options in CMakePresets.json)
 option(MPI "Use MPI libraries (ON,OFF)" ON)
 option(TESTING "Build unit tests (ON,OFF)" ON)
 option(BUILD_LEX_YACC "Re-generate parsing files with lex & yacc" OFF)

@@ -7,18 +7,15 @@
 //////////////////////////////////////////////////////////////////////////////
 // Regles de derivation de creation de Table
 
-// Prototype de regle pour la mise au point de la gestion des regle creant des Table
-class KWDRProtoBuildTableView;
+class KWDRRelationCreationRule;
+class KWDRTableCreationRule;
 
 #include "KWDerivationRule.h"
 
-// Enregistrement de ces regles
-void KWDRRegisterTableCreationRules();
-
 ////////////////////////////////////////////////////////////////////////////
 // Classe KWDRRelationCreationRule
-// Classe ancetre des regle de creation de Table ou Entity,
-// destinee a etre specialisee dans des sous-classes.
+// Toute la gestion specifique aux regles de creation de Table ou Entity
+// est definie dans cette classe, destinee a etre specialisee dans des sous-classes.
 //
 // Dans ce type de regle:
 // - les objets crees sont detruits automatiquement
@@ -30,7 +27,7 @@ void KWDRRegisterTableCreationRules();
 //   par la regle, selon un des deux mode d'alimentation suivant:
 //   - alimentation de type vue
 //   - alimentation de type calcul
-// - le dictionnaire en sortie peut avoir ses variable utilisées ou non (Used),
+// - le dictionnaire en sortie peut avoir ses variable utilisees ou non (Used),
 //   et des variable calculee si besoin
 // - un dictionnaire en sortie n'est pas specifique a aux regle de creation de Table:
 //   a priori, un meme dictionnaire pourrait etre utilise pour une variable native alimentee
@@ -72,21 +69,100 @@ public:
 	// On indique que la regle cree de nouveau objets
 	boolean GetReference() const override;
 
-	// Verification de la compatibilite des operandes avec la cle de la classe referencee
+	//////////////////////////////////////////////////////////////////////////////////////
+	// Gestion des operandes en sortie de regles
+	// Cela ne concerne que les regles de creation de Table ou Entity,
+	// c'est a dire avec une methode GetReference() renvoyant false
+	// On peut alors designer la liste des attributs natifs de la table en sortie
+	// a alimenter par la regle.
+	// On utilise la classe KWDerivationRuleOperand de facon genrique comme
+	// pour les operandes en entree, bien que seuls soient autorises les
+	// operande avec origine de type attribut (ni constante, ni regle)
+	// La plupart des services de gestion de ces operandes en sortie sont
+	// implementee dans la classe dediee KWDRTableCreation
+
+	// Nombre d'operandes en sortie
+	int GetOutputOperandNumber() const;
+
+	// Initialisation/modification du nombre d'operande
+	// Les operandes en trop sont supprimes, ceux en plus sont ajoutes
+	void SetOutputOperandNumber(int nValue);
+
+	// Indicateur de nombre variable d'operandes en sortie (defaut: false)
+	// Fonctionnalite similaire aux operandes en entree
+	void SetVariableOutputOperandNumber(boolean bValue);
+	boolean GetVariableOutputOperandNumber() const;
+
+	// Acces aux operandes en sortie
+	KWDerivationRuleOperand* GetOutputOperandAt(int nIndex) const;
+
+	// Ajout d'un operande en sortie en fin de liste
+	void AddOutputOperand(KWDerivationRuleOperand* operand);
+
+	// Destruction de tous les operandes en sortie
+	void DeleteAllOutputOperands();
+
+	// Supression de tous les operandes en sortie, sans les detruire
+	void RemoveAllOutputOperands();
+
+	// Destruction de tous les operandes variables en sortie
+	// Les operandes de tete (en nombre fixe) sont preserves
+	// Methode sans effet pour les regles a nombre fixe d'operandes
+	void DeleteAllVariableOutputOperands();
+
+	//////////////////////////////////////////////////////////////////////////////////////
+	// Redefinition des methodes pour tenir compte des alimentation de type vue et calcul
+
+	// Renommage d'une classe
+	void RenameClass(const KWClass* refClass, const ALString& sNewClassName) override;
+
+	// Verification de la definbition d'une regle
+	boolean CheckRuleDefinition() const override;
+	boolean CheckOperandsDefinition() const override;
+
+	// Verification qu'une regle est une specialisation d'une regle plus generale
+	boolean CheckRuleFamily(const KWDerivationRule* ruleFamily) const override;
+	boolean CheckOperandsFamily(const KWDerivationRule* ruleFamily) const override;
+
+	// Verification qu'une regle est completement renseignee et compilable
 	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
+
+	// Verification de l'absence de cycle de derivation
+	boolean ContainsCycle(NumericKeyDictionary* nkdGreyAttributes,
+			      NumericKeyDictionary* nkdBlackAttributes) const override;
 
 	// Compilation
 	void Compile(KWClass* kwcOwnerClass) override;
 
+	// Construction du dictionnaire de tous les operandes utilises
+	void BuildAllUsedOperands(NumericKeyDictionary* nkdAllUsedOperands) const override;
+
 	// Construction du dictionnaire de tous les attributs utilises
-	// Redefinition de la methode ancetre pour integrer comme attributs utilises
-	// les attributs de la table source correspond aux attributs de la table en sortie
 	void BuildAllUsedAttributes(const KWAttribute* derivedAttribute,
 				    NumericKeyDictionary* nkdAllUsedAttributes) const override;
+
+	// Copie
+	void CopyFrom(const KWDerivationRule* kwdrSource) override;
+
+	// Comparaison
+	int FullCompare(const KWDerivationRule* rule) const override;
+
+	// Memoire utilisee par la regle de derivation
+	longint GetUsedMemory() const override;
+
+	// Cle de hashage de la regle et des ses operandes
+	longint ComputeHashValue() const override;
+
+	// Affichage
+	void Write(ostream& ost) const override;
+	void WriteUsedRuleOperands(ostream& ost) const override;
 
 	///////////////////////////////////////////////////////
 	///// Implementation
 protected:
+	// Redefinition des methodes virtuelles
+	void InternalCompleteTypeInfo(const KWClass* kwcOwnerClass, NumericKeyDictionary* nkdAttributes) override;
+
 	// Indique si le premier operande est de type Relation pour une alimentation de type vue
 	// Par defaut: true
 	boolean IsFirstOperandViewType() const;
@@ -96,6 +172,12 @@ protected:
 
 	// Copie des champs commun d'un object
 	void CopyObjectCommonNativeAttributes(const KWObject* kwoSourceObject, KWObject* kwoTargetObject) const;
+
+	// Operandes en sortie
+	ObjectArray oaOutputOperands;
+
+	// Indicateur de regle a nombre variable d'operandes en sortie
+	boolean bVariableOutputOperandNumber;
 
 	// Index de chargement des attributs source et cible de la vue
 	KWLoadIndexVector livSourceAttributeLoadIndexes;
@@ -123,30 +205,29 @@ protected:
 	mutable ObjectArray oaResult;
 };
 
-////////////////////////////////////////////////////////////////////////////
-// Classe KWDRProtoBuildTableView
-// Creation d'une vue sur une table
-// Prototype
-class KWDRProtoBuildTableView : public KWDRTableCreationRule
-{
-public:
-	// Constructeur
-	KWDRProtoBuildTableView();
-	~KWDRProtoBuildTableView();
-
-	// Creation
-	KWDerivationRule* Create() const override;
-
-	// Calcul de l'attribut derive
-	ObjectArray* ComputeObjectArrayResult(const KWObject* kwoObject) const override;
-
-	///////////////////////////////////////////////////////
-	///// Implementation
-protected:
-};
-
 /////////////////////////////////////////////////////////////////
 // Methodes en inline
+
+inline int KWDRRelationCreationRule::GetOutputOperandNumber() const
+{
+	return oaOutputOperands.GetSize();
+}
+
+inline void KWDRRelationCreationRule::SetVariableOutputOperandNumber(boolean bValue)
+{
+	bVariableOutputOperandNumber = bValue;
+}
+
+inline boolean KWDRRelationCreationRule::GetVariableOutputOperandNumber() const
+{
+	return bVariableOutputOperandNumber;
+}
+
+inline KWDerivationRuleOperand* KWDRRelationCreationRule::GetOutputOperandAt(int nIndex) const
+{
+	require(0 <= nIndex and nIndex < oaOutputOperands.GetSize());
+	return cast(KWDerivationRuleOperand*, oaOutputOperands.GetAt(nIndex));
+}
 
 inline KWObject* KWDRRelationCreationRule::NewTargetObject(longint lCreationIndex) const
 {
