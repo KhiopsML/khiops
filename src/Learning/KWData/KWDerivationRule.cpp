@@ -1831,27 +1831,28 @@ void KWDerivationRule::Write(ostream& ost) const
 
 void KWDerivationRule::WriteUsedRule(ostream& ost) const
 {
-	// Le passage a la ligne n'est pas tres lisible (nMaxOperandPerLine=0: pas de passage a la ligne)
-	// Un vrai "pretty print" serait assez cher a developper, et peut-etre pas tres utile
-	int nMaxOperandPerLine = 0;
-	KWDerivationRuleOperand* operand;
-	int i;
-
 	// Nom de la regle utilisee
 	ost << KWClass::GetExternalName(GetName());
 
-	// Operandes
+	// Operandes entre parentheses
 	ost << "(";
+	WriteUsedRuleOperands(ost);
+	ost << ")";
+}
+
+void KWDerivationRule::WriteUsedRuleOperands(ostream& ost) const
+{
+	KWDerivationRuleOperand* operand;
+	int i;
+
+	// Operandes
 	for (i = 0; i < GetOperandNumber(); i++)
 	{
 		operand = GetOperandAt(i);
 		if (i > 0)
 			ost << ", ";
-		if (nMaxOperandPerLine > 0 and GetOperandNumber() > nMaxOperandPerLine and i > 0)
-			ost << "\n\t\t\t\t\t";
 		operand->WriteUsedOperand(ost);
 	}
-	ost << ")";
 }
 
 void KWDerivationRule::PushScope(const KWClass* kwcOwnerClass, const KWClass* kwcScopeClass,

@@ -132,7 +132,7 @@ public:
 	// propagation aux operandes et sous-regles
 
 	// Renommage d'une classe
-	void RenameClass(const KWClass* refClass, const ALString& sNewClassName);
+	virtual void RenameClass(const KWClass* refClass, const ALString& sNewClassName);
 
 	// Renommage d'un attribut d'une classe
 	virtual void RenameAttribute(const KWClass* kwcOwnerClass, KWAttribute* refAttribute,
@@ -150,8 +150,10 @@ public:
 	const ALString& GetObjectClassName() const;
 	void SetObjectClassName(const ALString& sValue);
 
-	// Utilisation des attributs de type Relation en retour de regle par referencement d'onjet existant
+	// Utilisation des attributs de type Relation en retour de regle par referencement d'objet existant
 	// Sinon, les attributs sont crees par la regle
+	// Pour definir une regle de creation d'objet, il faut heriter
+	//  de la classe dediee KWDRRelationCreationRule
 	// Par defaut: true
 	virtual boolean GetReference() const;
 
@@ -222,7 +224,7 @@ public:
 	// intervenant dans le calcul d'un attribut operande
 	// Le dictionnaire est complete par la methode, et evitera les eventuels
 	// cycle de derivation
-	void BuildAllUsedOperands(NumericKeyDictionary* nkdAllUsedOperands) const;
+	virtual void BuildAllUsedOperands(NumericKeyDictionary* nkdAllUsedOperands) const;
 
 	// Construction du dictionnaire de tous les attributs utilises
 	// directement ou recursivement via d'autres regles de derivation
@@ -307,7 +309,8 @@ public:
 	// (cf. algo decrit dans l'implementation de KWClassDomain::Compile())
 	// Prerequis: la classe doit etre compilee
 	// Retourne true si pas de cycle, sinon false en emmetant des messages d'erreur
-	boolean ContainsCycle(NumericKeyDictionary* nkdGreyAttributes, NumericKeyDictionary* nkdBlackAttributes) const;
+	virtual boolean ContainsCycle(NumericKeyDictionary* nkdGreyAttributes,
+				      NumericKeyDictionary* nkdBlackAttributes) const;
 
 	/////////////////////////////////////////////////
 	// Exploitation des regles de derivation
@@ -422,11 +425,12 @@ public:
 	longint GetUsedMemory() const override;
 
 	// Cle de hashage de la regle et des ses operandes
-	longint ComputeHashValue() const;
+	virtual longint ComputeHashValue() const;
 
 	// Affichage, ecriture dans un fichier, de la definition formelle d'une regle ou de son usage
 	virtual void Write(ostream& ost) const override;
 	virtual void WriteUsedRule(ostream& ost) const;
+	virtual void WriteUsedRuleOperands(ostream& ost) const;
 
 	// Methode d'affichage pour la mise au point de regles
 	// Affichage d'un nom de regle et d'un objet (avec identifiant multi-tables),

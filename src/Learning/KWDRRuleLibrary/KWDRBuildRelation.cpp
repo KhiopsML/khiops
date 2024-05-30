@@ -2,29 +2,112 @@
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
-#include "KWDRTableCreation.h"
+#include "KWDRBuildRelation.h"
 
-void KWDRRegisterTableCreationRules()
+void KWDRRegisterBuildRelationRules()
 {
 	KWDerivationRule::RegisterDerivationRule(new KWDRProtoBuildTableView);
+	KWDerivationRule::RegisterDerivationRule(new KWDRProtoBuildTableAdvancedView);
 }
 
-////////////////////////////////////////////////////////////////////////////
-// Classe KWDRRelationCreationRule
+//////////////////////////////////////////////////////////////////////////////////////
+// Classe KWDRProtoBuildTableView
 
-KWDRRelationCreationRule::KWDRRelationCreationRule()
+KWDRProtoBuildTableView::KWDRProtoBuildTableView()
 {
-	kwcCompiledTargetClass = NULL;
+	SetName("ProtoBuildTableView");
+	SetLabel("Table view");
+	SetOperandNumber(1);
+	GetFirstOperand()->SetType(KWType::ObjectArray);
 }
 
-KWDRRelationCreationRule::~KWDRRelationCreationRule() {}
-boolean KWDRRelationCreationRule::GetReference() const
+KWDRProtoBuildTableView::~KWDRProtoBuildTableView() {}
+
+KWDerivationRule* KWDRProtoBuildTableView::Create() const
 {
-	require(KWType::IsRelation(GetType()));
-	return false;
+	return new KWDRProtoBuildTableView;
 }
 
-boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
+ObjectArray* KWDRProtoBuildTableView::ComputeObjectArrayResult(const KWObject* kwoObject) const
+{
+	ObjectArray* oaObjectArrayOperand;
+	KWObject* kwoContainedObject;
+	KWObject* kwoCopiedContainedObject;
+	int nObject;
+
+	require(IsCompiled());
+
+	// Calcul du resultat
+	oaResult.SetSize(0);
+
+	// Duplication du tableau d'entree
+	oaObjectArrayOperand = GetFirstOperand()->GetObjectArrayValue(kwoObject);
+	if (oaObjectArrayOperand != NULL and oaObjectArrayOperand->GetSize() > 0)
+	{
+		// Copie du tableau en entree
+		oaResult.SetSize(oaObjectArrayOperand->GetSize());
+		for (nObject = 0; nObject < oaObjectArrayOperand->GetSize(); nObject++)
+		{
+			kwoContainedObject = cast(KWObject*, oaObjectArrayOperand->GetAt(nObject));
+			kwoCopiedContainedObject = NewTargetObject((longint)nObject + 1);
+			CopyObjectCommonNativeAttributes(kwoContainedObject, kwoCopiedContainedObject);
+			oaResult.SetAt(nObject, kwoCopiedContainedObject);
+		}
+	}
+	return &oaResult;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+// Classe KWDRProtoBuildTableAdvancedView
+
+KWDRProtoBuildTableAdvancedView::KWDRProtoBuildTableAdvancedView()
+{
+	SetName("ProtoBuildTableAdvancedView");
+	SetLabel("Table advanced view");
+	SetOperandNumber(2);
+	GetFirstOperand()->SetType(KWType::ObjectArray);
+	GetSecondOperand()->SetType(KWType::Symbol);
+	SetOutputOperandNumber(1);
+}
+
+KWDRProtoBuildTableAdvancedView::~KWDRProtoBuildTableAdvancedView() {}
+
+KWDerivationRule* KWDRProtoBuildTableAdvancedView::Create() const
+{
+	return new KWDRProtoBuildTableAdvancedView;
+}
+
+ObjectArray* KWDRProtoBuildTableAdvancedView::ComputeObjectArrayResult(const KWObject* kwoObject) const
+{
+	ObjectArray* oaObjectArrayOperand;
+	KWObject* kwoContainedObject;
+	KWObject* kwoCopiedContainedObject;
+	int nObject;
+
+	require(IsCompiled());
+
+	// Calcul du resultat
+	oaResult.SetSize(0);
+
+	// Duplication du tableau d'entree
+	oaObjectArrayOperand = GetFirstOperand()->GetObjectArrayValue(kwoObject);
+	if (oaObjectArrayOperand != NULL and oaObjectArrayOperand->GetSize() > 0)
+	{
+		// Copie du tableau en entree
+		oaResult.SetSize(oaObjectArrayOperand->GetSize());
+		for (nObject = 0; nObject < oaObjectArrayOperand->GetSize(); nObject++)
+		{
+			kwoContainedObject = cast(KWObject*, oaObjectArrayOperand->GetAt(nObject));
+			kwoCopiedContainedObject = NewTargetObject((longint)nObject + 1);
+			CopyObjectCommonNativeAttributes(kwoContainedObject, kwoCopiedContainedObject);
+			oaResult.SetAt(nObject, kwoCopiedContainedObject);
+		}
+	}
+	return &oaResult;
+}
+
+//DDD TEMPORAIRE
+boolean KWDRProtoBuildTableAdvancedView::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
 	KWClass* kwcSourceClass;
@@ -62,11 +145,15 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 				// Erreur si pas d'attribut correspondant trouve
 				if (sourceAttribute == NULL)
 				{
-					AddError("In output dictionary " + kwcTargetClass->GetName() +
+					/*DDD
+					AddError("DDD In output dictionary " + kwcTargetClass->GetName() +
 						 ", no variable found for secondary variable " +
 						 targetAttribute->GetName() + " in input dictionary " +
 						 kwcSourceClass->GetName() + " of first operand");
 					bOk = false;
+					*/
+					kwcTargetClass->GetNextAttribute(targetAttribute);
+					continue;
 				}
 				// Erreur si le type trouve est incorrect
 				else if (sourceAttribute->GetType() != targetAttribute->GetType())
@@ -127,7 +214,7 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 	return bOk;
 }
 
-void KWDRRelationCreationRule::Compile(KWClass* kwcOwnerClass)
+void KWDRProtoBuildTableAdvancedView::Compile(KWClass* kwcOwnerClass)
 {
 	const boolean bTrace = false;
 	KWClass* kwcSourceClass;
@@ -188,6 +275,9 @@ void KWDRRelationCreationRule::Compile(KWClass* kwcOwnerClass)
 
 				// Recherche d'un attribut natif source de meme nom
 				sourceAttribute = kwcSourceClass->LookupAttribute(targetAttribute->GetName());
+				//DDD
+				if (sourceAttribute == NULL)
+					continue;
 				assert(sourceAttribute != NULL);
 				assert(sourceAttribute->GetType() == targetAttribute->GetType());
 
@@ -216,8 +306,8 @@ void KWDRRelationCreationRule::Compile(KWClass* kwcOwnerClass)
 	}
 }
 
-void KWDRRelationCreationRule::BuildAllUsedAttributes(const KWAttribute* derivedAttribute,
-						      NumericKeyDictionary* nkdAllUsedAttributes) const
+void KWDRProtoBuildTableAdvancedView::BuildAllUsedAttributes(const KWAttribute* derivedAttribute,
+							     NumericKeyDictionary* nkdAllUsedAttributes) const
 {
 	KWClass* kwcSourceClass;
 	KWClass* kwcTargetClass;
@@ -257,6 +347,12 @@ void KWDRRelationCreationRule::BuildAllUsedAttributes(const KWAttribute* derived
 
 				// Recherche d'un attribut natif source de meme nom
 				sourceAttribute = kwcSourceClass->LookupAttribute(targetAttribute->GetName());
+				//DDD
+				if (sourceAttribute == NULL)
+				{
+					kwcTargetClass->GetNextAttribute(targetAttribute);
+					continue;
+				}
 				assert(sourceAttribute != NULL);
 				assert(sourceAttribute->GetType() == targetAttribute->GetType());
 
@@ -278,131 +374,4 @@ void KWDRRelationCreationRule::BuildAllUsedAttributes(const KWAttribute* derived
 			kwcTargetClass->GetNextAttribute(targetAttribute);
 		}
 	}
-}
-
-boolean KWDRRelationCreationRule::IsFirstOperandViewType() const
-{
-	return true;
-}
-
-void KWDRRelationCreationRule::CopyObjectCommonNativeAttributes(const KWObject* kwoSourceObject,
-								KWObject* kwoTargetObject) const
-{
-	ObjectArray* oaSourceObjectArray;
-	ObjectArray* oaTargetObjectArray;
-	int nAttribute;
-	int nType;
-	KWLoadIndex liSource;
-	KWLoadIndex liTarget;
-
-	require(IsCompiled());
-	require(kwoSourceObject != NULL);
-	require(kwoTargetObject != NULL);
-
-	// Recopie des valeurs des attributs commun
-	for (nAttribute = 0; nAttribute < ivTargetAttributeTypes.GetSize(); nAttribute++)
-	{
-		nType = ivTargetAttributeTypes.GetAt(nAttribute);
-		liSource = livSourceAttributeLoadIndexes.GetAt(nAttribute);
-		liTarget = livTargetAttributeLoadIndexes.GetAt(nAttribute);
-
-		// Recopie de la valeur selon le type
-		switch (nType)
-		{
-		case KWType::Symbol:
-			kwoTargetObject->SetSymbolValueAt(liTarget, kwoSourceObject->ComputeSymbolValueAt(liSource));
-			break;
-		case KWType::Continuous:
-			kwoTargetObject->SetContinuousValueAt(liTarget,
-							      kwoSourceObject->ComputeContinuousValueAt(liSource));
-			break;
-		case KWType::Date:
-			kwoTargetObject->SetDateValueAt(liTarget, kwoSourceObject->ComputeDateValueAt(liSource));
-			break;
-		case KWType::Time:
-			kwoTargetObject->SetTimeValueAt(liTarget, kwoSourceObject->ComputeTimeValueAt(liSource));
-			break;
-		case KWType::Timestamp:
-			kwoTargetObject->SetTimestampValueAt(liTarget,
-							     kwoSourceObject->ComputeTimestampValueAt(liSource));
-			break;
-		case KWType::TimestampTZ:
-			kwoTargetObject->SetTimestampTZValueAt(liTarget,
-							       kwoSourceObject->ComputeTimestampTZValueAt(liSource));
-			break;
-		case KWType::Text:
-			kwoTargetObject->SetTextValueAt(liTarget, kwoSourceObject->ComputeTextValueAt(liSource));
-			break;
-		case KWType::Object:
-			kwoTargetObject->SetObjectValueAt(liTarget, kwoSourceObject->ComputeObjectValueAt(liSource));
-			break;
-		case KWType::ObjectArray:
-			oaSourceObjectArray = kwoSourceObject->ComputeObjectArrayValueAt(liSource);
-			oaTargetObjectArray = NULL;
-			if (oaSourceObjectArray != NULL)
-				oaTargetObjectArray = oaSourceObjectArray->Clone();
-			kwoTargetObject->SetObjectArrayValueAt(liTarget, oaTargetObjectArray);
-			break;
-		default:
-			assert(false);
-			break;
-		}
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////
-// Classe KWDRRelationCreationRule
-
-KWDRTableCreationRule::KWDRTableCreationRule()
-{
-	SetType(KWType::ObjectArray);
-}
-
-KWDRTableCreationRule::~KWDRTableCreationRule() {}
-
-//////////////////////////////////////////////////////////////////////////////////////
-// Classe KWDRProtoBuildTableView
-
-KWDRProtoBuildTableView::KWDRProtoBuildTableView()
-{
-	SetName("ProtoBuildTableView");
-	SetLabel("Table view");
-	SetOperandNumber(1);
-	GetFirstOperand()->SetType(KWType::ObjectArray);
-}
-
-KWDRProtoBuildTableView::~KWDRProtoBuildTableView() {}
-
-KWDerivationRule* KWDRProtoBuildTableView::Create() const
-{
-	return new KWDRProtoBuildTableView;
-}
-
-ObjectArray* KWDRProtoBuildTableView::ComputeObjectArrayResult(const KWObject* kwoObject) const
-{
-	ObjectArray* oaObjectArrayOperand;
-	KWObject* kwoContainedObject;
-	KWObject* kwoCopiedContainedObject;
-	int nObject;
-
-	require(IsCompiled());
-
-	// Calcul du resultat
-	oaResult.SetSize(0);
-
-	// Duplication du tableau d'entree
-	oaObjectArrayOperand = GetFirstOperand()->GetObjectArrayValue(kwoObject);
-	if (oaObjectArrayOperand != NULL and oaObjectArrayOperand->GetSize() > 0)
-	{
-		// Copie du tableau en entree
-		oaResult.SetSize(oaObjectArrayOperand->GetSize());
-		for (nObject = 0; nObject < oaObjectArrayOperand->GetSize(); nObject++)
-		{
-			kwoContainedObject = cast(KWObject*, oaObjectArrayOperand->GetAt(nObject));
-			kwoCopiedContainedObject = NewTargetObject(nObject + 1);
-			CopyObjectCommonNativeAttributes(kwoContainedObject, kwoCopiedContainedObject);
-			oaResult.SetAt(nObject, kwoCopiedContainedObject);
-		}
-	}
-	return &oaResult;
 }

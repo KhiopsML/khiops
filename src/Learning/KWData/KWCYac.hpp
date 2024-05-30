@@ -86,7 +86,7 @@ typedef enum yytokentype yytoken_kind_t;
 #if !defined YYSTYPE && !defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 57 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 64 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 
 	Continuous cValue;
 	ALString* sValue;
@@ -97,10 +97,11 @@ union YYSTYPE
 	KWClass* kwcValue;
 	KWAttribute* kwaValue;
 	ObjectArray* oaAttributes;
+	ObjectArray* oaOperands;
 	KWMetaData* kwmdMetaData;
 	int nValue;
 
-#line 100 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.hpp"
+#line 101 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.hpp"
 };
 typedef union YYSTYPE YYSTYPE;
 #define YYSTYPE_IS_TRIVIAL 1
