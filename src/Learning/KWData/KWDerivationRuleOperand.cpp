@@ -62,7 +62,7 @@ int KWDerivationRuleOperand::GetVarKeyType() const
 ALString KWDerivationRuleOperand::OriginToString(int nOrigin, int nType)
 {
 	require(OriginConstant <= nOrigin and nOrigin <= OriginAny);
-	require(0 <= nType and nType < KWType::Unknown);
+	require(0 <= nType and nType <= KWType::Unknown);
 	if (nOrigin == OriginConstant)
 		return "Constant";
 	else if (nOrigin == OriginAttribute)

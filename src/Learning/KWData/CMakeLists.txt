@@ -54,6 +54,7 @@ add_library(
   KWMTDatabaseTextFile.cpp
   KWObject.cpp
   KWObjectKey.cpp
+  KWRelationCreationRule.cpp
   KWSortableIndex.cpp
   KWSTDatabase.cpp
   KWSTDatabaseTextFile.cpp
