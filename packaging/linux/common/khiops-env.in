@@ -2,7 +2,7 @@
 
 help()
 {
-    echo "Usage: khiops-env [-h] [--env]"
+    echo "Usage: khiops-env [-h, --help] [--env]"
     echo "khiops-env is an internal script intended to be used by Khiops tool and Khiops'"
     echo "wrappers only."
     echo "If the --env flag is used, the environment list is printed in the standard output"
@@ -38,8 +38,8 @@ help()
     echo "  . set to 'false' to allow local file name selection only with a file selection dialog"
 }
 
-[[ $# == 0 ]] && help && exit 1
 [[ $# == 1 && $1 == "-h" ]] && help && exit 0
+[[ $# == 1 && $1 == "--help" ]] && help && exit 0
 [[ $# == 1 && $1 != "--env" ]] && help && exit 1
 
 
@@ -59,18 +59,20 @@ fi
 
 # Set java environment if Khiops GUI is installed
 if [ -f "/usr/share/khiops/khiops.jar" ]; then
-    if [ -z "$JAVA_HOME" ] && [ -f /usr/bin/java ]; then 
+    if [[ -z $JAVA_HOME ]] && [ -f /usr/bin/java ]; then 
         JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:bin/java::" )
     fi
-    if [ ! -d "$JAVA_HOME" ]; then
-        echo "The JAVA_HOME directory doesn't exist (${JAVA_HOME})."
+    if [[ ! -d $JAVA_HOME ]]; then
+        KHIOPS_JAVA_ERROR="The JAVA_HOME directory doesn't exist ($JAVA_HOME)."
         unset JAVA_HOME
-    fi
-    if [ -n "$JAVA_HOME" ]; then
-        KHIOPS_JAVA_PATH=$(find -L "$JAVA_HOME" -name libjvm.so | xargs dirname)
-        KHIOPS_CLASSPATH=/usr/share/khiops/norm.jar:/usr/share/khiops/khiops.jar
     else
-        echo "Java not found. Khiops cannot launch a graphical interface. Please install a Java Runtime Environment (>= 1.8)." 
+        JVM_PATH=$(find  -L "$JAVA_HOME" -name libjvm.so 2> /dev/null ) 
+        if [[ -z $JVM_PATH ]]; then
+            KHIOPS_JAVA_ERROR="libjvm.so not found in JAVA_HOME ($JAVA_HOME)"
+        else
+            KHIOPS_JAVA_PATH=$(dirname "$JVM_PATH")
+            KHIOPS_CLASSPATH=/usr/share/khiops/norm.jar:/usr/share/khiops/khiops.jar
+        fi
     fi
 fi
 
@@ -85,7 +87,7 @@ if command -v mpiexec &> /dev/null
 then
     KHIOPS_MPI_COMMAND="mpiexec @KHIOPS_MPI_EXTRA_FLAG@ @MPIEXEC_NUMPROC_FLAG@ $KHIOPS_PROC_NUMBER"
 else
-    echo "We didn't find mpiexec in the regular path. Parallel computation is unavailable: Khiops is launched in serial"
+    KHIOPS_MPI_ERROR="We didn't find mpiexec in the regular path. Parallel computation is unavailable: Khiops is launched in serial"
     KHIOPS_MPI_COMMAND="" 
 fi
 
@@ -96,12 +98,16 @@ fi
 
 KHIOPS_PATH=/usr/bin
 
-echo KHIOPS_PATH "$KHIOPS_PATH"
-echo KHIOPS_MPI_COMMAND "$KHIOPS_MPI_COMMAND"
-echo KHIOPS_JAVA_PATH "$KHIOPS_JAVA_PATH"
-echo KHIOPS_CLASSPATH "$KHIOPS_CLASSPATH"
-echo KHIOPS_LAST_RUN_DIR "$KHIOPS_LAST_RUN_DIR"
-echo KHIOPS_PROC_NUMBER "$KHIOPS_PROC_NUMBER"
-echo KHIOPS_TMP_DIR "$KHIOPS_TMP_DIR"
-echo KHIOPS_MEMORY_LIMIT "$KHIOPS_MEMORY_LIMIT" 
-
+if [ "$1" = "--env" ]; 
+then 
+    echo KHIOPS_PATH "$KHIOPS_PATH"
+    echo KHIOPS_MPI_COMMAND "$KHIOPS_MPI_COMMAND"
+    echo KHIOPS_JAVA_PATH "$KHIOPS_JAVA_PATH"
+    echo KHIOPS_CLASSPATH "$KHIOPS_CLASSPATH"
+    echo KHIOPS_LAST_RUN_DIR "$KHIOPS_LAST_RUN_DIR"
+    echo KHIOPS_PROC_NUMBER "$KHIOPS_PROC_NUMBER"
+    echo KHIOPS_TMP_DIR "$KHIOPS_TMP_DIR"
+    echo KHIOPS_MEMORY_LIMIT "$KHIOPS_MEMORY_LIMIT" 
+    echo KHIOPS_JAVA_ERROR "$KHIOPS_JAVA_ERROR"
+    echo KHIOPS_MPI_ERROR "$KHIOPS_MPI_ERROR"
+fi
