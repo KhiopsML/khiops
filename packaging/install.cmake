@@ -69,7 +69,7 @@ if(UNIX)
 
   # replace MPIEXEC MPIEXEC_NUMPROC_FLAG and MPI_IMPL KHIOPS_MPI_EXTRA_FLAG
   if("${MPI_IMPL}" STREQUAL "openmpi")
-    set(KHIOPS_MPI_EXTRA_FLAG "--allow-run-as-root")
+    set(KHIOPS_MPI_EXTRA_FLAG "--allow-run-as-root --quiet")
   endif()
   configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops-env.in ${TMP_DIR}/khiops-env @ONLY
                  NEWLINE_STYLE UNIX)
