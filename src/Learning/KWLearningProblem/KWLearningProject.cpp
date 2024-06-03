@@ -397,17 +397,80 @@ boolean KWLearningProject::ShowSystemInformation(const ALString& sValue)
 	int i;
 	const SystemFileDriver* fileDriver;
 	ALString sTmp;
+	StringVector svEnvironmentVariables;
+	ALString sEnv;
+	ALString sEnvValue;
+	boolean bEnvVarDefined;
 
 	// Version
 	ShowVersion(sTmp);
+	cout << endl;
 
 	// Drivers
-	for (i = 0; i < SystemFileDriverCreator::GetExternalDriverNumber(); i++)
+	if (SystemFileDriverCreator::GetDriverNumber() > 0)
 	{
-		fileDriver = SystemFileDriverCreator::GetRegisteredDriverAt(i);
-		cout << " \tDriver '" << fileDriver->GetDriverName() << "' for URI scheme '" << fileDriver->GetScheme()
-		     << "'" << endl;
+		cout << "Drivers:" << endl;
+		for (i = 0; i < SystemFileDriverCreator::GetDriverNumber(); i++)
+		{
+			fileDriver = SystemFileDriverCreator::GetRegisteredDriverAt(i);
+			cout << "\t'" << fileDriver->GetDriverName() << "' for URI scheme '" << fileDriver->GetScheme()
+			     << "'" << endl;
+		}
 	}
+
+	// Affichage des variables d'environement propres a Khiops, seulement si elles sont definies
+	svEnvironmentVariables.Add("KHIOPS_RAW_GUI");
+	svEnvironmentVariables.Add("KHIOPS_TMP_DIR");
+	svEnvironmentVariables.Add("KHIOPS_HOME");
+	svEnvironmentVariables.Add("KHIOPS_API_MODE");
+	svEnvironmentVariables.Add("KHIOPS_MEMORY_LIMIT");
+	svEnvironmentVariables.Sort();
+	bEnvVarDefined = false;
+	cout << "Environment variables:" << endl;
+	for (i = 0; i < svEnvironmentVariables.GetSize(); i++)
+	{
+		sEnv = svEnvironmentVariables.GetAt(i);
+		sEnvValue = p_getenv(sEnv);
+		if (sEnvValue != "")
+		{
+			cout << "\t" << sEnv << "\t" << sEnvValue << endl;
+			bEnvVarDefined = true;
+		}
+	}
+	if (not bEnvVarDefined)
+		cout << "\tNone" << endl;
+
+	svEnvironmentVariables.Initialize();
+	bEnvVarDefined = false;
+	svEnvironmentVariables.Add("KhiopsExpertMode");
+	svEnvironmentVariables.Add("KhiopsHardMemoryLimitMode");
+	svEnvironmentVariables.Add("KhiopsCrashTestMode");
+	svEnvironmentVariables.Add("KhiopsPreparationTraceMode");
+	svEnvironmentVariables.Add("KhiopsIOTraceMode");
+	svEnvironmentVariables.Add("KhiopsForestExpertMode");
+	svEnvironmentVariables.Add("KhiopsCoclusteringExpertMode");
+	svEnvironmentVariables.Add("KhiopsCoclusteringIVExpertMode");
+	svEnvironmentVariables.Add("KhiopsExpertParallelMode");
+	svEnvironmentVariables.Add("KhiopsParallelTrace");
+	svEnvironmentVariables.Add("KhiopsFileServerActivated");
+	svEnvironmentVariables.Add("hiopsPriorStudyModeRAW");
+	svEnvironmentVariables.Add("KhiopsDistanceStudyMode");
+	svEnvironmentVariables.Sort();
+
+	// Affichage des variables d'environement techniques
+	cout << "Internal environment variables:" << endl;
+	for (i = 0; i < svEnvironmentVariables.GetSize(); i++)
+	{
+		sEnv = svEnvironmentVariables.GetAt(i);
+		sEnvValue = p_getenv(sEnv);
+		if (sEnvValue != "")
+		{
+			cout << "\t" << sEnv << "\t" << sEnvValue << endl;
+			bEnvVarDefined = true;
+		}
+	}
+	if (not bEnvVarDefined)
+		cout << "\tNone" << endl;
 
 	// Resources
 	cout << *RMResourceManager::GetResourceSystem();
