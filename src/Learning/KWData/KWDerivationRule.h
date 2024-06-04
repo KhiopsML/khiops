@@ -127,16 +127,8 @@ public:
 	void SetClassName(const ALString& sValue);
 	const ALString& GetClassName() const;
 
-	//////////////////////////////////////////////////////
-	// Renommage d'une classe ou d'un attribut, avec
-	// propagation aux operandes et sous-regles
-
-	// Renommage d'une classe
+	// Renommage d'une classe avec propagation aux operandes et sous-regles
 	virtual void RenameClass(const KWClass* refClass, const ALString& sNewClassName);
-
-	// Renommage d'un attribut d'une classe
-	virtual void RenameAttribute(const KWClass* kwcOwnerClass, KWAttribute* refAttribute,
-				     const ALString& sNewAttributeName);
 
 	//////////////////////////////////////////////////
 	// Type de la valeur retournee par la regle
@@ -203,9 +195,6 @@ public:
 
 	// Ajout d'un operande en fin de liste
 	void AddOperand(KWDerivationRuleOperand* operand);
-
-	// Destruction du dernier operande
-	void DeleteLastOperand();
 
 	// Destruction de tous les operandes
 	void DeleteAllOperands();
@@ -387,9 +376,6 @@ public:
 	// La variante compatible avec le type de la regle doit etre reimplementee
 	virtual Continuous GetValueBlockContinuousDefaultValue() const;
 	virtual Symbol& GetValueBlockSymbolDefaultValue() const;
-
-	// Calcul du nom d'un attribut en fonction du nom de la regles et de ses operandes
-	virtual const ALString ComputeAttributeName() const;
 
 	// Duplication (s'appuie sur Create et CopyFrom)
 	KWDerivationRule* Clone() const;
@@ -773,13 +759,6 @@ public:
 	KWContinuousValueBlock* GetContinuousValueBlock(const KWObject* kwoObject) const;
 	KWSymbolValueBlock* GetSymbolValueBlock(const KWObject* kwoObject) const;
 	KWObjectArrayValueBlock* GetObjectArrayValueBlock(const KWObject* kwoObject) const;
-
-	// Renommage de l'attribut dans le cas d'un operande attribut
-	void RenameAttribute(const KWClass* kwcOwnerClass, KWAttribute* refAttribute,
-			     const ALString& sNewAttributeName);
-
-	// Calcul du nom de l'operande en fonction de son origine
-	const ALString ComputeOperandName() const;
 
 	/////////////////////////////////////////
 	// Services divers

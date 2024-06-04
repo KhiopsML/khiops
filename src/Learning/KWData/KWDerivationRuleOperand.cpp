@@ -842,52 +842,6 @@ void KWDerivationRuleOperand::Compile(KWClass* kwcOwnerClass)
 	debug(ensure(IsCompiled()));
 }
 
-void KWDerivationRuleOperand::RenameAttribute(const KWClass* kwcOwnerClass, KWAttribute* refAttribute,
-					      const ALString& sNewAttributeName)
-{
-	KWClass* refClass;
-	const KWClass* scopeClass;
-
-	require(kwcOwnerClass != NULL);
-	require(refAttribute != NULL);
-	require(refAttribute->GetParentClass() != NULL);
-	require(refAttribute->GetParentClass()->LookupAttribute(refAttribute->GetName()) == refAttribute);
-
-	// Acces a la classe du scope
-	refClass = refAttribute->GetParentClass();
-	scopeClass = kwcOwnerClass;
-	if (GetScopeLevel() > 0 and GetScopeLevel() <= GetScopeDepth(kwcOwnerClass))
-		scopeClass = GetClassAtScope(kwcOwnerClass, GetScopeLevel());
-
-	// Renommage si necessaire
-	if (GetAttributeName() == refAttribute->GetName())
-	{
-		if (refClass == scopeClass)
-			SetAttributeName(sNewAttributeName);
-	}
-
-	// Propagation aux sous-regles
-	if (GetDerivationRule() != NULL and scopeClass != NULL)
-		GetDerivationRule()->RenameAttribute(scopeClass, refAttribute, sNewAttributeName);
-}
-
-const ALString KWDerivationRuleOperand::ComputeOperandName() const
-{
-	ALString sOperandName;
-
-	// Prefixage en fonction de niveau de scope
-	sOperandName = ALString('.', GetScopeLevel());
-
-	// On complete selon la nature de l'operande
-	if (cOrigin == OriginAttribute)
-		sOperandName += GetDataItemName();
-	else if (cOrigin == OriginConstant)
-		sOperandName += GetStringConstant();
-	else if (GetDerivationRule() != NULL)
-		sOperandName += GetDerivationRule()->ComputeAttributeName();
-	return sOperandName;
-}
-
 KWDerivationRuleOperand* KWDerivationRuleOperand::Clone() const
 {
 	KWDerivationRuleOperand* kwdroClone;
