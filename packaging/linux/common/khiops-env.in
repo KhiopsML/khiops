@@ -28,11 +28,11 @@ help()
     echo "The following variables are not defined by default and can be used to"
     echo "change some default properties of Khiops:"
     echo
-    echo "KHIOPS_TMP_DIR: Khiops temporary directory location (default : the"
+    echo "KHIOPS_TMP_DIR: Khiops' temporary directory location (default : the"
     echo "   system default) This location can be modified from the tool as well"
-    echo "KHIOPS_MEMORY_LIMIT: Khiops' memory limit (default: the system"
-    echo "   memory limit). This setting is ignored if it is above the system"
-    echo "   memory limit. It can only be reduced from the tool"
+    echo "KHIOPS_MEMORY_LIMIT: Khiops' memory limit in MB (default : the system's memory limit)."
+    echo "   The minimum value is 100 MB; this setting is ignored if it is above the system's memory limit."
+    echo "   It can only be reduced from the tool."    
     echo "KHIOPS_RAW_GUI: graphical user interface for file name selection"
     echo "  . default behavior if not set: depending on the file drivers available for Khiops"
     echo "  . set to 'true' to allow file name selection with uri schemas"
@@ -82,7 +82,7 @@ fi
 
 if command -v mpiexec &> /dev/null
 then
-    KHIOPS_MPI_COMMAND="mpiexec --allow-run-as-root --quiet @KHIOPS_MPI_EXTRA_FLAG@ @MPIEXEC_NUMPROC_FLAG@ $KHIOPS_PROC_NUMBER"
+    KHIOPS_MPI_COMMAND="mpiexec @KHIOPS_MPI_EXTRA_FLAG@ @MPIEXEC_NUMPROC_FLAG@ $KHIOPS_PROC_NUMBER"
 else
     echo "We didn't find mpiexec in the regular path. Parallel computation is unavailable: Khiops is launched in serial"
     KHIOPS_MPI_COMMAND="" 

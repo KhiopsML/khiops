@@ -15,6 +15,7 @@ KWSystemParametersView::KWSystemParametersView()
 	longint lEnvMemoryLimit;
 	int nRound;
 	int i;
+	ALString sTmp;
 
 	SetIdentifier("KWSystemParameters");
 	SetLabel("System parameters");
@@ -86,6 +87,13 @@ KWSystemParametersView::KWSystemParametersView()
 		// Utilisation de StringToLongint car atol renvoie 0 en cas de pbm (contrairement a atoi)
 		lEnvMemoryLimit = StringToLongint(sMemoryLimit);
 	}
+	if (sMemoryLimit != "" and lEnvMemoryLimit < nMinMemory)
+		AddFatalError(
+		    sTmp +
+		    "The environment variable KHIOPS_MEMORY_LIMIT is ignored because it is set to a value inferior "
+		    "than required for Khiops "
+		    "(" +
+		    LongintToReadableString(lEnvMemoryLimit) + " MB < " + LongintToReadableString(nMinMemory) + " MB)");
 	if (lEnvMemoryLimit != 0 and lEnvMemoryLimit <= nMaxMemory and lEnvMemoryLimit >= nMinMemory)
 	{
 		nMaxMemory = (int)lEnvMemoryLimit;
@@ -93,6 +101,7 @@ KWSystemParametersView::KWSystemParametersView()
 	}
 	else
 		nDefaultMemory = nMaxMemory - nMaxMemory / 10;
+
 	cast(UIIntElement*, GetFieldAt("MemoryLimit"))->SetMinValue(nMinMemory);
 	cast(UIIntElement*, GetFieldAt("MemoryLimit"))->SetMaxValue(nMaxMemory);
 	cast(UIIntElement*, GetFieldAt("MemoryLimit"))->SetDefaultValue(nDefaultMemory);
