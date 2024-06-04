@@ -18,11 +18,14 @@ public:
 	// Retourne le nombre de drivers correctement instancies
 	static int RegisterExternalDrivers();
 
-	// Renvoie true su les dribers on ete instanicies (correctement ou non)
+	// Renvoie true si les drivers on ete instancies (correctement ou non)
 	static boolean IsExternalDriversRegistered();
 
 	// Retourne le nombre de drivers instancies a partir de bibliotheques dynamiques
 	static int GetExternalDriverNumber();
+
+	// Retourne le nombre de drivers instancies
+	static int GetDriverNumber();
 
 	// Enregistrement d'un driver a partir d'un objet
 	static void RegisterDriver(SystemFileDriver* driver);

@@ -66,9 +66,9 @@ Function CreateKhiopsEnvCmdFile
     FileWrite $0 `echo.$\r$\n`
     FileWrite $0 `echo KHIOPS_TMP_DIR: Khiops' temporary directory location (default : the$\r$\n`
     FileWrite $0 `echo   system's default) This location can be modified from the tool as well$\r$\n`
-    FileWrite $0 `echo KHIOPS_MEMORY_LIMIT: Khiops' memory limit (default : the system's$\r$\n`
-    FileWrite $0 `echo   memory limit). This setting is ignored if it is above the system's$\r$\n`
-    FileWrite $0 `echo   memory limit. It can only be reduced from the tool$\r$\n`
+    FileWrite $0 `echo "KHIOPS_MEMORY_LIMIT: Khiops' memory limit in MB (default : the system's memory limit).$\r$\n`
+    FileWrite $0 `echo "   The minimum value is 100 MB; this setting is ignored if it is above the system's memory limit.$\r$\n`
+    FileWrite $0 `echo "   It can only be reduced from the tool.$\r$\n`
     FileWrite $0 `echo KHIOPS_API_MODE: standard or api mode for the management of output result files created by Khiops$\r$\n`
     FileWrite $0 `echo                 In standard mode, the result files are stored in the train database directory,$\r$\n`
     FileWrite $0 `echo                   unless an absolute path is specified, and the file extension is forced if necessary.$\r$\n`
