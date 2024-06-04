@@ -313,59 +313,6 @@ void KWClassDomain::RenameClass(KWClass* refClass, const ALString& sNewName)
 	nUpdateNumber++;
 }
 
-void KWClassDomain::RenameAttribute(KWAttribute* refAttribute, const ALString& sNewAttributeName)
-{
-	KWClass* refClass;
-	KWClass* kwcClass;
-	KWAttribute* attribute;
-	KWDerivationRule* currentDerivationRule;
-	int i;
-
-	require(refAttribute != NULL);
-	require(refAttribute->GetParentClass() != NULL);
-	require(refAttribute->GetParentClass()->LookupAttribute(refAttribute->GetName()) == refAttribute);
-	require(refAttribute->GetParentClass() ==
-		cast(KWClass*, odClasses.Lookup(refAttribute->GetParentClass()->GetName())));
-	require(refAttribute->GetParentClass()->domain == this);
-	require(refAttribute->GetParentClass()->LookupAttribute(sNewAttributeName) == NULL);
-
-	// Propagation du renommage a toutes les regles de derivation
-	// des classes du domaine referencant l'attribut
-	refClass = refAttribute->GetParentClass();
-	for (i = 0; i < GetClassNumber(); i++)
-	{
-		kwcClass = GetClassAt(i);
-
-		// Parcours des attributs de la classe
-		// (sauf classe de depart deja traitee)
-		if (kwcClass != refClass)
-		{
-			attribute = kwcClass->GetHeadAttribute();
-			currentDerivationRule = NULL;
-			while (attribute != NULL)
-			{
-				// Detection de changement de regle de derivation (notamment pour les blocs)
-				if (attribute->GetAnyDerivationRule() != currentDerivationRule)
-				{
-					currentDerivationRule = attribute->GetAnyDerivationRule();
-
-					// Renommage dans les regles de derivation (et au plus une seule fois
-					// par bloc)
-					if (currentDerivationRule != NULL)
-						currentDerivationRule->RenameAttribute(kwcClass, refAttribute,
-										       sNewAttributeName);
-				}
-
-				// Attribut suivant
-				kwcClass->GetNextAttribute(attribute);
-			}
-		}
-	}
-
-	// Renommage de l'attribut sur la classe de depart
-	refClass->RenameAttribute(refAttribute, sNewAttributeName);
-}
-
 ObjectArray* KWClassDomain::AllClasses() const
 {
 	// Quelques adaptations (mutable...) ont ete necessaire pour
@@ -1086,7 +1033,6 @@ void KWClassDomain::TestReadWrite(const ALString& sReadFileName, const ALString&
 	int nReloadAttributeNumber;
 	ObjectArray oaTestClasses;
 	KWClass* kwcClass;
-	KWAttribute* attribute;
 	int i;
 
 	// Creation des domaines
@@ -1102,8 +1048,8 @@ void KWClassDomain::TestReadWrite(const ALString& sReadFileName, const ALString&
 	loadDomain->ReadFile(sReadFileName);
 	loadDomain->Check();
 
-	// Renommage des classes et attributs
-	cout << "\nRename dictionaries and variables" << endl;
+	// Renommage des classes
+	cout << "\nRename dictionaries" << endl;
 	for (i = 0; i < loadDomain->GetClassNumber(); i++)
 		oaTestClasses.Add(loadDomain->GetClassAt(i));
 	for (i = 0; i < oaTestClasses.GetSize(); i++)
@@ -1112,14 +1058,6 @@ void KWClassDomain::TestReadWrite(const ALString& sReadFileName, const ALString&
 
 		// Renommage de la classe
 		loadDomain->RenameClass(kwcClass, "N" + kwcClass->GetName());
-
-		// Renommage des attributs
-		attribute = kwcClass->GetHeadAttribute();
-		while (attribute != NULL)
-		{
-			loadDomain->RenameAttribute(attribute, "N" + attribute->GetName());
-			kwcClass->GetNextAttribute(attribute);
-		}
 	}
 
 	// Ecriture du fichier
