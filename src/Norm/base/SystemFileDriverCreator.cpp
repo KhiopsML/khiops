@@ -113,6 +113,14 @@ int SystemFileDriverCreator::GetExternalDriverNumber()
 	return nExternalDriverNumber;
 }
 
+int SystemFileDriverCreator::GetDriverNumber()
+{
+	int nDriverNumber = 0;
+	if (oaSystemFileDriver != NULL)
+		nDriverNumber = oaSystemFileDriver->GetSize();
+	return nDriverNumber;
+}
+
 void SystemFileDriverCreator::RegisterDriver(SystemFileDriver* driver)
 {
 	if (oaSystemFileDriver == NULL)
