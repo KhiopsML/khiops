@@ -60,74 +60,6 @@ void KWDerivationRule::RenameClass(const KWClass* refClass, const ALString& sNew
 	}
 }
 
-void KWDerivationRule::RenameAttribute(const KWClass* kwcOwnerClass, KWAttribute* refAttribute,
-				       const ALString& sNewAttributeName)
-{
-	int i;
-	KWDerivationRuleOperand* operand;
-	KWClass* refClass;
-	const KWClass* secondaryScopeClass;
-	const KWClass* scopeClass;
-
-	require(kwcOwnerClass != NULL);
-	require(kwcOwnerClass->GetName() == GetClassName());
-	require(refAttribute != NULL);
-	require(refAttribute->GetParentClass() != NULL);
-	require(refAttribute->GetParentClass()->LookupAttribute(refAttribute->GetName()) == refAttribute);
-
-	// Parcours des operandes dans le cas standard
-	if (not GetMultipleScope())
-	{
-		for (i = 0; i < oaOperands.GetSize(); i++)
-		{
-			operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(i));
-
-			// Renommage dans l'operande
-			operand->RenameAttribute(kwcOwnerClass, refAttribute, sNewAttributeName);
-		}
-	}
-	// Parcours des operandes dans le cas a scope multiple
-	else
-	{
-		refClass = refAttribute->GetClass();
-		scopeClass = kwcOwnerClass;
-		secondaryScopeClass = NULL;
-		for (i = 0; i < oaOperands.GetSize(); i++)
-		{
-			operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(i));
-
-			// Renommage dans l'operande
-			operand->RenameAttribute(scopeClass, refAttribute, sNewAttributeName);
-
-			// Cas du premier operande pour rechercher la classe de scope scondaire
-			if (i == 0)
-			{
-				secondaryScopeClass = LookupSecondaryScopeClass(refClass);
-
-				// Arret si on a pas trouve la classe secondaire
-				if (secondaryScopeClass == NULL)
-					break;
-			}
-
-			// Recherche de la classe de scope pour le prochain operande
-			if (i < oaOperands.GetSize() - 1 and IsSecondaryScopeOperand(i + 1))
-			{
-				// Empilage du scope si on passe vers le scope secondaire
-				if (scopeClass == kwcOwnerClass)
-					PushScope(kwcOwnerClass, kwcOwnerClass, this);
-				scopeClass = secondaryScopeClass;
-			}
-			else
-				scopeClass = kwcOwnerClass;
-
-			// Depilage du scope si necessaire, si on repasse vers le scope principal au prochain operande
-			if (IsSecondaryScopeOperand(i) and
-			    (i == oaOperands.GetSize() - 1 or not IsSecondaryScopeOperand(i + 1)))
-				PopScope(kwcOwnerClass);
-		}
-	}
-}
-
 int KWDerivationRule::GetVarKeyType() const
 {
 	return KWType::None;
@@ -160,21 +92,6 @@ void KWDerivationRule::AddOperand(KWDerivationRuleOperand* operand)
 	require(operand != NULL);
 
 	oaOperands.Add(operand);
-	nFreshness++;
-}
-
-void KWDerivationRule::DeleteLastOperand()
-{
-	int nNewSize;
-
-	require(GetOperandNumber() > 0);
-
-	// Destruction du dernier operande
-	nNewSize = oaOperands.GetSize() - 1;
-	delete oaOperands.GetAt(nNewSize);
-	oaOperands.SetSize(nNewSize);
-
-	// Mise a jour de la fraicheur
 	nFreshness++;
 }
 
@@ -1406,28 +1323,6 @@ Symbol& KWDerivationRule::GetValueBlockSymbolDefaultValue() const
 	return KWSymbolValueBlock::GetDefaultDefaultValue();
 }
 
-const ALString KWDerivationRule::ComputeAttributeName() const
-{
-	ALString sTargetName;
-	KWDerivationRuleOperand* operand;
-	int i;
-
-	// Initialisation avec le nom, puis ajout des operandes
-	sTargetName = GetName();
-	sTargetName += "(";
-	for (i = 0; i < oaOperands.GetSize(); i++)
-	{
-		operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(i));
-
-		// Ajout d'un nom fabrique par l'operande
-		if (i > 0)
-			sTargetName += ",";
-		sTargetName += operand->ComputeOperandName();
-	}
-	sTargetName += ")";
-	return sTargetName;
-}
-
 KWDerivationRule* KWDerivationRule::Clone() const
 {
 	KWDerivationRule* kwdrClone;
@@ -2142,7 +2037,7 @@ void KWDerivationRule::Test()
 			attribute = new KWAttribute;
 			attribute->SetType(availableRule->GetType());
 			attribute->SetDerivationRule(availableRule);
-			attribute->SetName(availableRule->ComputeAttributeName());
+			attribute->SetName(testClass->BuildAttributeName(availableRule->GetName()));
 			testClass->InsertAttribute(attribute);
 		}
 		testClass->Compile();
@@ -2151,11 +2046,8 @@ void KWDerivationRule::Test()
 		cout << *kwoObject << endl;
 		delete kwoObject;
 
-		// Renommage de la classe et de l'attribut references
+		// Renommage de la classe
 		cout << "\nRename:\n";
-		rule->RenameAttribute(testClass,
-				      testClass->LookupAttribute(rule->GetFirstOperand()->GetAttributeName()),
-				      "New" + rule->GetFirstOperand()->GetAttributeName());
 		rule->RenameClass(testClass, "NewTestClass");
 		cout << *rule << endl;
 

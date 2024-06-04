@@ -122,46 +122,6 @@ void KWClass::InsertAttributeAfter(KWAttribute* attribute, KWAttribute* attribut
 	assert(odAttributes.GetCount() == olAttributes.GetCount());
 }
 
-void KWClass::RenameAttribute(KWAttribute* refAttribute, const ALString& sNewName)
-{
-	KWAttribute* attribute;
-	KWDerivationRule* currentDerivationRule;
-
-	require(refAttribute != NULL);
-	require(refAttribute == cast(KWAttribute*, odAttributes.Lookup(refAttribute->GetName())));
-	require(refAttribute->parentClass == this);
-	require(LookupAttribute(sNewName) == NULL);
-	require(CheckName(sNewName, KWClass::Attribute, refAttribute));
-
-	// Renommage par manipulation dans le dictionnaire
-	// Propagation du renommage a toutes les regles de derivation
-	// des classes du domaine referencant l'attribut
-	attribute = GetHeadAttribute();
-	currentDerivationRule = NULL;
-	while (attribute != NULL)
-	{
-		// Detection de changement de regle de derivation (notamment pour les blocs)
-		if (attribute->GetAnyDerivationRule() != currentDerivationRule)
-		{
-			currentDerivationRule = attribute->GetAnyDerivationRule();
-
-			// Renommage dans les regles de derivation (et au plus une seule fois par bloc)
-			if (currentDerivationRule != NULL)
-				currentDerivationRule->RenameAttribute(this, refAttribute, sNewName);
-		}
-
-		// Attribut suivant
-		GetNextAttribute(attribute);
-	}
-
-	// Renommage de l'attribut dans la classe
-	odAttributes.RemoveKey(refAttribute->GetName());
-	refAttribute->usName.SetValue(sNewName);
-	odAttributes.SetAt(refAttribute->GetName(), refAttribute);
-	assert(odAttributes.GetCount() == olAttributes.GetCount());
-	nFreshness++;
-}
-
 void KWClass::UnsafeRenameAttribute(KWAttribute* refAttribute, const ALString& sNewName)
 {
 	require(refAttribute != NULL);
@@ -2526,7 +2486,7 @@ void KWClass::Test()
 	cout << "\n\nInsertion around the borders\n\n";
 	// Avant debut
 	attribute = testClassClone->GetHeadAttribute();
-	testClassClone->RenameAttribute(attribute, "FirstAtt");
+	testClassClone->UnsafeRenameAttribute(attribute, "FirstAtt");
 	attributeNew = attribute->Clone();
 	attributeNew->SetName(testClassClone->BuildAttributeName(attributeNew->GetName()));
 	attributeNew->SetType(KWType::Continuous);
@@ -2540,7 +2500,7 @@ void KWClass::Test()
 	testClassClone->InsertAttributeAfter(attributeNew, attribute);
 	// Avant fin
 	attribute = testClassClone->GetTailAttribute();
-	testClassClone->RenameAttribute(attribute, "LastAtt");
+	testClassClone->UnsafeRenameAttribute(attribute, "LastAtt");
 	attributeNew = attribute->Clone();
 	attributeNew->SetName(testClassClone->BuildAttributeName(attributeNew->GetName()));
 	attributeNew->SetType(KWType::Continuous);

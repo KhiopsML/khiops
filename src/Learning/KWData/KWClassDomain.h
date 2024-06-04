@@ -85,11 +85,10 @@ public:
 	// Supression et destruction
 	void DeleteClass(const ALString& sClassName);
 
-	// Renommage d'une classe ou d'un attribut
+	// Renommage d'une classe
 	// Le nom cible ne doit pas exister
 	// Propagation a toutes les utilisations dans les regles de derivation
 	void RenameClass(KWClass* refClass, const ALString& sNewClassName);
-	void RenameAttribute(KWAttribute* refAttribute, const ALString& sNewAttributeName);
 
 	// Acces massifs
 	int GetClassNumber() const;

@@ -133,12 +133,6 @@ public:
 	void InsertAttributeBefore(KWAttribute* attribute, KWAttribute* attributeRef);
 	void InsertAttributeAfter(KWAttribute* attribute, KWAttribute* attributeRef);
 
-	// Renommage d'un attribut
-	// Le nom cible ne doit pas exister parmi les attribut ou les blocs.
-	// Propagation a toutes les references a cet attribut dans les regles
-	// de derivations des attributs de la classe
-	void RenameAttribute(KWAttribute* refAttribute, const ALString& sNewName);
-
 	// Renommage d'un attribut sans se soucier des utilisation dans les regles
 	// Le nom doit etre inexistant dans la classe
 	void UnsafeRenameAttribute(KWAttribute* refAttribute, const ALString& sNewName);
