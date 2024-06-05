@@ -75,26 +75,25 @@ public:
 	// c'est a dire avec une methode GetReference() renvoyant false
 	// On peut alors designer la liste des attributs natifs de la table en sortie
 	// a alimenter par la regle.
-	// On utilise la classe KWDerivationRuleOperand de facon genrique comme
+	// On utilise la classe KWDerivationRuleOperand de facon generique comme
 	// pour les operandes en entree, bien que seuls soient autorises les
 	// operande avec origine de type attribut (ni constante, ni regle)
-	// La plupart des services de gestion de ces operandes en sortie sont
-	// implementee dans la classe dediee KWDRTableCreation
 
 	// Nombre d'operandes en sortie
-	int GetOutputOperandNumber() const;
+	int GetOutputOperandNumber() const override;
 
 	// Initialisation/modification du nombre d'operande
 	// Les operandes en trop sont supprimes, ceux en plus sont ajoutes
+	// avec une origine de type attribut
 	void SetOutputOperandNumber(int nValue);
 
 	// Indicateur de nombre variable d'operandes en sortie (defaut: false)
 	// Fonctionnalite similaire aux operandes en entree
 	void SetVariableOutputOperandNumber(boolean bValue);
-	boolean GetVariableOutputOperandNumber() const;
+	boolean GetVariableOutputOperandNumber() const override;
 
 	// Acces aux operandes en sortie
-	KWDerivationRuleOperand* GetOutputOperandAt(int nIndex) const;
+	KWDerivationRuleOperand* GetOutputOperandAt(int nIndex) const override;
 
 	// Ajout d'un operande en sortie en fin de liste
 	void AddOutputOperand(KWDerivationRuleOperand* operand);
@@ -161,13 +160,17 @@ public:
 	///// Implementation
 protected:
 	// Redefinition des methodes virtuelles
-	void InternalCompleteTypeInfo(const KWClass* kwcOwnerClass, NumericKeyDictionary* nkdAttributes) override;
+	void InternalCompleteTypeInfo(const KWClass* kwcOwnerClass,
+				      NumericKeyDictionary* nkdCompletedAttributes) override;
 
-	// Indique si le premier operande est de type Relation pour une alimentation de type vue
+	// Indique si l'alimentation de type vue est activee
+	// Dans ce cas, le premier operande est de type Relation pour le dictionnaire en entree de la vue,
+	// et on verifie la compatibilite entre les attributs natif du dictionnaire en sortie et
+	// les attributs correspondants du dictionnaire en entree
 	// Par defaut: true
-	boolean IsFirstOperandViewType() const;
+	virtual boolean IsViewModeActivated() const;
 
-	// Creation d'un objet de la vue avec la classe en sortie
+	// Creation d'un objet de la vue avec le dictionnaire en sortie
 	KWObject* NewTargetObject(longint lCreationIndex) const;
 
 	// Copie des champs commun d'un object
@@ -179,10 +182,17 @@ protected:
 	// Indicateur de regle a nombre variable d'operandes en sortie
 	boolean bVariableOutputOperandNumber;
 
-	// Index de chargement des attributs source et cible de la vue
-	KWLoadIndexVector livSourceAttributeLoadIndexes;
-	KWLoadIndexVector livTargetAttributeLoadIndexes;
-	IntVector ivTargetAttributeTypes;
+	// Index de chargement des attributs pour une alimentation de type calcul
+	// On precise pour chaque attribut concerne lie a un operande en sortie son index
+	// dans le dictionnaire cible
+	KWLoadIndexVector livComputeModeTargetAttributeLoadIndexes;
+	IntVector ivComputeModeTargetAttributeTypes;
+
+	// Index de chargement des attributs pour une alimentation de type vue
+	// On precise pour chaque attribut concerne son index dans le dictionnaire source et cible
+	KWLoadIndexVector livViewModeSourceAttributeLoadIndexes;
+	KWLoadIndexVector livViewModeTargetAttributeLoadIndexes;
+	IntVector ivViewModeTargetAttributeTypes;
 
 	// Classe de la cible de la vue
 	KWClass* kwcCompiledTargetClass;

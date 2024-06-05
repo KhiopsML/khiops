@@ -24,7 +24,7 @@ int yylex();
 
 /* Fonctions utilitaires pour rappatrier les information du parser vers une regle */
 boolean ImportParserRuleOperands(const KWDerivationRule* parsedRule, KWDerivationRule* rule);
-boolean ImportParserRuleOutputOperands(const KWDRRelationCreationRule* parsedRule, KWDRRelationCreationRule* rule);
+boolean ImportParserRuleOutputOperands(const KWDerivationRule* parsedRule, KWDerivationRule* rule);
 boolean ImportParserOperand(const ALString& sRuleName, int nOperandIndex, 
                             KWDerivationRuleOperand* parsedOperand, KWDerivationRuleOperand* operand);
 
@@ -1048,8 +1048,6 @@ derivationRule: derivationRuleBody closeparenthesis
 			boolean bOk = true;
 			KWDerivationRule* ruleBody = $1;
 			KWDerivationRule* rule;
-			KWDRRelationCreationRule* relationCreationRuleBody;
-			KWDRRelationCreationRule* relationCreationRule;
 			ALString sTmp;
 
 			/* Recherche de la regle de reference */
@@ -1088,17 +1086,26 @@ derivationRule: derivationRuleBody closeparenthesis
 				/* Sinon, transfert des operandes en sortie */
 				else
 				{
+					/* Import des operandes en sortie de la regle */
 					/* On est passe prealablement dans le parser par une regle de creation de relation */
 					/* pour stocker les operandes en sortie, que l'on va ici exploiter */
-
-					/* Cast des regles pour gerer les operandes en sortie */
-					relationCreationRuleBody = cast(KWDRRelationCreationRule*, ruleBody);
-					relationCreationRule = cast(KWDRRelationCreationRule*, rule);
-
-					/* Import des operandes en sortie de la regle */
-					bOk =
-					    ImportParserRuleOutputOperands(relationCreationRuleBody, relationCreationRule);
+					bOk = ImportParserRuleOutputOperands(ruleBody, rule);
 				}
+			}
+			/* Gestion des operandes en sortie dans le cas ou le parser n'a stocke des operandes en sortie */
+			else if (bOk and KWType::IsRelation(rule->GetType()) and not rule->GetReference())
+			{
+				/* Test du nombre d'operandes en sortie */
+				if ((rule->GetVariableOutputOperandNumber() and rule->GetOutputOperandNumber() > 1) or
+    				(not rule->GetVariableOutputOperandNumber() and rule->GetOutputOperandNumber() > 0))
+				{
+					yyerror(sTmp + "Missing output operands for rule " + rule->GetName() + " that requires them (at least " +
+						IntToString(rule->GetOutputOperandNumber()) + ")");
+					bOk = false;
+				}
+				/* Supression des eventuels operandes en sortie inutiles */
+				else if (rule->GetOutputOperandNumber() > 0)
+					cast(KWDRRelationCreationRule*, rule)->DeleteAllOutputOperands();
 			}
 
 			/* Verification de la definition de la regle */
@@ -1474,9 +1481,10 @@ boolean ImportParserRuleOperands(const KWDerivationRule* parsedRule, KWDerivatio
 	return bOk;
 }
 
-boolean ImportParserRuleOutputOperands(const KWDRRelationCreationRule* parsedRule, KWDRRelationCreationRule* rule)
+boolean ImportParserRuleOutputOperands(const KWDerivationRule* parsedRule, KWDerivationRule* rule)
 {
 	boolean bOk = true;
+	KWDRRelationCreationRule* creationRule;
 	KWDerivationRuleOperand* parsedOperand;
 	KWDerivationRuleOperand* operand;
 	int i;
@@ -1484,6 +1492,8 @@ boolean ImportParserRuleOutputOperands(const KWDRRelationCreationRule* parsedRul
 
 	require(parsedRule != NULL);
 	require(rule != NULL);
+	require(not parsedRule->GetReference());
+	require(not rule->GetReference());
 
 	/* Test du nombre d'operandes en sortie */
 	if ((rule->GetVariableOutputOperandNumber() and parsedRule->GetOutputOperandNumber() < rule->GetOutputOperandNumber() - 1) or
@@ -1498,13 +1508,16 @@ boolean ImportParserRuleOutputOperands(const KWDRRelationCreationRule* parsedRul
 	/* Verification et transfert des operandes en sortie */
 	else
 	{
+		/* Cast de la regle a alimenter en regle de creation de relation pour acceder a ses methodes dediees */
+		creationRule = cast(KWDRRelationCreationRule*, rule);
+
 		/* Dans le cas d'un nombre variable d'operandes en sortie, on commence par rajouter */
 		/* eventuellement des operandes en fin de regle pour preparer l'instanciation */
 		if (parsedRule->GetOutputOperandNumber() > rule->GetOutputOperandNumber())
 		{
 			assert(rule->GetVariableOutputOperandNumber());
 			while (rule->GetOutputOperandNumber() < parsedRule->GetOutputOperandNumber())
-				rule->AddOutputOperand(rule->GetOperandAt(rule->GetOutputOperandNumber() - 1)->Clone());
+				creationRule->AddOutputOperand(rule->GetOperandAt(rule->GetOutputOperandNumber() - 1)->Clone());
 		}
 
 		/* Dans le cas d'un nombre variable d'operandes en sortie, on supprime eventuellement */
@@ -1513,7 +1526,7 @@ boolean ImportParserRuleOutputOperands(const KWDRRelationCreationRule* parsedRul
 		{
 			assert(rule->GetVariableOutputOperandNumber());
 			assert(parsedRule->GetOutputOperandNumber() == rule->GetOutputOperandNumber() - 1);
-			rule->DeleteAllVariableOutputOperands();
+			creationRule->DeleteAllVariableOutputOperands();
 		}
 		assert(parsedRule->GetOutputOperandNumber() == rule->GetOutputOperandNumber());
 

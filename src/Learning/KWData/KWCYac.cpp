@@ -93,7 +93,7 @@ int yylex();
 
 /* Fonctions utilitaires pour rappatrier les information du parser vers une regle */
 boolean ImportParserRuleOperands(const KWDerivationRule* parsedRule, KWDerivationRule* rule);
-boolean ImportParserRuleOutputOperands(const KWDRRelationCreationRule* parsedRule, KWDRRelationCreationRule* rule);
+boolean ImportParserRuleOutputOperands(const KWDerivationRule* parsedRule, KWDerivationRule* rule);
 boolean ImportParserOperand(const ALString& sRuleName, int nOperandIndex, KWDerivationRuleOperand* parsedOperand,
 			    KWDerivationRuleOperand* operand);
 
@@ -569,8 +569,8 @@ static const yytype_int16 yyrline[] = {
     206,  210,  216,  229,  230,  233,  236,  246,  254,  295,  374,  393,  404,  447,  494,  586,  593,
     601,  607,  617,  630,  650,  672,  691,  708,  716,  851,  863,  870,  882,  889,  894,  901,  906,
     913,  917,  921,  925,  929,  933,  937,  941,  945,  949,  953,  961,  966,  972,  976,  980,  985,
-    994,  999,  1005, 1025, 1041, 1141, 1145, 1191, 1198, 1209, 1222, 1235, 1246, 1260, 1269, 1278, 1288,
-    1298, 1309, 1318, 1325, 1326, 1330, 1335, 1341, 1342, 1346, 1351, 1363, 1365};
+    994,  999,  1005, 1025, 1041, 1148, 1152, 1198, 1205, 1216, 1229, 1242, 1253, 1267, 1276, 1285, 1295,
+    1305, 1316, 1325, 1332, 1333, 1337, 1342, 1348, 1349, 1353, 1358, 1370, 1372};
 #endif
 
 /** Accessing symbol of state STATE.  */
@@ -2559,8 +2559,6 @@ yyreduce:
 		boolean bOk = true;
 		KWDerivationRule* ruleBody = (yyvsp[-1].kwdrValue);
 		KWDerivationRule* rule;
-		KWDRRelationCreationRule* relationCreationRuleBody;
-		KWDRRelationCreationRule* relationCreationRule;
 		ALString sTmp;
 
 		/* Recherche de la regle de reference */
@@ -2599,16 +2597,27 @@ yyreduce:
 			/* Sinon, transfert des operandes en sortie */
 			else
 			{
+				/* Import des operandes en sortie de la regle */
 				/* On est passe prealablement dans le parser par une regle de creation de relation */
 				/* pour stocker les operandes en sortie, que l'on va ici exploiter */
-
-				/* Cast des regles pour gerer les operandes en sortie */
-				relationCreationRuleBody = cast(KWDRRelationCreationRule*, ruleBody);
-				relationCreationRule = cast(KWDRRelationCreationRule*, rule);
-
-				/* Import des operandes en sortie de la regle */
-				bOk = ImportParserRuleOutputOperands(relationCreationRuleBody, relationCreationRule);
+				bOk = ImportParserRuleOutputOperands(ruleBody, rule);
 			}
+		}
+		/* Gestion des operandes en sortie dans le cas ou le parser n'a stocke des operandes en sortie */
+		else if (bOk and KWType::IsRelation(rule->GetType()) and not rule->GetReference())
+		{
+			/* Test du nombre d'operandes en sortie */
+			if ((rule->GetVariableOutputOperandNumber() and rule->GetOutputOperandNumber() > 1) or
+			    (not rule->GetVariableOutputOperandNumber() and rule->GetOutputOperandNumber() > 0))
+			{
+				yyerror(sTmp + "Missing output operands for rule " + rule->GetName() +
+					" that requires them (at least " + IntToString(rule->GetOutputOperandNumber()) +
+					")");
+				bOk = false;
+			}
+			/* Supression des eventuels operandes en sortie inutiles */
+			else if (rule->GetOutputOperandNumber() > 0)
+				cast(KWDRRelationCreationRule*, rule)->DeleteAllOutputOperands();
 		}
 
 		/* Verification de la definition de la regle */
@@ -2650,19 +2659,19 @@ yyreduce:
 		delete ruleBody;
 		(yyval.kwdrValue) = rule;
 	}
-#line 2651 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2658 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 73: /* derivationRuleBody: derivationRuleBegin  */
-#line 1142 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1149 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.kwdrValue) = (yyvsp[0].kwdrValue);
 	}
-#line 2659 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2666 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 74: /* derivationRuleBody: derivationRuleBegin ':' operandList  */
-#line 1146 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1153 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		KWDerivationRule* ruleBody = (yyvsp[-2].kwdrValue);
 		KWDRRelationCreationRule* ruleRelationCreationBody;
@@ -2708,19 +2717,19 @@ yyreduce:
 
 		(yyval.kwdrValue) = ruleRelationCreationBody;
 	}
-#line 2709 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2716 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 75: /* derivationRuleBody: derivationRuleHeader  */
-#line 1192 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1199 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.kwdrValue) = (yyvsp[0].kwdrValue);
 	}
-#line 2717 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2724 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 76: /* operandList: operandList ',' derivationRuleOperand  */
-#line 1199 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1206 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		ObjectArray* oaOperandList = (yyvsp[-2].oaOperands);
 		KWDerivationRuleOperand* operand = (yyvsp[0].kwdroValue);
@@ -2731,11 +2740,11 @@ yyreduce:
 		oaOperandList->Add(operand);
 		(yyval.oaOperands) = oaOperandList;
 	}
-#line 2732 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2739 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 77: /* operandList: derivationRuleOperand  */
-#line 1210 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1217 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		ObjectArray* oaOperandList;
 		KWDerivationRuleOperand* operand = (yyvsp[0].kwdroValue);
@@ -2746,11 +2755,11 @@ yyreduce:
 		oaOperandList->Add(operand);
 		(yyval.oaOperands) = oaOperandList;
 	}
-#line 2747 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2754 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 78: /* derivationRuleHeader: IDENTIFIER openparenthesis  */
-#line 1223 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1230 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		KWDerivationRule* rule;
 
@@ -2760,11 +2769,11 @@ yyreduce:
 		delete (yyvsp[-1].sValue);
 		(yyval.kwdrValue) = rule;
 	}
-#line 2761 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2768 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 79: /* derivationRuleBegin: derivationRuleHeader derivationRuleOperand  */
-#line 1236 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1243 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		KWDerivationRule* rule = (yyvsp[-1].kwdrValue);
 		KWDerivationRuleOperand* operand = (yyvsp[0].kwdroValue);
@@ -2775,11 +2784,11 @@ yyreduce:
 		rule->AddOperand(operand);
 		(yyval.kwdrValue) = rule;
 	}
-#line 2776 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2783 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 80: /* derivationRuleBegin: derivationRuleBegin ',' derivationRuleOperand  */
-#line 1247 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1254 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		KWDerivationRule* rule = (yyvsp[-2].kwdrValue);
 		KWDerivationRuleOperand* operand = (yyvsp[0].kwdroValue);
@@ -2790,11 +2799,11 @@ yyreduce:
 		rule->AddOperand(operand);
 		(yyval.kwdrValue) = rule;
 	}
-#line 2791 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2798 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 81: /* derivationRuleOperand: IDENTIFIER  */
-#line 1261 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1268 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		KWDerivationRuleOperand* operand;
 		operand = new KWDerivationRuleOperand;
@@ -2803,11 +2812,11 @@ yyreduce:
 		delete (yyvsp[0].sValue);
 		(yyval.kwdroValue) = operand;
 	}
-#line 2804 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2811 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 82: /* derivationRuleOperand: CONTINUOUSLITTERAL  */
-#line 1270 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1277 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		KWDerivationRuleOperand* operand;
 		operand = new KWDerivationRuleOperand;
@@ -2816,11 +2825,11 @@ yyreduce:
 		operand->SetContinuousConstant((yyvsp[0].cValue));
 		(yyval.kwdroValue) = operand;
 	}
-#line 2817 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2824 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 83: /* derivationRuleOperand: bigstring  */
-#line 1279 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1286 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		KWDerivationRuleOperand* operand;
 		operand = new KWDerivationRuleOperand;
@@ -2830,11 +2839,11 @@ yyreduce:
 		delete (yyvsp[0].sValue);
 		(yyval.kwdroValue) = operand;
 	}
-#line 2831 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2838 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 84: /* derivationRuleOperand: derivationRule  */
-#line 1289 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1296 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		KWDerivationRuleOperand* operand;
 		operand = new KWDerivationRuleOperand;
@@ -2844,22 +2853,22 @@ yyreduce:
 			operand->SetType(operand->GetDerivationRule()->GetType());
 		(yyval.kwdroValue) = operand;
 	}
-#line 2845 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2852 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 85: /* derivationRuleOperand: '.' derivationRuleOperand  */
-#line 1299 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1306 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		KWDerivationRuleOperand* operand;
 		operand = (yyvsp[0].kwdroValue);
 		operand->SetScopeLevel(operand->GetScopeLevel() + 1);
 		(yyval.kwdroValue) = operand;
 	}
-#line 2856 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2863 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 86: /* bigstring: bigstring '+' STRINGLITTERAL  */
-#line 1310 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1317 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		/* Concatenation des deux chaines */
 		(yyval.sValue) = new ALString(*(yyvsp[-2].sValue) + *(yyvsp[0].sValue));
@@ -2868,59 +2877,59 @@ yyreduce:
 		delete (yyvsp[-2].sValue);
 		delete (yyvsp[0].sValue);
 	}
-#line 2869 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2876 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 87: /* bigstring: STRINGLITTERAL  */
-#line 1319 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1326 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.sValue) = (yyvsp[0].sValue);
 	}
-#line 2877 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2884 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 89: /* semicolon: ';' ';'  */
-#line 1327 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1334 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		yyerror("There is one superfluous ';'");
 	}
-#line 2885 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2892 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 90: /* semicolon: ';' ';' ';'  */
-#line 1331 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1338 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		yyerror("Too many ';'");
 	}
-#line 2893 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2900 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 91: /* semicolon: %empty  */
-#line 1335 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1342 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		yyerror("Missing ';'");
 	}
-#line 2901 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2908 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 93: /* openparenthesis: '(' '('  */
-#line 1343 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1350 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		yyerror("There is one superfluous '('");
 	}
-#line 2909 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2916 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 94: /* openparenthesis: '(' '(' '('  */
-#line 1347 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1354 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		yyerror("Too many '('");
 	}
-#line 2917 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2924 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 95: /* openparenthesis: %empty  */
-#line 1351 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1358 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		/* ERRORMGT */
 		/* Attention: supprimer cette instruction en cas d'evolution du parser */
@@ -2929,11 +2938,11 @@ yyreduce:
 		/* sa consoeur 3 shift/reduce conflicts et 12 reduce conflicts     */
 		yyerror("Missing '('");
 	}
-#line 2930 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2937 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 97: /* closeparenthesis: %empty  */
-#line 1365 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1372 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		/* ERRORMGT */
 		/* Attention: supprimer cette instruction en cas d'evolution du parser */
@@ -2942,10 +2951,10 @@ yyreduce:
 		/* sa consoeur 3 shift/reduce conflicts et 12 reduce conflicts     */
 		yyerror("Missing ')'");
 	}
-#line 2943 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2950 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
-#line 2947 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2954 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 
 	default:
 		break;
@@ -3124,7 +3133,7 @@ yyreturnlab:
 	return yyresult;
 }
 
-#line 1376 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1383 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 
 #include "KWCLex.inc"
 
@@ -3215,9 +3224,10 @@ boolean ImportParserRuleOperands(const KWDerivationRule* parsedRule, KWDerivatio
 	return bOk;
 }
 
-boolean ImportParserRuleOutputOperands(const KWDRRelationCreationRule* parsedRule, KWDRRelationCreationRule* rule)
+boolean ImportParserRuleOutputOperands(const KWDerivationRule* parsedRule, KWDerivationRule* rule)
 {
 	boolean bOk = true;
+	KWDRRelationCreationRule* creationRule;
 	KWDerivationRuleOperand* parsedOperand;
 	KWDerivationRuleOperand* operand;
 	int i;
@@ -3225,6 +3235,8 @@ boolean ImportParserRuleOutputOperands(const KWDRRelationCreationRule* parsedRul
 
 	require(parsedRule != NULL);
 	require(rule != NULL);
+	require(not parsedRule->GetReference());
+	require(not rule->GetReference());
 
 	/* Test du nombre d'operandes en sortie */
 	if ((rule->GetVariableOutputOperandNumber() and
@@ -3241,13 +3253,17 @@ boolean ImportParserRuleOutputOperands(const KWDRRelationCreationRule* parsedRul
 	/* Verification et transfert des operandes en sortie */
 	else
 	{
+		/* Cast de la regle a alimenter en regle de creation de relation pour acceder a ses methodes dediees */
+		creationRule = cast(KWDRRelationCreationRule*, rule);
+
 		/* Dans le cas d'un nombre variable d'operandes en sortie, on commence par rajouter */
 		/* eventuellement des operandes en fin de regle pour preparer l'instanciation */
 		if (parsedRule->GetOutputOperandNumber() > rule->GetOutputOperandNumber())
 		{
 			assert(rule->GetVariableOutputOperandNumber());
 			while (rule->GetOutputOperandNumber() < parsedRule->GetOutputOperandNumber())
-				rule->AddOutputOperand(rule->GetOperandAt(rule->GetOutputOperandNumber() - 1)->Clone());
+				creationRule->AddOutputOperand(
+				    rule->GetOperandAt(rule->GetOutputOperandNumber() - 1)->Clone());
 		}
 
 		/* Dans le cas d'un nombre variable d'operandes en sortie, on supprime eventuellement */
@@ -3256,7 +3272,7 @@ boolean ImportParserRuleOutputOperands(const KWDRRelationCreationRule* parsedRul
 		{
 			assert(rule->GetVariableOutputOperandNumber());
 			assert(parsedRule->GetOutputOperandNumber() == rule->GetOutputOperandNumber() - 1);
-			rule->DeleteAllVariableOutputOperands();
+			creationRule->DeleteAllVariableOutputOperands();
 		}
 		assert(parsedRule->GetOutputOperandNumber() == rule->GetOutputOperandNumber());
 

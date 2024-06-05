@@ -311,6 +311,23 @@ boolean KWDerivationRule::IsSecondaryScopeOperand(int nOperandIndex) const
 	return GetMultipleScope() and nOperandIndex > 0;
 }
 
+int KWDerivationRule::GetOutputOperandNumber() const
+{
+	return 0;
+}
+
+boolean KWDerivationRule::GetVariableOutputOperandNumber() const
+{
+	return false;
+}
+
+KWDerivationRuleOperand* KWDerivationRule::GetOutputOperandAt(int nIndex) const
+{
+	require(0 <= nIndex and nIndex < GetOutputOperandNumber());
+	assert(false);
+	return NULL;
+}
+
 boolean KWDerivationRule::CheckDefinition() const
 {
 	// On test d'abord les operandes, qui peuvent etre a l'origine d'erreur sur la regle elle-meme
@@ -380,7 +397,7 @@ boolean KWDerivationRule::CheckRuleDefinition() const
 		if (GetVariableOperandNumber() and oaOperands.GetSize() == 0)
 		{
 			AddError("The definition of a registered derivation rule with a variable number of operands "
-				 "must hold at least one operand");
+				 "must contain at least one operand");
 			bResult = false;
 		}
 	}
@@ -406,9 +423,13 @@ boolean KWDerivationRule::CheckOperandsDefinition() const
 		}
 
 		// Seul le dernier operande, en cas de nombre variables d'operandes, a le droit d'etre de type Unknown
-		assert((i == oaOperands.GetSize() - 1 and GetVariableOperandNumber() and
-			operand->GetType() == KWType::Unknown) or
-		       KWType::Check(operand->GetType()));
+		if (bResult and (i < oaOperands.GetSize() - 1 or not GetVariableOperandNumber()) and
+		    operand->GetType() == KWType::Unknown)
+		{
+			AddError(sTmp + "Incorrect operand " + IntToString(i + 1) +
+				 " that cannot be specified with type " + KWType::ToString(operand->GetType()));
+			bResult = false;
+		}
 	}
 
 	// Cas des regle avec scope multiple
@@ -2065,6 +2086,7 @@ void KWDerivationRule::RegisterDerivationRule(KWDerivationRule* kwdrRule)
 	require(kwdrRule->GetName() != "");
 	require(KWClass::CheckName(kwdrRule->GetName(), KWClass::Rule, kwdrRule));
 	require(odDerivationRules == NULL or odDerivationRules->Lookup(kwdrRule->GetName()) == NULL);
+	require(kwdrRule->CheckDefinition());
 
 	// Creation si necessaire du dictionnaire de regles
 	if (odDerivationRules == NULL)

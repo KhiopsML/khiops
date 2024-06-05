@@ -98,6 +98,7 @@ const ALString KWDerivationRuleOperand::GetExternalStringConstant() const
 boolean KWDerivationRuleOperand::CheckDefinition() const
 {
 	boolean bResult = true;
+	ALString sOperandOrigin;
 
 	// Type
 	if (GetType() != KWType::Unknown and not KWType::Check(GetType()))
@@ -134,23 +135,25 @@ boolean KWDerivationRuleOperand::CheckDefinition() const
 	       GetOrigin() == OriginAny);
 
 	// Verification de coherence entre type d'origine et parametre de l'origine
+	sOperandOrigin = OriginToString(GetOrigin(), GetType());
 	if (GetOrigin() == OriginAny and GetDataItemName() != "")
 		AddWarning(GetDataItemLabel() + " name specified (" + GetDataItemName() +
-			   ") for an operand with origin Any");
+			   ") for an operand with origin " + sOperandOrigin);
 	if (GetOrigin() == OriginAny and GetDerivationRule() != NULL)
-		AddWarning("Rule specified (" + GetDerivationRule()->GetName() + ") for an operand with origin Any");
+		AddWarning("Rule specified (" + GetDerivationRule()->GetName() + ") for an operand with origin " +
+			   sOperandOrigin);
 	if (GetOrigin() == OriginConstant and GetDataItemName() != "")
 		AddWarning(GetDataItemLabel() + " name specified (" + GetDataItemName() +
-			   ") for an operand with origin Constant");
+			   ") for an operand with origin " + sOperandOrigin);
 	if (GetOrigin() == OriginConstant and GetDerivationRule() != NULL)
-		AddWarning("Rule specified (" + GetDerivationRule()->GetName() +
-			   ") for an operand with origin Constant");
+		AddWarning("Rule specified (" + GetDerivationRule()->GetName() + ") for an operand with origin " +
+			   sOperandOrigin);
 	if (GetOrigin() == OriginAttribute and GetDerivationRule() != NULL)
-		AddWarning("Rule specified (" + GetDerivationRule()->GetName() +
-			   ") for an operand with origin Attribute");
+		AddWarning("Rule specified (" + GetDerivationRule()->GetName() + ") for an operand with origin " +
+			   sOperandOrigin);
 	if (GetOrigin() == OriginRule and GetDataItemName() != "")
 		AddWarning(GetDataItemLabel() + " name specified (" + GetDataItemName() +
-			   ") for an operand with origin Rule");
+			   ") for an operand with origin " + sOperandOrigin);
 
 	// Verification eventuelle du type de constante
 	if (GetOrigin() == OriginConstant and not KWType::IsSimple(GetType()))

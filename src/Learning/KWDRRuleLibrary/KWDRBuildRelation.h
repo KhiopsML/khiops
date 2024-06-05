@@ -56,13 +56,6 @@ public:
 	// Calcul de l'attribut derive
 	ObjectArray* ComputeObjectArrayResult(const KWObject* kwoObject) const override;
 
-	//DDD
-	// Reimplementation temporaire le temps de la mise au point
-	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
-	void Compile(KWClass* kwcOwnerClass) override;
-	void BuildAllUsedAttributes(const KWAttribute* derivedAttribute,
-				    NumericKeyDictionary* nkdAllUsedAttributes) const override;
-
 	///////////////////////////////////////////////////////
 	///// Implementation
 protected:

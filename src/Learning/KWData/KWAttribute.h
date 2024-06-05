@@ -190,7 +190,7 @@ public:
 
 	// Completion eventuelle de la regle avec les informations de type
 	// en maintenant un dictionnaire d'attributs pour eviter les boucles
-	void InternalCompleteTypeInfo(KWClass* kwcOwnerClass, NumericKeyDictionary* nkdAttributes);
+	void InternalCompleteTypeInfo(KWClass* kwcOwnerClass, NumericKeyDictionary* nkdCompletedAttributes);
 
 protected:
 	// Seule la KWClass englobante peut acceder au fonctionnalites internes
