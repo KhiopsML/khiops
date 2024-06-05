@@ -257,6 +257,24 @@ public:
 	// Indique si un operande est du scope secondaire, en cas de regle avec gestion de scope multiple
 	virtual boolean IsSecondaryScopeOperand(int nOperandIndex) const;
 
+	//////////////////////////////////////////////////////////////////////////////////////
+	// Gestion des operandes en sortie de regles
+	// Cela ne concerne que les regles de creation de Table ou Entity,
+	// c'est a dire avec une methode GetReference() renvoyant false
+	// Toute la gestion de ce type de regle est sous-traitee a la classe dediee KWRelationCreationRule
+	// pour des raison de modularite de l'implementation
+	// On ne definit ci-dessous en virtuel que les methodes de consultation des specifications
+	// pour simplifier l'implementation dans la classe KWRelationCreationRule et dans le parseur de dictionnaire
+
+	// Nombre d'operandes en sortie (defaut: 0)
+	virtual int GetOutputOperandNumber() const;
+
+	// Indicateur de nombre variable d'operandes en sortie (defaut: false)
+	virtual boolean GetVariableOutputOperandNumber() const;
+
+	// Acces aux operandes en sortie
+	virtual KWDerivationRuleOperand* GetOutputOperandAt(int nIndex) const;
+
 	//////////////////////////////////////////////////////////////////////////
 	// Methodes de verification
 	// Ces methodes se decomposent en deux parties, sur la regle et sur ses operandes
@@ -473,7 +491,8 @@ public:
 
 	// Completion eventuelle de la regle avec les informations de type
 	// en maintenant un dictionnaire d'attributs pour eviter les boucles
-	virtual void InternalCompleteTypeInfo(const KWClass* kwcOwnerClass, NumericKeyDictionary* nkdAttributes);
+	virtual void InternalCompleteTypeInfo(const KWClass* kwcOwnerClass,
+					      NumericKeyDictionary* nkdCompletedAttributes);
 
 	// Methode a destination de KWDerivationRuleOperand::Compile
 	void AddMainScopeSecondaryOperands(const KWClass* kwcOwnerClass, KWDerivationRuleOperand* operand);
