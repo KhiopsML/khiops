@@ -203,8 +203,9 @@ boolean KWClassifierEvaluationTask::ComputeResourceRequirements()
 	GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->UpgradeMax(lMaxSlaveMemoryRequirement);
 	assert(GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->Check());
 
-	// On demande un distribution balancee de la memoire entre maitre et esclaves
-	GetResourceRequirements()->SetMemoryAllocationPolicy(RMTaskResourceRequirement::balanced);
+	// En priorite, on attribut la memoire au maitre, qui collecte
+	// l'ensemble des scores calcules par les esclaves
+	GetResourceRequirements()->SetMemoryAllocationPolicy(RMTaskResourceRequirement::masterPreferred);
 
 	return bOk;
 }
@@ -943,9 +944,9 @@ boolean KWRegressorEvaluationTask::ComputeResourceRequirements()
 	GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->UpgradeMax(
 	    min(64 * lMB, 2 * lMaxRequiredEvaluationMemory));
 
-	// En priorite, on attribut la memoire au maitre, qui collecte l'ensemble des scores
-	// calcules par les esclaves
-	GetResourceRequirements()->SetMemoryAllocationPolicy(RMTaskResourceRequirement::balanced);
+	// En priorite, on attribut la memoire au maitre, qui collecte
+	// l'ensemble des scores calcules par les esclaves
+	GetResourceRequirements()->SetMemoryAllocationPolicy(RMTaskResourceRequirement::masterPreferred);
 	return bOk;
 }
 

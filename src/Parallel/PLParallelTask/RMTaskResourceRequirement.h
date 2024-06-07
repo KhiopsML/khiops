@@ -65,11 +65,11 @@ public:
 
 	// Politique d'allocation de la memoire restante apres avoir affecte le minimum a chaque processus.
 	// Il ya 4 exigences a saturer : maitre, esclave, variables partagees, et exigence globale dur les esclaves.
-	// L'algorithme reparti le surplus proportionellement aux exigences : il calcule un pourcentage p quiest le meme
-	// pour chaque type d'exigence. Le surplus pour chaque exigence est p * (exigenceMax-ExigenceMin) Soit on
-	// reparti proportionnellement les exigences : balanced Soit on donne la maximum au maitre et on reparti le
-	// reste : masterPreferred Soit on donne le maximum aux esclaves et on reparti le reste: slavePrefered (par
-	// defaut)
+	// L'algorithme reparti le surplus proportionellement aux exigences : il calcule un pourcentage p qui est le meme
+	// pour chaque type d'exigence. Le surplus pour chaque exigence est p * (exigenceMax-ExigenceMin)
+	// Soit on repartit proportionnellement les exigences : balanced
+	// Soit on donne la maximum au maitre et on reparti le reste : masterPreferred
+	// Soit on donne le maximum aux esclaves et on reparti le reste: slavePrefered (par  defaut)
 	void SetMemoryAllocationPolicy(ALLOCATION_POLICY policy);
 	ALLOCATION_POLICY GetMemoryAllocationPolicy() const;
 
