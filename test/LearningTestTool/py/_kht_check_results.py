@@ -582,9 +582,7 @@ def check_results(test_dir, forced_context=None):
                             ):
                                 fatal_error_recovery = False
                         # Pattern dans le cas du code retour
-                        return_code_error_pattern = (
-                            "Wrong return code: 1 (should be 0 or 2)"
-                        )
+                        return_code_error_pattern = "Wrong return code: 1 (should be 0)"
                         if file_name == kht.RETURN_CODE_ERROR_LOG:
                             if (
                                 len(test_file_lines) == 0
