@@ -536,7 +536,7 @@ def evaluate_tool_on_test_dir(
                     exception,
                 )
         # Cas du code retour
-        if khiops_process.returncode != 0 and khiops_process.returncode != 2:
+        if khiops_process.returncode != 0:
             try:
                 with open(
                     os.path.join(
@@ -548,7 +548,7 @@ def evaluate_tool_on_test_dir(
                     return_code_file.write(
                         "Wrong return code: "
                         + str(khiops_process.returncode)
-                        + " (should be 0 or 2)"
+                        + " (should be 0)"
                     )
             except Exception as exception:
                 print(
