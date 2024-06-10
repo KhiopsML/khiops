@@ -119,11 +119,10 @@ protected:
 	//
 	// Lors de l'analyse des objets de la table principale, on pousse l'analyse des objets internes completement
 	// jusqu'a avoir decouvert tous les objets des tables externes utilises
-	// Lors de l'analyse des objets des tables externes, tous les objet externes seront parcorusus exhaustivement,
+	// Lors de l'analyse des objets des tables externes, tous les objets externes seront parcourus exhaustivement,
 	// mais seuls ceux identifies lors de la passe d'analyse des objets principaux sont pris en compte.
 
-	// Analyse d'objet pour enregistrer les selectionner les objet a garder dans les ecahntillons par classes de
-	// selection
+	// Analyse d'objet pour enregistrer les sous-objets a garder dans les echantillons par classes de selection
 	void ExtractSelectionObjects(const KWObject* kwoObject, longint lMainObjectIndex, longint& lSubObjectIndex,
 				     NumericKeyDictionary* nkdAllSubObjects);
 
