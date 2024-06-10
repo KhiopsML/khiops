@@ -337,6 +337,7 @@ boolean KWDerivationRule::CheckDefinition() const
 boolean KWDerivationRule::CheckRuleDefinition() const
 {
 	boolean bResult = true;
+	boolean bIsGenericRule;
 	ALString sTmp;
 
 	// Nom de la regle
@@ -392,7 +393,8 @@ boolean KWDerivationRule::CheckRuleDefinition() const
 
 	// Au moins un operande pour les regles a nombre variable d'operandes
 	// uniquement pour la regle "generique"
-	if (LookupDerivationRule(GetName()) == this)
+	bIsGenericRule = LookupDerivationRule(GetName()) == this;
+	if (bIsGenericRule)
 	{
 		if (GetVariableOperandNumber() and oaOperands.GetSize() == 0)
 		{
@@ -408,9 +410,13 @@ boolean KWDerivationRule::CheckRuleDefinition() const
 boolean KWDerivationRule::CheckOperandsDefinition() const
 {
 	boolean bResult = true;
+	boolean bIsGenericRule;
 	KWDerivationRuleOperand* operand;
 	int i;
 	ALString sTmp;
+
+	// Recherche s'il s'agit de la regle generique enregistree
+	bIsGenericRule = LookupDerivationRule(GetName()) == this;
 
 	// Verification des operandes
 	for (i = 0; i < oaOperands.GetSize(); i++)
@@ -422,13 +428,17 @@ boolean KWDerivationRule::CheckOperandsDefinition() const
 			bResult = false;
 		}
 
-		// Seul le dernier operande, en cas de nombre variables d'operandes, a le droit d'etre de type Unknown
-		if (bResult and (i < oaOperands.GetSize() - 1 or not GetVariableOperandNumber()) and
-		    operand->GetType() == KWType::Unknown)
+		// Pour la regle generique, seul le dernier operande, en cas de nombre variables d'operandes,
+		// a le droit d'etre de type Unknown
+		if (bResult and bIsGenericRule)
 		{
-			AddError(sTmp + "Incorrect operand " + IntToString(i + 1) +
-				 " that cannot be specified with type " + KWType::ToString(operand->GetType()));
-			bResult = false;
+			if ((i < oaOperands.GetSize() - 1 or not GetVariableOperandNumber()) and
+			    operand->GetType() == KWType::Unknown)
+			{
+				AddError("In the definition of a registered derivation rule with a variable number of "
+					 "operands, first operands must have their type specified");
+				bResult = false;
+			}
 		}
 	}
 
@@ -527,6 +537,7 @@ boolean KWDerivationRule::CheckOperandsFamily(const KWDerivationRule* ruleFamily
 {
 	boolean bResult = true;
 	KWDerivationRuleOperand* operand;
+	KWDerivationRuleOperand* familyVariableOperand;
 	int i;
 	ALString sTmp;
 
@@ -538,18 +549,22 @@ boolean KWDerivationRule::CheckOperandsFamily(const KWDerivationRule* ruleFamily
 	{
 		operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(i));
 
-		// Cas du nombre variable d'operandes utilise effectivement
-		if (i >= ruleFamily->GetOperandNumber())
+		// Cas des derniers operandes pour un nombre variable d'operandes
+		if (ruleFamily->GetVariableOperandNumber() and i >= ruleFamily->GetOperandNumber() - 1)
 		{
-			assert(ruleFamily->GetVariableOperandNumber());
-			if (not operand->CheckFamily(ruleFamily->GetOperandAt(ruleFamily->GetOperandNumber() - 1)))
+			familyVariableOperand = ruleFamily->GetOperandAt(ruleFamily->GetOperandNumber() - 1);
+
+			// Controle sauf dans le cas de type Unknown pour la famille
+			// Dans ce cas, le controle est a effectuer dans la classe
+			if (familyVariableOperand->GetType() != KWType::Unknown and
+			    not operand->CheckFamily(familyVariableOperand))
 			{
 				AddError(sTmp + "Operand " + IntToString(i + 1) +
 					 " inconsistent with that of the registered rule");
 				bResult = false;
 			}
 		}
-		// Cas du nombre constant d'operandes (ou nombre variable sous-utilise)
+		// Cas des premiers operandes
 		else
 		{
 			if (not operand->CheckFamily(ruleFamily->GetOperandAt(i)))
