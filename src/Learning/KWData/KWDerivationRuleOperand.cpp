@@ -209,7 +209,7 @@ boolean KWDerivationRuleOperand::CheckFamily(const KWDerivationRuleOperand* oper
 	if (bResult and KWType::IsGeneralRelation(GetType()) and operandFamily->GetObjectClassName() != "" and
 	    GetObjectClassName() != operandFamily->GetObjectClassName())
 	{
-		AddError("Dictionary name for " + KWType::ToString(GetType()) + " type " + GetObjectClassName() +
+		AddError("Dictionary " + GetObjectClassName() + " used with type " + KWType::ToString(GetType()) +
 			 " inconsistent with that of the operand (" + operandFamily->GetObjectClassName() + ")");
 		bResult = false;
 	}
@@ -298,6 +298,9 @@ boolean KWDerivationRuleOperand::CheckCompleteness(const KWClass* kwcOwnerClass)
 	// Test de definition de la regle: arret si incorrect
 	if (not CheckDefinition())
 		return false;
+
+	// Un type valide est specifie a ce niveau
+	assert(KWType::Check(GetType()));
 
 	// La regle predefinie de resolution des references aux objets ne peut etre utilisee
 	// comme operande d'une regle de derivation
