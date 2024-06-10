@@ -6,33 +6,36 @@
 
 void KWDRRegisterBuildRelationRules()
 {
-	KWDerivationRule::RegisterDerivationRule(new KWDRProtoBuildTableView);
-	KWDerivationRule::RegisterDerivationRule(new KWDRProtoBuildTableAdvancedView);
+	KWDerivationRule::RegisterDerivationRule(new KWDRBuildTableView);
+	KWDerivationRule::RegisterDerivationRule(new KWDRBuildTableAdvancedView);
+	KWDerivationRule::RegisterDerivationRule(new KWDRBuildEntityView);
+	KWDerivationRule::RegisterDerivationRule(new KWDRBuildEntityAdvancedView);
+	KWDerivationRule::RegisterDerivationRule(new KWDRBuildEntity);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
-// Classe KWDRProtoBuildTableView
+// Classe KWDRBuildTableView
 
-KWDRProtoBuildTableView::KWDRProtoBuildTableView()
+KWDRBuildTableView::KWDRBuildTableView()
 {
-	SetName("ProtoBuildTableView");
-	SetLabel("Table view");
+	SetName("BuildTableView");
+	SetLabel("Build table view");
 	SetOperandNumber(1);
 	GetFirstOperand()->SetType(KWType::ObjectArray);
 }
 
-KWDRProtoBuildTableView::~KWDRProtoBuildTableView() {}
+KWDRBuildTableView::~KWDRBuildTableView() {}
 
-KWDerivationRule* KWDRProtoBuildTableView::Create() const
+KWDerivationRule* KWDRBuildTableView::Create() const
 {
-	return new KWDRProtoBuildTableView;
+	return new KWDRBuildTableView;
 }
 
-ObjectArray* KWDRProtoBuildTableView::ComputeObjectArrayResult(const KWObject* kwoObject) const
+ObjectArray* KWDRBuildTableView::ComputeObjectArrayResult(const KWObject* kwoObject) const
 {
 	ObjectArray* oaObjectArrayOperand;
-	KWObject* kwoContainedObject;
-	KWObject* kwoCopiedContainedObject;
+	KWObject* kwoSourceContainedObject;
+	KWObject* kwoTargetContainedObject;
 	int nObject;
 
 	require(IsCompiled());
@@ -44,49 +47,54 @@ ObjectArray* KWDRProtoBuildTableView::ComputeObjectArrayResult(const KWObject* k
 	oaObjectArrayOperand = GetFirstOperand()->GetObjectArrayValue(kwoObject);
 	if (oaObjectArrayOperand != NULL and oaObjectArrayOperand->GetSize() > 0)
 	{
-		// Copie du tableau en entree
 		oaResult.SetSize(oaObjectArrayOperand->GetSize());
 		for (nObject = 0; nObject < oaObjectArrayOperand->GetSize(); nObject++)
 		{
-			kwoContainedObject = cast(KWObject*, oaObjectArrayOperand->GetAt(nObject));
-			kwoCopiedContainedObject = NewTargetObject((longint)nObject + 1);
-			CopyObjectCommonNativeAttributes(kwoContainedObject, kwoCopiedContainedObject);
-			oaResult.SetAt(nObject, kwoCopiedContainedObject);
+			kwoSourceContainedObject = cast(KWObject*, oaObjectArrayOperand->GetAt(nObject));
+			kwoTargetContainedObject = NewTargetObject((longint)nObject + 1);
+
+			// Alimentation de type vue
+			FillViewModeTargetAttributes(kwoSourceContainedObject, kwoTargetContainedObject);
+			oaResult.SetAt(nObject, kwoTargetContainedObject);
 		}
 	}
 	return &oaResult;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
-// Classe KWDRProtoBuildTableAdvancedView
+// Classe KWDRBuildTableAdvancedView
 
-KWDRProtoBuildTableAdvancedView::KWDRProtoBuildTableAdvancedView()
+KWDRBuildTableAdvancedView::KWDRBuildTableAdvancedView()
 {
-	SetName("ProtoBuildTableAdvancedView");
-	SetLabel("Table advanced view");
+	SetName("BuildTableAdvancedView");
+	SetLabel("Build table advanced view");
+
+	// Variables en entree: une table de base, et un nombre variable d'operande pour alimenter les variables en sortie
 	SetMultipleScope(true);
 	SetOperandNumber(2);
 	GetFirstOperand()->SetType(KWType::ObjectArray);
-	GetSecondOperand()->SetType(KWType::Symbol);
+	GetSecondOperand()->SetType(KWType::Unknown);
+	SetVariableOperandNumber(true);
+
+	// Variables en sortie: nombre variable d'operandes pour alimenter la table en sortie
 	SetOutputOperandNumber(1);
-	GetOutputOperandAt(0)->SetType(KWType::Symbol);
+	GetOutputOperandAt(0)->SetType(KWType::Unknown);
+	SetVariableOutputOperandNumber(true);
 }
 
-KWDRProtoBuildTableAdvancedView::~KWDRProtoBuildTableAdvancedView() {}
+KWDRBuildTableAdvancedView::~KWDRBuildTableAdvancedView() {}
 
-KWDerivationRule* KWDRProtoBuildTableAdvancedView::Create() const
+KWDerivationRule* KWDRBuildTableAdvancedView::Create() const
 {
-	return new KWDRProtoBuildTableAdvancedView;
+	return new KWDRBuildTableAdvancedView;
 }
 
-ObjectArray* KWDRProtoBuildTableAdvancedView::ComputeObjectArrayResult(const KWObject* kwoObject) const
+ObjectArray* KWDRBuildTableAdvancedView::ComputeObjectArrayResult(const KWObject* kwoObject) const
 {
 	ObjectArray* oaObjectArrayOperand;
-	KWObject* kwoContainedObject;
-	KWObject* kwoCopiedContainedObject;
+	KWObject* kwoSourceContainedObject;
+	KWObject* kwoTargetContainedObject;
 	int nObject;
-	int i;
-	KWDerivationRuleOperand* operand;
 
 	require(IsCompiled());
 
@@ -97,27 +105,150 @@ ObjectArray* KWDRProtoBuildTableAdvancedView::ComputeObjectArrayResult(const KWO
 	oaObjectArrayOperand = GetFirstOperand()->GetObjectArrayValue(kwoObject);
 	if (oaObjectArrayOperand != NULL and oaObjectArrayOperand->GetSize() > 0)
 	{
-		// Copie du tableau en entree
 		oaResult.SetSize(oaObjectArrayOperand->GetSize());
 		for (nObject = 0; nObject < oaObjectArrayOperand->GetSize(); nObject++)
 		{
-			kwoContainedObject = cast(KWObject*, oaObjectArrayOperand->GetAt(nObject));
+			kwoSourceContainedObject = cast(KWObject*, oaObjectArrayOperand->GetAt(nObject));
 
-			// Copie de l'objet source selon une alimentation de type vue
-			kwoCopiedContainedObject = NewTargetObject((longint)nObject + 1);
-			CopyObjectCommonNativeAttributes(kwoContainedObject, kwoCopiedContainedObject);
-			oaResult.SetAt(nObject, kwoCopiedContainedObject);
+			// Alimentation de type vue
+			kwoTargetContainedObject = NewTargetObject((longint)nObject + 1);
+			FillViewModeTargetAttributes(kwoSourceContainedObject, kwoTargetContainedObject);
+			oaResult.SetAt(nObject, kwoTargetContainedObject);
 
-			// Modification des champ supplementaire selon une alimentation de type calcul
+			// Alimentation de type calcul pour les operandes en entree correspondant
 			assert(GetOperandNumber() - 1 == ivComputeModeTargetAttributeTypes.GetSize());
-			for (i = 0; i < ivComputeModeTargetAttributeTypes.GetSize(); i++)
-			{
-				operand = GetOperandAt(i + 1);
-				kwoCopiedContainedObject->SetSymbolValueAt(
-				    livComputeModeTargetAttributeLoadIndexes.GetAt(i),
-				    operand->GetSymbolValue(kwoContainedObject));
-			}
+			FillComputeModeTargetAttributesForVariableOperandNumber(kwoSourceContainedObject,
+										kwoTargetContainedObject);
 		}
 	}
 	return &oaResult;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+// Classe KWDRBuildEntityView
+
+KWDRBuildEntityView::KWDRBuildEntityView()
+{
+	SetName("BuildEntityView");
+	SetLabel("Build entity view");
+	SetType(KWType::Object);
+	SetOperandNumber(1);
+	GetFirstOperand()->SetType(KWType::Object);
+}
+
+KWDRBuildEntityView::~KWDRBuildEntityView() {}
+
+KWDerivationRule* KWDRBuildEntityView::Create() const
+{
+	return new KWDRBuildEntityView;
+}
+
+KWObject* KWDRBuildEntityView::ComputeObjectResult(const KWObject* kwoObject) const
+{
+	KWObject* kwoSourceObject;
+	KWObject* kwoTargetObject;
+
+	require(IsCompiled());
+
+	// Copie de l'object en entree
+	kwoSourceObject = GetFirstOperand()->GetObjectValue(kwoObject);
+	kwoTargetObject = NULL;
+	if (kwoSourceObject != NULL)
+	{
+		kwoTargetObject = NewTargetObject((longint)1);
+
+		// Alimentation de type vue
+		FillViewModeTargetAttributes(kwoSourceObject, kwoTargetObject);
+	}
+	return kwoTargetObject;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+// Classe KWDRBuildEntityAdvancedView
+
+KWDRBuildEntityAdvancedView::KWDRBuildEntityAdvancedView()
+{
+	SetName("BuildEntityAdvancedView");
+	SetLabel("Build entity advanced view");
+	SetType(KWType::Object);
+	GetFirstOperand()->SetType(KWType::Object);
+}
+
+KWDRBuildEntityAdvancedView::~KWDRBuildEntityAdvancedView() {}
+
+KWDerivationRule* KWDRBuildEntityAdvancedView::Create() const
+{
+	return new KWDRBuildEntityAdvancedView;
+}
+
+KWObject* KWDRBuildEntityAdvancedView::ComputeObjectResult(const KWObject* kwoObject) const
+{
+	KWObject* kwoSourceObject;
+	KWObject* kwoTargetObject;
+
+	require(IsCompiled());
+
+	// Copie de l'object en entree
+	kwoSourceObject = GetFirstOperand()->GetObjectValue(kwoObject);
+	kwoTargetObject = NULL;
+	if (kwoSourceObject != NULL)
+	{
+		kwoTargetObject = NewTargetObject((longint)1);
+
+		// Alimentation de type vue
+		FillViewModeTargetAttributes(kwoSourceObject, kwoTargetObject);
+
+		// Alimentation de type calcul pour les operandes en entree correspondant
+		assert(GetOperandNumber() - 1 == ivComputeModeTargetAttributeTypes.GetSize());
+		FillComputeModeTargetAttributesForVariableOperandNumber(kwoSourceObject, kwoTargetObject);
+	}
+	return kwoTargetObject;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+// Classe KWDRBuildEntity
+
+KWDRBuildEntity::KWDRBuildEntity()
+{
+	SetName("BuildEntity");
+	SetLabel("Build entity");
+	SetType(KWType::Object);
+
+	// Variables en entree: nombre variable d'operande pour alimenter les variables en sortie
+	SetOperandNumber(1);
+	GetFirstOperand()->SetType(KWType::Unknown);
+	SetVariableOperandNumber(true);
+
+	// Variables en sortie: nombre variable d'operandes pour alimenter la table en sortie
+	SetOutputOperandNumber(1);
+	GetOutputOperandAt(0)->SetType(KWType::Unknown);
+	SetVariableOutputOperandNumber(true);
+}
+
+KWDRBuildEntity::~KWDRBuildEntity() {}
+
+KWDerivationRule* KWDRBuildEntity::Create() const
+{
+	return new KWDRBuildEntity;
+}
+
+KWObject* KWDRBuildEntity::ComputeObjectResult(const KWObject* kwoObject) const
+{
+	KWObject* kwoTargetObject;
+
+	require(IsCompiled());
+	assert(GetOperandNumber() == GetOutputOperandNumber());
+	assert(GetOperandNumber() == ivComputeModeTargetAttributeTypes.GetSize());
+
+	// Creation de l'objet en sortie
+	kwoTargetObject = NewTargetObject((longint)1);
+
+	// Alimentation de type calcul pour les operandes en entree correspondant
+	FillComputeModeTargetAttributesForVariableOperandNumber(kwoObject, kwoTargetObject);
+	return kwoTargetObject;
+}
+
+boolean KWDRBuildEntity::IsViewModeActivated() const
+{
+	return false;
 }

@@ -181,8 +181,8 @@ public:
 	// La partie variable des operandes (instanciee dans une regle "specifique")
 	// peut comprendre zero a plusieurs operandes.
 	// Si le type du dernier operande n'est pas specifie (KWType::Unknown),
-	// c'est a la regle de controler les types (methode Check) de ses operandes
-	// en nombre variable (qui peuvent etre potentiellement de type differents)
+	// c'est a la regle specifique de controler les types (methode CheckOperandsFamily) de
+	// ses operandes en nombre variable (qui peuvent etre potentiellement de type differents)
 	void SetVariableOperandNumber(boolean bValue);
 	boolean GetVariableOperandNumber() const;
 
@@ -716,7 +716,7 @@ public:
 	void SetDataItemName(const ALString& sName);
 	const ALString& GetDataItemName() const;
 
-	// Libelle associe au type de data item, selon le type Value u ValueBlock de l'operande
+	// Libelle associe au type de data item, selon le type Value du ValueBlock de l'operande
 	const ALString GetDataItemLabel() const;
 
 	// Regle de derivation associee

@@ -1100,7 +1100,8 @@ derivationRule: derivationRuleBody closeparenthesis
     				(not rule->GetVariableOutputOperandNumber() and rule->GetOutputOperandNumber() > 0))
 				{
 					yyerror(sTmp + "Missing output operands for rule " + rule->GetName() + " that requires them (at least " +
-						IntToString(rule->GetOutputOperandNumber()) + ")");
+						IntToString(rule->GetOutputOperandNumber() -
+						(rule->GetVariableOutputOperandNumber() ? 1 : 0)) + ")");
 					bOk = false;
 				}
 				/* Supression des eventuels operandes en sortie inutiles */
@@ -1517,7 +1518,7 @@ boolean ImportParserRuleOutputOperands(const KWDerivationRule* parsedRule, KWDer
 		{
 			assert(rule->GetVariableOutputOperandNumber());
 			while (rule->GetOutputOperandNumber() < parsedRule->GetOutputOperandNumber())
-				creationRule->AddOutputOperand(rule->GetOperandAt(rule->GetOutputOperandNumber() - 1)->Clone());
+				creationRule->AddOutputOperand(rule->GetOutputOperandAt(rule->GetOutputOperandNumber() - 1)->Clone());
 		}
 
 		/* Dans le cas d'un nombre variable d'operandes en sortie, on supprime eventuellement */

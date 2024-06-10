@@ -283,8 +283,9 @@ boolean KWAttribute::Check() const
 			bOk = false;
 		}
 
-		// La classe utilisee doit avoir une cle
-		if (attributeClass != NULL and attributeClass->GetKeyAttributeNumber() == 0)
+		// La classe utilisee doit avoir une cle dans le cas d'un attribut natif
+		if (GetAnyDerivationRule() == NULL and attributeClass != NULL and
+		    attributeClass->GetKeyAttributeNumber() == 0)
 		{
 			AddError("The used dictionary " + attributeClass->GetName() + " should have a key");
 			bOk = false;
@@ -292,8 +293,8 @@ boolean KWAttribute::Check() const
 
 		// La cle de la classe utilisee doit etre au moins aussi longue que
 		// celle de la classe utilisante dans le cas d'un lien de composition
-		if (not GetReference() and kwdrRule == NULL and attributeClass != NULL and parentClass != NULL and
-		    not attributeClass->GetRoot() and
+		if (not GetReference() and GetAnyDerivationRule() == NULL and attributeClass != NULL and
+		    parentClass != NULL and not attributeClass->GetRoot() and
 		    attributeClass->GetKeyAttributeNumber() < parentClass->GetKeyAttributeNumber())
 		{
 			AddError("In used dictionary (" + attributeClass->GetName() + "), the length of the key (" +

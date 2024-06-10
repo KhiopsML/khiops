@@ -89,6 +89,11 @@ public:
 
 	// Indicateur de nombre variable d'operandes en sortie (defaut: false)
 	// Fonctionnalite similaire aux operandes en entree
+	// Si le type du dernier operande en sortie n'est pas specifie (KWType::Unknown),
+	// on verifie que le type est un type de variable native compatible avec celui
+	// du dictonnaire en sortie
+	// Dans le cas d'un nombre variable d'operandes a la fois en entree et en sortie,
+	// ceux ci doivent etre en meme nombre et de meme type
 	void SetVariableOutputOperandNumber(boolean bValue);
 	boolean GetVariableOutputOperandNumber() const override;
 
@@ -163,6 +168,9 @@ protected:
 	void InternalCompleteTypeInfo(const KWClass* kwcOwnerClass,
 				      NumericKeyDictionary* nkdCompletedAttributes) override;
 
+	// Test si le type d'un operande en sortie est valid
+	boolean IsValidOutputOperandType(int nType) const;
+
 	// Indique si l'alimentation de type vue est activee
 	// Dans ce cas, le premier operande est de type Relation pour le dictionnaire en entree de la vue,
 	// et on verifie la compatibilite entre les attributs natif du dictionnaire en sortie et
@@ -173,8 +181,14 @@ protected:
 	// Creation d'un objet de la vue avec le dictionnaire en sortie
 	KWObject* NewTargetObject(longint lCreationIndex) const;
 
-	// Copie des champs commun d'un object
-	void CopyObjectCommonNativeAttributes(const KWObject* kwoSourceObject, KWObject* kwoTargetObject) const;
+	// Alimentation de type vue des attributs cibles
+	void FillViewModeTargetAttributes(const KWObject* kwoSourceObject, KWObject* kwoTargetObject) const;
+
+	// Alimentation de type calcul des attributs cibles dans le cas d'un nombre variable d'operandes en entree
+	// Dans ce cas, on doit avoir egalement un nombre variable d'operandes en sortie, qui doivent
+	// correspondre aux operande en entree
+	void FillComputeModeTargetAttributesForVariableOperandNumber(const KWObject* kwoSourceObject,
+								     KWObject* kwoTargetObject) const;
 
 	// Operandes en sortie
 	ObjectArray oaOutputOperands;
@@ -199,7 +213,7 @@ protected:
 };
 
 ////////////////////////////////////////////////////////////////////////////
-// Classe KWDRRelationCreationRule
+// Classe KWDRTableCreationRule
 // Classe ancetre des regle de creation de Table
 class KWDRTableCreationRule : public KWDRRelationCreationRule
 {
@@ -237,6 +251,11 @@ inline KWDerivationRuleOperand* KWDRRelationCreationRule::GetOutputOperandAt(int
 {
 	require(0 <= nIndex and nIndex < oaOutputOperands.GetSize());
 	return cast(KWDerivationRuleOperand*, oaOutputOperands.GetAt(nIndex));
+}
+
+inline boolean KWDRRelationCreationRule::IsValidOutputOperandType(int nType) const
+{
+	return KWType::IsStored(nType) or KWType::IsRelation(nType);
 }
 
 inline KWObject* KWDRRelationCreationRule::NewTargetObject(longint lCreationIndex) const
