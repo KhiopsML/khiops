@@ -311,14 +311,27 @@ def evaluate_tool_on_test_dir(
                 utils.remove_file(file_path)
 
         # khiops en mode expert via une variable d'environnement
-        os.putenv(kht.KHIOPS_EXPERT_MODE, "true")
+        os.environ[kht.KHIOPS_EXPERT_MODE] = "true"
 
         # khiops en mode HardMemoryLimit via une variable d'environnement pour provoquer
         # un plantage physique de l'allocateur en cas de depassement des contraintes memoires des scenarios
-        os.putenv(kht.KHIOPS_HARD_MEMORY_LIMIT_MODE, "true")
+        os.environ[kht.KHIOPS_HARD_MEMORY_LIMIT_MODE] = "true"
 
         # khiops en mode crash test via une variable d'environnement
-        os.putenv(kht.KHIOPS_CRASH_TEST_MODE, "true")
+        os.environ[kht.KHIOPS_CRASH_TEST_MODE] = "true"
+
+        # Ajout de variables d'environements propres a OpenMPI, elles remplacent les parametres
+        # on peut ansi lancer indiferemment mpich ou openmpi
+        if platform.system() == "Linux":
+            # Supprime les traces en cas d'erreur fatale de khiops. Option --quiet
+            os.environ["OMPI_MCA_orte_execute_quiet"] = "true"
+
+            # permet de lancer plus de processus qu'il n'y a de coeurs. Option --oversubscribe
+            os.environ["OMPI_MCA_rmaps_base_oversubscribe"] = "true"
+
+            # permet de lancer en tant que root. Option --allow-run-as-root
+            os.environ["OMPI_ALLOW_RUN_AS_ROOT"] = "1"
+            os.environ["OMPI_ALLOW_RUN_AS_ROOT_CONFIRM"] = "1"
 
         # Construction des parametres
         khiops_params = []
