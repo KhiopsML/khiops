@@ -69,17 +69,14 @@ Configuration:
    - macOS (via conda, see https://khiops.org), intel and ARM, 64 bits
 
 Windows software:
-   - Java Runtime Environment V7 or higher
+   - Microsoft MPI 10.1.3
    - Automatic detection and silent installation during the Khiops installation process on Windows
-   - For specific installation (other than default installation), search "get Java" on your search
-     engine to obtain the installer for each prerequisite component, and proceed with a manual
-     installation
    - For a silent installation, run the installer with /S option, and /D=installationDir to choose a
      specific installation directory.
 
 Linux software:
-	Java Runtime Environment V7 or higher, mpich (>3.0), libstdc++6
-	Automatic detection and silent installation during the Khiops installation process
+   - Java Runtime Environment V7 or higher, mpich (>3.0), libstdc++6
+   - Automatic detection and silent installation during the Khiops installation process
 
 
 macOS and other platforms: see https://khiops.org
@@ -97,6 +94,8 @@ Install location (usually C:\Program Files\khiops):
   - doc sub-directory:
     - reference guides and tutorial for Khiops components
     - start with KhiopsTutorial.pdf
+  - jre sub-directory:
+    - Java Runtime Environment provided by justj
 
 Other locations:
   - %USERPROFILE%\khiops_data\lastrun directory (usually C:\Users\<USERNAME>\khiops_data\lastrun):
@@ -116,9 +115,6 @@ Khiops files on Linux
   - start with KhiopsTutorial.pdf
   - README.txt: this file
   - WHATSNEW.txt: detailed release notes
-  - samples directory:
-	  directory tree with database samples (database files `.txt` and dictionary files `.kdic`)
-	  see samples/README.txt
 
 /tmp/khiops/$USER:
   - contains scenario and log files for last run of Khiops and Khiops Coclustering

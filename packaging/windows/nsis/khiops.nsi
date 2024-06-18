@@ -46,8 +46,7 @@ ManifestDPIAware true
 !insertmacro CheckInputParameter KHIOPS_WINDOWS_BUILD_DIR
 !insertmacro CheckInputParameter KHIOPS_VIZ_INSTALLER_PATH
 !insertmacro CheckInputParameter KHIOPS_COVIZ_INSTALLER_PATH
-!insertmacro CheckInputParameter JRE_INSTALLER_PATH
-!insertmacro CheckInputParameter JRE_VERSION
+!insertmacro CheckInputParameter JRE_PATH
 !insertmacro CheckInputParameter MSMPI_INSTALLER_PATH
 !insertmacro CheckInputParameter MSMPI_VERSION
 !insertmacro CheckInputParameter KHIOPS_SAMPLES_DIR
@@ -66,11 +65,9 @@ Var /GLOBAL IsMPIRequired
 
 # Requirements installation flags
 Var /GLOBAL MPIInstallationNeeded
-Var /GLOBAL JavaInstallationNeeded
 
 # Requirements installation messages
 Var /GLOBAL MPIInstallationMessage
-Var /GLOBAL JavaInstallationMessage
 
 # Number of physical cores
 Var /GLOBAL PhysicalCoresNumber
@@ -161,10 +158,6 @@ Section "Install" SecInstall
   # Detect Java
   Call RequirementsDetection
 
-  # Install java if needed
-  ${If} $JavaInstallationNeeded == "1"
-      Call InstallJava
-  ${EndIf}
 
   # MPI installation is always required, because Khiops is linked with MPI DLL
   ${If} $MPIInstallationNeeded == "1"
@@ -287,6 +280,9 @@ Section "Install" SecInstall
     File "/oname=README.txt" "${KHIOPS_SAMPLES_DIR}\CustomerExtended\README.md"
   ${EndIf}
 
+  # Install JRE
+  SetOutPath $INSTDIR\jre
+  File /nonfatal /a /r "${JRE_PATH}\"
 
   # Install Khiops Visualization App
 
@@ -536,6 +532,9 @@ Section "Uninstall"
   Delete "$INSTDIR\WHATSNEW.txt"
   RMDir /r "$INSTDIR\doc"
 
+  # Delete jre
+  RMDir /r "$INSTDIR\jre"
+
   # Delete icons
   RMDir /r "$INSTDIR\bin\icons"
 
@@ -718,13 +717,10 @@ Function RequirementsPageShow
 
   # Creation of page, with title and subtitle
   nsDialogs::Create 1018
-  !insertmacro MUI_HEADER_TEXT "Check software requirements" "Check Microsoft MPI and Java Runtime Environment"
+  !insertmacro MUI_HEADER_TEXT "Check software requirements" "Check Microsoft MPI"
 
   # Message to show for the Microsoft MPI installation
   ${NSD_CreateLabel} 0 20u 100% 10u $MPIInstallationMessage
-
-  # Message to show for the JRE installation
-  ${NSD_CreateLabel} 0 50u 100% 10u $JavaInstallationMessage
 
   # Show page
   nsDialogs::Show
@@ -784,33 +780,6 @@ Function RequirementsDetection
     Messagebox MB_OK "MS-MPI: needed=$MPIInstallationNeeded required=${MPIRequiredVersion} installed=$MPIInstalledVersion"
   !endif
 
-  # Detect and load Java Environment
-  Call DetectAndLoadJavaEnvironment
-
-  # Message to install Java
-  StrCpy $JavaInstallationNeeded "0"
-  StrCpy $JavaInstallationMessage ""
-  ${If} $JavaInstallationPath == ""
-    StrCpy $JavaInstallationMessage "Java Runtime Environment version ${JRE_VERSION} will be installed"
-    StrCpy $JavaInstallationNeeded "1"
-  # If Java allready installed
-  ${Else}
-    # We use JavaRequiredVersion and not JavaRequiredFullVersion because of a bug
-    ${VersionCompare} "${JavaRequiredVersion}" "$JavaInstalledVersion" $0
-    # Required version is newer than installed version
-    ${If} $0 == 1
-         StrCpy $JavaInstallationMessage "New Java runtime version 1.${JRE_VERSION} will be installed"
-         StrCpy $JavaInstallationNeeded "1"
-    # Require version is equal or older than installed version
-    ${Else}
-         StrCpy $JavaInstallationMessage "Java runtime already installed"
-    ${EndIf}
-  ${EndIf}
-
-  # Debug message
-  !ifdef DEBUG
-    Messagebox MB_OK "Java runtime: isNeeded=$JavaInstallationNeeded reqVersion=${JavaRequiredVersion}  installedVersion=$JavaInstalledVersion"
-  !endif
 FunctionEnd
 
 # No leave page for required software
