@@ -16,6 +16,9 @@ CMakeUserPresets.json
 build/
 khiops-conda/
 
+# Packaging directories
+packaging/windows/nsis/assets/
+
 # Cmake exceptions
 CMakeFiles/
 

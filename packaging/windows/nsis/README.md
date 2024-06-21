@@ -6,15 +6,15 @@ page](https://github.com/KhiopsML/khiops/wiki/Release-Process).
 ## What the installer does
 Besides installing the Khiops executables, the installer automatically detects the presence of:
 - [Microsoft MPI](https://learn.microsoft.com/en-us/message-passing-interface/microsoft-mpi)
-- [Java Runtime Environment](https://www.java.com/en/download/manual.jsp)
 
-and installs them if necessary.
+and installs it if necessary.
 
 
 It also installs:
 - The [Khiops Visualization](https://github.com/khiopsrelease/kv-release/releases/latest) and
   [Khiops Covisualization](https://github.com/khiopsrelease/kc-release/releases/latest) apps by
   executing their corresponding installers.
+- The JRE from [Eclipse Temurin](https://adoptium.net/fr/temurin/releases/)
 - The [sample datasets](https://github.com/KhiopsML/khiops-samples/releases/latest).
 - Documentation files:
   - PDF Guides .
@@ -36,8 +36,7 @@ makensis ^
    /DKHIOPS_VERSION=10.2.0-preview ^
    /DKHIOPS_REDUCED_VERSION=10.2.0 ^
    /DKHIOPS_WINDOWS_BUILD_DIR=..\..\..\build\windows-msvc-release ^
-   /DJRE_INSTALLER_PATH=.\assets\jre-8u371-windows-x64.exe ^
-   /DJRE_VERSION=1.8 ^
+   /DJRE_PATH=.\assets\jre\ ^
    /DMSMPI_INSTALLER_PATH=.\assets\msmpisetup.exe ^
    /DMSMPI_VERSION=10.1.3 ^
    /DKHIOPS_VIZ_INSTALLER_PATH=.\assets\khiops-visualization-Setup-11.0.2.exe ^
@@ -67,8 +66,7 @@ All the arguments are mandatory except for `DEBUG`, they must be prefixed by `/D
 - `KHIOPS_REDUCED_VERSION`: Khiops version without suffix and only digits and periods.
 - `KHIOPS_WINDOWS_BUILD_DIR`: Build directory for (usually `build\windows-msvc-release` relative to
   the project root).
-- `JRE_INSTALLER_PATH`: Path to the Java Runtime Environment (JRE) installer.
-- `JRE_VERSION`: JRE version.
+- `JRE_PATH`: Path to the Java Runtime Environment (JRE) directory.
 - `MSMPI_INSTALLER_PATH`: Path to the Microsoft MPI (MS-MPI) installer.
 - `MSMPI_MPI_VERSION`: MS-MPI version.
 - `KHIOPS_VIZ_INSTALLER_PATH`: Path to the Khiops Visualization installer.
