@@ -13,6 +13,9 @@ CMakeUserPresets.json
 build/
 khiops-conda/
 
+# Packaging directories
+packaging/windows/nsis/assets/
+
 # Cmake exceptions
 CMakeFiles/
 
@@ -30,3 +33,4 @@ KhiopsMemoryStats.all_stats.xlsx
 # Python
 *.pyc
 __pycache__/
+
