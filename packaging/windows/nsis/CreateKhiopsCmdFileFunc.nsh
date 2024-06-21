@@ -63,10 +63,9 @@ Function CreateKhiopsCmdFile
   FileWrite $0 `$\r$\n`
   FileWrite $0 `REM Initialize Khiops env variables$\r$\n`
   FileWrite $0 `call "%KHIOPS_HOME%\bin\khiops_env" --env > NUL$\r$\n`
-  FileWrite $0 `if not %_KHIOPS_BATCH_MODE%.==true. if not exist "%KHIOPS_JAVA_PATH%\jvm.dll" goto ERR_JAVA$\r$\n`
   FileWrite $0 `$\r$\n`
   FileWrite $0 `REM Set path$\r$\n`
-  FileWrite $0 `set path=%KHIOPS_PATH%;%KHIOPS_JAVA_HOME%\bin;%KHIOPS_JAVA_PATH%;%path%$\r$\n`
+  FileWrite $0 `set path=%KHIOPS_PATH%;%KHIOPS_JAVA_PATH%;%path%$\r$\n`
   FileWrite $0 `set classpath=%KHIOPS_CLASSPATH%;%classpath%$\r$\n`
   FileWrite $0 `$\r$\n`
   FileWrite $0 `$\r$\n`
@@ -106,10 +105,6 @@ Function CreateKhiopsCmdFile
   FileWrite $0 `$\r$\n`
   FileWrite $0 `:ERR_PATH$\r$\n`
   FileWrite $0 `start "KHIOPS CONFIG PROBLEM" echo ERROR Incorrect installation directory for Khiops (File $_ToolName.exe not found in directory %KHIOPS_PATH%$_BinSuffix)$\r$\n`
-  FileWrite $0 `exit /b 1$\r$\n`
-  FileWrite $0 `$\r$\n`
-  FileWrite $0 `:ERR_JAVA$\r$\n`
-  FileWrite $0 `start "KHIOPS CONFIG PROBLEM" echo ERROR Java not correctly installed, jvm.dll not found under java directory tree %_KHIOPS_JAVA_HOME% (%_KHIOPS_JAVA_HOME_ORIGIN%): see khiops_env.cmd file in %KHIOPS_HOME%\bin, after line 'Set user Java Home'$\r$\n`
   FileWrite $0 `exit /b 1$\r$\n`
   FileWrite $0 `$\r$\n`
   FileWrite $0 `:ERR_RETURN_CODE$\r$\n`

@@ -21,6 +21,11 @@ jobs:
       khiops-version: ${{ steps.get-version.outputs.khiops-version }}
     runs-on: windows-latest
     steps:
+      - name: Install Java Temurin
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
       - name: Obtain checkout ref
         shell: bash
         run: |
@@ -74,8 +79,7 @@ jobs:
             /DKHIOPS_VERSION=${{ env.KHIOPS_VERSION }} `
             /DKHIOPS_REDUCED_VERSION=${{ env.KHIOPS_REDUCED_VERSION }} `
             /DKHIOPS_WINDOWS_BUILD_DIR=..\..\..\build\windows-msvc-release `
-            /DJRE_INSTALLER_PATH=..\..\..\assets\${{ env.JRE_FILENAME }} `
-            /DJRE_VERSION=${{ env.JRE_VERSION }} `
+            /DJRE_PATH=..\..\..\assets\jre `
             /DMSMPI_INSTALLER_PATH=..\..\..\assets\${{ env.MSMPI_FILENAME }} `
             /DMSMPI_VERSION=${{ env.MSMPI_VERSION }} `
             /DKHIOPS_VIZ_INSTALLER_PATH=..\..\..\assets\${{ env.KHIOPS_VIZ_FILENAME }} `
