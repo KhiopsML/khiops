@@ -1156,12 +1156,14 @@ const ALString FileService::GetSystemTmpDir()
 	}
 #endif // _WIN32
 
-// Sur apple, le chemin du repertoire temporaire se termine par un '/'
+// Sur apple, le chemin du repertoire temporaire peut se terminer par un '/'
 // ce qui n'est pas le cas sur windows et linux. Pour unifier, on supprime
-// ce dernier caractere
+// ce dernier caractere s'il est egal a '/' et si ce n'est pas le repertoire racine
 #ifdef __APPLE__
-	assert(sTmpDir.GetAt(sTmpDir.GetLength() - 1) == GetFileSeparator());
-	return sTmpDir.Left(sTmpDir.GetLength() - 1);
+	if (sTmpDir.GetAt(sTmpDir.GetLength() - 1) == GetFileSeparator() && sTmpDir.GetLength() > 1)
+		return sTmpDir.Left(sTmpDir.GetLength() - 1);
+	else
+		return sTmpDir;
 #else
 	return sTmpDir;
 #endif
