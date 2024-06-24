@@ -1,0 +1,57 @@
+---
+name: Test Khiops Installation
+description: Check the outputs of Khiops in the console
+runs:
+  using: composite
+  # Test if the output of Khiops in the console is as expected (no mpi or java errors)
+  # We expect only one line in stdout+stderr when running 'khiops -v'
+  steps:
+    - name: Print status for debugging
+      shell: bash
+      # We force the process number to 4 because the runner has only 2 proc.
+      # With 2 proc khiops-env switches to serial and mpi is not used.
+      # The env var OMPI_MCA_rmaps_base_oversubscribe is for openmpi it corresponds to
+      # the flag --oversubscribe (Nodes are allowed to be oversubscribed)
+      env:
+        KHIOPS_PROC_NUMBER: 4
+        OMPI_MCA_rmaps_base_oversubscribe: true
+      run: |
+        khiops-env --env
+    - name: Check Khiops output
+      shell: bash
+      env:
+        KHIOPS_PROC_NUMBER: 4
+        OMPI_MCA_rmaps_base_oversubscribe: true
+      run: |
+        khiops -s
+        khiops -v &> output
+        LINE_NUMBER=$(wc -l < output)
+        if [ $LINE_NUMBER -gt 1 ] ;
+        then 
+          echo "::error::Unexpected output in khiops scripts"
+          false
+        fi
+    - name: Check Khiops coclustering output
+      shell: bash
+      run: |-
+        khiops_coclustering -s
+        khiops_coclustering -v &> output
+        LINE_NUMBER=$(wc -l < output)
+        if [ $LINE_NUMBER -gt 1 ] ;
+        then 
+          echo "::error::Unexpected output in khiops_coclustering scripts"
+          false
+        fi
+    - name: Check process number
+      shell: bash
+      env:
+        KHIOPS_PROC_NUMBER: 4
+        OMPI_MCA_rmaps_base_oversubscribe: true
+      run: |-
+        PROC_NUMBER_LIST=($(khiops -s | grep 'Logical processes on system'))
+        PROC_NUMBER=${PROC_NUMBER_LIST[-1]}
+        if [ "$PROC_NUMBER" != "$KHIOPS_PROC_NUMBER" ] ;
+        then
+          echo "::error::Wrong proc number ($PROC_NUMBER vs $KHIOPS_PROC_NUMBER)"
+          false
+        fi
