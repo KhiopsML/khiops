@@ -15,10 +15,12 @@ fi
 cmake --fresh --preset $CMAKE_PRESET -DBUILD_JARS=OFF -DTESTING=OFF
 
 # Build MODL and MODL_Coclustering
-cmake --build --preset $CMAKE_PRESET --parallel --target MODL MODL_Coclustering
+cmake --build --preset $CMAKE_PRESET --parallel --target MODL MODL_Coclustering KhiopsNativeInterface KNITransfer 
 
-# Move the MODL binaries to the Conda PREFIX path
+# Move the binaries to the Conda PREFIX path
 mv ./build/$CMAKE_PRESET/bin/MODL* "$PREFIX/bin"
+mv ./build/$CMAKE_PRESET/bin/KNITransfer* "$PREFIX/bin"
+mv ./build/$CMAKE_PRESET/lib/libKhiopsNativeInterface* "$PREFIX/lib"
 
 # Custom rpath relocation and signing executables for macOS in arm64
 #
