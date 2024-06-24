@@ -10,6 +10,7 @@ runs:
       if: runner.os == 'Linux'
       shell: bash
       run: |
+        # Detect Debian based OS
         if [ -d "/etc/apt" ]
         then
           apt-get install -y python3 > /dev/null
@@ -40,13 +41,17 @@ runs:
         fi
     - name: Check Khiops installation
       shell: bash
+      env:
+        KHIOPS_PROC_NUMBER: 4
+        OMPI_MCA_rmaps_base_oversubscribe: true
       run: |
-        export KHIOPS_PROC_NUMBER=4 
-        export OMPI_MCA_rmaps_base_oversubscribe=true
         "$KHIOPS_SCRIPT" -s
         "$KHIOPS_CC_SCRIPT" -s
     - name: Run Khiops tests
       shell: bash
+      env:
+        KHIOPS_PROC_NUMBER: 4
+        OMPI_MCA_rmaps_base_oversubscribe: true
       run: |
         cd test/LearningTest/TestKhiops/Standard/Iris/
         "$KHIOPS_SCRIPT" -b -i test.prm -e results/err.txt
