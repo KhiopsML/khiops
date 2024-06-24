@@ -108,20 +108,14 @@ jobs:
           dpkg -i ./artifacts/khiops-core* || true
           apt-get -f install -y
       - name: Check Khiops core installation
-        run: |
-          khiops-env --env
-          khiops -s
-          khiops_coclustering -s
+        uses: ./.github/actions/test-khiops-install
       - name: Install Khiops Desktop (with java)
         run: |
           dpkg -i ./artifacts//khiops_* || true
           apt-get -f install -y
       - name: Check Khiops installation
-        run: |
-          khiops-env --env
-          khiops -s
-          khiops_coclustering -s
-      - name: Test Khiops installation
+        uses: ./.github/actions/test-khiops-install
+      - name: Test Khiops on Iris dataset
         continue-on-error: ${{ matrix.os == 'debian:11' }}
         uses: ./.github/actions/test-khiops-install
   test-kni:
