@@ -1,5 +1,5 @@
 package:
-  name: khiops-core
+  name: khiops-binaries
   version: {{ os.environ.get('KHIOPS_VERSION') }}
 
 source:
@@ -37,12 +37,53 @@ requirements:
     - {{ mpi }}
 
 outputs:
+
+  # khiops-core package
   - name: khiops-core
+    version: {{ os.environ.get('KHIOPS_VERSION') }}
+    requirements:
+      build:
+        - cmake
+        - ninja
+        - {{ compiler('cxx') }}
+      host:
+        - {{ mpi }}
+      run:
+        - {{ mpi }}
+    files:
+      - bin/MODL*
     test:
       commands:
-        - MODL -v
-        - MODL_Coclustering -v
+        - MODL -s
+        - MODL_Coclustering -s
 
+  # kni package (do not need khiops-core as a runtime dependency)
+  - name: kni
+    version: {{ os.environ.get('KHIOPS_VERSION') }}
+    files: 
+      - lib/libKhiopsNativeInterface.so* # [linux]
+      - lib/libKhiopsNativeInterface*.dylib # [osx]
+      - lib/KhiopsNativeInterface.dll # [win]
+    requirements:
+      build:
+        - cmake
+        - ninja
+        - {{ compiler('cxx') }}
+  
+  # kni-transfer package (designed only to test kni)
+  - name: kni-transfer
+    version: {{ os.environ.get('KHIOPS_VERSION') }}
+    requirements:
+      build:
+        - cmake
+        - ninja
+        - {{ compiler('cxx') }}
+      run:
+        - kni 
+    files: 
+      - bin/KNITransfer.exe # [win]
+      - bin/KNITransfer # [linux or osx]
+      
 about:
   home: https://khiops.org
   license: BSD+3-clause
