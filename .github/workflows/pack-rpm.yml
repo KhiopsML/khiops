@@ -117,8 +117,8 @@ jobs:
           khiops-env --env
           khiops -s
           khiops_coclustering -s
-      - name: Test Khiops installation
-        uses: ./.github/actions/test-khiops-install
+      - name: Test Khiops on Iris dataset
+        uses: ./.github/actions/test-khiops-on-iris
   test-kni:
     needs: build
     runs-on: ubuntu-latest
