@@ -121,9 +121,9 @@ jobs:
           khiops-env --env
           khiops -s
           khiops_coclustering -s
-      - name: Test Khiops installation
+      - name: Test Khiops on Iris dataset
         continue-on-error: ${{ matrix.os == 'debian:11' }}
-        uses: ./.github/actions/test-khiops-install
+        uses: ./.github/actions/test-khiops-on-iris
   test-kni:
     needs: build
     runs-on: ubuntu-latest

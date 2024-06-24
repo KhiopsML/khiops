@@ -1,5 +1,5 @@
 ---
-name: Test Khiops Installation
+name: Test Khiops on Iris
 description: Tests a Khiops installation on the Iris dataset
 runs:
   using: composite
