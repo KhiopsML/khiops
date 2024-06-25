@@ -61,6 +61,12 @@ public:
 	// Taille de buffer preferee pour l'ensemble de la base
 	int GetDatabasePreferredBuferSize() const;
 
+	// Nombre d'objets dans le fichier, estime de facon heuristique
+	longint GetInMemoryEstimatedFileObjectNumber() const;
+
+	// Memoire utilisee par KWObject physique pour le fichier
+	longint GetEstimatedUsedMemoryPerObject() const;
+
 	// Memoire minimum necessaire pour ouvrir la base sans tenir compte des buffers
 	longint GetEmptyOpenNecessaryMemory() const;
 
@@ -109,6 +115,8 @@ protected:
 	KWClass kwcHeaderLineClass;
 	longint lTotalFileSize;
 	int nDatabasePreferredBufferSize;
+	longint lInMemoryEstimatedFileObjectNumber;
+	longint lEstimatedUsedMemoryPerObject;
 	longint lOutputNecessaryDiskSpace;
 	longint lEmptyOpenNecessaryMemory;
 	longint lMinOpenNecessaryMemory;

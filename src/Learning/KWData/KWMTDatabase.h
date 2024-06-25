@@ -129,32 +129,17 @@ protected:
 	// tri...)
 	void PhysicalReadAfterEndOfDatabase();
 
-	// Construction de la classe physique
-	// Completion en identifiant les attributs natif Object ou ObjecArray utilises par des regles
-	// de derivation et ne devant pas etre detruit suite a leur traitement par la classe physique.
-	// Ces attributs natifs sont geres dans les "UnusedNative...Attribute" de la classe (KWClass),
-	// qui, lors de la compilation, prevoit un emplacement memoire systematique pour les stocker
-	// et assurer leur memorisation au cas ou ils seraient referencables par des regles de derivation.
-	// La KWMTDatabase determine les attribut natifs non utilise a garder, pour piloter efficacement
-	// la methode de mutation des object physiques
-	void BuildPhysicalClass() override;
-
-	// Calcul du dictionnaire des attributs natifs inutilises a garder
-	void ComputeUnusedNativeAttributesToKeep(NumericKeyDictionary* nkdAttributes);
-	void ComputeUnusedNativeAttributesToKeepForRule(NumericKeyDictionary* nkdAttributes,
-							NumericKeyDictionary* nkdAnalysedRules, KWDerivationRule* rule);
-
 	// Destruction de la classe physique
 	// Completion en dereferencant les dictionnaire depuis le mapping et en nettoyant le dictionnaire
 	// des attributs natifs Object ou ObjectArray a detruire
 	void DeletePhysicalClass() override;
 
 	// Mutation d'un objet physique en objet logique
-	// Gestion du referencement des objets
+	// Gestion du referencement des objets des classes externes
 	void MutatePhysicalObject(KWObject* kwoPhysicalObject) const override;
 
 	// Test si un objet est selectionne
-	// Gestion du referencement des objets
+	// Gestion du referencement des objets des classes externes
 	boolean IsPhysicalObjectSelected(KWObject* kwoPhysicalObject) override;
 
 	// Creation recursive d'un mapping
