@@ -2068,10 +2068,168 @@ void KWDatabase::BuildPhysicalClass()
 		}
 	}
 
+	// Calcul des attributs natifs non utilises a garder pour gerer correctement la mutation des objets
+	ComputeUnusedNativeAttributesToKeep(&nkdUnusedNativeAttributesToKeep);
+
 	ensure(kwcPhysicalClass != NULL);
 	ensure(kwcPhysicalClass->GetName() == GetClassName());
 	ensure(kwcPhysicalClass->Check());
 	ensure(kwcPhysicalClass->GetLoadedAttributeNumber() >= kwcClass->GetLoadedAttributeNumber());
+}
+
+void KWDatabase::ComputeUnusedNativeAttributesToKeep(NumericKeyDictionary* nkdAttributes)
+{
+	const boolean bTrace = false;
+	ObjectArray oaImpactedClasses;
+	NumericKeyDictionary nkdImpactedClasses;
+	KWClass* kwcCurrentClass;
+	int nClass;
+	KWAttribute* attribute;
+	int nAttribute;
+	ObjectArray oaAttributesToKeep;
+	NumericKeyDictionary nkdAnalysedRules;
+
+	require(kwcClass != NULL);
+	require(nkdAttributes != NULL);
+	require(nkdAttributes->GetCount() == 0);
+
+	// Initialisation des classes a traiter avec la classe principale
+	oaImpactedClasses.Add(kwcClass);
+	nkdImpactedClasses.SetAt(kwcClass, kwcClass);
+
+	// Analyse des classes impactees, en ajoutant au fur et a mesure de nouvelles classes
+	// pour la composition des attributs natifs, et en analysant les regles de derivation
+	// pour determiner les attributs natifs referencees
+	// Ainsi, toute les classes utilisees recursivement sont ici prises en compte
+	for (nClass = 0; nClass < oaImpactedClasses.GetSize(); nClass++)
+	{
+		kwcCurrentClass = cast(KWClass*, oaImpactedClasses.GetAt(nClass));
+		assert(kwcCurrentClass->IsCompiled());
+
+		// Parcours des attributs utilises
+		for (nAttribute = 0; nAttribute < kwcCurrentClass->GetLoadedAttributeNumber(); nAttribute++)
+		{
+			attribute = kwcCurrentClass->GetLoadedAttributeAt(nAttribute);
+
+			// Traitement si attribut de type Object (dans un bloc ou non)
+			if (KWType::IsRelation(attribute->GetType()))
+			{
+				// Analyse si retourne par une regle de derivation
+				// On identifie ainsi les attributs Object natifs potentiellement references
+				if (attribute->GetAnyDerivationRule() != NULL)
+					ComputeUnusedNativeAttributesToKeepForRule(nkdAttributes, &nkdAnalysedRules,
+										   attribute->GetAnyDerivationRule());
+
+				// Ajout de la classe parmi les classes a analyser
+				if (nkdImpactedClasses.Lookup(attribute->GetClass()) == NULL)
+				{
+					oaImpactedClasses.Add(attribute->GetClass());
+					nkdImpactedClasses.SetAt(attribute->GetClass(), attribute->GetClass());
+				}
+			}
+		}
+	}
+
+	// Affichage des attributs a garder
+	if (bTrace)
+	{
+		// Export des attrribut a garder
+		nkdAttributes->ExportObjectArray(&oaAttributesToKeep);
+		oaAttributesToKeep.SetCompareFunction(KWAttributeCompareName);
+		oaAttributesToKeep.Sort();
+
+		// Affichage
+		cout << "Unused native attributes to keep\n";
+		for (nAttribute = 0; nAttribute < oaAttributesToKeep.GetSize(); nAttribute++)
+		{
+			attribute = cast(KWAttribute*, oaAttributesToKeep.GetAt(nAttribute));
+			cout << "\t" << attribute->GetClass()->GetName() << "\t" << attribute->GetName() << "\n";
+		}
+	}
+}
+
+void KWDatabase::ComputeUnusedNativeAttributesToKeepForRule(NumericKeyDictionary* nkdAttributes,
+							    NumericKeyDictionary* nkdAnalysedRules,
+							    KWDerivationRule* rule)
+{
+	KWDerivationRuleOperand* operand;
+	int nOperand;
+	KWAttribute* attribute;
+	KWAttributeBlock* attributeBlock;
+
+	require(kwcClass != NULL);
+	require(nkdAttributes != NULL);
+	require(nkdAnalysedRules != NULL);
+	require(rule != NULL);
+	require(KWType::IsGeneralRelation(rule->GetType()));
+
+	// Arret si regle deja analysee
+	if (nkdAnalysedRules->Lookup(rule) != NULL)
+		return;
+	// Sinon, on commence par memoriser la regle analysee
+	else
+		nkdAnalysedRules->SetAt(rule, rule);
+
+	// Parcours des operandes de la regle
+	for (nOperand = 0; nOperand < rule->GetOperandNumber(); nOperand++)
+	{
+		operand = rule->GetOperandAt(nOperand);
+
+		// Cas d'un type non bloc
+		if (not KWType::IsValueBlock(operand->GetType()))
+		{
+			// On considere l'operande s'il s'agit d'un objet du meme type que celui de la regle
+			// Il n'est pas utile de poursuivre l'analyse recursive des operandes si l'on a pas le bon type
+			// de relation
+			if (KWType::IsRelation(operand->GetType()) and
+			    operand->GetObjectClassName() == rule->GetObjectClassName())
+			{
+				// Propagation si regle
+				if (operand->GetDerivationRule() != NULL)
+				{
+					assert(not KWType::IsValueBlock(operand->GetType()));
+					ComputeUnusedNativeAttributesToKeepForRule(nkdAttributes, nkdAnalysedRules,
+										   operand->GetDerivationRule());
+				}
+				// Traitement de l'attribut sinon
+				else
+				{
+					attribute = operand->GetOriginAttribute();
+					assert(attribute->GetParentClass()->GetDomain() == kwcClass->GetDomain());
+
+					// Propagation si regle
+					if (attribute->GetAnyDerivationRule() != NULL)
+						ComputeUnusedNativeAttributesToKeepForRule(
+						    nkdAttributes, nkdAnalysedRules, attribute->GetAnyDerivationRule());
+
+					// Memorisation de l'attribut natif ou cree sinon, s'il n'est pas utilise
+					if (not attribute->IsInBlock() and not attribute->GetReference() and
+					    not attribute->GetUsed())
+						nkdAttributes->SetAt(attribute, attribute);
+				}
+			}
+		}
+		// Cas d'un type bloc
+		else
+		{
+			// On verifie qu'un operande de type block ne peut etre renvoye par une regle
+			assert(not(operand->GetOrigin() == KWDerivationRuleOperand::OriginRule));
+
+			// On considere l'operande s'il s'agit d'un bloc d'objets du meme type que celui de la regle
+			if (operand->GetType() == KWType::ObjectArrayValueBlock and
+			    operand->GetObjectClassName() == rule->GetObjectClassName())
+			{
+				// Traitement du bloc d'attributs
+				attributeBlock = operand->GetOriginAttributeBlock();
+				assert(attributeBlock->GetParentClass()->GetDomain() == kwcClass->GetDomain());
+
+				// Propagation a la regle: un bloc d'attributs de type relation ne peut qu'etre calcule
+				assert(attributeBlock->GetDerivationRule() != NULL);
+				ComputeUnusedNativeAttributesToKeepForRule(nkdAttributes, nkdAnalysedRules,
+									   attributeBlock->GetDerivationRule());
+			}
+		}
+	}
 }
 
 void KWDatabase::DeletePhysicalClass()
@@ -2091,6 +2249,9 @@ void KWDatabase::DeletePhysicalClass()
 		kwcCurrentClass->GetDatabaseDataItemsToCompute()->SetSize(0);
 		kwcCurrentClass->GetDatabaseTemporayDataItemsToComputeAndClean()->SetSize(0);
 	}
+
+	// Nettoyage du dictionnaire des attribut natif non utilises a detruire
+	nkdUnusedNativeAttributesToKeep.RemoveAll();
 }
 
 void KWDatabase::MutatePhysicalObject(KWObject* kwoPhysicalObject) const

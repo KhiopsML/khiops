@@ -270,6 +270,24 @@ int PLDatabaseTextFile::GetDatabasePreferredBuferSize() const
 		return plstDatabaseTextFile->GetDatabasePreferredBuferSize();
 }
 
+longint PLDatabaseTextFile::GetInMemoryEstimatedFileObjectNumber() const
+{
+	require(IsInitialized());
+	if (IsMultiTableTechnology())
+		return plmtDatabaseTextFile->GetInMemoryEstimatedFileObjectNumbers()->GetAt(0);
+	else
+		return plstDatabaseTextFile->GetInMemoryEstimatedFileObjectNumber();
+}
+
+longint PLDatabaseTextFile::GetEstimatedUsedMemoryPerObject() const
+{
+	require(IsInitialized());
+	if (IsMultiTableTechnology())
+		return plmtDatabaseTextFile->GetEstimatedUsedMemoryPerObject()->GetAt(0);
+	else
+		return plstDatabaseTextFile->GetEstimatedUsedMemoryPerObject();
+}
+
 longint PLDatabaseTextFile::GetEmptyOpenNecessaryMemory() const
 {
 	require(IsInitialized());
