@@ -1,5 +1,5 @@
-Khiops 10.0
-===========
+Khiops 10
+=========
   (c) 2024 Orange - All rights reserved.
   https://khiops.org
 
@@ -28,7 +28,7 @@ Main features
   - easy integration in information systems via batch mode, python library and
     online deployment library
 
-Khiops 10.0 - what's new
+Khiops 10 - what's new
     - New algorithm for Selective Naive Bayes predictor
         - improved accuracy using a direct optimization of variable weights,
         - improved interpretability and faster deployment time, with less variables selected,
