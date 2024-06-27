@@ -190,9 +190,7 @@ def get_results_ref_dir_time(test_dir):
     results_ref_dir, _ = get_results_ref_dir(test_dir)
     results_ref_test_time = None
     if results_ref_dir is not None:
-        time_file_path = os.path.join(
-            os.getcwd(), os.path.join(test_dir, results_ref_dir, kht.TIME_LOG)
-        )
+        time_file_path = os.path.join(test_dir, results_ref_dir, kht.TIME_LOG)
         if os.path.isfile(time_file_path):
             file_time = open(time_file_path, "r", errors="ignore")
             lines = file_time.readlines()
