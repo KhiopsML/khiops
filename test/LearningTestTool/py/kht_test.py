@@ -309,6 +309,11 @@ def evaluate_tool_on_test_dir(
             for file_name in os.listdir(results_dir):
                 file_path = os.path.join(results_dir, file_name)
                 utils.remove_file(file_path)
+        else:
+            # Creation du repertoire de resultats
+            # (on n'est pas sur que khiops cree le repertoire, par exemple en cas de Segmentation
+            #  fault et si il n'existe pas on ne pourra pas ecrire dedans...)
+            os.mkdir(results_dir)
 
         # khiops en mode expert via une variable d'environnement
         os.environ[kht.KHIOPS_EXPERT_MODE] = "true"
@@ -362,19 +367,13 @@ def evaluate_tool_on_test_dir(
         khiops_params.append("-i")
         khiops_params.append(os.path.join(os.getcwd(), kht.TEST_PRM))
         khiops_params.append("-e")
-        khiops_params.append(
-            os.path.join(os.getcwd(), test_dir, kht.RESULTS, kht.ERR_TXT)
-        )
+        khiops_params.append(os.path.join(results_dir, kht.ERR_TXT))
         if output_scenario:
             khiops_params.append("-o")
-            khiops_params.append(
-                os.path.join(os.getcwd(), test_dir, kht.RESULTS, "output_test.prm")
-            )
+            khiops_params.append(os.path.join(results_dir, "output_test.prm"))
         if task_file:
             khiops_params.append("-p")
-            khiops_params.append(
-                os.path.join(os.getcwd(), test_dir, kht.RESULTS, "task_progression.log")
-            )
+            khiops_params.append(os.path.join(results_dir, "task_progression.log"))
 
         # Calcul d'un time_out en fonction du temps de reference, uniquement si celui est disponible
         timeout = None
@@ -440,9 +439,7 @@ def evaluate_tool_on_test_dir(
         # Memorisation des infos sur les run en cas de timeout
         if len(timeout_expiration_lines) > 0:
             with open(
-                os.path.join(
-                    os.getcwd(), test_dir, kht.RESULTS, kht.PROCESS_TIMEOUT_ERROR_LOG
-                ),
+                os.path.join(results_dir, kht.PROCESS_TIMEOUT_ERROR_LOG),
                 "w",
                 errors="ignore",
             ) as timeout_file:
@@ -513,9 +510,7 @@ def evaluate_tool_on_test_dir(
             if not ok:
                 try:
                     with open(
-                        os.path.join(
-                            os.getcwd(), test_dir, kht.RESULTS, kht.STDOUT_ERROR_LOG
-                        ),
+                        os.path.join(results_dir, kht.STDOUT_ERROR_LOG),
                         "w",
                         errors="ignore",
                     ) as stdout_file:
@@ -534,9 +529,7 @@ def evaluate_tool_on_test_dir(
             print(stderr, file=sys.stderr)
             try:
                 with open(
-                    os.path.join(
-                        os.getcwd(), test_dir, kht.RESULTS, kht.STDERR_ERROR_LOG
-                    ),
+                    os.path.join(results_dir, kht.STDERR_ERROR_LOG),
                     "w",
                     errors="ignore",
                 ) as stderr_file:
@@ -554,9 +547,7 @@ def evaluate_tool_on_test_dir(
         if khiops_process.returncode != 0:
             try:
                 with open(
-                    os.path.join(
-                        os.getcwd(), test_dir, kht.RESULTS, kht.RETURN_CODE_ERROR_LOG
-                    ),
+                    os.path.join(results_dir, kht.RETURN_CODE_ERROR_LOG),
                     "w",
                     errors="ignore",
                 ) as return_code_file:
@@ -580,9 +571,7 @@ def evaluate_tool_on_test_dir(
         # Memorisation d'un fichier contenant le temp global
         try:
             with open(
-                os.path.join(
-                    os.getcwd(), os.path.join(test_dir, kht.RESULTS, kht.TIME_LOG)
-                ),
+                os.path.join(results_dir, kht.TIME_LOG),
                 "w",
                 errors="ignore",
             ) as time_file:
