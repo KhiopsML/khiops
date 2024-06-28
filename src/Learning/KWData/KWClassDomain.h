@@ -121,7 +121,7 @@ public:
 	// La compilation du domaine verifie egalement la presence de cycles
 	// de derivations, qui dans ce cas annule la validite des classes
 	// Prerequis: la classe doit etre valide (Check)
-	void Compile();
+	boolean Compile();
 
 	// Duplication d'un domaine
 	// Toutes les classes sont dupliquees
