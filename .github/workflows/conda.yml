@@ -45,7 +45,7 @@ jobs:
           miniconda-version: latest
           python-version: '3.12'
       - name: Install Dependency Requirements for Building Conda Packages
-        run: conda install conda-build conda-verify
+        run: conda install --override-channels --channel conda-forge -y conda-build
       # We need MacOS SDK 10.10 to build for macOS Intel
       # See: https://docs.conda.io/projects/conda-build/en/3.21.x/resources/compiler-tools.html#macos-sdk
       - name: Install Mac OS SDK 10.10
@@ -66,13 +66,10 @@ jobs:
 
           # The conda version cannot have '-' as a character so we eliminate it
           echo "KHIOPS_VERSION=$(echo $KHIOPS_RAW_VERSION | sed 's/-//')" >> "$GITHUB_ENV"
-      - name: Build conda packages (Windows)
-        if: runner.os == 'Windows'
-        run: conda build --output-folder ./build/conda ./packaging/conda
-      # In Linux/macOS we need the conda-forge channel to install their pinned versions
-      - name: Build conda packages (Linux/macOS)
-        if: runner.os != 'Windows'
-        run: conda build --channel conda-forge --output-folder ./build/conda ./packaging/conda
+      - name: Build conda packages
+        run: |
+          conda build --override-channels --channel conda-forge \
+            --output-folder ./build/conda ./packaging/conda
       - name: Upload conda packages artifact
         uses: actions/upload-artifact@v4
         with:
@@ -105,13 +102,10 @@ jobs:
         with:
           name: khiops-conda-${{ matrix.env.os-family }}
           path: ./build/conda
-      - name: Install the Conda package (Windows)
-        if: runner.os == 'Windows'
-        run: conda install --channel ./build/conda khiops-core
-      # In Linux/macOS we need the conda-forge channel to install their pinned versions
-      - name: Install the Conda package (Linux/macOS)
-        if: runner.os != 'Windows'
-        run: conda install --channel conda-forge --channel ./build/conda khiops-core
+      - name: Install the Conda package
+        run: |
+          conda install --override-channels --channel conda-forge \
+            --channel ./build/conda khiops-core
       - name: Test that the executables are installed
         run: |
           MODL -v
@@ -139,7 +133,9 @@ jobs:
           miniconda-version: latest
           python-version: '3.12'
       - name: Install requirement packages
-        run: conda install -y anaconda-client conda-index
+        run: |
+          conda install --override-channels --channel conda-forge -y \
+            anaconda-client conda-index
       - name: Reindex the package directory
         run: python -m conda_index ./build/conda
       - name: Upload the packages to anaconda.org
