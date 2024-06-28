@@ -989,7 +989,7 @@ boolean KWDerivationRule::ContainsCycle(NumericKeyDictionary* nkdGreyAttributes,
 						calledAttribute->GetParentClass()->AddError(
 						    "Existing derivation cycle caused by the recursive use of "
 						    "variable " +
-						    calledAttribute->GetName());
+						    calledAttribute->GetName() + " in " + GetName() + " rule");
 						bContainsCycle = true;
 					}
 					// Attribut non marque: il faut continuer l'analyse
@@ -1000,13 +1000,13 @@ boolean KWDerivationRule::ContainsCycle(NumericKeyDictionary* nkdGreyAttributes,
 				// Cas ou l'attribut appele est dans un bloc
 				else
 				{
-					// Le bloc est marque en Grey: presence d'une cycle
+					// Le bloc est marque en Grey: presence d'un cycle
 					if (nkdGreyAttributes->Lookup(calledAttributeBlock) != NULL)
 					{
 						calledAttribute->GetParentClass()->AddError(
 						    "Existing derivation cycle caused by the recursive use of "
 						    "variable " +
-						    calledAttribute->GetName());
+						    calledAttribute->GetName() + " in " + GetName() + " rule");
 						bContainsCycle = true;
 					}
 					// Bloc non marque: il faut continuer l'analyse
@@ -1021,13 +1021,13 @@ boolean KWDerivationRule::ContainsCycle(NumericKeyDictionary* nkdGreyAttributes,
 				calledAttributeBlock = operand->GetOriginAttributeBlock();
 				if (calledAttributeBlock != NULL)
 				{
-					// Le bloc est marque en Grey: presence d'une cycle
+					// Le bloc est marque en Grey: presence d'un cycle
 					if (nkdGreyAttributes->Lookup(calledAttributeBlock) != NULL)
 					{
 						calledAttributeBlock->GetParentClass()->AddError(
 						    "Existing derivation cycle caused by the recursive use of sparse "
 						    "variable block " +
-						    calledAttributeBlock->GetName());
+						    calledAttributeBlock->GetName() + " in " + GetName() + " rule");
 						bContainsCycle = true;
 					}
 					// Bloc non marque: il faut continuer l'analyse
@@ -1042,7 +1042,6 @@ boolean KWDerivationRule::ContainsCycle(NumericKeyDictionary* nkdGreyAttributes,
 		if (bContainsCycle)
 			break;
 	}
-
 	return bContainsCycle;
 }
 

@@ -299,8 +299,8 @@ boolean KWDerivationRuleOperand::CheckCompleteness(const KWClass* kwcOwnerClass)
 	if (not CheckDefinition())
 		return false;
 
-	// Un type valide est specifie a ce niveau
-	assert(KWType::Check(GetType()));
+	// Un type valide est specifie a ce niveau, sauf dans le cas d'operandes multiples avec type Unknown
+	assert(KWType::Check(GetType()) or (GetOrigin() == OriginAttribute and GetType() == KWType::Unknown));
 
 	// La regle predefinie de resolution des references aux objets ne peut etre utilisee
 	// comme operande d'une regle de derivation
@@ -380,8 +380,16 @@ boolean KWDerivationRuleOperand::CheckCompleteness(const KWClass* kwcOwnerClass)
 				sScopeMessage = " (from dictionary " + scopeClass->GetName() + " at scope level " +
 						ALString('.', GetScopeLevel()) + ")";
 
+			// Cas d'un type inconnu
+			if (GetType() == KWType::Unknown)
+			{
+				// Ce cas ne peut correspondre qu'a un attribut inexistant
+				assert(scopeClass->LookupAttribute(GetDataItemName()) == NULL);
+				AddError("Variable " + GetDataItemName() + " not found" + sScopeMessage);
+				bResult = false;
+			}
 			// Cas d'un attribut
-			if (KWType::IsValue(GetType()))
+			else if (KWType::IsValue(GetType()))
 			{
 				// Attribut existant dans la classe
 				attribute = scopeClass->LookupAttribute(GetAttributeName());
