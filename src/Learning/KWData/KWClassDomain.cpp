@@ -507,7 +507,7 @@ void KWClassDomain::CompleteTypeInfo()
 	}
 }
 
-void KWClassDomain::Compile()
+boolean KWClassDomain::Compile()
 {
 	boolean bIsDomainCompiled;
 	int nClass;
@@ -535,7 +535,7 @@ void KWClassDomain::Compile()
 
 	// Arret si deja compile
 	if (bIsDomainCompiled)
-		return;
+		return true;
 
 	// Affichage de stats memoire
 	MemoryStatsManager::AddLog(GetClassLabel() + " " + GetObjectLabel() + " Compile Begin");
@@ -693,6 +693,9 @@ void KWClassDomain::Compile()
 
 	// Affichage de stats memoire
 	MemoryStatsManager::AddLog(GetClassLabel() + " " + GetObjectLabel() + " Compile End");
+
+	// Ok si pas de cycle detectee
+	return not bContainsCycle;
 }
 
 KWClassDomain* KWClassDomain::Clone() const

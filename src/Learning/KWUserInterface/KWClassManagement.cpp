@@ -49,18 +49,29 @@ boolean KWClassManagement::ReadClasses()
 	// Lecture des classes
 	bOk = readDomain->ReadFile(GetClassFileName());
 
-	// Si probleme: annulation de la lecture
-	if (bOk and not readDomain->Check())
+	// Analyse si mlecture ok
+	if (bOk)
 	{
-		// En cas d'erreur, ajout d'une ligne blanche pour separer des autres logs
-		AddError("Read cancelled because of integrity errors");
-		AddSimpleMessage("");
-		bOk = false;
-	}
-	// Sinon: compilation des classes
-	else
-	{
-		readDomain->Compile();
+		// Verification de la validite du domaine
+		bOk = readDomain->Check();
+		if (not bOk)
+		{
+			// En cas d'erreur, ajout d'une ligne blanche pour separer des autres logs
+			AddError("Read cancelled because of integrity errors");
+			AddSimpleMessage("");
+			bOk = false;
+		}
+		// Sinon: compilation des classes
+		else
+		{
+			bOk = readDomain->Compile();
+			if (not bOk)
+			{
+				// En cas d'erreur, ajout d'une ligne blanche pour separer des autres logs
+				AddError("Read cancelled because of integrity errors");
+				AddSimpleMessage("");
+			}
+		}
 	}
 
 	// Remplacement du domaine courant si pas d'erreur
