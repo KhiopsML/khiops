@@ -514,6 +514,13 @@ KNI_API int KNIOpenStream(const char* sDictionaryFileName, const char* sDictiona
 		else if (kwcdLoadedDomain->LookupClass(sDictionaryName) == NULL)
 			nRetCode = KNI_ErrorMissingDictionary;
 
+		// Compilation du dictionnaire, qui peut echouer en cas de cycle de regles de derivation
+		if (nRetCode != KNI_OK)
+		{
+			if (not kwcdLoadedDomain->Compile())
+				nRetCode = KNI_ErrorDictionaryFileFormat;
+		}
+
 		// Nettoyage si erreur
 		if (nRetCode != KNI_OK)
 		{
