@@ -646,3 +646,28 @@ boolean GetDistanceStudyMode()
 	}
 	return bDistanceStudyMode;
 }
+
+boolean GetSNBForceDenseMode()
+{
+	static boolean bIsInitialized = false;
+	static boolean bSNBForceDenseMode = false;
+	ALString sSNBForceDenseMode;
+
+	// Determination du mode au premier appel
+	if (not bIsInitialized)
+	{
+		// Recherche de la valeur de la variable d'environnement de l'option
+		sSNBForceDenseMode = p_getenv("KhiopsSNBForceDenseMode");
+		sSNBForceDenseMode.MakeLower();
+
+		// Determination du mode
+		if (sSNBForceDenseMode == "true")
+			bSNBForceDenseMode = true;
+		else if (sSNBForceDenseMode == "false")
+			bSNBForceDenseMode = false;
+
+		// Memorisation du flag d'initialisation
+		bIsInitialized = true;
+	}
+	return bSNBForceDenseMode;
+}

@@ -171,3 +171,6 @@ boolean GetLearningPriorStudyMode();
 // Permet d'activer certains services de recodage additionnels
 // Ce mode est controlable par la variable d'environnement KhiopsDistanceStudyMode a true ou false
 boolean GetDistanceStudyMode();
+
+// Indicateur du mode ou le SNB force l'utilisation des variables denses pour les block sparse
+boolean GetSNBForceDenseMode();

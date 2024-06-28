@@ -44,8 +44,8 @@ KWDRDataGridBlock::~KWDRDataGridBlock() {}
 
 int KWDRDataGridBlock::GetUncheckedVarKeyNumber() const
 {
-	KWDRContinuousValueSet continuousValueSetRule;
-	KWDRSymbolValueSet symbolValueSetRule;
+	KWDRContinuousValueSet refContinuousValueSetRule;
+	KWDRSymbolValueSet refSymbolValueSetRule;
 
 	// Erreur si pas d'operande
 	if (GetOperandNumber() == 0)
@@ -55,9 +55,9 @@ int KWDRDataGridBlock::GetUncheckedVarKeyNumber() const
 		 GetFirstOperand()->GetDerivationRule() != NULL and
 		 GetFirstOperand()->GetStructureName() == GetFirstOperand()->GetDerivationRule()->GetName())
 	{
-		if (GetFirstOperand()->GetStructureName() == continuousValueSetRule.GetName())
+		if (GetFirstOperand()->GetStructureName() == refContinuousValueSetRule.GetName())
 			return cast(KWDRContinuousValueSet*, GetFirstOperand()->GetDerivationRule())->GetValueNumber();
-		else if (GetFirstOperand()->GetStructureName() == symbolValueSetRule.GetName())
+		else if (GetFirstOperand()->GetStructureName() == refSymbolValueSetRule.GetName())
 			return cast(KWDRSymbolValueSet*, GetFirstOperand()->GetDerivationRule())->GetValueNumber();
 		else
 			return -1;
@@ -90,6 +90,21 @@ int KWDRDataGridBlock::GetUncheckedDataGridVarKeyType() const
 	// Erreur sinon
 	else
 		return KWType::Unknown;
+}
+
+int KWDRDataGridBlock::ComputeUncheckedTotalFrequency(const KWClass* kwcOwnerClass) const
+{
+	KWDRDataGrid* dataGridRule;
+
+	// Erreur si pas d'operandes data grid
+	if (GetOperandNumber() < 2)
+		return -1;
+
+	// On obtiens la frequence total non-checkee du premier operand data grid
+	// Le fait que tous les operands data grid ont la meme frequence total est verifie dans les Check*
+	dataGridRule = cast(KWDRDataGrid*, GetOperandAt(1)->GetReferencedDerivationRule(kwcOwnerClass));
+
+	return dataGridRule->ComputeUncheckedTotalFrequency();
 }
 
 KWDerivationRule* KWDRDataGridBlock::Create() const
@@ -199,7 +214,8 @@ boolean KWDRDataGridBlock::CheckOperandsFamily(const KWDerivationRule* ruleFamil
 		{
 			bOk = false;
 			AddError(sTmp + "The number of VarKeys (" + IntToString(nVarKeyNumber) +
-				 ") in the first operand should be the same as the number of data grid operands (" +
+				 ") in the first operand " +
+				 "should be the same as the number of data grid operands (" +
 				 IntToString(GetOperandNumber() - 1) + ")");
 		}
 	}
@@ -284,73 +300,86 @@ boolean KWDRDataGridBlock::CheckOperandsFamily(const KWDerivationRule* ruleFamil
 boolean KWDRDataGridBlock::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk = true;
-	KWDRSymbolValueSet symbolValueSetRule;
-	KWDRContinuousValueSet continuousValueSetRule;
-	KWDRDataGridBlock datagridBlockSpecifiedFamily;
-	KWDRDataGrid* referencedDataGrid;
-	int nReferenceFirstType;
-	int nReferenceSecondType;
+	KWDRDataGrid* dataGridRule;
+	int nRefFirstType;
+	int nRefSecondType;
+	int nRefTotalFrequency;
+	int nDataGrid;
+	int nDataGridNumber;
 	int nFirstType;
 	int nSecondType;
-	int nIndex;
-	int nDataGridNumber;
+	int nTotalFrequency;
 	ALString sTmp;
 
 	require(kwcOwnerClass != NULL);
 	require(GetOperandNumber() > 0);
 
-	// Methode ancetre
+	// Appel a la methode ancetre
 	bOk = KWDerivationRule::CheckOperandsCompleteness(kwcOwnerClass);
 
-	// On verifie que chaque grille est bivariee (univarie supervise), avec les meme types pour toutes les grilles
+	// On verifie que :
+	// - chaque grille est bivariee (univariee supervisee), avec les meme types pour toutes les grilles
+	// - toutes les grilles ont le meme effectif
 	if (bOk)
 	{
-		nReferenceFirstType = KWType::Unknown;
-		nReferenceSecondType = KWType::Unknown;
+		nRefFirstType = KWType::Unknown;
+		nRefSecondType = KWType::Unknown;
+		nRefTotalFrequency = -1;
 		nDataGridNumber = GetOperandNumber() - 1;
-		for (nIndex = 0; nIndex < nDataGridNumber; nIndex++)
+		for (nDataGrid = 0; nDataGrid < nDataGridNumber; nDataGrid++)
 		{
-			referencedDataGrid =
-			    cast(KWDRDataGrid*, GetOperandAt(nIndex + 1)->GetReferencedDerivationRule(kwcOwnerClass));
+			dataGridRule = cast(KWDRDataGrid*,
+					    GetOperandAt(nDataGrid + 1)->GetReferencedDerivationRule(kwcOwnerClass));
 
-			// La grille doit avoir une seul attribut
-			if (bOk and referencedDataGrid->GetUncheckedAttributeNumber() != 2)
+			// La grille doit avoir seulement deux attributs (source et cible)
+			if (bOk and dataGridRule->GetUncheckedAttributeNumber() != 2)
 			{
 				bOk = false;
-				AddError(sTmp + "The data grid in the operand " + IntToString(nIndex + 2) +
+				AddError(sTmp + "The data grid in the operand " + IntToString(nDataGrid + 2) +
 					 " should be bivariate");
 			}
+			if (not bOk)
+				break;
 
 			// Memorisation du type de la premiere grille rencontree
-			if (bOk and nIndex == 0)
+			if (nDataGrid == 0)
 			{
-				nReferenceFirstType = referencedDataGrid->GetUncheckedAttributeTypeAt(0);
-				nReferenceSecondType = referencedDataGrid->GetUncheckedAttributeTypeAt(1);
+				nRefFirstType = dataGridRule->GetUncheckedAttributeTypeAt(0);
+				nRefSecondType = dataGridRule->GetUncheckedAttributeTypeAt(1);
+				nRefTotalFrequency = dataGridRule->ComputeUncheckedTotalFrequency();
 			}
 
-			// Les deux attributs de cette grille doit etre du meme type pour toutes les grilles
-			if (bOk)
+			// Verification que les deux types de la grille courante soient les memes que ceux de la reference
+			nFirstType = dataGridRule->GetUncheckedAttributeTypeAt(0);
+			if (nFirstType != nRefFirstType)
 			{
-				nFirstType = referencedDataGrid->GetUncheckedAttributeTypeAt(0);
-				if (nFirstType != nReferenceFirstType)
-				{
-					bOk = false;
-					AddError(sTmp + "The type " + KWType::ToString(nFirstType) +
-						 " of the first dimension of the data grid in the operand " +
-						 IntToString(nIndex + 2) + " should be " +
-						 KWType::ToString(nReferenceFirstType) +
-						 " as in the first data grid operand");
-				}
-				nSecondType = referencedDataGrid->GetUncheckedAttributeTypeAt(1);
-				if (nSecondType != nReferenceSecondType)
-				{
-					bOk = false;
-					AddError(sTmp + "The type " + KWType::ToString(nSecondType) +
-						 " of the second dimension of the data grid in the operand " +
-						 IntToString(nIndex + 2) + " should be " +
-						 KWType::ToString(nReferenceSecondType) +
-						 " as in first data grid operand");
-				}
+				bOk = false;
+				AddError(sTmp + "The type " + KWType::ToString(nFirstType) +
+					 " of the first dimension of the data grid at operand " +
+					 IntToString(nDataGrid + 2) + " should be " + KWType::ToString(nRefFirstType) +
+					 " as in the first data grid operand");
+			}
+			nSecondType = dataGridRule->GetUncheckedAttributeTypeAt(1);
+			if (nSecondType != nRefSecondType)
+			{
+				bOk = false;
+				AddError(sTmp + "The type " + KWType::ToString(nSecondType) +
+					 " of the second dimension of the data grid at operand " +
+					 IntToString(nDataGrid + 2) + " should be " + KWType::ToString(nRefSecondType) +
+					 " as in first data grid operand");
+			}
+			if (not bOk)
+				break;
+
+			// Verification que l'effectif de la grille courant est egale a celui de la reference
+			nTotalFrequency = dataGridRule->ComputeUncheckedTotalFrequency();
+			if (nTotalFrequency != nRefTotalFrequency)
+			{
+				bOk = false;
+				AddError(sTmp + "The total frequency (" + IntToString(nTotalFrequency) + ") " +
+					 " of the data grid at operand " + IntToString(nDataGrid + 2) +
+					 " should be equal to that of the first data grid operand (" +
+					 IntToString(nRefTotalFrequency) + ")");
 			}
 			if (not bOk)
 				break;
@@ -571,7 +600,7 @@ boolean KWDRDataGridBlockRule::CheckOperandsCompleteness(const KWClass* kwcOwner
 	return bOk;
 }
 
-boolean KWDRDataGridBlockRule::CheckPredictorCompletness(int nPredictorType, const KWClass* kwcOwnerClass) const
+boolean KWDRDataGridBlockRule::CheckPredictorCompleteness(int nPredictorType, const KWClass* kwcOwnerClass) const
 {
 	boolean bOk = true;
 	KWDRDataGridBlock* referencedDataGridBlock;
@@ -1165,10 +1194,7 @@ boolean KWDRCellIndexBlock::CheckBlockAttributesAt(const KWClass* kwcOwnerClass,
 				// Erreur si la VarKey de grille n'est pas trouvee
 				if (not bVarKeyFound)
 				{
-					// Preparation des informations sur la VarKey et la classe de scope
 					sExternalVarKey = attributeBlock->GetStringVarKey(checkedAttribute);
-
-					// Messages d'erreur
 					attributeBlock->AddError("Variable " + checkedAttribute->GetName() +
 								 +" not found with its VarKey=" + sExternalVarKey +
 								 " in data grid block first operand of rule " +
@@ -1321,11 +1347,15 @@ Object* KWDRDataGridStatsBlock::ComputeStructureResult(const KWObject* kwoObject
 	// correspondant a toutes les grilles
 	assert(ComputeUsedIndexNumber(&ivUsedRecodingDataGridIndexes) == oaAllRecodingDataGrids.GetSize());
 	if (GetSecondOperand()->GetType() == KWType::ContinuousValueBlock)
+	{
 		resultCellIndexBlock = BuildRecodedBlock(GetSecondOperand()->GetContinuousValueBlock(kwoObject),
 							 KWType::ContinuousValueBlock, &ivUsedRecodingDataGridIndexes);
+	}
 	else
+	{
 		resultCellIndexBlock = BuildRecodedBlock(GetSecondOperand()->GetSymbolValueBlock(kwoObject),
 							 KWType::SymbolValueBlock, &ivUsedRecodingDataGridIndexes);
+	}
 
 	// On retourne la structure elle meme, pour disposer de ses services
 	return (Object*)this;
@@ -1337,14 +1367,14 @@ longint KWDRDataGridStatsBlock::GetUsedMemory() const
 
 	lUsedMemory = KWDRDataGridBlockRule::GetUsedMemory();
 	lUsedMemory += sizeof(KWDRDataGridStatsBlock) - sizeof(KWDRDataGridBlockRule);
-	lUsedMemory += oaAllDataGridStatsRules.GetOverallUsedMemory() - sizeof(ObjectArray);
+	lUsedMemory += oaDataGridStatsRules.GetOverallUsedMemory() - sizeof(ObjectArray);
 	return lUsedMemory;
 }
 
 void KWDRDataGridStatsBlock::Optimize(KWClass* kwcOwnerClass)
 {
-	int i;
-	KWDRDataGridStats* dataGridStats;
+	int nDataGridStatsRule;
+	KWDRDataGridStats* dataGridStatsRule;
 	int nSourceValueType;
 
 	// Appel de la methode ancetre
@@ -1355,47 +1385,48 @@ void KWDRDataGridStatsBlock::Optimize(KWClass* kwcOwnerClass)
 
 	// Creation d'une regle DataGridStats par grille du DataGridBlock
 	CleanAllDataGridStatsRules();
-	oaAllDataGridStatsRules.SetSize(GetDataGridBlock()->GetDataGridNumber());
-	for (i = 0; i < oaAllDataGridStatsRules.GetSize(); i++)
+	oaDataGridStatsRules.SetSize(GetDataGridBlock()->GetDataGridNumber());
+	for (nDataGridStatsRule = 0; nDataGridStatsRule < oaDataGridStatsRules.GetSize(); nDataGridStatsRule++)
 	{
 		// Creation et memorisation d'une regle DataGridsStats
-		dataGridStats = new KWDRDataGridStats;
-		oaAllDataGridStatsRules.SetAt(i, dataGridStats);
+		dataGridStatsRule = new KWDRDataGridStats;
+		oaDataGridStatsRules.SetAt(nDataGridStatsRule, dataGridStatsRule);
 
 		// Parametregae de la grille en premier operande
-		dataGridStats->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginRule);
-		dataGridStats->GetFirstOperand()->SetDerivationRule(GetDataGridBlock()->GetDataGridAt(i));
+		dataGridStatsRule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginRule);
+		dataGridStatsRule->GetFirstOperand()->SetDerivationRule(
+		    GetDataGridBlock()->GetDataGridAt(nDataGridStatsRule));
 
 		// Parametrage du type de deuxieme operande
 		// Ce deuxieme operande ne sera pas utilise en pratique, mais on l'initialise correctement
 		// pour pouvoir compiler la regle
-		dataGridStats->GetSecondOperand()->SetOrigin(KWDerivationRuleOperand::OriginConstant);
-		dataGridStats->GetSecondOperand()->SetType(nSourceValueType);
+		dataGridStatsRule->GetSecondOperand()->SetOrigin(KWDerivationRuleOperand::OriginConstant);
+		dataGridStatsRule->GetSecondOperand()->SetType(nSourceValueType);
 
 		// Fianlsaition de la specification de la regle
-		dataGridStats->CompleteTypeInfo(kwcOwnerClass);
+		dataGridStatsRule->CompleteTypeInfo(kwcOwnerClass);
 
 		// Compilation de la regle
-		assert(dataGridStats->CheckCompleteness(kwcOwnerClass));
-		dataGridStats->Compile(kwcOwnerClass);
+		assert(dataGridStatsRule->CheckCompleteness(kwcOwnerClass));
+		dataGridStatsRule->Compile(kwcOwnerClass);
 	}
 }
 
 void KWDRDataGridStatsBlock::CleanAllDataGridStatsRules()
 {
-	int i;
-	KWDRDataGridStats* dataGridStats;
+	int nDataGridStatsRule;
+	KWDRDataGridStats* dataGridStatsRule;
 
-	// On dereference prealablement les regles de type DataGrid en premier operande des DataGridStats
-	// pour quelques ne soit pas detruites une deuxieme fois par ces regles
-	for (i = 0; i < oaAllDataGridStatsRules.GetSize(); i++)
+	// Dereferencement au prealable des regles de type DataGrid en premier operande des DataGridStats
+	// pour qu'elles ne soient pas detruites une deuxieme fois
+	for (nDataGridStatsRule = 0; nDataGridStatsRule < oaDataGridStatsRules.GetSize(); nDataGridStatsRule++)
 	{
-		dataGridStats = cast(KWDRDataGridStats*, oaAllDataGridStatsRules.GetAt(i));
-		dataGridStats->GetFirstOperand()->SetDerivationRule(NULL);
+		dataGridStatsRule = cast(KWDRDataGridStats*, oaDataGridStatsRules.GetAt(nDataGridStatsRule));
+		dataGridStatsRule->GetFirstOperand()->SetDerivationRule(NULL);
 	}
 
-	// On peyut maintenant detruire ces regles
-	oaAllDataGridStatsRules.DeleteAll();
+	// Destruction des regles DataGridStats
+	oaDataGridStatsRules.DeleteAll();
 }
 
 ///////////////////////////////////////////////////////////////
@@ -1438,7 +1469,7 @@ Symbol KWDRDataGridStatsBlockTest::ComputeSymbolResult(const KWObject* kwoObject
 	check(referenceDataGridStatsBlock);
 
 	// Exploitation de ce resultats pour fabriquer un resultat en sortie
-	for (nValueIndex = 0; nValueIndex < referenceDataGridStatsBlock->GetCellIndexBlockSize(); nValueIndex++)
+	for (nValueIndex = 0; nValueIndex < referenceDataGridStatsBlock->GetValueNumber(); nValueIndex++)
 	{
 		if (nValueIndex > 0)
 			sDetailedResult += " ";

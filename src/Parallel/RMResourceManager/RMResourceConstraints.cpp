@@ -74,6 +74,7 @@ int RMResourceConstraints::GetOptimizationTime()
 
 void RMResourceConstraints::SetMemoryLimit(int nMemory)
 {
+	cout << "[RM]  Set memory to " << nMemory << endl;
 	SetResourceLimit(MEMORY, nMemory);
 }
 

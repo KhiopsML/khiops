@@ -788,8 +788,17 @@ void UIUnit::SetIntValueAt(const ALString& sFieldId, int nValue)
 {
 	int nFieldIndex;
 	IntVector* values;
+	string sDDD;
+
+	sDDD = sFieldId;
 
 	require(0 <= nCurrentItemIndex and nCurrentItemIndex < nItemNumber);
+
+	if (sFieldId == "MemoryLimit")
+	{
+		cout << "[GUI] Set memory limit to " << nValue;
+		cout << endl;
+	}
 
 	nFieldIndex = GetFieldIndex(sFieldId);
 	assert(nFieldIndex >= 0);

@@ -105,6 +105,7 @@ KWSystemParametersView::KWSystemParametersView()
 	cast(UIIntElement*, GetFieldAt("MemoryLimit"))->SetMinValue(nMinMemory);
 	cast(UIIntElement*, GetFieldAt("MemoryLimit"))->SetMaxValue(nMaxMemory);
 	cast(UIIntElement*, GetFieldAt("MemoryLimit"))->SetDefaultValue(nDefaultMemory);
+	cout << "[GUI] After initial set " << GetIntValueAt("MemoryLimit") << endl;
 	RMResourceConstraints::SetMemoryLimit(nDefaultMemory);
 
 	// Ignorer les limites memoire
@@ -184,6 +185,9 @@ KWSystemParametersView::KWSystemParametersView()
 	GetFieldAt("TemporaryDirectoryName")
 	    ->SetHelpText("Name of the directory to use for temporary files."
 			  "\n Default: none, the system default temp file directory is then used.");
+
+	// DDD
+	cout << "[GUI] Init: Get memory limit " << GetIntValueAt("MemoryLimit") << endl;
 }
 
 KWSystemParametersView::~KWSystemParametersView() {}
@@ -192,6 +196,9 @@ void KWSystemParametersView::EventUpdate(Object* object)
 {
 	int nRequestedCore;
 	ALString sTestFunctionality;
+
+	// DDD
+	cout << "[GUI] Update: Get memory limit " << GetIntValueAt("MemoryLimit") << endl;
 
 	// On parametre directement les variables statiques correspondantes
 	// en ignorant l'objet passe en parametres
@@ -215,12 +222,16 @@ void KWSystemParametersView::EventUpdate(Object* object)
 
 void KWSystemParametersView::EventRefresh(Object* object)
 {
+	// DDD
+	cout << "[GUI] Refresh: Get memory limit " << GetIntValueAt("MemoryLimit") << endl;
+
 	// On parametre directement les variables statiques correspondantes
 	// en ignorant l'objet passe en parametres
 	SetBooleanValueAt("APIMode", KWResultFilePathBuilder::GetLearningApiMode());
 	SetIntValueAt("MaxErrorMessageNumberInLog", Global::GetMaxErrorFlowNumber());
 	SetIntValueAt("OptimizationTime", RMResourceConstraints::GetOptimizationTime());
 	SetIntValueAt("MemoryLimit", RMResourceConstraints::GetMemoryLimit());
+	cout << "[GUI] Refresh: After set memory limit " << GetIntValueAt("MemoryLimit") << endl;
 	SetBooleanValueAt("IgnoreMemoryLimit", RMResourceConstraints::GetIgnoreMemoryLimit());
 	SetIntValueAt("MaxCoreNumber", ComputeRequestedCoreNumber(RMResourceConstraints::GetMaxCoreNumberOnCluster()));
 	SetBooleanValueAt("ParallelSimulated", PLParallelTask::GetParallelSimulated());
