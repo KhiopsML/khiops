@@ -443,7 +443,7 @@ boolean KWDRRelationCreationRule::CheckOperandsFamily(const KWDerivationRule* ru
 			operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(nInput));
 			outputOperand = cast(KWDerivationRuleOperand*, oaOutputOperands.GetAt(nOutput));
 
-			// On ne verifie la compatibilite que si le type est definie
+			// On ne verifie la compatibilite que si le type est defini
 			if (operand->GetType() != KWType::Unknown and outputOperand->GetType() != KWType::Unknown)
 			{
 				assert(IsValidOutputOperandType(operand->GetType()));
@@ -462,7 +462,7 @@ boolean KWDRRelationCreationRule::CheckOperandsFamily(const KWDerivationRule* ru
 				// Nom de la classe pour un type Object ou ObjectArray si renseigne
 				if (bOk and KWType::IsRelation(operand->GetType()) and
 				    outputOperand->GetObjectClassName() != "" and
-				    GetObjectClassName() != outputOperand->GetObjectClassName())
+				    operand->GetObjectClassName() != outputOperand->GetObjectClassName())
 				{
 					AddError("Dictionary " + operand->GetObjectClassName() + " used with type " +
 						 KWType::ToString(operand->GetType()) + " of input operand " +
@@ -519,18 +519,16 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 					assert(operand->GetDataItemName() != "");
 					assert(kwcTargetClass->LookupAttribute(operand->GetDataItemName()) == NULL);
 					// On passe par la methode GetDataItemName, vcar le type n'est pas valide
-					AddError(sTmp + "Invalid output operand " + IntToString(i + 1) +
-						 ", as the variable \"" + operand->GetDataItemName() +
-						 +"\" is not found in the \"" + kwcTargetClass->GetName() +
-						 "\" output dictionary");
+					AddError(sTmp + "Invalid output operand " + IntToString(i + 1) + ", as the " +
+						 operand->GetDataItemName() + " variable " + " is not found in the " +
+						 kwcTargetClass->GetName() + " output dictionary");
 					bOk = false;
 				}
 				// Verification de l'operande en sortie dans le cas general
 				else if (not operand->CheckCompleteness(kwcTargetClass))
 				{
 					AddError(sTmp + "Incomplete output operand " + IntToString(i + 1) +
-						 " related to the \"" + kwcTargetClass->GetName() +
-						 "\" output dictionary");
+						 " related to the " + kwcTargetClass->GetName() + " output dictionary");
 					bOk = false;
 				}
 
@@ -541,10 +539,10 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 						odOutputAttributeNames.SetAt(operand->GetAttributeName(), operand);
 					else
 					{
-						AddError(sTmp + "Output operand " + IntToString(i + 1) +
-							 " with the \"" + operand->GetAttributeName() +
-							 "\" variable already used in the \"" +
-							 kwcTargetClass->GetName() + "\" output dictionary");
+						AddError(sTmp + "Output operand " + IntToString(i + 1) + " with the " +
+							 operand->GetAttributeName() +
+							 " variable already used in the " + kwcTargetClass->GetName() +
+							 " output dictionary");
 						bOk = false;
 					}
 				}
@@ -585,10 +583,10 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 						sourceAttribute = NULL;
 						if (not IsViewModeActivated())
 						{
-							AddError("In the \"" + kwcTargetClass->GetName() +
-								 "\" output dictionary, the \"" +
+							AddError("In the " + kwcTargetClass->GetName() +
+								 " output dictionary, the " +
 								 targetAttribute->GetName() +
-								 "\" variable is not set by any output operand");
+								 " variable is not set by any output operand");
 							bOk = false;
 						}
 						// Cas d'une alimenattion de type vue
@@ -604,12 +602,12 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 							// Erreur si pas d'attribut correspondant trouve
 							if (sourceAttribute == NULL)
 							{
-								AddError("In the \"" + kwcTargetClass->GetName() +
-									 "\" output dictionary, the \"" +
+								AddError("In the " + kwcTargetClass->GetName() +
+									 " output dictionary, the " +
 									 targetAttribute->GetName() +
-									 "\" variable must exist in the \"" +
+									 " variable must exist in the " +
 									 kwcSourceClass->GetName() +
-									 "\" input dictionary of the first operand" +
+									 " input dictionary of the first operand" +
 									 " of the rule");
 								bOk = false;
 							}
@@ -617,14 +615,14 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 							else if (sourceAttribute->GetType() !=
 								 targetAttribute->GetType())
 							{
-								AddError("In the \"" + kwcTargetClass->GetName() +
-									 "\" output dictionary, the " +
+								AddError("In the " + kwcTargetClass->GetName() +
+									 " output dictionary, the " +
 									 KWType::ToString(targetAttribute->GetType()) +
-									 " variable \"" + targetAttribute->GetName() +
-									 "\" is found with a different type (" +
+									 " variable " + targetAttribute->GetName() +
+									 " is found with a different type (" +
 									 KWType::ToString(sourceAttribute->GetType()) +
-									 ") in the \"" + kwcSourceClass->GetName() +
-									 "\" input dictionary of the first operand" +
+									 ") in the " + kwcSourceClass->GetName() +
+									 " input dictionary of the first operand" +
 									 " of the rule");
 								bOk = false;
 							}
@@ -634,16 +632,16 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 							    sourceAttribute->GetClass()->GetName() !=
 								targetAttribute->GetClass()->GetName())
 							{
-								AddError("In the \"" + kwcTargetClass->GetName() +
-									 "\" output dictionary, the " +
+								AddError("In the " + kwcTargetClass->GetName() +
+									 " output dictionary, the " +
 									 KWType::ToString(targetAttribute->GetType()) +
 									 "(" + targetAttribute->GetClass()->GetName() +
-									 ") variable \"" + targetAttribute->GetName() +
-									 "\" is found with a different type (" +
+									 ") variable " + targetAttribute->GetName() +
+									 " is found with a different type (" +
 									 KWType::ToString(sourceAttribute->GetType()) +
 									 "(" + sourceAttribute->GetClass()->GetName() +
-									 ")) in the \"" + kwcSourceClass->GetName() +
-									 "\" input dictionary of the first operand" +
+									 ")) in the " + kwcSourceClass->GetName() +
+									 " input dictionary of the first operand" +
 									 " of the rule");
 								bOk = false;
 							}
@@ -658,11 +656,10 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 								// Si un attribut cible est dense, l'attribut surce doit etre dense
 								if (targetAttribute->IsInBlock())
 								{
-									AddError("In the \"" +
-										 kwcTargetClass->GetName() +
-										 "\" output dictionary, the \"" +
+									AddError("In the " + kwcTargetClass->GetName() +
+										 " output dictionary, the " +
 										 targetAttribute->GetName() +
-										 "\" variable in block " +
+										 " variable in block " +
 										 targetAttribute->GetAttributeBlock()
 										     ->GetName() +
 										 " not allowed");
@@ -694,12 +691,81 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 boolean KWDRRelationCreationRule::ContainsCycle(NumericKeyDictionary* nkdGreyAttributes,
 						NumericKeyDictionary* nkdBlackAttributes) const
 {
-	boolean bOk;
+	boolean bContainsCycle;
+	KWClass* kwcTargetClass;
+	KWAttribute* attribute;
+	KWAttributeBlock* attributeBlock;
 
 	// Appel de la methode ancetre
-	// Pas de specialisation necessaire actuellement, puisque les operandes en sortie n'impliques pas de regles
-	bOk = KWDerivationRule::ContainsCycle(nkdGreyAttributes, nkdBlackAttributes);
-	return bOk;
+	bContainsCycle = KWDerivationRule::ContainsCycle(nkdGreyAttributes, nkdBlackAttributes);
+
+	// Specialisation pour une regle de creation d'instance
+	// On propage la detection de cycle au dictionnaire des instances creees en sortie, qui potentiellement
+	// pourrait creer des instances en boucle infinie
+	// Il n'est pas par contre necessaire de detecter les cycles de calcul sur les attributs sources de vue
+	// dans le cas d'une alimentation de type vue, car cette detection est de toute facon effectuee
+	// pour chaque dictionnaire
+	if (not bContainsCycle)
+	{
+		// Recherche de la classe cible
+		kwcTargetClass = GetOwnerClass()->GetDomain()->LookupClass(GetObjectClassName());
+
+		// Parcours des attributs de la classe
+		attribute = kwcTargetClass->GetHeadAttribute();
+		while (attribute != NULL)
+		{
+			attributeBlock = attribute->GetAttributeBlock();
+
+			// Test si le bloc est en White (ni Grey, ni Black)
+			if (attributeBlock != NULL)
+			{
+				// Test une seule fois, pour le premier attribut du block
+				if (attribute->IsFirstInBlock())
+				{
+					// L'attribut est marque en Grey: presence d'une cycle
+					if (nkdGreyAttributes->Lookup(attributeBlock) != NULL)
+					{
+						GetOwnerClass()->AddError(
+						    "Existing derivation cycle caused by the recursive use of "
+						    "variable block " +
+						    attributeBlock->GetName() + " in target dictionary " +
+						    kwcTargetClass->GetName() + " built using " + GetName() + " rule");
+						bContainsCycle = true;
+					}
+					// Attribut non marque: il faut continuer l'analyse
+					else if (nkdBlackAttributes->Lookup(attributeBlock) == NULL)
+						bContainsCycle =
+						    attribute->ContainsCycle(nkdGreyAttributes, nkdBlackAttributes);
+				}
+			}
+			// Test si l'attribut est en White (ni Grey, ni Black)
+			else
+			{
+				// L'attribut est marque en Grey: presence d'une cycle
+				if (nkdGreyAttributes->Lookup(attribute) != NULL)
+				{
+					GetOwnerClass()->AddError(
+					    "Existing derivation cycle caused by the recursive use of "
+					    "variable " +
+					    attribute->GetName() + " in target dictionary " +
+					    kwcTargetClass->GetName() + " built using " + GetName() + " rule");
+					bContainsCycle = true;
+				}
+				// Attribut non marque: il faut continuer l'analyse
+				else if (nkdBlackAttributes->Lookup(attribute) == NULL)
+					bContainsCycle =
+					    attribute->ContainsCycle(nkdGreyAttributes, nkdBlackAttributes);
+			}
+
+			// Arret en cas de cycle
+			if (bContainsCycle)
+				break;
+
+			// Attribut suivant
+			kwcTargetClass->GetNextAttribute(attribute);
+		}
+	}
+	return bContainsCycle;
 }
 
 void KWDRRelationCreationRule::Compile(KWClass* kwcOwnerClass)
@@ -843,7 +909,7 @@ void KWDRRelationCreationRule::Compile(KWClass* kwcOwnerClass)
 void KWDRRelationCreationRule::BuildAllUsedOperands(NumericKeyDictionary* nkdAllUsedOperands) const
 {
 	// Appel de la methode ancetre
-	// Pas de specialisation necessaire actuellement, puisque les operandes en sortie n'impliques pas de regles
+	// Pas de specialisation necessaire actuellement, puisque les operandes en sortie n'impliquent pas de regles
 	KWDerivationRule::BuildAllUsedOperands(nkdAllUsedOperands);
 }
 
