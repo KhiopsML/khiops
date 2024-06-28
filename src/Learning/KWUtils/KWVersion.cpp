@@ -666,9 +666,6 @@ boolean GetSNBForceDenseMode()
 		else if (sSNBForceDenseMode == "false")
 			bSNBForceDenseMode = false;
 
-		// DDD
-		cout << "ForceDense = " << (bSNBForceDenseMode ? "true" : "false") << endl;
-
 		// Memorisation du flag d'initialisation
 		bIsInitialized = true;
 	}

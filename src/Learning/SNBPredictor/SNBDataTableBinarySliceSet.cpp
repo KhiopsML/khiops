@@ -1715,10 +1715,10 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::InitializeBlockFromSliceSetAt(
 					lLoadedSparseValueNumber++;
 					assert(nAttributeValueIndex >= 0);
 
-					// Arret si le nombre des valeur sparse du bloc depase la valeur maximale estimee
+					// Arret si le nombre des valeur sparse du bloc depasse la valeur maximale estimee
 					// Estimation de la memoire additionnelle necessaire
 					//
-					//   #memoire_max_valeurs_sparse_du_block * #instances_restantes/#instances_traitees
+					//   # memoire_max_valeurs_sparse_du_block * #instances_restantes/#instances_traitees
 					//
 					if (lLoadedSparseValueNumber > lMaxSparseValuesPerBlock)
 					{
@@ -1728,14 +1728,16 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::InitializeBlockFromSliceSetAt(
 							     longint(lMaxSparseValuesPerBlock * sizeof(int) *
 								     ((nChunkInstanceNumber - nChunkInstance) /
 								      double(nChunkInstanceNumber)))));
+						cout << "lLoadedSparseValueNumber =" << lLoadedSparseValueNumber
+						     << " -- lMaxSparseValuesPerBlock = " << lMaxSparseValuesPerBlock
+						     << endl;
 						bOk = false;
 						break;
 					}
-
-					// Arret s'il y a eu un probleme
-					if (not bOk)
-						break;
 				}
+				// Arret s'il y a eu un probleme
+				if (not bOk)
+					break;
 			}
 
 			// Liberation de l'objet courant
@@ -1760,9 +1762,10 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::InitializeBlockFromSliceSetAt(
 
 				// Arret si il y a une interruption utilisateur
 				bOk = bOk and not TaskProgression::IsInterruptionRequested();
-				if (not bOk)
-					break;
 			}
+			// Arret s'il y a eu un probleme
+			if (not bOk)
+				break;
 		}
 	}
 	Global::DesactivateErrorFlowControl();
@@ -2217,9 +2220,9 @@ longint SNBDataTableBinarySliceSetChunkBuffer::ComputeNecessaryMemory(int nInsta
 	lDensePresentValueNumber = longint(nDenseAttributeNumber) * nInstanceNumber;
 	nBlockNumber = nChunkNumber * nSliceNumber;
 
-	// Epsilon de slack : Le facteur de memoire sparse (memoire max par inst/ memoire moyenne par inst) + 1 pour precaution
+	// Epsilon de slack : Le facteur de memoire sparse (memoire max par inst/ memoire moyenne par inst) +1 pour precaution
 	// Sur-estimee dans le cas d'un seul chunk (il n'y pas besoin de slack dans ce cas la)
-	dSlackFactor = 1.0 + dSparseMemoryFactor;
+	dSlackFactor = 10 + dSparseMemoryFactor;
 
 	// Formule de l'estimation (sans dictionnaire de recodage) :
 	//   Objets de la instance +

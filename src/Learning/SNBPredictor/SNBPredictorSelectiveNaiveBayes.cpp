@@ -56,17 +56,15 @@ boolean SNBPredictorSelectiveNaiveBayes::InternalTrain()
 {
 	boolean bOk;
 	SNBPredictorSelectiveNaiveBayesTrainingTask trainingTask;
-
 	// DDD
-	trainingTask.SetParallelSimulated(true);
-	trainingTask.SetSimulatedSlaveNumber(1);
+	PLParallelTask::SetTracerResources(2);
 
 	// Delegation de l'entrainement a la tache d'apprentissage
 	trainingTask.InternalTrain(this);
 	bOk = trainingTask.IsTrainingSuccessful();
 
 	// DDD
-	trainingTask.InternalTrain(this);
+	PLParallelTask::SetTracerResources(0);
 
 	return bOk;
 }

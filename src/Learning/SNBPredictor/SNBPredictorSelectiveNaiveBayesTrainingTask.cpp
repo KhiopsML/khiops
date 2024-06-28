@@ -205,7 +205,7 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::IsTrainingSuccessful() cons
 
 boolean SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeResourceRequirements()
 {
-	const boolean bDisplay = false;
+	const boolean bDisplay = true;
 	const int nAbsoluteMaxSlaveProcessNumber = 10000;
 	int nMaxSlaveProcessNumber;
 	int nMaxSliceNumber;
@@ -444,7 +444,7 @@ longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeMasterNecessaryMemor
 longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeGlobalSlaveNecessaryMemory(int nSliceNumber,
 										       longint lSliceSetBufferMemory)
 {
-	const boolean bDisplay = false;
+	const boolean bDisplay = true;
 	int nInstanceNumber;
 	int nAttributeNumber;
 	int nSparseAttributeNumber;
@@ -850,7 +850,7 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitialize()
 
 boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeDataTableBinarySliceSet()
 {
-	const boolean bDisplay = false;
+	const boolean bDisplay = true;
 	int nSlaveProcessNumber;
 	boolean bOk = false;
 	int nSliceNumber;
@@ -943,7 +943,7 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeDataTableBi
 			    ComputeSlaveNecessaryMemory(nSlaveProcessNumber, nSliceNumber) -
 			    lNonBufferSlaveGlobalMemory - lSlaveDenseValuesMemoryPerBlock;
 
-			// Calcul du nombre des valeurs sparse max dans un bloc
+			// Calcul du nombre des valeurs sparse max dans un bloc, with a slack factor
 			shared_lMaxSparseValuesPerBlock = lSlaveMaxSparseValuesMemoryPerBlock / sizeof(int);
 		}
 		else
@@ -1855,11 +1855,11 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::SlaveInitializeDataTableBin
 	// Creation du binary slice set
 	slaveBinarySliceSet = new SNBDataTableBinarySliceSet;
 
-	// Reconstituon du nombre d'attributs initial et des valeurs de la cible
+	// Reconstitution du nombre d'attributs initial et des valeurs de la cible
 	slaveBinarySliceSet->nInitialAttributeNumber = shared_nInitialAttributeNumber;
 	slaveBinarySliceSet->ivTargetValueIndexes.CopyFrom(shared_ivTargetValueIndexes.GetConstIntVector());
 
-	// Reconstition du layout
+	// Reconstitution du layout
 	slaveBinarySliceSet->layout.Initialize(shared_nInstanceNumber, shared_nChunkNumber, shared_nAttributeNumber,
 					       shared_nSliceNumber);
 
