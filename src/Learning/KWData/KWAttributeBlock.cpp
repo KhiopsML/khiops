@@ -721,17 +721,20 @@ boolean KWAttributeBlock::ContainsCycle(NumericKeyDictionary* nkdGreyAttributes,
 	require(Check());
 	require(GetParentClass()->IsCompiled());
 
-	// Marquage de l'attribut en Grey
-	nkdGreyAttributes->SetAt(this, (Object*)this);
-
-	// Analyse de l'eventuelle regle de derivation attachee au bloc
+	// Analyse de l'eventuelle regle de derivation attachee a l'attribut
+	// Sinon, l'attribut est un noeud terminal du graphe, et n'a pas besoin d'etre analyse
 	if (GetDerivationRule() != NULL)
+	{
+		// Marquage de l'attribut en Grey
+		nkdGreyAttributes->SetAt(this, (Object*)this);
+
+		// Analyse de la regle de derivation
 		bContainsCycle = GetDerivationRule()->ContainsCycle(nkdGreyAttributes, nkdBlackAttributes);
 
-	// Marquage du bloc d'attributs en Black
-	nkdGreyAttributes->SetAt(this, NULL);
-	nkdBlackAttributes->SetAt(this, (Object*)this);
-
+		// Marquage du bloc d'attributs en Black
+		nkdGreyAttributes->RemoveKey(this);
+		nkdBlackAttributes->SetAt(this, (Object*)this);
+	}
 	return bContainsCycle;
 }
 

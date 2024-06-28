@@ -164,11 +164,11 @@ public:
 	///////////////////////////////////////////////////////
 	///// Implementation
 protected:
-	// Redefinition des methodes virtuelles
+	// Redefinition de la completion des infos pour les operandes en sortie
 	void InternalCompleteTypeInfo(const KWClass* kwcOwnerClass,
 				      NumericKeyDictionary* nkdCompletedAttributes) override;
 
-	// Test si le type d'un operande en sortie est valid
+	// Test si le type d'un operande en sortie est valide
 	boolean IsValidOutputOperandType(int nType) const;
 
 	// Indique si l'alimentation de type vue est activee
