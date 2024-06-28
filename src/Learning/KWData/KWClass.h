@@ -75,7 +75,7 @@ public:
 	// Une classe racine gere sa destruction memoire, alors qu'une
 	// classe composant est geree par sa classe englobante.
 	// Une classe racine a necessairement une cle, avec une verification
-	// de l'uncite des objets selon cette cle
+	// de l'unicite des objets selon cette cle
 	// Un classe racine ne peut etre que referencee, et pas utilise
 	// en tant que sous-partie
 	boolean GetRoot() const;
