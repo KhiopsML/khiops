@@ -116,12 +116,10 @@ jobs:
       - name: Check Khiops installation
         uses: ./.github/actions/test-khiops-install
       - name: Test Khiops on Iris dataset
-        continue-on-error: ${{ matrix.os == 'debian:11' }}
-        uses: ./.github/actions/test-khiops-install
+        uses: ./.github/actions/test-khiops-on-iris
   test-kni:
     needs: build
     runs-on: ubuntu-latest
-    continue-on-error: true
     defaults:
       run:
         shell: bash
