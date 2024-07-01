@@ -75,7 +75,6 @@ jobs:
   test:
     needs: build
     runs-on: ubuntu-latest
-    continue-on-error: true
     defaults:
       run:
         shell: bash
@@ -116,7 +115,6 @@ jobs:
   test-kni:
     needs: build
     runs-on: ubuntu-latest
-    continue-on-error: true
     defaults:
       run:
         shell: bash
