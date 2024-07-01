@@ -75,7 +75,6 @@ jobs:
   test:
     needs: build
     runs-on: ubuntu-latest
-    continue-on-error: true
     defaults:
       run:
         shell: bash
@@ -105,24 +104,17 @@ jobs:
         run: |
           yum install -y ./artifacts/khiops-core*
       - name: Check Khiops core installation
-        run: |
-          khiops-env --env
-          khiops -s
-          khiops_coclustering -s
+        uses: ./.github/actions/test-khiops-install
       - name: Install Khiops Desktop (with java)
         run: |
           yum install -y ./artifacts/khiops-*
-      - name: Check Khiops  installation
-        run: |
-          khiops-env --env
-          khiops -s
-          khiops_coclustering -s
-      - name: Test Khiops installation
+      - name: Check Khiops installation
         uses: ./.github/actions/test-khiops-install
+      - name: Test Khiops on Iris dataset
+        uses: ./.github/actions/test-khiops-on-iris
   test-kni:
     needs: build
     runs-on: ubuntu-latest
-    continue-on-error: true
     defaults:
       run:
         shell: bash

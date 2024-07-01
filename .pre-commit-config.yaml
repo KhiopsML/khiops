@@ -33,7 +33,7 @@ repos:
       - id: trailing-whitespace
         types_or: [c, c++, java, python, markdown]
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.28.0
+    rev: 0.28.6
     hooks:
       - id: check-github-workflows
       - id: check-github-actions

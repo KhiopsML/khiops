@@ -67,10 +67,20 @@ endif()
 
 if(UNIX)
 
-  # replace MPIEXEC MPIEXEC_NUMPROC_FLAG and MPI_IMPL KHIOPS_MPI_EXTRA_FLAG
+  # replace MPIEXEC MPIEXEC_NUMPROC_FLAG and MPI_IMPL KHIOPS_MPI_EXTRA_FLAG ADDITIONAL_EN_VAR
   if("${MPI_IMPL}" STREQUAL "openmpi")
     set(KHIOPS_MPI_EXTRA_FLAG "--allow-run-as-root --quiet")
+    set(ADDITIONAL_EN_VAR "export OMPI_MCA_btl_vader_single_copy_mechanism=none # issue on docker")
+    if(IS_FEDORA_LIKE)
+      set(ADDITIONAL_EN_VAR "${ADDITIONAL_EN_VAR}\nexport PSM3_DEVICES=self # issue one rocky linux")
+    endif()
   endif()
+
+  # Add header comment to the variable definition (if any variable is defined)
+  if(ADDITIONAL_EN_VAR)
+    set(ADDITIONAL_EN_VAR "# Additional variables for MPI\n${ADDITIONAL_EN_VAR}")
+  endif()
+
   configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops-env.in ${TMP_DIR}/khiops-env @ONLY
                  NEWLINE_STYLE UNIX)
   configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/debian/khiops-core/postinst.in ${TMP_DIR}/postinst @ONLY
