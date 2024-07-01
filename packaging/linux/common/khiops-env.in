@@ -74,6 +74,8 @@ if [ -f "/usr/share/khiops/khiops.jar" ]; then
     fi
 fi
 
+@ADDITIONAL_EN_VAR@
+
 # Number of processes in use (must be set according to the physical cores number)
 if [[ -z $KHIOPS_PROC_NUMBER ]]; then
     KHIOPS_PROC_NUMBER=$(lscpu -b -p=Core,Socket | grep -v '^#' | sort -u | wc -l)
