@@ -31,7 +31,7 @@ jobs:
           # Linux: We use the Khiops dev debian:10 container to build with glibc 2.28
           #        It ensures compatibility with glibc >= 2.28 (in particular Rocky 8)
           - {os: ubuntu-22.04, os-family: linux-64, json-image: '{"image": "ghcr.io/khiopsml/khiops/khiopsdev-debian10:latest"}'}
-          - {os: windows-2019, os-family: win-64, json-image: '{"image": null}'}
+          - {os: windows-2022, os-family: win-64, json-image: '{"image": null}'}
           - {os: macos-13, os-family: osx-64, json-image: '{"image": null}'}
           - {os: macos-14, os-family: osx-arm64, json-image: '{"image": null}'}
     container: ${{ fromJSON(matrix.setup.json-image) }}
