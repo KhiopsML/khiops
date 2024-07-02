@@ -42,7 +42,7 @@ jobs:
       - name: Install Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
-          miniconda-version: latest
+          miniforge-version: latest
           python-version: '3.12'
       - name: Install Dependency Requirements for Building Conda Packages
         run: conda install --override-channels --channel conda-forge -y conda-build
@@ -95,7 +95,7 @@ jobs:
       - name: Install Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
-          miniconda-version: latest  # needed for macOS 13
+          miniforge-version: latest  # needed for macOS 13
           python-version: ${{ matrix.python-version }}
       - name: Download Conda Package Artifact
         uses: actions/download-artifact@v4
@@ -130,7 +130,7 @@ jobs:
       - name: Install Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
-          miniconda-version: latest
+          miniforge-version: latest
           python-version: '3.12'
       - name: Install requirement packages
         run: |
