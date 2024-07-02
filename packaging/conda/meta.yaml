@@ -17,10 +17,10 @@ build:
     - KHIOPS_APPLE_CERTIFICATE_PASSWORD    # [osx]
     - KHIOPS_APPLE_TMP_KEYCHAIN_PASSWORD   # [osx]
     {% endif %}
-    {% endif %}
-  # Binary relocation of MODL and MODL_Coclustering is done in build.sh script
-  # This is to be able to sign it, see the script for more details.
-  # Only done when "KHIOPS_APPLE_CERTIFICATE_COMMON_NAME is defined in the environment.
+  {% endif %}
+  # Only when "KHIOPS_APPLE_CERTIFICATE_COMMON_NAME is defined in the environment:
+  #   Binary relocation of MODL, MODL_Coclustering and KNI is done in build.sh script
+  #   This is to be able to sign it, see the script for more details.
   {% if "KHIOPS_APPLE_CERTIFICATE_COMMON_NAME" in os.environ %}
   binary_relocation: false               # [osx]
   detect_binary_files_with_prefix: false # [osx]
@@ -60,7 +60,7 @@ outputs:
   # kni package (do not need khiops-core as a runtime dependency)
   - name: kni
     version: {{ os.environ.get('KHIOPS_VERSION') }}
-    files: 
+    files:
       - lib/libKhiopsNativeInterface.so* # [linux]
       - lib/libKhiopsNativeInterface*.dylib # [osx]
       - lib/KhiopsNativeInterface.dll # [win]
@@ -69,7 +69,7 @@ outputs:
         - cmake
         - ninja
         - {{ compiler('cxx') }}
-  
+
   # kni-transfer package (designed only to test kni)
   - name: kni-transfer
     version: {{ os.environ.get('KHIOPS_VERSION') }}
@@ -79,11 +79,11 @@ outputs:
         - ninja
         - {{ compiler('cxx') }}
       run:
-        - kni 
-    files: 
+        - kni
+    files:
       - bin/KNITransfer.exe # [win]
       - bin/KNITransfer # [linux or osx]
-      
+
 about:
   home: https://khiops.org
   license: BSD+3-clause
