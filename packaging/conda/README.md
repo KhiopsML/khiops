@@ -26,7 +26,7 @@ the `MODL*` binaries. You may have to input your password.
 Alternatively, a certificate file encoded in base64 may be provided by additionally setting the
 following environment variables:
 - `KHIOPS_APPLE_CERTIFICATE_BASE64`: The base64 encoding of the signing certificate.
--`KHIOPS_APPLE_CERTIFICATE_PASSWORD`: The password of the signing certificate.
+- `KHIOPS_APPLE_CERTIFICATE_PASSWORD`: The password of the signing certificate.
 - `KHIOPS_APPLE_TMP_KEYCHAIN_PASSWORD` : A password for the temporary keychain created in the process.
 
 If the process is executed as root (eg. Github Runner) then there is no need to input a password to

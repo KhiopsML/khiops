@@ -15,7 +15,8 @@ fi
 cmake --fresh --preset $CMAKE_PRESET -DBUILD_JARS=OFF -DTESTING=OFF
 
 # Build MODL and MODL_Coclustering
-cmake --build --preset $CMAKE_PRESET --parallel --target MODL MODL_Coclustering KhiopsNativeInterface KNITransfer 
+cmake --build --preset $CMAKE_PRESET --parallel \
+  --target MODL MODL_Coclustering KhiopsNativeInterface KNITransfer
 
 # Move the binaries to the Conda PREFIX path
 mv ./build/$CMAKE_PRESET/bin/MODL* "$PREFIX/bin"
@@ -37,15 +38,16 @@ mv ./build/$CMAKE_PRESET/lib/libKhiopsNativeInterface* "$PREFIX/lib"
 # ourselves this procedure first and then sign the binary.
 #
 # Note that in meta.yaml for osx-arm64 we have custom build.binary_relocation and
-# build.detect_binary_files_with_prefix option
+# build.detect_binary_files_with_prefix option when the KHIOPS_APPLE_CERTIFICATE_COMMON_NAME is set.
 #
 # This part must be executed in a root machine to be non-interactive (eg. GitHub runner)
 # It also needs the following environment variable:
 # - KHIOPS_APPLE_CERTIFICATE_COMMON_NAME: The second column of the `security find-identity` command
-# A base64 encoded certificate may also be provided, the following 2 variables must be set
+#
+# A base64 encoded certificate may also be provided, the following 2 variables must be set:
 # - KHIOPS_APPLE_CERTIFICATE_BASE64: The identity file .p12 (certificate + private key) in base64
 # - KHIOPS_APPLE_CERTIFICATE_PASSWORD: Password for the certificate file
-# - KHIOPS_APPLE_TMP_KEYCHAIN_PASSWORD: A temporary password to decrypt the certificate
+# - KHIOPS_APPLE_TMP_KEYCHAIN_PASSWORD: A temporary password for the a short-lived keychain
 #
 cd ..
 if [[ "$(uname)" == "Darwin" && -n "${KHIOPS_APPLE_CERTIFICATE_COMMON_NAME-}" ]]
@@ -79,7 +81,7 @@ then
     sudo security set-keychain-settings kh-tmp.keychain
     sudo security unlock-keychain -p "$KHIOPS_APPLE_TMP_KEYCHAIN_PASSWORD" kh-tmp.keychain
 
-    # Add identity (certificate + private key) to keychain
+    # Add identity (certificate + private key) to the temporary keychain
     echo "$KHIOPS_APPLE_CERTIFICATE_BASE64" \
       | base64 --decode -i - -o kh-cert.p12
     sudo security import kh-cert.p12 \
@@ -101,11 +103,16 @@ then
   # identity and makes the build fail!
   CODESIGN="/usr/bin/codesign"
 
-  # Sign the MODL executable and check
+  # Obtain the path of the real KNI (not the symlinks)
+  KNI_PATH=$(readlink -f $PREFIX/lib/libKhiopsNativeInterface* | uniq)
+
+  # Sign the executables and check
   $CODESIGN --force --sign "$KHIOPS_APPLE_CERTIFICATE_COMMON_NAME" "$PREFIX/bin/MODL"
   $CODESIGN --force --sign "$KHIOPS_APPLE_CERTIFICATE_COMMON_NAME" "$PREFIX/bin/MODL_Coclustering"
+  $CODESIGN --force --sign "$KHIOPS_APPLE_CERTIFICATE_COMMON_NAME" "$KNI_PATH"
   $CODESIGN -d -vvv "$PREFIX/bin/MODL"
   $CODESIGN -d -vvv "$PREFIX/bin/MODL_Coclustering"
+  $CODESIGN -d -vvv "$KNI_PATH"
 
   # Remove the temporary keychain and restore the login keychain as default if created
   if [[ -n "${KHIOPS_APPLE_CERTIFICATE_BASE64-}" ]]
