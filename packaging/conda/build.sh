@@ -3,6 +3,9 @@
 # Set-up the shell to behave more like a general-purpose programming language
 set -euo pipefail
 
+# DDD
+set -x
+
 # Choose the build preset for macOS/Linux
 if [[ "$(uname)" == "Linux" ]]
 then

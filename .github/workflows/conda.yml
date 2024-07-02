@@ -66,6 +66,14 @@ jobs:
 
           # The conda version cannot have '-' as a character so we eliminate it
           echo "KHIOPS_VERSION=$(echo $KHIOPS_RAW_VERSION | sed 's/-//')" >> "$GITHUB_ENV"
+      # On tag: Set the environment variable to sign the binaries in macOS
+      - name: Set signing environment varibales in macOS and only for tags
+        if: runner.os == 'macOS' && github.ref_type == 'tag'
+        run: |
+          echo "KHIOPS_APPLE_CERTIFICATE_COMMON_NAME=${{ secrets.KHIOPS_APPLE_CERTIFICATE_COMMON_NAME }}" >> "$GITHUB_ENV"
+          echo "KHIOPS_APPLE_CERTIFICATE_BASE64=${{ secrets.KHIOPS_APPLE_CERTIFICATE_BASE64 }}" >> "$GITHUB_ENV"
+          echo "KHIOPS_APPLE_CERTIFICATE_PASSWORD=${{ secrets.KHIOPS_APPLE_CERTIFICATE_PASSWORD }}" >> "$GITHUB_ENV"
+          echo "KHIOPS_APPLE_TMP_KEYCHAIN_PASSWORD=${{ secrets.KHIOPS_APPLE_TMP_KEYCHAIN_PASSWORD }}" >> "$GITHUB_ENV"
       - name: Build conda packages (Windows)
         if: runner.os == 'Windows'
         run: conda build --output-folder ./build/conda ./packaging/conda
