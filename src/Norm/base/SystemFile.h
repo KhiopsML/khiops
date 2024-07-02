@@ -136,6 +136,10 @@ inline longint SystemFile::Read(void* pBuffer, size_t size, size_t count)
 	lRes = fileDriver->Fread(pBuffer, size, count, fileHandle);
 	if (FileService::LogIOStats())
 		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] fread End");
+
+	// Renvoie 0 en cas d'erreur
+	if (lRes == -1)
+		lRes = 0;
 	return lRes;
 }
 
