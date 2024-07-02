@@ -292,8 +292,9 @@ boolean KWAttribute::Check() const
 			bOk = false;
 		}
 
-		// La classe utilisee doit avoir une cle
-		if (attributeClass != NULL and attributeClass->GetKeyAttributeNumber() == 0)
+		// La classe utilisee doit avoir une cle dans le cas d'un attribut natif
+		if (GetAnyDerivationRule() == NULL and attributeClass != NULL and
+		    attributeClass->GetKeyAttributeNumber() == 0)
 		{
 			AddError("The used dictionary " + attributeClass->GetName() + " should have a key");
 			bOk = false;
@@ -301,8 +302,8 @@ boolean KWAttribute::Check() const
 
 		// La cle de la classe utilisee doit etre au moins aussi longue que
 		// celle de la classe utilisante dans le cas d'un lien de composition
-		if (not GetReference() and kwdrRule == NULL and attributeClass != NULL and parentClass != NULL and
-		    not attributeClass->GetRoot() and
+		if (not GetReference() and GetAnyDerivationRule() == NULL and attributeClass != NULL and
+		    parentClass != NULL and not attributeClass->GetRoot() and
 		    attributeClass->GetKeyAttributeNumber() < parentClass->GetKeyAttributeNumber())
 		{
 			AddError("In used dictionary (" + attributeClass->GetName() + "), the length of the key (" +
@@ -330,23 +331,26 @@ boolean KWAttribute::Check() const
 		}
 	}
 
-	// Warning si classe sans type Relation
+	// Erreur si classe sans type Relation
 	if (not KWType::IsGeneralRelation(GetType()) and attributeClass != NULL)
 	{
-		AddWarning("Dictionary (" + attributeClass->GetName() +
-			   ") referenced by a variable with non relation type");
+		AddError("Dictionary (" + attributeClass->GetName() +
+			 ") referenced by a variable with non relation type");
+		bOk = false;
 	}
 
-	// Warning si nom de structure sans type Structure
+	// Erreur si nom de structure sans type Structure
 	if (GetType() != KWType::Structure and GetStructureName() != "")
 	{
-		AddWarning("Structure name used with a non Structure type");
+		AddError("Structure name used with a non Structure type");
+		bOk = false;
 	}
 
-	// Warning si type Structure sans regle associee
-	if (GetType() == KWType::Structure and kwdrRule == NULL)
+	// Erreur si type non stocke et non data
+	if (not KWType::IsStored(GetType()) and not KWType::IsRelation(GetType()) and kwdrRule == NULL)
 	{
-		AddWarning("Structure type should be related to a derivation rule");
+		AddError(KWType::ToString(GetType()) + " type should be related to a derivation rule");
+		bOk = false;
 	}
 
 	// Verification de la regle de derivation
@@ -421,7 +425,7 @@ void KWAttribute::Compile()
 	require(Check());
 
 	// Compilation de l'eventuelle regle de derivation
-	if (GetDerivationRule() != NULL)
+	if (GetDerivationRule() != NULL and not GetDerivationRule()->IsCompiled())
 		GetDerivationRule()->Compile(parentClass);
 
 	// Compilation de l'eventuel bloc, uniquement si l'attribut est le premier du bloc
@@ -672,7 +676,7 @@ int KWAttributeCompareBlockName(const void* elem1, const void* elem2)
 	attribute1 = cast(KWAttribute*, *(Object**)elem1);
 	attribute2 = cast(KWAttribute*, *(Object**)elem2);
 
-	// Difference
+	// Difference sur le nom de bloc puis d'attribut
 	if (attribute1->GetAttributeBlock() == attribute2->GetAttributeBlock())
 		nDiff = attribute1->GetName().Compare(attribute2->GetName());
 	else if (attribute1->GetAttributeBlock() == NULL)

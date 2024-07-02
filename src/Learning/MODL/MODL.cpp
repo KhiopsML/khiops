@@ -15,7 +15,7 @@ void SetWindowsDebugDir(const ALString& sDatasetFamily, const ALString& sDataset
 	// A parametrer pour chaque utilisateur
 	// Devra etre fait plus proprement quand tout l'equipe sera sur git, par exemple via une variable
 	// d'environnement et quelques commentaires clairs
-	sUserRootPath = "D:/Users/miib6422/Documents/boullema/LearningTest.V10.5.0-a1/TestKhiops/";
+	sUserRootPath = "C:/Applications/boullema/LearningTest.V10.5.0-b.1/TestKhiops/";
 
 	// Pour permettre de continuer a utiliser LearningTest, on ne fait rien s'il y a deja un fichier test.prm
 	// dans le repertoire courante
@@ -38,6 +38,7 @@ int main(int argc, char** argv)
 	// Choix du repertoire de lancement pour le debugage sous Windows (a commenter apres fin du debug)
 	// SetWindowsDebugDir("Standard", "IrisLight");
 	// SetWindowsDebugDir("Standard", "IrisU2D");
+	SetWindowsDebugDir("z_TableCreationRules", "EntityCreationCycleErrors");
 
 	// Parametrage des logs memoires depuis les variables d'environnement, pris en compte dans KWLearningProject
 	//   KhiopsMemStatsLogFileName, KhiopsMemStatsLogFrequency, KhiopsMemStatsLogToCollect
@@ -50,7 +51,7 @@ int main(int argc, char** argv)
 	// MemoryStatsManager::AllStats);
 
 	// Parametrage de l'arret pour la memoire ou les interruptions utilisateurs
-	// MemSetAllocIndexExit(37140);
+	// MemSetAllocIndexExit(49924);
 	// TaskProgression::SetExternalInterruptionRequestIndex();
 	// TaskProgression::SetInterruptionRequestIndex(75);
 
