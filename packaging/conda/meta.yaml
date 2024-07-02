@@ -60,7 +60,7 @@ outputs:
   # kni package (do not need khiops-core as a runtime dependency)
   - name: kni
     version: {{ os.environ.get('KHIOPS_VERSION') }}
-    files: 
+    files:
       - lib/libKhiopsNativeInterface.so* # [linux]
       - lib/libKhiopsNativeInterface*.dylib # [osx]
       - lib/KhiopsNativeInterface.dll # [win]
@@ -69,7 +69,7 @@ outputs:
         - cmake
         - ninja
         - {{ compiler('cxx') }}
-  
+
   # kni-transfer package (designed only to test kni)
   - name: kni-transfer
     version: {{ os.environ.get('KHIOPS_VERSION') }}
@@ -79,11 +79,11 @@ outputs:
         - ninja
         - {{ compiler('cxx') }}
       run:
-        - kni 
-    files: 
+        - kni
+    files:
       - bin/KNITransfer.exe # [win]
       - bin/KNITransfer # [linux or osx]
-      
+
 about:
   home: https://khiops.org
   license: BSD+3-clause
