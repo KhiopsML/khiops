@@ -1,0 +1,72 @@
+// Thu Jun 12 13:31:06 2008
+// modl
+// Output command file
+//
+//This file contains recorded commands, that can be replayed.
+//Commands are based on user interactions:
+//	field update
+//	list index selection
+//	menu action
+//Every command can be commented, using //.
+//For example, commenting the last Exit command will allow other
+//user interactions, after the commands have been replayed.
+//
+//
+
+// -> Data preparation and scoring
+AnalysisSpec.SystemParameters.APIMode true        // API mode
+AnalysisSpec.SystemParameters.MemoryLimit 2000     // Memory limit in MB
+
+ClassManagement.OpenFile       // Open...
+// -> Open
+ClassFileName ./TextRules.kdic       // Dictionary file
+OK                             // Open
+// <- Open
+
+
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key TextRules               // List item selection
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ./TextRules.txt     // Database file
+
+TransferDatabase               // Deploy model
+
+// -> Database transfer
+ClassName TextRules             // Deployment dictionary
+SourceDatabase.DatabaseSpec.Sampling.SampleNumberPercentage 100  // Sample percentage
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key TextRules               // List item selection
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ./results/D_TextRules.txt     // Database file
+TransferDatabase               // Deploy model
+BuildTransferredClass           // Build transferred dictionary...
+// -> Save under
+ClassFileName ./results/D_TextRules.kdic   // Deployed dictionary file
+OK                             // Save
+// <- Save under
+Exit                           // Close
+// <- Database transfer
+
+ClassManagement.OpenFile       // Open...
+// -> Open
+ClassFileName ./results/D_TextRules.kdic       // Dictionary file
+OK                             // Open
+// <- Open
+
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key D_TextRules               // List item selection
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ./results/D_TextRules.txt     // Database file
+
+TransferDatabase               // Deploy model
+
+// -> Database transfer
+ClassName D_TextRules             // Deployment dictionary
+SourceDatabase.DatabaseSpec.Sampling.SampleNumberPercentage 100  // Sample percentage
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key D_TextRules               // List item selection
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ./results/D_TextRules2.txt     // Database file
+TransferDatabase               // Deploy model
+Exit                           // Close
+// <- Database transfer
+
+
+Exit                           // Close
+// <- Data preparation and scoring
+
+// -> Data preparation and scoring
+OK                             // Close
+// <- Data preparation and scoring
