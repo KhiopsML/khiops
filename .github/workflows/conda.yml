@@ -53,19 +53,27 @@ jobs:
         run: |
           wget https://github.com/phracker/MacOSX-SDKs/releases/download/11.3/MacOSX10.10.sdk.tar.xz
           sudo tar -zxvf MacOSX10.10.sdk.tar.xz -C /opt
-      - name: Put the Khiops Conda version in the environment
+      - name: Set the environment variables
         shell: bash
         run: |
-          # Obtain the Khiops version
+          # Put the Khiops package version
+          # The conda version cannot have '-' as a character so we eliminate it
           if [[ "${{ github.ref_type }}" == "tag" ]]
           then
             KHIOPS_RAW_VERSION="${{ github.ref_name }}"
           else
             KHIOPS_RAW_VERSION="$(./scripts/khiops-version)"
           fi
-
-          # The conda version cannot have '-' as a character so we eliminate it
           echo "KHIOPS_VERSION=$(echo $KHIOPS_RAW_VERSION | sed 's/-//')" >> "$GITHUB_ENV"
+
+          # On tag and macOS: Set the environment variables to sign the binaries
+          if [[ "${{ runner.os }}" == "macOS" && "${{ github.ref_type }}" == "tag" ]]
+          then
+            echo "KHIOPS_APPLE_CERTIFICATE_COMMON_NAME=${{ secrets.KHIOPS_APPLE_CERTIFICATE_COMMON_NAME }}" >> "$GITHUB_ENV"
+            echo "KHIOPS_APPLE_CERTIFICATE_BASE64=${{ secrets.KHIOPS_APPLE_CERTIFICATE_BASE64 }}" >> "$GITHUB_ENV"
+            echo "KHIOPS_APPLE_CERTIFICATE_PASSWORD=${{ secrets.KHIOPS_APPLE_CERTIFICATE_PASSWORD }}" >> "$GITHUB_ENV"
+            echo "KHIOPS_APPLE_TMP_KEYCHAIN_PASSWORD=${{ secrets.KHIOPS_APPLE_TMP_KEYCHAIN_PASSWORD }}" >> "$GITHUB_ENV"
+          fi
       - name: Build conda packages (Windows)
         if: runner.os == 'Windows'
         run: conda build --output-folder ./build/conda ./packaging/conda
