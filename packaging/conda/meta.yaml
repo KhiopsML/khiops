@@ -1,47 +1,92 @@
-{% set version_match = load_file_regex(load_file="src/Learning/KWUtils/KWKhiopsVersion.h", regex_pattern="(\\d+\\.\\d+\\.\\d+)") %}
-{% set name = "khiops-bin" %}
-
 package:
-  name: "{{ name }}"
-  version: "{{ version_match.groups()[0] }}"
+  name: khiops-binaries
+  version: {{ os.environ.get('KHIOPS_VERSION') }}
 
 source:
   path: ../../
 
 build:
   number: 0
-  include_test: False
+  script_env:
+    # Variables for signing the MODL executables in osx-arm64.
+    {% if "KHIOPS_APPLE_CERTIFICATE_COMMON_NAME" in os.environ %}
+    - KHIOPS_APPLE_CERTIFICATE_COMMON_NAME # [osx]
+    # Only available when "KHIOPS_APPLE_CERTIFICATE_BASE64" is defined in the environment.
+    {% if "KHIOPS_APPLE_CERTIFICATE_BASE64" in os.environ %}
+    - KHIOPS_APPLE_CERTIFICATE_BASE64      # [osx]
+    - KHIOPS_APPLE_CERTIFICATE_PASSWORD    # [osx]
+    - KHIOPS_APPLE_TMP_KEYCHAIN_PASSWORD   # [osx]
+    {% endif %}
+  {% endif %}
+  # Only when "KHIOPS_APPLE_CERTIFICATE_COMMON_NAME is defined in the environment:
+  #   Binary relocation of MODL, MODL_Coclustering and KNI is done in build.sh script
+  #   This is to be able to sign it, see the script for more details.
+  {% if "KHIOPS_APPLE_CERTIFICATE_COMMON_NAME" in os.environ %}
+  binary_relocation: false               # [osx]
+  detect_binary_files_with_prefix: false # [osx]
+  {% endif %}
 
 requirements:
   build:
-    - mpich # [not win]
-    - msmpi # [win]
     - cmake
-    - ninja # [win]
+    - ninja
     - {{ compiler('cxx') }}
   host:
-    - mpich # [not win]
-    - msmpi # [win]
+    - {{ mpi }}
   run:
-    - mpich # [not win]
-    - msmpi # [win]
+    - {{ mpi }}
 
 outputs:
- - name: "{{ name }}"
-   build:
-     activate_in_script: True
-   script: install-khiops.sh   # [not win]
-   script: install-khiops.bat  # [win]
 
-test:
-  commands:
-    - MODL -v
-    - MODL_Coclustering -v
+  # khiops-core package
+  - name: khiops-core
+    version: {{ os.environ.get('KHIOPS_VERSION') }}
+    requirements:
+      build:
+        - cmake
+        - ninja
+        - {{ compiler('cxx') }}
+      host:
+        - {{ mpi }}
+      run:
+        - {{ mpi }}
+    files:
+      - bin/MODL*
+    test:
+      commands:
+        - MODL -s
+        - MODL_Coclustering -s
+
+  # kni package (do not need khiops-core as a runtime dependency)
+  - name: kni
+    version: {{ os.environ.get('KHIOPS_VERSION') }}
+    files:
+      - lib/libKhiopsNativeInterface.so* # [linux]
+      - lib/libKhiopsNativeInterface*.dylib # [osx]
+      - lib/KhiopsNativeInterface.dll # [win]
+    requirements:
+      build:
+        - cmake
+        - ninja
+        - {{ compiler('cxx') }}
+
+  # kni-transfer package (designed only to test kni)
+  - name: kni-transfer
+    version: {{ os.environ.get('KHIOPS_VERSION') }}
+    requirements:
+      build:
+        - cmake
+        - ninja
+        - {{ compiler('cxx') }}
+      run:
+        - kni
+    files:
+      - bin/KNITransfer.exe # [win]
+      - bin/KNITransfer # [linux or osx]
 
 about:
-  home: www.khiops.org
+  home: https://khiops.org
   license: BSD+3-clause
-  license_file: LICENSE
-  summary: "Khiops is a data preparation and scoring tool for supervised learning and unsupervised learning"
-  doc_url: "https://www.khiops.com"
-  dev_url: "https://gitlab.com/khiops/khiops"
+  summary: Khiops is an AutoML suite for supervised and unsupervised learning
+  doc_url: https://khiops.org
+  dev_url: https://github.com/khiopsml/khiops

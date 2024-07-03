@@ -14,6 +14,7 @@ void KWMODLLineMerge::CopyFrom(KWMODLLineMerge* lineMerge)
 	kwfvFrequencyVector->CopyFrom(lineMerge->GetFrequencyVector());
 	dCost = lineMerge->GetCost();
 	dDeltaCost = lineMerge->GetDeltaCost();
+	dTruncatedDeltaCost = lineMerge->GetTruncatedDeltaCost();
 	position = lineMerge->GetPosition();
 }
 
@@ -55,6 +56,7 @@ void KWMODLLineSplit::CopyFrom(KWMODLLineSplit* lineSplit)
 	dFirstSubLineCost = lineSplit->GetFirstSubLineCost();
 	dSecondSubLineCost = lineSplit->GetSecondSubLineCost();
 	dDeltaCost = lineSplit->GetDeltaCost();
+	dTruncatedDeltaCost = lineSplit->GetTruncatedDeltaCost();
 	position = lineSplit->GetPosition();
 }
 
@@ -135,23 +137,6 @@ void KWMODLLine::Write(ostream& ost) const
 	ost << "\n";
 	WriteLineReport(ost);
 	ost << "\n";
-}
-
-int KWMODLLineOptimizationCompareMergeDeltaCost(const void* elem1, const void* elem2)
-{
-	KWMODLLineOptimization* line1;
-	KWMODLLineOptimization* line2;
-
-	line1 = cast(KWMODLLineOptimization*, *(Object**)elem1);
-	line2 = cast(KWMODLLineOptimization*, *(Object**)elem2);
-
-	// Comparaison de la variation de cout suite a une Merge
-	if (line1->GetMerge()->GetDeltaCost() < line2->GetMerge()->GetDeltaCost())
-		return -1;
-	else if (line1->GetMerge()->GetDeltaCost() > line2->GetMerge()->GetDeltaCost())
-		return 1;
-	else
-		return 0;
 }
 
 /////////////////////////////////////////////////////////////////////

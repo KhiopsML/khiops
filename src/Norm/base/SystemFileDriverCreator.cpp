@@ -99,13 +99,6 @@ int SystemFileDriverCreator::RegisterExternalDrivers()
 					{
 						nExternalDriverNumber++;
 						oaSystemFileDriver->Add(driverLibrary);
-
-						// Message d'information du bon chargement du driver
-						if (GetProcessId() == 0)
-							Global::AddSimpleMessage(
-							    sTmp + "Completed loading of file driver '" +
-							    driverLibrary->GetDriverName() + "' for URI scheme '" +
-							    driverLibrary->GetScheme() + "'");
 					}
 				}
 			}
@@ -118,6 +111,14 @@ int SystemFileDriverCreator::RegisterExternalDrivers()
 int SystemFileDriverCreator::GetExternalDriverNumber()
 {
 	return nExternalDriverNumber;
+}
+
+int SystemFileDriverCreator::GetDriverNumber()
+{
+	int nDriverNumber = 0;
+	if (oaSystemFileDriver != NULL)
+		nDriverNumber = oaSystemFileDriver->GetSize();
+	return nDriverNumber;
 }
 
 void SystemFileDriverCreator::RegisterDriver(SystemFileDriver* driver)
@@ -260,6 +261,16 @@ longint SystemFileDriverCreator::GetMaxPreferredBufferSize()
 		}
 	}
 	return lMaxPrefferedSize;
+}
+
+const SystemFileDriver* SystemFileDriverCreator::GetRegisteredDriverAt(int nIndex)
+{
+	require(nIndex < GetExternalDriverNumber());
+
+	if (oaSystemFileDriver == NULL)
+		return NULL;
+
+	return cast(SystemFileDriver*, oaSystemFileDriver->GetAt(nIndex));
 }
 
 boolean SystemFileDriverCreator::IsKhiopsDriverName(const ALString& sFileName)

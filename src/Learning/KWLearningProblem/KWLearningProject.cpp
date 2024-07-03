@@ -145,6 +145,7 @@ void KWLearningProject::StartMaster(int argc, char** argv)
 	CommandLineOption* optionLicenceInfo;
 	CommandLineOption* optionLicenceUpdate;
 	CommandLineOption* optionGetVersion;
+	CommandLineOption* optionStatus;
 
 	require(PLParallelTask::IsMasterProcess());
 
@@ -198,6 +199,15 @@ void KWLearningProject::StartMaster(int argc, char** argv)
 	optionGetVersion->SetMethod(ShowVersion);
 	optionGetVersion->SetSingle(true);
 	UIObject::GetCommandLineOptions()->AddOption(optionGetVersion);
+
+	optionStatus = new CommandLineOption;
+	optionStatus->SetFlag('s');
+	optionStatus->AddDescriptionLine("print system information");
+	optionStatus->SetGroup(1);
+	optionStatus->SetFinal(true);
+	optionStatus->SetMethod(ShowSystemInformation);
+	optionStatus->SetSingle(true);
+	UIObject::GetCommandLineOptions()->AddOption(optionStatus);
 
 	// Analyse de la ligne de commande
 	UIObject::ParseMainParameters(argc, argv);
@@ -458,5 +468,94 @@ boolean KWLearningProject::ShowVersion(const ALString&)
 	if (GetLearningModuleName() != "")
 		cout << GetLearningModuleName() << " ";
 	cout << GetLearningVersion() << endl;
+	return true;
+}
+
+boolean KWLearningProject::ShowSystemInformation(const ALString& sValue)
+{
+	int i;
+	const SystemFileDriver* fileDriver;
+	ALString sTmp;
+	StringVector svEnvironmentVariables;
+	ALString sEnv;
+	ALString sEnvValue;
+	boolean bEnvVarDefined;
+
+	// Version
+	ShowVersion(sTmp);
+	cout << endl;
+
+	// Drivers
+	if (SystemFileDriverCreator::GetDriverNumber() > 0)
+	{
+		cout << "Drivers:" << endl;
+		for (i = 0; i < SystemFileDriverCreator::GetDriverNumber(); i++)
+		{
+			fileDriver = SystemFileDriverCreator::GetRegisteredDriverAt(i);
+			cout << "\t'" << fileDriver->GetDriverName() << "' for URI scheme '" << fileDriver->GetScheme()
+			     << "'" << endl;
+		}
+	}
+
+	// Affichage des variables d'environement propres a Khiops, seulement si elles sont definies
+	svEnvironmentVariables.Add("KHIOPS_RAW_GUI");
+	svEnvironmentVariables.Add("KHIOPS_TMP_DIR");
+	svEnvironmentVariables.Add("KHIOPS_HOME");
+	svEnvironmentVariables.Add("KHIOPS_API_MODE");
+	svEnvironmentVariables.Add("KHIOPS_MEMORY_LIMIT");
+	svEnvironmentVariables.Sort();
+	bEnvVarDefined = false;
+	cout << "Environment variables:" << endl;
+	for (i = 0; i < svEnvironmentVariables.GetSize(); i++)
+	{
+		sEnv = svEnvironmentVariables.GetAt(i);
+		sEnvValue = p_getenv(sEnv);
+		if (sEnvValue != "")
+		{
+			cout << "\t" << sEnv << "\t" << sEnvValue << endl;
+			bEnvVarDefined = true;
+		}
+	}
+	if (not bEnvVarDefined)
+		cout << "\tNone" << endl;
+
+	svEnvironmentVariables.Initialize();
+	bEnvVarDefined = false;
+	svEnvironmentVariables.Add("KhiopsExpertMode");
+	svEnvironmentVariables.Add("KhiopsHardMemoryLimitMode");
+	svEnvironmentVariables.Add("KhiopsCrashTestMode");
+	svEnvironmentVariables.Add("KhiopsPreparationTraceMode");
+	svEnvironmentVariables.Add("KhiopsIOTraceMode");
+	svEnvironmentVariables.Add("KhiopsForestExpertMode");
+	svEnvironmentVariables.Add("KhiopsCoclusteringExpertMode");
+	svEnvironmentVariables.Add("KhiopsCoclusteringIVExpertMode");
+	svEnvironmentVariables.Add("KhiopsExpertParallelMode");
+	svEnvironmentVariables.Add("KhiopsParallelTrace");
+	svEnvironmentVariables.Add("KhiopsFileServerActivated");
+	svEnvironmentVariables.Add("hiopsPriorStudyModeRAW");
+	svEnvironmentVariables.Add("KhiopsDistanceStudyMode");
+	svEnvironmentVariables.Sort();
+
+	// Affichage des variables d'environement techniques
+	cout << "Internal environment variables:" << endl;
+	for (i = 0; i < svEnvironmentVariables.GetSize(); i++)
+	{
+		sEnv = svEnvironmentVariables.GetAt(i);
+		sEnvValue = p_getenv(sEnv);
+		if (sEnvValue != "")
+		{
+			cout << "\t" << sEnv << "\t" << sEnvValue << endl;
+			bEnvVarDefined = true;
+		}
+	}
+	if (not bEnvVarDefined)
+		cout << "\tNone" << endl;
+
+	// Resources
+	cout << *RMResourceManager::GetResourceSystem();
+
+	// System
+	cout << "System\n";
+	cout << GetSystemInfos();
 	return true;
 }

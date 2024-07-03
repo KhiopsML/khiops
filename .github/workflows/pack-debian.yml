@@ -2,6 +2,14 @@
 name: DEB Packages
 on:
   workflow_dispatch:
+    inputs:
+      mpi_implementation:
+        description: mpi implementation
+        type: choice
+        default: openmpi
+        options: 
+          - mpich
+          - openmpi
   pull_request:
     paths:
       - '**CMakeLists.txt'
@@ -33,13 +41,17 @@ jobs:
           source /etc/os-release
           echo "ID=$ID" >> "$GITHUB_ENV"
           echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
+          echo "MPI_IMPLEMENTATION=${{ inputs.mpi_implementation || 'openmpi' }}" >> "$GITHUB_ENV"
+          
       - name: Configure CMake
         run: |
+          update-alternatives --set mpi /usr/bin/mpicc.$MPI_IMPLEMENTATION
+          update-alternatives --set mpirun /usr/bin/mpirun.$MPI_IMPLEMENTATION
           cmake --preset linux-gcc-release -DBUILD_JARS=ON
       - name: Build Khiops binaries
         run: |
           cmake --build --preset linux-gcc-release --parallel \
-            --target MODL MODL_Coclustering KhiopsNativeInterface norm_jar khiops_jar
+            --target MODL MODL_Coclustering KhiopsNativeInterface KNITransfer norm_jar khiops_jar
       - name: Build package with CPack
         run: cd build/linux-gcc-release && cpack -G DEB
       - name: Rename the packages to include the ubuntu codename
@@ -82,6 +94,8 @@ jobs:
           source /etc/os-release
           echo "ID=$ID" >> "$GITHUB_ENV"
           echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
+          echo "MPI_IMPLEMENTATION=${{ inputs.mpi_implementation || 'openmpi' }}" >> "$GITHUB_ENV"
+
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -89,31 +103,23 @@ jobs:
           path: artifacts
       - name: Install Khiops core
         run: |
+          export DEBIAN_FRONTEND="noninteractive"
           apt-get update
           dpkg -i ./artifacts/khiops-core* || true
           apt-get -f install -y
       - name: Check Khiops core installation
-        continue-on-error: ${{ matrix.os == 'debian:11' }}
-        run: |
-          khiops-env --env
-          khiops -v
-          khiops_coclustering -v
+        uses: ./.github/actions/test-khiops-install
       - name: Install Khiops Desktop (with java)
         run: |
-          dpkg -i ./khiops_* || true
+          dpkg -i ./artifacts//khiops_* || true
           apt-get -f install -y
       - name: Check Khiops installation
-        continue-on-error: ${{ matrix.os == 'debian:11' }}
-        run: |
-          khiops -v
-          khiops_coclustering -v
-      - name: Test Khiops installation
-        continue-on-error: ${{ matrix.os == 'debian:11' || matrix.os == 'debian:12' }}
         uses: ./.github/actions/test-khiops-install
+      - name: Test Khiops on Iris dataset
+        uses: ./.github/actions/test-khiops-on-iris
   test-kni:
     needs: build
     runs-on: ubuntu-latest
-    continue-on-error: true
     defaults:
       run:
         shell: bash
@@ -164,15 +170,18 @@ jobs:
           merge-multiple: true
       - name: Rename packages with tag version
         run: |
-          SOURCE_VERSION=$(./scripts/khiops-version)
-          for PKG_FILE in *.deb
-          do
-            NEW_PKG_FILE=$(echo $PKG_FILE | sed "s/_${SOURCE_VERSION}-/_${{ github.ref_name }}-/")
-            if [[ "$PKG_FILE" != "$NEW_PKG_FILE" ]]
-            then
-              mv $PKG_FILE $NEW_PKG_FILE
-            fi
-          done
+         # Renames the packge only if the source version differs from the tag
+         SOURCE_VERSION=$(./scripts/khiops-version | sed 's/-/_/')
+         TAG_VERSION=$(echo "${{ github.ref_name }}" | sed 's/-/_/')
+         for PKG_FILE in *.deb
+         do
+           NEW_PKG_FILE=$(echo $PKG_FILE | sed "s/_${SOURCE_VERSION}-/_${TAG_VERSION}-/")
+           if [[ "$PKG_FILE" != "$NEW_PKG_FILE" ]]
+           then
+             echo "Renaming '$PKG_FILE' to '$NEW_PKG_FILE'"
+             mv $PKG_FILE $NEW_PKG_FILE
+           fi
+         done
       - name: Upload packages to the release
         uses: ncipollo/release-action@v1.14.0
         with:

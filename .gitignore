@@ -4,23 +4,33 @@
 # Visual Studio
 .vs/
 .vscode/
+.devcontainer/
 
 # CMake User Preset
 CMakeUserPresets.json
 
-# Build directory
+# Build directories
 build/
+khiops-conda/
+
+# Packaging directories
+packaging/windows/nsis/assets/
 
 # Cmake exceptions
 CMakeFiles/
 
 # Test exceptions
-test/*/results/
-LearningTest/*/*/*/results/
-LearningTest/*/*/*/results.ref/time.log
-
-# LearningTest 
-results/
-__pycache__/
+test/UnitTests/*/results/
+test/LearningTest/*/*/*/results/
 comparisonResults.log
+
+# Visualization file and summaries produced by the MemoryStatsVisualizer tool
+KhiopsMemoryStats.html
+KhiopsMemoryStats.Summary.txt
+KhiopsMemoryStats.aggregate_stats.xlsx
+KhiopsMemoryStats.all_stats.xlsx
+
+# Python
+*.pyc
+__pycache__/
 

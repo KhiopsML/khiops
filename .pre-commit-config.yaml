@@ -1,13 +1,13 @@
 ---
 repos:
   - repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v16.0.3
+    rev: v17.0.6
     hooks:
       - id: clang-format
         args: [--verbose]
         types_or: [c, c++, java]
   - repo: https://github.com/psf/black
-    rev: 23.3.0
+    rev: 24.2.0
     hooks:
       - id: black
         language_version: python3
@@ -16,7 +16,7 @@ repos:
     hooks:
       - id: cmake-format
   - repo: https://github.com/lyz-code/yamlfix/
-    rev: 1.12.0
+    rev: 1.16.0
     hooks:
       - id: yamlfix
         # Exclude conda's meta.yaml because
@@ -25,14 +25,15 @@ repos:
         # Exclude pack-debian.yml because it doesn't support quoted strings in arrays
         exclude: (packaging/conda/meta.yaml|workflows/pack-debian.yml)
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v4.5.0
     hooks:
       - id: pretty-format-json
         args: [--autofix, --no-ensure-ascii, --no-sort-keys]
+        exclude: test/LearningTest/
       - id: trailing-whitespace
         types_or: [c, c++, java, python, markdown]
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.23.2
+    rev: 0.28.6
     hooks:
       - id: check-github-workflows
       - id: check-github-actions
