@@ -944,11 +944,21 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeDataTableBi
 	}
 
 	// Si une configuration de memoire a ete trouve :
+	// - Warning en mode exper s'il y a eu du slicing
 	// - Initialisation du buffer du slice set en entree
 	// - Initialisation du binary slice set
 	// - Estimation du nombre maximal de valeurs sparse dans un bloc
 	if (bOk)
 	{
+		// Message en mode expert s'il y a eu du slicing
+		// NB: L'estimation le la memoire manquante se fait avec 1 slice et un buffer standard.
+		if (GetLearningExpertMode() and nSliceNumber > 1)
+			AddMessage(sTmp + "Train database was sliced. Number of slices: " + IntToString(nSliceNumber) +
+				   RMResourceManager::BuildMissingMemoryMessage(
+				       ComputeGlobalSlaveNecessaryMemory(1, MemSegmentByteSize) +
+				       (ComputeSlaveNecessaryMemory(nSlaveProcessNumber, 1) - lSlaveGrantedMemory) *
+					   nSlaveProcessNumber));
+
 		// Calcul et parametrage de la memoire necessaire pour les buffer de lecture du KWDataTableSliceSet
 		//
 		// En gros on rajoute a la memoire deja pris en compte (config avec buffer de taille minimale) le minimum entre:
