@@ -178,8 +178,9 @@ public:
 	// Verification de coherence
 	boolean Check() const override;
 
-	// Affichage, ecriture dans un fichier, de facon structuree
+	// Affichage, ecriture dans un fichier, de facon structuree, avec indentation
 	void Write(ostream& ost) const override;
+	void PrettyWrite(ostream& ost, const ALString& sIndent) const;
 
 	// Estimation de la memoire utilisee par l'objet, et de tous ses sous-objets
 	longint GetUsedMemory() const override;

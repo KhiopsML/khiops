@@ -963,7 +963,9 @@ void KWDRRelationCreationRule::BuildAllUsedAttributes(const KWAttribute* derived
 		{
 			// On ne traite que les attributs natifs utilises non deja prise en compte
 			// par une alimentation de type calcul
-			//DDD if (targetAttribute->GetUsed() and targetAttribute->GetDerivationRule() == NULL)
+			//DDD On doit integrer meme les attribut en Unused (BUG EN COURS)
+			//DDD if (targetAttribute->GetUsed() and targetAttribute->GetDerivationRule() == NULL and
+			//DDD    odOutputAttributeNames.Lookup(targetAttribute->GetName()) == NULL)
 			if (targetAttribute->GetDerivationRule() == NULL and
 			    odOutputAttributeNames.Lookup(targetAttribute->GetName()) == NULL)
 			{
@@ -990,6 +992,33 @@ void KWDRRelationCreationRule::BuildAllUsedAttributes(const KWAttribute* derived
 
 			// Attribut suivant
 			kwcTargetClass->GetNextAttribute(targetAttribute);
+		}
+
+		//DDD On doit integrer tous les attribut Used de la classe source (BUG EN COURS)
+		//DDD Sinon, on a des incoherences entre la classe source et cible lors des calculs
+		//DDD de classe phyisuqe dans les Database
+		// Parcours des attributs utilises de la classe source
+		sourceAttribute = kwcSourceClass->GetHeadAttribute();
+		while (sourceAttribute != NULL)
+		{
+			if (sourceAttribute->GetUsed())
+			{
+				// Analyse de l'attribut si necessaire
+				if (nkdAllUsedAttributes->Lookup(sourceAttribute) == NULL)
+				{
+					// Memorisation de l'attribut dans le dictionnaire
+					nkdAllUsedAttributes->SetAt(sourceAttribute, sourceAttribute);
+
+					// Acces a la regle d'attribut ou de bloc
+					sourceAttributeRule = sourceAttribute->GetAnyDerivationRule();
+					if (sourceAttributeRule != NULL)
+						sourceAttributeRule->BuildAllUsedAttributes(sourceAttribute,
+											    nkdAllUsedAttributes);
+				}
+			}
+
+			// Attribut suivant
+			kwcSourceClass->GetNextAttribute(sourceAttribute);
 		}
 	}
 }

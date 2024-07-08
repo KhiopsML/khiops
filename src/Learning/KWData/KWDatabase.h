@@ -437,9 +437,11 @@ protected:
 	// pour piloter efficacement la methode de mutation des object physiques
 	virtual void BuildPhysicalClass();
 
-	// Calcul du dictionnaire des attributs natifs inutilises a garder
-	void ComputeUnusedNativeAttributesToKeep(NumericKeyDictionary* nkdAttributes);
-	void ComputeUnusedNativeAttributesToKeepForRule(NumericKeyDictionary* nkdAttributes,
+	// Calcul du dictionnaire des attributs natifs inutilises a garder, en precisant les classes qui sont necessaires
+	void ComputeUnusedNativeAttributesToKeep(const NumericKeyDictionary* nkdNeededClasses,
+						 NumericKeyDictionary* nkdAttributes);
+	void ComputeUnusedNativeAttributesToKeepForRule(const NumericKeyDictionary* nkdClassesToKeep,
+							NumericKeyDictionary* nkdAttributes,
 							NumericKeyDictionary* nkdAnalysedRules, KWDerivationRule* rule);
 
 	// Destruction de la classe physique

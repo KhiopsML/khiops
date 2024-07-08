@@ -322,14 +322,15 @@ public:
 	// Completion eventuelle des attributs avec les informations de type de leur regle de derivation
 	void CompleteTypeInfo();
 
-	// Calcul de l'ensemble des classes utilisees recursivement par les attributs de la classe courante (y compris
-	// la classe courante) Prerequis: la classe doit etre compilee Memoire: le tableau du code retour appartient a
-	// l'appelant, et contient des references aux classes utilisees
+	// Calcul de l'ensemble des classes utilisees recursivement par les attributs de la classe courante
+	// (y compris la classe courante)
+	// Prerequis: la classe doit etre compilee
+	// Memoire: le tableau du code retour appartient a l'appelant, et contient des references aux classes utilisees
 	void BuildAllUsedClasses(ObjectArray* oaUsedClasses) const;
 
 	// Export des noms des champs natifs (stockes et non calcules, utilises ou non), dans l'ordre du dictionnaire
-	// (utile pour constituer une ligne de header) Il peut s'agir d'attributs denses natifs ou de blocs d'attributs
-	// non calcules
+	// (utile pour constituer une ligne de header)
+	// Il peut s'agir d'attributs denses natifs ou de blocs d'attributs  non calcules
 	void ExportNativeFieldNames(StringVector* svNativeFieldNames) const;
 
 	// Export des noms des champs stockes (et loades), dans l'ordre du dictionnaire (utile pour constituer une ligne
