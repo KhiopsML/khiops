@@ -251,6 +251,7 @@ int KWMTDatabaseCompareMappingMainClass(const void* first, const void* second)
 
 void KWMTDatabase::UpdateMultiTableMappings()
 {
+	const boolean bTrace = false;
 	static ALString sLastUpdatedClassName;
 	KWClass* mainClass;
 	ObjectArray oaPreviousMultiTableMappings;
@@ -408,6 +409,18 @@ void KWMTDatabase::UpdateMultiTableMappings()
 
 		// Destruction des anciens mappings
 		oaPreviousMultiTableMappings.DeleteAll();
+	}
+
+	// Affichage des mappings
+	if (bTrace)
+	{
+		cout << "Database " << GetDatabaseName() << " " << GetClassName() << " mappings\n";
+		for (i = 0; i < oaMultiTableMappings.GetSize(); i++)
+		{
+			mapping = cast(KWMTDatabaseMapping*, oaMultiTableMappings.GetAt(i));
+			cout << "\t" << i + 1 << "\t" << mapping->GetDataPath() << "\t" << mapping->GetClassName()
+			     << "\t" << mapping->GetDataTableName() << "\n";
+		}
 	}
 	ensure(mainClass == NULL or
 	       mainClass->ComputeOverallNativeRelationAttributeNumber(true) == oaMultiTableMappings.GetSize() - 1);
@@ -1448,6 +1461,7 @@ KWMTDatabaseMapping* KWMTDatabase::CreateMapping(ObjectDictionary* odReferenceCl
 				{
 					// Memorisation de la classe cible
 					odAnalysedCreatedClasses->SetAt(kwcTargetClass->GetName(), kwcTargetClass);
+
 					// Recherche de toutes les classe utilisee recursivement
 					kwcTargetClass->BuildAllUsedClasses(&oaUsedClass);
 

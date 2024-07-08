@@ -258,6 +258,9 @@ int KWAttributeCompareName(const void* elem1, const void* elem2);
 // Methode de comparaison base sur le nom du bloc de l'attribut, puis de son nom
 int KWAttributeCompareBlockName(const void* elem1, const void* elem2);
 
+// Methode de comparaison base sur le nom de la classe contenant l'attribut puis celui de l'attribut
+int KWAttributeCompareClassAndAttributeName(const void* elem1, const void* elem2);
+
 // Methode de comparaison base sur la VarKey d'un attribut pour deux attribut d'un meme bloc
 int KWAttributeCompareVarKey(const void* elem1, const void* elem2);
 

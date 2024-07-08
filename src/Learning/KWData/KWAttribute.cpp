@@ -687,6 +687,35 @@ int KWAttributeCompareBlockName(const void* elem1, const void* elem2)
 	return nDiff;
 }
 
+int KWAttributeCompareClassAndAttributeName(const void* elem1, const void* elem2)
+{
+	KWAttribute* attribute1;
+	KWAttribute* attribute2;
+	int nDiff;
+
+	require(elem1 != NULL);
+	require(elem2 != NULL);
+
+	// Acces aux attributs
+	attribute1 = cast(KWAttribute*, *(Object**)elem1);
+	attribute2 = cast(KWAttribute*, *(Object**)elem2);
+
+	// Comparaison d'abord sur la classe
+	if (attribute1->GetParentClass() == attribute2->GetParentClass())
+		nDiff = 0;
+	else if (attribute1->GetParentClass() == NULL)
+		nDiff = -1;
+	else if (attribute2->GetParentClass() == NULL)
+		nDiff = 1;
+	else
+		nDiff = attribute1->GetParentClass()->GetName().Compare(attribute2->GetParentClass()->GetName());
+
+	// Difference
+	if (nDiff == 0)
+		nDiff = attribute1->GetName().Compare(attribute2->GetName());
+	return nDiff;
+}
+
 int KWAttributeCompareVarKey(const void* elem1, const void* elem2)
 {
 	KWAttribute* attribute1;

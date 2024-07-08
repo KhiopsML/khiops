@@ -29,6 +29,7 @@ KWObject::~KWObject()
 
 void KWObject::ComputeAllValues(KWDatabaseMemoryGuard* memoryGuard)
 {
+	const boolean bTrace = false;
 	int nAttribute;
 	KWDataItem* dataItem;
 	KWAttribute* attribute;
@@ -42,6 +43,11 @@ void KWObject::ComputeAllValues(KWDatabaseMemoryGuard* memoryGuard)
 
 	debug(require(nObjectLoadedDataItemNumber == kwcClass->GetTotalInternallyLoadedDataItemNumber()));
 	debug(require(nFreshness == kwcClass->GetFreshness()));
+
+	// Trace de debut
+	if (bTrace)
+		cout << "Begin KWObject::ComputeAllValues " << GetClass()->GetName() << " " << GetCreationIndex()
+		     << "\n";
 
 	// Calcul de toutes les valeurs a transferer
 	for (nAttribute = 0; nAttribute < kwcClass->GetConstDatabaseDataItemsToCompute()->GetSize(); nAttribute++)
@@ -173,10 +179,15 @@ void KWObject::ComputeAllValues(KWDatabaseMemoryGuard* memoryGuard)
 		CleanAllNonNativeAttributes();
 		CleanNativeRelationAttributes();
 	}
+
+	// Trace de fin
+	if (bTrace)
+		cout << "End KWObject::ComputeAllValues " << GetClass()->GetName() << " " << GetCreationIndex() << "\n";
 }
 
 void KWObject::DeleteAttributes()
 {
+	boolean bTrace = false;
 	int i;
 	KWAttribute* attribute;
 	SymbolVector* svTextList;
@@ -191,6 +202,11 @@ void KWObject::DeleteAttributes()
 	debug(require(nObjectLoadedDataItemNumber == kwcClass->GetTotalInternallyLoadedDataItemNumber()));
 	debug(require(nFreshness == kwcClass->GetFreshness()));
 	require(kwcClass->IsCompiled());
+
+	// Trace de debut
+	if (bTrace)
+		cout << "  Begin KWObject::DeleteAttributes " << GetClass()->GetName() << " " << GetCreationIndex()
+		     << "\n";
 
 	// Recherche si usage de type view
 	bIsViewTypeUse = GetViewTypeUse();
@@ -298,7 +314,15 @@ void KWObject::DeleteAttributes()
 					{
 						kwoUsedObject = value.GetObject();
 						if (kwoUsedObject != NULL)
+						{
+							// Trace
+							if (bTrace)
+								cout << "   delete object " << attribute->GetName()
+								     << kwoUsedObject << "\n";
+
+							// Destruction
 							delete kwoUsedObject;
+						}
 					}
 				}
 			}
@@ -314,6 +338,13 @@ void KWObject::DeleteAttributes()
 					oaUsedObjectArray = value.GetObjectArray();
 					if (oaUsedObjectArray != NULL)
 					{
+						// Trace
+						if (bTrace)
+							cout << "   delete ObjectArray content " << attribute->GetName()
+							     << " "
+							     << "(size=" << oaUsedObjectArray->GetSize() << ") "
+							     << oaUsedObjectArray << "\n";
+
 						// Destruction des objets contenus si necessaire
 						if (bIsDeletionNeeded)
 							oaUsedObjectArray->DeleteAll();
@@ -393,6 +424,11 @@ void KWObject::DeleteAttributes()
 		// Destruction du tableau d'attributs de base
 		DeleteValueVector(values, kwcClass->GetTotalInternallyLoadedDataItemNumber());
 	}
+
+	// Trace de fin
+	if (bTrace)
+		cout << "  End KWObject::DeleteAttributes " << GetClass()->GetName() << " " << GetCreationIndex()
+		     << "\n";
 }
 
 void KWObject::CleanTemporayDataItemsToComputeAndClean()
@@ -885,6 +921,12 @@ boolean KWObject::Check() const
 
 void KWObject::Write(ostream& ost) const
 {
+	PrettyWrite(ost, "");
+}
+
+void KWObject::PrettyWrite(ostream& ost, const ALString& sIndent) const
+{
+	const ALString sBasicIndent = "  ";
 	KWDataItem* dataItem;
 	KWAttribute* attribute;
 	KWAttributeBlock* attributeBlock;
@@ -900,11 +942,12 @@ void KWObject::Write(ostream& ost) const
 	debug(require(nObjectLoadedDataItemNumber == kwcClass->GetTotalInternallyLoadedDataItemNumber()));
 	debug(require(nFreshness == kwcClass->GetFreshness()));
 	require(GetClass()->Check());
+	require(sIndent.SpanIncluding(" ") == sIndent);
 
 	// Impression de l'entete de l'objet
 	if (GetClass()->GetRoot())
 		ost << GetClass()->GetName() << "\n";
-	ost << "{[" << GetCreationIndex() << "]\n";
+	ost << sIndent << "{" << GetClass()->GetName() << "[" << GetCreationIndex() << "]\n";
 
 	// Impression des attributs charges en memoire
 	for (i = 0; i < GetClass()->GetLoadedDataItemNumber(); i++)
@@ -915,6 +958,9 @@ void KWObject::Write(ostream& ost) const
 		if (dataItem->IsAttribute())
 		{
 			attribute = cast(KWAttribute*, dataItem);
+
+			// Indentation
+			ost << sIndent;
 
 			// Nom de l'attribut
 			ost << attribute->GetName() << ": ";
@@ -963,9 +1009,14 @@ void KWObject::Write(ostream& ost) const
 					ost << "[NULL]\n";
 				else
 				{
-					ost << "[" << kwoUsedObject->GetCreationIndex() << "]\n";
 					if (not attribute->GetReference())
-						ost << *kwoUsedObject;
+					{
+						ost << "\n";
+						kwoUsedObject->PrettyWrite(ost, sIndent + sBasicIndent);
+					}
+					else
+						ost << kwoUsedObject->GetClass()->GetName() << "["
+						    << kwoUsedObject->GetCreationIndex() << "]\n";
 				}
 				break;
 			// Valeur ObjectArray
@@ -976,26 +1027,27 @@ void KWObject::Write(ostream& ost) const
 				else
 				{
 					// Parcours des elements du tableau
-					ost << "\n{\n";
+					ost << "\n" << sIndent + sBasicIndent << "{\n";
 					for (j = 0; j < oaUsedObjectArray->GetSize(); j++)
 					{
 						kwoUsedObject = cast(KWObject*, oaUsedObjectArray->GetAt(j));
 
 						// Test si objet multi inclu ou multi reference
 						if (kwoUsedObject == NULL)
-							ost << "[NULL]\n";
+							ost << sIndent + sBasicIndent << "[NULL]\n";
 						else
 						{
-							ost << "[" << kwoUsedObject->GetCreationIndex() << "] ";
 							if (not attribute->GetReference())
-								ost << *kwoUsedObject;
+								kwoUsedObject->PrettyWrite(ost, sIndent + sBasicIndent +
+												    sBasicIndent);
 							else
-								ost << "\n";
+								ost << sIndent + sBasicIndent << "["
+								    << kwoUsedObject->GetCreationIndex() << "]\n";
 						}
 					}
-					ost << "}\n";
-					break;
+					ost << sIndent + sBasicIndent << "}\n";
 				}
+				break;
 			// Valeur Structure
 			case KWType::Structure:
 				oUsedStructure = ComputeStructureValueAt(attribute->GetLoadIndex());
@@ -1004,7 +1056,7 @@ void KWObject::Write(ostream& ost) const
 				else
 				{
 					ost << "[" << oUsedStructure << "]\n";
-					ost << *oUsedStructure;
+					ost << sIndent << *oUsedStructure;
 				}
 				break;
 			}
@@ -1020,17 +1072,17 @@ void KWObject::Write(ostream& ost) const
 				continuousValueBlock = ComputeContinuousValueBlockAt(attributeBlock->GetLoadIndex());
 				if (continuousValueBlock->GetValueNumber() > 0)
 				{
-					ost << "{\n";
+					ost << sIndent << "{\n";
 					for (j = 0; j < continuousValueBlock->GetValueNumber(); j++)
 					{
 						attribute = attributeBlock->GetLoadedAttributeAt(
 						    continuousValueBlock->GetAttributeSparseIndexAt(j));
-						ost << attribute->GetName() << ": ";
+						ost << sIndent << attribute->GetName() << ": ";
 						ost << KWContinuous::ContinuousToString(
 							   continuousValueBlock->GetValueAt(j))
 						    << "\n";
 					}
-					ost << "}\n";
+					ost << sIndent << "}\n";
 				}
 			}
 			// Bloc de valeurs Symbol
@@ -1039,15 +1091,15 @@ void KWObject::Write(ostream& ost) const
 				symbolValueBlock = ComputeSymbolValueBlockAt(attributeBlock->GetLoadIndex());
 				if (symbolValueBlock->GetValueNumber() > 0)
 				{
-					ost << "{\n";
+					ost << sIndent << "{\n";
 					for (j = 0; j < symbolValueBlock->GetValueNumber(); j++)
 					{
 						attribute = attributeBlock->GetLoadedAttributeAt(
 						    symbolValueBlock->GetAttributeSparseIndexAt(j));
-						ost << attribute->GetName() << ": ";
+						ost << sIndent << attribute->GetName() << ": ";
 						ost << symbolValueBlock->GetValueAt(j) << "\n";
 					}
-					ost << "}\n";
+					ost << sIndent << "}\n";
 				}
 			}
 			// Bloc de valeurs ObjectArray
@@ -1056,12 +1108,12 @@ void KWObject::Write(ostream& ost) const
 				objectArrayValueBlock = ComputeObjectArrayValueBlockAt(attributeBlock->GetLoadIndex());
 				if (objectArrayValueBlock->GetValueNumber() > 0)
 				{
-					ost << "{\n";
+					ost << sIndent << "{\n";
 					for (j = 0; j < objectArrayValueBlock->GetValueNumber(); j++)
 					{
 						attribute = attributeBlock->GetLoadedAttributeAt(
 						    objectArrayValueBlock->GetAttributeSparseIndexAt(j));
-						ost << attribute->GetName() << ": ";
+						ost << sIndent << attribute->GetName() << ": ";
 
 						// Ecriture du tableau d'objet
 						oaUsedObjectArray = objectArrayValueBlock->GetValueAt(j);
@@ -1070,7 +1122,7 @@ void KWObject::Write(ostream& ost) const
 						else
 						{
 							// Parcours des elements du tableau
-							ost << "\n{\n";
+							ost << "\n" << sIndent + sBasicIndent << "{\n";
 							for (j = 0; j < oaUsedObjectArray->GetSize(); j++)
 							{
 								kwoUsedObject =
@@ -1078,28 +1130,33 @@ void KWObject::Write(ostream& ost) const
 
 								// Test si objet multi inclu ou multi reference
 								if (kwoUsedObject == NULL)
-									ost << "[NULL]\n";
+									ost << sIndent + sBasicIndent << "[NULL]\n";
 								else
 								{
-									ost << "[" << kwoUsedObject->GetCreationIndex()
-									    << "] ";
 									if (not attribute->GetReference())
-										ost << *kwoUsedObject;
+										kwoUsedObject->PrettyWrite(
+										    ost, sIndent + sBasicIndent +
+											     sBasicIndent);
 									else
-										ost << "\n";
+										ost << sIndent + sBasicIndent
+										    << kwoUsedObject->GetClass()
+											   ->GetName()
+										    << "["
+										    << kwoUsedObject->GetCreationIndex()
+										    << "]\n";
 								}
 							}
-							ost << "}\n";
+							ost << sIndent + sBasicIndent << "}\n";
 						}
 					}
-					ost << "}\n";
+					ost << sIndent << "}\n";
 				}
 			}
 		}
 	}
 
 	// Impression de la fin de l'objet
-	ost << "}\n";
+	ost << sIndent << "}\n";
 }
 
 longint KWObject::GetUsedMemory() const
@@ -1430,6 +1487,7 @@ void KWObject::Test()
 
 void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nkdUnusedNativeAttributesToKeep)
 {
+	const boolean bTrace = false;
 	const KWClass* previousClass;
 	const KWAttribute* previousAttribute;
 	ObjectValues previousValues;
@@ -1471,6 +1529,10 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 	// Aucune action si meme classe
 	if (kwcNewClass == kwcClass)
 		return;
+
+	// Trace de debut
+	if (bTrace)
+		cout << "Begin Object::Mutate " << GetClass()->GetName() << " " << GetCreationIndex() << "\n";
 
 	// Recherche si usage de type view
 	bIsViewTypeUse = GetViewTypeUse();
@@ -1558,7 +1620,16 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 						// Les containers appartiennent a l'objet, qu'ils soient natifs ou
 						// proviennent d'une regle, auquel cas ils ont ete dupliques
 						if (attribute->GetReference())
+						{
+							// Trace
+							if (bTrace)
+								cout << "  delete ref ObjectArray "
+								     << attribute->GetName() << " " << oaUsedObjectArray
+								     << "\n";
+
+							// Destruction
 							delete oaUsedObjectArray;
+						}
 					}
 				}
 			}
@@ -1691,6 +1762,11 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 	nLoadedDataItemNumber = kwcClass->GetLoadedDataItemNumber();
 	if (nTotalInternallyLoadedDataItemNumber > 0)
 	{
+		// Trace
+		if (bTrace)
+			cout << "  new ValueVector (size=" << nLoadedDataItemNumber
+			     << " , internal size=" << nTotalInternallyLoadedDataItemNumber << ")\n";
+
 		// Creation du vecteur de valeur et memorisation de son type de taille
 		values = NewValueVector(nTotalInternallyLoadedDataItemNumber);
 		SetSmallSize(nTotalInternallyLoadedDataItemNumber <= nBlockSize);
@@ -1758,7 +1834,16 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 							}
 							// Destruction sinon
 							else
+							{
+								// Trace
+								if (bTrace)
+									cout << "  delete Object "
+									     << attribute->GetName() << " "
+									     << kwoUsedObject << "\n";
+
+								// Destruction
 								delete kwoUsedObject;
+							}
 						}
 					}
 					// Cas des ObjectArray
@@ -1807,6 +1892,14 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 							// Destruction sinon
 							else
 							{
+								// Trace
+								if (bTrace)
+									cout << "  delete ObjectArray content "
+									     << attribute->GetName() << " "
+									     << "(size=" << oaUsedObjectArray->GetSize()
+									     << ") " << oaUsedObjectArray << "\n";
+
+								// Destruction
 								oaUsedObjectArray->DeleteAll();
 								delete oaUsedObjectArray;
 							}
@@ -1850,6 +1943,13 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 							// Si non trouve, supression
 							if (kwcMutationClass == NULL)
 							{
+								// Trace
+								if (bTrace)
+									cout << "  delete unmutated Object "
+									     << attribute->GetName() << " "
+									     << kwoUsedObject << "\n";
+
+								// Supression
 								delete kwoUsedObject;
 								GetAt(liLoadIndex.GetDenseIndex()).SetObject(NULL);
 							}
@@ -1892,6 +1992,15 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 									// Si non trouve, supression
 									if (kwcMutationClass == NULL)
 									{
+										// Trace
+										if (bTrace)
+											cout << "  delete unmutated "
+												"Object in ObjectArray "
+											     << attribute->GetName()
+											     << " " << kwoUsedObject
+											     << "\n";
+
+										// Supression
 										delete kwoUsedObject;
 										oaUsedObjectArray->SetAt(nObject, NULL);
 									}
@@ -1911,7 +2020,19 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 
 	// Destruction des valeurs precedentes, geree par la destruction de l'objet precedent memorise
 	if (previousValues.attributeValues != NULL)
+	{
+		// Trace
+		if (bTrace)
+			cout << "  delete previous ValueVector (size="
+			     << previousClass->GetTotalInternallyLoadedDataItemNumber() << ")\n";
+
+		// Destruction
 		DeleteValueVector(previousValues, previousClass->GetTotalInternallyLoadedDataItemNumber());
+	}
+
+	// Trace de fin
+	if (bTrace)
+		cout << "End Object::Mutate " << GetClass()->GetName() << " " << GetCreationIndex() << "\n";
 
 	// Memorisation des informations de coherence
 	debug(nObjectLoadedDataItemNumber = kwcClass->GetTotalInternallyLoadedDataItemNumber());

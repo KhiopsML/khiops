@@ -671,7 +671,7 @@ int KWClass::ComputeOverallNativeRelationAttributeNumber(boolean bIncludingRefer
 							odAnalysedCreatedClasses.SetAt(kwcTargetClass->GetName(),
 										       kwcTargetClass);
 
-							// Recherche de toutes les classe utilisee recursivement
+							// Recherche de toutes les classe utilisees recursivement
 							kwcTargetClass->BuildAllUsedClasses(&oaUsedClass);
 
 							// Recherches des classes externes

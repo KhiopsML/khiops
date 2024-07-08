@@ -149,9 +149,9 @@ protected:
 	// ulterieurement Les mappings crees recursivement sont memorises dans un tableau
 	// Les classes crees analysees sont egalement memorisees dans un dictionnaire, pour eviter des analyse multiples
 	KWMTDatabaseMapping* CreateMapping(ObjectDictionary* odReferenceClasses, ObjectArray* oaRankedReferenceClasses,
-		ObjectDictionary* odAnalysedCreatedClasses, KWClass* mappedClass, boolean bIsExternalTable,
-		const ALString& sOriginClassName, StringVector* svAttributeNames,
-		ObjectArray* oaCreatedMappings);
+					   ObjectDictionary* odAnalysedCreatedClasses, KWClass* mappedClass,
+					   boolean bIsExternalTable, const ALString& sOriginClassName,
+					   StringVector* svAttributeNames, ObjectArray* oaCreatedMappings);
 
 	/////////////////////////////////////////////////////////////////////////////////
 	// Gestion des objets natifs references
