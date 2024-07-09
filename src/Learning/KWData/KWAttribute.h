@@ -322,11 +322,15 @@ inline void KWAttribute::SetStructureName(const ALString& sValue)
 
 inline boolean KWAttribute::GetReference() const
 {
+	KWDerivationRule* kwdrAnyRule;
+
 	require(KWType::IsRelation(GetType()));
-	if (kwdrRule == NULL)
+
+	kwdrAnyRule = GetAnyDerivationRule();
+	if (kwdrAnyRule == NULL)
 		return false;
 	else
-		return kwdrRule->GetReference();
+		return kwdrAnyRule->GetReference();
 }
 
 inline void KWAttribute::SetDerivationRule(KWDerivationRule* kwdrValue)

@@ -256,6 +256,7 @@ void KWMTDatabase::UpdateMultiTableMappings()
 	ObjectArray oaPreviousMultiTableMappings;
 	ObjectDictionary odReferenceClasses;
 	ObjectArray oaRankedReferenceClasses;
+	ObjectDictionary odAnalysedCreatedClasses;
 	KWClass* referenceClass;
 	StringVector svAttributeName;
 	KWMTDatabaseMapping* mapping;
@@ -315,8 +316,9 @@ void KWMTDatabase::UpdateMultiTableMappings()
 
 		// Creation du mapping de la table principale
 		assert(svAttributeName.GetSize() == 0);
-		rootMultiTableMapping = CreateMapping(&odReferenceClasses, &oaRankedReferenceClasses, mainClass, false,
-						      mainClass->GetName(), &svAttributeName, &oaMultiTableMappings);
+		rootMultiTableMapping =
+		    CreateMapping(&odReferenceClasses, &oaRankedReferenceClasses, &odAnalysedCreatedClasses, mainClass,
+				  false, mainClass->GetName(), &svAttributeName, &oaMultiTableMappings);
 		assert(svAttributeName.GetSize() == 0);
 
 		// Parcours des classes referencee pour creer leur mapping
@@ -336,9 +338,9 @@ void KWMTDatabase::UpdateMultiTableMappings()
 
 				// Creation du mapping et memorisation de tous les mapping des sous-classes
 				assert(svAttributeName.GetSize() == 0);
-				mapping =
-				    CreateMapping(&odReferenceClasses, &oaRankedReferenceClasses, referenceClass, true,
-						  referenceClass->GetName(), &svAttributeName, oaCreatedMappings);
+				mapping = CreateMapping(&odReferenceClasses, &oaRankedReferenceClasses,
+							&odAnalysedCreatedClasses, referenceClass, true,
+							referenceClass->GetName(), &svAttributeName, oaCreatedMappings);
 				assert(svAttributeName.GetSize() == 0);
 			}
 
@@ -577,7 +579,7 @@ boolean KWMTDatabase::CheckPartially(boolean bWriteOnly) const
 							 " variables)");
 					}
 
-					// Passage a la classe suivante dans la path
+					// Passage a la classe suivante dans le path
 					if (bOk)
 						pathClass = attribute->GetClass();
 
@@ -1370,7 +1372,8 @@ boolean KWMTDatabase::IsPhysicalObjectSelected(KWObject* kwoPhysicalObject)
 }
 
 KWMTDatabaseMapping* KWMTDatabase::CreateMapping(ObjectDictionary* odReferenceClasses,
-						 ObjectArray* oaRankedReferenceClasses, KWClass* mappedClass,
+						 ObjectArray* oaRankedReferenceClasses,
+						 ObjectDictionary* odAnalysedCreatedClasses, KWClass* mappedClass,
 						 boolean bIsExternalTable, const ALString& sOriginClassName,
 						 StringVector* svAttributeNames, ObjectArray* oaCreatedMappings)
 {
@@ -1378,9 +1381,14 @@ KWMTDatabaseMapping* KWMTDatabase::CreateMapping(ObjectDictionary* odReferenceCl
 	KWMTDatabaseMapping* mapping;
 	KWMTDatabaseMapping* subMapping;
 	KWAttribute* attribute;
+	KWClass* kwcTargetClass;
+	ObjectArray oaUsedClass;
+	KWClass* kwcUsedClass;
+	int nUsedClass;
 
 	require(odReferenceClasses != NULL);
 	require(oaRankedReferenceClasses != NULL);
+	require(odAnalysedCreatedClasses != NULL);
 	require(odReferenceClasses->GetCount() == oaRankedReferenceClasses->GetSize());
 	require(mappedClass != NULL);
 	require(sOriginClassName != "");
@@ -1407,15 +1415,16 @@ KWMTDatabaseMapping* KWMTDatabase::CreateMapping(ObjectDictionary* odReferenceCl
 		if (KWType::IsRelation(attribute->GetType()) and attribute->GetClass() != NULL)
 		{
 			// Cas d'un attribut natif de la composition (sans regle de derivation)
-			if (not attribute->GetReference() and attribute->GetAnyDerivationRule() == NULL)
+			if (attribute->GetAnyDerivationRule() == NULL)
 			{
 				// Ajout temporaire d'un attribut au mapping
 				svAttributeNames->Add(attribute->GetName());
 
 				// Creation du mapping dans une nouvelle table de mapping temporaire
-				subMapping = CreateMapping(odReferenceClasses, oaRankedReferenceClasses,
-							   attribute->GetClass(), bIsExternalTable, sOriginClassName,
-							   svAttributeNames, oaCreatedMappings);
+				subMapping =
+				    CreateMapping(odReferenceClasses, oaRankedReferenceClasses,
+						  odAnalysedCreatedClasses, attribute->GetClass(), bIsExternalTable,
+						  sOriginClassName, svAttributeNames, oaCreatedMappings);
 
 				// Supression de l'attribut ajoute temporairement
 				svAttributeNames->SetSize(svAttributeNames->GetSize() - 1);
@@ -1423,9 +1432,45 @@ KWMTDatabaseMapping* KWMTDatabase::CreateMapping(ObjectDictionary* odReferenceCl
 				// Chainage du sous-mapping
 				mapping->GetComponentTableMappings()->Add(subMapping);
 			}
+			// Cas d'un attribut issue d'une regle de creation de table, pour rechercher
+			// les classes referencees depuis les tables creees par des regles
+			else if (not attribute->GetReference())
+			{
+				assert(attribute->GetAnyDerivationRule() != NULL);
+
+				// Recherche de la classe cible
+				kwcTargetClass = mappedClass->GetDomain()->LookupClass(
+				    attribute->GetDerivationRule()->GetObjectClassName());
+				assert(kwcTargetClass != NULL);
+
+				// Analyse uniquement si la classe cible na pas deja ete analysees
+				if (odAnalysedCreatedClasses->Lookup(kwcTargetClass->GetName()) == NULL)
+				{
+					// Memorisation de la classe cible
+					odAnalysedCreatedClasses->SetAt(kwcTargetClass->GetName(), kwcTargetClass);
+					// Recherche de toutes les classe utilisee recursivement
+					kwcTargetClass->BuildAllUsedClasses(&oaUsedClass);
+
+					// Recherches des classes externes
+					for (nUsedClass = 0; nUsedClass < oaUsedClass.GetSize(); nUsedClass++)
+					{
+						kwcUsedClass = cast(KWClass*, oaUsedClass.GetAt(nUsedClass));
+
+						// Memorisation des mapping a traiter dans le cas de classe externes
+						if (kwcUsedClass->GetRoot())
+						{
+							if (odReferenceClasses->Lookup(kwcUsedClass->GetName()) == NULL)
+							{
+								odReferenceClasses->SetAt(kwcUsedClass->GetName(),
+											  kwcUsedClass);
+								oaRankedReferenceClasses->Add(kwcUsedClass);
+							}
+						}
+					}
+				}
+			}
 			// Cas d'un attribut natif reference (avec regle de derivation predefinie)
-			else if (attribute->GetReference() and attribute->GetDerivationRule() != NULL and
-				 attribute->GetDerivationRule()->GetName() == referenceRule.GetName())
+			else if (attribute->GetAnyDerivationRule()->GetName() == referenceRule.GetName())
 			{
 				// Memorisation du mapping a traiter
 				if (odReferenceClasses->Lookup(attribute->GetClass()->GetName()) == NULL)

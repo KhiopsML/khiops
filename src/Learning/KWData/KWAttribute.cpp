@@ -284,18 +284,23 @@ boolean KWAttribute::Check() const
 		}
 
 		// La classe utilisee doit avoir une cle dans le cas d'un attribut natif
+		// si la classe utilisante a elle meme une cle
+		// Exception dans le cas d'une classe sans-cle pouvant etre issue d'une regle de creation de table,
+		// auquel cas les cles ne sont pas necessaire y compris dans le cas d'un flocon creer par des regles
 		if (GetAnyDerivationRule() == NULL and attributeClass != NULL and
-		    attributeClass->GetKeyAttributeNumber() == 0)
+		    attributeClass->GetKeyAttributeNumber() == 0 and GetParentClass() != NULL and
+		    GetParentClass()->GetKeyAttributeNumber() > 0)
 		{
-			AddError("The used dictionary " + attributeClass->GetName() + " should have a key");
+			AddError("The used dictionary " + attributeClass->GetName() +
+				 " should have a key as the parent dictionary " + parentClass->GetName() +
+				 " has a key");
 			bOk = false;
 		}
-
 		// La cle de la classe utilisee doit etre au moins aussi longue que
 		// celle de la classe utilisante dans le cas d'un lien de composition
-		if (not GetReference() and GetAnyDerivationRule() == NULL and attributeClass != NULL and
-		    parentClass != NULL and not attributeClass->GetRoot() and
-		    attributeClass->GetKeyAttributeNumber() < parentClass->GetKeyAttributeNumber())
+		else if (not GetReference() and GetAnyDerivationRule() == NULL and attributeClass != NULL and
+			 parentClass != NULL and not attributeClass->GetRoot() and
+			 attributeClass->GetKeyAttributeNumber() < parentClass->GetKeyAttributeNumber())
 		{
 			AddError("In used dictionary (" + attributeClass->GetName() + "), the length of the key (" +
 				 IntToString(attributeClass->GetKeyAttributeNumber()) +

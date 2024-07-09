@@ -611,10 +611,15 @@ int KWClass::ComputeOverallNativeRelationAttributeNumber(boolean bIncludingRefer
 	int nOverallNativeRelationAttributeNumber;
 	ObjectDictionary odReferenceClasses;
 	ObjectArray oaImpactedClasses;
+	ObjectDictionary odAnalysedCreatedClasses;
 	KWClass* kwcImpactedClass;
 	KWClass* kwcRefClass;
 	int nClass;
 	KWAttribute* attribute;
+	KWClass* kwcTargetClass;
+	ObjectArray oaUsedClass;
+	KWClass* kwcUsedClass;
+	int nUsedClass;
 
 	// On part de la classe de depart
 	kwcImpactedClass = cast(KWClass*, this);
@@ -648,6 +653,52 @@ int KWClass::ComputeOverallNativeRelationAttributeNumber(boolean bIncludingRefer
 						// Ajout de la classe a analyser
 						oaImpactedClasses.Add(kwcRefClass);
 					}
+					// Cas d'un attribut issue d'une regle de creation de table, pour rechercher
+					// les classes referencees depuis les tables creees par des regles
+					else if (bIncludingReferences and not attribute->GetReference())
+					{
+						assert(attribute->GetDerivationRule() != NULL);
+
+						// Recherche de la classe cible
+						kwcTargetClass = GetDomain()->LookupClass(
+						    attribute->GetDerivationRule()->GetObjectClassName());
+						assert(kwcTargetClass != NULL);
+
+						// Analyse uniquement si la classe cible na pas deja ete analysees
+						if (odAnalysedCreatedClasses.Lookup(kwcTargetClass->GetName()) == NULL)
+						{
+							// Memorisation de la classe cible
+							odAnalysedCreatedClasses.SetAt(kwcTargetClass->GetName(),
+										       kwcTargetClass);
+
+							// Recherche de toutes les classe utilisee recursivement
+							kwcTargetClass->BuildAllUsedClasses(&oaUsedClass);
+
+							// Recherches des classes externes
+							for (nUsedClass = 0; nUsedClass < oaUsedClass.GetSize();
+							     nUsedClass++)
+							{
+								kwcUsedClass =
+								    cast(KWClass*, oaUsedClass.GetAt(nUsedClass));
+
+								// Ajout de la classe a analyser si elle ne l'a pas deja ete
+								if (kwcUsedClass->GetRoot())
+								{
+									if (odReferenceClasses.Lookup(
+										kwcUsedClass->GetName()) == NULL)
+									{
+										nOverallNativeRelationAttributeNumber++;
+
+										// Memorisation de la classe externe pour ne pas faire l'analyse plusieurs fois
+										odReferenceClasses.SetAt(
+										    kwcUsedClass->GetName(),
+										    kwcUsedClass);
+										oaImpactedClasses.Add(kwcUsedClass);
+									}
+								}
+							}
+						}
+					}
 					// Prise en compte dans le cas d'une classe referencee
 					else if (bIncludingReferences and
 						 attribute->GetAnyDerivationRule()->GetName() ==
@@ -659,8 +710,7 @@ int KWClass::ComputeOverallNativeRelationAttributeNumber(boolean bIncludingRefer
 						{
 							nOverallNativeRelationAttributeNumber++;
 
-							// Memorisation de la classe externe pour ne pas faire l'analyse
-							// plusieurs fois
+							// Memorisation de la classe externe pour ne pas faire l'analyse plusieurs fois
 							odReferenceClasses.SetAt(kwcRefClass->GetName(), kwcRefClass);
 							oaImpactedClasses.Add(kwcRefClass);
 						}
@@ -2599,6 +2649,7 @@ boolean KWClass::CheckClassComposition(KWAttribute* parentAttribute, NumericKeyD
 	KWAttribute* attribute;
 	KWClass* parentClass;
 	KWClass* attributeClass;
+	ALString sTmp;
 
 	require(nkdComponentClasses != NULL);
 
@@ -2636,25 +2687,27 @@ boolean KWClass::CheckClassComposition(KWAttribute* parentAttribute, NumericKeyD
 					break;
 			}
 
-			// La cle de la classe utilisee doit etre strictement plus longue que
-			// celle de la classe utilisante dans le cas d'un lien de composition multiple a trois niveau
-			// (ou plus)
+			// La cle de la classe utilisee doit etre strictement plus longue que celle de la classe utilisante
+			// dans le cas d'un lien de composition multiple a trois niveau (ou plus)
+			// Exception dans le cas d'une classe sans-cle pouvant etre issue d'une regle de creation de table,
+			// auquel cas les cles ne sont pas necessaire y compris dans le cas d'un flocon creer par des regles
 			assert(parentClass == NULL or parentClass->GetKeyAttributeNumber() <= GetKeyAttributeNumber());
-			assert(GetKeyAttributeNumber() <= attributeClass->GetKeyAttributeNumber());
 			if (parentClass != NULL and parentAttribute->GetType() == KWType::ObjectArray and
-			    parentClass->GetKeyAttributeNumber() == GetKeyAttributeNumber())
+			    parentClass->GetKeyAttributeNumber() > 0 and
+			    parentClass->GetKeyAttributeNumber() >= GetKeyAttributeNumber())
 			{
-				AddError("The length of a key in a dictionary used as a Table, having a sub-" +
-					 KWType::ToString(attribute->GetType()) +
-					 " in its composition, must be strictly greater than that of its parent "
-					 "Dictionary;\n " +
-					 "in dictionary " + parentClass->GetName() + " (key length=" +
-					 IntToString(parentClass->GetKeyAttributeNumber()) + "), dictionary " +
-					 GetName() + "(key length = " + IntToString(GetKeyAttributeNumber()) +
-					 ") is used as a Table in variable " + parentAttribute->GetName() +
-					 ", and uses dictionary " + attributeClass->GetName() + " with variable " +
-					 attribute->GetName() + " as a sub-" + KWType::ToString(attribute->GetType()) +
-					 " in its composition.");
+				AddError(sTmp + "As dictionary " + parentClass->GetName() + " owns variable " +
+					 parentAttribute->GetName() + " of type " +
+					 KWType::ToString(parentAttribute->GetType()) + "(" +
+					 parentAttribute->GetClass()->GetName() + ") and dictionary " +
+					 parentAttribute->GetClass()->GetName() + " itself owns variable " +
+					 attribute->GetName() + " of type " + KWType::ToString(attribute->GetType()) +
+					 "(" + attribute->GetClass()->GetName() + "), the key length in dictionary " +
+					 GetName() + " (key length = " + IntToString(GetKeyAttributeNumber()) +
+					 ") must be strictly greater than that of its parent "
+					 "dictionary " +
+					 parentClass->GetName() +
+					 " (key length = " + IntToString(parentClass->GetKeyAttributeNumber()) + ")");
 				bOk = false;
 			}
 		}
