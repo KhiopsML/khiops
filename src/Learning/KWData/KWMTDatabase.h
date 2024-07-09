@@ -147,9 +147,11 @@ protected:
 	// Le tableaux mapping exhaustifs est egalement egalement mis a jour
 	// Les classes referencees sont memorisees dans un dictionnaire, pour gerer les mappings externes a creer
 	// ulterieurement Les mappings crees recursivement sont memorises dans un tableau
+	// Les classes crees analysees sont egalement memorisees dans un dictionnaire, pour eviter des analyse multiples
 	KWMTDatabaseMapping* CreateMapping(ObjectDictionary* odReferenceClasses, ObjectArray* oaRankedReferenceClasses,
-					   KWClass* mappedClass, const ALString& sDataPathClassName,
-					   const ALString& sDataPathAttributeNames, ObjectArray* oaCreatedMappings);
+					   ObjectDictionary* odAnalysedCreatedClasses, KWClass* mappedClass,
+					   const ALString& sDataPathClassName, const ALString& sDataPathAttributeNames,
+					   ObjectArray* oaCreatedMappings);
 
 	/////////////////////////////////////////////////////////////////////////////////
 	// Gestion des objets natifs references

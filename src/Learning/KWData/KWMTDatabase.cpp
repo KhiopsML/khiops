@@ -255,6 +255,7 @@ void KWMTDatabase::UpdateMultiTableMappings()
 	ObjectArray oaPreviousMultiTableMappings;
 	ObjectDictionary odReferenceClasses;
 	ObjectArray oaRankedReferenceClasses;
+	ObjectDictionary odAnalysedCreatedClasses;
 	KWClass* referenceClass;
 	KWMTDatabaseMapping* mapping;
 	KWMTDatabaseMapping* previousMapping;
@@ -297,8 +298,9 @@ void KWMTDatabase::UpdateMultiTableMappings()
 		oaRootRefTableMappings.SetSize(0);
 
 		// Creation du mapping de la table principale
-		rootMultiTableMapping = CreateMapping(&odReferenceClasses, &oaRankedReferenceClasses, mainClass,
-						      mainClass->GetName(), "", &oaMultiTableMappings);
+		rootMultiTableMapping =
+		    CreateMapping(&odReferenceClasses, &oaRankedReferenceClasses, &odAnalysedCreatedClasses, mainClass,
+				  mainClass->GetName(), "", &oaMultiTableMappings);
 
 		// Parcours des classes referencee pour creer leur mapping
 		// Ce mapping des classes referencees n'est pas effectuee dans le cas d'une base en ecriture
@@ -316,7 +318,8 @@ void KWMTDatabase::UpdateMultiTableMappings()
 				oaAllMainCreatedMappings.Add(oaCreatedMappings);
 
 				// Creation du mapping et memorisation de tous les mapping des sous-classes
-				mapping = CreateMapping(&odReferenceClasses, &oaRankedReferenceClasses, referenceClass,
+				mapping = CreateMapping(&odReferenceClasses, &oaRankedReferenceClasses,
+							&odAnalysedCreatedClasses, referenceClass,
 							referenceClass->GetName(), "", oaCreatedMappings);
 			}
 
@@ -528,7 +531,7 @@ boolean KWMTDatabase::CheckPartially(boolean bWriteOnly) const
 							 " variables)");
 					}
 
-					// Passage a la classe suivante dans la path
+					// Passage a la classe suivante dans le path
 					if (bOk)
 						pathClass = attribute->GetClass();
 
@@ -1321,7 +1324,8 @@ boolean KWMTDatabase::IsPhysicalObjectSelected(KWObject* kwoPhysicalObject)
 }
 
 KWMTDatabaseMapping* KWMTDatabase::CreateMapping(ObjectDictionary* odReferenceClasses,
-						 ObjectArray* oaRankedReferenceClasses, KWClass* mappedClass,
+						 ObjectArray* oaRankedReferenceClasses,
+						 ObjectDictionary* odAnalysedCreatedClasses, KWClass* mappedClass,
 						 const ALString& sDataPathClassName,
 						 const ALString& sDataPathAttributeNames,
 						 ObjectArray* oaCreatedMappings)
@@ -1330,9 +1334,14 @@ KWMTDatabaseMapping* KWMTDatabase::CreateMapping(ObjectDictionary* odReferenceCl
 	KWMTDatabaseMapping* mapping;
 	KWMTDatabaseMapping* subMapping;
 	KWAttribute* attribute;
+	KWClass* kwcTargetClass;
+	ObjectArray oaUsedClass;
+	KWClass* kwcUsedClass;
+	int nUsedClass;
 
 	require(odReferenceClasses != NULL);
 	require(oaRankedReferenceClasses != NULL);
+	require(odAnalysedCreatedClasses != NULL);
 	require(odReferenceClasses->GetCount() == oaRankedReferenceClasses->GetSize());
 	require(mappedClass != NULL);
 	require(sDataPathClassName != "");
@@ -1360,25 +1369,62 @@ KWMTDatabaseMapping* KWMTDatabase::CreateMapping(ObjectDictionary* odReferenceCl
 		if (KWType::IsRelation(attribute->GetType()) and attribute->GetClass() != NULL)
 		{
 			// Cas d'un attribut natif de la composition (sans regle de derivation)
-			if (not attribute->GetReference() and attribute->GetAnyDerivationRule() == NULL)
+			if (attribute->GetAnyDerivationRule() == NULL)
 			{
 				// Creation du mapping dans une nouvelle table de mapping temporaire
 				if (sDataPathAttributeNames != "")
-					subMapping = CreateMapping(odReferenceClasses, oaRankedReferenceClasses,
-								   attribute->GetClass(), sDataPathClassName,
-								   sDataPathAttributeNames + '`' + attribute->GetName(),
-								   oaCreatedMappings);
+					subMapping = CreateMapping(
+					    odReferenceClasses, oaRankedReferenceClasses, odAnalysedCreatedClasses,
+					    attribute->GetClass(), sDataPathClassName,
+					    sDataPathAttributeNames + '`' + attribute->GetName(), oaCreatedMappings);
 				else
-					subMapping = CreateMapping(odReferenceClasses, oaRankedReferenceClasses,
-								   attribute->GetClass(), sDataPathClassName,
-								   attribute->GetName(), oaCreatedMappings);
+					subMapping =
+					    CreateMapping(odReferenceClasses, oaRankedReferenceClasses,
+							  odAnalysedCreatedClasses, attribute->GetClass(),
+							  sDataPathClassName, attribute->GetName(), oaCreatedMappings);
 
 				// Chainage du sous-mapping
 				mapping->GetComponentTableMappings()->Add(subMapping);
 			}
+			// Cas d'un attribut issue d'une regle de creation de table, pour rechercher
+			// les classes referencees depuis les tables creees par des regles
+			else if (not attribute->GetReference())
+			{
+				assert(attribute->GetAnyDerivationRule() != NULL);
+
+				// Recherche de la classe cible
+				kwcTargetClass = mappedClass->GetDomain()->LookupClass(
+				    attribute->GetDerivationRule()->GetObjectClassName());
+				assert(kwcTargetClass != NULL);
+
+				// Analyse uniquement si la classe cible na pas deja ete analysees
+				if (odAnalysedCreatedClasses->Lookup(kwcTargetClass->GetName()) == NULL)
+				{
+					// Memorisation de la classe cible
+					odAnalysedCreatedClasses->SetAt(kwcTargetClass->GetName(), kwcTargetClass);
+					// Recherche de toutes les classe utilisee recursivement
+					kwcTargetClass->BuildAllUsedClasses(&oaUsedClass);
+
+					// Recherches des classes externes
+					for (nUsedClass = 0; nUsedClass < oaUsedClass.GetSize(); nUsedClass++)
+					{
+						kwcUsedClass = cast(KWClass*, oaUsedClass.GetAt(nUsedClass));
+
+						// Memorisation des mapping a traiter dans le cas de classe externes
+						if (kwcUsedClass->GetRoot())
+						{
+							if (odReferenceClasses->Lookup(kwcUsedClass->GetName()) == NULL)
+							{
+								odReferenceClasses->SetAt(kwcUsedClass->GetName(),
+											  kwcUsedClass);
+								oaRankedReferenceClasses->Add(kwcUsedClass);
+							}
+						}
+					}
+				}
+			}
 			// Cas d'un attribut natif reference (avec regle de derivation predefinie)
-			else if (attribute->GetReference() and attribute->GetDerivationRule() != NULL and
-				 attribute->GetDerivationRule()->GetName() == referenceRule.GetName())
+			else if (attribute->GetAnyDerivationRule()->GetName() == referenceRule.GetName())
 			{
 				// Memorisation du mapping a traiter
 				if (odReferenceClasses->Lookup(attribute->GetClass()->GetName()) == NULL)
