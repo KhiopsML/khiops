@@ -499,6 +499,14 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 		kwcTargetClass = kwcOwnerClass->GetDomain()->LookupClass(GetObjectClassName());
 		assert(kwcTargetClass != NULL);
 
+		// La class cible ne doit pas etre Root
+		if (kwcTargetClass->GetRoot())
+		{
+			AddError(sTmp + "Invalid output dictionary " + kwcTargetClass->GetName() +
+				 " that cannot be a root dictionary, dedicated to managing external tables");
+			bOk = false;
+		}
+
 		// Gestion de l'alimentation de type calcul via les operandes en sortie
 		if (bOk and GetOutputOperandNumber() > 0)
 		{

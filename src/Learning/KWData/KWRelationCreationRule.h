@@ -29,9 +29,23 @@ class KWDRTableCreationRule;
 //   - alimentation de type calcul
 // - le dictionnaire en sortie peut avoir ses variable utilisees ou non (Used),
 //   et des variable calculee si besoin
-// - un dictionnaire en sortie n'est pas specifique a aux regle de creation de Table:
+// - un dictionnaire en sortie n'est pas specifique aux regles de creation de Table:
 //   a priori, un meme dictionnaire pourrait etre utilise pour une variable native alimentee
 //   depuis un fichier, et pour une variable calculee alimentee par une regle de creation
+// - quelques restrictions neanmoins vis a vis des cles qui servent a lire les donnees a partir de fichiers
+//   - un dictionnaire en sortie ne peut etre Root: ce cas est reserve aux tables externes, et cela ne pourrait
+//     pas etre traite correctement si des objet de type Root etaient cree au fil de l'eau
+//   - un dictionnaire en sortie peut par contre avoir des cles ou non
+//     - par exemple, si on construit un flocon de donnees a partir d'un champs json (base NoSql), les
+//       entites et tables correspondantes n'ont pas de cle
+//     - consequence: si un dictionnaire en sortie est une tete de flocon, il ne pourra pas etre utilise en
+//       dictionnaire d'analyse, car on ne saurait pas l'alimenter a partir d'une base multi-table de fichiers
+//       - cela declenchera une erreur non pas a la lecture du dictionnaire (flocon autorise pour des tabkes construite)
+//         mais a l'utilisation suite au choix d'un dictionnaire d'analyse, par exemple pour un apprentissage
+//   - contrainte: si une dictionnaire a une cle, ses sous-dictionnaires de flocon doivent egalement avoir des cles
+//     - cela limite un peu l'expressivite de la creation de table
+//     - mais cela permet d'avoir le maximum de detection d'erreur des la lecture d'un fichier dictionnaire,
+//       en reduisant le nombre d'erreurs diagnostiquees au moment de l'utilisation d'un dictionnaire d'analyse
 //
 // Alimentation de type vue:
 // - par defaut, le premier operande de ce type de regle est de type relation, ce qui permet
