@@ -23,6 +23,8 @@ SNBAttributeSelectionScorer::SNBAttributeSelectionScorer()
 	// Le poids et exposant du prior (valeurs 0.1 et 0.95 resp.) relevent des etudes empiriques
 	// Les valeurs par defaut des prior soulevent d'un etude empirique
 	dPriorWeight = 0.1;
+	// DDD: Just to reproduce SNB v10.x (new PriorWeight is 0.1)
+	dPriorWeight = 0.25;
 	dPriorExponent = 0.95;
 }
 

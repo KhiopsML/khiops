@@ -27,6 +27,8 @@ KWSelectionParameters::KWSelectionParameters()
 	// Par defaut, on prend en compte les prior dans le SNB
 	// Le poids et exposant du prior (valeurs 0.1 et 0.95 resp.) relevent des etudes empiriques
 	dPriorWeight = 0.1;
+	// DDD: Just to reproduce SNB v10.x (new PriorWeight is 0.1)
+	dPriorWeight = 0.25;
 	dPriorExponent = 0.95;
 	bConstructionCost = true;
 	bPreparationCost = true;

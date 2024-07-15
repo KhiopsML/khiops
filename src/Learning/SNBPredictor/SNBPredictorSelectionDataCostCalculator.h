@@ -711,14 +711,20 @@ inline double SNBRegressorSelectionDataCostCalculator::ComputeInstanceNonNormali
 	nTargetPartNumber = oaTargetParts.GetSize();
 	for (nTargetPart = 0; nTargetPart < nTargetPartNumber; nTargetPart++)
 	{
-		targetPart = cast(SNBIntervalTargetPart*, oaTargetParts.GetAt(nTargetPart));
+		// DDD: Just to reproduce SNB v10.x (This is the correct code for the assignment bug below)
+		// targetPart = cast(SNBIntervalTargetPart*, oaTargetParts.GetAt(nTargetPart));
 
 		// Cas cible egal a la cible reelle de l'instance : contribution de #partie (pas d'appel a std::exp, voir formule (1))
-		if (targetPart == actualTargetPart)
+		// DDD: Just to reproduce SNB v10.x (The correct `if` statement is commented)
+		// if (targetPart == actualTargetPart)
+		if (nTargetPart == nActualTarget)
 			dInstanceInverseProb += actualTargetPart->GetFrequency();
 		// Cas general : Calcul complet (utilise un appel a la fonction std::exp)
 		else
 		{
+			// DDD: Just to reproduce SNB v10.x (the assigment must be done above)
+			targetPart = cast(SNBIntervalTargetPart*, oaTargetParts.GetAt(nTargetPart));
+
 			// Difference de score pour l'intervalle cible en cours
 			cDeltaScore = targetPart->GetScores()->GetAt(nChunkInstance) -
 				      actualTargetPart->GetScores()->GetAt(nChunkInstance);

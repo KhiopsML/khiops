@@ -1193,6 +1193,8 @@ void SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeOptimizationVa
 	nMasterTaskState = TaskState::PrecisionEpsilonComputation;
 
 	nMasterOuterIterationNumber = int(ceil(log2(masterBinarySliceSet->GetInstanceNumber() + 1)));
+	// DDD: Just to reproduce SNB v10.x (the correct no. of iterations is in the line above)
+	nMasterOuterIterationNumber = int(ceil(log(masterBinarySliceSet->GetInstanceNumber() + 1)) / log(2.0));
 
 	// Scores et couts
 	dMasterModificationScore = 0.0;
@@ -1212,6 +1214,8 @@ void SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeOptimizationVa
 
 	// Delta poids de la modification courante
 	dMasterModificationDeltaWeight = 1.0;
+	// DDD: Just to reproduce SNB v10.x (new initial delta weight is 1.0)
+	dMasterModificationDeltaWeight = 0.5;
 
 	// Calculatrice du score du maitre (calculatrice de couts de donnes non initialise)
 	masterWeightedSelectionScorer = new SNBAttributeSelectionScorer;
@@ -1505,6 +1509,8 @@ void SNBPredictorSelectiveNaiveBayesTrainingTask::InitializeNextFastRun()
 		{
 			nMasterTaskState = TaskState::FastBackwardRun;
 			nMasterRandomAttribute = masterBinarySliceSet->GetAttributeNumber() - 1;
+			// DDD: Just to reproduce SNB v10.x (this update must be done only in InitializeNextFastForwardRun)
+			dMasterLastFFBWRunScore = dMasterCurrentScore;
 		}
 	}
 	// Fin d'une passe FastBackward : On initialise un passe FastForward et potentiellement une
