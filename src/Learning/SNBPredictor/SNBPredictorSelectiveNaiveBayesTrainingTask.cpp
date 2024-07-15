@@ -1212,8 +1212,6 @@ void SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeOptimizationVa
 
 	// Delta poids de la modification courante
 	dMasterModificationDeltaWeight = 1.0;
-	// DDD: Just to reproduce SNB v10.x (new initial delta weight is 1.0)
-	dMasterModificationDeltaWeight = 0.5;
 
 	// Calculatrice du score du maitre (calculatrice de couts de donnes non initialise)
 	masterWeightedSelectionScorer = new SNBAttributeSelectionScorer;
