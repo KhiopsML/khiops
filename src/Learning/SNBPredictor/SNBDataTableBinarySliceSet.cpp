@@ -288,11 +288,12 @@ void SNBDataTableBinarySliceSetLayout::Write(ostream& ost) const
 	ost << "Slice Dimensions (attribute offset, attribute number)\n";
 	for (nSlice = 0; nSlice < GetSliceNumber(); nSlice++)
 		ost << "(" << GetAttributeOffsetAtSlice(nSlice) << ", " << GetAttributeNumberAtSlice(nSlice) << ") ";
+	ost << "\n";
 }
 
 const ALString SNBDataTableBinarySliceSetLayout::GetClassLabel() const
 {
-	return "Data Table Slice Set Layout";
+	return "Data Table Binary Slice Set Layout";
 }
 
 longint SNBDataTableBinarySliceSetLayout::ComputeNecessaryMemory(int nInstanceNumber, int nChunkNumber,
@@ -325,7 +326,7 @@ SNBDataTableBinarySliceSetAttribute::SNBDataTableBinarySliceSetAttribute()
 	sPreparedAttributeName = "";
 	nIndex = -1;
 	nDataPreparationClassIndex = -1;
-	bIsSparse = false;
+	bSparseMode = false;
 	dataPreparationStats = NULL;
 }
 
@@ -383,14 +384,14 @@ int SNBDataTableBinarySliceSetAttribute::GetDataPreparationClassIndex() const
 	return nDataPreparationClassIndex;
 }
 
-void SNBDataTableBinarySliceSetAttribute::SetSparse(boolean bSparseMode)
+void SNBDataTableBinarySliceSetAttribute::SetSparseMode(boolean bValue)
 {
-	bIsSparse = bSparseMode;
+	bSparseMode = bValue;
 }
 
-boolean SNBDataTableBinarySliceSetAttribute::IsSparse() const
+boolean SNBDataTableBinarySliceSetAttribute::GetSparseMode() const
 {
-	return bIsSparse;
+	return bSparseMode;
 }
 
 void SNBDataTableBinarySliceSetAttribute::InitializeDataFromDataPreparationAttribute(
@@ -407,7 +408,7 @@ void SNBDataTableBinarySliceSetAttribute::InitializeDataFromDataPreparationAttri
 
 	// Initialisation de l'index valeur par defaut dans le cas sparse
 	preparedAttributeDataGridStats = dataPreparationStats->GetPreparedDataGridStats();
-	if (IsSparse())
+	if (GetSparseMode())
 	{
 		assert(preparedAttributeDataGridStats->GetAttributeNumber() == 2);
 		nativeAttributeBlock = dataPreparationAttribute->GetNativeAttribute()->GetAttributeBlock();
@@ -479,7 +480,7 @@ void SNBDataTableBinarySliceSetAttribute::Write(ostream& ost) const
 	    << "Prepared attribute name: " << GetPreparedAttributeName() << "\n"
 	    << "Recoded attribute name: " << GetRecodedAttributeName() << "\n"
 	    << "Initial class index: " << GetDataPreparationClassIndex() << "\n";
-	if (IsSparse())
+	if (GetSparseMode())
 		ost << "Storage: sparse\n";
 	else
 		ost << "Storage: dense\n";
@@ -549,10 +550,10 @@ PLShared_DataTableBinarySliceSetAttribute::PLShared_DataTableBinarySliceSetAttri
 PLShared_DataTableBinarySliceSetAttribute::~PLShared_DataTableBinarySliceSetAttribute() {}
 
 void PLShared_DataTableBinarySliceSetAttribute::SetDataTableBinarySliceSetAttribute(
-    SNBDataTableBinarySliceSetAttribute* attribute)
+    SNBDataTableBinarySliceSetAttribute* attributeValue)
 {
-	require(attribute != NULL);
-	SetObject(attribute);
+	require(attributeValue != NULL);
+	SetObject(attributeValue);
 }
 
 SNBDataTableBinarySliceSetAttribute*
@@ -561,7 +562,7 @@ PLShared_DataTableBinarySliceSetAttribute::GetDataTableBinarySliceSetAttribute()
 	return cast(SNBDataTableBinarySliceSetAttribute*, GetObject());
 }
 
-void PLShared_DataTableBinarySliceSetAttribute::SerializeObject(PLSerializer* serializer, const Object* o) const
+void PLShared_DataTableBinarySliceSetAttribute::SerializeObject(PLSerializer* serializer, const Object* object) const
 {
 	SNBDataTableBinarySliceSetAttribute* attribute;
 	PLShared_AttributeStats shared_HelperAttributeStats;
@@ -569,10 +570,10 @@ void PLShared_DataTableBinarySliceSetAttribute::SerializeObject(PLSerializer* se
 
 	require(serializer != NULL);
 	require(serializer->IsOpenForWrite());
-	require(o != NULL);
+	require(object != NULL);
 
 	// Acces a l'attribut
-	attribute = cast(SNBDataTableBinarySliceSetAttribute*, o);
+	attribute = cast(SNBDataTableBinarySliceSetAttribute*, object);
 
 	// Serialisation
 	// Nota : L'objet dataPreparationStats doit etre serialise independamment
@@ -581,7 +582,7 @@ void PLShared_DataTableBinarySliceSetAttribute::SerializeObject(PLSerializer* se
 	serializer->PutString(attribute->sRecodedAttributeName);
 	serializer->PutInt(attribute->nIndex);
 	serializer->PutInt(attribute->nDataPreparationClassIndex);
-	serializer->PutBoolean(attribute->bIsSparse);
+	serializer->PutBoolean(attribute->bSparseMode);
 }
 
 void PLShared_DataTableBinarySliceSetAttribute::DeserializeObject(PLSerializer* serializer, Object* object) const
@@ -605,7 +606,7 @@ void PLShared_DataTableBinarySliceSetAttribute::DeserializeObject(PLSerializer* 
 	attribute->sRecodedAttributeName = serializer->GetString();
 	attribute->nIndex = serializer->GetInt();
 	attribute->nDataPreparationClassIndex = serializer->GetInt();
-	attribute->bIsSparse = serializer->GetBoolean();
+	attribute->bSparseMode = serializer->GetBoolean();
 }
 
 Object* PLShared_DataTableBinarySliceSetAttribute::Create() const
@@ -658,7 +659,7 @@ void SNBDataTableBinarySliceSetSchema::InitializeFromDataPreparationClass(
 		attribute->SetDataPreparationClassIndex(dataPreparationAttribute->GetIndex());
 		if (dataPreparationAttribute->GetNativeAttribute()->GetAttributeBlock() != NULL and
 		    not GetSNBForceDenseMode())
-			attribute->SetSparse(true);
+			attribute->SetSparseMode(true);
 		attribute->InitializeDataFromDataPreparationAttribute(dataPreparationAttribute);
 		oaAttributes.Add(attribute);
 		odAttributesByNativeAttributeName.SetAt(dataPreparationAttribute->ComputeNativeAttributeName(),
@@ -995,24 +996,24 @@ longint SNBDataTableBinarySliceSetRandomizedAttributeIterator::ComputeNecessaryM
 //
 SNBDataTableBinarySliceSetColumn::SNBDataTableBinarySliceSetColumn()
 {
-	bIsSparse = false;
+	bSparseMode = false;
 }
 
 SNBDataTableBinarySliceSetColumn::~SNBDataTableBinarySliceSetColumn() {}
 
-void SNBDataTableBinarySliceSetColumn::SetSparse(boolean bSparseValue)
+void SNBDataTableBinarySliceSetColumn::SetSparseMode(boolean bValue)
 {
-	bIsSparse = bSparseValue;
+	bSparseMode = bValue;
 }
 
-boolean SNBDataTableBinarySliceSetColumn::IsSparse() const
+boolean SNBDataTableBinarySliceSetColumn::GetSparseMode() const
 {
-	return bIsSparse;
+	return bSparseMode;
 }
 
-boolean SNBDataTableBinarySliceSetColumn::SetDataSize(int nSize)
+boolean SNBDataTableBinarySliceSetColumn::SetDataSize(int nValue)
 {
-	return ivData.SetLargeSize(nSize);
+	return ivData.SetLargeSize(nValue);
 }
 
 int SNBDataTableBinarySliceSetColumn::GetDataSize() const
@@ -1020,19 +1021,19 @@ int SNBDataTableBinarySliceSetColumn::GetDataSize() const
 	return ivData.GetSize();
 }
 
-void SNBDataTableBinarySliceSetColumn::SetDataAt(int nDataIndex, int nDataValue)
+void SNBDataTableBinarySliceSetColumn::SetDataAt(int nIndex, int nValue)
 {
-	ivData.SetAt(nDataIndex, nDataValue);
+	ivData.SetAt(nIndex, nValue);
 }
 
-int SNBDataTableBinarySliceSetColumn::GetDataAt(int nDataIndex) const
+int SNBDataTableBinarySliceSetColumn::GetDataAt(int nIndex) const
 {
-	return ivData.GetAt(nDataIndex);
+	return ivData.GetAt(nIndex);
 }
 
-void SNBDataTableBinarySliceSetColumn::AddData(int nDataValue)
+void SNBDataTableBinarySliceSetColumn::AddData(int nValue)
 {
-	ivData.Add(nDataValue);
+	ivData.Add(nValue);
 }
 
 boolean SNBDataTableBinarySliceSetColumn::Check() const
@@ -1042,13 +1043,13 @@ boolean SNBDataTableBinarySliceSetColumn::Check() const
 	int nPreviousInstanceIndex;
 
 	// En sparse il doit avoir une quantite pair de donnees
-	bOk = bOk and (not bIsSparse or ivData.GetSize() % 2 == 0);
+	bOk = bOk and (not bSparseMode or ivData.GetSize() % 2 == 0);
 
 	// Verification des rangs des donnees
 	for (nData = 0; nData < ivData.GetSize(); nData++)
 	{
 		// Cas sparse : toutes les valeurs sont non-negatifs
-		if (bIsSparse)
+		if (bSparseMode)
 			bOk = bOk and ivData.GetAt(nData) >= 0;
 		// Cas dense : toutes les valeurs sont non-negatifs ou -1 (manquantes)
 		else
@@ -1056,7 +1057,7 @@ boolean SNBDataTableBinarySliceSetColumn::Check() const
 	}
 
 	// Cas sparse: Verification que les indexes d'instance sont croissantes
-	if (bIsSparse and ivData.GetSize() > 0)
+	if (bSparseMode and ivData.GetSize() > 0)
 	{
 		nPreviousInstanceIndex = ivData.GetAt(0);
 		for (nData = 2; nData < ivData.GetSize(); nData += 2)
@@ -1116,7 +1117,7 @@ void SNBDataTableBinarySliceSetChunkPhysicalLayout::PartiallyInitialize(
 	ivAttributeSparseModes.SetSize(schema->GetAttributeNumber());
 	ivAttributeSparseModes.Initialize();
 	for (nAttribute = 0; nAttribute < schema->GetAttributeNumber(); nAttribute++)
-		ivAttributeSparseModes.SetAt(nAttribute, schema->GetAttributeAt(nAttribute)->IsSparse());
+		ivAttributeSparseModes.SetAt(nAttribute, schema->GetAttributeAt(nAttribute)->GetSparseMode());
 
 	ensure(IsPartiallyInitialized());
 }
@@ -1180,14 +1181,14 @@ longint SNBDataTableBinarySliceSetChunkPhysicalLayout::GetDataSize() const
 	return lSize;
 }
 
-void SNBDataTableBinarySliceSetChunkPhysicalLayout::SetAttributeSparseAt(int nAttribute, boolean bSparseMode)
+void SNBDataTableBinarySliceSetChunkPhysicalLayout::SetAttributeSparseModeAt(int nAttribute, boolean bSparseMode)
 {
 	require(IsInitialized());
 	require(0 <= nAttribute and nAttribute < layout->GetAttributeNumber());
 	ivAttributeSparseModes.SetAt(nAttribute, bSparseMode);
 }
 
-boolean SNBDataTableBinarySliceSetChunkPhysicalLayout::IsAttributeSparseAt(int nAttribute) const
+boolean SNBDataTableBinarySliceSetChunkPhysicalLayout::GetAttributeSparseModeAt(int nAttribute) const
 {
 	require(IsInitialized());
 	require(0 <= nAttribute and nAttribute < layout->GetAttributeNumber());
@@ -1205,7 +1206,7 @@ double SNBDataTableBinarySliceSetChunkPhysicalLayout::GetSparsityRate() const
 	lChunkValueNumber = 0;
 	for (nAttribute = 0; nAttribute < layout->GetAttributeNumber(); nAttribute++)
 	{
-		if (IsAttributeSparseAt(nAttribute))
+		if (GetAttributeSparseModeAt(nAttribute))
 			lChunkValueNumber += GetAttributeDataSizeAt(nAttribute) / 2;
 		else
 			lChunkValueNumber += GetAttributeDataSizeAt(nAttribute);
@@ -1371,14 +1372,14 @@ SNBDataTableBinarySliceSetChunkBuffer::~SNBDataTableBinarySliceSetChunkBuffer()
 	CleanWorkingData();
 }
 
-void SNBDataTableBinarySliceSetChunkBuffer::SetLayout(const SNBDataTableBinarySliceSetLayout* someLayout)
+void SNBDataTableBinarySliceSetChunkBuffer::SetLayout(const SNBDataTableBinarySliceSetLayout* layoutValue)
 {
-	require(someLayout != NULL);
-	require(someLayout->IsInitialized());
-	require(someLayout->Check());
+	require(layoutValue != NULL);
+	require(layoutValue->IsInitialized());
+	require(layoutValue->Check());
 
 	CleanWorkingData();
-	layout = someLayout;
+	layout = layoutValue;
 }
 
 const SNBDataTableBinarySliceSetLayout* SNBDataTableBinarySliceSetChunkBuffer::GetLayout() const
@@ -1610,8 +1611,8 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::InitializeBlockFromSliceSetAt(
 	{
 		nAttribute = nSliceAttributeOffset + nSliceAttribute;
 		column = cast(SNBDataTableBinarySliceSetColumn*, oaLoadedBlock.GetAt(nSliceAttribute));
-		column->SetSparse(schema->GetAttributeAt(nAttribute)->IsSparse());
-		if (column->IsSparse())
+		column->SetSparseMode(schema->GetAttributeAt(nAttribute)->GetSparseMode());
+		if (column->GetSparseMode())
 			column->SetDataSize(0);
 		else
 		{
@@ -1649,7 +1650,7 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::InitializeBlockFromSliceSetAt(
 				column = cast(SNBDataTableBinarySliceSetColumn*, oaLoadedBlock.GetAt(nSliceAttribute));
 
 				// On ignore les colones sparse (on les traite apres)
-				if (column->IsSparse())
+				if (column->GetSparseMode())
 					continue;
 
 				// Obtention de l'index de la valeur de l'attribut en ajoustant a zero si positif car ils sont 1-based
@@ -1659,7 +1660,7 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::InitializeBlockFromSliceSetAt(
 					nAttributeValueIndex = lrint(cAttributeValueIndex) - 1;
 				else
 				{
-					assert(cAttributeValueIndex == -1.0 or column->IsSparse());
+					assert(cAttributeValueIndex == -1.0 or column->GetSparseMode());
 					nAttributeValueIndex = int(cAttributeValueIndex);
 				}
 
@@ -1699,7 +1700,7 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::InitializeBlockFromSliceSetAt(
 					nSliceAttribute = nAttribute - nSliceAttributeOffset;
 					column = cast(SNBDataTableBinarySliceSetColumn*,
 						      oaLoadedBlock.GetAt(nSliceAttribute));
-					assert(column->IsSparse());
+					assert(column->GetSparseMode());
 
 					// Ajustement de l'index a zero et ajout a la colonne
 					nAttributeValueIndex =
@@ -1773,7 +1774,7 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::InitializeBlockFromSliceSetAt(
 		{
 			nAttribute = nSliceAttributeOffset + nSliceAttribute;
 			column = cast(SNBDataTableBinarySliceSetColumn*, oaLoadedBlock.GetAt(nSliceAttribute));
-			if (column->IsSparse())
+			if (column->GetSparseMode())
 				physicalLayout.SetAttributeDataSizeAt(nAttribute, column->GetDataSize());
 		}
 	}
@@ -2016,7 +2017,7 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::LoadBlockAt(int nSlice)
 			nAttribute = layout->GetAttributeOffsetAtSlice(nSlice) + nSliceAttribute;
 			column = cast(SNBDataTableBinarySliceSetColumn*,
 				      oaLoadedBlock.GetAt(layout->GetRelativeIndexAtAttribute(nAttribute)));
-			column->SetSparse(physicalLayout.IsAttributeSparseAt(nAttribute));
+			column->SetSparseMode(physicalLayout.GetAttributeSparseModeAt(nAttribute));
 			column->SetDataSize(physicalLayout.GetAttributeDataSizeAt(nAttribute));
 			bOk = column->SetDataSize(physicalLayout.GetAttributeDataSizeAt(nAttribute));
 			if (not bOk)
@@ -2129,7 +2130,7 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::Check() const
 		for (nAttribute = 0; nAttribute < oaLoadedBlock.GetSize(); nAttribute++)
 		{
 			column = cast(SNBDataTableBinarySliceSetColumn*, oaLoadedBlock.GetAt(nAttribute));
-			if (not column->IsSparse())
+			if (not column->GetSparseMode())
 				bOk = bOk and column->GetDataSize() == layout->GetInstanceNumberAtChunk(nChunkIndex);
 			bOk = bOk and column->Check();
 		}
@@ -2751,7 +2752,7 @@ void SNBDataTableBinarySliceSet::WriteContentsAsTSV(ostream& ost)
 			     nAttribute++)
 			{
 				ost << "\t" << schema.GetAttributeAt(nAttribute)->GetNativeAttributeName();
-				if (GetAttributeAt(nAttribute)->IsSparse())
+				if (GetAttributeAt(nAttribute)->GetSparseMode())
 					ost << "[S]";
 			}
 			ost << "\n";
@@ -2771,7 +2772,7 @@ void SNBDataTableBinarySliceSet::WriteContentsAsTSV(ostream& ost)
 				     nAttribute++)
 				{
 					bOk = GetAttributeColumnView(GetAttributeAt(nAttribute), column);
-					if (column->IsSparse())
+					if (column->GetSparseMode())
 					{
 						ost << "\t";
 						if (ivCurrentValueIndexes.GetAt(nAttribute) == -1)

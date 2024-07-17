@@ -161,9 +161,9 @@ public:
 	void SetDataPreparationClassIndex(int nValue);
 	int GetDataPreparationClassIndex() const;
 
-	// True si l'attribut appartien a un bloc sparse
-	void SetSparse(boolean bSparseMode);
-	boolean IsSparse() const;
+	// True si l'attribut appartient a un bloc sparse
+	void SetSparseMode(boolean bValue);
+	boolean GetSparseMode() const;
 
 	// Initialisations plus complexes a partir d'un attribut prepare :
 	// - Table de probabilites de la source-cible
@@ -210,10 +210,6 @@ public:
 	///////////////////////////////////////////////////////////////////////////////////////////////////
 	//// Implementation
 protected:
-	// Acces privee au conteneur de serialisation de cette classe et a la tache d'apprentissage
-	friend class PLShared_DataTableBinarySliceSetAttribute;
-	friend class SNBPredictorSelectiveNaiveBayesTrainingTask;
-
 	// Nom de l'attribut
 	ALString sNativeAttributeName;
 
@@ -230,13 +226,18 @@ protected:
 	int nDataPreparationClassIndex;
 
 	// True si l'attribut appartient a un bloc sparse
-	boolean bIsSparse;
+	boolean bSparseMode;
 
 	// Statistiques de preparation de l'attribut
 	KWDataPreparationStats* dataPreparationStats;
 
 	// Table de probabilites conditionelles
 	KWProbabilityTable conditionalProbas;
+
+	// Acces privee au conteneur de serialisation de cette classe et a la tache d'apprentissage
+	// pour reconstituer sa serialisation
+	friend class PLShared_DataTableBinarySliceSetAttribute;
+	friend class SNBPredictorSelectiveNaiveBayesTrainingTask;
 };
 
 // Comparaison par le nom natif de l'attribut
@@ -256,13 +257,13 @@ public:
 	~PLShared_DataTableBinarySliceSetAttribute();
 
 	// Parametrage de l'objet serialise
-	void SetDataTableBinarySliceSetAttribute(SNBDataTableBinarySliceSetAttribute* attribute);
+	void SetDataTableBinarySliceSetAttribute(SNBDataTableBinarySliceSetAttribute* attributeValue);
 	SNBDataTableBinarySliceSetAttribute* GetDataTableBinarySliceSetAttribute() const;
 
 protected:
 	// Reimplementation des methodes de PLSharedObject
-	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
-	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* object) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* object) const override;
 	Object* Create() const override;
 };
 
@@ -327,9 +328,6 @@ public:
 	///////////////////////////////////////////////////////////////////////////////////////////////////
 	//// Implementation
 protected:
-	// Acces prive a la tache parallele d'apprentissage pour reconstituer serialisation de l'objet
-	friend class SNBPredictorSelectiveNaiveBayesTrainingTask;
-
 	// Tableau de SNBDataTableBinarySliceSetAttribute's
 	ObjectArray oaAttributes;
 
@@ -341,6 +339,9 @@ protected:
 
 	// Indique si un attribut est sparse
 	IntVector ivAttributeSparseModes;
+
+	// Acces prive a la tache parallele d'apprentissage pour reconstituer sa serialisation
+	friend class SNBPredictorSelectiveNaiveBayesTrainingTask;
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -403,8 +404,8 @@ public:
 	~SNBDataTableBinarySliceSetColumn();
 
 	// Parametrage du mode sparse
-	void SetSparse(boolean bSparseValue);
-	boolean IsSparse() const;
+	void SetSparseMode(boolean bValue);
+	boolean GetSparseMode() const;
 
 	/////////////////////////////////////////////////////////////////////////////
 	// API d'acces aux donnes (read-only)
@@ -413,7 +414,7 @@ public:
 	int GetValueNumber() const;
 
 	// Acces a une valeur normal
-	int GetDenseValueAt(int nValueIndex) const;
+	int GetDenseValueAt(int nIndex) const;
 
 	// Acces a une valeur sparse
 	int GetSparseValueAt(int nValueIndex) const;
@@ -425,15 +426,15 @@ public:
 	// API de bas niveau independante du type stocke (read-write)
 
 	// Taille des donnees (en nombre de `int`s) de la colonne
-	boolean SetDataSize(int nSize);
+	boolean SetDataSize(int nValue);
 	int GetDataSize() const;
 
 	// Acces aux donnees
-	void SetDataAt(int nDataIndex, int nDataValue);
-	int GetDataAt(int nDataIndex) const;
+	void SetDataAt(int nIndex, int nValue);
+	int GetDataAt(int nIndex) const;
 
 	// Ajout a la fin du tableau de donnees
-	void AddData(int nDataValue);
+	void AddData(int nValue);
 
 	//////////////////////////////////////
 	// Services Divers
@@ -443,7 +444,7 @@ public:
 	//// Implementation
 protected:
 	// True si les donnees sont stockes en mode sparse
-	boolean bIsSparse;
+	boolean bSparseMode;
 
 	// Tableau des donnees de l'attribut
 	IntVector ivData;
@@ -491,15 +492,15 @@ public:
 	longint GetBlockOffsetAt(int nSlice) const;
 
 	// Taille en `int`s des donnes d'un attribut
-	void SetAttributeDataSizeAt(int nAttribute, int lAttributeDataSize);
+	void SetAttributeDataSizeAt(int nAttribute, int nValue);
 	int GetAttributeDataSizeAt(int nAttribute) const;
 
 	// Nombre total de `int`s du chunk
 	longint GetDataSize() const;
 
 	// True si l'attribut est sparse
-	void SetAttributeSparseAt(int nAttribute, boolean bSparseMode);
-	boolean IsAttributeSparseAt(int nAttribute) const;
+	void SetAttributeSparseModeAt(int nAttribute, boolean bValue);
+	boolean GetAttributeSparseModeAt(int nAttribute) const;
 
 	// Taux d'sparsite
 	double GetSparsityRate() const;
@@ -558,7 +559,7 @@ public:
 
 	// Parametrage du layout de la learning database
 	// SetLayout defait toute initialisation
-	void SetLayout(const SNBDataTableBinarySliceSetLayout* someLayout);
+	void SetLayout(const SNBDataTableBinarySliceSetLayout* layoutValue);
 	const SNBDataTableBinarySliceSetLayout* GetLayout() const;
 
 	// Initialisation
@@ -679,8 +680,7 @@ protected:
 	// File pointer pour la lecture/ecriture de fichiers
 	FILE* fChunkDataFile;
 
-	// Acces privee a la tache d'apprentissage est friend
-	// Ceci est necessaire pour qu'elle puisse faire des initialisation partielles
+	// Acces privee a la tache d'apprentissage pour faire des initialisation partielles
 	friend class SNBPredictorSelectiveNaiveBayesTrainingTask;
 };
 
@@ -770,7 +770,7 @@ public:
 					 IntVector* ivOutput) const;
 
 	// True si un chunk de la base de donnes est pret a lire
-	// NB: Les initialisations necessaires pour rendre cet etat accesible sont faits
+	// NB: Les initialisations necessaires pour rendre cet etat accesible sont faites
 	//     de facon interne dans le SlaveProcess de la tache d'apprentissage.
 	boolean IsReadyToReadChunk() const;
 
@@ -843,7 +843,7 @@ protected:
 	// Iterateur randomise des attributs
 	SNBDataTableBinarySliceSetRandomizedAttributeIterator randomizedAttributeIterator;
 
-	// Buffer de lecture par blocs
+	// Buffer de lecture d'un chunk (il contient une slice en memoire)
 	SNBDataTableBinarySliceSetChunkBuffer chunkBuffer;
 
 	// Nombre d'attributs initiaux
@@ -855,7 +855,7 @@ protected:
 	// True s'il a eu un erreur de lecture du disque
 	boolean bIsError;
 
-	// La tache parallele d'apprentissage est friend pour faire des initialisations partielles
+	// Acces prive pour la tache parallele d'apprentissage pour faire des initialisations partielles
 	friend class SNBPredictorSelectiveNaiveBayesTrainingTask;
 };
 
@@ -877,7 +877,7 @@ inline int SNBDataTableBinarySliceSetColumn::GetValueNumber() const
 {
 	int nValueNumber;
 
-	if (IsSparse())
+	if (GetSparseMode())
 		nValueNumber = GetDataSize() / 2;
 	else
 		nValueNumber = GetDataSize();
@@ -885,23 +885,23 @@ inline int SNBDataTableBinarySliceSetColumn::GetValueNumber() const
 	return nValueNumber;
 }
 
-inline int SNBDataTableBinarySliceSetColumn::GetDenseValueAt(int nValueIndex) const
+inline int SNBDataTableBinarySliceSetColumn::GetDenseValueAt(int nIndex) const
 {
-	require(not IsSparse());
-	require(0 <= nValueIndex and nValueIndex < GetValueNumber());
-	return ivData.GetAt(nValueIndex);
+	require(not GetSparseMode());
+	require(0 <= nIndex and nIndex < GetValueNumber());
+	return ivData.GetAt(nIndex);
 }
 
 inline int SNBDataTableBinarySliceSetColumn::GetSparseValueAt(int nValueIndex) const
 {
-	require(IsSparse());
+	require(GetSparseMode());
 	require(0 <= nValueIndex and nValueIndex < GetValueNumber());
 	return ivData.GetAt(2 * nValueIndex + 1);
 }
 
 inline int SNBDataTableBinarySliceSetColumn::GetSparseValueInstanceIndexAt(int nValueIndex) const
 {
-	require(IsSparse());
+	require(GetSparseMode());
 	require(0 <= nValueIndex and nValueIndex < GetValueNumber());
 	return ivData.GetAt(2 * nValueIndex);
 }

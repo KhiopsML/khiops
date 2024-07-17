@@ -21,7 +21,6 @@ SNBAttributeSelectionScorer::SNBAttributeSelectionScorer()
 	bWasLastModificationIncrease = false;
 
 	// Le poids et exposant du prior (valeurs 0.1 et 0.95 resp.) relevent des etudes empiriques
-	// Les valeurs par defaut des prior soulevent d'un etude empirique
 	dPriorWeight = 0.1;
 	dPriorExponent = 0.95;
 }
@@ -43,10 +42,10 @@ SNBDataTableBinarySliceSet* SNBAttributeSelectionScorer::GetDataTableBinarySlice
 	return binarySliceSet;
 }
 
-void SNBAttributeSelectionScorer::SetPriorWeight(double dSomePriorWeight)
+void SNBAttributeSelectionScorer::SetPriorWeight(double dValue)
 {
-	require(dSomePriorWeight >= 0.0);
-	dPriorWeight = dSomePriorWeight;
+	require(dValue >= 0.0);
+	dPriorWeight = dValue;
 }
 
 double SNBAttributeSelectionScorer::GetPriorWeight() const
@@ -54,10 +53,10 @@ double SNBAttributeSelectionScorer::GetPriorWeight() const
 	return dPriorWeight;
 }
 
-void SNBAttributeSelectionScorer::SetPriorExponent(double dSomePriorExponent)
+void SNBAttributeSelectionScorer::SetPriorExponent(double dValue)
 {
-	require(dSomePriorExponent >= 0.0);
-	dPriorExponent = dSomePriorExponent;
+	require(dValue >= 0.0);
+	dPriorExponent = dValue;
 }
 
 double SNBAttributeSelectionScorer::GetPriorExponent() const
@@ -70,7 +69,7 @@ void SNBAttributeSelectionScorer::SetConstructionCostEnabled(boolean bIsEnabled)
 	bIsConstructionCostEnabled = bIsEnabled;
 }
 
-boolean SNBAttributeSelectionScorer::IsConstructionCostEnabled() const
+boolean SNBAttributeSelectionScorer::GetConstructionCostEnabled() const
 {
 	return bIsConstructionCostEnabled;
 }
@@ -80,7 +79,7 @@ void SNBAttributeSelectionScorer::SetPreparationCostEnabled(boolean bIsEnabled)
 	bIsPreparationCostEnabled = bIsEnabled;
 }
 
-boolean SNBAttributeSelectionScorer::IsPreparationCostEnabled() const
+boolean SNBAttributeSelectionScorer::GetPreparationCostEnabled() const
 {
 	return bIsPreparationCostEnabled;
 }
@@ -326,7 +325,7 @@ double SNBAttributeSelectionScorer::ComputeSelectionModelAttributeWeightCost() c
 
 	// Si modele nul, prise en compte du cout de preparation du modele nul
 	dModelCost = GetNullConstructionCost();
-	if (weightedAttributeSelection.GetAttributeNumber() == 0 and IsPreparationCostEnabled())
+	if (weightedAttributeSelection.GetAttributeNumber() == 0 and GetPreparationCostEnabled())
 		dModelCost += GetNullPreparationCost();
 
 	// Cas d'une selection non vide
@@ -355,7 +354,7 @@ SNBAttributeSelectionScorer::ComputeSelectionModelAttributeCost(SNBDataTableBina
 
 	// Cout de selection et de construction (sans cout de modele nul)
 	dCost = 0.0;
-	if (IsConstructionCostEnabled() and attribute->GetConstructionCost() > 0)
+	if (GetConstructionCostEnabled() and attribute->GetConstructionCost() > 0)
 	{
 		dCost += attribute->GetConstructionCost();
 		dCost -= attribute->GetNullConstructionCost();
@@ -365,7 +364,7 @@ SNBAttributeSelectionScorer::ComputeSelectionModelAttributeCost(SNBDataTableBina
 		dCost += log(GetDataTableBinarySliceSet()->GetInitialAttributeNumber() * 1.0);
 
 	// Cout de preparation
-	if (IsPreparationCostEnabled())
+	if (GetPreparationCostEnabled())
 		dCost += attribute->GetPreparationCost();
 
 	// Prise en compte du poids du prior

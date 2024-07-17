@@ -108,7 +108,7 @@ boolean SNBPredictorSelectionDataCostCalculator::IncreaseAttributeWeight(SNBData
 	if (bUpdateTargetPartition)
 		UpdateTargetPartitionWithAddedAttribute(attribute);
 	bOk = bOk and UpdateTargetPartScoresWithWeightedAttribute(attribute, cDeltaWeight);
-	if (attribute->IsSparse())
+	if (attribute->GetSparseMode())
 		bOk = bOk and UpdateDataCostWithSparseAttribute(attribute);
 	else
 		bOk = bOk and UpdateDataCost();
@@ -146,7 +146,7 @@ boolean SNBPredictorSelectionDataCostCalculator::DecreaseAttributeWeight(SNBData
 	bOk = bOk and UpdateTargetPartScoresWithWeightedAttribute(attribute, -cDeltaWeight);
 	if (bUpdateTargetPartition)
 		UpdateTargetPartitionWithRemovedAttribute(attribute);
-	if (attribute->IsSparse())
+	if (attribute->GetSparseMode())
 		bOk = bOk and UpdateDataCostWithSparseAttribute(attribute);
 	else
 		bOk = bOk and UpdateDataCost();
@@ -472,7 +472,7 @@ boolean SNBClassifierSelectionDataCostCalculator::UpdateTargetPartScoresWithWeig
 			targetPart = cast(SNBTargetPart*, oaTargetParts.GetAt(nTargetPart));
 
 			// Mise a jour des scores de la partie cible courante seulement pour les valeurs presentes de la colonne sparse
-			if (chunkColumn->IsSparse())
+			if (chunkColumn->GetSparseMode())
 			{
 				nColumnValueNumber = chunkColumn->GetValueNumber();
 				for (nColumnValueIndex = 0; nColumnValueIndex < nColumnValueNumber; nColumnValueIndex++)
@@ -547,7 +547,7 @@ boolean SNBClassifierSelectionDataCostCalculator::UpdateDataCostWithSparseAttrib
 	double dInstanceNonNormalizedDataCost;
 
 	require(attribute != NULL);
-	require(attribute->IsSparse());
+	require(attribute->GetSparseMode());
 	require(GetDataTableBinarySliceSet()->ContainsAttribute(attribute));
 
 	// Entete de trace de debbogage
@@ -1154,7 +1154,7 @@ boolean SNBRegressorSelectionDataCostCalculator::UpdateTargetPartScoresWithWeigh
 			targetPart = cast(SNBIntervalTargetPart*, oaTargetParts.GetAt(nTargetPart));
 
 			// Mise a jour des scores de la partie cible courante seulement pour les valeurs presentes de la colonne sparse
-			if (chunkColumn->IsSparse())
+			if (chunkColumn->GetSparseMode())
 			{
 				nColumnValueNumber = chunkColumn->GetValueNumber();
 				for (nColumnValueIndex = 0; nColumnValueIndex < nColumnValueNumber; nColumnValueIndex++)
@@ -1231,7 +1231,7 @@ boolean SNBRegressorSelectionDataCostCalculator::UpdateDataCostWithSparseAttribu
 	double dInstanceNonNormalizedDataCost;
 
 	require(attribute != NULL);
-	require(attribute->IsSparse());
+	require(attribute->GetSparseMode());
 	require(GetDataTableBinarySliceSet()->ContainsAttribute(attribute));
 
 	// Entete de trace de debbogage
@@ -2240,7 +2240,7 @@ boolean SNBGeneralizedClassifierSelectionDataCostCalculator::UpdateTargetPartSco
 			nAttributeTargetPart = targetPart->GetSignature()->GetAt(nSignatureAttributeIndex);
 
 			// Mise a jour des scores de la partie cible courante seulement pour les valeurs presentes de la colonne sparse
-			if (chunkColumn->IsSparse())
+			if (chunkColumn->GetSparseMode())
 			{
 				nColumnValueNumber = chunkColumn->GetValueNumber();
 				for (nColumnValueIndex = 0; nColumnValueIndex < nColumnValueNumber; nColumnValueIndex++)
@@ -2315,7 +2315,7 @@ boolean SNBGeneralizedClassifierSelectionDataCostCalculator::UpdateDataCostWithS
 	double dInstanceNonNormalizedDataCost;
 
 	require(attribute != NULL);
-	require(attribute->IsSparse());
+	require(attribute->GetSparseMode());
 	require(GetDataTableBinarySliceSet()->ContainsAttribute(attribute));
 
 	// Entete de trace de debbogage

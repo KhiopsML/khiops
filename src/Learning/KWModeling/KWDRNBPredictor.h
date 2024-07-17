@@ -71,6 +71,8 @@ public:
 						     ContinuousVector* cvWeights,
 						     IntVector* ivIsDataGridStatsRule) const;
 
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	///// Implementation
 protected:
 	// Regles de reference pour les test des operands des regles data grid et data grid bloc
 	const KWDRContinuousVector refContinuousVectorRule;
@@ -133,7 +135,7 @@ public:
 	// Memoire utilisee
 	longint GetUsedMemory() const override;
 
-	///////////////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
 	// Acces a la classe avec les operations commons des predicteurs

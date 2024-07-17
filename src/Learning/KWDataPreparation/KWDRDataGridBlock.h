@@ -297,7 +297,7 @@ public:
 	// Calcul de l'attribut derive
 	Object* ComputeStructureResult(const KWObject* kwoObject) const override;
 
-	// Access au DataGridStats son index dans le bloc
+	// Acces aux DataGridStats par index dans le bloc
 	int GetDataGridStatsNumber() const;
 	const KWDRDataGridStats* GetDataGridStatsAtBlockIndex(int nBlockIndex) const;
 

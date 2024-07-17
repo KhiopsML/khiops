@@ -692,7 +692,7 @@ Continuous KIDRClassifierContribution::ComputeInformationDifference(int nAttribu
 	cScoreWithoutOneVariableCorrected =
 	    (cScoreWithoutOneVariable + (0.5 / (nTargetValuesNumber * nDatabaseSize))) / (1.0 + (0.5 / nDatabaseSize));
 
-	// Vincent2009 - j'ai retir� la correction et ajout� celle au-dessus
+	// Vincent2009 - j'ai retire la correction et ajoute celle au-dessus
 	// Correction de Laplace pour eviter les divisions par zero
 	// cInitialScore = (cInitialScore * nDatabaseSize + 1) / (nDatabaseSize + nTargetValuesNumber);
 	// cScoreWithoutOneVariable = (cScoreWithoutOneVariable * nDatabaseSize + 1) / (nDatabaseSize +

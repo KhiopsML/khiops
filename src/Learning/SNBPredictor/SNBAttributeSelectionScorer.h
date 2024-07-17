@@ -89,7 +89,7 @@ public:
 
 	// Base de donnees dediee a l'apprentissage d'un predicteur
 	// Son parametrage provoque un nettoyage des donnees de travail
-	void SetDataTableBinarySliceSet(SNBDataTableBinarySliceSet* someBinarySliceSet);
+	void SetDataTableBinarySliceSet(SNBDataTableBinarySliceSet* dataTableBinarySliceSet);
 	SNBDataTableBinarySliceSet* GetDataTableBinarySliceSet() const;
 
 	// Poids du prior du modele de selection (penalisation)
@@ -97,16 +97,16 @@ public:
 	double GetPriorWeight() const;
 
 	// Exposant du prior de poids (penalisation)
-	void SetPriorExponent(double dExponent);
+	void SetPriorExponent(double dValue);
 	double GetPriorExponent() const;
 
 	// Cout de construction de variables
 	void SetConstructionCostEnabled(boolean bValue);
-	boolean IsConstructionCostEnabled() const;
+	boolean GetConstructionCostEnabled() const;
 
 	// Cout de preparation de variables
 	void SetPreparationCostEnabled(boolean bValue);
-	boolean IsPreparationCostEnabled() const;
+	boolean GetPreparationCostEnabled() const;
 
 	// Initialise/reinitialise tous les donnees de travail (pas de liberation memoire)
 	virtual void InitializeWorkingData();
