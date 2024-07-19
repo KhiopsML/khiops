@@ -3,6 +3,7 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #include "KIPredictorInterpretationView.h"
+#include "KWTrainedPredictor.h"
 
 KIPredictorInterpretationView::KIPredictorInterpretationView()
 {
@@ -19,7 +20,7 @@ KIPredictorInterpretationView::KIPredictorInterpretationView()
 	SetIdentifier("KIInterpretationSpec");
 
 	whyParameterView = new KIWhyParameterView;
-	AddCardField("WhyParameter", "Contribution", whyParameterView);
+	AddCardField("WhyParameter", "Variable importances", whyParameterView);
 
 	howParameterView = new KIHowParameterView;
 	AddCardField("HowParameter", "Reinforcement", howParameterView);
@@ -43,11 +44,11 @@ KIPredictorInterpretationView::KIPredictorInterpretationView()
 	GetFieldAt("ClassName")->SetEditable(false);
 
 	// Info-bulles
-	GetFieldAt("ClassName")->SetHelpText("Dictionary used to select or derive new variables.");
+	GetFieldAt("ClassName")->SetHelpText("Name of the predictor dictionary");
+
 	GetActionAt("BuildInterpretationClass")
-	    ->SetHelpText("Build interpretation dictionary."
-			  "\n This action creates on disk an output dictionary that enrich the input model dictionary, "
-			  "in order to enable interpretation.");
+	    ->SetHelpText("Build an interpretation dictionary that computes the variable importances and reinforcement "
+			  "elements.");
 
 	// Short cuts
 	GetActionAt("BuildInterpretationClass")->SetShortCut('B');
