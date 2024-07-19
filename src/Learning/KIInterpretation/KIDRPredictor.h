@@ -107,8 +107,7 @@ protected:
 	ObjectArray oaNativePredictiveAttributeNames;
 
 	/*	cle = modalite cible
-		valeur = entier dans un StringObject *, qui renvoie a l'entree correspondante dans le tableau
-	   oaModelProbabilities */
+		valeur = entier dans un StringObject *, qui renvoie a l'entree correspondante dans le tableau oaModelProbabilities */
 	mutable ObjectDictionary odClassNamesIndexes;
 
 	mutable ContinuousVector cvVariableWeights;
@@ -136,16 +135,13 @@ public:
 
 	Object* ComputeStructureResult(const KWObject* kwoObject) const override;
 
-	/** Valeur de l'importance de la variable contributive (la numerotation du rang comemnce a 0 et non a 1,
-	 * contrairement au rang figurant dans la RDD du dictionaire) */
+	/** Valeur de l'importance de la variable contributive (la numerotation du rang comemnce a 0 et non a 1, contrairement au rang figurant dans la RDD du dictionaire) */
 	Continuous GetContributionValueAt(int rank) const;
 
-	/** nom de la variable importante (la numerotation du rang commence a 0 et non a 1, contrairement au rang
-	 * figurant dans la RDD du dictionaire) */
+	/** nom de la variable importante (la numerotation du rang commence a 0 et non a 1, contrairement au rang figurant dans la RDD du dictionaire) */
 	Symbol GetContributionNameAt(int rank) const;
 
-	/** partition ou groupement de modalites de la variable importante (la numerotation du rang comemnce a 0 et non
-	 * a 1, contrairement au rang figurant dans la RDD du dictionaire) */
+	/** partition ou groupement de modalites de la variable importante (la numerotation du rang comemnce a 0 et non a 1, contrairement au rang figurant dans la RDD du dictionaire) */
 	Symbol GetContributionPartitionAt(int rank) const;
 
 	Symbol GetContributionClass() const;
@@ -232,8 +228,8 @@ protected:
 				   int nDatabaseSize, int nTargetValuesNumber) const;
 
 	/// Calcul de la valeur Shapley
-	/// nModalityIndex indique dans quel intervalle ou groupe de l'attribut designe par nAttributeIndex, cet
-	/// individu appartient nTargetClassIndex est la classe cible pour le calcul de l'importance
+	/// nModalityIndex indique dans quel intervalle ou groupe de l'attribut designe par nAttributeIndex, cet individu appartient
+	/// nTargetClassIndex est la classe cible pour le calcul de l'importance
 	Continuous ComputeShapley(const int nAttributeIndex, const int nTargetClassIndex,
 				  const int nModalityIndex) const;
 
@@ -247,8 +243,7 @@ protected:
 
 	///////////////// variables membres //////////////////
 
-	/** classe cible de la contribution : classe predite pour l'individu OU classe de gain le plus eleve pour
-	 * l'individu OU une classe specifiee explicitement via l'IHM  */
+	/** classe cible de la contribution : classe predite pour l'individu OU classe de gain le plus eleve pour l'individu OU une classe specifiee explicitement via l'IHM  */
 	mutable Symbol sContributionClass;
 
 	mutable boolean bSortInstanceProbas;
@@ -361,12 +356,10 @@ public:
 	/** tag indiquant si la classe apres renforcement a change ou non */
 	Continuous GetReinforcementClassChangeTagAt(int rank) const;
 
-	/** nom de la variable de renforcement (la numerotation du rang commence a 0 et non a 1, contrairement au rang
-	 * figurant dans la RDD du dictionaire) */
+	/** nom de la variable de renforcement (la numerotation du rang commence a 0 et non a 1, contrairement au rang figurant dans la RDD du dictionaire) */
 	Symbol GetReinforcementNameAt(int rank) const;
 
-	/** partition ou groupement de modalites de la variable de renforcement (la numerotation du rang comemnce a 0 et
-	 * non a 1, contrairement au rang figurant dans la RDD du dictionaire) */
+	/** partition ou groupement de modalites de la variable de renforcement (la numerotation du rang comemnce a 0 et non a 1, contrairement au rang figurant dans la RDD du dictionaire) */
 	Symbol GetReinforcementPartitionAt(int rank) const;
 
 protected:

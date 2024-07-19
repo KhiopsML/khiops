@@ -98,9 +98,7 @@ boolean KIInterpretationDictionary::UpdateInterpretationAttributes()
 			kwcInterpretationRootClass->GetNextAttribute(attribute);
 		}
 
-		// supprimer les eventuels attributs d'interpretation qui preexisteraient dans le dico, afin de gerer
-		// correctement les mises a jour des parametres via IHM (on recree systematiquement tous les attributs
-		// d'interpretation)
+		// supprimer les eventuels attributs d'interpretation qui preexisteraient dans le dico, afin de gerer correctement les mises a jour des parametres via IHM (on recree systematiquement tous les attributs d'interpretation)
 		for (int i = 0; i < interpretationAttributes->GetSize(); i++)
 		{
 			attribute = cast(KWAttribute*, interpretationAttributes->GetAt(i));
@@ -271,8 +269,7 @@ KWAttribute* KIInterpretationDictionary::CreateContributionValueAtAttribute(
     const KWAttribute* scoreInterpretationAttribute, KWClass* kwcInterpretation, ALString sTargetClass, int nIndex)
 {
 	// creation d'un attribut de type
-	// Numerical	`NormalizedOddsRatio1_Predicted class`	 = ContributionValueAt(`NormalizedOddsRatio_Predicted
-	// class`, 1)	; <ClassifierInterpretationAttribute>	<ContributionValue1="SepalLength">
+	// Numerical	`NormalizedOddsRatio1_Predicted class`	 = ContributionValueAt(`NormalizedOddsRatio_Predicted class`, 1)	; <ClassifierInterpretationAttribute>	<ContributionValue1="SepalLength">
 
 	// creation d'une regle de derivation
 	KWDerivationRule* rule = new KIDRContributionValueAt;
@@ -311,9 +308,7 @@ KWAttribute* KIInterpretationDictionary::CreateContributionNameAtAttribute(
     const KWAttribute* scoreInterpretationAttribute, KWClass* kwcInterpretation, ALString sTargetClass, int nIndex)
 {
 	// creation d'un attribut de type
-	// 		Categorical	`ContributionVar1_Predicted class`	 =
-	// ContributionNameAt(`NormalizedOddsRatio_Predicted class`, 1)	; <ClassifierInterpretationAttribute>
-	// <ContributionVar1="SepalLength">
+	// 		Categorical	`ContributionVar1_Predicted class`	 = ContributionNameAt(`NormalizedOddsRatio_Predicted class`, 1)	; <ClassifierInterpretationAttribute>	<ContributionVar1="SepalLength">
 
 	// creation d'une regle de derivation
 	KWDerivationRule* rule = new KIDRContributionNameAt;
@@ -351,9 +346,7 @@ KWAttribute* KIInterpretationDictionary::CreateContributionPartitionAtAttribute(
     const KWAttribute* scoreInterpretationAttribute, KWClass* kwcInterpretation, ALString sTargetClass, int nIndex)
 {
 	// creation d'un attribut de type
-	// 	Categorical	`ContributionPartition1_Predicted class`	 =
-	// ContributionPartitionAt(`NormalizedOddsRatio_Predicted class`, 1)	; <ClassifierInterpretationAttribute>
-	// <ContributionPart1="SepalLength">
+	// 	Categorical	`ContributionPartition1_Predicted class`	 = ContributionPartitionAt(`NormalizedOddsRatio_Predicted class`, 1)	; <ClassifierInterpretationAttribute>	<ContributionPart1="SepalLength">
 
 	// creation d'une regle de derivation
 	KWDerivationRule* rule = new KIDRContributionPartitionAt;
@@ -694,8 +687,7 @@ int KIInterpretationDictionary::ComputeReinforcementAttributesMaxNumber()
 {
 	/* le nombre max est la valeur minimum entre :
 		- le nombre d'attributs pour le renforcement, parametre via IHM
-		- le nombre d'attributs selectionnes comme pouvant etre utilises comme variables leviers, , parametre
-	   via IHM
+		- le nombre d'attributs selectionnes comme pouvant etre utilises comme variables leviers, , parametre via IHM
 	*/
 
 	assert(interpretationSpec != NULL);
@@ -729,6 +721,47 @@ const SymbolVector& KIInterpretationDictionary::GetTargetValues() const
 ObjectArray* KIInterpretationDictionary::GetPredictiveAttributeNamesArray()
 {
 	return &oaPartitionedPredictiveAttributeNames;
+}
+
+boolean KIInterpretationDictionary::TestGroupTargetValues(KWClass* inputClassifier)
+{
+
+	boolean bOk = true;
+	ALString sValue;
+	//KWTrainedClassifier* trainedClassifier = new KWTrainedClassifier;
+
+	//bOk = trainedClassifier->ImportPredictorClass(inputClassifier);
+
+	if (bOk)
+	{
+		//ObjectArray* interpretationAttributes = new ObjectArray;
+		KWDerivationRule* derivationrule;
+		KWDerivationRuleOperand* operand;
+		// recherche des attributs necessaires dans le modele
+		//KWAttribute* classifierAttribute = NULL;
+		//KWAttribute* predictionAttribute = NULL;
+
+		KWAttribute* attribute = inputClassifier->GetHeadAttribute();
+
+		while (attribute != NULL and bOk)
+		{
+			if (attribute->GetStructureName() == "DataGrid" and
+			    attribute->GetConstMetaData()->IsKeyPresent("Level"))
+			{
+
+				if (bOk)
+				{
+					derivationrule = attribute->GetDerivationRule();
+					operand = derivationrule->GetSecondOperand();
+					if (operand->GetDerivationRule()->GetName() == "ValueGroups")
+						bOk = false;
+				}
+			}
+			inputClassifier->GetNextAttribute(attribute);
+		}
+	}
+
+	return bOk;
 }
 
 boolean KIInterpretationDictionary::ImportClassifier(KWClass* inputClassifier)
@@ -774,6 +807,9 @@ boolean KIInterpretationDictionary::ImportClassifier(KWClass* inputClassifier)
 		bIsClassifier = trainedClassifier->ImportPredictorClass((KWClass*)inputClassifier);
 
 		if (trainedClassifier->GetMetaDataPredictorLabel(inputClassifier) == "Data Grid")
+			bIsClassifier = false; // pas gere (pour l'instant ?)
+
+		if (!TestGroupTargetValues(inputClassifier))
 			bIsClassifier = false; // pas gere (pour l'instant ?)
 
 		// Cas ou le dictionnaire est bien celui d'un classifieur pouvant etre interprete
@@ -843,9 +879,8 @@ boolean KIInterpretationDictionary::ImportClassifier(KWClass* inputClassifier)
 				else if (nAttributeSelectiveNaiveBayes == 1)
 					nFirstOperandIndex = 1;
 
-				// Parcours des operandes pour identifier les noms des attributs explicatifs et des
-				// attributs natifs associes La derniere operande n'est pas parcouru car reserve a
-				// l'attribut des valeurs cibles
+				// Parcours des operandes pour identifier les noms des attributs explicatifs et des attributs natifs associes
+				// La derniere operande n'est pas parcouru car reserve a l'attribut des valeurs cibles
 				for (nOperandIndex = nFirstOperandIndex;
 				     nOperandIndex < classifierRule->GetOperandNumber() - 1; nOperandIndex++)
 				{
@@ -915,19 +950,17 @@ boolean KIInterpretationDictionary::ImportClassifier(KWClass* inputClassifier)
 	{
 		interpretationSpec->SetMaxAttributesNumber(GetPredictiveAttributeNamesArray()->GetSize());
 
-		if (interpretationSpec->GetHowAttributesNumber() > GetPredictiveAttributeNamesArray()->GetSize())
-			interpretationSpec->SetHowAttributesNumber(
-			    GetPredictiveAttributeNamesArray()
-				->GetSize()); // ne pas ecraser un precedent choix fait via l'IHM, lors d'une nouvelle
-					      // importation
+		//if (interpretationSpec->GetHowAttributesNumber() > GetPredictiveAttributeNamesArray()->GetSize())
+		interpretationSpec->SetHowAttributesNumber(
+		    GetPredictiveAttributeNamesArray()
+			->GetSize()); // ne pas ecraser un precedent choix fait via l'IHM, lors d'une nouvelle importation
 
-		if (interpretationSpec->GetWhyAttributesNumber() > GetPredictiveAttributeNamesArray()->GetSize())
-			interpretationSpec->SetWhyAttributesNumber(GetPredictiveAttributeNamesArray()->GetSize());
+		//if (interpretationSpec->GetWhyAttributesNumber() > GetPredictiveAttributeNamesArray()->GetSize())
+		interpretationSpec->SetWhyAttributesNumber(GetPredictiveAttributeNamesArray()->GetSize());
 
 		assert(trainedClassifier->GetTargetAttribute() != NULL);
 
-		// l'import a reussi, on peut donc creer un domaine specifique d'interpretation, et le(s) dico(s)
-		// d'interpretation qu'il doit contenir
+		// l'import a reussi, on peut donc creer un domaine specifique d'interpretation, et le(s) dico(s) d'interpretation qu'il doit contenir
 		bOk = CreateInterpretationDomain(inputClassifier);
 		if (bOk)
 			PrepareInterpretationClass();
@@ -953,8 +986,7 @@ void KIInterpretationDictionary::PrepareInterpretationClass()
 	assert(kwcInterpretationRootClass != NULL);
 	assert(kwcdInterpretationDomain != NULL);
 
-	// tagguer les attributs explicatifs contribuant au predicteur, et pouvant etre utilisees eventuellement comme
-	// leviers
+	// tagguer les attributs explicatifs contribuant au predicteur, et pouvant etre utilisees eventuellement comme leviers
 	for (nAttributeIndex = 0; nAttributeIndex < oaPartitionedPredictiveAttributeNames.GetSize(); nAttributeIndex++)
 	{
 		sNativeVariableName =
@@ -971,8 +1003,8 @@ void KIInterpretationDictionary::PrepareInterpretationClass()
 		}
 	}
 
-	// synchroniser les proprietes Used et Loaded du dico de transfert a partir de la selection faite dans le
-	// classifieur d'entree on parcourt cette fois-ci tous les attributs
+	// synchroniser les proprietes Used et Loaded du dico de transfert a partir de la selection faite dans le classifieur d'entree
+	// on parcourt cette fois-ci tous les attributs
 	KWAttribute* attribute = kwcInterpretationRootClass->GetHeadAttribute();
 	while (attribute != NULL)
 	{

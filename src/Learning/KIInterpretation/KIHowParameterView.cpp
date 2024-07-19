@@ -14,7 +14,7 @@ KIHowParameterView::KIHowParameterView()
 	SetLabel("Reinforcement Parameters");
 
 	// Ajout d'un champ qui rappelle le nombre max de variables
-	AddIntField("VarMax", "Maximum number of variables", 0);
+	AddIntField("VarMax", "Number of variables in the model", 0);
 	// On interdit l'acces au champ
 	GetFieldAt("VarMax")->SetEditable(false);
 
@@ -30,6 +30,18 @@ KIHowParameterView::KIHowParameterView()
 
 	GetFieldAt("HowNumber")->SetStyle("Spinner");
 	GetFieldAt("HowClass")->SetStyle("ComboBox");
+
+	// mettre visible uniquement en ExpertMode
+	GetFieldAt("HowNumber")->SetVisible(GetLearningExpertMode());
+
+	// Info-bulles
+	GetFieldAt("VarMax")->SetHelpText("Number of variables used by the predictor.");
+	GetFieldAt("HowClass")->SetHelpText("Class value for which one try to increase the probability of occurrence.");
+	GetFieldAt("leverVariablesSpecView")
+	    ->SetHelpText("List of the variables included in the analysis to try to increase the probability of "
+			  "occurrence - by default, all are used.");
+	//GetFieldAt("VarMax")->SetHelpText("Number of variables used by the predictor.");
+	//GetFieldAt("VarMax")->SetHelpText("Number of variables used by the predictor.");
 
 	// Plage de valeur pour le champ du nombre W de variables du comment
 	cast(UIIntElement*, GetFieldAt("VarMax"))->SetMinValue(0);

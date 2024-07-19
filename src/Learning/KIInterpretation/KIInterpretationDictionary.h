@@ -31,6 +31,9 @@ public:
 	/// Test de compatibilite du dictionnaire a interpreter
 	boolean ImportClassifier(KWClass* inputClassifier);
 
+	/// Test de compatibilite du dictionnaire a ne pas utiliser l'option group target Values
+	boolean TestGroupTargetValues(KWClass* inputClassifier);
+
 	/// Acces a la liste des valeurs cible
 	const SymbolVector& GetTargetValues() const;
 
@@ -40,8 +43,7 @@ public:
 	/// creer des meta-tags dans le dictionnaire, pour reperer les variables levier potentielles
 	void PrepareInterpretationClass();
 
-	/** creation ou mise a jour des attributs necessaires a l'interpretation (contribution ou reenforcement), dans
-	 * le dico d'interpretation */
+	/** creation ou mise a jour des attributs necessaires a l'interpretation (contribution ou reenforcement), dans le dico d'interpretation */
 	boolean UpdateInterpretationAttributes();
 
 	const Symbol SHAPLEY_LABEL = "Shapley";
@@ -62,8 +64,7 @@ public:
 	static const ALString NO_VALUE_LABEL;
 
 protected:
-	/** creation du domaine propre a l'interpretation, ainsi que le(s) dictionnaire(s) d'intepretation issus du
-	 * classifieur d'entree */
+	/** creation du domaine propre a l'interpretation, ainsi que le(s) dictionnaire(s) d'intepretation issus du classifieur d'entree */
 	boolean CreateInterpretationDomain(const KWClass* inputClassifier);
 
 	// creation des attributs de contribution du dico d'interpretation :

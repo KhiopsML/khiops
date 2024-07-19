@@ -10,16 +10,16 @@ KIWhyParameterView::KIWhyParameterView()
 	SetIdentifier("ISWhyParameter");
 
 	// Ajout d'un champ qui rappelle le nombre max de variables
-	AddIntField("VarMax", "Maximum number of variables", 0);
+	AddIntField("VarMax", "Number of variables in the model", 0);
 	// On interdit l'acces au champ
 	GetFieldAt("VarMax")->SetEditable(false);
 
 	// Ajout d'un champ de saisie du nombre maximal autorise de variables
 	// dont l'importance est ecrite dans le fichier de sortie
-	AddIntField("WhyNumber", "Maximum number of variables written", 0);
+	AddIntField("WhyNumber", "Number of variables importances written", 0);
 
 	// Ajout d'un champ de saisie pour indiquer quelle classe on souhaite interpreter
-	AddStringField("WhyClass", "Class for the contribution analysis", "");
+	AddStringField("WhyClass", "Choice of the class of interest", "");
 
 	// Choix de la methode de calcul de l'importance d'une variable
 	AddStringField("WhyType", "Type of the contribution indicator", "");
@@ -46,8 +46,24 @@ KIWhyParameterView::KIWhyParameterView()
 	cast(UIIntElement*, GetFieldAt("VarMax"))->SetMinValue(0);
 	cast(UIIntElement*, GetFieldAt("WhyNumber"))->SetMinValue(0);
 
+	// mettre visible uniquement en ExpertMode
 	GetFieldAt("ExpertMode")->SetVisible(GetLearningExpertMode());
 	GetFieldAt("WhyType")->SetVisible(GetLearningExpertMode());
+	GetFieldAt("WhyClass")->SetVisible(GetLearningExpertMode());
+	GetFieldAt("SortWhy")->SetVisible(GetLearningExpertMode());
+
+	// Info-bulles
+	GetFieldAt("VarMax")->SetHelpText("Number of variables used by the predictor.");
+	GetFieldAt("WhyNumber")
+	    ->SetHelpText("Number of variables importances written in the output file. By default, all the variables "
+			  "used by the model.");
+	GetFieldAt("WhyClass")
+	    ->SetHelpText("Value of the target variable to be interpreted, for which an importance is calculated per "
+			  "predictor variable. By default, all target variables are taken into account.");
+
+	// On indique que le champ de parametrage de WhyNumber declenche une action de rafraichissement
+	// de l'interface immediatement apres une mise a jour, pour pouvoir controler la validite des autres champs
+	cast(UIElement*, GetFieldAt("WhyNumber"))->SetTriggerRefresh(true);
 }
 
 KIWhyParameterView::~KIWhyParameterView() {}
@@ -73,6 +89,18 @@ void KIWhyParameterView::EventUpdate(Object* object)
 	editedObject->SetWhyClass(GetStringValueAt("WhyClass"));
 	editedObject->SetSortWhyResults(GetBooleanValueAt("SortWhy"));
 	editedObject->SetExpertMode(GetBooleanValueAt("ExpertMode"));
+
+	if (GetIntValueAt("WhyNumber") ==
+	    editedObject->GetInterpretationDictionary()->GetPredictiveAttributeNamesArray()->GetSize())
+	{
+		editedObject->SetSortWhyResults(false);
+		editedObject->SetExpertMode(true);
+	}
+	else
+	{
+		editedObject->SetSortWhyResults(true);
+		editedObject->SetExpertMode(false);
+	}
 }
 
 void KIWhyParameterView::EventRefresh(Object* object)
@@ -97,15 +125,13 @@ void KIWhyParameterView::EventRefresh(Object* object)
 	SetBooleanValueAt("SortWhy", editedObject->GetSortWhyResults());
 	SetBooleanValueAt("ExpertMode", editedObject->IsExpertMode());
 
-	// Mise a jour de la liste deroulante en fonction de la liste des valeurs cibles figurant dans le dictionnaire
-	// d'interpretation
+	// Mise a jour de la liste deroulante en fonction de la liste des valeurs cibles figurant dans le dictionnaire d'interpretation
 	ALString sTargetValues;
 	for (int i = 0; i < editedObject->GetInterpretationDictionary()->GetTargetValues().GetSize(); i++)
 		sTargetValues +=
 		    ALString(editedObject->GetInterpretationDictionary()->GetTargetValues().GetAt(i)) + "\n";
 
 	GetFieldAt("WhyClass")
-	    ->SetParameters(ALString(KIInterpretationSpec::PREDICTED_CLASS_LABEL) + "\n" +
-			    ALString(KIInterpretationSpec::CLASS_OF_HIGHEST_GAIN_LABEL) + "\n" + sTargetValues +
-			    ALString(KIInterpretationSpec::ALL_CLASSES_LABEL));
+	    ->SetParameters(ALString(KIInterpretationSpec::ALL_CLASSES_LABEL) + "\n" + sTargetValues +
+			    ALString(KIInterpretationSpec::PREDICTED_CLASS_LABEL));
 }
