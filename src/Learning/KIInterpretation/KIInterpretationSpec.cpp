@@ -23,10 +23,10 @@ void KIInterpretationSpec::SetDefaultParameters()
 	nVariableMaxNumber = 0;
 	nWhyAttributesNumber = 1;
 	nHowAttributesNumber = 0;
-	sWhyType = "Normalized odds ratio";
-	sWhyClass = PREDICTED_CLASS_LABEL;
-	bSortWhyResults = true;
-	bExpertMode = false;
+	sWhyType = "Shapley";
+	sWhyClass = ALL_CLASSES_LABEL;
+	bSortWhyResults = false;
+	bExpertMode = true;
 	sHowClass = KIInterpretationDictionary::NO_VALUE_LABEL;
 }
 
