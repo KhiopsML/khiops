@@ -650,7 +650,7 @@ boolean GetDistanceStudyMode()
 boolean GetSNBForceDenseMode()
 {
 	static boolean bIsInitialized = false;
-	static boolean bSNBForceDenseMode = true;
+	static boolean bSNBForceDenseMode = false;
 	ALString sSNBForceDenseMode;
 
 	// Determination du mode au premier appel
