@@ -1,4 +1,4 @@
-#Khiops 10.5.0-a1
+#Khiops 10.5.2-b.0
 Modeling report
 
 Dictionary	SpliceJunction
@@ -25,10 +25,10 @@ Predictor	Selective Naive Bayes
 
 Selected variables
 Prepared name	Name	Level	Weight	Importance
-PMode(DNA.Char) where Pos <= 30.5	Mode(DNA.Char) where Pos <= 30.5	0.0744365	0.316406	0.153467
-PMode(DNA.Char) where Pos in ]15.5, 30.5]	Mode(DNA.Char) where Pos in ]15.5, 30.5]	0.0508826	0.394531	0.141686
-PMode(DNA.Char)	Mode(DNA.Char)	0.0461059	0.417969	0.138819
-PMedian(DNA.Pos) where Char = G	Median(DNA.Pos) where Char = G	0.0225808	0.363281	0.0905713
-PMean(DNA.Pos) where Char = G	Mean(DNA.Pos) where Char = G	0.0274408	0.238281	0.0808618
-PCount(DNA) where Char = G	Count(DNA) where Char = G	0.0160697	0.238281	0.0618798
-PMedian(DNA.Pos) where Char = C	Median(DNA.Pos) where Char = C	0.0101423	0.191406	0.0440603
+PMode(DNA.Char) where Pos <= 30.5	Mode(DNA.Char) where Pos <= 30.5	0.0744365	0.363281	0.164443
+PMode(DNA.Char) where Pos in ]15.5, 30.5]	Mode(DNA.Char) where Pos in ]15.5, 30.5]	0.0508826	0.464844	0.153794
+PMode(DNA.Char)	Mode(DNA.Char)	0.0461059	0.472656	0.147622
+PMedian(DNA.Pos) where Char = G	Median(DNA.Pos) where Char = G	0.0225808	0.433594	0.0989488
+PMean(DNA.Pos) where Char = G	Mean(DNA.Pos) where Char = G	0.0274408	0.285156	0.0884586
+PCount(DNA) where Char = G	Count(DNA) where Char = G	0.0160697	0.332031	0.0730455
+PMedian(DNA.Pos) where Char = C	Median(DNA.Pos) where Char = C	0.0101423	0.300781	0.0552325

@@ -1,4 +1,4 @@
-#Khiops 10.5.0-a1
+#Khiops 10.5.2-b.0
 Descriptive statistics
 
 
@@ -32,7 +32,7 @@ Evaluated variables	11
 Native variables	4
 Constructed variables	7
 Informative variables	9
-Selected variables	3
+Selected variables	4
 
 Max number of constructed variables	0
 Max number of text features	0

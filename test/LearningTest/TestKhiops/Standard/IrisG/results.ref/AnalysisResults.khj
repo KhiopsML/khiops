@@ -1,6 +1,6 @@
 {
 	"tool": "Khiops",
-	"version": "10.5.0-a1",
+	"version": "10.5.2-b.0",
 	"shortDescription": "",
 	"modelingReport": {
 		"reportType": "Modeling",
@@ -20,7 +20,7 @@
 				"type": "Classifier",
 				"family": "Selective Naive Bayes",
 				"name": "Selective Naive Bayes",
-				"variables": 2
+				"variables": 3
 			},
 			{
 				"rank": "R2",
@@ -34,18 +34,25 @@
 			"R1": {
 				"selectedVariables": [
 					{
-						"preparedName": "PLowerPetalLength",
-						"name": "LowerPetalLength",
-						"level": 0.48393,
-						"weight": 0.554688,
-						"importance": 0.518102
-					},
-					{
 						"preparedName": "PClass2",
 						"name": "Class2",
 						"level": 0.415416,
-						"weight": 0.523438,
-						"importance": 0.466309
+						"weight": 0.640625,
+						"importance": 0.515874
+					},
+					{
+						"preparedName": "PClass1",
+						"name": "Class1",
+						"level": 0.4499,
+						"weight": 0.421875,
+						"importance": 0.435662
+					},
+					{
+						"preparedName": "PLowerPetalLength",
+						"name": "LowerPetalLength",
+						"level": 0.48393,
+						"weight": 0.203125,
+						"importance": 0.313526
 					}
 				]
 			}
@@ -72,7 +79,7 @@
 				"family": "Selective Naive Bayes",
 				"name": "Selective Naive Bayes",
 				"accuracy": 1,
-				"compression": 0.984935,
+				"compression": 0.991623,
 				"auc": 1
 			},
 			{
@@ -214,7 +221,7 @@
 				"family": "Selective Naive Bayes",
 				"name": "Selective Naive Bayes",
 				"accuracy": 1,
-				"compression": 0.98449,
+				"compression": 0.991545,
 				"auc": 1
 			},
 			{
@@ -372,7 +379,7 @@
 			"nativeVariables": 4,
 			"constructedVariables": 7,
 			"informativeVariables": 9,
-			"selectedVariables": 3,
+			"selectedVariables": 4,
 			"featureEngineering": {
 				"maxNumberOfConstructedVariables": 0,
 				"maxNumberOfTextFeatures": 0,

@@ -1,4 +1,4 @@
-#Khiops 10.5.0-a1
+#Khiops 10.5.2-b.0
 Test evaluation report
 
 Dictionary	Iris
@@ -15,7 +15,7 @@ Instances	45
 Predictors performance
 
 Classifier	Accuracy	Compression	AUC
-Selective Naive Bayes	0.955556	0.85231	0.984362
+Selective Naive Bayes	0.955556	0.846238	0.984362
 
 
 --------------------------------------------------------------------------------
@@ -25,7 +25,7 @@ Predictors detailed performance
 
 Classifier	Selective Naive Bayes
 Accuracy	0.955556
-Compression	0.85231
+Compression	0.846238
 AUC	0.984362
 
 Confusion matrix

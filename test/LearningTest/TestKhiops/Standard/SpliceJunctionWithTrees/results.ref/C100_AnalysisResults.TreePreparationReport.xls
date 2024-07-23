@@ -1,4 +1,4 @@
-#Khiops 10.5.0-a1
+#Khiops 10.5.2-b.0
 Descriptive statistics
 
 
@@ -31,7 +31,7 @@ N	167	0.551155
 
 Evaluated variables	2
 Informative variables	2
-Selected variables	0
+Selected variables	1
 
 Discretization	MODL
 Value grouping	MODL
