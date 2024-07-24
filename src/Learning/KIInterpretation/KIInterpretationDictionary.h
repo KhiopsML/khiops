@@ -31,6 +31,9 @@ public:
 	/// Test de compatibilite du dictionnaire a interpreter
 	boolean ImportClassifier(KWClass* inputClassifier);
 
+	/// Test de compatibilite du dictionnaire a ne pas utiliser l'option group target Values
+	boolean TestGroupTargetValues(KWClass* inputClassifier);
+
 	/// Acces a la liste des valeurs cible
 	const SymbolVector& GetTargetValues() const;
 

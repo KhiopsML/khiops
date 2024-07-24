@@ -723,6 +723,47 @@ ObjectArray* KIInterpretationDictionary::GetPredictiveAttributeNamesArray()
 	return &oaPartitionedPredictiveAttributeNames;
 }
 
+boolean KIInterpretationDictionary::TestGroupTargetValues(KWClass* inputClassifier)
+{
+
+	boolean bOk = true;
+	ALString sValue;
+	//KWTrainedClassifier* trainedClassifier = new KWTrainedClassifier;
+
+	//bOk = trainedClassifier->ImportPredictorClass(inputClassifier);
+
+	if (bOk)
+	{
+		//ObjectArray* interpretationAttributes = new ObjectArray;
+		KWDerivationRule* derivationrule;
+		KWDerivationRuleOperand* operand;
+		// recherche des attributs necessaires dans le modele
+		//KWAttribute* classifierAttribute = NULL;
+		//KWAttribute* predictionAttribute = NULL;
+
+		KWAttribute* attribute = inputClassifier->GetHeadAttribute();
+
+		while (attribute != NULL and bOk)
+		{
+			if (attribute->GetStructureName() == "DataGrid" and
+			    attribute->GetConstMetaData()->IsKeyPresent("Level"))
+			{
+
+				if (bOk)
+				{
+					derivationrule = attribute->GetDerivationRule();
+					operand = derivationrule->GetSecondOperand();
+					if (operand->GetDerivationRule()->GetName() == "ValueGroups")
+						bOk = false;
+				}
+			}
+			inputClassifier->GetNextAttribute(attribute);
+		}
+	}
+
+	return bOk;
+}
+
 boolean KIInterpretationDictionary::ImportClassifier(KWClass* inputClassifier)
 {
 	KWTrainedClassifier* trainedClassifier = NULL;
@@ -766,6 +807,9 @@ boolean KIInterpretationDictionary::ImportClassifier(KWClass* inputClassifier)
 		bIsClassifier = trainedClassifier->ImportPredictorClass((KWClass*)inputClassifier);
 
 		if (trainedClassifier->GetMetaDataPredictorLabel(inputClassifier) == "Data Grid")
+			bIsClassifier = false; // pas gere (pour l'instant ?)
+
+		if (!TestGroupTargetValues(inputClassifier))
 			bIsClassifier = false; // pas gere (pour l'instant ?)
 
 		// Cas ou le dictionnaire est bien celui d'un classifieur pouvant etre interprete
