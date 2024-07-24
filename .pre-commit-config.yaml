@@ -44,3 +44,8 @@ repos:
         entry: python scripts/update-copyright.py
         language: system
         types_or: [c, c++, java]
+      - id: check-encoding
+        name: check-encoding
+        entry: python scripts/check-encoding.py
+        language: system
+        types_or: [c, c++]

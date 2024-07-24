@@ -1,6 +1,7 @@
 import os.path
 import sys
 import stat
+import warnings
 
 import _kht_constants as kht
 import _kht_utils as utils
@@ -93,246 +94,6 @@ def instruction_bench(test_dir):
     print("database_name " + database_name + " // Database file")
     print("Exit                           // OK")
     print("// <- Benchmark")
-
-
-def instruction_check_fnb(test_dir):
-    from khiops import core as pk
-
-    def to_s(value):
-        return str("{:.4g}".format(value))
-
-    def print_stats(
-        result_file_name, report, criterion, new_value, ref_value, maximize
-    ):
-        fstats.write(
-            "\t" + tool_dir_name + "\t" + suite_dir_name + "\t" + test_dir_name + "\t"
-        )
-        fstats.write(result_file_name + "\t" + report + "\t" + criterion + "\t")
-        fstats.write(to_s(new_value) + "\t" + to_s(ref_value) + "\t")
-        diff = new_value - ref_value
-        if maximize:
-            fstats.write(to_s(diff))
-            alert = diff < 0
-        else:
-            fstats.write(to_s(-diff))
-            alert = diff > 0
-        if alert and abs(diff) > 0.01 * (abs(ref_value) + abs(new_value)) / 2:
-            fstats.write("\tALERT")
-        fstats.write("\n")
-
-    def print_error(message):
-        print(
-            "\t"
-            + tool_dir_name
-            + "\t"
-            + suite_dir_name
-            + "\t"
-            + test_dir_name
-            + "\terror\t"
-            + message
-        )
-
-    results_dir = os.path.join(test_dir, kht.RESULTS)
-    results_ref_dir, _ = results.get_results_ref_dir(test_dir, show=True)
-    if results_ref_dir is None:
-        return
-    test_dir_name = utils.test_dir_name(test_dir)
-    suite_dir_name = utils.suite_dir_name(test_dir)
-    tool_dir_name = utils.tool_dir_name(test_dir)
-
-    # Analyse du log de comparaison
-    (
-        error_number,
-        warning_number,
-        summary_infos,
-        files_infos,
-    ) = check.analyse_comparison_log(test_dir)
-
-    # On verifie que les resultats hors SNB sont correct (ex: preparation)
-    preparation_ok = True
-    if error_number >= 0:
-        for file_name in files_infos:
-            if "Preparation" in file_name and ".xls" in file_name:
-                preparation_ok = preparation_ok and files_infos[file_name] == "OK"
-
-    # Creation d'un fichier de collecte des stats
-    fstats = None
-    home_dir = utils.get_home_dir(test_dir)
-    stats_file_path = os.path.join(home_dir, tool_dir_name, "stats.FNB.log")
-    if os.path.isfile(stats_file_path):
-        fstats = open(stats_file_path, "a", errors="ignore")
-    else:
-        fstats = open(stats_file_path, "w", errors="ignore")
-        fstats.write(
-            "Tool\tRoot\tDir\tFile\tReport\tCriterion\tValue\tRef value\tDiff\n"
-        )
-
-    if results_ref_dir is not None and os.path.isdir(results_ref_dir):
-        for file_name in os.listdir(results_ref_dir):
-            ref_file_path = os.path.join(results_ref_dir, file_name)
-            test_file_path = os.path.join(results_dir, file_name)
-
-            #####
-            if not os.path.isfile(test_file_path):
-                print_error("Missing file " + test_file_path)
-                continue
-
-            # Comparaison du fichier d'erreur
-            if file_name == kht.ERR_TXT:
-                if not standard_instructions.file_compare(
-                    ref_file_path, test_file_path, skip_patterns=["time"]
-                ):
-                    print_error(file_name + " are different")
-            # Comparaison si preparation
-            elif "PreparationReport" in file_name:
-                if not standard_instructions.file_compare(
-                    ref_file_path, test_file_path, skip_patterns=["#Khiops "]
-                ):
-                    print_error(file_name + " are different")
-            elif ".khj" in file_name:
-                # Lecture du fichier de resultats json
-                try:
-                    ref_report = pk.AnalysisResults()
-                    ref_report.read_khiops_json_file(ref_file_path)
-                    test_report = pk.AnalysisResults()
-                    test_report.read_khiops_json_file(test_file_path)
-                except Exception as e:
-                    print_error(file_name + "\tparsing alert: " + str(e))
-                    continue
-                # Analyse des resultats de modelisation
-                if ref_report.modeling_report is not None:
-                    if test_report.modeling_report is None:
-                        print_error(file_name + "\tmissing modeling report")
-                    else:
-                        ref_snb_predictor = ref_report.modeling_report.get_predictor(
-                            "Selective Naive Bayes"
-                        )
-                        test_snb_predictor = test_report.modeling_report.get_predictor(
-                            "Selective Naive Bayes"
-                        )
-                        if ref_snb_predictor is not None:
-                            if test_snb_predictor is None:
-                                print_error(
-                                    file_name
-                                    + "\tmissing SNB predictor in modeling report"
-                                )
-                            else:
-                                print_stats(
-                                    file_name,
-                                    test_report.modeling_report.report_type,
-                                    "Sel. vars",
-                                    test_snb_predictor.variables,
-                                    ref_snb_predictor.variables,
-                                    False,
-                                )
-                # Analyse des resultats d'evaluation
-                ref_evaluation_reports = list()
-                test_evaluation_reports = list()
-                ref_evaluation_reports.append(ref_report.train_evaluation_report)
-                ref_evaluation_reports.append(ref_report.test_evaluation_report)
-                ref_evaluation_reports.append(ref_report.evaluation_report)
-                test_evaluation_reports.append(test_report.train_evaluation_report)
-                test_evaluation_reports.append(test_report.test_evaluation_report)
-                test_evaluation_reports.append(test_report.evaluation_report)
-                for i in range(len(ref_evaluation_reports)):
-                    ref_evaluation_report = ref_evaluation_reports[i]
-                    test_evaluation_report = test_evaluation_reports[i]
-                    if ref_evaluation_report is not None:
-                        if test_evaluation_report is None:
-                            print_error(
-                                file_name
-                                + "\tmissing "
-                                + ref_evaluation_report.report_type
-                                + " "
-                                + ref_evaluation_report.evaluation_type
-                                + " report"
-                            )
-                        else:
-                            ref_snb_performance = (
-                                ref_evaluation_report.get_predictor_performance(
-                                    "Selective Naive Bayes"
-                                )
-                            )
-                            test_snb_performance = (
-                                test_evaluation_report.get_predictor_performance(
-                                    "Selective Naive Bayes"
-                                )
-                            )
-                            if ref_snb_performance is not None:
-                                if test_snb_performance is None:
-                                    print_error(
-                                        file_name
-                                        + "\tmissing SNB performance in "
-                                        + ref_evaluation_report.report_type
-                                        + " "
-                                        + ref_evaluation_report.evaluation_type
-                                        + " report"
-                                    )
-                                else:
-                                    if test_snb_performance.type == "Classifier":
-                                        print_stats(
-                                            file_name,
-                                            ref_evaluation_report.report_type
-                                            + " "
-                                            + ref_evaluation_report.evaluation_type,
-                                            "accuracy",
-                                            test_snb_performance.accuracy,
-                                            ref_snb_performance.accuracy,
-                                            True,
-                                        )
-                                        print_stats(
-                                            file_name,
-                                            ref_evaluation_report.report_type
-                                            + " "
-                                            + ref_evaluation_report.evaluation_type,
-                                            "compression",
-                                            test_snb_performance.compression,
-                                            ref_snb_performance.compression,
-                                            True,
-                                        )
-                                        print_stats(
-                                            file_name,
-                                            ref_evaluation_report.report_type
-                                            + " "
-                                            + ref_evaluation_report.evaluation_type,
-                                            "auc",
-                                            test_snb_performance.auc,
-                                            ref_snb_performance.auc,
-                                            True,
-                                        )
-                                    if test_snb_performance.type == "Regressor":
-                                        print_stats(
-                                            file_name,
-                                            ref_evaluation_report.report_type
-                                            + " "
-                                            + ref_evaluation_report.evaluation_type,
-                                            "rmse",
-                                            test_snb_performance.rmse,
-                                            ref_snb_performance.rmse,
-                                            False,
-                                        )
-                                        print_stats(
-                                            file_name,
-                                            ref_evaluation_report.report_type
-                                            + " "
-                                            + ref_evaluation_report.evaluation_type,
-                                            "mae",
-                                            test_snb_performance.mae,
-                                            ref_snb_performance.mae,
-                                            False,
-                                        )
-                                        print_stats(
-                                            file_name,
-                                            ref_evaluation_report.report_type
-                                            + " "
-                                            + ref_evaluation_report.evaluation_type,
-                                            "nlpd",
-                                            test_snb_performance.nlpd,
-                                            ref_snb_performance.nlpd,
-                                            False,
-                                        )
-    # Ecriture des stats
-    fstats.close()
 
 
 def instruction_work(test_dir):
@@ -500,6 +261,244 @@ def instruction_work(test_dir):
                                     break
 
 
+def instruction_compare_snb_perfs(test_dir):
+    """Compares the SNB performances of a test
+
+    For each report in the results that contains a SNB predictor it compares the
+    performances between the reference and the test results. The results are reported as
+    a TSV table.
+
+    The columns for each test are:
+        - Family name (usually only 'TestKhiops')
+        - Suite name
+        - Test name
+        - Subtest name: The prefix of an "*AnalysisRelsults.khj" file
+        - Evaluation type: 'Test', 'Train' or 'None'
+        - Metric name:
+            - Classification: 'accuracy', 'auc', and 'compression'
+            - Regression: 'rmse', 'mae', 'nlpd', 'rank_rmse', 'rank_mae', 'rank_nlpd'
+        - Metric value
+        - Reference metric value
+        - Relative difference: Between 0 and 1
+        - Selected variable number
+        - Reference selected variable number
+        - Preparation 1D flag: Empty string '' if the 1D preparations are equal,
+                               'Prep1D_KO' otherwise.
+
+
+    When the comparison is not feasible then the line printed will "SKIPPED" and when
+    the results are not coherent with the reference these are reported as "ERROR". A
+    synthetic key of the reason of failure is printed after "SKIPPED"/"ERROR".
+
+    """
+    # Import khiops-python
+    try:
+        from khiops import core as kh
+    except ImportError:
+        print("This command requires the khiops-python python package")
+        exit(1)
+
+    def _check_same_1d_preparation(prep_report_ref, prep_report):
+        """Returns 'Prep1D_KO' if the 1D preparations are not equal, '' otherwise"""
+        # Status values
+        prep_1d_failure = "Prep1D_KO"
+        prep_1d_status = ""
+
+        # Report as Ok if both reports are not present
+        if prep_report_ref is None and prep_report is None:
+            pass
+        # Report error if:
+        # - the reference does not exist but the results do
+        # - the result does not exist but the reference do
+        # Similarly with the variable_statistics
+        elif (
+            (prep_report_ref is None and prep_report is not None)
+            or (prep_report_ref is not None and prep_report is None)
+            or (
+                prep_report_ref.variables_statistics is None
+                and prep_report.variables_statistics is not None
+            )
+            or (
+                prep_report_ref.variables_statistics is not None
+                and prep_report.variables_statistics is None
+            )
+        ):
+            prep_1d_status = prep_1d_failure
+        # Otherwise there are valid reports/var_stats in both reference and results
+        else:
+            # Report error if the variable statistcs differ in size
+            if len(prep_report_ref.variables_statistics) != len(
+                prep_report.variables_statistics
+            ):
+                prep_1d_status = prep_1d_failure
+            # Otherwise check that each variable has the same name, level and rank
+            else:
+                for var_stats_ref, var_stats in zip(
+                    prep_report_ref.variables_statistics,
+                    prep_report.variables_statistics,
+                ):
+                    if (
+                        var_stats_ref.name != var_stats.name
+                        or var_stats_ref.rank != var_stats.rank
+                        or var_stats_ref.level != var_stats.level
+                    ):
+                        prep_1d_status = prep_1d_failure
+                        break
+        return prep_1d_status
+
+    # End of local function _check_same_1d_preparation
+
+    # Obtain basic information of the test
+    results_ref_dir, _ = results.get_results_ref_dir(test_dir, show=True)
+    results_dir = os.path.join(test_dir, kht.RESULTS)
+    if results_ref_dir is None:
+        return
+    test_dir_name = utils.test_dir_name(test_dir)
+    suite_dir_name = utils.suite_dir_name(test_dir)
+    tool_dir_name = utils.tool_dir_name(test_dir)
+
+    # Obtain the sub-tests names
+    khj_file_names = [
+        name for name in os.listdir(results_ref_dir) if name.endswith("khj")
+    ]
+    sub_test_names = []
+    for name in khj_file_names:
+        sub_test_name = name.replace(".khj", "")
+        if "AnalysisResults" in name:
+            sub_test_name = sub_test_name.replace("AnalysisResults", "")
+            if not sub_test_name:
+                sub_test_name = "None"
+        if "EvaluationReport" in name:
+            sub_test_name = sub_test_name.replace("EvaluationReport", "")
+            if not sub_test_name:
+                sub_test_name = "None"
+        sub_test_names.append(sub_test_name)
+
+    # Ignore warnings about colliding characters in reports
+    warnings.filterwarnings("ignore", message=r".*colliding")
+
+    # Build the beginning of this test's lines
+    line_prefix = f"{tool_dir_name}\t{suite_dir_name}\t{test_dir_name}"
+    for file_name, sub_test_name in zip(khj_file_names, sub_test_names):
+        # Read the sub-test report files
+        failure_type = None
+        failure_reason = None
+        try:
+            all_reports_ref = kh.read_analysis_results_file(
+                os.path.join(results_ref_dir, file_name)
+            )
+        except FileNotFoundError:
+            failure_type = "SKIPPED"
+            failure_reason = "ReportRefNotFound"
+        except kh.KhiopsJSONError as error:
+            failure_type = "SKIPPED"
+            failure_reason = str(error)
+        if failure_reason is None:
+            try:
+                all_reports = kh.read_analysis_results_file(
+                    os.path.join(results_dir, file_name)
+                )
+            except FileNotFoundError:
+                failure_type = "ERROR"
+                failure_reason = "ReportNotFound"
+            except kh.KhiopsJSONError as error:
+                failure_type = "ERROR"
+                failure_reason = str(error)
+        if failure_reason is None:
+            if len(all_reports_ref.get_reports()) != len(all_reports.get_reports()):
+                failure_type = "ERROR"
+                failure_reason = "NumReportNonEq"
+        # Check the type
+        if failure_reason is None:
+            if (
+                all_reports_ref.preparation_report is not None
+                and all_reports_ref.preparation_report.learning_task
+                == "Unsupervised analysis"
+            ):
+                failure_type = "SKIPPED"
+                failure_reason = "UnsupervisedTask"
+
+        # Print the line on failure and return
+        if failure_reason is not None:
+            print(f"{line_prefix}\t{sub_test_name}\t{failure_type}\t{failure_reason}")
+            return
+
+        # Check that the preparation
+        prep_1d_status = _check_same_1d_preparation(
+            all_reports_ref.preparation_report, all_reports.preparation_report
+        )
+
+        # Get the number of selected variables
+        model_report_ref = all_reports_ref.modeling_report
+        model_report = all_reports.modeling_report
+        if (
+            model_report_ref is not None
+            and "Selective Naive Bayes" in model_report_ref.get_predictor_names()
+        ):
+            snb_var_number_ref = (
+                all_reports_ref.modeling_report.get_snb_predictor().variable_number
+            )
+            snb_var_number = (
+                all_reports.modeling_report.get_snb_predictor().variable_number
+            )
+        else:
+            snb_var_number_ref = -1
+            snb_var_number = -1
+
+        # Print the metric, metric_ref and the relative error of metric w/r metric_ref
+        for report_ref, report in zip(
+            all_reports_ref.get_reports(), all_reports.get_reports()
+        ):
+            if not (
+                isinstance(report, kh.EvaluationReport)
+                and "Selective Naive Bayes" in report.get_predictor_names()
+            ):
+                continue
+            try:
+                snb_perf_ref = report_ref.get_snb_performance()
+            except ValueError as error:
+                print(f"{line_prefix}\t{sub_test_name}\tERROR\tSNB: {error}")
+                continue
+            try:
+                snb_perf = report.get_snb_performance()
+            except ValueError as error:
+                print(f"{line_prefix}\t{sub_test_name}\tERROR\tSNBRef: {error}")
+                continue
+
+            # Obtain the evaluation type (Train, Test or None)
+            evaluation_type = report.evaluation_type
+            if not evaluation_type:
+                evaluation_type = "Eval"
+
+            for metric_name in snb_perf_ref.get_metric_names():
+                metric_ref = snb_perf_ref.get_metric(metric_name)
+                metric = snb_perf.get_metric(metric_name)
+                if metric_ref is None:
+                    print(
+                        f"{line_prefix}\t{sub_test_name}\t{metric_name}\t"
+                        "SKIPPED\tNullRefMetric"
+                    )
+                elif metric is None:
+                    print(
+                        f"{line_prefix}\t{sub_test_name}\t{metric_name}\t"
+                        "ERROR\tNullMetric"
+                    )
+                else:
+                    if metric_ref == 0 and metric == 0:
+                        rel_diff = 0
+                    elif metric_ref == 0:
+                        rel_diff = (metric - 1e-9) / (1e-9)
+                    else:
+                        rel_diff = (metric - metric_ref) / (metric_ref)
+                    if 0 < abs(rel_diff) < 1e-9:
+                        rel_diff = 0
+                    print(
+                        f"{line_prefix}\t{sub_test_name}\t{evaluation_type}\t"
+                        f"{metric_name}\t{metric}\t{metric_ref}\t{rel_diff:.6g}\t"
+                        f"{snb_var_number}\t{snb_var_number_ref}\t{prep_1d_status}"
+                    )
+
+
 def instruction_template(test_dir):
     results_dir = os.path.join(test_dir, kht.RESULTS)
     results_ref_dir, _ = results.get_results_ref_dir(test_dir, show=True)
@@ -546,9 +545,9 @@ def register_one_shot_instructions():
     )
     standard_instructions.register_instruction(
         available_instructions,
-        "checkfnb",
-        instruction_check_fnb,
-        "check fnb results (deprecated)",
+        "compare-snb-perfs",
+        instruction_compare_snb_perfs,
+        "compares the performances of all SNB predictors",
     )
     standard_instructions.register_instruction(
         available_instructions,

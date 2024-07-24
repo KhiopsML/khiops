@@ -36,7 +36,7 @@
 // results et le test echoue car il n'y a pas de fichier de reference. Il suffit
 // de copier ce fichier dans le repertoire results.ref pour que le test reussisse.
 // Pour que le test soit valide sur differentes machines, il faut si necessaire remplacer
-// dans le fichier de reference les chemins propres à l'environnement par des tags, a savoir :
+// dans le fichier de reference les chemins propres a l'environnement par des tags, a savoir :
 //  - le repertoire temporaire par @TMP_DIR@
 //	- le repertoire qui contient le projet des tests unitaires par @ROOT_DIR@
 // Cela concerne essentiellement les tests impliquant des fichiers temporaires.

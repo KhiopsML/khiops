@@ -250,16 +250,16 @@ void DTForestAttributeSelection::BuildForestSelections(int nmaxselectionnumber, 
 			nTmax = MIN_VARIABLE_2_BUILTREE_BORNE +
 				RandomInt(MAX_VARIABLE_2_BUILTREE_BORNE - MIN_VARIABLE_2_BUILTREE_BORNE);
 
-			// Probabilite de tirer une variable de level null Pnull: tire aléatoirement de façon uniforme
+			// Probabilite de tirer une variable de level null Pnull: tire aleatoirement de facon uniforme
 			// dans [Pnull_lb, Pnull_ub]
 			dPNull = MIN_DRAWING_NULL_VARIABLE_PROBABILITY +
 				 RandomDouble() *
 				     (MAX_DRAWING_NULL_VARIABLE_PROBABILITY - MIN_DRAWING_NULL_VARIABLE_PROBABILITY);
 
-			// Probabilité de tirer une variable informative Pinf = 1-Pnul
+			// Probabilite de tirer une variable informative Pinf = 1-Pnul
 			dPInf = 1 - dPNull;
 
-			// Nombre de variables à tirer nT = min(Tmax, sqrt(K log2(K+ct))
+			// Nombre de variables a tirer nT = min(Tmax, sqrt(K log2(K+ct))
 			// dct est une constante dependant MIN_VARIABLE_2_BUILTREE telque MIN_VARIABLE_2_BUILTREE =
 			// sqrt(MIN_VARIABLE_2_BUILTREE log2(MIN_VARIABLE_2_BUILTREE+ct)
 			dct = pow(2.0, nvariableNumberMin) - nvariableNumberMin;
@@ -282,7 +282,7 @@ void DTForestAttributeSelection::BuildForestSelections(int nmaxselectionnumber, 
 			// nRmax_lb = nTinf;
 			// Borne sup:
 			// nRmax_ub = nKinf;
-			// Rang max choisi: Rmax, tiré aléatoirement de façon uniforme dans [Rmax_lb, Rmax_ub]
+			// Rang max choisi: Rmax, tire alaatoirement de facon uniforme dans [Rmax_lb, Rmax_ub]
 			nRmax = nTinf + RandomInt(nKinf - nTinf);
 
 			ivSelectionAttributeNumberInf.Add(nTinf);

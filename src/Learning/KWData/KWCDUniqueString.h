@@ -33,7 +33,7 @@ class KWCDUniqueStringDictionary;
 // en exemplaire unique permet un gain potentiel de memoire tres important, et une
 // diminution du morcellement memoire.
 //
-// La gestion des KWCDUniqueString est similaire à celle des Symbol, mais elle differe
+// La gestion des KWCDUniqueString est similaire a celle des Symbol, mais elle differe
 // sur les points suivants:
 //  . les Symbol sont tres optimises en memoire, et ne donne acces qu'a des char*, alors
 //    que les UniqueString contiennent directement un ALString, directement utilisable

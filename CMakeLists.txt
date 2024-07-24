@@ -254,8 +254,10 @@ function(set_unix_khiops_options target)
     target_link_options(${target} PRIVATE "LINKER:SHELL:-z noexecstack" "LINKER:SHELL:-z relro")
   endif()
 
-  # stripping
-  target_link_options(${target} PRIVATE $<$<CONFIG:RELEASE>:-s>)
+  # Stripping only in Linux + Release (-s is not supported in macOS)
+  if(NOT APPLE)
+    target_link_options(${target} PRIVATE $<$<CONFIG:RELEASE>:-s>)
+  endif()
 
   #
   # - fno-rtti: no run-time type information in Release or RelWithDebInfo .

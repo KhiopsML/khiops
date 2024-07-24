@@ -68,6 +68,9 @@ public:
 	Symbol GetUncheckedSymbolVarKeyAt(int nIndex) const;
 	int GetUncheckedContinuousVarKeyAt(int nIndex) const;
 
+	// Calcule la frequence common de tous les grilles du bloc (renvoie -1 si erreur)
+	int ComputeUncheckedTotalFrequency(const KWClass* kwcOwnerClass) const;
+
 	//////////////////////////////////////////////////////
 	// Redefinition des methodes standard
 
@@ -147,7 +150,7 @@ public:
 
 	// Verification du type du dernier argument sur la premiere grille du DataGridBlock
 	//    Symbol pour un classifier, Continuous pour un regresseur
-	boolean CheckPredictorCompletness(int nPredictorType, const KWClass* kwcOwnerClass) const;
+	boolean CheckPredictorCompleteness(int nPredictorType, const KWClass* kwcOwnerClass) const;
 
 	// Construction du dictionnaire de tous les attributs utilises
 	// Redefinition de la methode ancetre pour integrer comme attributs utilises
@@ -259,12 +262,11 @@ public:
 	///// Implementation
 protected:
 	// Compilation de la regle, a appeler en debut de l'implementation du calcul de l'attribut derive
-	// Permet de parametrer correctement quels attributs du bloc source sont a utiliser pour
-	// fabriquer le bloc cible
+	// Permet de parametrer correctement les attributs du bloc source sont a utiliser pour fabriquer le bloc cible.
 	// En theorie, on pourrait effectuer cette compilation des la compilation, mais on a ici besoin a la fois
 	// de la regle a compiler, mais egalement du bloc resultat de la regle (et son indexedKeyBlock).
 	// La methode Compile ne prenant pas ce type d'argument (pertinent uniquement dans le cas des blocs),
-	// il est ici plus pratique (et peu couteux) d'effectuer cette optimisation via DynamicCompile
+	// il est ici plus pratique (et peu couteux) d'effectuer cette optimisation via DynamicCompile.
 	void DynamicCompile(const KWIndexedKeyBlock* indexedKeyBlock) const;
 
 	// Vecteur des index de valeurs recodes, contenant pour chaque index de valeur source l'index de valeur recodee
@@ -295,39 +297,45 @@ public:
 	// Calcul de l'attribut derive
 	Object* ComputeStructureResult(const KWObject* kwoObject) const override;
 
-	//////////////////////////////////////////////////////
-	// Service disponible une fois la structure calculee
+	// Acces aux DataGridStats par index dans le bloc
+	int GetDataGridStatsNumber() const;
+	const KWDRDataGridStats* GetDataGridStatsAtBlockIndex(int nBlockIndex) const;
+
+	////////////////////////////////////////////////////////////////////////////////////
+	// Services disponibles une fois la structure calculee
 	// On a principalement une methode renvoyant le bloc de valeur recodee
 	// plus des services permettant d'exploiter ces information
 
-	// Bloc de recodage des valeurs sources en deuxieme operande pour chaque grille du DataGridBloc en premier
-	// operande Le resultat est similaire a celui obtenu pour la regle CellIndexBlock, excepte que les variables
-	// sont recodee pour toute les grilles du DataGridBlock, et non pour les variable du bloc en sortie comme dans
-	// CellIndexBlock Pour chaque index sparse, on obtient l'index de la grille de recodage et la valeur recodee Il
+	// Bloc de recodage des valeurs sources en deuxieme operande pour chaque grille du DataGridBlock en premier operande
+	// Le resultat est similaire a celui obtenu pour la regle CellIndexBlock, excepte que les variables sont recodees
+	// pour toutes les grilles du DataGridBlock, et non pour les variable du bloc en sortie comme dans CellIndexBlock
+	// Pour chaque index sparse, on obtient l'index de la grille de recodage et la valeur recodee Il
 	// s'agit d'un bloc d'index "internes", compris entre 0 et N-1
 	KWContinuousValueBlock* GetCellIndexBlock() const;
 
-	// Taille du bloc d'index de cellule
-	int GetCellIndexBlockSize() const;
+	// Nombre de valeurs du bloc pour une instance
+	int GetValueNumber() const;
 
-	// Acces a l'index de grille du DataGridBlock
+	// Acces a l'index de la grille associee a l'index d'une valeur du bloc sparse
 	int GetDataGridIndexAt(int nValueIndex) const;
 
-	// Acces a un index de cellule d'une variable recodee
+	// Acces a l'index de cellule de la grille associee a l'index d'une valeur du bloc sparse
 	int GetCellIndexAt(int nValueIndex) const;
 
-	// Acces a la VarKey correspondante
+	// Acces a la VarKey associee a l'index d'une valeur du bloc sparse
 	Symbol GetSymbolVarKeyAt(int nValueIndex) const;
 	int GetContinuousVarKeyAt(int nValueIndex) const;
 
-	// Acces a la DataGrid correspondante
+	// Acces a la grille associee a l'index d'une valeur du bloc sparse
 	const KWDRDataGrid* GetDataGridAt(int nValueIndex) const;
 
-	// Acces a la DataGridStats correspondante, ce qui permet d'utiliser tous ses services
+	// Acces a la DataGridStats associee a l'index d'une valeur du bloc sparse
 	const KWDRDataGridStats* GetDataGridStatsAt(int nValueIndex) const;
 
 	// Memoire utilisee par la regle de derivation
 	longint GetUsedMemory() const override;
+
+	//
 
 	///////////////////////////////////////////////////////
 	///// Implementation
@@ -343,10 +351,10 @@ protected:
 	mutable KWContinuousValueBlock* resultCellIndexBlock;
 
 	// Tableau de regles DataGridsStats pour chaque grille du DataGridBlock
-	mutable ObjectArray oaAllDataGridStatsRules;
+	mutable ObjectArray oaDataGridStatsRules;
 };
 
-///////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 // Classe KWDRDataGridStatsBlockTest
 // Classe de test de KWDRDataGridStatsBlock
 // Classe interne uniquement
@@ -442,46 +450,57 @@ inline KWContinuousValueBlock* KWDRDataGridStatsBlock::GetCellIndexBlock() const
 	return resultCellIndexBlock;
 }
 
-inline int KWDRDataGridStatsBlock::GetCellIndexBlockSize() const
+inline int KWDRDataGridStatsBlock::GetDataGridStatsNumber() const
+{
+	return oaDataGridStatsRules.GetSize();
+}
+
+inline const KWDRDataGridStats* KWDRDataGridStatsBlock::GetDataGridStatsAtBlockIndex(int nBlockIndex) const
+{
+	require(0 <= nBlockIndex and nBlockIndex < oaDataGridStatsRules.GetSize());
+	return cast(const KWDRDataGridStats*, oaDataGridStatsRules.GetAt(nBlockIndex));
+}
+
+inline int KWDRDataGridStatsBlock::GetValueNumber() const
 {
 	return GetCellIndexBlock()->GetValueNumber();
 }
 
 inline int KWDRDataGridStatsBlock::GetDataGridIndexAt(int nValueIndex) const
 {
-	require(0 <= nValueIndex and nValueIndex < GetCellIndexBlockSize());
+	require(0 <= nValueIndex and nValueIndex < GetValueNumber());
 	return GetCellIndexBlock()->GetAttributeSparseIndexAt(nValueIndex);
 }
 
 inline int KWDRDataGridStatsBlock::GetCellIndexAt(int nValueIndex) const
 {
-	require(0 <= nValueIndex and nValueIndex < GetCellIndexBlockSize());
+	require(0 <= nValueIndex and nValueIndex < GetValueNumber());
 	assert(GetCellIndexBlock()->GetValueAt(nValueIndex) == (int)GetCellIndexBlock()->GetValueAt(nValueIndex));
 	return (int)GetCellIndexBlock()->GetValueAt(nValueIndex);
 }
 
 inline Symbol KWDRDataGridStatsBlock::GetSymbolVarKeyAt(int nValueIndex) const
 {
-	require(0 <= nValueIndex and nValueIndex < GetCellIndexBlockSize());
+	require(0 <= nValueIndex and nValueIndex < GetValueNumber());
 	return GetDataGridBlock()->GetSymbolVarKeyAt(GetDataGridIndexAt(nValueIndex));
 }
 
 inline int KWDRDataGridStatsBlock::GetContinuousVarKeyAt(int nValueIndex) const
 {
-	require(0 <= nValueIndex and nValueIndex < GetCellIndexBlockSize());
+	require(0 <= nValueIndex and nValueIndex < GetValueNumber());
 	require(GetDataGridVarKeyType() == KWType::Continuous);
 	return GetDataGridBlock()->GetContinuousVarKeyAt(GetDataGridIndexAt(nValueIndex));
 }
 
 inline const KWDRDataGrid* KWDRDataGridStatsBlock::GetDataGridAt(int nValueIndex) const
 {
-	require(0 <= nValueIndex and nValueIndex < GetCellIndexBlockSize());
+	require(0 <= nValueIndex and nValueIndex < GetValueNumber());
 	require(GetDataGridVarKeyType() == KWType::Symbol);
 	return cast(const KWDRDataGrid*, oaAllRecodingDataGrids.GetAt(GetDataGridIndexAt(nValueIndex)));
 }
 
 inline const KWDRDataGridStats* KWDRDataGridStatsBlock::GetDataGridStatsAt(int nValueIndex) const
 {
-	require(0 <= nValueIndex and nValueIndex < GetCellIndexBlockSize());
-	return cast(const KWDRDataGridStats*, oaAllDataGridStatsRules.GetAt(GetDataGridIndexAt(nValueIndex)));
+	require(0 <= nValueIndex and nValueIndex < GetValueNumber());
+	return cast(const KWDRDataGridStats*, oaDataGridStatsRules.GetAt(GetDataGridIndexAt(nValueIndex)));
 }

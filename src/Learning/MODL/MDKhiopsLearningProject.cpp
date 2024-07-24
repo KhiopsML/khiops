@@ -31,7 +31,7 @@ void MDKhiopsLearningProject::OpenLearningEnvironnement()
 	SetLearningWebSite("https://khiops.org");
 
 	// Parametrage de la fenetre de quick start
-	// On peut s'aider de deepl (https://www.deepl.com/translator) pour la rédaction en anglais
+	// On peut s'aider de deepl (https://www.deepl.com/translator) pour la redaction en anglais
 	// et d'un editeur html en ligne (ex: https://html-online.com/editor/) pur la mise en forme
 	sQuickStartInfo += "<html> ";
 	sQuickStartInfo += "<h3>Fast path</h3> ";

@@ -126,7 +126,7 @@ protected:
 // Un RMResourceGrant est la memoire mise a disposition pour un esclave ou un maitre de la tache, elle ne contient pas
 // la memoire prevue pour les shared variables (meme si celle-ci est bien prise en compte). D'autre part la memoire
 // disponible pour un esclave est la somme de l'exigence de l'esclave (GetSlaveRequirement) et de l'exigence globale
-// (GetGlobalSlaveRequirement) Si il y a plus de memoire allouee que le minimum des exigences, c'est à l'utisateur de
+// (GetGlobalSlaveRequirement) Si il y a plus de memoire allouee que le minimum des exigences, c'est a l'utisateur de
 // cette classe de repartir le surplus vers les ressources globales ou vers les exigences de l'esclave.
 class RMTaskResourceGrant : public Object
 {

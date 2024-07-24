@@ -1,6 +1,6 @@
 {
 	"tool": "Khiops",
-	"version": "10.5.0-a1",
+	"version": "10.5.2-b.0",
 	"shortDescription": "",
 	"logs": [
 		{
@@ -26,12 +26,6 @@
 				"warning : Data table ..\/..\/..\/datasets\/Adult\/Adult.txt : Record 25 : Numerical variable sex: value <Male> converted to <> (Unconverted string)",
 				"warning : Data table ..\/..\/..\/datasets\/Adult\/Adult.txt : Record 26 : Numerical variable sex: value <Female> converted to <> (Unconverted string)",
 				"warning : Data table ..\/..\/..\/datasets\/Adult\/Adult.txt : Record 27 : Numerical variable sex: value <Male> converted to <> (Unconverted string)",
-				"warning : Data table : ...",
-				"warning : Data table ..\/..\/..\/datasets\/Adult\/Adult.txt : Record 145 : Numerical variable sex: value <Female> converted to <> (Unconverted string) (100th warning)",
-				"warning : Data table : ...",
-				"warning : Data table ..\/..\/..\/datasets\/Adult\/Adult.txt : Record 1416 : Numerical variable sex: value <Male> converted to <> (Unconverted string) (1000th warning)",
-				"warning : Data table : ...",
-				"warning : Data table ..\/..\/..\/datasets\/Adult\/Adult.txt : Record 14282 : Numerical variable sex: value <Male> converted to <> (Unconverted string) (10,000th warning)",
 				"warning : Data table : ..."
 			]
 		}

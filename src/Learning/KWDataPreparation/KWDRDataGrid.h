@@ -130,6 +130,9 @@ public:
 	// Nombre de parties d'un attribut, en mode non checke
 	int GetUncheckedAttributePartNumberAt(int nAttributeIndex) const;
 
+	// Calcul de l'effectif total de la grille, en mode non checke (renvoie -1 si erreur)
+	int ComputeUncheckedTotalFrequency() const;
+
 	//////////////////////////////////////////////////////
 	// Redefinition des methodes standard
 
@@ -259,7 +262,7 @@ public:
 	int GetCellIndex() const;
 
 	// Acces a l'indication de valeur manquante de l'objet pour une des dimensions, une fois l'index calcule
-	// Les valeurs manquantes sont Missing dans le cas numérique et "" dans le cas categoriel
+	// Les valeurs manquantes sont Missing dans le cas numerique et "" dans le cas categoriel
 	boolean IsMissingValue() const;
 
 	// Calcul d'un libelle de cellule
@@ -278,7 +281,7 @@ public:
 	// (moins un de la grille), pour la prediction de la derniere dimension
 	// Verification egalement du type du dernier argument
 	//   Symbol pour un classifier, Continuous pour un regresseur
-	boolean CheckPredictorCompletness(int nPredictorType, const KWClass* kwcOwnerClass) const;
+	boolean CheckPredictorCompleteness(int nPredictorType, const KWClass* kwcOwnerClass) const;
 
 	// Verification que la grille  est univariee et qu'il y a un argument,
 	// ce qui correspond a la specification d'un partitionnement elementaire de l'attribut cible

@@ -4,9 +4,10 @@
 
 #pragma once
 
-//////////////////////////////////////////////////////////////////////////////
-// Regles de derivation pour les predicteurs naive Bayes a base de grilles
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+// Regles de derivation pour les predicteurs de la famille Naive Bayes a base de DataGrid's
 
+class KWNaiveBayesPredictorRuleHelper;
 class KWDRNBClassifier;
 class KWDRSNBClassifier;
 class KWDRNBRankRegressor;
@@ -22,11 +23,64 @@ class KWDRSNBRegressor;
 #include "KWContinuous.h"
 #include "KWSymbol.h"
 #include "KWDRDataGrid.h"
+#include "KWDRDataGridBlock.h"
 
 // Enregistrement de ces regles
 void KWDRRegisterNBPredictorRules();
 
-///////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// Classe KWNaiveBayesPredictorRuleHelper
+//
+// Classe auxiliaire contenant des fonctions pour la verification et compilation
+// des regles des predicteurs de la famille Naive Bayes.
+
+class KWNaiveBayesPredictorRuleHelper : public Object
+{
+public:
+	// Constructeur
+	KWNaiveBayesPredictorRuleHelper();
+	~KWNaiveBayesPredictorRuleHelper();
+
+	// True si l'operand dans la position specifiee est une regle DataGridStatsBlock
+	boolean RuleHasDataGridStatsBlockAtOperand(const KWDerivationRule* predictorRule, int nOperand) const;
+
+	// True si l'operand dans la position specifiee est une regle DataGridStats
+	boolean RuleHasDataGridStatsAtOperand(const KWDerivationRule* predictorRule, int nOperand) const;
+
+	// Nom du type DataGridStats
+	const ALString& GetDataGridStatsRuleName() const;
+
+	// Nom du type DataGridStatsBlock
+	const ALString& GetDataGridStatsBlockRuleName() const;
+
+	// Verification que les operands sont des regles DataGridStats ou DataGridStatsBlock
+	boolean CheckDataGridStatsOperandsType(const KWDerivationRule* predictorRule, int nFirstDataGridOperand,
+					       int nLastDataGridOperand) const;
+
+	// Verification de coherence des effectifs des operateurs DataGridStats ou DataGridStatsBlock
+	boolean CheckDataGridStatsOperandsFrequencyAndTargetType(const KWClass* kwcOwnerClass,
+								 const KWDerivationRule* predictorRule,
+								 int nFirstDataGridOperand, int nLastDataGridOperand,
+								 const KWDRDataGrid* referenceDataGridRule) const;
+
+	// Initialisation des objets data grid et poids pour la compilation
+	void CompileInitializeDataGridAndWeightRules(const KWClass* kwcOwnerClass,
+						     const KWDerivationRule* predictorRule, int nFirstDataGridOperand,
+						     int nLastDataGridOperand,
+						     ObjectArray* oaDataGridStatsAndBlockRules,
+						     ContinuousVector* cvWeights,
+						     IntVector* ivIsDataGridStatsRule) const;
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	///// Implementation
+protected:
+	// Regles de reference pour les test des operands des regles data grid et data grid bloc
+	const KWDRContinuousVector refContinuousVectorRule;
+	const KWDRDataGridStats refDataGridStatsRule;
+	const KWDRDataGridStatsBlock refDataGridStatsBlockRule;
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 // Classe KWDRNBClassifier
 // Classifier base sur une ou plusieurs grilles
 // Premiers operandes de type KWDRDataGridStats
@@ -60,27 +114,40 @@ public:
 	////////////////////////////////////////////////////////////////////
 	// Compilation de la regle et services associes
 
-	// Compilation redefinie pour optimisation
+	// Compilation redefinie pour l'optimisation
 	void Compile(KWClass* kwcOwnerClass) override;
 
 	// Acces aux statistiques de grilles en operande
 	int GetDataGridStatsNumber() const;
-	const KWDRDataGridStats* GetDataGridStatsAt(int nIndex) const;
-	Continuous GetDataGridWeightAt(int nIndex) const;
+	const KWDRDataGridStats* GetDataGridStatsAt(int nDataGrid) const;
+	int GetDataGridStatsOrBlockNumber() const;
+	boolean IsDataGridStatsAt(int nDataGridStatsOrBlock) const;
+	const KWDRDataGridStatsBlock* GetDataGridStatsBlockAt(int nDataGridStatsOrBlock) const;
+	Continuous GetDataGridWeightAt(int nDataGridStatsOrBlock) const;
 
 	// Acces aux statistiques sur l'ensemble des grilles
 	int GetDataGridSetTargetPartNumber() const;
-	int GetDataGridSetTargetFrequencyAt(int nTarget) const;
-	int GetDataGridSetTargetIndexAt(int nDataGridIndex, int nTarget) const;
+	int GetDataGridSetTargetFrequencyAt(int nTargetValue) const;
+	int GetDataGridSetTargetCellIndexAt(int nDataGrid, int nTargetValue) const;
+	double GetMissingLogProbaAt(int nDataGrid, int nTargetValue) const;
+	double GetMissingScoreAt(int nTargetValue) const;
 
 	// Memoire utilisee
 	longint GetUsedMemory() const override;
 
-	//////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
+	// Acces a la classe avec les operations commons des predicteurs
+	friend class KWNaiveBayesPredictorRuleHelper;
+
 	// Calcul du vecteur de probabilites conditionnelles
 	void ComputeTargetProbs() const;
+
+	// Verification de la coherence des valeurs cibles d'un DataGrid vis-a-vis a ceux du predicteur
+	boolean CheckOperandsCompletenessForTargetValues(const KWClass* kwcOwnerClass, KWDRDataGrid* dataGridRule,
+							 int nDataGridStatsOperand, ALString& sVarKey,
+							 const KWDRSymbolValueSet* refSymbolValueSet) const;
 
 	///////////////////////////////////////////////////////////
 	// Compilation optimisee
@@ -93,17 +160,28 @@ protected:
 	// (il peut n'y avoir aucun operande de type grille dans le cas ou aucun attribut n'est predictif)
 	int nFirstDataGridOperand;
 
-	// Tableau des statistiques par grilles
-	ObjectArray oaDataGridStats;
+	// Tableau des regles des grilles et blocs de grilles
+	ObjectArray oaDataGridStatsAndBlockRules;
 
-	// Vecteur des poids de grille (par defaut: tous les poids a 1)
+	// Index i est true si oaDataGridStatsAndBlockRules[i] est un objet KWDRDataGridStats
+	IntVector ivIsDataGridStatsRule;
+
+	// Vecteur des poids pour chaque grille (par defaut: tous les poids a 1)
 	ContinuousVector cvWeights;
 
 	// Vecteurs des effectifs par partie cible
 	IntVector ivDataGridSetTargetFrequencies;
 
+	// Log-vraisemblances des valeurs manquantes pour chaque cible et grille (variable)
+	// Les grilles denses sont mis a zero
+	DoubleVector dvMissingLogProbas;
+
+	// Valeurs de reference de la log-likelihood pour chaque cible:
+	// Ce sont ceux ou tous les valeurs sparse sont missing
+	DoubleVector dvMissingScores;
+
 	// Index des parties cibles de grille pour chaque partie cible de l'ensemble
-	// Vecteur de taille nTargetPartNumber*DataGridRuleNumber
+	// Vecteur de taille nTargetPartNumber * DataGridRuleNumber
 	// Dans le cas de plusieurs grilles, les parties resultent de l'union des parties
 	// cibles sur l'ensemble des grilles
 	IntVector ivDataGridTargetIndexes;
@@ -114,11 +192,14 @@ protected:
 	// Vecteur des probabilites conditionnelles
 	mutable ContinuousVector cvTargetProbs;
 
-	// Probabilite conditionnelle par defaut, pour les classes inconnues
+	// Probabilite conditionnelle par defaut; attribue aux classes inconnues
 	mutable Continuous cUnknownTargetProb;
 
 	// Fraicheur d'optimisation
 	int nOptimizationFreshness;
+
+	// Objet du support pour les verifications
+	KWNaiveBayesPredictorRuleHelper naiveBayesPredictorRuleHelper;
 };
 
 ///////////////////////////////////////////////////////////////
@@ -136,6 +217,9 @@ public:
 
 	// Creation
 	KWDerivationRule* Create() const override;
+
+	// Verification que la regle est completement renseignee et compilable
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
 };
 
 ///////////////////////////////////////////////////////////////
@@ -153,6 +237,7 @@ public:
 	KWDerivationRule* Create() const override;
 
 	// Verification que la regle est completement renseignee et compilable
+	boolean CheckOperandsFamily(const KWDerivationRule* ruleFamily) const override;
 	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
 
 	////////////////////////////////////////////////////////////////////
@@ -161,7 +246,7 @@ public:
 	// Calcul de l'attribut derive
 	Object* ComputeStructureResult(const KWObject* kwoObject) const override;
 
-	// Reimplementation des services de regression de rang
+	// Reimplementation de l'interface regresseur de rang
 	Continuous ComputeTargetRankMean() const override;
 	Continuous ComputeTargetRankStandardDeviation() const override;
 	Continuous ComputeTargetRankDensityAt(Continuous cRank) const override;
@@ -174,14 +259,18 @@ public:
 	void Compile(KWClass* kwcOwnerClass) override;
 
 	// Acces aux statistiques de grilles en operande
+	int GetDataGridStatsOrBlockNumber() const;
 	int GetDataGridStatsNumber() const;
-	const KWDRDataGridStats* GetDataGridStatsAt(int nIndex) const;
-	Continuous GetDataGridWeightAt(int nIndex) const;
+	boolean IsDataGridStatsAt(int nDataGridStatsOrBlock) const;
+	const KWDRDataGridStats* GetDataGridStatsAt(int nDataGridStatsOrBlock) const;
+	const KWDRDataGridStatsBlock* GetDataGridStatsBlockAt(int nDataGridStatsOrBlock) const;
+	Continuous GetDataGridWeightAt(int nDataGridStatsOrBlock) const;
 
 	// Acces aux statistiques sur l'ensemble des grilles
-	int GetDataGridSetTargetPartNumber() const;
+	int GetDataGridSetTargetValueNumber() const;
 	Continuous GetDataGridSetTargetCumulativeFrequencyAt(int nTarget) const;
-	int GetDataGridSetTargetIndexAt(int nDataGridIndex, int nTarget) const;
+	int GetDataGridSetTargetIndexAt(int nDataGridStats, int nTarget) const;
+	int GetDataGridSetTargetCellIndexAt(int nDataGrid, int nTargetValue) const;
 
 	// Memoire utilisee
 	longint GetUsedMemory() const override;
@@ -218,10 +307,13 @@ protected:
 	// Calcul des carres des rangs cumules par partie cible
 	void ComputeCumulativeSquareRanks(ContinuousVector* cvTargetCumulativeValues) const;
 
-	///////////////////////////////////////////////////////////
-	// Compilation optimisee
+	////////////////////////////////////////////
+	// Compilation
 
-	// Test si optimisee
+	// Bufferisation
+	void CompileInitializeFrequencyAndCellIndexes();
+
+	// Test si la compilation est optimisee
 	boolean IsOptimized() const;
 
 	// Index du premier operande de type grille
@@ -229,7 +321,10 @@ protected:
 	int nFirstDataGridOperand;
 
 	// Tableau des statistiques par grilles
-	ObjectArray oaDataGridStats;
+	ObjectArray oaDataGridStatsAndBlockRules;
+
+	// Index i est true si oaDataGridStatsAndBlockRules[i] est un objet KWDRDataGridStatsBlock
+	IntVector ivIsDataGridStatsRule;
 
 	// Vecteur des probabilites conditionnelles
 	mutable ContinuousVector cvTargetProbs;
@@ -252,6 +347,9 @@ protected:
 
 	// Fraicheur d'optimisation
 	int nOptimizationFreshness;
+
+	// Objet du support pour les verifications
+	KWNaiveBayesPredictorRuleHelper naiveBayesPredictorRuleHelper;
 };
 
 ///////////////////////////////////////////////////////////////
@@ -269,9 +367,12 @@ public:
 
 	// Creation
 	KWDerivationRule* Create() const override;
+
+	// Verification que la regle est completement renseignee et compilable
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
 };
 
-///////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 // Classe KWDRNBRegressor
 //   Selective Naive Bayes
 // Premier operande: Structure(RankRegressor) depuis un KWDRNBRankRegressor
@@ -310,7 +411,7 @@ public:
 	//////////////////////////////////////////////////////////
 	///// Implementation
 protected:
-	/////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////
 	// Services specifiques a la gestion des valeurs cible
 
 	// Calcul de l'index de la valeur la plus proche de la valeur en parametre
@@ -322,15 +423,15 @@ protected:
 	int GetSingleTargetValueFrequencyAt(int nIndex) const;
 	int GetSingleTargetValueCumulativeFrequencyAt(int nIndex) const;
 
-	/////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////////////
 	// Methodes de calcul pour les indicateurs de regression de rang
 
 	// Calcul des effectifs cumules des valeurs par index de valeur
 	void ComputeSingleTargetValueCumulativeInstanceNumbers(IntVector* ivResultVector) const;
 
 	// Calcul des delta de valeurs pour la gestion des valeurs extremes
-	Continuous ComputeTotalDeltaTargetValue() const;
-	Continuous ComputeMeanDeltaTargetValue() const;
+	Continuous ComputeTargetValueRange() const;
+	Continuous ComputeMeanTargetValueRange() const;
 
 	// Calcul du nombre de valeurs manquantes
 	int ComputeMissingValueNumber() const;
@@ -341,11 +442,11 @@ protected:
 	// Calcul des carres des rangs cumules par partie cible
 	void ComputeCumulativeSquareTargetValues(ContinuousVector* cvResultVector) const;
 
-	///////////////////////////////////////////////////////////
-	// Compilation optimisee
-
-	// Test si optimisee
+	// True si la compilation est optimisee
 	boolean IsOptimized() const;
+
+	//////////////////////////////////////////////////
+	// Objets de travail
 
 	// Effectifs cumules des valeurs par index de valeur
 	IntVector ivSingleTargetValueCumulativeInstanceNumbers;
@@ -355,8 +456,8 @@ protected:
 	ContinuousVector cvCumulativeSquareTargetValues;
 
 	// Delta de valeur pour la gestion des valeurs extremes
-	Continuous cTotalDeltaTargetValue;
-	Continuous cMeanDeltaTargetValue;
+	Continuous cTargetValueRange;
+	Continuous cMeanTargetValueRange;
 
 	// Nombre de valeurs manquantes
 	// En cas de valeurs manquantes en apprentissage, le regresseur ne predit que des valeurs manquantes
@@ -374,7 +475,7 @@ protected:
 	int nOptimizationFreshness;
 };
 
-///////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 // Classe KWDRSNBRegressor
 //   Selective Naive Bayes
 // Premier operande: Structure(RankRegressor) depuis un KWDRSNBRankRegressor
@@ -390,54 +491,8 @@ public:
 	KWDerivationRule* Create() const override;
 };
 
-////////////////////////////////
-// Methode en inline
-
-inline int KWDRNBClassifier::GetDataGridStatsNumber() const
-{
-	require(IsOptimized());
-	return oaDataGridStats.GetSize();
-}
-
-inline const KWDRDataGridStats* KWDRNBClassifier::GetDataGridStatsAt(int nIndex) const
-{
-	require(IsOptimized());
-	require(0 <= nIndex and nIndex < oaDataGridStats.GetSize());
-	return cast(KWDRDataGridStats*, oaDataGridStats.GetAt(nIndex));
-}
-
-inline Continuous KWDRNBClassifier::GetDataGridWeightAt(int nIndex) const
-{
-	require(IsOptimized());
-	require(0 <= nIndex and nIndex < oaDataGridStats.GetSize());
-	return cvWeights.GetAt(nIndex);
-}
-
-inline int KWDRNBClassifier::GetDataGridSetTargetPartNumber() const
-{
-	require(IsOptimized());
-	return ivDataGridSetTargetFrequencies.GetSize();
-}
-
-inline int KWDRNBClassifier::GetDataGridSetTargetFrequencyAt(int nTarget) const
-{
-	require(IsOptimized());
-	require(0 <= nTarget and nTarget < ivDataGridSetTargetFrequencies.GetSize());
-	return ivDataGridSetTargetFrequencies.GetAt(nTarget);
-}
-
-inline int KWDRNBClassifier::GetDataGridSetTargetIndexAt(int nDataGridIndex, int nTarget) const
-{
-	require(IsOptimized());
-	require(0 <= nDataGridIndex and nDataGridIndex < oaDataGridStats.GetSize());
-	require(0 <= nTarget and nTarget < ivDataGridTargetIndexes.GetSize());
-	return ivDataGridTargetIndexes.GetAt(nDataGridIndex * ivDataGridSetTargetFrequencies.GetSize() + nTarget);
-}
-
-inline boolean KWDRNBClassifier::IsOptimized() const
-{
-	return IsCompiled() and nOptimizationFreshness == GetOwnerClass()->GetCompileFreshness();
-}
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+// Methodes en inline
 
 inline int KWDRNBRegressor::GetTargetValueIndex(Continuous cValue) const
 {
@@ -472,24 +527,25 @@ inline boolean KWDRNBRegressor::IsOptimized() const
 inline int KWDRNBRankRegressor::GetDataGridStatsNumber() const
 {
 	require(IsOptimized());
-	return oaDataGridStats.GetSize();
+	return cvWeights.GetSize();
 }
 
-inline const KWDRDataGridStats* KWDRNBRankRegressor::GetDataGridStatsAt(int nIndex) const
+inline const KWDRDataGridStats* KWDRNBRankRegressor::GetDataGridStatsAt(int nDataGridStatsOrBlock) const
 {
 	require(IsOptimized());
-	require(0 <= nIndex and nIndex < oaDataGridStats.GetSize());
-	return cast(KWDRDataGridStats*, oaDataGridStats.GetAt(nIndex));
+	require(0 <= nDataGridStatsOrBlock and nDataGridStatsOrBlock < oaDataGridStatsAndBlockRules.GetSize());
+	require(IsDataGridStatsAt(nDataGridStatsOrBlock));
+	return cast(KWDRDataGridStats*, oaDataGridStatsAndBlockRules.GetAt(nDataGridStatsOrBlock));
 }
 
-inline Continuous KWDRNBRankRegressor::GetDataGridWeightAt(int nIndex) const
+inline Continuous KWDRNBRankRegressor::GetDataGridWeightAt(int nDataGrid) const
 {
 	require(IsOptimized());
-	require(0 <= nIndex and nIndex < oaDataGridStats.GetSize());
-	return cvWeights.GetAt(nIndex);
+	require(0 <= nDataGrid and nDataGrid < cvWeights.GetSize());
+	return cvWeights.GetAt(nDataGrid);
 }
 
-inline int KWDRNBRankRegressor::GetDataGridSetTargetPartNumber() const
+inline int KWDRNBRankRegressor::GetDataGridSetTargetValueNumber() const
 {
 	require(IsOptimized());
 	return cvDataGridSetTargetCumulativeFrequencies.GetSize();
@@ -502,12 +558,12 @@ inline Continuous KWDRNBRankRegressor::GetDataGridSetTargetCumulativeFrequencyAt
 	return cvDataGridSetTargetCumulativeFrequencies.GetAt(nTarget);
 }
 
-inline int KWDRNBRankRegressor::GetDataGridSetTargetIndexAt(int nDataGridIndex, int nTarget) const
+inline int KWDRNBRankRegressor::GetDataGridSetTargetIndexAt(int nDataGridStats, int nTarget) const
 {
 	require(IsOptimized());
-	require(0 <= nDataGridIndex and nDataGridIndex < oaDataGridStats.GetSize());
+	require(0 <= nDataGridStats and nDataGridStats < GetDataGridStatsNumber());
 	require(0 <= nTarget and nTarget < ivDataGridTargetIndexes.GetSize());
-	return ivDataGridTargetIndexes.GetAt(nDataGridIndex * cvDataGridSetTargetCumulativeFrequencies.GetSize() +
+	return ivDataGridTargetIndexes.GetAt(nDataGridStats * cvDataGridSetTargetCumulativeFrequencies.GetSize() +
 					     nTarget);
 }
 

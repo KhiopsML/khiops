@@ -117,7 +117,7 @@ boolean GetLearningRawGuiModeMode();
 boolean GetLearningExpertMode();
 
 // Indicateur du mode de l'outil avec gestion d'un controle stricte des limites memoire (defaut: false)
-// Quand il est a true, tout dépassement d'une limite memoire specifie par l'utilisateur provoque
+// Quand il est a true, tout depassement d'une limite memoire specifie par l'utilisateur provoque
 // un crash memoire, gere par un parametrage de l'allocateur
 // Ce mode expert est controlable par la variable d'environnement KhiopsHardMemoryLimitMode a true ou false
 boolean GetLearningHardMemoryLimitMode();
@@ -171,3 +171,6 @@ boolean GetLearningPriorStudyMode();
 // Permet d'activer certains services de recodage additionnels
 // Ce mode est controlable par la variable d'environnement KhiopsDistanceStudyMode a true ou false
 boolean GetDistanceStudyMode();
+
+// Indicateur du mode ou le SNB force l'utilisation des variables denses pour les block sparse
+boolean GetSNBForceDenseMode();

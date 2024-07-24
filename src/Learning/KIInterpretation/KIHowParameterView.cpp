@@ -18,7 +18,7 @@ KIHowParameterView::KIHowParameterView()
 	// On interdit l'acces au champ
 	GetFieldAt("VarMax")->SetEditable(false);
 
-	// Ajout d'un champ de saisie du nom de la modalité cible de reference pour
+	// Ajout d'un champ de saisie du nom de la modalite cible de reference pour
 	// le renforcement de la probabilite d'appartenance
 	AddStringField("HowClass", "Value of the class to reinforce", "");
 

@@ -75,7 +75,7 @@ public:
 	// Une fois specifiees et en utilisant la classe, les paires a analyser
 	// effectivement sont calculees en ignorant avec warning les paires
 	// impliquant des variables absentes de la classe.
-	// Les paires specifique sont prioritaires par rapport à toutes les
+	// Les paires specifique sont prioritaires par rapport a toutes les
 	// paires si celles si-sont demandees. Si le nombre total de paires
 	// depasse le max, on priorise en prenant d'abord les paires impliquant
 	// les attributs de plus fort level dans le cas supervise, puis

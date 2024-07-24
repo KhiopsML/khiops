@@ -471,7 +471,7 @@ protected:
 	ObjectArray* GetDatabaseDataItemsToCompute();
 	const ObjectArray* GetConstDatabaseDataItemsToCompute() const;
 
-	// Liste des elements de donnees temporaires à calculer, pouvant etre nettoyes et recalcules plusieurs fois
+	// Liste des elements de donnees temporaires a calculer, pouvant etre nettoyes et recalcules plusieurs fois
 	ObjectArray* GetDatabaseTemporayDataItemsToComputeAndClean();
 	const ObjectArray* GetConstDatabaseTemporayDataItemsToComputeAndClean() const;
 

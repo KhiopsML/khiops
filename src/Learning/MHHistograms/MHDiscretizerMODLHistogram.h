@@ -163,7 +163,7 @@ protected:
 	virtual void FinalizeHistogram(MHHistogram* outputHistogram) const;
 
 	// Ajustement des bornes des histogramme par rapport au valeurs, pour passer a la limite de precision des
-	// Continuous et garder des bornes separant les instances dans des intervalles de mêmes effectifs
+	// Continuous et garder des bornes separant les instances dans des intervalles de memes effectifs
 	void AdjustHistogramIntervalBounds(const MHFloatingPointFrequencyTableBuilder* tableBuilder,
 					   MHHistogram* outputHistogram) const;
 

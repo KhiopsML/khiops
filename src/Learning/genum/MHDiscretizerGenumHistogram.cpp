@@ -2419,8 +2419,8 @@ Continuous MHDiscretizerGenumHistogram::ComputeTruncationEpsilon(const Continuou
 		// des bins elementaires de largeur strictement plus grande que 1 dans le cxas de valeurs
 		// Continuous successives non separables (comme 0 et 1e-100).
 		// On utilise ici une nouvelle heuristique en se basant d'une part sur la moyenne des valeurs
-		// du permier intervalle singulier, d'autre part sur la premier valeur du troisème intervalle.
-		// Dans le cas standard, cela revient au même. Et dans les cas "pathologiques", on s'adapte
+		// du permier intervalle singulier, d'autre part sur la premier valeur du troisieme intervalle.
+		// Dans le cas standard, cela revient au meme. Et dans les cas "pathologiques", on s'adapte
 		// naturellement aux traitements aux limites de la precision numerique.
 		// Tout ceci a ete teste extensivement dans LearningTest\TestKhiops\HistogramsLimits\GaussianTruncations
 

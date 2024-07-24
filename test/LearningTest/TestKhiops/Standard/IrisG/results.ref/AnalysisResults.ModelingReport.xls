@@ -1,4 +1,4 @@
-#Khiops 10.5.0-a1
+#Khiops 10.5.2-b.0
 Modeling report
 
 Dictionary	Iris
@@ -13,7 +13,7 @@ Selection value
 Trained predictors
 
 Predictor	Variables
-Selective Naive Bayes	2
+Selective Naive Bayes	3
 Univariate PetalWidth	1
 
 
@@ -26,8 +26,9 @@ Predictor	Selective Naive Bayes
 
 Selected variables
 Prepared name	Name	Level	Weight	Importance
-PLowerPetalLength	LowerPetalLength	0.48393	0.554688	0.518102
-PClass2	Class2	0.415416	0.523438	0.466309
+PClass2	Class2	0.415416	0.640625	0.515874
+PClass1	Class1	0.4499	0.421875	0.435662
+PLowerPetalLength	LowerPetalLength	0.48393	0.203125	0.313526
 
 ----------------------------------------------
 Predictor	Univariate PetalWidth

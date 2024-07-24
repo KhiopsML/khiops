@@ -1,4 +1,4 @@
-#Khiops 10.5.0-a1
+#Khiops 10.5.2-b.0
 Train evaluation report
 
 Dictionary	Iris
@@ -14,7 +14,7 @@ Instances	105
 Predictors performance
 
 Classifier	Accuracy	Compression	AUC
-Selective Naive Bayes	1	0.984084	1
+Selective Naive Bayes	1	0.991629	1
 Univariate PetalWidth	0.971429	0.892955	0.986807
 
 
@@ -25,7 +25,7 @@ Predictors detailed performance
 
 Classifier	Selective Naive Bayes
 Accuracy	1
-Compression	0.984084
+Compression	0.991629
 AUC	1
 
 Confusion matrix
@@ -1075,7 +1075,7 @@ Size	Random	Optimal	Selective Naive Bayes	Univariate PetalWidth
 1	1	3.28125	3.28125	3.08239
 1.1	1.1	3.60937	3.60938	3.39062
 1.2	1.2	3.9375	3.9375	3.69886
-1.3	1.3	4.26562	4.26562	4.0071
+1.3	1.3	4.26562	4.26563	4.0071
 1.4	1.4	4.59375	4.59375	4.31534
 1.5	1.5	4.92187	4.92188	4.62358
 1.6	1.6	5.25	5.25	4.93182
@@ -1248,7 +1248,7 @@ Size	Random	Optimal	Selective Naive Bayes	Univariate PetalWidth
 18.3	18.3	60.0469	60.0469	56.4077
 18.4	18.4	60.375	60.375	56.7159
 18.5	18.5	60.7031	60.7031	57.0241
-18.6	18.6	61.0312	61.0313	57.3324
+18.6	18.6	61.0312	61.0312	57.3324
 18.7	18.7	61.3594	61.3594	57.6406
 18.8	18.8	61.6875	61.6875	57.9489
 18.9	18.9	62.0156	62.0156	58.2571
@@ -1276,7 +1276,7 @@ Size	Random	Optimal	Selective Naive Bayes	Univariate PetalWidth
 21.1	21.1	69.2344	69.2344	65.0384
 21.2	21.2	69.5625	69.5625	65.3466
 21.3	21.3	69.8906	69.8906	65.6548
-21.4	21.4	70.2188	70.2187	65.9631
+21.4	21.4	70.2188	70.2188	65.9631
 21.5	21.5	70.5469	70.5469	66.2713
 21.6	21.6	70.875	70.875	66.5795
 21.7	21.7	71.2031	71.2031	66.8878

@@ -302,12 +302,12 @@ public:
 
 	// Memorisation d'un attribut calcule avec sa regle de derivation correspondant
 	// a la regle construite
-	// Attention: un meme attribut peut être utilise par plusieurs usedConstructedRule,
+	// Attention: un meme attribut peut etre utilise par plusieurs usedConstructedRule,
 	// car plusieurs regles construites peuvent correspondre au meme attribut existant en cas
 	// d'attribut initiaux avec regles de derivation en collision avec un nouvel attribut construit
 	// Exemple:
 	//   DecimalTime = DecimalTime(Time) : attribut existant
-	//   Time.DecimalTime = = DecimalTime(Time) : attribut construit à partir d'une regle appliquée sur Time
+	//   Time.DecimalTime = = DecimalTime(Time) : attribut construit a partir d'une regle appliquee sur Time
 	// Memoire: appartient a l'appelant
 	void SetAttribute(KWAttribute* attribute);
 	KWAttribute* GetAttribute() const;
@@ -368,7 +368,7 @@ public:
 
 	// Memorisation d'un bloc d'attribut calcule avec sa regle de derivation correspondant
 	// a la regle construite
-	// Attention: un meme attributeBlock peut être utilise par plusieurs usedConstructedBlockRule,
+	// Attention: un meme attributeBlock peut etre utilise par plusieurs usedConstructedBlockRule,
 	// comme dans le cas des KDSparseUsedConstructedRule
 	// Memoire: appartient a l'appelant
 	void SetAttributeBlock(const KWAttributeBlock* attributeBlock);

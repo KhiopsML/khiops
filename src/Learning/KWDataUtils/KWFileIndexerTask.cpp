@@ -345,7 +345,7 @@ boolean KWFileIndexerTask::SlaveProcess()
 	// Remplissage du buffer avec des lignes entieres dans la limite de la taille du buffer
 	// On ignorera ainsi le debut de la derniere ligne commencee avant lMaxEndPos
 	// Ce n'est pas grave d'ignorer au plus une ligne par buffer, puisque l'on est ici dans une optique
-	// d'échantillonnage
+	// d'echantillonnage
 	if (bOk and lBeginPos < lMaxEndPos)
 		bOk = inputFile.FillInnerLinesUntil(lBeginPos, lMaxEndPos);
 

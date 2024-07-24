@@ -1,4 +1,4 @@
-#Khiops 10.5.0-a1
+#Khiops 10.5.2-b.0
 Descriptive statistics
 
 
@@ -29,7 +29,7 @@ Iris-virginica	35	0.522388
 
 Evaluated variables	4
 Informative variables	4
-Selected variables	2
+Selected variables	3
 
 Max number of constructed variables	0
 Max number of text features	0

@@ -8,7 +8,7 @@
 
 //////////////////////////////////////
 // Classe MHContinuousLimits
-// Services de classe de gestion des limùites liees au type Continuous
+// Services de classe de gestion des limites liees au type Continuous
 class MHContinuousLimits : public Object
 {
 public:

@@ -266,7 +266,7 @@ protected:
 	static StringVector svWindows1252UnicodeHexEncoding;
 	static StringVector svWindows1252Utf8HexEncoding;
 
-	// Vecteur des codes UTF8 pour les 32 caracteres de controles Windows-1252 (128 à 159), et leur index
+	// Vecteur des codes UTF8 pour les 32 caracteres de controles Windows-1252 (128 a 159), et leur index
 	static KWIntVectorSorter ivsWindows1252ControlCharUtf8CodeSorter;
 
 	// Instance statique de JSONFile, permettant de forcer l'initialisation des structure d'encodage une fois

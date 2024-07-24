@@ -14,7 +14,7 @@ class KDSelectionOperandSamplingTask;
 // Classe technique utilisee par la classe KDSelectionOperandAnalyser
 //
 // Analyse de la base pour transformer toute extraire toutes les bornes ou valeur
-// des operandes de selection basees sur des données de la base, a partir d'une
+// des operandes de selection basees sur des donnees de la base, a partir d'une
 // specification conceptuelle de ces operandes de collection
 class KDSelectionOperandSamplingTask : public KWDatabaseTask
 {
@@ -36,7 +36,7 @@ public:
 	///// Implementation
 protected:
 	//////////////////////////////////////////////////////////////////////////////
-	// Reproductibilité des resultats
+	// Reproductibilite des resultats
 	// Dans un premier temps, on va associer chaque instance secondaire
 	// a une paire d'index (i1, i2) de facon reproductible.
 	//  . dossiers principaux :

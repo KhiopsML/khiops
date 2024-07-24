@@ -202,7 +202,7 @@ boolean PLMTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 					bCurrentVerboseMode = driver->GetVerboseMode();
 					driver->SetVerboseMode(true);
 
-					// Calcul d'une classe representant le header à partir du fichier
+					// Calcul d'une classe representant le header a partir du fichier
 					kwcHeaderLineClass->SetName(
 					    kwcClass->GetDomain()->BuildClassName(GetClassName() + "HeaderLine"));
 					bOk = cast(PLDataTableDriverTextFile*, driver)

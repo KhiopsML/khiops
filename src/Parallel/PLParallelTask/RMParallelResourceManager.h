@@ -467,7 +467,7 @@ public:
 	// Configuration du systeme
 
 	// Definition du cluster
-	// Appartient à l'appeleant
+	// Appartient a l'appeleant
 	void SetCluster(RMResourceSystem* cluster);
 	RMResourceSystem* GetCluster() const;
 

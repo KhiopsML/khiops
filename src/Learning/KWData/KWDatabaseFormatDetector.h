@@ -76,7 +76,7 @@ protected:
 
 	// Fonction cosmetique de gestion du pluriel
 	// Passage au pluriel pour un nombre strictement plus grand que 1
-	// Règles: ""->"s"; "is"->"are", "has",->"have"
+	// Regles: ""->"s"; "is"->"are", "has",->"have"
 	const ALString Plural(const ALString& sSource, int nNumber) const;
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////

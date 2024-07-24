@@ -1,4 +1,4 @@
-#Khiops 10.5.0-a1
+#Khiops 10.5.2-b.0
 Modeling report
 
 Dictionary	Iris
@@ -26,8 +26,8 @@ Predictor	Selective Naive Bayes
 
 Selected variables
 Prepared name	Name	Level	Weight	Importance
-PPetalWidth	PetalWidth	0.663031	0.4375	0.538587
-PPetalLength	PetalLength	0.621617	0.351562	0.46748
+PPetalWidth	PetalWidth	0.663031	0.5	0.575774
+PPetalLength	PetalLength	0.621617	0.453125	0.530726
 
 ----------------------------------------------
 Predictor	Univariate PetalWidth

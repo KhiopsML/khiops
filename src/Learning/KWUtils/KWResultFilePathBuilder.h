@@ -54,7 +54,7 @@ public:
 	boolean CheckResultDirectory(const ALString& sErrorCategory) const;
 
 	// Construction d'un chemin de fichier de resultat
-	// Les parametres en entree doivent être valides
+	// Les parametres en entree doivent etre valides
 	// En mode standard:
 	//   - auto-completion de l'extension, selon ForceSuffix
 	//   - si chemin en sortie absolu: on le garde tel quel

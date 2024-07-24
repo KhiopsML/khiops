@@ -55,24 +55,24 @@ class KWDGInnerAttributes;
 //          - chaque partie de variable est l'analogue d'un mot
 //          - chaque instance est decrite par l'ensemble des mots correspondant aux valeurs de ses variables
 //          descriptives
-//        - on a une grille à deux dimensions, analogue au cas d'une grille textes x mots
+//        - on a une grille a deux dimensions, analogue au cas d'une grille textes x mots
 //          - un attribut de la grille contient des groupes d'instances (textes), par leur identifiant
 //          - l'autre attribut de la grille contient des groupes de parties de variables (mots)
 //      - terminologie
 //         VarPart
 //           - nouveau type, pour un attribut de DataGrid
-//           - extension du type Symbol, ou chaque partie de variable joue le rôle d’une valeur
+//           - extension du type Symbol, ou chaque partie de variable joue le role d'une valeur
 //           - adjectif utilise pour specialiser les extensions des DataGrid quand elles ont un attribut de type VarPart
 //         VarPartDataGrid
-//           - extension d’un DataGrid, avec un attribut de type VarPart
+//           - extension d'un DataGrid, avec un attribut de type VarPart
 //           - un et un seul attribut de type VarPart, plus un a plusieurs autres attributs
 //           - le plus standard: un autre attribut de type Symbol, portant les identifiants des instances
-//             - on se rapproche du modele standard “Instances x Variables”
+//             - on se rapproche du modele standard "Instances x Variables"
 //             - dans ce cas, on peut nommer cet attribut le IdentifierAttribute
 //           - extensions, avec un a plusieurs attributs de type Symbol ou Continuous
-//             - a explorer: IdSource x IdTarget dans le cas de l’analyse des arcs d’un graphe avec des variables par
+//             - a explorer: IdSource x IdTarget dans le cas de l'analyse des arcs d'un graphe avec des variables par
 //             arcs
-//             - a explorer: Time * Identifier dans d’instances evoluant au cours du temps
+//             - a explorer: Time * Identifier dans d'instances evoluant au cours du temps
 //             - pas de terminologie particuliere pour ces extensions (autre que attributs de Symbol ou Continuous)
 //         Attribute
 //           - cas general: un attribut de DataGrid
@@ -83,7 +83,7 @@ class KWDGInnerAttributes;
 //             - les attributs correspondant aux VarPartValues sont ses InnerAttributes
 //               - un InnerAttribute est de type Symbol ou Continuous
 //               - pour un InnerAttribute, son attribut de type VarPart de la DataGrid est son OwnerAttribute
-//      - terminologie interne en français, pour des etudes/discussions techniques
+//      - terminologie interne en francais, pour des etudes/discussions techniques
 //           - grille de donnees (ou coclustering)
 //           - attribut de grille (ou axe, dimension)
 //           - attribut interne (Inner)
@@ -93,7 +93,7 @@ class KWDGInnerAttributes;
 //           - coclustering de variables
 //             - chaque cluster est une Part, Interval ou Value group
 //           - coclustering instances x variables
-//             - clusters d’instances vs clusters de parties de variables
+//             - clusters d'instances vs clusters de parties de variables
 //             - on peut parler de dimension instances et dimension partie de variables
 //             - les parties de variables sont des Part, Interval ou Value group
 //

@@ -265,7 +265,7 @@ protected:
 	//
 	// On utilise le principe de l'algorithme de
 	//  R. Karp, S. Shenker, and C. Papadimitriou. A Simple Algorithm for Finding Frequent Elements
-	//  in Streams and Bags. ACM Transactions on Database Systems, 28(1):51–55, 2003.
+	//  in Streams and Bags. ACM Transactions on Database Systems, 28(1):51--55, 2003.
 	// Cet algorithme garantie que l'on trouvera en O(1) par token toutes les valeurs sufisament frequentes,
 	// avec eventuellement des faux positifs
 	// En en demandant 10 fois plus, les plus frequents sont probablement retrouves de facon plus stable

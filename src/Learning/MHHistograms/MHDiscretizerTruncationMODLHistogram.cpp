@@ -317,7 +317,7 @@ void MHDiscretizerTruncationMODLHistogram::DiscretizeDeltaValues(const Continuou
 		// Gestion de l'ecart entre deux bins successifs
 		if (n > 0)
 		{
-			// Ajout d'une variation egale à la distance entre les bins
+			// Ajout d'une variation egale a la distance entre les bins
 			cDeltaValueBinUpperValue =
 			    KWContinuous::DoubleToContinuous(cBinLowerValue - cvSourceBinUpperValues->GetAt(n - 1));
 			deltaValueBin = new MHBin;

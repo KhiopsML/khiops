@@ -362,8 +362,8 @@ boolean DTDecisionTreeCreationTask::MasterPrepareTaskInput(double& dTaskPercent,
 			ReferenceTargetIntervalValues(odMasterInputAttributeStats);
 		}
 		// initialisation pour chaque selection du split pour la regression
-		// DISCRETIZATION_BINARY_EQUAL_FREQUENCY pour chaque selection on choisi un nombre alétoire de la
-		// coupure allant de 0 à nb_coupure-2
+		// DISCRETIZATION_BINARY_EQUAL_FREQUENCY pour chaque selection on choisi un nombre aletoire de la
+		// coupure allant de 0 a nb_coupure-2
 		if (shared_learningSpec.GetLearningSpec()->GetTargetAttributeType() == KWType::Continuous and
 		    randomForestParameter.GetDiscretizationTargetMethod() ==
 			DTForestParameter::DISCRETIZATION_BINARY_EQUAL_FREQUENCY)
@@ -1204,7 +1204,7 @@ boolean DTDecisionTreeCreationTask::ComputeResourceRequirements()
 	// Estimation de la memoire pour le maitre
 	lMasterMemory = ComputeMasterNecessaryMemory();
 
-	// mémoire necessaire pour calculer le plus gros arbre possible sur 1 esclave
+	// memoire necessaire pour calculer le plus gros arbre possible sur 1 esclave
 	lBiggestTreeMemory = ComputeBiggestTreeNecessaryMemory();
 
 	// Mise a jour des demandes de resources

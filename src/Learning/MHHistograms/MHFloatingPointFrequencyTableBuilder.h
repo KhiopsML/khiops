@@ -190,7 +190,7 @@ public:
 	// hierarchie binaire des floating-point bins tant qu'on est au dessus
 	// du niveau des exponent bins ou central bins. Et enfin, on redecoupe
 	// chaque exponent bin par puissance de 2 sur la base de mantissa bins.
-	// Quand les bornes d'un floating-point bin traversent la singularité autour de zero,
+	// Quand les bornes d'un floating-point bin traversent la singularite autour de zero,
 	// elles sont ajustees de facon a etre soit 0, soit une frontiere de la singularite en 0
 	virtual void ExtractFloatingPointBinBounds(Continuous cValue, int nHierarchyBitNumber, Continuous& cLowerBound,
 						   Continuous& cUpperBound) const;

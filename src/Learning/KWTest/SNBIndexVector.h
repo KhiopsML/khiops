@@ -8,14 +8,18 @@
 
 class SNBIndexVector;
 
-//////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // Classe SNBIndexVector
+//
 // Vecteur d'index, de taille quelconque.
-// Un index est un entier dont l'étendue est limitee 0 <= index < IndexSize,
-// ce qui permet de le stocker avec un nombre de bit minimum par index,
-// de facon a minimiser la memoire globale utilisee dans le vecteur, au prix de
-// temps d'acces plus long.
+// Un index est un entier dont l'etendue est limitee 0 <= index < IndexSize, ce qui permet de le
+// stocker avec un nombre de bit minimum par index, de facon a minimiser la memoire globale utilisee
+// dans le vecteur, au prix de temps d'acces plus long.
 // Les acces aux vecteurs sont controles par assertions.
+//
+// CLASSE EXPERIMENTALE: Elle est un prototype pour economiser de la memoire lors de l'optimisation
+// du SNB en remplacant les IntVector.
+//
 class SNBIndexVector : public Object
 {
 public:
@@ -23,8 +27,8 @@ public:
 	SNBIndexVector();
 	~SNBIndexVector();
 
-	// Taille des index de valeur, a parametrer quand la taille du vecteur est nulle
-	// Les index utilisable sont alors dans l'intervalles 0 <= index < IndexSize
+	// Taille des indexes de valeur, a parametrer quand la taille du vecteur est nulle Les index
+	// utilisable sont alors dans l'intervalles 0 <= index < IndexSize
 	void SetValueIndexSize(int nValue);
 	int GetValueIndexSize() const;
 
@@ -42,7 +46,7 @@ public:
 
 	// Copie a partir d'un vecteur source
 	// (retaillage si necessaire)
-	void CopyFrom(const SNBIndexVector* snbivSource);
+	void CopyFrom(const SNBIndexVector* ivSource);
 
 	// Duplication
 	SNBIndexVector* Clone() const;
