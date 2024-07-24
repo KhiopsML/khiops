@@ -314,7 +314,7 @@ protected:
 	ObjectDictionary* odCurrentLeaveNodes;
 
 	///  Dictionnaire de tous les noeud interet feuille construit
-	///  C'est la mémorie des noeuds
+	///  C'est la memorie des noeuds
 	ObjectDictionary odTreeNodes;
 
 	/// Dictionnaire de pointeurs vers les partitionnements successifs de KWDatabases (1 partitionnement par noeud

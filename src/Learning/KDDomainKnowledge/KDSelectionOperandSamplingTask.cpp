@@ -182,8 +182,8 @@ boolean KDSelectionOperandSamplingTask::ComputeResourceRequirements()
 
 		// En variable par esclave: specification de l'echantillonneur, plus un echantillon
 		// On ignore la place prise pour referencer les objets des tables externes dans des dictionnaires, on
-		// considerant que c'est petit devant les objets externes eux même ainsi que leur references par cle
-		// memorise par le ObjectReferenceSolver de la base mùulti-tables
+		// considerant que c'est petit devant les objets externes eux meme ainsi que leur references par cle
+		// memorise par le ObjectReferenceSolver de la base multi-tables
 		GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->UpgradeMin(
 		    lSelectionOperandDataSamplerSpecUsedMemory + lAllSamplesNecessaryMemory);
 		GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->UpgradeMax(

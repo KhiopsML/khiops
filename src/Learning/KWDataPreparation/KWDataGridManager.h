@@ -219,7 +219,7 @@ public:
 
 	// Export d'une grille en optimisant ses clusters de VarPart par fusion de VarParts
 	// - dans le cas numerique: fusion des intervalles contigues
-	// - dans le cas categoriel: fusion des modalites de la même variable categorielle
+	// - dans le cas categoriel: fusion des modalites de la meme variable categorielle
 	// Attention: creation de nouveaux attributs internes qui doivent etre detruit par l'appelant
 	// En sortie : renvoie la variation de cout entre la grille source et la grille fusionnee
 	double ExportDataGridWithVarPartMergeOptimization(KWDataGrid* targetDataGrid,
@@ -439,7 +439,7 @@ protected:
 	// Services divers
 
 	// Effectue la fusion des PV : dans le cas numerique, fusion des intervalles contigues et dans le cas categoriel
-	// fusion des modalites de la même variable categorielle En sortie : renvoie la variation de cout cumulee pour
+	// fusion des modalites de la meme variable categorielle En sortie : renvoie la variation de cout cumulee pour
 	// les clusters impactes par les fusions de PV (ne prend pas en compte la variation du cout de partition)
 	double MergePartsForVarPartAttributes(KWDataGrid* targetDataGrid) const;
 

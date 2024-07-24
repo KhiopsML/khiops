@@ -1042,7 +1042,7 @@ Continuous KIDRClassifierContribution::ComputeNormalizedOddsRatio(int nAttribute
 	delete cvScoreVector;
 
 	// Commentaires sur ce code voir fonction "Weight of Evidence"
-	// on calcule le odd ratio entre P(C|X) et (P(C|X) priv� de la variable
+	// on calcule le odd ratio entre P(C|X) et (P(C|X) prive de la variable
 	// puis on normalise pour avoir des valeurs entre -1 et +1
 	// cela corresponds au fait de faire passer le weight of evidence dans une sigmoide
 	cInitialScoreCorrected =
@@ -1718,7 +1718,7 @@ ContinuousVector* KIDRClassifierReinforcement::ComputeScoreVectorVariation(Conti
 			 ExtractLogPosteriorProba(nClassIndex, nAttributeIndex, nNewModalityIndex)));
 
 		// De la forme
-		// -> Add(P � W *((OLD) � (NEW)))
+		// -> Add(P - W * ((OLD) - (NEW)))
 	}
 
 	return cvNewScoreVector;

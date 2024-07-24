@@ -331,8 +331,8 @@ protected:
 
 	// Construction d'une table de contingence granularisee
 	// Attention, quand quand on construit les partiles a partir des bin elementaires, on tient compte du fait
-	// que dans certains cas, un bin elementaire non vide peut etre de longueur strictement superieures à 1.
-	// Cela entraine des effets de bord complexes à gerer, mais cela assure une protection aux
+	// que dans certains cas, un bin elementaire non vide peut etre de longueur strictement superieures a 1.
+	// Cela entraine des effets de bord complexes a gerer, mais cela assure une protection aux
 	// limites de la precision numerique
 	void BuildGranularizedFrequencyTable(const KWFrequencyTable* initialHistogramFrequencyTable, int nPartileNumber,
 					     KWFrequencyTable*& granularizedHistogramFrequencyTable) const;
@@ -383,7 +383,7 @@ protected:
 	// On cree donc une table de contingence ne contenant que les effectifs des intervalles.
 	// On supprime egalement les intervalles vides, car ils ne sont pas toleres par la methode appelante.
 	// On ajoute egalement si necessaire un intervalle pour les valeurs manquantes
-	// Dans une version integree à Khiops, il faudra pourvoir utiliser les valeurs pour calculer correctement
+	// Dans une version integree a Khiops, il faudra pourvoir utiliser les valeurs pour calculer correctement
 	// les bornes des intervalles, comme dans la methode WriteHistogram
 	void PreparedCleanedStandardFrequencyTable(const MHHistogram* histogram, int nMissingValueNumber,
 						   KWFrequencyTable*& standardFrequencyTable,

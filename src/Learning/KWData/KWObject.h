@@ -215,7 +215,7 @@ protected:
 	// Destruction des attributs (recursive pour les objet inclus)
 	void DeleteAttributes();
 
-	// Nettoyage des elements de donnees attributs temporaires à calculer, pouvant etre nettoyes et recalcules
+	// Nettoyage des elements de donnees attributs temporaires a calculer, pouvant etre nettoyes et recalcules
 	// plusieurs fois
 	void CleanTemporayDataItemsToComputeAndClean();
 

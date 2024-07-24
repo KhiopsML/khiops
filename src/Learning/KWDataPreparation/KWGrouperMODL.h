@@ -460,13 +460,13 @@ protected:
 	// pour en deduire automatiquement le nombre de valeurz a garder
 	// Dans l'objectif d'optimiser la taille des histogramme en analyse exploratoire, l'heuristique suivant est
 	// appliquee:
-	//  Comparer le coût de codage multinomial standard versus en deux groupes de valeurs
+	//  Comparer le cout de codage multinomial standard versus en deux groupes de valeurs
 	//    - Si plus de 100 valeurs dans le premier groupe (ou un seul groupe)
 	//        on garde ce nombre de valeurs
-	//        (le deuxième groupe est la poubelle)
+	//        (le deuxieme groupe est la poubelle)
 	//    - Sinon,
 	//        on recoupe le deuxieme groupe en deux sous-groupes pour augmenter le nombre de valeurs retenues
-	//        (le deuxième sous-groupe est la poubelle)
+	//        (le deuxieme sous-groupe est la poubelle)
 	// Les resultats sont satisfaisants pour l'analyse exploratoire, avec une coupure automatique pertinente.
 	// Les tests sur la base Criteo (45 millions d'instances et des variables categorielles de 2 valeurs
 	// a plus de 8 millions de valeurs) iluustrent tous les cas de figure interessants

@@ -49,21 +49,21 @@ CMLearningProblem::~CMLearningProblem() {}
 //		return;
 //	}
 //
-//	// Accéder au nom du dico
+//	// Acceder au nom du dico
 //	className = GetClassManagement()->GetClassName();
 //
-//	// Accéder au dico (dans le domaine, s'il y en avait plusieurs)
+//	// Acceder au dico (dans le domaine, s'il y en avait plusieurs)
 //	kwcClass = KWClassDomain::GetCurrentDomain()->LookupClass(className);
 //	check(kwcClass);
 //     // a remettre? kwcClassOld = NULL;
 //
-//	// Acces à l'attribut cible
+//	// Acces a l'attribut cible
 //	sTargetAttributeName = GetAnalysisSpec()->GetTargetAttributeName();
 //
 //	InitializeLearningSpec(&learningSpec, kwcClass);
 //	InitializeClassStats(&classStats, &learningSpec);
 //
-//	// Test intégrité des specifications d'apprentissage
+//	// Test integrite des specifications d'apprentissage
 //	learningSpec.Check();
 //	Check();
 //

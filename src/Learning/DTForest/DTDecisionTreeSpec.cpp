@@ -308,8 +308,8 @@ KWDerivationRule* DTDecisionTreeSpec::CreateGroupIndexRule(const DTDecisionTreeN
 {
 	// creation d'une regle de type  Switch(GroupIndex(
 	//												ValueGroups(
-	// ValueGroup(“val1”,”val2”),
-	// ValueGroup(“val3”)
+	// ValueGroup("val1", "val2"),
+	// ValueGroup("val3")
 	//															),
 	//												var_categorielle_de_test),
 	//												1,2,1)
@@ -459,7 +459,7 @@ double DTDecisionTreeSpec::GetConstructionCost() const
 
 DTDecisionTreeNodeSpec::DTDecisionTreeNodeSpec()
 {
-	// adresse du noeud père
+	// adresse du noeud pere
 	nsFatherNode = NULL;
 
 	// type de la variable continue ou categoriel
@@ -645,8 +645,8 @@ longint DTDecisionTreeNodeSpec::ComputeHashOfGroupIndexRule() const
 {
 	// creation d'une regle de type  Switch(GroupIndex(
 	//												ValueGroups(
-	// ValueGroup(“val1”,”val2”),
-	// ValueGroup(“val3”)
+	// ValueGroup("val1", "val2"),
+	// ValueGroup("val3")
 	//															),
 	//												var_categorielle_de_test),
 	//												1,2,1)

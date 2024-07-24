@@ -89,7 +89,7 @@ public:
 	// Calcul d'un epsilon pour un bin number et une plage de valeur donnee
 	// Comme dans Kontkanen et Myllymaki, on fait demarrer le premier bin a MinValue-epsilon/2
 	// Dans le cas d'un seul bin (ce qui est forcement le cas s'il n'y a qu'une valeur), on ajuste
-	// le epsilon de façon relative a la plage de valeur ou la valeur pour la centrer
+	// le epsilon de facon relative a la plage de valeur ou la valeur pour la centrer
 	// On fait egalement en sorte
 	Continuous ComputeEpsilonBinLength(int nTotalBinNumber, Continuous cMinValue, Continuous cMaxValue) const;
 

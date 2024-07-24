@@ -2901,7 +2901,7 @@ void DTDecisionTree::ReplaceCurrentTreeWithOptimalTree()
 		odCurrentInternalNodes->GetNextAssoc(position, sKey, object);
 		node = cast(DTDecisionTreeNode*, object);
 
-		// mise à jour de la profondeur de l'arbre courant
+		// mise a jour de la profondeur de l'arbre courant
 		nTreeDepth = (nTreeDepth < node->GetDepth()) ? node->GetDepth() : nTreeDepth;
 
 		if (node->GetSplitAttributeStats() == NULL)

@@ -144,8 +144,8 @@ inline ostream& operator<<(ostream& ost, const TimestampTZ& value)
 // Gestion du format d'entre sortie d'une TimestampTZ
 // Un format de TimestampTZ est base sur un format de Timestamp suivi d'une partie de type time zone,
 // en utilisant un format ISO 8601:
-//    <Timestamp format>zzzzz: basic time zone format (Z or +hhmm or –hhmm)
-//    <Timestamp format>zzzzzz: extended time zone format (Z or +hh:mm or –hh:mm)
+//    <Timestamp format>zzzzz: basic time zone format (Z or +hhmm or -hhmm)
+//    <Timestamp format>zzzzzz: extended time zone format (Z or +hh:mm or -hh:mm)
 class KWTimestampTZFormat : public Object
 {
 public:

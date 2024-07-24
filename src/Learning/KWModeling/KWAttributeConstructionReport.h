@@ -26,7 +26,7 @@ public:
 	void SetAttributeConstructionSpec(const KWAttributeConstructionSpec* spec);
 	const KWAttributeConstructionSpec* GetAttributeConstructionSpec() const;
 
-	// Redefinition des methode d'écriture d'une partie de rapport
+	// Redefinition des methode d'ecriture d'une partie de rapport
 	// Sans effet si les parametres de construction d'attributs ne sont pas specifies
 	void WriteReport(ostream& ost) override;
 	void WriteJSONReport(JSONFile* fJSON) override;

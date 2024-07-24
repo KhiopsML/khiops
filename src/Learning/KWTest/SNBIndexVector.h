@@ -12,7 +12,7 @@ class SNBIndexVector;
 // Classe SNBIndexVector
 //
 // Vecteur d'index, de taille quelconque.
-// Un index est un entier dont l'étendue est limitee 0 <= index < IndexSize, ce qui permet de le
+// Un index est un entier dont l'etendue est limitee 0 <= index < IndexSize, ce qui permet de le
 // stocker avec un nombre de bit minimum par index, de facon a minimiser la memoire globale utilisee
 // dans le vecteur, au prix de temps d'acces plus long.
 // Les acces aux vecteurs sont controles par assertions.

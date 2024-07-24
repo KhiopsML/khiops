@@ -262,7 +262,7 @@ public:
 	int GetCellIndex() const;
 
 	// Acces a l'indication de valeur manquante de l'objet pour une des dimensions, une fois l'index calcule
-	// Les valeurs manquantes sont Missing dans le cas numérique et "" dans le cas categoriel
+	// Les valeurs manquantes sont Missing dans le cas numerique et "" dans le cas categoriel
 	boolean IsMissingValue() const;
 
 	// Calcul d'un libelle de cellule

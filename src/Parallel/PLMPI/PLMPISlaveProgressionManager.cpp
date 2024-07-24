@@ -25,7 +25,7 @@ PLMPISlaveProgressionManager::~PLMPISlaveProgressionManager(void)
 	if (sendRequest != MPI_REQUEST_NULL)
 		MPI_Request_free(&sendRequest);
 
-	// Reception des messages qu'on n'aurait pas encore reçu
+	// Reception des messages qu'on n'aurait pas encore recu
 	IsInterruptionRequested();
 
 	ivMaxErrorReached = NULL;

@@ -69,7 +69,7 @@ protected:
 	// sous-tables en relation 0-n d'un schema multi-table et les ramenerr dans la table principale.
 	// Il s'agit d'une alternative efficcae a la concatenation de variables Text, qui poserait des problemes
 	// de volumetrie, avec un des variables Symbol sans limite de taille. Avec des TextList geree dans des
-	// SymbolVector, tout ce qui peut etre charge dans une sous-table tient sans problème en memoire dans
+	// SymbolVector, tout ce qui peut etre charge dans une sous-table tient sans probleme en memoire dans
 	// un SymbolVector, qui ne fait que reference les Symbol des sous-tables.
 
 	// Methode interne de detection si un dictionnaire contient des variables de type texte utilises,

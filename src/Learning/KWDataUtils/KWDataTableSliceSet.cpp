@@ -1092,7 +1092,7 @@ boolean KWDataTableSliceSet::OpenForRead()
 	}
 
 	// Parametrage par defaut si pas de parametrage disponible
-	// On utilise la taille de buffer par defaut, qui pourrait être trop grrande dans les cas
+	// On utilise la taille de buffer par defaut, qui pourrait etre trop grrande dans les cas
 	// patholgiques avec de tres grands nombres de slices a lire
 	if (lSliceBufferSize == 0)
 		lSliceBufferSize = BufferedFile::nDefaultBufferSize;

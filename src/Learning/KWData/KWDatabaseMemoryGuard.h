@@ -208,7 +208,7 @@ protected:
 	// proche du probleme de "one-shot (black) pebbling".
 	//  cf. https://cs.stackexchange.com/questions/60772/finding-an-optimal-topological-ordering
 	// Il s'agit d'un probleme dont meme l'aproximation est NP-complet.
-	// La solution optimale n’est donc pas atteignable, et les heuristiques de resolution du probleme
+	// La solution optimale n'est donc pas atteignable, et les heuristiques de resolution du probleme
 	// sont non triviales a mettre au point. De plus, pour assurer une empreinte memoire minimale, on devra
 	// se ramener potentiellement a la solution pragmatique, qui periodiquement peut etre amenee a tout nettoyer.
 	// Le rapport cout-benefice de cette solution etendue est alors extrement defavorable, avec un cout

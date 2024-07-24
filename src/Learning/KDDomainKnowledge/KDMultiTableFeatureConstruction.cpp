@@ -662,7 +662,7 @@ void KDMultiTableFeatureConstruction::BuildMainClassRequestedConstructedRules(Ob
 	oaAllConstructedRules->Shuffle();
 
 	// On memorise l'index alatoire associe a chaque regle, pour assurer un ordre aleatoire reproductible
-	// en cas d'égalite de cout des regles
+	// en cas d'egalite de cout des regles
 	for (i = 0; i < oaAllConstructedRules->GetSize(); i++)
 		cast(KDConstructedRule*, oaAllConstructedRules->GetAt(i))->SetRandomIndex(i);
 

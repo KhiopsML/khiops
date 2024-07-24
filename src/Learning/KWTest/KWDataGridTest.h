@@ -515,7 +515,7 @@ public:
 	/////////////////////////////////////////////////////////////////////
 	// Implementation
 protected:
-	// Creation des specifications des paramùetrages d'optimisation
+	// Creation des specifications des parametrages d'optimisation
 	void InitializeOptimizationParametersArray();
 
 	// Recherche d'un generateur par son nom

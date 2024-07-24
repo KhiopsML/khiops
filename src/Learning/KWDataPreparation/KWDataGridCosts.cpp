@@ -1730,7 +1730,7 @@ double KWVarPartDataGridClusteringCosts::ComputeDataGridCost(const KWDataGrid* d
 	require(nInformativeAttributeNumber >= 0);
 	require(nInformativeAttributeNumber <= GetTotalAttributeNumber());
 
-	// Coût du choix entre modele nul et modele informatif
+	// Cout du choix entre modele nul et modele informatif
 	dDataGridCost = log(2.0);
 
 	// Pas de cout de selection de variables dans ce cas de coclustering
@@ -2078,7 +2078,7 @@ double KWVarPartDataGridClusteringCosts::ComputeDataGridConstructionCost(const K
 {
 	double dDataGridConstructionCost;
 
-	// Coût du choix entre modele nul et modele informatif
+	// Cout du choix entre modele nul et modele informatif
 	dDataGridConstructionCost = log(2.0);
 
 	// Cout de selection des variables (modele informatif)

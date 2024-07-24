@@ -12,7 +12,7 @@
 // Permet d'avoir acces aux services suivant:
 //   . taille par fichier
 //   . indexation des champs de l'entete du fichier pour le parsing
-//   . découpage de la base en chunks de lignes contigues, synchornises
+//   . decoupage de la base en chunks de lignes contigues, synchornises
 //     par plage de cle dans le cas multi-table
 // Cela permet alors de piloter les taches parallele ayant une base en entree,
 // pour lire les enregistrements des tables principales et secondaires de facon

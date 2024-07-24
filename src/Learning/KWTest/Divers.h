@@ -92,7 +92,7 @@ void BellNumber(int argc, char** argv);
 // Creation d'un fichier de donnees avec tous les caracteres ascii 1 a 255
 void AnyCharFileGenerator();
 
-// Creation d'un fichier de donnees avec tous les caracteres ascii 1 a 255 plus des caractères UTF8
+// Creation d'un fichier de donnees avec tous les caracteres ascii 1 a 255 plus des caracteres UTF8
 void MixedAsciiUTF8CharFileGenerator();
 void BuildAllCharValueFile();
 void BuildAllCharValueJsonFile();

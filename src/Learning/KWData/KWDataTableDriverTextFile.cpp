@@ -732,7 +732,7 @@ longint KWDataTableDriverTextFile::GetEstimatedObjectNumber()
 
 	// Ouverture du fichier
 	// On prend la taille par defaut qui correspond a une taille "raisonnable" pour une analyse rapide et assez
-	// significative du fichier On ne prend pas ici la PreferredBufferSize liee au fichier, qui risque d'eêtre soit
+	// significative du fichier On ne prend pas ici la PreferredBufferSize liee au fichier, qui risque d'etre soit
 	// trop petite, soit trop grande
 	temporaryFile.SetBufferSize(InputBufferedFile::nDefaultBufferSize);
 	temporaryFile.SetSilentMode(true);

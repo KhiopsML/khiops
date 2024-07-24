@@ -238,7 +238,7 @@ protected:
 	// Cout de la regle
 	double dCost;
 
-	// Index alatoire pour gerer les cas d'égalité de tri de facon reproductible
+	// Index alatoire pour gerer les cas d'egalite de tri de facon reproductible
 	int nRandomIndex;
 
 	// Tableau des type d'operandes (limite a 4 operandes max, ce qui est suffisant)

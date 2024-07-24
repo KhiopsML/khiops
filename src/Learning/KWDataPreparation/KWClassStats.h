@@ -308,7 +308,7 @@ protected:
 	// pour se preparer aux constructions multivaries, paires de variable et arbre
 	// En effet, le cout de selection global (KWLearningSpec::GetSelectionCost) integre
 	// toutes les familles de construction de variables utilisees, alors que les familles
-	// multivaries selectionnent elle même uniquement des variable initiales ou construites
+	// multivaries selectionnent elle meme uniquement des variable initiales ou construites
 	// avec un cout de selection basique (KWLearningSpec::GetBasicSelectionCost)
 	// Cette mise a jour se fait a la fois dans la classe principale et dans toutes celles du sliceset
 	void UseUnivariateBasicSelectionCosts(boolean bUsingTextAttributes);
