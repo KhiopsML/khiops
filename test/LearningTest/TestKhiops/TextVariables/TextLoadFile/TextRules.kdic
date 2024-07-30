@@ -1,0 +1,6 @@
+
+Dictionary	TextRules
+{
+	Categorical	FilePath		;	
+	Text	LoadedText = TextLoadFile(FilePath)		;	
+};

@@ -121,7 +121,7 @@ longint SystemFileDriverANSI::Fread(void* ptr, size_t size, size_t count, void* 
 
 	// Lecture dans le fichier
 	lRes = std::fread(ptr, size, count, (FILE*)stream);
-	if (lRes != longint(count) and ferror((FILE*)stream))
+	if (ferror((FILE*)stream))
 		lRes = -1;
 	return lRes;
 }
@@ -142,7 +142,7 @@ longint SystemFileDriverANSI::Fwrite(const void* ptr, size_t size, size_t count,
 
 	// Ecriture dans le fichier
 	lWrite = std::fwrite(ptr, size, count, (FILE*)stream);
-	if (lWrite != longint(count) and ferror((FILE*)stream))
+	if (ferror((FILE*)stream))
 		lWrite = 0;
 	return lWrite;
 }
