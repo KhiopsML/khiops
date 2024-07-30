@@ -30,7 +30,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [debian10, debian11, debian12, ubuntu22.04, ubuntu20.04]
+        os: [debian10, debian11, debian12, ubuntu20.04, ubuntu22.04, ubuntu24.04]
     container:
       image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
     steps:
@@ -83,7 +83,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ['debian:10', 'debian:11', 'debian:12', 'ubuntu:22.04', 'ubuntu:20.04']
+        os: ['debian:10', 'debian:11', 'debian:12',  'ubuntu:20.04', 'ubuntu:22.04', 'ubuntu:24.04']
     container:
       image: ${{ matrix.os }}
     steps:
@@ -126,7 +126,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [debian10, debian11, debian12, ubuntu22.04, ubuntu20.04]
+        os: [debian10, debian11, debian12, ubuntu20.04, ubuntu22.04, ubuntu24.04]
     container:
       image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
     steps:
