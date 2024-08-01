@@ -28,14 +28,14 @@ if [[ ! -f /usr/bin/khiops-env ]]; then
 fi
 
 # initialize Khiops environment
-source /usr/bin/khiops-env
+source /usr/bin/khiops-env ""
 
 # Test if batch mode from parameters
 KHIOPS_BATCH_MODE=false
 for ((i=1;i<=$#;i++)); 
 do
     if [ ${!i} = "-b" ]; then
-	    KHIOPS_BATCH_MODE=true
+        KHIOPS_BATCH_MODE=true
         break
     fi
 done;

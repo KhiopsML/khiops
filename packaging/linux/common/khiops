@@ -7,7 +7,7 @@
 
 error() {
     logger "$*" --tag khiops --stderr
-    if [ -n "$DISPLAY" ] 
+    if [ -n "$DISPLAY" ]
     then
         notify-send "Khiops" "$*" -i /usr/share/pixmaps/khiops.png -u normal;
     fi
@@ -17,7 +17,7 @@ error() {
 
 warning() {
     logger "$*" --tag khiops --stderr
-    if [ -n "$DISPLAY" ] 
+    if [ -n "$DISPLAY" ]
     then
         notify-send "Khiops" "$*" -i /usr/share/pixmaps/khiops.png -u normal;
     fi
@@ -59,7 +59,7 @@ if [  "$KHIOPS_BATCH_MODE" = false ]; then
 fi
 
 # Display error with mpi configuration
-if [ -z "$KHIOPS_MPI_ERROR" ]; then
+if [ -n "$KHIOPS_MPI_ERROR" ]; then
     warning "$KHIOPS_MPI_ERROR"
 fi
 
