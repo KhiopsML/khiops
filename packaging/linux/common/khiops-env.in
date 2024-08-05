@@ -3,35 +3,38 @@
 help()
 {
     echo "Usage: khiops-env [-h, --help] [--env]"
-    echo "khiops-env is an internal script intended to be used by Khiops tool and Khiops'"
-    echo "wrappers only."
+    echo "khiops-env is an internal script intended to be used by Khiops tool and Khiops wrappers only."
     echo "If the --env flag is used, the environment list is printed in the standard output"
     echo
-    echo "The following variables are used to set the path and classpath"
-    echo "for the prerequisite of Khiops."
+    echo "The following variables are used to set the path and classpath for the prerequisite of Khiops."
     echo
     echo "KHIOPS_PATH: path of Khiops executable, to add in path"
     echo "KHIOPS_MPI_COMMAND: MPI command to call the Khiops tool"
     echo "KHIOPS_JAVA_PATH: path of Java tool, to add in path"
     echo "KHIOPS_CLASSPATH: Khiops java libraries, to add in classpath"
     echo
-    echo "If they are not already defined, the following variables used by"
-    echo "Khiops are set:"
+    echo "If they are not already defined, the following variables used by Khiops are set:"
     echo
-    echo "KHIOPS_LAST_RUN_DIR: directory where Khiops writes output command"
-    echo "   file and log (when not defined with -e and -o)"
-    echo "KHIOPS_PROC_NUMBER: processes number launched by Khiops (it's"
-    echo "   default value corresponds to the number of physical cores of"
-    echo "   the computer plus one)"
+    echo "KHIOPS_LAST_RUN_DIR: directory where Khiops writes output command file and log"
+    echo "  (when not defined with -e and -o)"
+    echo "KHIOPS_PROC_NUMBER: processes number launched by Khiops (it's default value corresponds to the"
+    echo "  number of physical cores of the computer plus one)"
     echo
-    echo "The following variables are not defined by default and can be used to"
-    echo "change some default properties of Khiops:"
+    echo "The following variables are not defined by default and can be used to change some default"
+    echo " properties of Khiops:"
     echo
-    echo "KHIOPS_TMP_DIR: Khiops' temporary directory location (default : the"
-    echo "   system default) This location can be modified from the tool as well"
-    echo "KHIOPS_MEMORY_LIMIT: Khiops' memory limit in MB (default : the system's memory limit)."
-    echo "   The minimum value is 100 MB; this setting is ignored if it is above the system's memory limit."
-    echo "   It can only be reduced from the tool."
+    echo "KHIOPS_TMP_DIR: Khiops temporary directory location (default: the system default)."
+    echo "  This location can be modified from the tool as well"
+    echo "KHIOPS_MEMORY_LIMIT: Khiops memory limit in MB (default: the system memory limit)."
+    echo "  The minimum value is 100 MB; this setting is ignored if it is above the system's memory limit."
+    echo "  It can only be reduced from the tool."
+    echo "KHIOPS_API_MODE: standard or api mode for the management of output result files created by Khiops"
+    echo "  In standard mode, the result files are stored in the train database directory,"
+    echo "  unless an absolute path is specified, and the file extension is forced if necessary."
+    echo "  In api mode, the result files are stored in the current working directory, using the specified results as is."
+    echo "  . default behavior if not set: standard mode"
+    echo "  . set to 'true' to force standard mode"
+    echo "  . set to 'false' to force api mode"
     echo "KHIOPS_RAW_GUI: graphical user interface for file name selection"
     echo "  . default behavior if not set: depending on the file drivers available for Khiops"
     echo "  . set to 'true' to allow file name selection with uri schemas"
@@ -96,8 +99,8 @@ fi
 
 KHIOPS_PATH=/usr/bin
 
-if [ "$1" = "--env" ]; 
-then 
+if [ "$1" = "--env" ];
+then
     echo KHIOPS_PATH "$KHIOPS_PATH"
     echo KHIOPS_MPI_COMMAND "$KHIOPS_MPI_COMMAND"
     echo KHIOPS_JAVA_PATH "$KHIOPS_JAVA_PATH"
@@ -105,7 +108,9 @@ then
     echo KHIOPS_LAST_RUN_DIR "$KHIOPS_LAST_RUN_DIR"
     echo KHIOPS_PROC_NUMBER "$KHIOPS_PROC_NUMBER"
     echo KHIOPS_TMP_DIR "$KHIOPS_TMP_DIR"
-    echo KHIOPS_MEMORY_LIMIT "$KHIOPS_MEMORY_LIMIT" 
+    echo KHIOPS_MEMORY_LIMIT "$KHIOPS_MEMORY_LIMIT"
+    echo KHIOPS_API_MODE "$KHIOPS_API_MODE"
+    echo KHIOPS_RAW_GUI "$KHIOPS_RAW_GUI"
     echo KHIOPS_JAVA_ERROR "$KHIOPS_JAVA_ERROR"
     echo KHIOPS_MPI_ERROR "$KHIOPS_MPI_ERROR"
 fi
