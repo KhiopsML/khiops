@@ -115,7 +115,7 @@ void PLMPISlaveLauncher::LaunchSlave(IntVector* ivExcludeSlaves, const ALString&
 	// Est-ce que cet esclave travaille ?
 	bIsWorkingSlave = not ivExcludeSlaves->GetAt(GetProcessId());
 
-	// Creation d'un nouveau comminicateur qui contient le maitre et les esclaves qui travaillent
+	// Creation d'un nouveau communicateur qui contient le maitre et les esclaves qui travaillent
 	bIsWorkingSlave ? nColor = 1 : nColor = 0;
 	MPI_Comm_split(*PLMPITaskDriver::GetProcessComm(), nColor, GetProcessId(), PLMPITaskDriver::GetTaskComm());
 

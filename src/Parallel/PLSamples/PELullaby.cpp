@@ -94,8 +94,8 @@ boolean PELullabyTask::SlaveInitialize()
 
 boolean PELullabyTask::SlaveProcess()
 {
-	// ALString sTmp;
-	// AddMessage(sTmp + "Slave " + IntToString(GetProcessId()) + " taskIndex " + IntToString(GetTaskIndex()));
+	ALString sTmp;
+	AddMessage(sTmp + "Slave " + IntToString(GetProcessId()) + " taskIndex " + IntToString(GetTaskIndex()));
 	return true;
 }
 

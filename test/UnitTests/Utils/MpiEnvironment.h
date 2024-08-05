@@ -7,6 +7,7 @@
 #include "PLMPITaskDriver.h"
 #include "PLMPISystemFileDriverRemote.h"
 #include "PEProtocolTestTask.h"
+#include "PELullabyTask.h"
 
 ////////////////////////////////////////////////////////////////////////////
 // Classe MpiEnvironment
@@ -48,8 +49,13 @@ public:
 		PLMPITaskDriver::CheckVersion();
 
 #endif // defined(USE_MPI)
-
-		PLParallelTask::RegisterTask(new PEProtocolTestTask);
+		static boolean bIsRegistered = false;
+		if (not bIsRegistered)
+		{
+			PLParallelTask::RegisterTask(new PEProtocolTestTask);
+			PLParallelTask::RegisterTask(new PELullabyTask);
+			bIsRegistered = true;
+		}
 
 		if (PLParallelTask::IsMasterProcess())
 		{

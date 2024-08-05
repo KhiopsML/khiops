@@ -216,7 +216,7 @@ int main(int argv, char** argc)
 		// PEIOParallelTestTask::Test();
 		// PEProtocolTestTask::Test();
 		// PEProtocolTestTask::TestFatalError(5);
-		// PELullabyTask::Test();
+		PELullabyTask::Test();
 		//  PEFileSearchTask::Test();
 		//  PLShared_TaskResourceGrant::Test();
 		//  PEHelloWorldTask::Test();
@@ -234,7 +234,7 @@ int main(int argv, char** argc)
 		// PLKnapsackProblem::Test();
 		// PLKnapsackProblemTest::Test();
 		// PLShared_TaskResourceGrant::Test();
-		RMParallelResourceManager::Test();
+		// RMParallelResourceManager::Test();
 
 		// PLShared_ResourceRequirement::Test();
 
