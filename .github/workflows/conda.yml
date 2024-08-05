@@ -96,6 +96,7 @@ jobs:
         env:
           - {os: ubuntu-20.04, os-family: linux-64}
           - {os: ubuntu-22.04, os-family: linux-64}
+          - {os: ubuntu-24.04, os-family: linux-64}
           - {os: windows-2019, os-family: win-64}
           - {os: windows-2022, os-family: win-64}
           - {os: macos-12, os-family: osx-64}
@@ -155,9 +156,10 @@ jobs:
           # Set the anaconda.org channel
           ANACONDA_CHANNEL="${{ inputs.release-channel || 'khiops-dev' }}"
 
-          # For the release channel: upload without forcing
+          # For the release channel: upload without forcing; do not upload kni-transfer
           if [[ "$ANACONDA_CHANNEL" == "khiops" ]]
           then
+            rm -f -v ./build/conda/*/kni-transfer*.tar.bz2
             anaconda --token "${{ secrets.KHIOPS_ANACONDA_CHANNEL_TOKEN }}" upload \
               --user "$ANACONDA_CHANNEL" ./build/conda/*/*.tar.bz2
           # For the dev channel: upload with forcing
