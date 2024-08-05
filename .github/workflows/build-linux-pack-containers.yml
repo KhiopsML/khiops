@@ -17,6 +17,7 @@ jobs:
           - ubuntu18.04
           - ubuntu20.04
           - ubuntu22.04
+          - ubuntu24.04
     permissions:
       packages: write  # Allows writing in the container registry
     steps:
