@@ -1,32 +1,33 @@
 #!/bin/bash
-
 help()
 {
-    echo "Usage: khiops-env [-h, --help] [--env]"
-    echo "khiops-env is an internal script intended to be used by Khiops tool and Khiops wrappers only."
-    echo "If the --env flag is used, the environment list is printed in the standard output"
+    echo "Usage: khiops_env [-h, --help] [--env]"
+    echo "khiops_env is an internal script intended to be used by Khiops tool and Khiops wrappers only."
+    echo "It sets all the environment variables required by the Khiops to run correctly (Java, MPI, etc)."
+    echo "Options:"
+    echo "   -h, --help show this help message and exit"
+    echo "   -env show the environment list and exit"
     echo
     echo "The following variables are used to set the path and classpath for the prerequisite of Khiops."
     echo
     echo "KHIOPS_PATH: path of Khiops executable, to add in path"
+    echo "KHIOPS_COCLUSTERING_PATH: path of Khiops coclustering executable, to add in path"
     echo "KHIOPS_MPI_COMMAND: MPI command to call the Khiops tool"
     echo "KHIOPS_JAVA_PATH: path of Java tool, to add in path"
     echo "KHIOPS_CLASSPATH: Khiops java libraries, to add in classpath"
-    echo
-    echo "In case of configuration problems, the variables KHIOPS_JAVA_ERROR and KHIOPS_MPI_ERROR contains error messages"
     echo
     echo "If they are not already defined, the following variables used by Khiops are set:"
     echo
     echo "KHIOPS_LAST_RUN_DIR: directory where Khiops writes output command file and log"
     echo "  (when not defined with -e and -o)"
     echo "KHIOPS_PROC_NUMBER: processes number launched by Khiops (it's default value corresponds to the"
-    echo "  number of physical cores of the computer plus one)"
+    echo "  number of physical cores of the computer)"
     echo
     echo "The following variables are not defined by default and can be used to change some default"
     echo " properties of Khiops:"
     echo
     echo "KHIOPS_TMP_DIR: Khiops temporary directory location (default: the system default)."
-    echo "  This location can be modified from the tool as well"
+    echo "  This location can be modified from the tool as well."
     echo "KHIOPS_MEMORY_LIMIT: Khiops memory limit in MB (default: the system memory limit)."
     echo "  The minimum value is 100 MB; this setting is ignored if it is above the system's memory limit."
     echo "  It can only be reduced from the tool."
@@ -41,6 +42,8 @@ help()
     echo "  . default behavior if not set: depending on the file drivers available for Khiops"
     echo "  . set to 'true' to allow file name selection with uri schemas"
     echo "  . set to 'false' to allow local file name selection only with a file selection dialog"
+    echo
+    echo "In case of configuration problems, the variables KHIOPS_JAVA_ERROR and KHIOPS_MPI_ERROR contains error messages."
 }
 
 [[ $# == 1 && $1 == "-h" ]] && help && exit 0
@@ -79,11 +82,19 @@ if [ -f "/usr/share/khiops/khiops.jar" ]; then
     fi
 fi
 
+get_script_dir(){
+    SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+    echo "$SCRIPT_DIR/"
+}
+
 @ADDITIONAL_EN_VAR@
+
+KHIOPS_PATH=@KHIOPS_PATH@@MODL_NAME@
+KHIOPS_COCLUSTERING_PATH=@KHIOPS_COCLUSTERING_PATH@MODL_Coclustering
 
 # Number of processes in use (must be set according to the physical cores number)
 if [[ -z $KHIOPS_PROC_NUMBER ]]; then
-    KHIOPS_PROC_NUMBER=$(lscpu -b -p=Core,Socket | grep -v '^#' | sort -u | wc -l)
+    KHIOPS_PROC_NUMBER=$(${KHIOPS_PATH} -s | grep 'Physical cores on system' | cut -d" " -f5-)
 fi
 
 if command -v mpiexec &> /dev/null
@@ -99,11 +110,12 @@ if [[ $KHIOPS_PROC_NUMBER -le 2 ]]; then
     KHIOPS_MPI_COMMAND=""
 fi
 
-KHIOPS_PATH=/usr/bin
+
 
 if [ "$1" = "--env" ];
 then
     echo KHIOPS_PATH "$KHIOPS_PATH"
+    echo KHIOPS_COCLUSTERING_PATH "$KHIOPS_COCLUSTERING_PATH"
     echo KHIOPS_MPI_COMMAND "$KHIOPS_MPI_COMMAND"
     echo KHIOPS_JAVA_PATH "$KHIOPS_JAVA_PATH"
     echo KHIOPS_CLASSPATH "$KHIOPS_CLASSPATH"

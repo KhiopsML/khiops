@@ -117,6 +117,8 @@ jobs:
       - name: Checkout the khiops sources
         uses: actions/checkout@v4
       - name: Test the installation
+        uses: ./.github/actions/test-khiops-install
+      - name: Test Khiops on Iris dataset
         uses: ./.github/actions/test-khiops-on-iris
   test-kni:
     needs: build
