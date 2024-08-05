@@ -23,6 +23,11 @@ mv ./build/$CMAKE_PRESET/bin/MODL* "$PREFIX/bin"
 mv ./build/$CMAKE_PRESET/bin/KNITransfer* "$PREFIX/bin"
 mv ./build/$CMAKE_PRESET/lib/libKhiopsNativeInterface* "$PREFIX/lib"
 
+# Move the script to the Conda PREFIX path
+cp ./build/$CMAKE_PRESET/tmp/khiops-env "$PREFIX/bin"
+cp ./build/$CMAKE_PRESET/tmp/khiops "$PREFIX/bin"
+cp ./build/$CMAKE_PRESET/tmp/khiops_coclustering "$PREFIX/bin"
+
 # Custom rpath relocation and signing executables for macOS in arm64
 #
 # In osx-arm64 executing any binary that is not signed will make appear popups appearing demanding

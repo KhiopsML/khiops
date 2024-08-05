@@ -52,10 +52,14 @@ outputs:
         - {{ mpi }}
     files:
       - bin/MODL*
+      - bin/khiops-env
+      - bin/khiops
+      - bin/khiops_coclustering
     test:
       commands:
-        - MODL -s
-        - MODL_Coclustering -s
+        - khiops-env --env
+        - khiops -s
+        - khiops_coclustering -s
 
   # kni package (do not need khiops-core as a runtime dependency)
   - name: kni

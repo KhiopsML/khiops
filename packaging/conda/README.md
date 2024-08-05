@@ -7,6 +7,9 @@ You'll need `conda-build` installed in your system.
 # At the root of the repo
 # These commands will leave a ready to use conda channel in `./khiops-conda`
 
+# khiops version must be set prior to launch the build (can be retreived with the script scripts/khiops-version)
+export KHIOPS_VERSION=$(scripts/khiops-version)
+
 # Windows
 conda build --output-folder ./khiops-conda packaging/conda
 

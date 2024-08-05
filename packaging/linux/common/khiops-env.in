@@ -99,7 +99,8 @@ if [[ $KHIOPS_PROC_NUMBER -le 2 ]]; then
     KHIOPS_MPI_COMMAND=""
 fi
 
-KHIOPS_PATH=/usr/bin
+KHIOPS_PATH=@KHIOPS_PATH@@MODL_NAME@
+KHIOPS_COCLUSTERING_PATH=@KHIOPS_COCLUSTERING_PATH@MODL_Coclustering
 
 if [ "$1" = "--env" ];
 then
