@@ -67,6 +67,19 @@ endif()
 
 if(UNIX)
 
+  # Set khiops and khiops_coclustering paths according to the environment (conda, fedora, etc)
+  if(IS_CONDA)
+    set(KHIOPS_PATH "$(get_script_dir)")
+    set(KHIOPS_COCLUSTERING_PATH "$(get_script_dir)")
+  else()
+    if(IS_FEDORA_LIKE)
+      set(KHIOPS_PATH "${MPI_BIN}/khiops/")
+    else()
+      set(KHIOPS_PATH "/usr/bin/")
+    endif(IS_FEDORA_LIKE)
+    set(KHIOPS_COCLUSTERING_PATH "/usr/bin/")
+  endif(IS_CONDA)
+
   # replace MPIEXEC MPIEXEC_NUMPROC_FLAG and MPI_IMPL KHIOPS_MPI_EXTRA_FLAG ADDITIONAL_EN_VAR
   if("${MPI_IMPL}" STREQUAL "openmpi")
     set(KHIOPS_MPI_EXTRA_FLAG "--allow-run-as-root --quiet")
@@ -81,46 +94,25 @@ if(UNIX)
     set(ADDITIONAL_EN_VAR "# Additional variables for MPI\n${ADDITIONAL_EN_VAR}")
   endif()
 
-  configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops-env.in ${TMP_DIR}/khiops-env @ONLY
+  # Get the real file name of MODL e.g MODL_openmpi
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    get_target_property(MODL_NAME MODL OUTPUT_NAME)
+  else()
+    # the above line fails on macOS. But prefix is added to the binary name only on linux...
+    set(MODL_NAME "MODL")
+  endif()
+
+  configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_env.in ${TMP_DIR}/khiops_env @ONLY
                  NEWLINE_STYLE UNIX)
   configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/debian/khiops-core/postinst.in ${TMP_DIR}/postinst @ONLY
                  NEWLINE_STYLE UNIX)
 
-  if(NOT IS_FEDORA_LIKE)
-    install(TARGETS MODL MODL_Coclustering RUNTIME DESTINATION usr/bin COMPONENT KHIOPS_CORE)
-
-    # We install the binary with mpi suffix and create a symlink without the suffix
-    get_target_property(MODL_NAME MODL OUTPUT_NAME)
-    execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink /usr/bin/${MODL_NAME} ${TMP_DIR}/MODL)
-    install(
-      FILES ${TMP_DIR}/MODL
-      DESTINATION usr/bin
-      COMPONENT KHIOPS_CORE)
-  else()
-
-    # On fedora binaries built with mpi must follow these rules :
-    #
-    # - the binaries MUST be suffixed with $MPI_SUFFIX
-    # - MPI implementation specific files MUST be installed in the directories used by the MPI compiler e.g. $MPI_BIN
-    #
-    # see https://docs.fedoraproject.org/en-US/packaging-guidelines/MPI/
-    #
-    install(TARGETS MODL RUNTIME DESTINATION ./${MPI_BIN}/khiops COMPONENT KHIOPS_CORE)
-    install(TARGETS MODL_Coclustering RUNTIME DESTINATION /usr/bin COMPONENT KHIOPS_CORE)
-
-    # We install the binary under $MPI_BIN and create a symlink to it
-    get_target_property(MODL_NAME MODL OUTPUT_NAME)
-    execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${MPI_BIN}/khiops/${MODL_NAME} ${TMP_DIR}/MODL)
-    install(
-      FILES ${TMP_DIR}/MODL
-      DESTINATION usr/bin
-      COMPONENT KHIOPS_CORE)
-
-  endif()
+  install(TARGETS MODL RUNTIME DESTINATION ./${KHIOPS_PATH} COMPONENT KHIOPS_CORE)
+  install(TARGETS MODL_Coclustering RUNTIME DESTINATION ./${KHIOPS_COCLUSTERING_PATH} COMPONENT KHIOPS_CORE)
 
   install(
     PROGRAMS ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops
-             ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_coclustering ${TMP_DIR}/khiops-env
+             ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_coclustering ${TMP_DIR}/khiops_env
     DESTINATION usr/bin
     COMPONENT KHIOPS_CORE)
 
@@ -151,4 +143,14 @@ if(UNIX)
     FILES ${CMAKE_BINARY_DIR}/jars/norm.jar ${CMAKE_BINARY_DIR}/jars/khiops.jar
     DESTINATION usr/share/khiops
     COMPONENT KHIOPS)
+
+else(UNIX)
+
+  if(IS_CONDA)
+    set(GUI_STATUS "false")
+  endif()
+
+  configure_file(${PROJECT_SOURCE_DIR}/packaging/windows/khiops_env.cmd ${TMP_DIR}/khiops_env.cmd @ONLY
+                 NEWLINE_STYLE CRLF)
+
 endif(UNIX)
