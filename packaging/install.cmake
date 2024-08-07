@@ -69,9 +69,8 @@ if(UNIX)
 
   # Set khiops and khiops_coclustering paths according to the environment (conda, fedora, etc)
   if(IS_CONDA)
-    set(KHIOPS_PATH "$CONDA_PREFIX/bin/")
-    set(KHIOPS_COCLUSTERING_PATH "$CONDA_PREFIX/bin/")
-    set(KHIOPS_ENV_PATH "$CONDA_PREFIX/bin/")
+    set(KHIOPS_PATH "$(get_script_dir)")
+    set(KHIOPS_COCLUSTERING_PATH "$(get_script_dir)")
   else()
     if(IS_FEDORA_LIKE)
       set(KHIOPS_PATH "${MPI_BIN}/khiops/")
@@ -79,7 +78,6 @@ if(UNIX)
       set(KHIOPS_PATH "/usr/bin/")
     endif(IS_FEDORA_LIKE)
     set(KHIOPS_COCLUSTERING_PATH "/usr/bin/")
-    set(KHIOPS_ENV_PATH "/usr/bin/")
   endif(IS_CONDA)
 
   # replace MPIEXEC MPIEXEC_NUMPROC_FLAG and MPI_IMPL KHIOPS_MPI_EXTRA_FLAG ADDITIONAL_EN_VAR
@@ -106,9 +104,6 @@ if(UNIX)
 
   configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops-env.in ${TMP_DIR}/khiops-env @ONLY
                  NEWLINE_STYLE UNIX)
-  configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops.in ${TMP_DIR}/khiops @ONLY NEWLINE_STYLE UNIX)
-  configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_coclustering.in ${TMP_DIR}/khiops_coclustering
-                 @ONLY NEWLINE_STYLE UNIX)
   configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/debian/khiops-core/postinst.in ${TMP_DIR}/postinst @ONLY
                  NEWLINE_STYLE UNIX)
 
@@ -116,7 +111,8 @@ if(UNIX)
   install(TARGETS MODL_Coclustering RUNTIME DESTINATION ./${KHIOPS_COCLUSTERING_PATH} COMPONENT KHIOPS_CORE)
 
   install(
-    PROGRAMS ${TMP_DIR}/khiops ${TMP_DIR}/khiops_coclustering ${TMP_DIR}/khiops-env
+    PROGRAMS ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops
+             ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_coclustering ${TMP_DIR}/khiops-env
     DESTINATION usr/bin
     COMPONENT KHIOPS_CORE)
 

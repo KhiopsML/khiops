@@ -1,5 +1,4 @@
 #!/bin/bash
-
 help()
 {
     echo "Usage: khiops-env [-h, --help] [--env]"
@@ -78,6 +77,11 @@ if [ -f "/usr/share/khiops/khiops.jar" ]; then
         fi
     fi
 fi
+
+get_script_dir(){
+    SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+    echo "$SCRIPT_DIR/"
+}
 
 @ADDITIONAL_EN_VAR@
 
