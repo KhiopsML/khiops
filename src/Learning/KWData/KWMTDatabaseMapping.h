@@ -65,9 +65,9 @@ public:
 	// (caractere interdit dans les identifiant de nom de classe et d'attribut)
 	// Exemples de DataPath pour differents types de mapping:
 	//    classe principale: Customer
-	//    sous-objet: Customer.Address
-	//    tableau de sous-objets: Customer.Log
-	//    Sous-objet de second niveau: Customer.Address.City
+	//    sous-objet: Customer`Address
+	//    tableau de sous-objets: Customer`Log
+	//    Sous-objet de second niveau: Customer`Address`City
 
 	// Attributs du DataPath
 	int GetDataPathAttributeNumber() const;

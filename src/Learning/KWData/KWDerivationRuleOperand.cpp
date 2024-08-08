@@ -16,7 +16,9 @@ KWDerivationRuleOperand::KWDerivationRuleOperand()
 	kwvConstant.Init();
 	rule = NULL;
 	kwcClass = NULL;
-	debug(nFreshness = 0;) debug(nClassFreshness = 0;) debug(nCompileFreshness = 0;)
+	debug(nFreshness = 0);
+	debug(nClassFreshness = 0);
+	debug(nCompileFreshness = 0);
 }
 
 KWDerivationRuleOperand::~KWDerivationRuleOperand()
@@ -60,7 +62,7 @@ int KWDerivationRuleOperand::GetVarKeyType() const
 ALString KWDerivationRuleOperand::OriginToString(int nOrigin, int nType)
 {
 	require(OriginConstant <= nOrigin and nOrigin <= OriginAny);
-	require(0 <= nType and nType < KWType::Unknown);
+	require(0 <= nType and nType <= KWType::Unknown);
 	if (nOrigin == OriginConstant)
 		return "Constant";
 	else if (nOrigin == OriginAttribute)
@@ -96,6 +98,7 @@ const ALString KWDerivationRuleOperand::GetExternalStringConstant() const
 boolean KWDerivationRuleOperand::CheckDefinition() const
 {
 	boolean bResult = true;
+	ALString sOperandOrigin;
 
 	// Type
 	if (GetType() != KWType::Unknown and not KWType::Check(GetType()))
@@ -132,23 +135,25 @@ boolean KWDerivationRuleOperand::CheckDefinition() const
 	       GetOrigin() == OriginAny);
 
 	// Verification de coherence entre type d'origine et parametre de l'origine
+	sOperandOrigin = OriginToString(GetOrigin(), GetType());
 	if (GetOrigin() == OriginAny and GetDataItemName() != "")
 		AddWarning(GetDataItemLabel() + " name specified (" + GetDataItemName() +
-			   ") for an operand with origin Any");
+			   ") for an operand with origin " + sOperandOrigin);
 	if (GetOrigin() == OriginAny and GetDerivationRule() != NULL)
-		AddWarning("Rule specified (" + GetDerivationRule()->GetName() + ") for an operand with origin Any");
+		AddWarning("Rule specified (" + GetDerivationRule()->GetName() + ") for an operand with origin " +
+			   sOperandOrigin);
 	if (GetOrigin() == OriginConstant and GetDataItemName() != "")
 		AddWarning(GetDataItemLabel() + " name specified (" + GetDataItemName() +
-			   ") for an operand with origin Constant");
+			   ") for an operand with origin " + sOperandOrigin);
 	if (GetOrigin() == OriginConstant and GetDerivationRule() != NULL)
-		AddWarning("Rule specified (" + GetDerivationRule()->GetName() +
-			   ") for an operand with origin Constant");
+		AddWarning("Rule specified (" + GetDerivationRule()->GetName() + ") for an operand with origin " +
+			   sOperandOrigin);
 	if (GetOrigin() == OriginAttribute and GetDerivationRule() != NULL)
-		AddWarning("Rule specified (" + GetDerivationRule()->GetName() +
-			   ") for an operand with origin Attribute");
+		AddWarning("Rule specified (" + GetDerivationRule()->GetName() + ") for an operand with origin " +
+			   sOperandOrigin);
 	if (GetOrigin() == OriginRule and GetDataItemName() != "")
 		AddWarning(GetDataItemLabel() + " name specified (" + GetDataItemName() +
-			   ") for an operand with origin Rule");
+			   ") for an operand with origin " + sOperandOrigin);
 
 	// Verification eventuelle du type de constante
 	if (GetOrigin() == OriginConstant and not KWType::IsSimple(GetType()))
@@ -204,7 +209,7 @@ boolean KWDerivationRuleOperand::CheckFamily(const KWDerivationRuleOperand* oper
 	if (bResult and KWType::IsGeneralRelation(GetType()) and operandFamily->GetObjectClassName() != "" and
 	    GetObjectClassName() != operandFamily->GetObjectClassName())
 	{
-		AddError("Dictionary name for " + KWType::ToString(GetType()) + " type " + GetObjectClassName() +
+		AddError("Dictionary " + GetObjectClassName() + " used with type " + KWType::ToString(GetType()) +
 			 " inconsistent with that of the operand (" + operandFamily->GetObjectClassName() + ")");
 		bResult = false;
 	}
@@ -294,12 +299,24 @@ boolean KWDerivationRuleOperand::CheckCompleteness(const KWClass* kwcOwnerClass)
 	if (not CheckDefinition())
 		return false;
 
+	// Un type valide est specifie a ce niveau, sauf dans le cas d'operandes multiples avec type Unknown
+	assert(KWType::Check(GetType()) or (GetOrigin() == OriginAttribute and GetType() == KWType::Unknown));
+
 	// La regle predefinie de resolution des references aux objets ne peut etre utilisee
 	// comme operande d'une regle de derivation
 	if (GetOrigin() == OriginRule and GetDerivationRule() != NULL and
 	    GetDerivationRule()->GetName() == KWDerivationRule::GetReferenceRuleName())
 	{
 		AddError("Reference not allowed in an operand of a rule");
+		return false;
+	}
+
+	// Une regle de creation de table ne peut etre utilisee comme operande d'une regle de derivation
+	if (GetOrigin() == OriginRule and GetDerivationRule() != NULL and
+	    KWType::IsRelation(GetDerivationRule()->GetType()) and not GetDerivationRule()->GetReference())
+	{
+		AddError(KWType::ToString(GetDerivationRule()->GetType()) +
+			 " creation rule not allowed in an operand of a rule");
 		return false;
 	}
 
@@ -363,8 +380,16 @@ boolean KWDerivationRuleOperand::CheckCompleteness(const KWClass* kwcOwnerClass)
 				sScopeMessage = " (from dictionary " + scopeClass->GetName() + " at scope level " +
 						ALString('.', GetScopeLevel()) + ")";
 
+			// Cas d'un type inconnu
+			if (GetType() == KWType::Unknown)
+			{
+				// Ce cas ne peut correspondre qu'a un attribut inexistant
+				assert(scopeClass->LookupAttribute(GetDataItemName()) == NULL);
+				AddError("Variable " + GetDataItemName() + " not found" + sScopeMessage);
+				bResult = false;
+			}
 			// Cas d'un attribut
-			if (KWType::IsValue(GetType()))
+			else if (KWType::IsValue(GetType()))
 			{
 				// Attribut existant dans la classe
 				attribute = scopeClass->LookupAttribute(GetAttributeName());
@@ -804,11 +829,8 @@ void KWDerivationRuleOperand::Compile(KWClass* kwcOwnerClass)
 			liDataItemLoadIndex = attribute->GetLoadIndex();
 
 			// Compilation d'eventuelle regle portee par l'attribut
-			if (attribute->GetDerivationRule() != NULL)
-			{
-				check(attribute->GetDerivationRule());
+			if (attribute->GetDerivationRule() != NULL and not attribute->GetDerivationRule()->IsCompiled())
 				attribute->GetDerivationRule()->Compile(scopeClass);
-			}
 		}
 		// Cas d'un bloc d'attributs
 		else
@@ -818,11 +840,9 @@ void KWDerivationRuleOperand::Compile(KWClass* kwcOwnerClass)
 			liDataItemLoadIndex = attributeBlock->GetLoadIndex();
 
 			// Compilation d'eventuelle regle portee par l'attribut
-			if (attributeBlock->GetDerivationRule() != NULL)
-			{
-				check(attributeBlock->GetDerivationRule());
+			if (attributeBlock->GetDerivationRule() != NULL and
+			    not attributeBlock->GetDerivationRule()->IsCompiled())
 				attributeBlock->GetDerivationRule()->Compile(scopeClass);
-			}
 		}
 	}
 
@@ -830,55 +850,10 @@ void KWDerivationRuleOperand::Compile(KWClass* kwcOwnerClass)
 	if (GetOrigin() == OriginRule)
 	{
 		check(GetDerivationRule());
-		GetDerivationRule()->Compile(scopeClass);
+		if (not GetDerivationRule()->IsCompiled())
+			GetDerivationRule()->Compile(scopeClass);
 	}
 	debug(ensure(IsCompiled()));
-}
-
-void KWDerivationRuleOperand::RenameAttribute(const KWClass* kwcOwnerClass, KWAttribute* refAttribute,
-					      const ALString& sNewAttributeName)
-{
-	KWClass* refClass;
-	const KWClass* scopeClass;
-
-	require(kwcOwnerClass != NULL);
-	require(refAttribute != NULL);
-	require(refAttribute->GetParentClass() != NULL);
-	require(refAttribute->GetParentClass()->LookupAttribute(refAttribute->GetName()) == refAttribute);
-
-	// Acces a la classe du scope
-	refClass = refAttribute->GetParentClass();
-	scopeClass = kwcOwnerClass;
-	if (GetScopeLevel() > 0 and GetScopeLevel() <= GetScopeDepth(kwcOwnerClass))
-		scopeClass = GetClassAtScope(kwcOwnerClass, GetScopeLevel());
-
-	// Renommage si necessaire
-	if (GetAttributeName() == refAttribute->GetName())
-	{
-		if (refClass == scopeClass)
-			SetAttributeName(sNewAttributeName);
-	}
-
-	// Propagation aux sous-regles
-	if (GetDerivationRule() != NULL and scopeClass != NULL)
-		GetDerivationRule()->RenameAttribute(scopeClass, refAttribute, sNewAttributeName);
-}
-
-const ALString KWDerivationRuleOperand::ComputeOperandName() const
-{
-	ALString sOperandName;
-
-	// Prefixage en fonction de niveau de scope
-	sOperandName = ALString('.', GetScopeLevel());
-
-	// On complete selon la nature de l'operande
-	if (cOrigin == OriginAttribute)
-		sOperandName += GetDataItemName();
-	else if (cOrigin == OriginConstant)
-		sOperandName += GetStringConstant();
-	else if (GetDerivationRule() != NULL)
-		sOperandName += GetDerivationRule()->ComputeAttributeName();
-	return sOperandName;
 }
 
 KWDerivationRuleOperand* KWDerivationRuleOperand::Clone() const
@@ -922,8 +897,10 @@ KWDerivationRuleOperand* KWDerivationRuleOperand::Clone() const
 	// La nouvelle version est a recompiler
 	kwdroClone->kwcClass = NULL;
 	kwdroClone->liDataItemLoadIndex.Reset();
-	debug(kwdroClone->nFreshness = nFreshness;) debug(kwdroClone->nClassFreshness = 0;)
-	    debug(kwdroClone->nCompileFreshness = 0;) return kwdroClone;
+	debug(kwdroClone->nFreshness = nFreshness);
+	debug(kwdroClone->nClassFreshness = 0);
+	debug(kwdroClone->nCompileFreshness = 0);
+	return kwdroClone;
 }
 
 boolean KWDerivationRuleOperand::Check() const

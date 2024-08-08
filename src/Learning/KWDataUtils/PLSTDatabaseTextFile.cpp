@@ -8,6 +8,8 @@ PLSTDatabaseTextFile::PLSTDatabaseTextFile()
 {
 	lTotalFileSize = 0;
 	nDatabasePreferredBufferSize = 0;
+	lInMemoryEstimatedFileObjectNumber = 0;
+	lEstimatedUsedMemoryPerObject = 0;
 	lOutputNecessaryDiskSpace = 0;
 	lEmptyOpenNecessaryMemory = 0;
 	lMinOpenNecessaryMemory = 0;
@@ -37,6 +39,7 @@ boolean PLSTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 {
 	boolean bOk = true;
 	boolean bDisplay = GetPreparationTraceMode();
+	PLDataTableDriverTextFile* driver;
 	boolean bCurrentVerboseMode;
 	KWClass* kwcUsedHeaderLineClass;
 	longint lDatabaseClassNecessaryMemory;
@@ -61,10 +64,11 @@ boolean PLSTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 	if (bRead)
 	{
 		// Parametrage du driver
-		assert(cast(PLDataTableDriverTextFile*, dataTableDriverCreator)->GetDataTableName() == "");
-		assert(cast(PLDataTableDriverTextFile*, dataTableDriverCreator)->GetClass() == NULL);
-		cast(PLDataTableDriverTextFile*, dataTableDriverCreator)->SetDataTableName(sDatabaseName);
-		cast(PLDataTableDriverTextFile*, dataTableDriverCreator)->SetClass(kwcPhysicalClass);
+		driver = cast(PLDataTableDriverTextFile*, dataTableDriverCreator);
+		assert(driver->GetDataTableName() == "");
+		assert(driver->GetClass() == NULL);
+		driver->SetDataTableName(sDatabaseName);
+		driver->SetClass(kwcPhysicalClass);
 
 		// Creation d'une classe fictive basee sur l'analyse de la premiere ligne du fichier, dans le cas d'une
 		// ligne d'entete
@@ -82,8 +86,7 @@ boolean PLSTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 				// Calcul d'une classe representant le header a partir du fichier
 				kwcHeaderLineClass.SetName(
 				    kwcClass->GetDomain()->BuildClassName(GetClassName() + "HeaderLine"));
-				bOk = cast(PLDataTableDriverTextFile*, dataTableDriverCreator)
-					  ->BuildDataTableClass(&kwcHeaderLineClass);
+				bOk = driver->BuildDataTableClass(&kwcHeaderLineClass);
 				assert(bOk or kwcHeaderLineClass.GetName() == "");
 
 				// Restitution du mode initial
@@ -93,24 +96,28 @@ boolean PLSTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 		}
 
 		// Calcul des index
-		bOk = bOk and cast(PLDataTableDriverTextFile*, dataTableDriverCreator)
-				  ->ComputeDataItemLoadIndexes(kwcClass, kwcUsedHeaderLineClass);
+		bOk = bOk and driver->ComputeDataItemLoadIndexes(kwcClass, kwcUsedHeaderLineClass);
 
 		// Calcul de la taille du fichier si non deja calcule ou si erreur
 		if (bRead and lTotalFileSize == 0)
 			lTotalFileSize = PLRemoteFileService::GetFileSize(sDatabaseName);
 
+		// Memorisation de l'estimation du nombre d'objet du fichier
+		lInMemoryEstimatedFileObjectNumber = driver->GetInMemoryEstimatedObjectNumber(lTotalFileSize);
+
+		// Memorisation de la memoire utilisee par KWObject
+		lEstimatedUsedMemoryPerObject = driver->GetEstimatedUsedMemoryPerObject();
+
 		// Calcul de la taille memoire en sortie
 		if (outputDatabaseTextFile != NULL)
 		{
 			lOutputNecessaryDiskSpace =
-			    cast(PLDataTableDriverTextFile*, dataTableDriverCreator)
-				->ComputeNecessaryDiskSpaceForFullWrite(kwcClass, lTotalFileSize);
+			    driver->ComputeNecessaryDiskSpaceForFullWrite(kwcClass, lTotalFileSize);
 		}
 
 		// Nettoyage
-		cast(PLDataTableDriverTextFile*, dataTableDriverCreator)->SetClass(NULL);
-		cast(PLDataTableDriverTextFile*, dataTableDriverCreator)->SetDataTableName("");
+		driver->SetClass(NULL);
+		driver->SetDataTableName("");
 	}
 
 	// Correction de la place disque necessaire en sortie en fonction du pourcentage d'exemples a lire dans la base
@@ -207,6 +214,8 @@ boolean PLSTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 void PLSTDatabaseTextFile::CleanOpenInformation()
 {
 	nDatabasePreferredBufferSize = 0;
+	lInMemoryEstimatedFileObjectNumber = 0;
+	lEstimatedUsedMemoryPerObject = 0;
 	lOutputNecessaryDiskSpace = 0;
 	lEmptyOpenNecessaryMemory = 0;
 	lMinOpenNecessaryMemory = 0;
@@ -248,6 +257,18 @@ int PLSTDatabaseTextFile::GetDatabasePreferredBuferSize() const
 {
 	require(IsOpenInformationComputed());
 	return nDatabasePreferredBufferSize;
+}
+
+longint PLSTDatabaseTextFile::GetInMemoryEstimatedFileObjectNumber() const
+{
+	require(IsOpenInformationComputed());
+	return lInMemoryEstimatedFileObjectNumber;
+}
+
+longint PLSTDatabaseTextFile::GetEstimatedUsedMemoryPerObject() const
+{
+	require(IsOpenInformationComputed());
+	return lEstimatedUsedMemoryPerObject;
 }
 
 longint PLSTDatabaseTextFile::GetEmptyOpenNecessaryMemory() const
@@ -425,6 +446,8 @@ void PLShared_STDatabaseTextFile::SerializeObject(PLSerializer* serializer, cons
 	// Ecriture des informations d'ouverture de la base
 	serializer->PutLongint(database->lTotalFileSize);
 	serializer->PutInt(database->nDatabasePreferredBufferSize);
+	serializer->PutLongint(database->lInMemoryEstimatedFileObjectNumber);
+	serializer->PutLongint(database->lEstimatedUsedMemoryPerObject);
 	serializer->PutLongint(database->lOutputNecessaryDiskSpace);
 	serializer->PutLongint(database->lEmptyOpenNecessaryMemory);
 	serializer->PutLongint(database->lMinOpenNecessaryMemory);
@@ -469,6 +492,8 @@ void PLShared_STDatabaseTextFile::DeserializeObject(PLSerializer* serializer, Ob
 	// Lecture des informations d'ouverture de la base
 	database->lTotalFileSize = serializer->GetLongint();
 	database->nDatabasePreferredBufferSize = serializer->GetInt();
+	database->lInMemoryEstimatedFileObjectNumber = serializer->GetLongint();
+	database->lEstimatedUsedMemoryPerObject = serializer->GetLongint();
 	database->lOutputNecessaryDiskSpace = serializer->GetLongint();
 	database->lEmptyOpenNecessaryMemory = serializer->GetLongint();
 	database->lMinOpenNecessaryMemory = serializer->GetLongint();

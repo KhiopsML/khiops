@@ -307,7 +307,9 @@ longint PLMPISystemFileDriverRemote::Fread(void* ptr, size_t size, size_t count,
 			MPI_Recv(&((char*)ptr)[nPos], nLocalSize, MPI_CHAR,
 				 PLMPITaskDriver::GetDriver()->nFileServerRank, FILE_SERVER_FREAD, MPI_COMM_WORLD,
 				 &status);
-			debug(; int nCount; MPI_Get_count(&status, MPI_CHAR, &nCount); assert(nCount == nLocalSize););
+			debug(int nCount);
+			debug(MPI_Get_count(&status, MPI_CHAR, &nCount));
+			debug(assert(nCount == nLocalSize));
 
 			nPos += nLocalSize;
 			nSizeToRecv -= nLocalSize;
