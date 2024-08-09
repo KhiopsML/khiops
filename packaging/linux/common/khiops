@@ -1,15 +1,71 @@
 #!/bin/bash
 
 # Run Khiops tool
-# see the khiops_env script for full documentation on the environment variables used by Khiops
+# see the khiops-env script for full documentation on the environment variables used by Khiops
+
+
+
+error() {
+    if [ -f /dev/log ]; then
+        logger "$*" --tag khiops --stderr
+    fi
+    if [ -n "$DISPLAY" ]
+    then
+        notify-send "Khiops" "$*" -i /usr/share/pixmaps/khiops.png -u normal;
+    fi
+    exit 1; 
+}
+
+
+warning() {
+    if [ -f /dev/log ]; then
+        logger "$*" --tag khiops --stderr
+    fi
+    if [ -n "$DISPLAY" ]
+    then
+        notify-send "Khiops" "$*" -i /usr/share/pixmaps/khiops.png -u normal;
+    fi
+}
 
 if [[ ! -f /usr/bin/khiops-env ]]; then
-    echo "/usr/bin/khiops-env is missing"
-    exit 1
+    error "/usr/bin/khiops-env is missing"
 fi
 
-# initialize Khiops env variables
-source /usr/bin/khiops-env --env > /dev/null
+# initialize Khiops environment
+source /usr/bin/khiops-env
+
+# Test if batch mode from parameters
+KHIOPS_BATCH_MODE=false
+for ((i=1;i<=$#;i++)); 
+do
+    if [ ${!i} = "-b" ] || [ ${!i} = "-h" ] || [ ${!i} = "-s" ] || [ ${!i} = "-v" ]; then
+	    KHIOPS_BATCH_MODE=true
+        break
+    fi
+done;
+
+
+if [[ ! -e $KHIOPS_PATH/MODL ]]; then
+    error "Binary not found ($KHIOPS_PATH/MODL)"
+fi
+
+# Test multiple possible errors with the java GUI 
+if [  "$KHIOPS_BATCH_MODE" = false ]; then
+    if [ -z "$DISPLAY" ]; then
+        error "GUI is not available, please use the '-b' flag"
+    elif [ -z "$KHIOPS_JAVA_PATH" ]; then
+        if [ -z "$KHIOPS_JAVA_ERROR" ]; then
+            error "The khiops GUI is not configured properly. Please (re)install the 'khiops' package."
+        else
+            error "$KHIOPS_JAVA_ERROR"
+        fi
+    fi
+fi
+
+# Display error with mpi configuration
+if [ -n "$KHIOPS_MPI_ERROR" ]; then
+    warning "$KHIOPS_MPI_ERROR"
+fi
 
 export CLASSPATH=$CLASSPATH:$KHIOPS_CLASSPATH
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$KHIOPS_JAVA_PATH
