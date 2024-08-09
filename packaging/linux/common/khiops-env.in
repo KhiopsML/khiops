@@ -1,5 +1,4 @@
 #!/bin/bash
-
 help()
 {
     echo "Usage: khiops-env [-h, --help] [--env]"
@@ -79,11 +78,19 @@ if [ -f "/usr/share/khiops/khiops.jar" ]; then
     fi
 fi
 
+get_script_dir(){
+    SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+    echo "$SCRIPT_DIR/"
+}
+
 @ADDITIONAL_EN_VAR@
+
+KHIOPS_PATH=@KHIOPS_PATH@@MODL_NAME@
+KHIOPS_COCLUSTERING_PATH=@KHIOPS_COCLUSTERING_PATH@MODL_Coclustering
 
 # Number of processes in use (must be set according to the physical cores number)
 if [[ -z $KHIOPS_PROC_NUMBER ]]; then
-    KHIOPS_PROC_NUMBER=$(lscpu -b -p=Core,Socket | grep -v '^#' | sort -u | wc -l)
+    KHIOPS_PROC_NUMBER=$(${KHIOPS_PATH} -s | grep 'Physical cores on system' | cut -d" " -f5-)
 fi
 
 if command -v mpiexec &> /dev/null
@@ -99,7 +106,7 @@ if [[ $KHIOPS_PROC_NUMBER -le 2 ]]; then
     KHIOPS_MPI_COMMAND=""
 fi
 
-KHIOPS_PATH=/usr/bin
+
 
 if [ "$1" = "--env" ];
 then
