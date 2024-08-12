@@ -22,6 +22,7 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
+  
   build:
     runs-on: ubuntu-latest
     defaults:
@@ -77,6 +78,8 @@ jobs:
   test:
     needs: build
     runs-on: ubuntu-latest
+    env:
+      DEBIAN_FRONTEND: noninteractive
     defaults:
       run:
         shell: bash
@@ -103,7 +106,6 @@ jobs:
           path: artifacts
       - name: Install Khiops core
         run: |
-          export DEBIAN_FRONTEND="noninteractive"
           apt-get update
           dpkg -i ./artifacts/khiops-core* || true
           apt-get -f install -y
@@ -120,6 +122,8 @@ jobs:
   test-kni:
     needs: build
     runs-on: ubuntu-latest
+    env:
+      DEBIAN_FRONTEND: noninteractive
     defaults:
       run:
         shell: bash
