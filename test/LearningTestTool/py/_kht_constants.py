@@ -133,9 +133,10 @@ KHIOPS_MEM_STATS_LOG_FREQUENCY = "KhiopsMemStatsLogFrequency"
 KHIOPS_MEM_STATS_LOG_TO_COLLECT = "KhiopsMemStatsLogToCollect"
 KHIOPS_IO_TRACE_MODE = "KhiopsIOTraceMode"
 
-# Variables non documentee documentees, utilisee systematiquyement pour les tests
+# Variables non documentee documentees, utilisee systematiquement pour les tests
 KHIOPS_EXPERT_MODE = "KhiopsExpertMode"
 KHIOPS_CRASH_TEST_MODE = "KhiopsCrashTestMode"
+KHIOPS_FAST_EXIT_MODE = "KhiopsFastExitMode"
 KHIOPS_HARD_MEMORY_LIMIT_MODE = "KhiopsHardMemoryLimitMode"
 
 """

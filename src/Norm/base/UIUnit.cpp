@@ -102,6 +102,10 @@ void UIUnit::Open()
 					AddSimpleMessage("Replay user action\t: " + sCommand);
 				WriteOutputCommand(sCommand, sValue, uiAction->GetUnformattedLabel());
 				uiUnit->ExecuteUserActionAt(uiAction->GetIdentifier());
+
+				// Sortie en mode fast exit
+				if (bBatchMode and bFastExitMode and Global::IsAtLeastOneError())
+					GlobalExitOnSuccess();
 				break;
 			}
 

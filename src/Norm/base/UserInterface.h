@@ -233,6 +233,18 @@ public:
 	// Ce mode peut etre modifie suite a un parametrage de la ligne de commande
 	static boolean IsBatchMode();
 
+	// Indicateur du mode de l'outil avec gestion du mode fast exist pour l'execution d'un scenario
+	// En mode fast exit a true (par defaut)
+	// - lors de l'execution d'un scenario en mode batch, on arrete des qu'une erreur applicative est detectee
+	// - on sort avec un exit code 0, avec dans le log la premiere erreur applicative detectee
+	//   - cela evite la sortie en fatal error, qui est plutot reservee au cas d'un scenario vraiment invalide
+	//   - cela est suffisant en informant correctement l'utilisateur sur la nature de l'erreur
+	// En mode fast exit a false
+	// - on continue l'execution du scenario
+	// - cela permet l'utilisation de scenarios testant de nombreux type d'erreur
+	static void SetFastExitMode(boolean bValue);
+	static boolean GetFastExitMode();
+
 	// Indique si le mode textuel peut-etre utilise de facon interactive
 	// avec des saisies d'actiosn ou de valeurs de champs depuis une fenetre shell
 	// Sort en erreur fatale si on ariive dans ce mode et qu'il n'est pas autorise
@@ -438,6 +450,7 @@ protected:
 	static int nInstanceNumber;
 	static boolean bVerboseCommandReplay;
 	static boolean bBatchMode;
+	static boolean bFastExitMode;
 	static boolean bTextualInteractiveModeAllowed;
 	static ALString sIconImageJarPath;
 	static ALString sLocalInputCommandsFileName;

@@ -318,6 +318,10 @@ def evaluate_tool_on_test_dir(
         # khiops en mode expert via une variable d'environnement
         os.environ[kht.KHIOPS_EXPERT_MODE] = "true"
 
+        # khiops en mode fast exit a false via une variable d'environnement,
+        # pour executer des scenarios testant plusieurs cas d'erreur
+        os.environ[kht.KHIOPS_FAST_EXIT_MODE] = "false"
+
         # khiops en mode HardMemoryLimit via une variable d'environnement pour provoquer
         # un plantage physique de l'allocateur en cas de depassement des contraintes memoires des scenarios
         os.environ[kht.KHIOPS_HARD_MEMORY_LIMIT_MODE] = "true"

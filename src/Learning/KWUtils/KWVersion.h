@@ -126,6 +126,11 @@ boolean GetLearningHardMemoryLimitMode();
 // Ce mode expert est controlable par la variable d'environnement KhiopsCrashTestMode a true ou false
 boolean GetLearningCrashTestMode();
 
+// Indicateur du mode de l'outil avec gestion du mode fast exist pour l'execution d'un scenario
+// Cf. UIObject::SetFastExitMode
+// Ce mode expert est controlable par la variable d'environnement KhiopsFastExitMode a true ou false
+boolean GetLearningFastExitMode();
+
 // Indicateur du mode trace pour le dimensionnement des taches de preparation
 // Ce mode expert est controlable par la variable d'environnement KhiopsPreparationTraceMode a true ou false
 boolean GetPreparationTraceMode();
