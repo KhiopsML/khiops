@@ -651,7 +651,7 @@ void KWDRTablePartition::InternalCompleteTypeInfo(const KWClass* kwcOwnerClass,
 	// Appel de la methode ancetre
 	KWDerivationRule::InternalCompleteTypeInfo(kwcOwnerClass, nkdCompletedAttributes);
 
-	// Completion du tu type d'ObjectArray du bloc a partir du premier operande
+	// Completion du type d'ObjectArray du bloc a partir du premier operande
 	if (GetOperandNumber() > 1 and GetFirstOperand()->GetType() == KWType::ObjectArray)
 	{
 		SetObjectClassName(GetFirstOperand()->GetObjectClassName());

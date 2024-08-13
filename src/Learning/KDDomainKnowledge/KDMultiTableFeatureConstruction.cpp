@@ -602,7 +602,7 @@ void KDMultiTableFeatureConstruction::BuildMainClassRequestedConstructedRules(Ob
 		// Calcul de la quantite de memoire moyenne par regle
 		lAvailableMemory = RMResourceManager::GetRemainingAvailableMemory();
 		lMeanRuleMemory =
-		    abs(lAvailableMemory - lInitialAvailableMemory) / (1 + oaAllConstructedRules->GetSize());
+		    abs(lAvailableMemory - lInitialAvailableMemory) / ((longint)1 + oaAllConstructedRules->GetSize());
 
 		// Fin de sous tache
 		TaskProgression::EndTask();
@@ -642,7 +642,7 @@ void KDMultiTableFeatureConstruction::BuildMainClassRequestedConstructedRules(Ob
 		{
 			// On table sur 3 fois le nombre de regles precedentes (peut-etre deux fois, mais des regles
 			// plus longues...: regle sur le pouce)
-			lNecessaryMemory = 3 * nConstructedRuleNumber * lMeanRuleMemory;
+			lNecessaryMemory = (longint)3 * nConstructedRuleNumber * lMeanRuleMemory;
 			if (lNecessaryMemory >= RMResourceManager::GetRemainingAvailableMemory())
 			{
 				AddWarning("Not enough memory to construct all requested rules" +

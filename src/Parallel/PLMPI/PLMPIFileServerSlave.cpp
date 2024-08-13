@@ -99,7 +99,8 @@ void PLMPIFileServerSlave::Run(boolean& bOrderToQuit)
 				// Reception du message
 				context.Recv(MPI_COMM_WORLD, 0, MASTER_RESOURCES);
 				serializer.OpenForRead(&context);
-				debug(serializer.GetInt(); serializer.GetInt(););
+				debug(serializer.GetInt());
+				debug(serializer.GetInt());
 
 				serializer.Close();
 

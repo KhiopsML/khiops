@@ -263,7 +263,7 @@ boolean KWMTDatabaseMapping::CheckDataPath() const
 		if (n == sDataPathAttributeNames.GetLength() - 1)
 		{
 			nAttributeNumber++;
-			if (n <= nLastAttributeBegin)
+			if (n < nLastAttributeBegin)
 			{
 				AddError(sTmp + "Missing name for variable " + IntToString(nAttributeNumber + 1) +
 					 " in data path");

@@ -313,59 +313,6 @@ void KWClassDomain::RenameClass(KWClass* refClass, const ALString& sNewName)
 	nUpdateNumber++;
 }
 
-void KWClassDomain::RenameAttribute(KWAttribute* refAttribute, const ALString& sNewAttributeName)
-{
-	KWClass* refClass;
-	KWClass* kwcClass;
-	KWAttribute* attribute;
-	KWDerivationRule* currentDerivationRule;
-	int i;
-
-	require(refAttribute != NULL);
-	require(refAttribute->GetParentClass() != NULL);
-	require(refAttribute->GetParentClass()->LookupAttribute(refAttribute->GetName()) == refAttribute);
-	require(refAttribute->GetParentClass() ==
-		cast(KWClass*, odClasses.Lookup(refAttribute->GetParentClass()->GetName())));
-	require(refAttribute->GetParentClass()->domain == this);
-	require(refAttribute->GetParentClass()->LookupAttribute(sNewAttributeName) == NULL);
-
-	// Propagation du renommage a toutes les regles de derivation
-	// des classes du domaine referencant l'attribut
-	refClass = refAttribute->GetParentClass();
-	for (i = 0; i < GetClassNumber(); i++)
-	{
-		kwcClass = GetClassAt(i);
-
-		// Parcours des attributs de la classe
-		// (sauf classe de depart deja traitee)
-		if (kwcClass != refClass)
-		{
-			attribute = kwcClass->GetHeadAttribute();
-			currentDerivationRule = NULL;
-			while (attribute != NULL)
-			{
-				// Detection de changement de regle de derivation (notamment pour les blocs)
-				if (attribute->GetAnyDerivationRule() != currentDerivationRule)
-				{
-					currentDerivationRule = attribute->GetAnyDerivationRule();
-
-					// Renommage dans les regles de derivation (et au plus une seule fois
-					// par bloc)
-					if (currentDerivationRule != NULL)
-						currentDerivationRule->RenameAttribute(kwcClass, refAttribute,
-										       sNewAttributeName);
-				}
-
-				// Attribut suivant
-				kwcClass->GetNextAttribute(attribute);
-			}
-		}
-	}
-
-	// Renommage de l'attribut sur la classe de depart
-	refClass->RenameAttribute(refAttribute, sNewAttributeName);
-}
-
 ObjectArray* KWClassDomain::AllClasses() const
 {
 	// Quelques adaptations (mutable...) ont ete necessaire pour
@@ -560,7 +507,7 @@ void KWClassDomain::CompleteTypeInfo()
 	}
 }
 
-void KWClassDomain::Compile()
+boolean KWClassDomain::Compile()
 {
 	boolean bIsDomainCompiled;
 	int nClass;
@@ -588,7 +535,7 @@ void KWClassDomain::Compile()
 
 	// Arret si deja compile
 	if (bIsDomainCompiled)
-		return;
+		return true;
 
 	// Affichage de stats memoire
 	MemoryStatsManager::AddLog(GetClassLabel() + " " + GetObjectLabel() + " Compile Begin");
@@ -746,6 +693,9 @@ void KWClassDomain::Compile()
 
 	// Affichage de stats memoire
 	MemoryStatsManager::AddLog(GetClassLabel() + " " + GetObjectLabel() + " Compile End");
+
+	// Ok si pas de cycle detectee
+	return not bContainsCycle;
 }
 
 KWClassDomain* KWClassDomain::Clone() const
@@ -1086,7 +1036,6 @@ void KWClassDomain::TestReadWrite(const ALString& sReadFileName, const ALString&
 	int nReloadAttributeNumber;
 	ObjectArray oaTestClasses;
 	KWClass* kwcClass;
-	KWAttribute* attribute;
 	int i;
 
 	// Creation des domaines
@@ -1102,8 +1051,8 @@ void KWClassDomain::TestReadWrite(const ALString& sReadFileName, const ALString&
 	loadDomain->ReadFile(sReadFileName);
 	loadDomain->Check();
 
-	// Renommage des classes et attributs
-	cout << "\nRename dictionaries and variables" << endl;
+	// Renommage des classes
+	cout << "\nRename dictionaries" << endl;
 	for (i = 0; i < loadDomain->GetClassNumber(); i++)
 		oaTestClasses.Add(loadDomain->GetClassAt(i));
 	for (i = 0; i < oaTestClasses.GetSize(); i++)
@@ -1112,14 +1061,6 @@ void KWClassDomain::TestReadWrite(const ALString& sReadFileName, const ALString&
 
 		// Renommage de la classe
 		loadDomain->RenameClass(kwcClass, "N" + kwcClass->GetName());
-
-		// Renommage des attributs
-		attribute = kwcClass->GetHeadAttribute();
-		while (attribute != NULL)
-		{
-			loadDomain->RenameAttribute(attribute, "N" + attribute->GetName());
-			kwcClass->GetNextAttribute(attribute);
-		}
 	}
 
 	// Ecriture du fichier
@@ -1167,7 +1108,7 @@ void KWClassDomain::Test()
 
 	// Creation des classes
 	kwcClass1 = KWClass::CreateClass("Class1", 3, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, true, NULL);
-	kwcClass2 = KWClass::CreateClass("Class2", 2, 0, 0, 1, 1, 1, 1, 1, 1, 3, 3, 0, true, kwcClass1);
+	kwcClass2 = KWClass::CreateClass("Class2", 2, 0, 0, 1, 1, 1, 1, 1, 0, 3, 3, 0, true, kwcClass1);
 	kwcClass3 = KWClass::CreateClass("Class3", 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, true, kwcClass2);
 	kwcClass3->SetRoot(true);
 	KWClassDomain::GetCurrentDomain()->InsertClass(kwcClass1);
