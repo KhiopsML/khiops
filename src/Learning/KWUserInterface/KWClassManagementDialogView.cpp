@@ -12,28 +12,16 @@ KWClassManagementDialogView::KWClassManagementDialogView()
 
 	// Identifiant et libelle
 	SetIdentifier("KWClassManagementDialog");
-	SetLabel("Dictionary management");
+	SetLabel("Data dictionary");
 
-	// Ajout d'un champ non editable pour le fichier dictionnaire
+	// Ajout d'un champ non editable pour le fichier dictionnaire, en tete de fenetre
 	AddStringField("ClassFileName", "Dictionary file", "");
 	GetFieldAt("ClassFileName")->SetEditable(false);
+	MoveFieldBefore("ClassFileName", GetFieldAtIndex(0)->GetIdentifier());
 
-	// Declaration des actions
-	AddAction("BuildClassDefButton", "Build dictionary from data table...",
-		  (ActionMethod)(&KWClassManagementDialogView::BuildClassDef));
-	AddAction("ReloadFileButton", "Reload dictionary file",
-		  (ActionMethod)(&KWClassManagementDialogView::ReloadFile));
-	AddAction("EditFileButton", "Edit dictionary file", (ActionMethod)(&KWClassManagementDialogView::EditFile));
-
-	// Ajout d'un bouton pour les actions les plus importantes
-	GetActionAt("BuildClassDefButton")->SetStyle("Button");
-	GetActionAt("ReloadFileButton")->SetStyle("Button");
-	GetActionAt("EditFileButton")->SetStyle("Button");
-
-	// Ajout d'une donnee liste non editable pour les dictionnaire
-	classSpecArrayView = new KWClassSpecArrayView;
-	AddListField("Classes", "Dictionaries", classSpecArrayView);
-	classSpecArrayView->SetEditable(false);
+	// La liste des dictionnaire de la classe mere est ici visible
+	classSpecArrayView = cast(KWClassSpecArrayView*, GetFieldAt("Classes"));
+	classSpecArrayView->SetVisible(true);
 
 	// Parametrage de son action d'edition en menu popup
 	inspectDictionaryAction = classSpecArrayView->GetActionAt("InspectItem");
@@ -41,16 +29,29 @@ KWClassManagementDialogView::KWClassManagementDialogView()
 	inspectDictionaryAction->SetLabel("Inspect current dictionary");
 	inspectDictionaryAction->SetStyle("PopupMenu");
 
-	// Ajout d'un bouton egalement pour l'action d'edition
-	classSpecArrayView->AddAction("InspectItemButton", inspectDictionaryAction->GetLabel(),
-				      inspectDictionaryAction->GetActionMethod());
-	classSpecArrayView->GetActionAt("InspectItemButton")->SetStyle("SmallButton");
-
 	// On indique que les champs Used et Type des attributs sont editables dans
 	// la fiche d'inspection d'un dictionnaire
 	classSpecView = cast(KWClassSpecView*, classSpecArrayView->GetItemView());
 	classSpecView->GetAttributeSpecArrayView()->GetFieldAt("Used")->SetEditable(true);
 	classSpecView->GetAttributeSpecArrayView()->GetFieldAt("Type")->SetEditable(true);
+
+	// Destruction des actions non utilisable de la classe mere
+	DeleteActionAt("ManageClasses");
+	DeleteActionAt("Quit");
+
+	// Declaration des actions specifiques
+	AddAction("BuildClassDefButton", "Build dictionary from data table...",
+		  (ActionMethod)(&KWClassManagementDialogView::BuildClassDef));
+	AddAction("EditFileButton", "Edit dictionary file", (ActionMethod)(&KWClassManagementDialogView::EditFile));
+
+	// Le reload de la classe mere est accessible egalement par bouton
+	AddAction("ReloadFileButton", "Reload dictionary file",
+		  (ActionMethod)(&KWClassManagementActionView::ReloadFile));
+
+	// Ajout d'un bouton pour les actions les plus importantes
+	GetActionAt("BuildClassDefButton")->SetStyle("Button");
+	GetActionAt("ReloadFileButton")->SetStyle("Button");
+	GetActionAt("EditFileButton")->SetStyle("Button");
 
 	// Info-bulles
 	GetActionAt("BuildClassDefButton")
@@ -64,15 +65,11 @@ KWClassManagementDialogView::KWClassManagementDialogView()
 	    ->SetHelpText(
 		"Allow to inspect and partly modify a dictionary chosen among the list of available dictionaries."
 		"\n The dictionary to inspect must be selected among the dictionaries in file.");
-	classSpecArrayView->GetActionAt("InspectItemButton")
-	    ->SetHelpText(classSpecArrayView->GetActionAt("InspectItem")->GetHelpText());
 
 	// Short cuts
 	GetActionAt("BuildClassDefButton")->SetShortCut('B');
 	GetActionAt("ReloadFileButton")->SetShortCut('L');
 	GetActionAt("EditFileButton")->SetShortCut('E');
-	classSpecArrayView->SetShortCut('D');
-	classSpecArrayView->GetActionAt("InspectItemButton")->SetShortCut('I');
 }
 
 KWClassManagementDialogView::~KWClassManagementDialogView() {}
@@ -101,17 +98,6 @@ void KWClassManagementDialogView::EventRefresh(Object* object)
 
 	// Reactualisation des specs de classes
 	GetClassManagement()->RefreshClassSpecs();
-}
-
-const ALString KWClassManagementDialogView::GetClassLabel() const
-{
-	return "Dictionary management";
-}
-
-const ALString KWClassManagementDialogView::GetObjectLabel() const
-{
-	// Redefini a vide, car le ClassLabel est suffisant dans les messages
-	return "";
 }
 
 void KWClassManagementDialogView::BuildClassDef()
@@ -155,13 +141,6 @@ void KWClassManagementDialogView::BuildClassDef()
 	}
 }
 
-void KWClassManagementDialogView::ReloadFile()
-{
-	// On lit le dictionnaire
-	if (GetClassManagement()->GetClassFileName() != "")
-		GetClassManagement()->ReadClasses();
-}
-
 void KWClassManagementDialogView::EditFile()
 {
 	boolean bOk;
@@ -175,53 +154,4 @@ void KWClassManagementDialogView::EditFile()
 		if (not bOk)
 			AddWarning(sResult);
 	}
-}
-
-void KWClassManagementDialogView::SaveFileUnderName(const ALString& sFileName)
-{
-	UIFileChooserCard registerCard;
-	ALString sChosenFileName;
-	KWResultFilePathBuilder resultFilePathBuilder;
-
-	// Ouverture du FileChooser
-	sChosenFileName = registerCard.ChooseFile("Save as", "Save", "FileChooser", "Dictionary\nkdic", "ClassFileName",
-						  "Dictionary file", sFileName);
-
-	// Sauvegarde du fichier des dictionnaires
-	if (sChosenFileName != "")
-	{
-		// Construction du chemin complet du dictionnaire a sauver
-		resultFilePathBuilder.SetInputFilePathName(classBuilderView.GetSourceDataTable()->GetDatabaseName());
-		resultFilePathBuilder.SetOutputFilePathName(sChosenFileName);
-		sChosenFileName = resultFilePathBuilder.BuildResultFilePathName();
-
-		// Memorisation du nom du fichier de dictionnaire
-		GetClassManagement()->SetClassFileName(sChosenFileName);
-
-		// On ecrit le fichier de dictionnaire
-		GetClassManagement()->WriteClasses();
-	}
-}
-
-void KWClassManagementDialogView::SetObject(Object* object)
-{
-	KWClassManagement* classManagement;
-
-	require(object != NULL);
-
-	// Acces a l'objet edite
-	classManagement = cast(KWClassManagement*, object);
-
-	// Parametrage de la sous-liste des specifications de dictionnaires
-	cast(KWClassSpecArrayView*, GetFieldAt("Classes"))->SetObjectArray(classManagement->GetClassSpecs());
-
-	// Memorisation de l'objet pour la fiche courante
-	UIObjectView::SetObject(object);
-}
-
-KWClassManagement* KWClassManagementDialogView::GetClassManagement()
-{
-	require(objValue != NULL);
-
-	return cast(KWClassManagement*, objValue);
 }

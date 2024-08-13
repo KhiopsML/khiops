@@ -4,8 +4,12 @@
 
 #include "KWClassManagementActionView.h"
 
+// Inclusion dans le fichier source pour eviter un cycle de dependance des headers
+#include "KWClassManagementDialogView.h"
+
 KWClassManagementActionView::KWClassManagementActionView()
 {
+	// Titre
 	SetIdentifier("KWClassManagementAction");
 	SetLabel("Dictionary management");
 
@@ -193,9 +197,14 @@ void KWClassManagementActionView::ManageClasses()
 
 	require(CheckDictionaryName());
 
+	// Parametrage des bases de train et test
+	manageClassesDialogView.SetTrainDatabase(GetTrainDatabase());
+	manageClassesDialogView.SetTestDatabase(GetTestDatabase());
+
 	// Ouverture de la boite avec l'objet edite en cours
 	// On prend le RawObject pour avoir l'objet directement, sans synchronisation avec l'interface
 	manageClassesDialogView.SetObject(GetRawObject());
+
 	manageClassesDialogView.Open();
 
 	// Copie du nom du dictionnaire dans les bases

@@ -1,11 +1,13 @@
 File format detected: header line and field separator tabulation
 Database ../../../datasets/Iris/Iris.txt : Recognized variable types: 1 Categorical, 4 Numerical
-warning : A dictionary has been generated automatically. The field types should be checked and the dictionary saved if necessary. For standard use, refer to the 'Data dictionary/Manage dictionaries...' menu.
+
+warning : A dictionary has been generated automatically. The field types should be checked and the dictionary saved if necessary.
+For standard use, refer to the 'Data dictionary/Manage dictionaries...' menu.
 
 Database ../../../datasets/Iris/Iris.txt : Read records: 150
   0:00:00	Write intermediate report Coclustering(1).khcj	Level: 0.05003	Size: 2*2	Granularity: 1
   0:00:00	Write intermediate report Coclustering(2).khcj	Level: 0.0676747	Size: 3*3	Granularity: 3
   0:00:00	Write intermediate report Coclustering(3).khcj	Level: 0.0850057	Size: 3*3
 Write coclustering report ./results/Coclustering.khcj
-Coclustering analysis time: 0:00:00.02
+Coclustering analysis time: 0:00:00.03
 

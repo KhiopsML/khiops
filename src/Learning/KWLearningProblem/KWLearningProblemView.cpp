@@ -507,12 +507,14 @@ boolean KWLearningProblemView::BuildClassFromDataTable()
 
 	// Warning utilisateur pour prevenir de cet usage un peu atypique et de ses limites
 	if (bOk)
+	{
+		Global::AddSimpleMessage("");
 		Global::AddWarning("", "",
 				   "A dictionary has been generated automatically. "
-				   "The field types should be checked and the dictionary saved if necessary. "
+				   "The field types should be checked and the dictionary saved if necessary.\n"
 				   "For standard use, refer to the '" +
 				       sClassManagementMenuItemName + "' menu.\n");
-
+	}
 	return bOk;
 }
 
