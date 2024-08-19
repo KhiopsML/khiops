@@ -185,6 +185,9 @@ void KWLearningProject::StartMaster(int argc, char** argv)
 	if (not UIObject::IsBatchMode())
 		cout << GetLearningShellBanner() << endl;
 
+	// Parametrage du mode fast exist
+	UIObject::SetFastExitMode(GetLearningFastExitMode());
+
 	// Parametrage du repertoire temporaire via les variables d'environnement
 	// (la valeur du repertoire temporaire peut etre modifiee par l'IHM)
 	sTmpDirFromEnv = p_getenv("KHIOPS_TMP_DIR");
@@ -444,6 +447,7 @@ boolean KWLearningProject::ShowSystemInformation(const ALString& sValue)
 	svEnvironmentVariables.Add("KhiopsExpertMode");
 	svEnvironmentVariables.Add("KhiopsHardMemoryLimitMode");
 	svEnvironmentVariables.Add("KhiopsCrashTestMode");
+	svEnvironmentVariables.Add("KhiopsFastExitMode");
 	svEnvironmentVariables.Add("KhiopsPreparationTraceMode");
 	svEnvironmentVariables.Add("KhiopsIOTraceMode");
 	svEnvironmentVariables.Add("KhiopsForestExpertMode");

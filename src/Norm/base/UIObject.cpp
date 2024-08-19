@@ -1940,6 +1940,16 @@ boolean UIObject::IsBatchMode()
 	return bBatchMode;
 }
 
+void UIObject::SetFastExitMode(boolean bValue)
+{
+	bFastExitMode = bValue;
+}
+
+boolean UIObject::GetFastExitMode()
+{
+	return bFastExitMode;
+}
+
 void UIObject::SetTextualInteractiveModeAllowed(boolean bValue)
 {
 	bTextualInteractiveModeAllowed = bValue;
@@ -2423,6 +2433,7 @@ int UIObject::nUIMode = Textual;
 int UIObject::nInstanceNumber = 0;
 boolean UIObject::bVerboseCommandReplay = false;
 boolean UIObject::bBatchMode = false;
+boolean UIObject::bFastExitMode = true;
 boolean UIObject::bTextualInteractiveModeAllowed = false;
 FILE* UIObject::fInputCommands = NULL;
 FILE* UIObject::fOutputCommands = NULL;

@@ -251,6 +251,7 @@ int KWMTDatabaseCompareMappingMainClass(const void* first, const void* second)
 
 void KWMTDatabase::UpdateMultiTableMappings()
 {
+	static ALString sLastUpdatedClassName;
 	KWClass* mainClass;
 	ObjectArray oaPreviousMultiTableMappings;
 	ObjectDictionary odReferenceClasses;
@@ -271,6 +272,20 @@ void KWMTDatabase::UpdateMultiTableMappings()
 
 	// Recherche du dictionnaire associe a la base
 	mainClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName());
+
+	// Ajout d'un message d'erreur si on parametre un dictionnaire inexistant
+	// Permet de generer une erreur explicite dans les scenarios dans ce cas
+	// Sinon, on obtient une erreur fatale en essayant ensuite de parametrer
+	// les fichiers d'une base multi-table
+	if (GetClassName() != "" and mainClass == NULL)
+	{
+		// On evite les messages d'erreur repete en memorisant le dernier dictionnaire manquant
+		// Sinon, les bases d'apprentissage et de test, ainsi que les multiples Refresh appelant
+		// cette methode generent des erreurs qui doublonnent
+		if (sLastUpdatedClassName != GetClassName())
+			AddError("Dictionary " + GetClassName() + " not found");
+	}
+	sLastUpdatedClassName = GetClassName();
 
 	// Si pas de dictionnaire associe, on nettoie le mapping
 	if (mainClass == NULL)

@@ -370,6 +370,33 @@ boolean GetLearningCrashTestMode()
 	return GetLearningExpertMode() and bLearningCrashTestMode;
 }
 
+boolean GetLearningFastExitMode()
+{
+	static boolean bIsInitialized = false;
+	static boolean bLearningFastExitMode = true;
+
+	// Determination du mode FastExit au premier appel
+	if (not bIsInitialized)
+	{
+		ALString sUserName;
+		ALString sLearningFastExitMode;
+
+		// Recherche des variables d'environnement
+		sLearningFastExitMode = p_getenv("KhiopsFastExitMode");
+		sLearningFastExitMode.MakeLower();
+
+		// Determination du mode FastExit
+		if (sLearningFastExitMode == "true")
+			bLearningFastExitMode = true;
+		else if (sLearningFastExitMode == "false")
+			bLearningFastExitMode = false;
+
+		// Memorisation du flag d'initialisation
+		bIsInitialized = true;
+	}
+	return GetLearningExpertMode() and bLearningFastExitMode;
+}
+
 boolean GetPreparationTraceMode()
 {
 	static boolean bIsInitialized = false;
