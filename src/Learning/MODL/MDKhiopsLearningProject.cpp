@@ -59,7 +59,7 @@ void MDKhiopsLearningProject::OpenLearningEnvironnement()
 	sQuickStartInfo +=
 	    "<li>Allow recoding of data or deployment of prediction scores via the 'Deploy Model' feature</li> ";
 	sQuickStartInfo += "<p>A dictionary file contains one or several dictionaries.</p> ";
-	sQuickStartInfo += "<h3>Normal path</h3> ";
+	sQuickStartInfo += "<h3>Standard path</h3> ";
 	sQuickStartInfo += "<h4>Manage data dictionaries</h4> ";
 	sQuickStartInfo += "<li>Click on the 'Manage dictionaries' sub-menu of the 'Data dictionary' menu</li> ";
 	sQuickStartInfo += "<p>A dialog box appears, which allows you to build a dictionary from a data file and edit "

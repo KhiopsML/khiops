@@ -7,7 +7,6 @@
 #include "UserInterface.h"
 #include "KWClassManagement.h"
 #include "KWClassSpecArrayView.h"
-#include "KWClassManagementDialogView.h"
 #include "KWVersion.h"
 
 ////////////////////////////////////////////////////////////
