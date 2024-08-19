@@ -131,9 +131,16 @@ void UIUnit::Open()
 						uiField->SetFieldStringValue(values, uiUnit->nCurrentItemIndex, sValue);
 						uiUnit->nFreshness++;
 
-						// Declenchement d'un refresh selon le parametrae du champ
+						// Declenchement d'un refresh selon le parametrage du champ
 						if (uiField->GetTriggerRefresh())
+						{
 							uiUnit->ExecuteUserActionAt("Refresh");
+
+							// Sortie en mode fast exit, pouvant etre declenchee par une erreur de refresh
+							if (bBatchMode and bFastExitMode and
+							    Global::IsAtLeastOneError())
+								GlobalExitOnSuccess();
+						}
 						break;
 					}
 					else
