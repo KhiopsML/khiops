@@ -169,7 +169,7 @@ void KWClassManagementActionView::SaveFileUnder()
 	require(CheckDictionaryName());
 
 	// Sauvegarde
-	SaveFileUnderName(GetClassManagement()->GetClassFileName());
+	SaveFileUnderName(GetClassManagement()->GetClassFileName(), GetClassManagement()->GetClassFileName());
 
 	// Copie du nom du dictionnaire dans les bases
 	CopyDictionaryNameToDatabases();
@@ -213,7 +213,7 @@ void KWClassManagementActionView::ManageClasses()
 
 void KWClassManagementActionView::Quit() {}
 
-void KWClassManagementActionView::SaveFileUnderName(const ALString& sFileName)
+void KWClassManagementActionView::SaveFileUnderName(const ALString& sInputFilePathName, const ALString& sFileName)
 {
 	UIFileChooserCard registerCard;
 	ALString sChosenFileName;
@@ -227,7 +227,7 @@ void KWClassManagementActionView::SaveFileUnderName(const ALString& sFileName)
 	if (sChosenFileName != "")
 	{
 		// Construction du chemin complet en sortie
-		resultFilePathBuilder.SetInputFilePathName(GetClassManagement()->GetClassFileName());
+		resultFilePathBuilder.SetInputFilePathName(sInputFilePathName);
 		resultFilePathBuilder.SetOutputFilePathName(sChosenFileName);
 		resultFilePathBuilder.SetFileSuffix("kdic");
 		sChosenFileName = resultFilePathBuilder.BuildResultFilePathName();
