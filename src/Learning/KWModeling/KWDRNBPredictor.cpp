@@ -2702,36 +2702,34 @@ void KWDRNBRegressor::ComputeCumulativeSquareTargetValues(ContinuousVector* cvRe
 
 Continuous KWDRNBRegressor::ComputeTargetValueRange() const
 {
-	Continuous cTargetValueRange;
+	Continuous cResult;
 
 	require(IsCompiled());
 
 	if (GetSingleTargetValueNumber() > 1)
-		cTargetValueRange =
-		    GetSingleTargetValueAt(GetSingleTargetValueNumber() - 1) - GetSingleTargetValueAt(0);
+		cResult = GetSingleTargetValueAt(GetSingleTargetValueNumber() - 1) - GetSingleTargetValueAt(0);
 	else
-		cTargetValueRange = 1.0;
+		cResult = 1.0;
 
-	ensure(cTargetValueRange > 0);
-	return cTargetValueRange;
+	ensure(cResult > 0);
+	return cResult;
 }
 
 Continuous KWDRNBRegressor::ComputeMeanTargetValueRange() const
 {
-	Continuous cMeanTargetValueRange;
+	Continuous cResult;
 
 	require(IsCompiled());
 
 	if (GetSingleTargetValueNumber() > 1)
-		cMeanTargetValueRange =
-		    GetSingleTargetValueAt(GetSingleTargetValueNumber() - 1) - GetSingleTargetValueAt(0);
+		cResult = GetSingleTargetValueAt(GetSingleTargetValueNumber() - 1) - GetSingleTargetValueAt(0);
 	else
-		cMeanTargetValueRange = 1.0;
+		cResult = 1.0;
 	if (GetSingleTargetValueNumber() >= 0)
-		cMeanTargetValueRange /= GetSingleTargetValueCumulativeFrequencyAt(GetSingleTargetValueNumber() - 1);
+		cResult /= GetSingleTargetValueCumulativeFrequencyAt(GetSingleTargetValueNumber() - 1);
 
-	ensure(cMeanTargetValueRange > 0);
-	return cMeanTargetValueRange;
+	ensure(cResult > 0);
+	return cResult;
 }
 
 int KWDRNBRegressor::ComputeMissingValueNumber() const

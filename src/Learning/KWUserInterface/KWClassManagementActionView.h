@@ -46,7 +46,9 @@ public:
 	void Quit();
 
 	// Enregistrement des classes en proposant un nom de fichier
-	void SaveFileUnderName(const ALString& sFileName);
+	// Le parametre sInputFilePathName indique un potentiel fichier d'origine, dont le repertoire
+	// est utilise pour determiner le repertoire en sortie
+	void SaveFileUnderName(const ALString& sInputFilePathName, const ALString& sFileName);
 
 	// Export des classes au format JSON en proposant un nom de fichier
 	void ExportAsJSONFileUnderName(const ALString& sJSONFileName);

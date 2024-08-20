@@ -2243,7 +2243,7 @@ longint SNBDataTableBinarySliceSetChunkBuffer::ComputeNecessaryMemory(
 	// le facteur de memoire sparse par chunk (memoire max par inst/ memoire moyenne par inst) +1 pour precaution
 	// Sur-estimee dans le cas d'un seul chunk (il n'y pas besoin de slack dans ce cas la)
 	dSlackFactor = 1 + dSparseChunkMemoryFactor;
-	lSlackedGlobalSliceSparseValueNumber = (lMaxSliceSparseValueNumber * dSlackFactor);
+	lSlackedGlobalSliceSparseValueNumber = longint(lMaxSliceSparseValueNumber * dSlackFactor);
 
 	// Formule de l'estimation (sans dictionnaire de recodage) :
 	//   Memoire propre de l'instance +

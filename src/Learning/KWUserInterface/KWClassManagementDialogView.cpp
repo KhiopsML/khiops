@@ -131,7 +131,7 @@ void KWClassManagementDialogView::BuildClassDef()
 		sClassFileName = resultFilePathBuilder.BuildResultFilePathName();
 
 		// Sauvegarde du fichier par l'action standard "Enregistrer sous"
-		SaveFileUnderName(sClassFileName);
+		SaveFileUnderName(classBuilderView.GetSourceDataTable()->GetDatabaseName(), sClassFileName);
 		AddSimpleMessage("");
 
 		// On initialise le choix du dictionnaire si necessaire
