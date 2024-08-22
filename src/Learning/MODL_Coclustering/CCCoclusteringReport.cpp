@@ -3503,9 +3503,11 @@ boolean CCCoclusteringReport::ReadJSONAttributePartition(KWDGAttribute* dgAttrib
 			dgAttribute->GetHeadPart()->GetInterval()->SetLowerBound(KWDGInterval::GetMinLowerBound());
 			dgAttribute->GetTailPart()->GetInterval()->SetUpperBound(KWDGInterval::GetMaxUpperBound());
 		}
-		// Dans le cas categoriel
-		else if (dgAttribute->GetAttributeType() == KWType::Symbol)
+		// Dans le cas categoriel ou VarPrt
+		else
 		{
+			assert(dgAttribute->GetAttributeType() == KWType::Symbol or
+			       dgAttribute->GetAttributeType() == KWType::VarPart);
 			nDefaultGroupIndex = 0;
 
 			// Lecture de l'index du groupe par defaut avant la fin de l'objet
@@ -3530,7 +3532,11 @@ boolean CCCoclusteringReport::ReadJSONAttributePartition(KWDGAttribute* dgAttrib
 							     " with invalid default group index (" +
 							     IntToString(nDefaultGroupIndex) + ")");
 			}
-			if (bOk)
+
+			// Gestion de la valeur par defaut uniquement dans le cas standard
+			// Dans le cas instances x variables, le groupe pr defaut n'est pas utilise,
+			// mais on a garde "defaultGroupIndex" pour avoir des rapports generiques
+			if (bOk and dgAttribute->GetAttributeType() == KWType::Symbol)
 			{
 				// Recherche du groupe par defaut
 				nPartIndex = 0;
@@ -3547,14 +3553,6 @@ boolean CCCoclusteringReport::ReadJSONAttributePartition(KWDGAttribute* dgAttrib
 				    ->AddSymbolValue(Symbol::GetStarValue());
 			}
 		}
-		// CH IV Begin
-		// Dans le cas VarPart
-		else if (dgAttribute->GetAttributeType() == KWType::VarPart)
-		{
-			// Lecture de la fin de l'objet
-			bOk = bOk and JSONTokenizer::ReadExpectedToken('}');
-		}
-		// CH IV End
 	}
 	return bOk;
 }
@@ -4679,10 +4677,17 @@ void CCCoclusteringReport::WriteJSONAttributePartition(KWDGAttribute* attribute,
 		}
 		fJSON->EndArray();
 
-		// Index du groupe par defaut, exploite uniquement pour les	attribut Symbol
+		// Index du groupe par defaut
 		assert(nDefaultGroupIndex >= 0 or attribute->GetAttributeType() != KWType::Symbol);
 		if (nDefaultGroupIndex >= 0)
 			fJSON->WriteKeyInt("defaultGroupIndex", nDefaultGroupIndex);
+		else
+		{
+			// Dans le cas VarPart, on ecrit defaultGroupIndex meme s'il est inutile dans ce cas
+			// Cela permet d'avoir une structure de rapport generique
+			assert(attribute->GetAttributeType() == KWType::VarPart);
+			fJSON->WriteKeyInt("defaultGroupIndex", 0);
+		}
 	}
 
 	// Fin de l'objet
