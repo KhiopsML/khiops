@@ -2119,6 +2119,21 @@ const ALString CCCoclusteringBuilder::GetClassLabel() const
 	return GetLearningModuleName();
 }
 
+const ALString CCCoclusteringBuilder::GetObjectLabel() const
+{
+	// Cas d'un coclustering instances * variables: on renvoie le nom du dictionnaire
+	if (GetVarPartCoclustering())
+	{
+		if (GetClass() == NULL)
+			return "";
+		else
+			return GetClass()->GetName();
+	}
+	// Cas d'un coclustering de variable: on renvoie le nom des variables
+	else
+		return KWAttributeSubsetStats::GetObjectLabel();
+}
+
 boolean CCCoclusteringBuilder::CheckMemoryForDatabaseRead(KWDatabase* database) const
 {
 	boolean bOk = true;
