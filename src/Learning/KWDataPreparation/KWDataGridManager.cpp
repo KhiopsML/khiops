@@ -314,8 +314,7 @@ void KWDataGridManager::ExportDataGridWithRandomizedInnerAttributes(const KWData
 
 	// Nombre de tokens des innerAttributes de reference
 	nReferenceTokenNumber = referenceInnerAttributes->ComputeTotalInnerAttributeVarParts();
-
-	assert(nReferenceTokenNumber > nCurrentTokenNumber);
+	assert(nReferenceTokenNumber >= nCurrentTokenNumber);
 
 	// Cas ou le nombre de tokens objectif est inferieur au nombre de tokens en entree : recopie de la grille en entree a l'identique
 	// Cas ou le nombre de tokens de la partition de reference est inferieur au nombre de tokens en entree : pas de sur-tokenisation possible

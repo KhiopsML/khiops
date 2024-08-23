@@ -117,6 +117,7 @@ void KWQuantileIntervalBuilder::InitializeFrequencies(const IntVector* ivInputFr
 
 int KWQuantileIntervalBuilder::ComputeQuantiles(int nQuantileNumber)
 {
+	const double dEpsilon = 1e-10;
 	int nQuantile;
 	double dSearchedCumulativeFrequency;
 	int nSearchedCumulativeFrequency;
@@ -143,15 +144,14 @@ int KWQuantileIntervalBuilder::ComputeQuantiles(int nQuantileNumber)
 	bSequentialSearch = false;
 	for (nQuantile = 0; nQuantile < nQuantileNumber; nQuantile++)
 	{
-		// Calcul de l'index en passant par un longint pour eviter les problemes de depassement de capacite des
-		// int
+		// Calcul de l'index en passant par un double pour eviter les problemes de depassement de capacite des int
 		dSearchedCumulativeFrequency = nInstanceNumber * (nQuantile + 1.0) / nQuantileNumber;
 
 		// On biaise vers une des extremites
 		if (nQuantile >= nQuantileNumber / 2)
-			dSearchedCumulativeFrequency += 1.0 / nInstanceNumber;
+			dSearchedCumulativeFrequency += dEpsilon;
 		else
-			dSearchedCumulativeFrequency -= 1.0 / nInstanceNumber;
+			dSearchedCumulativeFrequency -= dEpsilon;
 		nSearchedCumulativeFrequency = (int)floor(dSearchedCumulativeFrequency + 0.5);
 		assert(0 <= nSearchedCumulativeFrequency and nSearchedCumulativeFrequency <= nInstanceNumber);
 
