@@ -39,7 +39,6 @@ int main(int argc, char** argv)
 	//SetWindowsDebugDir("y_CoclusteringIV_Standard", "IrisLight");
 	//SetWindowsDebugDir("y_CoclusteringIV_Standard", "Iris");
 	//SetWindowsDebugDir("Standard", "Iris");
-	SetWindowsDebugDir("y_CoclusteringIV_Standard", "ExtractClustersIris");
 
 	// Point d'arret sur l'allocation d'un bloc memoire
 	// MemSetAllocIndexExit(30406);

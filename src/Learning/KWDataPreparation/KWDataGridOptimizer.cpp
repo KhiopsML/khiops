@@ -1790,6 +1790,9 @@ void KWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initialDat
 		boolean bDisplayResults = false;
 		int nInitialSeed;
 
+		// Correction du nombre de tokens
+		nTargetTokenNumber = min(nTargetTokenNumber, initialDataGrid->GetGridFrequency());
+
 		// Memorisation de la graine initiale
 		nInitialSeed = GetRandomSeed();
 
