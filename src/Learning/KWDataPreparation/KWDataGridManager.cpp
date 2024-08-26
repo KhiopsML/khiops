@@ -2853,19 +2853,20 @@ void KWDataGridManager::InitialiseVarPartAttributeWithNewInnerAttributes(const K
 									 KWDGInnerAttributes* newInnerAttributes,
 									 KWDGAttribute* targetVarPartAttribute) const
 {
-	ObjectArray oaSourceInnerAttributeVarParts;
-	ObjectArray oaNewInnerAttributeVarParts;
+	boolean bDisplayResults = false;
+	int nInnerAttribute;
+	KWDGAttribute* sourceInnerAttribute;
+	KWDGAttribute* targetInnerAttribute;
 	ObjectArray* oaVarPart;
 	NumericKeyDictionary nkdTargetInnerAttributeVarParts;
-	int nSourceIndex;
 	int nTargetIndex;
+	NumericKeyDictionary nkdTargetInnerAttributeValues;
+	KWDGValue* value;
 	KWDGPart* sourcePart;
 	KWDGPart* targetPart;
 	KWDGPart* sourceVarPart;
 	KWDGPart* targetVarPart;
 	KWDGValue* sourceValue;
-	boolean bOk;
-	boolean bDisplayResults = false;
 
 	require(CheckAttributesConsistency(sourceVarPartAttribute, targetVarPartAttribute));
 	require(targetVarPartAttribute->GetAttributeType() == KWType::VarPart);
@@ -2875,31 +2876,94 @@ void KWDataGridManager::InitialiseVarPartAttributeWithNewInnerAttributes(const K
 	targetVarPartAttribute->SetVarPartsShared(false);
 
 	// Memorisation de l'association entre VarPart source et une a plusieurs VarParts dans les nouveaux innerAttributes
-	sourceVarPartAttribute->GetInnerAttributes()->ExportAllInnerAttributeVarParts(&oaSourceInnerAttributeVarParts);
-	newInnerAttributes->ExportAllInnerAttributeVarParts(&oaNewInnerAttributeVarParts);
-	nTargetIndex = 0;
-	for (nSourceIndex = 0; nSourceIndex < oaSourceInnerAttributeVarParts.GetSize(); nSourceIndex++)
+	for (nInnerAttribute = 0; nInnerAttribute < newInnerAttributes->GetInnerAttributeNumber(); nInnerAttribute++)
 	{
-		sourceVarPart = cast(KWDGPart*, oaSourceInnerAttributeVarParts.GetAt(nSourceIndex));
+		sourceInnerAttribute =
+		    sourceVarPartAttribute->GetInnerAttributes()->GetInnerAttributeAt(nInnerAttribute);
+		targetInnerAttribute = newInnerAttributes->GetInnerAttributeAt(nInnerAttribute);
+		assert(sourceInnerAttribute->GetAttributeName() == targetInnerAttribute->GetAttributeName());
+		assert(sourceInnerAttribute->GetPartNumber() <= targetInnerAttribute->GetPartNumber());
 
-		oaVarPart = new ObjectArray;
-		bOk = true;
-		while (bOk and nTargetIndex < oaNewInnerAttributeVarParts.GetSize())
+		// Cas Continuous
+		if (sourceInnerAttribute->GetAttributeType() == KWType::Continuous)
 		{
-			targetVarPart = cast(KWDGPart*, oaNewInnerAttributeVarParts.GetAt(nTargetIndex));
-
-			if (targetVarPart->GetAttribute()->GetAttributeName() ==
-				sourceVarPart->GetAttribute()->GetAttributeName() and
-			    targetVarPart->IsSubPart(sourceVarPart))
+			// Parcours synchronise des parties de type intervalles, ordonnee par valeurs
+			oaVarPart = NULL;
+			sourceVarPart = sourceInnerAttribute->GetHeadPart();
+			targetVarPart = targetInnerAttribute->GetHeadPart();
+			while (targetVarPart != NULL)
 			{
-				oaVarPart->Add(targetVarPart);
-				nTargetIndex++;
-			}
-			else
-				bOk = false;
-		}
+				if (oaVarPart == NULL or not targetVarPart->IsSubPart(sourceVarPart))
+				{
+					// Changement de partie source, sauf sur la premiere partie
+					if (oaVarPart != NULL)
+						sourceInnerAttribute->GetNextPart(sourceVarPart);
 
-		nkdTargetInnerAttributeVarParts.SetAt(sourceVarPart, oaVarPart);
+					// Creation du tableau des partie cibles associees a la partie sourve
+					oaVarPart = new ObjectArray;
+					nkdTargetInnerAttributeVarParts.SetAt(sourceVarPart, oaVarPart);
+				}
+				oaVarPart->Add(targetVarPart);
+
+				// Partie suivante
+				targetInnerAttribute->GetNextPart(targetVarPart);
+			}
+			assert(sourceVarPart == sourceInnerAttribute->GetTailPart());
+		}
+		// Cas Symbol
+		else
+		{
+			assert(sourceInnerAttribute->GetAttributeType() == KWType::Symbol);
+
+			// Indexation prealable des parties cibles par leur premiere valeur
+			assert(nkdTargetInnerAttributeValues.GetCount() == 0);
+			targetVarPart = targetInnerAttribute->GetHeadPart();
+			while (targetVarPart != NULL)
+			{
+				// Chaque premiere valeur est associee a sa partie
+				value = targetVarPart->GetSymbolValueSet()->GetHeadValue();
+				nkdTargetInnerAttributeValues.SetAt(value->GetNumericKeyValue(), targetVarPart);
+
+				// Partie suivante
+				targetInnerAttribute->GetNextPart(targetVarPart);
+			}
+
+			// Parcours des parties source pour identifier leur composition en parties cibles
+			sourceVarPart = sourceInnerAttribute->GetHeadPart();
+			targetVarPart = targetInnerAttribute->GetHeadPart();
+			while (sourceVarPart != NULL)
+			{
+				// Creation du tableau des partie cibles associees a la partie sourve
+				oaVarPart = new ObjectArray;
+				nkdTargetInnerAttributeVarParts.SetAt(sourceVarPart, oaVarPart);
+				assert(nkdTargetInnerAttributeValues.GetCount() > 0);
+
+				// Parcours des valeurs source pour identifier les parties cible (par leur premiere valeur)
+				value = sourceVarPart->GetSymbolValueSet()->GetHeadValue();
+				while (value != NULL)
+				{
+					// Recherche de la partie cible dont la premier valeur coincide
+					targetVarPart =
+					    cast(KWDGPart*,
+						 nkdTargetInnerAttributeValues.Lookup(value->GetNumericKeyValue()));
+
+					// Insertion dans le tableau, une et une seule fois
+					if (targetVarPart != NULL)
+					{
+						assert(targetVarPart->IsSubPart(sourceVarPart));
+						oaVarPart->Add(targetVarPart);
+						nkdTargetInnerAttributeValues.RemoveKey(value->GetNumericKeyValue());
+					}
+
+					// Partie suivante
+					sourceVarPart->GetSymbolValueSet()->GetNextValue(value);
+				}
+
+				// Partie suivante
+				sourceInnerAttribute->GetNextPart(sourceVarPart);
+			}
+			assert(nkdTargetInnerAttributeValues.GetCount() == 0);
+		}
 	}
 
 	// Recopie des parties de l'attribut source, en utilisant les VarPartCibles
