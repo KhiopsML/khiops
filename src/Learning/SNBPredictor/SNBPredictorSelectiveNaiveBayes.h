@@ -13,11 +13,60 @@ class SNBPredictorSelectiveNaiveBayes;
 #include "SNBAttributeSelectionScorer.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-// Predicteur Bayesien naif selectif
-//  - Il doit etre parametre par un objet KWClassStats correctement initialise pour l'apprentissage
-//  - Les statistiques ne seront reevaluees que si necessaire
-//  - L'algorithme de optimisation de la selection de variables est sous-traitee a une tache
-//  parallele SNBPredictorSelectiveNaiveBayesTrainingTask
+// Predicteur Bayesien naif selectif (SNB)
+//
+// Cette classe implemente l'optimisation de la selection de variables d'un predicteur Bayesien
+// naif. Pour pouvoir executer cet algorithme en parallele l'implemenetation de cette optimisation
+// est deleguee a la classe SNBPredictorSelectiveNaiveBayesTraniningTask.
+//
+// L'entree principale pour l'optimisation est l'ensemble de variables discretisees ou groupees par
+// rapport a la cible. Ces entrees sont disponibles via une instance de la classe KWClassStats.
+//
+// Les principales classes utilises pendant l'optimisation sont:
+//
+// - SNBDataTableBinarySliceSet: Donne acces a la base de donnees recodifie sous forme de ints
+// (index d'intervalle ou de groupe pour chaque attribut). La base est coupee en blocs definis par
+// des chunks (ensemble contigu d'instances) et des slices (ensemble contigu d'attributs). Chaque
+// chunk est destine a un processus esclave; les slices ne sont utilises que pour faire du
+// out-of-core processing quand il n'y a pas assez de memoire pour le chunk entier. Dans ce dernier
+// cas, le chunk est stocke dans un fichier contenant les donnees en format binaire et colonnaire.
+// Les attributs en entree peuvent etre denses ou sparses; dans ce dernier cas la classe ne stocke
+// que les valeurs presentes. Cette classe pourvoit d'autres informations et services necessaires
+// pour l'optimisation, en particulier elle permet de parcourir les attributs en ordre aleatoire.
+//
+// - SNBPredictorSelectionScorer: Permet de construire une selection de variables. A tout moment
+// elle permet de consulter la selection courante et son cout.
+//
+// - SNBPredictorSelectionDataCostCalculator: Utilise par SNBPredictorSelectionScorer, elle calcule
+// la partie du cout par rappport aux donnees (likelihood). Elle est sous-specialise pour chaque
+// type de predicteur (classifieur, regresseur, et classifieur generalise). Elle utilise le
+// SNBDataTableBinarySliceSet pour acceder aux donnees.
+//
+// Plus de detail sur les classes composantes des classes ci-dessus peuvent se trouver dans ses
+// fichiers d'entete respectifs.
+//
+// La procedure de la tache d'apprentissage peut se resumer selon les etapes suivantes:
+//
+// - Premiere initialisation du SNBDataTableBinarySliceSet par le maitre ce qui permet d'obtenir les
+// informations necessaires pour l'estimation de ressources de la tache.
+//
+// - Recodage de la base de donnees preparee (en ASCII, cf. KWDataTableSliceSet) a une base de
+// donnees contenant les index des parties en binaire (cf. SNBDataTableBinarySliceSet). Chaque
+// esclave recodifie un seul chunk de la base de donnees et initialise son propre
+// SNBDataTableBinarySliceSet pour le lire.
+//
+// - Premiere passe par la base de donnees pour estimer l'epsilon de comparaison.
+//
+// - Boucle principale: Pour chaque w dans {1, 0.5, 0.25, ..., 2^(-ceil(log(N+1)))}
+//   - Passe d'increment de w le poids de tous les attributs
+//   - Passe de decrement de w le poids des attributs dans la selection
+//   - S'il y a eu une amelioration repeter les deux passes une fois de plus
+//   Les attributs sont parcourus de facon aleatoire a chaque passe. Un increment/decrement du
+//   poids d'un attribut n'est garde que s'il ameliore le cout de la selection (en tenant en compte
+//   l'epsilon de comparaison).
+//
+// - Construction du dictionnaire du modele et des rapports avec les poids appris.
+//
 class SNBPredictorSelectiveNaiveBayes : public KWPredictorNaiveBayes
 {
 public:
