@@ -16,10 +16,11 @@ cmake --fresh --preset $CMAKE_PRESET -DBUILD_JARS=OFF -DTESTING=OFF
 
 # Build MODL and MODL_Coclustering
 cmake --build --preset $CMAKE_PRESET --parallel \
-  --target MODL MODL_Coclustering KhiopsNativeInterface KNITransfer
+  --target MODL MODL_Coclustering KhiopsNativeInterface KNITransfer _khiopsgetprocnumber
 
 # Move the binaries to the Conda PREFIX path
 mv ./build/$CMAKE_PRESET/bin/MODL* "$PREFIX/bin"
+mv ./build/$CMAKE_PRESET/bin/_khiopsgetprocnumber* "$PREFIX/bin"
 mv ./build/$CMAKE_PRESET/bin/KNITransfer* "$PREFIX/bin"
 mv ./build/$CMAKE_PRESET/lib/libKhiopsNativeInterface* "$PREFIX/lib"
 
@@ -65,10 +66,13 @@ then
   install_name_tool -delete_rpath "$PREFIX/lib" "$PREFIX/bin/MODL"
   install_name_tool -delete_rpath "$PREFIX/lib" "$PREFIX/bin/MODL"
   install_name_tool -delete_rpath "$PREFIX/lib" "$PREFIX/bin/MODL_Coclustering"
+  install_name_tool -delete_rpath "$PREFIX/lib" "$PREFIX/bin/_khiopsgetprocnumber"
+
 
   # Add the relative rpath as conda build would
   install_name_tool -add_rpath "@loader_path/../lib" "$PREFIX/bin/MODL"
   install_name_tool -add_rpath "@loader_path/../lib" "$PREFIX/bin/MODL_Coclustering"
+  install_name_tool -add_rpath "@loader_path/../lib" "$PREFIX/bin/_khiopsgetprocnumber"
 
   if [[ -n "${KHIOPS_APPLE_CERTIFICATE_BASE64-}" ]]
   then
@@ -114,9 +118,11 @@ then
   # Sign the executables and check
   $CODESIGN --force --sign "$KHIOPS_APPLE_CERTIFICATE_COMMON_NAME" "$PREFIX/bin/MODL"
   $CODESIGN --force --sign "$KHIOPS_APPLE_CERTIFICATE_COMMON_NAME" "$PREFIX/bin/MODL_Coclustering"
+  $CODESIGN --force --sign "$KHIOPS_APPLE_CERTIFICATE_COMMON_NAME" "$PREFIX/bin/_khiopsgetprocnumber"
   $CODESIGN --force --sign "$KHIOPS_APPLE_CERTIFICATE_COMMON_NAME" "$KNI_PATH"
   $CODESIGN -d -vvv "$PREFIX/bin/MODL"
   $CODESIGN -d -vvv "$PREFIX/bin/MODL_Coclustering"
+  $CODESIGN -d -vvv "$PREFIX/bin/_khiopsgetprocnumber"
   $CODESIGN -d -vvv "$KNI_PATH"
 
   # Remove the temporary keychain and restore the login keychain as default if created

@@ -163,6 +163,7 @@ Section "Install" SecInstall
   SetOutPath "$INSTDIR\bin"
   File "${KHIOPS_WINDOWS_BUILD_DIR}\bin\MODL.exe"
   File "${KHIOPS_WINDOWS_BUILD_DIR}\bin\MODL_Coclustering.exe"
+  File "${KHIOPS_WINDOWS_BUILD_DIR}\bin\_khiopsgetprocnumber.exe"
   File "${KHIOPS_WINDOWS_BUILD_DIR}\jars\norm.jar"
   File "${KHIOPS_WINDOWS_BUILD_DIR}\jars\khiops.jar"
   File "..\khiops_env.cmd"
@@ -325,14 +326,6 @@ Section "Install" SecInstall
   #############################
   # Finalize the installation #
   #############################
-
-  # Setting KHIOPS_HOME in khiops_env.cmd: replace @KHIOPS_HOME@ by "$INSTDIR" in the installed file
-  Push @KHIOPS_HOME@ 
-  Push '"$INSTDIR"' 
-  Push all 
-  Push all 
-  Push $INSTDIR\bin\khiops_env.cmd
-  Call ReplaceInFile
 
   # Setting up the GUI in khiops_env.cmd: replace @GUI_STATUS@ by "true" in the installed file
   Push @GUI_STATUS@ 
@@ -544,6 +537,7 @@ Section "Uninstall"
   Delete "$INSTDIR\bin\khiops_coclustering.cmd"
   Delete "$INSTDIR\bin\MODL.exe"
   Delete "$INSTDIR\bin\MODL_Coclustering.exe"
+  Delete "$INSTDIR\bin\_khiopsgetprocnumber.exe"
   Delete "$INSTDIR\bin\norm.jar"
   Delete "$INSTDIR\bin\khiops.jar"
   Delete "$INSTDIR\bin\shell_khiops.cmd"

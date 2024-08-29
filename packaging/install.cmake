@@ -71,6 +71,7 @@ if(UNIX)
   if(IS_CONDA)
     set(KHIOPS_PATH "$(get_script_dir)")
     set(KHIOPS_COCLUSTERING_PATH "$(get_script_dir)")
+    set(GET_PROC_NUMBER_PATH "$(get_script_dir)")
   else()
     if(IS_FEDORA_LIKE)
       set(KHIOPS_PATH "${MPI_BIN}/khiops/")
@@ -78,6 +79,7 @@ if(UNIX)
       set(KHIOPS_PATH "/usr/bin/")
     endif(IS_FEDORA_LIKE)
     set(KHIOPS_COCLUSTERING_PATH "/usr/bin/")
+    set(GET_PROC_NUMBER_PATH "/usr/bin/")
   endif(IS_CONDA)
 
   # replace MPIEXEC MPIEXEC_NUMPROC_FLAG and MPI_IMPL KHIOPS_MPI_EXTRA_FLAG ADDITIONAL_EN_VAR
@@ -109,6 +111,7 @@ if(UNIX)
 
   install(TARGETS MODL RUNTIME DESTINATION ./${KHIOPS_PATH} COMPONENT KHIOPS_CORE)
   install(TARGETS MODL_Coclustering RUNTIME DESTINATION ./${KHIOPS_COCLUSTERING_PATH} COMPONENT KHIOPS_CORE)
+  install(TARGETS _khiopsgetprocnumber RUNTIME DESTINATION ./${GET_PROC_NUMBER_PATH} COMPONENT KHIOPS_CORE)
 
   install(
     PROGRAMS ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops
