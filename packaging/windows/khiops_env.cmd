@@ -46,7 +46,7 @@ echo   . default behavior if not set: depending on the file drivers available fo
 echo   . set to 'true' to allow file name selection with uri schemas
 echo   . set to 'false' to allow local file name selection only with a file selection dialog
 echo.
-echo In case of configuration problems, the variables KHIOPS_JAVA_ERROR and KHIOPS_MPI_ERROR contains error messages.
+echo In case of configuration problems, the variables KHIOPS_JAVA_ERROR and KHIOPS_MPI_ERROR contain error messages.
 
 if not %2.==. exit /b 1
 if %1.==-h. exit /b 0
@@ -79,7 +79,7 @@ REM KHIOPS_LAST_RUN_DIR
 if "%KHIOPS_LAST_RUN_DIR%".=="". set "KHIOPS_LAST_RUN_DIR=%USERPROFILE%\khiops_data\lastrun"
 
 REM KHIOPS_PROC_NUMBER
-if "%KHIOPS_PROC_NUMBER%".=="". for /f %%i in ('Powershell.exe "Get-WmiObject -Class Win32_Processor -ComputerName. | Select-Object -ExpandProperty NumberOfEnabledCore"') do set "KHIOPS_PROC_NUMBER=%%i"
+if "%KHIOPS_PROC_NUMBER%".=="". for /f %%i in ('"%~dp0_khiopsgetprocnumber"') do set "KHIOPS_PROC_NUMBER=%%i"
 if "%KHIOPS_PROC_NUMBER%".=="". set "KHIOPS_PROC_NUMBER=1"
 
 REM set MPI environment

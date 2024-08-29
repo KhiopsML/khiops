@@ -52,6 +52,7 @@ outputs:
         - {{ mpi }}
     files:
       - bin/MODL*
+      - bin/_khiopsgetprocnumber*
       - bin/khiops_env # [linux or osx]
       - bin/khiops # [linux or osx]
       - bin/khiops_coclustering # [linux or osx]

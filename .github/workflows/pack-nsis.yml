@@ -57,7 +57,7 @@ jobs:
         with:
           preset-name: windows-msvc-release
           targets: MODL MODL_Coclustering norm_jar khiops_jar KhiopsNativeInterface
-            KNITransfer
+            KNITransfer _khiopsgetprocnumber
           override-flags: -DTESTING=OFF -DBUILD_JARS=ON
       - name: Build NSIS package
         shell: pwsh

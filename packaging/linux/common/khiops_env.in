@@ -43,7 +43,7 @@ help()
     echo "  . set to 'true' to allow file name selection with uri schemas"
     echo "  . set to 'false' to allow local file name selection only with a file selection dialog"
     echo
-    echo "In case of configuration problems, the variables KHIOPS_JAVA_ERROR and KHIOPS_MPI_ERROR contains error messages."
+    echo "In case of configuration problems, the variables KHIOPS_JAVA_ERROR and KHIOPS_MPI_ERROR contain error messages."
 }
 
 [[ $# == 1 && $1 == "-h" ]] && help && exit 0
@@ -94,7 +94,7 @@ KHIOPS_COCLUSTERING_PATH=@KHIOPS_COCLUSTERING_PATH@MODL_Coclustering
 
 # Number of processes in use (must be set according to the physical cores number)
 if [[ -z $KHIOPS_PROC_NUMBER ]]; then
-    KHIOPS_PROC_NUMBER=$(${KHIOPS_PATH} -s | grep 'Physical cores on system' | cut -d" " -f5-)
+    KHIOPS_PROC_NUMBER=$(@GET_PROC_NUMBER_PATH@_khiopsgetprocnumber | head -n 1 )
 fi
 
 if command -v mpiexec &> /dev/null
@@ -109,8 +109,6 @@ fi
 if [[ $KHIOPS_PROC_NUMBER -le 2 ]]; then
     KHIOPS_MPI_COMMAND=""
 fi
-
-
 
 if [ "$1" = "--env" ];
 then
