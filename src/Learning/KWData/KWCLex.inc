@@ -1,6 +1,6 @@
-#line 1 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCLex.inc"
+#line 1 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCLex.inc"
 
-#line 3 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCLex.inc"
+#line 3 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCLex.inc"
 
 #define  YY_INT_ALIGNED short int
 
@@ -568,11 +568,11 @@ char *yytext;
 #undef YYLMAX
 #define	YYLMAX		100000		/* token and pushback buffer size */
 
-#line 571 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCLex.inc"
+#line 571 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCLex.inc"
 /* pour avoir acces aux numeros de lignes, et moins cher que le -l de la ligne de commande */
 /* Attention, la liste des mots cles du langage doit etre reprise dans la methode KWClass::IsStringKeyWord() */
 /* si on veut autoriser des noms de variable en collision avec ces mots cles.                                */
-#line 575 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCLex.inc"
+#line 575 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCLex.inc"
 
 #define INITIAL 0
 
@@ -784,7 +784,7 @@ YY_DECL
 #line 31 "KWCLex.lex"
 
 
-#line 787 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCLex.inc"
+#line 787 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCLex.inc"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -1191,7 +1191,7 @@ YY_RULE_SETUP
 #line 299 "KWCLex.lex"
 ECHO;
 	YY_BREAK
-#line 1194 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCLex.inc"
+#line 1194 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCLex.inc"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 

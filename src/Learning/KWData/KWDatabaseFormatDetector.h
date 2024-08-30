@@ -12,7 +12,7 @@ class RewindableInputBufferedFile;
 #include "KWSTDatabaseTextFile.h"
 #include "KWDataTableDriverTextFile.h"
 #include "KWCharFrequencyVector.h"
-#include "KWSortableIndex.h"
+#include "IntVectorSorter.h"
 
 ////////////////////////////////////////////////////////////
 // Classe KWDatabaseFormatDetector

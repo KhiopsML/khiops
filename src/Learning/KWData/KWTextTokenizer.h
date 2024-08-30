@@ -9,7 +9,7 @@ class KWTextNgramTokenizer;
 class KWTextWordTokenizer;
 class KWTextBasicTokenizer;
 
-#include "KWTextService.h"
+#include "TextService.h"
 #include "Object.h"
 #include "ALString.h"
 #include "Vector.h"
@@ -24,7 +24,7 @@ class KWTextBasicTokenizer;
 // Classe de tokenization d'un texte
 // Classe acnetre de toutes les classes de tokenization
 // Dans cette classe, la tokenization est basique, en utilisant uniquement le separateur blanc
-class KWTextTokenizer : public KWTextService
+class KWTextTokenizer : public TextService
 {
 public:
 	KWTextTokenizer();

@@ -5,12 +5,11 @@
 
 %{
 #include <stdlib.h>
-#include "JSONTokenizer.h"
 
 // Valeur des tokens
 static ALString sJsonTokenString;
 static ALString sJsonTokenStringCopy;
-static double cJsonTokenDouble = 0;
+static double dJsonTokenDouble = 0;
 static boolean bJsonTokenBoolean = false;
 
 // Desactivation de warnings pour le Visual C++
@@ -61,14 +60,16 @@ null            {return JSONTokenizer::Null;}
                     if (JSONTokenizer::GetForceAnsi())
                     {
                         sJsonTokenStringCopy = sJsonTokenString;
-                        JSONFile::CStringToCAnsiString(sJsonTokenStringCopy, sJsonTokenString);
+                        TextService::CStringToCAnsiString(sJsonTokenStringCopy, sJsonTokenString);
                     }
                         
                     return  JSONTokenizer::String;
                 }
 
 {NUMBER}        {
-                    cJsonTokenDouble = KWContinuous::StringToContinuous((char*)yytext);
+                    char* endptr;
+    		        dJsonTokenDouble = strtod((char*)yytext, &endptr);
+
                     return(JSONTokenizer::Number);
                 }
 

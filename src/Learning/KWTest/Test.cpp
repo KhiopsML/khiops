@@ -132,7 +132,7 @@ void Test(int argc, char** argv)
 	// KWObjectArrayValueBlock::Test();
 	// KWCDUniqueString::Test();
 	// SNBIndexVector::Test();
-	// KWTextService::Test();
+	// TextService::Test();
 	// KWTextNgramTokenizer::Test();
 	// KWTextWordTokenizer::Test();
 	// KWTextTokenizer::Test();
