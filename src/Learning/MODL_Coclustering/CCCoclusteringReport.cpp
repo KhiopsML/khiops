@@ -2895,8 +2895,8 @@ boolean CCCoclusteringReport::ReadJSONDimensionSummaries(CCHierarchicalDataGrid*
 		// Valeur min et max dans le cas numerique
 		if (bOk and nAttributeType == KWType::Continuous)
 		{
-			bOk = bOk and JSONTokenizer::ReadKeyContinuousValue("min", false, cMin, bIsEnd);
-			bOk = bOk and JSONTokenizer::ReadKeyContinuousValue("max", false, cMax, bIsEnd);
+			bOk = bOk and JSONTokenizer::ReadKeyDoubleValue("min", false, cMin, bIsEnd);
+			bOk = bOk and JSONTokenizer::ReadKeyDoubleValue("max", false, cMax, bIsEnd);
 		}
 
 		// Initialisation de la grille ou ajout d'un attribut
@@ -3095,8 +3095,8 @@ boolean CCCoclusteringReport::ReadJSONInnerAttributesDimensionSummaries(KWDGAttr
 		// Valeur min et max dans le cas numerique
 		if (bOk and nAttributeType == KWType::Continuous)
 		{
-			bOk = bOk and JSONTokenizer::ReadKeyContinuousValue("min", false, cMin, bIsEnd);
-			bOk = bOk and JSONTokenizer::ReadKeyContinuousValue("max", false, cMax, bIsEnd);
+			bOk = bOk and JSONTokenizer::ReadKeyDoubleValue("min", false, cMin, bIsEnd);
+			bOk = bOk and JSONTokenizer::ReadKeyDoubleValue("max", false, cMax, bIsEnd);
 		}
 
 		// Creation et specification de l'attribut interne
@@ -3602,7 +3602,7 @@ boolean CCCoclusteringReport::ReadJSONInterval(KWDGAttribute* dgAttribute, KWDGP
 
 			// Lecture de la borne sup
 			bOk = bOk and JSONTokenizer::ReadExpectedToken(',');
-			bOk = bOk and JSONTokenizer::ReadContinuousValue(false, cUpperBound);
+			bOk = bOk and JSONTokenizer::ReadDoubleValue(false, cUpperBound);
 			bOk = bOk and JSONTokenizer::ReadExpectedToken(']');
 		}
 	}

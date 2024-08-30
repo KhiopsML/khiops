@@ -59,7 +59,8 @@ add_library(
   KWSTDatabaseTextFile.cpp
   KWStructureRule.cpp
   KWSymbol.cpp
-  KWTextService.cpp
+  TextService.cpp
+  IntVectorSorter.cpp
   KWTextTokenizer.cpp
   KWDateTime.cpp
   KWTime.cpp

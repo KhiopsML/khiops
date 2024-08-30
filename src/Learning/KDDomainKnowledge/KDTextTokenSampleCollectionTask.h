@@ -9,7 +9,7 @@ class KDTextTokenSampleCollectionTask;
 #include "KDTextFeatureSpec.h"
 #include "KWDatabaseTask.h"
 #include "KWTokenFrequency.h"
-#include "KWTextService.h"
+#include "TextService.h"
 #include "KWTextTokenizer.h"
 
 /////////////////////////////////////////////////////////////////////////////////

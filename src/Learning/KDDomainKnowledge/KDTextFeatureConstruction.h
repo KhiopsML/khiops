@@ -16,7 +16,7 @@ class KDTextClass;
 #include "KDMultinomialSampleGenerator.h"
 #include "KDTextTokenSampleCollectionTask.h"
 #include "KDClassCompliantRules.h"
-#include "KWTextService.h"
+#include "TextService.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // Classe KDTextFeatureConstruction

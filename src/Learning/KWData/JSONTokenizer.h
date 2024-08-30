@@ -6,15 +6,14 @@
 
 #include "Object.h"
 #include "ALString.h"
-#include "KWContinuous.h"
 #include "FileService.h"
 #include "PLRemoteFileService.h"
-#include "JSONFile.h"
+#include "TextService.h"
 
 //////////////////////////////////////////////////////
 // Parser de fichier JSON pour en extraire les tokens
 // Attention: les methodes sont toutes statiques
-class JSONTokenizer : public Object
+class JSONTokenizer : public TextService
 {
 public:
 	//////////////////////////////////////////////////////////////////////////////
@@ -91,7 +90,6 @@ public:
 
 	// Specialisation dans le cas d'un nombre, en verifiant si necessaire que la valeur est positive ou nul
 	static boolean ReadDoubleValue(boolean bIsPositive, double& dValue);
-	static boolean ReadContinuousValue(boolean bIsPositive, Continuous& cValue);
 	static boolean ReadIntValue(boolean bIsPositive, int& nValue);
 
 	// Lecture d'un identifiant avec le token ':'
@@ -105,8 +103,6 @@ public:
 
 	// Specialisation dans le cas d'un nombre, en verifiant si necessaire que la valeur est positive ou nul
 	static boolean ReadKeyDoubleValue(const ALString& sKey, boolean bIsPositive, double& dValue, boolean& bIsEnd);
-	static boolean ReadKeyContinuousValue(const ALString& sKey, boolean bIsPositive, Continuous& cValue,
-					      boolean& bIsEnd);
 	static boolean ReadKeyIntValue(const ALString& sKey, boolean bIsPositive, int& nValue, boolean& bIsEnd);
 
 	// Lecture d'une paire cle objet ou cle tableau, en ne lisant que le debut de l'objet ou tableau ('{' ou '[')
@@ -139,6 +135,10 @@ protected:
 
 	// Ajout d'une sous partie d'une chaine
 	static void AppendSubString(ALString& sString, const char* sAddedString, int nBegin, int nLength);
+
+	// Conversion d'un double en entier
+	// Renvoie true si la conversion est un succes
+	static boolean DoubleToInt(double dValue, int& nValue);
 
 	// Famille d'erreur a utiliser pour emettre les erreur
 	static ALString sErrorFamily;
