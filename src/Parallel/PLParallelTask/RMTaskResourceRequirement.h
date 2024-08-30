@@ -68,8 +68,9 @@ public:
 	// L'algorithme reparti le surplus proportionellement aux exigences : il calcule un pourcentage p qui est le meme
 	// pour chaque type d'exigence. Le surplus pour chaque exigence est p * (exigenceMax-ExigenceMin)
 	// Soit on repartit proportionnellement les exigences : balanced
-	// Soit on donne la maximum au maitre et on reparti le reste : masterPreferred
-	// Soit on donne le maximum aux esclaves et on reparti le reste: slavePrefered (par  defaut)
+	// Soit on donne la maximum au maitre et on repartit le reste : masterPreferred
+	// Soit on donne le maximum aux esclaves et on repartit le reste : slavePreferred (par defaut)
+	// Soit on donne le maximum a la memoire globale des esclaves et on repartit le reste : globalPreferred
 	void SetMemoryAllocationPolicy(ALLOCATION_POLICY policy);
 	ALLOCATION_POLICY GetMemoryAllocationPolicy() const;
 
