@@ -1,3 +1,7 @@
+# Copyright (c) 2024 Orange. All rights reserved.
+# This software is distributed under the BSD 3-Clause-clear License, the text of which is available
+# at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
+
 """Updates the copyright notice of the input files"""
 
 import argparse
@@ -29,8 +33,7 @@ def main(args):
         is_file_modified = update_copyright(file_path)
         if is_file_modified:
             were_files_modified = True
-            modified_file_paths.append(file_path)
-            print(f"Updating {file_path}")
+            print(f"Updated {file_path}")
 
     # Set the return code
     return_code = 0
@@ -91,8 +94,11 @@ def update_copyright(file_path):
                 tmp_stream.write(line)
                 tmp_stream.write(byte_linesep)
 
+        # Flush the file contents
+        tmp_stream.flush()
+
         # If the temporary file contents do not match the original, replace it
-        if filecmp.cmp(file_path, tmp_stream.name, shallow=False):
+        if not filecmp.cmp(file_path, tmp_stream.name, shallow=False):
             is_file_modified = True
             shutil.copyfile(tmp_stream.name, file_path)
 
