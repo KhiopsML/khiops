@@ -118,7 +118,7 @@ boolean KDTextTokenSampleCollectionTask::CollectTokenSamples(const KWDatabase* s
 					break;
 				}
 				cout << "\t\t" << nToken + 1 << "\t" << token->GetFrequency() << "\t"
-				     << KWTextService::ByteStringToWord(token->GetToken()) << "\n";
+				     << TextService::ByteStringToWord(token->GetToken()) << "\n";
 			}
 			cout << flush;
 		}

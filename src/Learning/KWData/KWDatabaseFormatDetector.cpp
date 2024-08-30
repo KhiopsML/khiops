@@ -1243,7 +1243,7 @@ int KWDatabaseFormatDetector::ComputeSeparatorPriority(char cSeparator) const
 
 void KWDatabaseFormatDetector::SortSeparators(CharVector* cvSeparators) const
 {
-	KWIntVectorSorter sorter;
+	IntVectorSorter sorter;
 	IntVector ivSeparatorPriorities;
 	int i;
 	char cSeparator;

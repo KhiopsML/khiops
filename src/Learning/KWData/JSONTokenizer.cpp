@@ -98,7 +98,7 @@ boolean JSONTokenizer::Close()
 	sFileName = "";
 	fJSON = NULL;
 	sJsonTokenString = "";
-	cJsonTokenDouble = 0;
+	dJsonTokenDouble = 0;
 	bJsonTokenBoolean = false;
 	nLastToken = 0;
 	return bOk;
@@ -172,7 +172,7 @@ double JSONTokenizer::GetTokenNumberValue()
 {
 	require(IsOpened());
 	require(nLastToken == Number);
-	return cJsonTokenDouble;
+	return dJsonTokenDouble;
 }
 
 boolean JSONTokenizer::GetTokenBooleanValue()
@@ -227,7 +227,7 @@ void JSONTokenizer::TestReadJsonFile(int argc, char** argv)
 				}
 				else if (nToken == Number)
 				{
-					cout << " " << cJsonTokenDouble;
+					cout << " " << dJsonTokenDouble;
 				}
 				else if (nToken == Boolean)
 				{
@@ -386,7 +386,7 @@ void JSONTokenizer::JsonToCString(const char* sJsonString, ALString& sCString)
 				sUnicodeChars.SetAt(3, sInputString[nEnd + 3]);
 
 				// On tente d'abord le decodgage d'un caractere windows-1252 encode avec unicode
-				nCode = JSONFile::UnicodeHexToWindows1252(sUnicodeChars);
+				nCode = UnicodeHexToWindows1252(sUnicodeChars);
 				if (nCode != -1)
 				{
 					nEnd += 3;
@@ -553,23 +553,6 @@ boolean JSONTokenizer::ReadDoubleValue(boolean bIsPositive, double& dValue)
 	return bOk;
 }
 
-boolean JSONTokenizer::ReadContinuousValue(boolean bIsPositive, Continuous& cValue)
-{
-	boolean bOk;
-	double dValue;
-	ALString sTmp;
-
-	// Lecture puis controle eventuel de positivite
-	bOk = ReadNumberValue(dValue);
-	cValue = KWContinuous::DoubleToContinuous(dValue);
-	if (bOk and bIsPositive and dValue < 0)
-	{
-		AddParseError(sTmp + "Invalid value (" + DoubleToString(dValue) + ")");
-		bOk = false;
-	}
-	return bOk;
-}
-
 boolean JSONTokenizer::ReadIntValue(boolean bIsPositive, int& nValue)
 {
 	boolean bOk;
@@ -579,12 +562,12 @@ boolean JSONTokenizer::ReadIntValue(boolean bIsPositive, int& nValue)
 	// Lecture puis conversion en entier
 	bOk = ReadDoubleValue(bIsPositive, dValue);
 	if (bOk)
-		bOk = KWContinuous::ContinuousToInt(dValue, nValue);
+		bOk = DoubleToInt(dValue, nValue);
 	else
 		nValue = 0;
 	if (not bOk)
 	{
-		AddParseError(sTmp + "Invalid integer value (" + KWContinuous::ContinuousToString(dValue) + ")");
+		AddParseError(sTmp + "Invalid integer value (" + DoubleToString(dValue) + ")");
 		bOk = false;
 	}
 	return bOk;
@@ -701,18 +684,6 @@ boolean JSONTokenizer::ReadKeyDoubleValue(const ALString& sKey, boolean bIsPosit
 	return bOk;
 }
 
-boolean JSONTokenizer::ReadKeyContinuousValue(const ALString& sKey, boolean bIsPositive, Continuous& cValue,
-					      boolean& bIsEnd)
-{
-	boolean bOk;
-	double dValue;
-
-	// Lecture puis controle eventuel de positivite
-	bOk = ReadKeyDoubleValue(sKey, bIsPositive, dValue, bIsEnd);
-	cValue = KWContinuous::DoubleToContinuous(dValue);
-	return bOk;
-}
-
 boolean JSONTokenizer::ReadKeyIntValue(const ALString& sKey, boolean bIsPositive, int& nValue, boolean& bIsEnd)
 {
 	boolean bOk;
@@ -721,12 +692,12 @@ boolean JSONTokenizer::ReadKeyIntValue(const ALString& sKey, boolean bIsPositive
 	// Lecture puis conversion en entier
 	bOk = ReadKeyDoubleValue(sKey, bIsPositive, dValue, bIsEnd);
 	if (bOk)
-		bOk = KWContinuous::ContinuousToInt(dValue, nValue);
+		bOk = DoubleToInt(dValue, nValue);
 	else
 		nValue = 0;
 	if (not bOk)
 	{
-		AddParseError("Invalid " + sKey + " (" + KWContinuous::ContinuousToString(dValue) + ")");
+		AddParseError("Invalid " + sKey + " (" + DoubleToString(dValue) + ")");
 		bOk = false;
 	}
 	return bOk;
@@ -860,6 +831,21 @@ void JSONTokenizer::AppendSubString(ALString& sString, const char* sAddedString,
 	{
 		sString.SetAt(nStringLength, sAddedString[i]);
 		nStringLength++;
+	}
+}
+
+boolean JSONTokenizer::DoubleToInt(double dValue, int& nValue)
+{
+	// Recherche de l'entier le plus proche
+	nValue = int(floor(dValue + 0.5));
+
+	// Ok si presque egale, avec tolerance
+	if (fabs(dValue - nValue) < 1e-6)
+		return true;
+	else
+	{
+		nValue = 0;
+		return false;
 	}
 }
 

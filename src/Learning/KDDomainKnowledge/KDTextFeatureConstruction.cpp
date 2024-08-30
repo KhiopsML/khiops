@@ -1158,7 +1158,7 @@ const ALString KDTextFeatureConstruction::BuildTokenBasedAttributeName(const KWA
 			sAttributeName += "gram";
 		}
 		sAttributeName += '(';
-		sAttributeName += KWTextService::ByteStringToWord(sToken);
+		sAttributeName += TextService::ByteStringToWord(sToken);
 		sAttributeName += ')';
 	}
 	// Numerotation des variables

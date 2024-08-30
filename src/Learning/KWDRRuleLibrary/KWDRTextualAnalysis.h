@@ -14,7 +14,7 @@ class KWDRTextInit;
 
 #include "KWDerivationRule.h"
 #include "KWValueBlock.h"
-#include "KWTextService.h"
+#include "TextService.h"
 #include "KWTextTokenizer.h"
 
 #include "KWDRTextualAnalysisPROTO.h"

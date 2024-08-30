@@ -6,7 +6,7 @@
 
 void KWTokenFrequency::Write(ostream& ost) const
 {
-	ost << "(" << KWTextService::ByteStringToWord(sToken) << ", " << lFrequency << ")";
+	ost << "(" << TextService::ByteStringToWord(sToken) << ", " << lFrequency << ")";
 }
 
 int KWTokenFrequencyCompareToken(const void* elem1, const void* elem2)
