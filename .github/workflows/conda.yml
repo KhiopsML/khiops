@@ -39,6 +39,9 @@ jobs:
     steps:
       - name: Checkout Sources
         uses: actions/checkout@v4
+      - name: Check the tag consistency with the source version
+        if: github.ref_type == 'tag'
+        uses: ./.github/actions/check-tag-version
       - name: Install Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
