@@ -32,6 +32,9 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
+      - name: Check the tag consistency with the source version
+        if: github.ref_type == 'tag'
+        uses: ./.github/actions/check-tag-version
       - name: Put OS info on the environment
         run: |
           source /etc/os-release
@@ -155,8 +158,6 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
       - name: Download package artifacts
         uses: actions/download-artifact@v4
         with:
