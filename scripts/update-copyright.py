@@ -1,44 +1,74 @@
+# Copyright (c) 2024 Orange. All rights reserved.
+# This software is distributed under the BSD 3-Clause-clear License, the text of which is available
+# at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
+
 """Updates the copyright notice of the input files"""
 
 import argparse
+import filecmp
 import os
+import tempfile
+import sys
+import shutil
 from datetime import datetime
 
 # pylint: disable=line-too-long
 byte_linesep = bytes(os.linesep, encoding="ascii")
 copyright_banner_lines = [
     bytes(
-        f"// Copyright (c) {datetime.today().year} Orange. All rights reserved.",
+        f"Copyright (c) {datetime.today().year} Orange. All rights reserved.",
         encoding="ascii",
     ),
-    b"// This software is distributed under the BSD 3-Clause-clear License, the text of which is available",
-    b'// at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.',
+    b"This software is distributed under the BSD 3-Clause-clear License, the text of which is available",
+    b'at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.',
 ]
 # pylint: enable=line-too-long
 
 
 def main(args):
     """Main method"""
+    # Process files and keep track if there were modifications
+    were_files_modified = False
     for file_path in args.file_paths:
-        update_copyright(file_path)
+        is_file_modified = update_copyright(file_path)
+        if is_file_modified:
+            were_files_modified = True
+            print(f"Updated {file_path}")
+
+    # Set the return code
+    return_code = 0
+    if were_files_modified:
+        return_code = 1
+
+    return return_code
 
 
 def update_copyright(file_path):
-    """Updates the copyright notice of a file"""
-    print(f"Updating {file_path}")
+    """Updates the copyright notice of a file if necessary"""
+
+    # Obtain the comment prefix string from the file extension
+    _, ext = os.path.splitext(file_path)
+    if ext in (".h", ".c", ".hpp", ".cpp", ".java"):
+        comment_prefix = b"// "
+    elif ext == ".py":
+        comment_prefix = b"# "
+    else:
+        raise ValueError(f"Unsupported file extension '{ext}'.")
 
     # Read the lines from the source file
     with open(file_path, "rb") as file:
         lines = file.readlines()
 
-    # Then write the file as-is
+    # Write the contents to a temporary file
+    is_file_modified = False
     skipped_copyright = False
-    with open(file_path, "wb") as file:
+    with tempfile.NamedTemporaryFile() as tmp_stream:
         # Write the current copyright, followed by an empty line
         for line in copyright_banner_lines:
-            file.write(line)
-            file.write(byte_linesep)
-        file.write(byte_linesep)
+            tmp_stream.write(comment_prefix)
+            tmp_stream.write(line)
+            tmp_stream.write(byte_linesep)
+        tmp_stream.write(byte_linesep)
 
         # Rewrite the file as follows
         # - Skip the old copyright
@@ -47,9 +77,9 @@ def update_copyright(file_path):
         for n, line in enumerate(lines):
             line = line.rstrip()
             if (
-                line.startswith(b"// Copyright (c)")
-                or line.startswith(b"// This software is distributed")
-                or line.startswith(b"// at https://spdx.org")
+                line.startswith(comment_prefix + b"Copyright (c)")
+                or line.startswith(comment_prefix + b"This software is distributed")
+                or line.startswith(comment_prefix + b"at https://spdx.org")
             ) and not skipped_copyright:
                 continue
             else:
@@ -61,8 +91,18 @@ def update_copyright(file_path):
                         skipped_copyright = True
                 # Beware: all lines must end with an end of line, including the last line
                 # (otherwise, the Windows RC compiler does not work)
-                file.write(line)
-                file.write(byte_linesep)
+                tmp_stream.write(line)
+                tmp_stream.write(byte_linesep)
+
+        # Flush the file contents
+        tmp_stream.flush()
+
+        # If the temporary file contents do not match the original, replace it
+        if not filecmp.cmp(file_path, tmp_stream.name, shallow=False):
+            is_file_modified = True
+            shutil.copyfile(tmp_stream.name, file_path)
+
+    return is_file_modified
 
 
 if __name__ == "__main__":
@@ -77,4 +117,4 @@ if __name__ == "__main__":
         nargs="+",
         help="One or more source code files",
     )
-    main(parser.parse_args())
+    sys.exit(main(parser.parse_args()))

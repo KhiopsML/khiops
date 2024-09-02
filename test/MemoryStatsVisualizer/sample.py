@@ -1,3 +1,7 @@
+# Copyright (c) 2024 Orange. All rights reserved.
+# This software is distributed under the BSD 3-Clause-clear License, the text of which is available
+# at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
+
 import memory_stats_visualizer as mvs
 import collect_stats_per_task as cspt
 import collect_stat_io as csio
