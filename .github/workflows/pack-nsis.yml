@@ -26,23 +26,8 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - name: Obtain checkout ref
-        shell: bash
-        run: |
-          # We take the "pull request head" ref (by default it is a merged one)
-          if [[ "${{ github.event_name }}" == "pull_request" ]]
-          then
-            CHECKOUT_REF="${{ github.event.pull_request.head.sha }}"
-          # Otherwise the default checkout action ref
-          else
-            CHECKOUT_REF="${{ github.ref_name }}"
-          fi
-          echo "CHECKOUT_REF=$CHECKOUT_REF" >> $GITHUB_ENV
-          echo "Checkout ref: $CHECKOUT_REF"
       - name: Checkout sources
         uses: actions/checkout@v4
-        with:
-          ref: ${{ env.CHECKOUT_REF }}
       - name: Put the package version on the environment and output
         id: get-version
         shell: bash
