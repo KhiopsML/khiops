@@ -43,4 +43,4 @@ repos:
         name: update-copyright
         entry: python scripts/update-copyright.py
         language: system
-        types_or: [c, c++, java]
+        types_or: [c, c++, java, python]
