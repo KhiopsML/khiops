@@ -191,7 +191,7 @@ jobs:
         with:
           allowUpdates: true
           body: |
-            **This release is for testing purporses only and there is no support for it.**
+            **This release is for testing purposes only and there is no support for it.**
             **Go to https://khiops.org to install the latest supported version.**
           draft: false
           makeLatest: false
