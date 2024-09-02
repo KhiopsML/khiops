@@ -182,7 +182,9 @@ jobs:
         with:
           allowUpdates: true
           artifacts: '*.rpm'
-          body: '**For testing purposes only**'
+          body: |
+            **This release is for testing purposes only and there is no support for it.**
+            **Go to https://khiops.org to install the latest supported version.**
           draft: false
           makeLatest: false
           prerelease: true
