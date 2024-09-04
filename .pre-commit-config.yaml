@@ -15,15 +15,15 @@ repos:
     rev: v0.6.13
     hooks:
       - id: cmake-format
-  # - repo: https://github.com/lyz-code/yamlfix/
-  #   rev: 1.16.0
-  #   hooks:
-  #     - id: yamlfix
-  #       # Exclude conda's meta.yaml because
-  #       # - It crashes with jinja2 definitions (ex. "{% my_var = 1 %}")
-  #       # - It doesn't support the preprocessing selectors (ex. "[not win]")
-  #       # Exclude pack-debian.yml because it doesn't support quoted strings in arrays
-  #       exclude: (packaging/conda/meta.yaml|workflows/pack-debian.yml)
+  - repo: https://github.com/lyz-code/yamlfix/
+    rev: 1.17.0
+    hooks:
+      - id: yamlfix
+        # Exclude conda's meta.yaml because
+        # - It crashes with jinja2 definitions (ex. "{% my_var = 1 %}")
+        # - It doesn't support the preprocessing selectors (ex. "[not win]")
+        # Exclude pack-debian.yml because it doesn't support quoted strings in arrays
+        exclude: (packaging/conda/meta.yaml|workflows/pack-debian.yml)
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
