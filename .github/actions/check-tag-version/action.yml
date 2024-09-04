@@ -1,0 +1,17 @@
+---
+name: Check tag/version consistency
+description: Check that the Khiops source version matches a tag
+runs:
+  using: composite
+  steps:
+    - name: Check that the Khiops source version matches the input tag
+      shell: bash
+      run: |-
+        SOURCE_VERSION=$(./scripts/khiops-version)
+        if [[ "$SOURCE_VERSION" != "${{ github.ref_name }}" ]]
+        then
+          echo "::error::Incompatible source version '$SOURCE_VERSION' with tag '${{ github.ref_name }}'. Either change the tag to match the source version or modify the KHIOPS_VERSION macro in src/Learning/KWUtils/KWKhiopsVersion.h."
+          exit 1
+        else
+          echo "Tag '${{ github.ref_name }}' OK"
+        fi

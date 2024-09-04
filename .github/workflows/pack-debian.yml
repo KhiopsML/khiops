@@ -7,7 +7,7 @@ on:
         description: mpi implementation
         type: choice
         default: openmpi
-        options: 
+        options:
           - mpich
           - openmpi
   pull_request:
@@ -22,7 +22,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
-  
   build:
     runs-on: ubuntu-latest
     defaults:
@@ -37,13 +36,16 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
+      - name: Check the tag consistency with the source version
+        if: github.ref_type == 'tag'
+        uses: ./.github/actions/check-tag-version
       - name: Set environment variables
         run: |
           source /etc/os-release
           echo "ID=$ID" >> "$GITHUB_ENV"
           echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
           echo "MPI_IMPLEMENTATION=${{ inputs.mpi_implementation || 'openmpi' }}" >> "$GITHUB_ENV"
-          
+
       - name: Configure CMake
         run: |
           update-alternatives --set mpi /usr/bin/mpicc.$MPI_IMPLEMENTATION
@@ -164,8 +166,6 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
       - name: Download package artifacts
         uses: actions/download-artifact@v4
         with:
@@ -191,6 +191,9 @@ jobs:
         with:
           allowUpdates: true
           artifacts: '*.deb'
+          body: |
+            **This release is for testing purposes only and there is no support for it.**
+            **Go to https://khiops.org to install the latest supported version.**
           draft: false
           makeLatest: false
           prerelease: true
