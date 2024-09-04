@@ -600,10 +600,11 @@ public:
 	const ALString GetClassLabel() const override;
 
 	// Estimation de l'empreinte memoire
+	// Selon le parametre bDisk, l'empreinte est estimee pour l'empreinte sur disque ou en RAM
 	static longint ComputeNecessaryMemory(int nInstanceNumber, int nChunkNumber,
 					      const IntVector* ivSparseMissingValueNumberPerAttribute,
 					      int nDenseAttributeNumber, int nSliceNumber,
-					      double dSparseChunkMemoryFactor);
+					      double dSparseChunkMemoryFactor, boolean bDisk);
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////
 	//// Implementation

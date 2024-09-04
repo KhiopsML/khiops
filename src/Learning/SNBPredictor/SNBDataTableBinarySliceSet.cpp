@@ -2193,11 +2193,12 @@ const ALString SNBDataTableBinarySliceSetChunkBuffer::GetClassLabel() const
 
 longint SNBDataTableBinarySliceSetChunkBuffer::ComputeNecessaryMemory(
     int nInstanceNumber, int nChunkNumber, const IntVector* ivSparseMissingValueNumberPerAttribute,
-    int nDenseAttributeNumber, int nSliceNumber, double dSparseChunkMemoryFactor)
+    int nDenseAttributeNumber, int nSliceNumber, double dSparseChunkMemoryFactor, boolean bDisk)
 {
 	int nAttributeNumber;
 	int nMaxSliceAttributeNumber;
 	int nAttribute;
+	longint lIndexMatrixNecessaryMemory;
 	longint lMaxSliceSparseValueNumber;
 	double dSlackFactor;
 	longint lSlackedGlobalSliceSparseValueNumber;
@@ -2243,7 +2244,19 @@ longint SNBDataTableBinarySliceSetChunkBuffer::ComputeNecessaryMemory(
 	// le facteur de memoire sparse par chunk (memoire max par inst/ memoire moyenne par inst) +1 pour precaution
 	// Sur-estimee dans le cas d'un seul chunk (il n'y pas besoin de slack dans ce cas la)
 	dSlackFactor = 1 + dSparseChunkMemoryFactor;
+
+	// Memoire necessaire pour la matrice des index de recodage
 	lSlackedGlobalSliceSparseValueNumber = longint(lMaxSliceSparseValueNumber * dSlackFactor);
+	lIndexMatrixNecessaryMemory =
+	    (longint(nDenseAttributeNumber) * nInstanceNumber / nSliceNumber + lSlackedGlobalSliceSparseValueNumber) *
+	    sizeof(int);
+
+	// Comme les vecteur de tres grande taille remplissent tres bien les segments de memoire de
+	// l'allocateur, l'overhead de l'allocateur est ici largement surestime. On le retranche alors
+	// prealablement, avant qu'il soit applique pour convertir les exigences logiques en exigences physiques.
+	// Cette correction ne s'applique que pour la memoire RAM, pas pour le disque
+	if (not bDisk)
+		lIndexMatrixNecessaryMemory = longint(lIndexMatrixNecessaryMemory / (1 + MemGetAllocatorOverhead()));
 
 	// Formule de l'estimation (sans dictionnaire de recodage) :
 	//   Memoire propre de l'instance +
@@ -2254,9 +2267,7 @@ longint SNBDataTableBinarySliceSetChunkBuffer::ComputeNecessaryMemory(
 	return sizeof(SNBDataTableBinarySliceSetChunkBuffer) + sizeof(FILE) +
 	       longint(nAttributeNumber) * sizeof(KWLoadIndex) +
 	       longint(nAttributeNumber / nSliceNumber) * (sizeof(IntVector) + oaDummy.GetUsedMemoryPerElement()) +
-	       (longint(nDenseAttributeNumber) * nInstanceNumber / nSliceNumber +
-		lSlackedGlobalSliceSparseValueNumber) *
-		   sizeof(int);
+	       lIndexMatrixNecessaryMemory;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

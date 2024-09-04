@@ -469,7 +469,7 @@ longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeGlobalSlaveNecessary
 	lGlobalDataCostCalculatorMemory = ComputeGlobalSlaveScorerNecessaryMemory();
 	lGlobalBinarySliceSetChunkBufferMemory = SNBDataTableBinarySliceSetChunkBuffer::ComputeNecessaryMemory(
 	    nInstanceNumber, 1, ivSparseMissingValueNumberPerAttribute, nAttributeNumber - nSparseAttributeNumber,
-	    nSliceNumber, dSparseMemoryFactor);
+	    nSliceNumber, dSparseMemoryFactor, false);
 
 	// Nettoyage vecteur des comptes des valeurs sparse
 	delete ivSparseMissingValueNumberPerAttribute;
@@ -567,7 +567,7 @@ longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeGlobalSlaveBinarySli
 	// avec les estimations des objets necessaires avec un seul chunk
 	lNecessaryMemory = SNBDataTableBinarySliceSetChunkBuffer::ComputeNecessaryMemory(
 	    nInstanceNumber, 1, ivTrainingSparseMissingValueNumberPerAttribute,
-	    nAttributeNumber - nSparseAttributeNumber, nSliceNumber, dSparseMemoryFactor);
+	    nAttributeNumber - nSparseAttributeNumber, nSliceNumber, dSparseMemoryFactor, false);
 
 	// Nettoyage
 	delete ivTrainingSparseMissingValueNumberPerAttribute;
@@ -845,7 +845,7 @@ longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeGlobalSlaveNecessary
 	    masterSnbPredictor->ComputeTrainingSparseMissingValueNumberPerAttribute();
 	lNecessaryDisk = SNBDataTableBinarySliceSetChunkBuffer::ComputeNecessaryMemory(
 	    nInstanceNumber, 1, ivSparseMissingValueNumberPerAttribute, nAttributeNumber - nSparseAttributeNumber, 1,
-	    1.0);
+	    1.0, true);
 
 	// Nettoyage
 	delete ivSparseMissingValueNumberPerAttribute;
