@@ -269,6 +269,7 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeResourceRequirements
 	GetResourceRequirements()->GetMasterRequirement()->GetDisk()->Set(lMasterDisk);
 	GetResourceRequirements()->GetGlobalSlaveRequirement()->GetDisk()->Set(lGlobalSlaveDisk);
 	GetResourceRequirements()->GetSlaveRequirement()->GetDisk()->Set(lSlaveDisk);
+	GetResourceRequirements()->SetMemoryAllocationPolicy(RMTaskResourceRequirement::globalPreferred);
 
 	// Trace de deboggage
 	if (bDisplay)
@@ -468,7 +469,7 @@ longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeGlobalSlaveNecessary
 	lGlobalDataCostCalculatorMemory = ComputeGlobalSlaveScorerNecessaryMemory();
 	lGlobalBinarySliceSetChunkBufferMemory = SNBDataTableBinarySliceSetChunkBuffer::ComputeNecessaryMemory(
 	    nInstanceNumber, 1, ivSparseMissingValueNumberPerAttribute, nAttributeNumber - nSparseAttributeNumber,
-	    nSliceNumber, dSparseMemoryFactor);
+	    nSliceNumber, dSparseMemoryFactor, false);
 
 	// Nettoyage vecteur des comptes des valeurs sparse
 	delete ivSparseMissingValueNumberPerAttribute;
@@ -566,7 +567,7 @@ longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeGlobalSlaveBinarySli
 	// avec les estimations des objets necessaires avec un seul chunk
 	lNecessaryMemory = SNBDataTableBinarySliceSetChunkBuffer::ComputeNecessaryMemory(
 	    nInstanceNumber, 1, ivTrainingSparseMissingValueNumberPerAttribute,
-	    nAttributeNumber - nSparseAttributeNumber, nSliceNumber, dSparseMemoryFactor);
+	    nAttributeNumber - nSparseAttributeNumber, nSliceNumber, dSparseMemoryFactor, false);
 
 	// Nettoyage
 	delete ivTrainingSparseMissingValueNumberPerAttribute;
@@ -844,7 +845,7 @@ longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeGlobalSlaveNecessary
 	    masterSnbPredictor->ComputeTrainingSparseMissingValueNumberPerAttribute();
 	lNecessaryDisk = SNBDataTableBinarySliceSetChunkBuffer::ComputeNecessaryMemory(
 	    nInstanceNumber, 1, ivSparseMissingValueNumberPerAttribute, nAttributeNumber - nSparseAttributeNumber, 1,
-	    1.0);
+	    1.0, true);
 
 	// Nettoyage
 	delete ivSparseMissingValueNumberPerAttribute;
@@ -905,6 +906,7 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeDataTableBi
 	longint lSlaveShareOfGlobalNecessaryMemory;
 	longint lSlaveExtraMemory;
 	longint lDataTableSliceSetTotalReadBufferMemory;
+	longint lOneSliceExecutionExtraNecessaryMemory;
 	int nDataTableSliceSetSliceNumber;
 	int nDenseAttributeNumber;
 	longint lNonBufferSlaveGlobalMemory;
@@ -924,6 +926,7 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeDataTableBi
 	lSlaveShareOfGlobalNecessaryMemory = 0;
 	lSlaveExtraMemory = -1;
 	lDataTableSliceSetTotalReadBufferMemory = 0;
+	lOneSliceExecutionExtraNecessaryMemory = 0;
 	nDataTableSliceSetSliceNumber = 0;
 	recoderClass = NULL;
 
@@ -931,33 +934,42 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeDataTableBi
 	// avec le minimum pour les buffers du KWDataTableSliceSet
 	for (nSliceNumber = 1; nSliceNumber <= nMaxSliceNumber; nSliceNumber++)
 	{
+		// Calcul de la memoire necessaire pour l'esclave pour ce nombre de slices
 		lGlobalSharedMemoryPerSlave =
 		    ComputeGlobalSlaveNecessaryMemory(nSliceNumber, MemSegmentByteSize) / nSlaveProcessNumber;
 		lSlaveNecessaryMemory =
 		    ComputeSlaveNecessaryMemory(nSlaveProcessNumber, nSliceNumber) + lGlobalSharedMemoryPerSlave;
+
+		// Finalisation de la recherche si la memoire attribuee est suffissante pour ce nombre de slices
 		if (lSlaveGrantedMemory >= lSlaveNecessaryMemory)
 		{
 			bOk = true;
 			lSlaveExtraMemory = lSlaveGrantedMemory - lSlaveNecessaryMemory;
 			break;
 		}
+		// Si l'on ne peut pas executer avec une seule slice:
+		//   Memorisation de la quantite extra de memoire pour pouvoir le faire
+		else if (nSliceNumber == 1)
+			lOneSliceExecutionExtraNecessaryMemory =
+			    (lSlaveNecessaryMemory - lSlaveGrantedMemory) * nSlaveProcessNumber;
 	}
 
 	// Si une configuration de memoire a ete trouve :
-	// - Warning en mode exper s'il y a eu du slicing
+	// - Warning en mode expert s'il y a eu du slicing
 	// - Initialisation du buffer du slice set en entree
 	// - Initialisation du binary slice set
 	// - Estimation du nombre maximal de valeurs sparse dans un bloc
 	if (bOk)
 	{
 		// Message en mode expert s'il y a eu du slicing
-		// NB: L'estimation le la memoire manquante se fait avec 1 slice et un buffer standard.
 		if (GetLearningExpertMode() and nSliceNumber > 1)
+		{
+			assert(lOneSliceExecutionExtraNecessaryMemory > 0);
 			AddMessage(sTmp + "Train database was sliced. Number of slices: " + IntToString(nSliceNumber) +
-				   RMResourceManager::BuildMissingMemoryMessage(
-				       ComputeGlobalSlaveNecessaryMemory(1, MemSegmentByteSize) +
-				       (ComputeSlaveNecessaryMemory(nSlaveProcessNumber, 1) - lSlaveGrantedMemory) *
-					   nSlaveProcessNumber));
+				   " (needs extra " +
+				   RMResourceManager::ActualMemoryToString(lOneSliceExecutionExtraNecessaryMemory) +
+				   ")");
+		}
 
 		// Calcul et parametrage de la memoire necessaire pour les buffer de lecture du KWDataTableSliceSet
 		//
@@ -1045,6 +1057,9 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeDataTableBi
 		cout << "granted slave           mem = "
 		     << LongintToHumanReadableString(GetTaskResourceGrant()->GetSlaveMemory()) << " = "
 		     << GetTaskResourceGrant()->GetSlaveMemory() << " bytes\n";
+		cout << "extra to run w/1 slice  mem = "
+		     << LongintToHumanReadableString(lOneSliceExecutionExtraNecessaryMemory) << " = "
+		     << lOneSliceExecutionExtraNecessaryMemory << " bytes\n";
 		cout << "sparse block    max  values = " << shared_lMaxSparseValuesPerBlock << "\n";
 		cout << "sparse block    max     mem = "
 		     << LongintToHumanReadableString(shared_lMaxSparseValuesPerBlock * sizeof(int)) << " = "
