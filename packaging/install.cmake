@@ -72,6 +72,8 @@ if(UNIX)
     set(KHIOPS_PATH "$(get_script_dir)")
     set(KHIOPS_COCLUSTERING_PATH "$(get_script_dir)")
     set(GET_PROC_NUMBER_PATH "$(get_script_dir)")
+    set(KHIOPS_MPI_PATH "$(get_script_dir)") # We use mpiexec in conda's bin directory
+    set(IS_CONDA_VAR "\n# Inside conda environment\nexport _IS_CONDA=true")
   else()
     if(IS_FEDORA_LIKE)
       set(KHIOPS_PATH "${MPI_BIN}/khiops/")
@@ -80,20 +82,31 @@ if(UNIX)
     endif(IS_FEDORA_LIKE)
     set(KHIOPS_COCLUSTERING_PATH "/usr/bin/")
     set(GET_PROC_NUMBER_PATH "/usr/bin/")
+    set(KHIOPS_MPI_PATH "") # We use mpiexec given by the PATH
+
+    configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_env/use_environment_module.sh.in
+                   ${TMP_DIR}/use_environment_module.sh @ONLY NEWLINE_STYLE UNIX)
+    file(READ ${TMP_DIR}/use_environment_module.sh USE_ENVIRONMENT_MODULE)
+    file(READ ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_env/java_settings.sh KHIOPS_JAVA_SETTINGS)
+
   endif(IS_CONDA)
 
-  # replace MPIEXEC MPIEXEC_NUMPROC_FLAG and MPI_IMPL KHIOPS_MPI_EXTRA_FLAG ADDITIONAL_EN_VAR
+  # replace MPIEXEC MPIEXEC_NUMPROC_FLAG and MPI_IMPL KHIOPS_MPI_EXTRA_FLAG ADDITIONAL_ENV_VAR
   if("${MPI_IMPL}" STREQUAL "openmpi")
     set(KHIOPS_MPI_EXTRA_FLAG "--allow-run-as-root --quiet")
-    set(ADDITIONAL_EN_VAR "export OMPI_MCA_btl_vader_single_copy_mechanism=none # issue on docker")
+    set(ADDITIONAL_ENV_VAR "export OMPI_MCA_btl_vader_single_copy_mechanism=none # issue on docker")
     if(IS_FEDORA_LIKE)
-      set(ADDITIONAL_EN_VAR "${ADDITIONAL_EN_VAR}\nexport PSM3_DEVICES=self # issue one rocky linux")
+      set(ADDITIONAL_ENV_VAR "${ADDITIONAL_ENV_VAR}\nexport PSM3_DEVICES=self # issue on rocky linux")
     endif()
+    set(MPIEXEC_HOSTFILE_FLAG "--hostfile")
+    file(READ ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_env/export_env_variables.sh EXPORT_ENV_VARIABLES)
+  elseif("${MPI_IMPL}" STREQUAL "mpich")
+    set(MPIEXEC_HOSTFILE_FLAG "-f")
   endif()
 
   # Add header comment to the variable definition (if any variable is defined)
-  if(ADDITIONAL_EN_VAR)
-    set(ADDITIONAL_EN_VAR "# Additional variables for MPI\n${ADDITIONAL_EN_VAR}")
+  if(ADDITIONAL_ENV_VAR)
+    set(ADDITIONAL_ENV_VAR "\n# Additional variables for MPI\n${ADDITIONAL_ENV_VAR}")
   endif()
 
   # Get the real file name of MODL e.g MODL_openmpi
@@ -104,7 +117,7 @@ if(UNIX)
     set(MODL_NAME "MODL")
   endif()
 
-  configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_env.in ${TMP_DIR}/khiops_env @ONLY
+  configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_env/khiops_env.in ${TMP_DIR}/khiops_env @ONLY
                  NEWLINE_STYLE UNIX)
   configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/debian/khiops-core/postinst.in ${TMP_DIR}/postinst @ONLY
                  NEWLINE_STYLE UNIX)
@@ -151,6 +164,11 @@ else(UNIX)
 
   if(IS_CONDA)
     set(GUI_STATUS "false")
+    set(SET_MPI "SET_MPI_CONDA")
+    set(IS_CONDA_VAR "REM Inside conda environment\r\nset \"_IS_CONDA=true\"")
+  else()
+    set(SET_MPI "SET_MPI_SYSTEM_WIDE")
+    set(GUI_STATUS "true")
   endif()
 
   configure_file(${PROJECT_SOURCE_DIR}/packaging/windows/khiops_env.cmd ${TMP_DIR}/khiops_env.cmd @ONLY

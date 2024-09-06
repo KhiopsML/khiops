@@ -28,7 +28,9 @@ for %%i in (%*) do (
 )
 :BREAK_LOOP
 
-if "%KHIOPS_BATCH_MODE%" == "true" if not "%KHIOPS_JAVA_ERROR%". == "". goto ERR_JAVA 
+if "%KHIOPS_BATCH_MODE%" == "true" if not "%KHIOPS_JAVA_ERROR%". == "". goto ERR_JAVA
+if "%_IS_CONDA%" == "true" if not "%KHIOPS_BATCH_MODE%" == "true" goto ERR_CONDA
+
 
 REM Set path
 set path=%~dp0;%KHIOPS_JAVA_PATH%;%path%
@@ -36,6 +38,7 @@ set classpath=%KHIOPS_CLASSPATH%;%classpath%
 
 REM unset local variables
 set "KHIOPS_BATCH_MODE="
+set "_IS_CONDA="
 
 REM ========================================================
 REM Start Khiops (with or without parameteres)
@@ -75,6 +78,10 @@ goto END
 
 :ERR_JAVA
 start "KHIOPS CONFIGURATION PROBLEM" echo ERROR "%KHIOPS_JAVA_ERROR%"
+exit /b 1
+
+:ERR_CONDA
+echo GUI is not available, please use the '-b' flag
 exit /b 1
 
 :END
