@@ -39,8 +39,8 @@ echo   In standard mode, the result files are stored in the train database direc
 echo   unless an absolute path is specified, and the file extension is forced if necessary.
 echo   In api mode, the result files are stored in the current working directory, using the specified results as is.
 echo   . default behavior if not set: standard mode
-echo   . set to 'true' to force standard mode
-echo   . set to 'false' to force api mode
+echo   . set to 'false' to force standard mode
+echo   . set to 'true' to force api mode
 echo KHIOPS_RAW_GUI: graphical user interface for file name selection
 echo   . default behavior if not set: depending on the file drivers available for Khiops
 echo   . set to 'true' to allow file name selection with uri schemas
@@ -76,22 +76,19 @@ set "KHIOPS_PATH=%_KHIOPS_HOME%\bin\MODL.exe"
 set "KHIOPS_COCLUSTERING_PATH=%_KHIOPS_HOME%\bin\MODL_Coclustering.exe"
 
 REM KHIOPS_LAST_RUN_DIR
-if "%KHIOPS_LAST_RUN_DIR%".=="". set "KHIOPS_LAST_RUN_DIR=%USERPROFILE%\khiops_data\lastrun"
+if "%KHIOPS_LAST_RUN_DIR%". == "". set "KHIOPS_LAST_RUN_DIR=%USERPROFILE%\khiops_data\lastrun"
 
 REM KHIOPS_PROC_NUMBER
-if "%KHIOPS_PROC_NUMBER%".=="". for /f %%i in ('"%~dp0_khiopsgetprocnumber"') do set "KHIOPS_PROC_NUMBER=%%i"
-if "%KHIOPS_PROC_NUMBER%".=="". set "KHIOPS_PROC_NUMBER=1"
+if "%KHIOPS_PROC_NUMBER%". == "". for /f %%i in ('"%~dp0_khiopsgetprocnumber"') do set "KHIOPS_PROC_NUMBER=%%i"
+if "%KHIOPS_PROC_NUMBER%". == "". set "KHIOPS_PROC_NUMBER=1"
 
-REM set MPI environment
+REM Set MPI binary (mpiexec)
 if %KHIOPS_PROC_NUMBER% LEQ 2 goto MPI_DONE
-REM ... with the standard variable MSMPI_BIN
-set "KHIOPS_MPI_COMMAND=%MSMPI_BIN%mpiexec.exe"
-REM ... if MSMPI_BIN is not correctly defined 
-REM ... we try to call directly mpiexec (assuming its path is in the 'path' variable)
-if not exist "%KHIOPS_MPI_COMMAND%" goto USE_MPI_IN_PATH
+goto @SET_MPI@
+
 :MPI_PARAMS
-REM ... we add the MPI parameters and the process priority to 1 (0:Idle, 1: Below normal, 2: Normal)
-if not "%KHIOPS_MPI_COMMAND%."=="." set "KHIOPS_MPI_COMMAND="%KHIOPS_MPI_COMMAND%" -al spr:P -n %KHIOPS_PROC_NUMBER% /priority 1"
+REM Add the MPI parameters
+if not "%KHIOPS_MPI_COMMAND%." == "." set "KHIOPS_MPI_COMMAND="%KHIOPS_MPI_COMMAND%" -n %KHIOPS_PROC_NUMBER%"
 :MPI_DONE
 
 set _KHIOPS_GUI=@GUI_STATUS@
@@ -111,6 +108,8 @@ set "KHIOPS_CLASSPATH=%_KHIOPS_HOME%\bin\norm.jar"
 set "KHIOPS_CLASSPATH=%_KHIOPS_HOME%\bin\khiops.jar;%KHIOPS_CLASSPATH%"
 
 :SKIP_GUI
+
+@IS_CONDA_VAR@
 
 REM unset local variables
 set "_KHIOPS_GUI="
@@ -136,8 +135,18 @@ echo KHIOPS_MPI_ERROR %KHIOPS_MPI_ERROR%
 endlocal
 exit /b 0
 
-:USE_MPI_IN_PATH
-REM the standard variable MSMPI_BIN is not correctly defined
+REM Set mpiexec path for conda installation
+:SET_MPI_CONDA
+set "KHIOPS_MPI_COMMAND=%_KHIOPS_HOME%\Library\bin\mpiexec.exe"
+if not exist "%KHIOPS_MPI_COMMAND%" goto ERR_MPI
+goto MPI_PARAMS
+
+REM Set mpiexec path for system wide installation
+:SET_MPI_SYSTEM_WIDE
+REM ... with the standard variable MSMPI_BIN
+set "KHIOPS_MPI_COMMAND=%MSMPI_BIN%mpiexec.exe"
+if  exist "%KHIOPS_MPI_COMMAND%" goto MPI_PARAMS
+REM ... if MSMPI_BIN is not correctly defined 
 REM ... we try to call directly mpiexec (assuming its path is in the 'path' variable)
 set "KHIOPS_MPI_COMMAND=mpiexec"
 where /q "%KHIOPS_MPI_COMMAND%"
@@ -146,6 +155,7 @@ REM ... finally we check if it is the good MPI implementation: "Microsoft MPI"
 "%KHIOPS_MPI_COMMAND%" | findstr /c:"Microsoft MPI" > nul
 if ERRORLEVEL 1 goto ERR_MPI_IMPL
 goto MPI_PARAMS
+
 
 :ERR_MPI
 set "KHIOPS_MPI_ERROR=We didn't find mpiexec in the regular path. Parallel computation is unavailable: Khiops is launched in serial"

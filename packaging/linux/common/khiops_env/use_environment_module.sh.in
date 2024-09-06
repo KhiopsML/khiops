@@ -1,0 +1,10 @@
+
+# Try to use environment modules to locate mpiexec if needed
+if ! command -v mpiexec &> /dev/null
+then
+    if source /etc/profile.d/modules.sh &> /dev/null
+    then
+        module unload mpi
+        module load mpi/@MPI_IMPL@-@CMAKE_SYSTEM_PROCESSOR@
+    fi
+fi

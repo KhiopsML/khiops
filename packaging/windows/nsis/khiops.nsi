@@ -146,7 +146,7 @@ VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "${KHIOPS_VERSION}"
 Section "Install" SecInstall
   # In order to have shortcuts and documents for all users
   SetShellVarContext all
-  SetCompress off
+  
   # Detect Java
   Call RequirementsDetection
 
@@ -330,6 +330,22 @@ Section "Install" SecInstall
   # Setting up the GUI in khiops_env.cmd: replace @GUI_STATUS@ by "true" in the installed file
   Push @GUI_STATUS@ 
   Push 'true' 
+  Push all 
+  Push all 
+  Push $INSTDIR\bin\khiops_env.cmd
+  Call ReplaceInFile
+
+  # Setting up MPI in khiops_env.cmd: replace @SET_MPI@ by "SET_MPI_SYSTEM_WIDE" in the installed file
+  Push @SET_MPI@
+  Push SET_MPI_SYSTEM_WIDE 
+  Push all 
+  Push all 
+  Push $INSTDIR\bin\khiops_env.cmd
+  Call ReplaceInFile
+
+  # Setting up IS_CONDA_VAR variable in khiops_env.cmd: replace @SET_MPI@ by an empty string: this is not an installer for conda
+  Push @IS_CONDA_VAR@
+  Push "" 
   Push all 
   Push all 
   Push $INSTDIR\bin\khiops_env.cmd
