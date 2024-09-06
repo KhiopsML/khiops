@@ -935,8 +935,13 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeDataTableBi
 	for (nSliceNumber = 1; nSliceNumber <= nMaxSliceNumber; nSliceNumber++)
 	{
 		// Calcul de la memoire necessaire pour l'esclave pour ce nombre de slices
+		// NB: La memoire globale diminue avec la taille du buffer du slice set d'entree (2eme param).
+		//     Donc on utilise BufferedFile::nDefaultBufferSize, qui est la plus grand taille utilisee
+		//     lors de l'estimation de resources. Ceci assure que l'on atteint la borne-inf des
+		//     ressources demandes.
 		lGlobalSharedMemoryPerSlave =
-		    ComputeGlobalSlaveNecessaryMemory(nSliceNumber, MemSegmentByteSize) / nSlaveProcessNumber;
+		    ComputeGlobalSlaveNecessaryMemory(nSliceNumber, BufferedFile::nDefaultBufferSize) /
+		    nSlaveProcessNumber;
 		lSlaveNecessaryMemory =
 		    ComputeSlaveNecessaryMemory(nSlaveProcessNumber, nSliceNumber) + lGlobalSharedMemoryPerSlave;
 
