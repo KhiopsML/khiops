@@ -1,7 +1,3 @@
-// Copyright (c) 2024 Orange. All rights reserved.
-// This software is distributed under the BSD 3-Clause-clear License, the text of which is available
-// at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
-
 /* A Bison parser, made by GNU Bison 3.8.2.  */
 
 /* Bison interface for Yacc-like parsers in C
@@ -39,8 +35,8 @@
    especially those whose name start with YY_ or yy_.  They are
    private implementation details that can be changed or removed.  */
 
-#ifndef YY_YY_D_USERS_MIIB6422_DOCUMENTS_BOULLEMA_DEVGIT_KHIOPS_SRC_LEARNING_KWDATA_KWCYAC_HPP_INCLUDED
-#define YY_YY_D_USERS_MIIB6422_DOCUMENTS_BOULLEMA_DEVGIT_KHIOPS_SRC_LEARNING_KWDATA_KWCYAC_HPP_INCLUDED
+#ifndef YY_YY_C_APPLICATIONS_BOULLEMA_DEVGIT_KHIOPS_SRC_LEARNING_KWDATA_KWCYAC_HPP_INCLUDED
+#define YY_YY_C_APPLICATIONS_BOULLEMA_DEVGIT_KHIOPS_SRC_LEARNING_KWDATA_KWCYAC_HPP_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
 #define YYDEBUG 0
@@ -86,7 +82,7 @@ typedef enum yytokentype yytoken_kind_t;
 #if !defined YYSTYPE && !defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 57 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 57 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 
 	Continuous cValue;
 	ALString* sValue;
@@ -100,7 +96,7 @@ union YYSTYPE
 	KWMetaData* kwmdMetaData;
 	int nValue;
 
-#line 100 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.hpp"
+#line 100 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.hpp"
 };
 typedef union YYSTYPE YYSTYPE;
 #define YYSTYPE_IS_TRIVIAL 1
@@ -111,4 +107,4 @@ extern YYSTYPE yylval;
 
 int yyparse(void);
 
-#endif /* !YY_YY_D_USERS_MIIB6422_DOCUMENTS_BOULLEMA_DEVGIT_KHIOPS_SRC_LEARNING_KWDATA_KWCYAC_HPP_INCLUDED  */
+#endif /* !YY_YY_C_APPLICATIONS_BOULLEMA_DEVGIT_KHIOPS_SRC_LEARNING_KWDATA_KWCYAC_HPP_INCLUDED  */

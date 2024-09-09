@@ -273,7 +273,7 @@ void KWClassDomain::RenameClass(KWClass* refClass, const ALString& sNewName)
 	require(refClass != NULL);
 	require(refClass == cast(KWClass*, odClasses.Lookup(refClass->GetName())));
 	require(refClass->domain == this);
-	require(refClass->CheckName(sNewName, refClass));
+	require(refClass->CheckName(sNewName, KWClass::Class, refClass));
 	require(LookupClass(sNewName) == NULL);
 
 	// Renommage par manipulation dans le dictionnaire

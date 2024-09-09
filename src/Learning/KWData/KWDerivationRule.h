@@ -881,7 +881,7 @@ protected:
 
 inline void KWDerivationRule::SetName(const ALString& sValue)
 {
-	require(KWClass::CheckName(sValue, this));
+	require(KWClass::CheckName(sValue, KWClass::Rule, this));
 	usName.SetValue(sValue);
 	nFreshness++;
 }
@@ -893,7 +893,7 @@ inline const ALString& KWDerivationRule::GetName() const
 
 inline void KWDerivationRule::SetLabel(const ALString& sValue)
 {
-	require(KWClass::CheckLabel(sValue, this));
+	require(KWClass::CheckLabel(sValue, KWClass::Rule, this));
 	usLabel.SetValue(sValue);
 }
 
@@ -904,7 +904,7 @@ inline const ALString& KWDerivationRule::GetLabel() const
 
 inline void KWDerivationRule::SetClassName(const ALString& sValue)
 {
-	require(sValue == "" or KWClass::CheckName(sValue, this));
+	require(sValue == "" or KWClass::CheckName(sValue, KWClass::Class, this));
 	usClassName.SetValue(sValue);
 	nFreshness++;
 }
@@ -936,7 +936,7 @@ inline const ALString& KWDerivationRule::GetObjectClassName() const
 inline void KWDerivationRule::SetObjectClassName(const ALString& sValue)
 {
 	require(KWType::IsGeneralRelation(GetType()));
-	require(sValue == "" or KWClass::CheckName(sValue, this));
+	require(sValue == "" or KWClass::CheckName(sValue, KWClass::Class, this));
 	usSupplementTypeName.SetValue(sValue);
 	nFreshness++;
 }
@@ -956,7 +956,7 @@ inline const ALString& KWDerivationRule::GetStructureName() const
 inline void KWDerivationRule::SetStructureName(const ALString& sValue)
 {
 	require(GetType() == KWType::Structure);
-	require(sValue == "" or KWClass::CheckName(sValue, this));
+	require(sValue == "" or KWClass::CheckName(sValue, KWClass::Structure, this));
 	usSupplementTypeName.SetValue(sValue);
 	nFreshness++;
 }
@@ -1125,7 +1125,7 @@ inline const ALString& KWDerivationRuleOperand::GetObjectClassName() const
 inline void KWDerivationRuleOperand::SetObjectClassName(const ALString& sValue)
 {
 	require(KWType::IsGeneralRelation(GetType()));
-	require(sValue == "" or KWClass::CheckName(sValue, this));
+	require(sValue == "" or KWClass::CheckName(sValue, KWClass::Class, this));
 	usSupplementTypeName.SetValue(sValue);
 	debug(nFreshness++;)
 }
@@ -1139,7 +1139,7 @@ inline const ALString& KWDerivationRuleOperand::GetStructureName() const
 inline void KWDerivationRuleOperand::SetStructureName(const ALString& sValue)
 {
 	require(GetType() == KWType::Structure);
-	require(sValue == "" or KWClass::CheckName(sValue, this));
+	require(sValue == "" or KWClass::CheckName(sValue, KWClass::Structure, this));
 	usSupplementTypeName.SetValue(sValue);
 	debug(nFreshness++;)
 }
@@ -1228,7 +1228,7 @@ inline const ALString KWDerivationRuleOperand::GetStringConstant() const
 
 inline void KWDerivationRuleOperand::SetAttributeName(const ALString& sName)
 {
-	require(sName == "" or KWClass::CheckName(sName, this));
+	require(sName == "" or KWClass::CheckName(sName, KWClass::Attribute, this));
 	usDataItemName.SetValue(sName);
 	debug(nFreshness++;)
 }
@@ -1241,7 +1241,7 @@ inline const ALString& KWDerivationRuleOperand::GetAttributeName() const
 
 inline void KWDerivationRuleOperand::SetAttributeBlockName(const ALString& sName)
 {
-	require(sName == "" or KWClass::CheckName(sName, this));
+	require(sName == "" or KWClass::CheckName(sName, KWClass::AttributeBlock, this));
 	usDataItemName.SetValue(sName);
 	debug(nFreshness++;)
 }
@@ -1254,7 +1254,7 @@ inline const ALString& KWDerivationRuleOperand::GetAttributeBlockName() const
 
 inline void KWDerivationRuleOperand::SetDataItemName(const ALString& sName)
 {
-	require(sName == "" or KWClass::CheckName(sName, this));
+	require(sName == "" or KWClass::CheckName(sName, KWClass::Attribute, this));
 	usDataItemName.SetValue(sName);
 	debug(nFreshness++;)
 }

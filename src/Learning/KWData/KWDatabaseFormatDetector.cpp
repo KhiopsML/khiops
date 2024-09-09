@@ -1021,7 +1021,8 @@ boolean KWDatabaseFormatDetector::DetectFileFormatWithoutClass(RewindableInputBu
 		{
 			for (i = 0; i < headerLineAnaliser.GetSize(); i++)
 			{
-				bIsHeaderLine = KWClass::CheckName(headerLineAnaliser.GetAt(i), NULL);
+				bIsHeaderLine =
+				    KWClass::CheckName(headerLineAnaliser.GetAt(i), KWClass::Attribute, NULL);
 				if (not bIsHeaderLine)
 					break;
 			}

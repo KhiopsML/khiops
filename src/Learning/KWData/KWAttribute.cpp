@@ -198,11 +198,11 @@ boolean KWAttribute::Check() const
 		parentClass->GetDomain()->LookupClass(parentClass->GetName()) == parentClass);
 
 	// Nom
-	if (not KWClass::CheckName(GetName(), this))
+	if (not KWClass::CheckName(GetName(), KWClass::Attribute, this))
 		bOk = false;
 
 	// Libelle
-	if (not KWClass::CheckLabel(GetLabel(), this))
+	if (not KWClass::CheckLabel(GetLabel(), KWClass::Attribute, this))
 		bOk = false;
 
 	// Type
@@ -278,7 +278,7 @@ boolean KWAttribute::Check() const
 			AddError("No reference dictionary for type " + KWType::ToString(GetType()));
 			bOk = false;
 		}
-		else if (not KWClass::CheckName(attributeClass->GetName(), this))
+		else if (not KWClass::CheckName(attributeClass->GetName(), KWClass::Class, this))
 		{
 			AddError("Incorrect name of reference dictionary for type " + KWType::ToString(GetType()));
 			bOk = false;
@@ -323,7 +323,7 @@ boolean KWAttribute::Check() const
 			AddError("No name for type Structure");
 			bOk = false;
 		}
-		else if (not KWClass::CheckName(GetStructureName(), this))
+		else if (not KWClass::CheckName(GetStructureName(), KWClass::Structure, this))
 		{
 			AddError("Incorrect name for type Structure");
 			bOk = false;

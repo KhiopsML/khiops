@@ -141,7 +141,8 @@ void KWAttributePairsSpec::ImportAttributePairs(const ALString& sFileName)
 				else if (nFieldLength > KWClass::GetNameMaxLength())
 					AddWarning("Name too long, ignored record");
 				// Warning si nom d'attribut present et invalide
-				else if (sField[0] != '\0' and not KWClass::CheckNameWithMessage(sField, sMessage))
+				else if (sField[0] != '\0' and
+					 not KWClass::CheckNameWithMessage(sField, KWClass::Attribute, sMessage))
 					AddWarning(sMessage + ", ignored record");
 				// OK: on memorise le premier attribut de la paire
 				else
@@ -185,8 +186,8 @@ void KWAttributePairsSpec::ImportAttributePairs(const ALString& sFileName)
 					else if (nFieldLength > KWClass::GetNameMaxLength())
 						AddWarning("Name too long, ignored record");
 					// Warning si nom d'attribut present et invalide
-					else if (sField[0] != '\0' and
-						 not KWClass::CheckNameWithMessage(sField, sMessage))
+					else if (sField[0] != '\0' and not KWClass::CheckNameWithMessage(
+									   sField, KWClass::Attribute, sMessage))
 						AddWarning(sMessage + ", ignored record");
 					// OK: on memorise le second attribut de la paire
 					else
@@ -322,7 +323,8 @@ void KWAttributePairsSpec::ExportAllAttributePairs(const ALString& sFileName)
 			// Warning si le nom du premier attribut est present et invalide
 			nContextAttributeIndex = 1;
 			if (bPairOk and attributePairName->GetFirstName() != "" and
-			    not KWClass::CheckNameWithMessage(attributePairName->GetFirstName(), sMessage))
+			    not KWClass::CheckNameWithMessage(attributePairName->GetFirstName(), KWClass::Attribute,
+							      sMessage))
 			{
 				AddWarning(sMessage + ", ignored pair");
 				bPairOk = false;
@@ -330,7 +332,8 @@ void KWAttributePairsSpec::ExportAllAttributePairs(const ALString& sFileName)
 			// Warning si le nom du second attribut est present et invalide
 			nContextAttributeIndex = 2;
 			if (bPairOk and attributePairName->GetSecondName() != "" and
-			    not KWClass::CheckNameWithMessage(attributePairName->GetSecondName(), sMessage))
+			    not KWClass::CheckNameWithMessage(attributePairName->GetSecondName(), KWClass::Attribute,
+							      sMessage))
 			{
 				AddWarning(sMessage + ", ignored pair");
 				bPairOk = false;
@@ -406,9 +409,10 @@ void KWAttributePairsSpec::DeleteDuplicateAttributePairs()
 		// Verification de la validite de la paire, sans warning
 		bPairOk = true;
 		bPairOk = bPairOk and (attributePairName->GetFirstName() == "" or
-				       KWClass::CheckName(attributePairName->GetFirstName(), NULL));
-		bPairOk = bPairOk and (attributePairName->GetSecondName() == "" or
-				       KWClass::CheckName(attributePairName->GetSecondName(), NULL));
+				       KWClass::CheckName(attributePairName->GetFirstName(), KWClass::Attribute, NULL));
+		bPairOk =
+		    bPairOk and (attributePairName->GetSecondName() == "" or
+				 KWClass::CheckName(attributePairName->GetSecondName(), KWClass::Attribute, NULL));
 		bPairOk = bPairOk and attributePairName->GetFirstName() != attributePairName->GetSecondName();
 		bPairOk = bPairOk and slSpecificPairs.Find(attributePairName) == NULL;
 

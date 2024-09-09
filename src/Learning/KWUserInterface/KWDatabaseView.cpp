@@ -545,7 +545,7 @@ void KWDatabaseView::RegisterDatabaseTechnologyView(KWDatabaseView* databaseView
 {
 	require(databaseView != NULL);
 	require(databaseView->GetTechnologyName() != "");
-	require(KWClass::CheckName(databaseView->GetTechnologyName(), databaseView));
+	require(KWClass::CheckName(databaseView->GetTechnologyName(), KWClass::None, databaseView));
 	require(odDatabaseTechnologyViews == NULL or
 		odDatabaseTechnologyViews->Lookup(databaseView->GetTechnologyName()) == NULL);
 

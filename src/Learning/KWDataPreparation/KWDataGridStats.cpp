@@ -1699,7 +1699,7 @@ boolean KWDataGridStats::ImportVariableNames(const ALString& sValue)
 					bOk = (odVariableNames.Lookup(sVariableName) == NULL);
 				if (bOk)
 				{
-					assert(KWClass::CheckName(sVariableName, NULL));
+					assert(KWClass::CheckName(sVariableName, KWClass::Attribute, NULL));
 					svVariableNames.Add(sVariableName);
 					odVariableNames.SetAt(sVariableName, &odVariableNames);
 				}

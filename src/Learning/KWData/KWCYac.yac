@@ -246,6 +246,7 @@ kwclassBegin: kwclassHeader comments
         {
 		  KWClass* kwcClass=$1;
 		  KWAttribute* attribute=$2;
+		  ALString sMessage;
 		  assert(kwcLoadCurrentClass == $1);
 
 		  /* Si attribut non valide: on ne fait rien */
@@ -255,10 +256,10 @@ kwclassBegin: kwclassHeader comments
 		  else if (kwcClass == NULL)
 		    delete attribute;
 	      /* Sinon, test de validite du nom de l'attribut */
-		  else if (! kwcClass->CheckName(attribute->GetName(), kwcClass))
+		  else if (! kwcClass->CheckNameWithMessage(attribute->GetName(), KWClass::Attribute, sMessage))
 		  {
 		    yyerrorWithLineCorrection("Dictionary " + kwcClass->GetName() + 
-			": Incorrect variable name", -1);
+			", " + sMessage, -1);
 			delete attribute;
 		  }
 		  /* Test de non existence parmi les attributs */
@@ -292,6 +293,7 @@ kwclassBegin: kwclassHeader comments
 		  KWAttribute* firstAttribute;
 		  KWAttribute* lastAttribute;
 		  KWDerivationRule* rule = $7;
+		  ALString sMessage;
 		  assert(kwcLoadCurrentClass == $1);
 		  check(oaAttributes);
 
@@ -307,10 +309,10 @@ kwclassBegin: kwclassHeader comments
 		  if (oaAttributes->GetSize() > 0)
 		  {
 	        /* Test de validite du nom de l'attribut */
-		    if (! kwcClass->CheckName(sBlockName, kwcClass))
+		    if (! kwcClass->CheckNameWithMessage(sBlockName, KWClass::AttributeBlock, sMessage))
 		    {
 		      yyerrorWithLineCorrection("Dictionary " + kwcClass->GetName() + 
-			  ": Incorrect sparse variable block name (" + sBlockName + ")", -1);
+			  ", " + sMessage, -1);
   		    }
 			/* Test de non existence parmi les attributs */
 		    else if (kwcClass->LookupAttribute(sBlockName) != NULL)
@@ -397,6 +399,7 @@ oaAttributeArrayDeclaration :
 		  ObjectArray* oaAttributes = $1;
 		  KWAttribute* attribute=$2;
 		  KWClass* kwcClass=kwcLoadCurrentClass;
+		  ALString sMessage;
 		  check(oaAttributes);
 
 		  /* Si attribut non valide: on ne fait rien */
@@ -406,10 +409,10 @@ oaAttributeArrayDeclaration :
 		  else if (kwcClass == NULL)
 		    delete attribute;
 	      /* Sinon, test de validite du nom de l'attribut */
-		  else if (! kwcClass->CheckName(attribute->GetName(), kwcClass))
+		  else if (! kwcClass->CheckNameWithMessage(attribute->GetName(), KWClass::Attribute, sMessage))
 		  {
 		    yyerrorWithLineCorrection("Dictionary " + kwcClass->GetName() + 
-			": Incorrect variable name (" + attribute->GetName() + ")", -1);
+			", " + sMessage, -1);
 			delete attribute;
 		  }
 		  /* Test de non existence parmi les attributs */
@@ -440,6 +443,7 @@ oaAttributeArrayDeclaration :
 		  ObjectArray* oaAttributes;
 		  KWAttribute* attribute=$1;
 		  KWClass* kwcClass=kwcLoadCurrentClass;
+		  ALString sMessage;
 
 		  /* Creation d'un tableau */
 		  oaAttributes = new ObjectArray;
@@ -451,10 +455,10 @@ oaAttributeArrayDeclaration :
 		  else if (kwcClass == NULL)
 		    delete attribute;
 	      /* Sinon, test de validite du nom de l'attribut */
-		  else if (! kwcClass->CheckName(attribute->GetName(), kwcClass))
+		  else if (! kwcClass->CheckNameWithMessage(attribute->GetName(), KWClass::Attribute, sMessage))
 		  {
 		    yyerrorWithLineCorrection("Dictionary " + kwcClass->GetName() + 
-			": Incorrect variable name (" + attribute->GetName() + ")", -1);
+			", " + sMessage, -1);
 			delete attribute;
 		  }
 		  /* Test de non existence parmi les attributs */
@@ -486,6 +490,7 @@ kwclassHeader: comments rootDeclaration CLASS IDENTIFIER keyFields metaData '{'
 	   {
           KWClass *kwcClass;
 		  KWClass* kwcReferencedClass;
+		  ALString sMessage;
 
           /* Test d'existence de la classe */
           kwcClass = kwcdLoadDomain->LookupClass(*($4));
@@ -515,14 +520,14 @@ kwclassHeader: comments rootDeclaration CLASS IDENTIFIER keyFields metaData '{'
           else
           {
 		    /* Test de nom de classe */
-		    if (KWClass::CheckName(*($4), NULL))
+		    if (KWClass::CheckNameWithMessage(*($4), KWClass::Class, sMessage))
 		    {
               kwcClass = new KWClass;
               kwcClass->SetName(*($4));
               kwcdLoadDomain->InsertClass(kwcClass);
 		    }
 		    else
-		      yyerror("Incorrect dictionary name (" + *($4) + ")");
+		      yyerror(sMessage);
           }
 
 		  /* Initialisation si necessaire de la classe */
@@ -760,7 +765,7 @@ kwattributeDeclaration:
             if (kwcReferencedClass == NULL and $3 != NULL)
 		    {
 		      /* Test de nom de classe */
-		      if (KWClass::CheckName(*($3), NULL))
+		      if (KWClass::CheckName(*($3), KWClass::Class, NULL))
 		      {
                 kwcReferencedClass = new KWClass;
                 kwcReferencedClass->SetName(*($3));

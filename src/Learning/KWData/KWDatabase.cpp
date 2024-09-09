@@ -274,7 +274,7 @@ KWClass* KWDatabase::ComputeClass()
 	require(not IsOpenedForRead());
 	require(not IsOpenedForWrite());
 	require(kwcClass == NULL);
-	require(KWClass::CheckName(GetClassName(), this));
+	require(KWClass::CheckName(GetClassName(), KWClass::Class, this));
 	require(KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName()) == NULL);
 
 	// Debut de suivi de tache

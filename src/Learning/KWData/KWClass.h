@@ -393,14 +393,30 @@ public:
 	// Taille limite des noms de variables
 	static int GetNameMaxLength();
 
+	// Liste des entites disponibles, pour parametrer des messages d'erreur
+	enum
+	{
+		Class,          // Dictionnaire
+		ClassDomain,    // Domaine de dictionnaire
+		Attribute,      // Variable
+		AttributeBlock, // Block de variable sparse
+		Rule,           // Regle de derivation
+		Structure,      // Structure, pour une regle de derivation
+		None,           // Rien de precise
+		Unknown         // Entite inconnue (non valide)
+	};
+
+	// Conversion d'une famille d'entite vers une chaine
+	static const ALString EntityToString(int nEntity);
+
 	// Controles de validite avec emission de message d'erreur
 	// par la classe passee en parametre (pas de message si NULL)
-	static boolean CheckName(const ALString& sValue, const Object* errorSender);
-	static boolean CheckLabel(const ALString& sValue, const Object* errorSender);
+	static boolean CheckName(const ALString& sValue, int nEntity, const Object* errorSender);
+	static boolean CheckLabel(const ALString& sValue, int nEntity, const Object* errorSender);
 
 	// Methode similaire avec message est alimente avec la cause de l'erreur
-	static boolean CheckNameWithMessage(const ALString& sValue, ALString& sMessage);
-	static boolean CheckLabelWithMessage(const ALString& sValue, ALString& sMessage);
+	static boolean CheckNameWithMessage(const ALString& sValue, int nEntity, ALString& sMessage);
+	static boolean CheckLabelWithMessage(const ALString& sValue, int nEntity, ALString& sMessage);
 
 	// Extraction d'une sous-chaine valide pour le format utf8
 	static ALString BuildUTF8SubString(const ALString sValue);
@@ -654,7 +670,7 @@ inline const ALString& KWClass::GetLabel() const
 
 inline void KWClass::SetLabel(const ALString& sValue)
 {
-	require(CheckLabel(sValue, this));
+	require(CheckLabel(sValue, KWClass::Class, this));
 	usLabel.SetValue(sValue);
 }
 

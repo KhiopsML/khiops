@@ -106,7 +106,7 @@ boolean KWDerivationRuleOperand::CheckDefinition() const
 
 	// Nom de la classe pour un type Object ou ObjectArray si renseigne
 	if (KWType::IsGeneralRelation(GetType()) and GetObjectClassName() != "" and
-	    not KWClass::CheckName(GetObjectClassName(), this))
+	    not KWClass::CheckName(GetObjectClassName(), KWClass::Class, this))
 	{
 		AddError("Incorrect dictionary name for " + KWType::ToString(GetType()) + " type");
 		bResult = false;
@@ -120,7 +120,7 @@ boolean KWDerivationRuleOperand::CheckDefinition() const
 			AddError("Missing structure name for Structure type");
 			bResult = false;
 		}
-		else if (not KWClass::CheckName(GetStructureName(), this))
+		else if (not KWClass::CheckName(GetStructureName(), KWClass::Structure, this))
 		{
 			AddError("Incorrect structure name for Structure type");
 			bResult = false;
@@ -166,7 +166,7 @@ boolean KWDerivationRuleOperand::CheckDefinition() const
 
 	// Verification eventuelle de l'attribut
 	if (GetOrigin() == OriginAttribute and GetDataItemName() != "" and
-	    not KWClass::CheckName(GetDataItemName(), this))
+	    not KWClass::CheckName(GetDataItemName(), KWClass::Attribute, this))
 	{
 		AddError(GetDataItemLabel() + " name is not correct in the operand");
 		bResult = false;
