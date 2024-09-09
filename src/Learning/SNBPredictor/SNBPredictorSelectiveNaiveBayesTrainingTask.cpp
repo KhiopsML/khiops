@@ -1721,9 +1721,6 @@ void SNBPredictorSelectiveNaiveBayesTrainingTask::MasterFinalizeTrainingAndRepor
 
 boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterFinalize(boolean bProcessEndedCorrectly)
 {
-	boolean bOk = true;
-	ALString sTmp;
-
 	require(masterSnbPredictor != NULL);
 	require(masterInitialDatabase != NULL);
 	require(masterInitialDatabase->Check());
@@ -1760,13 +1757,7 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterFinalize(boolean bPro
 
 	// En parallele : Nettoyage du fichier dictionnaire auxilier
 	if (IsParallel())
-	{
-		bOk = FileService::RemoveFile(
-		    FileService::GetURIFilePathName(shared_sRecoderClassDomainFileURI.GetValue()));
-		if (not bOk)
-			AddWarning(sTmp + "Failed to remove temporary dictionary " +
-				   shared_sRecoderClassDomainFileURI.GetValue());
-	}
+		FileService::RemoveFile(FileService::GetURIFilePathName(shared_sRecoderClassDomainFileURI.GetValue()));
 
 	ensure(shared_learningSpec.GetLearningSpec()->Check());
 	ensure(masterSnbPredictor->GetClassStats() != NULL);
@@ -1778,7 +1769,7 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterFinalize(boolean bPro
 	ensure(masterWeightedSelectionScorer == NULL);
 	ensure(masterBinarySliceSet == NULL);
 
-	return bOk;
+	return true;
 }
 
 boolean SNBPredictorSelectiveNaiveBayesTrainingTask::SlaveInitialize()
