@@ -240,16 +240,18 @@ boolean PEProtocolTestTask::Test()
 		Global::AddFatalError("", "", "Test issue on SlaveProcess at 500");
 
 	// Test d'un arret utilisateur
-	testingTask.AddMessage("Test user interruption in 2 seconds");
-	testingTask.Init();
-	testingTask.SetInterruptionByUser(2);
-	testingTask.SetIterationNumber(100000000);
-	bOk = bOk and not testingTask.Run();
-	bOk = bOk and testingTask.IsTaskInterruptedByUser();
-	ensure(bOk);
-	if (not bOk)
-		Global::AddFatalError("", "", "Test user interruption in 2 seconds");
-
+	if (UIObject::GetUIMode() == UIObject::Graphic)
+	{
+		testingTask.AddMessage("Test user interruption in 2 seconds");
+		testingTask.Init();
+		testingTask.SetInterruptionByUser(2);
+		testingTask.SetIterationNumber(100000000);
+		bOk = bOk and not testingTask.Run();
+		bOk = bOk and testingTask.IsTaskInterruptedByUser();
+		ensure(bOk);
+		if (not bOk)
+			Global::AddFatalError("", "", "Test user interruption in 2 seconds");
+	}
 	if (bOk)
 		testingTask.AddMessage("Test is OK");
 	else
@@ -404,6 +406,13 @@ boolean PEProtocolTestTask::MasterFinalize(boolean bProcessEndedCorrectly)
 		else
 			return false;
 	}
+
+	// On verifie que bProcessEndedCorrectly vaut false quand il y a eu un erreur quelque part (maitre ou esclave)
+	if ((bMasterInitializeIssue or nMasterAggregateIssue != INT_MAX or shared_bSlaveInitializeIssue or
+	     shared_bSlaveFinalizeIssue or shared_nSlaveProcessIssue != INT_MAX) and
+	    bProcessEndedCorrectly)
+		AddFatalError("MasterFinalize error, bProcessEndedCorrectly is true");
+
 	return true;
 }
 
@@ -435,10 +444,16 @@ boolean PEProtocolTestTask::SlaveProcess()
 
 boolean PEProtocolTestTask::SlaveFinalize(boolean bProcessEndedCorrectly)
 {
+
 	if (shared_bSlaveFinalizeIssue and not shared_bFatalError)
 		return false;
 	if (shared_bSlaveFinalizeIssue and shared_bFatalError and GetProcessId() == 1)
 		AddFatalError("SlaveFinalize error");
 
+	// On s'assure que bProcessEndedCorrectly vaut false lorsque il y a une erreur quelque part (maitre ou esclave)
+	if ((bMasterInitializeIssue or nMasterAggregateIssue != INT_MAX or shared_bSlaveInitializeIssue or
+	     shared_bSlaveFinalizeIssue or shared_nSlaveProcessIssue != INT_MAX) and
+	    bProcessEndedCorrectly)
+		AddFatalError("SlaveFinalize error, bProcessEndedCorrectly is true");
 	return true;
 }

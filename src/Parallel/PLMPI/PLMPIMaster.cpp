@@ -338,16 +338,13 @@ boolean PLMPIMaster::Process()
 	double dTaskPercentage;
 	ALString sTmp;
 	PLSerializer serializer;
-	boolean bMasterPrepareTaskInputOk;
-	boolean bMasterFinalizeOk;
-	boolean bMasterInitializeOk;
 	PLMPIMsgContext context;
 	PLSlaveState* theWorker;
 	int i;
+	boolean bOk;
 
 	lNbPolling = 0;
 	dGlobalProgression = 0;
-	bMasterPrepareTaskInputOk = true;
 	bStopOrderDone = false;
 	bInterruptionRequested = false;
 	bIsProcessing = false;
@@ -363,7 +360,7 @@ boolean PLMPIMaster::Process()
 
 	// Initialisation du maitre
 	task->SetSharedVariablesNoPermission(&task->oaInputVariables);
-	bMasterInitializeOk = GetTask()->CallMasterInitialize();
+	bMasterError = not GetTask()->CallMasterInitialize();
 
 	// Envoi des parametres
 	context.Bcast(*PLMPITaskDriver::GetTaskComm());
@@ -371,7 +368,7 @@ boolean PLMPIMaster::Process()
 	GetTask()->SerializeSharedVariables(&serializer, &GetTask()->oaSharedParameters, false);
 	serializer.Close(); // BCast task parameters
 
-	if (not bMasterInitializeOk)
+	if (bMasterError)
 	{
 		// Notification d'arret aux esclaves
 		SendStop(false);
@@ -395,8 +392,7 @@ boolean PLMPIMaster::Process()
 	else
 	{
 		// Boucle de travail
-		while (bMasterInitializeOk and bMasterPrepareTaskInputOk and
-		       (nFinalisationCount < nInitialisationCount or not bIsProcessing))
+		while (not bMasterError and (nFinalisationCount < nInitialisationCount or not bIsProcessing))
 		{
 			lNbPolling++;
 
@@ -418,17 +414,12 @@ boolean PLMPIMaster::Process()
 				dTaskPercentage = 0;
 
 				// Preparation des donnees
-				bMasterPrepareTaskInputOk = task->CallMasterPrepareTaskInput(
-				    dTaskPercentage, task->bJobIsTerminated, theWorker);
-
-				// Arret des esclaves en cas de probleme
-				if (not bMasterPrepareTaskInputOk)
-					bMasterError = true;
-
+				bMasterError = not task->CallMasterPrepareTaskInput(dTaskPercentage,
+										    task->bJobIsTerminated, theWorker);
 				assert(not(task->bJobIsTerminated and task->bSlaveAtRestWithoutProcessing));
 
 				// On donne l'ordre de lancer l'esclave si il n'a pas ete mis en sommeil
-				if (not task->bJobIsTerminated and bMasterPrepareTaskInputOk and
+				if (not task->bJobIsTerminated and not bMasterError and
 				    not task->bSlaveAtRestWithoutProcessing)
 				{
 					// Reception de tous les messages de progression issus de l'esclave
@@ -540,8 +531,8 @@ boolean PLMPIMaster::Process()
 	assert(messageManager.IsEmpty());
 
 	// Finalisation du maitre
-	bMasterFinalizeOk =
-	    GetTask()->CallMasterFinalize(not bInterruptionRequested and not bSlaveError and not bMasterError);
+	bOk = GetTask()->CallMasterFinalize(not bInterruptionRequested and not bSlaveError and not bMasterError);
+	bMasterError = not bOk or bMasterError;
 
 	if (GetTracerPerformance()->GetActiveMode())
 	{
@@ -553,8 +544,7 @@ boolean PLMPIMaster::Process()
 	if (not bInterruptionRequested)
 		bInterruptionRequested = TaskProgression::IsInterruptionRequested();
 	bIsProcessing = false;
-	return not bInterruptionRequested and bMasterFinalizeOk and bMasterInitializeOk and not bSlaveError and
-	       not bMasterError;
+	return not bInterruptionRequested and not bSlaveError and not bMasterError;
 }
 
 int PLMPIMaster::ReceiveAndProcessMessage(int nAnyTag, int nAnySource)
