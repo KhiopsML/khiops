@@ -59,8 +59,7 @@ SampleOneLearningProblem* SampleOneLearningProblemView::GetSampleOneLearningProb
 boolean SampleOneLearningProblemView::CheckLearningSpec()
 {
 	return GetLearningProblem()->CheckClass() and GetLearningProblem()->CheckTrainDatabaseName() and
-	       GetLearningProblem()->GetTrainDatabase()->CheckSelectionValue(
-		   GetLearningProblem()->GetTrainDatabase()->GetSelectionValue());
+	       GetLearningProblem()->GetTrainDatabase()->Check();
 }
 
 void SampleOneLearningProblemView::ShowClass()
