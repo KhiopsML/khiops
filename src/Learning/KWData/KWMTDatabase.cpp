@@ -262,6 +262,7 @@ void KWMTDatabase::UpdateMultiTableMappings()
 	ObjectArray oaAllMainCreatedMappings;
 	ObjectArray* oaCreatedMappings;
 	int i;
+	int j;
 
 	require(oaMultiTableMappings.GetAt(0) == rootMultiTableMapping);
 	require(not IsOpenedForRead());
@@ -312,7 +313,7 @@ void KWMTDatabase::UpdateMultiTableMappings()
 		oaRootRefTableMappings.SetSize(0);
 
 		// Creation du mapping de la table principale
-		rootMultiTableMapping = CreateMapping(&odReferenceClasses, &oaRankedReferenceClasses, mainClass,
+		rootMultiTableMapping = CreateMapping(&odReferenceClasses, &oaRankedReferenceClasses, mainClass, false,
 						      mainClass->GetName(), "", &oaMultiTableMappings);
 
 		// Parcours des classes referencee pour creer leur mapping
@@ -332,7 +333,7 @@ void KWMTDatabase::UpdateMultiTableMappings()
 
 				// Creation du mapping et memorisation de tous les mapping des sous-classes
 				mapping = CreateMapping(&odReferenceClasses, &oaRankedReferenceClasses, referenceClass,
-							referenceClass->GetName(), "", oaCreatedMappings);
+							true, referenceClass->GetName(), "", oaCreatedMappings);
 			}
 
 			// Passage a la classe suivante
@@ -358,16 +359,43 @@ void KWMTDatabase::UpdateMultiTableMappings()
 		oaAllMainCreatedMappings.DeleteAll();
 
 		// On recupere si possible les specifications de base a utiliser a partir des mapping precedents
+		//
+		// Attention, il s'agit juste d'une heuristique pour ameliorer l'ergonomie, qui a minima permet
+		// de recuperer toutes les specifcations de data tables existantes au cas ou on relit le
+		// meme fichier de dictionnaire
+		// Pour la table-racine, on recupere quoi q'il arrive la data table precedente, en mono-table ou multi-table
+		// Cela permet de rester sur le meme fichier dans le cas ou on passe d'un dictionnaire (ex: Iris)
+		// a sa variante de type modele de prediction (ex: SNB_Iris)
+		// L'implementation marche egalement en multi-table quand on choisit un dictionnaire racine de table externe,
+		// dont on recupere les mappings
+		// Par contre, quand on passe du dictionnaire d'analyse a celui d'une des ses sous-tables, tous les
+		// mappings changent, et on ne garde que la table principale, qui est erronees. Ce probleme n'est pas vraiment
+		// un enjeu important, et il n'aurait pas de solution simple de toute facon
 		for (i = 0; i < oaPreviousMultiTableMappings.GetSize(); i++)
 		{
 			previousMapping = cast(KWMTDatabaseMapping*, oaPreviousMultiTableMappings.GetAt(i));
 
 			// Recherche du nouveau mapping correspondant
-			mapping = LookupMultiTableMapping(previousMapping->GetDataPath());
+			// Attention, les data paths qui servent d'identifiants aux mappings peuvent etres contextuels
+			// dans le cas de tables externes
+			// Par exemple, le dictionnaire principal es systematique identifie par un data path vide,
+			// et si on en change, comme par exemple en passant a une table externe, c'est ce
+			// dictionnaire Root associe a la table externe qui sera identifie par un data path vide.
+			// Il faut donc parcourir se base sur la comparaison du dictionnaire et des attribut du mapping
+			// pour faire l'appariement correct
+			for (j = 0; j < oaMultiTableMappings.GetSize(); j++)
+			{
+				mapping = cast(KWMTDatabaseMapping*, oaMultiTableMappings.GetAt(j));
 
-			// Transfer des specification de la table mappee
-			if (mapping != NULL)
-				mapping->SetDataTableName(previousMapping->GetDataTableName());
+				// Transfer des specification de la table mappee si comparaison positive
+				if (mapping->GetDataPathClassName() == previousMapping->GetDataPathClassName() and
+				    mapping->GetDataPathAttributeNames() ==
+					previousMapping->GetDataPathAttributeNames())
+				{
+					mapping->SetDataTableName(previousMapping->GetDataTableName());
+					break;
+				}
+			}
 		}
 
 		// Destruction des anciens mappings
@@ -1484,7 +1512,7 @@ boolean KWMTDatabase::IsPhysicalObjectSelected(KWObject* kwoPhysicalObject)
 
 KWMTDatabaseMapping* KWMTDatabase::CreateMapping(ObjectDictionary* odReferenceClasses,
 						 ObjectArray* oaRankedReferenceClasses, KWClass* mappedClass,
-						 const ALString& sDataPathClassName,
+						 boolean bIsExternalTable, const ALString& sDataPathClassName,
 						 const ALString& sDataPathAttributeNames,
 						 ObjectArray* oaCreatedMappings)
 {
@@ -1501,12 +1529,14 @@ KWMTDatabaseMapping* KWMTDatabase::CreateMapping(ObjectDictionary* odReferenceCl
 	require(not mappedClass->GetRoot() or mappedClass->GetName() == sDataPathClassName);
 	require(not mappedClass->GetRoot() or sDataPathAttributeNames == "");
 	require(sDataPathAttributeNames == "" or
-		LookupMultiTableMapping(sDataPathClassName + '`' + sDataPathAttributeNames) == NULL);
+		LookupMultiTableMapping(sDataPathClassName + KWMTDatabaseMapping::GetDataPathSeparator() +
+					sDataPathAttributeNames) == NULL);
 	require(sDataPathAttributeNames != "" or LookupMultiTableMapping(sDataPathClassName) == NULL);
 	require(oaCreatedMappings != NULL);
 
 	// Creation et initialisation d'un mapping
 	mapping = new KWMTDatabaseMapping;
+	mapping->SetExternalTable(bIsExternalTable);
 	mapping->SetClassName(mappedClass->GetName());
 	mapping->SetDataPathClassName(sDataPathClassName);
 	mapping->SetDataPathAttributeNames(sDataPathAttributeNames);
@@ -1526,14 +1556,17 @@ KWMTDatabaseMapping* KWMTDatabase::CreateMapping(ObjectDictionary* odReferenceCl
 			{
 				// Creation du mapping dans une nouvelle table de mapping temporaire
 				if (sDataPathAttributeNames != "")
-					subMapping = CreateMapping(odReferenceClasses, oaRankedReferenceClasses,
-								   attribute->GetClass(), sDataPathClassName,
-								   sDataPathAttributeNames + '`' + attribute->GetName(),
-								   oaCreatedMappings);
+					subMapping = CreateMapping(
+					    odReferenceClasses, oaRankedReferenceClasses, attribute->GetClass(),
+					    bIsExternalTable, sDataPathClassName,
+					    sDataPathAttributeNames + KWMTDatabaseMapping::GetDataPathSeparator() +
+						attribute->GetName(),
+					    oaCreatedMappings);
 				else
-					subMapping = CreateMapping(odReferenceClasses, oaRankedReferenceClasses,
-								   attribute->GetClass(), sDataPathClassName,
-								   attribute->GetName(), oaCreatedMappings);
+					subMapping =
+					    CreateMapping(odReferenceClasses, oaRankedReferenceClasses,
+							  attribute->GetClass(), bIsExternalTable, sDataPathClassName,
+							  attribute->GetName(), oaCreatedMappings);
 
 				// Chainage du sous-mapping
 				mapping->GetComponentTableMappings()->Add(subMapping);

@@ -6,6 +6,7 @@
 
 KWMTDatabaseMapping::KWMTDatabaseMapping()
 {
+	bExternalTable = false;
 	mappedDataTableDriver = NULL;
 	nMappedAttributeType = KWType::Unknown;
 	kwoLastReadObject = NULL;
@@ -22,6 +23,7 @@ void KWMTDatabaseMapping::CopyFrom(const KWMTDatabaseMapping* aSource)
 
 	// Pas de recopie des attributs de gestion, qui ne peuvent etre partages entre deux mapping
 	// Seules les spec sont recopiees
+	bExternalTable = aSource->bExternalTable;
 	sDataPathClassName = aSource->sDataPathClassName;
 	sDataPathAttributeNames = aSource->sDataPathAttributeNames;
 	sClassName = aSource->sClassName;
@@ -43,6 +45,8 @@ int KWMTDatabaseMapping::Compare(const KWMTDatabaseMapping* aSource) const
 
 	// Comparaison terme a terme
 	if (nCompare == 0)
+		nCompare = GetExternalTable() == aSource->GetExternalTable();
+	if (nCompare == 0)
 		nCompare = GetDataPathClassName().Compare(aSource->GetDataPathClassName());
 	if (nCompare == 0)
 		nCompare = GetDataPathAttributeNames().Compare(aSource->GetDataPathAttributeNames());
@@ -56,8 +60,10 @@ int KWMTDatabaseMapping::Compare(const KWMTDatabaseMapping* aSource) const
 void KWMTDatabaseMapping::Write(ostream& ost) const
 {
 	ost << "Data path\t" << GetDataPath() << "\n";
-	ost << "Data root\t" << GetDataPathClassName() << "\n";
-	ost << "Path\t" << GetDataPathAttributeNames() << "\n";
+	ost << "Data root\t" << GetDataRoot() << "\n";
+	ost << "External table\t" << BooleanToString(GetExternalTable());
+	ost << "Data path origin dictionary\t" << GetDataPathClassName() << "\n";
+	ost << "Data path variables\t" << GetDataPathAttributeNames() << "\n";
 	ost << "Dictionary\t" << GetClassName() << "\n";
 	ost << "Data table file\t" << GetDataTableName() << "\n";
 }
@@ -71,19 +77,29 @@ const ALString KWMTDatabaseMapping::GetClassLabel() const
 
 ALString KWMTDatabaseMapping::GetDataPath() const
 {
-	// Le chemin de donnes se decompose en la classe et les attribut accedant aux sous-objets
-	if (GetDataPathAttributeNames() == "")
-		return GetDataPathClassName();
+	if (GetExternalTable())
+	{
+		if (GetDataPathAttributeNames() == "")
+			return GetDataPathSeparator() + GetDataPathClassName();
+		else
+			return GetDataPathSeparator() + GetDataPathClassName() + GetDataPathSeparator() +
+			       GetDataPathAttributeNames();
+	}
 	else
-		return GetDataPathClassName() + '`' + GetDataPathAttributeNames();
+		return GetDataPathAttributeNames();
+}
+
+ALString KWMTDatabaseMapping::GetDataRoot() const
+{
+	if (GetExternalTable())
+		return "";
+	else
+		return GetDataPathClassName();
 }
 
 const ALString KWMTDatabaseMapping::GetObjectLabel() const
 {
-	if (GetDataPathAttributeNames() == "")
-		return GetDataPathClassName();
-	else
-		return GetDataPathClassName() + " " + GetDataPathAttributeNames();
+	return GetDataPath();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -104,7 +120,7 @@ int KWMTDatabaseMapping::GetDataPathAttributeNumber() const
 		nAttributeNumber++;
 		for (n = 0; n < sDataPathAttributeNames.GetLength(); n++)
 		{
-			if (sDataPathAttributeNames.GetAt(n) == '`')
+			if (sDataPathAttributeNames.GetAt(n) == GetDataPathSeparator())
 				nAttributeNumber++;
 		}
 	}
@@ -128,7 +144,7 @@ const ALString KWMTDatabaseMapping::GetDataPathAttributeNameAt(int nIndex) const
 	for (n = 0; n < sDataPathAttributeNames.GetLength(); n++)
 	{
 		// Cas d'un separateur d'attribut dans le DataPath
-		if (sDataPathAttributeNames.GetAt(n) == '`')
+		if (sDataPathAttributeNames.GetAt(n) == GetDataPathSeparator())
 		{
 			nAttributeNumber++;
 
@@ -181,7 +197,7 @@ boolean KWMTDatabaseMapping::IsTerminalAttributeUsed() const
 	for (n = 0; n < sDataPathAttributeNames.GetLength(); n++)
 	{
 		// Cas d'un separateur d'attribut dans le DataPath
-		if (sDataPathAttributeNames.GetAt(n) == '`')
+		if (sDataPathAttributeNames.GetAt(n) == GetDataPathSeparator())
 		{
 			// Extraction du nom
 			sAttributeName = sDataPathAttributeNames.Mid(nLastAttributeBegin, n - nLastAttributeBegin);
@@ -234,7 +250,7 @@ boolean KWMTDatabaseMapping::CheckDataPath() const
 	// Le DataPathClassName doit etre non vide
 	if (sDataPathClassName.GetLength() == 0)
 	{
-		AddError("Empty data root");
+		AddError("Empty origin dictionary for data path");
 		bOk = false;
 	}
 
@@ -244,7 +260,7 @@ boolean KWMTDatabaseMapping::CheckDataPath() const
 	for (n = 0; n < sDataPathAttributeNames.GetLength(); n++)
 	{
 		// Cas d'un separateur d'attribut dans le DataPath
-		if (sDataPathAttributeNames.GetAt(n) == '`')
+		if (sDataPathAttributeNames.GetAt(n) == GetDataPathSeparator())
 		{
 			nAttributeNumber++;
 			if (n == nLastAttributeBegin)

@@ -33,6 +33,13 @@ public:
 	ALString GetDataPath() const;
 
 	// Data root
+	ALString GetDataRoot() const;
+
+	// ExternalTable
+	boolean GetExternalTable() const;
+	void SetExternalTable(boolean bValue);
+
+	// Data path origin dictionary
 	const ALString& GetDataPathClassName() const;
 	void SetDataPathClassName(const ALString& sValue);
 
@@ -51,6 +58,9 @@ public:
 	////////////////////////////////////////////////////////
 	// Divers
 
+	// Separateur utilise dans les data paths
+	static char GetDataPathSeparator();
+
 	// Ecriture
 	void Write(ostream& ost) const override;
 
@@ -59,15 +69,23 @@ public:
 	const ALString GetObjectLabel() const override;
 
 	////////////////////////////////////////////////////////////
-	// Decomposition du DataPath (en DataPathClassName et DataPathAttributeNames)
-	// Un DataPath est constitue d'un nom de classe principale, optionnellement
-	// suivi d'une liste de nom d'attribut separee par des caracteres backquotes
-	// (caractere interdit dans les identifiant de nom de classe et d'attribut)
+	// Decomposition du DataPath
+	//
+	// Dans un schema multi-table, chaque data path fait reference a une variable de type Table ou Entity
+	//  et identifie un fichier de table de donnees.
+	// La table principale a un data path vide.
+	// Dans un schema en etoile,
+	//  les data paths sont les noms de  variable de type Table ou Entity de chaque table secondaire.
+	// Dans un schéma en flocon,
+	//   les data paths  consistent en une liste de noms de variables avec un separateur "/".
+	// Pour les tables externes,
+	//   les data paths commencent par un DataRoot prefixe par "/", qui fait reference a un nom de dictionnaire Root
 	// Exemples de DataPath pour differents types de mapping:
-	//    classe principale: Customer
-	//    sous-objet: Customer.Address
-	//    tableau de sous-objets: Customer.Log
-	//    Sous-objet de second niveau: Customer.Address.City
+	//    classe principale:
+	//    sous-objet: Address
+	//    tableau de sous-objets: Logs
+	//    Sous-objet de second niveau: Address/City
+	//    table externe: /City
 
 	// Attributs du DataPath
 	int GetDataPathAttributeNumber() const;
@@ -93,6 +111,7 @@ protected:
 	friend class PLShared_MTDatabaseTextFile;
 
 	// Attributs de la classe
+	boolean bExternalTable;
 	ALString sDataPathClassName;
 	ALString sDataPathAttributeNames;
 	ALString sClassName;
@@ -149,6 +168,16 @@ protected:
 ////////////////////////////////////////////////////////////
 // Implementations inline
 
+inline boolean KWMTDatabaseMapping::GetExternalTable() const
+{
+	return bExternalTable;
+}
+
+inline void KWMTDatabaseMapping::SetExternalTable(boolean bValue)
+{
+	bExternalTable = bValue;
+}
+
 inline const ALString& KWMTDatabaseMapping::GetDataPathClassName() const
 {
 	return sDataPathClassName;
@@ -187,6 +216,11 @@ inline const ALString& KWMTDatabaseMapping::GetDataTableName() const
 inline void KWMTDatabaseMapping::SetDataTableName(const ALString& sValue)
 {
 	sDataTableName = sValue;
+}
+
+inline char KWMTDatabaseMapping::GetDataPathSeparator()
+{
+	return '/';
 }
 
 inline ObjectArray* KWMTDatabaseMapping::GetComponentTableMappings()

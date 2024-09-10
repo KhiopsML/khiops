@@ -13,8 +13,6 @@ KWMTDatabaseMappingView::KWMTDatabaseMappingView()
 	SetIdentifier("KWMTDatabaseMapping");
 	SetLabel("Multi-table mapping");
 	AddStringField("DataPath", "Data path", "");
-	AddStringField("DataPathClassName", "Data root", "");
-	AddStringField("DataPathAttributeNames", "Path", "");
 	AddStringField("ClassName", "Dictionary", "");
 	AddStringField("DataTableName", "Data table file", "");
 
@@ -27,11 +25,18 @@ KWMTDatabaseMappingView::KWMTDatabaseMappingView()
 	GetFieldAt("DataTableName")->SetParameters("Data\ntxt\ncsv");
 
 	// Info-bulles
-	GetFieldAt("DataPath")->SetHelpText("Full data path of the data table.");
-	GetFieldAt("DataPathClassName")->SetHelpText("Name of the dictionary that describes the database.");
-	GetFieldAt("DataPathAttributeNames")
-	    ->SetHelpText("Variable path from the data root."
-			  "\n (multi-tables database only)");
+	GetFieldAt("DataPath")
+	    ->SetHelpText(
+		"Data path of the data table (multi-table database only)."
+		"\n"
+		"\n In a multi-table schema, each data path refers to a Table or Entity variable and identifies a data "
+		"table file."
+		"\n The main table has an empty data path."
+		"\n In a star schema, the data paths are the names of Table or Entity variables for each secondary "
+		"table."
+		"\n In a snowflake schema, data paths consist of a list of variable names with a '/' separator."
+		"\n External tables begin with a data root prefixed with '/', which refers to the name of the "
+		"referenced root dictionary.");
 	GetFieldAt("ClassName")
 	    ->SetHelpText("Name of the dictionary that describes the data table."
 			  "\n (multi-tables database only)");
@@ -60,8 +65,6 @@ void KWMTDatabaseMappingView::EventUpdate(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(KWMTDatabaseMapping*, object);
-	editedObject->SetDataPathClassName(GetStringValueAt("DataPathClassName"));
-	editedObject->SetDataPathAttributeNames(GetStringValueAt("DataPathAttributeNames"));
 	editedObject->SetClassName(GetStringValueAt("ClassName"));
 	editedObject->SetDataTableName(GetStringValueAt("DataTableName"));
 
@@ -78,8 +81,6 @@ void KWMTDatabaseMappingView::EventRefresh(Object* object)
 
 	editedObject = cast(KWMTDatabaseMapping*, object);
 	SetStringValueAt("DataPath", editedObject->GetDataPath());
-	SetStringValueAt("DataPathClassName", editedObject->GetDataPathClassName());
-	SetStringValueAt("DataPathAttributeNames", editedObject->GetDataPathAttributeNames());
 	SetStringValueAt("ClassName", editedObject->GetClassName());
 	SetStringValueAt("DataTableName", editedObject->GetDataTableName());
 
