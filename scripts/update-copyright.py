@@ -60,9 +60,10 @@ def update_copyright(file_path):
         lines = file.readlines()
 
     # Write the contents to a temporary file
+    # NB: We clean manually the tmp file because the auto-delete creates problems in Win
     is_file_modified = False
     skipped_copyright = False
-    with tempfile.NamedTemporaryFile() as tmp_stream:
+    with tempfile.NamedTemporaryFile(delete=False) as tmp_stream:
         # Write the current copyright, followed by an empty line
         for line in copyright_banner_lines:
             tmp_stream.write(comment_prefix)
@@ -98,9 +99,13 @@ def update_copyright(file_path):
         tmp_stream.flush()
 
         # If the temporary file contents do not match the original, replace it
-        if not filecmp.cmp(file_path, tmp_stream.name, shallow=False):
+        tmp_file_path = tmp_stream.name
+        if not filecmp.cmp(file_path, tmp_file_path, shallow=False):
             is_file_modified = True
             shutil.copyfile(tmp_stream.name, file_path)
+
+    # Clean the temporary file
+    os.remove(tmp_file_path)
 
     return is_file_modified
 
