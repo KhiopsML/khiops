@@ -217,11 +217,14 @@ extern "C"
 	 *  . declare each external tables
 	 * Secondary tables are identified by a data path (name of the Entity or Table variable of the
 	 * stream main dictionary).
-	 * External tables are identified by a data root (root dictionary of the external table) and
-	 * optionally a data path for secondary external tables.
-	 * Secondary records related to the main record to recode just need a data path to be identified.
-	 * For multi-table schemas beyond the star schema (snowflake schema), the variables names in the
-	 * data path are separated by back-quote characters.
+	 * External tables are identified by a data root (root dictionary of the external table) plus
+	 * if necessary a data path for secondary external tables.
+	 * Secondary records related to the main record to be recoded need only a data path to be identified.
+	 * For multi-table schemas beyond the star schema (snowflake schema), the variable names in the
+	 * data path are separated by a slash '/'.
+	 * If a dictionary or variable in a data path contains back-quote or slash characters,
+	 * it must be enclosed between back-quotes characters, with doubled internal back-quotes characters,
+	 * as for the syntax of dictionary variables.
 	 * For single-table schema, none of the methods dedicated to the multi-table case can be used.
 	 * See Khiops Guide and tutorial for detailed specification of data root and data path.
 	 **********************************************************************************************/

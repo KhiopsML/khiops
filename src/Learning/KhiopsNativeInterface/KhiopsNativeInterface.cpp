@@ -583,22 +583,32 @@ KNI_API int KNIOpenStream(const char* sDictionaryFileName, const char* sDictiona
 		kniStream->GetOutputStream()->UpdateMultiTableMappings();
 
 		// Parametrage des mappings des tables internes en entree avec des pseudo-noms de tables
+		// Essentiellement pour les messages d'erreur
 		for (i = 0; i < kniStream->GetInputStream()->GetTableNumber(); i++)
 		{
 			mapping =
 			    cast(KWMTDatabaseMapping*, kniStream->GetInputStream()->GetMultiTableMappings()->GetAt(i));
-			if (not kniStream->GetInputStream()->IsReferencedClassMapping(mapping))
+
+			// Cas particulier la de table principale, ou l'on utilise son nom de dictionnaire (son data path est vide)
+			if (i == 0)
+			{
+				assert(mapping->GetDataPath() == "");
+				assert(mapping->GetDataPathClassName() == kniStream->GetInputStream()->GetClassName());
+				mapping->SetDataTableName("Input stream " + mapping->GetDataPathClassName());
+			}
+			// Sinon, on prend le data path
+			else
 				mapping->SetDataTableName("Input stream " + mapping->GetDataPath());
 		}
 
 		// En sortie, parametrage uniquement de la table principale
 		assert(kniStream->GetOutputStream()->GetTableNumber() > 0);
 		mapping = cast(KWMTDatabaseMapping*, kniStream->GetOutputStream()->GetMultiTableMappings()->GetAt(0));
-		mapping->SetDataTableName("Output stream " + mapping->GetDataPath());
+		mapping->SetDataTableName("Output stream " + mapping->GetDataPathClassName());
 
 		// Parametrage de la ligne d'entete des tables principales
-		kniStream->GetInputStream()->SetHeaderLineAt(kwcClass->GetName(), sStreamHeaderLine);
-		kniStream->GetOutputStream()->SetHeaderLineAt(kwcClass->GetName(), sStreamHeaderLine);
+		kniStream->GetInputStream()->SetHeaderLineAt("", sStreamHeaderLine);
+		kniStream->GetOutputStream()->SetHeaderLineAt("", sStreamHeaderLine);
 
 		// On remet le domaine de classe courant a NULL
 		KWClassDomain::SetCurrentDomain(NULL);
@@ -671,7 +681,7 @@ KNI_API int KNIOpenStream(const char* sDictionaryFileName, const char* sDictiona
 	ensure(nRetCode < 0 or KNIGetOpenedStreamAt(nRetCode) != NULL);
 	ensure(nRetCode < 0 or KNIGetOpenedStreamAt(nRetCode)->GetClass()->GetName() == sDictionaryName);
 	ensure(nRetCode < 0 or
-	       KNIGetOpenedStreamAt(nRetCode)->GetInputStream()->GetHeaderLineAt(sDictionaryName) == sStreamHeaderLine);
+	       KNIGetOpenedStreamAt(nRetCode)->GetInputStream()->GetHeaderLineAt("") == sStreamHeaderLine);
 	bKNIRunningFunction = false;
 	return nRetCode;
 }
@@ -871,7 +881,7 @@ KNI_API int KNISetSecondaryHeaderLine(int hStream, const char* sDataPath, const 
 
 		// Recherche du mapping
 		mapping = NULL;
-		sFullDataPath = kniStream->GetInputStream()->GetClassName() + '`' + sDataPath;
+		sFullDataPath = sDataPath;
 		if (nRetCode == KNI_OK)
 		{
 			mapping = kniStream->GetInputStream()->LookupMultiTableMapping(sFullDataPath);
@@ -908,6 +918,7 @@ KNI_API int KNISetExternalTable(int hStream, const char* sDataRoot, const char* 
 	KNIStream* kniStream;
 	KWMTDatabaseMapping* mapping;
 	ALString sFullDataPath;
+	ALString sRootDataPath;
 
 	// Sortie directe si fonction en cours d'execution
 	if (bKNIRunningFunction)
@@ -943,16 +954,18 @@ KNI_API int KNISetExternalTable(int hStream, const char* sDataRoot, const char* 
 
 		// Recherche du mapping
 		mapping = NULL;
-		sFullDataPath = sDataRoot;
+		sRootDataPath = KWMTDatabaseMapping::GetDataPathSeparator();
+		sRootDataPath += sDataRoot;
+		sFullDataPath = sRootDataPath;
 		if (sDataPath[0] != '\0')
 		{
-			sFullDataPath += '`';
+			sFullDataPath += KWMTDatabaseMapping::GetDataPathSeparator();
 			sFullDataPath += sDataPath;
 		}
 		if (nRetCode == KNI_OK)
 		{
 			// Recherche d'abord de la table externe racine, qui doit etre presente
-			mapping = kniStream->GetInputStream()->LookupMultiTableMapping(sDataRoot);
+			mapping = kniStream->GetInputStream()->LookupMultiTableMapping(sRootDataPath);
 			if (mapping == NULL)
 				nRetCode = KNI_ErrorDataRoot;
 			// Si OK et table externe secondaire, recherche de celle-ci
@@ -964,14 +977,10 @@ KNI_API int KNISetExternalTable(int hStream, const char* sDataRoot, const char* 
 			}
 		}
 
-		// Memorisation de la ligne de header
+		// Memorisation de la table, uniquement pour la table en entree
 		if (nRetCode == KNI_OK)
 		{
-			mapping->SetDataTableName(sDataTableFileName);
-
-			// Idem pour la base en sortie
-			mapping = kniStream->GetOutputStream()->LookupMultiTableMapping(sFullDataPath);
-			check(mapping);
+			assert(mapping->GetExternalTable() == true);
 			mapping->SetDataTableName(sDataTableFileName);
 		}
 	}
@@ -1158,8 +1167,7 @@ KNI_API int KNISetSecondaryInputRecord(int hStream, const char* sDataPath, const
 		mapping = NULL;
 		if (nRetCode == KNI_OK)
 		{
-			mapping = kniStream->GetInputStream()->LookupMultiTableMapping(
-			    kniStream->GetInputStream()->GetClassName() + '`' + sDataPath);
+			mapping = kniStream->GetInputStream()->LookupMultiTableMapping(sDataPath);
 			if (mapping == NULL)
 				nRetCode = KNI_ErrorDataPath;
 		}
