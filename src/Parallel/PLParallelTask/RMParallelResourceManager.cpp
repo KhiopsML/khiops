@@ -1261,7 +1261,7 @@ PLHostClassDefinition* PLHostClassDefinition::BuildClassDefinitionForHost(const 
 	longint lBoundMin;
 	int nRT;
 	int i;
-	longint lResourceMax;
+	longint lHostOverallMax;
 
 	classDefinition = new PLHostClassDefinition;
 	classDefinition->SetMasterClass(host->IsMasterHost());
@@ -1275,14 +1275,14 @@ PLHostClassDefinition* PLHostClassDefinition::BuildClassDefinitionForHost(const 
 		// des ressources globales (cette approximation est grossiere car on les divise par le nombre d'esclaves
 		// du hot et non le nombre d'esclave global) L'idee est d'eviter de construire des classes inutiles : on
 		// ne construira qu'une seule classe qui a plus que cette resource minimale
-		lResourceMax = requirements->GetMasterMin(nRT) + requirements->GetSharedMin(nRT) +
-			       host->GetLogicalProcessNumber() *
-				   (requirements->GetSlaveMin(nRT) + requirements->GetSharedMin(nRT)) +
-			       requirements->GetSlaveGlobalMin(nRT) / host->GetLogicalProcessNumber();
+		lHostOverallMax = requirements->GetMasterMin(nRT) + requirements->GetSharedMin(nRT) +
+				  host->GetLogicalProcessNumber() *
+				      (requirements->GetSlaveMin(nRT) + requirements->GetSharedMin(nRT)) +
+				  requirements->GetSlaveGlobalMin(nRT) / host->GetLogicalProcessNumber();
 		lHostResource = host->GetResourceFree(nRT);
-		if (lHostResource >= lResourceMax)
+		if (lHostResource >= lHostOverallMax)
 		{
-			classDefinition->GetResourceMin()->SetValue(nRT, lResourceMax);
+			classDefinition->GetResourceMin()->SetValue(nRT, lHostOverallMax);
 			classDefinition->GetResourceMax()->SetValue(nRT, LLONG_MAX);
 		}
 		else
@@ -1488,22 +1488,24 @@ PLSolutionResources* PLHostClass::SaturateResource(const RMTaskResourceRequireme
 						   boolean bIsSequential) const
 {
 	double dPercentage;
-	longint lMasterMin;
-	longint lSlaveMin;
-	longint lGlobalMin;
-	longint lSharedMin;
-	longint lMasterMax;
-	longint lSlaveMax;
-	longint lGlobalMax;
-	longint lSharedMax;
+	longint lMasterMin;          // Exigence
+	longint lSlaveMin;           // Exigence
+	longint lGlobalMin;          // Exigence
+	longint lSharedMin;          // Exigence
+	longint lMasterMax;          // Exigence
+	longint lSlaveMax;           // Exigence
+	longint lGlobalMax;          // Exigence
+	longint lSharedMax;          // Exigence
+	longint lHostOverallMin;     // Exigences minimales sur cette machine
+	longint lHostOverallMax;     // Exigences maximales sur cette machine
+	longint lHostResource;       // Ressources physiques disponibles sur cette machine
+	longint lHostUsableResource; // Ressources Physiques disponibles en prenant en compte les exigences max
+	longint lHostExtraResource;  // Ressources a distribuer apres avoir alloue le min
+	longint lResourceFull; // Ressources maximales qu'on peut allouer en prenant en compte les resources diponibles
+	longint lResourceBounded; // Ressources maximales qu'on peut allouer en prenant en compte les exigences max
 	int nSlaveNumberOnCluster;
-	longint lResourceMin;
-	longint lResourceMax;
-	longint lAvailableResource;
-	longint lResourceAfterMin;
 	int nSlaveNumberOnHost;
 	int nMasterNumberOnHost;
-	longint lFreeResource;
 	PLSolutionResources* resources;
 	boolean bBalanced;
 	boolean bMasterPreferred;
@@ -1536,10 +1538,9 @@ PLSolutionResources* PLHostClass::SaturateResource(const RMTaskResourceRequireme
 	resources = new PLSolutionResources;
 	for (nRT = 0; nRT < RESOURCES_NUMBER; nRT++)
 	{
-
-		lFreeResource = GetDefinition()->GetResourceMin()->GetValue(nRT);
-		lFreeResource = min(lFreeResource, RMResourceConstraints::GetResourceLimit(nRT) * lMB);
-		lFreeResource = RMStandardResourceDriver::PhysicalToLogical(nRT, lFreeResource);
+		lHostResource = GetDefinition()->GetResourceMin()->GetValue(nRT);
+		lHostResource = min(lHostResource, RMResourceConstraints::GetResourceLimit(nRT) * lMB);
+		lHostResource = RMStandardResourceDriver::PhysicalToLogical(nRT, lHostResource);
 
 		bBalanced = taskRequirements->GetResourceAllocationPolicy(nRT) == RMTaskResourceRequirement::balanced;
 		bMasterPreferred =
@@ -1563,32 +1564,32 @@ PLSolutionResources* PLHostClass::SaturateResource(const RMTaskResourceRequireme
 		// Pour eviter les problemes d'infini dans les calculs (INF+INF=INF) On borne les max par la memoire
 		// disonible
 		if (lSharedMax == LLONG_MAX)
-			lSharedMax = lFreeResource;
+			lSharedMax = lHostResource;
 		if (lGlobalMax == LLONG_MAX)
-			lGlobalMax = lFreeResource;
+			lGlobalMax = lHostResource;
 		if (lMasterMax == LLONG_MAX)
-			lMasterMax = lFreeResource;
+			lMasterMax = lHostResource;
 		if (lSlaveMax == LLONG_MAX)
-			lSlaveMax = lFreeResource;
+			lSlaveMax = lHostResource;
 
 		// Calcul de la somme ressources min et max
 		if (bIsSequential)
 		{
-			lResourceMin = lMasterMin + lSlaveMin + lSharedMin + lGlobalMin +
-				       RMParallelResourceManager::GetMasterHiddenResource(bIsSequential, nRT);
-			lResourceMax = lsum(lMasterMax, lSlaveMax, lSharedMax, lGlobalMax,
-					    RMParallelResourceManager::GetMasterHiddenResource(bIsSequential, nRT));
+			lHostOverallMin = lMasterMin + lSlaveMin + lSharedMin + lGlobalMin +
+					  RMParallelResourceManager::GetMasterHiddenResource(bIsSequential, nRT);
+			lHostOverallMax = lsum(lMasterMax, lSlaveMax, lSharedMax, lGlobalMax,
+					       RMParallelResourceManager::GetMasterHiddenResource(bIsSequential, nRT));
 		}
 		else
 		{
-			lResourceMin =
+			lHostOverallMin =
 			    nMasterNumberOnHost *
 				(lMasterMin + RMParallelResourceManager::GetMasterHiddenResource(bIsSequential, nRT) +
 				 lSharedMin) +
 			    nSlaveNumberOnHost *
 				(lSlaveMin + RMParallelResourceManager::GetSlaveHiddenResource(bIsSequential, nRT) +
 				 lGlobalMin / nSlaveNumberOnCluster + lSharedMin);
-			lResourceMax = lsum(
+			lHostOverallMax = lsum(
 			    lprod((nSlaveNumberOnHost + nMasterNumberOnHost), lSharedMax),
 			    lprod(nSlaveNumberOnHost, lGlobalMax / nSlaveNumberOnCluster),
 			    lprod(nMasterNumberOnHost,
@@ -1598,75 +1599,102 @@ PLSolutionResources* PLHostClass::SaturateResource(const RMTaskResourceRequireme
 									  bIsSequential, nRT))));
 		}
 
-		assert(lResourceMin <= lResourceMax);
+		assert(lHostOverallMin <= lHostOverallMax);
 
 		// On borne les ressources disponibles par le max qu'on veut allouer
-		lAvailableResource = min(lFreeResource, lResourceMax);
+		lHostUsableResource = min(lHostResource, lHostOverallMax);
 
 		// On sature completement une exigence suivant les preferences
-		// Le min et max sont alors mis a 0 pour le calcul du pourcentage
+		// Note : lors du calcul des resources disponibles pour les esclaves, on effectue une division entiere.
+		// Le reste de cette division n'est donc pas alloue, c'est pourquoi il y a une tolerance dans les assertions.
+		//
 		if (not bBalanced)
 		{
 			if (bGlobalPreferred and nSlaveNumberOnHost > 0)
 			{
-				lResourceAfterMin = lAvailableResource - lResourceMin;
-				assert(lResourceAfterMin >= 0);
+				lHostExtraResource = lHostUsableResource - lHostOverallMin;
+				assert(lHostExtraResource >= 0);
+				lResourceFull = (lGlobalMin + lHostExtraResource) / nSlaveNumberOnHost;
+				lResourceBounded = lGlobalMax / nSlaveNumberOnCluster;
 
 				resources->SetGlobalResource(nRT,
-							     min((lGlobalMin + lResourceAfterMin) / nSlaveNumberOnHost,
+							     min((lGlobalMin + lHostExtraResource) / nSlaveNumberOnHost,
 								 lGlobalMax / nSlaveNumberOnCluster));
-				lAvailableResource = lAvailableResource -
-						     nSlaveNumberOnHost * resources->GetGlobalResource()->GetValue(nRT);
+				lHostUsableResource -=
+				    nSlaveNumberOnHost * resources->GetGlobalResource()->GetValue(nRT);
+				assert(lHostUsableResource > 0);
 
 				// Les ressources globales sont saturees, on met a jour les ressources min et max sans
 				// prendre en compte les ressources globales pour calculer le pourcentage de repartition
 				// des autres ressources
-				lResourceMin -= nSlaveNumberOnHost * lGlobalMin / nSlaveNumberOnCluster;
-				lResourceMax -= nSlaveNumberOnHost * lGlobalMax / nSlaveNumberOnCluster;
+				lHostOverallMin -= nSlaveNumberOnHost * lGlobalMin / nSlaveNumberOnCluster;
+				lHostOverallMax -= nSlaveNumberOnHost * lGlobalMax / nSlaveNumberOnCluster;
+
+				// Les ressources disponibles doivent etre inferieures aux exigences max.
+				// Pour cette verification, on prend en compte le reste de la division entiere qui n'a pas ete alloue.
+				assert(lHostUsableResource - nSlaveNumberOnCluster <= lHostOverallMax);
 			}
 
 			if (bMasterPreferred and nMasterNumberOnHost > 0)
 			{
-				lResourceAfterMin = lAvailableResource - lResourceMin;
-				assert(lResourceAfterMin >= 0);
+				lHostExtraResource = lHostUsableResource - lHostOverallMin;
+				assert(lHostExtraResource >= 0);
 
-				resources->SetMasterResource(nRT, min(lMasterMin + lResourceAfterMin, lMasterMax));
-				lAvailableResource = lAvailableResource - resources->GetMasterResource()->GetValue(nRT);
+				resources->SetMasterResource(nRT, min(lMasterMin + lHostExtraResource, lMasterMax));
+				lHostUsableResource -= resources->GetMasterResource()->GetValue(nRT);
+				assert(lHostUsableResource >= 0);
 
 				// Mise a jour des ressources min et max pour calculer le pourcentage de repartion des
 				// autres ressources
-				lResourceMin -= lMasterMin;
-				lResourceMax -= lMasterMax;
+				lHostOverallMin -= lMasterMin;
+				lHostOverallMax -= lMasterMax;
+
+				assert(lHostUsableResource <= lHostOverallMax);
 			}
 			if (bSlavePreferred and nSlaveNumberOnHost > 0)
 			{
-				lResourceAfterMin = lAvailableResource - lResourceMin;
-				assert(lResourceAfterMin >= 0);
+				lHostExtraResource = lHostUsableResource - lHostOverallMin;
+				assert(lHostExtraResource >= 0);
+
 				resources->SetSlaveResource(
-				    nRT, min(lSlaveMin + lResourceAfterMin / nSlaveNumberOnHost, lSlaveMax));
-				lAvailableResource = lAvailableResource -
-						     nSlaveNumberOnHost * resources->GetSlaveResource()->GetValue(nRT);
+				    nRT, min(lSlaveMin + lHostExtraResource / nSlaveNumberOnHost, lSlaveMax));
+				lHostUsableResource -=
+				    nSlaveNumberOnHost * resources->GetSlaveResource()->GetValue(nRT);
+
+				assert(lHostUsableResource >= 0);
 
 				// Mise a jour des ressources min et max pour calculer le pourcentage de repartion des
 				// autres ressources
-				lResourceMin -= nSlaveNumberOnHost * lSlaveMin;
-				lResourceMax -= nSlaveNumberOnHost * lSlaveMax;
+				lHostOverallMin = lHostOverallMin - nSlaveNumberOnHost * lSlaveMin;
+				lHostOverallMax = lHostOverallMax - nSlaveNumberOnHost * lSlaveMax;
+
+				// Les ressources disponibles doivent etre inferieures aux exigences max.
+				// Pour cette verification, on prend en compte le reste de la division entiere qui n'a pas ete alloue.
+				assert(lHostUsableResource - nSlaveNumberOnHost <= lHostOverallMax);
 			}
 		}
 
-		assert(lResourceMin <= lResourceMax);
-		assert(lAvailableResource >= 0);
-		assert(lAvailableResource >= lResourceMin);
+		assert(lHostOverallMin <= lHostOverallMax);
+		assert(lHostUsableResource >= 0);
+		assert(lHostUsableResource >= lHostOverallMin);
 
 		// Calcul du pourcentage de repartition : on cherche a attribuer une saturation proportionnelle aux
 		// exigences et donner le meme pourcentage a toutes les exigences
-		if (lResourceMax == lResourceMin)
+		if (lHostOverallMax == lHostOverallMin)
 		{
 			// Dans le cas ou les max == les mins, la saturation n'est pas necessaire
 			dPercentage = 0;
 		}
 		else
-			dPercentage = (lAvailableResource - lResourceMin) * 1.0 / (lResourceMax - lResourceMin);
+		{
+			// Il peut y avoir une difference due aux restes da la division entiere.
+			// On corrige la difference en bornant le pourcentage a 1
+			assert(lHostUsableResource <= lHostOverallMax + nSlaveNumberOnCluster);
+			dPercentage =
+			    (lHostUsableResource - lHostOverallMin) * 1.0 / (lHostOverallMax - lHostOverallMin);
+			if (dPercentage > 1)
+				dPercentage = 1;
+		}
 
 		assert(dPercentage <= 1 and dPercentage >= 0);
 
@@ -2283,7 +2311,7 @@ boolean PLSolution::FitMinimalRequirements(int nRT, longint& lMissingResource, b
 	boolean bResourceOkForMaster;
 	longint lLocalMissingResource;
 	longint lUsedResource;
-	longint lAvailableResource;
+	longint lHostUsableResource;
 	longint lMasterSum;
 	longint lSlaveMin;
 
@@ -2310,11 +2338,11 @@ boolean PLSolution::FitMinimalRequirements(int nRT, longint& lMissingResource, b
 		hostClass = hostClassSolution->GetHostClass();
 		assert(hostClass->IsMasterClass());
 		ivResourcesMissingForProcNumber.SetSize(0);
-		lAvailableResource = hostClass->GetAvaiblableResource(nRT);
+		lHostUsableResource = hostClass->GetAvaiblableResource(nRT);
 		lUsedResource = taskRequirements->GetMasterMin(nRT) + taskRequirements->GetSlaveMin(nRT) +
 				taskRequirements->GetSharedMin(nRT) + taskRequirements->GetSlaveGlobalMin(nRT) +
 				RMParallelResourceManager::GetMasterHiddenResource(bIsSequential, nRT);
-		lLocalMissingResource = lUsedResource - lAvailableResource;
+		lLocalMissingResource = lUsedResource - lHostUsableResource;
 		if (lLocalMissingResource > 0)
 		{
 			ivResourcesMissingForProcNumber.Add(1);
@@ -2342,7 +2370,7 @@ boolean PLSolution::FitMinimalRequirements(int nRT, longint& lMissingResource, b
 			hostClassSolution = GetHostSolutionAt(i);
 			hostClass = hostClassSolution->GetHostClass();
 			ivResourcesMissingForProcNumber.SetSize(0);
-			lAvailableResource = hostClass->GetAvaiblableResource(nRT);
+			lHostUsableResource = hostClass->GetAvaiblableResource(nRT);
 
 			// Pour etre plus efficace, on ecrit du code specifique dans le cas de la classe qui contient le
 			// maitre dans l'autre cas, la classe ne contient que des esclaves
@@ -2360,7 +2388,7 @@ boolean PLSolution::FitMinimalRequirements(int nRT, longint& lMissingResource, b
 						lUsedResource = lMasterSum + ((longint)nProcNumber - 1) * lSlaveMin;
 
 						// Ressources disponibles sur le host
-						lLocalMissingResource = lUsedResource - lAvailableResource;
+						lLocalMissingResource = lUsedResource - lHostUsableResource;
 						if (lLocalMissingResource > 0)
 						{
 							ivResourcesMissingForProcNumber.Add(nProcNumber);
@@ -2386,7 +2414,7 @@ boolean PLSolution::FitMinimalRequirements(int nRT, longint& lMissingResource, b
 						lUsedResource = nProcNumber * lSlaveMin;
 
 						// Ressources disponibles sur le host
-						lLocalMissingResource = lUsedResource - lAvailableResource;
+						lLocalMissingResource = lUsedResource - lHostUsableResource;
 						if (lLocalMissingResource > 0)
 						{
 							ivResourcesMissingForProcNumber.Add(nProcNumber);
