@@ -164,7 +164,7 @@ protected:
 	// ulterieurement Les mappings crees recursivement sont memorises dans un tableau
 	KWMTDatabaseMapping* CreateMapping(ObjectDictionary* odReferenceClasses, ObjectArray* oaRankedReferenceClasses,
 					   KWClass* mappedClass, boolean bIsExternalTable,
-					   const ALString& sDataPathClassName, const ALString& sDataPathAttributeNames,
+					   const ALString& sOriginClassName, StringVector* svAttributeNames,
 					   ObjectArray* oaCreatedMappings);
 
 	/////////////////////////////////////////////////////////////////////////////////

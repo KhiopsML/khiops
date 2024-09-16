@@ -1335,8 +1335,8 @@ void PLShared_MTDatabaseTextFile::SerializeObject(PLSerializer* serializer, cons
 
 		// Serialisation des informations de mapping
 		serializer->PutBoolean(mapping->GetExternalTable());
-		serializer->PutString(mapping->GetDataPathClassName());
-		serializer->PutString(mapping->GetDataPathAttributeNames());
+		serializer->PutString(mapping->GetOriginClassName());
+		serializer->PutStringVector(mapping->GetAttributeNames());
 		serializer->PutString(mapping->GetDataTableName());
 	}
 
@@ -1428,8 +1428,8 @@ void PLShared_MTDatabaseTextFile::DeserializeObject(PLSerializer* serializer, Ob
 
 		// Deserialisation du mapping
 		mapping->SetExternalTable(serializer->GetBoolean());
-		mapping->SetDataPathClassName(serializer->GetString());
-		mapping->SetDataPathAttributeNames(serializer->GetString());
+		mapping->SetOriginClassName(serializer->GetString());
+		serializer->GetStringVector(&mapping->svAttributeNames);
 		mapping->SetDataTableName(serializer->GetString());
 	}
 

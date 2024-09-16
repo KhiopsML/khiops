@@ -66,7 +66,7 @@ void KNIDatabaseTransferView::KNITransferDatabase()
 		if (sourceMTDatabase->IsReferencedClassMapping(mapping))
 		{
 			strcpy(recodingOperands.ExternalFiles[recodingOperands.ExternalFileNumber].DataRoot,
-			       mapping->GetDataPathClassName());
+			       mapping->GetOriginClassName());
 			strcpy(recodingOperands.ExternalFiles[recodingOperands.ExternalFileNumber].DataPath,
 			       mapping->GetDataPathAttributeNames());
 			strcpy(recodingOperands.ExternalFiles[recodingOperands.ExternalFileNumber].FileName,

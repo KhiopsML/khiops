@@ -26,47 +26,41 @@ public:
 	// Comparaison des attributs de definition
 	int Compare(const KWMTDatabaseMapping* aSource) const;
 
-	////////////////////////////////////////////////////////
-	// Acces aux attributs
+	////////////////////////////////////////////////////////////////
+	// Data path, identifiant calcule a partir de la specification
+	// Les elements du data path sont formattes si necessaire,
+	// dans le cas ou ils contiennt des caracteres '`' ou '/'
 
-	// Data path
+	// Data path, calcule d'apres les specifications
 	ALString GetDataPath() const;
 
-	// Data root
+	// Data root, qui est le dictionnaire origine dans le cas des tables externes
 	ALString GetDataRoot() const;
 
-	// ExternalTable
+	// Partie du data path relative aux attributs, calculee d'apres les specifications
+	ALString GetDataPathAttributeNames() const;
+
+	////////////////////////////////////////////////////////////////
+	// Specification du data path
+
+	// Table externe
 	boolean GetExternalTable() const;
 	void SetExternalTable(boolean bValue);
 
-	// Data path origin dictionary
-	const ALString& GetDataPathClassName() const;
-	void SetDataPathClassName(const ALString& sValue);
+	// Dictionnaire origine du data path
+	const ALString& GetOriginClassName() const;
+	void SetOriginClassName(const ALString& sValue);
 
-	// Path
-	const ALString& GetDataPathAttributeNames() const;
-	void SetDataPathAttributeNames(const ALString& sValue);
+	// Nom des attribut du data paths
+	StringVector* GetAttributeNames();
 
-	// Dictionary
+	// Dictionaire decrivant la table specifiee
 	const ALString& GetClassName() const;
 	void SetClassName(const ALString& sValue);
 
-	// Data table file
+	// Nom du fichier de donnees pour la table
 	const ALString& GetDataTableName() const;
 	void SetDataTableName(const ALString& sValue);
-
-	////////////////////////////////////////////////////////
-	// Divers
-
-	// Separateur utilise dans les data paths
-	static char GetDataPathSeparator();
-
-	// Ecriture
-	void Write(ostream& ost) const override;
-
-	// Libelles utilisateur
-	const ALString GetClassLabel() const override;
-	const ALString GetObjectLabel() const override;
 
 	////////////////////////////////////////////////////////////
 	// Decomposition du DataPath
@@ -76,7 +70,7 @@ public:
 	// La table principale a un data path vide.
 	// Dans un schema en etoile,
 	//  les data paths sont les noms de  variable de type Table ou Entity de chaque table secondaire.
-	// Dans un schéma en flocon,
+	// Dans un schema en flocon,
 	//   les data paths  consistent en une liste de noms de variables avec un separateur "/".
 	// Pour les tables externes,
 	//   les data paths commencent par un DataRoot prefixe par "/", qui fait reference a un nom de dictionnaire Root
@@ -86,18 +80,45 @@ public:
 	//    tableau de sous-objets: Logs
 	//    Sous-objet de second niveau: Address/City
 	//    table externe: /City
+	//
+	// Un composant de data path peut contenir des caractere separateur '/'.
+	// S'il contient des caracteres '/' ou '`', il doit etre formate a l'aide de la methode
+	// ToDataPathFormat pour le mettre entre '`', comme pour le format externes des nom de variables
+	// dans les dictionnaires
 
 	// Attributs du DataPath
 	int GetDataPathAttributeNumber() const;
-	const ALString GetDataPathAttributeNameAt(int nIndex) const;
+	const ALString& GetDataPathAttributeNameAt(int nIndex) const;
 
 	// Recherche si l'attribut terminal du DataPath est Used, c'est a dire
 	// si tous les attributs intermediaires sont Used
 	// Utile notamment en ecriture, pour savoir si l'objet sera ecrit
 	boolean IsTerminalAttributeUsed() const;
 
-	// Validite du DataPath
+	// Validite du DataPath complet
 	boolean CheckDataPath() const;
+
+	// Conversion d'un element de data path vers le format externe
+	// Cela concerne les noms de dictionnaire (DataRoot) ou de variable
+	// S'il contiennent le caractere '`' ou le separateur '/', il doivent
+	// etre mis au format externe defini pour les dictionnaire, enre '`'
+	static ALString GetFormattedName(const ALString& sValue);
+
+	// Separateur utilise dans les data paths
+	static char GetDataPathSeparator();
+
+	// Separateur d'echappement pour formatter les nom contenant le separateur ou le character d'echappement
+	static char GetDataPathEscapeChar();
+
+	////////////////////////////////////////////////////////
+	// Divers
+
+	// Ecriture
+	void Write(ostream& ost) const override;
+
+	// Libelles utilisateur
+	const ALString GetClassLabel() const override;
+	const ALString GetObjectLabel() const override;
 
 	// Memoire utilisee par le mapping
 	longint GetUsedMemory() const override;
@@ -112,8 +133,8 @@ protected:
 
 	// Attributs de la classe
 	boolean bExternalTable;
-	ALString sDataPathClassName;
-	ALString sDataPathAttributeNames;
+	ALString sOriginClassName;
+	StringVector svAttributeNames;
 	ALString sClassName;
 	ALString sDataTableName;
 
@@ -178,24 +199,30 @@ inline void KWMTDatabaseMapping::SetExternalTable(boolean bValue)
 	bExternalTable = bValue;
 }
 
-inline const ALString& KWMTDatabaseMapping::GetDataPathClassName() const
+inline const ALString& KWMTDatabaseMapping::GetOriginClassName() const
 {
-	return sDataPathClassName;
+	return sOriginClassName;
 }
 
-inline void KWMTDatabaseMapping::SetDataPathClassName(const ALString& sValue)
+inline void KWMTDatabaseMapping::SetOriginClassName(const ALString& sValue)
 {
-	sDataPathClassName = sValue;
+	sOriginClassName = sValue;
 }
 
-inline const ALString& KWMTDatabaseMapping::GetDataPathAttributeNames() const
+inline StringVector* KWMTDatabaseMapping::GetAttributeNames()
 {
-	return sDataPathAttributeNames;
+	return &svAttributeNames;
 }
 
-inline void KWMTDatabaseMapping::SetDataPathAttributeNames(const ALString& sValue)
+inline int KWMTDatabaseMapping::GetDataPathAttributeNumber() const
 {
-	sDataPathAttributeNames = sValue;
+	return svAttributeNames.GetSize();
+}
+
+inline const ALString& KWMTDatabaseMapping::GetDataPathAttributeNameAt(int nIndex) const
+{
+	require(0 <= nIndex and nIndex < GetDataPathAttributeNumber());
+	return svAttributeNames.GetAt(nIndex);
 }
 
 inline const ALString& KWMTDatabaseMapping::GetClassName() const
@@ -221,6 +248,11 @@ inline void KWMTDatabaseMapping::SetDataTableName(const ALString& sValue)
 inline char KWMTDatabaseMapping::GetDataPathSeparator()
 {
 	return '/';
+}
+
+inline char KWMTDatabaseMapping::GetDataPathEscapeChar()
+{
+	return '`';
 }
 
 inline ObjectArray* KWMTDatabaseMapping::GetComponentTableMappings()

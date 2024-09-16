@@ -161,7 +161,7 @@ void KWMTDatabase::SetClassName(const ALString& sValue)
 
 	KWDatabase::SetClassName(sValue);
 	rootMultiTableMapping->SetClassName(sValue);
-	rootMultiTableMapping->SetDataPathClassName(sValue);
+	rootMultiTableMapping->SetOriginClassName(sValue);
 	ensure(GetClassName() == sValue);
 }
 
@@ -228,7 +228,7 @@ boolean KWMTDatabase::IsReferencedClassMapping(const KWMTDatabaseMapping* mappin
 {
 	require(mapping != NULL);
 	require(LookupMultiTableMapping(mapping->GetDataPath()) == mapping or not Check());
-	return (mapping->GetDataPathClassName() != GetClassName());
+	return (mapping->GetOriginClassName() != GetClassName());
 }
 
 // Fonction de comparaison sur le nom de la premiere classe (racine) d'un table de mapping
@@ -257,6 +257,7 @@ void KWMTDatabase::UpdateMultiTableMappings()
 	ObjectDictionary odReferenceClasses;
 	ObjectArray oaRankedReferenceClasses;
 	KWClass* referenceClass;
+	StringVector svAttributeName;
 	KWMTDatabaseMapping* mapping;
 	KWMTDatabaseMapping* previousMapping;
 	ObjectArray oaAllMainCreatedMappings;
@@ -313,8 +314,10 @@ void KWMTDatabase::UpdateMultiTableMappings()
 		oaRootRefTableMappings.SetSize(0);
 
 		// Creation du mapping de la table principale
+		assert(svAttributeName.GetSize() == 0);
 		rootMultiTableMapping = CreateMapping(&odReferenceClasses, &oaRankedReferenceClasses, mainClass, false,
-						      mainClass->GetName(), "", &oaMultiTableMappings);
+						      mainClass->GetName(), &svAttributeName, &oaMultiTableMappings);
+		assert(svAttributeName.GetSize() == 0);
 
 		// Parcours des classes referencee pour creer leur mapping
 		// Ce mapping des classes referencees n'est pas effectuee dans le cas d'une base en ecriture
@@ -332,8 +335,11 @@ void KWMTDatabase::UpdateMultiTableMappings()
 				oaAllMainCreatedMappings.Add(oaCreatedMappings);
 
 				// Creation du mapping et memorisation de tous les mapping des sous-classes
-				mapping = CreateMapping(&odReferenceClasses, &oaRankedReferenceClasses, referenceClass,
-							true, referenceClass->GetName(), "", oaCreatedMappings);
+				assert(svAttributeName.GetSize() == 0);
+				mapping =
+				    CreateMapping(&odReferenceClasses, &oaRankedReferenceClasses, referenceClass, true,
+						  referenceClass->GetName(), &svAttributeName, oaCreatedMappings);
+				assert(svAttributeName.GetSize() == 0);
 			}
 
 			// Passage a la classe suivante
@@ -388,7 +394,7 @@ void KWMTDatabase::UpdateMultiTableMappings()
 				mapping = cast(KWMTDatabaseMapping*, oaMultiTableMappings.GetAt(j));
 
 				// Transfer des specification de la table mappee si comparaison positive
-				if (mapping->GetDataPathClassName() == previousMapping->GetDataPathClassName() and
+				if (mapping->GetOriginClassName() == previousMapping->GetOriginClassName() and
 				    mapping->GetDataPathAttributeNames() ==
 					previousMapping->GetDataPathAttributeNames())
 				{
@@ -483,14 +489,14 @@ boolean KWMTDatabase::CheckPartially(boolean bWriteOnly) const
 			}
 
 			// Recherche de la classe racine du chemin de mapping
-			rootClass = KWClassDomain::GetCurrentDomain()->LookupClass(mapping->GetDataPathClassName());
+			rootClass = KWClassDomain::GetCurrentDomain()->LookupClass(mapping->GetOriginClassName());
 
 			// Existence de cette classe
 			if (rootClass == NULL)
 			{
 				bOk = false;
 				AddError("Data path " + mapping->GetObjectLabel() + " : Root dictionary " +
-					 mapping->GetDataPathClassName() + " does not exist");
+					 mapping->GetOriginClassName() + " does not exist");
 			}
 
 			// Validite du chemin de donnee
@@ -1512,9 +1518,8 @@ boolean KWMTDatabase::IsPhysicalObjectSelected(KWObject* kwoPhysicalObject)
 
 KWMTDatabaseMapping* KWMTDatabase::CreateMapping(ObjectDictionary* odReferenceClasses,
 						 ObjectArray* oaRankedReferenceClasses, KWClass* mappedClass,
-						 boolean bIsExternalTable, const ALString& sDataPathClassName,
-						 const ALString& sDataPathAttributeNames,
-						 ObjectArray* oaCreatedMappings)
+						 boolean bIsExternalTable, const ALString& sOriginClassName,
+						 StringVector* svAttributeNames, ObjectArray* oaCreatedMappings)
 {
 	const KWDRReference referenceRule;
 	KWMTDatabaseMapping* mapping;
@@ -1525,21 +1530,18 @@ KWMTDatabaseMapping* KWMTDatabase::CreateMapping(ObjectDictionary* odReferenceCl
 	require(oaRankedReferenceClasses != NULL);
 	require(odReferenceClasses->GetCount() == oaRankedReferenceClasses->GetSize());
 	require(mappedClass != NULL);
-	require(sDataPathClassName != "");
-	require(not mappedClass->GetRoot() or mappedClass->GetName() == sDataPathClassName);
-	require(not mappedClass->GetRoot() or sDataPathAttributeNames == "");
-	require(sDataPathAttributeNames == "" or
-		LookupMultiTableMapping(sDataPathClassName + KWMTDatabaseMapping::GetDataPathSeparator() +
-					sDataPathAttributeNames) == NULL);
-	require(sDataPathAttributeNames != "" or LookupMultiTableMapping(sDataPathClassName) == NULL);
+	require(sOriginClassName != "");
+	require(not mappedClass->GetRoot() or mappedClass->GetName() == sOriginClassName);
+	require(not mappedClass->GetRoot() or svAttributeNames->GetSize() == 0);
 	require(oaCreatedMappings != NULL);
 
 	// Creation et initialisation d'un mapping
 	mapping = new KWMTDatabaseMapping;
 	mapping->SetExternalTable(bIsExternalTable);
 	mapping->SetClassName(mappedClass->GetName());
-	mapping->SetDataPathClassName(sDataPathClassName);
-	mapping->SetDataPathAttributeNames(sDataPathAttributeNames);
+	mapping->SetOriginClassName(sOriginClassName);
+	mapping->GetAttributeNames()->CopyFrom(svAttributeNames);
+	assert(LookupMultiTableMapping(mapping->GetDataPath()) == NULL);
 
 	// Memorisation de ce mapping dans le tableau exhaustif de tous les mapping
 	oaCreatedMappings->Add(mapping);
@@ -1554,19 +1556,16 @@ KWMTDatabaseMapping* KWMTDatabase::CreateMapping(ObjectDictionary* odReferenceCl
 			// Cas d'un attribut natif de la composition (sans regle de derivation)
 			if (not attribute->GetReference() and attribute->GetAnyDerivationRule() == NULL)
 			{
+				// Ajout temporaire d'un attribut au mapping
+				svAttributeNames->Add(attribute->GetName());
+
 				// Creation du mapping dans une nouvelle table de mapping temporaire
-				if (sDataPathAttributeNames != "")
-					subMapping = CreateMapping(
-					    odReferenceClasses, oaRankedReferenceClasses, attribute->GetClass(),
-					    bIsExternalTable, sDataPathClassName,
-					    sDataPathAttributeNames + KWMTDatabaseMapping::GetDataPathSeparator() +
-						attribute->GetName(),
-					    oaCreatedMappings);
-				else
-					subMapping =
-					    CreateMapping(odReferenceClasses, oaRankedReferenceClasses,
-							  attribute->GetClass(), bIsExternalTable, sDataPathClassName,
-							  attribute->GetName(), oaCreatedMappings);
+				subMapping = CreateMapping(odReferenceClasses, oaRankedReferenceClasses,
+							   attribute->GetClass(), bIsExternalTable, sOriginClassName,
+							   svAttributeNames, oaCreatedMappings);
+
+				// Supression de l'attribut ajoute temporairement
+				svAttributeNames->SetSize(svAttributeNames->GetSize() - 1);
 
 				// Chainage du sous-mapping
 				mapping->GetComponentTableMappings()->Add(subMapping);

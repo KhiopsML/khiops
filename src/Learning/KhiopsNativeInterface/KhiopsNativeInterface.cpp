@@ -593,8 +593,8 @@ KNI_API int KNIOpenStream(const char* sDictionaryFileName, const char* sDictiona
 			if (i == 0)
 			{
 				assert(mapping->GetDataPath() == "");
-				assert(mapping->GetDataPathClassName() == kniStream->GetInputStream()->GetClassName());
-				mapping->SetDataTableName("Input stream " + mapping->GetDataPathClassName());
+				assert(mapping->GetOriginClassName() == kniStream->GetInputStream()->GetClassName());
+				mapping->SetDataTableName("Input stream " + mapping->GetOriginClassName());
 			}
 			// Sinon, on prend le data path
 			else
@@ -604,7 +604,7 @@ KNI_API int KNIOpenStream(const char* sDictionaryFileName, const char* sDictiona
 		// En sortie, parametrage uniquement de la table principale
 		assert(kniStream->GetOutputStream()->GetTableNumber() > 0);
 		mapping = cast(KWMTDatabaseMapping*, kniStream->GetOutputStream()->GetMultiTableMappings()->GetAt(0));
-		mapping->SetDataTableName("Output stream " + mapping->GetDataPathClassName());
+		mapping->SetDataTableName("Output stream " + mapping->GetOriginClassName());
 
 		// Parametrage de la ligne d'entete des tables principales
 		kniStream->GetInputStream()->SetHeaderLineAt("", sStreamHeaderLine);
