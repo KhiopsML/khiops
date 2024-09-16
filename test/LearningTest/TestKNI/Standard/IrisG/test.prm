@@ -23,9 +23,9 @@ TransferDatabase               // Deploy model
 
 // -> Database transfer
 ClassName SNB_Iris             // Deployment dictionary
-SourceDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key SNB_Iris               // List item selection
+SourceDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key                // List item selection
 SourceDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../datasets/Iris/Iris.txt     // Database file
-TargetDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key SNB_Iris               // List item selection
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key                // List item selection
 TargetDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ./results/D_Iris.txt     // Database file
 TransferDatabase               // Deploy model
 

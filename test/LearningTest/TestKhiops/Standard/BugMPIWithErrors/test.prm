@@ -25,7 +25,7 @@ OK                             // Open
 
 TrainDatabase.ClassName Adult          // Dictionary
 
-TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key Adult               // List item selection
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key                // List item selection
 TrainDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../datasets/Adult/Adult.txt     // Database file
 TrainDatabase.DatabaseSpec.Sampling.SampleNumberPercentage 70  // Sample percentage
 

@@ -25,7 +25,7 @@ OK                             // Open
 
 TrainDatabase.ClassName Adult          // Dictionary
 
-TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key Adult               // List item selection
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key                // List item selection
 TrainDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../datasets/Adult/Adult.txt     // Database file
 TrainDatabase.DatabaseSpec.Sampling.SampleNumberPercentage 70  // Sample percentage
 
@@ -54,7 +54,7 @@ TransferDatabase               // Deploy model
 // -> Database transfer
 ClassName SNB_Adult             // Deployment dictionary
 SourceDatabase.DatabaseSpec.Sampling.SampleNumberPercentage 70  // Sample percentage
-TargetDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key SNB_Adult               // List item selection
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key                // List item selection
 TargetDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ./results/D_Adult.txt     // Database file
 TransferDatabase               // Deploy model
 Exit                           // Close
@@ -73,7 +73,7 @@ OK                             // Open
 LearningTools.EvaluatePredictors         // Evaluate predictors...
 
 // -> Evaluate predictors
-EvaluationDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key Adult               // List item selection
+EvaluationDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key                // List item selection
 EvaluationDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../datasets/Adult/Adult.txt     // Database file
 EvaluationDatabase.DatabaseSpec.Sampling.SampleNumberPercentage 70  // Sample percentage
 EvaluatedPredictors.List.Key SNB_Adult          // List item selection

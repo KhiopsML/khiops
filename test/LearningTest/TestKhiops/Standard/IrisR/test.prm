@@ -26,7 +26,7 @@ OK                             // Open
 
 TrainDatabase.ClassName Iris          // Dictionary
 
-TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key Iris               // List item selection
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key                // List item selection
 TrainDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../datasets/Iris/Iris.txt     // Database file
 TrainDatabase.DatabaseSpec.Sampling.SampleNumberPercentage 70  // Sample percentage
 
@@ -52,7 +52,7 @@ TransferDatabase               // Deploy model
 // -> Database transfer
 ClassName SNB_Iris             // Deployment dictionary
 SourceDatabase.DatabaseSpec.Sampling.SampleNumberPercentage 70  // Sample percentage
-TargetDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key SNB_Iris               // List item selection
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key                // List item selection
 TargetDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ./results/D_IrisR.txt     // Database file
 TransferDatabase               // Deploy model
 Exit                           // Close

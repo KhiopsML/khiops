@@ -23,7 +23,7 @@ ClassFileName ../../../datasets/Adult/Adult.kdic       // Dictionary file
 OK                             // Open
 // <- Open
 
-Database.DatabaseSpec.Data.DatabaseFiles.List.Key Adult               // List item selection
+Database.DatabaseSpec.Data.DatabaseFiles.List.Key                // List item selection
 Database.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../datasets/Adult/Adult.txt     // Database file
 Database.DatabaseSpec.Sampling.SampleNumberPercentage 70  // Sample percentage
 Database.DatabaseSpec.Selection.SelectionAttribute native_country   // Selection variable
