@@ -1264,9 +1264,6 @@ boolean SNBPredictorSNBTrainingTask::CheckCurrentAttribute() const
 
 boolean SNBPredictorSNBTrainingTask::MasterFinalize(boolean bProcessEndedCorrectly)
 {
-	boolean bOk;
-	ALString sTmp;
-
 	require(masterSnbPredictor != NULL);
 	require(masterInitialDatabase != NULL);
 	require(masterInitialDatabase->Check());
@@ -1298,13 +1295,7 @@ boolean SNBPredictorSNBTrainingTask::MasterFinalize(boolean bProcessEndedCorrect
 
 	// En parallele : Nettoyage du fichier dictionnaire auxilier
 	if (IsParallel())
-	{
-		bOk = FileService::RemoveFile(
-		    FileService::GetURIFilePathName(shared_sRecoderClassDomainFileURI.GetValue()));
-		if (not bOk)
-			AddWarning(sTmp + "Failed to remove temporary dictionary " +
-				   shared_sRecoderClassDomainFileURI.GetValue());
-	}
+		FileService::RemoveFile(FileService::GetURIFilePathName(shared_sRecoderClassDomainFileURI.GetValue()));
 
 	ensure(shared_learningSpec.GetLearningSpec()->Check());
 	ensure(masterSnbPredictor->GetClassStats() != NULL);
