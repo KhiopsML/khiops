@@ -935,8 +935,13 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeDataTableBi
 	for (nSliceNumber = 1; nSliceNumber <= nMaxSliceNumber; nSliceNumber++)
 	{
 		// Calcul de la memoire necessaire pour l'esclave pour ce nombre de slices
+		// NB: La memoire globale diminue avec la taille du buffer du slice set d'entree (2eme param).
+		//     Donc on utilise BufferedFile::nDefaultBufferSize, qui est la plus grand taille utilisee
+		//     lors de l'estimation de resources. Ceci assure que l'on atteint la borne-inf des
+		//     ressources demandes.
 		lGlobalSharedMemoryPerSlave =
-		    ComputeGlobalSlaveNecessaryMemory(nSliceNumber, MemSegmentByteSize) / nSlaveProcessNumber;
+		    ComputeGlobalSlaveNecessaryMemory(nSliceNumber, BufferedFile::nDefaultBufferSize) /
+		    nSlaveProcessNumber;
 		lSlaveNecessaryMemory =
 		    ComputeSlaveNecessaryMemory(nSlaveProcessNumber, nSliceNumber) + lGlobalSharedMemoryPerSlave;
 
@@ -1716,9 +1721,6 @@ void SNBPredictorSelectiveNaiveBayesTrainingTask::MasterFinalizeTrainingAndRepor
 
 boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterFinalize(boolean bProcessEndedCorrectly)
 {
-	boolean bOk = true;
-	ALString sTmp;
-
 	require(masterSnbPredictor != NULL);
 	require(masterInitialDatabase != NULL);
 	require(masterInitialDatabase->Check());
@@ -1755,13 +1757,7 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterFinalize(boolean bPro
 
 	// En parallele : Nettoyage du fichier dictionnaire auxilier
 	if (IsParallel())
-	{
-		bOk = FileService::RemoveFile(
-		    FileService::GetURIFilePathName(shared_sRecoderClassDomainFileURI.GetValue()));
-		if (not bOk)
-			AddWarning(sTmp + "Failed to remove temporary dictionary " +
-				   shared_sRecoderClassDomainFileURI.GetValue());
-	}
+		FileService::RemoveFile(FileService::GetURIFilePathName(shared_sRecoderClassDomainFileURI.GetValue()));
 
 	ensure(shared_learningSpec.GetLearningSpec()->Check());
 	ensure(masterSnbPredictor->GetClassStats() != NULL);
@@ -1773,7 +1769,7 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterFinalize(boolean bPro
 	ensure(masterWeightedSelectionScorer == NULL);
 	ensure(masterBinarySliceSet == NULL);
 
-	return bOk;
+	return true;
 }
 
 boolean SNBPredictorSelectiveNaiveBayesTrainingTask::SlaveInitialize()
