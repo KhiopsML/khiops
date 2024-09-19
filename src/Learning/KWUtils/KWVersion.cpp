@@ -290,13 +290,12 @@ boolean GetLearningExpertMode()
 {
 	static boolean bIsInitialized = false;
 	static boolean bLearningExpertMode = false;
+	ALString sUserName;
+	ALString sLearningExpertMode;
 
 	// Determination du mode expert au premier appel
 	if (not bIsInitialized)
 	{
-		ALString sUserName;
-		ALString sLearningExpertMode;
-
 		// Recherche des variables d'environnement
 		sUserName = p_getenv("USERNAME");
 		sUserName.MakeLower();
@@ -316,17 +315,45 @@ boolean GetLearningExpertMode()
 	return bLearningExpertMode;
 }
 
-boolean GetLearningHardMemoryLimitMode()
+int GetLearningDefaultMemoryLimit()
 {
 	static boolean bIsInitialized = false;
-	static boolean bLearningHardMemoryLimitMode = false;
+	static int nLearningDefaultMemoryLimit = 0;
+	ALString sLearningDefaultMemoryLimit;
 
 	// Determination du mode HardMemoryLimit au premier appel
 	if (not bIsInitialized)
 	{
-		ALString sUserName;
-		ALString sLearningHardMemoryLimitMode;
+		// Recherche des variables d'environnement
+		sLearningDefaultMemoryLimit = p_getenv("KhiopsDefaultMemoryLimit");
 
+		// Conversion au mieux en un entier positif
+		if (sLearningDefaultMemoryLimit == "")
+			nLearningDefaultMemoryLimit = 0;
+		else
+			nLearningDefaultMemoryLimit = StringToInt(sLearningDefaultMemoryLimit);
+		if (nLearningDefaultMemoryLimit < 0)
+			nLearningDefaultMemoryLimit = 0;
+
+		// Utilisable uniquement en mode expert
+		if (GetLearningExpertMode())
+			nLearningDefaultMemoryLimit = 0;
+
+		// Memorisation du flag d'initialisation
+		bIsInitialized = true;
+	}
+	return nLearningDefaultMemoryLimit;
+}
+
+boolean GetLearningHardMemoryLimitMode()
+{
+	static boolean bIsInitialized = false;
+	static boolean bLearningHardMemoryLimitMode = false;
+	ALString sLearningHardMemoryLimitMode;
+
+	// Determination du mode HardMemoryLimit au premier appel
+	if (not bIsInitialized)
+	{
 		// Recherche des variables d'environnement
 		sLearningHardMemoryLimitMode = p_getenv("KhiopsHardMemoryLimitMode");
 		sLearningHardMemoryLimitMode.MakeLower();
@@ -347,13 +374,11 @@ boolean GetLearningCrashTestMode()
 {
 	static boolean bIsInitialized = false;
 	static boolean bLearningCrashTestMode = false;
+	ALString sLearningCrashTestMode;
 
 	// Determination du mode CrashTest au premier appel
 	if (not bIsInitialized)
 	{
-		ALString sUserName;
-		ALString sLearningCrashTestMode;
-
 		// Recherche des variables d'environnement
 		sLearningCrashTestMode = p_getenv("KhiopsCrashTestMode");
 		sLearningCrashTestMode.MakeLower();
@@ -374,13 +399,11 @@ boolean GetLearningFastExitMode()
 {
 	static boolean bIsInitialized = false;
 	static boolean bLearningFastExitMode = true;
+	ALString sLearningFastExitMode;
 
 	// Determination du mode FastExit au premier appel
 	if (not bIsInitialized)
 	{
-		ALString sUserName;
-		ALString sLearningFastExitMode;
-
 		// Recherche des variables d'environnement
 		sLearningFastExitMode = p_getenv("KhiopsFastExitMode");
 		sLearningFastExitMode.MakeLower();
@@ -401,12 +424,11 @@ boolean GetPreparationTraceMode()
 {
 	static boolean bIsInitialized = false;
 	static boolean bPreparationTraceMode = false;
+	ALString sPreparationTraceMode;
 
 	// Determination du mode au premier appel
 	if (not bIsInitialized)
 	{
-		ALString sPreparationTraceMode;
-
 		// Recherche des variables d'environnement
 		sPreparationTraceMode = p_getenv("KhiopsPreparationTraceMode");
 		sPreparationTraceMode.MakeLower();
@@ -427,12 +449,11 @@ boolean GetIOTraceMode()
 {
 	static boolean bIsInitialized = false;
 	static boolean bIOTraceMode = false;
+	ALString sIOTraceMode;
 
 	// Determination du mode expert au premier appel
 	if (not bIsInitialized)
 	{
-		ALString sIOTraceMode;
-
 		// Recherche des variables d'environnement
 		sIOTraceMode = p_getenv("KhiopsIOTraceMode");
 		sIOTraceMode.MakeLower();
@@ -453,12 +474,11 @@ boolean GetForestExpertMode()
 {
 	static boolean bIsInitialized = false;
 	static boolean bForestExpertMode = false;
+	ALString sForestExpertMode;
 
 	// Determination du mode expert au premier appel
 	if (not bIsInitialized)
 	{
-		ALString sForestExpertMode;
-
 		// Recherche des variables d'environnement
 		sForestExpertMode = p_getenv("KhiopsForestExpertMode");
 		sForestExpertMode.MakeLower();
@@ -479,12 +499,11 @@ boolean GetLearningCoclusteringExpertMode()
 {
 	static boolean bIsInitialized = false;
 	static boolean bLearningCoclusteringExpertMode = false;
+	ALString sLearningCoclusteringExpertMode;
 
 	// Determination du mode expert au premier appel
 	if (not bIsInitialized)
 	{
-		ALString sLearningCoclusteringExpertMode;
-
 		// Recherche des variables d'environnement
 		sLearningCoclusteringExpertMode = p_getenv("KhiopsCoclusteringExpertMode");
 		sLearningCoclusteringExpertMode.MakeLower();
@@ -506,13 +525,12 @@ boolean GetLearningCoclusteringIVExpertMode()
 {
 	static boolean bIsInitialized = false;
 	static boolean bLearningCoclusteringIVExpertMode = false;
+	ALString sUserName;
+	ALString sLearningCoclusteringIVExpertMode;
 
 	// Determination du mode expert au premier appel
 	if (not bIsInitialized)
 	{
-		ALString sUserName;
-		ALString sLearningCoclusteringIVExpertMode;
-
 		// Recherche des variables d'environnement
 		sUserName = p_getenv("USERNAME");
 		sUserName.MakeLower();
@@ -540,12 +558,11 @@ boolean GetParallelExpertMode()
 {
 	static boolean bIsInitialized = false;
 	static boolean bParallelExpertMode = false;
+	ALString sExpertParallelMode;
 
 	// Determination du mode parallele au premier appel
 	if (not bIsInitialized)
 	{
-		ALString sExpertParallelMode;
-
 		// Recherche des variables d'environnement
 		sExpertParallelMode = p_getenv("KhiopsExpertParallelMode");
 		sExpertParallelMode.MakeLower();
@@ -566,13 +583,12 @@ int GetParallelTraceMode()
 {
 	static boolean bIsInitialized = false;
 	static int nParallelTraceMode = 0;
+	ALString sParallelTraceMode;
 	int nValue;
 
 	// Determination du mode parallele au premier appel
 	if (not bIsInitialized)
 	{
-		ALString sParallelTraceMode;
-
 		// Recherche des variables d'environnement
 		sParallelTraceMode = p_getenv("KhiopsParallelTrace");
 
@@ -600,12 +616,11 @@ boolean GetFileServerActivated()
 {
 	static boolean bIsInitialized = false;
 	static boolean bFileServerActivated = false;
+	ALString sFileServerActivated;
 
 	// Determination du mode parallele au premier appel
 	if (not bIsInitialized)
 	{
-		ALString sFileServerActivated;
-
 		// Recherche de la variable d'environnement
 		sFileServerActivated = p_getenv("KhiopsFileServerActivated");
 		sFileServerActivated.MakeLower();
@@ -626,12 +641,11 @@ boolean GetLearningPriorStudyMode()
 {
 	static boolean bIsInitialized = false;
 	static boolean bLearningPriorStudyMode = false;
+	ALString sLearningPriorStudyMode;
 
 	// Determination du mode etude des prior au premier appel
 	if (not bIsInitialized)
 	{
-		ALString sLearningPriorStudyMode;
-
 		// Recherche des variables d'environnement
 		sLearningPriorStudyMode = p_getenv("KhiopsPriorStudyMode");
 		sLearningPriorStudyMode.MakeLower();
@@ -652,12 +666,11 @@ boolean GetDistanceStudyMode()
 {
 	static boolean bIsInitialized = false;
 	static boolean bDistanceStudyMode = false;
+	ALString sDistanceStudyMode;
 
 	// Determination du mode parallele au premier appel
 	if (not bIsInitialized)
 	{
-		ALString sDistanceStudyMode;
-
 		// Recherche des variables d'environnement
 		sDistanceStudyMode = p_getenv("KhiopsDistanceStudyMode");
 		sDistanceStudyMode.MakeLower();

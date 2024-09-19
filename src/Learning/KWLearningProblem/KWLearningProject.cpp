@@ -445,6 +445,7 @@ boolean KWLearningProject::ShowSystemInformation(const ALString& sValue)
 	svEnvironmentVariables.Initialize();
 	bEnvVarDefined = false;
 	svEnvironmentVariables.Add("KhiopsExpertMode");
+	svEnvironmentVariables.Add("KhiopsDefaultMemoryLimit");
 	svEnvironmentVariables.Add("KhiopsHardMemoryLimitMode");
 	svEnvironmentVariables.Add("KhiopsCrashTestMode");
 	svEnvironmentVariables.Add("KhiopsFastExitMode");

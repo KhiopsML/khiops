@@ -137,11 +137,13 @@ KHIOPS_MEM_STATS_LOG_FREQUENCY = "KhiopsMemStatsLogFrequency"
 KHIOPS_MEM_STATS_LOG_TO_COLLECT = "KhiopsMemStatsLogToCollect"
 KHIOPS_IO_TRACE_MODE = "KhiopsIOTraceMode"
 
-# Variables non documentee documentees, utilisee systematiquement pour les tests
+# Variables non documentee, utilisees systematiquement pour les tests
 KHIOPS_EXPERT_MODE = "KhiopsExpertMode"
 KHIOPS_CRASH_TEST_MODE = "KhiopsCrashTestMode"
 KHIOPS_FAST_EXIT_MODE = "KhiopsFastExitMode"
+KHIOPS_DEFAULT_MEMORY_LIMIT = "KhiopsDefaultMemoryLimit"
 KHIOPS_HARD_MEMORY_LIMIT_MODE = "KhiopsHardMemoryLimitMode"
+KHIOPS_API_MODE = "KHIOPS_API_MODE"
 
 """
 Gestion du timeout pour un jeu de test
