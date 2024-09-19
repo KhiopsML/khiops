@@ -15,7 +15,6 @@
 
 // -> Khiops Coclustering
 AnalysisSpec.SystemParameters.APIMode false        // API mode
-AnalysisSpec.SystemParameters.MemoryLimit 2000     // Memory limit in MB
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 // Build coclustering

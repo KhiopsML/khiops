@@ -14,8 +14,6 @@
 //
 
 // -> Data preparation and scoring
-AnalysisSpec.SystemParameters.APIMode true        // API mode
-AnalysisSpec.SystemParameters.MemoryLimit 2000     // Memory limit in MB
 LearningProblemStudy.ClassifierBenchmark   // Evaluate classifiers...
 
 // -> Learning benchmark
