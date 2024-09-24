@@ -326,12 +326,19 @@ def evaluate_tool_on_test_dir(
         # pour executer des scenarios testant plusieurs cas d'erreur
         os.environ[kht.KHIOPS_FAST_EXIT_MODE] = "false"
 
+        # khiops avec choix de la memoire par defaut a 2000 Mb, pour detecter au plus vite les problemes memoire,
+        # comme on avait auparavent en compilation 32 bits avec limite physique a 2 Gb
+        os.environ[kht.KHIOPS_DEFAULT_MEMORY_LIMIT] = "2000"
+
         # khiops en mode HardMemoryLimit via une variable d'environnement pour provoquer
         # un plantage physique de l'allocateur en cas de depassement des contraintes memoires des scenarios
         os.environ[kht.KHIOPS_HARD_MEMORY_LIMIT_MODE] = "true"
 
         # khiops en mode crash test via une variable d'environnement
         os.environ[kht.KHIOPS_CRASH_TEST_MODE] = "true"
+
+        # khiops par defaut en mode en mode API via une variable d'environnement
+        os.environ[kht.KHIOPS_API_MODE] = "true"
 
         # Ajout de variables d'environements propres a OpenMPI, elles remplacent les parametres
         # on peut ansi lancer indiferemment mpich ou openmpi

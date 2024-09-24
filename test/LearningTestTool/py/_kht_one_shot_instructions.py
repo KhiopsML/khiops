@@ -607,6 +607,97 @@ def instruction_new_data_path(test_dir):
                 print("BUG: " + prm_file_path + " : " + str(e))
 
 
+def instruction_simplify_scenario_v11(test_dir):
+    """
+    Update scenario file (V11) to remove unnecessary default instruction for parameters APIMode and MemoryLimit
+    The script should be applied to the whole LearningTest tree using
+      "kht_apply <LarningTest dir> new-data-path -f all"
+    The LearningTest directory tree should be save before using this script, in order
+    to recover from some potential erroneous modifications of existing scenarios.
+    """
+    prm_file_path = os.path.join(test_dir, kht.TEST_PRM)
+    if os.path.isfile(prm_file_path):
+        # Read content of prm file
+        try:
+            with open(prm_file_path, "r", errors="ignore") as prm_file:
+                lines = prm_file.readlines()
+        except Exception as e:
+            print("BUG: " + prm_file_path + " : " + str(e))
+        # Update management of data path
+        pattern1 = "AnalysisSpec.SystemParameters.APIMode true        // API mode"
+        pattern2 = (
+            "AnalysisSpec.SystemParameters.MemoryLimit 2000     // Memory limit in MB"
+        )
+        new_lines = []
+        removed_lines = []
+        new_scenario_necessary = False
+        data_path_block_current_line = -1
+        data_path_block_main_dictionary = ""
+        for i, line in enumerate(lines):
+            line = line.strip()
+            # Case of a line containing a data path
+            if pattern1 in line or pattern2 in line:
+                removed_lines.append(line)
+                new_scenario_necessary = True
+            # Standard case
+            else:
+                new_lines.append(line)
+                # Infos to specific instruction, to help evaluating impacts
+                show_specific_instruction = False
+                if show_specific_instruction:
+                    instruction1 = "AnalysisSpec.SystemParameters.APIMode"
+                    instruction2 = "AnalysisSpec.SystemParameters.MemoryLimit"
+                    if instruction1 in line or instruction2 in line:
+                        test_dir_name = utils.test_dir_name(test_dir)
+                        suite_dir_name = utils.suite_dir_name(test_dir)
+                        tool_dir_name = utils.tool_dir_name(test_dir)
+                        # Show standard removed lines
+                        if len(removed_lines) > 0:
+                            for removed_line in removed_lines:
+                                print(
+                                    tool_dir_name
+                                    + "/"
+                                    + suite_dir_name
+                                    + "/"
+                                    + test_dir_name
+                                    + ": REMOVED "
+                                    + removed_line
+                                )
+                            removed_lines = []
+                        # Show specific lines
+                        print(
+                            tool_dir_name
+                            + "/"
+                            + suite_dir_name
+                            + "/"
+                            + test_dir_name
+                            + ": "
+                            + line
+                        )
+                        if (
+                            instruction2 in line
+                            and "2000" in line
+                            and not pattern2 in line
+                        ):
+                            print(
+                                tool_dir_name
+                                + "/"
+                                + suite_dir_name
+                                + "/"
+                                + test_dir_name
+                                + ": NON-STANDARD "
+                                + line
+                            )
+        # Write content of prm file
+        if new_scenario_necessary:
+            try:
+                with open(prm_file_path, "w", errors="ignore") as prm_file:
+                    for line in new_lines:
+                        prm_file.write(line + "\n")
+            except Exception as e:
+                print("BUG: " + prm_file_path + " : " + str(e))
+
+
 def instruction_template(test_dir):
     results_dir = os.path.join(test_dir, kht.RESULTS)
     results_ref_dir, _ = results.get_results_ref_dir(test_dir, show=True)
@@ -662,6 +753,12 @@ def register_one_shot_instructions():
         "new-data-path",
         instruction_new_data_path,
         "update scenarios with new data path spec",
+    )
+    standard_instructions.register_instruction(
+        available_instructions,
+        "simplify-scenario-v11",
+        instruction_simplify_scenario_v11,
+        "update scenarios to remove default pararameters APIMode and MemoryLimit",
     )
     standard_instructions.register_instruction(
         available_instructions,

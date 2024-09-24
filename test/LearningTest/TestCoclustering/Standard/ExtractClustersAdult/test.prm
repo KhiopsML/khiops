@@ -14,8 +14,6 @@
 //
 
 
-AnalysisSpec.SystemParameters.APIMode true        // API mode
-AnalysisSpec.SystemParameters.MemoryLimit 2000     // Memory limit in MB
 
 LearningTools.ExtractClusters  // Extract clusters...
 

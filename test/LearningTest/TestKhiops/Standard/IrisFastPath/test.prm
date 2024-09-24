@@ -13,8 +13,6 @@
 //
 //
 
-AnalysisSpec.SystemParameters.APIMode true        // API mode
-AnalysisSpec.SystemParameters.MemoryLimit 2000     // Memory limit in MB
 TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key     // List item selection
 TrainDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../datasets/Iris/Iris.txt     // Database file
 

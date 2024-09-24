@@ -116,7 +116,14 @@ boolean GetLearningRawGuiModeMode();
 // Ce mode expert est controlable par la variable d'environnement KhiopsExpertMode a true ou false
 boolean GetLearningExpertMode();
 
-// Indicateur du mode de l'outil avec gestion d'un controle stricte des limites memoire (defaut: false)
+// Memoire par defaut a utiliser
+// Est equivalent a un choix par utilisateur de la memoire maximum a utiliser en utilisant le parametrage
+// de l'onglet des parametres systemes
+// Ce mode expert est controlable par la variable d'environnement KhiopsDefaultMemoryLimit
+// Renvoie 0 si non specifie ou invalide
+int GetLearningDefaultMemoryLimit();
+
+// Indicateur du mode de l'outil avec gestion d'un controle strict des limites memoire (defaut: false)
 // Quand il est a true, tout depassement d'une limite memoire specifie par l'utilisateur provoque
 // un crash memoire, gere par un parametrage de l'allocateur
 // Ce mode expert est controlable par la variable d'environnement KhiopsHardMemoryLimitMode a true ou false

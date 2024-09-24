@@ -102,6 +102,10 @@ KWSystemParametersView::KWSystemParametersView()
 	else
 		nDefaultMemory = nMaxMemory - nMaxMemory / 10;
 
+	// Modification de la memoire par defaut selon variable d'environnement experte
+	if (GetLearningDefaultMemoryLimit() != 0)
+		nDefaultMemory = min(GetLearningDefaultMemoryLimit(), nMaxMemory);
+
 	cast(UIIntElement*, GetFieldAt("MemoryLimit"))->SetMinValue(nMinMemory);
 	cast(UIIntElement*, GetFieldAt("MemoryLimit"))->SetMaxValue(nMaxMemory);
 	cast(UIIntElement*, GetFieldAt("MemoryLimit"))->SetDefaultValue(nDefaultMemory);
