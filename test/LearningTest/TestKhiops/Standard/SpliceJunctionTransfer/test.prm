@@ -23,9 +23,9 @@ OK                             // Open
 
 TrainDatabase.ClassName SpliceJunction        // Dictionary
 
-TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key SpliceJunction               // List item selection
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key                // List item selection
 TrainDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../MTdatasets/SpliceJunction/SpliceJunction.txt      // Data table file
-TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key SpliceJunction`DNA               // List item selection
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key DNA               // List item selection
 TrainDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../MTdatasets/SpliceJunction/SpliceJunctionDNA.txt      // Data table file
 
 TransferDatabase               // Deploy model
@@ -33,9 +33,9 @@ TransferDatabase               // Deploy model
 // -> Database transfer
 ClassName SpliceJunction             // Deployment dictionary
 SourceDatabase.DatabaseSpec.Sampling.SampleNumberPercentage 70  // Sample percentage
-TargetDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key SpliceJunction               // List item selection
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key                // List item selection
 TargetDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ./results/D_SpliceJunction.txt      // Data table file
-TargetDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key SpliceJunction`DNA               // List item selection
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key DNA               // List item selection
 TargetDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ./results/D_SpliceJunctionDNA.txt      // Data table file
 TransferDatabase               // Deploy model
 Exit                           // Close

@@ -13,8 +13,6 @@ KWMTDatabaseMappingArrayView::KWMTDatabaseMappingArrayView()
 	SetIdentifier("Array.KWMTDatabaseMapping");
 	SetLabel("Multi-table mappings");
 	AddStringField("DataPath", "Data path", "");
-	AddStringField("DataPathClassName", "Data root", "");
-	AddStringField("DataPathAttributeNames", "Path", "");
 	AddStringField("ClassName", "Dictionary", "");
 	AddStringField("DataTableName", "Data table file", "");
 
@@ -32,9 +30,6 @@ KWMTDatabaseMappingArrayView::KWMTDatabaseMappingArrayView()
 
 	// Champ a utiliser comme identifiant pour les selections
 	SetKeyFieldId("DataPath");
-
-	// Ce champ est invisible: il est decompose en DataPathClass et DataPathAttributes pour l'interface
-	GetFieldAt("DataPath")->SetVisible(false);
 
 	// ##
 }
@@ -58,8 +53,6 @@ void KWMTDatabaseMappingArrayView::EventUpdate(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(KWMTDatabaseMapping*, object);
-	editedObject->SetDataPathClassName(GetStringValueAt("DataPathClassName"));
-	editedObject->SetDataPathAttributeNames(GetStringValueAt("DataPathAttributeNames"));
 	editedObject->SetClassName(GetStringValueAt("ClassName"));
 	editedObject->SetDataTableName(GetStringValueAt("DataTableName"));
 
@@ -76,8 +69,6 @@ void KWMTDatabaseMappingArrayView::EventRefresh(Object* object)
 
 	editedObject = cast(KWMTDatabaseMapping*, object);
 	SetStringValueAt("DataPath", editedObject->GetDataPath());
-	SetStringValueAt("DataPathClassName", editedObject->GetDataPathClassName());
-	SetStringValueAt("DataPathAttributeNames", editedObject->GetDataPathAttributeNames());
 	SetStringValueAt("ClassName", editedObject->GetClassName());
 	SetStringValueAt("DataTableName", editedObject->GetDataTableName());
 

@@ -163,8 +163,9 @@ protected:
 	// Les classes referencees sont memorisees dans un dictionnaire, pour gerer les mappings externes a creer
 	// ulterieurement Les mappings crees recursivement sont memorises dans un tableau
 	KWMTDatabaseMapping* CreateMapping(ObjectDictionary* odReferenceClasses, ObjectArray* oaRankedReferenceClasses,
-					   KWClass* mappedClass, const ALString& sDataPathClassName,
-					   const ALString& sDataPathAttributeNames, ObjectArray* oaCreatedMappings);
+					   KWClass* mappedClass, boolean bIsExternalTable,
+					   const ALString& sOriginClassName, StringVector* svAttributeNames,
+					   ObjectArray* oaCreatedMappings);
 
 	/////////////////////////////////////////////////////////////////////////////////
 	// Gestion des objets natifs references

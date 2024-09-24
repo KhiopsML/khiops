@@ -198,11 +198,11 @@ boolean KWAttribute::Check() const
 		parentClass->GetDomain()->LookupClass(parentClass->GetName()) == parentClass);
 
 	// Nom
-	if (not KWClass::CheckName(GetName(), this))
+	if (not KWClass::CheckName(GetName(), KWClass::Attribute, this))
 		bOk = false;
 
 	// Libelle
-	if (not KWClass::CheckLabel(GetLabel(), this))
+	if (not KWClass::CheckLabel(GetLabel(), KWClass::Attribute, this))
 		bOk = false;
 
 	// Type
@@ -263,22 +263,13 @@ boolean KWAttribute::Check() const
 	// Classe si type Object
 	if (KWType::IsGeneralRelation(GetType()))
 	{
-		// Une variable native de type relation ne doit pas avoir de back-quote dans son nom, pour qu'il n'y
-		// ait pas d'ambiguite dans les DataPath natifs (cf database multi-tables)
-		if (kwdrRule == NULL and attributeBlock == NULL and GetName().Find('`') >= 0)
-		{
-			AddError("Incorrect name for a native variable of type " + KWType::ToString(GetType()) +
-				 ": must not contain back-quote");
-			bOk = false;
-		}
-
 		// Presence de la classe
 		if (attributeClass == NULL)
 		{
 			AddError("No reference dictionary for type " + KWType::ToString(GetType()));
 			bOk = false;
 		}
-		else if (not KWClass::CheckName(attributeClass->GetName(), this))
+		else if (not KWClass::CheckName(attributeClass->GetName(), KWClass::Class, this))
 		{
 			AddError("Incorrect name of reference dictionary for type " + KWType::ToString(GetType()));
 			bOk = false;
@@ -323,7 +314,7 @@ boolean KWAttribute::Check() const
 			AddError("No name for type Structure");
 			bOk = false;
 		}
-		else if (not KWClass::CheckName(GetStructureName(), this))
+		else if (not KWClass::CheckName(GetStructureName(), KWClass::Structure, this))
 		{
 			AddError("Incorrect name for type Structure");
 			bOk = false;

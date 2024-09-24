@@ -23,7 +23,7 @@ ClassFileName ./OccupationEducationFrequency.kdic       // Dictionary file
 OK                             // Open
 // <- Open
 
-Database.DatabaseSpec.Data.DatabaseFiles.List.Key OccupationEducationFrequency               // List item selection
+Database.DatabaseSpec.Data.DatabaseFiles.List.Key                // List item selection
 Database.DatabaseSpec.Data.DatabaseFiles.DataTableName ./OccupationEducationFrequency.txt     // Database file
 
 AnalysisSpec.CoclusteringParameters.Attributes.InsertItemAfter         // Insert variable

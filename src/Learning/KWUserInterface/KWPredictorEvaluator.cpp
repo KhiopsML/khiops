@@ -948,14 +948,14 @@ void KWPredictorEvaluator::RenameDatabaseClasses(KWDatabase* database, KWClassDo
 				// Recherche de la la classe initiale correspondant a la classe en cours
 				sInitialRootClassName = "";
 				kwcClass =
-				    KWClassDomain::GetCurrentDomain()->LookupClass(mapping->GetDataPathClassName());
+				    KWClassDomain::GetCurrentDomain()->LookupClass(mapping->GetOriginClassName());
 				if (kwcClass != NULL)
 					sInitialRootClassName =
 					    KWTrainedPredictor::GetMetaDataInitialClassName(kwcClass);
 
 				// Memorisation de cette classe ainsi de que la classe principale de la base
 				mapping->SetClassName(sInitialClassName);
-				mapping->SetDataPathClassName(sInitialRootClassName);
+				mapping->SetOriginClassName(sInitialRootClassName);
 			}
 		}
 	}

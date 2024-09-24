@@ -406,21 +406,21 @@ boolean KWDerivationRule::CheckRuleDefinition() const
 	ALString sTmp;
 
 	// Nom de la regle
-	if (not KWClass::CheckName(GetName(), this))
+	if (not KWClass::CheckName(GetName(), KWClass::Rule, this))
 	{
 		AddError("Incorrect name");
 		bResult = false;
 	}
 
 	// Libelle
-	if (not KWClass::CheckLabel(GetLabel(), this))
+	if (not KWClass::CheckLabel(GetLabel(), KWClass::Rule, this))
 	{
 		AddError("Incorrect label");
 		bResult = false;
 	}
 
 	// Nom de classe si renseigne
-	if (GetClassName() != "" and not KWClass::CheckName(GetName(), this))
+	if (GetClassName() != "" and not KWClass::CheckName(GetName(), KWClass::Class, this))
 	{
 		AddError("Incorrect dictionary name");
 		bResult = false;
@@ -435,7 +435,7 @@ boolean KWDerivationRule::CheckRuleDefinition() const
 
 	// Nom de la classe pour un type Object ou ObjectArray si renseigne
 	if (KWType::IsGeneralRelation(GetType()) and GetObjectClassName() != "" and
-	    not KWClass::CheckName(GetObjectClassName(), this))
+	    not KWClass::CheckName(GetObjectClassName(), KWClass::Class, this))
 	{
 		AddError("Incorrect dictionary name for " + KWType::ToString(GetType()) + " type");
 		bResult = false;
@@ -449,7 +449,7 @@ boolean KWDerivationRule::CheckRuleDefinition() const
 			AddError("Missing structure name for Structure type");
 			bResult = false;
 		}
-		else if (not KWClass::CheckName(GetStructureName(), this))
+		else if (not KWClass::CheckName(GetStructureName(), KWClass::Structure, this))
 		{
 			AddError("Incorrect structure name for Structure type");
 			bResult = false;
@@ -2170,7 +2170,7 @@ void KWDerivationRule::RegisterDerivationRule(KWDerivationRule* kwdrRule)
 {
 	require(kwdrRule != NULL);
 	require(kwdrRule->GetName() != "");
-	require(KWClass::CheckName(kwdrRule->GetName(), kwdrRule));
+	require(KWClass::CheckName(kwdrRule->GetName(), KWClass::Rule, kwdrRule));
 	require(odDerivationRules == NULL or odDerivationRules->Lookup(kwdrRule->GetName()) == NULL);
 
 	// Creation si necessaire du dictionnaire de regles

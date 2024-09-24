@@ -23,7 +23,7 @@ ClassFileName ../../../datasets/Mushroom/Mushroom.kdic       // Dictionary file
 OK                             // Open
 // <- Open
 
-Database.DatabaseSpec.Data.DatabaseFiles.List.Key Mushroom               // List item selection
+Database.DatabaseSpec.Data.DatabaseFiles.List.Key                // List item selection
 Database.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../datasets/Mushroom/Mushroom.txt     // Database file
 Database.DatabaseSpec.Data.HeaderLineUsed false       // Header line used
 

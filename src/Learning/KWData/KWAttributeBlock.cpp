@@ -127,7 +127,7 @@ boolean KWAttributeBlock::Check() const
 	int nAttributeKey;
 
 	// Nom
-	if (not KWClass::CheckName(GetName(), this))
+	if (not KWClass::CheckName(GetName(), KWClass::AttributeBlock, this))
 		bOk = false;
 
 	// Tests de base sur la specification du block

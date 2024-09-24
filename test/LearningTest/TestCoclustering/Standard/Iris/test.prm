@@ -26,7 +26,7 @@ ClassFileName ../../../datasets/Iris/Iris.kdic       // Dictionary file
 OK                             // Open
 // <- Open
 
-Database.DatabaseSpec.Data.DatabaseFiles.List.Key Iris               // List item selection
+Database.DatabaseSpec.Data.DatabaseFiles.List.Key                // List item selection
 Database.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../datasets/Iris/Iris.txt     // Database file
 AnalysisSpec.CoclusteringParameters.Attributes.InsertItemAfter          // Insert variable
 AnalysisSpec.CoclusteringParameters.Attributes.Name PetalLength          // Name

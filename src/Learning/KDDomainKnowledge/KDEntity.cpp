@@ -13,7 +13,7 @@ KDEntity::~KDEntity() {}
 
 void KDEntity::SetName(const ALString sValue)
 {
-	require(sValue == "" or KWClass::CheckName(sValue, NULL));
+	require(sValue == "" or KWClass::CheckName(sValue, KWClass::None, NULL));
 	sName = sValue;
 }
 
@@ -24,7 +24,7 @@ const ALString& KDEntity::GetName() const
 
 void KDEntity::SetPartName(const ALString sValue)
 {
-	require(sValue == "" or KWClass::CheckName(sValue, NULL));
+	require(sValue == "" or KWClass::CheckName(sValue, KWClass::None, NULL));
 	sPartName = sValue;
 }
 
@@ -66,9 +66,9 @@ boolean KDEntity::Check() const
 {
 	boolean bOk = true;
 
-	if (sName != "" and KWClass::CheckName(sName, this))
+	if (sName != "" and KWClass::CheckName(sName, KWClass::None, this))
 		bOk = false;
-	if (sPartName != "" and KWClass::CheckName(sPartName, this))
+	if (sPartName != "" and KWClass::CheckName(sPartName, KWClass::None, this))
 		bOk = false;
 	return bOk;
 }

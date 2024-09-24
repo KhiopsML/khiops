@@ -60,7 +60,7 @@ void KWPredictorView::RegisterPredictorView(KWPredictorView* predictorView)
 {
 	require(predictorView != NULL);
 	require(predictorView->GetName() != "");
-	require(KWClass::CheckName(predictorView->GetName(), predictorView));
+	require(KWClass::CheckName(predictorView->GetName(), KWClass::None, predictorView));
 	require(odPredictorViews == NULL or odPredictorViews->Lookup(predictorView->GetName()) == NULL);
 
 	// Creation si necessaire du dictionnaire de predictorViews

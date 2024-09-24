@@ -23,7 +23,7 @@ ClassFileName ../../../datasets/Adult/Adult.kdic       // Dictionary file
 OK                             // Open
 // <- Open
 
-Database.DatabaseSpec.Data.DatabaseFiles.List.Key Adult               // List item selection
+Database.DatabaseSpec.Data.DatabaseFiles.List.Key                // List item selection
 Database.DatabaseSpec.Data.DatabaseFiles.DataTableName ./Adult1000.txt     // Database file
 
 AnalysisSpec.CoclusteringParameters.Attributes.InsertItemAfter         // Insert variable

@@ -23,11 +23,11 @@ OK                             // Open
 
 TrainDatabase.ClassName SpliceJunctionExternal        // Dictionary
 
-TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key SpliceJunctionExternal               // List item selection
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key                // List item selection
 TrainDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ./SpliceJunctionExternal.txt      // Data table file
-TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key SpliceJunction               // List item selection
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key /SpliceJunction               // List item selection
 TrainDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../MTdatasets/SpliceJunction/SpliceJunction.txt      // Data table file
-TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key SpliceJunction`DNA               // List item selection
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key /SpliceJunction/DNA               // List item selection
 TrainDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../MTdatasets/SpliceJunction/SpliceJunctionDNA.txt      // Data table file
 
 TrainDatabase.DatabaseSpec.Sampling.SampleNumberPercentage 10  // Sample percentage

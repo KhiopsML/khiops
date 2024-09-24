@@ -451,7 +451,7 @@ boolean KWTrainedPredictor::Check() const
 				}
 
 				// Test de validite des noms de classe initiaux
-				if (not kwcClass->CheckName(sInitialClassName, kwcClass))
+				if (not kwcClass->CheckName(sInitialClassName, KWClass::Class, kwcClass))
 				{
 					AddError("Bad initial dictionary name (" + sInitialClassName +
 						 ") for predictor dictionary (" + kwcClass->GetName() + ")");

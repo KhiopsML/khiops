@@ -27,11 +27,11 @@ TransferDatabase               // Deploy model...
 
 // -> Database transfer
 ClassName SpliceJunction        // Deployment dictionary
-SourceDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key SpliceJunction               // List item selection
+SourceDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key                // List item selection
 SourceDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../MTdatasets/SpliceJunction/SpliceJunction.txt      // Data table file
-SourceDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key SpliceJunction`DNA               // List item selection
+SourceDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key DNA               // List item selection
 SourceDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../MTdatasets/SpliceJunction/SpliceJunctionDNA.txt      // Data table file
-TargetDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key SpliceJunction              // List item selection
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key               // List item selection
 TargetDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ./results/D_SpliceJunction.txt    // Data table file
 TransferDatabase               // Deploy model
 

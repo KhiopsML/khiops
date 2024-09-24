@@ -503,6 +503,110 @@ def instruction_compare_snb_perfs(test_dir):
                     )
 
 
+def instruction_new_data_path(test_dir):
+    """
+    Update scenario file with new specification of data paths
+
+    This script should work for V11 and V10 scenarios (in case of backport)
+    As a "quick and dirty" script, it works well in many cases, but manual correction
+    is still necessary in some cases (about ten test sets among 800 in LearningTest V11).
+
+    The script should be applied to the whole LearningTest tree using
+      "kht_apply <LarningTest dir> new-data-path -f all"
+    The LearningTest directory tree should be save before using this script, in order
+    to recover from some potential erroneous modifications of existing scenarios.
+    """
+    prm_file_path = os.path.join(test_dir, kht.TEST_PRM)
+    if os.path.isfile(prm_file_path):
+        # Read content of prm file
+        try:
+            with open(prm_file_path, "r", errors="ignore") as prm_file:
+                lines = prm_file.readlines()
+        except Exception as e:
+            print("BUG: " + prm_file_path + " : " + str(e))
+        # Update management of data path
+        pattern = "DatabaseFiles.List.Key"  # Same pattern in V10 and V11
+        new_lines = []
+        new_scenario_necessary = False
+        data_path_block_current_line = -1
+        data_path_block_main_dictionary = ""
+        for i, line in enumerate(lines):
+            line = line.strip()
+            # Case of a line containing a data path
+            if pattern in line:
+                new_scenario_necessary = True
+                # Split line into (instruction, data path, comment)
+                pos = line.find(pattern)
+                #  Begin of line before data path
+                instruction = line[: pos + len(pattern)]
+                #  Search begin of data path
+                end_line = line[pos + len(pattern) :]
+                while end_line.find(" ") == 0:
+                    end_line = end_line[1:]
+                #  Extract datapath
+                pos = end_line.find(" ")
+                if pos >= 0:
+                    data_path = end_line[:pos]
+                    comment = end_line[pos:]
+                else:
+                    data_path = end_line
+                    comment = ""
+                if data_path.find("//") == 0:
+                    comment = data_path + comment
+                    data_path = ""
+                debug = False
+                if debug:
+                    print(str(i + 1) + " :" + line)
+                    print("\t" + instruction)
+                    print("\t" + data_path)
+                    print("\t" + comment)
+                # Stop if the scenario has already been transformed
+                # Allows to avoid applying the scenario several times with detrimental effects
+                # But prevents the script to be applied even once in some rare cases, that
+                # have to be treated manually
+                if data_path == "":
+                    new_scenario_necessary = False
+                    break
+                # Build new line
+                new_line = instruction
+                data_path_elements = data_path.split("`")
+                assert len(data_path_elements) > 0
+                # Heuristic for managing main dictionary vs external table dictionary
+                if data_path_block_current_line == -1:
+                    data_path_block_main_dictionary = data_path_elements[0]
+                data_path_block_current_line = i
+                dictionary = data_path_elements[0]
+                new_line += " "
+                if dictionary != data_path_block_main_dictionary:
+                    new_line += "/" + dictionary
+                    if len(data_path_elements) > 1:
+                        new_line += "/"
+                for e, element in enumerate(data_path_elements):
+                    if e > 0:
+                        if e > 1:
+                            new_line += "/"
+                        new_line += data_path_elements[e]
+                new_line += comment
+                new_lines.append(new_line)
+                if debug:
+                    print("\t" + new_line)
+            # Standard case
+            else:
+                # Heuristic to detect a new block of data path instructions
+                if i > data_path_block_current_line + 2:
+                    data_path_block_current_line = -1
+                    data_path_block_main_dictionary = ""
+                new_lines.append(line)
+        # Write content of prm file
+        if new_scenario_necessary:
+            try:
+                with open(prm_file_path, "w", errors="ignore") as prm_file:
+                    for line in new_lines:
+                        prm_file.write(line + "\n")
+            except Exception as e:
+                print("BUG: " + prm_file_path + " : " + str(e))
+
+
 def instruction_template(test_dir):
     results_dir = os.path.join(test_dir, kht.RESULTS)
     results_ref_dir, _ = results.get_results_ref_dir(test_dir, show=True)
@@ -552,6 +656,12 @@ def register_one_shot_instructions():
         "compare-snb-perfs",
         instruction_compare_snb_perfs,
         "compares the performances of all SNB predictors",
+    )
+    standard_instructions.register_instruction(
+        available_instructions,
+        "new-data-path",
+        instruction_new_data_path,
+        "update scenarios with new data path spec",
     )
     standard_instructions.register_instruction(
         available_instructions,

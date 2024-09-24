@@ -149,7 +149,7 @@ boolean PLMTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 		// Memorisation du mapping si driver utilise
 		if (driver != NULL)
 		{
-			assert(mapping->GetDataPath() != "");
+			assert(mapping->GetClassName() != "");
 			ivUsedMappingFlags.SetAt(i, 1);
 		}
 
@@ -1263,8 +1263,8 @@ int PLMTDatabaseTextFile::ComputeMainLocalTableNumber()
 	for (nTable = 0; nTable < GetMainTableNumber(); nTable++)
 	{
 		mapping = cast(KWMTDatabaseMapping*, GetMultiTableMappings()->GetAt(nTable));
-		if (mapping != NULL and mapping->GetDataPath() != "" and
-		    FileService::IsLocalURI(mapping->GetDataPath()))
+		if (mapping != NULL and mapping->GetClassName() != "" and
+		    FileService::IsLocalURI(mapping->GetDataTableName()))
 			nNumber++;
 	}
 	return nNumber;
@@ -1334,8 +1334,9 @@ void PLShared_MTDatabaseTextFile::SerializeObject(PLSerializer* serializer, cons
 		mapping = cast(KWMTDatabaseMapping*, database->GetMultiTableMappings()->GetAt(i));
 
 		// Serialisation des informations de mapping
-		serializer->PutString(mapping->GetDataPathClassName());
-		serializer->PutString(mapping->GetDataPathAttributeNames());
+		serializer->PutBoolean(mapping->GetExternalTable());
+		serializer->PutString(mapping->GetOriginClassName());
+		serializer->PutStringVector(mapping->GetAttributeNames());
 		serializer->PutString(mapping->GetDataTableName());
 	}
 
@@ -1426,8 +1427,9 @@ void PLShared_MTDatabaseTextFile::DeserializeObject(PLSerializer* serializer, Ob
 		}
 
 		// Deserialisation du mapping
-		mapping->SetDataPathClassName(serializer->GetString());
-		mapping->SetDataPathAttributeNames(serializer->GetString());
+		mapping->SetExternalTable(serializer->GetBoolean());
+		mapping->SetOriginClassName(serializer->GetString());
+		serializer->GetStringVector(&mapping->svAttributeNames);
 		mapping->SetDataTableName(serializer->GetString());
 	}
 

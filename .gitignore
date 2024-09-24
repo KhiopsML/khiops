@@ -36,3 +36,4 @@ KhiopsMemoryStats.all_stats.xlsx
 # Python
 *.pyc
 __pycache__/
+.idea/

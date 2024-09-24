@@ -53,7 +53,7 @@ void KWClass::SetKeyAttributeNameAt(int nIndex, const ALString& sValue)
 void KWClass::InsertAttribute(KWAttribute* attribute)
 {
 	require(attribute != NULL);
-	require(CheckName(attribute->GetName(), attribute));
+	require(CheckName(attribute->GetName(), KWClass::Attribute, attribute));
 	require(attribute->parentClass == NULL);
 	require(LookupAttribute(attribute->GetName()) == NULL);
 	require(LookupAttributeBlock(attribute->GetName()) == NULL);
@@ -79,7 +79,7 @@ void KWClass::InsertAttributeBefore(KWAttribute* attribute, KWAttribute* attribu
 	require(not attributeRef->IsInBlock() or
 		attributeRef == attributeRef->GetAttributeBlock()->GetFirstAttribute());
 	require(attribute != NULL);
-	require(CheckName(attribute->GetName(), this));
+	require(CheckName(attribute->GetName(), KWClass::Attribute, this));
 	require(attribute->parentClass == NULL);
 	require(LookupAttribute(attribute->GetName()) == NULL);
 	require(LookupAttributeBlock(attribute->GetName()) == NULL);
@@ -104,7 +104,7 @@ void KWClass::InsertAttributeAfter(KWAttribute* attribute, KWAttribute* attribut
 	require(attributeRef->parentClass == this);
 	require(not attributeRef->IsInBlock() or attributeRef == attributeRef->GetAttributeBlock()->GetLastAttribute());
 	require(attribute != NULL);
-	require(CheckName(attribute->GetName(), attribute));
+	require(CheckName(attribute->GetName(), KWClass::Attribute, attribute));
 	require(attribute->parentClass == NULL);
 	require(LookupAttribute(attribute->GetName()) == NULL);
 	require(LookupAttributeBlock(attribute->GetName()) == NULL);
@@ -131,7 +131,7 @@ void KWClass::RenameAttribute(KWAttribute* refAttribute, const ALString& sNewNam
 	require(refAttribute == cast(KWAttribute*, odAttributes.Lookup(refAttribute->GetName())));
 	require(refAttribute->parentClass == this);
 	require(LookupAttribute(sNewName) == NULL);
-	require(CheckName(sNewName, refAttribute));
+	require(CheckName(sNewName, KWClass::Attribute, refAttribute));
 
 	// Renommage par manipulation dans le dictionnaire
 	// Propagation du renommage a toutes les regles de derivation
@@ -167,7 +167,7 @@ void KWClass::UnsafeRenameAttribute(KWAttribute* refAttribute, const ALString& s
 	require(refAttribute != NULL);
 	require(refAttribute == cast(KWAttribute*, odAttributes.Lookup(refAttribute->GetName())));
 	require(refAttribute->parentClass == this);
-	require(CheckName(sNewName, refAttribute));
+	require(CheckName(sNewName, KWClass::Attribute, refAttribute));
 	require(odAttributes.Lookup(sNewName) == NULL);
 	require(odAttributeBlocks.Lookup(sNewName) == NULL);
 
@@ -718,7 +718,7 @@ KWAttributeBlock* KWClass::CreateAttributeBlock(const ALString& sBlockName, KWAt
 	KWAttribute* attribute;
 	KWAttributeBlock* attributeBlock;
 
-	require(CheckName(sBlockName, this));
+	require(CheckName(sBlockName, KWClass::AttributeBlock, this));
 	require(LookupAttribute(sBlockName) == NULL);
 	require(LookupAttributeBlock(sBlockName) == NULL);
 	require(firstAttribute != NULL);
@@ -799,7 +799,7 @@ KWAttributeBlock* KWClass::CreateAttributeBlock(const ALString& sBlockName, KWAt
 void KWClass::InsertAttributeInBlock(KWAttribute* attribute, KWAttributeBlock* attributeBlockRef)
 {
 	require(attribute != NULL);
-	require(CheckName(attribute->GetName(), attribute));
+	require(CheckName(attribute->GetName(), KWClass::Attribute, attribute));
 	require(attribute->parentClass == NULL);
 	require(attribute->GetAttributeBlock() == NULL);
 	require(attributeBlockRef != NULL);
@@ -1579,13 +1579,13 @@ boolean KWClass::Check() const
 	}
 
 	// Verification du Name
-	if (not CheckName(GetName(), this)) // Emission d'un message
+	if (not CheckName(GetName(), KWClass::Class, this)) // Emission d'un message
 	{
 		bResult = false;
 	}
 
 	// Verification du Label
-	if (not CheckLabel(GetLabel(), this)) // Emission d'un message
+	if (not CheckLabel(GetLabel(), KWClass::Class, this)) // Emission d'un message
 	{
 		bResult = false;
 	}
@@ -1918,46 +1918,77 @@ int KWClass::GetNameMaxLength()
 	return 128;
 }
 
-boolean KWClass::CheckName(const ALString& sValue, const Object* errorSender)
+const ALString KWClass::EntityToString(int nEntity)
+{
+	require(0 <= nEntity and nEntity < Unknown);
+	switch (nEntity)
+	{
+	case ClassDomain:
+		return "dictionary domain";
+	case Class:
+		return "dictionary";
+	case Attribute:
+		return "variable";
+	case AttributeBlock:
+		return "sparse variable block";
+	case Rule:
+		return "rule";
+	case Structure:
+		return "structure";
+	case None:
+		return "";
+	default:
+		assert(false);
+		return "";
+	}
+}
+
+boolean KWClass::CheckName(const ALString& sValue, int nEntity, const Object* errorSender)
 {
 	ALString sMessage;
 	boolean bOk;
 
-	bOk = CheckNameWithMessage(sValue, sMessage);
+	require(0 <= nEntity and nEntity < Unknown);
+
+	bOk = CheckNameWithMessage(sValue, nEntity, sMessage);
 	if (not bOk and errorSender != NULL)
 		errorSender->AddError(sMessage);
 	return bOk;
 }
 
-boolean KWClass::CheckLabel(const ALString& sValue, const Object* errorSender)
+boolean KWClass::CheckLabel(const ALString& sValue, int nEntity, const Object* errorSender)
 {
 	ALString sMessage;
 	boolean bOk;
 
-	bOk = CheckLabelWithMessage(sValue, sMessage);
+	require(0 <= nEntity and nEntity < Unknown);
+
+	bOk = CheckLabelWithMessage(sValue, nEntity, sMessage);
 	if (not bOk and errorSender != NULL)
 		errorSender->AddError(sMessage);
 	return bOk;
 }
 
-boolean KWClass::CheckNameWithMessage(const ALString& sValue, ALString& sMessage)
+boolean KWClass::CheckNameWithMessage(const ALString& sValue, int nEntity, ALString& sMessage)
 {
 	ALString sTmp;
 	boolean bOk;
+
+	require(0 <= nEntity and nEntity < Unknown);
 
 	// Test de la taille minimale
 	sMessage = "";
 	bOk = sValue.GetLength() >= 1;
 	if (not bOk)
-		sMessage = "Empty name";
+		sMessage = "Empty " + EntityToString(nEntity) + " name";
 
 	// Test de la taille maximale
 	if (bOk)
 	{
 		bOk = sValue.GetLength() <= GetNameMaxLength();
 		if (not bOk)
-			sMessage = sTmp + "Incorrect name: length > " + IntToString(GetNameMaxLength()) + "\n\t(" +
-				   sValue.Left(GetNameMaxLength()) + "...)";
+			sMessage = sTmp + "Incorrect " + EntityToString(nEntity) + " name : length > " +
+				   IntToString(GetNameMaxLength()) + "\n\t(" + sValue.Left(GetNameMaxLength()) + "...)";
 	}
 
 	// Test des caracteres interdits
@@ -1966,7 +1997,8 @@ boolean KWClass::CheckNameWithMessage(const ALString& sValue, ALString& sMessage
 		// Test du saut de ligne
 		bOk = sValue.Find('\n') == -1;
 		if (not bOk)
-			sMessage = "Incorrect name: must not contain end of line char (" + sValue + ")";
+			sMessage = "Incorrect " + EntityToString(nEntity) + " name (" + sValue +
+				   ") : must not contain end-of-line chararacters";
 	}
 
 	// Test de l'absence de caractere d'espace en debut et fin
@@ -1975,34 +2007,40 @@ boolean KWClass::CheckNameWithMessage(const ALString& sValue, ALString& sMessage
 		assert(sValue.GetLength() >= 1);
 		bOk = not iswspace(sValue.GetAt(0));
 		if (not bOk)
-			sMessage = "Incorrect name: must not contain leading white-space char (" + sValue + ")";
+			sMessage = "Incorrect " + EntityToString(nEntity) + " name (" + sValue +
+				   ") : must not contain any leading space chararacters";
 	}
 	if (bOk)
 	{
 		assert(sValue.GetLength() >= 1);
 		bOk = not iswspace(sValue.GetAt(sValue.GetLength() - 1));
 		if (not bOk)
-			sMessage = "Incorrect name: must not contain trailing white-space char (" + sValue + ")";
+			sMessage = "Incorrect " + EntityToString(nEntity) + " name (" + sValue +
+				   ") : must not contain any trailing space chararacters";
 	}
 
 	return bOk;
 }
 
-boolean KWClass::CheckLabelWithMessage(const ALString& sValue, ALString& sMessage)
+boolean KWClass::CheckLabelWithMessage(const ALString& sValue, int nEntity, ALString& sMessage)
 {
 	boolean bOk = true;
+
+	require(0 <= nEntity and nEntity < Unknown);
 
 	// Test de la taille maximale
 	bOk = sValue.GetLength() <= 100000;
 	if (not bOk)
-		sMessage = "Incorrect label: length > 100000\n\t<" + sValue.Left(100) + "...>";
+		sMessage = "Incorrect " + EntityToString(nEntity) + " label : length > 100000\n\t<" + sValue.Left(100) +
+			   "...>";
 
 	// Test de caractere fin de ligne
 	if (bOk)
 	{
 		bOk = sValue.Find('\n') == -1;
 		if (not bOk)
-			sMessage = "Incorrect label: must not contain line feeds\t(" + sValue + ")";
+			sMessage = "Incorrect " + EntityToString(nEntity) +
+				   " label : must not contain end-of-line chararacters\t(" + sValue + ")";
 	}
 
 	return bOk;

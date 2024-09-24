@@ -67,7 +67,7 @@ BenchmarkSpecs.InsertItemAfter      // Insert after
 BenchmarkClassSpec.ClassFileName ../../../datasets/Iris/Iris.kdic        // Dictionary file
 BenchmarkClassSpec.ClassName Iris              // Dictionary
 BenchmarkClassSpec.TargetAttributeName Class    // Target variable
-Database.DatabaseSpec.Data.DatabaseFiles.List.Key Iris               // List item selection
+Database.DatabaseSpec.Data.DatabaseFiles.List.Key                // List item selection
 Database.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../datasets/Iris/Iris.txt     // Database file
 Exit                           // OK
 // <- Benchmark

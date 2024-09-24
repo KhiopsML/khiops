@@ -207,7 +207,7 @@ void KWClassBuilderView::BuildClass()
 			// Test si le nom de classe est valide et different du nom par defaut
 			if (bOk and sClassName != kwcClass->GetName())
 			{
-				assert(KWClass::CheckName(sClassName, NULL));
+				assert(KWClass::CheckName(sClassName, KWClass::Class, NULL));
 				bOk = (KWClassDomain::GetCurrentDomain()->LookupClass(sClassName) == NULL);
 				if (not bOk)
 				{

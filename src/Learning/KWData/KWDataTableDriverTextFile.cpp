@@ -146,7 +146,7 @@ boolean KWDataTableDriverTextFile::BuildDataTableClass(KWClass* kwcDataTableClas
 					break;
 			}
 			// Test de validite du nom de l'attribut
-			else if (not KWClass::CheckName(sAttributeName, this))
+			else if (not KWClass::CheckName(sAttributeName, KWClass::Attribute, this))
 			{
 				bOk = false;
 				AddError(sTmp + "The header line field " + IntToString(nField) + " is not valid");
@@ -1386,7 +1386,7 @@ boolean KWDataTableDriverTextFile::CheckFormat() const
 		{
 			bOk = false;
 			AddError(sTmp + "Field separator '" + CharToString(cFieldSeparator) +
-				 "' must not be end of line");
+				 "' must not be end-of-line");
 		}
 		else if (cFieldSeparator == '\0')
 		{

@@ -23,7 +23,7 @@ ClassFileName ./IrisMissing.kdic       // Dictionary file
 OK                             // Open
 // <- Open
 
-Database.DatabaseSpec.Data.DatabaseFiles.List.Key IrisMissing               // List item selection
+Database.DatabaseSpec.Data.DatabaseFiles.List.Key                // List item selection
 Database.DatabaseSpec.Data.DatabaseFiles.DataTableName ./IrisMissing.txt     // Database file
 AnalysisSpec.CoclusteringParameters.Attributes.InsertItemAfter          // Insert variable
 AnalysisSpec.CoclusteringParameters.Attributes.Name PetalLength          // Name
