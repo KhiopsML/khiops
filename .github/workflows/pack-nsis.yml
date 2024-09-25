@@ -120,6 +120,8 @@ jobs:
         uses: ./.github/actions/test-khiops-install
       - name: Test Khiops on Iris dataset
         uses: ./.github/actions/test-khiops-on-iris
+        with:
+          os-decription: windows
   test-kni:
     needs: build
     runs-on: windows-2022

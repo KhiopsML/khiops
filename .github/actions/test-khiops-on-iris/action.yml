@@ -1,6 +1,10 @@
 ---
 name: Test Khiops on Iris
 description: Tests a Khiops installation on the Iris dataset
+inputs:
+  os-decription:
+    description: OS description (os +arch) used to name artifacts (error reports)
+    required: true
 runs:
   using: composite
   steps:
@@ -48,12 +52,15 @@ runs:
       env:
         KHIOPS_PROC_NUMBER: 4
         OMPI_MCA_rmaps_base_oversubscribe: true
+        KHIOPS_API_MODE: true
       run: |
         cd test/LearningTest/TestKhiops/Standard/Iris/
         "$KHIOPS_SCRIPT" -b -i test.prm -e results/err.txt
         cd -
     - name: Run Khiops Coclustering tests
       shell: bash
+      env:
+        KHIOPS_API_MODE: true
       run: |
         cd test/LearningTest/TestCoclustering/Standard/Iris/
         "$KHIOPS_CC_SCRIPT" -b -i test.prm -e results/err.txt
@@ -69,7 +76,17 @@ runs:
         $PYTHON kht_test.py ../../LearningTest/TestCoclustering/Standard/Iris check
         $PYTHON kht_apply.py ../../LearningTest/TestKhiops/Standard/Iris errors | tee /tmp/khiops-log.txt
         $PYTHON kht_apply.py ../../LearningTest/TestCoclustering/Standard/Iris errors | tee /tmp/coclustering-log.txt
+        $PYTHON kht_collect_results.py ../../LearningTest/TestKhiops/Standard/Iris $GITHUB_WORKSPACE/results/khiops --collect-type warnings
+        $PYTHON kht_collect_results.py ../../LearningTest/TestCoclustering/Standard/Iris $GITHUB_WORKSPACE/results/coclustering --collect-type warnings 
         if (grep -q error /tmp/khiops-log.txt || grep -q error /tmp/coclustering-log.txt); then
           echo "::error::Errors in Khiops run"
           false
         fi
+    - name: Upload test results
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results-${{ inputs.os-decription}}
+        retention-days: 7
+        path: |-
+          results/
