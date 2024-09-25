@@ -3503,7 +3503,7 @@ boolean CCCoclusteringReport::ReadJSONAttributePartition(KWDGAttribute* dgAttrib
 			dgAttribute->GetHeadPart()->GetInterval()->SetLowerBound(KWDGInterval::GetMinLowerBound());
 			dgAttribute->GetTailPart()->GetInterval()->SetUpperBound(KWDGInterval::GetMaxUpperBound());
 		}
-		// Dans le cas categoriel ou VarPrt
+		// Dans le cas categoriel ou VarPart
 		else
 		{
 			assert(dgAttribute->GetAttributeType() == KWType::Symbol or
@@ -3532,9 +3532,8 @@ boolean CCCoclusteringReport::ReadJSONAttributePartition(KWDGAttribute* dgAttrib
 							     " with invalid default group index (" +
 							     IntToString(nDefaultGroupIndex) + ")");
 			}
-
 			// Gestion de la valeur par defaut uniquement dans le cas standard
-			// Dans le cas instances x variables, le groupe pr defaut n'est pas utilise,
+			// Dans le cas instances x variables, le groupe par defaut n'est pas utilise,
 			// mais on a garde "defaultGroupIndex" pour avoir des rapports generiques
 			if (bOk and dgAttribute->GetAttributeType() == KWType::Symbol)
 			{

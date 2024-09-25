@@ -848,6 +848,9 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 				    &partitionedPostMergedOptimizedDataGrid, coclusteringDataGridCosts);
 				assert(not partitionedPostMergedOptimizedDataGrid.GetVarPartsShared());
 
+				// Affichage pour verifier que la grille est deja mergee
+				cout << "CH 231 CCBuiilder/OptimizeVarPartDataGrid : dFusionDeltaCost doit etre nul si l'antecedent n'est pas  utilise\t" << dFusionDeltaCost << endl;
+
 				// Calcul et verification du cout
 				dMergedCost = dPartitionBestCost + dFusionDeltaCost;
 				// Le cout precedent devra etre correct
@@ -1091,6 +1094,9 @@ void CCCoclusteringBuilder::PROTO_OptimizeVarPartDataGrid(const KWDataGrid* inpu
 	// l'export des grilles avec VarPart fusionnnees
 	dataGridOptimizer.SetInitialVarPartDataGrid(initialDataGrid);
 
+	// Parametrage en mode Proto integrant la surtokenisation des VarPart avant la generation aleatoire d'une grille voisine
+	dataGridOptimizer.SetSurtokenisationProto(false);
+
 	// Initialisation d'un quantile builder pour chaque attribut interne dans un attribut de grile de type
 	// de type VarPart La grille initiale comporte un cluster par partie de variable pour ses attributs de
 	// grille de type VarPart
@@ -1201,6 +1207,8 @@ void CCCoclusteringBuilder::PROTO_OptimizeVarPartDataGrid(const KWDataGrid* inpu
 			dFusionDeltaCost = dataGridManager.ExportDataGridWithVarPartMergeOptimization(
 			    &partitionedPostMergedOptimizedDataGrid, coclusteringDataGridCosts);
 			assert(not partitionedPostMergedOptimizedDataGrid.GetVarPartsShared());
+
+			cout << "CH 231 CCBuilder/PROTO_OptimizeVarPartDataGrid : dFusionDeltaCost\t" << dFusionDeltaCost << endl;
 
 			// Calcul et verification du cout
 			dMergedCost = dPartitionBestCost + dFusionDeltaCost;

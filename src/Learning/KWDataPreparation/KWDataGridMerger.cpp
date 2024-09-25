@@ -192,7 +192,7 @@ KWDGCell* KWDataGridMerger::NewCell() const
 double KWDataGridMerger::OptimizeMerge()
 {
 	boolean bDisplayAllForDebug = false;
-	boolean bDisplayMergeDetails = false;
+	boolean bDisplayMergeDetails = true;
 	boolean bDisplayDataGrid = false;
 	boolean bRecomputeAllAtEachStep = false;
 	boolean bExhaustiveSearch = true;
@@ -308,6 +308,12 @@ double KWDataGridMerger::OptimizeMerge()
 		// ou si c'est la derniere grille qui est optimale)
 		if (dBestDeltaCost > dEpsilon and fabs(dBestDataGridTotalCost - dDataGridTotalCost) <= dEpsilon)
 		{
+			// CH 231 Ajout pour debug
+			ensure(fabs(dDataGridTotalCost - GetDataGridCosts()->ComputeDataGridMergerTotalCost(this)) <
+			       dEpsilon);
+			// CH 231 probleme pose ici avec la base Iris : si la grille courante est sans attribut informatif, cet ensure
+			// est verifie a ce niveau mais n'est plus vrai quand on fait un CopyInformativeDataGrid
+
 			if (optimizedDataGrid != NULL)
 				delete optimizedDataGrid;
 			optimizedDataGrid = new KWDataGrid;
@@ -321,12 +327,16 @@ double KWDataGridMerger::OptimizeMerge()
 			if (bDisplayMergeDetails)
 			{
 				cout << "Best part Merge\t" << nCount << "\t" << dBestDeltaCost << "\t"
-				     << dDataGridTotalCost + dBestDeltaCost << "\t" << *bestPartMerge << flush;
+				     << dDataGridTotalCost + dBestDeltaCost << "\t" << *bestPartMerge << flush << endl;
 			}
 
 			// Realisation de la fusion
 			PerformPartMerge(bestPartMerge);
 			dDataGridTotalCost += dBestDeltaCost;
+
+			// CH 231 Debug
+			ensure(fabs(dDataGridTotalCost - GetDataGridCosts()->ComputeDataGridMergerTotalCost(this)) <
+			       dEpsilon);
 
 			// Gestion de la contrainte sur le nombre max de partie par attribut
 			if (GetMaxPartNumber() > 0)
@@ -2021,6 +2031,10 @@ const ALString KWDGMPartMerge::GetObjectLabel() const
 
 int KWDGMPartMergeCompare(const void* elem1, const void* elem2)
 {
+	// On utilise Epsilon=0 en escomptant que le resultat du Diff est reproductible si les operandes sont les memes
+	// Pour Epsilon > 0, on court le risque d'avoir diff(PM1,PM2) < Epsilon et diff(PM2,PM3) < Epsilon,
+	// mais diff(PM1,PM3) >= Epsilon (ce bug (avec consequence desatreuse dans une SortedList) est deja arrive)
+	const double dEpsilon = 0;
 	int nCompare;
 	KWDGMPartMerge* partMerge1;
 	KWDGMPartMerge* partMerge2;
@@ -2040,12 +2054,12 @@ int KWDGMPartMergeCompare(const void* elem1, const void* elem2)
 	assert(partMerge1->Check());
 	assert(partMerge2->Check());
 
-	// Calcul de la difference, avec tolerance pour favoriser la stabilite
+	// Calcul de la difference
 	nCompare = 0;
-	dDiff = partMerge1->GetTruncatedMergeCost() - partMerge2->GetTruncatedMergeCost();
-	if (dDiff > 0)
+	dDiff = partMerge1->GetMergeCost() - partMerge2->GetMergeCost();
+	if (dDiff > dEpsilon)
 		nCompare = 1;
-	else if (dDiff < 0)
+	else if (dDiff < -dEpsilon)
 		nCompare = -1;
 
 	// Si egalite, on compare sur les nom de des attributs, puis sur celui des parties

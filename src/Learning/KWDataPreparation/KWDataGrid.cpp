@@ -2682,6 +2682,7 @@ KWDGPart* KWDGAttribute::LookupGroupablePart(const KWDGValue* value)
 	part = cast(KWDGPart*, nkdParts.Lookup(value->GetNumericKeyValue()));
 	if (part == NULL)
 		part = defaultPart;
+		
 	ensure(part != NULL);
 	return part;
 }
@@ -5061,14 +5062,14 @@ boolean KWDGInnerAttributes::ContainsSubVarParts(const KWDGInnerAttributes* othe
 
 	require(otherInnerAttributes != NULL);
 
-	// Cas particuliezr oou les variable internes en parametre sont les memes
+	// Cas particulier oou les variable internes en parametre sont les memes
 	if (otherInnerAttributes == this)
 		return true;
 
 	// On doit avoir le meme nombre d'attributs internes
 	bOk = GetInnerAttributeNumber() == otherInnerAttributes->GetInnerAttributeNumber();
 
-	// Comparaison pour chaque pour chaque attribut interne
+	// Comparaison pour chaque attribut interne
 	if (bOk)
 	{
 		for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributeNumber(); nInnerAttribute++)
