@@ -3,21 +3,6 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #include "JSONTokenizer.h"
-DISABLE_WARNING_PUSH
-DISABLE_WARNING_UNUSED_FUNCTION
-#include "JsonLex.inc"
-DISABLE_WARNING_POP
-
-/* Declaration du lexer utilise */
-void jsonerror(char const* fmt);
-
-#define json_STATIC
-
-/* default jsonerror for YACC and LEX */
-void jsonerror(char const* fmt)
-{
-	cout << "Error " << fmt << endl;
-}
 
 // Initialisation des variables globales
 ALString JSONTokenizer::sErrorFamily;
@@ -25,6 +10,7 @@ ALString JSONTokenizer::sFileName;
 ALString JSONTokenizer::sLocalFileName;
 FILE* JSONTokenizer::fJSON = NULL;
 int JSONTokenizer::nLastToken = 0;
+JSONSTYPE JSONTokenizer::jsonLastTokenValue = {0};
 boolean JSONTokenizer::bForceAnsi = false;
 
 void JSONTokenizer::SetForceAnsi(boolean bValue)
@@ -57,8 +43,9 @@ boolean JSONTokenizer::OpenForRead(const ALString& sErrorFamilyName, const ALStr
 		sErrorFamily = sErrorFamilyName;
 		sFileName = sInputFileName;
 		nLastToken = -1;
-		jsonlineno = 1;
-		jsonrestart(fJSON);
+		jsonLastTokenValue.dValue = 0;
+		JsonObject::SetLineno(1);
+		JsonObject::Restart(fJSON);
 	}
 	return IsOpened();
 }
@@ -85,7 +72,7 @@ boolean JSONTokenizer::Close()
 	require(IsOpened());
 
 	// Nettoyage du lexer
-	jsonlex_destroy();
+	JsonObject::LexDestroy();
 
 	// Fermeture du fichier
 	bOk = FileService::CloseInputBinaryFile(sFileName, fJSON);
@@ -97,10 +84,10 @@ boolean JSONTokenizer::Close()
 	sErrorFamily = "";
 	sFileName = "";
 	fJSON = NULL;
-	sJsonTokenString = "";
-	dJsonTokenDouble = 0;
-	bJsonTokenBoolean = false;
-	nLastToken = 0;
+	if (nLastToken == String or nLastToken == Error)
+		delete jsonLastTokenValue.sValue;
+	jsonLastTokenValue.dValue = 0;
+	nLastToken = -1;
 	return bOk;
 }
 
@@ -142,10 +129,24 @@ ALString JSONTokenizer::GetTokenLabel(int nToken)
 
 int JSONTokenizer::ReadNextToken()
 {
+	ALString sValueCopy;
+
 	require(IsOpened());
 
+	// Nettoyage eventuel de la chaine de caractere associee au dernier token
+	if (nLastToken == String or nLastToken == Error)
+		delete jsonLastTokenValue.sValue;
+
 	// Lecture du token
-	nLastToken = jsonlex();
+	nLastToken = JsonObject::Lex(&jsonLastTokenValue);
+
+	// On force la conversion vers l'ansi si necessaire
+	if (bForceAnsi and nLastToken == String)
+	{
+		sValueCopy = *jsonLastTokenValue.sValue;
+		TextService::CToCAnsiString(sValueCopy, *jsonLastTokenValue.sValue);
+	}
+
 	return nLastToken;
 }
 
@@ -158,28 +159,28 @@ int JSONTokenizer::GetLastToken()
 int JSONTokenizer::GetCurrentLineIndex()
 {
 	require(IsOpened());
-	return jsonlineno;
+	return JsonObject::GetLineno();
 }
 
 const ALString& JSONTokenizer::GetTokenStringValue()
 {
 	require(IsOpened());
 	require(nLastToken == String or nLastToken == Error);
-	return sJsonTokenString;
+	return *jsonLastTokenValue.sValue;
 }
 
 double JSONTokenizer::GetTokenNumberValue()
 {
 	require(IsOpened());
 	require(nLastToken == Number);
-	return dJsonTokenDouble;
+	return jsonLastTokenValue.dValue;
 }
 
 boolean JSONTokenizer::GetTokenBooleanValue()
 {
 	require(IsOpened());
 	require(nLastToken == Boolean);
-	return bJsonTokenBoolean;
+	return jsonLastTokenValue.bValue;
 }
 
 void JSONTokenizer::TestReadJsonFile(int argc, char** argv)
@@ -187,19 +188,7 @@ void JSONTokenizer::TestReadJsonFile(int argc, char** argv)
 	boolean bOk = true;
 	int nToken;
 	char cToken;
-	ALString sCString;
 	ALString sJsonString;
-	ALString sTest;
-	boolean bTestConversion = false;
-
-	// Test de conversion elementaire
-	if (bTestConversion)
-	{
-		sTest = "aa\\u221Ebb\\u00e9cc\\/\\\\dd\\tee";
-		cout << "Json string\t" << sTest << "\t";
-		JsonToCString(sTest, sCString);
-		cout << sCString << "\t";
-	}
 
 	// Erreur si pas de nom de fichier
 	if (argc != 2)
@@ -218,26 +207,25 @@ void JSONTokenizer::TestReadJsonFile(int argc, char** argv)
 			nToken = 1;
 			while (nToken != 0)
 			{
-				nToken = jsonlex();
+				nToken = ReadNextToken();
 				if (nToken == String)
 				{
-					sCString.GetBufferSetLength(0);
-					JsonToCString(sJsonTokenString, sCString);
-					cout << " \"" << sCString << "\"";
+					TextService::CToJsonString(GetTokenStringValue(), sJsonString);
+					cout << " \"" << sJsonString << "\"";
 				}
 				else if (nToken == Number)
 				{
-					cout << " " << dJsonTokenDouble;
+					// Utilisation d'une precision de 10 decimales pour le test
+					cout << " " << std::setprecision(10) << GetTokenNumberValue();
 				}
 				else if (nToken == Boolean)
 				{
-					cout << " " << bJsonTokenBoolean;
+					cout << " " << BooleanToString(GetTokenBooleanValue());
 				}
 				else if (nToken == Error)
 				{
-					cout << "<ERROR line " << GetCurrentLineIndex() << ": " << sJsonTokenString
+					cout << "<ERROR line " << GetCurrentLineIndex() << ": " << GetTokenStringValue()
 					     << " > " << endl;
-					break;
 				}
 				else
 				{
@@ -252,210 +240,6 @@ void JSONTokenizer::TestReadJsonFile(int argc, char** argv)
 			Close();
 		}
 	}
-}
-
-static void HexStringToCode(const unsigned char* sHexString, unsigned int* nCode)
-{
-	unsigned int i;
-	for (i = 0; i < 4; i++)
-	{
-		unsigned char c = sHexString[i];
-		if (c >= 'A')
-			c = (c & ~0x20) - 7;
-		c -= '0';
-		assert(!(c & 0xF0));
-		*nCode = (*nCode << 4) | c;
-	}
-}
-
-// Recode un entier representant un code UTF32 sous forme d'une sequence de 1 a 4 caracteres au format UTF8
-// La chaine doit avoir au moins 5 caracteres pour stocker le resultat
-// Retourne le nombre de caracteres utilises
-static int Utf32toUtf8String(unsigned int nCode, char* sUtf8Chars)
-{
-	if (nCode < 0x80)
-	{
-		sUtf8Chars[0] = (char)nCode;
-		sUtf8Chars[1] = 0;
-		return 1;
-	}
-	else if (nCode < 0x0800)
-	{
-		sUtf8Chars[0] = (char)((nCode >> 6) | 0xC0);
-		sUtf8Chars[1] = (char)((nCode & 0x3F) | 0x80);
-		sUtf8Chars[2] = 0;
-		return 2;
-	}
-	else if (nCode < 0x10000)
-	{
-		sUtf8Chars[0] = (char)((nCode >> 12) | 0xE0);
-		sUtf8Chars[1] = (char)(((nCode >> 6) & 0x3F) | 0x80);
-		sUtf8Chars[2] = (char)((nCode & 0x3F) | 0x80);
-		sUtf8Chars[3] = 0;
-		return 3;
-	}
-	else if (nCode < 0x200000)
-	{
-		sUtf8Chars[0] = (char)((nCode >> 18) | 0xF0);
-		sUtf8Chars[1] = (char)(((nCode >> 12) & 0x3F) | 0x80);
-		sUtf8Chars[2] = (char)(((nCode >> 6) & 0x3F) | 0x80);
-		sUtf8Chars[3] = (char)((nCode & 0x3F) | 0x80);
-		sUtf8Chars[4] = 0;
-		return 4;
-	}
-	else
-	{
-		sUtf8Chars[0] = '?';
-		sUtf8Chars[1] = 0;
-		return 1;
-	}
-}
-
-void JSONTokenizer::JsonToCString(const char* sJsonString, ALString& sCString)
-{
-	const unsigned char* sInputString;
-	unsigned int nCode;
-	unsigned int nPotentialCode;
-	int nBegin;
-	int nEnd;
-	int nLength;
-	char sUtf8Chars[5];
-	const char* sCharsToAdd;
-	ALString sUnicodeChars;
-	int nCharNumber;
-
-	require(sJsonString != NULL);
-
-	// On passe par un format unsigned char pour le parsing
-	sInputString = (const unsigned char*)sJsonString;
-	nLength = (int)strlen(sJsonString);
-
-	// On repasse la chaine a convertir a vide, sans desallouer la memoire
-	sCString.GetBufferSetLength(0);
-
-	// Analyse de la chaine en entree
-	nBegin = 0;
-	nEnd = 0;
-	sCharsToAdd = "?";
-	while (nEnd < nLength)
-	{
-		if (sInputString[nEnd] == '\\')
-		{
-			AppendSubString(sCString, sJsonString, nBegin, nEnd - nBegin);
-			nEnd++;
-			assert(nEnd < nLength);
-			nCharNumber = 1;
-			switch (sInputString[nEnd])
-			{
-			case 'r':
-				sCharsToAdd = "\r";
-				break;
-			case 'n':
-				sCharsToAdd = "\n";
-				break;
-			case '\\':
-				sCharsToAdd = "\\";
-				break;
-			case '/':
-				sCharsToAdd = "/";
-				break;
-			case '"':
-				sCharsToAdd = "\"";
-				break;
-			case 'f':
-				sCharsToAdd = "\f";
-				break;
-			case 'b':
-				sCharsToAdd = "\b";
-				break;
-			case 't':
-				sCharsToAdd = "\t";
-				break;
-			case 'u':
-			{
-				nCode = 0;
-				nEnd++;
-				assert(nEnd < nLength);
-
-				// Extraction des caracteres unicode
-				if (sUnicodeChars.GetLength() != 4)
-					sUnicodeChars.GetBufferSetLength(4);
-				sUnicodeChars.SetAt(0, sInputString[nEnd]);
-				sUnicodeChars.SetAt(1, sInputString[nEnd + 1]);
-				sUnicodeChars.SetAt(2, sInputString[nEnd + 2]);
-				sUnicodeChars.SetAt(3, sInputString[nEnd + 3]);
-
-				// On tente d'abord le decodgage d'un caractere windows-1252 encode avec unicode
-				nCode = UnicodeHexToWindows1252(sUnicodeChars);
-				if (nCode != -1)
-				{
-					nEnd += 3;
-					nCharNumber = 1;
-					sUtf8Chars[0] = (char)nCode;
-					sUtf8Chars[1] = '\0';
-					sCharsToAdd = sUtf8Chars;
-				}
-				// Cas general sinon
-				else
-				{
-					HexStringToCode(sInputString + nEnd, &nCode);
-					nEnd += 3;
-					assert(nEnd < nLength);
-
-					// Verification du code
-					if ((nCode & 0xFC00) == 0xD800)
-					{
-						nEnd++;
-						assert(nEnd + 1 < nLength);
-						if (sInputString[nEnd] == '\\' && sInputString[nEnd + 1] == 'u')
-						{
-							nPotentialCode = 0;
-							HexStringToCode(sInputString + nEnd + 2, &nPotentialCode);
-							nCode = (((nCode & 0x3F) << 10) |
-								 ((((nCode >> 6) & 0xF) + 1) << 16) |
-								 (nPotentialCode & 0x3FF));
-							nEnd += 5;
-							assert(nEnd < nLength);
-						}
-						else
-						{
-							sCharsToAdd = "?";
-							break;
-						}
-					}
-
-					// Conversion
-					nCharNumber = Utf32toUtf8String(nCode, sUtf8Chars);
-					sCharsToAdd = sUtf8Chars;
-
-					// Cas particulier du code 0
-					if (nCode == 0)
-					{
-						sCString += sCharsToAdd[0];
-						nEnd++;
-						nBegin = nEnd;
-						continue;
-					}
-				}
-				break;
-			}
-			default:
-				// En principe, impossible avec une chaine json correctement formee
-				assert(false);
-			}
-			if (nCharNumber == 1)
-				sCString += sCharsToAdd[0];
-			else
-				AppendSubString(sCString, sCharsToAdd, 0, nCharNumber);
-			nEnd++;
-			nBegin = nEnd;
-		}
-		else
-		{
-			nEnd++;
-		}
-	}
-	AppendSubString(sCString, sJsonString, nBegin, nEnd - nBegin);
 }
 
 boolean JSONTokenizer::ReadExpectedToken(int nExpectedToken)
@@ -810,28 +594,6 @@ const ALString JSONTokenizer::GetLastTokenValue()
 	if (sValue != "")
 		sValue = "(" + sValue + ")";
 	return sValue;
-}
-
-void JSONTokenizer::AppendSubString(ALString& sString, const char* sAddedString, int nBegin, int nLength)
-{
-	int i;
-	int nStringLength;
-
-	require(sAddedString != NULL);
-	require(nBegin >= 0);
-	require(nLength >= 0);
-	require(nBegin + nLength <= (int)strlen(sAddedString));
-
-	// Reservation de la place necessaire
-	nStringLength = sString.GetLength();
-	sString.GetBufferSetLength(nStringLength + nLength);
-
-	// Ajout des caracteres
-	for (i = nBegin; i < nBegin + nLength; i++)
-	{
-		sString.SetAt(nStringLength, sAddedString[i]);
-		nStringLength++;
-	}
 }
 
 boolean JSONTokenizer::DoubleToInt(double dValue, int& nValue)

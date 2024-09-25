@@ -318,7 +318,211 @@ const ALString TextService::HexCharStringToByteString(const ALString& sHexCharSt
 	return sByteString;
 }
 
-void TextService::CStringToJsonString(const ALString& sCString, ALString& sJsonString)
+static void HexStringToCode(const unsigned char* sHexString, unsigned int* nCode)
+{
+	unsigned int i;
+	for (i = 0; i < 4; i++)
+	{
+		unsigned char c = sHexString[i];
+		if (c >= 'A')
+			c = (c & ~0x20) - 7;
+		c -= '0';
+		assert(!(c & 0xF0));
+		*nCode = (*nCode << 4) | c;
+	}
+}
+
+// Recode un entier representant un code UTF32 sous forme d'une sequence de 1 a 4 caracteres au format UTF8
+// La chaine doit avoir au moins 5 caracteres pour stocker le resultat
+// Retourne le nombre de caracteres utilises
+static int Utf32toUtf8String(unsigned int nCode, char* sUtf8Chars)
+{
+	if (nCode < 0x80)
+	{
+		sUtf8Chars[0] = (char)nCode;
+		sUtf8Chars[1] = 0;
+		return 1;
+	}
+	else if (nCode < 0x0800)
+	{
+		sUtf8Chars[0] = (char)((nCode >> 6) | 0xC0);
+		sUtf8Chars[1] = (char)((nCode & 0x3F) | 0x80);
+		sUtf8Chars[2] = 0;
+		return 2;
+	}
+	else if (nCode < 0x10000)
+	{
+		sUtf8Chars[0] = (char)((nCode >> 12) | 0xE0);
+		sUtf8Chars[1] = (char)(((nCode >> 6) & 0x3F) | 0x80);
+		sUtf8Chars[2] = (char)((nCode & 0x3F) | 0x80);
+		sUtf8Chars[3] = 0;
+		return 3;
+	}
+	else if (nCode < 0x200000)
+	{
+		sUtf8Chars[0] = (char)((nCode >> 18) | 0xF0);
+		sUtf8Chars[1] = (char)(((nCode >> 12) & 0x3F) | 0x80);
+		sUtf8Chars[2] = (char)(((nCode >> 6) & 0x3F) | 0x80);
+		sUtf8Chars[3] = (char)((nCode & 0x3F) | 0x80);
+		sUtf8Chars[4] = 0;
+		return 4;
+	}
+	else
+	{
+		sUtf8Chars[0] = '?';
+		sUtf8Chars[1] = 0;
+		return 1;
+	}
+}
+
+void TextService::JsonToCString(const char* sJsonString, ALString& sCString)
+{
+	const unsigned char* sInputString;
+	unsigned int nCode;
+	unsigned int nPotentialCode;
+	int nBegin;
+	int nEnd;
+	int nLength;
+	char sUtf8Chars[5];
+	const char* sCharsToAdd;
+	ALString sUnicodeChars;
+	int nCharNumber;
+
+	require(sJsonString != NULL);
+
+	// On passe par un format unsigned char pour le parsing
+	sInputString = (const unsigned char*)sJsonString;
+	nLength = (int)strlen(sJsonString);
+
+	// On repasse la chaine a convertir a vide, sans desallouer la memoire
+	sCString.GetBufferSetLength(0);
+
+	// Analyse de la chaine en entree
+	nBegin = 0;
+	nEnd = 0;
+	sCharsToAdd = "?";
+	while (nEnd < nLength)
+	{
+		if (sInputString[nEnd] == '\\')
+		{
+			AppendSubString(sCString, sJsonString, nBegin, nEnd - nBegin);
+			nEnd++;
+			assert(nEnd < nLength);
+			nCharNumber = 1;
+			switch (sInputString[nEnd])
+			{
+			case 'r':
+				sCharsToAdd = "\r";
+				break;
+			case 'n':
+				sCharsToAdd = "\n";
+				break;
+			case '\\':
+				sCharsToAdd = "\\";
+				break;
+			case '/':
+				sCharsToAdd = "/";
+				break;
+			case '"':
+				sCharsToAdd = "\"";
+				break;
+			case 'f':
+				sCharsToAdd = "\f";
+				break;
+			case 'b':
+				sCharsToAdd = "\b";
+				break;
+			case 't':
+				sCharsToAdd = "\t";
+				break;
+			case 'u':
+			{
+				nCode = 0;
+				nEnd++;
+				assert(nEnd < nLength);
+
+				// Extraction des caracteres unicode
+				if (sUnicodeChars.GetLength() != 4)
+					sUnicodeChars.GetBufferSetLength(4);
+				sUnicodeChars.SetAt(0, sInputString[nEnd]);
+				sUnicodeChars.SetAt(1, sInputString[nEnd + 1]);
+				sUnicodeChars.SetAt(2, sInputString[nEnd + 2]);
+				sUnicodeChars.SetAt(3, sInputString[nEnd + 3]);
+
+				// On tente d'abord le decodgage d'un caractere windows-1252 encode avec unicode
+				nCode = UnicodeHexToWindows1252(sUnicodeChars);
+				if (nCode != -1)
+				{
+					nEnd += 3;
+					nCharNumber = 1;
+					sUtf8Chars[0] = (char)nCode;
+					sUtf8Chars[1] = '\0';
+					sCharsToAdd = sUtf8Chars;
+				}
+				// Cas general sinon
+				else
+				{
+					HexStringToCode(sInputString + nEnd, &nCode);
+					nEnd += 3;
+					assert(nEnd < nLength);
+
+					// Verification du code
+					if ((nCode & 0xFC00) == 0xD800)
+					{
+						nEnd++;
+						assert(nEnd + 1 < nLength);
+						if (sInputString[nEnd] == '\\' && sInputString[nEnd + 1] == 'u')
+						{
+							nPotentialCode = 0;
+							HexStringToCode(sInputString + nEnd + 2, &nPotentialCode);
+							nCode = (((nCode & 0x3F) << 10) |
+								 ((((nCode >> 6) & 0xF) + 1) << 16) |
+								 (nPotentialCode & 0x3FF));
+							nEnd += 5;
+							assert(nEnd < nLength);
+						}
+						else
+						{
+							sCharsToAdd = "?";
+							break;
+						}
+					}
+
+					// Conversion
+					nCharNumber = Utf32toUtf8String(nCode, sUtf8Chars);
+					sCharsToAdd = sUtf8Chars;
+
+					// Cas particulier du code 0
+					if (nCode == 0)
+					{
+						sCString += sCharsToAdd[0];
+						nEnd++;
+						nBegin = nEnd;
+						continue;
+					}
+				}
+				break;
+			}
+			default:
+				// En principe, impossible avec une chaine json correctement formee
+				assert(false);
+			}
+			if (nCharNumber == 1)
+				sCString += sCharsToAdd[0];
+			else
+				AppendSubString(sCString, sCharsToAdd, 0, nCharNumber);
+			nEnd++;
+			nBegin = nEnd;
+		}
+		else
+		{
+			nEnd++;
+		}
+	}
+	AppendSubString(sCString, sJsonString, nBegin, nEnd - nBegin);
+}
+
+void TextService::CToJsonString(const ALString& sCString, ALString& sJsonString)
 {
 	boolean bTrace = false;
 	int nMaxValidUTF8CharLength;
@@ -427,7 +631,7 @@ void TextService::CStringToJsonString(const ALString& sCString, ALString& sJsonS
 	}
 }
 
-void TextService::CStringToCAnsiString(const ALString& sCString, ALString& sCAnsiString)
+void TextService::CToCAnsiString(const ALString& sCString, ALString& sCAnsiString)
 {
 	int i;
 	int j;
@@ -652,6 +856,8 @@ void TextService::BuildTextSample(StringVector* svTextValues)
 void TextService::Test()
 {
 	int nEncodingNumber = 10000000;
+	ALString sTest;
+	ALString sCString;
 	StringVector svTextValues;
 	ALString sValue;
 	ALString sWord;
@@ -667,6 +873,12 @@ void TextService::Test()
 	int nLength;
 	Timer timer;
 	ALString sTmp;
+
+	// Test de conversion elementaire
+	sTest = "aa\\u221Ebb\\u00e9cc\\/\\\\dd\\tee";
+	cout << "Json string\t" << sTest << "\t";
+	JsonToCString(sTest, sCString);
+	cout << sCString << "\t";
 
 	// Test des encodages unicode des caracteres ascii etendus
 	cout << "Index\tChar\tUnicode\tUtf8\tAnsi code\tUtf8 code\tAnsi code from utf8\tValid\n";
@@ -747,6 +959,28 @@ TextService::TextService()
 }
 
 TextService::~TextService() {}
+
+void TextService::AppendSubString(ALString& sString, const char* sAddedString, int nBegin, int nLength)
+{
+	int i;
+	int nStringLength;
+
+	require(sAddedString != NULL);
+	require(nBegin >= 0);
+	require(nLength >= 0);
+	require(nBegin + nLength <= (int)strlen(sAddedString));
+
+	// Reservation de la place necessaire
+	nStringLength = sString.GetLength();
+	sString.GetBufferSetLength(nStringLength + nLength);
+
+	// Ajout des caracteres
+	for (i = nBegin; i < nBegin + nLength; i++)
+	{
+		sString.SetAt(nStringLength, sAddedString[i]);
+		nStringLength++;
+	}
+}
 
 int TextService::GetHexStringCode(const ALString& sHexString)
 {

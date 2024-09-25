@@ -8,21 +8,24 @@ endif(NOT MSVC)
 # It is possible to regenerate them (when the *.lex or *.yac files are modified) with the option BUILD_LEX_YACC the
 # generated files are located on the build tree and the legacy ones are not used(and not modified).
 if(BUILD_LEX_YACC)
+  bison_target(JsonParser JsonYac.yac ${CMAKE_CURRENT_SOURCE_DIR}/JsonYac.cpp)
   if(MSVC)
     flex_target(JsonScanner JsonLex.lex JsonLex.inc COMPILE_FLAGS "--nounistd")
   else()
     flex_target(JsonScanner JsonLex.lex JsonLex.inc)
   endif(MSVC)
+  add_flex_bison_dependency(JsonScanner JsonParser)
 else()
   # We defined the Bison / Flex generated files with the files already present
+  set(BISON_JsonParser_OUTPUTS ${CMAKE_CURRENT_SOURCE_DIR}/JsonYac.cpp)
   set(FLEX_JsonScanner_OUTPUTS ${CMAKE_CURRENT_SOURCE_DIR}/JsonLex.inc)
 endif()
 
 # The outputs of Bison /Flex are managed separately from the list of standard cpp files
 file(GLOB cppfiles ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
-list(REMOVE_ITEM cppfiles FLEX_JsonScanner_OUTPUTS)
+list(REMOVE_ITEM cppfiles ${BISON_JsonParser_OUTPUTS} ${FLEX_JsonScanner_OUTPUTS})
 
-add_library(base STATIC ${cppfiles} ${FLEX_JsonScanner_OUTPUTS})
+add_library(base STATIC ${cppfiles} ${BISON_JsonParser_OUTPUTS} ${FLEX_JsonScanner_OUTPUTS})
 
 set_khiops_options(base)
 

@@ -6,12 +6,6 @@
 %{
 #include <stdlib.h>
 
-// Valeur des tokens
-static ALString sJsonTokenString;
-static ALString sJsonTokenStringCopy;
-static double dJsonTokenDouble = 0;
-static boolean bJsonTokenBoolean = false;
-
 // Desactivation de warnings pour le Visual C++
 #ifdef __MSC__
 #pragma warning(disable : 4505) // C4505: la fonction locale non référencée a été supprimée
@@ -46,35 +40,39 @@ WHITESPACE      [ \t\r\n]
 \]              {return ']';}
 ,               {return ',';}
 :               {return ':';}
-true            {bJsonTokenBoolean = true; return JSONTokenizer::Boolean;}
-false           {bJsonTokenBoolean = false; return JSONTokenizer::Boolean;}
-null            {return JSONTokenizer::Null;}
+true            {jsonlval.bValue = true; return BOOLEANVALUE;}
+false           {jsonlval.bValue = false; return BOOLEANVALUE;}
+null            {return NULLVALUE;}
 
  
 
 {STRING}        {
-                    yytext[yyleng-1] = '\0';
-                    JSONTokenizer::JsonToCString((char*)&yytext[1], sJsonTokenString);
+                    ALString *sValue;
 
-                    // On force la conversion vers l'ansi si necessaire
-                    if (JSONTokenizer::GetForceAnsi())
-                    {
-                        sJsonTokenStringCopy = sJsonTokenString;
-                        TextService::CStringToCAnsiString(sJsonTokenStringCopy, sJsonTokenString);
-                    }
-                        
-                    return  JSONTokenizer::String;
+                    sValue = new ALString;
+                    yytext[yyleng-1] = '\0';
+                    TextService::JsonToCString((char*)&yytext[1], *sValue);
+                    jsonlval.sValue = sValue; 
+                    return  STRINGVALUE;
                 }
 
 {NUMBER}        {
                     char* endptr;
-    		        dJsonTokenDouble = strtod((char*)yytext, &endptr);
+                    double dValue;
 
-                    return(JSONTokenizer::Number);
+    		        dValue = strtod((char*)yytext, &endptr);
+                    jsonlval.dValue = dValue; 
+                    return NUMBERVALUE;
                 }
 
 {WHITESPACE}    {/*IGNORE*/}
 
-.              {sJsonTokenString = yytext; return JSONTokenizer::Error;}
+.               {
+                    ALString *sValue;
+
+                    sValue = new ALString(yytext);
+                    jsonlval.sValue = sValue; 
+                    return ERROR;
+                }
 
 %%

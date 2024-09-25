@@ -20,6 +20,8 @@
 #include "UITestObject.h"
 #include "UITestObjectView.h"
 #include "MemoryTest.h"
+#include "JsonObject.h"
+#include "JSONTokenizer.h"
 
 // Classe de test des composants de base
 class TestBaseComponents : public UICard

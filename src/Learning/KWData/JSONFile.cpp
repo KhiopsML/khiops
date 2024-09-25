@@ -464,7 +464,7 @@ void JSONFile::WriteStringValue(const ALString& sValue)
 	require(IsOpened());
 
 	// Encodage de la chaine C au format json
-	CStringToJsonString(sValue, sStringBuffer);
+	CToJsonString(sValue, sStringBuffer);
 	fstJSON << '"';
 	fstJSON << sStringBuffer;
 	fstJSON << '"';
