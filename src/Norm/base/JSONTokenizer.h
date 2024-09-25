@@ -9,6 +9,8 @@
 #include "FileService.h"
 #include "PLRemoteFileService.h"
 #include "TextService.h"
+#include "JsonObject.h"
+#include "JsonYac.hpp"
 
 //////////////////////////////////////////////////////
 // Parser de fichier JSON pour en extraire les tokens
@@ -20,7 +22,7 @@ public:
 	// Parametrage du fichier a analyser
 
 	// Parametrage de la lecture, en forcant ou non la conversion des caracteres utf8 de windows1252/iso8859-1 vers
-	// l'ansi (defaut: false) Cf class JSONFile
+	// l'ansi etendu (defaut: false)
 	static void SetForceAnsi(boolean bValue);
 	static boolean GetForceAnsi();
 
@@ -44,11 +46,11 @@ public:
 	// Identifiant des tokens
 	enum TokenType
 	{
-		String = 258,
-		Number = 259,
-		Boolean = 260,
-		Null = 261,
-		Error = 262,
+		String = STRINGVALUE,
+		Number = NUMBERVALUE,
+		Boolean = BOOLEANVALUE,
+		Null = NULLVALUE,
+		Error = ERROR,
 	};
 
 	// Test si un token est valide
@@ -70,9 +72,6 @@ public:
 	static const ALString& GetTokenStringValue();
 	static double GetTokenNumberValue();
 	static boolean GetTokenBooleanValue();
-
-	// Conversion d'une chaine Json valide vers une chaine C
-	static void JsonToCString(const char* sJsonString, ALString& sCString);
 
 	//////////////////////////////////////////////////////////////////////////////
 	// Methodes de parsing
@@ -133,9 +132,6 @@ protected:
 	// Valeur du dernier token entre parenthese si le token est associe a une valeur, vide sinon
 	static const ALString GetLastTokenValue();
 
-	// Ajout d'une sous partie d'une chaine
-	static void AppendSubString(ALString& sString, const char* sAddedString, int nBegin, int nLength);
-
 	// Conversion d'un double en entier
 	// Renvoie true si la conversion est un succes
 	static boolean DoubleToInt(double dValue, int& nValue);
@@ -154,6 +150,9 @@ protected:
 
 	// Type du dernier token, pour les assertions
 	static int nLastToken;
+
+	// Valeur du dernier token
+	static JSONSTYPE jsonLastTokenValue;
 
 	// Parametrage de la conversion vers l'ansi
 	static boolean bForceAnsi;

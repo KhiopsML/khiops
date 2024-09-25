@@ -3594,11 +3594,11 @@ boolean CCCoclusteringReport::ReadJSONInterval(KWDGAttribute* dgAttribute, KWDGP
 			cLowerBound = KWContinuous::GetMissingValue();
 			cUpperBound = KWContinuous::GetMissingValue();
 		}
-		// Lecture des bonres inf et sup, avec tableau de deux valeurs
+		// Lecture des bornes inf et sup, avec tableau de deux valeurs
 		else if (nToken == JSONTokenizer::Number)
 		{
-			// Acces a la valeur de la borne inf, quyi vient d'etre lue
-			cLowerBound = KWContinuous::DoubleToContinuous(JSONTokenizer::GetTokenNumberValue());
+			// Acces a la valeur de la borne inf, qui vient d'etre lue
+			cLowerBound = JSONTokenizer::GetTokenNumberValue();
 
 			// Lecture de la borne sup
 			bOk = bOk and JSONTokenizer::ReadExpectedToken(',');
