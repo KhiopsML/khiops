@@ -115,6 +115,8 @@ jobs:
         uses: ./.github/actions/test-khiops-install
       - name: Test Khiops on Iris dataset
         uses: ./.github/actions/test-khiops-on-iris
+        with:
+          os-decription: rockylinux-${{ matrix.rocky_version }}
   test-kni:
     needs: build
     runs-on: ubuntu-latest
