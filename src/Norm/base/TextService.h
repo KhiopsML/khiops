@@ -79,12 +79,15 @@ public:
 	// Les caracteres ansi 128 a 255 sont encodes avec iso-8859-1/windows-1252
 	// L'encodage dans le json se fait avec le caractere d'echapement \uHHHH
 
+	// Conversion d'une chaine Json valide vers une chaine C
+	static void JsonToCString(const char* sJsonString, ALString& sCString);
+
 	// Encodage d'un chaine de caracteres C au format json, sans les double-quotes de debut et fin
-	static void CStringToJsonString(const ALString& sCString, ALString& sJsonString);
+	static void CToJsonString(const ALString& sCString, ALString& sJsonString);
 
 	// Encodage d'une chaine de caracteres C au format ansi en re-encodant les caracteres utf8
 	// endodes avec iso-8859-1/windows-1252 vers ansi
-	static void CStringToCAnsiString(const ALString& sCString, ALString& sCAnsiString);
+	static void CToCAnsiString(const ALString& sCString, ALString& sCAnsiString);
 
 	// Conversion d'un caractere ansi windows-1252 vers un caractere unicode au format hexa
 	static void Windows1252ToUnicodeHex(int nAnsiCode, ALString& sUnicodeHexChars);
@@ -116,6 +119,9 @@ protected:
 	// Constructeur, permettant d'initialiser l'instance statique textServiceGlobalInitializer
 	TextService();
 	~TextService();
+
+	// Ajout d'une sous partie d'une chaine
+	static void AppendSubString(ALString& sString, const char* sAddedString, int nBegin, int nLength);
 
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Gestion des encodages windows-1252 vers unicode et UFT8
