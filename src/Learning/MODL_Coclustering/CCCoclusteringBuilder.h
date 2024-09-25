@@ -141,6 +141,7 @@ public:
 
 	// Libelles utilisateur: nom du module de l'application (GetLearningModuleName())
 	const ALString GetClassLabel() const override;
+	const ALString GetObjectLabel() const override;
 
 	/////////////////////////////////////////////////
 	///// Implementation

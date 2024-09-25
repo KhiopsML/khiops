@@ -39,6 +39,11 @@ public:
 	// Memoire: l'objet rendu appartient a l'appele
 	KWDataGridOptimizerParameters* GetParameters();
 
+	// CH 231
+	// Optimisation integrant une surtokenisation des VarPart lors du VNS
+	boolean GetSurtokenisationProto() const;
+	void SetSurtokenisationProto(boolean bValue);
+
 	// Parametrage (facultatif) par des statistiques sur le probleme d'apprentissage
 	// Permet l'utilisation des statistiques univariees pour optimiser les grilles de donnees
 	// Memoire: les specifications sont referencees et destinee a etre partagees
@@ -199,7 +204,7 @@ protected:
 	// - dNeighbourDataGridCost: cout de la grille courante
 	// - mergedDataGrid: grille optimisee si amelioration
 	// En sortie, la grille courante et son cout sont modifies suite a optimisation.
-	// On rend la grille issue de la post-opimisation VarPart, ainsi que sa grille partitionned re drefrence
+	// On rend la grille issue de la post-optimisation VarPart, ainsi que sa grille partitionned de reference
 	// Le code retour est le meilleurs cout optenu apres post-optimisation VarPart
 	// Attention, celui-ci est different de celui de la grille courante optimisee
 	//
@@ -214,7 +219,7 @@ protected:
 					      KWDataGrid* partitionedReferencePostMergedDataGrid) const;
 
 	// CH IV Begin
-	// Pilotage de la meta heuristique VNS, avec des voisinnages successifs de taille decroissante
+	// Pilotage de la meta heuristique VNS, avec des voisinages successifs de taille decroissante
 	// selon un facteur geometrique
 	// La grille optimizedDataGrid contient en entree la meilleure solution courante
 	// Cette solution est mise a jour si son cout est ameliore, et on renvoie son cout
@@ -308,7 +313,8 @@ protected:
 	mutable int nVNSNeighbourhoodLevelIndex;
 	mutable int nVNSNeighbourhoodLevelNumber;
 	mutable double dVNSNeighbourhoodSize;
-
+	// CH 231
+	boolean bProtoSurtokenisation;
 	// Contexte de gestion de la partie anytime de l'optimisation
 	const KWAttributeSubsetStats* attributeSubsetStatsHandler;
 

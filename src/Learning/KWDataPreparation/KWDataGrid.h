@@ -638,7 +638,7 @@ public:
 	int ComputeTotalPartFrequency() const;
 
 	// Test si l'attribut contient des sous-parties de l'autre attribut en parametre
-	// Dans le cas d'un attribut de type VarPart, les deux attribut doivent exploiter les meme variables internes
+	// Dans le cas d'un attribut de type VarPart, les deux attributs doivent exploiter les meme variables internes
 	boolean ContainsSubParts(const KWDGAttribute* otherAttribute) const;
 
 	// Controle d'integrite local a l'attribut (parties, valeurs, cellules de l'attribut)
@@ -1784,7 +1784,7 @@ inline boolean KWDGAttribute::IsInnerAttribute() const
 {
 	assert(dataGrid == NULL or
 	       (sOwnerAttributeName == "" and
-		(not dataGrid->IsVarPartDataGrid() or
+		((not dataGrid->IsVarPartDataGrid()) or
 		 dataGrid->GetInnerAttributes()->LookupInnerAttribute(sAttributeName) == NULL)) or
 	       (sOwnerAttributeName != "" and
 		(dataGrid->IsVarPartDataGrid() and
@@ -2302,6 +2302,8 @@ inline KWDGPart* KWDGVarPartValue::GetVarPart() const
 inline NUMERIC KWDGVarPartValue::GetNumericKeyValue() const
 {
 	return varPart;
+	// CH 231 : contenu de la methode a changer (comment ?) pour que cette cle ne depende que de la valeur de la PV et non de son innerAttribute via le pointeur
+	
 }
 
 inline boolean KWDGVarPartValue::IsDefaultValue() const
