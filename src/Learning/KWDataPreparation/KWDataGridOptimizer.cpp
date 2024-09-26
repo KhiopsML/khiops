@@ -1178,6 +1178,7 @@ double KWDataGridOptimizer::IterativeVNSOptimizeDataGrid(const KWDataGrid* initi
 	// CH IV Begin
 	double dMergedCost;
 	double dBestMergedCost;
+	boolean bWithoutAntecedent = true;
 	// CH IV End
 
 	require(initialDataGrid != NULL);
@@ -1237,7 +1238,7 @@ double KWDataGridOptimizer::IterativeVNSOptimizeDataGrid(const KWDataGrid* initi
 			// On distingue le cout dMergedCost de la meilleure grille et le cout dCost de l'antecedent de
 			// la meilleure grille sans fusion des PV adjacentes dans un meme cluster
 			dCost = VNSOptimizeVarPartDataGrid(initialDataGrid, nNeighbourhoodLevelNumber, &currentDataGrid,
-							   dMergedCost);
+							   dMergedCost,bWithoutAntecedent);
 			if (dMergedCost < dBestMergedCost - dEpsilon)
 			{
 				dBestCost = dCost;
@@ -1258,8 +1259,17 @@ double KWDataGridOptimizer::IterativeVNSOptimizeDataGrid(const KWDataGrid* initi
 	}
 	assert(dBestCost < DBL_MAX);
 
-	ensure(fabs(dBestCost - dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid)) < dEpsilon);
-	return dBestCost;
+	
+	if (bWithoutAntecedent)
+	{
+		ensure(fabs(dBestMergedCost - dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid)) < dEpsilon);
+		return dBestMergedCost;
+	}
+	else
+	{
+		ensure(fabs(dBestCost - dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid)) < dEpsilon);
+		return dBestCost;
+	}
 }
 
 double KWDataGridOptimizer::VNSOptimizeDataGrid(const KWDataGrid* initialDataGrid, int nNeighbourhoodLevelNumber,
@@ -1577,7 +1587,7 @@ double KWDataGridOptimizer::VNSDataGridPostOptimizeVarPart(const KWDataGrid* ini
 
 double KWDataGridOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* initialDataGrid, int nNeighbourhoodLevelNumber,
 						       KWDataGrid* optimizedDataGrid,
-						       double& dBestMergedDataGridCost) const
+						       double& dBestMergedDataGridCost, boolean bWithoutAntecedent) const
 {
 	double dBestCost;
 	double dCost;
@@ -1593,7 +1603,6 @@ double KWDataGridOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* initial
 	double dDecreaseFactor;
 	double dNeighbourhoodSize;
 	ALString sTmp;
-	boolean bWithoutAntecedent = true;
 	boolean bDisplayMainSteps = false;
 
 	// On ne reverifie pas les precondition de la methode publique
@@ -1875,9 +1884,13 @@ double KWDataGridOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* initial
 
 	// Memorisation du meilleur cout parmi les grilles post-fusionnees
 	dBestMergedDataGridCost = dBestMergedCost;
-	// Verification de cout pour la grille antecedente optimizedDataGrid
-	// Il faudra ensuite que l'ensure fonctionne pour dBestMergeCost et la grille fusionnee mergedDataGrid
-	ensure(fabs(dBestCost - dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid)) < dEpsilon);
+	// Verification de cout pour la grille antecedente ou pour la grille optimizedDataGrid selon bWithoutAntecedent
+	//cout << "dBestMergedDataGridCost\t" << dBestMergedDataGridCost << " dBestCost\t" << dBestCost
+	//     << " cout recalcule\t" << dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid) << endl;
+	if (bWithoutAntecedent)
+		ensure(fabs(dBestMergedDataGridCost - dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid)) < dEpsilon);
+	else
+		ensure(fabs(dBestCost - dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid)) < dEpsilon);
 	return dBestCost;
 }
 

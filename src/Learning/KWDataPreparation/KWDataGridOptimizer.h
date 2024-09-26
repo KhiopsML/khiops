@@ -229,7 +229,7 @@ protected:
 	// dBestMergedDataGridCost contient le cout de la meilleure grille apres post-fusion (meilleur cout)
 	// CH IV Refactoring: proto en vue de fusionner la methode avec VNSOptimizeDataGrid
 	double VNSOptimizeVarPartDataGrid(const KWDataGrid* initialDataGrid, int nNeighbourhoodLevelNumber,
-					  KWDataGrid* optimizedDataGrid, double& dBestMergedDataGridCost) const;
+					  KWDataGrid* optimizedDataGrid, double& dBestMergedDataGridCost, boolean bWithoutAntecedent) const;
 	// CH IV End
 
 	// Optimisation d'une solution, selon le parametre de post-optimisation des solutions
