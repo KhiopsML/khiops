@@ -52,15 +52,12 @@ runs:
       env:
         KHIOPS_PROC_NUMBER: 4
         OMPI_MCA_rmaps_base_oversubscribe: true
-        KHIOPS_API_MODE: true
       run: |
         cd test/LearningTest/TestKhiops/Standard/Iris/
         "$KHIOPS_SCRIPT" -b -i test.prm -e results/err.txt
         cd -
     - name: Run Khiops Coclustering tests
       shell: bash
-      env:
-        KHIOPS_API_MODE: true
       run: |
         cd test/LearningTest/TestCoclustering/Standard/Iris/
         "$KHIOPS_CC_SCRIPT" -b -i test.prm -e results/err.txt

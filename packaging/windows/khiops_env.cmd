@@ -34,13 +34,6 @@ echo   This location can be modified from the tool as well.
 echo KHIOPS_MEMORY_LIMIT: Khiops memory limit in MB (default: the system memory limit).
 echo   The minimum value is 100 MB; this setting is ignored if it is above the system's memory limit.
 echo   It can only be reduced from the tool.
-echo KHIOPS_API_MODE: standard or api mode for the management of output result files created by Khiops
-echo   In standard mode, the result files are stored in the train database directory,
-echo   unless an absolute path is specified, and the file extension is forced if necessary.
-echo   In api mode, the result files are stored in the current working directory, using the specified results as is.
-echo   . default behavior if not set: standard mode
-echo   . set to 'false' to force standard mode
-echo   . set to 'true' to force api mode
 echo KHIOPS_RAW_GUI: graphical user interface for file name selection
 echo   . default behavior if not set: depending on the file drivers available for Khiops
 echo   . set to 'true' to allow file name selection with uri schemas
@@ -128,7 +121,6 @@ echo KHIOPS_LAST_RUN_DIR %KHIOPS_LAST_RUN_DIR%
 echo KHIOPS_PROC_NUMBER %KHIOPS_PROC_NUMBER%
 echo KHIOPS_TMP_DIR %KHIOPS_TMP_DIR%
 echo KHIOPS_MEMORY_LIMIT %KHIOPS_MEMORY_LIMIT%
-echo KHIOPS_API_MODE %KHIOPS_API_MODE%
 echo KHIOPS_RAW_GUI %KHIOPS_RAW_GUI%
 echo KHIOPS_JAVA_ERROR %KHIOPS_JAVA_ERROR%
 echo KHIOPS_MPI_ERROR %KHIOPS_MPI_ERROR%
