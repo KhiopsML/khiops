@@ -123,11 +123,20 @@ jobs:
       # In Linux/macOS we need the conda-forge channel to install their pinned versions
       - name: Install the Conda package (Linux/macOS)
         if: runner.os != 'Windows'
-        run: conda install --channel conda-forge --channel ./build/conda khiops-core
-      - name: Test that the executables are installed
         run: |
-          MODL -v
-          MODL_Coclustering -v
+          conda install --channel conda-forge --channel ./build/conda khiops-core
+      - name: Add  CONDA_PREFIX to shared PATH
+        run: |
+          echo "$CONDA_PREFIX/bin" >> $GITHUB_PATH
+      - name: Checkout sources
+        uses: actions/checkout@v4
+      - name: Test that the executables are installed
+        uses: ./.github/actions/test-khiops-install
+      - name: Test that khiops on Iris dataset
+        uses: ./.github/actions/test-khiops-on-iris
+        with:
+          os-decription: ${{ matrix.env.os }}-${{ matrix.env.os-family }}
+
   # Release is only executed on tags
   # Note: For this job to work the secrets variables KHIOPS_ANACONDA_CHANNEL_TOKEN and
   #       KHIOPS_DEV_ANACONDA_CHANNEL_TOKEN must be set with valid anaconda.org access tokens

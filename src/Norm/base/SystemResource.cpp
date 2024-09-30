@@ -3,7 +3,6 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #include "SystemResource.h"
-#include "Portability.h"
 #include "MemoryManager.h"
 
 // Pour eviter les warning sur strcpy

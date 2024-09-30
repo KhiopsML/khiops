@@ -52,10 +52,18 @@ outputs:
         - {{ mpi }}
     files:
       - bin/MODL*
+      - bin/_khiopsgetprocnumber*
+      - bin/khiops_env # [linux or osx]
+      - bin/khiops # [linux or osx]
+      - bin/khiops_coclustering # [linux or osx]
+      - bin/khiops_env.cmd # [win]
+      - bin/khiops.cmd # [win]
+      - bin/khiops_coclustering.cmd # [win]
     test:
       commands:
-        - MODL -s
-        - MODL_Coclustering -s
+        - khiops_env --env 
+        - khiops -s
+        - khiops_coclustering -s
 
   # kni package (do not need khiops-core as a runtime dependency)
   - name: kni
@@ -63,7 +71,8 @@ outputs:
     files:
       - lib/libKhiopsNativeInterface.so* # [linux]
       - lib/libKhiopsNativeInterface*.dylib # [osx]
-      - lib/KhiopsNativeInterface.dll # [win]
+      - bin/KhiopsNativeInterface.dll # [win]
+      - lib/KhiopsNativeInterface.lib # [win]
     requirements:
       build:
         - cmake

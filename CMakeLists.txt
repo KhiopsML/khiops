@@ -96,6 +96,20 @@ if(IS_FEDORA_LIKE)
   endif(DEFINED ENV{MPI_SUFFIX})
 endif(IS_FEDORA_LIKE)
 
+# Check if it is conda environment
+set(IS_CONDA false)
+if(DEFINED ENV{CONDA_PREFIX})
+  set(IS_CONDA true)
+  message(STATUS "Auto-detected conda environment")
+endif()
+
+if(IS_CONDA AND MPI)
+  if(NOT DEFINED ENV{mpi})
+    message(
+      WARNING "You are building in a conda environment without using `conda build`. find_mpi may not work as expected.")
+  endif()
+endif()
+
 # Set the location of the built artifacts:
 #
 # - Shared and static library target directory: lib
@@ -128,31 +142,14 @@ if(MPI)
   find_package(MPI 2.0 REQUIRED)
   message(
     STATUS
-      "MPI command line: ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} ${MPIEXEC_MAX_NUMPROCS} ${MPIEXEC_PREFLAGS} EXECUTABLE ${MPIEXEC_POSTFLAGS} ARGS"
+      "MPI command line: ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${MPIEXEC_MAX_NUMPROCS} ${MPIEXEC_PREFLAGS} EXECUTABLE ${MPIEXEC_POSTFLAGS} ARGS"
   )
 endif()
 
 # Detects the mpi implementation
 if(UNIX AND MPI)
-  string(FIND "${MPI_LIBRARIES}" openmpi POS)
-  if(POS GREATER -1)
-    set(MPI_IMPL "openmpi")
-  endif()
-
-  string(FIND "${MPI_LIBRARIES}" mpich POS)
-  if(POS GREATER -1)
-    set(MPI_IMPL "mpich")
-  endif()
-
-  string(FIND "${MPI_LIBRARIES}" intel POS)
-  if(POS GREATER -1)
-    set(MPI_IMPL "intel")
-  endif()
-  if(MPI_IMPL)
-    message(STATUS "Auto-detected MPI implementation: ${MPI_IMPL}")
-  else()
-    message(STATUS "Unable to detect the MPI implementation: no suffix will be added to binaries name")
-  endif()
+  include(get_mpi_implementation)
+  get_mpi_implementation()
 
   # Set MPI suffix if it is not defined with the environment variables (like on Fedora distros)
   if(NOT MPI_SUFFIX AND MPI_IMPL)

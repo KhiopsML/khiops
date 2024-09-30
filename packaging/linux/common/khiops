@@ -1,65 +1,56 @@
 #!/bin/bash
 
 # Run Khiops tool
-# see the khiops-env script for full documentation on the environment variables used by Khiops
-
-
+# see the khiops_env script for full documentation on the environment variables used by Khiops
 
 error() {
     if [ -f /dev/log ]; then
         logger "$*" --tag khiops --stderr
+    else
+        echo "$*" >&2
     fi
-    if [ -n "$DISPLAY" ]
-    then
-        notify-send "Khiops" "$*" -i /usr/share/pixmaps/khiops.png -u normal;
+    if [ -n "$DISPLAY" ] && command -v notify-send >/dev/null 2>&1; then
+        notify-send "Khiops" "$*" -i /usr/share/pixmaps/khiops.png -u normal
     fi
-    exit 1; 
+    unset _IS_CONDA
+    exit 1
 }
-
 
 warning() {
     if [ -f /dev/log ]; then
         logger "$*" --tag khiops --stderr
+    else
+        echo "$*" >&2
     fi
-    if [ -n "$DISPLAY" ]
-    then
-        notify-send "Khiops" "$*" -i /usr/share/pixmaps/khiops.png -u normal;
+    if [ -n "$DISPLAY" ]; then
+        notify-send "Khiops" "$*" -i /usr/share/pixmaps/khiops.png -u normal
     fi
 }
 
-if [[ ! -f /usr/bin/khiops-env ]]; then
-    error "/usr/bin/khiops-env is missing"
+get_script_dir() {
+    SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+    echo "$SCRIPT_DIR/"
+}
+
+if [[ ! -f "$(get_script_dir)"/khiops_env ]]; then
+    echo "$(get_script_dir)/khiops_env is missing"
+    exit 1
 fi
 
-# initialize Khiops environment
-source /usr/bin/khiops-env
+# Initialize Khiops env variables
+source $(get_script_dir)/khiops_env ""
 
 # Test if batch mode from parameters
 KHIOPS_BATCH_MODE=false
-for ((i=1;i<=$#;i++)); 
-do
+for ((i = 1; i <= $#; i++)); do
     if [ ${!i} = "-b" ] || [ ${!i} = "-h" ] || [ ${!i} = "-s" ] || [ ${!i} = "-v" ]; then
-	    KHIOPS_BATCH_MODE=true
+        KHIOPS_BATCH_MODE=true
         break
     fi
-done;
+done
 
-
-if [[ ! -e $KHIOPS_PATH/MODL ]]; then
-    error "Binary not found ($KHIOPS_PATH/MODL)"
-fi
-
-# Test multiple possible errors with the java GUI 
-if [  "$KHIOPS_BATCH_MODE" = false ]; then
-    if [ -z "$DISPLAY" ]; then
-        error "GUI is not available, please use the '-b' flag"
-    elif [ -z "$KHIOPS_JAVA_PATH" ]; then
-        if [ -z "$KHIOPS_JAVA_ERROR" ]; then
-            error "The khiops GUI is not configured properly. Please (re)install the 'khiops' package."
-        else
-            error "$KHIOPS_JAVA_ERROR"
-        fi
-    fi
+if [[ ! -e $KHIOPS_PATH ]]; then
+    error "Binary not found ($KHIOPS_PATH)"
 fi
 
 # Display error with mpi configuration
@@ -70,13 +61,35 @@ fi
 export CLASSPATH=$CLASSPATH:$KHIOPS_CLASSPATH
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$KHIOPS_JAVA_PATH
 
-if [[  $# -eq 0  ]]; then
-    # run without parameters
-    # run and save scenario and log files in directory KHIOPS_LAST_RUN_DIR
-    $KHIOPS_MPI_COMMAND MODL -o "${KHIOPS_LAST_RUN_DIR}"/scenario._kh -e "${KHIOPS_LAST_RUN_DIR}"/log.txt
+launch_khiops() {
+    if [[ $# -eq 0 ]]; then
+        # run without parameters
+        # run and save scenario and log files in directory KHIOPS_LAST_RUN_DIR
+        $KHIOPS_MPI_COMMAND "$KHIOPS_PATH" -o "${KHIOPS_LAST_RUN_DIR}"/scenario._kh -e "${KHIOPS_LAST_RUN_DIR}"/log.txt
+    else
+        # run with parameters
+        $KHIOPS_MPI_COMMAND "$KHIOPS_PATH" "$@"
+    fi
+}
+
+# Launck Khiops
+if [ "$KHIOPS_BATCH_MODE" = true ]; then
+    launch_khiops "$@"
 else
-    # run with parameters
-    $KHIOPS_MPI_COMMAND MODL "$@"
+    if [ "$_IS_CONDA" = true ] || [ -z "$DISPLAY" ]; then
+        error "GUI is not available, please use the '-b' flag"
+    else
+        if [ -z "$KHIOPS_JAVA_PATH" ]; then
+            if [ -z "$KHIOPS_JAVA_ERROR" ]; then
+                error "GUI is not available, please either use the '-b' flag, or install the 'khiops' native package for your host operating system."
+            else
+                error "$KHIOPS_JAVA_ERROR"
+            fi
+        else
+            launch_khiops "$@"
+        fi
+    fi
 fi
 
+unset _IS_CONDA
 exit $?
