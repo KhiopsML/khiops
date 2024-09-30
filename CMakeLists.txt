@@ -125,7 +125,7 @@ message(STATUS "Libraries will be stored in ${CMAKE_BINARY_DIR}/lib/")
 set(TMP_DIR ${PROJECT_BINARY_DIR}/tmp)
 
 # Set module path for the project
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/packaging")
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/packaging" ; "${CMAKE_CURRENT_SOURCE_DIR}/scripts")
 
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN 1)
