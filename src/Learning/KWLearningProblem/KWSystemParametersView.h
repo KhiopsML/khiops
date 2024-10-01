@@ -39,17 +39,4 @@ public:
 
 	// Libelles utilisateur
 	const ALString GetClassLabel() const override;
-
-	////////////////////////////////////////////////////////
-	//// Implementation
-protected:
-	// Calcul du nombre de processus utilise a partir de ce que l'utilisateur indique dans l'IHM
-	// Si nRequestedCoreNumber == 1 , c'est du sequentiel, on n'utilise qu'un seul processus
-	// Sinon on utilise un processus de plus que ce qui est demande sauf si il n'y a pas assez de
-	// processus MPI lances
-	int ComputeCoreNumber(int nRequestedCoreNumber) const;
-
-	// Pendant de la methode ComputeCoreNumber, renvoie le nombre de coeurs affiche a l'IHM a partir
-	// du nombre de processus utilises
-	int ComputeRequestedCoreNumber(int nCoreNumber) const;
 };
