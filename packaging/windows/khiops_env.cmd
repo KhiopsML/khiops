@@ -18,6 +18,7 @@ echo KHIOPS_COCLUSTERING_PATH: path of Khiops coclustering executable, to add in
 echo KHIOPS_MPI_COMMAND: MPI command to call the Khiops tool
 echo KHIOPS_JAVA_PATH: path of Java tool, to add in path
 echo KHIOPS_CLASSPATH: Khiops java libraries, to add in classpath
+echo KHIOPS_DRIVERS_LOCATION: search path of the drivers
 echo.
 echo If they are not already defined, the following variables used by Khiops are set:
 echo.
@@ -130,6 +131,7 @@ echo KHIOPS_TMP_DIR %KHIOPS_TMP_DIR%
 echo KHIOPS_MEMORY_LIMIT %KHIOPS_MEMORY_LIMIT%
 echo KHIOPS_API_MODE %KHIOPS_API_MODE%
 echo KHIOPS_RAW_GUI %KHIOPS_RAW_GUI%
+echo KHIOPS_DRIVERS_LOCATION %KHIOPS_DRIVERS_LOCATION%
 echo KHIOPS_JAVA_ERROR %KHIOPS_JAVA_ERROR%
 echo KHIOPS_MPI_ERROR %KHIOPS_MPI_ERROR%
 endlocal

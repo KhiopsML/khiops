@@ -21,7 +21,7 @@ int SystemFileDriverCreator::RegisterExternalDrivers()
 	SystemFileDriverLibrary* driverLibrary;
 	ALString sLibraryScheme;
 	SystemFileDriver* registeredDriver;
-	boolean bOk;
+	boolean bOk = true;
 	int i;
 	int nDriver;
 	ALString sTmp;
@@ -30,17 +30,46 @@ int SystemFileDriverCreator::RegisterExternalDrivers()
 
 	if (oaSystemFileDriver == NULL)
 		oaSystemFileDriver = new ObjectArray;
-
-#ifdef _WIN32
-	sLibraryPath = p_getenv("KHIOPS_HOME");
-	sLibraryPath += "\\bin";
-#elif defined __linux__
-	sLibraryPath = "/usr/lib/";
-#elif defined __APPLE__ // TODO: a verifier
-	sLibraryPath = "/usr/lib/";
-#endif
-	bOk = FileService::GetDirectoryContentExtended(sLibraryPath, &svDirectoryNames, &svFileNames);
 	nExternalDriverNumber = 0;
+
+	// On cherche les drivers dans le chemin renseigne par la variable d'environement KHIOPS_DRIVERS_LOCATION
+	// Si elle n'est pas renseigne, on cherche dans les chemins par defaut.
+
+	// Teste si KHIOPS_DRIVERS_LOCATION est renseignee avec une valeur correcte
+	sLibraryPath = p_getenv("KHIOPS_DRIVERS_LOCATION");
+	if (sLibraryPath != "")
+	{
+		if (!FileService::DirExists(sLibraryPath))
+		{
+			Global::AddError("", "",
+					 "Drivers location directory missing (KHIOPS_DRIVERS_LOCATION=" + sLibraryPath +
+					     ")");
+			bOk = false;
+		}
+	}
+
+	// Si KHIOPS_DRIVERS_LOCATION n'est pas renseignee, on cherche dans les valeurs par defaut
+	if (bOk and sLibraryPath == "")
+	{
+#ifdef _WIN32
+		sLibraryPath = p_getenv("KHIOPS_HOME");
+		sLibraryPath += "\\bin";
+#elif defined __linux__
+		sLibraryPath = "/usr/lib/";
+#elif defined __APPLE__ // TODO: a verifier
+		sLibraryPath = "/usr/lib/";
+#endif
+	}
+
+	if (bOk)
+	{
+		bOk = FileService::GetDirectoryContentExtended(sLibraryPath, &svDirectoryNames, &svFileNames);
+		// Le test suivant echoue sous windows, si on lance MODL en standalone (avec khy_test ou directement en ligne de commande)
+		// car KHIOPS_HOME n'est pas defini et on va chercher dan sle repertoire \lib qui n'existe pas
+		// if (not bOk)
+		// 	 Global::AddError("", "", "Unable to search drivers in directory " + sLibraryPath);
+	}
+
 	if (bOk)
 	{
 		// Parcours du repertoire et chargement de tous les fichiers qui ont un nom de la forme
