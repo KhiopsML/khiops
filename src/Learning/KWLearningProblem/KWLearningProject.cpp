@@ -426,7 +426,7 @@ boolean KWLearningProject::ShowSystemInformation(const ALString& sValue)
 	svEnvironmentVariables.Add("KHIOPS_HOME");
 	svEnvironmentVariables.Add("KHIOPS_API_MODE");
 	svEnvironmentVariables.Add("KHIOPS_MEMORY_LIMIT");
-	svEnvironmentVariables.Add("KHIOPS_DRIVERS_LOCATION");
+	svEnvironmentVariables.Add("KHIOPS_DRIVERS_PATH");
 	svEnvironmentVariables.Sort();
 	bEnvVarDefined = false;
 	cout << "Environment variables:" << endl;
