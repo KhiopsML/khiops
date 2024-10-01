@@ -51,7 +51,7 @@ jobs:
       - name: Build Khiops binaries
         run: |
           cmake --build --preset linux-gcc-release --parallel \
-            --target MODL MODL_Coclustering KhiopsNativeInterface KNITransfer norm_jar khiops_jar
+            --target MODL MODL_Coclustering _khiopsgetprocnumber KhiopsNativeInterface KNITransfer norm_jar khiops_jar
       - name: Build package with CPack
         run: cd build/linux-gcc-release && cpack -G RPM
       - name: Rename packages with codename
@@ -115,6 +115,8 @@ jobs:
         uses: ./.github/actions/test-khiops-install
       - name: Test Khiops on Iris dataset
         uses: ./.github/actions/test-khiops-on-iris
+        with:
+          os-decription: rockylinux-${{ matrix.rocky_version }}
   test-kni:
     needs: build
     runs-on: ubuntu-latest

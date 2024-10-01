@@ -54,7 +54,7 @@ jobs:
       - name: Build Khiops binaries
         run: |
           cmake --build --preset linux-gcc-release --parallel \
-            --target MODL MODL_Coclustering KhiopsNativeInterface KNITransfer norm_jar khiops_jar
+            --target MODL MODL_Coclustering _khiopsgetprocnumber KhiopsNativeInterface KNITransfer norm_jar khiops_jar
       - name: Build package with CPack
         run: cd build/linux-gcc-release && cpack -G DEB
       - name: Rename the packages to include the ubuntu codename
@@ -121,6 +121,8 @@ jobs:
         uses: ./.github/actions/test-khiops-install
       - name: Test Khiops on Iris dataset
         uses: ./.github/actions/test-khiops-on-iris
+        with:
+          os-decription: ${{ env.ID }}-${{ env.VERSION_CODENAME }}
   test-kni:
     needs: build
     runs-on: ubuntu-latest

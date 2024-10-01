@@ -1,46 +1,41 @@
 #!/bin/bash
-
-help()
-{
-    echo "Usage: khiops-env [-h, --help] [--env]"
-    echo "khiops-env is an internal script intended to be used by Khiops tool and Khiops wrappers only."
-    echo "If the --env flag is used, the environment list is printed in the standard output"
+help() {
+    echo "Usage: khiops_env [-h, --help] [--env]"
+    echo "khiops_env is an internal script intended to be used by Khiops tool and Khiops wrappers only."
+    echo "It sets all the environment variables required by the Khiops to run correctly (Java, MPI, etc)."
+    echo "Options:"
+    echo "   -h, --help show this help message and exit"
+    echo "   -env show the environment list and exit"
     echo
     echo "The following variables are used to set the path and classpath for the prerequisite of Khiops."
     echo
     echo "KHIOPS_PATH: path of Khiops executable, to add in path"
+    echo "KHIOPS_COCLUSTERING_PATH: path of Khiops coclustering executable, to add in path"
     echo "KHIOPS_MPI_COMMAND: MPI command to call the Khiops tool"
     echo "KHIOPS_JAVA_PATH: path of Java tool, to add in path"
     echo "KHIOPS_CLASSPATH: Khiops java libraries, to add in classpath"
-    echo
-    echo "In case of configuration problems, the variables KHIOPS_JAVA_ERROR and KHIOPS_MPI_ERROR contains error messages"
     echo
     echo "If they are not already defined, the following variables used by Khiops are set:"
     echo
     echo "KHIOPS_LAST_RUN_DIR: directory where Khiops writes output command file and log"
     echo "  (when not defined with -e and -o)"
     echo "KHIOPS_PROC_NUMBER: processes number launched by Khiops (it's default value corresponds to the"
-    echo "  number of physical cores of the computer plus one)"
+    echo "  number of physical cores of the computer)"
     echo
     echo "The following variables are not defined by default and can be used to change some default"
     echo " properties of Khiops:"
     echo
     echo "KHIOPS_TMP_DIR: Khiops temporary directory location (default: the system default)."
-    echo "  This location can be modified from the tool as well"
+    echo "  This location can be modified from the tool as well."
     echo "KHIOPS_MEMORY_LIMIT: Khiops memory limit in MB (default: the system memory limit)."
     echo "  The minimum value is 100 MB; this setting is ignored if it is above the system's memory limit."
     echo "  It can only be reduced from the tool."
-    echo "KHIOPS_API_MODE: standard or api mode for the management of output result files created by Khiops"
-    echo "  In standard mode, the result files are stored in the train database directory,"
-    echo "  unless an absolute path is specified, and the file extension is forced if necessary."
-    echo "  In api mode, the result files are stored in the current working directory, using the specified results as is."
-    echo "  . default behavior if not set: standard mode"
-    echo "  . set to 'true' to force standard mode"
-    echo "  . set to 'false' to force api mode"
     echo "KHIOPS_RAW_GUI: graphical user interface for file name selection"
     echo "  . default behavior if not set: depending on the file drivers available for Khiops"
     echo "  . set to 'true' to allow file name selection with uri schemas"
     echo "  . set to 'false' to allow local file name selection only with a file selection dialog"
+    echo "KHIOPS_MPI_HOST_FILE: provide hostfile to mpi."
+    echo "In case of configuration problems, the variables KHIOPS_JAVA_ERROR and KHIOPS_MPI_ERROR contain error messages."
 }
 
 [[ $# == 1 && $1 == "-h" ]] && help && exit 0
@@ -49,46 +44,32 @@ help()
 if [[ -z $KHIOPS_LAST_RUN_DIR ]]; then
     export KHIOPS_LAST_RUN_DIR=/tmp/khiops/$USER
 fi
+@USE_ENVIRONMENT_MODULE@
+@KHIOPS_JAVA_SETTINGS@
+get_script_dir() {
+    SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+    echo "$SCRIPT_DIR/"
+}
+@ADDITIONAL_ENV_VAR@
+@IS_CONDA_VAR@
 
-# Try to use environment modules to locate mpiexec if needed
-if ! command -v mpiexec &> /dev/null
-then
-    if source /etc/profile.d/modules.sh &> /dev/null
-    then
-        module unload mpi
-        module load mpi/@MPI_IMPL@-x86_64
-    fi
+# Setting up mpi for multiple machines
+if [[ -n $KHIOPS_MPI_HOST_FILE ]]; then
+    MPI_EXTRA_FLAGS="@MPIEXEC_HOSTFILE_FLAG@ $KHIOPS_MPI_HOST_FILE"
+    @EXPORT_ENV_VARIABLES@
 fi
 
-# Set java environment if Khiops GUI is installed
-if [ -f "/usr/share/khiops/khiops.jar" ]; then
-    if [[ -z $JAVA_HOME ]] && [ -f /usr/bin/java ]; then
-        JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:bin/java::" )
-    fi
-    if [[ ! -d $JAVA_HOME ]]; then
-        KHIOPS_JAVA_ERROR="The JAVA_HOME directory doesn't exist ($JAVA_HOME)."
-        unset JAVA_HOME
-    else
-        JVM_PATH=$(find  -L "$JAVA_HOME" -name libjvm.so 2> /dev/null )
-        if [[ -z $JVM_PATH ]]; then
-            KHIOPS_JAVA_ERROR="libjvm.so not found in JAVA_HOME ($JAVA_HOME)"
-        else
-            KHIOPS_JAVA_PATH=$(dirname "$JVM_PATH")
-            KHIOPS_CLASSPATH=/usr/share/khiops/norm.jar:/usr/share/khiops/khiops.jar
-        fi
-    fi
-fi
-
-@ADDITIONAL_EN_VAR@
+KHIOPS_PATH=@KHIOPS_PATH@@MODL_NAME@
+KHIOPS_COCLUSTERING_PATH=@KHIOPS_COCLUSTERING_PATH@MODL_Coclustering
 
 # Number of processes in use (must be set according to the physical cores number)
 if [[ -z $KHIOPS_PROC_NUMBER ]]; then
-    KHIOPS_PROC_NUMBER=$(lscpu -b -p=Core,Socket | grep -v '^#' | sort -u | wc -l)
+    KHIOPS_PROC_NUMBER=$("@GET_PROC_NUMBER_PATH@"_khiopsgetprocnumber | head -n 1)
 fi
 
-if command -v mpiexec &> /dev/null
-then
-    KHIOPS_MPI_COMMAND="mpiexec @KHIOPS_MPI_EXTRA_FLAG@ @MPIEXEC_NUMPROC_FLAG@ $KHIOPS_PROC_NUMBER"
+if command -v mpiexec &>/dev/null; then
+    KHIOPS_MPI_ERROR=""
+    KHIOPS_MPI_COMMAND="@KHIOPS_MPI_PATH@mpiexec $MPI_EXTRA_FLAGS @KHIOPS_MPI_EXTRA_FLAG@ @MPIEXEC_NUMPROC_FLAG@ $KHIOPS_PROC_NUMBER"
 else
     KHIOPS_MPI_ERROR="We didn't find mpiexec in the regular path. Parallel computation is unavailable: Khiops is launched in serial"
     KHIOPS_MPI_COMMAND=""
@@ -99,11 +80,9 @@ if [[ $KHIOPS_PROC_NUMBER -le 2 ]]; then
     KHIOPS_MPI_COMMAND=""
 fi
 
-KHIOPS_PATH=/usr/bin
-
-if [ "$1" = "--env" ];
-then
+if [ "$1" = "--env" ]; then
     echo KHIOPS_PATH "$KHIOPS_PATH"
+    echo KHIOPS_COCLUSTERING_PATH "$KHIOPS_COCLUSTERING_PATH"
     echo KHIOPS_MPI_COMMAND "$KHIOPS_MPI_COMMAND"
     echo KHIOPS_JAVA_PATH "$KHIOPS_JAVA_PATH"
     echo KHIOPS_CLASSPATH "$KHIOPS_CLASSPATH"
@@ -111,7 +90,6 @@ then
     echo KHIOPS_PROC_NUMBER "$KHIOPS_PROC_NUMBER"
     echo KHIOPS_TMP_DIR "$KHIOPS_TMP_DIR"
     echo KHIOPS_MEMORY_LIMIT "$KHIOPS_MEMORY_LIMIT"
-    echo KHIOPS_API_MODE "$KHIOPS_API_MODE"
     echo KHIOPS_RAW_GUI "$KHIOPS_RAW_GUI"
     echo KHIOPS_JAVA_ERROR "$KHIOPS_JAVA_ERROR"
     echo KHIOPS_MPI_ERROR "$KHIOPS_MPI_ERROR"

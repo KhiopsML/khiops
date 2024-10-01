@@ -6,6 +6,7 @@ add_subdirectory(genere)
 
 add_subdirectory(basetest)
 add_subdirectory(generetest)
+add_subdirectory(_khiopsgetprocnumber)
 
 # Add norm.jar (CMake names the target norm_jar)
 if(BUILD_JARS)

@@ -5,6 +5,7 @@ Unicode True
 
 # Set compresion to LZMA (faster)
 SetCompressor /SOLID lzma
+#SetCompress off
 
 # Include NSIS librairies
 !include "LogicLib.nsh"
@@ -15,10 +16,10 @@ SetCompressor /SOLID lzma
 
 # Include Custom libraries
 !include "KhiopsGlobals.nsh"
-!include "GetCoresCount.nsh"
-!include "CreateKhiopsEnvCmdFileFunc.nsh"
-!include "CreateKhiopsCmdFileFunc.nsh"
 !include "KhiopsPrerequisiteFunc.nsh"
+!include "ReplaceInFile.nsh"
+
+
 
 # Definitions for registry change notification
 !define SHCNE_ASSOCCHANGED 0x8000000
@@ -60,20 +61,11 @@ OutFile "khiops-${KHIOPS_VERSION}-setup.exe"
 # Variable definitions #
 ########################
 
-# MPI installation flag
-Var /GLOBAL IsMPIRequired
-
 # Requirements installation flags
 Var /GLOBAL MPIInstallationNeeded
 
 # Requirements installation messages
 Var /GLOBAL MPIInstallationMessage
-
-# Number of physical cores
-Var /GLOBAL PhysicalCoresNumber
-
-# Number of processes to use
-Var /GLOBAL ProcessNumber
 
 # Previous Uninstaller data
 Var /GLOBAL PreviousUninstaller
@@ -154,7 +146,7 @@ VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "${KHIOPS_VERSION}"
 Section "Install" SecInstall
   # In order to have shortcuts and documents for all users
   SetShellVarContext all
-
+  
   # Detect Java
   Call RequirementsDetection
 
@@ -171,8 +163,12 @@ Section "Install" SecInstall
   SetOutPath "$INSTDIR\bin"
   File "${KHIOPS_WINDOWS_BUILD_DIR}\bin\MODL.exe"
   File "${KHIOPS_WINDOWS_BUILD_DIR}\bin\MODL_Coclustering.exe"
+  File "${KHIOPS_WINDOWS_BUILD_DIR}\bin\_khiopsgetprocnumber.exe"
   File "${KHIOPS_WINDOWS_BUILD_DIR}\jars\norm.jar"
   File "${KHIOPS_WINDOWS_BUILD_DIR}\jars\khiops.jar"
+  File "..\khiops_env.cmd"
+  File "..\khiops.cmd"
+  File "..\khiops_coclustering.cmd"
 
   # Install Docs
   SetOutPath "$INSTDIR"
@@ -331,15 +327,29 @@ Section "Install" SecInstall
   # Finalize the installation #
   #############################
 
+  # Setting up the GUI in khiops_env.cmd: replace @GUI_STATUS@ by "true" in the installed file
+  Push @GUI_STATUS@ 
+  Push 'true' 
+  Push all 
+  Push all 
+  Push $INSTDIR\bin\khiops_env.cmd
+  Call ReplaceInFile
 
-  # Creation of Khiops cmd files for Khiops et Khiops Coclustering
-  StrCpy $ProcessNumber $PhysicalCoresNumber
-  ${If} $PhysicalCoresNumber >= 2
-      IntOp $ProcessNumber $PhysicalCoresNumber + 1
-  ${EndIf}
-  ${CreateKhiopsEnvCmdFile} "$INSTDIR\bin\khiops_env.cmd" "$INSTDIR" $ProcessNumber
-  ${CreateKhiopsCmdFile} "$INSTDIR\bin\khiops.cmd" "MODL" "" "$INSTDIR" "scenario._kh" "log.txt" $IsMPIRequired
-  ${CreateKhiopsCmdFile} "$INSTDIR\bin\khiops_coclustering.cmd" "MODL_Coclustering" "" "$INSTDIR" "scenario._khc" "logc.txt" "0"
+  # Setting up MPI in khiops_env.cmd: replace @SET_MPI@ by "SET_MPI_SYSTEM_WIDE" in the installed file
+  Push @SET_MPI@
+  Push SET_MPI_SYSTEM_WIDE 
+  Push all 
+  Push all 
+  Push $INSTDIR\bin\khiops_env.cmd
+  Call ReplaceInFile
+
+  # Setting up IS_CONDA_VAR variable in khiops_env.cmd: replace @SET_MPI@ by an empty string: this is not an installer for conda
+  Push @IS_CONDA_VAR@
+  Push "" 
+  Push all 
+  Push all 
+  Push $INSTDIR\bin\khiops_env.cmd
+  Call ReplaceInFile
 
   # Create the Khiops shell
   FileOpen $0 "$INSTDIR\bin\shell_khiops.cmd" w
@@ -358,7 +368,6 @@ Section "Install" SecInstall
   #####################################
   # Windows environment customization #
   # ###################################
-
 
   # Write registry keys to add Khiops in the Add/Remove Programs pane
   WriteRegStr HKLM "Software\Khiops" "" $INSTDIR
@@ -544,6 +553,7 @@ Section "Uninstall"
   Delete "$INSTDIR\bin\khiops_coclustering.cmd"
   Delete "$INSTDIR\bin\MODL.exe"
   Delete "$INSTDIR\bin\MODL_Coclustering.exe"
+  Delete "$INSTDIR\bin\_khiopsgetprocnumber.exe"
   Delete "$INSTDIR\bin\norm.jar"
   Delete "$INSTDIR\bin\khiops.jar"
   Delete "$INSTDIR\bin\shell_khiops.cmd"
@@ -738,42 +748,28 @@ Function RequirementsDetection
   ${EndIf}
 
   # Decide if MPI is required by detecting the number of cores
-  StrCpy $PhysicalCoresNumber "0"
-  Call GetProcessorPhysCoreCount
-  Pop $0
-  StrCpy $PhysicalCoresNumber $0
-  ${If} $PhysicalCoresNumber > 1
-      StrCpy $IsMPIRequired "1"
-  ${Else}
-      StrCpy $IsMPIRequired "0"
-  ${EndIf}
-  ${If} $IsMPIRequired == "1"
-      # Note: This call defines MPIInstalledVersion
-      Call DetectAndLoadMPIEnvironment
-  ${EndIf}
+  # Note: This call defines MPIInstalledVersion
+  Call DetectAndLoadMPIEnvironment
 
-  # Try to install MPI if it is required
+  # Try to install MPI
   StrCpy $MPIInstallationNeeded "0"
   StrCpy $MPIInstallationMessage ""
-  ${If} $IsMPIRequired == "1"
-    # If it is not installed install it
-    ${If} $MPIInstalledVersion == "0"
+ 
+  # If it is not installed install it
+  ${If} $MPIInstalledVersion == "0"
       StrCpy $MPIInstallationMessage "Microsoft MPI version ${MSMPI_VERSION} will be installed"
       StrCpy $MPIInstallationNeeded "1"
-    # Otherwise install only if the required version is newer than the installed one
-    ${Else}
+  # Otherwise install only if the required version is newer than the installed one
+  ${Else}
       ${VersionCompare} "${MPIRequiredVersion}" "$MPIInstalledVersion" $0
       ${If} $0 == 1
         StrCpy $MPIInstallationMessage "Microsoft MPI will be upgraded to version ${MSMPI_VERSION}"
         StrCpy $MPIInstallationNeeded "1"
       ${Else}
         StrCpy $MPIInstallationMessage "Microsoft MPI version already installed"
-          ${EndIf}
       ${EndIf}
-  # Otherwise just inform that MPI is not required
-  ${Else}
-    StrCpy $MPIInstallationMessage "Microsoft MPI installation not required"
   ${EndIf}
+ 
 
   # Show debug information
   !ifdef DEBUG
