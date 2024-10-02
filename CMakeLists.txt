@@ -270,6 +270,10 @@ function(set_unix_khiops_options target)
                                              -Wno-inconsistent-missing-override)
   endif()
 
+  # Disable "floating-point expression contraction" on clang and gcc to improve reproducibility beetween x86_64 and
+  # arm64
+  target_compile_options(${target} PRIVATE -ffp-contract=off)
+
 endfunction(set_unix_khiops_options)
 
 # Sets the compiling options for MSVC

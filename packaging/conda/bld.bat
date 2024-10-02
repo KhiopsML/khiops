@@ -2,9 +2,12 @@ REM Echo all output
 @echo on
 
 REM Build the Khiops binaries
-cmake --preset windows-msvc-release -DBUILD_JARS=OFF -DTESTING=OFF
+REM Specify empty target platform and generator toolset for CMake with Ninja on
+REM Windows
+REM Ninja does not expect target platform and generator toolset.
+REM However, CMake Windows presets set these, which results in Ninja failure.
+cmake --preset windows-msvc-release -DBUILD_JARS=OFF -DTESTING=OFF -A "" -T ""
 cmake --build --preset windows-msvc-release --parallel --target MODL MODL_Coclustering KhiopsNativeInterface KNITransfer _khiopsgetprocnumber
-
 
 mkdir %PREFIX%\bin
 

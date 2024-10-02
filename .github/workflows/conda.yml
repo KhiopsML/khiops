@@ -31,7 +31,7 @@ jobs:
           # Linux: We use the Khiops dev debian:10 container to build with glibc 2.28
           #        It ensures compatibility with glibc >= 2.28 (in particular Rocky 8)
           - {os: ubuntu-22.04, os-family: linux-64, json-image: '{"image": "ghcr.io/khiopsml/khiops/khiopsdev-debian10:latest"}'}
-          - {os: windows-2019, os-family: win-64, json-image: '{"image": null}'}
+          - {os: windows-2022, os-family: win-64, json-image: '{"image": null}'}
           - {os: macos-13, os-family: osx-64, json-image: '{"image": null}'}
           - {os: macos-14, os-family: osx-arm64, json-image: '{"image": null}'}
     container: ${{ fromJSON(matrix.setup.json-image) }}
@@ -45,10 +45,10 @@ jobs:
       - name: Install Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
-          miniconda-version: latest
+          miniforge-version: latest
           python-version: '3.12'
       - name: Install Dependency Requirements for Building Conda Packages
-        run: conda install conda-build conda-verify
+        run: conda install -y conda-build
       # We need MacOS SDK 10.10 to build for macOS Intel
       # See: https://docs.conda.io/projects/conda-build/en/3.21.x/resources/compiler-tools.html#macos-sdk
       - name: Install Mac OS SDK 10.10
@@ -68,7 +68,6 @@ jobs:
             KHIOPS_RAW_VERSION="$(./scripts/khiops-version)"
           fi
           echo "KHIOPS_VERSION=$(echo $KHIOPS_RAW_VERSION | sed 's/-//')" >> "$GITHUB_ENV"
-
           # On tag and macOS: Set the environment variables to sign the binaries
           if [[ "${{ runner.os }}" == "macOS" && "${{ github.ref_type }}" == "tag" ]]
           then
@@ -77,13 +76,9 @@ jobs:
             echo "KHIOPS_APPLE_CERTIFICATE_PASSWORD=${{ secrets.KHIOPS_APPLE_CERTIFICATE_PASSWORD }}" >> "$GITHUB_ENV"
             echo "KHIOPS_APPLE_TMP_KEYCHAIN_PASSWORD=${{ secrets.KHIOPS_APPLE_TMP_KEYCHAIN_PASSWORD }}" >> "$GITHUB_ENV"
           fi
-      - name: Build conda packages (Windows)
-        if: runner.os == 'Windows'
-        run: conda build --output-folder ./build/conda ./packaging/conda
-      # In Linux/macOS we need the conda-forge channel to install their pinned versions
-      - name: Build conda packages (Linux/macOS)
-        if: runner.os != 'Windows'
-        run: conda build --channel conda-forge --output-folder ./build/conda ./packaging/conda
+      - name: Build conda packages
+        run: |
+          conda build --output-folder ./build/conda ./packaging/conda
       - name: Upload conda packages artifact
         uses: actions/upload-artifact@v4
         with:
@@ -110,19 +105,17 @@ jobs:
       - name: Install Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
-          miniconda-version: latest  # needed for macOS 13
+          miniforge-version: latest  # needed for macOS 13
           python-version: ${{ matrix.python-version }}
       - name: Download Conda Package Artifact
         uses: actions/download-artifact@v4
         with:
           name: khiops-conda-${{ matrix.env.os-family }}
           path: ./build/conda
-      - name: Install the Conda package (Windows)
-        if: runner.os == 'Windows'
-        run: conda install --channel ./build/conda khiops-core
-      # In Linux/macOS we need the conda-forge channel to install their pinned versions
-      - name: Install the Conda package (Linux/macOS)
-        if: runner.os != 'Windows'
+      - name: Install the Conda package
+        run: |
+          conda install --channel ./build/conda khiops-core
+      - name: Test that the executables are installed
         run: |
           conda install --channel conda-forge --channel ./build/conda khiops-core
       - name: Add  CONDA_PREFIX to shared PATH
@@ -157,10 +150,11 @@ jobs:
       - name: Install Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
-          miniconda-version: latest
+          miniforge-version: latest
           python-version: '3.12'
       - name: Install requirement packages
-        run: conda install -y anaconda-client conda-index
+        run: |
+          conda install -y anaconda-client conda-index
       - name: Reindex the package directory
         run: python -m conda_index ./build/conda
       - name: Upload the packages to anaconda.org
