@@ -69,7 +69,7 @@ fi
 
 if command -v mpiexec &>/dev/null; then
     KHIOPS_MPI_ERROR=""
-    KHIOPS_MPI_COMMAND="@KHIOPS_MPI_PATH@mpiexec $MPI_EXTRA_FLAGS @KHIOPS_MPI_EXTRA_FLAG@ @MPIEXEC_NUMPROC_FLAG@ $KHIOPS_PROC_NUMBER"
+    KHIOPS_MPI_COMMAND="$(type -P mpiexec) $MPI_EXTRA_FLAGS @KHIOPS_MPI_EXTRA_FLAG@ @MPIEXEC_NUMPROC_FLAG@ $KHIOPS_PROC_NUMBER"
 else
     KHIOPS_MPI_ERROR="We didn't find mpiexec in the regular path. Parallel computation is unavailable: Khiops is launched in serial"
     KHIOPS_MPI_COMMAND=""
