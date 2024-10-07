@@ -72,7 +72,6 @@ if(UNIX)
     set(KHIOPS_PATH "$(get_script_dir)")
     set(KHIOPS_COCLUSTERING_PATH "$(get_script_dir)")
     set(GET_PROC_NUMBER_PATH "$(get_script_dir)")
-    set(KHIOPS_MPI_PATH "$(get_script_dir)") # We use mpiexec in conda's bin directory
     set(IS_CONDA_VAR "\n# Inside conda environment\nexport _IS_CONDA=true")
   else()
     if(IS_FEDORA_LIKE)
@@ -82,7 +81,6 @@ if(UNIX)
     endif(IS_FEDORA_LIKE)
     set(KHIOPS_COCLUSTERING_PATH "/usr/bin/")
     set(GET_PROC_NUMBER_PATH "/usr/bin/")
-    set(KHIOPS_MPI_PATH "") # We use mpiexec given by the PATH
 
     configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_env/use_environment_module.sh.in
                    ${TMP_DIR}/use_environment_module.sh @ONLY NEWLINE_STYLE UNIX)
