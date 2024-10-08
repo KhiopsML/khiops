@@ -72,11 +72,6 @@ void Object::AddFatalError(const ALString& sLabel) const
 	Global::AddFatalError(GetClassLabel(), GetObjectLabel(), sLabel);
 }
 
-const ALString Object::GetTranslatedClassLabel() const
-{
-	return GetClassLabel();
-}
-
 int ObjectCompare(const void* elem1, const void* elem2)
 {
 	Object* object1;
