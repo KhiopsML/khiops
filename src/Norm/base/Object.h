@@ -88,9 +88,6 @@ public:
 	virtual void AddError(const ALString& sLabel) const;
 	virtual void AddFatalError(const ALString& sLabel) const;
 
-	// Libelle traduit de la classe
-	const ALString GetTranslatedClassLabel() const;
-
 	///////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 private:

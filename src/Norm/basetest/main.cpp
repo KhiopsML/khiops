@@ -8,7 +8,7 @@ int main(int argc, char** argv)
 {
 	const ALString sBatchOption = "-batch";
 
-	// debug(signal(SIGSEGV, NULL));
+	debug(signal(SIGSEGV, NULL));
 
 	// MemSetAllocIndexExit(11445);
 	// MemoryStatsManager::OpenLogFile("d:\\temp\\MemoryStats.log", 10000, MemoryStatsManager::AllStats);
