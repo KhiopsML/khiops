@@ -14,6 +14,9 @@
 
 //////////////////////////////////////////////////////
 // Parser de fichier JSON pour en extraire les tokens
+// Permet une analyse specifique de fichier json token par token,
+// efficace en temps en memoire, car ne necessitant pas d'instancier
+// la strcuture des objets json
 // Attention: les methodes sont toutes statiques
 class JSONTokenizer : public TextService
 {

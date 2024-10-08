@@ -43,8 +43,9 @@ boolean JSONFile::OpenForWrite()
 
 	// Preparation de la copie sur HDFS si necessaire
 	bOk = PLRemoteFileService::BuildOutputWorkingFile(sFileName, sLocalFileName);
+
+	// Ouverture du fichier
 	if (bOk)
-		// Ouverture du fichier
 		bOk = FileService::OpenOutputFile(sLocalFileName, fstJSON);
 
 	// Debut de l'objet global
