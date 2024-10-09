@@ -151,8 +151,7 @@ void UIUnit::Open()
 								 "Replay failure\t: " + sCommand + " " + sValue +
 								     " at index " +
 								     IntToString(uiUnit->nCurrentItemIndex));
-						CloseCommandFiles();
-						DeleteAllInputSearchReplaceValues();
+						CleanCommandLineManagement();
 						if (bBatchMode)
 							Global::AddFatalError("Command file", "", "Batch mode failure");
 						break;
@@ -222,8 +221,7 @@ void UIUnit::Open()
 
 				// Arret sinon
 				Global::AddError("Command file", "", "Replay failure\t: " + sCommand + " " + sValue);
-				CloseCommandFiles();
-				DeleteAllInputSearchReplaceValues();
+				CleanCommandLineManagement();
 				if (bBatchMode)
 					Global::AddFatalError("Command file", "", "Batch mode failure");
 				break;
@@ -274,7 +272,7 @@ void UIUnit::Open()
 			else
 			// Sinon, en mode textuel, on n'autorise pas d'interactions sans scenario
 			{
-				if (fInputCommands != NULL)
+				if (commandFile.IsInputCommandFileOpened())
 					AddFatalError("Unexpected end of file in the input commands file");
 				else
 					AddFatalError("Missing input commands file");

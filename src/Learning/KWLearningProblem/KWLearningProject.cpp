@@ -218,8 +218,8 @@ void KWLearningProject::StartMaster(int argc, char** argv)
 	delete learningProblemView;
 	delete learningProblem;
 
-	// Fermeture des fichiers input output et erreurs
-	UIObject::CloseCommandFiles();
+	// Fermeture des fichiers de commandes input, output et erreurs
+	UIObject::CleanCommandLineManagement();
 
 	// Dechargement de la DLL jvm, potentiellement chargee soit pour l'IHM, soit pour HDFS
 	// Et cela n'est pas un probleme d'appeler cette methode si la DLL jvm
