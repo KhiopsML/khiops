@@ -15,7 +15,7 @@ void SetWindowsDebugDir(const ALString& sDatasetFamily, const ALString& sDataset
 	// A parametrer pour chaque utilisateur
 	// Devra etre fait plus proprement quand tout l'equipe sera sur git, par exemple via une variable
 	// d'environnement et quelques commentaires clairs
-	sUserRootPath = "C:/Applications/boullema/LearningTest.V10.5.3-b.0/TestKhiops/";
+	sUserRootPath = "C:/Applications/boullema/LearningTest.V10.5.5-b.0/TestKhiops/";
 
 	// Pour permettre de continuer a utiliser LearningTest, on ne fait rien s'il y a deja un fichier test.prm
 	// dans le repertoire courante
@@ -24,6 +24,7 @@ void SetWindowsDebugDir(const ALString& sDatasetFamily, const ALString& sDataset
 
 	// Changement de repertoire, uniquement pour Windows
 	nRet = _chdir(sUserRootPath + sDatasetFamily + "/" + sDataset);
+	assert(nRet == 0);
 #endif
 }
 
