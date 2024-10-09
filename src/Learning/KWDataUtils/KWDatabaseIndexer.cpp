@@ -23,6 +23,8 @@ KWDatabaseIndexer::~KWDatabaseIndexer()
 void KWDatabaseIndexer::InitializeFromDatabase(const KWDatabase* database)
 {
 	KWClass* kwcMainClass;
+	RMTaskResourceGrant defaultGrantedResources;
+	RMTaskResourceRequirement defaultRequirements;
 
 	require(database == NULL or database->Check());
 
@@ -70,7 +72,11 @@ void KWDatabaseIndexer::InitializeFromDatabase(const KWDatabase* database)
 	}
 
 	// Memorisation du nombre d'esclaves utilisables au moment de l'indexation
-	nResourceSlaveNumber = RMResourceConstraints::GetMaxCoreNumberOnCluster();
+	// Pour cela, les ressources obtenues pour des exigences par defaut fournissent le nombre total d'esclaves disponibles
+	// (sur un cluster le nombre d'esclave est different du nombre de processus -1)
+
+	RMParallelResourceManager::ComputeGrantedResources(&defaultRequirements, &defaultGrantedResources);
+	nResourceSlaveNumber = defaultGrantedResources.GetSlaveNumber();
 }
 
 boolean KWDatabaseIndexer::IsInitialized() const
