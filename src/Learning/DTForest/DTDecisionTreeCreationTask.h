@@ -162,9 +162,6 @@ protected:
 	////////////////////////////////////////////////////////////
 	// Implementation du ComputeResourceRequirements
 
-	// Estimation du nombre optimal de processeurs
-	int ComputeMaxSlaveProcessNumber() const;
-
 	/** Estimation de la memoire partagee */
 	longint ComputeSharedNecessaryMemory();
 
