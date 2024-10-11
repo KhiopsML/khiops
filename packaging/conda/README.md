@@ -12,12 +12,7 @@ You'll need `conda-build` installed in your system.
 export KHIOPS_RAW_VERSION=$(scripts/khiops-version)
 export KHIOPS_VERSION=$(echo $KHIOPS_RAW_VERSION | sed 's/-//')
 
-# Windows
 conda build --output-folder ./khiops-conda packaging/conda
-
-# Linux/macOS
-# Note: We need the conda-forge channel to obtain the pinned versions of MPICH
-conda build --channel conda-forge --output-folder ./khiops-conda packaging/conda
 ```
 
 ### Signing the Executables in macOS
