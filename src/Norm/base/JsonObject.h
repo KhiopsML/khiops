@@ -40,7 +40,21 @@ public:
 	};
 
 	// Type de valeur
-	virtual int GetType() = 0;
+	virtual int GetType() const = 0;
+
+	// Acces type a la valeur
+	JsonObject* GetObjectValue() const;
+	JsonArray* GetArrayValue() const;
+	JsonString* GetStringValue() const;
+	JsonNumber* GetNumberValue() const;
+	JsonBoolean* GetBooleanValue() const;
+	JsonNull* GetNullValue() const;
+
+	// Conversion du type en chaine de caracteres
+	virtual const ALString TypeToString() const = 0;
+
+	// Libelle de la classe
+	const ALString GetClassLabel() const override;
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -54,7 +68,7 @@ public:
 	~JsonObject();
 
 	// Type de valeur
-	int GetType() override;
+	int GetType() const override;
 
 	// Ajout d'un membre a l'objet
 	void AddMember(JsonMember* member);
@@ -82,9 +96,8 @@ public:
 	void Write(ostream& ost) const override;
 	void WriteIndent(ostream& ost, int nIndentLevel) const;
 
-	// Libelles utilisateurs
-	const ALString GetClassLabel() const override;
-	const ALString GetObjectLabel() const override;
+	// Conversion du type en chaine de caracteres
+	const ALString TypeToString() const override;
 
 	// Methodes de test
 	static void TestReadWrite(const ALString& sReadFileName, const ALString& sWriteFileName);
@@ -119,7 +132,7 @@ public:
 	~JsonArray();
 
 	// Type de valeur
-	int GetType() override;
+	int GetType() const override;
 
 	// Ajout d'une valeur au tableau
 	void AddValue(JsonValue* value);
@@ -138,9 +151,8 @@ public:
 	void Write(ostream& ost) const override;
 	void WriteIndent(ostream& ost, int nIndentLevel) const;
 
-	// Libelles utilisateurs
-	const ALString GetClassLabel() const override;
-	const ALString GetObjectLabel() const override;
+	// Conversion du type en chaine de caracteres
+	const ALString TypeToString() const override;
 
 	///////////////////////////////////////////////////////////////////
 	//// Implementation
@@ -160,7 +172,7 @@ public:
 	~JsonString();
 
 	// Type de valeur
-	int GetType() override;
+	int GetType() const override;
 
 	// Valeur de la chaine
 	// La valeur est au format C, et non json
@@ -170,9 +182,8 @@ public:
 	// Affichage, ecriture dans un fichier
 	void Write(ostream& ost) const override;
 
-	// Libelles utilisateurs
-	const ALString GetClassLabel() const override;
-	const ALString GetObjectLabel() const override;
+	// Conversion du type en chaine de caracteres
+	const ALString TypeToString() const override;
 
 	///////////////////////////////////////////////////////////////////
 	//// Implementation
@@ -191,7 +202,7 @@ public:
 	~JsonNumber();
 
 	// Type de valeur
-	int GetType() override;
+	int GetType() const override;
 
 	// Valeur du nombre
 	void SetNumber(double dValue);
@@ -200,9 +211,8 @@ public:
 	// Affichage, ecriture dans un fichier
 	void Write(ostream& ost) const override;
 
-	// Libelles utilisateurs
-	const ALString GetClassLabel() const override;
-	const ALString GetObjectLabel() const override;
+	// Conversion du type en chaine de caracteres
+	const ALString TypeToString() const override;
 
 	///////////////////////////////////////////////////////////////////
 	//// Implementation
@@ -221,7 +231,7 @@ public:
 	~JsonBoolean();
 
 	// Type de valeur
-	int GetType() override;
+	int GetType() const override;
 
 	// Valeur du booleen
 	void SetBoolean(boolean bValue);
@@ -230,9 +240,8 @@ public:
 	// Affichage, ecriture dans un fichier
 	void Write(ostream& ost) const override;
 
-	// Libelles utilisateurs
-	const ALString GetClassLabel() const override;
-	const ALString GetObjectLabel() const override;
+	// Conversion du type en chaine de caracteres
+	const ALString TypeToString() const override;
 
 	///////////////////////////////////////////////////////////////////
 	//// Implementation
@@ -251,14 +260,13 @@ public:
 	~JsonNull();
 
 	// Type de valeur
-	int GetType() override;
+	int GetType() const override;
 
 	// Affichage, ecriture dans un fichier
 	void Write(ostream& ost) const override;
 
-	// Libelles utilisateurs
-	const ALString GetClassLabel() const override;
-	const ALString GetObjectLabel() const override;
+	// Conversion du type en chaine de caracteres
+	const ALString TypeToString() const override;
 
 	///////////////////////////////////////////////////////////////////
 	//// Implementation

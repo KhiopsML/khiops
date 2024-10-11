@@ -5,6 +5,50 @@
 #include "JsonObject.h"
 
 /////////////////////////////////////////////
+// Classe JsonValue
+
+JsonObject* JsonValue::GetObjectValue() const
+{
+	require(GetType() == JsonValue::ObjectValue);
+	return cast(JsonObject*, this);
+}
+
+JsonArray* JsonValue::GetArrayValue() const
+{
+	require(GetType() == JsonValue::ArrayValue);
+	return cast(JsonArray*, this);
+}
+
+JsonString* JsonValue::GetStringValue() const
+{
+	require(GetType() == JsonValue::StringValue);
+	return cast(JsonString*, this);
+}
+
+JsonNumber* JsonValue::GetNumberValue() const
+{
+	require(GetType() == JsonValue::NumberValue);
+	return cast(JsonNumber*, this);
+}
+
+JsonBoolean* JsonValue::GetBooleanValue() const
+{
+	require(GetType() == JsonValue::BooleanValue);
+	return cast(JsonBoolean*, this);
+}
+
+JsonNull* JsonValue::GetNullValue() const
+{
+	require(GetType() == JsonValue::NullValue);
+	return cast(JsonNull*, this);
+}
+
+const ALString JsonValue::GetClassLabel() const
+{
+	return "json " + TypeToString();
+}
+
+/////////////////////////////////////////////
 // Classe JsonObject
 
 JsonObject::JsonObject() {}
@@ -14,7 +58,7 @@ JsonObject::~JsonObject()
 	oaMembers.DeleteAll();
 }
 
-int JsonObject::GetType()
+int JsonObject::GetType() const
 {
 	return ObjectValue;
 }
@@ -116,14 +160,9 @@ void JsonObject::WriteIndent(ostream& ost, int nIndentLevel) const
 	}
 }
 
-const ALString JsonObject::JsonObject::GetClassLabel() const
+const ALString JsonObject::JsonObject::TypeToString() const
 {
-	return "json object";
-}
-
-const ALString JsonObject::GetObjectLabel() const
-{
-	return "";
+	return "object";
 }
 
 void JsonObject::TestReadWrite(const ALString& sReadFileName, const ALString& sWriteFileName)
@@ -153,7 +192,7 @@ JsonArray::~JsonArray()
 	oaValues.DeleteAll();
 }
 
-int JsonArray::GetType()
+int JsonArray::GetType() const
 {
 	return ArrayValue;
 }
@@ -232,14 +271,9 @@ void JsonArray::WriteIndent(ostream& ost, int nIndentLevel) const
 	}
 }
 
-const ALString JsonArray::GetClassLabel() const
+const ALString JsonArray::TypeToString() const
 {
-	return "json array";
-}
-
-const ALString JsonArray::GetObjectLabel() const
-{
-	return "";
+	return "array";
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -249,7 +283,7 @@ JsonString::JsonString() {}
 
 JsonString::~JsonString() {}
 
-int JsonString::GetType()
+int JsonString::GetType() const
 {
 	return StringValue;
 }
@@ -275,14 +309,9 @@ void JsonString::Write(ostream& ost) const
 	ost << '"';
 }
 
-const ALString JsonString::GetClassLabel() const
+const ALString JsonString::TypeToString() const
 {
-	return "json string";
-}
-
-const ALString JsonString::GetObjectLabel() const
-{
-	return "";
+	return "string";
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -295,7 +324,7 @@ JsonNumber::JsonNumber()
 
 JsonNumber::~JsonNumber() {}
 
-int JsonNumber::GetType()
+int JsonNumber::GetType() const
 {
 	return NumberValue;
 }
@@ -315,14 +344,9 @@ void JsonNumber::Write(ostream& ost) const
 	ost << std::setprecision(10) << dNumberValue;
 }
 
-const ALString JsonNumber::GetClassLabel() const
+const ALString JsonNumber::TypeToString() const
 {
-	return "json number";
-}
-
-const ALString JsonNumber::GetObjectLabel() const
-{
-	return "";
+	return "number";
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -335,7 +359,7 @@ JsonBoolean::JsonBoolean()
 
 JsonBoolean::~JsonBoolean() {}
 
-int JsonBoolean::GetType()
+int JsonBoolean::GetType() const
 {
 	return BooleanValue;
 }
@@ -358,14 +382,9 @@ void JsonBoolean::Write(ostream& ost) const
 		ost << "false";
 }
 
-const ALString JsonBoolean::GetClassLabel() const
+const ALString JsonBoolean::TypeToString() const
 {
-	return "json boolean";
-}
-
-const ALString JsonBoolean::GetObjectLabel() const
-{
-	return "";
+	return "boolean";
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -375,7 +394,7 @@ JsonNull::JsonNull() {}
 
 JsonNull::~JsonNull() {}
 
-int JsonNull::GetType()
+int JsonNull::GetType() const
 {
 	return NullValue;
 }
@@ -385,14 +404,9 @@ void JsonNull::Write(ostream& ost) const
 	ost << "null";
 }
 
-const ALString JsonNull::GetClassLabel() const
+const ALString JsonNull::TypeToString() const
 {
-	return "json null";
-}
-
-const ALString JsonNull::GetObjectLabel() const
-{
-	return "";
+	return "null";
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -504,7 +518,7 @@ void JsonMember::WriteIndent(ostream& ost, int nIndentLevel) const
 
 const ALString JsonMember::GetClassLabel() const
 {
-	return "json member";
+	return "member";
 }
 
 const ALString JsonMember::GetObjectLabel() const

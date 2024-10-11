@@ -1656,7 +1656,6 @@ boolean JsonObject::ReadFile(const ALString& sFileName)
 
 			/* En cas d'erreur, ajout d'une ligne blanche pour separer des autres logs */
 			AddError("Errors detected during parsing " + sFileName + ": read operation cancelled");
-			AddSimpleMessage("");
 			bOk = false;
 		}
 		nJsonFileParsingErrorNumber = 0;

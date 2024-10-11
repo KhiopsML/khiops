@@ -9,8 +9,10 @@ class CommandFile;
 #include "Object.h"
 #include "ALString.h"
 #include "Vector.h"
-#include "PLRemoteFileService.h"
+#include "Longint.h"
 #include "FileService.h"
+#include "PLRemoteFileService.h"
+#include "JsonObject.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // Classe CommandFile
@@ -49,11 +51,11 @@ public:
 	void AddInputSearchReplaceValues(const ALString& sSearchValue, const ALString& sReplaceValue);
 
 	// Nombre de paires de personnalisation
-	int GetInputSearchReplaceValueNumber();
+	int GetInputSearchReplaceValueNumber() const;
 
 	// Acces aux valeurs d'une paire de personnalisation
-	const ALString& GetInputSearchValueAt(int nIndex);
-	const ALString& GetInputReplaceValueAt(int nIndex);
+	const ALString& GetInputSearchValueAt(int nIndex) const;
+	const ALString& GetInputReplaceValueAt(int nIndex) const;
 
 	// Nettoyage de toutes les paires
 	void DeleteAllInputSearchReplaceValues();
@@ -145,7 +147,7 @@ public:
 	// Verification de la validite des parametres, avec emission de messages d'erreurs
 	boolean Check() const override;
 
-	// Ouverture du fichier de commande en entree, avec son son eventuele fichier de parametrage json
+	// Ouverture du fichier de commande en entree, avec son son eventuel fichier de parametrage json
 	boolean OpenInputCommandFile();
 	boolean IsInputCommandFileOpened() const;
 
@@ -170,8 +172,48 @@ public:
 	///////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
+	// Chargement du fichier json en entree et verification de sa validite
+	boolean LoadJsonParameters();
+
+	// Test de la validite d'un nom de variable, avec creation si necessaire d'un message d'erreur
+	// complet, y compris la valeur testee
+	boolean CheckVariableName(const ALString& sValue, ALString& sMessage) const;
+
+	// Test si une valeur correspond a un nom de variable au format camelCase
+	boolean IsCamelCaseVariableName(const ALString& sValue) const;
+
+	// Test si un nom de variable correspond a un contenu de type byte, donc encode au format base64
+	// Un tel nom de variable au format camelCase doit etre prefixe par byte
+	boolean IsByteVariableName(const ALString& sValue) const;
+
+	// Transformation d'un nom de variable en sa variante byte ou standard
+	// On renvoie la valeur initiale si elle est deja dans sa bonne variante
+	const ALString ToByteVariableName(const ALString& sValue) const;
+	const ALString ToStandardVariableName(const ALString& sValue) const;
+
+	// Transformation d'un nom de variable en sa variante opposee
+	const ALString ToVariantVariableName(const ALString& sValue) const;
+
+	// Test de la validite d'une valeur de type string, avec creation si necessaire d'un message d'erreur
+	// complet, y compris la valeur testee
+	boolean CheckStringValue(const ALString& sValue, boolean bCheckBase64Encoding, ALString& sMessage) const;
+
+	// Variante affichable d'une valeur, en completant si necessaire par des "..."
+	const ALString GetPrintableValue(const ALString& sValue) const;
+
+	// Personnalisation des messages d'erreur
+	void AddInputCommandFileError(const ALString& sMessage) const;
+	void AddInputParameterFileError(const ALString& sMessage) const;
+	void AddOutputCommandFileError(const ALString& sMessage) const;
+
 	// Application des recherche/remplacement de valeurs successivement sur une commande
-	const ALString ProcessSearchReplaceCommand(const ALString& sInputCommand);
+	const ALString ProcessSearchReplaceCommand(const ALString& sInputCommand) const;
+
+	// Construit d'un path json pour designer une valeur dans unse structure json
+	// Cf. https://jsonpatch.com/
+	// On suit les element de structure valides dans le parametrage json
+	// La fin du parametrage peut etre non utilises (NULL ou -1)
+	ALString BuildJsonPath(JsonMember* member, int nArrayRank, JsonMember* arrayObjectmember);
 
 	// Nom des fichiers
 	ALString sInputCommandFileName;
@@ -192,4 +234,22 @@ protected:
 	// Gestion des chaines des patterns a remplacer par des valeurs dans les fichiers d'input de scenario
 	StringVector svInputCommandSearchValues;
 	StringVector svInputCommandReplaceValues;
+
+	// Object json pour les parametres en entree
+	JsonObject jsonParameters;
+
+	// Prefixe des noms de variable ayant un contenu de type byte
+	static const ALString sByteVariablePrefix;
+
+	// Longueur max d'un nom de variable
+	static const int nMaxVariableNameLength = 100;
+
+	// Longueur max d'une valeur de type chaine de caracteres
+	static const int nMaxStringValueLength = 300;
+
+	// Longueur max affichee pour une valeur dans les messages d'erreur
+	static const int nMaxPrintableLength = 30;
+
+	// Taille max d'un fichier de parametrage
+	static const longint lMaxInputParameterFileSize = lMB;
 };
