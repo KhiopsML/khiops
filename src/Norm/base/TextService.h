@@ -96,6 +96,19 @@ public:
 	// Renvoie un code ansi entre 0 et 255 si ok, -1 sinon
 	static int UnicodeHexToWindows1252(const ALString& sUnicodeHexChars);
 
+	///////////////////////////////////////////////////////////////////////////////
+	// Gestion de l'encodage des donnees binaires au format base64
+
+	// Conversion d'une chaine base64 vers une chaine C
+	// Le tableau de byte en sortie doit etre de taille au moins 3 * inputLength/4,
+	// conformement aux besoins de l'encodage base64
+	// On renvoie la longueur de la chaine encode en cas de succes, -1 sinon
+	static int Base64StringToBytes(const ALString& sBase64String, char* sBytes);
+
+	// Encodage d'un tableau de bytes vers le format base64, sans les double-quotes de debut et fin
+	// Le teableau en entree peut contenir n'importe quel byte, y comrpis des '\0'
+	static void BytesToBase64String(const char* sBytes, int nByteNumber, ALString& sBase64String);
+
 	//////////////////////////////////////////////////////////////////////////////////////////
 	// Services divers
 
@@ -186,13 +199,15 @@ protected:
 
 inline boolean TextService::IsHexChar(char c)
 {
-	return ('0' <= c and c <= '9') or ('A' <= c and c <= 'F');
+	return ('0' <= c and c <= '9') or ('A' <= c and c <= 'F') or ('a' <= c and c <= 'f');
 }
 
 inline int TextService::GetHexCharCode(char c)
 {
 	require(IsHexChar(c));
-	if (c >= 'A')
+	if (c >= 'a')
+		return c - 'a' + 10;
+	else if (c >= 'A')
 		return c - 'A' + 10;
 	else
 		return c - '0';

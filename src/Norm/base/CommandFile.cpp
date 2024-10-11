@@ -73,19 +73,19 @@ void CommandFile::AddInputSearchReplaceValues(const ALString& sSearchValue, cons
 	svInputCommandReplaceValues.Add(sReplaceValue);
 }
 
-int CommandFile::GetInputSearchReplaceValueNumber()
+int CommandFile::GetInputSearchReplaceValueNumber() const
 {
 	assert(svInputCommandSearchValues.GetSize() == svInputCommandReplaceValues.GetSize());
 	return svInputCommandSearchValues.GetSize();
 }
 
-const ALString& CommandFile::GetInputSearchValueAt(int nIndex)
+const ALString& CommandFile::GetInputSearchValueAt(int nIndex) const
 {
 	require(0 <= nIndex and nIndex < GetInputSearchReplaceValueNumber());
 	return svInputCommandSearchValues.GetAt(nIndex);
 }
 
-const ALString& CommandFile::GetInputReplaceValueAt(int nIndex)
+const ALString& CommandFile::GetInputReplaceValueAt(int nIndex) const
 {
 	require(0 <= nIndex and nIndex < GetInputSearchReplaceValueNumber());
 	return svInputCommandReplaceValues.GetAt(nIndex);
@@ -111,6 +111,20 @@ const ALString& CommandFile::GetInputParameterFileName() const
 
 boolean CommandFile::Check() const
 {
+	boolean bOk;
+
+	// Le parametrage des search/replace ne peut pas etre utilise s'il n'y a pas de fichier de commande en entree
+	if (GetInputSearchReplaceValueNumber() > 0 and GetInputCommandFileName() == "")
+		bOk = false;
+
+	// Le fichier de parametre json ne peut pas etre utilise s'il n'y a pas de fichier de commande en entree
+	if (GetInputParameterFileName() != "" and GetInputCommandFileName() == "")
+		bOk = false;
+
+	// Le fichier de parametre json et le parametrage des search/replace sont exclusifs
+	if (GetInputParameterFileName() != "" and GetInputSearchReplaceValueNumber() > 0)
+		bOk = false;
+
 	return true;
 }
 
@@ -138,8 +152,17 @@ boolean CommandFile::OpenInputCommandFile()
 		fInputCommands = p_fopen(sLocalInputCommandFileName, "r");
 	if (fInputCommands == NULL)
 	{
-		Global::AddError("Input command file", sInputCommandFileName, "Unable to open file");
+		AddInputCommandFileError("Unable to open file");
 		bOk = false;
+	}
+
+	// Chargement des parametre json si specifie
+	if (bOk and GetInputParameterFileName() != "")
+	{
+		bOk = LoadJsonParameters();
+
+		// Message d'erreur synthetique
+		AddInputParameterFileError("Unable to exploit json parameters");
 	}
 	return bOk;
 }
@@ -177,7 +200,7 @@ boolean CommandFile::OpenOutputCommandFile()
 		fOutputCommands = p_fopen(sLocalOutputCommandFileName, "w");
 	if (fOutputCommands == NULL)
 	{
-		Global::AddError("Output command file", sOutputCommandFileName, "Unable to open file");
+		AddOutputCommandFileError("Unable to open file");
 		bOk = false;
 	}
 	return bOk;
@@ -380,7 +403,500 @@ void CommandFile::WriteOutputCommand(const ALString& sIdentifierPath, const ALSt
 	}
 }
 
-const ALString CommandFile::ProcessSearchReplaceCommand(const ALString& sInputCommand)
+boolean CommandFile::LoadJsonParameters()
+{
+	boolean bOk = true;
+	longint lInputParameterFileSize;
+	JsonMember* jsonMember;
+	JsonArray* jsonArray;
+	JsonValue* jsonValue;
+	JsonObject* firstJsonSubObject;
+	JsonObject* jsonSubObject;
+	JsonMember* jsonSubObjectMember;
+	JsonMember* firstJsonSubObjectMember;
+	ALString sMessage;
+	boolean bIsFirstArrayObjectValid;
+	boolean bIsArrayObjectValid;
+	int i;
+	int j;
+	int k;
+	ALString sLabelSuffix;
+	ALString sTmp;
+
+	require(GetInputParameterFileName() != "");
+
+	// Nettoyage prealable
+	jsonParameters.DeleteAll();
+
+	// Test sur la longueur max du fichier de parametree
+	lInputParameterFileSize = PLRemoteFileService::GetFileSize(GetInputParameterFileName());
+	if (lInputParameterFileSize > lMaxInputParameterFileSize)
+	{
+		AddInputParameterFileError(
+		    sTmp + "the size of the parameter file (" + LongintToHumanReadableString(lInputParameterFileSize) +
+		    ") exceeds the limit of " + LongintToHumanReadableString(lMaxInputParameterFileSize));
+		bOk = false;
+	}
+
+	// Chargement du fichier json
+	if (bOk)
+		bOk = jsonParameters.ReadFile(GetInputParameterFileName());
+
+	// Verification de la structure, qui doit respecter l'ensemble des contraintes du parametrage json
+	if (bOk)
+	{
+		// Analyse des membres de l'objet principal
+		Global::ActivateErrorFlowControl();
+		for (i = 0; i < jsonParameters.GetMemberNumber(); i++)
+		{
+			jsonMember = jsonParameters.GetMemberAt(i);
+
+			// Verification de la cle
+			if (not CheckVariableName(jsonMember->GetKey(), sMessage))
+			{
+				AddInputParameterFileError("in main json object, " + sMessage);
+				bOk = false;
+			}
+			// Verification une seule fois de la non-collision de la cle avec sa variante de type byte
+			else if (IsByteVariableName(jsonMember->GetKey()) and
+				 jsonParameters.LookupMember(ToStandardVariableName(jsonMember->GetKey())) != NULL)
+			{
+				AddInputParameterFileError("in main json object, the \"" +
+							   ToStandardVariableName(jsonMember->GetKey()) +
+							   "\" key is used twice, along with its \"" +
+							   jsonMember->GetKey() + "\" byte variant");
+				bOk = false;
+			}
+			// Verification du type, au premier niveau de la structure de l'objet json
+			else if (jsonMember->GetValueType() != JsonObject::StringValue and
+				 jsonMember->GetValueType() != JsonObject::NumberValue and
+				 jsonMember->GetValueType() != JsonObject::BooleanValue and
+				 jsonMember->GetValueType() != JsonObject::ArrayValue)
+			{
+				AddInputParameterFileError("in main json object, the " +
+							   jsonMember->GetValue()->TypeToString() +
+							   " type of value at " + BuildJsonPath(jsonMember, -1, NULL) +
+							   " should be string, number, boolean or array");
+				bOk = false;
+			}
+			// Verification du type string dans le cas d'une cle avec sa variante de type byte
+			else if (IsByteVariableName(jsonMember->GetKey()) and
+				 jsonMember->GetValueType() != JsonObject::StringValue)
+			{
+				AddInputParameterFileError(
+				    "in main json object, the " + jsonMember->GetValue()->TypeToString() +
+				    " type of value at " + BuildJsonPath(jsonMember, -1, NULL) +
+				    " should be string, as the key prefix is \"" + sByteVariablePrefix + "\"");
+				bOk = false;
+			}
+			// Verification de de la longueur et de l'encodage base64 de la valeur string
+			else if (jsonMember->GetValueType() == JsonObject::StringValue and
+				 not CheckStringValue(jsonMember->GetStringValue()->GetString(),
+						      IsByteVariableName(jsonMember->GetKey()), sMessage))
+			{
+				AddInputParameterFileError("in main json object, at " +
+							   BuildJsonPath(jsonMember, -1, NULL) + ", " + sMessage);
+				bOk = false;
+			}
+
+			// Cas d'une valeur tableau
+			if (jsonMember->GetValueType() == JsonObject::ArrayValue)
+			{
+				jsonArray = jsonMember->GetArrayValue();
+
+				// Toutes les valeurs d'un tableau doivent etre de type objet
+				bIsFirstArrayObjectValid = true;
+				for (j = 0; j < jsonArray->GetValueNumber(); j++)
+				{
+					jsonValue = jsonArray->GetValueAt(j);
+					bIsArrayObjectValid = true;
+
+					// Verification du type, au premier niveau de la structure de l'objet json
+					if (jsonValue->GetType() != JsonObject::ObjectValue)
+					{
+						AddInputParameterFileError("in array member, type " +
+									   jsonValue->TypeToString() + " of value at " +
+									   BuildJsonPath(jsonMember, j, NULL) +
+									   " should be object");
+						bOk = false;
+						bIsArrayObjectValid = false;
+					}
+					// Analyse de l'objet si valide
+					else
+					{
+						jsonSubObject = jsonValue->GetObjectValue();
+
+						// Toutes les valeurs du subobjet dovent etre de type simple
+						for (k = 0; k < jsonSubObject->GetMemberNumber(); k++)
+						{
+							jsonSubObjectMember = jsonSubObject->GetMemberAt(k);
+
+							// Verification de la cle
+							if (not CheckVariableName(jsonSubObjectMember->GetKey(),
+										  sMessage))
+							{
+								AddInputParameterFileError(
+								    "in object value of array at " +
+								    BuildJsonPath(jsonMember, j, NULL) + ", " +
+								    sMessage);
+								bOk = false;
+								bIsArrayObjectValid = false;
+							}
+							// Verification de la non-collision de la cle avec sa variante de type byte
+							else if (IsByteVariableName(jsonSubObjectMember->GetKey()) and
+								 jsonSubObject->LookupMember(ToStandardVariableName(
+								     jsonSubObjectMember->GetKey())) != NULL)
+							{
+								AddInputParameterFileError(
+								    "in object value of array at " +
+								    BuildJsonPath(jsonMember, j, NULL) + ", the \"" +
+								    ToStandardVariableName(
+									jsonSubObjectMember->GetKey()) +
+								    "\" key is used twice,  along with its \"" +
+								    jsonSubObjectMember->GetKey() + "\" byte variant");
+								bOk = false;
+							}
+							// Verification que la cle du sous-objet n'entre pas en collision avec une cle de l'objet principal
+							else if (jsonParameters.LookupMember(
+								     jsonSubObjectMember->GetKey()) != NULL or
+								 jsonParameters.LookupMember(ToVariantVariableName(
+								     jsonSubObjectMember->GetKey())) != NULL)
+							{
+								// Message d'erreur avec precision dans le cas d'utilisation de variantes standard ou byte differents
+								sLabelSuffix = "";
+								if (jsonParameters.LookupMember(ToVariantVariableName(
+									jsonSubObjectMember->GetKey())) != NULL)
+									sLabelSuffix = " (in any standard or "
+										       "byte variants)";
+								AddInputParameterFileError(
+								    "in object value of array at " +
+								    BuildJsonPath(jsonMember, j, NULL) + ", the \"" +
+								    jsonSubObjectMember->GetKey() +
+								    "\" key is already used in main json "
+								    "object" +
+								    sLabelSuffix);
+								bOk = false;
+								bIsArrayObjectValid = false;
+							}
+							// Verification du type, au second niveau de la structure de l'objet json
+							else if (jsonSubObjectMember->GetValueType() !=
+								     JsonObject::StringValue and
+								 jsonSubObjectMember->GetValueType() !=
+								     JsonObject::NumberValue)
+							{
+								AddInputParameterFileError(
+								    "in object value of array, the " +
+								    jsonSubObjectMember->GetValue()->TypeToString() +
+								    " type of value at " +
+								    BuildJsonPath(jsonMember, j, jsonSubObjectMember) +
+								    " should be string or number");
+								bIsArrayObjectValid = false;
+							}
+							// Verification du type string dans le cas d'une cle avec sa variante de type byte
+							else if (IsByteVariableName(jsonSubObjectMember->GetKey()) and
+								 jsonSubObjectMember->GetValueType() !=
+								     JsonObject::StringValue)
+							{
+								AddInputParameterFileError(
+								    "in object value of array, the " +
+								    jsonSubObjectMember->GetValue()->TypeToString() +
+								    " type of value at " +
+								    BuildJsonPath(jsonMember, j, jsonSubObjectMember) +
+								    " should be string, as the key prefix is \"" +
+								    sByteVariablePrefix + "\"");
+								bOk = false;
+							}
+							// Verification de de la longueur et de l'encodage base64 de la valeur string
+							else if (jsonSubObjectMember->GetValueType() ==
+								     JsonObject::StringValue and
+								 not CheckStringValue(
+								     jsonSubObjectMember->GetStringValue()->GetString(),
+								     IsByteVariableName(jsonSubObjectMember->GetKey()),
+								     sMessage))
+							{
+								AddInputParameterFileError(
+								    "in object value of array, at " +
+								    BuildJsonPath(jsonMember, j, jsonSubObjectMember) +
+								    ", " + sMessage);
+								bOk = false;
+							}
+						}
+					}
+					if (j == 0)
+						bIsFirstArrayObjectValid = bIsArrayObjectValid;
+
+					// Verification de la coherence de structure avec le premier objet du tableau
+					if (bIsArrayObjectValid and bIsFirstArrayObjectValid and j > 0)
+					{
+						firstJsonSubObject = jsonArray->GetValueAt(0)->GetObjectValue();
+						jsonSubObject = jsonArray->GetValueAt(j)->GetObjectValue();
+
+						// Le nombre de membre doit etre egal
+						if (jsonSubObject->GetMemberNumber() !=
+						    firstJsonSubObject->GetMemberNumber())
+						{
+							AddInputParameterFileError(
+							    "number of members in object " +
+							    BuildJsonPath(jsonMember, j, NULL) + " (" +
+							    IntToString(jsonSubObject->GetMemberNumber()) +
+							    " member) should be the same as in the the first object "
+							    "in the array at " +
+							    BuildJsonPath(jsonMember, 0, NULL) + " (" +
+							    IntToString(firstJsonSubObject->GetMemberNumber()) +
+							    " member)");
+							bOk = false;
+						}
+						// Sinon, on compare les cle et type membre a membre
+						else
+						{
+							for (k = 0; k < jsonSubObject->GetMemberNumber(); k++)
+							{
+								jsonSubObjectMember = jsonSubObject->GetMemberAt(k);
+								firstJsonSubObjectMember =
+								    firstJsonSubObject->GetMemberAt(k);
+
+								// Verification de la coherence de la cle
+								if (jsonSubObjectMember->GetKey() !=
+									firstJsonSubObjectMember->GetKey() and
+								    jsonSubObjectMember->GetKey() !=
+									ToVariantVariableName(
+									    firstJsonSubObjectMember->GetKey()))
+								{
+									AddInputParameterFileError(
+									    "key \"" + jsonSubObjectMember->GetKey() +
+									    "\" at " +
+									    BuildJsonPath(jsonMember, j,
+											  jsonSubObjectMember) +
+									    " should be \"" +
+									    firstJsonSubObjectMember->GetKey() +
+									    "\", as in the the first object in the "
+									    "array");
+									bOk = false;
+								}
+								// Verification de la coherence de la valeur
+								else if (jsonSubObjectMember->GetValueType() !=
+									 firstJsonSubObjectMember->GetValueType())
+								{
+									AddInputParameterFileError(
+									    "type " +
+									    jsonSubObjectMember->GetValue()
+										->TypeToString() +
+									    " at " +
+									    BuildJsonPath(jsonMember, j,
+											  jsonSubObjectMember) +
+									    " should be " +
+									    firstJsonSubObjectMember->GetValue()
+										->TypeToString() +
+									    ", as in the the first object in the "
+									    "array");
+									bOk = false;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		Global::DesactivateErrorFlowControl();
+	}
+
+	// Nettoyage en cas d'erreur
+	if (not bOk)
+		jsonParameters.DeleteAll();
+	return bOk;
+}
+
+boolean CommandFile::CheckVariableName(const ALString& sValue, ALString& sMessage) const
+{
+	boolean bOk = true;
+	ALString sTmp;
+
+	// Test si non vide
+	sMessage = "";
+	if (bOk)
+	{
+		bOk = sValue.GetLength() > 0;
+		if (not bOk)
+			sMessage = "empty key";
+	}
+
+	// Test de la longueur max
+	if (bOk)
+	{
+		bOk = sValue.GetLength() <= nMaxVariableNameLength;
+		if (not bOk)
+			sMessage = sTmp + "overlengthy key \"" + GetPrintableValue(sValue) + "\", with length " +
+				   IntToString(sValue.GetLength()) + " > " + IntToString(nMaxVariableNameLength);
+	}
+
+	// Test du format camelCase
+	if (bOk)
+	{
+		bOk = IsCamelCaseVariableName(sValue);
+		if (not bOk)
+			sMessage = "incorrect key \"" + GetPrintableValue(sValue) + "\", which should be camelCase";
+	}
+
+	ensure(not bOk or sMessage == "");
+	return bOk;
+}
+
+boolean CommandFile::IsCamelCaseVariableName(const ALString& sValue) const
+{
+	boolean bOk;
+	char c;
+	int i;
+
+	// Le nom ne doit pas etre vide
+	bOk = sValue.GetLength() > 0;
+
+	// Test des type de caracteres sans utiliser isalpha ou Il doit commencer par une lettre minuscule
+	for (i = 0; i < sValue.GetLength(); i++)
+	{
+		c = sValue.GetAt(i);
+
+		// On doit etre en ascii
+		bOk = isascii(c);
+
+		// Le premier caractere doit etre une lettre minuscule
+		if (bOk)
+		{
+			if (i == 0)
+				bOk = isalpha(c) and islower(c);
+			// Les autre caracteres doivent etre alpha-numeriques
+			else
+				bOk = isalnum(c);
+		}
+
+		// Arret si necessaire
+		if (not bOk)
+			break;
+	}
+	return bOk;
+}
+
+boolean CommandFile::IsByteVariableName(const ALString& sValue) const
+{
+	boolean bOk;
+	char c;
+
+	require(IsCamelCaseVariableName(sValue));
+
+	// Test si on est prefixe correctement, suivi d'un caractere alphabetique en majuscule
+	bOk = sValue.GetLength() > sByteVariablePrefix.GetLength();
+	if (bOk)
+		bOk = sValue.Left(sByteVariablePrefix.GetLength()) == sByteVariablePrefix;
+	if (bOk)
+	{
+		c = sValue.GetAt(sByteVariablePrefix.GetLength());
+		bOk = isalpha(c) and isupper(c);
+	}
+	return bOk;
+}
+
+const ALString CommandFile::ToByteVariableName(const ALString& sValue) const
+{
+	ALString sByteVariableName;
+
+	require(IsCamelCaseVariableName(sValue));
+
+	if (IsByteVariableName(sValue))
+		return sValue;
+	else
+	{
+		sByteVariableName = sValue;
+		sByteVariableName.SetAt(0, char(toupper(sByteVariableName.GetAt(0))));
+		sByteVariableName = sByteVariablePrefix + sByteVariableName;
+		return sByteVariableName;
+	}
+}
+
+const ALString CommandFile::ToStandardVariableName(const ALString& sValue) const
+{
+	ALString sStandardVariableName;
+
+	require(IsCamelCaseVariableName(sValue));
+
+	if (IsByteVariableName(sValue))
+	{
+
+		sStandardVariableName = sValue.Right(sValue.GetLength() - sByteVariablePrefix.GetLength());
+		sStandardVariableName.SetAt(0, char(tolower(sStandardVariableName.GetAt(0))));
+		return sStandardVariableName;
+	}
+	else
+		return sValue;
+}
+
+const ALString CommandFile::ToVariantVariableName(const ALString& sValue) const
+{
+	require(IsCamelCaseVariableName(sValue));
+
+	if (IsByteVariableName(sValue))
+		return ToStandardVariableName(sValue);
+	else
+		return ToByteVariableName(sValue);
+}
+
+boolean CommandFile::CheckStringValue(const ALString& sValue, boolean bCheckBase64Encoding, ALString& sMessage) const
+{
+	boolean bOk = true;
+	char* sBytes;
+	ALString sTmp;
+
+	// Test de la longueur max
+	sMessage = "";
+	if (bOk)
+	{
+		bOk = sValue.GetLength() <= nMaxStringValueLength;
+		if (not bOk)
+			sMessage = sTmp + "overlengthy string value \"" + GetPrintableValue(sValue) +
+				   "\", with length " + IntToString(sValue.GetLength()) + " > " +
+				   IntToString(nMaxStringValueLength);
+	}
+
+	// Test de l'encodage base64
+	if (bOk and bCheckBase64Encoding)
+	{
+		// Reherche d'un buffer de caracteres
+		sBytes = StandardGetBuffer();
+		assert(nMaxStringValueLength <= BUFFER_LENGTH);
+
+		// Test de l'encodage base64
+		bOk = TextService::Base64StringToBytes(sValue, sBytes) != -1;
+		if (not bOk)
+			sMessage = "incorrect string value \"" + GetPrintableValue(sValue) +
+				   "\", which should be encoding using base64";
+	}
+
+	ensure(not bOk or sMessage == "");
+	return bOk;
+}
+
+const ALString CommandFile::GetPrintableValue(const ALString& sValue) const
+{
+	if (sValue.GetLength() <= nMaxPrintableLength)
+		return sValue;
+	else
+		return sValue.Left(nMaxPrintableLength) + "...";
+}
+
+void CommandFile::AddInputCommandFileError(const ALString& sMessage) const
+{
+	Global::AddError("Input command file", sInputCommandFileName, sMessage);
+}
+
+void CommandFile::AddInputParameterFileError(const ALString& sMessage) const
+{
+	Global::AddError("Input parameter file", sInputParameterFileName, sMessage);
+}
+
+void CommandFile::AddOutputCommandFileError(const ALString& sMessage) const
+{
+	Global::AddError("Input command file", sOutputCommandFileName, sMessage);
+}
+
+const ALString CommandFile::ProcessSearchReplaceCommand(const ALString& sInputCommand) const
 {
 	ALString sInputString;
 	ALString sBeginString;
@@ -425,3 +941,30 @@ const ALString CommandFile::ProcessSearchReplaceCommand(const ALString& sInputCo
 	}
 	return sOutputCommand;
 }
+
+ALString CommandFile::BuildJsonPath(JsonMember* member, int nArrayRank, JsonMember* arrayObjectmember)
+{
+	ALString sJsonPath;
+
+	require(member != NULL);
+	require(arrayObjectmember == NULL or nArrayRank >= 0);
+
+	// Construction du chemin
+	sJsonPath = '"';
+	sJsonPath += '/';
+	sJsonPath += member->GetKey();
+	if (nArrayRank >= 0)
+	{
+		sJsonPath += '/';
+		sJsonPath += IntToString(nArrayRank);
+	}
+	if (arrayObjectmember != NULL)
+	{
+		sJsonPath += '/';
+		sJsonPath += arrayObjectmember->GetKey();
+	}
+	sJsonPath += '"';
+	return sJsonPath;
+}
+
+const ALString CommandFile::sByteVariablePrefix = "byte";

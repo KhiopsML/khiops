@@ -5,6 +5,7 @@
 import os
 import os.path
 import argparse
+import json
 
 import _kht_constants as kht
 import _kht_utils as utils
@@ -194,7 +195,7 @@ def export_learning_test_tree(
                                     if len(fields) >= 2:
                                         candidate_file_path = fields[-1]
                                         if candidate_file_path[0] == ".":
-                                            # Le separateur est normalise dans les fichier scenario
+                                            # Le separateur est normalise dans les fichiers scenario
                                             path_components = candidate_file_path.split(
                                                 "/"
                                             )
@@ -214,6 +215,73 @@ def export_learning_test_tree(
                                                     used_dataset_collections[
                                                         dataset_collection
                                                     ][dataset_name] = True
+                        # On traite de facon heuristique le cas d'un fichier de parametrage json
+                        # C'est en fait complexe a analyser dans le cas general en raison des search/replace
+                        # entre fichier de parametre json et fichier de scenario. Mais, c'est inutile d'avoir
+                        # une implementation rigoureuse pour les usages basiques utilises dans les suites de test
+                        test_json_path = os.path.join(source_test_dir, kht.TEST_JSON)
+                        try:
+                            if os.path.isfile(test_prm_path):
+                                # On ignore ici les erreurs dans cette methode d'export "pragmatique", pour ne pas etre
+                                # bloque par des json errones (codage non UTF-8) utilises pour tester la gestion
+                                # des erreurs par Khiops
+                                with open(
+                                    test_json_path, "r", errors="ignore"
+                                ) as test_json_file:
+                                    json_data = json.load(test_json_file)
+                                    # Parcours des cles de type string du json pour collecter toutes les valeurs correspondants
+                                    all_json_string_values = []
+                                    for json_key in json_data:
+                                        json_value = json_data[json_key]
+                                        # Cas d'une cle chaine de caracteres
+                                        if isinstance(json_value, str):
+                                            all_json_string_values.append(json_value)
+                                        # Cas d'une cle list
+                                        elif isinstance(json_value, list):
+                                            # Parcours des objets de la Liste
+                                            for list_value in json_value:
+                                                # On ne traite que les valeur de type dictionnaire
+                                                if isinstance(list_value, dict):
+                                                    # Parcours des cle de l'objet du tableau
+                                                    for json_sub_key in list_value:
+                                                        json_sub_value = list_value[
+                                                            json_sub_key
+                                                        ]
+                                                        # Cas d'une cle chaine de caracteres
+                                                        if isinstance(
+                                                            json_sub_value, str
+                                                        ):
+                                                            all_json_string_values.append(
+                                                                json_sub_value
+                                                            )
+                                    # Analyse des chaines de caracteres du json
+                                    # On reprend la meme heuristique que pour l'analyse du fichier scenario
+                                    for candidate_file_path in all_json_string_values:
+                                        if candidate_file_path[0] == ".":
+                                            # Le separateur est normalise dans les fichiers scenario
+                                            path_components = candidate_file_path.split(
+                                                "/"
+                                            )
+                                            # les datasets se trouvent toujours au meme niveau relatif de l'arborescence
+                                            if (
+                                                len(path_components) > 5
+                                                and path_components[0] == ".."
+                                                and path_components[1] == ".."
+                                                and path_components[2] == ".."
+                                            ):
+                                                dataset_collection = path_components[3]
+                                                if (
+                                                    dataset_collection
+                                                    in kht.DATASET_COLLECTION_NAMES
+                                                ):
+                                                    dataset_name = path_components[4]
+                                                    used_dataset_collections[
+                                                        dataset_collection
+                                                    ][dataset_name] = True
+                        except Exception as exception:
+                            # On ignore les json erronnes pour ne pas etre verbeux dans le cas des fichiers json
+                            # utilises pour tester les erreurs
+                            pass
             else:
                 print("error : suite directory not found: " + source_suite_dir)
 

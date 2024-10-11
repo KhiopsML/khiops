@@ -712,6 +712,7 @@ int TextService::UnicodeHexToWindows1252(const ALString& sUnicodeHexChars)
 {
 	int nCode;
 	int i;
+	debug(ALString sUpperUnicodeHexChars);
 
 	require(sUnicodeHexChars.GetLength() == 2 or sUnicodeHexChars.GetLength() == 4);
 	require(AreEncodingStructuresInitialized());
@@ -740,9 +741,219 @@ int TextService::UnicodeHexToWindows1252(const ALString& sUnicodeHexChars)
 			}
 		}
 	}
+	debug(sUpperUnicodeHexChars = sUnicodeHexChars);
+	debug(sUpperUnicodeHexChars.MakeUpper());
 	ensure(nCode == -1 or (0 <= nCode and nCode <= 255));
-	ensure(nCode == -1 or svWindows1252UnicodeHexEncoding.GetAt(nCode) == sUnicodeHexChars);
+	debug(ensure(nCode == -1 or svWindows1252UnicodeHexEncoding.GetAt(nCode) == sUpperUnicodeHexChars));
 	return nCode;
+}
+
+int TextService::Base64StringToBytes(const ALString& sBase64String, char* sBytes)
+{
+	// Index des caracteres de l'alphabet base64, et -1 pour les caracteres n'en faisant pas partie
+	static const unsigned char cBase64CharIndexes[] = {
+	    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+	    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+	    255, 255, 255, 62,  255, 255, 255, 63,  52,  53,  54,  55,  56,  57,  58,  59,  60,  61,  255, 255,
+	    255, 255, 255, 255, 255, 0,   1,   2,   3,   4,   5,   6,   7,   8,   9,   10,  11,  12,  13,  14,
+	    15,  16,  17,  18,  19,  20,  21,  22,  23,  24,  25,  255, 255, 255, 255, 255, 255, 26,  27,  28,
+	    29,  30,  31,  32,  33,  34,  35,  36,  37,  38,  39,  40,  41,  42,  43,  44,  45,  46,  47,  48,
+	    49,  50,  51,  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+	    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+	    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+	    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+	    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+	    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+	    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255};
+	boolean bOk;
+	int nOutputByteNumber;
+	int nInputLength;
+	int nMainInputLength;
+	int nTrailingEqualNumber;
+	int iInput;
+	int iOutput;
+	unsigned char cCharIndex1;
+	unsigned char cCharIndex2;
+	unsigned char cCharIndex3;
+	unsigned char cCharIndex4;
+
+	require(sBytes != NULL);
+	assert(sizeof(cBase64CharIndexes) == 256 * sizeof(unsigned char));
+
+	// Calcul du nombre de bytes en sortie
+	nInputLength = sBase64String.GetLength();
+	nOutputByteNumber = 3 * (nInputLength / 4);
+
+	// La chaine a decoder doit avoir une longueur en multiple de 4
+	bOk = nInputLength % 4 == 0;
+
+	// Decodage si OK
+	if (bOk)
+	{
+		// Recherche du nombre de caractere de pading '=' en fin de chaine
+		nTrailingEqualNumber = 0;
+		if (nInputLength > 0 and sBase64String.GetAt(nInputLength - 1) == '=')
+		{
+			nTrailingEqualNumber++;
+			if (nInputLength > 1 and sBase64String.GetAt(nInputLength - 2) == '=')
+				nTrailingEqualNumber++;
+		}
+		nOutputByteNumber -= nTrailingEqualNumber;
+
+		// Taille a traiter par bloc de 4
+		nMainInputLength = nInputLength;
+		if (nTrailingEqualNumber > 0)
+			nMainInputLength -= 4;
+
+		// Alimentation de la partie principale pour les groupes de 4 bytes
+		iInput = 0;
+		iOutput = 0;
+		while (iInput < nMainInputLength)
+		{
+			// Lecture de quatre bytes en entree et recherche de leur index en encodage base64
+			cCharIndex1 = cBase64CharIndexes[(unsigned char)sBase64String.GetAt(iInput)];
+			cCharIndex2 = cBase64CharIndexes[(unsigned char)sBase64String.GetAt(iInput + 1)];
+			cCharIndex3 = cBase64CharIndexes[(unsigned char)sBase64String.GetAt(iInput + 2)];
+			cCharIndex4 = cBase64CharIndexes[(unsigned char)sBase64String.GetAt(iInput + 3)];
+			iInput += 4;
+
+			// Arret si erreur
+			if (cCharIndex1 == 255 or cCharIndex2 == 255 or cCharIndex3 == 255 or cCharIndex4 == 255)
+			{
+				bOk = false;
+				break;
+			}
+
+			// Transformation en trois bytes et memorisation
+			sBytes[iOutput] = ((cCharIndex1 & 0x3f) << 2) + ((cCharIndex2 & 0x30) >> 4);
+			sBytes[iOutput + 1] = ((cCharIndex2 & 0x0f) << 4) + ((cCharIndex3 & 0x3c) >> 2);
+			sBytes[iOutput + 2] = ((cCharIndex3 & 0x03) << 6) + ((cCharIndex4 & 0x3f) >> 0);
+			iOutput += 3;
+		}
+		assert(not bOk or iInput == nMainInputLength);
+		assert(not bOk or iOutput == 3 * (nMainInputLength / 4));
+
+		// Gestion de la fin de chaine
+		if (bOk)
+		{
+			if (nTrailingEqualNumber == 1)
+			{
+				// Lecture de trois bytes en entree et recherche de leur index en encodage base64
+				cCharIndex1 = cBase64CharIndexes[(unsigned char)sBase64String.GetAt(iInput)];
+				cCharIndex2 = cBase64CharIndexes[(unsigned char)sBase64String.GetAt(iInput + 1)];
+				cCharIndex3 = cBase64CharIndexes[(unsigned char)sBase64String.GetAt(iInput + 2)];
+
+				// Arret si erreur
+				if (cCharIndex1 == 255 or cCharIndex2 == 255 or cCharIndex3 == 255)
+					bOk = false;
+				// Transformation en deux bytes et memorisation
+				else
+				{
+					sBytes[iOutput] = ((cCharIndex1 & 0x3f) << 2) + ((cCharIndex2 & 0x30) >> 4);
+					sBytes[iOutput + 1] = ((cCharIndex2 & 0x0f) << 4) + ((cCharIndex3 & 0x3c) >> 2);
+				}
+			}
+			else if (nTrailingEqualNumber == 2)
+			{
+				// Lecture de deux bytes en entree et recherche de leur index en encodage base64
+				cCharIndex1 = cBase64CharIndexes[(unsigned char)sBase64String.GetAt(iInput)];
+				cCharIndex2 = cBase64CharIndexes[(unsigned char)sBase64String.GetAt(iInput + 1)];
+
+				// Arret si erreur
+				if (cCharIndex1 == 255 or cCharIndex2 == 255)
+					bOk = false;
+				// Transformation en un byte et memorisation
+				else
+				{
+					sBytes[iOutput] = ((cCharIndex1 & 0x3f) << 2) + ((cCharIndex2 & 0x30) >> 4);
+				}
+			}
+		}
+		assert(not bOk or
+		       iOutput + (nTrailingEqualNumber > 0 ? 3 - nTrailingEqualNumber : 0) == nOutputByteNumber);
+	}
+
+	// On renvoie -1 si erreur
+	if (not bOk)
+		nOutputByteNumber = -1;
+	return nOutputByteNumber;
+}
+
+void TextService::BytesToBase64String(const char* sBytes, int nByteNumber, ALString& sBase64String)
+{
+	// Caracteres utilise dans l'alphabet base64
+	static const char sBase64Chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+	int nMainByteNumber;
+	int nRestByteNumber;
+	int nOutputLength;
+	int iInput;
+	int iOutput;
+	unsigned char cByte1;
+	unsigned char cByte2;
+	unsigned char cByte3;
+
+	require(sBytes != NULL);
+	require(nByteNumber >= 0);
+	assert(sizeof(sBase64Chars) == 65 * sizeof(char));
+
+	// Decomposition de la longueur en entree en la partie multiple de 3 et son reste
+	nRestByteNumber = nByteNumber % 3;
+	nMainByteNumber = nByteNumber - nRestByteNumber;
+
+	// Calcul de la longueur en sortie
+	nOutputLength = 4 * (nMainByteNumber / 3);
+	if (nRestByteNumber > 0)
+		nOutputLength += 4;
+
+	// Allocation de la chaine en sortie
+	sBase64String.GetBufferSetLength(nOutputLength);
+
+	// Alimentation de la partie principale pour les groupes de 3 bytes
+	iInput = 0;
+	iOutput = 0;
+	while (iInput < nMainByteNumber)
+	{
+		// Lecture de trois bytes en entree
+		cByte1 = sBytes[iInput];
+		cByte2 = sBytes[iInput + 1];
+		cByte3 = sBytes[iInput + 2];
+		iInput += 3;
+
+		// Transformation en quatre caracteres au format base64 et memorisation
+		sBase64String.SetAt(iOutput, sBase64Chars[((cByte1 & 0xfc) >> 2)]);
+		sBase64String.SetAt(iOutput + 1, sBase64Chars[((cByte1 & 0x03) << 4) + ((cByte2 & 0xf0) >> 4)]);
+		sBase64String.SetAt(iOutput + 2, sBase64Chars[((cByte2 & 0x0f) << 2) + ((cByte3 & 0xc0) >> 6)]);
+		sBase64String.SetAt(iOutput + 3, sBase64Chars[(cByte3 & 0x3f)]);
+		iOutput += 4;
+	}
+	assert(iInput == nMainByteNumber);
+	assert(iOutput == 4 * (nMainByteNumber / 3));
+
+	// Gestion de la fin de la chaine
+	if (nRestByteNumber == 1)
+	{
+		cByte1 = sBytes[iInput];
+		cByte2 = 0;
+
+		// Transformation en quatre bytes au format base64 avec deux '=' a la fin
+		sBase64String.SetAt(iOutput, sBase64Chars[((cByte1 & 0xfc) >> 2)]);
+		sBase64String.SetAt(iOutput + 1, sBase64Chars[((cByte1 & 0x03) << 4) + ((cByte2 & 0xf0) >> 4)]);
+		sBase64String.SetAt(iOutput + 2, '=');
+		sBase64String.SetAt(iOutput + 3, '=');
+	}
+	else if (nRestByteNumber == 2)
+	{
+		cByte1 = sBytes[iInput];
+		cByte2 = sBytes[iInput + 1];
+		cByte3 = 0;
+
+		// Transformation en quatre bytes au format base64 avec un '=' a la fin
+		sBase64String.SetAt(iOutput, sBase64Chars[((cByte1 & 0xfc) >> 2)]);
+		sBase64String.SetAt(iOutput + 1, sBase64Chars[((cByte1 & 0x03) << 4) + ((cByte2 & 0xf0) >> 4)]);
+		sBase64String.SetAt(iOutput + 2, sBase64Chars[((cByte2 & 0x0f) << 2) + ((cByte3 & 0xc0) >> 6)]);
+		sBase64String.SetAt(iOutput + 3, '=');
+	}
+	assert(iOutput + (nRestByteNumber > 0 ? 4 : 0) == sBase64String.GetLength());
 }
 
 const ALString TextService::ToPrintable(const ALString& sBytes)
@@ -753,7 +964,7 @@ const ALString TextService::ToPrintable(const ALString& sBytes)
 	// Copie des caracteres en remplacant ceux non imprimable par '?'
 	for (i = 0; i < sBytes.GetLength(); i++)
 	{
-		if (isprint(sBytes.GetAt(i)))
+		if (p_isprint(sBytes.GetAt(i)))
 			sPrintableBytes += sBytes.GetAt(i);
 		else
 			sPrintableBytes += '?';
@@ -855,16 +1066,18 @@ void TextService::BuildTextSample(StringVector* svTextValues)
 
 void TextService::Test()
 {
-	int nEncodingNumber = 10000000;
+	int nEncodingNumber = 1000000;
 	ALString sTest;
 	ALString sCString;
 	StringVector svTextValues;
 	ALString sValue;
 	ALString sWord;
 	ALString sHexaString;
+	ALString sBase64String;
 	ALString sRetrievedValue;
 	ALString sUnicodeChars;
 	ALString sUtf8Chars;
+	char* sBuffer;
 	int nAnsiCode;
 	int nUtf8Code;
 	int nAnsiCodeFromUtf8;
@@ -910,7 +1123,9 @@ void TextService::Test()
 	// Initialisation de l'echantillon de texts
 	BuildTextSample(&svTextValues);
 
-	// Conversion des valeurs vers des mots et chaines de caracteres heaxa
+	// Conversion des valeurs vers des mots, chaines de caracteres heaxa, et format base64
+	sBuffer = StandardGetBuffer();
+	cout << "Index\tValue\t(Word)\tHexa\t(base64)\n";
 	for (i = 0; i < svTextValues.GetSize(); i++)
 	{
 		// Encodage/decodage de la valeur en mot
@@ -925,11 +1140,28 @@ void TextService::Test()
 		sRetrievedValue = HexCharStringToByteString(sHexaString);
 		assert(sRetrievedValue == sValue);
 
+		// Encodage/decodage de la valeur au format base64
+		sValue = svTextValues.GetAt(i);
+		BytesToBase64String(sValue, sValue.GetLength(), sBase64String);
+		nLength = Base64StringToBytes(sBase64String, sBuffer);
+		assert(nLength >= 0 and nLength < BUFFER_LENGTH - 1);
+		sBuffer[nLength] = '\0';
+		sRetrievedValue = sBuffer;
+		assert(sRetrievedValue == sValue);
+
+		// Verification de la non possibilite de decode une chaine avec encodage invalide
+		// en ajoutant un a quatre caracteres invalides
+		assert(Base64StringToBytes(sValue + " ", sBuffer) == -1);
+		assert(Base64StringToBytes(sValue + "  ", sBuffer) == -1);
+		assert(Base64StringToBytes(sValue + "   ", sBuffer) == -1);
+		assert(Base64StringToBytes(sValue + "    ", sBuffer) == -1);
+
 		// Affichage
 		cout << i << "\t";
 		cout << ToPrintable(sValue) << "\t";
 		cout << "(" << sWord << ")\t";
-		cout << sHexaString << "\n";
+		cout << sHexaString << "\t";
+		cout << "(base64: " << sBase64String << ")\n";
 	}
 
 	// Conversion de valeurs aleatoire vers des mots
@@ -949,7 +1181,8 @@ void TextService::Test()
 		timer.Stop();
 		assert(sRetrievedValue == sValue);
 	}
-	cout << "Word encoding/decoding time for " << nEncodingNumber << " values: " << timer.GetElapsedTime() << "\n";
+	cout << "SYS TIME\tWord encoding/decoding time for " << nEncodingNumber << " values: " << timer.GetElapsedTime()
+	     << "\n";
 }
 
 TextService::TextService()
@@ -1004,7 +1237,7 @@ void TextService::Windows1252ToUtf8Hex(int nAnsiCode, ALString& sUtf8HexChars)
 	require(AreEncodingStructuresInitialized());
 
 	sUtf8HexChars = svWindows1252Utf8HexEncoding.GetAt(nAnsiCode);
-	ensure(sUtf8HexChars.GetLength() <= nWindows1252EncodingMaxByteNumber);
+	ensure(sUtf8HexChars.GetLength() <= nWindows1252EncodingMaxByteNumber * 2);
 }
 
 int TextService::Windows1252Utf8CodeToWindows1252(int nWindows1252Utf8Code)

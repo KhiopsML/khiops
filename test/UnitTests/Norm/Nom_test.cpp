@@ -15,6 +15,7 @@
 #include "OutputBufferedFile.h"
 #include "Regexp.h"
 #include "MemoryTest.h"
+#include "TextService.h"
 namespace
 {
 
@@ -38,6 +39,7 @@ KHIOPS_TEST(base, IntVector, IntVector::Test);
 KHIOPS_TEST(base, LongintVector, LongintVector::Test);
 KHIOPS_TEST(base, CharVector, CharVector::Test);
 KHIOPS_TEST(base, StringVector, StringVector::Test);
+KHIOPS_TEST(base, TextService, TextService::Test);
 
 TEST(long, InputBufferedFile)
 {

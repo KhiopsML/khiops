@@ -386,6 +386,8 @@ protected:
 	// Parametrage des options de la ligne de commande
 	static boolean InputCommand(const ALString& sFileName);
 	static boolean OutputCommand(const ALString& sFileName);
+	static boolean OutputCommandNoReplay(const ALString& sFileName);
+	static boolean JsonCommand(const ALString& sFileName);
 	static boolean ReplaceCommand(const ALString& sSearchReplacePattern);
 	static boolean BatchCommand(const ALString& sParameter);
 	static boolean ErrorCommand(const ALString& sErrorLog);
@@ -436,6 +438,7 @@ protected:
 	static ALString sErrorLogFileName;
 	static ALString sTaskProgressionLogFileName;
 	static CommandLine commandLineOptions;
+	static boolean bNoReplayMode;
 
 	// Gestion des fichiers de commande
 	static CommandFile commandFile;

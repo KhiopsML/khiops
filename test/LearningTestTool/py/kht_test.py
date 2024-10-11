@@ -384,6 +384,9 @@ def evaluate_tool_on_test_dir(
             khiops_params.append("-b")
         khiops_params.append("-i")
         khiops_params.append(kht.TEST_PRM)
+        if os.path.isfile(kht.TEST_JSON):
+            khiops_params.append("-j")
+            khiops_params.append(kht.TEST_JSON)
         khiops_params.append("-e")
         khiops_params.append(os.path.join(results_dir, kht.ERR_TXT))
         if output_scenario:

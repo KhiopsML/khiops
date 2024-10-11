@@ -19,6 +19,7 @@ RESULTS_REF = "results.ref"
 
 """ Fichiers se trouvant d'un repertoire de test """
 TEST_PRM = "test.prm"
+TEST_JSON = "test.json"
 COMPARISON_RESULTS_LOG = "comparisonResults.log"
 
 """ Fichiers se trouvant d'un repertoire de resultats """
