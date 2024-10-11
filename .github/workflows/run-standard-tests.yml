@@ -159,16 +159,16 @@ jobs:
         shell: bash
         run: |
           if [[ "${{ matrix.running-mode }}" == "parallel" ]] ; then
-            export KhiopsMPIProcessNumber=4
+            export PARALLEL_ARG="-p 4"
           fi
           if [[ "${{ matrix.config }}" == "release" ]] ; then
-            python $TEST_PY test/LearningTest/TestKhiops/Standard ${BIN_PATH}
+            python $TEST_PY test/LearningTest/TestKhiops/Standard ${BIN_PATH} ${PARALLEL_ARG}
             if [[ "${{ matrix.running-mode }}" != "parallel" ]] ; then
               python $TEST_PY test/LearningTest/TestCoclustering/Standard ${BIN_PATH}
               python $TEST_PY test/LearningTest/TestKNI/Standard ${BIN_PATH}
             fi
           else
-            python $TEST_PY test/LearningTest/TestKhiops/Standard/IrisLight ${BIN_PATH}
+            python $TEST_PY test/LearningTest/TestKhiops/Standard/IrisLight ${BIN_PATH} ${PARALLEL_ARG}
             if [[ "${{ matrix.running-mode }}" != "parallel" ]] ; then
               python $TEST_PY test/LearningTest/TestCoclustering/Standard/Iris ${BIN_PATH}
               python $TEST_PY test/LearningTest/TestKNI/Standard/Iris ${BIN_PATH}
