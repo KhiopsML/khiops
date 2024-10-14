@@ -74,10 +74,24 @@ if(EXISTS "/etc/os-release")
   endif()
 endif()
 
+# Check if it is conda environment
+set(IS_CONDA false)
+if(DEFINED ENV{CONDA_PREFIX})
+  set(IS_CONDA true)
+  message(STATUS "Auto-detected conda environment")
+endif()
+
+if(IS_CONDA AND MPI)
+  if(NOT DEFINED ENV{mpi})
+    message(
+      WARNING "You are building in a conda environment without using `conda build`. find_mpi may not work as expected.")
+  endif()
+endif()
+
 # On Fedora distros, the binaries compiled with mpi must be located under the mpi location furthermore they have to be
 # suffixed by the name of the mpi implementation. These 2 items are given by MPI_BIN and MPI_SUFFIX when the module
 # environment is loaded source /etc/profile.d/modules.sh module load mpi/mpich-x86_64
-if(IS_FEDORA_LIKE)
+if(IS_FEDORA_LIKE AND NOT IS_CONDA)
   if(DEFINED ENV{MPI_BIN})
     set(MPI_BIN $ENV{MPI_BIN})
   else()
@@ -94,21 +108,7 @@ if(IS_FEDORA_LIKE)
         "MPI_SUFFIX is not defined, you have to load the mpi module e.g.:\n source /etc/profile.d/modules.sh && module load mpi/mpich-x86_64"
     )
   endif(DEFINED ENV{MPI_SUFFIX})
-endif(IS_FEDORA_LIKE)
-
-# Check if it is conda environment
-set(IS_CONDA false)
-if(DEFINED ENV{CONDA_PREFIX})
-  set(IS_CONDA true)
-  message(STATUS "Auto-detected conda environment")
-endif()
-
-if(IS_CONDA AND MPI)
-  if(NOT DEFINED ENV{mpi})
-    message(
-      WARNING "You are building in a conda environment without using `conda build`. find_mpi may not work as expected.")
-  endif()
-endif()
+endif(IS_FEDORA_LIKE AND NOT IS_CONDA)
 
 # Set the location of the built artifacts:
 #
