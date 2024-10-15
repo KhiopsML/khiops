@@ -12,10 +12,12 @@ runs:
       #
       # The env var OMPI_MCA_rmaps_base_oversubscribe is for openmpi it corresponds to
       # the flag --oversubscribe (Nodes are allowed to be oversubscribed)
+      # KHIOPS_MPI_VERBOSE is set to true to detect errors from MPI
       if: runner.os != 'Windows'
       shell: bash
       env:
         OMPI_MCA_rmaps_base_oversubscribe: true
+        KHIOPS_MPI_VERBOSE: true
       run: |
         echo
         echo --- Khiops environment with KHIOPS_PROC_NUMBER not set
@@ -92,6 +94,7 @@ runs:
       env:
         KHIOPS_PROC_NUMBER: 4
         OMPI_MCA_rmaps_base_oversubscribe: true
+        KHIOPS_MPI_VERBOSE: true
       run: |
         khiops -s
         khiops -v &> output
