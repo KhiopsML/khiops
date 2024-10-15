@@ -52,6 +52,7 @@ runs:
       env:
         KHIOPS_PROC_NUMBER: 4
         OMPI_MCA_rmaps_base_oversubscribe: true
+        KHIOPS_MPI_VERBOSE: true
       run: |
         cd test/LearningTest/TestKhiops/Standard/Iris/
         "$KHIOPS_SCRIPT" -b -i test.prm -e results/err.txt
