@@ -1801,17 +1801,24 @@ boolean UIObject::CheckCommandLineOptions(const ObjectArray& oaOptions)
 		bOk = false;
 	}
 
-	// Les option -j et -r sont exclusives
+	// Les options -j et -r sont exclusives
 	if (odUsedOptions.Lookup("j") != NULL and odUsedOptions.Lookup("r") != NULL)
 	{
 		Global::AddError("Command line parameters", "", "-j and -r flags are exclusive");
 		bOk = false;
 	}
 
-	// Les option -o et -O sont exclusives
+	// Les options -o et -O sont exclusives
 	if (odUsedOptions.Lookup("o") != NULL and odUsedOptions.Lookup("O") != NULL)
 	{
 		Global::AddError("Command line parameters", "", "-o and -O flags are exclusive");
+		bOk = false;
+	}
+
+	// L'option O n'est pas utilisable sans fichier de commande entree
+	if (odUsedOptions.Lookup("O") != NULL and odUsedOptions.Lookup("i") == NULL)
+	{
+		Global::AddError("Command line parameters", "", "-O flag must be used with -i");
 		bOk = false;
 	}
 
@@ -1820,6 +1827,11 @@ boolean UIObject::CheckCommandLineOptions(const ObjectArray& oaOptions)
 		SetUIMode(Graphic);
 	ensure(not bOk or commandFile.Check());
 	return bOk;
+}
+
+void UIObject::ExitHandlerCloseCommandFiles(int nExitCode)
+{
+	CleanCommandLineManagement();
 }
 
 void UIObject::ParseMainParameters(int argc, char** argv)
@@ -1837,6 +1849,15 @@ void UIObject::ParseMainParameters(int argc, char** argv)
 	ALString sMessage;
 	ALString sToolName;
 	ALString sGlobalHelp;
+
+	// Memorisation d'un handler de fermeture des fichiers en cas d'erreur fatale
+	// C'est indispensable pour ne pas faire planter le programme en release
+	// au moment de l'emission d'une erreur fatale
+	if (not bIsUserExitHandlerSet)
+	{
+		AddUserExitHandler(ExitHandlerCloseCommandFiles);
+		bIsUserExitHandlerSet = true;
+	}
 
 	// Aide globale
 	sToolName = commandLineOptions.GetCommandName();
@@ -1906,10 +1927,10 @@ void UIObject::ParseMainParameters(int argc, char** argv)
 	oOutputScenarioNoReplay->AddDescriptionLine("same as -o option, but without replay");
 	oOutputScenarioNoReplay->SetParameterRequired(true);
 	oOutputScenarioNoReplay->SetParameterDescription(CommandLineOption::sParameterFile);
-	oOutputScenarioNoReplay->SetMethod(OutputCommand);
+	oOutputScenarioNoReplay->SetMethod(OutputCommandNoReplay);
 	commandLineOptions.AddOption(oOutputScenarioNoReplay);
 
-	// Option sur le parametrage des serach/replace
+	// Option sur le parametrage des search/replace
 	oReplace = new CommandLineOption;
 	oReplace->SetFlag('r');
 	oReplace->AddDescriptionLine("search and replace in the command file");
@@ -1934,17 +1955,11 @@ void UIObject::ParseMainParameters(int argc, char** argv)
 	// Nettoyage initial
 	CleanCommandLineManagement();
 
-	// Nettoyage et notament fermeture des fichiers en cas d'erreur fatale
-	if (not bIsUserExitHandlerSet)
-	{
-		AddUserExitHandler(ExitHandlerCleanCommandLineManagement);
-		bIsUserExitHandlerSet = true;
-	}
-
 	// Parsing de la ligne de commande existante
 	// pour detecter les options
 	bVerboseCommandReplay = false;
 	bBatchMode = false;
+	bOutputCommandNoReplay = false;
 
 	// Analyse des option de la ligne de commande
 	commandLineOptions.ParseMainParameters(argc, argv);
@@ -1952,45 +1967,47 @@ void UIObject::ParseMainParameters(int argc, char** argv)
 	// Initialisation des managers de message
 	InitializeMessageManagers();
 
-	// Ouverture du fichier de commande en entree
-	if (bOk and commandFile.GetInputCommandFileName() != "")
-		bOk = commandFile.OpenInputCommandFile();
-
-	// Ouverture du fichier de commande en sortie
-	if (bOk and commandFile.GetOutputCommandFileName() != "")
+	// Cas on on memorise les commandes dans le fichier en sortie sans les rejouer
+	if (bOutputCommandNoReplay)
 	{
-		bOk = commandFile.OpenOutputCommandFile();
+		commandFile.ReadWriteCommandFiles();
+		CleanCommandLineManagement();
 
-		// En mode Graphic on renvoie systematiquement true : on permet de lancer l'outil meme si on ne peut
-		// pas ecrire dans le fichier de log (les options -e et -o sont passees par defaut a l'outil dans les scripts de
-		// lancement bash ou cmd) En mode Textual on est plus strict (utilisation via python, java ou sur cluster)
-		if (not IsBatchMode())
-			bOk = true;
+		// On sort du programme car a a fini tous les traitements, comme pour le -h
+		GlobalExitOnSuccess();
 	}
-
-	// Si il y a eu un pbm lors de l'excution d'une methode, on sort en erreur
-	if (not bOk)
-		GlobalExit();
-
-	// Ecriture d'un en-tete dans le fichier des commandes
-	WriteOutputCommand("", "", CurrentTimestamp());
-	WriteOutputCommand("", "", commandLineOptions.GetCommandName());
-	if (commandFile.GetPrintOutputInConsole())
+	// Cas on on rejoue les commandes
+	else
 	{
-		sMessage = "Output command file\n";
-		sMessage += "//\n";
-		sMessage += "//This file contains recorded commands, that can be replayed.\n";
-		sMessage += "//Commands are based on user interactions:\n";
-		sMessage += "//\tfield update\n";
-		sMessage += "//\tlist item selection\n";
-		sMessage += "//\tmenu action\n";
-		sMessage += "//Every command can be commented, using //.\n";
-		sMessage += "//For example, commenting the last Exit command will allow other\n";
-		sMessage += "//user interactions, after the commands have been replayed.\n";
-		sMessage += "//\n";
-		sMessage += "//";
+		// Ouverture du fichier de commande en entree
+		if (bOk and commandFile.GetInputCommandFileName() != "")
+			bOk = commandFile.OpenInputCommandFile();
+
+		// Ouverture du fichier de commande en sortie
+		if (bOk and commandFile.GetOutputCommandFileName() != "")
+		{
+			bOk = commandFile.OpenOutputCommandFile();
+
+			// En mode Graphic on renvoie systematiquement true : on permet de lancer l'outil meme si on ne peut
+			// pas ecrire dans le fichier de log (les options -e et -o sont passees par defaut a l'outil dans les scripts de
+			// lancement bash ou cmd) En mode Textual on est plus strict (utilisation via python, java ou sur cluster)
+			if (not IsBatchMode())
+				bOk = true;
+		}
+
+		// Si il y a eu un pbm lors de l'excution d'une methode, on sort en erreur
+		if (not bOk)
+		{
+			commandFile.CloseCommandFiles();
+			Global::AddFatalError("Command file", "", "Batch mode failure");
+		}
+
+		// Ecriture d'un en-tete dans le fichier des commandes
+		WriteOutputCommand("", "", CurrentTimestamp());
+		WriteOutputCommand("", "", commandLineOptions.GetCommandName());
+		if (not commandFile.GetPrintOutputInConsole())
+			commandFile.WriteOutputCommandHeader();
 	}
-	WriteOutputCommand("", "", sMessage);
 
 	// Choix de l'interface
 	if (IsBatchMode())
@@ -2000,10 +2017,9 @@ void UIObject::ParseMainParameters(int argc, char** argv)
 		bOk = SetUIMode(UIObject::Graphic);
 		if (not bOk and not GetTextualInteractiveModeAllowed())
 		{
-			Global::AddError("", "",
-					 "Unable to load GUI, use -b and -i flags to launch khiops in batch mode "
-					 "(khiops -h for help)");
-			GlobalExit();
+			Global::AddFatalError("", "",
+					      "Unable to load GUI, use -b and -i flags to launch khiops in batch mode "
+					      "(khiops -h for help)");
 		}
 	}
 }
@@ -2042,6 +2058,13 @@ boolean UIObject::InputCommand(const ALString& sFileName)
 boolean UIObject::OutputCommand(const ALString& sFileName)
 {
 	commandFile.SetOutputCommandFileName(sFileName);
+	return true;
+}
+
+boolean UIObject::OutputCommandNoReplay(const ALString& sFileName)
+{
+	commandFile.SetOutputCommandFileName(sFileName);
+	bOutputCommandNoReplay = true;
 	return true;
 }
 
@@ -2111,7 +2134,7 @@ boolean UIObject::TaskProgressionCommand(const ALString& sTaskFile)
 
 void UIObject::CleanCommandLineManagement()
 {
-	// Par defaut, on rehoue les commande
+	// Par defaut, on rejoue les commande
 	bNoReplayMode = false;
 
 	// Fermeture des fichiers de commande en entree et sortie
@@ -2129,11 +2152,6 @@ void UIObject::CleanCommandLineManagement()
 		// Copie vers HDFS si necessaire
 		PLRemoteFileService::CleanOutputWorkingFile(sErrorLogFileName, sLocalErrorLogFileName);
 	}
-}
-
-void UIObject::ExitHandlerCleanCommandLineManagement(int nExitCode)
-{
-	CleanCommandLineManagement();
 }
 
 boolean UIObject::ReadInputCommand(StringVector* svIdentifierPath, ALString& sValue)
@@ -2204,6 +2222,7 @@ int UIObject::nUIMode = Textual;
 int UIObject::nInstanceNumber = 0;
 boolean UIObject::bVerboseCommandReplay = false;
 boolean UIObject::bBatchMode = false;
+boolean UIObject::bOutputCommandNoReplay = false;
 boolean UIObject::bFastExitMode = true;
 boolean UIObject::bTextualInteractiveModeAllowed = false;
 ObjectDictionary UIObject::odListIndexCommands;

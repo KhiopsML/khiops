@@ -7,9 +7,11 @@
 #include "JsonObject.h"
 
 /* Declaration du lexer utilise */
-void jsonerror(char const *fmt);
-void jsonerrorWithLineCorrection(char const *fmt, int nDeltaLineNumber);
 int jsonlex();
+
+/* Methode de gestion des erreurs */
+void jsonerror(char const *fmt);
+const ALString jsonPrintableValue(const ALString& sValue);
 
 /* Objet json principal a utiliser pendant la lecture d'un fichier. */
 /* Ce domaine est positionner par la methode ReadFile de JsonObject */
@@ -54,6 +56,7 @@ extern char   *yyptok(int i);
 %token <sValue>    STRINGVALUE
 %token <dValue>    NUMBERVALUE
 %token <bValue>    BOOLEANVALUE
+%token <sValue>    STRINGERROR
 %token <sValue>    ERROR
 %token NULLVALUE 
 %type <jsonObject> jsonFile
@@ -148,10 +151,24 @@ value: object     { $$ = $1; }
 		jsonNull = new JsonNull;
 		$$ = jsonNull;
 	}
-	| ERROR  
+	| STRINGERROR  
 	{ 
 		// Message d'erreur
-		jsonerror("Invalid json value");
+		jsonerror("Invalid json string \"" + jsonPrintableValue(*$1) + "\" with non-utf8 encoding");
+
+		// Nettoyage et sortie
+		delete $1;
+		$$ = NULL;
+		YYABORT;
+	}
+	| ERROR  
+	{ 
+		ALString sValueError;
+
+		// Message d'erreur, avec indication de la valeur sauf si elle se reduit au caractete '"'
+		if (*$1 != "\"")
+			sValueError = " \"" + jsonPrintableValue(*$1) + "\"";
+		jsonerror("Invalid json value" + sValueError);
 
 		// Nettoyage et sortie
 		delete $1;
@@ -197,7 +214,7 @@ members: member
 		else
 		{
 			TextService::CToJsonString(member->GetKey(), sJsonKey);
-			jsonerror("Duplicate key \"" + sJsonKey + "\" in json object");
+			jsonerror("Duplicate key \"" + jsonPrintableValue(sJsonKey) + "\" in json object");
 
 			// Nettoyage et sortie
 			delete member;
@@ -206,10 +223,24 @@ members: member
 			YYABORT;
 		}
 	}
-	| ERROR  
+	| STRINGERROR  
 	{ 
 		// Message d'erreur
-		jsonerror("Invalid json key");
+		jsonerror("Invalid json key \"" + jsonPrintableValue(*$1) + "\" with non-utf8 encoding");
+
+		// Nettoyage et sortie
+		delete $1;
+		$$ = NULL;
+		YYABORT;
+	}
+	| ERROR  
+	{ 
+		ALString sValueError;
+
+		// Message d'erreur, avec indication de la valeur sauf si elle se reduit au caractete '"'
+		if (*$1 != "\"")
+			sValueError = " \"" + jsonPrintableValue(*$1) + "\"";
+		jsonerror("Invalid json key" + sValueError);
 
 		// Nettoyage et sortie
 		delete $1;
@@ -277,27 +308,26 @@ values: value
 /* default yyerror for YACC and LEX */
 void jsonerror(char const *fmt)
 {
-   jsonerrorWithLineCorrection(fmt, 0);
-}
-
-/* Variante avec une correction du numero de ligne */
-void jsonerrorWithLineCorrection(char const *fmt, int nDeltaLineNumber)
-{
   char sErrorLine[20];
   ALString sLabel;
-  int nLineNumber;
 
   nJsonFileParsingErrorNumber++;
-  nLineNumber = yylineno+nDeltaLineNumber;
-  if (nLineNumber <= 0)
-    nLineNumber = 1;
-  snprintf(sErrorLine, sizeof(sErrorLine), "Line %d", nLineNumber);
+  snprintf(sErrorLine, sizeof(sErrorLine), "Line %d", yylineno);
   sLabel = fmt;
   Global::AddError("Read json file",
                     sErrorLine,
                     sLabel);
 }
 
+const ALString jsonPrintableValue(const ALString& sValue)
+{
+	const int nMaxPrintableLength = 30;
+
+	if (sValue.GetLength() <= nMaxPrintableLength)
+		return sValue;
+	else
+		return sValue.Left(nMaxPrintableLength) + "...";
+}
 
 int jsonparse();
 

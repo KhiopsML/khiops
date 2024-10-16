@@ -1104,18 +1104,26 @@ case 10:
 YY_RULE_SETUP
 #line 49 "JsonLex.lex"
 {
+                    boolean bOk;
                     ALString *sValue;
 
+                    // Conversion sans les double-quote de debut et fin
                     sValue = new ALString;
                     yytext[yyleng-1] = '\0';
-                    TextService::JsonToCString((char*)&yytext[1], *sValue);
+                    bOk = TextService::JsonToCString((char*)&yytext[1], *sValue);
                     jsonlval.sValue = sValue; 
-                    return  STRINGVALUE;
+                    
+                    // On retourne la chaine convertie en cas de succes
+                    if (bOk)
+                        return STRINGVALUE;
+                    // Sinon, on retourne la chaine convertie au mieux, mais en tant que chaine erronnee
+                    else
+                        return STRINGERROR;
                 }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 59 "JsonLex.lex"
+#line 67 "JsonLex.lex"
 {
                     char* endptr;
                     double dValue;
@@ -1128,12 +1136,12 @@ YY_RULE_SETUP
 case 12:
 /* rule 12 can match eol */
 YY_RULE_SETUP
-#line 68 "JsonLex.lex"
+#line 76 "JsonLex.lex"
 {/*IGNORE*/}
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 70 "JsonLex.lex"
+#line 78 "JsonLex.lex"
 {
                     ALString *sValue;
 
@@ -1144,10 +1152,10 @@ YY_RULE_SETUP
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 78 "JsonLex.lex"
+#line 86 "JsonLex.lex"
 ECHO;
 	YY_BREAK
-#line 1150 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JsonLex.inc"
+#line 1158 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JsonLex.inc"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2164,5 +2172,5 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 78 "JsonLex.lex"
+#line 86 "JsonLex.lex"
 

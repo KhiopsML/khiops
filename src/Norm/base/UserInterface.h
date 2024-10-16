@@ -396,8 +396,8 @@ protected:
 	// Nettoyage de la gestion de la ligne de commande, fermeture des fichiers ouverts...
 	static void CleanCommandLineManagement();
 
-	// Fonction de sortie utilisateur pour fermer les fichiers d'entre-sortie de commande et d'erreur
-	static void ExitHandlerCleanCommandLineManagement(int nExitCode);
+	// Fonction de sortie utilisateur pour fermer les fichiers d'entre-sortie de commande
+	static void ExitHandlerCloseCommandFiles(int nExitCode);
 
 	// Lecture d'une commande
 	// renvoie false si pas de commande, sinon un vecteur de chaines de caracteres representant le
@@ -431,6 +431,7 @@ protected:
 	static int nInstanceNumber;
 	static boolean bVerboseCommandReplay;
 	static boolean bBatchMode;
+	static boolean bOutputCommandNoReplay;
 	static boolean bFastExitMode;
 	static boolean bTextualInteractiveModeAllowed;
 	static ALString sIconImageJarPath;

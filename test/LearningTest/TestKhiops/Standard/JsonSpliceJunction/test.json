@@ -1,0 +1,18 @@
+{
+  "dictionaryFile": "../../../MTdatasets/SpliceJunction/SpliceJunction.kdic",
+  "dictionaryName": "SpliceJunction",
+  "dataTables": [
+    {
+      "dataPath": "",
+      "dataFile": "../../../MTdatasets/SpliceJunction/SpliceJunction.txt"
+    },
+    {
+      "dataPath": "DNA",
+      "dataFile": "../../../MTdatasets/SpliceJunction/SpliceJunctionDNA.txt"
+    }
+  ],
+  "detectFormat": false,
+  "trainPercentage": 10,
+  "maxConstructedAttributeNumber": 100,
+  "targetName": "Class"
+}

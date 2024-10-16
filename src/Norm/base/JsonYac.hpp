@@ -69,8 +69,9 @@ enum jsontokentype
 	STRINGVALUE = 258,  /* STRINGVALUE  */
 	NUMBERVALUE = 259,  /* NUMBERVALUE  */
 	BOOLEANVALUE = 260, /* BOOLEANVALUE  */
-	ERROR = 261,        /* ERROR  */
-	NULLVALUE = 262     /* NULLVALUE  */
+	STRINGERROR = 261,  /* STRINGERROR  */
+	ERROR = 262,        /* ERROR  */
+	NULLVALUE = 263     /* NULLVALUE  */
 };
 typedef enum jsontokentype jsontoken_kind_t;
 #endif
@@ -79,7 +80,7 @@ typedef enum jsontokentype jsontoken_kind_t;
 #if !defined JSONSTYPE && !defined JSONSTYPE_IS_DECLARED
 union JSONSTYPE
 {
-#line 44 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JsonYac.yac"
+#line 46 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JsonYac.yac"
 
 	ALString* sValue;
 	double dValue;
@@ -89,7 +90,7 @@ union JSONSTYPE
 	JsonArray* jsonArray;
 	JsonMember* jsonMember;
 
-#line 89 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JsonYac.hpp"
+#line 90 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JsonYac.hpp"
 };
 typedef union JSONSTYPE JSONSTYPE;
 #define JSONSTYPE_IS_TRIVIAL 1

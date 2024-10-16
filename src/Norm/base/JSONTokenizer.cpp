@@ -11,17 +11,6 @@ ALString JSONTokenizer::sLocalFileName;
 FILE* JSONTokenizer::fJSON = NULL;
 int JSONTokenizer::nLastToken = 0;
 JSONSTYPE JSONTokenizer::jsonLastTokenValue = {0};
-boolean JSONTokenizer::bForceAnsi = false;
-
-void JSONTokenizer::SetForceAnsi(boolean bValue)
-{
-	bForceAnsi = bValue;
-}
-
-boolean JSONTokenizer::GetForceAnsi()
-{
-	return bForceAnsi;
-}
 
 boolean JSONTokenizer::OpenForRead(const ALString& sErrorFamilyName, const ALString& sInputFileName)
 {
@@ -95,7 +84,7 @@ boolean JSONTokenizer::CheckToken(int nToken)
 {
 	if (nToken == '[' or nToken == ']' or nToken == '{' or nToken == '}' or nToken == ',' or nToken == ':' or
 	    nToken == 0 or nToken == String or nToken == Number or nToken == Boolean or nToken == Null or
-	    nToken == Error)
+	    nToken == StringError or nToken == Error)
 		return true;
 	else
 		return false;
@@ -108,22 +97,26 @@ ALString JSONTokenizer::GetTokenLabel(int nToken)
 	require(CheckToken(nToken));
 
 	if (nToken == String)
-		sLabel = "String";
+		sLabel = "string";
 	else if (nToken == Number)
-		sLabel = "Number";
+		sLabel = "number";
 	else if (nToken == Boolean)
-		sLabel = "Boolean";
+		sLabel = "boolean";
 	else if (nToken == Null)
-		sLabel = "Null";
+		sLabel = "null";
+	else if (nToken == StringError)
+		sLabel = "string error";
 	else if (nToken == Error)
 		sLabel = "Error";
 	else if (nToken == 0)
 		sLabel = "EndOfFile";
-	else
+	else if (nToken < 256)
 	{
 		sLabel = "' '";
 		sLabel.SetAt(1, (char)nToken);
 	}
+	else
+		sLabel = "unknown";
 	return sLabel;
 }
 
@@ -140,13 +133,13 @@ int JSONTokenizer::ReadNextToken()
 	// Lecture du token
 	nLastToken = JsonObject::Lex(&jsonLastTokenValue);
 
-	// On force la conversion vers l'ansi si necessaire
-	if (bForceAnsi and nLastToken == String)
+	// On accepte avec un warning les erreur d'encodage de chaine de caracteres
+	if (nLastToken == StringError)
 	{
-		sValueCopy = *jsonLastTokenValue.sValue;
-		TextService::CToCAnsiString(sValueCopy, *jsonLastTokenValue.sValue);
+		nLastToken = String;
+		AddParseWarning("Read token " + GetTokenLabel(nLastToken) + GetLastTokenValue() +
+				" with non-utf8 encoding");
 	}
-
 	return nLastToken;
 }
 
@@ -609,6 +602,11 @@ boolean JSONTokenizer::DoubleToInt(double dValue, int& nValue)
 		nValue = 0;
 		return false;
 	}
+}
+
+void JSONTokenizer::AddParseWarning(const ALString& sLabel)
+{
+	Global::AddWarning(sErrorFamily, sFileName + " line " + IntToString(GetCurrentLineIndex()), sLabel);
 }
 
 void JSONTokenizer::AddParseError(const ALString& sLabel)

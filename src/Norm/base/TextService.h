@@ -76,11 +76,31 @@ public:
 
 	///////////////////////////////////////////////////////////////////////////////
 	// Gestion de l'encodage des chaines ansi en utf8, le format supporte par json
-	// Les caracteres ansi 128 a 255 sont encodes avec iso-8859-1/windows-1252
-	// L'encodage dans le json se fait avec le caractere d'echapement \uHHHH
+	//
+	// Cas avance, celui de l'encodage utuilise par Khiops pour gerer les caracteres ansi:
+	// - les caracteres ansi 128 a 255 sont encodes avec iso-8859-1/windows-1252
+	// - l'encodage dans le json se fait avec le caractere d'echapement pour
+	//   un encodage unicode \uHHHH, ce qui permet de le distinguer des memes
+	//   caracteres encodes en Utf8
+	// Exemple: cas du carectere e accent aigu
+	// - encodage ansi: E9
+	// - encodage Utf8: C3A9
+	// - encodage Unicode: U+00E0
+	// Le parser de json utilise JsonToCString pour transformer les chaines de caracteres json
+	// en chaine de caracteres C, par defaut avec un encodage Utf8
+	// Avec le mode ForceUnicodeToAnsi, on peut retrouver l'encodage ansi dans le cas unicode
+
+	// En mode ForceUnicodeToAnsi (defaut: false), les caracteres de la plage de windows1252/iso8859-1 encodes
+	// via la syntaxe \uxxxx sont transformes en caracteres de l'ansi etendu, non Utf8
+	static void SetForceUnicodeToAnsi(boolean bValue);
+	static boolean GetForceUnicodeToAnsi();
 
 	// Conversion d'une chaine Json valide vers une chaine C
-	static void JsonToCString(const char* sJsonString, ALString& sCString);
+	// On renvoie false en cas d'erreur d'encodage de la chaine a convertir,
+	// tout en encodant au mieux avec des caractere speciaux ou les caracteres tels quels
+	// En mode ForceUnicodeAnsi, on renvoie true si la chaine Json est valide,
+	// bien que la chaine C ne soit pas avec un encodage UTF8
+	static boolean JsonToCString(const char* sJsonString, ALString& sCString);
 
 	// Encodage d'un chaine de caracteres C au format json, sans les double-quotes de debut et fin
 	static void CToJsonString(const ALString& sCString, ALString& sJsonString);
@@ -102,8 +122,8 @@ public:
 	// Conversion d'une chaine base64 vers une chaine C
 	// Le tableau de byte en sortie doit etre de taille au moins 3 * inputLength/4,
 	// conformement aux besoins de l'encodage base64
-	// On renvoie la longueur de la chaine encode en cas de succes, -1 sinon
-	static int Base64StringToBytes(const ALString& sBase64String, char* sBytes);
+	// On renvoie false en cas d'erreur d'encodage
+	static boolean Base64StringToBytes(const ALString& sBase64String, char* sBytes);
 
 	// Encodage d'un tableau de bytes vers le format base64, sans les double-quotes de debut et fin
 	// Le teableau en entree peut contenir n'importe quel byte, y comrpis des '\0'
@@ -118,7 +138,10 @@ public:
 
 	// Longueur en bytes d'un caractere UTF8 valide a partir d'une position donnee
 	// Retourne 1 a 4 dans le cas d'un caractere valide, 0 sinon pour un caractere ANSI non encodable directement
-	static int GetValidUTF8CharLengthAt(const ALString& sValue, int nStart);
+	static int GetValidUTF8CharLengthAt(const char* sValue, int nStart);
+
+	// Longueur en bytes de la sous-partie d'une chaine encodee avec des caracteres UTF8 valide
+	static int GetValidUTF8SubStringLength(const char* sValue);
 
 	// Construction d'un echantillon de textes basiques pour des tests
 	static void BuildTextSample(StringVector* svTextValues);
@@ -192,6 +215,9 @@ protected:
 	// Ne pas declarer d'autres instances statiques de JSONFile, par exemple via d'autre classes, sinon cela pose
 	// des problemes de memoire non liberee non diagnostiques par les outils de getsion de la memoire
 	static TextService textServiceGlobalInitializer;
+
+	// Parametrage de la conversion dees chaines json vers des chaines C
+	static boolean bForceUnicodeToAnsi;
 };
 
 ////////////////////////////////////

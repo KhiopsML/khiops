@@ -199,6 +199,7 @@ def evaluate_tool_on_test_dir(
     test_timeout_limit=None,
     task_file=False,
     output_scenario=False,
+    nop_output_scenario=False,
     user_interface=False,
 ):
     """Evaluation d'un outil sur un repertoire de test terminal et comparaison des resultats
@@ -392,6 +393,9 @@ def evaluate_tool_on_test_dir(
         if output_scenario:
             khiops_params.append("-o")
             khiops_params.append(os.path.join(results_dir, "output_test.prm"))
+        if nop_output_scenario:
+            khiops_params.append("-O")
+            khiops_params.append(os.path.join(results_dir, "nop_output_test.prm"))
         if task_file:
             khiops_params.append("-p")
             khiops_params.append(os.path.join(results_dir, "task_progression.log"))
@@ -911,6 +915,13 @@ def main():
         action="store_true",
     )
 
+    # Mode avec scenario en sortie
+    parser.add_argument(
+        "--nop-output-scenario",
+        help="create an output scenario nop_output_test.prm in results dir, without replaying commands",
+        action="store_true",
+    )
+
     # Mode interface utilisateur
     parser.add_argument(
         "--user-interface",
@@ -989,6 +1000,7 @@ def main():
         test_timeout_limit=args.test_timeout_limit,
         task_file=args.task_file,
         output_scenario=args.output_scenario,
+        nop_output_scenario=args.nop_output_scenario,
         user_interface=args.user_interface,
     )
 

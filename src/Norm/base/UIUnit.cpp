@@ -75,7 +75,7 @@ void UIUnit::Open()
 	// On envoie un log des commandes rejouees avec les erreurs eventuelles
 	// La politique est tres tolerante aux erreurs: on se contente de les signaler
 	bActionExit = false;
-	while (bActionExit != true and ReadInputCommand(&svIdentifierPath, sValue) == true)
+	while (not bActionExit and ReadInputCommand(&svIdentifierPath, sValue) == true)
 	{
 		// Recherche de l'unite d'interface concernee
 		assert(svIdentifierPath.GetSize() > 0);
@@ -99,13 +99,16 @@ void UIUnit::Open()
 				if (uiAction->GetIdentifier() == "Exit" or uiAction->GetParameters() == "Exit")
 					bActionExit = true;
 				if (bVerboseCommandReplay)
-					AddSimpleMessage("Replay user action\t: " + sCommand);
+					AddSimpleMessage("Replay user action: " + sCommand);
 				WriteOutputCommand(sCommand, sValue, uiAction->GetUnformattedLabel());
 				uiUnit->ExecuteUserActionAt(uiAction->GetIdentifier());
 
 				// Sortie en mode fast exit
 				if (bBatchMode and bFastExitMode and Global::IsAtLeastOneError())
+				{
+					commandFile.CloseCommandFiles();
 					GlobalExitOnSuccess();
+				}
 				break;
 			}
 
@@ -125,7 +128,7 @@ void UIUnit::Open()
 						uiField = cast(UIElement*, uiData);
 						values = uiUnit->oaUnitValues.GetAt(nIndex);
 						if (bVerboseCommandReplay)
-							AddSimpleMessage("Replay field update\t: " + sCommand + " " +
+							AddSimpleMessage("Replay field update: " + sCommand + " " +
 									 sValue);
 						WriteOutputCommand(sCommand, sValue, uiField->GetUnformattedLabel());
 						uiField->SetFieldStringValue(values, uiUnit->nCurrentItemIndex, sValue);
@@ -139,7 +142,10 @@ void UIUnit::Open()
 							// Sortie en mode fast exit, pouvant etre declenchee par une erreur de refresh
 							if (bBatchMode and bFastExitMode and
 							    Global::IsAtLeastOneError())
+							{
+								commandFile.CloseCommandFiles();
 								GlobalExitOnSuccess();
+							}
 						}
 						break;
 					}
@@ -147,11 +153,10 @@ void UIUnit::Open()
 					{
 						assert(uiUnit->GetDataType() == List);
 						// Arret sinon
-						Global::AddError("Command file", "",
-								 "Replay failure\t: " + sCommand + " " + sValue +
-								     " at index " +
-								     IntToString(uiUnit->nCurrentItemIndex));
-						CleanCommandLineManagement();
+						commandFile.AddInputCommandFileError(
+						    "Incorrect index in command: " + sCommand + " " + sValue +
+						    " at index " + IntToString(uiUnit->nCurrentItemIndex));
+						commandFile.CloseCommandFiles();
 						if (bBatchMode)
 							Global::AddFatalError("Command file", "", "Batch mode failure");
 						break;
@@ -188,8 +193,8 @@ void UIUnit::Open()
 								// Changement d'index si OK
 								if (bVerboseCommandReplay)
 									AddSimpleMessage(
-									    "Replay list item selection\t: " +
-									    sCommand + " " + sValue);
+									    "Replay list item selection: " + sCommand +
+									    " " + sValue);
 								WriteOutputCommand(sCommand, sValue,
 										   "List item selection");
 								uiList->SetSelectedItemIndex(nListIndex);
@@ -205,8 +210,8 @@ void UIUnit::Open()
 								// Changement d'index
 								if (bVerboseCommandReplay)
 									AddSimpleMessage(
-									    "Replay list item selection\t: " +
-									    sCommand + " " + sValue);
+									    "Replay list item selection: " + sCommand +
+									    " " + sValue);
 								WriteOutputCommand(sCommand, sValue,
 										   "List item selection");
 								uiList->SetSelectedItemKey(sValue);
@@ -220,8 +225,8 @@ void UIUnit::Open()
 				}
 
 				// Arret sinon
-				Global::AddError("Command file", "", "Replay failure\t: " + sCommand + " " + sValue);
-				CleanCommandLineManagement();
+				commandFile.AddInputCommandFileError("Incorrect command: " + sCommand + " " + sValue);
+				commandFile.CloseCommandFiles();
 				if (bBatchMode)
 					Global::AddFatalError("Command file", "", "Batch mode failure");
 				break;
@@ -234,7 +239,7 @@ void UIUnit::Open()
 	svIdentifierPath.SetSize(0);
 
 	// Ouverture de la fenetre, selon le mode (inutile si action Exit rejouee)
-	if (bActionExit == false)
+	if (not bActionExit)
 	{
 		// Mode graphique
 		if (GetUIMode() == Graphic)
@@ -272,10 +277,13 @@ void UIUnit::Open()
 			else
 			// Sinon, en mode textuel, on n'autorise pas d'interactions sans scenario
 			{
-				if (commandFile.IsInputCommandFileOpened())
-					AddFatalError("Unexpected end of file in the input commands file");
-				else
-					AddFatalError("Missing input commands file");
+				// Erreur fatale
+				// Remarque: dans certains cas, l'erreur fatale pourra etre emise
+				// directement lors de la fermeture du fichier de commande en entree
+				commandFile.CloseCommandFiles();
+				commandFile.AddInputCommandFileError(
+				    "Analysis of input commands interrupted because of errors");
+				Global::AddFatalError("Command file", "", "Batch mode failure");
 			}
 		}
 	}

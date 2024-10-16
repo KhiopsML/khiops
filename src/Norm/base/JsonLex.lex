@@ -47,13 +47,21 @@ null            {return NULLVALUE;}
  
 
 {STRING}        {
+                    boolean bOk;
                     ALString *sValue;
 
+                    // Conversion sans les double-quote de debut et fin
                     sValue = new ALString;
                     yytext[yyleng-1] = '\0';
-                    TextService::JsonToCString((char*)&yytext[1], *sValue);
+                    bOk = TextService::JsonToCString((char*)&yytext[1], *sValue);
                     jsonlval.sValue = sValue; 
-                    return  STRINGVALUE;
+                    
+                    // On retourne la chaine convertie en cas de succes
+                    if (bOk)
+                        return STRINGVALUE;
+                    // Sinon, on retourne la chaine convertie au mieux, mais en tant que chaine erronnee
+                    else
+                        return STRINGERROR;
                 }
 
 {NUMBER}        {

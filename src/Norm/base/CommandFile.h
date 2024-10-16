@@ -156,69 +156,176 @@ public:
 	boolean IsOutputCommandFileOpened() const;
 
 	// Indique si on est en train de traiter les commande, en entree ou en sortie
-	boolean IsCommandFileOpened() const;
+	boolean AreCommandFilesOpened() const;
 
-	// Ouverture des fichiers de commandes
+	// Fermeture des fichiers de commandes
+	// La fermeture peut provoquer un erreur fatale en cas d'erreur d'analyse des commandes
+	void CloseInputCommandFile();
+	void CloseOutputCommandFile();
 	void CloseCommandFiles();
 
 	// Lecture d'une commande
-	// Renvoie false si pas de commande, sinon un vecteur de chaines de caracteres representant
+	// Renvoie false si pas de commande valide disponible, sinon un vecteur de chaines de caracteres representant
 	// le parsing de IdentifierPath et une valeur optionnelle
+	// Cette methode peut etre appelee meme en l'absence de fichier de de commande en sortie
 	boolean ReadInputCommand(StringVector* svIdentifierPath, ALString& sValue);
 
+	// Indique que l'on a fini de lire et traiter les commandes
+	boolean IsInputCommandEnd() const;
+
 	// Ecriture d'une commande
+	// Cette methode peut etre appelee meme en l'absence de fichier de de commande en sortie
 	void WriteOutputCommand(const ALString& sIdentifierPath, const ALString& sValue, const ALString& sLabel);
 
-	///////////////////////////////////////////////////////////////////////////////////////
-	///// Implementation
-protected:
-	// Chargement du fichier json en entree et verification de sa validite
-	boolean LoadJsonParameters();
+	// Ecriture d'une header de fichier de commande, consistant en lignes de commentaire en expliquant le fonctionnement
+	void WriteOutputCommandHeader();
 
-	// Test de la validite d'un nom de variable, avec creation si necessaire d'un message d'erreur
-	// complet, y compris la valeur testee
-	boolean CheckVariableName(const ALString& sValue, ALString& sMessage) const;
-
-	// Test si une valeur correspond a un nom de variable au format camelCase
-	boolean IsCamelCaseVariableName(const ALString& sValue) const;
-
-	// Test si un nom de variable correspond a un contenu de type byte, donc encode au format base64
-	// Un tel nom de variable au format camelCase doit etre prefixe par byte
-	boolean IsByteVariableName(const ALString& sValue) const;
-
-	// Transformation d'un nom de variable en sa variante byte ou standard
-	// On renvoie la valeur initiale si elle est deja dans sa bonne variante
-	const ALString ToByteVariableName(const ALString& sValue) const;
-	const ALString ToStandardVariableName(const ALString& sValue) const;
-
-	// Transformation d'un nom de variable en sa variante opposee
-	const ALString ToVariantVariableName(const ALString& sValue) const;
-
-	// Test de la validite d'une valeur de type string, avec creation si necessaire d'un message d'erreur
-	// complet, y compris la valeur testee
-	boolean CheckStringValue(const ALString& sValue, boolean bCheckBase64Encoding, ALString& sMessage) const;
-
-	// Variante affichable d'une valeur, en completant si necessaire par des "..."
-	const ALString GetPrintableValue(const ALString& sValue) const;
+	// Mode lecture/ecriture d'un fichier de de commande, sans executer les commandes
+	// Cela permet de tester la validite des fichier de command eet de parametres en entree
+	// et d'effectuer les transformations en fichier de commande natif, sans parametres
+	boolean ReadWriteCommandFiles();
 
 	// Personnalisation des messages d'erreur
 	void AddInputCommandFileError(const ALString& sMessage) const;
 	void AddInputParameterFileError(const ALString& sMessage) const;
 	void AddOutputCommandFileError(const ALString& sMessage) const;
 
-	// Application des recherche/remplacement de valeurs successivement sur une commande
-	const ALString ProcessSearchReplaceCommand(const ALString& sInputCommand) const;
+	///////////////////////////////////////////////////////////////////////////////////////
+	///// Implementation
+protected:
+	// Variante affichable d'une valeur, en completant si necessaire par des "..."
+	const ALString GetPrintableValue(const ALString& sValue) const;
+
+	///////////////////////////////////////////////////////////////
+	// Gestion du fichier de parametre json et de sa verification
+
+	// Chargement du fichier json en entree et verification de sa validite
+	boolean LoadJsonParameters();
+
+	// Test de la validite d'une cle json, avec creation si necessaire d'un message d'erreur
+	// complet, y compris la valeur testee
+	boolean CheckJsonKey(const ALString& sValue, ALString& sMessage) const;
+
+	// Test si une valeur correspond a une cle json au format camelCase
+	boolean IsCamelCaseJsonKey(const ALString& sValue) const;
+
+	// Test si une cle json correspond a un contenu de type byte, donc encode au format base64
+	// Une telle cle json au format camelCase doit etre prefixe par byte
+	boolean IsByteJsonKey(const ALString& sValue) const;
+
+	// Transformation d'une cle json en sa variante byte ou standard
+	// On renvoie la valeur initiale si elle est deja dans sa bonne variante
+	const ALString ToByteJsonKey(const ALString& sValue) const;
+	const ALString ToStandardJsonKey(const ALString& sValue) const;
+
+	// Transformation d'une cles json en sa variante opposee
+	const ALString ToVariantJsonKey(const ALString& sValue) const;
+
+	// Test de la validite d'une valeur de type string, avec creation si necessaire d'un message d'erreur
+	// complet, y compris la valeur testee
+	boolean CheckStringValue(const ALString& sValue, boolean bCheckBase64Encoding, ALString& sMessage) const;
 
 	// Construit d'un path json pour designer une valeur dans unse structure json
 	// Cf. https://jsonpatch.com/
 	// On suit les element de structure valides dans le parametrage json
 	// La fin du parametrage peut etre non utilises (NULL ou -1)
-	ALString BuildJsonPath(JsonMember* member, int nArrayRank, JsonMember* arrayObjectmember);
+	ALString BuildJsonPath(JsonMember* member, int nArrayRank, JsonMember* arrayObjectmember) const;
+
+	///////////////////////////////////////////////////////////////
+	// Gestion du fichier de commandes en entree
+
+	// Application des recherche/remplacement de valeurs successivement sur une commande
+	const ALString ProcessSearchReplaceCommand(const ALString& sInputCommand) const;
+
+	// Types de token possible
+	enum
+	{
+		TokenIf,
+		TokenLoop,
+		TokenEnd,
+		TokenKey,
+		TokenOther,
+		None
+	};
+
+	// Type de bloc pour un token de type bloc
+	const ALString& GetBlockType(int nToken) const;
+
+	// Reinitialisation de la gestion du parser
+	void ResetParser();
+
+	// Recodage de la ligne de commande en cours en exploitant le parametrage json
+	// On renvoie la ligne recodee
+	// En cas d'erreur, le boolen en parametre est mis a false, avec emmission d'un message d'erreur
+	const ALString RecodeCurrentLineUsingJsonParameters(boolean& bOk);
+
+	// Analyse d'une nouvelle ligne de commande pour mettre a jour l'etat du parser
+	// Etats possibles, gere par nParserState
+	// - TokenIf: en cours de traitement de bloc IF
+	// - TokenLoop: en cours de traitement de bloc LOOP
+	// - TokenOther: instruction standard
+	// Le parametre bContinueAnalysis en sortie indique qu'il faut continuer l'analyse
+	// du bloc en cours pour avoir une instruction executable disponible
+	// En cas d'erreur, on renvoie false, avec emmission d'un message d'erreur
+	boolean ParseInputCommand(const ALString& sInputCommand, boolean& bContinueAnalysis);
+
+	// Tokenisation de la ligne de commande d'entree en une suite de tokens
+	// On renvoie la liste des types et valeur de tokens en sortie si la syntaxe est valide:
+	//   TokenIf TokenKey: debut de bloc if
+	//   TokenEnd TokenIf: fin de bloc if
+	//   TokenLoop TokenKey: debut de bloc loop
+	//   TokenEnd TokenLoop: fin de bloc loop
+	//   TokenOther (TokenKey|TokenOther)*: instruction standard, avec commande suivi d'une eventuelle valeur
+	// En cas d'erreur, on renvoie false, avec emmission d'un message d'erreur
+	boolean TokenizeInputCommand(const ALString& sInputCommand, IntVector* ivTokenTypes,
+				     StringVector* svTokenValues) const;
+
+	// Decomposition de la ligne de commande d'entree en un premier token,
+	// suivi d'une valeur inter-token et de la fin de la ligne
+	// En sortie, on renvoie le type de token, et on indique la valeur du token la fin de ligne
+	// Il n'y a pas de message d'erreur a ce niveau.
+	// Les tokens de type TokenKey possedent a minimal leur delimiteur de debut, et peuvent ne pas etre valides
+	int GetFirstInputToken(const ALString& sInputCommand, ALString& sToken, ALString& sInterToken,
+			       ALString& sEndLine) const;
+
+	// Affichage d'un vecteur de token issu de l'analyse de la ligne de command
+	void WriteInputCommandTokens(ostream& ost, IntVector* ivTokenTypes, StringVector* svTokenValues) const;
+
+	// Verification de la syntaxe d'un token de type cle, devant commencer par son delimiteur
+	// En cas d'erreur, on renvoie false, avec emmission d'un message d'erreur
+	boolean CheckTokenKey(const ALString& sToken) const;
+
+	// Extraction de la cle d'un token de type cle valide entoure de ses delimiteurs
+	const ALString ExtractJsonKey(const ALString& sTokenKey) const;
+
+	// Recherche de la valeur associe a une cle dans un objet json
+	// On renvoie NULL si non trouve
+	JsonValue* LookupJsonValue(JsonObject* jsonObject, const ALString& sKey) const;
+
+	// Test si une valeur est trimee
+	boolean IsValueTrimed(const ALString& sValue) const;
+
+	// Detection des membres non utilises du parametrage json, avec emission de messages d'erreur
+	// On renvoie true s'il y a au moins une erreur
+	boolean DetectedUnusedJsonParameterMembers() const;
+
+	///////////////////////////////////////////////////////////////
+	// Variables de specification des fichiers et parametres de commandes
 
 	// Nom des fichiers
 	ALString sInputCommandFileName;
 	ALString sOutputCommandFileName;
 	ALString sInputParameterFileName;
+
+	// Gestion des chaines des patterns a remplacer par des valeurs dans les fichiers d'input de scenario
+	StringVector svInputCommandSearchValues;
+	StringVector svInputCommandReplaceValues;
+
+	///////////////////////////////////////////////////////////////
+	// Variables de gestion des fichiers et parametres de commandes
+
+	// Redirection de la sortie outputCommand vers la console
+	boolean bPrintOutputInConsole;
 
 	// Variante locale des noms de fichier de commande, dans le cas de fichiers HDFS
 	ALString sLocalInputCommandFileName;
@@ -228,27 +335,98 @@ protected:
 	FILE* fInputCommands;
 	FILE* fOutputCommands;
 
-	// Redirection de la sortie outputCommand vers la console
-	boolean bPrintOutputInConsole;
-
-	// Gestion des chaines des patterns a remplacer par des valeurs dans les fichiers d'input de scenario
-	StringVector svInputCommandSearchValues;
-	StringVector svInputCommandReplaceValues;
-
 	// Object json pour les parametres en entree
 	JsonObject jsonParameters;
 
-	// Prefixe des noms de variable ayant un contenu de type byte
-	static const ALString sByteVariablePrefix;
+	///////////////////////////////////////////////////////////////
+	// Variables de gestion du parsing du fichier de commande en entree
+	// permettant sa gestion en flux
+	//
+	// Choix d'implementation principaux, avec impacts utilisateurs
+	// - le fichier de parametre json est lu et traite en entier de facon prealable, avec une taille limitee
+	// - le fichier de commande est traite en flux, ce qui permet de n'avoir aucune limite de taille
+	// - toute ligne de commande peut etre commentee, y compris les lignes du langage de pilotage de type IF ou LOOP
+	// - les lignes d'un fichier de commande template n'ont pas besoin de se terminer par un commentaire
+	// - toute __key__ du fichier de commande doit se trouver dans le fichier json
+	// - toute key du fichier json doit etre utilise dans le fichier de commande
+	// - les __key__ de parametrage json ne peuvent concerner que la partie parametrage utilisateur d'une valeur
+	// - toute erreur ou incoherence dans les fichiers de commande et de parametrage json provoquent une erreur fatale
 
-	// Longueur max d'un nom de variable
-	static const int nMaxVariableNameLength = 100;
+	// Numero de ligne courant du fichier de commande en entree
+	int nParserLineIndex;
+
+	// Gestion de l'etat courant du parser de commande
+	int nParserState;
+
+	// Gestion de l'etat courant de la ligne en couurs de parsing
+	int nParserCurrentLineState;
+
+	// Cle du bloc en cours de traitement
+	ALString sParserBlockKey;
+
+	// Vecteur des types et valeurs des tokens de la ligne en cours de traitement
+	IntVector ivParserTokenTypes;
+	StringVector svParserTokenValues;
+
+	// Indicateur de traitement dans le cas d'un bloc de type if en cours
+	boolean bParserIfState;
+
+	// Tableau en cours du parametrage json dans le cas d'un bloc loop en cours
+	JsonArray* parserLoopJsonArray;
+
+	// Tableau des vecteur de type et valeurs de tokens pour les lignes de bloc loop en cours
+	ObjectArray oaParserLoopLinesTokenTypes;
+	ObjectArray oaParserLoopLinesTokenValues;
+
+	// Index de la ligne de bloc en cours de traitement
+	int nParserLoopLineIndex;
+
+	// Index de l'objet json du tableau en cours de traitement
+	int nParserLoopObjectIndex;
+
+	// Indicateur d'erreur du parser dans l'analyse des commande
+	// Cet indicateur est mis a jour uniquement dans la methode d'ajout d'erreur
+	// Il permet de conditionner la fin de l'analyse des commandes lors de la fermeture
+	// du fichier de commande, pour detecter les erreurs de parsing de fin de fichier
+	mutable boolean bParserOk;
+
+	// Dictionnaire des membres utilises des parametres json
+	// Ce dictionnaire est mise a jour lors de chaque recherche de membre par cle
+	// Cela permet de detecter les membres non utilises lors de la fermeture du fichier de commande
+	mutable NumericKeyDictionary nkdParserUsedJsonParameterMembers;
+
+	///////////////////////////////////////////////////////////////
+	// Constantes sur les mots cles du langage de commande en entree
+	// et sur les contrainte de taille des elements de langage
+
+	// Valeurs des tokens du langage de pametrage des commande en entree
+	static const ALString sTokenLoop;
+	static const ALString sTokenIf;
+	static const ALString sTokenEnd;
+
+	// Prefix de commentaire
+	static const ALString sCommentPrefix;
+
+	// Delimiteur de cle json dans un fichier de commande
+	static const ALString sJsonKeyDelimiter;
+
+	// Prefixe des cle json ayant un contenu de type byte
+	static const ALString sByteJsonKeyPrefix;
+
+	// Longueur max d'une ligne de fichier de commande
+	static const int nMaxLineLength = 500;
+
+	// Longueur max d'une cle json
+	static const int nMaxJsonKeyLength = 100;
 
 	// Longueur max d'une valeur de type chaine de caracteres
 	static const int nMaxStringValueLength = 300;
 
 	// Longueur max affichee pour une valeur dans les messages d'erreur
 	static const int nMaxPrintableLength = 30;
+
+	// Taille max d'un bloc d'instruction LOOP d'un fichier de commande, en nombre de lignes utiles
+	static const int nLoopMaxLineNumber = 1000;
 
 	// Taille max d'un fichier de parametrage
 	static const longint lMaxInputParameterFileSize = lMB;

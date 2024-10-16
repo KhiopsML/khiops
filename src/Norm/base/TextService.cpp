@@ -375,9 +375,22 @@ static int Utf32toUtf8String(unsigned int nCode, char* sUtf8Chars)
 	}
 }
 
-void TextService::JsonToCString(const char* sJsonString, ALString& sCString)
+void TextService::SetForceUnicodeToAnsi(boolean bValue)
 {
+	bForceUnicodeToAnsi = bValue;
+}
+
+boolean TextService::GetForceUnicodeToAnsi()
+{
+	return bForceUnicodeToAnsi;
+}
+
+boolean TextService::JsonToCString(const char* sJsonString, ALString& sCString)
+{
+	boolean bOk = true;
 	const unsigned char* sInputString;
+	int nAnsiCode;
+	boolean bContainsAnsiChars;
 	unsigned int nCode;
 	unsigned int nPotentialCode;
 	int nBegin;
@@ -387,8 +400,12 @@ void TextService::JsonToCString(const char* sJsonString, ALString& sCString)
 	const char* sCharsToAdd;
 	ALString sUnicodeChars;
 	int nCharNumber;
+	int nUTF8CharLength;
 
 	require(sJsonString != NULL);
+
+	// Initialisation de la chaine de caractere unicode a 4 caracteres
+	sUnicodeChars = "    ";
 
 	// On passe par un format unsigned char pour le parsing
 	sInputString = (const unsigned char*)sJsonString;
@@ -401,10 +418,12 @@ void TextService::JsonToCString(const char* sJsonString, ALString& sCString)
 	nBegin = 0;
 	nEnd = 0;
 	sCharsToAdd = "?";
+	bContainsAnsiChars = false;
 	while (nEnd < nLength)
 	{
 		if (sInputString[nEnd] == '\\')
 		{
+			// On concatene ce qui precede
 			AppendSubString(sCString, sJsonString, nBegin, nEnd - nBegin);
 			nEnd++;
 			assert(nEnd < nLength);
@@ -439,29 +458,45 @@ void TextService::JsonToCString(const char* sJsonString, ALString& sCString)
 			{
 				nCode = 0;
 				nEnd++;
+				// En principe, on doit avoir 4 caracteres suivant \u avec une chaine json correctement formee
+				// Sinon, on avance d'un caractere, avec une erreur
+				if (nEnd + 3 >= nLength)
+				{
+					bOk = false;
+					sCharsToAdd = "?";
+					assert(nCharNumber == 1);
+					break;
+				}
 				assert(nEnd < nLength);
 
 				// Extraction des caracteres unicode
-				if (sUnicodeChars.GetLength() != 4)
-					sUnicodeChars.GetBufferSetLength(4);
+				assert(nEnd + 3 < nLength);
+				assert(sUnicodeChars.GetLength() == 4);
 				sUnicodeChars.SetAt(0, sInputString[nEnd]);
 				sUnicodeChars.SetAt(1, sInputString[nEnd + 1]);
 				sUnicodeChars.SetAt(2, sInputString[nEnd + 2]);
 				sUnicodeChars.SetAt(3, sInputString[nEnd + 3]);
 
-				// On tente d'abord le decodgage d'un caractere windows-1252 encode avec unicode
-				nCode = UnicodeHexToWindows1252(sUnicodeChars);
-				if (nCode != -1)
+				// On tente d'abord le decodgage d'un caractere windows-1252 encode avec unicode si on est en mode ForceAnsi
+				nAnsiCode = -1;
+				if (bForceUnicodeToAnsi)
 				{
-					nEnd += 3;
-					nCharNumber = 1;
-					sUtf8Chars[0] = (char)nCode;
-					sUtf8Chars[1] = '\0';
-					sCharsToAdd = sUtf8Chars;
+					nAnsiCode = UnicodeHexToWindows1252(sUnicodeChars);
+					if (nAnsiCode != -1)
+					{
+						bContainsAnsiChars = true;
+						nEnd += 3;
+						nCharNumber = 1;
+						sUtf8Chars[0] = (char)nAnsiCode;
+						sUtf8Chars[1] = '\0';
+						sCharsToAdd = sUtf8Chars;
+					}
 				}
+
 				// Cas general sinon
-				else
+				if (not bForceUnicodeToAnsi or nAnsiCode == -1)
 				{
+					// Calcul du code du caractere unicode
 					HexStringToCode(sInputString + nEnd, &nCode);
 					nEnd += 3;
 					assert(nEnd < nLength);
@@ -483,7 +518,9 @@ void TextService::JsonToCString(const char* sJsonString, ALString& sCString)
 						}
 						else
 						{
+							bOk = false;
 							sCharsToAdd = "?";
+							assert(nCharNumber == 1);
 							break;
 						}
 					}
@@ -505,7 +542,11 @@ void TextService::JsonToCString(const char* sJsonString, ALString& sCString)
 			}
 			default:
 				// En principe, impossible avec une chaine json correctement formee
-				assert(false);
+				// Dans ce cas, on avance d'un caractere, avec une erreur
+				bOk = false;
+				sCharsToAdd = "?";
+				assert(nCharNumber == 1);
+				break;
 			}
 			if (nCharNumber == 1)
 				sCString += sCharsToAdd[0];
@@ -516,10 +557,19 @@ void TextService::JsonToCString(const char* sJsonString, ALString& sCString)
 		}
 		else
 		{
-			nEnd++;
+			nUTF8CharLength = GetValidUTF8CharLengthAt(sJsonString, nEnd);
+			if (nUTF8CharLength > 0)
+				nEnd += nUTF8CharLength;
+			else
+			{
+				// Caractere Utf8 invalide: on avance de 1 avec une erreur
+				bOk = false;
+				nEnd++;
+			}
 		}
 	}
 	AppendSubString(sCString, sJsonString, nBegin, nEnd - nBegin);
+	return bOk;
 }
 
 void TextService::CToJsonString(const ALString& sCString, ALString& sJsonString)
@@ -748,7 +798,7 @@ int TextService::UnicodeHexToWindows1252(const ALString& sUnicodeHexChars)
 	return nCode;
 }
 
-int TextService::Base64StringToBytes(const ALString& sBase64String, char* sBytes)
+boolean TextService::Base64StringToBytes(const ALString& sBase64String, char* sBytes)
 {
 	// Index des caracteres de l'alphabet base64, et -1 pour les caracteres n'en faisant pas partie
 	static const unsigned char cBase64CharIndexes[] = {
@@ -873,10 +923,12 @@ int TextService::Base64StringToBytes(const ALString& sBase64String, char* sBytes
 		       iOutput + (nTrailingEqualNumber > 0 ? 3 - nTrailingEqualNumber : 0) == nOutputByteNumber);
 	}
 
-	// On renvoie -1 si erreur
+	// On renvoie une chaine termine par '\0' dans tous les cas
 	if (not bOk)
-		nOutputByteNumber = -1;
-	return nOutputByteNumber;
+		sBytes[0] = '\0';
+	else
+		sBytes[nOutputByteNumber] = '\0';
+	return bOk;
 }
 
 void TextService::BytesToBase64String(const char* sBytes, int nByteNumber, ALString& sBase64String)
@@ -972,18 +1024,17 @@ const ALString TextService::ToPrintable(const ALString& sBytes)
 	return sPrintableBytes;
 }
 
-int TextService::GetValidUTF8CharLengthAt(const ALString& sValue, int nStart)
+int TextService::GetValidUTF8CharLengthAt(const char* sValue, int nStart)
 {
 	int nUtf8CharLength;
-	int c;
-	int nLength;
+	unsigned char c;
 
-	require(0 <= nStart and nStart < sValue.GetLength());
+	require(sValue != NULL);
+	require(0 <= nStart and sValue[nStart] != '\0');
 
 	// Initialisations
 	nUtf8CharLength = 0;
-	nLength = sValue.GetLength();
-	c = (unsigned char)sValue.GetAt(nStart);
+	c = (unsigned char)sValue[nStart];
 
 	// Cas d'un caractere ascii 0bbbbbbb
 	if (0x00 <= c and c <= 0x7f)
@@ -991,7 +1042,7 @@ int TextService::GetValidUTF8CharLengthAt(const ALString& sValue, int nStart)
 	// Debut d'un caractere UTF8 sur deux octets 110bbbbb
 	else if ((c & 0xE0) == 0xC0)
 	{
-		if (nStart + 1 < nLength and ((unsigned char)sValue.GetAt(nStart + 1) & 0xC0) == 0x80)
+		if (((unsigned char)sValue[nStart + 1] & 0xC0) == 0x80)
 			nUtf8CharLength = 2;
 		else
 			nUtf8CharLength = 0;
@@ -999,8 +1050,9 @@ int TextService::GetValidUTF8CharLengthAt(const ALString& sValue, int nStart)
 	// Debut d'un caractere UTF8 sur trois octets 1110bbbb
 	else if ((c & 0xF0) == 0xE0)
 	{
-		if (nStart + 2 < nLength and ((unsigned char)sValue.GetAt(nStart + 1) & 0xC0) == 0x80 and
-		    ((unsigned char)sValue.GetAt(nStart + 2) & 0xC0) == 0x80)
+		// Test sans risque, puis le second caractere n'est pas teste si le premier vaut '\0'
+		if (((unsigned char)sValue[nStart + 1] & 0xC0) == 0x80 and
+		    ((unsigned char)sValue[nStart + 2] & 0xC0) == 0x80)
 			nUtf8CharLength = 3;
 		else
 			nUtf8CharLength = 0;
@@ -1008,14 +1060,37 @@ int TextService::GetValidUTF8CharLengthAt(const ALString& sValue, int nStart)
 	// Debut d'un caractere UTF8 sur quatre octets 11110bbb
 	else if ((c & 0xF8) == 0xF0)
 	{
-		if (nStart + 3 < nLength and ((unsigned char)sValue.GetAt(nStart + 1) & 0xC0) == 0x80 and
-		    ((unsigned char)sValue.GetAt(nStart + 2) & 0xC0) == 0x80 and
-		    ((unsigned char)sValue.GetAt(nStart + 3) & 0xC0) == 0x80)
+		// Test sans risque, puis le troisieme caractere n'est pas teste si un des permier vaut '\0'
+		if (((unsigned char)sValue[nStart + 1] & 0xC0) == 0x80 and
+		    ((unsigned char)sValue[nStart + 2] & 0xC0) == 0x80 and
+		    ((unsigned char)sValue[nStart + 3] & 0xC0) == 0x80)
 			nUtf8CharLength = 4;
 		else
 			nUtf8CharLength = 0;
 	}
 	return nUtf8CharLength;
+}
+
+int TextService::GetValidUTF8SubStringLength(const char* sValue)
+{
+	int nUTF8CharLength;
+	int nLength;
+
+	require(sValue != NULL);
+
+	// Parcours de la chaine jusqu'au premiere catactere non UTF8
+	nLength = 0;
+	while (sValue[nLength] != '\0')
+	{
+		nUTF8CharLength = GetValidUTF8CharLengthAt(sValue, nLength);
+		if (nUTF8CharLength > 0)
+			nLength += nUTF8CharLength;
+		else
+			break;
+	}
+	assert(nLength <= (int)strlen(sValue));
+	assert(nLength == (int)strlen(sValue) or GetValidUTF8CharLengthAt(sValue, nLength) == 0);
+	return nLength;
 }
 
 void TextService::BuildTextSample(StringVector* svTextValues)
@@ -1143,18 +1218,16 @@ void TextService::Test()
 		// Encodage/decodage de la valeur au format base64
 		sValue = svTextValues.GetAt(i);
 		BytesToBase64String(sValue, sValue.GetLength(), sBase64String);
-		nLength = Base64StringToBytes(sBase64String, sBuffer);
-		assert(nLength >= 0 and nLength < BUFFER_LENGTH - 1);
-		sBuffer[nLength] = '\0';
+		Base64StringToBytes(sBase64String, sBuffer);
 		sRetrievedValue = sBuffer;
 		assert(sRetrievedValue == sValue);
 
 		// Verification de la non possibilite de decode une chaine avec encodage invalide
 		// en ajoutant un a quatre caracteres invalides
-		assert(Base64StringToBytes(sValue + " ", sBuffer) == -1);
-		assert(Base64StringToBytes(sValue + "  ", sBuffer) == -1);
-		assert(Base64StringToBytes(sValue + "   ", sBuffer) == -1);
-		assert(Base64StringToBytes(sValue + "    ", sBuffer) == -1);
+		assert(not Base64StringToBytes(sValue + " ", sBuffer));
+		assert(not Base64StringToBytes(sValue + "  ", sBuffer));
+		assert(not Base64StringToBytes(sValue + "   ", sBuffer));
+		assert(not Base64StringToBytes(sValue + "    ", sBuffer));
 
 		// Affichage
 		cout << i << "\t";
@@ -1503,3 +1576,4 @@ StringVector TextService::svWindows1252UnicodeHexEncoding;
 StringVector TextService::svWindows1252Utf8HexEncoding;
 IntVectorSorter TextService::ivsWindows1252ControlCharUtf8CodeSorter;
 TextService TextService::textServiceGlobalInitializer;
+boolean TextService::bForceUnicodeToAnsi = false;

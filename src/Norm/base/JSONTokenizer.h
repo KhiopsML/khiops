@@ -24,11 +24,6 @@ public:
 	//////////////////////////////////////////////////////////////////////////////
 	// Parametrage du fichier a analyser
 
-	// Parametrage de la lecture, en forcant ou non la conversion des caracteres utf8 de windows1252/iso8859-1 vers
-	// l'ansi etendu (defaut: false)
-	static void SetForceAnsi(boolean bValue);
-	static boolean GetForceAnsi();
-
 	// Ouverture du fichier pour analyse
 	// Le premier parametre sera utilise si necessaire pour parametrer les messages d'erreur
 	static boolean OpenForRead(const ALString& sErrorFamilyName, const ALString& sInputFileName);
@@ -53,6 +48,7 @@ public:
 		Number = NUMBERVALUE,
 		Boolean = BOOLEANVALUE,
 		Null = NULLVALUE,
+		StringError = STRINGERROR,
 		Error = ERROR,
 	};
 
@@ -120,7 +116,8 @@ public:
 	// Emet un message d'erreur si on est pas a la fin
 	static boolean CheckObjectEnd(const ALString& sKey, boolean bIsEnd);
 
-	// Emission d'une erreur de parsing
+	// Emission d'un warning ou d'une erreur de parsing
+	static void AddParseWarning(const ALString& sLabel);
 	static void AddParseError(const ALString& sLabel);
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -156,7 +153,4 @@ protected:
 
 	// Valeur du dernier token
 	static JSONSTYPE jsonLastTokenValue;
-
-	// Parametrage de la conversion vers l'ansi
-	static boolean bForceAnsi;
 };

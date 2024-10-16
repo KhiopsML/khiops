@@ -1,4 +1,4 @@
-Json string	aa\u221Ebb\u00e9cc\/\\dd\tee	aa?bbécc/\dd	ee	Index	Char	Unicode	Utf8	Ansi code	Utf8 code	Ansi code from utf8	Valid
+Json string	aa\u221Ebb\u00e9cc\/\\dd\tee	aa∞bbécc/\dd	ee	Index	Char	Unicode	Utf8	Ansi code	Utf8 code	Ansi code from utf8	Valid
 0		0000	00	0	0	0	1
 1		0001	01	1	1	1	1
 2		0002	02	2	2	2	1
@@ -281,4 +281,4 @@ Index	Value	(Word)	Hexa	(base64)
 22	???	(™)	E284A2	(base64: 4oSi)
 23	??	(˜)	CB9C	(base64: y5w=)
 24	????	(𒀀)	F0928080	(base64: 8JKAgA==)
-SYS TIME	Word encoding/decoding time for 1000000 values: 0.338258
+SYS TIME	Word encoding/decoding time for 1000000 values: 0.358896
