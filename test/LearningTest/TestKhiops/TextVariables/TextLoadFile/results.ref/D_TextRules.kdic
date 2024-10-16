@@ -1,0 +1,8 @@
+#Khiops 10.5.0-a1
+
+// Deployed dictionary
+Dictionary	D_TextRules
+{
+	Categorical	FilePath		;	
+	Text	LoadedText		;	
+};

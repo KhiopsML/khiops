@@ -1,0 +1,32 @@
+Deploy model TextRules
+warning : there is no driver available for the URI scheme 'hdfs://'
+warning : Object : there is no driver available for the URI scheme 'hdfs://'
+warning : File hdfs://hector/dir1/dir2 : Unable to open file (file driver is missing)
+warning : Derivation rule TextLoadFile : Enable to load text file in record 9
+warning : File /data/sample/MyData.txt : Unable to open file (No such file or directory)
+warning : Derivation rule TextLoadFile : Enable to load text file in record 10
+warning : File ./results : Unable to open file (Permission denied)
+warning : Derivation rule TextLoadFile : Enable to load text file in record 11
+warning : File 1 : Unable to open file (No such file or directory)
+warning : Derivation rule TextLoadFile : Enable to load text file in record 13
+warning : File 2 : Unable to open file (No such file or directory)
+warning : Derivation rule TextLoadFile : Enable to load text file in record 14
+warning : File 3 : Unable to open file (No such file or directory)
+warning : Derivation rule TextLoadFile : Enable to load text file in record 15
+warning : File 4 : Unable to open file (No such file or directory)
+warning : Derivation rule TextLoadFile : Enable to load text file in record 16
+warning : File 5 : Unable to open file (No such file or directory)
+warning : Derivation rule TextLoadFile : Enable to load text file in record 17
+warning : File 6 : Unable to open file (No such file or directory)
+warning : Derivation rule TextLoadFile : Enable to load text file in record 18
+warning : File : ...
+Input database ./TextRules.txt: Read records: 41
+Output database ./results/D_TextRules.txt: Written records: 41
+Model deployment time: 0:00:00.22
+
+Write deployed dictionary file ./results/D_TextRules.kdic
+Deploy model D_TextRules
+Input database ./results/D_TextRules.txt: Read records: 41
+Output database ./results/D_TextRules2.txt: Written records: 41
+Model deployment time: 0:00:00.01
+

@@ -1,0 +1,42 @@
+FilePath	LoadedText
+./37913.zip	"PK     jWg]Ø1V  ú     37913uR]oÓ@|·äÿ°‘xH¤Újœ´i,D[5*Ñ)©x¾œ×Ô¾3·w6AüxöjšŠ öƒíİ›Ù™õ „ÀZØ2)”µv-ÆdºXR,cæFÒˆhÛú¯FN‹%¾ÑİŠUsÊb©›6ÚìG½k5Ù‘#9RØSév1e4àœ$rjz(¼vz$«U¼7ºIaøº:>ã¡vL^¶A)ğô6.ŒhËJRlÜî+J›Âï’¨Á`kÛŠ	tŸĞ&êDí0ƒÜ)é;Œ^	‹)œÁuk`º\Î 9M“$M.àÃı6>›B¨êÇ3O ›Õænx¼³•*`ƒ¦«$2Ë§J!+›ÎÂà‰DÑİ*…·ÓöÛçoD.¯Z¡2mÄÁŞ;6õ°]GkM,úÈÏ—aP(×ÖÚ ZC#*(hVƒo±av}lÎûN¸j*±«½Ê³p='â |=Ü—špà !‰†¥QÌ Rt;DÅÑÊ´7oËŠ`·¦ñcÄŞõoº'ûU£Eè+[ÕEF`%,sÍs OÇBŒ-ÑœÀ3kW”ÏRµ«3ôôm İ VÈzXdm˜mÏ‚|…Û|Ş<Åp­X“Z4tyé7hK¡¾C¥@dP¹Æ÷V7ğeˆØ?®Ÿğ¸¹}¸İş7Ÿœl…± çÌ»^—U­I·åş…`|>]Nàl9Î“éŒus\&Y¡`Ua¡acïçQU]Ì#àâ,ZÌ—ºùv7×°dÎ$:Î^`ağPK?      jWg]Ø1V  ú   $               37913          o64P$ÚÉÉÏs$Ú±§X4$ÚPK      W   y"
+./37913	Path: cantaloupe.srv.cs.cmu.edu!crabapple.srv.cs.cmu.edu!fs7.ece.cmu.edu!europa.eng.gtefsd.com!emory!wupost!usc!newshub.sdsu.edu!ucssun1.sdsu.edu.sdsu.edu!weston  From: weston@ucssun1.sdsu.edu (weston t)  Newsgroups: comp.graphics  Subject: graphical representation of vector-valued functions  Date: 5 Apr 1993 20:22:28 GMT  Organization: SDSU Computing Services  Lines: 13  Message-ID: <1pq4e4$afc@pandora.sdsu.edu>  NNTP-Posting-Host: ucssun1.sdsu.edu    gnuplot, etc. make it easy to plot real valued functions of 2 variables  but I want to plot functions whose values are 2-vectors. I have been   doing this by plotting arrays of arrows (complete with arrowheads) but  before going further, I thought I would ask whether someone has already  done the work. Any pointers??    thanx in advance      Tom Weston                    | USENET: weston@ucssun1.sdsu.edu  Department of Philosophy      | (619) 594-6218 (office)  San Diego State Univ.         | (619) 575-7477 (home)  San Diego, CA 92182-0303      |
+./37914	Path: cantaloupe.srv.cs.cmu.edu!das-news.harvard.edu!ogicse!uwm.edu!zaphod.mps.ohio-state.edu!caen!usenet.cis.ufl.edu!rap  From: rap@coconut.cis.ufl.edu (Ryan Porter)  Newsgroups: comp.graphics  Subject: Re: DMORPH  Message-ID: <1pqlhnINN8k1@snoopy.cis.ufl.edu>  Date: 6 Apr 93 01:14:31 GMT  Article-I.D.: snoopy.1pqlhnINN8k1  References: <1993Apr3.183303.6442@usl.edu>  Organization: Univ. of Florida CIS Dept.  Lines: 34  NNTP-Posting-Host: coconut.cis.ufl.edu    In article <1993Apr3.183303.6442@usl.edu> jna8182@ucs.usl.edu (Armstrong Jay N) writes:  >Can someone please tell me where I can ftp DTA or DMORPH?    DMorf (Dave's Morph, I think is what it means) and DTax (Dave's   TGA Assembler) are available in the MSDOS_UPLOADS directory  on the wuarchive.    They are arjed and bundled with their respective xmemory versions,  dmorfx.exe and dtax.exe, you can also find a version of aaplay.exe  there, with which you can view files you create with dta.exe or  dtax.exe.    I downloaded the whole bunch last week and have been morphing   away the afternoons since.  The programmes are all a bit buggy and  definitely not-ready-to-spread-to-the-masses, but they are very  well written.     The interface is frustrating at first, but it gets easy once you  figure out the tricks.    I have noticed that dmorfx will crash horribly if you try to morph  without using the splines option.  Not sure why, since I don't have  the source.  I think it was written for TP 6.0.    If anyone else comes up with any other hints on getting the thing   to work right, tell me; it took me several hours the first time  just to figure out that if I just used the durned splines then   it would work...    >JNA  >jna8182@usl.edu    -Ryan  rap@cis.ufl.edu
+./37915	Xref: cantaloupe.srv.cs.cmu.edu comp.human-factors:4402 comp.graphics:37915 comp.sys.hp:29683  Newsgroups: comp.human-factors,comp.graphics,comp.sys.hp  Path: cantaloupe.srv.cs.cmu.edu!crabapple.srv.cs.cmu.edu!fs7.ece.cmu.edu!europa.eng.gtefsd.com!gatech!asuvax!cs.utexas.edu!sdd.hp.com!caen!uvaarpa!murdoch!onyx.cs.Virginia.EDU!kph2q  From: kph2q@onyx.cs.Virginia.EDU (Kenneth Hinckley)  Subject:   VOICE INPUT -- vendor information needed  Message-ID: <C4yxLJ.MzB@murdoch.acc.Virginia.EDU>  Sender: usenet@murdoch.acc.Virginia.EDU  Reply-To: kph2q@onyx.cs.Virginia.EDU (Kenneth Hinckley)  Organization: University of Virginia  Date: Sun, 4 Apr 1993 16:53:43 GMT  Lines: 27      Hello,       I am looking to add voice input capability to a user interface I am  developing on an HP730 (UNIX) workstation.  I would greatly appreciate   information anyone would care to offer about voice input systems that are   easily accessible from the UNIX environment.          The names or adresses of applicable vendors, as well as any   experiences you have had with specific systems, would be very helpful.         Please respond via email; I will post a summary if there is   sufficient interest.      Thanks,  Ken      P.S.  I have found several impressive systems for IBM PC's, but I would   like to avoid the hassle of purchasing and maintaining a separate PC if   at all possible.    -------------------------------------------------------------------------------  Ken Hinckley (kph2q@virginia.edu)  University of Virginia   Neurosurgical Visualization Laboratory  -------------------------------------------------------------------------------
+./37916	Path: cantaloupe.srv.cs.cmu.edu!crabapple.srv.cs.cmu.edu!fs7.ece.cmu.edu!europa.eng.gtefsd.com!gatech!asuvax!cs.utexas.edu!zaphod.mps.ohio-state.edu!saimiri.primate.wisc.edu!usenet.coe.montana.edu!news.u.washington.edu!uw-beaver!cs.ubc.ca!unixg.ubc.ca!kakwa.ucs.ualberta.ca!ersys!joth  From: joth@ersys.edmonton.ab.ca (Joe Tham)  Newsgroups: comp.graphics  Subject: Where can I find SIPP?  Message-ID: <yFXJ2B2w165w@ersys.edmonton.ab.ca>  Date: Mon, 05 Apr 93 14:58:21 MDT  Organization: Edmonton Remote Systems #2, Edmonton, AB, Canada  Lines: 11            I recently got a file describing a library of rendering routines   called SIPP (SImple Polygon Processor).  Could anyone tell me where I can   FTP the source code and which is the newest version around?          Also, I've never used Renderman so I was wondering if Renderman   is like SIPP?  ie. a library of rendering routines which one uses to make   a program that creates the image...                                            Thanks,  Joe Tham    --  Joe Tham              joth@ersys.edmonton.ab.ca
+./empty_lines	
+	
+hdfs://hector/dir1/dir2	
+/data/sample/MyData.txt	
+./results	
+	
+1	
+2	
+3	
+4	
+5	
+6	
+7	
+8	
+9	
+10	
+11	
+12	
+13	
+14	
+15	
+16	
+17	
+18	
+19	
+20	
+21	
+22	
+23	
+24	
+25	
+26	
+27	
+28	
+29	
+30	
