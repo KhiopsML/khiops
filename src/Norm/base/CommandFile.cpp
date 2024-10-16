@@ -437,6 +437,21 @@ void CommandFile::WriteOutputCommand(const ALString& sIdentifierPath, const ALSt
 	}
 }
 
+void CommandFile::AddInputCommandFileError(const ALString& sMessage) const
+{
+	Global::AddError("Input command file", sInputCommandFileName, sMessage);
+}
+
+void CommandFile::AddInputParameterFileError(const ALString& sMessage) const
+{
+	Global::AddError("Input parameter file", sInputParameterFileName, sMessage);
+}
+
+void CommandFile::AddOutputCommandFileError(const ALString& sMessage) const
+{
+	Global::AddError("Input command file", sOutputCommandFileName, sMessage);
+}
+
 boolean CommandFile::LoadJsonParameters()
 {
 	boolean bOk = true;
@@ -914,19 +929,29 @@ const ALString CommandFile::GetPrintableValue(const ALString& sValue) const
 		return sValue.Left(nMaxPrintableLength) + "...";
 }
 
-void CommandFile::AddInputCommandFileError(const ALString& sMessage) const
+ALString CommandFile::BuildJsonPath(JsonMember* member, int nArrayRank, JsonMember* arrayObjectmember)
 {
-	Global::AddError("Input command file", sInputCommandFileName, sMessage);
-}
+	ALString sJsonPath;
 
-void CommandFile::AddInputParameterFileError(const ALString& sMessage) const
-{
-	Global::AddError("Input parameter file", sInputParameterFileName, sMessage);
-}
+	require(member != NULL);
+	require(arrayObjectmember == NULL or nArrayRank >= 0);
 
-void CommandFile::AddOutputCommandFileError(const ALString& sMessage) const
-{
-	Global::AddError("Input command file", sOutputCommandFileName, sMessage);
+	// Construction du chemin
+	sJsonPath = '"';
+	sJsonPath += '/';
+	sJsonPath += member->GetKey();
+	if (nArrayRank >= 0)
+	{
+		sJsonPath += '/';
+		sJsonPath += IntToString(nArrayRank);
+	}
+	if (arrayObjectmember != NULL)
+	{
+		sJsonPath += '/';
+		sJsonPath += arrayObjectmember->GetKey();
+	}
+	sJsonPath += '"';
+	return sJsonPath;
 }
 
 const ALString CommandFile::ProcessSearchReplaceCommand(const ALString& sInputCommand) const
@@ -975,31 +1000,6 @@ const ALString CommandFile::ProcessSearchReplaceCommand(const ALString& sInputCo
 		}
 	}
 	return sOutputCommand;
-}
-
-ALString CommandFile::BuildJsonPath(JsonMember* member, int nArrayRank, JsonMember* arrayObjectmember)
-{
-	ALString sJsonPath;
-
-	require(member != NULL);
-	require(arrayObjectmember == NULL or nArrayRank >= 0);
-
-	// Construction du chemin
-	sJsonPath = '"';
-	sJsonPath += '/';
-	sJsonPath += member->GetKey();
-	if (nArrayRank >= 0)
-	{
-		sJsonPath += '/';
-		sJsonPath += IntToString(nArrayRank);
-	}
-	if (arrayObjectmember != NULL)
-	{
-		sJsonPath += '/';
-		sJsonPath += arrayObjectmember->GetKey();
-	}
-	sJsonPath += '"';
-	return sJsonPath;
 }
 
 const ALString CommandFile::sByteVariablePrefix = "byte";
