@@ -179,6 +179,9 @@ protected:
 	void AddInputParameterFileError(const ALString& sMessage) const;
 	void AddOutputCommandFileError(const ALString& sMessage) const;
 
+	// Variante affichable d'une valeur, en completant si necessaire par des "..."
+	const ALString GetPrintableValue(const ALString& sValue) const;
+
 	///////////////////////////////////////////////////////////////
 	// Gestion du fichier de parametre json et de sa verification
 
@@ -208,9 +211,6 @@ protected:
 	// complet, y compris la valeur testee
 	boolean CheckStringValue(const ALString& sValue, boolean bCheckBase64Encoding, ALString& sMessage) const;
 
-	// Variante affichable d'une valeur, en completant si necessaire par des "..."
-	const ALString GetPrintableValue(const ALString& sValue) const;
-
 	// Construit d'un path json pour designer une valeur dans unse structure json
 	// Cf. https://jsonpatch.com/
 	// On suit les element de structure valides dans le parametrage json
@@ -220,8 +220,39 @@ protected:
 	///////////////////////////////////////////////////////////////
 	// Gestion du fichier de commandes en entree
 
+	// Types de token possible
+	enum
+	{
+		TokenLoop,
+		TokenIf,
+		TokenEnd,
+		TokenVariable,
+		TokenComment,
+		TokenOther,
+		None
+	};
+
+	// Decomposition de la ligne d'entree en un token, suivi de la fin de la ligne
+	// En sortie, on renvoie le type de token, et on indique la valeur du token la fin de ligne
+	// Il n'y a pas de message d'erreur a ce niveau.
+	// Les tokens de type TokenVariable possedent a minimal leur delimiteur de debut, et peuevent ne pas etre valides
+	int TokenizeInputCommand(const ALString& sInputCommand, ALString& sToken, ALString& sEndLine) const;
+
+	// Recherche des tokens de type variable dans une ligne d'entree
+	// On alimente le vecteur des tokesn de type variable, avec leur delimiteurs
+	// Un message comportant la valeur du token est fabrique en cas d'erreur
+	boolean CollectTokenVariables(const ALString& sInputCommand, StringVector* svVariableNames,
+				      ALString& sMessage) const;
+
+	// Verification de la syntaxe d'un token de type variable, devant commencer par son delimiteur
+	// Un message comportant la valeur du token est fabrique en cas d'erreur
+	boolean CheckTokenVariable(const ALString& sToken, ALString& sMessage) const;
+
 	// Application des recherche/remplacement de valeurs successivement sur une commande
 	const ALString ProcessSearchReplaceCommand(const ALString& sInputCommand) const;
+
+	// Test si une valeur est trimee
+	boolean IsValueTrimed(const ALString& sValue) const;
 
 	///////////////////////////////////////////////////////////////
 	// Variables de la classe
@@ -248,6 +279,14 @@ protected:
 
 	// Object json pour les parametres en entree
 	JsonObject jsonParameters;
+
+	// Valeurs des tokens du langage de pametrage des commande en entree
+	static const ALString sTokenLoop;
+	static const ALString sTokenIf;
+	static const ALString sTokenEnd;
+
+	// Delimiteur de parametre dans un fichier de commande
+	static const ALString sVariableDelimiter;
 
 	// Prefixe des noms de variable ayant un contenu de type byte
 	static const ALString sByteVariablePrefix;
