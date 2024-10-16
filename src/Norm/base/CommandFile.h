@@ -174,6 +174,14 @@ public:
 	///////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
+	// Personnalisation des messages d'erreur
+	void AddInputCommandFileError(const ALString& sMessage) const;
+	void AddInputParameterFileError(const ALString& sMessage) const;
+	void AddOutputCommandFileError(const ALString& sMessage) const;
+
+	///////////////////////////////////////////////////////////////
+	// Gestion du fichier de parametre json et de sa verification
+
 	// Chargement du fichier json en entree et verification de sa validite
 	boolean LoadJsonParameters();
 
@@ -203,19 +211,20 @@ protected:
 	// Variante affichable d'une valeur, en completant si necessaire par des "..."
 	const ALString GetPrintableValue(const ALString& sValue) const;
 
-	// Personnalisation des messages d'erreur
-	void AddInputCommandFileError(const ALString& sMessage) const;
-	void AddInputParameterFileError(const ALString& sMessage) const;
-	void AddOutputCommandFileError(const ALString& sMessage) const;
-
-	// Application des recherche/remplacement de valeurs successivement sur une commande
-	const ALString ProcessSearchReplaceCommand(const ALString& sInputCommand) const;
-
 	// Construit d'un path json pour designer une valeur dans unse structure json
 	// Cf. https://jsonpatch.com/
 	// On suit les element de structure valides dans le parametrage json
 	// La fin du parametrage peut etre non utilises (NULL ou -1)
 	ALString BuildJsonPath(JsonMember* member, int nArrayRank, JsonMember* arrayObjectmember);
+
+	///////////////////////////////////////////////////////////////
+	// Gestion du fichier de commandes en entree
+
+	// Application des recherche/remplacement de valeurs successivement sur une commande
+	const ALString ProcessSearchReplaceCommand(const ALString& sInputCommand) const;
+
+	///////////////////////////////////////////////////////////////
+	// Variables de la classe
 
 	// Nom des fichiers
 	ALString sInputCommandFileName;
