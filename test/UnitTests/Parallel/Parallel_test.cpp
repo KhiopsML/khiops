@@ -7,6 +7,5 @@
 
 namespace
 {
-// TODO bug sur macOS et Windows
-// KHIOPS_TEST(Parallel, RMParallelResourceManager, RMParallelResourceManager::Test);
+KHIOPS_TEST(Parallel, RMParallelResourceManager, RMParallelResourceManager::Test);
 } // namespace
