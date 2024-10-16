@@ -241,6 +241,9 @@ protected:
 	// Prefixe des noms de variable ayant un contenu de type byte
 	static const ALString sByteVariablePrefix;
 
+	// Longueur max d'une ligne de fichier de commande
+	static const int nMaxLineLength = 500;
+
 	// Longueur max d'un nom de variable
 	static const int nMaxVariableNameLength = 100;
 
