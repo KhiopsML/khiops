@@ -48,3 +48,11 @@ jobs:
       - name: Run Unit Tests
         run: |-
           ctest --preset ${{ matrix.build-setup.cmake-preset }}
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: unit-test-results-${{ matrix.build-setup.cmake-preset }}
+          retention-days: 7
+          path: |-
+            test/UnitTests/*/results
