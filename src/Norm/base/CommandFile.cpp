@@ -256,13 +256,17 @@ void CommandFile::CloseCommandFiles()
 boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& sValue)
 {
 	const char cDEL = (char)127;
+	boolean bContinueParsing;
 	int i;
 	char sCharBuffer[1 + BUFFER_LENGTH];
 	ALString sInputLine;
+	ALString sBuffer;
 	int nLineIndex;
 	int nLength;
 	ALString sIdentifierPath;
 	int nPosition;
+	int nToken;
+	ALString sEndLine;
 	ALString sToken;
 	ALString sIdentifier;
 	ALString sTmp;
@@ -279,6 +283,7 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 	// Recherche d'une ligne non vide a traiter
 
 	// Boucle de lecture pour ignorer les lignes vides ou ne comportant que des commentaires
+	bContinueParsing = true;
 	nLineIndex = 0;
 	while (sInputLine == "" and not feof(fInputCommands))
 	{
@@ -288,19 +293,18 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 		StandardGetInputString(sCharBuffer, fInputCommands);
 		sInputLine = sCharBuffer;
 
-		// Si erreur ou caractere fin de fichier, on ne renvoie rien
+		// Si erreur ou caractere fin de fichier, on n'arret sans message d'erreur
 		// Si on est pas en fin de fichier, on a forcement un caractere '\n' en fin de ligne
-		if (ferror(fInputCommands) or sInputLine.GetLength() == 0 or sInputLine.GetLength() > nMaxLineLength)
-		{
-			// Message d'erreur en cas de lige trop longue
-			if (sInputLine.GetLength() > nMaxLineLength)
-				AddInputCommandFileError(
-				    sTmp + "line " + IntToString(nLineIndex) + " too long, with length " +
-				    IntToString(sInputLine.GetLength()) + " > " + IntToString(nMaxLineLength));
+		if (ferror(fInputCommands) or sInputLine.GetLength() == 0)
+			bContinueParsing = false;
 
-			// Nettoyage
-			CloseInputCommandFile();
-			return false;
+		// Erreur si ligne trop longue
+		if (bContinueParsing and sInputLine.GetLength() > nMaxLineLength)
+		{
+			bContinueParsing = false;
+			AddInputCommandFileError(sTmp + "line " + IntToString(nLineIndex) + " too long, with length " +
+						 IntToString(sInputLine.GetLength()) + " > " +
+						 IntToString(nMaxLineLength));
 		}
 
 		// Suppression des blancs au debut et a la fin, donc du dernier caractere fin de ligne
@@ -311,11 +315,59 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 		// les search/replace sans se soucier des valeurs de remplacement comportant
 		// des caracteres "//", en les isolant du commentaire de fin de ligne
 		if (sInputLine.Find("//") == -1)
-			sInputLine += " //";
+		{
+			if (sInputLine != "")
+				sInputLine += ' ';
+			sInputLine += "//";
+		}
 
-		// Recherche /remplacement dans la partie valeur de la commande
+		// Dans le cas sans fichier de parametrage json, on que l'on n'utilise pas
+		// des balises du langage // de pilotage par fichier de parametre
+		if (bContinueParsing and sInputLine != "" and GetInputParameterFileName() == "")
+		{
+			// Detection du premier token de la ligne
+			nToken = TokenizeInputCommand(sInputLine, sToken, sEndLine);
+
+			// Arret si detection de token reserves au cas des fichiers de parametres json
+			if (nToken == TokenLoop or nToken == TokenIf or nToken == TokenEnd or nToken == TokenVariable)
+			{
+				bContinueParsing = false;
+				AddInputCommandFileError(sTmp + "line " + IntToString(nLineIndex) + " : use of the \"" +
+							 GetPrintableValue(sToken) +
+							 "\" token alllowed only with a json parameter file");
+			}
+
+			// Detection d'un second token dans la ligne
+			if (bContinueParsing and nToken != TokenComment)
+			{
+				sBuffer = sEndLine;
+				nToken = TokenizeInputCommand(sBuffer, sToken, sEndLine);
+
+				// Arret si detection de token reserves au cas des fichier de parametres json
+				if (nToken == TokenLoop or nToken == TokenIf or nToken == TokenEnd or
+				    nToken == TokenVariable)
+				{
+					bContinueParsing = false;
+					AddInputCommandFileError(sTmp + "line " + IntToString(nLineIndex) +
+								 " : use of the \"" + GetPrintableValue(sToken) +
+								 "\" key alllowed only with a json parameter file");
+				}
+			}
+		}
+
+		// Arret si necessaire
+		if (not bContinueParsing)
+		{
+			// Nettoyage
+			CloseInputCommandFile();
+			return false;
+		}
+
+		// Cas du mode recherche/remplacement dans la partie valeur de la commande
 		if (GetInputSearchReplaceValueNumber() > 0)
+		{
 			sInputLine = ProcessSearchReplaceCommand(sInputLine);
+		}
 
 		// Suppression du commentaire de fin de ligne, ce qui permet d'avoir
 		// des paires (IdentifierPath, valeur) avec valeur contenant des " //"
@@ -444,12 +496,20 @@ void CommandFile::AddInputCommandFileError(const ALString& sMessage) const
 
 void CommandFile::AddInputParameterFileError(const ALString& sMessage) const
 {
-	Global::AddError("Input parameter file", sInputParameterFileName, sMessage);
+	Global::AddError("Input json parameter file", sInputParameterFileName, sMessage);
 }
 
 void CommandFile::AddOutputCommandFileError(const ALString& sMessage) const
 {
 	Global::AddError("Input command file", sOutputCommandFileName, sMessage);
+}
+
+const ALString CommandFile::GetPrintableValue(const ALString& sValue) const
+{
+	if (sValue.GetLength() <= nMaxPrintableLength)
+		return sValue;
+	else
+		return sValue.Left(nMaxPrintableLength) + "...";
 }
 
 boolean CommandFile::LoadJsonParameters()
@@ -921,14 +981,6 @@ boolean CommandFile::CheckStringValue(const ALString& sValue, boolean bCheckBase
 	return bOk;
 }
 
-const ALString CommandFile::GetPrintableValue(const ALString& sValue) const
-{
-	if (sValue.GetLength() <= nMaxPrintableLength)
-		return sValue;
-	else
-		return sValue.Left(nMaxPrintableLength) + "...";
-}
-
 ALString CommandFile::BuildJsonPath(JsonMember* member, int nArrayRank, JsonMember* arrayObjectmember)
 {
 	ALString sJsonPath;
@@ -952,6 +1004,189 @@ ALString CommandFile::BuildJsonPath(JsonMember* member, int nArrayRank, JsonMemb
 	}
 	sJsonPath += '"';
 	return sJsonPath;
+}
+
+int CommandFile::TokenizeInputCommand(const ALString& sInputCommand, ALString& sToken, ALString& sEndLine) const
+{
+	int nOutputToken;
+	ALString sBuffer;
+	int nPos;
+
+	require(sInputCommand != "");
+	require(IsValueTrimed(sInputCommand));
+
+	// Cas d'un token commentaire
+	if (sInputCommand.Find("//") == 0)
+	{
+		nOutputToken = TokenComment;
+		sToken = sInputCommand;
+		sEndLine = "";
+	}
+	// Cas d'un token de type variable
+	else if (sInputCommand.Find(sVariableDelimiter) == 0)
+	{
+		nOutputToken = TokenVariable;
+
+		// Recherche de la fin de la variable
+		sBuffer = sInputCommand.Right(sInputCommand.GetLength() - sVariableDelimiter.GetLength());
+		nPos = sBuffer.Find(sVariableDelimiter);
+		if (nPos == -1)
+		{
+			sToken = sInputCommand;
+			sEndLine = "";
+		}
+		else
+		{
+			sToken = sInputCommand.Left(nPos + 2 * sVariableDelimiter.GetLength());
+			sEndLine = sInputCommand.Right(sInputCommand.GetLength() - sToken.GetLength());
+		}
+	}
+	// Analyse de la ligne sinon
+	else
+	{
+		assert(sInputCommand.Find("//") != 0);
+		assert(sInputCommand.Find(sVariableDelimiter) != 0);
+
+		// Recherche du premier token
+		nPos = sInputCommand.Find(" ");
+		if (nPos == -1)
+		{
+			sToken = sInputCommand;
+			sEndLine = "";
+		}
+		else
+		{
+			sToken = sInputCommand.Left(nPos);
+			sEndLine = sInputCommand.Right(sInputCommand.GetLength() - nPos);
+			sEndLine.TrimLeft();
+		}
+
+		// Identification du type de token
+		if (sToken == sTokenLoop)
+			nOutputToken = TokenLoop;
+		else if (sToken == sTokenIf)
+			nOutputToken = TokenIf;
+		else if (sToken == sTokenEnd)
+			nOutputToken = TokenLoop;
+		else
+			nOutputToken = TokenOther;
+	}
+
+	ensure(0 <= nOutputToken and nOutputToken < None);
+	ensure(IsValueTrimed(sToken));
+	ensure(sInputCommand.Find(sToken) == 0);
+	ensure(sEndLine == "" or sInputCommand.Find(sEndLine) >= 0);
+	ensure(sToken.GetLength() + sEndLine.GetLength() <= sInputCommand.GetLength());
+	return nOutputToken;
+}
+
+boolean CommandFile::CollectTokenVariables(const ALString& sInputCommand, StringVector* svVariableNames,
+					   ALString& sMessage) const
+{
+	boolean bOk = true;
+	int nToken;
+	ALString sBuffer;
+	ALString sToken;
+	ALString sEndLine;
+
+	require(sInputCommand != "");
+	require(IsValueTrimed(sInputCommand));
+	require(sInputCommand.Find("//") != 0);
+
+	// Initialisations
+	svVariableNames->SetSize(0);
+	sMessage = "";
+
+	// Analyse de la ligne
+	sEndLine = sInputCommand;
+	while (sEndLine != "")
+	{
+		// Tokenisation de la fin de ligne
+		sBuffer = sEndLine;
+		nToken = TokenizeInputCommand(sBuffer, sToken, sEndLine);
+
+		// Arret dans le cas d'un commentaire
+		if (nToken == TokenComment)
+			break;
+		// Analyse du token dans le cas d'une variable
+		else if (nToken == TokenVariable)
+		{
+			bOk = CheckTokenVariable(sToken, sMessage);
+
+			// Prise en compte si valide
+			if (bOk)
+				svVariableNames->Add(sToken);
+			// Arret sinon
+			else
+				break;
+		}
+	}
+	ensure(bOk or sMessage.GetLength() > 0);
+	return bOk;
+}
+
+boolean CommandFile::CheckTokenVariable(const ALString& sToken, ALString& sMessage) const
+{
+	boolean bOk;
+	ALString sVariableName;
+	ALString sPattern;
+	int nPos;
+
+	require(sToken != "");
+	require(IsValueTrimed(sToken));
+	require(sToken.Find(sVariableDelimiter) == 0);
+
+	// Initialisation du resultat
+	bOk = true;
+	sMessage = "";
+
+	// Controle des delimiteur, et suppression de ceux-ci
+	sVariableName = sToken.Right(sToken.GetLength() - sVariableDelimiter.GetLength());
+	if (bOk)
+	{
+		nPos = sVariableName.Find(sVariableDelimiter);
+		if (nPos == -1)
+		{
+			bOk = false;
+			sMessage = "missing trailing delimiter \"" + sVariableDelimiter + "\" at the end of key \"" +
+				   GetPrintableValue(sToken) + "\"";
+		}
+
+		// Le token a tester doit etre extrait en s'arretant si possible au second delimiteur trouve
+		if (bOk)
+		{
+			sVariableName = sVariableName.Left(sVariableName.GetLength() - sVariableDelimiter.GetLength());
+
+			// On ne doit appeler la methode qu'avec un token candidat, ne au plus deux delimiteurs
+			assert(sVariableName.Find(sVariableDelimiter) == -1);
+		}
+		assert(bOk or nPos == sToken.GetLength() - sVariableDelimiter.GetLength());
+	}
+
+	// Verification de syntaxe de la variable
+	if (bOk)
+	{
+		bOk = CheckVariableName(sVariableName, sMessage);
+
+		// On rajoute les delimiteur dans le nom de variable du message
+		if (not bOk)
+		{
+			sPattern = "\"" + GetPrintableValue(sVariableName) + "\"";
+			nPos = sMessage.Find(sPattern);
+			if (nPos != -1)
+				sMessage = sMessage.Left(nPos) + "\"" + GetPrintableValue(sToken) + "\"" +
+					   sMessage.Right(sMessage.GetLength() - sPattern.GetLength());
+		}
+	}
+
+	// Verification que l'on n'utilise par une variante de type byte dans un fichier de commande en entree
+	if (bOk and sVariableName.Find(sByteVariablePrefix) == 0)
+	{
+		bOk = false;
+		sMessage = "prefix \"" + sByteVariablePrefix + "\" used in key \"" + GetPrintableValue(sToken) +
+			   "\" not allowed in input command file";
+	}
+	return bOk;
 }
 
 const ALString CommandFile::ProcessSearchReplaceCommand(const ALString& sInputCommand) const
@@ -1002,4 +1237,20 @@ const ALString CommandFile::ProcessSearchReplaceCommand(const ALString& sInputCo
 	return sOutputCommand;
 }
 
+boolean CommandFile::IsValueTrimed(const ALString& sValue) const
+{
+	if (sValue.GetLength() == 0)
+		return true;
+	else if (iswspace(sValue.GetAt(0)))
+		return false;
+	else if (iswspace(sValue.GetAt(sValue.GetLength() - 1)))
+		return false;
+	else
+		return true;
+}
+
+const ALString CommandFile::sTokenLoop = "LOOP";
+const ALString CommandFile::sTokenIf = "IF";
+const ALString CommandFile::sTokenEnd = "END";
+const ALString CommandFile::sVariableDelimiter = "__";
 const ALString CommandFile::sByteVariablePrefix = "byte";
