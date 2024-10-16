@@ -9,6 +9,8 @@ CommandFile::CommandFile()
 	fInputCommands = NULL;
 	fOutputCommands = NULL;
 	bPrintOutputInConsole = false;
+	assert(nMaxLineLength < BUFFER_LENGTH);
+	assert(nMaxVariableNameLength + nMaxVariableNameLength < nMaxLineLength);
 }
 
 CommandFile::~CommandFile()
@@ -244,7 +246,7 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 	const char cDEL = (char)127;
 	int i;
 	char sCharBuffer[1 + BUFFER_LENGTH];
-	ALString sStringBuffer;
+	ALString sInputLine;
 	int nLength;
 	ALString sIdentifierPath;
 	int nPosition;
@@ -253,6 +255,7 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 
 	require(svIdentifierPath != NULL);
 	require(svIdentifierPath->GetSize() == 0);
+	assert(GetInputSearchReplaceValueNumber() == 0 or GetInputParameterFileName() == "");
 
 	// On arrete si pas de fichier ou si fin de fichier
 	if (fInputCommands == NULL or feof(fInputCommands))
@@ -260,13 +263,15 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 
 	// Boucle de lecture pour ignorer les lignes vides
 	// ou ne comportant que des commentaires
-	while (sStringBuffer == "" and not feof(fInputCommands))
+	while (sInputLine == "" and not feof(fInputCommands))
 	{
 		// Lecture
 		StandardGetInputString(sCharBuffer, fInputCommands);
+		sInputLine = sCharBuffer;
 
 		// Si erreur ou caractere fin de fichier, on ne renvoie rien
-		if (ferror(fInputCommands) or sCharBuffer[0] == '\0')
+		// Si on est pas en fin de fichier, on a forcement un caractere '\n' en fin de ligne
+		if (ferror(fInputCommands) or sInputLine.GetLength() == 0)
 		{
 			// Nettoyage
 			fclose(fInputCommands);
@@ -274,58 +279,57 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 			return false;
 		}
 
-		// Suppression du premier '\n'
-		for (i = 0; i < BUFFER_LENGTH; i++)
-		{
-			if (sCharBuffer[i] == '\n')
-				sCharBuffer[i] = '\0';
-		}
+		// Suppression des blancs au debut et a la fin, donc du dernier caractere fin de ligne
+		sInputLine.TrimRight();
+		sInputLine.TrimLeft();
+
+		// Ajout si necessaire d'un commentaire vide a la fin, ce qui permet de gerer
+		// les search/replace sans se soucier des valeurs de remplacement comportant
+		// des caracteres "//", en les isolant du commentaire de fin de ligne
+		if (sInputLine.Find("//") == -1)
+			sInputLine += " //";
 
 		// Recherche /remplacement dans la partie valeur de la commande
-		sStringBuffer = ProcessSearchReplaceCommand(sCharBuffer);
+		if (GetInputSearchReplaceValueNumber() > 0)
+			sInputLine = ProcessSearchReplaceCommand(sInputLine);
 
-		// Suppression des commentaires en partant de la fin
-		// Ainsi on ne supprime que le dernier commentaire, ce qui permet d'avoir
+		// Suppression ddu commentaire de fin de ligne, ce qui permet d'avoir
 		// des paires (IdentifierPath, valeur) avec valeur contenant des " //"
-		// si on a un commentaire est en fin de ligne
-		nLength = sStringBuffer.GetLength();
-		for (i = nLength - 1; i >= 2; i--)
+		assert(sInputLine.Find("//") >= 0);
+		nLength = sInputLine.GetLength();
+		for (i = nLength - 1; i >= 1; i--)
 		{
-			if (sStringBuffer.GetAt(i) == '/' and sStringBuffer.GetAt(i - 1) == '/' and
-			    iswspace(sStringBuffer.GetAt(i - 2)))
+			if (sInputLine.GetAt(i) == '/' and sInputLine.GetAt(i - 1) == '/')
 			{
-				sStringBuffer = sStringBuffer.Left(i - 1);
+				sInputLine.GetBufferSetLength(i - 1);
+				sInputLine.TrimLeft();
 				break;
 			}
 		}
 
-		// Suppression des blancs au debut et a la fin
-		sStringBuffer.TrimRight();
-		sStringBuffer.TrimLeft();
-
 		// Suppression si necessaire du dernier caractere s'il s'agit de cDEL
 		// (methode FromJstring qui utilise ce cartactere special en fin de chaine pour
 		// les conversions entre Java et C++)
-		if (sStringBuffer.GetLength() > 0 and sStringBuffer.GetAt(sStringBuffer.GetLength() - 1) == cDEL)
-			sStringBuffer.GetBufferSetLength(sStringBuffer.GetLength() - 1);
+		if (sInputLine.GetLength() > 0 and sInputLine.GetAt(sInputLine.GetLength() - 1) == cDEL)
+			sInputLine.GetBufferSetLength(sInputLine.GetLength() - 1);
 
 		// On supprime la ligne si elle commence par un commentaire
 		// Cela permet de commenter y compris les lignes ayant une valeur contenant des "//"
-		if (sStringBuffer.GetLength() >= 2 and sStringBuffer.GetAt(0) == '/' and sStringBuffer.GetAt(1) == '/')
-			sStringBuffer = "";
+		if (sInputLine.GetLength() >= 2 and sInputLine.GetAt(0) == '/' and sInputLine.GetAt(1) == '/')
+			sInputLine = "";
 	}
 
 	// Recherche de l'IdentifierPath et de la valeur
-	nPosition = sStringBuffer.Find(' ');
+	nPosition = sInputLine.Find(' ');
 	if (nPosition == -1)
 	{
-		sIdentifierPath = sStringBuffer;
+		sIdentifierPath = sInputLine;
 		sValue = "";
 	}
 	else
 	{
-		sIdentifierPath = sStringBuffer.Left(nPosition);
-		sValue = sStringBuffer.Right(sStringBuffer.GetLength() - nPosition - 1);
+		sIdentifierPath = sInputLine.Left(nPosition);
+		sValue = sInputLine.Right(sInputLine.GetLength() - nPosition - 1);
 		sValue.TrimRight();
 		sValue.TrimLeft();
 	}
@@ -906,6 +910,8 @@ const ALString CommandFile::ProcessSearchReplaceCommand(const ALString& sInputCo
 	ALString sReplaceValue;
 	int nSearchPosition;
 	int i;
+
+	require(GetInputSearchReplaceValueNumber() > 0);
 
 	// Parcours de toutes les paires search/replace a appliquer
 	sOutputCommand = sInputCommand;
