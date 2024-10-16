@@ -273,9 +273,12 @@ void UIUnit::Open()
 			// Sinon, en mode textuel, on n'autorise pas d'interactions sans scenario
 			{
 				if (commandFile.IsInputCommandFileOpened())
-					AddFatalError("Unexpected end of file in the input commands file");
+					Global::AddFatalError("Command file", "",
+							      "Unexpected end of file in the input commands file");
+				else if (commandFile.GetInputCommandFileName() == "")
+					Global::AddFatalError("Command file", "", "Missing input commands file");
 				else
-					AddFatalError("Missing input commands file");
+					Global::AddFatalError("Command file", "", "Incorrect input commands file");
 			}
 		}
 	}

@@ -15,12 +15,12 @@ CommandFile::CommandFile()
 
 CommandFile::~CommandFile()
 {
-	require(not IsCommandFileOpened());
+	require(not AreCommandFilesOpened());
 }
 
 void CommandFile::Reset()
 {
-	require(not IsCommandFileOpened());
+	require(not AreCommandFilesOpened());
 
 	SetInputCommandFileName("");
 	SetOutputCommandFileName("");
@@ -30,7 +30,7 @@ void CommandFile::Reset()
 
 void CommandFile::SetInputCommandFileName(const ALString& sFileName)
 {
-	require(not IsCommandFileOpened());
+	require(not AreCommandFilesOpened());
 
 	sInputCommandFileName = sFileName;
 }
@@ -42,7 +42,7 @@ const ALString& CommandFile::GetInputCommandFileName() const
 
 void CommandFile::SetOutputCommandFileName(const ALString& sFileName)
 {
-	require(not IsCommandFileOpened());
+	require(not AreCommandFilesOpened());
 
 	sOutputCommandFileName = sFileName;
 
@@ -68,7 +68,7 @@ void CommandFile::AddInputSearchReplaceValues(const ALString& sSearchValue, cons
 {
 	require(sSearchValue != "");
 
-	require(not IsCommandFileOpened());
+	require(not AreCommandFilesOpened());
 
 	// Ajout des valeurs
 	svInputCommandSearchValues.Add(sSearchValue);
@@ -101,7 +101,7 @@ void CommandFile::DeleteAllInputSearchReplaceValues()
 
 void CommandFile::SetInputParameterFileName(const ALString& sFileName)
 {
-	require(not IsCommandFileOpened());
+	require(not AreCommandFilesOpened());
 
 	sInputParameterFileName = sFileName;
 }
@@ -213,12 +213,12 @@ boolean CommandFile::IsOutputCommandFileOpened() const
 	return fOutputCommands != NULL;
 }
 
-boolean CommandFile::IsCommandFileOpened() const
+boolean CommandFile::AreCommandFilesOpened() const
 {
 	return IsInputCommandFileOpened() or IsOutputCommandFileOpened();
 }
 
-void CommandFile::CloseCommandFiles()
+void CommandFile::CloseInputCommandFile()
 {
 	// Fermeture du fichier d'entree
 	if (fInputCommands != NULL)
@@ -230,6 +230,12 @@ void CommandFile::CloseCommandFiles()
 		PLRemoteFileService::CleanInputWorkingFile(sInputCommandFileName, sLocalInputCommandFileName);
 	}
 
+	// Nettoyage des parametres json
+	jsonParameters.DeleteAll();
+}
+
+void CommandFile::CloseOutputCommandFile()
+{
 	// Fermeture du fichier de sortie, uniquement en mode batch (sinon, on enregistre toujours le scenario)
 	if (fOutputCommands != NULL)
 	{
@@ -241,17 +247,25 @@ void CommandFile::CloseCommandFiles()
 	}
 }
 
+void CommandFile::CloseCommandFiles()
+{
+	CloseInputCommandFile();
+	CloseOutputCommandFile();
+}
+
 boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& sValue)
 {
 	const char cDEL = (char)127;
 	int i;
 	char sCharBuffer[1 + BUFFER_LENGTH];
 	ALString sInputLine;
+	int nLineIndex;
 	int nLength;
 	ALString sIdentifierPath;
 	int nPosition;
 	ALString sToken;
 	ALString sIdentifier;
+	ALString sTmp;
 
 	require(svIdentifierPath != NULL);
 	require(svIdentifierPath->GetSize() == 0);
@@ -261,21 +275,31 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 	if (fInputCommands == NULL or feof(fInputCommands))
 		return false;
 
-	// Boucle de lecture pour ignorer les lignes vides
-	// ou ne comportant que des commentaires
+	////////////////////////////////////////////////////////////////////////////////////////////
+	// Recherche d'une ligne non vide a traiter
+
+	// Boucle de lecture pour ignorer les lignes vides ou ne comportant que des commentaires
+	nLineIndex = 0;
 	while (sInputLine == "" and not feof(fInputCommands))
 	{
+		nLineIndex++;
+
 		// Lecture
 		StandardGetInputString(sCharBuffer, fInputCommands);
 		sInputLine = sCharBuffer;
 
 		// Si erreur ou caractere fin de fichier, on ne renvoie rien
 		// Si on est pas en fin de fichier, on a forcement un caractere '\n' en fin de ligne
-		if (ferror(fInputCommands) or sInputLine.GetLength() == 0)
+		if (ferror(fInputCommands) or sInputLine.GetLength() == 0 or sInputLine.GetLength() > nMaxLineLength)
 		{
+			// Message d'erreur en cas de lige trop longue
+			if (sInputLine.GetLength() > nMaxLineLength)
+				AddInputCommandFileError(
+				    sTmp + "line " + IntToString(nLineIndex) + " too long, with length " +
+				    IntToString(sInputLine.GetLength()) + " > " + IntToString(nMaxLineLength));
+
 			// Nettoyage
-			fclose(fInputCommands);
-			fInputCommands = NULL;
+			CloseInputCommandFile();
 			return false;
 		}
 
@@ -293,7 +317,7 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 		if (GetInputSearchReplaceValueNumber() > 0)
 			sInputLine = ProcessSearchReplaceCommand(sInputLine);
 
-		// Suppression ddu commentaire de fin de ligne, ce qui permet d'avoir
+		// Suppression du commentaire de fin de ligne, ce qui permet d'avoir
 		// des paires (IdentifierPath, valeur) avec valeur contenant des " //"
 		assert(sInputLine.Find("//") >= 0);
 		nLength = sInputLine.GetLength();
@@ -318,6 +342,12 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 		if (sInputLine.GetLength() >= 2 and sInputLine.GetAt(0) == '/' and sInputLine.GetAt(1) == '/')
 			sInputLine = "";
 	}
+
+	////////////////////////////////////////////////////////////////////////////////////////////
+	// Analyse de la ligne a traiter
+
+	// A ce stade, soit on a quite la methode, soit on a une ligne non vide a analyser
+	assert(sInputLine.GetLength() > 0);
 
 	// Recherche de l'IdentifierPath et de la valeur
 	nPosition = sInputLine.Find(' ');
@@ -729,7 +759,7 @@ boolean CommandFile::CheckVariableName(const ALString& sValue, ALString& sMessag
 	{
 		bOk = sValue.GetLength() <= nMaxVariableNameLength;
 		if (not bOk)
-			sMessage = sTmp + "overlengthy key \"" + GetPrintableValue(sValue) + "\", with length " +
+			sMessage = sTmp + "key \"" + GetPrintableValue(sValue) + "\" too long, with length " +
 				   IntToString(sValue.GetLength()) + " > " + IntToString(nMaxVariableNameLength);
 	}
 
@@ -854,9 +884,8 @@ boolean CommandFile::CheckStringValue(const ALString& sValue, boolean bCheckBase
 	{
 		bOk = sValue.GetLength() <= nMaxStringValueLength;
 		if (not bOk)
-			sMessage = sTmp + "overlengthy string value \"" + GetPrintableValue(sValue) +
-				   "\", with length " + IntToString(sValue.GetLength()) + " > " +
-				   IntToString(nMaxStringValueLength);
+			sMessage = sTmp + "string value \"" + GetPrintableValue(sValue) + "\" too long, with length " +
+				   IntToString(sValue.GetLength()) + " > " + IntToString(nMaxStringValueLength);
 	}
 
 	// Test de l'encodage base64

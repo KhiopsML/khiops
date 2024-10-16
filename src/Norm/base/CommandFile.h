@@ -156,9 +156,11 @@ public:
 	boolean IsOutputCommandFileOpened() const;
 
 	// Indique si on est en train de traiter les commande, en entree ou en sortie
-	boolean IsCommandFileOpened() const;
+	boolean AreCommandFilesOpened() const;
 
-	// Ouverture des fichiers de commandes
+	// Fermeture des fichiers de commandes
+	void CloseInputCommandFile();
+	void CloseOutputCommandFile();
 	void CloseCommandFiles();
 
 	// Lecture d'une commande
