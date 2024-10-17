@@ -171,6 +171,9 @@ public:
 	// Ecriture d'une commande
 	void WriteOutputCommand(const ALString& sIdentifierPath, const ALString& sValue, const ALString& sLabel);
 
+	// Ecriture d'une header de fichier de commande, consistant en lignes de commentaire en expliquant le fonctionnement
+	void WriteOutputCommandHeader();
+
 	///////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
@@ -284,6 +287,9 @@ protected:
 	static const ALString sTokenLoop;
 	static const ALString sTokenIf;
 	static const ALString sTokenEnd;
+
+	// Prefix de commentaire
+	static const ALString sCommentPrefix;
 
 	// Delimiteur de parametre dans un fichier de commande
 	static const ALString sVariableDelimiter;

@@ -1975,22 +1975,8 @@ void UIObject::ParseMainParameters(int argc, char** argv)
 	// Ecriture d'un en-tete dans le fichier des commandes
 	WriteOutputCommand("", "", CurrentTimestamp());
 	WriteOutputCommand("", "", commandLineOptions.GetCommandName());
-	if (commandFile.GetPrintOutputInConsole())
-	{
-		sMessage = "Output command file\n";
-		sMessage += "//\n";
-		sMessage += "//This file contains recorded commands, that can be replayed.\n";
-		sMessage += "//Commands are based on user interactions:\n";
-		sMessage += "//\tfield update\n";
-		sMessage += "//\tlist item selection\n";
-		sMessage += "//\tmenu action\n";
-		sMessage += "//Every command can be commented, using //.\n";
-		sMessage += "//For example, commenting the last Exit command will allow other\n";
-		sMessage += "//user interactions, after the commands have been replayed.\n";
-		sMessage += "//\n";
-		sMessage += "//";
-	}
-	WriteOutputCommand("", "", sMessage);
+	if (not commandFile.GetPrintOutputInConsole())
+		commandFile.WriteOutputCommandHeader();
 
 	// Choix de l'interface
 	if (IsBatchMode())
