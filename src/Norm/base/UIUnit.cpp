@@ -99,7 +99,7 @@ void UIUnit::Open()
 				if (uiAction->GetIdentifier() == "Exit" or uiAction->GetParameters() == "Exit")
 					bActionExit = true;
 				if (bVerboseCommandReplay)
-					AddSimpleMessage("Replay user action\t: " + sCommand);
+					AddSimpleMessage("Replay user action: " + sCommand);
 				WriteOutputCommand(sCommand, sValue, uiAction->GetUnformattedLabel());
 				uiUnit->ExecuteUserActionAt(uiAction->GetIdentifier());
 
@@ -125,7 +125,7 @@ void UIUnit::Open()
 						uiField = cast(UIElement*, uiData);
 						values = uiUnit->oaUnitValues.GetAt(nIndex);
 						if (bVerboseCommandReplay)
-							AddSimpleMessage("Replay field update\t: " + sCommand + " " +
+							AddSimpleMessage("Replay field update: " + sCommand + " " +
 									 sValue);
 						WriteOutputCommand(sCommand, sValue, uiField->GetUnformattedLabel());
 						uiField->SetFieldStringValue(values, uiUnit->nCurrentItemIndex, sValue);
@@ -147,10 +147,9 @@ void UIUnit::Open()
 					{
 						assert(uiUnit->GetDataType() == List);
 						// Arret sinon
-						Global::AddError("Command file", "",
-								 "Replay failure\t: " + sCommand + " " + sValue +
-								     " at index " +
-								     IntToString(uiUnit->nCurrentItemIndex));
+						commandFile.AddInputCommandFileError(
+						    "Replay failure: " + sCommand + " " + sValue + " at index " +
+						    IntToString(uiUnit->nCurrentItemIndex));
 						CleanCommandLineManagement();
 						if (bBatchMode)
 							Global::AddFatalError("Command file", "", "Batch mode failure");
@@ -188,8 +187,8 @@ void UIUnit::Open()
 								// Changement d'index si OK
 								if (bVerboseCommandReplay)
 									AddSimpleMessage(
-									    "Replay list item selection\t: " +
-									    sCommand + " " + sValue);
+									    "Replay list item selection: " + sCommand +
+									    " " + sValue);
 								WriteOutputCommand(sCommand, sValue,
 										   "List item selection");
 								uiList->SetSelectedItemIndex(nListIndex);
@@ -205,8 +204,8 @@ void UIUnit::Open()
 								// Changement d'index
 								if (bVerboseCommandReplay)
 									AddSimpleMessage(
-									    "Replay list item selection\t: " +
-									    sCommand + " " + sValue);
+									    "Replay list item selection: " + sCommand +
+									    " " + sValue);
 								WriteOutputCommand(sCommand, sValue,
 										   "List item selection");
 								uiList->SetSelectedItemKey(sValue);
@@ -220,7 +219,7 @@ void UIUnit::Open()
 				}
 
 				// Arret sinon
-				Global::AddError("Command file", "", "Replay failure\t: " + sCommand + " " + sValue);
+				commandFile.AddInputCommandFileError("Replay failure: " + sCommand + " " + sValue);
 				CleanCommandLineManagement();
 				if (bBatchMode)
 					Global::AddFatalError("Command file", "", "Batch mode failure");
