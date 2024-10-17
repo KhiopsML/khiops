@@ -6,9 +6,10 @@
 
 CommandFile::CommandFile()
 {
+	bPrintOutputInConsole = false;
 	fInputCommands = NULL;
 	fOutputCommands = NULL;
-	bPrintOutputInConsole = false;
+	nInputCommandFileLineIndex = 0;
 	assert(nMaxLineLength < BUFFER_LENGTH);
 	assert(nMaxVariableNameLength + nMaxVariableNameLength < nMaxLineLength);
 }
@@ -225,6 +226,7 @@ void CommandFile::CloseInputCommandFile()
 	{
 		fclose(fInputCommands);
 		fInputCommands = NULL;
+		nInputCommandFileLineIndex = 0;
 
 		// Si le fichier est sur HDFS, on supprime la copie locale
 		PLRemoteFileService::CleanInputWorkingFile(sInputCommandFileName, sLocalInputCommandFileName);
@@ -259,7 +261,6 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 	boolean bContinueParsing;
 	char sCharBuffer[1 + BUFFER_LENGTH];
 	ALString sInputLine;
-	int nLineIndex;
 	int nLength;
 	ALString sIdentifierPath;
 	int nPosition;
@@ -283,10 +284,10 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 
 	// Boucle de lecture pour ignorer les lignes vides ou ne comportant que des commentaires
 	bContinueParsing = true;
-	nLineIndex = 0;
+	nInputCommandFileLineIndex = 0;
 	while (sInputLine == "" and not feof(fInputCommands))
 	{
-		nLineIndex++;
+		nInputCommandFileLineIndex++;
 
 		// Lecture
 		StandardGetInputString(sCharBuffer, fInputCommands);
@@ -304,7 +305,7 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 		if (bContinueParsing and sInputLine.GetLength() > nMaxLineLength)
 		{
 			bContinueParsing = false;
-			AddInputCommandFileError(sTmp + "line " + IntToString(nLineIndex) + " too long, with length " +
+			AddInputCommandFileError(sTmp + "line too long, with length " +
 						 IntToString(sInputLine.GetLength()) + " > " +
 						 IntToString(nMaxLineLength));
 			break;
@@ -357,8 +358,7 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 			if (nToken == TokenLoop or nToken == TokenIf or nToken == TokenEnd or nToken == TokenKey)
 			{
 				bContinueParsing = false;
-				AddInputCommandFileError(sTmp + "line " + IntToString(nLineIndex) + " : use of the \"" +
-							 GetPrintableValue(sToken) +
+				AddInputCommandFileError(sTmp + "use of the \"" + GetPrintableValue(sToken) +
 							 "\" value allowed only with a json parameter file");
 				break;
 			}
@@ -458,10 +458,11 @@ void CommandFile::WriteOutputCommand(const ALString& sIdentifierPath, const ALSt
 		if (nCommandLength < 30)
 			nCommandLength = 30;
 
-		// Impression
+		// Si redirection vers la console, on ajoute un prefixe
 		if (bPrintOutputInConsole)
-			// Si redirection vers la console, on ajoute un prefixe
 			fprintf(fOutputCommands, "Khiops.command\t");
+
+		// Impression
 		if (sCommand == "" and sLabel == "")
 			fprintf(fOutputCommands, "\n");
 		else if (sCommand == "")
@@ -488,9 +489,62 @@ void CommandFile::WriteOutputCommandHeader()
 	WriteOutputCommand("", "", "");
 }
 
+boolean CommandFile::ReadWriteCommandFiles()
+{
+	boolean bOk = true;
+	StringVector svIdentifierPath;
+	ALString sValue;
+	ALString sIdentifierPath;
+	int i;
+
+	require(Check());
+	require(not AreCommandFilesOpened());
+	require(GetInputCommandFileName() != "");
+	require(GetOutputCommandFileName() != "");
+
+	// Ouverture des fichier de commandes
+	if (bOk)
+		bOk = OpenInputCommandFile();
+	if (bOk)
+		bOk = OpenOutputCommandFile();
+
+	// Lecture/ecriture des lignes de commandes
+	while (bOk)
+	{
+		bOk = ReadInputCommand(&svIdentifierPath, sValue);
+		if (bOk)
+		{
+			// Construction de l'identifier de commande a partir des ses composant
+			sIdentifierPath = "";
+			for (i = 0; i < svIdentifierPath.GetSize(); i++)
+			{
+				if (i > 0)
+					sIdentifierPath += '.';
+				sIdentifierPath += svIdentifierPath.GetAt(i);
+			}
+
+			// Ecriture
+			WriteOutputCommand(sIdentifierPath, sValue, "");
+		}
+	}
+
+	// Fermeture des fichiers de commandes
+	if (IsInputCommandFileOpened())
+		CloseInputCommandFile();
+	if (IsInputCommandFileOpened())
+		CloseInputCommandFile();
+	return bOk;
+}
+
 void CommandFile::AddInputCommandFileError(const ALString& sMessage) const
 {
-	Global::AddError("Input command file", sInputCommandFileName, sMessage);
+	ALString sLineLocalisation;
+	ALString sTmp;
+
+	// On precise le numero de ligne si disponible
+	if (nInputCommandFileLineIndex > 0)
+		sLineLocalisation = sTmp + ", line " + IntToString(nInputCommandFileLineIndex);
+	Global::AddError("Input command file", sInputCommandFileName + sLineLocalisation, sMessage);
 }
 
 void CommandFile::AddInputParameterFileError(const ALString& sMessage) const

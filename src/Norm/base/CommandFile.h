@@ -174,14 +174,19 @@ public:
 	// Ecriture d'une header de fichier de commande, consistant en lignes de commentaire en expliquant le fonctionnement
 	void WriteOutputCommandHeader();
 
-	///////////////////////////////////////////////////////////////////////////////////////
-	///// Implementation
-protected:
+	// Mode lecture/ecriture d'un fichier de de commande, sans executer les commandes
+	// Cela permet de tester la validite des fichier de command eet de parametres en entree
+	// et d'effectuer les transformations en fichier de commande natif, sans parametres
+	boolean ReadWriteCommandFiles();
+
 	// Personnalisation des messages d'erreur
 	void AddInputCommandFileError(const ALString& sMessage) const;
 	void AddInputParameterFileError(const ALString& sMessage) const;
 	void AddOutputCommandFileError(const ALString& sMessage) const;
 
+	///////////////////////////////////////////////////////////////////////////////////////
+	///// Implementation
+protected:
 	// Variante affichable d'une valeur, en completant si necessaire par des "..."
 	const ALString GetPrintableValue(const ALString& sValue) const;
 
@@ -276,12 +281,15 @@ protected:
 	ALString sLocalInputCommandFileName;
 	ALString sLocalOutputCommandFileName;
 
+	// Redirection de la sortie outputCommand vers la console
+	boolean bPrintOutputInConsole;
+
 	// Fichiers de gestion des commandes
 	FILE* fInputCommands;
 	FILE* fOutputCommands;
 
-	// Redirection de la sortie outputCommand vers la console
-	boolean bPrintOutputInConsole;
+	// Numero de ligne courant du fichier de commande en entree
+	int nInputCommandFileLineIndex;
 
 	// Gestion des chaines des patterns a remplacer par des valeurs dans les fichiers d'input de scenario
 	StringVector svInputCommandSearchValues;

@@ -431,6 +431,7 @@ protected:
 	static int nInstanceNumber;
 	static boolean bVerboseCommandReplay;
 	static boolean bBatchMode;
+	static boolean bOutputCommandNoReplay;
 	static boolean bFastExitMode;
 	static boolean bTextualInteractiveModeAllowed;
 	static ALString sIconImageJarPath;

@@ -1801,17 +1801,24 @@ boolean UIObject::CheckCommandLineOptions(const ObjectArray& oaOptions)
 		bOk = false;
 	}
 
-	// Les option -j et -r sont exclusives
+	// Les options -j et -r sont exclusives
 	if (odUsedOptions.Lookup("j") != NULL and odUsedOptions.Lookup("r") != NULL)
 	{
 		Global::AddError("Command line parameters", "", "-j and -r flags are exclusive");
 		bOk = false;
 	}
 
-	// Les option -o et -O sont exclusives
+	// Les options -o et -O sont exclusives
 	if (odUsedOptions.Lookup("o") != NULL and odUsedOptions.Lookup("O") != NULL)
 	{
 		Global::AddError("Command line parameters", "", "-o and -O flags are exclusive");
+		bOk = false;
+	}
+
+	// L'option O n'est pas utilisable sans fichier de commande entree
+	if (odUsedOptions.Lookup("O") != NULL and odUsedOptions.Lookup("i") == NULL)
+	{
+		Global::AddError("Command line parameters", "", "-O flag must be used with -i");
 		bOk = false;
 	}
 
@@ -1906,10 +1913,10 @@ void UIObject::ParseMainParameters(int argc, char** argv)
 	oOutputScenarioNoReplay->AddDescriptionLine("same as -o option, but without replay");
 	oOutputScenarioNoReplay->SetParameterRequired(true);
 	oOutputScenarioNoReplay->SetParameterDescription(CommandLineOption::sParameterFile);
-	oOutputScenarioNoReplay->SetMethod(OutputCommand);
+	oOutputScenarioNoReplay->SetMethod(OutputCommandNoReplay);
 	commandLineOptions.AddOption(oOutputScenarioNoReplay);
 
-	// Option sur le parametrage des serach/replace
+	// Option sur le parametrage des search/replace
 	oReplace = new CommandLineOption;
 	oReplace->SetFlag('r');
 	oReplace->AddDescriptionLine("search and replace in the command file");
@@ -1945,6 +1952,7 @@ void UIObject::ParseMainParameters(int argc, char** argv)
 	// pour detecter les options
 	bVerboseCommandReplay = false;
 	bBatchMode = false;
+	bOutputCommandNoReplay = false;
 
 	// Analyse des option de la ligne de commande
 	commandLineOptions.ParseMainParameters(argc, argv);
@@ -1952,31 +1960,38 @@ void UIObject::ParseMainParameters(int argc, char** argv)
 	// Initialisation des managers de message
 	InitializeMessageManagers();
 
-	// Ouverture du fichier de commande en entree
-	if (bOk and commandFile.GetInputCommandFileName() != "")
-		bOk = commandFile.OpenInputCommandFile();
-
-	// Ouverture du fichier de commande en sortie
-	if (bOk and commandFile.GetOutputCommandFileName() != "")
+	// Cas on on memorise les commandes dans el fichier en sortie sans les rejouer
+	if (bOutputCommandNoReplay)
+		commandFile.ReadWriteCommandFiles();
+	// Cas on on rejoue les commandes
+	else
 	{
-		bOk = commandFile.OpenOutputCommandFile();
+		// Ouverture du fichier de commande en entree
+		if (bOk and commandFile.GetInputCommandFileName() != "")
+			bOk = commandFile.OpenInputCommandFile();
 
-		// En mode Graphic on renvoie systematiquement true : on permet de lancer l'outil meme si on ne peut
-		// pas ecrire dans le fichier de log (les options -e et -o sont passees par defaut a l'outil dans les scripts de
-		// lancement bash ou cmd) En mode Textual on est plus strict (utilisation via python, java ou sur cluster)
-		if (not IsBatchMode())
-			bOk = true;
+		// Ouverture du fichier de commande en sortie
+		if (bOk and commandFile.GetOutputCommandFileName() != "")
+		{
+			bOk = commandFile.OpenOutputCommandFile();
+
+			// En mode Graphic on renvoie systematiquement true : on permet de lancer l'outil meme si on ne peut
+			// pas ecrire dans le fichier de log (les options -e et -o sont passees par defaut a l'outil dans les scripts de
+			// lancement bash ou cmd) En mode Textual on est plus strict (utilisation via python, java ou sur cluster)
+			if (not IsBatchMode())
+				bOk = true;
+		}
+
+		// Si il y a eu un pbm lors de l'excution d'une methode, on sort en erreur
+		if (not bOk)
+			GlobalExit();
+
+		// Ecriture d'un en-tete dans le fichier des commandes
+		WriteOutputCommand("", "", CurrentTimestamp());
+		WriteOutputCommand("", "", commandLineOptions.GetCommandName());
+		if (not commandFile.GetPrintOutputInConsole())
+			commandFile.WriteOutputCommandHeader();
 	}
-
-	// Si il y a eu un pbm lors de l'excution d'une methode, on sort en erreur
-	if (not bOk)
-		GlobalExit();
-
-	// Ecriture d'un en-tete dans le fichier des commandes
-	WriteOutputCommand("", "", CurrentTimestamp());
-	WriteOutputCommand("", "", commandLineOptions.GetCommandName());
-	if (not commandFile.GetPrintOutputInConsole())
-		commandFile.WriteOutputCommandHeader();
 
 	// Choix de l'interface
 	if (IsBatchMode())
@@ -2028,6 +2043,13 @@ boolean UIObject::InputCommand(const ALString& sFileName)
 boolean UIObject::OutputCommand(const ALString& sFileName)
 {
 	commandFile.SetOutputCommandFileName(sFileName);
+	return true;
+}
+
+boolean UIObject::OutputCommandNoReplay(const ALString& sFileName)
+{
+	commandFile.SetOutputCommandFileName(sFileName);
+	bOutputCommandNoReplay = true;
 	return true;
 }
 
@@ -2190,6 +2212,7 @@ int UIObject::nUIMode = Textual;
 int UIObject::nInstanceNumber = 0;
 boolean UIObject::bVerboseCommandReplay = false;
 boolean UIObject::bBatchMode = false;
+boolean UIObject::bOutputCommandNoReplay = false;
 boolean UIObject::bFastExitMode = true;
 boolean UIObject::bTextualInteractiveModeAllowed = false;
 ObjectDictionary UIObject::odListIndexCommands;
