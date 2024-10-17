@@ -259,7 +259,6 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 	boolean bContinueParsing;
 	char sCharBuffer[1 + BUFFER_LENGTH];
 	ALString sInputLine;
-	ALString sBuffer;
 	int nLineIndex;
 	int nLength;
 	ALString sIdentifierPath;
@@ -296,7 +295,10 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 		// Si erreur ou caractere fin de fichier, on n'arret sans message d'erreur
 		// Si on est pas en fin de fichier, on a forcement un caractere '\n' en fin de ligne
 		if (ferror(fInputCommands) or sInputLine.GetLength() == 0)
+		{
 			bContinueParsing = false;
+			break;
+		}
 
 		// Erreur si ligne trop longue
 		if (bContinueParsing and sInputLine.GetLength() > nMaxLineLength)
@@ -305,62 +307,61 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 			AddInputCommandFileError(sTmp + "line " + IntToString(nLineIndex) + " too long, with length " +
 						 IntToString(sInputLine.GetLength()) + " > " +
 						 IntToString(nMaxLineLength));
+			break;
 		}
 
 		// Suppression des blancs au debut et a la fin, donc du dernier caractere fin de ligne
 		sInputLine.TrimRight();
 		sInputLine.TrimLeft();
 
-		// Ajout si necessaire d'un commentaire vide a la fin, ce qui permet de gerer
-		// les search/replace sans se soucier des valeurs de remplacement comportant
-		// des caracteres "//", en les isolant du commentaire de fin de ligne
-		if (sInputLine.Find(sCommentPrefix) == -1)
+		// Supression de la ligne entiere si elle est entierement commentee
+		if (sInputLine.Find(sCommentPrefix) == 0)
+			sInputLine = "";
+		// Sinon, suppression du commentaire de fin de ligne, ce qui permet d'avoir
+		// des paires (IdentifierPath, valeur) avec valeur contenant des " //"
+		else
 		{
-			if (sInputLine != "")
-				sInputLine += ' ';
-			sInputLine += sCommentPrefix;
+			nLength = sInputLine.GetLength();
+			for (i = nLength - sCommentPrefix.GetLength(); i >= 0; i--)
+			{
+				if (sInputLine.GetAt(i) == sCommentPrefix.GetAt(0) and
+				    sInputLine.Right(nLength - i).Find(sCommentPrefix) == 0)
+				{
+					sInputLine.GetBufferSetLength(i);
+					sInputLine.TrimRight();
+					break;
+				}
+			}
 		}
 
+		// On passe a la ligne suivante si ligne vide
+		if (sInputLine == "")
+			continue;
+
+		// Suppression si necessaire du dernier caractere s'il s'agit de cDEL
+		// (methode FromJstring qui utilise ce cartactere special en fin de chaine pour
+		// les conversions entre Java et C++ et l'ajoute dans les fichiers de commande en sortie)
+		if (sInputLine.GetLength() > 0 and sInputLine.GetAt(sInputLine.GetLength() - 1) == cDEL)
+			sInputLine.GetBufferSetLength(sInputLine.GetLength() - 1);
+
 		// Dans le cas sans fichier de parametrage json, on que l'on n'utilise pas
-		// des balises du langage // de pilotage par fichier de parametre
-		if (bContinueParsing and sInputLine != "" and GetInputParameterFileName() == "")
+		// des balises du langage de pilotage par fichier de parametre
+		if (GetInputParameterFileName() == "")
 		{
 			// Detection du premier token de la ligne
 			nToken = TokenizeInputCommand(sInputLine, sToken, sEndLine);
 
 			// Arret si detection de token reserves au cas des fichiers de parametres json
+			// On ne peut pas aller plus loin dans l'analyse des tokens suivants, qui pourait
+			// correspondre a des valeurs dans les donnees (par exemple, un nom de variable "__improbable__")
 			if (nToken == TokenLoop or nToken == TokenIf or nToken == TokenEnd or nToken == TokenVariable)
 			{
 				bContinueParsing = false;
 				AddInputCommandFileError(sTmp + "line " + IntToString(nLineIndex) + " : use of the \"" +
 							 GetPrintableValue(sToken) +
 							 "\" token alllowed only with a json parameter file");
+				break;
 			}
-
-			// Detection d'un second token dans la ligne
-			if (bContinueParsing and nToken != TokenComment)
-			{
-				sBuffer = sEndLine;
-				nToken = TokenizeInputCommand(sBuffer, sToken, sEndLine);
-
-				// Arret si detection de token reserves au cas des fichier de parametres json
-				if (nToken == TokenLoop or nToken == TokenIf or nToken == TokenEnd or
-				    nToken == TokenVariable)
-				{
-					bContinueParsing = false;
-					AddInputCommandFileError(sTmp + "line " + IntToString(nLineIndex) +
-								 " : use of the \"" + GetPrintableValue(sToken) +
-								 "\" key alllowed only with a json parameter file");
-				}
-			}
-		}
-
-		// Arret si necessaire
-		if (not bContinueParsing)
-		{
-			// Nettoyage
-			CloseInputCommandFile();
-			return false;
 		}
 
 		// Cas du mode recherche/remplacement dans la partie valeur de la commande
@@ -368,32 +369,14 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 		{
 			sInputLine = ProcessSearchReplaceCommand(sInputLine);
 		}
+	}
 
-		// Suppression du commentaire de fin de ligne, ce qui permet d'avoir
-		// des paires (IdentifierPath, valeur) avec valeur contenant des " //"
-		assert(sInputLine.Find(sCommentPrefix) >= 0);
-		nLength = sInputLine.GetLength();
-		for (i = nLength - sCommentPrefix.GetLength(); i >= 0; i--)
-		{
-			if (sInputLine.GetAt(i) == sCommentPrefix.GetAt(0) and
-			    sInputLine.Right(nLength - i).Find(sCommentPrefix) == 0)
-			{
-				sInputLine.GetBufferSetLength(i);
-				sInputLine.TrimRight();
-				break;
-			}
-		}
-
-		// Suppression si necessaire du dernier caractere s'il s'agit de cDEL
-		// (methode FromJstring qui utilise ce cartactere special en fin de chaine pour
-		// les conversions entre Java et C++)
-		if (sInputLine.GetLength() > 0 and sInputLine.GetAt(sInputLine.GetLength() - 1) == cDEL)
-			sInputLine.GetBufferSetLength(sInputLine.GetLength() - 1);
-
-		// On supprime la ligne si elle commence par un commentaire
-		// Cela permet de commenter y compris les lignes ayant une valeur contenant des "//"
-		if (sInputLine.Find(sCommentPrefix) == 0)
-			sInputLine = "";
+	// Arret si necessaire
+	if (not bContinueParsing)
+	{
+		// Nettoyage
+		CloseInputCommandFile();
+		return false;
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////
