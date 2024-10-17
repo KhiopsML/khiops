@@ -226,30 +226,37 @@ protected:
 	// Types de token possible
 	enum
 	{
-		TokenLoop,
 		TokenIf,
+		TokenLoop,
 		TokenEnd,
-		TokenVariable,
-		TokenComment,
+		TokenKey,
 		TokenOther,
 		None
 	};
 
-	// Decomposition de la ligne d'entree en un token, suivi de la fin de la ligne
+	// Decomposition de la ligne de commande d'entree en un premier token, suivi de la fin de la ligne
 	// En sortie, on renvoie le type de token, et on indique la valeur du token la fin de ligne
 	// Il n'y a pas de message d'erreur a ce niveau.
 	// Les tokens de type TokenVariable possedent a minimal leur delimiteur de debut, et peuevent ne pas etre valides
-	int TokenizeInputCommand(const ALString& sInputCommand, ALString& sToken, ALString& sEndLine) const;
+	int GetFirstInputToken(const ALString& sInputCommand, ALString& sToken, ALString& sEndLine) const;
 
-	// Recherche des tokens de type variable dans une ligne d'entree
-	// On alimente le vecteur des tokesn de type variable, avec leur delimiteurs
-	// Un message comportant la valeur du token est fabrique en cas d'erreur
-	boolean CollectTokenVariables(const ALString& sInputCommand, StringVector* svVariableNames,
-				      ALString& sMessage) const;
+	// Tokenisation de la ligne de commande d'entree en une suite de tokens
+	// On renvoie la liste des types et valeur de tokens en sortie si la syntaxe est valide:
+	//   IF <key>
+	//   END IF
+	//   LOOP KEY
+	//   END LOOP
+	//   <command> (<key>|<other>)*
+	// En cas d'erreur, on renvoie false, avec alimentation d'un message
+	boolean TokenizeInputCommand(const ALString& sInputCommand, IntVector* ivTokenTypes,
+				     StringVector* svTokenValues, ALString& sMessage) const;
 
-	// Verification de la syntaxe d'un token de type variable, devant commencer par son delimiteur
+	// Affichage d'un vecteur de token issu de l'analyse de la ligne de command
+	void WriteInputCommandTokens(ostream& ost, IntVector* ivTokenTypes, StringVector* svTokenValues) const;
+
+	// Verification de la syntaxe d'un token de type cle, devant commencer par son delimiteur
 	// Un message comportant la valeur du token est fabrique en cas d'erreur
-	boolean CheckTokenVariable(const ALString& sToken, ALString& sMessage) const;
+	boolean CheckTokenKey(const ALString& sToken, ALString& sMessage) const;
 
 	// Application des recherche/remplacement de valeurs successivement sur une commande
 	const ALString ProcessSearchReplaceCommand(const ALString& sInputCommand) const;
