@@ -46,7 +46,7 @@ void CommandFile::SetOutputCommandFileName(const ALString& sFileName)
 
 	sOutputCommandFileName = sFileName;
 
-	// Si les fichier de sortie est /dev/stdout ou /dev/stderr, c'est un eredirection vers la console
+	// Si les fichier de sortie est /dev/stdout ou /dev/stderr, c'est une redirection vers la console
 	bPrintOutputInConsole = false;
 #ifdef __linux_or_apple__
 	if (sOutputCommandFileName == "/dev/stdout" or sLocalOutputCommandsFileName == "/dev/stderr")
@@ -257,7 +257,6 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 {
 	const char cDEL = (char)127;
 	boolean bContinueParsing;
-	int i;
 	char sCharBuffer[1 + BUFFER_LENGTH];
 	ALString sInputLine;
 	ALString sBuffer;
@@ -269,6 +268,7 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 	ALString sEndLine;
 	ALString sToken;
 	ALString sIdentifier;
+	int i;
 	ALString sTmp;
 
 	require(svIdentifierPath != NULL);
@@ -314,11 +314,11 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 		// Ajout si necessaire d'un commentaire vide a la fin, ce qui permet de gerer
 		// les search/replace sans se soucier des valeurs de remplacement comportant
 		// des caracteres "//", en les isolant du commentaire de fin de ligne
-		if (sInputLine.Find("//") == -1)
+		if (sInputLine.Find(sCommentPrefix) == -1)
 		{
 			if (sInputLine != "")
 				sInputLine += ' ';
-			sInputLine += "//";
+			sInputLine += sCommentPrefix;
 		}
 
 		// Dans le cas sans fichier de parametrage json, on que l'on n'utilise pas
@@ -371,14 +371,15 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 
 		// Suppression du commentaire de fin de ligne, ce qui permet d'avoir
 		// des paires (IdentifierPath, valeur) avec valeur contenant des " //"
-		assert(sInputLine.Find("//") >= 0);
+		assert(sInputLine.Find(sCommentPrefix) >= 0);
 		nLength = sInputLine.GetLength();
-		for (i = nLength - 1; i >= 1; i--)
+		for (i = nLength - sCommentPrefix.GetLength(); i >= 0; i--)
 		{
-			if (sInputLine.GetAt(i) == '/' and sInputLine.GetAt(i - 1) == '/')
+			if (sInputLine.GetAt(i) == sCommentPrefix.GetAt(0) and
+			    sInputLine.Right(nLength - i).Find(sCommentPrefix) == 0)
 			{
-				sInputLine.GetBufferSetLength(i - 1);
-				sInputLine.TrimLeft();
+				sInputLine.GetBufferSetLength(i);
+				sInputLine.TrimRight();
 				break;
 			}
 		}
@@ -391,7 +392,7 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 
 		// On supprime la ligne si elle commence par un commentaire
 		// Cela permet de commenter y compris les lignes ayant une valeur contenant des "//"
-		if (sInputLine.GetLength() >= 2 and sInputLine.GetAt(0) == '/' and sInputLine.GetAt(1) == '/')
+		if (sInputLine.Find(sCommentPrefix) == 0)
 			sInputLine = "";
 	}
 
@@ -481,12 +482,27 @@ void CommandFile::WriteOutputCommand(const ALString& sIdentifierPath, const ALSt
 		if (sCommand == "" and sLabel == "")
 			fprintf(fOutputCommands, "\n");
 		else if (sCommand == "")
-			fprintf(fOutputCommands, "// %s\n", (const char*)sLabel);
+			fprintf(fOutputCommands, sCommentPrefix + " %s\n", (const char*)sLabel);
 		else
 			fprintf(fOutputCommands, "%-*.*s // %s\n", nCommandLength, nCommandLength,
 				(const char*)sCommand, (const char*)sLabel);
 		fflush(fOutputCommands);
 	}
+}
+
+void CommandFile::WriteOutputCommandHeader()
+{
+	WriteOutputCommand("", "", "Output command file");
+	WriteOutputCommand("", "", "");
+	WriteOutputCommand("", "", "This file contains recorded commands, that can be replayed.");
+	WriteOutputCommand("", "", "Commands are based on user interactions:");
+	WriteOutputCommand("", "", "\tfield update");
+	WriteOutputCommand("", "", "\tlist item selection");
+	WriteOutputCommand("", "", "\tmenu action");
+	WriteOutputCommand("", "", "Every command can be commented, using .");
+	WriteOutputCommand("", "", "For example, commenting the last Exit command will allow other");
+	WriteOutputCommand("", "", "user interactions, after the commands have been replayed.");
+	WriteOutputCommand("", "", "");
 }
 
 void CommandFile::AddInputCommandFileError(const ALString& sMessage) const
@@ -1016,7 +1032,7 @@ int CommandFile::TokenizeInputCommand(const ALString& sInputCommand, ALString& s
 	require(IsValueTrimed(sInputCommand));
 
 	// Cas d'un token commentaire
-	if (sInputCommand.Find("//") == 0)
+	if (sInputCommand.Find(sCommentPrefix) == 0)
 	{
 		nOutputToken = TokenComment;
 		sToken = sInputCommand;
@@ -1044,7 +1060,7 @@ int CommandFile::TokenizeInputCommand(const ALString& sInputCommand, ALString& s
 	// Analyse de la ligne sinon
 	else
 	{
-		assert(sInputCommand.Find("//") != 0);
+		assert(sInputCommand.Find(sCommentPrefix) != 0);
 		assert(sInputCommand.Find(sVariableDelimiter) != 0);
 
 		// Recherche du premier token
@@ -1091,7 +1107,7 @@ boolean CommandFile::CollectTokenVariables(const ALString& sInputCommand, String
 
 	require(sInputCommand != "");
 	require(IsValueTrimed(sInputCommand));
-	require(sInputCommand.Find("//") != 0);
+	require(sInputCommand.Find(sCommentPrefix) != 0);
 
 	// Initialisations
 	svVariableNames->SetSize(0);
@@ -1249,6 +1265,7 @@ boolean CommandFile::IsValueTrimed(const ALString& sValue) const
 		return true;
 }
 
+const ALString CommandFile::sCommentPrefix = "//";
 const ALString CommandFile::sTokenLoop = "LOOP";
 const ALString CommandFile::sTokenIf = "IF";
 const ALString CommandFile::sTokenEnd = "END";
