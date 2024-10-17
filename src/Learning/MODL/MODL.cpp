@@ -37,7 +37,7 @@ int main(int argc, char** argv)
 	Global::ActivateSignalErrorManagement();
 
 	// Choix du repertoire de lancement pour le debugage sous Windows (a commenter apres fin du debug)
-	// SetWindowsDebugDir("Standard", "IrisLight");
+	SetWindowsDebugDir("Standard", "IrisLight");
 	// SetWindowsDebugDir("Standard", "IrisU2D");
 
 	// Parametrage des logs memoires depuis les variables d'environnement, pris en compte dans KWLearningProject
