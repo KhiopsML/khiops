@@ -37,6 +37,11 @@ if [[ ! -f "$(get_script_dir)"/khiops_env ]]; then
     exit 1
 fi
 
+# Does not print messages from mpi
+if [ -z "$KHIOPS_MPI_VERBOSE" ]; then
+    KHIOPS_MPI_VERBOSE="false"
+fi
+
 # Initialize Khiops env variables
 source $(get_script_dir)/khiops_env ""
 
