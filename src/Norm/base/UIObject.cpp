@@ -1960,9 +1960,14 @@ void UIObject::ParseMainParameters(int argc, char** argv)
 	// Initialisation des managers de message
 	InitializeMessageManagers();
 
-	// Cas on on memorise les commandes dans el fichier en sortie sans les rejouer
+	// Cas on on memorise les commandes dans le fichier en sortie sans les rejouer
 	if (bOutputCommandNoReplay)
+	{
 		commandFile.ReadWriteCommandFiles();
+
+		// On sort du programme car a a fini tous les traitements, comme pour le -h
+		GlobalExitOnSuccess();
+	}
 	// Cas on on rejoue les commandes
 	else
 	{
