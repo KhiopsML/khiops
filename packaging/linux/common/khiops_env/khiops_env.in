@@ -44,6 +44,7 @@ help() {
     echo "  . set to 'false' to allow local file name selection only with a file selection dialog"
     echo "KHIOPS_MPI_HOST_FILE: provide hostfile to mpi."
     echo
+    echo "KHIOPS_MPI_VERBOSE: true (default) or false, print messages from mpi (OpenMPI only)."
     echo "In case of configuration problems, the variables KHIOPS_JAVA_ERROR and KHIOPS_MPI_ERROR contain error messages."
 
 }
@@ -64,9 +65,18 @@ get_script_dir() {
 @IS_CONDA_VAR@
 @SET_KHIOPS_DRIVERS_PATH@
 
+if [ -z "$KHIOPS_MPI_VERBOSE" ]; then
+    KHIOPS_MPI_VERBOSE="true"
+fi
+
+if ! [ "$KHIOPS_MPI_VERBOSE" == "true" ]; then
+    # Mute mpi by adding flags (OpenMPI only)
+    MPI_EXTRA_FLAGS="@KHIOPS_MPI_QUIET@"
+fi
+
 # Setting up mpi for multiple machines
 if [[ -n $KHIOPS_MPI_HOST_FILE ]]; then
-    MPI_EXTRA_FLAGS="@MPIEXEC_HOSTFILE_FLAG@ $KHIOPS_MPI_HOST_FILE"
+    MPI_EXTRA_FLAGS="$MPI_EXTRA_FLAGS @MPIEXEC_HOSTFILE_FLAG@ $KHIOPS_MPI_HOST_FILE"
     @EXPORT_ENV_VARIABLES@
 fi
 
@@ -106,4 +116,6 @@ if [ "$1" = "--env" ]; then
     echo KHIOPS_DRIVERS_PATH "$KHIOPS_DRIVERS_PATH"
     echo KHIOPS_JAVA_ERROR "$KHIOPS_JAVA_ERROR"
     echo KHIOPS_MPI_ERROR "$KHIOPS_MPI_ERROR"
+    echo KHIOPS_MPI_VERBOSE "$KHIOPS_MPI_VERBOSE"
+    @ADDITIONAL_ENV_VAR_DISPLAY@
 fi
