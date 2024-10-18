@@ -325,32 +325,36 @@ void RMParallelResourceManager::Test()
 	test.GetTaskRequirement()->SetMaxSlaveProcessNumber(1);
 	test.Solve();
 
-	// Une seule machine, un seul processeur, l'esclave demande plus que ce qu'il y a sur le host
-	UIObject::SetUIMode(UIObject::Graphic);
-	test.Reset();
-	test.SetTestLabel("mono machines : 1 core + Graphical");
-	test.SetCluster(RMResourceSystem::CreateSyntheticCluster(1, 1, 2 * lGB, 0, 0));
-	test.SetMasterSystemAtStart(8931728);
-	test.SetSlaveSystemAtStart(8 * lMB);
-	test.SetMemoryLimitPerHost(1998 * lMB); // En 32 bits il faut ajouter ca
-	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMin(1 * lGB);
-	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMax(1717986918); // 1.6 Gb
-	test.GetTaskRequirement()->GetMasterRequirement()->GetMemory()->Set(16 * lMB);
-	test.Solve();
+	// le test suivant est lance uniquement si on est en mode graphique, ce qui n'est pas le cas
+	// dans les tests unitaires
+	if (UIObject::GetUIMode() == UIObject::Graphic)
+	{
+		// Une seule machine, un seul processeur, l'esclave demande plus que ce qu'il y a sur le host
+		test.Reset();
+		test.SetTestLabel("mono machines : 1 core + Graphical");
+		test.SetCluster(RMResourceSystem::CreateSyntheticCluster(1, 1, 2 * lGB, 0, 0));
+		test.SetMasterSystemAtStart(8931728);
+		test.SetSlaveSystemAtStart(8 * lMB);
+		test.SetMemoryLimitPerHost(1998 * lMB); // En 32 bits il faut ajouter ca
+		test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMin(1 * lGB);
+		test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMax(1717986918); // 1.6 Gb
+		test.GetTaskRequirement()->GetMasterRequirement()->GetMemory()->Set(16 * lMB);
+		test.Solve();
 
-	// Idem en batch cette fois on peut allouer
-	UIObject::SetUIMode(UIObject::Textual);
-	test.Reset();
-	test.SetTestLabel("mono machines : 1 core + Textual");
-	test.SetCluster(RMResourceSystem::CreateSyntheticCluster(1, 1, 2 * lGB, 0, 0));
-	test.SetMasterSystemAtStart(8931728);
-	test.SetSlaveSystemAtStart(8 * lMB);
-	test.SetMemoryLimitPerHost(1998 * lMB); // En 32 bits il faut ajouter ca
-	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMin(1 * lGB);
-	test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMax(1717986918); // 1.6 Gb
-	test.GetTaskRequirement()->GetMasterRequirement()->GetMemory()->Set(16 * lMB);
-	test.Solve();
-	UIObject::SetUIMode(UIObject::Graphic);
+		// Idem en batch cette fois on peut allouer
+		UIObject::SetUIMode(UIObject::Textual);
+		test.Reset();
+		test.SetTestLabel("mono machines : 1 core + Textual");
+		test.SetCluster(RMResourceSystem::CreateSyntheticCluster(1, 1, 2 * lGB, 0, 0));
+		test.SetMasterSystemAtStart(8931728);
+		test.SetSlaveSystemAtStart(8 * lMB);
+		test.SetMemoryLimitPerHost(1998 * lMB); // En 32 bits il faut ajouter ca
+		test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMin(1 * lGB);
+		test.GetTaskRequirement()->GetSlaveRequirement()->GetMemory()->SetMax(1717986918); // 1.6 Gb
+		test.GetTaskRequirement()->GetMasterRequirement()->GetMemory()->Set(16 * lMB);
+		test.Solve();
+		UIObject::SetUIMode(UIObject::Graphic);
+	}
 
 	// Regression
 	test.Reset();
@@ -885,6 +889,7 @@ PLSolution* RMParallelResourceManager::BuildInitialSolution() const
 
 			// Recherche d'une classe qui a la meme definition
 			hostClass = cast(PLHostClass*, odHostClasses.Lookup(hostClassDefinition->GetSignature()));
+
 			if (hostClass == NULL)
 			{
 				// Si il n'existe pas de classe pour cette definition, on en cree une nouvelle
@@ -895,6 +900,7 @@ PLSolution* RMParallelResourceManager::BuildInitialSolution() const
 
 			// Ajout de la machine dans sa classe
 			hostClass->AddHost(host);
+
 			delete hostClassDefinition;
 		}
 	}
@@ -1271,9 +1277,9 @@ PLHostClassDefinition* PLHostClassDefinition::BuildClassDefinitionForHost(const 
 
 	for (nRT = 0; nRT < RESOURCES_NUMBER; nRT++)
 	{
-		// Resource minimale utilisse par la tache sur cette machine en prenant en compte les une approximation
+		// Resource minimale utilisse par la tache sur cette machine en prenant en compte une approximation
 		// des ressources globales (cette approximation est grossiere car on les divise par le nombre d'esclaves
-		// du hot et non le nombre d'esclave global) L'idee est d'eviter de construire des classes inutiles : on
+		// du host et non le nombre d'esclave global) L'idee est d'eviter de construire des classes inutiles : on
 		// ne construira qu'une seule classe qui a plus que cette resource minimale
 		lHostOverallMax = requirements->GetMasterMin(nRT) + requirements->GetSharedMin(nRT) +
 				  host->GetLogicalProcessNumber() *
@@ -2041,7 +2047,7 @@ int PLSolution::CompareTo(const PLSolution* otherSolution) const
 		}
 	}
 
-	// Si les politiques d'allocation ne permettent pas de trancher, on compare comme dans la plotique balanced
+	// Si les politiques d'allocation ne permettent pas de trancher, on compare comme dans la politique balanced
 	if (nCompare == 0)
 	{
 		for (nRT = 0; nRT < RESOURCES_NUMBER; nRT++)
@@ -2097,6 +2103,7 @@ int CompareHostClassSolution(const void* elem1, const void* elem2)
 {
 	PLHostClassSolution* solution1;
 	PLHostClassSolution* solution2;
+	int nCompare = 0;
 
 	check(elem1);
 	check(elem2);
@@ -2105,9 +2112,28 @@ int CompareHostClassSolution(const void* elem1, const void* elem2)
 	solution1 = cast(PLHostClassSolution*, *(Object**)elem1);
 	solution2 = cast(PLHostClassSolution*, *(Object**)elem2);
 
-	// Retour
-	return CompareLongint(solution1->GetHostClass()->GetDefinition()->GetMemoryMin(),
-			      solution2->GetHostClass()->GetDefinition()->GetMemoryMin());
+	require(not solution1->GetHostClass()->IsMasterClass() or not solution2->GetHostClass()->IsMasterClass());
+
+	// La classe qui contient la machine maitre est la plus petite,
+	// ensuite on compare le nombre de processeurs, la memoire, puis le disque,
+	if (solution1->GetHostClass()->IsMasterClass())
+		nCompare = -1;
+	else if (solution2->GetHostClass()->IsMasterClass())
+		nCompare = 1;
+	else
+	{
+		nCompare = CompareLongint(solution1->GetHostClass()->GetDefinition()->GetProcNumber(),
+					  solution2->GetHostClass()->GetDefinition()->GetProcNumber());
+		if (nCompare == 0)
+			nCompare = CompareLongint(solution1->GetHostClass()->GetDefinition()->GetMemoryMin(),
+						  solution2->GetHostClass()->GetDefinition()->GetMemoryMin());
+		if (nCompare == 0)
+			nCompare = CompareLongint(solution1->GetHostClass()->GetDefinition()->GetDiskMin(),
+						  solution2->GetHostClass()->GetDefinition()->GetDiskMin());
+	}
+
+	assert(nCompare != 0);
+	return nCompare;
 }
 
 void PLSolution::SortHostClasses()
@@ -2256,10 +2282,6 @@ PLSolution* PLSolution::Expand() const
 	}
 	lastSolution->nUsedHost = nUsedHost;
 	lastSolution->nUsedProcs = nUsedProcs;
-	// cout << "BUILD fINAL" << endl;
-	// cout << *solution << endl;
-	// cout << "=>" << endl;
-	// cout << *lastSolution << endl;
 	return lastSolution;
 }
 

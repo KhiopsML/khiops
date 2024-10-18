@@ -590,8 +590,8 @@ disk   policy: slave first
 paral. policy: horizontal
 
 Classes number: 2
-	100_107374182400_107374182401_107374182400_107374182401
 	master_class
+	100_107374182400_107374182401_107374182400_107374182401
 
 --    Granted resources    --
 #procs 1000
@@ -756,6 +756,7 @@ disk   policy: slave first
 paral. policy: horizontal
 
 Classes number: 10
+	master_class
 	1_1073741824_1073741825_1073741824_1073741825
 	2_2147483648_2147483649_2147483648_2147483649
 	3_3221225472_3221225473_3221225472_3221225473
@@ -765,7 +766,6 @@ Classes number: 10
 	7_7516192768_7516192769_7516192768_7516192769
 	8_8589934592_8589934593_8589934592_8589934593
 	9_9663676416_9663676417_9663676416_9663676417
-	master_class
 
 --    Granted resources    --
 #procs 55
@@ -843,8 +843,8 @@ disk   policy: slave first
 paral. policy: horizontal
 
 Classes number: 2
-	100_107374182400_107374182401_107374182400_107374182401
 	master_class
+	100_107374182400_107374182401_107374182400_107374182401
 
 --    Granted resources    --
 #procs 581
@@ -1009,6 +1009,7 @@ disk   policy: slave first
 paral. policy: horizontal
 
 Classes number: 10
+	master_class
 	1_1073741824_1073741825_1073741824_1073741825
 	2_2147483648_2147483649_2147483648_2147483649
 	3_3221225472_3221225473_3221225472_3221225473
@@ -1018,7 +1019,6 @@ Classes number: 10
 	7_7516192768_7516192769_7516192768_7516192769
 	8_8589934592_8589934593_8589934592_8589934593
 	9_9663676416_9663676417_9663676416_9663676417
-	master_class
 
 --    Granted resources    --
 #procs 28
@@ -1162,130 +1162,6 @@ Disk
 host_0	1 procs
 Ranks involved : 0
 
-error : Java : Unable to load libjvm.so (libjvm.so: cannot open shared object file: No such file or directory), install java JRE or check the LD_LIBRARY_PATH variable
-
-----------------------------------
-		mono machines : 1 core + Graphical
-
-
-Outside task
-
-
-System resources :
-	Host number 1
-	Physical cores on system 1
-	Logical processes on system 1
-	Available memory on system 2.0 GB (Logical 1.2 GB)
-	Available disk space on system 0 B
-	hostname	MPI ranks	logical memory	disk	cores
-	host_0	0	1.2 GB	0 B	1
-	Slave reserve 56.0 MB
-	Master reserve 56.0 MB
-
---   Task requirements    --
-Slave requirement: 
-	Memory min : 1.0 GB max : 1.6 GB
-	Disk   min : 0 B max : 0 B
-Master requirement: 
-	Memory min : 16.0 MB max : 16.0 MB
-	Disk   min : 0 B max : 0 B
-Shared variables requirement: 
-	Memory min : 0 B max : 0 B
-	Disk   min : 0 B max : 0 B
-Slave global requirement: 
-	Memory min : 0 B max : 0 B
-	Disk   min : 0 B max : 0 B
-Slave system at start: 
-	Memory min : 8.0 MB max : 8.0 MB
-	Disk   min : 0 B max : 0 B
-Master system at start: 
-	Memory min : 8.5 MB max : 8.5 MB
-	Disk   min : 0 B max : 0 B
-Number of slaves processes: INF
-memory policy: slave first
-disk   policy: slave first
-paral. policy: horizontal
-
-nResourceLimit[MEMORY]: 2.0 GB
-Classes number: 1
-	master_class
-
---    Granted resources    --
-#procs 1
-Memory
-  master 16.0 MB -> 16,777,216
-  slave  1.1 GB -> 1,224,982,000
-  shared 0 B -> 0
-Disk  
-  master 0 B -> 0
-  slave  0 B -> 0
-  shared 0 B -> 0
-
-host_0	1 procs
-Ranks involved : 0
-
-
-----------------------------------
-		mono machines : 1 core + Textual
-
-
-Outside task
-
-
-System resources :
-	Host number 1
-	Physical cores on system 1
-	Logical processes on system 1
-	Available memory on system 2.0 GB (Logical 1.2 GB)
-	Available disk space on system 0 B
-	hostname	MPI ranks	logical memory	disk	cores
-	host_0	0	1.2 GB	0 B	1
-	Slave reserve 56.0 MB
-	Master reserve 56.0 MB
-
---   Task requirements    --
-Slave requirement: 
-	Memory min : 1.0 GB max : 1.6 GB
-	Disk   min : 0 B max : 0 B
-Master requirement: 
-	Memory min : 16.0 MB max : 16.0 MB
-	Disk   min : 0 B max : 0 B
-Shared variables requirement: 
-	Memory min : 0 B max : 0 B
-	Disk   min : 0 B max : 0 B
-Slave global requirement: 
-	Memory min : 0 B max : 0 B
-	Disk   min : 0 B max : 0 B
-Slave system at start: 
-	Memory min : 8.0 MB max : 8.0 MB
-	Disk   min : 0 B max : 0 B
-Master system at start: 
-	Memory min : 8.5 MB max : 8.5 MB
-	Disk   min : 0 B max : 0 B
-Number of slaves processes: INF
-memory policy: slave first
-disk   policy: slave first
-paral. policy: horizontal
-
-nResourceLimit[MEMORY]: 2.0 GB
-Classes number: 1
-	master_class
-
---    Granted resources    --
-#procs 1
-Memory
-  master 16.0 MB -> 16,777,216
-  slave  1.1 GB -> 1,224,982,000
-  shared 0 B -> 0
-Disk  
-  master 0 B -> 0
-  slave  0 B -> 0
-  shared 0 B -> 0
-
-host_0	1 procs
-Ranks involved : 0
-
-error : Java : Unable to load libjvm.so (libjvm.so: cannot open shared object file: No such file or directory), install java JRE or check the LD_LIBRARY_PATH variable
 
 ----------------------------------
 		regression : Master requirement 300 KB and granted 0
@@ -1580,8 +1456,8 @@ disk   policy: slave first
 paral. policy: horizontal
 
 Classes number: 2
-	100_107374182400_107374182401_107374182400_107374182401
 	master_class
+	100_107374182400_107374182401_107374182400_107374182401
 
 --    Granted resources    --
 #procs 571
@@ -1746,6 +1622,7 @@ disk   policy: slave first
 paral. policy: horizontal
 
 Classes number: 10
+	master_class
 	1_1073741824_1073741825_1073741824_1073741825
 	2_2147483648_2147483649_2147483648_2147483649
 	3_3221225472_3221225473_3221225472_3221225473
@@ -1755,7 +1632,6 @@ Classes number: 10
 	7_7516192768_7516192769_7516192768_7516192769
 	8_8589934592_8589934593_8589934592_8589934593
 	9_9663676416_9663676417_9663676416_9663676417
-	master_class
 
 --    Granted resources    --
 #procs 27
@@ -1887,8 +1763,8 @@ paral. policy: horizontal
 nMaxCoreNumber: 21
 nResourceLimit[MEMORY]: 56.3 GB
 Classes number: 2
-	6_135089496064_135089496065_20122406912_20122406913
 	master_class
+	6_135089496064_135089496065_20122406912_20122406913
 
 --    Granted resources    --
 #procs 12
@@ -1901,10 +1777,10 @@ Disk
   slave  356.2 MB -> 373,451,558
   shared 0 B -> 0
 
-host_0	1 procs
-host_1	5 procs
-host_2	6 procs
-Ranks involved : 0 6 7 8 9 10 12 13 14 15 16 17
+host_0	6 procs
+host_1	3 procs
+host_2	3 procs
+Ranks involved : 0 1 2 3 4 5 6 7 8 12 13 14
 
 
 ----------------------------------
@@ -1955,8 +1831,8 @@ disk   policy: slave first
 paral. policy: horizontal
 
 Classes number: 2
-	6_41983305318_84181359002_20186346291_28454158337
 	master_class
+	6_41983305318_84181359002_20186346291_28454158337
 
 --    Granted resources    --
 #procs 36
@@ -2031,9 +1907,9 @@ disk   policy: slave first
 paral. policy: horizontal
 
 Classes number: 3
+	master_class
 	1_10737418240_10737418241_0_1
 	10_107374182400_107374182401_107374182400_107374182401
-	master_class
 
 --    Granted resources    --
 #procs 101
@@ -2123,8 +1999,8 @@ disk   policy: slave first
 paral. policy: horizontal
 
 Classes number: 2
-	20_107374182400_107374182401_107374182400_107374182401
 	master_class
+	20_107374182400_107374182401_107374182400_107374182401
 
 --    Granted resources    --
 #procs 2000
@@ -2213,8 +2089,8 @@ disk   policy: slave first
 paral. policy: horizontal
 
 Classes number: 2
-	100_107374182400_107374182401_107374182400_107374182401
 	master_class
+	100_107374182400_107374182401_107374182400_107374182401
 
 --    Granted resources    --
 #procs 10
@@ -2292,8 +2168,8 @@ disk   policy: slave first
 paral. policy: vertical  
 
 Classes number: 2
-	100_107374182400_107374182401_107374182400_107374182401
 	master_class
+	100_107374182400_107374182401_107374182400_107374182401
 
 --    Granted resources    --
 #procs 10

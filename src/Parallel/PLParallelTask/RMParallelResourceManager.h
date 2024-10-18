@@ -258,7 +258,7 @@ public:
 	// Est-ce qu'on peut ajouter un processus sur une des machines qui a nProcHost processus
 	boolean AllowsOnMoreProc(int nProcHost) const;
 
-	// Tri decroissant des hosts de la classe sur les ressources (aavec un arrondi a 100 MB pres)
+	// Tri decroissant des hosts de la classe sur les ressources (avec un arrondi a 100 MB pres)
 	void SortHosts();
 
 	void Write(ostream& ost) const override;
