@@ -45,7 +45,6 @@ KWDataGridOptimizerParameters* KWDataGridOptimizer::GetParameters()
 	return &optimizationParameters;
 }
 
-// CH 231
 boolean KWDataGridOptimizer::GetSurtokenisationProto() const
 {
 	return bProtoSurtokenisation;
@@ -1622,7 +1621,6 @@ double KWDataGridOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* initial
 	// une taille minimale de voisinnage suffisante
 	dDecreaseFactor = 1.0 / pow(dMinNeighbourhoodSize, 1.0 / (nNeighbourhoodLevelNumber + 1));
 
-	// CH 231
 	cout << "bWithoutAntecedent\t" << bWithoutAntecedent << endl;
 
 	// On optimise tant qu'on ne depasse pas la taille max de voisinage
@@ -1638,7 +1636,7 @@ double KWDataGridOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* initial
 		KWDataGridOptimizer::GetProfiler()->BeginMethod("Generate neighbour solution");
 		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Neighbourhood size",
 								   DoubleToString(dNeighbourhoodSize));
-		// CH 231
+		
 		// Test du nouvel algorithme avec exploration de la tokenisation dans le VNS
 		if (not GetSurtokenisationProto())
 		{
@@ -1672,11 +1670,7 @@ double KWDataGridOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* initial
 				    initialDataGrid, optimizedDataGrid->GetInnerAttributes(),
 				    &initialFromOptimizedDataGrid);
 				//initialDataGrid->SetVarPartsShared(true);
-				//dataGridManager.ExportReferenceDataGridWithGivenInnerAttributes(
-				   // optimizedDataGrid, initialDataGrid, &initialFromOptimizedDataGrid);
-				//cout << "Grille de reference associee a optimizedDataGrid : " << initialFromOptimizedDataGrid
-				//     << endl;
-
+				
 				GenerateNeighbourSolution(&initialFromOptimizedDataGrid, optimizedDataGrid,
 							  dNeighbourhoodSize, &neighbourDataGrid);
 			}
@@ -1872,7 +1866,7 @@ double KWDataGridOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* initial
 		// Nettoyage
 		mergedDataGrid.DeleteAll();
 		initialFromOptimizedDataGrid.DeleteAll();
-
+		
 		// Test de fin de tache
 		if (TaskProgression::IsInterruptionRequested())
 			break;
@@ -2001,7 +1995,7 @@ void KWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initialDat
 	boolean bNewPROTO = false;
 	static int nCount = 0;
 	nCount++;
-	// CH 231 : branche qui permet de tester la surtokenisation d'une grille
+	// Branche qui permet de tester la surtokenisation d'une grille
 	// A vocation a etre supprime de cette methode afin que la surtokenisation soit effectuee
 	// en amont de l'appel de GenerateNeighbourSolution 
 	if (initialDataGrid->IsVarPartDataGrid() and bNewPROTO and nCount == 1)

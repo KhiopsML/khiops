@@ -2302,8 +2302,6 @@ inline KWDGPart* KWDGVarPartValue::GetVarPart() const
 inline NUMERIC KWDGVarPartValue::GetNumericKeyValue() const
 {
 	return varPart;
-	// CH 231 : contenu de la methode a changer (comment ?) pour que cette cle ne depende que de la valeur de la PV et non de son innerAttribute via le pointeur
-	
 }
 
 inline boolean KWDGVarPartValue::IsDefaultValue() const

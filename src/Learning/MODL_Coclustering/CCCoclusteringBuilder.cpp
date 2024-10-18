@@ -1094,7 +1094,6 @@ void CCCoclusteringBuilder::PROTO_OptimizeVarPartDataGrid(const KWDataGrid* inpu
 	// l'export des grilles avec VarPart fusionnnees
 	dataGridOptimizer.SetInitialVarPartDataGrid(initialDataGrid);
 
-	// CH 231
 	// Parametrage en mode Proto integrant la surtokenisation des VarPart avant la generation aleatoire d'une grille voisine
 	dataGridOptimizer.SetSurtokenisationProto(false);
 

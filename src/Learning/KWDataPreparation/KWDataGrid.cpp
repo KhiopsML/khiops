@@ -2682,13 +2682,6 @@ KWDGPart* KWDGAttribute::LookupGroupablePart(const KWDGValue* value)
 	part = cast(KWDGPart*, nkdParts.Lookup(value->GetNumericKeyValue()));
 	if (part == NULL)
 		part = defaultPart;
-	
-	// CH 231
-	if (part == NULL)
-	{
-		cout << "CH 231 : value recherchee non trouvee : " << *value << "\tCle :\t" << value->GetNumericKeyValue() << endl;
-		cout << "Dictionnaire disponible : " << nkdParts << endl;
-	}
 		
 	ensure(part != NULL);
 	return part;

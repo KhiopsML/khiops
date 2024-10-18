@@ -39,7 +39,6 @@ public:
 	// Memoire: l'objet rendu appartient a l'appele
 	KWDataGridOptimizerParameters* GetParameters();
 
-	// CH 231
 	// Optimisation integrant une surtokenisation des VarPart lors du VNS
 	boolean GetSurtokenisationProto() const;
 	void SetSurtokenisationProto(boolean bValue);
@@ -313,7 +312,6 @@ protected:
 	mutable int nVNSNeighbourhoodLevelIndex;
 	mutable int nVNSNeighbourhoodLevelNumber;
 	mutable double dVNSNeighbourhoodSize;
-	// CH 231
 	boolean bProtoSurtokenisation;
 	// Contexte de gestion de la partie anytime de l'optimisation
 	const KWAttributeSubsetStats* attributeSubsetStatsHandler;

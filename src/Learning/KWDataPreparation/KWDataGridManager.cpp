@@ -373,6 +373,8 @@ void KWDataGridManager::ExportDataGridWithMergedInnerAttributes(const KWDataGrid
 	require(inputDataGrid->IsVarPartDataGrid());
 	require(inputDataGrid->GetInnerAttributes()->ContainsSubVarParts(otherMergedInnerAttributes));
 
+	targetDataGrid->DeleteAll();
+
 	// Export des attributs (avec innerAtributes non surtokenises a ce stade)
 	ExportAttributes(targetDataGrid);
 	
@@ -385,7 +387,6 @@ void KWDataGridManager::ExportDataGridWithMergedInnerAttributes(const KWDataGrid
 		targetAttribute = targetDataGrid->GetAttributeAt(nAttribute);
 
 		// Recherche de l'attribut source correspondant
-		//sourceAttribute = sourceDataGrid->SearchAttribute(targetAttribute->GetAttributeName());
 		sourceAttribute = inputDataGrid->SearchAttribute(targetAttribute->GetAttributeName());
 		check(sourceAttribute);
 
@@ -398,7 +399,6 @@ void KWDataGridManager::ExportDataGridWithMergedInnerAttributes(const KWDataGrid
 			// Creation de l'attribut VarPart associe a ces innerAttributes selon la meme partition que l'attribut en entree
 			InitialiseVarPartAttributeWithMergedInnerAttributes(inputDataGrid->GetVarPartAttribute(),
 									 otherMergedInnerAttributes, targetAttribute);
-			//assert(targetAttribute->GetVarPartsShared());
 			targetAttribute->SetVarPartsShared(true);
 		}
 	}
@@ -3085,7 +3085,6 @@ void KWDataGridManager::InitialiseVarPartAttributeWithNewSurtokenisedInnerAttrib
 			sourcePart->GetVarPartSet()->GetNextValue(sourceValue);
 		}
 
-		// CH 231 : a supprimer ? issu du code commun aux deux cas de figure : innerAttribute surtokenise ou merged ?
 		if (targetPart->GetValueSet()->GetValueNumber() == 0)
 			targetVarPartAttribute->DeletePart(targetPart);
 
@@ -3120,11 +3119,7 @@ void KWDataGridManager::InitialiseVarPartAttributeWithMergedInnerAttributes(
 	int nInnerAttribute;
 	KWDGAttribute* antecedentInnerAttribute;
 	KWDGAttribute* mergedInnerAttribute;
-	//ObjectArray* oaVarPart;
 	NumericKeyDictionary nkdTargetInnerAttributeVarParts;
-	//int nTargetIndex;
-	NumericKeyDictionary nkdTargetInnerAttributeValues;
-	//KWDGValue* value;
 	KWDGPart* sourcePart;
 	KWDGPart* targetPart;
 	KWDGPart* antecedentVarPart;
@@ -3138,13 +3133,12 @@ void KWDataGridManager::InitialiseVarPartAttributeWithMergedInnerAttributes(
 	require(targetVarPartAttribute->GetPartNumber() == 0);
 
 	targetVarPartAttribute->SetInnerAttributes(mergedInnerAttributes);
-	// Origine du code surtokensiation A basculer a true car ce mergedInnerAttributes sera partage avec la grille optimisee ?
-	targetVarPartAttribute->SetVarPartsShared(false);
+	targetVarPartAttribute->SetVarPartsShared(true);
 
 	cout << "InnerAttributes merged nombre de PV : " << mergedInnerAttributes->ComputeTotalInnerAttributeVarParts() << endl;
 	cout << "InnerAttributes antecedent nombre de PV : " << sourceVarPartAttribute->GetInnerAttributes()->ComputeTotalInnerAttributeVarParts() << endl;
-	//cout << "sourceVarPartAttribute " << *sourceVarPartAttribute << endl;
-	//cout << "mergedInnerAttributes " << *mergedInnerAttributes << endl;
+	cout << "sourceVarPartAttribute " << *sourceVarPartAttribute->GetInnerAttributes() << endl;
+	cout << "mergedInnerAttributes " << *mergedInnerAttributes << endl;
 
 	// Memorisation de l'association entre VarPart de l'antecdentInnerAttributes et sa VarPart mergee dans le mergedInnerAttributes
 	for (nInnerAttribute = 0; nInnerAttribute < mergedInnerAttributes->GetInnerAttributeNumber(); nInnerAttribute++)
@@ -3255,9 +3249,9 @@ void KWDataGridManager::InitialiseVarPartAttributeWithMergedInnerAttributes(
 	// Nettoyage
 	assert(nkdAddedMergedInnerAttributeVarParts.GetCount() ==
 	       mergedInnerAttributes->ComputeTotalInnerAttributeVarParts());
-	// CH 231 : a revoir car le nettoyage plante 
-	//nkdAddedMergedInnerAttributeVarParts.DeleteAll();
-	//nkdTargetInnerAttributeVarParts.DeleteAll();
+	// CH 231 : a revoir car il y a des fuites memoires peut etre liees a ces dictionnaires
+	nkdAddedMergedInnerAttributeVarParts.RemoveAll();
+	nkdTargetInnerAttributeVarParts.RemoveAll();
 
 }
 

@@ -192,7 +192,7 @@ KWDGCell* KWDataGridMerger::NewCell() const
 double KWDataGridMerger::OptimizeMerge()
 {
 	boolean bDisplayAllForDebug = false;
-	boolean bDisplayMergeDetails = false;
+	boolean bDisplayMergeDetails = true;
 	boolean bDisplayDataGrid = false;
 	boolean bRecomputeAllAtEachStep = false;
 	boolean bExhaustiveSearch = true;
@@ -308,6 +308,12 @@ double KWDataGridMerger::OptimizeMerge()
 		// ou si c'est la derniere grille qui est optimale)
 		if (dBestDeltaCost > dEpsilon and fabs(dBestDataGridTotalCost - dDataGridTotalCost) <= dEpsilon)
 		{
+			// CH 231 Ajout pour debug
+			ensure(fabs(dDataGridTotalCost - GetDataGridCosts()->ComputeDataGridMergerTotalCost(this)) <
+			       dEpsilon);
+			// CH 231 probleme pose ici avec la base Iris : si la grille courante est sans attribut informatif, cet ensure
+			// est verifie a ce niveau mais n'est plus vrai quand on fait un CopyInformativeDataGrid
+
 			if (optimizedDataGrid != NULL)
 				delete optimizedDataGrid;
 			optimizedDataGrid = new KWDataGrid;
@@ -321,12 +327,16 @@ double KWDataGridMerger::OptimizeMerge()
 			if (bDisplayMergeDetails)
 			{
 				cout << "Best part Merge\t" << nCount << "\t" << dBestDeltaCost << "\t"
-				     << dDataGridTotalCost + dBestDeltaCost << "\t" << *bestPartMerge << flush;
+				     << dDataGridTotalCost + dBestDeltaCost << "\t" << *bestPartMerge << flush << endl;
 			}
 
 			// Realisation de la fusion
 			PerformPartMerge(bestPartMerge);
 			dDataGridTotalCost += dBestDeltaCost;
+
+			// CH 231 Debug
+			ensure(fabs(dDataGridTotalCost - GetDataGridCosts()->ComputeDataGridMergerTotalCost(this)) <
+			       dEpsilon);
 
 			// Gestion de la contrainte sur le nombre max de partie par attribut
 			if (GetMaxPartNumber() > 0)
