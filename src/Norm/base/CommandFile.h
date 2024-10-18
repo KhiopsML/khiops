@@ -166,9 +166,11 @@ public:
 	// Lecture d'une commande
 	// Renvoie false si pas de commande, sinon un vecteur de chaines de caracteres representant
 	// le parsing de IdentifierPath et une valeur optionnelle
+	// Cette methode peut etre appelee meme en l'absence de fichier de de commande en sortie
 	boolean ReadInputCommand(StringVector* svIdentifierPath, ALString& sValue);
 
 	// Ecriture d'une commande
+	// Cette methode peut etre appelee meme en l'absence de fichier de de commande en sortie
 	void WriteOutputCommand(const ALString& sIdentifierPath, const ALString& sValue, const ALString& sLabel);
 
 	// Ecriture d'une header de fichier de commande, consistant en lignes de commentaire en expliquant le fonctionnement
@@ -239,11 +241,13 @@ protected:
 		None
 	};
 
-	// Decomposition de la ligne de commande d'entree en un premier token, suivi de la fin de la ligne
+	// Decomposition de la ligne de commande d'entree en un premier token,
+	// suivi d'une valeur inter-token et de la fin de la ligne
 	// En sortie, on renvoie le type de token, et on indique la valeur du token la fin de ligne
 	// Il n'y a pas de message d'erreur a ce niveau.
-	// Les tokens de type TokenVariable possedent a minimal leur delimiteur de debut, et peuevent ne pas etre valides
-	int GetFirstInputToken(const ALString& sInputCommand, ALString& sToken, ALString& sEndLine) const;
+	// Les tokens de type TokenKey possedent a minimal leur delimiteur de debut, et peuvent ne pas etre valides
+	int GetFirstInputToken(const ALString& sInputCommand, ALString& sToken, ALString& sInterToken,
+			       ALString& sEndLine) const;
 
 	// Tokenisation de la ligne de commande d'entree en une suite de tokens
 	// On renvoie la liste des types et valeur de tokens en sortie si la syntaxe est valide:
