@@ -10,6 +10,9 @@ CommandFile::CommandFile()
 	fInputCommands = NULL;
 	fOutputCommands = NULL;
 	nInputCommandFileLineIndex = 0;
+	nParserState = TokenOther;
+	nParserBlockLineIndex = -1;
+	nParserBlockObjectIndex = -1;
 	assert(nMaxLineLength < BUFFER_LENGTH);
 	assert(nMaxVariableNameLength + nMaxVariableNameLength < nMaxLineLength);
 }
@@ -139,6 +142,7 @@ boolean CommandFile::OpenInputCommandFile()
 	require(GetInputCommandFileName() != "");
 	require(not IsInputCommandFileOpened());
 	require(nInputCommandFileLineIndex == 0);
+	require(nParserState == TokenOther);
 
 	// Copie depuis HDFS si necessaire
 	bOk = PLRemoteFileService::BuildInputWorkingFile(sInputCommandFileName, sLocalInputCommandFileName);
@@ -221,6 +225,11 @@ void CommandFile::CloseInputCommandFile()
 		fclose(fInputCommands);
 		fInputCommands = NULL;
 		nInputCommandFileLineIndex = 0;
+		nParserState = TokenOther;
+		sParserBlockKey = "";
+		svParserBlockLines.SetSize(0);
+		nParserBlockLineIndex = -1;
+		nParserBlockObjectIndex = -1;
 
 		// Si le fichier est sur HDFS, on supprime la copie locale
 		PLRemoteFileService::CleanInputWorkingFile(sInputCommandFileName, sLocalInputCommandFileName);
@@ -252,7 +261,7 @@ void CommandFile::CloseCommandFiles()
 boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& sValue)
 {
 	const char cDEL = (char)127;
-	boolean bContinueParsing;
+	boolean bOk;
 	char sCharBuffer[1 + BUFFER_LENGTH];
 	ALString sInputLine;
 	IntVector ivTokenTypes;
@@ -271,7 +280,8 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 
 	require(svIdentifierPath != NULL);
 	require(svIdentifierPath->GetSize() == 0);
-	assert(GetInputSearchReplaceValueNumber() == 0 or GetInputParameterFileName() == "");
+	require(GetInputSearchReplaceValueNumber() == 0 or GetInputParameterFileName() == "");
+	require(nParserState == TokenOther or nParserState == TokenIf or nParserState == TokenLoop);
 
 	// On arrete si pas de fichier ou si fin de fichier
 	if (fInputCommands == NULL or feof(fInputCommands))
@@ -281,7 +291,7 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 	// Recherche d'une ligne non vide a traiter
 
 	// Boucle de lecture pour ignorer les lignes vides ou ne comportant que des commentaires
-	bContinueParsing = true;
+	bOk = true;
 	while (sInputLine == "" and not feof(fInputCommands))
 	{
 		nInputCommandFileLineIndex++;
@@ -294,14 +304,14 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 		// Si on est pas en fin de fichier, on a forcement un caractere '\n' en fin de ligne
 		if (ferror(fInputCommands) or sInputLine.GetLength() == 0)
 		{
-			bContinueParsing = false;
+			bOk = false;
 			break;
 		}
 
 		// Erreur si ligne trop longue
-		if (bContinueParsing and sInputLine.GetLength() > nMaxLineLength)
+		if (bOk and sInputLine.GetLength() > nMaxLineLength)
 		{
-			bContinueParsing = false;
+			bOk = false;
 			AddInputCommandFileError(sTmp + "line too long, with length " +
 						 IntToString(sInputLine.GetLength()) + " > " +
 						 IntToString(nMaxLineLength));
@@ -345,20 +355,12 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 		// Cas avec fichier de parametrage json: analyse des lignes
 		if (GetInputParameterFileName() != "")
 		{
-			bContinueParsing = TokenizeInputCommand(sInputLine, &ivTokenTypes, &svTokenValues, sMessage);
-
-			// Arret si erreur
-			if (not bContinueParsing)
+			bOk = ParseInputCommand(sInputLine, sMessage);
+			if (not bOk)
 			{
 				AddInputCommandFileError(sMessage);
 				break;
 			}
-			/*DDD
-			WriteInputCommandTokens(cout, &ivTokenTypes, &svTokenValues);
-			cout << "\t" << nInputCommandFileLineIndex << "\t" << BooleanToString(bContinueParsing) << "\t"
-			     << sMessage << endl;
-			bContinueParsing = true;
-			*/
 		}
 		// Cas sans fichier de parametrage json: on verifie que l'on n'utilise pas
 		// des balises du langage de pilotage par fichier de parametre
@@ -372,7 +374,7 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 			// correspondre a des valeurs dans les donnees (par exemple, un nom de variable "__improbable__")
 			if (nToken == TokenLoop or nToken == TokenIf or nToken == TokenEnd or nToken == TokenKey)
 			{
-				bContinueParsing = false;
+				bOk = false;
 				AddInputCommandFileError(sTmp + "use of the \"" + GetPrintableValue(sToken) +
 							 "\" value allowed only with a json parameter file");
 				break;
@@ -380,14 +382,13 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 		}
 
 		// Cas du mode recherche/remplacement dans la partie valeur de la commande
+		assert(bOk);
 		if (GetInputSearchReplaceValueNumber() > 0)
-		{
 			sInputLine = ProcessSearchReplaceCommand(sInputLine);
-		}
 	}
 
 	// Arret si necessaire
-	if (not bContinueParsing or feof(fInputCommands))
+	if (not bOk or feof(fInputCommands))
 	{
 		// Nettoyage
 		CloseInputCommandFile();
@@ -1328,6 +1329,66 @@ boolean CommandFile::TokenizeInputCommand(const ALString& sInputCommand, IntVect
 	}
 	ensure(ivTokenTypes->GetSize() == svTokenValues->GetSize());
 	ensure(bOk or sMessage != "");
+	return bOk;
+}
+
+boolean CommandFile::ParseInputCommand(const ALString& sInputCommand, ALString& sMessage)
+{
+	boolean bOk = true;
+	IntVector ivTokenTypes;
+	StringVector svTokenValues;
+	int nToken;
+
+	require(sInputCommand != "");
+	require(IsValueTrimed(sInputCommand));
+	require(sInputCommand.Find(sCommentPrefix) != 0);
+	require(nParserState == TokenOther or nParserState == TokenIf or nParserState == TokenLoop);
+	require(nParserState != TokenOther or sParserBlockKey == "");
+	require(nParserState != TokenOther or svParserBlockLines.GetSize() == 0);
+
+	// Tokenisation de la ligne
+	bOk = TokenizeInputCommand(sInputCommand, &ivTokenTypes, &svTokenValues, sMessage);
+
+	// Analyse des tokens
+	if (bOk)
+	{
+		nToken = ivTokenTypes.GetAt(0);
+
+		// Cas d'un bloc IF
+		if (nToken == TokenIf)
+		{
+			// L'etat precedent doit etre Other
+			if (nParserState != TokenOther)
+			{
+				bOk = false;
+				AddInputCommandFileError("Unexpected " + svTokenValues.GetAt(0) +
+							 " command inside the current block");
+			}
+			// Sinon, on memorise les caracteristiques du bloc
+			else
+			{
+				nParserState = TokenIf;
+				sParserBlockKey = svTokenValues.GetAt(1);
+			}
+		}
+		// Cas d'un bloc LOOP
+		else if (nToken == TokenIf)
+		{
+			//
+		}
+		// Cas d'une fin de bloc
+		else if (nToken == TokenEnd)
+		{
+			//
+		}
+		// Cas standard valide
+		else
+		{
+			assert(nToken = TokenOther);
+			//
+		}
+	}
+	ensure(nParserState == TokenOther or nParserState == TokenIf or nParserState == TokenLoop);
 	return bOk;
 }
 

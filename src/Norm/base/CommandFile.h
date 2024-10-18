@@ -260,6 +260,11 @@ protected:
 	boolean TokenizeInputCommand(const ALString& sInputCommand, IntVector* ivTokenTypes,
 				     StringVector* svTokenValues, ALString& sMessage) const;
 
+	// Analyse d'une nouvelle ligne de commande pour mettre a jour l'etat du parser
+	// Etats possibles, gere par nParserState
+	// En cas d'erreur, on renvoie false, avec alimentation d'un message
+	boolean ParseInputCommand(const ALString& sInputCommand, ALString& sMessage);
+
 	// Affichage d'un vecteur de token issu de l'analyse de la ligne de command
 	void WriteInputCommandTokens(ostream& ost, IntVector* ivTokenTypes, StringVector* svTokenValues) const;
 
@@ -299,6 +304,24 @@ protected:
 	StringVector svInputCommandSearchValues;
 	StringVector svInputCommandReplaceValues;
 
+	// Gestion de l'etat courant du parser de commande
+	// - TokenIf: en cours de traitement de bloc IF
+	// - TokenLoop: en cours de traitement de bloc LOOP
+	// - TokenOther: instruction standard
+	int nParserState;
+
+	// Cle du bloc en cours de traitement
+	ALString sParserBlockKey;
+
+	// Lignes du bloc en cours de traitement
+	StringVector svParserBlockLines;
+
+	// Index de la ligne de bloc en cours de traitement
+	int nParserBlockLineIndex;
+
+	// Index de l'objet json du tableau en cours de traitement
+	int nParserBlockObjectIndex;
+
 	// Object json pour les parametres en entree
 	JsonObject jsonParameters;
 
@@ -327,6 +350,9 @@ protected:
 
 	// Longueur max affichee pour une valeur dans les messages d'erreur
 	static const int nMaxPrintableLength = 30;
+
+	// Taille max d'un bloc d'instruction IF ou LOOP d'un fichier de commande
+	static const int nCommandBlockMaxLineNumber = 1000;
 
 	// Taille max d'un fichier de parametrage
 	static const longint lMaxInputParameterFileSize = lMB;
