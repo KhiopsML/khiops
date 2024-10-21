@@ -241,6 +241,28 @@ protected:
 		None
 	};
 
+	// Type de bloc pour un token de type block
+	const ALString& GetBlockType(int nToken) const;
+
+	// Analyse d'une nouvelle ligne de commande pour mettre a jour l'etat du parser
+	// Etats possibles, gere par nParserState
+	// - TokenIf: en cours de traitement de bloc IF
+	// - TokenLoop: en cours de traitement de bloc LOOP
+	// - TokenOther: instruction standard
+	// En cas d'erreur, on renvoie false, avec emmission d'un message d'erreur
+	boolean ParseInputCommand(const ALString& sInputCommand);
+
+	// Tokenisation de la ligne de commande d'entree en une suite de tokens
+	// On renvoie la liste des types et valeur de tokens en sortie si la syntaxe est valide:
+	//   TokenIf TokenKey: debut de bloc if
+	//   TokenEnd TokenIf: fin de bloc if
+	//   TokenLoop TokenKey: debut de bloc loop
+	//   TokenEnd TokenLoop: fin de bloc loop
+	//   TokenOther (TokenKey|TokenOther)*: instruction standard, avec commande suivi d'une eventuelle valeur
+	// En cas d'erreur, on renvoie false, avec emmission d'un message d'erreur
+	boolean TokenizeInputCommand(const ALString& sInputCommand, IntVector* ivTokenTypes,
+				     StringVector* svTokenValues) const;
+
 	// Decomposition de la ligne de commande d'entree en un premier token,
 	// suivi d'une valeur inter-token et de la fin de la ligne
 	// En sortie, on renvoie le type de token, et on indique la valeur du token la fin de ligne
@@ -249,28 +271,12 @@ protected:
 	int GetFirstInputToken(const ALString& sInputCommand, ALString& sToken, ALString& sInterToken,
 			       ALString& sEndLine) const;
 
-	// Tokenisation de la ligne de commande d'entree en une suite de tokens
-	// On renvoie la liste des types et valeur de tokens en sortie si la syntaxe est valide:
-	//   IF <key>
-	//   END IF
-	//   LOOP KEY
-	//   END LOOP
-	//   <command> (<key>|<other>)*
-	// En cas d'erreur, on renvoie false, avec alimentation d'un message
-	boolean TokenizeInputCommand(const ALString& sInputCommand, IntVector* ivTokenTypes,
-				     StringVector* svTokenValues, ALString& sMessage) const;
-
-	// Analyse d'une nouvelle ligne de commande pour mettre a jour l'etat du parser
-	// Etats possibles, gere par nParserState
-	// En cas d'erreur, on renvoie false, avec alimentation d'un message
-	boolean ParseInputCommand(const ALString& sInputCommand, ALString& sMessage);
-
 	// Affichage d'un vecteur de token issu de l'analyse de la ligne de command
 	void WriteInputCommandTokens(ostream& ost, IntVector* ivTokenTypes, StringVector* svTokenValues) const;
 
 	// Verification de la syntaxe d'un token de type cle, devant commencer par son delimiteur
-	// Un message comportant la valeur du token est fabrique en cas d'erreur
-	boolean CheckTokenKey(const ALString& sToken, ALString& sMessage) const;
+	// En cas d'erreur, on renvoie false, avec emmission d'un message d'erreur
+	boolean CheckTokenKey(const ALString& sToken) const;
 
 	// Application des recherche/remplacement de valeurs successivement sur une commande
 	const ALString ProcessSearchReplaceCommand(const ALString& sInputCommand) const;
@@ -279,35 +285,45 @@ protected:
 	boolean IsValueTrimed(const ALString& sValue) const;
 
 	///////////////////////////////////////////////////////////////
-	// Variables de la classe
+	// Variables de specification des fichiers et parametres de commandes
 
 	// Nom des fichiers
 	ALString sInputCommandFileName;
 	ALString sOutputCommandFileName;
 	ALString sInputParameterFileName;
 
-	// Variante locale des noms de fichier de commande, dans le cas de fichiers HDFS
-	ALString sLocalInputCommandFileName;
-	ALString sLocalOutputCommandFileName;
+	// Gestion des chaines des patterns a remplacer par des valeurs dans les fichiers d'input de scenario
+	StringVector svInputCommandSearchValues;
+	StringVector svInputCommandReplaceValues;
+
+	///////////////////////////////////////////////////////////////
+	// Variables de gestion des fichiers et parametres de commandes
 
 	// Redirection de la sortie outputCommand vers la console
 	boolean bPrintOutputInConsole;
+
+	// Variante locale des noms de fichier de commande, dans le cas de fichiers HDFS
+	ALString sLocalInputCommandFileName;
+	ALString sLocalOutputCommandFileName;
 
 	// Fichiers de gestion des commandes
 	FILE* fInputCommands;
 	FILE* fOutputCommands;
 
-	// Numero de ligne courant du fichier de commande en entree
-	int nInputCommandFileLineIndex;
+	///////////////////////////////////////////////////////////////
+	// Variables de gestion du parsing du fichier de commande en entree
+	// Lors de la gestion d'une fichier de commande et de son fichier
+	// de parametrs en entree, le fichier de parametre json est charge
+	// en memoire une fois pour toute, sa taille etant limitee.
+	// Par contre, il n'y a pas de contrainte sur la taille du fichier
+	// de commande en entree. Celui-ci est traite en flux au fur et a
+	// mesure de ses ligne via la methode ReadInputCommand, et l'etat du
+	// parser est maintenu via les variables suivantes
 
-	// Gestion des chaines des patterns a remplacer par des valeurs dans les fichiers d'input de scenario
-	StringVector svInputCommandSearchValues;
-	StringVector svInputCommandReplaceValues;
+	// Numero de ligne courant du fichier de commande en entree
+	int nParserLineIndex;
 
 	// Gestion de l'etat courant du parser de commande
-	// - TokenIf: en cours de traitement de bloc IF
-	// - TokenLoop: en cours de traitement de bloc LOOP
-	// - TokenOther: instruction standard
 	int nParserState;
 
 	// Cle du bloc en cours de traitement
@@ -324,6 +340,10 @@ protected:
 
 	// Object json pour les parametres en entree
 	JsonObject jsonParameters;
+
+	///////////////////////////////////////////////////////////////
+	// Constantes sur les mots cles du langage de commande en entree
+	// et sur les contrainte de taille des elements de langage
 
 	// Valeurs des tokens du langage de pametrage des commande en entree
 	static const ALString sTokenLoop;

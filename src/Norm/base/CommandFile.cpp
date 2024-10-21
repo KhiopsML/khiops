@@ -9,7 +9,7 @@ CommandFile::CommandFile()
 	bPrintOutputInConsole = false;
 	fInputCommands = NULL;
 	fOutputCommands = NULL;
-	nInputCommandFileLineIndex = 0;
+	nParserLineIndex = 0;
 	nParserState = TokenOther;
 	nParserBlockLineIndex = -1;
 	nParserBlockObjectIndex = -1;
@@ -141,7 +141,7 @@ boolean CommandFile::OpenInputCommandFile()
 	require(Check());
 	require(GetInputCommandFileName() != "");
 	require(not IsInputCommandFileOpened());
-	require(nInputCommandFileLineIndex == 0);
+	require(nParserLineIndex == 0);
 	require(nParserState == TokenOther);
 
 	// Copie depuis HDFS si necessaire
@@ -224,7 +224,7 @@ void CommandFile::CloseInputCommandFile()
 	{
 		fclose(fInputCommands);
 		fInputCommands = NULL;
-		nInputCommandFileLineIndex = 0;
+		nParserLineIndex = 0;
 		nParserState = TokenOther;
 		sParserBlockKey = "";
 		svParserBlockLines.SetSize(0);
@@ -294,13 +294,13 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 	bOk = true;
 	while (sInputLine == "" and not feof(fInputCommands))
 	{
-		nInputCommandFileLineIndex++;
+		nParserLineIndex++;
 
 		// Lecture
 		StandardGetInputString(sCharBuffer, fInputCommands);
 		sInputLine = sCharBuffer;
 
-		// Si erreur ou caractere fin de fichier, on n'arret sans message d'erreur
+		// Si erreur ou caractere fin de fichier, on arrete sans message d'erreur
 		// Si on est pas en fin de fichier, on a forcement un caractere '\n' en fin de ligne
 		if (ferror(fInputCommands) or sInputLine.GetLength() == 0)
 		{
@@ -342,53 +342,65 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 			}
 		}
 
-		// On passe a la ligne suivante si ligne vide
-		if (sInputLine == "")
-			continue;
-
 		// Suppression si necessaire du dernier caractere s'il s'agit de cDEL
 		// (methode FromJstring qui utilise ce cartactere special en fin de chaine pour
 		// les conversions entre Java et C++ et l'ajoute dans les fichiers de commande en sortie)
-		if (sInputLine.GetAt(sInputLine.GetLength() - 1) == cDEL)
+		if (sInputLine.GetLength() > 0 and sInputLine.GetAt(sInputLine.GetLength() - 1) == cDEL)
 			sInputLine.GetBufferSetLength(sInputLine.GetLength() - 1);
+	}
+	assert(sInputLine != "" or not bOk or feof(fInputCommands));
 
-		// Cas avec fichier de parametrage json: analyse des lignes
-		if (GetInputParameterFileName() != "")
-		{
-			bOk = ParseInputCommand(sInputLine, sMessage);
-			if (not bOk)
-			{
-				AddInputCommandFileError(sMessage);
-				break;
-			}
-		}
-		// Cas sans fichier de parametrage json: on verifie que l'on n'utilise pas
-		// des balises du langage de pilotage par fichier de parametre
-		else
-		{
-			// Detection du premier token de la ligne
-			nToken = GetFirstInputToken(sInputLine, sToken, sInterToken, sEndLine);
-
-			// Arret si detection de token reserves au cas des fichiers de parametres json
-			// On ne peut pas aller plus loin dans l'analyse des tokens suivants, qui pourait
-			// correspondre a des valeurs dans les donnees (par exemple, un nom de variable "__improbable__")
-			if (nToken == TokenLoop or nToken == TokenIf or nToken == TokenEnd or nToken == TokenKey)
-			{
-				bOk = false;
-				AddInputCommandFileError(sTmp + "use of the \"" + GetPrintableValue(sToken) +
-							 "\" value allowed only with a json parameter file");
-				break;
-			}
-		}
-
-		// Cas du mode recherche/remplacement dans la partie valeur de la commande
-		assert(bOk);
-		if (GetInputSearchReplaceValueNumber() > 0)
-			sInputLine = ProcessSearchReplaceCommand(sInputLine);
+	// Cas particulier de fin de fichier sans fin de block
+	// C'est le seul cas qui ne pas etre traite par le parsing en flux des ligne du f
+	if (bOk and feof(fInputCommands) and GetInputParameterFileName() != "" and nParserState != TokenOther)
+	{
+		bOk = false;
+		AddInputCommandFileError("No " + sTokenEnd + " " + GetBlockType(nParserState) + " " +
+					 " found untill end of the file in current " + GetBlockType(nParserState) +
+					 " " + sParserBlockKey + " block");
 	}
 
 	// Arret si necessaire
 	if (not bOk or feof(fInputCommands))
+	{
+		// Nettoyage
+		CloseInputCommandFile();
+		return false;
+	}
+	assert(sInputLine != "");
+
+	////////////////////////////////////////////////////////////////////////////////////////////
+	// Pretraitement de la ligne
+
+	// Cas sans fichier de parametrage json: on verifie que l'on n'utilise pas
+	// des balises du langage de pilotage par fichier de parametre
+	if (bOk and GetInputParameterFileName() == "")
+	{
+		// Detection du premier token de la ligne
+		nToken = GetFirstInputToken(sInputLine, sToken, sInterToken, sEndLine);
+
+		// Arret si detection de token reserves au cas des fichiers de parametres json
+		// On ne peut pas aller plus loin dans l'analyse des tokens suivants, qui pourait
+		// correspondre a des valeurs dans les donnees (par exemple, un nom de variable "__improbable__")
+		if (nToken == TokenLoop or nToken == TokenIf or nToken == TokenEnd or nToken == TokenKey)
+		{
+			bOk = false;
+			AddInputCommandFileError(sTmp + "use of the \"" + GetPrintableValue(sToken) +
+						 "\" value allowed only with a json parameter file");
+		}
+	}
+
+	// Cas avec fichier de parametrage json: analyse des lignes
+	if (bOk and GetInputParameterFileName() != "")
+	{
+		bOk = ParseInputCommand(sInputLine);
+	}
+	// Cas du mode recherche/remplacement dans la partie valeur de la commande
+	else if (bOk and GetInputSearchReplaceValueNumber() > 0)
+		sInputLine = ProcessSearchReplaceCommand(sInputLine);
+
+	// Arret si necessaire
+	if (not bOk)
 	{
 		// Nettoyage
 		CloseInputCommandFile();
@@ -559,8 +571,8 @@ void CommandFile::AddInputCommandFileError(const ALString& sMessage) const
 	ALString sTmp;
 
 	// On precise le numero de ligne si disponible
-	if (nInputCommandFileLineIndex > 0)
-		sLineLocalisation = sTmp + ", line " + IntToString(nInputCommandFileLineIndex);
+	if (nParserLineIndex > 0)
+		sLineLocalisation = sTmp + ", line " + IntToString(nParserLineIndex);
 	Global::AddError("Input command file", sInputCommandFileName + sLineLocalisation, sMessage);
 }
 
@@ -1076,6 +1088,282 @@ ALString CommandFile::BuildJsonPath(JsonMember* member, int nArrayRank, JsonMemb
 	return sJsonPath;
 }
 
+const ALString& CommandFile::GetBlockType(int nToken) const
+{
+	require(nToken == TokenIf or nToken == TokenLoop);
+	if (nToken == TokenIf)
+		return sTokenIf;
+	else
+		return sTokenLoop;
+}
+
+boolean CommandFile::ParseInputCommand(const ALString& sInputCommand)
+{
+	boolean bOk = true;
+	IntVector ivTokenTypes;
+	StringVector svTokenValues;
+	ALString sParserBlockType;
+	int nToken;
+	int nNextToken;
+
+	require(sInputCommand != "");
+	require(IsValueTrimed(sInputCommand));
+	require(sInputCommand.Find(sCommentPrefix) != 0);
+	require(nParserState == TokenOther or nParserState == TokenIf or nParserState == TokenLoop);
+	require(nParserState != TokenOther or sParserBlockKey == "");
+	require(nParserState != TokenOther or svParserBlockLines.GetSize() == 0);
+
+	// Tokenisation de la ligne
+	bOk = TokenizeInputCommand(sInputCommand, &ivTokenTypes, &svTokenValues);
+
+	// Analyse des tokens
+	if (bOk)
+	{
+		nToken = ivTokenTypes.GetAt(0);
+		nNextToken = None;
+		if (ivTokenTypes.GetSize() > 1)
+			nNextToken = ivTokenTypes.GetAt(1);
+
+		// Cas d'un debut de bloc IF ou LOOP
+		if (nToken == TokenIf or nToken == TokenLoop)
+		{
+			assert(nNextToken == TokenKey);
+
+			// Cas valide uniquement l'etat du parser est instruction
+			if (nParserState == TokenOther)
+			{
+				nParserState = nToken;
+				sParserBlockKey = svTokenValues.GetAt(1);
+			}
+			// Commande invalide sinon
+			else
+			{
+				bOk = false;
+				AddInputCommandFileError("Unexpected beginning of a " + svTokenValues.GetAt(0) +
+							 " block inside the current " + GetBlockType(nParserState) +
+							 " " + sParserBlockKey + " block");
+			}
+		}
+		// Cas d'une fin de bloc END
+		else if (nToken == TokenEnd)
+		{
+			assert(nNextToken == TokenIf or nNextToken == TokenLoop);
+
+			// Cas valide uniquement l'etat du parser est le block de bon type en cours
+			if ((nParserState == TokenIf or nParserState == TokenLoop) and nParserState == nNextToken)
+			{
+				nParserState = TokenOther;
+				sParserBlockKey = "";
+			}
+			// Commande invalide sinon
+			else
+			{
+				bOk = false;
+				if (nParserState == TokenOther)
+					AddInputCommandFileError("Unexpected " + svTokenValues.GetAt(0) + " " +
+								 svTokenValues.GetAt(1) +
+								 " without beginning of the corresponding block");
+				else
+					AddInputCommandFileError("Unexpected " + svTokenValues.GetAt(0) + " " +
+								 svTokenValues.GetAt(1) + " inside the current " +
+								 GetBlockType(nParserState) + " " + sParserBlockKey +
+								 " block");
+			}
+		}
+		// Cas standard valide d'une instruction
+		else
+		{
+			assert(nToken = TokenOther);
+		}
+	}
+	ensure(nParserState == TokenOther or nParserState == TokenIf or nParserState == TokenLoop);
+	return bOk;
+}
+
+boolean CommandFile::TokenizeInputCommand(const ALString& sInputCommand, IntVector* ivTokenTypes,
+					  StringVector* svTokenValues) const
+{
+	boolean bOk = true;
+	int nToken;
+	ALString sToken;
+	ALString sBuffer;
+	ALString sEndLine;
+	ALString sInterToken;
+
+	require(sInputCommand != "");
+	require(IsValueTrimed(sInputCommand));
+	require(sInputCommand.Find(sCommentPrefix) != 0);
+	require(ivTokenTypes != NULL);
+	require(svTokenValues != NULL);
+
+	// Initialisations
+	ivTokenTypes->SetSize(0);
+	svTokenValues->SetSize(0);
+
+	// Recherche du premier Token
+	nToken = GetFirstInputToken(sInputCommand, sToken, sInterToken, sEndLine);
+	ivTokenTypes->Add(nToken);
+	svTokenValues->Add(sToken);
+
+	// Cas IF <key> ou LOOP <key>
+	if (nToken == TokenIf or nToken == TokenLoop)
+	{
+		// Recherche du token suivant attendu
+		nToken = None;
+		if (sEndLine != "")
+		{
+			sBuffer = sEndLine;
+			nToken = GetFirstInputToken(sBuffer, sToken, sInterToken, sEndLine);
+			ivTokenTypes->Add(nToken);
+			svTokenValues->Add(sToken);
+		}
+
+		// Erreur pas de token suivant
+		if (nToken == None)
+		{
+			bOk = false;
+			AddInputCommandFileError("the " + svTokenValues->GetAt(0) +
+						 " command must be followed by a __key__");
+		}
+		// Le token doit etre de type cle
+		else if (nToken != TokenKey)
+		{
+			bOk = false;
+			AddInputCommandFileError("the " + svTokenValues->GetAt(0) +
+						 " command must be followed by a __key__ (instead of \"" +
+						 GetPrintableValue(sToken) + "\")");
+		}
+		// La cle doit etre valide
+		else
+		{
+			assert(nToken == TokenKey);
+			bOk = CheckTokenKey(sToken);
+		}
+
+		// Il ne doit pas y en avoir d'autres tokens
+		if (bOk and sEndLine != "")
+		{
+			bOk = false;
+			AddInputCommandFileError("the " + svTokenValues->GetAt(0) +
+						 " __key__ command is terminated (unexpected \"" +
+						 GetPrintableValue(sEndLine) + "\" found afterwards)");
+		}
+	}
+	// Cas END LOOP ou END IF
+	else if (nToken == TokenEnd)
+	{
+		// Recherche du token suivant attendu
+		nToken = None;
+		if (sEndLine != "")
+		{
+			sBuffer = sEndLine;
+			nToken = GetFirstInputToken(sBuffer, sToken, sInterToken, sEndLine);
+			ivTokenTypes->Add(nToken);
+			svTokenValues->Add(sToken);
+		}
+
+		// Erreur pas de token suivant
+		if (nToken == None)
+		{
+			bOk = false;
+			AddInputCommandFileError("the " + svTokenValues->GetAt(0) + " command must be followed by " +
+						 sTokenIf + " or " + sTokenLoop);
+		}
+		// Le token doit LOOP ou IF
+		else if (nToken != TokenIf and nToken != TokenLoop)
+		{
+			bOk = false;
+			AddInputCommandFileError("the " + sTokenEnd + " command must be followed by " + sTokenIf +
+						 " or " + sTokenLoop + " (instead of \"" + GetPrintableValue(sToken) +
+						 "\")");
+		}
+
+		// Il ne doit pas y en avoir d'autres tokens
+		if (bOk and sEndLine != "")
+		{
+			bOk = false;
+			AddInputCommandFileError("the " + svTokenValues->GetAt(0) + " " + sToken +
+						 " command is terminated (unexpected \"" + GetPrintableValue(sEndLine) +
+						 "\" found afterwards)");
+		}
+	}
+	// Cas  <command> (<key>|<other>)*
+	else if (nToken == TokenOther)
+	{
+		// Analyse de la fin de la ligne pour en extraire les variables
+		while (sEndLine != "")
+		{
+			// Tokenisation de la fin de ligne
+			sBuffer = sEndLine;
+			nToken = GetFirstInputToken(sBuffer, sToken, sInterToken, sEndLine);
+
+			// Analyse du token dans le cas d'une variable
+			if (nToken == TokenKey)
+			{
+				bOk = CheckTokenKey(sToken);
+
+				// Prise en compte si valide
+				if (bOk)
+				{
+					ivTokenTypes->Add(nToken);
+					svTokenValues->Add(sToken);
+				}
+				// Arret sinon
+				else
+					break;
+
+				// A jout d'un token de type valeur si necessaire
+				if (sInterToken != "")
+				{
+					assert(sEndLine.GetLength() > 0);
+					ivTokenTypes->Add(TokenOther);
+					svTokenValues->Add(sInterToken);
+				}
+			}
+			// Sinon, ajout si necessaire du token en tant que TokenOther
+			else
+			{
+				// Ajout de la valeur inter-token
+				sToken += sInterToken;
+
+				// Ajout du token si non existant
+				if (ivTokenTypes->GetAt(ivTokenTypes->GetSize() - 1) != TokenOther)
+				{
+					ivTokenTypes->Add(TokenOther);
+					svTokenValues->Add(sToken);
+				}
+				// Completion du token existant sinon
+				else
+				{
+					assert(ivTokenTypes->GetAt(ivTokenTypes->GetSize() - 1) == TokenOther);
+					sToken = svTokenValues->GetAt(ivTokenTypes->GetSize() - 1) + sToken;
+					svTokenValues->SetAt(ivTokenTypes->GetSize() - 1, sToken);
+				}
+			}
+		}
+	}
+	// Cas KEY ...
+	else
+	{
+		assert(nToken == TokenKey);
+
+		// Erreur
+		bOk = false;
+		AddInputCommandFileError("incorrect use of key \"" + GetPrintableValue(sToken) +
+					 "\" at the beginning of a command");
+	}
+
+	// Nettoyage si erreur
+	if (not bOk)
+	{
+		ivTokenTypes->SetSize(0);
+		svTokenValues->SetSize(0);
+	}
+	ensure(ivTokenTypes->GetSize() == svTokenValues->GetSize());
+	ensure(bOk);
+	return bOk;
+}
+
 int CommandFile::GetFirstInputToken(const ALString& sInputCommand, ALString& sToken, ALString& sInterToken,
 				    ALString& sEndLine) const
 {
@@ -1151,247 +1439,6 @@ int CommandFile::GetFirstInputToken(const ALString& sInputCommand, ALString& sTo
 	return nOutputToken;
 }
 
-boolean CommandFile::TokenizeInputCommand(const ALString& sInputCommand, IntVector* ivTokenTypes,
-					  StringVector* svTokenValues, ALString& sMessage) const
-{
-	boolean bOk = true;
-	int nToken;
-	ALString sToken;
-	ALString sBuffer;
-	ALString sEndLine;
-	ALString sInterToken;
-
-	require(sInputCommand != "");
-	require(IsValueTrimed(sInputCommand));
-	require(sInputCommand.Find(sCommentPrefix) != 0);
-	require(ivTokenTypes != NULL);
-	require(svTokenValues != NULL);
-
-	// Initialisations
-	ivTokenTypes->SetSize(0);
-	svTokenValues->SetSize(0);
-	sMessage = "";
-
-	// Recherche du premier Token
-	nToken = GetFirstInputToken(sInputCommand, sToken, sInterToken, sEndLine);
-	ivTokenTypes->Add(nToken);
-	svTokenValues->Add(sToken);
-
-	// Cas IF <key> ou LOOP <key>
-	if (nToken == TokenIf or nToken == TokenLoop)
-	{
-		// Recherche du token suivant attendu
-		nToken = None;
-		if (sEndLine != "")
-		{
-			sBuffer = sEndLine;
-			nToken = GetFirstInputToken(sBuffer, sToken, sInterToken, sEndLine);
-			ivTokenTypes->Add(nToken);
-			svTokenValues->Add(sToken);
-		}
-
-		// Erreur pas de token suivant
-		if (nToken == None)
-		{
-			bOk = false;
-			sMessage = "the " + svTokenValues->GetAt(0) + " command must be followed by a __key__";
-		}
-		// Le token doit etre de type cle
-		else if (nToken != TokenKey)
-		{
-			bOk = false;
-			sMessage = "the " + svTokenValues->GetAt(0) +
-				   " command must be followed by a __key__ (instead of \"" + GetPrintableValue(sToken) +
-				   "\")";
-		}
-		// La cle doit etre valide
-		else
-		{
-			assert(nToken == TokenKey);
-			bOk = CheckTokenKey(sToken, sMessage);
-		}
-
-		// Il ne doit pas y en avoir d'autres tokens
-		if (bOk and sEndLine != "")
-		{
-			bOk = false;
-			sMessage = "the " + svTokenValues->GetAt(0) + " __key__ command is terminated (unexpected \"" +
-				   GetPrintableValue(sEndLine) + "\" found afterwards)";
-		}
-	}
-	// Cas END LOOP ou END IF
-	else if (nToken == TokenEnd)
-	{
-		// Recherche du token suivant attendu
-		nToken = None;
-		if (sEndLine != "")
-		{
-			sBuffer = sEndLine;
-			nToken = GetFirstInputToken(sBuffer, sToken, sInterToken, sEndLine);
-			ivTokenTypes->Add(nToken);
-			svTokenValues->Add(sToken);
-		}
-
-		// Erreur pas de token suivant
-		if (nToken == None)
-		{
-			bOk = false;
-			sMessage = "the " + svTokenValues->GetAt(0) + " command must be followed by " + sTokenIf +
-				   " or " + sTokenLoop;
-		}
-		// Le token doit LOOP ou IF
-		else if (nToken != TokenIf and nToken != TokenLoop)
-		{
-			bOk = false;
-			sMessage = "the " + sTokenEnd + " command must be followed by " + sTokenIf + " or " +
-				   sTokenLoop + " (instead of \"" + GetPrintableValue(sToken) + "\")";
-		}
-
-		// Il ne doit pas y en avoir d'autres tokens
-		if (bOk and sEndLine != "")
-		{
-			bOk = false;
-			sMessage = "the " + svTokenValues->GetAt(0) + " " + sToken +
-				   " command is terminated (unexpected \"" + GetPrintableValue(sEndLine) +
-				   "\" found afterwards)";
-		}
-	}
-	// Cas  <command> (<key>|<other>)*
-	else if (nToken == TokenOther)
-	{
-		// Analyse de la fin de la ligne pour en extraire les variables
-		while (sEndLine != "")
-		{
-			// Tokenisation de la fin de ligne
-			sBuffer = sEndLine;
-			nToken = GetFirstInputToken(sBuffer, sToken, sInterToken, sEndLine);
-
-			// Analyse du token dans le cas d'une variable
-			if (nToken == TokenKey)
-			{
-				bOk = CheckTokenKey(sToken, sMessage);
-
-				// Prise en compte si valide
-				if (bOk)
-				{
-					ivTokenTypes->Add(nToken);
-					svTokenValues->Add(sToken);
-				}
-				// Arret sinon
-				else
-					break;
-
-				// A jout d'un token de type valeur si necessaire
-				if (sInterToken != "")
-				{
-					assert(sEndLine.GetLength() > 0);
-					ivTokenTypes->Add(TokenOther);
-					svTokenValues->Add(sInterToken);
-				}
-			}
-			// Sinon, ajout si necessaire du token en tant que TokenOther
-			else
-			{
-				// Ajout de la valeur inter-token
-				sToken += sInterToken;
-
-				// Ajout du token si non existant
-				if (ivTokenTypes->GetAt(ivTokenTypes->GetSize() - 1) != TokenOther)
-				{
-					ivTokenTypes->Add(TokenOther);
-					svTokenValues->Add(sToken);
-				}
-				// Completion du token existant sinon
-				else
-				{
-					assert(ivTokenTypes->GetAt(ivTokenTypes->GetSize() - 1) == TokenOther);
-					sToken = svTokenValues->GetAt(ivTokenTypes->GetSize() - 1) + sToken;
-					svTokenValues->SetAt(ivTokenTypes->GetSize() - 1, sToken);
-				}
-			}
-		}
-	}
-	// Cas KEY ...
-	else
-	{
-		assert(nToken == TokenKey);
-
-		// Erreur
-		bOk = false;
-		sMessage = "incorrect use of key \"" + GetPrintableValue(sToken) + "\" at the beginning of a command";
-	}
-
-	// Nettoyage si erreur
-	if (not bOk)
-	{
-		ivTokenTypes->SetSize(0);
-		svTokenValues->SetSize(0);
-	}
-	ensure(ivTokenTypes->GetSize() == svTokenValues->GetSize());
-	ensure(bOk or sMessage != "");
-	return bOk;
-}
-
-boolean CommandFile::ParseInputCommand(const ALString& sInputCommand, ALString& sMessage)
-{
-	boolean bOk = true;
-	IntVector ivTokenTypes;
-	StringVector svTokenValues;
-	int nToken;
-
-	require(sInputCommand != "");
-	require(IsValueTrimed(sInputCommand));
-	require(sInputCommand.Find(sCommentPrefix) != 0);
-	require(nParserState == TokenOther or nParserState == TokenIf or nParserState == TokenLoop);
-	require(nParserState != TokenOther or sParserBlockKey == "");
-	require(nParserState != TokenOther or svParserBlockLines.GetSize() == 0);
-
-	// Tokenisation de la ligne
-	bOk = TokenizeInputCommand(sInputCommand, &ivTokenTypes, &svTokenValues, sMessage);
-
-	// Analyse des tokens
-	if (bOk)
-	{
-		nToken = ivTokenTypes.GetAt(0);
-
-		// Cas d'un bloc IF
-		if (nToken == TokenIf)
-		{
-			// L'etat precedent doit etre Other
-			if (nParserState != TokenOther)
-			{
-				bOk = false;
-				AddInputCommandFileError("Unexpected " + svTokenValues.GetAt(0) +
-							 " command inside the current block");
-			}
-			// Sinon, on memorise les caracteristiques du bloc
-			else
-			{
-				nParserState = TokenIf;
-				sParserBlockKey = svTokenValues.GetAt(1);
-			}
-		}
-		// Cas d'un bloc LOOP
-		else if (nToken == TokenIf)
-		{
-			//
-		}
-		// Cas d'une fin de bloc
-		else if (nToken == TokenEnd)
-		{
-			//
-		}
-		// Cas standard valide
-		else
-		{
-			assert(nToken = TokenOther);
-			//
-		}
-	}
-	ensure(nParserState == TokenOther or nParserState == TokenIf or nParserState == TokenLoop);
-	return bOk;
-}
-
 void CommandFile::WriteInputCommandTokens(ostream& ost, IntVector* ivTokenTypes, StringVector* svTokenValues) const
 {
 	int i;
@@ -1417,12 +1464,13 @@ void CommandFile::WriteInputCommandTokens(ostream& ost, IntVector* ivTokenTypes,
 	ost << '\n';
 }
 
-boolean CommandFile::CheckTokenKey(const ALString& sToken, ALString& sMessage) const
+boolean CommandFile::CheckTokenKey(const ALString& sToken) const
 {
 	boolean bOk;
 	ALString sVariableName;
 	ALString sPattern;
 	int nPos;
+	ALString sMessage;
 
 	require(sToken != "");
 	require(IsValueTrimed(sToken));
@@ -1430,7 +1478,6 @@ boolean CommandFile::CheckTokenKey(const ALString& sToken, ALString& sMessage) c
 
 	// Initialisation du resultat
 	bOk = true;
-	sMessage = "";
 
 	// Controle des delimiteurs, et suppression de ceux-ci
 	sVariableName = sToken.Right(sToken.GetLength() - sVariableDelimiter.GetLength());
@@ -1440,8 +1487,8 @@ boolean CommandFile::CheckTokenKey(const ALString& sToken, ALString& sMessage) c
 		if (nPos == -1)
 		{
 			bOk = false;
-			sMessage = "missing trailing key delimiter \"" + sVariableDelimiter + "\" at the end of \"" +
-				   GetPrintableValue(sToken) + "\"";
+			AddInputCommandFileError("missing trailing key delimiter \"" + sVariableDelimiter +
+						 "\" at the end of \"" + GetPrintableValue(sToken) + "\"");
 		}
 
 		// Le token a tester doit etre extrait en s'arretant si possible au second delimiteur trouve
@@ -1475,8 +1522,8 @@ boolean CommandFile::CheckTokenKey(const ALString& sToken, ALString& sMessage) c
 	if (bOk and sVariableName.Find(sByteVariablePrefix) == 0)
 	{
 		bOk = false;
-		sMessage = "prefix \"" + sByteVariablePrefix + "\" used in \"" + GetPrintableValue(sToken) +
-			   "\" not allowed in input command file";
+		AddInputCommandFileError("prefix \"" + sByteVariablePrefix + "\" used in \"" +
+					 GetPrintableValue(sToken) + "\" not allowed in input command file");
 	}
 	return bOk;
 }
