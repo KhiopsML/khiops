@@ -9,17 +9,15 @@ CommandFile::CommandFile()
 	bPrintOutputInConsole = false;
 	fInputCommands = NULL;
 	fOutputCommands = NULL;
-	nParserLineIndex = 0;
-	nParserState = TokenOther;
-	nParserBlockLineIndex = -1;
-	nParserBlockObjectIndex = -1;
+	ResetParser();
 	assert(nMaxLineLength < BUFFER_LENGTH);
-	assert(nMaxVariableNameLength + nMaxVariableNameLength < nMaxLineLength);
+	assert(nMaxJsonKeyLength + nMaxStringValueLength < nMaxLineLength);
 }
 
 CommandFile::~CommandFile()
 {
 	require(not AreCommandFilesOpened());
+	require(nParserState == TokenOther);
 }
 
 void CommandFile::Reset()
@@ -27,9 +25,9 @@ void CommandFile::Reset()
 	require(not AreCommandFilesOpened());
 
 	SetInputCommandFileName("");
+	SetInputParameterFileName("");
 	SetOutputCommandFileName("");
 	DeleteAllInputSearchReplaceValues();
-	SetInputParameterFileName("");
 }
 
 void CommandFile::SetInputCommandFileName(const ALString& sFileName)
@@ -156,6 +154,10 @@ boolean CommandFile::OpenInputCommandFile()
 		bOk = false;
 	}
 
+	// Reinitialisation du parser lors de l'ouverture
+	// On ne le reinitialise pas a la fermetre pour avoir l'etat du parser en cas de probleme
+	ResetParser();
+
 	// Chargement des parametre json si specifie
 	if (bOk and GetInputParameterFileName() != "")
 	{
@@ -224,19 +226,10 @@ void CommandFile::CloseInputCommandFile()
 	{
 		fclose(fInputCommands);
 		fInputCommands = NULL;
-		nParserLineIndex = 0;
-		nParserState = TokenOther;
-		sParserBlockKey = "";
-		svParserBlockLines.SetSize(0);
-		nParserBlockLineIndex = -1;
-		nParserBlockObjectIndex = -1;
 
 		// Si le fichier est sur HDFS, on supprime la copie locale
 		PLRemoteFileService::CleanInputWorkingFile(sInputCommandFileName, sLocalInputCommandFileName);
 	}
-
-	// Nettoyage des parametres json
-	jsonParameters.DeleteAll();
 }
 
 void CommandFile::CloseOutputCommandFile()
@@ -264,16 +257,17 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 	boolean bOk;
 	char sCharBuffer[1 + BUFFER_LENGTH];
 	ALString sInputLine;
+	boolean bContinueParsing;
 	IntVector ivTokenTypes;
 	StringVector svTokenValues;
 	ALString sMessage;
 	int nLength;
-	ALString sIdentifierPath;
 	int nPosition;
 	int nToken;
 	ALString sEndLine;
 	ALString sToken;
 	ALString sInterToken;
+	ALString sIdentifierPath;
 	ALString sIdentifier;
 	int i;
 	ALString sTmp;
@@ -290,84 +284,102 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 	////////////////////////////////////////////////////////////////////////////////////////////
 	// Recherche d'une ligne non vide a traiter
 
-	// Boucle de lecture pour ignorer les lignes vides ou ne comportant que des commentaires
+	// On effectue le parsing uniquement si necessaire
+	// Par exemple, dans le cas d'un bloc de type loop en cours de traitement, ce n'est pas necessaire
 	bOk = true;
-	while (sInputLine == "" and not feof(fInputCommands))
+	if (oaParserLoopLinesTokenTypes.GetSize() == 0)
 	{
-		nParserLineIndex++;
-
-		// Lecture
-		StandardGetInputString(sCharBuffer, fInputCommands);
-		sInputLine = sCharBuffer;
-
-		// Si erreur ou caractere fin de fichier, on arrete sans message d'erreur
-		// Si on est pas en fin de fichier, on a forcement un caractere '\n' en fin de ligne
-		if (ferror(fInputCommands) or sInputLine.GetLength() == 0)
+		// Boucle de lecture pour ignorer les lignes vides ou ne comportant que des commentaires
+		while (sInputLine == "" and not feof(fInputCommands))
 		{
-			bOk = false;
-			break;
-		}
+			nParserLineIndex++;
 
-		// Erreur si ligne trop longue
-		if (bOk and sInputLine.GetLength() > nMaxLineLength)
-		{
-			bOk = false;
-			AddInputCommandFileError(sTmp + "line too long, with length " +
-						 IntToString(sInputLine.GetLength()) + " > " +
-						 IntToString(nMaxLineLength));
-			break;
-		}
+			// Lecture
+			StandardGetInputString(sCharBuffer, fInputCommands);
+			sInputLine = sCharBuffer;
 
-		// Suppression des blancs au debut et a la fin, donc du dernier caractere fin de ligne
-		sInputLine.TrimRight();
-		sInputLine.TrimLeft();
-
-		// Supression de la ligne entiere si elle est entierement commentee
-		if (sInputLine.Find(sCommentPrefix) == 0)
-			sInputLine = "";
-		// Sinon, suppression du commentaire de fin de ligne, ce qui permet d'avoir
-		// des paires (IdentifierPath, valeur) avec valeur contenant des " //"
-		else
-		{
-			nLength = sInputLine.GetLength();
-			for (i = nLength - sCommentPrefix.GetLength(); i >= 0; i--)
+			// Si erreur ou caractere fin de fichier, on arrete sans message d'erreur
+			// Si on est pas en fin de fichier, on a forcement un caractere '\n' en fin de ligne
+			if (ferror(fInputCommands) or sInputLine.GetLength() == 0)
 			{
-				if (sInputLine.GetAt(i) == sCommentPrefix.GetAt(0) and
-				    sInputLine.Right(nLength - i).Find(sCommentPrefix) == 0)
+				bOk = false;
+				break;
+			}
+
+			// Erreur si ligne trop longue
+			if (bOk and sInputLine.GetLength() > nMaxLineLength)
+			{
+				bOk = false;
+				AddInputCommandFileError(sTmp + "line too long, with length " +
+							 IntToString(sInputLine.GetLength()) + " > " +
+							 IntToString(nMaxLineLength));
+				break;
+			}
+
+			// Suppression des blancs au debut et a la fin, donc du dernier caractere fin de ligne
+			sInputLine.TrimRight();
+			sInputLine.TrimLeft();
+
+			// Supression de la ligne entiere si elle est entierement commentee
+			if (sInputLine.Find(sCommentPrefix) == 0)
+				sInputLine = "";
+			// Sinon, suppression du commentaire de fin de ligne, ce qui permet d'avoir
+			// des paires (IdentifierPath, valeur) avec valeur contenant des " //"
+			else
+			{
+				nLength = sInputLine.GetLength();
+				for (i = nLength - sCommentPrefix.GetLength(); i >= 0; i--)
 				{
-					sInputLine.GetBufferSetLength(i);
-					sInputLine.TrimRight();
-					break;
+					if (sInputLine.GetAt(i) == sCommentPrefix.GetAt(0) and
+					    sInputLine.Right(nLength - i).Find(sCommentPrefix) == 0)
+					{
+						sInputLine.GetBufferSetLength(i);
+						sInputLine.TrimRight();
+						break;
+					}
 				}
 			}
+
+			// Suppression si necessaire du dernier caractere s'il s'agit de cDEL
+			// (methode FromJstring qui utilise ce cartactere special en fin de chaine pour
+			// les conversions entre Java et C++ et l'ajoute dans les fichiers de commande en sortie)
+			if (sInputLine.GetLength() > 0 and sInputLine.GetAt(sInputLine.GetLength() - 1) == cDEL)
+				sInputLine.GetBufferSetLength(sInputLine.GetLength() - 1);
+
+			// Tokenisation de la ligne en cours dans le cas d'un fichier de parametrage
+			if (GetInputParameterFileName() != "")
+			{
+				assert(bOk);
+				// Tokenisation de la ligne
+				bOk = ParseInputCommand(sInputLine, bContinueParsing);
+
+				// Traitement pour ignorer des lignes en fonction l'etat du parser
+				// On force la poursuite duparsing si necessaire
+				if (bContinueParsing)
+					sInputLine = "";
+			}
+		}
+		assert(sInputLine != "" or not bOk or feof(fInputCommands));
+
+		// Cas particulier de fin de fichier sans fin de block
+		// C'est le seul cas qui ne pas etre traite par le parsing en flux des ligne du f
+		if (bOk and feof(fInputCommands) and GetInputParameterFileName() != "" and nParserState != TokenOther)
+		{
+			bOk = false;
+			AddInputCommandFileError("No " + sTokenEnd + " " + GetBlockType(nParserState) + " " +
+						 " found until the end of the file in current " +
+						 GetBlockType(nParserState) + " " + sParserBlockKey + " block");
 		}
 
-		// Suppression si necessaire du dernier caractere s'il s'agit de cDEL
-		// (methode FromJstring qui utilise ce cartactere special en fin de chaine pour
-		// les conversions entre Java et C++ et l'ajoute dans les fichiers de commande en sortie)
-		if (sInputLine.GetLength() > 0 and sInputLine.GetAt(sInputLine.GetLength() - 1) == cDEL)
-			sInputLine.GetBufferSetLength(sInputLine.GetLength() - 1);
+		// Arret si necessaire
+		if (not bOk or feof(fInputCommands))
+		{
+			// Nettoyage
+			CloseInputCommandFile();
+			return false;
+		}
+		assert(sInputLine != "");
 	}
-	assert(sInputLine != "" or not bOk or feof(fInputCommands));
-
-	// Cas particulier de fin de fichier sans fin de block
-	// C'est le seul cas qui ne pas etre traite par le parsing en flux des ligne du f
-	if (bOk and feof(fInputCommands) and GetInputParameterFileName() != "" and nParserState != TokenOther)
-	{
-		bOk = false;
-		AddInputCommandFileError("No " + sTokenEnd + " " + GetBlockType(nParserState) + " " +
-					 " found untill end of the file in current " + GetBlockType(nParserState) +
-					 " " + sParserBlockKey + " block");
-	}
-
-	// Arret si necessaire
-	if (not bOk or feof(fInputCommands))
-	{
-		// Nettoyage
-		CloseInputCommandFile();
-		return false;
-	}
-	assert(sInputLine != "");
 
 	////////////////////////////////////////////////////////////////////////////////////////////
 	// Pretraitement de la ligne
@@ -392,9 +404,7 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 
 	// Cas avec fichier de parametrage json: analyse des lignes
 	if (bOk and GetInputParameterFileName() != "")
-	{
-		bOk = ParseInputCommand(sInputLine);
-	}
+		bOk = RecodeCurrentLineUsingJsonParameters(sInputLine);
 	// Cas du mode recherche/remplacement dans la partie valeur de la commande
 	else if (bOk and GetInputSearchReplaceValueNumber() > 0)
 		sInputLine = ProcessSearchReplaceCommand(sInputLine);
@@ -643,7 +653,7 @@ boolean CommandFile::LoadJsonParameters()
 			jsonMember = jsonParameters.GetMemberAt(i);
 
 			// Verification de la cle
-			if (not CheckVariableName(jsonMember->GetKey(), sMessage))
+			if (not CheckJsonKey(jsonMember->GetKey(), sMessage))
 			{
 				AddInputParameterFileError("in main json object, " + sMessage);
 				bOk = false;
@@ -677,7 +687,7 @@ boolean CommandFile::LoadJsonParameters()
 				AddInputParameterFileError(
 				    "in main json object, the " + jsonMember->GetValue()->TypeToString() +
 				    " type of value at " + BuildJsonPath(jsonMember, -1, NULL) +
-				    " should be string, as the key prefix is \"" + sByteVariablePrefix + "\"");
+				    " should be string, as the key prefix is \"" + sByteJsonKeyPrefix + "\"");
 				bOk = false;
 			}
 			// Verification de de la longueur et de l'encodage base64 de la valeur string
@@ -723,8 +733,7 @@ boolean CommandFile::LoadJsonParameters()
 							jsonSubObjectMember = jsonSubObject->GetMemberAt(k);
 
 							// Verification de la cle
-							if (not CheckVariableName(jsonSubObjectMember->GetKey(),
-										  sMessage))
+							if (not CheckJsonKey(jsonSubObjectMember->GetKey(), sMessage))
 							{
 								AddInputParameterFileError(
 								    "in object value of array at " +
@@ -794,7 +803,7 @@ boolean CommandFile::LoadJsonParameters()
 								    " type of value at " +
 								    BuildJsonPath(jsonMember, j, jsonSubObjectMember) +
 								    " should be string, as the key prefix is \"" +
-								    sByteVariablePrefix + "\"");
+								    sByteJsonKeyPrefix + "\"");
 								bOk = false;
 							}
 							// Verification de de la longueur et de l'encodage base64 de la valeur string
@@ -897,7 +906,7 @@ boolean CommandFile::LoadJsonParameters()
 	return bOk;
 }
 
-boolean CommandFile::CheckVariableName(const ALString& sValue, ALString& sMessage) const
+boolean CommandFile::CheckJsonKey(const ALString& sValue, ALString& sMessage) const
 {
 	boolean bOk = true;
 	ALString sTmp;
@@ -914,10 +923,10 @@ boolean CommandFile::CheckVariableName(const ALString& sValue, ALString& sMessag
 	// Test de la longueur max
 	if (bOk)
 	{
-		bOk = sValue.GetLength() <= nMaxVariableNameLength;
+		bOk = sValue.GetLength() <= nMaxJsonKeyLength;
 		if (not bOk)
 			sMessage = sTmp + "key \"" + GetPrintableValue(sValue) + "\" too long, with length " +
-				   IntToString(sValue.GetLength()) + " > " + IntToString(nMaxVariableNameLength);
+				   IntToString(sValue.GetLength()) + " > " + IntToString(nMaxJsonKeyLength);
 	}
 
 	// Test du format camelCase
@@ -974,12 +983,12 @@ boolean CommandFile::IsByteVariableName(const ALString& sValue) const
 	require(IsCamelCaseVariableName(sValue));
 
 	// Test si on est prefixe correctement, suivi d'un caractere alphabetique en majuscule
-	bOk = sValue.GetLength() > sByteVariablePrefix.GetLength();
+	bOk = sValue.GetLength() > sByteJsonKeyPrefix.GetLength();
 	if (bOk)
-		bOk = sValue.Left(sByteVariablePrefix.GetLength()) == sByteVariablePrefix;
+		bOk = sValue.Left(sByteJsonKeyPrefix.GetLength()) == sByteJsonKeyPrefix;
 	if (bOk)
 	{
-		c = sValue.GetAt(sByteVariablePrefix.GetLength());
+		c = sValue.GetAt(sByteJsonKeyPrefix.GetLength());
 		bOk = isalpha(c) and isupper(c);
 	}
 	return bOk;
@@ -997,7 +1006,7 @@ const ALString CommandFile::ToByteVariableName(const ALString& sValue) const
 	{
 		sByteVariableName = sValue;
 		sByteVariableName.SetAt(0, char(toupper(sByteVariableName.GetAt(0))));
-		sByteVariableName = sByteVariablePrefix + sByteVariableName;
+		sByteVariableName = sByteJsonKeyPrefix + sByteVariableName;
 		return sByteVariableName;
 	}
 }
@@ -1011,7 +1020,7 @@ const ALString CommandFile::ToStandardVariableName(const ALString& sValue) const
 	if (IsByteVariableName(sValue))
 	{
 
-		sStandardVariableName = sValue.Right(sValue.GetLength() - sByteVariablePrefix.GetLength());
+		sStandardVariableName = sValue.Right(sValue.GetLength() - sByteJsonKeyPrefix.GetLength());
 		sStandardVariableName.SetAt(0, char(tolower(sStandardVariableName.GetAt(0))));
 		return sStandardVariableName;
 	}
@@ -1088,6 +1097,54 @@ ALString CommandFile::BuildJsonPath(JsonMember* member, int nArrayRank, JsonMemb
 	return sJsonPath;
 }
 
+const ALString CommandFile::ProcessSearchReplaceCommand(const ALString& sInputCommand) const
+{
+	ALString sInputString;
+	ALString sBeginString;
+	ALString sEndString;
+	ALString sOutputCommand;
+	ALString sSearchValue;
+	ALString sReplaceValue;
+	int nSearchPosition;
+	int i;
+
+	require(GetInputSearchReplaceValueNumber() > 0);
+
+	// Parcours de toutes les paires search/replace a appliquer
+	sOutputCommand = sInputCommand;
+	for (i = 0; i < GetInputSearchReplaceValueNumber(); i++)
+	{
+		sSearchValue = GetInputSearchValueAt(i);
+		sReplaceValue = GetInputReplaceValueAt(i);
+
+		// Remplacement iteratif des pattern trouves a partir de la chaine pretraitee precedente
+		if (sSearchValue.GetLength() > 0)
+		{
+			sBeginString = "";
+			sEndString = sOutputCommand;
+			nSearchPosition = 0;
+			sOutputCommand = "";
+			while (nSearchPosition >= 0 and sEndString.GetLength() > 0)
+			{
+				nSearchPosition = sEndString.Find(sSearchValue);
+
+				// Si non trouve, on garde la fin de la chaine en cours de traitement
+				if (nSearchPosition == -1)
+					sOutputCommand += sEndString;
+				// Sinon, en prend le debut puis la valeur de remplacement
+				else
+				{
+					sBeginString = sEndString.Left(nSearchPosition);
+					sEndString = sEndString.Right(sEndString.GetLength() -
+								      sSearchValue.GetLength() - nSearchPosition);
+					sOutputCommand += sBeginString + sReplaceValue;
+				}
+			}
+		}
+	}
+	return sOutputCommand;
+}
+
 const ALString& CommandFile::GetBlockType(int nToken) const
 {
 	require(nToken == TokenIf or nToken == TokenLoop);
@@ -1097,86 +1154,339 @@ const ALString& CommandFile::GetBlockType(int nToken) const
 		return sTokenLoop;
 }
 
-boolean CommandFile::ParseInputCommand(const ALString& sInputCommand)
+void CommandFile::ResetParser()
+{
+	nParserLineIndex = 0;
+	nParserState = TokenOther;
+	nParserCurrentLineState = None;
+	sParserBlockKey = "";
+	ivParserTokenTypes.SetSize(0);
+	svParserTokenValues.SetSize(0);
+	bParserIfState = false;
+	parserLoopJsonArray = NULL;
+	oaParserLoopLinesTokenTypes.DeleteAll();
+	oaParserLoopLinesTokenValues.DeleteAll();
+	nParserLoopLineIndex = -1;
+	nParserLoopObjectIndex = -1;
+}
+
+boolean CommandFile::RecodeCurrentLineUsingJsonParameters(ALString& sRecodedLine)
 {
 	boolean bOk = true;
-	IntVector ivTokenTypes;
-	StringVector svTokenValues;
-	ALString sParserBlockType;
+	JsonValue* jsonValue;
+	ALString sJsonKey;
+	IntVector* ivCurrentTokenTypes;
+	StringVector* svCurrentTokenValues;
+	JsonObject* currentJsonObject;
+	int i;
 	int nToken;
-	int nNextToken;
 
+	require(GetInputParameterFileName() != "");
+	require(IsInputCommandFileOpened());
+
+	// Initialisation
+	sRecodedLine = "";
+
+	// Recherche du vecteur de token courant en fonction de l'etat du parser
+	if (nParserState == TokenOther or nParserState == TokenIf)
+	{
+		ivCurrentTokenTypes = &ivParserTokenTypes;
+		svCurrentTokenValues = &svParserTokenValues;
+		currentJsonObject = NULL;
+	}
+	// Sinon, on se deplace dans la boucle
+	else
+	{
+		assert(nParserState == TokenLoop);
+		assert(parserLoopJsonArray != NULL);
+		assert(nParserLoopLineIndex < oaParserLoopLinesTokenTypes.GetSize() or
+		       nParserLoopObjectIndex < parserLoopJsonArray->GetValueNumber());
+
+		// Analyse de la ligne courante avec l'objet courant
+		ivCurrentTokenTypes = cast(IntVector*, oaParserLoopLinesTokenTypes.GetAt(nParserLoopLineIndex));
+		svCurrentTokenValues = cast(StringVector*, oaParserLoopLinesTokenValues.GetAt(nParserLoopLineIndex));
+		currentJsonObject = parserLoopJsonArray->GetValueAt(nParserLoopObjectIndex)->GetObjectValue();
+
+		// On passe a la suite
+		nParserLoopLineIndex++;
+		if (nParserLoopLineIndex == oaParserLoopLinesTokenTypes.GetSize())
+		{
+			nParserLoopLineIndex = 0;
+			nParserLoopObjectIndex++;
+		}
+
+		// Nettoyage si plus rien a traiter ensuite
+		if (nParserLoopObjectIndex == parserLoopJsonArray->GetValueNumber())
+		{
+			parserLoopJsonArray = NULL;
+			oaParserLoopLinesTokenTypes.DeleteAll();
+			oaParserLoopLinesTokenValues.DeleteAll();
+			nParserLoopLineIndex = 0;
+			nParserLoopObjectIndex = 0;
+		}
+	}
+
+	// Recodage de la ligne en cours
+	for (i = 0; i < ivCurrentTokenTypes->GetSize(); i++)
+	{
+		nToken = ivCurrentTokenTypes->GetAt(i);
+		assert(nToken == TokenOther or nToken == TokenKey);
+		assert(nToken == TokenOther or i > 0);
+
+		// On a necessairement un blanc avant le deuxieme token
+		if (i == 1)
+			sRecodedLine += ' ';
+
+		// Prise en compte du token tel quel dans le cas standard
+		if (nToken == TokenOther)
+			sRecodedLine += svCurrentTokenValues->GetAt(i);
+		// Remplacement de la valeur dans le cas d'une cle json
+		else
+		{
+			sJsonKey = ExtractJsonKey(svCurrentTokenValues->GetAt(i));
+
+			// Recherche d'un valeur d'abord dans l'objet courant
+			jsonValue = NULL;
+			if (currentJsonObject != NULL)
+			{
+				jsonValue = LoopJsonValue(currentJsonObject, sJsonKey);
+				assert(jsonValue == NULL or LoopJsonValue(&jsonParameters, sJsonKey) == NULL);
+			}
+
+			// Recherche dans l'objet principal si non trouve
+			if (jsonValue == NULL)
+				jsonValue = LoopJsonValue(&jsonParameters, sJsonKey);
+
+			// Erreur si non trouve
+			if (jsonValue == NULL)
+			{
+				bOk = false;
+				AddInputCommandFileError("Value not found for json key \"" + sJsonKey +
+							 "\" in json parameters");
+			}
+			// Erreur si type de valauer invalide
+			else if (jsonValue->GetType() != JsonValue::NumberValue and
+				 jsonValue->GetType() != JsonValue::StringValue)
+			{
+				bOk = false;
+				AddInputCommandFileError(
+				    "Value found for json key \"" + sJsonKey +
+				    "\" in json parameters shoud be of type number or string, instead of " +
+				    jsonValue->TypeToString());
+			}
+			// Sinon, on ajoute la valeur recodee
+			else
+			{
+				assert(jsonValue->GetType() == JsonValue::NumberValue or
+				       jsonValue->GetType() == JsonValue::StringValue);
+				if (jsonValue->GetType() == JsonValue::NumberValue)
+					sRecodedLine += jsonValue->GetStringValue()->WriteString();
+				else
+					sRecodedLine += jsonValue->GetStringValue()->GetString();
+
+				//DDD MANQUE LA GESTION DU RECODAGE BASE64
+			}
+
+			// Arret si erreur
+			if (not bOk)
+				break;
+		}
+	}
+
+	// Nettoyage si erreur
+	if (not bOk)
+		sRecodedLine = "";
+	return bOk;
+}
+
+boolean CommandFile::ParseInputCommand(const ALString& sInputCommand, boolean& bContinueParsing)
+{
+	boolean bOk = true;
+	int nNextToken;
+	JsonValue* jsonValue;
+
+	require(GetInputParameterFileName() != "");
 	require(sInputCommand != "");
 	require(IsValueTrimed(sInputCommand));
 	require(sInputCommand.Find(sCommentPrefix) != 0);
 	require(nParserState == TokenOther or nParserState == TokenIf or nParserState == TokenLoop);
-	require(nParserState != TokenOther or sParserBlockKey == "");
-	require(nParserState != TokenOther or svParserBlockLines.GetSize() == 0);
+	require(nParserState == TokenOther or sParserBlockKey != "");
+	require(nParserState == TokenLoop or oaParserLoopLinesTokenTypes.GetSize() == 0);
+	require(oaParserLoopLinesTokenValues.GetSize() == oaParserLoopLinesTokenTypes.GetSize());
 
 	// Tokenisation de la ligne
-	bOk = TokenizeInputCommand(sInputCommand, &ivTokenTypes, &svTokenValues);
+	bContinueParsing = false;
+	bOk = TokenizeInputCommand(sInputCommand, &ivParserTokenTypes, &svParserTokenValues);
 
 	// Analyse des tokens
 	if (bOk)
 	{
-		nToken = ivTokenTypes.GetAt(0);
+		nParserCurrentLineState = ivParserTokenTypes.GetAt(0);
 		nNextToken = None;
-		if (ivTokenTypes.GetSize() > 1)
-			nNextToken = ivTokenTypes.GetAt(1);
+		if (ivParserTokenTypes.GetSize() > 1)
+			nNextToken = ivParserTokenTypes.GetAt(1);
 
+		/////////////////////////////////////////////////////////////////
 		// Cas d'un debut de bloc IF ou LOOP
-		if (nToken == TokenIf or nToken == TokenLoop)
+		if (nParserCurrentLineState == TokenIf or nParserCurrentLineState == TokenLoop)
 		{
 			assert(nNextToken == TokenKey);
 
 			// Cas valide uniquement l'etat du parser est instruction
 			if (nParserState == TokenOther)
 			{
-				nParserState = nToken;
-				sParserBlockKey = svTokenValues.GetAt(1);
+				nParserState = nParserCurrentLineState;
+				sParserBlockKey = svParserTokenValues.GetAt(1);
+				bParserIfState = false;
+				parserLoopJsonArray = NULL;
+
+				// Recherche de la valeur json associee au bloc
+				jsonValue = LoopJsonValue(&jsonParameters, ExtractJsonKey(sParserBlockKey));
+
+				// Erreur si non trouve
+				if (jsonValue == NULL)
+				{
+					bOk = false;
+					AddInputCommandFileError("For beginning of " + svParserTokenValues.GetAt(0) +
+								 " block, key " + svParserTokenValues.GetAt(1) +
+								 " not found in json parameter file");
+				}
+				// Cas du if
+				else if (nParserCurrentLineState == TokenIf)
+				{
+					// Erreur si type incorrect
+					if (jsonValue->GetType() != JsonObject::BooleanValue)
+					{
+						bOk = false;
+						AddInputCommandFileError("For beginning of " +
+									 svParserTokenValues.GetAt(0) + " block, key " +
+									 svParserTokenValues.GetAt(1) +
+									 " found in json parameter file should be of "
+									 "type boolean instead of " +
+									 jsonValue->TypeToString());
+					}
+					// Sinon, on memorise la valeur du booleen
+					else
+					{
+						bParserIfState = jsonValue->GetBooleanValue();
+
+						// Comme on est sur une structure de controle, il faut continuer le parsing
+						bContinueParsing = true;
+					}
+				}
+				// Cas du loop
+				else
+				{
+					assert(nParserCurrentLineState == TokenLoop);
+
+					// Erreur si type incorrect
+					if (jsonValue->GetType() != JsonObject::ArrayValue)
+					{
+						bOk = false;
+						AddInputCommandFileError("For beginning of " +
+									 svParserTokenValues.GetAt(0) + " block, key " +
+									 svParserTokenValues.GetAt(1) +
+									 " found in json parameter file should be of "
+									 "type array instead of " +
+									 jsonValue->TypeToString());
+					}
+					// Sinon, on memorise la valeur du tableau
+					else
+					{
+						parserLoopJsonArray = jsonValue->GetArrayValue();
+
+						// Reinitialisation du tableau des vecteurs de tokens du block loop
+						oaParserLoopLinesTokenTypes.DeleteAll();
+						oaParserLoopLinesTokenValues.DeleteAll();
+						nParserLoopLineIndex = 0;
+						nParserLoopObjectIndex = 0;
+
+						// Comme on est sur une structure de controle, il faut continuer le parsing
+						bContinueParsing = true;
+					}
+				}
 			}
 			// Commande invalide sinon
 			else
 			{
 				bOk = false;
-				AddInputCommandFileError("Unexpected beginning of a " + svTokenValues.GetAt(0) +
+				AddInputCommandFileError("Unexpected beginning of a " + svParserTokenValues.GetAt(0) +
 							 " block inside the current " + GetBlockType(nParserState) +
 							 " " + sParserBlockKey + " block");
 			}
 		}
+		/////////////////////////////////////////////////////////////////
 		// Cas d'une fin de bloc END
-		else if (nToken == TokenEnd)
+		else if (nParserCurrentLineState == TokenEnd)
 		{
 			assert(nNextToken == TokenIf or nNextToken == TokenLoop);
 
-			// Cas valide uniquement l'etat du parser est le block de bon type en cours
+			// Cas valide uniquement si l'etat du parser est le block de bon type en cours
 			if ((nParserState == TokenIf or nParserState == TokenLoop) and nParserState == nNextToken)
 			{
 				nParserState = TokenOther;
 				sParserBlockKey = "";
+
+				// Il faut continuer le parsing dans le cas d'un bloc if ou d'un bloc loop vide
+				if (nParserState == TokenIf)
+					bContinueParsing = true;
+				else
+					bContinueParsing = oaParserLoopLinesTokenTypes.GetSize() > 0 and
+							   parserLoopJsonArray->GetValueNumber() > 0;
 			}
 			// Commande invalide sinon
 			else
 			{
 				bOk = false;
 				if (nParserState == TokenOther)
-					AddInputCommandFileError("Unexpected " + svTokenValues.GetAt(0) + " " +
-								 svTokenValues.GetAt(1) +
+					AddInputCommandFileError("Unexpected " + svParserTokenValues.GetAt(0) + " " +
+								 svParserTokenValues.GetAt(1) +
 								 " without beginning of the corresponding block");
 				else
-					AddInputCommandFileError("Unexpected " + svTokenValues.GetAt(0) + " " +
-								 svTokenValues.GetAt(1) + " inside the current " +
+					AddInputCommandFileError("Unexpected " + svParserTokenValues.GetAt(0) + " " +
+								 svParserTokenValues.GetAt(1) + " inside the current " +
 								 GetBlockType(nParserState) + " " + sParserBlockKey +
 								 " block");
 			}
 		}
+		/////////////////////////////////////////////////////////////////
 		// Cas standard valide d'une instruction
 		else
 		{
-			assert(nToken = TokenOther);
+			// Memorisation dans le cas d'un block loop
+			if (nParserState == TokenLoop)
+			{
+				// Erreur si trop de ligne dans la boucle
+				if (oaParserLoopLinesTokenTypes.GetSize() >= nLoopMaxLineNumber)
+				{
+					bOk = false;
+					AddInputCommandFileError("Too many lines in current " + sTokenLoop + " " +
+								 sParserBlockKey + " block (> " +
+								 IntToString(nLoopMaxLineNumber) + ")");
+				}
+				// Ajout des vecteur de tokens senon
+				else
+				{
+					oaParserLoopLinesTokenTypes.Add(ivParserTokenTypes.Clone());
+					oaParserLoopLinesTokenValues.Add(svParserTokenValues.Clone());
+				}
+
+				// Il faut continuer le parsing tant que le bloc loop n'est pas fini
+				bContinueParsing = true;
+			}
+			// On ignore les ligne si necessaire dans le cas d'un block if
+			else if (nParserState == TokenIf)
+				bContinueParsing = not bParserIfState;
+			// Sinon, la ligne est prete a l'emploie
+			else
+			{
+				assert(nParserState == TokenOther);
+				bContinueParsing = false;
+			}
 		}
 	}
 	ensure(nParserState == TokenOther or nParserState == TokenIf or nParserState == TokenLoop);
+	ensure(oaParserLoopLinesTokenValues.GetSize() == oaParserLoopLinesTokenTypes.GetSize());
 	return bOk;
 }
 
@@ -1375,14 +1685,14 @@ int CommandFile::GetFirstInputToken(const ALString& sInputCommand, ALString& sTo
 	require(sInputCommand.Find(sCommentPrefix) != 0);
 	require(IsValueTrimed(sInputCommand));
 
-	// Cas d'un token de type variable
-	if (sInputCommand.Find(sVariableDelimiter) == 0)
+	// Cas d'un token de type cle json
+	if (sInputCommand.Find(sJsonKeyDelimiter) == 0)
 	{
 		nOutputToken = TokenKey;
 
-		// Recherche de la fin de la variable
-		sBuffer = sInputCommand.Right(sInputCommand.GetLength() - sVariableDelimiter.GetLength());
-		nPos = sBuffer.Find(sVariableDelimiter);
+		// Recherche de la fin de la cle json
+		sBuffer = sInputCommand.Right(sInputCommand.GetLength() - sJsonKeyDelimiter.GetLength());
+		nPos = sBuffer.Find(sJsonKeyDelimiter);
 		if (nPos == -1)
 		{
 			sToken = sInputCommand;
@@ -1390,7 +1700,7 @@ int CommandFile::GetFirstInputToken(const ALString& sInputCommand, ALString& sTo
 		}
 		else
 		{
-			sToken = sInputCommand.Left(nPos + 2 * sVariableDelimiter.GetLength());
+			sToken = sInputCommand.Left(nPos + 2 * sJsonKeyDelimiter.GetLength());
 			sEndLine = sInputCommand.Right(sInputCommand.GetLength() - sToken.GetLength());
 			sEndLine.TrimLeft();
 		}
@@ -1399,7 +1709,7 @@ int CommandFile::GetFirstInputToken(const ALString& sInputCommand, ALString& sTo
 	else
 	{
 		assert(sInputCommand.Find(sCommentPrefix) != 0);
-		assert(sInputCommand.Find(sVariableDelimiter) != 0);
+		assert(sInputCommand.Find(sJsonKeyDelimiter) != 0);
 
 		// Recherche du premier token
 		nPos = sInputCommand.Find(" ");
@@ -1467,50 +1777,50 @@ void CommandFile::WriteInputCommandTokens(ostream& ost, IntVector* ivTokenTypes,
 boolean CommandFile::CheckTokenKey(const ALString& sToken) const
 {
 	boolean bOk;
-	ALString sVariableName;
+	ALString sJsonKey;
 	ALString sPattern;
 	int nPos;
 	ALString sMessage;
 
 	require(sToken != "");
 	require(IsValueTrimed(sToken));
-	require(sToken.Find(sVariableDelimiter) == 0);
+	require(sToken.Find(sJsonKeyDelimiter) == 0);
 
 	// Initialisation du resultat
 	bOk = true;
 
 	// Controle des delimiteurs, et suppression de ceux-ci
-	sVariableName = sToken.Right(sToken.GetLength() - sVariableDelimiter.GetLength());
+	sJsonKey = sToken.Right(sToken.GetLength() - sJsonKeyDelimiter.GetLength());
 	if (bOk)
 	{
-		nPos = sVariableName.Find(sVariableDelimiter);
+		nPos = sJsonKey.Find(sJsonKeyDelimiter);
 		if (nPos == -1)
 		{
 			bOk = false;
-			AddInputCommandFileError("missing trailing key delimiter \"" + sVariableDelimiter +
+			AddInputCommandFileError("missing trailing key delimiter \"" + sJsonKeyDelimiter +
 						 "\" at the end of \"" + GetPrintableValue(sToken) + "\"");
 		}
 
 		// Le token a tester doit etre extrait en s'arretant si possible au second delimiteur trouve
 		if (bOk)
 		{
-			sVariableName = sVariableName.Left(sVariableName.GetLength() - sVariableDelimiter.GetLength());
+			sJsonKey = sJsonKey.Left(sJsonKey.GetLength() - sJsonKeyDelimiter.GetLength());
 
 			// On ne doit appeler la methode qu'avec un token candidat, ne au plus deux delimiteurs
-			assert(sVariableName.Find(sVariableDelimiter) == -1);
+			assert(sJsonKey.Find(sJsonKeyDelimiter) == -1);
 		}
-		assert(not bOk or sVariableName.GetLength() == sToken.GetLength() - 2 * sVariableDelimiter.GetLength());
+		assert(not bOk or sJsonKey.GetLength() == sToken.GetLength() - 2 * sJsonKeyDelimiter.GetLength());
 	}
 
 	// Verification de syntaxe de la variable
 	if (bOk)
 	{
-		bOk = CheckVariableName(sVariableName, sMessage);
+		bOk = CheckJsonKey(sJsonKey, sMessage);
 
 		// On rajoute les delimiteur dans le nom de variable du message
 		if (not bOk)
 		{
-			sPattern = "\"" + GetPrintableValue(sVariableName) + "\"";
+			sPattern = "\"" + GetPrintableValue(sJsonKey) + "\"";
 			nPos = sMessage.Find(sPattern);
 			if (nPos != -1)
 				sMessage = sMessage.Left(nPos) + "\"" + GetPrintableValue(sToken) + "\"" +
@@ -1519,61 +1829,42 @@ boolean CommandFile::CheckTokenKey(const ALString& sToken) const
 	}
 
 	// Verification que l'on n'utilise par une variante de type byte dans un fichier de commande en entree
-	if (bOk and sVariableName.Find(sByteVariablePrefix) == 0)
+	if (bOk and sJsonKey.Find(sByteJsonKeyPrefix) == 0)
 	{
 		bOk = false;
-		AddInputCommandFileError("prefix \"" + sByteVariablePrefix + "\" used in \"" +
+		AddInputCommandFileError("prefix \"" + sByteJsonKeyPrefix + "\" used in \"" +
 					 GetPrintableValue(sToken) + "\" not allowed in input command file");
 	}
 	return bOk;
 }
 
-const ALString CommandFile::ProcessSearchReplaceCommand(const ALString& sInputCommand) const
+const ALString CommandFile::ExtractJsonKey(const ALString& sTokenKey) const
 {
-	ALString sInputString;
-	ALString sBeginString;
-	ALString sEndString;
-	ALString sOutputCommand;
-	ALString sSearchValue;
-	ALString sReplaceValue;
-	int nSearchPosition;
-	int i;
+	require(CheckTokenKey(sTokenKey));
+	return sTokenKey.Mid(sJsonKeyDelimiter.GetLength(), sTokenKey.GetLength() - 2 * sJsonKeyDelimiter.GetLength());
+}
 
-	require(GetInputSearchReplaceValueNumber() > 0);
+JsonValue* CommandFile::LoopJsonValue(JsonObject* jsonObject, const ALString& sStandardKey) const
+{
+	JsonValue* jsonValue;
+	JsonMember* jsonMember;
 
-	// Parcours de toutes les paires search/replace a appliquer
-	sOutputCommand = sInputCommand;
-	for (i = 0; i < GetInputSearchReplaceValueNumber(); i++)
-	{
-		sSearchValue = GetInputSearchValueAt(i);
-		sReplaceValue = GetInputReplaceValueAt(i);
+	debug(ALString sMessage);
 
-		// Remplacement iteratif des pattern trouves a partir de la chaine pretraitee precedente
-		if (sSearchValue.GetLength() > 0)
-		{
-			sBeginString = "";
-			sEndString = sOutputCommand;
-			nSearchPosition = 0;
-			sOutputCommand = "";
-			while (nSearchPosition >= 0 and sEndString.GetLength() > 0)
-			{
-				nSearchPosition = sEndString.Find(sSearchValue);
+	require(jsonObject != NULL);
+	debug(require(CheckJsonKey(sStandardKey, sMessage)));
+	require(not IsByteVariableName(sStandardKey));
 
-				// Si non trouve, on garde la fin de la chaine en cours de traitement
-				if (nSearchPosition == -1)
-					sOutputCommand += sEndString;
-				// Sinon, en prend le debut puis la valeur de remplacement
-				else
-				{
-					sBeginString = sEndString.Left(nSearchPosition);
-					sEndString = sEndString.Right(sEndString.GetLength() -
-								      sSearchValue.GetLength() - nSearchPosition);
-					sOutputCommand += sBeginString + sReplaceValue;
-				}
-			}
-		}
-	}
-	return sOutputCommand;
+	// Recherche dans la variante standard
+	jsonMember = jsonObject->LookupMember(sStandardKey);
+	if (jsonMember == NULL)
+		jsonMember = jsonObject->LookupMember(ToByteVariableName(sStandardKey));
+
+	// Recherche de la valeur
+	jsonValue = NULL;
+	if (jsonMember != NULL)
+		jsonValue = jsonMember->GetValue();
+	return jsonValue;
 }
 
 boolean CommandFile::IsValueTrimed(const ALString& sValue) const
@@ -1592,5 +1883,5 @@ const ALString CommandFile::sCommentPrefix = "//";
 const ALString CommandFile::sTokenLoop = "LOOP";
 const ALString CommandFile::sTokenIf = "IF";
 const ALString CommandFile::sTokenEnd = "END";
-const ALString CommandFile::sVariableDelimiter = "__";
-const ALString CommandFile::sByteVariablePrefix = "byte";
+const ALString CommandFile::sJsonKeyDelimiter = "__";
+const ALString CommandFile::sByteJsonKeyPrefix = "byte";

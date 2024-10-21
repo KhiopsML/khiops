@@ -200,7 +200,7 @@ protected:
 
 	// Test de la validite d'un nom de variable, avec creation si necessaire d'un message d'erreur
 	// complet, y compris la valeur testee
-	boolean CheckVariableName(const ALString& sValue, ALString& sMessage) const;
+	boolean CheckJsonKey(const ALString& sValue, ALString& sMessage) const;
 
 	// Test si une valeur correspond a un nom de variable au format camelCase
 	boolean IsCamelCaseVariableName(const ALString& sValue) const;
@@ -230,6 +230,9 @@ protected:
 	///////////////////////////////////////////////////////////////
 	// Gestion du fichier de commandes en entree
 
+	// Application des recherche/remplacement de valeurs successivement sur une commande
+	const ALString ProcessSearchReplaceCommand(const ALString& sInputCommand) const;
+
 	// Types de token possible
 	enum
 	{
@@ -244,13 +247,22 @@ protected:
 	// Type de bloc pour un token de type block
 	const ALString& GetBlockType(int nToken) const;
 
+	// Reinitialisation de la gestion du parser
+	void ResetParser();
+
+	// Recodage de la ligne de commande en cours en exploitant le parametrage json
+	// En cas d'erreur, on renvoie false, avec emmission d'un message d'erreur
+	boolean RecodeCurrentLineUsingJsonParameters(ALString& sRecodedLine);
+
 	// Analyse d'une nouvelle ligne de commande pour mettre a jour l'etat du parser
 	// Etats possibles, gere par nParserState
 	// - TokenIf: en cours de traitement de bloc IF
 	// - TokenLoop: en cours de traitement de bloc LOOP
 	// - TokenOther: instruction standard
+	// Le parametre bContinueAnalysis en sortie indique qu'il faut continuer l'analyse
+	// du bloc en cours pour avoir une instruction executable disponible
 	// En cas d'erreur, on renvoie false, avec emmission d'un message d'erreur
-	boolean ParseInputCommand(const ALString& sInputCommand);
+	boolean ParseInputCommand(const ALString& sInputCommand, boolean& bContinueAnalysis);
 
 	// Tokenisation de la ligne de commande d'entree en une suite de tokens
 	// On renvoie la liste des types et valeur de tokens en sortie si la syntaxe est valide:
@@ -278,8 +290,13 @@ protected:
 	// En cas d'erreur, on renvoie false, avec emmission d'un message d'erreur
 	boolean CheckTokenKey(const ALString& sToken) const;
 
-	// Application des recherche/remplacement de valeurs successivement sur une commande
-	const ALString ProcessSearchReplaceCommand(const ALString& sInputCommand) const;
+	// Extraction de la cle d'un token de type cle valide entoure de ses delimiteurs
+	const ALString ExtractJsonKey(const ALString& sTokenKey) const;
+
+	// Recherche de la valeur associe a une cle dans un objet json
+	// La recherche se fait dans la variante standard ou byte de la cle
+	// On renvoie NULL si non trouve
+	JsonValue* LoopJsonValue(JsonObject* jsonObject, const ALString& sStandardKey) const;
 
 	// Test si une valeur est trimee
 	boolean IsValueTrimed(const ALString& sValue) const;
@@ -310,10 +327,13 @@ protected:
 	FILE* fInputCommands;
 	FILE* fOutputCommands;
 
+	// Object json pour les parametres en entree
+	JsonObject jsonParameters;
+
 	///////////////////////////////////////////////////////////////
 	// Variables de gestion du parsing du fichier de commande en entree
 	// Lors de la gestion d'une fichier de commande et de son fichier
-	// de parametrs en entree, le fichier de parametre json est charge
+	// de parametres en entree, le fichier de parametre json est charge
 	// en memoire une fois pour toute, sa taille etant limitee.
 	// Par contre, il n'y a pas de contrainte sur la taille du fichier
 	// de commande en entree. Celui-ci est traite en flux au fur et a
@@ -326,20 +346,31 @@ protected:
 	// Gestion de l'etat courant du parser de commande
 	int nParserState;
 
+	// Gestion de l'etat courant de la ligne en couurs de parsing
+	int nParserCurrentLineState;
+
 	// Cle du bloc en cours de traitement
 	ALString sParserBlockKey;
 
-	// Lignes du bloc en cours de traitement
-	StringVector svParserBlockLines;
+	// Vecteur des types et valeurs des tokens de la ligne en cours de traitement
+	IntVector ivParserTokenTypes;
+	StringVector svParserTokenValues;
+
+	// Indicateur de traitement dans le cas d'un bloc de type if en cours
+	boolean bParserIfState;
+
+	// Tableau en cours du parametrage json dans le cas d'un bloc loop en cours
+	JsonArray* parserLoopJsonArray;
+
+	// Tableau des vecteur de type et valeurs de tokens pour les lignes de bloc loop en cours
+	ObjectArray oaParserLoopLinesTokenTypes;
+	ObjectArray oaParserLoopLinesTokenValues;
 
 	// Index de la ligne de bloc en cours de traitement
-	int nParserBlockLineIndex;
+	int nParserLoopLineIndex;
 
 	// Index de l'objet json du tableau en cours de traitement
-	int nParserBlockObjectIndex;
-
-	// Object json pour les parametres en entree
-	JsonObject jsonParameters;
+	int nParserLoopObjectIndex;
 
 	///////////////////////////////////////////////////////////////
 	// Constantes sur les mots cles du langage de commande en entree
@@ -353,17 +384,17 @@ protected:
 	// Prefix de commentaire
 	static const ALString sCommentPrefix;
 
-	// Delimiteur de parametre dans un fichier de commande
-	static const ALString sVariableDelimiter;
+	// Delimiteur de cle json dans un fichier de commande
+	static const ALString sJsonKeyDelimiter;
 
-	// Prefixe des noms de variable ayant un contenu de type byte
-	static const ALString sByteVariablePrefix;
+	// Prefixe des cle json ayant un contenu de type byte
+	static const ALString sByteJsonKeyPrefix;
 
 	// Longueur max d'une ligne de fichier de commande
 	static const int nMaxLineLength = 500;
 
-	// Longueur max d'un nom de variable
-	static const int nMaxVariableNameLength = 100;
+	// Longueur max d'une cle json
+	static const int nMaxJsonKeyLength = 100;
 
 	// Longueur max d'une valeur de type chaine de caracteres
 	static const int nMaxStringValueLength = 300;
@@ -372,7 +403,7 @@ protected:
 	static const int nMaxPrintableLength = 30;
 
 	// Taille max d'un bloc d'instruction IF ou LOOP d'un fichier de commande
-	static const int nCommandBlockMaxLineNumber = 1000;
+	static const int nLoopMaxLineNumber = 1000;
 
 	// Taille max d'un fichier de parametrage
 	static const longint lMaxInputParameterFileSize = lMB;
