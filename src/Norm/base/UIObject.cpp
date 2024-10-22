@@ -1982,7 +1982,10 @@ void UIObject::ParseMainParameters(int argc, char** argv)
 
 		// Si il y a eu un pbm lors de l'excution d'une methode, on sort en erreur
 		if (not bOk)
-			GlobalExit();
+		{
+			commandFile.CloseCommandFiles();
+			Global::AddFatalError("Command file", "", "Batch mode failure");
+		}
 
 		// Ecriture d'un en-tete dans le fichier des commandes
 		WriteOutputCommand("", "", CurrentTimestamp());
@@ -1999,10 +2002,9 @@ void UIObject::ParseMainParameters(int argc, char** argv)
 		bOk = SetUIMode(UIObject::Graphic);
 		if (not bOk and not GetTextualInteractiveModeAllowed())
 		{
-			Global::AddError("", "",
-					 "Unable to load GUI, use -b and -i flags to launch khiops in batch mode "
-					 "(khiops -h for help)");
-			GlobalExit();
+			Global::AddFatalError("", "",
+					      "Unable to load GUI, use -b and -i flags to launch khiops in batch mode "
+					      "(khiops -h for help)");
 		}
 	}
 }

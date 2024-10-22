@@ -285,7 +285,7 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 	// Recherche d'une ligne non vide a traiter
 
 	// On effectue le parsing uniquement si necessaire
-	// Par exemple, dans le cas d'un bloc de type loop en cours de traitement, ce n'est pas necessaire
+	// Dans le cas d'un bloc de type loop en cours de traitement, ce n'est pas necessaire
 	bOk = true;
 	if (oaParserLoopLinesTokenTypes.GetSize() == 0)
 	{
@@ -347,9 +347,15 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 				sInputLine.GetBufferSetLength(sInputLine.GetLength() - 1);
 
 			// Tokenisation de la ligne en cours dans le cas d'un fichier de parametrage
-			if (GetInputParameterFileName() != "")
+			// On continue tant que necessaire, c'est a dire jsuqu'a une commande parsee soit
+			// directement disponible, ou que l'on est prepare toutes les commandes d'un block loop
+			assert(bOk);
+			if (sInputLine != "" and GetInputParameterFileName() != "")
 			{
-				assert(bOk);
+				//DDD
+				if (nParserLineIndex == 11)
+					cout << flush;
+
 				// Tokenisation de la ligne
 				bOk = ParseInputCommand(sInputLine, bContinueParsing);
 
@@ -366,18 +372,14 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 		if (bOk and feof(fInputCommands) and GetInputParameterFileName() != "" and nParserState != TokenOther)
 		{
 			bOk = false;
-			AddInputCommandFileError("No " + sTokenEnd + " " + GetBlockType(nParserState) + " " +
+			AddInputCommandFileError("No " + sTokenEnd + " " + GetBlockType(nParserState) +
 						 " found until the end of the file in current " +
 						 GetBlockType(nParserState) + " " + sParserBlockKey + " block");
 		}
 
 		// Arret si necessaire
 		if (not bOk or feof(fInputCommands))
-		{
-			// Nettoyage
-			CloseInputCommandFile();
 			return false;
-		}
 		assert(sInputLine != "");
 	}
 
@@ -404,18 +406,14 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 
 	// Cas avec fichier de parametrage json: analyse des lignes
 	if (bOk and GetInputParameterFileName() != "")
-		bOk = RecodeCurrentLineUsingJsonParameters(sInputLine);
+		sInputLine = RecodeCurrentLineUsingJsonParameters(bOk);
 	// Cas du mode recherche/remplacement dans la partie valeur de la commande
 	else if (bOk and GetInputSearchReplaceValueNumber() > 0)
 		sInputLine = ProcessSearchReplaceCommand(sInputLine);
 
 	// Arret si necessaire
 	if (not bOk)
-	{
-		// Nettoyage
-		CloseInputCommandFile();
 		return false;
-	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////
 	// Analyse de la ligne a traiter
@@ -479,6 +477,15 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 		return false;
 }
 
+boolean CommandFile::IsInputCommandEnd() const
+{
+	require(GetInputCommandFileName() != "");
+	require(IsInputCommandFileOpened());
+
+	// On teste s'il reste des ligne a lire dans le fichier en entree et des commande de bloc loop en cours
+	return feof(fInputCommands) and oaParserLoopLinesTokenTypes.GetSize() == 0;
+}
+
 void CommandFile::WriteOutputCommand(const ALString& sIdentifierPath, const ALString& sValue, const ALString& sLabel)
 {
 	if (fOutputCommands != NULL)
@@ -530,6 +537,7 @@ void CommandFile::WriteOutputCommandHeader()
 boolean CommandFile::ReadWriteCommandFiles()
 {
 	boolean bOk = true;
+	boolean bCommandAnalysisOk;
 	StringVector svIdentifierPath;
 	ALString sValue;
 	ALString sIdentifierPath;
@@ -547,9 +555,14 @@ boolean CommandFile::ReadWriteCommandFiles()
 		bOk = OpenOutputCommandFile();
 
 	// Lecture/ecriture des lignes de commandes
+	bCommandAnalysisOk = true;
 	while (bOk)
 	{
 		bOk = ReadInputCommand(&svIdentifierPath, sValue);
+		if (not IsInputCommandEnd())
+			bCommandAnalysisOk = bCommandAnalysisOk and bOk;
+
+		// Ecriture de la commande si ok
 		if (bOk)
 		{
 			// Construction de l'identifier de commande a partir des ses composant
@@ -568,10 +581,12 @@ boolean CommandFile::ReadWriteCommandFiles()
 	}
 
 	// Fermeture des fichiers de commandes
-	if (IsInputCommandFileOpened())
-		CloseInputCommandFile();
-	if (IsInputCommandFileOpened())
-		CloseInputCommandFile();
+	CloseCommandFiles();
+
+	// Message d'erreur synthetique apres la fermetire des fichier, sans numero de ligne,
+	// en cas d'erreur de traitement des ligne
+	if (not bCommandAnalysisOk)
+		AddInputCommandFileError("Analysis of input commands interrupted because of errors");
 	return bOk;
 }
 
@@ -1170,9 +1185,10 @@ void CommandFile::ResetParser()
 	nParserLoopObjectIndex = -1;
 }
 
-boolean CommandFile::RecodeCurrentLineUsingJsonParameters(ALString& sRecodedLine)
+const ALString CommandFile::RecodeCurrentLineUsingJsonParameters(boolean& bOk)
 {
-	boolean bOk = true;
+	boolean bCleanLoopWorkingData;
+	ALString sRecodedLine;
 	JsonValue* jsonValue;
 	ALString sJsonKey;
 	IntVector* ivCurrentTokenTypes;
@@ -1183,22 +1199,21 @@ boolean CommandFile::RecodeCurrentLineUsingJsonParameters(ALString& sRecodedLine
 
 	require(GetInputParameterFileName() != "");
 	require(IsInputCommandFileOpened());
+	require(nParserState == TokenOther or nParserState == TokenIf);
 
 	// Initialisation
-	sRecodedLine = "";
+	bOk = true;
 
-	// Recherche du vecteur de token courant en fonction de l'etat du parser
-	if (nParserState == TokenOther or nParserState == TokenIf)
+	// Recherche du vecteur de token courant dans la boucle si elle est en cours de traitement
+	bCleanLoopWorkingData = false;
+	if (oaParserLoopLinesTokenTypes.GetSize() > 0)
 	{
-		ivCurrentTokenTypes = &ivParserTokenTypes;
-		svCurrentTokenValues = &svParserTokenValues;
-		currentJsonObject = NULL;
-	}
-	// Sinon, on se deplace dans la boucle
-	else
-	{
-		assert(nParserState == TokenLoop);
+		// Dans un bloc loop, on est revenu en etat standard une fois la fin de la boucle detectee
+		// et on doit alors traiter toutes les instruction memorisee autant de fois qu'il y d'objets json
+		assert(nParserState == TokenOther);
 		assert(parserLoopJsonArray != NULL);
+		assert(nParserLoopLineIndex >= 0);
+		assert(nParserLoopObjectIndex >= 0);
 		assert(nParserLoopLineIndex < oaParserLoopLinesTokenTypes.GetSize() or
 		       nParserLoopObjectIndex < parserLoopJsonArray->GetValueNumber());
 
@@ -1215,15 +1230,19 @@ boolean CommandFile::RecodeCurrentLineUsingJsonParameters(ALString& sRecodedLine
 			nParserLoopObjectIndex++;
 		}
 
-		// Nettoyage si plus rien a traiter ensuite
+		// On memorise la necessite de nettoyage si necessaire des donnees de travail du bloc loop
+		// Le nettoyage sera effectue plus tard, car il faut encore traiter la derniere instruction en cours
 		if (nParserLoopObjectIndex == parserLoopJsonArray->GetValueNumber())
-		{
-			parserLoopJsonArray = NULL;
-			oaParserLoopLinesTokenTypes.DeleteAll();
-			oaParserLoopLinesTokenValues.DeleteAll();
-			nParserLoopLineIndex = 0;
-			nParserLoopObjectIndex = 0;
-		}
+			bCleanLoopWorkingData = true;
+	}
+	// Sinon, on est sur une instruction standard a executer
+	else
+	{
+		assert(nParserState == TokenOther or nParserState == TokenIf);
+		assert(nParserState != TokenIf or bParserIfState);
+		ivCurrentTokenTypes = &ivParserTokenTypes;
+		svCurrentTokenValues = &svParserTokenValues;
+		currentJsonObject = NULL;
 	}
 
 	// Recodage de la ligne en cours
@@ -1280,7 +1299,7 @@ boolean CommandFile::RecodeCurrentLineUsingJsonParameters(ALString& sRecodedLine
 				assert(jsonValue->GetType() == JsonValue::NumberValue or
 				       jsonValue->GetType() == JsonValue::StringValue);
 				if (jsonValue->GetType() == JsonValue::NumberValue)
-					sRecodedLine += jsonValue->GetStringValue()->WriteString();
+					sRecodedLine += jsonValue->GetNumberValue()->WriteString();
 				else
 					sRecodedLine += jsonValue->GetStringValue()->GetString();
 
@@ -1293,10 +1312,20 @@ boolean CommandFile::RecodeCurrentLineUsingJsonParameters(ALString& sRecodedLine
 		}
 	}
 
+	// Nettoyage si necessaire des donnees de travail du bloc loop
+	if (bCleanLoopWorkingData)
+	{
+		parserLoopJsonArray = NULL;
+		oaParserLoopLinesTokenTypes.DeleteAll();
+		oaParserLoopLinesTokenValues.DeleteAll();
+		nParserLoopLineIndex = 0;
+		nParserLoopObjectIndex = 0;
+	}
+
 	// Nettoyage si erreur
 	if (not bOk)
 		sRecodedLine = "";
-	return bOk;
+	return sRecodedLine;
 }
 
 boolean CommandFile::ParseInputCommand(const ALString& sInputCommand, boolean& bContinueParsing)
@@ -1368,7 +1397,7 @@ boolean CommandFile::ParseInputCommand(const ALString& sInputCommand, boolean& b
 					// Sinon, on memorise la valeur du booleen
 					else
 					{
-						bParserIfState = jsonValue->GetBooleanValue();
+						bParserIfState = jsonValue->GetBooleanValue()->GetBoolean();
 
 						// Comme on est sur une structure de controle, il faut continuer le parsing
 						bContinueParsing = true;
@@ -1431,8 +1460,8 @@ boolean CommandFile::ParseInputCommand(const ALString& sInputCommand, boolean& b
 				if (nParserState == TokenIf)
 					bContinueParsing = true;
 				else
-					bContinueParsing = oaParserLoopLinesTokenTypes.GetSize() > 0 and
-							   parserLoopJsonArray->GetValueNumber() > 0;
+					bContinueParsing = oaParserLoopLinesTokenTypes.GetSize() == 0 or
+							   parserLoopJsonArray->GetValueNumber() == 0;
 			}
 			// Commande invalide sinon
 			else
@@ -1607,7 +1636,7 @@ boolean CommandFile::TokenizeInputCommand(const ALString& sInputCommand, IntVect
 			sBuffer = sEndLine;
 			nToken = GetFirstInputToken(sBuffer, sToken, sInterToken, sEndLine);
 
-			// Analyse du token dans le cas d'une variable
+			// Analyse du token dans le cas d'une cle
 			if (nToken == TokenKey)
 			{
 				bOk = CheckTokenKey(sToken);
@@ -1636,8 +1665,14 @@ boolean CommandFile::TokenizeInputCommand(const ALString& sInputCommand, IntVect
 				// Ajout de la valeur inter-token
 				sToken += sInterToken;
 
-				// Ajout du token si non existant
-				if (ivTokenTypes->GetAt(ivTokenTypes->GetSize() - 1) != TokenOther)
+				// Ajout du token si seul le token de commande est enregistre
+				if (ivTokenTypes->GetSize() == 1)
+				{
+					ivTokenTypes->Add(TokenOther);
+					svTokenValues->Add(sToken);
+				}
+				// Sinon, ajout du token si le precedent est de type cle
+				else if (ivTokenTypes->GetAt(ivTokenTypes->GetSize() - 1) == TokenKey)
 				{
 					ivTokenTypes->Add(TokenOther);
 					svTokenValues->Add(sToken);
@@ -1645,6 +1680,7 @@ boolean CommandFile::TokenizeInputCommand(const ALString& sInputCommand, IntVect
 				// Completion du token existant sinon
 				else
 				{
+					assert(ivTokenTypes->GetSize() >= 2);
 					assert(ivTokenTypes->GetAt(ivTokenTypes->GetSize() - 1) == TokenOther);
 					sToken = svTokenValues->GetAt(ivTokenTypes->GetSize() - 1) + sToken;
 					svTokenValues->SetAt(ivTokenTypes->GetSize() - 1, sToken);
@@ -1670,7 +1706,7 @@ boolean CommandFile::TokenizeInputCommand(const ALString& sInputCommand, IntVect
 		svTokenValues->SetSize(0);
 	}
 	ensure(ivTokenTypes->GetSize() == svTokenValues->GetSize());
-	ensure(bOk);
+	ensure(not bOk or ivTokenTypes->GetSize() > 0);
 	return bOk;
 }
 

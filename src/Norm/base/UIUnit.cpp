@@ -53,6 +53,8 @@ void UIUnit::Open()
 	int nListIndex;
 	boolean bActionExit;
 	ALString sCommand;
+	boolean bIsInputCommandFileOpened;
+	boolean bIsInputCommandEnd;
 
 	require(Check());
 	require(GetVisible() == true);
@@ -75,7 +77,7 @@ void UIUnit::Open()
 	// On envoie un log des commandes rejouees avec les erreurs eventuelles
 	// La politique est tres tolerante aux erreurs: on se contente de les signaler
 	bActionExit = false;
-	while (bActionExit != true and ReadInputCommand(&svIdentifierPath, sValue) == true)
+	while (not bActionExit and ReadInputCommand(&svIdentifierPath, sValue) == true)
 	{
 		// Recherche de l'unite d'interface concernee
 		assert(svIdentifierPath.GetSize() > 0);
@@ -105,7 +107,10 @@ void UIUnit::Open()
 
 				// Sortie en mode fast exit
 				if (bBatchMode and bFastExitMode and Global::IsAtLeastOneError())
+				{
+					commandFile.CloseCommandFiles();
 					GlobalExitOnSuccess();
+				}
 				break;
 			}
 
@@ -139,7 +144,10 @@ void UIUnit::Open()
 							// Sortie en mode fast exit, pouvant etre declenchee par une erreur de refresh
 							if (bBatchMode and bFastExitMode and
 							    Global::IsAtLeastOneError())
+							{
+								commandFile.CloseCommandFiles();
 								GlobalExitOnSuccess();
+							}
 						}
 						break;
 					}
@@ -148,9 +156,9 @@ void UIUnit::Open()
 						assert(uiUnit->GetDataType() == List);
 						// Arret sinon
 						commandFile.AddInputCommandFileError(
-						    "Replay failure: " + sCommand + " " + sValue + " at index " +
-						    IntToString(uiUnit->nCurrentItemIndex));
-						CleanCommandLineManagement();
+						    "Incorrect index in command: " + sCommand + " " + sValue +
+						    " at index " + IntToString(uiUnit->nCurrentItemIndex));
+						commandFile.CloseCommandFiles();
 						if (bBatchMode)
 							Global::AddFatalError("Command file", "", "Batch mode failure");
 						break;
@@ -219,8 +227,8 @@ void UIUnit::Open()
 				}
 
 				// Arret sinon
-				commandFile.AddInputCommandFileError("Replay failure: " + sCommand + " " + sValue);
-				CleanCommandLineManagement();
+				commandFile.AddInputCommandFileError("Incorrect command: " + sCommand + " " + sValue);
+				commandFile.CloseCommandFiles();
 				if (bBatchMode)
 					Global::AddFatalError("Command file", "", "Batch mode failure");
 				break;
@@ -233,7 +241,7 @@ void UIUnit::Open()
 	svIdentifierPath.SetSize(0);
 
 	// Ouverture de la fenetre, selon le mode (inutile si action Exit rejouee)
-	if (bActionExit == false)
+	if (not bActionExit)
 	{
 		// Mode graphique
 		if (GetUIMode() == Graphic)
@@ -271,13 +279,30 @@ void UIUnit::Open()
 			else
 			// Sinon, en mode textuel, on n'autorise pas d'interactions sans scenario
 			{
-				if (commandFile.IsInputCommandFileOpened())
-					Global::AddFatalError("Command file", "",
-							      "Unexpected end of file in the input commands file");
-				else if (commandFile.GetInputCommandFileName() == "")
-					Global::AddFatalError("Command file", "", "Missing input commands file");
+				// Fermeture prealable du fichier de commande pour avoir un message
+				// d'erreur sans numero de ligne, apres avoir collecte les informations de diagnostique
+				bIsInputCommandFileOpened = commandFile.IsInputCommandFileOpened();
+				bIsInputCommandEnd = bIsInputCommandFileOpened and commandFile.IsInputCommandEnd();
+				commandFile.CloseInputCommandFile();
+
+				// Message d'erreur selon etat du du fichier de commande
+				if (commandFile.GetInputCommandFileName() == "")
+					commandFile.AddInputCommandFileError("Missing input command file");
+				else if (bIsInputCommandFileOpened)
+				{
+					if (bIsInputCommandEnd)
+						commandFile.AddInputCommandFileError(
+						    "Unexpected end of file in the input command file");
+					else
+						commandFile.AddInputCommandFileError(
+						    "Analysis of input commands interrupted because of errors");
+				}
 				else
-					Global::AddFatalError("Command file", "", "Incorrect input commands file");
+					commandFile.AddInputCommandFileError("Incorrect input command file");
+
+				// Erreur fatale
+				commandFile.CloseCommandFiles();
+				Global::AddFatalError("Command file", "", "Batch mode failure");
 			}
 		}
 	}

@@ -164,10 +164,13 @@ public:
 	void CloseCommandFiles();
 
 	// Lecture d'une commande
-	// Renvoie false si pas de commande, sinon un vecteur de chaines de caracteres representant
+	// Renvoie false si pas de commande valide disponible, sinon un vecteur de chaines de caracteres representant
 	// le parsing de IdentifierPath et une valeur optionnelle
 	// Cette methode peut etre appelee meme en l'absence de fichier de de commande en sortie
 	boolean ReadInputCommand(StringVector* svIdentifierPath, ALString& sValue);
+
+	// Indique que l'on a fini de lire et traiter les commandes
+	boolean IsInputCommandEnd() const;
 
 	// Ecriture d'une commande
 	// Cette methode peut etre appelee meme en l'absence de fichier de de commande en sortie
@@ -251,8 +254,9 @@ protected:
 	void ResetParser();
 
 	// Recodage de la ligne de commande en cours en exploitant le parametrage json
-	// En cas d'erreur, on renvoie false, avec emmission d'un message d'erreur
-	boolean RecodeCurrentLineUsingJsonParameters(ALString& sRecodedLine);
+	// On renvoie la ligne recodee
+	// En cas d'erreur, le boolen en parametre est mis a false, avec emmission d'un message d'erreur
+	const ALString RecodeCurrentLineUsingJsonParameters(boolean& bOk);
 
 	// Analyse d'une nouvelle ligne de commande pour mettre a jour l'etat du parser
 	// Etats possibles, gere par nParserState
