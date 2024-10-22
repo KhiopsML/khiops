@@ -396,9 +396,6 @@ protected:
 	// Nettoyage de la gestion de la ligne de commande, fermeture des fichiers ouverts...
 	static void CleanCommandLineManagement();
 
-	// Fonction de sortie utilisateur pour fermer les fichiers d'entre-sortie de commande et d'erreur
-	static void ExitHandlerCleanCommandLineManagement(int nExitCode);
-
 	// Lecture d'une commande
 	// renvoie false si pas de commande, sinon un vecteur de chaines de caracteres representant le
 	// parsing de IdentifierPath et une valeur optionnelle

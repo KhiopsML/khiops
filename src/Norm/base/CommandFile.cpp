@@ -154,10 +154,6 @@ boolean CommandFile::OpenInputCommandFile()
 		bOk = false;
 	}
 
-	// Reinitialisation du parser lors de l'ouverture
-	// On ne le reinitialise pas a la fermetre pour avoir l'etat du parser en cas de probleme
-	ResetParser();
-
 	// Chargement des parametre json si specifie
 	if (bOk and GetInputParameterFileName() != "")
 	{
@@ -230,6 +226,10 @@ void CommandFile::CloseInputCommandFile()
 		// Si le fichier est sur HDFS, on supprime la copie locale
 		PLRemoteFileService::CleanInputWorkingFile(sInputCommandFileName, sLocalInputCommandFileName);
 	}
+
+	// Nettoyage du parser et des parametre json
+	ResetParser();
+	jsonParameters.DeleteAll();
 }
 
 void CommandFile::CloseOutputCommandFile()

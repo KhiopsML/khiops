@@ -1831,7 +1831,6 @@ boolean UIObject::CheckCommandLineOptions(const ObjectArray& oaOptions)
 
 void UIObject::ParseMainParameters(int argc, char** argv)
 {
-	static boolean bIsUserExitHandlerSet = false;
 	boolean bOk = true;
 	CommandLineOption* oInputScenario;
 	CommandLineOption* oInputParameters;
@@ -1941,13 +1940,6 @@ void UIObject::ParseMainParameters(int argc, char** argv)
 	// Nettoyage initial
 	CleanCommandLineManagement();
 
-	// Nettoyage et notament fermeture des fichiers en cas d'erreur fatale
-	if (not bIsUserExitHandlerSet)
-	{
-		AddUserExitHandler(ExitHandlerCleanCommandLineManagement);
-		bIsUserExitHandlerSet = true;
-	}
-
 	// Parsing de la ligne de commande existante
 	// pour detecter les options
 	bVerboseCommandReplay = false;
@@ -1964,6 +1956,7 @@ void UIObject::ParseMainParameters(int argc, char** argv)
 	if (bOutputCommandNoReplay)
 	{
 		commandFile.ReadWriteCommandFiles();
+		CleanCommandLineManagement();
 
 		// On sort du programme car a a fini tous les traitements, comme pour le -h
 		GlobalExitOnSuccess();
@@ -2142,11 +2135,6 @@ void UIObject::CleanCommandLineManagement()
 		// Copie vers HDFS si necessaire
 		PLRemoteFileService::CleanOutputWorkingFile(sErrorLogFileName, sLocalErrorLogFileName);
 	}
-}
-
-void UIObject::ExitHandlerCleanCommandLineManagement(int nExitCode)
-{
-	CleanCommandLineManagement();
 }
 
 boolean UIObject::ReadInputCommand(StringVector* svIdentifierPath, ALString& sValue)
