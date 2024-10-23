@@ -202,24 +202,24 @@ protected:
 	// Chargement du fichier json en entree et verification de sa validite
 	boolean LoadJsonParameters();
 
-	// Test de la validite d'un nom de variable, avec creation si necessaire d'un message d'erreur
+	// Test de la validite d'une cle json, avec creation si necessaire d'un message d'erreur
 	// complet, y compris la valeur testee
 	boolean CheckJsonKey(const ALString& sValue, ALString& sMessage) const;
 
-	// Test si une valeur correspond a un nom de variable au format camelCase
-	boolean IsCamelCaseVariableName(const ALString& sValue) const;
+	// Test si une valeur correspond a une cle json au format camelCase
+	boolean IsCamelCaseJsonKey(const ALString& sValue) const;
 
-	// Test si un nom de variable correspond a un contenu de type byte, donc encode au format base64
-	// Un tel nom de variable au format camelCase doit etre prefixe par byte
-	boolean IsByteVariableName(const ALString& sValue) const;
+	// Test si une cle json correspond a un contenu de type byte, donc encode au format base64
+	// Une telle cle json au format camelCase doit etre prefixe par byte
+	boolean IsByteJsonKey(const ALString& sValue) const;
 
-	// Transformation d'un nom de variable en sa variante byte ou standard
+	// Transformation d'une cle json en sa variante byte ou standard
 	// On renvoie la valeur initiale si elle est deja dans sa bonne variante
-	const ALString ToByteVariableName(const ALString& sValue) const;
-	const ALString ToStandardVariableName(const ALString& sValue) const;
+	const ALString ToByteJsonKey(const ALString& sValue) const;
+	const ALString ToStandardJsonKey(const ALString& sValue) const;
 
-	// Transformation d'un nom de variable en sa variante opposee
-	const ALString ToVariantVariableName(const ALString& sValue) const;
+	// Transformation d'une cles json en sa variante opposee
+	const ALString ToVariantJsonKey(const ALString& sValue) const;
 
 	// Test de la validite d'une valeur de type string, avec creation si necessaire d'un message d'erreur
 	// complet, y compris la valeur testee
@@ -248,7 +248,7 @@ protected:
 		None
 	};
 
-	// Type de bloc pour un token de type block
+	// Type de bloc pour un token de type bloc
 	const ALString& GetBlockType(int nToken) const;
 
 	// Reinitialisation de la gestion du parser
@@ -301,7 +301,7 @@ protected:
 	// Recherche de la valeur associe a une cle dans un objet json
 	// La recherche se fait dans la variante standard ou byte de la cle
 	// On renvoie NULL si non trouve
-	JsonValue* LoopJsonValue(JsonObject* jsonObject, const ALString& sStandardKey) const;
+	JsonValue* LoopJsonValue(JsonObject* jsonObject, const ALString& sKey) const;
 
 	// Test si une valeur est trimee
 	boolean IsValueTrimed(const ALString& sValue) const;

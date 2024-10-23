@@ -217,21 +217,28 @@ boolean CommandFile::AreCommandFilesOpened() const
 
 void CommandFile::CloseInputCommandFile()
 {
-	boolean bOk = true;
+	boolean bOk;
+	boolean bIsParserOkBeforeEnd;
+	boolean bIsParserOkAfterEnd;
 	StringVector svIdentifierPath;
 	ALString sValue;
 
 	// Lecture si necessaire de la fin du fichier pour avoir des diagnostiques d'erreur complets
 	// - bloc if non termine
 	// - diagnostique sur les cles du parametrage json non utilisees dans les commandes
-	if (GetInputParameterFileName() != "" and fInputCommands != NULL and nParserLineIndex > 0 and bParserOk)
+	bIsParserOkBeforeEnd = bParserOk;
+	if (GetInputParameterFileName() != "" and IsInputCommandFileOpened() and not IsInputCommandEnd() and
+	    nParserLineIndex > 0 and bParserOk)
 	{
-		while (bOk and not IsInputCommandEnd())
+		// Analyse des ligne jusqu'a la fin du fichier ou d'une erreur, qui mettra a jour bParserOk
+		bOk = true;
+		while (bOk)
 		{
 			bOk = ReadInputCommand(&svIdentifierPath, sValue);
 			svIdentifierPath.SetSize(0);
 		}
 	}
+	bIsParserOkAfterEnd = bParserOk;
 
 	// Fermeture du fichier d'entree
 	if (fInputCommands != NULL)
@@ -243,17 +250,20 @@ void CommandFile::CloseInputCommandFile()
 		PLRemoteFileService::CleanInputWorkingFile(sInputCommandFileName, sLocalInputCommandFileName);
 	}
 
-	// Nettoyage du parser et des parametre json
+	// Nettoyage du parser et des parametre json (et donc  de bParserOk)
 	ResetParser();
 	jsonParameters.DeleteAll();
 
-	// Erreur fatale en cas d'erreurs, apres la fermeture du fichier
-	if (not bOk)
+	// Erreur fatal standard si erreur avant la fin de fichier
+	if (not bIsParserOkBeforeEnd)
+	{
+		AddInputCommandFileError("Analysis of input commands interrupted because of errors");
+		Global::AddFatalError("Command file", "", "Batch mode failure");
+	}
+	// Erreur fatale en cas d'erreurs detectees apres la fermeture du fichier
+	else if (not bIsParserOkAfterEnd)
 		Global::AddFatalError("Command file", "",
 				      "Batch mode failure detected when closing input command file");
-	// Message standard si erreur avant la fin de fichier
-	else if (not bParserOk)
-		Global::AddFatalError("Command file", "", "Batch mode failure");
 }
 
 void CommandFile::CloseOutputCommandFile()
@@ -372,7 +382,7 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 
 			// Tokenisation de la ligne en cours dans le cas d'un fichier de parametrage
 			// On continue tant que necessaire, c'est a dire jsuqu'a une commande parsee soit
-			// directement disponible, ou que l'on est prepare toutes les commandes d'un block loop
+			// directement disponible, ou que l'on est prepare toutes les commandes d'un bloc loop
 			assert(bOk);
 			if (sInputLine != "" and GetInputParameterFileName() != "")
 			{
@@ -387,8 +397,8 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 		}
 		assert(sInputLine != "" or not bOk or feof(fInputCommands));
 
-		// Cas particulier de fin de fichier sans fin de block
-		// C'est le seul cas qui ne pas etre traite par le parsing en flux des ligne du f
+		// Cas particulier de fin de fichier sans fin de bloc
+		// C'est le seul cas qui ne pas etre traite par le parsing en flux des lignes du fichier de commande
 		if (bOk and feof(fInputCommands) and GetInputParameterFileName() != "" and nParserState != TokenOther)
 		{
 			bOk = false;
@@ -694,11 +704,11 @@ boolean CommandFile::LoadJsonParameters()
 				bOk = false;
 			}
 			// Verification une seule fois de la non-collision de la cle avec sa variante de type byte
-			else if (IsByteVariableName(jsonMember->GetKey()) and
-				 jsonParameters.LookupMember(ToStandardVariableName(jsonMember->GetKey())) != NULL)
+			else if (IsByteJsonKey(jsonMember->GetKey()) and
+				 jsonParameters.LookupMember(ToStandardJsonKey(jsonMember->GetKey())) != NULL)
 			{
 				AddInputParameterFileError("in main json object, the \"" +
-							   ToStandardVariableName(jsonMember->GetKey()) +
+							   ToStandardJsonKey(jsonMember->GetKey()) +
 							   "\" key is used twice, along with its \"" +
 							   jsonMember->GetKey() + "\" byte variant");
 				bOk = false;
@@ -716,7 +726,7 @@ boolean CommandFile::LoadJsonParameters()
 				bOk = false;
 			}
 			// Verification du type string dans le cas d'une cle avec sa variante de type byte
-			else if (IsByteVariableName(jsonMember->GetKey()) and
+			else if (IsByteJsonKey(jsonMember->GetKey()) and
 				 jsonMember->GetValueType() != JsonObject::StringValue)
 			{
 				AddInputParameterFileError(
@@ -728,7 +738,7 @@ boolean CommandFile::LoadJsonParameters()
 			// Verification de de la longueur et de l'encodage base64 de la valeur string
 			else if (jsonMember->GetValueType() == JsonObject::StringValue and
 				 not CheckStringValue(jsonMember->GetStringValue()->GetString(),
-						      IsByteVariableName(jsonMember->GetKey()), sMessage))
+						      IsByteJsonKey(jsonMember->GetKey()), sMessage))
 			{
 				AddInputParameterFileError("in main json object, at " +
 							   BuildJsonPath(jsonMember, -1, NULL) + ", " + sMessage);
@@ -778,15 +788,14 @@ boolean CommandFile::LoadJsonParameters()
 								bIsArrayObjectValid = false;
 							}
 							// Verification de la non-collision de la cle avec sa variante de type byte
-							else if (IsByteVariableName(jsonSubObjectMember->GetKey()) and
-								 jsonSubObject->LookupMember(ToStandardVariableName(
+							else if (IsByteJsonKey(jsonSubObjectMember->GetKey()) and
+								 jsonSubObject->LookupMember(ToStandardJsonKey(
 								     jsonSubObjectMember->GetKey())) != NULL)
 							{
 								AddInputParameterFileError(
 								    "in object value of array at " +
 								    BuildJsonPath(jsonMember, j, NULL) + ", the \"" +
-								    ToStandardVariableName(
-									jsonSubObjectMember->GetKey()) +
+								    ToStandardJsonKey(jsonSubObjectMember->GetKey()) +
 								    "\" key is used twice,  along with its \"" +
 								    jsonSubObjectMember->GetKey() + "\" byte variant");
 								bOk = false;
@@ -794,12 +803,12 @@ boolean CommandFile::LoadJsonParameters()
 							// Verification que la cle du sous-objet n'entre pas en collision avec une cle de l'objet principal
 							else if (jsonParameters.LookupMember(
 								     jsonSubObjectMember->GetKey()) != NULL or
-								 jsonParameters.LookupMember(ToVariantVariableName(
+								 jsonParameters.LookupMember(ToVariantJsonKey(
 								     jsonSubObjectMember->GetKey())) != NULL)
 							{
 								// Message d'erreur avec precision dans le cas d'utilisation de variantes standard ou byte differents
 								sLabelSuffix = "";
-								if (jsonParameters.LookupMember(ToVariantVariableName(
+								if (jsonParameters.LookupMember(ToVariantJsonKey(
 									jsonSubObjectMember->GetKey())) != NULL)
 									sLabelSuffix = " (in any standard or "
 										       "byte variants)";
@@ -828,7 +837,7 @@ boolean CommandFile::LoadJsonParameters()
 								bIsArrayObjectValid = false;
 							}
 							// Verification du type string dans le cas d'une cle avec sa variante de type byte
-							else if (IsByteVariableName(jsonSubObjectMember->GetKey()) and
+							else if (IsByteJsonKey(jsonSubObjectMember->GetKey()) and
 								 jsonSubObjectMember->GetValueType() !=
 								     JsonObject::StringValue)
 							{
@@ -846,7 +855,7 @@ boolean CommandFile::LoadJsonParameters()
 								     JsonObject::StringValue and
 								 not CheckStringValue(
 								     jsonSubObjectMember->GetStringValue()->GetString(),
-								     IsByteVariableName(jsonSubObjectMember->GetKey()),
+								     IsByteJsonKey(jsonSubObjectMember->GetKey()),
 								     sMessage))
 							{
 								AddInputParameterFileError(
@@ -894,7 +903,7 @@ boolean CommandFile::LoadJsonParameters()
 								if (jsonSubObjectMember->GetKey() !=
 									firstJsonSubObjectMember->GetKey() and
 								    jsonSubObjectMember->GetKey() !=
-									ToVariantVariableName(
+									ToVariantJsonKey(
 									    firstJsonSubObjectMember->GetKey()))
 								{
 									AddInputParameterFileError(
@@ -967,16 +976,16 @@ boolean CommandFile::CheckJsonKey(const ALString& sValue, ALString& sMessage) co
 	// Test du format camelCase
 	if (bOk)
 	{
-		bOk = IsCamelCaseVariableName(sValue);
+		bOk = IsCamelCaseJsonKey(sValue);
 		if (not bOk)
-			sMessage = "incorrect key \"" + GetPrintableValue(sValue) + "\", which should be camelCase";
+			sMessage = "key \"" + GetPrintableValue(sValue) + "\" should be camelCase";
 	}
 
 	ensure(not bOk or sMessage == "");
 	return bOk;
 }
 
-boolean CommandFile::IsCamelCaseVariableName(const ALString& sValue) const
+boolean CommandFile::IsCamelCaseJsonKey(const ALString& sValue) const
 {
 	boolean bOk;
 	char c;
@@ -1010,12 +1019,12 @@ boolean CommandFile::IsCamelCaseVariableName(const ALString& sValue) const
 	return bOk;
 }
 
-boolean CommandFile::IsByteVariableName(const ALString& sValue) const
+boolean CommandFile::IsByteJsonKey(const ALString& sValue) const
 {
 	boolean bOk;
 	char c;
 
-	require(IsCamelCaseVariableName(sValue));
+	require(IsCamelCaseJsonKey(sValue));
 
 	// Test si on est prefixe correctement, suivi d'un caractere alphabetique en majuscule
 	bOk = sValue.GetLength() > sByteJsonKeyPrefix.GetLength();
@@ -1029,48 +1038,48 @@ boolean CommandFile::IsByteVariableName(const ALString& sValue) const
 	return bOk;
 }
 
-const ALString CommandFile::ToByteVariableName(const ALString& sValue) const
+const ALString CommandFile::ToByteJsonKey(const ALString& sValue) const
 {
-	ALString sByteVariableName;
+	ALString sByteJsonKey;
 
-	require(IsCamelCaseVariableName(sValue));
+	require(IsCamelCaseJsonKey(sValue));
 
-	if (IsByteVariableName(sValue))
+	if (IsByteJsonKey(sValue))
 		return sValue;
 	else
 	{
-		sByteVariableName = sValue;
-		sByteVariableName.SetAt(0, char(toupper(sByteVariableName.GetAt(0))));
-		sByteVariableName = sByteJsonKeyPrefix + sByteVariableName;
-		return sByteVariableName;
+		sByteJsonKey = sValue;
+		sByteJsonKey.SetAt(0, char(toupper(sByteJsonKey.GetAt(0))));
+		sByteJsonKey = sByteJsonKeyPrefix + sByteJsonKey;
+		return sByteJsonKey;
 	}
 }
 
-const ALString CommandFile::ToStandardVariableName(const ALString& sValue) const
+const ALString CommandFile::ToStandardJsonKey(const ALString& sValue) const
 {
-	ALString sStandardVariableName;
+	ALString sStandardJsonKey;
 
-	require(IsCamelCaseVariableName(sValue));
+	require(IsCamelCaseJsonKey(sValue));
 
-	if (IsByteVariableName(sValue))
+	if (IsByteJsonKey(sValue))
 	{
 
-		sStandardVariableName = sValue.Right(sValue.GetLength() - sByteJsonKeyPrefix.GetLength());
-		sStandardVariableName.SetAt(0, char(tolower(sStandardVariableName.GetAt(0))));
-		return sStandardVariableName;
+		sStandardJsonKey = sValue.Right(sValue.GetLength() - sByteJsonKeyPrefix.GetLength());
+		sStandardJsonKey.SetAt(0, char(tolower(sStandardJsonKey.GetAt(0))));
+		return sStandardJsonKey;
 	}
 	else
 		return sValue;
 }
 
-const ALString CommandFile::ToVariantVariableName(const ALString& sValue) const
+const ALString CommandFile::ToVariantJsonKey(const ALString& sValue) const
 {
-	require(IsCamelCaseVariableName(sValue));
+	require(IsCamelCaseJsonKey(sValue));
 
-	if (IsByteVariableName(sValue))
-		return ToStandardVariableName(sValue);
+	if (IsByteJsonKey(sValue))
+		return ToStandardJsonKey(sValue);
 	else
-		return ToByteVariableName(sValue);
+		return ToByteJsonKey(sValue);
 }
 
 boolean CommandFile::CheckStringValue(const ALString& sValue, boolean bCheckBase64Encoding, ALString& sMessage) const
@@ -1301,16 +1310,16 @@ const ALString CommandFile::RecodeCurrentLineUsingJsonParameters(boolean& bOk)
 			if (jsonValue == NULL)
 			{
 				bOk = false;
-				AddInputCommandFileError("Value not found for json key \"" + sJsonKey +
+				AddInputCommandFileError("Value not found for key \"" + sJsonKey +
 							 "\" in json parameters");
 			}
-			// Erreur si type de valauer invalide
+			// Erreur si type de valeur invalide
 			else if (jsonValue->GetType() != JsonValue::NumberValue and
 				 jsonValue->GetType() != JsonValue::StringValue)
 			{
 				bOk = false;
 				AddInputCommandFileError(
-				    "Value found for json key \"" + sJsonKey +
+				    "Value found for key \"" + sJsonKey +
 				    "\" in json parameters shoud be of type number or string, instead of " +
 				    jsonValue->TypeToString());
 			}
@@ -1445,7 +1454,7 @@ boolean CommandFile::ParseInputCommand(const ALString& sInputCommand, boolean& b
 					{
 						parserLoopJsonArray = jsonValue->GetArrayValue();
 
-						// Reinitialisation du tableau des vecteurs de tokens du block loop
+						// Reinitialisation du tableau des vecteurs de tokens du bloc loop
 						oaParserLoopLinesTokenTypes.DeleteAll();
 						oaParserLoopLinesTokenValues.DeleteAll();
 						nParserLoopLineIndex = 0;
@@ -1471,7 +1480,7 @@ boolean CommandFile::ParseInputCommand(const ALString& sInputCommand, boolean& b
 		{
 			assert(nNextToken == TokenIf or nNextToken == TokenLoop);
 
-			// Cas valide uniquement si l'etat du parser est le block de bon type en cours
+			// Cas valide uniquement si l'etat du parser est le bloc de bon type en cours
 			if ((nParserState == TokenIf or nParserState == TokenLoop) and nParserState == nNextToken)
 			{
 				nParserState = TokenOther;
@@ -1503,16 +1512,17 @@ boolean CommandFile::ParseInputCommand(const ALString& sInputCommand, boolean& b
 		// Cas standard valide d'une instruction
 		else
 		{
-			// Memorisation dans le cas d'un block loop
+			// Memorisation dans le cas d'un bloc loop
 			if (nParserState == TokenLoop)
 			{
 				// Erreur si trop de ligne dans la boucle
-				if (oaParserLoopLinesTokenTypes.GetSize() >= nLoopMaxLineNumber)
+				if (oaParserLoopLinesTokenTypes.GetSize() > nLoopMaxLineNumber)
 				{
 					bOk = false;
 					AddInputCommandFileError("Too many lines in current " + sTokenLoop + " " +
-								 sParserBlockKey + " block (> " +
-								 IntToString(nLoopMaxLineNumber) + ")");
+								 sParserBlockKey + " block, with more than " +
+								 IntToString(nLoopMaxLineNumber) +
+								 " non-empty command lines");
 				}
 				// Ajout des vecteur de tokens senon
 				else
@@ -1521,10 +1531,10 @@ boolean CommandFile::ParseInputCommand(const ALString& sInputCommand, boolean& b
 					oaParserLoopLinesTokenValues.Add(svParserTokenValues.Clone());
 				}
 
-				// Il faut continuer le parsing tant que le bloc loop n'est pas fini
-				bContinueParsing = true;
+				// Il faut continuer le parsing tant que le bloc loop n'est pas fini, sans erreur
+				bContinueParsing = bOk;
 			}
-			// On ignore les ligne si necessaire dans le cas d'un block if
+			// On ignore les ligne si necessaire dans le cas d'un bloc if
 			else if (nParserState == TokenIf)
 				bContinueParsing = not bParserIfState;
 			// Sinon, la ligne est prete a l'emploie
@@ -1835,7 +1845,6 @@ boolean CommandFile::CheckTokenKey(const ALString& sToken) const
 {
 	boolean bOk;
 	ALString sJsonKey;
-	ALString sPattern;
 	int nPos;
 	ALString sMessage;
 
@@ -1873,16 +1882,8 @@ boolean CommandFile::CheckTokenKey(const ALString& sToken) const
 	if (bOk)
 	{
 		bOk = CheckJsonKey(sJsonKey, sMessage);
-
-		// On rajoute les delimiteur dans le nom de variable du message
 		if (not bOk)
-		{
-			sPattern = "\"" + GetPrintableValue(sJsonKey) + "\"";
-			nPos = sMessage.Find(sPattern);
-			if (nPos != -1)
-				sMessage = sMessage.Left(nPos) + "\"" + GetPrintableValue(sToken) + "\"" +
-					   sMessage.Right(sMessage.GetLength() - sPattern.GetLength());
-		}
+			AddInputCommandFileError("incorrect __key__, " + sMessage);
 	}
 
 	// Verification que l'on n'utilise par une variante de type byte dans un fichier de commande en entree
@@ -1901,7 +1902,7 @@ const ALString CommandFile::ExtractJsonKey(const ALString& sTokenKey) const
 	return sTokenKey.Mid(sJsonKeyDelimiter.GetLength(), sTokenKey.GetLength() - 2 * sJsonKeyDelimiter.GetLength());
 }
 
-JsonValue* CommandFile::LoopJsonValue(JsonObject* jsonObject, const ALString& sStandardKey) const
+JsonValue* CommandFile::LoopJsonValue(JsonObject* jsonObject, const ALString& sKey) const
 {
 	JsonValue* jsonValue;
 	JsonMember* jsonMember;
@@ -1909,13 +1910,12 @@ JsonValue* CommandFile::LoopJsonValue(JsonObject* jsonObject, const ALString& sS
 	debug(ALString sMessage);
 
 	require(jsonObject != NULL);
-	debug(require(CheckJsonKey(sStandardKey, sMessage)));
-	require(not IsByteVariableName(sStandardKey));
+	debug(require(CheckJsonKey(sKey, sMessage)));
 
 	// Recherche dans la variante standard
-	jsonMember = jsonObject->LookupMember(sStandardKey);
+	jsonMember = jsonObject->LookupMember(sKey);
 	if (jsonMember == NULL)
-		jsonMember = jsonObject->LookupMember(ToByteVariableName(sStandardKey));
+		jsonMember = jsonObject->LookupMember(ToVariantJsonKey(sKey));
 
 	// Recherche de la valeur
 	jsonValue = NULL;
