@@ -229,7 +229,7 @@ protected:
 	// Cf. https://jsonpatch.com/
 	// On suit les element de structure valides dans le parametrage json
 	// La fin du parametrage peut etre non utilises (NULL ou -1)
-	ALString BuildJsonPath(JsonMember* member, int nArrayRank, JsonMember* arrayObjectmember);
+	ALString BuildJsonPath(JsonMember* member, int nArrayRank, JsonMember* arrayObjectmember) const;
 
 	///////////////////////////////////////////////////////////////
 	// Gestion du fichier de commandes en entree
@@ -301,10 +301,14 @@ protected:
 	// Recherche de la valeur associe a une cle dans un objet json
 	// La recherche se fait dans la variante standard ou byte de la cle
 	// On renvoie NULL si non trouve
-	JsonValue* LoopJsonValue(JsonObject* jsonObject, const ALString& sKey) const;
+	JsonValue* LookupJsonValue(JsonObject* jsonObject, const ALString& sKey) const;
 
 	// Test si une valeur est trimee
 	boolean IsValueTrimed(const ALString& sValue) const;
+
+	// Detection des membres non utilises du parametrage json, avec emission de messages d'erreur
+	// On renvoie true s'il y a au moins une erreur
+	boolean DetectedUnusedJsonParameterMembers() const;
 
 	///////////////////////////////////////////////////////////////
 	// Variables de specification des fichiers et parametres de commandes
@@ -378,10 +382,15 @@ protected:
 	int nParserLoopObjectIndex;
 
 	// Indicateur d'erreur du parser dans l'analyse des commande
-	// Cet indicateur n'est mis a jour que lors des methodes d'emission d'erreur
+	// Cet indicateur est mis a jour uniquement dans la methode d'ajout d'erreur
 	// Il permet de conditionner la fin de l'analyse des commandes lors de la fermeture
 	// du fichier de commande, pour detecter les erreurs de parsing de fin de fichier
 	mutable boolean bParserOk;
+
+	// Dictionnaire des membres utilises des parametres json
+	// Ce dictionnaire est mise a jour lors de chaque recherche de membre par cle
+	// Cela permet de detecter les membres non utilises lors de la fermeture du fichier de commande
+	mutable NumericKeyDictionary nkdParserUsedJsonParameterMembers;
 
 	///////////////////////////////////////////////////////////////
 	// Constantes sur les mots cles du langage de commande en entree

@@ -240,6 +240,10 @@ void CommandFile::CloseInputCommandFile()
 	}
 	bIsParserOkAfterEnd = bParserOk;
 
+	// Detection des membres non utilises du parametrage json
+	if (bIsParserOkAfterEnd)
+		bIsParserOkAfterEnd = DetectedUnusedJsonParameterMembers();
+
 	// Fermeture du fichier d'entree
 	if (fInputCommands != NULL)
 	{
@@ -810,8 +814,8 @@ boolean CommandFile::LoadJsonParameters()
 								sLabelSuffix = "";
 								if (jsonParameters.LookupMember(ToVariantJsonKey(
 									jsonSubObjectMember->GetKey())) != NULL)
-									sLabelSuffix = " (in any standard or "
-										       "byte variants)";
+									sLabelSuffix =
+									    " (in the standard or byte variants)";
 								AddInputParameterFileError(
 								    "in object value of array at " +
 								    BuildJsonPath(jsonMember, j, NULL) + ", the \"" +
@@ -1116,7 +1120,7 @@ boolean CommandFile::CheckStringValue(const ALString& sValue, boolean bCheckBase
 	return bOk;
 }
 
-ALString CommandFile::BuildJsonPath(JsonMember* member, int nArrayRank, JsonMember* arrayObjectmember)
+ALString CommandFile::BuildJsonPath(JsonMember* member, int nArrayRank, JsonMember* arrayObjectmember) const
 {
 	ALString sJsonPath;
 
@@ -1213,6 +1217,7 @@ void CommandFile::ResetParser()
 	nParserLoopLineIndex = -1;
 	nParserLoopObjectIndex = -1;
 	bParserOk = true;
+	nkdParserUsedJsonParameterMembers.RemoveAll();
 }
 
 const ALString CommandFile::RecodeCurrentLineUsingJsonParameters(boolean& bOk)
@@ -1224,6 +1229,7 @@ const ALString CommandFile::RecodeCurrentLineUsingJsonParameters(boolean& bOk)
 	IntVector* ivCurrentTokenTypes;
 	StringVector* svCurrentTokenValues;
 	JsonObject* currentJsonObject;
+	char sCharBuffer[1 + BUFFER_LENGTH];
 	int i;
 	int nToken;
 
@@ -1298,13 +1304,13 @@ const ALString CommandFile::RecodeCurrentLineUsingJsonParameters(boolean& bOk)
 			jsonValue = NULL;
 			if (currentJsonObject != NULL)
 			{
-				jsonValue = LoopJsonValue(currentJsonObject, sJsonKey);
-				assert(jsonValue == NULL or LoopJsonValue(&jsonParameters, sJsonKey) == NULL);
+				jsonValue = LookupJsonValue(currentJsonObject, sJsonKey);
+				assert(jsonValue == NULL or LookupJsonValue(&jsonParameters, sJsonKey) == NULL);
 			}
 
 			// Recherche dans l'objet principal si non trouve
 			if (jsonValue == NULL)
-				jsonValue = LoopJsonValue(&jsonParameters, sJsonKey);
+				jsonValue = LookupJsonValue(&jsonParameters, sJsonKey);
 
 			// Erreur si non trouve
 			if (jsonValue == NULL)
@@ -1320,7 +1326,7 @@ const ALString CommandFile::RecodeCurrentLineUsingJsonParameters(boolean& bOk)
 				bOk = false;
 				AddInputCommandFileError(
 				    "Value found for key \"" + sJsonKey +
-				    "\" in json parameters shoud be of type number or string, instead of " +
+				    "\" in json parameters should be of type number or string, instead of " +
 				    jsonValue->TypeToString());
 			}
 			// Sinon, on ajoute la valeur recodee
@@ -1331,7 +1337,21 @@ const ALString CommandFile::RecodeCurrentLineUsingJsonParameters(boolean& bOk)
 				if (jsonValue->GetType() == JsonValue::NumberValue)
 					sRecodedLine += jsonValue->GetNumberValue()->WriteString();
 				else
-					sRecodedLine += jsonValue->GetStringValue()->GetString();
+				{
+					// Cas avec recodage base64
+					if (IsByteJsonKey(sJsonKey))
+					{
+						assert(jsonValue->GetStringValue()->GetString().GetLength() <=
+						       nMaxStringValueLength);
+						assert(nMaxStringValueLength < BUFFER_LENGTH);
+						TextService::Base64StringToBytes(
+						    jsonValue->GetStringValue()->GetString(), sCharBuffer);
+						sRecodedLine += sCharBuffer;
+					}
+					// Cas standard
+					else
+						sRecodedLine += jsonValue->GetStringValue()->GetString();
+				}
 
 				//DDD MANQUE LA GESTION DU RECODAGE BASE64
 			}
@@ -1400,7 +1420,7 @@ boolean CommandFile::ParseInputCommand(const ALString& sInputCommand, boolean& b
 				parserLoopJsonArray = NULL;
 
 				// Recherche de la valeur json associee au bloc
-				jsonValue = LoopJsonValue(&jsonParameters, ExtractJsonKey(sParserBlockKey));
+				jsonValue = LookupJsonValue(&jsonParameters, ExtractJsonKey(sParserBlockKey));
 
 				// Erreur si non trouve
 				if (jsonValue == NULL)
@@ -1902,7 +1922,7 @@ const ALString CommandFile::ExtractJsonKey(const ALString& sTokenKey) const
 	return sTokenKey.Mid(sJsonKeyDelimiter.GetLength(), sTokenKey.GetLength() - 2 * sJsonKeyDelimiter.GetLength());
 }
 
-JsonValue* CommandFile::LoopJsonValue(JsonObject* jsonObject, const ALString& sKey) const
+JsonValue* CommandFile::LookupJsonValue(JsonObject* jsonObject, const ALString& sKey) const
 {
 	JsonValue* jsonValue;
 	JsonMember* jsonMember;
@@ -1912,10 +1932,14 @@ JsonValue* CommandFile::LoopJsonValue(JsonObject* jsonObject, const ALString& sK
 	require(jsonObject != NULL);
 	debug(require(CheckJsonKey(sKey, sMessage)));
 
-	// Recherche dans la variante standard
+	// Recherche du membre dans ses deux variantes
 	jsonMember = jsonObject->LookupMember(sKey);
 	if (jsonMember == NULL)
 		jsonMember = jsonObject->LookupMember(ToVariantJsonKey(sKey));
+
+	// Mise a jour de l'indicateur d'utilisation du membre
+	if (jsonMember != NULL)
+		nkdParserUsedJsonParameterMembers.SetAt(jsonMember, jsonMember);
 
 	// Recherche de la valeur
 	jsonValue = NULL;
@@ -1934,6 +1958,72 @@ boolean CommandFile::IsValueTrimed(const ALString& sValue) const
 		return false;
 	else
 		return true;
+}
+
+boolean CommandFile::DetectedUnusedJsonParameterMembers() const
+{
+	boolean bOk = true;
+	int nMember;
+	int nObject;
+	int nSubMember;
+	JsonMember* jsonMember;
+	JsonArray* jsonArray;
+	JsonObject* jsonObject;
+	JsonMember* jsonSubMember;
+	JsonMember* usedMember;
+
+	// Parcours des membres de l'objet principal de parametrage json
+	Global::ActivateErrorFlowControl();
+	for (nMember = 0; nMember < jsonParameters.GetMemberNumber(); nMember++)
+	{
+		jsonMember = jsonParameters.GetMemberAt(nMember);
+
+		// Recherche si le membre est utilise
+		usedMember = cast(JsonMember*, nkdParserUsedJsonParameterMembers.Lookup(jsonMember));
+		assert(usedMember == NULL or usedMember == jsonMember);
+
+		// Erreur si le membre n'est pas utlise
+		if (usedMember == NULL)
+		{
+			bOk = false;
+			AddInputParameterFileError("value at " + BuildJsonPath(jsonMember, -1, NULL) +
+						   " not used in input command file");
+		}
+
+		// Cas d'un tableau
+		if (jsonMember->GetValueType() == JsonValue::ArrayValue)
+		{
+			jsonArray = jsonMember->GetArrayValue();
+
+			// Parcours des objets du tableau
+			for (nObject = 0; nObject < jsonArray->GetValueNumber(); nObject++)
+			{
+				jsonObject = jsonArray->GetValueAt(nObject)->GetObjectValue();
+
+				// Parcours des membres du sous-objets
+				for (nSubMember = 0; nSubMember < jsonObject->GetMemberNumber(); nSubMember++)
+				{
+					jsonSubMember = jsonObject->GetMemberAt(nSubMember);
+
+					// Recherche si le membre est utilise
+					usedMember =
+					    cast(JsonMember*, nkdParserUsedJsonParameterMembers.Lookup(jsonSubMember));
+					assert(usedMember == NULL or usedMember == jsonSubMember);
+
+					// Erreur si le membre n'est pas utlise
+					if (usedMember == NULL)
+					{
+						bOk = false;
+						AddInputParameterFileError(
+						    "value at " + BuildJsonPath(jsonMember, nObject, jsonSubMember) +
+						    " not used in input command file");
+					}
+				}
+			}
+		}
+	}
+	Global::DesactivateErrorFlowControl();
+	return bOk;
 }
 
 const ALString CommandFile::sCommentPrefix = "//";
