@@ -159,6 +159,7 @@ public:
 	boolean AreCommandFilesOpened() const;
 
 	// Fermeture des fichiers de commandes
+	// La fermeture peut provoquer un erreur fatale en cas d'erreur d'analyse des commandes
 	void CloseInputCommandFile();
 	void CloseOutputCommandFile();
 	void CloseCommandFiles();
@@ -375,6 +376,12 @@ protected:
 
 	// Index de l'objet json du tableau en cours de traitement
 	int nParserLoopObjectIndex;
+
+	// Indicateur d'erreur du parser dans l'analyse des commande
+	// Cet indicateur n'est mis a jour que lors des methodes d'emission d'erreur
+	// Il permet de conditionner la fin de l'analyse des commandes lors de la fermeture
+	// du fichier de commande, pour detecter les erreurs de parsing de fin de fichier
+	mutable boolean bParserOk;
 
 	///////////////////////////////////////////////////////////////
 	// Constantes sur les mots cles du langage de commande en entree

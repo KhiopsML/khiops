@@ -53,8 +53,6 @@ void UIUnit::Open()
 	int nListIndex;
 	boolean bActionExit;
 	ALString sCommand;
-	boolean bIsInputCommandFileOpened;
-	boolean bIsInputCommandEnd;
 
 	require(Check());
 	require(GetVisible() == true);
@@ -279,29 +277,12 @@ void UIUnit::Open()
 			else
 			// Sinon, en mode textuel, on n'autorise pas d'interactions sans scenario
 			{
-				// Fermeture prealable du fichier de commande pour avoir un message
-				// d'erreur sans numero de ligne, apres avoir collecte les informations de diagnostique
-				bIsInputCommandFileOpened = commandFile.IsInputCommandFileOpened();
-				bIsInputCommandEnd = bIsInputCommandFileOpened and commandFile.IsInputCommandEnd();
-				commandFile.CloseInputCommandFile();
-
-				// Message d'erreur selon etat du du fichier de commande
-				if (commandFile.GetInputCommandFileName() == "")
-					commandFile.AddInputCommandFileError("Missing input command file");
-				else if (bIsInputCommandFileOpened)
-				{
-					if (bIsInputCommandEnd)
-						commandFile.AddInputCommandFileError(
-						    "Unexpected end of file in the input command file");
-					else
-						commandFile.AddInputCommandFileError(
-						    "Analysis of input commands interrupted because of errors");
-				}
-				else
-					commandFile.AddInputCommandFileError("Incorrect input command file");
-
 				// Erreur fatale
+				// Remarque: dans certains cas, l'erreur fatale pourra etre emise
+				// directement lors de la fermeture du fichier de commande en entree
 				commandFile.CloseCommandFiles();
+				commandFile.AddInputCommandFileError(
+				    "Analysis of input commands interrupted because of errors");
 				Global::AddFatalError("Command file", "", "Batch mode failure");
 			}
 		}

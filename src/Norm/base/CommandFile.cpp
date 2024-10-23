@@ -217,6 +217,22 @@ boolean CommandFile::AreCommandFilesOpened() const
 
 void CommandFile::CloseInputCommandFile()
 {
+	boolean bOk = true;
+	StringVector svIdentifierPath;
+	ALString sValue;
+
+	// Lecture si necessaire de la fin du fichier pour avoir des diagnostiques d'erreur complets
+	// - bloc if non termine
+	// - diagnostique sur les cles du parametrage json non utilisees dans les commandes
+	if (GetInputParameterFileName() != "" and fInputCommands != NULL and nParserLineIndex > 0 and bParserOk)
+	{
+		while (bOk and not IsInputCommandEnd())
+		{
+			bOk = ReadInputCommand(&svIdentifierPath, sValue);
+			svIdentifierPath.SetSize(0);
+		}
+	}
+
 	// Fermeture du fichier d'entree
 	if (fInputCommands != NULL)
 	{
@@ -230,6 +246,14 @@ void CommandFile::CloseInputCommandFile()
 	// Nettoyage du parser et des parametre json
 	ResetParser();
 	jsonParameters.DeleteAll();
+
+	// Erreur fatale en cas d'erreurs, apres la fermeture du fichier
+	if (not bOk)
+		Global::AddFatalError("Command file", "",
+				      "Batch mode failure detected when closing input command file");
+	// Message standard si erreur avant la fin de fichier
+	else if (not bParserOk)
+		Global::AddFatalError("Command file", "", "Batch mode failure");
 }
 
 void CommandFile::CloseOutputCommandFile()
@@ -352,10 +376,6 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 			assert(bOk);
 			if (sInputLine != "" and GetInputParameterFileName() != "")
 			{
-				//DDD
-				if (nParserLineIndex == 11)
-					cout << flush;
-
 				// Tokenisation de la ligne
 				bOk = ParseInputCommand(sInputLine, bContinueParsing);
 
@@ -556,11 +576,10 @@ boolean CommandFile::ReadWriteCommandFiles()
 
 	// Lecture/ecriture des lignes de commandes
 	bCommandAnalysisOk = true;
-	while (bOk)
+	while (bOk and not IsInputCommandEnd())
 	{
 		bOk = ReadInputCommand(&svIdentifierPath, sValue);
-		if (not IsInputCommandEnd())
-			bCommandAnalysisOk = bCommandAnalysisOk and bOk;
+		bCommandAnalysisOk = bCommandAnalysisOk and bOk;
 
 		// Ecriture de la commande si ok
 		if (bOk)
@@ -599,6 +618,7 @@ void CommandFile::AddInputCommandFileError(const ALString& sMessage) const
 	if (nParserLineIndex > 0)
 		sLineLocalisation = sTmp + ", line " + IntToString(nParserLineIndex);
 	Global::AddError("Input command file", sInputCommandFileName + sLineLocalisation, sMessage);
+	bParserOk = false;
 }
 
 void CommandFile::AddInputParameterFileError(const ALString& sMessage) const
@@ -1183,6 +1203,7 @@ void CommandFile::ResetParser()
 	oaParserLoopLinesTokenValues.DeleteAll();
 	nParserLoopLineIndex = -1;
 	nParserLoopObjectIndex = -1;
+	bParserOk = true;
 }
 
 const ALString CommandFile::RecodeCurrentLineUsingJsonParameters(boolean& bOk)
