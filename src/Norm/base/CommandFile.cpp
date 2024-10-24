@@ -1110,7 +1110,7 @@ boolean CommandFile::CheckStringValue(const ALString& sValue, boolean bCheckBase
 		assert(nMaxStringValueLength <= BUFFER_LENGTH);
 
 		// Test de l'encodage base64
-		bOk = TextService::Base64StringToBytes(sValue, sBytes) != -1;
+		bOk = TextService::Base64StringToBytes(sValue, sBytes);
 		if (not bOk)
 			sMessage = "incorrect string value \"" + GetPrintableValue(sValue) +
 				   "\", which should be encoding using base64";
@@ -1226,6 +1226,7 @@ const ALString CommandFile::RecodeCurrentLineUsingJsonParameters(boolean& bOk)
 	ALString sRecodedLine;
 	JsonValue* jsonValue;
 	ALString sJsonKey;
+	boolean bIsByteJsonKey;
 	IntVector* ivCurrentTokenTypes;
 	StringVector* svCurrentTokenValues;
 	JsonObject* currentJsonObject;
@@ -1299,18 +1300,41 @@ const ALString CommandFile::RecodeCurrentLineUsingJsonParameters(boolean& bOk)
 		else
 		{
 			sJsonKey = ExtractJsonKey(svCurrentTokenValues->GetAt(i));
+			bIsByteJsonKey = false;
 
 			// Recherche d'un valeur d'abord dans l'objet courant
 			jsonValue = NULL;
 			if (currentJsonObject != NULL)
 			{
+				// Recherche d'abord en mode standard
 				jsonValue = LookupJsonValue(currentJsonObject, sJsonKey);
-				assert(jsonValue == NULL or LookupJsonValue(&jsonParameters, sJsonKey) == NULL);
+
+				// Recherche sinon en mode byte
+				if (jsonValue == NULL)
+				{
+					jsonValue = LookupJsonValue(currentJsonObject, ToByteJsonKey(sJsonKey));
+					if (jsonValue != NULL)
+						bIsByteJsonKey = true;
+				}
+				assert(jsonValue == NULL or
+				       (LookupJsonValue(&jsonParameters, sJsonKey) == NULL and
+					LookupJsonValue(&jsonParameters, ToByteJsonKey(sJsonKey)) == NULL));
 			}
 
 			// Recherche dans l'objet principal si non trouve
 			if (jsonValue == NULL)
+			{
+				// Recherche d'abord en mode standard
 				jsonValue = LookupJsonValue(&jsonParameters, sJsonKey);
+
+				// Recherche sinon en mode byte
+				if (jsonValue == NULL)
+				{
+					jsonValue = LookupJsonValue(&jsonParameters, ToByteJsonKey(sJsonKey));
+					if (jsonValue != NULL)
+						bIsByteJsonKey = true;
+				}
+			}
 
 			// Erreur si non trouve
 			if (jsonValue == NULL)
@@ -1339,7 +1363,7 @@ const ALString CommandFile::RecodeCurrentLineUsingJsonParameters(boolean& bOk)
 				else
 				{
 					// Cas avec recodage base64
-					if (IsByteJsonKey(sJsonKey))
+					if (bIsByteJsonKey)
 					{
 						assert(jsonValue->GetStringValue()->GetString().GetLength() <=
 						       nMaxStringValueLength);
@@ -1352,8 +1376,6 @@ const ALString CommandFile::RecodeCurrentLineUsingJsonParameters(boolean& bOk)
 					else
 						sRecodedLine += jsonValue->GetStringValue()->GetString();
 				}
-
-				//DDD MANQUE LA GESTION DU RECODAGE BASE64
 			}
 
 			// Arret si erreur
@@ -1932,10 +1954,8 @@ JsonValue* CommandFile::LookupJsonValue(JsonObject* jsonObject, const ALString& 
 	require(jsonObject != NULL);
 	debug(require(CheckJsonKey(sKey, sMessage)));
 
-	// Recherche du membre dans ses deux variantes
+	// Recherche du membre
 	jsonMember = jsonObject->LookupMember(sKey);
-	if (jsonMember == NULL)
-		jsonMember = jsonObject->LookupMember(ToVariantJsonKey(sKey));
 
 	// Mise a jour de l'indicateur d'utilisation du membre
 	if (jsonMember != NULL)

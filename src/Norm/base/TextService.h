@@ -80,7 +80,9 @@ public:
 	// L'encodage dans le json se fait avec le caractere d'echapement \uHHHH
 
 	// Conversion d'une chaine Json valide vers une chaine C
-	static void JsonToCString(const char* sJsonString, ALString& sCString);
+	// On renvoie false en cas d'erreur d'encodage de la chaine a convertir,
+	// tout en encodant au mieux avec des caractere speciaux au les caracteres tels quels
+	static boolean JsonToCString(const char* sJsonString, ALString& sCString);
 
 	// Encodage d'un chaine de caracteres C au format json, sans les double-quotes de debut et fin
 	static void CToJsonString(const ALString& sCString, ALString& sJsonString);
@@ -102,8 +104,8 @@ public:
 	// Conversion d'une chaine base64 vers une chaine C
 	// Le tableau de byte en sortie doit etre de taille au moins 3 * inputLength/4,
 	// conformement aux besoins de l'encodage base64
-	// On renvoie la longueur de la chaine encode en cas de succes, -1 sinon
-	static int Base64StringToBytes(const ALString& sBase64String, char* sBytes);
+	// On renvoie false en cas d'erreur d'encodage
+	static boolean Base64StringToBytes(const ALString& sBase64String, char* sBytes);
 
 	// Encodage d'un tableau de bytes vers le format base64, sans les double-quotes de debut et fin
 	// Le teableau en entree peut contenir n'importe quel byte, y comrpis des '\0'
@@ -119,6 +121,9 @@ public:
 	// Longueur en bytes d'un caractere UTF8 valide a partir d'une position donnee
 	// Retourne 1 a 4 dans le cas d'un caractere valide, 0 sinon pour un caractere ANSI non encodable directement
 	static int GetValidUTF8CharLengthAt(const ALString& sValue, int nStart);
+
+	// Longueur en bytes de la sous-partie d'une chaine encodee avec des caracteres UTF8 valide
+	static int GetValidUTF8SubStringLength(const ALString& sValue);
 
 	// Construction d'un echantillon de textes basiques pour des tests
 	static void BuildTextSample(StringVector* svTextValues);

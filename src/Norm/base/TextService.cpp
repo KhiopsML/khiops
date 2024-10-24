@@ -375,8 +375,9 @@ static int Utf32toUtf8String(unsigned int nCode, char* sUtf8Chars)
 	}
 }
 
-void TextService::JsonToCString(const char* sJsonString, ALString& sCString)
+boolean TextService::JsonToCString(const char* sJsonString, ALString& sCString)
 {
+	boolean bOk = true;
 	const unsigned char* sInputString;
 	unsigned int nCode;
 	unsigned int nPotentialCode;
@@ -449,7 +450,7 @@ void TextService::JsonToCString(const char* sJsonString, ALString& sCString)
 				sUnicodeChars.SetAt(2, sInputString[nEnd + 2]);
 				sUnicodeChars.SetAt(3, sInputString[nEnd + 3]);
 
-				// On tente d'abord le decodgage d'un caractere windows-1252 encode avec unicode
+				// On tente d'abord le decodage d'un caractere windows-1252 encode avec unicode
 				nCode = UnicodeHexToWindows1252(sUnicodeChars);
 				if (nCode != -1)
 				{
@@ -483,6 +484,7 @@ void TextService::JsonToCString(const char* sJsonString, ALString& sCString)
 						}
 						else
 						{
+							bOk = false;
 							sCharsToAdd = "?";
 							break;
 						}
@@ -505,7 +507,11 @@ void TextService::JsonToCString(const char* sJsonString, ALString& sCString)
 			}
 			default:
 				// En principe, impossible avec une chaine json correctement formee
-				assert(false);
+				// Dans ce cas, on avance d'un caractere, avec une erreur
+				bOk = false;
+				assert(nCharNumber == 1);
+				sCharsToAdd = "?";
+				nEnd++;
 			}
 			if (nCharNumber == 1)
 				sCString += sCharsToAdd[0];
@@ -520,6 +526,11 @@ void TextService::JsonToCString(const char* sJsonString, ALString& sCString)
 		}
 	}
 	AppendSubString(sCString, sJsonString, nBegin, nEnd - nBegin);
+
+	// Verification de l'encodage utf8
+	if (bOk)
+		bOk = GetValidUTF8SubStringLength(sCString) == sCString.GetLength();
+	return bOk;
 }
 
 void TextService::CToJsonString(const ALString& sCString, ALString& sJsonString)
@@ -748,7 +759,7 @@ int TextService::UnicodeHexToWindows1252(const ALString& sUnicodeHexChars)
 	return nCode;
 }
 
-int TextService::Base64StringToBytes(const ALString& sBase64String, char* sBytes)
+boolean TextService::Base64StringToBytes(const ALString& sBase64String, char* sBytes)
 {
 	// Index des caracteres de l'alphabet base64, et -1 pour les caracteres n'en faisant pas partie
 	static const unsigned char cBase64CharIndexes[] = {
@@ -873,10 +884,12 @@ int TextService::Base64StringToBytes(const ALString& sBase64String, char* sBytes
 		       iOutput + (nTrailingEqualNumber > 0 ? 3 - nTrailingEqualNumber : 0) == nOutputByteNumber);
 	}
 
-	// On renvoie -1 si erreur
+	// On renvoie une chaine termine par '\0' dans tous les cas
 	if (not bOk)
-		nOutputByteNumber = -1;
-	return nOutputByteNumber;
+		sBytes[0] = '\0';
+	else
+		sBytes[nOutputByteNumber] = '\0';
+	return bOk;
 }
 
 void TextService::BytesToBase64String(const char* sBytes, int nByteNumber, ALString& sBase64String)
@@ -1018,6 +1031,26 @@ int TextService::GetValidUTF8CharLengthAt(const ALString& sValue, int nStart)
 	return nUtf8CharLength;
 }
 
+int TextService::GetValidUTF8SubStringLength(const ALString& sValue)
+{
+	int nLength;
+	int nUTF8CharLength;
+
+	// Parcours de la chaine jusqu'au premiere catactere non UTF8
+	nLength = 0;
+	while (nLength < sValue.GetLength())
+	{
+		nUTF8CharLength = GetValidUTF8CharLengthAt(sValue, nLength);
+		if (nUTF8CharLength > 0)
+			nLength += nUTF8CharLength;
+		else
+			break;
+	}
+	assert(nLength <= sValue.GetLength());
+	assert(nLength == sValue.GetLength() or GetValidUTF8CharLengthAt(sValue, nLength) == 0);
+	return nLength;
+}
+
 void TextService::BuildTextSample(StringVector* svTextValues)
 {
 	CharVector cvAscii;
@@ -1142,18 +1175,16 @@ void TextService::Test()
 		// Encodage/decodage de la valeur au format base64
 		sValue = svTextValues.GetAt(i);
 		BytesToBase64String(sValue, sValue.GetLength(), sBase64String);
-		nLength = Base64StringToBytes(sBase64String, sBuffer);
-		assert(nLength >= 0 and nLength < BUFFER_LENGTH - 1);
-		sBuffer[nLength] = '\0';
+		Base64StringToBytes(sBase64String, sBuffer);
 		sRetrievedValue = sBuffer;
 		assert(sRetrievedValue == sValue);
 
 		// Verification de la non possibilite de decode une chaine avec encodage invalide
 		// en ajoutant un a quatre caracteres invalides
-		assert(Base64StringToBytes(sValue + " ", sBuffer) == -1);
-		assert(Base64StringToBytes(sValue + "  ", sBuffer) == -1);
-		assert(Base64StringToBytes(sValue + "   ", sBuffer) == -1);
-		assert(Base64StringToBytes(sValue + "    ", sBuffer) == -1);
+		assert(not Base64StringToBytes(sValue + " ", sBuffer));
+		assert(not Base64StringToBytes(sValue + "  ", sBuffer));
+		assert(not Base64StringToBytes(sValue + "   ", sBuffer));
+		assert(not Base64StringToBytes(sValue + "    ", sBuffer));
 
 		// Affichage
 		cout << i << "\t";

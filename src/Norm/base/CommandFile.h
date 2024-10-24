@@ -299,7 +299,6 @@ protected:
 	const ALString ExtractJsonKey(const ALString& sTokenKey) const;
 
 	// Recherche de la valeur associe a une cle dans un objet json
-	// La recherche se fait dans la variante standard ou byte de la cle
 	// On renvoie NULL si non trouve
 	JsonValue* LookupJsonValue(JsonObject* jsonObject, const ALString& sKey) const;
 
