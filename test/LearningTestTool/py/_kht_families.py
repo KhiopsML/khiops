@@ -69,6 +69,7 @@ FAMILY_TEST_SUITES[FULL, kht.KHIOPS] = [
     "ParallelTask",
     "NewPriorV9",
     "DTClassification",
+    "DTRegression",
     "VariableConstruction",
     "NewV10",
     "CrashTests",

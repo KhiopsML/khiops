@@ -124,13 +124,6 @@ boolean DTDecisionTreeCreationTask::CreatePreparedAttributes(KWLearningSpec* lea
 		return true;
 	}
 
-	if (GetForestExpertMode() == false and learningSpec->GetTargetAttributeType() != KWType::Symbol)
-	{
-		if (GetForestParameter()->GetDecisionTreeParameter()->GetVerboseMode())
-			AddWarning("No tree building : target variable is not categorical");
-		return true;
-	}
-
 	if (learningSpec->GetTargetAttributeType() == KWType::Symbol and
 	    learningSpec->GetPreprocessingSpec()->GetTargetGrouped())
 	{
@@ -862,7 +855,8 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 						    DTForestParameter::DISCRETIZATION_MODL)
 							InitializeMODLDiscretization(
 							    &slaveTupleTableLoader, slaveLearningSpec,
-							    *input_cvIntervalValues.GetConstContinuousVector());
+							    *input_cvIntervalValues.GetConstContinuousVector(),
+							    attributegenerator->GetIndex());
 						else
 							InitializeBinaryEQFDiscretization(
 							    &slaveTupleTableLoader, slaveLearningSpec,
@@ -1146,8 +1140,13 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 		{
 			delete slaveLearningSpec;
 			delete slaveTupleTableLoader.GetInputExtraAttributeSymbolValues();
-			KWClassDomain::GetCurrentDomain()->DeleteClass(
-			    shared_learningSpec.GetLearningSpec()->GetTargetAttributeName() + "_categorical");
+			if (KWClassDomain::GetCurrentDomain()->LookupClass(
+				shared_learningSpec.GetLearningSpec()->GetTargetAttributeName() + "_categorical") !=
+			    NULL)
+			{
+				KWClassDomain::GetCurrentDomain()->DeleteClass(
+				    shared_learningSpec.GetLearningSpec()->GetTargetAttributeName() + "_categorical");
+			}
 		}
 	}
 
@@ -1166,7 +1165,7 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 
 boolean DTDecisionTreeCreationTask::ComputeResourceRequirements()
 {
-	int nMaxSlaveProcessNumber = 0;
+
 	longint lSharedMemory = 0;
 	longint lMasterMemory = 0;
 	longint lBiggestTreeMemory = 0;
@@ -2268,7 +2267,7 @@ void DTDecisionTreeCreationTask::InitializeEqualFreqDiscretization(KWTupleTableL
 
 void DTDecisionTreeCreationTask::InitializeMODLDiscretization(KWTupleTableLoader* tupleTableLoader,
 							      KWLearningSpec* learningSpec,
-							      const ContinuousVector& cvIntervalValues)
+							      const ContinuousVector& cvIntervalValues, int nSplitIndex)
 {
 	// on transforme la cible continue en cible categorielle, en effectuant au prealable une dicretisation MODL sur
 	// la cible continue
@@ -2283,7 +2282,7 @@ void DTDecisionTreeCreationTask::InitializeMODLDiscretization(KWTupleTableLoader
 	assert(randomForestParameter.GetDiscretizationTargetMethod() == DTForestParameter::DISCRETIZATION_MODL);
 
 	svTargetValues = MODLDiscretizeContinuousTarget(
-	    tupleTableLoader, randomForestParameter.GetMaxIntervalsNumberForTarget(), cvIntervalValues, 0);
+	    tupleTableLoader, randomForestParameter.GetMaxIntervalsNumberForTarget(), cvIntervalValues, nSplitIndex);
 	assert(svTargetValues != NULL);
 
 	tupleTableLoader->SetInputExtraAttributeName(learningSpec->GetTargetAttributeName());
@@ -2316,7 +2315,7 @@ void DTDecisionTreeCreationTask::InitializeMODLDiscretization(KWTupleTableLoader
 void DTDecisionTreeCreationTask::InitializeBinaryEQFDiscretization(KWTupleTableLoader* tupleTableLoader,
 								   KWLearningSpec* learningSpec,
 								   const ContinuousVector& cvIntervalValues,
-								   const int nSplitIndex)
+								   int nSplitIndex)
 {
 	// on transforme la cible continue en cible categorielle, en effectuant au prealable une dicretisation MODL sur
 	// la cible continue
@@ -2363,7 +2362,7 @@ void DTDecisionTreeCreationTask::InitializeBinaryEQFDiscretization(KWTupleTableL
 }
 
 SymbolVector* DTDecisionTreeCreationTask::EqualFreqDiscretizeContinuousTarget(KWTupleTableLoader* tupleTableLoader,
-									      const int nQuantileNumber) const
+									      int nQuantileNumber) const
 {
 	SymbolVector* svTargetValues = NULL;
 	ContinuousVector* cvTargetValues = NULL;
@@ -2421,7 +2420,7 @@ SymbolVector* DTDecisionTreeCreationTask::EqualFreqDiscretizeContinuousTarget(KW
 SymbolVector* DTDecisionTreeCreationTask::MODLDiscretizeContinuousTarget(KWTupleTableLoader* tupleTableLoader,
 									 const int nMaxIntervalsNumber,
 									 const ContinuousVector& cvInput,
-									 const int nSplitIndex) const
+									 int nSplitIndex) const
 {
 	SymbolVector* svTargetValues = NULL;
 	SymbolVector svTargetIn;
@@ -2432,6 +2431,11 @@ SymbolVector* DTDecisionTreeCreationTask::MODLDiscretizeContinuousTarget(KWTuple
 	boolean bDisplayValues = false;
 	Continuous cValue;
 	ALString s;
+	int oldseed;
+
+	//initilisation de random seed 2001 + index de l'arbre
+	oldseed = GetRandomSeed();
+	SetRandomSeed(2001 + nSplitIndex);
 
 	require(nMaxIntervalsNumber >= 2);
 	cvInputIntervalValues.CopyFrom(&cvInput);
@@ -2510,6 +2514,9 @@ SymbolVector* DTDecisionTreeCreationTask::MODLDiscretizeContinuousTarget(KWTuple
 	}
 	assert(svTargetValues != NULL);
 	assert(tupleTableLoader->GetInputExtraAttributeContinuousValues()->GetSize() == svTargetValues->GetSize());
+
+	// restitution de l'etat initial :
+	SetRandomSeed(oldseed);
 
 	return svTargetValues;
 }

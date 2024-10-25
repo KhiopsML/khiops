@@ -53,7 +53,8 @@ DTBaseLoader* DTBaseLoaderSplitter::GetDaughterBaseloaderAt(int i)
 	return (DTBaseLoader*)oaTrainDaughterBaseLoader.GetAt(i);
 }
 
-boolean DTBaseLoaderSplitter::CreateDaughterBaseloaderFromSplitAttribute(KWAttributeStats* splitAttributeStats)
+boolean DTBaseLoaderSplitter::CreateDaughterBaseloaderFromSplitAttribute(KWAttributeStats* splitAttributeStats,
+									 KWLearningSpec* learningSpec)
 {
 	require(splitAttributeStats != NULL);
 	require(databaseloaderOrigine != NULL);
@@ -96,9 +97,9 @@ boolean DTBaseLoaderSplitter::CreateDaughterBaseloaderFromSplitAttribute(KWAttri
 	// Extraction du nombre de parties de l'attribut de partitionnement
 	const int nPartNumber = splitAttributePartition->GetPartNumber();
 
-	const KWClass* kwcClass = KWClassDomain::GetCurrentDomain()->LookupClass(
-	    databaseloaderOrigine->GetLearningSpec()->GetClass()->GetName());
-	const KWAttribute* nativeAttribute = kwcClass->LookupAttribute(splitAttributeStats->GetAttributeName());
+	const KWAttribute* nativeAttribute =
+	    learningSpec->GetClass()->LookupAttribute(splitAttributeStats->GetAttributeName());
+	require(nativeAttribute != NULL);
 
 	// Calcul de l'index de chargement de l'attribut natif
 	const KWLoadIndex nLoadIndex = nativeAttribute->GetLoadIndex();
