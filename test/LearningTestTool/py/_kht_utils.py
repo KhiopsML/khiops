@@ -210,7 +210,9 @@ def extract_tool_exe_name(tool_full_exe_name):
         return tool_full_exe_name
     for suffix in kht.TOOL_MPI_SUFFIXES:
         if tool_full_exe_name.endswith(suffix):
-            return tool_full_exe_name.removesuffix(suffix)
+            # TODO: Replace with `return tool_full_exe_name.removesuffix(suffix)`
+            # as soon as Python 3.8 support is dropped
+            return tool_full_exe_name[: tool_full_exe_name.index(suffix)]
 
 
 """
