@@ -2394,7 +2394,6 @@ void KWDataGridUnivariateCosts::InitializeUnivariateCostParameters(const KWDataG
 	if (postOptimizedAttribute->GetAttributeType() == KWType::VarPart)
 	{
 		attributeCostParameter->SetInnerAttributes(postOptimizedAttribute->GetInnerAttributes());
-		attributeCostParameter->SetVarPartsShared(true);
 	}
 
 	// Caracteristiques generales du cout en univarie

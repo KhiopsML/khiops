@@ -188,10 +188,6 @@ public:
 	// Acces a l'attribut de type VarPart d'un grille si elle de type instances x variables, NULL sinon
 	KWDGAttribute* GetVarPartAttribute() const;
 
-	// Acces direct au statut du parametrage des attributs internes de l'attribut de type VarPart
-	boolean GetVarPartsShared() const;
-	void SetVarPartsShared(boolean bValue) const;
-
 	// Acces direct au parametrage des attributs internes de l'attribut de type VarPart
 	KWDGInnerAttributes* GetInnerAttributes() const;
 
@@ -497,12 +493,11 @@ public:
 	ALString GetOwnerAttributeName() const;
 	void SetOwnerAttributeName(ALString sName);
 
-	// Statut du parametrage des attributs internes: partagee ou non (defaut: false)
-	// Ce parametrage est detruit avec l'appelant, sauf s'il est partage
-	boolean GetVarPartsShared() const;
-	void SetVarPartsShared(boolean bValue) const;
-
 	// Parametrage des attributs internes dans le cas d'un attribut de grille de type VarPart
+	// Note sur la gestion memoire des attributs internes
+	// - les attributs internes peuvent etre partagee entre plusieurs grilles
+	// - grace a un comptage de reference propre aux attributs internes, ceux-ci sont automatiquement
+	//   detruits quand ils ne sont plus utilises
 	void SetInnerAttributes(KWDGInnerAttributes* attributes);
 	KWDGInnerAttributes* GetInnerAttributes() const;
 
@@ -750,10 +745,6 @@ protected:
 
 	// Attributs internes dans les attributs de type VarPart
 	KWDGInnerAttributes* innerAttributes;
-
-	// Statut proprietaire ou partage de la description des attributs internes
-	// Mutable car modifie par HandleOptimizationStep
-	mutable boolean bVarPartsShared;
 	// CH IV End
 };
 
@@ -1467,9 +1458,19 @@ public:
 	///////////////////////////////
 	///// Implementation
 protected:
+	// Gestion du compteur de reference par la classe KWDGAttribute, permettant de partager des InnerAttributes
+	// entre plusieurs grilles et les desallouer automatiquement quand elle ne sont plus utilisees
+	// Cela permet de mutualiser une structure lourde sans se soucier de la dynamique des utilisations
+	// lors des algorithmes d'optimisation
+	friend class KWDGAttribute;
+
+	// Gestion des attributs internes
 	int nVarPartGranularity;
 	ObjectDictionary odInnerAttributes;
 	ObjectArray oaInnerAttributes;
+
+	// Compteur de reference
+	int nRefCount;
 };
 // CH IV End
 
@@ -1645,18 +1646,6 @@ inline KWDGAttribute* KWDataGrid::GetVarPartAttribute() const
 	return varPartAttribute;
 }
 
-inline boolean KWDataGrid::GetVarPartsShared() const
-{
-	require(IsVarPartDataGrid());
-	return GetVarPartAttribute()->GetVarPartsShared();
-}
-
-inline void KWDataGrid::SetVarPartsShared(boolean bValue) const
-{
-	require(IsVarPartDataGrid());
-	GetVarPartAttribute()->SetVarPartsShared(bValue);
-}
-
 inline KWDGInnerAttributes* KWDataGrid::GetInnerAttributes() const
 {
 	require(IsVarPartDataGrid());
@@ -1802,21 +1791,21 @@ inline void KWDGAttribute::SetOwnerAttributeName(ALString sName)
 	sOwnerAttributeName = sName;
 }
 
-inline boolean KWDGAttribute::GetVarPartsShared() const
-{
-	require(GetAttributeType() == KWType::VarPart);
-	return bVarPartsShared;
-}
-
-inline void KWDGAttribute::SetVarPartsShared(boolean bValue) const
-{
-	require(GetAttributeType() == KWType::VarPart);
-	bVarPartsShared = bValue;
-}
-
 inline void KWDGAttribute::SetInnerAttributes(KWDGInnerAttributes* attributes)
 {
 	require(GetAttributeType() == KWType::VarPart);
+
+	// Decrementation des references sur les attributs internes d'origine, et desallocation si necessaire
+	if (innerAttributes != NULL)
+	{
+		innerAttributes->nRefCount--;
+		if (innerAttributes->nRefCount == 0)
+			delete innerAttributes;
+	}
+
+	// Incrementation des references sur les nouveaux attributs internes
+	if (attributes != NULL)
+		attributes->nRefCount++;
 	innerAttributes = attributes;
 }
 
@@ -2324,13 +2313,13 @@ inline int KWDGVarPartValue::GetValueFrequency() const
 // Classe KWDGInnerAttributes
 inline KWDGInnerAttributes::KWDGInnerAttributes()
 {
-	oaInnerAttributes.SetSize(0);
-	odInnerAttributes.DeleteAll();
 	nVarPartGranularity = 0;
+	nRefCount = 0;
 }
 
 inline KWDGInnerAttributes::~KWDGInnerAttributes()
 {
+	assert(nRefCount == 0);
 	DeleteAll();
 }
 

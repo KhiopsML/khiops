@@ -2279,7 +2279,6 @@ KWDGAttribute::KWDGAttribute()
 	catchAllValueSet = NULL;
 	garbagePart = NULL;
 	sOwnerAttributeName = "";
-	bVarPartsShared = false;
 	innerAttributes = NULL;
 }
 
@@ -2295,11 +2294,12 @@ KWDGAttribute::~KWDGAttribute()
 		delete catchAllValueSet;
 	}
 
-	// Destruction des attribut internes s'ils ne sont pas partages
-	if (not bVarPartsShared and innerAttributes != NULL)
+	// Decrementation des references sur les attributs internes d'origine, et desallocation si necessaire
+	if (innerAttributes != NULL)
 	{
-		innerAttributes->DeleteAll();
-		delete innerAttributes;
+		innerAttributes->nRefCount--;
+		if (innerAttributes->nRefCount == 0)
+			delete innerAttributes;
 	}
 
 	// Reinitialisation en mode debug, pour faciliter le diagnostique
@@ -2682,7 +2682,7 @@ KWDGPart* KWDGAttribute::LookupGroupablePart(const KWDGValue* value)
 	part = cast(KWDGPart*, nkdParts.Lookup(value->GetNumericKeyValue()));
 	if (part == NULL)
 		part = defaultPart;
-		
+
 	ensure(part != NULL);
 	return part;
 }

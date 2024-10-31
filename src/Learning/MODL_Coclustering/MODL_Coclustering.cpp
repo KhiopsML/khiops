@@ -24,6 +24,7 @@ void SetWindowsDebugDir(const ALString& sDatasetFamily, const ALString& sDataset
 
 	// Changement de repertoire, uniquement pour Windows
 	nRet = _chdir(sUserRootPath + sDatasetFamily + "/" + sDataset);
+	assert(nRet == 0);
 #endif
 }
 

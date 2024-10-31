@@ -3352,8 +3352,8 @@ boolean CCCoclusteringReport::ReadJSONAttributePartition(KWDGAttribute* dgAttrib
 		// Nettoyage des attributs internes si erreur
 		if (not bOk)
 		{
-			innerAttributes->DeleteAll();
-			delete innerAttributes;
+			// Cette methode va entrainer la destruction des attributs internes existants.
+			// puisqu'il sont utilises uniquement a cet endroit
 			dgAttribute->SetInnerAttributes(NULL);
 		}
 

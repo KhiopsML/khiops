@@ -209,6 +209,8 @@ double KWDataGridMerger::OptimizeMerge()
 	int nTotalExpectedMergeNumber;
 	ALString sTaskLabel;
 
+	bDisplayMergeDetails = false; //DDDDD231 MB
+
 	// Messsage de depart
 	if (bDisplayAllForDebug)
 		cout << "Merge of data grid\t" << GetObjectLabel() << endl;

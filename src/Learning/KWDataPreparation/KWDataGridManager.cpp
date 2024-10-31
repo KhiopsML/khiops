@@ -153,7 +153,6 @@ void KWDataGridManager::ExportDataGridWithSingletonVarParts(const KWDataGrid* re
 		// Partage des partitions des attributs internes de la grille optimisee
 		targetVarPartAttribute = targetDataGrid->GetVarPartAttribute();
 		targetVarPartAttribute->SetInnerAttributes(referenceDataGrid->GetInnerAttributes());
-		assert(targetVarPartAttribute->GetVarPartsShared());
 	}
 
 	// Export des partie des attributs si aucune variable informative
@@ -266,7 +265,6 @@ void KWDataGridManager::ExportNullDataGrid(KWDataGrid* targetDataGrid) const
 
 			// Partage des partitions de la grille source
 			targetAttribute->SetInnerAttributes(nullInnerAttributes);
-			targetAttribute->SetVarPartsShared(false);
 
 			// Creation de l'ensemble des valeur cible
 			targetPart = targetAttribute->AddPart();
@@ -359,8 +357,8 @@ void KWDataGridManager::ExportDataGridWithRandomizedInnerAttributes(const KWData
 }
 
 void KWDataGridManager::ExportDataGridWithMergedInnerAttributes(const KWDataGrid* inputDataGrid,
-								    KWDGInnerAttributes* otherMergedInnerAttributes,
-								    KWDataGrid* targetDataGrid)
+								KWDGInnerAttributes* otherMergedInnerAttributes,
+								KWDataGrid* targetDataGrid)
 {
 	int nAttribute;
 	KWDGAttribute* targetAttribute;
@@ -375,7 +373,7 @@ void KWDataGridManager::ExportDataGridWithMergedInnerAttributes(const KWDataGrid
 
 	// Export des attributs (avec innerAtributes non surtokenises a ce stade)
 	ExportAttributes(targetDataGrid);
-	
+
 	// Initialisation de la granularite (sinon celle de la grille GetInitialVarPartDataGrid())
 	targetDataGrid->SetGranularity(inputDataGrid->GetGranularity());
 
@@ -395,17 +393,16 @@ void KWDataGridManager::ExportDataGridWithMergedInnerAttributes(const KWDataGrid
 		else
 		{
 			// Creation de l'attribut VarPart associe a ces innerAttributes selon la meme partition que l'attribut en entree
-			InitialiseVarPartAttributeWithMergedInnerAttributes(inputDataGrid->GetVarPartAttribute(),
-									 otherMergedInnerAttributes, targetAttribute);
-			targetAttribute->SetVarPartsShared(true);
+			InitialiseVarPartAttributeWithMergedInnerAttributes(
+			    inputDataGrid->GetVarPartAttribute(), otherMergedInnerAttributes, targetAttribute);
 		}
 	}
 	ExportCells(targetDataGrid);
-	
 }
 
 void KWDataGridManager::ExportReferenceDataGridWithGivenInnerAttributes(const KWDataGrid* inputDataGrid,
-									const KWDataGrid* tokenizedDataGrid, KWDataGrid* targetDataGrid)
+									const KWDataGrid* tokenizedDataGrid,
+									KWDataGrid* targetDataGrid)
 {
 	int nAttribute;
 	KWDGAttribute* sourceAttribute;
@@ -422,7 +419,7 @@ void KWDataGridManager::ExportReferenceDataGridWithGivenInnerAttributes(const KW
 
 	// Initialisation de la granularite (sinon celle de la grille GetInitialVarPartDataGrid())
 	targetDataGrid->SetGranularity(inputDataGrid->GetGranularity());
-	
+
 	// Initialisation des parties des attributs
 	for (nAttribute = 0; nAttribute < targetDataGrid->GetAttributeNumber(); nAttribute++)
 	{
@@ -442,7 +439,7 @@ void KWDataGridManager::ExportReferenceDataGridWithGivenInnerAttributes(const KW
 			targetAttribute->CreateVarPartsSet();
 		}
 	}
-	
+
 	ExportCells(targetDataGrid);
 }
 
@@ -817,7 +814,6 @@ void KWDataGridManager::ExportGranularizedDataGridForVarPartAttributes(
 
 			// Parametrage des attributs internes de l'attrbut VarPart
 			targetAttribute->SetInnerAttributes(granularizedInnerAttributes);
-			targetAttribute->SetVarPartsShared(false);
 
 			// Creation d'un cluster par partie de variable
 			targetAttribute->CreateVarPartsSet();
@@ -2834,7 +2830,6 @@ void KWDataGridManager::InitialiseAttribute(const KWDGAttribute* sourceAttribute
 	if (sourceAttribute->GetAttributeType() == KWType::VarPart)
 	{
 		targetAttribute->SetInnerAttributes(sourceAttribute->GetInnerAttributes());
-		targetAttribute->SetVarPartsShared(true);
 	}
 	ensure(targetAttribute->GetAttributeType() != KWType::VarPart or targetAttribute->GetInnerAttributes() != NULL);
 }
@@ -2898,7 +2893,6 @@ void KWDataGridManager::InitialiseVarPartAttributeClonedParts(const KWDGAttribut
 
 	// Parametrage des attribut interne de l'attribut cible de type VarPart
 	targetAttribute->SetInnerAttributes(clonedInnerAttributes);
-	targetAttribute->SetVarPartsShared(false);
 
 	// Memorisation de l'association entre VarPart source et cible via un dictionnaire
 	sourceAttribute->GetInnerAttributes()->ExportAllInnerAttributeVarParts(&oaSourceInnerAttributeVarParts);
@@ -2941,9 +2935,9 @@ void KWDataGridManager::InitialiseVarPartAttributeClonedParts(const KWDGAttribut
 	assert(targetAttribute->GetPartNumber() == sourceAttribute->GetPartNumber());
 }
 
-void KWDataGridManager::InitialiseVarPartAttributeWithNewSurtokenisedInnerAttributes(const KWDGAttribute* sourceVarPartAttribute,
-									 KWDGInnerAttributes* newInnerAttributes,
-									 KWDGAttribute* targetVarPartAttribute) const
+void KWDataGridManager::InitialiseVarPartAttributeWithNewSurtokenisedInnerAttributes(
+    const KWDGAttribute* sourceVarPartAttribute, KWDGInnerAttributes* newInnerAttributes,
+    KWDGAttribute* targetVarPartAttribute) const
 {
 	boolean bDisplayResults = false;
 	int nInnerAttribute;
@@ -2965,7 +2959,6 @@ void KWDataGridManager::InitialiseVarPartAttributeWithNewSurtokenisedInnerAttrib
 	require(targetVarPartAttribute->GetPartNumber() == 0);
 
 	targetVarPartAttribute->SetInnerAttributes(newInnerAttributes);
-	targetVarPartAttribute->SetVarPartsShared(false);
 
 	// Memorisation de l'association entre VarPart source et une a plusieurs VarParts dans les nouveaux innerAttributes
 	for (nInnerAttribute = 0; nInnerAttribute < newInnerAttributes->GetInnerAttributeNumber(); nInnerAttribute++)
@@ -3109,9 +3102,9 @@ void KWDataGridManager::InitialiseVarPartAttributeWithNewSurtokenisedInnerAttrib
 	assert(targetVarPartAttribute->GetPartNumber() == sourceVarPartAttribute->GetPartNumber());
 }
 
-void KWDataGridManager::InitialiseVarPartAttributeWithMergedInnerAttributes(
-    const KWDGAttribute* sourceVarPartAttribute, KWDGInnerAttributes* mergedInnerAttributes,
-    KWDGAttribute* targetVarPartAttribute) const
+void KWDataGridManager::InitialiseVarPartAttributeWithMergedInnerAttributes(const KWDGAttribute* sourceVarPartAttribute,
+									    KWDGInnerAttributes* mergedInnerAttributes,
+									    KWDGAttribute* targetVarPartAttribute) const
 {
 	boolean bDisplayResults = false;
 	int nInnerAttribute;
@@ -3131,12 +3124,13 @@ void KWDataGridManager::InitialiseVarPartAttributeWithMergedInnerAttributes(
 	require(targetVarPartAttribute->GetPartNumber() == 0);
 
 	targetVarPartAttribute->SetInnerAttributes(mergedInnerAttributes);
-	targetVarPartAttribute->SetVarPartsShared(true);
 
+	/*DDDDD231 MB
 	cout << "InnerAttributes merged nombre de PV : " << mergedInnerAttributes->ComputeTotalInnerAttributeVarParts() << endl;
 	cout << "InnerAttributes antecedent nombre de PV : " << sourceVarPartAttribute->GetInnerAttributes()->ComputeTotalInnerAttributeVarParts() << endl;
 	cout << "sourceVarPartAttribute " << *sourceVarPartAttribute->GetInnerAttributes() << endl;
 	cout << "mergedInnerAttributes " << *mergedInnerAttributes << endl;
+	*/
 
 	// Memorisation de l'association entre VarPart de l'antecdentInnerAttributes et sa VarPart mergee dans le mergedInnerAttributes
 	for (nInnerAttribute = 0; nInnerAttribute < mergedInnerAttributes->GetInnerAttributeNumber(); nInnerAttribute++)
@@ -3178,7 +3172,7 @@ void KWDataGridManager::InitialiseVarPartAttributeWithMergedInnerAttributes(
 
 			// Parcours des parties antecedentes pour identifier la partie cible mergee associee
 			antecedentVarPart = antecedentInnerAttribute->GetHeadPart();
-			
+
 			while (antecedentVarPart != NULL)
 			{
 				mergedVarPart = mergedInnerAttribute->GetHeadPart();
@@ -3191,13 +3185,12 @@ void KWDataGridManager::InitialiseVarPartAttributeWithMergedInnerAttributes(
 						nkdTargetInnerAttributeVarParts.SetAt(antecedentVarPart, mergedVarPart);
 						break;
 					}
-					else 
+					else
 						// Partie suivante
 						mergedInnerAttribute->GetNextPart(mergedVarPart);
 				}
 				// Partie suivante
 				antecedentInnerAttribute->GetNextPart(antecedentVarPart);
-				
 			}
 		}
 	}
@@ -3213,7 +3206,7 @@ void KWDataGridManager::InitialiseVarPartAttributeWithMergedInnerAttributes(
 		while (sourceValue != NULL)
 		{
 			antecedentVarPart = sourceValue->GetVarPart();
-			mergedVarPart = cast(KWDGPart*,nkdTargetInnerAttributeVarParts.Lookup(antecedentVarPart));
+			mergedVarPart = cast(KWDGPart*, nkdTargetInnerAttributeVarParts.Lookup(antecedentVarPart));
 
 			if (nkdAddedMergedInnerAttributeVarParts.Lookup(mergedVarPart) == NULL)
 			{
@@ -3225,7 +3218,7 @@ void KWDataGridManager::InitialiseVarPartAttributeWithMergedInnerAttributes(
 		}
 		if (targetPart->GetValueSet()->GetValueNumber() == 0)
 			targetVarPartAttribute->DeletePart(targetPart);
-	
+
 		// Transfert du parametrage du groupe poubelle
 		if (sourcePart == sourceVarPartAttribute->GetGarbagePart())
 			targetVarPartAttribute->SetGarbagePart(targetPart);
@@ -3247,10 +3240,6 @@ void KWDataGridManager::InitialiseVarPartAttributeWithMergedInnerAttributes(
 	// Nettoyage
 	assert(nkdAddedMergedInnerAttributeVarParts.GetCount() ==
 	       mergedInnerAttributes->ComputeTotalInnerAttributeVarParts());
-	// CH 231 : a revoir car il y a des fuites memoires peut etre liees a ces dictionnaires
-	nkdAddedMergedInnerAttributeVarParts.RemoveAll();
-	nkdTargetInnerAttributeVarParts.RemoveAll();
-
 }
 
 void KWDataGridManager::InitialiseAttributeNullPart(const KWDGAttribute* sourceAttribute,
