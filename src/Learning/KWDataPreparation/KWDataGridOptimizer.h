@@ -228,7 +228,8 @@ protected:
 	// dBestMergedDataGridCost contient le cout de la meilleure grille apres post-fusion (meilleur cout)
 	// CH IV Refactoring: proto en vue de fusionner la methode avec VNSOptimizeDataGrid
 	double VNSOptimizeVarPartDataGrid(const KWDataGrid* initialDataGrid, int nNeighbourhoodLevelNumber,
-					  KWDataGrid* optimizedDataGrid, double& dBestMergedDataGridCost, boolean bWithoutAntecedent) const;
+					  KWDataGrid* optimizedDataGrid, double& dBestMergedDataGridCost,
+					  boolean bWithoutAntecedent) const;
 	// CH IV End
 
 	// Optimisation d'une solution, selon le parametre de post-optimisation des solutions
@@ -297,14 +298,8 @@ protected:
 	// Attribut de statistiques
 	KWClassStats* classStats;
 
-	// CH IV Begin
 	// Grille de reference
 	KWDataGrid* initialVarPartDataGrid;
-	// CH IV End
-
-	// Nettoyage des attribut non informatifs
-	// CH IV Refactoring: ce parametre est-il pertinent?
-	boolean bCleanNonInformativeVariables;
 
 	// Informations d'indexation des solutions evaluees durant l'optimisation
 	mutable Timer timerOptimization;

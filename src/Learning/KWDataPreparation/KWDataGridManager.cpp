@@ -36,23 +36,6 @@ void KWDataGridManager::CopyDataGridWithInnerAttributesCloned(const KWDataGrid* 
 	dataGridManager.ExportDataGridWithInnerAttributesCloned(targetDataGrid);
 }
 
-void KWDataGridManager::CopyInformativeDataGrid(const KWDataGrid* initialDataGrid, KWDataGrid* targetDataGrid) const
-{
-	KWDataGridManager dataGridManager;
-
-	require(targetDataGrid != NULL);
-
-	// Utilisation d'un manager de grille pour effectuer la copie
-	dataGridManager.SetSourceDataGrid(initialDataGrid);
-	targetDataGrid->DeleteAll();
-
-	// Export de la partie informative
-	dataGridManager.ExportInformativeAttributes(targetDataGrid);
-	dataGridManager.ExportParts(targetDataGrid);
-	dataGridManager.ExportCells(targetDataGrid);
-	ensure(dataGridManager.CheckDataGrid(targetDataGrid));
-}
-
 void KWDataGridManager::SetSourceDataGrid(const KWDataGrid* dataGrid)
 {
 	require(dataGrid == NULL or dataGrid->Check());
@@ -3124,13 +3107,6 @@ void KWDataGridManager::InitialiseVarPartAttributeWithMergedInnerAttributes(cons
 	require(targetVarPartAttribute->GetPartNumber() == 0);
 
 	targetVarPartAttribute->SetInnerAttributes(mergedInnerAttributes);
-
-	/*DDDDD231 MB
-	cout << "InnerAttributes merged nombre de PV : " << mergedInnerAttributes->ComputeTotalInnerAttributeVarParts() << endl;
-	cout << "InnerAttributes antecedent nombre de PV : " << sourceVarPartAttribute->GetInnerAttributes()->ComputeTotalInnerAttributeVarParts() << endl;
-	cout << "sourceVarPartAttribute " << *sourceVarPartAttribute->GetInnerAttributes() << endl;
-	cout << "mergedInnerAttributes " << *mergedInnerAttributes << endl;
-	*/
 
 	// Memorisation de l'association entre VarPart de l'antecdentInnerAttributes et sa VarPart mergee dans le mergedInnerAttributes
 	for (nInnerAttribute = 0; nInnerAttribute < mergedInnerAttributes->GetInnerAttributeNumber(); nInnerAttribute++)

@@ -847,9 +847,6 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 				dFusionDeltaCost = dataGridManager.ExportDataGridWithVarPartMergeOptimization(
 				    &partitionedPostMergedOptimizedDataGrid, coclusteringDataGridCosts);
 
-				// Affichage pour verifier que la grille est deja mergee
-				//DDDDDD231 MB cout << "CH 231 CCBuiilder/OptimizeVarPartDataGrid : dFusionDeltaCost doit etre nul si l'antecedent n'est pas  utilise\t" << dFusionDeltaCost << endl;
-
 				// Calcul et verification du cout
 				dMergedCost = dPartitionBestCost + dFusionDeltaCost;
 				// Le cout precedent devra etre correct
@@ -1163,8 +1160,6 @@ void CCCoclusteringBuilder::PROTO_OptimizeVarPartDataGrid(const KWDataGrid* inpu
 			// la variation de cout liee a la fusion des PV
 			dFusionDeltaCost = dataGridManager.ExportDataGridWithVarPartMergeOptimization(
 			    &partitionedPostMergedOptimizedDataGrid, coclusteringDataGridCosts);
-
-			//DDDDDD231 MB cout << "CH 231 CCBuilder/PROTO_OptimizeVarPartDataGrid : dFusionDeltaCost\t" << dFusionDeltaCost << endl;
 
 			// Calcul et verification du cout
 			dMergedCost = dPartitionBestCost + dFusionDeltaCost;
@@ -4208,6 +4203,10 @@ void CCCoclusteringBuilder::ComputePartHierarchies(KWDataGridMerger* optimizedDa
 			hdgAttribute->GetNextPart(dgPart2);
 			nPart++;
 		}
+
+		// Memorisation de la racine de la hierarchie dans le cas particulier d'une seule partie
+		if (hdgAttribute->GetPartNumber() == 1)
+			hdgAttribute->SetRootPart(cast(CCHDGPart*, hdgAttribute->GetHeadPart()));
 	}
 	assert(nkdHierarchicalParts.GetCount() == optimizedDataGridMerger->GetTotalPartNumber());
 
@@ -4233,7 +4232,6 @@ void CCCoclusteringBuilder::ComputePartHierarchies(KWDataGridMerger* optimizedDa
 
 		// CH IV
 		// Ce cout n'est pas le vrai cout car la fusion n'est pas suivie issue de la fusion des PV adjacent
-
 		bContinue = (bestPartMerge != NULL);
 		assert(bContinue or dBestDeltaCost == DBL_MAX);
 

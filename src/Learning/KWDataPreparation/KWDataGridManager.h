@@ -34,10 +34,6 @@ public:
 	// Dans le cas VarPart, les attributs internes sont clones a partir de la grille source
 	void CopyDataGridWithInnerAttributesCloned(const KWDataGrid* initialDataGrid, KWDataGrid* targetDataGrid) const;
 
-	// Copie de la partie informative du contenu d'une grille source vers une grille cible
-	// La partie informative est constituee des attributs non reduits a une seule partie
-	void CopyInformativeDataGrid(const KWDataGrid* initialDataGrid, KWDataGrid* targetDataGrid) const;
-
 	// Grille de donnees source
 	// Parametrage necessaire pour toutes les operations d'exports total ou partiel d'une grille
 	// Memoire: appartient a l'appelant
@@ -105,14 +101,14 @@ public:
 	// Cas d'une grille de type VarPart
 	// En entree :
 	// - inputDataGrid : grille dont on souhaite sur-echantillonner le KWDGInnerAttributes
-	// - otherMergedInnerAttributes : attributes dont les PV sont issues d'une fusion des innerAttributes de l'inputDataGrid. 
+	// - otherMergedInnerAttributes : attributes dont les PV sont issues d'une fusion des innerAttributes de l'inputDataGrid.
 	//							Les PV fusionnes doivent appartenir au meme cluster de PV
 	// En sortie :
 	// targetDataGrid : nouvelle grille dont le KWDGInnerAttributes a ete remplace par une version fusionnee
 	// Les partitions des attributs Identifier et VarPart ne sont pas modifiees
 	void ExportDataGridWithMergedInnerAttributes(const KWDataGrid* inputDataGrid,
-							 KWDGInnerAttributes* otherMergedInnerAttributes,
-							 KWDataGrid* targetDataGrid);
+						     KWDGInnerAttributes* otherMergedInnerAttributes,
+						     KWDataGrid* targetDataGrid);
 
 	// CH Etape 2 Antecedent
 	// Export total (attribut, parties et cellules)
@@ -122,8 +118,9 @@ public:
 	// En sortie :
 	// targetDataGrid : nouvelle grille dont l'identifierAttribute et le KWDGInnerAttributes ne sont pas modifies
 	// L'attribut VarPart contient un cluster par partie de variable du KWDGInnerAttributes
-	void ExportReferenceDataGridWithGivenInnerAttributes(const KWDataGrid* inputDataGrid, const KWDataGrid* tokenizedDataGrid,
-							 KWDataGrid* targetDataGrid);
+	void ExportReferenceDataGridWithGivenInnerAttributes(const KWDataGrid* inputDataGrid,
+							     const KWDataGrid* tokenizedDataGrid,
+							     KWDataGrid* targetDataGrid);
 
 	/////////////////////////////////////////////////////////////////////////////////////////
 	// Service elementaires de transfert du contenu de la grille source vers la grille cible
@@ -387,8 +384,8 @@ protected:
 	// L'attribut cible contient en entree une nouvelle partition des attributs internes, plus fine que la partition des attributs internes source.
 	// La methode construit les parties de l'attribut VarPart cible en conservant les parties de l'attribut VarPart source et en y mettant les PV des attributs internes surtokenises
 	void InitialiseVarPartAttributeWithNewSurtokenisedInnerAttributes(const KWDGAttribute* sourceVarPartAttribute,
-							      KWDGInnerAttributes* targetInnerAttributes,
-							      KWDGAttribute* targetVarPartAttribute) const;
+									  KWDGInnerAttributes* targetInnerAttributes,
+									  KWDGAttribute* targetVarPartAttribute) const;
 	// Fin CH IV
 
 	// Initialisation des parties pour un attribut VarPart a partir des PV merges d'un KWDGInnerAttribute et d'une partition source
@@ -402,7 +399,6 @@ protected:
 	void InitialiseVarPartAttributeWithMergedInnerAttributes(const KWDGAttribute* sourceVarPartAttribute,
 								 KWDGInnerAttributes* mergedInnerAttributes,
 								 KWDGAttribute* targetVarPartAttribute) const;
-	
 
 	// Initialisation d'une unique parties pour un attribut venant d'etre initialise, sans partie, a partir d'un attribut valide
 	void InitialiseAttributeNullPart(const KWDGAttribute* sourceAttribute, KWDGAttribute* targetAttribute) const;

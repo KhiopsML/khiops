@@ -192,7 +192,7 @@ KWDGCell* KWDataGridMerger::NewCell() const
 double KWDataGridMerger::OptimizeMerge()
 {
 	boolean bDisplayAllForDebug = false;
-	boolean bDisplayMergeDetails = true;
+	boolean bDisplayMergeDetails = false;
 	boolean bDisplayDataGrid = false;
 	boolean bRecomputeAllAtEachStep = false;
 	boolean bExhaustiveSearch = true;
@@ -208,8 +208,6 @@ double KWDataGridMerger::OptimizeMerge()
 	int nCount;
 	int nTotalExpectedMergeNumber;
 	ALString sTaskLabel;
-
-	bDisplayMergeDetails = false; //DDDDD231 MB
 
 	// Messsage de depart
 	if (bDisplayAllForDebug)
@@ -311,15 +309,15 @@ double KWDataGridMerger::OptimizeMerge()
 		if (dBestDeltaCost > dEpsilon and fabs(dBestDataGridTotalCost - dDataGridTotalCost) <= dEpsilon)
 		{
 			// CH 231 Ajout pour debug
-			ensure(fabs(dDataGridTotalCost - GetDataGridCosts()->ComputeDataGridMergerTotalCost(this)) <
-			       dEpsilon);
+			//ensure(fabs(dDataGridTotalCost - GetDataGridCosts()->ComputeDataGridMergerTotalCost(this)) <
+			//       dEpsilon);
 			// CH 231 probleme pose ici avec la base Iris : si la grille courante est sans attribut informatif, cet ensure
 			// est verifie a ce niveau mais n'est plus vrai quand on fait un CopyInformativeDataGrid
 
 			if (optimizedDataGrid != NULL)
 				delete optimizedDataGrid;
 			optimizedDataGrid = new KWDataGrid;
-			dataGridManager.CopyInformativeDataGrid(this, optimizedDataGrid);
+			dataGridManager.CopyDataGrid(this, optimizedDataGrid);
 		}
 
 		// Impact de la meilleure amelioration
@@ -337,8 +335,8 @@ double KWDataGridMerger::OptimizeMerge()
 			dDataGridTotalCost += dBestDeltaCost;
 
 			// CH 231 Debug
-			ensure(fabs(dDataGridTotalCost - GetDataGridCosts()->ComputeDataGridMergerTotalCost(this)) <
-			       dEpsilon);
+			//ensure(fabs(dDataGridTotalCost - GetDataGridCosts()->ComputeDataGridMergerTotalCost(this)) <
+			//     dEpsilon);
 
 			// Gestion de la contrainte sur le nombre max de partie par attribut
 			if (GetMaxPartNumber() > 0)
@@ -381,7 +379,7 @@ double KWDataGridMerger::OptimizeMerge()
 	// On restaure la meilleure solution rencontree lors de l'optimisation
 	if (optimizedDataGrid != NULL)
 	{
-		dataGridManager.CopyInformativeDataGrid(optimizedDataGrid, this);
+		dataGridManager.CopyDataGrid(optimizedDataGrid, this);
 		InitializeAllCosts();
 		delete optimizedDataGrid;
 		optimizedDataGrid = NULL;

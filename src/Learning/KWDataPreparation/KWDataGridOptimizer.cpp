@@ -11,7 +11,6 @@ KWDataGridOptimizer::KWDataGridOptimizer()
 {
 	classStats = NULL;
 	dataGridCosts = NULL;
-	bCleanNonInformativeVariables = false;
 	initialVarPartDataGrid = NULL;
 	attributeSubsetStatsHandler = NULL;
 	dEpsilon = 1e-6;
@@ -25,7 +24,6 @@ void KWDataGridOptimizer::Reset()
 {
 	classStats = NULL;
 	dataGridCosts = NULL;
-	bCleanNonInformativeVariables = false;
 	initialVarPartDataGrid = NULL;
 	ResetProgressionIndicators();
 }
@@ -340,13 +338,6 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 						dFusionDeltaCost =
 						    dataGridManager.ExportDataGridWithVarPartMergeOptimization(
 							&granularizedPostMergedOptimizedDataGrid, dataGridCosts);
-
-						/*DDDDDD231 MB
-						cout << "CH 231 OptimizeDataGrid apres OptimizeGranularizedDG "
-							"dFusionDeltaCost doit être nul si l'antecedent n'est plus "
-							"utilise\t"
-						     << dFusionDeltaCost << endl;
-							 */
 
 						// Calcul et verification du cout
 						dMergedCost = dGranularityBestCost + dFusionDeltaCost;
@@ -1178,12 +1169,10 @@ double KWDataGridOptimizer::IterativeVNSOptimizeDataGrid(const KWDataGrid* initi
 	KWDataGridManager dataGridManager;
 	KWDataGrid currentDataGrid;
 	int nNeighbourhoodLevelNumber;
-	// CH IV Begin
 	double dMergedCost;
 	double dBestMergedCost;
 	boolean bWithoutAntecedent = true;
-	//DDDDD231 MB 	bWithoutAntecedent = false; //DDDDD231 MB
-	// CH IV End
+	bWithoutAntecedent = false; //DDDDD231 MB
 
 	require(initialDataGrid != NULL);
 	require(optimizedDataGrid != NULL);
@@ -1400,8 +1389,6 @@ double KWDataGridOptimizer::VNSDataGridPostOptimizeVarPart(const KWDataGrid* ini
 		dFusionDeltaCost =
 		    dataGridManager.ExportDataGridWithVarPartMergeOptimization(mergedDataGrid, dataGridCosts);
 
-		//DDDDDD231 MB cout << "CH 231 VNSDataGridPostOptimizeVarPart/fusion : dFusionDeltaCost\t" << dFusionDeltaCost << endl;
-
 		// Calcul et verification du cout
 		dMergedCost = dNeighbourDataGridCost + dFusionDeltaCost;
 
@@ -1520,12 +1507,6 @@ double KWDataGridOptimizer::VNSDataGridPostOptimizeVarPart(const KWDataGrid* ini
 					dVarPartFusionDeltaCost =
 					    dataGridManager.ExportDataGridWithVarPartMergeOptimization(
 						&mergedMergedDataGrid, dataGridCosts);
-
-					/*DDDDDD231 MB
-					cout << "CH 231 VNSDataGridPostOptimizeVarPart/Deplacement frontieres : "
-						"dFusionDeltaCost\t"
-					     << dFusionDeltaCost << endl;
-						 */
 
 					dMergedMergedCost =
 					    dataGridCosts->ComputeDataGridTotalCost(&mergedMergedDataGrid);
@@ -1841,8 +1822,8 @@ double KWDataGridOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* initial
 			else
 			{
 				// Etape 1 : test de compatibilite dans ComputeDataGridTotalCost
-				ensure(fabs(dBestMergedCost -
-					    dataGridCosts->ComputeDataGridTotalCost(&mergedDataGrid)) < dEpsilon);
+				//DDDDD231 ensure(fabs(dBestMergedCost -
+				//DDDDD231 	    dataGridCosts->ComputeDataGridTotalCost(&mergedDataGrid)) < dEpsilon);
 
 				// Initialisation de la grille source a la grille tokenisee la plus fine
 				dataGridManager.SetSourceDataGrid(GetInitialVarPartDataGrid());
@@ -2232,10 +2213,7 @@ void KWDataGridOptimizer::SaveDataGrid(const KWDataGrid* sourceDataGrid, KWDataG
 	KWDataGridManager dataGridManager;
 
 	// Memorisation de la grille
-	if (bCleanNonInformativeVariables)
-		dataGridManager.CopyInformativeDataGrid(sourceDataGrid, targetDataGrid);
-	else
-		dataGridManager.CopyDataGrid(sourceDataGrid, targetDataGrid);
+	dataGridManager.CopyDataGrid(sourceDataGrid, targetDataGrid);
 }
 
 boolean KWDataGridOptimizer::IsOptimizationNeeded(const KWDataGrid* dataGrid) const
