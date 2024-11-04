@@ -1,6 +1,8 @@
+{% set version = os.environ.get('KHIOPS_VERSION').replace("-", "") %}
+
 package:
   name: khiops-binaries
-  version: {{ os.environ.get('KHIOPS_VERSION') }}
+  version: {{ version }}
 
 source:
   path: ../../
@@ -40,7 +42,7 @@ outputs:
 
   # khiops-core package
   - name: khiops-core
-    version: {{ os.environ.get('KHIOPS_VERSION') }}
+    version: {{ version }}
     requirements:
       build:
         - cmake
@@ -61,13 +63,13 @@ outputs:
       - bin/khiops_coclustering.cmd # [win]
     test:
       commands:
-        - khiops_env --env 
+        - khiops_env --env
         - khiops -s
         - khiops_coclustering -s
 
   # kni package (do not need khiops-core as a runtime dependency)
   - name: kni
-    version: {{ os.environ.get('KHIOPS_VERSION') }}
+    version: {{ version }}
     files:
       - lib/libKhiopsNativeInterface.so* # [linux]
       - lib/libKhiopsNativeInterface*.dylib # [osx]
@@ -81,7 +83,7 @@ outputs:
 
   # kni-transfer package (designed only to test kni)
   - name: kni-transfer
-    version: {{ os.environ.get('KHIOPS_VERSION') }}
+    version: {{ version }}
     requirements:
       build:
         - cmake
