@@ -60,14 +60,13 @@ jobs:
         shell: bash
         run: |
           # Put the Khiops package version
-          # The conda version cannot have '-' as a character so we eliminate it
           if [[ "${{ github.ref_type }}" == "tag" ]]
           then
-            KHIOPS_RAW_VERSION="${{ github.ref_name }}"
+            KHIOPS_VERSION="${{ github.ref_name }}"
           else
-            KHIOPS_RAW_VERSION="$(./scripts/khiops-version)"
+            KHIOPS_VERSION="$(./scripts/khiops-version)"
           fi
-          echo "KHIOPS_VERSION=$(echo $KHIOPS_RAW_VERSION | sed 's/-//')" >> "$GITHUB_ENV"
+          echo "KHIOPS_VERSION=$KHIOPS_VERSION" >> "$GITHUB_ENV"
           # On tag and macOS: Set the environment variables to sign the binaries
           if [[ "${{ runner.os }}" == "macOS" && "${{ github.ref_type }}" == "tag" ]]
           then
