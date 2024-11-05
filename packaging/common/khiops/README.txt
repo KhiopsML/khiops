@@ -69,13 +69,13 @@ Configuration:
    - macOS (via conda, see https://khiops.org), intel and ARM, 64 bits
 
 Windows software:
-   - Microsoft MPI 10.1.3
+   - Microsoft MPI 10.1.3 for native installations
    - Automatic detection and silent installation during the Khiops installation process on Windows
    - For a silent installation, run the installer with /S option, and /D=installationDir to choose a
      specific installation directory.
 
 Linux software:
-   - Java Runtime Environment V7 or higher, mpich (>3.0), libstdc++6
+   - Java Runtime Environment V7 or higher, OpenMPI (> 4.0) for native installations, libstdc++6
    - Automatic detection and silent installation during the Khiops installation process
 
 
