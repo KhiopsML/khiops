@@ -166,7 +166,7 @@ Section "Install" SecInstall
   File "${KHIOPS_WINDOWS_BUILD_DIR}\bin\_khiopsgetprocnumber.exe"
   File "${KHIOPS_WINDOWS_BUILD_DIR}\jars\norm.jar"
   File "${KHIOPS_WINDOWS_BUILD_DIR}\jars\khiops.jar"
-  File "..\khiops_env.cmd"
+  File "${KHIOPS_WINDOWS_BUILD_DIR}\tmp\khiops_env.cmd"
   File "..\khiops.cmd"
   File "..\khiops_coclustering.cmd"
 
