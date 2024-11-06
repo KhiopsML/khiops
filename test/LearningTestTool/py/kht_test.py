@@ -341,7 +341,7 @@ def evaluate_tool_on_test_dir(
         os.environ[kht.KHIOPS_API_MODE] = "true"
 
         # Ajout de variables d'environements propres a OpenMPI, elles remplacent les parametres
-        # on peut ansi lancer indiferemment mpich ou openmpi
+        # on peut ainsi lancer indiferemment mpich ou openmpi
         if platform.system() == "Linux":
             # Supprime les traces en cas d'erreur fatale de khiops. Option --quiet
             os.environ["OMPI_MCA_orte_execute_quiet"] = "true"
