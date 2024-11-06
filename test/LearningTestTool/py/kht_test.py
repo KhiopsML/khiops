@@ -349,9 +349,6 @@ def evaluate_tool_on_test_dir(
             # permet de lancer plus de processus qu'il n'y a de coeurs. Option --oversubscribe
             os.environ["OMPI_MCA_rmaps_base_oversubscribe"] = "true"
 
-            # permet de lancer en tant que root. Option --allow-run-as-root
-            os.environ["OMPI_ALLOW_RUN_AS_ROOT"] = "1"
-            os.environ["OMPI_ALLOW_RUN_AS_ROOT_CONFIRM"] = "1"
         # Construction des parametres
         khiops_params = []
         if tool_process_number > 1:
@@ -364,6 +361,22 @@ def evaluate_tool_on_test_dir(
             if platform.system() == "Darwin":
                 khiops_params.append("-host")
                 khiops_params.append("localhost")
+
+            # Option --allow-run-as-root, specifique a OpenMPI,
+            # permet de lancer OpenMPI en tant que root de maniere portable sur
+            # tous les OS supportes.
+            # Cette option remplace le positionnement des variables
+            # d'environnement OMPI_ALLOW_RUN_AS_ROOT et
+            # OMPI_ALLOW_RUN_AS_ROOT_CONFIRM à '1'.
+            # Sous Debian 10, OpenMPI ne prend pas en compte ces deux variables
+            # d'environnement.
+            if platform.system() == "Linux":
+                # En iterant sur TOOL_MPI_SUFFIXES, on s'assure que "_openmpi"
+                # fait toujours partie des back-ends MPI supportes
+                for suffix in kht.TOOL_MPI_SUFFIXES:
+                    if tool_exe_path.endswith(suffix) and suffix == "_openmpi":
+                        khiops_params.append("--allow-run-as-root")
+                        break
             khiops_params.append("-n")
             khiops_params.append(str(tool_process_number))
         khiops_params.append(tool_exe_path)
