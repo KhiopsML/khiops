@@ -352,21 +352,11 @@ def evaluate_tool_on_test_dir(
             # permet de lancer en tant que root. Option --allow-run-as-root
             os.environ["OMPI_ALLOW_RUN_AS_ROOT"] = "1"
             os.environ["OMPI_ALLOW_RUN_AS_ROOT_CONFIRM"] = "1"
-
-        # Ajout de variables d'environements propres a OpenMPI, elles remplacent les parametres
-        if platform.system() == "Linux":
-            # Supprime les traces en cas d'erreur fatale de khiops. Option --quiet
-            os.environ["OMPI_MCA_orte_execute_quiet"] = "true"
-            # permet de lancer plus de processus qu'il n'y a de coeurs. Option --oversubscribe
-            os.environ["OMPI_MCA_rmaps_base_oversubscribe"] = "true"
-            # permet de lancer en tant que root. Option --allow-run-as-root
-            os.environ["OMPI_ALLOW_RUN_AS_ROOT"] = "1"
-            os.environ["OMPI_ALLOW_RUN_AS_ROOT_CONFIRM"] = "1"
-
         # Construction des parametres
         khiops_params = []
         if tool_process_number > 1:
             khiops_params.append(mpi_exe_name)
+
             # Option -l, specifique a mpich, valide au moins pour Windows:
             #    "Label standard out and standard error (stdout and stderr) with the rank of the process"
             if platform.system() == "Windows":
