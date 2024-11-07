@@ -15,6 +15,7 @@ Internal improvements linked to packaging, in particular with the systematic use
 
 Other minor improvements and bug fixes.
 
+
 Version 10.2.2
 ==============
 On Windows, the Khiops installation program now comes with the open-source Java JRE JustJ instead of Oracle's JDK.
