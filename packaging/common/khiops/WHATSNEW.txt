@@ -2,6 +2,34 @@
 Release Notes for Khiops 10 Version Series
 ==========================================
 
+Version 10.2.3
+==============
+
+Khiops is now available for Ubuntu 24.04.
+
+The GUI now uses all available processor cores if instructed to do so.
+
+New version of visualization and covisualization tools, with improvements and bug fixes.
+
+Internal improvements linked to packaging, in particular with the systematic use of the 'khiops_env' script.
+
+Other minor improvements and bug fixes.
+
+
+Version 10.2.2
+==============
+On Windows, the Khiops installation program now comes with the open-source Java JRE JustJ instead of Oracle's JDK.
+Khiops is now available for debian 11 and 12: the library used to parallelize Khiops is now OpenMPI. MPICH remains for conda packages only.
+
+New version of visualization and covisualization tools, with many improvements and bug fixes.
+
+Minor improvements:
+- new '-s' flag to display system information (useful for debugging).
+- change in exit status: return 0 on success, 1 on fatal error (if there is an error or warning in the log file, the exit code is 0).
+
+Other minor improvements and bug fixes.
+
+
 Version 10.2.1
 ==============
 Bug fix:

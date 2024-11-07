@@ -174,13 +174,13 @@ else(UNIX)
     set(GUI_STATUS "false")
     set(SET_MPI "SET_MPI_CONDA")
     set(IS_CONDA_VAR "REM Inside conda environment\r\nset \"_IS_CONDA=true\"")
-    set(SET_KHIOPS_DRIVERS_PATH"REM Drivers search path\r\nset \"KHIOPS_DRIVERS_PATH=%_KHIOPS_HOME%\\lib\"")
+    set(SET_KHIOPS_DRIVERS_PATH "REM Drivers search path\r\nset \"KHIOPS_DRIVERS_PATH=%_KHIOPS_HOME%\\lib\"")
   else()
     set(SET_MPI "SET_MPI_SYSTEM_WIDE")
     set(GUI_STATUS "true")
   endif()
 
-  configure_file(${PROJECT_SOURCE_DIR}/packaging/windows/khiops_env.cmd ${TMP_DIR}/khiops_env.cmd @ONLY
+  configure_file(${PROJECT_SOURCE_DIR}/packaging/windows/khiops_env.cmd.in ${TMP_DIR}/khiops_env.cmd @ONLY
                  NEWLINE_STYLE CRLF)
 
 endif(UNIX)

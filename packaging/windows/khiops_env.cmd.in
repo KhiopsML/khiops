@@ -13,8 +13,8 @@ echo    -env show the environment list and exit
 echo.
 echo The following variables are used to set the path and classpath for the prerequisite of Khiops.
 echo.
-echo KHIOPS_PATH: path of Khiops executable, to add in path
-echo KHIOPS_COCLUSTERING_PATH: path of Khiops coclustering executable, to add in path
+echo KHIOPS_PATH: full path of Khiops executable
+echo KHIOPS_COCLUSTERING_PATH: full path of Khiops coclustering executable
 echo KHIOPS_MPI_COMMAND: MPI command to call the Khiops tool
 echo KHIOPS_JAVA_PATH: path of Java tool, to add in path
 echo KHIOPS_CLASSPATH: Khiops java libraries, to add in classpath
@@ -133,7 +133,7 @@ echo KHIOPS_TMP_DIR %KHIOPS_TMP_DIR%
 echo KHIOPS_MEMORY_LIMIT %KHIOPS_MEMORY_LIMIT%
 echo KHIOPS_API_MODE %KHIOPS_API_MODE%
 echo KHIOPS_RAW_GUI %KHIOPS_RAW_GUI%
-echo KHIOPS_DRIVERS_PATH%KHIOPS_DRIVERS_PATH%
+echo KHIOPS_DRIVERS_PATH %KHIOPS_DRIVERS_PATH%
 echo KHIOPS_JAVA_ERROR %KHIOPS_JAVA_ERROR%
 echo KHIOPS_MPI_ERROR %KHIOPS_MPI_ERROR%
 endlocal
