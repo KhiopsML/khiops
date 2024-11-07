@@ -22,8 +22,8 @@ KWAnalysisResultsView::KWAnalysisResultsView()
 	// ## Custom constructor
 
 	// Action de visualisation des resultats
-	AddAction("VisualizeResults", "Visualize results", (ActionMethod)(&KWAnalysisResultsView::VisualizeResults));
-	GetActionAt("VisualizeResults")->SetStyle("Button");
+	AddAction("VisualizeReport", "Visualize report", (ActionMethod)(&KWAnalysisResultsView::VisualizeReport));
+	GetActionAt("VisualizeReport")->SetStyle("Button");
 
 	// Info-bulles
 	GetFieldAt("ReportFileName")
@@ -49,11 +49,10 @@ KWAnalysisResultsView::KWAnalysisResultsView()
 			  "predictors on the train database."
 			  "\n - TestEvaluationReport.xls: evaluation report produced after the evaluation of the "
 			  "predictors on the train database.");
-	GetActionAt("VisualizeResults")
-	    ->SetHelpText("Visualize result report if available, using Khiops visualization tool.");
+	GetActionAt("VisualizeReport")->SetHelpText("Visualize report if available, using Khiops visualization tool.");
 
 	// Short cuts
-	GetActionAt("VisualizeResults")->SetShortCut('V');
+	GetActionAt("VisualizeReport")->SetShortCut('V');
 
 	// ##
 }
@@ -110,7 +109,7 @@ const ALString KWAnalysisResultsView::GetClassLabel() const
 
 // ## Method implementation
 
-void KWAnalysisResultsView::VisualizeResults()
+void KWAnalysisResultsView::VisualizeReport()
 {
 	KWAnalysisResults* analysisResults;
 	ALString sAnalysisReportFileName;
