@@ -22,8 +22,8 @@ CCAnalysisResultsView::CCAnalysisResultsView()
 	// ## Custom constructor
 
 	// Action de visualisation des resultats
-	AddAction("VisualizeResults", "Visualize results", (ActionMethod)(&CCAnalysisResultsView::VisualizeResults));
-	GetActionAt("VisualizeResults")->SetStyle("Button");
+	AddAction("VisualizeReport", "Visualize report", (ActionMethod)(&CCAnalysisResultsView::VisualizeReport));
+	GetActionAt("VisualizeReport")->SetStyle("Button");
 
 	// Le format khc est DEPRECATED et amene a disparaitre des que possible
 	GetFieldAt("ExportAsKhc")->SetVisible(false);
@@ -38,7 +38,7 @@ CCAnalysisResultsView::CCAnalysisResultsView()
 	    ->SetHelpText(
 		"Brief description to summarize the current analysis, which will be included in the reports.");
 	GetFieldAt("ExportAsKhc")->SetHelpText("Export the coclustering report under the khc format.");
-	GetActionAt("VisualizeResults")
+	GetActionAt("VisualizeReport")
 	    ->SetHelpText("Visualize coclustering report if available, using Khiops covisualization tool.");
 
 	// ##
@@ -96,7 +96,7 @@ const ALString CCAnalysisResultsView::GetClassLabel() const
 
 // ## Method implementation
 
-void CCAnalysisResultsView::VisualizeResults()
+void CCAnalysisResultsView::VisualizeReport()
 {
 	CCAnalysisResults* analysisResults;
 	ALString sAnalysisReportFileName;
