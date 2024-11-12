@@ -67,60 +67,76 @@ endif()
 
 if(UNIX)
 
-  # replace MPIEXEC MPIEXEC_NUMPROC_FLAG and MPI_IMPL KHIOPS_MPI_EXTRA_FLAG ADDITIONAL_EN_VAR
-  if("${MPI_IMPL}" STREQUAL "openmpi")
-    set(KHIOPS_MPI_EXTRA_FLAG "--allow-run-as-root --quiet")
-    set(ADDITIONAL_EN_VAR "export OMPI_MCA_btl_vader_single_copy_mechanism=none # issue on docker")
+  # Set khiops and khiops_coclustering paths according to the environment (conda, fedora, etc)
+  if(IS_CONDA)
+    set(KHIOPS_PATH "$(get_script_dir)")
+    set(KHIOPS_COCLUSTERING_PATH "$(get_script_dir)")
+    set(GET_PROC_NUMBER_PATH "$(get_script_dir)")
+    set(IS_CONDA_VAR "\n# Inside conda environment\nexport _IS_CONDA=true")
+    set(SET_KHIOPS_DRIVERS_PATH "\n# Drivers search path\nexport KHIOPS_DRIVERS_PATH=$(dirname $(get_script_dir))/lib")
+  else()
     if(IS_FEDORA_LIKE)
-      set(ADDITIONAL_EN_VAR "${ADDITIONAL_EN_VAR}\nexport PSM3_DEVICES=self # issue one rocky linux")
+      set(KHIOPS_PATH "${MPI_BIN}/khiops/")
+    else()
+      set(KHIOPS_PATH "/usr/bin/")
+    endif(IS_FEDORA_LIKE)
+    set(KHIOPS_COCLUSTERING_PATH "/usr/bin/")
+    set(GET_PROC_NUMBER_PATH "/usr/bin/")
+
+    configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_env/use_environment_module.sh.in
+                   ${TMP_DIR}/use_environment_module.sh @ONLY NEWLINE_STYLE UNIX)
+    file(READ ${TMP_DIR}/use_environment_module.sh USE_ENVIRONMENT_MODULE)
+    file(READ ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_env/java_settings.sh KHIOPS_JAVA_SETTINGS)
+
+  endif(IS_CONDA)
+
+  # replace MPIEXEC MPIEXEC_NUMPROC_FLAG and MPI_IMPL KHIOPS_MPI_EXTRA_FLAG ADDITIONAL_ENV_VAR
+  if("${MPI_IMPL}" STREQUAL "openmpi")
+    set(KHIOPS_MPI_EXTRA_FLAG "--allow-run-as-root")
+    set(KHIOPS_MPI_QUIET "--quiet")
+    set(ADDITIONAL_ENV_VAR "export OMPI_MCA_btl_vader_single_copy_mechanism=none # issue on docker")
+    set(ADDITIONAL_ENV_VAR_DISPLAY
+        "    echo OMPI_MCA_btl_vader_single_copy_mechanism \"$OMPI_MCA_btl_vader_single_copy_mechanism\"")
+    if(IS_FEDORA_LIKE)
+      set(ADDITIONAL_ENV_VAR "${ADDITIONAL_ENV_VAR}\nexport PSM3_DEVICES=self # issue on rocky linux")
+      set(ADDITIONAL_ENV_VAR_DISPLAY "${ADDITIONAL_ENV_VAR_DISPLAY}\n    echo PSM3_DEVICES \"$PSM3_DEVICES\"")
     endif()
+    set(MPIEXEC_HOSTFILE_FLAG "--hostfile")
+    file(READ ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_env/export_env_variables.sh EXPORT_ENV_VARIABLES)
+  elseif("${MPI_IMPL}" STREQUAL "mpich")
+    set(MPIEXEC_HOSTFILE_FLAG "-f")
+    # Set localhost on MacOS (see issue # https://github.com/pmodels/mpich/issues/4710)
+    if(APPLE)
+      set(KHIOPS_MPI_EXTRA_FLAG "-host localhost")
+    endif(APPLE)
   endif()
 
   # Add header comment to the variable definition (if any variable is defined)
-  if(ADDITIONAL_EN_VAR)
-    set(ADDITIONAL_EN_VAR "# Additional variables for MPI\n${ADDITIONAL_EN_VAR}")
+  if(ADDITIONAL_ENV_VAR)
+    set(ADDITIONAL_ENV_VAR "\n# Additional variables for MPI\n${ADDITIONAL_ENV_VAR}")
+    set(ADDITIONAL_ENV_VAR_DISPLAY "\n    # Additional variables for MPI\n${ADDITIONAL_ENV_VAR_DISPLAY}")
   endif()
 
-  configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops-env.in ${TMP_DIR}/khiops-env @ONLY
+  # Get the real file name of MODL e.g MODL_openmpi
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    get_target_property(MODL_NAME MODL OUTPUT_NAME)
+  else()
+    # the above line fails on macOS. But prefix is added to the binary name only on linux...
+    set(MODL_NAME "MODL")
+  endif()
+
+  configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_env/khiops_env.in ${TMP_DIR}/khiops_env @ONLY
                  NEWLINE_STYLE UNIX)
   configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/debian/khiops-core/postinst.in ${TMP_DIR}/postinst @ONLY
                  NEWLINE_STYLE UNIX)
 
-  if(NOT IS_FEDORA_LIKE)
-    install(TARGETS MODL MODL_Coclustering RUNTIME DESTINATION usr/bin COMPONENT KHIOPS_CORE)
-
-    # We install the binary with mpi suffix and create a symlink without the suffix
-    get_target_property(MODL_NAME MODL OUTPUT_NAME)
-    execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink /usr/bin/${MODL_NAME} ${TMP_DIR}/MODL)
-    install(
-      FILES ${TMP_DIR}/MODL
-      DESTINATION usr/bin
-      COMPONENT KHIOPS_CORE)
-  else()
-
-    # On fedora binaries built with mpi must follow these rules :
-    #
-    # - the binaries MUST be suffixed with $MPI_SUFFIX
-    # - MPI implementation specific files MUST be installed in the directories used by the MPI compiler e.g. $MPI_BIN
-    #
-    # see https://docs.fedoraproject.org/en-US/packaging-guidelines/MPI/
-    #
-    install(TARGETS MODL RUNTIME DESTINATION ./${MPI_BIN}/khiops COMPONENT KHIOPS_CORE)
-    install(TARGETS MODL_Coclustering RUNTIME DESTINATION /usr/bin COMPONENT KHIOPS_CORE)
-
-    # We install the binary under $MPI_BIN and create a symlink to it
-    get_target_property(MODL_NAME MODL OUTPUT_NAME)
-    execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${MPI_BIN}/khiops/${MODL_NAME} ${TMP_DIR}/MODL)
-    install(
-      FILES ${TMP_DIR}/MODL
-      DESTINATION usr/bin
-      COMPONENT KHIOPS_CORE)
-
-  endif()
+  install(TARGETS MODL RUNTIME DESTINATION ./${KHIOPS_PATH} COMPONENT KHIOPS_CORE)
+  install(TARGETS MODL_Coclustering RUNTIME DESTINATION ./${KHIOPS_COCLUSTERING_PATH} COMPONENT KHIOPS_CORE)
+  install(TARGETS _khiopsgetprocnumber RUNTIME DESTINATION ./${GET_PROC_NUMBER_PATH} COMPONENT KHIOPS_CORE)
 
   install(
     PROGRAMS ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops
-             ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_coclustering ${TMP_DIR}/khiops-env
+             ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_coclustering ${TMP_DIR}/khiops_env
     DESTINATION usr/bin
     COMPONENT KHIOPS_CORE)
 
@@ -151,4 +167,20 @@ if(UNIX)
     FILES ${CMAKE_BINARY_DIR}/jars/norm.jar ${CMAKE_BINARY_DIR}/jars/khiops.jar
     DESTINATION usr/share/khiops
     COMPONENT KHIOPS)
+
+else(UNIX)
+
+  if(IS_CONDA)
+    set(GUI_STATUS "false")
+    set(SET_MPI "SET_MPI_CONDA")
+    set(IS_CONDA_VAR "REM Inside conda environment\r\nset \"_IS_CONDA=true\"")
+    set(SET_KHIOPS_DRIVERS_PATH "REM Drivers search path\r\nset \"KHIOPS_DRIVERS_PATH=%_KHIOPS_HOME%\\lib\"")
+  else()
+    set(SET_MPI "SET_MPI_SYSTEM_WIDE")
+    set(GUI_STATUS "true")
+  endif()
+
+  configure_file(${PROJECT_SOURCE_DIR}/packaging/windows/khiops_env.cmd.in ${TMP_DIR}/khiops_env.cmd @ONLY
+                 NEWLINE_STYLE CRLF)
+
 endif(UNIX)

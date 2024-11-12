@@ -32,6 +32,9 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
+      - name: Check the tag consistency with the source version
+        if: github.ref_type == 'tag'
+        uses: ./.github/actions/check-tag-version
       - name: Put OS info on the environment
         run: |
           source /etc/os-release
@@ -48,7 +51,7 @@ jobs:
       - name: Build Khiops binaries
         run: |
           cmake --build --preset linux-gcc-release --parallel \
-            --target MODL MODL_Coclustering KhiopsNativeInterface KNITransfer norm_jar khiops_jar
+            --target MODL MODL_Coclustering _khiopsgetprocnumber KhiopsNativeInterface KNITransfer norm_jar khiops_jar
       - name: Build package with CPack
         run: cd build/linux-gcc-release && cpack -G RPM
       - name: Rename packages with codename
@@ -112,6 +115,8 @@ jobs:
         uses: ./.github/actions/test-khiops-install
       - name: Test Khiops on Iris dataset
         uses: ./.github/actions/test-khiops-on-iris
+        with:
+          os-decription: rockylinux-${{ matrix.rocky_version }}
   test-kni:
     needs: build
     runs-on: ubuntu-latest
@@ -155,8 +160,6 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
       - name: Download package artifacts
         uses: actions/download-artifact@v4
         with:
@@ -182,7 +185,9 @@ jobs:
         with:
           allowUpdates: true
           artifacts: '*.rpm'
-          body: '**For testing purposes only**'
+          body: |
+            **This release is for testing purposes only and there is no support for it.**
+            **Go to https://khiops.org to install the latest supported version.**
           draft: false
           makeLatest: false
           prerelease: true

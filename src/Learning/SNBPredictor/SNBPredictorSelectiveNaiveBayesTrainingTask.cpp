@@ -793,12 +793,18 @@ boolean SNBPredictorSNBTrainingTask::MasterInitializeDataTableBinarySliceSet()
 	nDataTableSliceSetSliceNumber = 0;
 	recoderClass = NULL;
 
-	// Recherche d'un nombre de slices qui permet d'executer la tache avec le minimum pour les buffer du
-	// KWDataTableSliceSet
+	// Recherche d'un nombre de slices qui permet d'executer la tache
+	// avec le minimum pour les buffers du KWDataTableSliceSet
 	for (nSliceNumber = 1; nSliceNumber <= nMaxSliceNumber; nSliceNumber++)
 	{
+		// Calcul de la memoire necessaire pour l'esclave pour ce nombre de slices
+		// NB: La memoire globale diminue avec la taille du buffer du slice set d'entree (2eme param).
+		//     Donc on utilise BufferedFile::nDefaultBufferSize, qui est la plus grand taille utilisee
+		//     lors de l'estimation de resources. Ceci assure que l'on atteint la borne-inf des
+		//     ressources demandes.
 		lSlaveNecessaryMemory =
-		    ComputeGlobalSlaveNecessaryMemory(nSliceNumber, MemSegmentByteSize) / nSlaveProcessNumber +
+		    ComputeGlobalSlaveNecessaryMemory(nSliceNumber, BufferedFile::nDefaultBufferSize) /
+			nSlaveProcessNumber +
 		    ComputeSlaveNecessaryMemory(nSlaveProcessNumber, nSliceNumber) +
 		    ComputeSharedNecessaryMemory(MemSegmentByteSize);
 		if (lGrantedSlaveMemory >= lSlaveNecessaryMemory)
@@ -1258,9 +1264,6 @@ boolean SNBPredictorSNBTrainingTask::CheckCurrentAttribute() const
 
 boolean SNBPredictorSNBTrainingTask::MasterFinalize(boolean bProcessEndedCorrectly)
 {
-	boolean bOk;
-	ALString sTmp;
-
 	require(masterSnbPredictor != NULL);
 	require(masterInitialDatabase != NULL);
 	require(masterInitialDatabase->Check());
@@ -1292,13 +1295,7 @@ boolean SNBPredictorSNBTrainingTask::MasterFinalize(boolean bProcessEndedCorrect
 
 	// En parallele : Nettoyage du fichier dictionnaire auxilier
 	if (IsParallel())
-	{
-		bOk = FileService::RemoveFile(
-		    FileService::GetURIFilePathName(shared_sRecoderClassDomainFileURI.GetValue()));
-		if (not bOk)
-			AddWarning(sTmp + "Failed to remove temporary dictionary " +
-				   shared_sRecoderClassDomainFileURI.GetValue());
-	}
+		FileService::RemoveFile(FileService::GetURIFilePathName(shared_sRecoderClassDomainFileURI.GetValue()));
 
 	ensure(shared_learningSpec.GetLearningSpec()->Check());
 	ensure(masterSnbPredictor->GetClassStats() != NULL);

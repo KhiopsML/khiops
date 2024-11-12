@@ -1,18 +1,35 @@
 # Khiops Conda Packaging Scripts
 
 ## How to Build
-You'll need `conda-build` installed in your system.
+We need `conda-build` installed in the system.
+
+We need to make sure that Conda is configured to use conda-forge as its default channel and that the vanilla default channel (defaults) is removed, e.g. by writing:
+
+```bash
+$ conda config --add channels conda-forge
+$ conda config --remove channels defaults
+```
+
+Or if we want to keep the vanilla defaults channel, we could give the priority to conda-forge:
+
+```bash
+$ conda config --add channels conda-forge
+$ conda config --set channel_priority strict
+```
+
+Thus, the user's $HOME/.condarc file would be updated accordingly and --channel conda-forge would no longer be needed.
+
+In the CI this is ensured by the usage of miniforge-version in the invocation of the setup-miniconda action.
+
+To build `khiops-core` package, we need to run these commands at the root of the repo (it will leave a ready to use conda channel in `./khiops-conda`):
 
 ```bash
 # At the root of the repo
-# These commands will leave a ready to use conda channel in `./khiops-conda`
 
-# Windows
+# khiops version must be set before launching the build (can be retrieved with the script scripts/khiops-version).
+export KHIOPS_VERSION=$(scripts/khiops-version)
+
 conda build --output-folder ./khiops-conda packaging/conda
-
-# Linux/macOS
-# Note: We need the conda-forge channel to obtain the pinned versions of MPICH
-conda build --channel conda-forge --output-folder ./khiops-conda packaging/conda
 ```
 
 ### Signing the Executables in macOS

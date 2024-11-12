@@ -72,10 +72,24 @@ if(EXISTS "/etc/os-release")
   endif()
 endif()
 
+# Check if it is conda environment
+set(IS_CONDA false)
+if(DEFINED ENV{CONDA_PREFIX})
+  set(IS_CONDA true)
+  message(STATUS "Auto-detected conda environment")
+endif()
+
+if(IS_CONDA AND MPI)
+  if(NOT DEFINED ENV{mpi})
+    message(
+      WARNING "You are building in a conda environment without using `conda build`. find_mpi may not work as expected.")
+  endif()
+endif()
+
 # On Fedora distros, the binaries compiled with mpi must be located under the mpi location furthermore they have to be
 # suffixed by the name of the mpi implementation. These 2 items are given by MPI_BIN and MPI_SUFFIX when the module
 # environment is loaded source /etc/profile.d/modules.sh module load mpi/mpich-x86_64
-if(IS_FEDORA_LIKE)
+if(IS_FEDORA_LIKE AND NOT IS_CONDA)
   if(DEFINED ENV{MPI_BIN})
     set(MPI_BIN $ENV{MPI_BIN})
   else()
@@ -92,7 +106,7 @@ if(IS_FEDORA_LIKE)
         "MPI_SUFFIX is not defined, you have to load the mpi module e.g.:\n source /etc/profile.d/modules.sh && module load mpi/mpich-x86_64"
     )
   endif(DEFINED ENV{MPI_SUFFIX})
-endif(IS_FEDORA_LIKE)
+endif(IS_FEDORA_LIKE AND NOT IS_CONDA)
 
 # Set the location of the built artifacts:
 #
@@ -111,7 +125,7 @@ message(STATUS "Libraries will be stored in ${CMAKE_BINARY_DIR}/lib/")
 set(TMP_DIR ${PROJECT_BINARY_DIR}/tmp)
 
 # Set module path for the project
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/packaging")
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/packaging" ; "${CMAKE_CURRENT_SOURCE_DIR}/scripts")
 
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN 1)
@@ -126,31 +140,14 @@ if(MPI)
   find_package(MPI 2.0 REQUIRED)
   message(
     STATUS
-      "MPI command line: ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} ${MPIEXEC_MAX_NUMPROCS} ${MPIEXEC_PREFLAGS} EXECUTABLE ${MPIEXEC_POSTFLAGS} ARGS"
+      "MPI command line: ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${MPIEXEC_MAX_NUMPROCS} ${MPIEXEC_PREFLAGS} EXECUTABLE ${MPIEXEC_POSTFLAGS} ARGS"
   )
 endif()
 
 # Detects the mpi implementation
 if(UNIX AND MPI)
-  string(FIND "${MPI_LIBRARIES}" openmpi POS)
-  if(POS GREATER -1)
-    set(MPI_IMPL "openmpi")
-  endif()
-
-  string(FIND "${MPI_LIBRARIES}" mpich POS)
-  if(POS GREATER -1)
-    set(MPI_IMPL "mpich")
-  endif()
-
-  string(FIND "${MPI_LIBRARIES}" intel POS)
-  if(POS GREATER -1)
-    set(MPI_IMPL "intel")
-  endif()
-  if(MPI_IMPL)
-    message(STATUS "Auto-detected MPI implementation: ${MPI_IMPL}")
-  else()
-    message(STATUS "Unable to detect the MPI implementation: no suffix will be added to binaries name")
-  endif()
+  include(get_mpi_implementation)
+  get_mpi_implementation()
 
   # Set MPI suffix if it is not defined with the environment variables (like on Fedora distros)
   if(NOT MPI_SUFFIX AND MPI_IMPL)
@@ -272,6 +269,10 @@ function(set_unix_khiops_options target)
     target_compile_options(${target} PRIVATE -Wno-unsequenced -Wno-overloaded-virtual
                                              -Wno-inconsistent-missing-override)
   endif()
+
+  # Disable "floating-point expression contraction" on clang and gcc to improve reproducibility beetween x86_64 and
+  # arm64
+  target_compile_options(${target} PRIVATE -ffp-contract=off)
 
 endfunction(set_unix_khiops_options)
 

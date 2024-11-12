@@ -133,13 +133,12 @@ KWSystemParametersView::KWSystemParametersView()
 	cast(UIIntElement*, GetFieldAt("MaxCoreNumber"))->SetMinValue(1);
 
 	nMaxProcNumber =
-	    min(RMResourceManager::GetPhysicalCoreNumber(), max(1, RMResourceManager::GetLogicalProcessNumber() - 1));
+	    min(RMResourceManager::GetPhysicalCoreNumber(), max(1, RMResourceManager::GetLogicalProcessNumber()));
 	cast(UIIntElement*, GetFieldAt("MaxCoreNumber"))->SetMaxValue(nMaxProcNumber);
 	cast(UIIntElement*, GetFieldAt("MaxCoreNumber"))->SetDefaultValue(nMaxProcNumber);
 
-	// Calcul du nombre effectif de processus qu'on utilise (en general DefaultValue +1)
-	RMResourceConstraints::SetMaxCoreNumberOnCluster(
-	    ComputeCoreNumber(cast(UIIntElement*, GetFieldAt("MaxCoreNumber"))->GetDefaultValue()));
+	// Mise a jour de la contrainte du nombre de processus utilisable sur le systeme
+	RMResourceConstraints::SetMaxCoreNumberOnCluster(nMaxProcNumber);
 
 	// On ne peut pas editer le nombre de process a utiliser le mode parallel n'est pas disponible
 	if (not PLParallelTask::IsParallelModeAvailable())
@@ -200,9 +199,6 @@ KWSystemParametersView::~KWSystemParametersView() {}
 
 void KWSystemParametersView::EventUpdate(Object* object)
 {
-	int nRequestedCore;
-	ALString sTestFunctionality;
-
 	// On parametre directement les variables statiques correspondantes
 	// en ignorant l'objet passe en parametres
 	KWLearningSpec::SetMaxModalityNumber(GetIntValueAt("MaxItemNumberInReports"));
@@ -212,8 +208,7 @@ void KWSystemParametersView::EventUpdate(Object* object)
 	RMResourceConstraints::SetIgnoreMemoryLimit(GetBooleanValueAt("IgnoreMemoryLimit"));
 
 	// Calcul du nombre de processus utilises
-	nRequestedCore = GetIntValueAt("MaxCoreNumber");
-	RMResourceConstraints::SetMaxCoreNumberOnCluster(ComputeCoreNumber(nRequestedCore));
+	RMResourceConstraints::SetMaxCoreNumberOnCluster(GetIntValueAt("MaxCoreNumber"));
 	PLParallelTask::SetParallelSimulated(GetBooleanValueAt("ParallelSimulated"));
 	PLParallelTask::SetParallelLogFileName(GetStringValueAt("ParallelLogFileName"));
 	FileService::SetUserTmpDir(GetStringValueAt("TemporaryDirectoryName"));
@@ -228,7 +223,7 @@ void KWSystemParametersView::EventRefresh(Object* object)
 	SetIntValueAt("OptimizationTime", RMResourceConstraints::GetOptimizationTime());
 	SetIntValueAt("MemoryLimit", RMResourceConstraints::GetMemoryLimit());
 	SetBooleanValueAt("IgnoreMemoryLimit", RMResourceConstraints::GetIgnoreMemoryLimit());
-	SetIntValueAt("MaxCoreNumber", ComputeRequestedCoreNumber(RMResourceConstraints::GetMaxCoreNumberOnCluster()));
+	SetIntValueAt("MaxCoreNumber", RMResourceConstraints::GetMaxCoreNumberOnCluster());
 	SetBooleanValueAt("ParallelSimulated", PLParallelTask::GetParallelSimulated());
 	SetStringValueAt("ParallelLogFileName", PLParallelTask::GetParallelLogFileName());
 	SetStringValueAt("TemporaryDirectoryName", FileService::GetUserTmpDir());
@@ -237,44 +232,4 @@ void KWSystemParametersView::EventRefresh(Object* object)
 const ALString KWSystemParametersView::GetClassLabel() const
 {
 	return "System parameters";
-}
-
-int KWSystemParametersView::ComputeCoreNumber(int nRequestedCoreNumber) const
-{
-	int nMPIProcessNumber;
-	int nProcessNumber;
-
-	require(nRequestedCoreNumber > 0);
-
-	nMPIProcessNumber = RMResourceManager::GetLogicalProcessNumber();
-
-	// Evaluation du nombre de processus a lancer
-	if (nRequestedCoreNumber == 1)
-	{
-		// Lancement en sequentiel si l'utilisateur ne demande qu'un seul coeur
-		nProcessNumber = 1;
-	}
-	else
-	{
-		// En parallele, on utilise 1 processus de plus que ce que demande l'utilisateur.
-		// Et on n'utilise pas plus de processus qu'il n'y a de processus MPI (d'ou le min)
-		// Il est donc recommande de lancer Khiops avec 1 processus MPI de plus que le nombre
-		// de coeurs physiques
-		nProcessNumber = min(nRequestedCoreNumber + 1, nMPIProcessNumber);
-	}
-	ensure(nProcessNumber > 0);
-	return nProcessNumber;
-}
-
-int KWSystemParametersView::ComputeRequestedCoreNumber(int nCoreNumber) const
-{
-	int nRequestedCore;
-
-	require(nCoreNumber > 0);
-
-	if (nCoreNumber == 1)
-		nRequestedCore = 1;
-	else
-		nRequestedCore = nCoreNumber - 1;
-	return nRequestedCore;
 }

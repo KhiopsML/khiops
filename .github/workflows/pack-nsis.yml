@@ -21,28 +21,16 @@ jobs:
       khiops-version: ${{ steps.get-version.outputs.khiops-version }}
     runs-on: windows-latest
     steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+      - name: Check the tag consistency with the source version
+        if: github.ref_type == 'tag'
+        uses: ./.github/actions/check-tag-version
       - name: Install Java Temurin
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
-      - name: Obtain checkout ref
-        shell: bash
-        run: |
-          # We take the "pull request head" ref (by default it is a merged one)
-          if [[ "${{ github.event_name }}" == "pull_request" ]]
-          then
-            CHECKOUT_REF="${{ github.event.pull_request.head.sha }}"
-          # Otherwise the default checkout action ref
-          else
-            CHECKOUT_REF="${{ github.ref_name }}"
-          fi
-          echo "CHECKOUT_REF=$CHECKOUT_REF" >> $GITHUB_ENV
-          echo "Checkout ref: $CHECKOUT_REF"
-      - name: Checkout sources
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ env.CHECKOUT_REF }}
       - name: Put the package version on the environment and output
         id: get-version
         shell: bash
@@ -69,7 +57,7 @@ jobs:
         with:
           preset-name: windows-msvc-release
           targets: MODL MODL_Coclustering norm_jar khiops_jar KhiopsNativeInterface
-            KNITransfer
+            KNITransfer _khiopsgetprocnumber
           override-flags: -DTESTING=OFF -DBUILD_JARS=ON
       - name: Build NSIS package
         shell: pwsh
@@ -90,7 +78,7 @@ jobs:
       - name: Build ZIP packages
         shell: bash
         run: |-
-          cd build/windows-msvc-release && CPACK -G ZIP 
+          cd build/windows-msvc-release && CPACK -G ZIP
       - name: Upload the Installer Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -129,7 +117,11 @@ jobs:
       - name: Checkout the khiops sources
         uses: actions/checkout@v4
       - name: Test the installation
+        uses: ./.github/actions/test-khiops-install
+      - name: Test Khiops on Iris dataset
         uses: ./.github/actions/test-khiops-on-iris
+        with:
+          os-decription: windows
   test-kni:
     needs: build
     runs-on: windows-2022
@@ -146,7 +138,6 @@ jobs:
           7z x KNI-${{ needs.build.outputs.khiops-version }}.zip -o${GITHUB_WORKSPACE}/KNI
       - name: Test KNI zip
         uses: ./.github/actions/test-kni
-
   # Release is only executed on tags
   release:
     if: github.ref_type == 'tag'
@@ -180,7 +171,9 @@ jobs:
         with:
           allowUpdates: true
           artifacts: khiops-*-setup.exe,KNI-*.zip,kni-transfer-*.zip
-          body: '**For testing purposes only**'
+          body: |
+            **This release is for testing purposes only and there is no support for it.**
+            **Go to https://khiops.org to install the latest supported version.**
           draft: false
           makeLatest: false
           prerelease: true

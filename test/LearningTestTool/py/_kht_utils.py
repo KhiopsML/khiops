@@ -1,3 +1,7 @@
+# Copyright (c) 2024 Orange. All rights reserved.
+# This software is distributed under the BSD 3-Clause-clear License, the text of which is available
+# at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
+
 import os
 import os.path
 import sys
@@ -206,7 +210,9 @@ def extract_tool_exe_name(tool_full_exe_name):
         return tool_full_exe_name
     for suffix in kht.TOOL_MPI_SUFFIXES:
         if tool_full_exe_name.endswith(suffix):
-            return tool_full_exe_name.removesuffix(suffix)
+            # TODO: Replace with `return tool_full_exe_name.removesuffix(suffix)`
+            # as soon as Python 3.8 support is dropped
+            return tool_full_exe_name[: tool_full_exe_name.index(suffix)]
 
 
 """

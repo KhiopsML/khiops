@@ -1196,10 +1196,6 @@ boolean DTDecisionTreeCreationTask::ComputeResourceRequirements()
 	// initialisation des parametres permettant les diverses estimations de memoire (esclave, maitre...)
 	InitializeMemoryEstimations();
 
-	// nombre de process esclaves : ne pas en demander plus qu'il n'y a d'arbres a creer, car c'est inutile
-	nMaxSlaveProcessNumber = ComputeMaxSlaveProcessNumber();
-	assert(nMaxSlaveProcessNumber > 0);
-
 	// Estimation de la memoire partagee
 	lSharedMemory = ComputeSharedNecessaryMemory();
 
@@ -1210,7 +1206,7 @@ boolean DTDecisionTreeCreationTask::ComputeResourceRequirements()
 	lBiggestTreeMemory = ComputeBiggestTreeNecessaryMemory();
 
 	// Mise a jour des demandes de resources
-	GetResourceRequirements()->SetMaxSlaveProcessNumber(nMaxSlaveProcessNumber);
+	GetResourceRequirements()->SetMaxSlaveProcessNumber(nMaxCreatedAttributeNumber);
 	GetResourceRequirements()->GetSharedRequirement()->GetMemory()->Set(lSharedMemory);
 	GetResourceRequirements()->GetMasterRequirement()->GetMemory()->Set(lMasterMemory);
 	GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->SetMin(lBiggestTreeMemory);
@@ -1258,16 +1254,6 @@ void DTDecisionTreeCreationTask::BuildForestAttributeSelections(DTForestAttribut
 		    randomForestParameter.GetAttributePercentage());
 
 	nMasterForestMaxAttributesSelectionNumber = forestattributeselection->GetMaxAttributesNumber();
-}
-
-int DTDecisionTreeCreationTask::ComputeMaxSlaveProcessNumber() const
-{
-	int result = RMResourceConstraints::GetMaxCoreNumberOnCluster();
-
-	if (result > nMaxCreatedAttributeNumber)
-		result = nMaxCreatedAttributeNumber;
-
-	return result;
 }
 
 longint DTDecisionTreeCreationTask::ComputeMasterNecessaryMemory()

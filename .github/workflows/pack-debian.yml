@@ -7,7 +7,7 @@ on:
         description: mpi implementation
         type: choice
         default: openmpi
-        options: 
+        options:
           - mpich
           - openmpi
   pull_request:
@@ -30,19 +30,22 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [debian10, debian11, debian12, ubuntu22.04, ubuntu20.04]
+        os: [debian10, debian11, debian12, ubuntu20.04, ubuntu22.04, ubuntu24.04]
     container:
       image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
+      - name: Check the tag consistency with the source version
+        if: github.ref_type == 'tag'
+        uses: ./.github/actions/check-tag-version
       - name: Set environment variables
         run: |
           source /etc/os-release
           echo "ID=$ID" >> "$GITHUB_ENV"
           echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
           echo "MPI_IMPLEMENTATION=${{ inputs.mpi_implementation || 'openmpi' }}" >> "$GITHUB_ENV"
-          
+
       - name: Configure CMake
         run: |
           update-alternatives --set mpi /usr/bin/mpicc.$MPI_IMPLEMENTATION
@@ -51,7 +54,7 @@ jobs:
       - name: Build Khiops binaries
         run: |
           cmake --build --preset linux-gcc-release --parallel \
-            --target MODL MODL_Coclustering KhiopsNativeInterface KNITransfer norm_jar khiops_jar
+            --target MODL MODL_Coclustering _khiopsgetprocnumber KhiopsNativeInterface KNITransfer norm_jar khiops_jar
       - name: Build package with CPack
         run: cd build/linux-gcc-release && cpack -G DEB
       - name: Rename the packages to include the ubuntu codename
@@ -77,13 +80,15 @@ jobs:
   test:
     needs: build
     runs-on: ubuntu-latest
+    env:
+      DEBIAN_FRONTEND: noninteractive
     defaults:
       run:
         shell: bash
     strategy:
       fail-fast: false
       matrix:
-        os: ['debian:10', 'debian:11', 'debian:12', 'ubuntu:22.04', 'ubuntu:20.04']
+        os: ['debian:10', 'debian:11', 'debian:12',  'ubuntu:20.04', 'ubuntu:22.04', 'ubuntu:24.04']
     container:
       image: ${{ matrix.os }}
     steps:
@@ -103,7 +108,6 @@ jobs:
           path: artifacts
       - name: Install Khiops core
         run: |
-          export DEBIAN_FRONTEND="noninteractive"
           apt-get update
           dpkg -i ./artifacts/khiops-core* || true
           apt-get -f install -y
@@ -117,16 +121,20 @@ jobs:
         uses: ./.github/actions/test-khiops-install
       - name: Test Khiops on Iris dataset
         uses: ./.github/actions/test-khiops-on-iris
+        with:
+          os-decription: ${{ env.ID }}-${{ env.VERSION_CODENAME }}
   test-kni:
     needs: build
     runs-on: ubuntu-latest
+    env:
+      DEBIAN_FRONTEND: noninteractive
     defaults:
       run:
         shell: bash
     strategy:
       fail-fast: false
       matrix:
-        os: [debian10, debian11, debian12, ubuntu22.04, ubuntu20.04]
+        os: [debian10, debian11, debian12, ubuntu20.04, ubuntu22.04, ubuntu24.04]
     container:
       image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
     steps:
@@ -160,8 +168,6 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
       - name: Download package artifacts
         uses: actions/download-artifact@v4
         with:
@@ -187,6 +193,9 @@ jobs:
         with:
           allowUpdates: true
           artifacts: '*.deb'
+          body: |
+            **This release is for testing purposes only and there is no support for it.**
+            **Go to https://khiops.org to install the latest supported version.**
           draft: false
           makeLatest: false
           prerelease: true

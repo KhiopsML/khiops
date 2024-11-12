@@ -3,25 +3,23 @@
 # Set-up the shell to behave more like a general-purpose programming language
 set -euo pipefail
 
-# Choose the build preset for macOS/Linux
-if [[ "$(uname)" == "Linux" ]]
-then
-  CMAKE_PRESET="linux-gcc-release"
-else
-  CMAKE_PRESET="macos-clang-release"
-fi
-
 # Configure project
-cmake --fresh --preset $CMAKE_PRESET -DBUILD_JARS=OFF -DTESTING=OFF
+cmake -B build/conda -S . -D BUILD_JARS=OFF -D TESTING=OFF -D CMAKE_BUILD_TYPE=Release -G Ninja
 
 # Build MODL and MODL_Coclustering
-cmake --build --preset $CMAKE_PRESET --parallel \
-  --target MODL MODL_Coclustering KhiopsNativeInterface KNITransfer
+cmake --build build/conda --parallel \
+  --target MODL MODL_Coclustering KhiopsNativeInterface KNITransfer _khiopsgetprocnumber
 
 # Move the binaries to the Conda PREFIX path
-mv ./build/$CMAKE_PRESET/bin/MODL* "$PREFIX/bin"
-mv ./build/$CMAKE_PRESET/bin/KNITransfer* "$PREFIX/bin"
-mv ./build/$CMAKE_PRESET/lib/libKhiopsNativeInterface* "$PREFIX/lib"
+mv ./build/conda/bin/MODL* "$PREFIX/bin"
+mv ./build/conda/bin/_khiopsgetprocnumber* "$PREFIX/bin"
+mv ./build/conda/bin/KNITransfer* "$PREFIX/bin"
+mv ./build/conda/lib/libKhiopsNativeInterface* "$PREFIX/lib"
+
+# Copy the scripts to the Conda PREFIX path
+cp ./build/conda/tmp/khiops_env "$PREFIX/bin"
+cp ./packaging/linux/common/khiops "$PREFIX/bin"
+cp ./packaging/linux/common/khiops_coclustering "$PREFIX/bin"
 
 # Custom rpath relocation and signing executables for macOS in arm64
 #
@@ -50,8 +48,7 @@ mv ./build/$CMAKE_PRESET/lib/libKhiopsNativeInterface* "$PREFIX/lib"
 # - KHIOPS_APPLE_TMP_KEYCHAIN_PASSWORD: A temporary password for the a short-lived keychain
 #
 cd ..
-if [[ "$(uname)" == "Darwin" && -n "${KHIOPS_APPLE_CERTIFICATE_COMMON_NAME-}" ]]
-then
+if [[ "$(uname)" == "Darwin" && -n "${KHIOPS_APPLE_CERTIFICATE_COMMON_NAME-}" ]]; then
   # Inform about the signature process
   echo "Signing binaries with the certificate named '${KHIOPS_APPLE_CERTIFICATE_COMMON_NAME}'"
 
@@ -60,13 +57,14 @@ then
   install_name_tool -delete_rpath "$PREFIX/lib" "$PREFIX/bin/MODL"
   install_name_tool -delete_rpath "$PREFIX/lib" "$PREFIX/bin/MODL"
   install_name_tool -delete_rpath "$PREFIX/lib" "$PREFIX/bin/MODL_Coclustering"
+  install_name_tool -delete_rpath "$PREFIX/lib" "$PREFIX/bin/_khiopsgetprocnumber"
 
   # Add the relative rpath as conda build would
   install_name_tool -add_rpath "@loader_path/../lib" "$PREFIX/bin/MODL"
   install_name_tool -add_rpath "@loader_path/../lib" "$PREFIX/bin/MODL_Coclustering"
+  install_name_tool -add_rpath "@loader_path/../lib" "$PREFIX/bin/_khiopsgetprocnumber"
 
-  if [[ -n "${KHIOPS_APPLE_CERTIFICATE_BASE64-}" ]]
-  then
+  if [[ -n "${KHIOPS_APPLE_CERTIFICATE_BASE64-}" ]]; then
     # Keychain setup slightly modified from: https://stackoverflow.com/a/68577995
     # Before importing identity
     # - Set the default user login keychain
@@ -82,8 +80,7 @@ then
     sudo security unlock-keychain -p "$KHIOPS_APPLE_TMP_KEYCHAIN_PASSWORD" kh-tmp.keychain
 
     # Add identity (certificate + private key) to the temporary keychain
-    echo "$KHIOPS_APPLE_CERTIFICATE_BASE64" \
-      | base64 --decode -i - -o kh-cert.p12
+    echo "$KHIOPS_APPLE_CERTIFICATE_BASE64" | base64 --decode -i - -o kh-cert.p12
     sudo security import kh-cert.p12 \
       -k kh-tmp.keychain \
       -P "$KHIOPS_APPLE_CERTIFICATE_PASSWORD" \
@@ -109,14 +106,15 @@ then
   # Sign the executables and check
   $CODESIGN --force --sign "$KHIOPS_APPLE_CERTIFICATE_COMMON_NAME" "$PREFIX/bin/MODL"
   $CODESIGN --force --sign "$KHIOPS_APPLE_CERTIFICATE_COMMON_NAME" "$PREFIX/bin/MODL_Coclustering"
+  $CODESIGN --force --sign "$KHIOPS_APPLE_CERTIFICATE_COMMON_NAME" "$PREFIX/bin/_khiopsgetprocnumber"
   $CODESIGN --force --sign "$KHIOPS_APPLE_CERTIFICATE_COMMON_NAME" "$KNI_PATH"
   $CODESIGN -d -vvv "$PREFIX/bin/MODL"
   $CODESIGN -d -vvv "$PREFIX/bin/MODL_Coclustering"
+  $CODESIGN -d -vvv "$PREFIX/bin/_khiopsgetprocnumber"
   $CODESIGN -d -vvv "$KNI_PATH"
 
   # Remove the temporary keychain and restore the login keychain as default if created
-  if [[ -n "${KHIOPS_APPLE_CERTIFICATE_BASE64-}" ]]
-  then
+  if [[ -n "${KHIOPS_APPLE_CERTIFICATE_BASE64-}" ]]; then
     sudo security delete-keychain kh-tmp.keychain
     sudo security list-keychains -d user -s login.keychain
   fi

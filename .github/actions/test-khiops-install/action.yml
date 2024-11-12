@@ -1,27 +1,100 @@
 ---
 name: Test Khiops Installation
-description: Check the outputs of Khiops in the console
+description: Test khiops' scripts (khiops_env, khiops and khiops_coclustering)
 runs:
   using: composite
-  # Test if the output of Khiops in the console is as expected (no mpi or java errors)
-  # We expect only one line in stdout+stderr when running 'khiops -v'
   steps:
-    - name: Print status for debugging
-      shell: bash
-      # We force the process number to 4 because the runner has only 2 proc.
-      # With 2 proc khiops-env switches to serial and mpi is not used.
+    - name: Test that the executables are installed (Linux/macOS)
+      # We call khiops_env a first time to test the calling of _khiopsgetprocnumber
+      # then we play with KHIOPS_PROC_NUMBER:
+      # - with KHIOPS_PROC_NUMBER=2, khiops should not use MPI, we check that KHIOPS_MPI_COMMAND is empty
+      # - with KHIOPS_PROC_NUMBER=8, khiops should use MPI, we check that KHIOPS_MPI_COMMAND is not empty and KHIOPS_MPI_ERROR is empty
+      #
       # The env var OMPI_MCA_rmaps_base_oversubscribe is for openmpi it corresponds to
       # the flag --oversubscribe (Nodes are allowed to be oversubscribed)
+      # KHIOPS_MPI_VERBOSE is set to true to detect errors from MPI
+      if: runner.os != 'Windows'
+      shell: bash
       env:
-        KHIOPS_PROC_NUMBER: 4
         OMPI_MCA_rmaps_base_oversubscribe: true
+        KHIOPS_MPI_VERBOSE: true
       run: |
-        khiops-env --env
-    - name: Check Khiops output
+        echo
+        echo --- Khiops environment with KHIOPS_PROC_NUMBER not set
+        khiops_env --env
+        echo
+        export KHIOPS_PROC_NUMBER=2
+        echo --- Khiops environment with KHIOPS_PROC_NUMBER=$KHIOPS_PROC_NUMBER
+        source khiops_env --env
+        if [ ! -z "$KHIOPS_MPI_COMMAND" ]; 
+        then 
+          echo "::error::MPI is used even though there are only 2 procs available"
+          false
+        fi
+        echo
+        export KHIOPS_PROC_NUMBER=8
+        echo --- Khiops environment with KHIOPS_PROC_NUMBER=$KHIOPS_PROC_NUMBER
+        source khiops_env --env
+        if [ ! -z "$KHIOPS_MPI_ERROR" ]; 
+        then 
+          echo "::error::Unexpected MPI error: $KHIOPS_MPI_ERROR"
+          false
+        fi
+        if [ -z "$KHIOPS_MPI_COMMAND" ]; 
+        then 
+          echo "::error::KHIOPS_MPI_COMMAND is not set"
+          false
+        fi
+        echo
+        echo --- Khiops status
+        khiops -s
+        echo
+        echo --- Khiops Coclustering status
+        khiops_coclustering -s
+    - name: Test that the executables are installed (windows)
+      if: runner.os == 'Windows'
+      shell: cmd /C call {0}
+      run: |
+        echo.
+        echo --- Khiops environment with KHIOPS_PROC_NUMBER not set
+        call khiops_env --env
+        echo.
+        set KHIOPS_PROC_NUMBER=2
+        echo --- Khiops environment with KHIOPS_PROC_NUMBER=%KHIOPS_PROC_NUMBER%
+        call khiops_env --env
+        call khiops_env
+        if not "%KHIOPS_MPI_COMMAND%". == "". (
+          echo "::error::MPI is used even though there are only 2 procs available"
+          exit 1
+        )
+        set KHIOPS_PROC_NUMBER=8
+        echo.
+        echo --- Khiops environment with KHIOPS_PROC_NUMBER=%KHIOPS_PROC_NUMBER%
+        call khiops_env --env
+        call khiops_env
+        if not "%KHIOPS_MPI_ERROR%".=="". (
+          echo "::error::Unexpected MPI error: %KHIOPS_MPI_ERROR%"
+          exit 1
+        )
+        if "%KHIOPS_MPI_COMMAND%". == "". (
+          echo "::error::KHIOPS_MPI_COMMAND is not set"
+          exit 1
+        )
+        echo.
+        echo --- Khiops status
+        khiops -s
+        echo.
+        echo --- Khiops Coclustering status
+        khiops_coclustering -s
+    - name: Check Khiops output [UNIXes]
+      # Test if the output of Khiops in the console is as expected (no mpi or java errors)
+      # We expect only one line in stdout+stderr when running 'khiops -v'
+      if: runner.os != 'Windows'
       shell: bash
       env:
         KHIOPS_PROC_NUMBER: 4
         OMPI_MCA_rmaps_base_oversubscribe: true
+        KHIOPS_MPI_VERBOSE: true
       run: |
         khiops -s
         khiops -v &> output
@@ -31,7 +104,20 @@ runs:
           echo "::error::Unexpected output in khiops scripts"
           false
         fi
-    - name: Check Khiops coclustering output
+    - name: Check Khiops output [Windows]
+      if: runner.os == 'Windows'
+      shell: cmd /C call {0}
+      env:
+        KHIOPS_PROC_NUMBER: 4
+      run: |
+        khiops -s
+        for /f %%i in (' khiops -v ^| find /c /v "" ') do set "LINE_NUMBER=%%i"
+        if not "%LINE_NUMBER%" == "1" (
+          echo "::error::Unexpected output in khiops scripts"
+          exit 1
+        )
+    - name: Check Khiops coclustering output [UNIXes]
+      if: runner.os != 'Windows'
       shell: bash
       run: |-
         khiops_coclustering -s
@@ -42,14 +128,26 @@ runs:
           echo "::error::Unexpected output in khiops_coclustering scripts"
           false
         fi
-    - name: Check process number
+    - name: Check Khiops coclustering output [Windows]
+      if: runner.os == 'Windows'
+      shell: cmd /C call {0}
+      run: |
+        khiops_coclustering -s
+        for /f %%i in (' khiops_coclustering -v ^| find /c /v "" ') do set "LINE_NUMBER=%%i"
+        if not "%LINE_NUMBER%" == "1" (
+          echo "::error::Unexpected output in khiops_coclustering scripts"
+          exit 1
+        )
+    - name: Check process number [UNIXes]
+      # Test if Khiops has the right number of logical processes
+      # (it's obvious but you never know)
+      if: runner.os != 'Windows'
       shell: bash
       env:
         KHIOPS_PROC_NUMBER: 4
         OMPI_MCA_rmaps_base_oversubscribe: true
       run: |-
-        PROC_NUMBER_LIST=($(khiops -s | grep 'Logical processes on system'))
-        PROC_NUMBER=${PROC_NUMBER_LIST[-1]}
+        PROC_NUMBER=$(khiops -s | grep "Logical processes" | awk '{print $NF}')
         if [ "$PROC_NUMBER" != "$KHIOPS_PROC_NUMBER" ] ;
         then
           echo "::error::Wrong proc number ($PROC_NUMBER vs $KHIOPS_PROC_NUMBER)"

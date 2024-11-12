@@ -196,6 +196,116 @@ boolean SystemFile::CloseOutputFile(const ALString& sFilePathName)
 	return bOk;
 }
 
+longint SystemFile::Read(void* pBuffer, size_t size, size_t count)
+{
+	longint lRes;
+	ALString sTmp;
+	require(fileDriver != NULL);
+	require(fileHandle != NULL);
+	require(bIsOpenForRead);
+
+	// Mode de test : toujours en echec
+	if (bAlwaysErrorOnRead)
+	{
+		errno = ECANCELED;
+		return 0;
+	}
+
+	if (FileService::LogIOStats())
+		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] fread Begin");
+	lRes = fileDriver->Fread(pBuffer, size, count, fileHandle);
+	if (FileService::LogIOStats())
+		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] fread End");
+
+	// Renvoie 0 en cas d'erreur
+	if (lRes == -1)
+		lRes = 0;
+	return lRes;
+}
+
+boolean SystemFile::SeekPositionInFile(longint lPosition)
+{
+	boolean bRes;
+	ALString sTmp;
+
+	require(fileDriver != NULL);
+	require(fileHandle != NULL);
+	require(bIsOpenForRead);
+	if (FileService::LogIOStats())
+		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] fseek Begin");
+
+	bRes = fileDriver->SeekPositionInFile(lPosition, fileHandle);
+	if (FileService::LogIOStats())
+		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] fseek End");
+
+	return bRes;
+}
+
+longint SystemFile::Write(const void* pBuffer, size_t size, size_t count)
+{
+	longint lRes;
+	ALString sTmp;
+
+	require(fileDriver != NULL);
+	require(fileHandle != NULL);
+	require(bIsOpenForWrite);
+
+	// Mode de test : toujours en echec
+	if (bAlwaysErrorOnFlush)
+	{
+		errno = ECANCELED;
+		return 0;
+	}
+
+	// Mise a jour des informations sur la reserve
+	// Ce n'est pas la peine de remettre la reserve a zero si elle est negative,
+	// car toute nouvelle reserve ecrasera necessairement l'etat actuel
+	lReservedExtraSize -= count * size;
+	lRequestedExtraSize -= count * size;
+	if (FileService::LogIOStats())
+		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] fwrite Begin");
+
+	lRes = fileDriver->Fwrite(pBuffer, size, count, fileHandle);
+	if (FileService::LogIOStats())
+		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] fwrite End");
+
+	return lRes;
+}
+
+boolean SystemFile::Flush()
+{
+	boolean bRes;
+	ALString sTmp;
+
+	require(fileDriver != NULL);
+	require(fileHandle != NULL);
+	require(bIsOpenForWrite);
+
+	// Mode de test : toujours en echec
+	if (bAlwaysErrorOnFlush)
+	{
+		errno = ECANCELED;
+		return false;
+	}
+
+	if (FileService::LogIOStats())
+		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] flush Begin");
+	bRes = fileDriver->Flush(fileHandle);
+	if (FileService::LogIOStats())
+		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] flush End");
+	return bRes;
+}
+
+ALString SystemFile::GetLastErrorMessage()
+{
+	// Le driver peut etre null dans le cas ou on ne peut pas ouvrir le fichier
+	if (fileDriver == NULL)
+	{
+		return "file driver is missing";
+	}
+	return fileDriver->GetLastErrorMessage();
+}
+
 longint SystemFile::GetFileSize(const ALString& sFilePathName)
 {
 	longint lFileSize = 0;
