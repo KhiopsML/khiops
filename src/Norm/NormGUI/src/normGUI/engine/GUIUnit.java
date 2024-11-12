@@ -19,6 +19,8 @@ import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Hashtable;
 import java.util.Stack;
 import java.util.Vector;
@@ -1804,8 +1806,15 @@ public abstract class GUIUnit extends GUIData implements ActionListener
          */
         public static void addTrace(String sMessage)
         {
-                if (trace)
-                        displaySystemMessage("trace: " + sMessage);
+                if (trace) {
+                        // Ajoute un timestamp pour horodater la trace
+                        LocalDateTime now = LocalDateTime.now();
+                        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
+                        String formattedNow = now.format(formatter);
+
+                        // Trace
+                        displaySystemMessage("trace:\t" + formattedNow + "\t" + sMessage);
+                }
         }
 
         /**

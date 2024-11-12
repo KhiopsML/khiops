@@ -39,12 +39,19 @@ public class GUIManager extends GUIObject
                                                            ExceptionHandler.class.getName());
 
                                         // Initialisation du UIManager
+                                        // On choisit le look and feel cross-plateforme (metal) essentiellement pour
+                                        // eviter le look and feel windows qui utilise un FileChooser defectueux.
+                                        // Ce dernier commence par scanner l'ensemble des disques disponibles,
+                                        // y compris les disques reseaux, pour dimensionner sa boite de dialogue.
+                                        // Cela entraine un temps d'attente de plusieurs dizaines de secondes,
+                                        // et rend l'application inutilisable
                                         try {
-                                                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+                                                UIManager.setLookAndFeel(
+                                                  UIManager.getCrossPlatformLookAndFeelClassName());
                                         } catch (Exception e) {
                                                 if (debug)
                                                         displayMessage(
-                                                          "Impossible de charger le Look & Feel du systeme");
+                                                          "Impossible de charger le Look & Feel cross-plateforme");
                                         }
 
                                         // Choix d'une font par defaut
