@@ -102,11 +102,11 @@ public class GUIDoubleElementRadioButton extends GUIDoubleElement
          */
         public void graphicSetValue(String sValue)
         {
-                Double d = new Double(sValue);
+                Double d = Double.valueOf(sValue);
                 Enumeration e = buttonGroup.getElements();
                 while (e.hasMoreElements()) {
                         JRadioButton button = (JRadioButton)e.nextElement();
-                        if (d.equals(new Double(button.getText()))) {
+                        if (d.equals(Double.valueOf(button.getText()))) {
                                 button.setSelected(true);
                                 break;
                         }

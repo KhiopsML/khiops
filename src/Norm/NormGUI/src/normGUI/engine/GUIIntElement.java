@@ -104,7 +104,7 @@ public abstract class GUIIntElement extends GUIElement
         public Object getValueIn(GUIUnit unit)
         {
                 // Appel de la methode native
-                return new Integer(unit.getIntValueAt(getIdentifier()));
+                return Integer.valueOf(unit.getIntValueAt(getIdentifier()));
         }
 
         /**
@@ -113,7 +113,7 @@ public abstract class GUIIntElement extends GUIElement
          */
         public void graphicRefreshAll()
         {
-                graphicSetValue(new Integer(getParentUnit().getIntValueAt(getIdentifier())).toString());
+                graphicSetValue(Integer.valueOf(getParentUnit().getIntValueAt(getIdentifier())).toString());
         }
 
         /**
