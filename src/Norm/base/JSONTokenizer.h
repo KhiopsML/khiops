@@ -9,8 +9,8 @@
 #include "FileService.h"
 #include "PLRemoteFileService.h"
 #include "TextService.h"
-#include "JsonObject.h"
-#include "JsonYac.hpp"
+#include "JSONObject.h"
+#include "JSONYac.hpp"
 
 //////////////////////////////////////////////////////
 // Parser de fichier JSON pour en extraire les tokens

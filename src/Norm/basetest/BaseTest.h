@@ -20,7 +20,7 @@
 #include "UITestObject.h"
 #include "UITestObjectView.h"
 #include "MemoryTest.h"
-#include "JsonObject.h"
+#include "JSONObject.h"
 #include "JSONTokenizer.h"
 
 // Classe de test des composants de base

@@ -80,17 +80,17 @@ typedef enum jsontokentype jsontoken_kind_t;
 #if !defined JSONSTYPE && !defined JSONSTYPE_IS_DECLARED
 union JSONSTYPE
 {
-#line 46 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JsonYac.yac"
+#line 46 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
 
 	ALString* sValue;
 	double dValue;
 	boolean bValue;
-	JsonValue* jsonValue;
-	JsonObject* jsonObject;
-	JsonArray* jsonArray;
-	JsonMember* jsonMember;
+	JSONValue* jsonValue;
+	JSONObject* jsonObject;
+	JSONArray* jsonArray;
+	JSONMember* jsonMember;
 
-#line 90 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JsonYac.hpp"
+#line 90 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.hpp"
 };
 typedef union JSONSTYPE JSONSTYPE;
 #define JSONSTYPE_IS_TRIVIAL 1

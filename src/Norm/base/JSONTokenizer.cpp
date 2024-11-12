@@ -33,8 +33,8 @@ boolean JSONTokenizer::OpenForRead(const ALString& sErrorFamilyName, const ALStr
 		sFileName = sInputFileName;
 		nLastToken = -1;
 		jsonLastTokenValue.dValue = 0;
-		JsonObject::SetLineno(1);
-		JsonObject::Restart(fJSON);
+		JSONObject::SetLineno(1);
+		JSONObject::Restart(fJSON);
 	}
 	return IsOpened();
 }
@@ -61,7 +61,7 @@ boolean JSONTokenizer::Close()
 	require(IsOpened());
 
 	// Nettoyage du lexer
-	JsonObject::LexDestroy();
+	JSONObject::LexDestroy();
 
 	// Fermeture du fichier
 	bOk = FileService::CloseInputBinaryFile(sFileName, fJSON);
@@ -131,7 +131,7 @@ int JSONTokenizer::ReadNextToken()
 		delete jsonLastTokenValue.sValue;
 
 	// Lecture du token
-	nLastToken = JsonObject::Lex(&jsonLastTokenValue);
+	nLastToken = JSONObject::Lex(&jsonLastTokenValue);
 
 	// On accepte avec un warning les erreur d'encodage de chaine de caracteres
 	if (nLastToken == StringError)
@@ -152,7 +152,7 @@ int JSONTokenizer::GetLastToken()
 int JSONTokenizer::GetCurrentLineIndex()
 {
 	require(IsOpened());
-	return JsonObject::GetLineno();
+	return JSONObject::GetLineno();
 }
 
 const ALString& JSONTokenizer::GetTokenStringValue()

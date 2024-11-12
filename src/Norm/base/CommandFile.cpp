@@ -667,13 +667,13 @@ boolean CommandFile::LoadJsonParameters()
 {
 	boolean bOk = true;
 	longint lInputParameterFileSize;
-	JsonMember* jsonMember;
-	JsonArray* jsonArray;
-	JsonValue* jsonValue;
-	JsonObject* firstJsonSubObject;
-	JsonObject* jsonSubObject;
-	JsonMember* jsonSubObjectMember;
-	JsonMember* firstJsonSubObjectMember;
+	JSONMember* jsonMember;
+	JSONArray* jsonArray;
+	JSONValue* jsonValue;
+	JSONObject* firstJsonSubObject;
+	JSONObject* jsonSubObject;
+	JSONMember* jsonSubObjectMember;
+	JSONMember* firstJsonSubObjectMember;
 	ALString sMessage;
 	boolean bIsFirstArrayObjectValid;
 	boolean bIsArrayObjectValid;
@@ -728,10 +728,10 @@ boolean CommandFile::LoadJsonParameters()
 				bOk = false;
 			}
 			// Verification du type, au premier niveau de la structure de l'objet json
-			else if (jsonMember->GetValueType() != JsonObject::StringValue and
-				 jsonMember->GetValueType() != JsonObject::NumberValue and
-				 jsonMember->GetValueType() != JsonObject::BooleanValue and
-				 jsonMember->GetValueType() != JsonObject::ArrayValue)
+			else if (jsonMember->GetValueType() != JSONObject::StringValue and
+				 jsonMember->GetValueType() != JSONObject::NumberValue and
+				 jsonMember->GetValueType() != JSONObject::BooleanValue and
+				 jsonMember->GetValueType() != JSONObject::ArrayValue)
 			{
 				AddInputParameterFileError("in main json object, the " +
 							   jsonMember->GetValue()->TypeToString() +
@@ -741,7 +741,7 @@ boolean CommandFile::LoadJsonParameters()
 			}
 			// Verification du type string dans le cas d'une cle avec sa variante de type byte
 			else if (IsByteJsonKey(jsonMember->GetKey()) and
-				 jsonMember->GetValueType() != JsonObject::StringValue)
+				 jsonMember->GetValueType() != JSONObject::StringValue)
 			{
 				AddInputParameterFileError(
 				    "in main json object, the " + jsonMember->GetValue()->TypeToString() +
@@ -750,7 +750,7 @@ boolean CommandFile::LoadJsonParameters()
 				bOk = false;
 			}
 			// Verification de de la longueur et de l'encodage base64 de la valeur string
-			else if (jsonMember->GetValueType() == JsonObject::StringValue and
+			else if (jsonMember->GetValueType() == JSONObject::StringValue and
 				 not CheckStringValue(jsonMember->GetStringValue()->GetString(),
 						      IsByteJsonKey(jsonMember->GetKey()), sMessage))
 			{
@@ -760,7 +760,7 @@ boolean CommandFile::LoadJsonParameters()
 			}
 
 			// Cas d'une valeur tableau
-			if (jsonMember->GetValueType() == JsonObject::ArrayValue)
+			if (jsonMember->GetValueType() == JSONObject::ArrayValue)
 			{
 				jsonArray = jsonMember->GetArrayValue();
 
@@ -772,7 +772,7 @@ boolean CommandFile::LoadJsonParameters()
 					bIsArrayObjectValid = true;
 
 					// Verification du type, au premier niveau de la structure de l'objet json
-					if (jsonValue->GetType() != JsonObject::ObjectValue)
+					if (jsonValue->GetType() != JSONObject::ObjectValue)
 					{
 						AddInputParameterFileError("in array member, type " +
 									   jsonValue->TypeToString() + " of value at " +
@@ -838,9 +838,9 @@ boolean CommandFile::LoadJsonParameters()
 							}
 							// Verification du type, au second niveau de la structure de l'objet json
 							else if (jsonSubObjectMember->GetValueType() !=
-								     JsonObject::StringValue and
+								     JSONObject::StringValue and
 								 jsonSubObjectMember->GetValueType() !=
-								     JsonObject::NumberValue)
+								     JSONObject::NumberValue)
 							{
 								AddInputParameterFileError(
 								    "in object value of array, the " +
@@ -853,7 +853,7 @@ boolean CommandFile::LoadJsonParameters()
 							// Verification du type string dans le cas d'une cle avec sa variante de type byte
 							else if (IsByteJsonKey(jsonSubObjectMember->GetKey()) and
 								 jsonSubObjectMember->GetValueType() !=
-								     JsonObject::StringValue)
+								     JSONObject::StringValue)
 							{
 								AddInputParameterFileError(
 								    "in object value of array, the " +
@@ -866,7 +866,7 @@ boolean CommandFile::LoadJsonParameters()
 							}
 							// Verification de de la longueur et de l'encodage base64 de la valeur string
 							else if (jsonSubObjectMember->GetValueType() ==
-								     JsonObject::StringValue and
+								     JSONObject::StringValue and
 								 not CheckStringValue(
 								     jsonSubObjectMember->GetStringValue()->GetString(),
 								     IsByteJsonKey(jsonSubObjectMember->GetKey()),
@@ -1141,7 +1141,7 @@ boolean CommandFile::CheckStringValue(const ALString& sValue, boolean bCheckBase
 	return bOk;
 }
 
-ALString CommandFile::BuildJsonPath(JsonMember* member, int nArrayRank, JsonMember* arrayObjectmember) const
+ALString CommandFile::BuildJsonPath(JSONMember* member, int nArrayRank, JSONMember* arrayObjectmember) const
 {
 	ALString sJsonPath;
 
@@ -1232,7 +1232,7 @@ void CommandFile::ResetParser()
 	ivParserTokenTypes.SetSize(0);
 	svParserTokenValues.SetSize(0);
 	bParserIfState = false;
-	parserLoopJsonArray = NULL;
+	parserLoopJSONArray = NULL;
 	oaParserLoopLinesTokenTypes.DeleteAll();
 	oaParserLoopLinesTokenValues.DeleteAll();
 	nParserLoopLineIndex = -1;
@@ -1245,12 +1245,12 @@ const ALString CommandFile::RecodeCurrentLineUsingJsonParameters(boolean& bOk)
 {
 	boolean bCleanLoopWorkingData;
 	ALString sRecodedLine;
-	JsonValue* jsonValue;
+	JSONValue* jsonValue;
 	ALString sJsonKey;
 	boolean bIsByteJsonKey;
 	IntVector* ivCurrentTokenTypes;
 	StringVector* svCurrentTokenValues;
-	JsonObject* currentJsonObject;
+	JSONObject* currentJSONObject;
 	char sCharBuffer[1 + BUFFER_LENGTH];
 	int i;
 	int nToken;
@@ -1269,16 +1269,16 @@ const ALString CommandFile::RecodeCurrentLineUsingJsonParameters(boolean& bOk)
 		// Dans un bloc loop, on est revenu en etat standard une fois la fin de la boucle detectee
 		// et on doit alors traiter toutes les instruction memorisee autant de fois qu'il y d'objets json
 		assert(nParserState == TokenOther);
-		assert(parserLoopJsonArray != NULL);
+		assert(parserLoopJSONArray != NULL);
 		assert(nParserLoopLineIndex >= 0);
 		assert(nParserLoopObjectIndex >= 0);
 		assert(nParserLoopLineIndex < oaParserLoopLinesTokenTypes.GetSize() or
-		       nParserLoopObjectIndex < parserLoopJsonArray->GetValueNumber());
+		       nParserLoopObjectIndex < parserLoopJSONArray->GetValueNumber());
 
 		// Analyse de la ligne courante avec l'objet courant
 		ivCurrentTokenTypes = cast(IntVector*, oaParserLoopLinesTokenTypes.GetAt(nParserLoopLineIndex));
 		svCurrentTokenValues = cast(StringVector*, oaParserLoopLinesTokenValues.GetAt(nParserLoopLineIndex));
-		currentJsonObject = parserLoopJsonArray->GetValueAt(nParserLoopObjectIndex)->GetObjectValue();
+		currentJSONObject = parserLoopJSONArray->GetValueAt(nParserLoopObjectIndex)->GetObjectValue();
 
 		// On passe a la suite
 		nParserLoopLineIndex++;
@@ -1290,7 +1290,7 @@ const ALString CommandFile::RecodeCurrentLineUsingJsonParameters(boolean& bOk)
 
 		// On memorise la necessite de nettoyage si necessaire des donnees de travail du bloc loop
 		// Le nettoyage sera effectue plus tard, car il faut encore traiter la derniere instruction en cours
-		if (nParserLoopObjectIndex == parserLoopJsonArray->GetValueNumber())
+		if (nParserLoopObjectIndex == parserLoopJSONArray->GetValueNumber())
 			bCleanLoopWorkingData = true;
 	}
 	// Sinon, on est sur une instruction standard a executer
@@ -1300,7 +1300,7 @@ const ALString CommandFile::RecodeCurrentLineUsingJsonParameters(boolean& bOk)
 		assert(nParserState != TokenIf or bParserIfState);
 		ivCurrentTokenTypes = &ivParserTokenTypes;
 		svCurrentTokenValues = &svParserTokenValues;
-		currentJsonObject = NULL;
+		currentJSONObject = NULL;
 	}
 
 	// Recodage de la ligne en cours
@@ -1325,33 +1325,33 @@ const ALString CommandFile::RecodeCurrentLineUsingJsonParameters(boolean& bOk)
 
 			// Recherche d'un valeur d'abord dans l'objet courant
 			jsonValue = NULL;
-			if (currentJsonObject != NULL)
+			if (currentJSONObject != NULL)
 			{
 				// Recherche d'abord en mode standard
-				jsonValue = LookupJsonValue(currentJsonObject, sJsonKey);
+				jsonValue = LookupJSONValue(currentJSONObject, sJsonKey);
 
 				// Recherche sinon en mode byte
 				if (jsonValue == NULL)
 				{
-					jsonValue = LookupJsonValue(currentJsonObject, ToByteJsonKey(sJsonKey));
+					jsonValue = LookupJSONValue(currentJSONObject, ToByteJsonKey(sJsonKey));
 					if (jsonValue != NULL)
 						bIsByteJsonKey = true;
 				}
 				assert(jsonValue == NULL or
-				       (LookupJsonValue(&jsonParameters, sJsonKey) == NULL and
-					LookupJsonValue(&jsonParameters, ToByteJsonKey(sJsonKey)) == NULL));
+				       (LookupJSONValue(&jsonParameters, sJsonKey) == NULL and
+					LookupJSONValue(&jsonParameters, ToByteJsonKey(sJsonKey)) == NULL));
 			}
 
 			// Recherche dans l'objet principal si non trouve
 			if (jsonValue == NULL)
 			{
 				// Recherche d'abord en mode standard
-				jsonValue = LookupJsonValue(&jsonParameters, sJsonKey);
+				jsonValue = LookupJSONValue(&jsonParameters, sJsonKey);
 
 				// Recherche sinon en mode byte
 				if (jsonValue == NULL)
 				{
-					jsonValue = LookupJsonValue(&jsonParameters, ToByteJsonKey(sJsonKey));
+					jsonValue = LookupJSONValue(&jsonParameters, ToByteJsonKey(sJsonKey));
 					if (jsonValue != NULL)
 						bIsByteJsonKey = true;
 				}
@@ -1365,8 +1365,8 @@ const ALString CommandFile::RecodeCurrentLineUsingJsonParameters(boolean& bOk)
 							 "\" in json parameters");
 			}
 			// Erreur si type de valeur invalide
-			else if (jsonValue->GetType() != JsonValue::NumberValue and
-				 jsonValue->GetType() != JsonValue::StringValue)
+			else if (jsonValue->GetType() != JSONValue::NumberValue and
+				 jsonValue->GetType() != JSONValue::StringValue)
 			{
 				bOk = false;
 				AddInputCommandFileError(
@@ -1377,9 +1377,9 @@ const ALString CommandFile::RecodeCurrentLineUsingJsonParameters(boolean& bOk)
 			// Sinon, on ajoute la valeur recodee
 			else
 			{
-				assert(jsonValue->GetType() == JsonValue::NumberValue or
-				       jsonValue->GetType() == JsonValue::StringValue);
-				if (jsonValue->GetType() == JsonValue::NumberValue)
+				assert(jsonValue->GetType() == JSONValue::NumberValue or
+				       jsonValue->GetType() == JSONValue::StringValue);
+				if (jsonValue->GetType() == JSONValue::NumberValue)
 					sRecodedLine += jsonValue->GetNumberValue()->WriteString();
 				else
 				{
@@ -1408,7 +1408,7 @@ const ALString CommandFile::RecodeCurrentLineUsingJsonParameters(boolean& bOk)
 	// Nettoyage si necessaire des donnees de travail du bloc loop
 	if (bCleanLoopWorkingData)
 	{
-		parserLoopJsonArray = NULL;
+		parserLoopJSONArray = NULL;
 		oaParserLoopLinesTokenTypes.DeleteAll();
 		oaParserLoopLinesTokenValues.DeleteAll();
 		nParserLoopLineIndex = 0;
@@ -1425,7 +1425,7 @@ boolean CommandFile::ParseInputCommand(const ALString& sInputCommand, boolean& b
 {
 	boolean bOk = true;
 	int nNextToken;
-	JsonValue* jsonValue;
+	JSONValue* jsonValue;
 
 	require(GetInputParameterFileName() != "");
 	require(sInputCommand != "");
@@ -1460,10 +1460,10 @@ boolean CommandFile::ParseInputCommand(const ALString& sInputCommand, boolean& b
 				nParserState = nParserCurrentLineState;
 				sParserBlockKey = svParserTokenValues.GetAt(1);
 				bParserIfState = false;
-				parserLoopJsonArray = NULL;
+				parserLoopJSONArray = NULL;
 
 				// Recherche de la valeur json associee au bloc
-				jsonValue = LookupJsonValue(&jsonParameters, ExtractJsonKey(sParserBlockKey));
+				jsonValue = LookupJSONValue(&jsonParameters, ExtractJsonKey(sParserBlockKey));
 
 				// Erreur si non trouve
 				if (jsonValue == NULL)
@@ -1477,7 +1477,7 @@ boolean CommandFile::ParseInputCommand(const ALString& sInputCommand, boolean& b
 				else if (nParserCurrentLineState == TokenIf)
 				{
 					// Erreur si type incorrect
-					if (jsonValue->GetType() != JsonObject::BooleanValue)
+					if (jsonValue->GetType() != JSONObject::BooleanValue)
 					{
 						bOk = false;
 						AddInputCommandFileError("For beginning of " +
@@ -1502,7 +1502,7 @@ boolean CommandFile::ParseInputCommand(const ALString& sInputCommand, boolean& b
 					assert(nParserCurrentLineState == TokenLoop);
 
 					// Erreur si type incorrect
-					if (jsonValue->GetType() != JsonObject::ArrayValue)
+					if (jsonValue->GetType() != JSONObject::ArrayValue)
 					{
 						bOk = false;
 						AddInputCommandFileError("For beginning of " +
@@ -1515,7 +1515,7 @@ boolean CommandFile::ParseInputCommand(const ALString& sInputCommand, boolean& b
 					// Sinon, on memorise la valeur du tableau
 					else
 					{
-						parserLoopJsonArray = jsonValue->GetArrayValue();
+						parserLoopJSONArray = jsonValue->GetArrayValue();
 
 						// Reinitialisation du tableau des vecteurs de tokens du bloc loop
 						oaParserLoopLinesTokenTypes.DeleteAll();
@@ -1554,7 +1554,7 @@ boolean CommandFile::ParseInputCommand(const ALString& sInputCommand, boolean& b
 					bContinueParsing = true;
 				else if (oaParserLoopLinesTokenTypes.GetSize() == 0)
 					bContinueParsing = true;
-				else if (parserLoopJsonArray->GetValueNumber() == 0)
+				else if (parserLoopJSONArray->GetValueNumber() == 0)
 				{
 					bContinueParsing = true;
 					oaParserLoopLinesTokenTypes.DeleteAll();
@@ -1999,10 +1999,10 @@ const ALString CommandFile::ExtractJsonKey(const ALString& sTokenKey) const
 	return sTokenKey.Mid(sJsonKeyDelimiter.GetLength(), sTokenKey.GetLength() - 2 * sJsonKeyDelimiter.GetLength());
 }
 
-JsonValue* CommandFile::LookupJsonValue(JsonObject* jsonObject, const ALString& sKey) const
+JSONValue* CommandFile::LookupJSONValue(JSONObject* jsonObject, const ALString& sKey) const
 {
-	JsonValue* jsonValue;
-	JsonMember* jsonMember;
+	JSONValue* jsonValue;
+	JSONMember* jsonMember;
 
 	debug(ALString sMessage);
 
@@ -2041,11 +2041,11 @@ boolean CommandFile::DetectedUnusedJsonParameterMembers() const
 	int nMember;
 	int nObject;
 	int nSubMember;
-	JsonMember* jsonMember;
-	JsonArray* jsonArray;
-	JsonObject* jsonObject;
-	JsonMember* jsonSubMember;
-	JsonMember* usedMember;
+	JSONMember* jsonMember;
+	JSONArray* jsonArray;
+	JSONObject* jsonObject;
+	JSONMember* jsonSubMember;
+	JSONMember* usedMember;
 
 	// Parcours des membres de l'objet principal de parametrage json
 	Global::ActivateErrorFlowControl();
@@ -2054,7 +2054,7 @@ boolean CommandFile::DetectedUnusedJsonParameterMembers() const
 		jsonMember = jsonParameters.GetMemberAt(nMember);
 
 		// Recherche si le membre est utilise
-		usedMember = cast(JsonMember*, nkdParserUsedJsonParameterMembers.Lookup(jsonMember));
+		usedMember = cast(JSONMember*, nkdParserUsedJsonParameterMembers.Lookup(jsonMember));
 		assert(usedMember == NULL or usedMember == jsonMember);
 
 		// Erreur si le membre n'est pas utlise
@@ -2066,7 +2066,7 @@ boolean CommandFile::DetectedUnusedJsonParameterMembers() const
 		}
 
 		// Cas d'un tableau
-		if (jsonMember->GetValueType() == JsonValue::ArrayValue)
+		if (jsonMember->GetValueType() == JSONValue::ArrayValue)
 		{
 			jsonArray = jsonMember->GetArrayValue();
 
@@ -2082,7 +2082,7 @@ boolean CommandFile::DetectedUnusedJsonParameterMembers() const
 
 					// Recherche si le membre est utilise
 					usedMember =
-					    cast(JsonMember*, nkdParserUsedJsonParameterMembers.Lookup(jsonSubMember));
+					    cast(JSONMember*, nkdParserUsedJsonParameterMembers.Lookup(jsonSubMember));
 					assert(usedMember == NULL or usedMember == jsonSubMember);
 
 					// Erreur si le membre n'est pas utlise

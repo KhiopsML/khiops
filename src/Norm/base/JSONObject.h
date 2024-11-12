@@ -4,14 +4,14 @@
 
 #pragma once
 
-class JsonValue;
-class JsonObject;
-class JsonArray;
-class JsonString;
-class JsonNumber;
-class JsonBoolean;
-class JsonNull;
-class JsonMember;
+class JSONValue;
+class JSONObject;
+class JSONArray;
+class JSONString;
+class JSONNumber;
+class JSONBoolean;
+class JSONNull;
+class JSONMember;
 
 #include "Object.h"
 #include "ALString.h"
@@ -19,12 +19,12 @@ class JsonMember;
 #include "FileService.h"
 #include "PLRemoteFileService.h"
 #include "TextService.h"
-#include "JsonYac.hpp"
+#include "JSONYac.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
-// Classe JsonValue
+// Classe JSONValue
 // Classe ancetre des classe de gestion d'une valeur json
-class JsonValue : public Object
+class JSONValue : public Object
 {
 public:
 	// Types de valeur possible
@@ -43,12 +43,12 @@ public:
 	virtual int GetType() const = 0;
 
 	// Acces type a la valeur
-	JsonObject* GetObjectValue() const;
-	JsonArray* GetArrayValue() const;
-	JsonString* GetStringValue() const;
-	JsonNumber* GetNumberValue() const;
-	JsonBoolean* GetBooleanValue() const;
-	JsonNull* GetNullValue() const;
+	JSONObject* GetObjectValue() const;
+	JSONArray* GetArrayValue() const;
+	JSONString* GetStringValue() const;
+	JSONNumber* GetNumberValue() const;
+	JSONBoolean* GetBooleanValue() const;
+	JSONNull* GetNullValue() const;
 
 	// Conversion du type en chaine de caracteres
 	virtual const ALString TypeToString() const = 0;
@@ -58,20 +58,20 @@ public:
 };
 
 //////////////////////////////////////////////////////////////////////////////
-// Classe JsonObject
+// Classe JSONObject
 // Valeur json de type Object
-class JsonObject : public JsonValue
+class JSONObject : public JSONValue
 {
 public:
 	// Constructeur
-	JsonObject();
-	~JsonObject();
+	JSONObject();
+	~JSONObject();
 
 	// Type de valeur
 	int GetType() const override;
 
 	// Ajout d'un membre a l'objet
-	void AddMember(JsonMember* member);
+	void AddMember(JSONMember* member);
 
 	// Supression et destruction du contenu de l'objet
 	void RemoveAll();
@@ -81,10 +81,10 @@ public:
 	int GetMemberNumber() const;
 
 	// Acces aux membres par index
-	JsonMember* GetMemberAt(int nIndex) const;
+	JSONMember* GetMemberAt(int nIndex) const;
 
 	// Acces aux membres par cle
-	JsonMember* LookupMember(const ALString& sKey) const;
+	JSONMember* LookupMember(const ALString& sKey) const;
 
 	// Lecture d'un fichier
 	boolean ReadFile(const ALString& sFileName);
@@ -122,20 +122,20 @@ protected:
 };
 
 //////////////////////////////////////////////////////////////////////////////
-// Classe JsonArray
+// Classe JSONArray
 // Valeur json de type Array
-class JsonArray : public JsonValue
+class JSONArray : public JSONValue
 {
 public:
 	// Constructeur
-	JsonArray();
-	~JsonArray();
+	JSONArray();
+	~JSONArray();
 
 	// Type de valeur
 	int GetType() const override;
 
 	// Ajout d'une valeur au tableau
-	void AddValue(JsonValue* value);
+	void AddValue(JSONValue* value);
 
 	// Supression et destruction du contenu du tableau
 	void RemoveAll();
@@ -145,7 +145,7 @@ public:
 	int GetValueNumber() const;
 
 	// Acces aux valeurs par index
-	JsonValue* GetValueAt(int nIndex) const;
+	JSONValue* GetValueAt(int nIndex) const;
 
 	// Affichage, ecriture dans un fichier
 	void Write(ostream& ost) const override;
@@ -162,14 +162,14 @@ protected:
 };
 
 //////////////////////////////////////////////////////////////////////////////
-// Classe JsonString
+// Classe JSONString
 // Valeur json de type String
-class JsonString : public JsonValue
+class JSONString : public JSONValue
 {
 public:
 	// Constructeur
-	JsonString();
-	~JsonString();
+	JSONString();
+	~JSONString();
 
 	// Type de valeur
 	int GetType() const override;
@@ -192,14 +192,14 @@ protected:
 };
 
 //////////////////////////////////////////////////////////////////////////////
-// Classe JsonNumber
+// Classe JSONNumber
 // Valeur json de type Number
-class JsonNumber : public JsonValue
+class JSONNumber : public JSONValue
 {
 public:
 	// Constructeur
-	JsonNumber();
-	~JsonNumber();
+	JSONNumber();
+	~JSONNumber();
 
 	// Type de valeur
 	int GetType() const override;
@@ -221,14 +221,14 @@ protected:
 };
 
 //////////////////////////////////////////////////////////////////////////////
-// Classe JsonBoolean
+// Classe JSONBoolean
 // Valeur json de type Boolean
-class JsonBoolean : public JsonValue
+class JSONBoolean : public JSONValue
 {
 public:
 	// Constructeur
-	JsonBoolean();
-	~JsonBoolean();
+	JSONBoolean();
+	~JSONBoolean();
 
 	// Type de valeur
 	int GetType() const override;
@@ -250,14 +250,14 @@ protected:
 };
 
 //////////////////////////////////////////////////////////////////////////////
-// Classe JsonNull
+// Classe JSONNull
 // Valeur json de type Null
-class JsonNull : public JsonValue
+class JSONNull : public JSONValue
 {
 public:
 	// Constructeur
-	JsonNull();
-	~JsonNull();
+	JSONNull();
+	~JSONNull();
 
 	// Type de valeur
 	int GetType() const override;
@@ -274,14 +274,14 @@ protected:
 };
 
 //////////////////////////////////////////////////////////////////////////////
-// Classe JsonMember
+// Classe JSONMember
 // Valeur json de type Member
-class JsonMember : public Object
+class JSONMember : public Object
 {
 public:
 	// Constructeur
-	JsonMember();
-	~JsonMember();
+	JSONMember();
+	~JSONMember();
 
 	// Cle associe a la valeur
 	// La cle est au format C, et non json
@@ -289,19 +289,19 @@ public:
 	const ALString& GetKey();
 
 	// Valeur
-	void SetValue(JsonValue* value);
-	JsonValue* GetValue() const;
+	void SetValue(JSONValue* value);
+	JSONValue* GetValue() const;
 
 	// Type de la valeur
 	int GetValueType() const;
 
 	// Acces type a la valeur
-	JsonObject* GetObjectValue() const;
-	JsonArray* GetArrayValue() const;
-	JsonString* GetStringValue() const;
-	JsonNumber* GetNumberValue() const;
-	JsonBoolean* GetBooleanValue() const;
-	JsonNull* GetNullValue() const;
+	JSONObject* GetObjectValue() const;
+	JSONArray* GetArrayValue() const;
+	JSONString* GetStringValue() const;
+	JSONNumber* GetNumberValue() const;
+	JSONBoolean* GetBooleanValue() const;
+	JSONNull* GetNullValue() const;
 
 	// Affichage, ecriture dans un fichier
 	void Write(ostream& ost) const override;
@@ -315,5 +315,5 @@ public:
 	//// Implementation
 protected:
 	ALString sKey;
-	JsonValue* jsonValue;
+	JSONValue* jsonValue;
 };

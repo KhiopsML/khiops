@@ -2,68 +2,68 @@
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
-#include "JsonObject.h"
+#include "JSONObject.h"
 
 /////////////////////////////////////////////
-// Classe JsonValue
+// Classe JSONValue
 
-JsonObject* JsonValue::GetObjectValue() const
+JSONObject* JSONValue::GetObjectValue() const
 {
-	require(GetType() == JsonValue::ObjectValue);
-	return cast(JsonObject*, this);
+	require(GetType() == JSONValue::ObjectValue);
+	return cast(JSONObject*, this);
 }
 
-JsonArray* JsonValue::GetArrayValue() const
+JSONArray* JSONValue::GetArrayValue() const
 {
-	require(GetType() == JsonValue::ArrayValue);
-	return cast(JsonArray*, this);
+	require(GetType() == JSONValue::ArrayValue);
+	return cast(JSONArray*, this);
 }
 
-JsonString* JsonValue::GetStringValue() const
+JSONString* JSONValue::GetStringValue() const
 {
-	require(GetType() == JsonValue::StringValue);
-	return cast(JsonString*, this);
+	require(GetType() == JSONValue::StringValue);
+	return cast(JSONString*, this);
 }
 
-JsonNumber* JsonValue::GetNumberValue() const
+JSONNumber* JSONValue::GetNumberValue() const
 {
-	require(GetType() == JsonValue::NumberValue);
-	return cast(JsonNumber*, this);
+	require(GetType() == JSONValue::NumberValue);
+	return cast(JSONNumber*, this);
 }
 
-JsonBoolean* JsonValue::GetBooleanValue() const
+JSONBoolean* JSONValue::GetBooleanValue() const
 {
-	require(GetType() == JsonValue::BooleanValue);
-	return cast(JsonBoolean*, this);
+	require(GetType() == JSONValue::BooleanValue);
+	return cast(JSONBoolean*, this);
 }
 
-JsonNull* JsonValue::GetNullValue() const
+JSONNull* JSONValue::GetNullValue() const
 {
-	require(GetType() == JsonValue::NullValue);
-	return cast(JsonNull*, this);
+	require(GetType() == JSONValue::NullValue);
+	return cast(JSONNull*, this);
 }
 
-const ALString JsonValue::GetClassLabel() const
+const ALString JSONValue::GetClassLabel() const
 {
 	return "json " + TypeToString();
 }
 
 /////////////////////////////////////////////
-// Classe JsonObject
+// Classe JSONObject
 
-JsonObject::JsonObject() {}
+JSONObject::JSONObject() {}
 
-JsonObject::~JsonObject()
+JSONObject::~JSONObject()
 {
 	oaMembers.DeleteAll();
 }
 
-int JsonObject::GetType() const
+int JSONObject::GetType() const
 {
 	return ObjectValue;
 }
 
-void JsonObject::AddMember(JsonMember* member)
+void JSONObject::AddMember(JSONMember* member)
 {
 	require(member != NULL);
 	require(LookupMember(member->GetKey()) == NULL);
@@ -72,36 +72,36 @@ void JsonObject::AddMember(JsonMember* member)
 	odMembers.SetAt(member->GetKey(), member);
 }
 
-void JsonObject::RemoveAll()
+void JSONObject::RemoveAll()
 {
 	oaMembers.RemoveAll();
 	odMembers.RemoveAll();
 }
 
-void JsonObject::DeleteAll()
+void JSONObject::DeleteAll()
 {
 	oaMembers.DeleteAll();
 	odMembers.RemoveAll();
 }
 
-int JsonObject::GetMemberNumber() const
+int JSONObject::GetMemberNumber() const
 {
 	return oaMembers.GetSize();
 }
 
-JsonMember* JsonObject::GetMemberAt(int nIndex) const
+JSONMember* JSONObject::GetMemberAt(int nIndex) const
 {
 	require(0 <= nIndex and nIndex < GetMemberNumber());
-	return cast(JsonMember*, oaMembers.GetAt(nIndex));
+	return cast(JSONMember*, oaMembers.GetAt(nIndex));
 }
 
-JsonMember* JsonObject::LookupMember(const ALString& sKey) const
+JSONMember* JSONObject::LookupMember(const ALString& sKey) const
 {
-	assert(odMembers.Lookup(sKey) == NULL or cast(JsonMember*, odMembers.Lookup(sKey))->GetKey() == sKey);
-	return cast(JsonMember*, odMembers.Lookup(sKey));
+	assert(odMembers.Lookup(sKey) == NULL or cast(JSONMember*, odMembers.Lookup(sKey))->GetKey() == sKey);
+	return cast(JSONMember*, odMembers.Lookup(sKey));
 }
 
-boolean JsonObject::WriteFile(const ALString& sFileName) const
+boolean JSONObject::WriteFile(const ALString& sFileName) const
 {
 	boolean bOk = true;
 	ALString sLocalFileName;
@@ -127,12 +127,12 @@ boolean JsonObject::WriteFile(const ALString& sFileName) const
 	return bOk;
 }
 
-void JsonObject::Write(ostream& ost) const
+void JSONObject::Write(ostream& ost) const
 {
 	return WriteIndent(ost, 0);
 }
 
-void JsonObject::WriteIndent(ostream& ost, int nIndentLevel) const
+void JSONObject::WriteIndent(ostream& ost, int nIndentLevel) const
 {
 	ALString sIndent('\t', nIndentLevel);
 	int i;
@@ -160,80 +160,80 @@ void JsonObject::WriteIndent(ostream& ost, int nIndentLevel) const
 	}
 }
 
-const ALString JsonObject::JsonObject::TypeToString() const
+const ALString JSONObject::JSONObject::TypeToString() const
 {
 	return "object";
 }
 
-void JsonObject::TestReadWrite(const ALString& sReadFileName, const ALString& sWriteFileName)
+void JSONObject::TestReadWrite(const ALString& sReadFileName, const ALString& sWriteFileName)
 {
-	JsonObject testJsonObject;
+	JSONObject testJSONObject;
 
 	require(sReadFileName != "");
 	require(sWriteFileName != "");
 
-	testJsonObject.ReadFile(sReadFileName);
-	testJsonObject.WriteFile(sWriteFileName);
+	testJSONObject.ReadFile(sReadFileName);
+	testJSONObject.WriteFile(sWriteFileName);
 }
 
-void JsonObject::Test()
+void JSONObject::Test()
 {
 	TestReadWrite("C:\\temp\\Datasets\\Iris\\AnalysisResults.khj",
 		      "C:\\temp\\Datasets\\Iris\\O_AnalysisResults.khj");
 }
 
 //////////////////////////////////////////////////////////////////////////////
-// Classe JsonArray
+// Classe JSONArray
 
-JsonArray::JsonArray() {}
+JSONArray::JSONArray() {}
 
-JsonArray::~JsonArray()
+JSONArray::~JSONArray()
 {
 	oaValues.DeleteAll();
 }
 
-int JsonArray::GetType() const
+int JSONArray::GetType() const
 {
 	return ArrayValue;
 }
 
-void JsonArray::AddValue(JsonValue* value)
+void JSONArray::AddValue(JSONValue* value)
 {
 	require(value != NULL);
 
 	oaValues.Add(value);
 }
 
-void JsonArray::RemoveAll()
+void JSONArray::RemoveAll()
 {
 	oaValues.RemoveAll();
 }
 
-void JsonArray::DeleteAll()
+void JSONArray::DeleteAll()
 {
 	oaValues.DeleteAll();
 }
 
-int JsonArray::GetValueNumber() const
+int JSONArray::GetValueNumber() const
 {
 	return oaValues.GetSize();
 }
 
-JsonValue* JsonArray::GetValueAt(int nIndex) const
+JSONValue* JSONArray::GetValueAt(int nIndex) const
 {
 	require(0 <= nIndex and nIndex < GetValueNumber());
-	return cast(JsonValue*, oaValues.GetAt(nIndex));
+	return cast(JSONValue*, oaValues.GetAt(nIndex));
 }
 
-void JsonArray::Write(ostream& ost) const
+void JSONArray::Write(ostream& ost) const
 {
 	return WriteIndent(ost, 0);
 }
 
-void JsonArray::WriteIndent(ostream& ost, int nIndentLevel) const
+void JSONArray::WriteIndent(ostream& ost, int nIndentLevel) const
 {
 	ALString sIndent('\t', nIndentLevel);
-	JsonValue* jsonValue;
+	JSONValue* jsonValue;
 	int i;
 
 	// Cas particulier d'un objet vide
@@ -255,9 +255,9 @@ void JsonArray::WriteIndent(ostream& ost, int nIndentLevel) const
 
 			// Ecriture de la valeur en indente dans les cas des type objet ou tableau
 			if (jsonValue->GetType() == ObjectValue)
-				cast(JsonObject*, jsonValue)->WriteIndent(ost, nIndentLevel + 1);
+				cast(JSONObject*, jsonValue)->WriteIndent(ost, nIndentLevel + 1);
 			else if (jsonValue->GetType() == ArrayValue)
-				cast(JsonArray*, jsonValue)->WriteIndent(ost, nIndentLevel + 1);
+				cast(JSONArray*, jsonValue)->WriteIndent(ost, nIndentLevel + 1);
 			// Sinon, ecriture directe
 			else
 				jsonValue->Write(ost);
@@ -271,110 +271,110 @@ void JsonArray::WriteIndent(ostream& ost, int nIndentLevel) const
 	}
 }
 
-const ALString JsonArray::TypeToString() const
+const ALString JSONArray::TypeToString() const
 {
 	return "array";
 }
 
 //////////////////////////////////////////////////////////////////////////////
-// Classe JsonString
+// Classe JSONString
 
-JsonString::JsonString() {}
+JSONString::JSONString() {}
 
-JsonString::~JsonString() {}
+JSONString::~JSONString() {}
 
-int JsonString::GetType() const
+int JSONString::GetType() const
 {
 	return StringValue;
 }
 
-void JsonString::SetString(const ALString& sValue)
+void JSONString::SetString(const ALString& sValue)
 {
 	sStringValue = sValue;
 }
 
-const ALString& JsonString::GetString() const
+const ALString& JSONString::GetString() const
 {
 	return sStringValue;
 }
 
-void JsonString::Write(ostream& ost) const
+void JSONString::Write(ostream& ost) const
 {
-	ALString sJsonStringValue;
+	ALString sJSONStringValue;
 
 	// Encodage de la chaine C au format json
-	TextService::CToJsonString(sStringValue, sJsonStringValue);
+	TextService::CToJsonString(sStringValue, sJSONStringValue);
 	ost << '"';
-	ost << sJsonStringValue;
+	ost << sJSONStringValue;
 	ost << '"';
 }
 
-const ALString JsonString::TypeToString() const
+const ALString JSONString::TypeToString() const
 {
 	return "string";
 }
 
 //////////////////////////////////////////////////////////////////////////////
-// Classe JsonNumber
+// Classe JSONNumber
 
-JsonNumber::JsonNumber()
+JSONNumber::JSONNumber()
 {
 	dNumberValue = 0;
 }
 
-JsonNumber::~JsonNumber() {}
+JSONNumber::~JSONNumber() {}
 
-int JsonNumber::GetType() const
+int JSONNumber::GetType() const
 {
 	return NumberValue;
 }
 
-void JsonNumber::SetNumber(double dValue)
+void JSONNumber::SetNumber(double dValue)
 {
 	dNumberValue = dValue;
 }
 
-double JsonNumber::GetNumber() const
+double JSONNumber::GetNumber() const
 {
 	return dNumberValue;
 }
 
-void JsonNumber::Write(ostream& ost) const
+void JSONNumber::Write(ostream& ost) const
 {
 	ost << std::setprecision(10) << dNumberValue;
 }
 
-const ALString JsonNumber::TypeToString() const
+const ALString JSONNumber::TypeToString() const
 {
 	return "number";
 }
 
 //////////////////////////////////////////////////////////////////////////////
-// Classe JsonBoolean
+// Classe JSONBoolean
 
-JsonBoolean::JsonBoolean()
+JSONBoolean::JSONBoolean()
 {
 	bBooleanValue = false;
 }
 
-JsonBoolean::~JsonBoolean() {}
+JSONBoolean::~JSONBoolean() {}
 
-int JsonBoolean::GetType() const
+int JSONBoolean::GetType() const
 {
 	return BooleanValue;
 }
 
-void JsonBoolean::SetBoolean(boolean bValue)
+void JSONBoolean::SetBoolean(boolean bValue)
 {
 	bBooleanValue = bValue;
 }
 
-boolean JsonBoolean::GetBoolean() const
+boolean JSONBoolean::GetBoolean() const
 {
 	return bBooleanValue;
 }
 
-void JsonBoolean::Write(ostream& ost) const
+void JSONBoolean::Write(ostream& ost) const
 {
 	if (bBooleanValue)
 		ost << "true";
@@ -382,119 +382,119 @@ void JsonBoolean::Write(ostream& ost) const
 		ost << "false";
 }
 
-const ALString JsonBoolean::TypeToString() const
+const ALString JSONBoolean::TypeToString() const
 {
 	return "boolean";
 }
 
 //////////////////////////////////////////////////////////////////////////////
-// Classe JsonNull
+// Classe JSONNull
 
-JsonNull::JsonNull() {}
+JSONNull::JSONNull() {}
 
-JsonNull::~JsonNull() {}
+JSONNull::~JSONNull() {}
 
-int JsonNull::GetType() const
+int JSONNull::GetType() const
 {
 	return NullValue;
 }
 
-void JsonNull::Write(ostream& ost) const
+void JSONNull::Write(ostream& ost) const
 {
 	ost << "null";
 }
 
-const ALString JsonNull::TypeToString() const
+const ALString JSONNull::TypeToString() const
 {
 	return "null";
 }
 
 //////////////////////////////////////////////////////////////////////////////
-// Classe JsonMember
+// Classe JSONMember
 
-JsonMember::JsonMember()
+JSONMember::JSONMember()
 {
 	jsonValue = NULL;
 }
 
-JsonMember::~JsonMember()
+JSONMember::~JSONMember()
 {
 	if (jsonValue != NULL)
 		delete jsonValue;
 }
 
-void JsonMember::SetKey(const ALString& sValue)
+void JSONMember::SetKey(const ALString& sValue)
 {
 	sKey = sValue;
 }
 
-const ALString& JsonMember::GetKey()
+const ALString& JSONMember::GetKey()
 {
 	return sKey;
 }
 
-void JsonMember::SetValue(JsonValue* value)
+void JSONMember::SetValue(JSONValue* value)
 {
 	require(jsonValue == NULL);
 	require(value != NULL);
 	jsonValue = value;
 }
 
-JsonValue* JsonMember::GetValue() const
+JSONValue* JSONMember::GetValue() const
 {
 	return jsonValue;
 }
 
-int JsonMember::GetValueType() const
+int JSONMember::GetValueType() const
 {
 	if (jsonValue == NULL)
-		return JsonValue::None;
+		return JSONValue::None;
 	else
 		return jsonValue->GetType();
 }
 
-JsonObject* JsonMember::GetObjectValue() const
+JSONObject* JSONMember::GetObjectValue() const
 {
-	require(GetValueType() == JsonValue::ObjectValue);
-	return cast(JsonObject*, GetValue());
+	require(GetValueType() == JSONValue::ObjectValue);
+	return cast(JSONObject*, GetValue());
 }
 
-JsonArray* JsonMember::GetArrayValue() const
+JSONArray* JSONMember::GetArrayValue() const
 {
-	require(GetValueType() == JsonValue::ArrayValue);
-	return cast(JsonArray*, GetValue());
+	require(GetValueType() == JSONValue::ArrayValue);
+	return cast(JSONArray*, GetValue());
 }
 
-JsonString* JsonMember::GetStringValue() const
+JSONString* JSONMember::GetStringValue() const
 {
-	require(GetValueType() == JsonValue::StringValue);
-	return cast(JsonString*, GetValue());
+	require(GetValueType() == JSONValue::StringValue);
+	return cast(JSONString*, GetValue());
 }
 
-JsonNumber* JsonMember::GetNumberValue() const
+JSONNumber* JSONMember::GetNumberValue() const
 {
-	require(GetValueType() == JsonValue::NumberValue);
-	return cast(JsonNumber*, GetValue());
+	require(GetValueType() == JSONValue::NumberValue);
+	return cast(JSONNumber*, GetValue());
 }
 
-JsonBoolean* JsonMember::GetBooleanValue() const
+JSONBoolean* JSONMember::GetBooleanValue() const
 {
-	require(GetValueType() == JsonValue::BooleanValue);
-	return cast(JsonBoolean*, GetValue());
+	require(GetValueType() == JSONValue::BooleanValue);
+	return cast(JSONBoolean*, GetValue());
 }
 
-JsonNull* JsonMember::GetNullValue() const
+JSONNull* JSONMember::GetNullValue() const
 {
-	require(GetValueType() == JsonValue::NullValue);
-	return cast(JsonNull*, GetValue());
+	require(GetValueType() == JSONValue::NullValue);
+	return cast(JSONNull*, GetValue());
 }
 
-void JsonMember::Write(ostream& ost) const
+void JSONMember::Write(ostream& ost) const
 {
 	return WriteIndent(ost, 0);
 }
 
-void JsonMember::WriteIndent(ostream& ost, int nIndentLevel) const
+void JSONMember::WriteIndent(ostream& ost, int nIndentLevel) const
 {
 	ALString sIndent('\t', nIndentLevel);
 	ALString sJsonKey;
@@ -507,21 +507,21 @@ void JsonMember::WriteIndent(ostream& ost, int nIndentLevel) const
 	ost << "\": ";
 
 	// Ecriture de la valeur en indente dans les cas des type objet ou tableau
-	if (GetValueType() == JsonValue::ObjectValue)
+	if (GetValueType() == JSONValue::ObjectValue)
 		GetObjectValue()->WriteIndent(ost, nIndentLevel);
-	else if (GetValueType() == JsonValue::ArrayValue)
+	else if (GetValueType() == JSONValue::ArrayValue)
 		GetArrayValue()->WriteIndent(ost, nIndentLevel);
 	// Sinon, ecriture directe
 	else
 		GetValue()->Write(ost);
 }
 
-const ALString JsonMember::GetClassLabel() const
+const ALString JSONMember::GetClassLabel() const
 {
 	return "member";
 }
 
-const ALString JsonMember::GetObjectLabel() const
+const ALString JSONMember::GetObjectLabel() const
 {
 	return sKey;
 }

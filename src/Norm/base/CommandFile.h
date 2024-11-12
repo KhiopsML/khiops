@@ -12,7 +12,7 @@ class CommandFile;
 #include "Longint.h"
 #include "FileService.h"
 #include "PLRemoteFileService.h"
-#include "JsonObject.h"
+#include "JSONObject.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // Classe CommandFile
@@ -229,7 +229,7 @@ protected:
 	// Cf. https://jsonpatch.com/
 	// On suit les element de structure valides dans le parametrage json
 	// La fin du parametrage peut etre non utilises (NULL ou -1)
-	ALString BuildJsonPath(JsonMember* member, int nArrayRank, JsonMember* arrayObjectmember) const;
+	ALString BuildJsonPath(JSONMember* member, int nArrayRank, JSONMember* arrayObjectmember) const;
 
 	///////////////////////////////////////////////////////////////
 	// Gestion du fichier de commandes en entree
@@ -300,7 +300,7 @@ protected:
 
 	// Recherche de la valeur associe a une cle dans un objet json
 	// On renvoie NULL si non trouve
-	JsonValue* LookupJsonValue(JsonObject* jsonObject, const ALString& sKey) const;
+	JSONValue* LookupJSONValue(JSONObject* jsonObject, const ALString& sKey) const;
 
 	// Test si une valeur est trimee
 	boolean IsValueTrimed(const ALString& sValue) const;
@@ -336,7 +336,7 @@ protected:
 	FILE* fOutputCommands;
 
 	// Object json pour les parametres en entree
-	JsonObject jsonParameters;
+	JSONObject jsonParameters;
 
 	///////////////////////////////////////////////////////////////
 	// Variables de gestion du parsing du fichier de commande en entree
@@ -372,7 +372,7 @@ protected:
 	boolean bParserIfState;
 
 	// Tableau en cours du parametrage json dans le cas d'un bloc loop en cours
-	JsonArray* parserLoopJsonArray;
+	JSONArray* parserLoopJSONArray;
 
 	// Tableau des vecteur de type et valeurs de tokens pour les lignes de bloc loop en cours
 	ObjectArray oaParserLoopLinesTokenTypes;
