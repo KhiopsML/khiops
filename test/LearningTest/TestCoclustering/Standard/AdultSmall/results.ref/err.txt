@@ -1,9 +1,9 @@
 Database ./Adult1000.txt : Read records: 1000
-  0:00:00	Write intermediate report Coclustering(1).khcj	Level: 0.00132277	Size: 2*2	Granularity: 1
-  0:00:00	Write intermediate report Coclustering(2).khcj	Level: 0.0184751	Size: 2*3*2*2	Granularity: 2
+  0:00:00	Write intermediate report Coclustering(1).khcj	Level: 0.00132277	Size: 1*2*1*2	Granularity: 1
+  0:00:00	Write intermediate report Coclustering(2).khcj	Level: 0.0184751	Size: 1*2*3*2*2	Granularity: 2
   0:00:00	Write intermediate report Coclustering(3).khcj	Level: 0.0200085	Size: 3*2*2*2*2	Granularity: 3
   0:00:00	Write intermediate report Coclustering(4).khcj	Level: 0.0278485	Size: 3*2*2*2*2	Granularity: 4
   0:00:00	Write intermediate report Coclustering(5).khcj	Level: 0.029571	Size: 3*2*2*2*2
 Write coclustering report ./results/Coclustering.khcj
-Coclustering analysis time: 0:00:00.19
+Coclustering analysis time: 0:00:00.20
 

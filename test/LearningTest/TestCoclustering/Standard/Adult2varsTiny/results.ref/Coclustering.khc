@@ -1,16 +1,16 @@
-#Khiops 10.5.0-a1
+#Khiops 10.5.5-b.0
 Short description	
 Dimensions	2
 Name	Type	Parts	Initial parts	Values	Interest	Description
 occupation	Categorical	3	3	12	1	
-education	Categorical	3	3	13	1	
+education	Categorical	5	5	13	1	
 
 Coclustering stats
 Instances	240
-Cells	9
+Cells	14
 Null cost	1066.368632
-Cost	1051.316663
-Level	0.01411516443
+Cost	1051.339073
+Level	0.01409414988
 Initial dimensions	2
 Frequency variable	
 Dictionary	Adult
@@ -22,62 +22,71 @@ Selection value	United-States
 
 Hierarchy	occupation
 Cluster	ParentCluster	Frequency	Interest	HierarchicalLevel	Rank	HierarchicalRank
-{Prof-specialty, Exec-managerial, Protective-serv, ...}	A2	90	1	1	1	6
-{Other-service, Craft-repair, Transport-moving}	A4	70	0.812391	1	3	6
-{Sales, Farming-fishing, Adm-clerical, ...}	A4	80	0.655405	1	5	6
-A2		240	0.830416	-0.727419	2	3
-A4	A2	150	0.728665	0.72783	4	5
+{Prof-specialty, Exec-managerial}	A1	77	1	1	1	8
+{Other-service, Craft-repair, Adm-clerical, ...}	A3	100	0.801763	1	3	8
+{Farming-fishing, Sales, Machine-op-inspct, ...}	A3	63	0.769793	1	5	8
+A1		240	0.856972	0	2	2
+A3	A1	163	0.789406	0.561115	4	4
 
 Hierarchy	education
 Cluster	ParentCluster	Frequency	Interest	HierarchicalLevel	Rank	HierarchicalRank
-{Bachelors, Masters, Assoc-voc, ...}	B1	83	1	1	1	6
-{HS-grad, 11th, 10th, ...}	B3	105	0.903801	1	3	6
-{Some-college, 9th}	B3	52	0.59125	1	5	6
-B1		240	0.869351	0	2	2
-B3	B1	157	0.800281	0.696343	4	4
+{HS-grad, 11th, 9th}	B4	99	1	1	1	8
+{10th, Assoc-voc, 7th-8th}	B4	21	0.782844	1	3	8
+{Masters, Doctorate, Prof-school}	B6	20	0.814654	1	5	8
+{Bachelors}	B6	39	0.688257	1	7	8
+{Some-college, Assoc-acdm, 12th}	B5	61	0.701355	1	9	8
+B4	B2	120	0.961998	0.402343	2	5
+B2		240	0.838989	-0.678346	4	3
+B6	B5	59	0.731103	0.989103	6	7
+B5	B2	120	0.715981	0.657326	8	6
 
 Composition	occupation
 Cluster	Value	Frequency	Typicality
-{Prof-specialty, Exec-managerial, Protective-serv, ...}	Prof-specialty	54	1
-{Prof-specialty, Exec-managerial, Protective-serv, ...}	Exec-managerial	23	0.342621
-{Prof-specialty, Exec-managerial, Protective-serv, ...}	Protective-serv	6	0.148043
-{Prof-specialty, Exec-managerial, Protective-serv, ...}	Tech-support	7	0.0502739
-{Prof-specialty, Exec-managerial, Protective-serv, ...}	 * 	0	0
-{Other-service, Craft-repair, Transport-moving}	Other-service	33	1
-{Other-service, Craft-repair, Transport-moving}	Craft-repair	27	0.682053
-{Other-service, Craft-repair, Transport-moving}	Transport-moving	10	0.398653
-{Sales, Farming-fishing, Adm-clerical, ...}	Sales	27	1
-{Sales, Farming-fishing, Adm-clerical, ...}	Farming-fishing	11	0.631255
-{Sales, Farming-fishing, Adm-clerical, ...}	Adm-clerical	21	0.428212
-{Sales, Farming-fishing, Adm-clerical, ...}	Handlers-cleaners	12	0.37083
-{Sales, Farming-fishing, Adm-clerical, ...}	Machine-op-inspct	9	0.322156
+{Prof-specialty, Exec-managerial}	Prof-specialty	54	1
+{Prof-specialty, Exec-managerial}	Exec-managerial	23	0.187835
+{Other-service, Craft-repair, Adm-clerical, ...}	Other-service	33	1
+{Other-service, Craft-repair, Adm-clerical, ...}	Craft-repair	27	0.728324
+{Other-service, Craft-repair, Adm-clerical, ...}	Adm-clerical	21	0.575775
+{Other-service, Craft-repair, Adm-clerical, ...}	Handlers-cleaners	12	0.352893
+{Other-service, Craft-repair, Adm-clerical, ...}	Tech-support	7	0.111175
+{Farming-fishing, Sales, Machine-op-inspct, ...}	Farming-fishing	11	1
+{Farming-fishing, Sales, Machine-op-inspct, ...}	Sales	27	0.833384
+{Farming-fishing, Sales, Machine-op-inspct, ...}	Machine-op-inspct	9	0.634058
+{Farming-fishing, Sales, Machine-op-inspct, ...}	Transport-moving	10	0.502203
+{Farming-fishing, Sales, Machine-op-inspct, ...}	Protective-serv	6	0.194958
+{Farming-fishing, Sales, Machine-op-inspct, ...}	 * 	0	0
 
 Composition	education
 Cluster	Value	Frequency	Typicality
-{Bachelors, Masters, Assoc-voc, ...}	Bachelors	39	1
-{Bachelors, Masters, Assoc-voc, ...}	Masters	14	0.756619
-{Bachelors, Masters, Assoc-voc, ...}	Assoc-voc	10	0.272011
-{Bachelors, Masters, Assoc-voc, ...}	Assoc-acdm	10	0.245697
-{Bachelors, Masters, Assoc-voc, ...}	Prof-school	4	0.220568
-{Bachelors, Masters, Assoc-voc, ...}	Doctorate	2	0.166163
-{Bachelors, Masters, Assoc-voc, ...}	12th	4	0.143425
-{Bachelors, Masters, Assoc-voc, ...}	 * 	0	0
-{HS-grad, 11th, 10th, ...}	HS-grad	82	1
-{HS-grad, 11th, 10th, ...}	11th	12	0.318105
-{HS-grad, 11th, 10th, ...}	10th	8	0.271284
-{HS-grad, 11th, 10th, ...}	7th-8th	3	0.0969771
-{Some-college, 9th}	Some-college	47	1
-{Some-college, 9th}	9th	5	0.300942
+{HS-grad, 11th, 9th}	HS-grad	82	1
+{HS-grad, 11th, 9th}	11th	12	0.317081
+{HS-grad, 11th, 9th}	9th	5	0.193035
+{10th, Assoc-voc, 7th-8th}	10th	8	1
+{10th, Assoc-voc, 7th-8th}	Assoc-voc	10	0.807475
+{10th, Assoc-voc, 7th-8th}	7th-8th	3	0.610774
+{Masters, Doctorate, Prof-school}	Masters	14	1
+{Masters, Doctorate, Prof-school}	Doctorate	2	0.235805
+{Masters, Doctorate, Prof-school}	Prof-school	4	0.21572
+{Masters, Doctorate, Prof-school}	 * 	0	0
+{Bachelors}	Bachelors	39	1
+{Some-college, Assoc-acdm, 12th}	Some-college	47	1
+{Some-college, Assoc-acdm, 12th}	Assoc-acdm	10	0.257549
+{Some-college, Assoc-acdm, 12th}	12th	4	0.186032
 
 Cells
 occupation	education	Frequency
-{Prof-specialty, Exec-managerial, Protective-serv, ...}	{Bachelors, Masters, Assoc-voc, ...}	60
-{Sales, Farming-fishing, Adm-clerical, ...}	{HS-grad, 11th, 10th, ...}	52
-{Other-service, Craft-repair, Transport-moving}	{HS-grad, 11th, 10th, ...}	42
-{Other-service, Craft-repair, Transport-moving}	{Some-college, 9th}	25
-{Sales, Farming-fishing, Adm-clerical, ...}	{Bachelors, Masters, Assoc-voc, ...}	20
-{Prof-specialty, Exec-managerial, Protective-serv, ...}	{Some-college, 9th}	19
-{Prof-specialty, Exec-managerial, Protective-serv, ...}	{HS-grad, 11th, 10th, ...}	11
-{Sales, Farming-fishing, Adm-clerical, ...}	{Some-college, 9th}	8
-{Other-service, Craft-repair, Transport-moving}	{Bachelors, Masters, Assoc-voc, ...}	3
+{Other-service, Craft-repair, Adm-clerical, ...}	{HS-grad, 11th, 9th}	58
+{Farming-fishing, Sales, Machine-op-inspct, ...}	{HS-grad, 11th, 9th}	33
+{Other-service, Craft-repair, Adm-clerical, ...}	{Some-college, Assoc-acdm, 12th}	32
+{Prof-specialty, Exec-managerial}	{Bachelors}	25
+{Prof-specialty, Exec-managerial}	{Some-college, Assoc-acdm, 12th}	22
+{Prof-specialty, Exec-managerial}	{Masters, Doctorate, Prof-school}	19
+{Farming-fishing, Sales, Machine-op-inspct, ...}	{10th, Assoc-voc, 7th-8th}	17
+{Other-service, Craft-repair, Adm-clerical, ...}	{Bachelors}	9
+{Prof-specialty, Exec-managerial}	{HS-grad, 11th, 9th}	8
+{Farming-fishing, Sales, Machine-op-inspct, ...}	{Some-college, Assoc-acdm, 12th}	7
+{Farming-fishing, Sales, Machine-op-inspct, ...}	{Bachelors}	5
+{Prof-specialty, Exec-managerial}	{10th, Assoc-voc, 7th-8th}	3
+{Farming-fishing, Sales, Machine-op-inspct, ...}	{Masters, Doctorate, Prof-school}	1
+{Other-service, Craft-repair, Adm-clerical, ...}	{10th, Assoc-voc, 7th-8th}	1
 

@@ -1,4 +1,4 @@
-#Khiops 10.5.2-b.0
+#Khiops 10.5.5-b.0
 Descriptive statistics
 
 
@@ -64,38 +64,38 @@ R025	Count(DNA) where Char = A	Mode(DNA.Char)	-0.00189687	0.0428942	0	0.0447911	
 R026	Count(DNA) where Char = C	Mode(DNA.Char)	-0.00189687	0.0428942	0	0.0447911	1	1	3	3	6.42789	29.7151	258.994
 R027	Count(DNA) where Char = T	Mode(DNA.Char)	-0.00189687	0.0428942	0	0.0447911	1	1	3	3	6.42789	29.7151	258.994
 R028	Count(DNA) where Char not in {C, G}	Mode(DNA.Char)	-0.00189687	0.0428942	0	0.0447911	1	1	3	3	6.42789	29.7151	258.994
-R029	Count(DNA) where Char not in {C, G}	Mode(DNA.Char) where Pos in ]15.5, 30.5]	-0.00510825	0.0444595	0	0.0495677	1	1	3	3	11.3057	31.3846	251.964
-R030	Count(DNA) where Char = A	Count(DNA) where Char = G	-0.00566135	0.00909347	0	0.0147548	1	1	2	2	11.3057	21.0465	273.207
-R031	Count(DNA) where Char = A	Mean(DNA.Pos) where Char = G	-0.00566135	0.0204646	0	0.0261259	1	1	2	2	11.3057	19.4458	271.302
-R032	Count(DNA) where Char = A	Median(DNA.Pos) where Char = C	-0.00566135	0.0031661	0	0.00882745	1	1	2	2	11.3057	19.4456	276.636
-R033	Count(DNA) where Char = A	Median(DNA.Pos) where Char = G	-0.00566135	0.0156045	0	0.0212659	1	1	3	3	11.3057	29.3732	262.873
-R034	Count(DNA) where Char = A	Mode(DNA.Char) where Pos <= 30.5	-0.00566135	0.0674603	0	0.0731216	1	1	2	2	9.91939	23.5167	254.125
-R035	Count(DNA) where Char = A	Mode(DNA.Char) where Pos in ]15.5, 30.5]	-0.00566135	0.0439064	0	0.0495677	1	1	3	3	11.3057	31.5551	251.964
-R036	Count(DNA) where Char = C	Count(DNA) where Char = G	-0.00566135	0.00909347	0	0.0147548	1	1	2	2	11.3057	21.0465	273.207
-R037	Count(DNA) where Char = C	Median(DNA.Pos) where Char = C	-0.00566135	0.0031661	0	0.00882745	1	1	2	2	11.3057	19.4456	276.636
-R038	Count(DNA) where Char = C	Median(DNA.Pos) where Char = G	-0.00566135	0.0156045	0	0.0212659	1	1	3	3	11.3057	29.3732	262.873
-R039	Count(DNA) where Char = C	Mode(DNA.Char) where Pos <= 30.5	-0.00566135	0.0674603	0	0.0731216	1	1	2	2	9.91939	23.5167	254.125
-R040	Count(DNA) where Char = C	Mode(DNA.Char) where Pos in ]15.5, 30.5]	-0.00566135	0.0439064	0	0.0495677	1	1	3	3	11.3057	31.5551	251.964
-R041	Count(DNA) where Char = G	Count(DNA) where Char = T	-0.00566135	0.00909347	0.0147548	0	1	2	1	2	11.3057	21.0465	273.207
-R042	Count(DNA) where Char = G	Count(DNA) where Char not in {C, G, T, A}	-0.00566135	0.00909347	0.0147548	0	1	2	1	2	11.3057	21.0465	273.207
-R043	Count(DNA) where Char = G	Count(DNA) where Char not in {C, G}	-0.00566135	0.00909347	0.0147548	0	1	2	1	2	11.3057	21.0465	273.207
-R044	Count(DNA) where Char = G	CountDistinct(DNA.Char)	-0.00566135	0.00909347	0.0147548	0	1	2	1	2	11.3057	21.0465	273.207
-R045	Count(DNA) where Char = G	CountDistinct(DNA.Char) where Char = G	-0.00566135	0.00909347	0.0147548	0	1	2	1	2	11.3057	21.0465	273.207
-R046	Count(DNA) where Char = G	CountDistinct(DNA.Char) where Char not in {C, G}	-0.00566135	0.00909347	0.0147548	0	1	2	1	2	11.3057	21.0465	273.207
-R047	Count(DNA) where Char = T	Mean(DNA.Pos) where Char = G	-0.00566135	0.0204646	0	0.0261259	1	1	2	2	11.3057	19.4458	271.302
-R048	Count(DNA) where Char = T	Median(DNA.Pos) where Char = C	-0.00566135	0.0031661	0	0.00882745	1	1	2	2	11.3057	19.4456	276.636
-R049	Count(DNA) where Char = T	Median(DNA.Pos) where Char = G	-0.00566135	0.0156045	0	0.0212659	1	1	3	3	11.3057	29.3732	262.873
-R050	Count(DNA) where Char = T	Mode(DNA.Char) where Pos <= 30.5	-0.00566135	0.0674603	0	0.0731216	1	1	2	2	9.91939	23.5167	254.125
-R051	Count(DNA) where Char = T	Mode(DNA.Char) where Pos in ]15.5, 30.5]	-0.00566135	0.0439064	0	0.0495677	1	1	3	3	11.3057	31.5551	251.964
-R052	Count(DNA) where Char not in {C, G, T, A}	Mean(DNA.Pos) where Char = G	-0.00566135	0.0204646	0	0.0261259	1	1	2	2	11.3057	19.4458	271.302
-R053	Count(DNA) where Char not in {C, G, T, A}	Median(DNA.Pos) where Char = C	-0.00566135	0.0031661	0	0.00882745	1	1	2	2	11.3057	19.4456	276.636
-R054	Count(DNA) where Char not in {C, G, T, A}	Median(DNA.Pos) where Char = G	-0.00566135	0.0156045	0	0.0212659	1	1	3	3	11.3057	29.3732	262.873
-R055	Count(DNA) where Char not in {C, G, T, A}	Mode(DNA.Char) where Pos <= 30.5	-0.00566135	0.0674603	0	0.0731216	1	1	2	2	9.91939	23.5167	254.125
-R056	Count(DNA) where Char not in {C, G, T, A}	Mode(DNA.Char) where Pos in ]15.5, 30.5]	-0.00566135	0.0439064	0	0.0495677	1	1	3	3	11.3057	31.5551	251.964
-R057	Count(DNA) where Char not in {C, G}	Mean(DNA.Pos) where Char = G	-0.00566135	0.0204646	0	0.0261259	1	1	2	2	11.3057	19.4458	271.302
-R058	Count(DNA) where Char not in {C, G}	Median(DNA.Pos) where Char = C	-0.00566135	0.0031661	0	0.00882745	1	1	2	2	11.3057	19.4456	276.636
-R059	Count(DNA) where Char not in {C, G}	Median(DNA.Pos) where Char = G	-0.00566135	0.0156045	0	0.0212659	1	1	3	3	11.3057	29.3732	262.873
-R060	Count(DNA) where Char not in {C, G}	Mode(DNA.Char) where Pos <= 30.5	-0.00566135	0.0674603	0	0.0731216	1	1	2	2	9.91939	23.5167	254.125
+R029	Count(DNA) where Char = A	Count(DNA) where Char = G	-0.00566135	0.00909347	0	0.0147548	1	1	2	2	11.3057	21.0465	273.207
+R030	Count(DNA) where Char = A	Mean(DNA.Pos) where Char = G	-0.00566135	0.0204646	0	0.0261259	1	1	2	2	11.3057	19.4458	271.302
+R031	Count(DNA) where Char = A	Median(DNA.Pos) where Char = C	-0.00566135	0.0031661	0	0.00882745	1	1	2	2	11.3057	19.4456	276.636
+R032	Count(DNA) where Char = A	Median(DNA.Pos) where Char = G	-0.00566135	0.0156045	0	0.0212659	1	1	3	3	11.3057	29.3732	262.873
+R033	Count(DNA) where Char = A	Mode(DNA.Char) where Pos <= 30.5	-0.00566135	0.0674603	0	0.0731216	1	1	2	2	9.91939	23.5167	254.125
+R034	Count(DNA) where Char = A	Mode(DNA.Char) where Pos in ]15.5, 30.5]	-0.00566135	0.0439064	0	0.0495677	1	1	3	3	11.3057	31.5551	251.964
+R035	Count(DNA) where Char = C	Count(DNA) where Char = G	-0.00566135	0.00909347	0	0.0147548	1	1	2	2	11.3057	21.0465	273.207
+R036	Count(DNA) where Char = C	Median(DNA.Pos) where Char = C	-0.00566135	0.0031661	0	0.00882745	1	1	2	2	11.3057	19.4456	276.636
+R037	Count(DNA) where Char = C	Median(DNA.Pos) where Char = G	-0.00566135	0.0156045	0	0.0212659	1	1	3	3	11.3057	29.3732	262.873
+R038	Count(DNA) where Char = C	Mode(DNA.Char) where Pos <= 30.5	-0.00566135	0.0674603	0	0.0731216	1	1	2	2	9.91939	23.5167	254.125
+R039	Count(DNA) where Char = C	Mode(DNA.Char) where Pos in ]15.5, 30.5]	-0.00566135	0.0439064	0	0.0495677	1	1	3	3	11.3057	31.5551	251.964
+R040	Count(DNA) where Char = G	Count(DNA) where Char = T	-0.00566135	0.00909347	0.0147548	0	1	2	1	2	11.3057	21.0465	273.207
+R041	Count(DNA) where Char = G	Count(DNA) where Char not in {C, G, T, A}	-0.00566135	0.00909347	0.0147548	0	1	2	1	2	11.3057	21.0465	273.207
+R042	Count(DNA) where Char = G	Count(DNA) where Char not in {C, G}	-0.00566135	0.00909347	0.0147548	0	1	2	1	2	11.3057	21.0465	273.207
+R043	Count(DNA) where Char = G	CountDistinct(DNA.Char)	-0.00566135	0.00909347	0.0147548	0	1	2	1	2	11.3057	21.0465	273.207
+R044	Count(DNA) where Char = G	CountDistinct(DNA.Char) where Char = G	-0.00566135	0.00909347	0.0147548	0	1	2	1	2	11.3057	21.0465	273.207
+R045	Count(DNA) where Char = G	CountDistinct(DNA.Char) where Char not in {C, G}	-0.00566135	0.00909347	0.0147548	0	1	2	1	2	11.3057	21.0465	273.207
+R046	Count(DNA) where Char = T	Mean(DNA.Pos) where Char = G	-0.00566135	0.0204646	0	0.0261259	1	1	2	2	11.3057	19.4458	271.302
+R047	Count(DNA) where Char = T	Median(DNA.Pos) where Char = C	-0.00566135	0.0031661	0	0.00882745	1	1	2	2	11.3057	19.4456	276.636
+R048	Count(DNA) where Char = T	Median(DNA.Pos) where Char = G	-0.00566135	0.0156045	0	0.0212659	1	1	3	3	11.3057	29.3732	262.873
+R049	Count(DNA) where Char = T	Mode(DNA.Char) where Pos <= 30.5	-0.00566135	0.0674603	0	0.0731216	1	1	2	2	9.91939	23.5167	254.125
+R050	Count(DNA) where Char = T	Mode(DNA.Char) where Pos in ]15.5, 30.5]	-0.00566135	0.0439064	0	0.0495677	1	1	3	3	11.3057	31.5551	251.964
+R051	Count(DNA) where Char not in {C, G, T, A}	Mean(DNA.Pos) where Char = G	-0.00566135	0.0204646	0	0.0261259	1	1	2	2	11.3057	19.4458	271.302
+R052	Count(DNA) where Char not in {C, G, T, A}	Median(DNA.Pos) where Char = C	-0.00566135	0.0031661	0	0.00882745	1	1	2	2	11.3057	19.4456	276.636
+R053	Count(DNA) where Char not in {C, G, T, A}	Median(DNA.Pos) where Char = G	-0.00566135	0.0156045	0	0.0212659	1	1	3	3	11.3057	29.3732	262.873
+R054	Count(DNA) where Char not in {C, G, T, A}	Mode(DNA.Char) where Pos <= 30.5	-0.00566135	0.0674603	0	0.0731216	1	1	2	2	9.91939	23.5167	254.125
+R055	Count(DNA) where Char not in {C, G, T, A}	Mode(DNA.Char) where Pos in ]15.5, 30.5]	-0.00566135	0.0439064	0	0.0495677	1	1	3	3	11.3057	31.5551	251.964
+R056	Count(DNA) where Char not in {C, G}	Mean(DNA.Pos) where Char = G	-0.00566135	0.0204646	0	0.0261259	1	1	2	2	11.3057	19.4458	271.302
+R057	Count(DNA) where Char not in {C, G}	Median(DNA.Pos) where Char = C	-0.00566135	0.0031661	0	0.00882745	1	1	2	2	11.3057	19.4456	276.636
+R058	Count(DNA) where Char not in {C, G}	Median(DNA.Pos) where Char = G	-0.00566135	0.0156045	0	0.0212659	1	1	3	3	11.3057	29.3732	262.873
+R059	Count(DNA) where Char not in {C, G}	Mode(DNA.Char) where Pos <= 30.5	-0.00566135	0.0674603	0	0.0731216	1	1	2	2	9.91939	23.5167	254.125
+R060	Count(DNA) where Char not in {C, G}	Mode(DNA.Char) where Pos in ]15.5, 30.5]	-0.00566135	0.0439064	0	0.0495677	1	1	3	3	11.3057	31.5551	251.964
 R061	CountDistinct(DNA.Char)	Mean(DNA.Pos) where Char = G	-0.00566135	0.0204646	0	0.0261259	1	1	2	2	11.3057	19.4458	271.302
 R062	CountDistinct(DNA.Char)	Median(DNA.Pos) where Char = C	-0.00566135	0.0031661	0	0.00882745	1	1	2	2	11.3057	19.4456	276.636
 R063	CountDistinct(DNA.Char)	Median(DNA.Pos) where Char = G	-0.00566135	0.0156045	0	0.0212659	1	1	3	3	11.3057	29.3732	262.873
