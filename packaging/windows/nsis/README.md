@@ -27,13 +27,22 @@ repository.
 
 ## How to build the installer manually
 1) Install NSIS and make sure `makensis` it is available in the `%PATH%`.
-2) Download and decompress the package assets to your machine.
-3) [Build Khiops in Release mode](https://github.com/KhiopsML/khiops/wiki/Building-Khiops)
-4) In a console, go to the `packaging/windows/nsis` directory and execute
+2) Position the local repo to the desired tag (ex: `git checkout 10.2.0-rc1`)
+3) Download and decompress the package assets to your machine, on `packaging\windows\nsis\assets`
+4) [Build Khiops in Release mode](https://github.com/KhiopsML/khiops/wiki/Building-Khiops), to build the binaries and the jars
+5) In a console, go to the `packaging/windows/nsis` directory and execute
 ```bat
-%REM We assume the package assets were downoladed to packaging\windows\nsis\assets
+%REM We assume the package assets were downloaded to packaging\windows\nsis\assets
+%REM Before building the installer, update the following script arguments, mainly:
+%REM - KHIOPS_VERSION: Khiops version for the installer.
+%REM                   Should be identical to the value that is set in KHIOPS_STR in src/Learning/KWUtils/KWKhiopsVersion.h
+%REM - KHIOPS_REDUCED_VERSION: Khiops version without suffix and only digits and periods.
+%REM                           Thus, the pre-release fields of KHIOPS_VERSION are ignored in KHIOPS_REDUCED_VERSION.
+%REM - KHIOPS_VIZ_INSTALLER_PATH, with last version of the installer available in the assets
+%REM - KHIOPS_COVIZ_INSTALLER_PATH, with last version of the installer available in the assets
+
 makensis ^
-   /DKHIOPS_VERSION=10.2.0-preview ^
+   /DKHIOPS_VERSION=10.2.0-rc.1 ^
    /DKHIOPS_REDUCED_VERSION=10.2.0 ^
    /DKHIOPS_WINDOWS_BUILD_DIR=..\..\..\build\windows-msvc-release ^
    /DJRE_PATH=.\assets\jre\ ^
@@ -45,8 +54,13 @@ makensis ^
    /DKHIOPS_DOC_DIR=.\assets\doc ^
    khiops.nsi
 ```
+The resulting installer will be at `packaging/windows/nsis/khiops-10.2.0-rc.1-setup.exe`.
 
-The resulting installer will be at `packaging/windows/nsis/khiops-10.1.1-setup.exe`.
+## Signature of binaries and installer
+For a release version of the installer, the binaries and the installer need to be signed
+4.bis) Sign the binaries: `MODL.exe, MODL_Coclustering.exe, _khiopsgetprocnumber.exe`
+5.bis) Sign the installer
+
 
 _Note 1_: See [below](#build-script-arguments) for the details of the installer builder script arguments.
 
