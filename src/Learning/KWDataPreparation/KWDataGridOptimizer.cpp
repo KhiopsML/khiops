@@ -1528,7 +1528,7 @@ double KWDataGridOptimizer::VNSDataGridPostOptimizeVarPart(const KWDataGrid* ini
 						// C'est cette grille antecedent de la meilleure grille qui sera
 						// memorisee
 						neighbourDataGrid->DeleteAll();
-						// CH 231 : initialDataGrid à remplacer par GetInitialVarPartDataGrid() ?
+						// CH 231 : initialDataGrid a remplacer par GetInitialVarPartDataGrid() ?
 						dataGridManager.SetSourceDataGrid(initialDataGrid);
 						dataGridManager.ExportDataGridWithReferenceVarPartClusters(
 						    mergedDataGrid, neighbourDataGrid);
@@ -1640,7 +1640,7 @@ double KWDataGridOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* initial
 							  &neighbourDataGrid);
 			// Cas d'utilisation avec une grille de reference generique : c'est la grille la plus fine mais ne convient pas
 			// si elle ne partage pas les innerAttributes
-			// etait utilise quand on surtokenise les innerAttributes avant la generation de la grille voisine : a ré-utiliser ensuite ?
+			// etait utilise quand on surtokenise les innerAttributes avant la generation de la grille voisine : a re-utiliser ensuite ?
 			//GenerateNeighbourSolution(GetInitialVarPartDataGrid(), optimizedDataGrid, dNeighbourhoodSize,
 			//&neighbourDataGrid);
 
