@@ -273,11 +273,13 @@ void KWLearningProblemView::BuildConstructedDictionary()
 
 void KWLearningProblemView::ComputeStats()
 {
-	boolean bOk = true;
+	boolean bOk;
+
+	// On verifie a minima qu'une base est specifiee
+	bOk = GetLearningProblem()->CheckTrainDatabaseName();
 
 	// Test si on a pas specifie de dictionnaire d'analyse, pour le construire automatiquement a la volee
-	if (GetLearningProblem()->CheckTrainDatabaseName() and
-	    GetLearningProblem()->GetTrainDatabase()->GetClassName() == "")
+	if (bOk and GetLearningProblem()->GetTrainDatabase()->GetClassName() == "")
 		bOk = BuildClassFromDataTable();
 
 	// OK si prerequis corrects
