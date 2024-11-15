@@ -340,7 +340,7 @@ void KWDataGridManager::ExportDataGridWithRandomizedInnerAttributes(const KWData
 }
 
 void KWDataGridManager::ExportDataGridWithMergedInnerAttributes(const KWDataGrid* inputDataGrid,
-								KWDGInnerAttributes* otherMergedInnerAttributes,
+								const KWDGInnerAttributes* otherMergedInnerAttributes,
 								KWDataGrid* targetDataGrid)
 {
 	int nAttribute;
@@ -2919,7 +2919,7 @@ void KWDataGridManager::InitialiseVarPartAttributeClonedParts(const KWDGAttribut
 }
 
 void KWDataGridManager::InitialiseVarPartAttributeWithNewSurtokenisedInnerAttributes(
-    const KWDGAttribute* sourceVarPartAttribute, KWDGInnerAttributes* newInnerAttributes,
+    const KWDGAttribute* sourceVarPartAttribute, const KWDGInnerAttributes* newInnerAttributes,
     KWDGAttribute* targetVarPartAttribute) const
 {
 	boolean bDisplayResults = false;
@@ -3085,9 +3085,9 @@ void KWDataGridManager::InitialiseVarPartAttributeWithNewSurtokenisedInnerAttrib
 	assert(targetVarPartAttribute->GetPartNumber() == sourceVarPartAttribute->GetPartNumber());
 }
 
-void KWDataGridManager::InitialiseVarPartAttributeWithMergedInnerAttributes(const KWDGAttribute* sourceVarPartAttribute,
-									    KWDGInnerAttributes* mergedInnerAttributes,
-									    KWDGAttribute* targetVarPartAttribute) const
+void KWDataGridManager::InitialiseVarPartAttributeWithMergedInnerAttributes(
+    const KWDGAttribute* sourceVarPartAttribute, const KWDGInnerAttributes* mergedInnerAttributes,
+    KWDGAttribute* targetVarPartAttribute) const
 {
 	boolean bDisplayResults = false;
 	int nInnerAttribute;

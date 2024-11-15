@@ -767,9 +767,8 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 		// d'observations par variable -> commentaire a comprendre ! Cas ou cette granularite sera la
 		// derniere traitee
 		if (bIsLastPrePartitioning)
-			// On positionne l'index de granularite au maximum afin que l'affichage soit adapte a ce
-			// cas
-			partitionedDataGrid.GetInnerAttributes()->SetVarPartGranularity(nPrePartitionMax);
+			// On positionne l'index de granularite au maximum afin que l'affichage soit adapte a ce cas
+			partitionedDataGrid.GetEditableInnerAttributes()->SetVarPartGranularity(nPrePartitionMax);
 
 		// Analyse du nombre de parties par attribut interne granularise pour determiner si la grille
 		// pre-partitionnee sera optimise Il faut pour cela qu'elle soit suffisamment differente de la
@@ -1419,7 +1418,7 @@ KWDataGrid* CCCoclusteringBuilder::CreateVarPartDataGrid(const KWTupleTable* tup
 									   GetTargetAttributeName());
 
 				// Ajout de l'attribut dans le dictionnaire des attributs internes de la grille
-				dataGrid->GetInnerAttributes()->AddInnerAttribute(innerAttribute);
+				initialInnerAttributes->AddInnerAttribute(innerAttribute);
 
 				// Recuperation du cout de selection/construction de l'attribut hors attribut cible
 				if (innerAttribute->GetAttributeName() != GetTargetAttributeName())
@@ -1549,7 +1548,7 @@ void CCCoclusteringBuilder::CleanVarPartDataGrid(KWDataGrid* dataGrid)
 		if (bIsDefaultPartDeleted and innerAttribute->GetPartNumber() > 0)
 			innerAttribute->GetTailPart()->GetSymbolValueSet()->AddSymbolValue(Symbol::GetStarValue());
 	}
-	dataGrid->GetInnerAttributes()->CleanEmptyInnerAttributes();
+	dataGrid->GetEditableInnerAttributes()->CleanEmptyInnerAttributes();
 	dataGrid->UpdateAllStatistics();
 }
 

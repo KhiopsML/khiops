@@ -107,7 +107,7 @@ public:
 	// targetDataGrid : nouvelle grille dont le KWDGInnerAttributes a ete remplace par une version fusionnee
 	// Les partitions des attributs Identifier et VarPart ne sont pas modifiees
 	void ExportDataGridWithMergedInnerAttributes(const KWDataGrid* inputDataGrid,
-						     KWDGInnerAttributes* otherMergedInnerAttributes,
+						     const KWDGInnerAttributes* otherMergedInnerAttributes,
 						     KWDataGrid* targetDataGrid);
 
 	// CH Etape 2 Antecedent
@@ -383,9 +383,10 @@ protected:
 	// - targetVarPartAttribute :
 	// L'attribut cible contient en entree une nouvelle partition des attributs internes, plus fine que la partition des attributs internes source.
 	// La methode construit les parties de l'attribut VarPart cible en conservant les parties de l'attribut VarPart source et en y mettant les PV des attributs internes surtokenises
-	void InitialiseVarPartAttributeWithNewSurtokenisedInnerAttributes(const KWDGAttribute* sourceVarPartAttribute,
-									  KWDGInnerAttributes* targetInnerAttributes,
-									  KWDGAttribute* targetVarPartAttribute) const;
+	void
+	InitialiseVarPartAttributeWithNewSurtokenisedInnerAttributes(const KWDGAttribute* sourceVarPartAttribute,
+								     const KWDGInnerAttributes* targetInnerAttributes,
+								     KWDGAttribute* targetVarPartAttribute) const;
 	// Fin CH IV
 
 	// Initialisation des parties pour un attribut VarPart a partir des PV merges d'un KWDGInnerAttribute et d'une partition source
@@ -397,7 +398,7 @@ protected:
 	// L'attribut cible contient en entree une nouvelle partition des attributs internes, moins fine que la partition des attributs internes source.
 	// La methode construit les parties de l'attribut VarPart cible en conservant les parties de l'attribut VarPart source et en y mettant les PV merges des attributs internes
 	void InitialiseVarPartAttributeWithMergedInnerAttributes(const KWDGAttribute* sourceVarPartAttribute,
-								 KWDGInnerAttributes* mergedInnerAttributes,
+								 const KWDGInnerAttributes* mergedInnerAttributes,
 								 KWDGAttribute* targetVarPartAttribute) const;
 
 	// Initialisation d'une unique parties pour un attribut venant d'etre initialise, sans partie, a partir d'un attribut valide

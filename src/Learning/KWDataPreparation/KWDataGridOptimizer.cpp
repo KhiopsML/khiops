@@ -2119,8 +2119,6 @@ void KWDataGridOptimizer::PROTOGenerateNeighbourSolution(const KWDataGrid* initi
 {
 	KWDataGridManager dataGridManager;
 	KWDataGrid mandatoryDataGrid;
-	int nMandatoryAttributeNumber;
-	int nMaxAttributeNumber;
 	int nMaxPartNumber;
 	int nMaxContinuousPartNumber;
 	int nMaxSymbolPartNumber;

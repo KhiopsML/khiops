@@ -2795,7 +2795,6 @@ boolean CCCoclusteringReport::ReadJSONDimensionSummaries(CCHierarchicalDataGrid*
 	ALString sValue;
 	int nAttribute;
 	CCHDGAttribute* varPartAttribute;
-	KWDGInnerAttributes* innerAttributes;
 	ALString sTmp;
 
 	require(coclusteringDataGrid != NULL);
@@ -2946,8 +2945,7 @@ boolean CCCoclusteringReport::ReadJSONDimensionSummaries(CCHierarchicalDataGrid*
 				varPartAttribute = dgAttribute;
 
 				// Creation des attributs internes
-				innerAttributes = new KWDGInnerAttributes;
-				dgAttribute->SetInnerAttributes(innerAttributes);
+				dgAttribute->SetInnerAttributes(new KWDGInnerAttributes);
 			}
 
 			// Valeur min et max dans le cas numerique
@@ -3037,8 +3035,9 @@ boolean CCCoclusteringReport::ReadJSONInnerAttributesDimensionSummaries(KWDGAttr
 
 	require(dgAttribute != NULL);
 
-	// Attributs internes
-	innerAttributes = dgAttribute->GetInnerAttributes();
+	// Creation des attributs internes
+	innerAttributes = new KWDGInnerAttributes();
+	dgAttribute->SetInnerAttributes(innerAttributes);
 
 	// Tableau principal
 	bOk = bOk and JSONTokenizer::ReadKeyArray("dimensionSummaries");
@@ -3226,7 +3225,7 @@ boolean CCCoclusteringReport::ReadJSONAttributePartition(KWDGAttribute* dgAttrib
 {
 	boolean bOk = true;
 	boolean bIsPartEnd;
-	KWDGInnerAttributes* innerAttributes;
+	const KWDGInnerAttributes* innerAttributes;
 	CCHDGAttribute* innerAttribute;
 	KWDGPart* dgPart;
 	int nPartIndex;

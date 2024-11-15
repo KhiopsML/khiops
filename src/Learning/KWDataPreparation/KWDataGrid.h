@@ -189,7 +189,11 @@ public:
 	KWDGAttribute* GetVarPartAttribute() const;
 
 	// Acces direct au parametrage des attributs internes de l'attribut de type VarPart
-	KWDGInnerAttributes* GetInnerAttributes() const;
+	const KWDGInnerAttributes* GetInnerAttributes() const;
+
+	// Methode ancee pour acceder aux attributs internes en mode editable
+	// A utiliser avec precaution
+	KWDGInnerAttributes* GetEditableInnerAttributes() const;
 
 	// Recherche d'un attribut de la grille par son nom (recherche couteuse, par parcours exhaustif des attributs)
 	// Renvoie NULL si non trouve
@@ -498,8 +502,8 @@ public:
 	// - les attributs internes peuvent etre partagee entre plusieurs grilles
 	// - grace a un comptage de reference propre aux attributs internes, ceux-ci sont automatiquement
 	//   detruits quand ils ne sont plus utilises
-	void SetInnerAttributes(KWDGInnerAttributes* attributes);
-	KWDGInnerAttributes* GetInnerAttributes() const;
+	void SetInnerAttributes(const KWDGInnerAttributes* attributes);
+	const KWDGInnerAttributes* GetInnerAttributes() const;
 
 	// Nombre d'attributs internes
 	int GetInnerAttributeNumber() const;
@@ -744,7 +748,7 @@ protected:
 	ALString sOwnerAttributeName;
 
 	// Attributs internes dans les attributs de type VarPart
-	KWDGInnerAttributes* innerAttributes;
+	const KWDGInnerAttributes* innerAttributes;
 	// CH IV End
 };
 
@@ -1409,7 +1413,7 @@ public:
 	KWDGAttribute* GetInnerAttributeAt(int nAttributeIndex) const;
 
 	// Acces a un attribut interne par nom
-	KWDGAttribute* LookupInnerAttribute(const ALString& sAttributeName);
+	KWDGAttribute* LookupInnerAttribute(const ALString& sAttributeName) const;
 
 	// Acces a la granularite des parties de variable, partages par tous les attributs
 	int GetVarPartGranularity() const;
@@ -1470,7 +1474,7 @@ protected:
 	ObjectArray oaInnerAttributes;
 
 	// Compteur de reference
-	int nRefCount;
+	mutable int nRefCount;
 };
 // CH IV End
 
@@ -1646,10 +1650,16 @@ inline KWDGAttribute* KWDataGrid::GetVarPartAttribute() const
 	return varPartAttribute;
 }
 
-inline KWDGInnerAttributes* KWDataGrid::GetInnerAttributes() const
+inline const KWDGInnerAttributes* KWDataGrid::GetInnerAttributes() const
 {
 	require(IsVarPartDataGrid());
 	return GetVarPartAttribute()->GetInnerAttributes();
+}
+
+inline KWDGInnerAttributes* KWDataGrid::GetEditableInnerAttributes() const
+{
+	require(IsVarPartDataGrid());
+	return cast(KWDGInnerAttributes*, GetVarPartAttribute()->GetInnerAttributes());
 }
 // CH IV End
 
@@ -1791,7 +1801,7 @@ inline void KWDGAttribute::SetOwnerAttributeName(ALString sName)
 	sOwnerAttributeName = sName;
 }
 
-inline void KWDGAttribute::SetInnerAttributes(KWDGInnerAttributes* attributes)
+inline void KWDGAttribute::SetInnerAttributes(const KWDGInnerAttributes* attributes)
 {
 	require(GetAttributeType() == KWType::VarPart);
 
@@ -1809,7 +1819,7 @@ inline void KWDGAttribute::SetInnerAttributes(KWDGInnerAttributes* attributes)
 	innerAttributes = attributes;
 }
 
-inline KWDGInnerAttributes* KWDGAttribute::GetInnerAttributes() const
+inline const KWDGInnerAttributes* KWDGAttribute::GetInnerAttributes() const
 {
 	require(GetAttributeType() == KWType::VarPart);
 	ensure(innerAttributes != NULL);

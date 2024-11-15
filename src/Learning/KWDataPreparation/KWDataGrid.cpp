@@ -4899,7 +4899,7 @@ KWDGAttribute* KWDGInnerAttributes::GetInnerAttributeAt(int nAttributeIndex) con
 	return cast(KWDGAttribute*, oaInnerAttributes.GetAt(nAttributeIndex));
 }
 
-KWDGAttribute* KWDGInnerAttributes::LookupInnerAttribute(const ALString& sAttributeName)
+KWDGAttribute* KWDGInnerAttributes::LookupInnerAttribute(const ALString& sAttributeName) const
 {
 	return cast(KWDGAttribute*, odInnerAttributes.Lookup(sAttributeName));
 }
