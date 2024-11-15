@@ -256,7 +256,9 @@ public:
 	// Une seule des options doit etre actrive parmi 1D, 2D, Text ou Tree
 
 	// Ecriture d'un rapport
-	// Accessible uniquement si statistiques calculees
+	// Accessible pour un rapport complet uniquement si statistiques calculees
+	// Sinon, seul un rapport minimaliste est produit, avec les specifications d'apprentissage
+	// plus eventuellement les statistiques descriptives cibles si elles sont disponibles, et les erreurs
 	void WriteReport(ostream& ost) override;
 
 	// Parametrage de l'ecriture des rapports des attribut natif ou construits (defaut: false)
@@ -280,7 +282,7 @@ public:
 	void SetWriteOptionStatsTrees(boolean bValue);
 	boolean GetWriteOptionStatsTrees() const;
 
-	// Parametrage de l'ecriture des rapports univarie: native ou constuit, text ou abre
+	// Parametrage de l'ecriture des rapports univarie: native ou construit, text ou arbre
 	boolean GetWriteOptionStats1D() const;
 
 	// Parametrage de l'ecriture des rapports des paires d'attributs (defaut: false)
@@ -292,6 +294,9 @@ public:
 	boolean GetWriteDetailedStats() const;
 
 	// Ecriture du contenu d'un rapport JSON
+	// Accessible pour un rapport complet uniquement si statistiques calculees
+	// Sinon, seul un rapport minimaliste est produit, avec les specifications d'apprentissage
+	// plus eventuellement les statistiques descriptives cibles si elles sont disponibles, et les erreurs
 	void WriteJSONFields(JSONFile* fJSON) override;
 
 	// Verification de la validite des specifications

@@ -239,7 +239,8 @@ int KWDataPreparationTask::ComputeMaxLoadableAttributeNumber(const KWLearningSpe
 		if (nAttributePairNumber > 0)
 			sMessage += "and bivariate ";
 		sMessage += "data processing)";
-		AddError(sMessage + ",\n\t" + grantedResources.GetMissingResourceMessage());
+		AddError(sMessage);
+		AddError(grantedResources.GetMissingResourceMessage());
 	}
 	return nMaxAttributeNumber;
 }

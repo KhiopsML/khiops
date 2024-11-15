@@ -30,8 +30,6 @@ void KWLearningReport::WriteReportFile(const ALString& sFileName)
 	boolean bOk;
 	ALString sLocalFileName;
 
-	require(IsStatsComputed());
-
 	// Ajout de log memoire
 	MemoryStatsManager::AddLog(GetClassLabel() + " " + GetObjectLabel() + " Write report Begin");
 

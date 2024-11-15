@@ -115,10 +115,10 @@ void KWLearningProblem::ComputeStats()
 	// Demarrage de la tache de preparation
 	KWLearningErrorManager::AddTask("Data preparation");
 
-	// Initialisation des objets de calculs des statistiques
-	bPreparationOk = bPreparationOk and not TaskProgression::IsInterruptionRequested();
-	if (bPreparationOk)
-		InitializeClassStats(classStats, &learningSpec);
+	// Initialisation des specifications de calculs des statistiques dans tous les cas,
+	// meme en cas d'erreur ou d'interruption utilisateur
+	// On en a besoin car on va creer un rapport d'analyse meme en cas d'erreur (minimaliste dans ce cas)
+	InitializeClassStats(classStats, &learningSpec);
 
 	// Calcul des statistiques
 	bPreparationOk = bPreparationOk and not TaskProgression::IsInterruptionRequested();
@@ -288,8 +288,8 @@ void KWLearningProblem::ComputeStats()
 
 	// Ecriture des rapports de preparation, maintenant que la modelisation a ete effectuee
 	// pour permettre de parametrer les ClassStats par les variables selectionnees par les predicteurs
-	bPreparationOk = bPreparationOk and not TaskProgression::IsInterruptionRequested();
-	if (bPreparationOk and analysisResults->GetExportAsXls())
+	// Dans le pire des cas, on peut avoir un rapport vide ne contenant que des messages d'erreur
+	if (not TaskProgression::IsInterruptionRequested() and analysisResults->GetExportAsXls())
 		WritePreparationReports(classStats);
 
 	// Ecriture du rapport de modelisation au format tabulaire xls
@@ -384,9 +384,9 @@ void KWLearningProblem::ComputeStats()
 	}
 
 	// Ecriture du rapport JSON
-	// Il faut au moins que la preparation soit correcte
-	// La modelisation et l'evaluation seront ecrite si elles ont pu etre calculee
-	if (bPreparationOk and not TaskProgression::IsInterruptionRequested())
+	// La preparation, la modelisation et l'evaluation seront ecrites si elles ont pu etre calculees
+	// Dans le pire des cas, on peut avoir un rapport vide ne contenant que des messages d'erreur
+	if (not TaskProgression::IsInterruptionRequested())
 		WriteJSONAnalysisReport(classStats, &oaTrainedPredictorReports, &oaTrainPredictorEvaluations,
 					&oaTestPredictorEvaluations);
 	// Sinon, nettoyage de tous les rapports, dont certains ont peut-etre ete ecrits avant l'interruption

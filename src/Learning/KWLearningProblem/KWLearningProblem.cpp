@@ -931,12 +931,17 @@ void KWLearningProblem::WritePreparationReports(KWClassStats* classStats)
 	ALString sReportName;
 
 	require(classStats != NULL);
-	require(classStats->IsStatsComputed());
 	require(analysisResults->GetExportAsXls());
 
-	// Ecriture d'un rapport de stats univarie complet
+	// Rapport de preparation minimaliste ne contenant que les specifications d'apprentissage
+	// en cas d'echec de la preparation, pour avoir un rapport avec les erreurs
 	sReportName = analysisResults->BuildOutputFilePathName(analysisResults->GetPreparationFileName());
-	if (sReportName != "")
+	if (not classStats->IsStatsComputed() and sReportName != "")
+	{
+		classStats->WriteReportFile(sReportName);
+	}
+	// Ecriture d'un rapport de stats univarie complet sinon
+	else if (classStats->IsStatsComputed() and sReportName != "")
 	{
 		classStats->SetWriteOptionStatsNativeOrConstructed(true);
 		classStats->WriteReportFile(sReportName);
@@ -945,7 +950,7 @@ void KWLearningProblem::WritePreparationReports(KWClassStats* classStats)
 
 	// Ecriture d'un rapport de stats univarie dans le cas des textes
 	sReportName = analysisResults->BuildOutputFilePathName(analysisResults->GetTextPreparationFileName());
-	if (sReportName != "" and
+	if (classStats->IsStatsComputed() and sReportName != "" and
 	    analysisSpec->GetModelingSpec()->GetAttributeConstructionSpec()->GetMaxTextFeatureNumber() > 0 and
 	    classStats->GetTextAttributeStats()->GetSize() > 0)
 	{
@@ -956,7 +961,7 @@ void KWLearningProblem::WritePreparationReports(KWClassStats* classStats)
 
 	// Ecriture d'un rapport de stats univarie dans le cas des arbres
 	sReportName = analysisResults->BuildOutputFilePathName(analysisResults->GetTreePreparationFileName());
-	if (sReportName != "" and
+	if (classStats->IsStatsComputed() and sReportName != "" and
 	    analysisSpec->GetModelingSpec()->GetAttributeConstructionSpec()->GetMaxTreeNumber() > 0 and
 	    classStats->GetTreeAttributeStats()->GetSize() > 0)
 	{
@@ -967,7 +972,7 @@ void KWLearningProblem::WritePreparationReports(KWClassStats* classStats)
 
 	// Ecriture d'un rapport de stats bivarie complet
 	sReportName = analysisResults->BuildOutputFilePathName(analysisResults->GetPreparation2DFileName());
-	if (sReportName != "" and
+	if (classStats->IsStatsComputed() and sReportName != "" and
 	    analysisSpec->GetModelingSpec()->GetAttributeConstructionSpec()->GetMaxAttributePairNumber() > 0 and
 	    classStats->GetAttributePairStats()->GetSize() > 0 and
 	    classStats->GetTargetAttributeType() != KWType::Continuous)
@@ -986,7 +991,6 @@ void KWLearningProblem::WriteJSONAnalysisReport(KWClassStats* classStats, Object
 	JSONFile fJSON;
 
 	require(classStats != NULL);
-	require(classStats->IsStatsComputed());
 	require(oaTrainedPredictorReports != NULL);
 	require(oaTrainPredictorEvaluations != NULL);
 	require(oaTestPredictorEvaluations != NULL);
@@ -1047,8 +1051,14 @@ void KWLearningProblem::WriteJSONAnalysisReport(KWClassStats* classStats, Object
 				fJSON.EndObject();
 			}
 
-			// Rapport de preparation
-			if (analysisResults->GetPreparationFileName() != "")
+			// Rapport de preparation minimaliste ne contenant que les specifications d'apprentissage
+			// en cas d'echec de la preparation, pour avoir un rapport avec les erreurs
+			if (not classStats->IsStatsComputed() and analysisResults->GetPreparationFileName() != "")
+			{
+				classStats->WriteJSONKeyReport(&fJSON, "preparationReport");
+			}
+			// Rapport de preparation complet sinon
+			else if (classStats->IsStatsComputed() and analysisResults->GetPreparationFileName() != "")
 			{
 				classStats->SetWriteOptionStatsNativeOrConstructed(true);
 				classStats->WriteJSONKeyReport(&fJSON, "preparationReport");
@@ -1056,7 +1066,7 @@ void KWLearningProblem::WriteJSONAnalysisReport(KWClassStats* classStats, Object
 			}
 
 			// Rapport de preparation pour les variables de type texte
-			if (analysisResults->GetPreparationFileName() != "" and
+			if (classStats->IsStatsComputed() and analysisResults->GetPreparationFileName() != "" and
 			    classStats->GetTextAttributeStats()->GetSize() > 0)
 			{
 				classStats->SetWriteOptionStatsText(true);
@@ -1065,7 +1075,7 @@ void KWLearningProblem::WriteJSONAnalysisReport(KWClassStats* classStats, Object
 			}
 
 			// Rapport de preparation pour les variables de type arbre
-			if (analysisResults->GetPreparationFileName() != "" and
+			if (classStats->IsStatsComputed() and analysisResults->GetPreparationFileName() != "" and
 			    classStats->IsTreeConstructionRequired() and
 			    classStats->GetTreeAttributeStats()->GetSize() > 0)
 			{
@@ -1080,7 +1090,7 @@ void KWLearningProblem::WriteJSONAnalysisReport(KWClassStats* classStats, Object
 			classStats->DeleteAttributeTreeConstructionTask();
 
 			// Rapport de preparation bivarie
-			if (analysisResults->GetPreparation2DFileName() != "" and
+			if (classStats->IsStatsComputed() and analysisResults->GetPreparation2DFileName() != "" and
 			    analysisSpec->GetModelingSpec()
 				    ->GetAttributeConstructionSpec()
 				    ->GetMaxAttributePairNumber() > 0 and
