@@ -75,7 +75,7 @@ public abstract class GUICharElement extends GUIElement
         public Object getValueIn(GUIUnit unit)
         {
                 // Appel de la methode native
-                return new Character(unit.getCharValueAt(getIdentifier()));
+                return Character.valueOf(unit.getCharValueAt(getIdentifier()));
         }
 
         /**
@@ -84,7 +84,7 @@ public abstract class GUICharElement extends GUIElement
          */
         public void graphicRefreshAll()
         {
-                graphicSetValue(new Character(getParentUnit().getCharValueAt(getIdentifier())).toString());
+                graphicSetValue(Character.valueOf(getParentUnit().getCharValueAt(getIdentifier())).toString());
         }
 
         /**

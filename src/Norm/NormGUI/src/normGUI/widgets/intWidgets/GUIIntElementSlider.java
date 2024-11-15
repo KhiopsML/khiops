@@ -91,7 +91,7 @@ public class GUIIntElementSlider extends GUIIntElement
          */
         protected String graphicGetValue()
         {
-                Integer nValue = new Integer(((JSlider)component).getValue());
+                Integer nValue = Integer.valueOf(((JSlider)component).getValue());
                 return nValue.toString();
         }
 

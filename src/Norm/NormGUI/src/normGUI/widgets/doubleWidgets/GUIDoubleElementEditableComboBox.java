@@ -98,7 +98,7 @@ public class GUIDoubleElementEditableComboBox extends GUIDoubleElement
                         String[] sParams = getParametersAsArray();
                         Double[] dParams = new Double[sParams.length];
                         for (int i = 0; i < sParams.length; i++)
-                                dParams[i] = new Double(sParams[i]);
+                                dParams[i] = Double.valueOf(sParams[i]);
                         return dParams;
                 } else
                         return null;
