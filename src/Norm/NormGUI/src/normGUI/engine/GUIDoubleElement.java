@@ -106,10 +106,10 @@ public abstract class GUIDoubleElement extends GUIElement
                 // Appel de la methode native
                 // Remarque: on utilise Float plutot que Double pour limiter le nombre
                 // de chiffres apres la virgule a l'affichage
-                // C'est le seul endroit on on accede a la methode getDoubleValueAt, mais cela
-                // reste une solution "bricolo" pour controler le formatage de l'afficahge des
-                // reels
-                return new Float(unit.getDoubleValueAt(getIdentifier()));
+                // C'est le seul endroit on on accede a la methode getDoubleValueAt,
+                //  mais cela reste une solution "bricolo" pour controler le formatage
+                // de l'affichage des reels
+                return Float.valueOf((float)unit.getDoubleValueAt(getIdentifier()));
         }
 
         /**

@@ -86,7 +86,7 @@ public class GUIDoubleElementComboBox extends GUIDoubleElement
                         String[] sParams = getParametersAsArray();
                         Double[] dParams = new Double[sParams.length];
                         for (int i = 0; i < sParams.length; i++)
-                                dParams[i] = new Double(sParams[i]);
+                                dParams[i] = Double.valueOf(sParams[i]);
                         return dParams;
                 } else
                         return null;
@@ -135,5 +135,5 @@ public class GUIDoubleElementComboBox extends GUIDoubleElement
          *
          * @param sValue La nouvelle valeur graphique de l'element
          */
-        public void graphicSetValue(String sValue) { ((JComboBox)component).setSelectedItem(new Double(sValue)); }
+        public void graphicSetValue(String sValue) { ((JComboBox)component).setSelectedItem(Double.valueOf(sValue)); }
 }

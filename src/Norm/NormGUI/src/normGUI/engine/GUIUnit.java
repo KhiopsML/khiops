@@ -19,6 +19,8 @@ import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Hashtable;
 import java.util.Stack;
 import java.util.Vector;
@@ -371,7 +373,7 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                         guiBooleanElement.setIdentifier(sFieldId);
                         guiBooleanElement.setLabel(sLabel);
                         guiBooleanElement.setDefaultValue(bDefaultValue);
-                        guiBooleanElement.setValue(new Boolean(bDefaultValue).toString());
+                        guiBooleanElement.setValue(Boolean.valueOf(bDefaultValue).toString());
                         guiBooleanElement.setStyle(sStyle);
                         guiBooleanElement.setParentUnit(this);
                         // Ajout du widget dans le vecteur de donnees de l'unite
@@ -418,7 +420,7 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                         guiCharElement.setIdentifier(sFieldId);
                         guiCharElement.setLabel(sLabel);
                         guiCharElement.setDefaultValue(cDefaultValue);
-                        guiCharElement.setValue(new Character(cDefaultValue).toString());
+                        guiCharElement.setValue(Character.valueOf(cDefaultValue).toString());
                         guiCharElement.setStyle(sStyle);
                         guiCharElement.setParentUnit(this);
                         // Ajout du widget dans le vecteur de donnees de l'unite
@@ -523,7 +525,7 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                         guiDoubleElement.setIdentifier(sFieldId);
                         guiDoubleElement.setLabel(sLabel);
                         guiDoubleElement.setDefaultValue(dDefaultValue);
-                        guiDoubleElement.setValue(new Double(dDefaultValue).toString());
+                        guiDoubleElement.setValue(Double.valueOf(dDefaultValue).toString());
                         guiDoubleElement.setStyle(sStyle);
                         guiDoubleElement.setMinValue(dMin);
                         guiDoubleElement.setMaxValue(dMax);
@@ -579,7 +581,7 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                         guiIntElement.setIdentifier(sFieldId);
                         guiIntElement.setLabel(sLabel);
                         guiIntElement.setDefaultValue(nDefaultValue);
-                        guiIntElement.setValue(new Integer(nDefaultValue).toString());
+                        guiIntElement.setValue(Integer.valueOf(nDefaultValue).toString());
                         guiIntElement.setStyle(sStyle);
                         guiIntElement.setMinValue(nMin);
                         guiIntElement.setMaxValue(nMax);
@@ -1804,8 +1806,15 @@ public abstract class GUIUnit extends GUIData implements ActionListener
          */
         public static void addTrace(String sMessage)
         {
-                if (trace)
-                        displaySystemMessage("trace: " + sMessage);
+                if (trace) {
+                        // Ajoute un timestamp pour horodater la trace
+                        LocalDateTime now = LocalDateTime.now();
+                        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
+                        String formattedNow = now.format(formatter);
+
+                        // Trace
+                        displaySystemMessage("trace:\t" + formattedNow + "\t" + sMessage);
+                }
         }
 
         /**
