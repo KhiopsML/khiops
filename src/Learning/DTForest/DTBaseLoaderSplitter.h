@@ -47,7 +47,8 @@ public:
 	// DTBaseLoader* GetOutOfBagDaughterDatabaseAt(int i);
 
 	/// Separe les DTBaseLoader meres (train et OOB) selon un attribut de partitionnement
-	boolean CreateDaughterBaseloaderFromSplitAttribute(KWAttributeStats* splitAttributeStats);
+	boolean CreateDaughterBaseloaderFromSplitAttribute(KWAttributeStats* splitAttributeStats,
+							   KWLearningSpec* learningSpec);
 
 	/// Libere la memoire
 	void CleanDaughterBaseloader();

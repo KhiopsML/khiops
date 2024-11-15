@@ -124,19 +124,18 @@ protected:
 	void InitializeEqualFreqDiscretization(KWTupleTableLoader*, KWLearningSpec*);
 
 	// Equal Freq Discretisation d'une target continue
-	SymbolVector* EqualFreqDiscretizeContinuousTarget(KWTupleTableLoader*, const int nQuantileNumber) const;
+	SymbolVector* EqualFreqDiscretizeContinuousTarget(KWTupleTableLoader*, int nQuantileNumber) const;
 
 	// Discretisation 'MODL' d'une target continue
-	SymbolVector* MODLDiscretizeContinuousTarget(KWTupleTableLoader*, const int nMaxIntervalsNumber,
-						     const ContinuousVector& cvIntervalValues,
-						     const int nSplitIndex) const;
+	SymbolVector* MODLDiscretizeContinuousTarget(KWTupleTableLoader*, int nMaxIntervalsNumber,
+						     const ContinuousVector& cvIntervalValues, int nSplitIndex) const;
 
 	// transforme une regression en classification en effectuant au prealable une discretisation MODL
 	void InitializeMODLDiscretization(KWTupleTableLoader*, KWLearningSpec*,
-					  const ContinuousVector& cvIntervalValues);
+					  const ContinuousVector& cvIntervalValues, int nSplitIndex);
 
 	void InitializeBinaryEQFDiscretization(KWTupleTableLoader*, KWLearningSpec*,
-					       const ContinuousVector& cvIntervalValues, const int nSplitIndex);
+					       const ContinuousVector& cvIntervalValues, int nSplitIndex);
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////
 	// Reimplementation des methodes virtuelles de tache

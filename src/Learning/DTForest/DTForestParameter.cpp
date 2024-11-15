@@ -23,7 +23,7 @@ DTForestParameter::DTForestParameter()
 	//	sHeuristicCreation = DTForestParameter::HEURISTIC_NODRAW_LABEL;
 	nVariableNumberMin = MIN_VARIABLE_2_BUILTREE;
 	sDiscretizationTargetMethod = DISCRETIZATION_MODL; // DISCRETIZATION_EQUAL_FREQUENCY
-	nMaxIntervalsNumberForTarget = 2;
+	nMaxIntervalsNumberForTarget = 4;
 }
 
 DTForestParameter::~DTForestParameter() {}

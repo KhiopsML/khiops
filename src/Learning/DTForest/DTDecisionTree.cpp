@@ -841,7 +841,7 @@ boolean DTDecisionTree::SetUpInternalNode(const double dNewCost, const Symbol sF
 	// Calcul du partitionnement de la KWDatabase selon cette assertion
 	databaseSplitterTrain = new DTBaseLoaderSplitter;
 	databaseSplitterTrain->SetOrigineBaseLoader(fatherNode->GetTrainBaseLoader());
-	databaseSplitterTrain->CreateDaughterBaseloaderFromSplitAttribute(fatherNodeBestAttributeStats);
+	databaseSplitterTrain->CreateDaughterBaseloaderFromSplitAttribute(fatherNodeBestAttributeStats, learningSpec);
 
 	databaseSplitterOutOfBag = NULL;
 
@@ -849,7 +849,8 @@ boolean DTDecisionTree::SetUpInternalNode(const double dNewCost, const Symbol sF
 	{
 		databaseSplitterOutOfBag = new DTBaseLoaderSplitter;
 		databaseSplitterOutOfBag->SetOrigineBaseLoader(fatherNode->GetOutOfBagBaseLoader());
-		databaseSplitterOutOfBag->CreateDaughterBaseloaderFromSplitAttribute(fatherNodeBestAttributeStats);
+		databaseSplitterOutOfBag->CreateDaughterBaseloaderFromSplitAttribute(fatherNodeBestAttributeStats,
+										     learningSpec);
 	}
 	StopTimer(DTTimerTree2);
 	if (dtPredictorParameter->GetMinInstancesPerLeaveNumber() > 0)

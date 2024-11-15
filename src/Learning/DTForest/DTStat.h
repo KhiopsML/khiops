@@ -31,10 +31,6 @@ public:
 	// petit nombre de Schroder
 	static double NbSchroder(int nValue);
 
-	// Logarithme du nombre de Bell "generalise"
-	// Nombre de partition de n elements en k classes (eventuellements vides)
-	static double LnBell(int n, int k);
-
 	// derivee du codage RISSANEN 2log(n) + 1
 	static double NumbersCodeLength1(int n);
 
@@ -43,10 +39,6 @@ public:
 
 	// renvoie un nombre entier aleatoire selon la distribution de rissanen bornee
 	static int RissanenMaxNumber(int nMax);
-
-	////////////////////////////
-	// Test
-	static void Test();
 
 	///////////////////////////////////////////////////////////////
 	///// Implementation
