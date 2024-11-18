@@ -649,10 +649,16 @@ boolean CCLearningProblem::CheckCoclusteringSpecifications() const
 	// Cas d'un coclustering standard : coclustering de variables
 	if (not analysisSpec->GetVarPartCoclustering())
 	{
-		// Il doit y avoir au moins deux variables dans un co-clustering
-		if (analysisSpec->GetCoclusteringSpec()->GetAttributeNames()->GetSize() < 2)
+		// Il doit y avoir des variables specifiees pour un co-clustering
+		if (analysisSpec->GetCoclusteringSpec()->GetAttributeNames()->GetSize() == 0)
 		{
-			AddError("Less than two coclustering variables are specified");
+			AddError("No coclustering variable specified");
+			bOk = false;
+		}
+		// Il doit y avoir au moins deux variables specifiee pour un co-clustering
+		else if (analysisSpec->GetCoclusteringSpec()->GetAttributeNames()->GetSize() < 2)
+		{
+			AddError("At least two coclustering variables must be specified");
 			bOk = false;
 		}
 		// Il y a une limite au nombre de variables
