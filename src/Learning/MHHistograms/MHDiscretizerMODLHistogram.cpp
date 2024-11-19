@@ -57,12 +57,14 @@ void MHDiscretizerMODLHistogram::DiscretizeValues(ContinuousVector* cvSourceValu
 	int n;
 	int nMissingValueNumber;
 	ContinuousVector cvActualValues;
+	int nTerrellScottMaxPartNumber;
 	int nRequiredMaxPartNumber;
+	int nMaxPartNumber;
 
 	require(GetHistogramSpec()->GetHistogramCriterion() == "G-Enum-fp");
 
 	// On memorise le nombre de partie max demandees
-	// En effet, on ne passe pas par lea contrainte de discretisatuion dans le cas des histogrammes
+	// En effet, on ne passe pas par la contrainte de discretisation dans le cas des histogrammes
 	// On exploite si necessaire la granularite des histogrammes pour gerer cette contrainte,
 	// en ayant prealablement optimise les histogrammes comme dans le cas classique
 	nRequiredMaxPartNumber = GetMaxIntervalNumber();
@@ -109,33 +111,50 @@ void MHDiscretizerMODLHistogram::DiscretizeValues(ContinuousVector* cvSourceValu
 			oaResultHistograms.Add(postprocessedOptimizedHistogram);
 		oaResultHistograms.Add(optimizedHistogram);
 
-		// Recherche du meilleur histogramme
-		if (postprocessedOptimizedHistogram != NULL)
-			bestHistogram = postprocessedOptimizedHistogram;
-		else
-			bestHistogram = optimizedHistogram;
+		// Les histogrammes MODL sont optimaux.
+		// Pour chaque variable numerique, on produit une serie d'histogrammes interpretables, par granularite croissante.
+		// Le probleme est que l'histogramme interpretable le plus fin est parfois tres complexe, de type "herisson",
+		// ce qui peut derouter un utilisateur non expert. Ce probleme se produit dans environ 20% des cas.
+		// Plutot que de montrer par defaut l'histogramme interpretable le plus fin, on propose d'utiliser la
+		// regle de Terrell-Scott  (cf. https://en.wikipedia.org/wiki/Histogram), avec un nombre de bins de (2 N)^1/3
+		// Ce choix permet d'avoir par defaut un histogramme a la fois fin et plus simple a interpreter:
+		// - en evitant des choix trop heuristiques de type "regle du coude", ou nombre maximal de "peaks"
+		// - pas trop parcimonieux (comme la regle de Sturges en log(N))
+		// - ne dependant pas des valeurs (comme la regle de Scott, qui utilise l'ecart type)
+		// - tres simple a calculer
+		// - avec une justification theorique, facile a defendre
+		nTerrellScottMaxPartNumber = int(ceil(pow(2 * cvSourceValues->GetSize(), 1.0 / 3)));
+		nMaxPartNumber = nTerrellScottMaxPartNumber;
 
-		// Cas avec contrainte sur le nombre max d'intervalles
+		// La regle de Terrell-Scott est pertinente pour eviter les histogrammes de type "herisson" comportant des
+		// centaines, voire des milliers d'intervalles: cela ameliore vraiment le choix de la granularite par defaut.
+		// Par contre, dans le cas des discretisations avec faible nombre d'intervalles, l'application de cette
+		// regle aboutit parfois a un choix de granularite trop grossiere, avec perte d'information
+		// De facon heuristique, on choisit donc de ne pas appliquer la regle de Terell-Scott s'il y a moins
+		// de 100 intervalles
+		nMaxPartNumber = max(100, nMaxPartNumber);
+
+		// Nombre max partie en prenant en compte l'eventuelle contrainte utilisateur
 		if (nRequiredMaxPartNumber > 0)
+			nMaxPartNumber = min(nRequiredMaxPartNumber, nMaxPartNumber);
+
+		// On recherche l'histogramme interpretable le plus fin qui respecte la contrainte
+		bestHistogram = NULL;
+		for (n = oaResultHistograms.GetSize() - 1; n >= 0; n--)
 		{
-			// On garde le premier histogramme qui respecte la contrainte
-			if (bestHistogram->GetIntervalNumber() > nRequiredMaxPartNumber)
+			histogram = cast(MHHistogram*, oaResultHistograms.GetAt(n));
+
+			// On ne considere que les histogrammes interpretables, c'est a dire tous sauf eventuellement le dernier
+			if (not histogram->GetRaw())
 			{
-				// Parcours des histogramme candidats en partant de l'avant dernier, ce qui permet
-				// de traiter les cas ou le meilleur histogramme etait la version post-optimise ou non
-				bestHistogram = NULL;
-				for (n = oaResultHistograms.GetSize() - 2; n >= 0; n--)
+				if (histogram->GetIntervalNumber() <= nMaxPartNumber)
 				{
-					histogram = cast(MHHistogram*, oaResultHistograms.GetAt(n));
-					if (histogram->GetIntervalNumber() <= nRequiredMaxPartNumber)
-					{
-						bestHistogram = histogram;
-						break;
-					}
+					bestHistogram = histogram;
+					break;
 				}
-				assert(bestHistogram != NULL);
 			}
 		}
+		assert(bestHistogram != NULL);
 
 		// Transformation du meilleur histogramme en une table de contingence non supervisee
 		BuildOutputFrequencyTableAndBounds(bestHistogram, nMissingValueNumber, kwftTarget, cvBounds);
