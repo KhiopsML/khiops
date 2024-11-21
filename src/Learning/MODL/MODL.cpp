@@ -12,18 +12,21 @@ void SetWindowsDebugDir(const ALString& sDatasetFamily, const ALString& sDataset
 	ALString sUserRootPath;
 	int nRet;
 
-	// A parametrer pour chaque utilisateur
-	// Devra etre fait plus proprement quand tout l'equipe sera sur git, par exemple via une variable
-	// d'environnement et quelques commentaires clairs
-	sUserRootPath = "C:/Applications/boullema/LearningTest.V10.5.3-b.0/TestKhiops/";
+	// Parametrage du repertoire racine de LearningTest via une variable d'environnement "LearningTestDir"
+	// Il est recommande de positionner cette variable d'environnement via le fichier "launch.vs.json"
+	// du repertoire ".vs", avec la cle "env"
+	// Cf. wiki https://github.com/KhiopsML/khiops/wiki/Setting-Up-the-Development-Environment
+	sUserRootPath = p_getenv("LearningTestDir");
+	sUserRootPath += "/TestKhiops/";
 
 	// Pour permettre de continuer a utiliser LearningTest, on ne fait rien s'il y a deja un fichier test.prm
-	// dans le repertoire courante
+	// dans le repertoire courant
 	if (FileService::FileExists("test.prm"))
 		return;
 
 	// Changement de repertoire, uniquement pour Windows
 	nRet = _chdir(sUserRootPath + sDatasetFamily + "/" + sDataset);
+	assert(nRet == 0);
 #endif
 }
 
@@ -39,6 +42,7 @@ int main(int argc, char** argv)
 	// SetWindowsDebugDir("Standard", "IrisLight");
 	// SetWindowsDebugDir("Standard", "IrisU2D");
 	// SetWindowsDebugDir("MultiTables", "DataPathCheck");
+	SetWindowsDebugDir("z_Work", "StarSchemaWithoutRoot");
 
 	// Parametrage des logs memoires depuis les variables d'environnement, pris en compte dans KWLearningProject
 	//   KhiopsMemStatsLogFileName, KhiopsMemStatsLogFrequency, KhiopsMemStatsLogToCollect
