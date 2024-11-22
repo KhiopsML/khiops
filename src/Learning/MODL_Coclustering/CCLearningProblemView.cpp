@@ -188,14 +188,17 @@ void CCLearningProblemView::EventRefresh(Object* object)
 
 void CCLearningProblemView::BuildCoclustering()
 {
-	boolean bOk = true;
+	boolean bOk;
+
+	// On verifie a minima qu'une base est specifiee
+	bOk = GetLearningProblem()->CheckDatabaseName();
 
 	// Test si on a pas specifie de dictionnaire d'analyse, pour le construire automatiquement a la volee
-	if (GetLearningProblem()->CheckDatabaseName() and GetLearningProblem()->GetDatabase()->GetClassName() == "")
+	if (bOk and GetLearningProblem()->GetDatabase()->GetClassName() == "")
 		bOk = BuildClassFromDataTable();
 
 	// OK si nom du fichier renseigne et classe correcte
-	if (GetLearningProblem()->CheckClass() and GetLearningProblem()->CheckDatabaseName() and
+	if (bOk and GetLearningProblem()->CheckClass() and GetLearningProblem()->CheckDatabaseName() and
 	    GetLearningProblem()->GetDatabase()->Check() and
 	    GetLearningProblem()->GetDatabase()->CheckSelectionValue(
 		GetLearningProblem()->GetDatabase()->GetSelectionValue()) and

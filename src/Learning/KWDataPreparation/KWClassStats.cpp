@@ -798,7 +798,9 @@ void KWClassStats::WriteReport(ostream& ost)
 	int nAttributeNumber;
 	int nTotalAttributeNumber;
 
-	require(GetWriteOptionStats1D() or GetWriteOptionStats2D());
+	require(not IsStatsComputed() or GetWriteOptionStats1D() or GetWriteOptionStats2D());
+	require(IsStatsComputed() or not GetWriteOptionStats1D());
+	require(IsStatsComputed() or not GetWriteOptionStats2D());
 	require(not GetWriteOptionStatsNativeOrConstructed() or not GetWriteOptionStats2D());
 	require(not GetWriteOptionStatsNativeOrConstructed() or not GetWriteOptionStatsText());
 	require(not GetWriteOptionStatsNativeOrConstructed() or not GetWriteOptionStatsTrees());
@@ -806,7 +808,6 @@ void KWClassStats::WriteReport(ostream& ost)
 	require(not GetWriteOptionStatsText() or not GetWriteOptionStats2D());
 	require(not GetWriteOptionStatsTrees() or not GetWriteOptionStats2D());
 	require(Check());
-	require(IsStatsComputed());
 	require(GetClass()->GetUsedAttributeNumber() == GetClass()->GetLoadedAttributeNumber());
 
 	// Titre
@@ -828,23 +829,28 @@ void KWClassStats::WriteReport(ostream& ost)
 	    << "\t" << TSV::Export(GetClass()->GetName()) << "\n";
 
 	// Nombres d'attributs par type
-	ost << "Variables"
-	    << "\n";
-	nTotalAttributeNumber = 0;
-	for (nType = 0; nType < KWType::None; nType++)
+	if (IsStatsComputed())
 	{
-		if (KWType::IsData(nType))
+		ost << "Variables"
+		    << "\n";
+		nTotalAttributeNumber = 0;
+		for (nType = 0; nType < KWType::None; nType++)
 		{
-			nAttributeNumber = GetUsedAttributeNumberForType(nType);
-			nTotalAttributeNumber += nAttributeNumber;
-			if (nAttributeNumber > 0)
-				ost << "\t" << KWType::ToString(nType) << "\t" << nAttributeNumber << "\n";
+			if (KWType::IsData(nType))
+			{
+				nAttributeNumber = GetUsedAttributeNumberForType(nType);
+				if (nAttributeNumber > 0)
+				{
+					ost << "\t" << KWType::ToString(nType) << "\t" << nAttributeNumber << "\n";
+					nTotalAttributeNumber += nAttributeNumber;
+				}
+			}
 		}
+		ost << "\t"
+		    << "Total"
+		    << "\t" << nTotalAttributeNumber << "\n";
+		ost << "\n";
 	}
-	ost << "\t"
-	    << "Total"
-	    << "\t" << nTotalAttributeNumber << "\n";
-	ost << "\n";
 
 	// Base de donnees
 	ost << "Database\t" << TSV::Export(GetDatabase()->GetDatabaseName()) << "\n";
@@ -857,8 +863,10 @@ void KWClassStats::WriteReport(ostream& ost)
 	ost << "Selection variable\t" << TSV::Export(GetDatabase()->GetSelectionAttribute()) << "\n";
 	ost << "Selection value\t" << TSV::Export(GetDatabase()->GetSelectionValue()) << "\n";
 
-	// Nombre d'instances
-	ost << "Instances\t" << GetInstanceNumber() << "\n";
+	// Nombre d'instances si disponible
+	// Peut etre 0 si aucune instance n'est disponible ou selectionnee selon le critere de selection
+	if (GetLearningSpec()->IsTargetStatsComputed())
+		ost << "Instances\t" << GetInstanceNumber() << "\n";
 
 	// Type de tache d'apprentissage effectue
 	ost << "\nLearning task";
@@ -884,34 +892,43 @@ void KWClassStats::WriteReport(ostream& ost)
 	}
 
 	// Parametrage eventuel de l'apprentissage supervise
+	// On accepte un affichage incomplet au cas ou le traitement aurait echoue partiellement ou totalement
 	if (GetTargetAttributeName() != "")
 	{
 		// Attribut cible
-		// On demande un affichage complet (source et cible) pour forcer
-		// l'utilisation explicite du libelle "Target"
-		assert(GetTargetValueStats()->GetSourceAttributeNumber() == 0);
 		ost << "\n";
-		GetTargetValueStats()->WriteAttributeArrayLineReports(ost, true, true);
+		ost << "Target variable"
+		    << "\t" << KWType::ToString(GetTargetAttributeType()) << "\t"
+		    << TSV::Export(GetTargetAttributeName()) << "\n";
 
-		// Statistiques descriptives
-		if (GetTargetAttributeType() == KWType::Continuous or
-		    (GetTargetAttributeType() == KWType::Symbol and
-		     GetTargetDescriptiveStats()->GetValueNumber() > GetTargetValueLargeNumber(GetInstanceNumber())))
-		{
-			ost << "\n";
-			GetTargetDescriptiveStats()->WriteReport(ost);
-		}
+		// Modalite cible principale si specifiee par l'utilisateur
+		if (GetTargetAttributeType() == KWType::Symbol and GetMainTargetModality() != Symbol())
+			ost << "Main target value\t" << TSV::Export(GetMainTargetModality().GetValue()) << "\n";
 
-		// Detail par valeur dans le cas symbol
-		if (GetTargetAttributeType() == KWType::Symbol)
+		// Statistiques descriptives sur l'attribut cible si disponible
+		if (GetLearningSpec()->IsTargetStatsComputed())
 		{
-			ost << "\n";
-			GetTargetValueStats()->WriteAttributePartArrayLineReports(ost, true, true);
+			// Statistiques descriptives
+			if (GetTargetAttributeType() == KWType::Continuous or
+			    (GetTargetAttributeType() == KWType::Symbol and
+			     GetTargetDescriptiveStats()->GetValueNumber() >
+				 GetTargetValueLargeNumber(GetInstanceNumber())))
+			{
+				ost << "\n";
+				GetTargetDescriptiveStats()->WriteReport(ost);
+			}
+
+			// Detail par valeur dans le cas symbol
+			if (GetTargetAttributeType() == KWType::Symbol)
+			{
+				ost << "\n";
+				GetTargetValueStats()->WriteAttributePartArrayLineReports(ost, true, true);
+			}
 		}
 	}
 
-	// Arret si base vide
-	if (GetInstanceNumber() == 0)
+	// Arret si base vide ou erreur
+	if (not IsStatsComputed() or GetInstanceNumber() == 0)
 		return;
 
 	// Choix des stats a ecrire selon l'option
@@ -1106,7 +1123,9 @@ void KWClassStats::WriteJSONFields(JSONFile* fJSON)
 	ALString sDataLabel;
 	ALString sDataStartLabel;
 
-	require(GetWriteOptionStats1D() or GetWriteOptionStats2D());
+	require(not IsStatsComputed() or GetWriteOptionStats1D() or GetWriteOptionStats2D());
+	require(IsStatsComputed() or not GetWriteOptionStats1D());
+	require(IsStatsComputed() or not GetWriteOptionStats2D());
 	require(not GetWriteOptionStatsNativeOrConstructed() or not GetWriteOptionStats2D());
 	require(not GetWriteOptionStatsNativeOrConstructed() or not GetWriteOptionStatsText());
 	require(not GetWriteOptionStatsNativeOrConstructed() or not GetWriteOptionStatsTrees());
@@ -1114,11 +1133,10 @@ void KWClassStats::WriteJSONFields(JSONFile* fJSON)
 	require(not GetWriteOptionStatsText() or not GetWriteOptionStats2D());
 	require(not GetWriteOptionStatsTrees() or not GetWriteOptionStats2D());
 	require(Check());
-	require(IsStatsComputed());
 	require(GetClass()->GetUsedAttributeNumber() == GetClass()->GetLoadedAttributeNumber());
 
 	// Type de rapport
-	if (GetWriteOptionStats1D())
+	if (GetWriteOptionStats1D() or not IsStatsComputed())
 		fJSON->WriteKeyString("reportType", "Preparation");
 	else if (GetWriteOptionStats2D())
 		fJSON->WriteKeyString("reportType", "BivariatePreparation");
@@ -1128,34 +1146,41 @@ void KWClassStats::WriteJSONFields(JSONFile* fJSON)
 	fJSON->WriteKeyString("dictionary", GetClass()->GetName());
 
 	// Nombres d'attributs par type
-	fJSON->BeginKeyObject("variables");
-	fJSON->BeginKeyArray("types");
-	for (nType = 0; nType < KWType::None; nType++)
+	if (IsStatsComputed())
 	{
-		if (KWType::IsData(nType))
+		fJSON->BeginKeyObject("variables");
+		fJSON->BeginKeyArray("types");
+		for (nType = 0; nType < KWType::None; nType++)
 		{
-			nAttributeNumber = GetUsedAttributeNumberForType(nType);
-			if (nAttributeNumber > 0)
-				fJSON->WriteString(KWType::ToString(nType));
+			if (KWType::IsData(nType))
+			{
+				nAttributeNumber = GetUsedAttributeNumberForType(nType);
+				if (nAttributeNumber > 0)
+					fJSON->WriteString(KWType::ToString(nType));
+			}
 		}
-	}
-	fJSON->EndArray();
-	fJSON->BeginKeyArray("numbers");
-	for (nType = 0; nType < KWType::None; nType++)
-	{
-		if (KWType::IsData(nType))
+		fJSON->EndArray();
+		fJSON->BeginKeyArray("numbers");
+		for (nType = 0; nType < KWType::None; nType++)
 		{
-			nAttributeNumber = GetUsedAttributeNumberForType(nType);
-			if (nAttributeNumber > 0)
-				fJSON->WriteInt(nAttributeNumber);
+			if (KWType::IsData(nType))
+			{
+				nAttributeNumber = GetUsedAttributeNumberForType(nType);
+				if (nAttributeNumber > 0)
+					fJSON->WriteInt(nAttributeNumber);
+			}
 		}
+		fJSON->EndArray();
+		fJSON->EndObject();
 	}
-	fJSON->EndArray();
-	fJSON->EndObject();
 
 	// Base de donnees
 	GetDatabase()->WriteJSONFields(fJSON);
-	fJSON->WriteKeyLongint("instances", GetInstanceNumber());
+
+	// Nombre d'instances si disponible
+	// Peut etre 0 si aucune instance n'est disponible ou selectionnee selon le critere de selection
+	if (GetLearningSpec()->IsTargetStatsComputed())
+		fJSON->WriteKeyLongint("instances", GetInstanceNumber());
 
 	// Cas ou l'attribut cible n'est pas renseigne
 	if (GetTargetAttributeType() == KWType::None)
@@ -1175,30 +1200,32 @@ void KWClassStats::WriteJSONFields(JSONFile* fJSON)
 	}
 
 	// Parametrage eventuel de l'apprentissage supervise
+	// On accepte un affichage incomplet au cas ou le traitement aurait echoue partiellement ou totalement
 	if (GetTargetAttributeName() != "")
 	{
+		assert(not GetLearningSpec()->IsTargetStatsComputed() or
+		       GetTargetValueStats()->GetSourceAttributeNumber() == 0);
+
 		// Attribut cible
-		// On demande un affichage complet (source et cible) pour forcer
-		// l'utilisation explicite du libelle "Target"
-		assert(GetTargetValueStats()->GetSourceAttributeNumber() == 0);
 		fJSON->WriteKeyString("targetVariable", GetTargetAttributeName());
 
-		// Modalite cible principale
-		if (GetTargetAttributeType() == KWType::Symbol and GetMainTargetModalityIndex() != -1)
+		// Modalite cible principale si specifiee par l'utilisateur
+		if (GetTargetAttributeType() == KWType::Symbol and GetMainTargetModality() != Symbol())
 			fJSON->WriteKeyString("mainTargetValue", GetMainTargetModality().GetValue());
 
-		// Statistiques descriptives
-		GetTargetDescriptiveStats()->WriteJSONKeyReport(fJSON, "targetDescriptiveStats");
-
-		// Detail par valeur dans le cas symbol
-		if (GetTargetAttributeType() == KWType::Symbol)
+		// Statistiques descriptives sur l'attribut cible si disponible
+		if (GetLearningSpec()->IsTargetStatsComputed())
 		{
-			GetTargetValueStats()->WriteJSONKeyValueFrequencies(fJSON, "targetValues");
+			GetTargetDescriptiveStats()->WriteJSONKeyReport(fJSON, "targetDescriptiveStats");
+
+			// Detail par valeur dans le cas symbol
+			if (GetTargetAttributeType() == KWType::Symbol)
+				GetTargetValueStats()->WriteJSONKeyValueFrequencies(fJSON, "targetValues");
 		}
 	}
 
-	// Arret si base vide
-	if (GetInstanceNumber() == 0)
+	// Arret si base vide ou erreur
+	if (not IsStatsComputed() or GetInstanceNumber() == 0)
 	{
 		fJSON->EndObject();
 		return;
