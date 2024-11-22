@@ -193,7 +193,7 @@ void CCLearningProblemView::BuildCoclustering()
 	// On verifie a minima qu'une base est specifiee
 	bOk = GetLearningProblem()->CheckDatabaseName();
 
-	// Test si on a pas specifie de dictionnaire d'analyse, pour le construire automatiquement a la volee
+	// Test si on n'a pas specifie de dictionnaire d'analyse, pour le construire automatiquement a la volee
 	if (bOk and GetLearningProblem()->GetDatabase()->GetClassName() == "")
 		bOk = BuildClassFromDataTable();
 

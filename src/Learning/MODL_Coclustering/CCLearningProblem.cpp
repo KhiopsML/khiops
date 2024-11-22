@@ -655,7 +655,7 @@ boolean CCLearningProblem::CheckCoclusteringSpecifications() const
 			AddError("No coclustering variable specified");
 			bOk = false;
 		}
-		// Il doit y avoir au moins deux variables specifiee pour un co-clustering
+		// Il doit y avoir au moins deux variables specifiees pour un co-clustering
 		else if (analysisSpec->GetCoclusteringSpec()->GetAttributeNames()->GetSize() < 2)
 		{
 			AddError("At least two coclustering variables must be specified");
