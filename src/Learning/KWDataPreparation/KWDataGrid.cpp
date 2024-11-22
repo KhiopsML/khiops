@@ -2279,7 +2279,6 @@ KWDGAttribute::KWDGAttribute()
 	catchAllValueSet = NULL;
 	garbagePart = NULL;
 	sOwnerAttributeName = "";
-	bVarPartsShared = false;
 	innerAttributes = NULL;
 }
 
@@ -2295,11 +2294,12 @@ KWDGAttribute::~KWDGAttribute()
 		delete catchAllValueSet;
 	}
 
-	// Destruction des attribut internes s'ils ne sont pas partages
-	if (not bVarPartsShared and innerAttributes != NULL)
+	// Decrementation des references sur les attributs internes d'origine, et desallocation si necessaire
+	if (innerAttributes != NULL)
 	{
-		innerAttributes->DeleteAll();
-		delete innerAttributes;
+		innerAttributes->nRefCount--;
+		if (innerAttributes->nRefCount == 0)
+			delete innerAttributes;
 	}
 
 	// Reinitialisation en mode debug, pour faciliter le diagnostique
@@ -2682,6 +2682,7 @@ KWDGPart* KWDGAttribute::LookupGroupablePart(const KWDGValue* value)
 	part = cast(KWDGPart*, nkdParts.Lookup(value->GetNumericKeyValue()));
 	if (part == NULL)
 		part = defaultPart;
+
 	ensure(part != NULL);
 	return part;
 }
@@ -4898,7 +4899,7 @@ KWDGAttribute* KWDGInnerAttributes::GetInnerAttributeAt(int nAttributeIndex) con
 	return cast(KWDGAttribute*, oaInnerAttributes.GetAt(nAttributeIndex));
 }
 
-KWDGAttribute* KWDGInnerAttributes::LookupInnerAttribute(const ALString& sAttributeName)
+KWDGAttribute* KWDGInnerAttributes::LookupInnerAttribute(const ALString& sAttributeName) const
 {
 	return cast(KWDGAttribute*, odInnerAttributes.Lookup(sAttributeName));
 }
@@ -5061,14 +5062,14 @@ boolean KWDGInnerAttributes::ContainsSubVarParts(const KWDGInnerAttributes* othe
 
 	require(otherInnerAttributes != NULL);
 
-	// Cas particuliezr oou les variable internes en parametre sont les memes
+	// Cas particulier oou les variable internes en parametre sont les memes
 	if (otherInnerAttributes == this)
 		return true;
 
 	// On doit avoir le meme nombre d'attributs internes
 	bOk = GetInnerAttributeNumber() == otherInnerAttributes->GetInnerAttributeNumber();
 
-	// Comparaison pour chaque pour chaque attribut interne
+	// Comparaison pour chaque attribut interne
 	if (bOk)
 	{
 		for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributeNumber(); nInnerAttribute++)

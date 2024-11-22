@@ -56,7 +56,7 @@ public:
 	void SetPostOptimize(boolean bValue);
 
 	// CH IV Begin
-	// Post-fusion des parties de variable d'un meme cluster pour le coclustering instances * variables
+	// Post-fusion des parties de variable mitoyennes d'un meme cluster pour le coclustering instances * variables
 	boolean GetVarPartPostMerge() const;
 	void SetVarPartPostMerge(boolean bValue);
 

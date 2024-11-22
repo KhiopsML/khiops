@@ -767,9 +767,8 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 		// d'observations par variable -> commentaire a comprendre ! Cas ou cette granularite sera la
 		// derniere traitee
 		if (bIsLastPrePartitioning)
-			// On positionne l'index de granularite au maximum afin que l'affichage soit adapte a ce
-			// cas
-			partitionedDataGrid.GetInnerAttributes()->SetVarPartGranularity(nPrePartitionMax);
+			// On positionne l'index de granularite au maximum afin que l'affichage soit adapte a ce cas
+			partitionedDataGrid.GetEditableInnerAttributes()->SetVarPartGranularity(nPrePartitionMax);
 
 		// Analyse du nombre de parties par attribut interne granularise pour determiner si la grille
 		// pre-partitionnee sera optimise Il faut pour cela qu'elle soit suffisamment differente de la
@@ -846,7 +845,6 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 				// la variation de cout liee a la fusion des PV
 				dFusionDeltaCost = dataGridManager.ExportDataGridWithVarPartMergeOptimization(
 				    &partitionedPostMergedOptimizedDataGrid, coclusteringDataGridCosts);
-				assert(not partitionedPostMergedOptimizedDataGrid.GetVarPartsShared());
 
 				// Calcul et verification du cout
 				dMergedCost = dPartitionBestCost + dFusionDeltaCost;
@@ -884,19 +882,11 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 				{
 					dataGridManager.CopyDataGrid(&partitionedPostMergedOptimizedDataGrid,
 								     optimizedDataGrid);
-
-					// Mise a jour de la propriete de la description des parties de variable
-					partitionedPostMergedOptimizedDataGrid.SetVarPartsShared(true);
-					optimizedDataGrid->SetVarPartsShared(false);
 				}
 
 				else
 				{
 					dataGridManager.CopyDataGrid(&partitionedOptimizedDataGrid, optimizedDataGrid);
-
-					// Mise a jour de la propriete de la description des parties de variable
-					partitionedOptimizedDataGrid.SetVarPartsShared(true);
-					optimizedDataGrid->SetVarPartsShared(false);
 				}
 			}
 
@@ -944,40 +934,6 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 				else
 				{
 					HandleOptimizationStep(optimizedDataGrid, &partitionedDataGrid, true);
-
-					if (optimizedDataGrid->GetInnerAttributes() ==
-					    partitionedDataGrid.GetInnerAttributes())
-					{
-						partitionedDataGrid.SetVarPartsShared(true);
-						optimizedDataGrid->SetVarPartsShared(false);
-					}
-				}
-			}
-
-			if (coclusteringDataGrid != NULL and coclusteringDataGrid->IsVarPartDataGrid())
-			{
-				if (partitionedDataGrid.IsVarPartDataGrid() and
-				    partitionedDataGrid.GetInnerAttributes() ==
-					coclusteringDataGrid->GetInnerAttributes())
-				{
-					coclusteringDataGrid->SetVarPartsShared(false);
-					partitionedDataGrid.SetVarPartsShared(true);
-				}
-
-				if (partitionedPostMergedOptimizedDataGrid.IsVarPartDataGrid() and
-				    partitionedPostMergedOptimizedDataGrid.GetInnerAttributes() ==
-					coclusteringDataGrid->GetInnerAttributes())
-				{
-					coclusteringDataGrid->SetVarPartsShared(false);
-					partitionedPostMergedOptimizedDataGrid.SetVarPartsShared(true);
-				}
-
-				if (optimizedDataGrid->IsVarPartDataGrid() and
-				    optimizedDataGrid->GetInnerAttributes() ==
-					coclusteringDataGrid->GetInnerAttributes())
-				{
-					coclusteringDataGrid->SetVarPartsShared(false);
-					optimizedDataGrid->SetVarPartsShared(true);
 				}
 			}
 
@@ -1091,6 +1047,9 @@ void CCCoclusteringBuilder::PROTO_OptimizeVarPartDataGrid(const KWDataGrid* inpu
 	// l'export des grilles avec VarPart fusionnnees
 	dataGridOptimizer.SetInitialVarPartDataGrid(initialDataGrid);
 
+	// Parametrage en mode Proto integrant la surtokenisation des VarPart avant la generation aleatoire d'une grille voisine
+	dataGridOptimizer.SetSurtokenisationProto(false);
+
 	// Initialisation d'un quantile builder pour chaque attribut interne dans un attribut de grile de type
 	// de type VarPart La grille initiale comporte un cluster par partie de variable pour ses attributs de
 	// grille de type VarPart
@@ -1200,7 +1159,6 @@ void CCCoclusteringBuilder::PROTO_OptimizeVarPartDataGrid(const KWDataGrid* inpu
 			// la variation de cout liee a la fusion des PV
 			dFusionDeltaCost = dataGridManager.ExportDataGridWithVarPartMergeOptimization(
 			    &partitionedPostMergedOptimizedDataGrid, coclusteringDataGridCosts);
-			assert(not partitionedPostMergedOptimizedDataGrid.GetVarPartsShared());
 
 			// Calcul et verification du cout
 			dMergedCost = dPartitionBestCost + dFusionDeltaCost;
@@ -1237,19 +1195,11 @@ void CCCoclusteringBuilder::PROTO_OptimizeVarPartDataGrid(const KWDataGrid* inpu
 			{
 				dataGridManager.CopyDataGrid(&partitionedPostMergedOptimizedDataGrid,
 							     optimizedDataGrid);
-
-				// Mise a jour de la propriete de la description des parties de variable
-				partitionedPostMergedOptimizedDataGrid.SetVarPartsShared(true);
-				optimizedDataGrid->SetVarPartsShared(false);
 			}
 
 			else
 			{
 				dataGridManager.CopyDataGrid(&partitionedOptimizedDataGrid, optimizedDataGrid);
-
-				// Mise a jour de la propriete de la description des parties de variable
-				partitionedOptimizedDataGrid.SetVarPartsShared(true);
-				optimizedDataGrid->SetVarPartsShared(false);
 			}
 		}
 
@@ -1289,40 +1239,7 @@ void CCCoclusteringBuilder::PROTO_OptimizeVarPartDataGrid(const KWDataGrid* inpu
 			}
 		}
 		else
-		{
 			HandleOptimizationStep(optimizedDataGrid, &partitionedDataGrid, true);
-
-			if (optimizedDataGrid->GetInnerAttributes() == partitionedDataGrid.GetInnerAttributes())
-			{
-				partitionedDataGrid.SetVarPartsShared(true);
-				optimizedDataGrid->SetVarPartsShared(false);
-			}
-		}
-
-		if (coclusteringDataGrid != NULL and coclusteringDataGrid->IsVarPartDataGrid())
-		{
-			if (partitionedDataGrid.IsVarPartDataGrid() and
-			    partitionedDataGrid.GetInnerAttributes() == coclusteringDataGrid->GetInnerAttributes())
-			{
-				coclusteringDataGrid->SetVarPartsShared(false);
-				partitionedDataGrid.SetVarPartsShared(true);
-			}
-
-			if (partitionedPostMergedOptimizedDataGrid.IsVarPartDataGrid() and
-			    partitionedPostMergedOptimizedDataGrid.GetInnerAttributes() ==
-				coclusteringDataGrid->GetInnerAttributes())
-			{
-				coclusteringDataGrid->SetVarPartsShared(false);
-				partitionedPostMergedOptimizedDataGrid.SetVarPartsShared(true);
-			}
-
-			if (optimizedDataGrid->IsVarPartDataGrid() and
-			    optimizedDataGrid->GetInnerAttributes() == coclusteringDataGrid->GetInnerAttributes())
-			{
-				coclusteringDataGrid->SetVarPartsShared(false);
-				optimizedDataGrid->SetVarPartsShared(true);
-			}
-		}
 
 		// Nettoyage
 		partitionedPostMergedOptimizedDataGrid.DeleteAll();
@@ -1464,7 +1381,6 @@ KWDataGrid* CCCoclusteringBuilder::CreateVarPartDataGrid(const KWTupleTable* tup
 
 			// Parametrage des attributs internes
 			dgAttribute->SetInnerAttributes(initialInnerAttributes);
-			dgAttribute->SetVarPartsShared(false);
 
 			// Pas de cout de selection/construction pour ce type d'attribut
 			// Necessairement pas un attribut cible
@@ -1502,7 +1418,7 @@ KWDataGrid* CCCoclusteringBuilder::CreateVarPartDataGrid(const KWTupleTable* tup
 									   GetTargetAttributeName());
 
 				// Ajout de l'attribut dans le dictionnaire des attributs internes de la grille
-				dataGrid->GetInnerAttributes()->AddInnerAttribute(innerAttribute);
+				initialInnerAttributes->AddInnerAttribute(innerAttribute);
 
 				// Recuperation du cout de selection/construction de l'attribut hors attribut cible
 				if (innerAttribute->GetAttributeName() != GetTargetAttributeName())
@@ -1632,7 +1548,7 @@ void CCCoclusteringBuilder::CleanVarPartDataGrid(KWDataGrid* dataGrid)
 		if (bIsDefaultPartDeleted and innerAttribute->GetPartNumber() > 0)
 			innerAttribute->GetTailPart()->GetSymbolValueSet()->AddSymbolValue(Symbol::GetStarValue());
 	}
-	dataGrid->GetInnerAttributes()->CleanEmptyInnerAttributes();
+	dataGrid->GetEditableInnerAttributes()->CleanEmptyInnerAttributes();
 	dataGrid->UpdateAllStatistics();
 }
 
@@ -1993,7 +1909,6 @@ void CCCoclusteringBuilder::HandleOptimizationStep(const KWDataGrid* optimizedDa
 		// Dans le cas VarPart, creation d'innerAttributes propre a la grille hierarchique
 		// afin qu'ils soient du type CCHDGAttribute comme les attributs de grille
 		dataGridManager.CopyDataGridWithInnerAttributesCloned(optimizedDataGrid, coclusteringDataGrid);
-		assert(not coclusteringDataGrid->IsVarPartDataGrid() or not coclusteringDataGrid->GetVarPartsShared());
 
 		// Memorisation de la description courte
 		coclusteringDataGrid->SetShortDescription(GetShortDescription());
@@ -4287,6 +4202,10 @@ void CCCoclusteringBuilder::ComputePartHierarchies(KWDataGridMerger* optimizedDa
 			hdgAttribute->GetNextPart(dgPart2);
 			nPart++;
 		}
+
+		// Memorisation de la racine de la hierarchie dans le cas particulier d'une seule partie
+		if (hdgAttribute->GetPartNumber() == 1)
+			hdgAttribute->SetRootPart(cast(CCHDGPart*, hdgAttribute->GetHeadPart()));
 	}
 	assert(nkdHierarchicalParts.GetCount() == optimizedDataGridMerger->GetTotalPartNumber());
 
@@ -4312,7 +4231,6 @@ void CCCoclusteringBuilder::ComputePartHierarchies(KWDataGridMerger* optimizedDa
 
 		// CH IV
 		// Ce cout n'est pas le vrai cout car la fusion n'est pas suivie issue de la fusion des PV adjacent
-
 		bContinue = (bestPartMerge != NULL);
 		assert(bContinue or dBestDeltaCost == DBL_MAX);
 

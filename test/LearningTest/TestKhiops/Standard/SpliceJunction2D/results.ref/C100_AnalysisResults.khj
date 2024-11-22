@@ -1,6 +1,6 @@
 {
 	"tool": "Khiops",
-	"version": "10.5.2-b.0",
+	"version": "10.5.5-b.0",
 	"shortDescription": "",
 	"preparationReport": {
 		"reportType": "Preparation",
@@ -2554,22 +2554,6 @@
 			},
 			{
 				"rank": "R029",
-				"name1": "Count(DNA) where Char not in {C, G}",
-				"name2": "Mode(DNA.Char) where Pos in ]15.5, 30.5]",
-				"deltaLevel": -0.00510825,
-				"level": 0.0444595,
-				"level1": 0,
-				"level2": 0.0495677,
-				"variables": 1,
-				"parts1": 1,
-				"parts2": 3,
-				"cells": 3,
-				"constructionCost": 11.3057,
-				"preparationCost": 31.3846,
-				"dataCost": 251.964
-			},
-			{
-				"rank": "R030",
 				"name1": "Count(DNA) where Char = A",
 				"name2": "Count(DNA) where Char = G",
 				"deltaLevel": -0.00566135,
@@ -2585,7 +2569,7 @@
 				"dataCost": 273.207
 			},
 			{
-				"rank": "R031",
+				"rank": "R030",
 				"name1": "Count(DNA) where Char = A",
 				"name2": "Mean(DNA.Pos) where Char = G",
 				"deltaLevel": -0.00566135,
@@ -2601,7 +2585,7 @@
 				"dataCost": 271.302
 			},
 			{
-				"rank": "R032",
+				"rank": "R031",
 				"name1": "Count(DNA) where Char = A",
 				"name2": "Median(DNA.Pos) where Char = C",
 				"deltaLevel": -0.00566135,
@@ -2617,7 +2601,7 @@
 				"dataCost": 276.636
 			},
 			{
-				"rank": "R033",
+				"rank": "R032",
 				"name1": "Count(DNA) where Char = A",
 				"name2": "Median(DNA.Pos) where Char = G",
 				"deltaLevel": -0.00566135,
@@ -2633,7 +2617,7 @@
 				"dataCost": 262.873
 			},
 			{
-				"rank": "R034",
+				"rank": "R033",
 				"name1": "Count(DNA) where Char = A",
 				"name2": "Mode(DNA.Char) where Pos <= 30.5",
 				"deltaLevel": -0.00566135,
@@ -2649,7 +2633,7 @@
 				"dataCost": 254.125
 			},
 			{
-				"rank": "R035",
+				"rank": "R034",
 				"name1": "Count(DNA) where Char = A",
 				"name2": "Mode(DNA.Char) where Pos in ]15.5, 30.5]",
 				"deltaLevel": -0.00566135,
@@ -2665,7 +2649,7 @@
 				"dataCost": 251.964
 			},
 			{
-				"rank": "R036",
+				"rank": "R035",
 				"name1": "Count(DNA) where Char = C",
 				"name2": "Count(DNA) where Char = G",
 				"deltaLevel": -0.00566135,
@@ -2681,7 +2665,7 @@
 				"dataCost": 273.207
 			},
 			{
-				"rank": "R037",
+				"rank": "R036",
 				"name1": "Count(DNA) where Char = C",
 				"name2": "Median(DNA.Pos) where Char = C",
 				"deltaLevel": -0.00566135,
@@ -2697,7 +2681,7 @@
 				"dataCost": 276.636
 			},
 			{
-				"rank": "R038",
+				"rank": "R037",
 				"name1": "Count(DNA) where Char = C",
 				"name2": "Median(DNA.Pos) where Char = G",
 				"deltaLevel": -0.00566135,
@@ -2713,7 +2697,7 @@
 				"dataCost": 262.873
 			},
 			{
-				"rank": "R039",
+				"rank": "R038",
 				"name1": "Count(DNA) where Char = C",
 				"name2": "Mode(DNA.Char) where Pos <= 30.5",
 				"deltaLevel": -0.00566135,
@@ -2729,7 +2713,7 @@
 				"dataCost": 254.125
 			},
 			{
-				"rank": "R040",
+				"rank": "R039",
 				"name1": "Count(DNA) where Char = C",
 				"name2": "Mode(DNA.Char) where Pos in ]15.5, 30.5]",
 				"deltaLevel": -0.00566135,
@@ -2745,7 +2729,7 @@
 				"dataCost": 251.964
 			},
 			{
-				"rank": "R041",
+				"rank": "R040",
 				"name1": "Count(DNA) where Char = G",
 				"name2": "Count(DNA) where Char = T",
 				"deltaLevel": -0.00566135,
@@ -2761,7 +2745,7 @@
 				"dataCost": 273.207
 			},
 			{
-				"rank": "R042",
+				"rank": "R041",
 				"name1": "Count(DNA) where Char = G",
 				"name2": "Count(DNA) where Char not in {C, G, T, A}",
 				"deltaLevel": -0.00566135,
@@ -2777,7 +2761,7 @@
 				"dataCost": 273.207
 			},
 			{
-				"rank": "R043",
+				"rank": "R042",
 				"name1": "Count(DNA) where Char = G",
 				"name2": "Count(DNA) where Char not in {C, G}",
 				"deltaLevel": -0.00566135,
@@ -2793,7 +2777,7 @@
 				"dataCost": 273.207
 			},
 			{
-				"rank": "R044",
+				"rank": "R043",
 				"name1": "Count(DNA) where Char = G",
 				"name2": "CountDistinct(DNA.Char)",
 				"deltaLevel": -0.00566135,
@@ -2809,7 +2793,7 @@
 				"dataCost": 273.207
 			},
 			{
-				"rank": "R045",
+				"rank": "R044",
 				"name1": "Count(DNA) where Char = G",
 				"name2": "CountDistinct(DNA.Char) where Char = G",
 				"deltaLevel": -0.00566135,
@@ -2825,7 +2809,7 @@
 				"dataCost": 273.207
 			},
 			{
-				"rank": "R046",
+				"rank": "R045",
 				"name1": "Count(DNA) where Char = G",
 				"name2": "CountDistinct(DNA.Char) where Char not in {C, G}",
 				"deltaLevel": -0.00566135,
@@ -2841,7 +2825,7 @@
 				"dataCost": 273.207
 			},
 			{
-				"rank": "R047",
+				"rank": "R046",
 				"name1": "Count(DNA) where Char = T",
 				"name2": "Mean(DNA.Pos) where Char = G",
 				"deltaLevel": -0.00566135,
@@ -2855,58 +2839,58 @@
 				"constructionCost": 11.3057,
 				"preparationCost": 19.4458,
 				"dataCost": 271.302
+			},
+			{
+				"rank": "R047",
+				"name1": "Count(DNA) where Char = T",
+				"name2": "Median(DNA.Pos) where Char = C",
+				"deltaLevel": -0.00566135,
+				"level": 0.0031661,
+				"level1": 0,
+				"level2": 0.00882745,
+				"variables": 1,
+				"parts1": 1,
+				"parts2": 2,
+				"cells": 2,
+				"constructionCost": 11.3057,
+				"preparationCost": 19.4456,
+				"dataCost": 276.636
 			},
 			{
 				"rank": "R048",
 				"name1": "Count(DNA) where Char = T",
-				"name2": "Median(DNA.Pos) where Char = C",
+				"name2": "Median(DNA.Pos) where Char = G",
 				"deltaLevel": -0.00566135,
-				"level": 0.0031661,
+				"level": 0.0156045,
 				"level1": 0,
-				"level2": 0.00882745,
+				"level2": 0.0212659,
 				"variables": 1,
 				"parts1": 1,
-				"parts2": 2,
-				"cells": 2,
+				"parts2": 3,
+				"cells": 3,
 				"constructionCost": 11.3057,
-				"preparationCost": 19.4456,
-				"dataCost": 276.636
+				"preparationCost": 29.3732,
+				"dataCost": 262.873
 			},
 			{
 				"rank": "R049",
 				"name1": "Count(DNA) where Char = T",
-				"name2": "Median(DNA.Pos) where Char = G",
+				"name2": "Mode(DNA.Char) where Pos <= 30.5",
 				"deltaLevel": -0.00566135,
-				"level": 0.0156045,
+				"level": 0.0674603,
 				"level1": 0,
-				"level2": 0.0212659,
+				"level2": 0.0731216,
 				"variables": 1,
 				"parts1": 1,
-				"parts2": 3,
-				"cells": 3,
-				"constructionCost": 11.3057,
-				"preparationCost": 29.3732,
-				"dataCost": 262.873
+				"parts2": 2,
+				"cells": 2,
+				"constructionCost": 9.91939,
+				"preparationCost": 23.5167,
+				"dataCost": 254.125
 			},
 			{
 				"rank": "R050",
 				"name1": "Count(DNA) where Char = T",
-				"name2": "Mode(DNA.Char) where Pos <= 30.5",
-				"deltaLevel": -0.00566135,
-				"level": 0.0674603,
-				"level1": 0,
-				"level2": 0.0731216,
-				"variables": 1,
-				"parts1": 1,
-				"parts2": 2,
-				"cells": 2,
-				"constructionCost": 9.91939,
-				"preparationCost": 23.5167,
-				"dataCost": 254.125
-			},
-			{
-				"rank": "R051",
-				"name1": "Count(DNA) where Char = T",
 				"name2": "Mode(DNA.Char) where Pos in ]15.5, 30.5]",
 				"deltaLevel": -0.00566135,
 				"level": 0.0439064,
@@ -2919,26 +2903,26 @@
 				"constructionCost": 11.3057,
 				"preparationCost": 31.5551,
 				"dataCost": 251.964
+			},
+			{
+				"rank": "R051",
+				"name1": "Count(DNA) where Char not in {C, G, T, A}",
+				"name2": "Mean(DNA.Pos) where Char = G",
+				"deltaLevel": -0.00566135,
+				"level": 0.0204646,
+				"level1": 0,
+				"level2": 0.0261259,
+				"variables": 1,
+				"parts1": 1,
+				"parts2": 2,
+				"cells": 2,
+				"constructionCost": 11.3057,
+				"preparationCost": 19.4458,
+				"dataCost": 271.302
 			},
 			{
 				"rank": "R052",
 				"name1": "Count(DNA) where Char not in {C, G, T, A}",
-				"name2": "Mean(DNA.Pos) where Char = G",
-				"deltaLevel": -0.00566135,
-				"level": 0.0204646,
-				"level1": 0,
-				"level2": 0.0261259,
-				"variables": 1,
-				"parts1": 1,
-				"parts2": 2,
-				"cells": 2,
-				"constructionCost": 11.3057,
-				"preparationCost": 19.4458,
-				"dataCost": 271.302
-			},
-			{
-				"rank": "R053",
-				"name1": "Count(DNA) where Char not in {C, G, T, A}",
 				"name2": "Median(DNA.Pos) where Char = C",
 				"deltaLevel": -0.00566135,
 				"level": 0.0031661,
@@ -2953,7 +2937,7 @@
 				"dataCost": 276.636
 			},
 			{
-				"rank": "R054",
+				"rank": "R053",
 				"name1": "Count(DNA) where Char not in {C, G, T, A}",
 				"name2": "Median(DNA.Pos) where Char = G",
 				"deltaLevel": -0.00566135,
@@ -2969,7 +2953,7 @@
 				"dataCost": 262.873
 			},
 			{
-				"rank": "R055",
+				"rank": "R054",
 				"name1": "Count(DNA) where Char not in {C, G, T, A}",
 				"name2": "Mode(DNA.Char) where Pos <= 30.5",
 				"deltaLevel": -0.00566135,
@@ -2985,7 +2969,7 @@
 				"dataCost": 254.125
 			},
 			{
-				"rank": "R056",
+				"rank": "R055",
 				"name1": "Count(DNA) where Char not in {C, G, T, A}",
 				"name2": "Mode(DNA.Char) where Pos in ]15.5, 30.5]",
 				"deltaLevel": -0.00566135,
@@ -3001,7 +2985,7 @@
 				"dataCost": 251.964
 			},
 			{
-				"rank": "R057",
+				"rank": "R056",
 				"name1": "Count(DNA) where Char not in {C, G}",
 				"name2": "Mean(DNA.Pos) where Char = G",
 				"deltaLevel": -0.00566135,
@@ -3017,7 +3001,7 @@
 				"dataCost": 271.302
 			},
 			{
-				"rank": "R058",
+				"rank": "R057",
 				"name1": "Count(DNA) where Char not in {C, G}",
 				"name2": "Median(DNA.Pos) where Char = C",
 				"deltaLevel": -0.00566135,
@@ -3033,7 +3017,7 @@
 				"dataCost": 276.636
 			},
 			{
-				"rank": "R059",
+				"rank": "R058",
 				"name1": "Count(DNA) where Char not in {C, G}",
 				"name2": "Median(DNA.Pos) where Char = G",
 				"deltaLevel": -0.00566135,
@@ -3049,7 +3033,7 @@
 				"dataCost": 262.873
 			},
 			{
-				"rank": "R060",
+				"rank": "R059",
 				"name1": "Count(DNA) where Char not in {C, G}",
 				"name2": "Mode(DNA.Char) where Pos <= 30.5",
 				"deltaLevel": -0.00566135,
@@ -3063,6 +3047,22 @@
 				"constructionCost": 9.91939,
 				"preparationCost": 23.5167,
 				"dataCost": 254.125
+			},
+			{
+				"rank": "R060",
+				"name1": "Count(DNA) where Char not in {C, G}",
+				"name2": "Mode(DNA.Char) where Pos in ]15.5, 30.5]",
+				"deltaLevel": -0.00566135,
+				"level": 0.0439064,
+				"level1": 0,
+				"level2": 0.0495677,
+				"variables": 1,
+				"parts1": 1,
+				"parts2": 3,
+				"cells": 3,
+				"constructionCost": 11.3057,
+				"preparationCost": 31.5551,
+				"dataCost": 251.964
 			},
 			{
 				"rank": "R061",

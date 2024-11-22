@@ -24,6 +24,7 @@ void SetWindowsDebugDir(const ALString& sDatasetFamily, const ALString& sDataset
 
 	// Changement de repertoire, uniquement pour Windows
 	nRet = _chdir(sUserRootPath + sDatasetFamily + "/" + sDataset);
+	assert(nRet == 0);
 #endif
 }
 
@@ -41,10 +42,10 @@ int main(int argc, char** argv)
 	//SetWindowsDebugDir("Standard", "Iris");
 
 	// Point d'arret sur l'allocation d'un bloc memoire
-	// MemSetAllocIndexExit(30406);
+	//MemSetAllocIndexExit(6009814);
 
 	// Choix du repertoire de lancement pour le debugage sous Windows (a commenter apres fin du debug)
-	// SetWindowsDebugDir("Standard", "Iris");
+	//SetWindowsDebugDir("y_CoclusteringIV", "Glass");
 
 	// Lancement du projet
 	learningProject.Start(argc, argv);

@@ -78,6 +78,7 @@ FAMILY_TEST_SUITES[FULL, kht.KHIOPS] = [
 ]
 FAMILY_TEST_SUITES[FULL, kht.COCLUSTERING] = [
     "Standard",
+    "IV_Standard",
     "Bugs",
     "NewPriorV9",
     "SmallInstability",

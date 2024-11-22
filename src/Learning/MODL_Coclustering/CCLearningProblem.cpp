@@ -1120,7 +1120,7 @@ void CCLearningProblem::WriteVarPartsInnerAttributes(const CCHDGAttribute* varPa
 	ALString sLocalGroupsFileName;
 	fstream fstIntervalsTableFile;
 	fstream fstGroupsTableFile;
-	KWDGInnerAttributes* innerAttributes;
+	const KWDGInnerAttributes* innerAttributes;
 	KWDGAttribute* innerAttribute;
 	int nIndex;
 	boolean bIntervalsOk = true;

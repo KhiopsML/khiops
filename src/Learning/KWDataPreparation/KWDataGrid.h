@@ -188,12 +188,12 @@ public:
 	// Acces a l'attribut de type VarPart d'un grille si elle de type instances x variables, NULL sinon
 	KWDGAttribute* GetVarPartAttribute() const;
 
-	// Acces direct au statut du parametrage des attributs internes de l'attribut de type VarPart
-	boolean GetVarPartsShared() const;
-	void SetVarPartsShared(boolean bValue) const;
-
 	// Acces direct au parametrage des attributs internes de l'attribut de type VarPart
-	KWDGInnerAttributes* GetInnerAttributes() const;
+	const KWDGInnerAttributes* GetInnerAttributes() const;
+
+	// Methode ancee pour acceder aux attributs internes en mode editable
+	// A utiliser avec precaution
+	KWDGInnerAttributes* GetEditableInnerAttributes() const;
 
 	// Recherche d'un attribut de la grille par son nom (recherche couteuse, par parcours exhaustif des attributs)
 	// Renvoie NULL si non trouve
@@ -497,14 +497,13 @@ public:
 	ALString GetOwnerAttributeName() const;
 	void SetOwnerAttributeName(ALString sName);
 
-	// Statut du parametrage des attributs internes: partagee ou non (defaut: false)
-	// Ce parametrage est detruit avec l'appelant, sauf s'il est partage
-	boolean GetVarPartsShared() const;
-	void SetVarPartsShared(boolean bValue) const;
-
 	// Parametrage des attributs internes dans le cas d'un attribut de grille de type VarPart
-	void SetInnerAttributes(KWDGInnerAttributes* attributes);
-	KWDGInnerAttributes* GetInnerAttributes() const;
+	// Note sur la gestion memoire des attributs internes
+	// - les attributs internes peuvent etre partagee entre plusieurs grilles
+	// - grace a un comptage de reference propre aux attributs internes, ceux-ci sont automatiquement
+	//   detruits quand ils ne sont plus utilises
+	void SetInnerAttributes(const KWDGInnerAttributes* attributes);
+	const KWDGInnerAttributes* GetInnerAttributes() const;
 
 	// Nombre d'attributs internes
 	int GetInnerAttributeNumber() const;
@@ -638,7 +637,7 @@ public:
 	int ComputeTotalPartFrequency() const;
 
 	// Test si l'attribut contient des sous-parties de l'autre attribut en parametre
-	// Dans le cas d'un attribut de type VarPart, les deux attribut doivent exploiter les meme variables internes
+	// Dans le cas d'un attribut de type VarPart, les deux attributs doivent exploiter les meme variables internes
 	boolean ContainsSubParts(const KWDGAttribute* otherAttribute) const;
 
 	// Controle d'integrite local a l'attribut (parties, valeurs, cellules de l'attribut)
@@ -749,11 +748,7 @@ protected:
 	ALString sOwnerAttributeName;
 
 	// Attributs internes dans les attributs de type VarPart
-	KWDGInnerAttributes* innerAttributes;
-
-	// Statut proprietaire ou partage de la description des attributs internes
-	// Mutable car modifie par HandleOptimizationStep
-	mutable boolean bVarPartsShared;
+	const KWDGInnerAttributes* innerAttributes;
 	// CH IV End
 };
 
@@ -1418,7 +1413,7 @@ public:
 	KWDGAttribute* GetInnerAttributeAt(int nAttributeIndex) const;
 
 	// Acces a un attribut interne par nom
-	KWDGAttribute* LookupInnerAttribute(const ALString& sAttributeName);
+	KWDGAttribute* LookupInnerAttribute(const ALString& sAttributeName) const;
 
 	// Acces a la granularite des parties de variable, partages par tous les attributs
 	int GetVarPartGranularity() const;
@@ -1467,9 +1462,19 @@ public:
 	///////////////////////////////
 	///// Implementation
 protected:
+	// Gestion du compteur de reference par la classe KWDGAttribute, permettant de partager des InnerAttributes
+	// entre plusieurs grilles et les desallouer automatiquement quand elle ne sont plus utilisees
+	// Cela permet de mutualiser une structure lourde sans se soucier de la dynamique des utilisations
+	// lors des algorithmes d'optimisation
+	friend class KWDGAttribute;
+
+	// Gestion des attributs internes
 	int nVarPartGranularity;
 	ObjectDictionary odInnerAttributes;
 	ObjectArray oaInnerAttributes;
+
+	// Compteur de reference
+	mutable int nRefCount;
 };
 // CH IV End
 
@@ -1645,22 +1650,16 @@ inline KWDGAttribute* KWDataGrid::GetVarPartAttribute() const
 	return varPartAttribute;
 }
 
-inline boolean KWDataGrid::GetVarPartsShared() const
-{
-	require(IsVarPartDataGrid());
-	return GetVarPartAttribute()->GetVarPartsShared();
-}
-
-inline void KWDataGrid::SetVarPartsShared(boolean bValue) const
-{
-	require(IsVarPartDataGrid());
-	GetVarPartAttribute()->SetVarPartsShared(bValue);
-}
-
-inline KWDGInnerAttributes* KWDataGrid::GetInnerAttributes() const
+inline const KWDGInnerAttributes* KWDataGrid::GetInnerAttributes() const
 {
 	require(IsVarPartDataGrid());
 	return GetVarPartAttribute()->GetInnerAttributes();
+}
+
+inline KWDGInnerAttributes* KWDataGrid::GetEditableInnerAttributes() const
+{
+	require(IsVarPartDataGrid());
+	return cast(KWDGInnerAttributes*, GetVarPartAttribute()->GetInnerAttributes());
 }
 // CH IV End
 
@@ -1784,7 +1783,7 @@ inline boolean KWDGAttribute::IsInnerAttribute() const
 {
 	assert(dataGrid == NULL or
 	       (sOwnerAttributeName == "" and
-		(not dataGrid->IsVarPartDataGrid() or
+		((not dataGrid->IsVarPartDataGrid()) or
 		 dataGrid->GetInnerAttributes()->LookupInnerAttribute(sAttributeName) == NULL)) or
 	       (sOwnerAttributeName != "" and
 		(dataGrid->IsVarPartDataGrid() and
@@ -1802,25 +1801,25 @@ inline void KWDGAttribute::SetOwnerAttributeName(ALString sName)
 	sOwnerAttributeName = sName;
 }
 
-inline boolean KWDGAttribute::GetVarPartsShared() const
+inline void KWDGAttribute::SetInnerAttributes(const KWDGInnerAttributes* attributes)
 {
 	require(GetAttributeType() == KWType::VarPart);
-	return bVarPartsShared;
-}
 
-inline void KWDGAttribute::SetVarPartsShared(boolean bValue) const
-{
-	require(GetAttributeType() == KWType::VarPart);
-	bVarPartsShared = bValue;
-}
+	// Decrementation des references sur les attributs internes d'origine, et desallocation si necessaire
+	if (innerAttributes != NULL)
+	{
+		innerAttributes->nRefCount--;
+		if (innerAttributes->nRefCount == 0)
+			delete innerAttributes;
+	}
 
-inline void KWDGAttribute::SetInnerAttributes(KWDGInnerAttributes* attributes)
-{
-	require(GetAttributeType() == KWType::VarPart);
+	// Incrementation des references sur les nouveaux attributs internes
+	if (attributes != NULL)
+		attributes->nRefCount++;
 	innerAttributes = attributes;
 }
 
-inline KWDGInnerAttributes* KWDGAttribute::GetInnerAttributes() const
+inline const KWDGInnerAttributes* KWDGAttribute::GetInnerAttributes() const
 {
 	require(GetAttributeType() == KWType::VarPart);
 	ensure(innerAttributes != NULL);
@@ -2324,13 +2323,13 @@ inline int KWDGVarPartValue::GetValueFrequency() const
 // Classe KWDGInnerAttributes
 inline KWDGInnerAttributes::KWDGInnerAttributes()
 {
-	oaInnerAttributes.SetSize(0);
-	odInnerAttributes.DeleteAll();
 	nVarPartGranularity = 0;
+	nRefCount = 0;
 }
 
 inline KWDGInnerAttributes::~KWDGInnerAttributes()
 {
+	assert(nRefCount == 0);
 	DeleteAll();
 }
 

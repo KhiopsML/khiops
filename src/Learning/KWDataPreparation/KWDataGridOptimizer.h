@@ -39,6 +39,10 @@ public:
 	// Memoire: l'objet rendu appartient a l'appele
 	KWDataGridOptimizerParameters* GetParameters();
 
+	// Optimisation integrant une surtokenisation des VarPart lors du VNS
+	boolean GetSurtokenisationProto() const;
+	void SetSurtokenisationProto(boolean bValue);
+
 	// Parametrage (facultatif) par des statistiques sur le probleme d'apprentissage
 	// Permet l'utilisation des statistiques univariees pour optimiser les grilles de donnees
 	// Memoire: les specifications sont referencees et destinee a etre partagees
@@ -199,7 +203,7 @@ protected:
 	// - dNeighbourDataGridCost: cout de la grille courante
 	// - mergedDataGrid: grille optimisee si amelioration
 	// En sortie, la grille courante et son cout sont modifies suite a optimisation.
-	// On rend la grille issue de la post-opimisation VarPart, ainsi que sa grille partitionned re drefrence
+	// On rend la grille issue de la post-optimisation VarPart, ainsi que sa grille partitionned de reference
 	// Le code retour est le meilleurs cout optenu apres post-optimisation VarPart
 	// Attention, celui-ci est different de celui de la grille courante optimisee
 	//
@@ -214,7 +218,7 @@ protected:
 					      KWDataGrid* partitionedReferencePostMergedDataGrid) const;
 
 	// CH IV Begin
-	// Pilotage de la meta heuristique VNS, avec des voisinnages successifs de taille decroissante
+	// Pilotage de la meta heuristique VNS, avec des voisinages successifs de taille decroissante
 	// selon un facteur geometrique
 	// La grille optimizedDataGrid contient en entree la meilleure solution courante
 	// Cette solution est mise a jour si son cout est ameliore, et on renvoie son cout
@@ -224,7 +228,8 @@ protected:
 	// dBestMergedDataGridCost contient le cout de la meilleure grille apres post-fusion (meilleur cout)
 	// CH IV Refactoring: proto en vue de fusionner la methode avec VNSOptimizeDataGrid
 	double VNSOptimizeVarPartDataGrid(const KWDataGrid* initialDataGrid, int nNeighbourhoodLevelNumber,
-					  KWDataGrid* optimizedDataGrid, double& dBestMergedDataGridCost) const;
+					  KWDataGrid* optimizedDataGrid, double& dBestMergedDataGridCost,
+					  boolean bWithoutAntecedent) const;
 	// CH IV End
 
 	// Optimisation d'une solution, selon le parametre de post-optimisation des solutions
@@ -293,14 +298,8 @@ protected:
 	// Attribut de statistiques
 	KWClassStats* classStats;
 
-	// CH IV Begin
 	// Grille de reference
 	KWDataGrid* initialVarPartDataGrid;
-	// CH IV End
-
-	// Nettoyage des attribut non informatifs
-	// CH IV Refactoring: ce parametre est-il pertinent?
-	boolean bCleanNonInformativeVariables;
 
 	// Informations d'indexation des solutions evaluees durant l'optimisation
 	mutable Timer timerOptimization;
@@ -308,7 +307,7 @@ protected:
 	mutable int nVNSNeighbourhoodLevelIndex;
 	mutable int nVNSNeighbourhoodLevelNumber;
 	mutable double dVNSNeighbourhoodSize;
-
+	boolean bProtoSurtokenisation;
 	// Contexte de gestion de la partie anytime de l'optimisation
 	const KWAttributeSubsetStats* attributeSubsetStatsHandler;
 
