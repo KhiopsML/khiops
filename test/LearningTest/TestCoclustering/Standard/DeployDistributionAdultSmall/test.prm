@@ -27,7 +27,7 @@ LearningTools.PrepareDeployment          // Prepare deployment...
 SelectInputCoclustering        // Select input coclustering...
 
 // -> Open
-InputCoclusteringFileName ./PostProcessedCoclustering_50info.khc   // Input coclustering file
+InputCoclusteringFileName ./PostProcessedCoclustering_50info.khcj   // Input coclustering file
 OK                             // Open
 // <- Open
 

@@ -4,5 +4,5 @@ Database ./IrisMissing.txt : Read records: 150
   0:00:00	Write intermediate report Coclustering(3).khcj	Level: 0.133932	Size: 3*3*3	Granularity: 3
   0:00:00	Write intermediate report Coclustering(4).khcj	Level: 0.148401	Size: 3*4*3
 Write coclustering report ./results/Coclustering.khcj
-Coclustering analysis time: 0:00:00.05
+Coclustering analysis time: 0:00:00.03
 

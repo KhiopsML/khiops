@@ -27,7 +27,7 @@ LearningTools.PrepareDeployment          // Prepare deployment...
 SelectInputCoclustering        // Select input coclustering...
 
 // -> Open
-InputCoclusteringFileName ./PowerCurveCoclustering.khc   // Input coclustering file
+InputCoclusteringFileName ./PowerCurveCoclustering.khcj   // Input coclustering file
 OK                             // Open
 // <- Open
 

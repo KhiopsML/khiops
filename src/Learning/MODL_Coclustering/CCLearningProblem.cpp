@@ -288,7 +288,7 @@ void CCLearningProblem::BuildCoclustering()
 	// Parametrage du nom du rapport de coclustering
 	sReportFileName = BuildOutputFilePathName(TaskBuildCoclustering);
 	coclusteringBuilder.SetReportFileName(sReportFileName);
-	coclusteringBuilder.SetExportAsKhc(GetAnalysisResults()->GetExportAsKhc());
+	//coclusteringBuilder.SetExportAsKhc(GetAnalysisResults()->GetExportAsKhc());
 
 	// Calcul du coclustering
 	if (not TaskProgression::IsInterruptionRequested())
@@ -303,12 +303,7 @@ void CCLearningProblem::BuildCoclustering()
 	{
 		AddSimpleMessage("Write coclustering report " + sReportFileName);
 		bWriteOk =
-		    coclusteringReport.WriteJSONReport(sReportFileName, coclusteringBuilder.GetCoclusteringDataGrid());
-
-		// Sauvegarde au format khc si necessaire
-		if (bWriteOk and GetAnalysisResults()->GetExportAsKhc())
-			coclusteringReport.WriteReport(BuildKhcOutputFilePathName(TaskBuildCoclustering),
-						       coclusteringBuilder.GetCoclusteringDataGrid());
+		    coclusteringReport.WriteReport(sReportFileName, coclusteringBuilder.GetCoclusteringDataGrid());
 
 		// Destruction de la derniere sauvegarde de fichier temporaire
 		if (bWriteOk)
@@ -395,8 +390,7 @@ void CCLearningProblem::PostProcessCoclustering()
 
 	// Lecture du rapport de coclustering
 	if (bOk)
-		bOk = coclusteringReport.ReadGenericReport(sCoclusteringReportFileName,
-							   &postProcessedCoclusteringDataGrid);
+		bOk = coclusteringReport.ReadReport(sCoclusteringReportFileName, &postProcessedCoclusteringDataGrid);
 
 	// Post-traitement
 	if (bOk)
@@ -406,14 +400,8 @@ void CCLearningProblem::PostProcessCoclustering()
 	if (bOk and sPostProcessedCoclusteringReportFileName != "")
 	{
 		AddSimpleMessage("Write simplified report " + sPostProcessedCoclusteringReportFileName);
-		bOk = postProcessedcoclusteringReport.WriteJSONReport(sPostProcessedCoclusteringReportFileName,
-								      &postProcessedCoclusteringDataGrid);
-
-		// Sauvegarde au format khc si necessaire
-		if (bOk and GetAnalysisResults()->GetExportAsKhc())
-			postProcessedcoclusteringReport.WriteReport(
-			    BuildKhcOutputFilePathName(TaskPostProcessCoclustering),
-			    &postProcessedCoclusteringDataGrid);
+		bOk = postProcessedcoclusteringReport.WriteReport(sPostProcessedCoclusteringReportFileName,
+								  &postProcessedCoclusteringDataGrid);
 	}
 
 	// Fin du suivi de la tache
@@ -449,7 +437,7 @@ void CCLearningProblem::ExtractClusters(const ALString& sCoclusteringAttributeNa
 
 	// Lecture du rapport de coclustering
 	if (bOk)
-		bOk = coclusteringReport.ReadGenericReport(sCoclusteringReportFileName, &coclusteringDataGrid);
+		bOk = coclusteringReport.ReadReport(sCoclusteringReportFileName, &coclusteringDataGrid);
 
 	// Post-traitement
 	if (bOk)
@@ -539,7 +527,7 @@ void CCLearningProblem::PrepareDeployment()
 
 	// Lecture du rapport de coclustering
 	if (bOk)
-		bOk = coclusteringReport.ReadGenericReport(sCoclusteringReportFileName, &coclusteringDataGrid);
+		bOk = coclusteringReport.ReadReport(sCoclusteringReportFileName, &coclusteringDataGrid);
 
 	// CH IV Begin
 	// Cas d'un rapport issu d'un coclustering instances * variables : fonctionnalite non implementee
@@ -915,15 +903,6 @@ boolean CCLearningProblem::CheckResultFileNames(int nTaskId) const
 	{
 		specOutputMainFile.SetFilePathName(BuildOutputFilePathName(nTaskId));
 		oaOutputFileSpecs.Add(&specOutputMainFile);
-	}
-
-	// Ajout du fichier d'export khc si necessaire
-	if (bOk and (nTaskId == TaskBuildCoclustering or nTaskId == TaskPostProcessCoclustering) and
-	    analysisResults->GetExportAsKhc())
-	{
-		specOutputKhcFile.SetLabel("khc " + GetOutputFileLabel(nTaskId));
-		specOutputKhcFile.SetFilePathName(BuildKhcOutputFilePathName(nTaskId));
-		oaOutputFileSpecs.Add(&specOutputKhcFile);
 	}
 
 	// Chaque fichier de sortie doit etre different des fichiers d'entree

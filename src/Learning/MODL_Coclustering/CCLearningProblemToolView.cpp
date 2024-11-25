@@ -53,10 +53,9 @@ void CCLearningProblemToolView::SelectInputCoclustering()
 	ALString sCoclusteringReportFileName;
 
 	// Ouverture du FileChooser
-	sCoclusteringReportFileName =
-	    openCard.ChooseFile("Select input coclustering", "Open", "FileChooser", "Coclustering\nkhc\nkhcj\njson",
-				"InputCoclusteringFileName", "Input coclustering file",
-				GetLearningProblem()->GetAnalysisResults()->GetInputCoclusteringFileName());
+	sCoclusteringReportFileName = openCard.ChooseFile(
+	    "Select input coclustering", "Open", "FileChooser", "Coclustering\nkhcj", "InputCoclusteringFileName",
+	    "Input coclustering file", GetLearningProblem()->GetAnalysisResults()->GetInputCoclusteringFileName());
 
 	// Parametrage des specifications de coclustering a partir du rapport de coclustering
 	if (sCoclusteringReportFileName != "")

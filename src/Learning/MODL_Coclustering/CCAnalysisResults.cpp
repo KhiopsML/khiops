@@ -10,17 +10,12 @@
 
 CCAnalysisResults::CCAnalysisResults()
 {
-	bExportAsKhc = false;
-
 	// ## Custom constructor
 
 	sCoclusteringFileName = "Coclustering.khcj";
 	sClusterFileName = "Clusters.txt";
 	sPostProcessedCoclusteringFileName = "SimplifiedCoclustering.khcj";
 	sCoclusteringDictionaryFileName = "Coclustering.kdic";
-
-	// Option DEPRECATED, pour l'instant active par defaut
-	bExportAsKhc = true;
 
 	// ##
 }
@@ -38,7 +33,6 @@ void CCAnalysisResults::CopyFrom(const CCAnalysisResults* aSource)
 
 	sCoclusteringFileName = aSource->sCoclusteringFileName;
 	sShortDescription = aSource->sShortDescription;
-	bExportAsKhc = aSource->bExportAsKhc;
 	sInputCoclusteringFileName = aSource->sInputCoclusteringFileName;
 	sClusterFileName = aSource->sClusterFileName;
 	sPostProcessedCoclusteringFileName = aSource->sPostProcessedCoclusteringFileName;
@@ -66,7 +60,6 @@ void CCAnalysisResults::Write(ostream& ost) const
 {
 	ost << "Coclustering report\t" << GetCoclusteringFileName() << "\n";
 	ost << "Short description\t" << GetShortDescription() << "\n";
-	ost << "Export as khc\t" << BooleanToString(GetExportAsKhc()) << "\n";
 }
 
 const ALString CCAnalysisResults::GetClassLabel() const
