@@ -2290,7 +2290,7 @@ KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 
 		// Gestion de la coherence pour toute classe principale ayant une cle
 		// Le cas des classes composant est traite plus loin
-		if (mapping == rootMultiTableMapping or kwoObject->GetClass()->GetRoot())
+		if (mapping == rootMultiTableMapping or kwoObject->GetClass()->IsUnique())
 		{
 			// Test a partir du deuxieme enregistrement effectivement lu, pour lequel le LastReadKey est
 			// initialise)
@@ -2300,7 +2300,7 @@ KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 
 				// Warning si la cle egale dans le cas d'une classe racine, et supression de
 				// l'enregistrement
-				if (kwoObject->GetClass()->GetRoot() and
+				if (kwoObject->GetClass()->IsUnique() and
 				    objectKey.StrictCompare(mapping->GetLastReadKey()) == 0)
 				{
 					// Warning de lecture

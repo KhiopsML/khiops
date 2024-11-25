@@ -1696,6 +1696,11 @@ void KWDatabase::BuildPhysicalClass()
 				nkdLoadedAttributeBlocks.SetAt(attributeBlock, attributeBlock);
 			}
 
+			// On force l'unicite de la clase physique si necessaire
+			// En effet, apres nettoyage, celle-ci ne sera potentiellement plus en mesure de deduire
+			// son unicite de sa composition en attributs relation non calcules, si ceux-ci ont ete detruits
+			kwcCurrentPhysicalClass->SetForceUnique(kwcInitialClass->IsUnique());
+
 			// Si la classe n'est pas necessaire au niveau logique,
 			// ses attributs de base ne sont pas a charger
 			if (nkdNeededUsedClasses.Lookup(kwcCurrentPhysicalClass) == NULL)

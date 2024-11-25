@@ -658,6 +658,7 @@ longint KWDataPreparationTask::ComputeNecessaryClassAttributeMemory() const
 	dummyAttribute = new KWAttribute;
 	dummyAttribute->SetType(KWType::Symbol);
 	dummyAttribute->SetName("Dummy");
+	dummyClass.SetName("Dummy");
 	dummyClass.InsertAttribute(dummyAttribute);
 
 	// On rajoute une meta-data comme si l'attribut etait dans un bloc

@@ -14,6 +14,8 @@
 KWClass::KWClass()
 {
 	bRoot = false;
+	bForceUnique = false;
+	bIsUnique = false;
 	lClassHashValue = 0;
 	nHashFreshness = 0;
 	nFreshness = 0;
@@ -369,6 +371,9 @@ void KWClass::IndexClass()
 	ivUsedDenseAttributeNumbers.Initialize();
 	ivUsedSparseAttributeNumbers.Initialize();
 
+	// Il y a unicite dans le cas d'une classe racine, ou si l'unicite est forcee
+	bIsUnique = bRoot or bForceUnique;
+
 	// Indexage des tableaux d'attributs par parcours de la liste
 	sAttributeKeyMetaDataKey = KWAttributeBlock::GetAttributeKeyMetaDataKey();
 	nNativeAttributeBlockNumber = 0;
@@ -377,6 +382,10 @@ void KWClass::IndexClass()
 	while (attribute != NULL)
 	{
 		assert(attribute->GetType() != KWType::Unknown);
+
+		// Il y a unicite dans le cas d'utilisation d'attribut relation non calcule
+		if (KWType::IsRelation(attribute->GetType()) and attribute->GetAnyDerivationRule() == NULL)
+			bIsUnique = true;
 
 		// Calcul du nombre d'attributs natifs
 		if (attribute->IsInBlock())
@@ -595,6 +604,9 @@ void KWClass::IndexClass()
 		cout << "Index dictionary\t" << GetName() << "\n";
 		if (GetDomain() != NULL)
 			cout << " Domain\t" << GetDomain()->GetName() << "\n";
+		cout << " Root\t" << BooleanToString(GetRoot()) << "\n";
+		cout << " ForceUnique\t" << BooleanToString(GetForceUnique()) << "\n";
+		cout << " IsUnique\t" << BooleanToString(IsUnique()) << "\n";
 		WriteAttributes("  Used attributes", &oaUsedAttributes, cout);
 		WriteAttributes("  Loaded attributes", &oaLoadedAttributes, cout);
 		WriteAttributes("  Loaded dense attributes", &oaLoadedDenseAttributes, cout);
@@ -1518,6 +1530,8 @@ void KWClass::CopyFrom(const KWClass* aSource)
 	usName = aSource->usName;
 	usLabel = aSource->usLabel;
 	bRoot = aSource->bRoot;
+	bForceUnique = aSource->bForceUnique;
+	bIsUnique = aSource->bIsUnique;
 
 	// Duplication des meta-donnees
 	metaData.CopyFrom(&aSource->metaData);
