@@ -81,6 +81,17 @@ public:
 	boolean GetRoot() const;
 	void SetRoot(boolean bValue);
 
+	// Unicite des instances de la classe
+	// - soit la classe est racine
+	// - soit elle contient des attributs de type relation non calcules, ce qui implique une unicite
+	//   de ses instances pour que chaque enregistrement de sous-table soit rattache de facon
+	//   unique a son enregistrement parent dans le schema multi-table hierachique
+	// L'unicite est controlee uniquement au moment de la lecture des donnes a partir d'une base
+	// pour des dictionnaire ayant des cles. Cela ne concerne pas les dictionnaires avec ou sans cle
+	// utilise pour la construction de table en memoire
+	// Cette caracteristique est calculee au moment de l'indexation de la classe
+	boolean IsUnique() const;
+
 	/////////////////////////////////////////////////////////////
 	// Specification des attributs de la cle de la classe
 	// Facultatif: utile dans pour les chainage entre classes dans le cas
@@ -478,6 +489,13 @@ protected:
 	// Seule la classe KWDatabase a l'usage des deux listes ci-dessous
 	friend class KWDatabase;
 
+	// Parametrage force du caractere unique d'une classe
+	// Parametrage avance, utilise par exemple pour une classe unique en raison de
+	// ses sous-tables non calculees, mais pour la quelle ces sous tables ont ete
+	// supprimees pour optimiser les lectures de donnees
+	boolean GetForceUnique() const;
+	void SetForceUnique(boolean bValue);
+
 	// Liste des elements de donnees devant etre calcules
 	ObjectArray* GetDatabaseDataItemsToCompute();
 	const ObjectArray* GetConstDatabaseDataItemsToCompute() const;
@@ -570,6 +588,12 @@ protected:
 
 	// Statut racine ou composant
 	boolean bRoot;
+
+	// Statut unique force
+	boolean bForceUnique;
+
+	// Statut unique: racine, ou ayant des attribut relation natifs, imposant l'unicite
+	boolean bIsUnique;
 
 	// Nom des attributs cles (potentiellement specifies avant la specification des attributs de la classe)
 	StringVector svKeyAttributeNames;
@@ -682,6 +706,12 @@ inline void KWClass::SetRoot(boolean bValue)
 {
 	bRoot = bValue;
 	UpdateFreshness();
+}
+
+inline boolean KWClass::IsUnique() const
+{
+	require(IsIndexed());
+	return bIsUnique;
 }
 
 inline int KWClass::GetKeyAttributeNumber() const
@@ -883,6 +913,17 @@ inline KWDataItem* KWClass::GetDataItemAtLoadIndex(KWLoadIndex liIndex) const
 {
 	require(liIndex.IsValid());
 	return cast(KWDataItem*, oaLoadedDataItems.GetAt(liIndex.GetDenseIndex()));
+}
+
+inline boolean KWClass::GetForceUnique() const
+{
+	return bForceUnique;
+}
+
+inline void KWClass::SetForceUnique(boolean bValue)
+{
+	bForceUnique = bValue;
+	UpdateFreshness();
 }
 
 inline ObjectArray* KWClass::GetDatabaseDataItemsToCompute()

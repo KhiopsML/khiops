@@ -681,7 +681,7 @@ void GlobalExit()
 		fflush(NULL);
 #endif
 
-		// Sortie fatale (seul exit de toutes)
+		// Sortie fatale (seul exit de tout le code)
 		// les librairies NORM)
 		exit(nExitCode);
 	}

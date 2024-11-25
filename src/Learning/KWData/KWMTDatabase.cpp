@@ -2290,7 +2290,7 @@ KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 
 		// Gestion de la coherence pour toute classe principale ayant une cle
 		// Le cas des classes composant est traite plus loin
-		if (mapping == rootMultiTableMapping or kwoObject->GetClass()->GetRoot())
+		if (mapping == rootMultiTableMapping or kwoObject->GetClass()->IsUnique())
 		{
 			// Test a partir du deuxieme enregistrement effectivement lu, pour lequel le LastReadKey est
 			// initialise)
@@ -2300,7 +2300,7 @@ KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 
 				// Warning si la cle egale dans le cas d'une classe racine, et supression de
 				// l'enregistrement
-				if (kwoObject->GetClass()->GetRoot() and
+				if (kwoObject->GetClass()->IsUnique() and
 				    objectKey.StrictCompare(mapping->GetLastReadKey()) == 0)
 				{
 					// Warning de lecture
@@ -2336,9 +2336,11 @@ KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 			if (kwoObject == NULL)
 				return NULL;
 
-			// Incrementation du compteur d'objet utilise au niveau physique
-			mapping->GetDataTableDriver()->SetUsedRecordNumber(
-			    mapping->GetDataTableDriver()->GetUsedRecordNumber() + 1);
+			// Incrementation du compteur d'objet utilise au niveau physique pour la classe principale
+			// L'incrementation pour les mapping de la composiitonn est effectuee par la suite
+			if (mapping == mainMultiTableMapping)
+				mapping->GetDataTableDriver()->SetUsedRecordNumber(
+				    mapping->GetDataTableDriver()->GetUsedRecordNumber() + 1);
 		}
 
 		// Parcours des mappings de la composition  pour completer la lecture de l'objet

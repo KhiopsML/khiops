@@ -218,7 +218,7 @@ protected:
 
 	// Mapping racine pour la table principale
 	// Ce mapping doit toujours etre present et contient le parametrage (nom de base, nom de classe) principal
-	// L'utilisation d'un mapping pour la racine permet d'unifier les traitement entre tables principales
+	// L'utilisation d'un mapping pour la racine permet d'unifier les traitements entre tables principales
 	// et tables secondaires
 	mutable KWMTDatabaseMapping* rootMultiTableMapping;
 
