@@ -233,24 +233,31 @@ protected:
 	void CleanNativeRelationAttributes();
 
 	// Methode de mutation specifique a destination des classes KWDatabase et KWDataTableSliceSet
-	// La nouvelle classe doit avoir moins d'attributs Loaded que la classe
-	// precedente, et ces attributs doivent coincider (meme type, meme nom).
-	// Elle doit provenir d'un autre domaine, mais avoir meme nom.
+	// La nouvelle classe doit avoir le meme nom que celle de la classe en cours
+	// Dans certains cas particuliers, la nouvelle classe peut-etre la meme. Dans ce cas,
+	// l'objet est conserve tel quel, et seul son contenu est mute si necessaire
+	// Sinon, la nouvelle classe doit avoir moins d'attributs Loaded que la classe
+	// precedente, et ces attributs doivent coincider (meme type, meme nom) et etre en tete de
+	// classe dans le meme ordre.
 	//
 	// Lors de la mutation, on a les operations suivantes:
-	//    attributs commun gardes
-	//    attributs en trop detruits
-	//    valeur derivees transferees telles quelles
-	//    objets internes inclus ou multi-inclus soit mutes egalement si gardes
-	//      (si possible, sinon detruits), soit detruits s'ils sont a supprimer
-	//    objets references laisses tels quels (ni mutes, ni detruits)
+	// - attributs commun gardes
+	// - attributs en trop detruits
+	// - valeur derivees transferees telles quelles
+	// - objets internes inclus ou multi-inclus soit mutes egalement si gardes
+	//   (si possible, sinon detruits), soit detruits s'ils sont a supprimer
+	// - objets references laisses tels quels (ni mutes, ni detruits)
+	//
+	// Le dictionnaire des classe de mutation specifie pour chaque classe initiale
+	// la classe a utiliser pour la mutation
 	//
 	// Le dictionnaire des attributs a garder (dans la nouvelle classe) indique
 	// les attributs natifs non utilises object inclus ou multi-inclus a garder
-	// lors de la mutation, car referencable par de regles de derivation
+	// lors de la mutation, car referencable par des regles de derivation
 	friend class KWDatabase;
 	friend class KWDataTableSliceSet;
-	void Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nkdUnusedNativeAttributesToKeep);
+	void Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nkdMutationClasses,
+		    const NumericKeyDictionary* nkdUnusedNativeAttributesToKeep);
 
 	// KWClass
 	const KWClass* kwcClass;
@@ -1324,10 +1331,11 @@ inline boolean KWObject::CheckAttributeObjectClass(KWAttribute* attribute, KWObj
 	require(KWType::IsRelation(attribute->GetType()));
 	if (kwoValue != NULL)
 	{
-		if (not attribute->GetReference())
-			return attribute->GetClass() == kwoValue->GetClass();
-		else
-			return attribute->GetClass()->GetName() == kwoValue->GetClass()->GetName();
+		// La classe doit etre de meme nom, mais ce n'est pas necessairement la meme
+		// En effet, lors d'une mutation d'objet par la methode Mutate, un objet du niveau
+		// logique peut etre un sous-objet d'un objet du niveau physique, gere par une classe
+		// du niveau physique
+		return attribute->GetClass()->GetName() == kwoValue->GetClass()->GetName();
 	}
 	else
 		return true;

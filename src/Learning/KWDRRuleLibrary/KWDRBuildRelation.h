@@ -40,7 +40,7 @@ public:
 
 ////////////////////////////////////////////////////////////////////////////
 // Classe KWDRBuildTableAdvancedView
-// Creation d'une vue sur une table, avec possibilite d'alimenter des attribut
+// Creation d'une vue sur une table, avec possibilite d'alimenter des attributs
 // de la table en sortie directement via des des operandes en sortie et
 // des valeurs fournies par les operandes en entree corespondants
 class KWDRBuildTableAdvancedView : public KWDRTableCreationRule

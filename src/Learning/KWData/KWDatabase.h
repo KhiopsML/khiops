@@ -440,7 +440,7 @@ protected:
 	// Calcul du dictionnaire des attributs natifs inutilises a garder, en precisant les classes qui sont necessaires
 	void ComputeUnusedNativeAttributesToKeep(const NumericKeyDictionary* nkdNeededClasses,
 						 NumericKeyDictionary* nkdAttributes);
-	void ComputeUnusedNativeAttributesToKeepForRule(const NumericKeyDictionary* nkdClassesToKeep,
+	void ComputeUnusedNativeAttributesToKeepForRule(const NumericKeyDictionary* nkdNeededClasses,
 							NumericKeyDictionary* nkdAttributes,
 							NumericKeyDictionary* nkdAnalysedRules, KWDerivationRule* rule);
 
@@ -557,6 +557,24 @@ protected:
 	// Classe physique
 	// Meme remarque que pour kwcClass, mais uniquement en lecture.
 	KWClass* kwcPhysicalClass;
+
+	// Dictionnaire des classes de mutation, avec en cle la classe physique des objets a muter
+	// et en valeur la classe suite a la mutation
+	//
+	// Dans la majorite des cas, la classe de mutation est la classe logique de meme nom,
+	// qui garde les attributs charges en memoire de la classe logique, alors que la classe physique
+	// a potentiellement plus d'attributs charges en memoire, en unused dans la classe logique, mais
+	// necessaires dans la classe physique pour le calcul des attribut derives
+	//
+	// Dans des cas a effet de bord, la classe de mutation peut rester la classe physique si la classe
+	// logique est en unused, mais est necessaire en tant qu'attribut de type relation non charge en
+	// memoire, mais a garder pour la destruction des objets (cf. UnloadedOwnedRelationAttribute dans KWClass)
+	// Exemple d'effet de bord:
+	//   La classe Customer a des Services en Unused, ses services on des Usages, et la classe Customer
+	//   a tous ses usages utilises via la regle TableSubUnion(Services, Usages)
+	//   Dans ce cas, les Services physiques sont gardes dans leur classe physique pour gerer recursivement
+	//   la destruction des Usages, mais ils ne sont pas mutes, car non utilises au niveau logique
+	NumericKeyDictionary nkdMutationClasses;
 
 	// Dictionnaire des attributs natifs Object ou ObjectArray a garder lors des mutations d'objet
 	// Utile dans le cas multi-table, que ce soit dans le cas d'un schema multi-table "logique"

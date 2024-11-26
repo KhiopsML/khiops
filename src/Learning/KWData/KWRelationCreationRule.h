@@ -28,7 +28,7 @@ class KWDRTableCreationRule;
 //   - alimentation de type vue
 //   - alimentation de type calcul
 // - le dictionnaire en sortie peut avoir ses variable utilisees ou non (Used),
-//   et des variable calculee si besoin
+//   et des variables calculees si besoin
 // - un dictionnaire en sortie n'est pas specifique aux regles de creation de Table:
 //   a priori, un meme dictionnaire pourrait etre utilise pour une variable native alimentee
 //   depuis un fichier, et pour une variable calculee alimentee par une regle de creation
@@ -61,7 +61,7 @@ class KWDRTableCreationRule;
 //     comme dans les fichier, ou de type Entity ou Table
 //   - on peut avoir des variables calculees en sortie
 //     - les variables calculees en sortie peuvent avoir le meme nom que des variables
-//       en entree, calculees ou non, meme avec des type differents; cela permet de creer
+//       en entree, calculees ou non, meme avec des types differents; cela permet de creer
 //       de nouvelles variables independament en entree et en sortie
 //
 // Alimentation de type calcul
@@ -71,7 +71,7 @@ class KWDRTableCreationRule;
 // - les operandes en sortie designent explicitement les noms des variables natives a alimenter dans
 //   le dictionnaire en sortie
 //   - cela ne concerne ques les variables natives en sortie du premier niveau dans le cas de variables
-//     de type relation: on ne peut pas specifier l'amilementation d'une variable secondaire d'une
+//     de type relation: on ne peut pas specifier l'alimentation d'une variable secondaire d'une
 //     sous-table en sortie
 class KWDRRelationCreationRule : public KWDerivationRule
 {

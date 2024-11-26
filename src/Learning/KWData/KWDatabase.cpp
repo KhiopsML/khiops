@@ -1213,6 +1213,7 @@ longint KWDatabase::GetUsedMemory() const
 	lUsedMemory = sizeof(KWDatabase);
 
 	// Memoire par attribut non elementaire
+	lUsedMemory += nkdMutationClasses.GetUsedMemory();
 	lUsedMemory += nkdUnusedNativeAttributesToKeep.GetUsedMemory();
 	lUsedMemory += oaAllObjects.GetUsedMemory();
 	lUsedMemory += sClassName.GetLength();
@@ -1595,12 +1596,22 @@ void KWDatabase::BuildPhysicalClass()
 		oaClassNeededAttributes.RemoveAll();
 	}
 
-	// Collecte de toutes les logiques necessaires
+	// Collecte de toutes les logiques necessaires, et memorisation des classe de mutations
+	assert(nkdMutationClasses.GetCount() == 0);
 	for (nClass = 0; nClass < oaAllNeededClasses.GetSize(); nClass++)
 	{
 		kwcCurrentPhysicalClass = cast(KWClass*, oaAllNeededClasses.GetAt(nClass));
+
+		// Recherche et memorisation de la classe logique correspondante
 		kwcInitialClass = kwcClass->GetDomain()->LookupClass(kwcCurrentPhysicalClass->GetName());
 		nkdNeededLogicalClasses.SetAt(kwcInitialClass, kwcInitialClass);
+
+		// Memorisation de la classe de mutation dans le cas ou une classe logique est explicitement utilisee
+		if (nkdNeededUsedClasses.Lookup(kwcCurrentPhysicalClass) != NULL)
+			nkdMutationClasses.SetAt(kwcCurrentPhysicalClass, kwcInitialClass);
+		// Sinon, on garde la classe physique, qui ne sera pas mutee
+		else
+			nkdMutationClasses.SetAt(kwcCurrentPhysicalClass, kwcCurrentPhysicalClass);
 	}
 
 	// Affichage des classes et attributs necessaires
@@ -1614,10 +1625,10 @@ void KWDatabase::BuildPhysicalClass()
 		{
 			kwcCurrentPhysicalClass = cast(KWClass*, oaAllNeededClasses.GetAt(nClass));
 			cout << "\t" << kwcCurrentPhysicalClass->GetName();
-			if (nkdNeededUsedClasses.Lookup(kwcCurrentPhysicalClass))
-				cout << "\tLogical";
-			else
-				cout << "\tPhysical";
+			cout << "\tDomain="
+			     << cast(KWClass*, nkdMutationClasses.Lookup(kwcCurrentPhysicalClass))
+				    ->GetDomain()
+				    ->GetName();
 			cout << endl;
 		}
 
@@ -2246,8 +2257,6 @@ void KWDatabase::ComputeUnusedNativeAttributesToKeepForRule(const NumericKeyDict
 						    attribute->GetAnyDerivationRule());
 
 					// Memorisation de l'attribut natif ou cree sinon, s'il n'est pas utilise
-					//DDD On prend en fait en compte toutes les classes, sinon cela fait planter z_TableCreationRules\BugDeleteSubTableOfView
-					//DDD le parametre nkdNeededClasses est donc a ignorer et inutile!!!
 					if (not attribute->IsInBlock() and not attribute->GetReference() and
 					    not attribute->GetUsed() and
 					    nkdNeededClasses->Lookup(attribute->GetClass()) != NULL)
@@ -2296,6 +2305,9 @@ void KWDatabase::DeletePhysicalClass()
 		kwcCurrentClass->GetDatabaseTemporayDataItemsToComputeAndClean()->SetSize(0);
 	}
 
+	// Nettoyage du dictionnaire des classes de mutation
+	nkdMutationClasses.RemoveAll();
+
 	// Nettoyage du dictionnaire des attribut natif non utilises a detruire
 	nkdUnusedNativeAttributesToKeep.RemoveAll();
 }
@@ -2340,7 +2352,7 @@ void KWDatabase::MutatePhysicalObject(KWObject* kwoPhysicalObject) const
 
 	// Mutation si necessaire
 	if (kwcPhysicalClass != kwcClass)
-		kwoPhysicalObject->Mutate(kwcClass, &nkdUnusedNativeAttributesToKeep);
+		kwoPhysicalObject->Mutate(kwcClass, &nkdMutationClasses, &nkdUnusedNativeAttributesToKeep);
 
 	// Trace apres mutation
 	if (bTrace)
