@@ -4,10 +4,6 @@
 
 #include "CCCoclusteringReport.h"
 
-const ALString CCCoclusteringReport::sKeyWordKhiops = "#Khiops";
-const ALString CCCoclusteringReport::sKeyWordShortDescription = "Short description";
-const ALString CCCoclusteringReport::sKeyWordDimensions = "Dimensions";
-const ALString CCCoclusteringReport::sKeyWordCoclusteringStats = "Coclustering stats";
 const ALString CCCoclusteringReport::sKeyWordInstances = "Instances";
 const ALString CCCoclusteringReport::sKeyWordCells = "Cells";
 const ALString CCCoclusteringReport::sKeyWordNullCost = "Null cost";
@@ -21,12 +17,6 @@ const ALString CCCoclusteringReport::sKeyWordSamplePercentage = "Sample percenta
 const ALString CCCoclusteringReport::sKeyWordSamplingMode = "Sampling mode";
 const ALString CCCoclusteringReport::sKeyWordSelectionVariable = "Selection variable";
 const ALString CCCoclusteringReport::sKeyWordSelectionValue = "Selection value";
-const ALString CCCoclusteringReport::sKeyWordBounds = "Bounds";
-const ALString CCCoclusteringReport::sKeyWordHierarchy = "Hierarchy";
-const ALString CCCoclusteringReport::sKeyWordComposition = "Composition";
-const ALString CCCoclusteringReport::sKeyWordAnnotation = "Annotation";
-const ALString CCCoclusteringReport::sKeyWordTrue = "TRUE";
-const ALString CCCoclusteringReport::sKeyWordFalse = "FALSE";
 
 CCCoclusteringReport::CCCoclusteringReport()
 {
@@ -46,135 +36,121 @@ CCCoclusteringReport::~CCCoclusteringReport()
 	assert(nLineIndex == 0);
 }
 
-boolean CCCoclusteringReport::ReadGenericReport(const ALString& sFileName, CCHierarchicalDataGrid* coclusteringDataGrid)
-{
-	boolean bOk;
-	int nFileFormat;
-	ALString sKhiopsEncoding;
-	boolean bForceAnsi;
-
-	require(sFileName != "");
-	require(coclusteringDataGrid != NULL);
-
-	// On determine le format du fichier
-	nFileFormat = DetectFileFormatAndEncoding(sFileName, sKhiopsEncoding);
-	bOk = nFileFormat != None;
-
-	// Lecture selon le format du fichier
-	if (nFileFormat == KHC)
-		bOk = ReadReport(sFileName, coclusteringDataGrid);
-	else if (nFileFormat == JSON)
-	{
-		// Analyse du type d'encodage pour determiner si on doit recoder les caracteres utf8 du fichier json en
-		// ansi
-		if (sKhiopsEncoding == "")
-		{
-			bForceAnsi = false;
-			AddWarning("The \"khiops_encoding\" field is missing in the read coclustering file. "
-				   "The coclustering file is deprecated, and may raise encoding problems "
-				   "in case of mixed ansi and utf8 chars "
-				   ": see the Khiops guide for more information.");
-		}
-		else if (sKhiopsEncoding == "ascii" or sKhiopsEncoding == "utf8")
-			bForceAnsi = false;
-		else if (sKhiopsEncoding == "ansi" or sKhiopsEncoding == "mixed_ansi_utf8")
-			bForceAnsi = true;
-		else if (sKhiopsEncoding == "colliding_ansi_utf8")
-		{
-			bForceAnsi = false;
-			AddWarning("The \"khiops_encoding\" field is \"" + sKhiopsEncoding +
-				   "\" in the read coclustering file. "
-				   "This may raise encoding problems if the file has been modified outside of Khiops "
-				   ": see the Khiops guide for more information.");
-		}
-		else
-		{
-			bForceAnsi = false;
-			AddWarning(
-			    "The value of the \"khiops_encoding\" field is \"" + sKhiopsEncoding +
-			    "\" in the read coclustering file. "
-			    "This encoding type is unknown and will be ignored, which may raise encoding problems "
-			    "in case of mixed ansi and utf8 chars "
-			    ": see the Khiops guide for more information.");
-		}
-
-		// Lecture du fichier en parametrant le json tokeniser correctement
-		JSONTokenizer::SetForceAnsi(bForceAnsi);
-		bOk = ReadJSONReport(sFileName, coclusteringDataGrid);
-		JSONTokenizer::SetForceAnsi(false);
-	}
-	return bOk;
-}
-
-boolean CCCoclusteringReport::ReadGenericReportHeader(const ALString& sFileName,
-						      CCHierarchicalDataGrid* coclusteringDataGrid,
-						      int& nInstanceNumber, int& nCellNumber)
-{
-	require(sFileName != "");
-	require(coclusteringDataGrid != NULL);
-
-	boolean bOk;
-	int nFileFormat;
-	ALString sKhiopsEncoding;
-	boolean bForceAnsi;
-
-	require(sFileName != "");
-	require(coclusteringDataGrid != NULL);
-
-	// On determine le format du fichier
-	nFileFormat = DetectFileFormatAndEncoding(sFileName, sKhiopsEncoding);
-	bOk = nFileFormat != None;
-
-	// Lecture selon le format du fichier
-	nInstanceNumber = 0;
-	nCellNumber = 0;
-	if (nFileFormat == KHC)
-		bOk = ReadReportHeader(sFileName, coclusteringDataGrid, nInstanceNumber, nCellNumber);
-	else if (nFileFormat == JSON)
-	{
-		// Analyse du type d'encodage pour determiner si on doit recoder les caracteres utf8 du fichier json en
-		// ansi Pas de message pour cette lecture rapide
-		bForceAnsi = (sKhiopsEncoding == "ansi" or sKhiopsEncoding == "mixed_ansi_utf8");
-
-		// Lecture de l'entete du fichier en parametrant le json tokeniser correctement
-		JSONTokenizer::SetForceAnsi(bForceAnsi);
-		bOk = ReadJSONReportHeader(sFileName, coclusteringDataGrid, nInstanceNumber, nCellNumber);
-		JSONTokenizer::SetForceAnsi(false);
-	}
-	return bOk;
-}
-
 boolean CCCoclusteringReport::ReadReport(const ALString& sFileName, CCHierarchicalDataGrid* coclusteringDataGrid)
 {
-	boolean bOk = true;
+	boolean bOk;
+	int nFileFormat;
+	ALString sKhiopsEncoding;
+	boolean bForceAnsi;
 
+	require(sFileName != "");
 	require(coclusteringDataGrid != NULL);
-	require(fReport == NULL);
+	require(not JSONTokenizer::IsOpened());
 
-	// Ouverture du rapport pour initialiser l'API de lecture
-	bOk = OpenInputCoclusteringReportFile(sFileName);
+	// On determine le format du fichier
+	nFileFormat = DetectFileFormatAndEncoding(sFileName, sKhiopsEncoding);
+	bOk = nFileFormat == JSON;
+
+	// On arrete l'analyse si le format est incorrect
+	if (not bOk)
+		return bOk;
+
+	// Analyse du type d'encodage pour determiner si on doit recoder les caracteres utf8 du fichier json en
+	// ansi
+	if (sKhiopsEncoding == "")
+	{
+		bForceAnsi = false;
+		AddWarning("The \"khiops_encoding\" field is missing in the read coclustering file. "
+			   "The coclustering file is deprecated, and may raise encoding problems "
+			   "in case of mixed ansi and utf8 chars "
+			   ": see the Khiops guide for more information.");
+	}
+	else if (sKhiopsEncoding == "ascii" or sKhiopsEncoding == "utf8")
+		bForceAnsi = false;
+	else if (sKhiopsEncoding == "ansi" or sKhiopsEncoding == "mixed_ansi_utf8")
+		bForceAnsi = true;
+	else if (sKhiopsEncoding == "colliding_ansi_utf8")
+	{
+		bForceAnsi = false;
+		AddWarning("The \"khiops_encoding\" field is \"" + sKhiopsEncoding +
+			   "\" in the read coclustering file. "
+			   "This may raise encoding problems if the file has been modified outside of Khiops "
+			   ": see the Khiops guide for more information.");
+	}
+	else
+	{
+		bForceAnsi = false;
+		AddWarning("The value of the \"khiops_encoding\" field is \"" + sKhiopsEncoding +
+			   "\" in the read coclustering file. "
+			   "This encoding type is unknown and will be ignored, which may raise encoding problems "
+			   "in case of mixed ansi and utf8 chars "
+			   ": see the Khiops guide for more information.");
+	}
+
+	// Lecture du fichier en parametrant le json tokeniser correctement
+	JSONTokenizer::SetForceAnsi(bForceAnsi);
+
+	// Initialisation du tokenizer pour analiser le rapport
+	nHeaderInstanceNumber = 0;
+	nHeaderCellNumber = 0;
+	sReportFileName = sFileName;
+	bOk = JSONTokenizer::OpenForRead(GetClassLabel(), sFileName);
 	if (bOk)
 	{
 		// Parsing
 		bOk = InternalReadReport(coclusteringDataGrid, false);
 
-		// Fermeture du fichier
-		CloseCoclusteringReportFile();
+		// Fermeture du tokenizer
+		JSONTokenizer::Close();
 	}
-	ensure(fReport == NULL);
+	sReportFileName = "";
+	nHeaderInstanceNumber = 0;
+	nHeaderCellNumber = 0;
+
+	JSONTokenizer::SetForceAnsi(false);
+
 	return bOk;
 }
 
 boolean CCCoclusteringReport::ReadReportHeader(const ALString& sFileName, CCHierarchicalDataGrid* coclusteringDataGrid,
 					       int& nInstanceNumber, int& nCellNumber)
 {
-	boolean bOk = true;
-
+	require(sFileName != "");
 	require(coclusteringDataGrid != NULL);
-	require(fReport == NULL);
 
-	// Ouverture du rapport pour initialiser l'API de lecture
-	bOk = OpenInputCoclusteringReportFile(sFileName);
+	boolean bOk;
+	int nFileFormat;
+	ALString sKhiopsEncoding;
+	boolean bForceAnsi;
+
+	require(sFileName != "");
+	require(coclusteringDataGrid != NULL);
+	require(not JSONTokenizer::IsOpened());
+
+	// On determine le format du fichier
+	nFileFormat = DetectFileFormatAndEncoding(sFileName, sKhiopsEncoding);
+	bOk = nFileFormat == JSON;
+
+	// On arrete l'analyse si le format est incorrect
+	if (not bOk)
+		return bOk;
+
+	// Lecture selon le format JSON
+	nInstanceNumber = 0;
+	nCellNumber = 0;
+
+	// Analyse du type d'encodage pour determiner si on doit recoder les caracteres utf8 du fichier json en
+	// ansi Pas de message pour cette lecture rapide
+	bForceAnsi = (sKhiopsEncoding == "ansi" or sKhiopsEncoding == "mixed_ansi_utf8");
+
+	// Lecture de l'entete du fichier en parametrant le json tokeniser correctement
+	JSONTokenizer::SetForceAnsi(bForceAnsi);
+
+	// Initialisation du tokenizer pour analiser le rapport
+	nHeaderInstanceNumber = 0;
+	nHeaderCellNumber = 0;
+	sReportFileName = sFileName;
+	bOk = JSONTokenizer::OpenForRead(GetClassLabel(), sFileName);
 	if (bOk)
 	{
 		// Parsing
@@ -182,114 +158,25 @@ boolean CCCoclusteringReport::ReadReportHeader(const ALString& sFileName, CCHier
 		nInstanceNumber = nHeaderInstanceNumber;
 		nCellNumber = nHeaderCellNumber;
 
-		// Fermeture du fichier
-		CloseCoclusteringReportFile();
+		// Fermeture du tokenizer
+		JSONTokenizer::Close();
 	}
-	ensure(fReport == NULL);
+	sReportFileName = "";
+	nHeaderInstanceNumber = 0;
+	nHeaderCellNumber = 0;
+
+	JSONTokenizer::SetForceAnsi(false);
+
 	return bOk;
 }
 
-boolean CCCoclusteringReport::WriteReport(const ALString& sFileName, const CCHierarchicalDataGrid* coclusteringDataGrid)
-{
-	boolean bOk = true;
-	fstream fstReport;
-	ALString sLocalTempFileName;
-
-	require(coclusteringDataGrid != NULL);
-
-	// Preparation de la copie sur HDFS si necessaire
-	bOk = PLRemoteFileService::BuildOutputWorkingFile(sFileName, sLocalTempFileName);
-
-	// Ouverture du fichier de rapport en ecriture
-	if (bOk)
-		bOk = FileService::OpenOutputFile(sLocalTempFileName, fstReport);
-	if (bOk)
-	{
-		InternalWriteReport(coclusteringDataGrid, fstReport);
-
-		// Ecriture du rapport
-		bOk = FileService::CloseOutputFile(sLocalTempFileName, fstReport);
-
-		// Destruction du fichier si erreur
-		if (not bOk)
-			FileService::RemoveFile(sLocalTempFileName);
-	}
-	if (bOk)
-	{
-		// Copie vers HDFS si necessaire
-		PLRemoteFileService::CleanOutputWorkingFile(sFileName, sLocalTempFileName);
-	}
-	return bOk;
-}
-
-const ALString CCCoclusteringReport::GetJSONReportSuffix()
+const ALString CCCoclusteringReport::GetReportSuffix()
 {
 	return "khcj";
 }
 
-const ALString CCCoclusteringReport::GetKhcReportSuffix()
-{
-	return "khc";
-}
-
-boolean CCCoclusteringReport::ReadJSONReport(const ALString& sFileName, CCHierarchicalDataGrid* coclusteringDataGrid)
-{
-	boolean bOk = true;
-
-	require(coclusteringDataGrid != NULL);
-	require(not JSONTokenizer::IsOpened());
-
-	// Initialisation du tokenizer pour analiser le rapport
-	nHeaderInstanceNumber = 0;
-	nHeaderCellNumber = 0;
-	sReportFileName = sFileName;
-	bOk = JSONTokenizer::OpenForRead(GetClassLabel(), sFileName);
-	if (bOk)
-	{
-		// Parsing
-		bOk = InternalReadJSONReport(coclusteringDataGrid, false);
-
-		// Fermeture du tokenizer
-		JSONTokenizer::Close();
-	}
-	sReportFileName = "";
-	nHeaderInstanceNumber = 0;
-	nHeaderCellNumber = 0;
-	return bOk;
-}
-
-boolean CCCoclusteringReport::ReadJSONReportHeader(const ALString& sFileName,
-						   CCHierarchicalDataGrid* coclusteringDataGrid, int& nInstanceNumber,
-						   int& nCellNumber)
-{
-	boolean bOk = true;
-
-	require(coclusteringDataGrid != NULL);
-	require(not JSONTokenizer::IsOpened());
-
-	// Initialisation du tokenizer pour analiser le rapport
-	nHeaderInstanceNumber = 0;
-	nHeaderCellNumber = 0;
-	sReportFileName = sFileName;
-	bOk = JSONTokenizer::OpenForRead(GetClassLabel(), sFileName);
-	if (bOk)
-	{
-		// Parsing
-		bOk = InternalReadJSONReport(coclusteringDataGrid, true);
-		nInstanceNumber = nHeaderInstanceNumber;
-		nCellNumber = nHeaderCellNumber;
-
-		// Fermeture du tokenizer
-		JSONTokenizer::Close();
-	}
-	sReportFileName = "";
-	nHeaderInstanceNumber = 0;
-	nHeaderCellNumber = 0;
-	return bOk;
-}
-
-boolean CCCoclusteringReport::WriteJSONReport(const ALString& sJSONReportName,
-					      const CCHierarchicalDataGrid* coclusteringDataGrid)
+boolean CCCoclusteringReport::WriteReport(const ALString& sJSONReportName,
+					  const CCHierarchicalDataGrid* coclusteringDataGrid)
 {
 	boolean bOk = true;
 	JSONFile fJSON;
@@ -311,7 +198,7 @@ boolean CCCoclusteringReport::WriteJSONReport(const ALString& sJSONReportName,
 	// Ecriture de son contenu
 	if (bOk)
 	{
-		InternalWriteJSONReport(coclusteringDataGrid, &fJSON);
+		InternalWriteReport(coclusteringDataGrid, &fJSON);
 
 		// Fermeture du fichier
 		fJSON.Close();
@@ -365,15 +252,20 @@ int CCCoclusteringReport::DetectFileFormatAndEncoding(const ALString& sFileName,
 			nFileFormat = JSON;
 		else if (nTokenType == JSONTokenizer::Error)
 		{
+			// On conserve temporairement la reconnaissance du format KHC afin de pouvoir informer l'utilisateur du fait que ce format n'est plus supporte
 			if (JSONTokenizer::GetTokenStringValue() == "#")
 				nFileFormat = KHC;
 		}
 
 		// Message d'erreur si pas de format reconnu
 		if (nFileFormat == None)
-			AddError("Format of file " + sFileName + " should either " +
-				 CCCoclusteringReport::GetJSONReportSuffix() + " or " +
-				 CCCoclusteringReport::GetKhcReportSuffix());
+			AddError("Format of file " + sFileName + " should be " +
+				 CCCoclusteringReport::GetReportSuffix());
+
+		// Message d'information si ancien format KHC
+		if (nFileFormat == KHC)
+			AddError("Khc format is no longer supported. Use json format file or use a Khiops version "
+				 "prior to V11.");
 
 		// Recherche de l'encodage dans le cas json
 		if (nFileFormat == JSON)
@@ -411,2180 +303,6 @@ int CCCoclusteringReport::DetectFileFormatAndEncoding(const ALString& sFileName,
 }
 
 boolean CCCoclusteringReport::InternalReadReport(CCHierarchicalDataGrid* coclusteringDataGrid, boolean bHeaderOnly)
-{
-	boolean bOk = true;
-	ObjectArray oaAttributesPartDictionaries;
-	ALString sTmp;
-
-	require(coclusteringDataGrid != NULL);
-	require(fReport != NULL);
-
-	// Affichage des informations en mode debug
-	bReadDebug = false;
-
-	// Gestion des erreurs
-	Global::ActivateErrorFlowControl();
-
-	// Reinitialisation prealable des informations
-	coclusteringDataGrid->DeleteAll();
-
-	// Premiere ligne: #Khiops...
-	if (bOk)
-		bOk = ReadVersion(coclusteringDataGrid);
-
-	// Section Dimensions avec la description courte
-	if (bOk)
-		bOk = ReadDimensions(coclusteringDataGrid);
-
-	// Section des statistiques de coclustering
-	if (bOk)
-		bOk = ReadCoclusteringStats(coclusteringDataGrid);
-
-	// Lecture detailles
-	if (not bHeaderOnly)
-	{
-		// Section des bornes des intervalles numeriques
-		if (bOk)
-			bOk = ReadBounds(coclusteringDataGrid);
-
-		// Section des hierarchie de parties
-		if (bOk)
-			bOk = ReadHierarchy(coclusteringDataGrid, &oaAttributesPartDictionaries);
-
-		// Section de specification de la composition des attributs categoriels
-		if (bOk)
-			bOk = ReadComposition(coclusteringDataGrid, &oaAttributesPartDictionaries);
-
-		// Section de specification des cellules de la grille
-		if (bOk)
-			bOk = ReadCells(coclusteringDataGrid, &oaAttributesPartDictionaries);
-
-		// Section de specification des annotations
-		if (bOk)
-			bOk = ReadAnnotation(coclusteringDataGrid, &oaAttributesPartDictionaries);
-
-		// Ultime verification dans le cas d'une lecture complete du rapport
-		if (bOk)
-		{
-			// Verification de l'integrite globale
-			// Verification uniquement par assertion: cela devrait suffire compte-tenu des controles
-			// precedents La verification exhaustive n'est pas envisageable en raison de son cout
-			// algorithmique
-			assert(coclusteringDataGrid->Check());
-
-			// Verification de l'integrite de la hierarchie
-			if (bOk)
-				bOk = coclusteringDataGrid->CheckHierarchy();
-
-			// On reinitialise le numero de ligne pour "nettoyer" les eventuels messages d'erreur suivants
-			nLineIndex = 0;
-
-			// Verification de la coherence des informations redondantes d'entete
-			if (bOk)
-			{
-				if (nHeaderInstanceNumber != coclusteringDataGrid->GetGridFrequency())
-				{
-					bOk = false;
-					AddError(sTmp + "Instance number in the report header (" +
-						 IntToString(nHeaderInstanceNumber) +
-						 ") inconsistent with that of the whole data grid (" +
-						 IntToString(coclusteringDataGrid->GetGridFrequency()) + ")");
-				}
-				if (nHeaderCellNumber != coclusteringDataGrid->GetCellNumber())
-				{
-					bOk = false;
-					AddError(sTmp + "Cell number in the report header (" +
-						 IntToString(nHeaderCellNumber) +
-						 ") inconsistent with that of the whole data grid (" +
-						 IntToString(coclusteringDataGrid->GetCellNumber()) + ")");
-				}
-			}
-
-			// Message d'erreur synthetique
-			if (not bOk)
-				AddError("Invalid coclustering specification");
-		}
-
-		// Nettoyage
-		oaAttributesPartDictionaries.DeleteAll();
-	}
-
-	// Reinitialisation des informations si echec
-	if (not bOk)
-	{
-		nLineIndex = 0;
-		AddError("Abort read");
-		coclusteringDataGrid->DeleteAll();
-		nHeaderInstanceNumber = 0;
-		nHeaderCellNumber = 0;
-	}
-
-	// Gestion des erreurs
-	Global::DesactivateErrorFlowControl();
-
-	return bOk;
-}
-
-boolean CCCoclusteringReport::ReadVersion(CCHierarchicalDataGrid* coclusteringDataGrid)
-{
-	boolean bOk = true;
-	char* sField;
-	ALString sTmp;
-
-	require(coclusteringDataGrid != NULL);
-
-	// Premiere ligne: #Khiops...
-	sField = ReadNextField();
-	if (strncmp(sKeyWordKhiops, sField, sKeyWordKhiops.GetLength()) != 0)
-	{
-		AddError(sTmp + "Key word " + sKeyWordKhiops + " expected but not found");
-		bOk = false;
-	}
-
-	// Passage a la ligne suivante
-	SkipLine();
-	return bOk;
-}
-
-boolean CCCoclusteringReport::ReadDimensions(CCHierarchicalDataGrid* coclusteringDataGrid)
-{
-	boolean bOk = true;
-	char* sField;
-	ALString sShortDescription;
-	CCHDGAttribute* dgAttribute;
-	int nAttributeNumber;
-	int nAttribute;
-	ALString sAttributeName;
-	int nAttributeType;
-	int nAttributePartNumber;
-	int nAttributeInitialPartNumber;
-	int nAttributeValueNumber;
-	double dAttributeInterest;
-	ALString sAttributeDescription;
-	int nPart;
-	ALString sTmp;
-
-	require(coclusteringDataGrid != NULL);
-
-	// Lecture du premier champ, qui peut differer selon la version
-	sField = ReadNextField();
-
-	// Description courte
-	if (bOk)
-	{
-		// Memorisation de la description courte si elle est presente
-		if (strcmp(sKeyWordShortDescription, sField) == 0)
-		{
-			sField = ReadNextField();
-			if (bOk)
-				sShortDescription = sField;
-			SkipLine();
-
-			// Lecture du champ suivant pour la suite
-			sField = ReadNextField();
-		}
-	}
-
-	// Dimensions
-	nAttributeNumber = 0;
-	if (bOk)
-	{
-		// Recherche du mot cle, le champ ayant ete deja lu
-		if (strcmp(sKeyWordDimensions, sField) != 0)
-		{
-			AddError(sTmp + "Key word " + sKeyWordDimensions + " expected but not found");
-			bOk = false;
-		}
-
-		// Recherche du nombre de dimensions
-		if (bOk)
-		{
-			sField = ReadNextField();
-			nAttributeNumber = StringToInt(sField);
-			if (nAttributeNumber <= 0)
-			{
-				AddError(sTmp + "Invalid coclustering variable number");
-				bOk = false;
-			}
-		}
-
-		// Passage a la ligne suivante, puis saut de la ligne d'entete de la section
-		SkipLine();
-		SkipLine();
-	}
-
-	// Lecture des caracteristiques des variables
-	if (bOk)
-	{
-		// Creation de la grille
-		coclusteringDataGrid->Initialize(nAttributeNumber, 0);
-
-		// Il specifier ici la description courte, qui est reinitialisee lors du Initialise
-		coclusteringDataGrid->SetShortDescription(sShortDescription);
-
-		// Boucle de lecture des caracteristiques des variables
-		for (nAttribute = 0; nAttribute < nAttributeNumber; nAttribute++)
-		{
-			// Initialisations
-			sAttributeName = "";
-			nAttributeType = 0;
-			nAttributePartNumber = 0;
-			nAttributeValueNumber = 0;
-
-			// Nom
-			sField = ReadNextField();
-			sAttributeName = sField;
-			if (bOk and sAttributeName == "")
-			{
-				bOk = false;
-				AddError(sTmp + "Missing variable name");
-			}
-			if (bOk and coclusteringDataGrid->SearchAttribute(sAttributeName) != NULL)
-			{
-				bOk = false;
-				AddError(sTmp + "Variable " + sAttributeName + " used twice");
-			}
-
-			// Type, avec gestion des noms DEPRECATED des types, pour compatibilite ascendante
-			sField = ReadNextField();
-			if (strcmp(sField, "Symbol") == 0)
-				nAttributeType = KWType::Symbol;
-			else if (strcmp(sField, "Continuous") == 0)
-				nAttributeType = KWType::Continuous;
-			else
-				nAttributeType = KWType::ToType(sField);
-			if (bOk and not KWType::IsSimple(nAttributeType))
-			{
-				bOk = false;
-				AddError(sTmp + "Type of variable " + sAttributeName + " (" + sField +
-					 ") should be Numerical or Categorical");
-			}
-
-			// Nombre de parties
-			sField = ReadNextField();
-			nAttributePartNumber = StringToInt(sField);
-			if (bOk and nAttributePartNumber <= 0)
-			{
-				bOk = false;
-				AddError(sTmp + "Part number of variable " + sAttributeName + " (" + sField +
-					 ") is not valid");
-			}
-
-			// Nombre de parties initiales
-			sField = ReadNextField();
-			nAttributeInitialPartNumber = StringToInt(sField);
-			if (bOk and nAttributeInitialPartNumber <= 0)
-			{
-				bOk = false;
-				AddError(sTmp + "Initial part number of variable " + sAttributeName + " (" + sField +
-					 ") is not valid");
-			}
-
-			// Nombre de valeurs
-			sField = ReadNextField();
-			nAttributeValueNumber = StringToInt(sField);
-			if (bOk and nAttributeValueNumber <= 0)
-			{
-				bOk = false;
-				AddError(sTmp + "Value number of variable " + sAttributeName + " (" + sField +
-					 ") is not valid");
-			}
-
-			// Typicality
-			sField = ReadNextField();
-			dAttributeInterest = KWContinuous::StringToContinuous(sField);
-			if (bOk and not(0 <= dAttributeInterest and dAttributeInterest <= 1))
-			{
-				bOk = false;
-				AddError(sTmp + "Interest of variable " + sAttributeName + " (" + sField +
-					 ") is not valid");
-			}
-
-			// Description
-			sField = ReadNextField();
-			sAttributeDescription = sField;
-
-			// Message final de coherence de la variable
-			if (not bOk)
-			{
-				AddError(sTmp + "Invalid variable specification (" + sAttributeName + ")");
-				break;
-			}
-
-			// Ajout d'une caracteristique d'attribut de coclustering
-			if (bOk)
-			{
-				// Specification de l'attribut
-				dgAttribute = cast(CCHDGAttribute*, coclusteringDataGrid->GetAttributeAt(nAttribute));
-				dgAttribute->SetAttributeName(sAttributeName);
-				dgAttribute->SetAttributeType(nAttributeType);
-				dgAttribute->SetInitialPartNumber(nAttributeInitialPartNumber);
-				dgAttribute->SetInitialValueNumber(nAttributeValueNumber);
-				dgAttribute->SetGranularizedValueNumber(nAttributeValueNumber);
-				dgAttribute->SetInterest(dAttributeInterest);
-				dgAttribute->SetDescription(sAttributeDescription);
-
-				// Creation de parties
-				for (nPart = 0; nPart < nAttributePartNumber; nPart++)
-					dgAttribute->AddPart();
-
-				// Affichage en mode debug
-				if (bReadDebug)
-					cout << sKeyWordDimensions << "\t" << sAttributeName << "\t"
-					     << KWType::ToString(KWType::GetCoclusteringSimpleType(nAttributeType))
-					     << "\t" << nAttributePartNumber << "\t" << nAttributeValueNumber << "\t"
-					     << sAttributeDescription << endl;
-			}
-
-			// Ligne suivante
-			SkipLine();
-		}
-	}
-
-	return bOk;
-}
-
-boolean CCCoclusteringReport::ReadCoclusteringStats(CCHierarchicalDataGrid* coclusteringDataGrid)
-{
-	boolean bOk = true;
-	char* sField;
-	ALString sTmp;
-	int nNumber;
-	double dNumber;
-	double dNullCost;
-	double dCost;
-
-	require(coclusteringDataGrid != NULL);
-
-	if (bOk)
-	{
-		// Recherche de l'entete de la nouvelle section
-		SkipLine();
-		sField = ReadNextField();
-		SkipLine();
-		if (strcmp(sKeyWordCoclusteringStats, sField) != 0)
-		{
-			AddError(sTmp + "Key word " + sKeyWordCoclusteringStats + " expected but not found");
-			bOk = false;
-		}
-	}
-
-	// Instances
-	if (bOk)
-	{
-		sField = ReadNextField();
-		if (strcmp(sKeyWordInstances, sField) != 0)
-		{
-			AddError(sTmp + "Key word " + sKeyWordInstances + " expected but not found");
-			bOk = false;
-		}
-		sField = ReadNextField();
-		nNumber = StringToInt(sField);
-		if (bOk and nNumber < 0)
-		{
-			AddError(sTmp + "Invalid " + sKeyWordInstances + " (" + sField + ")");
-			bOk = false;
-		}
-		if (bOk)
-			nHeaderInstanceNumber = nNumber;
-		SkipLine();
-		if (bReadDebug)
-			cout << sKeyWordInstances << "\t" << nNumber << endl;
-	}
-
-	// Cellules
-	if (bOk)
-	{
-		sField = ReadNextField();
-		if (strcmp(sKeyWordCells, sField) != 0)
-		{
-			AddError(sTmp + "Key word " + sKeyWordCells + " expected but not found");
-			bOk = false;
-		}
-		sField = ReadNextField();
-		nNumber = StringToInt(sField);
-		if (bOk and nNumber < 0)
-		{
-			AddError(sTmp + "Invalid " + sKeyWordCells + " (" + sField + ")");
-			bOk = false;
-		}
-		if (bOk)
-			nHeaderCellNumber = nNumber;
-		SkipLine();
-		if (bReadDebug)
-			cout << sKeyWordCells << "\t" << nNumber << endl;
-	}
-
-	// Cout null
-	if (bOk)
-	{
-		sField = ReadNextField();
-		if (strcmp(sKeyWordNullCost, sField) != 0)
-		{
-			AddError(sTmp + "Key word " + sKeyWordNullCost + " expected but not found");
-			bOk = false;
-		}
-		sField = ReadNextField();
-		dNullCost = KWContinuous::StringToContinuous(sField);
-		if (bOk and dNullCost < 0)
-		{
-			AddError(sTmp + "Invalid " + sKeyWordNullCost + " (" + sField + ")");
-			bOk = false;
-		}
-		if (bOk)
-			coclusteringDataGrid->SetNullCost(dNullCost);
-		SkipLine();
-		if (bReadDebug)
-			cout << sKeyWordNullCost << "\t" << dNullCost << endl;
-	}
-
-	// Cout
-	if (bOk)
-	{
-		sField = ReadNextField();
-		if (strcmp(sKeyWordCost, sField) != 0)
-		{
-			AddError(sTmp + "Key word " + sKeyWordCost + " expected but not found");
-			bOk = false;
-		}
-		sField = ReadNextField();
-		dCost = KWContinuous::StringToContinuous(sField);
-		if (bOk and dCost < 0)
-		{
-			AddError(sTmp + "Invalid " + sKeyWordCost + " (" + sField + ")");
-			bOk = false;
-		}
-		if (bOk)
-			coclusteringDataGrid->SetCost(dCost);
-		SkipLine();
-		if (bReadDebug)
-			cout << sKeyWordCost << "\t" << dCost << endl;
-	}
-
-	// On saute le Level
-	if (bOk)
-		SkipLine();
-
-	// Nombre initial d'attributs
-	if (bOk)
-	{
-		sField = ReadNextField();
-		if (strcmp(sKeyWordInitialDimensions, sField) != 0)
-		{
-			AddError(sTmp + "Key word " + sKeyWordInitialDimensions + " expected but not found");
-			bOk = false;
-		}
-		sField = ReadNextField();
-		nNumber = StringToInt(sField);
-		if (bOk and nNumber < 0)
-		{
-			AddError(sTmp + "Invalid " + sKeyWordInitialDimensions + " (" + sField + ")");
-			bOk = false;
-		}
-		if (bOk)
-			coclusteringDataGrid->SetInitialAttributeNumber(nNumber);
-		SkipLine();
-		if (bReadDebug)
-			cout << sKeyWordInitialDimensions << "\t" << nNumber << endl;
-	}
-
-	// Variable d'effectif
-	if (bOk)
-	{
-		sField = ReadNextField();
-		if (strcmp(sKeyWordFrequencyAttribute, sField) != 0)
-		{
-			AddError(sTmp + "Key word " + sKeyWordFrequencyAttribute + " expected but not found");
-			bOk = false;
-		}
-		sField = ReadNextField();
-		if (bOk)
-			coclusteringDataGrid->SetFrequencyAttributeName(sField);
-		SkipLine();
-		if (bReadDebug)
-			cout << sKeyWordFrequencyAttribute << "\t" << sField << endl;
-	}
-
-	// Dictionnaire
-	if (bOk)
-	{
-		sField = ReadNextField();
-		if (strcmp(sKeyWordDictionary, sField) != 0)
-		{
-			AddError(sTmp + "Key word " + sKeyWordDictionary + " expected but not found");
-			bOk = false;
-		}
-		sField = ReadNextField();
-		if (bOk)
-			coclusteringDataGrid->GetDatabaseSpec()->SetClassName(sField);
-		SkipLine();
-		if (bReadDebug)
-			cout << sKeyWordDictionary << "\t" << sField << endl;
-	}
-
-	// Base de donnees
-	if (bOk)
-	{
-		sField = ReadNextField();
-		if (strcmp(sKeyWordDatabase, sField) != 0)
-		{
-			AddError(sTmp + "Key word " + sKeyWordDatabase + " expected but not found");
-			bOk = false;
-		}
-		sField = ReadNextField();
-		if (bOk)
-			coclusteringDataGrid->GetDatabaseSpec()->SetDatabaseName(sField);
-		SkipLine();
-		if (bReadDebug)
-			cout << sKeyWordDatabase << "\t" << sField << endl;
-	}
-
-	// Lecture de specifications additionnelles
-	if (bOk)
-	{
-		// Lecture d'un premier champ pour voir si l'on a atteint la fin de de section, ou si l'in est au format
-		// Khiops V10
-		sField = ReadNextField();
-
-		// Cas d'un format anterieur a Khiops V10
-		if (strcmp("", sField) == 0)
-		{
-			// On alimente des valeurs par defaut pour les nouveaux champs
-			coclusteringDataGrid->GetDatabaseSpec()->SetSampleNumberPercentage(100);
-			coclusteringDataGrid->GetDatabaseSpec()->SetModeExcludeSample(false);
-			coclusteringDataGrid->GetDatabaseSpec()->SetSelectionAttribute("");
-			coclusteringDataGrid->GetDatabaseSpec()->SetSelectionValue("");
-		}
-		// Cas du format Khiops V10
-		else
-		{
-			// Taux d'echantillonage (sans faire le ReadNextField, dela fait)
-			if (bOk)
-			{
-				if (strcmp(sKeyWordSamplePercentage, sField) != 0)
-				{
-					AddError(sTmp + "Key word " + sKeyWordSamplePercentage +
-						 " expected but not found");
-					bOk = false;
-				}
-				sField = ReadNextField();
-				dNumber = StringToDouble(sField);
-				if (bOk and (dNumber < 0 or dNumber > 100))
-				{
-					AddError(sTmp + "Invalid " + sKeyWordSamplePercentage + " (" + sField + ")");
-					bOk = false;
-				}
-				if (bOk)
-					coclusteringDataGrid->GetDatabaseSpec()->SetSampleNumberPercentage(dNumber);
-				SkipLine();
-				if (bReadDebug)
-					cout << sKeyWordSamplePercentage << "\t" << sField << endl;
-			}
-
-			// Mode d'echantillonnage
-			if (bOk)
-			{
-				sField = ReadNextField();
-				if (strcmp(sKeyWordSamplingMode, sField) != 0)
-				{
-					AddError(sTmp + "Key word " + sKeyWordSamplingMode + " expected but not found");
-					bOk = false;
-				}
-				sField = ReadNextField();
-				if (bOk and not KWDatabase::CheckSamplingMode(sField))
-				{
-					AddError(sTmp + "Invalid " + sKeyWordSamplingMode + " (" + sField + ")");
-					bOk = false;
-				}
-				if (bOk)
-					coclusteringDataGrid->GetDatabaseSpec()->SetSamplingMode(sField);
-				SkipLine();
-				if (bReadDebug)
-					cout << sKeyWordSamplingMode << "\t" << sField << endl;
-			}
-
-			// Variable de selection
-			if (bOk)
-			{
-				sField = ReadNextField();
-				if (strcmp(sKeyWordSelectionVariable, sField) != 0)
-				{
-					AddError(sTmp + "Key word " + sKeyWordSelectionVariable +
-						 " expected but not found");
-					bOk = false;
-				}
-				sField = ReadNextField();
-				if (bOk)
-					coclusteringDataGrid->GetDatabaseSpec()->SetSelectionAttribute(sField);
-				SkipLine();
-				if (bReadDebug)
-					cout << sKeyWordSelectionVariable << "\t" << sField << endl;
-			}
-
-			// Valeur de selection
-			if (bOk)
-			{
-				sField = ReadNextField();
-				if (strcmp(sKeyWordSelectionValue, sField) != 0)
-				{
-					AddError(sTmp + "Key word " + sKeyWordSelectionValue +
-						 " expected but not found");
-					bOk = false;
-				}
-				sField = ReadNextField();
-				if (bOk)
-					coclusteringDataGrid->GetDatabaseSpec()->SetSelectionValue(sField);
-				SkipLine();
-				if (bReadDebug)
-					cout << sKeyWordSelectionValue << "\t" << sField << endl;
-			}
-		}
-	}
-	return bOk;
-}
-
-boolean CCCoclusteringReport::ReadBounds(CCHierarchicalDataGrid* coclusteringDataGrid)
-{
-	boolean bOk = true;
-	char* sField;
-	ALString sTmp;
-	CCHDGAttribute* dgAttribute;
-	int nContinuousAttributeNumber;
-	int nAttribute;
-	ALString sAttributeName;
-	Continuous cMin;
-	Continuous cMax;
-
-	require(coclusteringDataGrid != NULL);
-
-	// Comptage du nombre d'attributs numeriques
-	nContinuousAttributeNumber = 0;
-	for (nAttribute = 0; nAttribute < coclusteringDataGrid->GetAttributeNumber(); nAttribute++)
-	{
-		dgAttribute = cast(CCHDGAttribute*, coclusteringDataGrid->GetAttributeAt(nAttribute));
-		if (dgAttribute->GetAttributeType() == KWType::Continuous)
-			nContinuousAttributeNumber++;
-	}
-
-	// Parsing de la section sur les bornes des intervalles numeriques si necessaire
-	if (bOk and nContinuousAttributeNumber > 0)
-	{
-		// Recherche de l'entete de la nouvelle section
-		SkipLine();
-		sField = ReadNextField();
-		if (strcmp(sKeyWordBounds, sField) != 0)
-		{
-			AddError(sTmp + "Key word " + sKeyWordBounds + " expected but not found");
-			bOk = false;
-		}
-
-		// Passage a la ligne suivante, puis saut de la ligne d'entete de la section
-		SkipLine();
-		SkipLine();
-
-		// Bornes des attributs continus
-		if (bOk)
-		{
-			for (nAttribute = 0; nAttribute < coclusteringDataGrid->GetAttributeNumber(); nAttribute++)
-			{
-				// Recherche de l'attribut correspondant
-				dgAttribute = cast(CCHDGAttribute*, coclusteringDataGrid->GetAttributeAt(nAttribute));
-
-				// Traitement si attribut continu
-				if (dgAttribute->GetAttributeType() == KWType::Continuous)
-				{
-					// Initialisations
-					sAttributeName = "";
-					cMin = 0;
-					cMax = 0;
-
-					// Nom
-					sField = ReadNextField();
-					sAttributeName = sField;
-					if (bOk and sAttributeName == "")
-					{
-						bOk = false;
-						AddError(sTmp + "Missing variable name");
-					}
-					if (bOk and dgAttribute->GetAttributeName() != sAttributeName)
-					{
-						bOk = false;
-						AddError(sTmp + "Expected variable name is " +
-							 dgAttribute->GetAttributeName() + " (not " + sAttributeName +
-							 ")");
-					}
-
-					// Min
-					sField = ReadNextField();
-					cMin = KWContinuous::StringToContinuous(sField);
-
-					// Max
-					sField = ReadNextField();
-					cMax = KWContinuous::StringToContinuous(sField);
-
-					// Verification de coherence (non exhaustives)
-					bOk = bOk and cMin <= cMax;
-					if (not bOk)
-					{
-						AddError(sTmp + "Invalid bound specification (" + sAttributeName + ")");
-						break;
-					}
-
-					// Memorisation des bornes de l'attribut
-					if (bOk)
-					{
-						dgAttribute->SetMin(cMin);
-						dgAttribute->SetMax(cMax);
-
-						// Affichage en mode debug
-						if (bReadDebug)
-							cout << sKeyWordBounds << "\t" << sAttributeName << "\t" << cMin
-							     << "\t" << cMax << endl;
-					}
-
-					// Ligne suivante
-					SkipLine();
-				}
-			}
-		}
-	}
-	return bOk;
-}
-
-boolean CCCoclusteringReport::ReadHierarchy(CCHierarchicalDataGrid* coclusteringDataGrid,
-					    ObjectArray* oaAttributesPartDictionaries)
-{
-	boolean bOk = true;
-	char* sField;
-	ALString sTmp;
-	int nAttribute;
-	int nPart;
-	CCHDGAttribute* dgAttribute;
-	KWDGPart* dgPart;
-	CCHDGPart* hdgPart;
-	ObjectDictionary* odPartDictionary;
-	ALString sAttributeName;
-	ALString sPartName;
-	ALString sParentPartName;
-	POSITION position;
-	Object* oElement;
-
-	require(coclusteringDataGrid != NULL);
-	require(oaAttributesPartDictionaries != NULL);
-	require(oaAttributesPartDictionaries->GetSize() == 0);
-
-	// Boucle de specification des partitions des attributs
-	for (nAttribute = 0; nAttribute < coclusteringDataGrid->GetAttributeNumber(); nAttribute++)
-	{
-		// Recherche de l'attribut correspondant
-		dgAttribute = cast(CCHDGAttribute*, coclusteringDataGrid->GetAttributeAt(nAttribute));
-
-		// Recherche de l'entete de la nouvelle section
-		SkipLine();
-		sField = ReadNextField();
-		if (strcmp(sKeyWordHierarchy, sField) != 0)
-		{
-			AddError(sTmp + "Key word " + sKeyWordHierarchy + " expected but not found");
-			bOk = false;
-		}
-
-		// Verification de la coherence de la section du rapport
-		sField = ReadNextField();
-		if (strcmp(dgAttribute->GetAttributeName(), sField) != 0)
-		{
-			AddError(sTmp + "Variable " + dgAttribute->GetAttributeName() +
-				 " expected but not found after key word " + sKeyWordHierarchy);
-			bOk = false;
-		}
-
-		// Passage a la ligne suivante, puis saut de la ligne d'entete de la section
-		SkipLine();
-		SkipLine();
-
-		// Parties de l'attribut
-		odPartDictionary = NULL;
-		if (bOk)
-		{
-			// Creation d'un dictionnaire de parties
-			odPartDictionary = new ObjectDictionary;
-			oaAttributesPartDictionaries->Add(odPartDictionary);
-
-			// Extraction des parties
-			dgPart = dgAttribute->GetHeadPart();
-			while (dgPart != NULL)
-			{
-				// Lecture des caracteristiques de la partie
-				hdgPart = cast(CCHDGPart*, dgPart);
-				bOk = bOk and
-				      ReadHierarchyPart(coclusteringDataGrid, dgAttribute, hdgPart, odPartDictionary);
-				if (not bOk)
-					break;
-
-				// Partie suivante
-				dgAttribute->GetNextPart(dgPart);
-			}
-
-			// Saut des lignes jusqu'a la fin de la section de la hierarchie
-			// Encore (PartNumber-1) ligne pour avoir l'ensemble des partie de la hierachie (ayant
-			// PartNumber feuilles)
-			for (nPart = 0; nPart < dgAttribute->GetPartNumber() - 1; nPart++)
-			{
-				// Lecture des caracteristiques de la partie
-				hdgPart = NULL;
-				bOk = bOk and
-				      ReadHierarchyPart(coclusteringDataGrid, dgAttribute, hdgPart, odPartDictionary);
-				if (not bOk)
-					break;
-			}
-		}
-		assert(not bOk or odPartDictionary != NULL);
-
-		// Test de specification de la racine
-		if (bOk and dgAttribute->GetRootPart() == NULL)
-		{
-			AddError("Missing root in part hierarchy for variable " + dgAttribute->GetAttributeName());
-			bOk = false;
-		}
-
-		// Si erreur, nettoyage des parties de hierarchie en cours de construction
-		if (not bOk)
-		{
-			// Nettoyage des chainages vers des parties de la hierarchie
-			dgPart = dgAttribute->GetHeadPart();
-			while (dgPart != NULL)
-			{
-				// Lecture des caracteristiques de la partie
-				hdgPart = cast(CCHDGPart*, dgPart);
-				hdgPart->SetParentPart(NULL);
-				assert(hdgPart->IsLeaf());
-
-				// Partie suivante
-				dgAttribute->GetNextPart(dgPart);
-			}
-
-			// Dereferencement de la partie racine
-			dgAttribute->SetRootPart(NULL);
-
-			// Supression des parties non feuilles, memorisee dans le dictionnaires de parties
-			if (odPartDictionary != NULL)
-			{
-				position = odPartDictionary->GetStartPosition();
-				while (position != NULL)
-				{
-					odPartDictionary->GetNextAssoc(position, sPartName, oElement);
-					hdgPart = cast(CCHDGPart*, oElement);
-
-					// Supression des parties non filles
-					if (not hdgPart->IsLeaf())
-					{
-						odPartDictionary->RemoveKey(sPartName);
-						delete hdgPart;
-					}
-				}
-			}
-		}
-
-		// Arret si erreur
-		if (not bOk)
-			break;
-	}
-	ensure(not bOk or oaAttributesPartDictionaries->GetSize() == coclusteringDataGrid->GetAttributeNumber());
-	return bOk;
-}
-
-boolean CCCoclusteringReport::ReadHierarchyPart(CCHierarchicalDataGrid* coclusteringDataGrid,
-						CCHDGAttribute* dgAttribute, CCHDGPart*& dgPart,
-						ObjectDictionary* odPartDictionary)
-{
-	boolean bOk = true;
-	boolean bIsLeafPart;
-	char* sField;
-	ALString sTmp;
-	CCHDGPart* dgParentPart;
-	KWDGPart* dgPreviousPart;
-	KWDGInterval* dgInterval;
-	ALString sPartName;
-	Continuous cBound;
-	int nFrequency;
-	ALString sParentPartName;
-	double dHierarchicalLevel;
-	int nRank;
-	double dInterest;
-	int nHierarchicalRank;
-	int nChar;
-
-	require(coclusteringDataGrid != NULL);
-	require(dgAttribute != NULL);
-	require(coclusteringDataGrid->GetAttributeAt(dgAttribute->GetAttributeIndex()) == dgAttribute);
-	require(dgPart == NULL or dgPart->GetAttribute() == dgAttribute);
-	require(odPartDictionary != NULL);
-
-	// Indicateur de partie fille
-	bIsLeafPart = dgPart != NULL;
-
-	// Initialisation
-	sPartName = "";
-	cBound = 0;
-
-	// Nom de la partie
-	sField = ReadNextField();
-	sPartName = sField;
-
-	// Extraction des bornes d'intervalle dans le cas numerique, pour les parties feuilles
-	if (bOk and dgAttribute->GetAttributeType() == KWType::Continuous and bIsLeafPart)
-	{
-		dgInterval = dgPart->GetInterval();
-
-		// Initialisation des bornes
-		dgInterval->SetLowerBound(KWDGInterval::GetMinLowerBound());
-		dgInterval->SetUpperBound(KWDGInterval::GetMaxUpperBound());
-
-		// Recherche d'une borne inf a partir du deuxieme intervalle
-		if (dgPart != dgAttribute->GetHeadPart())
-		{
-			// Cas particulier: valeur manquante
-			if (strcmp("Missing", sField) == 0)
-			{
-				dgInterval->SetLowerBound(KWContinuous::GetMissingValue());
-				dgInterval->SetUpperBound(KWContinuous::GetMissingValue());
-			}
-			// Cas standard
-			else
-			{
-				// On remplace le separateur d'intervalle ';' par '\0', apres avoir saute le premiere
-				// caractere ']'
-				nChar = 1;
-				while (sField[nChar] != '\0' and sField[nChar] != ';')
-					nChar++;
-				sField[nChar] = '\0';
-
-				// Extraction de la borne inf
-				cBound = KWContinuous::StringToContinuous(&(sField[1]));
-				dgInterval->SetLowerBound(cBound);
-
-				// On l'utilise comme borne sup de l'intervalle precedent
-				dgPreviousPart = dgPart;
-				dgAttribute->GetPrevPart(dgPreviousPart);
-				dgPreviousPart->GetInterval()->SetUpperBound(cBound);
-			}
-		}
-	}
-
-	// Nom de la partie parente
-	sField = ReadNextField();
-	sParentPartName = sField;
-
-	// Effectif
-	sField = ReadNextField();
-	nFrequency = StringToInt(sField);
-
-	// Interet
-	sField = ReadNextField();
-	dInterest = KWContinuous::StringToContinuous(sField);
-
-	// Niveau hierarchique
-	sField = ReadNextField();
-	dHierarchicalLevel = KWContinuous::StringToContinuous(sField);
-
-	// Rang
-	sField = ReadNextField();
-	nRank = StringToInt(sField);
-
-	// Rang hierarchique
-	sField = ReadNextField();
-	nHierarchicalRank = StringToInt(sField);
-
-	//////////////////////////////////////////////////
-	// Verification de coherence (non exhaustives)
-
-	// Nom de partie
-	if (bOk and sPartName == "")
-	{
-		AddError(sTmp + "Missing part name for variable " + dgAttribute->GetAttributeName());
-		bOk = false;
-	}
-
-	// Nom de partie parente
-	if (bOk and sPartName == sParentPartName)
-	{
-		AddError(sTmp + "Part name (" + sPartName + ") same as parent part name for variable " +
-			 dgAttribute->GetAttributeName());
-		bOk = false;
-	}
-
-	// Effectif
-	if (bOk and nFrequency <= 0)
-	{
-		AddError(sTmp + "Part (" + sPartName + ") with wrong frequency for variable " +
-			 dgAttribute->GetAttributeName());
-		bOk = false;
-	}
-
-	// Interet
-	if (bOk and not(0 <= dInterest and dInterest <= 1))
-	{
-		AddError(sTmp + "Part (" + sPartName + ") with wrong interest for variable " +
-			 dgAttribute->GetAttributeName());
-		bOk = false;
-	}
-
-	// Niveau hierarchique
-	if (bOk and dHierarchicalLevel > 1)
-	{
-		AddError(sTmp + "Part (" + sPartName + ") with wrong hierarchical level for variable " +
-			 dgAttribute->GetAttributeName());
-		bOk = false;
-	}
-
-	// Rang
-	if (bOk and nRank < 1)
-	{
-		AddError(sTmp + "Part (" + sPartName + ") with wrong rank for variable " +
-			 dgAttribute->GetAttributeName());
-		bOk = false;
-	}
-
-	// Rang hierarchique
-	if (bOk and nHierarchicalRank < 0)
-	{
-		AddError(sTmp + "Part (" + sPartName + ") with wrong hierarchical rank for variable " +
-			 dgAttribute->GetAttributeName());
-		bOk = false;
-	}
-	if (bOk and nHierarchicalRank == 0)
-		AddWarning(sTmp + "Part (" + sPartName + ") with missing hierarchical rank for variable " +
-			   dgAttribute->GetAttributeName());
-
-	// Test de presence dans le dictionnaire des partie
-	if (bIsLeafPart)
-		bOk = bOk and odPartDictionary->Lookup(sPartName) == NULL;
-	else
-		bOk = bOk and odPartDictionary->Lookup(sPartName) != NULL;
-	if (not bOk)
-	{
-		AddError(sTmp + "Invalid part specification (" + sPartName + ") for variable " +
-			 dgAttribute->GetAttributeName());
-		bOk = false;
-	}
-
-	// Memorisation des informations sur la partie
-	if (bOk)
-	{
-		// Si partie feuille, memorisation de l'association entre nom et partie
-		if (bIsLeafPart)
-			odPartDictionary->SetAt(sPartName, dgPart);
-		// Sinon, recherche dans le dictionnaire
-		else
-			dgPart = cast(CCHDGPart*, odPartDictionary->Lookup(sPartName));
-		check(dgPart);
-
-		// Memorisation des caracteristiques de la partie
-		dgPart->SetPartName(sPartName);
-		dgPart->SetPartFrequency(nFrequency);
-		dgPart->SetInterest(dInterest);
-		dgPart->SetHierarchicalLevel(dHierarchicalLevel);
-		dgPart->SetRank(nRank);
-		dgPart->SetHierarchicalRank(nHierarchicalRank);
-
-		// Gestion de la partie parente
-		if (sParentPartName != "")
-		{
-			// Creation si necessaire de la partie parente
-			dgParentPart = cast(CCHDGPart*, odPartDictionary->Lookup(sParentPartName));
-			if (dgParentPart == NULL)
-			{
-				dgParentPart = dgAttribute->NewHierarchyPart();
-				dgParentPart->SetPartName(sParentPartName);
-				odPartDictionary->SetAt(sParentPartName, dgParentPart);
-			}
-
-			// Chainage de la partie dans la partie parente
-			if (dgParentPart->GetChildPart1() == NULL)
-				dgParentPart->SetChildPart1(dgPart);
-			else if (dgParentPart->GetChildPart2() == NULL)
-				dgParentPart->SetChildPart2(dgPart);
-			else
-			{
-				AddError(sTmp + "Parent part (" + sParentPartName + ") already have two child parts");
-				bOk = false;
-			}
-
-			// Fin du chainage si Ok
-			if (bOk)
-				dgPart->SetParentPart(dgParentPart);
-		}
-		// Gestion de la partie racine
-		else
-		{
-			assert(dgPart->IsRoot());
-			if (dgAttribute->GetRootPart() != NULL)
-			{
-				AddError(sTmp + "Root part (" + sPartName + ") already defined for variable " +
-					 dgAttribute->GetAttributeName());
-				bOk = false;
-			}
-			else
-				dgAttribute->SetRootPart(dgPart);
-		}
-
-		// Affichage en mode debug
-		if (bReadDebug)
-		{
-			cout << sKeyWordHierarchy << "\t" << dgAttribute->GetAttributeName() << "\t" << sPartName
-			     << "\t" << sParentPartName << "\t" << nFrequency << "\t" << dInterest << "\t"
-			     << dHierarchicalLevel << "\t" << nRank;
-			if (dgAttribute->GetAttributeType() == KWType::Continuous and bIsLeafPart and
-			    dgPart != dgAttribute->GetHeadPart())
-				cout << "\t" << cBound;
-			cout << "\n";
-		}
-	}
-
-	// Ligne suivante
-	SkipLine();
-	return bOk;
-}
-
-boolean CCCoclusteringReport::ReadComposition(CCHierarchicalDataGrid* coclusteringDataGrid,
-					      ObjectArray* oaAttributesPartDictionaries)
-{
-	boolean bOk = true;
-	char* sField;
-	ALString sTmp;
-	CCHDGAttribute* dgAttribute;
-	KWDGPart* dgPart;
-	KWDGSymbolValueSet* dgValueSet;
-	KWDGSymbolValue* dgValue;
-	int nAttribute;
-	ObjectDictionary* odPartDictionary;
-	ALString sAttributeName;
-	ALString sPartName;
-	ALString sValueName;
-	int nFrequency;
-	double dTypicality;
-	ALString sTrimedStarValueName;
-	boolean bStarValueFound;
-	Symbol sValue;
-	int nTotalValueFrequency;
-
-	require(coclusteringDataGrid != NULL);
-	require(oaAttributesPartDictionaries != NULL);
-	require(oaAttributesPartDictionaries->GetSize() == coclusteringDataGrid->GetAttributeNumber());
-
-	// Valeur chaine de caractere de la star value, trimee, pour la rechercher dans le fichier
-	sTrimedStarValueName = Symbol::GetStarValue().GetValue();
-	sTrimedStarValueName.TrimLeft();
-	sTrimedStarValueName.TrimRight();
-
-	// Boucle de specification de la composition des attributs categoriels
-	for (nAttribute = 0; nAttribute < coclusteringDataGrid->GetAttributeNumber(); nAttribute++)
-	{
-		// Recherche de l'attribut correspondant
-		dgAttribute = cast(CCHDGAttribute*, coclusteringDataGrid->GetAttributeAt(nAttribute));
-		odPartDictionary = cast(ObjectDictionary*, oaAttributesPartDictionaries->GetAt(nAttribute));
-
-		// Traitement si attribut categoriel
-		if (dgAttribute->GetAttributeType() == KWType::Symbol)
-		{
-			// Recherche de l'entete de la nouvelle section
-			SkipLine();
-			sField = ReadNextField();
-			if (strcmp(sKeyWordComposition, sField) != 0)
-			{
-				AddError(sTmp + "Key word " + sKeyWordComposition + " expected but not found");
-				bOk = false;
-			}
-
-			// Verification de la coherence de la section du rapport
-			sField = ReadNextField();
-			if (strcmp(dgAttribute->GetAttributeName(), sField) != 0)
-			{
-				AddError(sTmp + "Variable " + dgAttribute->GetAttributeName() +
-					 " expected but not found after key word " + sKeyWordComposition);
-				bOk = false;
-			}
-
-			// Passage a la ligne suivante, puis saut de la ligne d'entete de la section
-			SkipLine();
-			SkipLine();
-
-			// Valeurs de l'attribut
-			if (bOk)
-			{
-				// Extraction des valeurs
-				// Elle sont specifiees sequentiellement selon les parties
-				dgPart = NULL;
-				bStarValueFound = false;
-				while (not IsEndOfFile() and bOk)
-				{
-					// Initialisations
-					sPartName = "";
-					sValueName = "";
-					nFrequency = 0;
-
-					// Nom de partie
-					sField = ReadNextField();
-					sPartName = sField;
-
-					// Nom de valeur
-					sField = ReadNextField();
-					sValueName = sField;
-
-					// Effectif lie a la valeur
-					sField = ReadNextField();
-					nFrequency = StringToInt(sField);
-
-					// Typicalite
-					sField = ReadNextField();
-					dTypicality = KWContinuous::StringToContinuous(sField);
-
-					// Arret si nom de partie vide (fin de section)
-					if (sPartName == "")
-					{
-						// On rajoute si necessaire la StarValue au dernier groupe specifie
-						if (dgPart != NULL and not bStarValueFound)
-						{
-							dgValueSet = cast(KWDGSymbolValueSet*, dgPart->GetValueSet());
-							dgValueSet->AddSymbolValue(Symbol::GetStarValue());
-						}
-						break;
-					}
-
-					// Recherche du groupe a mettre ajour
-					dgPart = cast(KWDGPart*, odPartDictionary->Lookup(sPartName));
-
-					//////////////////////////////////////////////////
-					// Verification de coherence (non exhaustives)
-
-					// Nom de partie
-					if (bOk and sPartName == "")
-					{
-						AddError(sTmp + "Missing part name for value specification (" +
-							 sValueName + ") for variable " +
-							 dgAttribute->GetAttributeName());
-						break;
-					}
-
-					// Existence de la partie
-					if (bOk and dgPart == NULL)
-					{
-						AddError(sTmp + "Missing part (" + sPartName +
-							 ") for value specification (" + sValueName +
-							 ") for variable " + dgAttribute->GetAttributeName());
-						break;
-					}
-
-					// Effectif
-					if (bOk and nFrequency <= 0)
-					{
-						// Cas particulier de l'effectif null: seul la star value est admise
-						if (nFrequency == 0 and sValueName != sTrimedStarValueName)
-						{
-							AddError(sTmp + "Value specification (" + sValueName +
-								 ") with wrong frequency for variable " +
-								 dgAttribute->GetAttributeName());
-							break;
-						}
-					}
-
-					// Typicalite
-					if (bOk and not(0 <= dTypicality and dTypicality <= 1))
-					{
-						// Tolerance pour les typicalite negatives
-						if (dTypicality < 0)
-						{
-							AddWarning(sTmp + "Value specification (" + sValueName +
-								   ") with typicality less than 0 for variable " +
-								   dgAttribute->GetAttributeName() +
-								   " (replaced by 0)");
-							dTypicality = 0;
-						}
-						// Erreur pour les typicalite supereures a 1
-						else
-						{
-							AddError(sTmp + "Value specification (" + sValueName +
-								 ") with typicality greater than 1 for variable " +
-								 dgAttribute->GetAttributeName());
-							break;
-						}
-					}
-
-					// Test si on a trouve la star value
-					if (nFrequency == 0 and sValueName == sTrimedStarValueName)
-						bStarValueFound = true;
-
-					// Message global
-					if (not bOk)
-					{
-						AddError(sTmp + "Invalid value specification (" + sValueName +
-							 ") for variable " + dgAttribute->GetAttributeName());
-						break;
-					}
-
-					// Memorisation des caracteristiques de la valeur dans sa partie
-					if (bOk)
-					{
-						// Transformation de la valeur en Symbol
-						if (nFrequency == 0 and sValueName == sTrimedStarValueName)
-							sValue = Symbol::GetStarValue();
-						else
-							sValue = (Symbol)sValueName;
-
-						// Memorisation de la valeur
-						dgValueSet = cast(KWDGSymbolValueSet*, dgPart->GetValueSet());
-						dgValue = cast(KWDGSymbolValue*, dgValueSet->AddSymbolValue(sValue));
-						dgValue->SetValueFrequency(nFrequency);
-						dgValue->SetTypicality(dTypicality);
-
-						if (bReadDebug)
-							cout << sKeyWordComposition << "\t" << sPartName << "\t"
-							     << sValueName << "\t" << nFrequency << "\t" << dTypicality
-							     << "\n";
-					}
-
-					// Ligne suivante
-					SkipLine();
-				}
-			}
-
-			// Arret si erreur
-			if (not bOk)
-				break;
-
-			// Verification rapide des parties de l'attribut
-			if (bOk)
-			{
-				dgPart = dgAttribute->GetHeadPart();
-				while (dgPart != NULL)
-				{
-					// Verification de la compatibilite entre l'effectif de la partie
-					// et l'effectif cumule de ses valeurs
-					dgValueSet = cast(KWDGSymbolValueSet*, dgPart->GetValueSet());
-					nTotalValueFrequency = dgValueSet->ComputeTotalFrequency();
-					if (dgPart->GetPartFrequency() != nTotalValueFrequency)
-					{
-						dgAttribute->AddError(
-						    sTmp + "Frequency (" + IntToString(dgPart->GetPartFrequency()) +
-						    ") of cluster " + dgPart->GetObjectLabel() +
-						    " different from the cumulated frequency of its values (" +
-						    IntToString(nTotalValueFrequency) + ")");
-						bOk = false;
-						break;
-					}
-
-					// Partie suivante
-					dgAttribute->GetNextPart(dgPart);
-				}
-			}
-		}
-	}
-	return bOk;
-}
-
-boolean CCCoclusteringReport::ReadCells(CCHierarchicalDataGrid* coclusteringDataGrid,
-					ObjectArray* oaAttributesPartDictionaries)
-{
-	boolean bOk = true;
-	char* sField;
-	ALString sTmp;
-	KWDGPart* dgPart;
-	KWDGCell* dgCell;
-	int nAttribute;
-	int nCell;
-	ObjectDictionary* odPartDictionary;
-	ObjectArray oaCellParts;
-	ALString sPartName;
-	int nFrequency;
-
-	require(coclusteringDataGrid != NULL);
-	require(oaAttributesPartDictionaries != NULL);
-	require(oaAttributesPartDictionaries->GetSize() == coclusteringDataGrid->GetAttributeNumber());
-	require(coclusteringDataGrid != NULL);
-	require(fReport != NULL);
-
-	// Recherche de l'entete de la nouvelle section
-	SkipLine();
-	sField = ReadNextField();
-	if (strcmp(sKeyWordCells, sField) != 0)
-	{
-		AddError(sTmp + "Key word " + sKeyWordCells + " expected but not found");
-		bOk = false;
-	}
-
-	// Passage a la ligne suivante, puis saut de la ligne d'entete de la section
-	SkipLine();
-	SkipLine();
-
-	// Cellules de la grille
-	if (bOk)
-	{
-		oaCellParts.SetSize(coclusteringDataGrid->GetAttributeNumber());
-		coclusteringDataGrid->SetCellUpdateMode(true);
-		for (nCell = 0; nCell < nHeaderCellNumber; nCell++)
-		{
-			// Recherche des parties des attributs
-			for (nAttribute = 0; nAttribute < coclusteringDataGrid->GetAttributeNumber(); nAttribute++)
-			{
-				// Nom de partie
-				sField = ReadNextField();
-				sPartName = sField;
-
-				// Recherche de la partie dans son dictionnaire de partie
-				odPartDictionary =
-				    cast(ObjectDictionary*, oaAttributesPartDictionaries->GetAt(nAttribute));
-				dgPart = cast(KWDGPart*, odPartDictionary->Lookup(sPartName));
-				oaCellParts.SetAt(nAttribute, dgPart);
-
-				// Arret si partie non trouve
-				bOk = bOk and dgPart != NULL;
-				if (not bOk)
-				{
-					AddError("Cell specification with part " + sPartName +
-						 " missing for variable " +
-						 coclusteringDataGrid->GetAttributeAt(nAttribute)->GetAttributeName());
-					break;
-				}
-			}
-
-			// Recherche de l'effectif de la cellule
-			sField = ReadNextField();
-			nFrequency = StringToInt(sField);
-
-			// Arret si probleme de validite
-			if (bOk and nFrequency <= 0)
-			{
-				AddError("Cell specification with wrong frequency");
-				break;
-			}
-			bOk = bOk and coclusteringDataGrid->LookupCell(&oaCellParts) == NULL;
-			if (not bOk)
-			{
-				AddError("Invalid cell specification");
-				break;
-			}
-
-			// Ajout de la cellule
-			if (bOk)
-			{
-				dgCell = coclusteringDataGrid->AddCell(&oaCellParts);
-				dgCell->SetCellFrequency(nFrequency);
-				if (bReadDebug)
-					cout << "sKeyWordCells"
-					     << "\t" << *dgCell;
-			}
-
-			// Ligne suivante
-			SkipLine();
-		}
-		coclusteringDataGrid->SetCellUpdateMode(false);
-	}
-
-	return bOk;
-}
-
-boolean CCCoclusteringReport::ReadAnnotation(CCHierarchicalDataGrid* coclusteringDataGrid,
-					     ObjectArray* oaAttributesPartDictionaries)
-{
-	boolean bOk = true;
-	char* sField;
-	ALString sTmp;
-	CCHDGAttribute* dgAttribute;
-	CCHDGPart* dgPart;
-	int nAttribute;
-	ObjectDictionary* odPartDictionary;
-	ALString sPartName;
-	boolean bExpand;
-	boolean bSelected;
-	ALString sShortDescription;
-	ALString sDescription;
-
-	require(coclusteringDataGrid != NULL);
-	require(oaAttributesPartDictionaries != NULL);
-	require(oaAttributesPartDictionaries->GetSize() == coclusteringDataGrid->GetAttributeNumber());
-
-	// Boucle de specification de la composition des attributs categoriels
-	for (nAttribute = 0; nAttribute < coclusteringDataGrid->GetAttributeNumber(); nAttribute++)
-	{
-		// Recherche de l'attribut correspondant
-		dgAttribute = cast(CCHDGAttribute*, coclusteringDataGrid->GetAttributeAt(nAttribute));
-		odPartDictionary = cast(ObjectDictionary*, oaAttributesPartDictionaries->GetAt(nAttribute));
-
-		// Recherche de l'entete de la nouvelle section
-		SkipLine();
-		sField = ReadNextField();
-
-		// Soit il n'y a aucune section annotation, soit il y en a une par attribut
-		if (strcmp(sKeyWordAnnotation, sField) != 0)
-		{
-			// Si pas de section annotation pour le premier attribut, on considere que ce n'est pas une
-			// erreur
-			if (nAttribute > 0)
-			{
-				AddError(sTmp + "Key word " + sKeyWordAnnotation + " expected but not found");
-				bOk = false;
-			}
-
-			// Arret du parsing de toute facon
-			break;
-		}
-
-		// Verification de la coherence de la section du rapport
-		sField = ReadNextField();
-		if (strcmp(dgAttribute->GetAttributeName(), sField) != 0)
-		{
-			AddError(sTmp + "Variable " + dgAttribute->GetAttributeName() +
-				 " expected but not found after key word " + sKeyWordAnnotation);
-			bOk = false;
-		}
-
-		// Passage a la ligne suivante, puis saut de la ligne d'entete de la section
-		SkipLine();
-		SkipLine();
-
-		// Valeurs de l'attribut
-		if (bOk)
-		{
-			// Extraction des valeurs
-			// Elle sont specifiees sequentiellement selon les parties
-			dgPart = NULL;
-			while (not IsEndOfFile() and bOk)
-			{
-				// Initialisations
-				sPartName = "";
-				bExpand = false;
-				bSelected = false;
-				sShortDescription = "";
-				sDescription = "";
-
-				// Nom de partie
-				sField = ReadNextField();
-				sPartName = sField;
-
-				// Indicateur de depliement
-				sField = ReadNextField();
-				if (strcmp(sKeyWordTrue, sField) == 0)
-					bExpand = true;
-
-				// Indicateur de selection
-				sField = ReadNextField();
-				if (strcmp(sKeyWordTrue, sField) == 0)
-					bSelected = true;
-
-				// Libelle court
-				sField = ReadNextField();
-				sShortDescription = sField;
-
-				// Description longue
-				sField = ReadNextField();
-				sDescription = sField;
-
-				// Arret si nom de partie vide (fin de section)
-				if (sPartName == "")
-					break;
-
-				// Recherche du groupe a mettre ajour
-				dgPart = cast(CCHDGPart*, odPartDictionary->Lookup(sPartName));
-
-				// Verification de coherence (non exhaustives)
-				bOk = bOk and sPartName != "";
-				bOk = bOk and dgPart != NULL;
-				if (not bOk)
-				{
-					AddError(sTmp + "Invalid part annotation (" + sPartName + ") for variable " +
-						 dgAttribute->GetAttributeName());
-					break;
-				}
-
-				// Memorisation des caracteristiques de la valeurs dans sa partie
-				if (bOk)
-				{
-					dgPart->SetExpand(bExpand);
-					dgPart->SetSelected(bSelected);
-					dgPart->SetShortDescription(sShortDescription);
-					dgPart->SetDescription(sDescription);
-
-					if (bReadDebug)
-						cout << sKeyWordAnnotation << "\t" << sPartName << "\t" << bExpand
-						     << "\t" << bSelected << "\t" << sShortDescription << "\t"
-						     << sDescription << "\n";
-				}
-
-				// Ligne suivante
-				SkipLine();
-			}
-		}
-
-		// Arret si erreur
-		if (not bOk)
-			break;
-	}
-	return bOk;
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////
-// Ecriture des sections d'un rapport de coclustering vers un stream en sortie
-
-void CCCoclusteringReport::InternalWriteReport(const CCHierarchicalDataGrid* coclusteringDataGrid, ostream& ost)
-{
-	require(coclusteringDataGrid != NULL);
-	require(fReport == NULL);
-
-	// Ecriture de chaque section du rapport de coclustering
-	WriteVersion(coclusteringDataGrid, ost);
-	WriteDimensions(coclusteringDataGrid, ost);
-	WriteCoclusteringStats(coclusteringDataGrid, ost);
-	WriteBounds(coclusteringDataGrid, ost);
-	WriteHierarchy(coclusteringDataGrid, ost);
-	WriteComposition(coclusteringDataGrid, ost);
-	WriteCells(coclusteringDataGrid, ost);
-	WriteAnnotation(coclusteringDataGrid, ost);
-}
-
-void CCCoclusteringReport::WriteVersion(const CCHierarchicalDataGrid* coclusteringDataGrid, ostream& ost)
-{
-	ost << GetLearningReportHeaderLine() << "\n";
-}
-
-void CCCoclusteringReport::WriteDimensions(const CCHierarchicalDataGrid* coclusteringDataGrid, ostream& ost)
-{
-	int nAttribute;
-	CCHDGAttribute* dgAttribute;
-	int nValueNumber;
-
-	require(coclusteringDataGrid != NULL);
-
-	// Entete
-	ost << sKeyWordShortDescription << "\t" << coclusteringDataGrid->GetShortDescription() << "\n";
-	ost << sKeyWordDimensions << "\t" << coclusteringDataGrid->GetAttributeNumber() << "\n";
-	if (not KWFrequencyTable::GetWriteGranularityAndGarbage())
-		ost << "Name\tType\tParts\tInitial parts\tValues\tInterest\tDescription\n";
-	else
-		ost << "Name\tType\tParts\tInitial parts\tValues\tInterest\tDescription\tGarbage\n";
-
-	// Parcours des attributs
-	for (nAttribute = 0; nAttribute < coclusteringDataGrid->GetAttributeNumber(); nAttribute++)
-	{
-		dgAttribute = cast(CCHDGAttribute*, coclusteringDataGrid->GetAttributeAt(nAttribute));
-
-		// Nombre initial de valeurs
-		nValueNumber = dgAttribute->GetInitialValueNumber();
-
-		// Caracteristique des attributs
-		// Le nombre de valeur est diminuer en externe de 1 pour tenir compte de de la StarValue en interne
-		ost << dgAttribute->GetAttributeName() << "\t";
-		ost << KWType::ToString(KWType::GetCoclusteringSimpleType(dgAttribute->GetAttributeType())) << "\t";
-		ost << dgAttribute->GetPartNumber() << "\t";
-		ost << dgAttribute->GetInitialPartNumber() << "\t";
-		ost << nValueNumber << "\t";
-		ost << dgAttribute->GetInterest() << "\t";
-		ost << dgAttribute->GetDescription();
-		if (not KWFrequencyTable::GetWriteGranularityAndGarbage())
-			ost << "\n";
-		else
-			ost << "\t" << (dgAttribute->GetGarbageModalityNumber() > 0) << "\n";
-	}
-	ost << "\n";
-}
-
-void CCCoclusteringReport::WriteCoclusteringStats(const CCHierarchicalDataGrid* coclusteringDataGrid, ostream& ost)
-{
-	require(coclusteringDataGrid != NULL);
-
-	// Entete
-	ost << sKeyWordCoclusteringStats << "\n";
-
-	// Statistiques
-	ost << sKeyWordInstances << "\t" << coclusteringDataGrid->GetGridFrequency() << "\n";
-	ost << sKeyWordCells << "\t" << coclusteringDataGrid->GetCellNumber() << "\n";
-	ost << sKeyWordNullCost << "\t" << KWContinuous::ContinuousToString(coclusteringDataGrid->GetNullCost())
-	    << "\n";
-	ost << sKeyWordCost << "\t" << KWContinuous::ContinuousToString(coclusteringDataGrid->GetCost()) << "\n";
-	ost << sKeyWordLevel << "\t" << KWContinuous::ContinuousToString(coclusteringDataGrid->GetLevel()) << "\n";
-	ost << sKeyWordInitialDimensions << "\t" << coclusteringDataGrid->GetInitialAttributeNumber() << "\n";
-	ost << sKeyWordFrequencyAttribute << "\t" << coclusteringDataGrid->GetFrequencyAttributeName() << "\n";
-	ost << sKeyWordDictionary << "\t" << coclusteringDataGrid->GetConstDatabaseSpec()->GetClassName() << "\n";
-	ost << sKeyWordDatabase << "\t" << coclusteringDataGrid->GetConstDatabaseSpec()->GetDatabaseName() << "\n";
-
-	// Informations supplementaires sur la base
-	ost << sKeyWordSamplePercentage << "\t"
-	    << coclusteringDataGrid->GetConstDatabaseSpec()->GetSampleNumberPercentage() << "\n";
-	ost << sKeyWordSamplingMode << "\t" << coclusteringDataGrid->GetConstDatabaseSpec()->GetSamplingMode() << "\n";
-	ost << sKeyWordSelectionVariable << "\t"
-	    << coclusteringDataGrid->GetConstDatabaseSpec()->GetSelectionAttribute() << "\n";
-	ost << sKeyWordSelectionValue << "\t" << coclusteringDataGrid->GetConstDatabaseSpec()->GetSelectionValue()
-	    << "\n";
-	ost << "\n";
-}
-
-void CCCoclusteringReport::WriteBounds(const CCHierarchicalDataGrid* coclusteringDataGrid, ostream& ost)
-{
-	CCHDGAttribute* dgAttribute;
-	int nContinuousAttributeNumber;
-	int nAttribute;
-
-	require(coclusteringDataGrid != NULL);
-
-	// Comptage du nombre d'attributs numeriques
-	nContinuousAttributeNumber = 0;
-	for (nAttribute = 0; nAttribute < coclusteringDataGrid->GetAttributeNumber(); nAttribute++)
-	{
-		dgAttribute = cast(CCHDGAttribute*, coclusteringDataGrid->GetAttributeAt(nAttribute));
-		if (dgAttribute->GetAttributeType() == KWType::Continuous)
-			nContinuousAttributeNumber++;
-	}
-
-	// Ecriture des bornes des intervalles numeriques si necessaire
-	if (nContinuousAttributeNumber > 0)
-	{
-		// Entete
-		ost << sKeyWordBounds << "\n";
-		ost << "Name	Min	Max\n";
-
-		// Bornes des attributs numeriques
-		for (nAttribute = 0; nAttribute < coclusteringDataGrid->GetAttributeNumber(); nAttribute++)
-		{
-			dgAttribute = cast(CCHDGAttribute*, coclusteringDataGrid->GetAttributeAt(nAttribute));
-
-			// Traitement si attribut continu
-			if (dgAttribute->GetAttributeType() == KWType::Continuous)
-			{
-				ost << dgAttribute->GetAttributeName() << "\t"
-				    << KWContinuous::ContinuousToString(dgAttribute->GetMin()) << "\t"
-				    << KWContinuous::ContinuousToString(dgAttribute->GetMax()) << "\n";
-			}
-		}
-		ost << "\n";
-	}
-}
-
-void CCCoclusteringReport::WriteHierarchy(const CCHierarchicalDataGrid* coclusteringDataGrid, ostream& ost)
-{
-	CCHDGAttribute* dgAttribute;
-	int nAttribute;
-	CCHDGPart* hdgPart;
-	ObjectArray oaParts;
-	int nPart;
-	boolean bWriteHierarchicalRank;
-
-	require(coclusteringDataGrid != NULL);
-
-	// Parcours des attributs
-	for (nAttribute = 0; nAttribute < coclusteringDataGrid->GetAttributeNumber(); nAttribute++)
-	{
-		dgAttribute = cast(CCHDGAttribute*, coclusteringDataGrid->GetAttributeAt(nAttribute));
-
-		// Exports de toutes les parties de la hierarchie en partant de la racine
-		dgAttribute->ExportHierarchyParts(&oaParts);
-
-		// Tri pour respecter l'ordre d'affichage
-		oaParts.SetCompareFunction(CCHDGPartCompareLeafRank);
-		oaParts.Sort();
-		assert(oaParts.GetSize() > 0);
-
-		// On determine s'il faut ecrire le rang hierarchique (absent en version 7.5)
-		bWriteHierarchicalRank = false;
-		if (oaParts.GetSize() > 0)
-		{
-			hdgPart = cast(CCHDGPart*, oaParts.GetAt(0));
-			bWriteHierarchicalRank = (hdgPart->GetHierarchicalRank() > 0);
-		}
-
-		// Entete, avec rang hierarchique facultatif
-		ost << sKeyWordHierarchy << "\t" << dgAttribute->GetAttributeName() << "\n";
-		if (bWriteHierarchicalRank)
-			ost << "Cluster	"
-			       "ParentCluster\tFrequency\tInterest\tHierarchicalLevel\tRank\tHierarchicalRank\n";
-		else
-			ost << "Cluster	ParentCluster\tFrequency\tInterest\tHierarchicalLevel\tRank\n";
-
-		// Affichage des parties
-		for (nPart = 0; nPart < oaParts.GetSize(); nPart++)
-		{
-			hdgPart = cast(CCHDGPart*, oaParts.GetAt(nPart));
-
-			// Caracteristiques de la partie
-			ost << hdgPart->GetPartName();
-			ost << "\t" << hdgPart->GetParentPartName();
-			ost << "\t" << hdgPart->GetPartFrequency();
-			ost << "\t" << hdgPart->GetInterest();
-			ost << "\t" << hdgPart->GetHierarchicalLevel();
-			ost << "\t" << hdgPart->GetRank();
-			if (bWriteHierarchicalRank)
-				ost << "\t" << hdgPart->GetHierarchicalRank();
-			if (KWFrequencyTable::GetWriteGranularityAndGarbage())
-			{
-				if (hdgPart == dgAttribute->GetGarbagePart())
-					ost << "\t"
-					    << "Garbage";
-			}
-			ost << "\n";
-		}
-		oaParts.SetSize(0);
-		ost << "\n";
-	}
-}
-
-void CCCoclusteringReport::WriteComposition(const CCHierarchicalDataGrid* coclusteringDataGrid, ostream& ost)
-{
-	CCHDGAttribute* dgAttribute;
-	int nAttribute;
-	KWDGPart* dgPart;
-	CCHDGPart* hdgPart;
-	KWDGValueSet* dgValueSet;
-	KWDGValue* dgValue;
-
-	require(coclusteringDataGrid != NULL);
-
-	// Parcours des attributs
-	for (nAttribute = 0; nAttribute < coclusteringDataGrid->GetAttributeNumber(); nAttribute++)
-	{
-		dgAttribute = cast(CCHDGAttribute*, coclusteringDataGrid->GetAttributeAt(nAttribute));
-
-		// Traitement uniquement des attributs groupables
-		if (KWType::IsCoclusteringGroupableType(dgAttribute->GetAttributeType()))
-		{
-			// Entete
-			ost << sKeyWordComposition << "\t" << dgAttribute->GetAttributeName() << "\n";
-			ost << "Cluster	Value	Frequency	Typicality\n";
-
-			// Parcours des parties
-			dgPart = dgAttribute->GetHeadPart();
-			while (dgPart != NULL)
-			{
-				hdgPart = cast(CCHDGPart*, dgPart);
-
-				// Parcours des valeurs
-				dgValueSet = hdgPart->GetValueSet();
-				dgValue = dgValueSet->GetHeadValue();
-				while (dgValue != NULL)
-				{
-					// Caracteristiques des valeurs
-					// (y compris la valeur par defaut, pour etre coherent avec l'export JSON)
-					ost << hdgPart->GetPartName() << "\t" << dgValue->GetObjectLabel() << "\t"
-					    << dgValue->GetValueFrequency() << "\t" << dgValue->GetTypicality() << "\n";
-
-					// Valeur suivante
-					dgValueSet->GetNextValue(dgValue);
-				}
-
-				// Partie suivante
-				dgAttribute->GetNextPart(dgPart);
-			}
-			ost << "\n";
-		}
-	}
-}
-
-void CCCoclusteringReport::WriteCells(const CCHierarchicalDataGrid* coclusteringDataGrid, ostream& ost)
-{
-	int nAttribute;
-	KWDGAttribute* dgAttribute;
-	CCHDGPart* hdgPart;
-	ObjectArray oaCells;
-	KWDGCell* cell;
-	int nCell;
-
-	require(coclusteringDataGrid != NULL);
-
-	// Entete
-	ost << sKeyWordCells << "\n";
-	for (nAttribute = 0; nAttribute < coclusteringDataGrid->GetAttributeNumber(); nAttribute++)
-	{
-		dgAttribute = coclusteringDataGrid->GetAttributeAt(nAttribute);
-		ost << dgAttribute->GetAttributeName() << "\t";
-	}
-	ost << "Frequency\n";
-
-	// Tri des cellules par valeurs des parties d'attribut (et non par adresse)
-	// en les rentrant prealablement dans un tableau
-	oaCells.SetSize(coclusteringDataGrid->GetCellNumber());
-	cell = coclusteringDataGrid->GetHeadCell();
-	nCell = 0;
-	while (cell != NULL)
-	{
-		oaCells.SetAt(nCell, cell);
-		coclusteringDataGrid->GetNextCell(cell);
-		nCell++;
-	}
-	oaCells.SetCompareFunction(KWDGCellCompareDecreasingFrequency);
-	oaCells.Sort();
-
-	// Affichage des cellules
-	for (nCell = 0; nCell < oaCells.GetSize(); nCell++)
-	{
-		cell = cast(KWDGCell*, oaCells.GetAt(nCell));
-
-		// On ignore les cellule d'effectif null (en principe, il n'y en a pas)
-		if (cell->GetCellFrequency() > 0)
-		{
-			// Affichage des identifiants des parties de la cellule
-			for (nAttribute = 0; nAttribute < cell->GetAttributeNumber(); nAttribute++)
-			{
-				hdgPart = cast(CCHDGPart*, cell->GetPartAt(nAttribute));
-				ost << hdgPart->GetPartName() << "\t";
-			}
-
-			// Affichage des effectifs par classe cible
-			ost << cell->GetCellFrequency() << "\n";
-		}
-	}
-	ost << "\n";
-}
-
-void CCCoclusteringReport::WriteAnnotation(const CCHierarchicalDataGrid* coclusteringDataGrid, ostream& ost)
-{
-	boolean bAnnotationUsed;
-	CCHDGAttribute* dgAttribute;
-	int nAttribute;
-	ObjectArray oaParts;
-	int nPart;
-	CCHDGPart* hdgPart;
-
-	require(coclusteringDataGrid != NULL);
-
-	// Parcours initial des attribut pour detecter l'utilisation d'annotations
-	bAnnotationUsed = false;
-	for (nAttribute = 0; nAttribute < coclusteringDataGrid->GetAttributeNumber(); nAttribute++)
-	{
-		dgAttribute = cast(CCHDGAttribute*, coclusteringDataGrid->GetAttributeAt(nAttribute));
-
-		// Exports de toutes les parties de la hierarchie en partant de la racine
-		oaParts.SetSize(0);
-		dgAttribute->ExportHierarchyParts(&oaParts);
-
-		// Parcours des parties
-		for (nPart = 0; nPart < oaParts.GetSize(); nPart++)
-		{
-			hdgPart = cast(CCHDGPart*, oaParts.GetAt(nPart));
-
-			// Arret si detection d'annotation
-			if (hdgPart->GetExpand() or hdgPart->GetSelected() or hdgPart->GetShortDescription() != "" or
-			    hdgPart->GetDescription() != "")
-			{
-				bAnnotationUsed = true;
-				break;
-			}
-		}
-		if (bAnnotationUsed)
-			break;
-	}
-
-	// Ecriture des section sur les annotation si necessaire
-	if (bAnnotationUsed)
-	{
-		for (nAttribute = 0; nAttribute < coclusteringDataGrid->GetAttributeNumber(); nAttribute++)
-		{
-			dgAttribute = cast(CCHDGAttribute*, coclusteringDataGrid->GetAttributeAt(nAttribute));
-
-			// Entete
-			ost << sKeyWordAnnotation << "\t" << dgAttribute->GetAttributeName() << "\n";
-			ost << "Cluster	Expand	Selected	ShortDescription	Description\n";
-
-			// Exports de toutes les parties de la hierarchie en partant de la racine
-			oaParts.SetSize(0);
-			dgAttribute->ExportHierarchyParts(&oaParts);
-
-			// Tri pour respecter l'ordre d'affichage
-			oaParts.SetCompareFunction(CCHDGPartCompareLeafRank);
-			oaParts.Sort();
-
-			// Affichage des parties
-			for (nPart = 0; nPart < oaParts.GetSize(); nPart++)
-			{
-				hdgPart = cast(CCHDGPart*, oaParts.GetAt(nPart));
-
-				// Caracteristiques de type annotation des parties
-				ost << hdgPart->GetPartName() << "\t";
-				if (hdgPart->GetExpand())
-					ost << sKeyWordTrue << "\t";
-				else
-					ost << sKeyWordFalse << "\t";
-				if (hdgPart->GetSelected())
-					ost << sKeyWordTrue << "\t";
-				else
-					ost << sKeyWordFalse << "\t";
-				ost << hdgPart->GetShortDescription() << "\t";
-				ost << hdgPart->GetDescription() << "\n";
-			}
-			ost << "\n";
-		}
-	}
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////
-
-boolean CCCoclusteringReport::OpenInputCoclusteringReportFile(const ALString& sFileName)
-{
-	boolean bOk = true;
-
-	require(fReport == NULL);
-	require(sFileBuffer == NULL);
-
-	// Initialisation des caracteristiques du fichier
-	fReport = NULL;
-	nLineIndex = 1;
-	bEndOfLine = false;
-	sReportFileName = sFileName;
-	nHeaderInstanceNumber = 0;
-	nHeaderCellNumber = 0;
-
-	// Copie depuis HDFS si necessaire
-	bOk = PLRemoteFileService::BuildInputWorkingFile(sReportFileName, sLocalFileName);
-
-	// Tentative d'ouverture du fichier en mode binaire
-	if (bOk)
-		bOk = FileService::OpenInputBinaryFile(sLocalFileName, fReport);
-	assert(fReport != NULL or not bOk);
-
-	// Creation d'un buffer de lecture si necessaire
-	if (bOk)
-		sFileBuffer = NewCharArray((longint)nMaxFieldSize + 1);
-	else
-	{
-		sReportFileName = "";
-		nLineIndex = 0;
-	}
-	return bOk;
-}
-
-void CCCoclusteringReport::CloseCoclusteringReportFile()
-{
-	require(fReport != NULL);
-
-	FileService::CloseInputBinaryFile(sLocalFileName, fReport);
-
-	// Si le fichier est sur HDFS, on supprime la copie locale
-	PLRemoteFileService::CleanInputWorkingFile(sReportFileName, sLocalFileName);
-
-	fReport = NULL;
-	nLineIndex = 0;
-	bEndOfLine = false;
-	DeleteCharArray(sFileBuffer);
-	sFileBuffer = NULL;
-	sReportFileName = "";
-	nHeaderCellNumber = 0;
-	nHeaderInstanceNumber = 0;
-}
-
-/////////////////////////////////////////////////////////////////////////////////
-// Implementation inspiree de la methode KWDataTableDriverTextFile::ReadNextField()
-char* CCCoclusteringReport::ReadNextField()
-{
-	const char cFieldSeparator = '\t';
-	char c;
-	int i;
-	boolean bFieldTooLong;
-
-	require(fReport != NULL);
-	require(sFileBuffer != NULL);
-
-	// Arret immediat si fin de ligne ou de fichier
-	sFileBuffer[0] = '\0';
-	if (bEndOfLine or feof(fReport))
-		return sFileBuffer;
-
-	// Lecture des caracteres du token
-	i = 0;
-	bFieldTooLong = false;
-	while (not feof(fReport))
-	{
-		c = (char)fgetc(fReport);
-
-		// Test de fin de ligne
-		// Attention: la fin de fichier n'est detectee qu'apres la derniere lecture de caractere
-		// et dans ce cas, il n'y a pas de dernier caractere lu a memoriser
-		bEndOfLine = c == '\n' or feof(fReport);
-
-		// Test fin de champ
-		if (bEndOfLine or c == cFieldSeparator)
-		{
-			// Fin du champ
-			sFileBuffer[i] = '\0';
-
-			// Supression des blancs en fin (TrimRight)
-			while (i > 0)
-			{
-				i--;
-				if (not iswspace(sFileBuffer[i]))
-					break;
-				sFileBuffer[i] = '\0';
-			}
-			return sFileBuffer;
-		}
-
-		// Test de depassement de longueur
-		if (i == (int)nMaxFieldSize)
-		{
-			sFileBuffer[i] = '\0';
-			bFieldTooLong = true;
-
-			// Warning
-			if (bFieldTooLong)
-				AddWarning("Field too long");
-
-			// Supression des blancs en fin (TrimRight)
-			while (i > 0)
-			{
-				i--;
-				if (not iswspace(sFileBuffer[i]))
-					break;
-				sFileBuffer[i] = '\0';
-			}
-
-			// On lit le fichier jusqu'a la fin du champ sans memorisation
-			while (not feof(fReport))
-			{
-				c = (char)fgetc(fReport);
-
-				// Test de fin de ligne ou de champ
-				bEndOfLine = c == '\n' or feof(fReport);
-				if (bEndOfLine or c == cFieldSeparator)
-					return sFileBuffer;
-			}
-			assert(false);
-		}
-
-		// Mise a jour du champ sauf si caractere blanc (TrimLeft) en debut
-		// et si caractere different de CR
-		if (c != '\r' and (i > 0 or not iswspace(c)))
-		{
-			sFileBuffer[i] = c;
-			i++;
-		}
-	}
-	return sFileBuffer;
-}
-
-void CCCoclusteringReport::SkipLine()
-{
-	char c;
-
-	require(fReport != NULL);
-
-	// Saut d'une ligne
-	while (not bEndOfLine)
-	{
-		c = (char)fgetc(fReport);
-		bEndOfLine = c == '\n' or feof(fReport);
-	}
-	nLineIndex++;
-	bEndOfLine = false;
-}
-
-boolean CCCoclusteringReport::IsEndOfLine()
-{
-	require(fReport != NULL);
-	return bEndOfLine;
-}
-
-boolean CCCoclusteringReport::IsEndOfFile()
-{
-	require(fReport != NULL);
-	return feof(fReport);
-}
-
-boolean CCCoclusteringReport::InternalReadJSONReport(CCHierarchicalDataGrid* coclusteringDataGrid, boolean bHeaderOnly)
 {
 	boolean bOk = true;
 	boolean bIsEnd = false;
@@ -2654,19 +372,19 @@ boolean CCCoclusteringReport::InternalReadJSONReport(CCHierarchicalDataGrid* coc
 	}
 
 	// Lecture chaque section du rapport JSON de coclustering
-	bOk = bOk and ReadJSONSummary(coclusteringDataGrid);
+	bOk = bOk and ReadSummary(coclusteringDataGrid);
 	bOk = bOk and JSONTokenizer::ReadExpectedToken(',');
-	bOk = bOk and ReadJSONDimensionSummaries(coclusteringDataGrid);
+	bOk = bOk and ReadDimensionSummaries(coclusteringDataGrid);
 
 	// Lecture detailles
 	if (not bHeaderOnly)
 	{
 		bOk = bOk and JSONTokenizer::ReadExpectedToken(',');
-		bOk = bOk and ReadJSONDimensionPartitions(coclusteringDataGrid);
+		bOk = bOk and ReadDimensionPartitions(coclusteringDataGrid);
 		bOk = bOk and JSONTokenizer::ReadExpectedToken(',');
-		bOk = bOk and ReadJSONDimensionHierarchies(coclusteringDataGrid);
+		bOk = bOk and ReadDimensionHierarchies(coclusteringDataGrid);
 		bOk = bOk and JSONTokenizer::ReadExpectedToken(',');
-		bOk = bOk and ReadJSONCells(coclusteringDataGrid);
+		bOk = bOk and ReadCells(coclusteringDataGrid);
 	}
 
 	// Gestion des erreurs
@@ -2674,7 +392,7 @@ boolean CCCoclusteringReport::InternalReadJSONReport(CCHierarchicalDataGrid* coc
 	return bOk;
 }
 
-boolean CCCoclusteringReport::ReadJSONSummary(CCHierarchicalDataGrid* coclusteringDataGrid)
+boolean CCCoclusteringReport::ReadSummary(CCHierarchicalDataGrid* coclusteringDataGrid)
 {
 	boolean bOk = true;
 	boolean bIsEnd = false;
@@ -2774,7 +492,7 @@ boolean CCCoclusteringReport::ReadJSONSummary(CCHierarchicalDataGrid* coclusteri
 	return bOk;
 }
 
-boolean CCCoclusteringReport::ReadJSONDimensionSummaries(CCHierarchicalDataGrid* coclusteringDataGrid)
+boolean CCCoclusteringReport::ReadDimensionSummaries(CCHierarchicalDataGrid* coclusteringDataGrid)
 {
 	boolean bOk = true;
 	boolean bIsEnd = false;
@@ -3012,7 +730,7 @@ boolean CCCoclusteringReport::ReadJSONDimensionSummaries(CCHierarchicalDataGrid*
 	return bOk;
 }
 
-boolean CCCoclusteringReport::ReadJSONInnerAttributesDimensionSummaries(KWDGAttribute* dgAttribute)
+boolean CCCoclusteringReport::ReadInnerAttributesDimensionSummaries(KWDGAttribute* dgAttribute)
 {
 	boolean bOk = true;
 	boolean bIsEnd = false;
@@ -3133,7 +851,7 @@ boolean CCCoclusteringReport::ReadJSONInnerAttributesDimensionSummaries(KWDGAttr
 	return bOk;
 }
 
-boolean CCCoclusteringReport::ReadJSONDimensionPartitions(CCHierarchicalDataGrid* coclusteringDataGrid)
+boolean CCCoclusteringReport::ReadDimensionPartitions(CCHierarchicalDataGrid* coclusteringDataGrid)
 {
 	boolean bOk = true;
 	ObjectDictionary odCheckedParts;
@@ -3202,7 +920,7 @@ boolean CCCoclusteringReport::ReadJSONDimensionPartitions(CCHierarchicalDataGrid
 			bOk = false;
 		}
 
-		bOk = bOk and ReadJSONAttributePartition(dgAttribute, coclusteringDataGrid);
+		bOk = bOk and ReadAttributePartition(dgAttribute, coclusteringDataGrid);
 
 		// Test si nouvel objet
 		bOk = bOk and JSONTokenizer::ReadArrayNext(bIsAttributeEnd);
@@ -3220,8 +938,8 @@ boolean CCCoclusteringReport::ReadJSONDimensionPartitions(CCHierarchicalDataGrid
 	return bOk;
 }
 
-boolean CCCoclusteringReport::ReadJSONAttributePartition(KWDGAttribute* dgAttribute,
-							 CCHierarchicalDataGrid* coclusteringDataGrid)
+boolean CCCoclusteringReport::ReadAttributePartition(KWDGAttribute* dgAttribute,
+						     CCHierarchicalDataGrid* coclusteringDataGrid)
 {
 	boolean bOk = true;
 	boolean bIsPartEnd;
@@ -3256,7 +974,7 @@ boolean CCCoclusteringReport::ReadJSONAttributePartition(KWDGAttribute* dgAttrib
 		bOk = bOk and JSONTokenizer::ReadKeyObject("innerVariables");
 
 		// Descriptif des variables internes dans l'attribut de type VarPart
-		bOk = bOk and ReadJSONInnerAttributesDimensionSummaries(dgAttribute);
+		bOk = bOk and ReadInnerAttributesDimensionSummaries(dgAttribute);
 		bOk = bOk and JSONTokenizer::ReadExpectedToken(',');
 
 		// Tableau des variables internes dans l'attribut de type VarPart
@@ -3316,7 +1034,7 @@ boolean CCCoclusteringReport::ReadJSONAttributePartition(KWDGAttribute* dgAttrib
 				bOk = false;
 			}
 
-			bOk = bOk and ReadJSONAttributePartition(innerAttribute, coclusteringDataGrid);
+			bOk = bOk and ReadAttributePartition(innerAttribute, coclusteringDataGrid);
 
 			// Memorisation des informations sur les parties de l'attribut
 			if (bOk)
@@ -3400,9 +1118,9 @@ boolean CCCoclusteringReport::ReadJSONAttributePartition(KWDGAttribute* dgAttrib
 		if (bOk)
 		{
 			if (dgAttribute->GetAttributeType() == KWType::Continuous)
-				bOk = bOk and ReadJSONInterval(dgAttribute, dgPart);
+				bOk = bOk and ReadInterval(dgAttribute, dgPart);
 			else if (dgAttribute->GetAttributeType() == KWType::Symbol)
-				bOk = bOk and ReadJSONValueGroup(dgAttribute, dgPart);
+				bOk = bOk and ReadValueGroup(dgAttribute, dgPart);
 			// CH IV Begin
 			else if (dgAttribute->GetAttributeType() == KWType::VarPart)
 			{
@@ -3416,12 +1134,12 @@ boolean CCCoclusteringReport::ReadJSONAttributePartition(KWDGAttribute* dgAttrib
 				//    attributs internes
 				//  - les deux ensembles de varPartIds doivent etre exactement les meme
 				//  (tous ceux declares sont utilises)
-				// Par contre, lors de la regeneration du fichier json, ces libellés
-				// sont déduits des parties, et ne sont pas necessairement ceux qui
+				// Par contre, lors de la regeneration du fichier json, ces libelles
+				// sont deduits des parties, et ne sont pas necessairement ceux qui
 				// etaient en entree (mais la structure est preservee).
-				bOk = bOk and ReadJSONVarPartAttributeValueGroup(dgAttribute, dgPart,
-										 &odInnerAttributesAllVarParts,
-										 &odVarPartAttributeAllVarParts);
+				bOk = bOk and
+				      ReadVarPartAttributeValueGroup(dgAttribute, dgPart, &odInnerAttributesAllVarParts,
+								     &odVarPartAttributeAllVarParts);
 			}
 			// CH IV End
 		}
@@ -3555,7 +1273,7 @@ boolean CCCoclusteringReport::ReadJSONAttributePartition(KWDGAttribute* dgAttrib
 	return bOk;
 }
 
-boolean CCCoclusteringReport::ReadJSONInterval(KWDGAttribute* dgAttribute, KWDGPart* dgPart)
+boolean CCCoclusteringReport::ReadInterval(KWDGAttribute* dgAttribute, KWDGPart* dgPart)
 {
 	boolean bOk = true;
 	boolean bIsEnd;
@@ -3620,7 +1338,7 @@ boolean CCCoclusteringReport::ReadJSONInterval(KWDGAttribute* dgAttribute, KWDGP
 	return bOk;
 }
 
-boolean CCCoclusteringReport::ReadJSONValueGroup(KWDGAttribute* dgAttribute, KWDGPart* dgPart)
+boolean CCCoclusteringReport::ReadValueGroup(KWDGAttribute* dgAttribute, KWDGPart* dgPart)
 {
 	boolean bOk = true;
 	ObjectDictionary odChekedValues;
@@ -3698,7 +1416,7 @@ boolean CCCoclusteringReport::ReadJSONValueGroup(KWDGAttribute* dgAttribute, KWD
 		bOk = bOk and JSONTokenizer::ReadExpectedToken(',');
 
 		// Tableau des typicalites
-		bOk = bOk and ReadJSONTypicalities(dgAttribute, svValues.GetSize(), &dvValueTypicalities);
+		bOk = bOk and ReadTypicalities(dgAttribute, svValues.GetSize(), &dvValueTypicalities);
 	}
 
 	// Fin de l'objet
@@ -3725,9 +1443,9 @@ boolean CCCoclusteringReport::ReadJSONValueGroup(KWDGAttribute* dgAttribute, KWD
 	return bOk;
 }
 
-boolean CCCoclusteringReport::ReadJSONVarPartAttributeValueGroup(KWDGAttribute* varPartAttribute, KWDGPart* dgPart,
-								 const ObjectDictionary* odInnerAttributesAllVarParts,
-								 ObjectDictionary* odVarPartAttributeAllVarParts)
+boolean CCCoclusteringReport::ReadVarPartAttributeValueGroup(KWDGAttribute* varPartAttribute, KWDGPart* dgPart,
+							     const ObjectDictionary* odInnerAttributesAllVarParts,
+							     ObjectDictionary* odVarPartAttributeAllVarParts)
 {
 	boolean bOk = true;
 	boolean bIsEnd;
@@ -3829,7 +1547,7 @@ boolean CCCoclusteringReport::ReadJSONVarPartAttributeValueGroup(KWDGAttribute* 
 	bOk = bOk and JSONTokenizer::ReadExpectedToken(',');
 
 	// Tableau des typicalites
-	bOk = bOk and ReadJSONTypicalities(varPartAttribute, svValues.GetSize(), &dvValueTypicalities);
+	bOk = bOk and ReadTypicalities(varPartAttribute, svValues.GetSize(), &dvValueTypicalities);
 
 	// Fin de l'objet
 	bOk = bOk and JSONTokenizer::ReadExpectedToken('}');
@@ -3862,8 +1580,8 @@ boolean CCCoclusteringReport::ReadJSONVarPartAttributeValueGroup(KWDGAttribute* 
 	return bOk;
 }
 
-boolean CCCoclusteringReport::ReadJSONTypicalities(KWDGAttribute* dgAttribute, int nValueNumber,
-						   DoubleVector* dvValueTypicalities)
+boolean CCCoclusteringReport::ReadTypicalities(KWDGAttribute* dgAttribute, int nValueNumber,
+					       DoubleVector* dvValueTypicalities)
 {
 	boolean bOk = true;
 	boolean bIsEnd;
@@ -3915,7 +1633,7 @@ boolean CCCoclusteringReport::ReadJSONTypicalities(KWDGAttribute* dgAttribute, i
 }
 // CH IV End
 
-boolean CCCoclusteringReport::ReadJSONDimensionHierarchies(CCHierarchicalDataGrid* coclusteringDataGrid)
+boolean CCCoclusteringReport::ReadDimensionHierarchies(CCHierarchicalDataGrid* coclusteringDataGrid)
 {
 	boolean bOk = true;
 	boolean bIsAttributeEnd;
@@ -4236,7 +1954,7 @@ boolean CCCoclusteringReport::ReadJSONDimensionHierarchies(CCHierarchicalDataGri
 	return bOk;
 }
 
-boolean CCCoclusteringReport::ReadJSONCells(CCHierarchicalDataGrid* coclusteringDataGrid)
+boolean CCCoclusteringReport::ReadCells(CCHierarchicalDataGrid* coclusteringDataGrid)
 {
 	boolean bOk = true;
 	boolean bIsEnd;
@@ -4410,7 +2128,7 @@ boolean CCCoclusteringReport::ReadJSONCells(CCHierarchicalDataGrid* coclustering
 	return bOk;
 }
 
-void CCCoclusteringReport::InternalWriteJSONReport(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON)
+void CCCoclusteringReport::InternalWriteReport(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON)
 {
 	require(coclusteringDataGrid != NULL);
 	require(fReport == NULL);
@@ -4429,15 +2147,15 @@ void CCCoclusteringReport::InternalWriteJSONReport(const CCHierarchicalDataGrid*
 
 	// Ecriture de chaque section du rapport JSON de coclustering
 	fJSON->BeginKeyObject("coclusteringReport");
-	WriteJSONSummary(coclusteringDataGrid, fJSON);
-	WriteJSONDimensionSummaries(coclusteringDataGrid, fJSON);
-	WriteJSONDimensionPartitions(coclusteringDataGrid, fJSON);
-	WriteJSONDimensionHierarchies(coclusteringDataGrid, fJSON);
-	WriteJSONCells(coclusteringDataGrid, fJSON);
+	WriteSummary(coclusteringDataGrid, fJSON);
+	WriteDimensionSummaries(coclusteringDataGrid, fJSON);
+	WriteDimensionPartitions(coclusteringDataGrid, fJSON);
+	WriteDimensionHierarchies(coclusteringDataGrid, fJSON);
+	WriteCells(coclusteringDataGrid, fJSON);
 	fJSON->EndObject();
 }
 
-void CCCoclusteringReport::WriteJSONSummary(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON)
+void CCCoclusteringReport::WriteSummary(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON)
 {
 	require(coclusteringDataGrid != NULL);
 	require(fJSON != NULL);
@@ -4471,8 +2189,7 @@ void CCCoclusteringReport::WriteJSONSummary(const CCHierarchicalDataGrid* coclus
 	fJSON->SetCamelCaseKeys(false);
 }
 
-void CCCoclusteringReport::WriteJSONDimensionSummaries(const CCHierarchicalDataGrid* coclusteringDataGrid,
-						       JSONFile* fJSON)
+void CCCoclusteringReport::WriteDimensionSummaries(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON)
 {
 	int nAttribute;
 	CCHDGAttribute* dgAttribute;
@@ -4486,12 +2203,12 @@ void CCCoclusteringReport::WriteJSONDimensionSummaries(const CCHierarchicalDataG
 	{
 		dgAttribute = cast(CCHDGAttribute*, coclusteringDataGrid->GetAttributeAt(nAttribute));
 
-		WriteJSONDimensionSummary(dgAttribute, fJSON);
+		WriteDimensionSummary(dgAttribute, fJSON);
 	}
 	fJSON->EndArray();
 }
 
-void CCCoclusteringReport::WriteJSONDimensionSummary(CCHDGAttribute* attribute, JSONFile* fJSON)
+void CCCoclusteringReport::WriteDimensionSummary(CCHDGAttribute* attribute, JSONFile* fJSON)
 {
 	int nValueNumber;
 
@@ -4521,8 +2238,7 @@ void CCCoclusteringReport::WriteJSONDimensionSummary(CCHDGAttribute* attribute, 
 	fJSON->EndObject();
 }
 
-void CCCoclusteringReport::WriteJSONDimensionPartitions(const CCHierarchicalDataGrid* coclusteringDataGrid,
-							JSONFile* fJSON)
+void CCCoclusteringReport::WriteDimensionPartitions(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON)
 {
 	int nAttribute;
 	KWDGAttribute* attribute;
@@ -4538,12 +2254,12 @@ void CCCoclusteringReport::WriteJSONDimensionPartitions(const CCHierarchicalData
 
 		// Ecriture de la partition de l'attribut
 		// Dans le cas d'un attribut de type VarPart, declenche l'ecriture de ses innerAttributes
-		WriteJSONAttributePartition(attribute, fJSON);
+		WriteAttributePartition(attribute, fJSON);
 	}
 	fJSON->EndArray();
 }
 
-void CCCoclusteringReport::WriteJSONAttributePartition(KWDGAttribute* attribute, JSONFile* fJSON)
+void CCCoclusteringReport::WriteAttributePartition(KWDGAttribute* attribute, JSONFile* fJSON)
 {
 	CCHDGAttribute* dgAttribute;
 	KWDGPart* dgPart;
@@ -4612,7 +2328,7 @@ void CCCoclusteringReport::WriteJSONAttributePartition(KWDGAttribute* attribute,
 
 		// Ecriture des attributs internes dans le cas d'un attribut VarPart
 		if (attribute->GetAttributeType() == KWType::VarPart)
-			WriteJSONInnerAttributes(attribute->GetInnerAttributes(), fJSON);
+			WriteInnerAttributes(attribute->GetInnerAttributes(), fJSON);
 
 		// Parcours des groupes de parties de variable
 		fJSON->BeginKeyArray("valueGroups");
@@ -4692,7 +2408,7 @@ void CCCoclusteringReport::WriteJSONAttributePartition(KWDGAttribute* attribute,
 	fJSON->EndObject();
 }
 
-void CCCoclusteringReport::WriteJSONInnerAttributes(const KWDGInnerAttributes* innerAttributes, JSONFile* fJSON)
+void CCCoclusteringReport::WriteInnerAttributes(const KWDGInnerAttributes* innerAttributes, JSONFile* fJSON)
 {
 	CCHDGAttribute* innerAttribute;
 	int nAttribute;
@@ -4708,7 +2424,7 @@ void CCCoclusteringReport::WriteJSONInnerAttributes(const KWDGInnerAttributes* i
 	for (nAttribute = 0; nAttribute < innerAttributes->GetInnerAttributeNumber(); nAttribute++)
 	{
 		innerAttribute = cast(CCHDGAttribute*, innerAttributes->GetInnerAttributeAt(nAttribute));
-		WriteJSONDimensionSummary(innerAttribute, fJSON);
+		WriteDimensionSummary(innerAttribute, fJSON);
 	}
 	fJSON->EndArray();
 
@@ -4717,7 +2433,7 @@ void CCCoclusteringReport::WriteJSONInnerAttributes(const KWDGInnerAttributes* i
 	for (nAttribute = 0; nAttribute < innerAttributes->GetInnerAttributeNumber(); nAttribute++)
 	{
 		innerAttribute = cast(CCHDGAttribute*, innerAttributes->GetInnerAttributeAt(nAttribute));
-		WriteJSONAttributePartition(innerAttribute, fJSON);
+		WriteAttributePartition(innerAttribute, fJSON);
 	}
 	fJSON->EndArray();
 
@@ -4725,8 +2441,8 @@ void CCCoclusteringReport::WriteJSONInnerAttributes(const KWDGInnerAttributes* i
 	fJSON->EndObject();
 }
 
-void CCCoclusteringReport::WriteJSONDimensionHierarchies(const CCHierarchicalDataGrid* coclusteringDataGrid,
-							 JSONFile* fJSON)
+void CCCoclusteringReport::WriteDimensionHierarchies(const CCHierarchicalDataGrid* coclusteringDataGrid,
+						     JSONFile* fJSON)
 {
 	CCHDGAttribute* dgAttribute;
 	int nAttribute;
@@ -4790,7 +2506,7 @@ void CCCoclusteringReport::WriteJSONDimensionHierarchies(const CCHierarchicalDat
 	fJSON->EndArray();
 }
 
-void CCCoclusteringReport::WriteJSONCells(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON)
+void CCCoclusteringReport::WriteCells(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON)
 {
 	int nAttribute;
 	KWDGAttribute* dgAttribute;

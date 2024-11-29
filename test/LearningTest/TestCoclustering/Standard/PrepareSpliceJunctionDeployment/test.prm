@@ -30,7 +30,7 @@ LearningTools.PrepareDeployment          // Prepare deployment...
 SelectInputCoclustering        // Select input coclustering...
 
 // -> Open
-InputCoclusteringFileName ./SpliceJunctionDNACoclustering.khc   // Input coclustering file
+InputCoclusteringFileName ./SpliceJunctionDNACoclustering.khcj   // Input coclustering file
 OK                             // Open
 // <- Open
 

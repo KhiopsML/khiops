@@ -43,10 +43,6 @@ public:
 	const ALString& GetShortDescription() const;
 	void SetShortDescription(const ALString& sValue);
 
-	// Export as khc
-	boolean GetExportAsKhc() const;
-	void SetExportAsKhc(boolean bValue);
-
 	// Input coclustering report
 	const ALString& GetInputCoclusteringFileName() const;
 	void SetInputCoclusteringFileName(const ALString& sValue);
@@ -87,7 +83,6 @@ protected:
 	// Attributs de la classe
 	ALString sCoclusteringFileName;
 	ALString sShortDescription;
-	boolean bExportAsKhc;
 	ALString sInputCoclusteringFileName;
 	ALString sClusterFileName;
 	ALString sPostProcessedCoclusteringFileName;
@@ -122,16 +117,6 @@ inline const ALString& CCAnalysisResults::GetShortDescription() const
 inline void CCAnalysisResults::SetShortDescription(const ALString& sValue)
 {
 	sShortDescription = sValue;
-}
-
-inline boolean CCAnalysisResults::GetExportAsKhc() const
-{
-	return bExportAsKhc;
-}
-
-inline void CCAnalysisResults::SetExportAsKhc(boolean bValue)
-{
-	bExportAsKhc = bValue;
 }
 
 inline const ALString& CCAnalysisResults::GetInputCoclusteringFileName() const

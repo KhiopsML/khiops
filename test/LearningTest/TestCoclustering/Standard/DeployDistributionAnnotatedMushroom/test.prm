@@ -30,7 +30,7 @@ LearningTools.PostProcessCoclustering    // Simplify coclustering...
 SelectInputCoclustering        // Select input coclustering...
 
 // -> Open
-InputCoclusteringFileName ./Coclustering.khc  // Input coclustering file
+InputCoclusteringFileName ./Coclustering.khcj  // Input coclustering file
 OK                             // Open
 // <- Open
 
@@ -46,7 +46,7 @@ LearningTools.PrepareDeployment          // Prepare deployment...
 SelectInputCoclustering        // Select input coclustering...
 
 // -> Open
-InputCoclusteringFileName ./Coclustering.khc // Input coclustering file
+InputCoclusteringFileName ./Coclustering.khcj // Input coclustering file
 OK                             // Open
 // <- Open
 

@@ -9,5 +9,5 @@ Database ../../../datasets/Iris/Iris.txt : Read records: 150
   0:00:00	Write intermediate report Coclustering(2).khcj	Level: 0.0676747	Size: 3*3	Granularity: 3
   0:00:00	Write intermediate report Coclustering(3).khcj	Level: 0.0850057	Size: 3*3
 Write coclustering report ./results/Coclustering.khcj
-Coclustering analysis time: 0:00:00.03
+Coclustering analysis time: 0:00:00.02
 

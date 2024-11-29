@@ -122,10 +122,6 @@ public:
 	void SetReportFileName(const ALString& sFileName);
 	const ALString& GetReportFileName() const;
 
-	// Export Khc (defaut: true)
-	boolean GetExportAsKhc() const;
-	void SetExportAsKhc(boolean bValue);
-
 	// Supression du dernier fichier temporaire sauvegarde
 	void RemoveLastSavedReportFile() const;
 
@@ -333,7 +329,4 @@ protected:
 	mutable double dAnyTimeDefaultCost;
 	mutable double dAnyTimeBestCost;
 	mutable boolean bIsDefaultCostComputed;
-
-	// Export des rapports au format Khc
-	boolean bExportAsKhc;
 };

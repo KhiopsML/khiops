@@ -21,7 +21,7 @@ SelectInputCoclustering        // Select input coclustering...
 // -> Cluster extraction
 
 // -> Open
-InputCoclusteringFileName ./AdultCoclustering.khc   // Input coclustering file
+InputCoclusteringFileName ./AdultCoclustering.khcj   // Input coclustering file
 OK                             // Open
 // <- Open
 

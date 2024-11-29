@@ -289,8 +289,8 @@ void CCPostProcessingSpec::UpdateCoclusteringSpec(const ALString& sCoclusteringR
 
 	// Lecture de l'entete du rapport de coclustering
 	if (bOk)
-		bOk = coclusteringReport.ReadGenericReportHeader(sCoclusteringReportFileName, &coclusteringDataGrid,
-								 nInstanceNumber, nNonEmptyCellNumber);
+		bOk = coclusteringReport.ReadReportHeader(sCoclusteringReportFileName, &coclusteringDataGrid,
+							  nInstanceNumber, nNonEmptyCellNumber);
 
 	// On rappatrie les informations du rapport
 	if (bOk)

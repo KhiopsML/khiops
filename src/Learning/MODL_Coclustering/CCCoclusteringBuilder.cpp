@@ -16,7 +16,6 @@ CCCoclusteringBuilder::CCCoclusteringBuilder()
 	dAnyTimeDefaultCost = 0;
 	dAnyTimeBestCost = 0;
 	bIsDefaultCostComputed = false;
-	bExportAsKhc = true;
 	bVarPartCoclustering = false;
 }
 
@@ -1813,27 +1812,10 @@ const ALString& CCCoclusteringBuilder::GetReportFileName() const
 	return sAnyTimeReportFileName;
 }
 
-boolean CCCoclusteringBuilder::GetExportAsKhc() const
-{
-	return bExportAsKhc;
-}
-
-void CCCoclusteringBuilder::SetExportAsKhc(boolean bValue)
-{
-	bExportAsKhc = bValue;
-}
-
 void CCCoclusteringBuilder::RemoveLastSavedReportFile() const
 {
 	if (sLastActualAnyTimeReportFileName != "")
-	{
 		PLRemoteFileService::RemoveFile(sLastActualAnyTimeReportFileName);
-
-		// Destruction eventuelle du rapport au format khc
-		if (GetExportAsKhc())
-			PLRemoteFileService::RemoveFile(FileService::SetFileSuffix(
-			    sLastActualAnyTimeReportFileName, CCCoclusteringReport::GetKhcReportSuffix()));
-	}
 	sLastActualAnyTimeReportFileName = "";
 }
 
@@ -1998,16 +1980,8 @@ void CCCoclusteringBuilder::HandleOptimizationStep(const KWDataGrid* optimizedDa
 		// Sauvegarde dans un fichier temporaire
 		// On supprime le mode verbeux pour les sauvegardes intermediaires
 		JSONFile::SetVerboseMode(bIsLastSaving);
-		bWriteOk = coclusteringReport.WriteJSONReport(sReportFileName, coclusteringDataGrid);
+		bWriteOk = coclusteringReport.WriteReport(sReportFileName, coclusteringDataGrid);
 		JSONFile::SetVerboseMode(true);
-
-		// Sauvegarde au format Khc necessaire
-		if (bWriteOk and GetExportAsKhc())
-		{
-			coclusteringReport.WriteReport(
-			    FileService::SetFileSuffix(sReportFileName, CCCoclusteringReport::GetKhcReportSuffix()),
-			    coclusteringDataGrid);
-		}
 
 		// Destruction de la precedente sauvegarde
 		if (not bKeepIntermediateReports and bWriteOk)

@@ -27,7 +27,7 @@ LearningTools.PrepareDeployment          // Prepare deployment...
 SelectInputCoclustering        // Select input coclustering...
 
 // -> Open
-InputCoclusteringFileName ./AdultCoclusteringFrequency.khc   // Input coclustering file
+InputCoclusteringFileName ./AdultCoclusteringFrequency.khcj   // Input coclustering file
 OK                             // Open
 // <- Open
 

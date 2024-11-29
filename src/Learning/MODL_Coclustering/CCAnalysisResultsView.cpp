@@ -14,7 +14,6 @@ CCAnalysisResultsView::CCAnalysisResultsView()
 	SetLabel("Results");
 	AddStringField("CoclusteringFileName", "Coclustering report", "");
 	AddStringField("ShortDescription", "Short description", "");
-	AddBooleanField("ExportAsKhc", "Export as khc", false);
 
 	// Parametrage des styles;
 	GetFieldAt("CoclusteringFileName")->SetStyle("FileChooser");
@@ -25,9 +24,6 @@ CCAnalysisResultsView::CCAnalysisResultsView()
 	AddAction("VisualizeReport", "Visualize report", (ActionMethod)(&CCAnalysisResultsView::VisualizeReport));
 	GetActionAt("VisualizeReport")->SetStyle("Button");
 
-	// Le format khc est DEPRECATED et amene a disparaitre des que possible
-	GetFieldAt("ExportAsKhc")->SetVisible(false);
-
 	// Info-bulles
 	GetFieldAt("CoclusteringFileName")
 	    ->SetHelpText(
@@ -37,7 +33,6 @@ CCAnalysisResultsView::CCAnalysisResultsView()
 	GetFieldAt("ShortDescription")
 	    ->SetHelpText(
 		"Brief description to summarize the current analysis, which will be included in the reports.");
-	GetFieldAt("ExportAsKhc")->SetHelpText("Export the coclustering report under the khc format.");
 	GetActionAt("VisualizeReport")
 	    ->SetHelpText("Visualize coclustering report if available, using Khiops covisualization tool.");
 
@@ -66,7 +61,6 @@ void CCAnalysisResultsView::EventUpdate(Object* object)
 	editedObject = cast(CCAnalysisResults*, object);
 	editedObject->SetCoclusteringFileName(GetStringValueAt("CoclusteringFileName"));
 	editedObject->SetShortDescription(GetStringValueAt("ShortDescription"));
-	editedObject->SetExportAsKhc(GetBooleanValueAt("ExportAsKhc"));
 
 	// ## Custom update
 
@@ -82,7 +76,6 @@ void CCAnalysisResultsView::EventRefresh(Object* object)
 	editedObject = cast(CCAnalysisResults*, object);
 	SetStringValueAt("CoclusteringFileName", editedObject->GetCoclusteringFileName());
 	SetStringValueAt("ShortDescription", editedObject->GetShortDescription());
-	SetBooleanValueAt("ExportAsKhc", editedObject->GetExportAsKhc());
 
 	// ## Custom refresh
 
