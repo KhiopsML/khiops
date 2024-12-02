@@ -571,7 +571,7 @@ void KWDescriptiveSymbolStats::WriteJSONFields(JSONFile* fJSON)
 	// Statistiques descriptives
 	fJSON->WriteKeyInt("values", GetValueNumber());
 	fJSON->WriteKeyString("mode", GetMode().GetValue());
-	fJSON->WriteKeyDouble("modeFrequency", GetModeFrequency());
+	fJSON->WriteKeyContinuous("modeFrequency", GetModeFrequency());
 	fJSON->WriteKeyInt("missingNumber", GetMissingValueNumber());
 	fJSON->WriteKeyInt("sparseMissingNumber", GetSparseMissingValueNumber());
 }

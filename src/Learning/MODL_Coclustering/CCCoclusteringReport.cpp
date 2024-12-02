@@ -2230,8 +2230,8 @@ void CCCoclusteringReport::WriteDimensionSummary(CCHDGAttribute* attribute, JSON
 		fJSON->WriteKeyBoolean("garbage", (attribute->GetGarbageModalityNumber() > 0));
 	if (attribute->GetAttributeType() == KWType::Continuous)
 	{
-		fJSON->WriteKeyDouble("min", attribute->GetMin());
-		fJSON->WriteKeyDouble("max", attribute->GetMax());
+		fJSON->WriteKeyContinuous("min", attribute->GetMin());
+		fJSON->WriteKeyContinuous("max", attribute->GetMax());
 	}
 	fJSON->EndObject();
 }
