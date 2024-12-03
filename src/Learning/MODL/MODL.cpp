@@ -4,31 +4,13 @@
 
 #include "MODL.h"
 
-// Debogage sous Windows Visual C++ 2022 (bug https://github.com/microsoft/vscode-cpptools/issues/8084)
-// Choix en dur du repertoire de lancement
-void SetWindowsDebugDir(const ALString& sDatasetFamily, const ALString& sDataset)
-{
-#ifdef _WIN32
-	ALString sUserRootPath;
-	int nRet;
-
-	// Parametrage du repertoire racine de LearningTest via une variable d'environnement "LearningTestDir"
-	// Il est recommande de positionner cette variable d'environnement via le fichier "launch.vs.json"
-	// du repertoire ".vs", avec la cle "env"
-	// Cf. wiki https://github.com/KhiopsML/khiops/wiki/Setting-Up-the-Development-Environment
-	sUserRootPath = p_getenv("LearningTestDir");
-	sUserRootPath += "/TestKhiops/";
-
-	// Pour permettre de continuer a utiliser LearningTest, on ne fait rien s'il y a deja un fichier test.prm
-	// dans le repertoire courant
-	if (FileService::FileExists("test.prm"))
-		return;
-
-	// Changement de repertoire, uniquement pour Windows
-	nRet = _chdir(sUserRootPath + sDatasetFamily + "/" + sDataset);
-	assert(nRet == 0);
-#endif
-}
+// Parametrage des variables d'environnement pour les jeux de test de LearningTest (via .vs/launch.vs.json sous Windows Visual C++)
+// KHIOPS_API_MODE="true"
+// - pour que les chemins relatifs soient traites par rapport au cwd (current working directory) pour le stockage des rapports
+// - sinon, en mode GUI, les chemins relatifs sont geres par rapport au repertoire contenant le fichier de donnees
+// KhiopsFastExitMode="false"
+// - pour que l'on puisse exploiter un scenario de test integralement, meme en cas d'erreurs multiples
+// - sinon, on sort du scenario apres la premiere erreur
 
 int main(int argc, char** argv)
 {
@@ -37,11 +19,6 @@ int main(int argc, char** argv)
 	// Activation de la gestion des signaux via des erreurs, pour afficher des messages d'erreur explicites
 	// A potentiellement commenter sur certains IDE lors des phases de debuggage
 	//Global::ActivateSignalErrorManagement();
-
-	// Choix du repertoire de lancement pour le debugage sous Windows (a commenter apres fin du debug)
-	// SetWindowsDebugDir("Standard", "IrisLight");
-	// SetWindowsDebugDir("Standard", "IrisU2D");
-	// SetWindowsDebugDir("JsonParameters", "JsonSpliceJunctionAll");
 
 	// Parametrage des logs memoires depuis les variables d'environnement, pris en compte dans KWLearningProject
 	//   KhiopsMemStatsLogFileName, KhiopsMemStatsLogFrequency, KhiopsMemStatsLogToCollect
@@ -53,8 +30,10 @@ int main(int argc, char** argv)
 	// MemoryStatsManager::OpenLogFile("D:\\temp\\KhiopsMemoryStats\\Test\\KhiopsMemoryStats.log", 10000,
 	// MemoryStatsManager::AllStats);
 
-	// Parametrage de l'arret pour la memoire ou les interruptions utilisateurs
+	// Point d'arret sur l'allocation d'un bloc memoire
 	// MemSetAllocIndexExit(37140);
+
+	// Parametrage de l'arret pour les interruptions utilisateurs
 	// TaskProgression::SetExternalInterruptionRequestIndex();
 	// TaskProgression::SetInterruptionRequestIndex(75);
 
