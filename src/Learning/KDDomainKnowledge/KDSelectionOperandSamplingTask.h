@@ -73,6 +73,9 @@ protected:
 	boolean SlaveProcessStopDatabase(boolean bProcessEndedCorrectly) override;
 	boolean SlaveFinalize(boolean bProcessEndedCorrectly) override;
 
+	// Calcul du nombre d'entites creees par des regles de creation d'entite par une classe designee par son nom
+	int ComputeCreatedEntityNumber(const KWClass* kwcClass) const;
+
 	// Flag pour avoir la trace des echanges principaux
 	boolean bTrace;
 

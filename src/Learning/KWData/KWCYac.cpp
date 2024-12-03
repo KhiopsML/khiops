@@ -82,6 +82,7 @@
 #include "KWClass.h"
 #include "KWContinuous.h"
 #include "KWDerivationRule.h"
+#include "KWRelationCreationRule.h"
 #include "KWStructureRule.h"
 #include "KWMetaData.h"
 
@@ -89,6 +90,12 @@
 void yyerror(char const* fmt);
 void yyerrorWithLineCorrection(char const* fmt, int nDeltaLineNumber);
 int yylex();
+
+/* Fonctions utilitaires pour rappatrier les information du parser vers une regle */
+boolean ImportParserRuleOperands(const KWDerivationRule* parsedRule, KWDerivationRule* rule);
+boolean ImportParserRuleOutputOperands(const KWDerivationRule* parsedRule, KWDerivationRule* rule);
+boolean ImportParserOperand(const ALString& sRuleName, int nOperandIndex, KWDerivationRuleOperand* parsedOperand,
+			    KWDerivationRuleOperand* operand);
 
 /* Work around a bug in the relation between bison and GCC 3.x: */
 #if defined(__GNUC__) && 3 <= __GNUC__
@@ -120,7 +127,7 @@ static int nFileParsingErrorNumber = 0;
 extern char   *yyptok(int i);
 */
 
-#line 127 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 134 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 
 #ifndef YY_CAST
 #ifdef __cplusplus
@@ -181,40 +188,42 @@ enum yysymbol_kind_t
 	YYSYMBOL_30_ = 30,                         /* '>'  */
 	YYSYMBOL_31_ = 31,                         /* ']'  */
 	YYSYMBOL_32_ = 32,                         /* '['  */
-	YYSYMBOL_33_ = 33,                         /* '.'  */
-	YYSYMBOL_34_ = 34,                         /* '+'  */
-	YYSYMBOL_35_ = 35,                         /* ';'  */
-	YYSYMBOL_YYACCEPT = 36,                    /* $accept  */
-	YYSYMBOL_IDENTIFIER = 37,                  /* IDENTIFIER  */
-	YYSYMBOL_SIMPLEIDENTIFIER = 38,            /* SIMPLEIDENTIFIER  */
-	YYSYMBOL_kwclassFile = 39,                 /* kwclassFile  */
-	YYSYMBOL_kwclasses = 40,                   /* kwclasses  */
-	YYSYMBOL_kwclass = 41,                     /* kwclass  */
-	YYSYMBOL_kwclassBegin = 42,                /* kwclassBegin  */
-	YYSYMBOL_oaAttributeArrayDeclaration = 43, /* oaAttributeArrayDeclaration  */
-	YYSYMBOL_kwclassHeader = 44,               /* kwclassHeader  */
-	YYSYMBOL_keyFields = 45,                   /* keyFields  */
-	YYSYMBOL_keyFieldList = 46,                /* keyFieldList  */
-	YYSYMBOL_metaData = 47,                    /* metaData  */
-	YYSYMBOL_kwattributeDeclaration = 48,      /* kwattributeDeclaration  */
-	YYSYMBOL_applicationids = 49,              /* applicationids  */
-	YYSYMBOL_comments = 50,                    /* comments  */
-	YYSYMBOL_rootDeclaration = 51,             /* rootDeclaration  */
-	YYSYMBOL_usedDeclaration = 52,             /* usedDeclaration  */
-	YYSYMBOL_typeDeclaration = 53,             /* typeDeclaration  */
-	YYSYMBOL_refIdentifier = 54,               /* refIdentifier  */
-	YYSYMBOL_usedDerivationRule = 55,          /* usedDerivationRule  */
-	YYSYMBOL_referenceRule = 56,               /* referenceRule  */
-	YYSYMBOL_referenceRuleBody = 57,           /* referenceRuleBody  */
-	YYSYMBOL_derivationRule = 58,              /* derivationRule  */
-	YYSYMBOL_derivationRuleBody = 59,          /* derivationRuleBody  */
-	YYSYMBOL_derivationRuleHeader = 60,        /* derivationRuleHeader  */
-	YYSYMBOL_derivationRuleBegin = 61,         /* derivationRuleBegin  */
-	YYSYMBOL_derivationRuleOperand = 62,       /* derivationRuleOperand  */
-	YYSYMBOL_bigstring = 63,                   /* bigstring  */
-	YYSYMBOL_semicolon = 64,                   /* semicolon  */
-	YYSYMBOL_openparenthesis = 65,             /* openparenthesis  */
-	YYSYMBOL_closeparenthesis = 66             /* closeparenthesis  */
+	YYSYMBOL_33_ = 33,                         /* ':'  */
+	YYSYMBOL_34_ = 34,                         /* '.'  */
+	YYSYMBOL_35_ = 35,                         /* '+'  */
+	YYSYMBOL_36_ = 36,                         /* ';'  */
+	YYSYMBOL_YYACCEPT = 37,                    /* $accept  */
+	YYSYMBOL_IDENTIFIER = 38,                  /* IDENTIFIER  */
+	YYSYMBOL_SIMPLEIDENTIFIER = 39,            /* SIMPLEIDENTIFIER  */
+	YYSYMBOL_kwclassFile = 40,                 /* kwclassFile  */
+	YYSYMBOL_kwclasses = 41,                   /* kwclasses  */
+	YYSYMBOL_kwclass = 42,                     /* kwclass  */
+	YYSYMBOL_kwclassBegin = 43,                /* kwclassBegin  */
+	YYSYMBOL_oaAttributeArrayDeclaration = 44, /* oaAttributeArrayDeclaration  */
+	YYSYMBOL_kwclassHeader = 45,               /* kwclassHeader  */
+	YYSYMBOL_keyFields = 46,                   /* keyFields  */
+	YYSYMBOL_fieldList = 47,                   /* fieldList  */
+	YYSYMBOL_metaData = 48,                    /* metaData  */
+	YYSYMBOL_kwattributeDeclaration = 49,      /* kwattributeDeclaration  */
+	YYSYMBOL_applicationids = 50,              /* applicationids  */
+	YYSYMBOL_comments = 51,                    /* comments  */
+	YYSYMBOL_rootDeclaration = 52,             /* rootDeclaration  */
+	YYSYMBOL_usedDeclaration = 53,             /* usedDeclaration  */
+	YYSYMBOL_typeDeclaration = 54,             /* typeDeclaration  */
+	YYSYMBOL_refIdentifier = 55,               /* refIdentifier  */
+	YYSYMBOL_usedDerivationRule = 56,          /* usedDerivationRule  */
+	YYSYMBOL_referenceRule = 57,               /* referenceRule  */
+	YYSYMBOL_referenceRuleBody = 58,           /* referenceRuleBody  */
+	YYSYMBOL_derivationRule = 59,              /* derivationRule  */
+	YYSYMBOL_derivationRuleBody = 60,          /* derivationRuleBody  */
+	YYSYMBOL_operandList = 61,                 /* operandList  */
+	YYSYMBOL_derivationRuleHeader = 62,        /* derivationRuleHeader  */
+	YYSYMBOL_derivationRuleBegin = 63,         /* derivationRuleBegin  */
+	YYSYMBOL_derivationRuleOperand = 64,       /* derivationRuleOperand  */
+	YYSYMBOL_bigstring = 65,                   /* bigstring  */
+	YYSYMBOL_semicolon = 66,                   /* semicolon  */
+	YYSYMBOL_openparenthesis = 67,             /* openparenthesis  */
+	YYSYMBOL_closeparenthesis = 68             /* closeparenthesis  */
 };
 typedef enum yysymbol_kind_t yysymbol_kind_t;
 
@@ -521,16 +530,16 @@ union yyalloc
 /* YYFINAL -- State number of the termination state.  */
 #define YYFINAL 3
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST 183
+#define YYLAST 207
 
 /* YYNTOKENS -- Number of terminals.  */
-#define YYNTOKENS 36
+#define YYNTOKENS 37
 /* YYNNTS -- Number of nonterminals.  */
-#define YYNNTS 31
+#define YYNNTS 32
 /* YYNRULES -- Number of rules.  */
-#define YYNRULES 94
+#define YYNRULES 97
 /* YYNSTATES -- Number of states.  */
-#define YYNSTATES 137
+#define YYNSTATES 142
 
 /* YYMAXUTOK -- Last valid token kind.  */
 #define YYMAXUTOK 277
@@ -544,7 +553,7 @@ union yyalloc
    as returned by yylex.  */
 static const yytype_int8 yytranslate[] = {
     0,  2,  2, 2, 2, 2, 2, 2, 2, 2,  2,  2, 2,  2,  2, 2,  2, 2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,
-    2,  2,  2, 2, 2, 2, 2, 2, 2, 25, 26, 2, 34, 27, 2, 33, 2, 2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  35, 28, 29,
+    2,  2,  2, 2, 2, 2, 2, 2, 2, 25, 26, 2, 35, 27, 2, 34, 2, 2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  33, 36, 28, 29,
     30, 2,  2, 2, 2, 2, 2, 2, 2, 2,  2,  2, 2,  2,  2, 2,  2, 2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  32, 2,
     31, 2,  2, 2, 2, 2, 2, 2, 2, 2,  2,  2, 2,  2,  2, 2,  2, 2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  24,
     2,  23, 2, 2, 2, 2, 2, 2, 2, 2,  2,  2, 2,  2,  2, 2,  2, 2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,
@@ -556,11 +565,12 @@ static const yytype_int8 yytranslate[] = {
 #if YYDEBUG
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int16 yyrline[] = {
-    0,    134,  134,  138,  145,  149,  153,  157,  161,  165,  169,  173,  177,  181,  185,  189,  193,  197,  201,
-    207,  220,  221,  224,  227,  237,  245,  287,  367,  386,  397,  441,  489,  582,  589,  597,  603,  613,  626,
-    646,  668,  687,  704,  712,  847,  859,  866,  878,  885,  890,  897,  902,  909,  913,  917,  921,  925,  929,
-    933,  937,  941,  945,  949,  957,  962,  968,  972,  976,  981,  990,  995,  1001, 1021, 1037, 1215, 1219, 1226,
-    1239, 1250, 1264, 1273, 1282, 1292, 1302, 1313, 1322, 1329, 1330, 1334, 1339, 1345, 1346, 1350, 1355, 1367, 1369};
+    0,    143,  143,  147,  154,  158,  162,  166,  170,  174,  178,  182,  186,  190,  194,  198,  202,
+    206,  210,  216,  229,  230,  233,  236,  246,  254,  295,  374,  393,  404,  447,  494,  586,  593,
+    601,  607,  617,  630,  650,  672,  691,  708,  716,  851,  863,  870,  882,  889,  894,  901,  906,
+    913,  917,  921,  925,  929,  933,  937,  941,  945,  949,  953,  961,  966,  972,  976,  980,  985,
+    994,  999,  1005, 1025, 1041, 1149, 1153, 1199, 1206, 1217, 1230, 1243, 1254, 1268, 1277, 1286, 1296,
+    1306, 1317, 1326, 1333, 1334, 1338, 1343, 1349, 1350, 1354, 1359, 1371, 1373};
 #endif
 
 /** Accessing symbol of state STATE.  */
@@ -606,6 +616,7 @@ static const char* const yytname[] = {"\"end of file\"",
 				      "'>'",
 				      "']'",
 				      "'['",
+				      "':'",
 				      "'.'",
 				      "'+'",
 				      "';'",
@@ -619,7 +630,7 @@ static const char* const yytname[] = {"\"end of file\"",
 				      "oaAttributeArrayDeclaration",
 				      "kwclassHeader",
 				      "keyFields",
-				      "keyFieldList",
+				      "fieldList",
 				      "metaData",
 				      "kwattributeDeclaration",
 				      "applicationids",
@@ -633,6 +644,7 @@ static const char* const yytname[] = {"\"end of file\"",
 				      "referenceRuleBody",
 				      "derivationRule",
 				      "derivationRuleBody",
+				      "operandList",
 				      "derivationRuleHeader",
 				      "derivationRuleBegin",
 				      "derivationRuleOperand",
@@ -648,85 +660,89 @@ static const char* yysymbol_name(yysymbol_kind_t yysymbol)
 }
 #endif
 
-#define YYPACT_NINF (-65)
+#define YYPACT_NINF (-83)
 
 #define yypact_value_is_default(Yyn) ((Yyn) == YYPACT_NINF)
 
-#define YYTABLE_NINF (-93)
+#define YYTABLE_NINF (-96)
 
 #define yytable_value_is_error(Yyn) 0
 
 /* YYPACT[STATE-NUM] -- Index in YYTABLE of the portion describing
    STATE-NUM.  */
 static const yytype_int16 yypact[] = {
-    -65, 4,   39,  -65, -65, 87,  -65, -65, 62,  -65, 86,  -65, -65, 23,  -65, -65, 161, 64,  -65, -65, 80,  55,  -65,
-    30,  -65, -65, -65, -65, -65, -65, -65, -65, -65, -65, -65, 72,  128, 63,  128, 42,  -65, 128, 128, -65, -65, -65,
-    -65, -65, -65, -65, -65, -65, -65, -65, -65, -65, -65, -65, -65, 6,   -65, -65, 74,  128, -65, 76,  74,  128, -65,
-    64,  128, 128, 5,   23,  -65, 3,   74,  -65, 23,  -65, 34,  28,  78,  82,  83,  84,  5,   88,  -65, -65, 5,   37,
-    -65, -65, 99,  -65, 5,   -65, 23,  -65, -65, 128, -65, 148, -65, 109, -65, -65, -65, -65, -65, 5,   -65, 129, 124,
-    -65, -65, 124, 64,  -65, 38,  111, -65, -65, 64,  124, 64,  108, -65, -65, 64,  123, 125, 126, -65, -65, -65};
+    -83, 2,   14,  -83, -83, 67,  -83, -83, 110, -83, 66,  -83, -83, -12, -83, -83, 185, 38,  -83, -83, 60,
+    46,  -83, 18,  -83, -83, -83, -83, -83, -83, -83, -83, -83, -83, -83, 62,  152, 52,  152, 55,  -83, 152,
+    152, -83, -83, -83, -83, -83, -83, -83, -83, -83, -83, -83, -83, -83, -83, -83, -83, 9,   -83, -83, 54,
+    152, -83, 68,  54,  152, -83, 38,  152, 152, 43,  -12, -83, -8,  54,  -83, -12, -83, 17,  61,  70,  72,
+    73,  74,  43,  57,  -83, -83, 43,  6,   -83, -83, 58,  -83, 43,  -83, -12, -83, -83, 152, -83, 172, -83,
+    76,  -83, -83, -83, -83, -83, 43,  43,  -83, 86,  75,  -83, -83, 75,  38,  -83, 42,  77,  -83, 71,  -83,
+    -83, 38,  75,  38,  132, -83, -83, 43,  38,  78,  80,  82,  -83, -83, -83, -83};
 
 /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
    Performed when YYTABLE does not specify something else to do.  Zero
    means the default is an error.  */
 static const yytype_int8 yydefact[] = {
-    44, 0,  22, 1,  43, 0,  21, 20, 0,  46, 19, 28, 49, 88, 46, 25, 0,  24, 45, 47, 0,  85, 23, 50, 51, 52, 59, 60,
-    53, 54, 55, 56, 57, 58, 61, 63, 0,  86, 0,  50, 30, 0,  0,  4,  3,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15,
-    16, 17, 18, 34, 2,  87, 68, 0,  29, 0,  68, 0,  41, 33, 0,  0,  0,  88, 65, 0,  68, 62, 88, 36, 0,  0,  0,  92,
-    64, 94, 74, 73, 79, 84, 0,  78, 81, 70, 80, 41, 0,  69, 88, 41, 46, 0,  31, 0,  67, 89, 75, 66, 93, 72, 76, 0,
-    82, 0,  46, 71, 41, 46, 32, 35, 0,  90, 77, 83, 27, 46, 42, 0,  39, 91, 26, 0,  0,  0,  38, 37, 40};
+    44, 0,  22, 1,  43, 0,  21, 20, 0,  46, 19, 28, 49, 91, 46, 25, 0,  24, 45, 47, 0,  88, 23, 50, 51, 52, 59, 60, 53,
+    54, 55, 56, 57, 58, 61, 63, 0,  89, 0,  50, 30, 0,  0,  4,  3,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15, 16, 17,
+    18, 34, 2,  90, 68, 0,  29, 0,  68, 0,  41, 33, 0,  0,  0,  91, 65, 0,  68, 62, 91, 36, 0,  0,  0,  95, 64, 97, 75,
+    73, 82, 87, 0,  81, 84, 70, 83, 41, 0,  69, 91, 41, 46, 0,  31, 0,  67, 92, 78, 66, 96, 72, 79, 0,  0,  85, 0,  46,
+    71, 41, 46, 32, 35, 0,  93, 80, 74, 77, 86, 27, 46, 42, 0,  39, 94, 0,  26, 0,  0,  0,  76, 38, 37, 40};
 
 /* YYPGOTO[NTERM-NUM].  */
-static const yytype_int8 yypgoto[] = {-65, -35, 51,  -65, -65, -65, -65, -65, -65, -65, -65, -40, 25,  -65, -9, -65,
-				      -65, -65, -65, -64, -65, -65, 104, -65, -65, -65, -57, -65, -29, -65, -65};
+static const yytype_int8 yypgoto[] = {-83, -35, 1,   -83, -83, -83, -83, -83, -83, -83, -83, -78, 3,   -83, -9,  -83,
+				      -83, -83, -83, -39, -83, -83, 34,  -83, -83, -83, -83, -82, -83, -60, -83, -83};
 
 /* YYDEFGOTO[NTERM-NUM].  */
-static const yytype_int8 yydefgoto[] = {0,  91, 60, 1,  5,  7,  8,  39, 9,  68, 80, 81, 15, 2,   10, 20,
-					16, 35, 42, 73, 74, 75, 92, 85, 86, 87, 93, 94, 22, 106, 109};
+static const yytype_int8 yydefgoto[] = {0,  91, 60, 1,  5,  7,  8,  39, 9,   68, 80, 81, 15, 2,  10,  20,
+					16, 35, 42, 73, 74, 75, 92, 85, 124, 86, 87, 93, 94, 22, 106, 109};
 
 /* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
    positive, shift that token.  If negative, reduce the rule whose
    number is the opposite.  If YYTABLE_NINF, syntax error.  */
 static const yytype_int16 yytable[] = {
-    17,  59,  78,  62,  3,   23,  65,  66,  43,  44,  88,  89,  98,  -46, 45,  46,  47,  48,  49,  50,  51,  52,  53,
-    54,  55,  56,  57,  58,  76,  110, 96,  67,  79,  112, 97,  82,  83,  18,  90,  115, -92, -92, -92, -92, 95,  12,
-    -92, 4,   40,  99,  69,  -92, 102, 38,  122, 114, 103, 12,  21,  117, 100, 101, 105, 11,  64,  63,  119, 127, 128,
-    116, -92, 18,  -50, -50, -50, -50, 125, 12,  -50, -50, -50, -50, -50, -50, -50, 13,  14,  -46, 6,   36,  37,  118,
-    133, 18,  -46, -48, -46, 41,  61,  70,  19,  -46, 77,  71,  104, 124, 72,  105, 126, 107, 108, 43,  44,  131, 132,
-    111, 130, 45,  46,  47,  48,  49,  50,  51,  52,  53,  54,  55,  56,  57,  58,  43,  44,  113, 121, 123, 129, 45,
-    46,  47,  48,  49,  50,  51,  52,  53,  54,  55,  56,  57,  58,  43,  103, 134, 120, 135, 136, 45,  46,  47,  48,
-    49,  50,  51,  52,  53,  54,  55,  56,  57,  58,  24,  25,  26,  27,  84,  0,   28,  29,  30,  31,  32,  33,  34};
+    17,  59,  3,   62,  110, 23,  65,  66,  113, -95, -95, -95, -95, 95,  116, -95, -46, 115, 99,  96,  -95,
+    118, 4,   97,  21,  18,  40,  78,  76,  123, 125, 105, 79,  12,  67,  82,  83,  98,  117, 128, -95, 38,
+    64,  100, 101, 18,  43,  44,  88,  89,  69,  138, 45,  46,  47,  48,  49,  50,  51,  52,  53,  54,  55,
+    56,  57,  58,  120, -46, 6,   36,  12,  130, 131, 18,  -46, -48, -46, 90,  63,  70,  19,  -46, 37,  71,
+    111, 102, 72,  41,  61,  103, 112, 119, 126, 114, 77,  137, 104, 105, 133, 107, 108, 122, 132, 103, 121,
+    84,  127, 0,   139, 129, 140, 11,  141, 0,   0,   0,   0,   0,   0,   134, -50, -50, -50, -50, 0,   12,
+    -50, -50, -50, -50, -50, -50, -50, 13,  14,  43,  44,  135, 136, 0,   0,   45,  46,  47,  48,  49,  50,
+    51,  52,  53,  54,  55,  56,  57,  58,  43,  44,  0,   0,   0,   0,   45,  46,  47,  48,  49,  50,  51,
+    52,  53,  54,  55,  56,  57,  58,  43,  0,   0,   0,   0,   0,   45,  46,  47,  48,  49,  50,  51,  52,
+    53,  54,  55,  56,  57,  58,  24,  25,  26,  27,  0,   0,   28,  29,  30,  31,  32,  33,  34};
 
-static const yytype_int8 yycheck[] = {
-    9,   36, 66, 38, 0,  14, 41, 42, 3,   4,  5,   6,   76,  7,  9,  10, 11, 12, 13, 14,  15, 16, 17,  18, 19,  20, 21,
-    22,  63, 86, 27, 25, 67, 90, 31, 70,  71, 7,   33,  96,  3,  4,  5,  6,  73, 15, 9,   8,  23, 78,  59, 14,  24, 23,
-    111, 95, 28, 15, 35, 99, 26, 27, 25,  1,  39,  23,  101, 29, 30, 98, 33, 7,  10, 11,  12, 13, 116, 15, 16,  17, 18,
-    19,  20, 21, 22, 23, 24, 0,  1,  9,   35, 100, 127, 7,   7,  9,  9,  25, 35, 25, 14,  14, 26, 29,  26, 114, 32, 25,
-    117, 26, 26, 3,  4,  5,  6,  27, 125, 9,  10,  11,  12,  13, 14, 15, 16, 17, 18, 19,  20, 21, 22,  3,  4,   34, 25,
-    6,   25, 9,  10, 11, 12, 13, 14, 15,  16, 17,  18,  19,  20, 21, 22, 3,  28, 30, 103, 30, 30, 9,   10, 11,  12, 13,
-    14,  15, 16, 17, 18, 19, 20, 21, 22,  10, 11,  12,  13,  71, -1, 16, 17, 18, 19, 20,  21, 22};
+static const yytype_int16 yycheck[] = {
+    9,   36, 0,   38,  86,  14,  41, 42, 90, 3,  4,  5,  6,  73,  96,  9,   7,  95,  78, 27, 14, 99, 8,  31, 36, 7,
+    23,  66, 63,  111, 112, 25,  67, 15, 25, 70, 71, 76, 98, 117, 34,  23,  39, 26,  27, 7,  3,  4,  5,  6,  59, 133,
+    9,   10, 11,  12,  13,  14,  15, 16, 17, 18, 19, 20, 21, 22,  101, 0,   1,  9,   15, 29, 30, 7,  7,  9,  9,  34,
+    23,  25, 14,  14,  36,  29,  27, 24, 32, 25, 36, 28, 33, 100, 6,   35,  26, 130, 26, 25, 27, 26, 26, 25, 25, 28,
+    103, 71, 115, -1,  30,  118, 30, 1,  30, -1, -1, -1, -1, -1,  -1,  128, 10, 11,  12, 13, -1, 15, 16, 17, 18, 19,
+    20,  21, 22,  23,  24,  3,   4,  5,  6,  -1, -1, 9,  10, 11,  12,  13,  14, 15,  16, 17, 18, 19, 20, 21, 22, 3,
+    4,   -1, -1,  -1,  -1,  9,   10, 11, 12, 13, 14, 15, 16, 17,  18,  19,  20, 21,  22, 3,  -1, -1, -1, -1, -1, 9,
+    10,  11, 12,  13,  14,  15,  16, 17, 18, 19, 20, 21, 22, 10,  11,  12,  13, -1,  -1, 16, 17, 18, 19, 20, 21, 22};
 
 /* YYSTOS[STATE-NUM] -- The symbol kind of the accessing symbol of
    state STATE-NUM.  */
 static const yytype_int8 yystos[] = {
-    0,  39, 49, 0,  8,  40, 1,  41, 42, 44, 50, 1,  15, 23, 24, 48, 52, 50, 7,  14, 51, 35, 64, 50, 10, 11, 12, 13,
-    16, 17, 18, 19, 20, 21, 22, 53, 9,  35, 23, 43, 48, 25, 54, 3,  4,  9,  10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
-    20, 21, 22, 37, 38, 35, 37, 23, 48, 37, 37, 25, 45, 50, 25, 29, 32, 55, 56, 57, 37, 26, 55, 37, 46, 47, 37, 37,
-    58, 59, 60, 61, 5,  6,  33, 37, 58, 62, 63, 64, 27, 31, 55, 64, 26, 27, 24, 28, 26, 25, 65, 26, 26, 66, 62, 27,
-    62, 34, 47, 62, 64, 47, 50, 37, 38, 25, 62, 6,  50, 47, 50, 29, 30, 25, 50, 5,  6,  37, 30, 30, 30};
+    0,  40, 50, 0,  8,  41, 1,  42, 43, 45, 51, 1,  15, 23, 24, 49, 53, 51, 7,  14, 52, 36, 66, 51, 10, 11, 12, 13, 16,
+    17, 18, 19, 20, 21, 22, 54, 9,  36, 23, 44, 49, 25, 55, 3,  4,  9,  10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+    22, 38, 39, 36, 38, 23, 49, 38, 38, 25, 46, 51, 25, 29, 32, 56, 57, 58, 38, 26, 56, 38, 47, 48, 38, 38, 59, 60, 62,
+    63, 5,  6,  34, 38, 59, 64, 65, 66, 27, 31, 56, 66, 26, 27, 24, 28, 26, 25, 67, 26, 26, 68, 64, 27, 33, 64, 35, 48,
+    64, 66, 48, 51, 38, 39, 25, 64, 61, 64, 6,  51, 48, 51, 29, 30, 25, 27, 51, 5,  6,  38, 64, 30, 30, 30};
 
 /* YYR1[RULE-NUM] -- Symbol kind of the left-hand side of rule RULE-NUM.  */
-static const yytype_int8 yyr1[] = {0,  36, 37, 37, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38,
-				   39, 40, 40, 40, 41, 42, 42, 42, 42, 42, 43, 43, 44, 45, 45, 45, 46, 46, 47,
-				   47, 47, 47, 47, 48, 49, 49, 50, 50, 51, 51, 52, 52, 53, 53, 53, 53, 53, 53,
-				   53, 53, 53, 53, 53, 54, 54, 55, 55, 55, 55, 55, 56, 57, 57, 58, 59, 59, 60,
-				   61, 61, 62, 62, 62, 62, 62, 63, 63, 64, 64, 64, 64, 65, 65, 65, 65, 66, 66};
+static const yytype_int8 yyr1[] = {0,  37, 38, 38, 39, 39, 39, 39, 39, 39, 39, 39, 39, 39, 39, 39, 39, 39, 39, 40,
+				   41, 41, 41, 42, 43, 43, 43, 43, 43, 44, 44, 45, 46, 46, 46, 47, 47, 48, 48, 48,
+				   48, 48, 49, 50, 50, 51, 51, 52, 52, 53, 53, 54, 54, 54, 54, 54, 54, 54, 54, 54,
+				   54, 54, 55, 55, 56, 56, 56, 56, 56, 57, 58, 58, 59, 60, 60, 60, 61, 61, 62, 63,
+				   63, 64, 64, 64, 64, 64, 65, 65, 66, 66, 66, 66, 67, 67, 67, 67, 68, 68};
 
 /* YYR2[RULE-NUM] -- Number of symbols on the right-hand side of rule RULE-NUM.  */
-static const yytype_int8 yyr2[] = {0, 2, 1,  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 2, 2, 0, 3,
-				   2, 2, 10, 9, 2, 2, 1, 7, 4, 1, 0, 3, 1, 6, 6, 4, 6, 0, 8, 2, 0, 2, 0, 1,
-				   0, 1, 0,  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 0, 2, 1, 3, 3, 0, 2, 2, 3,
-				   2, 1, 1,  2, 2, 3, 1, 1, 1, 1, 2, 3, 1, 1, 2, 3, 0, 1, 2, 3, 0, 1, 0};
+static const yytype_int8 yyr2[] = {0, 2,  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 2, 2, 0, 3, 2,
+				   2, 10, 9, 2, 2, 1, 7, 4, 1, 0, 3, 1, 6, 6, 4, 6, 0, 8, 2, 0, 2, 0, 1, 0, 1,
+				   0, 1,  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 0, 2, 1, 3, 3, 0, 2, 2, 3, 2, 1, 3,
+				   1, 3,  1, 2, 2, 3, 1, 1, 1, 1, 2, 3, 1, 1, 2, 3, 0, 1, 2, 3, 0, 1, 0};
 
 enum
 {
@@ -907,243 +923,253 @@ static void yydestruct(const char* yymsg, yysymbol_kind_t yykind, YYSTYPE* yyval
 	switch (yykind)
 	{
 	case YYSYMBOL_BASICIDENTIFIER: /* BASICIDENTIFIER  */
-#line 125 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 134 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		if (((*yyvaluep).sValue) != NULL)
 			delete ((*yyvaluep).sValue);
 		((*yyvaluep).sValue) = NULL;
 	}
-#line 1030 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1046 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_EXTENDEDIDENTIFIER: /* EXTENDEDIDENTIFIER  */
-#line 125 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 134 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		if (((*yyvaluep).sValue) != NULL)
 			delete ((*yyvaluep).sValue);
 		((*yyvaluep).sValue) = NULL;
 	}
-#line 1036 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1052 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_STRINGLITTERAL: /* STRINGLITTERAL  */
-#line 125 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 134 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		if (((*yyvaluep).sValue) != NULL)
 			delete ((*yyvaluep).sValue);
 		((*yyvaluep).sValue) = NULL;
 	}
-#line 1042 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1058 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_LABEL: /* LABEL  */
-#line 125 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 134 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		if (((*yyvaluep).sValue) != NULL)
 			delete ((*yyvaluep).sValue);
 		((*yyvaluep).sValue) = NULL;
 	}
-#line 1048 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1064 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_APPLICATIONID: /* APPLICATIONID  */
-#line 125 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 134 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		if (((*yyvaluep).sValue) != NULL)
 			delete ((*yyvaluep).sValue);
 		((*yyvaluep).sValue) = NULL;
 	}
-#line 1054 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1070 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_IDENTIFIER: /* IDENTIFIER  */
-#line 125 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 134 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		if (((*yyvaluep).sValue) != NULL)
 			delete ((*yyvaluep).sValue);
 		((*yyvaluep).sValue) = NULL;
 	}
-#line 1060 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1076 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_SIMPLEIDENTIFIER: /* SIMPLEIDENTIFIER  */
-#line 125 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 134 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		if (((*yyvaluep).sValue) != NULL)
 			delete ((*yyvaluep).sValue);
 		((*yyvaluep).sValue) = NULL;
 	}
-#line 1066 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1082 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_oaAttributeArrayDeclaration: /* oaAttributeArrayDeclaration  */
-#line 125 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 134 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		if (((*yyvaluep).oaAttributes) != NULL)
 			delete ((*yyvaluep).oaAttributes);
 		((*yyvaluep).oaAttributes) = NULL;
 	}
-#line 1072 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1088 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_keyFields: /* keyFields  */
-#line 125 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 134 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		if (((*yyvaluep).svValue) != NULL)
 			delete ((*yyvaluep).svValue);
 		((*yyvaluep).svValue) = NULL;
 	}
-#line 1078 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1094 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
-	case YYSYMBOL_keyFieldList: /* keyFieldList  */
-#line 125 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+	case YYSYMBOL_fieldList: /* fieldList  */
+#line 134 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		if (((*yyvaluep).svValue) != NULL)
 			delete ((*yyvaluep).svValue);
 		((*yyvaluep).svValue) = NULL;
 	}
-#line 1084 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1100 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_metaData: /* metaData  */
-#line 125 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 134 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		if (((*yyvaluep).kwmdMetaData) != NULL)
 			delete ((*yyvaluep).kwmdMetaData);
 		((*yyvaluep).kwmdMetaData) = NULL;
 	}
-#line 1090 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1106 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_kwattributeDeclaration: /* kwattributeDeclaration  */
-#line 125 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 134 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		if (((*yyvaluep).kwaValue) != NULL)
 			delete ((*yyvaluep).kwaValue);
 		((*yyvaluep).kwaValue) = NULL;
 	}
-#line 1096 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1112 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_applicationids: /* applicationids  */
-#line 125 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 134 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		if (((*yyvaluep).sValue) != NULL)
 			delete ((*yyvaluep).sValue);
 		((*yyvaluep).sValue) = NULL;
 	}
-#line 1102 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1118 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_comments: /* comments  */
-#line 125 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 134 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		if (((*yyvaluep).sValue) != NULL)
 			delete ((*yyvaluep).sValue);
 		((*yyvaluep).sValue) = NULL;
 	}
-#line 1108 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1124 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_refIdentifier: /* refIdentifier  */
-#line 125 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 134 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		if (((*yyvaluep).sValue) != NULL)
 			delete ((*yyvaluep).sValue);
 		((*yyvaluep).sValue) = NULL;
 	}
-#line 1114 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1130 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_usedDerivationRule: /* usedDerivationRule  */
-#line 125 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 134 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		if (((*yyvaluep).kwdrValue) != NULL)
 			delete ((*yyvaluep).kwdrValue);
 		((*yyvaluep).kwdrValue) = NULL;
 	}
-#line 1120 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1136 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_referenceRule: /* referenceRule  */
-#line 125 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 134 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		if (((*yyvaluep).kwdrValue) != NULL)
 			delete ((*yyvaluep).kwdrValue);
 		((*yyvaluep).kwdrValue) = NULL;
 	}
-#line 1126 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1142 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_referenceRuleBody: /* referenceRuleBody  */
-#line 125 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 134 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		if (((*yyvaluep).kwdrValue) != NULL)
 			delete ((*yyvaluep).kwdrValue);
 		((*yyvaluep).kwdrValue) = NULL;
 	}
-#line 1132 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1148 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_derivationRule: /* derivationRule  */
-#line 125 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 134 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		if (((*yyvaluep).kwdrValue) != NULL)
 			delete ((*yyvaluep).kwdrValue);
 		((*yyvaluep).kwdrValue) = NULL;
 	}
-#line 1138 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1154 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_derivationRuleBody: /* derivationRuleBody  */
-#line 125 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 134 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		if (((*yyvaluep).kwdrValue) != NULL)
 			delete ((*yyvaluep).kwdrValue);
 		((*yyvaluep).kwdrValue) = NULL;
 	}
-#line 1144 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1160 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+	break;
+
+	case YYSYMBOL_operandList: /* operandList  */
+#line 134 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+	{
+		if (((*yyvaluep).oaOperands) != NULL)
+			delete ((*yyvaluep).oaOperands);
+		((*yyvaluep).oaOperands) = NULL;
+	}
+#line 1166 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_derivationRuleHeader: /* derivationRuleHeader  */
-#line 125 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 134 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		if (((*yyvaluep).kwdrValue) != NULL)
 			delete ((*yyvaluep).kwdrValue);
 		((*yyvaluep).kwdrValue) = NULL;
 	}
-#line 1150 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1172 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_derivationRuleBegin: /* derivationRuleBegin  */
-#line 125 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 134 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		if (((*yyvaluep).kwdrValue) != NULL)
 			delete ((*yyvaluep).kwdrValue);
 		((*yyvaluep).kwdrValue) = NULL;
 	}
-#line 1156 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1178 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_derivationRuleOperand: /* derivationRuleOperand  */
-#line 125 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 134 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		if (((*yyvaluep).kwdroValue) != NULL)
 			delete ((*yyvaluep).kwdroValue);
 		((*yyvaluep).kwdroValue) = NULL;
 	}
-#line 1162 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1184 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case YYSYMBOL_bigstring: /* bigstring  */
-#line 125 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 134 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		if (((*yyvaluep).sValue) != NULL)
 			delete ((*yyvaluep).sValue);
 		((*yyvaluep).sValue) = NULL;
 	}
-#line 1168 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1190 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	default:
@@ -1393,143 +1419,143 @@ yyreduce:
 	switch (yyn)
 	{
 	case 2: /* IDENTIFIER: SIMPLEIDENTIFIER  */
-#line 135 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 144 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.sValue) = (yyvsp[0].sValue);
 	}
-#line 1440 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1462 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 3: /* IDENTIFIER: EXTENDEDIDENTIFIER  */
-#line 139 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 148 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.sValue) = (yyvsp[0].sValue);
 	}
-#line 1448 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1470 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 4: /* SIMPLEIDENTIFIER: BASICIDENTIFIER  */
-#line 146 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 155 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.sValue) = (yyvsp[0].sValue);
 	}
-#line 1456 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1478 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 5: /* SIMPLEIDENTIFIER: CLASS  */
-#line 150 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 159 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.sValue) = new ALString("Dictionary");
 	}
-#line 1464 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1486 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 6: /* SIMPLEIDENTIFIER: CONTINUOUSTYPE  */
-#line 154 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 163 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.sValue) = new ALString("Numerical");
 	}
-#line 1472 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1494 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 7: /* SIMPLEIDENTIFIER: SYMBOLTYPE  */
-#line 158 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 167 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.sValue) = new ALString("Categorical");
 	}
-#line 1480 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1502 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 8: /* SIMPLEIDENTIFIER: OBJECTTYPE  */
-#line 162 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 171 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.sValue) = new ALString("Entity");
 	}
-#line 1488 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1510 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 9: /* SIMPLEIDENTIFIER: OBJECTARRAYTYPE  */
-#line 166 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 175 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.sValue) = new ALString("Table");
 	}
-#line 1496 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1518 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 10: /* SIMPLEIDENTIFIER: ROOT  */
-#line 170 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 179 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.sValue) = new ALString("Root");
 	}
-#line 1504 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1526 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 11: /* SIMPLEIDENTIFIER: UNUSED  */
-#line 174 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 183 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.sValue) = new ALString("Unused");
 	}
-#line 1512 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1534 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 12: /* SIMPLEIDENTIFIER: DATETYPE  */
-#line 178 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 187 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.sValue) = new ALString("Date");
 	}
-#line 1520 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1542 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 13: /* SIMPLEIDENTIFIER: TIMETYPE  */
-#line 182 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 191 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.sValue) = new ALString("Time");
 	}
-#line 1528 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1550 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 14: /* SIMPLEIDENTIFIER: TIMESTAMPTYPE  */
-#line 186 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 195 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.sValue) = new ALString("Timestamp");
 	}
-#line 1536 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1558 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 15: /* SIMPLEIDENTIFIER: TIMESTAMPTZTYPE  */
-#line 190 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 199 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.sValue) = new ALString("TimestampTZ");
 	}
-#line 1544 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1566 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 16: /* SIMPLEIDENTIFIER: TEXTTYPE  */
-#line 194 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 203 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.sValue) = new ALString("Text");
 	}
-#line 1552 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1574 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 17: /* SIMPLEIDENTIFIER: TEXTLISTTYPE  */
-#line 198 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 207 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.sValue) = new ALString("TextList");
 	}
-#line 1560 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1582 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 18: /* SIMPLEIDENTIFIER: STRUCTURETYPE  */
-#line 202 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 211 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.sValue) = new ALString("Structure");
 	}
-#line 1568 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1590 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 19: /* kwclassFile: applicationids kwclasses comments  */
-#line 208 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 217 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		/* On ignore l'identification d'application */
 		if ((yyvsp[-2].sValue) != NULL)
@@ -1539,20 +1565,20 @@ yyreduce:
 		if ((yyvsp[0].sValue) != NULL)
 			delete (yyvsp[0].sValue);
 	}
-#line 1582 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1604 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 21: /* kwclasses: kwclasses error  */
-#line 222 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 231 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		yyerror("Error outside the definition of a dictionary");
 		YYABORT;
 	}
-#line 1589 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1611 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 23: /* kwclass: kwclassBegin '}' semicolon  */
-#line 228 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 237 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		/* La completion des informations de type (CompleteTypeInfo) est centralisee */
 		/* au niveau du domaine en fin de parsing */
@@ -1560,11 +1586,11 @@ yyreduce:
 		/* Reinitialisation de la classe courante */
 		kwcLoadCurrentClass = NULL;
 	}
-#line 1601 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1623 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 24: /* kwclassBegin: kwclassHeader comments  */
-#line 238 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 247 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		/* On ignore les premiers comemntaires */
 		if ((yyvsp[0].sValue) != NULL)
@@ -1572,11 +1598,11 @@ yyreduce:
 		assert(kwcLoadCurrentClass == (yyvsp[-1].kwcValue));
 		(yyval.kwcValue) = (yyvsp[-1].kwcValue);
 	}
-#line 1613 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1635 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 25: /* kwclassBegin: kwclassBegin kwattributeDeclaration  */
-#line 246 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 255 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		KWClass* kwcClass = (yyvsp[-1].kwcValue);
 		KWAttribute* attribute = (yyvsp[0].kwaValue);
@@ -1620,11 +1646,11 @@ yyreduce:
 
 		(yyval.kwcValue) = kwcClass;
 	}
-#line 1659 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1680 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 26: /* kwclassBegin: kwclassBegin '{' comments oaAttributeArrayDeclaration '}' IDENTIFIER usedDerivationRule semicolon metaData comments  */
-#line 288 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 296 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		KWClass* kwcClass = (yyvsp[-9].kwcValue);
 		KWAttributeBlock* attributeBlock;
@@ -1708,11 +1734,11 @@ yyreduce:
 
 		(yyval.kwcValue) = kwcClass;
 	}
-#line 1743 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1763 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 27: /* kwclassBegin: kwclassBegin '{' comments '}' IDENTIFIER usedDerivationRule semicolon metaData comments  */
-#line 368 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 375 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		KWClass* kwcClass = (yyvsp[-8].kwcValue);
 
@@ -1731,11 +1757,11 @@ yyreduce:
 			delete (yyvsp[0].sValue);
 		(yyval.kwcValue) = kwcClass;
 	}
-#line 1766 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1786 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 28: /* kwclassBegin: kwclassBegin error  */
-#line 387 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 394 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		/* ERRORMGT */
 		/* Attention: cette regle qui permet une gestion des erreurs amelioree */
@@ -1743,11 +1769,11 @@ yyreduce:
 		kwcLoadCurrentClass = NULL;
 		YYABORT;
 	}
-#line 1778 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1798 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 29: /* oaAttributeArrayDeclaration: oaAttributeArrayDeclaration kwattributeDeclaration  */
-#line 398 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 405 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		ObjectArray* oaAttributes = (yyvsp[-1].oaAttributes);
 		KWAttribute* attribute = (yyvsp[0].kwaValue);
@@ -1793,11 +1819,11 @@ yyreduce:
 
 		(yyval.oaAttributes) = oaAttributes;
 	}
-#line 1826 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1845 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 30: /* oaAttributeArrayDeclaration: kwattributeDeclaration  */
-#line 442 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 448 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		ObjectArray* oaAttributes;
 		KWAttribute* attribute = (yyvsp[0].kwaValue);
@@ -1845,11 +1871,11 @@ yyreduce:
 
 		(yyval.oaAttributes) = oaAttributes;
 	}
-#line 1876 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1894 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 31: /* kwclassHeader: comments rootDeclaration CLASS IDENTIFIER keyFields metaData '{'  */
-#line 490 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 495 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		KWClass* kwcClass;
 		KWClass* kwcReferencedClass;
@@ -1940,69 +1966,69 @@ yyreduce:
 		kwcLoadCurrentClass = kwcClass;
 		(yyval.kwcValue) = kwcClass;
 	}
-#line 1970 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1987 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
-	case 32: /* keyFields: '(' keyFieldList ')' comments  */
-#line 583 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+	case 32: /* keyFields: '(' fieldList ')' comments  */
+#line 587 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		/* On ignore les comemntaires */
 		if ((yyvsp[0].sValue) != NULL)
 			delete (yyvsp[0].sValue);
 		(yyval.svValue) = (yyvsp[-2].svValue);
 	}
-#line 1981 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 1998 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 33: /* keyFields: comments  */
-#line 590 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 594 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		/* On ignore les comemntaires */
 		if ((yyvsp[0].sValue) != NULL)
 			delete (yyvsp[0].sValue);
 		(yyval.svValue) = NULL; /* pas de champ cle */
 	}
-#line 1992 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2009 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 34: /* keyFields: %empty  */
-#line 597 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 601 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.svValue) = NULL; /* pas de champ cle */
 	}
-#line 2000 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2017 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
-	case 35: /* keyFieldList: keyFieldList ',' IDENTIFIER  */
-#line 604 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+	case 35: /* fieldList: fieldList ',' IDENTIFIER  */
+#line 608 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
-		StringVector* svKeyFields;
+		StringVector* svFields;
 
-		/* Creation d'un nouveau de champ dans le tableau de champs cles */
-		svKeyFields = cast(StringVector*, (yyvsp[-2].svValue));
-		svKeyFields->Add(*(yyvsp[0].sValue));
+		/* Ajout d'un nouveau de champ */
+		svFields = cast(StringVector*, (yyvsp[-2].svValue));
+		svFields->Add(*(yyvsp[0].sValue));
 		delete (yyvsp[0].sValue);
-		(yyval.svValue) = svKeyFields;
+		(yyval.svValue) = svFields;
 	}
-#line 2014 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2031 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
-	case 36: /* keyFieldList: IDENTIFIER  */
-#line 614 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+	case 36: /* fieldList: IDENTIFIER  */
+#line 618 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
-		StringVector* svKeyFields;
+		StringVector* svFields;
 
-		/* Creation d'un tableau de champ cle, et d'un premier champ dans la cle */
-		svKeyFields = new StringVector;
-		svKeyFields->Add(*(yyvsp[0].sValue));
+		/* Creation d'un tableau de champs, avec un premier champ */
+		svFields = new StringVector;
+		svFields->Add(*(yyvsp[0].sValue));
 		delete (yyvsp[0].sValue);
-		(yyval.svValue) = svKeyFields;
+		(yyval.svValue) = svFields;
 	}
-#line 2028 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2045 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 37: /* metaData: metaData '<' SIMPLEIDENTIFIER '=' STRINGLITTERAL '>'  */
-#line 627 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 631 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		KWMetaData* metaData;
 
@@ -2022,11 +2048,11 @@ yyreduce:
 		delete (yyvsp[-1].sValue);
 		(yyval.kwmdMetaData) = metaData;
 	}
-#line 2052 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2069 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 38: /* metaData: metaData '<' SIMPLEIDENTIFIER '=' CONTINUOUSLITTERAL '>'  */
-#line 647 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 651 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		KWMetaData* metaData;
 
@@ -2048,11 +2074,11 @@ yyreduce:
 		delete (yyvsp[-3].sValue);
 		(yyval.kwmdMetaData) = metaData;
 	}
-#line 2078 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2095 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 39: /* metaData: metaData '<' SIMPLEIDENTIFIER '>'  */
-#line 669 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 673 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		KWMetaData* metaData;
 
@@ -2071,11 +2097,11 @@ yyreduce:
 		delete (yyvsp[-1].sValue);
 		(yyval.kwmdMetaData) = metaData;
 	}
-#line 2101 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2118 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 40: /* metaData: metaData '<' SIMPLEIDENTIFIER '=' IDENTIFIER '>'  */
-#line 688 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 692 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		KWMetaData* metaData;
 
@@ -2092,19 +2118,19 @@ yyreduce:
 		delete (yyvsp[-1].sValue);
 		(yyval.kwmdMetaData) = metaData;
 	}
-#line 2121 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2138 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 41: /* metaData: %empty  */
-#line 704 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 708 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.kwmdMetaData) = NULL; /* pas de paires cle valeurs */
 	}
-#line 2129 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2146 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 42: /* kwattributeDeclaration: usedDeclaration typeDeclaration refIdentifier IDENTIFIER usedDerivationRule semicolon metaData comments  */
-#line 720 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 724 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		KWAttribute* attribute;
 		KWDerivationRule* rule;
@@ -2247,11 +2273,11 @@ yyreduce:
 
 		(yyval.kwaValue) = attribute;
 	}
-#line 2256 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2273 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 43: /* applicationids: applicationids APPLICATIONID  */
-#line 848 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 852 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		/* On ne garde que la premiere ligne de chaque identification d'application */
 		if ((yyvsp[-1].sValue) == NULL)
@@ -2262,19 +2288,19 @@ yyreduce:
 			(yyval.sValue) = (yyvsp[-1].sValue);
 		}
 	}
-#line 2271 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2288 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 44: /* applicationids: %empty  */
-#line 859 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 863 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.sValue) = NULL; /* pas d'identification d'application */
 	}
-#line 2279 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2296 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 45: /* comments: comments LABEL  */
-#line 867 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 871 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		/* On ne garde que la premiere ligne de chaque commentaire */
 		if ((yyvsp[-1].sValue) == NULL)
@@ -2285,180 +2311,180 @@ yyreduce:
 			(yyval.sValue) = (yyvsp[-1].sValue);
 		}
 	}
-#line 2294 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2311 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 46: /* comments: %empty  */
-#line 878 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 882 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.sValue) = NULL; /* pas de commentaire */
 	}
-#line 2302 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2319 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 47: /* rootDeclaration: ROOT  */
-#line 886 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 890 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.bValue) = true;
 	}
-#line 2310 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2327 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 48: /* rootDeclaration: %empty  */
-#line 890 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 894 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.bValue) = false; /* valeur par defaut */
 	}
-#line 2318 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2335 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 49: /* usedDeclaration: UNUSED  */
-#line 898 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 902 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.bValue) = false;
 	}
-#line 2326 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2343 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 50: /* usedDeclaration: %empty  */
-#line 902 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 906 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.bValue) = true; /* valeur par defaut */
 	}
-#line 2334 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2351 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 51: /* typeDeclaration: CONTINUOUSTYPE  */
-#line 910 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 914 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.nValue) = KWType::Continuous;
 	}
-#line 2342 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2359 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 52: /* typeDeclaration: SYMBOLTYPE  */
-#line 914 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 918 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.nValue) = KWType::Symbol;
 	}
-#line 2350 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2367 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 53: /* typeDeclaration: DATETYPE  */
-#line 918 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 922 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.nValue) = KWType::Date;
 	}
-#line 2358 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2375 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 54: /* typeDeclaration: TIMETYPE  */
-#line 922 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 926 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.nValue) = KWType::Time;
 	}
-#line 2366 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2383 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 55: /* typeDeclaration: TIMESTAMPTYPE  */
-#line 926 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 930 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.nValue) = KWType::Timestamp;
 	}
-#line 2374 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2391 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 56: /* typeDeclaration: TIMESTAMPTZTYPE  */
-#line 930 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 934 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.nValue) = KWType::TimestampTZ;
 	}
-#line 2382 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2399 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 57: /* typeDeclaration: TEXTTYPE  */
-#line 934 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 938 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.nValue) = KWType::Text;
 	}
-#line 2390 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2407 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 58: /* typeDeclaration: TEXTLISTTYPE  */
-#line 938 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 942 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.nValue) = KWType::TextList;
 	}
-#line 2398 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2415 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 59: /* typeDeclaration: OBJECTTYPE  */
-#line 942 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 946 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.nValue) = KWType::Object;
 	}
-#line 2406 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2423 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 60: /* typeDeclaration: OBJECTARRAYTYPE  */
-#line 946 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 950 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.nValue) = KWType::ObjectArray;
 	}
-#line 2414 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2431 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 61: /* typeDeclaration: STRUCTURETYPE  */
-#line 950 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 954 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.nValue) = KWType::Structure;
 	}
-#line 2422 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2439 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 62: /* refIdentifier: '(' IDENTIFIER ')'  */
-#line 958 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 962 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.sValue) = (yyvsp[-1].sValue);
 	}
-#line 2430 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2447 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 63: /* refIdentifier: %empty  */
-#line 962 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 966 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.sValue) = NULL;
 	}
-#line 2438 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2455 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 64: /* usedDerivationRule: '=' derivationRule  */
-#line 969 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 973 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.kwdrValue) = (yyvsp[0].kwdrValue);
 	}
-#line 2446 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2463 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 65: /* usedDerivationRule: referenceRule  */
-#line 973 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 977 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.kwdrValue) = (yyvsp[0].kwdrValue);
 	}
-#line 2454 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2471 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 66: /* usedDerivationRule: '=' derivationRule ')'  */
-#line 977 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 981 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		yyerror("Too many ')'");
 		(yyval.kwdrValue) = (yyvsp[-1].kwdrValue);
 	}
-#line 2463 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2480 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 67: /* usedDerivationRule: '(' IDENTIFIER ')'  */
-#line 982 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 986 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		ALString sTmp;
 		yyerror(sTmp + "Invalid syntax (" + *(yyvsp[-1].sValue) + ")");
@@ -2466,27 +2492,27 @@ yyreduce:
 			delete (yyvsp[-1].sValue);
 		(yyval.kwdrValue) = NULL;
 	}
-#line 2475 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2492 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 68: /* usedDerivationRule: %empty  */
-#line 990 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 994 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.kwdrValue) = NULL;
 	}
-#line 2483 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2500 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 69: /* referenceRule: referenceRuleBody ']'  */
-#line 996 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1000 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.kwdrValue) = (yyvsp[-1].kwdrValue);
 	}
-#line 2491 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2508 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 70: /* referenceRuleBody: '[' derivationRuleOperand  */
-#line 1002 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1006 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		KWDerivationRule* rule;
 		KWDerivationRuleOperand* operand;
@@ -2506,11 +2532,11 @@ yyreduce:
 		/* On retourner la regle */
 		(yyval.kwdrValue) = rule;
 	}
-#line 2515 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2532 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 71: /* referenceRuleBody: referenceRuleBody ',' derivationRuleOperand  */
-#line 1022 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1026 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		KWDerivationRule* rule = (yyvsp[-2].kwdrValue);
 		KWDerivationRuleOperand* operand;
@@ -2524,21 +2550,20 @@ yyreduce:
 		/* On retourner la regle */
 		(yyval.kwdrValue) = rule;
 	}
-#line 2533 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2550 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 72: /* derivationRule: derivationRuleBody closeparenthesis  */
-#line 1038 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1042 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
+		boolean bOk = true;
 		KWDerivationRule* ruleBody = (yyvsp[-1].kwdrValue);
 		KWDerivationRule* rule;
-		KWDerivationRuleOperand* ruleBodyOperand;
-		KWDerivationRuleOperand* ruleOperand;
-		int i;
-		boolean bRuleOk;
 		ALString sTmp;
 
 		/* Recherche de la regle de reference */
+		/* On ensuite recuperer au maximum les informations de la regle clonee */
+		/* et rapatrier les informations issues du parsing concernant les operandes */
 		check(ruleBody);
 		rule = KWDerivationRule::CloneDerivationRule(ruleBody->GetName());
 
@@ -2546,191 +2571,197 @@ yyreduce:
 		if (rule == NULL)
 		{
 			yyerror("Unknown derivation rule '" + ruleBody->GetName() + "'");
+			bOk = false;
 		}
 		/* Erreur si regle predefinie de Reference */
 		else if (rule->GetName() == KWDerivationRule::GetReferenceRuleName())
 		{
 			yyerror("Unknown derivation rule '" + ruleBody->GetName() + "'");
-			delete rule;
-			rule = NULL;
+			bOk = false;
 		}
-		/* Sinon, test du nombre d'arguments */
-		else if ((rule->GetVariableOperandNumber() and
-			  ruleBody->GetOperandNumber() < rule->GetOperandNumber() - 1) or
-			 (not rule->GetVariableOperandNumber() and
-			  ruleBody->GetOperandNumber() != rule->GetOperandNumber()))
 
+		/* Import des operandes de la regle */
+		if (bOk)
+			bOk = ImportParserRuleOperands(ruleBody, rule);
+
+		/* Gestion des operandes en sortie dans le cas ou le parser a stocke des operandes en sortie */
+		if (bOk and KWType::IsRelation(ruleBody->GetType()) and not ruleBody->GetReference())
 		{
-			yyerror(sTmp + "Number of operands (" + IntToString(ruleBody->GetOperandNumber()) +
-				") inconsistent with that of rule " + rule->GetName() + " (" +
-				IntToString(rule->GetOperandNumber()) + ")");
-			delete rule;
-			rule = NULL;
+			/* Erreur si la regle en cours n'est pas une regle de creation d'instance */
+			if (not KWType::IsRelation(rule->GetType()) or rule->GetReference())
+			{
+				yyerror(sTmp + "Derivation rule " + rule->GetName() +
+					" does not accept output operands");
+				bOk = false;
+			}
+			/* Sinon, transfert des operandes en sortie */
+			else
+			{
+				/* Import des operandes en sortie de la regle */
+				/* On est passe prealablement dans le parser par une regle de creation de relation */
+				/* pour stocker les operandes en sortie, que l'on va ici exploiter */
+				bOk = ImportParserRuleOutputOperands(ruleBody, rule);
+			}
 		}
-		/* Verification et transfert des operandes */
-		else
+		/* Gestion des operandes en sortie dans le cas ou le parser n'a stocke des operandes en sortie */
+		else if (bOk and KWType::IsRelation(rule->GetType()) and not rule->GetReference())
 		{
-			/* Dans le cas d'un nombre variable d'operandes, on commence par rajouter */
-			/* eventuellement des operandes en fin de regle pour preparer l'instanciation */
-			if (ruleBody->GetOperandNumber() > rule->GetOperandNumber())
+			/* Test du nombre d'operandes en sortie */
+			if ((rule->GetVariableOutputOperandNumber() and rule->GetOutputOperandNumber() > 1) or
+			    (not rule->GetVariableOutputOperandNumber() and rule->GetOutputOperandNumber() > 0))
 			{
-				assert(rule->GetVariableOperandNumber());
-				while (rule->GetOperandNumber() < ruleBody->GetOperandNumber())
-					rule->AddOperand(rule->GetOperandAt(rule->GetOperandNumber() - 1)->Clone());
+				yyerror(sTmp + "Missing output operands for rule " + rule->GetName() +
+					" that requires them (at least " +
+					IntToString(rule->GetOutputOperandNumber() -
+						    (rule->GetVariableOutputOperandNumber() ? 1 : 0)) +
+					")");
+				bOk = false;
 			}
+			/* Supression des eventuels operandes en sortie inutiles */
+			else if (rule->GetOutputOperandNumber() > 0)
+				cast(KWDRRelationCreationRule*, rule)->DeleteAllOutputOperands();
+		}
 
-			/* Dans le cas d'un nombre variable d'operandes, on supprime eventuellement */
-			/* le dernier operande, qui n'est pas obligatoire */
-			if (ruleBody->GetOperandNumber() < rule->GetOperandNumber())
-			{
-				assert(rule->GetVariableOperandNumber());
-				assert(ruleBody->GetOperandNumber() == rule->GetOperandNumber() - 1);
-				rule->DeleteAllVariableOperands();
-			}
-			assert(ruleBody->GetOperandNumber() == rule->GetOperandNumber());
+		/* Verification de la definition de la regle */
+		if (bOk and not rule->CheckDefinition())
+		{
+			yyerror(sTmp + "Derivation rule " + rule->GetName() + " incorrectly specified");
+			bOk = false;
+		}
 
-			/* Transfert des operandes */
-			bRuleOk = true;
-			for (i = 0; i < rule->GetOperandNumber(); i++)
-			{
-				/* acces aux operandes */
-				ruleOperand = rule->GetOperandAt(i);
-				ruleBodyOperand = ruleBody->GetOperandAt(i);
-
-				/* Transfert d'informations de la regle de reference vers la regle a verifier */
-				if (ruleBodyOperand->GetOrigin() != KWDerivationRuleOperand::OriginConstant)
-				{
-					ruleBodyOperand->SetType(ruleOperand->GetType());
-					if (KWType::IsRelation(ruleOperand->GetType()))
-						ruleBodyOperand->SetObjectClassName(ruleOperand->GetObjectClassName());
-				}
-				if (ruleOperand->GetType() == KWType::Structure)
-				{
-					ruleBodyOperand->SetType(KWType::Structure);
-					ruleBodyOperand->SetStructureName(ruleOperand->GetStructureName());
-				}
-
-				/* Test si operande candidate valide */
-				if (not ruleBodyOperand->CheckDefinition())
-				{
-					bRuleOk = false;
-					yyerror(sTmp + "Incorrect operand " + IntToString(1 + i) + " for rule " +
-						rule->GetName());
-				}
-				/* Test de compatibilite avec la regle enregistree, sauf si regle avec operande de type indetermine */
-				else if (ruleOperand->GetType() != KWType::Unknown and
-					 not ruleBodyOperand->CheckFamily(ruleOperand))
-				{
-					bRuleOk = false;
-					yyerror(sTmp + "Operand " + IntToString(1 + i) +
-						" inconsistent with that of rule " + rule->GetName());
-					break;
-				}
-				/* Transfert de l'origine de l'operande */
-				else
-				{
-					/* Transfert du niveau de scope */
-					ruleOperand->SetScopeLevel(ruleBodyOperand->GetScopeLevel());
-
-					/* Transfert d'une valeur constante */
-					ruleOperand->SetOrigin(ruleBodyOperand->GetOrigin());
-					if (ruleOperand->GetOrigin() == KWDerivationRuleOperand::OriginConstant)
-					{
-						ruleOperand->SetType(ruleBodyOperand->GetType());
-						ruleOperand->SetStringConstant(ruleBodyOperand->GetStringConstant());
-					}
-					/* Transfert d'un attribut */
-					else if (ruleOperand->GetOrigin() == KWDerivationRuleOperand::OriginAttribute)
-						ruleOperand->SetDataItemName(ruleBodyOperand->GetDataItemName());
-					else
-					/* Transfert d'une regle */
-					{
-						// Transfert de la regle */
-						if (ruleOperand->GetDerivationRule() != NULL)
-						{
-							assert(ruleBodyOperand->GetDerivationRule() != NULL);
-							delete ruleOperand->GetDerivationRule();
-						}
-						ruleOperand->SetDerivationRule(ruleBodyOperand->GetDerivationRule());
-
-						/* Transfert des infos portees par la regle de derivation */
-						if (ruleOperand->GetDerivationRule() != NULL)
-						{
-							ruleOperand->SetType(
-							    ruleOperand->GetDerivationRule()->GetType());
-							if (KWType::IsRelation(ruleOperand->GetType()))
-								ruleOperand->SetObjectClassName(
-								    ruleOperand->GetDerivationRule()
-									->GetObjectClassName());
-							if (ruleOperand->GetType() == KWType::Structure)
-								ruleOperand->SetStructureName(
-								    ruleOperand->GetDerivationRule()
-									->GetStructureName());
-						}
-
-						/* Dereferencement de la regle de derivation depuis l'operande de travail */
-						ruleBodyOperand->SetDerivationRule(NULL);
-					}
-				}
-			}
-
-			/* Verification de la definition de la regle */
-			if (bRuleOk and not rule->CheckDefinition())
-			{
-				bRuleOk = false;
-				yyerror(sTmp + "Derivation rule " + rule->GetName() + " incorrectly specified");
-			}
-
-			/* Test si erreur dans le transfert des operandes */
-			if (not bRuleOk)
+		/* Test si erreur dans le transfert des operandes */
+		if (not bOk)
+		{
+			if (rule != NULL)
 			{
 				delete rule;
 				rule = NULL;
 			}
-			/* Sinon, on tente de compresser la regle */
-			else
+		}
+		/* Sinon, on tente de compresser la regle */
+		else
+		{
+			if (rule->IsStructureRule())
 			{
-				if (rule->IsStructureRule())
-				{
-					KWDRStructureRule* structureRule;
+				KWDRStructureRule* structureRule;
 
-					/* Acces a la regle de structure, transformation au format structure et nettoyage memoire */
-					/* Cette optimisation memoire des regles structure est critique dans le cas de dictionnaires */
-					/* de tres grande taille. Sinon, des millions d'operandes de regles sont potentiellement crees, */
-					/* puis lors de la compilation des dictionnaire, l'essentiel de la memoire liberee laisse des trous */
-					/* dans les segments de la heap, qui ne peuvent etre rendus au systeme */
-					assert(rule->CheckDefinition());
-					structureRule = cast(KWDRStructureRule*, rule);
-					structureRule->BuildStructureFromBase(rule);
-					structureRule->CleanCompiledBaseInterface();
-				}
+				/* Acces a la regle de structure, transformation au format structure et nettoyage memoire */
+				/* Cette optimisation memoire des regles structure est critique dans le cas de dictionnaires */
+				/* de tres grande taille. Sinon, des millions d'operandes de regles sont potentiellement crees, */
+				/* puis lors de la compilation des dictionnaire, l'essentiel de la memoire liberee laisse des trous */
+				/* dans les segments de la heap, qui ne peuvent etre rendus au systeme */
+				assert(rule->CheckDefinition());
+				structureRule = cast(KWDRStructureRule*, rule);
+				structureRule->BuildStructureFromBase(rule);
+				structureRule->CleanCompiledBaseInterface();
 			}
 		}
-		delete ruleBody;
 
+		/* Finalisation */
+		delete ruleBody;
 		(yyval.kwdrValue) = rule;
 	}
-#line 2712 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2659 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 73: /* derivationRuleBody: derivationRuleBegin  */
-#line 1216 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1150 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.kwdrValue) = (yyvsp[0].kwdrValue);
 	}
-#line 2720 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2667 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
-	case 74: /* derivationRuleBody: derivationRuleHeader  */
-#line 1220 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+	case 74: /* derivationRuleBody: derivationRuleBegin ':' operandList  */
+#line 1154 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+	{
+		KWDerivationRule* ruleBody = (yyvsp[-2].kwdrValue);
+		KWDRRelationCreationRule* ruleRelationCreationBody;
+		ObjectArray oaOperands;
+		ObjectArray* oaOutputOperands;
+		int nOperand;
+		KWDerivationRuleOperand* operand;
+
+		/* On passe par une regle de creation de relation pour stocker les operandes en sortie */
+		ruleRelationCreationBody = new KWDRRelationCreationRule;
+
+		// On transfer les operande initiaux vers un tableau
+		for (nOperand = 0; nOperand < ruleBody->GetOperandNumber(); nOperand++)
+		{
+			operand = cast(KWDerivationRuleOperand*, ruleBody->GetOperandAt(nOperand));
+			oaOperands.Add(operand);
+		}
+		ruleBody->RemoveAllOperands();
+
+		/* On copie la regle initiale, maintenant nettoyee de ses operandes */
+		ruleBody->SetType(KWType::ObjectArray);
+		ruleRelationCreationBody->CopyFrom(ruleBody);
+		delete ruleBody;
+
+		/* On recupere les operandes initiaux */
+		for (nOperand = 0; nOperand < oaOperands.GetSize(); nOperand++)
+		{
+			operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(nOperand));
+			ruleRelationCreationBody->AddOperand(operand);
+		}
+
+		/* On recupere la liste des operandes en sortie */
+		oaOutputOperands = cast(ObjectArray*, (yyvsp[0].oaOperands));
+
+		/* Parametrage des operandes en sortie */
+		assert(ruleRelationCreationBody->GetOutputOperandNumber() == 0);
+		for (nOperand = 0; nOperand < oaOutputOperands->GetSize(); nOperand++)
+		{
+			operand = cast(KWDerivationRuleOperand*, oaOutputOperands->GetAt(nOperand));
+			ruleRelationCreationBody->AddOutputOperand(operand);
+		}
+		delete oaOutputOperands;
+
+		(yyval.kwdrValue) = ruleRelationCreationBody;
+	}
+#line 2717 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+	break;
+
+	case 75: /* derivationRuleBody: derivationRuleHeader  */
+#line 1200 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.kwdrValue) = (yyvsp[0].kwdrValue);
 	}
-#line 2728 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2725 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
-	case 75: /* derivationRuleHeader: IDENTIFIER openparenthesis  */
-#line 1227 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+	case 76: /* operandList: operandList ',' derivationRuleOperand  */
+#line 1207 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+	{
+		ObjectArray* oaOperandList = (yyvsp[-2].oaOperands);
+		KWDerivationRuleOperand* operand = (yyvsp[0].kwdroValue);
+		check(oaOperandList);
+		check(operand);
+
+		/* Ajout d'un operande */
+		oaOperandList->Add(operand);
+		(yyval.oaOperands) = oaOperandList;
+	}
+#line 2740 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+	break;
+
+	case 77: /* operandList: derivationRuleOperand  */
+#line 1218 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+	{
+		ObjectArray* oaOperandList;
+		KWDerivationRuleOperand* operand = (yyvsp[0].kwdroValue);
+		check(operand);
+
+		/* Creation d'un tableau doperandes, avec un premier operande */
+		oaOperandList = new ObjectArray;
+		oaOperandList->Add(operand);
+		(yyval.oaOperands) = oaOperandList;
+	}
+#line 2755 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+	break;
+
+	case 78: /* derivationRuleHeader: IDENTIFIER openparenthesis  */
+#line 1231 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		KWDerivationRule* rule;
 
@@ -2740,11 +2771,11 @@ yyreduce:
 		delete (yyvsp[-1].sValue);
 		(yyval.kwdrValue) = rule;
 	}
-#line 2742 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2769 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
-	case 76: /* derivationRuleBegin: derivationRuleHeader derivationRuleOperand  */
-#line 1240 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+	case 79: /* derivationRuleBegin: derivationRuleHeader derivationRuleOperand  */
+#line 1244 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		KWDerivationRule* rule = (yyvsp[-1].kwdrValue);
 		KWDerivationRuleOperand* operand = (yyvsp[0].kwdroValue);
@@ -2755,11 +2786,11 @@ yyreduce:
 		rule->AddOperand(operand);
 		(yyval.kwdrValue) = rule;
 	}
-#line 2757 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2784 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
-	case 77: /* derivationRuleBegin: derivationRuleBegin ',' derivationRuleOperand  */
-#line 1251 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+	case 80: /* derivationRuleBegin: derivationRuleBegin ',' derivationRuleOperand  */
+#line 1255 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		KWDerivationRule* rule = (yyvsp[-2].kwdrValue);
 		KWDerivationRuleOperand* operand = (yyvsp[0].kwdroValue);
@@ -2770,11 +2801,11 @@ yyreduce:
 		rule->AddOperand(operand);
 		(yyval.kwdrValue) = rule;
 	}
-#line 2772 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2799 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
-	case 78: /* derivationRuleOperand: IDENTIFIER  */
-#line 1265 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+	case 81: /* derivationRuleOperand: IDENTIFIER  */
+#line 1269 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		KWDerivationRuleOperand* operand;
 		operand = new KWDerivationRuleOperand;
@@ -2783,11 +2814,11 @@ yyreduce:
 		delete (yyvsp[0].sValue);
 		(yyval.kwdroValue) = operand;
 	}
-#line 2785 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2812 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
-	case 79: /* derivationRuleOperand: CONTINUOUSLITTERAL  */
-#line 1274 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+	case 82: /* derivationRuleOperand: CONTINUOUSLITTERAL  */
+#line 1278 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		KWDerivationRuleOperand* operand;
 		operand = new KWDerivationRuleOperand;
@@ -2796,11 +2827,11 @@ yyreduce:
 		operand->SetContinuousConstant((yyvsp[0].cValue));
 		(yyval.kwdroValue) = operand;
 	}
-#line 2798 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2825 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
-	case 80: /* derivationRuleOperand: bigstring  */
-#line 1283 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+	case 83: /* derivationRuleOperand: bigstring  */
+#line 1287 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		KWDerivationRuleOperand* operand;
 		operand = new KWDerivationRuleOperand;
@@ -2810,11 +2841,11 @@ yyreduce:
 		delete (yyvsp[0].sValue);
 		(yyval.kwdroValue) = operand;
 	}
-#line 2812 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2839 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
-	case 81: /* derivationRuleOperand: derivationRule  */
-#line 1293 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+	case 84: /* derivationRuleOperand: derivationRule  */
+#line 1297 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		KWDerivationRuleOperand* operand;
 		operand = new KWDerivationRuleOperand;
@@ -2824,22 +2855,22 @@ yyreduce:
 			operand->SetType(operand->GetDerivationRule()->GetType());
 		(yyval.kwdroValue) = operand;
 	}
-#line 2826 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2853 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
-	case 82: /* derivationRuleOperand: '.' derivationRuleOperand  */
-#line 1303 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+	case 85: /* derivationRuleOperand: '.' derivationRuleOperand  */
+#line 1307 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		KWDerivationRuleOperand* operand;
 		operand = (yyvsp[0].kwdroValue);
 		operand->SetScopeLevel(operand->GetScopeLevel() + 1);
 		(yyval.kwdroValue) = operand;
 	}
-#line 2837 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2864 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
-	case 83: /* bigstring: bigstring '+' STRINGLITTERAL  */
-#line 1314 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+	case 86: /* bigstring: bigstring '+' STRINGLITTERAL  */
+#line 1318 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		/* Concatenation des deux chaines */
 		(yyval.sValue) = new ALString(*(yyvsp[-2].sValue) + *(yyvsp[0].sValue));
@@ -2848,59 +2879,59 @@ yyreduce:
 		delete (yyvsp[-2].sValue);
 		delete (yyvsp[0].sValue);
 	}
-#line 2850 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2877 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
-	case 84: /* bigstring: STRINGLITTERAL  */
-#line 1323 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+	case 87: /* bigstring: STRINGLITTERAL  */
+#line 1327 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.sValue) = (yyvsp[0].sValue);
 	}
-#line 2858 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2885 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
-	case 86: /* semicolon: ';' ';'  */
-#line 1331 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+	case 89: /* semicolon: ';' ';'  */
+#line 1335 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		yyerror("There is one superfluous ';'");
 	}
-#line 2866 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2893 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
-	case 87: /* semicolon: ';' ';' ';'  */
-#line 1335 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+	case 90: /* semicolon: ';' ';' ';'  */
+#line 1339 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		yyerror("Too many ';'");
 	}
-#line 2874 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2901 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
-	case 88: /* semicolon: %empty  */
-#line 1339 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+	case 91: /* semicolon: %empty  */
+#line 1343 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		yyerror("Missing ';'");
 	}
-#line 2882 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2909 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
-	case 90: /* openparenthesis: '(' '('  */
-#line 1347 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+	case 93: /* openparenthesis: '(' '('  */
+#line 1351 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		yyerror("There is one superfluous '('");
 	}
-#line 2890 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2917 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
-	case 91: /* openparenthesis: '(' '(' '('  */
-#line 1351 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+	case 94: /* openparenthesis: '(' '(' '('  */
+#line 1355 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		yyerror("Too many '('");
 	}
-#line 2898 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2925 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
-	case 92: /* openparenthesis: %empty  */
-#line 1355 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+	case 95: /* openparenthesis: %empty  */
+#line 1359 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		/* ERRORMGT */
 		/* Attention: supprimer cette instruction en cas d'evolution du parser */
@@ -2909,11 +2940,11 @@ yyreduce:
 		/* sa consoeur 3 shift/reduce conflicts et 12 reduce conflicts     */
 		yyerror("Missing '('");
 	}
-#line 2911 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2938 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
-	case 94: /* closeparenthesis: %empty  */
-#line 1369 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+	case 97: /* closeparenthesis: %empty  */
+#line 1373 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		/* ERRORMGT */
 		/* Attention: supprimer cette instruction en cas d'evolution du parser */
@@ -2922,10 +2953,10 @@ yyreduce:
 		/* sa consoeur 3 shift/reduce conflicts et 12 reduce conflicts     */
 		yyerror("Missing ')'");
 	}
-#line 2924 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2951 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
-#line 2928 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2955 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 
 	default:
 		break;
@@ -3104,7 +3135,7 @@ yyreturnlab:
 	return yyresult;
 }
 
-#line 1380 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1384 "D:/Users/miib6422/Documents/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 
 #include "KWCLex.inc"
 
@@ -3134,6 +3165,212 @@ void yyerrorWithLineCorrection(char const* fmt, int nDeltaLineNumber)
 	snprintf(sErrorLine, sizeof(sErrorLine), "Line %d", nLineNumber);
 	sLabel = fmt;
 	Global::AddError("Read dictionary file", sErrorLine, sLabel);
+}
+
+boolean ImportParserRuleOperands(const KWDerivationRule* parsedRule, KWDerivationRule* rule)
+{
+	boolean bOk = true;
+	KWDerivationRuleOperand* parsedOperand;
+	KWDerivationRuleOperand* operand;
+	int i;
+	ALString sTmp;
+
+	require(parsedRule != NULL);
+	require(rule != NULL);
+
+	/* Test du nombre d'operandes */
+	if ((rule->GetVariableOperandNumber() and parsedRule->GetOperandNumber() < rule->GetOperandNumber() - 1) or
+	    (not rule->GetVariableOperandNumber() and parsedRule->GetOperandNumber() != rule->GetOperandNumber()))
+
+	{
+		yyerror(sTmp + "Number of operands (" + IntToString(parsedRule->GetOperandNumber()) +
+			") inconsistent with that of rule " + rule->GetName() + " (" +
+			IntToString(rule->GetOperandNumber()) + ")");
+		bOk = false;
+	}
+	/* Verification et transfert des operandes */
+	else
+	{
+		/* Dans le cas d'un nombre variable d'operandes, on commence par rajouter */
+		/* eventuellement des operandes en fin de regle pour preparer l'instanciation */
+		if (parsedRule->GetOperandNumber() > rule->GetOperandNumber())
+		{
+			assert(rule->GetVariableOperandNumber());
+			while (rule->GetOperandNumber() < parsedRule->GetOperandNumber())
+				rule->AddOperand(rule->GetOperandAt(rule->GetOperandNumber() - 1)->Clone());
+		}
+
+		/* Dans le cas d'un nombre variable d'operandes, on supprime eventuellement */
+		/* le dernier operande, qui n'est pas obligatoire */
+		if (parsedRule->GetOperandNumber() < rule->GetOperandNumber())
+		{
+			assert(rule->GetVariableOperandNumber());
+			assert(parsedRule->GetOperandNumber() == rule->GetOperandNumber() - 1);
+			rule->DeleteAllVariableOperands();
+		}
+		assert(parsedRule->GetOperandNumber() == rule->GetOperandNumber());
+
+		/* Transfert des operandes */
+		for (i = 0; i < rule->GetOperandNumber(); i++)
+		{
+			/* acces aux operandes */
+			operand = rule->GetOperandAt(i);
+			parsedOperand = parsedRule->GetOperandAt(i);
+
+			/* Import de l'operande */
+			bOk = ImportParserOperand(rule->GetName(), i, parsedOperand, operand);
+			if (not bOk)
+				break;
+		}
+	}
+	return bOk;
+}
+
+boolean ImportParserRuleOutputOperands(const KWDerivationRule* parsedRule, KWDerivationRule* rule)
+{
+	boolean bOk = true;
+	KWDRRelationCreationRule* creationRule;
+	KWDerivationRuleOperand* parsedOperand;
+	KWDerivationRuleOperand* operand;
+	int i;
+	ALString sTmp;
+
+	require(parsedRule != NULL);
+	require(rule != NULL);
+	require(not parsedRule->GetReference());
+	require(not rule->GetReference());
+
+	/* Test du nombre d'operandes en sortie */
+	if ((rule->GetVariableOutputOperandNumber() and
+	     parsedRule->GetOutputOperandNumber() < rule->GetOutputOperandNumber() - 1) or
+	    (not rule->GetVariableOutputOperandNumber() and
+	     parsedRule->GetOutputOperandNumber() != rule->GetOutputOperandNumber()))
+
+	{
+		yyerror(sTmp + "Number of output operands (" + IntToString(parsedRule->GetOutputOperandNumber()) +
+			") inconsistent with that of rule " + rule->GetName() + " (" +
+			IntToString(rule->GetOutputOperandNumber()) + ")");
+		bOk = false;
+	}
+	/* Verification et transfert des operandes en sortie */
+	else
+	{
+		/* Cast de la regle a alimenter en regle de creation de relation pour acceder a ses methodes dediees */
+		creationRule = cast(KWDRRelationCreationRule*, rule);
+
+		/* Dans le cas d'un nombre variable d'operandes en sortie, on commence par rajouter */
+		/* eventuellement des operandes en fin de regle pour preparer l'instanciation */
+		if (parsedRule->GetOutputOperandNumber() > rule->GetOutputOperandNumber())
+		{
+			assert(rule->GetVariableOutputOperandNumber());
+			while (rule->GetOutputOperandNumber() < parsedRule->GetOutputOperandNumber())
+				creationRule->AddOutputOperand(
+				    rule->GetOutputOperandAt(rule->GetOutputOperandNumber() - 1)->Clone());
+		}
+
+		/* Dans le cas d'un nombre variable d'operandes en sortie, on supprime eventuellement */
+		/* le dernier operande, qui n'est pas obligatoire */
+		if (parsedRule->GetOutputOperandNumber() < rule->GetOutputOperandNumber())
+		{
+			assert(rule->GetVariableOutputOperandNumber());
+			assert(parsedRule->GetOutputOperandNumber() == rule->GetOutputOperandNumber() - 1);
+			creationRule->DeleteAllVariableOutputOperands();
+		}
+		assert(parsedRule->GetOutputOperandNumber() == rule->GetOutputOperandNumber());
+
+		/* Transfert des operandes en sortie */
+		for (i = 0; i < rule->GetOutputOperandNumber(); i++)
+		{
+			/* acces aux operandes en sortie */
+			operand = rule->GetOutputOperandAt(i);
+			parsedOperand = parsedRule->GetOutputOperandAt(i);
+
+			/* Import de l'operande */
+			bOk = ImportParserOperand(rule->GetName(), i, parsedOperand, operand);
+			if (not bOk)
+				break;
+		}
+	}
+	return bOk;
+}
+
+boolean ImportParserOperand(const ALString& sRuleName, int nOperandIndex, KWDerivationRuleOperand* parsedOperand,
+			    KWDerivationRuleOperand* operand)
+{
+	boolean bOk = true;
+	ALString sTmp;
+
+	require(parsedOperand != NULL);
+	require(operand != NULL);
+
+	/* Transfert d'informations de la regle de reference vers la regle a verifier */
+	if (parsedOperand->GetOrigin() != KWDerivationRuleOperand::OriginConstant)
+	{
+		parsedOperand->SetType(operand->GetType());
+		if (KWType::IsRelation(operand->GetType()))
+			parsedOperand->SetObjectClassName(operand->GetObjectClassName());
+	}
+	if (operand->GetType() == KWType::Structure)
+	{
+		parsedOperand->SetType(KWType::Structure);
+		parsedOperand->SetStructureName(operand->GetStructureName());
+	}
+
+	/* Test si operande candidate valide */
+	if (not parsedOperand->CheckDefinition())
+	{
+		bOk = false;
+		yyerror(sTmp + "Incorrect operand " + IntToString(1 + nOperandIndex) + " for rule " + sRuleName);
+	}
+	/* Test de compatibilite avec la regle enregistree, sauf si regle avec operande de type indetermine */
+	else if (operand->GetType() != KWType::Unknown and not parsedOperand->CheckFamily(operand))
+	{
+		bOk = false;
+		yyerror(sTmp + "Operand " + IntToString(1 + nOperandIndex) + " inconsistent with that of rule " +
+			sRuleName);
+	}
+	/* Transfert de l'origine de l'operande */
+	else
+	{
+		/* Transfert du niveau de scope */
+		operand->SetScopeLevel(parsedOperand->GetScopeLevel());
+
+		/* Transfert d'une valeur constante */
+		operand->SetOrigin(parsedOperand->GetOrigin());
+		if (operand->GetOrigin() == KWDerivationRuleOperand::OriginConstant)
+		{
+			operand->SetType(parsedOperand->GetType());
+			operand->SetStringConstant(parsedOperand->GetStringConstant());
+		}
+		/* Transfert d'un attribut */
+		else if (operand->GetOrigin() == KWDerivationRuleOperand::OriginAttribute)
+			operand->SetDataItemName(parsedOperand->GetDataItemName());
+		else
+		/* Transfert d'une regle */
+		{
+			// Transfert de la regle */
+			if (operand->GetDerivationRule() != NULL)
+			{
+				assert(parsedOperand->GetDerivationRule() != NULL);
+				delete operand->GetDerivationRule();
+			}
+			operand->SetDerivationRule(parsedOperand->GetDerivationRule());
+
+			/* Transfert des infos portees par la regle de derivation */
+			if (operand->GetDerivationRule() != NULL)
+			{
+				operand->SetType(operand->GetDerivationRule()->GetType());
+				if (KWType::IsRelation(operand->GetType()))
+					operand->SetObjectClassName(operand->GetDerivationRule()->GetObjectClassName());
+				if (operand->GetType() == KWType::Structure)
+					operand->SetStructureName(operand->GetDerivationRule()->GetStructureName());
+			}
+
+			/* Dereferencement de la regle de derivation depuis l'operande de travail */
+			parsedOperand->SetDerivationRule(NULL);
+		}
+	}
+	return bOk;
 }
 
 int yyparse();

@@ -13,6 +13,7 @@
 #include "KWClass.h"
 #include "KWContinuous.h"
 #include "KWDerivationRule.h"
+#include "KWRelationCreationRule.h"
 #include "KWStructureRule.h"
 #include "KWMetaData.h"
 
@@ -20,6 +21,12 @@
 void yyerror(char const *fmt);
 void yyerrorWithLineCorrection(char const *fmt, int nDeltaLineNumber);
 int yylex();
+
+/* Fonctions utilitaires pour rappatrier les information du parser vers une regle */
+boolean ImportParserRuleOperands(const KWDerivationRule* parsedRule, KWDerivationRule* rule);
+boolean ImportParserRuleOutputOperands(const KWDerivationRule* parsedRule, KWDerivationRule* rule);
+boolean ImportParserOperand(const ALString& sRuleName, int nOperandIndex, 
+                            KWDerivationRuleOperand* parsedOperand, KWDerivationRuleOperand* operand);
 
 /* Work around a bug in the relation between bison and GCC 3.x: */
 #if defined (__GNUC__) && 3 <= __GNUC__
@@ -64,6 +71,7 @@ extern char   *yyptok(int i);
   KWClass* kwcValue;
   KWAttribute* kwaValue;
   ObjectArray* oaAttributes;
+  ObjectArray* oaOperands;
   KWMetaData* kwmdMetaData;
   int nValue;
 };
@@ -116,13 +124,14 @@ extern char   *yyptok(int i);
 %type <kwdrValue> derivationRuleHeader
 %type <kwdrValue> derivationRuleBegin
 %type <kwdroValue> derivationRuleOperand
+%type <oaOperands> operandList
 %type <svValue> keyFields
-%type <svValue> keyFieldList
+%type <svValue> fieldList
 %type <kwmdMetaData> metaData
 
 
 /* Parametrage du destructeur a appeler en cas d'erreur, sauf pour les KWClass <kwcValue> qui sont integree dans des KWClassDomain */
-%destructor {if ($$ != NULL) delete $$; $$=NULL;} <sValue> <svValue> <kwdrValue> <kwdroValue> <oaAttributes> <kwmdMetaData> <kwaValue>
+%destructor {if ($$ != NULL) delete $$; $$=NULL;} <sValue> <svValue> <kwdrValue> <kwdroValue> <oaAttributes> <oaOperands> <kwmdMetaData> <kwaValue>
 
 
 
@@ -579,7 +588,7 @@ kwclassHeader: comments rootDeclaration CLASS IDENTIFIER keyFields metaData '{'
 	   ;
 
 keyFields:
-      '(' keyFieldList ')' comments
+      '(' fieldList ')' comments
         {
 		  /* On ignore les comemntaires */
 		  if ($4 != NULL)
@@ -599,26 +608,26 @@ keyFields:
         }
     ;
 
-keyFieldList:
-	  keyFieldList ',' IDENTIFIER
+fieldList:
+	  fieldList ',' IDENTIFIER
         {
-            StringVector* svKeyFields;
+            StringVector* svFields;
             
-            /* Creation d'un nouveau de champ dans le tableau de champs cles */
-            svKeyFields = cast(StringVector*, $1);
-            svKeyFields->Add(*$3);
+            /* Ajout d'un nouveau de champ */
+            svFields = cast(StringVector*, $1);
+            svFields->Add(*$3);
 		    delete $3;
-			$$ = svKeyFields;
+			$$ = svFields;
         }
     | IDENTIFIER 
         {
-            StringVector* svKeyFields;
+            StringVector* svFields;
             
-            /* Creation d'un tableau de champ cle, et d'un premier champ dans la cle */
-            svKeyFields = new StringVector;
-            svKeyFields->Add(*$1);
+            /* Creation d'un tableau de champs, avec un premier champ */
+            svFields = new StringVector;
+            svFields->Add(*$1);
 		    delete $1;
-			$$ = svKeyFields;
+			$$ = svFields;
         }
     ;
 
@@ -1036,178 +1045,108 @@ referenceRuleBody: '[' derivationRuleOperand
 
 derivationRule: derivationRuleBody closeparenthesis
 		{
-		  KWDerivationRule* ruleBody = $1;
-		  KWDerivationRule* rule;
-		  KWDerivationRuleOperand* ruleBodyOperand;
-		  KWDerivationRuleOperand* ruleOperand;
-		  int i;
-		  boolean bRuleOk;
-		  ALString sTmp;
-		  
-		  /* Recherche de la regle de reference */
-		  check(ruleBody);
-		  rule = KWDerivationRule::CloneDerivationRule(ruleBody->GetName());
-		  
-		  /* Erreur si regle inexistante */
-		  if (rule == NULL)
-		  {
-		    yyerror("Unknown derivation rule '" + ruleBody->GetName() + "'");
-		  }
-		  /* Erreur si regle predefinie de Reference */
-		  else if (rule->GetName() == KWDerivationRule::GetReferenceRuleName())
-		  {
-		    yyerror("Unknown derivation rule '" + ruleBody->GetName() + "'");
-			delete rule;
-			rule = NULL;
-		  }
-		  /* Sinon, test du nombre d'arguments */
-		  else if ((rule->GetVariableOperandNumber() and 
-					ruleBody->GetOperandNumber() < rule->GetOperandNumber()-1) or
-					(not rule->GetVariableOperandNumber() and 
-					ruleBody->GetOperandNumber() != rule->GetOperandNumber()))
+			boolean bOk = true;
+			KWDerivationRule* ruleBody = $1;
+			KWDerivationRule* rule;
+			ALString sTmp;
 
-		  {
-		    yyerror(sTmp + "Number of operands (" +
-              IntToString(ruleBody->GetOperandNumber()) +
-              ") inconsistent with that of rule " + rule->GetName() + " (" +
-              IntToString(rule->GetOperandNumber()) + ")");
-			delete rule;
-			rule = NULL;
-		  }
-	      /* Verification et transfert des operandes */
-          else
-          {
-		    /* Dans le cas d'un nombre variable d'operandes, on commence par rajouter */
-			/* eventuellement des operandes en fin de regle pour preparer l'instanciation */
-			if (ruleBody->GetOperandNumber() > rule->GetOperandNumber())
+			/* Recherche de la regle de reference */
+			/* On ensuite recuperer au maximum les informations de la regle clonee */
+			/* et rapatrier les informations issues du parsing concernant les operandes */
+			check(ruleBody);
+			rule = KWDerivationRule::CloneDerivationRule(ruleBody->GetName());
+
+			/* Erreur si regle inexistante */
+			if (rule == NULL)
 			{
-			   assert(rule->GetVariableOperandNumber());
-			   while (rule->GetOperandNumber() < ruleBody->GetOperandNumber())
-			      rule->AddOperand(rule->GetOperandAt(rule->GetOperandNumber()-1)->Clone());
+				yyerror("Unknown derivation rule '" + ruleBody->GetName() + "'");
+				bOk = false;
+			}
+			/* Erreur si regle predefinie de Reference */
+			else if (rule->GetName() == KWDerivationRule::GetReferenceRuleName())
+			{
+				yyerror("Unknown derivation rule '" + ruleBody->GetName() + "'");
+				bOk = false;
 			}
 
-		    /* Dans le cas d'un nombre variable d'operandes, on supprime eventuellement */
-			/* le dernier operande, qui n'est pas obligatoire */
-			if (ruleBody->GetOperandNumber() < rule->GetOperandNumber())
+			/* Import des operandes de la regle */
+			if (bOk)
+				bOk = ImportParserRuleOperands(ruleBody, rule);
+
+			/* Gestion des operandes en sortie dans le cas ou le parser a stocke des operandes en sortie */
+			if (bOk and KWType::IsRelation(ruleBody->GetType()) and not ruleBody->GetReference())
 			{
-			   assert(rule->GetVariableOperandNumber());
-			   assert(ruleBody->GetOperandNumber() == rule->GetOperandNumber()-1);
-			   rule->DeleteAllVariableOperands();
-			}
-			assert(ruleBody->GetOperandNumber() == rule->GetOperandNumber());
-
-			/* Transfert des operandes */
-		    bRuleOk = true;
-            for (i = 0; i < rule->GetOperandNumber(); i++)
-			{
-			  /* acces aux operandes */
-			  ruleOperand = rule->GetOperandAt(i);
-			  ruleBodyOperand = ruleBody->GetOperandAt(i);
-
-			  /* Transfert d'informations de la regle de reference vers la regle a verifier */
-			  if (ruleBodyOperand->GetOrigin() != KWDerivationRuleOperand::OriginConstant)
-			  {
-			    ruleBodyOperand->SetType(ruleOperand->GetType());
-				if (KWType::IsRelation(ruleOperand->GetType()))
-					ruleBodyOperand->SetObjectClassName(ruleOperand->GetObjectClassName());
-			  }
-			  if (ruleOperand->GetType() == KWType::Structure)
-			  {
-			      ruleBodyOperand->SetType(KWType::Structure);
-			      ruleBodyOperand->SetStructureName(ruleOperand->GetStructureName());
-			  }
-
-			  /* Test si operande candidate valide */
-			  if (not ruleBodyOperand->CheckDefinition())
-			  {
-			    bRuleOk = false;
-				yyerror(sTmp + "Incorrect operand " + IntToString(1+i) + " for rule " + rule->GetName());
-			  }
-			  /* Test de compatibilite avec la regle enregistree, sauf si regle avec operande de type indetermine */
-			  else if (ruleOperand->GetType() != KWType::Unknown and not ruleBodyOperand->CheckFamily(ruleOperand))
-			  {
-			    bRuleOk = false;
-				yyerror(sTmp + "Operand " + IntToString(1+i) + " inconsistent with that of rule " + rule->GetName());
-				break;
-			  }
-			  /* Transfert de l'origine de l'operande */
-			  else
-			  {
-			    /* Transfert du niveau de scope */
-				ruleOperand->SetScopeLevel(ruleBodyOperand->GetScopeLevel());
-
-			    /* Transfert d'une valeur constante */
-			    ruleOperand->SetOrigin(ruleBodyOperand->GetOrigin());
-				if (ruleOperand->GetOrigin() == KWDerivationRuleOperand::OriginConstant)
+				/* Erreur si la regle en cours n'est pas une regle de creation d'instance */
+				if (not KWType::IsRelation(rule->GetType()) or rule->GetReference())
 				{
-				   ruleOperand->SetType(ruleBodyOperand->GetType());
-				   ruleOperand->SetStringConstant(ruleBodyOperand->GetStringConstant());
+					yyerror(sTmp + "Derivation rule " + rule->GetName() +
+						" does not accept output operands");
+					bOk = false;
 				}
-				/* Transfert d'un attribut */
-				else if (ruleOperand->GetOrigin() == KWDerivationRuleOperand::OriginAttribute)
-				   ruleOperand->SetDataItemName(ruleBodyOperand->GetDataItemName());
+				/* Sinon, transfert des operandes en sortie */
 				else
-				/* Transfert d'une regle */
 				{
-				  // Transfert de la regle */
-				  if (ruleOperand->GetDerivationRule() != NULL)
-				  {
-				    assert(ruleBodyOperand->GetDerivationRule() != NULL);
-				    delete ruleOperand->GetDerivationRule();
-				  }
-				  ruleOperand->SetDerivationRule(ruleBodyOperand->GetDerivationRule());
-				  
-				  /* Transfert des infos portees par la regle de derivation */
-				  if (ruleOperand->GetDerivationRule() != NULL)
-				  {
-					ruleOperand->SetType(ruleOperand->GetDerivationRule()->GetType());
-					if (KWType::IsRelation(ruleOperand->GetType()))
-						ruleOperand->SetObjectClassName(ruleOperand->GetDerivationRule()->GetObjectClassName());
-			  	    if (ruleOperand->GetType() == KWType::Structure)
-						ruleOperand->SetStructureName(ruleOperand->GetDerivationRule()->GetStructureName());
-				  }
-	  
-				  /* Dereferencement de la regle de derivation depuis l'operande de travail */
-				  ruleBodyOperand->SetDerivationRule(NULL);
+					/* Import des operandes en sortie de la regle */
+					/* On est passe prealablement dans le parser par une regle de creation de relation */
+					/* pour stocker les operandes en sortie, que l'on va ici exploiter */
+					bOk = ImportParserRuleOutputOperands(ruleBody, rule);
 				}
-			  }
-            }
+			}
+			/* Gestion des operandes en sortie dans le cas ou le parser n'a stocke des operandes en sortie */
+			else if (bOk and KWType::IsRelation(rule->GetType()) and not rule->GetReference())
+			{
+				/* Test du nombre d'operandes en sortie */
+				if ((rule->GetVariableOutputOperandNumber() and rule->GetOutputOperandNumber() > 1) or
+    				(not rule->GetVariableOutputOperandNumber() and rule->GetOutputOperandNumber() > 0))
+				{
+					yyerror(sTmp + "Missing output operands for rule " + rule->GetName() + " that requires them (at least " +
+						IntToString(rule->GetOutputOperandNumber() -
+						(rule->GetVariableOutputOperandNumber() ? 1 : 0)) + ")");
+					bOk = false;
+				}
+				/* Supression des eventuels operandes en sortie inutiles */
+				else if (rule->GetOutputOperandNumber() > 0)
+					cast(KWDRRelationCreationRule*, rule)->DeleteAllOutputOperands();
+			}
 
 			/* Verification de la definition de la regle */
-			if (bRuleOk and not rule->CheckDefinition())
+			if (bOk and not rule->CheckDefinition())
 			{
-			  bRuleOk = false;
-			  yyerror(sTmp + "Derivation rule "  + rule->GetName() + " incorrectly specified");
+				yyerror(sTmp + "Derivation rule " + rule->GetName() + " incorrectly specified");
+				bOk = false;
 			}
 
 			/* Test si erreur dans le transfert des operandes */
-			if (not bRuleOk)
+			if (not bOk)
 			{
-			  delete rule;
-			  rule = NULL;
+				if (rule != NULL)
+				{
+					delete rule;
+					rule = NULL;
+				}
 			}
 			/* Sinon, on tente de compresser la regle */
 			else
 			{
 				if (rule->IsStructureRule())
 				{
- 				  KWDRStructureRule* structureRule;
+					KWDRStructureRule* structureRule;
 
-				  /* Acces a la regle de structure, transformation au format structure et nettoyage memoire */
-				  /* Cette optimisation memoire des regles structure est critique dans le cas de dictionnaires */
-				  /* de tres grande taille. Sinon, des millions d'operandes de regles sont potentiellement crees, */
-				  /* puis lors de la compilation des dictionnaire, l'essentiel de la memoire liberee laisse des trous */
-				  /* dans les segments de la heap, qui ne peuvent etre rendus au systeme */
-  			      assert(rule->CheckDefinition());
-				  structureRule = cast(KWDRStructureRule*, rule);
-				  structureRule->BuildStructureFromBase(rule);
-				  structureRule->CleanCompiledBaseInterface();
+					/* Acces a la regle de structure, transformation au format structure et nettoyage memoire */
+					/* Cette optimisation memoire des regles structure est critique dans le cas de dictionnaires */
+					/* de tres grande taille. Sinon, des millions d'operandes de regles sont potentiellement crees, */
+					/* puis lors de la compilation des dictionnaire, l'essentiel de la memoire liberee laisse des trous */
+					/* dans les segments de la heap, qui ne peuvent etre rendus au systeme */
+					assert(rule->CheckDefinition());
+					structureRule = cast(KWDRStructureRule*, rule);
+					structureRule->BuildStructureFromBase(rule);
+					structureRule->CleanCompiledBaseInterface();
 				}
 			}
-		  }
- 		  delete ruleBody;
 
-		  $$ = rule;
+			/* Finalisation */
+			delete ruleBody;
+			$$ = rule;
 		}
 	;
 
@@ -1216,12 +1155,82 @@ derivationRuleBody: derivationRuleBegin
 		{
 		  $$ = $1;
 		}
+	| derivationRuleBegin ':' operandList
+		{
+		  KWDerivationRule* ruleBody = $1;
+		  KWDRRelationCreationRule* ruleRelationCreationBody;
+		  ObjectArray oaOperands;
+		  ObjectArray* oaOutputOperands;
+		  int nOperand;
+		  KWDerivationRuleOperand* operand;
+          
+		  /* On passe par une regle de creation de relation pour stocker les operandes en sortie */
+		  ruleRelationCreationBody = new KWDRRelationCreationRule;
+
+		  // On transfer les operande initiaux vers un tableau
+		  for (nOperand = 0; nOperand < ruleBody->GetOperandNumber(); nOperand++)
+		  {
+		      operand = cast(KWDerivationRuleOperand*, ruleBody->GetOperandAt(nOperand));
+			  oaOperands.Add(operand);
+		  }
+		  ruleBody->RemoveAllOperands();
+
+		  /* On copie la regle initiale, maintenant nettoyee de ses operandes */
+		  ruleBody->SetType(KWType::ObjectArray);
+		  ruleRelationCreationBody->CopyFrom(ruleBody);
+		  delete ruleBody;
+
+		  /* On recupere les operandes initiaux */
+		  for (nOperand = 0; nOperand < oaOperands.GetSize(); nOperand++)
+		  {
+		      operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(nOperand));
+			  ruleRelationCreationBody->AddOperand(operand);
+		  }
+
+          /* On recupere la liste des operandes en sortie */
+          oaOutputOperands = cast(ObjectArray*, $3);
+
+		  /* Parametrage des operandes en sortie */
+		  assert(ruleRelationCreationBody->GetOutputOperandNumber() == 0);
+		  for (nOperand = 0; nOperand < oaOutputOperands->GetSize(); nOperand++)
+		  {
+		      operand = cast(KWDerivationRuleOperand*, oaOutputOperands->GetAt(nOperand));
+			  ruleRelationCreationBody->AddOutputOperand(operand);
+		  }
+		  delete oaOutputOperands;
+
+		  $$ = ruleRelationCreationBody;
+		}
 	| derivationRuleHeader
 		{
 		  $$ = $1;
 		}
 	;
 
+operandList:
+	  operandList ',' derivationRuleOperand
+		{
+		  ObjectArray* oaOperandList = $1;
+		  KWDerivationRuleOperand* operand = $3;
+		  check(oaOperandList);
+		  check(operand);
+
+		  /* Ajout d'un operande */
+		  oaOperandList->Add(operand);
+		  $$ = oaOperandList;
+		}
+    | derivationRuleOperand 
+		{
+		  ObjectArray* oaOperandList;
+		  KWDerivationRuleOperand* operand = $1;
+		  check(operand);
+		  
+		  /* Creation d'un tableau doperandes, avec un premier operande */
+		  oaOperandList = new ObjectArray;
+		  oaOperandList->Add(operand);
+		  $$ = oaOperandList;
+		}
+    ;
 
 derivationRuleHeader: IDENTIFIER openparenthesis
 		{
@@ -1412,6 +1421,209 @@ void yyerrorWithLineCorrection(char const *fmt, int nDeltaLineNumber)
   Global::AddError("Read dictionary file",
                     sErrorLine,
                     sLabel);
+}
+
+boolean ImportParserRuleOperands(const KWDerivationRule* parsedRule, KWDerivationRule* rule)
+{
+	boolean bOk = true;
+	KWDerivationRuleOperand* parsedOperand;
+	KWDerivationRuleOperand* operand;
+	int i;
+	ALString sTmp;
+
+	require(parsedRule != NULL);
+	require(rule != NULL);
+
+	/* Test du nombre d'operandes */
+	if ((rule->GetVariableOperandNumber() and parsedRule->GetOperandNumber() < rule->GetOperandNumber() - 1) or
+	    (not rule->GetVariableOperandNumber() and parsedRule->GetOperandNumber() != rule->GetOperandNumber()))
+
+	{
+		yyerror(sTmp + "Number of operands (" + IntToString(parsedRule->GetOperandNumber()) +
+			") inconsistent with that of rule " + rule->GetName() + " (" +
+			IntToString(rule->GetOperandNumber()) + ")");
+		bOk = false;
+	}
+	/* Verification et transfert des operandes */
+	else
+	{
+		/* Dans le cas d'un nombre variable d'operandes, on commence par rajouter */
+		/* eventuellement des operandes en fin de regle pour preparer l'instanciation */
+		if (parsedRule->GetOperandNumber() > rule->GetOperandNumber())
+		{
+			assert(rule->GetVariableOperandNumber());
+			while (rule->GetOperandNumber() < parsedRule->GetOperandNumber())
+				rule->AddOperand(rule->GetOperandAt(rule->GetOperandNumber() - 1)->Clone());
+		}
+
+		/* Dans le cas d'un nombre variable d'operandes, on supprime eventuellement */
+		/* le dernier operande, qui n'est pas obligatoire */
+		if (parsedRule->GetOperandNumber() < rule->GetOperandNumber())
+		{
+			assert(rule->GetVariableOperandNumber());
+			assert(parsedRule->GetOperandNumber() == rule->GetOperandNumber() - 1);
+			rule->DeleteAllVariableOperands();
+		}
+		assert(parsedRule->GetOperandNumber() == rule->GetOperandNumber());
+
+		/* Transfert des operandes */
+		for (i = 0; i < rule->GetOperandNumber(); i++)
+		{
+			/* acces aux operandes */
+			operand = rule->GetOperandAt(i);
+			parsedOperand = parsedRule->GetOperandAt(i);
+
+			/* Import de l'operande */
+			bOk = ImportParserOperand(rule->GetName(), i, parsedOperand, operand);
+			if (not bOk)
+				break;
+		}
+	}
+	return bOk;
+}
+
+boolean ImportParserRuleOutputOperands(const KWDerivationRule* parsedRule, KWDerivationRule* rule)
+{
+	boolean bOk = true;
+	KWDRRelationCreationRule* creationRule;
+	KWDerivationRuleOperand* parsedOperand;
+	KWDerivationRuleOperand* operand;
+	int i;
+	ALString sTmp;
+
+	require(parsedRule != NULL);
+	require(rule != NULL);
+	require(not parsedRule->GetReference());
+	require(not rule->GetReference());
+
+	/* Test du nombre d'operandes en sortie */
+	if ((rule->GetVariableOutputOperandNumber() and parsedRule->GetOutputOperandNumber() < rule->GetOutputOperandNumber() - 1) or
+	    (not rule->GetVariableOutputOperandNumber() and parsedRule->GetOutputOperandNumber() != rule->GetOutputOperandNumber()))
+
+	{
+		yyerror(sTmp + "Number of output operands (" + IntToString(parsedRule->GetOutputOperandNumber()) +
+			") inconsistent with that of rule " + rule->GetName() + " (" +
+			IntToString(rule->GetOutputOperandNumber()) + ")");
+		bOk = false;
+	}
+	/* Verification et transfert des operandes en sortie */
+	else
+	{
+		/* Cast de la regle a alimenter en regle de creation de relation pour acceder a ses methodes dediees */
+		creationRule = cast(KWDRRelationCreationRule*, rule);
+
+		/* Dans le cas d'un nombre variable d'operandes en sortie, on commence par rajouter */
+		/* eventuellement des operandes en fin de regle pour preparer l'instanciation */
+		if (parsedRule->GetOutputOperandNumber() > rule->GetOutputOperandNumber())
+		{
+			assert(rule->GetVariableOutputOperandNumber());
+			while (rule->GetOutputOperandNumber() < parsedRule->GetOutputOperandNumber())
+				creationRule->AddOutputOperand(rule->GetOutputOperandAt(rule->GetOutputOperandNumber() - 1)->Clone());
+		}
+
+		/* Dans le cas d'un nombre variable d'operandes en sortie, on supprime eventuellement */
+		/* le dernier operande, qui n'est pas obligatoire */
+		if (parsedRule->GetOutputOperandNumber() < rule->GetOutputOperandNumber())
+		{
+			assert(rule->GetVariableOutputOperandNumber());
+			assert(parsedRule->GetOutputOperandNumber() == rule->GetOutputOperandNumber() - 1);
+			creationRule->DeleteAllVariableOutputOperands();
+		}
+		assert(parsedRule->GetOutputOperandNumber() == rule->GetOutputOperandNumber());
+
+		/* Transfert des operandes en sortie */
+		for (i = 0; i < rule->GetOutputOperandNumber(); i++)
+		{
+			/* acces aux operandes en sortie */
+			operand = rule->GetOutputOperandAt(i);
+			parsedOperand = parsedRule->GetOutputOperandAt(i);
+
+			/* Import de l'operande */
+			bOk = ImportParserOperand(rule->GetName(), i, parsedOperand, operand);
+			if (not bOk)
+				break;
+		}
+	}
+	return bOk;
+}
+
+boolean ImportParserOperand(const ALString& sRuleName, int nOperandIndex,
+                            KWDerivationRuleOperand* parsedOperand, KWDerivationRuleOperand* operand)
+{
+	boolean bOk = true;
+	ALString sTmp;
+
+	require(parsedOperand != NULL);
+	require(operand != NULL);
+
+	/* Transfert d'informations de la regle de reference vers la regle a verifier */
+	if (parsedOperand->GetOrigin() != KWDerivationRuleOperand::OriginConstant)
+	{
+		parsedOperand->SetType(operand->GetType());
+		if (KWType::IsRelation(operand->GetType()))
+			parsedOperand->SetObjectClassName(operand->GetObjectClassName());
+	}
+	if (operand->GetType() == KWType::Structure)
+	{
+		parsedOperand->SetType(KWType::Structure);
+		parsedOperand->SetStructureName(operand->GetStructureName());
+	}
+
+	/* Test si operande candidate valide */
+	if (not parsedOperand->CheckDefinition())
+	{
+		bOk = false;
+		yyerror(sTmp + "Incorrect operand " + IntToString(1 + nOperandIndex) + " for rule " + sRuleName);
+	}
+	/* Test de compatibilite avec la regle enregistree, sauf si regle avec operande de type indetermine */
+	else if (operand->GetType() != KWType::Unknown and not parsedOperand->CheckFamily(operand))
+	{
+		bOk = false;
+		yyerror(sTmp + "Operand " + IntToString(1 + nOperandIndex) + " inconsistent with that of rule " +
+			sRuleName);
+	}
+	/* Transfert de l'origine de l'operande */
+	else
+	{
+		/* Transfert du niveau de scope */
+		operand->SetScopeLevel(parsedOperand->GetScopeLevel());
+
+		/* Transfert d'une valeur constante */
+		operand->SetOrigin(parsedOperand->GetOrigin());
+		if (operand->GetOrigin() == KWDerivationRuleOperand::OriginConstant)
+		{
+			operand->SetType(parsedOperand->GetType());
+			operand->SetStringConstant(parsedOperand->GetStringConstant());
+		}
+		/* Transfert d'un attribut */
+		else if (operand->GetOrigin() == KWDerivationRuleOperand::OriginAttribute)
+			operand->SetDataItemName(parsedOperand->GetDataItemName());
+		else
+		/* Transfert d'une regle */
+		{
+			// Transfert de la regle */
+			if (operand->GetDerivationRule() != NULL)
+			{
+				assert(parsedOperand->GetDerivationRule() != NULL);
+				delete operand->GetDerivationRule();
+			}
+			operand->SetDerivationRule(parsedOperand->GetDerivationRule());
+
+			/* Transfert des infos portees par la regle de derivation */
+			if (operand->GetDerivationRule() != NULL)
+			{
+				operand->SetType(operand->GetDerivationRule()->GetType());
+				if (KWType::IsRelation(operand->GetType()))
+					operand->SetObjectClassName(operand->GetDerivationRule()->GetObjectClassName());
+				if (operand->GetType() == KWType::Structure)
+					operand->SetStructureName(operand->GetDerivationRule()->GetStructureName());
+			}
+
+			/* Dereferencement de la regle de derivation depuis l'operande de travail */
+			parsedOperand->SetDerivationRule(NULL);
+		}
+	}
+	return bOk;
 }
 
 

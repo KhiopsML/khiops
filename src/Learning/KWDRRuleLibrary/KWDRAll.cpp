@@ -19,5 +19,6 @@ void KWDRRegisterAllRules()
 	KWDRRegisterVectorRules();
 	KWDRRegisterHashMapRules();
 	KWDRRegisterMultiTableRules();
+	KWDRRegisterBuildRelationRules();
 	KWDRRegisterTextualAnalysisRules();
 }

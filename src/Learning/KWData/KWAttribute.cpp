@@ -283,18 +283,24 @@ boolean KWAttribute::Check() const
 			bOk = false;
 		}
 
-		// La classe utilisee doit avoir une cle
-		if (attributeClass != NULL and attributeClass->GetKeyAttributeNumber() == 0)
+		// La classe utilisee doit avoir une cle dans le cas d'un attribut natif
+		// si la classe utilisante a elle meme une cle
+		// Exception dans le cas d'une classe sans-cle pouvant etre issue d'une regle de creation de table,
+		// auquel cas les cles ne sont pas necessaire y compris dans le cas d'un flocon creer par des regles
+		if (GetAnyDerivationRule() == NULL and attributeClass != NULL and
+		    attributeClass->GetKeyAttributeNumber() == 0 and GetParentClass() != NULL and
+		    GetParentClass()->GetKeyAttributeNumber() > 0)
 		{
-			AddError("The used dictionary " + attributeClass->GetName() + " should have a key");
+			AddError("The used dictionary " + attributeClass->GetName() +
+				 " should have a key as the parent dictionary " + parentClass->GetName() +
+				 " has a key");
 			bOk = false;
 		}
-
 		// La cle de la classe utilisee doit etre au moins aussi longue que
 		// celle de la classe utilisante dans le cas d'un lien de composition
-		if (not GetReference() and kwdrRule == NULL and attributeClass != NULL and parentClass != NULL and
-		    not attributeClass->GetRoot() and
-		    attributeClass->GetKeyAttributeNumber() < parentClass->GetKeyAttributeNumber())
+		else if (not GetReference() and GetAnyDerivationRule() == NULL and attributeClass != NULL and
+			 parentClass != NULL and not attributeClass->GetRoot() and
+			 attributeClass->GetKeyAttributeNumber() < parentClass->GetKeyAttributeNumber())
 		{
 			AddError("In used dictionary (" + attributeClass->GetName() + "), the length of the key (" +
 				 IntToString(attributeClass->GetKeyAttributeNumber()) +
@@ -321,23 +327,26 @@ boolean KWAttribute::Check() const
 		}
 	}
 
-	// Warning si classe sans type Relation
+	// Erreur si classe sans type Relation
 	if (not KWType::IsGeneralRelation(GetType()) and attributeClass != NULL)
 	{
-		AddWarning("Dictionary (" + attributeClass->GetName() +
-			   ") referenced by a variable with non relation type");
+		AddError("Dictionary (" + attributeClass->GetName() +
+			 ") referenced by a variable with non relation type");
+		bOk = false;
 	}
 
-	// Warning si nom de structure sans type Structure
+	// Erreur si nom de structure sans type Structure
 	if (GetType() != KWType::Structure and GetStructureName() != "")
 	{
-		AddWarning("Structure name used with a non Structure type");
+		AddError("Structure name used with a non Structure type");
+		bOk = false;
 	}
 
-	// Warning si type Structure sans regle associee
-	if (GetType() == KWType::Structure and kwdrRule == NULL)
+	// Erreur si type non stocke et non data
+	if (not KWType::IsStored(GetType()) and not KWType::IsRelation(GetType()) and kwdrRule == NULL)
 	{
-		AddWarning("Structure type should be related to a derivation rule");
+		AddError(KWType::ToString(GetType()) + " type should be related to a derivation rule");
+		bOk = false;
 	}
 
 	// Verification de la regle de derivation
@@ -412,7 +421,7 @@ void KWAttribute::Compile()
 	require(Check());
 
 	// Compilation de l'eventuelle regle de derivation
-	if (GetDerivationRule() != NULL)
+	if (GetDerivationRule() != NULL and not GetDerivationRule()->IsCompiled())
 		GetDerivationRule()->Compile(parentClass);
 
 	// Compilation de l'eventuel bloc, uniquement si l'attribut est le premier du bloc
@@ -434,17 +443,20 @@ boolean KWAttribute::ContainsCycle(NumericKeyDictionary* nkdGreyAttributes,
 	require(parentClass->IsCompiled());
 	require(not IsInBlock());
 
-	// Marquage de l'attribut en Grey
-	nkdGreyAttributes->SetAt(this, (Object*)this);
-
 	// Analyse de l'eventuelle regle de derivation attachee a l'attribut
+	// Sinon, l'attribut est un noeud terminal du graphe, et n'a pas besoin d'etre analyse
 	if (GetDerivationRule() != NULL)
+	{
+		// Marquage de l'attribut en Grey
+		nkdGreyAttributes->SetAt(this, (Object*)this);
+
+		// Analyse la regle de derivation
 		bContainsCycle = GetDerivationRule()->ContainsCycle(nkdGreyAttributes, nkdBlackAttributes);
 
-	// Marquage de l'attribut en Black
-	nkdGreyAttributes->SetAt(this, NULL);
-	nkdBlackAttributes->SetAt(this, (Object*)this);
-
+		// Marquage de l'attribut en Black
+		nkdGreyAttributes->RemoveKey(this);
+		nkdBlackAttributes->SetAt(this, (Object*)this);
+	}
 	return bContainsCycle;
 }
 
@@ -663,7 +675,7 @@ int KWAttributeCompareBlockName(const void* elem1, const void* elem2)
 	attribute1 = cast(KWAttribute*, *(Object**)elem1);
 	attribute2 = cast(KWAttribute*, *(Object**)elem2);
 
-	// Difference
+	// Difference sur le nom de bloc puis d'attribut
 	if (attribute1->GetAttributeBlock() == attribute2->GetAttributeBlock())
 		nDiff = attribute1->GetName().Compare(attribute2->GetName());
 	else if (attribute1->GetAttributeBlock() == NULL)
@@ -672,6 +684,35 @@ int KWAttributeCompareBlockName(const void* elem1, const void* elem2)
 		nDiff = 1;
 	else
 		nDiff = attribute1->GetAttributeBlock()->GetName().Compare(attribute2->GetAttributeBlock()->GetName());
+	return nDiff;
+}
+
+int KWAttributeCompareClassAndAttributeName(const void* elem1, const void* elem2)
+{
+	KWAttribute* attribute1;
+	KWAttribute* attribute2;
+	int nDiff;
+
+	require(elem1 != NULL);
+	require(elem2 != NULL);
+
+	// Acces aux attributs
+	attribute1 = cast(KWAttribute*, *(Object**)elem1);
+	attribute2 = cast(KWAttribute*, *(Object**)elem2);
+
+	// Comparaison d'abord sur la classe
+	if (attribute1->GetParentClass() == attribute2->GetParentClass())
+		nDiff = 0;
+	else if (attribute1->GetParentClass() == NULL)
+		nDiff = -1;
+	else if (attribute2->GetParentClass() == NULL)
+		nDiff = 1;
+	else
+		nDiff = attribute1->GetParentClass()->GetName().Compare(attribute2->GetParentClass()->GetName());
+
+	// Difference
+	if (nDiff == 0)
+		nDiff = attribute1->GetName().Compare(attribute2->GetName());
 	return nDiff;
 }
 

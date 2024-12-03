@@ -122,46 +122,6 @@ void KWClass::InsertAttributeAfter(KWAttribute* attribute, KWAttribute* attribut
 	assert(odAttributes.GetCount() == olAttributes.GetCount());
 }
 
-void KWClass::RenameAttribute(KWAttribute* refAttribute, const ALString& sNewName)
-{
-	KWAttribute* attribute;
-	KWDerivationRule* currentDerivationRule;
-
-	require(refAttribute != NULL);
-	require(refAttribute == cast(KWAttribute*, odAttributes.Lookup(refAttribute->GetName())));
-	require(refAttribute->parentClass == this);
-	require(LookupAttribute(sNewName) == NULL);
-	require(CheckName(sNewName, KWClass::Attribute, refAttribute));
-
-	// Renommage par manipulation dans le dictionnaire
-	// Propagation du renommage a toutes les regles de derivation
-	// des classes du domaine referencant l'attribut
-	attribute = GetHeadAttribute();
-	currentDerivationRule = NULL;
-	while (attribute != NULL)
-	{
-		// Detection de changement de regle de derivation (notamment pour les blocs)
-		if (attribute->GetAnyDerivationRule() != currentDerivationRule)
-		{
-			currentDerivationRule = attribute->GetAnyDerivationRule();
-
-			// Renommage dans les regles de derivation (et au plus une seule fois par bloc)
-			if (currentDerivationRule != NULL)
-				currentDerivationRule->RenameAttribute(this, refAttribute, sNewName);
-		}
-
-		// Attribut suivant
-		GetNextAttribute(attribute);
-	}
-
-	// Renommage de l'attribut dans la classe
-	odAttributes.RemoveKey(refAttribute->GetName());
-	refAttribute->usName.SetValue(sNewName);
-	odAttributes.SetAt(refAttribute->GetName(), refAttribute);
-	assert(odAttributes.GetCount() == olAttributes.GetCount());
-	nFreshness++;
-}
-
 void KWClass::UnsafeRenameAttribute(KWAttribute* refAttribute, const ALString& sNewName)
 {
 	require(refAttribute != NULL);
@@ -373,6 +333,7 @@ void KWClass::GetPrevAttribute(KWAttribute*& attribute) const
 
 void KWClass::IndexClass()
 {
+	const boolean bTrace = false;
 	KWAttribute* attribute;
 	KWAttributeBlock* attributeBlock;
 	int nIndex;
@@ -399,7 +360,7 @@ void KWClass::IndexClass()
 	oaLoadedTextAttributes.SetSize(0);
 	oaLoadedTextListAttributes.SetSize(0);
 	oaLoadedRelationAttributes.SetSize(0);
-	oaUnloadedNativeRelationAttributes.SetSize(0);
+	oaUnloadedOwnedRelationAttributes.SetSize(0);
 	oaLoadedDataItems.SetSize(0);
 	livKeyAttributeLoadIndexes.SetSize(0);
 
@@ -552,13 +513,13 @@ void KWClass::IndexClass()
 			}
 		}
 
-		// Cas des attributs Object ou ObjectArray natifs non utilises ni charges en memoire
+		// Cas des attributs Object ou ObjectArray natifs ou crees par une regle, non utilises ni charges en memoire
 		if (not attribute->GetLoaded())
 		{
-			if (not attribute->IsInBlock() and attribute->GetDerivationRule() == NULL)
+			if (KWType::IsRelation(attribute->GetType()))
 			{
-				if (KWType::IsRelation(attribute->GetType()))
-					oaUnloadedNativeRelationAttributes.Add(attribute);
+				if (not attribute->IsInBlock() and not attribute->GetReference())
+					oaUnloadedOwnedRelationAttributes.Add(attribute);
 			}
 		}
 
@@ -601,13 +562,13 @@ void KWClass::IndexClass()
 
 	// Calcul des index internes des attributs natifs a stocker
 	nInternalLoadIndex = oaLoadedDataItems.GetSize();
-	for (nIndex = 0; nIndex < oaUnloadedNativeRelationAttributes.GetSize(); nIndex++)
+	for (nIndex = 0; nIndex < oaUnloadedOwnedRelationAttributes.GetSize(); nIndex++)
 	{
-		attribute = cast(KWAttribute*, oaUnloadedNativeRelationAttributes.GetAt(nIndex));
+		attribute = cast(KWAttribute*, oaUnloadedOwnedRelationAttributes.GetAt(nIndex));
 		attribute->liLoadIndex.SetDenseIndex(nInternalLoadIndex);
 		nInternalLoadIndex++;
 	}
-	assert(nInternalLoadIndex == oaLoadedDataItems.GetSize() + oaUnloadedNativeRelationAttributes.GetSize());
+	assert(nInternalLoadIndex == oaLoadedDataItems.GetSize() + oaUnloadedOwnedRelationAttributes.GetSize());
 
 	// Memorisation des index de chargement des attributs de la cle
 	livKeyAttributeLoadIndexes.SetSize(GetKeyAttributeNumber());
@@ -627,6 +588,22 @@ void KWClass::IndexClass()
 			break;
 		}
 	}
+
+	// Affichage des tableaux d'attributs indexes
+	if (bTrace)
+	{
+		cout << "Index dictionary\t" << GetName() << "\n";
+		if (GetDomain() != NULL)
+			cout << " Domain\t" << GetDomain()->GetName() << "\n";
+		WriteAttributes("  Used attributes", &oaUsedAttributes, cout);
+		WriteAttributes("  Loaded attributes", &oaLoadedAttributes, cout);
+		WriteAttributes("  Loaded dense attributes", &oaLoadedDenseAttributes, cout);
+		WriteAttributes("  Loaded dense Categorical attributes", &oaLoadedDenseSymbolAttributes, cout);
+		WriteAttributes("  Loaded Text attributes attributes", &oaLoadedTextAttributes, cout);
+		WriteAttributes("  Loaded TextList  attributes", &oaLoadedTextListAttributes, cout);
+		WriteAttributes("  Loaded Relation attributes", &oaLoadedRelationAttributes, cout);
+		WriteAttributes("  Unloaded native Relation attributes", &oaUnloadedOwnedRelationAttributes, cout);
+	}
 }
 
 int KWClass::ComputeOverallNativeRelationAttributeNumber(boolean bIncludingReferences) const
@@ -634,10 +611,15 @@ int KWClass::ComputeOverallNativeRelationAttributeNumber(boolean bIncludingRefer
 	int nOverallNativeRelationAttributeNumber;
 	ObjectDictionary odReferenceClasses;
 	ObjectArray oaImpactedClasses;
+	ObjectDictionary odAnalysedCreatedClasses;
 	KWClass* kwcImpactedClass;
 	KWClass* kwcRefClass;
 	int nClass;
 	KWAttribute* attribute;
+	KWClass* kwcTargetClass;
+	ObjectArray oaUsedClass;
+	KWClass* kwcUsedClass;
+	int nUsedClass;
 
 	// On part de la classe de depart
 	kwcImpactedClass = cast(KWClass*, this);
@@ -671,6 +653,52 @@ int KWClass::ComputeOverallNativeRelationAttributeNumber(boolean bIncludingRefer
 						// Ajout de la classe a analyser
 						oaImpactedClasses.Add(kwcRefClass);
 					}
+					// Cas d'un attribut issue d'une regle de creation de table, pour rechercher
+					// les classes referencees depuis les tables creees par des regles
+					else if (bIncludingReferences and not attribute->GetReference())
+					{
+						assert(attribute->GetDerivationRule() != NULL);
+
+						// Recherche de la classe cible
+						kwcTargetClass = GetDomain()->LookupClass(
+						    attribute->GetDerivationRule()->GetObjectClassName());
+						assert(kwcTargetClass != NULL);
+
+						// Analyse uniquement si la classe cible na pas deja ete analysees
+						if (odAnalysedCreatedClasses.Lookup(kwcTargetClass->GetName()) == NULL)
+						{
+							// Memorisation de la classe cible
+							odAnalysedCreatedClasses.SetAt(kwcTargetClass->GetName(),
+										       kwcTargetClass);
+
+							// Recherche de toutes les classe utilisees recursivement
+							kwcTargetClass->BuildAllUsedClasses(&oaUsedClass);
+
+							// Recherches des classes externes
+							for (nUsedClass = 0; nUsedClass < oaUsedClass.GetSize();
+							     nUsedClass++)
+							{
+								kwcUsedClass =
+								    cast(KWClass*, oaUsedClass.GetAt(nUsedClass));
+
+								// Ajout de la classe a analyser si elle ne l'a pas deja ete
+								if (kwcUsedClass->GetRoot())
+								{
+									if (odReferenceClasses.Lookup(
+										kwcUsedClass->GetName()) == NULL)
+									{
+										nOverallNativeRelationAttributeNumber++;
+
+										// Memorisation de la classe externe pour ne pas faire l'analyse plusieurs fois
+										odReferenceClasses.SetAt(
+										    kwcUsedClass->GetName(),
+										    kwcUsedClass);
+										oaImpactedClasses.Add(kwcUsedClass);
+									}
+								}
+							}
+						}
+					}
 					// Prise en compte dans le cas d'une classe referencee
 					else if (bIncludingReferences and
 						 attribute->GetAnyDerivationRule()->GetName() ==
@@ -682,8 +710,7 @@ int KWClass::ComputeOverallNativeRelationAttributeNumber(boolean bIncludingRefer
 						{
 							nOverallNativeRelationAttributeNumber++;
 
-							// Memorisation de la classe externe pour ne pas faire l'analyse
-							// plusieurs fois
+							// Memorisation de la classe externe pour ne pas faire l'analyse plusieurs fois
 							odReferenceClasses.SetAt(kwcRefClass->GetName(), kwcRefClass);
 							oaImpactedClasses.Add(kwcRefClass);
 						}
@@ -1697,7 +1724,7 @@ longint KWClass::GetUsedMemory() const
 	lUsedMemory += oaLoadedTextAttributes.GetUsedMemory();
 	lUsedMemory += oaLoadedTextListAttributes.GetUsedMemory();
 	lUsedMemory += oaLoadedRelationAttributes.GetUsedMemory();
-	lUsedMemory += oaUnloadedNativeRelationAttributes.GetUsedMemory();
+	lUsedMemory += oaUnloadedOwnedRelationAttributes.GetUsedMemory();
 	lUsedMemory += oaLoadedDataItems.GetUsedMemory();
 	lUsedMemory += ivUsedAttributeNumbers.GetUsedMemory();
 	lUsedMemory += ivUsedDenseAttributeNumbers.GetUsedMemory();
@@ -2455,7 +2482,7 @@ void KWClass::Test()
 
 	// Creation d'une classe de test
 	attributeClass = CreateClass("AttributeClass", 1, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, true, NULL);
-	testClass = CreateClass("TestClass", 1, 3, 3, 1, 1, 1, 1, 1, 1, 2, 2, 0, true, attributeClass);
+	testClass = CreateClass("TestClass", 1, 3, 3, 1, 1, 1, 1, 1, 0, 2, 2, 0, true, attributeClass);
 	testClass->SetRoot(true);
 	KWClassDomain::GetCurrentDomain()->InsertClass(attributeClass);
 	KWClassDomain::GetCurrentDomain()->InsertClass(testClass);
@@ -2509,7 +2536,7 @@ void KWClass::Test()
 	cout << "\n\nInsertion around the borders\n\n";
 	// Avant debut
 	attribute = testClassClone->GetHeadAttribute();
-	testClassClone->RenameAttribute(attribute, "FirstAtt");
+	testClassClone->UnsafeRenameAttribute(attribute, "FirstAtt");
 	attributeNew = attribute->Clone();
 	attributeNew->SetName(testClassClone->BuildAttributeName(attributeNew->GetName()));
 	attributeNew->SetType(KWType::Continuous);
@@ -2523,7 +2550,7 @@ void KWClass::Test()
 	testClassClone->InsertAttributeAfter(attributeNew, attribute);
 	// Avant fin
 	attribute = testClassClone->GetTailAttribute();
-	testClassClone->RenameAttribute(attribute, "LastAtt");
+	testClassClone->UnsafeRenameAttribute(attribute, "LastAtt");
 	attributeNew = attribute->Clone();
 	attributeNew->SetName(testClassClone->BuildAttributeName(attributeNew->GetName()));
 	attributeNew->SetType(KWType::Continuous);
@@ -2622,6 +2649,7 @@ boolean KWClass::CheckClassComposition(KWAttribute* parentAttribute, NumericKeyD
 	KWAttribute* attribute;
 	KWClass* parentClass;
 	KWClass* attributeClass;
+	ALString sTmp;
 
 	require(nkdComponentClasses != NULL);
 
@@ -2659,25 +2687,27 @@ boolean KWClass::CheckClassComposition(KWAttribute* parentAttribute, NumericKeyD
 					break;
 			}
 
-			// La cle de la classe utilisee doit etre strictement plus longue que
-			// celle de la classe utilisante dans le cas d'un lien de composition multiple a trois niveau
-			// (ou plus)
+			// La cle de la classe utilisee doit etre strictement plus longue que celle de la classe utilisante
+			// dans le cas d'un lien de composition multiple a trois niveau (ou plus)
+			// Exception dans le cas d'une classe sans-cle pouvant etre issue d'une regle de creation de table,
+			// auquel cas les cles ne sont pas necessaire y compris dans le cas d'un flocon creer par des regles
 			assert(parentClass == NULL or parentClass->GetKeyAttributeNumber() <= GetKeyAttributeNumber());
-			assert(GetKeyAttributeNumber() <= attributeClass->GetKeyAttributeNumber());
 			if (parentClass != NULL and parentAttribute->GetType() == KWType::ObjectArray and
-			    parentClass->GetKeyAttributeNumber() == GetKeyAttributeNumber())
+			    parentClass->GetKeyAttributeNumber() > 0 and
+			    parentClass->GetKeyAttributeNumber() >= GetKeyAttributeNumber())
 			{
-				AddError("The length of a key in a dictionary used as a Table, having a sub-" +
-					 KWType::ToString(attribute->GetType()) +
-					 " in its composition, must be strictly greater than that of its parent "
-					 "Dictionary;\n " +
-					 "in dictionary " + parentClass->GetName() + " (key length=" +
-					 IntToString(parentClass->GetKeyAttributeNumber()) + "), dictionary " +
-					 GetName() + "(key length = " + IntToString(GetKeyAttributeNumber()) +
-					 ") is used as a Table in variable " + parentAttribute->GetName() +
-					 ", and uses dictionary " + attributeClass->GetName() + " with variable " +
-					 attribute->GetName() + " as a sub-" + KWType::ToString(attribute->GetType()) +
-					 " in its composition.");
+				AddError(sTmp + "As dictionary " + parentClass->GetName() + " owns variable " +
+					 parentAttribute->GetName() + " of type " +
+					 KWType::ToString(parentAttribute->GetType()) + "(" +
+					 parentAttribute->GetClass()->GetName() + ") and dictionary " +
+					 parentAttribute->GetClass()->GetName() + " itself owns variable " +
+					 attribute->GetName() + " of type " + KWType::ToString(attribute->GetType()) +
+					 "(" + attribute->GetClass()->GetName() + "), the key length in dictionary " +
+					 GetName() + " (key length = " + IntToString(GetKeyAttributeNumber()) +
+					 ") must be strictly greater than that of its parent "
+					 "dictionary " +
+					 parentClass->GetName() +
+					 " (key length = " + IntToString(parentClass->GetKeyAttributeNumber()) + ")");
 				bOk = false;
 			}
 		}
@@ -2747,5 +2777,20 @@ void KWClass::ReadNotLoadedMetaData()
 	{
 		attribute->ReadNotLoadedMetaData();
 		GetNextAttribute(attribute);
+	}
+}
+
+void KWClass::WriteAttributes(const ALString& sTitle, const ObjectArray* oaAttributes, ostream& ost) const
+{
+	KWAttribute* attribute;
+	int i;
+
+	require(oaAttributes != NULL);
+
+	ost << sTitle << "\n";
+	for (i = 0; i < oaAttributes->GetSize(); i++)
+	{
+		attribute = cast(KWAttribute*, oaAttributes->GetAt(i));
+		ost << "\t" << i + 1 << "\t" << attribute->GetName() << "\n";
 	}
 }

@@ -241,7 +241,7 @@ void KWSTDatabaseTextFile::Test()
 			attribute = new KWAttribute;
 			attribute->SetType(availableRule->GetType());
 			attribute->SetDerivationRule(availableRule);
-			attribute->SetName(availableRule->ComputeAttributeName());
+			attribute->SetName(testClass->BuildAttributeName(availableRule->GetName()));
 			testClass->InsertAttribute(attribute);
 		}
 		testClass->Compile();

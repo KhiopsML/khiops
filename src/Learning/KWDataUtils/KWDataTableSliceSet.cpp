@@ -2736,6 +2736,7 @@ KWObject* KWDataTableSliceSet::PhysicalRead()
 	KWDataItem* dataItem;
 	KWAttribute* attribute;
 	KWAttributeBlock* attributeBlock;
+	NumericKeyDictionary nkdMutationClasses;
 	NumericKeyDictionary nkdUnusedNativeAttributesToKeep;
 	ALString sMessage;
 
@@ -2820,8 +2821,10 @@ KWObject* KWDataTableSliceSet::PhysicalRead()
 	// Mutation de l'objet
 	if (bOk)
 	{
+		assert(nkdMutationClasses.GetCount() == 0);
 		assert(nkdUnusedNativeAttributesToKeep.GetCount() == 0);
-		kwoObject->Mutate(read_Class, &nkdUnusedNativeAttributesToKeep);
+		nkdMutationClasses.SetAt(kwoObject->GetClass(), cast(KWClass*, read_Class));
+		kwoObject->Mutate(read_Class, &nkdMutationClasses, &nkdUnusedNativeAttributesToKeep);
 	}
 
 	// Destruction de l'objet en cas d'erreur

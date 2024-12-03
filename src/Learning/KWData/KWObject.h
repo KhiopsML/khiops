@@ -178,8 +178,9 @@ public:
 	// Verification de coherence
 	boolean Check() const override;
 
-	// Affichage, ecriture dans un fichier, de facon structuree
+	// Affichage, ecriture dans un fichier, de facon structuree, avec indentation
 	void Write(ostream& ost) const override;
+	void PrettyWrite(ostream& ost, const ALString& sIndent) const;
 
 	// Estimation de la memoire utilisee par l'objet, et de tous ses sous-objets
 	longint GetUsedMemory() const override;
@@ -227,29 +228,36 @@ protected:
 	void CleanAllNonNativeAttributes();
 
 	// Nettoyage des attributs natifs de type Relation charges en memoire (nettoyage recursif)
-	// L'objet reste utilisable: seuls ses attribut de type Relation sont detruits et mis a NULL
+	// L'objet reste utilisable: seuls ses attributs de type Relation sont detruits et mis a NULL
 	friend class KWMTDatabase;
 	void CleanNativeRelationAttributes();
 
 	// Methode de mutation specifique a destination des classes KWDatabase et KWDataTableSliceSet
-	// La nouvelle classe doit avoir moins d'attributs Loaded que la classe
-	// precedente, et ces attributs doivent coincider (meme type, meme nom).
-	// Elle doit provenir d'un autre domaine, mais avoir meme nom.
+	// La nouvelle classe doit avoir le meme nom que celle de la classe en cours
+	// Dans certains cas particuliers, la nouvelle classe peut-etre la meme. Dans ce cas,
+	// l'objet est conserve tel quel, et seul son contenu est mute si necessaire
+	// Sinon, la nouvelle classe doit avoir moins d'attributs Loaded que la classe
+	// precedente, et ces attributs doivent coincider (meme type, meme nom) et etre en tete de
+	// classe dans le meme ordre.
 	//
 	// Lors de la mutation, on a les operations suivantes:
-	//    attributs commun gardes
-	//    attributs en trop detruits
-	//    valeur derivees transferees telles quelles
-	//    objets internes inclus ou multi-inclus soit mutes egalement si gardes
-	//      (si possible, sinon detruits), soit detruits s'ils sont a supprimer
-	//    objets references laisses tels quels (ni mutes, ni detruits)
+	// - attributs commun gardes
+	// - attributs en trop detruits
+	// - valeur derivees transferees telles quelles
+	// - objets internes inclus ou multi-inclus soit mutes egalement si gardes
+	//   (si possible, sinon detruits), soit detruits s'ils sont a supprimer
+	// - objets references laisses tels quels (ni mutes, ni detruits)
+	//
+	// Le dictionnaire des classe de mutation specifie pour chaque classe initiale
+	// la classe a utiliser pour la mutation
 	//
 	// Le dictionnaire des attributs a garder (dans la nouvelle classe) indique
 	// les attributs natifs non utilises object inclus ou multi-inclus a garder
-	// lors de la mutation, car referencable par de regles de derivation
+	// lors de la mutation, car referencable par des regles de derivation
 	friend class KWDatabase;
 	friend class KWDataTableSliceSet;
-	void Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nkdUnusedNativeAttributesToKeep);
+	void Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nkdMutationClasses,
+		    const NumericKeyDictionary* nkdUnusedNativeAttributesToKeep);
 
 	// KWClass
 	const KWClass* kwcClass;
@@ -257,11 +265,18 @@ protected:
 	// Index de creation permettant de memoriser un numero de ligne lors de la lecture d'un fichier (0 si non
 	// initialise) Permet d'implementer les regles de derivation Index et Random avec des resultats reproductibles
 	// lors de la lecture des meme bases
-	// Cet index est attribue a la creation de l'objet et n'est jamais modifie (hormis son signe)
-	// Pour optimiser la taille memoire des KWObject, on se sert de l'index pour stocker egalement le type de taille
-	// d'objet
-	//  . petite taille: index positif
-	//  . grande taille: index negatif
+	// Cet index est attribue a la creation de l'objet et n'est jamais modifie
+	// Pour optimiser la taille memoire des KWObject, on se sert de l'index pour stocker trois informations
+	// - index de creation
+	//   - on stocke deux fois la valeur de l'index de creation
+	// - taille du vecteur d'attribut (cf. Set|GetSmallSize)
+	//   - stocke dans le signe: tres rapide a tester, utilise pour chaque acces a une valeur
+	//     - petite taille: index positif
+	//     - grande taille: index negatif
+	// - utilisation de type vue (cf. Set|GetViewTypeUse)
+	//   - stocke dans le premier bit
+	//     - utilisation de type vue: valeur 1
+	//     - utilisation standard: valeur 0
 	longint lCreationIndex;
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -285,9 +300,23 @@ protected:
 		KWValue** attributeValueArrays;
 	} values;
 
-	// Indicateur de petite taille (cf. lCreationIndex)
+	// Indicateur de petite taille, selon le nombre d'attribut de l'objet (cf. lCreationIndex)
 	boolean GetSmallSize() const;
 	void SetSmallSize(boolean bValue);
+
+	// Classe des regles de derivation de creation d'objet en friend, pour acceder a SetViewTypeUsed
+	friend class KWDRRelationCreationRule;
+
+	// Indicateur de type vue pour un object, selon le type de creation d'un objet (cf. lCreationIndex)
+	// - utilisation standard:
+	//   - les attributs natifs de type Entity ou Table sont crees a partir des lectures dans une database
+	//   - il sont detruits avec l'objet
+	// - utilisation de type vue:
+	//   - les attributs natifs de type Entity ou Table sont recopies a partir d'objets sources au moment
+	//     de la creation de l'objet via une regle de derivation de creation de Table
+	//   - il ne sont pas detruits avec l'objet, car deja detruits avec l'objet source
+	boolean GetViewTypeUse() const;
+	void SetViewTypeUse(boolean bValue);
 
 	// Creation/destruction d'un container d'attribut de taille donnee
 	ObjectValues NewValueVector(int nSize);
@@ -336,10 +365,11 @@ inline const KWClass* KWObject::GetClass() const
 
 inline longint KWObject::GetCreationIndex() const
 {
+	assert(lCreationIndex != 0);
 	if (lCreationIndex > 0)
-		return lCreationIndex;
+		return lCreationIndex / 2;
 	else
-		return -lCreationIndex;
+		return -lCreationIndex / 2;
 }
 
 inline boolean KWObject::GetSmallSize() const
@@ -350,10 +380,44 @@ inline boolean KWObject::GetSmallSize() const
 
 inline void KWObject::SetSmallSize(boolean bValue)
 {
+	assert(lCreationIndex != 0);
 	if (lCreationIndex < 0 and bValue)
 		lCreationIndex = -lCreationIndex;
 	else if (lCreationIndex > 0 and not bValue)
 		lCreationIndex = -lCreationIndex;
+	ensure(GetSmallSize() == bValue);
+}
+
+inline boolean KWObject::GetViewTypeUse() const
+{
+	assert(lCreationIndex != 0);
+	if (lCreationIndex > 0)
+		return lCreationIndex % 2;
+	else
+		return (-lCreationIndex) % 2;
+}
+
+inline void KWObject::SetViewTypeUse(boolean bValue)
+{
+	assert(lCreationIndex != 0);
+	if (GetViewTypeUse() != bValue)
+	{
+		if (lCreationIndex > 0)
+		{
+			if (bValue)
+				lCreationIndex += 1;
+			else
+				lCreationIndex -= 1;
+		}
+		else
+		{
+			if (bValue)
+				lCreationIndex -= 1;
+			else
+				lCreationIndex += 1;
+		}
+	}
+	ensure(GetViewTypeUse() == bValue);
 }
 
 inline KWValue& KWObject::GetAt(int nValueIndex) const
@@ -1267,10 +1331,11 @@ inline boolean KWObject::CheckAttributeObjectClass(KWAttribute* attribute, KWObj
 	require(KWType::IsRelation(attribute->GetType()));
 	if (kwoValue != NULL)
 	{
-		if (not attribute->GetReference())
-			return attribute->GetClass() == kwoValue->GetClass();
-		else
-			return attribute->GetClass()->GetName() == kwoValue->GetClass()->GetName();
+		// La classe doit etre de meme nom, mais ce n'est pas necessairement la meme
+		// En effet, lors d'une mutation d'objet par la methode Mutate, un objet du niveau
+		// logique peut etre un sous-objet d'un objet du niveau physique, gere par une classe
+		// du niveau physique
+		return attribute->GetClass()->GetName() == kwoValue->GetClass()->GetName();
 	}
 	else
 		return true;

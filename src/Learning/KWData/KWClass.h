@@ -75,7 +75,7 @@ public:
 	// Une classe racine gere sa destruction memoire, alors qu'une
 	// classe composant est geree par sa classe englobante.
 	// Une classe racine a necessairement une cle, avec une verification
-	// de l'uncite des objets selon cette cle
+	// de l'unicite des objets selon cette cle
 	// Un classe racine ne peut etre que referencee, et pas utilise
 	// en tant que sous-partie
 	boolean GetRoot() const;
@@ -132,12 +132,6 @@ public:
 	// Le nom de l'attribut ne doit pas deja exister
 	void InsertAttributeBefore(KWAttribute* attribute, KWAttribute* attributeRef);
 	void InsertAttributeAfter(KWAttribute* attribute, KWAttribute* attributeRef);
-
-	// Renommage d'un attribut
-	// Le nom cible ne doit pas exister parmi les attribut ou les blocs.
-	// Propagation a toutes les references a cet attribut dans les regles
-	// de derivations des attributs de la classe
-	void RenameAttribute(KWAttribute* refAttribute, const ALString& sNewName);
 
 	// Renommage d'un attribut sans se soucier des utilisation dans les regles
 	// Le nom doit etre inexistant dans la classe
@@ -328,14 +322,15 @@ public:
 	// Completion eventuelle des attributs avec les informations de type de leur regle de derivation
 	void CompleteTypeInfo();
 
-	// Calcul de l'ensemble des classes utilisees recursivement par les attributs de la classe courante (y compris
-	// la classe courante) Prerequis: la classe doit etre compilee Memoire: le tableau du code retour appartient a
-	// l'appelant, et contient des references aux classes utilisees
+	// Calcul de l'ensemble des classes utilisees recursivement par les attributs de la classe courante
+	// (y compris la classe courante)
+	// Prerequis: la classe doit etre compilee
+	// Memoire: le tableau du code retour appartient a l'appelant, et contient des references aux classes utilisees
 	void BuildAllUsedClasses(ObjectArray* oaUsedClasses) const;
 
 	// Export des noms des champs natifs (stockes et non calcules, utilises ou non), dans l'ordre du dictionnaire
-	// (utile pour constituer une ligne de header) Il peut s'agir d'attributs denses natifs ou de blocs d'attributs
-	// non calcules
+	// (utile pour constituer une ligne de header)
+	// Il peut s'agir d'attributs denses natifs ou de blocs d'attributs  non calcules
 	void ExportNativeFieldNames(StringVector* svNativeFieldNames) const;
 
 	// Export des noms des champs stockes (et loades), dans l'ordre du dictionnaire (utile pour constituer une ligne
@@ -546,19 +541,23 @@ protected:
 	int GetTotalInternallyLoadedDataItemNumber() const;
 
 	///////////////////////////////////////////////////////////////////////////////////////////////
-	// Gestion des attributs Object et ObjectArray natifs, non utilises (not Used) et non
-	// charges en memoire (not Loaded) selon les specifications.
+	// Gestion des attributs Object et ObjectArray natifs ou crees par une regle (non references),
+	// non utilises (not Used) et non charges en memoire (not Loaded) selon les specifications.
 	// Il faut prevoir de les charger en interne au cas ou ils serait utilises comme arguments de regles
 	// de derivation renvoyant des Object ou ObjectArray. En effet, dans ce cas, les attributs
 	// issu de regles peuvent referencer des Object natifs, qui ne doivent pas etre detruits.
 
-	// Attributs Relation natifs non charges en memoire
-	int GetUnloadedNativeRelationAttributeNumber() const;
-	KWAttribute* GetUnloadedNativeRelationAttributeAt(int nIndex) const;
+	// Attributs Relation natifs ou cree et non references non charges en memoire
+	// Ces attribut appartient a l'objet courant et devront etre detruits avec celui-ci
+	int GetUnloadedOwnedRelationAttributeNumber() const;
+	KWAttribute* GetUnloadedOwnedRelationAttributeAt(int nIndex) const;
 
 	// Prise en compte des attributs utilises non charges en memoire suite a une lecture de dictionnaire (cf.
 	// KWAttribute::ReadNotLoadedMetaData)
 	void ReadNotLoadedMetaData();
+
+	// Affichage d'un tableau d'attributs
+	void WriteAttributes(const ALString& sTitle, const ObjectArray* oaAttributes, ostream& ost) const;
 
 	// Nom de la classe
 	KWCDUniqueString usName;
@@ -606,7 +605,7 @@ protected:
 	ObjectArray oaLoadedTextAttributes;
 	ObjectArray oaLoadedTextListAttributes;
 	ObjectArray oaLoadedRelationAttributes;
-	ObjectArray oaUnloadedNativeRelationAttributes;
+	ObjectArray oaUnloadedOwnedRelationAttributes;
 
 	// Tableau de tous les valeurs denses (attributs dense ou blocs) charges en memoire
 	// pour permettre une verification des LoadIndex, dont la partie DenseIndex
@@ -909,18 +908,18 @@ inline const ObjectArray* KWClass::GetConstDatabaseTemporayDataItemsToComputeAnd
 inline int KWClass::GetTotalInternallyLoadedDataItemNumber() const
 {
 	require(IsIndexed());
-	return oaLoadedDataItems.GetSize() + oaUnloadedNativeRelationAttributes.GetSize();
+	return oaLoadedDataItems.GetSize() + oaUnloadedOwnedRelationAttributes.GetSize();
 }
 
-inline int KWClass::GetUnloadedNativeRelationAttributeNumber() const
+inline int KWClass::GetUnloadedOwnedRelationAttributeNumber() const
 {
 	require(IsIndexed());
-	return oaUnloadedNativeRelationAttributes.GetSize();
+	return oaUnloadedOwnedRelationAttributes.GetSize();
 }
 
-inline KWAttribute* KWClass::GetUnloadedNativeRelationAttributeAt(int nIndex) const
+inline KWAttribute* KWClass::GetUnloadedOwnedRelationAttributeAt(int nIndex) const
 {
-	return cast(KWAttribute*, oaUnloadedNativeRelationAttributes.GetAt(nIndex));
+	return cast(KWAttribute*, oaUnloadedOwnedRelationAttributes.GetAt(nIndex));
 }
 
 inline boolean KWClass::IsCompiled() const

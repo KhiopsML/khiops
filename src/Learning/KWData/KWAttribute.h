@@ -190,7 +190,7 @@ public:
 
 	// Completion eventuelle de la regle avec les informations de type
 	// en maintenant un dictionnaire d'attributs pour eviter les boucles
-	void InternalCompleteTypeInfo(KWClass* kwcOwnerClass, NumericKeyDictionary* nkdAttributes);
+	void InternalCompleteTypeInfo(KWClass* kwcOwnerClass, NumericKeyDictionary* nkdCompletedAttributes);
 
 protected:
 	// Seule la KWClass englobante peut acceder au fonctionnalites internes
@@ -200,8 +200,7 @@ protected:
 	friend class KWObject;
 	friend class KWMTDatabase;
 
-	// Rang de l'attribut parmi les attributs charges en memoire, pour un attribut natif inutilise de type Object ou
-	// ObjectArray
+	// Rang de l'attribut parmi les attributs charges en memoire, pour un attribut natif ou cree inutilise de type Relation
 	KWLoadIndex GetInternalLoadIndex() const;
 
 	// Construction de l'objet de format pour les type complexes
@@ -258,6 +257,9 @@ int KWAttributeCompareName(const void* elem1, const void* elem2);
 
 // Methode de comparaison base sur le nom du bloc de l'attribut, puis de son nom
 int KWAttributeCompareBlockName(const void* elem1, const void* elem2);
+
+// Methode de comparaison base sur le nom de la classe contenant l'attribut puis celui de l'attribut
+int KWAttributeCompareClassAndAttributeName(const void* elem1, const void* elem2);
 
 // Methode de comparaison base sur la VarKey d'un attribut pour deux attribut d'un meme bloc
 int KWAttributeCompareVarKey(const void* elem1, const void* elem2);
@@ -323,11 +325,15 @@ inline void KWAttribute::SetStructureName(const ALString& sValue)
 
 inline boolean KWAttribute::GetReference() const
 {
+	KWDerivationRule* kwdrAnyRule;
+
 	require(KWType::IsRelation(GetType()));
-	if (kwdrRule == NULL)
+
+	kwdrAnyRule = GetAnyDerivationRule();
+	if (kwdrAnyRule == NULL)
 		return false;
 	else
-		return kwdrRule->GetReference();
+		return kwdrAnyRule->GetReference();
 }
 
 inline void KWAttribute::SetDerivationRule(KWDerivationRule* kwdrValue)
@@ -442,7 +448,7 @@ inline KWLoadIndex KWAttribute::GetInternalLoadIndex() const
 	require(parentClass != NULL);
 	require(parentClass->IsIndexed());
 	require(KWType::IsRelation(GetType()));
-	require(GetDerivationRule() == NULL);
+	require(not GetReference());
 	require(not GetLoaded());
 	ensure(parentClass->GetLoadedDataItemNumber() <= liLoadIndex.GetDenseIndex() and
 	       liLoadIndex.GetDenseIndex() < parentClass->GetTotalInternallyLoadedDataItemNumber());

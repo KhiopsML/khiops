@@ -193,7 +193,7 @@ name      {letter}({letter}|{digit})*
 "Structure"               return STRUCTURETYPE;
 
 
-[<>(){}=;,+\[\]\.]                return *yytext;
+[<>(){}=;:,+\[\]\.]                return *yytext;
 
 {name}                    {
                           ALString *sValue;

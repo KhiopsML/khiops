@@ -428,7 +428,21 @@ protected:
 	// Gestion de la classe physique
 
 	// Construction de la classe physique
+	// Completion en identifiant les attributs natif Object ou ObjecArray utilises par des regles
+	// de derivation et ne devant pas etre detruit suite a leur traitement par la classe physique.
+	// Ces attributs natifs sont geres dans les "UnusedNative...Attribute" de la classe (KWClass),
+	// qui, lors de la compilation, prevoit un emplacement memoire systematique pour les stocker
+	// et assurer leur memorisation au cas ou ils seraient referencables par des regles de derivation.
+	// On determine ainsi les attribut de type relation natifs ou crees non utilises a garder,
+	// pour piloter efficacement la methode de mutation des object physiques
 	virtual void BuildPhysicalClass();
+
+	// Calcul du dictionnaire des attributs natifs inutilises a garder, en precisant les classes qui sont necessaires
+	void ComputeUnusedNativeAttributesToKeep(const NumericKeyDictionary* nkdNeededClasses,
+						 NumericKeyDictionary* nkdAttributes);
+	void ComputeUnusedNativeAttributesToKeepForRule(const NumericKeyDictionary* nkdNeededClasses,
+							NumericKeyDictionary* nkdAttributes,
+							NumericKeyDictionary* nkdAnalysedRules, KWDerivationRule* rule);
 
 	// Destruction de la classe physique
 	virtual void DeletePhysicalClass();
@@ -544,8 +558,28 @@ protected:
 	// Meme remarque que pour kwcClass, mais uniquement en lecture.
 	KWClass* kwcPhysicalClass;
 
+	// Dictionnaire des classes de mutation, avec en cle la classe physique des objets a muter
+	// et en valeur la classe suite a la mutation
+	//
+	// Dans la majorite des cas, la classe de mutation est la classe logique de meme nom,
+	// qui garde les attributs charges en memoire de la classe logique, alors que la classe physique
+	// a potentiellement plus d'attributs charges en memoire, en unused dans la classe logique, mais
+	// necessaires dans la classe physique pour le calcul des attribut derives
+	//
+	// Dans des cas a effet de bord, la classe de mutation peut rester la classe physique si la classe
+	// logique est en unused, mais est necessaire en tant qu'attribut de type relation non charge en
+	// memoire, mais a garder pour la destruction des objets (cf. UnloadedOwnedRelationAttribute dans KWClass)
+	// Exemple d'effet de bord:
+	//   La classe Customer a des Services en Unused, ses services on des Usages, et la classe Customer
+	//   a tous ses usages utilises via la regle TableSubUnion(Services, Usages)
+	//   Dans ce cas, les Services physiques sont gardes dans leur classe physique pour gerer recursivement
+	//   la destruction des Usages, mais ils ne sont pas mutes, car non utilises au niveau logique
+	NumericKeyDictionary nkdMutationClasses;
+
 	// Dictionnaire des attributs natifs Object ou ObjectArray a garder lors des mutations d'objet
-	// Utile dans le cas multi-table
+	// Utile dans le cas multi-table, que ce soit dans le cas d'un schema multi-table "logique"
+	// avec des fichiers mappes pour chaque table secondaire ou un schema multi-table "conceptuel"
+	// avec des variables Table ou Entity issues de regles de creation de table
 	// Identifie les attributs de kwcClass natif Object ou ObjectArray, non utilises, mais referencables
 	// par des regles de derivation. Ils ne doivent pas etre detruits pour que les attributs calcules
 	// referencent des objects existants

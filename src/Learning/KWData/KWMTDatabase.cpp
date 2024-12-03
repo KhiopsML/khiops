@@ -251,11 +251,13 @@ int KWMTDatabaseCompareMappingMainClass(const void* first, const void* second)
 
 void KWMTDatabase::UpdateMultiTableMappings()
 {
+	const boolean bTrace = false;
 	static ALString sLastUpdatedClassName;
 	KWClass* mainClass;
 	ObjectArray oaPreviousMultiTableMappings;
 	ObjectDictionary odReferenceClasses;
 	ObjectArray oaRankedReferenceClasses;
+	ObjectDictionary odAnalysedCreatedClasses;
 	KWClass* referenceClass;
 	StringVector svAttributeName;
 	KWMTDatabaseMapping* mapping;
@@ -315,8 +317,9 @@ void KWMTDatabase::UpdateMultiTableMappings()
 
 		// Creation du mapping de la table principale
 		assert(svAttributeName.GetSize() == 0);
-		rootMultiTableMapping = CreateMapping(&odReferenceClasses, &oaRankedReferenceClasses, mainClass, false,
-						      mainClass->GetName(), &svAttributeName, &oaMultiTableMappings);
+		rootMultiTableMapping =
+		    CreateMapping(&odReferenceClasses, &oaRankedReferenceClasses, &odAnalysedCreatedClasses, mainClass,
+				  false, mainClass->GetName(), &svAttributeName, &oaMultiTableMappings);
 		assert(svAttributeName.GetSize() == 0);
 
 		// Parcours des classes referencee pour creer leur mapping
@@ -336,9 +339,9 @@ void KWMTDatabase::UpdateMultiTableMappings()
 
 				// Creation du mapping et memorisation de tous les mapping des sous-classes
 				assert(svAttributeName.GetSize() == 0);
-				mapping =
-				    CreateMapping(&odReferenceClasses, &oaRankedReferenceClasses, referenceClass, true,
-						  referenceClass->GetName(), &svAttributeName, oaCreatedMappings);
+				mapping = CreateMapping(&odReferenceClasses, &oaRankedReferenceClasses,
+							&odAnalysedCreatedClasses, referenceClass, true,
+							referenceClass->GetName(), &svAttributeName, oaCreatedMappings);
 				assert(svAttributeName.GetSize() == 0);
 			}
 
@@ -406,6 +409,18 @@ void KWMTDatabase::UpdateMultiTableMappings()
 
 		// Destruction des anciens mappings
 		oaPreviousMultiTableMappings.DeleteAll();
+	}
+
+	// Affichage des mappings
+	if (bTrace)
+	{
+		cout << "Database " << GetDatabaseName() << " " << GetClassName() << " mappings\n";
+		for (i = 0; i < oaMultiTableMappings.GetSize(); i++)
+		{
+			mapping = cast(KWMTDatabaseMapping*, oaMultiTableMappings.GetAt(i));
+			cout << "\t" << i + 1 << "\t" << mapping->GetDataPath() << "\t" << mapping->GetClassName()
+			     << "\t" << mapping->GetDataTableName() << "\n";
+		}
 	}
 	ensure(mainClass == NULL or
 	       mainClass->ComputeOverallNativeRelationAttributeNumber(true) == oaMultiTableMappings.GetSize() - 1);
@@ -577,7 +592,7 @@ boolean KWMTDatabase::CheckPartially(boolean bWriteOnly) const
 							 " variables)");
 					}
 
-					// Passage a la classe suivante dans la path
+					// Passage a la classe suivante dans le path
 					if (bOk)
 						pathClass = attribute->GetClass();
 
@@ -1270,150 +1285,6 @@ void KWMTDatabase::CollectPhysicalStatsMessages(ObjectArray* oaPhysicalMessages)
 	}
 }
 
-void KWMTDatabase::BuildPhysicalClass()
-{
-	// Appel de la methode ancetre
-	KWDatabase::BuildPhysicalClass();
-
-	// Calcul des attributs natifs non utilises a garder
-	ComputeUnusedNativeAttributesToKeep(&nkdUnusedNativeAttributesToKeep);
-}
-
-void KWMTDatabase::ComputeUnusedNativeAttributesToKeep(NumericKeyDictionary* nkdAttributes)
-{
-	ObjectArray oaImpactedClasses;
-	NumericKeyDictionary nkdImpactedClasses;
-	KWClass* kwcCurrentClass;
-	int nClass;
-	KWAttribute* attribute;
-	int nAttribute;
-	ObjectArray oaAttributesToKeep;
-	NumericKeyDictionary nkdAnalysedRules;
-
-	require(kwcClass != NULL);
-	require(nkdAttributes != NULL);
-	require(nkdAttributes->GetCount() == 0);
-
-	// Initialisation des classe a traiter avec la classe principale
-	oaImpactedClasses.Add(kwcClass);
-	nkdImpactedClasses.SetAt(kwcClass, kwcClass);
-
-	// Analyse des classes impactees, en ajoutant au fur et a mesure de nouvelles classes
-	// pour la composition des attributs natifs, et en analysant les regles de derivation
-	// pour determiner les attributs natifs referencees
-	// Ainsi, toute les classes utilisees recursivement sont ici prises en compte
-	for (nClass = 0; nClass < oaImpactedClasses.GetSize(); nClass++)
-	{
-		kwcCurrentClass = cast(KWClass*, oaImpactedClasses.GetAt(nClass));
-		assert(kwcCurrentClass->IsCompiled());
-
-		// Parcours des attributs utilises
-		for (nAttribute = 0; nAttribute < kwcCurrentClass->GetLoadedAttributeNumber(); nAttribute++)
-		{
-			attribute = kwcCurrentClass->GetLoadedAttributeAt(nAttribute);
-
-			// Traitement si attribut de type Object (dans un bloc ou non)
-			if (KWType::IsRelation(attribute->GetType()))
-			{
-				// Analyse si retourne par une regle de derivation
-				// On identifie ainsi les attributs Object natifs potentiellement references
-				if (attribute->GetAnyDerivationRule() != NULL)
-					ComputeUnusedNativeAttributesToKeepForRule(nkdAttributes, &nkdAnalysedRules,
-										   attribute->GetAnyDerivationRule());
-
-				// Ajout de la classe parmi les classes a analyser
-				if (nkdImpactedClasses.Lookup(attribute->GetClass()) == NULL)
-				{
-					oaImpactedClasses.Add(attribute->GetClass());
-					nkdImpactedClasses.SetAt(attribute->GetClass(), attribute->GetClass());
-				}
-			}
-		}
-	}
-}
-
-void KWMTDatabase::ComputeUnusedNativeAttributesToKeepForRule(NumericKeyDictionary* nkdAttributes,
-							      NumericKeyDictionary* nkdAnalysedRules,
-							      KWDerivationRule* rule)
-{
-	KWDerivationRuleOperand* operand;
-	int nOperand;
-	KWAttribute* attribute;
-	KWAttributeBlock* attributeBlock;
-
-	require(kwcClass != NULL);
-	require(nkdAttributes != NULL);
-	require(nkdAnalysedRules != NULL);
-	require(rule != NULL);
-	require(KWType::IsGeneralRelation(rule->GetType()));
-
-	// Arret si regle deja analysee
-	if (nkdAnalysedRules->Lookup(rule) != NULL)
-		return;
-	// Sinon, on commence par memoriser la regle analysee
-	else
-		nkdAnalysedRules->SetAt(rule, rule);
-
-	// Parcours des operandes de la regle
-	for (nOperand = 0; nOperand < rule->GetOperandNumber(); nOperand++)
-	{
-		operand = rule->GetOperandAt(nOperand);
-
-		// Cas d'un type non bloc
-		if (not KWType::IsValueBlock(operand->GetType()))
-		{
-			// On considere l'operande s'il s'agit d'un objet du meme type que celui de la regle
-			// Il n'est pas utile de poursuivre l'analyse recursive des operandes si l'on a pas le bon type
-			// de relation
-			if (KWType::IsRelation(operand->GetType()) and
-			    operand->GetObjectClassName() == rule->GetObjectClassName())
-			{
-				// Propagation si regle
-				if (operand->GetDerivationRule() != NULL)
-				{
-					assert(not KWType::IsValueBlock(operand->GetType()));
-					ComputeUnusedNativeAttributesToKeepForRule(nkdAttributes, nkdAnalysedRules,
-										   operand->GetDerivationRule());
-				}
-				// Traitement de l'attribut sinon
-				else
-				{
-					attribute = operand->GetOriginAttribute();
-					assert(attribute->GetParentClass()->GetDomain() == kwcClass->GetDomain());
-
-					// Propagation si regle
-					if (attribute->GetAnyDerivationRule() != NULL)
-						ComputeUnusedNativeAttributesToKeepForRule(
-						    nkdAttributes, nkdAnalysedRules, attribute->GetAnyDerivationRule());
-					// Memorisation de l'attribut natif sinon
-					else
-						nkdAttributes->SetAt(attribute, attribute);
-				}
-			}
-		}
-		// Cas d'un type bloc
-		else
-		{
-			// On verifie qu'un operande de type block ne peut etre renvoye par une regle
-			assert(not(operand->GetOrigin() == KWDerivationRuleOperand::OriginRule));
-
-			// On considere l'operande s'il s'agit d'un bloc d'objets du meme type que celui de la regle
-			if (operand->GetType() == KWType::ObjectArrayValueBlock and
-			    operand->GetObjectClassName() == rule->GetObjectClassName())
-			{
-				// Traitement du bloc d'attributs
-				attributeBlock = operand->GetOriginAttributeBlock();
-				assert(attributeBlock->GetParentClass()->GetDomain() == kwcClass->GetDomain());
-
-				// Propagation a la regle: un bloc d'attributs de type relation ne peut qu'etre calcule
-				assert(attributeBlock->GetDerivationRule() != NULL);
-				ComputeUnusedNativeAttributesToKeepForRule(nkdAttributes, nkdAnalysedRules,
-									   attributeBlock->GetDerivationRule());
-			}
-		}
-	}
-}
-
 void KWMTDatabase::DeletePhysicalClass()
 {
 	KWMTDatabaseMapping* mapping;
@@ -1421,9 +1292,6 @@ void KWMTDatabase::DeletePhysicalClass()
 
 	// Appel de la methode ancetre
 	KWDatabase::DeletePhysicalClass();
-
-	// Nettoyage du dictionnaire des attribut natif non utilises a detruire
-	nkdUnusedNativeAttributesToKeep.RemoveAll();
 
 	// Dereferencement des classes physique dans tous les tables principales et secondaires
 	for (i = 0; i < oaMultiTableMappings.GetSize(); i++)
@@ -1517,7 +1385,8 @@ boolean KWMTDatabase::IsPhysicalObjectSelected(KWObject* kwoPhysicalObject)
 }
 
 KWMTDatabaseMapping* KWMTDatabase::CreateMapping(ObjectDictionary* odReferenceClasses,
-						 ObjectArray* oaRankedReferenceClasses, KWClass* mappedClass,
+						 ObjectArray* oaRankedReferenceClasses,
+						 ObjectDictionary* odAnalysedCreatedClasses, KWClass* mappedClass,
 						 boolean bIsExternalTable, const ALString& sOriginClassName,
 						 StringVector* svAttributeNames, ObjectArray* oaCreatedMappings)
 {
@@ -1525,9 +1394,14 @@ KWMTDatabaseMapping* KWMTDatabase::CreateMapping(ObjectDictionary* odReferenceCl
 	KWMTDatabaseMapping* mapping;
 	KWMTDatabaseMapping* subMapping;
 	KWAttribute* attribute;
+	KWClass* kwcTargetClass;
+	ObjectArray oaUsedClass;
+	KWClass* kwcUsedClass;
+	int nUsedClass;
 
 	require(odReferenceClasses != NULL);
 	require(oaRankedReferenceClasses != NULL);
+	require(odAnalysedCreatedClasses != NULL);
 	require(odReferenceClasses->GetCount() == oaRankedReferenceClasses->GetSize());
 	require(mappedClass != NULL);
 	require(sOriginClassName != "");
@@ -1554,15 +1428,16 @@ KWMTDatabaseMapping* KWMTDatabase::CreateMapping(ObjectDictionary* odReferenceCl
 		if (KWType::IsRelation(attribute->GetType()) and attribute->GetClass() != NULL)
 		{
 			// Cas d'un attribut natif de la composition (sans regle de derivation)
-			if (not attribute->GetReference() and attribute->GetAnyDerivationRule() == NULL)
+			if (attribute->GetAnyDerivationRule() == NULL)
 			{
 				// Ajout temporaire d'un attribut au mapping
 				svAttributeNames->Add(attribute->GetName());
 
 				// Creation du mapping dans une nouvelle table de mapping temporaire
-				subMapping = CreateMapping(odReferenceClasses, oaRankedReferenceClasses,
-							   attribute->GetClass(), bIsExternalTable, sOriginClassName,
-							   svAttributeNames, oaCreatedMappings);
+				subMapping =
+				    CreateMapping(odReferenceClasses, oaRankedReferenceClasses,
+						  odAnalysedCreatedClasses, attribute->GetClass(), bIsExternalTable,
+						  sOriginClassName, svAttributeNames, oaCreatedMappings);
 
 				// Supression de l'attribut ajoute temporairement
 				svAttributeNames->SetSize(svAttributeNames->GetSize() - 1);
@@ -1570,9 +1445,46 @@ KWMTDatabaseMapping* KWMTDatabase::CreateMapping(ObjectDictionary* odReferenceCl
 				// Chainage du sous-mapping
 				mapping->GetComponentTableMappings()->Add(subMapping);
 			}
+			// Cas d'un attribut issue d'une regle de creation de table, pour rechercher
+			// les classes referencees depuis les tables creees par des regles
+			else if (not attribute->GetReference())
+			{
+				assert(attribute->GetAnyDerivationRule() != NULL);
+
+				// Recherche de la classe cible
+				kwcTargetClass = mappedClass->GetDomain()->LookupClass(
+				    attribute->GetDerivationRule()->GetObjectClassName());
+				assert(kwcTargetClass != NULL);
+
+				// Analyse uniquement si la classe cible na pas deja ete analysees
+				if (odAnalysedCreatedClasses->Lookup(kwcTargetClass->GetName()) == NULL)
+				{
+					// Memorisation de la classe cible
+					odAnalysedCreatedClasses->SetAt(kwcTargetClass->GetName(), kwcTargetClass);
+
+					// Recherche de toutes les classe utilisee recursivement
+					kwcTargetClass->BuildAllUsedClasses(&oaUsedClass);
+
+					// Recherches des classes externes
+					for (nUsedClass = 0; nUsedClass < oaUsedClass.GetSize(); nUsedClass++)
+					{
+						kwcUsedClass = cast(KWClass*, oaUsedClass.GetAt(nUsedClass));
+
+						// Memorisation des mapping a traiter dans le cas de classe externes
+						if (kwcUsedClass->GetRoot())
+						{
+							if (odReferenceClasses->Lookup(kwcUsedClass->GetName()) == NULL)
+							{
+								odReferenceClasses->SetAt(kwcUsedClass->GetName(),
+											  kwcUsedClass);
+								oaRankedReferenceClasses->Add(kwcUsedClass);
+							}
+						}
+					}
+				}
+			}
 			// Cas d'un attribut natif reference (avec regle de derivation predefinie)
-			else if (attribute->GetReference() and attribute->GetDerivationRule() != NULL and
-				 attribute->GetDerivationRule()->GetName() == referenceRule.GetName())
+			else if (attribute->GetAnyDerivationRule()->GetName() == referenceRule.GetName())
 			{
 				// Memorisation du mapping a traiter
 				if (odReferenceClasses->Lookup(attribute->GetClass()->GetName()) == NULL)

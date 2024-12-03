@@ -128,7 +128,7 @@ void KWDatabaseTransferView::InitializeSourceDatabase(KWDatabase* database, cons
 	// Parametrage de la base cible a partir de la base source
 	targetDatabase->CopyFrom(initializationDatabase);
 
-	// Dans le cas multi-tables, les tables externes ne doivent tpas etre specifiees
+	// Dans le cas multi-tables, les tables externes ne doivent pas etre specifiees
 	if (targetDatabase->IsMultiTableTechnology())
 	{
 		// Nettoyage des mapping des tables externes

@@ -103,7 +103,9 @@ boolean KDSelectionOperandSamplingTask::ComputeResourceRequirements()
 	longint lAllSamplesNecessaryMemory;
 	longint lMaxSampleSize;
 	longint lTotalValueNumber;
+	PLDatabaseTextFile* sourcePLDatabase;
 	PLMTDatabaseTextFile* sourceMTDatabase;
+	const KWClass* kwcClass;
 	int nClass;
 	KDClassSelectionData* classSelectionData;
 	int nMapping;
@@ -122,10 +124,22 @@ boolean KDSelectionOperandSamplingTask::ComputeResourceRequirements()
 		// Taille des specifications de l'echantillonneur
 		lSelectionOperandDataSamplerSpecUsedMemory = masterSelectionOperandDataSampler->GetUsedMemory();
 
-		// Estimation heuristique du max des nombres totaux d'objets dans les fichiers, sur l'ensemble des
-		// classes de selection
-		lMaxClassEstimatedObjectNumber = 0;
-		sourceMTDatabase = shared_sourceDatabase.GetMTDatabase();
+		// Estimation heuristique du nombre d'objets du fichier principal
+		sourcePLDatabase = shared_sourceDatabase.GetPLDatabase();
+		lClassEstimatedObjectNumber = sourcePLDatabase->GetInMemoryEstimatedFileObjectNumber();
+
+		// On prend en compte le nombre d'objet potentiellement cree par des regles de creation d'Entity
+		// Cela donne un majorant pour le fichier principal du nombre total d'objet du fichier ou crees en memoire
+		// Pour le cas de regles de creation de Table, on suppose que ces objet seront crees soit a partir
+		// des Entity creees, soit a partir d'autre tables provenant de fichier des tables secondaire du schema
+		// multi-tabbles, qui seront elles meme prise en compte
+		kwcClass =
+		    KWClassDomain::GetCurrentDomain()->LookupClass(sourcePLDatabase->GetDatabase()->GetClassName());
+		lClassEstimatedObjectNumber *= max(1, ComputeCreatedEntityNumber(kwcClass));
+
+		// Estimation heuristique du max des nombres totaux d'objets dans les fichiers,
+		// sur l'ensemble des classes de selection, en partant des objets du fichier principal
+		lMaxClassEstimatedObjectNumber = lClassEstimatedObjectNumber;
 		for (nClass = 0; nClass < masterSelectionOperandDataSampler->GetClassSelectionData()->GetSize();
 		     nClass++)
 		{
@@ -133,35 +147,49 @@ boolean KDSelectionOperandSamplingTask::ComputeResourceRequirements()
 			    cast(KDClassSelectionData*,
 				 masterSelectionOperandDataSampler->GetClassSelectionData()->GetAt(nClass));
 
-			// Estimation heuristique du nombre total d'objet dans les fichiers pour uner classe de
-			// selection
+			// Estimation heuristique du nombre total d'objet dans les fichiers pour une classe de selection
 			if (classSelectionData->GetClassSelectionOperandData()->GetSize() > 0)
 			{
-				// Analyse des mappings utilises de la bonne classe
+				// Analyse des mappings utilises de la bonne classe dans le cas multi-tables
 				lClassEstimatedObjectNumber = 0;
-				for (nMapping = 0; nMapping < sourceMTDatabase->GetTableNumber(); nMapping++)
+				if (sourcePLDatabase->IsMultiTableTechnology())
 				{
-					mapping = sourceMTDatabase->GetUsedMappingAt(nMapping);
-					if (mapping != NULL and
-					    mapping->GetClassName() == classSelectionData->GetClassName())
-						lClassEstimatedObjectNumber +=
-						    sourceMTDatabase->GetInMemoryEstimatedFileObjectNumbers()->GetAt(
-							nMapping);
+					sourceMTDatabase = shared_sourceDatabase.GetMTDatabase();
+
+					// Parcours des mapping pour identifier ceux qui concernes
+					for (nMapping = 0; nMapping < sourceMTDatabase->GetTableNumber(); nMapping++)
+					{
+						mapping = sourceMTDatabase->GetUsedMappingAt(nMapping);
+						if (mapping != NULL and
+						    mapping->GetClassName() == classSelectionData->GetClassName())
+							lClassEstimatedObjectNumber +=
+							    sourceMTDatabase->GetInMemoryEstimatedFileObjectNumbers()
+								->GetAt(nMapping);
+					}
+
+					// Prise en compte des Entity creees, comme pour le fichier principal
+					kwcClass = KWClassDomain::GetCurrentDomain()->LookupClass(
+					    classSelectionData->GetClassName());
+					lClassEstimatedObjectNumber *= max(1, ComputeCreatedEntityNumber(kwcClass));
+
+					// Mise a jour du nombre maximum d'objet sur l'ensemble des classes
+					lMaxClassEstimatedObjectNumber =
+					    max(lMaxClassEstimatedObjectNumber, lClassEstimatedObjectNumber);
 				}
-				lMaxClassEstimatedObjectNumber =
-				    max(lMaxClassEstimatedObjectNumber, lClassEstimatedObjectNumber);
 			}
 		}
 
-		// Acces a la taille des echantillons et au nombre total de valeurs a collecter
-		// On utilise le min de la taille d'echantillon souhaitee et du nombre total d'objets effectifs dans les
-		// fichier de donnees Cela permet de limiter si necessaire la memoire necessaire en se basant sur les
-		// donnees disponibles, notamment dans les cas ou on genere beaucoup de variables a partir de petites
-		// bases de donnees Notons que c'est une estimation heuristique macroscopique, qui pourrait etre affinee
-		// dans le cas de schemas multi-tables complexes comprenant plusieurs type de tables avec des variations
-		// d'une part sur le nombre de variables a generer par type de dictionnaire et le nombre d'objets dans
-		// les fichiers de donnees. Cette affinage est plus complexe a implementer, probablement utile
-		// uniquement dans certains cas "extremes": il n'est pas prevu de le prendre en compte
+		// Acces a la taille des echantillons et au nombre total de valeurs a collecter.
+		// On utilise le min de la taille d'echantillon souhaitee et du nombre total d'objets
+		// effectifs dans les fichier de donnees.
+		// Cela permet de limiter si necessaire la memoire necessaire en se basant sur les donnees disponibles,
+		// notamment dans les cas ou on genere beaucoup de variables a partir de petites bases de donnees.
+		// Notons que c'est une estimation heuristique macroscopique, qui pourrait etre affinee dans le cas de
+		// schemas multi-tables complexes comprenant plusieurs type de tables avec des variations d'une part sur le
+		// nombre de variables a generer par type de dictionnaire et le nombre d'objets dans les fichiers de donnees.
+		// Cet affinage est plus complexe a implementer, probablement utile uniquement dans certains cas "extremes":
+		// il n'est pas prevu de le prendre en compte, puisque l'enjeu est ici uniquement de diminuer potentiellement
+		// les exigences memoires dans le cas de petites bases: une solution heuristique approximative et suffisante.
 		lMaxSampleSize = masterSelectionOperandDataSampler->GetMaxSampleSize();
 		lTotalValueNumber = min(lMaxSampleSize, lMaxClassEstimatedObjectNumber) *
 				    masterSelectionOperandDataSampler->GetTotalSelectionOperandNumber();
@@ -230,10 +258,10 @@ boolean KDSelectionOperandSamplingTask::MasterInitialize()
 	// Appel de la methode ancetre
 	bOk = KWDatabaseTask::MasterInitialize();
 
-	// Parametrage de la taille totale des fichier de la base
+	// Parametrage de la taille totale des fichiers de la base
 	// On attend d'etre dans le MasterInitialize pour acceder a cette information issue
 	// de l'indexation des fichier de la base en entree
-	lDatabaseFileSize = shared_sourceDatabase.GetPLDatabase()->GetMTDatabase()->GetFileSizes()->GetAt(0);
+	lDatabaseFileSize = shared_sourceDatabase.GetPLDatabase()->GetFileSizeAt(0);
 	shared_selectionOperandDataSamplerSpec.GetSelectionOperandDataSampler()->SetDatabaseFileSize(lDatabaseFileSize);
 	masterSelectionOperandDataSampler->SetDatabaseFileSize(lDatabaseFileSize);
 
@@ -276,7 +304,8 @@ boolean KDSelectionOperandSamplingTask::MasterPrepareTaskInput(double& dTaskPerc
 	if (bOk and bIsTaskFinished)
 	{
 		// Necessite d'une dernier passe en cas de tables externes
-		if (shared_sourceDatabase.GetMTDatabase()->GetReferencedTableNumber() > 0)
+		if (shared_sourceDatabase.GetPLDatabase()->IsMultiTableTechnology() and
+		    shared_sourceDatabase.GetMTDatabase()->GetReferencedTableNumber() > 0)
 		{
 			input_bLastRound = true;
 			bIsTaskFinished = false;
@@ -398,7 +427,11 @@ boolean KDSelectionOperandSamplingTask::SlaveInitializeOpenDatabase()
 
 	// Memorisation des objets references globaux apres ouverture de la base
 	if (bOk)
-		slaveSelectionOperandDataSampler->RegisterAllReferencedObjects(shared_sourceDatabase.GetMTDatabase());
+	{
+		if (shared_sourceDatabase.GetPLDatabase()->IsMultiTableTechnology())
+			slaveSelectionOperandDataSampler->RegisterAllReferencedObjects(
+			    shared_sourceDatabase.GetMTDatabase());
+	}
 	return bOk;
 }
 
@@ -434,11 +467,14 @@ boolean KDSelectionOperandSamplingTask::SlaveProcessExploitDatabase()
 	// Appel de la methode ancetre dans le cas standard
 	if (not input_bLastRound)
 		bOk = KWDatabaseTask::SlaveProcessExploitDatabase();
-	// Sinon, extraction des valeurs de selection de tous les objets references globaux ayant ete utilises au moins
-	// une fois
+	// Sinon, extraction des valeurs de selection de tous les objets references globaux
+	// ayant ete utilises au moins une fois
 	else
-		slaveSelectionOperandDataSampler->ExtractAllSelectionReferencedObjects(
-		    shared_sourceDatabase.GetMTDatabase());
+	{
+		if (shared_sourceDatabase.GetPLDatabase()->IsMultiTableTechnology())
+			slaveSelectionOperandDataSampler->ExtractAllSelectionReferencedObjects(
+			    shared_sourceDatabase.GetMTDatabase());
+	}
 	return bOk;
 }
 
@@ -513,4 +549,24 @@ boolean KDSelectionOperandSamplingTask::SlaveFinalize(boolean bProcessEndedCorre
 	bOk = KWDatabaseTask::SlaveFinalize(bProcessEndedCorrectly);
 	ensure(slaveSelectionOperandDataSampler == NULL);
 	return bOk;
+}
+
+int KDSelectionOperandSamplingTask::ComputeCreatedEntityNumber(const KWClass* kwcClass) const
+{
+	int nCreatedEntityNumber;
+	KWAttribute* attribute;
+
+	require(kwcClass != NULL);
+
+	// Comptage des attributs de type Entity cree par des regles
+	nCreatedEntityNumber = 0;
+	attribute = kwcClass->GetHeadAttribute();
+	while (attribute != NULL)
+	{
+		if (attribute->GetType() == KWType::Object and attribute->GetDerivationRule() != NULL and
+		    not attribute->GetDerivationRule()->GetReference())
+			nCreatedEntityNumber++;
+		kwcClass->GetNextAttribute(attribute);
+	}
+	return nCreatedEntityNumber;
 }
