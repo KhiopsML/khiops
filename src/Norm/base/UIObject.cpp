@@ -5,19 +5,6 @@
 #define UIDEV
 #include "UserInterface.h"
 
-ALString UIObject::sIconImageJarPath;
-void* UIObject::jvmHandle = NULL;
-boolean UIObject::bIsJVMLoaded = false;
-ALString UIObject::sLocalInputCommandsFileName;
-ALString UIObject::sLocalOutputCommandsFileName;
-ALString UIObject::sOutputCommandFileName;
-ALString UIObject::sInputCommandFileName;
-ALString UIObject::sLocalErrorLogFileName;
-ALString UIObject::sErrorLogFileName;
-ALString UIObject::sTaskProgressionLogFileName;
-CommandLine UIObject::commandLineOptions;
-boolean UIObject::bPrintOutputInConsole = false;
-
 const ALString UIObject::GetClassLabel() const
 {
 	return "UI Object";
@@ -300,12 +287,10 @@ ALString UIObject::GetHtmlText(const ALString sText) const
 	return sHtmlText;
 }
 
-#define STRING_MAX_LENGTH 1000
-
 const ALString& UIObject::TextualReadInput()
 {
 	int i;
-	char sCharBuffer[1 + STRING_MAX_LENGTH];
+	char sCharBuffer[1 + BUFFER_LENGTH];
 	static ALString sResult;
 
 	// Lecture depuis le shell
@@ -1674,24 +1659,24 @@ CommandLine* UIObject::GetCommandLineOptions()
 //////////////////////////////////////////////////
 // Gestion des fichiers d'entree et de sortie
 
-boolean UIObject::CheckOptions(const ObjectArray& oaOptions)
+boolean UIObject::CheckCommandLineOptions(const ObjectArray& oaOptions)
 {
 	boolean bOk = true;
 	int nCurrentUIMode;
 	CommandLineOption* option;
 	FileSpec* fsInputFile;
+	FileSpec* fsInputJsonFile;
 	FileSpec* fsProgressionFile;
 	FileSpec* fsOutputFile;
+	FileSpec* fsOutputNoReplayFile;
 	FileSpec* fsErrorFile;
 	FileSpec* fsFile;
 	FileSpec* fsFileToCompare;
 	ObjectArray oaSpecFiles;
-	boolean bIsbFlag;
-	boolean bIsiFlag;
+	ObjectDictionary odUsedOptions;
 	int i;
 	int nRef;
-	bIsbFlag = false;
-	bIsiFlag = false;
+	ALString sTmp;
 
 	// Gestion des erreurs en mode textuel
 	nCurrentUIMode = GetUIMode();
@@ -1706,6 +1691,7 @@ boolean UIObject::CheckOptions(const ObjectArray& oaOptions)
 	for (i = 0; i < oaOptions.GetSize(); i++)
 	{
 		option = cast(CommandLineOption*, oaOptions.GetAt(i));
+		odUsedOptions.SetAt(sTmp + option->GetFlag(), option);
 		switch (option->GetFlag())
 		{
 		case 'i':
@@ -1714,7 +1700,13 @@ boolean UIObject::CheckOptions(const ObjectArray& oaOptions)
 			fsInputFile->SetFilePathName(option->GetParameters()->GetAt(0));
 			fsInputFile->SetLabel("input commands file");
 			oaSpecFiles.Add(fsInputFile);
-			bIsiFlag = true;
+			break;
+		case 'j':
+			assert(option->GetParameters()->GetSize() == 1);
+			fsInputJsonFile = new FileSpec;
+			fsInputJsonFile->SetFilePathName(option->GetParameters()->GetAt(0));
+			fsInputJsonFile->SetLabel("input parameters json file");
+			oaSpecFiles.Add(fsInputJsonFile);
 			break;
 		case 'p':
 			assert(option->GetParameters()->GetSize() == 1);
@@ -1730,6 +1722,13 @@ boolean UIObject::CheckOptions(const ObjectArray& oaOptions)
 			fsOutputFile->SetLabel("output commands file");
 			oaSpecFiles.Add(fsOutputFile);
 			break;
+		case 'O':
+			assert(option->GetParameters()->GetSize() == 1);
+			fsOutputNoReplayFile = new FileSpec;
+			fsOutputNoReplayFile->SetFilePathName(option->GetParameters()->GetAt(0));
+			fsOutputNoReplayFile->SetLabel("output commands file without replay");
+			oaSpecFiles.Add(fsOutputNoReplayFile);
+			break;
 		case 'e':
 			assert(option->GetParameters()->GetSize() == 1);
 			fsErrorFile = new FileSpec;
@@ -1737,8 +1736,6 @@ boolean UIObject::CheckOptions(const ObjectArray& oaOptions)
 			fsErrorFile->SetLabel("logs file");
 			oaSpecFiles.Add(fsErrorFile);
 			break;
-		case 'b':
-			bIsbFlag = true;
 		default:
 			break;
 		}
@@ -1781,33 +1778,86 @@ boolean UIObject::CheckOptions(const ObjectArray& oaOptions)
 		if (not bOk)
 			break;
 	}
+	oaSpecFiles.DeleteAll();
 
-	if (bIsbFlag and not bIsiFlag)
+	// Le mode batch ne peut etre utilise qu'avec un fichier de commande en entree
+	if (odUsedOptions.Lookup("b") != NULL and odUsedOptions.Lookup("i") == NULL)
 	{
 		Global::AddError("Command line parameters", "", "-b flag must be used with -i");
 		bOk = false;
 	}
-	oaSpecFiles.DeleteAll();
+
+	// Le parametrage des search/replace ne peut etre utilise qu'avec un fichier de commande en entree
+	if (odUsedOptions.Lookup("r") != NULL and odUsedOptions.Lookup("i") == NULL)
+	{
+		Global::AddError("Command line parameters", "", "-r flag must be used with -i");
+		bOk = false;
+	}
+
+	// Le parametrage par un fichier json en entree ne peut etre utilise qu'avec un fichier de commande en entree
+	if (odUsedOptions.Lookup("j") != NULL and odUsedOptions.Lookup("i") == NULL)
+	{
+		Global::AddError("Command line parameters", "", "-j flag must be used with -i");
+		bOk = false;
+	}
+
+	// Les options -j et -r sont exclusives
+	if (odUsedOptions.Lookup("j") != NULL and odUsedOptions.Lookup("r") != NULL)
+	{
+		Global::AddError("Command line parameters", "", "-j and -r flags are exclusive");
+		bOk = false;
+	}
+
+	// Les options -o et -O sont exclusives
+	if (odUsedOptions.Lookup("o") != NULL and odUsedOptions.Lookup("O") != NULL)
+	{
+		Global::AddError("Command line parameters", "", "-o and -O flags are exclusive");
+		bOk = false;
+	}
+
+	// L'option O n'est pas utilisable sans fichier de commande entree
+	if (odUsedOptions.Lookup("O") != NULL and odUsedOptions.Lookup("i") == NULL)
+	{
+		Global::AddError("Command line parameters", "", "-O flag must be used with -i");
+		bOk = false;
+	}
 
 	// Retour au mode initial
 	if (nCurrentUIMode == Graphic)
 		SetUIMode(Graphic);
+	ensure(not bOk or commandFile.Check());
 	return bOk;
+}
+
+void UIObject::ExitHandlerCloseCommandFiles(int nExitCode)
+{
+	CleanCommandLineManagement();
 }
 
 void UIObject::ParseMainParameters(int argc, char** argv)
 {
 	static boolean bIsUserExitHandlerSet = false;
+	boolean bOk = true;
 	CommandLineOption* oInputScenario;
+	CommandLineOption* oInputParameters;
 	CommandLineOption* oError;
 	CommandLineOption* oOutputScenario;
+	CommandLineOption* oOutputScenarioNoReplay;
 	CommandLineOption* oReplace;
 	CommandLineOption* oBatchMode;
 	CommandLineOption* oTask;
 	ALString sMessage;
 	ALString sToolName;
 	ALString sGlobalHelp;
-	boolean bOk;
+
+	// Memorisation d'un handler de fermeture des fichiers en cas d'erreur fatale
+	// C'est indispensable pour ne pas faire planter le programme en release
+	// au moment de l'emission d'une erreur fatale
+	if (not bIsUserExitHandlerSet)
+	{
+		AddUserExitHandler(ExitHandlerCloseCommandFiles);
+		bIsUserExitHandlerSet = true;
+	}
 
 	// Aide globale
 	sToolName = commandLineOptions.GetCommandName();
@@ -1825,6 +1875,7 @@ void UIObject::ParseMainParameters(int argc, char** argv)
 	sGlobalHelp += "In the last example, " + sToolName + " replays all user interactions stored in the\n";
 	sGlobalHelp += "file scenario.txt after having replaced 'less' by 'more' and '70' by '90'\n";
 
+	// Option sur le fichier d'erreur
 	oError = new CommandLineOption;
 	oError->SetFlag('e');
 	oError->AddDescriptionLine("store logs in the file");
@@ -1834,6 +1885,7 @@ void UIObject::ParseMainParameters(int argc, char** argv)
 	oError->SetPriority(1);
 	commandLineOptions.AddOption(oError);
 
+	// Option sur le mode batch
 	oBatchMode = new CommandLineOption;
 	oBatchMode->SetFlag('b');
 	oBatchMode->AddDescriptionLine("batch mode, with no GUI");
@@ -1842,22 +1894,43 @@ void UIObject::ParseMainParameters(int argc, char** argv)
 	oBatchMode->SetPriority(0);
 	commandLineOptions.AddOption(oBatchMode);
 
+	// Option sur le fichier de commandes en entree
 	oInputScenario = new CommandLineOption;
 	oInputScenario->SetFlag('i');
 	oInputScenario->AddDescriptionLine("replay commands stored in the file");
 	oInputScenario->SetParameterRequired(true);
 	oInputScenario->SetParameterDescription(CommandLineOption::sParameterFile);
-	oInputScenario->SetMethod(OpenInputCommandFile);
+	oInputScenario->SetMethod(InputCommand);
 	commandLineOptions.AddOption(oInputScenario);
 
+	// Option sur le fichier de parametres en entree
+	oInputParameters = new CommandLineOption;
+	oInputParameters->SetFlag('j');
+	oInputParameters->AddDescriptionLine("json file used to set replay parameters");
+	oInputParameters->SetParameterRequired(true);
+	oInputParameters->SetParameterDescription(CommandLineOption::sParameterFile);
+	oInputParameters->SetMethod(JsonCommand);
+	commandLineOptions.AddOption(oInputParameters);
+
+	// Option sur le fichier de commandes en en sortie
 	oOutputScenario = new CommandLineOption;
 	oOutputScenario->SetFlag('o');
 	oOutputScenario->AddDescriptionLine("record commands in the file");
 	oOutputScenario->SetParameterRequired(true);
 	oOutputScenario->SetParameterDescription(CommandLineOption::sParameterFile);
-	oOutputScenario->SetMethod(OpenOutputCommandFile);
+	oOutputScenario->SetMethod(OutputCommand);
 	commandLineOptions.AddOption(oOutputScenario);
 
+	// Option sur le fichier de commandes en en sortie
+	oOutputScenarioNoReplay = new CommandLineOption;
+	oOutputScenarioNoReplay->SetFlag('O');
+	oOutputScenarioNoReplay->AddDescriptionLine("same as -o option, but without replay");
+	oOutputScenarioNoReplay->SetParameterRequired(true);
+	oOutputScenarioNoReplay->SetParameterDescription(CommandLineOption::sParameterFile);
+	oOutputScenarioNoReplay->SetMethod(OutputCommandNoReplay);
+	commandLineOptions.AddOption(oOutputScenarioNoReplay);
+
+	// Option sur le parametrage des search/replace
 	oReplace = new CommandLineOption;
 	oReplace->SetFlag('r');
 	oReplace->AddDescriptionLine("search and replace in the command file");
@@ -1868,6 +1941,7 @@ void UIObject::ParseMainParameters(int argc, char** argv)
 	oReplace->SetRepetitionAllowed(true);
 	commandLineOptions.AddOption(oReplace);
 
+	// Option sur le fichier de progression
 	oTask = new CommandLineOption;
 	oTask->SetFlag('p');
 	oTask->AddDescriptionLine("store last progression messages");
@@ -1876,48 +1950,64 @@ void UIObject::ParseMainParameters(int argc, char** argv)
 	oTask->SetMethod(TaskProgressionCommand);
 	commandLineOptions.AddOption(oTask);
 	commandLineOptions.SetGlobalHelp(sGlobalHelp);
-	commandLineOptions.SetGlobalCheckMethod(CheckOptions);
+	commandLineOptions.SetGlobalCheckMethod(CheckCommandLineOptions);
 
 	// Nettoyage initial
-	CloseCommandFiles();
-	DeleteAllInputSearchReplaceValues();
-
-	// Fermeture des fichiers en cas d'erreur fatale
-	if (not bIsUserExitHandlerSet)
-	{
-		AddUserExitHandler(ExitHandlerCloseCommandFiles);
-		bIsUserExitHandlerSet = true;
-	}
+	CleanCommandLineManagement();
 
 	// Parsing de la ligne de commande existante
 	// pour detecter les options
 	bVerboseCommandReplay = false;
 	bBatchMode = false;
+	bOutputCommandNoReplay = false;
 
+	// Analyse des option de la ligne de commande
 	commandLineOptions.ParseMainParameters(argc, argv);
 
 	// Initialisation des managers de message
 	InitializeMessageManagers();
 
-	// Ecriture d'un en-tete dans le fichier des commandes
-	WriteOutputCommand("", "", CurrentTimestamp());
-	WriteOutputCommand("", "", commandLineOptions.GetCommandName());
-	if (not bPrintOutputInConsole)
+	// Cas on on memorise les commandes dans le fichier en sortie sans les rejouer
+	if (bOutputCommandNoReplay)
 	{
-		sMessage = "Output command file\n";
-		sMessage += "//\n";
-		sMessage += "//This file contains recorded commands, that can be replayed.\n";
-		sMessage += "//Commands are based on user interactions:\n";
-		sMessage += "//\tfield update\n";
-		sMessage += "//\tlist item selection\n";
-		sMessage += "//\tmenu action\n";
-		sMessage += "//Every command can be commented, using //.\n";
-		sMessage += "//For example, commenting the last Exit command will allow other\n";
-		sMessage += "//user interactions, after the commands have been replayed.\n";
-		sMessage += "//\n";
-		sMessage += "//";
+		commandFile.ReadWriteCommandFiles();
+		CleanCommandLineManagement();
+
+		// On sort du programme car a a fini tous les traitements, comme pour le -h
+		GlobalExitOnSuccess();
 	}
-	WriteOutputCommand("", "", sMessage);
+	// Cas on on rejoue les commandes
+	else
+	{
+		// Ouverture du fichier de commande en entree
+		if (bOk and commandFile.GetInputCommandFileName() != "")
+			bOk = commandFile.OpenInputCommandFile();
+
+		// Ouverture du fichier de commande en sortie
+		if (bOk and commandFile.GetOutputCommandFileName() != "")
+		{
+			bOk = commandFile.OpenOutputCommandFile();
+
+			// En mode Graphic on renvoie systematiquement true : on permet de lancer l'outil meme si on ne peut
+			// pas ecrire dans le fichier de log (les options -e et -o sont passees par defaut a l'outil dans les scripts de
+			// lancement bash ou cmd) En mode Textual on est plus strict (utilisation via python, java ou sur cluster)
+			if (not IsBatchMode())
+				bOk = true;
+		}
+
+		// Si il y a eu un pbm lors de l'excution d'une methode, on sort en erreur
+		if (not bOk)
+		{
+			commandFile.CloseCommandFiles();
+			Global::AddFatalError("Command file", "", "Batch mode failure");
+		}
+
+		// Ecriture d'un en-tete dans le fichier des commandes
+		WriteOutputCommand("", "", CurrentTimestamp());
+		WriteOutputCommand("", "", commandLineOptions.GetCommandName());
+		if (not commandFile.GetPrintOutputInConsole())
+			commandFile.WriteOutputCommandHeader();
+	}
 
 	// Choix de l'interface
 	if (IsBatchMode())
@@ -1927,10 +2017,9 @@ void UIObject::ParseMainParameters(int argc, char** argv)
 		bOk = SetUIMode(UIObject::Graphic);
 		if (not bOk and not GetTextualInteractiveModeAllowed())
 		{
-			Global::AddError("", "",
-					 "Unable to load GUI, use -b and -i flags to launch khiops in batch mode "
-					 "(khiops -h for help)");
-			GlobalExit();
+			Global::AddFatalError("", "",
+					      "Unable to load GUI, use -b and -i flags to launch khiops in batch mode "
+					      "(khiops -h for help)");
 		}
 	}
 }
@@ -1960,72 +2049,29 @@ boolean UIObject::GetTextualInteractiveModeAllowed()
 	return bTextualInteractiveModeAllowed;
 }
 
-boolean UIObject::OpenInputCommandFile(const ALString& sFileName)
+boolean UIObject::InputCommand(const ALString& sFileName)
 {
-	boolean bOk;
-	sInputCommandFileName = sFileName;
-
-	// Copie depuis HDFS si necessaire
-	bOk = PLRemoteFileService::BuildInputWorkingFile(sInputCommandFileName, sLocalInputCommandsFileName);
-
-	// Fermeture du fichier si celui-ci est deja ouvert
-	// Ce cas peut arriver si on appelle plusieurs fois ParseParameters (notamment via MODL_dll)
-	if (fInputCommands != NULL)
-	{
-		fclose(fInputCommands);
-		fInputCommands = NULL;
-	}
-
-	// Ouverture du fichier en lecture
-	if (bOk)
-		fInputCommands = p_fopen(sLocalInputCommandsFileName, "r");
-	if (fInputCommands == NULL)
-	{
-		Global::AddError("Input command file", sInputCommandFileName, "Unable to open file");
-		bOk = false;
-	}
-	return bOk;
+	commandFile.SetInputCommandFileName(sFileName);
+	return true;
 }
 
-boolean UIObject::OpenOutputCommandFile(const ALString& sFileName)
+boolean UIObject::OutputCommand(const ALString& sFileName)
 {
-	boolean bOk = true;
+	commandFile.SetOutputCommandFileName(sFileName);
+	return true;
+}
 
-	sOutputCommandFileName = sFileName;
+boolean UIObject::OutputCommandNoReplay(const ALString& sFileName)
+{
+	commandFile.SetOutputCommandFileName(sFileName);
+	bOutputCommandNoReplay = true;
+	return true;
+}
 
-	// Creation si necessaire des repertoires intermediaires
-	PLRemoteFileService::MakeDirectories(FileService::GetPathName(sOutputCommandFileName));
-
-	assert(FileService::GetApplicationTmpDir().IsEmpty());
-	bOk = PLRemoteFileService::BuildOutputWorkingFile(sOutputCommandFileName, sLocalOutputCommandsFileName);
-
-	// Fermeture du fichier si celui-ci est deja ouvert
-	// Ce cas peut arriver si on appelle plusieurs fois ParseParameters (notamment via MODL_dll)
-	if (fOutputCommands != NULL)
-	{
-		fclose(fOutputCommands);
-		fOutputCommands = NULL;
-	}
-
-	// Ouverture du fichier en ecriture
-	if (bOk)
-		fOutputCommands = p_fopen(sLocalOutputCommandsFileName, "w");
-	if (fOutputCommands == NULL)
-	{
-		Global::AddError("Output command file", sOutputCommandFileName, "Unable to open file");
-		bOk = false;
-	}
-
-// Si les fichier de sortie est /dev/stdout ou /dev/stderr, c'est un eredirection vers la console
-#ifdef __linux_or_apple__
-	if (sLocalOutputCommandsFileName == "/dev/stdout" or sLocalOutputCommandsFileName == "/dev/stderr")
-		bPrintOutputInConsole = true;
-#endif
-
-	// En mode Graphic on renvoie systematiquement true : on permet de lancer l'outil meme si on ne peut
-	// pas ecrire dans le fichier output (les options -e et -o sont passees par defaut a l'outil dans les scripts de
-	// lancement bash ou cmd) En mode Textual on est plus strict (utilisation via python, java ou sur cluster)
-	return not IsBatchMode() or bOk;
+boolean UIObject::JsonCommand(const ALString& sFileName)
+{
+	commandFile.SetInputParameterFileName(sFileName);
+	return true;
 }
 
 boolean UIObject::ReplaceCommand(const ALString& sSearchReplacePattern)
@@ -2042,7 +2088,7 @@ boolean UIObject::ReplaceCommand(const ALString& sSearchReplacePattern)
 	{
 		sSearchValue = sSearchReplacePattern.Left(nEqualPosition);
 		sReplaceValue = sSearchReplacePattern.Right(sSearchReplacePattern.GetLength() - nEqualPosition - 1);
-		AddInputSearchReplaceValues(sSearchValue, sReplaceValue);
+		commandFile.AddInputSearchReplaceValues(sSearchValue, sReplaceValue);
 	}
 	else
 	{
@@ -2086,28 +2132,18 @@ boolean UIObject::TaskProgressionCommand(const ALString& sTaskFile)
 	return true;
 }
 
-void UIObject::CloseCommandFiles()
+void UIObject::CleanCommandLineManagement()
 {
-	// Fermeture du fichier d'entree
-	if (fInputCommands != NULL)
-	{
-		fclose(fInputCommands);
-		fInputCommands = NULL;
+	// Par defaut, on rejoue les commande
+	bNoReplayMode = false;
 
-		// Si le fichier est sur HDFS, on supprime la copie locale
-		PLRemoteFileService::CleanInputWorkingFile(sInputCommandFileName, sLocalInputCommandsFileName);
-	}
+	// Fermeture des fichiers de commande en entree et sortie
+	commandFile.CloseCommandFiles();
 
-	// Fermeture du fichier de sortie, uniquement en mode batch (sinon, on enregistre toujours le scenario)
-	if (fOutputCommands != NULL)
-	{
-		fclose(fOutputCommands);
-		fOutputCommands = NULL;
+	// Reinitialisation du parametrage des fichiers de commande
+	commandFile.Reset();
 
-		// Copie vers HDFS si necessaire
-		PLRemoteFileService::CleanOutputWorkingFile(sOutputCommandFileName, sLocalOutputCommandsFileName);
-	}
-
+	// Fermeture du fichier d'erreur
 	if (Global::GetErrorLogFileName() != "")
 	{
 		// Fermeture du fichier de log (la reinitialisation entraine la fermeture du fichier)
@@ -2118,173 +2154,14 @@ void UIObject::CloseCommandFiles()
 	}
 }
 
-void UIObject::ExitHandlerCloseCommandFiles(int nExitCode)
-{
-	CloseCommandFiles();
-}
-
 boolean UIObject::ReadInputCommand(StringVector* svIdentifierPath, ALString& sValue)
 {
-	const char cDEL = (char)127;
-	int i;
-	char sCharBuffer[1 + STRING_MAX_LENGTH];
-	ALString sStringBuffer;
-	int nLength;
-	ALString sIdentifierPath;
-	int nPosition;
-	ALString sToken;
-	ALString sIdentifier;
-
-	require(svIdentifierPath != NULL);
-	require(svIdentifierPath->GetSize() == 0);
-
-	// On arrete si pas de fichier ou si fin de fichier
-	if (fInputCommands == NULL or feof(fInputCommands))
-		return false;
-
-	// Boucle de lecture pour ignorer les lignes vides
-	// ou ne comportant que des commentaires
-	while (sStringBuffer == "" and not feof(fInputCommands))
-	{
-		// Lecture
-		StandardGetInputString(sCharBuffer, fInputCommands);
-
-		// Si erreur ou caractere fin de fichier, on ne renvoie rien
-		if (ferror(fInputCommands) or sCharBuffer[0] == '\0')
-		{
-			// Nettoyage
-			fclose(fInputCommands);
-			fInputCommands = NULL;
-			return false;
-		}
-
-		// Suppression du premier '\n'
-		for (i = 0; i < STRING_MAX_LENGTH; i++)
-		{
-			if (sCharBuffer[i] == '\n')
-				sCharBuffer[i] = '\0';
-		}
-
-		// Recherche /remplacement dans la partie valeur de la commande
-		sStringBuffer = ProcessSearchReplaceCommand(sCharBuffer);
-
-		// Suppression des commentaires en partant de la fin
-		// Ainsi on ne supprime que le dernier commentaire, ce qui permet d'avoir
-		// des paires (IdentifierPath, valeur) avec valeur contenant des " //"
-		// si on a un commentaire est en fin de ligne
-		nLength = sStringBuffer.GetLength();
-		for (i = nLength - 1; i >= 2; i--)
-		{
-			if (sStringBuffer.GetAt(i) == '/' and sStringBuffer.GetAt(i - 1) == '/' and
-			    iswspace(sStringBuffer.GetAt(i - 2)))
-			{
-				sStringBuffer = sStringBuffer.Left(i - 1);
-				break;
-			}
-		}
-
-		// Suppression des blancs au debut et a la fin
-		sStringBuffer.TrimRight();
-		sStringBuffer.TrimLeft();
-
-		// Suppression si necessaire du dernier caractere s'il s'agit de cDEL
-		// (methode FromJstring qui utilise ce cartactere special en fin de chaine pour
-		// les conversions entre Java et C++)
-		if (sStringBuffer.GetLength() > 0 and sStringBuffer.GetAt(sStringBuffer.GetLength() - 1) == cDEL)
-			sStringBuffer.GetBufferSetLength(sStringBuffer.GetLength() - 1);
-
-		// On supprime la ligne si elle commence par un commentaire
-		// Cela permet de commenter y compris les lignes ayant une valeur contenant des "//"
-		if (sStringBuffer.GetLength() >= 2 and sStringBuffer.GetAt(0) == '/' and sStringBuffer.GetAt(1) == '/')
-			sStringBuffer = "";
-	}
-
-	// Recherche de l'IdentifierPath et de la valeur
-	nPosition = sStringBuffer.Find(' ');
-	if (nPosition == -1)
-	{
-		sIdentifierPath = sStringBuffer;
-		sValue = "";
-	}
-	else
-	{
-		sIdentifierPath = sStringBuffer.Left(nPosition);
-		sValue = sStringBuffer.Right(sStringBuffer.GetLength() - nPosition - 1);
-		sValue.TrimRight();
-		sValue.TrimLeft();
-	}
-
-	// Parsing de l'IdentifierPath: recherche des '.'
-	while (sIdentifierPath != "")
-	{
-		// Recherche d'un '.', sinon de la fin de la ligne
-		nPosition = sIdentifierPath.Find('.');
-		if (nPosition == -1)
-			nPosition = sIdentifierPath.GetLength();
-		assert(nPosition >= 0);
-
-		// Recherche d'un Identifier du PathIdentifier
-		sToken = sIdentifierPath.Left(nPosition);
-		sToken.TrimRight();
-		sToken.TrimLeft();
-		if (sToken != "")
-		{
-			sIdentifier = sToken;
-			svIdentifierPath->Add(sIdentifier);
-		}
-		else
-		{
-			// Erreur dans la syntaxe de la commande
-			svIdentifierPath->SetSize(0);
-			break;
-		}
-
-		// Passage a la suite du buffer
-		if (nPosition < sIdentifierPath.GetLength())
-			sIdentifierPath = sIdentifierPath.Right(sIdentifierPath.GetLength() - nPosition - 1);
-		else
-			sIdentifierPath = "";
-		sIdentifierPath.TrimRight();
-		sIdentifierPath.TrimLeft();
-	}
-
-	// On renvoie le resultat
-	if (svIdentifierPath->GetSize() != 0)
-		return true;
-	else
-		return false;
+	return commandFile.ReadInputCommand(svIdentifierPath, sValue);
 }
 
 void UIObject::WriteOutputCommand(const ALString& sIdentifierPath, const ALString& sValue, const ALString& sLabel)
 {
-	if (fOutputCommands != NULL)
-	{
-		ALString sCommand;
-		int nCommandLength;
-
-		// Fabrication de la commande
-		sCommand = sIdentifierPath;
-		if (sValue != "")
-			sCommand += " " + sValue;
-
-		// Calcul de la position du libelle
-		nCommandLength = 10 * ((9 + sCommand.GetLength()) / 10);
-		if (nCommandLength < 30)
-			nCommandLength = 30;
-
-		// Impression
-		if (bPrintOutputInConsole)
-			// Si redirection vers la console, on ajoute un prefixe
-			fprintf(fOutputCommands, "Khiops.command\t");
-		if (sCommand == "" and sLabel == "")
-			fprintf(fOutputCommands, "\n");
-		else if (sCommand == "")
-			fprintf(fOutputCommands, "// %s\n", (const char*)sLabel);
-		else
-			fprintf(fOutputCommands, "%-*.*s // %s\n", nCommandLength, nCommandLength,
-				(const char*)sCommand, (const char*)sLabel);
-		fflush(fOutputCommands);
-	}
+	commandFile.WriteOutputCommand(sIdentifierPath, sValue, sLabel);
 }
 
 void UIObject::WriteOutputFieldCommand(const ALString& sValue) const
@@ -2331,94 +2208,6 @@ void UIObject::InitializeMessageManagers()
 	}
 }
 
-void UIObject::AddInputSearchReplaceValues(const ALString& sSearchValue, const ALString& sReplaceValue)
-{
-	static boolean bAtexitDeleteAllInputSearchReplaceValues = false;
-
-	require(sSearchValue != "");
-
-	// Enregistrement de la supression des donnees de search/replace
-	if (not bAtexitDeleteAllInputSearchReplaceValues)
-	{
-		atexit(DeleteAllInputSearchReplaceValues);
-		bAtexitDeleteAllInputSearchReplaceValues = true;
-	}
-
-	// Ajout des valeurs
-	svInputCommandSearchValues.Add(sSearchValue);
-	svInputCommandReplaceValues.Add(sReplaceValue);
-}
-
-const ALString UIObject::ProcessSearchReplaceCommand(const ALString& sInputCommand)
-{
-	ALString sInputString;
-	ALString sBeginString;
-	ALString sEndString;
-	ALString sOutputCommand;
-	ALString sSearchValue;
-	ALString sReplaceValue;
-	int nSearchPosition;
-	int i;
-
-	// Parcours de toutes les paires search/replace a appliquer
-	sOutputCommand = sInputCommand;
-	for (i = 0; i < GetInputSearchReplaceValueNumber(); i++)
-	{
-		sSearchValue = GetInputSearchValueAt(i);
-		sReplaceValue = GetInputReplaceValueAt(i);
-
-		// Remplacement iteratif des pattern trouves a partir de la chaine pretraitee precedente
-		if (sSearchValue.GetLength() > 0)
-		{
-			sBeginString = "";
-			sEndString = sOutputCommand;
-			nSearchPosition = 0;
-			sOutputCommand = "";
-			while (nSearchPosition >= 0 and sEndString.GetLength() > 0)
-			{
-				nSearchPosition = sEndString.Find(sSearchValue);
-
-				// Si non trouve, on garde la fin de la chaine en cours de traitement
-				if (nSearchPosition == -1)
-					sOutputCommand += sEndString;
-				// Sinon, en prend le debut puis la valeur de remplacement
-				else
-				{
-					sBeginString = sEndString.Left(nSearchPosition);
-					sEndString = sEndString.Right(sEndString.GetLength() -
-								      sSearchValue.GetLength() - nSearchPosition);
-					sOutputCommand += sBeginString + sReplaceValue;
-				}
-			}
-		}
-	}
-	return sOutputCommand;
-}
-
-int UIObject::GetInputSearchReplaceValueNumber()
-{
-	assert(svInputCommandSearchValues.GetSize() == svInputCommandReplaceValues.GetSize());
-	return svInputCommandSearchValues.GetSize();
-}
-
-const ALString& UIObject::GetInputSearchValueAt(int nIndex)
-{
-	require(0 <= nIndex and nIndex < GetInputSearchReplaceValueNumber());
-	return svInputCommandSearchValues.GetAt(nIndex);
-}
-
-const ALString& UIObject::GetInputReplaceValueAt(int nIndex)
-{
-	require(0 <= nIndex and nIndex < GetInputSearchReplaceValueNumber());
-	return svInputCommandReplaceValues.GetAt(nIndex);
-}
-
-void UIObject::DeleteAllInputSearchReplaceValues()
-{
-	svInputCommandSearchValues.SetSize(0);
-	svInputCommandReplaceValues.SetSize(0);
-}
-
 void UIObjectDisplayErrorFunction(const Error* e)
 {
 	ALString sDisplayMessage;
@@ -2433,10 +2222,16 @@ int UIObject::nUIMode = Textual;
 int UIObject::nInstanceNumber = 0;
 boolean UIObject::bVerboseCommandReplay = false;
 boolean UIObject::bBatchMode = false;
+boolean UIObject::bOutputCommandNoReplay = false;
 boolean UIObject::bFastExitMode = true;
 boolean UIObject::bTextualInteractiveModeAllowed = false;
-FILE* UIObject::fInputCommands = NULL;
-FILE* UIObject::fOutputCommands = NULL;
-StringVector UIObject::svInputCommandSearchValues;
-StringVector UIObject::svInputCommandReplaceValues;
 ObjectDictionary UIObject::odListIndexCommands;
+ALString UIObject::sIconImageJarPath;
+void* UIObject::jvmHandle = NULL;
+boolean UIObject::bIsJVMLoaded = false;
+ALString UIObject::sLocalErrorLogFileName;
+ALString UIObject::sErrorLogFileName;
+ALString UIObject::sTaskProgressionLogFileName;
+CommandLine UIObject::commandLineOptions;
+boolean UIObject::bNoReplayMode = false;
+CommandFile UIObject::commandFile;

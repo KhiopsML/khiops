@@ -2058,7 +2058,7 @@ ALString KWClass::BuildUTF8SubString(const ALString sValue)
 	i = nLength - 1;
 	while (i > 0)
 	{
-		nValidUTF8CharNumber = KWTextService::GetValidUTF8CharLengthAt(sValue, i);
+		nValidUTF8CharNumber = TextService::GetValidUTF8CharLengthAt(sValue, i);
 		if (nValidUTF8CharNumber > 0)
 		{
 			nLength = i + nValidUTF8CharNumber;

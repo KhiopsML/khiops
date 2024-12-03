@@ -36,13 +36,12 @@ int main(int argc, char** argv)
 
 	// Activation de la gestion des signaux via des erreurs, pour afficher des messages d'erreur explicites
 	// A potentiellement commenter sur certains IDE lors des phases de debuggage
-	Global::ActivateSignalErrorManagement();
+	//Global::ActivateSignalErrorManagement();
 
 	// Choix du repertoire de lancement pour le debugage sous Windows (a commenter apres fin du debug)
 	// SetWindowsDebugDir("Standard", "IrisLight");
 	// SetWindowsDebugDir("Standard", "IrisU2D");
-	// SetWindowsDebugDir("MultiTables", "DataPathCheck");
-	SetWindowsDebugDir("z_Work", "StarSchemaWithoutRoot");
+	// SetWindowsDebugDir("JsonParameters", "JsonSpliceJunctionAll");
 
 	// Parametrage des logs memoires depuis les variables d'environnement, pris en compte dans KWLearningProject
 	//   KhiopsMemStatsLogFileName, KhiopsMemStatsLogFrequency, KhiopsMemStatsLogToCollect

@@ -565,7 +565,7 @@ static int nKWDGPODiscretizerPostOptimizationAttributeIndex = -1;
 // il y a un segmentation fault, gdb indique que cell1 est a NULL.
 // En ajoutant la ligne suivante (inutile) apres les cast, le bug disparait
 // if (cell1==NULL or cell2==NULL) exit(1);
-// Bug similaire dans KWSortableIndex.h, classe KWIntVectorSorter
+// Bug similaire dans IntVectorSorter.h, classe IntVectorSorter
 #if defined NDEBUG && defined __GNUC__ && !defined __clang__
 #if __GNUC__ >= 12
 #pragma GCC push_options

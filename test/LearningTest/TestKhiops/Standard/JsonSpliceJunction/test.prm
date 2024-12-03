@@ -1,0 +1,48 @@
+// 2024-10-22 13:59:12
+// khiops
+// Output command file
+
+// This file contains recorded commands, that can be replayed.
+// Commands are based on user interactions:
+// 	field update
+// 	list item selection
+// 	menu action
+// Every command can be commented, using .
+// For example, commenting the last Exit command will allow other
+// user interactions, after the commands have been replayed.
+
+
+// -> Khiops
+ClassManagement.OpenFile       // Open...
+
+// -> Open
+ClassFileName __dictionaryFile__    // Dictionary file
+OK                             // Open
+// <- Open
+
+TrainDatabase.ClassName __dictionaryName__   // Analysis dictionary
+
+LOOP __dataTables__
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key __dataPath__      // List item selection
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName __dataFile__        // Data table file
+END LOOP
+
+TrainDatabase.DatabaseSpec.Sampling.SampleNumberPercentage __trainPercentage__          // Sample percentage
+
+IF __detectFormat__
+TrainDatabase.DatabaseSpec.Data.DatabaseFormatDetector.DetectFileFormat          // Detect file format
+END IF
+
+AnalysisSpec.TargetAttributeName __targetName__   // Target variable
+AnalysisSpec.PredictorsSpec.ConstructionSpec.MaxConstructedAttributeNumber __maxConstructedAttributeNumber__   // Max number of constructed variables
+AnalysisSpec.PredictorsSpec.ConstructionSpec.MaxTextFeatureNumber 0    // Max number of text features
+AnalysisSpec.PredictorsSpec.ConstructionSpec.MaxTreeNumber 0  // Max Tree number
+AnalysisResults.ReportFileName ./results/C__maxConstructedAttributeNumber___AnalysisResults.khj // Analysis report
+ComputeStats                   // Train model
+Exit                           // Close
+// <- Khiops
+
+
+// -> Khiops
+OK                             // Yes
+// <- Khiops

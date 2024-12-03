@@ -85,7 +85,7 @@
 #include "KWValueBlock.h"
 #include "KWDRTextualAnalysis.h"
 #include "SNBIndexVector.h"
-#include "KWTextService.h"
+#include "TextService.h"
 #include "KWTextTokenizer.h"
 #include "KWResultFilePathBuilder.h"
 

@@ -9,7 +9,7 @@ class PLShared_TokenFrequency;
 
 #include "Object.h"
 #include "ALString.h"
-#include "KWTextService.h"
+#include "TextService.h"
 #include "PLSharedObject.h"
 
 ////////////////////////////////////////////////////////////////////////

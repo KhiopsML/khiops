@@ -130,7 +130,7 @@ Available LearningTest commands are
 	- processes
 	- forced-platform: for the context of reference results
 	- min-test-time, max-test-time, test-timeout-limit
-	- user-interface, task-file, output-scenario
+	- user-interface, task-file, output-scenario, nop-output-scenario
 - **_kht_apply_** (LearningTest source dir) (instruction) [options]
   - apply an instruction on a subset of test dirs
   - options:

@@ -41,7 +41,7 @@ boolean CCCoclusteringReport::ReadReport(const ALString& sFileName, CCHierarchic
 	boolean bOk;
 	int nFileFormat;
 	ALString sKhiopsEncoding;
-	boolean bForceAnsi;
+	boolean bForceUnicodeToAnsi;
 
 	require(sFileName != "");
 	require(coclusteringDataGrid != NULL);
@@ -59,19 +59,19 @@ boolean CCCoclusteringReport::ReadReport(const ALString& sFileName, CCHierarchic
 	// ansi
 	if (sKhiopsEncoding == "")
 	{
-		bForceAnsi = false;
+		bForceUnicodeToAnsi = false;
 		AddWarning("The \"khiops_encoding\" field is missing in the read coclustering file. "
 			   "The coclustering file is deprecated, and may raise encoding problems "
 			   "in case of mixed ansi and utf8 chars "
 			   ": see the Khiops guide for more information.");
 	}
 	else if (sKhiopsEncoding == "ascii" or sKhiopsEncoding == "utf8")
-		bForceAnsi = false;
+		bForceUnicodeToAnsi = false;
 	else if (sKhiopsEncoding == "ansi" or sKhiopsEncoding == "mixed_ansi_utf8")
-		bForceAnsi = true;
+		bForceUnicodeToAnsi = true;
 	else if (sKhiopsEncoding == "colliding_ansi_utf8")
 	{
-		bForceAnsi = false;
+		bForceUnicodeToAnsi = true;
 		AddWarning("The \"khiops_encoding\" field is \"" + sKhiopsEncoding +
 			   "\" in the read coclustering file. "
 			   "This may raise encoding problems if the file has been modified outside of Khiops "
@@ -79,7 +79,7 @@ boolean CCCoclusteringReport::ReadReport(const ALString& sFileName, CCHierarchic
 	}
 	else
 	{
-		bForceAnsi = false;
+		bForceUnicodeToAnsi = false;
 		AddWarning("The value of the \"khiops_encoding\" field is \"" + sKhiopsEncoding +
 			   "\" in the read coclustering file. "
 			   "This encoding type is unknown and will be ignored, which may raise encoding problems "
@@ -88,7 +88,7 @@ boolean CCCoclusteringReport::ReadReport(const ALString& sFileName, CCHierarchic
 	}
 
 	// Lecture du fichier en parametrant le json tokeniser correctement
-	JSONTokenizer::SetForceAnsi(bForceAnsi);
+	JSONTokenizer::SetForceUnicodeToAnsi(bForceUnicodeToAnsi);
 
 	// Initialisation du tokenizer pour analiser le rapport
 	nHeaderInstanceNumber = 0;
@@ -107,7 +107,7 @@ boolean CCCoclusteringReport::ReadReport(const ALString& sFileName, CCHierarchic
 	nHeaderInstanceNumber = 0;
 	nHeaderCellNumber = 0;
 
-	JSONTokenizer::SetForceAnsi(false);
+	JSONTokenizer::SetForceUnicodeToAnsi(false);
 
 	return bOk;
 }
@@ -115,13 +115,10 @@ boolean CCCoclusteringReport::ReadReport(const ALString& sFileName, CCHierarchic
 boolean CCCoclusteringReport::ReadReportHeader(const ALString& sFileName, CCHierarchicalDataGrid* coclusteringDataGrid,
 					       int& nInstanceNumber, int& nCellNumber)
 {
-	require(sFileName != "");
-	require(coclusteringDataGrid != NULL);
-
 	boolean bOk;
 	int nFileFormat;
 	ALString sKhiopsEncoding;
-	boolean bForceAnsi;
+	boolean bForceUnicodeToAnsi;
 
 	require(sFileName != "");
 	require(coclusteringDataGrid != NULL);
@@ -141,10 +138,11 @@ boolean CCCoclusteringReport::ReadReportHeader(const ALString& sFileName, CCHier
 
 	// Analyse du type d'encodage pour determiner si on doit recoder les caracteres utf8 du fichier json en
 	// ansi Pas de message pour cette lecture rapide
-	bForceAnsi = (sKhiopsEncoding == "ansi" or sKhiopsEncoding == "mixed_ansi_utf8");
+	bForceUnicodeToAnsi = (sKhiopsEncoding == "ansi" or sKhiopsEncoding == "mixed_ansi_utf8" or
+			       sKhiopsEncoding == "colliding_ansi_utf8");
 
 	// Lecture de l'entete du fichier en parametrant le json tokeniser correctement
-	JSONTokenizer::SetForceAnsi(bForceAnsi);
+	JSONTokenizer::SetForceUnicodeToAnsi(bForceUnicodeToAnsi);
 
 	// Initialisation du tokenizer pour analiser le rapport
 	nHeaderInstanceNumber = 0;
@@ -165,7 +163,7 @@ boolean CCCoclusteringReport::ReadReportHeader(const ALString& sFileName, CCHier
 	nHeaderInstanceNumber = 0;
 	nHeaderCellNumber = 0;
 
-	JSONTokenizer::SetForceAnsi(false);
+	JSONTokenizer::SetForceUnicodeToAnsi(false);
 
 	return bOk;
 }
@@ -612,8 +610,8 @@ boolean CCCoclusteringReport::ReadDimensionSummaries(CCHierarchicalDataGrid* coc
 		// Valeur min et max dans le cas numerique
 		if (bOk and nAttributeType == KWType::Continuous)
 		{
-			bOk = bOk and JSONTokenizer::ReadKeyContinuousValue("min", false, cMin, bIsEnd);
-			bOk = bOk and JSONTokenizer::ReadKeyContinuousValue("max", false, cMax, bIsEnd);
+			bOk = bOk and JSONTokenizer::ReadKeyDoubleValue("min", false, cMin, bIsEnd);
+			bOk = bOk and JSONTokenizer::ReadKeyDoubleValue("max", false, cMax, bIsEnd);
 		}
 
 		// Initialisation de la grille ou ajout d'un attribut
@@ -812,8 +810,8 @@ boolean CCCoclusteringReport::ReadInnerAttributesDimensionSummaries(KWDGAttribut
 		// Valeur min et max dans le cas numerique
 		if (bOk and nAttributeType == KWType::Continuous)
 		{
-			bOk = bOk and JSONTokenizer::ReadKeyContinuousValue("min", false, cMin, bIsEnd);
-			bOk = bOk and JSONTokenizer::ReadKeyContinuousValue("max", false, cMax, bIsEnd);
+			bOk = bOk and JSONTokenizer::ReadKeyDoubleValue("min", false, cMin, bIsEnd);
+			bOk = bOk and JSONTokenizer::ReadKeyDoubleValue("max", false, cMax, bIsEnd);
 		}
 
 		// Creation et specification de l'attribut interne
@@ -1310,15 +1308,15 @@ boolean CCCoclusteringReport::ReadInterval(KWDGAttribute* dgAttribute, KWDGPart*
 			cLowerBound = KWContinuous::GetMissingValue();
 			cUpperBound = KWContinuous::GetMissingValue();
 		}
-		// Lecture des bonres inf et sup, avec tableau de deux valeurs
+		// Lecture des bornes inf et sup, avec tableau de deux valeurs
 		else if (nToken == JSONTokenizer::Number)
 		{
-			// Acces a la valeur de la borne inf, quyi vient d'etre lue
-			cLowerBound = KWContinuous::DoubleToContinuous(JSONTokenizer::GetTokenNumberValue());
+			// Acces a la valeur de la borne inf, qui vient d'etre lue
+			cLowerBound = JSONTokenizer::GetTokenNumberValue();
 
 			// Lecture de la borne sup
 			bOk = bOk and JSONTokenizer::ReadExpectedToken(',');
-			bOk = bOk and JSONTokenizer::ReadContinuousValue(false, cUpperBound);
+			bOk = bOk and JSONTokenizer::ReadDoubleValue(false, cUpperBound);
 			bOk = bOk and JSONTokenizer::ReadExpectedToken(']');
 		}
 	}
@@ -2232,8 +2230,8 @@ void CCCoclusteringReport::WriteDimensionSummary(CCHDGAttribute* attribute, JSON
 		fJSON->WriteKeyBoolean("garbage", (attribute->GetGarbageModalityNumber() > 0));
 	if (attribute->GetAttributeType() == KWType::Continuous)
 	{
-		fJSON->WriteKeyDouble("min", attribute->GetMin());
-		fJSON->WriteKeyDouble("max", attribute->GetMax());
+		fJSON->WriteKeyContinuous("min", attribute->GetMin());
+		fJSON->WriteKeyContinuous("max", attribute->GetMax());
 	}
 	fJSON->EndObject();
 }

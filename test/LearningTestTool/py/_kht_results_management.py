@@ -248,7 +248,7 @@ def get_candidate_results_ref_dirs(test_dir):
             assert os.path.isdir(file_path), (
                 "file name starting "
                 + kht.RESULTS_REF
-                + " shoud be a directory ("
+                + " should be a directory ("
                 + file_path
                 + ")"
             )

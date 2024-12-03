@@ -72,6 +72,7 @@ FAMILY_TEST_SUITES[FULL, kht.KHIOPS] = [
     "DTRegression",
     "VariableConstruction",
     "NewV10",
+    "JsonParameters",
     "CrashTests",
     "SmallInstability",
     "CharacterEncoding",

@@ -21,7 +21,7 @@ class KWDerivationRule;
 #include "KWType.h"
 #include "KWMetaData.h"
 #include "KWLoadIndex.h"
-#include "KWTextService.h"
+#include "TextService.h"
 #include "KWCDUniqueString.h"
 
 ///////////////////////////////////////////////////////////////////////////

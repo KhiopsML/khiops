@@ -81,14 +81,14 @@ Continuous KWDRTokenizationRule::GetValueBlockContinuousDefaultValue() const
 const ALString KWDRTokenizationRule::BuildAttributeKeyFromToken(const ALString& sToken) const
 {
 	if (sToken.GetLength() > 0 and (GetMaxTokenLength() == 0 or sToken.GetLength() <= GetMaxTokenLength()))
-		return KWTextService::ByteStringToWord(sToken);
+		return TextService::ByteStringToWord(sToken);
 	else
 		return "";
 }
 
 const ALString KWDRTokenizationRule::BuildTokenFromAttributeKey(const ALString& sToken) const
 {
-	return KWTextService::WordToByteString(sToken);
+	return TextService::WordToByteString(sToken);
 }
 
 int KWDRTokenizationRule::GetMaxTokenLength() const

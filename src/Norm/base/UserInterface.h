@@ -29,6 +29,7 @@ class UIAction;
 #include "PLRemoteFileService.h"
 #include "FileService.h"
 #include "CommandLine.h"
+#include "CommandFile.h"
 
 // Directive de compilation dediee au developpement des composants UI
 // Seule la librairie Base a besoin effectivement de <jni.h> pour etre compilee
@@ -382,16 +383,18 @@ protected:
 	//      <ListIdentifierPath>.List.Index <value>  // List index comment
 	//      <ListIdentifierPath>.List.Key <value>  // List key comment
 
-	// Ouverture des fichiers d'entree-sortie des commandes
-	static boolean OpenInputCommandFile(const ALString& sFileName);
-	static boolean OpenOutputCommandFile(const ALString& sFileName);
+	// Parametrage des options de la ligne de commande
+	static boolean InputCommand(const ALString& sFileName);
+	static boolean OutputCommand(const ALString& sFileName);
+	static boolean OutputCommandNoReplay(const ALString& sFileName);
+	static boolean JsonCommand(const ALString& sFileName);
 	static boolean ReplaceCommand(const ALString& sSearchReplacePattern);
 	static boolean BatchCommand(const ALString& sParameter);
 	static boolean ErrorCommand(const ALString& sErrorLog);
 	static boolean TaskProgressionCommand(const ALString& sTaskFile);
 
-	// Fermeture des fichiers d'entree-sortie des commandes
-	static void CloseCommandFiles();
+	// Nettoyage de la gestion de la ligne de commande, fermeture des fichiers ouverts...
+	static void CleanCommandLineManagement();
 
 	// Fonction de sortie utilisateur pour fermer les fichiers d'entre-sortie de commande
 	static void ExitHandlerCloseCommandFiles(int nExitCode);
@@ -410,30 +413,8 @@ protected:
 	// Conditionne par le mode batch
 	static void InitializeMessageManagers();
 
-	/////////////////////////////////////////////////////////////
-	// Personnalisation des fichiers de commandes en entree par des
-	// paires (Search value, Replace value).
-	// Chaque paire est appliquee sur les operandes de chaque ligne de commande en
-	// entree avant son execution
-
-	// Ajout d'une paire (SearchValue, ReplaceValue) pour la personnalisation des commandes en entree
-	static void AddInputSearchReplaceValues(const ALString& sSearchValue, const ALString& sReplaceValue);
-
-	// Application des recherche/remplacement de valeurs successivement sur une commande
-	static const ALString ProcessSearchReplaceCommand(const ALString& sInputCommand);
-
-	// Nombre de paires de personnalisation
-	static int GetInputSearchReplaceValueNumber();
-
-	// Acces aux valeurs d'une paire de personnalisation
-	static const ALString& GetInputSearchValueAt(int nIndex);
-	static const ALString& GetInputReplaceValueAt(int nIndex);
-
-	// Nettoyage de toutes les paires
-	static void DeleteAllInputSearchReplaceValues();
-
 	// Verifie que les noms de fichiers passes en parametres sont coherents
-	static boolean CheckOptions(const ObjectArray& oaOptions);
+	static boolean CheckCommandLineOptions(const ObjectArray& oaOptions);
 
 	// Attributs d'instance
 	ALString sLabel;
@@ -450,28 +431,18 @@ protected:
 	static int nInstanceNumber;
 	static boolean bVerboseCommandReplay;
 	static boolean bBatchMode;
+	static boolean bOutputCommandNoReplay;
 	static boolean bFastExitMode;
 	static boolean bTextualInteractiveModeAllowed;
 	static ALString sIconImageJarPath;
-	static ALString sLocalInputCommandsFileName;
-	static ALString sLocalOutputCommandsFileName;
-	static ALString sInputCommandFileName;
-	static ALString sOutputCommandFileName;
 	static ALString sLocalErrorLogFileName;
 	static ALString sErrorLogFileName;
 	static ALString sTaskProgressionLogFileName;
 	static CommandLine commandLineOptions;
+	static boolean bNoReplayMode;
 
-	// Fichiers de gestion des scenarii
-	static FILE* fInputCommands;
-	static FILE* fOutputCommands;
-
-	// Redirection de la sortie outputCommand vers la console
-	static boolean bPrintOutputInConsole;
-
-	// Gestion des chaines des patterns a remplacer par des valeurs dans les fichiers d'input de scenario
-	static StringVector svInputCommandSearchValues;
-	static StringVector svInputCommandReplaceValues;
+	// Gestion des fichiers de commande
+	static CommandFile commandFile;
 
 	// Dictionnaire de bufferisation des commandes de selection d'index dans les listes
 	// Permet de ne memoriser que la derniere selection avant une action, et evite

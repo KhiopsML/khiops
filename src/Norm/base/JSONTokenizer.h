@@ -6,24 +6,23 @@
 
 #include "Object.h"
 #include "ALString.h"
-#include "KWContinuous.h"
 #include "FileService.h"
 #include "PLRemoteFileService.h"
-#include "JSONFile.h"
+#include "TextService.h"
+#include "JSONObject.h"
+#include "JSONYac.hpp"
 
 //////////////////////////////////////////////////////
 // Parser de fichier JSON pour en extraire les tokens
+// Permet une analyse specifique de fichier json token par token,
+// efficace en temps en memoire, car ne necessitant pas d'instancier
+// la strcuture des objets json
 // Attention: les methodes sont toutes statiques
-class JSONTokenizer : public Object
+class JSONTokenizer : public TextService
 {
 public:
 	//////////////////////////////////////////////////////////////////////////////
 	// Parametrage du fichier a analyser
-
-	// Parametrage de la lecture, en forcant ou non la conversion des caracteres utf8 de windows1252/iso8859-1 vers
-	// l'ansi (defaut: false) Cf class JSONFile
-	static void SetForceAnsi(boolean bValue);
-	static boolean GetForceAnsi();
 
 	// Ouverture du fichier pour analyse
 	// Le premier parametre sera utilise si necessaire pour parametrer les messages d'erreur
@@ -45,11 +44,12 @@ public:
 	// Identifiant des tokens
 	enum TokenType
 	{
-		String = 258,
-		Number = 259,
-		Boolean = 260,
-		Null = 261,
-		Error = 262,
+		String = STRINGVALUE,
+		Number = NUMBERVALUE,
+		Boolean = BOOLEANVALUE,
+		Null = NULLVALUE,
+		StringError = STRINGERROR,
+		Error = ERROR,
 	};
 
 	// Test si un token est valide
@@ -72,9 +72,6 @@ public:
 	static double GetTokenNumberValue();
 	static boolean GetTokenBooleanValue();
 
-	// Conversion d'une chaine Json valide vers une chaine C
-	static void JsonToCString(const char* sJsonString, ALString& sCString);
-
 	//////////////////////////////////////////////////////////////////////////////
 	// Methodes de parsing
 	// Ces methodes analyse une sequence courte de tokens attendues, et renvoient
@@ -91,7 +88,6 @@ public:
 
 	// Specialisation dans le cas d'un nombre, en verifiant si necessaire que la valeur est positive ou nul
 	static boolean ReadDoubleValue(boolean bIsPositive, double& dValue);
-	static boolean ReadContinuousValue(boolean bIsPositive, Continuous& cValue);
 	static boolean ReadIntValue(boolean bIsPositive, int& nValue);
 
 	// Lecture d'un identifiant avec le token ':'
@@ -105,8 +101,6 @@ public:
 
 	// Specialisation dans le cas d'un nombre, en verifiant si necessaire que la valeur est positive ou nul
 	static boolean ReadKeyDoubleValue(const ALString& sKey, boolean bIsPositive, double& dValue, boolean& bIsEnd);
-	static boolean ReadKeyContinuousValue(const ALString& sKey, boolean bIsPositive, Continuous& cValue,
-					      boolean& bIsEnd);
 	static boolean ReadKeyIntValue(const ALString& sKey, boolean bIsPositive, int& nValue, boolean& bIsEnd);
 
 	// Lecture d'une paire cle objet ou cle tableau, en ne lisant que le debut de l'objet ou tableau ('{' ou '[')
@@ -122,7 +116,8 @@ public:
 	// Emet un message d'erreur si on est pas a la fin
 	static boolean CheckObjectEnd(const ALString& sKey, boolean bIsEnd);
 
-	// Emission d'une erreur de parsing
+	// Emission d'un warning ou d'une erreur de parsing
+	static void AddParseWarning(const ALString& sLabel);
 	static void AddParseError(const ALString& sLabel);
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -137,8 +132,9 @@ protected:
 	// Valeur du dernier token entre parenthese si le token est associe a une valeur, vide sinon
 	static const ALString GetLastTokenValue();
 
-	// Ajout d'une sous partie d'une chaine
-	static void AppendSubString(ALString& sString, const char* sAddedString, int nBegin, int nLength);
+	// Conversion d'un double en entier
+	// Renvoie true si la conversion est un succes
+	static boolean DoubleToInt(double dValue, int& nValue);
 
 	// Famille d'erreur a utiliser pour emettre les erreur
 	static ALString sErrorFamily;
@@ -155,6 +151,6 @@ protected:
 	// Type du dernier token, pour les assertions
 	static int nLastToken;
 
-	// Parametrage de la conversion vers l'ansi
-	static boolean bForceAnsi;
+	// Valeur du dernier token
+	static JSONSTYPE jsonLastTokenValue;
 };

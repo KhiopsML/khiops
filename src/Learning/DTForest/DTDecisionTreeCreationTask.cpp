@@ -1165,7 +1165,6 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 
 boolean DTDecisionTreeCreationTask::ComputeResourceRequirements()
 {
-
 	longint lSharedMemory = 0;
 	longint lMasterMemory = 0;
 	longint lBiggestTreeMemory = 0;
