@@ -47,6 +47,7 @@ jobs:
         with:
           miniforge-version: latest
           python-version: '3.12'
+          conda-remove-defaults: true
       - name: Install Dependency Requirements for Building Conda Packages
         run: conda install -y conda-build
       # We need MacOS SDK 10.10 to build for macOS Intel
@@ -106,6 +107,7 @@ jobs:
         with:
           miniforge-version: latest  # needed for macOS 13
           python-version: ${{ matrix.python-version }}
+          conda-remove-defaults: true
       - name: Download Conda Package Artifact
         uses: actions/download-artifact@v4
         with:
@@ -114,7 +116,7 @@ jobs:
       - name: Install the Conda package
         run: |
           conda install --channel ./build/conda khiops-core
-      - name: Test that the executables are installed
+      - name: Install the Khiops executables in the Conda environment
         run: |
           conda install --channel conda-forge --channel ./build/conda khiops-core
       - name: Add  CONDA_PREFIX to shared PATH
@@ -122,9 +124,9 @@ jobs:
           echo "$CONDA_PREFIX/bin" >> $GITHUB_PATH
       - name: Checkout sources
         uses: actions/checkout@v4
-      - name: Test that the executables are installed
+      - name: Test that the Khiops executables are installed
         uses: ./.github/actions/test-khiops-install
-      - name: Test that khiops on Iris dataset
+      - name: Test the Khiops executables on the Iris dataset
         uses: ./.github/actions/test-khiops-on-iris
         with:
           os-decription: ${{ matrix.env.os }}-${{ matrix.env.os-family }}
@@ -151,6 +153,7 @@ jobs:
         with:
           miniforge-version: latest
           python-version: '3.12'
+          conda-remove-defaults: true
       - name: Install requirement packages
         run: |
           conda install -y anaconda-client conda-index
