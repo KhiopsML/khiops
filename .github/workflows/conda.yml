@@ -96,9 +96,9 @@ jobs:
           - {os: ubuntu-24.04, os-family: linux-64}
           - {os: windows-2019, os-family: win-64}
           - {os: windows-2022, os-family: win-64}
-          - {os: macos-12, os-family: osx-64}
           - {os: macos-13, os-family: osx-64}
           - {os: macos-14, os-family: osx-arm64}
+          - {os: macos-15, os-family: osx-arm64}
     runs-on: ${{ matrix.env.os }}
     steps:
       - name: Install Miniconda
