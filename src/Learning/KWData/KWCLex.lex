@@ -3,7 +3,7 @@
 
 // Desactivation de warnings pour le Visual C++
 #ifdef __MSC__
-#pragma warning(disable : 4505) // C4505: la fonction locale non référencée a été supprimée
+#pragma warning(disable : 4505) // C4505: la fonction locale non referencee a ete supprimee
 #pragma warning(disable : 4996) // C4996: warning for deprecated POSIX names isatty and fileno
 #endif                          // __MSC__
 
