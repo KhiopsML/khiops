@@ -139,8 +139,8 @@ void KIDRClassifierInterpretation::Compile(KWClass* kwcOwnerClass)
 		return;
 	}
 
-	// Parcours des operandes du classifieur pour identifier les noms des attributs explicatifs et des attributs
-	// natifs associes La derniere operande n'est pas parcouru car reserve a l'attribut des valeurs cibles
+	// Parcours des operandes du classifieur pour identifier les noms des attributs explicatifs et des attributs natifs associes
+	// La derniere operande n'est pas parcouru car reserve a l'attribut des valeurs cibles
 	for (int nOperandIndex = nFirstOperandIndex; nOperandIndex < classifier->GetOperandNumber() - 1;
 	     nOperandIndex++)
 	{
@@ -429,8 +429,7 @@ void KIDRClassifierContribution::ComputeContribution(const KWObject* kwoObject) 
 
 		int nModalityIndex = -1;
 
-		// Extraction du label de la regle permettant de savoir s'il s'agit d'une regle de discretisation ou de
-		// groupage
+		// Extraction du label de la regle permettant de savoir s'il s'agit d'une regle de discretisation ou de groupage
 		const ALString sRuleLabel =
 		    predictiveAttribute->GetDerivationRule()->GetFirstOperand()->GetDerivationRule()->GetLabel();
 
@@ -628,32 +627,30 @@ Continuous KIDRClassifierContribution::ComputeWeightOfEvidence(int nAttributeInd
 
 	// Vincent2009 - j'ai retire la correction et ajoute celle au-dessus
 	// Correction de Laplace pour eviter les divisions par zero
-	// cInitialScore = (cInitialScore * nDatabaseSize + 1) / (nDatabaseSize + nTargetValuesNumber);
-	// cScoreWithoutOneVariable = (cScoreWithoutOneVariable * nDatabaseSize + 1) / (nDatabaseSize +
-	// nTargetValuesNumber);
+	//cInitialScore = (cInitialScore * nDatabaseSize + 1) / (nDatabaseSize + nTargetValuesNumber);
+	//cScoreWithoutOneVariable = (cScoreWithoutOneVariable * nDatabaseSize + 1) / (nDatabaseSize + nTargetValuesNumber);
 
-	// cRatio = (cInitialScore * (1 - cScoreWithoutOneVariable)) / ((1 - cInitialScore) * cScoreWithoutOneVariable);
+	//cRatio = (cInitialScore * (1 - cScoreWithoutOneVariable)) / ((1 - cInitialScore) * cScoreWithoutOneVariable);
 
 	cRatioCorrected = (cInitialScoreCorrected * (1 - cScoreWithoutOneVariableCorrected)) /
 			  ((1 - cInitialScoreCorrected) * cScoreWithoutOneVariableCorrected);
-	// cout  "ratio " << cRatio << " son log " << log(cRatio) <<  " 1/log(2)*" <<  1/log(2.0)*log(cRatio) << endl;
-	//  Calcul de l'indicateur Weight of Evidence
-	// cImportanceValue = 1/log(2.0) * (log(cInitialScore / (1 - cInitialScore)) - log(cScoreWithoutOneVariable / (1
-	// - cScoreWithoutOneVariable))); cImportanceValue = 1/log(2.0) * (log(p / (1-p)) - log(q / (1-q)))
+	//cout  "ratio " << cRatio << " son log " << log(cRatio) <<  " 1/log(2)*" <<  1/log(2.0)*log(cRatio) << endl;
+	// Calcul de l'indicateur Weight of Evidence
+	//cImportanceValue = 1/log(2.0) * (log(cInitialScore / (1 - cInitialScore)) - log(cScoreWithoutOneVariable / (1 - cScoreWithoutOneVariable)));
+	//cImportanceValue = 1/log(2.0) * (log(p / (1-p)) - log(q / (1-q)))
 
-	// cImportanceValue = 1/log(2.0) * (log(cInitialScore) - log(1 - cInitialScore) - log(cScoreWithoutOneVariable)
-	// + log(1 - cScoreWithoutOneVariable)); cImportanceValue = 1/log(2.0) * (log(p) - log(1-p) -log(q) + log(1-q))
+	//cImportanceValue = 1/log(2.0) * (log(cInitialScore) - log(1 - cInitialScore) - log(cScoreWithoutOneVariable) + log(1 - cScoreWithoutOneVariable));
+	//cImportanceValue = 1/log(2.0) * (log(p) - log(1-p) -log(q) + log(1-q))
 
-	// cImportanceValueCorrected = 1/log(2.0) * (log(cInitialScoreCorrected) - log(1 - cInitialScoreCorrected) -
-	// log(cScoreWithoutOneVariableCorrected) + log(1 - cScoreWithoutOneVariableCorrected)); cImportanceValue = 1 /
-	// log(2.0) * log(cRatio);
+	//cImportanceValueCorrected = 1/log(2.0) * (log(cInitialScoreCorrected) - log(1 - cInitialScoreCorrected) - log(cScoreWithoutOneVariableCorrected) + log(1 - cScoreWithoutOneVariableCorrected));
+	//cImportanceValue = 1 / log(2.0) * log(cRatio);
 	cImportanceValueCorrected = 1 / log(2.0) * log(cRatioCorrected);
 
-	// cout << "Attribute " << nAttributeIndex << " Class " << nTargetClassIndex << endl;
-	// cout << " P1= " << cInitialScore  << " P1C= " << cInitialScoreCorrected << endl;
-	// cout << " P2= " << cScoreWithoutOneVariable << " P2C= " << cScoreWithoutOneVariableCorrected << endl;
-	// cout << "cImportanceValue " << cImportanceValue << endl;
-	// cout << "cImportanceValueCorrected " << cImportanceValueCorrected << endl;
+	//cout << "Attribute " << nAttributeIndex << " Class " << nTargetClassIndex << endl;
+	//cout << " P1= " << cInitialScore  << " P1C= " << cInitialScoreCorrected << endl;
+	//cout << " P2= " << cScoreWithoutOneVariable << " P2C= " << cScoreWithoutOneVariableCorrected << endl;
+	//cout << "cImportanceValue " << cImportanceValue << endl;
+	//cout << "cImportanceValueCorrected " << cImportanceValueCorrected << endl;
 
 	return cImportanceValueCorrected;
 }
@@ -694,12 +691,11 @@ Continuous KIDRClassifierContribution::ComputeInformationDifference(int nAttribu
 
 	// Vincent2009 - j'ai retire la correction et ajoute celle au-dessus
 	// Correction de Laplace pour eviter les divisions par zero
-	// cInitialScore = (cInitialScore * nDatabaseSize + 1) / (nDatabaseSize + nTargetValuesNumber);
-	// cScoreWithoutOneVariable = (cScoreWithoutOneVariable * nDatabaseSize + 1) / (nDatabaseSize +
-	// nTargetValuesNumber);
+	//cInitialScore = (cInitialScore * nDatabaseSize + 1) / (nDatabaseSize + nTargetValuesNumber);
+	//cScoreWithoutOneVariable = (cScoreWithoutOneVariable * nDatabaseSize + 1) / (nDatabaseSize + nTargetValuesNumber);
 
 	// Calcul de l'indicateur Weight of Evidence
-	// cImportanceValue = 1 / log(2.0) * (log(cInitialScore) - log(cScoreWithoutOneVariable));
+	//cImportanceValue = 1 / log(2.0) * (log(cInitialScore) - log(cScoreWithoutOneVariable));
 	cImportanceValueCorrected =
 	    1 / log(2.0) * (log(cInitialScoreCorrected) - log(cScoreWithoutOneVariableCorrected));
 
@@ -750,8 +746,8 @@ Continuous KIDRClassifierContribution::ComputeLogImportanceValue(int nAttributeI
 Continuous KIDRClassifierContribution::ComputeShapley(const int nAttributeIndex, const int nTargetClassIndex,
 						      const int nModalityIndex) const
 {
-	// nModalityIndex indique dans quel intervalle (ou groupe) de l'attribut designe par nAttributeIndex, cet
-	// individu appartient nTargetClassIndex est la classe cible pour le calcul de l'importance
+	// nModalityIndex indique dans quel intervalle (ou groupe) de l'attribut designe par nAttributeIndex, cet individu appartient
+	// nTargetClassIndex est la classe cible pour le calcul de l'importance
 
 	Continuous cTerm1Numerator;
 	Continuous cTerm1Denominator;
@@ -1492,8 +1488,7 @@ void KIDRClassifierReinforcement::ComputeReinforcement(const KWObject* kwoObject
 	ivModalityIndexes.SetSize(oaPartitionedPredictiveAttributeNames.GetSize());
 
 	// Parcours des variables contribuant au predicteur
-	// On va memoriser, pour chaque variable predictive, l'index de la partie (valeur variable partionnee) pour
-	// l'individu courant
+	// On va memoriser, pour chaque variable predictive, l'index de la partie (valeur variable partionnee) pour l'individu courant
 	for (int nAttributeIndex = 0; nAttributeIndex < oaPartitionedPredictiveAttributeNames.GetSize();
 	     nAttributeIndex++)
 	{
@@ -1510,8 +1505,7 @@ void KIDRClassifierReinforcement::ComputeReinforcement(const KWObject* kwoObject
 
 		int nModalityIndex = -1;
 
-		// Extraction du label de la regle permettant de savoir s'il s'agit d'une regle de discretisation ou de
-		// groupage
+		// Extraction du label de la regle permettant de savoir s'il s'agit d'une regle de discretisation ou de groupage
 		const ALString sRuleLabel =
 		    predictiveAttribute->GetDerivationRule()->GetFirstOperand()->GetDerivationRule()->GetLabel();
 
@@ -1628,17 +1622,15 @@ void KIDRClassifierReinforcement::ComputeReinforcementProbas(IntVector* ivModali
 						nBestModalityIndex = nModalityIndex;
 						cBestScore = cScore;
 
-						// Calcul d'un tag indiquant le changement de classe eventuel
-						// qu'impliquerait le renforcement Cas ou la classe predite pour cet
-						// individu est deja la classe de reference
+						// Calcul d'un tag indiquant le changement de classe eventuel qu'impliquerait le renforcement
+						// Cas ou la classe predite pour cet individu est deja la classe de reference
 
 						if (sPredictedClass == targetValueProbas->sTargetValue)
 							cNewPredictedClassIsHowReferenceClass = 0;
 						else
 						{
-							// Calcul du max des nouveaux scores pour les autres classes que
-							// la classe de reference Initialisation du max des scores
-							// conditionnellement aux autres classes
+							// Calcul du max des nouveaux scores pour les autres classes que la classe de reference
+							// Initialisation du max des scores conditionnellement aux autres classes
 							cMaxScore = 0;
 
 							// Parcours des classes
@@ -1657,13 +1649,11 @@ void KIDRClassifierReinforcement::ComputeReinforcementProbas(IntVector* ivModali
 							}
 
 							// Cas ou l'argmax des nouveaux score est la classe de reference
-							// Alors le renforcement permet le changement de classe pour la
-							// classe de reference
+							// Alors le renforcement permet le changement de classe pour la classe de reference
 							if (cScore > cMaxScore)
 								cNewPredictedClassIsHowReferenceClass = 1;
 
-							// Sinon : pas de changement de classe ou vers une autre classe
-							// que la classe de reference
+							// Sinon : pas de changement de classe ou vers une autre classe que la classe de reference
 							else
 								cNewPredictedClassIsHowReferenceClass = -1;
 						}
@@ -1684,8 +1674,7 @@ void KIDRClassifierReinforcement::ComputeReinforcementProbas(IntVector* ivModali
 
 				partitionedAttributeProbas->cReinforcementNewScore = cBestScore;
 
-				// Memorisation du tag indiquant si la nouvelle classe predite est la classe de
-				// reference du pourquoi
+				// Memorisation du tag indiquant si la nouvelle classe predite est la classe de reference du pourquoi
 				partitionedAttributeProbas->cReinforcementClassHasChanged =
 				    cNewPredictedClassIsHowReferenceClass;
 
