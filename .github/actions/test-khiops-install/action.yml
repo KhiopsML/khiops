@@ -5,6 +5,8 @@ runs:
   using: composite
   steps:
     - name: Test that the executables are installed (Linux/macOS)
+      # We compute the directory of khiops_env if khiops_env is in the PATH,
+      # otherwise we get this directory from the environment
       # We call khiops_env a first time to test the calling of _khiopsgetprocnumber
       # then we play with KHIOPS_PROC_NUMBER:
       # - with KHIOPS_PROC_NUMBER=2, khiops should not use MPI, we check that KHIOPS_MPI_COMMAND is empty
@@ -19,13 +21,28 @@ runs:
         OMPI_MCA_rmaps_base_oversubscribe: true
         KHIOPS_MPI_VERBOSE: true
       run: |
+        # Compute or get the khiops_env directory
+        if type -P khiops_env &> /dev/null
+        then
+          KHIOPS_ENV_DIR=$(dirname $(type -P khiops_env))
+        elif [[ -n "$CONDA_ENV_BIN_DIR" ]]
+        then
+          KHIOPS_ENV_DIR=$CONDA_ENV_BIN_DIR
+        else
+          echo "::error::This action expects CONDA_ENV_BIN_DIR to be defined"
+          false
+        fi
+        echo
+        echo --- khiops_env directory $KHIOPS_ENV_DIR
         echo
         echo --- Khiops environment with KHIOPS_PROC_NUMBER not set
-        khiops_env --env
+
+        # khiops_env is not in the path anymore, for Conda environments
+        $KHIOPS_ENV_DIR/khiops_env --env
         echo
         export KHIOPS_PROC_NUMBER=2
         echo --- Khiops environment with KHIOPS_PROC_NUMBER=$KHIOPS_PROC_NUMBER
-        source khiops_env --env
+        source $KHIOPS_ENV_DIR/khiops_env --env
         if [ ! -z "$KHIOPS_MPI_COMMAND" ]; 
         then 
           echo "::error::MPI is used even though there are only 2 procs available"
@@ -34,7 +51,7 @@ runs:
         echo
         export KHIOPS_PROC_NUMBER=8
         echo --- Khiops environment with KHIOPS_PROC_NUMBER=$KHIOPS_PROC_NUMBER
-        source khiops_env --env
+        source $KHIOPS_ENV_DIR/khiops_env --env
         if [ ! -z "$KHIOPS_MPI_ERROR" ]; 
         then 
           echo "::error::Unexpected MPI error: $KHIOPS_MPI_ERROR"
@@ -47,10 +64,10 @@ runs:
         fi
         echo
         echo --- Khiops status
-        khiops -s
+        $KHIOPS_ENV_DIR/khiops -s
         echo
         echo --- Khiops Coclustering status
-        khiops_coclustering -s
+        $KHIOPS_ENV_DIR/khiops_coclustering -s
     - name: Test that the executables are installed (windows)
       if: runner.os == 'Windows'
       shell: cmd /C call {0}
@@ -96,8 +113,19 @@ runs:
         OMPI_MCA_rmaps_base_oversubscribe: true
         KHIOPS_MPI_VERBOSE: true
       run: |
-        khiops -s
-        khiops -v &> output
+        # Compute or get the khiops_env directory
+        if type -P khiops_env &> /dev/null
+        then
+          KHIOPS_ENV_DIR=$(dirname $(type -P khiops_env))
+        elif [[ -n "$CONDA_ENV_BIN_DIR" ]]
+        then
+          KHIOPS_ENV_DIR=$CONDA_ENV_BIN_DIR
+        else
+          echo "::error::This action expects CONDA_ENV_BIN_DIR to be defined"
+          false
+        fi
+        $KHIOPS_ENV_DIR/khiops -s
+        $KHIOPS_ENV_DIR/khiops -v &> output
         LINE_NUMBER=$(wc -l < output)
         if [ $LINE_NUMBER -gt 1 ] ;
         then 
@@ -120,8 +148,19 @@ runs:
       if: runner.os != 'Windows'
       shell: bash
       run: |-
-        khiops_coclustering -s
-        khiops_coclustering -v &> output
+        # Compute or get the khiops_env directory
+        if type -P khiops_env &> /dev/null
+        then
+          KHIOPS_ENV_DIR=$(dirname $(type -P khiops_env))
+        elif [[ -n "$CONDA_ENV_BIN_DIR" ]]
+        then
+          KHIOPS_ENV_DIR=$CONDA_ENV_BIN_DIR
+        else
+          echo "::error::This action expects CONDA_ENV_BIN_DIR to be defined"
+          false
+        fi
+        $KHIOPS_ENV_DIR/khiops_coclustering -s
+        $KHIOPS_ENV_DIR/khiops_coclustering -v &> output
         LINE_NUMBER=$(wc -l < output)
         if [ $LINE_NUMBER -gt 1 ] ;
         then 
@@ -147,7 +186,18 @@ runs:
         KHIOPS_PROC_NUMBER: 4
         OMPI_MCA_rmaps_base_oversubscribe: true
       run: |-
-        PROC_NUMBER=$(khiops -s | grep "Logical processes" | awk '{print $NF}')
+        # Compute or get the khiops_env directory
+        if type -P khiops_env &> /dev/null
+        then
+          KHIOPS_ENV_DIR=$(dirname $(type -P khiops_env))
+        elif [[ -n "$CONDA_ENV_BIN_DIR" ]]
+        then
+          KHIOPS_ENV_DIR=$CONDA_ENV_BIN_DIR
+        else
+          echo "::error::This action expects CONDA_ENV_BIN_DIR to be defined"
+          false
+        fi
+        PROC_NUMBER=$($KHIOPS_ENV_DIR/khiops -s | grep "Logical processes" | awk '{print $NF}')
         if [ "$PROC_NUMBER" != "$KHIOPS_PROC_NUMBER" ] ;
         then
           echo "::error::Wrong proc number ($PROC_NUMBER vs $KHIOPS_PROC_NUMBER)"

@@ -119,9 +119,14 @@ jobs:
       - name: Install the Khiops executables in the Conda environment
         run: |
           conda install --channel conda-forge --channel ./build/conda khiops-core
-      - name: Add  CONDA_PREFIX to shared PATH
+      - name: Add  CONDA_PREFIX to shared PATH (Windows)
+        if: runner.os == 'Windows'
         run: |
           echo "$CONDA_PREFIX/bin" >> $GITHUB_PATH
+      - name: Add Conda environment binary directory to the environment (Linux and
+          MacOS)
+        if: runner.os != 'Windows'
+        run: echo "CONDA_ENV_BIN_DIR=$CONDA_PREFIX/bin" >> $GITHUB_ENV
       - name: Checkout sources
         uses: actions/checkout@v4
       - name: Test that the Khiops executables are installed
