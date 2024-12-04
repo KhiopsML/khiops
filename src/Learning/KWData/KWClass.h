@@ -570,12 +570,18 @@ protected:
 	int GetUnloadedOwnedRelationAttributeNumber() const;
 	KWAttribute* GetUnloadedOwnedRelationAttributeAt(int nIndex) const;
 
-	// Prise en compte des attributs utilises non charges en memoire suite a une lecture de dictionnaire (cf.
-	// KWAttribute::ReadNotLoadedMetaData)
-	void ReadNotLoadedMetaData();
-
 	// Affichage d'un tableau d'attributs
 	void WriteAttributes(const ALString& sTitle, const ObjectArray* oaAttributes, ostream& ost) const;
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Gestion du ForceUnique de la classe pour la lecture/ecriture de dictionnaire dans les fichiers
+	// Permet de transferer cette information "privee", par exemple pour une tache parallele
+
+	// Ecriture si necessaire des informations prives dans les meta-data (_ForceUnique, plus celles des attributs)
+	void WritePrivateMetaData(ostream& ost) const;
+
+	// Lecture et prise en compte des l'informations privees depuis les meta-data et nettoyage de ceux-ci
+	void ReadPrivateMetaData();
 
 	// Nom de la classe
 	KWCDUniqueString usName;
