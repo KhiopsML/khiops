@@ -1828,6 +1828,9 @@ void KWClass::Write(ostream& ost) const
 		ost << ")";
 	}
 	ost << "\n";
+
+	// Meta-donnees
+	WritePrivateMetaData(ost);
 	if (metaData.GetKeyNumber() > 0)
 	{
 		metaData.Write(ost);
@@ -2781,19 +2784,6 @@ boolean KWClass::CheckTypeAtLoadIndex(KWLoadIndex liIndex, int nType) const
 	return bOk;
 }
 
-void KWClass::ReadNotLoadedMetaData()
-{
-	KWAttribute* attribute;
-
-	// Parcours des attributs de la classe
-	attribute = GetHeadAttribute();
-	while (attribute != NULL)
-	{
-		attribute->ReadNotLoadedMetaData();
-		GetNextAttribute(attribute);
-	}
-}
-
 void KWClass::WriteAttributes(const ALString& sTitle, const ObjectArray* oaAttributes, ostream& ost) const
 {
 	KWAttribute* attribute;
@@ -2806,5 +2796,40 @@ void KWClass::WriteAttributes(const ALString& sTitle, const ObjectArray* oaAttri
 	{
 		attribute = cast(KWAttribute*, oaAttributes->GetAt(i));
 		ost << "\t" << i + 1 << "\t" << attribute->GetName() << "\n";
+	}
+}
+
+void KWClass::WritePrivateMetaData(ostream& ost) const
+{
+	KWMetaData privateMetaData;
+
+	// Memorisation dans une meta-data temporaire de l'information d'utilisation d'un attribut non charge en memoire
+	// Permet de transferer cette information "privee", par exemple pour une tache parallele
+	if (GetForceUnique())
+	{
+		privateMetaData.SetNoValueAt("_ForceUnique");
+		ost << ' ';
+		privateMetaData.Write(ost);
+	}
+}
+
+void KWClass::ReadPrivateMetaData()
+{
+	KWAttribute* attribute;
+
+	// Lecture de la meta-donne gerant le ForceUnique
+	assert(not GetForceUnique());
+	if (GetMetaData()->GetKeyNumber() > 0 and GetMetaData()->IsMissingTypeAt("_ForceUnique"))
+	{
+		SetForceUnique(true);
+		GetMetaData()->RemoveKey("_ForceUnique");
+	}
+
+	// Parcours des attributs de la classe
+	attribute = GetHeadAttribute();
+	while (attribute != NULL)
+	{
+		attribute->ReadPrivateMetaData();
+		GetNextAttribute(attribute);
 	}
 }
