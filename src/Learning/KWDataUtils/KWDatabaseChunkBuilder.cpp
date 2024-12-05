@@ -100,17 +100,17 @@ int KWDatabaseChunkBuilder::GetChunkNumber() const
 	return ivChunkBeginIndexes.GetSize();
 }
 
-void KWDatabaseChunkBuilder::GetChunkLastRootKeyAt(int nChunkIndex, KWKey* lastRootKey) const
+void KWDatabaseChunkBuilder::GetChunkLastMainKeyAt(int nChunkIndex, KWKey* lastMainKey) const
 {
 	int nMicroChunkIndex;
 
 	require(databaseIndexer != NULL);
 	require(0 <= nChunkIndex and nChunkIndex < GetChunkNumber());
-	require(lastRootKey != NULL);
+	require(lastMainKey != NULL);
 
 	// On recherche l'information pour le micro-chunk correspondant au chunk
 	nMicroChunkIndex = ivChunkBeginIndexes.GetAt(nChunkIndex);
-	lastRootKey->CopyFrom(databaseIndexer->GetChunkPreviousMainKeyAt(nMicroChunkIndex));
+	lastMainKey->CopyFrom(databaseIndexer->GetChunkPreviousMainKeyAt(nMicroChunkIndex));
 }
 
 void KWDatabaseChunkBuilder::GetChunkPreviousRecordIndexesAt(int nChunkIndex,
@@ -221,7 +221,7 @@ void KWDatabaseChunkBuilder::Write(ostream& ost) const
 	LongintVector lvChunkBeginPositions;
 	LongintVector lvChunkEndPositions;
 	LongintVector lvChunkPreviousRecordIndexes;
-	KWKey lastRootKey;
+	KWKey lastMainKey;
 	longint lChunkSize;
 
 	ost << GetClassLabel() << " " << GetObjectLabel() << "\n";
@@ -247,7 +247,7 @@ void KWDatabaseChunkBuilder::Write(ostream& ost) const
 		for (nChunk = 0; nChunk < GetChunkNumber(); nChunk++)
 		{
 			// Acces aux caracteristique du chunk
-			GetChunkLastRootKeyAt(nChunk, &lastRootKey);
+			GetChunkLastMainKeyAt(nChunk, &lastMainKey);
 			GetChunkPreviousRecordIndexesAt(nChunk, &lvChunkPreviousRecordIndexes);
 			GetChunkBeginPositionsAt(nChunk, &lvChunkBeginPositions);
 			GetChunkEndPositionsAt(nChunk, &lvChunkEndPositions);
@@ -267,7 +267,7 @@ void KWDatabaseChunkBuilder::Write(ostream& ost) const
 				ost << lvChunkEndPositions.GetAt(nTable) << "\t";
 			}
 			ost << lChunkSize << "\t";
-			ost << lastRootKey.GetObjectLabel() << "\n";
+			ost << lastMainKey.GetObjectLabel() << "\n";
 		}
 	}
 }
