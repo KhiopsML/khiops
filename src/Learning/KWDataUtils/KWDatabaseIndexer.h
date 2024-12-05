@@ -104,7 +104,7 @@ public:
 	//  . debut de position du chunk par table
 	//  . fin de position du chunk par table
 	//  . index du premier record du chunk par table
-	//  . derniere cle racine du chunk
+	//  . derniere cle principale du chunk
 	//
 	// Ces resultats sont calcules de facon bufferises au fur et a mesure des calcul d'indexation
 	// pour une meme database, uniquement pour la table principale et ses sous-table utilisees.
@@ -117,11 +117,11 @@ public:
 	// Nombre total de chunk
 	int GetChunkNumber() const;
 
-	// Derniere cle racine du chunk precedent
+	// Derniere cle principale du chunk precedent
 	// Renvoie une cle vide pour le premier chunk
 	// Renvoie une cle vide systematiquement dans le cas particulier d'une base reduite a une seule table sans cle
 	// Memoire: appartient a l'appele
-	const KWKey* GetChunkPreviousRootKeyAt(int nChunkIndex) const;
+	const KWKey* GetChunkPreviousMainKeyAt(int nChunkIndex) const;
 
 	// Index du dernier record du chunk precedent, par table
 	// Renvoie 0 pour le premier chunk
@@ -170,14 +170,14 @@ protected:
 	// On calcule d'abord les index de champ de chaque table en entree, ce qui permet de savoir quelle table doit
 	// etre lue. On collecte un echantillon de cles de la table principale, ainsi que leur position pour chaque
 	// table On determine alors un decoupage des tables pour les traitement par esclave En sortie, si OK, on a donc
-	// initialise les tableaux oaAllChunksBeginPos, oaAllChunksBeginRecordIndex, et oaAllChunksLastRootKeys
+	// initialise les tableaux oaAllChunksBeginPos, oaAllChunksBeginRecordIndex, et oaAllChunksLastMainKeys
 
 	// Pilotage du calcul du plan d'indexation global
 	// Erreur possible si pas assez de ressource par exemple
 	boolean ComputeAllDataTableIndexation();
 
 	// Indexation basique avec un seul troncon de la table principale
-	boolean ComputeRootTableBasicIndexation();
+	boolean ComputeMainTableBasicIndexation();
 
 	// Extraction d'un echantillon de cles et de leur position pour la table principale
 	// dans le cas particulier d'une table principale sans cle
@@ -185,7 +185,7 @@ protected:
 
 	// Extraction d'un echantillon de cles et de leur position pour la table principale
 	// dans le cas d'une table princpale avec cle
-	boolean ComputeRootTableIndexation();
+	boolean ComputeMainTableIndexation();
 
 	// Indexation basique avec un seul troncon des tables secondaires non deja traitees
 	boolean ComputeSecondaryTablesBasicIndexation();
@@ -199,18 +199,18 @@ protected:
 	// Initialisation d'un indexeur de champ cle pour un index de table en entree
 	// On n'indexe que les champs cles secondaire correspondant a ceux de la table principale,
 	// Les champs cles secondaire sont potentiellement en positions differentes, de nom different
-	// et en nombre supperieur a ceux de la table racine. On n'indexe que ceux correspond
-	// a la table racine (en meme nombre et dans le meme ordre)
+	// et en nombre supperieur a ceux de la table principale. On n'indexe que ceux correspond
+	// a la table principale (en meme nombre et dans le meme ordre)
 	boolean InitializeKeyFieldIndexer(int nTableIndex, KWKeyFieldsIndexer* keyFieldsIndexer);
 
-	// Evaluation de la taille des cles et du nombre de lignes de la table racine
-	boolean EvaluateKeySize(const KWKeyFieldsIndexer* rootKeyFieldsIndexer, longint& lRootMeanKeySize,
-				longint& lRootLineNumber);
+	// Evaluation de la taille des cles et du nombre de lignes de la table principale
+	boolean EvaluateKeySize(const KWKeyFieldsIndexer* mainKeyFieldsIndexer, longint& lMeanMainKeySize,
+				longint& lMainLineNumber);
 
 	// Extraction d'un echantillon de cles et de leur position pour la table principale en lecture
-	boolean ExtractRootSampleKeyPositions(const KWKeyFieldsIndexer* rootKeyFieldsIndexer, longint lRootMeanKeySize,
-					      longint lRootLineNumber, double dSamplingRate,
-					      ObjectArray* oaRootKeyPositions);
+	boolean ExtractMainSampleKeyPositions(const KWKeyFieldsIndexer* mainKeyFieldsIndexer, longint lMeanMainKeySize,
+					      longint lMainLineNumber, double dSamplingRate,
+					      ObjectArray* oaMainKeyPositions);
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Parametrage de l'indexation

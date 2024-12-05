@@ -110,7 +110,7 @@ void KWDatabaseChunkBuilder::GetChunkLastRootKeyAt(int nChunkIndex, KWKey* lastR
 
 	// On recherche l'information pour le micro-chunk correspondant au chunk
 	nMicroChunkIndex = ivChunkBeginIndexes.GetAt(nChunkIndex);
-	lastRootKey->CopyFrom(databaseIndexer->GetChunkPreviousRootKeyAt(nMicroChunkIndex));
+	lastRootKey->CopyFrom(databaseIndexer->GetChunkPreviousMainKeyAt(nMicroChunkIndex));
 }
 
 void KWDatabaseChunkBuilder::GetChunkPreviousRecordIndexesAt(int nChunkIndex,
