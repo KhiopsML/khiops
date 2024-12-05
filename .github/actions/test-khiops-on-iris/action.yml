@@ -44,8 +44,19 @@ runs:
           echo "KHIOPS_SCRIPT=$KHIOPS_SCRIPT" >> "$GITHUB_ENV"
           echo "KHIOPS_CC_SCRIPT=$KHIOPS_CC_SCRIPT" >> "$GITHUB_ENV"
         else
-          echo "KHIOPS_SCRIPT=khiops" >> "$GITHUB_ENV"
-          echo "KHIOPS_CC_SCRIPT=khiops_coclustering" >> "$GITHUB_ENV"
+          # Compute or get the khiops_env directory
+          if type -P khiops_env &> /dev/null
+          then
+            KHIOPS_ENV_DIR=$(dirname $(type -P khiops_env))
+          elif [[ -n "$CONDA_ENV_BIN_DIR" ]]
+          then
+            KHIOPS_ENV_DIR=$CONDA_ENV_BIN_DIR
+          else
+            echo "::error::This action expects CONDA_ENV_BIN_DIR to be defined"
+            false
+          fi
+          echo "KHIOPS_SCRIPT=$KHIOPS_ENV_DIR/khiops" >> "$GITHUB_ENV"
+          echo "KHIOPS_CC_SCRIPT=$KHIOPS_ENV_DIR/khiops_coclustering" >> "$GITHUB_ENV"
         fi
     - name: Run Khiops tests
       shell: bash
