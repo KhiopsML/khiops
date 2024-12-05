@@ -90,7 +90,6 @@ boolean CCCoclusteringBuilder::CheckSpecifications() const
 		return CheckVarPartSpecifications();
 }
 
-// CH IV End
 boolean CCCoclusteringBuilder::CheckStandardSpecifications() const
 {
 	boolean bOk;
@@ -356,9 +355,7 @@ boolean CCCoclusteringBuilder::ComputeCoclustering()
 	KWDataGridManager dataGridManager;
 	ALString sProfileFileName;
 	ALString sTmp;
-	// CH IV Begin
 	ObjectDictionary odObservationNumbers;
-	// CH IV End
 
 	require(Check());
 	require(CheckSpecifications());
@@ -382,7 +379,6 @@ boolean CCCoclusteringBuilder::ComputeCoclustering()
 
 	// Alimentation d'une table de tuples comportant les attribut a analyser a partir de la base
 	if (bOk and not TaskProgression::IsInterruptionRequested())
-	// CH IV Begin
 	{
 		// Cas ou le coclustering se ramene a un coclustering standard, appel de la methode standard de creation
 		// de grille
@@ -392,7 +388,6 @@ boolean CCCoclusteringBuilder::ComputeCoclustering()
 		else
 			bOk = FillVarPartTupleTableFromDatabase(GetDatabase(), &tupleTable, odObservationNumbers);
 	}
-	// CH IV End
 
 	// Calcul de statistiques descriptives globales et par attribut
 	if (bOk and not TaskProgression::IsInterruptionRequested())
@@ -415,7 +410,6 @@ boolean CCCoclusteringBuilder::ComputeCoclustering()
 	// Creation du DataGrid
 	if (bOk and not TaskProgression::IsInterruptionRequested())
 	{
-		// CH IV Begin
 		// Cas ou le coclustering se ramene a un coclustering standard, appel de la methode standard de creation
 		// de grille
 		if (not GetVarPartCoclustering())
@@ -423,17 +417,14 @@ boolean CCCoclusteringBuilder::ComputeCoclustering()
 		// Sinon, cas de coclustering VarPart
 		else
 			initialDataGrid = CreateVarPartDataGrid(&tupleTable, odObservationNumbers);
-		// CH IV End
 		bOk = initialDataGrid != NULL;
 	}
 
 	// Supression des tuples, desormais transferes dans la grille
 	tupleTable.CleanAll();
 
-	// CH IV Begin
 	// Suppression du dictionnaire associe contenant le nombre d'observations par valeur d'identifiant
 	odObservationNumbers.DeleteAll();
-	// CH IV End
 
 	// On verifie une derniere fois qu'il n'y a pas eu d'interruption
 	if (bOk)
@@ -995,7 +986,6 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 
 	// Nettoyage
 	odInnerAttributesQuantileBuilders.DeleteAll();
-	// CH IV End
 
 	// CH IV probleme est ce que le code qui suit est a conserver
 	//  Cas ou la grille terminale n'est pas ameliorable else
@@ -1253,7 +1243,6 @@ void CCCoclusteringBuilder::PROTO_OptimizeVarPartDataGrid(const KWDataGrid* inpu
 
 	// Nettoyage
 	odInnerAttributesQuantileBuilders.DeleteAll();
-	// CH IV End
 
 	// CH IV probleme est ce que le code qui suit est a conserver
 	//  Cas ou la grille terminale n'est pas ameliorable else
@@ -1278,7 +1267,6 @@ boolean CCCoclusteringBuilder::IsCoclusteringInformative() const
 	return bInformative;
 }
 
-// CH IV Begin
 KWDataGridCosts* CCCoclusteringBuilder::CreateDataGridCost() const
 {
 	KWDataGridCosts* dataGridCosts;
@@ -1788,7 +1776,6 @@ boolean CCCoclusteringBuilder::CreateVarPartDataGridCells(const KWTupleTable* tu
 	Global::DesactivateErrorFlowControl();
 	return bOk;
 }
-// CH IV End
 
 const CCHierarchicalDataGrid* CCCoclusteringBuilder::GetCoclusteringDataGrid() const
 {
@@ -1849,7 +1836,7 @@ void CCCoclusteringBuilder::HandleOptimizationStep(const KWDataGrid* optimizedDa
 	if (not bIsDefaultCostComputed)
 	{
 		assert(nAnyTimeOptimizationIndex == 0);
-		// CH IV Begin
+
 		// Dans le cas d'un coclustering instances x variables, la structure de cout depend du
 		// pre-partitionnement des attributs internes donc son cout par defaut n'est pas egal au cout du modele
 		// nul Le cout du modele nul (avec une partie par attribut interne) est calcule au debut de la methode
@@ -1857,7 +1844,6 @@ void CCCoclusteringBuilder::HandleOptimizationStep(const KWDataGrid* optimizedDa
 		assert(dAnyTimeDefaultCost == 0 or optimizedDataGrid->IsVarPartDataGrid());
 		if (dAnyTimeDefaultCost == 0)
 			dAnyTimeDefaultCost = coclusteringDataGridCosts->GetTotalDefaultCost();
-		// CH IV End
 		dAnyTimeBestCost = dAnyTimeDefaultCost;
 		bIsDefaultCostComputed = true;
 	}
@@ -2319,7 +2305,7 @@ boolean CCCoclusteringBuilder::FillTupleTableFromDatabase(KWDatabase* database, 
 	ensure(bOk or tupleTable->GetSize() == 0);
 	return bOk;
 }
-// CH IV Begin
+
 boolean CCCoclusteringBuilder::FillVarPartTupleTableFromDatabase(KWDatabase* database, KWTupleTable* tupleTable,
 								 ObjectDictionary& odObservationNumbers)
 {
@@ -2861,8 +2847,6 @@ int CCCoclusteringBuilder::GetDatabaseObjectObservationNumber(const KWObject* kw
 	return nObjectObservationNumber;
 }
 
-// CH IV End
-
 int CCCoclusteringBuilder::GetDatabaseObjectFrequency(const KWObject* kwoObject, longint lRecordIndex,
 						      const KWAttribute* frequencyAttribute)
 {
@@ -3234,7 +3218,6 @@ boolean CCCoclusteringBuilder::CheckMemoryForDataGridOptimization(KWDataGrid* in
 		else if (dgAttribute->GetAttributeType() == KWType::Symbol)
 			lWorkingDataGridSize += (longint)2 * dgAttribute->GetPartNumber() *
 						(sizeof(KWDGMPart) + sizeof(KWDGValueSet) + 2 * sizeof(void*));
-		// CH IV Begin
 		else if (dgAttribute->GetAttributeType() == KWType::VarPart)
 		{
 			int nInnerAttribute;
@@ -3257,7 +3240,6 @@ boolean CCCoclusteringBuilder::CheckMemoryForDataGridOptimization(KWDataGrid* in
 					    (sizeof(KWDGMPart) + sizeof(KWDGValueSet) + 2 * sizeof(void*));
 			}
 		}
-		// CH IV End
 	}
 	lSizeOfCell = sizeof(KWDGMCell) + ((longint)2 + inputInitialDataGrid->GetAttributeNumber()) * sizeof(void*);
 	lWorkingDataGridSize += inputInitialDataGrid->GetCellNumber() * lSizeOfCell +
@@ -3458,7 +3440,6 @@ void CCCoclusteringBuilder::ComputeHierarchicalInfo(const KWDataGrid* inputIniti
 	optimizedDataGrid->SetCost(dBestDataGridTotalCost);
 	optimizedDataGrid->SetNullCost(dataGridMerger.GetDataGridCosts()->GetTotalDefaultCost());
 
-	// CH IV Begin
 	// Dans le cas d'un coclustering instances x variables, la structure de cout depend du pre-partitionnement des
 	// attributs internes donc son cout par defaut n'est pas egal au cout du modele nul Le cout du modele nul (avec
 	// une partie par attribut interne) est calcule au debut de la methode CCCoclusteringBuilder::OptimizeDataGrid
@@ -3466,7 +3447,6 @@ void CCCoclusteringBuilder::ComputeHierarchicalInfo(const KWDataGrid* inputIniti
 	{
 		optimizedDataGrid->SetNullCost(dAnyTimeDefaultCost);
 	}
-	// CH IV End
 
 	// Memorisation du contexte d'apprentissage
 	optimizedDataGrid->SetInitialAttributeNumber(inputInitialDataGrid->GetAttributeNumber());
@@ -3562,7 +3542,7 @@ void CCCoclusteringBuilder::ComputeContinuousAttributeBounds(CCHierarchicalDataG
 				hdgAttribute->SetMax(descriptiveContinuousStats->GetMax());
 			}
 		}
-		// CH IV Begin
+
 		// Memorisation des informations sur les bornes des valeurs des attributs internes numeriques
 		if (hdgAttribute->GetAttributeType() == KWType::VarPart and hdgAttribute->GetInnerAttributeNumber() > 0)
 		{
@@ -3589,7 +3569,6 @@ void CCCoclusteringBuilder::ComputeContinuousAttributeBounds(CCHierarchicalDataG
 				}
 			}
 		}
-		// CH IV End
 	}
 }
 
@@ -4054,7 +4033,6 @@ void CCCoclusteringBuilder::ComputePartInterests(const KWDataGridMerger* optimiz
 				dDeltaCost = 0;
 				if (partMerge != NULL)
 					dDeltaCost = partMerge->GetMergeCost();
-				// CH IV
 				// Ce MergeCost ne tient pas compte des fusions de PV au sein du nouveau cluster
 				dInterest = dDeltaCost / (dTotalDefaultCost - dBestDataGridTotalCost);
 				dTotalInterest += dInterest;
@@ -4205,7 +4183,6 @@ void CCCoclusteringBuilder::ComputePartHierarchies(KWDataGridMerger* optimizedDa
 		// Recherche de la meilleure amelioration
 		dBestDeltaCost = optimizedDataGridMerger->SearchBestPartMergeWithGarbageSearch(bestPartMerge);
 
-		// CH IV
 		// Ce cout n'est pas le vrai cout car la fusion n'est pas suivie issue de la fusion des PV adjacent
 		bContinue = (bestPartMerge != NULL);
 		assert(bContinue or dBestDeltaCost == DBL_MAX);
@@ -4523,6 +4500,5 @@ void CCCoclusteringBuilder::SortAttributePartsAndValues(CCHierarchicalDataGrid* 
 				}
 			}
 		}
-		// Fin CH IV
 	}
 }

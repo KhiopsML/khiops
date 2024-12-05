@@ -61,7 +61,7 @@ KWClassStats* KWDataGridOptimizer::GetClassStats() const
 {
 	return classStats;
 }
-// CH IV Begin
+
 void KWDataGridOptimizer::SetInitialVarPartDataGrid(KWDataGrid* refDataGrid)
 {
 	require(refDataGrid != NULL);
@@ -73,7 +73,7 @@ KWDataGrid* KWDataGridOptimizer::GetInitialVarPartDataGrid() const
 {
 	return initialVarPartDataGrid;
 }
-// CH IV End
+
 double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, KWDataGrid* optimizedDataGrid) const
 
 {
@@ -291,7 +291,6 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 					    IntToString(
 						optimizedDataGrid->GetInnerAttributes()->GetVarPartGranularity()));
 
-				// CH IV VNS
 				if (bDisplayGranularities)
 				{
 					cout << "OptimizeDataGrid\tGranularite\t" << nGranularityIndex << "\n";
@@ -321,7 +320,6 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 					granularizedOptimizedDataGrid->Write(cout);
 				}
 
-				// CH IV Begin
 				// Dans le cas d'un coclustering instances * variables, le cout obtenu
 				// dGranularityBestCost est le cout de l'antecedent de la meilleure grille avant fusion
 				// des PV d'un meme cluster L'amelioration de cout doit etre mesuree par rapport au cout
@@ -404,7 +402,6 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 					// Nettoyage
 					granularizedPostMergedOptimizedDataGrid.DeleteAll();
 				}
-				// CH IV End
 
 				// Sinon : cas coclustering de variables
 				else
@@ -1214,7 +1211,6 @@ double KWDataGridOptimizer::IterativeVNSOptimizeDataGrid(const KWDataGrid* initi
 								   IntToString(nNeighbourhoodLevelNumber));
 
 		// Optimisation a partir de la nouvelle solution
-		// CH IV Begin
 		// Cas d'un coclustering de variables
 		if (not currentDataGrid.IsVarPartDataGrid())
 		{
@@ -1240,7 +1236,6 @@ double KWDataGridOptimizer::IterativeVNSOptimizeDataGrid(const KWDataGrid* initi
 			}
 		}
 		KWDataGridOptimizer::GetProfiler()->EndMethod("VNS optimize");
-		// CH IV End
 
 		// Test de fin de tache
 		if (TaskProgression::IsInterruptionRequested())
@@ -1349,7 +1344,6 @@ double KWDataGridOptimizer::VNSOptimizeDataGrid(const KWDataGrid* initialDataGri
 	return dBestCost;
 }
 
-// CH IV Begin
 double KWDataGridOptimizer::VNSDataGridPostOptimizeVarPart(const KWDataGrid* initialDataGrid,
 							   KWDataGridMerger* neighbourDataGrid,
 							   double& dNeighbourDataGridCost, KWDataGrid* mergedDataGrid,
@@ -1980,7 +1974,6 @@ void KWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initialDat
 		// Appel de PROTOGenerateNeighbourSolution, permettant de tester les nouvelle methodes sans les activer vraiment
 		//PROTOGenerateNeighbourSolution(initialDataGrid, optimizedDataGrid, dNoiseRate, neighbourDataGridMerger);
 
-		// CH IV Surtokenisation
 		// Code a reprendre pour construire PROTOGenerateNeighbourSolution
 		KWDataGrid* surtokenizedDataGrid;
 		int nTargetTokenNumber = 100;
@@ -2052,7 +2045,7 @@ void KWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initialDat
 	nGridSize = initialDataGrid->GetCellNumber();
 
 	// Calcul du nombre d'attributs a exporter
-	// CH IV Surtokenisation: dans la cas VarPart, considerer tous les attributs comme obligatoires
+	// Surtokenisation: dans le cas VarPart, considerer tous les attributs comme obligatoires
 	nMaxAttributeNumber = 1 + (int)(log(nGridSize * 1.0) / log(2.0));
 	nAttributeNumber = (int)(dNoiseRate * nMaxAttributeNumber);
 	if (nAttributeNumber < 2)

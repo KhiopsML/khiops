@@ -109,7 +109,6 @@ void KWDataGridManager::ExportDataGridWithInnerAttributesCloned(KWDataGrid* targ
 	ensure(CheckDataGrid(targetDataGrid));
 }
 
-// CH IV Begin
 void KWDataGridManager::ExportDataGridWithSingletonVarParts(const KWDataGrid* referenceDataGrid,
 							    KWDataGrid* targetDataGrid,
 							    boolean bSourceSimpleAttributeParts) const
@@ -177,7 +176,6 @@ void KWDataGridManager::ExportDataGridWithSingletonVarParts(const KWDataGrid* re
 	ensure(targetDataGrid->GetVarPartAttribute()->GetInnerAttributes() ==
 	       referenceDataGrid->GetVarPartAttribute()->GetInnerAttributes());
 }
-// CH IV End
 
 void KWDataGridManager::ExportTerminalDataGrid(KWDataGrid* targetDataGrid) const
 {
@@ -211,7 +209,6 @@ void KWDataGridManager::ExportTerminalDataGrid(KWDataGrid* targetDataGrid) const
 		   sourceDataGrid->GetVarPartAttribute()->GetInnerAttributes());
 }
 
-// CH IV Begin
 void KWDataGridManager::ExportNullDataGrid(KWDataGrid* targetDataGrid) const
 {
 	int nAttribute;
@@ -570,7 +567,6 @@ double KWDataGridManager::ExportDataGridWithVarPartMergeOptimization(KWDataGrid*
 	return dFusionDeltaCost;
 }
 
-// CH IV Begin
 void KWDataGridManager::UpdateVarPartDataGridFromVarPartGroups(KWDataGrid* targetDataGrid,
 							       const IntVector* ivTargetGroupIndexes,
 							       int nTargetGroupNumber) const
@@ -672,7 +668,7 @@ void KWDataGridManager::UpdateVarPartDataGridFromVarPartGroups(KWDataGrid* targe
 	ensure(targetDataGrid->GetVarPartAttribute()->GetInnerAttributes() ==
 	       sourceDataGrid->GetVarPartAttribute()->GetInnerAttributes());
 }
-// CH IV End
+
 void KWDataGridManager::ExportGranularizedDataGrid(KWDataGrid* targetDataGrid, int nGranularity,
 						   const ObjectDictionary* odQuantilesBuilders) const
 {
@@ -717,7 +713,6 @@ void KWDataGridManager::ExportGranularizedDataGrid(KWDataGrid* targetDataGrid, i
 		   sourceDataGrid->GetVarPartAttribute()->GetInnerAttributes());
 }
 
-// CH IV Begin
 void KWDataGridManager::InitializeInnerAttributesQuantileBuilders(ObjectDictionary* odInnerAttributesQuantilesBuilders,
 								  IntVector* ivMaxPartNumbers) const
 {
@@ -1078,7 +1073,6 @@ void KWDataGridManager::ExportParts(KWDataGrid* targetDataGrid) const
 	ensure(CheckParts(targetDataGrid));
 }
 
-// CH IV Begin
 void KWDataGridManager::ExportDataGridWithReferenceVarPartClusters(KWDataGrid* referenceDataGrid,
 								   KWDataGrid* targetDataGrid)
 {
@@ -1219,7 +1213,6 @@ void KWDataGridManager::ExportDataGridWithReferenceVarPartClusters(KWDataGrid* r
 	       sourceDataGrid->GetVarPartAttribute()->GetInnerAttributes());
 	ensure(CheckDataGrid(targetDataGrid));
 }
-// CH IV End
 
 void KWDataGridManager::ExportAttributeParts(KWDataGrid* targetDataGrid, const ALString& sAttributeName) const
 {
@@ -1253,11 +1246,9 @@ void KWDataGridManager::ExportCells(KWDataGrid* targetDataGrid) const
 	KWDGPart* targetPart;
 	Continuous cValue;
 	Symbol sValue;
-	// CH IV Begin
 	KWDGPart* sourceVarPart;
 	KWDGPart* targetVarPart;
 	KWDGAttribute* innerAttribute;
-	// CH IV End
 
 	require(Check());
 	require(targetDataGrid != NULL and CheckTargetValues(targetDataGrid) and CheckAttributes(targetDataGrid) and
@@ -2840,7 +2831,6 @@ void KWDataGridManager::InitialiseAttributeParts(const KWDGAttribute* sourceAttr
 		if (sourcePart == sourceAttribute->GetGarbagePart())
 			targetAttribute->SetGarbagePart(targetPart);
 
-		// CH IV Surtokenisation
 		// Mise a jour des effectifs dans le cas d'un innerAttribute
 		// Pour les autre attributs, c'est calcule a partir des cellules
 		if (sourceAttribute->IsInnerAttribute())
@@ -3316,7 +3306,6 @@ void KWDataGridManager::InitialiseAttributeRandomParts(const KWDGAttribute* sour
 				targetPart->GetInterval()->SetUpperBound(sourcePart->GetInterval()->GetUpperBound());
 			}
 
-			// CH IV Surtokenisation
 			// Mise a jour des effectifs dans le cas d'un innerAttribute
 			if (sourceAttribute->IsInnerAttribute())
 				targetPart->SetPartFrequency(targetPart->GetPartFrequency() +
@@ -3398,7 +3387,6 @@ void KWDataGridManager::InitialiseAttributeRandomParts(const KWDGAttribute* sour
 					targetPart->GetValueSet()->UpgradeFrom(sourcePart->GetValueSet());
 				}
 
-				// CH IV Surtokenisation
 				// Mise a jour des effectifs dans le cas d'un innerAttribute
 				if (sourceAttribute->IsInnerAttribute())
 					targetPart->SetPartFrequency(targetPart->GetPartFrequency() +
@@ -3415,7 +3403,6 @@ void KWDataGridManager::InitialiseAttributeRandomParts(const KWDGAttribute* sour
 				}
 			}
 
-			// CH IV Surtokenisation
 			if (sourceAttribute->IsInnerAttribute())
 				targetAttribute->SortParts();
 
@@ -3519,7 +3506,6 @@ void KWDataGridManager::AddAttributeRandomParts(const KWDGAttribute* sourceAttri
 				targetPart->GetInterval()->SetUpperBound(sourcePart->GetInterval()->GetUpperBound());
 			}
 
-			// CH IV Surtokenisation
 			// Mise a jour des effectifs dans le cas d'un innerAttribute
 			if (sourceAttribute->IsInnerAttribute())
 				targetPart->SetPartFrequency(targetPart->GetPartFrequency() +
@@ -3605,7 +3591,6 @@ void KWDataGridManager::AddAttributeRandomParts(const KWDGAttribute* sourceAttri
 					targetPart->GetValueSet()->UpgradeFrom(sourcePart->GetValueSet());
 				}
 
-				// CH IV Surtokenisation
 				// Mise a jour des effectifs dans le cas d'un innerAttribute
 				if (sourceAttribute->IsInnerAttribute())
 					targetPart->SetPartFrequency(targetPart->GetPartFrequency() +
@@ -3630,7 +3615,6 @@ void KWDataGridManager::AddAttributeRandomParts(const KWDGAttribute* sourceAttri
 				}
 			}
 
-			// CH IV Surtokenisation
 			if (sourceAttribute->IsInnerAttribute())
 				targetAttribute->SortParts();
 
@@ -3742,7 +3726,6 @@ void KWDataGridManager::InitialiseAttributeGranularizedContinuousParts(
 			    oaSourceParts.GetAt(quantileIntervalBuilder->GetIntervalLastValueIndexAt(nPartileIndex)));
 			targetPart->GetInterval()->SetUpperBound(sourcePart->GetInterval()->GetUpperBound());
 
-			// CH IV Begin
 			// Cas de la granularisation d'un attribut interne dans un attribut de grille de type VarPart
 			if (sourceAttribute->IsInnerAttribute())
 			{
@@ -3751,7 +3734,6 @@ void KWDataGridManager::InitialiseAttributeGranularizedContinuousParts(
 				targetPart->SetPartFrequency(
 				    quantileIntervalBuilder->GetIntervalFrequencyAt(nPartileIndex));
 			}
-			// CH IV End
 		}
 	}
 

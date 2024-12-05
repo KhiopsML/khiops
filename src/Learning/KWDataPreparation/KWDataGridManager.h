@@ -80,7 +80,6 @@ public:
 	// Attention: creation de nouveaux attributs internes qui doivent etre detruit par l'appelant
 	void ExportNullDataGrid(KWDataGrid* targetDataGrid) const;
 
-	// CH IV Surtokenisation
 	// Export total (attribut, parties et cellules)
 	// Cas d'une grille de type VarPart
 	// En entree :
@@ -96,7 +95,6 @@ public:
 							 const KWDGInnerAttributes* referenceInnerAttributes,
 							 KWDataGrid* targetDataGrid, int nTargetTokenNumber);
 
-	// CH IV Suppression antecedent
 	// Export total (attribut, parties et cellules)
 	// Cas d'une grille de type VarPart
 	// En entree :
@@ -374,7 +372,6 @@ protected:
 	void InitialiseVarPartAttributeClonedParts(const KWDGAttribute* sourceAttribute,
 						   KWDGAttribute* targetAttribute) const;
 
-	// CH IV Surtokenisation
 	// Initialisation des parties pour un attribut VarPart a partir des PV d'un KWDGInnerAttribute et d'une partition source
 	// En entree :
 	// - sourceVarPartAttribute : attribute de type VarPart
@@ -387,7 +384,6 @@ protected:
 	InitialiseVarPartAttributeWithNewSurtokenisedInnerAttributes(const KWDGAttribute* sourceVarPartAttribute,
 								     const KWDGInnerAttributes* targetInnerAttributes,
 								     KWDGAttribute* targetVarPartAttribute) const;
-	// Fin CH IV
 
 	// Initialisation des parties pour un attribut VarPart a partir des PV merges d'un KWDGInnerAttribute et d'une partition source
 	// En entree :
@@ -445,7 +441,6 @@ protected:
 	CreateGranularizedInnerAttributes(const KWDGInnerAttributes* sourceInnerAttributes, int nGranularity,
 					  const ObjectDictionary* odInnerAttributesQuantilesBuilders) const;
 
-	// CH IV Surtokenisation
 	// Creation d'attributs internes par ajout aleatoire de parties de variable dans chaque attribut
 	// parmi les partitions de reference les plus fines pour ces innerAttributes
 	KWDGInnerAttributes* CreateRandomInnerAttributes(const KWDGInnerAttributes* sourceInnerAttributes,
@@ -455,7 +450,6 @@ protected:
 	Boucle sur les innerAttributes et appel des methodes AddContinuousAttributeRandomParts et
 	    AddSymbolAttributeRandomParts en garantissant que la somme des nRequestedPartNumber par innerAttribut
 		ne depasse pas les nTargetTokenNumber*/
-	// Fin CH IV
 
 	//////////////////////////////////////////////////////////////////////////////////
 	// Services divers

@@ -214,7 +214,6 @@ KWDataGridPostOptimizer::BuildUnivariateInitialDataGrid(const KWDataGrid* optimi
 	require(optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName) != NULL);
 	require(initialDataGrid->SearchAttribute(sPostOptimizationAttributeName) != NULL);
 
-	// CH IV Begin
 	// Extension pour un attribut de type VarPart : code identique
 	// Il faut une coherence (egalite) entre le KWDGInnerAttributes utilise par la grille optimisee et celui utilise
 	// pour l'attribut de la grille initiale
@@ -222,7 +221,6 @@ KWDataGridPostOptimizer::BuildUnivariateInitialDataGrid(const KWDataGrid* optimi
 	require(not initialDataGrid->IsVarPartDataGrid() or
 		initialDataGrid->GetInnerAttributes() == optimizedDataGrid->GetInnerAttributes() or
 		optimizedDataGrid->GetClassLabel() == "Hierarchichal data grid");
-	// CH IV End
 
 	// Creation de la grille univariee
 	univariateInitialDataGrid = new KWDataGrid;
@@ -1226,9 +1224,7 @@ double KWDGPOGrouper::PostOptimizeDataGrid(const KWDataGrid* initialDataGrid, co
 	int nNewIndex;
 	int nMaxStepNumber;
 	int nGroup;
-	// CH IV Begin
 	boolean bEMAlgorithm = false;
-	// CH IV End
 
 	require(optimizedDataGrid != NULL);
 	require(initialDataGrid != NULL);
@@ -1302,7 +1298,6 @@ double KWDGPOGrouper::PostOptimizeDataGrid(const KWDataGrid* initialDataGrid, co
 	else
 		nMaxStepNumber = 2;
 
-	// CH IV Begin
 	// Travail en cours pour etudier une approche EM plutot que l'algorithme initial de post-optimisation
 	if (not bEMAlgorithm)
 		FastPostOptimizeGroupsWithGarbage(&initialFrequencyTable, &groupedFrequencyTable, &ivGroups,
@@ -1310,7 +1305,6 @@ double KWDGPOGrouper::PostOptimizeDataGrid(const KWDataGrid* initialDataGrid, co
 	else
 		EMPostOptimizeGroupsWithGarbage(&initialFrequencyTable, &groupedFrequencyTable, &ivGroups,
 						nMaxStepNumber, &frequencyList);
-	// CH IV End
 
 	nGroupNumber = groupedFrequencyTable.GetFrequencyVectorNumber();
 
@@ -2829,7 +2823,6 @@ boolean KWDGAttributeCostParameter::GetEmulated() const
 void KWDGPartCostParameter::SetPartType(int nValue)
 {
 	require(GetPartType() == KWType::Unknown);
-	// CH IV Begin
 	require(KWType::IsCoclusteringType(nValue));
 
 	// Creation de l'objet interval ou ensemble de valeur selon le type
@@ -2852,12 +2845,11 @@ boolean KWDGSymbolValueSetCostParameter::GetEmulated() const
 	return true;
 }
 
-// CH IV Begin
 boolean KWDGVarPartSetCostParameter::GetEmulated() const
 {
 	return true;
 }
-// CH IV End
+
 boolean KWDGCellCostParameter::GetEmulated() const
 {
 	return true;
@@ -3367,7 +3359,6 @@ int KWDGPOCellFrequencyVector::ComputeTotalFrequency() const
 	return nTotalFrequency;
 }
 
-// CH IV Begin
 //////////////////////////////////////////////////////////////////////////////////
 // Classe CCVarPartDataGridPostOptimizer
 
@@ -4762,4 +4753,3 @@ double CCVarPartDataGridPostOptimizer::ComputeClusterCellVariationCost(KWDGPart*
 
 	return dVariationCost;
 }
-// CH IV End

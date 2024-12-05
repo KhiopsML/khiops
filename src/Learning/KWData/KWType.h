@@ -52,11 +52,9 @@ public:
 		SymbolValueBlock,      // Type bloc de valeurs Symbol
 		ContinuousValueBlock,  // Type bloc de valeurs Continuous
 		ObjectArrayValueBlock, // Type bloc de valeurs ObjectArray
-		// CH IV Begin
-		VarPart, // Type parties de variables (coclustering instances * variables)
-		// CH IV End
-		None,   // Type absent deliberement, pour le non supervise
-		Unknown // Type inconnu (non valide)
+		VarPart,               // Type parties de variables (coclustering instances * variables)
+		None,                  // Type absent deliberement, pour le non supervise
+		Unknown                // Type inconnu (non valide)
 	};
 
 	// Verification de validite d'un type
@@ -102,7 +100,6 @@ public:
 	// Type de base associe a un bloc de valeurs
 	static int GetBlockBaseType(int nType);
 
-	// CH IV Begin
 	// Indique si le type peut etre utilise pour un attribut de grille: (Continuous, Symbol ou VarPart)
 	static boolean IsCoclusteringType(int nType);
 
@@ -111,7 +108,6 @@ public:
 
 	// Renvoie le type elementaire d'un attribut de grille: (Continuous, ou Symbol pour un type Symbol ou VarPart)
 	static int GetCoclusteringSimpleType(int nType);
-	// CH IV End
 
 	// Indique si le type est un type de predicteur: (Continuous, Symbol ou None)
 	static boolean IsPredictorType(int nType);

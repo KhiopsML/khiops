@@ -407,9 +407,7 @@ boolean CCCoclusteringReport::ReadSummary(CCHierarchicalDataGrid* coclusteringDa
 	ALString sSelectionAttribute;
 	ALString sSelectionValue;
 	ALString sTmp;
-	// CH IV Begin
 	ALString sIdentifierVariable;
-	// CH IV End
 
 	require(coclusteringDataGrid != NULL);
 	require(coclusteringDataGrid->GetAttributeNumber() == 0);
@@ -549,8 +547,7 @@ boolean CCCoclusteringReport::ReadDimensionSummaries(CCHierarchicalDataGrid* coc
 			AddError("Variable " + sAttributeName + " used twice");
 		}
 
-		// CH IV Begin
-		// Lecture de la prochaine cle explicitement, pour traiter la cle optionnelle "isVarPart" precedant la
+		// Lecture de la prochaine cle explicitement, pour traiter la cle optionnelle "isVarPart" precedent la
 		// cle "type", depuis la prise en compte du coclustering instances x variables
 		bOk = bOk and JSONTokenizer::ReadStringValue(sKey);
 
@@ -598,7 +595,6 @@ boolean CCCoclusteringReport::ReadDimensionSummaries(CCHierarchicalDataGrid* coc
 		// Changement du type de l'attribut en VarPart si specifie
 		if (bOk and bIsVarPart)
 			nAttributeType = KWType::VarPart;
-		// CH IV End
 
 		// Champs restants de l'attribut
 		bOk = bOk and JSONTokenizer::ReadKeyIntValue("parts", true, nAttributePartNumber, bIsEnd);
@@ -681,7 +677,6 @@ boolean CCCoclusteringReport::ReadDimensionSummaries(CCHierarchicalDataGrid* coc
 		bOk = bOk and JSONTokenizer::ReadArrayNext(bIsEnd);
 	}
 
-	// CH IV Begin
 	// Prise en compte d'un coclustering de type VarPart
 	// CH IV Refactoring: potentiellement inutile apres la fin du refactoring
 	// CH IV Refactoring: on le conserve pour l'instant dans l'hypothese ou l'on etende le coclustering IV a plusieurs variables hors variable varPart
@@ -723,7 +718,6 @@ boolean CCCoclusteringReport::ReadDimensionSummaries(CCHierarchicalDataGrid* coc
 			AddError("Incorrect type of variables for instance * variables coclustering ");
 		}
 	}
-	// CH IV End
 
 	return bOk;
 }
@@ -1101,7 +1095,7 @@ boolean CCCoclusteringReport::ReadAttributePartition(KWDGAttribute* dgAttribute,
 				break;
 			}
 			// Cas d'un innerAttribute
-			// CH IV Dans le cas d'un innerAttribute, les parties ne sont pas encore crees, on ne connait pas leur nombre
+			// Dans ce cas, les parties ne sont pas encore crees, on ne connait pas leur nombre
 			// L'initialisation des dgAttribute effectuee dans ReadJSONDimensionSummaries n'est pas effectuee pour ces attributes
 			else
 			{
@@ -1119,7 +1113,6 @@ boolean CCCoclusteringReport::ReadAttributePartition(KWDGAttribute* dgAttribute,
 				bOk = bOk and ReadInterval(dgAttribute, dgPart);
 			else if (dgAttribute->GetAttributeType() == KWType::Symbol)
 				bOk = bOk and ReadValueGroup(dgAttribute, dgPart);
-			// CH IV Begin
 			else if (dgAttribute->GetAttributeType() == KWType::VarPart)
 			{
 				// Dans le cas instances x variables, on procede a des tests pousses sur
@@ -1139,7 +1132,6 @@ boolean CCCoclusteringReport::ReadAttributePartition(KWDGAttribute* dgAttribute,
 				      ReadVarPartAttributeValueGroup(dgAttribute, dgPart, &odInnerAttributesAllVarParts,
 								     &odVarPartAttributeAllVarParts);
 			}
-			// CH IV End
 		}
 
 		// Test si identifiant de partie unique
@@ -1629,7 +1621,6 @@ boolean CCCoclusteringReport::ReadTypicalities(KWDGAttribute* dgAttribute, int n
 	}
 	return bOk;
 }
-// CH IV End
 
 boolean CCCoclusteringReport::ReadDimensionHierarchies(CCHierarchicalDataGrid* coclusteringDataGrid)
 {
