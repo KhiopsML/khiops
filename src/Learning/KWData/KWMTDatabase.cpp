@@ -450,7 +450,8 @@ boolean KWMTDatabase::CheckPartially(boolean bWriteOnly) const
 	ObjectDictionary odDataTableNames;
 	KWMTDatabaseMapping* mapping;
 	int nMapping;
-	KWClass* rootClass;
+	KWClass* originClass;
+	ALString sOriginLabel;
 	ALString sAttributeName;
 	KWAttribute* attribute;
 	int nAttributeNumber;
@@ -475,8 +476,8 @@ boolean KWMTDatabase::CheckPartially(boolean bWriteOnly) const
 		assert(mainMultiTableMapping->GetClassName() == GetClassName());
 
 		// Verification de la classe principale
-		rootClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName());
-		assert(rootClass != NULL and rootClass->Check());
+		originClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName());
+		assert(originClass != NULL and originClass->Check());
 
 		// Verification de la table de mapping
 		for (nMapping = 0; nMapping < oaMultiTableMappings.GetSize(); nMapping++)
@@ -504,14 +505,19 @@ boolean KWMTDatabase::CheckPartially(boolean bWriteOnly) const
 			}
 
 			// Recherche de la classe racine du chemin de mapping
-			rootClass = KWClassDomain::GetCurrentDomain()->LookupClass(mapping->GetOriginClassName());
+			originClass = KWClassDomain::GetCurrentDomain()->LookupClass(mapping->GetOriginClassName());
+			assert(originClass->GetName() == GetClassName() or originClass->GetRoot());
 
 			// Existence de cette classe
-			if (rootClass == NULL)
+			if (originClass == NULL)
 			{
 				bOk = false;
-				AddError("Data path " + mapping->GetObjectLabel() + " : Root dictionary " +
-					 mapping->GetOriginClassName() + " does not exist");
+				if (originClass->GetName() == GetClassName())
+					sOriginLabel = "Main";
+				else
+					sOriginLabel = "Root";
+				AddError("Data path " + mapping->GetObjectLabel() + " : " + sOriginLabel +
+					 " dictionary " + mapping->GetOriginClassName() + " does not exist");
 			}
 
 			// Validite du chemin de donnee
@@ -519,7 +525,7 @@ boolean KWMTDatabase::CheckPartially(boolean bWriteOnly) const
 			{
 				// Parcours des attributs du chemin de donnees du mapping
 				nAttributeNumber = mapping->GetDataPathAttributeNumber();
-				pathClass = rootClass;
+				pathClass = originClass;
 				for (nAttribute = 0; nAttribute < nAttributeNumber; nAttribute++)
 				{
 					check(pathClass);
@@ -804,7 +810,7 @@ longint KWMTDatabase::ComputeOpenNecessaryMemory(boolean bRead, boolean bIncludi
 boolean KWMTDatabase::CheckObjectConsistency() const
 {
 	boolean bOk = true;
-	KWClass* rootClass;
+	KWClass* mainClass;
 	ObjectArray oaClasses;
 	NumericKeyDictionary nkdClasses;
 	int nClass;
@@ -817,12 +823,12 @@ boolean KWMTDatabase::CheckObjectConsistency() const
 	require(KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName())->IsCompiled());
 
 	// Acces a la classe principale
-	rootClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName());
+	mainClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName());
 
 	// Traitement des classes depuis la classe principale, on les memorisant dans un dictionnaire pour ne les
 	// traiter qu'une seule fois
-	oaClasses.Add(rootClass);
-	nkdClasses.SetAt(rootClass, rootClass);
+	oaClasses.Add(mainClass);
+	nkdClasses.SetAt(mainClass, mainClass);
 	for (nClass = 0; nClass < oaClasses.GetSize(); nClass++)
 	{
 		secondaryClass = cast(KWClass*, oaClasses.GetAt(nClass));
