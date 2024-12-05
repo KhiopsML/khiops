@@ -1317,8 +1317,8 @@ void KWMTDatabase::MutatePhysicalObject(KWObject* kwoPhysicalObject) const
 	assert(KWDRReference::GetObjectReferenceResolver() == NULL);
 	KWDRReference::SetObjectReferenceResolver(&objectReferenceResolver);
 
-	// Referencement du nouvel objet principal lu depuis le resolveur de reference
-	if (not mainMultiTableMapping->GetLastReadKey()->IsEmpty())
+	// Referencement du nouvel objet principal lu depuis le resolveur de reference, s'il est Root
+	if (kwcPhysicalClass->GetRoot() and not mainMultiTableMapping->GetLastReadKey()->IsEmpty())
 		objectReferenceResolver.AddObject(kwcPhysicalClass, mainMultiTableMapping->GetLastReadKey(),
 						  kwoPhysicalObject);
 
@@ -1328,7 +1328,7 @@ void KWMTDatabase::MutatePhysicalObject(KWObject* kwoPhysicalObject) const
 	// Dereferencement du precedent objet principal lu depuis le resolveur de reference
 	// En effet, l'objet precedement lu est potentiellement detruit et inutilisable pour
 	// la resolution des references (intra-objet dans le cas de l'objet principal)
-	if (not mainMultiTableMapping->GetLastReadKey()->IsEmpty())
+	if (kwcPhysicalClass->GetRoot() and not mainMultiTableMapping->GetLastReadKey()->IsEmpty())
 		objectReferenceResolver.RemoveObject(kwcPhysicalClass, mainMultiTableMapping->GetLastReadKey());
 
 	// Remise a NULL du resolveur de reference dans la regle de derivation gerant les references
@@ -1358,7 +1358,7 @@ boolean KWMTDatabase::IsPhysicalObjectSelected(KWObject* kwoPhysicalObject)
 		KWDRReference::SetObjectReferenceResolver(&objectReferenceResolver);
 
 		// Referencement du nouvel objet principal lu depuis le resolveur de reference
-		if (not mainMultiTableMapping->GetLastReadKey()->IsEmpty())
+		if (kwcPhysicalClass->GetRoot() and not mainMultiTableMapping->GetLastReadKey()->IsEmpty())
 			objectReferenceResolver.AddObject(kwcPhysicalClass, mainMultiTableMapping->GetLastReadKey(),
 							  kwoPhysicalObject);
 
@@ -1375,7 +1375,7 @@ boolean KWMTDatabase::IsPhysicalObjectSelected(KWObject* kwoPhysicalObject)
 		// Dereferencement du precedent objet principal lu depuis le resolveur de reference
 		// En effet, l'objet precedement lu est potentiellement detruit et inutilisable pour
 		// la resolution des references (intra-objet dans le cas de l'objet principal)
-		if (not mainMultiTableMapping->GetLastReadKey()->IsEmpty())
+		if (kwcPhysicalClass->GetRoot() and not mainMultiTableMapping->GetLastReadKey()->IsEmpty())
 			objectReferenceResolver.RemoveObject(kwcPhysicalClass, mainMultiTableMapping->GetLastReadKey());
 
 		// Remise a NULL du resolveur de reference dans la regle de derivation gerant les references
@@ -1540,9 +1540,9 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(double dSamplePercentage)
 	// peut potentiellement en declencher un grand nombre
 	Global::ActivateErrorFlowControl();
 
-	// Enregistrement du dictionnaire physique principal dans le resolveur de reference
+	// Enregistrement du dictionnaire physique principal dans le resolveur de reference, s'il est Root
 	// Cela permettra de resoudre les references intra-classe pour la classe principale
-	if (kwcPhysicalClass->GetKeyAttributeNumber() > 0)
+	if (kwcPhysicalClass->GetRoot())
 		objectReferenceResolver.AddClass(kwcPhysicalClass);
 
 	// Ouverture de chaque table secondaire
