@@ -823,7 +823,7 @@ void KDSelectionOperandDataSampler::ExtractAllSelectionReferencedObjects(KWMTDat
 		oaRootObjects.Sort();
 
 		// Analyse des objets
-		// Le tri des classes externes, puis le tri des obejt par classe garantit que l'index attribue a chaque
+		// Le tri des classes externes, puis le tri des objets par classe garantit que l'index attribue a chaque
 		// objet racine externe est unique et reproductible
 		// Note sur l'optimisation:
 		//   . on pourrait eviter le tri des objets en utilisant directement leur CraetionIndex, mais ce serait

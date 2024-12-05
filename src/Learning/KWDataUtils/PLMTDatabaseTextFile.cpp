@@ -106,16 +106,16 @@ boolean PLMTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 	lMaxOpenNecessaryMemory = lEmptyOpenNecessaryMemory * 5;
 
 	// Initialisation recursive du mapping a partir de la racine pour avoir des driver initialises
-	DMTMPhysicalTerminateMapping(rootMultiTableMapping);
+	DMTMPhysicalTerminateMapping(mainMultiTableMapping);
 	if (bRead)
 	{
 		// En lecture, on utilise la classe physique
-		DMTMPhysicalInitializeMapping(rootMultiTableMapping, kwcPhysicalClass, true);
+		DMTMPhysicalInitializeMapping(mainMultiTableMapping, kwcPhysicalClass, true);
 	}
 	else
 	{
 		// En ecriture, on utile la classe logique
-		DMTMPhysicalInitializeMapping(rootMultiTableMapping, kwcClass, false);
+		DMTMPhysicalInitializeMapping(mainMultiTableMapping, kwcClass, false);
 	}
 
 	// Nettoyage prealable
@@ -350,7 +350,7 @@ boolean PLMTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 	}
 
 	// Nettoyage
-	DMTMPhysicalTerminateMapping(rootMultiTableMapping);
+	DMTMPhysicalTerminateMapping(mainMultiTableMapping);
 	if (bRead)
 		DeletePhysicalClass();
 	kwcClass = NULL;
@@ -1418,7 +1418,7 @@ void PLShared_MTDatabaseTextFile::DeserializeObject(PLSerializer* serializer, Ob
 	{
 		// Le premier mapping est pre-existant (table racine)
 		if (i == 0)
-			mapping = database->rootMultiTableMapping;
+			mapping = database->mainMultiTableMapping;
 		// Les autre sont a creer
 		else
 		{

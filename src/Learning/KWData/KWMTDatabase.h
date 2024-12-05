@@ -220,9 +220,9 @@ protected:
 	// Ce mapping doit toujours etre present et contient le parametrage (nom de base, nom de classe) principal
 	// L'utilisation d'un mapping pour la racine permet d'unifier les traitements entre tables principales
 	// et tables secondaires
-	mutable KWMTDatabaseMapping* rootMultiTableMapping;
+	mutable KWMTDatabaseMapping* mainMultiTableMapping;
 
-	// Mapping racine des tables secondaires (reference a un sous-ensemble des mapping du tableau
+	// Mapping racine des tables secondaires (reference a un sous-ensemble des mappings du tableau
 	// oaMultiTableMappings)
 	mutable ObjectArray oaRootRefTableMappings;
 
