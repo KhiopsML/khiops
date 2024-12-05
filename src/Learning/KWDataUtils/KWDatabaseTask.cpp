@@ -512,7 +512,7 @@ boolean KWDatabaseTask::MasterPrepareTaskInput(double& dTaskPercent, boolean& bI
 		if (shared_sourceDatabase.GetDatabase()->IsMultiTableTechnology())
 		{
 			// Recopie de la cle racine
-			databaseChunkBuilder.GetChunkLastRootKeyAt(nChunkCurrentIndex, input_ChunkLastRootKey.GetKey());
+			databaseChunkBuilder.GetChunkLastMainKeyAt(nChunkCurrentIndex, input_ChunkLastRootKey.GetKey());
 
 			// Recopie des vecteurs de position de debut et fin pour l'esclave
 			databaseChunkBuilder.GetChunkPreviousRecordIndexesAt(
