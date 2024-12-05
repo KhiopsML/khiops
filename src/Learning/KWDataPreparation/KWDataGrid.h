@@ -11,14 +11,12 @@ class KWDGInterval;
 class KWDGValueSet;
 class KWDGValue;
 class KWDGCell;
-// CH IV Begin
 class KWDGPartValues;
 class KWDGSymbolValueSet;
 class KWDGSymbolValue;
 class KWDGVarPartSet;
 class KWDGVarPartValue;
 class KWDGInnerAttributes;
-// CH IV End
 
 #include "KWVersion.h"
 #include "SortedList.h"
@@ -319,9 +317,7 @@ public:
 	// Tri des parties des attributs pour preparer l'affichage
 	// Les intervalles sont tries par valeur croissante
 	// Les groupes par effectif decroissant, et les valeurs dans les groupes par effectif decroissant
-	// CH IV Begin
 	// Les clusters de parties de variables sont tries de la meme facon que les groupes
-	// CH IV End
 	void SortAttributeParts();
 
 	// Verification du tri des parties : couteuse, a utiliser essentiellement dans les assertions
@@ -375,8 +371,8 @@ public:
 	// CH IV Refactoring: parametrage d'un libelle associe, pour aider a la mise au point des grilles
 	// CH IV Refactoring: a supprimer une fois les nouveaux algorithmes mi au point
 	// Libelle associe a la grille
-	void SetLabel(const ALString& sValue);
-	const ALString& GetLabel() const;
+	//void SetLabel(const ALString& sValue);
+	//const ALString& GetLabel() const;
 
 protected:
 	friend class KWDGAttribute;
@@ -445,7 +441,7 @@ protected:
 
 	// CH IV Refactoring: a supprimer une fois les nouveaux algorithmes mi au point
 	// Libelle associe a la grille
-	ALString sLabel;
+	//ALString sLabel;
 };
 
 // Comparaison de deux grilles de donnees, sur la valeur de tri (SortValue),
@@ -477,9 +473,7 @@ public:
 	void SetAttributeName(const ALString& sValue);
 	const ALString& GetAttributeName() const;
 
-	// CH IV Begin
 	// Type de l'attribut (Symbol ou Continuous ou de type Parties de variables)
-	// CH IV End
 	// Le type n'est modifiable qu'une seule fois, pour l'initialisation
 	void SetAttributeType(int nValue);
 	int GetAttributeType() const;
@@ -519,7 +513,7 @@ public:
 	// Attribut continu : nombre total d'instances
 	// Attribut categoriel : nombre de valeurs distinctes (sans la StarValue)
 	// Attribut parties de variables : nombre de parties de variables distinctes
-	// CH IV Refactoring  : le nombre de PV distinctes depend du niveau de tokenisation, pour les innerAttributes et pour l'attribut VarPart
+	// (le nombre de PV distinctes depend du niveau de tokenisation, pour les innerAttributes et pour l'attribut VarPart)
 	void SetInitialValueNumber(int nValue);
 	int GetInitialValueNumber() const;
 
@@ -548,9 +542,7 @@ public:
 	// Creation d'une partie et ajout en fin de liste
 	// Le type de l'attribut doit avoir ete specifie en prealable.
 	// Renvoie la partie cree (avec le type de l'attribut)
-	// CH IV Begin
 	// Si l'attribut est de type VarPart, la partie renvoyee est de type KWDGVarPart*
-	// CH IV End
 	KWDGPart* AddPart();
 
 	// Destruction d'une partie et de son contenu, de facon coherente le DataGrid
@@ -749,7 +741,6 @@ protected:
 
 	// Attributs internes dans les attributs de type VarPart
 	const KWDGInnerAttributes* innerAttributes;
-	// CH IV End
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -1476,7 +1467,6 @@ protected:
 	// Compteur de reference
 	mutable int nRefCount;
 };
-// CH IV End
 
 //////////////////////////////////////////////////////////////////////////////
 // Classe KWDGCell
@@ -1638,7 +1628,6 @@ inline KWDGAttribute* KWDataGrid::GetTargetAttribute() const
 	return targetAttribute;
 }
 
-// CH IV Begin
 inline boolean KWDataGrid::IsVarPartDataGrid() const
 {
 	return varPartAttribute != NULL;
@@ -1661,7 +1650,6 @@ inline KWDGInnerAttributes* KWDataGrid::GetEditableInnerAttributes() const
 	require(IsVarPartDataGrid());
 	return cast(KWDGInnerAttributes*, GetVarPartAttribute()->GetInnerAttributes());
 }
-// CH IV End
 
 inline int KWDataGrid::GetCellNumber() const
 {
@@ -1778,7 +1766,6 @@ inline boolean KWDGAttribute::GetAttributeTargetFunction() const
 	return bTargetAttribute;
 }
 
-// CH IV Begin
 inline boolean KWDGAttribute::IsInnerAttribute() const
 {
 	assert(dataGrid == NULL or
@@ -1837,7 +1824,6 @@ inline KWDGAttribute* KWDGAttribute::GetInnerAttributeAt(int nIndex) const
 	require(nAttributeType == KWType::VarPart);
 	return GetInnerAttributes()->GetInnerAttributeAt(nIndex);
 }
-// CH IV End
 
 inline int KWDGAttribute::GetAttributeIndex() const
 {
@@ -1986,9 +1972,7 @@ inline KWDGAttribute* KWDGPart::GetAttribute() const
 
 inline int KWDGPart::GetPartFrequency() const
 {
-	// CH IV Begin
 	ensure(GetEmulated() or nPartFrequency == ComputeCellsTotalFrequency() or GetAttribute()->IsInnerAttribute());
-	// CH IV End
 	return nPartFrequency;
 }
 
@@ -2228,8 +2212,6 @@ inline KWDGValue* KWDGSymbolValueSet::NewSymbolValue(const Symbol& sValue) const
 	return new KWDGSymbolValue(sValue);
 }
 
-// CH IV Begin
-
 // Class KWDGVarPartSet
 
 inline KWDGVarPartSet::KWDGVarPartSet() {}
@@ -2338,8 +2320,6 @@ inline int KWDGInnerAttributes::GetInnerAttributeNumber() const
 	assert(odInnerAttributes.GetCount() == oaInnerAttributes.GetSize());
 	return oaInnerAttributes.GetSize();
 }
-
-// CH IV End
 
 // Classe KWDGValue
 

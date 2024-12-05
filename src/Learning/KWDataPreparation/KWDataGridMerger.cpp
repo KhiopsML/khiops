@@ -276,9 +276,7 @@ double KWDataGridMerger::OptimizeMerge()
 		{
 			CellDictionaryRemoveAll();
 			DeleteAllPartMerges();
-			// CH IV Begin
 			RemoveAllPartLists();
-			// CH IV End
 			InitializeAllCosts();
 			CellDictionaryInit();
 			InitializeAllPartMerges();
@@ -309,8 +307,8 @@ double KWDataGridMerger::OptimizeMerge()
 		if (dBestDeltaCost > dEpsilon and fabs(dBestDataGridTotalCost - dDataGridTotalCost) <= dEpsilon)
 		{
 			// CH 231 Ajout pour debug
-			//ensure(fabs(dDataGridTotalCost - GetDataGridCosts()->ComputeDataGridMergerTotalCost(this)) <
-			//       dEpsilon);
+			ensure(fabs(dDataGridTotalCost - GetDataGridCosts()->ComputeDataGridMergerTotalCost(this)) <
+			       dEpsilon);
 			// CH 231 probleme pose ici avec la base Iris : si la grille courante est sans attribut informatif, cet ensure
 			// est verifie a ce niveau mais n'est plus vrai quand on fait un CopyInformativeDataGrid
 
@@ -335,8 +333,8 @@ double KWDataGridMerger::OptimizeMerge()
 			dDataGridTotalCost += dBestDeltaCost;
 
 			// CH 231 Debug
-			//ensure(fabs(dDataGridTotalCost - GetDataGridCosts()->ComputeDataGridMergerTotalCost(this)) <
-			//     dEpsilon);
+			ensure(fabs(dDataGridTotalCost - GetDataGridCosts()->ComputeDataGridMergerTotalCost(this)) <
+			       dEpsilon);
 
 			// Gestion de la contrainte sur le nombre max de partie par attribut
 			if (GetMaxPartNumber() > 0)

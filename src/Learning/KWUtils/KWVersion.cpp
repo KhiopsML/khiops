@@ -18,13 +18,12 @@ static ALString sKWLearningWebSite = "";
 static ALString sKWLearningVersion;
 static boolean bKWLearningVersionModified = false;
 
-// CH IV Begin
 // Booleen de prise en compte de la poubelle
 // pour les attributs de type VarPart
 static boolean bVarPartAttributeGarbage = false;
 // pour les attribut interne categoriels
 static boolean bInnerAttributeGarbage = false;
-// CH IV End
+
 int GetMajorVersion(const ALString& sFullVersion)
 {
 	ALString sMajorVersion;
@@ -164,7 +163,6 @@ const ALString GetLearningSystemType()
 		return "(64-bit)";
 }
 
-// CH IV Begin
 const boolean GetVarPartAttributeGarbage()
 {
 	return bVarPartAttributeGarbage;
@@ -182,7 +180,6 @@ void SetInnerAttributeGarbage(const boolean bValue)
 {
 	bInnerAttributeGarbage = bValue;
 }
-// CH IV End
 
 const ALString GetLearningFullName()
 {
@@ -520,7 +517,6 @@ boolean GetLearningCoclusteringExpertMode()
 	return bLearningCoclusteringExpertMode;
 }
 
-// CH IV Begin
 boolean GetLearningCoclusteringIVExpertMode()
 {
 	static boolean bIsInitialized = false;
@@ -552,7 +548,6 @@ boolean GetLearningCoclusteringIVExpertMode()
 	bLearningCoclusteringIVExpertMode = true;
 	return bLearningCoclusteringIVExpertMode;
 }
-// CH IV End
 
 boolean GetParallelExpertMode()
 {

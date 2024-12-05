@@ -295,11 +295,9 @@ void CCPostProcessingSpec::UpdateCoclusteringSpec(const ALString& sCoclusteringR
 	// On rappatrie les informations du rapport
 	if (bOk)
 	{
-		// CH IV Begin
 		// Attribute identifiant (coclustering instances * variables)
 		sCoclusteringType =
 		    CCAnalysisSpec::GetCoclusteringLabelFromType(coclusteringDataGrid.IsVarPartDataGrid());
-		// CH IV End
 
 		// Description courte
 		sShortDescription = coclusteringDataGrid.GetShortDescription();

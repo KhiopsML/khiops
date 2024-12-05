@@ -86,7 +86,6 @@ public:
 	// Test si le coclustering est calcule et informatif (au moins deux dimensions)
 	boolean IsCoclusteringInformative() const;
 
-	// CH IV Begin
 	// Creation d'une structure de cout pour le probleme de coclustering, standard ou VarPart
 	// Memoire: appartient a l'appelant
 	KWDataGridCosts* CreateDataGridCost() const override;
@@ -149,11 +148,9 @@ protected:
 	void InitializeDataGridOptimizer(const KWDataGrid* inputInitialDataGrid,
 					 KWDataGridOptimizer* dataGridOptimizer);
 
-	// CH IV Begin
 	// Methode d'optimisation d'une grille dediee au cas instances x variables
 	void OptimizeVarPartDataGrid(const KWDataGrid* inputInitialDataGrid, KWDataGrid* optimizedDataGrid);
 	void PROTO_OptimizeVarPartDataGrid(const KWDataGrid* inputInitialDataGrid, KWDataGrid* optimizedDataGrid);
-	// CH IV End
 
 	///////////////////////////////////////////////////////////////////////////////////////
 	// Gestion preventive de l'utilisation des ressources memoire, avec message d'erreur
@@ -174,7 +171,6 @@ protected:
 	// On renvoie true en cas de succes, false sinon avec un message d'erreur
 	boolean FillTupleTableFromDatabase(KWDatabase* database, KWTupleTable* tupleTable);
 
-	// CH IV Begin
 	// Cas du coclustering avec attribut de type VarPart
 	// En plus d'une table de tuples comme dans FillTupleTableFromDatabase, on alimente egalement un vecteur
 	// qui associe a chaque tuple le nombre d'observations dans l'attribut de type VarPart
@@ -201,7 +197,6 @@ protected:
 	int GetDatabaseObjectObservationNumber(const KWObject* kwoObject, longint lRecordIndex,
 					       const KWAttribute* identifierAttribute,
 					       const ObjectArray* oaInnerAttributes);
-	// CH IV End
 
 	// Renvoie l'effectif associe a un enregistrement, avec eventuellement affichage de warning
 	// Renvoie 1 si l'attribut d'effectif est NULL
@@ -218,12 +213,10 @@ protected:
 	// On renvoie en sortie le nombre max de cellules de la grille initiale
 	boolean CheckMemoryForDataGridInitialization(KWDatabase* database, int nTupleNumber, int& nMaxCellNumber) const;
 
-	// CH IV Begin
 	// Verification de la memoire necessaire pour construire une grille initiale de type VarPart a partir d'un nombre de tuples
 	// On renvoie en sortie le nombre max de cellules de la grille initiale
 	boolean CheckMemoryForVarPartDataGridInitialization(KWDatabase* database, int nTupleNumber,
 							    int& nMaxCellNumber) const;
-	// CH IV End
 
 	// Verification de la memoire necessaire pour optimiser le coclustering, la grille initiale etant construite
 	boolean CheckMemoryForDataGridOptimization(KWDataGrid* inputInitialDataGrid) const;

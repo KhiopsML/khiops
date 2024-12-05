@@ -673,7 +673,6 @@ protected:
 	const Object* oHashObject;
 };
 
-// CH IV Begin
 // CH IV Refactoring: renommages internes apres analyse
 //////////////////////////////////////////////////////////////////////////////////
 // Classe CCVarPartDataGridPostOptimizer
@@ -755,4 +754,3 @@ protected:
 	// Nom de l'attribut VarPart de post-optimisation
 	ALString sPostOptimizationAttributeName;
 };
-// CH IV Begin

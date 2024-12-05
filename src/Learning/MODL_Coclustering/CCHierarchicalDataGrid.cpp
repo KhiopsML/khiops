@@ -267,9 +267,7 @@ CCHDGPart* CCHDGAttribute::NewHierarchyPart()
 	CCHDGPart* part;
 
 	require(GetAttributeType() != KWType::Unknown);
-	// CH IV Begin
 	require(KWType::IsCoclusteringType(GetAttributeType()));
-	// CH IV End
 
 	// Creation d'une nouvelle partie en fonction du type de l'attribut
 	part = cast(CCHDGPart*, NewPart());

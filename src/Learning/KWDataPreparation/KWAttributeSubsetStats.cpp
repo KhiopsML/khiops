@@ -692,7 +692,6 @@ boolean KWAttributeSubsetStats::CreateAttributeIntervals(const KWTupleTable* tup
 			// Progression
 			if (TaskProgression::IsRefreshNecessary())
 			{
-				// CH IV Begin
 				// Cas d'un attribut de grille, qui n'est pas un attribut interne d'un attribut VarPart
 				if (not dgAttribute->IsInnerAttribute())
 				{
@@ -706,7 +705,6 @@ boolean KWAttributeSubsetStats::CreateAttributeIntervals(const KWTupleTable* tup
 					if (TaskProgression::IsInterruptionRequested())
 						return false;
 				}
-				// CH IV End
 			}
 
 			// Valeur du tuple
@@ -788,7 +786,6 @@ boolean KWAttributeSubsetStats::CreateAttributeValueSets(const KWTupleTable* tup
 		// Progression
 		if (TaskProgression::IsRefreshNecessary())
 		{
-			// CH IV Begin
 			// Cas d'un attribut de grille, qui n'est pas un attribut interne d'un attribut VarPart
 			if (not dgAttribute->IsInnerAttribute())
 			{
@@ -802,7 +799,6 @@ boolean KWAttributeSubsetStats::CreateAttributeValueSets(const KWTupleTable* tup
 				if (TaskProgression::IsInterruptionRequested())
 					return false;
 			}
-			// CH IV End
 		}
 
 		// Creation d'une nouvelle partie mono-valeur

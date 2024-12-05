@@ -58,7 +58,6 @@ void SetLearningWebSite(const ALString& sValue);
 // Type de systeme: 32 ou 64 bit
 const ALString GetLearningSystemType();
 
-// CH IV Begin
 // CH IV Refactoring: commenter les methodes
 // CH IV Refactoring: verifier si ces methodes sont utilisees
 // CH IV Refactoring: envisager d'abandonner la gestion des poubelles
@@ -71,7 +70,6 @@ void SetVarPartAttributeGarbage(const boolean bValue);
 
 const boolean GetInnerAttributeGarbage();
 void SetInnerAttributeGarbage(const boolean bValue);
-// CH IV End
 
 //////////////////////////////////////////////////////////////////////////////////////
 // Politique d'affichage des noms
@@ -154,12 +152,10 @@ boolean GetForestExpertMode();
 // Ce mode expert est controlable par la variable d'environnement KhiopsCoclusteringExpertMode a true ou false
 boolean GetLearningCoclusteringExpertMode();
 
-// CH IV Begin
 // Indicateur du mode expert de l'outil de coclustering (permet d'activer la fonctionnalite de coclustering instances *
 // variables) Ce mode expert est controlable par la variable d'environnement KhiopsCoclusteringIVExpertMode a true ou
 // false
 boolean GetLearningCoclusteringIVExpertMode();
-// CH IV End
 
 // Indicateur du mode parallelisation expert de l'outil (en mode expert uniquement)
 // Permet d'activer certains services additionnels du mode parallele

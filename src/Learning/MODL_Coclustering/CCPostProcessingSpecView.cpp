@@ -57,18 +57,14 @@ CCPostProcessingSpecView::CCPostProcessingSpecView()
 	// Le tableau des variable est affiche avant la variable d'effectif
 	MoveFieldBefore("PostProcessedAttributes", "FrequencyAttributeName");
 
-	// CH IV Begin
 	// La variable de type de coclustering n'est pas editable
 	GetFieldAt("CoclusteringType")->SetEditable(false);
-	// CH IV End
 
 	// La variable d'effectif n'est pas editable
 	GetFieldAt("FrequencyAttributeName")->SetEditable(false);
 
 	// Info-bulles
-	// CH IV Begin
 	GetFieldAt("CoclusteringType")->SetHelpText("Type of coclustering.");
-	// CH IV End
 	GetFieldAt("InstanceNumber")->SetHelpText("Instance number in the input coclustering.");
 	GetFieldAt("NonEmptyCellNumber")->SetHelpText("Non empty cell number in the input coclustering.");
 	GetFieldAt("CellNumber")->SetHelpText("Cell number in the input coclustering.");
