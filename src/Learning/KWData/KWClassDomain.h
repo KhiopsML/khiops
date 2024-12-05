@@ -64,7 +64,7 @@ public:
 	boolean WriteFile(const ALString& sFileName) const;
 
 	// Ecriture dans un fichier d'une classe avec toutes ses classes dependantes
-	boolean WriteFileFromClass(const KWClass* rootClass, const ALString& sFileName) const;
+	boolean WriteFileFromClass(const KWClass* mainClass, const ALString& sFileName) const;
 
 	// Ecriture dans un fichier au format JSON
 	boolean WriteJSONFile(const ALString& sJSONFileName) const;
@@ -131,7 +131,7 @@ public:
 
 	// Duplication partielle d'un domaine a partir d'une classe
 	// La classe et ses classes referencees recursivement sont dupliquees de facon coherente
-	KWClassDomain* CloneFromClass(const KWClass* rootClass) const;
+	KWClassDomain* CloneFromClass(const KWClass* mainClass) const;
 
 	// Import de toutes les classes d'un domaine, en y ajoutant un prefixe  et un suffixe
 	// et en les renommant si necessaire
@@ -140,13 +140,13 @@ public:
 
 	// Calcul de l'ensemble des classes (y compris la racine) dependante d'une classe
 	// Le resultat est un dictionnaire referencant les classes resultats par leur nom
-	void ComputeClassDependence(const KWClass* rootClass, ObjectDictionary* odDependentClasses) const;
+	void ComputeClassDependence(const KWClass* mainClass, ObjectDictionary* odDependentClasses) const;
 
 	// Memoire utilisee par le domaine
 	longint GetUsedMemory() const override;
 
 	// Memoire utilisee par la classe et toutes ses classes referencees recursivement
-	longint GetClassDependanceUsedMemory(const KWClass* rootClass) const;
+	longint GetClassDependanceUsedMemory(const KWClass* mainClass) const;
 
 	// Cle de hashage du domaine et de sa composition
 	longint ComputeHashValue() const;
