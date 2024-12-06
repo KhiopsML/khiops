@@ -909,7 +909,7 @@ void KWPredictorEvaluator::RenameDatabaseClasses(KWDatabase* database, KWClassDo
 	KWMTDatabase* mtDatabase;
 	KWMTDatabaseMapping* mapping;
 	KWClass* kwcClass;
-	ALString sInitialRootClassName;
+	ALString sInitialMainClassName;
 	ALString sInitialClassName;
 	int i;
 
@@ -922,13 +922,13 @@ void KWPredictorEvaluator::RenameDatabaseClasses(KWDatabase* database, KWClassDo
 	else
 	{
 		// Recherche de la la classe initiale correspondant a la classe en cours de la base
-		sInitialRootClassName = "";
+		sInitialMainClassName = "";
 		kwcClass = KWClassDomain::GetCurrentDomain()->LookupClass(database->GetClassName());
 		if (kwcClass != NULL)
-			sInitialRootClassName = KWTrainedPredictor::GetMetaDataInitialClassName(kwcClass);
+			sInitialMainClassName = KWTrainedPredictor::GetMetaDataInitialClassName(kwcClass);
 
 		// Memorisation de cette classe
-		database->SetClassName(sInitialRootClassName);
+		database->SetClassName(sInitialMainClassName);
 
 		// Cas multi-table
 		if (database->IsMultiTableTechnology())
@@ -946,16 +946,16 @@ void KWPredictorEvaluator::RenameDatabaseClasses(KWDatabase* database, KWClassDo
 					sInitialClassName = KWTrainedPredictor::GetMetaDataInitialClassName(kwcClass);
 
 				// Recherche de la la classe initiale correspondant a la classe en cours
-				sInitialRootClassName = "";
+				sInitialMainClassName = "";
 				kwcClass =
 				    KWClassDomain::GetCurrentDomain()->LookupClass(mapping->GetOriginClassName());
 				if (kwcClass != NULL)
-					sInitialRootClassName =
+					sInitialMainClassName =
 					    KWTrainedPredictor::GetMetaDataInitialClassName(kwcClass);
 
 				// Memorisation de cette classe ainsi de que la classe principale de la base
 				mapping->SetClassName(sInitialClassName);
-				mapping->SetOriginClassName(sInitialRootClassName);
+				mapping->SetOriginClassName(sInitialMainClassName);
 			}
 		}
 	}
