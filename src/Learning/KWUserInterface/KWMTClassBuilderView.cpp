@@ -37,7 +37,7 @@ KWMTClassBuilderView::KWMTClassBuilderView()
 	GetFieldAt("SecondaryClassName")
 	    ->SetHelpText("Name of secondary dictionary used as a Table in the multi-table dictionary.");
 	classNameList->GetFieldAt("Name")->SetHelpText("Name of dictionary.");
-	GetActionAt("OK")->SetHelpText("Build a root dictionary with a Table variable based on"
+	GetActionAt("OK")->SetHelpText("Build a main dictionary with a Table variable based on"
 				       "\n the input dictionary, then save the dictionary file.");
 
 	// Short cuts
@@ -66,7 +66,7 @@ void KWMTClassBuilderView::InitDefaultParameters()
 	if (sSecondaryDictionaryName != "")
 	{
 		// Nom par defaut du dictionnaire multi-classes a construire
-		sDefaultMultiTableClassName = "Root" + sSecondaryDictionaryName;
+		sDefaultMultiTableClassName = "Main" + sSecondaryDictionaryName;
 		sDefaultMultiTableClassName =
 		    KWClassDomain::GetCurrentDomain()->BuildClassName(sDefaultMultiTableClassName);
 
