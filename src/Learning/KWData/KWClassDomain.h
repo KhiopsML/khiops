@@ -138,7 +138,7 @@ public:
 	// Le domaine source est vide a l'issue de l'import
 	void ImportDomain(KWClassDomain* kwcdInputDomain, const ALString& sClassPrefix, const ALString& sClassSuffix);
 
-	// Calcul de l'ensemble des classes (y compris la racine) dependante d'une classe
+	// Calcul de l'ensemble des classes (y compris la classe principale) dependante d'une classe
 	// Le resultat est un dictionnaire referencant les classes resultats par leur nom
 	void ComputeClassDependence(const KWClass* mainClass, ObjectDictionary* odDependentClasses) const;
 

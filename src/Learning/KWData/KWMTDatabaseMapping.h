@@ -146,7 +146,7 @@ protected:
 	ObjectArray* GetComponentTableMappings();
 
 	// Collecte de tous les mapping de la hierarchie de composition,
-	// y compris le mapping courant (racine de la hierarchie)
+	// y compris le mapping courant (mapping principal de la hierarchie)
 	void CollectFullHierarchyComponentTableMappings(ObjectArray* oaResults);
 
 	// Base de donnees associee au mapping
