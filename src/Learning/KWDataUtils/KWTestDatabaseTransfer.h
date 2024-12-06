@@ -45,31 +45,31 @@ public:
 	// Test en specifiant les caracteristiques d'une base multi-tables au moyen de jeux de donnees artificiels
 	// TableNumber:
 	//   . 0: cas mono-table, sans identifiants
-	//   . 1: une table racine avec identifiants
-	//   . 2: une table racine avec une table secondaire en relation 0-n
-	//   . 3: une table racine avec une table secondaire en relation 0-1 (identique a table principale), et
+	//   . 1: une table principale avec identifiants
+	//   . 2: une table principale avec une table secondaire en relation 0-n
+	//   . 3: une table principale avec une table secondaire en relation 0-1 (identique a table principale), et
 	//        une autre table secondaire en relation 0-n avec la seconde table
 	//   . 4: comme la cas (3), avec en plus une table externe (identique a la table principale)
 	// UsedTableNumber: pour mettre en Unused tout ou partie des tables et des regles de calcul
 	// UseBuildRules: utilisation des regles de calcul liant les tables
-	// RootLineNumber, RootLineNumberPerKey, RootSamplingRate: caracteristique de la table principale
+	// MainLineNumber, MainLineNumberPerKey, MainSamplingRate: caracteristique de la table principale
 	//    (et de la table en relation 0-1, et de la table externe)
 	// SecondaryLineNumber, SecondaryLineNumberPerKey, SecondarySamplingRate: caracteristique de la table en
 	// relation 0-n La taille de buffer ou des fichier par process n'est prise en compte que si elle est differente
 	// de 0.
 	static void MTTestWithArtificialDatabase(int nTableNumber, int nUsedTableNumber, boolean bUseBuildRules,
-						 int nRootLineNumber, int nRootLineNumberPerKey,
-						 double dRootSamplingRate, int nSecondaryLineNumber,
+						 int nMainLineNumber, int nMainLineNumberPerKey,
+						 double dMainSamplingRate, int nSecondaryLineNumber,
 						 int nSecondaryLineNumberPerKey, double dSecondarySamplingRate,
 						 int nBufferSize, int lMaxFileSizePerProcess,
 						 const ALString& sTestLabel);
 
 	// Test de transfert de fichier
-	//   Si RootWriteFileName est absent: pas d'ecriture
+	//   Si MainWriteFileName est absent: pas d'ecriture
 	static void MTMainTestReadWrite(int argc, char** argv);
 	static void MTTestReadWrite(const ALString& sClassFileName, const ALString& sClassName,
-				    const ALString& sRootReadFileName, const ALString& sSecondaryReadFileName,
-				    const ALString& sRootWriteFileName, const ALString& sSecondaryWriteFileName);
+				    const ALString& sMainReadFileName, const ALString& sSecondaryReadFileName,
+				    const ALString& sMainWriteFileName, const ALString& sSecondaryWriteFileName);
 
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation
