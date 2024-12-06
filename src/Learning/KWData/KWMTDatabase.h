@@ -216,9 +216,9 @@ protected:
 	/////////////////////////////////////////////////
 	// Attributs de l'implementation
 
-	// Mapping racine pour la table principale
+	// Mapping pour la table principale
 	// Ce mapping doit toujours etre present et contient le parametrage (nom de base, nom de classe) principal
-	// L'utilisation d'un mapping pour la racine permet d'unifier les traitements entre tables principales
+	// L'utilisation d'un mapping pour la classe principale permet d'unifier les traitements entre tables principales
 	// et tables secondaires
 	mutable KWMTDatabaseMapping* mainMultiTableMapping;
 
@@ -227,7 +227,7 @@ protected:
 	mutable ObjectArray oaRootRefTableMappings;
 
 	// Mapping multi-tables: tableau exhaustif de tous les mappings (permet une interface d'edition "a plat")
-	// Attention, le mapping racine est toujours integree comme premier element du tableau,
+	// Attention, le mapping de la classe principale est toujours integree comme premier element du tableau,
 	// et ne doit toujours etre synchronise
 	mutable ObjectArray oaMultiTableMappings;
 
