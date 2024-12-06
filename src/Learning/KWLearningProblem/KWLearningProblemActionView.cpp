@@ -54,7 +54,7 @@ KWLearningProblemActionView::KWLearningProblemActionView()
 	GetActionAt("ExtractKeysFromDataTable")
 	    ->SetHelpText("Extract keys from a sorted input data table."
 			  "\n It is dedicated to the preparation of multi-table databases,"
-			  "\n where a root entity has to be extracted from a detailed 0-n entity."
+			  "\n where a main entity has to be extracted from a detailed 0-n entity."
 			  "\n For example, in case of a web log file with cookies, page, timestamp in each log,"
 			  "\n extracting keys allow to build a table with unique cookies from the table of logs.");
 	GetActionAt("EvaluatePredictors")
