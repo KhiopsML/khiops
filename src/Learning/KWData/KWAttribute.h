@@ -214,7 +214,7 @@ protected:
 	// Ecriture si necessaire des informations prives dans les meta-data (_NotLoaded)
 	void WritePrivateMetaData(ostream& ost) const;
 
-	// Lecture et prise en compte des l'informations privees depuis les meta-data et nettoyage de ceux-ci
+	// Lecture et prise en compte des informations privees depuis les meta-data et nettoyage de ceux-ci
 	void ReadPrivateMetaData();
 
 	// Bloc d'attribut eventuel auquel l'attribut appartient

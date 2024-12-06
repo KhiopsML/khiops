@@ -371,7 +371,7 @@ void KWClass::IndexClass()
 	ivUsedDenseAttributeNumbers.Initialize();
 	ivUsedSparseAttributeNumbers.Initialize();
 
-	// Il y a unicite dans le cas d'une classe racine, ou si l'unicite est forcee
+	// A priori, il y a unicite dans le cas d'une classe racine, ou si l'unicite est forcee (cf methode SetForceUnique)
 	bIsUnique = bRoot or bForceUnique;
 
 	// Indexage des tableaux d'attributs par parcours de la liste

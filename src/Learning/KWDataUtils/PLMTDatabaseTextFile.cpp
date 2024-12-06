@@ -32,7 +32,7 @@ PLMTDatabaseTextFile::~PLMTDatabaseTextFile()
 {
 	oaUsedMappingHeaderLineClasses.DeleteAll();
 	oaIndexedMappingsDataItemLoadIndexes.DeleteAll();
-	oaIndexedMappingsRootKeyIndexes.DeleteAll();
+	oaIndexedMappingsMainKeyIndexes.DeleteAll();
 }
 
 void PLMTDatabaseTextFile::Reset()
@@ -40,7 +40,7 @@ void PLMTDatabaseTextFile::Reset()
 	ivUsedMappingFlags.SetSize(0);
 	oaUsedMappingHeaderLineClasses.DeleteAll();
 	oaIndexedMappingsDataItemLoadIndexes.DeleteAll();
-	oaIndexedMappingsRootKeyIndexes.DeleteAll();
+	oaIndexedMappingsMainKeyIndexes.DeleteAll();
 	lvFileSizes.SetSize(0);
 	lTotalFileSize = 0;
 	lTotalUsedFileSize = 0;
@@ -60,7 +60,7 @@ boolean PLMTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 	KWMTDatabaseMapping* outputMapping;
 	PLDataTableDriverTextFile* driver;
 	KWLoadIndexVector* livDataItemLoadIndexes;
-	IntVector* ivRootKeyIndexes;
+	IntVector* ivMainKeyIndexes;
 	KWClass* kwcDriverLogicalClass;
 	KWClass* kwcHeaderLineClass;
 	KWClass* kwcUsedHeaderLineClass;
@@ -105,7 +105,7 @@ boolean PLMTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 	// Pour le max, on ne se limite pas (il peut y avoir des sous-estimation importantes pour les tables externes)
 	lMaxOpenNecessaryMemory = lEmptyOpenNecessaryMemory * 5;
 
-	// Initialisation recursive du mapping a partir de la racine pour avoir des driver initialises
+	// Initialisation recursive du mapping a partir de la table principale pour avoir des driver initialises
 	DMTMPhysicalTerminateMapping(mainMultiTableMapping);
 	if (bRead)
 	{
@@ -120,7 +120,7 @@ boolean PLMTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 
 	// Nettoyage prealable
 	oaIndexedMappingsDataItemLoadIndexes.DeleteAll();
-	oaIndexedMappingsRootKeyIndexes.DeleteAll();
+	oaIndexedMappingsMainKeyIndexes.DeleteAll();
 	ivUsedMappingFlags.SetSize(0);
 
 	// Dimensionnement des resultats de calcul bufferises
@@ -134,7 +134,7 @@ boolean PLMTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 
 	// Dimensionnement des resultats de calcul non bufferises
 	oaIndexedMappingsDataItemLoadIndexes.SetSize(GetMultiTableMappings()->GetSize());
-	oaIndexedMappingsRootKeyIndexes.SetSize(GetMultiTableMappings()->GetSize());
+	oaIndexedMappingsMainKeyIndexes.SetSize(GetMultiTableMappings()->GetSize());
 	ivUsedMappingFlags.SetSize(GetMultiTableMappings()->GetSize());
 
 	// Calcul des index pour tous les mappings, et recopie des caracteristiques des drivers
@@ -226,9 +226,9 @@ boolean PLMTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 			oaIndexedMappingsDataItemLoadIndexes.SetAt(i, livDataItemLoadIndexes);
 
 			// Memorisation du vecteur des indexes des champs de la cle
-			assert(oaIndexedMappingsRootKeyIndexes.GetAt(i) == NULL);
-			ivRootKeyIndexes = driver->GetRootKeyIndexes()->Clone();
-			oaIndexedMappingsRootKeyIndexes.SetAt(i, ivRootKeyIndexes);
+			assert(oaIndexedMappingsMainKeyIndexes.GetAt(i) == NULL);
+			ivMainKeyIndexes = driver->GetMainKeyIndexes()->Clone();
+			oaIndexedMappingsMainKeyIndexes.SetAt(i, ivMainKeyIndexes);
 
 			// Estimation de la place disque necessaire en sortie
 			if (outputDatabaseTextFile != NULL)
@@ -378,7 +378,7 @@ void PLMTDatabaseTextFile::CleanOpenInformation()
 	nReadSizeMin = 0;
 	nReadSizeMax = 0;
 	oaIndexedMappingsDataItemLoadIndexes.DeleteAll();
-	oaIndexedMappingsRootKeyIndexes.DeleteAll();
+	oaIndexedMappingsMainKeyIndexes.DeleteAll();
 	lEstimatedMinSingleInstanceMemoryLimit = 0;
 	lEstimatedMaxSingleInstanceMemoryLimit = 0;
 }
@@ -951,17 +951,17 @@ boolean PLMTDatabaseTextFile::IsMappingInitialized(KWMTDatabaseMapping* mapping)
 	return (mapping->GetDataTableDriver() != NULL);
 }
 
-void PLMTDatabaseTextFile::SetLastReadRootKey(const KWObjectKey* objectKey)
+void PLMTDatabaseTextFile::SetLastReadMainKey(const KWObjectKey* objectKey)
 {
-	KWMTDatabaseMapping* rootMapping;
+	KWMTDatabaseMapping* mainMapping;
 
 	require(IsOpenedForRead());
 
-	rootMapping = cast(KWMTDatabaseMapping*, GetMultiTableMappings()->GetAt(0));
-	check(rootMapping);
-	assert(rootMapping->GetLastReadKey()->GetSize() == 0);
-	assert(rootMapping->GetLastReadObject() == NULL);
-	rootMapping->SetLastReadKey(objectKey);
+	mainMapping = cast(KWMTDatabaseMapping*, GetMultiTableMappings()->GetAt(0));
+	check(mainMapping);
+	assert(mainMapping->GetLastReadKey()->GetSize() == 0);
+	assert(mainMapping->GetLastReadObject() == NULL);
+	mainMapping->SetLastReadKey(objectKey);
 }
 
 void PLMTDatabaseTextFile::CleanMapping(KWMTDatabaseMapping* mapping)
@@ -1197,7 +1197,7 @@ KWDataTableDriver* PLMTDatabaseTextFile::CreateDataTableDriver(KWMTDatabaseMappi
 	KWDataTableDriverTextFile dataTableDriverTextFileCreator;
 	PLDataTableDriverTextFile* dataTableDriver;
 	KWLoadIndexVector* livDataItemLoadIndexes;
-	IntVector* ivRootKeyIndexes;
+	IntVector* ivMainKeyIndexes;
 	int i;
 	KWMTDatabaseMapping* usedMapping;
 	int nLastReadKeySize;
@@ -1216,7 +1216,7 @@ KWDataTableDriver* PLMTDatabaseTextFile::CreateDataTableDriver(KWMTDatabaseMappi
 	{
 		// Recherche des index des attributs s'ils sont specifies
 		livDataItemLoadIndexes = NULL;
-		ivRootKeyIndexes = NULL;
+		ivMainKeyIndexes = NULL;
 		assert(oaIndexedMappingsDataItemLoadIndexes.GetSize() == 0 or
 		       oaIndexedMappingsDataItemLoadIndexes.GetSize() == oaMultiTableMappings.GetSize());
 		for (i = 0; i < oaIndexedMappingsDataItemLoadIndexes.GetSize(); i++)
@@ -1226,7 +1226,7 @@ KWDataTableDriver* PLMTDatabaseTextFile::CreateDataTableDriver(KWMTDatabaseMappi
 			{
 				livDataItemLoadIndexes =
 				    cast(KWLoadIndexVector*, oaIndexedMappingsDataItemLoadIndexes.GetAt(i));
-				ivRootKeyIndexes = cast(IntVector*, oaIndexedMappingsRootKeyIndexes.GetAt(i));
+				ivMainKeyIndexes = cast(IntVector*, oaIndexedMappingsMainKeyIndexes.GetAt(i));
 				break;
 			}
 		}
@@ -1237,13 +1237,13 @@ KWDataTableDriver* PLMTDatabaseTextFile::CreateDataTableDriver(KWMTDatabaseMappi
 		{
 			// Initialisation des index des attributs, et des attribut de cle
 			dataTableDriver->GetDataItemLoadIndexes()->CopyFrom(livDataItemLoadIndexes);
-			dataTableDriver->GetRootKeyIndexes()->CopyFrom(ivRootKeyIndexes);
+			dataTableDriver->GetMainKeyIndexes()->CopyFrom(ivMainKeyIndexes);
 
 			// Calcul du nombre de champs de la cle, puis initilisation du driver pour cette taille de cle
 			nLastReadKeySize = 0;
-			for (i = 0; i < ivRootKeyIndexes->GetSize(); i++)
+			for (i = 0; i < ivMainKeyIndexes->GetSize(); i++)
 			{
-				if (ivRootKeyIndexes->GetAt(i) >= 0)
+				if (ivMainKeyIndexes->GetAt(i) >= 0)
 					nLastReadKeySize++;
 			}
 			dataTableDriver->InitializeLastReadKeySize(nLastReadKeySize);
@@ -1295,7 +1295,7 @@ void PLShared_MTDatabaseTextFile::SerializeObject(PLSerializer* serializer, cons
 	KWMTDatabaseMapping* mapping;
 	debug(boolean bInitialSilentMode);
 	PLShared_ObjectArray shared_oaIndexedMappingsDataItemLoadIndexes(new PLShared_LoadIndexVector);
-	PLShared_ObjectArray shared_oaIndexedMappingsRootKeyIndexes(new PLShared_IntVector);
+	PLShared_ObjectArray shared_oaIndexedMappingsMainKeyIndexes(new PLShared_IntVector);
 
 	require(serializer != NULL);
 	require(serializer->IsOpenForWrite());
@@ -1369,9 +1369,9 @@ void PLShared_MTDatabaseTextFile::SerializeObject(PLSerializer* serializer, cons
 								    &database->oaIndexedMappingsDataItemLoadIndexes);
 
 	// Ecriture des index des champs de la cle par mapping
-	assert(database->oaIndexedMappingsRootKeyIndexes.GetSize() == 0 or
-	       database->oaIndexedMappingsRootKeyIndexes.GetSize() == database->GetMultiTableMappings()->GetSize());
-	shared_oaIndexedMappingsRootKeyIndexes.SerializeObject(serializer, &database->oaIndexedMappingsRootKeyIndexes);
+	assert(database->oaIndexedMappingsMainKeyIndexes.GetSize() == 0 or
+	       database->oaIndexedMappingsMainKeyIndexes.GetSize() == database->GetMultiTableMappings()->GetSize());
+	shared_oaIndexedMappingsMainKeyIndexes.SerializeObject(serializer, &database->oaIndexedMappingsMainKeyIndexes);
 
 	// Ecriture des parametres du memory guard
 	serializer->PutLongint(database->GetMemoryGuardMaxSecondaryRecordNumber());
@@ -1387,7 +1387,7 @@ void PLShared_MTDatabaseTextFile::DeserializeObject(PLSerializer* serializer, Ob
 	int i;
 	KWMTDatabaseMapping* mapping;
 	PLShared_ObjectArray shared_oaIndexedMappingsDataItemLoadIndexes(new PLShared_LoadIndexVector);
-	PLShared_ObjectArray shared_oaIndexedMappingsRootKeyIndexes(new PLShared_IntVector);
+	PLShared_ObjectArray shared_oaIndexedMappingsMainKeyIndexes(new PLShared_IntVector);
 
 	require(serializer != NULL);
 	require(serializer->IsOpenForRead());
@@ -1416,7 +1416,7 @@ void PLShared_MTDatabaseTextFile::DeserializeObject(PLSerializer* serializer, Ob
 	assert(database->oaMultiTableMappings.GetSize() == 1);
 	for (i = 0; i < nMappingNumber; i++)
 	{
-		// Le premier mapping est pre-existant (table racine)
+		// Le premier mapping est pre-existant (table principale)
 		if (i == 0)
 			mapping = database->mainMultiTableMapping;
 		// Les autre sont a creer
@@ -1460,8 +1460,8 @@ void PLShared_MTDatabaseTextFile::DeserializeObject(PLSerializer* serializer, Ob
 								      &database->oaIndexedMappingsDataItemLoadIndexes);
 
 	// Lecture des index des attributs de cle par mapping
-	shared_oaIndexedMappingsRootKeyIndexes.DeserializeObject(serializer,
-								 &database->oaIndexedMappingsRootKeyIndexes);
+	shared_oaIndexedMappingsMainKeyIndexes.DeserializeObject(serializer,
+								 &database->oaIndexedMappingsMainKeyIndexes);
 
 	// Lecture des parametres du memory guard
 	database->SetMemoryGuardMaxSecondaryRecordNumber(serializer->GetLongint());

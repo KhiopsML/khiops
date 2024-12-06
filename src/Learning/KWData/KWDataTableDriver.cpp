@@ -178,9 +178,9 @@ KWObject* KWDataTableDriver::Read()
 
 void KWDataTableDriver::Skip() {}
 
-const KWObjectKey* KWDataTableDriver::GetLastReadRootKey() const
+const KWObjectKey* KWDataTableDriver::GetLastReadMainKey() const
 {
-	return &lastReadRootKey;
+	return &lastReadMainKey;
 }
 
 void KWDataTableDriver::Write(const KWObject* kwoObject)

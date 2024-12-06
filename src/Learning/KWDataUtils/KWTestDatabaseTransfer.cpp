@@ -742,7 +742,7 @@ void KWTestDatabaseTransfer::MTTestWithArtificialDatabase(int nTableNumber, int 
 	if (nTableNumber >= 2)
 	{
 		// Utilisation de deux champs, avec la cle en fin
-		// pour perturber sa position par rapport a la table racine
+		// pour perturber sa position par rapport a la table principale
 		artificialDataset = new KWArtificialDataset;
 		oaArtificialDatasets.SetAt(nSecondary0nIndex, artificialDataset);
 		timer.Reset();

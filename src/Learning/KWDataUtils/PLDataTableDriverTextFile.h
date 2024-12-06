@@ -17,8 +17,8 @@
 //  La methode ComputeDataItemLoadIndexes permet de calculer les index (a faire dans le Master)
 //  Les methodes GetConstDataItemLoadIndexes et GetDataItemLoadIndexes permettent de transmettre
 //  l'index entre le maitre et les esclaves
-//  Dans le cas multi-table, les methodes GetConstRootKeyIndexes et GetRootKeyIndexes permettent
-//  de transmettre les index des attributs de la cle en cas de classe racine
+//  Dans le cas multi-table, les methodes GetConstMainKeyIndexes et GetMainKeyIndexes permettent
+//  de transmettre les index des attributs de la cle en cas de classe principale
 //  Enfin, chaque process gere une portion de fichier comprise entre une position de debut et de fin,
 //  qui peut potentiellement necessiter la lecture de plusieurs buffers pour etre traitee.
 class PLDataTableDriverTextFile : public KWDataTableDriverTextFile
@@ -88,9 +88,9 @@ protected:
 	const KWLoadIndexVector* GetConstDataItemLoadIndexes() const;
 	KWLoadIndexVector* GetDataItemLoadIndexes();
 
-	// Acces en lecture et ecriture aux index des attributs de la cle en cas de classe racine
-	const IntVector* GetConstRootKeyIndexes() const;
-	IntVector* GetRootKeyIndexes();
+	// Acces en lecture et ecriture aux index des attributs de la cle en cas de classe principale
+	const IntVector* GetConstMainKeyIndexes() const;
+	IntVector* GetMainKeyIndexes();
 
 	// Initialisation de la taille de la derniere cle lu
 	void InitializeLastReadKeySize(int nValue);

@@ -861,7 +861,7 @@ boolean KWDatabaseIndexer::ComputeMainTableIndexation()
 			if (lMaxKeyNumber < 0)
 				lMaxKeyNumber = 0;
 
-			// On limite ce nombre de cle on fonctioRate = 0; de la taille des fichiers a analyser
+			// On limite ce nombre de cle en fonction de la taille des fichiers a analyser
 			// On utilise (lMaxFileSizePerProcess/8) pour la gestion de la fin des taches
 			lMaxSlaveProcessNumber =
 			    1 + GetMTDatabase()->GetTotalFileSize() / (lTotalFileSizePerProcess / 8);

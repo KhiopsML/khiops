@@ -29,7 +29,7 @@ KWDatabaseTask::KWDatabaseTask()
 	DeclareTaskInput(&input_lvChunkBeginPositions);
 	DeclareTaskInput(&input_lvChunkEndPositions);
 	DeclareTaskInput(&input_lvChunkPreviousRecordIndexes);
-	DeclareTaskInput(&input_ChunkLastRootKey);
+	DeclareTaskInput(&input_ChunkLastMainKey);
 	DeclareTaskInput(&input_lFileBeginPosition);
 	DeclareTaskInput(&input_lFileEndPosition);
 	DeclareTaskInput(&input_lFilePreviousRecordIndex);
@@ -260,7 +260,6 @@ boolean KWDatabaseTask::ComputeAllDataTableIndexation()
 	KWFileIndexerTask fileIndexerTask;
 	int nSlaveNumber;
 	longint lMinSlaveGrantedMemoryForSourceDatabase;
-	ObjectArray oaRootKeys;
 	ObjectArray oaAllTableFoundKeyPositions;
 	Timer timer;
 
@@ -511,8 +510,8 @@ boolean KWDatabaseTask::MasterPrepareTaskInput(double& dTaskPercent, boolean& bI
 		// Cas multi-tables
 		if (shared_sourceDatabase.GetDatabase()->IsMultiTableTechnology())
 		{
-			// Recopie de la cle racine
-			databaseChunkBuilder.GetChunkLastMainKeyAt(nChunkCurrentIndex, input_ChunkLastRootKey.GetKey());
+			// Recopie de la cle principale
+			databaseChunkBuilder.GetChunkLastMainKeyAt(nChunkCurrentIndex, input_ChunkLastMainKey.GetKey());
 
 			// Recopie des vecteurs de position de debut et fin pour l'esclave
 			databaseChunkBuilder.GetChunkPreviousRecordIndexesAt(
@@ -752,7 +751,7 @@ boolean KWDatabaseTask::SlaveProcessStartDatabase()
 	int i;
 	KWMTDatabaseMapping* mapping;
 	PLDataTableDriverTextFile* driver;
-	KWObjectKey lastRootObjectKey;
+	KWObjectKey lastMainObjectKey;
 	InputBufferedFile* inputBuffer;
 	boolean bLineTooLong;
 	ALString sChunkFileName;
@@ -776,14 +775,14 @@ boolean KWDatabaseTask::SlaveProcessStartDatabase()
 	{
 		sourceMTDatabase = shared_sourceDatabase.GetMTDatabase();
 
-		// Parametrage de la derniere cle racine lue, apres avoir transforme la cle de fichier (KWKey) en cle
+		// Parametrage de la derniere cle principale lue, apres avoir transforme la cle de fichier (KWKey) en cle
 		// d'objet (KWObjectKey)
 		if (bOk)
 		{
-			lastRootObjectKey.SetSize(input_ChunkLastRootKey.GetKey()->GetSize());
-			for (i = 0; i < lastRootObjectKey.GetSize(); i++)
-				lastRootObjectKey.SetAt(i, (Symbol)input_ChunkLastRootKey.GetKey()->GetAt(i));
-			sourceMTDatabase->SetLastReadRootKey(&lastRootObjectKey);
+			lastMainObjectKey.SetSize(input_ChunkLastMainKey.GetKey()->GetSize());
+			for (i = 0; i < lastMainObjectKey.GetSize(); i++)
+				lastMainObjectKey.SetAt(i, (Symbol)input_ChunkLastMainKey.GetKey()->GetAt(i));
+			sourceMTDatabase->SetLastReadMainKey(&lastMainObjectKey);
 		}
 
 		// Parcours des mapping pour lire les buffers en lecture
@@ -852,7 +851,7 @@ boolean KWDatabaseTask::SlaveProcessStartDatabase()
 						     << "\t" << input_lvChunkPreviousRecordIndexes.GetAt(i) << "\t"
 						     << input_lvChunkBeginPositions.GetAt(i) << "\t"
 						     << input_lvChunkEndPositions.GetAt(i) << "\t"
-						     << *input_ChunkLastRootKey.GetKey() << "\t"
+						     << *input_ChunkLastMainKey.GetKey() << "\t"
 						     << sourceMTDatabase->GetBufferSize() << endl;
 					}
 				}
@@ -925,10 +924,9 @@ boolean KWDatabaseTask::SlaveProcessExploitDatabase()
 	longint lObjectNumber;
 	longint lRecordNumber;
 	KWMTDatabaseMapping* mapping;
-	KWObjectKey lastRootObjectKey;
 	KWObject* kwoObject;
 	ALString sChunkFileName;
-	PLDataTableDriverTextFile* rootDriver;
+	PLDataTableDriverTextFile* mainDriver;
 	double dProgression;
 	ALString sTmp;
 
@@ -940,17 +938,17 @@ boolean KWDatabaseTask::SlaveProcessExploitDatabase()
 	lRecordNumber = 0;
 	if (bOk)
 	{
-		// Dans le cas multi-tables, acces au driver de la table racine, pour la gestion de la progression
-		rootDriver = NULL;
+		// Dans le cas multi-tables, acces au driver de la table principale, pour la gestion de la progression
+		mainDriver = NULL;
 		if (sourceDatabase->IsMultiTableTechnology())
 		{
 			mapping = cast(KWMTDatabaseMapping*,
 				       shared_sourceDatabase.GetMTDatabase()->GetMultiTableMappings()->GetAt(0));
-			rootDriver = shared_sourceDatabase.GetMTDatabase()->GetDriverAt(mapping);
+			mainDriver = shared_sourceDatabase.GetMTDatabase()->GetDriverAt(mapping);
 		}
-		// Sinon, on prend le drive de la base mono-table
+		// Sinon, on prend le driver de la base mono-table
 		else
-			rootDriver = shared_sourceDatabase.GetSTDatabase()->GetDriver();
+			mainDriver = shared_sourceDatabase.GetSTDatabase()->GetDriver();
 
 		// Parcours des objets sources
 		Global::ActivateErrorFlowControl();
@@ -960,7 +958,7 @@ boolean KWDatabaseTask::SlaveProcessExploitDatabase()
 			if (TaskProgression::IsRefreshNecessary())
 			{
 				// Avancement
-				dProgression = rootDriver->GetReadPercentage();
+				dProgression = mainDriver->GetReadPercentage();
 				TaskProgression::DisplayProgression((int)floor(dProgression * 100));
 
 				// Message d'avancement, uniquement dans la premiere tache (la seule ou les comptes sont

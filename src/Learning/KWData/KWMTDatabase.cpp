@@ -28,7 +28,7 @@ KWMTDatabase::~KWMTDatabase()
 	}
 	assert(objectReferenceResolver.GetClassNumber() == 0);
 
-	// Destruction du mapping, y compris du mapping racine
+	// Destruction du mapping, y compris du mapping principal
 	oaMultiTableMappings.DeleteAll();
 
 	// Destruction du driver
@@ -66,10 +66,10 @@ void KWMTDatabase::CopyFrom(const KWDatabase* kwdSource)
 		oaMultiTableMappings.Add(mapping->Clone());
 	}
 
-	// Memorisation du mapping racine
+	// Memorisation du mapping principal
 	mainMultiTableMapping = cast(KWMTDatabaseMapping*, oaMultiTableMappings.GetAt(0));
 
-	// Memorisation des mapping racines des classes referencees
+	// Memorisation des mappings principaux des classes referencees
 	oaRootRefTableMappings.SetSize(0);
 	for (i = 0; i < kwmtdSource->oaRootRefTableMappings.GetSize(); i++)
 	{
@@ -82,7 +82,7 @@ void KWMTDatabase::CopyFrom(const KWDatabase* kwdSource)
 		assert(mappingCopy->GetDataPathAttributeNames() == "");
 		assert(mappingCopy->GetDataPath() == mapping->GetDataPath());
 
-		// Insertion dans le tableau des mappings racine des classes referencees
+		// Insertion dans le tableau des mappings principaux des classes referencees
 		oaRootRefTableMappings.Add(mappingCopy);
 	}
 
@@ -231,8 +231,8 @@ boolean KWMTDatabase::IsReferencedClassMapping(const KWMTDatabaseMapping* mappin
 	return (mapping->GetOriginClassName() != GetClassName());
 }
 
-// Fonction de comparaison sur le nom de la premiere classe (racine) d'un table de mapping
-// Permet d'avoir les mappings tries selon leur classe racine
+// Fonction de comparaison sur le nom de la premiere classe (principale) d'un table de mapping
+// Permet d'avoir les mappings tries selon leur classe principale
 int KWMTDatabaseCompareMappingMainClass(const void* first, const void* second)
 {
 	ObjectArray* aFirst;
@@ -294,14 +294,14 @@ void KWMTDatabase::UpdateMultiTableMappings()
 	// Si pas de dictionnaire associe, on nettoie le mapping
 	if (mainClass == NULL)
 	{
-		// Duplication prealable du mapping racine (sans les attributs de gestion)
+		// Duplication prealable du mapping principal (sans les attributs de gestion)
 		mainMultiTableMapping = mainMultiTableMapping->Clone();
 
 		// Nettoyage
 		oaMultiTableMappings.DeleteAll();
 		oaRootRefTableMappings.SetSize(0);
 
-		// On rajoute le mapping racine
+		// On rajoute le mapping principal
 		oaMultiTableMappings.Add(mainMultiTableMapping);
 	}
 	// Sinon, parcours des champs du dictionnaire pour rechercher les mappings a specifier
@@ -349,7 +349,7 @@ void KWMTDatabase::UpdateMultiTableMappings()
 			i++;
 		}
 
-		// Tri des tableau de mappings de classes references selon leur classe racine
+		// Tri des tableau de mappings de classes references selon leur classe principal
 		oaAllMainCreatedMappings.SetCompareFunction(KWMTDatabaseCompareMappingMainClass);
 		oaAllMainCreatedMappings.Sort();
 
@@ -370,9 +370,9 @@ void KWMTDatabase::UpdateMultiTableMappings()
 		// On recupere si possible les specifications de base a utiliser a partir des mapping precedents
 		//
 		// Attention, il s'agit juste d'une heuristique pour ameliorer l'ergonomie, qui a minima permet
-		// de recuperer toutes les specifcations de data tables existantes au cas ou on relit le
+		// de recuperer toutes les specifications de data tables existantes au cas ou on relit le
 		// meme fichier de dictionnaire
-		// Pour la table-racine, on recupere quoi q'il arrive la data table precedente, en mono-table ou multi-table
+		// Pour la table principale, on recupere quoi qu'il arrive la data table precedente, en mono-table ou multi-table
 		// Cela permet de rester sur le meme fichier dans le cas ou on passe d'un dictionnaire (ex: Iris)
 		// a sa variante de type modele de prediction (ex: SNB_Iris)
 		// L'implementation marche egalement en multi-table quand on choisit un dictionnaire racine de table externe,
@@ -504,7 +504,7 @@ boolean KWMTDatabase::CheckPartially(boolean bWriteOnly) const
 					 mapping->GetDataTableName() + " should not be specified for output database");
 			}
 
-			// Recherche de la classe racine du chemin de mapping
+			// Recherche de la classe principale du chemin de mapping
 			originClass = KWClassDomain::GetCurrentDomain()->LookupClass(mapping->GetOriginClassName());
 			assert(originClass->GetName() == GetClassName() or originClass->GetRoot());
 
@@ -772,7 +772,7 @@ longint KWMTDatabase::ComputeOpenNecessaryMemory(boolean bRead, boolean bIncludi
 	// Nettoyage prealable
 	DMTMPhysicalTerminateMapping(mainMultiTableMapping);
 
-	// Initialisation recursive du mapping a partir de la racine pour avoir des driver initialises
+	// Initialisation recursive du mapping a partir de la table principale pour avoir des driver initialises
 	if (bRead)
 	{
 		// En lecture, on utilise la classe physique
@@ -986,10 +986,10 @@ boolean KWMTDatabase::PhysicalOpenForRead()
 	// Ouverture si Ok
 	if (bOk)
 	{
-		// Initialisation recursive du mapping a partir de la racine
+		// Initialisation recursive du mapping a partir de la table principale
 		DMTMPhysicalInitializeMapping(mainMultiTableMapping, kwcPhysicalClass, true);
 
-		// Ouverture recursive des tables a partir de la table racine
+		// Ouverture recursive des tables a partir de la table principale
 		if (bOk)
 			bOk = DMTMPhysicalOpenForRead(mainMultiTableMapping, kwcClass);
 
@@ -1010,10 +1010,10 @@ boolean KWMTDatabase::PhysicalOpenForWrite()
 	DMTMPhysicalTerminateMapping(mainMultiTableMapping);
 	nSkippedRecordNumber = 0;
 
-	// Initialisation recursive du mapping a partir de la racine
+	// Initialisation recursive du mapping a partir de la table principale
 	DMTMPhysicalInitializeMapping(mainMultiTableMapping, kwcClass, false);
 
-	// Ouverture recursive des tables a partir de la table racine
+	// Ouverture recursive des tables a partir de la table principale
 	bOk = DMTMPhysicalOpenForWrite(mainMultiTableMapping);
 	return bOk;
 }
@@ -1171,17 +1171,17 @@ void KWMTDatabase::PhysicalSkip()
 	mainMultiTableMapping->GetDataTableDriver()->Skip();
 	bIsError = bIsError or mainMultiTableMapping->GetDataTableDriver()->IsError();
 
-	// Memorisation inconditionnelle de la cle du dernier enregistremnt lu, dans le cas d'une classe racine,
+	// Memorisation inconditionnelle de la cle du dernier enregistremnt lu, dans le cas d'une classe principale,
 	// meme si l'objet n'a pas pu etre lu
 	// Cela permet de gere les lignes dupliquees, que l'objet soit lu ou non (a cause d'une erreur de parsing)
 	assert(mainMultiTableMapping->GetDataTableDriver()->GetClass()->GetName() == kwcClass->GetName());
 	assert(mainMultiTableMapping->GetDataTableDriver()->GetClass()->GetRoot() == kwcClass->GetRoot());
-	if (kwcClass->GetRoot())
+	if (kwcClass->IsUnique())
 	{
-		assert(mainMultiTableMapping->GetDataTableDriver()->GetLastReadRootKey()->GetSize() ==
+		assert(mainMultiTableMapping->GetDataTableDriver()->GetLastReadMainKey()->GetSize() ==
 		       mainMultiTableMapping->GetDataTableDriver()->GetClass()->GetKeyAttributeNumber());
 		mainMultiTableMapping->SetLastReadKey(
-		    mainMultiTableMapping->GetDataTableDriver()->GetLastReadRootKey());
+		    mainMultiTableMapping->GetDataTableDriver()->GetLastReadMainKey());
 	}
 
 	// Attention, il n'est pas possible de propager les skip sur les sous-tables
@@ -1226,7 +1226,7 @@ longint KWMTDatabase::GetPhysicalEstimatedObjectNumber()
 
 	require(mainMultiTableMapping->GetDataTableDriver() == NULL);
 
-	// Parametrage du mapping racine
+	// Parametrage du mapping principal
 	mainMultiTableMapping->SetDataTableDriver(CreateDataTableDriver(mainMultiTableMapping));
 	mainMultiTableMapping->GetDataTableDriver()->SetDataTableName(mainMultiTableMapping->GetDataTableName());
 	mainMultiTableMapping->GetDataTableDriver()->SetClass(
@@ -1566,10 +1566,10 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(double dSamplePercentage)
 		// Nettoyage prealable
 		DMTMPhysicalTerminateMapping(referenceMapping);
 
-		// Initialisation recursive du mapping a partir de la racine
+		// Initialisation recursive du mapping a partir de la table principale
 		DMTMPhysicalInitializeMapping(referenceMapping, kwcReferencePhysicalClass, true);
 
-		// Ouverture recursive des tables a partir de la table racine, si sa cle est chargee
+		// Ouverture recursive des tables a partir de la table principale, si sa cle est chargee
 		// Les etapes precedentes ont determine si la table etait utile, et dans le cas inverse
 		// la cle n'est pas chargee
 		if (referenceMapping->GetDataTableDriver()->GetDataTableName() != "" and
@@ -1865,7 +1865,7 @@ longint KWMTDatabase::ComputeNecessaryMemoryForReferenceObjects()
 		// Nettoyage prealable
 		DMTMPhysicalTerminateMapping(referenceMapping);
 
-		// Initialisation recursive du mapping a partir de la racine
+		// Initialisation recursive du mapping a partir de la table principale
 		DMTMPhysicalInitializeMapping(referenceMapping, kwcReferencePhysicalClass, true);
 
 		// Collecte de tous les mapping de la hierarchie de composition
@@ -2273,16 +2273,16 @@ KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 	// Positionnement du flag d'erreur
 	bIsError = bIsError or mapping->GetDataTableDriver()->IsError();
 
-	// Memorisation inconditionnelle de la cle du dernier enregistremnt lu, dans le cas d'une classe racine,
+	// Memorisation inconditionnelle de la cle du dernier enregistremnt lu, dans le cas d'une classe unique,
 	// meme si l'objet n'a pas pu etre lu
 	// Cela permet de gere les lignes dupliquees, que l'objet soit lu ou non (a cause d'une erreur de parsing)
 	if (kwoObject == NULL)
 	{
-		if (mapping->GetDataTableDriver()->GetClass()->GetRoot())
+		if (mapping->GetDataTableDriver()->GetClass()->IsUnique())
 		{
-			assert(mapping->GetDataTableDriver()->GetLastReadRootKey()->GetSize() ==
+			assert(mapping->GetDataTableDriver()->GetLastReadMainKey()->GetSize() ==
 			       mapping->GetDataTableDriver()->GetClass()->GetKeyAttributeNumber());
-			mapping->SetLastReadKey(mapping->GetDataTableDriver()->GetLastReadRootKey());
+			mapping->SetLastReadKey(mapping->GetDataTableDriver()->GetLastReadMainKey());
 		}
 		return NULL;
 	}
@@ -2304,7 +2304,7 @@ KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 			{
 				assert(mapping->GetDataTableDriver()->GetRecordIndex() > 1);
 
-				// Warning si la cle egale dans le cas d'une classe racine, et supression de
+				// Warning si la cle egale dans le cas d'une classe principale, et supression de
 				// l'enregistrement
 				if (kwoObject->GetClass()->IsUnique() and
 				    objectKey.StrictCompare(mapping->GetLastReadKey()) == 0)
@@ -2343,7 +2343,7 @@ KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 				return NULL;
 
 			// Incrementation du compteur d'objet utilise au niveau physique pour la classe principale
-			// L'incrementation pour les mapping de la composiitonn est effectuee par la suite
+			// L'incrementation pour les mappings de la composition est effectuee par la suite
 			if (mapping == mainMultiTableMapping)
 				mapping->GetDataTableDriver()->SetUsedRecordNumber(
 				    mapping->GetDataTableDriver()->GetUsedRecordNumber() + 1);

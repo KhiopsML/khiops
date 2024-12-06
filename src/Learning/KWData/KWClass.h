@@ -580,7 +580,7 @@ protected:
 	// Ecriture si necessaire des informations prives dans les meta-data (_ForceUnique, plus celles des attributs)
 	void WritePrivateMetaData(ostream& ost) const;
 
-	// Lecture et prise en compte des l'informations privees depuis les meta-data et nettoyage de ceux-ci
+	// Lecture et prise en compte des informations privees depuis les meta-data et nettoyage de ceux-ci
 	void ReadPrivateMetaData();
 
 	// Nom de la classe
@@ -598,7 +598,10 @@ protected:
 	// Statut unique force
 	boolean bForceUnique;
 
-	// Statut unique: racine, ou ayant des attribut relation natifs, imposant l'unicite
+	// Statut unique:
+	// - racine: unicite necessaire pour les references aux tables externes
+	// - classe ayant des attribut relation natifs: unicite necessaire pour que chaque
+	//   enregistrement secondaire soit rattache de facon unique a son enregistrement parent
 	boolean bIsUnique;
 
 	// Nom des attributs cles (potentiellement specifies avant la specification des attributs de la classe)

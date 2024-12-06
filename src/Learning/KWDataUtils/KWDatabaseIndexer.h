@@ -199,7 +199,7 @@ protected:
 	// Initialisation d'un indexeur de champ cle pour un index de table en entree
 	// On n'indexe que les champs cles secondaire correspondant a ceux de la table principale,
 	// Les champs cles secondaire sont potentiellement en positions differentes, de nom different
-	// et en nombre supperieur a ceux de la table principale. On n'indexe que ceux correspond
+	// et en nombre superieur a ceux de la table principale. On n'indexe que ceux qui correspondent
 	// a la table principale (en meme nombre et dans le meme ordre)
 	boolean InitializeKeyFieldIndexer(int nTableIndex, KWKeyFieldsIndexer* keyFieldsIndexer);
 
