@@ -288,7 +288,7 @@ boolean KWKeyPositionFinderTask::TestWithArtificialMainAndSecondaryTables(
 	     << " Buffer(" << nBufferSize << ")" << endl;
 	cout << "===============================================================================" << endl;
 
-	// Creation d'un fichier racine avec des champs cle
+	// Creation d'un fichier principal avec des champs cle
 	mainArtificialDataset.SpecifySortedDataset();
 	mainArtificialDataset.SetLineNumber(nMainLineNumber);
 	mainArtificialDataset.SetMaxLineNumberPerKey(nMainLineNumberPerKey);

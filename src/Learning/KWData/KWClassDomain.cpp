@@ -770,7 +770,7 @@ KWClassDomain* KWClassDomain::CloneFromClass(const KWClass* mainClass) const
 	kwcdClone->usName = usName;
 	kwcdClone->usLabel = usLabel;
 
-	// Duplication de la classe racine
+	// Duplication de la classe principale
 	kwcCloneElement = mainClass->Clone();
 	kwcdClone->InsertClass(kwcCloneElement);
 	oaImpactedClasses.Add(kwcCloneElement);
@@ -892,7 +892,7 @@ void KWClassDomain::ComputeClassDependence(const KWClass* mainClass, ObjectDicti
 	require(mainClass->GetDomain() == this);
 	require(odDependentClasses != NULL);
 
-	// Enregistrement de la classe racine
+	// Enregistrement de la classe principale
 	// (en la castant, pour contourner le const du parametre)
 	odDependentClasses->RemoveAll();
 	odDependentClasses->SetAt(mainClass->GetName(), cast(KWClass*, mainClass));

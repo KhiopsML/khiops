@@ -1591,7 +1591,7 @@ void KDMultiTableFeatureConstruction::ComputeAllClassesCompliantRules(
 
 		// On interdit les cles de la classe
 		// De facon generale, il s'agit d'un principe: la cle ne sert qu'a encoder une structure et la
-		// memoriser: il ne s'agit pas d'attributs porteurs d'information. Pour la classe racine, les cle
+		// memoriser: il ne s'agit pas d'attributs porteurs d'information. Pour la classe principale, les cle
 		// apparaissent une seule fois instance, et ne peuvent etre informatives. Pour les classes secondaires
 		// inclues, les cles sont soient unique par instance principale (la cle de l'incluant) sans interet,
 		// soit avec un role d'identifiant dans la table secondaire, sans interet autre que compter le nombre

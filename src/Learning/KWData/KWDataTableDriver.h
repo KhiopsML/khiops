@@ -164,10 +164,10 @@ public:
 	// Lecture sans production d'un objet physique, pour sauter un enregistrement
 	virtual void Skip();
 
-	// Cle du dernier objet lu physiquement, uniquement dans le cas d'une classe racine
+	// Cle du dernier objet lu physiquement, uniquement dans le cas d'une classe principale d'un schema multi-table
 	// Permet de verifier l'ordre et la duplication des instances dans le fichier
 	// Mise a jour apres toute analyse d'une ligne, soit par Skip ou par Read (meme si la lecture echoue)
-	virtual const KWObjectKey* GetLastReadRootKey() const;
+	virtual const KWObjectKey* GetLastReadMainKey() const;
 
 	// Ecriture d'une instance (de la classe initiale)
 	virtual void Write(const KWObject* kwoObject);
@@ -227,8 +227,8 @@ protected:
 	ALString sDataTableName;
 	const KWClass* kwcClass;
 
-	// Cle correspondant a la derniere ligne lue, dans le cas d'une classe racine
-	KWObjectKey lastReadRootKey;
+	// Cle correspondant a la derniere ligne lue, dans le cas d'une classe principale d'un schema multi-table
+	KWObjectKey lastReadMainKey;
 
 	// Des entiers long sont utilises, pour la gestion de fichiers ayant
 	// potentiellement plus de deux milliards d'enregistrements (limite des int)
