@@ -135,9 +135,9 @@ protected:
 					     ObjectDictionary* odConstructedAttributes) const;
 
 	// Construction d'un attribut de type texte a partir d'un chemin d'attribut dans un schema multi-table
-	// L'attribut construit est insere en unused dans la classe et permet de ramener a la racine l'attribut
-	// texte correspondant au chemin d'attribut, avec le type Text ou TextList selon la nature simple ou multiple du
-	// chemin
+	// L'attribut construit est insere en unused dans la classe et permet de ramener a la classe principale
+	// l'attribut texte correspondant au chemin d'attribut, avec le type Text ou TextList selon la
+	// nature simple ou multiple du chemin
 	KWAttribute* ConstructPathAttribute(KDClassCompliantRules* classCompliantRules, KWClass* kwcClass,
 					    const KDTextAttributePath* textAttributePath) const;
 

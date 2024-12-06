@@ -34,9 +34,6 @@ public:
 	// Data path, calcule d'apres les specifications
 	ALString GetDataPath() const;
 
-	// Data root, qui est le dictionnaire origine dans le cas des tables externes
-	ALString GetDataRoot() const;
-
 	// Partie du data path relative aux attributs, calculee d'apres les specifications
 	ALString GetDataPathAttributeNames() const;
 
@@ -48,6 +45,8 @@ public:
 	void SetExternalTable(boolean bValue);
 
 	// Dictionnaire origine du data path
+	// - dictionnaire Root si on est dans le cas d'une table externe
+	// - dictionnaire principal sinon
 	const ALString& GetOriginClassName() const;
 	void SetOriginClassName(const ALString& sValue);
 
@@ -73,7 +72,7 @@ public:
 	// Dans un schema en flocon,
 	//   les data paths  consistent en une liste de noms de variables avec un separateur "/".
 	// Pour les tables externes,
-	//   les data paths commencent par un DataRoot prefixe par "/", qui fait reference a un nom de dictionnaire Root
+	//   les data paths commencent par un un nom de dictionnaire Root prefixe par "/"
 	// Exemples de DataPath pour differents types de mapping:
 	//    classe principale:
 	//    sous-objet: Address
@@ -99,9 +98,9 @@ public:
 	boolean CheckDataPath() const;
 
 	// Conversion d'un element de data path vers le format externe
-	// Cela concerne les noms de dictionnaire (DataRoot) ou de variable
+	// Cela concerne les noms de dictionnaire ou de variable
 	// S'il contiennent le caractere '`' ou le separateur '/', il doivent
-	// etre mis au format externe defini pour les dictionnaire, enre '`'
+	// etre mis au format externe defini pour les dictionnaires, entre '`'
 	static ALString GetFormattedName(const ALString& sValue);
 
 	// Separateur utilise dans les data paths
@@ -147,7 +146,7 @@ protected:
 	ObjectArray* GetComponentTableMappings();
 
 	// Collecte de tous les mapping de la hierarchie de composition,
-	// y compris le mapping courant (racine de la hierarchie)
+	// y compris le mapping courant (mapping principal de la hierarchie)
 	void CollectFullHierarchyComponentTableMappings(ObjectArray* oaResults);
 
 	// Base de donnees associee au mapping

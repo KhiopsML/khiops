@@ -226,19 +226,19 @@ KWLoadIndexVector* PLDataTableDriverTextFile::GetDataItemLoadIndexes()
 	return &livDataItemLoadIndexes;
 }
 
-const IntVector* PLDataTableDriverTextFile::GetConstRootKeyIndexes() const
+const IntVector* PLDataTableDriverTextFile::GetConstMainKeyIndexes() const
 {
-	return &ivRootKeyIndexes;
+	return &ivMainKeyIndexes;
 }
 
-IntVector* PLDataTableDriverTextFile::GetRootKeyIndexes()
+IntVector* PLDataTableDriverTextFile::GetMainKeyIndexes()
 {
-	return &ivRootKeyIndexes;
+	return &ivMainKeyIndexes;
 }
 
 void PLDataTableDriverTextFile::InitializeLastReadKeySize(int nValue)
 {
 	require(nValue >= 0);
-	lastReadRootKey.SetSize(nValue);
-	lastReadRootKey.Initialize();
+	lastReadMainKey.SetSize(nValue);
+	lastReadMainKey.Initialize();
 }

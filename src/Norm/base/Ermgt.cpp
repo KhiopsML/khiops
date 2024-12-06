@@ -78,8 +78,8 @@ void Global::SignalHandler(int nSigNum)
 	else
 		cout << "Interrupt signal " << nSigNum << " : Unknown error" << endl;
 
-	// Sortie du programe (on n'utilise pas les signaux comme valeurs de retour car on renvoie 1 en cas d'erreur
-	// fatale et 2 en cas d'erreurs)
+	// Sortie du programe
+	// (on n'utilise pas les signaux comme valeurs de retour car on renvoie 1 en cas d'erreur fatale)
 	exit(EXIT_FAILURE);
 }
 

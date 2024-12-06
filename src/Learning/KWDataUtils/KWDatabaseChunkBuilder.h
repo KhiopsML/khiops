@@ -72,16 +72,16 @@ public:
 	//  . debut de position du chunk par table
 	//  . fin de position du chunk par table
 	//  . index du premier record du chunk par table
-	//  . derniere cle racine du chunk
+	//  . derniere cle principale du chunk
 	// Memoire: les objet retournes appartiennent a l'appelant
 
 	// Nombre total de chunk
 	int GetChunkNumber() const;
 
-	// Derniere cle racine du chunk precedent
+	// Derniere cle principale du chunk precedent
 	// Renvoie une cle vide pour le premier chunk
 	// Renvoie une cle vide systematiquement dans le cas particulier d'une base reduite a une seule table sans cle
-	void GetChunkLastRootKeyAt(int nChunkIndex, KWKey* lastRootKey) const;
+	void GetChunkLastMainKeyAt(int nChunkIndex, KWKey* lastMainKey) const;
 
 	// Vecteur des index du dernier record du chunk precedent, par table
 	// Renvoie un index 0 par table pour le premier chunk
