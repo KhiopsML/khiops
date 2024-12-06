@@ -92,8 +92,17 @@ if command -v mpiexec &>/dev/null; then
     KHIOPS_MPI_ERROR=""
     KHIOPS_MPI_COMMAND="$(type -P mpiexec) $MPI_EXTRA_FLAGS @KHIOPS_MPI_EXTRA_FLAG@ @MPIEXEC_NUMPROC_FLAG@ $KHIOPS_PROC_NUMBER"
 else
-    KHIOPS_MPI_ERROR="We didn't find mpiexec in the regular path. Parallel computation is unavailable: Khiops is launched in serial"
-    KHIOPS_MPI_COMMAND=""
+    # Fallback for Conda-based environments where `mpiexec` is not in PATH,
+    # because $CONDA_PREFIX/bin is not in PATH
+    _MPIEXEC=@KHIOPS_PATH@mpiexec
+    if command -v $_MPIEXEC &>/dev/null; then
+        KHIOPS_MPI_ERROR=""
+        KHIOPS_MPI_COMMAND="$_MPIEXEC $MPI_EXTRA_FLAGS @KHIOPS_MPI_EXTRA_FLAG@ @MPIEXEC_NUMPROC_FLAG@ $KHIOPS_PROC_NUMBER"
+    else
+        KHIOPS_MPI_ERROR="We didn't find mpiexec in the expected paths. Parallel computation is unavailable: Khiops is launched in serial"
+        KHIOPS_MPI_COMMAND=""
+    fi
+    unset _MPIEXEC
 fi
 
 # without more than 2 procs, we use the serial khiops
