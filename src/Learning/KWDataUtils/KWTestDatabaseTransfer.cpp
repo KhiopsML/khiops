@@ -588,35 +588,35 @@ void KWTestDatabaseTransfer::MTTest()
 	MTTestWithArtificialDatabase(2, 1, false, 10000, 1, 1, 100000, 10, 1, 0, 100000, "No use of secondary table");
 	MTTestWithArtificialDatabase(2, 2, true, 100000, 1, 0.01, 1000000, 10, 0.01, 10000, 100000,
 				     "Heavily sampled, with orphan records");
-	MTTestWithArtificialDatabase(2, 2, true, 100000, 5, 1, 100000, 1, 1, 10000, 1000000, "Root duplicates");
+	MTTestWithArtificialDatabase(2, 2, true, 100000, 5, 1, 100000, 1, 1, 10000, 1000000, "Main duplicates");
 	MTTestWithArtificialDatabase(2, 1, false, 100, 2, 1, 0, 10, 1, 100, 200,
-				     "Root duplicates with several processes");
+				     "Main duplicates with several processes");
 	MTTestWithArtificialDatabase(2, 2, true, 300, 2, 0.3, 500, 2, 1, 100, 1000,
-				     "Root duplicates and orphans records with several processes");
+				     "Main duplicates and orphans records with several processes");
 	MTTestWithArtificialDatabase(2, 2, true, 300, 3, 1, 10000, 10, 1, 100, 1000,
-				     "Root duplicates and many orphans records with several processes");
-	MTTestWithArtificialDatabase(2, 2, true, 100000, 1, 0, 1000000, 10, 0.01, 10000, 100000, "No root instances");
+				     "Main duplicates and many orphans records with several processes");
+	MTTestWithArtificialDatabase(2, 2, true, 100000, 1, 0, 1000000, 10, 0.01, 10000, 100000, "No main instances");
 	MTTestWithArtificialDatabase(2, 2, true, 100000, 1, 0.01, 1000000, 10, 0, 10000, 100000,
 				     "No secondary records");
 	MTTestWithArtificialDatabase(2, 2, true, 100000, 1, 0.5, 1000000, 10, 0.2, 10000, 1000000,
 				     "Medium sampled with varying record number per instance");
-	MTTestWithArtificialDatabase(2, 2, true, 1, 1, 1, 1000000, 10, 0.01, 10000, 10000, "One single root instance");
+	MTTestWithArtificialDatabase(2, 2, true, 1, 1, 1, 1000000, 10, 0.01, 10000, 10000, "One single main instance");
 	MTTestWithArtificialDatabase(2, 2, true, 100000, 1, 1, 1000000, 10, 1, 0, 0, "Large");
 	MTTestWithArtificialDatabase(3, 3, true, 10000, 1, 1, 100000, 10, 1, 10000, 100000, "Snow-flake schema");
 	MTTestWithArtificialDatabase(3, 0, true, 10000, 1, 1, 100000, 10, 1, 10000, 100000,
-				     "Snow-flake schema with no used sub-table");
+				     "Snowflake schema with no used sub-table");
 	MTTestWithArtificialDatabase(3, 0, false, 10000, 1, 1, 100000, 10, 1, 10000, 100000,
-				     "Snow-flake schema using only root table");
+				     "Snowflake schema using only main table");
 	MTTestWithArtificialDatabase(4, 4, true, 10000, 1, 1, 100000, 10, 1, 10000, 100000, "Full schema");
 	MTTestWithArtificialDatabase(4, 0, true, 10000, 1, 1, 100000, 10, 1, 10000, 100000,
 				     "Full schema with no used sub-table");
 	MTTestWithArtificialDatabase(4, 0, false, 10000, 1, 1, 100000, 10, 1, 10000, 100000,
-				     "Full schema using only root table");
+				     "Full schema using only main table");
 }
 
 void KWTestDatabaseTransfer::MTTestWithArtificialDatabase(int nTableNumber, int nUsedTableNumber,
-							  boolean bUseBuildRules, int nRootLineNumber,
-							  int nRootLineNumberPerKey, double dRootSamplingRate,
+							  boolean bUseBuildRules, int nMainLineNumber,
+							  int nMainLineNumberPerKey, double dMainSamplingRate,
 							  int nSecondaryLineNumber, int nSecondaryLineNumberPerKey,
 							  double dSecondarySamplingRate, int nBufferSize,
 							  int lMaxFileSizePerProcess, const ALString& sTestLabel)
@@ -624,7 +624,7 @@ void KWTestDatabaseTransfer::MTTestWithArtificialDatabase(int nTableNumber, int 
 	boolean bShowTime = false;
 	KWDatabaseTransferTask databaseTransfer;
 	boolean bOk;
-	const int nRootIndex = 0;
+	const int nMainIndex = 0;
 	const int nSecondary01Index = 1;
 	const int nSecondary0nIndex = 2;
 	const int nExternalIndex = 3;
@@ -651,9 +651,9 @@ void KWTestDatabaseTransfer::MTTestWithArtificialDatabase(int nTableNumber, int 
 	require(nTableNumber >= 0);
 	require(nUsedTableNumber >= 0);
 	require(nUsedTableNumber <= nTableNumber);
-	require(nRootLineNumber >= 0);
-	require(nRootLineNumberPerKey >= 0);
-	require(dRootSamplingRate >= 0);
+	require(nMainLineNumber >= 0);
+	require(nMainLineNumberPerKey >= 0);
+	require(dMainSamplingRate >= 0);
 	require(nSecondaryLineNumber >= 0);
 	require(nSecondaryLineNumberPerKey >= 0);
 	require(dSecondarySamplingRate >= 0);
@@ -672,7 +672,7 @@ void KWTestDatabaseTransfer::MTTestWithArtificialDatabase(int nTableNumber, int 
 	cout << endl;
 	cout << "=============================================================================" << endl;
 	cout << databaseTransfer.GetTaskLabel() << ":"
-	     << " Root(" << nRootLineNumber << ", " << nRootLineNumberPerKey << ", " << dRootSamplingRate << ")";
+	     << " Main(" << nMainLineNumber << ", " << nMainLineNumberPerKey << ", " << dMainSamplingRate << ")";
 	if (nTableNumber >= 2)
 		cout << " Secondary(" << nSecondaryLineNumber << ", " << nSecondaryLineNumberPerKey << ", "
 		     << dSecondarySamplingRate << ")";
@@ -692,15 +692,15 @@ void KWTestDatabaseTransfer::MTTestWithArtificialDatabase(int nTableNumber, int 
 
 	// Creation du fichier principal
 	artificialDataset = new KWArtificialDataset;
-	oaArtificialDatasets.SetAt(nRootIndex, artificialDataset);
+	oaArtificialDatasets.SetAt(nMainIndex, artificialDataset);
 	timer.Reset();
 	timer.Start();
 	if (nTableNumber == 0)
 		artificialDataset->GetKeyFieldIndexes()->SetSize(0);
-	artificialDataset->SetLineNumber(nRootLineNumber);
-	artificialDataset->SetMaxLineNumberPerKey(nRootLineNumberPerKey);
-	artificialDataset->SetSamplingRate(dRootSamplingRate);
-	artificialDataset->SetFileName(FileService::BuildFilePathName(FileService::GetTmpDir(), "Root.txt"));
+	artificialDataset->SetLineNumber(nMainLineNumber);
+	artificialDataset->SetMaxLineNumberPerKey(nMainLineNumberPerKey);
+	artificialDataset->SetSamplingRate(dMainSamplingRate);
+	artificialDataset->SetFileName(FileService::BuildFilePathName(FileService::GetTmpDir(), "Main.txt"));
 	artificialDataset->CreateDataset();
 	artificialDataset->DisplayFirstLines(15);
 	timer.Stop();
@@ -709,7 +709,7 @@ void KWTestDatabaseTransfer::MTTestWithArtificialDatabase(int nTableNumber, int 
 
 	// Creation de son dictionnaire
 	kwcClass = ComputeArtificialClass(artificialDataset);
-	oaArtificialClasses.SetAt(nRootIndex, kwcClass);
+	oaArtificialClasses.SetAt(nMainIndex, kwcClass);
 	if (nTableNumber >= 1)
 		kwcClass->SetRoot(true);
 	KWClassDomain::GetCurrentDomain()->InsertClass(kwcClass);
@@ -718,7 +718,7 @@ void KWTestDatabaseTransfer::MTTestWithArtificialDatabase(int nTableNumber, int 
 	if (nTableNumber >= 3)
 	{
 		// Utilisation d'une copie du fichier principal
-		artificialDataset = cast(KWArtificialDataset*, oaArtificialDatasets.GetAt(nRootIndex))->Clone();
+		artificialDataset = cast(KWArtificialDataset*, oaArtificialDatasets.GetAt(nMainIndex))->Clone();
 		oaArtificialDatasets.SetAt(nSecondary01Index, artificialDataset);
 		timer.Reset();
 		timer.Start();
@@ -747,7 +747,7 @@ void KWTestDatabaseTransfer::MTTestWithArtificialDatabase(int nTableNumber, int 
 		oaArtificialDatasets.SetAt(nSecondary0nIndex, artificialDataset);
 		timer.Reset();
 		timer.Start();
-		artificialDataset->CopyFrom(cast(KWArtificialDataset*, oaArtificialDatasets.GetAt(nRootIndex)));
+		artificialDataset->CopyFrom(cast(KWArtificialDataset*, oaArtificialDatasets.GetAt(nMainIndex)));
 		artificialDataset->SetFieldNumber(2);
 		artificialDataset->GetKeyFieldIndexes()->SetAt(0, 1);
 		artificialDataset->SetLineNumber(nSecondaryLineNumber);
@@ -771,7 +771,7 @@ void KWTestDatabaseTransfer::MTTestWithArtificialDatabase(int nTableNumber, int 
 	if (nTableNumber >= 4)
 	{
 		// Utilisation d'une copie du fichier principal
-		artificialDataset = cast(KWArtificialDataset*, oaArtificialDatasets.GetAt(nRootIndex))->Clone();
+		artificialDataset = cast(KWArtificialDataset*, oaArtificialDatasets.GetAt(nMainIndex))->Clone();
 		oaArtificialDatasets.SetAt(nExternalIndex, artificialDataset);
 		timer.Reset();
 		timer.Start();
@@ -797,7 +797,7 @@ void KWTestDatabaseTransfer::MTTestWithArtificialDatabase(int nTableNumber, int 
 	{
 		// Acces aux tables a lier
 		if (nTableNumber == 2)
-			kwcClass = cast(KWClass*, oaArtificialClasses.GetAt(nRootIndex));
+			kwcClass = cast(KWClass*, oaArtificialClasses.GetAt(nMainIndex));
 		else
 			kwcClass = cast(KWClass*, oaArtificialClasses.GetAt(nSecondary01Index));
 		kwcSubClass = cast(KWClass*, oaArtificialClasses.GetAt(nSecondary0nIndex));
@@ -831,7 +831,7 @@ void KWTestDatabaseTransfer::MTTestWithArtificialDatabase(int nTableNumber, int 
 	if (nTableNumber >= 3)
 	{
 		// Acces aux tables a lier
-		kwcClass = cast(KWClass*, oaArtificialClasses.GetAt(nRootIndex));
+		kwcClass = cast(KWClass*, oaArtificialClasses.GetAt(nMainIndex));
 		kwcSubClass = cast(KWClass*, oaArtificialClasses.GetAt(nSecondary01Index));
 
 		// Preparation du schema multi-tables avec un attribut de lien vers la table secondaire
@@ -862,7 +862,7 @@ void KWTestDatabaseTransfer::MTTestWithArtificialDatabase(int nTableNumber, int 
 	if (nTableNumber >= 4)
 	{
 		// Acces aux tables a lier
-		kwcClass = cast(KWClass*, oaArtificialClasses.GetAt(nRootIndex));
+		kwcClass = cast(KWClass*, oaArtificialClasses.GetAt(nMainIndex));
 		kwcSubClass = cast(KWClass*, oaArtificialClasses.GetAt(nExternalIndex));
 		assert(kwcSubClass->GetKeyAttributeNumber() == 1);
 
@@ -900,8 +900,8 @@ void KWTestDatabaseTransfer::MTTestWithArtificialDatabase(int nTableNumber, int 
 	KWClassDomain::GetCurrentDomain()->Compile();
 
 	// Initialisation de la base source
-	kwcClass = cast(KWClass*, oaArtificialClasses.GetAt(nRootIndex));
-	artificialDataset = cast(KWArtificialDataset*, oaArtificialDatasets.GetAt(nRootIndex));
+	kwcClass = cast(KWClass*, oaArtificialClasses.GetAt(nMainIndex));
+	artificialDataset = cast(KWArtificialDataset*, oaArtificialDatasets.GetAt(nMainIndex));
 	databaseSource.SetClassName(kwcClass->GetName());
 	databaseSource.SetHeaderLineUsed(artificialDataset->GetHeaderLineUsed());
 	databaseSource.SetFieldSeparator(artificialDataset->GetFieldSeparator());
@@ -1011,9 +1011,9 @@ void KWTestDatabaseTransfer::MTMainTestReadWrite(int argc, char** argv)
 		cout << "TestReadWrite "
 		     << "<ClassFileName> "
 		     << "<ClassName> "
-		     << "<RootReadFileName> "
+		     << "<MainReadFileName> "
 		     << "<SecondaryReadFileName> "
-		     << "<RootWriteFileName> "
+		     << "<MainWriteFileName> "
 		     << "<SecondaryWriteFileName>" << endl;
 	}
 	else
@@ -1021,8 +1021,8 @@ void KWTestDatabaseTransfer::MTMainTestReadWrite(int argc, char** argv)
 }
 
 void KWTestDatabaseTransfer::MTTestReadWrite(const ALString& sClassFileName, const ALString& sClassName,
-					     const ALString& sRootReadFileName, const ALString& sSecondaryReadFileName,
-					     const ALString& sRootWriteFileName,
+					     const ALString& sMainReadFileName, const ALString& sSecondaryReadFileName,
+					     const ALString& sMainWriteFileName,
 					     const ALString& sSecondaryWriteFileName)
 {
 	boolean bOk = true;
@@ -1053,7 +1053,7 @@ void KWTestDatabaseTransfer::MTTestReadWrite(const ALString& sClassFileName, con
 	{
 		// Initialisation de la base source
 		readDatabase.SetClassName(sClassName);
-		readDatabase.SetDatabaseName(sRootReadFileName);
+		readDatabase.SetDatabaseName(sMainReadFileName);
 		readDatabase.UpdateMultiTableMappings();
 
 		// Initialisation de la table secondaire
@@ -1066,7 +1066,7 @@ void KWTestDatabaseTransfer::MTTestReadWrite(const ALString& sClassFileName, con
 	if (bOk)
 	{
 		writeDatabase.SetClassName(sClassName);
-		writeDatabase.SetDatabaseName(sRootWriteFileName);
+		writeDatabase.SetDatabaseName(sMainWriteFileName);
 		writeDatabase.UpdateMultiTableMappings();
 
 		// Initialisation de la table secondaire
