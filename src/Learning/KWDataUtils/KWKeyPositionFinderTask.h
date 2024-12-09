@@ -89,11 +89,11 @@ public:
 	// Methode de test
 	static void Test();
 
-	// Test en specifiant les caracteristiques d'une table racine et d'une table secondaire
+	// Test en specifiant les caracteristiques d'une table principale et d'une table secondaire
 	// au moyen de jeux de donnees artificiels
 	// La taille de buffer n'est prise en compte que si elle est differente de 0.
-	static boolean TestWithArtificialRootAndSecondaryTables(int nRootLineNumber, int nRootLineNumberPerKey,
-								double dRootSamplingRate, int nSecondaryLineNumber,
+	static boolean TestWithArtificialMainAndSecondaryTables(int nMainLineNumber, int nMainLineNumberPerKey,
+								double dMainSamplingRate, int nSecondaryLineNumber,
 								int nSecondaryLineNumberPerKey,
 								double dSecondarySamplingRate, int nBufferSize);
 

@@ -499,7 +499,7 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 		kwcTargetClass = kwcOwnerClass->GetDomain()->LookupClass(GetObjectClassName());
 		assert(kwcTargetClass != NULL);
 
-		// La class cible ne doit pas etre Root
+		// La classe cible ne doit pas etre Root
 		if (kwcTargetClass->GetRoot())
 		{
 			AddError(sTmp + "Invalid output dictionary " + kwcTargetClass->GetName() +
