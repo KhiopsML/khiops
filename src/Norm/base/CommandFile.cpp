@@ -6,6 +6,7 @@
 
 CommandFile::CommandFile()
 {
+	bBatchMode = false;
 	bPrintOutputInConsole = false;
 	fInputCommands = NULL;
 	fOutputCommands = NULL;
@@ -24,6 +25,7 @@ void CommandFile::Reset()
 {
 	require(not AreCommandFilesOpened());
 
+	bBatchMode = false;
 	SetInputCommandFileName("");
 	SetInputParameterFileName("");
 	SetOutputCommandFileName("");
@@ -54,6 +56,16 @@ void CommandFile::SetOutputCommandFileName(const ALString& sFileName)
 	if (sOutputCommandFileName == "/dev/stdout" or sOutputCommandFileName == "/dev/stderr")
 		bPrintOutputInConsole = true;
 #endif
+}
+
+void CommandFile::SetBatchMode(boolean bValue)
+{
+	bBatchMode = bValue;
+}
+
+boolean CommandFile::GetBatchMode() const
+{
+	return bBatchMode;
 }
 
 const ALString& CommandFile::GetOutputCommandFileName() const
@@ -217,15 +229,15 @@ boolean CommandFile::AreCommandFilesOpened() const
 
 void CommandFile::CloseInputCommandFile()
 {
-	static boolean bPendingFatalError = false;
+	static boolean bPendingError = false;
 	boolean bOk;
 	boolean bIsParserOkBeforeEnd;
 	boolean bIsParserOkAfterEnd;
 	StringVector svIdentifierPath;
 	ALString sValue;
 
-	// Arret immediat en cas d'erreur fatale en cours: cf. fin de la methode
-	if (bPendingFatalError)
+	// Arret immediat en cas d'erreur en cours: cf. fin de la methode
+	if (bPendingError)
 	{
 		assert(fInputCommands == NULL);
 		return;
@@ -269,19 +281,25 @@ void CommandFile::CloseInputCommandFile()
 	// Erreur fatale standard si erreur avant la fin de fichier
 	// On empeche une boucle infinie en cas d'erreur fatale, car la destruction des objets statiques
 	// et la fermeture des fichiers est appellee apres la fin du main en cas d'erreur fatale
-	assert(not bPendingFatalError);
+	assert(not bPendingError);
 	if (not bIsParserOkBeforeEnd)
 	{
 		AddInputCommandFileError("Analysis of input commands interrupted because of errors");
-		bPendingFatalError = true;
-		Global::AddFatalError("Command file", "", "Batch mode failure");
+		bPendingError = true;
+
+		// Erreur fatale uniquement en mode batch
+		if (GetBatchMode())
+			Global::AddFatalError("Command file", "", "Batch mode failure");
 	}
 	// Erreur fatale en cas d'erreurs detectees apres la fermeture du fichier
 	else if (not bIsParserOkAfterEnd)
 	{
-		bPendingFatalError = true,
-		Global::AddFatalError("Command file", "",
-				      "Batch mode failure detected when closing input command file");
+		bPendingError = true;
+
+		// Erreur fatale uniquement en mode batch
+		if (GetBatchMode())
+			Global::AddFatalError("Command file", "",
+					      "Batch mode failure detected when closing input command file");
 	}
 }
 
