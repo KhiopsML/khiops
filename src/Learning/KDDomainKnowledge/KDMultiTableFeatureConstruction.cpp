@@ -1589,13 +1589,18 @@ void KDMultiTableFeatureConstruction::ComputeAllClassesCompliantRules(
 			 outputClassDomainCompliantRules->GetAllClassesCompliantRules()->GetAt(nClass));
 		kwcClass = classCompliantRules->GetClass();
 
-		// On interdit les cles de la classe
-		// De facon generale, il s'agit d'un principe: la cle ne sert qu'a encoder une structure et la
-		// memoriser: il ne s'agit pas d'attributs porteurs d'information. Pour la classe principale, les cle
-		// apparaissent une seule fois instance, et ne peuvent etre informatives. Pour les classes secondaires
-		// inclues, les cles sont soient unique par instance principale (la cle de l'incluant) sans interet,
-		// soit avec un role d'identifiant dans la table secondaire, sans interet autre que compter le nombre
-		// d'enregistrements (par CountDistinct, ici redondant avec Count).
+		// On interdit l'utilisation des cles du schema-multi-table pour la construction de variables.
+		// Les cles ne sont pas des attributs porteurs d'information.
+		// Pour la classe principale, les cles apparaissent une seule fois par instance, et ne peuvent pas etre informatives.
+		// Pour les classes secondaires du schema, les cles sont soit uniques par instance principale (la cle de l'incluant)
+		// et donc sans interet, soit avec un role d'identifiant dans la table secondaire, sans interet autre que de compter
+		// le nombre d'enregistrements (par CountDistinct, ici redondant avec Count).
+		//
+		// De facon generale, les cles ne sont qu'un moyen technique permettant d'encoder une structure, via des
+		// cles de jointure pour lire des donnees stockees dans plusieurs fichiers.
+		// Dans le cas de tables construites par des regles de derivation, les cles ne sont pas utiles
+		// et peuvent meme etre absentes des dictionnaires.
+		// L'information exploitable est ainsi independante du mode de stockage (avec ou sans cle).
 		for (nKey = 0; nKey < kwcClass->GetKeyAttributeNumber(); nKey++)
 		{
 			classCompliantRules->GetForbiddenAttributes()->SetAt(kwcClass->GetKeyAttributeNameAt(nKey),
