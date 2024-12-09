@@ -39,6 +39,11 @@ public:
 	void SetOutputCommandFileName(const ALString& sFileName);
 	const ALString& GetOutputCommandFileName() const;
 
+	// Mode batch, pour creer une erreur fatale en d'erreur de commande (defaut: false)
+	// En mode GUI, on continue dans la GUI apres avoir simplement signale l'erreur
+	void SetBatchMode(boolean bValue);
+	boolean GetBatchMode() const;
+
 	// Indique qu'il faut afficher les sorties dans la console
 	// Determine par le parametrage du fichier de commande en sortie
 	boolean GetPrintOutputInConsole() const;
@@ -320,6 +325,9 @@ protected:
 	// Gestion des chaines des patterns a remplacer par des valeurs dans les fichiers d'input de scenario
 	StringVector svInputCommandSearchValues;
 	StringVector svInputCommandReplaceValues;
+
+	// Mode batch
+	boolean bBatchMode;
 
 	///////////////////////////////////////////////////////////////
 	// Variables de gestion des fichiers et parametres de commandes

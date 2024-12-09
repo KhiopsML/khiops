@@ -562,6 +562,7 @@ CommandLineOption::CommandLineOption()
 	nPriority = INT_MAX;
 	bIsUsed = false;
 	bIsFinal = false;
+	nIndexUsage = 0;
 }
 
 CommandLineOption::~CommandLineOption()

@@ -2106,6 +2106,7 @@ boolean UIObject::BatchCommand(const ALString& sParameter)
 	assert(sParameter == "");
 
 	bBatchMode = true;
+	commandFile.SetBatchMode(bBatchMode);
 	return true;
 }
 
