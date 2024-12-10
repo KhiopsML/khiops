@@ -17,6 +17,12 @@ KILeverVariablesSpecView::KILeverVariablesSpecView()
 	GetAttributeSpecArrayView()->GetFieldAt("Derived")->SetVisible(false);
 	GetAttributeSpecArrayView()->GetFieldAt("Label")->SetVisible(false);
 	GetAttributeSpecArrayView()->GetFieldAt("MetaData")->SetVisible(false);
+
+	// Info-bulles
+	//GetFieldAt("ClassName")->SetHelpText("Name of the predictor dictionary");
+
+	GetActionAt("SelectAll")->SetHelpText("Select all the variables to test.");
+	GetActionAt("UnselectAll")->SetHelpText("Unselect all the variables to test.");
 }
 
 KILeverVariablesSpecView::~KILeverVariablesSpecView() {}
@@ -39,12 +45,10 @@ void KILeverVariablesSpecView::EventUpdate(Object* object)
 	// Recherche de la classe editee
 	kwcClass = KWClassDomain::GetCurrentDomain()->LookupClass(editedObject->GetClassName());
 
-	// Mise a jour des metatags des attributs leviers a partir des specifications, si une classe utilisable par
-	// l'interpretation a ete chargee par l'utilisateur
+	// Mise a jour des metatags des attributs leviers a partir des specifications, si une classe utilisable par l'interpretation a ete chargee par l'utilisateur
 	if (kwcClass != NULL)
 	{
-		// on ne touche pas a la propriete Used de l'attribut, afin de ne pas faire apparaitre inutilement cet
-		// attribut dans le transfert, si pas demande
+		// on ne touche pas a la propriete Used de l'attribut, afin de ne pas faire apparaitre inutilement cet attribut dans le transfert, si pas demande
 
 		for (int nAttribute = 0; nAttribute < oaAttributeSpecs.GetSize(); nAttribute++)
 		{
@@ -80,8 +84,7 @@ void KILeverVariablesSpecView::SetObject(Object* object)
 	editedObject = cast(KWClassSpec*, object);
 	kwcClass = KWClassDomain::GetCurrentDomain()->LookupClass(editedObject->GetClassName());
 
-	// Mise a jour des specifications des attributs a partir de la classe, si une classe utilisable par
-	// l'interpretation a ete chargee par l'utilisateur
+	// Mise a jour des specifications des attributs a partir de la classe, si une classe utilisable par l'interpretation a ete chargee par l'utilisateur
 	if (kwcClass != NULL)
 	{
 		oaAttributeSpecs.DeleteAll();
