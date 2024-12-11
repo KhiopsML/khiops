@@ -39,8 +39,8 @@ void KWLearningProblem::ComputeStats()
 	require(CheckTargetAttribute());
 	require(CheckTrainDatabaseName());
 	require(CheckResultFileNames());
-	require(GetTrainDatabase()->CheckSelectionValue(GetTrainDatabase()->GetSelectionValue()));
-	require(GetTestDatabase()->CheckSelectionValue(GetTestDatabase()->GetSelectionValue()));
+	require(GetTrainDatabase()->Check());
+	require(GetTestDatabase()->GetDatabaseName() == "" or GetTestDatabase()->Check());
 	require(GetAnalysisSpec()->GetModelingSpec()->GetAttributeConstructionSpec()->GetTextFeatureSpec()->Check());
 	require(GetAnalysisSpec()->GetRecoderSpec()->GetRecodingSpec()->Check());
 	require(CheckRecodingSpecs());
@@ -59,6 +59,12 @@ void KWLearningProblem::ComputeStats()
 	TaskProgression::SetTitle("Train model " + GetClassName() + " " + GetTargetAttributeName());
 	TaskProgression::SetDisplayedLevelNumber(2);
 	TaskProgression::Start();
+
+	// Affichage de warnings lie aux mappings dans le cas multi-table
+	// Cet affichage est effectue une seule fois, uniquement pour la phase d'apprentissage
+	// Cela n'est pas la peine de le faire pour la base de test, car les warning sont de meme nature
+	if (GetTrainDatabase()->IsMultiTableTechnology())
+		cast(KWMTDatabase*, GetTrainDatabase())->DisplayMultiTableMappingWarnings();
 
 	////////////////////////////////////////////////////////////////////////////////////////////
 	// Initialisations

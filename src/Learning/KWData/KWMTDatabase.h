@@ -83,6 +83,12 @@ public:
 	// Verification du format de la base
 	boolean CheckFormat() const override;
 
+	// Affichage de warnings dedies au mapping multi-table
+	// Ces warnings ne sont pas affiches lors du Check, pour eviter d'entrainer une
+	// nuisance pour l'utilisateur par des affichage repetes
+	// C'est a l'applicatif de decider quand appeler explicitement cette methode
+	void DisplayMultiTableMappingWarnings() const;
+
 	// Reimplementation de la methode de parametrage du mode d'affichage des messages
 	// Propagation au tables mappees
 	void SetVerboseMode(boolean bValue) override;
@@ -148,7 +154,7 @@ protected:
 	// Les classes referencees sont memorisees dans un dictionnaire et un tableau,
 	// pour gerer les mappings externes a creer ulterieurement
 	// Les mappings crees recursivement sont memorises dans un tableau
-	// Les classes crees analysees sont egalement memorisees dans un dictionnaire, pour eviter des analyses multiples
+	// Les classes creees analysees sont egalement memorisees dans un dictionnaire, pour eviter des analyses multiples
 	KWMTDatabaseMapping* CreateMapping(ObjectDictionary* odReferenceClasses, ObjectArray* oaRankedReferenceClasses,
 					   ObjectDictionary* odAnalysedCreatedClasses, KWClass* mappedClass,
 					   boolean bIsExternalTable, const ALString& sOriginClassName,
