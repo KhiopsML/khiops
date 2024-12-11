@@ -561,6 +561,9 @@ boolean KWMTDatabase::CheckPartially(boolean bWriteOnly) const
 		nCheckReadFreshness = nFreshness;
 	}
 
+	// Activation du controle d'erreur
+	Global::ActivateErrorFlowControl();
+
 	// Verification de la validite des specifications de mapping
 	if (bOk)
 	{
@@ -751,14 +754,10 @@ boolean KWMTDatabase::CheckPartially(boolean bWriteOnly) const
 				}
 			}
 		}
-
-		// En lecture, emission des eventuels warnings en cas de table externe non utilisable
-		if (bOk and not bWriteOnly)
-		{
-			for (n = 0; n < svUnusedRootDictionaryWarnings.GetSize(); n++)
-				AddWarning(svUnusedRootDictionaryWarnings.GetAt(n));
-		}
 	}
+
+	// Desactivation du controle d'erreur
+	Global::DesactivateErrorFlowControl();
 
 	// Memorisation de la verification
 	if (bWriteOnly)
@@ -788,6 +787,19 @@ boolean KWMTDatabase::CheckFormat() const
 	// Test pour la base ancetre
 	bOk = bOk and KWDatabase::CheckFormat();
 	return bOk;
+}
+
+void KWMTDatabase::DisplayMultiTableMappingWarnings() const
+{
+	int n;
+
+	require(Check());
+
+	// Emission des eventuels warnings en cas de table externe non utilisable
+	Global::ActivateErrorFlowControl();
+	for (n = 0; n < svUnusedRootDictionaryWarnings.GetSize(); n++)
+		AddWarning(svUnusedRootDictionaryWarnings.GetAt(n));
+	Global::DesactivateErrorFlowControl();
 }
 
 void KWMTDatabase::SetVerboseMode(boolean bValue)

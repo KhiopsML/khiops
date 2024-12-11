@@ -83,6 +83,12 @@ public:
 	// Verification du format de la base
 	boolean CheckFormat() const override;
 
+	// Affichage de warnings dedies au mapping multi-table
+	// Ces warnings ne sont pas affiches lors du Check, pour eviter d'entrainer une
+	// nuisance pour l'utilisateur par des affichage repetes
+	// C'est a l'applicatif de decider quand appeler explicitement cette methode
+	void DisplayMultiTableMappingWarnings() const;
+
 	// Reimplementation de la methode de parametrage du mode d'affichage des messages
 	// Propagation au tables mappees
 	void SetVerboseMode(boolean bValue) override;

@@ -199,10 +199,7 @@ void CCLearningProblemView::BuildCoclustering()
 
 	// OK si nom du fichier renseigne et classe correcte
 	if (bOk and GetLearningProblem()->CheckClass() and GetLearningProblem()->CheckDatabaseName() and
-	    GetLearningProblem()->GetDatabase()->Check() and
-	    GetLearningProblem()->GetDatabase()->CheckSelectionValue(
-		GetLearningProblem()->GetDatabase()->GetSelectionValue()) and
-	    GetLearningProblem()->CheckCoclusteringSpecifications() and
+	    GetLearningProblem()->GetDatabase()->Check() and GetLearningProblem()->CheckCoclusteringSpecifications() and
 	    GetLearningProblem()->CheckResultFileNames(CCLearningProblem::TaskBuildCoclustering))
 	{
 		// Calcul des stats

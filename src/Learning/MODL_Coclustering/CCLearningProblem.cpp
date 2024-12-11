@@ -127,7 +127,7 @@ void CCLearningProblem::BuildCoclustering()
 
 	require(CheckClass());
 	require(CheckDatabaseName());
-	require(GetDatabase()->CheckSelectionValue(GetDatabase()->GetSelectionValue()));
+	require(GetDatabase()->Check());
 	require(CheckCoclusteringSpecifications());
 	require(CheckResultFileNames(TaskBuildCoclustering));
 	require(not TaskProgression::IsStarted());
@@ -136,6 +136,12 @@ void CCLearningProblem::BuildCoclustering()
 	TaskProgression::SetTitle("Train coclustering " + GetClassName());
 	TaskProgression::SetDisplayedLevelNumber(2);
 	TaskProgression::Start();
+
+	// Affichage de warnings lie aux mappings dans le cas multi-table
+	// Cet affichage est effectue une seule fois, uniquement pour la phase d'apprentissage
+	// Cela n'est pas la peine de le faire pour la base de test, car les warning sont de meme nature
+	if (GetDatabase()->IsMultiTableTechnology())
+		cast(KWMTDatabase*, GetDatabase())->DisplayMultiTableMappingWarnings();
 
 	// Initialisations
 	kwcClass = NULL;
