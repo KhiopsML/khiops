@@ -11,6 +11,11 @@ KWMTDatabase::KWMTDatabase()
 	oaMultiTableMappings.SetSize(1);
 	oaMultiTableMappings.SetAt(0, mainMultiTableMapping);
 	dataTableDriverCreator = new KWDataTableDriver;
+	nFreshness = 0;
+	nCheckReadFreshness = 0;
+	nCheckWriteFreshness = 0;
+	bCheckRead = false;
+	bCheckWrite = false;
 }
 
 KWMTDatabase::~KWMTDatabase()
@@ -109,6 +114,13 @@ void KWMTDatabase::CopyFrom(const KWDatabase* kwdSource)
 
 	// Memorisation des warnings pour les dictionnaires racines non utilises
 	svUnusedRootDictionaryWarnings.CopyFrom(&kwmtdSource->svUnusedRootDictionaryWarnings);
+
+	// Memorisation des indicateurs de fraicheur
+	nFreshness = kwmtdSource->nFreshness;
+	nCheckReadFreshness = kwmtdSource->nCheckReadFreshness;
+	nCheckWriteFreshness = kwmtdSource->nCheckWriteFreshness;
+	bCheckRead = kwmtdSource->bCheckRead;
+	bCheckWrite = kwmtdSource->bCheckWrite;
 }
 
 int KWMTDatabase::Compare(const KWDatabase* kwdSource) const
@@ -150,6 +162,7 @@ void KWMTDatabase::SetDatabaseName(const ALString& sValue)
 	assert(oaMultiTableMappings.GetAt(0) == mainMultiTableMapping);
 	KWDatabase::SetDatabaseName(sValue);
 	mainMultiTableMapping->SetDataTableName(sValue);
+	nFreshness++;
 }
 
 const ALString& KWMTDatabase::GetDatabaseName() const
@@ -165,6 +178,7 @@ void KWMTDatabase::SetClassName(const ALString& sValue)
 	KWDatabase::SetClassName(sValue);
 	mainMultiTableMapping->SetClassName(sValue);
 	mainMultiTableMapping->SetOriginClassName(sValue);
+	nFreshness++;
 	ensure(GetClassName() == sValue);
 }
 
@@ -478,6 +492,9 @@ void KWMTDatabase::UpdateMultiTableMappings()
 		oaPreviousMultiTableMappings.DeleteAll();
 	}
 
+	// Mise a jour de la fraicheur
+	nFreshness++;
+
 	// Affichage des mappings finaux
 	if (bTrace)
 		WriteMapingArray(cout, "Database " + GetDatabaseName() + " " + GetClassName() + " mappings",
@@ -528,6 +545,21 @@ boolean KWMTDatabase::CheckPartially(boolean bWriteOnly) const
 	// Arret immediat si erreur de base, pour eviter l'analyse du mapping
 	if (not bOk)
 		return bOk;
+
+	// Bufferisation de la verification uniquement a partir de la verification du mapping;
+	// qui est tres couteuse
+	if (bWriteOnly)
+	{
+		if (nCheckWriteFreshness == nFreshness)
+			return bCheckWrite;
+		nCheckWriteFreshness = nFreshness;
+	}
+	else
+	{
+		if (nCheckReadFreshness == nFreshness)
+			return bCheckRead;
+		nCheckReadFreshness = nFreshness;
+	}
 
 	// Verification de la validite des specifications de mapping
 	if (bOk)
@@ -728,6 +760,17 @@ boolean KWMTDatabase::CheckPartially(boolean bWriteOnly) const
 		}
 	}
 
+	// Memorisation de la verification
+	if (bWriteOnly)
+	{
+		assert(nCheckWriteFreshness == nFreshness);
+		bCheckWrite = bOk;
+	}
+	else
+	{
+		assert(nCheckReadFreshness == nFreshness);
+		bCheckRead = bOk;
+	}
 	return bOk;
 }
 

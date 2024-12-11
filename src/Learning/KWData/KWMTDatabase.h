@@ -244,6 +244,19 @@ protected:
 	// pour eviter les cycles dans les donnees
 	mutable StringVector svUnusedRootDictionaryWarnings;
 
+	// Fraicheur des specifications et de leur verification, pour bufferiser la methode Check
+	// En theorie, la fraicheur ne capture pas de facon exhaustive toutes les modifications possibles
+	// de la classe et pourrait empecher a tort une verification necessaire.
+	// En pratique, la methode UpdateMultiTableMappings est appelee systematiquement a chaque changement
+	// important, et la bufferisation du Check est sans risque.
+	// Elle est tres utile, notamment en mode debug, ou les Check de databases multi-tables sont complexes,
+	// et sont potentiellement appeles des dizaines de milliers de fois.
+	int nFreshness;
+	mutable int nCheckReadFreshness;
+	mutable int nCheckWriteFreshness;
+	mutable boolean bCheckRead;
+	mutable boolean bCheckWrite;
+
 	// Nombre d'enregistrements ayant ete sautes (Skip)
 	// On ne peut faire des tests d'integrite sur les lignes de tables secondaires non associees
 	// a la table principale que si aucun enregistrement principal n'a ete saute
