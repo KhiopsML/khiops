@@ -349,8 +349,8 @@ void KWMTDatabase::UpdateMultiTableMappings()
 		if (bTrace)
 			WriteMapingArray(cout, "- main mappings " + mainClass->GetName(), &oaMultiTableMappings);
 
-		// Parcours des classes referencee pour creer leur mapping
-		// Ce mapping des classes referencees n'est pas effectuee dans le cas d'une base en ecriture
+		// Parcours des classes referencees pour creer leur mapping
+		// Ce mapping des classes referencees n'est pas effectue dans le cas d'une base en ecriture
 		i = 0;
 		while (i < oaRankedReferenceClasses.GetSize())
 		{
@@ -361,6 +361,8 @@ void KWMTDatabase::UpdateMultiTableMappings()
 			{
 				// Premiere passe de creation du mapping de la table racine externe, avec des containers de travail
 				// Cela permet d'analyser la structure des mappings, sans impacter directement le contenu des containers globaux
+				// On part de containers vides pour analyser le dictionnaire de reference dans un espace de travail independant,
+				// avant de decider s'il est utilisable et de le prendre en compte dans les mappings
 				odWorkingReferenceClasses.RemoveAll();
 				oaWorkingRankedReferenceClasses.RemoveAll();
 				odWorkingAnalysedCreatedClasses.RemoveAll();
@@ -372,14 +374,14 @@ void KWMTDatabase::UpdateMultiTableMappings()
 							&oaWorkingCreatedMappings);
 				assert(svAttributeName.GetSize() == 0);
 
-				// On determine si le dictionnaire de reference est utilisablen c'est a dire s'il n'utilise
+				// On determine si le dictionnaire de reference est utilisable, c'est a dire s'il n'utilise
 				// pas la classe principale dans ses mappings
 				bIsRootDictionaryUsable = true;
 				for (j = 0; j < oaWorkingCreatedMappings.GetSize(); j++)
 				{
 					mapping = cast(KWMTDatabaseMapping*, oaWorkingCreatedMappings.GetAt(j));
 
-					// Transfer des specification de la table mappee si comparaison positive
+					// Transfert des specifications de la table mappee si comparaison positive
 					if (mapping->GetClassName() == mainClass->GetName())
 					{
 						bIsRootDictionaryUsable = false;
@@ -396,10 +398,10 @@ void KWMTDatabase::UpdateMultiTableMappings()
 					oaCreatedMappings = new ObjectArray;
 					oaAllRootCreatedMappings.Add(oaCreatedMappings);
 
-					// Creation du mapping et memorisation de tous les mapping des sous-classes
+					// Creation du mapping et memorisation de tous les mappings des sous-classes
 					// Il est plus simple de rappeler la meme methode avec les container globaux
-					// que de fusionner les
-					// Et il n'y a aucn enjeu d'optimisation
+					// que de fusionner les containers de travail
+					// Et il n'y a aucun enjeu d'optimisation
 					assert(svAttributeName.GetSize() == 0);
 					mapping = CreateMapping(&odReferenceClasses, &oaRankedReferenceClasses,
 								&odAnalysedCreatedClasses, referenceClass, true,
@@ -477,7 +479,7 @@ void KWMTDatabase::UpdateMultiTableMappings()
 			{
 				mapping = cast(KWMTDatabaseMapping*, oaMultiTableMappings.GetAt(j));
 
-				// Transfer des specification de la table mappee si comparaison positive
+				// Transfert des specifications de la table mappee si comparaison positive
 				if (mapping->GetOriginClassName() == previousMapping->GetOriginClassName() and
 				    mapping->GetDataPathAttributeNames() ==
 					previousMapping->GetDataPathAttributeNames())
@@ -560,6 +562,9 @@ boolean KWMTDatabase::CheckPartially(boolean bWriteOnly) const
 			return bCheckRead;
 		nCheckReadFreshness = nFreshness;
 	}
+
+	// Activation du controle d'erreur
+	Global::ActivateErrorFlowControl();
 
 	// Verification de la validite des specifications de mapping
 	if (bOk)
@@ -751,14 +756,10 @@ boolean KWMTDatabase::CheckPartially(boolean bWriteOnly) const
 				}
 			}
 		}
-
-		// En lecture, emission des eventuels warnings en cas de table externe non utilisable
-		if (bOk and not bWriteOnly)
-		{
-			for (n = 0; n < svUnusedRootDictionaryWarnings.GetSize(); n++)
-				AddWarning(svUnusedRootDictionaryWarnings.GetAt(n));
-		}
 	}
+
+	// Desactivation du controle d'erreur
+	Global::DesactivateErrorFlowControl();
 
 	// Memorisation de la verification
 	if (bWriteOnly)
@@ -788,6 +789,19 @@ boolean KWMTDatabase::CheckFormat() const
 	// Test pour la base ancetre
 	bOk = bOk and KWDatabase::CheckFormat();
 	return bOk;
+}
+
+void KWMTDatabase::DisplayMultiTableMappingWarnings() const
+{
+	int n;
+
+	require(Check());
+
+	// Emission des eventuels warnings en cas de table externe non utilisable
+	Global::ActivateErrorFlowControl();
+	for (n = 0; n < svUnusedRootDictionaryWarnings.GetSize(); n++)
+		AddWarning(svUnusedRootDictionaryWarnings.GetAt(n));
+	Global::DesactivateErrorFlowControl();
 }
 
 void KWMTDatabase::SetVerboseMode(boolean bValue)
