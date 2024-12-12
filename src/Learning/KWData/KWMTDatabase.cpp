@@ -530,6 +530,7 @@ boolean KWMTDatabase::CheckPartially(boolean bWriteOnly) const
 	ObjectDictionary odDataTableNames;
 	KWMTDatabaseMapping* mapping;
 	int nMapping;
+	KWClass* mainClass;
 	KWClass* originClass;
 	ALString sOriginLabel;
 	ALString sAttributeName;
@@ -539,7 +540,6 @@ boolean KWMTDatabase::CheckPartially(boolean bWriteOnly) const
 	KWClass* pathClass;
 	KWMTDatabase checkDatabase;
 	KWMTDatabaseMapping* checkMapping;
-	int n;
 
 	// Test pour la base ancetre
 	bOk = KWDatabase::CheckPartially(bWriteOnly);
@@ -566,6 +566,22 @@ boolean KWMTDatabase::CheckPartially(boolean bWriteOnly) const
 	// Activation du controle d'erreur
 	Global::ActivateErrorFlowControl();
 
+	// Recherche de la classe principale
+	mainClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName());
+	assert(mainClass != NULL and mainClass->Check());
+
+	// On commence par verifier que la classe est stockable sur un systeme a base de cle
+	if (not mainClass->IsKeyBasedStorable())
+	{
+		// Affichage des diagnostiques d'erreur sur les problemes lies au cles
+		bOk = mainClass->CheckKeyBasedStorability();
+		assert(not bOk);
+
+		// Message synthetique
+		AddError("Dictionary " + GetClassName() +
+			 " cannot be used to read multi-table data from data table files");
+	}
+
 	// Verification de la validite des specifications de mapping
 	if (bOk)
 	{
@@ -574,9 +590,8 @@ boolean KWMTDatabase::CheckPartially(boolean bWriteOnly) const
 		assert(oaMultiTableMappings.GetAt(0) == mainMultiTableMapping);
 		assert(mainMultiTableMapping->GetClassName() == GetClassName());
 
-		// Verification de la classe principale
-		originClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName());
-		assert(originClass != NULL and originClass->Check());
+		// On part de la classe principale
+		originClass = mainClass;
 
 		// Verification de la table de mapping
 		for (nMapping = 0; nMapping < oaMultiTableMappings.GetSize(); nMapping++)
@@ -687,14 +702,13 @@ boolean KWMTDatabase::CheckPartially(boolean bWriteOnly) const
 					{
 						bOk = false;
 						AddError("Data path " + mapping->GetObjectLabel() +
-							 " : In dictionary of variable " + sAttributeName + " (" +
-							 mapping->GetClassName() + "), the length of the key (" +
+							 " : In dictionary " + mapping->GetClassName() +
+							 " of variable " + sAttributeName + ", the key length (" +
 							 IntToString(attribute->GetClass()->GetKeyAttributeNumber()) +
-							 " variables) should not be inferior to that of the parent "
-							 "dictionary (" +
-							 pathClass->GetName() + " with a key of " +
-							 IntToString(pathClass->GetKeyAttributeNumber()) +
-							 " variables)");
+							 ") must not be less than that of its parent "
+							 "dictionary " +
+							 pathClass->GetName() + "(" +
+							 IntToString(pathClass->GetKeyAttributeNumber()) + ")");
 					}
 
 					// Passage a la classe suivante dans le path
