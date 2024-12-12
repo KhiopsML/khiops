@@ -709,6 +709,8 @@ boolean KWMTDatabase::CheckPartially(boolean bWriteOnly) const
 							"dictionary " +
 							pathClass->GetName() + "(" +
 							IntToString(pathClass->GetKeyAttributeNumber()) + ")");
+							 " variables)");
+							 " variables)");
 					}
 
 					// Passage a la classe suivante dans le path
