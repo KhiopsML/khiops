@@ -239,8 +239,7 @@ void KWDatabaseTransferView::TransferDatabase()
 	longint lRecordNumber;
 
 	// Verification du directory des fichiers temporaires
-	if (not FileService::CreateApplicationTmpDir())
-		return;
+	bOk = FileService::CreateApplicationTmpDir();
 
 	// Memorisation des donnees modifies (non geres par les View)
 	sClassName = GetStringValueAt("ClassName");
@@ -400,7 +399,6 @@ void KWDatabaseTransferView::TransferDatabase()
 		// Appel de la tache de transfer
 		bOk = transferTask.Transfer(cast(KWMTDatabaseTextFile*, sourceDatabase),
 					    cast(KWMTDatabaseTextFile*, workingTargetDatabase), lRecordNumber);
-		AddSimpleMessage("");
 
 		// Nettoyage de la classe de transfer
 		CleanTransferClass(transferClass);
@@ -415,6 +413,9 @@ void KWDatabaseTransferView::TransferDatabase()
 		// Fin suivi de la tache
 		TaskProgression::Stop();
 	}
+
+	// Ligne de separation dans le log
+	AddSimpleMessage("");
 
 	// Nettoyage
 	delete workingTargetDatabase;

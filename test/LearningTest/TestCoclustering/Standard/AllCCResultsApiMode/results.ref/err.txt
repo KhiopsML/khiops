@@ -15,18 +15,22 @@ Write coclustering report ./results/Coclustering_bad.json
 Coclustering analysis time: 0:00:00.02
 
 error : File coclustering report  : Missing file name
+
 Write simplified report ./results/SimplifiedCoclustering.khcj
 
 Write simplified report ./results/SimplifiedCoclustering_bad.json
 
 error : File simplified coclustering report  : Missing file name
+
 Write cluster table file ./results/Clusters.txt
 
 Write cluster table file ./results/Clusters_bad.json
 
 error : File cluster table file  : Missing file name
+
 Write deployment dictionary file ./results/DeploymentCoclustering.kdic
 
 Write deployment dictionary file ./results/DeploymentCoclustering_bad.json
 
 error : File coclustering dictionary  : Missing file name
+

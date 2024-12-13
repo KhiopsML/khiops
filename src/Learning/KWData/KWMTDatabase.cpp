@@ -2482,7 +2482,7 @@ KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 				return NULL;
 
 			// Incrementation du compteur d'objet utilise au niveau physique pour la classe principale
-			// L'incrementation pour les mapping de la composiitonn est effectuee par la suite
+			// L'incrementation pour les mappings de la composition est effectue par la suite
 			if (mapping == mainMultiTableMapping)
 				mapping->GetDataTableDriver()->SetUsedRecordNumber(
 				    mapping->GetDataTableDriver()->GetUsedRecordNumber() + 1);
