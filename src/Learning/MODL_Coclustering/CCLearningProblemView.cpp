@@ -204,8 +204,10 @@ void CCLearningProblemView::BuildCoclustering()
 	{
 		// Calcul des stats
 		GetLearningProblem()->BuildCoclustering();
-		AddSimpleMessage("");
 	}
+
+	// Ligne de separation dans le log
+	AddSimpleMessage("");
 }
 
 void CCLearningProblemView::SetObject(Object* object)

@@ -92,11 +92,11 @@ void CCLearningProblemClusterExtractionView::ExtractClusters()
 			Global::AddError("Cluster extraction", "", "Missing coclustering variable name");
 		// Sinon, extraction des clusters
 		else
-		{
 			GetLearningProblem()->ExtractClusters(sCoclusteringAttributeName);
-			AddSimpleMessage("");
-		}
 	}
+
+	// Ligne de separation dans le log
+	AddSimpleMessage("");
 }
 
 void CCLearningProblemClusterExtractionView::SetObject(Object* object)

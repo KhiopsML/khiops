@@ -205,10 +205,10 @@ void KWLearningProblemView::CheckData()
 	// OK si nom du fichier renseigne et classe correcte
 	if (FileService::CreateApplicationTmpDir() and GetLearningProblem()->CheckTrainDatabaseName() and
 	    GetLearningProblem()->GetTrainDatabase()->Check() and GetLearningProblem()->CheckClass())
-	{
 		GetLearningProblem()->CheckData();
-		AddSimpleMessage("");
-	}
+
+	// Ligne de separation dans le log
+	AddSimpleMessage("");
 }
 
 void KWLearningProblemView::SortDataTableByKey()
@@ -266,9 +266,11 @@ void KWLearningProblemView::BuildConstructedDictionary()
 		{
 			// Construction du dictionnaire de variables
 			GetLearningProblem()->BuildConstructedDictionary();
-			AddSimpleMessage("");
 		}
 	}
+
+	// Ligne de separation dans le log
+	AddSimpleMessage("");
 }
 
 void KWLearningProblemView::ComputeStats()
@@ -332,9 +334,11 @@ void KWLearningProblemView::ComputeStats()
 		{
 			// Calcul des stats
 			GetLearningProblem()->ComputeStats();
-			AddSimpleMessage("");
 		}
 	}
+
+	// Ligne de separation dans le log
+	AddSimpleMessage("");
 }
 
 void KWLearningProblemView::TransferDatabase()
