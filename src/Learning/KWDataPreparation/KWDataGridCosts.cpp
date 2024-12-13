@@ -253,8 +253,8 @@ void KWDataGridCosts::InitializeDefaultCosts(const KWDataGrid* dataGrid)
 	dataGridDefaultCosts->SetDataGridCosts(this);
 
 	// Creation d'une grille par default correspondant a la grille source
-	dataGridManager.SetSourceDataGrid(dataGrid);
-	dataGridManager.ExportTerminalDataGrid(dataGridDefaultCosts);
+	//dataGridManager.SetSourceDataGrid(dataGrid);
+	dataGridManager.ExportTerminalDataGrid(dataGrid, dataGridDefaultCosts);
 
 	// Initialisation des couts par defaut par entite
 	dataGridDefaultCosts->InitializeAllCosts();
@@ -287,7 +287,7 @@ void KWDataGridCosts::InitializeDefaultCosts(const KWDataGrid* dataGrid)
 			}
 		}
 	}
-	ensure(dataGridManager.CheckDataGrid(dataGridDefaultCosts));
+	ensure(dataGridManager.CheckDataGrid(dataGrid, dataGridDefaultCosts));
 }
 
 void KWDataGridCosts::CleanDefaultCosts()
