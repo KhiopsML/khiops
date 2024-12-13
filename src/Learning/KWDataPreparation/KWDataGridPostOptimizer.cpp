@@ -58,8 +58,8 @@ double KWDataGridPostOptimizer::PostOptimizeDataGrid(const KWDataGrid* initialDa
 	TaskProgression::DisplayMainLabel(sTaskLabel);
 
 	// Verification de la compatibilite entre grille optimisee et grille initiale
-	dataGridManager.SetSourceDataGrid(initialDataGrid);
-	require(dataGridManager.CheckDataGrid(optimizedDataGrid));
+	//dataGridManager.SetSourceDataGrid(initialDataGrid);
+	require(dataGridManager.CheckDataGrid(initialDataGrid, optimizedDataGrid));
 
 	// Calcul du cout initial
 	dBestCost = dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid);
@@ -192,7 +192,7 @@ double KWDataGridPostOptimizer::PostOptimizeDataGrid(const KWDataGrid* initialDa
 	TaskProgression::EndTask();
 
 	// Verification de la compatibilite entre grille optimisee et grille initiale
-	ensure(dataGridManager.CheckDataGrid(optimizedDataGrid));
+	ensure(dataGridManager.CheckDataGrid(initialDataGrid, optimizedDataGrid));
 	ensure(dBestCost * (1 - dEpsilon) < dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid));
 	ensure(dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid) < dBestCost * (1 + dEpsilon));
 
@@ -226,21 +226,22 @@ KWDataGridPostOptimizer::BuildUnivariateInitialDataGrid(const KWDataGrid* optimi
 	univariateInitialDataGrid = new KWDataGrid;
 
 	// Export des attributs et des parties de la grille optimisee
-	dataGridManager.SetSourceDataGrid(optimizedDataGrid);
-	dataGridManager.ExportAttributes(univariateInitialDataGrid);
-	dataGridManager.ExportParts(univariateInitialDataGrid);
+	//dataGridManager.SetSourceDataGrid(optimizedDataGrid);
+	dataGridManager.ExportAttributes(optimizedDataGrid, univariateInitialDataGrid);
+	dataGridManager.ExportParts(optimizedDataGrid, univariateInitialDataGrid);
 
 	// On reinitialise a vide les partie pour l'attribut a post-optimiser
 	postOptimizationAttribute = univariateInitialDataGrid->SearchAttribute(sPostOptimizationAttributeName);
 	postOptimizationAttribute->DeleteAllParts();
 
 	// Export des parties les plus fines (de la grille initiale) pour la grille a optimiser
-	dataGridManager.SetSourceDataGrid(initialDataGrid);
-	dataGridManager.ExportAttributeParts(univariateInitialDataGrid, sPostOptimizationAttributeName);
+	//dataGridManager.SetSourceDataGrid(initialDataGrid);
+	dataGridManager.ExportAttributeParts(initialDataGrid, univariateInitialDataGrid,
+					     sPostOptimizationAttributeName);
 
 	// Export des cellules pour la grille initiale univariee
-	dataGridManager.SetSourceDataGrid(initialDataGrid);
-	dataGridManager.ExportCells(univariateInitialDataGrid);
+	//dataGridManager.SetSourceDataGrid(initialDataGrid);
+	dataGridManager.ExportCells(initialDataGrid, univariateInitialDataGrid);
 
 	// Affichage des resultats
 	if (bDisplayResults)
@@ -326,8 +327,8 @@ double KWDGPODiscretizer::PostOptimizeDataGrid(const KWDataGrid* initialDataGrid
 	}
 
 	// Verification de la compatibilite entre grille optimisee et grille initiale
-	dataGridManager.SetSourceDataGrid(initialDataGrid);
-	require(dataGridManager.CheckDataGrid(optimizedDataGrid));
+	//dataGridManager.SetSourceDataGrid(initialDataGrid);
+	require(dataGridManager.CheckDataGrid(initialDataGrid, optimizedDataGrid));
 
 	// Parametrage des couts d'optimisation univarie de la grille
 	dataGridUnivariateCosts = cast(KWDataGridUnivariateCosts*, GetDiscretizationCosts());
@@ -412,7 +413,7 @@ double KWDGPODiscretizer::PostOptimizeDataGrid(const KWDataGrid* initialDataGrid
 	assert(fabs(dCost - dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid)) < dEpsilon);
 
 	// Verification de la compatibilite entre grille optimisee et grille initiale
-	ensure(dataGridManager.CheckDataGrid(optimizedDataGrid));
+	ensure(dataGridManager.CheckDataGrid(initialDataGrid, optimizedDataGrid));
 
 	return dCost;
 }
@@ -826,8 +827,8 @@ void KWDGPODiscretizer::UpdateDataGridFromIntervalList(KWDataGrid* optimizedData
 	}
 
 	// Export des cellules pour la grille initiale univariee
-	dataGridManager.SetSourceDataGrid(initialDataGrid);
-	dataGridManager.ExportCells(optimizedDataGrid);
+	//dataGridManager.SetSourceDataGrid(initialDataGrid);
+	dataGridManager.ExportCells(initialDataGrid, optimizedDataGrid);
 
 	// Affichage des resultats
 	if (bDisplayResults)
@@ -1251,8 +1252,8 @@ double KWDGPOGrouper::PostOptimizeDataGrid(const KWDataGrid* initialDataGrid, co
 	}
 
 	// Verification de la compatibilite entre grille optimisee et grille initiale
-	dataGridManager.SetSourceDataGrid(initialDataGrid);
-	require(dataGridManager.CheckDataGrid(optimizedDataGrid));
+	//dataGridManager.SetSourceDataGrid(initialDataGrid);
+	require(dataGridManager.CheckDataGrid(initialDataGrid, optimizedDataGrid));
 
 	// Parametrage des couts d'optimisation univarie de la grille
 	dataGridUnivariateCosts = cast(KWDataGridUnivariateCosts*, GetGroupingCosts());
@@ -1365,7 +1366,7 @@ double KWDGPOGrouper::PostOptimizeDataGrid(const KWDataGrid* initialDataGrid, co
 	assert(fabs(dCost - dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid)) < dEpsilon);
 
 	// Verification de la compatibilite entre grille optimisee et grille initiale
-	ensure(dataGridManager.CheckDataGrid(optimizedDataGrid));
+	ensure(dataGridManager.CheckDataGrid(initialDataGrid, optimizedDataGrid));
 
 	return dCost;
 }
@@ -1883,8 +1884,8 @@ void KWDGPOGrouper::UpdateDataGridWithGarbageFromGroups(KWDataGrid* optimizedDat
 	}
 
 	// Export des cellules pour la grille initiale univariee
-	dataGridManager.SetSourceDataGrid(initialDataGrid);
-	dataGridManager.ExportCells(optimizedDataGrid);
+	//dataGridManager.SetSourceDataGrid(initialDataGrid);
+	dataGridManager.ExportCells(initialDataGrid, optimizedDataGrid);
 
 	// Affichage des resultats
 	if (bDisplayResults)
@@ -3451,7 +3452,7 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 	ivGroups->SetSize(0);
 
 	// Verification de la compatibilite entre grille optimisee et grille initiale
-	dataGridManager.SetSourceDataGrid(referenceDataGrid);
+	//dataGridManager.SetSourceDataGrid(referenceDataGrid);
 	// CH IV: si cette verification est inutile, la supprimer
 	// require(dataGridManager.CheckDataGrid(optimizedDataGrid));
 
