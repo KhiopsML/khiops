@@ -47,6 +47,7 @@ jobs:
         with:
           miniforge-version: latest
           python-version: '3.12'
+          conda-remove-defaults: true
       - name: Install Dependency Requirements for Building Conda Packages
         run: conda install -y conda-build
       # We need MacOS SDK 10.10 to build for macOS Intel
@@ -96,9 +97,9 @@ jobs:
           - {os: ubuntu-24.04, os-family: linux-64}
           - {os: windows-2019, os-family: win-64}
           - {os: windows-2022, os-family: win-64}
-          - {os: macos-12, os-family: osx-64}
           - {os: macos-13, os-family: osx-64}
           - {os: macos-14, os-family: osx-arm64}
+          - {os: macos-15, os-family: osx-arm64}
     runs-on: ${{ matrix.env.os }}
     steps:
       - name: Install Miniconda
@@ -106,6 +107,7 @@ jobs:
         with:
           miniforge-version: latest  # needed for macOS 13
           python-version: ${{ matrix.python-version }}
+          conda-remove-defaults: true
       - name: Download Conda Package Artifact
         uses: actions/download-artifact@v4
         with:
@@ -114,17 +116,22 @@ jobs:
       - name: Install the Conda package
         run: |
           conda install --channel ./build/conda khiops-core
-      - name: Test that the executables are installed
+      - name: Install the Khiops executables in the Conda environment
         run: |
           conda install --channel conda-forge --channel ./build/conda khiops-core
-      - name: Add  CONDA_PREFIX to shared PATH
+      - name: Add  CONDA_PREFIX to shared PATH (Windows)
+        if: runner.os == 'Windows'
         run: |
           echo "$CONDA_PREFIX/bin" >> $GITHUB_PATH
+      - name: Add Conda environment binary directory to the environment (Linux and
+          MacOS)
+        if: runner.os != 'Windows'
+        run: echo "CONDA_ENV_BIN_DIR=$CONDA_PREFIX/bin" >> $GITHUB_ENV
       - name: Checkout sources
         uses: actions/checkout@v4
-      - name: Test that the executables are installed
+      - name: Test that the Khiops executables are installed
         uses: ./.github/actions/test-khiops-install
-      - name: Test that khiops on Iris dataset
+      - name: Test the Khiops executables on the Iris dataset
         uses: ./.github/actions/test-khiops-on-iris
         with:
           os-decription: ${{ matrix.env.os }}-${{ matrix.env.os-family }}
@@ -151,6 +158,7 @@ jobs:
         with:
           miniforge-version: latest
           python-version: '3.12'
+          conda-remove-defaults: true
       - name: Install requirement packages
         run: |
           conda install -y anaconda-client conda-index

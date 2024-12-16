@@ -80,7 +80,7 @@ public abstract class GUIBooleanElement extends GUIElement
         public Object getValueIn(GUIUnit unit)
         {
                 // Appel de la bonne methode native
-                return new Boolean(unit.getBooleanValueAt(getIdentifier()));
+                return Boolean.valueOf(unit.getBooleanValueAt(getIdentifier()));
         }
 
         /**
@@ -89,7 +89,7 @@ public abstract class GUIBooleanElement extends GUIElement
          */
         public void graphicRefreshAll()
         {
-                graphicSetValue(new Boolean(getParentUnit().getBooleanValueAt(getIdentifier())).toString());
+                graphicSetValue(Boolean.valueOf(getParentUnit().getBooleanValueAt(getIdentifier())).toString());
         }
 
         /**
@@ -107,7 +107,7 @@ public abstract class GUIBooleanElement extends GUIElement
          */
         protected void setValueIn(GUIUnit unit, Object value)
         {
-                unit.setBooleanValueAt(getIdentifier(), new Boolean(value.toString()).booleanValue());
+                unit.setBooleanValueAt(getIdentifier(), Boolean.valueOf(value.toString()).booleanValue());
         }
 }
 
