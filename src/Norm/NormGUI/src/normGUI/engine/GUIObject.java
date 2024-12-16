@@ -412,12 +412,10 @@ public abstract class GUIObject
         public String[] getParametersAsArray()
         {
                 if (sParameters != null) {
-                        // On ajoute un blanc en fin des parametres pour forcer la methode split a cree
-                        // un dernier token
-                        String[] params = (sParameters + " ").split("\n");
-                        // On supprime le blan du dernier token
-                        String lastToken = params[params.length - 1];
-                        params[params.length - 1] = lastToken.substring(0, lastToken.length() - 1);
+                        // Le parametre -1 du split permet de forcer la methode split a creer
+                        // autant d'items dans le tableau qu'il y a de separateurs (plus un)
+                        // Sinon, on ne peut avoir d'item vide au milieu ou en fin de liste par exemple
+                        String[] params = sParameters.split("\n", -1);
                         return params;
                 } else
                         return null;

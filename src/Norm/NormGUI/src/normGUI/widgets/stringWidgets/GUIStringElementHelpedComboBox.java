@@ -251,14 +251,13 @@ public class GUIStringElementHelpedComboBox extends GUIStringElement
                 } catch (Exception ex) {
                 }
 
-                // On remplit un tableau avec les items sans doublons
+                // On remplit un tableau avec les items
                 Vector<String> items = new Vector<String>();
                 String s;
                 for (int i = 0; i < sourceList.getItemNumber(); i++) {
                         sourceList.setCurrentItemIndex(i);
                         s = sourceElement.getValueIn(sourceList).toString();
-                        if (!items.contains(s))
-                                items.add(s);
+                        items.add(s);
                 }
 
                 // On memorise le contenu de l'editeur avant de supprimer les items

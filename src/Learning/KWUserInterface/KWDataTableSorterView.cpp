@@ -154,6 +154,8 @@ void KWDataTableSorterView::Open()
 
 	// Parametrage du champ de saisie des dictionnaires en style ComboBox,
 	// avec la liste des dictionnaires en cours
+	// Les dictionnaires sont ici utilises uniquement en tant que format d'un fichier de donnees.
+	// Leurs caracteristiques multi-tables sont ignorees.
 	SetStringValueAt("ClassName", sSortClassName);
 	for (i = 0; i < KWClassDomain::GetCurrentDomain()->GetClassNumber(); i++)
 	{
