@@ -75,6 +75,9 @@ public:
 	////////////////////////////////////////////////////////
 	///// Implementation
 protected:
+	// Rafraichissement des listes d'aide
+	void RefreshHelpLists();
+
 	// Acces a l'objet sous son bon type
 	KWClassManagement* GetClassManagement();
 

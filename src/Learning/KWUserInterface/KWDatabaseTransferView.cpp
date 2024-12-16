@@ -157,6 +157,7 @@ void KWDatabaseTransferView::Open()
 {
 	KWClass* kwcClass;
 	ALString sClassNames;
+	ALString sNonStorableClassNames;
 	const int nMaxTotalShownLineNumber = 12;
 	int nMaxInputNativeRelationAttributeNumber;
 	int nMaxOutputNativeRelationAttributeNumber;
@@ -167,7 +168,7 @@ void KWDatabaseTransferView::Open()
 		AddWarning("No available dictionary");
 
 	// Collecte de la liste des dictionnaires disponibles et de stats
-	// sur la taille de leur mapping
+	// sur la taille de leur mapping, selon leur caractere stockable ou non
 	nMaxInputNativeRelationAttributeNumber = 0;
 	nMaxOutputNativeRelationAttributeNumber = 0;
 	for (i = 0; i < KWClassDomain::GetCurrentDomain()->GetClassNumber(); i++)
@@ -175,9 +176,18 @@ void KWDatabaseTransferView::Open()
 		kwcClass = KWClassDomain::GetCurrentDomain()->GetClassAt(i);
 
 		// Ajout du nom de la classe dans la liste d'aide a la saisie
-		if (i > 0)
-			sClassNames += "\n";
-		sClassNames += kwcClass->GetName();
+		if (kwcClass->IsKeyBasedStorable())
+		{
+			if (sClassNames.GetLength() > 0)
+				sClassNames += "\n";
+			sClassNames += kwcClass->GetName();
+		}
+		else
+		{
+			if (sNonStorableClassNames.GetLength() > 0)
+				sNonStorableClassNames += "\n";
+			sNonStorableClassNames += kwcClass->GetName();
+		}
 
 		// Mise a jour des nombre max de mappings
 		if (targetDatabaseView->IsMultiTableTechnology())
@@ -190,6 +200,10 @@ void KWDatabaseTransferView::Open()
 				kwcClass->ComputeOverallNativeRelationAttributeNumber(false));
 		}
 	}
+
+	// Les dictionnaires non stockables sont ranges en derniers, apres une ligne blanche
+	if (sNonStorableClassNames.GetLength() > 0)
+		sClassNames += "\n\n" + sNonStorableClassNames;
 
 	// Parametrage du champ de saisie des dictionnaires en style ComboBox,
 	// avec la liste des dictionnaires en cours

@@ -9,15 +9,23 @@
 
 KWClassManagementActionView::KWClassManagementActionView()
 {
+	UIList* classNameHelpList;
+
 	// Titre
 	SetIdentifier("KWClassManagementAction");
 	SetLabel("Dictionary management");
 
-	// Ajout d'une donnee liste pour obtenir de l'aide sur les dictionnaires charges en memoire
-	// depuis les autres panneaux de l'interface
+	// Liste des dictionnaires charges en memoire, par defaut non visible
 	AddListField("Classes", "Dictionaries", new KWClassSpecArrayView);
 	GetFieldAt("Classes")->SetEditable(false);
 	GetFieldAt("Classes")->SetVisible(false);
+
+	// Creation d'une liste cachee des nom des dictionnaires, permettant de service de liste d'aide
+	// depuis les autres panneaux de l'interface
+	classNameHelpList = new UIList;
+	classNameHelpList->AddStringField("Name", "Name", "");
+	AddListField("ClassNames", "Dictionaries", classNameHelpList);
+	classNameHelpList->SetVisible(false);
 
 	// Declaration des actions
 	AddAction("OpenFile", "Open...", (ActionMethod)(&KWClassManagementActionView::OpenFile));
@@ -85,6 +93,9 @@ void KWClassManagementActionView::EventRefresh(Object* object)
 
 	// Reactualisation des specs de classes
 	GetClassManagement()->RefreshClassSpecs();
+
+	// Rafraichissement des listes d'aide
+	RefreshHelpLists();
 }
 
 const ALString KWClassManagementActionView::GetClassLabel() const
@@ -298,6 +309,61 @@ void KWClassManagementActionView::SetObject(Object* object)
 
 	// Memorisation de l'objet pour la fiche courante
 	UIObjectView::SetObject(object);
+}
+
+void KWClassManagementActionView::RefreshHelpLists()
+{
+	UIList* classNameHelpList;
+	KWClass* kwcClass;
+	StringVector svClassNames;
+	StringVector svNonStorableClassNames;
+	int i;
+
+	assert(objValue != NULL);
+
+	// Liste des dictionnaires charges en memoire, par defaut non visible
+	classNameHelpList = cast(UIList*, GetFieldAt("ClassNames"));
+
+	// On commence vider la liste
+	classNameHelpList->RemoveAllItems();
+
+	// Collecte de classe stockables ou non a partir du domaine courant,
+	for (i = 0; i < KWClassDomain::GetCurrentDomain()->GetClassNumber(); i++)
+	{
+		kwcClass = KWClassDomain::GetCurrentDomain()->GetClassAt(i);
+		if (kwcClass->IsKeyBasedStorable())
+			svClassNames.Add(kwcClass->GetName());
+		else
+			svNonStorableClassNames.Add(kwcClass->GetName());
+	}
+
+	// Parametrage des classes stockables en premier, avec ligne blanche prealable
+	// comme pour le style "EditableComboBox" utilise dans les boites de dialogues
+	// ou la liste des dictionnaire est connue a l'avance
+	if (svClassNames.GetSize() > 0)
+	{
+		classNameHelpList->AddItem();
+		for (i = 0; i < svClassNames.GetSize(); i++)
+		{
+			// Ajout du nom de la classe dans la liste d'aide a la saisie
+			classNameHelpList->AddItem();
+			classNameHelpList->SetStringValueAt("Name", svClassNames.GetAt(i));
+		}
+	}
+
+	// Parametrage des classes non stockables ensuite, avec ligne blanche de separation
+	if (svNonStorableClassNames.GetSize() > 0)
+	{
+		assert(svClassNames.GetSize() > 0);
+		assert(classNameHelpList->GetItemNumber() >= 2);
+		classNameHelpList->AddItem();
+		for (i = 0; i < svNonStorableClassNames.GetSize(); i++)
+		{
+			// Ajout du nom de la classe dans la liste d'aide a la saisie
+			classNameHelpList->AddItem();
+			classNameHelpList->SetStringValueAt("Name", svNonStorableClassNames.GetAt(i));
+		}
+	}
 }
 
 KWClassManagement* KWClassManagementActionView::GetClassManagement()
