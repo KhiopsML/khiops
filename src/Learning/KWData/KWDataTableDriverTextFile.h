@@ -125,9 +125,9 @@ public:
 	/////////////////////////////////////////////////
 	///// Implementation
 protected:
-	// Implementation specifique du saut de ligne dans le cas d'une classe racine
+	// Implementation specifique du saut de ligne dans le cas d'une classe principale
 	// En effet, dans ce cas, on analyse partiellement la ligne pour en extraire la derniere cle
-	void SkipRootRecord();
+	void SkipMainRecord();
 
 	// Remplissage du buffer si necessaire (fin de buffer et pas fin de fichier)
 	virtual boolean UpdateInputBuffer();
@@ -147,7 +147,7 @@ protected:
 	// Calcul des indexes des data items (attributs ou blocs d'attributs) de la classe logique associee
 	// a chaque champ du fichier en comparant la classe logique comportant les champs necessaires
 	// et une classe representant le header du fichier a analyser (optionnelle si pas de ligne d'entete)
-	// On calcule egalement les index des attributs de la cle dans le cas d'un classe racine
+	// On calcule egalement les index des attributs de la cle dans le cas d'un classe principale
 	virtual boolean ComputeDataItemLoadIndexes(const KWClass* kwcLogicalClass, const KWClass* kwcHeaderLineClass);
 
 	// Ouverture du fichier en lecture ou ecriture: retourne true si OK
@@ -172,14 +172,14 @@ protected:
 	// Index invalide si champ du fichier inutilise ou inexistant dans la classe
 	KWLoadIndexVector livDataItemLoadIndexes;
 
-	// Index des champs de la cle dans le cas d'une classe racine
+	// Index des champs de la cle dans le cas d'une classe principale d'un schema multi-table
 	// A chaque index de champ de fichier, on associe soit -1 si le champ ne fait pas partie de la cle,
 	// soit l'index du champs de la cle
 	// On a en effet besoin de memoriser les champs de la cle dans ce cas, que ce soit lors des
 	// lecture par Read (que l'enregistrement soit errone ou non) ou lors des sauts de ligne
 	// C'est necessaire pour faire le controle des enregistrements dupliques, et de ne garder
 	// que le premier (si valide), et ignorant tous les suivants consideres comme dupliques
-	IntVector ivRootKeyIndexes;
+	IntVector ivMainKeyIndexes;
 
 	// Fichier utilise pour la gestion de la base
 	InputBufferedFile* inputBuffer;

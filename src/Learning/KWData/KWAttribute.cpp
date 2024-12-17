@@ -551,7 +551,7 @@ void KWAttribute::Write(ostream& ost) const
 	ost << ";";
 
 	// Meta-donnees
-	WriteNotLoadedMetaData(ost);
+	WritePrivateMetaData(ost);
 	if (metaData.GetKeyNumber() > 0)
 	{
 		ost << ' ';
@@ -611,21 +611,21 @@ void KWAttribute::WriteJSONFields(JSONFile* fJSON)
 		metaData.WriteJSONKeyReport(fJSON, "metaData");
 }
 
-void KWAttribute::WriteNotLoadedMetaData(ostream& ost) const
+void KWAttribute::WritePrivateMetaData(ostream& ost) const
 {
-	KWMetaData usedNotLoadedMetaData;
+	KWMetaData privateMetaData;
 
 	// Memorisation dans une meta-data temporaire de l'information d'utilisation d'un attribut non charge en memoire
 	// Permet de transferer cette information "privee", par exemple pour une tache parallele
 	if (GetUsed() and not GetLoaded())
 	{
-		usedNotLoadedMetaData.SetNoValueAt("_NotLoaded");
+		privateMetaData.SetNoValueAt("_NotLoaded");
 		ost << ' ';
-		usedNotLoadedMetaData.Write(ost);
+		privateMetaData.Write(ost);
 	}
 }
 
-void KWAttribute::ReadNotLoadedMetaData()
+void KWAttribute::ReadPrivateMetaData()
 {
 	if (GetMetaData()->GetKeyNumber() > 0 and GetMetaData()->IsMissingTypeAt("_NotLoaded"))
 	{

@@ -200,7 +200,7 @@ void KWArtificialDataset::CreateDataset() const
 	int nField;
 	int nLine;
 	int nKey;
-	int nRootBaseKey;
+	int nMainBaseKey;
 	int nBaseKey;
 	StringVector svFieldValues;
 	int nKeyValue;
@@ -253,16 +253,16 @@ void KWArtificialDataset::CreateDataset() const
 
 		// On calcule la valeur de base de la cle, de facon a ce que les cles de poids forts evoluent de facon
 		// monotone
-		nRootBaseKey = 1;
-		nBaseKey = nRootBaseKey;
+		nMainBaseKey = 1;
+		nBaseKey = nMainBaseKey;
 		for (nKey = 0; nKey < ivKeyFieldIndexes.GetSize(); nKey++)
 			nBaseKey *= 10;
 		while (nMaxLineNumberPerKey * nBaseKey / 10 < nLineNumber)
 		{
 			nBaseKey *= 10;
-			nRootBaseKey *= 10;
+			nMainBaseKey *= 10;
 		}
-		assert(nMaxLineNumberPerKey * nRootBaseKey * pow(10.0, 1.0 * ivKeyFieldIndexes.GetSize()) / 10 >=
+		assert(nMaxLineNumberPerKey * nMainBaseKey * pow(10.0, 1.0 * ivKeyFieldIndexes.GetSize()) / 10 >=
 		       nLineNumber);
 
 		// Creation des lignes
@@ -278,7 +278,7 @@ void KWArtificialDataset::CreateDataset() const
 								IntToString(nField + 1));
 
 			// On alimente d'abord les cles de poids faible, par puissance de 10
-			nBaseKey = nRootBaseKey;
+			nBaseKey = nMainBaseKey;
 			for (nKey = ivKeyFieldIndexes.GetSize() - 1; nKey >= 0; nKey--)
 			{
 				// On cree les cle selon l'ordre souhaite
@@ -289,8 +289,8 @@ void KWArtificialDataset::CreateDataset() const
 					nKeyValue = nBaseKey - 1 - ((nLine / nMaxLineNumberPerKey) % nBaseKey);
 
 				// Les cles de poids fort sont incrementees plus lentement que les cle de poids faible
-				nKeyValue /= (nBaseKey / nRootBaseKey);
-				nKeyValue *= (nBaseKey / nRootBaseKey);
+				nKeyValue /= (nBaseKey / nMainBaseKey);
+				nKeyValue *= (nBaseKey / nMainBaseKey);
 
 				// Memorisation de la cle (on maintenant en categoriel son ordre numerique)
 				sKeyValue = sTmp + IntToString(nBaseKey + nKeyValue);

@@ -237,23 +237,23 @@ const ALString KWKeyPositionFinderTask::GetObjectLabel() const
 
 void KWKeyPositionFinderTask::Test()
 {
-	TestWithArtificialRootAndSecondaryTables(100000, 1, 1, 1000000, 10, 1, 0);
-	TestWithArtificialRootAndSecondaryTables(10000, 1, 1, 100000, 10, 1, 0);
-	TestWithArtificialRootAndSecondaryTables(100000, 1, 0.01, 1000000, 10, 0.01, 0);
-	TestWithArtificialRootAndSecondaryTables(100000, 1, 0.01, 1000000, 10, 0.01, 1000);
-	TestWithArtificialRootAndSecondaryTables(100000, 10, 0.01, 1000000, 1, 0.01, 1000);
-	TestWithArtificialRootAndSecondaryTables(100000, 1, 0, 1000000, 10, 0.01, 1000);
-	TestWithArtificialRootAndSecondaryTables(100000, 1, 0.01, 1000000, 10, 0, 1000);
-	TestWithArtificialRootAndSecondaryTables(1, 1, 1, 1000000, 10, 0.01, 1000);
+	TestWithArtificialMainAndSecondaryTables(100000, 1, 1, 1000000, 10, 1, 0);
+	TestWithArtificialMainAndSecondaryTables(10000, 1, 1, 100000, 10, 1, 0);
+	TestWithArtificialMainAndSecondaryTables(100000, 1, 0.01, 1000000, 10, 0.01, 0);
+	TestWithArtificialMainAndSecondaryTables(100000, 1, 0.01, 1000000, 10, 0.01, 1000);
+	TestWithArtificialMainAndSecondaryTables(100000, 10, 0.01, 1000000, 1, 0.01, 1000);
+	TestWithArtificialMainAndSecondaryTables(100000, 1, 0, 1000000, 10, 0.01, 1000);
+	TestWithArtificialMainAndSecondaryTables(100000, 1, 0.01, 1000000, 10, 0, 1000);
+	TestWithArtificialMainAndSecondaryTables(1, 1, 1, 1000000, 10, 0.01, 1000);
 }
 
-boolean KWKeyPositionFinderTask::TestWithArtificialRootAndSecondaryTables(
-    int nRootLineNumber, int nRootLineNumberPerKey, double dRootSamplingRate, int nSecondaryLineNumber,
+boolean KWKeyPositionFinderTask::TestWithArtificialMainAndSecondaryTables(
+    int nMainLineNumber, int nMainLineNumberPerKey, double dMainSamplingRate, int nSecondaryLineNumber,
     int nSecondaryLineNumberPerKey, double dSecondarySamplingRate, int nBufferSize)
 {
 	boolean bOk = true;
 	boolean bCreateDatasets = true;
-	KWArtificialDataset rootArtificialDataset;
+	KWArtificialDataset mainArtificialDataset;
 	KWArtificialDataset secondaryArtificialDataset;
 	longint lMeanKeySize;
 	longint lLineNumber;
@@ -262,9 +262,9 @@ boolean KWKeyPositionFinderTask::TestWithArtificialRootAndSecondaryTables(
 	ObjectArray oaFoundKeyPositions;
 	KWKeyPositionFinderTask keyPositionFinder;
 
-	require(nRootLineNumber >= 0);
-	require(nRootLineNumberPerKey >= 0);
-	require(dRootSamplingRate >= 0);
+	require(nMainLineNumber >= 0);
+	require(nMainLineNumberPerKey >= 0);
+	require(dMainSamplingRate >= 0);
 	require(nSecondaryLineNumber >= 0);
 	require(nSecondaryLineNumberPerKey >= 0);
 	require(dSecondarySamplingRate >= 0);
@@ -282,31 +282,31 @@ boolean KWKeyPositionFinderTask::TestWithArtificialRootAndSecondaryTables(
 	cout << endl;
 	cout << "===============================================================================" << endl;
 	cout << keyPositionFinder.GetTaskLabel() << ":"
-	     << " Root(" << nRootLineNumber << ", " << nRootLineNumberPerKey << ", " << dRootSamplingRate << ")"
+	     << " Main(" << nMainLineNumber << ", " << nMainLineNumberPerKey << ", " << dMainSamplingRate << ")"
 	     << " Secondary(" << nSecondaryLineNumber << ", " << nSecondaryLineNumberPerKey << ", "
 	     << dSecondarySamplingRate << ")"
 	     << " Buffer(" << nBufferSize << ")" << endl;
 	cout << "===============================================================================" << endl;
 
-	// Creation d'un fichier racine avec des champs cle
-	rootArtificialDataset.SpecifySortedDataset();
-	rootArtificialDataset.SetLineNumber(nRootLineNumber);
-	rootArtificialDataset.SetMaxLineNumberPerKey(nRootLineNumberPerKey);
-	rootArtificialDataset.SetSamplingRate(dRootSamplingRate);
-	rootArtificialDataset.SetFileName(rootArtificialDataset.BuildFileName());
+	// Creation d'un fichier principal avec des champs cle
+	mainArtificialDataset.SpecifySortedDataset();
+	mainArtificialDataset.SetLineNumber(nMainLineNumber);
+	mainArtificialDataset.SetMaxLineNumberPerKey(nMainLineNumberPerKey);
+	mainArtificialDataset.SetSamplingRate(dMainSamplingRate);
+	mainArtificialDataset.SetFileName(mainArtificialDataset.BuildFileName());
 	if (bCreateDatasets)
-		rootArtificialDataset.CreateDataset();
-	rootArtificialDataset.DisplayFirstLines(15);
+		mainArtificialDataset.CreateDataset();
+	mainArtificialDataset.DisplayFirstLines(15);
 
 	// Evaluation de la taille des cles du fichier principal
 	lMeanKeySize = 0;
 	lLineNumber = 0;
 	bOk = bOk and
-	      KWKeySizeEvaluatorTask::TestWithArtificialDataset(&rootArtificialDataset, lMeanKeySize, lLineNumber);
+	      KWKeySizeEvaluatorTask::TestWithArtificialDataset(&mainArtificialDataset, lMeanKeySize, lLineNumber);
 
 	// Extraction des cle du fichier principal
 	bOk = bOk and KWKeyPositionSampleExtractorTask::TestWithArtificialDataset(
-			  &rootArtificialDataset, 0.25, lMeanKeySize, lLineNumber, &oaInputKeyPositions);
+			  &mainArtificialDataset, 0.25, lMeanKeySize, lLineNumber, &oaInputKeyPositions);
 
 	// Creation d'un fichier secondaire avec des champs cle
 	secondaryArtificialDataset.SpecifySortedDataset();
@@ -330,7 +330,7 @@ boolean KWKeyPositionFinderTask::TestWithArtificialRootAndSecondaryTables(
 	// Destruction des fichiers
 	if (bCreateDatasets)
 	{
-		rootArtificialDataset.DeleteDataset();
+		mainArtificialDataset.DeleteDataset();
 		secondaryArtificialDataset.DeleteDataset();
 	}
 
