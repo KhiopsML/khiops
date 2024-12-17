@@ -85,8 +85,10 @@ void CCLearningProblemPostProcessingView::PostProcessCoclustering()
 	{
 		// Simplification du coclustering
 		GetLearningProblem()->PostProcessCoclustering();
-		AddSimpleMessage("");
 	}
+
+	// Ligne de separation dans le log
+	AddSimpleMessage("");
 }
 
 void CCLearningProblemPostProcessingView::SetObject(Object* object)

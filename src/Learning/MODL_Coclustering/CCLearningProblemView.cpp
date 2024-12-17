@@ -52,9 +52,10 @@ CCLearningProblemView::CCLearningProblemView()
 	// On utilise le meme nom que dans l'onglet ClassManagement
 	databaseView->GetFieldAt("ClassName")->SetLabel("Analysis dictionary");
 
-	// On parametre la liste des dictionnaires en fonction des dictionnaire charges dans ClassManagement
+	// On parametre la liste des dictionnaires en fonction de la liste d'aide
+	// sur les noms de dictionnaires, geree dans ClassManagementView
 	databaseView->GetFieldAt("ClassName")->SetStyle("HelpedComboBox");
-	databaseView->GetFieldAt("ClassName")->SetParameters("ClassManagement.Classes:ClassName");
+	databaseView->GetFieldAt("ClassName")->SetParameters("ClassManagement.ClassNames:Name");
 
 	// On indique que le champ de parametrage du dictionnaire declenche une action de rafraichissement
 	// de l'interface immediatement apres une mise a jour, pour pouvoir rafraichir les mapping des databases
@@ -199,16 +200,15 @@ void CCLearningProblemView::BuildCoclustering()
 
 	// OK si nom du fichier renseigne et classe correcte
 	if (bOk and GetLearningProblem()->CheckClass() and GetLearningProblem()->CheckDatabaseName() and
-	    GetLearningProblem()->GetDatabase()->Check() and
-	    GetLearningProblem()->GetDatabase()->CheckSelectionValue(
-		GetLearningProblem()->GetDatabase()->GetSelectionValue()) and
-	    GetLearningProblem()->CheckCoclusteringSpecifications() and
+	    GetLearningProblem()->GetDatabase()->Check() and GetLearningProblem()->CheckCoclusteringSpecifications() and
 	    GetLearningProblem()->CheckResultFileNames(CCLearningProblem::TaskBuildCoclustering))
 	{
 		// Calcul des stats
 		GetLearningProblem()->BuildCoclustering();
-		AddSimpleMessage("");
 	}
+
+	// Ligne de separation dans le log
+	AddSimpleMessage("");
 }
 
 void CCLearningProblemView::SetObject(Object* object)

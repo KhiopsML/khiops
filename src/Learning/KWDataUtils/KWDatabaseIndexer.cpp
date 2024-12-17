@@ -45,7 +45,7 @@ void KWDatabaseIndexer::InitializeFromDatabase(const KWDatabase* database)
 		{
 			sourcePLDatabase.InitializeFrom(database);
 
-			// Recherche de la classe racine
+			// Recherche de la classe principale
 			kwcMainClass = KWClassDomain::GetCurrentDomain()->LookupClass(database->GetClassName());
 			check(kwcMainClass);
 
@@ -206,7 +206,7 @@ int KWDatabaseIndexer::GetChunkNumber() const
 	return cast(LongintVector*, oaTableRecordIndexVectors.GetAt(0))->GetSize();
 }
 
-const KWKey* KWDatabaseIndexer::GetChunkPreviousRootKeyAt(int nChunkIndex) const
+const KWKey* KWDatabaseIndexer::GetChunkPreviousMainKeyAt(int nChunkIndex) const
 {
 	require(IsIndexationComputed());
 	require(0 <= nChunkIndex and nChunkIndex < GetChunkNumber());
@@ -328,7 +328,7 @@ boolean KWDatabaseIndexer::Check() const
 					bOk = bOk and lvRecordIndexVector->GetAt(0) == 0;
 					for (i = 1; i < lvRecordIndexVector->GetSize(); i++)
 					{
-						// Les inegalites sont strictes uniquement pour la table racine
+						// Les inegalites sont strictes uniquement pour la table principale
 						if (nTable == 0)
 							bOk = bOk and lvRecordIndexVector->GetAt(i - 1) <
 									  lvRecordIndexVector->GetAt(i);
@@ -355,7 +355,7 @@ boolean KWDatabaseIndexer::Check() const
 					{
 						for (i = 1; i < lvNextRecordPositionVector->GetSize(); i++)
 						{
-							// Les inegalites sont strictes uniquement pour la table racine
+							// Les inegalites sont strictes uniquement pour la table principale
 							if (nTable == 0)
 								bOk = bOk and lvNextRecordPositionVector->GetAt(i - 1) <
 										  lvNextRecordPositionVector->GetAt(i);
@@ -439,7 +439,7 @@ void KWDatabaseIndexer::Write(ostream& ost) const
 				ost << GetChunkBeginPositionsAt(nChunk, nTable) << "\t";
 				ost << GetChunkEndPositionsAt(nChunk, nTable) << "\t";
 			}
-			ost << GetChunkPreviousRootKeyAt(nChunk)->GetObjectLabel() << "\n";
+			ost << GetChunkPreviousMainKeyAt(nChunk)->GetObjectLabel() << "\n";
 		}
 	}
 }
@@ -612,7 +612,7 @@ boolean KWDatabaseIndexer::ComputeAllDataTableIndexation()
 	{
 		// Indexation basique en un seul troncon dans le cas d'un seul esclave
 		if (GetUsedSlaveNumber() == 1)
-			bOk = ComputeRootTableBasicIndexation();
+			bOk = ComputeMainTableBasicIndexation();
 		// Cas ou la table principale ne contient pas de cle, et que l'on est donc reduit au cas d'une seule
 		// table principale Remarque: on peut quand meme etre dans le cas multi-table, s'il y a des tables
 		// externes
@@ -620,7 +620,7 @@ boolean KWDatabaseIndexer::ComputeAllDataTableIndexation()
 			bOk = ComputeSingleTableIndexation();
 		// Cas ou la table principale contient une cle, ce qui est possible meme avec une seule table
 		else
-			bOk = ComputeRootTableIndexation();
+			bOk = ComputeMainTableIndexation();
 	}
 
 	// Indexation des tables secondaires
@@ -639,7 +639,7 @@ boolean KWDatabaseIndexer::ComputeAllDataTableIndexation()
 	return bOk;
 }
 
-boolean KWDatabaseIndexer::ComputeRootTableBasicIndexation()
+boolean KWDatabaseIndexer::ComputeMainTableBasicIndexation()
 {
 	boolean bOk = true;
 	LongintVector* lvFileBeginPositions;
@@ -703,7 +703,7 @@ boolean KWDatabaseIndexer::ComputeSingleTableIndexation()
 
 	// Indexation basique si le fichier est trop petit
 	if (lTotalFileSizePerProcess >= GetPLDatabase()->GetTotalFileSize())
-		bOk = ComputeRootTableBasicIndexation();
+		bOk = ComputeMainTableBasicIndexation();
 	// Indexation effective sinon
 	else
 	{
@@ -809,17 +809,17 @@ boolean KWDatabaseIndexer::ComputeSingleTableIndexation()
 	return bOk;
 }
 
-boolean KWDatabaseIndexer::ComputeRootTableIndexation()
+boolean KWDatabaseIndexer::ComputeMainTableIndexation()
 {
 	boolean bOk = true;
 	boolean bDisplay = false;
 	longint lTotalFileSizePerProcess;
-	longint lRootMeanKeySize;
-	longint lRootLineNumber;
+	longint lMeanMainKeySize;
+	longint lMainLineNumber;
 	longint lAllKeyPositionMemory;
 	longint lMaxKeyNumber;
 	longint lMaxSlaveProcessNumber;
-	KWKeyFieldsIndexer rootKeyFieldsIndexer;
+	KWKeyFieldsIndexer mainKeyFieldsIndexer;
 	double dSamplingRate;
 	ObjectArray oaFoundKeyPositions;
 	KWKeyPosition* recordKeyPosition;
@@ -836,23 +836,23 @@ boolean KWDatabaseIndexer::ComputeRootTableIndexation()
 
 	// Determination du taux d'echantillonnage des cles si necessaire
 	dSamplingRate = 0;
-	lRootMeanKeySize = 0;
-	lRootLineNumber = 0;
+	lMeanMainKeySize = 0;
+	lMainLineNumber = 0;
 	if (bOk and lTotalFileSizePerProcess < GetPLDatabase()->GetTotalFileSize())
 	{
 		// Initialisation d'un indexeur de cle pour la table principale
-		bOk = bOk and InitializeKeyFieldIndexer(0, &rootKeyFieldsIndexer);
+		bOk = bOk and InitializeKeyFieldIndexer(0, &mainKeyFieldsIndexer);
 
-		// Evaluation de la taille des cles et du nombre de lignes de la table racine
-		bOk = bOk and EvaluateKeySize(&rootKeyFieldsIndexer, lRootMeanKeySize, lRootLineNumber);
+		// Evaluation de la taille des cles et du nombre de lignes de la table principale
+		bOk = bOk and EvaluateKeySize(&mainKeyFieldsIndexer, lMeanMainKeySize, lMainLineNumber);
 
 		// Calcul du taux d'echantillonnage
 		if (bOk)
 		{
 			// Calcul de la taille totale necessaire pour stocker une cle pour toutes les tables
-			// La cle n'est stockee que pour la table racine, plus au plus un indexe t une position
+			// La cle n'est stockee que pour la table principale, plus au plus un indexe t une position
 			// par table non externe
-			lAllKeyPositionMemory = lRootMeanKeySize + sizeof(KWKey*) +
+			lAllKeyPositionMemory = lMeanMainKeySize + sizeof(KWKey*) +
 						GetMTDatabase()->GetMainTableNumber() * sizeof(longint) * 2;
 
 			// Calcul du nombre max de cles et de leur position par table utilise, en fonction de la memoire
@@ -861,7 +861,7 @@ boolean KWDatabaseIndexer::ComputeRootTableIndexation()
 			if (lMaxKeyNumber < 0)
 				lMaxKeyNumber = 0;
 
-			// On limite ce nombre de cle on fonction de la taille des fichiers a analyser
+			// On limite ce nombre de cle on fonctioRate = 0; de la taille des fichiers a analyser
 			// On utilise (lMaxFileSizePerProcess/8) pour la gestion de la fin des taches
 			lMaxSlaveProcessNumber =
 			    1 + GetMTDatabase()->GetTotalFileSize() / (lTotalFileSizePerProcess / 8);
@@ -869,36 +869,36 @@ boolean KWDatabaseIndexer::ComputeRootTableIndexation()
 				lMaxKeyNumber = lMaxSlaveProcessNumber;
 
 			// On en deduit le taux d'echantillonnage max
-			dSamplingRate = lMaxKeyNumber * 1.0 / lRootLineNumber;
+			dSamplingRate = lMaxKeyNumber * 1.0 / max((longint)1, lMainLineNumber);
 			if (dSamplingRate > 1)
 				dSamplingRate = 1;
-			if (dSamplingRate * lRootLineNumber < 10)
+			if (dSamplingRate * lMainLineNumber < 10)
 				dSamplingRate = 0;
 			if (lTotalFileSizePerProcess >= GetMTDatabase()->GetTotalFileSize())
 				dSamplingRate = 0;
 			if (bDisplay)
 			{
-				cout << "ComputeRootTableIndexation\n";
+				cout << "ComputeMainTableIndexation\n";
 				cout << "\tAll tables size\t" << GetMTDatabase()->GetTotalFileSize() << "\n";
 				cout << "\tTotal file size per process\t" << lTotalFileSizePerProcess << "\n";
 				cout << "\tMax slave process number\t" << lMaxSlaveProcessNumber << "\n";
 				cout << "\tMax key number\t" << lMaxKeyNumber << "\n";
 				cout << "\tSampling rate\t" << dSamplingRate << "\n";
-				cout << "\tRoot mean key size\t" << lRootMeanKeySize << "\n";
-				cout << "\tRoot line number\t" << lRootLineNumber << "\n";
+				cout << "\tMean main key size\t" << lMeanMainKeySize << "\n";
+				cout << "\tMain line number\t" << lMainLineNumber << "\n";
 			}
 		}
 	}
 
 	// Indexation basique si aucune cle ne doit etre extraite
 	if (bOk and dSamplingRate == 0)
-		bOk = ComputeRootTableBasicIndexation();
+		bOk = ComputeMainTableBasicIndexation();
 
 	// Extraction des cles de la table principale si necessaire
 	if (bOk and dSamplingRate > 0)
 	{
-		// Extraction des cles et de leur position de la table racine
-		bOk = ExtractRootSampleKeyPositions(&rootKeyFieldsIndexer, lRootMeanKeySize, lRootLineNumber,
+		// Extraction des cles et de leur position de la table principale
+		bOk = ExtractMainSampleKeyPositions(&mainKeyFieldsIndexer, lMeanMainKeySize, lMainLineNumber,
 						    dSamplingRate, &oaFoundKeyPositions);
 
 		// Cas particulier ou la derniere cle arrive en fin de fichier: on la supprime, car elle delimite un
@@ -922,7 +922,7 @@ boolean KWDatabaseIndexer::ComputeRootTableIndexation()
 		// Memorisation des resultats si ok
 		if (bOk)
 		{
-			// Collecte des cles a partir des positions extraites de la table racine
+			// Collecte des cles a partir des positions extraites de la table principale
 			KWKeyPosition::CollectClonedKeys(&oaFoundKeyPositions, &oaExtractedKeys);
 
 			// Initialisation des tableaux
@@ -1115,7 +1115,7 @@ boolean KWDatabaseIndexer::InitializeKeyFieldIndexer(int nTableIndex, KWKeyField
 	boolean bOk = true;
 	boolean bDisplay = false;
 	const KWMTDatabaseMapping* readMapping;
-	KWClass* kwcRootClass;
+	KWClass* kwcMainClass;
 	KWClass* kwcMappingClass;
 	KWClass* kwcHeaderLineClass;
 	StringVector svFirstLine;
@@ -1130,10 +1130,10 @@ boolean KWDatabaseIndexer::InitializeKeyFieldIndexer(int nTableIndex, KWKeyField
 	readMapping = GetMTDatabase()->GetUsedMappingAt(nTableIndex);
 	check(readMapping);
 
-	// Recherche de la classe racine
-	kwcRootClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetMTDatabase()->GetClassName());
-	check(kwcRootClass);
-	assert(kwcRootClass->GetKeyAttributeNumber() > 0);
+	// Recherche de la classe principale
+	kwcMainClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetMTDatabase()->GetClassName());
+	check(kwcMainClass);
+	assert(kwcMainClass->GetKeyAttributeNumber() > 0);
 
 	// Recherche de la table associee au mapping
 	kwcMappingClass = KWClassDomain::GetCurrentDomain()->LookupClass(readMapping->GetClassName());
@@ -1143,8 +1143,8 @@ boolean KWDatabaseIndexer::InitializeKeyFieldIndexer(int nTableIndex, KWKeyField
 	kwcMappingClass->ExportNativeFieldNames(keyFieldsIndexer->GetNativeFieldNames());
 	kwcMappingClass->ExportKeyAttributeNames(keyFieldsIndexer->GetKeyAttributeNames());
 
-	// On restreint les champs cle a ceux correspondant a la classe racine
-	keyFieldsIndexer->GetKeyAttributeNames()->SetSize(kwcRootClass->GetKeyAttributeNumber());
+	// On restreint les champs cle a ceux correspondant a la classe principale
+	keyFieldsIndexer->GetKeyAttributeNames()->SetSize(kwcMainClass->GetKeyAttributeNumber());
 
 	// Extraction des champs de la premiere ligne du fichier d'entree a partir de la classe representant la ligne
 	// d'entete
@@ -1192,45 +1192,45 @@ boolean KWDatabaseIndexer::InitializeKeyFieldIndexer(int nTableIndex, KWKeyField
 	return bOk;
 }
 
-boolean KWDatabaseIndexer::EvaluateKeySize(const KWKeyFieldsIndexer* rootKeyFieldsIndexer, longint& lRootMeanKeySize,
-					   longint& lRootLineNumber)
+boolean KWDatabaseIndexer::EvaluateKeySize(const KWKeyFieldsIndexer* mainKeyFieldsIndexer, longint& lMeanMainKeySize,
+					   longint& lMainLineNumber)
 {
 	boolean bOk = true;
 	KWKeySizeEvaluatorTask keySizeEvaluator;
 
-	require(rootKeyFieldsIndexer != NULL);
+	require(mainKeyFieldsIndexer != NULL);
 	require(not bIsIndexationInterruptedByUser);
 	require(IsMultiTableTechnology());
 
-	// Evaluation de la taille des cles a partir de la table racine
-	lRootMeanKeySize = 0;
-	lRootLineNumber = 0;
+	// Evaluation de la taille des cles a partir de la table principale
+	lMeanMainKeySize = 0;
+	lMainLineNumber = 0;
 	if (bOk)
 	{
 		bOk = keySizeEvaluator.EvaluateKeySize(
-		    rootKeyFieldsIndexer->GetConstKeyFieldIndexes(), GetMTDatabase()->GetDatabaseName(),
-		    GetMTDatabase()->GetHeaderLineUsed(), GetMTDatabase()->GetFieldSeparator(), lRootMeanKeySize,
-		    lRootLineNumber);
+		    mainKeyFieldsIndexer->GetConstKeyFieldIndexes(), GetMTDatabase()->GetDatabaseName(),
+		    GetMTDatabase()->GetHeaderLineUsed(), GetMTDatabase()->GetFieldSeparator(), lMeanMainKeySize,
+		    lMainLineNumber);
 		bIsIndexationInterruptedByUser =
 		    bIsIndexationInterruptedByUser or keySizeEvaluator.IsTaskInterruptedByUser();
 	}
 	return bOk;
 }
 
-boolean KWDatabaseIndexer::ExtractRootSampleKeyPositions(const KWKeyFieldsIndexer* rootKeyFieldsIndexer,
-							 longint lRootMeanKeySize, longint lRootLineNumber,
-							 double dSamplingRate, ObjectArray* oaRootKeyPositions)
+boolean KWDatabaseIndexer::ExtractMainSampleKeyPositions(const KWKeyFieldsIndexer* mainKeyFieldsIndexer,
+							 longint lMeanMainKeySize, longint lMainLineNumber,
+							 double dSamplingRate, ObjectArray* oaMainKeyPositions)
 {
 	boolean bOk = true;
 	KWKeyPositionSampleExtractorTask keyPositionSampleExtractor;
 
 	require(not bIsIndexationInterruptedByUser);
 	require(IsMultiTableTechnology());
-	require(rootKeyFieldsIndexer != NULL);
-	require(oaRootKeyPositions != NULL);
-	require(oaRootKeyPositions->GetSize() == 0);
-	require(lRootMeanKeySize > 0);
-	require(lRootLineNumber > 0);
+	require(mainKeyFieldsIndexer != NULL);
+	require(oaMainKeyPositions != NULL);
+	require(oaMainKeyPositions->GetSize() == 0);
+	require(lMeanMainKeySize > 0);
+	require(lMainLineNumber > 0);
 	require(dSamplingRate > 0);
 
 	// Extraction des cles et de leur position
@@ -1238,12 +1238,12 @@ boolean KWDatabaseIndexer::ExtractRootSampleKeyPositions(const KWKeyFieldsIndexe
 	keyPositionSampleExtractor.SetHeaderLineUsed(GetMTDatabase()->GetHeaderLineUsed());
 	keyPositionSampleExtractor.SetFieldSeparator(GetMTDatabase()->GetFieldSeparator());
 	keyPositionSampleExtractor.SetSamplingRate(dSamplingRate);
-	keyPositionSampleExtractor.SetKeyUsedMemory(lRootMeanKeySize);
-	keyPositionSampleExtractor.SetFileLineNumber(lRootLineNumber);
-	keyPositionSampleExtractor.GetKeyFieldIndexes()->CopyFrom(rootKeyFieldsIndexer->GetConstKeyFieldIndexes());
-	bOk = keyPositionSampleExtractor.ExtractSample(oaRootKeyPositions);
+	keyPositionSampleExtractor.SetKeyUsedMemory(lMeanMainKeySize);
+	keyPositionSampleExtractor.SetFileLineNumber(lMainLineNumber);
+	keyPositionSampleExtractor.GetKeyFieldIndexes()->CopyFrom(mainKeyFieldsIndexer->GetConstKeyFieldIndexes());
+	bOk = keyPositionSampleExtractor.ExtractSample(oaMainKeyPositions);
 	bIsIndexationInterruptedByUser =
 	    bIsIndexationInterruptedByUser or keyPositionSampleExtractor.IsTaskInterruptedByUser();
-	assert(bOk or oaRootKeyPositions->GetSize() == 0);
+	assert(bOk or oaMainKeyPositions->GetSize() == 0);
 	return bOk;
 }

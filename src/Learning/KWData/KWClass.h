@@ -81,6 +81,25 @@ public:
 	boolean GetRoot() const;
 	void SetRoot(boolean bValue);
 
+	// Unicite des instances de la classe
+	// - soit la classe est racine
+	// - soit elle contient des attributs de type relation non calcules, ce qui implique une unicite
+	//   de ses instances pour que chaque enregistrement de sous-table soit rattache de facon
+	//   unique a son enregistrement parent dans le schema multi-table hierachique
+	// L'unicite est controlee uniquement au moment de la lecture des donnes a partir d'une base
+	// pour des dictionnaire ayant des cles. Cela ne concerne pas les dictionnaires avec ou sans cle
+	// utilise pour la construction de table en memoire
+	// Cette caracteristique est calculee au moment de l'indexation de la classe
+	boolean IsUnique() const;
+
+	// Capacite a etre stocke sur un systeme de fichiers multi-tables a l'aide de cles
+	// Dans le cas de classes construites via des regles de derivation, on a pas necessairement des cles,
+	// et on ne peut charger en memoire les instances correspondante via des fichiers de donnees
+	boolean IsKeyBasedStorable() const;
+
+	// Verification de la capacite a etre stocke, pour afficher les erreurs si necessaire
+	boolean CheckKeyBasedStorability() const;
+
 	/////////////////////////////////////////////////////////////
 	// Specification des attributs de la cle de la classe
 	// Facultatif: utile dans pour les chainage entre classes dans le cas
@@ -478,6 +497,13 @@ protected:
 	// Seule la classe KWDatabase a l'usage des deux listes ci-dessous
 	friend class KWDatabase;
 
+	// Parametrage force du caractere unique d'une classe
+	// Parametrage avance, utilise par exemple pour une classe unique en raison de
+	// ses sous-tables non calculees, mais pour la quelle ces sous tables ont ete
+	// supprimees pour optimiser les lectures de donnees
+	boolean GetForceUnique() const;
+	void SetForceUnique(boolean bValue);
+
 	// Liste des elements de donnees devant etre calcules
 	ObjectArray* GetDatabaseDataItemsToCompute();
 	const ObjectArray* GetConstDatabaseDataItemsToCompute() const;
@@ -506,13 +532,32 @@ protected:
 	void InitializeRandomRuleParameters(KWDerivationRule* rule, const ALString& sAttributeName,
 					    int& nRuleRankInAttribute);
 
-	// Verification de l'integrite de la classe en ce qui concerne sa composition
-	// Il ne doit pas y avoir de cycle dans le graphe des utilisation entre classes par composition
-	// La taille des cles doit etre croissante avec la profondeur d'utilisation dans la composition
-	// L'attribut parent en parametre (potentiellement NULL) fournit des informations sur la profondeur
-	// dans l'arbre de composition, ce qui permet de tester la coherence de longueur des cle
-	// Le dictionnaire de classes en parametre permet de detecter les cycles
-	boolean CheckClassComposition(KWAttribute* parentAttribute, NumericKeyDictionary* nkdComponentClasses) const;
+	// Verification de l'integrite de la classe en ce qui concerne sa composition native,
+	// c'est a dire de sa hierarchie induite par l'ensemble des attributs relations non calcules,
+	// et si demande la coherence de son utilisation des cles dans la hierarchie pour permettre
+	// de rendre les donnees stockable sur une base multi-table a base de fichiers
+	//
+	// Il ne doit pas y avoir de cycle dans le graphe des utilisations entre classes par composition
+	// Le parametre de verification des cles, avec ou sans message d'erreur, permet de verifier qu'un
+	// dictionnaire est stockable sur disque via un mapping multi-fichier, au moyen de cles coherentes.
+	// - le dictionnaire doit avoir une cle s'il contient des sous-tables
+	// - la taille des cles doit etre croissante avec la profondeur d'utilisation dans la composition
+	// Note que l'on peut avoir des dictionnaires non stockage dans le cas de regles de derivation de creation
+	// de table, qui peuvent exploiter des dictionnaire quelconques (non Root), avec ou sans cle
+	boolean CheckNativeComposition(boolean bCheckKeys, boolean bVerboseCheckKeys) const;
+
+	// Methode interne utilisee par CheckNativeComposition, avec des parametres techniques supplementaire
+	// permettant son implementation de facon recursive
+	// - parentAttribute: correspond a l'attribut utilisant la classe (NULL pour l'appel initial),
+	//   ce qui fournit des informations sur la profondeur dans l'arbre de composition, et qui
+	//   permet de tester la coherence de longueur des cles
+	// - nkdComponentClasses: dictionnaire de classes traitees permettant de detecter les cycles
+	boolean InternalCheckNativeComposition(boolean bCheckKeys, boolean bVerboseCheckKeys,
+					       KWAttribute* parentAttribute,
+					       NumericKeyDictionary* nkdComponentClasses) const;
+
+	// Type d'une variable relationnelles complet sous forme d'une chaine de caracteres
+	const ALString RelationTypeToString(const KWAttribute* attribute) const;
 
 	// Attributs Symbol charges en memoire, pour optimiser leur destruction et mutation
 	// Attention, seuls les attributs Symbol dense sont concernes. Les attributs faisant
@@ -552,12 +597,18 @@ protected:
 	int GetUnloadedOwnedRelationAttributeNumber() const;
 	KWAttribute* GetUnloadedOwnedRelationAttributeAt(int nIndex) const;
 
-	// Prise en compte des attributs utilises non charges en memoire suite a une lecture de dictionnaire (cf.
-	// KWAttribute::ReadNotLoadedMetaData)
-	void ReadNotLoadedMetaData();
-
 	// Affichage d'un tableau d'attributs
 	void WriteAttributes(const ALString& sTitle, const ObjectArray* oaAttributes, ostream& ost) const;
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Gestion du ForceUnique de la classe pour la lecture/ecriture de dictionnaire dans les fichiers
+	// Permet de transferer cette information "privee", par exemple pour une tache parallele
+
+	// Ecriture si necessaire des informations prives dans les meta-data (_ForceUnique, plus celles des attributs)
+	void WritePrivateMetaData(ostream& ost) const;
+
+	// Lecture et prise en compte des l'informations privees depuis les meta-data et nettoyage de ceux-ci
+	void ReadPrivateMetaData();
 
 	// Nom de la classe
 	KWCDUniqueString usName;
@@ -570,6 +621,12 @@ protected:
 
 	// Statut racine ou composant
 	boolean bRoot;
+
+	// Statut unique force
+	boolean bForceUnique;
+
+	// Statut unique: racine, ou ayant des attribut relation natifs, imposant l'unicite
+	boolean bIsUnique;
 
 	// Nom des attributs cles (potentiellement specifies avant la specification des attributs de la classe)
 	StringVector svKeyAttributeNames;
@@ -620,6 +677,9 @@ protected:
 	// Listes d'attributs dont l'usage est reserve a la classe KWDatabase
 	ObjectArray oaDatabaseDataItemsToCompute;
 	ObjectArray oaDatabaseTemporayDataItemsToComputeAndClean;
+
+	// Capacite a etre stocke sur un systeme de fichiers multi-tables a l'aide de cles
+	boolean bIsKeyBasedStorable;
 
 	// Valeur de hash de la classe, bufferise avec une fraicheur
 	// Ces variables sont mutable, car modifiee par ComputeHashValue()
@@ -682,6 +742,27 @@ inline void KWClass::SetRoot(boolean bValue)
 {
 	bRoot = bValue;
 	UpdateFreshness();
+}
+
+inline boolean KWClass::IsUnique() const
+{
+	require(IsIndexed());
+	return bIsUnique;
+}
+
+inline boolean KWClass::IsKeyBasedStorable() const
+{
+	require(IsIndexed());
+	return bIsKeyBasedStorable;
+}
+
+inline boolean KWClass::CheckKeyBasedStorability() const
+{
+	boolean bOk;
+	require(IsIndexed());
+	bOk = CheckNativeComposition(true, true);
+	ensure(bOk == bIsKeyBasedStorable);
+	return bIsKeyBasedStorable;
 }
 
 inline int KWClass::GetKeyAttributeNumber() const
@@ -883,6 +964,17 @@ inline KWDataItem* KWClass::GetDataItemAtLoadIndex(KWLoadIndex liIndex) const
 {
 	require(liIndex.IsValid());
 	return cast(KWDataItem*, oaLoadedDataItems.GetAt(liIndex.GetDenseIndex()));
+}
+
+inline boolean KWClass::GetForceUnique() const
+{
+	return bForceUnique;
+}
+
+inline void KWClass::SetForceUnique(boolean bValue)
+{
+	bForceUnique = bValue;
+	UpdateFreshness();
 }
 
 inline ObjectArray* KWClass::GetDatabaseDataItemsToCompute()

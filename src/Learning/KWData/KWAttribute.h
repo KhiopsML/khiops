@@ -208,14 +208,14 @@ protected:
 	void BuildAdvancedTypeSpecification();
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// Gestion des attribut Used mais pas Loaded, pour la lecture/ecriture de dictionnaire dans les fichiers
+	// Gestion des attributs Used mais pas Loaded, pour la lecture/ecriture de dictionnaire dans les fichiers
 	// Permet de transferer cette information "privee", par exemple pour une tache parallele
 
-	// Ecriture si necessaire de l'information NotLoaded dans les meta-data
-	void WriteNotLoadedMetaData(ostream& ost) const;
+	// Ecriture si necessaire des informations prives dans les meta-data (_NotLoaded)
+	void WritePrivateMetaData(ostream& ost) const;
 
-	// Lecture et prise en compte de l'information NotLoaded depuis les meta-data et nettoyage de ceux-ci
-	void ReadNotLoadedMetaData();
+	// Lecture et prise en compte des l'informations privees depuis les meta-data et nettoyage de ceux-ci
+	void ReadPrivateMetaData();
 
 	// Bloc d'attribut eventuel auquel l'attribut appartient
 	KWAttributeBlock* attributeBlock;

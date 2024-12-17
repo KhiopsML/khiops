@@ -30,7 +30,7 @@ void KWMTDatabaseTextFile::AddPrefixToUsedFiles(const ALString& sPrefix)
 	// Renommage si nom existant
 	if (GetDatabaseName() != "")
 	{
-		// Personnalisation des noms de table du mapping (qui comprennent la table racine)
+		// Personnalisation des noms de table du mapping (qui comprennent la table principale)
 		for (nMapping = 0; nMapping < GetMultiTableMappings()->GetSize(); nMapping++)
 		{
 			mapping = cast(KWMTDatabaseMapping*, GetMultiTableMappings()->GetAt(nMapping));
@@ -64,7 +64,7 @@ void KWMTDatabaseTextFile::AddSuffixToUsedFiles(const ALString& sSuffix)
 	// Renommage si nom existant
 	if (GetDatabaseName() != "")
 	{
-		// Personnalisation des noms de table du mapping (qui comprennent la table racine)
+		// Personnalisation des noms de table du mapping (qui comprennent la table principale)
 		for (nMapping = 0; nMapping < GetMultiTableMappings()->GetSize(); nMapping++)
 		{
 			mapping = cast(KWMTDatabaseMapping*, GetMultiTableMappings()->GetAt(nMapping));
@@ -101,7 +101,7 @@ void KWMTDatabaseTextFile::AddPathToUsedFiles(const ALString& sPathName)
 		// avec un fichier bidon en entree pour qu'il extrait correctement la path en entree
 		resultFilePathBuilder.SetInputFilePathName(FileService::BuildFilePathName(sPathName, "dummy.txt"));
 
-		// Personnalisation des noms de table du mapping (qui comprennent la table racine)
+		// Personnalisation des chemins pour les tables du mapping (qui comprennent la table principale)
 		for (nMapping = 0; nMapping < GetMultiTableMappings()->GetSize(); nMapping++)
 		{
 			mapping = cast(KWMTDatabaseMapping*, GetMultiTableMappings()->GetAt(nMapping));
@@ -130,7 +130,7 @@ void KWMTDatabaseTextFile::ExportUsedFileSpecs(ObjectArray* oaUsedFileSpecs) con
 	// Appel de la methode ancetre
 	KWMTDatabase::ExportUsedFileSpecs(oaUsedFileSpecs);
 
-	// Personnalisation des noms de table du mapping (hors table racine, deja traitee)
+	// Personnalisation des noms de table du mapping (hors table principale, deja traitee)
 	for (nMapping = 1; nMapping < oaMultiTableMappings.GetSize(); nMapping++)
 	{
 		mapping = cast(KWMTDatabaseMapping*, oaMultiTableMappings.GetAt(nMapping));
@@ -154,7 +154,7 @@ void KWMTDatabaseTextFile::ExportUsedWriteFileSpecs(ObjectArray* oaUsedFileSpecs
 	// Appel de la methode ancetre
 	KWMTDatabase::ExportUsedFileSpecs(oaUsedFileSpecs);
 
-	// Personnalisation des noms de table du mapping (hors table racine, deja traitee)
+	// Personnalisation des noms de table du mapping (hors table principale, deja traitee)
 	for (nMapping = 1; nMapping < oaMultiTableMappings.GetSize(); nMapping++)
 	{
 		mapping = cast(KWMTDatabaseMapping*, oaMultiTableMappings.GetAt(nMapping));

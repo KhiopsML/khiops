@@ -76,7 +76,7 @@ void KNIDatabaseTransferView::KNITransferDatabase()
 		// Recopie des caracteristiques de la table principale ou des tables secondaires
 		else
 		{
-			// Cas du mapping racine (premier des mapping)
+			// Cas du mapping principal (premier des mappings)
 			if (nMapping == 0)
 			{
 				strcpy(recodingOperands.InputFile.DataPath, "");
