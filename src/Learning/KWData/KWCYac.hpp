@@ -62,22 +62,23 @@ enum yytokentype
 	EXTENDEDIDENTIFIER = 259, /* EXTENDEDIDENTIFIER  */
 	CONTINUOUSLITTERAL = 260, /* CONTINUOUSLITTERAL  */
 	STRINGLITTERAL = 261,     /* STRINGLITTERAL  */
-	LABEL = 262,              /* LABEL  */
-	APPLICATIONID = 263,      /* APPLICATIONID  */
-	CLASS = 264,              /* CLASS  */
-	CONTINUOUSTYPE = 265,     /* CONTINUOUSTYPE  */
-	SYMBOLTYPE = 266,         /* SYMBOLTYPE  */
-	OBJECTTYPE = 267,         /* OBJECTTYPE  */
-	OBJECTARRAYTYPE = 268,    /* OBJECTARRAYTYPE  */
-	ROOT = 269,               /* ROOT  */
-	UNUSED = 270,             /* UNUSED  */
-	DATETYPE = 271,           /* DATETYPE  */
-	TIMETYPE = 272,           /* TIMETYPE  */
-	TIMESTAMPTYPE = 273,      /* TIMESTAMPTYPE  */
-	TIMESTAMPTZTYPE = 274,    /* TIMESTAMPTZTYPE  */
-	TEXTTYPE = 275,           /* TEXTTYPE  */
-	TEXTLISTTYPE = 276,       /* TEXTLISTTYPE  */
-	STRUCTURETYPE = 277       /* STRUCTURETYPE  */
+	COMMENT = 262,            /* COMMENT  */
+	LABEL = 263,              /* LABEL  */
+	APPLICATIONID = 264,      /* APPLICATIONID  */
+	CLASS = 265,              /* CLASS  */
+	CONTINUOUSTYPE = 266,     /* CONTINUOUSTYPE  */
+	SYMBOLTYPE = 267,         /* SYMBOLTYPE  */
+	OBJECTTYPE = 268,         /* OBJECTTYPE  */
+	OBJECTARRAYTYPE = 269,    /* OBJECTARRAYTYPE  */
+	ROOT = 270,               /* ROOT  */
+	UNUSED = 271,             /* UNUSED  */
+	DATETYPE = 272,           /* DATETYPE  */
+	TIMETYPE = 273,           /* TIMETYPE  */
+	TIMESTAMPTYPE = 274,      /* TIMESTAMPTYPE  */
+	TIMESTAMPTZTYPE = 275,    /* TIMESTAMPTZTYPE  */
+	TEXTTYPE = 276,           /* TEXTTYPE  */
+	TEXTLISTTYPE = 277,       /* TEXTLISTTYPE  */
+	STRUCTURETYPE = 278       /* STRUCTURETYPE  */
 };
 typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -86,7 +87,7 @@ typedef enum yytokentype yytoken_kind_t;
 #if !defined YYSTYPE && !defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 64 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 65 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 
 	Continuous cValue;
 	ALString* sValue;
@@ -101,7 +102,7 @@ union YYSTYPE
 	KWMetaData* kwmdMetaData;
 	int nValue;
 
-#line 101 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.hpp"
+#line 102 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.hpp"
 };
 typedef union YYSTYPE YYSTYPE;
 #define YYSTYPE_IS_TRIVIAL 1
