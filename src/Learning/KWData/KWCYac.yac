@@ -57,6 +57,7 @@ static int nFileParsingErrorNumber = 0;
 /*
 #define YYDEBUG 1 
 extern char   *yyptok(int i); 
+// Ajouter l'instruction yydebug = 1 dans le code d'une action du fichier .lex ou .yac
 */
 
 %}
@@ -81,6 +82,7 @@ extern char   *yyptok(int i);
 %token <sValue>    EXTENDEDIDENTIFIER
 %token <cValue>    CONTINUOUSLITTERAL
 %token <sValue>    STRINGLITTERAL
+%token <sValue>    COMMENT
 %token <sValue>    LABEL 
 %token <sValue>    APPLICATIONID 
 %token CLASS 
@@ -105,7 +107,9 @@ extern char   *yyptok(int i);
 %type <nValue> OBJECTARRAYTYPE
 %type <sValue> IDENTIFIER
 %type <sValue> SIMPLEIDENTIFIER
-%type <sValue> comments
+%type <sValue> label
+%type <svValue> comments
+%type <svValue> labelOrComments
 %type <sValue> applicationids
 %type <sValue> bigstring
 %type <sValue> refIdentifier
@@ -218,36 +222,44 @@ kwclassFile: applicationids kwclasses comments
 	  /* On ignore l'identification d'application */
 	  if ($1 != NULL)
 	    delete $1;
-
-	  /* On ignore les commentaires en fin de fichier */
+	
+	  /* On interdit les commentaires en fin de fichier */
 	  if ($3 != NULL)
+	  {
 	    delete $3;
+	    yyerrorWithLineCorrection("Comments at the end of the file are not allowed", -1);
+	  }
 	}
 	;
 
-kwclasses:
-    kwclasses kwclass
+kwclasses: /* NULL */
+  | kwclasses kwclass
   | kwclasses error 
       { yyerror("Error outside the definition of a dictionary"); 
 	    YYABORT; }
-  | /* NULL */
   ;
 
-kwclass: kwclassBegin '}' semicolon
+kwclass: kwclassBegin comments '}' semicolon
 		{
+		  KWClass* kwcClass=$1;
+
 		  /* La completion des informations de type (CompleteTypeInfo) est centralisee */
 		  /* au niveau du domaine en fin de parsing */
+
+		  /* Commentaires internes */
+		  if ($2 != NULL)
+		  {
+		    kwcClass->SetInternalComments($2);
+			delete $2;
+		  }
 
 		  /* Reinitialisation de la classe courante */
   		  kwcLoadCurrentClass = NULL;
 		}
 	;
 
-kwclassBegin: kwclassHeader comments
+kwclassBegin: kwclassHeader
 		{
-		  /* On ignore les premiers comemntaires */
-		  if ($2 != NULL)
-		    delete $2;
 		  assert(kwcLoadCurrentClass == $1);
 		  $$ = $1;
 		}
@@ -293,7 +305,7 @@ kwclassBegin: kwclassHeader comments
 
 		  $$ = kwcClass;       
 		 }
-	| kwclassBegin '{' comments oaAttributeArrayDeclaration '}' IDENTIFIER usedDerivationRule semicolon metaData comments
+	| kwclassBegin comments '{'  oaAttributeArrayDeclaration comments '}' IDENTIFIER usedDerivationRule semicolon metaData label
 		{
 		  KWClass* kwcClass=$1;
 		  KWAttributeBlock* attributeBlock;
@@ -301,18 +313,14 @@ kwclassBegin: kwclassHeader comments
   		  ALString sBlockName;
 		  KWAttribute* firstAttribute;
 		  KWAttribute* lastAttribute;
-		  KWDerivationRule* rule = $7;
+		  KWDerivationRule* rule = $8;
 		  ALString sMessage;
 		  assert(kwcLoadCurrentClass == $1);
 		  check(oaAttributes);
 
-		  /* On ignore les premiers comemntaires */
-		  if ($3 != NULL)
-		    delete $3;
-
 		  /* Nom du bloc */
-		  if ($6 != NULL)
-		    sBlockName = *($6);
+		  if ($7 != NULL)
+		    sBlockName = *($7);
 
 		  /* Cas d'un bloc avec au moins un attribut valide */
 		  if (oaAttributes->GetSize() > 0)
@@ -345,10 +353,14 @@ kwclassBegin: kwclassHeader comments
 
 			  /* Parametrage du bloc */
 			  attributeBlock->SetDerivationRule(rule);
-			  if ($9 != NULL)
-			    attributeBlock->GetMetaData()->CopyFrom($9);
-  		      if ($10 != NULL)
-			    attributeBlock->SetLabel(*($10));
+			  if ($10 != NULL)
+			    attributeBlock->GetMetaData()->CopyFrom($10);
+  		      if ($11 != NULL)
+			    attributeBlock->SetLabel(*($11));
+			  if ($2 != NULL)
+			    attributeBlock->SetComments($2);
+			  if ($5 != NULL)
+			    attributeBlock->SetInternalComments($5);
 
 			  /* On marque la rule a NULL pour indiquer qu'elle est utilisee */
 			  rule = NULL;
@@ -364,16 +376,20 @@ kwclassBegin: kwclassHeader comments
 		  delete oaAttributes;
 		  
 		  /* Nettoyage */
-		  if ($6 != NULL)
-		    delete $6;
-		  if ($9 != NULL)
-		    delete $9;
+		  if ($2 != NULL)
+		    delete $2;
+		  if ($5 != NULL)
+		    delete $5;
+		  if ($7 != NULL)
+		    delete $7;
 		  if ($10 != NULL)
 		    delete $10;
+		  if ($11 != NULL)
+		    delete $11;
 		  
 		  $$ = kwcClass;
 		  }
-	| kwclassBegin '{' comments '}' IDENTIFIER usedDerivationRule semicolon metaData comments
+	| kwclassBegin comments '{' comments '}' IDENTIFIER usedDerivationRule semicolon metaData comments
 		{
 		  KWClass* kwcClass=$1;
 
@@ -381,15 +397,17 @@ kwclassBegin: kwclassHeader comments
 		  yyerror("Empty sparse variable block not allowed");
 
 		  /* Nettoyage */
-		  if ($3 != NULL)
-		    delete $3;
-		  delete $5;
-		  if ($6 != NULL)
-		      delete $6;
-		  if ($8 != NULL)
-		    delete $8;
+		  if ($2 != NULL)
+		    delete $2;
+		  if ($4 != NULL)
+		    delete $4;
+		  delete $6;
+		  if ($7 != NULL)
+		      delete $7;
 		  if ($9 != NULL)
 		    delete $9;
+		  if ($10 != NULL)
+		    delete $10;
 		  $$ = kwcClass;
 		  }
 	| kwclassBegin error 
@@ -495,23 +513,39 @@ oaAttributeArrayDeclaration :
 		 }
 		;
 
-kwclassHeader: comments rootDeclaration CLASS IDENTIFIER keyFields metaData '{'
+kwclassHeader: comments 
+       rootDeclaration CLASS IDENTIFIER labelOrComments 
+	   keyFields labelOrComments 
+	   metaData labelOrComments 
+	   '{'
 	   {
+	      StringVector* svComments1 = $1;
+		  boolean bRoot = $2;
+	      ALString* sIdentifier = $4;
+	      StringVector* svComments2 = $5;
+          StringVector* svKeyFields = $6;
+	      StringVector* svComments3 = $7;
+		  KWMetaData* metaData = $8;
+	      StringVector* svComments4 = $9;
           KWClass *kwcClass;
 		  KWClass* kwcReferencedClass;
+		  StringVector svAllComments;
+		  StringVector svClassComments;
+		  int nCommentStartIndex;
+		  int i;
 		  ALString sMessage;
 
           /* Test d'existence de la classe */
-          kwcClass = kwcdLoadDomain->LookupClass(*($4));
+          kwcClass = kwcdLoadDomain->LookupClass(*sIdentifier);
 
           /* Test d'existence de la classe en tant que classe referencee uniquement */
-          kwcReferencedClass = cast(KWClass*, odReferencedUncreatedClasses->Lookup(*($4)));
+          kwcReferencedClass = cast(KWClass*, odReferencedUncreatedClasses->Lookup(*sIdentifier));
 		  assert(kwcReferencedClass == NULL or kwcClass == NULL);
 
           /* Erreur si la classe existe deja */
           if (kwcClass != NULL)
           {
-            yyerror("Dictionary " + *($4) + " already exists");
+            yyerror("Dictionary " + *sIdentifier + " already exists");
    	        kwcClass = NULL;
           }
 		  /* On utilise la classe referencee si elle existe */
@@ -529,10 +563,10 @@ kwclassHeader: comments rootDeclaration CLASS IDENTIFIER keyFields metaData '{'
           else
           {
 		    /* Test de nom de classe */
-		    if (KWClass::CheckNameWithMessage(*($4), KWClass::Class, sMessage))
+		    if (KWClass::CheckNameWithMessage(*sIdentifier, KWClass::Class, sMessage))
 		    {
               kwcClass = new KWClass;
-              kwcClass->SetName(*($4));
+              kwcClass->SetName(*sIdentifier);
               kwcdLoadDomain->InsertClass(kwcClass);
 		    }
 		    else
@@ -542,69 +576,91 @@ kwclassHeader: comments rootDeclaration CLASS IDENTIFIER keyFields metaData '{'
 		  /* Initialisation si necessaire de la classe */
 		  if (kwcClass != NULL)
 		  {
-            /* Class Label */
-            if ($1!=NULL)
-              kwcClass->SetLabel(*($1));
+		    /* Commentaire de la classe en cours */
+			svClassComments.CopyFrom(kwcClass->GetComments());
 
             /* Classe racine */
-            kwcClass->SetRoot($2);
+            kwcClass->SetRoot(bRoot);
             
             /* Attribut key field */
-            if ($5!=NULL)
+            if (svKeyFields!=NULL)
             {
-              StringVector* svKeyFields;
-              int i;
-              
               // Transfert des champs de la cle */ 
-              svKeyFields = cast(StringVector*, $5);
+              svKeyFields = cast(StringVector*, svKeyFields);
               kwcClass->SetKeyAttributeNumber(svKeyFields->GetSize());
               for (i = 0; i < svKeyFields->GetSize(); i++)
                 kwcClass->SetKeyAttributeNameAt(i, svKeyFields->GetAt(i));
             }
 
 			/* Meta-donnees de la classe */
-			if ($6 != NULL)
+			if (metaData != NULL)
+			    kwcClass->GetMetaData()->CopyFrom(metaData);
+
+			/* On recupere les commentaires existants */
+			svAllComments.CopyFrom(kwcClass->GetComments()); 
+
+ 		    /* On recupere tous les commentaires entre le debut et la fin de la declaration de la classe */
+            if (svComments1!=NULL)
 			{
-			    kwcClass->GetMetaData()->CopyFrom($6);
-		    }
+			  for (i = 0; i < svComments1->GetSize(); i++)
+			    svAllComments.Add(svComments1->GetAt(i));
+			}
+            if (svComments2!=NULL)
+			{
+			  for (i = 0; i < svComments2->GetSize(); i++)
+			    svAllComments.Add(svComments2->GetAt(i));
+			}
+            if (svComments3!=NULL)
+			{
+			  for (i = 0; i < svComments3->GetSize(); i++)
+			    svAllComments.Add(svComments3->GetAt(i));
+			}
+            if (svComments4!=NULL)
+			{
+			  for (i = 0; i < svComments4->GetSize(); i++)
+			    svAllComments.Add(svComments4->GetAt(i));
+			}
+
+			/* Libelle de la classe: le premier des commentaires, sauf s'il existe deja */
+			nCommentStartIndex = 0;
+			if (kwcClass->GetLabel() == "" and svAllComments.GetSize() > 0)
+			{
+			  kwcClass->SetLabel(svAllComments.GetAt(0));
+			  nCommentStartIndex = 1;
+			}
+
+			/* Mise a jour des commentaires de la classe, en excluant potentiellement le premier commentaire reserve au libelle */
+			if (svAllComments.GetSize() > 0)
+			{
+  	          for (i = nCommentStartIndex; i < svAllComments.GetSize(); i++)
+			    svClassComments.Add(svAllComments.GetAt(i));
+			  kwcClass->SetComments(&svClassComments);
+			}
           }
 
           /* Liberation des tokens */
-          if ($1!=NULL) delete $1;  /* Label */
-          delete $4;  /* Name */
-          if ($5!=NULL)  /* Key fields */
-          {
-              StringVector* svKeyFields;
-              svKeyFields = cast(StringVector*, $5);
-              delete svKeyFields;
-          }
-          if ($6!=NULL) 
-		  delete $6; /* Key value pairs */
+          delete sIdentifier;
+          if (svKeyFields!=NULL) delete svKeyFields;
+          if (metaData!=NULL) delete metaData;
+          if (svComments1!=NULL) delete svComments1;
+          if (svComments2!=NULL) delete svComments2;
+          if (svComments3!=NULL) delete svComments3;
+          if (svComments4!=NULL) delete svComments4;
 
-		  /* Memorisation dz la classe courante */
+		  /* Memorisation de la classe courante */
 		  kwcLoadCurrentClass = kwcClass;
 		  $$ = kwcClass;
 	   }
 	   ;
+ 
 
-keyFields:
-      '(' fieldList ')' comments
+keyFields: /* NULL */
         {
-		  /* On ignore les comemntaires */
-		  if ($4 != NULL)
-		    delete $4;
-		  $$ = $2;
+          $$ = NULL; /* pas de champ cle */
         }
-	| comments
-		{
-		  /* On ignore les comemntaires */
-		  if ($1 != NULL)
-		    delete $1;
-          $$ = NULL; /* pas de champ cle */
-		}
-    | /* NULL */
+    | '(' fieldList ')'
         {
-          $$ = NULL; /* pas de champ cle */
+		  $$ = $2;
         }
     ;
 
@@ -631,8 +687,11 @@ fieldList:
         }
     ;
 
-metaData:
-	  metaData '<' SIMPLEIDENTIFIER '=' STRINGLITTERAL '>'
+metaData: /* NULL */
+        {
+          $$ = NULL; /* pas de paires cle valeurs */
+        }
+	| metaData '<' SIMPLEIDENTIFIER '=' STRINGLITTERAL '>'
         {
             KWMetaData* metaData;
             
@@ -709,15 +768,12 @@ metaData:
 		    delete $5;
 			$$ = metaData;
         }
-    | /* NULL */
-        {
-          $$ = NULL; /* pas de paires cle valeurs */
-        }
     ;
 
 
 
 kwattributeDeclaration:
+      comments
       usedDeclaration 
 	  typeDeclaration 
 	  refIdentifier 
@@ -725,36 +781,36 @@ kwattributeDeclaration:
 	  usedDerivationRule 
 	  semicolon
 	  metaData
-	  comments
+	  label
         {
           KWAttribute *attribute;
           KWDerivationRule* rule;
 
           /* Creation  et initialisation d'un attribut */
           attribute = new KWAttribute;
-		  attribute->SetUsed($1);
-		  attribute->SetType($2);
+		  attribute->SetUsed($2);
+		  attribute->SetType($3);
 		  
 		  /* Test de coherence entre le type et le complement de type dans le cas d'un type relation */
 		  if (KWType::IsRelation(attribute->GetType()))
 		  {
-			 if ($3 == NULL)
-			    yyerrorWithLineCorrection("Variable " + *($4) + " of type " + KWType::ToString($2) + 
-				": missing " +  KWType::ToString($2) + " dictionary", -1);
+			 if ($4 == NULL)
+			    yyerrorWithLineCorrection("Variable " + *($5) + " of type " + KWType::ToString($3) + 
+				": missing " +  KWType::ToString($3) + " dictionary", -1);
 		  }
 		  /* Test de coherence entre le type et le complement de type dans le cas d'un type Structure */
 		  else if (attribute->GetType() == KWType::Structure)
 		  {
-			 if ($3 == NULL)
-			    yyerrorWithLineCorrection("Variable " + *($4) + " of type " + KWType::ToString($2) + 
+			 if ($4 == NULL)
+			    yyerrorWithLineCorrection("Variable " + *($5) + " of type " + KWType::ToString($2) + 
 				": missing " +  KWType::ToString($2) + " dictionary", -1);
 		  }
 		  /* Test d'absence de complement de type dans les autres cas */
 		  else
 		  {
-			 if ($3 != NULL)
-			    yyerrorWithLineCorrection("Variable " + *($4) + " of type " + KWType::ToString($2) + 
-				": erroneous (" +  *($3) + ") type complement", -1);
+			 if ($4 != NULL)
+			    yyerrorWithLineCorrection("Variable " + *($5) + " of type " + KWType::ToString($3) + 
+				": erroneous (" +  *($4) + ") type complement", -1);
 		  }
 
 		  /* Classe referencee */
@@ -763,27 +819,27 @@ kwattributeDeclaration:
 		    KWClass* kwcReferencedClass = NULL;
 
             /* Test d'existence de la classe */
-            if ($3 != NULL)
-              kwcReferencedClass = kwcdLoadDomain->LookupClass(*($3));
+            if ($4 != NULL)
+              kwcReferencedClass = kwcdLoadDomain->LookupClass(*($4));
 
             /* Sinon, test d'existence de la classe en tant que classe referencee uniquement */
-            if (kwcReferencedClass == NULL and $3 != NULL)
-                kwcReferencedClass = cast(KWClass*, odReferencedUncreatedClasses->Lookup(*($3)));
+            if (kwcReferencedClass == NULL and $4 != NULL)
+                kwcReferencedClass = cast(KWClass*, odReferencedUncreatedClasses->Lookup(*($4)));
 
             /* Si la classe n'existe pas, on essaie de la creer */
-            if (kwcReferencedClass == NULL and $3 != NULL)
+            if (kwcReferencedClass == NULL and $4 != NULL)
 		    {
 		      /* Test de nom de classe */
-		      if (KWClass::CheckName(*($3), KWClass::Class, NULL))
+		      if (KWClass::CheckName(*($4), KWClass::Class, NULL))
 		      {
                 kwcReferencedClass = new KWClass;
-                kwcReferencedClass->SetName(*($3));
+                kwcReferencedClass->SetName(*($4));
 
 				/* Memorisation dans le dictionnaire des classe referencees */
                 odReferencedUncreatedClasses->SetAt(kwcReferencedClass->GetName(), kwcReferencedClass);
 		      }
 		      else
-		        yyerrorWithLineCorrection("Incorrect referenced dictionary name (" + *($3) + ")", -1);
+		        yyerrorWithLineCorrection("Incorrect referenced dictionary name (" + *($4) + ")", -1);
 		    }
 
 		    /* On memorise la classe referencee */
@@ -792,16 +848,16 @@ kwattributeDeclaration:
 		  /* Structure referencee */
 		  else if (attribute->GetType() == KWType::Structure)
 		  {
-		    if ($3 != NULL)
-              attribute->SetStructureName(*($3));
+		    if ($4 != NULL)
+              attribute->SetStructureName(*($4));
           }
-          if ($3 != NULL)
-            delete $3;
+          if ($4 != NULL)
+            delete $4;
 
 		  /* Nom de l'attribut */
-		  attribute->SetName (*($4));
-          delete $4; /* liberation de la valeur de IDENTIFIER */
-          rule = $5;
+		  attribute->SetName (*($5));
+          delete $5; /* liberation de la valeur de IDENTIFIER */
+          rule = $6;
 		  attribute->SetDerivationRule(rule);
 
 		  /* Completion eventuelle de la regle par les infos de type de l'attribut */
@@ -833,17 +889,24 @@ kwattributeDeclaration:
 		  }
 
 		  /* Meta-donnees de l'attribut */
-		  if ($7 != NULL)
+		  if ($8 != NULL)
 		  {
-		    attribute->GetMetaData()->CopyFrom($7);
-		    delete $7;
+		    attribute->GetMetaData()->CopyFrom($8);
+		    delete $8;
+		  }
+
+		  /* Libelle */
+		  if ($9 != NULL)
+		  {
+		    attribute->SetLabel(*($9));
+		    delete $9;
 		  }
 
 		  /* Commentaires */
-		  if ($8 != NULL)
+		  if ($1 != NULL)
 		  {
-		    attribute->SetLabel(*($8));
-		    delete $8;
+		    attribute->SetComments($1);
+		    delete $1;
 		  }
 
 		  $$ = attribute;
@@ -852,8 +915,11 @@ kwattributeDeclaration:
 
 
 
-applicationids:
-      applicationids APPLICATIONID
+applicationids: /* NULL */
+        {
+          $$ = NULL; /* pas d'identification d'application */
+        }
+    | applicationids APPLICATIONID
         {
 		  /* On ne garde que la premiere ligne de chaque identification d'application */
 		  if ($1 == NULL)
@@ -864,52 +930,87 @@ applicationids:
 			$$ = $1;
 		  }
         }
-    | /* NULL */
-        {
-          $$ = NULL; /* pas d'identification d'application */
-        }
     ;
 
 
-comments:
-      comments LABEL
+label: /* NULL */
         {
-		  /* On ne garde que la premiere ligne de chaque commentaire */
-		  if ($1 == NULL)
-            $$ = $2;
-		  else
-		  {
-		    delete $2;
-			$$ = $1;
-		  }
+          $$ = NULL; /* pas de libelle */
         }
-    | /* NULL */
+    | LABEL
+        {
+		  $$ = $1;
+        }
+    ;
+
+comments: /* NULL */
         {
           $$ = NULL; /* pas de commentaire */
         }
+    | comments COMMENT
+        {
+		  StringVector* svComments;
+
+		  /* Creation du vecteur de commentaires si neccesaire */
+		  if ($1 == NULL)
+		    svComments = new StringVector;
+		  else
+		    svComments = $1;
+		  
+		  /* Ajout du commentaire */
+		  svComments->Add(*$2);
+		  delete $2;
+          $$ = svComments;
+        }
     ;
 
-
-rootDeclaration:
-      ROOT
+labelOrComments: /* NULL */
         {
-          $$ = true;
+          $$ = NULL; /* pas de commentaire */
         }
-    | /* NULL */
+    | LABEL
+        {
+		  StringVector* svComments;
+		  svComments = new StringVector;
+		  svComments->Add(*$1);
+		  delete $1;
+          $$ = svComments;
+        }
+    | labelOrComments COMMENT
+        {
+		  StringVector* svComments;
+
+		  /* Creation du vecteur de commentaires si neccesaire */
+		  if ($1 == NULL)
+		    svComments = new StringVector;
+		  else
+		    svComments = $1;
+		  
+		  /* Ajout du commentaire */
+		  svComments->Add(*$2);
+		  delete $2;
+          $$ = svComments;
+        }
+    ;
+
+rootDeclaration: /* NULL */
         {
           $$ = false; /* valeur par defaut */
         }
+    | ROOT
+        {
+          $$ = true;
+        }
     ;
 
 
-usedDeclaration:
-      UNUSED
-        {
-          $$ = false;
-        }
-    | /* NULL */
+usedDeclaration: /* NULL */
         {
           $$ = true; /* valeur par defaut */
+        }
+    | UNUSED
+        {
+          $$ = false;
         }
     ;
 
@@ -962,19 +1063,22 @@ typeDeclaration:
     ;
 
 
-refIdentifier:
-	  '(' IDENTIFIER ')'
-        {
-		  $$ = $2;
-        }
-    | /* NULL */
+refIdentifier:  /* NULL */
         {
 		  $$ = NULL;
+        }
+	 | '(' IDENTIFIER ')'
+        {
+		  $$ = $2;
         }
     ;
 
 
-usedDerivationRule: '=' derivationRule
+usedDerivationRule: /* NULL */
+        {
+		  $$ = NULL;
+        }
+   | '=' derivationRule
 		{
 		  $$ = $2;
 		}
@@ -993,10 +1097,6 @@ usedDerivationRule: '=' derivationRule
 		  yyerror(sTmp + "Invalid syntax (" + *$2 + ")");
 		  if ($2 != NULL)
 		     delete $2;
-		  $$ = NULL;
-        }
-    | /* NULL */
-        {
 		  $$ = NULL;
         }
 		;
@@ -1334,8 +1434,11 @@ bigstring:
 		}
 	;
 
-semicolon:
-      ';'
+semicolon: /* NULL */
+        {
+          yyerror("Missing ';'");
+        }
+   | ';'
    | ';' ';'
         {
           yyerror("There is one superfluous ';'");
@@ -1344,14 +1447,16 @@ semicolon:
         {
           yyerror("Too many ';'");
         }
-   | /* NULL */
-        {
-          yyerror("Missing ';'");
-        }
     ;
 
-openparenthesis:
-      '('
+openparenthesis: /* NULL */
+        {
+		  /* Cette instruction est la pour aider au diagnostique des erreurs */
+		  /* de parenthesage: elle est utile dans ce cas, mais genere (avec  */
+		  /* sa consoeur de nombreux shift/reduce et reduce conflicts        */
+          yyerror("Missing '('");
+        }
+   | '('
    | '(' '('
         {
           yyerror("There is one superfluous '('");
@@ -1360,29 +1465,17 @@ openparenthesis:
         {
           yyerror("Too many '('");
         }
-   | /* NULL */
-        {
-		  /* ERRORMGT */
-		  /* Attention: supprimer cette instruction en cas d'evolution du parser */
-		  /* Cette instruction est la pour aider au diagnostique des erreurs */
-		  /* de parenthesage: elle est utile dans ce cas, mais genere (avec  */
-		  /* sa consoeur 3 shift/reduce conflicts et 12 reduce conflicts     */
-          yyerror("Missing '('");
-        }
     ;
 
 
-closeparenthesis:
-	  ')'
-   | /* NULL */
+closeparenthesis: /* NULL */
         {
-		  /* ERRORMGT */
-		  /* Attention: supprimer cette instruction en cas d'evolution du parser */
 		  /* Cette instruction est la pour aider au diagnostique des erreurs */
 		  /* de parenthesage: elle est utile dans ce cas, mais genere (avec  */
-		  /* sa consoeur 3 shift/reduce conflicts et 12 reduce conflicts     */
+		  /* sa consoeur de nombreux shift/reduce et reduce conflicts        */
           yyerror("Missing ')'");
         }
+   | ')'
 	;
 
 
