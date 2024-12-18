@@ -1583,6 +1583,8 @@ void KWClass::CopyFrom(const KWClass* aSource)
 					    attributeBlock->GetDerivationRule()->Clone());
 				copyAttributeBlock->GetMetaData()->CopyFrom(attributeBlock->GetConstMetaData());
 				copyAttributeBlock->SetLabel(attributeBlock->GetLabel());
+				copyAttributeBlock->SetComments(attributeBlock->GetComments());
+				copyAttributeBlock->SetInternalComments(attributeBlock->GetInternalComments());
 			}
 		}
 
@@ -1851,9 +1853,14 @@ void KWClass::Write(ostream& ost) const
 	attribute = GetHeadAttribute();
 	while (attribute != NULL)
 	{
-		// Debut de bloc si necessaire
+		// Debut de bloc si necessaire, avec commentaires du bloc
 		if (attribute->IsFirstInBlock())
+		{
+			attributeBlock = attribute->GetAttributeBlock();
+			for (i = 0; i < attributeBlock->GetComments()->GetSize(); i++)
+				ost << "\t// " << attributeBlock->GetComments()->GetAt(i) << "\n";
 			ost << "\t{\n";
+		}
 
 		// Impression de l'attribut
 		ost << *attribute << "\n";
@@ -1861,10 +1868,14 @@ void KWClass::Write(ostream& ost) const
 		// Fin de bloc si necessaire
 		if (attribute->IsLastInBlock())
 		{
+			attributeBlock = attribute->GetAttributeBlock();
+
+			// Commentaires internes du bloc
+			for (i = 0; i < attributeBlock->GetInternalComments()->GetSize(); i++)
+				ost << "\t// " << attributeBlock->GetInternalComments()->GetAt(i) << "\n";
 			ost << "\t}";
 
 			// Nom du bloc
-			attributeBlock = attribute->GetAttributeBlock();
 			ost << "\t" << KWClass::GetExternalName(attributeBlock->GetName());
 			ost << "\t";
 
@@ -1889,7 +1900,7 @@ void KWClass::Write(ostream& ost) const
 			}
 			ost << "\t";
 
-			// Commentaire
+			// Libelle
 			if (attributeBlock->GetLabel() != "")
 				ost << "// " << attributeBlock->GetLabel();
 			ost << "\n";

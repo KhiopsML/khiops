@@ -130,6 +130,18 @@ boolean KWAttributeBlock::Check() const
 	if (not KWClass::CheckName(GetName(), KWClass::AttributeBlock, this))
 		bOk = false;
 
+	// Verification du Label
+	if (not KWClass::CheckLabel(GetLabel(), KWClass::AttributeBlock, this))
+		bOk = false;
+
+	// Verification des commentaires
+	if (not KWClass::CheckComments(GetComments(), KWClass::AttributeBlock, this))
+		bOk = false;
+
+	// Verification des commentaires internes
+	if (not KWClass::CheckComments(GetInternalComments(), KWClass::AttributeBlock, this))
+		bOk = false;
+
 	// Tests de base sur la specification du block
 	if (bOk and firstAttribute == NULL)
 	{
@@ -746,6 +758,8 @@ longint KWAttributeBlock::GetUsedMemory() const
 	lUsedMemory = sizeof(KWAttributeBlock);
 	lUsedMemory += usName.GetUsedMemory();
 	lUsedMemory += usLabel.GetUsedMemory();
+	lUsedMemory += svComments.GetUsedMemory();
+	lUsedMemory += svInternalComments.GetUsedMemory();
 	lUsedMemory += metaData.GetUsedMemory() - sizeof(KWMetaData);
 
 	// Prise en compte de la regle de derivation
@@ -780,6 +794,7 @@ void KWAttributeBlock::Write(ostream& ost) const
 {
 	KWAttribute* secondAttribute;
 
+	// Attributs du bloc
 	ost << '{';
 	if (firstAttribute != NULL)
 	{
@@ -806,13 +821,23 @@ void KWAttributeBlock::WriteJSONFields(JSONFile* fJSON)
 	KWClass* parentClass;
 	KWAttribute* attribute;
 	ALString sOutputString;
+	int i;
 
 	// Nom
 	fJSON->WriteKeyString("blockName", GetName());
 
-	// Commentaire
+	// Libelle
 	if (GetLabel() != "")
 		fJSON->WriteKeyString("label", GetLabel());
+
+	// Commentaire
+	if (GetComments()->GetSize() > 0)
+	{
+		fJSON->BeginKeyArray("comments");
+		for (i = 0; i < GetComments()->GetSize(); i++)
+			fJSON->WriteString(GetComments()->GetAt(i));
+		fJSON->EndArray();
+	}
 
 	// Regle de derivation
 	if (kwdrRule != NULL)
@@ -842,6 +867,15 @@ void KWAttributeBlock::WriteJSONFields(JSONFile* fJSON)
 		parentClass->GetNextAttribute(attribute);
 	}
 	fJSON->EndArray();
+
+	// Commentaires internes
+	if (GetInternalComments()->GetSize() > 0)
+	{
+		fJSON->BeginKeyArray("internalComments");
+		for (i = 0; i < GetInternalComments()->GetSize(); i++)
+			fJSON->WriteString(GetInternalComments()->GetAt(i));
+		fJSON->EndArray();
+	}
 }
 
 const ALString KWAttributeBlock::GetClassLabel() const
