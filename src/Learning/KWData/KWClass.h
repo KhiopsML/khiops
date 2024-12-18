@@ -68,8 +68,28 @@ public:
 	KWMetaData* GetMetaData();
 
 	// Libelle
+	// Premiere ligne prefixee par '//' precedent la declaration du dictionnaire
+	// dans le fichier dictionnaire
 	const ALString& GetLabel() const;
 	void SetLabel(const ALString& sValue);
+
+	// Commentaires
+	// Ensemble des lignes prefixees par '//', entre le libelle et le debut de la declaration du dictionnaire
+	// Par tolerance du parser, on accepte egalement tout commentaire situee apres la partie obligatoire
+	// de la declaration du dictionnaire (("Root") "Dictionary" <Name>)
+	// - avant la declaration de cle
+	// - avant la declaration de meta-donnees
+	// - avant le tout debut du bloc '{'
+	// Il s'agit uniquement d'une tolerance: tous les commentaires presents avant, au milieu, ou apres la
+	// declaration seront concatenes et re-ecrit apres le libelle, avant le debut de la declaration du dictionnaire
+	const StringVector* GetComments() const;
+	void SetComments(const StringVector* svValue);
+
+	// Commentaires internes
+	// Ensemble des lignes prefixees par '//', precedents la fin du bloc '}'
+	// de declaration des variables dans le fichier dictionnaire
+	const StringVector* GetInternalComments() const;
+	void SetInternalComments(const StringVector* svValue);
 
 	// Classe racine ou composant(par defaut: false -> component)
 	// Une classe racine gere sa destruction memoire, alors qu'une
@@ -427,10 +447,15 @@ public:
 	// par la classe passee en parametre (pas de message si NULL)
 	static boolean CheckName(const ALString& sValue, int nEntity, const Object* errorSender);
 	static boolean CheckLabel(const ALString& sValue, int nEntity, const Object* errorSender);
+	static boolean CheckComments(const StringVector* svValue, int nEntity, const Object* errorSender);
 
 	// Methode similaire avec message est alimente avec la cause de l'erreur
 	static boolean CheckNameWithMessage(const ALString& sValue, int nEntity, ALString& sMessage);
 	static boolean CheckLabelWithMessage(const ALString& sValue, int nEntity, ALString& sMessage);
+	static boolean CheckCommentsWithMessage(const StringVector* svValue, int nEntity, ALString& sMessage);
+
+	// Renvoie une version courte d'une chaine de caractere en entree, avec "..." en fin de chaine si necessaire
+	static const ALString GetShortValue(const ALString& sValue);
 
 	// Extraction d'une sous-chaine valide pour le format utf8
 	static ALString BuildUTF8SubString(const ALString sValue);
@@ -619,6 +644,12 @@ protected:
 	// Libelle
 	KWCDUniqueString usLabel;
 
+	// Commentaires
+	StringVector svComments;
+
+	// Commentaires internes
+	StringVector svInternalComments;
+
 	// Statut racine ou composant
 	boolean bRoot;
 
@@ -732,8 +763,27 @@ inline const ALString& KWClass::GetLabel() const
 
 inline void KWClass::SetLabel(const ALString& sValue)
 {
-	require(CheckLabel(sValue, KWClass::Class, this));
 	usLabel.SetValue(sValue);
+}
+
+inline const StringVector* KWClass::GetComments() const
+{
+	return &svComments;
+}
+
+inline void KWClass::SetComments(const StringVector* svValue)
+{
+	svComments.CopyFrom(svValue);
+}
+
+inline const StringVector* KWClass::GetInternalComments() const
+{
+	return &svInternalComments;
+}
+
+inline void KWClass::SetInternalComments(const StringVector* svValue)
+{
+	svInternalComments.CopyFrom(svValue);
 }
 
 inline boolean KWClass::GetRoot() const
