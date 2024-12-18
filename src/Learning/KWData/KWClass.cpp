@@ -1583,6 +1583,8 @@ void KWClass::CopyFrom(const KWClass* aSource)
 					    attributeBlock->GetDerivationRule()->Clone());
 				copyAttributeBlock->GetMetaData()->CopyFrom(attributeBlock->GetConstMetaData());
 				copyAttributeBlock->SetLabel(attributeBlock->GetLabel());
+				copyAttributeBlock->SetComments(attributeBlock->GetComments());
+				copyAttributeBlock->SetInternalComments(attributeBlock->GetInternalComments());
 			}
 		}
 
@@ -1816,7 +1818,7 @@ void KWClass::Write(ostream& ost) const
 	KWAttributeBlock* attributeBlock;
 	int i;
 
-	// Impression de l'entete de la classe
+	// Entete de la classe
 	ost << "\n";
 	if (GetLabel() != "")
 		ost << "// " << GetLabel() << "\n";
@@ -1847,59 +1849,22 @@ void KWClass::Write(ostream& ost) const
 	}
 	ost << "{\n";
 
-	// Impression de tous les attributs
+	// Attributs et blocs d'attributs
 	attribute = GetHeadAttribute();
 	while (attribute != NULL)
 	{
-		// Debut de bloc si necessaire
+		// Bloc, au moment du premier attribut du bloc
 		if (attribute->IsFirstInBlock())
-			ost << "\t{\n";
-
-		// Impression de l'attribut
-		ost << *attribute << "\n";
-
-		// Fin de bloc si necessaire
-		if (attribute->IsLastInBlock())
-		{
-			ost << "\t}";
-
-			// Nom du bloc
-			attributeBlock = attribute->GetAttributeBlock();
-			ost << "\t" << KWClass::GetExternalName(attributeBlock->GetName());
-			ost << "\t";
-
-			// Regle de derivation
-			if (attributeBlock->GetDerivationRule() != NULL)
-			{
-				// Dans le cas de la regle predefinie de Reference, on n'utilise pas le signe '='
-				if (attributeBlock->GetDerivationRule()->GetName() !=
-				    KWDerivationRule::GetReferenceRuleName())
-					ost << " = ";
-				attributeBlock->GetDerivationRule()->WriteUsedRule(ost);
-			}
-
-			// Fin de declaration
-			ost << "\t;";
-
-			// Meta-donnees
-			if (attributeBlock->GetConstMetaData()->GetKeyNumber() > 0)
-			{
-				ost << ' ';
-				attributeBlock->GetConstMetaData()->Write(ost);
-			}
-			ost << "\t";
-
-			// Commentaire
-			if (attributeBlock->GetLabel() != "")
-				ost << "// " << attributeBlock->GetLabel();
-			ost << "\n";
-		}
+			ost << *attribute->GetAttributeBlock() << "\n";
+		// Attribut, s'il n'est pas dans un bloc
+		else if (not attribute->IsInBlock())
+			ost << *attribute << "\n";
 
 		// Attribut suivant
 		GetNextAttribute(attribute);
 	}
 
-	// Impression de la fin de la classe
+	// Commentaire internes
 	for (i = 0; i < GetInternalComments()->GetSize(); i++)
 		ost << "\t// " << GetInternalComments()->GetAt(i) << "\n";
 	ost << "};\n";
@@ -1948,10 +1913,10 @@ void KWClass::WriteJSONFields(JSONFile* fJSON)
 	attribute = GetHeadAttribute();
 	while (attribute != NULL)
 	{
-		// Debut de bloc si necessaire
+		// Bloc, au moment du premier attribut du bloc
 		if (attribute->IsFirstInBlock())
 			attribute->GetAttributeBlock()->WriteJSONReport(fJSON);
-		// Impression de l'attribut s'il n'est pas dans un bloc
+		// Attribut, s'il n'est pas dans un bloc
 		else if (not attribute->IsInBlock())
 			attribute->WriteJSONReport(fJSON);
 
