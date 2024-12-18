@@ -82,8 +82,14 @@ public:
 	const KWTimestampTZFormat* GetTimestampTZFormat() const;
 
 	// Libelle
+	// Fin de ligne prefixee par '//' suivant la declaration de l'attribut dans le fichier dictionnaire
 	const ALString& GetLabel() const;
 	void SetLabel(const ALString& sValue);
+
+	// Commentaires
+	// Lignes prefixees par '//' precedent la declaration de l'attribut dans le fichier dictionnaire
+	const StringVector* GetComments() const;
+	void SetComments(const StringVector* svValue);
 
 	// Attribut effectivement utilise, chargeable en memoire
 	// Un attribut non utilise devient non charge
@@ -241,6 +247,7 @@ protected:
 	// Specifications de l'attribut
 	KWCDUniqueString usName;
 	KWCDUniqueString usLabel;
+	StringVector svComments;
 	KWMetaData metaData;
 	KWClass* attributeClass;
 	KWCDUniqueString usStructureName;
@@ -399,6 +406,16 @@ inline const ALString& KWAttribute::GetLabel() const
 inline void KWAttribute::SetLabel(const ALString& sValue)
 {
 	usLabel.SetValue(sValue);
+}
+
+inline const StringVector* KWAttribute::GetComments() const
+{
+	return &svComments;
+}
+
+inline void KWAttribute::SetComments(const StringVector* svValue)
+{
+	svComments.CopyFrom(svValue);
 }
 
 inline boolean KWAttribute::GetUsed() const
