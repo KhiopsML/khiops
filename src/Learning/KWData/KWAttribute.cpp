@@ -170,6 +170,7 @@ KWAttribute* KWAttribute::Clone() const
 	kwaClone->usName = usName;
 	kwaClone->metaData.CopyFrom(&metaData);
 	kwaClone->usLabel = usLabel;
+	kwaClone->svComments.CopyFrom(&svComments);
 	kwaClone->cType = cType;
 	kwaClone->attributeClass = attributeClass;
 	kwaClone->usStructureName = usStructureName;
@@ -203,6 +204,10 @@ boolean KWAttribute::Check() const
 
 	// Libelle
 	if (not KWClass::CheckLabel(GetLabel(), KWClass::Attribute, this))
+		bOk = false;
+
+	// Commentaires
+	if (not KWClass::CheckComments(GetComments(), KWClass::Attribute, this))
 		bOk = false;
 
 	// Type
@@ -445,6 +450,7 @@ longint KWAttribute::GetUsedMemory() const
 	lUsedMemory += usName.GetUsedMemory();
 	lUsedMemory += usName.GetValue().GetUsedMemory();
 	lUsedMemory += usLabel.GetUsedMemory();
+	lUsedMemory += svComments.GetUsedMemory();
 	lUsedMemory += metaData.GetUsedMemory() - sizeof(KWMetaData);
 
 	// Prise en compte de la regle de derivation
@@ -480,6 +486,12 @@ longint KWAttribute::ComputeHashValue() const
 
 void KWAttribute::Write(ostream& ost) const
 {
+	int i;
+
+	// Commentaires
+	for (i = 0; i < GetComments()->GetSize(); i++)
+		ost << "\t// " << GetComments()->GetAt(i) << "\n";
+
 	// Attribute a ne pas utiliser
 	if (not GetUsed())
 		ost << "Unused";
@@ -532,7 +544,7 @@ void KWAttribute::Write(ostream& ost) const
 	}
 	ost << "\t";
 
-	// Commentaire
+	// Libelle
 	if (GetLabel() != "")
 		ost << "// " << GetLabel();
 }
@@ -540,13 +552,23 @@ void KWAttribute::Write(ostream& ost) const
 void KWAttribute::WriteJSONFields(JSONFile* fJSON)
 {
 	ALString sOutputString;
+	int i;
 
 	// Nom
 	fJSON->WriteKeyString("name", GetName());
 
-	// Commentaire
+	// Libelle
 	if (GetLabel() != "")
 		fJSON->WriteKeyString("label", GetLabel());
+
+	// Commentaires
+	if (GetComments()->GetSize() > 0)
+	{
+		fJSON->BeginKeyArray("comments");
+		for (i = 0; i < GetComments()->GetSize(); i++)
+			fJSON->WriteString(GetComments()->GetAt(i));
+		fJSON->EndArray();
+	}
 
 	// Attribute a ne pas utiliser
 	if (not GetUsed())
