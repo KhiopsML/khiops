@@ -1534,6 +1534,8 @@ void KWClass::CopyFrom(const KWClass* aSource)
 	// Duplication des attributs de base
 	usName = aSource->usName;
 	usLabel = aSource->usLabel;
+	svComments.CopyFrom(&aSource->svComments);
+	svInternalComments.CopyFrom(&aSource->svInternalComments);
 	bRoot = aSource->bRoot;
 	bForceUnique = aSource->bForceUnique;
 	bIsUnique = aSource->bIsUnique;
@@ -1625,16 +1627,20 @@ boolean KWClass::Check() const
 	}
 
 	// Verification du Name
-	if (not CheckName(GetName(), KWClass::Class, this)) // Emission d'un message
-	{
+	if (not CheckName(GetName(), KWClass::Class, this))
 		bResult = false;
-	}
 
 	// Verification du Label
-	if (not CheckLabel(GetLabel(), KWClass::Class, this)) // Emission d'un message
-	{
+	if (not CheckLabel(GetLabel(), KWClass::Class, this))
 		bResult = false;
-	}
+
+	// Verification des commentaires
+	if (not CheckComments(GetComments(), KWClass::Class, this))
+		bResult = false;
+
+	// Verification des commentaires internes
+	if (not CheckComments(GetInternalComments(), KWClass::Class, this))
+		bResult = false;
 
 	// Verification des attributs
 	attribute = GetHeadAttribute();
@@ -1722,6 +1728,8 @@ longint KWClass::GetUsedMemory() const
 	lUsedMemory = sizeof(KWClass);
 	lUsedMemory += usName.GetUsedMemory();
 	lUsedMemory += usLabel.GetUsedMemory();
+	lUsedMemory += svComments.GetUsedMemory();
+	lUsedMemory += svInternalComments.GetUsedMemory();
 	lUsedMemory += svKeyAttributeNames.GetUsedMemory();
 	lUsedMemory += livKeyAttributeLoadIndexes.GetUsedMemory();
 
@@ -1812,6 +1820,8 @@ void KWClass::Write(ostream& ost) const
 	ost << "\n";
 	if (GetLabel() != "")
 		ost << "// " << GetLabel() << "\n";
+	for (i = 0; i < GetComments()->GetSize(); i++)
+		ost << "// " << GetComments()->GetAt(i) << "\n";
 	if (GetRoot())
 		ost << "Root\t";
 	ost << "Dictionary\t" << GetExternalName(GetName());
@@ -1890,6 +1900,8 @@ void KWClass::Write(ostream& ost) const
 	}
 
 	// Impression de la fin de la classe
+	for (i = 0; i < GetInternalComments()->GetSize(); i++)
+		ost << "\t// " << GetInternalComments()->GetAt(i) << "\n";
 	ost << "};\n";
 }
 
@@ -1912,6 +1924,13 @@ void KWClass::WriteJSONFields(JSONFile* fJSON)
 	fJSON->WriteKeyString("name", GetName());
 	if (GetLabel() != "")
 		fJSON->WriteKeyString("label", GetLabel());
+	if (GetComments()->GetSize() > 0)
+	{
+		fJSON->BeginKeyArray("comments");
+		for (i = 0; i < GetComments()->GetSize(); i++)
+			fJSON->WriteString(GetComments()->GetAt(i));
+		fJSON->EndArray();
+	}
 	if (GetRoot())
 		fJSON->WriteKeyBoolean("root", true);
 	if (GetKeyAttributeNumber() > 0)
@@ -1940,6 +1959,15 @@ void KWClass::WriteJSONFields(JSONFile* fJSON)
 		GetNextAttribute(attribute);
 	}
 	fJSON->EndArray();
+
+	// Commentaires internes
+	if (GetInternalComments()->GetSize() > 0)
+	{
+		fJSON->BeginKeyArray("internalComments");
+		for (i = 0; i < GetInternalComments()->GetSize(); i++)
+			fJSON->WriteString(GetInternalComments()->GetAt(i));
+		fJSON->EndArray();
+	}
 }
 
 void KWClass::WriteJSONReport(JSONFile* fJSON)
@@ -2012,6 +2040,20 @@ boolean KWClass::CheckLabel(const ALString& sValue, int nEntity, const Object* e
 	return bOk;
 }
 
+boolean KWClass::CheckComments(const StringVector* svValue, int nEntity, const Object* errorSender)
+{
+	ALString sMessage;
+	boolean bOk;
+
+	require(svValue != NULL);
+	require(0 <= nEntity and nEntity < Unknown);
+
+	bOk = CheckCommentsWithMessage(svValue, nEntity, sMessage);
+	if (not bOk and errorSender != NULL)
+		errorSender->AddError(sMessage);
+	return bOk;
+}
+
 boolean KWClass::CheckNameWithMessage(const ALString& sValue, int nEntity, ALString& sMessage)
 {
 	ALString sTmp;
@@ -2067,15 +2109,16 @@ boolean KWClass::CheckNameWithMessage(const ALString& sValue, int nEntity, ALStr
 
 boolean KWClass::CheckLabelWithMessage(const ALString& sValue, int nEntity, ALString& sMessage)
 {
+	const int nMaxLabelLength = 100000;
 	boolean bOk = true;
 
 	require(0 <= nEntity and nEntity < Unknown);
 
 	// Test de la taille maximale
-	bOk = sValue.GetLength() <= 100000;
+	bOk = sValue.GetLength() <= nMaxLabelLength;
 	if (not bOk)
-		sMessage = "Incorrect " + EntityToString(nEntity) + " label : length > 100000\n\t<" + sValue.Left(100) +
-			   "...>";
+		sMessage = "Incorrect " + EntityToString(nEntity) + " label : length > " +
+			   IntToString(nMaxLabelLength) + " (" + GetShortValue(sValue) + ")";
 
 	// Test de caractere fin de ligne
 	if (bOk)
@@ -2083,10 +2126,71 @@ boolean KWClass::CheckLabelWithMessage(const ALString& sValue, int nEntity, ALSt
 		bOk = sValue.Find('\n') == -1;
 		if (not bOk)
 			sMessage = "Incorrect " + EntityToString(nEntity) +
-				   " label : must not contain end-of-line chararacters\t(" + sValue + ")";
+				   " label : must not contain end-of-line chararacters (" + GetShortValue(sValue) + ")";
 	}
 
 	return bOk;
+}
+
+boolean KWClass::CheckCommentsWithMessage(const StringVector* svValue, int nEntity, ALString& sMessage)
+{
+	const int nMaxCommentNumber = 100000;
+	const int nMaxCommentLength = 100000;
+	boolean bOk = true;
+	int i;
+
+	require(svValue != NULL);
+	require(0 <= nEntity and nEntity < Unknown);
+
+	// Test de la taille maximale
+	bOk = svValue->GetSize() <= nMaxCommentNumber;
+	if (not bOk)
+		sMessage = "Incorrect " + EntityToString(nEntity) + " comments : comment line number " +
+			   IntToString(svValue->GetSize()) + " > " + IntToString(nMaxCommentNumber);
+
+	// Test des commentaires
+	if (bOk)
+	{
+		for (i = 0; i < svValue->GetSize(); i++)
+		{
+			// Test de la taille maximale
+			bOk = svValue->GetAt(i).GetLength() <= nMaxCommentLength;
+			if (not bOk)
+				sMessage = "Incorrect " + EntityToString(nEntity) + " comment line " +
+					   IntToString(i + 1) + " : length > " + IntToString(nMaxCommentLength) + " (" +
+					   GetShortValue(svValue->GetAt(i)) + ")";
+
+			// Test de caractere fin de ligne
+			if (bOk)
+			{
+				bOk = svValue->GetAt(i).Find('\n') == -1;
+				if (not bOk)
+					sMessage = "Incorrect " + EntityToString(nEntity) + " comment line " +
+						   IntToString(i + 1) +
+						   " : must not contain end-of-line chararacters (" +
+						   GetShortValue(svValue->GetAt(i)) + ")";
+			}
+			if (not bOk)
+				break;
+		}
+	}
+
+	return bOk;
+}
+
+const ALString KWClass::GetShortValue(const ALString& sValue)
+{
+	static const int nMaxLength = 100;
+	int nEndOfLinePosition;
+
+	// On ignore ce qui se trouve apres la fin de ligne
+	nEndOfLinePosition = sValue.Find('\n');
+	if (nEndOfLinePosition >= 0)
+		return sValue.Left(min(nEndOfLinePosition, nMaxLength)) + "...";
+	else if (sValue.GetLength() > nMaxLength)
+		return sValue.Left(min(nEndOfLinePosition, nMaxLength)) + "...";
+	else
+		return sValue;
 }
 
 ALString KWClass::BuildUTF8SubString(const ALString sValue)
