@@ -173,4 +173,4 @@ void KIInterpretationSpec::WriteReport(ostream& ost)
 
 const char* KIInterpretationSpec::PREDICTED_CLASS_LABEL = "Predicted class";
 const char* KIInterpretationSpec::CLASS_OF_HIGHEST_GAIN_LABEL = "Class of highest gain";
-const char* KIInterpretationSpec::ALL_CLASSES_LABEL = "All classes";
+const char* KIInterpretationSpec::ALL_CLASSES_LABEL = "AllClasses";

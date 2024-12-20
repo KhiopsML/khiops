@@ -292,9 +292,9 @@ void KIDRClassifierInterpretation::Compile(KWClass* kwcOwnerClass)
 	// }
 }
 
-const ALString KIDRClassifierInterpretation::LEVER_ATTRIBUTE_META_TAG = "LeverAttribute";
-const ALString KIDRClassifierInterpretation::INTERPRETATION_ATTRIBUTE_META_TAG = "ClassifierInterpretationAttribute";
-const ALString KIDRClassifierInterpretation::NO_VALUE_LABEL = "No value";
+const ALString KIDRClassifierInterpretation::LEVER_ATTRIBUTE_META_TAG = "LeverVariable";
+const ALString KIDRClassifierInterpretation::INTERPRETATION_ATTRIBUTE_META_TAG = "ClassifierInterpretationVariable";
+const ALString KIDRClassifierInterpretation::NO_VALUE_LABEL = "";
 
 ///////////////////////////////////////////////////////////////////////////////
 // Classe KIDRClassifierContribution
@@ -644,7 +644,7 @@ Continuous KIDRClassifierContribution::ComputeWeightOfEvidence(int nAttributeInd
 
 	//cImportanceValueCorrected = 1/log(2.0) * (log(cInitialScoreCorrected) - log(1 - cInitialScoreCorrected) - log(cScoreWithoutOneVariableCorrected) + log(1 - cScoreWithoutOneVariableCorrected));
 	//cImportanceValue = 1 / log(2.0) * log(cRatio);
-	cImportanceValueCorrected = 1 / log(2.0) * log(cRatioCorrected);
+	cImportanceValueCorrected = log(cRatioCorrected) / log(2.0);
 
 	//cout << "Attribute " << nAttributeIndex << " Class " << nTargetClassIndex << endl;
 	//cout << " P1= " << cInitialScore  << " P1C= " << cInitialScoreCorrected << endl;
@@ -696,8 +696,7 @@ Continuous KIDRClassifierContribution::ComputeInformationDifference(int nAttribu
 
 	// Calcul de l'indicateur Weight of Evidence
 	//cImportanceValue = 1 / log(2.0) * (log(cInitialScore) - log(cScoreWithoutOneVariable));
-	cImportanceValueCorrected =
-	    1 / log(2.0) * (log(cInitialScoreCorrected) - log(cScoreWithoutOneVariableCorrected));
+	cImportanceValueCorrected = (log(cInitialScoreCorrected) - log(cScoreWithoutOneVariableCorrected)) / log(2.0);
 
 	return cImportanceValueCorrected;
 }
@@ -984,8 +983,8 @@ void KIDRClassifierContribution::Compile(KWClass* kwcOwnerClass)
 
 	const Symbol sWhyMethod = GetOperandAt(3)->GetSymbolConstant();
 
-	if (sWhyMethod == NORMALIZED_ODDS_RATIO_LABEL)
-		contributionComputingMethod = NormalizedOddsRatio;
+	if (sWhyMethod == SHAPLEY_LABEL)
+		contributionComputingMethod = Shapley;
 	else if (sWhyMethod == MIN_PROBA_DIFF_LABEL)
 		contributionComputingMethod = ImportanceValue;
 	else if (sWhyMethod == WEIGHT_EVIDENCE_LABEL)
@@ -1006,8 +1005,8 @@ void KIDRClassifierContribution::Compile(KWClass* kwcOwnerClass)
 		contributionComputingMethod = LogImportanceValue;
 	else if (sWhyMethod == BAYES_DISTANCE_WITHOUT_PRIOR_LABEL)
 		contributionComputingMethod = BayesDistanceWithoutPrior;
-	else if (sWhyMethod == SHAPLEY_LABEL)
-		contributionComputingMethod = Shapley;
+	else if (sWhyMethod == NORMALIZED_ODDS_RATIO_LABEL)
+		contributionComputingMethod = NormalizedOddsRatio;
 
 	bSortInstanceProbas = (strcmp(GetOperandAt(4)->GetSymbolConstant().GetValue(), "sorted") == 0 ? true : false);
 
@@ -1650,7 +1649,7 @@ void KIDRClassifierReinforcement::ComputeReinforcementProbas(IntVector* ivModali
 
 							// Cas ou l'argmax des nouveaux score est la classe de reference
 							// Alors le renforcement permet le changement de classe pour la classe de reference
-							if (cScore > cMaxScore)
+							if (KWContinuous::CompareIndicatorValue(cScore, cMaxScore) > 0)
 								cNewPredictedClassIsHowReferenceClass = 1;
 
 							// Sinon : pas de changement de classe ou vers une autre classe que la classe de reference

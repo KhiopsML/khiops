@@ -36,10 +36,12 @@ KIHowParameterView::KIHowParameterView()
 
 	// Info-bulles
 	GetFieldAt("VarMax")->SetHelpText("Number of variables used by the predictor.");
-	GetFieldAt("HowClass")->SetHelpText("Class value for which one try to increase the probability of occurrence.");
-	GetFieldAt("leverVariablesSpecView")
-	    ->SetHelpText("List of the variables included in the analysis to try to increase the probability of "
-			  "occurrence - by default, all are used.");
+	GetFieldAt("HowClass")
+	    ->SetHelpText("Class value for which one try to increase the probability of occurrence. A value must be "
+			  "selected to build a reinforcement dictionary.");
+	// SetHelpText impossible sur leverVariablesSpecView : "List of the variables included in the analysis to try to increase the probability of "
+	// "occurrence - by default, all are used."
+
 	//GetFieldAt("VarMax")->SetHelpText("Number of variables used by the predictor.");
 	//GetFieldAt("VarMax")->SetHelpText("Number of variables used by the predictor.");
 

@@ -23,7 +23,7 @@ public:
 
 	KWClassDomain* GetInterpretationDomain() const;
 
-	KWClass* GetInterpretationRootClass() const;
+	KWClass* GetInterpretationMainClass() const;
 
 	/// Acces au classifieur d'input valide. Retourne NULL si aucun classifieur valide n'a ete specifie.
 	KWClass* GetInputClassifier();
@@ -46,18 +46,18 @@ public:
 	/** creation ou mise a jour des attributs necessaires a l'interpretation (contribution ou reenforcement), dans le dico d'interpretation */
 	boolean UpdateInterpretationAttributes();
 
-	const Symbol SHAPLEY_LABEL = "Shapley";
-	const Symbol NORMALIZED_ODDS_RATIO_LABEL = "NormalizedOddsRatio";
-	const Symbol MIN_PROBA_DIFF_LABEL = "MinProbaDiff";
-	const Symbol WEIGHT_EVIDENCE_LABEL = "WeightEvidence";
-	const Symbol INFO_DIFF_LABEL = "InfoDiff";
-	const Symbol DIFF_PROBA_LABEL = "DiffProba";
-	const Symbol MODALITY_PROBA_LABEL = "ModalityProba";
-	const Symbol BAYES_DISTANCE_LABEL = "BayesDistance";
-	const Symbol KULLBACK_LABEL = "Kullback";
-	const Symbol LOG_MODALITY_PROBA_LABEL = "LogModalityProba";
-	const Symbol LOG_MIN_PROBA_DIFF_LABEL = "LogMinProbaDiff";
-	const Symbol BAYES_DISTANCE_WITHOUT_PRIOR_LABEL = "BayesDistanceWithoutPrior";
+	const ALString SHAPLEY_LABEL = "Shapley";
+	const ALString NORMALIZED_ODDS_RATIO_LABEL = "NormalizedOddsRatio";
+	const ALString MIN_PROBA_DIFF_LABEL = "MinProbaDiff";
+	const ALString WEIGHT_EVIDENCE_LABEL = "WeightEvidence";
+	const ALString INFO_DIFF_LABEL = "InfoDiff";
+	const ALString DIFF_PROBA_LABEL = "DiffProba";
+	const ALString MODALITY_PROBA_LABEL = "ModalityProba";
+	const ALString BAYES_DISTANCE_LABEL = "BayesDistance";
+	const ALString KULLBACK_LABEL = "Kullback";
+	const ALString LOG_MODALITY_PROBA_LABEL = "LogModalityProba";
+	const ALString LOG_MIN_PROBA_DIFF_LABEL = "LogMinProbaDiff";
+	const ALString BAYES_DISTANCE_WITHOUT_PRIOR_LABEL = "BayesDistanceWithoutPrior";
 
 	static const ALString LEVER_ATTRIBUTE_META_TAG;
 	static const ALString INTERPRETATION_ATTRIBUTE_META_TAG;
@@ -127,15 +127,15 @@ protected:
 
 	void CleanImport();
 
-	Symbol GetWhyTypeShortLabel(const ALString asWhyTypeLongLabel);
+	const ALString& GetWhyTypeShortLabel(const ALString asWhyTypeLongLabel);
 
 	// variables membres
 
 	/** domaine temporaire servant a la generation du dico de transfert */
 	KWClassDomain* kwcdInterpretationDomain;
 
-	/** dictionnaire de transfert (dico maitre, dans le cas d'un classifieur multi table) */
-	KWClass* kwcInterpretationRootClass;
+	/** dictionnaire de transfert (dico principal, dans le cas d'un classifieur multi table) */
+	KWClass* kwcInterpretationMainClass;
 
 	/** classifieur d'entree */
 	KWClass* kwcInputClassifier;
@@ -161,9 +161,9 @@ inline KWClass* KIInterpretationDictionary::GetInputClassifier()
 	return kwcInputClassifier;
 }
 
-inline KWClass* KIInterpretationDictionary::GetInterpretationRootClass() const
+inline KWClass* KIInterpretationDictionary::GetInterpretationMainClass() const
 {
-	return kwcInterpretationRootClass;
+	return kwcInterpretationMainClass;
 }
 
 #endif

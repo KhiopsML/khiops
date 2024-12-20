@@ -16,7 +16,7 @@ KIWhyParameterView::KIWhyParameterView()
 
 	// Ajout d'un champ de saisie du nombre maximal autorise de variables
 	// dont l'importance est ecrite dans le fichier de sortie
-	AddIntField("WhyNumber", "Number of variables importances written", 0);
+	AddIntField("WhyNumber", "Number of written variable importances", 0);
 
 	// Ajout d'un champ de saisie pour indiquer quelle classe on souhaite interpreter
 	AddStringField("WhyClass", "Choice of the class of interest", "");
@@ -55,11 +55,11 @@ KIWhyParameterView::KIWhyParameterView()
 	// Info-bulles
 	GetFieldAt("VarMax")->SetHelpText("Number of variables used by the predictor.");
 	GetFieldAt("WhyNumber")
-	    ->SetHelpText("Number of variables importances written in the output file. By default, all the variables "
+	    ->SetHelpText("Number of variable importances written in the output file. By default, all the variables "
 			  "used by the model.");
 	GetFieldAt("WhyClass")
 	    ->SetHelpText("Value of the target variable to be interpreted, for which an importance is calculated per "
-			  "predictor variable. By default, all target variables are taken into account.");
+			  "predictor variable. By default, all target values are taken into account.");
 
 	// On indique que le champ de parametrage de WhyNumber declenche une action de rafraichissement
 	// de l'interface immediatement apres une mise a jour, pour pouvoir controler la validite des autres champs

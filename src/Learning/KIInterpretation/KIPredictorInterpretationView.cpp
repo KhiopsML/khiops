@@ -47,8 +47,9 @@ KIPredictorInterpretationView::KIPredictorInterpretationView()
 	GetFieldAt("ClassName")->SetHelpText("Name of the predictor dictionary");
 
 	GetActionAt("BuildInterpretationClass")
-	    ->SetHelpText("Build an interpretation dictionary that computes the variable importances and reinforcement "
-			  "elements.");
+	    ->SetHelpText(
+		"Build an interpretation dictionary that computes the importance of variables and reinforcement"
+		"elements.");
 
 	// Short cuts
 	GetActionAt("BuildInterpretationClass")->SetShortCut('B');
@@ -77,7 +78,7 @@ void KIPredictorInterpretationView::Open()
 
 	if (sClassName == "")
 	{
-		Global::AddWarning("Interpret model", "", "No dictionary has been loaded for interpretation");
+		Global::AddWarning("Interpret model", "", "No available classifier dictionary for interpretation");
 		GetActionAt("BuildInterpretationClass")->SetVisible(false);
 	}
 	else
@@ -85,10 +86,10 @@ void KIPredictorInterpretationView::Open()
 		kwcClass = KWClassDomain::GetCurrentDomain()->LookupClass(sClassName);
 		if (not interpretationSpec->GetInterpretationDictionary()->ImportClassifier(kwcClass))
 		{
-			Global::AddWarning(
-			    "Interpret model", "",
-			    "The chosen dictionary is not a classifier that can be handled for interpretation");
-			sClassName = "";
+			Global::AddWarning("Interpret model", "",
+					   "The selected analysis dictionary " + sClassName +
+					       " is not a classifier that can be used for interpretation");
+			SetStringValueAt("ClassName", sClassName);
 			GetActionAt("BuildInterpretationClass")->SetVisible(false);
 		}
 		else
@@ -102,7 +103,7 @@ void KIPredictorInterpretationView::Open()
 			// initialiser la liste des variables leviers en fonction du dictionnaire d'interpretation que
 			// l'on vient de generer
 			interpretationSpec->GetLeverClassSpec()->SetClassName(
-			    interpretationSpec->GetInterpretationDictionary()->GetInterpretationRootClass()->GetName());
+			    interpretationSpec->GetInterpretationDictionary()->GetInterpretationMainClass()->GetName());
 
 			// remettre a Unused les attributs natifs du classifieur d'entree
 			KWAttribute* attribute =
@@ -171,7 +172,7 @@ void KIPredictorInterpretationView::BuildInterpretationClass()
 	// maj en fonction de l'IHM, des attributs d'interpretation, a partir d'un dictionnaire d'entree
 	bOk = interpretationDictionary->UpdateInterpretationAttributes();
 
-	sClassName = interpretationSpec->GetInterpretationDictionary()->GetInterpretationRootClass()->GetName();
+	sClassName = interpretationSpec->GetInterpretationDictionary()->GetInterpretationMainClass()->GetName();
 
 	// La classe doit etre valide
 	interpretationClass = NULL;
