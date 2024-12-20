@@ -83,6 +83,12 @@ public:
 	// Verification du format de la base
 	boolean CheckFormat() const override;
 
+	// Affichage de warnings dedies au mapping multi-table
+	// Ces warnings ne sont pas affiches lors du Check, pour eviter d'entrainer une
+	// nuisance pour l'utilisateur par des affichage repetes
+	// C'est a l'applicatif de decider quand appeler explicitement cette methode
+	void DisplayMultiTableMappingWarnings() const;
+
 	// Reimplementation de la methode de parametrage du mode d'affichage des messages
 	// Propagation au tables mappees
 	void SetVerboseMode(boolean bValue) override;
@@ -125,8 +131,8 @@ protected:
 	void CollectPhysicalStatsMessages(ObjectArray* oaPhysicalMessages) override;
 
 	// Lecture apres la fin de la base, pour detecter d'eventuelles erreurs
-	// Necessaire par exemple en multi-tables pour detecter les eventuelles erreurs (ligne orphelines, probleme de
-	// tri...)
+	// Necessaire par exemple en multi-tables pour detecter les eventuelles erreurs
+	// (ligne orphelines, probleme de tri...)
 	void PhysicalReadAfterEndOfDatabase();
 
 	// Destruction de la classe physique
@@ -145,9 +151,10 @@ protected:
 	// Creation recursive d'un mapping
 	// Le mapping est chaine avec ses mappings composant.
 	// Le tableaux mapping exhaustifs est egalement egalement mis a jour
-	// Les classes referencees sont memorisees dans un dictionnaire, pour gerer les mappings externes a creer
-	// ulterieurement Les mappings crees recursivement sont memorises dans un tableau
-	// Les classes crees analysees sont egalement memorisees dans un dictionnaire, pour eviter des analyse multiples
+	// Les classes referencees sont memorisees dans un dictionnaire et un tableau,
+	// pour gerer les mappings externes a creer ulterieurement
+	// Les mappings crees recursivement sont memorises dans un tableau
+	// Les classes creees analysees sont egalement memorisees dans un dictionnaire, pour eviter des analyses multiples
 	KWMTDatabaseMapping* CreateMapping(ObjectDictionary* odReferenceClasses, ObjectArray* oaRankedReferenceClasses,
 					   ObjectDictionary* odAnalysedCreatedClasses, KWClass* mappedClass,
 					   boolean bIsExternalTable, const ALString& sOriginClassName,
@@ -157,7 +164,7 @@ protected:
 	// Gestion des objets natifs references
 	// Les objets natifs references sont les objets (principaux, et non composants)
 	// appartenant aux classes racines des tables secondaires.
-	// Leurs mappings racines sont definis dans le tableau oaRootRefTableMappings.
+	// Leurs mappings racines sont definis dans le tableau oaRootReferenceTableMappings.
 	// A l'ouverture de la base, tous les objets racines referenceables sont charges en memoire
 	// dans leur representation physique, et stockees dans une base memoire, permettant
 	// de rechercher efficacement un objet d'une classe donnee par sa cle.
@@ -213,6 +220,9 @@ protected:
 	KWObject* DMTMPhysicalRead(KWMTDatabaseMapping* mapping);
 	void DMTMPhysicalWrite(KWMTDatabaseMapping* mapping, const KWObject* kwoObject);
 
+	// Affichage d'un tableau de mapping
+	void WriteMapingArray(ostream& ost, const ALString& sTitle, const ObjectArray* oaMappings) const;
+
 	/////////////////////////////////////////////////
 	// Attributs de l'implementation
 
@@ -222,14 +232,36 @@ protected:
 	// et tables secondaires
 	mutable KWMTDatabaseMapping* mainMultiTableMapping;
 
-	// Mapping racine des tables secondaires (reference a un sous-ensemble des mappings du tableau
-	// oaMultiTableMappings)
-	mutable ObjectArray oaRootRefTableMappings;
+	// Mapping racine des tables externes (sous-ensemble des mappings du tableau oaMultiTableMappings)
+	mutable ObjectArray oaRootReferenceTableMappings;
 
 	// Mapping multi-tables: tableau exhaustif de tous les mappings (permet une interface d'edition "a plat")
 	// Attention, le mapping de la classe principale est toujours integree comme premier element du tableau,
 	// et ne doit toujours etre synchronise
 	mutable ObjectArray oaMultiTableMappings;
+
+	// Warnings pour le cas des tables externes non utilises, gardes pour generer des warnings lors du Check
+	//
+	// Ce cas arrive si la table principale est une table secondaire d'une table externe qu'elle reference.
+	// Par exemple, dans le cas d'un schema de molecules avec des atomes et des liaisons, les atomes et les liaisons
+	// referencent leur molecule pour pouvoir recreer dynamiquement le graphe de la structure de la molecule, avec chaque
+	// liaison referencant ses atomes extremites et chaque atome referencant ses liaisons adjacentes.
+	// Si on choisit les atomes en table d'analyse principale, on doit couper le lien avec la table des molecules
+	// pour eviter les cycles dans les donnees
+	mutable StringVector svUnusedRootDictionaryWarnings;
+
+	// Fraicheur des specifications et de leur verification, pour bufferiser la methode Check
+	// En theorie, la fraicheur ne capture pas de facon exhaustive toutes les modifications possibles
+	// de la classe et pourrait empecher a tort une verification necessaire.
+	// En pratique, la methode UpdateMultiTableMappings est appelee systematiquement a chaque changement
+	// important, et la bufferisation du Check est sans risque.
+	// Elle est tres utile, notamment en mode debug, ou les Check de databases multi-tables sont complexes,
+	// et sont potentiellement appeles des dizaines de milliers de fois.
+	int nFreshness;
+	mutable int nCheckReadFreshness;
+	mutable int nCheckWriteFreshness;
+	mutable boolean bCheckRead;
+	mutable boolean bCheckWrite;
 
 	// Nombre d'enregistrements ayant ete sautes (Skip)
 	// On ne peut faire des tests d'integrite sur les lignes de tables secondaires non associees
