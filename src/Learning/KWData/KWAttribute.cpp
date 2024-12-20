@@ -561,7 +561,8 @@ void KWAttribute::WriteJSONFields(JSONFile* fJSON)
 	if (GetLabel() != "")
 		fJSON->WriteKeyString("label", GetLabel());
 
-	// Commentaires
+	// Commentaires, ecrits uniquement si presents, comme pour les autres champs facultatifs,
+	// ce qui facilite la compatibilite ascendante, et diminue la volumetrie
 	if (GetComments()->GetSize() > 0)
 	{
 		fJSON->BeginKeyArray("comments");
@@ -570,7 +571,7 @@ void KWAttribute::WriteJSONFields(JSONFile* fJSON)
 		fJSON->EndArray();
 	}
 
-	// Attribute a ne pas utiliser
+	// Attribut a ne pas utiliser
 	if (not GetUsed())
 		fJSON->WriteKeyBoolean("used", false);
 

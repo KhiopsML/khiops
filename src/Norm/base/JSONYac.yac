@@ -79,12 +79,11 @@ static int nJsonFileParsingErrorNumber = 0;
 
 jsonFile: object
     {
-		JSONObject* jsonObject;
+		JSONObject* jsonObject = $1;
 		JSONMember* member;
 		int i;
 		
 		// On memorise l'objet construit, qui sera detruit par le parser
-		jsonObject = $1;
 		$$ = jsonObject;
 
 		// Transfert du contenu vers l'objet principal
@@ -108,6 +107,7 @@ value: object     { $$ = $1; }
 	| array   { $$ = $1; } 
 	| STRINGVALUE  
 	{ 
+	    ALString* sValue = $1;
 		JSONString* jsonString;
 		
 		// Creation d'une valeur chaine de caractere
@@ -115,33 +115,31 @@ value: object     { $$ = $1; }
 		$$ = jsonString;
 
 		// Alimentation
-		jsonString->SetString(*$1);
-		delete $1;
+		jsonString->SetString(*sValue);
+		delete sValue;
 	}
 	| NUMBERVALUE
 	{ 
+		double dValue = $1;
 		JSONNumber* jsonNumber;
-		double dValue;
 		
 		// Creation d'une valeur chaine de caractere
 		jsonNumber = new JSONNumber;
 		$$ = jsonNumber;
 
 		// Alimentation
-		dValue = $1;
 		jsonNumber->SetNumber(dValue);
 	}
 	| BOOLEANVALUE
 	{ 
+		boolean bValue = $1;
 		JSONBoolean* jsonBoolean;
-		boolean bValue;
 		
 		// Creation d'une valeur chaine de caractere
 		jsonBoolean = new JSONBoolean;
 		$$ = jsonBoolean;
 
 		// Alimentation
-		bValue = $1;
 		jsonBoolean->SetBoolean(bValue);
 	}
 	| NULLVALUE
@@ -153,26 +151,29 @@ value: object     { $$ = $1; }
 		$$ = jsonNull;
 	}
 	| STRINGERROR  
-	{ 
+	{
+	    ALString* sError = $1;
+
 		// Message d'erreur
-		jsonerror("Invalid json string \"" + jsonPrintableValue(*$1) + "\" with non-utf8 encoding");
+		jsonerror("Invalid json string \"" + jsonPrintableValue(*sError) + "\" with non-utf8 encoding");
 
 		// Nettoyage et sortie
-		delete $1;
+		delete sError;
 		$$ = NULL;
 		YYABORT;
 	}
 	| ERROR  
 	{ 
+	    ALString* sError = $1;
 		ALString sValueError;
 
 		// Message d'erreur, avec indication de la valeur sauf si elle se reduit au caractete '"'
-		if (*$1 != "\"")
-			sValueError = " \"" + jsonPrintableValue(*$1) + "\"";
+		if (*sError != "\"")
+			sValueError = " \"" + jsonPrintableValue(*sError) + "\"";
 		jsonerror("Invalid json value" + sValueError);
 
 		// Nettoyage et sortie
-		delete $1;
+		delete sError;
 		$$ = NULL;
 		YYABORT;
 	}
@@ -186,29 +187,26 @@ object: '{' '}'
 
 members: member                    
 	{ 
+		JSONMember* member = $1;
 		JSONObject* jsonObject;
-		JSONMember* member;
 		
 		// Creation d'un objet json
 		jsonObject = new JSONObject;
 		$$ = jsonObject;
 		
 		// Alimentation avec un premier membre d'objet
-		member = cast(JSONMember*, $1); 
 		jsonObject->AddMember(member);
 	}
 	| members ',' member
 	{ 
-		JSONObject* jsonObject;
-		JSONMember* member;
+		JSONObject* jsonObject = $1;
+		JSONMember* member = $3;
 		ALString sJsonKey;
 		
 		// On recupere l'objet json en cours
-		jsonObject = cast(JSONObject*, $1);
 		$$ = jsonObject;
 		
 		// Ajout d'un nouveau membre d'objet, s'il n'en existe pas deja un du meme nom
-		member = cast(JSONMember*, $3);
 		if (jsonObject->LookupMember(member->GetKey()) == NULL)
 			jsonObject->AddMember(member);
 		// Erreur sinon
@@ -226,25 +224,28 @@ members: member
 	}
 	| STRINGERROR  
 	{ 
+	    ALString* sError = $1;
+
 		// Message d'erreur
-		jsonerror("Invalid json key \"" + jsonPrintableValue(*$1) + "\" with non-utf8 encoding");
+		jsonerror("Invalid json key \"" + jsonPrintableValue(*sError) + "\" with non-utf8 encoding");
 
 		// Nettoyage et sortie
-		delete $1;
+		delete sError;
 		$$ = NULL;
 		YYABORT;
 	}
 	| ERROR  
 	{ 
+	    ALString* sError = $1;
 		ALString sValueError;
 
 		// Message d'erreur, avec indication de la valeur sauf si elle se reduit au caractete '"'
-		if (*$1 != "\"")
-			sValueError = " \"" + jsonPrintableValue(*$1) + "\"";
+		if (*sError != "\"")
+			sValueError = " \"" + jsonPrintableValue(*sError) + "\"";
 		jsonerror("Invalid json key" + sValueError);
 
 		// Nettoyage et sortie
-		delete $1;
+		delete sError;
 		$$ = NULL;
 		YYABORT;
 	}
@@ -252,18 +253,18 @@ members: member
 
 member: STRINGVALUE ':' value 	 
 	{ 
+	    ALString* sKey = $1;
+		JSONValue* jsonValue = $3;
 		JSONMember* member;
-		JSONValue* jsonValue;
 
 		// Creation d'un membre d'objet
 		member = new JSONMember;
 		$$ = member;
 
 		// Alimentation
-		jsonValue = cast(JSONValue*, $3);
-		member->SetKey(*$1);
+		member->SetKey(*sKey);
 		member->SetValue(jsonValue);
-		delete $1;
+		delete sKey;
 	}
 	;
 
@@ -275,28 +276,25 @@ array: '[' ']'
 
 values: value
 	{ 
+		JSONValue* jsonValue = $1;
 		JSONArray* jsonArray;
-		JSONValue* jsonValue;
 		
 		// Creation d'un tableau de valeur
 		jsonArray = new JSONArray;
 		$$ = jsonArray;
 		
 		// Alimentation avec un premier membre d'objet
-		jsonValue = cast(JSONValue*, $1); 
 		jsonArray->AddValue(jsonValue);
 	}
 	| values ',' value   
 	{ 
-		JSONArray* jsonArray;
-		JSONValue* jsonValue;
+		JSONArray* jsonArray = $1;
+		JSONValue* jsonValue = $3;
 		
 		// On recupere le tableau en cours
-		jsonArray = cast(JSONArray*, $1);
 		$$ = jsonArray;
 		
 		// Ajout d'un nouveau membre d'objet
-		jsonValue = cast(JSONValue*, $3); 
 		jsonArray->AddValue(jsonValue);
 	}
 	;

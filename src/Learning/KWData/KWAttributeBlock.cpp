@@ -796,7 +796,7 @@ void KWAttributeBlock::Write(ostream& ost) const
 	KWAttribute* attribute;
 	int i;
 
-	// Commentaires prededents le debut du bloc
+	// Commentaires precedant le debut du bloc
 	for (i = 0; i < GetComments()->GetSize(); i++)
 		ost << "\t// " << GetComments()->GetAt(i) << "\n";
 	ost << "\t{\n";
@@ -865,7 +865,8 @@ void KWAttributeBlock::WriteJSONFields(JSONFile* fJSON)
 	if (GetLabel() != "")
 		fJSON->WriteKeyString("label", GetLabel());
 
-	// Commentaire
+	// Commentaires, ecrits uniquement si presents, comme pour les autres champs facultatifs,
+	// ce qui facilite la compatibilite ascendante, et diminue la volumetrie
 	if (GetComments()->GetSize() > 0)
 	{
 		fJSON->BeginKeyArray("comments");
@@ -903,7 +904,7 @@ void KWAttributeBlock::WriteJSONFields(JSONFile* fJSON)
 	}
 	fJSON->EndArray();
 
-	// Commentaires internes
+	// Commentaires internes, uniquement si presents, comme pour les commentaires
 	if (GetInternalComments()->GetSize() > 0)
 	{
 		fJSON->BeginKeyArray("internalComments");

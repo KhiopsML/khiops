@@ -75,12 +75,12 @@ public:
 	void SetLabel(const ALString& sValue);
 
 	// Commentaires
-	// Ensemble des lignes prefixees par '//' precedent le debut du bloc d'attributs '{' dans le fichier dictionnaire
+	// Ensemble des lignes prefixees par '//' precedant le debut du bloc d'attributs '{' dans le fichier dictionnaire
 	const StringVector* GetComments() const;
 	void SetComments(const StringVector* svValue);
 
 	// Commentaires internes
-	// Ensemble des lignes prefixees par '//' precedent la fin du bloc d'attributs '}' dans le fichier dictionnaire
+	// Ensemble des lignes prefixees par '//' precedant la fin du bloc d'attributs '}' dans le fichier dictionnaire
 	const StringVector* GetInternalComments() const;
 	void SetInternalComments(const StringVector* svValue);
 

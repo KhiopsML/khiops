@@ -68,14 +68,14 @@ public:
 	KWMetaData* GetMetaData();
 
 	// Libelle
-	// Premiere ligne prefixee par '//' precedent la declaration du dictionnaire
+	// Premiere ligne prefixee par '//' precedant la declaration du dictionnaire
 	// dans le fichier dictionnaire
 	const ALString& GetLabel() const;
 	void SetLabel(const ALString& sValue);
 
 	// Commentaires
 	// Ensemble des lignes prefixees par '//', entre le libelle et le debut de la declaration du dictionnaire
-	// Par tolerance du parser, on accepte egalement tout commentaire situee apres la partie obligatoire
+	// Par tolerance du parser, on accepte egalement tout commentaire situe apres la partie obligatoire
 	// de la declaration du dictionnaire (("Root") "Dictionary" <Name>)
 	// - avant la declaration de cle
 	// - avant la declaration de meta-donnees
@@ -724,6 +724,12 @@ protected:
 	int nFreshness;
 	int nIndexFreshness;
 	int nCompileFreshness;
+
+	// Limites sur la longueur des noms de variables, libelles et commentaires
+	static const int nNameMaxLength = 128;
+	static const int nLabelMaxLength = 100000;
+	static const int nCommentMaxNumber = 100000;
+	static const int nCommentMaxLength = 100000;
 };
 
 #include "KWAttribute.h"

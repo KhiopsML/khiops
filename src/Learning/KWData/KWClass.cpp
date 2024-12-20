@@ -1950,7 +1950,7 @@ void KWClass::WriteJSONKeyReport(JSONFile* fJSON, const ALString& sKey)
 
 int KWClass::GetNameMaxLength()
 {
-	return 128;
+	return nNameMaxLength;
 }
 
 const ALString KWClass::EntityToString(int nEntity)
@@ -2073,16 +2073,15 @@ boolean KWClass::CheckNameWithMessage(const ALString& sValue, int nEntity, ALStr
 
 boolean KWClass::CheckLabelWithMessage(const ALString& sValue, int nEntity, ALString& sMessage)
 {
-	const int nMaxLabelLength = 100000;
 	boolean bOk = true;
 
 	require(0 <= nEntity and nEntity < Unknown);
 
 	// Test de la taille maximale
-	bOk = sValue.GetLength() <= nMaxLabelLength;
+	bOk = sValue.GetLength() <= nLabelMaxLength;
 	if (not bOk)
 		sMessage = "Incorrect " + EntityToString(nEntity) + " label : length > " +
-			   IntToString(nMaxLabelLength) + " (" + GetShortValue(sValue) + ")";
+			   IntToString(nLabelMaxLength) + " (" + GetShortValue(sValue) + ")";
 
 	// Test de caractere fin de ligne
 	if (bOk)
@@ -2098,8 +2097,6 @@ boolean KWClass::CheckLabelWithMessage(const ALString& sValue, int nEntity, ALSt
 
 boolean KWClass::CheckCommentsWithMessage(const StringVector* svValue, int nEntity, ALString& sMessage)
 {
-	const int nMaxCommentNumber = 100000;
-	const int nMaxCommentLength = 100000;
 	boolean bOk = true;
 	int i;
 
@@ -2107,10 +2104,10 @@ boolean KWClass::CheckCommentsWithMessage(const StringVector* svValue, int nEnti
 	require(0 <= nEntity and nEntity < Unknown);
 
 	// Test de la taille maximale
-	bOk = svValue->GetSize() <= nMaxCommentNumber;
+	bOk = svValue->GetSize() <= nCommentMaxNumber;
 	if (not bOk)
 		sMessage = "Incorrect " + EntityToString(nEntity) + " comments : comment line number " +
-			   IntToString(svValue->GetSize()) + " > " + IntToString(nMaxCommentNumber);
+			   IntToString(svValue->GetSize()) + " > " + IntToString(nCommentMaxNumber);
 
 	// Test des commentaires
 	if (bOk)
@@ -2118,10 +2115,10 @@ boolean KWClass::CheckCommentsWithMessage(const StringVector* svValue, int nEnti
 		for (i = 0; i < svValue->GetSize(); i++)
 		{
 			// Test de la taille maximale
-			bOk = svValue->GetAt(i).GetLength() <= nMaxCommentLength;
+			bOk = svValue->GetAt(i).GetLength() <= nCommentMaxLength;
 			if (not bOk)
 				sMessage = "Incorrect " + EntityToString(nEntity) + " comment line " +
-					   IntToString(i + 1) + " : length > " + IntToString(nMaxCommentLength) + " (" +
+					   IntToString(i + 1) + " : length > " + IntToString(nCommentMaxLength) + " (" +
 					   GetShortValue(svValue->GetAt(i)) + ")";
 
 			// Test de caractere fin de ligne
