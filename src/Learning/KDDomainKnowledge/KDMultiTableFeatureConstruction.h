@@ -214,7 +214,7 @@ protected:
 	//   . templateDerivationRule: regle de derivation en cours de construction, selon les parametres de
 	//   construction
 	// - controle de la profondeur d'extraction
-	//   . sPriorTreeNodeName: identifiant du noeud de l'arbre de construction a partir de la racine
+	//   . sPriorTreeNodeName: identifiant du noeud de l'arbre de construction a partir de la classe principale
 	//                         Utilise si non vide, pour indiquer qu'une trace de debugging est demandee
 	//   . nDepth: profondeur dans l'arbre de construction, limite par la variable externe nMaxRuleDepth
 	//   . dRuleCost: cout de la regle en cours de construction, limite par la variable externe dMaxRuleCost
@@ -390,7 +390,7 @@ protected:
 	//  . nSelectionSize: taille de selection
 	//  . nMaxSelectionOperandNumber: nombre max d'operandes a constuire
 	//  . dMaxSelectionCost: cout maximum de selection
-	//  . sPriorTreeNodeName: identifiant du noeud de l'arbre de construction a partir de la racine
+	//  . sPriorTreeNodeName: identifiant du noeud de l'arbre de construction a partir de la classe principale
 	//                         Utilise si non vide, pour indiquer qu'une trace de debugging est demandee
 	//  . oaSelectionOperands: tableau des dimensions de partition (KDClassSelectionOperandStats: attribut ou regle)
 	//  utilisables en operandes de selection . oaSelectionOperandIndexedFrequencies: tableau des effectif indexes

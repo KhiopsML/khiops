@@ -161,7 +161,7 @@ public:
 	boolean IsMappingInitialized(KWMTDatabaseMapping* mapping);
 
 	// Parametrage de la derniere cle lue dans la table principale
-	void SetLastReadRootKey(const KWObjectKey* objectKey);
+	void SetLastReadMainKey(const KWObjectKey* objectKey);
 
 	// Nettoyage d'un mapping de ses informations de contexte (last key ou last object)
 	void CleanMapping(KWMTDatabaseMapping* mapping);
@@ -220,11 +220,12 @@ protected:
 
 	// Memorisation des index des attributs pour les mappings pour la serialisation
 	// Un vecteur d'index est memorise pour chaque mapping
-	// ainsi qu'un vecteur des index des attributs de cle dans le cas de classes racines
+	// ainsi qu'un vecteur des index des attributs de cle dans le cas de classes principales,
+	// plus precisement de toute classe "unique" d'un schema multi-table
 	// Utile pour la serialisation des bases destinees a etre ouverte en lecture,
 	// pour transferer aux esclaves les index calcules une fois pour toutes par le maitre
 	ObjectArray oaIndexedMappingsDataItemLoadIndexes;
-	ObjectArray oaIndexedMappingsRootKeyIndexes;
+	ObjectArray oaIndexedMappingsMainKeyIndexes;
 };
 
 ///////////////////////////////////////////////////

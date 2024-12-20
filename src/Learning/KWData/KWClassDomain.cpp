@@ -94,7 +94,7 @@ boolean KWClassDomain::WriteFile(const ALString& sFileName) const
 	return bOk;
 }
 
-boolean KWClassDomain::WriteFileFromClass(const KWClass* rootClass, const ALString& sFileName) const
+boolean KWClassDomain::WriteFileFromClass(const KWClass* mainClass, const ALString& sFileName) const
 {
 	fstream fst;
 	boolean bOk;
@@ -105,8 +105,8 @@ boolean KWClassDomain::WriteFileFromClass(const KWClass* rootClass, const ALStri
 
 	// Pas de gestion des fichiers cloud, car utilise actuellement uniquement en local
 	require(FileService::GetURIScheme(sFileName) == "");
-	require(rootClass != NULL);
-	require(rootClass->GetDomain() == this);
+	require(mainClass != NULL);
+	require(mainClass->GetDomain() == this);
 
 	// Affichage de stats memoire
 	MemoryStatsManager::AddLog(GetClassLabel() + " " + sFileName + " WriteFileFromClass Begin");
@@ -118,7 +118,7 @@ boolean KWClassDomain::WriteFileFromClass(const KWClass* rootClass, const ALStri
 	if (bOk)
 	{
 		// Calcul des classes dependantes
-		ComputeClassDependence(rootClass, &odDependentClasses);
+		ComputeClassDependence(mainClass, &odDependentClasses);
 
 		// Export dans un tableau ou l'on tri les dictionnaires
 		odDependentClasses.ExportObjectArray(&oaDependentClasses);
@@ -751,7 +751,7 @@ KWClassDomain* KWClassDomain::Clone() const
 	return kwcdClone;
 }
 
-KWClassDomain* KWClassDomain::CloneFromClass(const KWClass* rootClass) const
+KWClassDomain* KWClassDomain::CloneFromClass(const KWClass* mainClass) const
 {
 	KWClassDomain* kwcdClone;
 	ObjectArray oaImpactedClasses;
@@ -761,8 +761,8 @@ KWClassDomain* KWClassDomain::CloneFromClass(const KWClass* rootClass) const
 	KWClass* kwcCloneRef;
 	KWAttribute* attribute;
 
-	require(rootClass != NULL);
-	require(rootClass->GetDomain() == this);
+	require(mainClass != NULL);
+	require(mainClass->GetDomain() == this);
 
 	kwcdClone = new KWClassDomain;
 
@@ -770,8 +770,8 @@ KWClassDomain* KWClassDomain::CloneFromClass(const KWClass* rootClass) const
 	kwcdClone->usName = usName;
 	kwcdClone->usLabel = usLabel;
 
-	// Duplication de la classe racine
-	kwcCloneElement = rootClass->Clone();
+	// Duplication de la classe principale
+	kwcCloneElement = mainClass->Clone();
 	kwcdClone->InsertClass(kwcCloneElement);
 	oaImpactedClasses.Add(kwcCloneElement);
 
@@ -880,7 +880,7 @@ void KWClassDomain::ImportDomain(KWClassDomain* kwcdInputDomain, const ALString&
 	ensure(kwcdInputDomain->GetClassNumber() == 0);
 }
 
-void KWClassDomain::ComputeClassDependence(const KWClass* rootClass, ObjectDictionary* odDependentClasses) const
+void KWClassDomain::ComputeClassDependence(const KWClass* mainClass, ObjectDictionary* odDependentClasses) const
 {
 	ObjectArray oaDependentClasses;
 	int nClass;
@@ -888,15 +888,15 @@ void KWClassDomain::ComputeClassDependence(const KWClass* rootClass, ObjectDicti
 	KWClass* kwcRef;
 	KWAttribute* attribute;
 
-	require(rootClass != NULL);
-	require(rootClass->GetDomain() == this);
+	require(mainClass != NULL);
+	require(mainClass->GetDomain() == this);
 	require(odDependentClasses != NULL);
 
-	// Enregistrement de la classe racine
+	// Enregistrement de la classe principale
 	// (en la castant, pour contourner le const du parametre)
 	odDependentClasses->RemoveAll();
-	odDependentClasses->SetAt(rootClass->GetName(), cast(KWClass*, rootClass));
-	oaDependentClasses.Add(cast(KWClass*, rootClass));
+	odDependentClasses->SetAt(mainClass->GetName(), cast(KWClass*, mainClass));
+	oaDependentClasses.Add(cast(KWClass*, mainClass));
 
 	// Parcours des classes dependantes en memorisant les classes
 	// pour lesquelles il faut propager le calcul de dependance
@@ -959,7 +959,7 @@ longint KWClassDomain::GetUsedMemory() const
 	return lUsedMemory;
 }
 
-longint KWClassDomain::GetClassDependanceUsedMemory(const KWClass* rootClass) const
+longint KWClassDomain::GetClassDependanceUsedMemory(const KWClass* mainClass) const
 {
 	longint lUsedMemory;
 	longint lClassUsedMemory;
@@ -968,11 +968,11 @@ longint KWClassDomain::GetClassDependanceUsedMemory(const KWClass* rootClass) co
 	int nClass;
 	KWClass* kwcElement;
 
-	require(rootClass != NULL);
-	require(rootClass->GetDomain() == this);
+	require(mainClass != NULL);
+	require(mainClass->GetDomain() == this);
 
 	// Calcul des classes dependantes
-	ComputeClassDependence(rootClass, &odDependentClasses);
+	ComputeClassDependence(mainClass, &odDependentClasses);
 
 	// Parcours des classes dependantes en memorisant les classes
 	// pour lesquelles il faut propager le calcul de dependance

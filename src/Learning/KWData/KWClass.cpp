@@ -14,6 +14,8 @@
 KWClass::KWClass()
 {
 	bRoot = false;
+	bForceUnique = false;
+	bIsUnique = false;
 	lClassHashValue = 0;
 	nHashFreshness = 0;
 	nFreshness = 0;
@@ -369,6 +371,9 @@ void KWClass::IndexClass()
 	ivUsedDenseAttributeNumbers.Initialize();
 	ivUsedSparseAttributeNumbers.Initialize();
 
+	// A priori, il y a unicite dans le cas d'une classe racine, ou si l'unicite est forcee (cf methode SetForceUnique)
+	bIsUnique = bRoot or bForceUnique;
+
 	// Indexage des tableaux d'attributs par parcours de la liste
 	sAttributeKeyMetaDataKey = KWAttributeBlock::GetAttributeKeyMetaDataKey();
 	nNativeAttributeBlockNumber = 0;
@@ -377,6 +382,10 @@ void KWClass::IndexClass()
 	while (attribute != NULL)
 	{
 		assert(attribute->GetType() != KWType::Unknown);
+
+		// Il y a unicite dans le cas d'utilisation d'attribut relation non calcule
+		if (KWType::IsRelation(attribute->GetType()) and attribute->GetAnyDerivationRule() == NULL)
+			bIsUnique = true;
 
 		// Calcul du nombre d'attributs natifs
 		if (attribute->IsInBlock())
@@ -595,6 +604,9 @@ void KWClass::IndexClass()
 		cout << "Index dictionary\t" << GetName() << "\n";
 		if (GetDomain() != NULL)
 			cout << " Domain\t" << GetDomain()->GetName() << "\n";
+		cout << " Root\t" << BooleanToString(GetRoot()) << "\n";
+		cout << " ForceUnique\t" << BooleanToString(GetForceUnique()) << "\n";
+		cout << " IsUnique\t" << BooleanToString(IsUnique()) << "\n";
 		WriteAttributes("  Used attributes", &oaUsedAttributes, cout);
 		WriteAttributes("  Loaded attributes", &oaLoadedAttributes, cout);
 		WriteAttributes("  Loaded dense attributes", &oaLoadedDenseAttributes, cout);
@@ -1518,6 +1530,8 @@ void KWClass::CopyFrom(const KWClass* aSource)
 	usName = aSource->usName;
 	usLabel = aSource->usLabel;
 	bRoot = aSource->bRoot;
+	bForceUnique = aSource->bForceUnique;
+	bIsUnique = aSource->bIsUnique;
 
 	// Duplication des meta-donnees
 	metaData.CopyFrom(&aSource->metaData);
@@ -1814,6 +1828,9 @@ void KWClass::Write(ostream& ost) const
 		ost << ")";
 	}
 	ost << "\n";
+
+	// Meta-donnees
+	WritePrivateMetaData(ost);
 	if (metaData.GetKeyNumber() > 0)
 	{
 		metaData.Write(ost);
@@ -2767,19 +2784,6 @@ boolean KWClass::CheckTypeAtLoadIndex(KWLoadIndex liIndex, int nType) const
 	return bOk;
 }
 
-void KWClass::ReadNotLoadedMetaData()
-{
-	KWAttribute* attribute;
-
-	// Parcours des attributs de la classe
-	attribute = GetHeadAttribute();
-	while (attribute != NULL)
-	{
-		attribute->ReadNotLoadedMetaData();
-		GetNextAttribute(attribute);
-	}
-}
-
 void KWClass::WriteAttributes(const ALString& sTitle, const ObjectArray* oaAttributes, ostream& ost) const
 {
 	KWAttribute* attribute;
@@ -2792,5 +2796,40 @@ void KWClass::WriteAttributes(const ALString& sTitle, const ObjectArray* oaAttri
 	{
 		attribute = cast(KWAttribute*, oaAttributes->GetAt(i));
 		ost << "\t" << i + 1 << "\t" << attribute->GetName() << "\n";
+	}
+}
+
+void KWClass::WritePrivateMetaData(ostream& ost) const
+{
+	KWMetaData privateMetaData;
+
+	// Memorisation dans une meta-data temporaire de l'information d'utilisation d'un attribut non charge en memoire
+	// Permet de transferer cette information "privee", par exemple pour une tache parallele
+	if (GetForceUnique())
+	{
+		privateMetaData.SetNoValueAt("_ForceUnique");
+		ost << ' ';
+		privateMetaData.Write(ost);
+	}
+}
+
+void KWClass::ReadPrivateMetaData()
+{
+	KWAttribute* attribute;
+
+	// Lecture de la meta-donne gerant le ForceUnique
+	assert(not GetForceUnique());
+	if (GetMetaData()->GetKeyNumber() > 0 and GetMetaData()->IsMissingTypeAt("_ForceUnique"))
+	{
+		SetForceUnique(true);
+		GetMetaData()->RemoveKey("_ForceUnique");
+	}
+
+	// Parcours des attributs de la classe
+	attribute = GetHeadAttribute();
+	while (attribute != NULL)
+	{
+		attribute->ReadPrivateMetaData();
+		GetNextAttribute(attribute);
 	}
 }

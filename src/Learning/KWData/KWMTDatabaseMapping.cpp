@@ -88,14 +88,6 @@ ALString KWMTDatabaseMapping::GetDataPath() const
 		return GetDataPathAttributeNames();
 }
 
-ALString KWMTDatabaseMapping::GetDataRoot() const
-{
-	if (GetExternalTable())
-		return "";
-	else
-		return GetFormattedName(GetOriginClassName());
-}
-
 ALString KWMTDatabaseMapping::GetDataPathAttributeNames() const
 {
 	ALString sDataPathAttributeNames;
@@ -247,8 +239,7 @@ void KWMTDatabaseMapping::Write(ostream& ost) const
 	int n;
 
 	ost << "Data path\t" << GetDataPath() << "\n";
-	ost << "Data root\t" << GetDataRoot() << "\n";
-	ost << "External table\t" << BooleanToString(GetExternalTable());
+	ost << "External table\t" << BooleanToString(GetExternalTable()) << "\n";
 	ost << "Data path origin dictionary\t" << GetOriginClassName() << "\n";
 	ost << "Data path variables\t" << GetDataPathAttributeNumber() << "\n";
 	for (n = 0; n < GetDataPathAttributeNumber(); n++)

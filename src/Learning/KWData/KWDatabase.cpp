@@ -1481,7 +1481,7 @@ void KWDatabase::BuildPhysicalClass()
 	kwcPhysicalClass = kwcdPhysicalDomain->LookupClass(GetClassName());
 	assert(kwcClass->GetLoadedAttributeNumber() == kwcPhysicalClass->GetLoadedAttributeNumber());
 
-	// Initialisation de l'ensemble des classes physiques necessaires avec la classe physique "racine"
+	// Initialisation de l'ensemble des classes physiques necessaires avec la classe physique principale
 	// Les classes physiques correspondent a tout ce qui doit etre lu physiquement directement ou indirectement
 	// pour le calcul des regles de derivation
 	nkdAllNeededClasses.SetAt(kwcPhysicalClass, kwcPhysicalClass);
@@ -1530,7 +1530,7 @@ void KWDatabase::BuildPhysicalClass()
 			}
 		}
 
-		// Ajout des operandes utilise pour le calcul de l'attribut de selection pour la classe racine
+		// Ajout des operandes utilise pour le calcul de l'attribut de selection pour la classe principale
 		if (kwcCurrentPhysicalClass == kwcPhysicalClass)
 		{
 			attribute = kwcPhysicalClass->LookupAttribute(GetSelectionAttribute());
@@ -1540,7 +1540,7 @@ void KWDatabase::BuildPhysicalClass()
 											  &nkdClassNeededAttributes);
 		}
 
-		// Ajout de l'attribut de selection pour la classe racine
+		// Ajout de l'attribut de selection pour la classe principale
 		if (kwcCurrentPhysicalClass == kwcPhysicalClass)
 		{
 			attribute = kwcPhysicalClass->LookupAttribute(GetSelectionAttribute());
@@ -1548,7 +1548,7 @@ void KWDatabase::BuildPhysicalClass()
 				nkdAllNeededAttributes.SetAt(attribute, attribute);
 		}
 
-		// Ajout de la cle pour toute classe chargeable depuis la classe racine
+		// Ajout de la cle pour toute classe chargeable depuis la classe principale
 		for (i = 0; i < kwcCurrentPhysicalClass->GetKeyAttributeNumber(); i++)
 		{
 			keyAttribute = kwcCurrentPhysicalClass->GetKeyAttributeAt(i);
@@ -1695,6 +1695,11 @@ void KWDatabase::BuildPhysicalClass()
 				attributeBlock = kwcCurrentPhysicalClass->GetLoadedAttributeBlockAt(nAttributeBlock);
 				nkdLoadedAttributeBlocks.SetAt(attributeBlock, attributeBlock);
 			}
+
+			// On force l'unicite de la clase physique si necessaire
+			// En effet, apres nettoyage, celle-ci ne sera potentiellement plus en mesure de deduire
+			// son unicite de sa composition en attributs relation non calcules, si ceux-ci ont ete detruits
+			kwcCurrentPhysicalClass->SetForceUnique(kwcInitialClass->IsUnique());
 
 			// Si la classe n'est pas necessaire au niveau logique,
 			// ses attributs de base ne sont pas a charger

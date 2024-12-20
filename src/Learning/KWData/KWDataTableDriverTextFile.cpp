@@ -323,11 +323,11 @@ KWObject* KWDataTableDriverTextFile::Read()
 	}
 
 	// Reinitialisation des champ de la derniere cle lue si necessaire
-	assert(kwcClass->GetRoot() == (ivRootKeyIndexes.GetSize() > 0));
-	if (lastReadRootKey.GetSize() > 0)
+	assert(kwcClass->IsUnique() == (ivMainKeyIndexes.GetSize() > 0));
+	if (lastReadMainKey.GetSize() > 0)
 	{
-		assert(livDataItemLoadIndexes.GetSize() == ivRootKeyIndexes.GetSize());
-		lastReadRootKey.Initialize();
+		assert(livDataItemLoadIndexes.GetSize() == ivMainKeyIndexes.GetSize());
+		lastReadMainKey.Initialize();
 	}
 
 	// Lecture des champs de la ligne
@@ -400,13 +400,13 @@ KWObject* KWDataTableDriverTextFile::Read()
 		// Alimentation des champs de la derniere cle lue si necessaire
 		// On le fait avant l'analyse des champs, car on doit collecter les champs de la cle
 		// independament des erreurs
-		if (lastReadRootKey.GetSize() > 0)
+		if (lastReadMainKey.GetSize() > 0)
 		{
-			if (nField < livDataItemLoadIndexes.GetSize() and ivRootKeyIndexes.GetAt(nField) >= 0)
+			if (nField < livDataItemLoadIndexes.GetSize() and ivMainKeyIndexes.GetAt(nField) >= 0)
 			{
 				// Les champs cles sont necessairement lu dans le cas d'un driver physique de classe
 				assert(liLoadIndex.IsValid());
-				lastReadRootKey.SetAt(ivRootKeyIndexes.GetAt(nField), Symbol(sField, nFieldLength));
+				lastReadMainKey.SetAt(ivMainKeyIndexes.GetAt(nField), Symbol(sField, nFieldLength));
 			}
 		}
 
@@ -597,10 +597,10 @@ void KWDataTableDriverTextFile::Skip()
 	require(not bWriteMode);
 	require(inputBuffer != NULL);
 
-	// Cas d'une classe racine
-	assert(kwcClass->GetRoot() == (ivRootKeyIndexes.GetSize() > 0));
-	if (ivRootKeyIndexes.GetSize() > 0)
-		SkipRootRecord();
+	// Cas d'une classe principale
+	assert(kwcClass->IsUnique() == (ivMainKeyIndexes.GetSize() > 0));
+	if (ivMainKeyIndexes.GetSize() > 0)
+		SkipMainRecord();
 	// Cas standard
 	else
 	{
@@ -1452,10 +1452,10 @@ void KWDataTableDriverTextFile::SetSilentMode(boolean bValue)
 		outputBuffer->SetSilentMode(GetSilentMode());
 }
 
-void KWDataTableDriverTextFile::SkipRootRecord()
+void KWDataTableDriverTextFile::SkipMainRecord()
 {
 	char* sField;
-	int nRootKeyIndex;
+	int nMainKeyIndex;
 	int nKeyFieldNumber;
 	boolean bEndOfLine;
 	boolean bLineTooLong;
@@ -1467,11 +1467,11 @@ void KWDataTableDriverTextFile::SkipRootRecord()
 	require(inputBuffer != NULL);
 	require(not IsEnd());
 	require(not inputBuffer->IsBufferEnd());
-	assert(kwcClass->GetRoot() == (ivRootKeyIndexes.GetSize() > 0));
+	assert(kwcClass->IsUnique() == (ivMainKeyIndexes.GetSize() > 0));
 
 	// Reinitialisation des champ de la derniere cle lue si necessaire
-	assert(livDataItemLoadIndexes.GetSize() == ivRootKeyIndexes.GetSize());
-	lastReadRootKey.Initialize();
+	assert(livDataItemLoadIndexes.GetSize() == ivMainKeyIndexes.GetSize());
+	lastReadMainKey.Initialize();
 
 	// Saut d'une ligne
 	if (not IsEnd() and not IsError())
@@ -1487,13 +1487,13 @@ void KWDataTableDriverTextFile::SkipRootRecord()
 		while (not bEndOfLine)
 		{
 			// Analyse du champ si son index ne depasse pas le nombre de colonnes de l'entete et est utilise
-			nRootKeyIndex = -1;
-			if (nField < ivRootKeyIndexes.GetSize())
-				nRootKeyIndex = ivRootKeyIndexes.GetAt(nField);
+			nMainKeyIndex = -1;
+			if (nField < ivMainKeyIndexes.GetSize())
+				nMainKeyIndex = ivMainKeyIndexes.GetAt(nField);
 
 			// On ne retient que les attributs ou blocs reconnus et non calcules
 			// On lit toujours le premier champ pour detecter les lignes vides
-			if (nRootKeyIndex >= 0 or nField == 0)
+			if (nMainKeyIndex >= 0 or nField == 0)
 				bEndOfLine = inputBuffer->GetNextField(sField, nFieldLength, nFieldError, bLineTooLong);
 			else
 				bEndOfLine = inputBuffer->SkipField(bLineTooLong);
@@ -1503,9 +1503,9 @@ void KWDataTableDriverTextFile::SkipRootRecord()
 				break;
 
 			// Alimentation des champs de la derniere cle lue si necessaire
-			if (nRootKeyIndex >= 0)
+			if (nMainKeyIndex >= 0)
 			{
-				lastReadRootKey.SetAt(ivRootKeyIndexes.GetAt(nField), Symbol(sField, nFieldLength));
+				lastReadMainKey.SetAt(ivMainKeyIndexes.GetAt(nField), Symbol(sField, nFieldLength));
 				nKeyFieldNumber++;
 
 				// Arret si on a lu tous les champs de la cle
@@ -1520,7 +1520,7 @@ void KWDataTableDriverTextFile::SkipRootRecord()
 			// On ignore les lignes trop longues
 			if (bLineTooLong)
 			{
-				lastReadRootKey.Initialize();
+				lastReadMainKey.Initialize();
 				AddWarning("Ignored record, " + InputBufferedFile::GetLineTooLongErrorLabel());
 			}
 
@@ -1620,13 +1620,13 @@ boolean KWDataTableDriverTextFile::ComputeDataItemLoadIndexes(const KWClass* kwc
 	require(kwcHeaderLineClass != NULL or not GetHeaderLineUsed());
 	require(kwcHeaderLineClass == NULL or GetHeaderLineUsed());
 
-	// Initialisation pour le calcul des index des attributs cles que dans le cas d'une classe racine
-	ivRootKeyIndexes.SetSize(0);
-	lastReadRootKey.SetSize(0);
-	if (kwcLogicalClass->GetRoot())
+	// Initialisation pour le calcul des index des attributs cles que dans le cas d'une classe principale
+	ivMainKeyIndexes.SetSize(0);
+	lastReadMainKey.SetSize(0);
+	if (kwcLogicalClass->IsUnique())
 	{
-		// Creation d'un objet pour accuillir les champ de la cle
-		lastReadRootKey.SetSize(kwcLogicalClass->GetKeyAttributeNumber());
+		// Creation d'un objet pour accueillir les champs de la cle
+		lastReadMainKey.SetSize(kwcLogicalClass->GetKeyAttributeNumber());
 
 		// Creation d'un dictionnaire qui a chaque attribut de la cle associe son index
 		for (i = 0; i < kwcLogicalClass->GetKeyAttributeNumber(); i++)
@@ -1778,10 +1778,10 @@ boolean KWDataTableDriverTextFile::ComputeDataItemLoadIndexes(const KWClass* kwc
 		}
 
 		// Calcul des index des attribut de la cle
-		if (bOk and kwcLogicalClass->GetRoot())
+		if (bOk and kwcLogicalClass->IsUnique())
 		{
 			// Initialisation
-			ivRootKeyIndexes.SetSize(kwcHeaderLineClass->GetUsedAttributeNumber());
+			ivMainKeyIndexes.SetSize(kwcHeaderLineClass->GetUsedAttributeNumber());
 
 			// Parcours des champs de l'entete
 			for (i = 0; i < kwcHeaderLineClass->GetUsedAttributeNumber(); i++)
@@ -1793,9 +1793,9 @@ boolean KWDataTableDriverTextFile::ComputeDataItemLoadIndexes(const KWClass* kwc
 				    cast(IntObject*, odKeyFieldIndexes.Lookup(headerLineAttribute->GetName()));
 
 				// Indexation eventuelle dans le cas d'un attribut de la cle
-				ivRootKeyIndexes.SetAt(i, -1);
+				ivMainKeyIndexes.SetAt(i, -1);
 				if (keyFieldIndex != NULL)
-					ivRootKeyIndexes.SetAt(i, keyFieldIndex->GetInt());
+					ivMainKeyIndexes.SetAt(i, keyFieldIndex->GetInt());
 			}
 		}
 	}
@@ -1872,10 +1872,10 @@ boolean KWDataTableDriverTextFile::ComputeDataItemLoadIndexes(const KWClass* kwc
 		}
 
 		// Calcul des index des attribut de la cle
-		if (bOk and kwcLogicalClass->GetRoot())
+		if (bOk and kwcLogicalClass->IsUnique())
 		{
 			// Initialisation
-			ivRootKeyIndexes.SetSize(oaNativeLogicalDataItems.GetSize());
+			ivMainKeyIndexes.SetSize(oaNativeLogicalDataItems.GetSize());
 
 			// Parcours des champs logiques
 			livDataItemLoadIndexes.SetSize(oaNativeLogicalDataItems.GetSize());
@@ -1888,9 +1888,9 @@ boolean KWDataTableDriverTextFile::ComputeDataItemLoadIndexes(const KWClass* kwc
 				keyFieldIndex = cast(IntObject*, odKeyFieldIndexes.Lookup(logicalDataItem->GetName()));
 
 				// Indexation eventuelle dans le cas d'un attribut de la cle
-				ivRootKeyIndexes.SetAt(i, -1);
+				ivMainKeyIndexes.SetAt(i, -1);
 				if (keyFieldIndex != NULL)
-					ivRootKeyIndexes.SetAt(i, keyFieldIndex->GetInt());
+					ivMainKeyIndexes.SetAt(i, keyFieldIndex->GetInt());
 			}
 		}
 	}
@@ -1933,16 +1933,16 @@ boolean KWDataTableDriverTextFile::ComputeDataItemLoadIndexes(const KWClass* kwc
 		}
 
 		// Affichage des correspondances entre champs de la cle et leur index dans le fichier
-		if (kwcClass->GetRoot())
+		if (kwcClass->IsUnique())
 		{
-			cout << "Compute root key indexes of dictionary " << kwcClass->GetName() << endl;
-			for (i = 0; i < ivRootKeyIndexes.GetSize(); i++)
+			cout << "Compute main key indexes of dictionary " << kwcClass->GetName() << endl;
+			for (i = 0; i < ivMainKeyIndexes.GetSize(); i++)
 			{
-				if (ivRootKeyIndexes.GetAt(i) != -1)
+				if (ivMainKeyIndexes.GetAt(i) != -1)
 				{
 					cout << "\t"
-					     << "Key" << ivRootKeyIndexes.GetAt(i) + 1 << "\t"
-					     << kwcLogicalClass->GetKeyAttributeNameAt(ivRootKeyIndexes.GetAt(i))
+					     << "Key" << ivMainKeyIndexes.GetAt(i) + 1 << "\t"
+					     << kwcLogicalClass->GetKeyAttributeNameAt(ivMainKeyIndexes.GetAt(i))
 					     << "\t" << i << endl;
 				}
 			}
@@ -1953,7 +1953,7 @@ boolean KWDataTableDriverTextFile::ComputeDataItemLoadIndexes(const KWClass* kwc
 		if (kwcHeaderLineClass != NULL)
 			cout << "Header line class\n" << *kwcHeaderLineClass << endl;
 	}
-	assert(not bOk or lastReadRootKey.GetSize() > 0 or not kwcClass->GetRoot());
+	assert(not bOk or lastReadMainKey.GetSize() > 0 or not kwcClass->IsUnique());
 	return bOk;
 }
 

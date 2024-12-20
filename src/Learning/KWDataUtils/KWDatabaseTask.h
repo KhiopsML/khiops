@@ -100,7 +100,7 @@ protected:
 	// On calcule d'abord les index de champ de chaque table en entree, ce qui permet de savoir quelle table doit
 	// etre lue. On collecte un echantillon de cle de la table principale, ainsi que leur position pour chaque table
 	// secondaire On determine alors un decoupage des tables pour les traitement par esclave En sortie, si OK, on a
-	// donc initialise les tableaux oaAllChunksBeginPos, oaAllChunksBeginRecordIndex, et oaAllChunksLastRootKeys
+	// donc initialise les tableaux oaAllChunksBeginPos, oaAllChunksBeginRecordIndex, et oaAllChunksLastMainKeys
 
 	// Calcul du plan d'indexation global des bases pour le pilotage de la parallelisation
 	// Erreur possible si pas assez de ressource par exemple
@@ -224,7 +224,7 @@ protected:
 	//   . un vecteur de position de debut (comprises),
 	//   . un vecteur de position de fin (non comprises),
 	//   . un vecteur d'index de record de debut (en fait, le dernier index du troncon precedent)
-	//   . la derniere cle racine du troncon precedent
+	//   . la derniere cle principale du troncon precedent
 	// La taille des vecteurs et egale au nombre de tables en entree
 	// (les index des table non utilises sont ignores lors de traitements).
 
@@ -240,8 +240,8 @@ protected:
 	// Cf. variable oaAllChunksBeginRecordIndex du maitre
 	PLShared_LongintVector input_lvChunkPreviousRecordIndexes;
 
-	// Cles racine de depart pour le traitement de l'esclave
-	PLShared_Key input_ChunkLastRootKey;
+	// Cles principale de depart pour le traitement de l'esclave
+	PLShared_Key input_ChunkLastMainKey;
 
 	// Position de depart pour le pilotage de la lecture du fichier dans le cas mono-table
 	PLShared_Longint input_lFileBeginPosition;

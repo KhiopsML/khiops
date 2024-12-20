@@ -1705,13 +1705,13 @@ boolean KWClassDomain::ReadFile(const ALString& sFileName)
 	if (nFileParsingErrorNumber == 0)
 	  kwcdLoadDomain->CompleteTypeInfo();
 
-	/* Lecture des informations sur les attributs utilises mais non charges en memoire */
+	/* Lecture des informations privees depuis les meta donnees */
 	if (nFileParsingErrorNumber == 0)
 	{
 		for (i = 0; i < kwcdLoadDomain->GetClassNumber(); i++)
 		{
 			kwcClass = kwcdLoadDomain->GetClassAt(i);
-			kwcClass->ReadNotLoadedMetaData();
+			kwcClass->ReadPrivateMetaData();
 		}
 	}
 
