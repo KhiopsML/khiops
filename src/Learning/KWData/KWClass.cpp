@@ -1815,7 +1815,6 @@ longint KWClass::ComputeHashValue() const
 void KWClass::Write(ostream& ost) const
 {
 	KWAttribute* attribute;
-	KWAttributeBlock* attributeBlock;
 	int i;
 
 	// Entete de la classe

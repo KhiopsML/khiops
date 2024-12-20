@@ -87,7 +87,7 @@ typedef enum yytokentype yytoken_kind_t;
 #if !defined YYSTYPE && !defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 65 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 60 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 
 	Continuous cValue;
 	ALString* sValue;

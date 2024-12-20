@@ -1,28 +1,28 @@
 %{
-/* Parser de json, inspire de la grammaire  de reference https://www.json.org/json-en.html */
+// Parser de json, inspire de la grammaire  de reference https://www.json.org/json-en.html
 
 #include "Object.h"
 #include "ALString.h"
 #include "TextService.h"
 #include "JSONObject.h"
 
-/* Declaration du lexer utilise */
+// Declaration du lexer utilise
 int jsonlex();
 
-/* Methode de gestion des erreurs */
+// Methode de gestion des erreurs
 void jsonerror(char const *fmt);
 const ALString jsonPrintableValue(const ALString& sValue);
 
-/* Objet json principal a utiliser pendant la lecture d'un fichier. */
-/* Ce domaine est positionner par la methode ReadFile de JSONObject */
+// Objet json principal a utiliser pendant la lecture d'un fichier.
+// Ce domaine est positionner par la methode ReadFile de JSONObject
 static JSONObject* mainReadJSONObject=NULL;
 
-/* Work around a bug in the relation between bison and GCC 3.x: */
+// Work around a bug in the relation between bison and GCC 3.x:
 #if defined (__GNUC__) && 3 <= __GNUC__
 #define __attribute__(arglist)
 #endif
 
-/* Nombre total d'erreurs de parsing */
+// Nombre total d'erreurs de parsing
 static int nJsonFileParsingErrorNumber = 0;
 
 // Desactivation de warnings pour le Visual C++
@@ -32,12 +32,13 @@ static int nJsonFileParsingErrorNumber = 0;
 
 #define YY_STATIC
 
-/* Debugging YAC */
+// Debugging YAC
 
-/*
-#define YYDEBUG 1 
-extern char   *yyptok(int i); 
-*/
+// Debugging YAC
+// Ajouter ici les instruction suivantes
+//   #define YYDEBUG 1 
+//   extern char   *yyptok(int i); 
+// Ajouter l'instruction yydebug = 1 dans le code d'une action du fichier .lex ou .yac
 
 %}
 
@@ -68,7 +69,7 @@ extern char   *yyptok(int i);
 %type <jsonArray> values
 
 
-/* Parametrage du destructeur a appeler en cas d'erreur */
+// Parametrage du destructeur a appeler en cas d'erreur
 %destructor {if ($$ != NULL) delete $$; $$=NULL;} <sValue> <jsonValue> <jsonObject> <jsonArray> <jsonMember>
 
 
@@ -305,7 +306,7 @@ values: value
 
 #include "JSONLex.inc"
 
-/* default yyerror for YACC and LEX */
+// default yyerror for YACC and LEX
 void jsonerror(char const *fmt)
 {
   char sErrorLine[20];
@@ -331,29 +332,29 @@ const ALString jsonPrintableValue(const ALString& sValue)
 
 int jsonparse();
 
-/* Implementation de la methode de lecture de fichier de KWClassDomain */
+// Implementation de la methode de lecture de fichier de KWClassDomain
 boolean JSONObject::ReadFile(const ALString& sFileName)
 {
   boolean bOk = true;
   FILE* fFile;
   ALString sLocalFileName;
 
-  /* Affichage de stats memoire si log memoire actif */
+  // Affichage de stats memoire si log memoire actif
   MemoryStatsManager::AddLog(GetClassLabel() + " " + sFileName + " ReadFile Begin");
 
-  /* Initialisation de l'objet json principal a utiliser pour la lecture */
+  // Initialisation de l'objet json principal a utiliser pour la lecture
   assert(mainReadJSONObject == NULL);
   mainReadJSONObject = this;
   mainReadJSONObject->DeleteAll();
 
-  /* Erreur si pas de nom de fichier */
+  // Erreur si pas de nom de fichier
   fFile = NULL;
   if (sFileName == "")
   {
      AddError("Missing file name");
 	 bOk = false;
   }
-  /* Sinon, ouverture du fichier */
+  // Sinon, ouverture du fichier
   else
   { 
 		// Copie depuis un fichier distant si necessaire
@@ -362,51 +363,51 @@ boolean JSONObject::ReadFile(const ALString& sFileName)
 			bOk = FileService::OpenInputBinaryFile(sLocalFileName, fFile);
   }
 
-  /* On continue si fichier ouvert correctement */
+  // On continue si fichier ouvert correctement
   if (bOk)
   {
     assert(fFile != NULL);
 
-	/* Activation du nombre max d'erreurs a afficher */
+	// Activation du nombre max d'erreurs a afficher
 	nJsonFileParsingErrorNumber = 0;
 	Global::ActivateErrorFlowControl();
 
-    /* Positionnement du fichier a parser par la variable yyin de LEX */
+    // Positionnement du fichier a parser par la variable yyin de LEX
     jsonlineno = 1;
     jsonrestart(fFile);
     
-	/* Parsing */
+	// Parsing
     jsonparse();
 
-	/* Cleaning lexer */
+	// Cleaning lexer
 	jsonlex_destroy();
 
-    /* Fermeture du fichier */
+    // Fermeture du fichier
 	FileService::CloseInputBinaryFile(sLocalFileName, fFile);
 	
-	/* Si fichier distant, on supprime la copie locale */
+	// Si fichier distant, on supprime la copie locale
 	PLRemoteFileService::CleanInputWorkingFile(sFileName, sLocalFileName);
 
-	/* Desactivation du nombre max d'erreurs a afficher */
+	// Desactivation du nombre max d'erreurs a afficher
 	Global::DesactivateErrorFlowControl();
 
-    /* Nettoyage si erreurs */
+    // Nettoyage si erreurs
 	if (nJsonFileParsingErrorNumber > 0)
     {
-	  /* Destruction du contenu de l'objet construit */
+	  // Destruction du contenu de l'objet construit
 	  mainReadJSONObject->DeleteAll();
 
-	  /* En cas d'erreur, ajout d'une ligne blanche pour separer des autres logs */
+	  // En cas d'erreur, ajout d'une ligne blanche pour separer des autres logs
       AddError("Errors detected during parsing " + sFileName + ": read operation cancelled");
 	  bOk = false;
 	}
 	nJsonFileParsingErrorNumber = 0;
   }
 
-  /* Nettoyage */
+  // Nettoyage
   mainReadJSONObject = NULL;
 
-  /* Affichage de stats memoire si log memoire actif */
+  // Affichage de stats memoire si log memoire actif
   MemoryStatsManager::AddLog(GetClassLabel() + " " + sFileName + " ReadFile End");
 
   return bOk;

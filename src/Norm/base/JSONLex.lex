@@ -13,7 +13,7 @@
 #endif                          // __MSC__
 %}
 
-/* pour avoir acces aux numeros de lignes, et moins cher que le -l de la ligne de commande */
+/* Pour avoir acces aux numeros de lignes, et moins cher que le -l de la ligne de commande */
 %option yylineno 
 
 DIGIT           [0-9]
@@ -73,7 +73,9 @@ null            {return NULLVALUE;}
                     return NUMBERVALUE;
                 }
 
-{WHITESPACE}    {/*IGNORE*/}
+{WHITESPACE}    {
+                  // On ignore les caracteres d'espacement
+                }
 
 .               {
                     ALString *sValue;

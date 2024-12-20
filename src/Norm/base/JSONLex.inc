@@ -774,7 +774,7 @@ char *yytext;
 #pragma warning(disable : 4996) // C4996: warning for deprecated POSIX names isatty and fileno
 #endif                          // __MSC__
 #line 776 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONLex.inc"
-/* pour avoir acces aux numeros de lignes, et moins cher que le -l de la ligne de commande */
+/* Pour avoir acces aux numeros de lignes, et moins cher que le -l de la ligne de commande */
 #line 778 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONLex.inc"
 
 #define INITIAL 0
@@ -1137,11 +1137,13 @@ case 12:
 /* rule 12 can match eol */
 YY_RULE_SETUP
 #line 76 "JSONLex.lex"
-{/*IGNORE*/}
+{
+                  // On ignore les caracteres d'espacement
+                }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 78 "JSONLex.lex"
+#line 80 "JSONLex.lex"
 {
                     ALString *sValue;
 
@@ -1152,10 +1154,10 @@ YY_RULE_SETUP
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 86 "JSONLex.lex"
+#line 88 "JSONLex.lex"
 ECHO;
 	YY_BREAK
-#line 1158 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONLex.inc"
+#line 1160 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONLex.inc"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2172,5 +2174,5 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 86 "JSONLex.lex"
+#line 88 "JSONLex.lex"
 

@@ -566,14 +566,14 @@ char *yytext;
 #pragma warning(disable : 4996) // C4996: warning for deprecated POSIX names isatty and fileno
 #endif                          // __MSC__
 
-/* Redefinition du nombre de token max */
+// Redefinition du nombre de token max
 #undef YYLMAX
-#define	YYLMAX		100000		/* token and pushback buffer size */
+#define	YYLMAX		100000		// token and pushback buffer size
 
 #line 573 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCLex.inc"
-/* pour avoir acces aux numeros de lignes, et moins cher que le -l de la ligne de commande */
+/* Pour avoir acces aux numeros de lignes, et moins cher que le -l de la ligne de commande */
 /* Attention, la liste des mots cles du langage doit etre reprise dans la methode KWClass::IsStringKeyWord() */
-/* si on veut autoriser des noms de variable en collision avec ces mots cles.                                */
+/* si on veut autoriser des noms de variable en collision avec ces mots cles. */
 #line 577 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCLex.inc"
 
 #define INITIAL 0
@@ -786,7 +786,7 @@ YY_DECL
 		}
 
 	{
-#line 31 "KWCLex.lex"
+#line 32 "KWCLex.lex"
 
 
 #line 792 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCLex.inc"
@@ -859,7 +859,7 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 33 "KWCLex.lex"
+#line 34 "KWCLex.lex"
 {
                           // Un commentaire tient sur une seule ligne, prefixe par '//', et precede potentiellement de caracteres d'espace
 							
@@ -886,7 +886,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 58 "KWCLex.lex"
+#line 59 "KWCLex.lex"
 {
                           // Un libelle est prefixe par '//', mais n'est pas seul sur sa ligne
 
@@ -916,7 +916,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 86 "KWCLex.lex"
+#line 87 "KWCLex.lex"
 {
                           ALString *sValue;
                           int nInput;
@@ -938,7 +938,8 @@ YY_RULE_SETUP
 								nNextInput = yyinput();
 								cNext = (unsigned char)nNextInput;
 
-								// Si pas d'autre double-quote (doublement de double-quote interne), on remet le caractere a analyser avant de declarer la fin du token
+								// Si pas d'autre double-quote (doublement de double-quote interne), on remet le caractere
+								//a analyser avant de declarer la fin du token
 								if (cNext != '"')
 								{
 								  unput(cNext);
@@ -973,7 +974,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 140 "KWCLex.lex"
+#line 142 "KWCLex.lex"
 {
                           ALString *sValue;
                           int nInput;
@@ -996,7 +997,8 @@ YY_RULE_SETUP
 								nNextInput = yyinput();
 								cNext = (unsigned char)nNextInput;
 
-								// Si pas d'autre back-quote (doublement de back-quote interne), on remet le caractere a analyser avant de declarer la fin du token
+								// Si pas d'autre back-quote (doublement de back-quote interne), on remet le caractere
+								// a analyser avant de declarer la fin du token
 								if (cNext != '`')
 								{
 								  unput(cNext);
@@ -1030,82 +1032,82 @@ YY_RULE_SETUP
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 194 "KWCLex.lex"
+#line 197 "KWCLex.lex"
 return CLASS;
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 196 "KWCLex.lex"
+#line 199 "KWCLex.lex"
 return CONTINUOUSTYPE;
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 198 "KWCLex.lex"
+#line 201 "KWCLex.lex"
 return SYMBOLTYPE;
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 200 "KWCLex.lex"
+#line 203 "KWCLex.lex"
 return OBJECTARRAYTYPE;
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 202 "KWCLex.lex"
+#line 205 "KWCLex.lex"
 return ROOT;
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 204 "KWCLex.lex"
+#line 207 "KWCLex.lex"
 return UNUSED;
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 206 "KWCLex.lex"
+#line 209 "KWCLex.lex"
 return DATETYPE;
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 208 "KWCLex.lex"
+#line 211 "KWCLex.lex"
 return TIMETYPE;
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 210 "KWCLex.lex"
+#line 213 "KWCLex.lex"
 return TIMESTAMPTYPE;
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 212 "KWCLex.lex"
+#line 215 "KWCLex.lex"
 return TIMESTAMPTZTYPE;
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 214 "KWCLex.lex"
+#line 217 "KWCLex.lex"
 return TEXTTYPE;
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 216 "KWCLex.lex"
+#line 219 "KWCLex.lex"
 return TEXTLISTTYPE;
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 218 "KWCLex.lex"
+#line 221 "KWCLex.lex"
 return OBJECTTYPE;
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 220 "KWCLex.lex"
+#line 223 "KWCLex.lex"
 return STRUCTURETYPE;
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 223 "KWCLex.lex"
+#line 226 "KWCLex.lex"
 return *yytext;
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 225 "KWCLex.lex"
+#line 228 "KWCLex.lex"
 {
                           ALString *sValue;
                           sValue = new ALString ( (char*)yytext );
@@ -1115,7 +1117,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 232 "KWCLex.lex"
+#line 235 "KWCLex.lex"
 {
                           yylval.cValue=KWContinuous::StringToContinuous((char*)yytext);
                           return(CONTINUOUSLITTERAL);
@@ -1123,7 +1125,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 237 "KWCLex.lex"
+#line 240 "KWCLex.lex"
 {
                           yylval.cValue=KWContinuous::GetMissingValue();
                           return(CONTINUOUSLITTERAL);
@@ -1131,7 +1133,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 242 "KWCLex.lex"
+#line 245 "KWCLex.lex"
 {
                           // Les types retournes par le parser sont des unsigned char:
                           // il faut etre compatible sous peine de bugs pour des caracteres interpretes
@@ -1160,12 +1162,12 @@ YY_RULE_SETUP
 case 24:
 /* rule 24 can match eol */
 YY_RULE_SETUP
-#line 269 "KWCLex.lex"
+#line 272 "KWCLex.lex"
 ;
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 272 "KWCLex.lex"
+#line 275 "KWCLex.lex"
 {
 						  const int nMaxLength = 20;
                           ALString sTmp;
@@ -1223,10 +1225,10 @@ YY_RULE_SETUP
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 326 "KWCLex.lex"
+#line 329 "KWCLex.lex"
 ECHO;
 	YY_BREAK
-#line 1229 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCLex.inc"
+#line 1231 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCLex.inc"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2245,4 +2247,4 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 326 "KWCLex.lex"
+#line 329 "KWCLex.lex"

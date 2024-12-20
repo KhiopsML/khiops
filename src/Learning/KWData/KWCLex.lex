@@ -7,14 +7,15 @@
 #pragma warning(disable : 4996) // C4996: warning for deprecated POSIX names isatty and fileno
 #endif                          // __MSC__
 
-/* Redefinition du nombre de token max */
+// Redefinition du nombre de token max
 #undef YYLMAX
-#define	YYLMAX		100000		/* token and pushback buffer size */
+#define	YYLMAX		100000		// token and pushback buffer size
 
 %}
 
 %p 5000
-/* pour avoir acces aux numeros de lignes, et moins cher que le -l de la ligne de commande */
+
+/* Pour avoir acces aux numeros de lignes, et moins cher que le -l de la ligne de commande */
 %option yylineno 
 
 digit     [0-9]
@@ -26,7 +27,7 @@ letter    [a-zA-Z_]
 name      {letter}({letter}|{digit})*
 
 /* Attention, la liste des mots cles du langage doit etre reprise dans la methode KWClass::IsStringKeyWord() */
-/* si on veut autoriser des noms de variable en collision avec ces mots cles.                                */
+/* si on veut autoriser des noms de variable en collision avec ces mots cles. */
 
 %%
 
@@ -104,7 +105,8 @@ name      {letter}({letter}|{digit})*
 								nNextInput = yyinput();
 								cNext = (unsigned char)nNextInput;
 
-								// Si pas d'autre double-quote (doublement de double-quote interne), on remet le caractere a analyser avant de declarer la fin du token
+								// Si pas d'autre double-quote (doublement de double-quote interne), on remet le caractere
+								//a analyser avant de declarer la fin du token
 								if (cNext != '"')
 								{
 								  unput(cNext);
@@ -159,7 +161,8 @@ name      {letter}({letter}|{digit})*
 								nNextInput = yyinput();
 								cNext = (unsigned char)nNextInput;
 
-								// Si pas d'autre back-quote (doublement de back-quote interne), on remet le caractere a analyser avant de declarer la fin du token
+								// Si pas d'autre back-quote (doublement de back-quote interne), on remet le caractere
+								// a analyser avant de declarer la fin du token
 								if (cNext != '`')
 								{
 								  unput(cNext);
@@ -220,7 +223,7 @@ name      {letter}({letter}|{digit})*
 "Structure"               return STRUCTURETYPE;
 
 
-[<>(){}=;:,+\[\]\.]                return *yytext;
+[<>(){}=;:,+\[\]\.]       return *yytext;
 
 {name}                    {
                           ALString *sValue;
@@ -266,7 +269,7 @@ name      {letter}({letter}|{digit})*
                           
 
 
-[ \t\n\f\r\v]                  ;
+[ \t\n\f\r\v]             ;
 
 
 .                         {
