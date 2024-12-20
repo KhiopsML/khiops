@@ -2663,6 +2663,7 @@ boolean KWClass::CheckNativeComposition(boolean bCheckKeys, boolean bVerboseChec
 {
 	NumericKeyDictionary nkdComponentClasses;
 
+	// On passe en parametre le dictionnaire nkdComponentClasses de classes traitees, pour detecter les cycles
 	return InternalCheckNativeComposition(bCheckKeys, bVerboseCheckKeys, NULL, &nkdComponentClasses);
 }
 
@@ -2763,7 +2764,7 @@ boolean KWClass::InternalCheckNativeComposition(boolean bCheckKeys, boolean bVer
 				// La cle de la classe utilisee doit etre strictement plus longue que celle de la classe utilisante
 				// dans le cas d'un lien de composition multiple a trois niveau (ou plus)
 				// Exception dans le cas d'une classe sans-cle pouvant etre issue d'une regle de creation de table,
-				// auquel cas les cles ne sont pas necessaire y compris dans le cas d'un flocon creer par des regles
+				// auquel cas les cles ne sont pas necessaires y compris dans le cas d'un flocon cree par des regles
 				else if (parentClass != NULL and parentAttribute->GetType() == KWType::ObjectArray and
 					 parentClass->GetKeyAttributeNumber() > 0 and
 					 parentClass->GetKeyAttributeNumber() >= GetKeyAttributeNumber())

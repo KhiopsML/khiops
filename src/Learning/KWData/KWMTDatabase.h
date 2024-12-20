@@ -240,7 +240,7 @@ protected:
 	// et ne doit toujours etre synchronise
 	mutable ObjectArray oaMultiTableMappings;
 
-	// Warnings pour le cas des tables externes non utilises, gardes pour generer des warnings lors du Check
+	// Warnings pour le cas des tables externes non utilisees, gardees pour generer des warnings lors du Check
 	//
 	// Ce cas arrive si la table principale est une table secondaire d'une table externe qu'elle reference.
 	// Par exemple, dans le cas d'un schema de molecules avec des atomes et des liaisons, les atomes et les liaisons

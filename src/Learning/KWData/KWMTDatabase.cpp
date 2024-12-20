@@ -573,7 +573,7 @@ boolean KWMTDatabase::CheckPartially(boolean bWriteOnly) const
 	// On commence par verifier que la classe est stockable sur un systeme a base de cle
 	if (not mainClass->IsKeyBasedStorable())
 	{
-		// Affichage des diagnostiques d'erreur sur les problemes lies au cles
+		// Affichage des diagnostics d'erreur sur les problemes lies au cles
 		bOk = mainClass->CheckKeyBasedStorability();
 		assert(not bOk);
 

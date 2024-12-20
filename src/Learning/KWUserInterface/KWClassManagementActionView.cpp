@@ -324,10 +324,10 @@ void KWClassManagementActionView::RefreshHelpLists()
 	// Liste des dictionnaires charges en memoire, par defaut non visible
 	classNameHelpList = cast(UIList*, GetFieldAt("ClassNames"));
 
-	// On commence vider la liste
+	// On commence par vider la liste
 	classNameHelpList->RemoveAllItems();
 
-	// Collecte de classe stockables ou non a partir du domaine courant,
+	// Collecte des classes stockables ou non a partir du domaine courant
 	for (i = 0; i < KWClassDomain::GetCurrentDomain()->GetClassNumber(); i++)
 	{
 		kwcClass = KWClassDomain::GetCurrentDomain()->GetClassAt(i);
@@ -354,6 +354,8 @@ void KWClassManagementActionView::RefreshHelpLists()
 	// Parametrage des classes non stockables ensuite, avec ligne blanche de separation
 	if (svNonStorableClassNames.GetSize() > 0)
 	{
+		// Il doit y avoir au moins une classe stockable, et donc au moins deux items dans
+		// la liste en cours, ce qui fait qu'on n'aura jamais deux items vides de suite
 		assert(svClassNames.GetSize() > 0);
 		assert(classNameHelpList->GetItemNumber() >= 2);
 		classNameHelpList->AddItem();

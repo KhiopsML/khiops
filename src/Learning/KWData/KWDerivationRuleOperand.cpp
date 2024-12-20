@@ -359,7 +359,7 @@ boolean KWDerivationRuleOperand::CheckCompleteness(const KWClass* kwcOwnerClass)
 	}
 
 	// Verification eventuelle de l'attribut si la classe de scope est correcte
-	// On effectue cette verification meme en cas d'erreur, pour avoir un diagnostique potentiellement plus precis
+	// On effectue cette verification meme en cas d'erreur, pour avoir un diagnostic potentiellement plus precis
 	if (bResult and GetOrigin() == OriginAttribute)
 	{
 		assert((GetScopeLevel() == 0 and scopeClass == kwcOwnerClass) or

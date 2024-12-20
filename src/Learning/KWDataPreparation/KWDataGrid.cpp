@@ -2302,7 +2302,7 @@ KWDGAttribute::~KWDGAttribute()
 			delete innerAttributes;
 	}
 
-	// Reinitialisation en mode debug, pour faciliter le diagnostique
+	// Reinitialisation en mode debug, pour faciliter le diagnostic
 	debug(dataGrid = NULL);
 	debug(nAttributeType = KWType::Unknown);
 	debug(nAttributeIndex = -1);
