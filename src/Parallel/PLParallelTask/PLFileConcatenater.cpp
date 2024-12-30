@@ -208,8 +208,7 @@ boolean PLFileConcatenater::Concatenate(const StringVector* svChunkURIs, const O
 
 	if (bOk)
 	{
-		// Ecriture du Header en passant par la methode WriteField  de OutputBufferFile qui gere les separateur
-		// dans les champs
+		// Ecriture du Header en passant par la methode WriteField de OutputBufferFile qui gere les separateurs dans les champs
 		if (svHeaderLine.GetSize() > 0)
 		{
 			for (i = 0; i < svHeaderLine.GetSize(); i++)
@@ -221,14 +220,18 @@ boolean PLFileConcatenater::Concatenate(const StringVector* svChunkURIs, const O
 			outputBuffer.WriteEOL();
 		}
 
-		// TODO reserver la taille du fichier de sortie (moins ce qui est deja ecrit pdans le header)
+		// TODO reserver la taille du fichier de sortie (moins ce qui est deja ecrit dans le header)
 		// Parcours de tous les chunks
 		for (nChunkIndex = 0; nChunkIndex < svChunkURIs->GetSize(); nChunkIndex++)
 		{
 			sChunkURI = svChunkURIs->GetAt(nChunkIndex);
 
 			// Interruption ?
-			if (not bOk or TaskProgression::IsInterruptionRequested())
+			if (TaskProgression::IsInterruptionRequested())
+				bOk = false;
+
+			// Sortie en cas d'erreur ou d'interruption utilisateur
+			if (not bOk)
 				break;
 
 			// Concatenation d'un nouveau chunk
@@ -236,8 +239,7 @@ boolean PLFileConcatenater::Concatenate(const StringVector* svChunkURIs, const O
 			{
 				inputFile.SetFileName(sChunkURI);
 
-				// Ouverture du chunk en lecture (en ignorant la gestion des BOM, car on a des fichiers
-				// internes)
+				// Ouverture du chunk en lecture (en ignorant la gestion des BOM, car on a des fichiers internes)
 				inputFile.SetUTF8BomManagement(false);
 				bOk = inputFile.Open();
 				if (bOk)
@@ -266,9 +268,8 @@ boolean PLFileConcatenater::Concatenate(const StringVector* svChunkURIs, const O
 					if (bRemoveChunks)
 						PLRemoteFileService::RemoveFile(sChunkURI);
 
-					// Affichage de la progression en prenant en compte la progression intiale
-					// dProgressionLevel et la portion de progression represente par la
-					// concatenation dTaskPercent
+					// Affichage de la progression en prenant en compte la progression intiale dProgressionLevel
+					// et la portion de progression represente par la concatenation dTaskPercent
 					if (bDisplayProgression)
 						TaskProgression::DisplayProgression((int)ceil(
 						    100 * (dProgressionBegin +

@@ -31,7 +31,7 @@ public:
 	// Si bRemoveChunks est a true, les chunks sont effaces au fur et a mesure (et en cas d'erreur)
 	// Si il y a assez de ressources, pour la lecture on utilise entre 1 et 8 preferred size
 	// et pour l'ecriture on utilise 1 preferred size. Sinon on utilise une taille de bloc (64Ko) pour la lecture et
-	// l'ecriture. Seul le processus maitre peut invoquer cette methode Renvoi true si tout s'est bien passe
+	// l'ecriture. Seul le processus maitre peut invoquer cette methode renvoie true si tout s'est bien passe
 	boolean Concatenate(const StringVector* svChunkURIs, const Object* errorSender, boolean bRemoveChunks) const;
 
 	// Suppression des fichiers chunks (avec la meme specification de progression que la concatenation)
