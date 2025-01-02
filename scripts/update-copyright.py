@@ -1,4 +1,4 @@
-# Copyright (c) 2024 Orange. All rights reserved.
+# Copyright (c) 2023-2025 Orange. All rights reserved.
 # This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 # at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -16,7 +16,7 @@ from datetime import datetime
 byte_linesep = bytes(os.linesep, encoding="ascii")
 copyright_banner_lines = [
     bytes(
-        f"Copyright (c) 2024 Orange. All rights reserved.",
+        f"Copyright (c) 2023-{datetime.today().year} Orange. All rights reserved.",
         encoding="ascii",
     ),
     b"This software is distributed under the BSD 3-Clause-clear License, the text of which is available",
