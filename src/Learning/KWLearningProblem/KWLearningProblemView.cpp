@@ -69,9 +69,10 @@ KWLearningProblemView::KWLearningProblemView()
 	// On utilise le meme nom que dans l'onglet ClassManagement
 	trainDatabaseView->GetFieldAt("ClassName")->SetLabel("Analysis dictionary");
 
-	// On parametre la liste des dictionnaires en fonction des dictionnaire charges dans ClassManagement
+	// On parametre la liste des dictionnaires en fonction de la liste d'aide
+	// sur les noms de dictionnaires, geree dans ClassManagementView
 	trainDatabaseView->GetFieldAt("ClassName")->SetStyle("HelpedComboBox");
-	trainDatabaseView->GetFieldAt("ClassName")->SetParameters("ClassManagement.Classes:ClassName");
+	trainDatabaseView->GetFieldAt("ClassName")->SetParameters("ClassManagement.ClassNames:Name");
 
 	// On indique que le champ de parametrage du dictionnaire declenche une action de rafraichissement
 	// de l'interface immediatement apres une mise a jour, pour pouvoir rafraichir les mapping des databases
@@ -205,10 +206,10 @@ void KWLearningProblemView::CheckData()
 	// OK si nom du fichier renseigne et classe correcte
 	if (FileService::CreateApplicationTmpDir() and GetLearningProblem()->CheckTrainDatabaseName() and
 	    GetLearningProblem()->GetTrainDatabase()->Check() and GetLearningProblem()->CheckClass())
-	{
 		GetLearningProblem()->CheckData();
-		AddSimpleMessage("");
-	}
+
+	// Ligne de separation dans le log
+	AddSimpleMessage("");
 }
 
 void KWLearningProblemView::SortDataTableByKey()
@@ -266,9 +267,11 @@ void KWLearningProblemView::BuildConstructedDictionary()
 		{
 			// Construction du dictionnaire de variables
 			GetLearningProblem()->BuildConstructedDictionary();
-			AddSimpleMessage("");
 		}
 	}
+
+	// Ligne de separation dans le log
+	AddSimpleMessage("");
 }
 
 void KWLearningProblemView::ComputeStats()
@@ -332,9 +335,11 @@ void KWLearningProblemView::ComputeStats()
 		{
 			// Calcul des stats
 			GetLearningProblem()->ComputeStats();
-			AddSimpleMessage("");
 		}
 	}
+
+	// Ligne de separation dans le log
+	AddSimpleMessage("");
 }
 
 void KWLearningProblemView::TransferDatabase()

@@ -53,6 +53,8 @@ void UIUnit::Open()
 	int nListIndex;
 	boolean bActionExit;
 	ALString sCommand;
+	int j;
+	ALString sFullCommand;
 
 	require(Check());
 	require(GetVisible() == true);
@@ -224,8 +226,16 @@ void UIUnit::Open()
 					}
 				}
 
-				// Arret sinon
-				commandFile.AddInputCommandFileError("Incorrect command: " + sCommand + " " + sValue);
+				// Arret sinon, avec message d'erreur comportant la commande complete
+				sFullCommand = "";
+				for (j = 0; j < svIdentifierPath.GetSize(); j++)
+				{
+					if (j > 0)
+						sFullCommand += ".";
+					sFullCommand += svIdentifierPath.GetAt(j);
+				}
+				commandFile.AddInputCommandFileError("Incorrect command: " + sFullCommand + " " +
+								     sValue);
 				commandFile.CloseCommandFiles();
 				if (bBatchMode)
 					Global::AddFatalError("Command file", "", "Batch mode failure");

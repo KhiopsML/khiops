@@ -243,9 +243,9 @@ void CommandFile::CloseInputCommandFile()
 		return;
 	}
 
-	// Lecture si necessaire de la fin du fichier pour avoir des diagnostiques d'erreur complets
+	// Lecture si necessaire de la fin du fichier pour avoir des diagnostics d'erreur complets
 	// - bloc if non termine
-	// - diagnostique sur les cles du parametrage json non utilisees dans les commandes
+	// - diagnostic sur les cles du parametrage json non utilisees dans les commandes
 	bIsParserOkBeforeEnd = bParserOk;
 	if (GetInputParameterFileName() != "" and IsInputCommandFileOpened() and not IsInputCommandEnd() and
 	    nParserLineIndex > 0 and bParserOk)

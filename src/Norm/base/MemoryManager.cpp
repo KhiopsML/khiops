@@ -1056,7 +1056,7 @@ void SegPrintStats(MemSegment* self)
 
 #ifndef NOMEMCONTROL
 
-// Methodes de diagnostique des problemes memoire
+// Methodes de diagnostics des problemes memoire
 void MemPrintStat(FILE* fOutput);
 void MemCompleteCheck(FILE* fOutput);
 

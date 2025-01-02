@@ -77,7 +77,7 @@ public:
 	// Test de validite du numero d'erreur
 	static boolean CheckError(int nValue);
 
-	// Libelle d'erreur (en anglais) associe a un diagnostique de conversion
+	// Libelle d'erreur (en anglais) associe a un diagnostic de conversion
 	static const ALString ErrorLabel(int nError);
 
 	// Methode utilitaire pour tranformer le separateur decimal ',' en '.'

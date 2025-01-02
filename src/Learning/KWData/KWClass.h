@@ -92,6 +92,14 @@ public:
 	// Cette caracteristique est calculee au moment de l'indexation de la classe
 	boolean IsUnique() const;
 
+	// Capacite a etre stocke sur un systeme de fichiers multi-tables a l'aide de cles
+	// Dans le cas de classes construites via des regles de derivation, on a pas necessairement des cles,
+	// et on ne peut charger en memoire les instances correspondante via des fichiers de donnees
+	boolean IsKeyBasedStorable() const;
+
+	// Verification de la capacite a etre stocke, pour afficher les erreurs si necessaire
+	boolean CheckKeyBasedStorability() const;
+
 	/////////////////////////////////////////////////////////////
 	// Specification des attributs de la cle de la classe
 	// Facultatif: utile dans pour les chainage entre classes dans le cas
@@ -524,13 +532,32 @@ protected:
 	void InitializeRandomRuleParameters(KWDerivationRule* rule, const ALString& sAttributeName,
 					    int& nRuleRankInAttribute);
 
-	// Verification de l'integrite de la classe en ce qui concerne sa composition
-	// Il ne doit pas y avoir de cycle dans le graphe des utilisation entre classes par composition
-	// La taille des cles doit etre croissante avec la profondeur d'utilisation dans la composition
-	// L'attribut parent en parametre (potentiellement NULL) fournit des informations sur la profondeur
-	// dans l'arbre de composition, ce qui permet de tester la coherence de longueur des cle
-	// Le dictionnaire de classes en parametre permet de detecter les cycles
-	boolean CheckClassComposition(KWAttribute* parentAttribute, NumericKeyDictionary* nkdComponentClasses) const;
+	// Verification de l'integrite de la classe en ce qui concerne sa composition native,
+	// c'est a dire de sa hierarchie induite par l'ensemble des attributs relations non calcules,
+	// et si demande la coherence de son utilisation des cles dans la hierarchie pour permettre
+	// de rendre les donnees stockable sur une base multi-table a base de fichiers
+	//
+	// Il ne doit pas y avoir de cycle dans le graphe des utilisations entre classes par composition
+	// Le parametre de verification des cles, avec ou sans message d'erreur, permet de verifier qu'un
+	// dictionnaire est stockable sur disque via un mapping multi-fichier, au moyen de cles coherentes.
+	// - le dictionnaire doit avoir une cle s'il contient des sous-tables
+	// - la taille des cles doit etre croissante avec la profondeur d'utilisation dans la composition
+	// Note que l'on peut avoir des dictionnaires non stockage dans le cas de regles de derivation de creation
+	// de table, qui peuvent exploiter des dictionnaire quelconques (non Root), avec ou sans cle
+	boolean CheckNativeComposition(boolean bCheckKeys, boolean bVerboseCheckKeys) const;
+
+	// Methode interne utilisee par CheckNativeComposition, avec des parametres techniques supplementaire
+	// permettant son implementation de facon recursive
+	// - parentAttribute: correspond a l'attribut utilisant la classe (NULL pour l'appel initial),
+	//   ce qui fournit des informations sur la profondeur dans l'arbre de composition, et qui
+	//   permet de tester la coherence de longueur des cles
+	// - nkdComponentClasses: dictionnaire de classes traitees permettant de detecter les cycles
+	boolean InternalCheckNativeComposition(boolean bCheckKeys, boolean bVerboseCheckKeys,
+					       KWAttribute* parentAttribute,
+					       NumericKeyDictionary* nkdComponentClasses) const;
+
+	// Type d'une variable relationnelles complet sous forme d'une chaine de caracteres
+	const ALString RelationTypeToString(const KWAttribute* attribute) const;
 
 	// Attributs Symbol charges en memoire, pour optimiser leur destruction et mutation
 	// Attention, seuls les attributs Symbol dense sont concernes. Les attributs faisant
@@ -654,6 +681,9 @@ protected:
 	ObjectArray oaDatabaseDataItemsToCompute;
 	ObjectArray oaDatabaseTemporayDataItemsToComputeAndClean;
 
+	// Capacite a etre stocke sur un systeme de fichiers multi-tables a l'aide de cles
+	boolean bIsKeyBasedStorable;
+
 	// Valeur de hash de la classe, bufferise avec une fraicheur
 	// Ces variables sont mutable, car modifiee par ComputeHashValue()
 	mutable longint lClassHashValue;
@@ -721,6 +751,21 @@ inline boolean KWClass::IsUnique() const
 {
 	require(IsIndexed());
 	return bIsUnique;
+}
+
+inline boolean KWClass::IsKeyBasedStorable() const
+{
+	require(IsIndexed());
+	return bIsKeyBasedStorable;
+}
+
+inline boolean KWClass::CheckKeyBasedStorability() const
+{
+	boolean bOk;
+	require(IsIndexed());
+	bOk = CheckNativeComposition(true, true);
+	ensure(bOk == bIsKeyBasedStorable);
+	return bIsKeyBasedStorable;
 }
 
 inline int KWClass::GetKeyAttributeNumber() const

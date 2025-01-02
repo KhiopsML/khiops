@@ -50,7 +50,7 @@ public:
 	// potentielles entres les caracteres ansi initiaux recodes en utf8 avec windows1252/iso8859-1
 	// et les caracteres utf8 initiaux presents dans windows1252/iso8859-1.
 	// En cas de collision, les deux champs supplementaires sont ajoutes dans le json pour aide
-	// au diagnostique:
+	// au diagnostic:
 	//   . ansi_chars: tableau des caracteres ansi utilises
 	//   . colliding_utf8_chars: tableau des caracteres utf8 initiaux utilises dans windows1252/iso8859-1.
 	boolean Close();

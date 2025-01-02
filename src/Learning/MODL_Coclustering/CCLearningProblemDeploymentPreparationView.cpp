@@ -132,8 +132,10 @@ void CCLearningProblemDeploymentPreparationView::PrepareDeployment()
 	{
 		// Calcul des stats
 		GetLearningProblem()->PrepareDeployment();
-		AddSimpleMessage("");
 	}
+
+	// Ligne de separation dans le log
+	AddSimpleMessage("");
 }
 
 void CCLearningProblemDeploymentPreparationView::SetObject(Object* object)
