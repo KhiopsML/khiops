@@ -330,7 +330,7 @@ boolean GenumCommandLine::InitializeParameters(int argc, char** argv)
 			if (sArgument == "-v")
 			{
 				cout << GetClassLabel() << " " << GENUM_VERSION << "\n ";
-				cout << "Copyright (C) 2022 Orange labs\n";
+				cout << GENUM_COPYRIGHT_LABEL << "\n";
 				bOk = false;
 			}
 			// Aide

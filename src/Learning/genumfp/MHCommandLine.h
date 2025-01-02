@@ -8,6 +8,7 @@
 #include "MHHistogramSpecView.h"
 #include "MHTruncationDiscretizerHistogramMODL_fp.h"
 #include "MHBin.h"
+#include "Version.h"
 
 ////////////////////////////////////////////////////////////////
 // Classe MHCommandLine

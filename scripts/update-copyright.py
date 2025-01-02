@@ -16,7 +16,7 @@ from datetime import datetime
 byte_linesep = bytes(os.linesep, encoding="ascii")
 copyright_banner_lines = [
     bytes(
-        f"Copyright (c) {datetime.today().year} Orange. All rights reserved.",
+        f"Copyright (c) 2024 Orange. All rights reserved.",
         encoding="ascii",
     ),
     b"This software is distributed under the BSD 3-Clause-clear License, the text of which is available",
