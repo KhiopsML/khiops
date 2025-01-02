@@ -13,4 +13,4 @@
 #define GENUM_VERSION KHIOPS_STR(1.0)
 
 // Copyright
-#define GENUM_COPYRIGHT_LABEL KHIOPS_STR((c)2024 Orange.)
+#define GENUM_COPYRIGHT_LABEL KHIOPS_STR((c) 2023-2025 Orange. All rights reserved.)

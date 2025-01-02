@@ -13,4 +13,4 @@
 #define GENERE_VERSION KHIOPS_STR(1.0)
 
 // Copyright
-#define GENERE_COPYRIGHT_LABEL KHIOPS_STR((c)2024 Orange.)
+#define GENERE_COPYRIGHT_LABEL KHIOPS_STR((c) 2023-2025 Orange. All rights reserved.)

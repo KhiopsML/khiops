@@ -1069,7 +1069,7 @@ boolean KhistoCommandLine::InitializeParameters(int argc, char** argv)
 			if (sArgument == "-v")
 			{
 				cout << GetClassLabel() << " " << KHISTO_VERSION << "\n ";
-				cout << "Copyright (C) 2024 Orange labs\n";
+				cout << KHISTO_COPYRIGHT_LABEL << "\n";
 				bOk = false;
 			}
 			// Aide
