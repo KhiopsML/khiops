@@ -1,6 +1,6 @@
 Khiops 10.0
 ===========
-  (c) 2024 Orange - All rights reserved.
+  (c) 2023-2025 Orange. All rights reserved.
   https://khiops.org
 
 Khiops is a fully automatic tool for mining large multi-table databases,
