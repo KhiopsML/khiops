@@ -216,6 +216,33 @@ protected:
 	// Destruction des attributs (recursive pour les objet inclus)
 	void DeleteAttributes();
 
+	//////////////////////////////////////////////////////////////////////////////////////////////
+	// Services de nettoyage ou destruction total ou partiel des attributs,
+	// partage par les methodes de destruction et de mutation
+
+	// Reinitialisation des valeurs de type Symbol dans la liste LoadedDenseSymbolAttribute
+	void ResetLoadedSymbolValues(int nStartIndex, int nStopIndex);
+
+	// Reinitialisation des valeurs de type Text dans la liste LoadedTextAttribute
+	void ResetLoadedTextValues(int nStartIndex, int nStopIndex);
+
+	// Destruction des valeurs de type TextList dans la liste LoadedTextListAttribute
+	void DeleteLoadedTextListValues(int nStartIndex, int nStopIndex);
+
+	// Destruction des blocs de valeurs dans la liste LoadedAttributeBlock
+	void DeleteLoadedAttributeBlockValues(int nStartIndex, int nStopIndex);
+
+	// Destruction des valeurs de type Object ou ObjectArray dans la liste LoadedRelationAttribute
+	void DeleteLoadedRelationValues(int nStartIndex, int nStopIndex);
+
+	// Destruction des valeurs de type Object ou ObjectArray inclus natifs ou crees non charges en memoire,
+	// dans la liste UnloadedOwnedRelationAttribute
+	void DeleteUnloadedOwnedRelationValues(int nStartIndex, int nStopIndex);
+
+	//////////////////////////////////////////////////////////////////////////////////////////////
+	// Services de nettoyage des attributs des instances volumineuses, dont ne peut pas calculer
+	// tous les attributs derives
+
 	// Nettoyage des elements de donnees attributs temporaires a calculer, pouvant etre nettoyes et recalcules
 	// plusieurs fois
 	void CleanTemporayDataItemsToComputeAndClean();
@@ -232,6 +259,7 @@ protected:
 	friend class KWMTDatabase;
 	void CleanNativeRelationAttributes();
 
+	//////////////////////////////////////////////////////////////////////////////////////////////
 	// Methode de mutation specifique a destination des classes KWDatabase et KWDataTableSliceSet
 	// La nouvelle classe doit avoir le meme nom que celle de la classe en cours
 	// Dans certains cas particuliers, la nouvelle classe peut-etre la meme. Dans ce cas,
@@ -254,10 +282,34 @@ protected:
 	// Le dictionnaire des attributs a garder (dans la nouvelle classe) indique
 	// les attributs natifs non utilises object inclus ou multi-inclus a garder
 	// lors de la mutation, car referencable par des regles de derivation
-	friend class KWDatabase;
-	friend class KWDataTableSliceSet;
 	void Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nkdMutationClasses,
 		    const NumericKeyDictionary* nkdUnusedNativeAttributesToKeep);
+
+	// Classes utilisant le service de mutation
+	friend class KWDatabase;
+	friend class KWDataTableSliceSet;
+
+	//////////////////////////////////////////////////////////////////////////////////////////////
+	// Services specifiques a la mutation
+
+	// Destruction des valeurs de ObjectArray sans leur contenu dans la liste LoadedRelationAttribute
+	void DeleteLoadedReferencedObjectArrayValues(int nStartIndex, int nStopIndex);
+
+	// Nettoyage des blocs de valeurs de la nouvelle classe, conserves potentiellement avec
+	// une sous-partie de leurs attributs
+	void CleanNewLoadedAttributeBlockValues(const KWClass* kwcNewClass);
+
+	// Mutation des valeurs de type Object ou ObjectArray dans la liste LoadedRelationAttribute
+	void MutateLoadedRelationValues(const NumericKeyDictionary* nkdMutationClasses,
+					const NumericKeyDictionary* nkdUnusedNativeAttributesToKeep);
+
+	// Destruction des valeurs de type Object ou ObjectArray inclus natifs ou crees non charges en memoire,
+	// dans la liste UnloadedOwnedRelationAttribute
+	void MutateUnloadedOwnedRelationValues(const NumericKeyDictionary* nkdMutationClasses,
+					       const NumericKeyDictionary* nkdUnusedNativeAttributesToKeep);
+
+	//////////////////////////////////////////////////////////////////////////////////////////////
+	// Attributs de gestion de la classe
 
 	// KWClass
 	const KWClass* kwcClass;

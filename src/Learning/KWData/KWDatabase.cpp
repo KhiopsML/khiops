@@ -2154,6 +2154,8 @@ void KWDatabase::ComputeUnusedNativeAttributesToKeep(const NumericKeyDictionary*
 			{
 				// Analyse si retourne par une regle de derivation
 				// On identifie ainsi les attributs Object natifs potentiellement references
+				// En cas d'attribut d'un bloc, il faut analyser la regle
+				// (cela ne sera fait qu'une seule fois grace a nkdAnalysedRules)
 				if (attribute->GetAnyDerivationRule() != NULL)
 					ComputeUnusedNativeAttributesToKeepForRule(nkdNeededClasses, nkdAttributes,
 										   &nkdAnalysedRules,
@@ -2197,7 +2199,7 @@ void KWDatabase::ComputeUnusedNativeAttributesToKeep(const NumericKeyDictionary*
 		for (nAttribute = 0; nAttribute < oaAttributesToKeep.GetSize(); nAttribute++)
 		{
 			attribute = cast(KWAttribute*, oaAttributesToKeep.GetAt(nAttribute));
-			cout << "\t" << attribute->GetClass()->GetName() << "\t" << attribute->GetName() << "\n";
+			cout << "\t" << attribute->GetParentClass()->GetName() << "\t" << attribute->GetName() << "\n";
 		}
 	}
 }
