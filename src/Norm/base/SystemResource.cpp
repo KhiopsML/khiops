@@ -1,4 +1,4 @@
-// Copyright (c) 2024 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -928,7 +928,7 @@ longint MemGetFreePhysicalMemory()
 	if (pagesize == -1 or pagepurge == -1 or pagefree == -1)
 		return 0;
 	return pagesize * (pagepurge + pagefree);
-#else  // __APPLE_                                                                                                     \
+#else // __APPLE__                                                                                                     \
        // Lecture du fichier /proc/meminfo pour extraire la memoire dispoible et la memoire en cache                   \
        // On additionne la memoire disponible et 80% de la memoire cache (borne a 2Go)
 	FILE* file;

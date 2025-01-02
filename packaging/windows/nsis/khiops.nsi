@@ -135,7 +135,7 @@ Page custom RequirementsPageShow RequirementsPageLeave
 VIProductVersion "${KHIOPS_REDUCED_VERSION}.0"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductName" "Khiops"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "CompanyName" "Orange"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "Copyright (c) 2024 Orange"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "Copyright (c) 2023-2025 Orange. All rights reserved."
 VIAddVersionKey /LANG=${LANG_ENGLISH} "FileDescription" "Khiops Installer"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "${KHIOPS_VERSION}"
 
