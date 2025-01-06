@@ -70,8 +70,19 @@ public:
 	void ImportMetaDataFrom(const KWAttributeBlock* sourceAttributeBlock);
 
 	// Libelle
+	// Fin de ligne prefixee par '//' suivant la declaration du bloc d'attributs dans le fichier dictionnaire
 	const ALString& GetLabel() const;
 	void SetLabel(const ALString& sValue);
+
+	// Commentaires
+	// Ensemble des lignes prefixees par '//' precedant le debut du bloc d'attributs '{' dans le fichier dictionnaire
+	const StringVector* GetComments() const;
+	void SetComments(const StringVector* svValue);
+
+	// Commentaires internes
+	// Ensemble des lignes prefixees par '//' precedant la fin du bloc d'attributs '}' dans le fichier dictionnaire
+	const StringVector* GetInternalComments() const;
+	void SetInternalComments(const StringVector* svValue);
 
 	/////////////////////////////////////////////////////////
 	// Informations de specification du bloc, suite a sa
@@ -259,6 +270,8 @@ protected:
 	// Specifications du bloc
 	KWCDUniqueString usName;
 	KWCDUniqueString usLabel;
+	StringVector svComments;
+	StringVector svInternalComments;
 	KWDerivationRule* kwdrRule;
 	KWMetaData metaData;
 
@@ -371,6 +384,26 @@ inline const ALString& KWAttributeBlock::GetLabel() const
 inline void KWAttributeBlock::SetLabel(const ALString& sValue)
 {
 	usLabel.SetValue(sValue);
+}
+
+inline const StringVector* KWAttributeBlock::GetComments() const
+{
+	return &svComments;
+}
+
+inline void KWAttributeBlock::SetComments(const StringVector* svValue)
+{
+	svComments.CopyFrom(svValue);
+}
+
+inline const StringVector* KWAttributeBlock::GetInternalComments() const
+{
+	return &svInternalComments;
+}
+
+inline void KWAttributeBlock::SetInternalComments(const StringVector* svValue)
+{
+	svInternalComments.CopyFrom(svValue);
 }
 
 inline KWAttribute* KWAttributeBlock::GetFirstAttribute() const

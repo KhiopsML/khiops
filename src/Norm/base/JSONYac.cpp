@@ -81,30 +81,30 @@
 /* First part of user prologue.  */
 #line 1 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
 
-/* Parser de json, inspire de la grammaire  de reference https://www.json.org/json-en.html */
+// Parser de json, inspire de la grammaire  de reference https://www.json.org/json-en.html
 
 #include "Object.h"
 #include "ALString.h"
 #include "TextService.h"
 #include "JSONObject.h"
 
-/* Declaration du lexer utilise */
+// Declaration du lexer utilise
 int jsonlex();
 
-/* Methode de gestion des erreurs */
+// Methode de gestion des erreurs
 void jsonerror(char const* fmt);
 const ALString jsonPrintableValue(const ALString& sValue);
 
-/* Objet json principal a utiliser pendant la lecture d'un fichier. */
-/* Ce domaine est positionner par la methode ReadFile de JSONObject */
+// Objet json principal a utiliser pendant la lecture d'un fichier.
+// Ce domaine est positionner par la methode ReadFile de JSONObject
 static JSONObject* mainReadJSONObject = NULL;
 
-/* Work around a bug in the relation between bison and GCC 3.x: */
+// Work around a bug in the relation between bison and GCC 3.x:
 #if defined(__GNUC__) && 3 <= __GNUC__
 #define __attribute__(arglist)
 #endif
 
-/* Nombre total d'erreurs de parsing */
+// Nombre total d'erreurs de parsing
 static int nJsonFileParsingErrorNumber = 0;
 
 // Desactivation de warnings pour le Visual C++
@@ -114,14 +114,15 @@ static int nJsonFileParsingErrorNumber = 0;
 
 #define YY_STATIC
 
-/* Debugging YAC */
+// Debugging YAC
 
-/*
-#define YYDEBUG 1
-extern char   *yyptok(int i);
-*/
+// Debugging YAC
+// Ajouter ici les instruction suivantes
+//   #define YYDEBUG 1
+//   extern char   *yyptok(int i);
+// Ajouter l'instruction yydebug = 1 dans le code d'une action du fichier .lex ou .yac
 
-#line 122 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
+#line 123 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
 
 #ifndef YY_CAST
 #ifdef __cplusplus
@@ -511,8 +512,8 @@ static const yytype_int8 yytranslate[] = {
 
 #if JSONDEBUG
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
-static const yytype_int16 yyrline[] = {0,   79,  79,  98,  106, 107, 108, 120, 133, 146, 154, 164,
-				       180, 182, 186, 199, 226, 236, 252, 269, 271, 275, 288};
+static const yytype_int16 yyrline[] = {0,   80,  80,  98,  106, 107, 108, 121, 133, 145, 153, 165,
+				       182, 184, 188, 200, 225, 237, 254, 271, 273, 277, 289};
 #endif
 
 /** Accessing symbol of state STATE.  */
@@ -781,103 +782,103 @@ static void yydestruct(const char* yymsg, yysymbol_kind_t yykind, YYSTYPE* yyval
 	switch (yykind)
 	{
 	case YYSYMBOL_STRINGVALUE: /* STRINGVALUE  */
-#line 72 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
+#line 73 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
 	{
 		if (((*yyvaluep).sValue) != NULL)
 			delete ((*yyvaluep).sValue);
 		((*yyvaluep).sValue) = NULL;
 	}
-#line 881 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
+#line 882 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
 	break;
 
 	case YYSYMBOL_STRINGERROR: /* STRINGERROR  */
-#line 72 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
+#line 73 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
 	{
 		if (((*yyvaluep).sValue) != NULL)
 			delete ((*yyvaluep).sValue);
 		((*yyvaluep).sValue) = NULL;
 	}
-#line 887 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
+#line 888 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
 	break;
 
 	case YYSYMBOL_ERROR: /* ERROR  */
-#line 72 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
+#line 73 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
 	{
 		if (((*yyvaluep).sValue) != NULL)
 			delete ((*yyvaluep).sValue);
 		((*yyvaluep).sValue) = NULL;
 	}
-#line 893 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
+#line 894 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
 	break;
 
 	case YYSYMBOL_jsonFile: /* jsonFile  */
-#line 72 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
+#line 73 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
 	{
 		if (((*yyvaluep).jsonObject) != NULL)
 			delete ((*yyvaluep).jsonObject);
 		((*yyvaluep).jsonObject) = NULL;
 	}
-#line 899 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
+#line 900 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
 	break;
 
 	case YYSYMBOL_value: /* value  */
-#line 72 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
+#line 73 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
 	{
 		if (((*yyvaluep).jsonValue) != NULL)
 			delete ((*yyvaluep).jsonValue);
 		((*yyvaluep).jsonValue) = NULL;
 	}
-#line 905 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
+#line 906 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
 	break;
 
 	case YYSYMBOL_object: /* object  */
-#line 72 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
+#line 73 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
 	{
 		if (((*yyvaluep).jsonObject) != NULL)
 			delete ((*yyvaluep).jsonObject);
 		((*yyvaluep).jsonObject) = NULL;
 	}
-#line 911 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
+#line 912 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
 	break;
 
 	case YYSYMBOL_members: /* members  */
-#line 72 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
+#line 73 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
 	{
 		if (((*yyvaluep).jsonObject) != NULL)
 			delete ((*yyvaluep).jsonObject);
 		((*yyvaluep).jsonObject) = NULL;
 	}
-#line 917 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
+#line 918 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
 	break;
 
 	case YYSYMBOL_member: /* member  */
-#line 72 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
+#line 73 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
 	{
 		if (((*yyvaluep).jsonMember) != NULL)
 			delete ((*yyvaluep).jsonMember);
 		((*yyvaluep).jsonMember) = NULL;
 	}
-#line 923 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
+#line 924 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
 	break;
 
 	case YYSYMBOL_array: /* array  */
-#line 72 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
+#line 73 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
 	{
 		if (((*yyvaluep).jsonArray) != NULL)
 			delete ((*yyvaluep).jsonArray);
 		((*yyvaluep).jsonArray) = NULL;
 	}
-#line 929 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
+#line 930 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
 	break;
 
 	case YYSYMBOL_values: /* values  */
-#line 72 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
+#line 73 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
 	{
 		if (((*yyvaluep).jsonArray) != NULL)
 			delete ((*yyvaluep).jsonArray);
 		((*yyvaluep).jsonArray) = NULL;
 	}
-#line 935 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
+#line 936 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
 	break;
 
 	default:
@@ -1127,14 +1128,13 @@ yyreduce:
 	switch (yyn)
 	{
 	case 2: /* jsonFile: object  */
-#line 80 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
+#line 81 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
 	{
-		JSONObject* jsonObject;
+		JSONObject* jsonObject = (yyvsp[0].jsonObject);
 		JSONMember* member;
 		int i;
 
 		// On memorise l'objet construit, qui sera detruit par le parser
-		jsonObject = (yyvsp[0].jsonObject);
 		(yyval.jsonObject) = jsonObject;
 
 		// Transfert du contenu vers l'objet principal
@@ -1177,6 +1177,7 @@ yyreduce:
 	case 6: /* value: STRINGVALUE  */
 #line 109 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
 	{
+		ALString* sValue = (yyvsp[0].sValue);
 		JSONString* jsonString;
 
 		// Creation d'une valeur chaine de caractere
@@ -1184,24 +1185,23 @@ yyreduce:
 		(yyval.jsonValue) = jsonString;
 
 		// Alimentation
-		jsonString->SetString(*(yyvsp[0].sValue));
-		delete (yyvsp[0].sValue);
+		jsonString->SetString(*sValue);
+		delete sValue;
 	}
-#line 1259 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
+#line 1260 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
 	break;
 
 	case 7: /* value: NUMBERVALUE  */
-#line 121 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
+#line 122 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
 	{
+		double dValue = (yyvsp[0].dValue);
 		JSONNumber* jsonNumber;
-		double dValue;
 
 		// Creation d'une valeur chaine de caractere
 		jsonNumber = new JSONNumber;
 		(yyval.jsonValue) = jsonNumber;
 
 		// Alimentation
-		dValue = (yyvsp[0].dValue);
 		jsonNumber->SetNumber(dValue);
 	}
 #line 1276 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
@@ -1210,22 +1210,21 @@ yyreduce:
 	case 8: /* value: BOOLEANVALUE  */
 #line 134 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
 	{
+		boolean bValue = (yyvsp[0].bValue);
 		JSONBoolean* jsonBoolean;
-		boolean bValue;
 
 		// Creation d'une valeur chaine de caractere
 		jsonBoolean = new JSONBoolean;
 		(yyval.jsonValue) = jsonBoolean;
 
 		// Alimentation
-		bValue = (yyvsp[0].bValue);
 		jsonBoolean->SetBoolean(bValue);
 	}
-#line 1293 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
+#line 1292 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
 	break;
 
 	case 9: /* value: NULLVALUE  */
-#line 147 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
+#line 146 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
 	{
 		JSONNull* jsonNull;
 
@@ -1233,88 +1232,87 @@ yyreduce:
 		jsonNull = new JSONNull;
 		(yyval.jsonValue) = jsonNull;
 	}
-#line 1305 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
+#line 1304 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
 	break;
 
 	case 10: /* value: STRINGERROR  */
-#line 155 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
+#line 154 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
 	{
+		ALString* sError = (yyvsp[0].sValue);
+
 		// Message d'erreur
-		jsonerror("Invalid json string \"" + jsonPrintableValue(*(yyvsp[0].sValue)) +
-			  "\" with non-utf8 encoding");
+		jsonerror("Invalid json string \"" + jsonPrintableValue(*sError) + "\" with non-utf8 encoding");
 
 		// Nettoyage et sortie
-		delete (yyvsp[0].sValue);
+		delete sError;
 		(yyval.jsonValue) = NULL;
 		YYABORT;
 	}
-#line 1319 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
+#line 1320 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
 	break;
 
 	case 11: /* value: ERROR  */
-#line 165 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
+#line 166 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
 	{
+		ALString* sError = (yyvsp[0].sValue);
 		ALString sValueError;
 
 		// Message d'erreur, avec indication de la valeur sauf si elle se reduit au caractete '"'
-		if (*(yyvsp[0].sValue) != "\"")
-			sValueError = " \"" + jsonPrintableValue(*(yyvsp[0].sValue)) + "\"";
+		if (*sError != "\"")
+			sValueError = " \"" + jsonPrintableValue(*sError) + "\"";
 		jsonerror("Invalid json value" + sValueError);
 
 		// Nettoyage et sortie
-		delete (yyvsp[0].sValue);
+		delete sError;
 		(yyval.jsonValue) = NULL;
 		YYABORT;
 	}
-#line 1337 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
+#line 1339 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
 	break;
 
 	case 12: /* object: '{' '}'  */
-#line 181 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
+#line 183 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
 	{
 		(yyval.jsonObject) = new JSONObject;
 	}
-#line 1343 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
+#line 1345 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
 	break;
 
 	case 13: /* object: '{' members '}'  */
-#line 183 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
+#line 185 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
 	{
 		(yyval.jsonObject) = (yyvsp[-1].jsonObject);
 	}
-#line 1349 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
+#line 1351 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
 	break;
 
 	case 14: /* members: member  */
-#line 187 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
+#line 189 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
 	{
+		JSONMember* member = (yyvsp[0].jsonMember);
 		JSONObject* jsonObject;
-		JSONMember* member;
 
 		// Creation d'un objet json
 		jsonObject = new JSONObject;
 		(yyval.jsonObject) = jsonObject;
 
 		// Alimentation avec un premier membre d'objet
-		member = cast(JSONMember*, (yyvsp[0].jsonMember));
 		jsonObject->AddMember(member);
 	}
-#line 1366 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
+#line 1367 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
 	break;
 
 	case 15: /* members: members ',' member  */
-#line 200 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
+#line 201 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
 	{
-		JSONObject* jsonObject;
-		JSONMember* member;
+		JSONObject* jsonObject = (yyvsp[-2].jsonObject);
+		JSONMember* member = (yyvsp[0].jsonMember);
 		ALString sJsonKey;
 
 		// On recupere l'objet json en cours
-		jsonObject = cast(JSONObject*, (yyvsp[-2].jsonObject));
 		(yyval.jsonObject) = jsonObject;
 
 		// Ajout d'un nouveau membre d'objet, s'il n'en existe pas deja un du meme nom
-		member = cast(JSONMember*, (yyvsp[0].jsonMember));
 		if (jsonObject->LookupMember(member->GetKey()) == NULL)
 			jsonObject->AddMember(member);
 		// Erreur sinon
@@ -1330,111 +1328,111 @@ yyreduce:
 			YYABORT;
 		}
 	}
-#line 1397 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
+#line 1396 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
 	break;
 
 	case 16: /* members: STRINGERROR  */
-#line 227 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
+#line 226 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
 	{
+		ALString* sError = (yyvsp[0].sValue);
+
 		// Message d'erreur
-		jsonerror("Invalid json key \"" + jsonPrintableValue(*(yyvsp[0].sValue)) + "\" with non-utf8 encoding");
+		jsonerror("Invalid json key \"" + jsonPrintableValue(*sError) + "\" with non-utf8 encoding");
 
 		// Nettoyage et sortie
-		delete (yyvsp[0].sValue);
+		delete sError;
 		(yyval.jsonObject) = NULL;
 		YYABORT;
 	}
-#line 1411 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
+#line 1412 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
 	break;
 
 	case 17: /* members: ERROR  */
-#line 237 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
+#line 238 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
 	{
+		ALString* sError = (yyvsp[0].sValue);
 		ALString sValueError;
 
 		// Message d'erreur, avec indication de la valeur sauf si elle se reduit au caractete '"'
-		if (*(yyvsp[0].sValue) != "\"")
-			sValueError = " \"" + jsonPrintableValue(*(yyvsp[0].sValue)) + "\"";
+		if (*sError != "\"")
+			sValueError = " \"" + jsonPrintableValue(*sError) + "\"";
 		jsonerror("Invalid json key" + sValueError);
 
 		// Nettoyage et sortie
-		delete (yyvsp[0].sValue);
+		delete sError;
 		(yyval.jsonObject) = NULL;
 		YYABORT;
 	}
-#line 1429 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
+#line 1431 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
 	break;
 
 	case 18: /* member: STRINGVALUE ':' value  */
-#line 253 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
+#line 255 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
 	{
+		ALString* sKey = (yyvsp[-2].sValue);
+		JSONValue* jsonValue = (yyvsp[0].jsonValue);
 		JSONMember* member;
-		JSONValue* jsonValue;
 
 		// Creation d'un membre d'objet
 		member = new JSONMember;
 		(yyval.jsonMember) = member;
 
 		// Alimentation
-		jsonValue = cast(JSONValue*, (yyvsp[0].jsonValue));
-		member->SetKey(*(yyvsp[-2].sValue));
+		member->SetKey(*sKey);
 		member->SetValue(jsonValue);
-		delete (yyvsp[-2].sValue);
+		delete sKey;
 	}
-#line 1448 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
+#line 1450 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
 	break;
 
 	case 19: /* array: '[' ']'  */
-#line 270 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
+#line 272 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
 	{
 		(yyval.jsonArray) = new JSONArray;
 	}
-#line 1454 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
+#line 1456 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
 	break;
 
 	case 20: /* array: '[' values ']'  */
-#line 272 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
+#line 274 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
 	{
 		(yyval.jsonArray) = (yyvsp[-1].jsonArray);
 	}
-#line 1460 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
+#line 1462 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
 	break;
 
 	case 21: /* values: value  */
-#line 276 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
+#line 278 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
 	{
+		JSONValue* jsonValue = (yyvsp[0].jsonValue);
 		JSONArray* jsonArray;
-		JSONValue* jsonValue;
 
 		// Creation d'un tableau de valeur
 		jsonArray = new JSONArray;
 		(yyval.jsonArray) = jsonArray;
 
 		// Alimentation avec un premier membre d'objet
-		jsonValue = cast(JSONValue*, (yyvsp[0].jsonValue));
 		jsonArray->AddValue(jsonValue);
 	}
-#line 1477 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
+#line 1478 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
 	break;
 
 	case 22: /* values: values ',' value  */
-#line 289 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
+#line 290 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
 	{
-		JSONArray* jsonArray;
-		JSONValue* jsonValue;
+		JSONArray* jsonArray = (yyvsp[-2].jsonArray);
+		JSONValue* jsonValue = (yyvsp[0].jsonValue);
 
 		// On recupere le tableau en cours
-		jsonArray = cast(JSONArray*, (yyvsp[-2].jsonArray));
 		(yyval.jsonArray) = jsonArray;
 
 		// Ajout d'un nouveau membre d'objet
-		jsonValue = cast(JSONValue*, (yyvsp[0].jsonValue));
 		jsonArray->AddValue(jsonValue);
 	}
-#line 1494 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
+#line 1493 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
 	break;
 
-#line 1498 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
+#line 1497 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.cpp"
 
 	default:
 		break;
@@ -1613,11 +1611,11 @@ yyreturnlab:
 	return yyresult;
 }
 
-#line 303 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
+#line 302 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
 
 #include "JSONLex.inc"
 
-/* default yyerror for YACC and LEX */
+// default yyerror for YACC and LEX
 void jsonerror(char const* fmt)
 {
 	char sErrorLine[20];
@@ -1641,29 +1639,29 @@ const ALString jsonPrintableValue(const ALString& sValue)
 
 int jsonparse();
 
-/* Implementation de la methode de lecture de fichier de KWClassDomain */
+// Implementation de la methode de lecture de fichier de KWClassDomain
 boolean JSONObject::ReadFile(const ALString& sFileName)
 {
 	boolean bOk = true;
 	FILE* fFile;
 	ALString sLocalFileName;
 
-	/* Affichage de stats memoire si log memoire actif */
+	// Affichage de stats memoire si log memoire actif
 	MemoryStatsManager::AddLog(GetClassLabel() + " " + sFileName + " ReadFile Begin");
 
-	/* Initialisation de l'objet json principal a utiliser pour la lecture */
+	// Initialisation de l'objet json principal a utiliser pour la lecture
 	assert(mainReadJSONObject == NULL);
 	mainReadJSONObject = this;
 	mainReadJSONObject->DeleteAll();
 
-	/* Erreur si pas de nom de fichier */
+	// Erreur si pas de nom de fichier
 	fFile = NULL;
 	if (sFileName == "")
 	{
 		AddError("Missing file name");
 		bOk = false;
 	}
-	/* Sinon, ouverture du fichier */
+	// Sinon, ouverture du fichier
 	else
 	{
 		// Copie depuis un fichier distant si necessaire
@@ -1672,51 +1670,51 @@ boolean JSONObject::ReadFile(const ALString& sFileName)
 			bOk = FileService::OpenInputBinaryFile(sLocalFileName, fFile);
 	}
 
-	/* On continue si fichier ouvert correctement */
+	// On continue si fichier ouvert correctement
 	if (bOk)
 	{
 		assert(fFile != NULL);
 
-		/* Activation du nombre max d'erreurs a afficher */
+		// Activation du nombre max d'erreurs a afficher
 		nJsonFileParsingErrorNumber = 0;
 		Global::ActivateErrorFlowControl();
 
-		/* Positionnement du fichier a parser par la variable yyin de LEX */
+		// Positionnement du fichier a parser par la variable yyin de LEX
 		jsonlineno = 1;
 		jsonrestart(fFile);
 
-		/* Parsing */
+		// Parsing
 		jsonparse();
 
-		/* Cleaning lexer */
+		// Cleaning lexer
 		jsonlex_destroy();
 
-		/* Fermeture du fichier */
+		// Fermeture du fichier
 		FileService::CloseInputBinaryFile(sLocalFileName, fFile);
 
-		/* Si fichier distant, on supprime la copie locale */
+		// Si fichier distant, on supprime la copie locale
 		PLRemoteFileService::CleanInputWorkingFile(sFileName, sLocalFileName);
 
-		/* Desactivation du nombre max d'erreurs a afficher */
+		// Desactivation du nombre max d'erreurs a afficher
 		Global::DesactivateErrorFlowControl();
 
-		/* Nettoyage si erreurs */
+		// Nettoyage si erreurs
 		if (nJsonFileParsingErrorNumber > 0)
 		{
-			/* Destruction du contenu de l'objet construit */
+			// Destruction du contenu de l'objet construit
 			mainReadJSONObject->DeleteAll();
 
-			/* En cas d'erreur, ajout d'une ligne blanche pour separer des autres logs */
+			// En cas d'erreur, ajout d'une ligne blanche pour separer des autres logs
 			AddError("Errors detected during parsing " + sFileName + ": read operation cancelled");
 			bOk = false;
 		}
 		nJsonFileParsingErrorNumber = 0;
 	}
 
-	/* Nettoyage */
+	// Nettoyage
 	mainReadJSONObject = NULL;
 
-	/* Affichage de stats memoire si log memoire actif */
+	// Affichage de stats memoire si log memoire actif
 	MemoryStatsManager::AddLog(GetClassLabel() + " " + sFileName + " ReadFile End");
 
 	return bOk;

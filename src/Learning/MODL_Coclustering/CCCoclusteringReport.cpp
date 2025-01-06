@@ -550,7 +550,7 @@ boolean CCCoclusteringReport::ReadDimensionSummaries(CCHierarchicalDataGrid* coc
 		}
 
 		// CH IV Begin
-		// Lecture de la prochaine cle explicitement, pour traiter la cle optionnelle "isVarPart" precedent la
+		// Lecture de la prochaine cle explicitement, pour traiter la cle optionnelle "isVarPart" precedant la
 		// cle "type", depuis la prise en compte du coclustering instances x variables
 		bOk = bOk and JSONTokenizer::ReadStringValue(sKey);
 

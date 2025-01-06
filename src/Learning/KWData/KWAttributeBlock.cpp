@@ -130,6 +130,18 @@ boolean KWAttributeBlock::Check() const
 	if (not KWClass::CheckName(GetName(), KWClass::AttributeBlock, this))
 		bOk = false;
 
+	// Verification du Label
+	if (not KWClass::CheckLabel(GetLabel(), KWClass::AttributeBlock, this))
+		bOk = false;
+
+	// Verification des commentaires
+	if (not KWClass::CheckComments(GetComments(), KWClass::AttributeBlock, this))
+		bOk = false;
+
+	// Verification des commentaires internes
+	if (not KWClass::CheckComments(GetInternalComments(), KWClass::AttributeBlock, this))
+		bOk = false;
+
 	// Tests de base sur la specification du block
 	if (bOk and firstAttribute == NULL)
 	{
@@ -746,6 +758,8 @@ longint KWAttributeBlock::GetUsedMemory() const
 	lUsedMemory = sizeof(KWAttributeBlock);
 	lUsedMemory += usName.GetUsedMemory();
 	lUsedMemory += usLabel.GetUsedMemory();
+	lUsedMemory += svComments.GetUsedMemory();
+	lUsedMemory += svInternalComments.GetUsedMemory();
 	lUsedMemory += metaData.GetUsedMemory() - sizeof(KWMetaData);
 
 	// Prise en compte de la regle de derivation
@@ -778,27 +792,63 @@ longint KWAttributeBlock::ComputeHashValue() const
 
 void KWAttributeBlock::Write(ostream& ost) const
 {
-	KWAttribute* secondAttribute;
+	KWClass* parentClass;
+	KWAttribute* attribute;
+	int i;
 
-	ost << '{';
-	if (firstAttribute != NULL)
+	// Commentaires precedant le debut du bloc
+	for (i = 0; i < GetComments()->GetSize(); i++)
+		ost << "\t// " << GetComments()->GetAt(i) << "\n";
+	ost << "\t{\n";
+
+	// Attributs du bloc
+	parentClass = GetParentClass();
+	attribute = firstAttribute;
+	while (attribute != NULL)
 	{
-		ost << firstAttribute->GetName();
+		// Ecriture de l'attribut
+		ost << *attribute << "\n";
 
-		// Acces au deuxieme attribut
-		secondAttribute = firstAttribute;
-		if (GetParentClass() != NULL)
-			GetParentClass()->GetNextAttribute(secondAttribute);
+		// Arret si derniere variable du bloc trouvee
+		if (attribute == lastAttribute)
+			break;
 
-		// Si au moins trois attributs
-		if (lastAttribute != NULL and secondAttribute != NULL and lastAttribute != secondAttribute)
-			ost << ",..., ";
-
-		// Dernier attribut si au moins deux attributs
-		if (lastAttribute != NULL and lastAttribute != firstAttribute)
-			ost << ", " + lastAttribute->GetName();
+		// Passage a l'attribut suivant
+		parentClass->GetNextAttribute(attribute);
 	}
-	ost << "}\t" << GetName() << endl;
+
+	// Commentaires internes precedents la fin du bloc
+	for (i = 0; i < GetInternalComments()->GetSize(); i++)
+		ost << "\t// " << GetInternalComments()->GetAt(i) << "\n";
+	ost << "\t}";
+
+	// Nom du bloc
+	ost << "\t" << KWClass::GetExternalName(GetName());
+	ost << "\t";
+
+	// Regle de derivation
+	if (GetDerivationRule() != NULL)
+	{
+		// Dans le cas de la regle predefinie de Reference, on n'utilise pas le signe '='
+		if (GetDerivationRule()->GetName() != KWDerivationRule::GetReferenceRuleName())
+			ost << " = ";
+		GetDerivationRule()->WriteUsedRule(ost);
+	}
+
+	// Fin de declaration
+	ost << "\t;";
+
+	// Meta-donnees
+	if (GetConstMetaData()->GetKeyNumber() > 0)
+	{
+		ost << ' ';
+		GetConstMetaData()->Write(ost);
+	}
+	ost << "\t";
+
+	// Libelle
+	if (GetLabel() != "")
+		ost << "// " << GetLabel();
 }
 
 void KWAttributeBlock::WriteJSONFields(JSONFile* fJSON)
@@ -806,13 +856,24 @@ void KWAttributeBlock::WriteJSONFields(JSONFile* fJSON)
 	KWClass* parentClass;
 	KWAttribute* attribute;
 	ALString sOutputString;
+	int i;
 
 	// Nom
 	fJSON->WriteKeyString("blockName", GetName());
 
-	// Commentaire
+	// Libelle
 	if (GetLabel() != "")
 		fJSON->WriteKeyString("label", GetLabel());
+
+	// Commentaires, ecrits uniquement si presents, comme pour les autres champs facultatifs,
+	// ce qui facilite la compatibilite ascendante, et diminue la volumetrie
+	if (GetComments()->GetSize() > 0)
+	{
+		fJSON->BeginKeyArray("comments");
+		for (i = 0; i < GetComments()->GetSize(); i++)
+			fJSON->WriteString(GetComments()->GetAt(i));
+		fJSON->EndArray();
+	}
 
 	// Regle de derivation
 	if (kwdrRule != NULL)
@@ -842,6 +903,15 @@ void KWAttributeBlock::WriteJSONFields(JSONFile* fJSON)
 		parentClass->GetNextAttribute(attribute);
 	}
 	fJSON->EndArray();
+
+	// Commentaires internes, uniquement si presents, comme pour les commentaires
+	if (GetInternalComments()->GetSize() > 0)
+	{
+		fJSON->BeginKeyArray("internalComments");
+		for (i = 0; i < GetInternalComments()->GetSize(); i++)
+			fJSON->WriteString(GetInternalComments()->GetAt(i));
+		fJSON->EndArray();
+	}
 }
 
 const ALString KWAttributeBlock::GetClassLabel() const

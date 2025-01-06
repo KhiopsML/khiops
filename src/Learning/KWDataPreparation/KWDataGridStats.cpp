@@ -3258,7 +3258,7 @@ int KWDGSAttributeGrouping::GetGroupLastValueIndexAt(int nGroupIndex) const
 {
 	require(0 <= nGroupIndex and nGroupIndex < GetGroupNumber());
 
-	// On renvoie soit l'index de la valeur precedent la premiere valeur du groupe suivant
+	// On renvoie soit l'index de la valeur precedant la premiere valeur du groupe suivant
 	if (nGroupIndex < ivGroupFirstValueIndexes.GetSize() - 1)
 		return ivGroupFirstValueIndexes.GetAt(nGroupIndex + 1) - 1;
 	// Soit l'index de la derniere valeur
