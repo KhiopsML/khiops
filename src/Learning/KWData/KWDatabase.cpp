@@ -1499,7 +1499,6 @@ void KWDatabase::BuildPhysicalClass()
 		kwcCurrentPhysicalClass = cast(KWClass*, oaAllNeededClasses.GetAt(nClass));
 
 		// Recherche des attributs necessaires pour cette classe
-		currentDerivationRule = NULL;
 		assert(nkdClassNeededAttributes.GetCount() == 0);
 		for (nAttribute = 0; nAttribute < kwcCurrentPhysicalClass->GetLoadedAttributeNumber(); nAttribute++)
 		{
@@ -1510,7 +1509,15 @@ void KWDatabase::BuildPhysicalClass()
 			// pour detecter les attributs utilises des blocs potentiellement en operande
 			currentDerivationRule = attribute->GetAnyDerivationRule();
 			if (currentDerivationRule != NULL)
+			{
 				currentDerivationRule->BuildAllUsedAttributes(attribute, &nkdClassNeededAttributes);
+
+				// Pour la classe d'analyse, ajout de l'attribut lui-meme, dont on a besoin pour parametrer
+				// correctement les regles de creation de table qui exploitent les attributs utilises en sortie
+				// pour en deduire les attributs utilises en entree des vues
+				if (kwcCurrentPhysicalClass == kwcPhysicalClass)
+					nkdClassNeededAttributes.SetAt(attribute, attribute);
+			}
 
 			// Ajout eventuelle de la classe necessaire
 			if (KWType::IsRelation(attribute->GetType()))
@@ -1568,8 +1575,9 @@ void KWDatabase::BuildPhysicalClass()
 			{
 				nkdAllNeededAttributes.SetAt(attribute, attribute);
 
-				// Dans le cas d'un attribut de table secondaire, ajout si necessaire de l'attribut cle
-				// de la classe origine et destination
+				// Dans le cas d'un attribut de table secondaire, ajout de la classe
+				// Ce n'est pas redondant avec l'etape precedente, car on peut ici decrouvir de nouvelles
+				// classe vi les attributs derives analyses recursivement
 				if (KWType::IsRelation(attribute->GetType()))
 				{
 					// Ajout de la classe destination au niveau physique
@@ -1578,17 +1586,6 @@ void KWDatabase::BuildPhysicalClass()
 						nkdAllNeededClasses.SetAt(attribute->GetClass(), attribute->GetClass());
 						oaAllNeededClasses.Add(attribute->GetClass());
 					}
-				}
-			}
-
-			// Ajout eventuel de la classe necessaire
-			if (attribute != NULL and attribute->GetLoaded() and KWType::IsRelation(attribute->GetType()))
-			{
-				kwcRefClass = attribute->GetClass();
-				if (nkdAllNeededClasses.Lookup(kwcRefClass) == NULL)
-				{
-					nkdAllNeededClasses.SetAt(kwcRefClass, kwcRefClass);
-					oaAllNeededClasses.Add(kwcRefClass);
 				}
 			}
 		}
@@ -1613,6 +1610,9 @@ void KWDatabase::BuildPhysicalClass()
 		else
 			nkdMutationClasses.SetAt(kwcCurrentPhysicalClass, kwcCurrentPhysicalClass);
 	}
+
+	// Finalisation de la collecte des attributs utilises via les regles de construction de table
+	KWDerivationRule::FinalizeBuildAllUsedAttributes(&nkdAllNeededAttributes);
 
 	// Affichage des classes et attributs necessaires
 	if (bTrace)
