@@ -41,14 +41,17 @@ public:
 	void RemoveChunks(const StringVector* svChunkURIs) const;
 
 	// Specification de l'entete du fichier
-	// Si l'entete est specifiee, elle sera ajoutee au debut du fichier
-	// Si celle-ci est vide ou non specifiee, aucune ligne ne sera ajoutee (comportement par defaut)
+	// Elle sera ajoutee au debut du fichier si le header est utilise (Cf. SetHeaderLineUsed)
 	// Memoire: le vecteur appartient a l'appele
 	StringVector* GetHeaderLine();
 
 	// Separateur utilise pour l'ecriture du header (par defaut tabulation)
 	void SetFieldSeparator(char cSep);
 	char GetFieldSeparator() const;
+
+	// Utilisation d'une ligne d'entete: par defaut true
+	void SetHeaderLineUsed(boolean bUsed);
+	boolean GetHeaderLineUsed() const;
 
 	// Activation de la progression (inactive par defaut)
 	// On peut specifier la debut et la fin de la plage de progression (entre 0 et 1)
@@ -79,4 +82,5 @@ protected:
 	double dProgressionEnd;
 	boolean bDisplayProgression;
 	boolean bVerbose;
+	boolean bHeaderLineUsed;
 };

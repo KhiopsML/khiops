@@ -257,6 +257,7 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 				concatenater.SetVerbose(PLParallelTask::GetVerbose());
 				if (bOutputHeaderLineUsed)
 					concatenater.GetHeaderLine()->CopyFrom(&svFirstLine);
+				concatenater.SetHeaderLineUsed(bOutputHeaderLineUsed);
 				concatenater.SetDisplayProgression(false);
 
 				// Concatenation
@@ -443,6 +444,7 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 					concatenater.SetFieldSeparator(cOutputFieldSeparator);
 					if (bOutputHeaderLineUsed)
 						concatenater.GetHeaderLine()->CopyFrom(&svFirstLine);
+					concatenater.SetHeaderLineUsed(bOutputHeaderLineUsed);
 					concatenater.SetFileName(sOutputFileName);
 					TaskProgression::BeginTask();
 					TaskProgression::DisplayMainLabel("files concatenation");

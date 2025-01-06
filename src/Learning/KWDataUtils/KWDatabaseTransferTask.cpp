@@ -405,6 +405,7 @@ boolean KWDatabaseTransferTask::MasterFinalize(boolean bProcessEndedCorrectly)
 					    KWClassDomain::GetCurrentDomain()->LookupClass(mapping->GetClassName());
 					if (targetDatabase->GetHeaderLineUsed())
 						dictionary->ExportStoredFieldNames(concatenater.GetHeaderLine());
+					concatenater.SetHeaderLineUsed(targetDatabase->GetHeaderLineUsed());
 					concatenater.SetFieldSeparator(targetDatabase->GetFieldSeparator());
 
 					// Concatenation des chunks
@@ -445,6 +446,7 @@ boolean KWDatabaseTransferTask::MasterFinalize(boolean bProcessEndedCorrectly)
 			    shared_targetDatabase.GetDatabase()->GetClassName());
 			if (shared_targetDatabase.GetSTDatabase()->GetHeaderLineUsed())
 				dictionary->ExportStoredFieldNames(concatenater.GetHeaderLine());
+			concatenater.SetHeaderLineUsed(shared_targetDatabase.GetSTDatabase()->GetHeaderLineUsed());
 			concatenater.SetFileName(sOutputFileName);
 			concatenater.SetFieldSeparator(shared_targetDatabase.GetSTDatabase()->GetFieldSeparator());
 

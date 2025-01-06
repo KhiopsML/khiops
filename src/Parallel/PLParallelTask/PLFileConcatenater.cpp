@@ -13,6 +13,7 @@ PLFileConcatenater::PLFileConcatenater()
 	cSep = '\t';
 	bDisplayProgression = false;
 	bVerbose = false;
+	bHeaderLineUsed = true;
 }
 
 PLFileConcatenater::~PLFileConcatenater() {}
@@ -40,6 +41,16 @@ void PLFileConcatenater::SetFieldSeparator(char cValue)
 char PLFileConcatenater::GetFieldSeparator() const
 {
 	return cSep;
+}
+
+void PLFileConcatenater::SetHeaderLineUsed(boolean bUsed)
+{
+	bHeaderLineUsed = bUsed;
+}
+
+boolean PLFileConcatenater::GetHeaderLineUsed() const
+{
+	return bHeaderLineUsed;
 }
 
 void PLFileConcatenater::SetDisplayProgression(boolean bDisplay)
@@ -212,7 +223,7 @@ boolean PLFileConcatenater::Concatenate(const StringVector* svChunkURIs, const O
 		// Calcul de la taille du fichier de sortie pour reserver la taille,
 		//  en commencant par la taille du header
 		lOutputFileSize = 0;
-		if (svHeaderLine.GetSize() > 0)
+		if (bHeaderLineUsed and svHeaderLine.GetSize() > 0)
 		{
 			for (i = 0; i < svHeaderLine.GetSize(); i++)
 			{
@@ -251,7 +262,7 @@ boolean PLFileConcatenater::Concatenate(const StringVector* svChunkURIs, const O
 			outputBuffer.ReserveExtraSize(lOutputFileSize);
 
 			// Ecriture du header en passant par la methode WriteField de OutputBufferFile qui gere les separateurs dans les champs.
-			if (svHeaderLine.GetSize() > 0)
+			if (bHeaderLineUsed)
 			{
 				for (i = 0; i < svHeaderLine.GetSize(); i++)
 				{
