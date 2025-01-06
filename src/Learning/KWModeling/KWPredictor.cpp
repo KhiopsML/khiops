@@ -363,7 +363,7 @@ void KWPredictor::CollectSelectedPreparationStats(ObjectArray* oaUsedDataPrepara
 				}
 			}
 
-			// Analyse des attributs utilise recursivement dans une forumule de calcul, comme par exemple
+			// Analyse des attributs utilise recursivement dans une formule de calcul, comme par exemple
 			// pour les arbres
 			attribute = kwcPreparedClass->LookupAttribute(sAttributeName);
 			check(attribute);
@@ -372,6 +372,9 @@ void KWPredictor::CollectSelectedPreparationStats(ObjectArray* oaUsedDataPrepara
 										       &nkdAllUsedAttributes);
 		}
 	}
+
+	// Finalisation de la collecte des attributs utilises via les regles de construction de table
+	KWDerivationRule::FinalizeBuildAllUsedAttributes(&nkdAllUsedAttributes);
 
 	// Prise en compte des preparation de tous les attributs utilises recursivement
 	nkdAllUsedAttributes.ExportObjectArray(&oaAllUsedAttributes);

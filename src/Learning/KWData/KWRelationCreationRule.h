@@ -80,7 +80,7 @@ public:
 	KWDRRelationCreationRule();
 	~KWDRRelationCreationRule();
 
-	// On indique que la regle cree de nouveau objets
+	// On indique que la regle cree de nouveaux objets
 	boolean GetReference() const override;
 
 	//////////////////////////////////////////////////////////////////////////////////////

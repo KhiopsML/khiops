@@ -1257,7 +1257,7 @@ void KWClass::DeleteUnusedDerivedAttributes(const KWClassDomain* referenceDomain
 
 	// Parcours de toutes les classe en partant de la classe analysee avec analyse des attributs
 	// pour identifier toutes les operandes necessaire dans le calcul des attributs derives utilises.
-	// Dans le cas d'un domaine de reference, on analyse egalement les classe impactees de ce domaine
+	// Dans le cas d'un domaine de reference, on analyse egalement les classes impactees de ce domaine
 	// de reference pour garder tous les attributs initiaux et les attributs necessaires a leur calcul
 	// Attention, les formules de calcul sont utilisees est celles du domaine courant, pas celle du domaine initial
 	for (nClass = 0; nClass < oaImpactedClasses.GetSize(); nClass++)
@@ -1315,6 +1315,9 @@ void KWClass::DeleteUnusedDerivedAttributes(const KWClassDomain* referenceDomain
 		}
 	}
 
+	// Finalisation de la collecte des attributs utilises via les regles de construction de table
+	KWDerivationRule::FinalizeBuildAllUsedAttributes(&nkdAllUsedAttributes);
+
 	// Nettoyage
 	odImpactedClasses.RemoveAll();
 	oaImpactedClasses.SetSize(0);
@@ -1371,11 +1374,24 @@ void KWClass::DeleteUnusedDerivedAttributes(const KWClassDomain* referenceDomain
 		}
 	}
 
-	// Destruction des attributs ainsi identifies
-	for (i = 0; i < oaUnusedAttributes.GetSize(); i++)
+	// Prise en compte des attributs a detruire
+	if (oaUnusedAttributes.GetSize() > 0)
 	{
-		attribute = cast(KWAttribute*, oaUnusedAttributes.GetAt(i));
-		attribute->GetParentClass()->DeleteAttribute(attribute->GetName());
+		// Destruction des attributs
+		for (i = 0; i < oaUnusedAttributes.GetSize(); i++)
+		{
+			attribute = cast(KWAttribute*, oaUnusedAttributes.GetAt(i));
+			attribute->GetParentClass()->DeleteAttribute(attribute->GetName());
+		}
+
+		// Mise a jour des fraicheur des classe pour forcer la compilation
+		// En effet, une destruction d'attributs sur une classe peut avoir des
+		// implication sur une autre classe du domaine
+		for (nClass = 0; nClass < oaImpactedClasses.GetSize(); nClass++)
+		{
+			kwcImpactedClass = cast(KWClass*, oaImpactedClasses.GetAt(nClass));
+			kwcImpactedClass->UpdateFreshness();
+		}
 	}
 	ensure(Check());
 }
@@ -1604,7 +1620,8 @@ KWClass* KWClass::Clone() const
 
 boolean KWClass::Check() const
 {
-	boolean bResult = true;
+	boolean bOk = true;
+	boolean bAttributeOk = true;
 	KWAttribute* attribute;
 	int i;
 	NumericKeyDictionary nkdKeyAttributes;
@@ -1619,45 +1636,53 @@ boolean KWClass::Check() const
 	// Verification de l'existence d'un domaine de classe
 	if (domain == NULL)
 	{
-		bResult = false;
+		bOk = false;
 		AddError(sTmp + "No domain for the dictionary");
 	}
 	else if (domain->LookupClass(GetName()) != this)
 	{
-		bResult = false;
+		bOk = false;
 		AddError(sTmp + "The dictionary is not found in its domain");
 	}
 
 	// Verification du Name
 	if (not CheckName(GetName(), KWClass::Class, this))
-		bResult = false;
+		bOk = false;
 
 	// Verification du Label
 	if (not CheckLabel(GetLabel(), KWClass::Class, this))
-		bResult = false;
+		bOk = false;
 
 	// Verification des commentaires
 	if (not CheckComments(GetComments(), KWClass::Class, this))
-		bResult = false;
+		bOk = false;
 
 	// Verification des commentaires internes
 	if (not CheckComments(GetInternalComments(), KWClass::Class, this))
-		bResult = false;
+		bOk = false;
 
 	// Verification des attributs
+	bAttributeOk = true;
+	Global::ActivateErrorFlowControl();
 	attribute = GetHeadAttribute();
 	while (attribute != NULL)
 	{
 		// Test de l'attribut
 		if (not attribute->Check())
-			bResult = false;
+			bAttributeOk = false;
 
 		// Attribut suivant
 		GetNextAttribute(attribute);
 	}
+	Global::DesactivateErrorFlowControl();
+	if (not bAttributeOk)
+	{
+		bOk = false;
+		AddError("Integrity errors");
+	}
 
 	// Verification de la cle
-	if (bResult and GetKeyAttributeNumber() > 0)
+	if (bOk and GetKeyAttributeNumber() > 0)
 	{
 		// Verification de chaque champ de la cle
 		for (i = 0; i < GetKeyAttributeNumber(); i++)
@@ -1667,28 +1692,28 @@ boolean KWClass::Check() const
 			// Existance de la cle
 			if (attribute == NULL)
 			{
-				bResult = false;
+				bOk = false;
 				AddError(sTmp + "Key variable " + GetKeyAttributeNameAt(i) +
 					 " not found in dictionary");
 			}
 			// La cle doit etre de type Symbol
 			else if (attribute->GetType() != KWType::Symbol)
 			{
-				bResult = false;
+				bOk = false;
 				AddError(sTmp + "Key variable " + GetKeyAttributeNameAt(i) + " must be of type " +
 					 KWType::ToString(KWType::Symbol));
 			}
 			// La cle ne doit pas etre calculee
 			else if (attribute->GetDerivationRule() != NULL)
 			{
-				bResult = false;
+				bOk = false;
 				AddError(sTmp + "Key variable " + GetKeyAttributeNameAt(i) +
 					 " must be a native variable, without derivation rule");
 			}
 			// La cle ne doit pas etre dans un bloc
 			else if (attribute->GetBlockDerivationRule() != NULL)
 			{
-				bResult = false;
+				bOk = false;
 				AddError(sTmp + "Key variable " + GetKeyAttributeNameAt(i) +
 					 " must be not belong to a sparse value block computed from a derivation rule");
 			}
@@ -1698,7 +1723,7 @@ boolean KWClass::Check() const
 				// Test d'utilisation de l'attribut pour la cle
 				if (nkdKeyAttributes.Lookup(attribute) != NULL)
 				{
-					bResult = false;
+					bOk = false;
 					AddError(sTmp + "Key variable " + GetKeyAttributeNameAt(i) +
 						 " used several times in the key");
 				}
@@ -1711,10 +1736,10 @@ boolean KWClass::Check() const
 
 	// Verification de l'absence de cycle dans la composition, et de la validite des cle
 	// dans le cas d'une classe racine
-	if (bResult)
-		bResult = CheckNativeComposition(GetRoot(), true);
+	if (bOk)
+		bOk = CheckNativeComposition(GetRoot(), true);
 
-	return bResult;
+	return bOk;
 }
 
 longint KWClass::GetUsedMemory() const
@@ -2943,8 +2968,8 @@ void KWClass::WritePrivateMetaData(ostream& ost) const
 	if (GetForceUnique())
 	{
 		privateMetaData.SetNoValueAt("_ForceUnique");
-		ost << ' ';
 		privateMetaData.Write(ost);
+		ost << ' ';
 	}
 }
 
