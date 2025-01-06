@@ -413,7 +413,7 @@ boolean KWDatabaseTransferTask::MasterFinalize(boolean bProcessEndedCorrectly)
 					if (bOk)
 					{
 						TaskProgression::DisplayLabel("concatenation");
-						bOk = concatenater.Concatenate(svChunkFileNames, this, true) and bOk;
+						bOk = concatenater.Concatenate(svChunkFileNames, this) and bOk;
 					}
 				}
 
@@ -450,7 +450,7 @@ boolean KWDatabaseTransferTask::MasterFinalize(boolean bProcessEndedCorrectly)
 
 			// Concatenation des chunks
 			TaskProgression::DisplayLabel("concatenation");
-			bOk = concatenater.Concatenate(svChunkFileNames, this, true);
+			bOk = concatenater.Concatenate(svChunkFileNames, this);
 		}
 
 		// Suppression des fichiers intermediaires

@@ -127,8 +127,7 @@ void PLFileConcatenater::RemoveChunks(const StringVector* svChunkURIs) const
 		PLParallelTask::GetDriver()->StopFileServers();
 }
 
-boolean PLFileConcatenater::Concatenate(const StringVector* svChunkURIs, const Object* errorSender,
-					boolean bRemoveChunks) const
+boolean PLFileConcatenater::Concatenate(const StringVector* svChunkURIs, const Object* errorSender) const
 {
 	int nChunkIndex;
 	ALString sChunkURI;
@@ -265,8 +264,7 @@ boolean PLFileConcatenater::Concatenate(const StringVector* svChunkURIs, const O
 					bOk = inputFile.Close() and bOk;
 
 					// Suppression du chunk
-					if (bRemoveChunks)
-						PLRemoteFileService::RemoveFile(sChunkURI);
+					PLRemoteFileService::RemoveFile(sChunkURI);
 
 					// Affichage de la progression en prenant en compte la progression intiale dProgressionLevel
 					// et la portion de progression represente par la concatenation dTaskPercent
@@ -296,7 +294,7 @@ boolean PLFileConcatenater::Concatenate(const StringVector* svChunkURIs, const O
 		PLRemoteFileService::RemoveFile(sOutputFileName);
 
 	// Suppression des chunks en cas d'echec
-	if (not bOk and bRemoveChunks)
+	if (not bOk)
 	{
 		// On a commence le traitement au chunk nChunkIndex, on n'est pas sur qu'il ait ete detruit
 		for (i = nChunkIndex; i < svChunkURIs->GetSize(); i++)

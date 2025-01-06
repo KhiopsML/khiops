@@ -260,7 +260,7 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 				concatenater.SetDisplayProgression(false);
 
 				// Concatenation
-				concatenater.Concatenate(parallelSorter.GetSortedFiles(), this, true);
+				concatenater.Concatenate(parallelSorter.GetSortedFiles(), this);
 			}
 
 			bIsInterruptedByUser = parallelSorter.IsTaskInterruptedByUser();
@@ -356,7 +356,7 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 						// Concatenation
 						concatenater.SetFileName(sNewFileName);
 						bOk = concatenater.Concatenate(overweightBucket->GetChunkFileNames(),
-									       this, true);
+									       this);
 					}
 					else
 					{
@@ -447,7 +447,7 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 					TaskProgression::BeginTask();
 					TaskProgression::DisplayMainLabel("files concatenation");
 					timerConcat.Start();
-					bOk = concatenater.Concatenate(parallelSorter.GetSortedFiles(), this, true);
+					bOk = concatenater.Concatenate(parallelSorter.GetSortedFiles(), this);
 					timerConcat.Stop();
 					TaskProgression::EndTask();
 					if (bTrace)
