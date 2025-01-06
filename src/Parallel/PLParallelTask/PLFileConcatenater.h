@@ -28,11 +28,11 @@ public:
 
 	// Concatenation des chunks avec envoi des erreurs vers errorSender (facultatif)
 	// L'ordre des chunks dans fichier final sera conforme a l'ordre donne par le vecteur
-	// Si bRemoveChunks est a true, les chunks sont effaces au fur et a mesure (et en cas d'erreur)
+	// Les chunks sont effaces au fur et a mesure ou en cas d'erreur
 	// Si il y a assez de ressources, pour la lecture on utilise entre 1 et 8 preferred size
 	// et pour l'ecriture on utilise 1 preferred size. Sinon on utilise une taille de bloc (64Ko) pour la lecture et
 	// l'ecriture. Seul le processus maitre peut invoquer cette methode Renvoi true si tout s'est bien passe
-	boolean Concatenate(const StringVector* svChunkURIs, const Object* errorSender, boolean bRemoveChunks) const;
+	boolean Concatenate(const StringVector* svChunkURIs, const Object* errorSender) const;
 
 	// Suppression des fichiers chunks (avec la meme specification de progression que la concatenation)
 	// Robuste a l'absence de chunk
@@ -41,14 +41,17 @@ public:
 	void RemoveChunks(const StringVector* svChunkURIs) const;
 
 	// Specification de l'entete du fichier
-	// Si l'entete est specifiee, elle sera ajoutee au debut du fichier
-	// Si celle-ci est vide ou non specifiee, aucune ligne ne sera ajoutee (comportement par defaut)
+	// Elle sera ajoutee au debut du fichier si le header est utilise (Cf. SetHeaderLineUsed)
 	// Memoire: le vecteur appartient a l'appele
 	StringVector* GetHeaderLine();
 
 	// Separateur utilise pour l'ecriture du header (par defaut tabulation)
 	void SetFieldSeparator(char cSep);
 	char GetFieldSeparator() const;
+
+	// Utilisation d'une ligne d'entete: par defaut true
+	void SetHeaderLineUsed(boolean bUsed);
+	boolean GetHeaderLineUsed() const;
 
 	// Activation de la progression (inactive par defaut)
 	// On peut specifier la debut et la fin de la plage de progression (entre 0 et 1)
@@ -79,4 +82,5 @@ protected:
 	double dProgressionEnd;
 	boolean bDisplayProgression;
 	boolean bVerbose;
+	boolean bHeaderLineUsed;
 };

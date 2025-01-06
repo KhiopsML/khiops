@@ -405,6 +405,7 @@ boolean KWDatabaseTransferTask::MasterFinalize(boolean bProcessEndedCorrectly)
 					    KWClassDomain::GetCurrentDomain()->LookupClass(mapping->GetClassName());
 					if (targetDatabase->GetHeaderLineUsed())
 						dictionary->ExportStoredFieldNames(concatenater.GetHeaderLine());
+					concatenater.SetHeaderLineUsed(targetDatabase->GetHeaderLineUsed());
 					concatenater.SetFieldSeparator(targetDatabase->GetFieldSeparator());
 
 					// Concatenation des chunks
@@ -413,7 +414,7 @@ boolean KWDatabaseTransferTask::MasterFinalize(boolean bProcessEndedCorrectly)
 					if (bOk)
 					{
 						TaskProgression::DisplayLabel("concatenation");
-						bOk = concatenater.Concatenate(svChunkFileNames, this, true) and bOk;
+						bOk = concatenater.Concatenate(svChunkFileNames, this) and bOk;
 					}
 				}
 
@@ -445,12 +446,13 @@ boolean KWDatabaseTransferTask::MasterFinalize(boolean bProcessEndedCorrectly)
 			    shared_targetDatabase.GetDatabase()->GetClassName());
 			if (shared_targetDatabase.GetSTDatabase()->GetHeaderLineUsed())
 				dictionary->ExportStoredFieldNames(concatenater.GetHeaderLine());
+			concatenater.SetHeaderLineUsed(shared_targetDatabase.GetSTDatabase()->GetHeaderLineUsed());
 			concatenater.SetFileName(sOutputFileName);
 			concatenater.SetFieldSeparator(shared_targetDatabase.GetSTDatabase()->GetFieldSeparator());
 
 			// Concatenation des chunks
 			TaskProgression::DisplayLabel("concatenation");
-			bOk = concatenater.Concatenate(svChunkFileNames, this, true);
+			bOk = concatenater.Concatenate(svChunkFileNames, this);
 		}
 
 		// Suppression des fichiers intermediaires

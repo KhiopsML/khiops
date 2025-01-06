@@ -13,6 +13,7 @@ PLFileConcatenater::PLFileConcatenater()
 	cSep = '\t';
 	bDisplayProgression = false;
 	bVerbose = false;
+	bHeaderLineUsed = true;
 }
 
 PLFileConcatenater::~PLFileConcatenater() {}
@@ -40,6 +41,16 @@ void PLFileConcatenater::SetFieldSeparator(char cValue)
 char PLFileConcatenater::GetFieldSeparator() const
 {
 	return cSep;
+}
+
+void PLFileConcatenater::SetHeaderLineUsed(boolean bUsed)
+{
+	bHeaderLineUsed = bUsed;
+}
+
+boolean PLFileConcatenater::GetHeaderLineUsed() const
+{
+	return bHeaderLineUsed;
 }
 
 void PLFileConcatenater::SetDisplayProgression(boolean bDisplay)
@@ -127,8 +138,7 @@ void PLFileConcatenater::RemoveChunks(const StringVector* svChunkURIs) const
 		PLParallelTask::GetDriver()->StopFileServers();
 }
 
-boolean PLFileConcatenater::Concatenate(const StringVector* svChunkURIs, const Object* errorSender,
-					boolean bRemoveChunks) const
+boolean PLFileConcatenater::Concatenate(const StringVector* svChunkURIs, const Object* errorSender) const
 {
 	int nChunkIndex;
 	ALString sChunkURI;
@@ -145,6 +155,9 @@ boolean PLFileConcatenater::Concatenate(const StringVector* svChunkURIs, const O
 	int nInputPreferredSize;
 	int nOutputPreferredSize;
 	longint lRemainingMemory;
+	longint lOutputFileSize;
+	longint lChunkSize;
+	ALString sField;
 
 	require(sOutputFileName != "");
 	require(svChunkURIs != NULL);
@@ -154,7 +167,6 @@ boolean PLFileConcatenater::Concatenate(const StringVector* svChunkURIs, const O
 	fileHandle = NULL;
 	bOk = true;
 	dTaskPercent = dProgressionEnd - dProgressionBegin;
-	nChunkIndex = 0;
 
 	// Lancement des serveurs de fichiers si on n'est pas dans une tache
 	if (GetProcessId() == 0)
@@ -208,36 +220,77 @@ boolean PLFileConcatenater::Concatenate(const StringVector* svChunkURIs, const O
 
 	if (bOk)
 	{
-		// Ecriture du Header en passant par la methode WriteField  de OutputBufferFile qui gere les separateur
-		// dans les champs
-		if (svHeaderLine.GetSize() > 0)
+		// Calcul de la taille du fichier de sortie pour reserver la taille,
+		//  en commencant par la taille du header
+		lOutputFileSize = 0;
+		if (bHeaderLineUsed and svHeaderLine.GetSize() > 0)
 		{
 			for (i = 0; i < svHeaderLine.GetSize(); i++)
 			{
-				if (i > 0)
-					outputBuffer.Write(cSep);
-				outputBuffer.WriteField(svHeaderLine.GetAt(i));
+				sField = svHeaderLine.GetAt(i);
+				lOutputFileSize += sField.GetLength();
 			}
-			outputBuffer.WriteEOL();
+			lOutputFileSize += max(0, svHeaderLine.GetSize() - 1); // Les separateurs
+			lOutputFileSize += FileService::GetEOL().GetLength();  // la fin de ligne
 		}
 
-		// TODO reserver la taille du fichier de sortie (moins ce qui est deja ecrit pdans le header)
-		// Parcours de tous les chunks
+		// Calcul de la taille du fichier de sortie
 		for (nChunkIndex = 0; nChunkIndex < svChunkURIs->GetSize(); nChunkIndex++)
 		{
 			sChunkURI = svChunkURIs->GetAt(nChunkIndex);
-
-			// Interruption ?
-			if (not bOk or TaskProgression::IsInterruptionRequested())
-				break;
-
-			// Concatenation d'un nouveau chunk
-			if (PLRemoteFileService::FileExists(sChunkURI))
+			lChunkSize = PLRemoteFileService::GetFileSize(sChunkURI);
+			lOutputFileSize += lChunkSize;
+			if (lChunkSize == 0 and not PLRemoteFileService::FileExists(sChunkURI))
 			{
+				bOk = false;
+				if (errorSender != NULL)
+					errorSender->AddError("Missing chunk file : " + sChunkURI);
+				break;
+			}
+			if (TaskProgression::IsInterruptionRequested())
+			{
+				bOk = false;
+				break;
+			}
+		}
+
+		// Concatenation
+		nChunkIndex = 0;
+		if (bOk)
+		{
+			// Reservation de la taille du fichier de sortie
+			outputBuffer.ReserveExtraSize(lOutputFileSize);
+
+			// Ecriture du header en passant par la methode WriteField de OutputBufferFile qui gere les separateurs dans les champs.
+			if (bHeaderLineUsed)
+			{
+				for (i = 0; i < svHeaderLine.GetSize(); i++)
+				{
+					if (i > 0)
+					{
+						outputBuffer.Write(cSep);
+					}
+					outputBuffer.WriteField(svHeaderLine.GetAt(i));
+				}
+				outputBuffer.WriteEOL();
+			}
+
+			// Parcours de tous les chunks
+			for (nChunkIndex = 0; nChunkIndex < svChunkURIs->GetSize(); nChunkIndex++)
+			{
+				sChunkURI = svChunkURIs->GetAt(nChunkIndex);
+
+				// Interruption utilisateur ?
+				if (TaskProgression::IsInterruptionRequested())
+				{
+					bOk = false;
+					break;
+				}
+
+				// Concatenation d'un nouveau chunk
 				inputFile.SetFileName(sChunkURI);
 
-				// Ouverture du chunk en lecture (en ignorant la gestion des BOM, car on a des fichiers
-				// internes)
+				// Ouverture du chunk en lecture (en ignorant la gestion des BOM, car on a des fichiers internes)
 				inputFile.SetUTF8BomManagement(false);
 				bOk = inputFile.Open();
 				if (bOk)
@@ -263,24 +316,17 @@ boolean PLFileConcatenater::Concatenate(const StringVector* svChunkURIs, const O
 					bOk = inputFile.Close() and bOk;
 
 					// Suppression du chunk
-					if (bRemoveChunks)
-						PLRemoteFileService::RemoveFile(sChunkURI);
+					PLRemoteFileService::RemoveFile(sChunkURI);
 
-					// Affichage de la progression en prenant en compte la progression intiale
-					// dProgressionLevel et la portion de progression represente par la
-					// concatenation dTaskPercent
+					// Affichage de la progression en prenant en compte la progression intiale dProgressionLevel
+					// et la portion de progression represente par la concatenation dTaskPercent
 					if (bDisplayProgression)
 						TaskProgression::DisplayProgression((int)ceil(
 						    100 * (dProgressionBegin +
 							   dTaskPercent * (nChunkIndex + 1) / svChunkURIs->GetSize())));
 				}
-			}
-			else
-			{
-				if (errorSender != NULL)
-					errorSender->AddError("Missing chunk file : " + sChunkURI);
-				bOk = false;
-				break;
+				if (not bOk)
+					break;
 			}
 		}
 		if (bDisplayProgression)
@@ -295,9 +341,9 @@ boolean PLFileConcatenater::Concatenate(const StringVector* svChunkURIs, const O
 		PLRemoteFileService::RemoveFile(sOutputFileName);
 
 	// Suppression des chunks en cas d'echec
-	if (not bOk and bRemoveChunks)
+	if (not bOk)
 	{
-		// On a commence le traitement au chunk nChunkIndex, on n'est pas sur qu'il ait ete detruit
+		// On a commence le traitement du chunk nChunkIndex, on n'est pas sur qu'il ait ete detruit
 		for (i = nChunkIndex; i < svChunkURIs->GetSize(); i++)
 		{
 			PLRemoteFileService::RemoveFile(svChunkURIs->GetAt(i));
