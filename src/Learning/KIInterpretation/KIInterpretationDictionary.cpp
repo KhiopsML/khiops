@@ -138,10 +138,10 @@ boolean KIInterpretationDictionary::UpdateInterpretationAttributes()
 		// NV On met les attributs de cle en Used
 		for (nIndex = 0; nIndex < kwcInterpretationMainClass->GetKeyAttributeNumber(); nIndex++)
 		{
-			attribute = kwcInterpretationMainClass->LookupAttribute(
-			    kwcInterpretationMainClass->GetKeyAttributeNameAt(nIndex));
+			attribute = kwcInterpretationMainClass->GetKeyAttributeAt(nIndex);
 			check(attribute);
 			attribute->SetUsed(true);
+			attribute->SetLoaded(true);
 		}
 
 		// creation des attributs de contribution
