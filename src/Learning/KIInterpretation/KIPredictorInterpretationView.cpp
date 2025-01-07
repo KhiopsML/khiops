@@ -3,6 +3,7 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #include "KIPredictorInterpretationView.h"
+#include "KWTrainedPredictor.h"
 
 KIPredictorInterpretationView::KIPredictorInterpretationView()
 {
@@ -19,7 +20,7 @@ KIPredictorInterpretationView::KIPredictorInterpretationView()
 	SetIdentifier("KIInterpretationSpec");
 
 	whyParameterView = new KIWhyParameterView;
-	AddCardField("WhyParameter", "Contribution", whyParameterView);
+	AddCardField("WhyParameter", "Variable importances", whyParameterView);
 
 	howParameterView = new KIHowParameterView;
 	AddCardField("HowParameter", "Reinforcement", howParameterView);
@@ -43,11 +44,12 @@ KIPredictorInterpretationView::KIPredictorInterpretationView()
 	GetFieldAt("ClassName")->SetEditable(false);
 
 	// Info-bulles
-	GetFieldAt("ClassName")->SetHelpText("Dictionary used to select or derive new variables.");
+	GetFieldAt("ClassName")->SetHelpText("Name of the predictor dictionary");
+
 	GetActionAt("BuildInterpretationClass")
-	    ->SetHelpText("Build interpretation dictionary."
-			  "\n This action creates on disk an output dictionary that enrich the input model dictionary, "
-			  "in order to enable interpretation.");
+	    ->SetHelpText(
+		"Build an interpretation dictionary that computes the importance of variables and reinforcement"
+		"elements.");
 
 	// Short cuts
 	GetActionAt("BuildInterpretationClass")->SetShortCut('B');
@@ -76,7 +78,7 @@ void KIPredictorInterpretationView::Open()
 
 	if (sClassName == "")
 	{
-		Global::AddWarning("Interpret model", "", "No dictionary has been loaded for interpretation");
+		Global::AddWarning("Interpret model", "", "No available classifier dictionary for interpretation");
 		GetActionAt("BuildInterpretationClass")->SetVisible(false);
 	}
 	else
@@ -84,10 +86,10 @@ void KIPredictorInterpretationView::Open()
 		kwcClass = KWClassDomain::GetCurrentDomain()->LookupClass(sClassName);
 		if (not interpretationSpec->GetInterpretationDictionary()->ImportClassifier(kwcClass))
 		{
-			Global::AddWarning(
-			    "Interpret model", "",
-			    "The chosen dictionary is not a classifier that can be handled for interpretation");
-			sClassName = "";
+			Global::AddWarning("Interpret model", "",
+					   "The selected analysis dictionary " + sClassName +
+					       " is not a classifier that can be used for interpretation");
+			SetStringValueAt("ClassName", sClassName);
 			GetActionAt("BuildInterpretationClass")->SetVisible(false);
 		}
 		else
@@ -101,7 +103,7 @@ void KIPredictorInterpretationView::Open()
 			// initialiser la liste des variables leviers en fonction du dictionnaire d'interpretation que
 			// l'on vient de generer
 			interpretationSpec->GetLeverClassSpec()->SetClassName(
-			    interpretationSpec->GetInterpretationDictionary()->GetInterpretationRootClass()->GetName());
+			    interpretationSpec->GetInterpretationDictionary()->GetInterpretationMainClass()->GetName());
 
 			// remettre a Unused les attributs natifs du classifieur d'entree
 			KWAttribute* attribute =
@@ -170,7 +172,7 @@ void KIPredictorInterpretationView::BuildInterpretationClass()
 	// maj en fonction de l'IHM, des attributs d'interpretation, a partir d'un dictionnaire d'entree
 	bOk = interpretationDictionary->UpdateInterpretationAttributes();
 
-	sClassName = interpretationSpec->GetInterpretationDictionary()->GetInterpretationRootClass()->GetName();
+	sClassName = interpretationSpec->GetInterpretationDictionary()->GetInterpretationMainClass()->GetName();
 
 	// La classe doit etre valide
 	interpretationClass = NULL;

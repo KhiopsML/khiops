@@ -60,21 +60,21 @@ public:
 
 	void Compile(KWClass* kwcOwnerClass) override;
 
-	const Symbol SHAPLEY_LABEL = "Shapley";
-	const Symbol NORMALIZED_ODDS_RATIO_LABEL = "NormalizedOddsRatio";
-	const Symbol MIN_PROBA_DIFF_LABEL = "MinProbaDiff";
-	const Symbol WEIGHT_EVIDENCE_LABEL = "WeightEvidence";
-	const Symbol INFO_DIFF_LABEL = "InfoDiff";
-	const Symbol DIFF_PROBA_LABEL = "DiffProba";
-	const Symbol MODALITY_PROBA_LABEL = "ModalityProba";
-	const Symbol BAYES_DISTANCE_LABEL = "BayesDistance";
-	const Symbol KULLBACK_LABEL = "Kullback";
-	const Symbol LOG_MODALITY_PROBA_LABEL = "LogModalityProba";
-	const Symbol LOG_MIN_PROBA_DIFF_LABEL = "LogMinProbaDiff";
-	const Symbol BAYES_DISTANCE_WITHOUT_PRIOR_LABEL = "BayesDistanceWithoutPrior";
-	const Symbol PREDICTED_CLASS_LABEL = "Predicted class";
-	const Symbol CLASS_OF_HIGHEST_GAIN_LABEL = "Class of highest gain";
-	const Symbol ALL_CLASSES_LABEL = "All classes";
+	const ALString SHAPLEY_LABEL = "Shapley";
+	const ALString NORMALIZED_ODDS_RATIO_LABEL = "NormalizedOddsRatio";
+	const ALString MIN_PROBA_DIFF_LABEL = "MinProbaDiff";
+	const ALString WEIGHT_EVIDENCE_LABEL = "WeightEvidence";
+	const ALString INFO_DIFF_LABEL = "InfoDiff";
+	const ALString DIFF_PROBA_LABEL = "DiffProba";
+	const ALString MODALITY_PROBA_LABEL = "ModalityProba";
+	const ALString BAYES_DISTANCE_LABEL = "BayesDistance";
+	const ALString KULLBACK_LABEL = "Kullback";
+	const ALString LOG_MODALITY_PROBA_LABEL = "LogModalityProba";
+	const ALString LOG_MIN_PROBA_DIFF_LABEL = "LogMinProbaDiff";
+	const ALString BAYES_DISTANCE_WITHOUT_PRIOR_LABEL = "BayesDistanceWithoutPrior";
+	const ALString PREDICTED_CLASS_LABEL = "Predicted class";
+	const ALString CLASS_OF_HIGHEST_GAIN_LABEL = "Class of highest gain";
+	const ALString ALL_CLASSES_LABEL = "All classes";
 
 	static const ALString LEVER_ATTRIBUTE_META_TAG;
 	static const ALString INTERPRETATION_ATTRIBUTE_META_TAG;
@@ -107,8 +107,7 @@ protected:
 	ObjectArray oaNativePredictiveAttributeNames;
 
 	/*	cle = modalite cible
-		valeur = entier dans un StringObject *, qui renvoie a l'entree correspondante dans le tableau
-	   oaModelProbabilities */
+		valeur = entier dans un StringObject *, qui renvoie a l'entree correspondante dans le tableau oaModelProbabilities */
 	mutable ObjectDictionary odClassNamesIndexes;
 
 	mutable ContinuousVector cvVariableWeights;
@@ -136,16 +135,13 @@ public:
 
 	Object* ComputeStructureResult(const KWObject* kwoObject) const override;
 
-	/** Valeur de l'importance de la variable contributive (la numerotation du rang comemnce a 0 et non a 1,
-	 * contrairement au rang figurant dans la RDD du dictionaire) */
+	/** Valeur de l'importance de la variable contributive (la numerotation du rang comemnce a 0 et non a 1, contrairement au rang figurant dans la RDD du dictionaire) */
 	Continuous GetContributionValueAt(int rank) const;
 
-	/** nom de la variable importante (la numerotation du rang commence a 0 et non a 1, contrairement au rang
-	 * figurant dans la RDD du dictionaire) */
+	/** nom de la variable importante (la numerotation du rang commence a 0 et non a 1, contrairement au rang figurant dans la RDD du dictionaire) */
 	Symbol GetContributionNameAt(int rank) const;
 
-	/** partition ou groupement de modalites de la variable importante (la numerotation du rang comemnce a 0 et non
-	 * a 1, contrairement au rang figurant dans la RDD du dictionaire) */
+	/** partition ou groupement de modalites de la variable importante (la numerotation du rang comemnce a 0 et non a 1, contrairement au rang figurant dans la RDD du dictionaire) */
 	Symbol GetContributionPartitionAt(int rank) const;
 
 	Symbol GetContributionClass() const;
@@ -232,8 +228,8 @@ protected:
 				   int nDatabaseSize, int nTargetValuesNumber) const;
 
 	/// Calcul de la valeur Shapley
-	/// nModalityIndex indique dans quel intervalle ou groupe de l'attribut designe par nAttributeIndex, cet
-	/// individu appartient nTargetClassIndex est la classe cible pour le calcul de l'importance
+	/// nModalityIndex indique dans quel intervalle ou groupe de l'attribut designe par nAttributeIndex, cet individu appartient
+	/// nTargetClassIndex est la classe cible pour le calcul de l'importance
 	Continuous ComputeShapley(const int nAttributeIndex, const int nTargetClassIndex,
 				  const int nModalityIndex) const;
 
@@ -247,8 +243,7 @@ protected:
 
 	///////////////// variables membres //////////////////
 
-	/** classe cible de la contribution : classe predite pour l'individu OU classe de gain le plus eleve pour
-	 * l'individu OU une classe specifiee explicitement via l'IHM  */
+	/** classe cible de la contribution : classe predite pour l'individu OU classe de gain le plus eleve pour l'individu OU une classe specifiee explicitement via l'IHM  */
 	mutable Symbol sContributionClass;
 
 	mutable boolean bSortInstanceProbas;
@@ -361,12 +356,10 @@ public:
 	/** tag indiquant si la classe apres renforcement a change ou non */
 	Continuous GetReinforcementClassChangeTagAt(int rank) const;
 
-	/** nom de la variable de renforcement (la numerotation du rang commence a 0 et non a 1, contrairement au rang
-	 * figurant dans la RDD du dictionaire) */
+	/** nom de la variable de renforcement (la numerotation du rang commence a 0 et non a 1, contrairement au rang figurant dans la RDD du dictionaire) */
 	Symbol GetReinforcementNameAt(int rank) const;
 
-	/** partition ou groupement de modalites de la variable de renforcement (la numerotation du rang comemnce a 0 et
-	 * non a 1, contrairement au rang figurant dans la RDD du dictionaire) */
+	/** partition ou groupement de modalites de la variable de renforcement (la numerotation du rang comemnce a 0 et non a 1, contrairement au rang figurant dans la RDD du dictionaire) */
 	Symbol GetReinforcementPartitionAt(int rank) const;
 
 protected:
@@ -478,28 +471,44 @@ inline Continuous KIDRClassifierContribution::ExtractLogPriorProba(int nClassInd
 
 inline int KICompareReinforcementNewScore(const void* elem1, const void* elem2)
 {
-	Continuous cCompare;
+	int nCompare;
+	KIPartitionedAttributeProbas* dataAttribute1;
+	KIPartitionedAttributeProbas* dataAttribute2;
 
-	// Comparaison sur la proba
-	cCompare = cast(KIPartitionedAttributeProbas*, *(Object**)elem1)->cReinforcementNewScore -
-		   cast(KIPartitionedAttributeProbas*, *(Object**)elem2)->cReinforcementNewScore;
+	// Acces aux objets
+	dataAttribute1 = cast(KIPartitionedAttributeProbas*, *(Object**)elem1);
+	dataAttribute2 = cast(KIPartitionedAttributeProbas*, *(Object**)elem2);
+	assert(dataAttribute1->Check());
+	assert(dataAttribute2->Check());
 
-	if (cCompare > 0)
-		return -1;
-	else
-		return 1;
+	// Comparaison selon la precision du type Continuous, pour eviter les differences a epsilon pres
+	nCompare = -KWContinuous::CompareIndicatorValue(dataAttribute1->cReinforcementNewScore,
+							dataAttribute2->cReinforcementNewScore);
+
+	// Comparaison sur le nom en cas d'egalite du level (sort value)
+	if (nCompare == 0)
+		nCompare = dataAttribute1->iAttributeIndex - dataAttribute2->iAttributeIndex;
+	return nCompare;
 }
 
 inline int KICompareContributionImportanceValue(const void* elem1, const void* elem2)
 {
-	Continuous cCompare;
+	int nCompare;
+	KIPartitionedAttributeProbas* dataAttribute1;
+	KIPartitionedAttributeProbas* dataAttribute2;
 
-	// Comparaison sur la proba
-	cCompare = cast(KIPartitionedAttributeProbas*, *(Object**)elem1)->cContributionImportanceValue -
-		   cast(KIPartitionedAttributeProbas*, *(Object**)elem2)->cContributionImportanceValue;
+	// Acces aux objets
+	dataAttribute1 = cast(KIPartitionedAttributeProbas*, *(Object**)elem1);
+	dataAttribute2 = cast(KIPartitionedAttributeProbas*, *(Object**)elem2);
+	assert(dataAttribute1->Check());
+	assert(dataAttribute2->Check());
 
-	if (cCompare > 0)
-		return -1;
-	else
-		return 1;
+	// Comparaison selon la precision du type Continuous, pour eviter les differences a epsilon pres
+	nCompare = -KWContinuous::CompareIndicatorValue(dataAttribute1->cReinforcementNewScore,
+							dataAttribute2->cReinforcementNewScore);
+
+	// Comparaison sur le nom en cas d'egalite du level (sort value)
+	if (nCompare == 0)
+		nCompare = dataAttribute1->iAttributeIndex - dataAttribute2->iAttributeIndex;
+	return nCompare;
 }

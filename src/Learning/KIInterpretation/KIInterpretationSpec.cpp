@@ -23,10 +23,10 @@ void KIInterpretationSpec::SetDefaultParameters()
 	nVariableMaxNumber = 0;
 	nWhyAttributesNumber = 1;
 	nHowAttributesNumber = 0;
-	sWhyType = "Normalized odds ratio";
-	sWhyClass = PREDICTED_CLASS_LABEL;
-	bSortWhyResults = true;
-	bExpertMode = false;
+	sWhyType = "Shapley";
+	sWhyClass = ALL_CLASSES_LABEL;
+	bSortWhyResults = false;
+	bExpertMode = true;
 	sHowClass = KIInterpretationDictionary::NO_VALUE_LABEL;
 }
 
@@ -173,4 +173,4 @@ void KIInterpretationSpec::WriteReport(ostream& ost)
 
 const char* KIInterpretationSpec::PREDICTED_CLASS_LABEL = "Predicted class";
 const char* KIInterpretationSpec::CLASS_OF_HIGHEST_GAIN_LABEL = "Class of highest gain";
-const char* KIInterpretationSpec::ALL_CLASSES_LABEL = "All classes";
+const char* KIInterpretationSpec::ALL_CLASSES_LABEL = "AllClasses";
