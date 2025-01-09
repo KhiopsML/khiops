@@ -125,68 +125,103 @@ def build_tool_exe_path(tool_binaries_dir, tool_name):
     # Construction du path du binaire de l'outil
     if error_message == "":
         tool_exe_name = kht.TOOL_EXE_NAMES[tool_name]
+        
+        
+        khiops_env_name="khiops_env"
         if current_platform == "Windows":
-            tool_exe_name += ".exe"
-        tool_exe_path = os.path.join(actual_tool_binaries_dir, tool_exe_name)
-        if not os.path.isfile(tool_exe_path):
-            tool_exe_path = None
-            # si le binaire n'existe pas, c'est peut-etre un binaire parallele qui a un suffixe
-            if tool_name in kht.PARALLEL_TOOL_NAMES:
-                tool_with_suffixes = []
-                tested_binaries_name = []
-                # construction de la liste des binaires avec suffixe qui sont presents dans le repertoire bin
-                for suffix in kht.TOOL_MPI_SUFFIXES:
-                    tool_exe_name = kht.TOOL_EXE_NAMES[tool_name] + suffix
-                    if platform == "Windows":
-                        tool_exe_name += ".exe"
-                    tested_binaries_name.append(tool_exe_name)
-                    tool_exe_path = os.path.join(
-                        actual_tool_binaries_dir, tool_exe_name
-                    )
-                    if os.path.isfile(tool_exe_path):
-                        tool_with_suffixes.append(tool_exe_path)
-                # Si il y en a plusieurs ou aucun, il y a une erreur
-                if len(tool_with_suffixes) == 0:
-                    tool_exe_path = None
-                    tool_full_name = ""
-                    for name in tested_binaries_name:
-                        tool_full_name += name + " "
-                    tool_full_name += kht.TOOL_EXE_NAMES[tool_name]
-                    error_message = (
-                        "no binaries found for "
-                        + tool_name
-                        + " ("
-                        + tool_full_name.rstrip()
-                        + ") in "
-                        + actual_tool_binaries_dir
-                        + alias_info
-                    )
-                elif len(tool_with_suffixes) > 1:
-                    tool_exe_path = None
-                    conflict_names = ""
-                    for name in tool_with_suffixes:
-                        conflict_names += os.path.basename(name) + " "
-                    error_message = (
-                        "multiple binaries found for "
-                        + tool_name
-                        + " ("
-                        + conflict_names.rstrip()
-                        + ") in "
-                        + actual_tool_binaries_dir
-                        + alias_info
+            khiops_env_name+=".cmd"
+        khiops_env_path=os.path.join(actual_tool_binaries_dir, khiops_env_name)
+        if os.path.isfile(khiops_env_path) and tool_name != kht.KNI:
+            with subprocess.Popen(
+                [khiops_env_path, "--env"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True,
+            ) as khiops_env_process:
+                stdout, stderr = khiops_env_process.communicate()
+                if khiops_env_process.returncode != 0:
+                    error_message=(
+                        "Error initializing the environment for Khiops from the "
+                        f"{khiops_env_path} script. Contents of stderr:\n{stderr}"
                     )
                 else:
-                    tool_exe_path = tool_with_suffixes[0]
-            # Message d'erreur par defaut
-            if tool_exe_path == None and error_message == "":
-                error_message = (
-                    tool_name
-                    + " binary ("
-                    + tool_exe_name
-                    + ") not found in tool binaries dir "
-                    + actual_tool_binaries_dir
-                    + alias_info
-                )
+                    for line in stdout.split("\n"):
+                        tokens = line.rstrip().split(maxsplit=1)
+                        if len(tokens) == 2:
+                            var_name, var_value = tokens
+                        elif len(tokens) == 1:
+                            var_name = tokens[0]
+                            var_value = ""
+                        else:
+                            continue
+                        # Set paths to Khiops binaries
+                        if var_name == "KHIOPS_PATH" and tool_name == kht.KHIOPS:
+                            tool_exe_path = var_value
+                        elif var_name == "KHIOPS_COCLUSTERING_PATH" and tool_name == kht.COCLUSTERING:
+                            tool_exe_path = var_value
+        else:
+            if current_platform == "Windows":
+                tool_exe_name += ".exe"
+            tool_exe_path = os.path.join(actual_tool_binaries_dir, tool_exe_name)
+            if not os.path.isfile(tool_exe_path):
+                tool_exe_path = None
+                # si le binaire n'existe pas, c'est peut-etre un binaire parallele qui a un suffixe
+                if tool_name in kht.PARALLEL_TOOL_NAMES:
+                    tool_with_suffixes = []
+                    tested_binaries_name = []
+                    # construction de la liste des binaires avec suffixe qui sont presents dans le repertoire bin
+                    for suffix in kht.TOOL_MPI_SUFFIXES:
+                        tool_exe_name = kht.TOOL_EXE_NAMES[tool_name] + suffix
+                        if platform == "Windows":
+                            tool_exe_name += ".exe"
+                        tested_binaries_name.append(tool_exe_name)
+                        tool_exe_path = os.path.join(
+                            actual_tool_binaries_dir, tool_exe_name
+                        )
+                        if os.path.isfile(tool_exe_path):
+                            tool_with_suffixes.append(tool_exe_path)
+                    # Si il y en a plusieurs ou aucun, il y a une erreur
+                    if len(tool_with_suffixes) == 0:
+                        tool_exe_path = None
+                        tool_full_name = ""
+                        for name in tested_binaries_name:
+                            tool_full_name += name + " "
+                        tool_full_name += kht.TOOL_EXE_NAMES[tool_name]
+                        error_message = (
+                            "no binaries found for "
+                            + tool_name
+                            + " ("
+                            + tool_full_name.rstrip()
+                            + ") in "
+                            + actual_tool_binaries_dir
+                            + alias_info
+                        )
+                    elif len(tool_with_suffixes) > 1:
+                        tool_exe_path = None
+                        conflict_names = ""
+                        for name in tool_with_suffixes:
+                            conflict_names += os.path.basename(name) + " "
+                        error_message = (
+                            "multiple binaries found for "
+                            + tool_name
+                            + " ("
+                            + conflict_names.rstrip()
+                            + ") in "
+                            + actual_tool_binaries_dir
+                            + alias_info
+                        )
+                    else:
+                        tool_exe_path = tool_with_suffixes[0]
+                # Message d'erreur par defaut
+                if tool_exe_path == None and error_message == "":
+                    error_message = (
+                        tool_name
+                        + " binary ("
+                        + tool_exe_name
+                        + ") not found in tool binaries dir "
+                        + actual_tool_binaries_dir
+                        + alias_info
+                    )
     return tool_exe_path, error_message
 
 
@@ -709,7 +744,7 @@ def evaluate_all_tools_on_learning_test_tree(
         tool_name = kht.TOOL_NAMES_PER_DIR_NAME[input_tool_dir_name]
         used_tool_names = [tool_name]
 
-    # Parcours des repertoires des outils verifier les repertoires de suite et nettoyer les resultats
+    # Parcours des repertoires des outils, verifier les repertoires de suite et nettoyer les resultats
     suite_errors = False
     for tool_name in used_tool_names:
         tool_dir_name = kht.TOOL_DIR_NAMES[tool_name]
