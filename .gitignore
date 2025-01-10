@@ -1,10 +1,11 @@
 # Mac OS
 .DS_Store
 
-# Visual Studio
+# Editors
 .vs/
 .vscode/
 .devcontainer/
+*.un~
 
 # Log file using genere tool and the cmake module genere-views
 *.dd.log
