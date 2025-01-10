@@ -1,10 +1,11 @@
 # Mac OS
 .DS_Store
 
-# Visual Studio
+# Editors
 .vs/
 .vscode/
 .devcontainer/
+*.un~
 
 # CMake User Preset
 CMakeUserPresets.json
