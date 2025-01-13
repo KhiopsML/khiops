@@ -77,15 +77,16 @@ if(UNIX)
   else()
     if(IS_FEDORA_LIKE)
       set(KHIOPS_PATH "${MPI_BIN}/khiops/")
+      configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/redhat/khiops_env/use_environment_module.sh.in
+                     ${TMP_DIR}/use_environment_module.sh @ONLY NEWLINE_STYLE UNIX)
+      file(READ ${TMP_DIR}/use_environment_module.sh USE_ENVIRONMENT_MODULE)
     else()
       set(KHIOPS_PATH "/usr/bin/")
+      set(USE_ENVIRONMENT_MODULE "")
     endif(IS_FEDORA_LIKE)
     set(KHIOPS_COCLUSTERING_PATH "/usr/bin/")
     set(GET_PROC_NUMBER_PATH "/usr/bin/")
 
-    configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_env/use_environment_module.sh.in
-                   ${TMP_DIR}/use_environment_module.sh @ONLY NEWLINE_STYLE UNIX)
-    file(READ ${TMP_DIR}/use_environment_module.sh USE_ENVIRONMENT_MODULE)
     file(READ ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_env/java_settings.sh KHIOPS_JAVA_SETTINGS)
 
   endif(IS_CONDA)
