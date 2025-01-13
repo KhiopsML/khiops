@@ -11,6 +11,7 @@
 #include "CCLearningProject.h"
 #include "KWKhiopsVersion.h"
 #include "FileService.h"
+#include "Utils.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Implementation des methodes de l'API

@@ -14,6 +14,7 @@
 #include "Timer.h"
 #include "RMResourceConstraints.h"
 #include "KWKhiopsVersion.h"
+#include "Utils.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Gestion de l'environnement d'apprentissage pour les methodes de l'API

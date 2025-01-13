@@ -13,6 +13,7 @@
 #include "FileService.h"
 #include "DTDecisionTreeCreationTask.h"
 #include "KWTimestamp.h"
+#include "Utils.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Implementation des methodes de l'API
