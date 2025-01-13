@@ -1,5 +1,9 @@
 ---
 name: Update KNI-tutorial repository
+# It allows you to update the KNI-tutorial repo. 
+# It automatically generates the code samples (Java and C) and the readme.md (it only changes the version number with CMake). 
+# Finally, it performs a commit to the main branch and a tag with the current version of Khiops. 
+# Obviously, the action must be triggered from a branch of Khiops with the appropriate version. 
 on:
   workflow_dispatch:
 jobs:
