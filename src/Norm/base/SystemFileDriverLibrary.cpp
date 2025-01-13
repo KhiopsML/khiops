@@ -300,6 +300,16 @@ boolean SystemFileDriverLibrary::LoadLibrary(const ALString& sLibraryFilePathNam
 	if (MemoryStatsManager::IsOpened())
 		MemoryStatsManager::AddLog(sTmp + "driver [" + sLibraryName + "] LoadLibrary End");
 
+	// Verification de la version
+	if (*(void**)(&ptr_driver_getVersion) != NULL)
+	{
+		if (GetMajorVersion(GetVersion()) != 0)
+		{
+			bIsError = true;
+			AddError(sTmp + "the driver major version must be 0 (current version is " + GetVersion() + ")");
+		}
+	}
+
 	// Nettoyage complet si erreur
 	if (bIsError)
 	{
