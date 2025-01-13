@@ -7,6 +7,7 @@ package normGUI.engine;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.lang.reflect.InvocationTargetException;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JPanel;
@@ -31,7 +32,7 @@ public class GUICard extends GUIUnit
                 Class c = getUserCardClass(sStyle);
                 try {
                         // Instanciation de la sous fiche
-                        GUICard guiCard = (GUICard)c.newInstance();
+                        GUICard guiCard = (GUICard)c.getDeclaredConstructor().newInstance();
                         guiCard = card;
                         guiCard.setIdentifier(sFieldId);
                         guiCard.setLabel(sLabel);
@@ -42,6 +43,10 @@ public class GUICard extends GUIUnit
                         System.err.println("La classe java " + c + " ne peut etre instanciee " + ie);
                 } catch (IllegalAccessException iae) {
                         System.err.println("La classe java " + c + " ne peut etre instanciee " + iae);
+                } catch (NoSuchMethodException nsme) {
+                        System.err.println("la classe java " + c + " ne peut etre instanciee " + nsme);
+                } catch (InvocationTargetException ite) {
+                        System.err.println("la classe java " + c + " ne peut etre instanciee " + ite);
                 }
         }
 
@@ -58,7 +63,7 @@ public class GUICard extends GUIUnit
                 // Recherche de la classe de la sous liste
                 Class c = getUserListClass(sStyle);
                 try {
-                        GUIUnit guiUnit = (GUIUnit)c.newInstance();
+                        GUIUnit guiUnit = (GUIUnit)c.getDeclaredConstructor().newInstance();
                         guiUnit = list;
                         guiUnit.setIdentifier(sFieldId);
                         guiUnit.setLabel(sLabel);
@@ -69,6 +74,10 @@ public class GUICard extends GUIUnit
                         System.err.println("La classe java " + c + " ne peut etre instanciee " + ie);
                 } catch (IllegalAccessException iae) {
                         System.err.println("La classe java " + c + " ne peut etre instanciee " + iae);
+                } catch (NoSuchMethodException nsme) {
+                        System.err.println("la classe java " + c + " ne peut etre instanciee " + nsme);
+                } catch (InvocationTargetException ite) {
+                        System.err.println("la classe java " + c + " ne peut etre instanciee " + ite);
                 }
         }
 

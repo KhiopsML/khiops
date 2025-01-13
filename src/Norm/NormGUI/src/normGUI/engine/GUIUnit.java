@@ -19,6 +19,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.lang.reflect.InvocationTargetException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Hashtable;
@@ -368,7 +369,8 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                         c = GUIBooleanElementTextField.class;
                 try {
                         // Instanciation du widget
-                        GUIBooleanElement guiBooleanElement = (GUIBooleanElement)c.newInstance();
+                        GUIBooleanElement guiBooleanElement =
+                          (GUIBooleanElement)c.getDeclaredConstructor().newInstance();
                         // Caracterisation du widget
                         guiBooleanElement.setIdentifier(sFieldId);
                         guiBooleanElement.setLabel(sLabel);
@@ -382,6 +384,10 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                         System.err.println("la classe " + s + " ne peut etre instanciee " + ie);
                 } catch (IllegalAccessException iae) {
                         System.err.println("la classe " + s + " ne peut etre instanciee " + iae);
+                } catch (NoSuchMethodException nsme) {
+                        System.err.println("la classe " + s + " ne peut etre instanciee " + nsme);
+                } catch (InvocationTargetException ite) {
+                        System.err.println("la classe " + s + " ne peut etre instanciee " + ite);
                 }
         }
 
@@ -415,7 +421,9 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                         c = GUICharElementTextField.class;
                 try {
                         // Instanciation du widget
-                        GUICharElement guiCharElement = (GUICharElement)c.newInstance();
+                        Class[] parameterType = null;
+                        GUICharElement guiCharElement =
+                          (GUICharElement)c.getDeclaredConstructor(parameterType).newInstance();
                         // Caracterisation du widget
                         guiCharElement.setIdentifier(sFieldId);
                         guiCharElement.setLabel(sLabel);
@@ -429,6 +437,10 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                         System.err.println("la classe " + s + " ne peut etre instanciee " + ie);
                 } catch (IllegalAccessException iae) {
                         System.err.println("la classe " + s + " ne peut etre instanciee " + iae);
+                } catch (NoSuchMethodException nsme) {
+                        System.err.println("la classe " + s + " ne peut etre instanciee " + nsme);
+                } catch (InvocationTargetException ite) {
+                        System.err.println("la classe " + s + " ne peut etre instanciee " + ite);
                 }
         }
 
@@ -520,7 +532,7 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                         c = GUIDoubleElementTextField.class;
                 try {
                         // Instanciation du widget
-                        GUIDoubleElement guiDoubleElement = (GUIDoubleElement)c.newInstance();
+                        GUIDoubleElement guiDoubleElement = (GUIDoubleElement)c.getDeclaredConstructor().newInstance();
                         // Caracterisation du widget
                         guiDoubleElement.setIdentifier(sFieldId);
                         guiDoubleElement.setLabel(sLabel);
@@ -536,6 +548,10 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                         System.err.println("la classe " + s + " ne peut etre instanciee " + ie);
                 } catch (IllegalAccessException iae) {
                         System.err.println("la classe " + s + " ne peut etre instanciee " + iae);
+                } catch (NoSuchMethodException nsme) {
+                        System.err.println("la classe " + s + " ne peut etre instanciee " + nsme);
+                } catch (InvocationTargetException ite) {
+                        System.err.println("la classe " + s + " ne peut etre instanciee " + ite);
                 }
         }
 
@@ -576,7 +592,7 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                         c = GUIIntElementTextField.class;
                 try {
                         // Instanciation du widget
-                        GUIIntElement guiIntElement = (GUIIntElement)c.newInstance();
+                        GUIIntElement guiIntElement = (GUIIntElement)c.getDeclaredConstructor().newInstance();
                         // Caracterisation du widget
                         guiIntElement.setIdentifier(sFieldId);
                         guiIntElement.setLabel(sLabel);
@@ -592,6 +608,10 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                         System.err.println("la classe " + s + " ne peut etre instanciee " + ie);
                 } catch (IllegalAccessException iae) {
                         System.err.println("la classe " + s + " ne peut etre instanciee " + iae);
+                } catch (NoSuchMethodException nsme) {
+                        System.err.println("la classe " + s + " ne peut etre instanciee " + nsme);
+                } catch (InvocationTargetException ite) {
+                        System.err.println("la classe " + s + " ne peut etre instanciee " + ite);
                 }
         }
 
@@ -632,7 +652,7 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                         c = GUIStringElementTextField.class;
                 try {
                         // Instanciation du widget
-                        GUIStringElement guiStringElement = (GUIStringElement)c.newInstance();
+                        GUIStringElement guiStringElement = (GUIStringElement)c.getDeclaredConstructor().newInstance();
                         // Caracterisation du widget
                         guiStringElement.setIdentifier(sFieldId);
                         guiStringElement.setLabel(sLabel);
@@ -648,6 +668,10 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                         System.err.println("la classe " + s + " ne peut etre instanciee " + ie);
                 } catch (IllegalAccessException iae) {
                         System.err.println("la classe " + s + " ne peut etre instanciee " + iae);
+                } catch (NoSuchMethodException nsme) {
+                        System.err.println("la classe " + s + " ne peut etre instanciee " + nsme);
+                } catch (InvocationTargetException ite) {
+                        System.err.println("la classe " + s + " ne peut etre instanciee " + ite);
                 }
         }
 
