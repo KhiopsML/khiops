@@ -258,7 +258,7 @@ boolean SystemFileDriverLibrary::LoadLibrary(const ALString& sLibraryFilePathNam
 	handleLibrary = LoadSharedLibrary(sLibraryFilePathName, sErrorMessage);
 	if (handleLibrary == NULL)
 	{
-		AddError(sTmp + "Library loading error (" + sErrorMessage + ")");
+		AddWarning(sTmp + "Library loading error (" + sErrorMessage + ")");
 		return false;
 	}
 
@@ -303,10 +303,12 @@ boolean SystemFileDriverLibrary::LoadLibrary(const ALString& sLibraryFilePathNam
 	// Verification de la version
 	if (*(void**)(&ptr_driver_getVersion) != NULL)
 	{
-		if (GetMajorVersion(GetVersion()) != 0)
+		if (GetMajorVersion(GetVersion()) != 1)
 		{
 			bIsError = true;
-			AddError(sTmp + "the driver major version must be 0 (current version is " + GetVersion() + ")");
+			AddWarning(
+			    sTmp + "Version " + GetVersion() +
+			    " of the driver is not compatible with the expected major version, which should be 0");
 		}
 	}
 
@@ -387,7 +389,7 @@ void* SystemFileDriverLibrary::BindToLibrary(const ALString& sMethodName, boolea
 		if (pFunction == NULL and bMandatory)
 		{
 			bIsError = true;
-			AddError("Unable to load function " + sMethodName + " from library");
+			AddWarning("Unable to load function " + sMethodName + " from library");
 		}
 	}
 	return pFunction;
