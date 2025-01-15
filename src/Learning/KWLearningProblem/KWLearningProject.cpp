@@ -415,8 +415,8 @@ boolean KWLearningProject::ShowSystemInformation(const ALString& sValue)
 		for (i = 0; i < SystemFileDriverCreator::GetDriverNumber(); i++)
 		{
 			fileDriver = SystemFileDriverCreator::GetRegisteredDriverAt(i);
-			cout << "\t'" << fileDriver->GetDriverName() << "' for URI scheme '" << fileDriver->GetScheme()
-			     << "'" << endl;
+			cout << "\t" << fileDriver->GetDriverName() << " (" << fileDriver->GetVersion()
+			     << ") for URI scheme '" << fileDriver->GetScheme() << "'" << endl;
 		}
 	}
 

@@ -25,54 +25,6 @@ static boolean bVarPartAttributeGarbage = false;
 // pour les attribut interne categoriels
 static boolean bInnerAttributeGarbage = false;
 // CH IV End
-int GetMajorVersion(const ALString& sFullVersion)
-{
-	ALString sMajorVersion;
-	int i;
-
-	require(sFullVersion != "");
-	require(isdigit(sFullVersion[0]));
-
-	// Recherche du point de depart
-	i = 0;
-	while (i < sFullVersion.GetLength())
-	{
-		if (isdigit(sFullVersion.GetAt(i)))
-			sMajorVersion += sFullVersion.GetAt(i);
-		else
-			break;
-		i++;
-	}
-	assert(1 <= sMajorVersion.GetLength() and sMajorVersion.GetLength() <= 3);
-	return StringToInt(sMajorVersion);
-}
-
-int GetMinorVersion(const ALString& sFullVersion)
-{
-	ALString sMinorVersion;
-	int i;
-
-	require(sFullVersion != "");
-	require(isdigit(sFullVersion[0]));
-
-	// Recherche du separateur .
-	i = sFullVersion.Find('.');
-	assert(i > 0);
-	i++;
-	while (i < sFullVersion.GetLength())
-	{
-		if (isdigit(sFullVersion.GetAt(i)))
-			sMinorVersion += sFullVersion.GetAt(i);
-		else
-			break;
-		i++;
-	}
-	assert(sMinorVersion.GetLength() <= 1);
-	if (sMinorVersion == "")
-		return 0;
-	else
-		return StringToInt(sMinorVersion);
-}
 
 const ALString GetLearningApplicationName()
 {
