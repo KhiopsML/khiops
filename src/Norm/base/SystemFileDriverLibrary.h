@@ -7,6 +7,7 @@
 
 #include "FileService.h"
 #include "MemoryStatsManager.h"
+#include "Utils.h"
 
 ///////////////////////////////////////////////////////////////////////////
 // Classe SystemFileDriverLibrary
