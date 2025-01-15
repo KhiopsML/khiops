@@ -476,8 +476,7 @@ boolean PLMPIMaster::Process()
 				TaskProgression::DisplayLabel(GetTask()->PROGRESSION_MSG_SLAVE_FINALIZE);
 			}
 
-			// Affichage de la progression suivant la position dans la tache (slaveInitialize ou
-			// SlaveProcess)
+			// Affichage de la progression suivant la position dans la tache (slaveInitialize ou SlaveProcess)
 			if (bIsProcessing)
 				TaskProgression::DisplayProgression(ComputeGlobalProgression(true));
 			else
@@ -498,7 +497,7 @@ boolean PLMPIMaster::Process()
 	// A partir d'ici on est sur que les esclaves n'enverront plus de messages
 	MPI_Barrier(*PLMPITaskDriver::GetTaskComm()); // BARRIER MSG
 
-	// Il peut rester des messages de type warning
+	// Il peut rester des messages de type warning ou des messages inattendus en cas d'arret force suite a une erreur
 	while (CheckNewMessage(MPI_ANY_SOURCE, MPI_COMM_WORLD, receivedStatus, MPI_ANY_TAG))
 	{
 		if (GetTracerMPI()->GetActiveMode())
@@ -509,7 +508,9 @@ boolean PLMPIMaster::Process()
 		switch (receivedStatus.MPI_TAG)
 		{
 		case SLAVE_END_PROCESSING:
+			TaskProgression::BeginTask();
 			ReceiveAndProcessMessage(SLAVE_END_PROCESSING, receivedStatus.MPI_SOURCE);
+			TaskProgression::EndTask();
 			break;
 		case SLAVE_INITIALIZE_DONE:
 			ReceiveAndProcessMessage(SLAVE_INITIALIZE_DONE, receivedStatus.MPI_SOURCE);
