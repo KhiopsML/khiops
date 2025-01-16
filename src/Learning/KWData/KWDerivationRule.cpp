@@ -305,58 +305,6 @@ void KWDerivationRule::BuildAllUsedAttributes(const KWAttribute* derivedAttribut
 	}
 }
 
-void KWDerivationRule::FinalizeBuildAllUsedAttributes(NumericKeyDictionary* nkdAllUsedAttributes)
-{
-	const boolean bTrace = false;
-	const boolean bTraceAttributes = false;
-	ObjectArray oaAllUsedAttributes;
-	KWAttribute* attribute;
-	KWDerivationRule* rule;
-	int nAttribute;
-	boolean bContinue;
-	int nStep;
-
-	require(nkdAllUsedAttributes != NULL);
-
-	// Trace de debut
-	if (bTrace)
-	{
-		cout << "FinalizeBuildAllUsedAttributes"
-		     << "\n";
-		cout << "\tInitial attributes\t" << nkdAllUsedAttributes->GetCount() << endl;
-	}
-
-	// Passe de propagation de la collecte des attributs utilises
-	bContinue = true;
-	nStep = 0;
-	while (bContinue)
-	{
-		nStep++;
-		nkdAllUsedAttributes->ExportObjectArray(&oaAllUsedAttributes);
-		for (nAttribute = 0; nAttribute < oaAllUsedAttributes.GetSize(); nAttribute++)
-		{
-			attribute = cast(KWAttribute*, oaAllUsedAttributes.GetAt(nAttribute));
-
-			// Recalcul des attributs utilises uniquement pour les regles de creation de table
-			rule = attribute->GetAnyDerivationRule();
-			if (rule != NULL and KWType::IsRelation(rule->GetType()) and not rule->GetReference())
-				rule->BuildAllUsedAttributes(attribute, nkdAllUsedAttributes);
-
-			// Trace des attributs
-			if (bTraceAttributes)
-			{
-				cout << "\t\t" << attribute->GetParentClass()->GetName() << "\t" << attribute->GetName()
-				     << "\n";
-			}
-		}
-		bContinue = nkdAllUsedAttributes->GetCount() > oaAllUsedAttributes.GetSize();
-
-		// Trace
-		if (bTrace)
-			cout << "\tPass " << nStep << "\t" << nkdAllUsedAttributes->GetCount() << endl;
-	}
-}
-
 boolean KWDerivationRule::IsSecondaryScopeOperand(int nOperandIndex) const
 {
 	require(0 <= nOperandIndex and nOperandIndex < GetOperandNumber());

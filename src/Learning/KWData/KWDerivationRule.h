@@ -225,23 +225,6 @@ public:
 	virtual void BuildAllUsedAttributes(const KWAttribute* derivedAttribute,
 					    NumericKeyDictionary* nkdAllUsedAttributes) const;
 
-	// Finalisation de la construction du dictionnaire de tous les attributs utilises en tenant
-	// compte des regles de construction de table, pour lesquelles la detection des attributs utilises
-	// ne peut se faire qu'en plusieurs passe:
-	// - premiere passe:
-	//   - on detecte les attributs utilises de type vue des classes en sortie des regles
-	// - deuxieme passe:
-	//   - on deduit des attribut utilises de chaque classe en sortie, les attribut utilises
-	//     de la classe source de la vue
-	// - passes suivantes, si necessaire
-	//  - si la deuxieme passe a detecte de nouveaux attribut utilise, il peut etre necessare
-	//    de faire d'autres passes
-	// Pour le service de propagation, il faut d'abord avoir manuellement effectue la premiere
-	// passe de collecte des attributs utilises. Un seul appel a la methode suivante effectue
-	// l'ensemble des passes necessaire pour finaliser la collecte des attribut utilise
-	// sur l'ensemble du domaine
-	static void FinalizeBuildAllUsedAttributes(NumericKeyDictionary* nkdAllUsedAttributes);
-
 	//////////////////////////////////////////////////////////////////////////
 	// Gestion du scope des operandes
 	//

@@ -318,8 +318,8 @@ public:
 	// Deplacement d'un bloc et de tous ses attributs vers la fin de la classe
 	void MoveAttributeBlockToClassTail(KWAttributeBlock* attributeBlock);
 
-	///////////////////////////////////////////////////////////
-	// Services divers
+	///////////////////////////////////////////////////////////////////
+	// Services lies a la compilation d'une classe
 
 	// Compilation d'une classe (et indexation)
 	// Il s'agit de la compilation de ses regles de derivation,
@@ -343,12 +343,19 @@ public:
 	int GetFreshness() const;
 	void UpdateFreshness();
 
+	// Completion eventuelle des attributs avec les informations de type de leur regle de derivation
+	void CompleteTypeInfo();
+
 	// Acces au domaine de classe contenant la classe
 	KWClassDomain* GetDomain() const;
 
 	// Calcul d'un nouveau nom d'attribut ou de bloc a partir d'un prefix
 	const ALString BuildAttributeName(const ALString& sPrefix);
 	const ALString BuildAttributeBlockName(const ALString& sPrefix);
+
+	///////////////////////////////////////////////////////////////////
+	// Services exploitant les resultats de compilation d'une classe
+	// pour extraire des information
 
 	// Simplification d'une classe en supprimant les attributs derives
 	// non utilises directement ou indirectement, y compris dans une
@@ -358,14 +365,43 @@ public:
 	// Prerequis: la classe doit etre compilee (elle ne le sera plus apres)
 	void DeleteUnusedDerivedAttributes(const KWClassDomain* referenceDomain);
 
-	// Completion eventuelle des attributs avec les informations de type de leur regle de derivation
-	void CompleteTypeInfo();
+	// Finalisation de la construction du dictionnaire de tous les attributs utilises en tenant
+	// compte des regles de construction de table, pour lesquelles la detection des attributs utilises
+	// ne peut se faire qu'en plusieurs passe:
+	// - premiere passe:
+	//   - on detecte les attributs utilises de type vue des classes en sortie des regles
+	// - deuxieme passe:
+	//   - on deduit des attribut utilises de chaque classe en sortie, les attribut utilises
+	//     de la classe source de la vue
+	// - passes suivantes, si necessaire
+	//  - si la deuxieme passe a detecte de nouveaux attribut utilise, il peut etre necessare
+	//    de faire d'autres passes
+	// Pour le service de propagation, il faut d'abord avoir manuellement effectue la premiere
+	// passe de collecte des attributs utilises. Un seul appel a la methode suivante effectue
+	// l'ensemble des passes necessaire pour finaliser la collecte des attribut utilise
+	// sur l'ensemble du domaine
+	// Les classes utilisees sont egalement alimentee en sortie, meme si le dictionnaire
+	// en entree est vide
+	void FinalizeBuildAllUsedAttributes(NumericKeyDictionary* nkdAllUsedAttributes,
+					    NumericKeyDictionary* nkdAllUsedClasses) const;
 
 	// Calcul de l'ensemble des classes utilisees recursivement par les attributs de la classe courante
 	// (y compris la classe courante)
 	// Prerequis: la classe doit etre compilee
 	// Memoire: le tableau du code retour appartient a l'appelant, et contient des references aux classes utilisees
 	void BuildAllUsedClasses(ObjectArray* oaUsedClasses) const;
+
+	// Calcul de l'ensemble des classes natives utilisees recursivement par les attributs de la classe courante
+	// (y compris la classe courante)
+	// Prerequis: la classe doit etre compilee
+	// Memoire: le tableau du code retour appartient a l'appelant, et contient des references aux classes utilisees
+	void BuildAllNativeClasses(ObjectArray* oaNativeClasses) const;
+
+	// Calcul de l'ensemble des classes chargees (Loaded) utilisees recursivement par les attributs de la classe courante
+	// (y compris la classe courante)
+	// Prerequis: la classe doit etre compilee
+	// Memoire: le tableau du code retour appartient a l'appelant, et contient des references aux classes utilisees
+	void BuildAllLoadedClasses(ObjectArray* oaLoadedClasses) const;
 
 	// Export des noms des champs natifs (stockes et non calcules, utilises ou non), dans l'ordre du dictionnaire
 	// (utile pour constituer une ligne de header)
@@ -378,6 +414,9 @@ public:
 
 	// Export des noms des attributs cles dans l'ordre des cles
 	void ExportKeyAttributeNames(StringVector* svAttributedNames) const;
+
+	////////////////////////////////////////////////////////
+	// Services standard
 
 	// Recopie, uniquemet a partir d'une classe vide
 	// Toute la description (attributs, derivations sont dupliques,

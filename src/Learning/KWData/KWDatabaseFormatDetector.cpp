@@ -1344,6 +1344,7 @@ void KWDatabaseFormatDetector::BuildMandatoryDataItemNames(const KWClass* kwcCla
 	KWAttributeBlock* attributeBlock;
 	KWDerivationRule* derivationRule;
 	NumericKeyDictionary nkdNeededAttributes;
+	NumericKeyDictionary nkdNeededClasses;
 	ObjectArray oaNeedAttributes;
 	int nAttribute;
 	NumericKeyDictionary nkdNeededAttributeBlocks;
@@ -1372,7 +1373,7 @@ void KWDatabaseFormatDetector::BuildMandatoryDataItemNames(const KWClass* kwcCla
 	}
 
 	// Finalisation de la collecte des attributs utilises via les regles de construction de table
-	KWDerivationRule::FinalizeBuildAllUsedAttributes(&nkdNeededAttributes);
+	kwcClass->FinalizeBuildAllUsedAttributes(&nkdNeededAttributes, &nkdNeededClasses);
 
 	// Export des attributs identifies
 	nkdNeededAttributes.ExportObjectArray(&oaNeedAttributes);
