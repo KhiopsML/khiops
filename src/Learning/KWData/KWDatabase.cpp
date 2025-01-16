@@ -1392,6 +1392,26 @@ void KWDatabase::TestRead()
 
 //////////////////////////////////////////////////////////////////////////////////
 
+//DDDDDDDDDDDDDDDDDDDDDDD
+// TODO
+// - LearningTest.V10.6.0-b.0\TestKhiops\z_TableCreationRules\BUG3
+//   - les champs du dictionnaire sont reste a tort en Unused
+//		Dictionary	SpliceJunctionDna
+//		{
+//		Unused Numerical pos;
+//		Unused Categorical char;
+//		};
+//   - les dictionnaires suivants calcules, sont a tort avec <_ForceUnique>: DNAChar, DNAPos: ok, pas grave
+// - BuildPhysicalClass
+//   - identifier toutes les variables natives relationnelles du schema de donnees
+//     - seuls les dictionnaires des tables utilisees ET natives ont besoin d'utiliser leurs champs cle
+//   - identifier tous les dictionnaires utilises recursivement, qu'il soit calcules ou natifs: KWClass::BuildAllUsedClasses
+//     - tous leurs attributs used doit etre considere comme utilise
+//   - etendre FinalizeBuildAllUsedAttributes avec les nouvelles classes decouvertes
+//   - quid du cas des dictionnaire de type graphe, dont on analyse une table secondaire?
+// - factoriser le code dans KWClass
+
+//DDDDDDDDDDDDDDDDDDDDDDD
 void KWDatabase::BuildPhysicalClass()
 {
 	const boolean bTrace = false;
@@ -1406,6 +1426,9 @@ void KWDatabase::BuildPhysicalClass()
 	KWAttribute* keyAttribute;
 	int nAttribute;
 	int nAttributeBlock;
+	ObjectArray oaAllNativeClasses;
+	NumericKeyDictionary nkdAllNativeClasses;
+	ObjectArray oaAllLoadedClasses;
 	NumericKeyDictionary nkdClassNeededAttributes;
 	ObjectArray oaClassNeededAttributes;
 	NumericKeyDictionary nkdAllNeededAttributes;
@@ -1413,17 +1436,19 @@ void KWDatabase::BuildPhysicalClass()
 	NumericKeyDictionary nkdAllNeededClasses;
 	NumericKeyDictionary nkdNeededUsedClasses;
 	NumericKeyDictionary nkdNeededLogicalClasses;
+	NumericKeyDictionary nkdAllNondeletableAttributes;
+	int nClassNondeletedAttributeNumber;
 	ObjectArray oaAllNeededClasses;
 	ObjectArray oaAttributesToDelete;
 	ObjectArray oaNeededAttributes;
 	ObjectArray oaNeededAttributeBlocks;
 	int nClass;
-	KWClass* kwcRefClass;
 	KWClass* kwcCurrentPhysicalClass;
 	KWClass* kwcInitialClass;
 	KWAttribute* initialAttribute;
 	KWAttributeBlock* initialAttributeBlock;
 	KWAttribute* attributeToDelete;
+	boolean bIsClassLoaded;
 
 	require(kwcClass != NULL);
 	require(kwcClass->GetName() == GetClassName());
@@ -1481,14 +1506,44 @@ void KWDatabase::BuildPhysicalClass()
 	kwcPhysicalClass = kwcdPhysicalDomain->LookupClass(GetClassName());
 	assert(kwcClass->GetLoadedAttributeNumber() == kwcPhysicalClass->GetLoadedAttributeNumber());
 
+	// Ajout de l'attribut de selection pour la classe principale
+	attribute = kwcPhysicalClass->LookupAttribute(GetSelectionAttribute());
+	assert(attribute == NULL or KWType::IsSimple(attribute->GetType()));
+	if (attribute != NULL)
+	{
+		// Ajout de l'attribut, meme s'il n'est pas charge
+		nkdAllNeededAttributes.SetAt(attribute, attribute);
+
+		// Propagation a sa regle de derivation
+		if (attribute->GetAnyDerivationRule() != NULL)
+			attribute->GetAnyDerivationRule()->BuildAllUsedAttributes(attribute, &nkdClassNeededAttributes);
+	}
+
+	// Calcul de l'ensemble des classes natives utilisees recursivement par les attributs de la classe courante
+	kwcPhysicalClass->BuildAllNativeClasses(&oaAllNativeClasses);
+	for (nClass = 0; nClass < oaAllNativeClasses.GetSize(); nClass++)
+	{
+		kwcCurrentPhysicalClass = cast(KWClass*, oaAllNativeClasses.GetAt(nClass));
+		nkdAllNativeClasses.SetAt(kwcCurrentPhysicalClass, kwcCurrentPhysicalClass);
+	}
+
+	// Calcul de l'ensemble des classes chargees (Loaded) recursivement par les attributs de la classe physique
+	kwcPhysicalClass->BuildAllLoadedClasses(&oaAllLoadedClasses);
+
 	// Initialisation de l'ensemble des classes physiques necessaires avec la classe physique principale
 	// Les classes physiques correspondent a tout ce qui doit etre lu physiquement directement ou indirectement
 	// pour le calcul des regles de derivation
-	nkdAllNeededClasses.SetAt(kwcPhysicalClass, kwcPhysicalClass);
-	oaAllNeededClasses.Add(kwcPhysicalClass);
+	for (nClass = 0; nClass < oaAllLoadedClasses.GetSize(); nClass++)
+	{
+		kwcCurrentPhysicalClass = cast(KWClass*, oaAllLoadedClasses.GetAt(nClass));
 
-	// Initialisation des classes necessaires dont l'utilisateur demande explicitement (Loaded) le chargement en memoire
-	nkdNeededUsedClasses.SetAt(kwcPhysicalClass, kwcPhysicalClass);
+		// Enregistrement dans le tableau initial des classes necessaires a analyser
+		nkdAllNeededClasses.SetAt(kwcCurrentPhysicalClass, kwcCurrentPhysicalClass);
+		oaAllNeededClasses.Add(kwcCurrentPhysicalClass);
+
+		// Ajout au niveau logique, en tant que classe utilisee explicitement depuis la classe d'analyse
+		nkdNeededUsedClasses.SetAt(kwcCurrentPhysicalClass, kwcCurrentPhysicalClass);
+	}
 
 	// Calcul de tous les operandes terminaux intervenant dans une derivation d'un
 	// attribut Loaded de la classe physique (ou d'une autre classe du domaine physique,
@@ -1498,70 +1553,45 @@ void KWDatabase::BuildPhysicalClass()
 		assert(nkdAllNeededClasses.GetCount() == oaAllNeededClasses.GetSize());
 		kwcCurrentPhysicalClass = cast(KWClass*, oaAllNeededClasses.GetAt(nClass));
 
+		// La classe est chargee si elle fait prtie des classe initiales du tableau
+		bIsClassLoaded = nClass < oaAllLoadedClasses.GetSize();
+
 		// Recherche des attributs necessaires pour cette classe
 		assert(nkdClassNeededAttributes.GetCount() == 0);
 		for (nAttribute = 0; nAttribute < kwcCurrentPhysicalClass->GetLoadedAttributeNumber(); nAttribute++)
 		{
 			attribute = kwcCurrentPhysicalClass->GetLoadedAttributeAt(nAttribute);
 
+			// Pour la classe d'analyse ainsi que toutes les classes utilises indirectement, ajout de l'attribut lui-meme,
+			// dont on a besoin pour parametrer correctement les regles de creation de table qui exploitent les attributs
+			// utilises en sortie  pour en deduire les attributs utilises en entree des vues
+			if (bIsClassLoaded)
+				nkdClassNeededAttributes.SetAt(attribute, attribute);
+
 			// Analyse de la regle de derivation
 			// Dans le cas d'un bloc, il faut en effet la reanalyser pour chaque attribut du bloc
 			// pour detecter les attributs utilises des blocs potentiellement en operande
 			currentDerivationRule = attribute->GetAnyDerivationRule();
 			if (currentDerivationRule != NULL)
-			{
 				currentDerivationRule->BuildAllUsedAttributes(attribute, &nkdClassNeededAttributes);
+		}
 
-				// Pour la classe d'analyse, ajout de l'attribut lui-meme, dont on a besoin pour parametrer
-				// correctement les regles de creation de table qui exploitent les attributs utilises en sortie
-				// pour en deduire les attributs utilises en entree des vues
-				if (kwcCurrentPhysicalClass == kwcPhysicalClass)
-					nkdClassNeededAttributes.SetAt(attribute, attribute);
-			}
-
-			// Ajout eventuelle de la classe necessaire
-			if (KWType::IsRelation(attribute->GetType()))
+		// Ajout de la cle necessaire pour la lecture des donnees multi-table, uniquement pour les
+		// classe utilisee par le schema natif
+		//
+		// Il est possible qu'on integre des cles en trop dans des cas particulier, comme celui d'un dictionnaire
+		// natif d'une table secondaire no necessaire pour les donnees a traiter, mais utilise en sortie
+		// d'une regle de construction de table.
+		// Ce cas d'effet de bord est a priori rare, et sans grande consquence. Le code necessaire pour le traiter
+		// proprement ajoute une complexite additionnelle, peu utile a prendre en compte
+		if (nkdAllNativeClasses.Lookup(kwcCurrentPhysicalClass) != NULL)
+		{
+			for (i = 0; i < kwcCurrentPhysicalClass->GetKeyAttributeNumber(); i++)
 			{
-				kwcRefClass = attribute->GetClass();
-
-				// Ajout au niveau physique
-				if (nkdAllNeededClasses.Lookup(kwcRefClass) == NULL)
-				{
-					nkdAllNeededClasses.SetAt(kwcRefClass, kwcRefClass);
-					oaAllNeededClasses.Add(kwcRefClass);
-				}
-
-				// Ajout au niveau logique
-				if (nkdNeededUsedClasses.Lookup(kwcRefClass) == NULL)
-					nkdNeededUsedClasses.SetAt(kwcRefClass, kwcRefClass);
+				keyAttribute = kwcCurrentPhysicalClass->GetKeyAttributeAt(i);
+				check(keyAttribute);
+				nkdAllNeededAttributes.SetAt(keyAttribute, keyAttribute);
 			}
-		}
-
-		// Ajout des operandes utilise pour le calcul de l'attribut de selection pour la classe principale
-		if (kwcCurrentPhysicalClass == kwcPhysicalClass)
-		{
-			attribute = kwcPhysicalClass->LookupAttribute(GetSelectionAttribute());
-			assert(attribute == NULL or KWType::IsSimple(attribute->GetType()));
-			if (attribute != NULL and attribute->GetAnyDerivationRule() != NULL)
-				attribute->GetAnyDerivationRule()->BuildAllUsedAttributes(attribute,
-											  &nkdClassNeededAttributes);
-		}
-
-		// Ajout de l'attribut de selection pour la classe principale
-		if (kwcCurrentPhysicalClass == kwcPhysicalClass)
-		{
-			attribute = kwcPhysicalClass->LookupAttribute(GetSelectionAttribute());
-			if (attribute != NULL and not attribute->GetLoaded())
-				nkdAllNeededAttributes.SetAt(attribute, attribute);
-		}
-
-		// Ajout de la cle pour toute classe chargeable depuis la classe principale
-		for (i = 0; i < kwcCurrentPhysicalClass->GetKeyAttributeNumber(); i++)
-		{
-			keyAttribute = kwcCurrentPhysicalClass->GetKeyAttributeAt(i);
-			check(keyAttribute);
-			assert(keyAttribute->GetAttributeBlock() == NULL);
-			nkdAllNeededAttributes.SetAt(keyAttribute, keyAttribute);
 		}
 
 		// Recherche parmi les operandes de tous les attributs (et classes) necessaires
@@ -1577,7 +1607,7 @@ void KWDatabase::BuildPhysicalClass()
 
 				// Dans le cas d'un attribut de table secondaire, ajout de la classe
 				// Ce n'est pas redondant avec l'etape precedente, car on peut ici decrouvir de nouvelles
-				// classe vi les attributs derives analyses recursivement
+				// classe via les attributs derives analyses recursivement
 				if (KWType::IsRelation(attribute->GetType()))
 				{
 					// Ajout de la classe destination au niveau physique
@@ -1593,7 +1623,13 @@ void KWDatabase::BuildPhysicalClass()
 		oaClassNeededAttributes.RemoveAll();
 	}
 
-	// Collecte de toutes les logiques necessaires, et memorisation des classe de mutations
+	// Finalisation de la collecte des attributs utilises via les regles de construction de table
+	kwcPhysicalClass->FinalizeBuildAllUsedAttributes(&nkdAllNeededAttributes, &nkdAllNeededClasses);
+
+	// On reexporte la liste totale des classes utilisees
+	nkdAllNeededClasses.ExportObjectArray(&oaAllNeededClasses);
+
+	// Collecte de toutes les classes logiques necessaires, et memorisation des classe de mutations
 	assert(nkdMutationClasses.GetCount() == 0);
 	for (nClass = 0; nClass < oaAllNeededClasses.GetSize(); nClass++)
 	{
@@ -1611,8 +1647,20 @@ void KWDatabase::BuildPhysicalClass()
 			nkdMutationClasses.SetAt(kwcCurrentPhysicalClass, kwcCurrentPhysicalClass);
 	}
 
-	// Finalisation de la collecte des attributs utilises via les regles de construction de table
-	KWDerivationRule::FinalizeBuildAllUsedAttributes(&nkdAllNeededAttributes);
+	// Collecte de tous les attributs obligatoires a ne pas detruire, meme s'il ne sont pas utilises
+	// Il faudra les garder, potentiellement en unused, car ils restent necessaire pour preserver
+	// l'integrite des  classes et des regles
+	for (nClass = 0; nClass < oaAllNeededClasses.GetSize(); nClass++)
+	{
+		kwcCurrentPhysicalClass = cast(KWClass*, oaAllNeededClasses.GetAt(nClass));
+
+		// Champs de la cle
+		for (i = 0; i < kwcCurrentPhysicalClass->GetKeyAttributeNumber(); i++)
+		{
+			keyAttribute = kwcCurrentPhysicalClass->GetKeyAttributeAt(i);
+			nkdAllNondeletableAttributes.SetAt(keyAttribute, keyAttribute);
+		}
+	}
 
 	// Affichage des classes et attributs necessaires
 	if (bTrace)
@@ -1696,10 +1744,11 @@ void KWDatabase::BuildPhysicalClass()
 				nkdLoadedAttributeBlocks.SetAt(attributeBlock, attributeBlock);
 			}
 
-			// On force l'unicite de la clase physique si necessaire
+			// On force l'unicite de la clase physique natives si necessaire
 			// En effet, apres nettoyage, celle-ci ne sera potentiellement plus en mesure de deduire
 			// son unicite de sa composition en attributs relation non calcules, si ceux-ci ont ete detruits
-			kwcCurrentPhysicalClass->SetForceUnique(kwcInitialClass->IsUnique());
+			if (nkdAllNativeClasses.Lookup(kwcCurrentPhysicalClass))
+				kwcCurrentPhysicalClass->SetForceUnique(kwcInitialClass->IsUnique());
 
 			// Si la classe n'est pas necessaire au niveau logique,
 			// ses attributs de base ne sont pas a charger
@@ -1778,13 +1827,25 @@ void KWDatabase::BuildPhysicalClass()
 				   oaAttributesToDelete.GetSize() + oaNeededAttributes.GetSize());
 
 			// Destruction des attributs a detruire
+			nClassNondeletedAttributeNumber = 0;
 			for (nAttribute = 0; nAttribute < oaAttributesToDelete.GetSize(); nAttribute++)
 			{
 				attribute = cast(KWAttribute*, oaAttributesToDelete.GetAt(nAttribute));
 
 				// La destruction d'un attribut peut entrainer la destruction de son bloc englobant s'il
 				// en est le dernier
-				kwcCurrentPhysicalClass->DeleteAttribute(attribute->GetName());
+				// On detruit si possible, sinon on passe en unused
+				if (nkdAllNondeletableAttributes.Lookup(attribute) == NULL)
+					kwcCurrentPhysicalClass->DeleteAttribute(attribute->GetName());
+				else
+				{
+					// Stats, pour verifier les assertions de facon fine
+					nClassNondeletedAttributeNumber++;
+
+					// On met l'attribut en unused
+					attribute->SetUsed(false);
+					attribute->SetLoaded(false);
+				}
 			}
 
 			// Deplacement des attributs necessaires en fin de classe pour le calcul des attributs charges
@@ -1829,7 +1890,7 @@ void KWDatabase::BuildPhysicalClass()
 				   KWClassDomain::GetCurrentDomain()
 					   ->LookupClass(kwcCurrentPhysicalClass->GetName())
 					   ->GetLoadedAttributeNumber() +
-				       oaNeededAttributes.GetSize());
+				       oaNeededAttributes.GetSize() + nClassNondeletedAttributeNumber);
 
 			// Affichage de la classe
 			if (bTrace)
@@ -1903,7 +1964,8 @@ void KWDatabase::BuildPhysicalClass()
 					assert(kwcInitialClass->GetAttributeNumber() >=
 					       kwcCurrentPhysicalClass->GetAttributeNumber());
 					assert(kwcCurrentPhysicalClass->GetAttributeNumber() ==
-					       kwcCurrentPhysicalClass->GetLoadedAttributeNumber());
+					       kwcCurrentPhysicalClass->GetLoadedAttributeNumber() +
+						   nClassNondeletedAttributeNumber);
 				}
 			}
 		}
@@ -1935,7 +1997,10 @@ void KWDatabase::BuildPhysicalClass()
 
 					// Destruction si necessaire de l'attribut
 					if (attributeToDelete != NULL)
+					{
+						assert(nkdAllNondeletableAttributes.Lookup(attributeToDelete) == NULL);
 						kwcCurrentPhysicalClass->DeleteAttribute(attributeToDelete->GetName());
+					}
 				}
 
 				// On passe egalement tous les attributs en Unused, ce qui a un impact notamment pour

@@ -1198,6 +1198,22 @@ void KWClass::Compile()
 	InitializeAllRandomRuleParameters();
 }
 
+void KWClass::CompleteTypeInfo()
+{
+	NumericKeyDictionary nkdAttributes;
+	KWAttribute* attribute;
+
+	// Parcours des attributs
+	attribute = GetHeadAttribute();
+	while (attribute != NULL)
+	{
+		attribute->InternalCompleteTypeInfo(this, &nkdAttributes);
+
+		// Attribut suivant
+		GetNextAttribute(attribute);
+	}
+}
+
 const ALString KWClass::BuildAttributeName(const ALString& sPrefix)
 {
 	ALString sAttributeName;
@@ -1236,7 +1252,7 @@ const ALString KWClass::BuildAttributeBlockName(const ALString& sPrefix)
 
 void KWClass::DeleteUnusedDerivedAttributes(const KWClassDomain* referenceDomain)
 {
-	ObjectDictionary odImpactedClasses;
+	NumericKeyDictionary nkdImpactedClasses;
 	ObjectArray oaImpactedClasses;
 	int nClass;
 	KWClass* kwcImpactedClass;
@@ -1252,7 +1268,7 @@ void KWClass::DeleteUnusedDerivedAttributes(const KWClassDomain* referenceDomain
 	require(IsCompiled());
 
 	// Enregistrement de la classe a analyser
-	odImpactedClasses.SetAt(GetName(), this);
+	nkdImpactedClasses.SetAt(this, this);
 	oaImpactedClasses.Add(this);
 
 	// Parcours de toutes les classe en partant de la classe analysee avec analyse des attributs
@@ -1298,15 +1314,13 @@ void KWClass::DeleteUnusedDerivedAttributes(const KWClassDomain* referenceDomain
 			// Si attribut avec classe referencee, enregistrement de la classe impactee correspondante
 			if (KWType::IsRelation(attribute->GetType()))
 			{
-				if (attribute->GetClass() != NULL)
+				assert(attribute->GetClass() != NULL);
+
+				// Prise en compte si necessaire d'une nouvelle classe
+				if (nkdImpactedClasses.Lookup(attribute->GetClass()) == NULL)
 				{
-					// Prise en compte si necessaire d'une nouvelle classe
-					if (odImpactedClasses.Lookup(attribute->GetClass()->GetName()) == NULL)
-					{
-						odImpactedClasses.SetAt(attribute->GetClass()->GetName(),
-									attribute->GetClass());
-						oaImpactedClasses.Add(attribute->GetClass());
-					}
+					nkdImpactedClasses.SetAt(attribute->GetClass(), attribute->GetClass());
+					oaImpactedClasses.Add(attribute->GetClass());
 				}
 			}
 
@@ -1316,14 +1330,14 @@ void KWClass::DeleteUnusedDerivedAttributes(const KWClassDomain* referenceDomain
 	}
 
 	// Finalisation de la collecte des attributs utilises via les regles de construction de table
-	KWDerivationRule::FinalizeBuildAllUsedAttributes(&nkdAllUsedAttributes);
+	FinalizeBuildAllUsedAttributes(&nkdAllUsedAttributes, &nkdImpactedClasses);
 
 	// Nettoyage
-	odImpactedClasses.RemoveAll();
+	nkdImpactedClasses.RemoveAll();
 	oaImpactedClasses.SetSize(0);
 
 	// Enregistrement de la classe a analyser
-	odImpactedClasses.SetAt(GetName(), this);
+	nkdImpactedClasses.SetAt(this, this);
 	oaImpactedClasses.Add(this);
 
 	// Parcours de toutes les classes impactees
@@ -1357,15 +1371,13 @@ void KWClass::DeleteUnusedDerivedAttributes(const KWClassDomain* referenceDomain
 			// Si attribut avec classe referencee, enregistrement de la classe impactee correspondante
 			if (KWType::IsRelation(attribute->GetType()))
 			{
-				if (attribute->GetClass() != NULL)
+				assert(attribute->GetClass() != NULL);
+
+				// Prise en compte si necessaire d'une nouvelle classe
+				if (nkdImpactedClasses.Lookup(attribute->GetClass()) == NULL)
 				{
-					// Prise en compte si necessaire d'une nouvelle classe
-					if (odImpactedClasses.Lookup(attribute->GetClass()->GetName()) == NULL)
-					{
-						odImpactedClasses.SetAt(attribute->GetClass()->GetName(),
-									attribute->GetClass());
-						oaImpactedClasses.Add(attribute->GetClass());
-					}
+					nkdImpactedClasses.SetAt(attribute->GetClass(), attribute->GetClass());
+					oaImpactedClasses.Add(attribute->GetClass());
 				}
 			}
 
@@ -1396,19 +1408,68 @@ void KWClass::DeleteUnusedDerivedAttributes(const KWClassDomain* referenceDomain
 	ensure(Check());
 }
 
-void KWClass::CompleteTypeInfo()
+void KWClass::FinalizeBuildAllUsedAttributes(NumericKeyDictionary* nkdAllUsedAttributes,
+					     NumericKeyDictionary* nkdAllUsedClasses) const
 {
-	NumericKeyDictionary nkdAttributes;
+	const boolean bTrace = false;
+	const boolean bTraceAttributes = false;
+	ObjectArray oaAllUsedAttributes;
 	KWAttribute* attribute;
+	KWDerivationRule* rule;
+	int nAttribute;
+	boolean bContinue;
+	int nStep;
 
-	// Parcours des attributs
-	attribute = GetHeadAttribute();
-	while (attribute != NULL)
+	require(nkdAllUsedAttributes != NULL);
+	require(nkdAllUsedClasses != NULL);
+
+	// Trace de debut
+	if (bTrace)
 	{
-		attribute->InternalCompleteTypeInfo(this, &nkdAttributes);
+		cout << "FinalizeBuildAllUsedAttributes"
+		     << "\n";
+		cout << "\tInitial attributes\t" << nkdAllUsedAttributes->GetCount() << endl;
+		cout << "\tInitial classes\t" << nkdAllUsedClasses->GetCount() << endl;
+	}
 
-		// Attribut suivant
-		GetNextAttribute(attribute);
+	// Passe de propagation de la collecte des attributs utilises
+	bContinue = true;
+	nStep = 0;
+	while (bContinue)
+	{
+		nStep++;
+		nkdAllUsedAttributes->ExportObjectArray(&oaAllUsedAttributes);
+		for (nAttribute = 0; nAttribute < oaAllUsedAttributes.GetSize(); nAttribute++)
+		{
+			attribute = cast(KWAttribute*, oaAllUsedAttributes.GetAt(nAttribute));
+			assert(attribute->GetParentClass() != NULL);
+			assert(attribute->GetParentClass()->IsCompiled());
+
+			// Memorisation de la classe contenant l'attribut
+			nkdAllUsedClasses->SetAt(attribute->GetParentClass(), attribute->GetParentClass());
+
+			// Memorisation de la classe de l'attribut dans le cas d'une relation
+			if (KWType::IsRelation(attribute->GetType()))
+				nkdAllUsedClasses->SetAt(attribute->GetClass(), attribute->GetClass());
+
+			// Recalcul des attributs utilises uniquement pour les regles de creation de table
+			rule = attribute->GetAnyDerivationRule();
+			if (rule != NULL and KWType::IsRelation(rule->GetType()) and not rule->GetReference())
+				rule->BuildAllUsedAttributes(attribute, nkdAllUsedAttributes);
+
+			// Trace des attributs
+			if (bTraceAttributes)
+			{
+				cout << "\t\t" << attribute->GetParentClass()->GetName() << "\t" << attribute->GetName()
+				     << "\n";
+			}
+		}
+		bContinue = nkdAllUsedAttributes->GetCount() > oaAllUsedAttributes.GetSize();
+
+		// Trace
+		if (bTrace)
+			cout << "\tPass " << nStep << "\t" << nkdAllUsedAttributes->GetCount() << "\t"
+			     << nkdAllUsedClasses->GetCount() << endl;
 	}
 }
 
@@ -1440,19 +1501,175 @@ void KWClass::BuildAllUsedClasses(ObjectArray* oaUsedClasses) const
 			// Si sttribut avec classe referencee
 			if (KWType::IsRelation(attribute->GetType()))
 			{
-				if (attribute->GetClass() != NULL)
+				assert(attribute->GetClass() != NULL);
+
+				// Memorisation si necessaire
+				if (nkdUsedClasses.Lookup(attribute->GetClass()) == NULL)
 				{
-					// Memorisation si necessaire
-					if (nkdUsedClasses.Lookup(attribute->GetClass()) == NULL)
-					{
-						nkdUsedClasses.SetAt(attribute->GetClass(), attribute->GetClass());
-						oaUsedClasses->Add(attribute->GetClass());
-					}
+					nkdUsedClasses.SetAt(attribute->GetClass(), attribute->GetClass());
+					oaUsedClasses->Add(attribute->GetClass());
 				}
 			}
 
 			// Attribut suivant
 			kwcUsedClass->GetNextAttribute(attribute);
+		}
+	}
+}
+
+void KWClass::BuildAllNativeClasses(ObjectArray* oaNativeClasses) const
+{
+	NumericKeyDictionary nkdNativeClasses;
+	NumericKeyDictionary nkdAnalyzedCreatedClasses;
+	int nClass;
+	KWClass* kwcNativeClass;
+	KWAttribute* attribute;
+	KWClass* kwcAttributeClass;
+	ObjectArray oaAttributeUsedClasses;
+	int nUsedClass;
+	KWClass* kwcUsedClass;
+
+	require(oaNativeClasses != NULL);
+	require(IsCompiled());
+
+	// Initialisation avec la classe courante
+	oaNativeClasses->RemoveAll();
+	oaNativeClasses->Add((Object*)this);
+	nkdNativeClasses.SetAt(this, (Object*)this);
+
+	// Parcours des classes utilises, en completant le tableau au fur et a mesure
+	// pour lesquelles il faut propager la duplication
+	for (nClass = 0; nClass < oaNativeClasses->GetSize(); nClass++)
+	{
+		kwcNativeClass = cast(KWClass*, oaNativeClasses->GetAt(nClass));
+
+		// Attributs de type Object ou ObjectArray
+		attribute = kwcNativeClass->GetHeadAttribute();
+		while (attribute != NULL)
+		{
+			// Si sttribut avec classe referencee
+			if (KWType::IsRelation(attribute->GetType()))
+			{
+				kwcAttributeClass = attribute->GetClass();
+				assert(kwcAttributeClass != NULL);
+
+				// Cas d'un attribut natif, a memoriser
+				if (attribute->GetAnyDerivationRule() == NULL)
+				{
+					assert(attribute->GetAttributeBlock() == NULL);
+
+					// Memorisation si necessaire
+					if (nkdNativeClasses.Lookup(kwcAttributeClass) == NULL)
+					{
+						nkdNativeClasses.SetAt(kwcAttributeClass, kwcAttributeClass);
+						oaNativeClasses->Add(kwcAttributeClass);
+					}
+				}
+				// Cas d'un attribut issue d'une regle de creation de table, pour rechercher
+				// les classes referencees depuis les tables creees par des regles
+				else if (not attribute->GetReference())
+				{
+					assert(attribute->GetAnyDerivationRule() != NULL);
+
+					// Analyse uniquement si la classe de l'attribut na pas deja ete analysees
+					if (nkdAnalyzedCreatedClasses.Lookup(kwcAttributeClass) == NULL)
+					{
+						// Recherche de toutes les classe utilisee recursivement
+						kwcAttributeClass->BuildAllUsedClasses(&oaAttributeUsedClasses);
+
+						// Recherches des classes externes
+						for (nUsedClass = 0; nUsedClass < oaAttributeUsedClasses.GetSize();
+						     nUsedClass++)
+						{
+							kwcUsedClass =
+							    cast(KWClass*, oaAttributeUsedClasses.GetAt(nUsedClass));
+
+							// Memorisation de la classe analysee
+							nkdAnalyzedCreatedClasses.SetAt(kwcAttributeClass,
+											kwcAttributeClass);
+
+							// Memorisation si classe racine
+							if (kwcUsedClass->GetRoot())
+							{
+								// Memorisation si necessaire
+								if (nkdNativeClasses.Lookup(kwcUsedClass) == NULL)
+								{
+									nkdNativeClasses.SetAt(kwcUsedClass,
+											       kwcUsedClass);
+									oaNativeClasses->Add(kwcUsedClass);
+								}
+							}
+						}
+					}
+				}
+				// Cas d'un attribut natif reference (avec regle de derivation predefinie), a garder
+				else if (attribute->GetAnyDerivationRule()->GetName() ==
+					 KWDerivationRule::GetReferenceRuleName())
+				{
+					// Memorisation si necessaire
+					if (nkdNativeClasses.Lookup(kwcAttributeClass) == NULL)
+					{
+						nkdNativeClasses.SetAt(kwcAttributeClass, kwcAttributeClass);
+						oaNativeClasses->Add(kwcAttributeClass);
+					}
+				}
+			}
+
+			// Attribut suivant
+			kwcNativeClass->GetNextAttribute(attribute);
+		}
+	}
+}
+
+void KWClass::BuildAllLoadedClasses(ObjectArray* oaLoadedClasses) const
+{
+	NumericKeyDictionary nkdLoadedClasses;
+	int nClass;
+	KWClass* kwcLoadedClass;
+	KWAttribute* attribute;
+	int i;
+
+	require(oaLoadedClasses != NULL);
+	require(IsCompiled());
+
+	// Initialisation avec la classe courante
+	oaLoadedClasses->RemoveAll();
+	oaLoadedClasses->Add((Object*)this);
+	nkdLoadedClasses.SetAt(this, (Object*)this);
+
+	// Parcours des classes utilises, en completant le tableau au fur et a mesure
+	// pour lesquelles il faut propager la duplication
+	for (nClass = 0; nClass < oaLoadedClasses->GetSize(); nClass++)
+	{
+		kwcLoadedClass = cast(KWClass*, oaLoadedClasses->GetAt(nClass));
+
+		// Attributs de type relation
+		for (i = 0; i < kwcLoadedClass->GetLoadedRelationAttributeNumber(); i++)
+		{
+			attribute = kwcLoadedClass->GetLoadedRelationAttributeAt(i);
+			assert(attribute->GetClass() != NULL);
+
+			// Memorisation si necessaire
+			if (nkdLoadedClasses.Lookup(attribute->GetClass()) == NULL)
+			{
+				nkdLoadedClasses.SetAt(attribute->GetClass(), attribute->GetClass());
+				oaLoadedClasses->Add(attribute->GetClass());
+			}
+		}
+
+		// Bloc d'attributs, portentiellement de type relation
+		for (i = 0; i < kwcLoadedClass->GetLoadedAttributeBlockNumber(); i++)
+		{
+			attribute = kwcLoadedClass->GetLoadedAttributeBlockAt(i)->GetFirstAttribute();
+
+			// Memorisation si necessaire
+			if (KWType::IsRelation(attribute->GetType()) and
+			    nkdLoadedClasses.Lookup(attribute->GetClass()) == NULL)
+			{
+				assert(attribute->GetClass() != NULL);
+				nkdLoadedClasses.SetAt(attribute->GetClass(), attribute->GetClass());
+				oaLoadedClasses->Add(attribute->GetClass());
+			}
 		}
 	}
 }

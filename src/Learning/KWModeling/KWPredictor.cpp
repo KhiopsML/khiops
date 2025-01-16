@@ -316,6 +316,7 @@ void KWPredictor::CollectSelectedPreparationStats(ObjectArray* oaUsedDataPrepara
 	KWClass* kwcPreparedClass;
 	KWAttribute* attribute;
 	NumericKeyDictionary nkdAllUsedAttributes;
+	NumericKeyDictionary nkdAllUsedClassess;
 	ObjectArray oaAllUsedAttributes;
 
 	require(nkdSelectedDataPreparationStats.GetCount() == 0);
@@ -374,7 +375,7 @@ void KWPredictor::CollectSelectedPreparationStats(ObjectArray* oaUsedDataPrepara
 	}
 
 	// Finalisation de la collecte des attributs utilises via les regles de construction de table
-	KWDerivationRule::FinalizeBuildAllUsedAttributes(&nkdAllUsedAttributes);
+	kwcPreparedClass->FinalizeBuildAllUsedAttributes(&nkdAllUsedAttributes, &nkdAllUsedClassess);
 
 	// Prise en compte des preparation de tous les attributs utilises recursivement
 	nkdAllUsedAttributes.ExportObjectArray(&oaAllUsedAttributes);

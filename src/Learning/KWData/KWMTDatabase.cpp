@@ -1538,7 +1538,6 @@ KWMTDatabaseMapping* KWMTDatabase::CreateMapping(ObjectDictionary* odReferenceCl
 						 boolean bIsExternalTable, const ALString& sOriginClassName,
 						 StringVector* svAttributeNames, ObjectArray* oaCreatedMappings)
 {
-	const KWDRReference referenceRule;
 	KWMTDatabaseMapping* mapping;
 	KWMTDatabaseMapping* subMapping;
 	KWAttribute* attribute;
@@ -1632,7 +1631,8 @@ KWMTDatabaseMapping* KWMTDatabase::CreateMapping(ObjectDictionary* odReferenceCl
 				}
 			}
 			// Cas d'un attribut natif reference (avec regle de derivation predefinie)
-			else if (attribute->GetAnyDerivationRule()->GetName() == referenceRule.GetName())
+			else if (attribute->GetAnyDerivationRule()->GetName() ==
+				 KWDerivationRule::GetReferenceRuleName())
 			{
 				// Memorisation du mapping a traiter
 				if (odReferenceClasses->Lookup(attribute->GetClass()->GetName()) == NULL)
