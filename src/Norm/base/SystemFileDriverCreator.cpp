@@ -90,8 +90,9 @@ int SystemFileDriverCreator::RegisterExternalDrivers()
 
 					// Message signalant uniquement si process maitre
 					if (GetProcessId() == 0)
-						Global::AddSimpleMessage("Failed to load file driver " + sLibraryName +
-									 " from directory " + sLibraryPath);
+						Global::AddWarning("File driver", sLibraryName,
+								   sTmp + "Failed to load file driver from directory " +
+								       sLibraryPath);
 				}
 				// On continue sinon
 				else
