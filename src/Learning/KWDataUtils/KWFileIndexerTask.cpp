@@ -277,6 +277,7 @@ boolean KWFileIndexerTask::MasterFinalize(boolean bProcessEndedCorrectly)
 				    lvTaskFileBeginRecordIndexes->GetAt(lvTaskFileBeginRecordIndexes->GetSize() - 2));
 			}
 		}
+		assert(lvTaskFileBeginPositions->GetAt(lvTaskFileBeginPositions->GetSize() - 1) == lFileSize);
 	}
 
 	// Nettoyage des donnees de travail
@@ -284,7 +285,6 @@ boolean KWFileIndexerTask::MasterFinalize(boolean bProcessEndedCorrectly)
 	oaMasterBufferLineCountVectors.DeleteAll();
 
 	ensure(lvTaskFileBeginPositions->GetSize() == lvTaskFileBeginRecordIndexes->GetSize());
-	assert(lvTaskFileBeginPositions->GetAt(lvTaskFileBeginPositions->GetSize() - 1) == lFileSize);
 	return true;
 }
 
