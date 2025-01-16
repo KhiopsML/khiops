@@ -303,7 +303,7 @@ boolean SystemFileDriverLibrary::LoadLibrary(const ALString& sLibraryFilePathNam
 	// Verification de la version
 	if (*(void**)(&ptr_driver_getVersion) != NULL)
 	{
-		if (GetMajorVersion(GetVersion()) != 1)
+		if (GetMajorVersion(GetVersion()) != 0)
 		{
 			bIsError = true;
 			AddWarning(
