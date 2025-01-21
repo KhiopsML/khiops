@@ -48,6 +48,12 @@ public:
 	void SetLevel(const double);
 	double GetLevel() const;
 
+	void SetTargetMin(const double);
+	double GetTargetMin() const;
+
+	void SetTargetMax(const double);
+	double GetTargetMax() const;
+
 	void SetVariablesNumber(const int);
 	int GetVariablesNumber() const;
 
@@ -57,13 +63,21 @@ public:
 	void SetLeavesNumber(const int);
 	int GetLeavesNumber() const;
 
+	void SetTargetType(const int);
+	int GetTargetType() const;
+
 	void SetDepth(const int);
 	int GetDepth() const;
+
+	KWDataGridStats* GetTargetStats() const;
+	void SetTargetStats(KWDataGridStats* a);
 
 	const ObjectArray& GetTreeNodes() const;
 
 	// ecriture du rapport json
 	void WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) const;
+	//ecriture rapport de la discretisation de la target en cas de regression
+	void WriteTargetJSONFields(JSONFile* fJSON) const;
 
 protected:
 	friend class PLShared_DecisionTreeSpec;
@@ -82,21 +96,40 @@ protected:
 	ALString sTreeVariableName;
 	double dTreeLevel;
 	double dLevel;
+	double dTargetMin;
+	double dTargetMax;
 	int nVariablesNumber;
 	int nInternalNodesNumber;
 	int nLeavesNumber;
 	int nDepth;
 	double dConstructionCost;
+	int nTargetType;
 
 	// adresse du noeud racine
 	DTDecisionTreeNodeSpec* nsRootNode;
 	// tableau de l'ensemble des DTDecisionTreeNodeSpec
 	ObjectArray oaTreeNodes;
+
+	// stat de la target si regression
+	KWDataGridStats* dgsTargetStats;
 };
 
 inline const ObjectArray& DTDecisionTreeSpec::GetTreeNodes() const
 {
 	return oaTreeNodes;
+}
+
+inline KWDataGridStats* DTDecisionTreeSpec::GetTargetStats() const
+{
+	return dgsTargetStats;
+}
+
+inline void DTDecisionTreeSpec::SetTargetStats(KWDataGridStats* a)
+{
+	if (dgsTargetStats != NULL)
+		delete dgsTargetStats;
+
+	dgsTargetStats = a;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -120,6 +153,7 @@ protected:
 
 	// noeud racine
 	PLShared_DecisionTreeNodeSpec* shared_nsRootNode;
+	PLShared_DataGridStats* shared_dgsTargetStats;
 
 	// liste d'objets PLShared_DecisionTreeNodeSpec
 	// PLShared_ObjectArray* shared_oaTreeNodes;

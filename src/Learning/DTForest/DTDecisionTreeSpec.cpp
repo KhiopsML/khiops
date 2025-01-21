@@ -18,6 +18,10 @@ DTDecisionTreeSpec::DTDecisionTreeSpec()
 	nInternalNodesNumber = 0;
 	dTreeLevel = -1;
 	nVariablesNumber = 0;
+	dgsTargetStats = NULL;
+	dTargetMin = 0.0;
+	dTargetMax = 0.0;
+	nTargetType = KWType::Symbol;
 }
 
 DTDecisionTreeSpec::~DTDecisionTreeSpec()
@@ -31,6 +35,9 @@ void DTDecisionTreeSpec::Clean()
 
 	// destruction du tableau des noeuds (y compris le noeud root)
 	oaTreeNodes.DeleteAll();
+
+	if (dgsTargetStats != NULL)
+		delete dgsTargetStats;
 }
 
 DTDecisionTreeNodeSpec* DTDecisionTreeSpec::AddNodeSpec(const DTDecisionTreeNode* nNode,
@@ -380,9 +387,88 @@ KWDerivationRule* DTDecisionTreeSpec::CreateGroupIndexRule(const DTDecisionTreeN
 
 void DTDecisionTreeSpec::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) const
 {
+	ContinuousVector cvAttributeDomainLowerBounds;
+	ContinuousVector cvAttributeDomainUpperBounds;
+
+	cvAttributeDomainLowerBounds.SetSize(1);
+	cvAttributeDomainUpperBounds.SetSize(1);
+
 	fJSON->WriteKeyString("name", sTreeVariableName);
 	fJSON->WriteKeyInt("variableNumber", nVariablesNumber);
 	fJSON->WriteKeyInt("depth", nDepth);
+	if (dgsTargetStats != NULL)
+	{
+		//initialisation des borne du rapport json
+		cvAttributeDomainLowerBounds.SetAt(0, dTargetMin);
+		cvAttributeDomainUpperBounds.SetAt(0, dTargetMax);
+		dgsTargetStats->SetJSONAttributeDomainLowerBounds(&cvAttributeDomainLowerBounds);
+		dgsTargetStats->SetJSONAttributeDomainUpperBounds(&cvAttributeDomainUpperBounds);
+
+		fJSON->BeginKeyObject("targetPartition");
+
+		WriteTargetJSONFields(fJSON);
+		dgsTargetStats->SetJSONAttributeDomainLowerBounds(NULL);
+		dgsTargetStats->SetJSONAttributeDomainUpperBounds(NULL);
+
+		fJSON->EndObject();
+	}
+}
+
+void DTDecisionTreeSpec::WriteTargetJSONFields(JSONFile* fJSON) const
+{
+	const KWDGSAttributeDiscretization attributeDiscretization;
+	KWDGSAttributePartition* attribute;
+	KWDGSAttributePartition* attribute1;
+	IntVector ivPartIndexes;
+	boolean bShowCellInterest;
+	ObjectArray oaNonEmptyCells;
+	int nPart1;
+	int nFrequency;
+	ALString sTmp;
+
+	require(dgsTargetStats != NULL);
+	require(dgsTargetStats->GetTargetAttributeNumber() == 1 or
+		dgsTargetStats->GetTargetAttributeNumber() == dgsTargetStats->GetAttributeNumber());
+	require(dgsTargetStats->GetJSONAttributeDomainLowerBounds() != NULL and
+		dgsTargetStats->GetJSONAttributeDomainUpperBounds() != NULL);
+	require(dgsTargetStats->GetJSONAttributeDomainLowerBounds()->GetSize() ==
+		dgsTargetStats->GetJSONAttributeDomainUpperBounds()->GetSize());
+	require(dgsTargetStats->GetJSONAttributeDomainLowerBounds()->GetSize() == dgsTargetStats->GetAttributeNumber());
+
+	// On determine s'il faut afficher les interets des cellules
+	bShowCellInterest =
+	    dgsTargetStats->GetTargetAttributeNumber() == 1 and dgsTargetStats->GetSourceAttributeNumber() >= 1;
+
+	// Ecriture de la partition de la target
+
+	attribute = cast(KWDGSAttributePartition*, dgsTargetStats->GetAttributeAt(0));
+
+	// Cas specifique de la discretisation
+	if (attribute->GetClassLabel() == attributeDiscretization.GetClassLabel())
+	{
+		// On utilise les bornes pour ecrire les intervalles extremes avec leur vraies bornes
+
+		cast(KWDGSAttributeDiscretization*, attribute)
+		    ->WriteJSONFieldsWithBounds(fJSON, dgsTargetStats->GetJSONAttributeDomainLowerBounds()->GetAt(0),
+						dgsTargetStats->GetJSONAttributeDomainUpperBounds()->GetAt(0));
+	}
+	// Cas general
+	else
+		attribute->WriteJSONReport(fJSON);
+
+	// Effectifs de la target
+	if (dgsTargetStats->GetAttributeNumber() == 1)
+	{
+		assert(not bShowCellInterest);
+		attribute1 = cast(KWDGSAttributePartition*, dgsTargetStats->GetAttributeAt(0));
+		fJSON->BeginKeyList("frequencies");
+		for (nPart1 = 0; nPart1 < attribute1->GetPartNumber(); nPart1++)
+		{
+			nFrequency = dgsTargetStats->GetUnivariateCellFrequencyAt(nPart1);
+			fJSON->WriteInt(nFrequency);
+		}
+		fJSON->EndList();
+	}
 }
 
 const ALString& DTDecisionTreeSpec::GetTreeVariableName() const
@@ -414,6 +500,24 @@ double DTDecisionTreeSpec::GetLevel() const
 	return dLevel;
 }
 
+void DTDecisionTreeSpec::SetTargetMin(const double d)
+{
+	dTargetMin = d;
+}
+double DTDecisionTreeSpec::GetTargetMin() const
+{
+	return dTargetMin;
+}
+
+void DTDecisionTreeSpec::SetTargetMax(const double d)
+{
+	dTargetMax = d;
+}
+double DTDecisionTreeSpec::GetTargetMax() const
+{
+	return dTargetMax;
+}
+
 void DTDecisionTreeSpec::SetVariablesNumber(const int i)
 {
 	nVariablesNumber = i;
@@ -440,6 +544,17 @@ int DTDecisionTreeSpec::GetLeavesNumber() const
 {
 	return nLeavesNumber;
 }
+
+void DTDecisionTreeSpec::SetTargetType(const int i)
+{
+	nTargetType = i;
+}
+
+int DTDecisionTreeSpec::GetTargetType() const
+{
+	return nTargetType;
+}
+
 int DTDecisionTreeSpec::GetDepth() const
 {
 	return nDepth;
@@ -689,12 +804,14 @@ PLShared_DecisionTreeSpec::PLShared_DecisionTreeSpec()
 {
 	// shared_oaTreeNodes = new PLShared_ObjectArray(new PLShared_DecisionTreeNodeSpec);
 	shared_nsRootNode = new PLShared_DecisionTreeNodeSpec;
+	shared_dgsTargetStats = new PLShared_DataGridStats;
 }
 
 PLShared_DecisionTreeSpec::~PLShared_DecisionTreeSpec()
 {
 	// delete shared_oaTreeNodes;
 	delete shared_nsRootNode;
+	delete shared_dgsTargetStats;
 }
 
 void PLShared_DecisionTreeSpec::DeserializeObject(PLSerializer* serializer, Object* object) const
@@ -714,6 +831,14 @@ void PLShared_DecisionTreeSpec::DeserializeObject(PLSerializer* serializer, Obje
 	tree->nLeavesNumber = serializer->GetInt();
 	tree->nDepth = serializer->GetInt();
 	tree->dConstructionCost = serializer->GetDouble();
+	tree->dTargetMin = serializer->GetDouble();
+	tree->dTargetMax = serializer->GetDouble();
+	tree->nTargetType = serializer->GetInt();
+	if (tree->nTargetType == KWType::Continuous)
+	{
+		tree->dgsTargetStats = new KWDataGridStats;
+		shared_dgsTargetStats->DeserializeObject(serializer, tree->dgsTargetStats);
+	}
 	tree->nsRootNode = new DTDecisionTreeNodeSpec;
 	// la deserialisation du noeud racine entraine la deserialisation de tous les noeuds qui en dependent
 	// on procede de cette maniere afin d'eviter une recursivite infinie et un debordement de pile, lors de la
@@ -743,6 +868,14 @@ void PLShared_DecisionTreeSpec::SerializeObject(PLSerializer* serializer, const 
 	serializer->PutInt(tree->nLeavesNumber);
 	serializer->PutInt(tree->nDepth);
 	serializer->PutDouble(tree->dConstructionCost);
+	serializer->PutDouble(tree->dTargetMin);
+	serializer->PutDouble(tree->dTargetMax);
+	serializer->PutInt(tree->nTargetType);
+	if (tree->nTargetType == KWType::Continuous)
+	{
+		assert(tree->dgsTargetStats != NULL);
+		shared_dgsTargetStats->SerializeObject(serializer, tree->dgsTargetStats);
+	}
 	assert(tree->nsRootNode != NULL);
 	// la serialisation du noeud racine entraine la serialisation de tous les noeuds qui en dependent
 	// on procede de cette maniere afin d'eviter une recursivite infinie et un debordement de pile, lors de la
