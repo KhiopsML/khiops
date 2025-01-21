@@ -282,6 +282,8 @@ boolean KDSelectionOperandAnalyser::ExtractSelectionOperandPartitions()
 	KWClassDomain* selectionDomain;
 	KWClass* kwcClass;
 	int nClass;
+	KWDatabase* currentDatabase;
+	KWDatabase* selectionDatabase;
 	KDClassSelectionStats* classSelectionStats;
 	int nOperand;
 	KDClassSelectionOperandStats* classSelectionOperandStats;
@@ -310,6 +312,14 @@ boolean KDSelectionOperandAnalyser::ExtractSelectionOperandPartitions()
 	currentDomain = KWClassDomain::GetCurrentDomain();
 	KWClassDomain::SetCurrentDomain(selectionDomain);
 	selectionDomain->Compile();
+
+	// Remplacemement de base, necessaire car le domaine de selection a ete optimise,
+	// avec potentiellement des mappings en moins et il faut reactualiser ces mappings
+	currentDatabase = GetDatabase();
+	selectionDatabase = currentDatabase->Clone();
+	if (currentDatabase->GetTableNumber() > 1)
+		cast(KWMTDatabase*, selectionDatabase)->UpdateMultiTableMappings();
+	GetLearningSpec()->SetDatabase(selectionDatabase);
 
 	// Lecture de la base pour collecter un echantillon de valeurs par variable secondaire de selection
 	// On passe par une tache pour paralleliser cette lecture de la base
@@ -352,6 +362,10 @@ boolean KDSelectionOperandAnalyser::ExtractSelectionOperandPartitions()
 		if (bDisplay)
 			cout << *classSelectionStats << endl;
 	}
+
+	// Restitution de la base courante
+	GetLearningSpec()->SetDatabase(currentDatabase);
+	delete selectionDatabase;
 
 	// Nettoyage du domaine
 	KWClassDomain::SetCurrentDomain(currentDomain);
@@ -577,6 +591,7 @@ KWClassDomain* KDSelectionOperandAnalyser::BuildSelectionDomain()
 	KDClassSelectionStats* classSelectionStats;
 	KDClassSelectionOperandStats* classSelectionOperandStats;
 	boolean bIsSelectionAttributeUsed;
+	boolean bIsSelectionAttributeLoaded;
 
 	require(GetMultiTableFeatureConstruction() != NULL);
 
@@ -701,13 +716,15 @@ KWClassDomain* KDSelectionOperandAnalyser::BuildSelectionDomain()
 	// Simplification de la classe en supprimant tous les attributs calcules en Unused,
 	// sauf l'eventuel attribut de selection
 
-	// On met en used l'eventuel attribut de selection, car ils peut avoir une regle de calcul
+	// On met en used l'eventuel attribut de selection, car il peut avoir une regle de calcul
 	bIsSelectionAttributeUsed = false;
+	bIsSelectionAttributeLoaded = false;
 	if (GetDatabase()->GetSelectionAttribute() != "")
 	{
 		attribute = selectionClass->LookupAttribute(GetDatabase()->GetSelectionAttribute());
 		bIsSelectionAttributeUsed = attribute->GetUsed();
 		attribute->SetUsed(true);
+		attribute->SetLoaded(true);
 	}
 
 	// Nettoyage du domaine apres la necessaire compilation
@@ -719,6 +736,7 @@ KWClassDomain* KDSelectionOperandAnalyser::BuildSelectionDomain()
 	{
 		attribute = selectionClass->LookupAttribute(GetDatabase()->GetSelectionAttribute());
 		attribute->SetUsed(bIsSelectionAttributeUsed);
+		attribute->SetLoaded(bIsSelectionAttributeLoaded);
 	}
 	return selectionDomain;
 }
