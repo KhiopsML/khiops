@@ -91,9 +91,9 @@ if(UNIX)
 
   endif(IS_CONDA)
 
-  # replace MPIEXEC MPIEXEC_NUMPROC_FLAG and MPI_IMPL KHIOPS_MPI_EXTRA_FLAG ADDITIONAL_ENV_VAR
+  # replace MPIEXEC MPIEXEC_NUMPROC_FLAG and MPI_IMPL MPI_EXTRA_FLAG ADDITIONAL_ENV_VAR
   if("${MPI_IMPL}" STREQUAL "openmpi")
-    set(KHIOPS_MPI_EXTRA_FLAG "--allow-run-as-root")
+    set(MPI_EXTRA_FLAG "--allow-run-as-root")
     set(KHIOPS_MPI_QUIET "--quiet")
     set(ADDITIONAL_ENV_VAR "export OMPI_MCA_btl_vader_single_copy_mechanism=none # issue on docker")
     set(ADDITIONAL_ENV_VAR_DISPLAY
@@ -102,13 +102,10 @@ if(UNIX)
       set(ADDITIONAL_ENV_VAR "${ADDITIONAL_ENV_VAR}\nexport PSM3_DEVICES=self # issue on rocky linux")
       set(ADDITIONAL_ENV_VAR_DISPLAY "${ADDITIONAL_ENV_VAR_DISPLAY}\n    echo PSM3_DEVICES \"$PSM3_DEVICES\"")
     endif()
-    set(MPIEXEC_HOSTFILE_FLAG "--hostfile")
-    file(READ ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_env/export_env_variables.sh EXPORT_ENV_VARIABLES)
   elseif("${MPI_IMPL}" STREQUAL "mpich")
-    set(MPIEXEC_HOSTFILE_FLAG "-f")
     # Set localhost on MacOS (see issue # https://github.com/pmodels/mpich/issues/4710)
     if(APPLE)
-      set(KHIOPS_MPI_EXTRA_FLAG "-host localhost")
+      set(MPI_EXTRA_FLAG "-host localhost")
     endif(APPLE)
   endif()
 
@@ -126,6 +123,19 @@ if(UNIX)
     set(MODL_NAME "MODL")
   endif()
 
+  # For all mpi implementation except openmpi, we compute the proc number (with openmpi, the -n flag is not mandatory)
+  if(NOT "${MPI_IMPL}" STREQUAL "openmpi")
+    # Replace the path of _khiopsgetprocnumber in set_proc_number.in (with the variable GET_PROC_NUMBER_PATH)
+    configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_env/set_proc_number.in
+                   ${TMP_DIR}/set_proc_number.sh @ONLY NEWLINE_STYLE UNIX)
+    # The variable SET_PROC_NUMBER is filled with the content of set_proc_number.sh This variable will be replaced in
+    # khiops_env.in with configure_file
+    file(READ ${TMP_DIR}/set_proc_number.sh SET_PROC_NUMBER)
+
+    # Add _khiopsgetprocnumber to the khiops_core package except for openmpi
+    install(TARGETS _khiopsgetprocnumber RUNTIME DESTINATION ./${GET_PROC_NUMBER_PATH} COMPONENT KHIOPS_CORE)
+  endif()
+
   configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_env/khiops_env.in ${TMP_DIR}/khiops_env @ONLY
                  NEWLINE_STYLE UNIX)
   configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/debian/khiops-core/postinst.in ${TMP_DIR}/postinst @ONLY
@@ -133,7 +143,6 @@ if(UNIX)
 
   install(TARGETS MODL RUNTIME DESTINATION ./${KHIOPS_PATH} COMPONENT KHIOPS_CORE)
   install(TARGETS MODL_Coclustering RUNTIME DESTINATION ./${KHIOPS_COCLUSTERING_PATH} COMPONENT KHIOPS_CORE)
-  install(TARGETS _khiopsgetprocnumber RUNTIME DESTINATION ./${GET_PROC_NUMBER_PATH} COMPONENT KHIOPS_CORE)
 
   install(
     PROGRAMS ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops
