@@ -1340,15 +1340,17 @@ void KWDatabaseFormatDetector::InitializeInvalidSeparators()
 void KWDatabaseFormatDetector::BuildMandatoryDataItemNames(const KWClass* kwcClass,
 							   StringVector* svMandatoryDataItemNames) const
 {
+	NumericKeyDictionary nkdAllUsedAttributes;
+	NumericKeyDictionary nkdAllUsedClasses;
+	NumericKeyDictionary nkdAllLoadedClasses;
+	NumericKeyDictionary nkdAllNativeClasses;
+	ObjectArray oaAllUsedAttributes;
+	NumericKeyDictionary nkdAllUsedAttributeBlocks;
+	ObjectArray oaAllUsedAttributeBlocks;
 	KWAttribute* attribute;
 	KWAttributeBlock* attributeBlock;
 	KWDerivationRule* derivationRule;
-	NumericKeyDictionary nkdNeededAttributes;
-	NumericKeyDictionary nkdNeededClasses;
-	ObjectArray oaNeedAttributes;
 	int nAttribute;
-	NumericKeyDictionary nkdNeededAttributeBlocks;
-	ObjectArray oaNeedAttributeBlocks;
 	int nAttributeBlock;
 
 	require(kwcClass != NULL);
@@ -1356,32 +1358,37 @@ void KWDatabaseFormatDetector::BuildMandatoryDataItemNames(const KWClass* kwcCla
 	require(svMandatoryDataItemNames->GetSize() == 0);
 
 	// Recherche des attributs necessaires pour cette classe
+	// On a ici une tolerance en n'imposant pas que tous les attributs natifs soient presents dans le header
+	// On n'exige que la presence des attributs utilises (Used et Loaded), ainsi que les attributs necessaires
+	// au calcul des attributs derives utilises
 	for (nAttribute = 0; nAttribute < kwcClass->GetLoadedAttributeNumber(); nAttribute++)
 	{
 		attribute = kwcClass->GetLoadedAttributeAt(nAttribute);
 
 		// Memorisation si l'attribut est natif
 		if (attribute->IsNative())
-			nkdNeededAttributes.SetAt(attribute, cast(Object*, attribute));
+			nkdAllUsedAttributes.SetAt(attribute, cast(Object*, attribute));
 
 		// Analyse de la regle de derivation
 		// Dans le cas d'un bloc, il faut en effet la reanalyser pour chaque attribut du bloc
 		// pour detecter les attributs utilises des blocs potentiellement en operande
 		derivationRule = attribute->GetAnyDerivationRule();
 		if (derivationRule != NULL)
-			derivationRule->BuildAllUsedAttributes(attribute, &nkdNeededAttributes);
+			derivationRule->BuildAllUsedAttributes(attribute, &nkdAllUsedAttributes);
 	}
 
-	// Finalisation de la collecte des attributs utilises via les regles de construction de table
-	kwcClass->FinalizeBuildAllUsedAttributes(&nkdNeededAttributes, &nkdNeededClasses);
+	// Collecte des attributs utilises recursivement dans les operandes des regles ou via les
+	// attribut cles necessaires dans le cas multi-table
+	kwcClass->BuildAllUsedAttributes(&nkdAllUsedAttributes, &nkdAllUsedClasses, &nkdAllLoadedClasses,
+					 &nkdAllNativeClasses);
 
-	// Export des attributs identifies
-	nkdNeededAttributes.ExportObjectArray(&oaNeedAttributes);
+	// Export des attributs utilises
+	nkdAllUsedAttributes.ExportObjectArray(&oaAllUsedAttributes);
 
 	// On garde les attribut natifs de la classe en cours
-	for (nAttribute = 0; nAttribute < oaNeedAttributes.GetSize(); nAttribute++)
+	for (nAttribute = 0; nAttribute < oaAllUsedAttributes.GetSize(); nAttribute++)
 	{
-		attribute = cast(KWAttribute*, oaNeedAttributes.GetAt(nAttribute));
+		attribute = cast(KWAttribute*, oaAllUsedAttributes.GetAt(nAttribute));
 		if (attribute->IsNative() and attribute->GetParentClass() == kwcClass)
 		{
 			// Memorisation si attribut
@@ -1389,18 +1396,18 @@ void KWDatabaseFormatDetector::BuildMandatoryDataItemNames(const KWClass* kwcCla
 				svMandatoryDataItemNames->Add(attribute->GetName());
 			// Enregistrement du bloc sinon
 			else
-				nkdNeededAttributeBlocks.SetAt(attribute->GetAttributeBlock(),
-							       attribute->GetAttributeBlock());
+				nkdAllUsedAttributeBlocks.SetAt(attribute->GetAttributeBlock(),
+								attribute->GetAttributeBlock());
 		}
 	}
 
-	// Export des blocs identifies
-	nkdNeededAttributeBlocks.ExportObjectArray(&oaNeedAttributeBlocks);
+	// Export des blocs utilises
+	nkdAllUsedAttributeBlocks.ExportObjectArray(&oaAllUsedAttributeBlocks);
 
 	// On garde les attribut natifs de la classe en cours
-	for (nAttributeBlock = 0; nAttributeBlock < oaNeedAttributeBlocks.GetSize(); nAttributeBlock++)
+	for (nAttributeBlock = 0; nAttributeBlock < oaAllUsedAttributeBlocks.GetSize(); nAttributeBlock++)
 	{
-		attributeBlock = cast(KWAttributeBlock*, oaNeedAttributeBlocks.GetAt(nAttributeBlock));
+		attributeBlock = cast(KWAttributeBlock*, oaAllUsedAttributeBlocks.GetAt(nAttributeBlock));
 		svMandatoryDataItemNames->Add(attributeBlock->GetName());
 	}
 }

@@ -316,7 +316,7 @@ void KWPredictor::CollectSelectedPreparationStats(ObjectArray* oaUsedDataPrepara
 	KWClass* kwcPreparedClass;
 	KWAttribute* attribute;
 	NumericKeyDictionary nkdAllUsedAttributes;
-	NumericKeyDictionary nkdAllUsedClassess;
+	NumericKeyDictionary nkdAllUsedClasses;
 	ObjectArray oaAllUsedAttributes;
 
 	require(nkdSelectedDataPreparationStats.GetCount() == 0);
@@ -368,6 +368,7 @@ void KWPredictor::CollectSelectedPreparationStats(ObjectArray* oaUsedDataPrepara
 			// pour les arbres
 			attribute = kwcPreparedClass->LookupAttribute(sAttributeName);
 			check(attribute);
+			nkdAllUsedAttributes.SetAt(attribute, attribute);
 			if (attribute->GetDerivationRule() != NULL)
 				attribute->GetDerivationRule()->BuildAllUsedAttributes(attribute,
 										       &nkdAllUsedAttributes);
@@ -375,7 +376,11 @@ void KWPredictor::CollectSelectedPreparationStats(ObjectArray* oaUsedDataPrepara
 	}
 
 	// Finalisation de la collecte des attributs utilises via les regles de construction de table
-	kwcPreparedClass->FinalizeBuildAllUsedAttributes(&nkdAllUsedAttributes, &nkdAllUsedClassess);
+	// Cette finalization permet une analyse plus exhaustive de la propagation des regles
+	// de derivation utilisee, en ne partant que des attributs exploites en preparation
+	// L'enjeu est ici essentiellement de fournir des statistiques d'uilisation des attributs pour les utlisateurs
+	// Il n'y a pas d'enjeu de compilation ni de bugs potentiels
+	kwcPreparedClass->FinalizeBuildAllUsedAttributes(&nkdAllUsedAttributes, &nkdAllUsedClasses);
 
 	// Prise en compte des preparation de tous les attributs utilises recursivement
 	nkdAllUsedAttributes.ExportObjectArray(&oaAllUsedAttributes);
