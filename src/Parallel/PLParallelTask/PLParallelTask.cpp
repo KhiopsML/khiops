@@ -800,6 +800,12 @@ boolean PLParallelTask::Run()
 		RMParallelResourceDriver::grantedResources = NULL;
 	}
 
+	// Retaillage des tableaux qui stockent l'etat des esclaves au cas ou la tache
+	// serait appelee 2 fois de suite
+	oaSlaves.SetSize(0);
+	oaSlavesByRank.SetSize(0);
+	ivGrantedSlaveIds.SetSize(0);
+
 	// Arret des serveurs de fichiers
 	if (runningMode != SLAVE and not bNothingToDo)
 	{
