@@ -1,4 +1,4 @@
-// Copyright (c) 2024 Orange. All rights reserved.
+// Copyright (c) 2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -799,6 +799,12 @@ boolean PLParallelTask::Run()
 		delete RMParallelResourceDriver::grantedResources;
 		RMParallelResourceDriver::grantedResources = NULL;
 	}
+
+	// Retaillage des tableaux qui stockent l'etat des esclaves au cas ou la tache
+	// serait appelee 2 fois de suite
+	oaSlaves.SetSize(0);
+	oaSlavesByRank.SetSize(0);
+	ivGrantedSlaveIds.SetSize(0);
 
 	// Arret des serveurs de fichiers
 	if (runningMode != SLAVE and not bNothingToDo)
