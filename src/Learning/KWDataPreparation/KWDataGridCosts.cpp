@@ -1834,7 +1834,8 @@ double KWVarPartDataGridClusteringCosts::ComputeAttributeCost(const KWDGAttribut
 			}
 		}
 		// Cout de structure si attribut de type parties de variable sans prise en compte d'un groupe poubelle
-		// CH AB AF temporaire : obsolete a l'integration definitive du groupe poubelle
+		// CH AB AF temporaire : obsolete si integration definitive du groupe poubelle pour l'attribut VarPart
+		// CH 461 Faut il le prendre en compte a ce niveau ? Interessant pour le cas de coclustering avec des textes ?
 		else
 		{
 			// Cout de codage du nombre de clusters de parties de variable
@@ -1945,6 +1946,7 @@ double KWVarPartDataGridClusteringCosts::ComputeInnerAttributeCost(const KWDGAtt
 			}
 		}
 		// CH AB AF temporaire : obsolete apres integration groupe poubelle
+		// CH 461 Necessite l'evolution du code de ComputeVarPartsSymbolAttributeVariationCost pour prise en compte du groupe poubelle
 		else
 		{
 			// Cout de codage du nombre de parties entre 1 et nPartileNumber (la partition peut etre de

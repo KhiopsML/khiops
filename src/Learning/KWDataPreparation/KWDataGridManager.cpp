@@ -296,7 +296,7 @@ void KWDataGridManager::ExportDataGridWithRandomizedInnerAttributes(const KWData
 	{
 		// Export des attributs (avec innerAtributes non surtokenises a ce stade)
 		ExportAttributes(sourceDataGrid, targetDataGrid);
-		// CH 461 revient au meme si la grille source etait inputDataGrid ?
+		// CH DDD 461 revient au meme si la grille source etait inputDataGrid ?
 		// les innerAttributes sont de toute facon changes par la suite
 
 		// Initialisation de la granularite (sinon celle de la grille GetInitialVarPartDataGrid())
@@ -352,6 +352,9 @@ void KWDataGridManager::ExportDataGridWithMergedInnerAttributes(const KWDataGrid
 	//cout << "ExportDataGridWithMergedInnerAttributes\n";
 	//cout << "Grille source " << *sourceDataGrid << endl;
 	//cout << "Grille input " << *inputDataGrid << endl;
+	//cout << "ExportDataGridWithMergedInnerAttributes\n";
+	//cout << "Inner attributes initiaux\t" << *inputDataGrid->GetInnerAttributes() << endl;
+	//cout << "Inner attributes merged\t" << *otherMergedInnerAttributes << endl;
 
 	targetDataGrid->DeleteAll();
 
@@ -3823,7 +3826,9 @@ void KWDataGridManager::InitialiseAttributeGranularizedGroupableParts(
 		sourceAttribute->ExportParts(&oaSourceParts);
 
 		// Cas du nombre de partiles associe a la granularite maximale
-		if (nPartileNumber == nValueNumber)
+		// Ajout d'une condition afin que cela ne s'applique pas aux attributs de type VarPart.
+		// Sinon on a des VarPart initiaux avec des PV d'innerAttributes differents
+		if (nPartileNumber == nValueNumber and sourceAttribute->GetAttributeType() != KWType::VarPart)
 			// Seuillage de nPartileNumber au nombre de partiles associe a la granularite precedente
 			// pour que la granularisation rassemble les eventuelles valeurs sources singletons dans le fourre-tout
 			// Pour G tel que 2^G < N <= 2^(G+1) on aura 1 < N/2^G <= 2 c'est a dire un effectif minimal par

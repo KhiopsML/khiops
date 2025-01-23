@@ -158,6 +158,10 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 
 		// Parcours des granularites
 		nGranularityIndex = 1;
+		// Dans le cas d'une grille VarPart, on teste uniquement de la granularite max
+		// Cela eviter les attributVarPart avec fourre-tout composes de PV d'innerAttribute differents en VarPartSet initiaux
+		if (initialDataGrid->IsVarPartDataGrid())
+			nGranularityIndex = nMaxExploredGranularity;
 		bIsLastGranularity = false;
 		while (nGranularityIndex <= nMaxExploredGranularity and not bIsLastGranularity)
 		{
@@ -1652,6 +1656,7 @@ double KWDataGridOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* initial
 				dataGridManager.ExportDataGridWithMergedInnerAttributes(
 				    initialDataGrid, initialDataGrid, optimizedDataGrid->GetInnerAttributes(),
 				    &initialFromOptimizedDataGrid);
+				assert(initialFromOptimizedDataGrid.Check());
 
 				GenerateNeighbourSolution(&initialFromOptimizedDataGrid, optimizedDataGrid,
 							  dNeighbourhoodSize, &neighbourDataGrid);
