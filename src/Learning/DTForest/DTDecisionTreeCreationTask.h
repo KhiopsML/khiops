@@ -128,14 +128,17 @@ protected:
 
 	// Discretisation 'MODL' d'une target continue
 	SymbolVector* MODLDiscretizeContinuousTarget(KWTupleTableLoader*, int nMaxIntervalsNumber,
-						     const ContinuousVector& cvIntervalValues, int nSplitIndex) const;
+						     const ContinuousVector& cvIntervalValues, int nSplitIndex,
+						     KWDataGridStats* targetStat) const;
 
 	// transforme une regression en classification en effectuant au prealable une discretisation MODL
 	void InitializeMODLDiscretization(KWTupleTableLoader*, KWLearningSpec*,
-					  const ContinuousVector& cvIntervalValues, int nSplitIndex);
+					  const ContinuousVector& cvIntervalValues, int nSplitIndex,
+					  KWDataGridStats* targetStat);
 
 	void InitializeBinaryEQFDiscretization(KWTupleTableLoader*, KWLearningSpec*,
-					       const ContinuousVector& cvIntervalValues, int nSplitIndex);
+					       const ContinuousVector& cvIntervalValues, int nSplitIndex,
+					       KWDataGridStats* targetStat);
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////
 	// Reimplementation des methodes virtuelles de tache
