@@ -78,7 +78,7 @@ jobs:
           fi
       - name: Build conda packages
         run: |
-          conda build --output-folder ./build/conda ./packaging/conda
+          conda build --package-format=tar.bz2 --output-folder ./build/conda ./packaging/conda
       - name: Upload conda packages artifact
         uses: actions/upload-artifact@v4
         with:
