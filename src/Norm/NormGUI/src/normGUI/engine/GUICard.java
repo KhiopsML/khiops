@@ -39,14 +39,8 @@ public class GUICard extends GUIUnit
                         guiCard.setStyle(sStyle);
                         guiCard.setParentUnit(this);
                         addField(guiCard);
-                } catch (InstantiationException ie) {
-                        System.err.println("La classe java " + c + " ne peut etre instanciee " + ie);
-                } catch (IllegalAccessException iae) {
-                        System.err.println("La classe java " + c + " ne peut etre instanciee " + iae);
-                } catch (NoSuchMethodException nsme) {
-                        System.err.println("la classe java " + c + " ne peut etre instanciee " + nsme);
-                } catch (InvocationTargetException ite) {
-                        System.err.println("la classe java " + c + " ne peut etre instanciee " + ite);
+                } catch (Exception e) {
+                        System.err.println("La classe java " + c + " ne peut etre instanciee " + e);
                 }
         }
 
@@ -70,14 +64,8 @@ public class GUICard extends GUIUnit
                         guiUnit.setStyle(sStyle);
                         guiUnit.setParentUnit(this);
                         addField(guiUnit);
-                } catch (InstantiationException ie) {
-                        System.err.println("La classe java " + c + " ne peut etre instanciee " + ie);
-                } catch (IllegalAccessException iae) {
-                        System.err.println("La classe java " + c + " ne peut etre instanciee " + iae);
-                } catch (NoSuchMethodException nsme) {
-                        System.err.println("la classe java " + c + " ne peut etre instanciee " + nsme);
-                } catch (InvocationTargetException ite) {
-                        System.err.println("la classe java " + c + " ne peut etre instanciee " + ite);
+                } catch (Exception e) {
+                        System.err.println("La classe java " + c + " ne peut etre instanciee " + e);
                 }
         }
 

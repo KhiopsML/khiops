@@ -380,14 +380,8 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                         guiBooleanElement.setParentUnit(this);
                         // Ajout du widget dans le vecteur de donnees de l'unite
                         addField(guiBooleanElement);
-                } catch (InstantiationException ie) {
-                        System.err.println("la classe " + s + " ne peut etre instanciee " + ie);
-                } catch (IllegalAccessException iae) {
-                        System.err.println("la classe " + s + " ne peut etre instanciee " + iae);
-                } catch (NoSuchMethodException nsme) {
-                        System.err.println("la classe " + s + " ne peut etre instanciee " + nsme);
-                } catch (InvocationTargetException ite) {
-                        System.err.println("la classe " + s + " ne peut etre instanciee " + ite);
+                } catch (Exception e) {
+                        System.err.println("La classe java " + c + " ne peut etre instanciee " + e);
                 }
         }
 
@@ -433,14 +427,8 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                         guiCharElement.setParentUnit(this);
                         // Ajout du widget dans le vecteur de donnees de l'unite
                         addField(guiCharElement);
-                } catch (InstantiationException ie) {
-                        System.err.println("la classe " + s + " ne peut etre instanciee " + ie);
-                } catch (IllegalAccessException iae) {
-                        System.err.println("la classe " + s + " ne peut etre instanciee " + iae);
-                } catch (NoSuchMethodException nsme) {
-                        System.err.println("la classe " + s + " ne peut etre instanciee " + nsme);
-                } catch (InvocationTargetException ite) {
-                        System.err.println("la classe " + s + " ne peut etre instanciee " + ite);
+                } catch (Exception e) {
+                        System.err.println("La classe java " + c + " ne peut etre instanciee " + e);
                 }
         }
 
@@ -544,14 +532,8 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                         guiDoubleElement.setParentUnit(this);
                         // Ajout du widget dans le vecteur de donnees de l'unite
                         addField(guiDoubleElement);
-                } catch (InstantiationException ie) {
-                        System.err.println("la classe " + s + " ne peut etre instanciee " + ie);
-                } catch (IllegalAccessException iae) {
-                        System.err.println("la classe " + s + " ne peut etre instanciee " + iae);
-                } catch (NoSuchMethodException nsme) {
-                        System.err.println("la classe " + s + " ne peut etre instanciee " + nsme);
-                } catch (InvocationTargetException ite) {
-                        System.err.println("la classe " + s + " ne peut etre instanciee " + ite);
+                } catch (Exception e) {
+                        System.err.println("La classe java " + c + " ne peut etre instanciee " + e);
                 }
         }
 
@@ -604,14 +586,8 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                         guiIntElement.setParentUnit(this);
                         // Ajout du widget dans le vecteur de donnees de l'unite
                         addField(guiIntElement);
-                } catch (InstantiationException ie) {
-                        System.err.println("la classe " + s + " ne peut etre instanciee " + ie);
-                } catch (IllegalAccessException iae) {
-                        System.err.println("la classe " + s + " ne peut etre instanciee " + iae);
-                } catch (NoSuchMethodException nsme) {
-                        System.err.println("la classe " + s + " ne peut etre instanciee " + nsme);
-                } catch (InvocationTargetException ite) {
-                        System.err.println("la classe " + s + " ne peut etre instanciee " + ite);
+                } catch (Exception e) {
+                        System.err.println("La classe java " + c + " ne peut etre instanciee " + e);
                 }
         }
 
@@ -664,14 +640,8 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                         guiStringElement.setParentUnit(this);
                         // Ajout du widget dans le vecteur de donnees de l'unite
                         addField(guiStringElement);
-                } catch (InstantiationException ie) {
-                        System.err.println("la classe " + s + " ne peut etre instanciee " + ie);
-                } catch (IllegalAccessException iae) {
-                        System.err.println("la classe " + s + " ne peut etre instanciee " + iae);
-                } catch (NoSuchMethodException nsme) {
-                        System.err.println("la classe " + s + " ne peut etre instanciee " + nsme);
-                } catch (InvocationTargetException ite) {
-                        System.err.println("la classe " + s + " ne peut etre instanciee " + ite);
+                } catch (Exception e) {
+                        System.err.println("La classe java " + c + " ne peut etre instanciee " + e);
                 }
         }
 

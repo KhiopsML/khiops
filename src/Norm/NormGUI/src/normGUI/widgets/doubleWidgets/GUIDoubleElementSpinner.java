@@ -76,7 +76,7 @@ public class GUIDoubleElementSpinner extends GUIDoubleElement
                 }
                 JSpinner.NumberEditor editor = new JSpinner.NumberEditor(js, formatString);
                 DecimalFormat format = editor.getFormat();
-                Locale myLocale = new Locale("en", "US");
+                Locale myLocale = new Locale.Builder().setLanguage("en").setScript("Latn").setRegion("US").build();
                 format.setDecimalFormatSymbols(new DecimalFormatSymbols(myLocale));
                 js.setEditor(editor);
 
