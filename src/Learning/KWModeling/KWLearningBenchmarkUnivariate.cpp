@@ -49,8 +49,13 @@ void KWLearningBenchmarkUnivariate::Evaluate()
 		cout << "CRASH" << endl;
 		KWLearningBenchmarkUnivariate* crashBench = NULL;
 
-		// Appel d'une methode sur un pointeur NULL
+// Appel d'une methode sur un pointeur NULL
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wnonnull"
 		crashBench->Evaluate();
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
 	}
 
 	// Evaluation standard
