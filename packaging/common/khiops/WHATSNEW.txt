@@ -2,6 +2,13 @@
 Release Notes for Khiops 10 Version Series
 ==========================================
 
+Version 10.3.0
+==============
+
+Linux packages have been improved.
+Better integration of the file drivers (currently S3 and GCS).
+Streamlined distributed computing support integration.
+
 Version 10.2.4
 ==============
 Bug fix:
