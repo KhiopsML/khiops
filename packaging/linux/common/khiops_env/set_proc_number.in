@@ -1,0 +1,5 @@
+
+    # Number of processes in use (must be set according to the physical cores number)
+    if [[ -z $KHIOPS_PROC_NUMBER ]]; then
+        KHIOPS_PROC_NUMBER=$("@GET_PROC_NUMBER_PATH@"_khiopsgetprocnumber | head -n 1)
+    fi

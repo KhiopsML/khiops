@@ -1,4 +1,4 @@
-// Copyright (c) 2024 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -12,14 +12,6 @@
 // et faciliter sa supression effective apres la sortie de Khiops V10
 // Ce code est tricky, en mode quick and dirty
 #define DEPRECATED_V10
-
-// Extraction de la version majeure d'une version complete
-// Par exemple: renvoie 10 pour la version 10.1.4i
-int GetMajorVersion(const ALString& sFullVersion);
-
-// Extraction de la version majeure d'une version complete
-// Par exemple: renvoie 1 pour la version 10.1.4i
-int GetMinorVersion(const ALString& sFullVersion);
 
 //////////////////////////////////////////////////////////////////////////////
 // Gestion des noms d'application, de module et de la version de l'executable

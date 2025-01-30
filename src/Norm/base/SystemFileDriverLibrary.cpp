@@ -1,4 +1,4 @@
-// Copyright (c) 2024 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -258,7 +258,7 @@ boolean SystemFileDriverLibrary::LoadLibrary(const ALString& sLibraryFilePathNam
 	handleLibrary = LoadSharedLibrary(sLibraryFilePathName, sErrorMessage);
 	if (handleLibrary == NULL)
 	{
-		AddError(sTmp + "Library loading error (" + sErrorMessage + ")");
+		AddWarning(sTmp + "Library loading error (" + sErrorMessage + ")");
 		return false;
 	}
 
@@ -299,6 +299,18 @@ boolean SystemFileDriverLibrary::LoadLibrary(const ALString& sLibraryFilePathNam
 
 	if (MemoryStatsManager::IsOpened())
 		MemoryStatsManager::AddLog(sTmp + "driver [" + sLibraryName + "] LoadLibrary End");
+
+	// Verification de la version
+	if (*(void**)(&ptr_driver_getVersion) != NULL)
+	{
+		if (GetMajorVersion(GetVersion()) != 0)
+		{
+			bIsError = true;
+			AddWarning(
+			    sTmp + "Version " + GetVersion() +
+			    " of the driver is not compatible with the expected major version, which should be 0");
+		}
+	}
 
 	// Nettoyage complet si erreur
 	if (bIsError)
@@ -377,7 +389,7 @@ void* SystemFileDriverLibrary::BindToLibrary(const ALString& sMethodName, boolea
 		if (pFunction == NULL and bMandatory)
 		{
 			bIsError = true;
-			AddError("Unable to load function " + sMethodName + " from library");
+			AddWarning("Unable to load function " + sMethodName + " from library");
 		}
 	}
 	return pFunction;

@@ -1,4 +1,4 @@
-// Copyright (c) 2024 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -492,8 +492,8 @@ boolean KWLearningProject::ShowSystemInformation(const ALString& sValue)
 		for (i = 0; i < SystemFileDriverCreator::GetDriverNumber(); i++)
 		{
 			fileDriver = SystemFileDriverCreator::GetRegisteredDriverAt(i);
-			cout << "\t'" << fileDriver->GetDriverName() << "' for URI scheme '" << fileDriver->GetScheme()
-			     << "'" << endl;
+			cout << "\t" << fileDriver->GetDriverName() << " (" << fileDriver->GetVersion()
+			     << ") for URI scheme '" << fileDriver->GetScheme() << "'" << endl;
 		}
 	}
 
