@@ -2,9 +2,24 @@
 Release Notes for Khiops 10 Version Series
 ==========================================
 
-Version 10.2.3
+Version 10.3.0
 ==============
 
+Linux packages have been improved.
+Better integration of the file drivers (currently S3 and GCS).
+Streamlined distributed computing support integration.
+
+Version 10.2.4
+==============
+Bug fix:
+- Fix MPI executable detection in "Conda-based" environments on Linux and MacOS.
+
+Minor improvement:
+- Reduce launching time of the GUI on Windows.
+
+
+Version 10.2.3
+==============
 Khiops is now available for Ubuntu 24.04.
 
 The GUI now uses all available processor cores if instructed to do so.
@@ -35,8 +50,9 @@ Version 10.2.1
 Bug fix:
 - Fix a bug that appears when reading temporary files in multi-machines mode.
 
-Minor improvments:
+Minor improvements:
 - improve java management in linux packages
+
 
 Version 10.2.0
 ==============
@@ -57,11 +73,13 @@ Version 10.1.5
 Bug fix:
 - KhiopsNativeInterface crashes with java under Linux. Signals are not intercepted anymore in KNI.
 
+
 Version 10.1.4
 ==============
 Bug fix:
 - in the sorting algorithm: it could produce corrupted files when the separators of the input and
   output files are different.
+
 
 Version 10.1.3
 ==============
@@ -69,11 +87,13 @@ Bug fix:
 - better error management on non standard file systems (e.g. s3 or hdfs)
 - the results directory is correctly build in predictor evaluation on non standard file systems
 
+
 Version 10.1.2
 ==============
 Bug fix:
 - the results path is correctly build in Khiops-coclustering when the directory is located on
   non standard file systems (e.g. s3 or hdfs)
+
 
 Version 10.1.1
 ==============
