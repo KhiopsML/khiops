@@ -59,7 +59,7 @@ jobs:
       - name: Cache binaries (windows)
         id: cache-binaries-windows
         if: runner.os == 'Windows'
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           # We add binaries path one by one to avoid *.pdb and other msvc stuffs that generate a cache of 200Mo for windows
           path: |
@@ -74,7 +74,7 @@ jobs:
       - name: Cache binaries (macOS, Linux)
         id: cache-binaries-unix
         if: runner.os != 'Windows'
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/*          
@@ -102,7 +102,7 @@ jobs:
       - name: Restore cached binaries (windows)
         if: runner.os == 'Windows'
         id: restore-binaries-windows
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: |
             ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/MODL.exe
@@ -116,7 +116,7 @@ jobs:
       - name: Restore cached binaries (macOS, Linux)
         if: runner.os != 'Windows'
         id: restore-binaries
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: |
             ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/*           
