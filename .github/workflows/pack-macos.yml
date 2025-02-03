@@ -9,7 +9,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Check out sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Build Khiops executables
         uses: ./.github/actions/build-khiops
         with:
