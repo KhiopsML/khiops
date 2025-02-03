@@ -15,7 +15,7 @@ import javax.swing.JPanel;
 /**
  * Definit une unite d'interface de type fiche
  */
-public class GUICard extends GUIUnit
+@SuppressWarnings("unchecked") public class GUICard extends GUIUnit
 {
 
         /**

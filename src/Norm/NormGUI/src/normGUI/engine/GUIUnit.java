@@ -43,7 +43,7 @@ import javax.swing.SwingUtilities;
  * Definit une unite d'interface. Une unite d'interface peut etre une fiche ou
  * une liste
  */
-public abstract class GUIUnit extends GUIData implements ActionListener
+@SuppressWarnings("unchecked") public abstract class GUIUnit extends GUIData implements ActionListener
 {
 
         /**
