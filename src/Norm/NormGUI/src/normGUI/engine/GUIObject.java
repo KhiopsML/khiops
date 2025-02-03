@@ -140,7 +140,6 @@ public abstract class GUIObject
                 String sNextPath;
                 String sPath;
                 File file;
-                int nDirectoryIndex;
                 int i;
 
                 if (sRessourceFileName.equals(""))
@@ -194,8 +193,6 @@ public abstract class GUIObject
                 Rectangle commonBounds = null;
                 int screenWidth = 0;
                 int screenHeight = 0;
-                int x = 0;
-                int y = 0;
 
                 // Recherche de la fenetre active et de sa position
                 try {
