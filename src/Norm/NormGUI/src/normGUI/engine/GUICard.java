@@ -14,7 +14,7 @@ import javax.swing.JPanel;
 /**
  * Definit une unite d'interface de type fiche
  */
-@SuppressWarnings("unchecked") public class GUICard extends GUIUnit
+public class GUICard extends GUIUnit
 {
 
         /**
@@ -27,20 +27,12 @@ import javax.swing.JPanel;
          */
         public void addCardField(String sFieldId, String sLabel, GUICard card, String sStyle)
         {
-                // Recherche de la classe de la sous fiche
-                Class c = getUserCardClass(sStyle);
-                try {
-                        // Instanciation de la sous fiche
-                        GUICard guiCard = (GUICard)c.getDeclaredConstructor().newInstance();
-                        guiCard = card;
-                        guiCard.setIdentifier(sFieldId);
-                        guiCard.setLabel(sLabel);
-                        guiCard.setStyle(sStyle);
-                        guiCard.setParentUnit(this);
-                        addField(guiCard);
-                } catch (Exception e) {
-                        System.err.println("La classe java " + c + " ne peut etre instanciee " + e);
-                }
+                // Instanciation de la sous fiche
+                card.setIdentifier(sFieldId);
+                card.setLabel(sLabel);
+                card.setStyle(sStyle);
+                card.setParentUnit(this);
+                addField(card);
         }
 
         /**
@@ -53,19 +45,11 @@ import javax.swing.JPanel;
          */
         public void addListField(String sFieldId, String sLabel, GUIList list, String sStyle)
         {
-                // Recherche de la classe de la sous liste
-                Class c = getUserListClass(sStyle);
-                try {
-                        GUIUnit guiUnit = (GUIUnit)c.getDeclaredConstructor().newInstance();
-                        guiUnit = list;
-                        guiUnit.setIdentifier(sFieldId);
-                        guiUnit.setLabel(sLabel);
-                        guiUnit.setStyle(sStyle);
-                        guiUnit.setParentUnit(this);
-                        addField(guiUnit);
-                } catch (Exception e) {
-                        System.err.println("La classe java " + c + " ne peut etre instanciee " + e);
-                }
+                list.setIdentifier(sFieldId);
+                list.setLabel(sLabel);
+                list.setStyle(sStyle);
+                list.setParentUnit(this);
+                addField(list);
         }
 
         /**

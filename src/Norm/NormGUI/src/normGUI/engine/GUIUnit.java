@@ -19,6 +19,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.lang.reflect.InvocationTargetException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Hashtable;
@@ -366,22 +367,25 @@ import javax.swing.SwingUtilities;
                         }
                 } else
                         c = GUIBooleanElementTextField.class;
+
+                // Instanciation du widget
+                GUIBooleanElement guiBooleanElement = null;
                 try {
-                        // Instanciation du widget
-                        GUIBooleanElement guiBooleanElement =
-                          (GUIBooleanElement)c.getDeclaredConstructor().newInstance();
-                        // Caracterisation du widget
-                        guiBooleanElement.setIdentifier(sFieldId);
-                        guiBooleanElement.setLabel(sLabel);
-                        guiBooleanElement.setDefaultValue(bDefaultValue);
-                        guiBooleanElement.setValue(Boolean.valueOf(bDefaultValue).toString());
-                        guiBooleanElement.setStyle(sStyle);
-                        guiBooleanElement.setParentUnit(this);
-                        // Ajout du widget dans le vecteur de donnees de l'unite
-                        addField(guiBooleanElement);
-                } catch (Exception e) {
+                        guiBooleanElement = (GUIBooleanElement)c.getDeclaredConstructor().newInstance();
+                } catch (InstantiationException | IllegalAccessException | IllegalArgumentException |
+                         InvocationTargetException | NoSuchMethodException | SecurityException e) {
                         System.err.println("La classe java " + c + " ne peut etre instanciee " + e);
                 }
+
+                // Caracterisation du widget
+                guiBooleanElement.setIdentifier(sFieldId);
+                guiBooleanElement.setLabel(sLabel);
+                guiBooleanElement.setDefaultValue(bDefaultValue);
+                guiBooleanElement.setValue(Boolean.valueOf(bDefaultValue).toString());
+                guiBooleanElement.setStyle(sStyle);
+                guiBooleanElement.setParentUnit(this);
+                // Ajout du widget dans le vecteur de donnees de l'unite
+                addField(guiBooleanElement);
         }
 
         /**
@@ -412,23 +416,24 @@ import javax.swing.SwingUtilities;
                         }
                 } else
                         c = GUICharElementTextField.class;
+                // Instanciation du widget
+                Class[] parameterType = null;
+                GUICharElement guiCharElement = null;
                 try {
-                        // Instanciation du widget
-                        Class[] parameterType = null;
-                        GUICharElement guiCharElement =
-                          (GUICharElement)c.getDeclaredConstructor(parameterType).newInstance();
-                        // Caracterisation du widget
-                        guiCharElement.setIdentifier(sFieldId);
-                        guiCharElement.setLabel(sLabel);
-                        guiCharElement.setDefaultValue(cDefaultValue);
-                        guiCharElement.setValue(Character.valueOf(cDefaultValue).toString());
-                        guiCharElement.setStyle(sStyle);
-                        guiCharElement.setParentUnit(this);
-                        // Ajout du widget dans le vecteur de donnees de l'unite
-                        addField(guiCharElement);
-                } catch (Exception e) {
+                        guiCharElement = (GUICharElement)c.getDeclaredConstructor(parameterType).newInstance();
+                } catch (InstantiationException | IllegalAccessException | IllegalArgumentException |
+                         InvocationTargetException | NoSuchMethodException | SecurityException e) {
                         System.err.println("La classe java " + c + " ne peut etre instanciee " + e);
                 }
+                // Caracterisation du widget
+                guiCharElement.setIdentifier(sFieldId);
+                guiCharElement.setLabel(sLabel);
+                guiCharElement.setDefaultValue(cDefaultValue);
+                guiCharElement.setValue(Character.valueOf(cDefaultValue).toString());
+                guiCharElement.setStyle(sStyle);
+                guiCharElement.setParentUnit(this);
+                // Ajout du widget dans le vecteur de donnees de l'unite
+                addField(guiCharElement);
         }
 
         /**
@@ -517,23 +522,25 @@ import javax.swing.SwingUtilities;
                         }
                 } else
                         c = GUIDoubleElementTextField.class;
+                // Instanciation du widget
+                GUIDoubleElement guiDoubleElement = null;
                 try {
-                        // Instanciation du widget
-                        GUIDoubleElement guiDoubleElement = (GUIDoubleElement)c.getDeclaredConstructor().newInstance();
-                        // Caracterisation du widget
-                        guiDoubleElement.setIdentifier(sFieldId);
-                        guiDoubleElement.setLabel(sLabel);
-                        guiDoubleElement.setDefaultValue(dDefaultValue);
-                        guiDoubleElement.setValue(Double.valueOf(dDefaultValue).toString());
-                        guiDoubleElement.setStyle(sStyle);
-                        guiDoubleElement.setMinValue(dMin);
-                        guiDoubleElement.setMaxValue(dMax);
-                        guiDoubleElement.setParentUnit(this);
-                        // Ajout du widget dans le vecteur de donnees de l'unite
-                        addField(guiDoubleElement);
-                } catch (Exception e) {
+                        guiDoubleElement = (GUIDoubleElement)c.getDeclaredConstructor().newInstance();
+                } catch (InstantiationException | IllegalAccessException | IllegalArgumentException |
+                         InvocationTargetException | NoSuchMethodException | SecurityException e) {
                         System.err.println("La classe java " + c + " ne peut etre instanciee " + e);
                 }
+                // Caracterisation du widget
+                guiDoubleElement.setIdentifier(sFieldId);
+                guiDoubleElement.setLabel(sLabel);
+                guiDoubleElement.setDefaultValue(dDefaultValue);
+                guiDoubleElement.setValue(Double.valueOf(dDefaultValue).toString());
+                guiDoubleElement.setStyle(sStyle);
+                guiDoubleElement.setMinValue(dMin);
+                guiDoubleElement.setMaxValue(dMax);
+                guiDoubleElement.setParentUnit(this);
+                // Ajout du widget dans le vecteur de donnees de l'unite
+                addField(guiDoubleElement);
         }
 
         /**
@@ -571,23 +578,25 @@ import javax.swing.SwingUtilities;
                         }
                 } else
                         c = GUIIntElementTextField.class;
+                // Instanciation du widget
+                GUIIntElement guiIntElement = null;
                 try {
-                        // Instanciation du widget
-                        GUIIntElement guiIntElement = (GUIIntElement)c.getDeclaredConstructor().newInstance();
-                        // Caracterisation du widget
-                        guiIntElement.setIdentifier(sFieldId);
-                        guiIntElement.setLabel(sLabel);
-                        guiIntElement.setDefaultValue(nDefaultValue);
-                        guiIntElement.setValue(Integer.valueOf(nDefaultValue).toString());
-                        guiIntElement.setStyle(sStyle);
-                        guiIntElement.setMinValue(nMin);
-                        guiIntElement.setMaxValue(nMax);
-                        guiIntElement.setParentUnit(this);
-                        // Ajout du widget dans le vecteur de donnees de l'unite
-                        addField(guiIntElement);
-                } catch (Exception e) {
+                        guiIntElement = (GUIIntElement)c.getDeclaredConstructor().newInstance();
+                } catch (InstantiationException | IllegalAccessException | IllegalArgumentException |
+                         InvocationTargetException | NoSuchMethodException | SecurityException e) {
                         System.err.println("La classe java " + c + " ne peut etre instanciee " + e);
                 }
+                // Caracterisation du widget
+                guiIntElement.setIdentifier(sFieldId);
+                guiIntElement.setLabel(sLabel);
+                guiIntElement.setDefaultValue(nDefaultValue);
+                guiIntElement.setValue(Integer.valueOf(nDefaultValue).toString());
+                guiIntElement.setStyle(sStyle);
+                guiIntElement.setMinValue(nMin);
+                guiIntElement.setMaxValue(nMax);
+                guiIntElement.setParentUnit(this);
+                // Ajout du widget dans le vecteur de donnees de l'unite
+                addField(guiIntElement);
         }
 
         /**
@@ -625,23 +634,25 @@ import javax.swing.SwingUtilities;
                         }
                 } else
                         c = GUIStringElementTextField.class;
+                // Instanciation du widget
+                GUIStringElement guiStringElement = null;
                 try {
-                        // Instanciation du widget
-                        GUIStringElement guiStringElement = (GUIStringElement)c.getDeclaredConstructor().newInstance();
-                        // Caracterisation du widget
-                        guiStringElement.setIdentifier(sFieldId);
-                        guiStringElement.setLabel(sLabel);
-                        guiStringElement.setDefaultValue(sDefaultValue);
-                        guiStringElement.setValue(sDefaultValue);
-                        guiStringElement.setStyle(sStyle);
-                        guiStringElement.setMinLength(nMinLength);
-                        guiStringElement.setMaxLength(nMaxLength);
-                        guiStringElement.setParentUnit(this);
-                        // Ajout du widget dans le vecteur de donnees de l'unite
-                        addField(guiStringElement);
-                } catch (Exception e) {
+                        guiStringElement = (GUIStringElement)c.getDeclaredConstructor().newInstance();
+                } catch (InstantiationException | IllegalAccessException | IllegalArgumentException |
+                         InvocationTargetException | NoSuchMethodException | SecurityException e) {
                         System.err.println("La classe java " + c + " ne peut etre instanciee " + e);
                 }
+                // Caracterisation du widget
+                guiStringElement.setIdentifier(sFieldId);
+                guiStringElement.setLabel(sLabel);
+                guiStringElement.setDefaultValue(sDefaultValue);
+                guiStringElement.setValue(sDefaultValue);
+                guiStringElement.setStyle(sStyle);
+                guiStringElement.setMinLength(nMinLength);
+                guiStringElement.setMaxLength(nMaxLength);
+                guiStringElement.setParentUnit(this);
+                // Ajout du widget dans le vecteur de donnees de l'unite
+                addField(guiStringElement);
         }
 
         protected void addToolBar()
