@@ -97,8 +97,17 @@ void ALString::AssignCopy(int nSrcLen, const char* pszSrcData)
 		Empty();
 		AllocBuffer(nSrcLen);
 	}
+#if defined(__GNUC__) && !defined(__clang__)
+// Dans plusieurs parties du code, on desactive le warning stringop-overflow
+// pour le compilateur gcc car il emet ce warning a tord (au moins pour la version 11)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
 	if (nSrcLen != 0)
 		memcpy(pchData, pszSrcData, nSrcLen);
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 	nDataLength = nSrcLen;
 
 	// Attention au cas particulier d'une chaine vide
@@ -164,7 +173,14 @@ char* ALString::GetBuffer(int nMinBufLength)
 		AllocBuffer(nMinBufLength);
 		memcpy(pchData, pszOldData, nOldLen);
 		nDataLength = nOldLen;
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push // Disable spurious stringop-overflow warning (bug on GCC 11)
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
 		pchData[nDataLength] = '\0';
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 		SafeDelete(pszOldData);
 	}
 
@@ -224,11 +240,18 @@ void ALString::ConcatInPlace(int nSrcLen, const char* pszSrcData)
 	if (nDataLength + nSrcLen > nAllocLength)
 		GetBuffer(2 * (nDataLength + nSrcLen));
 
-	// Cocatenation rapide
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push // Disable spurious stringop-overflow warning (bug on GCC 11)
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
+	// Concatenation rapide
 	memcpy(&pchData[nDataLength], pszSrcData, nSrcLen);
 	nDataLength += nSrcLen;
 	assert(nDataLength <= nAllocLength);
 	pchData[nDataLength] = '\0';
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 }
 
 const ALString& ALString::operator+=(const char* psz)
@@ -420,10 +443,17 @@ int ALString::CompareNoCase(const char* psz) const
 	ALString sFirst;
 	ALString sSecond;
 
-	// Comparaison apres mise en majuscule
+// Comparaison apres mise en majuscule
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push // Disable spurious stringop-overflow warning (bug on GCC 11)
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
 	sFirst = pchData;
 	sFirst.MakeUpper();
 	sSecond = psz;
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 	sSecond.MakeUpper();
 
 	// Non ANSI: return stricmp(pchData, psz);
@@ -447,7 +477,10 @@ void ALString::MakeReverse()
 
 //////////////////////////////////////////////////////////////////////////////
 // Test
-
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push // Disable spurious stringop-overflow warning (bug on GCC 11)
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
 void ALString::Test()
 {
 	ALString sTest;
@@ -609,3 +642,6 @@ void ALString::Test()
 	delete sTestAlloc;
 	delete sTestComp;
 }
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif

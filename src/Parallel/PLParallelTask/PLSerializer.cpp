@@ -915,6 +915,12 @@ void PLSerializer::PutBufferChars(const char* sSource, int nSize)
 	nPutBufferCharsCallNumber++;
 }
 
+#if defined(__GNUC__) && !defined(__clang__)
+// Dans plusieurs parties du code, on desactive le warning stringop-overflow
+// pour le compilateur gcc car il emet ce warning a tord (au moins pour la version 11)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
 void PLSerializer::GetBufferChars(char* sTarget, int nSize)
 {
 	int nCharNumberInBlocSrc;
@@ -1052,7 +1058,9 @@ void PLSerializer::GetBufferChars(char* sTarget, int nSize)
 		}
 	}
 }
-
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 void PLSerializer::AddMemVectorToBuffer(MemHugeVector& memHugeVector, int nSize, int nAllocSize)
 {
 	int nBlocIndex;

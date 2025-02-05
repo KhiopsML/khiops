@@ -53,9 +53,11 @@ void KWLearningBenchmarkUnivariate::Evaluate()
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnonnull"
+#endif
 		crashBench->Evaluate();
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
+#endif
 	}
 
 	// Evaluation standard
