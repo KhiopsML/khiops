@@ -27,22 +27,12 @@ public class GUICard extends GUIUnit
          */
         public void addCardField(String sFieldId, String sLabel, GUICard card, String sStyle)
         {
-                // Recherche de la classe de la sous fiche
-                Class c = getUserCardClass(sStyle);
-                try {
-                        // Instanciation de la sous fiche
-                        GUICard guiCard = (GUICard)c.newInstance();
-                        guiCard = card;
-                        guiCard.setIdentifier(sFieldId);
-                        guiCard.setLabel(sLabel);
-                        guiCard.setStyle(sStyle);
-                        guiCard.setParentUnit(this);
-                        addField(guiCard);
-                } catch (InstantiationException ie) {
-                        System.err.println("La classe java " + c + " ne peut etre instanciee " + ie);
-                } catch (IllegalAccessException iae) {
-                        System.err.println("La classe java " + c + " ne peut etre instanciee " + iae);
-                }
+                // Instanciation de la sous fiche
+                card.setIdentifier(sFieldId);
+                card.setLabel(sLabel);
+                card.setStyle(sStyle);
+                card.setParentUnit(this);
+                addField(card);
         }
 
         /**
@@ -55,21 +45,11 @@ public class GUICard extends GUIUnit
          */
         public void addListField(String sFieldId, String sLabel, GUIList list, String sStyle)
         {
-                // Recherche de la classe de la sous liste
-                Class c = getUserListClass(sStyle);
-                try {
-                        GUIUnit guiUnit = (GUIUnit)c.newInstance();
-                        guiUnit = list;
-                        guiUnit.setIdentifier(sFieldId);
-                        guiUnit.setLabel(sLabel);
-                        guiUnit.setStyle(sStyle);
-                        guiUnit.setParentUnit(this);
-                        addField(guiUnit);
-                } catch (InstantiationException ie) {
-                        System.err.println("La classe java " + c + " ne peut etre instanciee " + ie);
-                } catch (IllegalAccessException iae) {
-                        System.err.println("La classe java " + c + " ne peut etre instanciee " + iae);
-                }
+                list.setIdentifier(sFieldId);
+                list.setLabel(sLabel);
+                list.setStyle(sStyle);
+                list.setParentUnit(this);
+                addField(list);
         }
 
         /**

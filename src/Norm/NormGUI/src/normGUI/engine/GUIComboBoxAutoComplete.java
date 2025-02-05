@@ -18,6 +18,7 @@ import javax.swing.text.PlainDocument;
 /**
  * Definit une comboBox avec auto completion
  */
+@SuppressWarnings("unchecked")
 public class GUIComboBoxAutoComplete extends JComboBox implements JComboBox.KeySelectionManager
 {
 

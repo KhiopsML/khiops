@@ -28,7 +28,7 @@ import normGUI.engine.GUIUnit;
  * Affichage de chaines de caracteres dans une zone de liste editable.
  * Utilisation d'une JComboBox.
  */
-public class GUIStringElementHelpedComboBox extends GUIStringElement
+@SuppressWarnings("unchecked") public class GUIStringElementHelpedComboBox extends GUIStringElement
 {
 
         /**

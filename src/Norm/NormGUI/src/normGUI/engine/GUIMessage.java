@@ -227,7 +227,6 @@ public class GUIMessage extends JFrame
                                 if (currentTextLength + message.length() > maxTextLength) {
                                         String currentText = pane.getText();
                                         int startIndex;
-                                        int nextIndex;
                                         int removedLength;
                                         int removedLines;
 
