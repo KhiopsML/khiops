@@ -1259,6 +1259,7 @@ void KWClass::DeleteUnusedDerivedAttributes(const KWClassDomain* referenceDomain
 	NumericKeyDictionary nkdAllNativeClasses;
 	KWClass* kwcUsedClass;
 	ObjectArray oaUnusedAttributes;
+	ObjectArray oaUnusedClasses;
 	KWAttribute* attribute;
 	KWAttribute* referenceAttribute;
 	KWClass* referenceClass;
@@ -1307,8 +1308,7 @@ void KWClass::DeleteUnusedDerivedAttributes(const KWClassDomain* referenceDomain
 	{
 		kwcUsedClass = cast(KWClass*, oaAllUsedClasses.GetAt(nClass));
 
-		// On ne nettoie que les classes utilisees, ce qui permet de garder l'integrite des autres classe,
-		// comme par exemple la presence de leurs champs cles
+		// On ne nettoie que les classes utilisees
 		if (nkdAllUsedClasses.Lookup(kwcUsedClass) != NULL)
 		{
 			// Parcours des attributs pour identifier les attributs a detruire
@@ -1329,10 +1329,14 @@ void KWClass::DeleteUnusedDerivedAttributes(const KWClassDomain* referenceDomain
 				kwcUsedClass->GetNextAttribute(attribute);
 			}
 		}
+		// On supprime les classes non utilisees, dont l'integrite structurelle peut etre compromise
+		// (manque de leur champs cles, reference a des attributs supprimes...)
+		else
+			oaUnusedClasses.Add(kwcUsedClass);
 	}
 
 	// Prise en compte des attributs a detruire
-	if (oaUnusedAttributes.GetSize() > 0)
+	if (oaUnusedAttributes.GetSize() > 0 or oaUnusedClasses.GetSize() > 0)
 	{
 		// Destruction des attributs
 		for (nAttribute = 0; nAttribute < oaUnusedAttributes.GetSize(); nAttribute++)
@@ -1348,6 +1352,13 @@ void KWClass::DeleteUnusedDerivedAttributes(const KWClassDomain* referenceDomain
 		{
 			kwcUsedClass = cast(KWClass*, oaAllUsedClasses.GetAt(nClass));
 			kwcUsedClass->UpdateFreshness();
+		}
+
+		// Destruction des classes non utilisees
+		for (nClass = 0; nClass < oaUnusedClasses.GetSize(); nClass++)
+		{
+			kwcUsedClass = cast(KWClass*, oaUnusedClasses.GetAt(nClass));
+			GetDomain()->DeleteClass(kwcUsedClass->GetName());
 		}
 	}
 	ensure(Check());

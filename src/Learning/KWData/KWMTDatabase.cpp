@@ -2442,9 +2442,11 @@ KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 	// Incrementation du nombre global d'enregistrements lus
 	// Si on voulait des stats relative uniquement aux instances principales selectionnees, cela devrait se faire
 	// a posteriori une fois les instances selectionnees entierement validees, au niveau de la methode Read
-	mapping->GetDataTableDriver()->SetUsedRecordNumber(mapping->GetDataTableDriver()->GetUsedRecordNumber() + 1);
+	if (kwoObject != NULL and not bIsError)
+		mapping->GetDataTableDriver()->SetUsedRecordNumber(
+		    mapping->GetDataTableDriver()->GetUsedRecordNumber() + 1);
 
-	// Memorisation inconditionnelle de la cle du dernier enregistremnt lu, dans le cas d'une classe unique,
+	// Memorisation inconditionnelle de la cle du dernier enregistrement lu, dans le cas d'une classe unique,
 	// meme si l'objet n'a pas pu etre lu
 	// Cela permet de gere les lignes dupliquees, que l'objet soit lu ou non (a cause d'une erreur de parsing)
 	if (kwoObject == NULL)

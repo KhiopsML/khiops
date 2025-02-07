@@ -360,9 +360,10 @@ public:
 	// Simplification d'une classe en supprimant les attributs derives
 	// non utilises directement ou indirectement, y compris dans une
 	// autre classe du domaine.
-	// On ne touche pas aux classes non utilisee, qui gardent leur integrite structurelle
-	// (ex: avec leurs champs cle), ni aux  aux attributs natifs, pour eviter les warning
-	// llors des lectures de fichier de donnee.
+	// On supprime egalement les classes non utilisees su diomaines, qui sinon pourraient perdre
+	// leur integrite structurelle (par exemple en referencant des attributs supprimes d'autres classes)
+	// On garde par contre les attributs natifs des classes nettoyeers, pour eviter les warning
+	// lors des lectures de fichier de donnee.
 	//
 	// Si le domaine de reference n'est pas NULL, les attributs doivent
 	// etre absent de ce dernier pour etre supprimes.
