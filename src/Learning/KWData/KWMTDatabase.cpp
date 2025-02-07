@@ -2415,6 +2415,11 @@ KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 	// Positionnement du flag d'erreur
 	bIsError = bIsError or mapping->GetDataTableDriver()->IsError();
 
+	// Incrementation du nombre global d'enregistrements lus
+	// Si on voulait des stats relative uniquement aux instances principales selectionnees, cela devrait se faire
+	// a posteriori une fois les instances selectionnees entierement validees, au niveau de la methode Read
+	mapping->GetDataTableDriver()->SetUsedRecordNumber(mapping->GetDataTableDriver()->GetUsedRecordNumber() + 1);
+
 	// Memorisation inconditionnelle de la cle du dernier enregistremnt lu, dans le cas d'une classe unique,
 	// meme si l'objet n'a pas pu etre lu
 	// Cela permet de gere les lignes dupliquees, que l'objet soit lu ou non (a cause d'une erreur de parsing)
@@ -2483,12 +2488,6 @@ KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 			// Retour si enregistrement ignore
 			if (kwoObject == NULL)
 				return NULL;
-
-			// Incrementation du compteur d'objet utilise au niveau physique pour la classe principale
-			// L'incrementation pour les mappings de la composition est effectuee par la suite
-			if (mapping == mainMultiTableMapping)
-				mapping->GetDataTableDriver()->SetUsedRecordNumber(
-				    mapping->GetDataTableDriver()->GetUsedRecordNumber() + 1);
 		}
 
 		// Parcours des mappings de la composition  pour completer la lecture de l'objet
@@ -2575,14 +2574,6 @@ KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 								    componentMapping->GetMappedAttributeLoadIndex(),
 								    kwoSubObject);
 
-								// Incrementation du compteur d'objet utilise au niveau
-								// physique
-								componentMapping->GetDataTableDriver()
-								    ->SetUsedRecordNumber(
-									componentMapping->GetDataTableDriver()
-									    ->GetUsedRecordNumber() +
-									1);
-
 								// Memorisation de la derniere cle lue
 								componentMapping->SetLastReadKey(&subObjectKey);
 
@@ -2608,14 +2599,6 @@ KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 
 								// Rangement du sous-objet dans le tableau
 								oaSubObjects->Add(kwoSubObject);
-
-								// Incrementation du compteur d'objet utilise au niveau
-								// physique
-								componentMapping->GetDataTableDriver()
-								    ->SetUsedRecordNumber(
-									componentMapping->GetDataTableDriver()
-									    ->GetUsedRecordNumber() +
-									1);
 							}
 
 							// Memorisation de la derniere cle lue
