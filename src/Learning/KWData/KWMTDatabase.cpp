@@ -538,6 +538,7 @@ boolean KWMTDatabase::CheckPartially(boolean bWriteOnly) const
 	int nAttributeNumber;
 	int nAttribute;
 	KWClass* pathClass;
+	KWMTDatabaseMapping parentMapping;
 	KWMTDatabase checkDatabase;
 	KWMTDatabaseMapping* checkMapping;
 
@@ -616,6 +617,29 @@ boolean KWMTDatabase::CheckPartially(boolean bWriteOnly) const
 				bOk = false;
 				AddError("Data path " + mapping->GetObjectLabel() + " : External data table " +
 					 mapping->GetDataTableName() + " should not be specified for output database");
+			}
+
+			// En mode ecriture, si une table secondaire non externe est renseignee, sa table parente doit l'etre egalement
+			// En theorie, on pourrait developper du code pour autoriser ce type de specification, mais le rapport cout/benefice
+			// est tres peu favorable pour cas cas d'usage marginal
+			if (bWriteOnly and mapping->GetDataTableName() != "" and
+			    not IsReferencedClassMapping(mapping) and mapping->GetAttributeNames()->GetSize() > 0)
+			{
+				// Recherche du mapping parent
+				parentMapping.CopyFrom(mapping);
+				parentMapping.GetAttributeNames()->SetSize(mapping->GetAttributeNames()->GetSize() - 1);
+				checkMapping = LookupMultiTableMapping(parentMapping.GetDataPath());
+
+				// Verification dans le cas valide que ce mapping a egalement un nom de table specifie
+				if (checkMapping != NULL and checkMapping->GetDataTableName() == "")
+				{
+					bOk = false;
+					AddError("Data path " + mapping->GetObjectLabel() + " : data table " +
+						 mapping->GetDataTableName() +
+						 " cannot be specified without a data table being specified for its "
+						 "owner table (data path " +
+						 parentMapping.GetDataPath() + ")");
+				}
 			}
 
 			// Recherche de la classe principale du chemin de mapping
