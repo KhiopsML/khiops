@@ -3106,9 +3106,9 @@ boolean KWDGAttribute::Check() const
 						// Erreur si VarPart non trouvee
 						if (searchedPart == NULL)
 						{
-							searchedPart->AddError(sTmp + "Inner variable VarPart " +
-									       usedVarPart->GetObjectLabel() +
-									       " not found amond parts of variables");
+							AddError(sTmp + "Inner variable VarPart " +
+								 usedVarPart->GetObjectLabel() +
+								 " not found amond parts of variables");
 							bOk = false;
 							break;
 						}
