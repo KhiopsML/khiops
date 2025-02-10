@@ -4214,8 +4214,7 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 	return (nImprovementNumber > 0);
 }
 
-// CH IV Refactoring: supprimer les lignes commentees de cette methode?
-// CH IV Refactoring : a faire en fonction de la conservation ou non du groupe poubelle pour les attributs internes
+// CH Issue 548 Refactoring : code a adapter pour prendre en compte un groupe poubelle d'un attribut interne
 double CCVarPartDataGridPostOptimizer::ComputeVarPartsSymbolAttributeVariationCost(
     KWDGAttribute* attribute, int nClusterNumberVariation, int nVarPartsNumberVariation, ALString sInnerAttributeName,
     KWDGPart* varPartIn, KWDGPart* varPartOut, KWDGPart* innerPart) const
@@ -4258,8 +4257,7 @@ double CCVarPartDataGridPostOptimizer::ComputeVarPartsSymbolAttributeVariationCo
 		assert(nPartileNumber > 1);
 
 		assert(not GetVarPartAttributeGarbage());
-		// CH IV Refactoring: nettoyer le code ci-dessous?
-		// CH IV Refactoring : a faire en fonction de la conservation ou non du groupe poubelle pour les attributs internes
+		// CH Issue 548 : adapter le code pour evaluer le DeltaCost dans le cas d'un groupe poubelle pour l'attribut VarPart
 		//// Cout de structure si attribut  parties de variable et poubelle
 		// if (attribute->GetAttributeType() == KWType::VarPart and GetVarPartAttributeGarbage())
 		//{
@@ -4328,8 +4326,7 @@ double CCVarPartDataGridPostOptimizer::ComputeVarPartsSymbolAttributeVariationCo
 	{
 		// Cas d'un attribut interne categoriel avec groupe poubelle a integrer plus tard
 		assert(not GetInnerAttributeGarbage());
-		// CH IV Refactoring: nettoyer le code ci-dessous?
-		// CH IV Refactoring : a faire en fonction de la conservation ou non du groupe poubelle pour les attributs internes
+		// CH Issue 548 : adapter le code pour evaluer le DeltaCost dans le cas d'un groupe poubelle pour l'attribut interne categoriel
 		// if (GetInnerAttributeGarbage())
 		//{
 		//	// Taille de la poubelle
@@ -4370,7 +4367,7 @@ double CCVarPartDataGridPostOptimizer::ComputeVarPartsSymbolAttributeVariationCo
 		//		dInnerAttributeCost += KWStat::LnBell(nPartileNumber, nPartitionSize);
 		//	}
 		//}
-		//// CH AB AF temporaire : obsolete apres integration groupe poubelle
+		//// CH Issue 548 : obsolete si integration groupe poubelle pour attribut VarPart
 		// else
 		{
 			// Cas d'une variation du nombre de PV pour cet attribut
@@ -4476,8 +4473,7 @@ double CCVarPartDataGridPostOptimizer::ComputeVarPartsContinuousAttributeVariati
 		assert(nPartileNumber > 1);
 
 		assert(not GetVarPartAttributeGarbage());
-		// CH IV Refactoring: nettoyer ci dessous?
-		// CH IV Refactoring : a faire en fonction de la conservation ou non du groupe poubelle pour les attributs internes
+		// CH Issue 548 : a faire en fonction de la conservation ou non du groupe poubelle pour l'attribut VarPart
 		//// Cout de structure si attribut  parties de variable et poubelle
 		// if (attribute->GetAttributeType() == KWType::VarPart and GetVarPartAttributeGarbage())
 		//{
@@ -4565,8 +4561,7 @@ double CCVarPartDataGridPostOptimizer::ComputeVarPartsContinuousAttributeVariati
 		{
 			// A integrer plus tard
 			assert(not GetInnerAttributeGarbage());
-			// CH IV Refactoring: nettoyer ci dessous?
-			// CH IV Refactoring : a faire en fonction de la conservation ou non du groupe poubelle pour les attributs internes
+			// CH Issue 548 : a faire en fonction de la conservation ou non du groupe poubelle pour les attributs internes
 			// if (GetInnerAttributeGarbage())
 			//{
 			//	// Taille de la poubelle
@@ -4607,7 +4602,7 @@ double CCVarPartDataGridPostOptimizer::ComputeVarPartsContinuousAttributeVariati
 			//		dInnerAttributeCost += KWStat::LnBell(nPartileNumber, nPartitionSize);
 			//	}
 			//}
-			//// CH AB AF temporaire : obsolete apres integration groupe poubelle
+			//// CH Issue 548 : obsolete si integration groupe poubelle
 			// else
 			{
 				// Cas d'une variation du nombre de PV pour cet attribut

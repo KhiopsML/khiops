@@ -129,7 +129,7 @@ void KWDataGridManager::ExportDataGridWithSingletonVarParts(const KWDataGrid* so
 	// Et dans le cas de variables informatives
 	else
 	{
-		// Parametrage de la grille d'origine selon la provenant des clusters d'instances
+		// Parametrage de la grille d'origine selon la provenance des clusters d'instances
 		if (bSourceSimpleAttributeParts)
 			originDataGrid = sourceDataGrid;
 		else

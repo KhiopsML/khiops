@@ -48,14 +48,13 @@ public:
 	void ExportDataGridWithInnerAttributesCloned(const KWDataGrid* sourceDataGrid,
 						     KWDataGrid* targetDataGrid) const;
 
-	// Export total (attribut, parties et cellules) en exploitant une grille de reference,
-	// avec une partie par VarPart
-	// - pour les attributs simples:
-	//   - bSourceSimpleAttributeParts = true: on prend les parties de la grille source
-	//   - bSourceSimpleAttributeParts = false: on prend les parties de la grille de reference
-	// - pour l'attribut VarPart: on utilise les attributs internes de la grille de reference
-	//                            avec une unique partie par partie de variable
-	// Attention: les attributs internes en sortie sont ceux de la grille de reference
+	// Export total (attribut, parties et cellules)
+	// Cas d'une grille de type VarPart
+	// Les innerAttributes de la targetDataGrid sont ceux de la grille de reference
+	// L'attribut VarPart est construit avec une PV par VarPartSet, les PV etant celles des innerAttributes de la referenceDataGrid
+	// L'attribut Identifer est construit selon deux cas :
+	//   - bSourceSimpleAttributeParts = true: on recopie les parties de la grille source
+	//   - bSourceSimpleAttributeParts = false: on recopie les parties de la grille de reference
 	void ExportDataGridWithSingletonVarParts(const KWDataGrid* sourceDataGrid, const KWDataGrid* referenceDataGrid,
 						 KWDataGrid* targetDataGrid, boolean bSourceSimpleAttributeParts) const;
 
@@ -67,7 +66,7 @@ public:
 							KWDataGrid* targetDataGrid);
 
 	// Export d'une grille terminale, avec attributs reduits a une seule partie
-	// Ne modifie pas la pre-partition des attributs internes
+	// Ne modifie pas la tokenisation des attributs internes
 	void ExportTerminalDataGrid(const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid) const;
 
 	// Export de la grille du modele nul : une seule partie par attribut et, pour les attributs VarPart,
@@ -406,7 +405,7 @@ protected:
 								 const KWDGInnerAttributes* mergedInnerAttributes,
 								 KWDGAttribute* targetVarPartAttribute) const;
 
-	// Initialisation d'une unique parties pour un attribut venant d'etre initialise, sans partie, a partir d'un attribut valide
+	// Initialisation d'une unique partie pour un attribut venant d'etre initialise, sans partie, a partir d'un attribut valide
 	void InitialiseAttributeNullPart(const KWDGAttribute* sourceAttribute, KWDGAttribute* targetAttribute) const;
 
 	// Export d'une partition aleatoire des parties pour un attribut donne
