@@ -620,13 +620,14 @@ boolean KWMTDatabase::CheckPartially(boolean bWriteOnly) const
 
 			// Recherche de la classe principale du chemin de mapping
 			originClass = KWClassDomain::GetCurrentDomain()->LookupClass(mapping->GetOriginClassName());
-			assert(originClass->GetName() == GetClassName() or originClass->GetRoot());
+			assert(originClass == NULL or originClass->GetName() == GetClassName() or
+			       originClass->GetRoot());
 
 			// Existence de cette classe
 			if (originClass == NULL)
 			{
 				bOk = false;
-				if (originClass->GetName() == GetClassName())
+				if (mapping->GetOriginClassName() == GetClassName())
 					sOriginLabel = "Main";
 				else
 					sOriginLabel = "Root";
