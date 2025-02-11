@@ -1,5 +1,8 @@
 name: Renovate
 on:
+  push:
+    branches:
+      - '**'           # Trigger the workflow on a push to any branch
   schedule:
     - cron: '0 0 * * *'   # Run Renovate every day at midnight UTC
   workflow_dispatch:      # Allow manual triggering of the workflow
@@ -19,7 +22,7 @@ jobs:
           echo "Verifying RENOVATE_TOKEN permissions for repository ${GITHUB_REPOSITORY}..."
           # Query the GitHub API for repository details using the provided token
           response=$(curl -s -H "Authorization: token ${RENOVATE_TOKEN}" "https://api.github.com/repos/${GITHUB_REPOSITORY}")
-          # Optionally print the response (make sure not to leak the token in logs)
+          # Optionally print the response in a formatted manner using jq
           echo "$response" | jq .
           if echo "$response" | grep -q "Bad credentials"; then
             echo "Error: The provided RENOVATE_TOKEN is invalid or does not have sufficient permissions."
@@ -31,5 +34,5 @@ jobs:
       - name: Run Renovate
         uses: renovatebot/github-action@v41.0.12
         with:
-          configurationFile: renovate.json  # The configuration file must be located at the repository root
+          configurationFile: renovate.json  # The configuration file should be located at the repository root
           token: ${{ secrets.RENOVATE_TOKEN }}
