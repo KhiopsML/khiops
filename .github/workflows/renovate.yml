@@ -2,10 +2,10 @@ name: Renovate
 on:
   push:
     branches:
-      - '**'           # Trigger the workflow on a push to any branch
+      - '**'           # Trigger on push to any branch
   schedule:
-    - cron: '0 0 * * *'   # Run Renovate every day at midnight UTC
-  workflow_dispatch:      # Allow manual triggering of the workflow
+    - cron: '0 0 * * *'   # Run every day at midnight UTC
+  workflow_dispatch:      # Allow manual triggering
 
 jobs:
   renovate:
@@ -14,25 +14,33 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v2
 
+      # Optionally, verify token permissions (see previous examples)
       - name: Verify RENOVATE_TOKEN Permissions
         env:
           RENOVATE_TOKEN: ${{ secrets.RENOVATE_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
-          echo "Verifying RENOVATE_TOKEN permissions for repository ${GITHUB_REPOSITORY}..."
-          # Query the GitHub API for repository details using the provided token
+          echo "Verifying RENOVATE_TOKEN for repository ${GITHUB_REPOSITORY}..."
           response=$(curl -s -H "Authorization: token ${RENOVATE_TOKEN}" "https://api.github.com/repos/${GITHUB_REPOSITORY}")
-          # Optionally print the response in a formatted manner using jq
           echo "$response" | jq .
           if echo "$response" | grep -q "Bad credentials"; then
-            echo "Error: The provided RENOVATE_TOKEN is invalid or does not have sufficient permissions."
+            echo "Error: The RENOVATE_TOKEN is invalid or lacks permissions."
             exit 1
           else
-            echo "RENOVATE_TOKEN is valid and appears to have sufficient permissions."
+            echo "RENOVATE_TOKEN is valid."
           fi
 
       - name: Run Renovate
         uses: renovatebot/github-action@v41.0.12
         with:
-          configurationFile: renovate.json  # The configuration file should be located at the repository root
+          configurationFile: renovate.json  # The configuration file (preferably updated per current docs)
           token: ${{ secrets.RENOVATE_TOKEN }}
+          # Optional advanced inputs:
+          # docker-cmd-file: .github/renovate-entrypoint.sh
+          # docker-user: root
+          # docker-volumes: |
+          #   /tmp:/tmp;
+          #   /foo:/bar
+          # env-regex: "^(?:RENOVATE_\\w+|LOG_LEVEL|AWS_TOKEN)$"
+          # renovate-version: 39.164.1
+          # mount-docker-socket: true
