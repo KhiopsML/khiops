@@ -144,11 +144,9 @@ protected:
 	// Ecriture des clusters numeriques ou groupable (Symbol ou VarPart)
 	void WriteContinuousClusters(const CCHDGAttribute* continuousCoclusteringAttribute, ostream& ost);
 	void WriteGroupableClusters(const CCHDGAttribute* groupableCoclusteringAttribute, ostream& ost);
-	// CH IV Begin
 	void WriteVarPartsInnerAttributes(const CCHDGAttribute* varPartCoclusteringAttribute);
 	void WriteContinuousInnerAttribute(KWDGAttribute* continuousInnerAttribute, ostream& ost);
 	void WriteSymbolInnerAttribute(KWDGAttribute* symbolInnerAttribute, ostream& ost);
-	// CH IV End
 
 	// Nom du chemin du fichier specifie en sortie pour une tache donnees
 	const ALString GetSpecifiedOutputFileName(int nTaskId) const;

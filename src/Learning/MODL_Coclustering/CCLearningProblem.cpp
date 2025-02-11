@@ -535,14 +535,12 @@ void CCLearningProblem::PrepareDeployment()
 	if (bOk)
 		bOk = coclusteringReport.ReadReport(sCoclusteringReportFileName, &coclusteringDataGrid);
 
-	// CH IV Begin
 	// Cas d'un rapport issu d'un coclustering instances * variables : fonctionnalite non implementee
 	if (coclusteringDataGrid.IsVarPartDataGrid())
 	{
 		bOk = false;
 		AddWarning("Deployment preparation is not yet implemented for instances * variables coclustering");
 	}
-	// CH IV End
 
 	// Post-traitement
 	if (bOk)
@@ -825,7 +823,6 @@ boolean CCLearningProblem::CheckCoclusteringSpecifications() const
 			}
 		}
 	}
-	// CH IV End
 	return bOk;
 }
 

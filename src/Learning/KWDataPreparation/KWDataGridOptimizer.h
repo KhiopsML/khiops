@@ -49,13 +49,11 @@ public:
 	void SetClassStats(KWClassStats* stats);
 	KWClassStats* GetClassStats() const;
 
-	// CH IV Begin
 	// Parametrage (facultatif) par une grille initiale, dans le cas du coclustering instances * variables,
 	// Permet l'utilisation de cette grille pour la creation de la grille avec parties de variables fusionnees
 	// Memoire: les specifications sont referencees et destinees a etre partagees
 	void SetInitialVarPartDataGrid(KWDataGrid* refDataGrid);
 	KWDataGrid* GetInitialVarPartDataGrid() const;
-	// CH IV End
 
 	// Optimisation d'un grille pour une structure de cout donnees
 	// En sortie, on trouve une nouvelle grille optimisee compatible avec la grille initiale,
@@ -192,7 +190,6 @@ protected:
 	double VNSOptimizeDataGrid(const KWDataGrid* initialDataGrid, int nNeighbourhoodLevelNumber,
 				   KWDataGrid* optimizedDataGrid) const;
 
-	// CH IV Refactoring
 	// Methode de post-optimisation d'un grille optimisee en redecoupant ses parties de variables
 	// Methode temporaire permettant de reutiliser le code de la methode principale VNSOptimizeDataGrid
 	// en isolant cette partie de post-optimisation specifique VarPart, et de supprimer l'ancienne
@@ -217,7 +214,6 @@ protected:
 					      double& dNeighbourDataGridCost, KWDataGrid* mergedDataGrid,
 					      KWDataGrid* partitionedReferencePostMergedDataGrid) const;
 
-	// CH IV Begin
 	// Pilotage de la meta heuristique VNS, avec des voisinages successifs de taille decroissante
 	// selon un facteur geometrique
 	// La grille optimizedDataGrid contient en entree la meilleure solution courante
@@ -230,7 +226,6 @@ protected:
 	double VNSOptimizeVarPartDataGrid(const KWDataGrid* initialDataGrid, int nNeighbourhoodLevelNumber,
 					  KWDataGrid* optimizedDataGrid, double& dBestMergedDataGridCost,
 					  boolean bWithoutAntecedent) const;
-	// CH IV End
 
 	// Optimisation d'une solution, selon le parametre de post-optimisation des solutions
 	double OptimizeSolution(const KWDataGrid* initialDataGrid, KWDataGridMerger* dataGridMerger,
@@ -242,13 +237,11 @@ protected:
 	void GenerateNeighbourSolution(const KWDataGrid* initialDataGrid, const KWDataGrid* optimizedDataGrid,
 				       double dNoiseRate, KWDataGridMerger* neighbourDataGridMerger) const;
 
-	// CH IV Refactoring surtokenisation
 	// Creation d'une solution voisine d'une solution optimisee avec perturbation de la tokenisation des innerAttributes dans le car VarPart
 	// On passe en parametre un pourcentage de perturbation compris
 	// entre 0 (pas de perturbation) et 1 (solution aleatoire)
 	void PROTOGenerateNeighbourSolution(const KWDataGrid* initialDataGrid, const KWDataGrid* optimizedDataGrid,
 					    double dNoiseRate, KWDataGridMerger* neighbourDataGridMerger) const;
-	// Fin CH IV
 
 	//////////////////////////////////////////////////////////////////////////////////
 	// Methodes utilitaires

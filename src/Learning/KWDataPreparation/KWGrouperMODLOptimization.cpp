@@ -1884,7 +1884,6 @@ void KWGrouperMODL::FastPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSour
 	ensure(kwftSource->GetFrequencyVectorSize() == kwftTarget->GetFrequencyVectorSize());
 }
 
-// CH IV Begin
 // CH IV Refactoring: nettoyer tout le code commente dans cette methode?
 // CH Reponse Carine : pas encore car methode non finalisee au moment de l'integration du code
 void KWGrouperMODL::EMPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSource, KWFrequencyTable* kwftTarget,
@@ -2355,7 +2354,6 @@ void KWGrouperMODL::EMPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSource
 
 	ensure(kwftSource->GetFrequencyVectorSize() == kwftTarget->GetFrequencyVectorSize());
 }
-// CH IV End
 
 void KWGrouperMODL::ForceBestGroupMerge(KWFrequencyTable* kwftSource, KWFrequencyTable* kwftTarget,
 					KWFrequencyTable*& kwftNewTarget, IntVector* ivGroups) const

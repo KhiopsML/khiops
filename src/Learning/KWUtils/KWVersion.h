@@ -50,20 +50,13 @@ void SetLearningWebSite(const ALString& sValue);
 // Type de systeme: 32 ou 64 bit
 const ALString GetLearningSystemType();
 
-// CH IV Begin
-// CH IV Refactoring: commenter les methodes
-// CH IV Refactoring: verifier si ces methodes sont utilisees
-// CH IV Refactoring: envisager d'abandonner la gestion des poubelles
-//    peut etre utile dans la tokenisation pour reduire le cout d'une partition avec gros groupe poubelle ?
-//    pour les attributs de grille de type VarPart et les attributs internes qu'il contiennent?
-// CH IV Refactoring: La methode de postOptimisationVarPart ne prend pas en compte le groupe poubelle
-
+// Dans le cas d'un coclustering individus * variables : prise en compte d'un groupe poubelle fourre-tout pour l'attribut VarPart
 const boolean GetVarPartAttributeGarbage();
 void SetVarPartAttributeGarbage(const boolean bValue);
 
+// Dans le cas d'un coclustering individus * variables : prise en compte d'un groupe poubelle fourre-tout pour les innerAttributes
 const boolean GetInnerAttributeGarbage();
 void SetInnerAttributeGarbage(const boolean bValue);
-// CH IV End
 
 //////////////////////////////////////////////////////////////////////////////////////
 // Politique d'affichage des noms
@@ -146,12 +139,10 @@ boolean GetForestExpertMode();
 // Ce mode expert est controlable par la variable d'environnement KhiopsCoclusteringExpertMode a true ou false
 boolean GetLearningCoclusteringExpertMode();
 
-// CH IV Begin
 // Indicateur du mode expert de l'outil de coclustering (permet d'activer la fonctionnalite de coclustering instances *
 // variables) Ce mode expert est controlable par la variable d'environnement KhiopsCoclusteringIVExpertMode a true ou
 // false
 boolean GetLearningCoclusteringIVExpertMode();
-// CH IV End
 
 // Indicateur du mode parallelisation expert de l'outil (en mode expert uniquement)
 // Permet d'activer certains services additionnels du mode parallele

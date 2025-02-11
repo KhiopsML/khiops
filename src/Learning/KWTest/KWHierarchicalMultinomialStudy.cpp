@@ -1029,8 +1029,7 @@ boolean KWAttributePairStatsStudy::ComputeStats(const KWTupleTable* tupleTable)
 		int nBestGranularity;
 
 		// Parametrage de quantile builder
-		dataGridManager.SetSourceDataGrid(dataGrid);
-		dataGridManager.InitializeQuantileBuilders(&odQuantilesBuilders, &ivMaxPartNumbers);
+		dataGridManager.InitializeQuantileBuilders(dataGrid, &odQuantilesBuilders, &ivMaxPartNumbers);
 
 		// Effectif total
 		nTotalFrequency = dataGrid->GetGridFrequency();
@@ -1057,7 +1056,7 @@ boolean KWAttributePairStatsStudy::ComputeStats(const KWTupleTable* tupleTable)
 
 			// Export d'une grille granularisee
 			dgGranularizedDataGrid.DeleteAll();
-			dataGridManager.ExportGranularizedDataGrid(&dgGranularizedDataGrid, nGranularity,
+			dataGridManager.ExportGranularizedDataGrid(dataGrid, &dgGranularizedDataGrid, nGranularity,
 								   &odQuantilesBuilders);
 
 			//ExportGranularizedDataGrid(&dgGranularizedDataGrid, nPartileNumber, &odQuantilesBuilders);
@@ -1085,11 +1084,11 @@ boolean KWAttributePairStatsStudy::ComputeStats(const KWTupleTable* tupleTable)
 
 		// On memorise la solution correspondant au meilleurs niveau de partile
 		optimizedDataGrid = new KWDataGrid;
-		dataGridManager.ExportGranularizedDataGrid(optimizedDataGrid, nBestGranularity, &odQuantilesBuilders);
+		dataGridManager.ExportGranularizedDataGrid(dataGrid, optimizedDataGrid, nBestGranularity,
+							   &odQuantilesBuilders);
 
 		// Nettoyage
 		odQuantilesBuilders.DeleteAll();
-		dataGridManager.SetSourceDataGrid(NULL);
 	}
 
 	// Calcul des donnes de preparation

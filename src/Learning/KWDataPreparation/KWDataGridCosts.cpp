@@ -73,7 +73,7 @@ double KWDataGridCosts::ComputeCellCost(const KWDGCell* cell) const
 	require(cell != NULL);
 	return 0;
 }
-// CH IV Begin
+
 double KWDataGridCosts::ComputeInnerAttributeCost(const KWDGAttribute* attribute, int nPartitionSize) const
 {
 	require(attribute != NULL);
@@ -85,7 +85,7 @@ double KWDataGridCosts::ComputeInnerAttributePartCost(const KWDGPart* part) cons
 	require(part != NULL);
 	return 0;
 }
-// CH IV End
+
 double KWDataGridCosts::ComputeDataGridCompressionCoefficient(const KWDataGrid* dataGrid) const
 {
 	double dLevel;
@@ -253,8 +253,7 @@ void KWDataGridCosts::InitializeDefaultCosts(const KWDataGrid* dataGrid)
 	dataGridDefaultCosts->SetDataGridCosts(this);
 
 	// Creation d'une grille par default correspondant a la grille source
-	dataGridManager.SetSourceDataGrid(dataGrid);
-	dataGridManager.ExportTerminalDataGrid(dataGridDefaultCosts);
+	dataGridManager.ExportTerminalDataGrid(dataGrid, dataGridDefaultCosts);
 
 	// Initialisation des couts par defaut par entite
 	dataGridDefaultCosts->InitializeAllCosts();
@@ -287,7 +286,7 @@ void KWDataGridCosts::InitializeDefaultCosts(const KWDataGrid* dataGrid)
 			}
 		}
 	}
-	ensure(dataGridManager.CheckDataGrid(dataGridDefaultCosts));
+	ensure(dataGridManager.CheckDataGrid(dataGrid, dataGridDefaultCosts));
 }
 
 void KWDataGridCosts::CleanDefaultCosts()
@@ -738,13 +737,11 @@ void KWDataGridCosts::WritePartCostLine(const KWDGPart* part, ostream& ost) cons
 	ost << part->GetCellNumber() << "\t" << part->GetPartFrequency() << "\t";
 	if (part->GetPartType() == KWType::Symbol)
 		ost << part->GetValueSet()->GetValueNumber() << "\t";
-	// CH IV Begin
 	else if (part->GetPartType() == KWType::Continuous)
 		ost << part->GetPartFrequency() << "\t";
 	else
 		ost << part->GetValueSet()->GetValueNumber() << "\t";
 	// Avant integration coclustering IV ost << part->GetPartFrequency() << "\t";
-	// CH IV End
 	ost << dPartCost << "\t" << dPartCumulativeCost << "\n";
 }
 
@@ -1290,7 +1287,7 @@ double KWDataGridClassificationCosts::ComputeCellCost(const KWDGCell* cell) cons
 	dCellCost -= KWStat::LnFactorial(nTargetValueNumber - 1);
 	return dCellCost;
 }
-// CH IV Begin
+
 double KWDataGridClassificationCosts::ComputeInnerAttributeCost(const KWDGAttribute* attribute,
 								int nPartitionSize) const
 {
@@ -1303,7 +1300,7 @@ double KWDataGridClassificationCosts::ComputeInnerAttributePartCost(const KWDGPa
 	assert(false);
 	return 0;
 }
-// CH IV End
+
 double KWDataGridClassificationCosts::ComputeDataGridConstructionCost(const KWDataGrid* dataGrid, double dLnGridSize,
 								      int nInformativeAttributeNumber) const
 {
@@ -1597,7 +1594,7 @@ double KWDataGridClusteringCosts::ComputeCellCost(const KWDGCell* cell) const
 	dCellCost = -KWStat::LnFactorial(cell->GetCellFrequency());
 	return dCellCost;
 }
-// CH IV Begin
+
 double KWDataGridClusteringCosts::ComputeInnerAttributeCost(const KWDGAttribute* attribute, int nPartitionSize) const
 {
 	assert(false);
@@ -1609,7 +1606,6 @@ double KWDataGridClusteringCosts::ComputeInnerAttributePartCost(const KWDGPart* 
 	assert(false);
 	return 0;
 }
-// CH IV End
 
 double KWDataGridClusteringCosts::ComputeValueCost(const KWDGValue* value) const
 {
@@ -1707,7 +1703,6 @@ const ALString KWDataGridClusteringCosts::GetClassLabel() const
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// CH IV Begin
 // Classe KWVarPartDataGridClusteringCosts
 
 KWVarPartDataGridClusteringCosts::KWVarPartDataGridClusteringCosts() {}
@@ -1838,9 +1833,12 @@ double KWVarPartDataGridClusteringCosts::ComputeAttributeCost(const KWDGAttribut
 			}
 		}
 		// Cout de structure si attribut de type parties de variable sans prise en compte d'un groupe poubelle
-		// CH AB AF temporaire : obsolete a l'integration definitive du groupe poubelle
+		// CH AB AF temporaire : obsolete si integration definitive du groupe poubelle pour l'attribut VarPart
+		// CH 461 Faut il le prendre en compte a ce niveau ? Interessant pour le cas de coclustering avec des textes ?
 		else
 		{
+			assert(attribute->GetAttributeType() == KWType::VarPart and not GetVarPartAttributeGarbage());
+
 			// Cout de codage du nombre de clusters de parties de variable
 			dAttributeCost +=
 			    KWStat::BoundedNaturalNumbersUniversalCodeLength(nPartitionSize - 1, nPartileNumber - 1);
@@ -1949,6 +1947,7 @@ double KWVarPartDataGridClusteringCosts::ComputeInnerAttributeCost(const KWDGAtt
 			}
 		}
 		// CH AB AF temporaire : obsolete apres integration groupe poubelle
+		// CH 461 Necessite l'evolution du code de ComputeVarPartsSymbolAttributeVariationCost pour prise en compte du groupe poubelle
 		else
 		{
 			// Cout de codage du nombre de parties entre 1 et nPartileNumber (la partition peut etre de
@@ -2183,7 +2182,6 @@ const ALString KWVarPartDataGridClusteringCosts::GetClassLabel() const
 {
 	return "VarPart data grid clustering costs";
 }
-// CH IV End
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // Classe KWDataGridRegressionCosts
@@ -2440,7 +2438,7 @@ double KWDataGridRegressionCosts::ComputeCellCost(const KWDGCell* cell) const
 	dCellCost = -KWStat::LnFactorial(cell->GetCellFrequency());
 	return dCellCost;
 }
-// CH IV Begin
+
 double KWDataGridRegressionCosts::ComputeInnerAttributeCost(const KWDGAttribute* attribute, int nPartitionSize) const
 {
 	assert(false);
@@ -2452,7 +2450,7 @@ double KWDataGridRegressionCosts::ComputeInnerAttributePartCost(const KWDGPart* 
 	assert(false);
 	return 0;
 }
-// CH IV End
+
 double KWDataGridRegressionCosts::ComputeDataGridConstructionCost(const KWDataGrid* dataGrid, double dLnGridSize,
 								  int nInformativeAttributeNumber) const
 {
@@ -2822,7 +2820,7 @@ double KWDataGridGeneralizedClassificationCosts::ComputeCellCost(const KWDGCell*
 	dCellCost = -KWStat::LnFactorial(cell->GetCellFrequency());
 	return dCellCost;
 }
-// CH IV Begin
+
 double KWDataGridGeneralizedClassificationCosts::ComputeInnerAttributeCost(const KWDGAttribute* attribute,
 									   int nPartitionSize) const
 {
@@ -2835,7 +2833,6 @@ double KWDataGridGeneralizedClassificationCosts::ComputeInnerAttributePartCost(c
 	assert(false);
 	return 0;
 }
-// CH IV End
 
 double KWDataGridGeneralizedClassificationCosts::ComputeValueCost(const KWDGValue* value) const
 {

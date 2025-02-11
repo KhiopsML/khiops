@@ -540,7 +540,7 @@ inline void KWDGMAttribute::RemovePartFromValueNumberList(KWDGMPart* partM)
 	slPartValueNumbers->RemoveAt(partM->GetPosition());
 	partM->SetPosition(NULL);
 }
-// CH IV Begin
+
 inline void KWDGMAttribute::RemoveAllPartsFromValueNumberList()
 {
 	KWDGPart* part;
@@ -557,7 +557,7 @@ inline void KWDGMAttribute::RemoveAllPartsFromValueNumberList()
 		GetNextPart(part);
 	}
 }
-// CH IV End
+
 inline void KWDGMAttribute::AddPartMerge(KWDGMPartMerge* partMerge)
 {
 	require(partMerge != NULL);

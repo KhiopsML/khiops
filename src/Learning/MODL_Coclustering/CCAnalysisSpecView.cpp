@@ -76,11 +76,8 @@ void CCAnalysisSpecView::EventUpdate(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(CCAnalysisSpec*, object);
-
-	// CH IV Begin
 	editedObject->SetVarPartCoclustering(
 	    editedObject->GetCoclusteringTypeFromLabel(GetStringValueAt("CoclusteringType")));
-	// CH IV End
 }
 
 void CCAnalysisSpecView::EventRefresh(Object* object)
@@ -90,11 +87,8 @@ void CCAnalysisSpecView::EventRefresh(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(CCAnalysisSpec*, object);
-
-	// CH IV Begin
 	SetStringValueAt("CoclusteringType",
 			 editedObject->GetCoclusteringLabelFromType(editedObject->GetVarPartCoclustering()));
-	// CH IV End
 }
 
 void CCAnalysisSpecView::SetObject(Object* object)
