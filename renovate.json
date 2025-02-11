@@ -1,0 +1,16 @@
+{
+    "extends": ["config:base"],
+    "onboarding": false,
+    "requireConfig": "optional",
+    "labels": ["renovate"],
+    "schedule": ["before 5am on Monday"],
+    "branchPrefix": "renovate/",
+    "packageRules": [
+      {
+        "updateTypes": ["minor", "patch"],
+        "automerge": true,
+        "groupName": "minor and patch updates"
+      }
+    ]
+  }
+  
