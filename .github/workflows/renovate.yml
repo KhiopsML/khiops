@@ -1,0 +1,35 @@
+name: Renovate
+on:
+  schedule:
+    - cron: '0 0 * * *'   # Run Renovate every day at midnight UTC
+  workflow_dispatch:      # Allow manual triggering of the workflow
+
+jobs:
+  renovate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Verify RENOVATE_TOKEN Permissions
+        env:
+          RENOVATE_TOKEN: ${{ secrets.RENOVATE_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          echo "Verifying RENOVATE_TOKEN permissions for repository ${GITHUB_REPOSITORY}..."
+          # Query the GitHub API for repository details using the provided token
+          response=$(curl -s -H "Authorization: token ${RENOVATE_TOKEN}" "https://api.github.com/repos/${GITHUB_REPOSITORY}")
+          # Optionally print the response (make sure not to leak the token in logs)
+          echo "$response" | jq .
+          if echo "$response" | grep -q "Bad credentials"; then
+            echo "Error: The provided RENOVATE_TOKEN is invalid or does not have sufficient permissions."
+            exit 1
+          else
+            echo "RENOVATE_TOKEN is valid and appears to have sufficient permissions."
+          fi
+
+      - name: Run Renovate
+        uses: renovatebot/github-action@v41.0.12
+        with:
+          configurationFile: renovate.json  # The configuration file must be located at the repository root
+          token: ${{ secrets.RENOVATE_TOKEN }}
