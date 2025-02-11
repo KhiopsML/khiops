@@ -2,7 +2,7 @@
   "extends": ["config:recommended"],
   "onboarding": false,
   "requireConfig": "optional",
-  "autodiscover": false,
+  "autodiscover": true,
   "labels": ["renovate"],
   "schedule": ["before 5am on Monday"],
   "branchPrefix": "renovate/",
