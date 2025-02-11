@@ -62,3 +62,16 @@ jobs:
           renovate-image: ghcr.io/renovatebot/renovate
           docker-socket-host-path: /var/run/docker.sock
           docker-volumes: /tmp:/tmp
+        env:
+          LOG_LEVEL: debug  # Optional: set to debug for more detailed logs
+
+      - name: Check for Renovate Update Branches
+        run: |
+          echo "Checking for Renovate branches on the remote..."
+          RENOVATE_BRANCHES=$(git ls-remote --heads origin | grep 'refs/heads/renovate/' || true)
+          if [ -z "$RENOVATE_BRANCHES" ]; then
+            echo "No updates proposed by Renovate."
+          else
+            echo "Renovate update branches found:"
+            echo "$RENOVATE_BRANCHES"
+          fi
