@@ -50,9 +50,11 @@ void SetLearningWebSite(const ALString& sValue);
 // Type de systeme: 32 ou 64 bit
 const ALString GetLearningSystemType();
 
+// Dans le cas d'un coclustering individus * variables : prise en compte d'un groupe poubelle fourre-tout pour l'attribut VarPart
 const boolean GetVarPartAttributeGarbage();
 void SetVarPartAttributeGarbage(const boolean bValue);
 
+// Dans le cas d'un coclustering individus * variables : prise en compte d'un groupe poubelle fourre-tout pour les innerAttributes
 const boolean GetInnerAttributeGarbage();
 void SetInnerAttributeGarbage(const boolean bValue);
 

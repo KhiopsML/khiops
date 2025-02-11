@@ -253,7 +253,6 @@ void KWDataGridCosts::InitializeDefaultCosts(const KWDataGrid* dataGrid)
 	dataGridDefaultCosts->SetDataGridCosts(this);
 
 	// Creation d'une grille par default correspondant a la grille source
-	//dataGridManager.SetSourceDataGrid(dataGrid);
 	dataGridManager.ExportTerminalDataGrid(dataGrid, dataGridDefaultCosts);
 
 	// Initialisation des couts par defaut par entite
@@ -1838,6 +1837,8 @@ double KWVarPartDataGridClusteringCosts::ComputeAttributeCost(const KWDGAttribut
 		// CH 461 Faut il le prendre en compte a ce niveau ? Interessant pour le cas de coclustering avec des textes ?
 		else
 		{
+			assert(attribute->GetAttributeType() == KWType::VarPart and not GetVarPartAttributeGarbage());
+
 			// Cout de codage du nombre de clusters de parties de variable
 			dAttributeCost +=
 			    KWStat::BoundedNaturalNumbersUniversalCodeLength(nPartitionSize - 1, nPartileNumber - 1);

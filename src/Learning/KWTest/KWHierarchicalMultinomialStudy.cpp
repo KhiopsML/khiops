@@ -1029,7 +1029,6 @@ boolean KWAttributePairStatsStudy::ComputeStats(const KWTupleTable* tupleTable)
 		int nBestGranularity;
 
 		// Parametrage de quantile builder
-		//dataGridManager.SetSourceDataGrid(dataGrid);
 		dataGridManager.InitializeQuantileBuilders(dataGrid, &odQuantilesBuilders, &ivMaxPartNumbers);
 
 		// Effectif total
@@ -1090,7 +1089,6 @@ boolean KWAttributePairStatsStudy::ComputeStats(const KWTupleTable* tupleTable)
 
 		// Nettoyage
 		odQuantilesBuilders.DeleteAll();
-		//dataGridManager.SetSourceDataGrid(NULL);
 	}
 
 	// Calcul des donnes de preparation

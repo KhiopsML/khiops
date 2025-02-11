@@ -5447,16 +5447,6 @@ int KWDGCellCompareDecreasingFrequency(const void* elem1, const void* elem2)
 	return nCompare;
 }
 
-//void KWDataGrid::SetLabel(const ALString& sValue)
-//{
-//	sLabel = sValue;
-//}
-//
-//const ALString& KWDataGrid::GetLabel() const
-//{
-//	return sLabel;
-//}
-
 void KWDataGrid::SetTargetAttribute(KWDGAttribute* attribute)
 {
 	targetAttribute = attribute;

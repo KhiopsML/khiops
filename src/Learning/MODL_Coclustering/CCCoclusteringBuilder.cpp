@@ -669,7 +669,6 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 	// Initialisation d'un quantile builder pour chaque attribut interne dans un attribut de grile de type
 	// de type VarPart La grille initiale comporte un cluster par partie de variable pour ses attributs de
 	// grille de type VarPart
-	//dataGridManager.SetSourceDataGrid(initialDataGrid);
 	dataGridManager.InitializeInnerAttributesQuantileBuilders(initialDataGrid, &odInnerAttributesQuantileBuilders,
 								  &ivMaxPartNumbers);
 	if (bDisplayPrePartitioning)
@@ -706,7 +705,6 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 			break;
 
 		// Pre-partitionnement des attributs internes de la grille initiale
-		//dataGridManager.SetSourceDataGrid(initialDataGrid);
 		dataGridManager.ExportGranularizedDataGridForVarPartAttributes(
 		    initialDataGrid, &partitionedDataGrid, nPrePartitionIndex, &odInnerAttributesQuantileBuilders);
 
@@ -829,8 +827,6 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 			if (partitionedOptimizedDataGrid.GetInformativeAttributeNumber() > 0 and
 			    dataGridOptimizer.GetParameters()->GetVarPartPostMerge())
 			{
-				//dataGridManager.SetSourceDataGrid(&partitionedOptimizedDataGrid);
-
 				// Creation d'une nouvelle grille avec nouvelle description des PV et calcul de
 				// la variation de cout liee a la fusion des PV
 				dFusionDeltaCost = dataGridManager.ExportDataGridWithVarPartMergeOptimization(
@@ -900,7 +896,6 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 					// eventuellement issues d'une fusion des PV de la grille source
 					// On construit une grille qui contient des clusters mono-PV avec
 					// les PV issues de la fusion de la grille optimisee
-					//dataGridManager.SetSourceDataGrid(initialDataGrid);
 					dataGridManager.ExportDataGridWithSingletonVarParts(
 					    initialDataGrid, optimizedDataGrid, &partitionedReferencePostMergedDataGrid,
 					    true);
@@ -1044,7 +1039,6 @@ void CCCoclusteringBuilder::PROTO_OptimizeVarPartDataGrid(const KWDataGrid* inpu
 	// Initialisation d'un quantile builder pour chaque attribut interne dans un attribut de grile de type
 	// de type VarPart La grille initiale comporte un cluster par partie de variable pour ses attributs de
 	// grille de type VarPart
-	//dataGridManager.SetSourceDataGrid(initialDataGrid);
 	dataGridManager.InitializeInnerAttributesQuantileBuilders(initialDataGrid, &odInnerAttributesQuantileBuilders,
 								  &ivMaxPartNumbers);
 
@@ -1098,7 +1092,6 @@ void CCCoclusteringBuilder::PROTO_OptimizeVarPartDataGrid(const KWDataGrid* inpu
 	if (not TaskProgression::IsInterruptionRequested())
 	{
 		// Pre-partitionnement des attributs internes de la grille initiale
-		//dataGridManager.SetSourceDataGrid(initialDataGrid);
 		dataGridManager.ExportGranularizedDataGridForVarPartAttributes(initialDataGrid, &partitionedDataGrid,
 									       nInitialPrePartitionIndex,
 									       &odInnerAttributesQuantileBuilders);
@@ -1145,8 +1138,6 @@ void CCCoclusteringBuilder::PROTO_OptimizeVarPartDataGrid(const KWDataGrid* inpu
 		if (partitionedOptimizedDataGrid.GetInformativeAttributeNumber() > 0 and
 		    dataGridOptimizer.GetParameters()->GetVarPartPostMerge())
 		{
-			//dataGridManager.SetSourceDataGrid(&partitionedOptimizedDataGrid);
-
 			// Creation d'une nouvelle grille avec nouvelle description des PV et calcul de
 			// la variation de cout liee a la fusion des PV
 			dFusionDeltaCost = dataGridManager.ExportDataGridWithVarPartMergeOptimization(
@@ -1210,7 +1201,6 @@ void CCCoclusteringBuilder::PROTO_OptimizeVarPartDataGrid(const KWDataGrid* inpu
 			// eventuellement issues d'une fusion des PV de la grille source
 			// On construit une grille qui contient des clusters mono-PV avec
 			// les PV issues de la fusion de la grille optimisee
-			//dataGridManager.SetSourceDataGrid(initialDataGrid);
 			dataGridManager.ExportDataGridWithSingletonVarParts(
 			    initialDataGrid, optimizedDataGrid, &partitionedReferencePostMergedDataGrid, true);
 
@@ -3430,7 +3420,6 @@ void CCCoclusteringBuilder::ComputeHierarchicalInfo(const KWDataGrid* inputIniti
 	// en evaluant l'impact des fusions de groupes
 
 	// Creation d'un KWDataGridMerger pour l'evaluation des fusions entre groupes du coclustering
-	//dataGridManager.SetSourceDataGrid(optimizedDataGrid);
 	dataGridManager.ExportDataGrid(optimizedDataGrid, &dataGridMerger);
 
 	// Initialisation de la structure de couts
@@ -3657,7 +3646,6 @@ void CCCoclusteringBuilder::ComputeValueTypicalitiesAt(const KWDataGrid* inputIn
 	    optimizedDataGrid, inputInitialDataGrid, optimizedDataGrid->GetAttributeAt(nAttribute)->GetAttributeName());
 
 	// Verification de la compatibilite entre grille optimisee et grille initiale
-	//dataGridManager.SetSourceDataGrid(univariateInitialDataGrid);
 	assert(dataGridManager.CheckDataGrid(univariateInitialDataGrid, optimizedDataGrid));
 
 	// Parametrage des couts d'optimisation univarie de la grille

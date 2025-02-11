@@ -58,7 +58,6 @@ double KWDataGridPostOptimizer::PostOptimizeDataGrid(const KWDataGrid* initialDa
 	TaskProgression::DisplayMainLabel(sTaskLabel);
 
 	// Verification de la compatibilite entre grille optimisee et grille initiale
-	//dataGridManager.SetSourceDataGrid(initialDataGrid);
 	require(dataGridManager.CheckDataGrid(initialDataGrid, optimizedDataGrid));
 
 	// Calcul du cout initial
@@ -226,7 +225,6 @@ KWDataGridPostOptimizer::BuildUnivariateInitialDataGrid(const KWDataGrid* optimi
 	univariateInitialDataGrid = new KWDataGrid;
 
 	// Export des attributs et des parties de la grille optimisee
-	//dataGridManager.SetSourceDataGrid(optimizedDataGrid);
 	dataGridManager.ExportAttributes(optimizedDataGrid, univariateInitialDataGrid);
 	dataGridManager.ExportParts(optimizedDataGrid, univariateInitialDataGrid);
 
@@ -235,12 +233,10 @@ KWDataGridPostOptimizer::BuildUnivariateInitialDataGrid(const KWDataGrid* optimi
 	postOptimizationAttribute->DeleteAllParts();
 
 	// Export des parties les plus fines (de la grille initiale) pour la grille a optimiser
-	//dataGridManager.SetSourceDataGrid(initialDataGrid);
 	dataGridManager.ExportAttributeParts(initialDataGrid, univariateInitialDataGrid,
 					     sPostOptimizationAttributeName);
 
 	// Export des cellules pour la grille initiale univariee
-	//dataGridManager.SetSourceDataGrid(initialDataGrid);
 	dataGridManager.ExportCells(initialDataGrid, univariateInitialDataGrid);
 
 	// Affichage des resultats
@@ -327,7 +323,6 @@ double KWDGPODiscretizer::PostOptimizeDataGrid(const KWDataGrid* initialDataGrid
 	}
 
 	// Verification de la compatibilite entre grille optimisee et grille initiale
-	//dataGridManager.SetSourceDataGrid(initialDataGrid);
 	require(dataGridManager.CheckDataGrid(initialDataGrid, optimizedDataGrid));
 
 	// Parametrage des couts d'optimisation univarie de la grille
@@ -827,7 +822,6 @@ void KWDGPODiscretizer::UpdateDataGridFromIntervalList(KWDataGrid* optimizedData
 	}
 
 	// Export des cellules pour la grille initiale univariee
-	//dataGridManager.SetSourceDataGrid(initialDataGrid);
 	dataGridManager.ExportCells(initialDataGrid, optimizedDataGrid);
 
 	// Affichage des resultats
@@ -1252,7 +1246,6 @@ double KWDGPOGrouper::PostOptimizeDataGrid(const KWDataGrid* initialDataGrid, co
 	}
 
 	// Verification de la compatibilite entre grille optimisee et grille initiale
-	//dataGridManager.SetSourceDataGrid(initialDataGrid);
 	require(dataGridManager.CheckDataGrid(initialDataGrid, optimizedDataGrid));
 
 	// Parametrage des couts d'optimisation univarie de la grille
@@ -1884,7 +1877,6 @@ void KWDGPOGrouper::UpdateDataGridWithGarbageFromGroups(KWDataGrid* optimizedDat
 	}
 
 	// Export des cellules pour la grille initiale univariee
-	//dataGridManager.SetSourceDataGrid(initialDataGrid);
 	dataGridManager.ExportCells(initialDataGrid, optimizedDataGrid);
 
 	// Affichage des resultats
@@ -3450,11 +3442,6 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 
 	// Re-initialisation du vecteur des clusters
 	ivGroups->SetSize(0);
-
-	// Verification de la compatibilite entre grille optimisee et grille initiale
-	//dataGridManager.SetSourceDataGrid(referenceDataGrid);
-	// CH IV: si cette verification est inutile, la supprimer
-	// require(dataGridManager.CheckDataGrid(optimizedDataGrid));
 
 	// Extraction de l'attribut VarPart dans la grille pre-partitionnee de reference
 	varPartReferenceAttribute = referenceDataGrid->SearchAttribute(sPostOptimizationAttributeName);

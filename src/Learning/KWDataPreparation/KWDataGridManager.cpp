@@ -268,15 +268,18 @@ void KWDataGridManager::ExportDataGridWithRandomizedInnerAttributes(const KWData
 	KWDGAttribute* targetAttribute;
 	KWDGAttribute* sourceAttribute;
 	KWDGInnerAttributes* surtokenizedInnerAttributes;
+	const boolean bTrace = false;
 
 	require(Check());
 	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
 	require(sourceDataGrid->IsVarPartDataGrid());
 
-	// DD 461
-	//cout << "ExportDataGridWithRandomizedInnerAttributes\n";
-	//cout << "Grille source " << *sourceDataGrid << endl;
-	//cout << "Grille input " << *inputDataGrid << endl;
+	if (bTrace)
+	{
+		cout << "ExportDataGridWithRandomizedInnerAttributes\n";
+		cout << "Grille source " << *sourceDataGrid << endl;
+		cout << "Grille input " << *inputDataGrid << endl;
+	}
 
 	// Nombre de tokens de la grille en entree
 	nCurrentTokenNumber =
