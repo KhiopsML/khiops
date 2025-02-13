@@ -1424,6 +1424,10 @@ void KWDatabase::BuildPhysicalClass()
 	KWAttribute* initialAttribute;
 	KWAttributeBlock* initialAttributeBlock;
 	KWAttribute* attributeToDelete;
+	KWDerivationRule* rule;
+	KWDerivationRuleOperand* operand;
+	int nOperand;
+	KWAttribute* targetAttribute;
 
 	require(kwcClass != NULL);
 	require(kwcClass->GetName() == GetClassName());
@@ -1518,7 +1522,7 @@ void KWDatabase::BuildPhysicalClass()
 	}
 
 	// Collecte de tous les attributs obligatoires a ne pas detruire, meme s'il ne sont pas utilises
-	// Il faudra les garder, potentiellement en unused, car ils restent necessaire pour preserver
+	// Il faudra les garder, potentiellement en unused, car ils sont necessaires pour preserver
 	// l'integrite des  classes et des regles
 	for (nClass = 0; nClass < oaAllUsedClasses.GetSize(); nClass++)
 	{
@@ -1529,6 +1533,52 @@ void KWDatabase::BuildPhysicalClass()
 		{
 			attribute = kwcCurrentPhysicalClass->GetKeyAttributeAt(i);
 			nkdAllNondeletableAttributes.SetAt(attribute, attribute);
+		}
+
+		// Champs  des classes en sortie des regles de creation de tables
+		attribute = kwcCurrentPhysicalClass->GetHeadAttribute();
+		while (attribute != NULL)
+		{
+			// Cas d'un attribut qui n'est pas a detruire
+			if (nkdAllUsedAttributes.Lookup(attribute) != NULL)
+			{
+				// Cas d'une regle de derivation de type creation de table
+				rule = attribute->GetAnyDerivationRule();
+				if (rule != NULL and rule->GetOutputOperandNumber() > 0)
+				{
+					assert(not attribute->IsInBlock());
+					assert(attribute->GetClass() != NULL);
+
+					// On doit conserver tous les operandes en entree de la regle pour garder la regle compilable
+					// En effet, pour des raisons d'optimisation, les regles de creation de table avec operandes en sortie
+					// peuvent declarer ne pas utiliser tout ou partie de leur operandes en entree, s'ils ne sont pas
+					// necessaire pour calculer la valeur des operandes en sortie (ex: s'il correspondent a des variables
+					// de la table en sortie, jamais utilisees).
+					// Il ne faut pas les detruire: on les gardera ainsi en unused, pour a la fois garder le dictionnaire
+					// compilable, et eviter les calculs inutiles
+					for (nOperand = 0; nOperand < rule->GetOutputOperandNumber(); nOperand++)
+					{
+						// On indique de garder tous les attributs necessaires recursivement au calcul des operandes
+						rule->BuildAllUsedAttributesAtOperand(attribute, nOperand,
+										      &nkdAllNondeletableAttributes);
+					}
+
+					// Parcours de ses operandes en sortie pour rechercher les attribut cibles de la regle a ne pas detruire
+					for (nOperand = 0; nOperand < rule->GetOutputOperandNumber(); nOperand++)
+					{
+						operand = rule->GetOutputOperandAt(nOperand);
+
+						// Recherche de l'attribut cible correspond a l'operande en sortie
+						targetAttribute =
+						    attribute->GetClass()->LookupAttribute(operand->GetAttributeName());
+						assert(targetAttribute != NULL);
+						nkdAllNondeletableAttributes.SetAt(targetAttribute, targetAttribute);
+					}
+				}
+			}
+
+			// Attribut suivant
+			kwcCurrentPhysicalClass->GetNextAttribute(attribute);
 		}
 	}
 

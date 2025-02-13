@@ -969,12 +969,15 @@ void KWDRRelationCreationRule::BuildAllUsedAttributes(const KWAttribute* derived
 {
 	boolean bTrace = false;
 	ObjectDictionary odOutputAttributeNames;
+	IntVector ivUsedInputOperands;
+	IntVector ivUsedOutputOperands;
 	KWClass* kwcSourceClass;
 	KWClass* kwcTargetClass;
 	KWAttribute* sourceAttribute;
 	KWAttribute* targetAttribute;
 	KWDerivationRuleOperand* operand;
-	int i;
+	int nOperand;
+	boolean bIsTargetAttributeUsed;
 
 	require(IsCompiled());
 	require(derivedAttribute != NULL);
@@ -989,12 +992,13 @@ void KWDRRelationCreationRule::BuildAllUsedAttributes(const KWAttribute* derived
 		cout << "- target class: " << GetObjectClassName() << "\n";
 	}
 
-	// Appel de la methode ancetre
-	KWDerivationRule::BuildAllUsedAttributes(derivedAttribute, nkdAllUsedAttributes);
-
 	// Recherche des attribut cible utilises dans le cas d'une alimentation de type calcul
 	if (GetOutputOperandNumber() > 0)
 	{
+		// Initialisation des vecteurs des operandes utilises en entree et en sortie
+		ivUsedInputOperands.SetSize(GetOperandNumber());
+		ivUsedOutputOperands.SetSize(GetOutputOperandNumber());
+
 		// Recherche de la classe cible
 		kwcTargetClass = derivedAttribute->GetClass();
 		assert(kwcTargetClass != NULL);
@@ -1004,37 +1008,61 @@ void KWDRRelationCreationRule::BuildAllUsedAttributes(const KWAttribute* derived
 			cout << "- output operands: " << GetOutputOperandNumber() << "\n";
 
 		// Collecte des attributs en sortie
-		// On considere ici que tous les attributs en sortie sont utilises, qu'ils soit en used ou non
-		//
-		// En theorie, on pourrait optimiser les impacts en n'exploitant que les attributs en sortie utilises
-		// Mais cela serait vraiment complexe a gerer:
-		// - ne pas collecter les attributs cibles dans methode
-		// - se baser sur leur utilisation par d'autre regles
-		//   - il faudrait attendre d'avoir fait la propagation complete des attributs utilises sur
-		//     l'ensemble de toutes les regles du domaine
-		// - en deduire une sous-partie des operandes en sortie a ne pas utiliser
-		//   - les operandes ne memorisent pas actuellement ce type d'information
-		// - en deduire les operandes en entree corespondantes a ne pas utiliser
-		//   - contraire a ce qui est fait actuellemennt, ou on propage systematiquement l'utilisation
-		//     des attributs  via les operandes en entree
-		for (i = 0; i < GetOutputOperandNumber(); i++)
+		// On optimise les impacts en n'exploitant que les attributs en sortie utilises
+		// - on ne collecte pas les attributs cibles dans methode
+		// - on se base en fait sur leur utilisation par d'autre regles
+		for (nOperand = 0; nOperand < GetOutputOperandNumber(); nOperand++)
 		{
-			operand = GetOutputOperandAt(i);
+			operand = GetOutputOperandAt(nOperand);
 			assert(operand->GetOrigin() == KWDerivationRuleOperand::OriginAttribute);
 			assert(KWType::IsData(operand->GetType()));
 
 			// Recherche de l'attribut cible correspond a l'operande en sortie
 			targetAttribute = kwcTargetClass->LookupAttribute(operand->GetAttributeName());
+			assert(targetAttribute != NULL);
 
-			// Memorisation de l'attribut en sortie dans le dictionnaire parmi les attributs utilises
-			nkdAllUsedAttributes->SetAt(targetAttribute, targetAttribute);
+			// Recherche si l'attribut cible est utilise
+			bIsTargetAttributeUsed = nkdAllUsedAttributes->Lookup(targetAttribute) != NULL;
+
+			// Memorisation de l'utilisation de l'operande
+			if (bIsTargetAttributeUsed)
+				ivUsedOutputOperands.SetAt(nOperand, 1);
 
 			// Memorisation du nom de l'attribut en sortie pour les distinguer des attributs de type view
 			odOutputAttributeNames.SetAt(operand->GetAttributeName(), operand);
 
 			// Trace
 			if (bTrace)
-				cout << "  - " << i + 1 << ": " << operand->GetAttributeName() << "\n";
+				cout << "  - " << nOperand + 1 << ": " << operand->GetAttributeName() << "\t"
+				     << BooleanToString(bIsTargetAttributeUsed) << "\n";
+		}
+
+		// On en en deduit la sous-partie des operandes en entree a utiliser
+		CollectUsedInputOperands(&ivUsedOutputOperands, &ivUsedInputOperands);
+
+		// Trace
+		if (bTrace)
+		{
+			cout << "- used input operands: " << GetOperandNumber() << "\n";
+			for (nOperand = 0; nOperand < GetOperandNumber(); nOperand++)
+			{
+				cout << "  - " << nOperand + 1 << ": "
+				     << BooleanToString(ivUsedInputOperands.GetAt(nOperand) == 1) << "\n";
+			}
+		}
+	}
+
+	// Appel de la methode ancetre s'il n'y a pas d'operandes en sortie
+	if (GetOutputOperandNumber() == 0)
+		KWDerivationRule::BuildAllUsedAttributes(derivedAttribute, nkdAllUsedAttributes);
+	// Sinon, on n'utilise que les operandes necessaire pour les operandes utilises en sortie
+	else
+	{
+		assert(ivUsedInputOperands.GetSize() == GetOperandNumber());
+		for (nOperand = 0; nOperand < GetOperandNumber(); nOperand++)
+		{
+			if (ivUsedInputOperands.GetAt(nOperand) == 1)
+				BuildAllUsedAttributesAtOperand(derivedAttribute, nOperand, nkdAllUsedAttributes);
 		}
 	}
 
@@ -1287,6 +1315,54 @@ void KWDRRelationCreationRule::WriteUsedRuleOperands(ostream& ost) const
 	}
 }
 
+void KWDRRelationCreationRule::CollectUsedInputOperands(const IntVector* ivUsedOutputOperands,
+							IntVector* ivUsedInputOperands) const
+{
+	int nOutputOperand;
+
+	require(ivUsedOutputOperands != NULL);
+	require(ivUsedOutputOperands->GetSize() == GetOutputOperandNumber());
+	require(ivUsedInputOperands != NULL);
+	require(ivUsedInputOperands->GetSize() == GetOperandNumber());
+
+	// Collecte des operandes en entree obligatoires
+	CollectMandatoryInputOperands(ivUsedInputOperands);
+
+	// Collecte des operandes en entree specifiques par operande en sortie
+	for (nOutputOperand = 0; nOutputOperand < GetOutputOperandNumber(); nOutputOperand++)
+	{
+		if (ivUsedOutputOperands->GetAt(nOutputOperand) == 1)
+			CollectSpecificInputOperandsAt(nOutputOperand, ivUsedInputOperands);
+	}
+}
+
+void KWDRRelationCreationRule::CollectMandatoryInputOperands(IntVector* ivUsedInputOperands) const
+{
+	int nInputOperand;
+
+	require(ivUsedInputOperands != NULL);
+	require(ivUsedInputOperands->GetSize() == GetOperandNumber());
+	require(GetOperandNumber() >= GetOutputOperandNumber());
+
+	// Par defaut, les operandes en entree du debut de liste spont obligatoires
+	for (nInputOperand = 0; nInputOperand < GetOperandNumber() - GetOutputOperandNumber(); nInputOperand++)
+		ivUsedInputOperands->SetAt(nInputOperand, 1);
+}
+
+void KWDRRelationCreationRule::CollectSpecificInputOperandsAt(int nOutputOperand, IntVector* ivUsedInputOperands) const
+{
+	int nInputOperand;
+
+	require(0 <= nOutputOperand and nOutputOperand < GetOutputOperandNumber());
+	require(ivUsedInputOperands != NULL);
+	require(ivUsedInputOperands->GetSize() == GetOperandNumber());
+	require(GetOperandNumber() >= GetOutputOperandNumber());
+
+	// Par defaut, on utilie l'operande en entree correspondant a l'operande en sortie
+	nInputOperand = GetOperandNumber() - GetOutputOperandNumber() + nOutputOperand;
+	ivUsedInputOperands->SetAt(nInputOperand, 1);
+}
+
 void KWDRRelationCreationRule::InternalCompleteTypeInfo(const KWClass* kwcOwnerClass,
 							NumericKeyDictionary* nkdCompletedAttributes)
 {
@@ -1417,6 +1493,15 @@ void KWDRRelationCreationRule::FillComputeModeTargetAttributesForVariableOperand
 		nType = ivComputeModeTargetAttributeTypes.GetAt(nAttribute);
 		liTarget = livComputeModeTargetAttributeLoadIndexes.GetAt(nAttribute);
 		nInputOperandIndex = nStartInputOperandIndex + nAttribute;
+
+		// On ignore les attribut cible non valide, qui correspondes aux attributs cibles non charges en memoire
+		if (not liTarget.IsValid())
+		{
+			assert(not kwoTargetObject->GetClass()
+				       ->LookupAttribute(GetOutputOperandAt(nAttribute)->GetAttributeName())
+				       ->GetLoaded());
+			continue;
+		}
 
 		// Recopie de la valeur selon le type
 		switch (nType)
