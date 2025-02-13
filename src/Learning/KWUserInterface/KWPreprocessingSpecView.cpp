@@ -33,7 +33,7 @@ KWPreprocessingSpecView::KWPreprocessingSpecView()
 	cast(UIIntElement*, GetFieldAt("MinPartFrequency"))->SetMaxValue(1000000);
 
 	// Action d'inspection des parametres avances
-	AddAction("InspectAdvancedParameters", "Advanced parameters",
+	AddAction("InspectAdvancedParameters", "Advanced unsupervised parameters",
 		  (ActionMethod)(&KWPreprocessingSpecView::InspectAdvancedParameters));
 	AddAction("InspectHistogramParameters", "Expert histogram parameters",
 		  (ActionMethod)(&KWPreprocessingSpecView::InspectHistogramParameters));
