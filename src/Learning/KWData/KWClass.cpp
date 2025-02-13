@@ -1530,7 +1530,17 @@ void KWClass::FinalizeBuildAllUsedAttributes(NumericKeyDictionary* nkdAllUsedAtt
 	while (bContinue)
 	{
 		nStep++;
+
+		// Export d'u dictionnaire d'attribut sous forme de tableau
 		nkdAllUsedAttributes->ExportObjectArray(&oaAllUsedAttributes);
+
+		// Tri par nom de classe et d'attribut
+		// Ce tri n'est pas obligatoire, mais il n'est pas vraiment couteux en temps, et il assure la
+		// reproductibilite de l'execution des passes d'analyse, ce qui est critique pour la mise au point
+		oaAllUsedAttributes.SetCompareFunction(KWAttributeCompareClassAndAttributeName);
+		oaAllUsedAttributes.Sort();
+
+		// Parcours des attributs pour une nouvelle passe
 		for (nAttribute = 0; nAttribute < oaAllUsedAttributes.GetSize(); nAttribute++)
 		{
 			attribute = cast(KWAttribute*, oaAllUsedAttributes.GetAt(nAttribute));

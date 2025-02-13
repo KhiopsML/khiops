@@ -225,6 +225,10 @@ public:
 	virtual void BuildAllUsedAttributes(const KWAttribute* derivedAttribute,
 					    NumericKeyDictionary* nkdAllUsedAttributes) const;
 
+	// Construction du dictionnaire de tous les attributs utilises pour un operande donne
+	virtual void BuildAllUsedAttributesAtOperand(const KWAttribute* derivedAttribute, int nOperandIndex,
+						     NumericKeyDictionary* nkdAllUsedAttributes) const;
+
 	//////////////////////////////////////////////////////////////////////////
 	// Gestion du scope des operandes
 	//
