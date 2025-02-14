@@ -140,10 +140,9 @@ public class GUIDialog extends GUIObject
                 dialog.pack();
                 int minDialogWidth = getMinFramedWidth(guiDialogCard.getLabel());
                 Dimension currentPreferredSize = dialog.getPreferredSize();
-                if (currentPreferredSize.getWidth() <= minDialogWidth) {
-                        dialog.setPreferredSize(new Dimension(minDialogWidth, (int)currentPreferredSize.getHeight()));
-                        dialog.pack();
-                }
+                Dimension adjustedDimension = computeAdjustedDimension(currentPreferredSize, minDialogWidth);
+                dialog.setPreferredSize(adjustedDimension);
+                dialog.pack();
 
                 // Positionnement de la boite de dialogue par rapport a la fenetre parente
                 dialog.setLocationRelativeTo(parentFrame);

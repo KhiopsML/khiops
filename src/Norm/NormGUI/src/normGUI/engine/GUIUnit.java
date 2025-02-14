@@ -1281,14 +1281,14 @@ import javax.swing.SwingUtilities;
                 // Initialisation des valeurs
                 graphicRefreshAll();
 
-                // Ajustement de la taille de la fenetre pour tenir compte de la longueur du titre
+                // Ajustement de la taille de la fenetre pour tenir compte de la longueur du titre et de la taille de
+                // l'ecran
                 frame.pack();
                 int minFrameWidth = getMinFramedWidth(getLabel());
                 Dimension currentPreferredSize = frame.getPreferredSize();
-                if (currentPreferredSize.getWidth() <= minFrameWidth) {
-                        frame.setPreferredSize(new Dimension(minFrameWidth, (int)currentPreferredSize.getHeight()));
-                        frame.pack();
-                }
+                Dimension adjustedDimension = computeAdjustedDimension(currentPreferredSize, minFrameWidth);
+                frame.setPreferredSize(adjustedDimension);
+                frame.pack();
 
                 // Creation et enregistrement d'une gestion personnaliser de la fermeture
                 // de la fenetre pour gerer la synchronisation avec le programme

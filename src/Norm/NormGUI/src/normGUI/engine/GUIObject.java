@@ -181,8 +181,34 @@ public abstract class GUIObject
         }
 
         /*
-         * Recherche des caracteristiques de l'ecran courant, contena t la fenetre
-         * active
+         * Ajustement d'une dimension initiale par rapport a une largeur de frame minimale et a la taille de l'ecran
+         */
+        static public Dimension computeAdjustedDimension(Dimension initialDimension, int minFrameWidth)
+        {
+                // On recupere les dimensions de l'ecran
+                Rectangle screenBounds = getCurrentScreenBounds();
+
+                // Ajustement des dimensions a la largeur minimale
+                int newWidth = (int)initialDimension.getWidth();
+                int newHeight = (int)initialDimension.getHeight();
+                if (newWidth < minFrameWidth)
+                        newWidth = minFrameWidth;
+
+                // Ajout heuristique d'une petite marge en largeur
+                newWidth = (newWidth * 105) / 100;
+
+                // Ajustement a la taille de l'ecran, avec une marge heuristique
+                // pour tenir compte de la barre de tache, de la barre de titre, de menu, d'un libelle, de boutons...
+                int maxUsableHeight = (screenBounds.height * 95) / 100;
+                if (newWidth > screenBounds.width)
+                        newWidth = screenBounds.width;
+                if (newHeight > maxUsableHeight)
+                        newHeight = maxUsableHeight;
+                return new Dimension(newWidth, newHeight);
+        }
+
+        /*
+         * Recherche des caracteristiques de l'ecran courant, contenant la fenetre active
          */
         static public Rectangle getCurrentScreenBounds()
         {

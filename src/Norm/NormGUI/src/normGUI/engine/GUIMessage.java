@@ -10,7 +10,6 @@ import java.awt.Dimension;
 import java.awt.Frame;
 import java.awt.Insets;
 import java.awt.Rectangle;
-import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.JButton;
@@ -51,8 +50,7 @@ public class GUIMessage extends JFrame
                 currentTextLength = 0;
 
                 // On recupere les dimensions de l'ecran
-                int screenWidth = Toolkit.getDefaultToolkit().getScreenSize().width;
-                int screenHeight = Toolkit.getDefaultToolkit().getScreenSize().height;
+                Rectangle screenBounds = GUIObject.getCurrentScreenBounds();
 
                 // Creation de la zone de texte
                 pane = new NonWrappingTextPane();
@@ -63,7 +61,7 @@ public class GUIMessage extends JFrame
 
                 // Creation et ajout des composants au panel
                 JScrollPane scrollPane = new JScrollPane(pane);
-                scrollPane.setPreferredSize(new Dimension(screenWidth / 3, screenHeight / 3));
+                scrollPane.setPreferredSize(new Dimension(screenBounds.width / 3, screenBounds.height / 3));
                 getContentPane().add(scrollPane, BorderLayout.CENTER);
                 JPanel panelButton = new JPanel();
                 JButton buttonClear = new JButton("Clear");
