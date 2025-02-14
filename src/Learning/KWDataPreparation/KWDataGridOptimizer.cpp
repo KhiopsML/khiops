@@ -2068,12 +2068,10 @@ void KWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initialDat
 	// complete avec de nouveaux attributs absents de la grille optimisee Quand le NoiseRate est eleve (=1) alors
 	// aucun des attributs n'est conserve avec ce statut d'obligatoire
 	nMandatoryAttributeNumber = (int)ceil((1 - dNoiseRate) * optimizedDataGrid->GetAttributeNumber());
-	//dataGridManager.SetSourceDataGrid(optimizedDataGrid);
 	dataGridManager.ExportRandomAttributes(optimizedDataGrid, &mandatoryDataGrid, nMandatoryAttributeNumber);
 
 	// Exports d'attributs supplementaires
 	// Pour un dNoiseRate de 1, tous les attributs sont ajoutes a concurrence de nMaxAttributeNumber
-	//dataGridManager.SetSourceDataGrid(initialDataGrid);
 	neighbourDataGridMerger->DeleteAll();
 	dataGridManager.AddRandomAttributes(initialDataGrid, neighbourDataGridMerger, &mandatoryDataGrid,
 					    nAttributeNumber);
@@ -2148,7 +2146,6 @@ void KWDataGridOptimizer::PROTOGenerateNeighbourSolution(const KWDataGrid* initi
 	nRequestedSymbolPartNumber = 1 + (int)(dNoiseRate * nMaxSymbolPartNumber);
 
 	// Cas VarPart : export de l'ensemble des attributs en tant qu'attributs obligatoires
-	//dataGridManager.SetSourceDataGrid(optimizedDataGrid);
 	dataGridManager.ExportRandomAttributes(optimizedDataGrid, &mandatoryDataGrid, nAttributeNumber);
 
 	// Creer un copie temporaire du neighbourDataGridMerger pour tester la surtokenisation: neighbourDataGridMergerTest
@@ -2167,7 +2164,6 @@ void KWDataGridOptimizer::PROTOGenerateNeighbourSolution(const KWDataGrid* initi
 
 	// Exports d'attributs supplementaires
 	// Pour un dNoiseRate de 1, tous les attributs sont ajoutes a concurrence de nMaxAttributeNumber
-	//dataGridManager.SetSourceDataGrid(initialDataGrid);
 	neighbourDataGridMerger->DeleteAll();
 	dataGridManager.AddRandomAttributes(initialDataGrid, neighbourDataGridMerger, &mandatoryDataGrid,
 					    nAttributeNumber);
