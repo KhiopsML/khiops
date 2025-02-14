@@ -215,12 +215,12 @@ void DoubleVector::TestImportExport(int nVectorSize, int nIndexSource, int nInde
 	{
 		dvSource.Add(1.0 * i);
 	}
-	cBuffer = new char[nVectorSize * sizeof(double)];
+	cBuffer = NewCharArray(nVectorSize * sizeof(double));
 	dvSource.ExportBuffer(nIndexSource, nVectorSize, cBuffer);
 
 	dvDest.SetSize(nVectorSize + nIndexDest);
 	dvDest.ImportBuffer(nIndexDest, nVectorSize, cBuffer);
-	delete[] cBuffer;
+	DeleteCharArray(cBuffer);
 
 	for (i = 0; i < nVectorSize; i++)
 	{
