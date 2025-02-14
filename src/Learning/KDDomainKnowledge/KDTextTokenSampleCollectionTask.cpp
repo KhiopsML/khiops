@@ -423,7 +423,6 @@ int KDTextTokenSampleCollectionTask::GetMaxStreamCollectedTokenNumber(int nReque
 boolean KDTextTokenSampleCollectionTask::InternalCollectTokenSamples(const KWDatabase* sourceDatabase)
 {
 	boolean bOk = true;
-	// DDD boolean bDisplayPerformanceStats = false;
 	int nAttribute;
 	ALString sTmp;
 

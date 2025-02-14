@@ -164,8 +164,10 @@ boolean PLFileConcatenater::Concatenate(const StringVector* svChunkURIs, const O
 	require(not bDisplayProgression or dProgressionEnd > dProgressionBegin);
 	require(not bDisplayProgression or dProgressionEnd <= 1);
 
-	fileHandle = NULL;
+	// Initialisations
 	bOk = true;
+	nChunkIndex = 0;
+	fileHandle = NULL;
 	dTaskPercent = dProgressionEnd - dProgressionBegin;
 
 	// Lancement des serveurs de fichiers si on n'est pas dans une tache
