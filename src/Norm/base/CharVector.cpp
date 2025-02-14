@@ -315,7 +315,7 @@ void CharVector::Test2()
 	// CharVector mono-bloc
 	cv.SetSize(10 * lKB);
 	cv.InitWithRandomChars();
-	cBuffer = new char[1 * lKB];
+	cBuffer = NewCharArray(1 * lKB);
 
 	// Copie de 1 KB a partir de l'index 0
 	cv.ExportBuffer(0, 1 * lKB, cBuffer);
@@ -327,12 +327,12 @@ void CharVector::Test2()
 	bOk = cv.ContainsCharsAt(10, cBuffer, 1 * lKB) and bOk;
 	ensure(bOk);
 
-	delete[] cBuffer;
+	DeleteCharArray(cBuffer);
 
 	// CharVector multi-bloc
 	cv.SetSize(1 * lMB);
 	cv.InitWithRandomChars();
-	cBuffer = new char[64 * lKB];
+	cBuffer = NewCharArray(64 * lKB);
 
 	// Copie de 64 KB a partir de l'index 0
 	cv.ExportBuffer(0, 64 * lKB, cBuffer);
@@ -349,7 +349,7 @@ void CharVector::Test2()
 	bOk = cv.ContainsCharsAt(100 * lKB, cBuffer, 64 * lKB) and bOk;
 	ensure(bOk);
 
-	delete[] cBuffer;
+	DeleteCharArray(cBuffer);
 
 	if (bOk)
 		cout << "Test is OK  :-)" << endl;
@@ -374,7 +374,8 @@ boolean CharVector::TestCopyAt(int nSizeDest, int nSizeSource, int nIndexDest, i
 	cvDest.SetSize(nSizeDest);
 
 	// Initialisation de tableau source avec des '2'
-	pSource = new char[nSizeSource];
+	pSource = NewCharArray(nSizeSource);
+
 	for (i = 0; i < nSizeSource; i++)
 	{
 		pSource[i] = cSource;
@@ -410,7 +411,7 @@ boolean CharVector::TestCopyAt(int nSizeDest, int nSizeSource, int nIndexDest, i
 	ensure(bOk);
 	bOk = nCharDestNumber == nSizeDest - nCharSourceNumber;
 	ensure(bOk);
-	delete[] pSource;
+	DeleteCharArray(pSource);
 	return bOk;
 }
 

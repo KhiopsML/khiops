@@ -331,8 +331,8 @@ boolean PLRemoteFileService::FileCompare(const ALString& sFileName1, const ALStr
 	bSame = bOk;
 	if (bSame)
 	{
-		sBuffer1 = new char[nBufferSize];
-		sBuffer2 = new char[nBufferSize];
+		sBuffer1 = NewCharArray(nBufferSize);
+		sBuffer2 = NewCharArray(nBufferSize);
 
 		lPos = 0;
 		// On parcours tout le fichier, sans se baser sur feof
@@ -356,8 +356,8 @@ boolean PLRemoteFileService::FileCompare(const ALString& sFileName1, const ALStr
 				}
 			}
 		}
-		delete[] sBuffer1;
-		delete[] sBuffer2;
+		DeleteCharArray(sBuffer1);
+		DeleteCharArray(sBuffer2);
 	}
 
 	// Fermeture des fichiers
