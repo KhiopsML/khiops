@@ -23,12 +23,16 @@ function(get_mpi_implementation)
     set(VAR_MPI_INFO "${MPI_LIBRARIES}")
   endif(IS_CONDA)
 
-  # ERROR if VAR_MPI_INFO is not defined, it means either: - in standard environment find_mpi provides no MPI path (MPI
-  # is not installed) - or in conda build, the 'mpi' variable is missing and find_mpi may find the system wide mpi, this
-  # is not not what we want. - or in conda, outside of the build process, the mpi package is not installed and find_mpi
-  # may find the system wide mpi.
+  # If no MPI library information is detected (i.e. VAR_MPI_INFO is undefined or empty),
+  # then we check if MPI_IMPL was provided externally. If so, we use the provided MPI_IMPL,
+  # otherwise, we terminate with a fatal error. This allows us to use a system-defined MPI
+  # implementation when building in a conda environment that does not list MPI via "conda list | grep mpi".
   if(NOT DEFINED VAR_MPI_INFO OR "${VAR_MPI_INFO}" STREQUAL "")
-    message(FATAL_ERROR "Missing information to discover the MPI implementation")
+    if(DEFINED MPI_IMPL)
+      message(STATUS "Using provided MPI_IMPL: ${MPI_IMPL}")
+    else()
+      message(FATAL_ERROR "Missing information to discover the MPI implementation")
+    endif()
   endif()
 
   # Find "openmpi", "mpich" or "intel" in the variable VAR_MPI_INFO
