@@ -29,6 +29,36 @@ KWAttribute::~KWAttribute()
 		delete advancedTypeSpecification.genericSpecification;
 }
 
+const ALString KWAttribute::GetTypeLabel() const
+{
+	ALString sTypeLabel;
+
+	// Libelle de base du type
+	sTypeLabel = KWType::ToString(GetType());
+
+	// Complement dans le cas d'un type relation
+	if (KWType::IsRelation(GetType()))
+	{
+		sTypeLabel += '(';
+		if (GetClass() != NULL)
+			sTypeLabel += GetClass()->GetName();
+		else
+			sTypeLabel += '?';
+		sTypeLabel += ')';
+	}
+	// Complement dans le cas d'un type structure
+	else if (GetType() == KWType::Structure)
+	{
+		sTypeLabel += '(';
+		if (GetStructureName() != "")
+			sTypeLabel += GetStructureName();
+		else
+			sTypeLabel += '?';
+		sTypeLabel += ')';
+	}
+	return sTypeLabel;
+}
+
 const ALString KWAttribute::GetFormatMetaDataKey(int nComplexType)
 {
 	ALString sFormatKey;
