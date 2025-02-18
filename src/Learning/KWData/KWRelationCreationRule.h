@@ -11,6 +11,7 @@ class KWDRRelationCreationRule;
 class KWDRTableCreationRule;
 
 #include "KWDerivationRule.h"
+#include "KWDRStandard.h"
 
 ////////////////////////////////////////////////////////////////////////////
 // Classe KWDRRelationCreationRule
@@ -212,6 +213,10 @@ protected:
 	// Test si le type d'un operande en sortie est valide
 	boolean IsValidOutputOperandType(int nType) const;
 
+	// Ajout d'une erreur de verification en mode vue pur une variable du dictionnaire en sortie
+	void AddViewModeError(const KWClass* kwcSourceClass, const KWClass* kwcTargetClass,
+			      const KWAttribute* targetAttribute, const ALString& sLabel) const;
+
 	// Indique si l'alimentation de type vue est activee
 	// Dans ce cas, le premier operande est de type Relation pour le dictionnaire en entree de la vue,
 	// et on verifie la compatibilite entre les attributs natif du dictionnaire en sortie et
@@ -243,11 +248,21 @@ protected:
 	KWLoadIndexVector livComputeModeTargetAttributeLoadIndexes;
 	IntVector ivComputeModeTargetAttributeTypes;
 
-	// Index de chargement des attributs pour une alimentation de type vue
+	// Index de chargement des attributs denses pour une alimentation de type vue
 	// On precise pour chaque attribut concerne son index dans le dictionnaire source et cible
 	KWLoadIndexVector livViewModeSourceAttributeLoadIndexes;
 	KWLoadIndexVector livViewModeTargetAttributeLoadIndexes;
 	IntVector ivViewModeTargetAttributeTypes;
+
+	// Index de chargement des blocs d'attributs pour une alimentation de type vue
+	// On precise pour chaque bloc d'attribut concerne son index dans le dictionnaire source et cible
+	KWLoadIndexVector livViewModeSourceBlockLoadIndexes;
+	KWLoadIndexVector livViewModeTargetBlockLoadIndexes;
+	IntVector ivViewModeTargetBlockTypes;
+
+	// Dans le cas des bloc, on utilise une regle de derivation de type CopyBlock par bloc a recopier depuis
+	// la source vers la cible, pour reutiliser les services d'extraction de la sous-partie du bloc sparse
+	ObjectArray oaViewModeCopyBlockRules;
 
 	// Classe de la cible de la vue
 	KWClass* kwcCompiledTargetClass;
