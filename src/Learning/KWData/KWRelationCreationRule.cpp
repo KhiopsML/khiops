@@ -212,7 +212,7 @@ boolean KWDRRelationCreationRule::CheckOperandsDefinition() const
 				sOperandOrigin =
 				    KWDerivationRuleOperand::OriginToString(operand->GetOrigin(), operand->GetType());
 				AddError(sTmp + "Incorrect output operand " + IntToString(i + 1) +
-					 " that must be used with an origin Variable (origin " + sOperandOrigin +
+					 " that must be used with an origin variable (origin " + sOperandOrigin +
 					 " not allowed)");
 				bOk = false;
 			}
@@ -525,9 +525,9 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 					assert(operand->GetOrigin() == KWDerivationRuleOperand::OriginAttribute);
 					assert(operand->GetDataItemName() != "");
 					assert(kwcTargetClass->LookupAttribute(operand->GetDataItemName()) == NULL);
-					// On passe par la methode GetDataItemName, vcar le type n'est pas valide
+					// On passe par la methode GetDataItemName, car le type n'est pas valide
 					AddError(sTmp + "Invalid output operand " + IntToString(i + 1) + ", as the " +
-						 operand->GetDataItemName() + " variable " + " is not found in the " +
+						 operand->GetDataItemName() + " variable is not found in the " +
 						 kwcTargetClass->GetName() + " output dictionary");
 					bOk = false;
 				}
@@ -563,7 +563,7 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 		// Validation des attributs natifs de la classe cible
 		if (bOk)
 		{
-			// Recherche de la classe source dans le cas d'une alimentttion de type vue
+			// Recherche de la classe source dans le cas d'une alimentation de type vue
 			kwcSourceClass = NULL;
 			if (IsViewModeActivated())
 			{
@@ -609,28 +609,18 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 							// Erreur si pas d'attribut correspondant trouve
 							if (sourceAttribute == NULL)
 							{
-								AddError("In the " + kwcTargetClass->GetName() +
-									 " output dictionary, the " +
-									 targetAttribute->GetName() +
-									 " variable must exist in the " +
-									 kwcSourceClass->GetName() +
-									 " input dictionary of the first operand" +
-									 " of the rule");
+								AddViewModeError(kwcSourceClass, kwcTargetClass,
+										 targetAttribute, "must exist");
 								bOk = false;
 							}
 							// Erreur si le type trouve est incorrect
 							else if (sourceAttribute->GetType() !=
 								 targetAttribute->GetType())
 							{
-								AddError("In the " + kwcTargetClass->GetName() +
-									 " output dictionary, the " +
-									 KWType::ToString(targetAttribute->GetType()) +
-									 " variable " + targetAttribute->GetName() +
-									 " is found with a different type (" +
-									 KWType::ToString(sourceAttribute->GetType()) +
-									 ") in the " + kwcSourceClass->GetName() +
-									 " input dictionary of the first operand" +
-									 " of the rule");
+								AddViewModeError(
+								    kwcSourceClass, kwcTargetClass, targetAttribute,
+								    "is found with a different type (" +
+									sourceAttribute->GetTypeLabel() + ")");
 								bOk = false;
 							}
 
@@ -639,44 +629,72 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 							    sourceAttribute->GetClass()->GetName() !=
 								targetAttribute->GetClass()->GetName())
 							{
-								AddError("In the " + kwcTargetClass->GetName() +
-									 " output dictionary, the " +
-									 KWType::ToString(targetAttribute->GetType()) +
-									 "(" + targetAttribute->GetClass()->GetName() +
-									 ") variable " + targetAttribute->GetName() +
-									 " is found with a different type (" +
-									 KWType::ToString(sourceAttribute->GetType()) +
-									 "(" + sourceAttribute->GetClass()->GetName() +
-									 ")) in the " + kwcSourceClass->GetName() +
-									 " input dictionary of the first operand" +
-									 " of the rule");
+								AddViewModeError(
+								    kwcSourceClass, kwcTargetClass, targetAttribute,
+								    "is found with a different type (" +
+									sourceAttribute->GetTypeLabel() + ")");
 								bOk = false;
 							}
 
-							// Erreur dans le cas d'un bloc si bloc different ou si VarKey different
-							if (bOk and (sourceAttribute->IsInBlock() or
-								     targetAttribute->IsInBlock()))
+							// Erreur dans le cas d'un bloc cible si bloc source incompatible
+							if (bOk and targetAttribute->IsInBlock())
 							{
-								//DDD Pour l'instant, on interdit les attributs cibles dans un bloc
+								assert(sourceAttribute->GetType() ==
+								       targetAttribute->GetType());
+
 								// Un attribut cible peut etre dans un bloc si l'attribut source est dans un bloc
 								// Meme nom, meme type, meme VarKey, meme nom de bloc
 								// Si un attribut cible est dense, l'attribut surce doit etre dense
-								if (targetAttribute->IsInBlock())
+								if (not sourceAttribute->IsInBlock())
 								{
-									AddError("In the " + kwcTargetClass->GetName() +
-										 " output dictionary, the " +
-										 targetAttribute->GetName() +
-										 " variable in block " +
-										 targetAttribute->GetAttributeBlock()
-										     ->GetName() +
-										 " not allowed");
+									AddViewModeError(
+									    kwcSourceClass, kwcTargetClass,
+									    targetAttribute,
+									    "is in a block named " +
+										targetAttribute->GetAttributeBlock()
+										    ->GetName() +
+										"and should also be in a block");
+									bOk = false;
+								}
+								// Erreur si nom de bloc different
+								else if (targetAttribute->GetAttributeBlock()
+									     ->GetName() !=
+									 sourceAttribute->GetAttributeBlock()
+									     ->GetName())
+								{
+									AddViewModeError(
+									    kwcSourceClass, kwcTargetClass,
+									    targetAttribute,
+									    "is in a block named " +
+										targetAttribute->GetAttributeBlock()
+										    ->GetName() +
+										"and if found in a block with a "
+										"differet name (" +
+										sourceAttribute->GetAttributeBlock()
+										    ->GetName() +
+										")");
+									bOk = false;
+								}
+								// Erreur si type de VarKey different
+								else if (targetAttribute->GetAttributeBlock()
+									     ->GetVarKeyType() !=
+									 sourceAttribute->GetAttributeBlock()
+									     ->GetVarKeyType())
+								{
+									AddViewModeError(
+									    kwcSourceClass, kwcTargetClass,
+									    targetAttribute,
+									    "is in a block named " +
+										targetAttribute->GetAttributeBlock()
+										    ->GetName() +
+										"and is found in a block with a "
+										"different name (" +
+										sourceAttribute->GetAttributeBlock()
+										    ->GetName() +
+										")");
 									bOk = false;
 								}
 								//DDD EN COURS
-								// Erreur si nom de bloc different
-
-								// Erreur si type de VarKey different
-
 								// Erreur si VarKey different
 							}
 						}
@@ -1391,6 +1409,21 @@ void KWDRRelationCreationRule::InternalCompleteTypeInfo(const KWClass* kwcOwnerC
 			}
 		}
 	}
+}
+
+void KWDRRelationCreationRule::AddViewModeError(const KWClass* kwcSourceClass, const KWClass* kwcTargetClass,
+						const KWAttribute* targetAttribute, const ALString& sLabel) const
+{
+	require(kwcSourceClass != NULL);
+	require(kwcTargetClass != NULL);
+	require(targetAttribute != NULL);
+	require(IsValidOutputOperandType(targetAttribute->GetType()));
+	require(kwcTargetClass->LookupAttribute(targetAttribute->GetName()) == targetAttribute);
+
+	// Message d'erreur, avec partie generique
+	AddError("In the " + kwcTargetClass->GetName() + " output dictionary, the " + targetAttribute->GetTypeLabel() +
+		 " variable " + targetAttribute->GetName() + " " + sLabel + " in the " + kwcSourceClass->GetName() +
+		 " input dictionary of the first operand" + " of the rule");
 }
 
 boolean KWDRRelationCreationRule::IsViewModeActivated() const

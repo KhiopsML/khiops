@@ -212,6 +212,10 @@ protected:
 	// Test si le type d'un operande en sortie est valide
 	boolean IsValidOutputOperandType(int nType) const;
 
+	// Ajout d'une erreur de verification en mode vue pur une variable du dictionnaire en sortie
+	void AddViewModeError(const KWClass* kwcSourceClass, const KWClass* kwcTargetClass,
+			      const KWAttribute* targetAttribute, const ALString& sLabel) const;
+
 	// Indique si l'alimentation de type vue est activee
 	// Dans ce cas, le premier operande est de type Relation pour le dictionnaire en entree de la vue,
 	// et on verifie la compatibilite entre les attributs natif du dictionnaire en sortie et
