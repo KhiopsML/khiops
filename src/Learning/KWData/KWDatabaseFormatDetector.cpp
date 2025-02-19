@@ -469,9 +469,18 @@ boolean KWDatabaseFormatDetector::DetectFileFormatUsingClassWithHeaderLine(const
 	if (bShowDetails)
 		cout << "First line: " << cfvFirstLine << "\n";
 
-	// Initialisation des separateurs candidats avec les caracteres de la premiere ligne
-	cfvCandidateSeparators.CopyFrom(&cfvFirstLine);
+	// Initialisation des separateurs candidats
+	// Cas particulier d'un seul champ natif
+	if (kwcClass->GetNativeDataItemNumber() == 1)
+		cfvCandidateSeparators.InitializeFrequencies(1);
+	// Cas general avec au moins deux champs
+	// Initialisation avec les caracteres de la premiere ligne
+	else
+		cfvCandidateSeparators.CopyFrom(&cfvFirstLine);
 	bIsHeaderLine = not cfvCandidateSeparators.IsZero();
+
+	if (bShowDetails)
+		cout << "Initialisation des separateurs candidats: " << cfvCandidateSeparators << "\n";
 
 	// On soustrait les caracteres des champs obligatoire
 	if (bIsHeaderLine)
@@ -479,6 +488,11 @@ boolean KWDatabaseFormatDetector::DetectFileFormatUsingClassWithHeaderLine(const
 		bIsHeaderLine = cfvCandidateSeparators.IsGreaterOrEqual(&cfvAttributeNames);
 		if (bIsHeaderLine)
 			cfvCandidateSeparators.Substract(&cfvAttributeNames);
+
+		if (bShowDetails)
+			cout << "Separateurs candidats apres caracteres des champs obligatoires: "
+			     << cfvCandidateSeparators << "\n";
+
 		bIsHeaderLine = not cfvCandidateSeparators.IsZero();
 	}
 
