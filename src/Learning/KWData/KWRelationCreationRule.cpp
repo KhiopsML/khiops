@@ -484,8 +484,11 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 	KWClass* kwcTargetClass;
 	KWAttribute* sourceAttribute;
 	KWAttribute* targetAttribute;
+	KWAttributeBlock* sourceBlock;
+	KWAttributeBlock* targetBlock;
 	ObjectDictionary odOutputAttributeNames;
 	KWDerivationRuleOperand* operand;
+	ALString sLabel;
 	int i;
 	ALString sTmp;
 
@@ -596,7 +599,7 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 								 " variable is not set by any output operand");
 							bOk = false;
 						}
-						// Cas d'une alimenattion de type vue
+						// Cas d'une alimentation de type vue
 						else
 						{
 							assert(IsViewModeActivated());
@@ -617,10 +620,10 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 							else if (sourceAttribute->GetType() !=
 								 targetAttribute->GetType())
 							{
-								AddViewModeError(
-								    kwcSourceClass, kwcTargetClass, targetAttribute,
-								    "is found with a different type (" +
-									sourceAttribute->GetTypeLabel() + ")");
+								sLabel = "is found with a different type (" +
+									 sourceAttribute->GetTypeLabel() + ")";
+								AddViewModeError(kwcSourceClass, kwcTargetClass,
+										 targetAttribute, sLabel);
 								bOk = false;
 							}
 
@@ -629,10 +632,10 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 							    sourceAttribute->GetClass()->GetName() !=
 								targetAttribute->GetClass()->GetName())
 							{
-								AddViewModeError(
-								    kwcSourceClass, kwcTargetClass, targetAttribute,
-								    "is found with a different type (" +
-									sourceAttribute->GetTypeLabel() + ")");
+								sLabel = "is found with a different type (" +
+									 sourceAttribute->GetTypeLabel() + ")";
+								AddViewModeError(kwcSourceClass, kwcTargetClass,
+										 targetAttribute, sLabel);
 								bOk = false;
 							}
 
@@ -642,18 +645,21 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 								assert(sourceAttribute->GetType() ==
 								       targetAttribute->GetType());
 
+								// Acces aux eventuels blocs source et cible
+								sourceBlock = sourceAttribute->GetAttributeBlock();
+								targetBlock = targetAttribute->GetAttributeBlock();
+								assert(targetAttribute != NULL);
+
 								// Un attribut cible peut etre dans un bloc si l'attribut source est dans un bloc
 								// Meme nom, meme type, meme VarKey, meme nom de bloc
 								// Si un attribut cible est dense, l'attribut surce doit etre dense
 								if (not sourceAttribute->IsInBlock())
 								{
-									AddViewModeError(
-									    kwcSourceClass, kwcTargetClass,
-									    targetAttribute,
-									    "is in a block named " +
-										targetAttribute->GetAttributeBlock()
-										    ->GetName() +
-										"and should also be in a block");
+									sLabel = "is in a block named " +
+										 targetAttribute->GetName() +
+										 " and should also be in a block";
+									AddViewModeError(kwcSourceClass, kwcTargetClass,
+											 targetAttribute, sLabel);
 									bOk = false;
 								}
 								// Erreur si nom de bloc different
@@ -662,40 +668,54 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 									 sourceAttribute->GetAttributeBlock()
 									     ->GetName())
 								{
-									AddViewModeError(
-									    kwcSourceClass, kwcTargetClass,
-									    targetAttribute,
-									    "is in a block named " +
-										targetAttribute->GetAttributeBlock()
-										    ->GetName() +
-										"and if found in a block with a "
-										"differet name (" +
-										sourceAttribute->GetAttributeBlock()
-										    ->GetName() +
-										")");
+									sLabel = "is in a block named " +
+										 targetBlock->GetName() +
+										 " and is found in a block with a "
+										 "different name (" +
+										 sourceBlock->GetName() + ")";
+									AddViewModeError(kwcSourceClass, kwcTargetClass,
+											 targetAttribute, sLabel);
 									bOk = false;
 								}
 								// Erreur si type de VarKey different
-								else if (targetAttribute->GetAttributeBlock()
-									     ->GetVarKeyType() !=
+								else if (targetBlock->GetVarKeyType() !=
 									 sourceAttribute->GetAttributeBlock()
 									     ->GetVarKeyType())
 								{
-									AddViewModeError(
-									    kwcSourceClass, kwcTargetClass,
-									    targetAttribute,
+									sLabel =
 									    "is in a block named " +
-										targetAttribute->GetAttributeBlock()
-										    ->GetName() +
-										"and is found in a block with a "
-										"different name (" +
-										sourceAttribute->GetAttributeBlock()
-										    ->GetName() +
-										")");
+									    targetBlock->GetName() +
+									    " with VarKey type " +
+									    KWType::ToString(
+										targetBlock->GetVarKeyType()) +
+									    " and is found in a block with a different "
+									    "VarKey type (" +
+									    KWType::ToString(
+										sourceBlock->GetVarKeyType()) +
+									    ")";
+									AddViewModeError(kwcSourceClass, kwcTargetClass,
+											 targetAttribute, sLabel);
 									bOk = false;
 								}
-								//DDD EN COURS
-								// Erreur si VarKey different
+								// Erreur si valeur de VarKey different
+								else if (sourceBlock->GetStringVarKey(
+									     sourceAttribute) !=
+									 targetBlock->GetStringVarKey(targetAttribute))
+								{
+									sLabel = "is in a block named " +
+										 targetBlock->GetName() +
+										 " with VarKey value " +
+										 targetBlock->GetStringVarKey(
+										     targetAttribute) +
+										 " and is found with a different "
+										 "VarKey value (" +
+										 sourceBlock->GetStringVarKey(
+										     sourceAttribute) +
+										 ")";
+									AddViewModeError(kwcSourceClass, kwcTargetClass,
+											 targetAttribute, sLabel);
+									bOk = false;
+								}
 							}
 						}
 					}
