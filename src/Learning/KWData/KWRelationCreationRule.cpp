@@ -800,6 +800,9 @@ void KWDRRelationCreationRule::Compile(KWClass* kwcOwnerClass)
 	KWAttribute* sourceAttribute;
 	KWAttribute* targetAttribute;
 	int nAttribute;
+	KWAttributeBlock* sourceBlock;
+	KWAttributeBlock* targetBlock;
+	int nBlock;
 	KWDerivationRuleOperand* operand;
 	int i;
 
@@ -814,6 +817,9 @@ void KWDRRelationCreationRule::Compile(KWClass* kwcOwnerClass)
 	livViewModeSourceAttributeLoadIndexes.SetSize(0);
 	livViewModeTargetAttributeLoadIndexes.SetSize(0);
 	ivViewModeTargetAttributeTypes.SetSize(0);
+	livViewModeSourceBlockLoadIndexes.SetSize(0);
+	livViewModeTargetBlockLoadIndexes.SetSize(0);
+	ivViewModeTargetBlockTypes.SetSize(0);
 
 	// Recherche et memorisation de la classe cible
 	kwcCompiledTargetClass = kwcOwnerClass->GetDomain()->LookupClass(GetObjectClassName());
@@ -922,6 +928,44 @@ void KWDRRelationCreationRule::Compile(KWClass* kwcOwnerClass)
 						cout << "\t" << KWType::ToString(sourceAttribute->GetType());
 						cout << "\t" << sourceAttribute->GetLoadIndex();
 						cout << "\t" << targetAttribute->GetLoadIndex();
+						cout << "\n";
+					}
+				}
+			}
+		}
+
+		// Parcours des blocs d'attributs natifs de la classe cible charges en memoire
+		for (nBlock = 0; nBlock < kwcCompiledTargetClass->GetLoadedAttributeBlockNumber(); nBlock++)
+		{
+			targetBlock = kwcCompiledTargetClass->GetLoadedAttributeBlockAt(nBlock);
+
+			// On ne traite que les blocs d'attributs natifs utilises
+			if (targetBlock->GetDerivationRule() == NULL)
+			{
+				assert(IsValidOutputOperandType(targetBlock->GetType()));
+
+				// Recherche d'un bloc d'attributs natif source de meme nom
+				sourceBlock = kwcSourceClass->LookupAttributeBlock(targetBlock->GetName());
+				assert(sourceBlock != NULL);
+				assert(sourceBlock->GetType() == targetBlock->GetType());
+
+				// Memorisation des infos de chargement si l'attribut source est charge
+				// Il peut ne pas etre charge dans le dictionnaire "logique", mais il sera
+				// de toute facon charge dans le dictionnaire "physique"
+				// Cf. gestion des dictionnaire logiques et physiques dans KWDatabase
+				if (sourceBlock->GetLoaded())
+				{
+					livViewModeSourceBlockLoadIndexes.Add(sourceBlock->GetLoadIndex());
+					livViewModeTargetBlockLoadIndexes.Add(targetBlock->GetLoadIndex());
+					ivViewModeTargetBlockTypes.Add(targetBlock->GetType());
+
+					// Trace par attribut gere par une alimentation de type vue
+					if (bTrace)
+					{
+						cout << "\t" << sourceBlock->GetName();
+						cout << "\t" << KWType::ToString(sourceBlock->GetType());
+						cout << "\t" << sourceBlock->GetLoadIndex();
+						cout << "\t" << targetBlock->GetLoadIndex();
 						cout << "\n";
 					}
 				}
@@ -1292,6 +1336,9 @@ longint KWDRRelationCreationRule::GetUsedMemory() const
 	lUsedMemory += livViewModeSourceAttributeLoadIndexes.GetUsedMemory() - sizeof(KWLoadIndexVector);
 	lUsedMemory += livViewModeTargetAttributeLoadIndexes.GetUsedMemory() - sizeof(KWLoadIndexVector);
 	lUsedMemory += ivViewModeTargetAttributeTypes.GetUsedMemory() - sizeof(IntVector);
+	lUsedMemory += livViewModeSourceBlockLoadIndexes.GetUsedMemory() - sizeof(KWLoadIndexVector);
+	lUsedMemory += livViewModeTargetBlockLoadIndexes.GetUsedMemory() - sizeof(KWLoadIndexVector);
+	lUsedMemory += ivViewModeTargetBlockTypes.GetUsedMemory() - sizeof(IntVector);
 	return lUsedMemory;
 }
 
@@ -1457,6 +1504,7 @@ void KWDRRelationCreationRule::FillViewModeTargetAttributes(const KWObject* kwoS
 	ObjectArray* oaSourceObjectArray;
 	ObjectArray* oaTargetObjectArray;
 	int nAttribute;
+	int nBlock;
 	int nType;
 	KWLoadIndex liSource;
 	KWLoadIndex liTarget;
@@ -1508,6 +1556,30 @@ void KWDRRelationCreationRule::FillViewModeTargetAttributes(const KWObject* kwoS
 			if (oaSourceObjectArray != NULL)
 				oaTargetObjectArray = oaSourceObjectArray->Clone();
 			kwoTargetObject->SetObjectArrayValueAt(liTarget, oaTargetObjectArray);
+			break;
+		default:
+			assert(false);
+			break;
+		}
+	}
+
+	// Alimentation des blocs d'attributs de l'objet cible avec les valeurs provenant de l'objet source
+	for (nBlock = 0; nBlock < ivViewModeTargetBlockTypes.GetSize(); nBlock++)
+	{
+		nType = ivViewModeTargetBlockTypes.GetAt(nBlock);
+		liSource = livViewModeSourceBlockLoadIndexes.GetAt(nBlock);
+		liTarget = livViewModeTargetBlockLoadIndexes.GetAt(nBlock);
+
+		// Recopie de la valeur selon le type
+		switch (nType)
+		{
+		case KWType::Symbol:
+			kwoTargetObject->SetSymbolValueBlockAt(
+			    liTarget, kwoSourceObject->ComputeSymbolValueBlockAt(liSource)->Clone());
+			break;
+		case KWType::Continuous:
+			kwoTargetObject->SetContinuousValueBlockAt(
+			    liTarget, kwoSourceObject->ComputeContinuousValueBlockAt(liSource)->Clone());
 			break;
 		default:
 			assert(false);

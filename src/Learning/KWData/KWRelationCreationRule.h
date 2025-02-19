@@ -247,11 +247,17 @@ protected:
 	KWLoadIndexVector livComputeModeTargetAttributeLoadIndexes;
 	IntVector ivComputeModeTargetAttributeTypes;
 
-	// Index de chargement des attributs pour une alimentation de type vue
+	// Index de chargement des attributs denses pour une alimentation de type vue
 	// On precise pour chaque attribut concerne son index dans le dictionnaire source et cible
 	KWLoadIndexVector livViewModeSourceAttributeLoadIndexes;
 	KWLoadIndexVector livViewModeTargetAttributeLoadIndexes;
 	IntVector ivViewModeTargetAttributeTypes;
+
+	// Index de chargement desblocs d'attributs pour une alimentation de type vue
+	// On precise pour chaque bloc d'attribut concerne son index dans le dictionnaire source et cible
+	KWLoadIndexVector livViewModeSourceBlockLoadIndexes;
+	KWLoadIndexVector livViewModeTargetBlockLoadIndexes;
+	IntVector ivViewModeTargetBlockTypes;
 
 	// Classe de la cible de la vue
 	KWClass* kwcCompiledTargetClass;
