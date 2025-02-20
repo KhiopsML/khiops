@@ -43,6 +43,10 @@ boolean KWDatabaseFormatDetector::DetectFileFormat()
 	RewindableInputBufferedFile inputFile;
 	CharVector cvLine;
 	longint lBeginPos;
+	KWMTDatabase* mtDatabase;
+	KWMTDatabaseMapping* mapping;
+	int nMapping;
+	ALString sInputFileName;
 	ALString sTmp;
 
 	require(analysedDatabase != NULL);
@@ -95,6 +99,7 @@ boolean KWDatabaseFormatDetector::DetectFileFormat()
 
 	// Verification si utilisation d'un dictionnaire
 	kwcDatabaseClass = NULL;
+	sInputFileName = analysedDatabase->GetDatabaseName();
 	if (GetUsingClass() and analysedDatabase->GetClassName() != "")
 	{
 		// Recherche du dictionnaire associee a la base
@@ -118,13 +123,39 @@ boolean KWDatabaseFormatDetector::DetectFileFormat()
 				bOk = false;
 			}
 		}
+
+		// Cas d'un seul attribut natif : il est alors impossible de detecter un champ separateur
+		// Dans le cas multi-table, recherche d'un eventuel autre dictionnaire avec plus d'un attribut natif
+		if (bOk)
+		{
+			if (kwcDatabaseClass->GetNativeDataItemNumber() == 1 and
+			    analysedDatabase->IsMultiTableTechnology())
+			{
+				mtDatabase = cast(KWMTDatabase*, analysedDatabase);
+
+				// Recherche d'une table secondaire contenant au moins deux attributs natifs
+				for (nMapping = 0; nMapping < mtDatabase->GetTableNumber(); nMapping++)
+				{
+					mapping = cast(KWMTDatabaseMapping*,
+						       mtDatabase->GetMultiTableMappings()->GetAt(nMapping));
+					kwcDatabaseClass =
+					    KWClassDomain::GetCurrentDomain()->LookupClass(mapping->GetClassName());
+					if (kwcDatabaseClass != NULL and mapping->GetDataTableName() != "" and
+					    kwcDatabaseClass->GetNativeDataItemNumber() > 1)
+					{
+						sInputFileName = mapping->GetDataTableName();
+						break;
+					}
+				}
+			}
+		}
 	}
 
 	// Ouverture du fichier
 	if (bOk)
 	{
 		// Ouverture
-		inputFile.SetFileName(analysedDatabase->GetDatabaseName());
+		inputFile.SetFileName(sInputFileName);
 		bOk = inputFile.Open();
 		if (not bOk)
 			AddError("No possible format detection");
@@ -478,7 +509,6 @@ boolean KWDatabaseFormatDetector::DetectFileFormatUsingClassWithHeaderLine(const
 	else
 		cfvCandidateSeparators.CopyFrom(&cfvFirstLine);
 	bIsHeaderLine = not cfvCandidateSeparators.IsZero();
-
 	if (bShowDetails)
 		cout << "Initialisation des separateurs candidats: " << cfvCandidateSeparators << "\n";
 
@@ -488,7 +518,6 @@ boolean KWDatabaseFormatDetector::DetectFileFormatUsingClassWithHeaderLine(const
 		bIsHeaderLine = cfvCandidateSeparators.IsGreaterOrEqual(&cfvAttributeNames);
 		if (bIsHeaderLine)
 			cfvCandidateSeparators.Substract(&cfvAttributeNames);
-
 		if (bShowDetails)
 			cout << "Separateurs candidats apres caracteres des champs obligatoires: "
 			     << cfvCandidateSeparators << "\n";
