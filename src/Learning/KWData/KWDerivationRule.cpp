@@ -195,6 +195,19 @@ void KWDerivationRule::BuildAllUsedAttributes(const KWAttribute* derivedAttribut
 					      NumericKeyDictionary* nkdAllUsedAttributes) const
 {
 	int nOperand;
+
+	require(IsCompiled());
+	require(derivedAttribute != NULL);
+	require(nkdAllUsedAttributes != NULL);
+
+	// Alimentation par parcours des operandes de la regle
+	for (nOperand = 0; nOperand < GetOperandNumber(); nOperand++)
+		BuildAllUsedAttributesAtOperand(derivedAttribute, nOperand, nkdAllUsedAttributes);
+}
+
+void KWDerivationRule::BuildAllUsedAttributesAtOperand(const KWAttribute* derivedAttribute, int nOperandIndex,
+						       NumericKeyDictionary* nkdAllUsedAttributes) const
+{
 	KWDerivationRuleOperand* operand;
 	KWAttribute* originAttribute;
 	KWAttributeBlock* originAttributeBlock;
@@ -204,101 +217,94 @@ void KWDerivationRule::BuildAllUsedAttributes(const KWAttribute* derivedAttribut
 	int nVarKey;
 
 	require(IsCompiled());
+	require(0 <= nOperandIndex and nOperandIndex < GetOperandNumber());
 	require(derivedAttribute != NULL);
 	require(nkdAllUsedAttributes != NULL);
 
-	// Alimentation par parcours des operandes de la regle
-	for (nOperand = 0; nOperand < GetOperandNumber(); nOperand++)
-	{
-		operand = GetOperandAt(nOperand);
+	// Acces a l'operande
+	operand = GetOperandAt(nOperandIndex);
 
-		// Recherche recursive si presence effective d'une regle
-		if (operand->GetOrigin() == KWDerivationRuleOperand::OriginRule and
-		    operand->GetDerivationRule() != NULL)
+	// Recherche recursive si presence effective d'une regle
+	if (operand->GetOrigin() == KWDerivationRuleOperand::OriginRule and operand->GetDerivationRule() != NULL)
+	{
+		assert(not KWType::IsValueBlock(operand->GetDerivationRule()->GetType()));
+		operand->GetDerivationRule()->BuildAllUsedAttributes(derivedAttribute, nkdAllUsedAttributes);
+	}
+	// Recherche recursive si presence effective d'un attribut calcule avec une regle
+	else if (operand->GetOrigin() == KWDerivationRuleOperand::OriginAttribute)
+	{
+		// Cas d'un attribut
+		if (KWType::IsValue(operand->GetType()))
 		{
-			assert(not KWType::IsValueBlock(operand->GetDerivationRule()->GetType()));
-			operand->GetDerivationRule()->BuildAllUsedAttributes(derivedAttribute, nkdAllUsedAttributes);
-		}
-		// Recherche recursive si presence effective d'un attribut calcule avec une regle
-		else if (operand->GetOrigin() == KWDerivationRuleOperand::OriginAttribute)
-		{
-			// Cas d'un attribut
-			if (KWType::IsValue(operand->GetType()))
+			originAttribute = operand->GetOriginAttribute();
+			if (originAttribute != NULL)
 			{
-				originAttribute = operand->GetOriginAttribute();
-				if (originAttribute != NULL)
+				// Analyse de l'attribut si necessaire
+				if (nkdAllUsedAttributes->Lookup(originAttribute) == NULL)
 				{
-					// Analyse de l'attribut si necessaire
-					if (nkdAllUsedAttributes->Lookup(originAttribute) == NULL)
+					// Memorisation de l'attribut dans le dictionnaire
+					nkdAllUsedAttributes->SetAt(originAttribute, originAttribute);
+
+					// Acces a la regle d'attribut ou de bloc
+					originRule = originAttribute->GetAnyDerivationRule();
+					if (originRule != NULL)
+						originRule->BuildAllUsedAttributes(originAttribute,
+										   nkdAllUsedAttributes);
+				}
+			}
+		}
+		// Cas d'un bloc d'attributs
+		else
+		{
+			assert(KWType::IsValueBlock(operand->GetType()));
+			originAttributeBlock = operand->GetOriginAttributeBlock();
+			if (originAttributeBlock != NULL)
+			{
+				// Bloc eventuel de l'attribut derive
+				derivedAttributeBlock = derivedAttribute->GetAttributeBlock();
+
+				// Cas de l'attribut derive dans un bloc
+				if (derivedAttributeBlock != NULL)
+				{
+					// Recherche de l'attribut utilise dans le bloc si son VarKey coincide
+					// avec celui de l'attribut derive
+					assert(derivedAttributeBlock->GetVarKeyType() ==
+					       originAttributeBlock->GetVarKeyType());
+					originAttribute = NULL;
+					if (derivedAttributeBlock->GetVarKeyType() == KWType::Symbol)
+					{
+						sVarKey = derivedAttributeBlock->GetSymbolVarKey(derivedAttribute);
+						originAttribute =
+						    originAttributeBlock->LookupAttributeBySymbolVarKey(sVarKey);
+					}
+					else
+					{
+						nVarKey = derivedAttributeBlock->GetContinuousVarKey(derivedAttribute);
+						originAttribute =
+						    originAttributeBlock->LookupAttributeByContinuousVarKey(nVarKey);
+					}
+
+					// Identification de l'attribut utilise dans le bloc en operande
+					if (originAttribute != NULL and
+					    nkdAllUsedAttributes->Lookup(originAttribute) == NULL)
 					{
 						// Memorisation de l'attribut dans le dictionnaire
 						nkdAllUsedAttributes->SetAt(originAttribute, originAttribute);
 
 						// Acces a la regle d'attribut ou de bloc
-						originRule = originAttribute->GetAnyDerivationRule();
-						if (originRule != NULL)
-							originRule->BuildAllUsedAttributes(originAttribute,
-											   nkdAllUsedAttributes);
+						if (originAttributeBlock->GetDerivationRule() != NULL)
+							originAttributeBlock->GetDerivationRule()
+							    ->BuildAllUsedAttributes(originAttribute,
+										     nkdAllUsedAttributes);
 					}
 				}
-			}
-			// Cas d'un bloc d'attributs
-			else
-			{
-				assert(KWType::IsValueBlock(operand->GetType()));
-				originAttributeBlock = operand->GetOriginAttributeBlock();
-				if (originAttributeBlock != NULL)
+				// Sinon, propagation a l'eventuelle regle du bloc avec l'attribut derive
+				else
 				{
-					// Bloc eventuel de l'attribut derive
-					derivedAttributeBlock = derivedAttribute->GetAttributeBlock();
-
-					// Cas de l'attribut derive dans un bloc
-					if (derivedAttributeBlock != NULL)
-					{
-						// Recherche de l'attribut utilise dans le bloc si son VarKey coincide
-						// avec celui de l'attribut derive
-						assert(derivedAttributeBlock->GetVarKeyType() ==
-						       originAttributeBlock->GetVarKeyType());
-						originAttribute = NULL;
-						if (derivedAttributeBlock->GetVarKeyType() == KWType::Symbol)
-						{
-							sVarKey =
-							    derivedAttributeBlock->GetSymbolVarKey(derivedAttribute);
-							originAttribute =
-							    originAttributeBlock->LookupAttributeBySymbolVarKey(
-								sVarKey);
-						}
-						else
-						{
-							nVarKey = derivedAttributeBlock->GetContinuousVarKey(
-							    derivedAttribute);
-							originAttribute =
-							    originAttributeBlock->LookupAttributeByContinuousVarKey(
-								nVarKey);
-						}
-
-						// Identification de l'attribut utilise dans le bloc en operande
-						if (originAttribute != NULL and
-						    nkdAllUsedAttributes->Lookup(originAttribute) == NULL)
-						{
-							// Memorisation de l'attribut dans le dictionnaire
-							nkdAllUsedAttributes->SetAt(originAttribute, originAttribute);
-
-							// Acces a la regle d'attribut ou de bloc
-							if (originAttributeBlock->GetDerivationRule() != NULL)
-								originAttributeBlock->GetDerivationRule()
-								    ->BuildAllUsedAttributes(originAttribute,
-											     nkdAllUsedAttributes);
-						}
-					}
-					// Sinon, propagation a l'eventuelle regle du bloc avec l'attribut derive
-					else
-					{
-						originRule = originAttributeBlock->GetDerivationRule();
-						if (originRule != NULL)
-							originRule->BuildAllUsedAttributes(derivedAttribute,
-											   nkdAllUsedAttributes);
-					}
+					originRule = originAttributeBlock->GetDerivationRule();
+					if (originRule != NULL)
+						originRule->BuildAllUsedAttributes(derivedAttribute,
+										   nkdAllUsedAttributes);
 				}
 			}
 		}

@@ -32,15 +32,41 @@ boolean KWDatabaseTransferTask::Transfer(const KWDatabase* sourceDatabase, const
 	boolean bOk = true;
 	KWMTDatabaseTextFile refMTDatabaseTextFile;
 	KWSTDatabaseTextFile refSTDatabaseTextFile;
+	KWClass* databaseClass;
+	ObjectArray oaAttributesToUnload;
+	KWAttribute* attribute;
+	int i;
 	ALString sTmp;
 
 	require(sourceDatabase != NULL);
 	require(sourceDatabase->Check());
 	require(targetDatabase != NULL);
 	require(targetDatabase->CheckPartially(true));
+	require(sourceDatabase->GetClassName() == targetDatabase->GetClassName());
 	require(sourceDatabase->GetTechnologyName() == targetDatabase->GetTechnologyName());
 	require(sourceDatabase->GetTechnologyName() == refMTDatabaseTextFile.GetTechnologyName() or
 		sourceDatabase->GetTechnologyName() == refSTDatabaseTextFile.GetTechnologyName());
+
+	// Collecte des attributs de type relation non necessaires pour la base en sortie
+	databaseClass = KWClassDomain::GetCurrentDomain()->LookupClass(sourceDatabase->GetClassName());
+	assert(databaseClass != NULL);
+	CollectRelationAttributesToUnload(targetDatabase, databaseClass, &oaAttributesToUnload);
+
+	// Passage en unloaded des attributs non necessaires, pour optimiser les acces aux sous-tables
+	if (oaAttributesToUnload.GetSize() > 0)
+	{
+		// On met les attributs en unloaded
+		for (i = 0; i < oaAttributesToUnload.GetSize(); i++)
+		{
+			attribute = cast(KWAttribute*, oaAttributesToUnload.GetAt(i));
+			assert(attribute->GetUsed());
+			assert(attribute->GetLoaded());
+			attribute->SetLoaded(false);
+		}
+
+		// Recompilation
+		databaseClass->GetDomain()->Compile();
+	}
 
 	// Initialisation de la base en sortie
 	shared_targetDatabase.GetPLDatabase()->InitializeFrom(targetDatabase);
@@ -51,7 +77,86 @@ boolean KWDatabaseTransferTask::Transfer(const KWDatabase* sourceDatabase, const
 	bOk = RunDatabaseTask(sourceDatabase);
 	if (bOk)
 		lWrittenObjectNumber = lWrittenObjects;
+
+	// On remet en load les attributs non necessaires
+	if (oaAttributesToUnload.GetSize() > 0)
+	{
+		// On met les attributs en loaded
+		for (i = 0; i < oaAttributesToUnload.GetSize(); i++)
+		{
+			attribute = cast(KWAttribute*, oaAttributesToUnload.GetAt(i));
+			attribute->SetLoaded(true);
+		}
+
+		// Recompilation
+		databaseClass->GetDomain()->Compile();
+	}
+
 	return bOk;
+}
+
+void KWDatabaseTransferTask ::CollectRelationAttributesToUnload(const KWDatabase* targetDatabase,
+								const KWClass* databaseClass,
+								ObjectArray* oaAttributesToUnload) const
+{
+	int nMapping;
+	KWMTDatabase* targetMTDatabase;
+	KWMTDatabaseMapping* mapping;
+	NumericKeyDictionary nkdAllDataPathAttributes;
+	ObjectArray oaAllDataPathAttributes;
+	NumericKeyDictionary nkdNecessaryDataPathAttributes;
+	const KWClass* currentClass;
+	KWAttribute* attribute;
+	int i;
+
+	require(targetDatabase != NULL);
+	require(databaseClass != NULL);
+	require(targetDatabase->GetClassName() == databaseClass->GetName());
+	require(oaAttributesToUnload != NULL);
+	require(oaAttributesToUnload->GetSize() == 0);
+
+	// Parcours des mapping de la base en sortie
+	if (targetDatabase->GetTableNumber() > 0)
+	{
+		targetMTDatabase = cast(KWMTDatabase*, targetDatabase);
+		for (nMapping = 0; nMapping < targetMTDatabase->GetMultiTableMappings()->GetSize(); nMapping++)
+		{
+			mapping =
+			    cast(KWMTDatabaseMapping*, targetMTDatabase->GetMultiTableMappings()->GetAt(nMapping));
+
+			// Collecte des attributs du data path, necessaires ou non, pour les tables du flocon principal
+			if (not mapping->GetExternalTable())
+			{
+				currentClass = databaseClass;
+				for (i = 0; i < mapping->GetDataPathAttributeNumber(); i++)
+				{
+					// Recherche de l'attribut dans la classe courante du chemin
+					attribute =
+					    currentClass->LookupAttribute(mapping->GetDataPathAttributeNameAt(i));
+					assert(attribute != NULL);
+					assert(KWType::IsRelation(attribute->GetType()));
+
+					// Memorisation de l'attribut
+					nkdAllDataPathAttributes.SetAt(attribute, attribute);
+					if (mapping->GetDataTableName() != "")
+						nkdNecessaryDataPathAttributes.SetAt(attribute, attribute);
+
+					// Passage a la classe courante suivante
+					currentClass = attribute->GetClass();
+				}
+			}
+		}
+
+		// Collecte des attributs non necessaire que l'on peut passer en unload
+		nkdAllDataPathAttributes.ExportObjectArray(&oaAllDataPathAttributes);
+		for (i = 0; i < oaAllDataPathAttributes.GetSize(); i++)
+		{
+			attribute = cast(KWAttribute*, oaAllDataPathAttributes.GetAt(i));
+			if (attribute->GetUsed() and attribute->GetLoaded() and
+			    nkdNecessaryDataPathAttributes.Lookup(attribute) == NULL)
+				oaAttributesToUnload->Add(attribute);
+		}
+	}
 }
 
 void KWDatabaseTransferTask::DisplaySpecificTaskMessage()

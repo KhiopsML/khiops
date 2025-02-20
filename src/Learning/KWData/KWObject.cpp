@@ -200,16 +200,6 @@ void KWObject::ComputeAllValues(KWDatabaseMemoryGuard* memoryGuard)
 void KWObject::DeleteAttributes()
 {
 	const boolean bTrace = false;
-	int i;
-	KWAttribute* attribute;
-	SymbolVector* svTextList;
-	KWAttributeBlock* attributeBlock;
-	KWObject* kwoUsedObject;
-	ObjectArray* oaUsedObjectArray;
-	KWLoadIndex liLoadIndex;
-	KWValue value;
-	boolean bIsViewTypeUse;
-	boolean bIsDeletionNeeded;
 
 	debug(require(nObjectLoadedDataItemNumber == kwcClass->GetTotalInternallyLoadedDataItemNumber()));
 	debug(require(nFreshness == kwcClass->GetFreshness()));
@@ -220,234 +210,26 @@ void KWObject::DeleteAttributes()
 		cout << "  Begin KWObject::DeleteAttributes " << GetClass()->GetName() << " " << GetCreationIndex()
 		     << " #" << this << "\n";
 
-	// Recherche si usage de type view
-	bIsViewTypeUse = GetViewTypeUse();
-
 	// Destruction des valeurs
 	if (values.attributeValues != NULL)
 	{
-		// Dereferencement des valeurs de type Symbol
-		// (pour assurer la gestion correcte du compteur de reference des Symbol)
-		for (i = 0; i < kwcClass->GetLoadedDenseSymbolAttributeNumber(); i++)
-		{
-			attribute = kwcClass->GetLoadedDenseSymbolAttributeAt(i);
+		// Reinitialisation des valeurs de type Symbol
+		ResetLoadedSymbolValues(0, kwcClass->GetLoadedDenseSymbolAttributeNumber());
 
-			// Dereferencement sauf si valeur interdite
-			liLoadIndex = attribute->GetLoadIndex();
-			assert(liLoadIndex.IsDense());
-			if (not GetAt(liLoadIndex.GetDenseIndex()).IsSymbolForbidenValue())
-				GetAt(liLoadIndex.GetDenseIndex()).ResetSymbol();
-		}
-
-		// Dereferencement des valeurs de type Text
-		// (pour assurer la gestion correcte du compteur de reference des Text)
-		for (i = 0; i < kwcClass->GetLoadedTextAttributeNumber(); i++)
-		{
-			attribute = kwcClass->GetLoadedTextAttributeAt(i);
-
-			// Dereferencement sauf si valeur interdite
-			liLoadIndex = attribute->GetLoadIndex();
-			assert(liLoadIndex.IsDense());
-			if (not GetAt(liLoadIndex.GetDenseIndex()).IsTextForbidenValue())
-				GetAt(liLoadIndex.GetDenseIndex()).ResetText();
-		}
+		// Reinitialisation des valeurs de type Text
+		ResetLoadedTextValues(0, kwcClass->GetLoadedTextAttributeNumber());
 
 		// Destruction des valeurs de type TextList
-		// (pour assurer la gestion correcte du compteur de reference des Text)
-		for (i = 0; i < kwcClass->GetLoadedTextListAttributeNumber(); i++)
-		{
-			attribute = kwcClass->GetLoadedTextListAttributeAt(i);
-
-			// Destruction sauf si NULL ou derive mais non calcule
-			liLoadIndex = attribute->GetLoadIndex();
-			if (not GetAt(liLoadIndex.GetDenseIndex()).IsTextListForbidenValue())
-			{
-				svTextList = GetAt(liLoadIndex.GetDenseIndex()).GetTextList();
-				if (svTextList != NULL)
-					delete svTextList;
-			}
-		}
+		DeleteLoadedTextListValues(0, kwcClass->GetLoadedTextListAttributeNumber());
 
 		// Destruction des blocs de valeurs
-		for (i = 0; i < kwcClass->GetLoadedAttributeBlockNumber(); i++)
-		{
-			attributeBlock = kwcClass->GetLoadedAttributeBlockAt(i);
+		DeleteLoadedAttributeBlockValues(0, kwcClass->GetLoadedAttributeBlockNumber());
 
-			// Destruction du bloc, sauf si valeur interdite
-			// S'il sont natifs ou calcules, les blocs sont necessairement non NULL,
-			// et on peut les detruire directement
-			liLoadIndex = attributeBlock->GetLoadIndex();
-			assert(liLoadIndex.IsDense());
-			if (attributeBlock->GetType() == KWType::Continuous)
-			{
-				if (not GetAt(liLoadIndex.GetDenseIndex()).IsContinuousValueBlockForbidenValue())
-					delete GetAt(liLoadIndex.GetDenseIndex()).GetContinuousValueBlock();
-			}
-			else if (attributeBlock->GetType() == KWType::Symbol)
-			{
-				if (not GetAt(liLoadIndex.GetDenseIndex()).IsSymbolValueBlockForbidenValue())
-					delete GetAt(liLoadIndex.GetDenseIndex()).GetSymbolValueBlock();
-			}
-			else
-			{
-				assert(attributeBlock->GetType() == KWType::ObjectArray);
-				// Il ne faut pas detruire le contenu des ObjectArray du bloc, qui sont necessairement
-				// calcules
-				assert(attributeBlock->GetDerivationRule() != NULL);
-				assert(attributeBlock->GetDerivationRule()->GetReference());
-				if (not GetAt(liLoadIndex.GetDenseIndex()).IsObjectArrayValueBlockForbidenValue())
-					delete GetAt(liLoadIndex.GetDenseIndex()).GetObjectArrayValueBlock();
-			}
-		}
-
-		// Destruction des valeurs de type Object ou ObjectArray inclus
-		for (i = 0; i < kwcClass->GetLoadedRelationAttributeNumber(); i++)
-		{
-			attribute = kwcClass->GetLoadedRelationAttributeAt(i);
-			liLoadIndex = attribute->GetLoadIndex();
-			assert(liLoadIndex.IsDense());
-
-			// Destruction necessaire si sous-objet natif, sauf dans le cas d'une vue
-			// ou si sous-objet calcule, sauf s'il s'agit d'une reference
-			if (attribute->GetDerivationRule() == NULL)
-				bIsDeletionNeeded = not bIsViewTypeUse;
-			else
-				bIsDeletionNeeded = not attribute->GetDerivationRule()->GetReference();
-
-			// Cas des Object
-			if (attribute->GetType() == KWType::Object)
-			{
-				// Destruction de l'objet si necessaire
-				if (bIsDeletionNeeded)
-				{
-					// Acces a la valeur
-					value = GetAt(liLoadIndex.GetDenseIndex());
-					if (not value.IsObjectForbidenValue())
-					{
-						kwoUsedObject = value.GetObject();
-						if (kwoUsedObject != NULL)
-						{
-							// Trace
-							if (bTrace)
-								cout << "   - delete object " << attribute->GetName()
-								     << " #" << kwoUsedObject << "\n";
-
-							// Destruction
-							delete kwoUsedObject;
-						}
-					}
-				}
-			}
-			// Cas des ObjectArray
-			else
-			{
-				assert(attribute->GetType() == KWType::ObjectArray);
-
-				// Acces a la valeur
-				value = GetAt(liLoadIndex.GetDenseIndex());
-				if (not value.IsObjectArrayForbidenValue())
-				{
-					oaUsedObjectArray = value.GetObjectArray();
-					if (oaUsedObjectArray != NULL)
-					{
-						// Trace
-						if (bTrace)
-							cout << "   - delete ObjectArray content "
-							     << attribute->GetName()
-							     << " (needed=" << BooleanToString(bIsDeletionNeeded)
-							     << ", size=" << oaUsedObjectArray->GetSize() << ") #"
-							     << oaUsedObjectArray << "\n";
-
-						// Destruction des objets contenus si necessaire
-						if (bIsDeletionNeeded)
-							oaUsedObjectArray->DeleteAll();
-
-						// Destruction du container
-						// Les containers appartiennent a l'objet, qu'ils soient natifs ou
-						// cree par une regle, auquel cas ils ont ete dupliques
-						delete oaUsedObjectArray;
-					}
-				}
-			}
-		}
+		// Destruction des valeurs de type Object ou ObjectArray
+		DeleteLoadedRelationValues(0, kwcClass->GetLoadedRelationAttributeNumber());
 
 		// Destruction des valeurs de type Object ou ObjectArray inclus natifs ou crees non charges en memoire
-		for (i = 0; i < kwcClass->GetUnloadedOwnedRelationAttributeNumber(); i++)
-		{
-			attribute = kwcClass->GetUnloadedOwnedRelationAttributeAt(i);
-			liLoadIndex = attribute->GetInternalLoadIndex();
-			assert(liLoadIndex.IsDense());
-
-			// Verifications de coherence
-			assert(KWType::IsRelation(attribute->GetType()));
-			assert(not attribute->IsInBlock());
-			assert(not attribute->GetReference());
-			assert(attribute->GetLoaded() == false);
-
-			// Destruction necessaire si sous-objet natif, sauf dans le cas d'une vue
-			// ou si sous-objet calcule, sauf s'il s'agit d'une reference
-			if (attribute->GetDerivationRule() == NULL)
-				bIsDeletionNeeded = not bIsViewTypeUse;
-			else
-				bIsDeletionNeeded = not attribute->GetDerivationRule()->GetReference();
-
-			// Cas des Object
-			if (attribute->GetType() == KWType::Object)
-			{
-				// Destruction de l'objet si necessaire
-				if (bIsDeletionNeeded)
-				{
-					// Acces a la valeur
-					value = GetAt(liLoadIndex.GetDenseIndex());
-					if (not value.IsObjectForbidenValue())
-					{
-						kwoUsedObject = value.GetObject();
-						if (kwoUsedObject != NULL)
-						{
-							// Trace
-							if (bTrace)
-								cout << "   - delete unloaded object "
-								     << attribute->GetName() << " #" << kwoUsedObject
-								     << "\n";
-
-							// Destruction
-							delete kwoUsedObject;
-						}
-					}
-				}
-			}
-			// Cas des ObjectArray
-			else
-			{
-				assert(attribute->GetType() == KWType::ObjectArray);
-
-				// Acces a la valeur
-				value = GetAt(liLoadIndex.GetDenseIndex());
-				if (not value.IsObjectArrayForbidenValue())
-				{
-					oaUsedObjectArray = value.GetObjectArray();
-					if (oaUsedObjectArray != NULL)
-					{
-						// Trace
-						if (bTrace)
-							cout << "   - delete unloaded ObjectArray content "
-							     << attribute->GetName()
-							     << " (needed=" << BooleanToString(bIsDeletionNeeded)
-							     << ", size=" << oaUsedObjectArray->GetSize() << ") #"
-							     << oaUsedObjectArray << "\n";
-
-						// Destruction des objets contenus si necessaire
-						if (bIsDeletionNeeded)
-							oaUsedObjectArray->DeleteAll();
-
-						// Destruction du container
-						// Les containers appartiennent a l'objet, qu'ils soient natifs ou
-						// cree par une regle, auquel cas ils ont ete dupliques
-						delete oaUsedObjectArray;
-					}
-				}
-			}
-		}
+		DeleteUnloadedOwnedRelationValues(0, kwcClass->GetUnloadedOwnedRelationAttributeNumber());
 
 		// Pas de destruction des valeurs de type Structure
 		// Destruction du tableau d'attributs de base
@@ -458,6 +240,304 @@ void KWObject::DeleteAttributes()
 	if (bTrace)
 		cout << "  End KWObject::DeleteAttributes " << GetClass()->GetName() << " " << GetCreationIndex()
 		     << " #" << this << "\n";
+}
+
+void KWObject::ResetLoadedSymbolValues(int nStartIndex, int nStopIndex)
+{
+	int nIndex;
+	KWAttribute* attribute;
+	KWLoadIndex liLoadIndex;
+
+	require(0 <= nStartIndex and nStartIndex <= nStopIndex);
+	require(nStopIndex <= kwcClass->GetLoadedDenseSymbolAttributeNumber());
+
+	// Dereferencement des valeurs de type Symbol
+	// (pour assurer la gestion correcte du compteur de reference des Symbol)
+	for (nIndex = nStartIndex; nIndex < nStopIndex; nIndex++)
+	{
+		attribute = kwcClass->GetLoadedDenseSymbolAttributeAt(nIndex);
+
+		// Dereferencement sauf si valeur interdite
+		liLoadIndex = attribute->GetLoadIndex();
+		assert(liLoadIndex.IsDense());
+		if (not GetAt(liLoadIndex.GetDenseIndex()).IsSymbolForbidenValue())
+			GetAt(liLoadIndex.GetDenseIndex()).ResetSymbol();
+	}
+}
+
+void KWObject::ResetLoadedTextValues(int nStartIndex, int nStopIndex)
+{
+	int nIndex;
+	KWAttribute* attribute;
+	KWLoadIndex liLoadIndex;
+
+	require(0 <= nStartIndex and nStartIndex <= nStopIndex);
+	require(nStopIndex <= kwcClass->GetLoadedTextAttributeNumber());
+
+	// Dereferencement des valeurs de type Text
+	// (pour assurer la gestion correcte du compteur de reference des Text)
+	for (nIndex = nStartIndex; nIndex < nStopIndex; nIndex++)
+	{
+		attribute = kwcClass->GetLoadedTextAttributeAt(nIndex);
+
+		// Dereferencement sauf si valeur interdite
+		liLoadIndex = attribute->GetLoadIndex();
+		assert(liLoadIndex.IsDense());
+		if (not GetAt(liLoadIndex.GetDenseIndex()).IsTextForbidenValue())
+			GetAt(liLoadIndex.GetDenseIndex()).ResetText();
+	}
+}
+
+void KWObject::DeleteLoadedTextListValues(int nStartIndex, int nStopIndex)
+{
+	int nIndex;
+	KWAttribute* attribute;
+	KWLoadIndex liLoadIndex;
+	SymbolVector* svTextList;
+
+	require(0 <= nStartIndex and nStartIndex <= nStopIndex);
+	require(nStopIndex <= kwcClass->GetLoadedTextListAttributeNumber());
+
+	// Destruction des valeurs de type TextList
+	for (nIndex = nStartIndex; nIndex < nStopIndex; nIndex++)
+	{
+		attribute = kwcClass->GetLoadedTextListAttributeAt(nIndex);
+
+		// Destruction sauf si NULL ou derive mais non calcule
+		liLoadIndex = attribute->GetLoadIndex();
+		if (not GetAt(liLoadIndex.GetDenseIndex()).IsTextListForbidenValue())
+		{
+			svTextList = GetAt(liLoadIndex.GetDenseIndex()).GetTextList();
+			if (svTextList != NULL)
+				delete svTextList;
+		}
+	}
+}
+
+void KWObject::DeleteLoadedAttributeBlockValues(int nStartIndex, int nStopIndex)
+{
+	int nIndex;
+	KWLoadIndex liLoadIndex;
+	KWAttributeBlock* attributeBlock;
+
+	require(0 <= nStartIndex and nStartIndex <= nStopIndex);
+	require(nStopIndex <= kwcClass->GetLoadedAttributeBlockNumber());
+
+	// Destruction des blocs de valeurs
+	for (nIndex = nStartIndex; nIndex < nStopIndex; nIndex++)
+	{
+		attributeBlock = kwcClass->GetLoadedAttributeBlockAt(nIndex);
+
+		// Destruction du bloc, sauf si valeur interdite
+		// S'il sont natifs ou calcules, les blocs sont necessairement non NULL,
+		// et on peut les detruire directement
+		liLoadIndex = attributeBlock->GetLoadIndex();
+		assert(liLoadIndex.IsDense());
+		if (attributeBlock->GetType() == KWType::Continuous)
+		{
+			if (not GetAt(liLoadIndex.GetDenseIndex()).IsContinuousValueBlockForbidenValue())
+				delete GetAt(liLoadIndex.GetDenseIndex()).GetContinuousValueBlock();
+		}
+		else if (attributeBlock->GetType() == KWType::Symbol)
+		{
+			if (not GetAt(liLoadIndex.GetDenseIndex()).IsSymbolValueBlockForbidenValue())
+				delete GetAt(liLoadIndex.GetDenseIndex()).GetSymbolValueBlock();
+		}
+		else
+		{
+			assert(attributeBlock->GetType() == KWType::ObjectArray);
+			// Il ne faut pas detruire le contenu des ObjectArray du bloc, qui sont necessairement calcules
+			assert(attributeBlock->GetDerivationRule() != NULL);
+			assert(attributeBlock->GetDerivationRule()->GetReference());
+			if (not GetAt(liLoadIndex.GetDenseIndex()).IsObjectArrayValueBlockForbidenValue())
+				delete GetAt(liLoadIndex.GetDenseIndex()).GetObjectArrayValueBlock();
+		}
+	}
+}
+
+void KWObject::DeleteLoadedRelationValues(int nStartIndex, int nStopIndex)
+{
+	const boolean bTrace = false;
+	int nIndex;
+	KWAttribute* attribute;
+	KWLoadIndex liLoadIndex;
+	KWObject* kwoUsedObject;
+	ObjectArray* oaUsedObjectArray;
+	KWValue value;
+	boolean bIsViewTypeUse;
+	boolean bIsDeletionNeeded;
+
+	require(0 <= nStartIndex and nStartIndex <= nStopIndex);
+	require(nStopIndex <= kwcClass->GetLoadedRelationAttributeNumber());
+
+	// Recherche si usage de type view
+	bIsViewTypeUse = GetViewTypeUse();
+
+	// Destruction des valeurs de type Object ou ObjectArray inclus
+	for (nIndex = nStartIndex; nIndex < nStopIndex; nIndex++)
+	{
+		attribute = kwcClass->GetLoadedRelationAttributeAt(nIndex);
+		liLoadIndex = attribute->GetLoadIndex();
+		assert(liLoadIndex.IsDense());
+
+		// Destruction necessaire si sous-objet natif, sauf dans le cas d'une vue
+		// ou si sous-objet calcule, sauf s'il s'agit d'une reference
+		if (attribute->GetDerivationRule() == NULL)
+			bIsDeletionNeeded = not bIsViewTypeUse;
+		else
+			bIsDeletionNeeded = not attribute->GetDerivationRule()->GetReference();
+
+		// Cas des Object
+		if (attribute->GetType() == KWType::Object)
+		{
+			// Destruction de l'objet si necessaire
+			if (bIsDeletionNeeded)
+			{
+				// Acces a la valeur
+				value = GetAt(liLoadIndex.GetDenseIndex());
+				if (not value.IsObjectForbidenValue())
+				{
+					kwoUsedObject = value.GetObject();
+					if (kwoUsedObject != NULL)
+					{
+						// Trace
+						if (bTrace)
+							cout << "   - delete object " << attribute->GetName() << " #"
+							     << kwoUsedObject << "\n";
+
+						// Destruction
+						delete kwoUsedObject;
+					}
+				}
+			}
+		}
+		// Cas des ObjectArray
+		else
+		{
+			assert(attribute->GetType() == KWType::ObjectArray);
+
+			// Acces a la valeur
+			value = GetAt(liLoadIndex.GetDenseIndex());
+			if (not value.IsObjectArrayForbidenValue())
+			{
+				oaUsedObjectArray = value.GetObjectArray();
+				if (oaUsedObjectArray != NULL)
+				{
+					// Trace
+					if (bTrace)
+						cout << "   - delete ObjectArray content " << attribute->GetName()
+						     << " (needed=" << BooleanToString(bIsDeletionNeeded)
+						     << ", size=" << oaUsedObjectArray->GetSize() << ") #"
+						     << oaUsedObjectArray << "\n";
+
+					// Destruction des objets contenus si necessaire
+					if (bIsDeletionNeeded)
+						oaUsedObjectArray->DeleteAll();
+
+					// Destruction du container
+					// Les containers appartiennent a l'objet, qu'ils soient natifs ou
+					// cree par une regle, auquel cas ils ont ete dupliques
+					delete oaUsedObjectArray;
+				}
+			}
+		}
+	}
+}
+
+void KWObject::DeleteUnloadedOwnedRelationValues(int nStartIndex, int nStopIndex)
+{
+	const boolean bTrace = false;
+	int nIndex;
+	KWAttribute* attribute;
+	KWLoadIndex liLoadIndex;
+	KWObject* kwoUsedObject;
+	ObjectArray* oaUsedObjectArray;
+	KWValue value;
+	boolean bIsViewTypeUse;
+	boolean bIsDeletionNeeded;
+
+	require(0 <= nStartIndex and nStartIndex <= nStopIndex);
+	require(nStopIndex <= kwcClass->GetUnloadedOwnedRelationAttributeNumber());
+
+	// Recherche si usage de type view
+	bIsViewTypeUse = GetViewTypeUse();
+
+	// Destruction des valeurs de type Object ou ObjectArray inclus natifs ou crees non charges en memoire
+	for (nIndex = nStartIndex; nIndex < nStopIndex; nIndex++)
+	{
+		attribute = kwcClass->GetUnloadedOwnedRelationAttributeAt(nIndex);
+		liLoadIndex = attribute->GetInternalLoadIndex();
+		assert(liLoadIndex.IsDense());
+
+		// Verifications de coherence
+		assert(KWType::IsRelation(attribute->GetType()));
+		assert(not attribute->IsInBlock());
+		assert(not attribute->GetReference());
+		assert(attribute->GetLoaded() == false);
+
+		// Destruction necessaire si sous-objet natif, sauf dans le cas d'une vue
+		// ou si sous-objet calcule, sauf s'il s'agit d'une reference
+		if (attribute->GetDerivationRule() == NULL)
+			bIsDeletionNeeded = not bIsViewTypeUse;
+		else
+			bIsDeletionNeeded = not attribute->GetDerivationRule()->GetReference();
+
+		// Cas des Object
+		if (attribute->GetType() == KWType::Object)
+		{
+			// Destruction de l'objet si necessaire
+			if (bIsDeletionNeeded)
+			{
+				// Acces a la valeur
+				value = GetAt(liLoadIndex.GetDenseIndex());
+				if (not value.IsObjectForbidenValue())
+				{
+					kwoUsedObject = value.GetObject();
+					if (kwoUsedObject != NULL)
+					{
+						// Trace
+						if (bTrace)
+							cout << "   - delete unloaded object " << attribute->GetName()
+							     << " #" << kwoUsedObject << "\n";
+
+						// Destruction
+						delete kwoUsedObject;
+					}
+				}
+			}
+		}
+		// Cas des ObjectArray
+		else
+		{
+			assert(attribute->GetType() == KWType::ObjectArray);
+
+			// Acces a la valeur
+			value = GetAt(liLoadIndex.GetDenseIndex());
+			if (not value.IsObjectArrayForbidenValue())
+			{
+				oaUsedObjectArray = value.GetObjectArray();
+				if (oaUsedObjectArray != NULL)
+				{
+					// Trace
+					if (bTrace)
+						cout << "   - delete unloaded ObjectArray content "
+						     << attribute->GetName()
+						     << " (needed=" << BooleanToString(bIsDeletionNeeded)
+						     << ", size=" << oaUsedObjectArray->GetSize() << ") #"
+						     << oaUsedObjectArray << "\n";
+
+					// Destruction des objets contenus si necessaire
+					if (bIsDeletionNeeded)
+						oaUsedObjectArray->DeleteAll();
+
+					// Destruction du container
+					// Les containers appartiennent a l'objet, qu'ils soient natifs ou
+					// cree par une regle, auquel cas ils ont ete dupliques
+					delete oaUsedObjectArray;
+				}
+			}
+		}
+	}
 }
 
 void KWObject::CleanTemporayDataItemsToComputeAndClean()
@@ -501,7 +581,7 @@ void KWObject::CleanTemporayDataItemsToComputeAndClean()
 				}
 				break;
 			case KWType::Text:
-				if (not GetAt(liLoadIndex.GetDenseIndex()).IsSymbolForbidenValue())
+				if (not GetAt(liLoadIndex.GetDenseIndex()).IsTextForbidenValue())
 				{
 					GetAt(liLoadIndex.GetDenseIndex()).ResetText();
 					GetAt(liLoadIndex.GetDenseIndex()).SetTypeForbidenValue(KWType::Text);
@@ -564,9 +644,8 @@ void KWObject::CleanTemporayDataItemsToComputeAndClean()
 				}
 				break;
 			case KWType::ObjectArrayValueBlock:
-				assert(attributeBlock->GetType() == KWType::ObjectArray);
-				// Il ne faut pas detruire le contenu des ObjectArray du bloc, qui sont necessairement
-				// calcules
+				// Il ne faut pas detruire le contenu des ObjectArray du bloc,
+				// qui sont necessairement calcules
 				assert(attributeBlock->GetDerivationRule()->GetReference());
 				if (not GetAt(liLoadIndex.GetDenseIndex()).IsObjectArrayValueBlockForbidenValue())
 				{
@@ -608,18 +687,17 @@ void KWObject::CleanAllNonNativeAttributes()
 				liLoadIndex = attribute->GetLoadIndex();
 
 				// Nettoyage selon le type
-				if (attribute->GetType() == KWType::Symbol)
+				switch (attribute->GetType())
 				{
+				case KWType::Symbol:
 					if (not GetAt(liLoadIndex.GetDenseIndex()).IsSymbolForbidenValue())
 						GetAt(liLoadIndex.GetDenseIndex()).ResetSymbol();
-				}
-				else if (attribute->GetType() == KWType::Symbol)
-				{
+					break;
+				case KWType::Text:
 					if (not GetAt(liLoadIndex.GetDenseIndex()).IsTextForbidenValue())
 						GetAt(liLoadIndex.GetDenseIndex()).ResetText();
-				}
-				else if (attribute->GetType() == KWType::Object)
-				{
+					break;
+				case KWType::Object:
 					// Si attribut inclu, sauf si usage de type vue
 					if (not attribute->GetDerivationRule()->GetReference())
 					{
@@ -631,9 +709,8 @@ void KWObject::CleanAllNonNativeAttributes()
 								delete kwoUsedObject;
 						}
 					}
-				}
-				else if (attribute->GetType() == KWType::ObjectArray)
-				{
+					break;
+				case KWType::ObjectArray:
 					// Destruction sauf si NULL ou derive mais non calcule
 					if (not GetAt(liLoadIndex.GetDenseIndex()).IsObjectArrayForbidenValue())
 					{
@@ -650,6 +727,7 @@ void KWObject::CleanAllNonNativeAttributes()
 							delete oaUsedObjects;
 						}
 					}
+					break;
 				}
 
 				// Reinitialisation a la valeur par defaut ("", Missing, NULL...), sauf si structure
@@ -673,26 +751,24 @@ void KWObject::CleanAllNonNativeAttributes()
 				assert(liLoadIndex.IsDense());
 
 				// Nettoyage puis reinitialisation avec un bloc vide
-				if (attributeBlock->GetType() == KWType::Continuous)
+				switch (attributeBlock->GetBlockType())
 				{
+				case KWType::SymbolValueBlock:
+					if (not GetAt(liLoadIndex.GetDenseIndex()).IsSymbolValueBlockForbidenValue())
+						delete GetAt(liLoadIndex.GetDenseIndex()).GetSymbolValueBlock();
+					GetAt(liLoadIndex.GetDenseIndex())
+					    .SetSymbolValueBlock(KWSymbolValueBlock::NewValueBlock(0));
+					break;
+				case KWType::ContinuousValueBlock:
 					if (not GetAt(liLoadIndex.GetDenseIndex())
 						    .IsContinuousValueBlockForbidenValue())
 						delete GetAt(liLoadIndex.GetDenseIndex()).GetContinuousValueBlock();
 					GetAt(liLoadIndex.GetDenseIndex())
 					    .SetContinuousValueBlock(KWContinuousValueBlock::NewValueBlock(0));
-				}
-				else if (attributeBlock->GetType() == KWType::Symbol)
-				{
-					if (not GetAt(liLoadIndex.GetDenseIndex()).IsSymbolValueBlockForbidenValue())
-						delete GetAt(liLoadIndex.GetDenseIndex()).GetSymbolValueBlock();
-					GetAt(liLoadIndex.GetDenseIndex())
-					    .SetSymbolValueBlock(KWSymbolValueBlock::NewValueBlock(0));
-				}
-				else
-				{
-					assert(attributeBlock->GetType() == KWType::ObjectArray);
-					// Il ne faut pas detruire le contenu des ObjectArray du bloc, qui sont
-					// necessairement calcules
+					break;
+				case KWType::ObjectArrayValueBlock:
+					// Il ne faut pas detruire le contenu des ObjectArray du bloc,
+					// qui sont necessairement calcules
 					assert(attributeBlock->GetDerivationRule() != NULL);
 					assert(attributeBlock->GetDerivationRule()->GetReference());
 					if (not GetAt(liLoadIndex.GetDenseIndex())
@@ -700,6 +776,7 @@ void KWObject::CleanAllNonNativeAttributes()
 						delete GetAt(liLoadIndex.GetDenseIndex()).GetObjectArrayValueBlock();
 					GetAt(liLoadIndex.GetDenseIndex())
 					    .SetObjectArrayValueBlock(KWObjectArrayValueBlock::NewValueBlock(0));
+					break;
 				}
 			}
 		}
@@ -1595,26 +1672,12 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 	int nLoadedDataItemNumber;
 	int nTotalInternallyLoadedDataItemNumber;
 	KWAttribute* attribute;
-	SymbolVector* svTextList;
-	KWAttributeBlock* attributeBlock;
-	KWAttributeBlock* newAttributeBlock;
-	KWContinuousValueBlock* continuousValueBlock;
-	KWContinuousValueBlock* newContinuousValueBlock;
-	KWSymbolValueBlock* symbolValueBlock;
-	KWSymbolValueBlock* newSymbolValueBlock;
-	KWObjectArrayValueBlock* objectArrayValueBlock;
-	KWObjectArrayValueBlock* newObjectArrayValueBlock;
 	KWObject* kwoUsedObject;
 	ObjectArray* oaUsedObjectArray;
-	int nObject;
-	KWClass* kwcMutationClass;
 	KWLoadIndex liLoadIndex;
 	KWLoadIndex liInternalLoadIndex;
-	int nNumber;
-	int nNewNumber;
 	boolean bIsViewTypeUse;
 	boolean bIsMutationNeeded;
-	boolean bIsAttributeMutationNeeded;
 
 	debug(require(nObjectLoadedDataItemNumber == kwcClass->GetLoadedDataItemNumber()));
 	debug(require(nFreshness == kwcClass->GetFreshness()));
@@ -1650,224 +1713,38 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 	// Recherche si usage de type view
 	bIsViewTypeUse = GetViewTypeUse();
 
-	////////////////////////////////////////////////////////////////
-	// Nettoyage du contenu en cours si la mutation est necessaire
+	////////////////////////////////////////////////////////////////////////////
+	// Nettoyage du contenu en cours en excedent si la mutation est necessaire
 	if (bIsMutationNeeded)
 	{
-		// Dereferencement des valeurs de type Symbol
-		// (pour assurer la gestion correcte du compteur de references des Symbol)
-		nNumber = kwcClass->GetLoadedDenseSymbolAttributeNumber();
-		nNewNumber = kwcNewClass->GetLoadedDenseSymbolAttributeNumber();
-		for (i = nNewNumber; i < nNumber; i++)
-		{
-			attribute = kwcClass->GetLoadedDenseSymbolAttributeAt(i);
+		// Reinitialisation des valeurs de type Symbol en exedent
+		ResetLoadedSymbolValues(kwcNewClass->GetLoadedDenseSymbolAttributeNumber(),
+					kwcClass->GetLoadedDenseSymbolAttributeNumber());
 
-			// Si attribut non garde
-			liLoadIndex = attribute->GetLoadIndex();
-			assert(liLoadIndex.IsDense());
+		// Reinitialisation des valeurs de type Text en exedent
+		ResetLoadedTextValues(kwcNewClass->GetLoadedTextAttributeNumber(),
+				      kwcClass->GetLoadedTextAttributeNumber());
 
-			// Dereferencement sauf si valeur interdite
-			if (not GetAt(liLoadIndex.GetDenseIndex()).IsSymbolForbidenValue())
-				GetAt(liLoadIndex.GetDenseIndex()).ResetSymbol();
-		}
+		// Destruction des valeurs de type TextList en exedent
+		DeleteLoadedTextListValues(kwcNewClass->GetLoadedTextListAttributeNumber(),
+					   kwcClass->GetLoadedTextListAttributeNumber());
 
-		// Dereferencement des valeurs de type Text
-		// (pour assurer la gestion correcte du compteur de references des Text)
-		nNumber = kwcClass->GetLoadedTextAttributeNumber();
-		nNewNumber = kwcNewClass->GetLoadedTextAttributeNumber();
-		for (i = nNewNumber; i < nNumber; i++)
-		{
-			attribute = kwcClass->GetLoadedTextAttributeAt(i);
+		// Destruction des blocs de valeurs en exedent
+		DeleteLoadedAttributeBlockValues(kwcNewClass->GetLoadedAttributeBlockNumber(),
+						 kwcClass->GetLoadedAttributeBlockNumber());
 
-			// Si attribut non garde
-			liLoadIndex = attribute->GetLoadIndex();
-			assert(liLoadIndex.IsDense());
-
-			// Dereferencement sauf si valeur interdite
-			if (not GetAt(liLoadIndex.GetDenseIndex()).IsTextForbidenValue())
-				GetAt(liLoadIndex.GetDenseIndex()).ResetText();
-		}
-
-		// Destruction des valeurs de type TextList
-		nNumber = kwcClass->GetLoadedTextListAttributeNumber();
-		nNewNumber = kwcNewClass->GetLoadedTextListAttributeNumber();
-		for (i = nNewNumber; i < nNumber; i++)
-		{
-			attribute = kwcClass->GetLoadedTextListAttributeAt(i);
-
-			// Si attribut non garde
-			liLoadIndex = attribute->GetLoadIndex();
-			assert(liLoadIndex.IsDense());
-			assert(attribute->GetDerivationRule() != NULL);
-
-			// Destruction sauf si valeur interdite
-			if (not GetAt(liLoadIndex.GetDenseIndex()).IsTextListForbidenValue())
-			{
-				svTextList = GetAt(liLoadIndex.GetDenseIndex()).GetTextList();
-				if (svTextList != NULL)
-					delete svTextList;
-			}
-		}
-
-		// Destruction des valeurs de type Object ou ObjectArray inclus non gardees
+		// Destruction des valeurs de type ObjectArray inclus non gardees
 		// On ne detruit en fait que les tableaux dans le cas d'objets references
-		// Les objets eux memes sont geres par les attributs de type Relation non charges en memoire
-		nNumber = kwcClass->GetLoadedRelationAttributeNumber();
-		nNewNumber = kwcNewClass->GetLoadedRelationAttributeNumber();
-		for (i = nNewNumber; i < nNumber; i++)
-		{
-			attribute = kwcClass->GetLoadedRelationAttributeAt(i);
-			liLoadIndex = attribute->GetLoadIndex();
-			assert(liLoadIndex.IsDense());
-
-			// Cas des ObjectArray
-			if (attribute->GetType() == KWType::ObjectArray)
-			{
-				// Destruction du container si objets references
-				// Pas de destruction sinon, car on en aura besoin pour muter les objets contenus
-				// Les containers appartiennent a l'objet, qu'ils soient natifs ou
-				// proviennent d'une regle, auquel cas ils ont ete dupliques et
-				// doivent etre detruits, sans leur contenu
-				if (attribute->GetReference())
-				{
-					assert(liLoadIndex.GetDenseIndex() >= kwcNewClass->GetLoadedDataItemNumber());
-
-					// Destruction sauf si NULL ou derive mais non calcule
-					if (not GetAt(liLoadIndex.GetDenseIndex()).IsObjectArrayForbidenValue())
-					{
-						oaUsedObjectArray = GetAt(liLoadIndex.GetDenseIndex()).GetObjectArray();
-						if (oaUsedObjectArray != NULL)
-						{
-							// Trace
-							if (bTrace)
-								cout << "  - delete ref ObjectArray "
-								     << attribute->GetName() << " " << oaUsedObjectArray
-								     << "\n";
-
-							// Destruction
-							delete oaUsedObjectArray;
-						}
-					}
-				}
-			}
-		}
-
-		// Pas de destruction des valeurs de type Structure non gardees
-
-		// Destruction des blocs de valeurs non gardees
-		nNumber = kwcClass->GetLoadedAttributeBlockNumber();
-		nNewNumber = kwcNewClass->GetLoadedAttributeBlockNumber();
-		for (i = nNewNumber; i < nNumber; i++)
-		{
-			attributeBlock = kwcClass->GetLoadedAttributeBlockAt(i);
-			liLoadIndex = attributeBlock->GetLoadIndex();
-			assert(liLoadIndex.IsDense());
-
-			// Destruction du bloc non garde
-			if (attributeBlock->GetType() == KWType::Continuous)
-			{
-				// Destruction sauf si non calcule
-				if (not GetAt(liLoadIndex.GetDenseIndex()).IsContinuousValueBlockForbidenValue())
-				{
-					continuousValueBlock =
-					    GetAt(liLoadIndex.GetDenseIndex()).GetContinuousValueBlock();
-					check(continuousValueBlock);
-					delete continuousValueBlock;
-				}
-			}
-			else if (attributeBlock->GetType() == KWType::Symbol)
-			{
-				// Destruction sauf si non calcule
-				if (not GetAt(liLoadIndex.GetDenseIndex()).IsSymbolValueBlockForbidenValue())
-				{
-					symbolValueBlock = GetAt(liLoadIndex.GetDenseIndex()).GetSymbolValueBlock();
-					check(symbolValueBlock);
-					delete symbolValueBlock;
-				}
-			}
-			else if (attributeBlock->GetType() == KWType::ObjectArray)
-			{
-				// Destruction sauf si non calcule
-				if (not GetAt(liLoadIndex.GetDenseIndex()).IsObjectArrayValueBlockForbidenValue())
-				{
-					objectArrayValueBlock =
-					    GetAt(liLoadIndex.GetDenseIndex()).GetObjectArrayValueBlock();
-					check(objectArrayValueBlock);
-
-					// Il ne faut pas detruire le contenu des ObjectArray du bloc, qui sont necessairement calcules
-					assert(attributeBlock->GetDerivationRule() != NULL);
-					assert(attributeBlock->GetDerivationRule()->GetReference());
-					delete objectArrayValueBlock;
-				}
-			}
-		}
+		// Les objets eux memes sont geres par les attributs de type Relation non charges en memoire,
+		// et seront utilises pour leur mutation
+		// Les tableaux natifs, de type view ou non, seront transferes par la suite
+		DeleteLoadedReferencedObjectArrayValues(kwcNewClass->GetLoadedRelationAttributeNumber(),
+							kwcClass->GetLoadedRelationAttributeNumber());
 
 		// Nettoyage des blocs de valeurs gardes, potentiellement partiellement
-		for (i = 0; i < kwcNewClass->GetLoadedAttributeBlockNumber(); i++)
-		{
-			attributeBlock = kwcClass->GetLoadedAttributeBlockAt(i);
-			liLoadIndex = attributeBlock->GetLoadIndex();
-			assert(liLoadIndex.IsDense());
+		CleanNewLoadedAttributeBlockValues(kwcNewClass);
 
-			// Acces au bloc dans la nouvelle classe
-			newAttributeBlock = kwcNewClass->GetLoadedAttributeBlockAt(i);
-			assert(liLoadIndex == newAttributeBlock->GetLoadIndex());
-			assert(newAttributeBlock->GetLoadedAttributeNumber() <=
-			       attributeBlock->GetLoadedAttributeNumber());
-
-			// Nettoyage du bloc si necessaire
-			// Il faut eventuellement supprimer les variables surnumeraires, qui n'avaient ete chargees
-			// dans la classe physique que pour permettre le calcul des attributs derives
-			if (newAttributeBlock->GetLoadedAttributeNumber() < attributeBlock->GetLoadedAttributeNumber())
-			{
-				assert(attributeBlock->GetLoadedAttributeMutationIndexes() != NULL);
-
-				if (attributeBlock->GetType() == KWType::Continuous)
-				{
-					// Acces au bloc courant
-					continuousValueBlock =
-					    GetAt(liLoadIndex.GetDenseIndex()).GetContinuousValueBlock();
-					check(continuousValueBlock);
-
-					// Remplacement par un bloc extrait pour les nouveaux index
-					newContinuousValueBlock = KWContinuousValueBlock::ExtractBlockSubset(
-					    continuousValueBlock, attributeBlock->GetLoadedAttributeMutationIndexes());
-					GetAt(liLoadIndex.GetDenseIndex())
-					    .SetContinuousValueBlock(newContinuousValueBlock);
-					delete continuousValueBlock;
-				}
-				else if (attributeBlock->GetType() == KWType::Symbol)
-				{
-					// Acces au bloc courant
-					symbolValueBlock = GetAt(liLoadIndex.GetDenseIndex()).GetSymbolValueBlock();
-					check(symbolValueBlock);
-
-					// Remplacement par un bloc extrait pour les nouveaux index
-					newSymbolValueBlock = KWSymbolValueBlock::ExtractBlockSubset(
-					    symbolValueBlock, attributeBlock->GetLoadedAttributeMutationIndexes());
-					GetAt(liLoadIndex.GetDenseIndex()).SetSymbolValueBlock(newSymbolValueBlock);
-					delete symbolValueBlock;
-				}
-				else if (attributeBlock->GetType() == KWType::ObjectArray)
-				{
-					// Acces au bloc courant
-					objectArrayValueBlock =
-					    GetAt(liLoadIndex.GetDenseIndex()).GetObjectArrayValueBlock();
-					check(objectArrayValueBlock);
-
-					// Remplacement par un bloc extrait pour les nouveaux index
-					newObjectArrayValueBlock = KWObjectArrayValueBlock::ExtractBlockSubset(
-					    objectArrayValueBlock, attributeBlock->GetLoadedAttributeMutationIndexes());
-					GetAt(liLoadIndex.GetDenseIndex())
-					    .SetObjectArrayValueBlock(newObjectArrayValueBlock);
-
-					// Il ne faut pas detruire le contenu des ObjectArray du bloc, qui sont necessairement calcules
-					assert(attributeBlock->GetDerivationRule() != NULL);
-					assert(attributeBlock->GetDerivationRule()->GetReference());
-					delete objectArrayValueBlock;
-				}
-			}
-		}
+		// Pas de destruction des valeurs de type Structure non gardees
 
 		// Memorisation des anciennes valeurs
 		previousClass = kwcClass;
@@ -1950,6 +1827,13 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 							if (nkdUnusedNativeAttributesToKeep->Lookup(attribute) ==
 							    attribute)
 							{
+								// Trace
+								if (bTrace)
+									cout << "  - transfer Object to keep "
+									     << attribute->GetName() << " #"
+									     << kwoUsedObject << "\n";
+
+								// Transfert de l'objet
 								GetAt(liInternalLoadIndex.GetDenseIndex())
 								    .SetObject(kwoUsedObject);
 							}
@@ -1959,7 +1843,7 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 								// Trace
 								if (bTrace)
 									cout << "  - delete Object "
-									     << attribute->GetName() << " "
+									     << attribute->GetName() << " #"
 									     << kwoUsedObject << "\n";
 
 								// Destruction
@@ -1984,6 +1868,13 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 							if (nkdUnusedNativeAttributesToKeep->Lookup(attribute) ==
 							    attribute)
 							{
+								// Trace
+								if (bTrace)
+									cout << "  - transfer ObjectArray to keep "
+									     << attribute->GetName() << " "
+									     << "(size=" << oaUsedObjectArray->GetSize()
+									     << ") #" << oaUsedObjectArray << "\n";
+
 								// Transfert du tableau
 								GetAt(liInternalLoadIndex.GetDenseIndex())
 								    .SetObjectArray(oaUsedObjectArray);
@@ -1996,7 +1887,7 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 									cout << "  - delete ObjectArray content "
 									     << attribute->GetName() << " "
 									     << "(size=" << oaUsedObjectArray->GetSize()
-									     << ") " << oaUsedObjectArray << "\n";
+									     << ") #" << oaUsedObjectArray << "\n";
 
 								// Destruction
 								oaUsedObjectArray->DeleteAll();
@@ -2025,9 +1916,175 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 	// Mutation des objets contenus, transferes ou non
 
 	// Mutation des attributs Object ou ObjectArray transferres si necessaire
-	for (i = 0; i < kwcClass->GetLoadedRelationAttributeNumber(); i++)
+	MutateLoadedRelationValues(nkdMutationClasses, nkdUnusedNativeAttributesToKeep);
+
+	// Mutation des Object et ObjectArray inclus natifs non charges en memoire
+	MutateUnloadedOwnedRelationValues(nkdMutationClasses, nkdUnusedNativeAttributesToKeep);
+
+	// Memorisation des informations de coherence
+	debug(nObjectLoadedDataItemNumber = kwcClass->GetTotalInternallyLoadedDataItemNumber());
+	debug(nFreshness = kwcClass->GetFreshness());
+
+	// Trace de fin
+	if (bTrace)
 	{
-		attribute = kwcClass->GetLoadedRelationAttributeAt(i);
+		if (bTraceObject)
+			PrettyWrite(cout, "      ");
+		cout << "End Object::Mutate " << GetClass()->GetDomain()->GetName() << " " << GetClass()->GetName()
+		     << " " << GetCreationIndex() << " #" << this << "\n";
+	}
+}
+
+void KWObject::DeleteLoadedReferencedObjectArrayValues(int nStartIndex, int nStopIndex)
+{
+	const boolean bTrace = false;
+	int nIndex;
+	KWAttribute* attribute;
+	KWLoadIndex liLoadIndex;
+	ObjectArray* oaUsedObjectArray;
+
+	require(0 <= nStartIndex and nStartIndex <= nStopIndex);
+	require(nStopIndex <= kwcClass->GetLoadedRelationAttributeNumber());
+
+	// Destruction des valeurs de type ObjectArray, sans leur contenu
+	for (nIndex = nStartIndex; nIndex < nStopIndex; nIndex++)
+	{
+		attribute = kwcClass->GetLoadedRelationAttributeAt(nIndex);
+
+		// Cas des ObjectArray
+		if (attribute->GetType() == KWType::ObjectArray)
+		{
+			// Destruction si objet references
+			if (attribute->GetReference())
+			{
+				liLoadIndex = attribute->GetLoadIndex();
+				assert(liLoadIndex.IsDense());
+				assert(liLoadIndex.GetDenseIndex() >= nStartIndex);
+
+				// Destruction sauf si NULL ou derive mais non calcule
+				if (not GetAt(liLoadIndex.GetDenseIndex()).IsObjectArrayForbidenValue())
+				{
+					oaUsedObjectArray = GetAt(liLoadIndex.GetDenseIndex()).GetObjectArray();
+					if (oaUsedObjectArray != NULL)
+					{
+						// Trace
+						if (bTrace)
+							cout << "  - delete ref ObjectArray " << attribute->GetName()
+							     << " #" << oaUsedObjectArray << "\n";
+
+						// Destruction
+						delete oaUsedObjectArray;
+					}
+				}
+			}
+		}
+	}
+}
+
+void KWObject::CleanNewLoadedAttributeBlockValues(const KWClass* kwcNewClass)
+{
+	int nIndex;
+	KWLoadIndex liLoadIndex;
+	KWAttributeBlock* attributeBlock;
+	KWAttributeBlock* newAttributeBlock;
+	KWContinuousValueBlock* continuousValueBlock;
+	KWContinuousValueBlock* newContinuousValueBlock;
+	KWSymbolValueBlock* symbolValueBlock;
+	KWSymbolValueBlock* newSymbolValueBlock;
+	KWObjectArrayValueBlock* objectArrayValueBlock;
+	KWObjectArrayValueBlock* newObjectArrayValueBlock;
+
+	require(kwcNewClass != NULL);
+	require(kwcNewClass->GetName() == kwcClass->GetName());
+	require(kwcNewClass->GetLoadedAttributeNumber() <= kwcClass->GetLoadedAttributeNumber());
+
+	// Nettoyage des blocs de valeurs gardes, potentiellement partiellement
+	for (nIndex = 0; nIndex < kwcNewClass->GetLoadedAttributeBlockNumber(); nIndex++)
+	{
+		attributeBlock = kwcClass->GetLoadedAttributeBlockAt(nIndex);
+		liLoadIndex = attributeBlock->GetLoadIndex();
+		assert(liLoadIndex.IsDense());
+
+		// Acces au bloc dans la nouvelle classe
+		newAttributeBlock = kwcNewClass->GetLoadedAttributeBlockAt(nIndex);
+		assert(newAttributeBlock->GetName() == attributeBlock->GetName());
+		assert(liLoadIndex == newAttributeBlock->GetLoadIndex());
+		assert(newAttributeBlock->GetLoadedAttributeNumber() <= attributeBlock->GetLoadedAttributeNumber());
+
+		// Nettoyage du bloc si necessaire
+		// Il faut eventuellement supprimer les variables surnumeraires, qui n'avaient ete chargees
+		// dans la classe physique que pour permettre le calcul des attributs derives
+		if (newAttributeBlock->GetLoadedAttributeNumber() < attributeBlock->GetLoadedAttributeNumber())
+		{
+			assert(attributeBlock->GetLoadedAttributeMutationIndexes() != NULL);
+
+			if (attributeBlock->GetType() == KWType::Continuous)
+			{
+				// Acces au bloc courant
+				continuousValueBlock = GetAt(liLoadIndex.GetDenseIndex()).GetContinuousValueBlock();
+				check(continuousValueBlock);
+
+				// Remplacement par un bloc extrait pour les nouveaux index
+				newContinuousValueBlock = KWContinuousValueBlock::ExtractBlockSubset(
+				    continuousValueBlock, attributeBlock->GetLoadedAttributeMutationIndexes());
+				GetAt(liLoadIndex.GetDenseIndex()).SetContinuousValueBlock(newContinuousValueBlock);
+				delete continuousValueBlock;
+			}
+			else if (attributeBlock->GetType() == KWType::Symbol)
+			{
+				// Acces au bloc courant
+				symbolValueBlock = GetAt(liLoadIndex.GetDenseIndex()).GetSymbolValueBlock();
+				check(symbolValueBlock);
+
+				// Remplacement par un bloc extrait pour les nouveaux index
+				newSymbolValueBlock = KWSymbolValueBlock::ExtractBlockSubset(
+				    symbolValueBlock, attributeBlock->GetLoadedAttributeMutationIndexes());
+				GetAt(liLoadIndex.GetDenseIndex()).SetSymbolValueBlock(newSymbolValueBlock);
+				delete symbolValueBlock;
+			}
+			else if (attributeBlock->GetType() == KWType::ObjectArray)
+			{
+				// Acces au bloc courant
+				objectArrayValueBlock = GetAt(liLoadIndex.GetDenseIndex()).GetObjectArrayValueBlock();
+				check(objectArrayValueBlock);
+
+				// Remplacement par un bloc extrait pour les nouveaux index
+				newObjectArrayValueBlock = KWObjectArrayValueBlock::ExtractBlockSubset(
+				    objectArrayValueBlock, attributeBlock->GetLoadedAttributeMutationIndexes());
+				GetAt(liLoadIndex.GetDenseIndex()).SetObjectArrayValueBlock(newObjectArrayValueBlock);
+
+				// Il ne faut pas detruire le contenu des ObjectArray du bloc, qui sont necessairement calcules
+				assert(attributeBlock->GetDerivationRule() != NULL);
+				assert(attributeBlock->GetDerivationRule()->GetReference());
+				delete objectArrayValueBlock;
+			}
+		}
+	}
+}
+
+void KWObject::MutateLoadedRelationValues(const NumericKeyDictionary* nkdMutationClasses,
+					  const NumericKeyDictionary* nkdUnusedNativeAttributesToKeep)
+{
+	int nIndex;
+	KWLoadIndex liLoadIndex;
+	boolean bIsViewTypeUse;
+	KWAttribute* attribute;
+	boolean bIsAttributeMutationNeeded;
+	KWClass* kwcMutationClass;
+	KWObject* kwoUsedObject;
+	ObjectArray* oaUsedObjectArray;
+	int nObject;
+
+	require(nkdMutationClasses != NULL);
+	require(nkdUnusedNativeAttributesToKeep != NULL);
+
+	// Recherche si usage de type view
+	bIsViewTypeUse = GetViewTypeUse();
+
+	// Mutation des attributs Object ou ObjectArray transferres si necessaire
+	for (nIndex = 0; nIndex < kwcClass->GetLoadedRelationAttributeNumber(); nIndex++)
+	{
+		attribute = kwcClass->GetLoadedRelationAttributeAt(nIndex);
 		liLoadIndex = attribute->GetLoadIndex();
 		assert(liLoadIndex.IsDense());
 
@@ -2098,11 +2155,31 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 			}
 		}
 	}
+}
+
+void KWObject::MutateUnloadedOwnedRelationValues(const NumericKeyDictionary* nkdMutationClasses,
+						 const NumericKeyDictionary* nkdUnusedNativeAttributesToKeep)
+{
+	int nIndex;
+	KWLoadIndex liInternalLoadIndex;
+	boolean bIsViewTypeUse;
+	KWAttribute* attribute;
+	boolean bIsAttributeMutationNeeded;
+	KWClass* kwcMutationClass;
+	KWObject* kwoUsedObject;
+	ObjectArray* oaUsedObjectArray;
+	int nObject;
+
+	require(nkdMutationClasses != NULL);
+	require(nkdUnusedNativeAttributesToKeep != NULL);
+
+	// Recherche si usage de type view
+	bIsViewTypeUse = GetViewTypeUse();
 
 	// Mutation des Object et ObjectArray inclus natifs non charges en memoire
-	for (i = 0; i < kwcClass->GetUnloadedOwnedRelationAttributeNumber(); i++)
+	for (nIndex = 0; nIndex < kwcClass->GetUnloadedOwnedRelationAttributeNumber(); nIndex++)
 	{
-		attribute = kwcClass->GetUnloadedOwnedRelationAttributeAt(i);
+		attribute = kwcClass->GetUnloadedOwnedRelationAttributeAt(nIndex);
 		liInternalLoadIndex = attribute->GetInternalLoadIndex();
 		assert(liInternalLoadIndex.IsDense());
 		assert(not GetAt(liInternalLoadIndex.GetDenseIndex()).IsObjectForbidenValue());
@@ -2175,19 +2252,6 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 				}
 			}
 		}
-	}
-
-	// Memorisation des informations de coherence
-	debug(nObjectLoadedDataItemNumber = kwcClass->GetTotalInternallyLoadedDataItemNumber());
-	debug(nFreshness = kwcClass->GetFreshness());
-
-	// Trace de fin
-	if (bTrace)
-	{
-		if (bTraceObject)
-			PrettyWrite(cout, "      ");
-		cout << "End Object::Mutate " << GetClass()->GetDomain()->GetName() << " " << GetClass()->GetName()
-		     << " " << GetCreationIndex() << " #" << this << "\n";
 	}
 }
 

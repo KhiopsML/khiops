@@ -58,6 +58,7 @@ public:
 	const ALString LOG_MODALITY_PROBA_LABEL = "LogModalityProba";
 	const ALString LOG_MIN_PROBA_DIFF_LABEL = "LogMinProbaDiff";
 	const ALString BAYES_DISTANCE_WITHOUT_PRIOR_LABEL = "BayesDistanceWithoutPrior";
+	const ALString UNDEFINED_LABEL = "Undefined";
 
 	static const ALString LEVER_ATTRIBUTE_META_TAG;
 	static const ALString INTERPRETATION_ATTRIBUTE_META_TAG;

@@ -80,7 +80,7 @@ public:
 	KWDRRelationCreationRule();
 	~KWDRRelationCreationRule();
 
-	// On indique que la regle cree de nouveau objets
+	// On indique que la regle cree de nouveaux objets
 	boolean GetReference() const override;
 
 	//////////////////////////////////////////////////////////////////////////////////////
@@ -178,6 +178,33 @@ public:
 	///////////////////////////////////////////////////////
 	///// Implementation
 protected:
+	/////////////////////////////////////////////////////////////////////////////////////////
+	// Collecte des operandes en entree utilises en fonction des operandes en sortie utilises
+	// Cela permet d'optimiser le graphe de calcul, en ne traitant que les operandes en entree
+	// necessaires pour chaque operande en sortie
+
+	// Collecte globale des operandes utilises en entree
+	// - ivUsedOutputOperands: vecteur des index des operandes en sortie, avec '1' par operande utilise
+	// - ivUsedOutputOperands: vecteur des index des operandes en entree a mettre a jour
+	// Par defaut, cette methode appelle CollectMandatoryInputOperands,
+	//  suivi d'une boucle de CollectSpecificInputOperandsAt
+	virtual void CollectUsedInputOperands(const IntVector* ivUsedOutputOperands,
+					      IntVector* ivUsedInputOperands) const;
+
+	// Collecte des operandes en entree obligatoire
+	// Par defaut, on traite le cas d'une correspondance de chaque operande en sortie avec un operande
+	// en entree de meme positiion par rapport a la fin de liste
+	// Les operandes en entree du debut sont tous consideres comme obligatoires et marques comme utilises
+	virtual void CollectMandatoryInputOperands(IntVector* ivUsedInputOperands) const;
+
+	// Collecte des operandes en entree specifique par operande en en sortie
+	// Par defaut, on traite le cas d'une correspondance de chaque operande en sortie avec un operande
+	// en entree de meme positiion par rapport a la fin de liste
+	virtual void CollectSpecificInputOperandsAt(int nOutputOperand, IntVector* ivUsedInputOperands) const;
+
+	/////////////////////////////////////////////////////////////////////////////////////////
+	// Methodes internes avancees
+
 	// Redefinition de la completion des infos pour les operandes en sortie
 	void InternalCompleteTypeInfo(const KWClass* kwcOwnerClass,
 				      NumericKeyDictionary* nkdCompletedAttributes) override;
@@ -200,7 +227,7 @@ protected:
 
 	// Alimentation de type calcul des attributs cibles dans le cas d'un nombre variable d'operandes en entree
 	// Dans ce cas, on doit avoir egalement un nombre variable d'operandes en sortie, qui doivent
-	// correspondre aux operande en entree
+	// correspondre aux operandes en entree
 	void FillComputeModeTargetAttributesForVariableOperandNumber(const KWObject* kwoSourceObject,
 								     KWObject* kwoTargetObject) const;
 

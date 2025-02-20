@@ -114,7 +114,7 @@ public:
 	KWClass* GetParentClass() const;
 
 	/////////////////////////////////////////
-	// Lien enre attribut et bloc
+	// Lien entre attribut et bloc
 
 	// Indique si l'attribut est dans un bloc
 	boolean IsInBlock() const;
