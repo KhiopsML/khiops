@@ -131,6 +131,11 @@ public:
 	// grand nombre d'enregistrements
 	KWClass* ComputeClass();
 
+	// Format de d'ecriture de type dense (defaut: false)
+	// En format dense, meme les blocs sparses sont ecrits de facon dense
+	void SetDenseOutputFormat(boolean bValue);
+	boolean GetDenseOutputFormat() const;
+
 	// Ouverture de la base de donnees pour lecture ou ecriture
 	// L'etat passe en IsOpened si l'ouverture a reussie
 	boolean OpenForRead();
@@ -591,6 +596,7 @@ protected:
 	// Attributs principaux
 	ALString sClassName;
 	ALString sDatabaseName;
+	boolean bDenseOutputFormat;
 	boolean bOpenedForRead;
 	boolean bOpenedForWrite;
 	boolean bVerboseMode;
@@ -625,6 +631,17 @@ protected:
 
 //////////////////////////////////////////////////////////////////////
 // Methodes en inline
+
+inline void KWDatabase::SetDenseOutputFormat(boolean bValue)
+{
+	require(not IsOpenedForWrite());
+	bDenseOutputFormat = bValue;
+}
+
+inline boolean KWDatabase::GetDenseOutputFormat() const
+{
+	return bDenseOutputFormat;
+}
 
 inline boolean KWDatabase::IsOpenedForRead() const
 {

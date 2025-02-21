@@ -346,6 +346,7 @@ void KWClass::IndexClass()
 	ALString sAttributeKeyMetaDataKey;
 	Symbol sVarKey;
 	int nVarKey;
+	ObjectArray oaBlockLoadedAttributes;
 
 	// Arret si deja indexe
 	if (nFreshness == nIndexFreshness)
@@ -416,6 +417,7 @@ void KWClass::IndexClass()
 			attributeBlock->bLoaded = false;
 			attributeBlock->liLoadIndex.Reset();
 			attributeBlock->oaLoadedAttributes.RemoveAll();
+			attributeBlock->ivLoadedAttributeIndexesBySparseIndex.SetSize(0);
 			attributeBlock->loadedAttributesIndexedKeyBlock->Clean();
 			attributeBlock->nAttributeNumber = 0;
 			attributeBlock->nkdAttributesByVarKeys.RemoveAll();
@@ -545,12 +547,15 @@ void KWClass::IndexClass()
 	{
 		attributeBlock = cast(KWAttributeBlock*, oaLoadedAttributeBlocks.GetAt(nAttributeBlock));
 
+		// Memorisation des attributs du bloc dans leur ordre initial, selon l'ordre dans la classe
+		oaBlockLoadedAttributes.CopyFrom(&attributeBlock->oaLoadedAttributes);
+
 		// Tri des attributs charges par VarKey, ce qui est necessaire pour ensuite
 		// initialiser les IndexKeyBlock selon l'ordre requis
 		attributeBlock->oaLoadedAttributes.SetCompareFunction(KWAttributeCompareVarKey);
 		attributeBlock->oaLoadedAttributes.Sort();
 
-		// Parcours des attributs charges du blocs
+		// Parcours des attributs charges du bloc selon l'ordre par VarKey pour specifier leur index sparse
 		for (nAttribute = 0; nAttribute < attributeBlock->oaLoadedAttributes.GetSize(); nAttribute++)
 		{
 			attribute = cast(KWAttribute*, attributeBlock->oaLoadedAttributes.GetAt(nAttribute));
@@ -570,6 +575,16 @@ void KWClass::IndexClass()
 
 			// Mise a jour de la partie sparse de l'index de l'attribut
 			attribute->liLoadIndex.SetSparseIndex(nAttribute);
+		}
+
+		// Parcours des attributs charges du bloc selon l'ordre initial, pour memoriser l'association
+		// entre index sparse et index de l'attribut selon l'ordre dans la classe
+		attributeBlock->ivLoadedAttributeIndexesBySparseIndex.SetSize(oaBlockLoadedAttributes.GetSize());
+		for (nAttribute = 0; nAttribute < oaBlockLoadedAttributes.GetSize(); nAttribute++)
+		{
+			attribute = cast(KWAttribute*, oaBlockLoadedAttributes.GetAt(nAttribute));
+			attributeBlock->ivLoadedAttributeIndexesBySparseIndex.SetAt(
+			    attribute->liLoadIndex.GetSparseIndex(), nAttribute);
 		}
 	}
 
@@ -1804,9 +1819,12 @@ void KWClass::ExportNativeFieldNames(StringVector* svNativeFieldNames) const
 	}
 }
 
-void KWClass::ExportStoredFieldNames(StringVector* svStoredFieldNames) const
+void KWClass::ExportStoredFieldNames(StringVector* svStoredFieldNames, boolean bDenseOutputFormat) const
 {
 	int i;
+	int j;
+	int nDenseIndex;
+	int nStartSize;
 	KWDataItem* dataItem;
 	KWAttribute* attribute;
 	KWAttributeBlock* attributeBlock;
@@ -1823,14 +1841,41 @@ void KWClass::ExportStoredFieldNames(StringVector* svStoredFieldNames) const
 		if (dataItem->IsAttribute())
 		{
 			attribute = cast(KWAttribute*, dataItem);
-			if (KWType::IsStored(attribute->GetType()) and attribute->GetLoaded())
+
+			// On ne gere que les attributs stockables
+			if (KWType::IsStored(attribute->GetType()))
 				svStoredFieldNames->Add(attribute->GetName());
 		}
 		// Cas d'un bloc d'attributs
 		else
 		{
 			attributeBlock = cast(KWAttributeBlock*, dataItem);
-			svStoredFieldNames->Add(attributeBlock->GetName());
+
+			// On ne gere que les blocs attributs stockables
+			if (KWType::IsStored(attributeBlock->GetType()))
+			{
+				// On garde le nom du bloc dans le cas standard
+				if (not bDenseOutputFormat)
+					svStoredFieldNames->Add(attributeBlock->GetName());
+				// On prend tous les attributs du bloc en cas de format dense
+				else
+				{
+					// On prevoit la place necessaire pour les attribut du bloc
+					nStartSize = svStoredFieldNames->GetSize();
+					svStoredFieldNames->SetSize(nStartSize +
+								    attributeBlock->GetLoadedAttributeNumber());
+
+					// On prend les attributs du bloc, selon l'ordre initial des attribut dans la classe
+					for (j = 0; j < attributeBlock->GetLoadedAttributeNumber(); j++)
+					{
+						// On passe de l'index dans le bloc sparse a l'index dense selon l'ordre initial des attributs dans la classe
+						nDenseIndex = attributeBlock->GetLoadedAttributeIndexAtSparseIndex(j);
+						svStoredFieldNames->SetAt(
+						    nStartSize + nDenseIndex,
+						    attributeBlock->GetLoadedAttributeAt(j)->GetName());
+					}
+				}
+			}
 		}
 	}
 }
