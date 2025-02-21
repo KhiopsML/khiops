@@ -4038,9 +4038,9 @@ const ALString KWDGInterval::GetObjectLabel() const
 	else
 	{
 		if (cLowerBound == GetMinLowerBound())
-			sLabel = "]-inf;";
+			sLabel = "]-inf,";
 		else
-			sLabel = sLabel + "]" + KWContinuous::ContinuousToString(cLowerBound) + ";";
+			sLabel = sLabel + "]" + KWContinuous::ContinuousToString(cLowerBound) + ",";
 		if (cUpperBound == GetMaxUpperBound())
 			sLabel += "+inf[";
 		else
