@@ -125,6 +125,10 @@ public:
 	/////////////////////////////////////////////////
 	///// Implementation
 protected:
+	// Ecriture d'un bloc sparse au format dense
+	void WriteContinuousBlockUsingDenseFormat(KWAttributeBlock* attributeBlock, KWContinuousValueBlock* valueBlock);
+	void WriteSymbolBlockUsingDenseFormat(KWAttributeBlock* attributeBlock, KWSymbolValueBlock* valueBlock);
+
 	// Implementation specifique du saut de ligne dans le cas d'une classe principale
 	// En effet, dans ce cas, on analyse partiellement la ligne pour en extraire la derniere cle
 	void SkipMainRecord();
