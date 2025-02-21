@@ -1969,9 +1969,9 @@ void KDSelectionInterval::Write(ostream& ost) const
 	else
 	{
 		if (cLowerBound == KWContinuous::GetMissingValue())
-			ost << "]-inf;";
+			ost << "]-inf,";
 		else
-			ost << "]" << KWContinuous::ContinuousToString(cLowerBound) << ";";
+			ost << "]" << KWContinuous::ContinuousToString(cLowerBound) << ",";
 		if (cUpperBound == KWContinuous::GetMaxValue())
 			ost << "+inf[";
 		else
