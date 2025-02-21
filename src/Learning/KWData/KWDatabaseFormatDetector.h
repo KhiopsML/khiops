@@ -9,6 +9,7 @@ class KWHeaderLineAnalyser;
 class RewindableInputBufferedFile;
 
 #include "KWDatabase.h"
+#include "KWMTDatabase.h"
 #include "KWSTDatabaseTextFile.h"
 #include "KWDataTableDriverTextFile.h"
 #include "KWCharFrequencyVector.h"
