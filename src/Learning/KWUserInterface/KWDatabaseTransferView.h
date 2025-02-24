@@ -64,19 +64,6 @@ protected:
 	// Le transfer se fait au format sparse ou dense selon les specifications de l'interface
 	KWClass* InternalBuildTransferredClass(KWClassDomain* transferredClassDomain, const KWClass* transferClass);
 
-	// Test si une classe (ou sa composition) contient des blocs d'attributs a transferer
-	boolean IsClassWithTransferredAttributeBlocks(const KWClass* transferClass) const;
-
-	// Creation d'un domaine ou la classe a transferer (et les classes de sa composition) sont transformees
-	// au format dense, a partir d'une classe source.
-	// Tous les attributs sparse utilises sont renommes, mis en unused, et recopies dans des attributs dense
-	// de meme nom que les attributs initiaux
-	// Cela permet de gerer la transformation d'un format sparse vers un format dense au moyen d'un dictionnaire
-	// dedie, plutot qu'au moyen d'un flag a positionner dans les database et a propager dans les tables, drivers,
-	// en parallele, ce qui ne serait pas maintenable. On a ici une solution qui reste localisee dans une seule
-	// methode
-	KWClassDomain* InternalBuildDenseClassDomain(const KWClass* transferClass);
-
 	// Preparation de la classe de transfer (et de sa composition), en ne mettant en Load que les attributs
 	// transferables de facon a optimiser le nombre d'attributs calcules a traiter
 	void PrepareTransferClass(KWClass* transferClass);
