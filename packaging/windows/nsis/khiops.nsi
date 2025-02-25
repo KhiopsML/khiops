@@ -19,6 +19,7 @@ SetCompressor /SOLID lzma
 !include "KhiopsPrerequisiteFunc.nsh"
 !include "ReplaceInFile.nsh"
 
+!uninstfinalize "echo uninstfinalize %1"
 
 
 # Definitions for registry change notification
@@ -161,14 +162,14 @@ Section "Install" SecInstall
 
   # Install executables and java libraries
   SetOutPath "$INSTDIR\bin"
-  File "${KHIOPS_WINDOWS_BUILD_DIR}\bin\MODL.exe"
-  File "${KHIOPS_WINDOWS_BUILD_DIR}\bin\MODL_Coclustering.exe"
-  File "${KHIOPS_WINDOWS_BUILD_DIR}\bin\_khiopsgetprocnumber.exe"
-  File "${KHIOPS_WINDOWS_BUILD_DIR}\jars\norm.jar"
-  File "${KHIOPS_WINDOWS_BUILD_DIR}\jars\khiops.jar"
-  File "${KHIOPS_WINDOWS_BUILD_DIR}\tmp\khiops_env.cmd"
-  File "..\khiops.cmd"
-  File "..\khiops_coclustering.cmd"
+  File "${KHIOPS_WINDOWS_BUILD_DIR}/bin/MODL.exe"
+  File "${KHIOPS_WINDOWS_BUILD_DIR}/bin/MODL_Coclustering.exe"
+  File "${KHIOPS_WINDOWS_BUILD_DIR}/bin/_khiopsgetprocnumber.exe"
+  File "${KHIOPS_WINDOWS_BUILD_DIR}/jars/norm.jar"
+  File "${KHIOPS_WINDOWS_BUILD_DIR}/jars/khiops.jar"
+  File "${KHIOPS_WINDOWS_BUILD_DIR}/tmp/khiops_env.cmd"
+  File "../khiops.cmd"
+  File "../khiops_coclustering.cmd"
 
   # Install Docs
   SetOutPath "$INSTDIR"
