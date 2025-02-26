@@ -1154,6 +1154,9 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeRecoderClas
 	boolean bOk = true;
 	KWClass* recoderClass;
 	ALString sRecoderClassTmpFilePath;
+	ALString sAlphaNumClassName;
+	int i;
+	char c;
 
 	require(IsMasterProcess());
 	require(masterBinarySliceSet != NULL);
@@ -1165,8 +1168,16 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeRecoderClas
 	shared_sRecoderClassName.SetValue(recoderClass->GetName());
 	if (IsParallel())
 	{
-		sRecoderClassTmpFilePath =
-		    FileService::CreateUniqueTmpFile(shared_sRecoderClassName.GetValue() + ".kdic", this);
+		// Le nom du dictionnaire de recodage ne doit contenir que des alphanumeriques. Sinon on remplace les char par '_'
+		for (i = 0; i < shared_sRecoderClassName.GetValue().GetLength(); i++)
+		{
+			c = shared_sRecoderClassName.GetValue().GetAt(i);
+			if (isalnum(c))
+				sAlphaNumClassName += c;
+			else
+				sAlphaNumClassName += '_';
+		}
+		sRecoderClassTmpFilePath = FileService::CreateUniqueTmpFile(sAlphaNumClassName + ".kdic", this);
 		bOk = bOk and sRecoderClassTmpFilePath != "";
 		if (not bOk)
 			AddError("Error when creating temporary dictionary file for class " +
