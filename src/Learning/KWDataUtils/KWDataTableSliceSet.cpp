@@ -934,7 +934,7 @@ boolean KWDataTableSliceSet::CheckReadClass(const KWClass* kwcInputClass) const
 					    currentDerivationRule, &odSliceAttributes, &nkdAllUsedSliceAttributes,
 					    &nkdAllUsedDerivedAttributes, sErrorAttribute);
 					if (not bOk)
-						AddError("Variable " + attribute->GetName() + " in read dictionnary " +
+						AddError("Variable " + attribute->GetName() + " in read dictionary " +
 							 kwcInputClass->GetName() +
 							 " relies on a derivation rule involving variable " +
 							 sErrorAttribute + " that is not in a slice");
@@ -2659,6 +2659,17 @@ boolean KWDataTableSliceSet::BuildAllUsedSliceAttributes(const KWDerivationRule*
 				originAttribute = originAttributeBlock->GetFirstAttribute();
 				while (originAttribute != NULL)
 				{
+					// On ignore l'attribut cible si present dans le bloc
+					if (originAttribute->GetName() == sClassTargetAttributeName)
+					{
+						if (originAttribute != originAttributeBlock->GetLastAttribute())
+							originAttribute->GetParentClass()->GetNextAttribute(
+							    originAttribute);
+						else
+							originAttribute = NULL;
+						continue;
+					}
+
 					// Recherche de l'attribut dans le sliceset
 					slice = cast(KWDataTableSlice*,
 						     odSliceAttributes->Lookup(originAttribute->GetName()));

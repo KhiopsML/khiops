@@ -2075,10 +2075,10 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::SlaveProcess()
 
 boolean SNBPredictorSelectiveNaiveBayesTrainingTask::SlaveFinalize(boolean bProcessEndedCorrectly)
 {
-	require(IsSlaveDataTableBinarySliceSetInitialized());
-	require(slaveBinarySliceSet == NULL or slaveBinarySliceSet->Check());
-	require(slaveRecoderClass != NULL or IsParallel());
-	require(not bProcessEndedCorrectly or slaveWeightedSelectionScorer != NULL);
+	require(not bProcessEndedCorrectly or IsSlaveDataTableBinarySliceSetInitialized());
+	require(not bProcessEndedCorrectly or (slaveBinarySliceSet == NULL or slaveBinarySliceSet->Check()));
+	require(not bProcessEndedCorrectly or (slaveRecoderClass != NULL or IsParallel()));
+	require(not bProcessEndedCorrectly or (slaveWeightedSelectionScorer != NULL));
 
 	// Nettoyage des objets de travail l'esclave
 	if (slaveBinarySliceSet != NULL)
@@ -2109,6 +2109,8 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::SlaveFinalize(boolean bProc
 
 	ensure(slaveBinarySliceSet == NULL);
 	ensure(slaveRecoderClass == NULL);
+	ensure(slaveWeightedSelectionScorer == NULL);
+	ensure(slaveDummyDatabase == NULL);
 
 	return true;
 }
