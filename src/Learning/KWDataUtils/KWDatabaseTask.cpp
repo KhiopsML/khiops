@@ -386,16 +386,27 @@ boolean KWDatabaseTask::MasterInitialize()
 	boolean bOk = true;
 	KWClass* kwcClass;
 	ALString sClassTmpFile;
+	ALString sAlphaNumClassName;
 	int i;
+	char c;
 
 	require(databaseChunkBuilder.IsComputed());
 
 	// Ecriture du fichier dictionnaire dans un repertoire temporaire pour passage au slave
 	if (IsParallel())
 	{
+		// Le nom du dictionnaire temporaire ne doit contenir que des alphanumeriques. Sinon, on remplace les char par '_'
+		for (i = 0; i < shared_sourceDatabase.GetDatabase()->GetClassName().GetLength(); i++)
+		{
+			c = shared_sourceDatabase.GetDatabase()->GetClassName().GetAt(i);
+			if (isalnum(c))
+				sAlphaNumClassName += c;
+			else
+				sAlphaNumClassName += '_';
+		}
+
 		// Construction du nom du dictionnaire temporaire
-		sClassTmpFile = FileService::CreateUniqueTmpFile(
-		    shared_sourceDatabase.GetDatabase()->GetClassName() + ".kdic", this);
+		sClassTmpFile = FileService::CreateUniqueTmpFile(sAlphaNumClassName + ".kdic", this);
 		bOk = sClassTmpFile != "";
 
 		// Recherche de la classe du dictionnaire

@@ -177,7 +177,7 @@ boolean PLRemoteFileService::BuildOutputWorkingFile(const ALString& sPathName, A
 		if (sWorkingFileName == "")
 		{
 			bOk = false;
-			Global::AddError("File", sFileName, "Unable to create temporary file");
+			Global::AddError("File", sFileName, "Unable to create output temporary file");
 		}
 	}
 	else
