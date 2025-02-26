@@ -205,37 +205,26 @@ void CCLearningProblem::BuildCoclustering()
 	// Sinon : cas d'un coclustering instances * variables avec attribut de type de parties de variable
 	else
 	{
-		// Creation de la variable d'identifiant des instances si necessaire
-		// Dans ce cas, creation d'une nouvelle classe enrichie d'une variable d'identifiant
-		coclusteringBuilder.SetIdentifierAttributeName(
-		    analysisSpec->GetVarPartCoclusteringSpec()->GetIdentifierAttributeName());
-		if (analysisSpec->GetVarPartCoclusteringSpec()->GetIdentifierAttributeName() == "")
-		{
-			// Preparation du domaine pour la nouvelle classe
-			constructedDomain = kwcClass->GetDomain()->CloneFromClass(kwcClass);
-			constructedDomain->Compile();
+		// Preparation du domaine pour la nouvelle classe
+		constructedDomain = kwcClass->GetDomain()->CloneFromClass(kwcClass);
 
-			// Remplacement du domaine courant par le domaine de selection
-			currentDomain = KWClassDomain::GetCurrentDomain();
-			KWClassDomain::SetCurrentDomain(constructedDomain);
+		// Remplacement du domaine courant par le domaine de selection
+		currentDomain = KWClassDomain::GetCurrentDomain();
+		KWClassDomain::SetCurrentDomain(constructedDomain);
 
-			// Remplacement de la classe courante par la classe enrichie
-			kwcClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName());
-			check(kwcClass);
+		// Remplacement de la classe courante par la classe enrichie
+		kwcClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName());
+		check(kwcClass);
 
-			// Insertion d'un attribut identifiant
-			identifierAttribute = InsertIdentifierAttribute(kwcClass);
+		// Mise a priori de tous les attributs en Unloaded
+		kwcClass->SetAllAttributesLoaded(false);
 
-			// Ajout du nom de l'attribut dans les specifications
-			analysisSpec->GetVarPartCoclusteringSpec()->SetIdentifierAttributeName(
-			    identifierAttribute->GetName());
-			coclusteringBuilder.SetIdentifierAttributeName(
-			    analysisSpec->GetVarPartCoclusteringSpec()->GetIdentifierAttributeName());
-		}
-		// Recherche de l'attribut dans la classe sinon
-		else
-			identifierAttribute = kwcClass->LookupAttribute(
-			    analysisSpec->GetVarPartCoclusteringSpec()->GetIdentifierAttributeName());
+		// Insertion d'un attribut identifiant en distiguant la presence d'une ou plusieurs cles pour la variable Identifier
+		identifierAttribute = InsertIdentifierAttribute(kwcClass);
+
+		// Ajout du nom de l'attribut dans les specifications
+		coclusteringBuilder.SetIdentifierAttributeName(identifierAttribute->GetName());
+
 		assert(identifierAttribute != NULL);
 		assert(identifierAttribute->GetUsed());
 
@@ -247,21 +236,25 @@ void CCLearningProblem::BuildCoclustering()
 		sOwnerAttributeName = kwcClass->BuildAttributeName(sDefaultOwnerAttributeName);
 		coclusteringBuilder.SetVarPartAttributeName(sOwnerAttributeName);
 
-		// Creation des variables internes avec l'ensemble des variables Used sauf l'attribut identifiant
+		// Creation des variables internes
 		coclusteringBuilder.GetInnerAttributesNames()->SetSize(0);
 		kwAttribute = kwcClass->GetHeadAttribute();
 		while (kwAttribute != NULL)
 		{
-			// Ajout si attribut utilise et du bon type
-			if (kwAttribute->GetUsed() and KWType::IsSimple(kwAttribute->GetType()) and
-			    kwAttribute->GetName() !=
-				analysisSpec->GetVarPartCoclusteringSpec()->GetIdentifierAttributeName())
+			// Cas des attributs Used et de type Simple
+			// Dans le cas multi-champs, les champs cles ont ete mis en Unused dans InsertIdentifierAttribute
+			if (kwAttribute->GetUsed() and KWType::IsSimple(kwAttribute->GetType()))
 			{
-				check(kwAttribute);
-				kwAttribute->SetLoaded(true);
+				// On exclut l'attribut Identifier (a noter que le FrequencyAttributeName ne fait pas partie des parametres
+				// dans le cas Identifier * Variables
+				if (kwAttribute->GetName() != coclusteringBuilder.GetIdentifierAttributeName())
+				{
+					check(kwAttribute);
+					kwAttribute->SetLoaded(true);
 
-				// Ajout de l'attribut interne
-				coclusteringBuilder.GetInnerAttributesNames()->Add(kwAttribute->GetName());
+					// Ajout de l'attribut interne
+					coclusteringBuilder.GetInnerAttributesNames()->Add(kwAttribute->GetName());
+				}
 			}
 			kwcClass->GetNextAttribute(kwAttribute);
 		}
@@ -315,7 +308,7 @@ void CCLearningProblem::BuildCoclustering()
 		if (bWriteOk)
 			coclusteringBuilder.RemoveLastSavedReportFile();
 
-		// Warning si moins d'attributs dans le coclustering que d'attributs ou de deimsnsions specifiees
+		// Warning si moins d'attributs dans le coclustering que d'attributs ou de dimensions specifiees
 		// Cas du coclustering de variables
 		if (not GetLearningCoclusteringIVExpertMode() or not analysisSpec->GetVarPartCoclustering())
 		{
@@ -350,7 +343,6 @@ void CCLearningProblem::BuildCoclustering()
 		delete constructedDomain;
 		kwcClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName());
 		check(kwcClass);
-		analysisSpec->GetVarPartCoclusteringSpec()->SetIdentifierAttributeName("");
 	}
 
 	// Nettoyage
@@ -770,47 +762,12 @@ boolean CCLearningProblem::CheckCoclusteringSpecifications() const
 	// Sinon : cas d'un coclustering instances * variables
 	else
 	{
-		// Verification de la variable d'identifiant
-		sIdentifierAttributeName = analysisSpec->GetVarPartCoclusteringSpec()->GetIdentifierAttributeName();
-		if (bOk and sIdentifierAttributeName != "")
-		{
-			// Recherche de la variable correspondante dans le dictionnaire
-			attribute = kwcClass->LookupAttribute(sIdentifierAttributeName);
-
-			// La variable doit etre presente dans le dictionnaire
-			if (attribute == NULL)
-			{
-				bOk = false;
-				Global::AddError("", "",
-						 "Coclustering identifier variable " + sIdentifierAttributeName +
-						     " unknown in dictionary " + GetClassName());
-			}
-			// De type Symbol
-			else if (attribute->GetType() != KWType::Symbol)
-			{
-				bOk = false;
-				Global::AddError("", "",
-						 "Coclustering identifier variable " + sIdentifierAttributeName +
-						     " must be of Categorical type");
-			}
-			// Et utilise
-			else if (not attribute->GetUsed())
-			{
-				bOk = false;
-				Global::AddError("", "",
-						 "Coclustering identifier variable " + sIdentifierAttributeName +
-						     " unused in dictionary " + GetClassName());
-			}
-		}
-
 		// Verification des attributs internes pour les parties de variables
 		if (bOk)
 		{
 			// Comptage du nombre d'attribut internes
 			nInternalAttributeNumber = kwcClass->GetUsedAttributeNumberForType(KWType::Continuous) +
 						   kwcClass->GetUsedAttributeNumberForType(KWType::Symbol);
-			if (sIdentifierAttributeName != "")
-				nInternalAttributeNumber--;
 
 			// Erreur s'il n'y en a pas
 			if (nInternalAttributeNumber == 0)
@@ -989,38 +946,98 @@ const ALString CCLearningProblem::GetClassLabel() const
 
 KWAttribute* CCLearningProblem::InsertIdentifierAttribute(KWClass* kwcClass)
 {
-	KWDRAsSymbol* identifierRule;
+	KWDerivationRule* identifierRule;
 	KWDRIndex* indexRule;
 	KWAttribute* attribute;
-	const ALString sIdentifierMetaDataKey = "IdentifierCC";
-	KWMTDatabaseTextFile refMTDatabaseTextFile;
-	KWSTDatabaseTextFile refSTDatabaseTextFile;
+	KWAttribute* keyAttribute;
+	int nKey;
+	ALString sAttributeName;
+	KWDerivationRuleOperand* operand;
 
 	require(kwcClass->Check());
 
-	// Creation de la regle de l'identifiant
-	identifierRule = new KWDRAsSymbol;
-	identifierRule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginRule);
+	// Cas d'un dictionnaire sans cle : pas de nom d'identifiant. La variable identifiant est creee a partir du numero de ligne
+	if (kwcClass->GetKeyAttributeNumber() == 0)
+	{
+		// Creation de la regle de l'identifiant
+		identifierRule = new KWDRAsSymbol;
+		identifierRule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginRule);
 
-	// Creation de la regle qui donne l'index de la ligne
-	indexRule = new KWDRIndex;
-	identifierRule->GetFirstOperand()->SetDerivationRule(indexRule);
+		// Creation de la regle qui donne l'index de la ligne
+		indexRule = new KWDRIndex;
+		identifierRule->GetFirstOperand()->SetDerivationRule(indexRule);
 
-	// Nettoyage des meta-data des attributs de la classe
-	kwcClass->RemoveAllAttributesMetaDataKey(sIdentifierMetaDataKey);
+		// Creation de l'attribut et de son nom
+		attribute = new KWAttribute;
+		attribute->SetName(kwcClass->BuildAttributeName("Instance index"));
 
-	// Creation de l'attribut et de son nom
-	attribute = new KWAttribute;
-	attribute->SetName(kwcClass->BuildAttributeName("Identifier"));
-	attribute->GetMetaData()->SetNoValueAt(sIdentifierMetaDataKey);
+		// Initialisation
+		attribute->SetDerivationRule(identifierRule);
+		attribute->CompleteTypeInfo(kwcClass);
 
-	// Initialisation
-	attribute->SetDerivationRule(identifierRule);
-	attribute->CompleteTypeInfo(kwcClass);
+		// Insertion dans la classe enrichie
+		kwcClass->InsertAttribute(attribute);
+	}
 
-	// Insertion dans la classe enrichie
-	kwcClass->InsertAttribute(attribute);
+	// Cas d'un dictionnaire avec une cle mono-champ
+	else if (kwcClass->GetKeyAttributeNumber() == 1)
+	{
+		// On force la classe a Root afin de supprimer les duplicats si la cle n'etait pas unique
+		if (!kwcClass->GetRoot())
+			kwcClass->SetRoot(true);
 
+		attribute = kwcClass->GetKeyAttributeAt(0);
+
+		// On force l'attribut a Used s'il ne l'etait pas
+		attribute->SetUsed(true);
+	}
+
+	// Sinon : cas d'un dictionnaire avec une cle multi-champ
+	else
+	{
+		// On force la classe a Root afin de supprimer les duplicats si la cle n'etait pas unique
+		if (!kwcClass->GetRoot())
+			kwcClass->SetRoot(true);
+
+		// Creation de la regle de l'identifiant par concatenation des cles
+		identifierRule = new KWDRBuildKey();
+		identifierRule->DeleteAllVariableOperands();
+
+		// Ajout d'un operande par cle
+		for (nKey = 0; nKey < kwcClass->GetKeyAttributeNumber(); nKey++)
+		{
+			keyAttribute = kwcClass->GetKeyAttributeAt(nKey);
+
+			// Mise en Unused des attributs cles
+			keyAttribute->SetUsed(false);
+
+			// Ajout d'un operande
+			operand = new KWDerivationRuleOperand;
+			operand->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
+			operand->SetType(keyAttribute->GetType());
+			operand->SetAttributeName(keyAttribute->GetName());
+
+			identifierRule->AddOperand(operand);
+		}
+
+		// Creation de l'attribut et de son nom
+		attribute = new KWAttribute;
+		sAttributeName = "";
+		for (nKey = 0; nKey < kwcClass->GetKeyAttributeNumber(); nKey++)
+		{
+			if (nKey > 0)
+				sAttributeName += "|";
+			sAttributeName += kwcClass->GetKeyAttributeAt(nKey)->GetName();
+		}
+		attribute->SetName(kwcClass->BuildAttributeName(sAttributeName));
+
+		// Initialisation
+		attribute->SetDerivationRule(identifierRule);
+		attribute->CompleteTypeInfo(kwcClass);
+
+		// Insertion dans la classe enrichie
+		kwcClass->InsertAttribute(attribute);
+	}
 	return attribute;
 }
 
