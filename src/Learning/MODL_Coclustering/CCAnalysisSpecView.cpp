@@ -59,6 +59,7 @@ CCAnalysisSpecView::CCAnalysisSpecView()
 	GetFieldAt("CoclusteringType")
 	    ->SetHelpText("Type of coclustering:"
 			  "\n - Variables coclustering: based on the coclustering variables parameters,"
+			  // CH Issue 583 ajouter dans l'info bulles la facon de specifier un identifiant : dico Root
 			  "\n - Instances * Variables coclustering: based on an identifer on one dimension, and all "
 			  "the numerical and categorical variables on the other dimension.");
 

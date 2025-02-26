@@ -12,6 +12,7 @@ CCVarPartCoclusteringSpecView::CCVarPartCoclusteringSpecView()
 {
 	SetIdentifier("CCVarPartCoclusteringSpec");
 	SetLabel("Instances Variables coclustering parameters");
+	// CH Issue 583 : a supprimer ?
 	AddStringField("IdentifierAttributeName", "Identifier variable", "");
 
 	// ## Custom constructor

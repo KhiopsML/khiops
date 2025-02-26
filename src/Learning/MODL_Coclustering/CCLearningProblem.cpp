@@ -209,6 +209,7 @@ void CCLearningProblem::BuildCoclustering()
 		// Dans ce cas, creation d'une nouvelle classe enrichie d'une variable d'identifiant
 		coclusteringBuilder.SetIdentifierAttributeName(
 		    analysisSpec->GetVarPartCoclusteringSpec()->GetIdentifierAttributeName());
+		// CH Issue 583 : modifier la prise en compte du nom de la variable identifiant
 		if (analysisSpec->GetVarPartCoclusteringSpec()->GetIdentifierAttributeName() == "")
 		{
 			// Preparation du domaine pour la nouvelle classe
