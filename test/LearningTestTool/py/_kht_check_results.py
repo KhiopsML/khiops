@@ -1511,7 +1511,7 @@ def check_file_lines(
             continue
 
         # Cas special du fichier d'erreur, pour le message "(Operation canceled)" qui n'est pas case sensitive
-        if is_error_file:
+        if is_error_file or is_json_file:
             if line_ref.find("(Operation canceled)") != -1:
                 line_ref = line_ref.replace(
                     "(Operation canceled)", "(operation canceled)"
