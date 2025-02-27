@@ -111,18 +111,21 @@ boolean KIInterpretationDictionary::UpdateInterpretationAttributes()
 				interpretationAttributes->Add(attribute);
 			else if (attribute->GetConstMetaData()->IsKeyPresent("ReinforcementPart"))
 				interpretationAttributes->Add(attribute);
-
+			else if (attribute->GetConstMetaData()->IsKeyPresent("ReinforcementClassChangeTag"))
+				interpretationAttributes->Add(attribute);
 			kwcInterpretationMainClass->GetNextAttribute(attribute);
 		}
 
 		// supprimer les eventuels attributs d'interpretation qui preexisteraient dans le dico,
 		// afin de gerer correctement les mises a jour des parametres via IHM
 		// (on recree systematiquement tous les attributs d'interpretation)
+
 		for (int i = 0; i < interpretationAttributes->GetSize(); i++)
 		{
 			attribute = cast(KWAttribute*, interpretationAttributes->GetAt(i));
 			kwcInterpretationMainClass->DeleteAttribute(attribute->GetName());
 		}
+
 		kwcdInterpretationDomain->Compile();
 
 		delete interpretationAttributes;

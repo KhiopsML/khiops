@@ -6,6 +6,7 @@
 
 #include "KWDRNBPredictor.h"
 #include "KWDRDataGrid.h"
+#include "KIShapleyTable.h"
 
 int KICompareContributionImportanceValue(const void* elem1, const void* elem2);
 int KICompareReinforcementNewScore(const void* elem1, const void* elem2);
@@ -56,6 +57,17 @@ void KITargetValueProbas::Write(ostream& ost) const
 			ost << exp(cv->GetAt(val)) << ", ";
 		ost << endl;
 	}
+}
+
+longint KITargetValueProbas::GetUsedMemory() const
+{
+	longint lUsedMemory;
+
+	lUsedMemory = sizeof(KITargetValueProbas);
+	if (oaProbasAposteriori != NULL)
+		lUsedMemory += oaProbasAposteriori->GetOverallUsedMemory();
+
+	return lUsedMemory;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -282,14 +294,22 @@ void KIDRClassifierInterpretation::Compile(KWClass* kwcOwnerClass)
 			}
 		}
 	}
+}
 
-	// for (int nClassIndex = 0; nClassIndex < classifier->GetDataGridSetTargetPartNumber(); nClassIndex++)
-	//{
-	//	// Extraction du tableau des probas de cette valeur cible
-	//	cout << endl;
-	//	targetValueProbas = cast(KITargetValueProbas*, oaModelProbabilities.GetAt(nClassIndex));
-	//	targetValueProbas->Write(cout);
-	// }
+longint KIDRClassifierInterpretation::GetUsedMemory() const
+{
+	longint lUsedMemory;
+
+	lUsedMemory = sizeof(KIDRClassifierInterpretation);
+	lUsedMemory += oaNativePredictiveAttributeNames.GetOverallUsedMemory();
+	lUsedMemory += odClassNamesIndexes.GetOverallUsedMemory();
+	lUsedMemory += oaModelProbabilities.GetOverallUsedMemory();
+	lUsedMemory += oaPartitionedPredictiveAttributeNames.GetOverallUsedMemory();
+	lUsedMemory += cvVariableWeights.GetUsedMemory();
+	lUsedMemory += svTargetValues.GetUsedMemory();
+	lUsedMemory += ivTargetFrequencies.GetUsedMemory();
+
+	return lUsedMemory;
 }
 
 const ALString KIDRClassifierInterpretation::LEVER_ATTRIBUTE_META_TAG = "LeverVariable";
@@ -319,7 +339,15 @@ KIDRClassifierContribution::KIDRClassifierContribution()
 	bSortInstanceProbas = false;
 }
 
-KIDRClassifierContribution::~KIDRClassifierContribution() {}
+KIDRClassifierContribution::~KIDRClassifierContribution()
+{
+	//clean oaShapleyTables
+	if (oaShapleyTables.GetSize() > 0)
+	{
+		oaShapleyTables.DeleteAll();
+		oaShapleyTables.SetSize(0);
+	}
+}
 
 KWDerivationRule* KIDRClassifierContribution::Create() const
 {
@@ -392,6 +420,18 @@ Symbol KIDRClassifierContribution::GetContributionClass() const
 	assert(oaInstanceProbabilities->GetSize() > 0);
 
 	return sContributionClass;
+}
+
+longint KIDRClassifierContribution::GetUsedMemory() const
+{
+	longint lUsedMemory;
+	int i;
+
+	lUsedMemory = KIDRClassifierInterpretation::GetUsedMemory();
+	lUsedMemory += sizeof(KIDRClassifierContribution) - sizeof(KIDRClassifierContribution);
+	for (i = 0; i < oaShapleyTables.GetSize(); i++)
+		lUsedMemory += cast(KIShapleyTable*, oaShapleyTables.GetAt(i))->GetUsedMemory();
+	return lUsedMemory;
 }
 
 void KIDRClassifierContribution::ComputeContribution(const KWObject* kwoObject) const
@@ -742,8 +782,7 @@ Continuous KIDRClassifierContribution::ComputeLogImportanceValue(int nAttributeI
 	return cImportanceValue;
 }
 
-Continuous KIDRClassifierContribution::ComputeShapley(const int nAttributeIndex, const int nTargetClassIndex,
-						      const int nModalityIndex) const
+void KIDRClassifierContribution::InitializeShapleyTables()
 {
 	// nModalityIndex indique dans quel intervalle (ou groupe) de l'attribut designe par nAttributeIndex, cet individu appartient
 	// nTargetClassIndex est la classe cible pour le calcul de l'importance
@@ -754,79 +793,139 @@ Continuous KIDRClassifierContribution::ComputeShapley(const int nAttributeIndex,
 	Continuous cTerm2Numerator;
 	Continuous cTerm2Denominator;
 	Continuous cTerm2;
-	Continuous cImportanceValue;
 	Continuous cProbaModality;
 	ALString sTarget;
-
+	KIShapleyTable* stShapleyTable;
+	KITargetValueProbas* targetValueProbas;
+	ContinuousVector* cvVectorProbas;
+	Continuous variableWeight;
+	int nAttributeIndex;
+	int nTargetClassIndex;
+	int nModalityIndex;
+	int nClassIndex;
+	int nVariableNumber = oaPartitionedPredictiveAttributeNames.GetSize();
+	int nClassNumber = svTargetValues.GetSize();
 	boolean bLocalTrace = false;
-
+	ContinuousVector cvShapeleyExpectedValueByTarget;
 	Continuous cProbaForTarget;
+	Continuous cImportanceValue;
 
-	if (bLocalTrace)
-		cout << endl;
-
-	const Continuous variableWeight = cvVariableWeights.GetAt(nAttributeIndex);
-
-	// calcul de P(Xm=Xi | Y1) --> Y1 represente la valeur de reference
-	cTerm1Numerator = ComputeModalityProbability(nAttributeIndex, nTargetClassIndex, nModalityIndex);
-
-	cTerm1Denominator =
-	    ComputeModalityProbabilityWithoutTargetClass(nAttributeIndex, nTargetClassIndex, nModalityIndex);
-
-	cTerm1 = log(cTerm1Numerator / cTerm1Denominator);
-
-	// 2eme terme : on somme sur tous les intervalles possibles de l'attribut
-	cTerm2 = 0;
-
-	// Extraction du tableau des probas pour la classe cible courante
-	KITargetValueProbas* targetValueProbas =
-	    cast(KITargetValueProbas*, oaModelProbabilities.GetAt(nTargetClassIndex));
-
-	// Extraction du vecteur de probas pour l'attribut predictif
-	ContinuousVector* cvVectorProbas =
-	    cast(ContinuousVector*, targetValueProbas->oaProbasAposteriori->GetAt(nAttributeIndex));
-
-	for (int iModality = 0; iModality < cvVectorProbas->GetSize(); iModality++)
+	//clean oaShapleyTables
+	if (oaShapleyTables.GetSize() > 0)
 	{
-		// P(In) : proba de tomber dans l'intervalle In, qque soit la classe C
-		// P(In) = P(In|C1) * P(C1) + P(In|C2) * P(C2) + P(In|C3) * P(C3) + ....
-		cProbaModality = 0;
-		for (int iTarget = 0; iTarget < ivTargetFrequencies.GetSize(); iTarget++)
+		oaShapleyTables.DeleteAll();
+		oaShapleyTables.SetSize(0);
+	}
+	//set size of  oaShapleyTables
+	oaShapleyTables.SetSize(nVariableNumber);
+
+	cvShapeleyExpectedValueByTarget.SetSize(nVariableNumber * nClassNumber);
+
+	for (nAttributeIndex = 0; nAttributeIndex < nVariableNumber; nAttributeIndex++)
+	{
+		for (nTargetClassIndex = 0; nTargetClassIndex < nClassNumber; nTargetClassIndex++)
 		{
-			cProbaForTarget = ivTargetFrequencies.GetAt(iTarget) / cTotalFrequency; // P(Cn)
-			cProbaModality += (ComputeModalityProbability(nAttributeIndex, iTarget, iModality) *
-					   cProbaForTarget); // P(In|Cn) * P(Cn)
-		}
+			// 2eme terme : on somme sur tous les intervalles possibles de l'attribut
+			cTerm2 = 0;
 
-		// calcul de P(Xm=Xi | Y1) --> Y1 represente la valeur de reference
-		cTerm2Numerator = ComputeModalityProbability(nAttributeIndex, nTargetClassIndex, iModality);
+			// Extraction du tableau des probas pour la classe cible courante
+			targetValueProbas = cast(KITargetValueProbas*, oaModelProbabilities.GetAt(nTargetClassIndex));
 
-		// calcul de P(Xm=Xi | Y0)  --> Y0 represente toutes les classes sauf la valeur de reference
-		cTerm2Denominator =
-		    ComputeModalityProbabilityWithoutTargetClass(nAttributeIndex, nTargetClassIndex, iModality);
-		cTerm2 += (cProbaModality * log(cTerm2Numerator / cTerm2Denominator));
+			// Extraction du vecteur de probas pour l'attribut predictif
+			cvVectorProbas =
+			    cast(ContinuousVector*, targetValueProbas->oaProbasAposteriori->GetAt(nAttributeIndex));
 
-		if (bLocalTrace)
-		{
-			cout << "cProbaModality\t" << cProbaModality << endl;
-			cout << "cTerm2Numerator\t" << cTerm2Numerator << endl;
-			cout << "cTerm2Denominator\t" << cTerm2Denominator << endl;
+			for (int iModality = 0; iModality < cvVectorProbas->GetSize(); iModality++)
+			{
+				// P(In) : proba de tomber dans l'intervalle In, qque soit la classe C
+				// P(In) = P(In|C1) * P(C1) + P(In|C2) * P(C2) + P(In|C3) * P(C3) + ....
+				cProbaModality = 0;
+				for (int iTarget = 0; iTarget < ivTargetFrequencies.GetSize(); iTarget++)
+				{
+					cProbaForTarget = ivTargetFrequencies.GetAt(iTarget) / cTotalFrequency; // P(Cn)
+					cProbaModality +=
+					    (ComputeModalityProbability(nAttributeIndex, iTarget, iModality) *
+					     cProbaForTarget); // P(In|Cn) * P(Cn)
+				}
+
+				// calcul de P(Xm=Xi | Y1) --> Y1 represente la valeur de reference
+				cTerm2Numerator =
+				    ComputeModalityProbability(nAttributeIndex, nTargetClassIndex, iModality);
+
+				// calcul de P(Xm=Xi | Y0)  --> Y0 represente toutes les classes sauf la valeur de reference
+				cTerm2Denominator = ComputeModalityProbabilityWithoutTargetClass(
+				    nAttributeIndex, nTargetClassIndex, iModality);
+				cTerm2 += (cProbaModality * log(cTerm2Numerator / cTerm2Denominator));
+
+				if (bLocalTrace)
+				{
+					cout << "cProbaModality\t" << cProbaModality << endl;
+					cout << "cTerm2Numerator\t" << cTerm2Numerator << endl;
+					cout << "cTerm2Denominator\t" << cTerm2Denominator << endl;
+				}
+			}
+
+			cvShapeleyExpectedValueByTarget.SetAt(nAttributeIndex * nClassNumber + nTargetClassIndex,
+							      cTerm2);
 		}
 	}
 
-	cImportanceValue = variableWeight * (cTerm1 - cTerm2);
-
-	if (bLocalTrace)
+	// Parcours des variables explicatives
+	for (nAttributeIndex = 0; nAttributeIndex < nVariableNumber; nAttributeIndex++)
 	{
-		cout << "variableWeight\t" << variableWeight << endl;
-		cout << "cTerm1Numerator\t" << cTerm1Numerator << endl;
-		cout << "cTerm1Denominator\t" << cTerm1Denominator << endl;
-		cout << "cTerm1\t" << cTerm1 << endl;
-		cout << "cTerm2\t" << variableWeight << endl;
-		cout << "cImportanceValue\t" << cImportanceValue << endl;
-	}
+		stShapleyTable = new KIShapleyTable;
+		// Extraction du tableau des probas pour la classe cible courante
+		targetValueProbas = cast(KITargetValueProbas*, oaModelProbabilities.GetAt(0));
 
-	return cImportanceValue;
+		variableWeight = cvVariableWeights.GetAt(nAttributeIndex);
+
+		// Extraction du vecteur de probas pour l'attribut predictif
+		cvVectorProbas =
+		    cast(ContinuousVector*, targetValueProbas->oaProbasAposteriori->GetAt(nAttributeIndex));
+		stShapleyTable->Initialize(cvVectorProbas->GetSize(), nClassNumber);
+		oaShapleyTables.SetAt(nAttributeIndex, stShapleyTable);
+
+		for (nClassIndex = 0; nClassIndex < nClassNumber; nClassIndex++)
+		{
+
+			// Extraction du tableau des probas pour la classe cible courante
+			targetValueProbas = cast(KITargetValueProbas*, oaModelProbabilities.GetAt(nClassIndex));
+
+			// Extraction du vecteur de probas pour l'attribut predictif
+			cvVectorProbas =
+			    cast(ContinuousVector*, targetValueProbas->oaProbasAposteriori->GetAt(nAttributeIndex));
+
+			for (nModalityIndex = 0; nModalityIndex < cvVectorProbas->GetSize(); nModalityIndex++)
+			{
+				//const Continuous variableWeight = cvVariableWeights.GetAt(nAttributeIndex);
+
+				// calcul de P(Xm=Xi | Y1) --> Y1 represente la valeur de reference
+				cTerm1Numerator =
+				    ComputeModalityProbability(nAttributeIndex, nClassIndex, nModalityIndex);
+
+				cTerm1Denominator = ComputeModalityProbabilityWithoutTargetClass(
+				    nAttributeIndex, nClassIndex, nModalityIndex);
+				cTerm2 = cvShapeleyExpectedValueByTarget.GetAt(
+				    nAttributeIndex * ivTargetFrequencies.GetSize() + nClassIndex);
+				cTerm1 = log(cTerm1Numerator / cTerm1Denominator);
+				cImportanceValue = variableWeight * (cTerm1 - cTerm2);
+				stShapleyTable->SetShapleyValueAt(nModalityIndex, nClassIndex, cImportanceValue);
+			}
+		}
+	}
+}
+
+Continuous KIDRClassifierContribution::ComputeShapley(const int nAttributeIndex, const int nTargetClassIndex,
+						      const int nModalityIndex) const
+{
+	// nModalityIndex indique dans quel intervalle (ou groupe) de l'attribut designe par nAttributeIndex, cet individu appartient
+	// nTargetClassIndex est la classe cible pour le calcul de l'importance
+
+	KIShapleyTable* stShapleyTable;
+
+	stShapleyTable = cast(KIShapleyTable*, oaShapleyTables.GetAt(nAttributeIndex));
+
+	return stShapleyTable->GetShapleyValueAt(nModalityIndex, nTargetClassIndex);
 }
 
 Continuous KIDRClassifierContribution::ComputeModalityProbabilityWithoutTargetClass(int nAttributeIndex,
@@ -1011,6 +1110,8 @@ void KIDRClassifierContribution::Compile(KWClass* kwcOwnerClass)
 	bSortInstanceProbas = (strcmp(GetOperandAt(4)->GetSymbolConstant().GetValue(), "sorted") == 0 ? true : false);
 
 	sContributionClass = "";
+
+	InitializeShapleyTables();
 }
 
 /// Calcul du Normalized Odds Ratio (NOR)
