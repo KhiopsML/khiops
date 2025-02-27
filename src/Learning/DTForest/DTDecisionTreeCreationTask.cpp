@@ -652,6 +652,8 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 	NumericKeyDictionary ndTreeSingleton;
 	NUMERIC key;
 	DTAttributeSelection* attributegenerator;
+	boolean bRegressionWithEqualFreqDiscretization = false;
+	boolean bRegressionWithMODLDiscretization = false;
 	int nBuidTreeNumber;
 	int oldseedtree;
 
@@ -764,14 +766,14 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 		bOk = not TaskProgression::IsInterruptionRequested();
 		if (bOk)
 		{
-			const boolean bRegressionWithEqualFreqDiscretization =
+			bRegressionWithEqualFreqDiscretization =
 			    (slaveTupleTableLoader.GetInputExtraAttributeType() == KWType::Continuous and
 				     randomForestParameter.GetDiscretizationTargetMethod() ==
 					 DTForestParameter::DISCRETIZATION_EQUAL_FREQUENCY
 				 ? true
 				 : false);
 
-			const boolean bRegressionWithMODLDiscretization =
+			bRegressionWithMODLDiscretization =
 			    (slaveTupleTableLoader.GetInputExtraAttributeType() == KWType::Continuous and
 				     (randomForestParameter.GetDiscretizationTargetMethod() ==
 					  DTForestParameter::DISCRETIZATION_MODL or
@@ -1148,6 +1150,9 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 	// Nettoyage
 	dataTableSliceSet.GetSlices()->RemoveAll();
 	KWClassDomain::GetCurrentDomain()->DeleteClass(kwcSliceSetClass->GetName());
+	if (bRegressionWithEqualFreqDiscretization or bRegressionWithMODLDiscretization)
+		// Clean dictionnaire de la regression
+		KWClassDomain::GetCurrentDomain()->DeleteClass(slaveLearningSpec->GetClass()->GetName());
 
 	if (shared_learningSpec.GetLearningSpec()->GetTargetAttributeType() == KWType::Continuous)
 	{
@@ -2216,7 +2221,9 @@ KWLearningSpec* DTDecisionTreeCreationTask::InitializeRegressionLearningSpec(con
 
 	newLearningSpec = learningSpec->Clone();
 	newClass = learningSpec->GetClass()->Clone();
-	newClass->SetName(newClass->GetName() + "_classification");
+	// creation d'un kwclass temporaire pour mettre l'atrribut target categorriel issu de la
+	// discretisation de la target continue
+	newClass->SetName(KWClassDomain::GetCurrentDomain()->BuildClassName(newClass->GetName() + "_classification"));
 	newTarget = new KWAttribute;
 
 	newTarget->SetName(
