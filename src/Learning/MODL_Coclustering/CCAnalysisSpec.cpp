@@ -11,11 +11,6 @@ CCAnalysisSpec::CCAnalysisSpec()
 
 CCAnalysisSpec::~CCAnalysisSpec() {}
 
-CCVarPartCoclusteringSpec* CCAnalysisSpec::GetVarPartCoclusteringSpec()
-{
-	return &varPartCoclusteringSpec;
-}
-
 void CCAnalysisSpec::SetVarPartCoclustering(boolean bValue)
 {
 	bVarPartCoclustering = bValue;

@@ -21,15 +21,12 @@ CCAnalysisSpecView::CCAnalysisSpecView()
 
 	// Ajout des sous-fiches
 	AddCardField("CoclusteringParameters", "Variables parameters", new CCCoclusteringSpecView);
-	AddCardField("VarPartCoclusteringParameters", "Instances x variables parameters",
-		     new CCVarPartCoclusteringSpecView);
 	AddCardField("DataGridOptimizerParameters", "Data grid parameters", new KWDataGridOptimizerParametersView);
 	AddCardField("SystemParameters", "System parameters", new KWSystemParametersView);
 	AddCardField("CrashTestParameters", "Crash test parameters", new KWCrashTestParametersView);
 
 	// Parametrage de la visibilite du coclustering instances*variables
 	GetFieldAt("CoclusteringType")->SetVisible(GetLearningCoclusteringIVExpertMode());
-	GetFieldAt("VarPartCoclusteringParameters")->SetVisible(GetLearningCoclusteringIVExpertMode());
 
 	// Parametrage de la visibilite de l'onglet des parametres d'optimisation
 	GetFieldAt("DataGridOptimizerParameters")->SetVisible(GetLearningExpertMode());
@@ -57,10 +54,18 @@ CCAnalysisSpecView::CCAnalysisSpecView()
 
 	// Info-bulles
 	GetFieldAt("CoclusteringType")
-	    ->SetHelpText("Type of coclustering:"
-			  "\n - Variables coclustering: based on the coclustering variables parameters,"
-			  "\n - Instances * Variables coclustering: based on an identifer on one dimension, and all "
-			  "the numerical and categorical variables on the other dimension.");
+	    ->SetHelpText(
+		"Type of coclustering:"
+		"\n - Variables coclustering: based on the coclustering variables parameters,"
+		"\n - Instances * Variables coclustering: based on an identifier on one dimension, and all "
+		"the numerical and categorical variables on the other dimension."
+		"\n If a identifier variable of the records is present in the data, it must be a key variable of the "
+		"input dictionary and the data must be sorted and unique according to this key."
+		"\n If no identifier of the records, such a variable is automatically created."
+		"\n For the 'variables' dimension of the coclustering, all numerical and categorical variables"
+		"\n used in the input dictionary are employed.");
+
+	// ##
 
 	// Short cuts
 	GetFieldAt("CoclusteringParameters")->SetShortCut('C');
@@ -103,8 +108,6 @@ void CCAnalysisSpecView::SetObject(Object* object)
 	// Parametrages des sous-fiches par les sous-objets
 	cast(CCCoclusteringSpecView*, GetFieldAt("CoclusteringParameters"))
 	    ->SetObject(analysisSpec->GetCoclusteringSpec());
-	cast(CCVarPartCoclusteringSpecView*, GetFieldAt("VarPartCoclusteringParameters"))
-	    ->SetObject(analysisSpec->GetVarPartCoclusteringSpec());
 	cast(KWDataGridOptimizerParametersView*, GetFieldAt("DataGridOptimizerParameters"))
 	    ->SetObject(analysisSpec->GetOptimizationParameters());
 
