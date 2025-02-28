@@ -1292,8 +1292,8 @@ Symbol KWDRConcat::ComputeSymbolResult(const KWObject* kwoObject) const
 
 KWDRBuildKey::KWDRBuildKey()
 {
-	SetName("Build key");
-	SetLabel("Concatenation of categorical values with vertical bar as separator");
+	SetName("BuildKey");
+	SetLabel("Build a unique key value, provided that the set of input values is unique.");
 	SetType(KWType::Symbol);
 	SetOperandNumber(1);
 	SetVariableOperandNumber(true);
@@ -1331,22 +1331,32 @@ Symbol KWDRBuildKey::ComputeSymbolResult(const KWObject* kwoObject) const
 		if (bOk)
 		{
 			c = sValue.GetAt(0);
-			bOk = (c != '|' and c != '`');
+			bOk = (c != '|' and c != '\'');
 			j = 1;
 			while (bOk and j < sValue.GetLength())
 			{
-				c = sValue.GetAt(i);
+				c = sValue.GetAt(j);
 				bOk = c != '|';
 				j++;
 			}
 		}
 
 		// Concatenation
-		if (!bOk)
-			sResult += '`';
-		sResult += sValue;
-		if (!bOk)
-			sResult += '`';
+		if (not bOk)
+		{
+			// Ecriture avec delimiteurs quotes, avec doublement des quotes internes
+			sResult += '\'';
+			for (j = 0; j < sValue.GetLength(); j++)
+			{
+				c = sValue.GetAt(j);
+				sResult += c;
+				if (c == '\'')
+					sResult += '\'';
+			}
+			sResult += '\'';
+		}
+		else
+			sResult += sValue;
 	}
 	return StringToSymbol(sResult);
 }

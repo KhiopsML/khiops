@@ -207,7 +207,6 @@ void CCLearningProblem::BuildCoclustering()
 	{
 		// Preparation du domaine pour la nouvelle classe
 		constructedDomain = kwcClass->GetDomain()->CloneFromClass(kwcClass);
-		constructedDomain->Compile();
 
 		// Remplacement du domaine courant par le domaine de selection
 		currentDomain = KWClassDomain::GetCurrentDomain();
@@ -216,6 +215,9 @@ void CCLearningProblem::BuildCoclustering()
 		// Remplacement de la classe courante par la classe enrichie
 		kwcClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName());
 		check(kwcClass);
+
+		// Mise a priori de tous les attributs en Unloaded
+		kwcClass->SetAllAttributesLoaded(false);
 
 		// Insertion d'un attribut identifiant en distiguant la presence d'une ou plusieurs cles pour la variable Identifier
 		identifierAttribute = InsertIdentifierAttribute(kwcClass);
@@ -240,9 +242,11 @@ void CCLearningProblem::BuildCoclustering()
 		while (kwAttribute != NULL)
 		{
 			// Cas des attributs Used et de type Simple
+			// Dans le cas multi-champs, les champs cles ont ete mis en Unused dans InsertIdentifierAttribute
 			if (kwAttribute->GetUsed() and KWType::IsSimple(kwAttribute->GetType()))
 			{
-				// On exclut l'attribut Identifier
+				// On exclut l'attribut Identifier (a noter que le FrequencyAttributeName ne fait pas partie des parametres
+				// dans le cas Identifier * Variables
 				if (kwAttribute->GetName() != coclusteringBuilder.GetIdentifierAttributeName())
 				{
 					check(kwAttribute);
@@ -252,8 +256,6 @@ void CCLearningProblem::BuildCoclustering()
 					coclusteringBuilder.GetInnerAttributesNames()->Add(kwAttribute->GetName());
 				}
 			}
-			else
-				kwAttribute->SetLoaded(false);
 			kwcClass->GetNextAttribute(kwAttribute);
 		}
 
@@ -760,47 +762,12 @@ boolean CCLearningProblem::CheckCoclusteringSpecifications() const
 	// Sinon : cas d'un coclustering instances * variables
 	else
 	{
-		//// Verification de la variable d'identifiant
-		//sIdentifierAttributeName = analysisSpec->GetVarPartCoclusteringSpec()->GetIdentifierAttributeName();
-		//if (bOk and sIdentifierAttributeName != "")
-		//{
-		//	// Recherche de la variable correspondante dans le dictionnaire
-		//	attribute = kwcClass->LookupAttribute(sIdentifierAttributeName);
-
-		//	// La variable doit etre presente dans le dictionnaire
-		//	if (attribute == NULL)
-		//	{
-		//		bOk = false;
-		//		Global::AddError("", "",
-		//				 "Coclustering identifier variable " + sIdentifierAttributeName +
-		//				     " unknown in dictionary " + GetClassName());
-		//	}
-		//	// De type Symbol
-		//	else if (attribute->GetType() != KWType::Symbol)
-		//	{
-		//		bOk = false;
-		//		Global::AddError("", "",
-		//				 "Coclustering identifier variable " + sIdentifierAttributeName +
-		//				     " must be of Categorical type");
-		//	}
-		//	// Et utilise
-		//	else if (not attribute->GetUsed())
-		//	{
-		//		bOk = false;
-		//		Global::AddError("", "",
-		//				 "Coclustering identifier variable " + sIdentifierAttributeName +
-		//				     " unused in dictionary " + GetClassName());
-		//	}
-		//}
-
 		// Verification des attributs internes pour les parties de variables
 		if (bOk)
 		{
 			// Comptage du nombre d'attribut internes
 			nInternalAttributeNumber = kwcClass->GetUsedAttributeNumberForType(KWType::Continuous) +
 						   kwcClass->GetUsedAttributeNumberForType(KWType::Symbol);
-			//if (sIdentifierAttributeName != "")
-			//nInternalAttributeNumber--;
 
 			// Erreur s'il n'y en a pas
 			if (nInternalAttributeNumber == 0)
@@ -1015,13 +982,14 @@ KWAttribute* CCLearningProblem::InsertIdentifierAttribute(KWClass* kwcClass)
 	// Cas d'un dictionnaire avec une cle mono-champ
 	else if (kwcClass->GetKeyAttributeNumber() == 1)
 	{
+		// On force la classe a Root afin de supprimer les duplicats si la cle n'etait pas unique
+		if (!kwcClass->GetRoot())
+			kwcClass->SetRoot(true);
+
 		attribute = kwcClass->GetKeyAttributeAt(0);
 
 		// On force l'attribut a Used s'il ne l'etait pas
 		attribute->SetUsed(true);
-		// On force la classe a Root afin de supprimer les duplicats si la cle n'etait pas unique
-		if (!kwcClass->GetRoot())
-			kwcClass->SetRoot(true);
 	}
 
 	// Sinon : cas d'un dictionnaire avec une cle multi-champ
@@ -1040,8 +1008,7 @@ KWAttribute* CCLearningProblem::InsertIdentifierAttribute(KWClass* kwcClass)
 		{
 			keyAttribute = kwcClass->GetKeyAttributeAt(nKey);
 
-			// Dechargement des attributs cles
-			keyAttribute->SetLoaded(false);
+			// Mise en Unused des attributs cles
 			keyAttribute->SetUsed(false);
 
 			// Ajout d'un operande
@@ -1062,7 +1029,7 @@ KWAttribute* CCLearningProblem::InsertIdentifierAttribute(KWClass* kwcClass)
 				sAttributeName += "|";
 			sAttributeName += kwcClass->GetKeyAttributeAt(nKey)->GetName();
 		}
-		attribute->SetName(sAttributeName);
+		attribute->SetName(kwcClass->BuildAttributeName(sAttributeName));
 
 		// Initialisation
 		attribute->SetDerivationRule(identifierRule);

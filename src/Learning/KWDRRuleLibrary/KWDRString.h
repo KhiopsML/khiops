@@ -487,7 +487,7 @@ public:
 
 ////////////////////////////////////////////////////////////////////////////
 // Classe KWDRBuildKey
-// Concatenation de un, deux (ou plus) attributs Symbol avec une barre verticale (|) comme champ separateur
+// Construit une valeur de cle unique, sous condition que les valeurs en entree soient uniques
 class KWDRBuildKey : public KWDRStringRule
 {
 public:
