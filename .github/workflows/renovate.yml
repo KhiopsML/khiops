@@ -1,0 +1,88 @@
+# GitHub Actions workflow for integrating Renovate Bot into your CI/CD pipeline.
+# Initially, this workflow is configured to run only via manual triggering (workflow_dispatch).
+# After successful testing and usage, you may enable additional triggers (e.g., push and schedule).
+name: Renovate
+
+on:
+  # Conservative rollout: manually trigger the workflow via the GitHub UI.
+  workflow_dispatch:
+
+jobs:
+  renovate:
+    runs-on: ubuntu-latest
+    steps:
+      # STEP 1: Checkout the latest version of the repository.
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      # STEP 2: Generate the Renovate configuration file.
+      - name: Generate Renovate Configuration
+        run: |
+          cat <<EOF > renovate.json
+          {
+            "extends": ["config:recommended"],
+            "enabledManagers": ["github-actions"],  // Ensure only GitHub Actions and workflows are updated; Dockerfile images remain unchanged.
+            "onboarding": false,
+            "requireConfig": "optional",
+            "autodiscover": false,
+            "repositories": ["${GITHUB_REPOSITORY}"],
+            "labels": ["renovate"],
+            "schedule": ["before 5am on Monday"],
+            "branchPrefix": "renovate/",
+            "packageRules": [
+              {
+                "matchUpdateTypes": ["minor", "patch"],
+                "automerge": true,
+                "groupName": "minor and patch updates"
+              }
+            ]
+          }
+          EOF
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        # This step creates a 'renovate.json' file with the necessary configuration for Renovate.
+        # The "enabledManagers" setting ensures that only GitHub Actions and workflow files are affected.
+
+      # STEP 3: Verify that the provided RENOVATE_TOKEN has sufficient permissions.
+      - name: Verify RENOVATE_TOKEN Permissions
+        env:
+          RENOVATE_TOKEN: ${{ secrets.RENOVATE_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          echo "Verifying RENOVATE_TOKEN permissions for repository ${GITHUB_REPOSITORY}..."
+          response=$(curl -s -H "Authorization: token ${RENOVATE_TOKEN}" "https://api.github.com/repos/${GITHUB_REPOSITORY}")
+          echo "$response" | jq .
+          if echo "$response" | grep -q "Bad credentials"; then
+            echo "Error: The provided RENOVATE_TOKEN is invalid or does not have sufficient permissions."
+            exit 1
+          else
+            echo "RENOVATE_TOKEN is valid and has sufficient permissions."
+          fi
+        # This step validates that the Renovate token can access the repository.
+
+      # STEP 4: Run the Renovate Bot using the official GitHub Action.
+      - name: Run Renovate
+        uses: renovatebot/github-action@v41.0.12
+        with:
+          configurationFile: renovate.json  # Use the configuration file generated in the previous step.
+          token: ${{ secrets.RENOVATE_TOKEN }}
+          renovate-version: 39
+          renovate-image: ghcr.io/renovatebot/renovate
+          docker-socket-host-path: /var/run/docker.sock
+          docker-volumes: /tmp:/tmp
+        env:
+          LOG_LEVEL: debug  # Set log level to debug for detailed output (useful for troubleshooting).
+        # This step executes Renovate Bot to scan for dependency updates based on the configuration.
+
+      # STEP 5: Check for any Renovate update branches in the remote repository.
+      - name: Check for Renovate Update Branches
+        run: |
+          echo "Checking for Renovate update branches in the remote repository..."
+          RENOVATE_BRANCHES=$(git ls-remote --heads origin | grep 'refs/heads/renovate/' || true)
+          if [ -z "$RENOVATE_BRANCHES" ]; then
+            echo "No update branches were created by Renovate."
+          else
+            echo "Renovate update branches found:"
+            echo "$RENOVATE_BRANCHES"
+          fi
+        # This step verifies whether Renovate has proposed any updates by creating new branches.
