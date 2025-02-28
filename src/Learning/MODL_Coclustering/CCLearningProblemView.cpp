@@ -16,7 +16,6 @@ CCLearningProblemView::CCLearningProblemView()
 	UIList* continuousAttributeNameHelpList;
 	UIList* categoricalAttributeNameHelpList;
 	CCCoclusteringSpecView* coclusteringSpecView;
-	CCVarPartCoclusteringSpecView* varPartCoclusteringSpecView;
 
 	// Libelles
 	SetIdentifier("CCLearningProblem");
@@ -103,12 +102,6 @@ CCLearningProblemView::CCLearningProblemView()
 	categoricalAttributeNameHelpList->AddStringField("Name", "Name", "");
 	AddListField("CategoricalAttributes", "Simple variables", categoricalAttributeNameHelpList);
 	categoricalAttributeNameHelpList->SetVisible(false);
-
-	// Parametrage de liste d'aide pour le nom de l'attribut identifiant pour le coclustering instances * variables
-	varPartCoclusteringSpecView =
-	    cast(CCVarPartCoclusteringSpecView*, analysisSpecView->GetFieldAt("VarPartCoclusteringParameters"));
-	varPartCoclusteringSpecView->GetFieldAt("IdentifierAttributeName")->SetStyle("HelpedComboBox");
-	varPartCoclusteringSpecView->GetFieldAt("IdentifierAttributeName")->SetParameters("CategoricalAttributes:Name");
 
 	// Passage en ergonomie onglets
 	SetStyle("TabbedPanes");

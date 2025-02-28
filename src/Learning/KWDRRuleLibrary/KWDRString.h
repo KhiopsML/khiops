@@ -28,6 +28,7 @@ class KWDRToLower;
 class KWDRConcat;
 class KWDRHash;
 class KWDREncrypt;
+class KWDRBuildKey;
 
 #include "KWDerivationRule.h"
 #include "KWDRVector.h"
@@ -476,6 +477,23 @@ public:
 	// Constructeur
 	KWDRConcat();
 	~KWDRConcat();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	Symbol ComputeSymbolResult(const KWObject* kwoObject) const override;
+};
+
+////////////////////////////////////////////////////////////////////////////
+// Classe KWDRBuildKey
+// Concatenation de un, deux (ou plus) attributs Symbol avec une barre verticale (|) comme champ separateur
+class KWDRBuildKey : public KWDRStringRule
+{
+public:
+	// Constructeur
+	KWDRBuildKey();
+	~KWDRBuildKey();
 
 	// Creation
 	KWDerivationRule* Create() const override;

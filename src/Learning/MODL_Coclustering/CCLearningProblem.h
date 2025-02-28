@@ -17,6 +17,7 @@
 #include "KWClassStats.h"
 #include "CCCoclusteringBuilder.h"
 #include "CCCoclusteringReport.h"
+#include "KWDRString.h"
 
 ////////////////////////////////////////////////////////////
 // Classe CCLearningProblem
@@ -138,7 +139,10 @@ public:
 	//// Implementation
 protected:
 	// Insertion d'un attribut d'identifiant dans la classe pour le cas instances x variables
-	// Cet attribut est de type Symbol et contient le le numero de ligne de l'instance dans son fichier
+	// Cet attribut est de type Symbol et contient, selon l'analyse du dictionnaire :
+	// - absence d'attribut de type Key :  le numero de ligne de l'instance dans son fichier
+	// - presence d'un attribut cle : cet attribut cle
+	// - presence de plusieurs cles : un attribut construit par concatenation des cles
 	KWAttribute* InsertIdentifierAttribute(KWClass* kwcClass);
 
 	// Ecriture des clusters numeriques ou groupable (Symbol ou VarPart)
