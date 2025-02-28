@@ -50,6 +50,9 @@ public:
 	const ALString& GetStructureName() const;
 	void SetStructureName(const ALString& sValue);
 
+	// Libelle complet associe au type, notamment dans le cas d'un type relation ou structure
+	const ALString GetTypeLabel() const;
+
 	// Utilisation des attributs de type objets par referencement (sinon: sous-partie)
 	// Faux si pas de regle de derivation ou type non Object, sinon selon la regle
 	boolean GetReference() const;

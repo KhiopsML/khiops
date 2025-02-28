@@ -247,8 +247,6 @@ void KWDatabaseTransferView::TransferDatabase()
 	KWClass* transferClass;
 	ALString sTmp;
 	KWDatabase* workingTargetDatabase;
-	KWClassDomain* initialClassDomain;
-	KWClassDomain* denseTransferredClassDomain;
 	KWDatabaseTransferTask transferTask;
 	longint lRecordNumber;
 
@@ -389,26 +387,11 @@ void KWDatabaseTransferView::TransferDatabase()
 		TaskProgression::Start();
 		AddSimpleMessage("Deploy model " + sourceDatabase->GetClassName());
 
-		// Memorisation du domaine initial
-		initialClassDomain = KWClassDomain::GetCurrentDomain();
-
-		// On calcul si necessaire un domaine pour transformer les donnees sparse en donnees denses
-		denseTransferredClassDomain = NULL;
-		if (IsDenseOutputFormat() and IsClassWithTransferredAttributeBlocks(transferClass))
-		{
-			// Calcul du domaine de transformation au format dense
-			denseTransferredClassDomain = InternalBuildDenseClassDomain(transferClass);
-
-			// Changement de domaine courant
-			KWClassDomain::SetCurrentDomain(denseTransferredClassDomain);
-
-			// Recherche de la classe a transferer dans ce nouveau domaine
-			transferClass = KWClassDomain::GetCurrentDomain()->LookupClass(sClassName);
-		}
-
-		// Preparation de la classe de transfer
+		// Preparation de la classe de transfer pour optimiser le transfer
 		PrepareTransferClass(transferClass);
-		assert(denseTransferredClassDomain == NULL or transferClass->GetLoadedAttributeBlockNumber() == 0);
+
+		// Parametrage du format de sortie de la base
+		workingTargetDatabase->SetDenseOutputFormat(IsDenseOutputFormat());
 
 		// Appel de la tache de transfer
 		bOk = transferTask.Transfer(cast(KWMTDatabaseTextFile*, sourceDatabase),
@@ -416,13 +399,6 @@ void KWDatabaseTransferView::TransferDatabase()
 
 		// Nettoyage de la classe de transfer
 		CleanTransferClass(transferClass);
-
-		// Nettoyage du domaine
-		if (denseTransferredClassDomain != NULL)
-		{
-			delete denseTransferredClassDomain;
-			KWClassDomain::SetCurrentDomain(initialClassDomain);
-		}
 
 		// Fin suivi de la tache
 		TaskProgression::Stop();
@@ -806,275 +782,6 @@ KWClass* KWDatabaseTransferView::InternalBuildTransferredClass(KWClassDomain* tr
 	}
 	ensure(transferClass->IsCompiled());
 	return transferredClass;
-}
-
-boolean KWDatabaseTransferView::IsClassWithTransferredAttributeBlocks(const KWClass* transferClass) const
-{
-	ObjectArray oaAllUsedClasses;
-	KWClass* kwcUsedClass;
-	int nClass;
-	KWAttributeBlock* attributeBlock;
-	int nBlock;
-
-	// Parcours de toutes les classes utilisees
-	transferClass->BuildAllUsedClasses(&oaAllUsedClasses);
-	for (nClass = 0; nClass < oaAllUsedClasses.GetSize(); nClass++)
-	{
-		kwcUsedClass = cast(KWClass*, oaAllUsedClasses.GetAt(nClass));
-
-		// Parcours des bloc charges en memoire
-		for (nBlock = 0; nBlock < kwcUsedClass->GetLoadedAttributeBlockNumber(); nBlock++)
-		{
-			attributeBlock = kwcUsedClass->GetLoadedAttributeBlockAt(nBlock);
-
-			// Bloc transfere si de type simple
-			if (KWType::IsSimple(attributeBlock->GetType()))
-				return true;
-		}
-	}
-	return false;
-}
-
-KWClassDomain* KWDatabaseTransferView::InternalBuildDenseClassDomain(const KWClass* transferClass)
-{
-	KWClassDomain* denseTransferredClassDomain;
-	KWClass* denseTransferClass;
-	ObjectArray oaUsedDependentClasses;
-	ObjectDictionary odUsedDependentClasses;
-	NumericKeyDictionary nkdUsedSparseAttributes;
-	ObjectArray oaUsedSparseAttributes;
-	NumericKeyDictionary nkdCreatedDenseAttributes;
-	int nClass;
-	KWClass* kwcClass;
-	KWClass* kwcRef;
-	KWAttribute* attribute;
-	KWAttribute* sparseAttribute;
-	KWAttribute* denseAttribute;
-	KWDerivationRule* currentDerivationRule;
-	int i;
-	NumericKeyDictionary nkdAllUsedOperands;
-	KWDerivationRuleOperand* operand;
-	POSITION current;
-	NUMERIC key;
-	Object* oElement;
-	ALString sSparseAttributeName;
-	ALString sDenseAttributeName;
-	ALString sTmpAttributeName;
-	KWDerivationRule* copyRule;
-
-	// Creation du domaine a partir de la classe a transferer
-	denseTransferredClassDomain = transferClass->GetDomain()->CloneFromClass(transferClass);
-
-	// Compilation pour pouvoir analyser les operandes de regles de derivation
-	denseTransferredClassDomain->Compile();
-
-	// Recherche de la version dense de la classe a transferer
-	denseTransferClass = denseTransferredClassDomain->LookupClass(transferClass->GetName());
-
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// Parcours des classes de la composition de la classe a transferer pour identifier celles qui sont utilisees
-	// et identifier les attributs sparses utilises
-	// Les classes restent inchangees et compilees dans cette etape
-
-	// Enregistrement de la classe de depart
-	odUsedDependentClasses.SetAt(denseTransferClass->GetName(), denseTransferClass);
-	oaUsedDependentClasses.Add(denseTransferClass);
-
-	// Parcours des classes dependantes en memorisant les classes
-	// pour lesquelles il faut propager le calcul de dependance
-	for (nClass = 0; nClass < oaUsedDependentClasses.GetSize(); nClass++)
-	{
-		kwcClass = cast(KWClass*, oaUsedDependentClasses.GetAt(nClass));
-
-		// Attributs de type Object ou ObjectArray
-		attribute = kwcClass->GetHeadAttribute();
-		while (attribute != NULL)
-		{
-			// Si attribut utilise
-			if (attribute->GetUsed())
-			{
-				// Si attribut de composition de la classe
-				if (attribute->GetAnyDerivationRule() == NULL and
-				    KWType::IsRelation(attribute->GetType()))
-				{
-					if (attribute->GetClass() != NULL)
-					{
-						// Prise en compte si necessaire d'une nouvelle classe
-						kwcRef = cast(KWClass*, odUsedDependentClasses.Lookup(
-									    attribute->GetClass()->GetName()));
-						if (kwcRef == NULL)
-						{
-							odUsedDependentClasses.SetAt(attribute->GetClass()->GetName(),
-										     attribute->GetClass());
-							oaUsedDependentClasses.Add(attribute->GetClass());
-						}
-					}
-				}
-
-				// Memorisation si attribut sparse dans un bloc de valeurs simples
-				if (attribute->IsInBlock() and not KWType::IsRelation(attribute->GetType()))
-				{
-					// Le dictionnaire permet de tester l'existence d'un attribut sparse
-					nkdUsedSparseAttributes.SetAt(attribute, attribute);
-
-					// Le tableau memorise les attributs sparses dans le bon ordre, localement a
-					// chaque classe
-					oaUsedSparseAttributes.Add(attribute);
-				}
-			}
-
-			// Attribut suivant
-			kwcClass->GetNextAttribute(attribute);
-		}
-	}
-
-	///////////////////////////////////////////////////////////////////////////////////////////////////
-	// Analyse du domaine a transferer pour identifier les operandes de regle utilisant un
-	// attribut sparse a transferer
-	// Les classes restent inchangees et compilees dans cette etape
-
-	// Parcours des classes pour identifier tous les operandes des regles de derivation
-	// Cela permet d'identifier les attributs sparses impliques comme operandes
-	for (nClass = 0; nClass < denseTransferredClassDomain->GetClassNumber(); nClass++)
-	{
-		// Acces a la classe courante
-		kwcClass = denseTransferredClassDomain->GetClassAt(nClass);
-
-		// Parcours des attributs pour identifier toutes les operandes necessaires
-		// dans le calcul des attributs derives utilises, pour la classe analysee
-		currentDerivationRule = NULL;
-		attribute = kwcClass->GetHeadAttribute();
-		while (attribute != NULL)
-		{
-			// Detection de changement de regle de derivation (notamment pour les blocs)
-			if (attribute->GetAnyDerivationRule() != currentDerivationRule)
-			{
-				currentDerivationRule = attribute->GetAnyDerivationRule();
-
-				// Recherche des operandes utilisees dans le cas d'une regle de derivation
-				if (currentDerivationRule != NULL)
-					currentDerivationRule->BuildAllUsedOperands(&nkdAllUsedOperands);
-			}
-
-			// Attribut suivant
-			kwcClass->GetNextAttribute(attribute);
-		}
-		assert(kwcClass->IsCompiled());
-	}
-
-	///////////////////////////////////////////////////////////////////////////////////////////////////
-	// Creation d'un attribut dense par attribut sparse utilise, en renommant les attributs
-	// sparse et en impact les operandes de regles concernes
-	// Les classe sont modifiees et recompilees en fin de cette etape
-
-	// Creation des attributs denses pour chaque attribut sparse utilises
-	// On reserve ainsi tous les noms qui seront utilises par les attributs sparses utilises
-	// apres leur renommage, ce qui permettra aux attributs denses de garder les noms initiaux
-	assert(oaUsedSparseAttributes.GetSize() == nkdUsedSparseAttributes.GetCount());
-	for (i = 0; i < oaUsedSparseAttributes.GetSize(); i++)
-	{
-		sparseAttribute = cast(KWAttribute*, oaUsedSparseAttributes.GetAt(i));
-		assert(sparseAttribute->IsInBlock() and sparseAttribute->GetUsed());
-
-		// Recherche de la classe impliquee
-		kwcClass = sparseAttribute->GetParentClass();
-		assert(odUsedDependentClasses.Lookup(kwcClass->GetName()) == kwcClass);
-
-		// Creation d'un attribut dense avec un nom provisoire
-		denseAttribute = sparseAttribute->Clone();
-		denseAttribute->SetName(kwcClass->BuildAttributeName("S_" + sparseAttribute->GetName()));
-
-		// L'attribut est inserer avant son bloc sparse, ce qui preservera le meme ordrte
-		// que dans chaque bloc (car les attributs etaient collectes dans le bon ordre)
-		kwcClass->InsertAttributeBefore(denseAttribute,
-						sparseAttribute->GetAttributeBlock()->GetFirstAttribute());
-
-		// Memorisation de l'association entre l'attribut sparse et l'attribut dense cree
-		nkdCreatedDenseAttributes.SetAt(sparseAttribute, denseAttribute);
-	}
-
-	// Compilation de domaine de classe produit pour pouvoir utiliser la methode GetOriginAttribute des operandes
-	assert(denseTransferredClassDomain->Check());
-	denseTransferredClassDomain->Compile();
-
-	// Parcours des operandes utilisees pour identifier les operandes utilisant des attributs sparses
-	// Le dictionnaire d'operandes contient en entree tous les operandes de toutes les regles.
-	// Pour chaque operande impliquant un attribut sparse a remplacer, on le remplace
-	// par l'attribut dense cree correspondant
-	current = nkdAllUsedOperands.GetStartPosition();
-	while (current != NULL)
-	{
-		nkdAllUsedOperands.GetNextAssoc(current, key, oElement);
-
-		// On retrouve l'operande et son attribut sparse associe dans la paire (key, oElement)
-		operand = cast(KWDerivationRuleOperand*, (Object*)key.ToPointer());
-
-		// Traitement des operandes avec origine attribut
-		if (operand->GetOrigin() == KWDerivationRuleOperand::OriginAttribute and
-		    KWType::IsValue(operand->GetType()))
-		{
-			attribute = operand->GetOriginAttribute();
-			check(attribute);
-
-			// Test s'il s'agit d'un attribut a remplacer
-			denseAttribute = cast(KWAttribute*, nkdCreatedDenseAttributes.Lookup(attribute));
-			if (denseAttribute != NULL)
-			{
-				assert(operand->GetAttributeName() == attribute->GetName());
-				assert(attribute->IsInBlock());
-				assert(attribute->GetUsed());
-				assert(denseAttribute->GetName().Left(2) == "S_");
-				assert(denseAttribute->GetType() == attribute->GetType());
-
-				// Modification du nom de l'attribut reference par l'operande
-				operand->SetAttributeName(denseAttribute->GetName());
-			}
-		}
-	}
-
-	// Renommage des attributs sparse avec les noms temporaires des attributs denses crees
-	// et renommage des attributs denses crees avec le nom de leur attribut sparse d'origine,
-	// en creant une regle de recopie de l'attribut sparse vers l'attribut dense
-	assert(oaUsedSparseAttributes.GetSize() == nkdUsedSparseAttributes.GetCount());
-	for (i = 0; i < oaUsedSparseAttributes.GetSize(); i++)
-	{
-		sparseAttribute = cast(KWAttribute*, oaUsedSparseAttributes.GetAt(i));
-		assert(sparseAttribute->IsInBlock() and sparseAttribute->GetUsed());
-
-		// Recherche de la classe impliquee
-		kwcClass = sparseAttribute->GetParentClass();
-		assert(odUsedDependentClasses.Lookup(kwcClass->GetName()) == kwcClass);
-
-		// Recherche de l'attribut dense correspondant (ayant un nom provisoire)
-		denseAttribute = cast(KWAttribute*, nkdCreatedDenseAttributes.Lookup(sparseAttribute));
-
-		// Echange des noms des deux attributs
-		sSparseAttributeName = sparseAttribute->GetName();
-		sDenseAttributeName = denseAttribute->GetName();
-		sTmpAttributeName = kwcClass->BuildAttributeName("__KhiopsUniqueAttributeName__");
-		kwcClass->UnsafeRenameAttribute(sparseAttribute, sTmpAttributeName);
-		kwcClass->UnsafeRenameAttribute(denseAttribute, sSparseAttributeName);
-		kwcClass->UnsafeRenameAttribute(sparseAttribute, sDenseAttributeName);
-
-		// Creation d'un regle de copy entre les deux attributs
-		if (sparseAttribute->GetType() == KWType::Continuous)
-			copyRule = new KWDRCopyContinuous;
-		else
-			copyRule = new KWDRCopySymbol;
-		copyRule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
-		copyRule->GetFirstOperand()->SetAttributeName(sparseAttribute->GetName());
-		copyRule->CompleteTypeInfo(kwcClass);
-		denseAttribute->SetDerivationRule(copyRule);
-
-		// On met l'attribut sparse initial en unused
-		sparseAttribute->SetUsed(false);
-	}
-
-	// Compilation de domaine de classe produit
-	assert(denseTransferredClassDomain->Check());
-	denseTransferredClassDomain->Compile();
-	ensure(denseTransferClass->GetUsedAttributeNumber() == transferClass->GetUsedAttributeNumber());
-	return denseTransferredClassDomain;
 }
 
 void KWDatabaseTransferView::PrepareTransferClass(KWClass* transferClass)

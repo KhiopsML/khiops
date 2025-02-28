@@ -1172,6 +1172,9 @@ boolean KWMTDatabase::PhysicalOpenForWrite()
 
 	require(CheckPartially(true));
 
+	// Parametrage du format de sortie dense dans le driver
+	dataTableDriverCreator->SetDenseOutputFormat(GetDenseOutputFormat());
+
 	// Nettoyage prealable
 	DMTMPhysicalTerminateMapping(mainMultiTableMapping);
 	nSkippedRecordNumber = 0;

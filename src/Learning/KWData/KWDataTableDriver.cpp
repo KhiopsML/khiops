@@ -7,6 +7,7 @@
 KWDataTableDriver::KWDataTableDriver()
 {
 	kwcClass = NULL;
+	bDenseOutputFormat = false;
 	bVerboseMode = true;
 	bSilentMode = false;
 	lRecordIndex = 0;
@@ -38,6 +39,7 @@ void KWDataTableDriver::CopyFrom(const KWDataTableDriver* kwdtdSource)
 
 	// Reinitialisation prealable de toutes les variables
 	kwcClass = NULL;
+	bDenseOutputFormat = false;
 	bVerboseMode = true;
 	bSilentMode = false;
 	lRecordIndex = 0;
@@ -46,6 +48,7 @@ void KWDataTableDriver::CopyFrom(const KWDataTableDriver* kwdtdSource)
 
 	// Recopie des parametres de specification de la base
 	SetDataTableName(kwdtdSource->GetDataTableName());
+	SetDenseOutputFormat(kwdtdSource->GetDenseOutputFormat());
 	SetVerboseMode(kwdtdSource->GetVerboseMode());
 	SetSilentMode(kwdtdSource->GetSilentMode());
 }

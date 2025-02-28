@@ -446,9 +446,12 @@ public:
 	// Il peut s'agir d'attributs denses natifs ou de blocs d'attributs  non calcules
 	void ExportNativeFieldNames(StringVector* svNativeFieldNames) const;
 
-	// Export des noms des champs stockes (et loades), dans l'ordre du dictionnaire (utile pour constituer une ligne
-	// de header) Il peut s'agir d'attributs denses ou de blocs d'attributs
-	void ExportStoredFieldNames(StringVector* svStoredFieldNames) const;
+	// Export des noms des champs stockes (et loades), dans l'ordre du dictionnaire
+	// Utile pour constituer une ligne de header
+	// En mode de sortie standard, il peut agit des attributs denses ou des blocs d'attributs
+	// En mode de sortie dense, il s'agit de tous les attributs denses ou sparse, en ignorant
+	// l'appartenance ou non aux blocs d'attributs
+	void ExportStoredFieldNames(StringVector* svStoredFieldNames, boolean bDenseOutputFormat) const;
 
 	// Export des noms des attributs cles dans l'ordre des cles
 	void ExportKeyAttributeNames(StringVector* svAttributedNames) const;
