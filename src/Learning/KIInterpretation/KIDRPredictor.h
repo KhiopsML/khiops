@@ -32,6 +32,7 @@ class KITargetValueProbas : public Object
 	~KITargetValueProbas();
 
 	void Write(ostream&) const;
+	longint GetUsedMemory() const override;
 
 protected:
 	friend class KIDRClassifierInterpretation;
@@ -79,6 +80,8 @@ public:
 	static const ALString LEVER_ATTRIBUTE_META_TAG;
 	static const ALString INTERPRETATION_ATTRIBUTE_META_TAG;
 	static const ALString NO_VALUE_LABEL;
+
+	longint GetUsedMemory() const override;
 
 protected:
 	virtual void Clean();
@@ -161,6 +164,7 @@ public:
 		BayesDistanceWithoutPrior,
 		Shapley
 	};
+	longint GetUsedMemory() const override;
 
 protected:
 	// Calcul des donnees de contribution
@@ -233,6 +237,9 @@ protected:
 	Continuous ComputeShapley(const int nAttributeIndex, const int nTargetClassIndex,
 				  const int nModalityIndex) const;
 
+	///  precalul les valeurs de Shapley
+	void InitializeShapleyTables();
+
 	ContinuousVector* ComputeScoreVectorLjWithoutOneVariable(IntVector* ivModalityIndexes,
 								 int nVariableIndex) const;
 	ContinuousVector* ComputeScoreVectorLj(IntVector* ivModalityIndexes) const;
@@ -249,6 +256,9 @@ protected:
 	mutable boolean bSortInstanceProbas;
 
 	ContributionComputingMethod contributionComputingMethod;
+
+	//structure pour sauvegarder les precalculs des valeurs de Shapley
+	ObjectArray oaShapleyTables;
 };
 
 class KIDRContributionValueAt : public KWDerivationRule
@@ -379,8 +389,6 @@ protected:
 	/// Calcul de la variation du vecteur de scores si l'on modifie une composante
 	ContinuousVector* ComputeScoreVectorVariation(ContinuousVector* cvPreviousScoreVector, int nAttributeIndex,
 						      int nPreviousModalityIndex, int nNewModalityIndex) const;
-
-	void Initialize();
 
 	int nTargetValuesNumberInNBScore;
 
