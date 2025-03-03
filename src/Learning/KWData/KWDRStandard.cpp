@@ -379,6 +379,7 @@ void KWDRValueBlockRule::DynamicCompile(const KWIndexedKeyBlock* indexedKeyBlock
 			cout << GetClassName() << " " << GetName() << endl;
 			cout << "\tSource block: " << *sourceIndexedKeyBlock;
 			cout << "\tTarget block: " << *indexedKeyBlock;
+			cout << "\tSame block: " << BooleanToString(bSameValueIndexes) << "\n";
 			cout << "\tNew value indexes: " << ivNewValueIndexes << endl;
 		}
 

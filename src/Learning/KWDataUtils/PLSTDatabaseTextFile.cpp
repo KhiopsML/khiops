@@ -438,6 +438,7 @@ void PLShared_STDatabaseTextFile::SerializeObject(PLSerializer* serializer, cons
 	serializer->PutString(database->GetSelectionAttribute());
 	serializer->PutString(database->GetSelectionValue());
 	serializer->PutIntVector(database->GetMarkedInstances());
+	serializer->PutBoolean(database->GetDenseOutputFormat());
 	serializer->PutBoolean(database->GetVerboseMode());
 	serializer->PutBoolean(database->GetSilentMode());
 	serializer->PutBoolean(database->GetHeaderLineUsed());
@@ -484,6 +485,7 @@ void PLShared_STDatabaseTextFile::DeserializeObject(PLSerializer* serializer, Ob
 	database->SetSelectionAttribute(serializer->GetString());
 	database->SetSelectionValue(serializer->GetString());
 	serializer->GetIntVector(database->GetMarkedInstances());
+	database->SetDenseOutputFormat(serializer->GetBoolean());
 	database->SetVerboseMode(serializer->GetBoolean());
 	database->SetSilentMode(serializer->GetBoolean());
 	database->SetHeaderLineUsed(serializer->GetBoolean());

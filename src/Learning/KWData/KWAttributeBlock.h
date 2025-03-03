@@ -139,6 +139,9 @@ public:
 	int GetLoadedAttributeNumber() const;
 	KWAttribute* GetLoadedAttributeAt(int nIndex) const;
 
+	// Index d'un attribut charge en memoire selon l'ordre des attributs dans le bloc, selon son index pparse dans le bloc
+	int GetLoadedAttributeIndexAtSparseIndex(int nSparseIndex) const;
+
 	// Ensemble des cles d'attribut (VarKey) pour les attributs du blocs charges en memoire
 	// A chaque cle correspond l'index sparse de l'attribut dans son bloc
 	const KWIndexedKeyBlock* GetLoadedAttributesIndexedKeyBlock() const;
@@ -293,6 +296,7 @@ protected:
 	KWIndexedKeyBlock* loadedAttributesIndexedKeyBlock;
 	int nAttributeNumber;
 	NumericKeyDictionary nkdAttributesByVarKeys;
+	IntVector ivLoadedAttributeIndexesBySparseIndex;
 
 	// Gestion des index de mutation du bloc vers un bloc cible constituant un sous-bloc
 	// Utilise pour la mutation des objets lors de la lecture d'une base
@@ -474,6 +478,13 @@ inline KWAttribute* KWAttributeBlock::GetLoadedAttributeAt(int nIndex) const
 	require(GetParentClass()->IsIndexed());
 	require(cast(KWAttribute*, oaLoadedAttributes.GetAt(nIndex))->GetLoadIndex().GetSparseIndex() == nIndex);
 	return cast(KWAttribute*, oaLoadedAttributes.GetAt(nIndex));
+}
+
+inline int KWAttributeBlock::GetLoadedAttributeIndexAtSparseIndex(int nSparseIndex) const
+{
+	require(GetParentClass()->IsIndexed());
+	require(0 <= nSparseIndex and nSparseIndex < GetLoadedAttributeNumber());
+	return ivLoadedAttributeIndexesBySparseIndex.GetAt(nSparseIndex);
 }
 
 inline const KWIndexedKeyBlock* KWAttributeBlock::GetLoadedAttributesIndexedKeyBlock() const
