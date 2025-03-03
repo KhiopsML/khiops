@@ -111,6 +111,41 @@ def instruction_list(test_dir):
 
 
 def instruction_errors(test_dir):
+    """Liste des repertoires de test avec des erreurs"""
+    test_dir_name = utils.test_dir_name(test_dir)
+    suite_dir_name = utils.suite_dir_name(test_dir)
+    tool_dir_name = utils.tool_dir_name(test_dir)
+    # Analyse du log de comparaison
+    (
+        error_number,
+        warning_number,
+        summary_infos,
+        files_infos,
+    ) = check.analyse_comparison_log(test_dir)
+    file_types_message = summary_infos.get(check.SUMMARY_FILE_TYPES_KEY, "")
+    note_message = summary_infos.get(check.SUMMARY_NOTE_KEY, "")
+    portability_message = summary_infos.get(check.SUMMARY_PORTABILITY_KEY, "")
+    special_file_message = ""
+    for key in check.SUMMARY_SPECIAL_FILE_KEYS:
+        if key in summary_infos:
+            special_file_message = summary_infos.get(key, "")
+            break
+    # Message si necessaire
+    if error_number != 0:
+        message = (
+            "\t" + tool_dir_name + "\t" + suite_dir_name + "\t" + test_dir_name + "\t"
+        )
+
+        message += "errors\t" + str(error_number) + "\t"
+        message += "\t" + file_types_message
+        if special_file_message != "":
+            message += "\t" + special_file_message
+        message += "\t" + note_message
+        message += "\t" + portability_message
+        print(message)
+
+
+def instruction_errors_warning(test_dir):
     """Liste des repertoires de test avec des erreurs ou des warnings"""
     test_dir_name = utils.test_dir_name(test_dir)
     suite_dir_name = utils.suite_dir_name(test_dir)
@@ -704,6 +739,12 @@ def register_standard_instructions():
         available_instructions,
         "errors",
         instruction_errors,
+        "report errors",
+    )
+    register_instruction(
+        available_instructions,
+        "errors-warnings",
+        instruction_errors_warning,
         "report errors and warnings",
     )
     register_instruction(
