@@ -100,12 +100,13 @@ void KWAttributeSpecArrayView::EventUpdate(Object* object)
 
 	// Variables de travail
 	KWAttribute* attribute;
-	KWDataItem* referenceDataItem;
-	KWAttribute* referenceAttribute;
-	KWAttributeBlock* referenceAttributeBlock;
 	ALString sCompleteType;
-	ALString sOriginClass;
+	int nKey;
+	boolean bIsKeyAttribute;
 	boolean bTypeError;
+	int nPreviousType;
+	int nClass;
+	ALString sTmp;
 
 	assert(kwcEditedClass != NULL);
 
@@ -115,11 +116,7 @@ void KWAttributeSpecArrayView::EventUpdate(Object* object)
 	if (attribute != NULL)
 	{
 		// Calcul du type complet de l'attribut
-		sCompleteType = KWType::ToString(attribute->GetType());
-		if (KWType::IsRelation(attribute->GetType()) and attribute->GetClass() != NULL)
-			sCompleteType = sCompleteType + "(" + attribute->GetClass()->GetName() + ")";
-		else if (attribute->GetType() == KWType::Structure)
-			sCompleteType = sCompleteType + "(" + attribute->GetStructureName() + ")";
+		sCompleteType = attribute->GetTypeLabel();
 
 		// Pour le champ attribut, des controles sont effectues pour determiner
 		// si le changement de type est possible
@@ -127,12 +124,38 @@ void KWAttributeSpecArrayView::EventUpdate(Object* object)
 		// afin d'empecher de nouvelles emission de warning
 		if (editedObject->GetType() != sCompleteType)
 		{
+			// On determine si l'attribut fait partie de la cle
+			bIsKeyAttribute = false;
+			for (nKey = 0; nKey < kwcEditedClass->GetKeyAttributeNumber(); nKey++)
+			{
+				if (kwcEditedClass->GetKeyAttributeNameAt(nKey) == attribute->GetName())
+				{
+					bIsKeyAttribute = true;
+					break;
+				}
+			}
+
 			// Erreur si type initial de l'attribut non stocke
 			if (not KWType::IsStored(attribute->GetType()))
 			{
 				attribute->AddError("Cannot change type of variable from " + sCompleteType + " to " +
 						    editedObject->GetType() +
 						    " (accepted initial types are: " + sStoredTypes + ")");
+				bTypeError = true;
+			}
+			// Erreur si type final de l'attribut non stocke
+			else if (not KWType::IsStored(KWType::ToType(editedObject->GetType())))
+			{
+				attribute->AddError("Cannot change type of variable from " + sCompleteType + " to " +
+						    editedObject->GetType() +
+						    " (accepted final types are: " + sStoredTypes + ")");
+				bTypeError = true;
+			}
+			// Erreur si attribut utilise dans la cle
+			else if (bIsKeyAttribute)
+			{
+				attribute->AddError("Cannot change type of key variable that must be of type " +
+						    KWType::ToString(KWType::Symbol));
 				bTypeError = true;
 			}
 			// Erreur si attribut de type complexe, avec specification de format
@@ -160,74 +183,37 @@ void KWAttributeSpecArrayView::EventUpdate(Object* object)
 						    attribute->GetDerivationRule()->GetName());
 				bTypeError = true;
 			}
-			// Erreur si attribut utilise dans une regle de calcul, directement ou via un bloc
-			else if ((not attribute->IsInBlock() and
-				  nkdEditedClassUsedAttributeReferences.Lookup(attribute) != NULL) or
-				 (attribute->IsInBlock() and
-				  nkdEditedClassUsedAttributeReferences.Lookup(attribute->GetAttributeBlock()) != NULL))
-			{
-				if (not attribute->IsInBlock())
-					referenceDataItem =
-					    cast(KWDataItem*, nkdEditedClassUsedAttributeReferences.Lookup(attribute));
-				else
-					referenceDataItem =
-					    cast(KWDataItem*, nkdEditedClassUsedAttributeReferences.Lookup(
-								  attribute->GetAttributeBlock()));
-				check(referenceDataItem);
-
-				// Cas d'un attribut referencant
-				if (referenceDataItem->IsAttribute())
-				{
-					referenceAttribute = cast(KWAttribute*, referenceDataItem);
-					assert(referenceAttribute->GetAnyDerivationRule() != NULL);
-
-					// On precise la classe d'origine si necessaire
-					if (referenceAttribute->GetParentClass() != attribute->GetParentClass())
-						sOriginClass =
-						    " in dictionary " + referenceAttribute->GetParentClass()->GetName();
-					attribute->AddError("Cannot change type of variable, used in derivation rule " +
-							    referenceAttribute->GetAnyDerivationRule()->GetName() +
-							    " by variable " + referenceAttribute->GetName() +
-							    sOriginClass);
-				}
-				// Cas d'un bloc d'attributs referencant
-				else
-				{
-					referenceAttributeBlock = cast(KWAttributeBlock*, referenceDataItem);
-					assert(referenceAttributeBlock->GetDerivationRule() != NULL);
-
-					// On precise la classe d'origine si necessaire
-					if (referenceAttributeBlock->GetParentClass() != attribute->GetParentClass())
-						sOriginClass = " in dictionary " +
-							       referenceAttributeBlock->GetParentClass()->GetName();
-					attribute->AddError(
-					    "Cannot change type of variable, used in derivation rule " +
-					    referenceAttributeBlock->GetDerivationRule()->GetName() +
-					    " by sparse variable block " + referenceAttributeBlock->GetName() +
-					    " (from " + referenceAttributeBlock->GetFirstAttribute()->GetName() +
-					    " to " + referenceAttributeBlock->GetLastAttribute()->GetName() + ")" +
-					    sOriginClass);
-				}
-				bTypeError = true;
-			}
-			// Erreur si attribut utilise dans la cle
-			else if (nkdEditedClassKeyAttributes.Lookup(attribute) != NULL)
-			{
-				attribute->AddError("Cannot change type of key variable that must be of type " +
-						    KWType::ToString(KWType::Symbol));
-				bTypeError = true;
-			}
-			// Erreur si type final de l'attribut non stocke
-			else if (not KWType::IsStored(KWType::ToType(editedObject->GetType())))
-			{
-				attribute->AddError("Cannot change type of variable from " + sCompleteType + " to " +
-						    editedObject->GetType() +
-						    " (accepted final types are: " + sStoredTypes + ")");
-				bTypeError = true;
-			}
-			// Changement de type sinon
+			// Changement de type sinon, en verifiant que cela n'entraine pas une incoherence
+			// par utilisation de l'attribut directement ou indirectement en operande d'une regle
 			else
+			{
+				// Memorisation prealable du type valide
+				nPreviousType = attribute->GetType();
+				assert(KWType::IsStored(nPreviousType));
+
+				// Changement de type et verification de la coherence sur tout le domaine
 				attribute->SetType(KWType::ToType(editedObject->GetType()));
+
+				// On invalide la fraicheur de toutes les classes du domaine, pour forcer les controles
+				for (nClass = 0; nClass < kwcEditedClass->GetDomain()->GetClassNumber(); nClass++)
+					kwcEditedClass->GetDomain()->GetClassAt(nClass)->UpdateFreshness();
+
+				// Verification de tout le domaine
+				bTypeError = not kwcEditedClass->GetDomain()->Check();
+				if (bTypeError)
+				{
+					attribute->AddError(
+					    sTmp +
+					    "Because the variable is used as an operand in derivation rules with the "
+					    "expected type " +
+					    KWType::ToString(nPreviousType) + ", the type cannot be changed to " +
+					    editedObject->GetType());
+				}
+
+				// On restitue le type iniial en cas d'erreur
+				if (bTypeError)
+					attribute->SetType(nPreviousType);
+			}
 
 			// Annulation si necessaire du changement de type dans l'interface
 			if (bTypeError)
@@ -281,15 +267,6 @@ void KWAttributeSpecArrayView::SetEditedClass(KWClass* kwcClass)
 	// Memorisation de la classe editee
 	kwcEditedClass = kwcClass;
 
-	// Mise a jour des ses caracteristiques
-	nkdEditedClassKeyAttributes.RemoveAll();
-	nkdEditedClassUsedAttributeReferences.RemoveAll();
-	if (kwcEditedClass != NULL)
-	{
-		BuildKeyAttributes(kwcEditedClass, &nkdEditedClassKeyAttributes);
-		BuildClassUsedAttributeReferences(kwcEditedClass, &nkdEditedClassUsedAttributeReferences);
-	}
-
 	// Recherche de la longueur du plus grand libelle
 	nMaxLabelLength = nDefaultLabelLength;
 	attribute = kwcClass->GetHeadAttribute();
@@ -301,117 +278,6 @@ void KWAttributeSpecArrayView::SetEditedClass(KWClass* kwcClass)
 
 	// Ajout d'un taille supplementaire au tableau edite en presence de libelles longs
 	SetLastColumnExtraWidth(min(nMaxDisplayLabelLength, nMaxLabelLength - nDefaultLabelLength));
-}
-
-void KWAttributeSpecArrayView::BuildKeyAttributes(KWClass* kwcClass, NumericKeyDictionary* nkdKeyAttributes) const
-{
-	int nKey;
-
-	require(kwcClass != NULL);
-	require(nkdKeyAttributes != NULL);
-	require(nkdKeyAttributes->GetCount() == 0);
-
-	for (nKey = 0; nKey < kwcClass->GetKeyAttributeNumber(); nKey++)
-		nkdKeyAttributes->SetAt(kwcClass->GetKeyAttributeAt(nKey), kwcClass->GetKeyAttributeAt(nKey));
-}
-
-void KWAttributeSpecArrayView::BuildClassUsedAttributeReferences(KWClass* kwcClass,
-								 NumericKeyDictionary* nkdUsedAttributeReferences) const
-{
-	int nClass;
-	KWClass* currentClass;
-	KWAttribute* referenceAttribute;
-	KWDerivationRule* analysedRule;
-
-	require(kwcClass != NULL);
-	require(nkdUsedAttributeReferences != NULL);
-	require(nkdUsedAttributeReferences->GetCount() == 0);
-
-	// Parcours de toutes les classes du domaines, qui pontentiellement peut referencer un attribut de la classe
-	// dans le contexte multi-tables
-	for (nClass = 0; nClass < kwcClass->GetDomain()->GetClassNumber(); nClass++)
-	{
-		currentClass = kwcClass->GetDomain()->GetClassAt(nClass);
-
-		// Parcours des attributs de la classe pour analyser leur eventuelle regle de derivation
-		// Attention, la classe n'est pas forcement compilee
-		referenceAttribute = currentClass->GetHeadAttribute();
-		while (referenceAttribute != NULL)
-		{
-			// Analyse de la regle portee par l'attribut
-			if (not referenceAttribute->IsInBlock())
-			{
-				analysedRule = referenceAttribute->GetDerivationRule();
-				if (analysedRule != NULL)
-					BuildRuleUsedAttributeReferences(analysedRule, referenceAttribute,
-									 nkdUsedAttributeReferences);
-			}
-			// Ou par le bloc d'attribut
-			else
-			{
-				analysedRule = referenceAttribute->GetBlockDerivationRule();
-				if (analysedRule != NULL)
-				{
-					// Analyse de la regle uniquement pour le premier attribut du bloc (et on
-					// memorisera le bloc)
-					if (referenceAttribute->IsFirstInBlock())
-						BuildRuleUsedAttributeReferences(
-						    analysedRule, referenceAttribute->GetAttributeBlock(),
-						    nkdUsedAttributeReferences);
-				}
-			}
-
-			// Attribut suivant
-			currentClass->GetNextAttribute(referenceAttribute);
-		}
-	}
-}
-
-void KWAttributeSpecArrayView::BuildRuleUsedAttributeReferences(KWDerivationRule* rule, KWDataItem* referenceDataItem,
-								NumericKeyDictionary* nkdUsedAttributeReferences) const
-{
-	KWAttribute* usedAttribute;
-	KWAttributeBlock* usedAttributeBlock;
-	KWDerivationRuleOperand* operand;
-	KWDerivationRule* analysedRule;
-	int i;
-
-	require(rule != NULL);
-	require(referenceDataItem != NULL);
-	require(nkdUsedAttributeReferences != NULL);
-
-	// Analyse des operandes de la regle
-	for (i = 0; i < rule->GetOperandNumber(); i++)
-	{
-		operand = rule->GetOperandAt(i);
-
-		// Cas d'un attribut utilise
-		if (operand->GetOrigin() == KWDerivationRuleOperand::OriginAttribute)
-		{
-			// On traite le cas d'un attribut
-			if (KWType::IsValue(operand->GetType()))
-			{
-				usedAttribute = operand->GetOriginAttribute();
-				if (usedAttribute != NULL)
-					nkdUsedAttributeReferences->SetAt(usedAttribute, referenceDataItem);
-			}
-			// Sinon le cas d'un bloc d'attribut
-			else
-			{
-				usedAttributeBlock = operand->GetOriginAttributeBlock();
-				if (usedAttributeBlock != NULL)
-					nkdUsedAttributeReferences->SetAt(usedAttributeBlock, referenceDataItem);
-			}
-		}
-		// Cas d'une sous regle
-		else if (operand->GetOrigin() == KWDerivationRuleOperand::OriginRule)
-		{
-			analysedRule = operand->GetDerivationRule();
-			if (analysedRule != NULL)
-				BuildRuleUsedAttributeReferences(analysedRule, referenceDataItem,
-								 nkdUsedAttributeReferences);
-		}
-	}
 }
 
 // ##

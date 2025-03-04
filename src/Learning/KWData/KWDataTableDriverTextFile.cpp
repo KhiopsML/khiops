@@ -672,16 +672,36 @@ void KWDataTableDriverTextFile::Write(const KWObject* kwoObject)
 				if (attributeBlock->GetType() == KWType::Continuous)
 				{
 					continuousValueBlock = kwoObject->GetContinuousValueBlockAt(liLoadIndex);
-					continuousValueBlock->WriteField(
-					    attributeBlock->GetLoadedAttributesIndexedKeyBlock(), sValueBlockField);
-					outputBuffer->WriteField(sValueBlockField);
+
+					// Ecriture au format sparse par defaut
+					if (not GetDenseOutputFormat())
+					{
+						continuousValueBlock->WriteField(
+						    attributeBlock->GetLoadedAttributesIndexedKeyBlock(),
+						    sValueBlockField);
+						outputBuffer->WriteField(sValueBlockField);
+					}
+					// Ecriture au format dense
+					else
+						WriteContinuousBlockUsingDenseFormat(attributeBlock,
+										     continuousValueBlock);
 				}
 				else if (attributeBlock->GetType() == KWType::Symbol)
 				{
 					symbolValueBlock = kwoObject->GetSymbolValueBlockAt(liLoadIndex);
-					symbolValueBlock->WriteField(
-					    attributeBlock->GetLoadedAttributesIndexedKeyBlock(), sValueBlockField);
-					outputBuffer->WriteField(sValueBlockField);
+
+					// Ecriture au format sparse par defaut
+					if (not GetDenseOutputFormat())
+					{
+
+						symbolValueBlock->WriteField(
+						    attributeBlock->GetLoadedAttributesIndexedKeyBlock(),
+						    sValueBlockField);
+						outputBuffer->WriteField(sValueBlockField);
+					}
+					// Ecriture au format dense
+					else
+						WriteSymbolBlockUsingDenseFormat(attributeBlock, symbolValueBlock);
 				}
 				nFieldIndex++;
 			}
@@ -1229,18 +1249,21 @@ longint KWDataTableDriverTextFile::GetEstimatedUsedOutputDiskSpacePerObject(cons
 	boolean bDisplay = false;
 	int nDenseLoadedValueNumber;
 	int nTextLoadedValueNumber;
-	int nSparseLoadedValueNumber;
+	int nBlockEstimatedLoadedValueNumber;
+	int nBlockEstimatedDenseOverhead;
 	int nEstimatedValueNumber;
 	longint lWrittenObjectSize;
 	KWAttribute* attribute;
 	KWAttributeBlock* attributeBlock;
+	ALString sBlockDefaultValue;
 
 	require(kwcLogicalClass != NULL);
 
 	// Initialisation des statistiques par type d'attribut
 	nDenseLoadedValueNumber = 0;
 	nTextLoadedValueNumber = 0;
-	nSparseLoadedValueNumber = 0;
+	nBlockEstimatedLoadedValueNumber = 0;
+	nBlockEstimatedDenseOverhead = 0;
 
 	// Calcul des nombres d'attributs natifs dense et sparse dans la classe logique,
 	// ce qui permet d'analyser le contenu du fichier
@@ -1248,33 +1271,59 @@ longint KWDataTableDriverTextFile::GetEstimatedUsedOutputDiskSpacePerObject(cons
 	attribute = kwcLogicalClass->GetHeadAttribute();
 	while (attribute != NULL)
 	{
-		// Cas des attributs denses
-		if (not attribute->IsInBlock())
+		// On ne traite que les attributs stoockables
+		if (KWType::IsStored(attribute->GetType()))
 		{
-			if (attribute->GetLoaded())
+			// Cas des attributs denses
+			if (not attribute->IsInBlock())
 			{
-				if (attribute->GetType() == KWType::Text)
-					nTextLoadedValueNumber++;
-				else
-					nDenseLoadedValueNumber++;
-			}
-		}
-		// Cas des attributs dans les blocs
-		else
-		{
-			// Dans ce cas, on se base sur une estimation heuristique du nombre de valeurs presentes
-			// en fonction de la taille globale du bloc (au plus une fois par bloc)
-			if (attribute->IsFirstInBlock())
-			{
-				attributeBlock = attribute->GetAttributeBlock();
-				if (attributeBlock->GetLoaded())
+				if (attribute->GetLoaded())
 				{
-					nEstimatedValueNumber =
-					    (int)ceil(KWAttributeBlock::GetEstimatedMeanValueNumber(
-							  attributeBlock->GetAttributeNumber()) *
-						      1.0 * attributeBlock->GetLoadedAttributeNumber() /
-						      attributeBlock->GetAttributeNumber());
-					nSparseLoadedValueNumber += nEstimatedValueNumber;
+					if (attribute->GetType() == KWType::Text)
+						nTextLoadedValueNumber++;
+					else
+						nDenseLoadedValueNumber++;
+				}
+			}
+			// Cas des attributs dans les blocs
+			else
+			{
+				// Dans ce cas, on se base sur une estimation heuristique du nombre de valeurs presentes
+				// en fonction de la taille globale du bloc (au plus une fois par bloc)
+				if (attribute->IsFirstInBlock())
+				{
+					attributeBlock = attribute->GetAttributeBlock();
+					if (attributeBlock->GetLoaded())
+					{
+						// Estimation du nombre d'attributs presents dans les blocs
+						nEstimatedValueNumber =
+						    (int)ceil(KWAttributeBlock::GetEstimatedMeanValueNumber(
+								  attributeBlock->GetAttributeNumber()) *
+							      1.0 * attributeBlock->GetLoadedAttributeNumber() /
+							      attributeBlock->GetAttributeNumber());
+						assert(nEstimatedValueNumber <=
+						       attributeBlock->GetLoadedAttributeNumber());
+						nBlockEstimatedLoadedValueNumber += nEstimatedValueNumber;
+
+						// Prise en compte de l'overhead en cas de format de sortie dense
+						if (bDenseOutputFormat)
+						{
+							// Valeur par defaut sous forme chaine de caractere
+							if (attributeBlock->GetType() == KWType::Continuous)
+								sBlockDefaultValue = KWContinuous::ContinuousToString(
+								    attributeBlock->GetContinuousDefaultValue());
+							else
+								sBlockDefaultValue =
+								    attributeBlock->GetSymbolDefaultValue();
+
+							// On compte un octet par separateur plus la valeur par defaut,
+							// pour tout attribut non present du bloc
+							nBlockEstimatedDenseOverhead +=
+							    (attributeBlock->GetLoadedAttributeNumber() -
+							     nEstimatedValueNumber) *
+							    (1 + sBlockDefaultValue.GetLength());
+						}
+					}
 				}
 			}
 		}
@@ -1286,8 +1335,12 @@ longint KWDataTableDriverTextFile::GetEstimatedUsedOutputDiskSpacePerObject(cons
 	lWrittenObjectSize = nMinRecordSize;
 	lWrittenObjectSize += (longint)nDenseLoadedValueNumber * nDenseValueSize;
 	lWrittenObjectSize += (longint)nTextLoadedValueNumber * nTextValueSize;
-	lWrittenObjectSize += (longint)nSparseLoadedValueNumber * nSparseValueSize;
+	lWrittenObjectSize += (longint)nBlockEstimatedLoadedValueNumber * nSparseValueSize;
 	lWrittenObjectSize += (longint)kwcLogicalClass->GetKeyAttributeNumber() * nKeyFieldSize;
+
+	// Correction en cas de format de sortie dense, en comptant un octet de separateur par attribut sparse non prise en compte
+	if (GetDenseOutputFormat())
+		lWrittenObjectSize += nBlockEstimatedDenseOverhead;
 
 	// Affichage
 	if (bDisplay)
@@ -1296,7 +1349,8 @@ longint KWDataTableDriverTextFile::GetEstimatedUsedOutputDiskSpacePerObject(cons
 		cout << "\tDictionary\t" << GetClass()->GetName() << endl;
 		cout << "\tDenseLoadedValueNumber\t" << nDenseLoadedValueNumber << endl;
 		cout << "\tTextLoadedValueNumber\t" << nTextLoadedValueNumber << endl;
-		cout << "\tSparseLoadedValueNumber\t" << nSparseLoadedValueNumber << endl;
+		cout << "\tBlockEstimatedLoadedValueNumber\t" << nBlockEstimatedLoadedValueNumber << endl;
+		cout << "\tBlockEstimatedDenseOverhead\t" << nBlockEstimatedDenseOverhead << endl;
 		cout << "\tEstimatedWrittenObjectSize\t" << lWrittenObjectSize << endl;
 	}
 	return lWrittenObjectSize;
@@ -1317,11 +1371,8 @@ boolean KWDataTableDriverTextFile::ReadHeaderLineFields(StringVector* svFirstLin
 
 void KWDataTableDriverTextFile::WriteHeaderLine()
 {
-	int i;
-	KWDataItem* dataItem;
-	KWAttribute* attribute;
-	KWAttributeBlock* attributeBlock;
-	int nFieldIndex = 0;
+	StringVector svStoredFieldNames;
+	int nFieldIndex;
 
 	require(GetHeaderLineUsed());
 	require(kwcClass != NULL);
@@ -1329,33 +1380,15 @@ void KWDataTableDriverTextFile::WriteHeaderLine()
 	require(bWriteMode);
 	assert(outputBuffer != NULL);
 
-	// Ecriture des nom des dataItems Loaded
-	for (i = 0; i < kwcClass->GetLoadedDataItemNumber(); i++)
+	// Export des champs de la ligne d'entete
+	kwcClass->ExportStoredFieldNames(&svStoredFieldNames, GetDenseOutputFormat());
+
+	// Ecriture des nomS des champs
+	for (nFieldIndex = 0; nFieldIndex < svStoredFieldNames.GetSize(); nFieldIndex++)
 	{
-		dataItem = kwcClass->GetLoadedDataItemAt(i);
-
-		// Ecriture du nom de l'attribut
-		if (dataItem->IsAttribute())
-		{
-			attribute = cast(KWAttribute*, dataItem);
-
-			if (KWType::IsStored(attribute->GetType()))
-			{
-				if (nFieldIndex > 0)
-					outputBuffer->Write(cFieldSeparator);
-				outputBuffer->WriteField(attribute->GetName());
-				nFieldIndex++;
-			}
-		}
-		// Ecriture du nom du bloc d'attributs
-		else
-		{
-			attributeBlock = cast(KWAttributeBlock*, dataItem);
-			if (nFieldIndex > 0)
-				outputBuffer->Write(cFieldSeparator);
-			outputBuffer->WriteField(attributeBlock->GetName());
-			nFieldIndex++;
-		}
+		if (nFieldIndex > 0)
+			outputBuffer->Write(cFieldSeparator);
+		outputBuffer->WriteField(svStoredFieldNames.GetAt(nFieldIndex));
 	}
 	outputBuffer->WriteEOL();
 }
@@ -1450,6 +1483,78 @@ void KWDataTableDriverTextFile::SetSilentMode(boolean bValue)
 		inputBuffer->SetSilentMode(GetSilentMode());
 	if (outputBuffer != NULL)
 		outputBuffer->SetSilentMode(GetSilentMode());
+}
+
+void KWDataTableDriverTextFile::WriteContinuousBlockUsingDenseFormat(KWAttributeBlock* attributeBlock,
+								     KWContinuousValueBlock* valueBlock)
+{
+	ContinuousVector cvBlockDenseValues;
+	int nValue;
+	int nSparseIndex;
+	int nDenseIndex;
+
+	require(bWriteMode);
+	require(attributeBlock != NULL);
+	require(attributeBlock->GetType() == KWType::Continuous);
+	require(valueBlock != NULL);
+
+	// Initialisation d'un vecteur de valeurs dense avec uniquement les valeurs par defaut
+	cvBlockDenseValues.SetSize(attributeBlock->GetLoadedAttributeNumber());
+	for (nValue = 0; nValue < cvBlockDenseValues.GetSize(); nValue++)
+		cvBlockDenseValues.SetAt(nValue, attributeBlock->GetContinuousDefaultValue());
+
+	// Alimnetation du vecteur de valeur dense avec les valeurs presentes
+	for (nValue = 0; nValue < valueBlock->GetValueNumber(); nValue++)
+	{
+		// On passe de l'index dans le bloc sparse a l'index dense selon l'ordre initial des attributs dans la classe
+		nSparseIndex = valueBlock->GetAttributeSparseIndexAt(nValue);
+		nDenseIndex = attributeBlock->GetLoadedAttributeIndexAtSparseIndex(nSparseIndex);
+		cvBlockDenseValues.SetAt(nDenseIndex, valueBlock->GetValueAt(nValue));
+	}
+
+	// Ecriture des valeurs du vecteur dense
+	for (nValue = 0; nValue < cvBlockDenseValues.GetSize(); nValue++)
+	{
+		if (nValue > 0)
+			outputBuffer->Write(cFieldSeparator);
+		outputBuffer->WriteField(KWContinuous::ContinuousToString(cvBlockDenseValues.GetAt(nValue)));
+	}
+}
+
+void KWDataTableDriverTextFile::WriteSymbolBlockUsingDenseFormat(KWAttributeBlock* attributeBlock,
+								 KWSymbolValueBlock* valueBlock)
+{
+	SymbolVector svBlockDenseValues;
+	int nValue;
+	int nSparseIndex;
+	int nDenseIndex;
+
+	require(bWriteMode);
+	require(attributeBlock != NULL);
+	require(attributeBlock->GetType() == KWType::Continuous);
+	require(valueBlock != NULL);
+
+	// Initialisation d'un vecteur de valeurs dense avec uniquement les valeurs par defaut
+	svBlockDenseValues.SetSize(attributeBlock->GetLoadedAttributeNumber());
+	for (nValue = 0; nValue < svBlockDenseValues.GetSize(); nValue++)
+		svBlockDenseValues.SetAt(nValue, attributeBlock->GetSymbolDefaultValue());
+
+	// Alimnetation du vecteur de valeur dense avec les valeurs presentes
+	for (nValue = 0; nValue < valueBlock->GetValueNumber(); nValue++)
+	{
+		// On passe de l'index dans le bloc sparse a l'index dense selon l'ordre initial des attributs dans la classe
+		nSparseIndex = valueBlock->GetAttributeSparseIndexAt(nValue);
+		nDenseIndex = attributeBlock->GetLoadedAttributeIndexAtSparseIndex(nSparseIndex);
+		svBlockDenseValues.SetAt(nDenseIndex, valueBlock->GetValueAt(nValue));
+	}
+
+	// Ecriture des valeurs du vecteur dense
+	for (nValue = 0; nValue < svBlockDenseValues.GetSize(); nValue++)
+	{
+		if (nValue > 0)
+			outputBuffer->Write(cFieldSeparator);
+		outputBuffer->WriteField(svBlockDenseValues.GetAt(nValue));
+	}
 }
 
 void KWDataTableDriverTextFile::SkipMainRecord()

@@ -63,6 +63,11 @@ public:
 	////////////////////////////////////////////////////////////////////////////////
 	// Fonctionnalites de base
 
+	// Format de d'ecriture de type dense (defaut: false)
+	// En format dense, meme les blocs sparses sont ecrits de facon dense
+	void SetDenseOutputFormat(boolean bValue);
+	boolean GetDenseOutputFormat() const;
+
 	// Verification du format
 	// A redefinir dans les sous-classes specifiant un format physique
 	virtual boolean CheckFormat() const;
@@ -226,6 +231,7 @@ protected:
 	// Attributs
 	ALString sDataTableName;
 	const KWClass* kwcClass;
+	boolean bDenseOutputFormat;
 
 	// Cle correspondant a la derniere ligne lue, dans le cas d'une classe principale d'un schema multi-table
 	KWObjectKey lastReadMainKey;
@@ -263,6 +269,17 @@ inline void KWDataTableDriver::SetClass(const KWClass* kwcValue)
 inline const KWClass* KWDataTableDriver::GetClass() const
 {
 	return kwcClass;
+}
+
+inline void KWDataTableDriver::SetDenseOutputFormat(boolean bValue)
+{
+	require(not IsOpenedForWrite());
+	bDenseOutputFormat = bValue;
+}
+
+inline boolean KWDataTableDriver::GetDenseOutputFormat() const
+{
+	return bDenseOutputFormat;
 }
 
 inline boolean KWDataTableDriver::IsError() const

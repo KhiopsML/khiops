@@ -13,6 +13,7 @@ KWDatabase::KWDatabase()
 	bModeExcludeSample = false;
 	nSelectionAttributeType = KWType::Unknown;
 	cSelectionContinuous = 0;
+	bDenseOutputFormat = false;
 	bVerboseMode = true;
 	bSilentMode = false;
 	bIsError = false;
@@ -62,6 +63,7 @@ void KWDatabase::CopyFrom(const KWDatabase* kwdSource)
 	liSelectionAttributeLoadIndex.Reset();
 	nSelectionAttributeType = KWType::Unknown;
 	cSelectionContinuous = 0;
+	bDenseOutputFormat = false;
 	bVerboseMode = true;
 	bSilentMode = false;
 	bIsError = false;
@@ -82,6 +84,7 @@ void KWDatabase::CopyFrom(const KWDatabase* kwdSource)
 	SetSelectionAttribute(kwdSource->GetSelectionAttribute());
 	SetSelectionValue(kwdSource->GetSelectionValue());
 	GetMarkedInstances()->CopyFrom(&kwdSource->ivMarkedInstances);
+	SetDenseOutputFormat(kwdSource->GetDenseOutputFormat());
 	SetVerboseMode(kwdSource->GetVerboseMode());
 	SetSilentMode(kwdSource->GetSilentMode());
 }

@@ -158,6 +158,7 @@ boolean KWSTDatabase::PhysicalOpenForWrite()
 	// Parametrage
 	dataTableDriverCreator->SetDataTableName(GetDatabaseName());
 	dataTableDriverCreator->SetClass(kwcClass);
+	dataTableDriverCreator->SetDenseOutputFormat(GetDenseOutputFormat());
 
 	// Ouverture physique
 	bOk = dataTableDriverCreator->OpenForWrite();
