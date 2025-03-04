@@ -335,12 +335,10 @@ protected:
 					       IntVector* ivGroups, int nMaxStepNumber,
 					       SortedList* frequencyList) const;
 
-	// CH IV Begin
 	// Post-optimisation selon un algorithme EM
 	// On effectue a chaque iteration tous les deplacements elementaires qui ameliorent le cout
 	void EMPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSource, KWFrequencyTable* kwftTarget,
 					     IntVector* ivGroups, int nMaxStepNumber, SortedList* frequencyList) const;
-	// CH IV End
 
 	// On force le meilleur merge parmi les groupes deja constitues
 	// Une nouvelle table est constituee en sortie, avec un groupe en moins

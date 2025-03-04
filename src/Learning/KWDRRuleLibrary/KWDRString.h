@@ -28,6 +28,7 @@ class KWDRToLower;
 class KWDRConcat;
 class KWDRHash;
 class KWDREncrypt;
+class KWDRBuildKey;
 
 #include "KWDerivationRule.h"
 #include "KWDRVector.h"
@@ -476,6 +477,23 @@ public:
 	// Constructeur
 	KWDRConcat();
 	~KWDRConcat();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	Symbol ComputeSymbolResult(const KWObject* kwoObject) const override;
+};
+
+////////////////////////////////////////////////////////////////////////////
+// Classe KWDRBuildKey
+// Construit une valeur de cle unique, sous condition que les valeurs en entree soient uniques
+class KWDRBuildKey : public KWDRStringRule
+{
+public:
+	// Constructeur
+	KWDRBuildKey();
+	~KWDRBuildKey();
 
 	// Creation
 	KWDerivationRule* Create() const override;

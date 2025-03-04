@@ -19,7 +19,7 @@ import normGUI.engine.GUIUnit;
  * Represente l'element graphique correspondant au style ComboBox. Affichage de
  * chaines de caracteres dans une zone de liste. Utilisation d'une JComboBox.
  */
-public class GUIStringElementImageComboBox extends GUIStringElement
+@SuppressWarnings("unchecked") public class GUIStringElementImageComboBox extends GUIStringElement
 {
 
         /**

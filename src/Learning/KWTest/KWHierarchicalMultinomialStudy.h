@@ -115,11 +115,9 @@ public:
 	boolean GetHierarchicalMultinomialPrior() const;
 
 	// Redefinition de la methode d'optimisation
-	// CH IV Begin
 	//Le parcours exhaustif des granularites entieres remplace par un parcours des granularites par puissance de 2
 	// Les methodes specifiques d'export de la grille granularisee de la classe KWHierarchicalMultinomialStudy sont supprimees au profit de l'utilisation
 	// des methodes de KWDataGridManager pour simplifier la maintenance du code de KWTest
-	// CH IV End
 	boolean ComputeStats(const KWTupleTable* tupleTable) override;
 
 	// Redefinition de la structure des cout pour l'etude des prior

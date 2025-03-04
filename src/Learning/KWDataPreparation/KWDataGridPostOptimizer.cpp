@@ -58,8 +58,7 @@ double KWDataGridPostOptimizer::PostOptimizeDataGrid(const KWDataGrid* initialDa
 	TaskProgression::DisplayMainLabel(sTaskLabel);
 
 	// Verification de la compatibilite entre grille optimisee et grille initiale
-	dataGridManager.SetSourceDataGrid(initialDataGrid);
-	require(dataGridManager.CheckDataGrid(optimizedDataGrid));
+	require(dataGridManager.CheckDataGrid(initialDataGrid, optimizedDataGrid));
 
 	// Calcul du cout initial
 	dBestCost = dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid);
@@ -192,7 +191,7 @@ double KWDataGridPostOptimizer::PostOptimizeDataGrid(const KWDataGrid* initialDa
 	TaskProgression::EndTask();
 
 	// Verification de la compatibilite entre grille optimisee et grille initiale
-	ensure(dataGridManager.CheckDataGrid(optimizedDataGrid));
+	ensure(dataGridManager.CheckDataGrid(initialDataGrid, optimizedDataGrid));
 	ensure(dBestCost * (1 - dEpsilon) < dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid));
 	ensure(dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid) < dBestCost * (1 + dEpsilon));
 
@@ -214,7 +213,6 @@ KWDataGridPostOptimizer::BuildUnivariateInitialDataGrid(const KWDataGrid* optimi
 	require(optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName) != NULL);
 	require(initialDataGrid->SearchAttribute(sPostOptimizationAttributeName) != NULL);
 
-	// CH IV Begin
 	// Extension pour un attribut de type VarPart : code identique
 	// Il faut une coherence (egalite) entre le KWDGInnerAttributes utilise par la grille optimisee et celui utilise
 	// pour l'attribut de la grille initiale
@@ -222,27 +220,24 @@ KWDataGridPostOptimizer::BuildUnivariateInitialDataGrid(const KWDataGrid* optimi
 	require(not initialDataGrid->IsVarPartDataGrid() or
 		initialDataGrid->GetInnerAttributes() == optimizedDataGrid->GetInnerAttributes() or
 		optimizedDataGrid->GetClassLabel() == "Hierarchichal data grid");
-	// CH IV End
 
 	// Creation de la grille univariee
 	univariateInitialDataGrid = new KWDataGrid;
 
 	// Export des attributs et des parties de la grille optimisee
-	dataGridManager.SetSourceDataGrid(optimizedDataGrid);
-	dataGridManager.ExportAttributes(univariateInitialDataGrid);
-	dataGridManager.ExportParts(univariateInitialDataGrid);
+	dataGridManager.ExportAttributes(optimizedDataGrid, univariateInitialDataGrid);
+	dataGridManager.ExportParts(optimizedDataGrid, univariateInitialDataGrid);
 
 	// On reinitialise a vide les partie pour l'attribut a post-optimiser
 	postOptimizationAttribute = univariateInitialDataGrid->SearchAttribute(sPostOptimizationAttributeName);
 	postOptimizationAttribute->DeleteAllParts();
 
 	// Export des parties les plus fines (de la grille initiale) pour la grille a optimiser
-	dataGridManager.SetSourceDataGrid(initialDataGrid);
-	dataGridManager.ExportAttributeParts(univariateInitialDataGrid, sPostOptimizationAttributeName);
+	dataGridManager.ExportAttributeParts(initialDataGrid, univariateInitialDataGrid,
+					     sPostOptimizationAttributeName);
 
 	// Export des cellules pour la grille initiale univariee
-	dataGridManager.SetSourceDataGrid(initialDataGrid);
-	dataGridManager.ExportCells(univariateInitialDataGrid);
+	dataGridManager.ExportCells(initialDataGrid, univariateInitialDataGrid);
 
 	// Affichage des resultats
 	if (bDisplayResults)
@@ -328,8 +323,7 @@ double KWDGPODiscretizer::PostOptimizeDataGrid(const KWDataGrid* initialDataGrid
 	}
 
 	// Verification de la compatibilite entre grille optimisee et grille initiale
-	dataGridManager.SetSourceDataGrid(initialDataGrid);
-	require(dataGridManager.CheckDataGrid(optimizedDataGrid));
+	require(dataGridManager.CheckDataGrid(initialDataGrid, optimizedDataGrid));
 
 	// Parametrage des couts d'optimisation univarie de la grille
 	dataGridUnivariateCosts = cast(KWDataGridUnivariateCosts*, GetDiscretizationCosts());
@@ -414,7 +408,7 @@ double KWDGPODiscretizer::PostOptimizeDataGrid(const KWDataGrid* initialDataGrid
 	assert(fabs(dCost - dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid)) < dEpsilon);
 
 	// Verification de la compatibilite entre grille optimisee et grille initiale
-	ensure(dataGridManager.CheckDataGrid(optimizedDataGrid));
+	ensure(dataGridManager.CheckDataGrid(initialDataGrid, optimizedDataGrid));
 
 	return dCost;
 }
@@ -828,8 +822,7 @@ void KWDGPODiscretizer::UpdateDataGridFromIntervalList(KWDataGrid* optimizedData
 	}
 
 	// Export des cellules pour la grille initiale univariee
-	dataGridManager.SetSourceDataGrid(initialDataGrid);
-	dataGridManager.ExportCells(optimizedDataGrid);
+	dataGridManager.ExportCells(initialDataGrid, optimizedDataGrid);
 
 	// Affichage des resultats
 	if (bDisplayResults)
@@ -1226,9 +1219,7 @@ double KWDGPOGrouper::PostOptimizeDataGrid(const KWDataGrid* initialDataGrid, co
 	int nNewIndex;
 	int nMaxStepNumber;
 	int nGroup;
-	// CH IV Begin
 	boolean bEMAlgorithm = false;
-	// CH IV End
 
 	require(optimizedDataGrid != NULL);
 	require(initialDataGrid != NULL);
@@ -1255,8 +1246,7 @@ double KWDGPOGrouper::PostOptimizeDataGrid(const KWDataGrid* initialDataGrid, co
 	}
 
 	// Verification de la compatibilite entre grille optimisee et grille initiale
-	dataGridManager.SetSourceDataGrid(initialDataGrid);
-	require(dataGridManager.CheckDataGrid(optimizedDataGrid));
+	require(dataGridManager.CheckDataGrid(initialDataGrid, optimizedDataGrid));
 
 	// Parametrage des couts d'optimisation univarie de la grille
 	dataGridUnivariateCosts = cast(KWDataGridUnivariateCosts*, GetGroupingCosts());
@@ -1302,7 +1292,6 @@ double KWDGPOGrouper::PostOptimizeDataGrid(const KWDataGrid* initialDataGrid, co
 	else
 		nMaxStepNumber = 2;
 
-	// CH IV Begin
 	// Travail en cours pour etudier une approche EM plutot que l'algorithme initial de post-optimisation
 	if (not bEMAlgorithm)
 		FastPostOptimizeGroupsWithGarbage(&initialFrequencyTable, &groupedFrequencyTable, &ivGroups,
@@ -1310,7 +1299,6 @@ double KWDGPOGrouper::PostOptimizeDataGrid(const KWDataGrid* initialDataGrid, co
 	else
 		EMPostOptimizeGroupsWithGarbage(&initialFrequencyTable, &groupedFrequencyTable, &ivGroups,
 						nMaxStepNumber, &frequencyList);
-	// CH IV End
 
 	nGroupNumber = groupedFrequencyTable.GetFrequencyVectorNumber();
 
@@ -1371,7 +1359,7 @@ double KWDGPOGrouper::PostOptimizeDataGrid(const KWDataGrid* initialDataGrid, co
 	assert(fabs(dCost - dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid)) < dEpsilon);
 
 	// Verification de la compatibilite entre grille optimisee et grille initiale
-	ensure(dataGridManager.CheckDataGrid(optimizedDataGrid));
+	ensure(dataGridManager.CheckDataGrid(initialDataGrid, optimizedDataGrid));
 
 	return dCost;
 }
@@ -1889,8 +1877,7 @@ void KWDGPOGrouper::UpdateDataGridWithGarbageFromGroups(KWDataGrid* optimizedDat
 	}
 
 	// Export des cellules pour la grille initiale univariee
-	dataGridManager.SetSourceDataGrid(initialDataGrid);
-	dataGridManager.ExportCells(optimizedDataGrid);
+	dataGridManager.ExportCells(initialDataGrid, optimizedDataGrid);
 
 	// Affichage des resultats
 	if (bDisplayResults)
@@ -2829,7 +2816,6 @@ boolean KWDGAttributeCostParameter::GetEmulated() const
 void KWDGPartCostParameter::SetPartType(int nValue)
 {
 	require(GetPartType() == KWType::Unknown);
-	// CH IV Begin
 	require(KWType::IsCoclusteringType(nValue));
 
 	// Creation de l'objet interval ou ensemble de valeur selon le type
@@ -2852,12 +2838,11 @@ boolean KWDGSymbolValueSetCostParameter::GetEmulated() const
 	return true;
 }
 
-// CH IV Begin
 boolean KWDGVarPartSetCostParameter::GetEmulated() const
 {
 	return true;
 }
-// CH IV End
+
 boolean KWDGCellCostParameter::GetEmulated() const
 {
 	return true;
@@ -3367,7 +3352,6 @@ int KWDGPOCellFrequencyVector::ComputeTotalFrequency() const
 	return nTotalFrequency;
 }
 
-// CH IV Begin
 //////////////////////////////////////////////////////////////////////////////////
 // Classe CCVarPartDataGridPostOptimizer
 
@@ -3458,11 +3442,6 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 
 	// Re-initialisation du vecteur des clusters
 	ivGroups->SetSize(0);
-
-	// Verification de la compatibilite entre grille optimisee et grille initiale
-	dataGridManager.SetSourceDataGrid(referenceDataGrid);
-	// CH IV: si cette verification est inutile, la supprimer
-	// require(dataGridManager.CheckDataGrid(optimizedDataGrid));
 
 	// Extraction de l'attribut VarPart dans la grille pre-partitionnee de reference
 	varPartReferenceAttribute = referenceDataGrid->SearchAttribute(sPostOptimizationAttributeName);
@@ -4222,8 +4201,7 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 	return (nImprovementNumber > 0);
 }
 
-// CH IV Refactoring: supprimer les lignes commentees de cette methode?
-// CH IV Refactoring : a faire en fonction de la conservation ou non du groupe poubelle pour les attributs internes
+// CH Issue 548 Refactoring : code a adapter pour prendre en compte un groupe poubelle d'un attribut interne
 double CCVarPartDataGridPostOptimizer::ComputeVarPartsSymbolAttributeVariationCost(
     KWDGAttribute* attribute, int nClusterNumberVariation, int nVarPartsNumberVariation, ALString sInnerAttributeName,
     KWDGPart* varPartIn, KWDGPart* varPartOut, KWDGPart* innerPart) const
@@ -4266,8 +4244,7 @@ double CCVarPartDataGridPostOptimizer::ComputeVarPartsSymbolAttributeVariationCo
 		assert(nPartileNumber > 1);
 
 		assert(not GetVarPartAttributeGarbage());
-		// CH IV Refactoring: nettoyer le code ci-dessous?
-		// CH IV Refactoring : a faire en fonction de la conservation ou non du groupe poubelle pour les attributs internes
+		// CH Issue 548 : adapter le code pour evaluer le DeltaCost dans le cas d'un groupe poubelle pour l'attribut VarPart
 		//// Cout de structure si attribut  parties de variable et poubelle
 		// if (attribute->GetAttributeType() == KWType::VarPart and GetVarPartAttributeGarbage())
 		//{
@@ -4336,8 +4313,7 @@ double CCVarPartDataGridPostOptimizer::ComputeVarPartsSymbolAttributeVariationCo
 	{
 		// Cas d'un attribut interne categoriel avec groupe poubelle a integrer plus tard
 		assert(not GetInnerAttributeGarbage());
-		// CH IV Refactoring: nettoyer le code ci-dessous?
-		// CH IV Refactoring : a faire en fonction de la conservation ou non du groupe poubelle pour les attributs internes
+		// CH Issue 548 : adapter le code pour evaluer le DeltaCost dans le cas d'un groupe poubelle pour l'attribut interne categoriel
 		// if (GetInnerAttributeGarbage())
 		//{
 		//	// Taille de la poubelle
@@ -4378,7 +4354,7 @@ double CCVarPartDataGridPostOptimizer::ComputeVarPartsSymbolAttributeVariationCo
 		//		dInnerAttributeCost += KWStat::LnBell(nPartileNumber, nPartitionSize);
 		//	}
 		//}
-		//// CH AB AF temporaire : obsolete apres integration groupe poubelle
+		//// CH Issue 548 : obsolete si integration groupe poubelle pour attribut VarPart
 		// else
 		{
 			// Cas d'une variation du nombre de PV pour cet attribut
@@ -4484,8 +4460,7 @@ double CCVarPartDataGridPostOptimizer::ComputeVarPartsContinuousAttributeVariati
 		assert(nPartileNumber > 1);
 
 		assert(not GetVarPartAttributeGarbage());
-		// CH IV Refactoring: nettoyer ci dessous?
-		// CH IV Refactoring : a faire en fonction de la conservation ou non du groupe poubelle pour les attributs internes
+		// CH Issue 548 : a faire en fonction de la conservation ou non du groupe poubelle pour l'attribut VarPart
 		//// Cout de structure si attribut  parties de variable et poubelle
 		// if (attribute->GetAttributeType() == KWType::VarPart and GetVarPartAttributeGarbage())
 		//{
@@ -4573,8 +4548,7 @@ double CCVarPartDataGridPostOptimizer::ComputeVarPartsContinuousAttributeVariati
 		{
 			// A integrer plus tard
 			assert(not GetInnerAttributeGarbage());
-			// CH IV Refactoring: nettoyer ci dessous?
-			// CH IV Refactoring : a faire en fonction de la conservation ou non du groupe poubelle pour les attributs internes
+			// CH Issue 548 : a faire en fonction de la conservation ou non du groupe poubelle pour les attributs internes
 			// if (GetInnerAttributeGarbage())
 			//{
 			//	// Taille de la poubelle
@@ -4615,7 +4589,7 @@ double CCVarPartDataGridPostOptimizer::ComputeVarPartsContinuousAttributeVariati
 			//		dInnerAttributeCost += KWStat::LnBell(nPartileNumber, nPartitionSize);
 			//	}
 			//}
-			//// CH AB AF temporaire : obsolete apres integration groupe poubelle
+			//// CH Issue 548 : obsolete si integration groupe poubelle
 			// else
 			{
 				// Cas d'une variation du nombre de PV pour cet attribut
@@ -4762,4 +4736,3 @@ double CCVarPartDataGridPostOptimizer::ComputeClusterCellVariationCost(KWDGPart*
 
 	return dVariationCost;
 }
-// CH IV End

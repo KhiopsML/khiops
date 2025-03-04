@@ -113,7 +113,11 @@ public class GUIManager extends GUIObject
                                         UIManager.put("TextField.margin", margin);
 
                                         // Libelles des boites de dialogue
-                                        Locale locale = new Locale("en", "US");
+                                        Locale locale = new Locale.Builder()
+                                                          .setLanguage("en")
+                                                          .setScript("Latn")
+                                                          .setRegion("US")
+                                                          .build();
                                         JOptionPane.setDefaultLocale(locale);
                                         JFileChooser.setDefaultLocale(locale);
 

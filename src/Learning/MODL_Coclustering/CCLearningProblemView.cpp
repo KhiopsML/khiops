@@ -16,7 +16,6 @@ CCLearningProblemView::CCLearningProblemView()
 	UIList* continuousAttributeNameHelpList;
 	UIList* categoricalAttributeNameHelpList;
 	CCCoclusteringSpecView* coclusteringSpecView;
-	CCVarPartCoclusteringSpecView* varPartCoclusteringSpecView;
 
 	// Libelles
 	SetIdentifier("CCLearningProblem");
@@ -104,12 +103,6 @@ CCLearningProblemView::CCLearningProblemView()
 	AddListField("CategoricalAttributes", "Simple variables", categoricalAttributeNameHelpList);
 	categoricalAttributeNameHelpList->SetVisible(false);
 
-	// Parametrage de liste d'aide pour le nom de l'attribut identifiant pour le coclustering instances * variables
-	varPartCoclusteringSpecView =
-	    cast(CCVarPartCoclusteringSpecView*, analysisSpecView->GetFieldAt("VarPartCoclusteringParameters"));
-	varPartCoclusteringSpecView->GetFieldAt("IdentifierAttributeName")->SetStyle("HelpedComboBox");
-	varPartCoclusteringSpecView->GetFieldAt("IdentifierAttributeName")->SetParameters("CategoricalAttributes:Name");
-
 	// Passage en ergonomie onglets
 	SetStyle("TabbedPanes");
 
@@ -124,7 +117,6 @@ CCLearningProblemView::CCLearningProblemView()
 			  "\n with new solutions saved as soon as improvements are reached."
 			  "\n The intermediate solutions can be used without waiting for the final solution,"
 			  "\n and the process can be stopped at any time to keep the last best solution.");
-	// CH IV Begin
 	if (GetLearningCoclusteringIVExpertMode())
 		GetActionAt("BuildCoclustering")
 		    ->SetHelpText(
@@ -135,8 +127,6 @@ CCLearningProblemView::CCLearningProblemView()
 			"\n with new solutions saved as soon as improvements are reached."
 			"\n The intermediate solutions can be used without waiting for the final solution,"
 			"\n and the process can be stopped at any time to keep the last best solution.");
-
-	// CH IV End
 	GetActionAt("Exit")->SetHelpText("Quit the tool.");
 
 	// Short cuts
@@ -332,8 +322,6 @@ void CCLearningProblemView::RefreshHelpLists()
 	// Rafraichissement de la liste d'aide pour l'attribut de frequency
 	continuousAttributeHelpList.FillAttributeNames(GetLearningProblem()->GetClassName(), true, false, false, true,
 						       cast(UIList*, GetFieldAt("ContinuousAttributes")), "Name");
-
-	// CH IV Begin
 	if (GetLearningCoclusteringIVExpertMode())
 	{
 		// Rafraichissement de la liste d'aide pour l'attribut identifiant
@@ -341,5 +329,4 @@ void CCLearningProblemView::RefreshHelpLists()
 		    GetLearningProblem()->GetClassName(), false, true, false, true,
 		    cast(UIList*, GetFieldAt("CategoricalAttributes")), "Name");
 	}
-	// CH IV End
 }

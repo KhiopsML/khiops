@@ -11,6 +11,7 @@ class KWDRRelationCreationRule;
 class KWDRTableCreationRule;
 
 #include "KWDerivationRule.h"
+#include "KWDRStandard.h"
 
 ////////////////////////////////////////////////////////////////////////////
 // Classe KWDRRelationCreationRule
@@ -80,7 +81,7 @@ public:
 	KWDRRelationCreationRule();
 	~KWDRRelationCreationRule();
 
-	// On indique que la regle cree de nouveau objets
+	// On indique que la regle cree de nouveaux objets
 	boolean GetReference() const override;
 
 	//////////////////////////////////////////////////////////////////////////////////////
@@ -178,12 +179,43 @@ public:
 	///////////////////////////////////////////////////////
 	///// Implementation
 protected:
+	/////////////////////////////////////////////////////////////////////////////////////////
+	// Collecte des operandes en entree utilises en fonction des operandes en sortie utilises
+	// Cela permet d'optimiser le graphe de calcul, en ne traitant que les operandes en entree
+	// necessaires pour chaque operande en sortie
+
+	// Collecte globale des operandes utilises en entree
+	// - ivUsedOutputOperands: vecteur des index des operandes en sortie, avec '1' par operande utilise
+	// - ivUsedOutputOperands: vecteur des index des operandes en entree a mettre a jour
+	// Par defaut, cette methode appelle CollectMandatoryInputOperands,
+	//  suivi d'une boucle de CollectSpecificInputOperandsAt
+	virtual void CollectUsedInputOperands(const IntVector* ivUsedOutputOperands,
+					      IntVector* ivUsedInputOperands) const;
+
+	// Collecte des operandes en entree obligatoire
+	// Par defaut, on traite le cas d'une correspondance de chaque operande en sortie avec un operande
+	// en entree de meme positiion par rapport a la fin de liste
+	// Les operandes en entree du debut sont tous consideres comme obligatoires et marques comme utilises
+	virtual void CollectMandatoryInputOperands(IntVector* ivUsedInputOperands) const;
+
+	// Collecte des operandes en entree specifique par operande en en sortie
+	// Par defaut, on traite le cas d'une correspondance de chaque operande en sortie avec un operande
+	// en entree de meme positiion par rapport a la fin de liste
+	virtual void CollectSpecificInputOperandsAt(int nOutputOperand, IntVector* ivUsedInputOperands) const;
+
+	/////////////////////////////////////////////////////////////////////////////////////////
+	// Methodes internes avancees
+
 	// Redefinition de la completion des infos pour les operandes en sortie
 	void InternalCompleteTypeInfo(const KWClass* kwcOwnerClass,
 				      NumericKeyDictionary* nkdCompletedAttributes) override;
 
 	// Test si le type d'un operande en sortie est valide
 	boolean IsValidOutputOperandType(int nType) const;
+
+	// Ajout d'une erreur de verification en mode vue pur une variable du dictionnaire en sortie
+	void AddViewModeError(const KWClass* kwcSourceClass, const KWClass* kwcTargetClass,
+			      const KWAttribute* targetAttribute, const ALString& sLabel) const;
 
 	// Indique si l'alimentation de type vue est activee
 	// Dans ce cas, le premier operande est de type Relation pour le dictionnaire en entree de la vue,
@@ -200,7 +232,7 @@ protected:
 
 	// Alimentation de type calcul des attributs cibles dans le cas d'un nombre variable d'operandes en entree
 	// Dans ce cas, on doit avoir egalement un nombre variable d'operandes en sortie, qui doivent
-	// correspondre aux operande en entree
+	// correspondre aux operandes en entree
 	void FillComputeModeTargetAttributesForVariableOperandNumber(const KWObject* kwoSourceObject,
 								     KWObject* kwoTargetObject) const;
 
@@ -216,11 +248,21 @@ protected:
 	KWLoadIndexVector livComputeModeTargetAttributeLoadIndexes;
 	IntVector ivComputeModeTargetAttributeTypes;
 
-	// Index de chargement des attributs pour une alimentation de type vue
+	// Index de chargement des attributs denses pour une alimentation de type vue
 	// On precise pour chaque attribut concerne son index dans le dictionnaire source et cible
 	KWLoadIndexVector livViewModeSourceAttributeLoadIndexes;
 	KWLoadIndexVector livViewModeTargetAttributeLoadIndexes;
 	IntVector ivViewModeTargetAttributeTypes;
+
+	// Index de chargement des blocs d'attributs pour une alimentation de type vue
+	// On precise pour chaque bloc d'attribut concerne son index dans le dictionnaire source et cible
+	KWLoadIndexVector livViewModeSourceBlockLoadIndexes;
+	KWLoadIndexVector livViewModeTargetBlockLoadIndexes;
+	IntVector ivViewModeTargetBlockTypes;
+
+	// Dans le cas des bloc, on utilise une regle de derivation de type CopyBlock par bloc a recopier depuis
+	// la source vers la cible, pour reutiliser les services d'extraction de la sous-partie du bloc sparse
+	ObjectArray oaViewModeCopyBlockRules;
 
 	// Classe de la cible de la vue
 	KWClass* kwcCompiledTargetClass;

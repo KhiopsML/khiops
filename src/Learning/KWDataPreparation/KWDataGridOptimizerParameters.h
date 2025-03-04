@@ -55,7 +55,6 @@ public:
 	boolean GetPostOptimize() const;
 	void SetPostOptimize(boolean bValue);
 
-	// CH IV Begin
 	// Post-fusion des parties de variable mitoyennes d'un meme cluster pour le coclustering instances * variables
 	boolean GetVarPartPostMerge() const;
 	void SetVarPartPostMerge(boolean bValue);
@@ -64,7 +63,6 @@ public:
 	// instances * variables
 	boolean GetVarPartPostOptimize() const;
 	void SetVarPartPostOptimize(boolean bValue);
-	// CH IV End
 
 	// Parametre interne, pour personnalisation avancee
 	const ALString& GetInternalParameter() const;
@@ -107,10 +105,8 @@ protected:
 	boolean bPreOptimize;
 	boolean bOptimize;
 	boolean bPostOptimize;
-	// CH IV Begin
 	boolean bVarPartPostMerge;
 	boolean bVarPartPostOptimize;
-	// CH IV End
 	ALString sInternalParameter;
 	boolean bDisplayDetails;
 	int nFreshness;

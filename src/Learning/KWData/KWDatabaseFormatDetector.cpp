@@ -43,6 +43,10 @@ boolean KWDatabaseFormatDetector::DetectFileFormat()
 	RewindableInputBufferedFile inputFile;
 	CharVector cvLine;
 	longint lBeginPos;
+	KWMTDatabase* mtDatabase;
+	KWMTDatabaseMapping* mapping;
+	int nMapping;
+	ALString sInputFileName;
 	ALString sTmp;
 
 	require(analysedDatabase != NULL);
@@ -95,6 +99,7 @@ boolean KWDatabaseFormatDetector::DetectFileFormat()
 
 	// Verification si utilisation d'un dictionnaire
 	kwcDatabaseClass = NULL;
+	sInputFileName = analysedDatabase->GetDatabaseName();
 	if (GetUsingClass() and analysedDatabase->GetClassName() != "")
 	{
 		// Recherche du dictionnaire associee a la base
@@ -118,13 +123,39 @@ boolean KWDatabaseFormatDetector::DetectFileFormat()
 				bOk = false;
 			}
 		}
+
+		// Cas d'un seul attribut natif : il est alors impossible de detecter un champ separateur
+		// Dans le cas multi-table, recherche d'un eventuel autre dictionnaire avec plus d'un attribut natif
+		if (bOk)
+		{
+			if (kwcDatabaseClass->GetNativeDataItemNumber() == 1 and
+			    analysedDatabase->IsMultiTableTechnology())
+			{
+				mtDatabase = cast(KWMTDatabase*, analysedDatabase);
+
+				// Recherche d'une table secondaire contenant au moins deux attributs natifs
+				for (nMapping = 0; nMapping < mtDatabase->GetTableNumber(); nMapping++)
+				{
+					mapping = cast(KWMTDatabaseMapping*,
+						       mtDatabase->GetMultiTableMappings()->GetAt(nMapping));
+					kwcDatabaseClass =
+					    KWClassDomain::GetCurrentDomain()->LookupClass(mapping->GetClassName());
+					if (kwcDatabaseClass != NULL and mapping->GetDataTableName() != "" and
+					    kwcDatabaseClass->GetNativeDataItemNumber() > 1)
+					{
+						sInputFileName = mapping->GetDataTableName();
+						break;
+					}
+				}
+			}
+		}
 	}
 
 	// Ouverture du fichier
 	if (bOk)
 	{
 		// Ouverture
-		inputFile.SetFileName(analysedDatabase->GetDatabaseName());
+		inputFile.SetFileName(sInputFileName);
 		bOk = inputFile.Open();
 		if (not bOk)
 			AddError("No possible format detection");
@@ -469,9 +500,17 @@ boolean KWDatabaseFormatDetector::DetectFileFormatUsingClassWithHeaderLine(const
 	if (bShowDetails)
 		cout << "First line: " << cfvFirstLine << "\n";
 
-	// Initialisation des separateurs candidats avec les caracteres de la premiere ligne
-	cfvCandidateSeparators.CopyFrom(&cfvFirstLine);
+	// Initialisation des separateurs candidats
+	// Cas particulier d'un seul champ natif
+	if (kwcClass->GetNativeDataItemNumber() == 1)
+		cfvCandidateSeparators.InitializeFrequencies(1);
+	// Cas general avec au moins deux champs
+	// Initialisation avec les caracteres de la premiere ligne
+	else
+		cfvCandidateSeparators.CopyFrom(&cfvFirstLine);
 	bIsHeaderLine = not cfvCandidateSeparators.IsZero();
+	if (bShowDetails)
+		cout << "Initialisation des separateurs candidats: " << cfvCandidateSeparators << "\n";
 
 	// On soustrait les caracteres des champs obligatoire
 	if (bIsHeaderLine)
@@ -479,6 +518,10 @@ boolean KWDatabaseFormatDetector::DetectFileFormatUsingClassWithHeaderLine(const
 		bIsHeaderLine = cfvCandidateSeparators.IsGreaterOrEqual(&cfvAttributeNames);
 		if (bIsHeaderLine)
 			cfvCandidateSeparators.Substract(&cfvAttributeNames);
+		if (bShowDetails)
+			cout << "Separateurs candidats apres caracteres des champs obligatoires: "
+			     << cfvCandidateSeparators << "\n";
+
 		bIsHeaderLine = not cfvCandidateSeparators.IsZero();
 	}
 
@@ -1340,14 +1383,17 @@ void KWDatabaseFormatDetector::InitializeInvalidSeparators()
 void KWDatabaseFormatDetector::BuildMandatoryDataItemNames(const KWClass* kwcClass,
 							   StringVector* svMandatoryDataItemNames) const
 {
+	NumericKeyDictionary nkdAllUsedAttributes;
+	NumericKeyDictionary nkdAllUsedClasses;
+	NumericKeyDictionary nkdAllLoadedClasses;
+	NumericKeyDictionary nkdAllNativeClasses;
+	ObjectArray oaAllUsedAttributes;
+	NumericKeyDictionary nkdAllUsedAttributeBlocks;
+	ObjectArray oaAllUsedAttributeBlocks;
 	KWAttribute* attribute;
 	KWAttributeBlock* attributeBlock;
 	KWDerivationRule* derivationRule;
-	NumericKeyDictionary nkdNeededAttributes;
-	ObjectArray oaNeedAttributes;
 	int nAttribute;
-	NumericKeyDictionary nkdNeededAttributeBlocks;
-	ObjectArray oaNeedAttributeBlocks;
 	int nAttributeBlock;
 
 	require(kwcClass != NULL);
@@ -1355,29 +1401,37 @@ void KWDatabaseFormatDetector::BuildMandatoryDataItemNames(const KWClass* kwcCla
 	require(svMandatoryDataItemNames->GetSize() == 0);
 
 	// Recherche des attributs necessaires pour cette classe
+	// On a ici une tolerance en n'imposant pas que tous les attributs natifs soient presents dans le header
+	// On n'exige que la presence des attributs utilises (Used et Loaded), ainsi que les attributs necessaires
+	// au calcul des attributs derives utilises
 	for (nAttribute = 0; nAttribute < kwcClass->GetLoadedAttributeNumber(); nAttribute++)
 	{
 		attribute = kwcClass->GetLoadedAttributeAt(nAttribute);
 
 		// Memorisation si l'attribut est natif
 		if (attribute->IsNative())
-			nkdNeededAttributes.SetAt(attribute, cast(Object*, attribute));
+			nkdAllUsedAttributes.SetAt(attribute, cast(Object*, attribute));
 
 		// Analyse de la regle de derivation
 		// Dans le cas d'un bloc, il faut en effet la reanalyser pour chaque attribut du bloc
 		// pour detecter les attributs utilises des blocs potentiellement en operande
 		derivationRule = attribute->GetAnyDerivationRule();
 		if (derivationRule != NULL)
-			derivationRule->BuildAllUsedAttributes(attribute, &nkdNeededAttributes);
+			derivationRule->BuildAllUsedAttributes(attribute, &nkdAllUsedAttributes);
 	}
 
-	// Export des attributs identifies
-	nkdNeededAttributes.ExportObjectArray(&oaNeedAttributes);
+	// Collecte des attributs utilises recursivement dans les operandes des regles ou via les
+	// attribut cles necessaires dans le cas multi-table
+	kwcClass->BuildAllUsedAttributes(&nkdAllUsedAttributes, &nkdAllUsedClasses, &nkdAllLoadedClasses,
+					 &nkdAllNativeClasses);
+
+	// Export des attributs utilises
+	nkdAllUsedAttributes.ExportObjectArray(&oaAllUsedAttributes);
 
 	// On garde les attribut natifs de la classe en cours
-	for (nAttribute = 0; nAttribute < oaNeedAttributes.GetSize(); nAttribute++)
+	for (nAttribute = 0; nAttribute < oaAllUsedAttributes.GetSize(); nAttribute++)
 	{
-		attribute = cast(KWAttribute*, oaNeedAttributes.GetAt(nAttribute));
+		attribute = cast(KWAttribute*, oaAllUsedAttributes.GetAt(nAttribute));
 		if (attribute->IsNative() and attribute->GetParentClass() == kwcClass)
 		{
 			// Memorisation si attribut
@@ -1385,18 +1439,18 @@ void KWDatabaseFormatDetector::BuildMandatoryDataItemNames(const KWClass* kwcCla
 				svMandatoryDataItemNames->Add(attribute->GetName());
 			// Enregistrement du bloc sinon
 			else
-				nkdNeededAttributeBlocks.SetAt(attribute->GetAttributeBlock(),
-							       attribute->GetAttributeBlock());
+				nkdAllUsedAttributeBlocks.SetAt(attribute->GetAttributeBlock(),
+								attribute->GetAttributeBlock());
 		}
 	}
 
-	// Export des blocs identifies
-	nkdNeededAttributeBlocks.ExportObjectArray(&oaNeedAttributeBlocks);
+	// Export des blocs utilises
+	nkdAllUsedAttributeBlocks.ExportObjectArray(&oaAllUsedAttributeBlocks);
 
 	// On garde les attribut natifs de la classe en cours
-	for (nAttributeBlock = 0; nAttributeBlock < oaNeedAttributeBlocks.GetSize(); nAttributeBlock++)
+	for (nAttributeBlock = 0; nAttributeBlock < oaAllUsedAttributeBlocks.GetSize(); nAttributeBlock++)
 	{
-		attributeBlock = cast(KWAttributeBlock*, oaNeedAttributeBlocks.GetAt(nAttributeBlock));
+		attributeBlock = cast(KWAttributeBlock*, oaAllUsedAttributeBlocks.GetAt(nAttributeBlock));
 		svMandatoryDataItemNames->Add(attributeBlock->GetName());
 	}
 }

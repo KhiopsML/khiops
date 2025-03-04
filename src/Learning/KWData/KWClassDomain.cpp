@@ -421,35 +421,34 @@ const ALString KWClassDomain::BuildClassName(const ALString& sPrefix)
 
 boolean KWClassDomain::Check() const
 {
+	boolean bOk;
 	int i;
 	KWClass* kwcElement;
 	KWAttribute* attribute;
-	boolean bResult;
 
-	bResult = true;
+	bOk = true;
 	Global::ActivateErrorFlowControl();
 
 	// Verification de l'integrite de chaque classe
 	for (i = 0; i < GetClassNumber(); i++)
 	{
 		kwcElement = GetClassAt(i);
+
+		// Verification de l'integrite de la clase, qui emet ses propres erreurs
 		if (not kwcElement->Check())
-		{
-			kwcElement->AddError("Integrity errors");
-			bResult = false;
-		}
+			bOk = false;
 
 		// Verification de la coherence du domaine
-		if (kwcElement->GetDomain() != this)
+		if (bOk and kwcElement->GetDomain() != this)
 		{
 			kwcElement->AddError("Inconsistent dictionary domain");
-			bResult = false;
+			bOk = false;
 		}
 	}
 
 	// Verification de l'integrite referentielle: toute classe referencee doit
 	// appartenir au meme domaine de classe
-	if (bResult)
+	if (bOk)
 	{
 		for (i = 0; i < GetClassNumber(); i++)
 		{
@@ -469,7 +468,7 @@ boolean KWClassDomain::Check() const
 								     " references the dictionary " +
 								     attribute->GetClass()->GetName() +
 								     " which is belongs to another dictionary domain");
-						bResult = false;
+						bOk = false;
 					}
 				}
 
@@ -479,8 +478,7 @@ boolean KWClassDomain::Check() const
 		}
 	}
 	Global::DesactivateErrorFlowControl();
-
-	return bResult;
+	return bOk;
 }
 
 void KWClassDomain::CompleteTypeInfo()

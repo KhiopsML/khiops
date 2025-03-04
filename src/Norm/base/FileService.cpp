@@ -1491,7 +1491,7 @@ const ALString FileService::CreateUniqueTmpFile(const ALString& sBaseName, const
 			{
 				sFilePathName = "";
 				if (errorSender != NULL)
-					errorSender->AddError("Unable to create temporary file " + sBaseName +
+					errorSender->AddError("Unable to create unique temporary file " + sBaseName +
 							      " in directory " + GetApplicationTmpDir() + " " +
 							      GetLastSystemIOErrorMessage());
 			}

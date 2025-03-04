@@ -1126,7 +1126,7 @@ const ALString& KIInterpretationDictionary::GetWhyTypeShortLabel(const ALString 
 	else if (asWhyTypeLongLabel == "Shapley")
 		return SHAPLEY_LABEL;
 	else
-		return "Undefined";
+		return UNDEFINED_LABEL;
 }
 
 const ALString KIInterpretationDictionary::LEVER_ATTRIBUTE_META_TAG = "LeverVariable";

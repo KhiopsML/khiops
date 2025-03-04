@@ -33,7 +33,6 @@ void KILeverVariablesSpecView::EventUpdate(Object* object)
 	KWClass* kwcClass;
 	KWAttribute* attribute;
 	KWAttributeSpec* attributeSpec;
-	ALString sCompleteType;
 	ALString sMetaData;
 
 	require(object != NULL);
@@ -74,7 +73,6 @@ void KILeverVariablesSpecView::SetObject(Object* object)
 	KWClass* kwcClass;
 	KWAttribute* attribute;
 	KWAttributeSpec* attributeSpec;
-	ALString sCompleteType;
 	ALString sMetaData;
 	boolean bHasLeverVariables = false;
 
@@ -100,13 +98,6 @@ void KILeverVariablesSpecView::SetObject(Object* object)
 				attributeSpec = new KWAttributeSpec;
 				oaAttributeSpecs.Add(attributeSpec);
 
-				// Calcul du type complet de l'attribut
-				sCompleteType = KWType::ToString(attribute->GetType());
-				if (KWType::IsRelation(attribute->GetType()) and attribute->GetClass() != NULL)
-					sCompleteType = sCompleteType + "(" + attribute->GetClass()->GetName() + ")";
-				else if (attribute->GetType() == KWType::Structure)
-					sCompleteType = sCompleteType + "(" + attribute->GetStructureName() + ")";
-
 				// Acces aux meta-data
 				sMetaData = attribute->GetMetaData()->WriteString();
 
@@ -116,7 +107,7 @@ void KILeverVariablesSpecView::SetObject(Object* object)
 							       "true"
 							   ? true
 							   : false);
-				attributeSpec->SetType(sCompleteType);
+				attributeSpec->SetType(attribute->GetTypeLabel());
 				attributeSpec->SetName(attribute->GetName());
 				attributeSpec->SetDerived(attribute->GetAnyDerivationRule() != NULL);
 				attributeSpec->SetMetaData(sMetaData);

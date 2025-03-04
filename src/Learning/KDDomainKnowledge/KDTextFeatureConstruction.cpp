@@ -498,13 +498,15 @@ boolean KDTextFeatureConstruction::ExtractTokenSamples(const KWClass* kwcClass,
 	KWClassDomain* currentDomain;
 	KWClassDomain* tokenExtractionDomain;
 	KWClass* tokenExtractionClass;
+	KWDatabase* currentDatabase;
+	KWDatabase* tokenExtractionDatabase;
 
 	require(kwcClass != NULL);
 	require(odTextClasses != NULL);
 	require(odTextClasses->Lookup(kwcClass->GetName()) != NULL);
 
-	// Construction d'un domaine de lecture de la base oriente extraction des tokens pour les variables de type
-	// texte
+	// Construction d'un domaine de lecture de la base oriente extraction des tokens
+	// pour les variables de type texte
 	tokenExtractionDomain = BuildTokenExtractionDomainWithExistingTokenNumbers(kwcClass, odTextClasses);
 	tokenExtractionClass = tokenExtractionDomain->LookupClass(kwcClass->GetName());
 
@@ -512,11 +514,23 @@ boolean KDTextFeatureConstruction::ExtractTokenSamples(const KWClass* kwcClass,
 	currentDomain = KWClassDomain::GetCurrentDomain();
 	KWClassDomain::SetCurrentDomain(tokenExtractionDomain);
 
+	// Remplacemement de base, necessaire car le domaine de selection a ete optimise,
+	// avec potentiellement des mappings en moins et il faut reactualiser ces mappings
+	currentDatabase = GetDatabase();
+	tokenExtractionDatabase = currentDatabase->Clone();
+	if (currentDatabase->GetTableNumber() > 1)
+		cast(KWMTDatabase*, tokenExtractionDatabase)->UpdateMultiTableMappings();
+	GetLearningSpec()->SetDatabase(tokenExtractionDatabase);
+
 	// Lecture de la base pour collecter un echantillon des tokens par variable secondaire de type texte
 	// On passe par une tache pour paralleliser cette lecture de la base
 	// On fait l'hypothese que le dimensionnement de la tache qui doit collecter un echantillon de valeur
 	// globalement pour le maitre et par esclave est suffisant pour le resume de cet echantillon en partiles
 	bOk = TaskCollectTokenSamples(tokenExtractionClass, odTextClasses);
+
+	// Restitution de la base courante
+	GetLearningSpec()->SetDatabase(currentDatabase);
+	delete tokenExtractionDatabase;
 
 	// Nettoyage du domaine
 	KWClassDomain::SetCurrentDomain(currentDomain);
@@ -589,6 +603,9 @@ KWClassDomain* KDTextFeatureConstruction::BuildTokenExtractionDomainWithExisting
 	KWAttribute* textAttribute;
 	KWDRTokenizationRule* textVariableBlockRule;
 	KWAttributeBlock* attributeBlock;
+	KWAttribute* attribute;
+	boolean bIsSelectionAttributeUsed;
+	boolean bIsSelectionAttributeLoaded;
 
 	require(kwcClass != NULL);
 	require(odTextClasses != NULL);
@@ -687,17 +704,28 @@ KWClassDomain* KDTextFeatureConstruction::BuildTokenExtractionDomainWithExisting
 	// Simplification de la classe en supprimant tous les attributs calcules en Unused,
 	// sauf l'eventuel attribut de selection
 
-	// On met en used l'eventuel attribut de selection, car ils peut avoir une regle de calcul
+	// On met en used l'eventuel attribut de selection, car il peut avoir une regle de calcul
+	bIsSelectionAttributeUsed = false;
+	bIsSelectionAttributeLoaded = false;
 	if (GetDatabase()->GetSelectionAttribute() != "")
-		tokenExtractionClass->LookupAttribute(GetDatabase()->GetSelectionAttribute())->SetUsed(true);
+	{
+		attribute = tokenExtractionClass->LookupAttribute(GetDatabase()->GetSelectionAttribute());
+		bIsSelectionAttributeUsed = attribute->GetUsed();
+		attribute->SetUsed(true);
+		attribute->SetLoaded(true);
+	}
 
 	// Nettoyage du domaine apres la necessaire compilation
 	tokenExtractionClass->GetDomain()->Compile();
 	tokenExtractionClass->DeleteUnusedDerivedAttributes(NULL);
 
-	// On remet l'eventuel attribut de selection en etat unused
+	// On remet l'eventuel attribut de selection dans son etat used initial
 	if (GetDatabase()->GetSelectionAttribute() != "")
-		tokenExtractionClass->LookupAttribute(GetDatabase()->GetSelectionAttribute())->SetUsed(false);
+	{
+		attribute = tokenExtractionClass->LookupAttribute(GetDatabase()->GetSelectionAttribute());
+		attribute->SetUsed(bIsSelectionAttributeUsed);
+		attribute->SetLoaded(bIsSelectionAttributeLoaded);
+	}
 
 	// Compilation du domaine
 	tokenExtractionClass->GetDomain()->Compile();

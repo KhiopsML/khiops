@@ -1154,6 +1154,9 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeRecoderClas
 	boolean bOk = true;
 	KWClass* recoderClass;
 	ALString sRecoderClassTmpFilePath;
+	ALString sAlphaNumClassName;
+	int i;
+	char c;
 
 	require(IsMasterProcess());
 	require(masterBinarySliceSet != NULL);
@@ -1165,8 +1168,16 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeRecoderClas
 	shared_sRecoderClassName.SetValue(recoderClass->GetName());
 	if (IsParallel())
 	{
-		sRecoderClassTmpFilePath =
-		    FileService::CreateUniqueTmpFile(shared_sRecoderClassName.GetValue() + ".kdic", this);
+		// Le nom du dictionnaire de recodage ne doit contenir que des alphanumeriques. Sinon on remplace les char par '_'
+		for (i = 0; i < shared_sRecoderClassName.GetValue().GetLength(); i++)
+		{
+			c = shared_sRecoderClassName.GetValue().GetAt(i);
+			if (isalnum(c))
+				sAlphaNumClassName += c;
+			else
+				sAlphaNumClassName += '_';
+		}
+		sRecoderClassTmpFilePath = FileService::CreateUniqueTmpFile(sAlphaNumClassName + ".kdic", this);
 		bOk = bOk and sRecoderClassTmpFilePath != "";
 		if (not bOk)
 			AddError("Error when creating temporary dictionary file for class " +
@@ -2064,10 +2075,10 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::SlaveProcess()
 
 boolean SNBPredictorSelectiveNaiveBayesTrainingTask::SlaveFinalize(boolean bProcessEndedCorrectly)
 {
-	require(IsSlaveDataTableBinarySliceSetInitialized());
-	require(slaveBinarySliceSet == NULL or slaveBinarySliceSet->Check());
-	require(slaveRecoderClass != NULL or IsParallel());
-	require(not bProcessEndedCorrectly or slaveWeightedSelectionScorer != NULL);
+	require(not bProcessEndedCorrectly or IsSlaveDataTableBinarySliceSetInitialized());
+	require(not bProcessEndedCorrectly or (slaveBinarySliceSet == NULL or slaveBinarySliceSet->Check()));
+	require(not bProcessEndedCorrectly or (slaveRecoderClass != NULL or IsParallel()));
+	require(not bProcessEndedCorrectly or (slaveWeightedSelectionScorer != NULL));
 
 	// Nettoyage des objets de travail l'esclave
 	if (slaveBinarySliceSet != NULL)
@@ -2098,6 +2109,8 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::SlaveFinalize(boolean bProc
 
 	ensure(slaveBinarySliceSet == NULL);
 	ensure(slaveRecoderClass == NULL);
+	ensure(slaveWeightedSelectionScorer == NULL);
+	ensure(slaveDummyDatabase == NULL);
 
 	return true;
 }

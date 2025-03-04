@@ -2316,7 +2316,6 @@ KWDGAttribute::~KWDGAttribute()
 	debug(innerAttributes = NULL);
 }
 
-// CH IV Begin
 void KWDGAttribute::CreateVarPartsSet()
 {
 	KWDGPart* part;
@@ -2344,7 +2343,6 @@ void KWDGAttribute::CreateVarPartsSet()
 		}
 	}
 }
-// CH IV End
 
 KWDGPart* KWDGAttribute::AddPart()
 {
@@ -2543,15 +2541,12 @@ void KWDGAttribute::BuildIndexingStructure()
 
 void KWDGAttribute::DeleteIndexingStructure()
 {
-	// CH IV Begin
 	int nInnerAttribute;
 	KWDGAttribute* innerAttribute;
-	// CH IV End
 
 	// Suppression de l'indexation si necessaire
 	if (bIsIndexed)
 	{
-		// CH IV Begin
 		assert(KWType::IsCoclusteringType(GetAttributeType()));
 		if (GetAttributeType() == KWType::Continuous)
 			oaIntervals.SetSize(0);
@@ -2858,7 +2853,6 @@ boolean KWDGAttribute::Check() const
 		AddError("Granularized value number must be greater than 0");
 		bOk = false;
 	}
-	// CH IV Begin
 	else if (KWType::IsSimple(nAttributeType) and nInitialValueNumber < nGranularizedValueNumber)
 	{
 		AddError("Initial value number must be greater or equal than granularized value number");
@@ -2867,7 +2861,6 @@ boolean KWDGAttribute::Check() const
 	// Verification uniquement si on a des infos sur la granularisation
 	else if (KWType::IsSimple(nAttributeType) and nPartNumber > nGranularizedValueNumber and
 		 nGranularizedValueNumber > 0)
-	// CH IV End
 	{
 		AddError("Granularized value number must be greater or equal than part number");
 		bOk = false;
@@ -3113,9 +3106,9 @@ boolean KWDGAttribute::Check() const
 						// Erreur si VarPart non trouvee
 						if (searchedPart == NULL)
 						{
-							searchedPart->AddError(sTmp + "Inner variable VarPart " +
-									       usedVarPart->GetObjectLabel() +
-									       " not found amond parts of variables");
+							AddError(sTmp + "Inner variable VarPart " +
+								 usedVarPart->GetObjectLabel() +
+								 " not found amond parts of variables");
 							bOk = false;
 							break;
 						}
@@ -3558,7 +3551,6 @@ KWDGPart::~KWDGPart()
 void KWDGPart::SetPartType(int nValue)
 {
 	require(GetPartType() == KWType::Unknown);
-	// CH IV Begin
 	require(KWType::IsCoclusteringType(nValue));
 
 	// Creation de l'objet interval ou ensemble de valeurs selon le type
@@ -3615,9 +3607,7 @@ boolean KWDGPart::CheckCell(KWDGCell* cell) const
 void KWDGPart::SetPartFrequency(int nValue)
 {
 	require(nValue >= 0);
-	// CH IV Begin
 	require(GetAttribute()->IsInnerAttribute() or GetEmulated() or nValue == ComputeCellsTotalFrequency());
-	// CH IV End
 	nPartFrequency = nValue;
 }
 
@@ -3764,9 +3754,7 @@ boolean KWDGPart::Check() const
 	}
 
 	// Verification de l'effectif total de la partie
-	// CH IV Begin
 	if (bOk and (not GetAttribute()->IsInnerAttribute() and nPartFrequency != ComputeCellsTotalFrequency()))
-	// CH IV End
 	{
 		AddError(sTmp + "Part frequency (" + IntToString(nPartFrequency) +
 			 ") different from the cumulated frequency of its cells (" +
@@ -3855,12 +3843,12 @@ KWDGSymbolValueSet* KWDGPart::NewSymbolValueSet() const
 {
 	return new KWDGSymbolValueSet;
 }
-// CH IV Begin
+
 KWDGVarPartSet* KWDGPart::NewVarPartSet() const
 {
 	return new KWDGVarPartSet;
 }
-// CH IV End
+
 int KWDGPart::ComputeCellsTotalFrequency() const
 {
 	int nCellsTotalFrequency;
@@ -4828,9 +4816,6 @@ const ALString KWDGSymbolValue::GetObjectLabel() const
 }
 
 //////////////////////////////////////////////////////////////////////////////
-// CH IV Begin
-
-//////////////////////////////////////////////////////////////////////////////
 // Classe KWDGVarPartValue
 
 int KWDGVarPartValue::CompareValue(const KWDGValue* otherValue) const
@@ -5460,16 +5445,6 @@ int KWDGCellCompareDecreasingFrequency(const void* elem1, const void* elem2)
 	if (nCompare == 0)
 		nCompare = KWDGCellCompareValue(elem1, elem2);
 	return nCompare;
-}
-
-void KWDataGrid::SetLabel(const ALString& sValue)
-{
-	sLabel = sValue;
-}
-
-const ALString& KWDataGrid::GetLabel() const
-{
-	return sLabel;
 }
 
 void KWDataGrid::SetTargetAttribute(KWDGAttribute* attribute)

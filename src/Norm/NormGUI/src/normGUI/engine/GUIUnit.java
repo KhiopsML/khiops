@@ -19,6 +19,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.lang.reflect.InvocationTargetException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Hashtable;
@@ -42,7 +43,7 @@ import javax.swing.SwingUtilities;
  * Definit une unite d'interface. Une unite d'interface peut etre une fiche ou
  * une liste
  */
-public abstract class GUIUnit extends GUIData implements ActionListener
+@SuppressWarnings("unchecked") public abstract class GUIUnit extends GUIData implements ActionListener
 {
 
         /**
@@ -366,23 +367,25 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                         }
                 } else
                         c = GUIBooleanElementTextField.class;
+
+                // Instanciation du widget
+                GUIBooleanElement guiBooleanElement = null;
                 try {
-                        // Instanciation du widget
-                        GUIBooleanElement guiBooleanElement = (GUIBooleanElement)c.newInstance();
-                        // Caracterisation du widget
-                        guiBooleanElement.setIdentifier(sFieldId);
-                        guiBooleanElement.setLabel(sLabel);
-                        guiBooleanElement.setDefaultValue(bDefaultValue);
-                        guiBooleanElement.setValue(Boolean.valueOf(bDefaultValue).toString());
-                        guiBooleanElement.setStyle(sStyle);
-                        guiBooleanElement.setParentUnit(this);
-                        // Ajout du widget dans le vecteur de donnees de l'unite
-                        addField(guiBooleanElement);
-                } catch (InstantiationException ie) {
-                        System.err.println("la classe " + s + " ne peut etre instanciee " + ie);
-                } catch (IllegalAccessException iae) {
-                        System.err.println("la classe " + s + " ne peut etre instanciee " + iae);
+                        guiBooleanElement = (GUIBooleanElement)c.getDeclaredConstructor().newInstance();
+                } catch (InstantiationException | IllegalAccessException | IllegalArgumentException |
+                         InvocationTargetException | NoSuchMethodException | SecurityException e) {
+                        System.err.println("La classe java " + c + " ne peut etre instanciee " + e);
                 }
+
+                // Caracterisation du widget
+                guiBooleanElement.setIdentifier(sFieldId);
+                guiBooleanElement.setLabel(sLabel);
+                guiBooleanElement.setDefaultValue(bDefaultValue);
+                guiBooleanElement.setValue(Boolean.valueOf(bDefaultValue).toString());
+                guiBooleanElement.setStyle(sStyle);
+                guiBooleanElement.setParentUnit(this);
+                // Ajout du widget dans le vecteur de donnees de l'unite
+                addField(guiBooleanElement);
         }
 
         /**
@@ -413,23 +416,24 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                         }
                 } else
                         c = GUICharElementTextField.class;
+                // Instanciation du widget
+                Class[] parameterType = null;
+                GUICharElement guiCharElement = null;
                 try {
-                        // Instanciation du widget
-                        GUICharElement guiCharElement = (GUICharElement)c.newInstance();
-                        // Caracterisation du widget
-                        guiCharElement.setIdentifier(sFieldId);
-                        guiCharElement.setLabel(sLabel);
-                        guiCharElement.setDefaultValue(cDefaultValue);
-                        guiCharElement.setValue(Character.valueOf(cDefaultValue).toString());
-                        guiCharElement.setStyle(sStyle);
-                        guiCharElement.setParentUnit(this);
-                        // Ajout du widget dans le vecteur de donnees de l'unite
-                        addField(guiCharElement);
-                } catch (InstantiationException ie) {
-                        System.err.println("la classe " + s + " ne peut etre instanciee " + ie);
-                } catch (IllegalAccessException iae) {
-                        System.err.println("la classe " + s + " ne peut etre instanciee " + iae);
+                        guiCharElement = (GUICharElement)c.getDeclaredConstructor(parameterType).newInstance();
+                } catch (InstantiationException | IllegalAccessException | IllegalArgumentException |
+                         InvocationTargetException | NoSuchMethodException | SecurityException e) {
+                        System.err.println("La classe java " + c + " ne peut etre instanciee " + e);
                 }
+                // Caracterisation du widget
+                guiCharElement.setIdentifier(sFieldId);
+                guiCharElement.setLabel(sLabel);
+                guiCharElement.setDefaultValue(cDefaultValue);
+                guiCharElement.setValue(Character.valueOf(cDefaultValue).toString());
+                guiCharElement.setStyle(sStyle);
+                guiCharElement.setParentUnit(this);
+                // Ajout du widget dans le vecteur de donnees de l'unite
+                addField(guiCharElement);
         }
 
         /**
@@ -518,25 +522,25 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                         }
                 } else
                         c = GUIDoubleElementTextField.class;
+                // Instanciation du widget
+                GUIDoubleElement guiDoubleElement = null;
                 try {
-                        // Instanciation du widget
-                        GUIDoubleElement guiDoubleElement = (GUIDoubleElement)c.newInstance();
-                        // Caracterisation du widget
-                        guiDoubleElement.setIdentifier(sFieldId);
-                        guiDoubleElement.setLabel(sLabel);
-                        guiDoubleElement.setDefaultValue(dDefaultValue);
-                        guiDoubleElement.setValue(Double.valueOf(dDefaultValue).toString());
-                        guiDoubleElement.setStyle(sStyle);
-                        guiDoubleElement.setMinValue(dMin);
-                        guiDoubleElement.setMaxValue(dMax);
-                        guiDoubleElement.setParentUnit(this);
-                        // Ajout du widget dans le vecteur de donnees de l'unite
-                        addField(guiDoubleElement);
-                } catch (InstantiationException ie) {
-                        System.err.println("la classe " + s + " ne peut etre instanciee " + ie);
-                } catch (IllegalAccessException iae) {
-                        System.err.println("la classe " + s + " ne peut etre instanciee " + iae);
+                        guiDoubleElement = (GUIDoubleElement)c.getDeclaredConstructor().newInstance();
+                } catch (InstantiationException | IllegalAccessException | IllegalArgumentException |
+                         InvocationTargetException | NoSuchMethodException | SecurityException e) {
+                        System.err.println("La classe java " + c + " ne peut etre instanciee " + e);
                 }
+                // Caracterisation du widget
+                guiDoubleElement.setIdentifier(sFieldId);
+                guiDoubleElement.setLabel(sLabel);
+                guiDoubleElement.setDefaultValue(dDefaultValue);
+                guiDoubleElement.setValue(Double.valueOf(dDefaultValue).toString());
+                guiDoubleElement.setStyle(sStyle);
+                guiDoubleElement.setMinValue(dMin);
+                guiDoubleElement.setMaxValue(dMax);
+                guiDoubleElement.setParentUnit(this);
+                // Ajout du widget dans le vecteur de donnees de l'unite
+                addField(guiDoubleElement);
         }
 
         /**
@@ -574,25 +578,25 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                         }
                 } else
                         c = GUIIntElementTextField.class;
+                // Instanciation du widget
+                GUIIntElement guiIntElement = null;
                 try {
-                        // Instanciation du widget
-                        GUIIntElement guiIntElement = (GUIIntElement)c.newInstance();
-                        // Caracterisation du widget
-                        guiIntElement.setIdentifier(sFieldId);
-                        guiIntElement.setLabel(sLabel);
-                        guiIntElement.setDefaultValue(nDefaultValue);
-                        guiIntElement.setValue(Integer.valueOf(nDefaultValue).toString());
-                        guiIntElement.setStyle(sStyle);
-                        guiIntElement.setMinValue(nMin);
-                        guiIntElement.setMaxValue(nMax);
-                        guiIntElement.setParentUnit(this);
-                        // Ajout du widget dans le vecteur de donnees de l'unite
-                        addField(guiIntElement);
-                } catch (InstantiationException ie) {
-                        System.err.println("la classe " + s + " ne peut etre instanciee " + ie);
-                } catch (IllegalAccessException iae) {
-                        System.err.println("la classe " + s + " ne peut etre instanciee " + iae);
+                        guiIntElement = (GUIIntElement)c.getDeclaredConstructor().newInstance();
+                } catch (InstantiationException | IllegalAccessException | IllegalArgumentException |
+                         InvocationTargetException | NoSuchMethodException | SecurityException e) {
+                        System.err.println("La classe java " + c + " ne peut etre instanciee " + e);
                 }
+                // Caracterisation du widget
+                guiIntElement.setIdentifier(sFieldId);
+                guiIntElement.setLabel(sLabel);
+                guiIntElement.setDefaultValue(nDefaultValue);
+                guiIntElement.setValue(Integer.valueOf(nDefaultValue).toString());
+                guiIntElement.setStyle(sStyle);
+                guiIntElement.setMinValue(nMin);
+                guiIntElement.setMaxValue(nMax);
+                guiIntElement.setParentUnit(this);
+                // Ajout du widget dans le vecteur de donnees de l'unite
+                addField(guiIntElement);
         }
 
         /**
@@ -630,25 +634,25 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                         }
                 } else
                         c = GUIStringElementTextField.class;
+                // Instanciation du widget
+                GUIStringElement guiStringElement = null;
                 try {
-                        // Instanciation du widget
-                        GUIStringElement guiStringElement = (GUIStringElement)c.newInstance();
-                        // Caracterisation du widget
-                        guiStringElement.setIdentifier(sFieldId);
-                        guiStringElement.setLabel(sLabel);
-                        guiStringElement.setDefaultValue(sDefaultValue);
-                        guiStringElement.setValue(sDefaultValue);
-                        guiStringElement.setStyle(sStyle);
-                        guiStringElement.setMinLength(nMinLength);
-                        guiStringElement.setMaxLength(nMaxLength);
-                        guiStringElement.setParentUnit(this);
-                        // Ajout du widget dans le vecteur de donnees de l'unite
-                        addField(guiStringElement);
-                } catch (InstantiationException ie) {
-                        System.err.println("la classe " + s + " ne peut etre instanciee " + ie);
-                } catch (IllegalAccessException iae) {
-                        System.err.println("la classe " + s + " ne peut etre instanciee " + iae);
+                        guiStringElement = (GUIStringElement)c.getDeclaredConstructor().newInstance();
+                } catch (InstantiationException | IllegalAccessException | IllegalArgumentException |
+                         InvocationTargetException | NoSuchMethodException | SecurityException e) {
+                        System.err.println("La classe java " + c + " ne peut etre instanciee " + e);
                 }
+                // Caracterisation du widget
+                guiStringElement.setIdentifier(sFieldId);
+                guiStringElement.setLabel(sLabel);
+                guiStringElement.setDefaultValue(sDefaultValue);
+                guiStringElement.setValue(sDefaultValue);
+                guiStringElement.setStyle(sStyle);
+                guiStringElement.setMinLength(nMinLength);
+                guiStringElement.setMaxLength(nMaxLength);
+                guiStringElement.setParentUnit(this);
+                // Ajout du widget dans le vecteur de donnees de l'unite
+                addField(guiStringElement);
         }
 
         protected void addToolBar()
@@ -1277,14 +1281,14 @@ public abstract class GUIUnit extends GUIData implements ActionListener
                 // Initialisation des valeurs
                 graphicRefreshAll();
 
-                // Ajustement de la taille de la fenetre pour tenir compte de la longueur du titre
+                // Ajustement de la taille de la fenetre pour tenir compte de la longueur du titre et de la taille de
+                // l'ecran
                 frame.pack();
                 int minFrameWidth = getMinFramedWidth(getLabel());
                 Dimension currentPreferredSize = frame.getPreferredSize();
-                if (currentPreferredSize.getWidth() <= minFrameWidth) {
-                        frame.setPreferredSize(new Dimension(minFrameWidth, (int)currentPreferredSize.getHeight()));
-                        frame.pack();
-                }
+                Dimension adjustedDimension = computeAdjustedDimension(currentPreferredSize, minFrameWidth);
+                frame.setPreferredSize(adjustedDimension);
+                frame.pack();
 
                 // Creation et enregistrement d'une gestion personnaliser de la fermeture
                 // de la fenetre pour gerer la synchronisation avec le programme

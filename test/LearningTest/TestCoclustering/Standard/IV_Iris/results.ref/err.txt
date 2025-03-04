@@ -15,8 +15,9 @@ Database ../../../datasets/Iris/Iris.txt : Read records: 150
   0:00:01	Write intermediate report Coclustering(14).khcj	Level: 0.0306782	Size: 3*5	VarParts: 13=3+3+3+2+2	Tokenization: 4
   0:00:01	Write intermediate report Coclustering(15).khcj	Level: 0.0312303	Size: 3*6	VarParts: 14=3+3+3+2+3	Tokenization: 4
   0:00:01	Write intermediate report Coclustering(16).khcj	Level: 0.0317184	Size: 3*6	VarParts: 13=3+3+3+2+2	Tokenization: 4
-  0:00:01	Write intermediate report Coclustering(17).khcj	Level: 0.0330154	Size: 3*4	VarParts: 13=3+3+3+2+2	Tokenization: 10
-  0:00:02	Write intermediate report Coclustering(18).khcj	Level: 0.0330573	Size: 3*5	VarParts: 13=3+3+3+2+2	Tokenization: 10
+  0:00:01	Write intermediate report Coclustering(17).khcj	Level: 0.0322022	Size: 3*4	VarParts: 14=3+3+3+3+2	Tokenization: 10
+  0:00:01	Write intermediate report Coclustering(18).khcj	Level: 0.0329373	Size: 3*4	VarParts: 14=3+3+3+3+2	Tokenization: 10
+  0:00:02	Write intermediate report Coclustering(19).khcj	Level: 0.0334935	Size: 3*4	VarParts: 14=3+3+3+3+2	Tokenization: 10
 Write coclustering report ./results/Coclustering.khcj
-Coclustering analysis time: 0:00:02.03
+Coclustering analysis time: 0:00:02.04
 

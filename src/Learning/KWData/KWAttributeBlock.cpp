@@ -766,12 +766,14 @@ longint KWAttributeBlock::GetUsedMemory() const
 	if (kwdrRule != NULL)
 		lUsedMemory += kwdrRule->GetUsedMemory();
 
-	// Prise en compte des donne additionnelle de gestion du bloc
+	// Prise en compte des donnees additionnelles de gestion du bloc
 	if (loadedAttributesIndexedKeyBlock != NULL)
 		lUsedMemory += loadedAttributesIndexedKeyBlock->GetUsedMemory();
 	if (ivLoadedAttributeMutationIndexes != NULL)
 		lUsedMemory += ivLoadedAttributeMutationIndexes->GetUsedMemory();
 	lUsedMemory += nkdAttributesByVarKeys.GetUsedMemory() - sizeof(NumericKeyDictionary);
+	lUsedMemory += oaLoadedAttributes.GetUsedMemory() - sizeof(ObjectArray);
+	lUsedMemory += ivLoadedAttributeIndexesBySparseIndex.GetUsedMemory() - sizeof(IntVector);
 	return lUsedMemory;
 }
 

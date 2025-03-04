@@ -213,7 +213,16 @@ void KDConstructedRule::RemoveOperandAt(int nIndex)
 
 	// Reinitialisation de l'operande
 	oaConstructedOperands.SetAt(nIndex, NULL);
+#if defined(__GNUC__) && !defined(__clang__)
+// Dans plusieurs parties du code, on desactive le warning stringop-overflow
+// pour le compilateur gcc car il emet ce warning a tord (au moins pour la version 11)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
 	cOperandOrigins[nIndex] = None;
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 }
 
 void KDConstructedRule::DeleteAllOperands()

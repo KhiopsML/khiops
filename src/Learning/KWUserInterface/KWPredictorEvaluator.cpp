@@ -777,8 +777,8 @@ void KWPredictorEvaluator::EvaluateTrainedPredictors(ObjectArray* oaEvaluatedTra
 		// Ecriture du rapport d'evaluation au format JSON
 		WriteJSONEvaluationReport(GetEvaluationFilePathName(), "Predictor", oaOutputPredictorEvaluations);
 
-		// Ecriture du rapport d'evaluation au fprmat xls
-		if (GetXlsEvaluationFilePathName() != "")
+		// Ecriture du rapport d'evaluation au format xls
+		if (GetExportAsXls() and GetXlsEvaluationFilePathName() != "")
 			WriteEvaluationReport(GetXlsEvaluationFilePathName(), "Predictor",
 					      oaOutputPredictorEvaluations);
 

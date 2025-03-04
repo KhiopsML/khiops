@@ -27,6 +27,11 @@ public:
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
+	// Collecte des attributs de type relation non necessaires, que l'on peut passer en not loaded si les tables correspondantes
+	// ne sont pas specifiee dans la base en sortie
+	void CollectRelationAttributesToUnload(const KWDatabase* targetDatabase, const KWClass* databaseClass,
+					       ObjectArray* oaAttributesToUnload) const;
+
 	// Reimplemenattion de l'affichage des messages
 	void DisplaySpecificTaskMessage() override;
 

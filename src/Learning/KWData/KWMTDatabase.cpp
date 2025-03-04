@@ -538,6 +538,7 @@ boolean KWMTDatabase::CheckPartially(boolean bWriteOnly) const
 	int nAttributeNumber;
 	int nAttribute;
 	KWClass* pathClass;
+	KWMTDatabaseMapping parentMapping;
 	KWMTDatabase checkDatabase;
 	KWMTDatabaseMapping* checkMapping;
 
@@ -618,15 +619,39 @@ boolean KWMTDatabase::CheckPartially(boolean bWriteOnly) const
 					 mapping->GetDataTableName() + " should not be specified for output database");
 			}
 
+			// En mode ecriture, si une table secondaire non externe est renseignee, sa table parente doit l'etre egalement
+			// En theorie, on pourrait developper du code pour autoriser ce type de specification, mais le rapport cout/benefice
+			// est tres peu favorable pour cas cas d'usage marginal
+			if (bWriteOnly and mapping->GetDataTableName() != "" and
+			    not IsReferencedClassMapping(mapping) and mapping->GetAttributeNames()->GetSize() > 0)
+			{
+				// Recherche du mapping parent
+				parentMapping.CopyFrom(mapping);
+				parentMapping.GetAttributeNames()->SetSize(mapping->GetAttributeNames()->GetSize() - 1);
+				checkMapping = LookupMultiTableMapping(parentMapping.GetDataPath());
+
+				// Verification dans le cas valide que ce mapping a egalement un nom de table specifie
+				if (checkMapping != NULL and checkMapping->GetDataTableName() == "")
+				{
+					bOk = false;
+					AddError("Data path " + mapping->GetObjectLabel() + " : data table " +
+						 mapping->GetDataTableName() +
+						 " cannot be specified without a data table being specified for its "
+						 "owner table (data path " +
+						 parentMapping.GetDataPath() + ")");
+				}
+			}
+
 			// Recherche de la classe principale du chemin de mapping
 			originClass = KWClassDomain::GetCurrentDomain()->LookupClass(mapping->GetOriginClassName());
-			assert(originClass->GetName() == GetClassName() or originClass->GetRoot());
+			assert(originClass == NULL or originClass->GetName() == GetClassName() or
+			       originClass->GetRoot());
 
 			// Existence de cette classe
 			if (originClass == NULL)
 			{
 				bOk = false;
-				if (originClass->GetName() == GetClassName())
+				if (mapping->GetOriginClassName() == GetClassName())
 					sOriginLabel = "Main";
 				else
 					sOriginLabel = "Root";
@@ -1147,6 +1172,9 @@ boolean KWMTDatabase::PhysicalOpenForWrite()
 
 	require(CheckPartially(true));
 
+	// Parametrage du format de sortie dense dans le driver
+	dataTableDriverCreator->SetDenseOutputFormat(GetDenseOutputFormat());
+
 	// Nettoyage prealable
 	DMTMPhysicalTerminateMapping(mainMultiTableMapping);
 	nSkippedRecordNumber = 0;
@@ -1537,7 +1565,6 @@ KWMTDatabaseMapping* KWMTDatabase::CreateMapping(ObjectDictionary* odReferenceCl
 						 boolean bIsExternalTable, const ALString& sOriginClassName,
 						 StringVector* svAttributeNames, ObjectArray* oaCreatedMappings)
 {
-	const KWDRReference referenceRule;
 	KWMTDatabaseMapping* mapping;
 	KWMTDatabaseMapping* subMapping;
 	KWAttribute* attribute;
@@ -1631,7 +1658,8 @@ KWMTDatabaseMapping* KWMTDatabase::CreateMapping(ObjectDictionary* odReferenceCl
 				}
 			}
 			// Cas d'un attribut natif reference (avec regle de derivation predefinie)
-			else if (attribute->GetAnyDerivationRule()->GetName() == referenceRule.GetName())
+			else if (attribute->GetAnyDerivationRule()->GetName() ==
+				 KWDerivationRule::GetReferenceRuleName())
 			{
 				// Memorisation du mapping a traiter
 				if (odReferenceClasses->Lookup(attribute->GetClass()->GetName()) == NULL)
@@ -2414,7 +2442,14 @@ KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 	// Positionnement du flag d'erreur
 	bIsError = bIsError or mapping->GetDataTableDriver()->IsError();
 
-	// Memorisation inconditionnelle de la cle du dernier enregistremnt lu, dans le cas d'une classe unique,
+	// Incrementation du nombre global d'enregistrements lus
+	// Si on voulait des stats relative uniquement aux instances principales selectionnees, cela devrait se faire
+	// a posteriori une fois les instances selectionnees entierement validees, au niveau de la methode Read
+	if (kwoObject != NULL and not bIsError)
+		mapping->GetDataTableDriver()->SetUsedRecordNumber(
+		    mapping->GetDataTableDriver()->GetUsedRecordNumber() + 1);
+
+	// Memorisation inconditionnelle de la cle du dernier enregistrement lu, dans le cas d'une classe unique,
 	// meme si l'objet n'a pas pu etre lu
 	// Cela permet de gere les lignes dupliquees, que l'objet soit lu ou non (a cause d'une erreur de parsing)
 	if (kwoObject == NULL)
@@ -2482,12 +2517,6 @@ KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 			// Retour si enregistrement ignore
 			if (kwoObject == NULL)
 				return NULL;
-
-			// Incrementation du compteur d'objet utilise au niveau physique pour la classe principale
-			// L'incrementation pour les mappings de la composition est effectuee par la suite
-			if (mapping == mainMultiTableMapping)
-				mapping->GetDataTableDriver()->SetUsedRecordNumber(
-				    mapping->GetDataTableDriver()->GetUsedRecordNumber() + 1);
 		}
 
 		// Parcours des mappings de la composition  pour completer la lecture de l'objet
@@ -2574,14 +2603,6 @@ KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 								    componentMapping->GetMappedAttributeLoadIndex(),
 								    kwoSubObject);
 
-								// Incrementation du compteur d'objet utilise au niveau
-								// physique
-								componentMapping->GetDataTableDriver()
-								    ->SetUsedRecordNumber(
-									componentMapping->GetDataTableDriver()
-									    ->GetUsedRecordNumber() +
-									1);
-
 								// Memorisation de la derniere cle lue
 								componentMapping->SetLastReadKey(&subObjectKey);
 
@@ -2607,14 +2628,6 @@ KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 
 								// Rangement du sous-objet dans le tableau
 								oaSubObjects->Add(kwoSubObject);
-
-								// Incrementation du compteur d'objet utilise au niveau
-								// physique
-								componentMapping->GetDataTableDriver()
-								    ->SetUsedRecordNumber(
-									componentMapping->GetDataTableDriver()
-									    ->GetUsedRecordNumber() +
-									1);
 							}
 
 							// Memorisation de la derniere cle lue

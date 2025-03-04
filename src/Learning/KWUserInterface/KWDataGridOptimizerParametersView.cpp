@@ -45,11 +45,9 @@ KWDataGridOptimizerParametersView::KWDataGridOptimizerParametersView()
 	// Parametre interne non accessible depuis l'interface, meme en mode expert
 	GetFieldAt("InternalParameter")->SetVisible(false);
 
-	// CH IV Begin
 	// Parametres de coclustering instances x variables en mode expert
 	GetFieldAt("VarPartPostMerge")->SetVisible(GetLearningCoclusteringIVExpertMode());
 	GetFieldAt("VarPartPostOptimize")->SetVisible(GetLearningCoclusteringIVExpertMode());
-	// CH IV End
 
 	// ##
 }

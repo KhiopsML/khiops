@@ -6,6 +6,7 @@ package normGUI.engine;
 
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
+import java.awt.Rectangle;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.Vector;
@@ -142,12 +143,22 @@ public class GUIList extends GUIUnit
                         }
                 });
 
-                int width = guiTable.getPreferredSize().width;
+                // On recupere les dimensions de l'ecran
+                Rectangle screenBounds = getCurrentScreenBounds();
+
                 // On fixe la hauteur a 5 lignes par defaut
                 int defaultRowNumber = 5;
                 int rowNumber = defaultRowNumber;
 
+                // Nombre max de lignes, en tenant compte de la taille de l'ecran, avec une marge heuristique
+                // pour tenir compte de la barre de tache, de la barre de titre, de menu, d'un libelle, de boutons...
+                int screenMaxUsableHeight = screenBounds.height * 2 / 3;
+                int maxRowNumber = screenMaxUsableHeight / getComponentPreferredHeight();
+                if (maxRowNumber < defaultRowNumber)
+                        maxRowNumber = defaultRowNumber;
+
                 // Recherche du (LineNumber, LastColumnExtraWidth) dans les parametres
+                int tableWidth = guiTable.getPreferredSize().width;
                 if (!getParameters().equals("") && getParametersAsArray().length == 2) {
                         String value;
 
@@ -159,8 +170,10 @@ public class GUIList extends GUIUnit
                                 } catch (Exception ex) {
                                         rowNumber = defaultRowNumber;
                                 }
-                                if (rowNumber < 1 || rowNumber > 50)
+                                if (rowNumber < 1)
                                         rowNumber = defaultRowNumber;
+                                if (rowNumber > maxRowNumber)
+                                        rowNumber = maxRowNumber;
                         }
 
                         // Recherche de la taille supplementaires a ajouter
@@ -174,14 +187,21 @@ public class GUIList extends GUIUnit
                                 }
                                 if (lastColumnExtraWidth < 0 || lastColumnExtraWidth > 50)
                                         lastColumnExtraWidth = 0;
-                                width = width + getComponentPreferredWidth(lastColumnExtraWidth);
+                                tableWidth = tableWidth + getComponentPreferredWidth(lastColumnExtraWidth);
                         }
                 }
-                int height = rowNumber * getComponentPreferredHeight();
+
                 // On limite l'affichage a 15 colonnes (de 10 caracteres)
-                if (width > 15 * getComponentPreferredWidth(10))
-                        width = 15 * getComponentPreferredWidth(10);
-                guiTable.setPreferredScrollableViewportSize(new Dimension(width, height));
+                int tableHeight = rowNumber * getComponentPreferredHeight();
+                if (tableWidth > 15 * getComponentPreferredWidth(10))
+                        tableWidth = 15 * getComponentPreferredWidth(10);
+                if (tableWidth > screenBounds.width)
+                        tableWidth = screenBounds.width;
+                if (tableHeight > screenMaxUsableHeight)
+                        tableHeight = screenMaxUsableHeight;
+                guiTable.setPreferredScrollableViewportSize(new Dimension(tableWidth, tableHeight));
+
+                // Ajout du composant
                 constraints.weightx = 1.0;
                 constraints.weighty = 1.0;
                 constraints.gridwidth = GridBagConstraints.REMAINDER;

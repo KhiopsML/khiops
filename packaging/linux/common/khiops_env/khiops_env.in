@@ -42,9 +42,9 @@ help() {
     echo "  . default behavior if not set: depending on the file drivers available for Khiops"
     echo "  . set to 'true' to allow file name selection with uri schemas"
     echo "  . set to 'false' to allow local file name selection only with a file selection dialog"
-    echo "KHIOPS_MPI_HOST_FILE: provide hostfile to mpi."
-    echo
     echo "KHIOPS_MPI_VERBOSE: true (default) or false, print messages from mpi (OpenMPI only)."
+    echo "KHIOPS_MPI_EXTRA_FLAGS: extra flags added to the mpi command line"
+    echo
     echo "In case of configuration problems, the variables KHIOPS_JAVA_ERROR and KHIOPS_MPI_ERROR contain error messages."
 
 }
@@ -71,44 +71,41 @@ fi
 
 if ! [ "$KHIOPS_MPI_VERBOSE" == "true" ]; then
     # Mute mpi by adding flags (OpenMPI only)
-    MPI_EXTRA_FLAGS="@KHIOPS_MPI_QUIET@"
-fi
-
-# Setting up mpi for multiple machines
-if [[ -n $KHIOPS_MPI_HOST_FILE ]]; then
-    MPI_EXTRA_FLAGS="$MPI_EXTRA_FLAGS @MPIEXEC_HOSTFILE_FLAG@ $KHIOPS_MPI_HOST_FILE"
-    @EXPORT_ENV_VARIABLES@
+    _MPI_EXTRA_FLAGS="@KHIOPS_MPI_QUIET@"
 fi
 
 KHIOPS_PATH=@KHIOPS_PATH@@MODL_NAME@
 KHIOPS_COCLUSTERING_PATH=@KHIOPS_COCLUSTERING_PATH@MODL_Coclustering
 
-# Number of processes in use (must be set according to the physical cores number)
-if [[ -z $KHIOPS_PROC_NUMBER ]]; then
-    KHIOPS_PROC_NUMBER=$("@GET_PROC_NUMBER_PATH@"_khiopsgetprocnumber | head -n 1)
-fi
-
 if command -v mpiexec &>/dev/null; then
     KHIOPS_MPI_ERROR=""
-    KHIOPS_MPI_COMMAND="$(type -P mpiexec) $MPI_EXTRA_FLAGS @KHIOPS_MPI_EXTRA_FLAG@ @MPIEXEC_NUMPROC_FLAG@ $KHIOPS_PROC_NUMBER"
+    _MPIEXEC=$(type -P mpiexec)
 else
     # Fallback for Conda-based environments where `mpiexec` is not in PATH,
     # because $CONDA_PREFIX/bin is not in PATH
     _MPIEXEC=@KHIOPS_PATH@mpiexec
     if command -v $_MPIEXEC &>/dev/null; then
         KHIOPS_MPI_ERROR=""
-        KHIOPS_MPI_COMMAND="$_MPIEXEC $MPI_EXTRA_FLAGS @KHIOPS_MPI_EXTRA_FLAG@ @MPIEXEC_NUMPROC_FLAG@ $KHIOPS_PROC_NUMBER"
     else
         KHIOPS_MPI_ERROR="We didn't find mpiexec in the expected paths. Parallel computation is unavailable: Khiops is launched in serial"
-        KHIOPS_MPI_COMMAND=""
     fi
-    unset _MPIEXEC
+
 fi
 
-# without more than 2 procs, we use the serial khiops
-if [[ $KHIOPS_PROC_NUMBER -le 2 ]]; then
-    KHIOPS_MPI_COMMAND=""
+if [[ -z $KHIOPS_MPI_ERROR ]]; then
+    KHIOPS_MPI_COMMAND="$_MPIEXEC $_MPI_EXTRA_FLAGS @MPI_EXTRA_FLAG@ $KHIOPS_MPI_EXTRA_FLAGS"
+    @SET_PROC_NUMBER@
+    if [[ -n $KHIOPS_PROC_NUMBER ]]; then
+        KHIOPS_MPI_COMMAND="$KHIOPS_MPI_COMMAND @MPIEXEC_NUMPROC_FLAG@ $KHIOPS_PROC_NUMBER"
+    fi
+
+    # without more than 2 procs, we use the serial khiops
+    if [[ -n $KHIOPS_PROC_NUMBER && $KHIOPS_PROC_NUMBER -le 2 ]]; then
+        KHIOPS_MPI_COMMAND=""
+    fi
 fi
+unset _MPIEXEC
+unset _MPI_EXTRA_FLAGS
 
 if [ "$1" = "--env" ]; then
     echo KHIOPS_PATH "$KHIOPS_PATH"
@@ -126,5 +123,6 @@ if [ "$1" = "--env" ]; then
     echo KHIOPS_JAVA_ERROR "$KHIOPS_JAVA_ERROR"
     echo KHIOPS_MPI_ERROR "$KHIOPS_MPI_ERROR"
     echo KHIOPS_MPI_VERBOSE "$KHIOPS_MPI_VERBOSE"
+    echo KHIOPS_MPI_EXTRA_FLAGS "$KHIOPS_MPI_EXTRA_FLAGS"
     @ADDITIONAL_ENV_VAR_DISPLAY@
 fi

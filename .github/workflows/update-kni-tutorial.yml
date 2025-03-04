@@ -13,13 +13,13 @@ jobs:
       contents: write  # To push a branch
     steps:
       - name: Checkout Khiops sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: khiops
       - name: Put Khiops version on the environment
         run: echo "KHIOPS_VERSION=$(./khiops/scripts/khiops-version)" >> "$GITHUB_ENV"
       - name: Checkout KNI-tutorial
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: KhiopsML/KNI-tutorial
           ssh-key: ${{ secrets.KNI_TUTORIAL_SSH_KEY }}

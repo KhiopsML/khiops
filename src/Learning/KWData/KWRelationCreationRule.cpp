@@ -17,6 +17,7 @@ KWDRRelationCreationRule::KWDRRelationCreationRule()
 KWDRRelationCreationRule::~KWDRRelationCreationRule()
 {
 	oaOutputOperands.DeleteAll();
+	oaViewModeCopyBlockRules.DeleteAll();
 }
 
 boolean KWDRRelationCreationRule::GetReference() const
@@ -212,7 +213,7 @@ boolean KWDRRelationCreationRule::CheckOperandsDefinition() const
 				sOperandOrigin =
 				    KWDerivationRuleOperand::OriginToString(operand->GetOrigin(), operand->GetType());
 				AddError(sTmp + "Incorrect output operand " + IntToString(i + 1) +
-					 " that must be used with an origin Variable (origin " + sOperandOrigin +
+					 " that must be used with an origin variable (origin " + sOperandOrigin +
 					 " not allowed)");
 				bOk = false;
 			}
@@ -484,8 +485,11 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 	KWClass* kwcTargetClass;
 	KWAttribute* sourceAttribute;
 	KWAttribute* targetAttribute;
+	KWAttributeBlock* sourceBlock;
+	KWAttributeBlock* targetBlock;
 	ObjectDictionary odOutputAttributeNames;
 	KWDerivationRuleOperand* operand;
+	ALString sLabel;
 	int i;
 	ALString sTmp;
 
@@ -525,9 +529,9 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 					assert(operand->GetOrigin() == KWDerivationRuleOperand::OriginAttribute);
 					assert(operand->GetDataItemName() != "");
 					assert(kwcTargetClass->LookupAttribute(operand->GetDataItemName()) == NULL);
-					// On passe par la methode GetDataItemName, vcar le type n'est pas valide
+					// On passe par la methode GetDataItemName, car le type n'est pas valide
 					AddError(sTmp + "Invalid output operand " + IntToString(i + 1) + ", as the " +
-						 operand->GetDataItemName() + " variable " + " is not found in the " +
+						 operand->GetDataItemName() + " variable is not found in the " +
 						 kwcTargetClass->GetName() + " output dictionary");
 					bOk = false;
 				}
@@ -563,7 +567,7 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 		// Validation des attributs natifs de la classe cible
 		if (bOk)
 		{
-			// Recherche de la classe source dans le cas d'une alimentttion de type vue
+			// Recherche de la classe source dans le cas d'une alimentation de type vue
 			kwcSourceClass = NULL;
 			if (IsViewModeActivated())
 			{
@@ -596,7 +600,7 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 								 " variable is not set by any output operand");
 							bOk = false;
 						}
-						// Cas d'une alimenattion de type vue
+						// Cas d'une alimentation de type vue
 						else
 						{
 							assert(IsViewModeActivated());
@@ -609,28 +613,18 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 							// Erreur si pas d'attribut correspondant trouve
 							if (sourceAttribute == NULL)
 							{
-								AddError("In the " + kwcTargetClass->GetName() +
-									 " output dictionary, the " +
-									 targetAttribute->GetName() +
-									 " variable must exist in the " +
-									 kwcSourceClass->GetName() +
-									 " input dictionary of the first operand" +
-									 " of the rule");
+								AddViewModeError(kwcSourceClass, kwcTargetClass,
+										 targetAttribute, "must exist");
 								bOk = false;
 							}
 							// Erreur si le type trouve est incorrect
 							else if (sourceAttribute->GetType() !=
 								 targetAttribute->GetType())
 							{
-								AddError("In the " + kwcTargetClass->GetName() +
-									 " output dictionary, the " +
-									 KWType::ToString(targetAttribute->GetType()) +
-									 " variable " + targetAttribute->GetName() +
-									 " is found with a different type (" +
-									 KWType::ToString(sourceAttribute->GetType()) +
-									 ") in the " + kwcSourceClass->GetName() +
-									 " input dictionary of the first operand" +
-									 " of the rule");
+								sLabel = "is found with a different type (" +
+									 sourceAttribute->GetTypeLabel() + ")";
+								AddViewModeError(kwcSourceClass, kwcTargetClass,
+										 targetAttribute, sLabel);
 								bOk = false;
 							}
 
@@ -639,45 +633,90 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 							    sourceAttribute->GetClass()->GetName() !=
 								targetAttribute->GetClass()->GetName())
 							{
-								AddError("In the " + kwcTargetClass->GetName() +
-									 " output dictionary, the " +
-									 KWType::ToString(targetAttribute->GetType()) +
-									 "(" + targetAttribute->GetClass()->GetName() +
-									 ") variable " + targetAttribute->GetName() +
-									 " is found with a different type (" +
-									 KWType::ToString(sourceAttribute->GetType()) +
-									 "(" + sourceAttribute->GetClass()->GetName() +
-									 ")) in the " + kwcSourceClass->GetName() +
-									 " input dictionary of the first operand" +
-									 " of the rule");
+								sLabel = "is found with a different type (" +
+									 sourceAttribute->GetTypeLabel() + ")";
+								AddViewModeError(kwcSourceClass, kwcTargetClass,
+										 targetAttribute, sLabel);
 								bOk = false;
 							}
 
-							// Erreur dans le cas d'un bloc si bloc different ou si VarKey different
-							if (bOk and (sourceAttribute->IsInBlock() or
-								     targetAttribute->IsInBlock()))
+							// Erreur dans le cas d'un bloc cible si bloc source incompatible
+							if (bOk and targetAttribute->IsInBlock())
 							{
-								//DDD Pour l'instant, on interdit les attributs cibles dans un bloc
+								assert(sourceAttribute->GetType() ==
+								       targetAttribute->GetType());
+
+								// Acces aux eventuels blocs source et cible
+								sourceBlock = sourceAttribute->GetAttributeBlock();
+								targetBlock = targetAttribute->GetAttributeBlock();
+								assert(targetAttribute != NULL);
+
 								// Un attribut cible peut etre dans un bloc si l'attribut source est dans un bloc
 								// Meme nom, meme type, meme VarKey, meme nom de bloc
 								// Si un attribut cible est dense, l'attribut surce doit etre dense
-								if (targetAttribute->IsInBlock())
+								if (not sourceAttribute->IsInBlock())
 								{
-									AddError("In the " + kwcTargetClass->GetName() +
-										 " output dictionary, the " +
+									sLabel = "is in a block named " +
 										 targetAttribute->GetName() +
-										 " variable in block " +
-										 targetAttribute->GetAttributeBlock()
-										     ->GetName() +
-										 " not allowed");
+										 " and should also be in a block";
+									AddViewModeError(kwcSourceClass, kwcTargetClass,
+											 targetAttribute, sLabel);
 									bOk = false;
 								}
-								//DDD EN COURS
 								// Erreur si nom de bloc different
-
+								else if (targetAttribute->GetAttributeBlock()
+									     ->GetName() !=
+									 sourceAttribute->GetAttributeBlock()
+									     ->GetName())
+								{
+									sLabel = "is in a block named " +
+										 targetBlock->GetName() +
+										 " and is found in a block with a "
+										 "different name (" +
+										 sourceBlock->GetName() + ")";
+									AddViewModeError(kwcSourceClass, kwcTargetClass,
+											 targetAttribute, sLabel);
+									bOk = false;
+								}
 								// Erreur si type de VarKey different
-
-								// Erreur si VarKey different
+								else if (targetBlock->GetVarKeyType() !=
+									 sourceAttribute->GetAttributeBlock()
+									     ->GetVarKeyType())
+								{
+									sLabel =
+									    "is in a block named " +
+									    targetBlock->GetName() +
+									    " with VarKey type " +
+									    KWType::ToString(
+										targetBlock->GetVarKeyType()) +
+									    " and is found in a block with a different "
+									    "VarKey type (" +
+									    KWType::ToString(
+										sourceBlock->GetVarKeyType()) +
+									    ")";
+									AddViewModeError(kwcSourceClass, kwcTargetClass,
+											 targetAttribute, sLabel);
+									bOk = false;
+								}
+								// Erreur si valeur de VarKey different
+								else if (sourceBlock->GetStringVarKey(
+									     sourceAttribute) !=
+									 targetBlock->GetStringVarKey(targetAttribute))
+								{
+									sLabel = "is in a block named " +
+										 targetBlock->GetName() +
+										 " with VarKey value " +
+										 targetBlock->GetStringVarKey(
+										     targetAttribute) +
+										 " and is found with a different "
+										 "VarKey value (" +
+										 sourceBlock->GetStringVarKey(
+										     sourceAttribute) +
+										 ")";
+									AddViewModeError(kwcSourceClass, kwcTargetClass,
+											 targetAttribute, sLabel);
+									bOk = false;
+								}
 							}
 						}
 					}
@@ -762,7 +801,11 @@ void KWDRRelationCreationRule::Compile(KWClass* kwcOwnerClass)
 	KWAttribute* sourceAttribute;
 	KWAttribute* targetAttribute;
 	int nAttribute;
+	KWAttributeBlock* sourceBlock;
+	KWAttributeBlock* targetBlock;
+	int nBlock;
 	KWDerivationRuleOperand* operand;
+	KWDerivationRule* valueBlockRule;
 	int i;
 
 	require(kwcOwnerClass != NULL);
@@ -776,6 +819,10 @@ void KWDRRelationCreationRule::Compile(KWClass* kwcOwnerClass)
 	livViewModeSourceAttributeLoadIndexes.SetSize(0);
 	livViewModeTargetAttributeLoadIndexes.SetSize(0);
 	ivViewModeTargetAttributeTypes.SetSize(0);
+	livViewModeSourceBlockLoadIndexes.SetSize(0);
+	livViewModeTargetBlockLoadIndexes.SetSize(0);
+	ivViewModeTargetBlockTypes.SetSize(0);
+	oaViewModeCopyBlockRules.DeleteAll();
 
 	// Recherche et memorisation de la classe cible
 	kwcCompiledTargetClass = kwcOwnerClass->GetDomain()->LookupClass(GetObjectClassName());
@@ -889,71 +936,105 @@ void KWDRRelationCreationRule::Compile(KWClass* kwcOwnerClass)
 				}
 			}
 		}
+
+		// Parcours des blocs d'attributs natifs de la classe cible charges en memoire
+		for (nBlock = 0; nBlock < kwcCompiledTargetClass->GetLoadedAttributeBlockNumber(); nBlock++)
+		{
+			targetBlock = kwcCompiledTargetClass->GetLoadedAttributeBlockAt(nBlock);
+
+			// On ne traite que les blocs d'attributs natifs utilises
+			if (targetBlock->GetDerivationRule() == NULL)
+			{
+				assert(IsValidOutputOperandType(targetBlock->GetType()));
+
+				// Recherche d'un bloc d'attributs natif source de meme nom
+				sourceBlock = kwcSourceClass->LookupAttributeBlock(targetBlock->GetName());
+				assert(sourceBlock != NULL);
+				assert(sourceBlock->GetType() == targetBlock->GetType());
+
+				// Memorisation des infos de chargement si l'attribut source est charge
+				// Il peut ne pas etre charge dans le dictionnaire "logique", mais il sera
+				// de toute facon charge dans le dictionnaire "physique"
+				// Cf. gestion des dictionnaire logiques et physiques dans KWDatabase
+				if (sourceBlock->GetLoaded())
+				{
+					livViewModeSourceBlockLoadIndexes.Add(sourceBlock->GetLoadIndex());
+					livViewModeTargetBlockLoadIndexes.Add(targetBlock->GetLoadIndex());
+					ivViewModeTargetBlockTypes.Add(targetBlock->GetType());
+
+					// Creation et memorisation d'une regle de type CopyBlock du bon type
+					assert(KWType::IsSimple(sourceBlock->GetType()));
+					if (sourceBlock->GetType() == KWType::Continuous)
+						valueBlockRule = new KWDRCopyContinuousValueBlock;
+					else
+						valueBlockRule = new KWDRCopySymbolValueBlock;
+					oaViewModeCopyBlockRules.Add(valueBlockRule);
+
+					// Specification et compilation de la regle
+					valueBlockRule->GetFirstOperand()->SetOrigin(
+					    KWDerivationRuleOperand::OriginAttribute);
+					valueBlockRule->GetFirstOperand()->SetAttributeBlockName(
+					    sourceBlock->GetName());
+					valueBlockRule->CompleteTypeInfo(kwcSourceClass);
+					valueBlockRule->Compile(kwcSourceClass);
+
+					// Trace par attribut gere par une alimentation de type vue
+					if (bTrace)
+					{
+						cout << "\t" << sourceBlock->GetName();
+						cout << "\t" << KWType::ToString(sourceBlock->GetType());
+						cout << "\t" << sourceBlock->GetLoadIndex();
+						cout << "\t" << targetBlock->GetLoadIndex();
+						cout << "\n";
+					}
+				}
+			}
+		}
 	}
 }
 
 void KWDRRelationCreationRule::BuildAllUsedOperands(NumericKeyDictionary* nkdAllUsedOperands) const
 {
-	// Appel de la methode ancetre
-	// Pas de specialisation necessaire actuellement, puisque les operandes en sortie n'impliquent pas de regles
-	KWDerivationRule::BuildAllUsedOperands(nkdAllUsedOperands);
-}
-
-void KWDRRelationCreationRule::BuildAllUsedAttributes(const KWAttribute* derivedAttribute,
-						      NumericKeyDictionary* nkdAllUsedAttributes) const
-{
+	KWDerivationRuleOperand* operand;
+	int i;
 	ObjectDictionary odOutputAttributeNames;
 	KWClass* kwcSourceClass;
 	KWClass* kwcTargetClass;
 	KWAttribute* sourceAttribute;
 	KWAttribute* targetAttribute;
-	KWDerivationRule* sourceAttributeRule;
-	KWDerivationRuleOperand* operand;
-	int i;
 
 	require(IsCompiled());
-	require(derivedAttribute != NULL);
-	require(KWType::IsRelation(derivedAttribute->GetType()));
-	require(derivedAttribute->GetClass()->GetName() == GetObjectClassName());
 
 	// Appel de la methode ancetre
-	KWDerivationRule::BuildAllUsedAttributes(derivedAttribute, nkdAllUsedAttributes);
+	KWDerivationRule::BuildAllUsedOperands(nkdAllUsedOperands);
 
-	// Recherche des attribut cible utilises dans le cas d'une alimentation de type calcul
+	// Specialisation pour integrer les operandes en sortie
 	if (GetOutputOperandNumber() > 0)
 	{
-		// Recherche de la classe cible
-		kwcTargetClass = derivedAttribute->GetParentClass()->GetDomain()->LookupClass(GetObjectClassName());
-		assert(kwcTargetClass != NULL);
-
-		// Collecte des nom des attribut en sortie en verifiant leur unicite
-		//DDD Peut-on optimiser l'impact sur les atributs effectivements utilises???
 		for (i = 0; i < GetOutputOperandNumber(); i++)
 		{
 			operand = GetOutputOperandAt(i);
 			assert(operand->GetOrigin() == KWDerivationRuleOperand::OriginAttribute);
 			assert(KWType::IsData(operand->GetType()));
 
-			// Recherche de l'attribut cible correspond a l'operande en sortie
-			targetAttribute = kwcTargetClass->LookupAttribute(operand->GetAttributeName());
+			// Ajout de l'operande si non deja traite
+			if (nkdAllUsedOperands->Lookup(operand) == NULL)
+				nkdAllUsedOperands->SetAt(operand, operand);
 
-			// Memorisation de l'attribut en sortie dans le dictionnaire
-			nkdAllUsedAttributes->SetAt(targetAttribute, targetAttribute);
-
-			// Memorisation du nom de l'attribut en sortie
+			// Memorisation du nom de l'attribut en sortie pour les distinguer des attributs de type view
 			odOutputAttributeNames.SetAt(operand->GetAttributeName(), operand);
 		}
 	}
-	// Recherche des attribut cible utilises dans le cas d'une alimentation de type vue
+
+	// Recherche des attributs cibles utilises dans le cas d'une alimentation de type vue
 	if (IsViewModeActivated())
 	{
 		assert(GetOperandNumber() > 0);
 		assert(KWType::IsRelation(GetFirstOperand()->GetType()));
 
 		// Recherche des classes source et cible
-		kwcSourceClass = derivedAttribute->GetParentClass()->GetDomain()->LookupClass(
-		    GetFirstOperand()->GetObjectClassName());
-		kwcTargetClass = derivedAttribute->GetClass();
+		kwcSourceClass = GetOwnerClass()->GetDomain()->LookupClass(GetFirstOperand()->GetObjectClassName());
+		kwcTargetClass = GetOwnerClass()->GetDomain()->LookupClass(GetObjectClassName());
 		assert(kwcSourceClass != NULL);
 		assert(kwcTargetClass != NULL);
 
@@ -961,11 +1042,7 @@ void KWDRRelationCreationRule::BuildAllUsedAttributes(const KWAttribute* derived
 		targetAttribute = kwcTargetClass->GetHeadAttribute();
 		while (targetAttribute != NULL)
 		{
-			// On ne traite que les attributs natifs utilises non deja prise en compte
-			// par une alimentation de type calcul
-			//DDD On doit integrer meme les attribut en Unused (BUG EN COURS)
-			//DDD if (targetAttribute->GetUsed() and targetAttribute->GetDerivationRule() == NULL and
-			//DDD    odOutputAttributeNames.Lookup(targetAttribute->GetName()) == NULL)
+			// On ne traite que les attributs natifs non deja prise en compte par une alimentation de type calcul
 			if (targetAttribute->GetDerivationRule() == NULL and
 			    odOutputAttributeNames.Lookup(targetAttribute->GetName()) == NULL)
 			{
@@ -976,50 +1053,193 @@ void KWDRRelationCreationRule::BuildAllUsedAttributes(const KWAttribute* derived
 				assert(sourceAttribute != NULL);
 				assert(sourceAttribute->GetType() == targetAttribute->GetType());
 
-				// Analyse de l'attribut si necessaire
-				if (nkdAllUsedAttributes->Lookup(sourceAttribute) == NULL)
+				// Ajout des operandes de l'attribut source si necessaire
+				if (sourceAttribute->GetAnyDerivationRule() != NULL)
+					sourceAttribute->GetAnyDerivationRule()->BuildAllUsedOperands(
+					    nkdAllUsedOperands);
+			}
+
+			// Attribut suivant
+			kwcTargetClass->GetNextAttribute(targetAttribute);
+		}
+	}
+}
+
+void KWDRRelationCreationRule::BuildAllUsedAttributes(const KWAttribute* derivedAttribute,
+						      NumericKeyDictionary* nkdAllUsedAttributes) const
+{
+	boolean bTrace = false;
+	ObjectDictionary odOutputAttributeNames;
+	IntVector ivUsedInputOperands;
+	IntVector ivUsedOutputOperands;
+	KWClass* kwcSourceClass;
+	KWClass* kwcTargetClass;
+	KWAttribute* sourceAttribute;
+	KWAttribute* targetAttribute;
+	KWDerivationRuleOperand* operand;
+	int nOperand;
+	boolean bIsTargetAttributeUsed;
+
+	require(IsCompiled());
+	require(derivedAttribute != NULL);
+	require(KWType::IsRelation(derivedAttribute->GetType()));
+	require(derivedAttribute->GetClass()->GetName() == GetObjectClassName());
+
+	// Trace de debut
+	if (bTrace)
+	{
+		cout << "Begin KWDRRelationCreationRule::BuildAllUsedAttributes " << GetName() << ", "
+		     << derivedAttribute->GetParentClass()->GetName() << " " << derivedAttribute->GetName() << "\n";
+		cout << "- target class: " << GetObjectClassName() << "\n";
+	}
+
+	// Recherche des attribut cible utilises dans le cas d'une alimentation de type calcul
+	if (GetOutputOperandNumber() > 0)
+	{
+		// Initialisation des vecteurs des operandes utilises en entree et en sortie
+		ivUsedInputOperands.SetSize(GetOperandNumber());
+		ivUsedOutputOperands.SetSize(GetOutputOperandNumber());
+
+		// Recherche de la classe cible
+		kwcTargetClass = derivedAttribute->GetClass();
+		assert(kwcTargetClass != NULL);
+
+		// Trace
+		if (bTrace)
+			cout << "- output operands: " << GetOutputOperandNumber() << "\n";
+
+		// Collecte des attributs en sortie
+		// On optimise les impacts en n'exploitant que les attributs en sortie utilises
+		// - on ne collecte pas les attributs cibles dans methode
+		// - on se base en fait sur leur utilisation par d'autre regles
+		for (nOperand = 0; nOperand < GetOutputOperandNumber(); nOperand++)
+		{
+			operand = GetOutputOperandAt(nOperand);
+			assert(operand->GetOrigin() == KWDerivationRuleOperand::OriginAttribute);
+			assert(KWType::IsData(operand->GetType()));
+
+			// Recherche de l'attribut cible correspond a l'operande en sortie
+			targetAttribute = kwcTargetClass->LookupAttribute(operand->GetAttributeName());
+			assert(targetAttribute != NULL);
+
+			// Recherche si l'attribut cible est utilise
+			bIsTargetAttributeUsed = nkdAllUsedAttributes->Lookup(targetAttribute) != NULL;
+
+			// Memorisation de l'utilisation de l'operande
+			if (bIsTargetAttributeUsed)
+				ivUsedOutputOperands.SetAt(nOperand, 1);
+
+			// Memorisation du nom de l'attribut en sortie pour les distinguer des attributs de type view
+			odOutputAttributeNames.SetAt(operand->GetAttributeName(), operand);
+
+			// Trace
+			if (bTrace)
+				cout << "  - " << nOperand + 1 << ": " << operand->GetAttributeName() << "\t"
+				     << BooleanToString(bIsTargetAttributeUsed) << "\n";
+		}
+
+		// On en en deduit la sous-partie des operandes en entree a utiliser
+		CollectUsedInputOperands(&ivUsedOutputOperands, &ivUsedInputOperands);
+
+		// Trace
+		if (bTrace)
+		{
+			cout << "- used input operands: " << GetOperandNumber() << "\n";
+			for (nOperand = 0; nOperand < GetOperandNumber(); nOperand++)
+			{
+				cout << "  - " << nOperand + 1 << ": "
+				     << BooleanToString(ivUsedInputOperands.GetAt(nOperand) == 1) << "\n";
+			}
+		}
+	}
+
+	// Appel de la methode ancetre s'il n'y a pas d'operandes en sortie
+	if (GetOutputOperandNumber() == 0)
+		KWDerivationRule::BuildAllUsedAttributes(derivedAttribute, nkdAllUsedAttributes);
+	// Sinon, on n'utilise que les operandes necessaire pour les operandes utilises en sortie
+	else
+	{
+		assert(ivUsedInputOperands.GetSize() == GetOperandNumber());
+		for (nOperand = 0; nOperand < GetOperandNumber(); nOperand++)
+		{
+			if (ivUsedInputOperands.GetAt(nOperand) == 1)
+				BuildAllUsedAttributesAtOperand(derivedAttribute, nOperand, nkdAllUsedAttributes);
+		}
+	}
+
+	// Recherche des attributs cibles utilises dans le cas d'une alimentation de type vue
+	if (IsViewModeActivated())
+	{
+		assert(GetOperandNumber() > 0);
+		assert(KWType::IsRelation(GetFirstOperand()->GetType()));
+
+		// Recherche des classes source et cible
+		kwcSourceClass = GetOwnerClass()->GetDomain()->LookupClass(GetFirstOperand()->GetObjectClassName());
+		kwcTargetClass = derivedAttribute->GetClass();
+		assert(kwcSourceClass != NULL);
+		assert(kwcTargetClass != NULL);
+
+		// Trace
+		if (bTrace)
+			cout << "- view class: " << kwcTargetClass->GetName() << "\n";
+
+		// Parcours des attributs natifs de la classe cible
+		targetAttribute = kwcTargetClass->GetHeadAttribute();
+		while (targetAttribute != NULL)
+		{
+			// On ne traite que les attributs natifs non deja prise en compte par une alimentation de type calcul
+			if (targetAttribute->GetDerivationRule() == NULL and
+			    odOutputAttributeNames.Lookup(targetAttribute->GetName()) == NULL)
+			{
+				assert(IsValidOutputOperandType(targetAttribute->GetType()));
+
+				// Recherche d'un attribut natif source de meme nom
+				sourceAttribute = kwcSourceClass->LookupAttribute(targetAttribute->GetName());
+				assert(sourceAttribute != NULL);
+				assert(sourceAttribute->GetType() == targetAttribute->GetType());
+
+				// Trace
+				if (bTrace)
+					cout << "  - " << targetAttribute->GetName() << "\t"
+					     << BooleanToString(targetAttribute->GetLoaded()) << "\t"
+					     << BooleanToString(nkdAllUsedAttributes->Lookup(targetAttribute)) << "\t"
+					     << BooleanToString(nkdAllUsedAttributes->Lookup(sourceAttribute)) << "\n";
+
+				// Memorisation de l'attribut cible s'il est utilise directement
+				if (targetAttribute->GetLoaded())
 				{
 					// Memorisation de l'attribut dans le dictionnaire
-					nkdAllUsedAttributes->SetAt(sourceAttribute, sourceAttribute);
+					if (nkdAllUsedAttributes->Lookup(targetAttribute) == NULL)
+						nkdAllUsedAttributes->SetAt(targetAttribute, targetAttribute);
+				}
 
-					// Acces a la regle d'attribut ou de bloc
-					sourceAttributeRule = sourceAttribute->GetAnyDerivationRule();
-					if (sourceAttributeRule != NULL)
-						sourceAttributeRule->BuildAllUsedAttributes(sourceAttribute,
-											    nkdAllUsedAttributes);
+				// Analyse de l'attribut source si necessaire, car l'attribut cible est utilise,
+				// directement ou via une autre regle de derivation
+				if (nkdAllUsedAttributes->Lookup(targetAttribute) != NULL)
+				{
+					if (nkdAllUsedAttributes->Lookup(sourceAttribute) == NULL)
+					{
+						// Memorisation de l'attribut dans le dictionnaire
+						nkdAllUsedAttributes->SetAt(sourceAttribute, sourceAttribute);
+
+						// Acces a la regle d'attribut ou de bloc
+						if (sourceAttribute->GetAnyDerivationRule() != NULL)
+							sourceAttribute->GetAnyDerivationRule()->BuildAllUsedAttributes(
+							    sourceAttribute, nkdAllUsedAttributes);
+					}
 				}
 			}
 
 			// Attribut suivant
 			kwcTargetClass->GetNextAttribute(targetAttribute);
 		}
+	}
 
-		//DDD On doit integrer tous les attribut Used de la classe source (BUG EN COURS)
-		//DDD Sinon, on a des incoherences entre la classe source et cible lors des calculs
-		//DDD de classe phyisuqe dans les Database
-		// Parcours des attributs utilises de la classe source
-		sourceAttribute = kwcSourceClass->GetHeadAttribute();
-		while (sourceAttribute != NULL)
-		{
-			if (sourceAttribute->GetUsed())
-			{
-				// Analyse de l'attribut si necessaire
-				if (nkdAllUsedAttributes->Lookup(sourceAttribute) == NULL)
-				{
-					// Memorisation de l'attribut dans le dictionnaire
-					nkdAllUsedAttributes->SetAt(sourceAttribute, sourceAttribute);
-
-					// Acces a la regle d'attribut ou de bloc
-					sourceAttributeRule = sourceAttribute->GetAnyDerivationRule();
-					if (sourceAttributeRule != NULL)
-						sourceAttributeRule->BuildAllUsedAttributes(sourceAttribute,
-											    nkdAllUsedAttributes);
-				}
-			}
-
-			// Attribut suivant
-			kwcSourceClass->GetNextAttribute(sourceAttribute);
-		}
+	// Trace de fin
+	if (bTrace)
+	{
+		cout << "End KWDRRelationCreationRule::BuildAllUsedAttributes " << GetName() << ", "
+		     << derivedAttribute->GetParentClass()->GetName() << " " << derivedAttribute->GetName() << "\n";
 	}
 }
 
@@ -1135,6 +1355,9 @@ longint KWDRRelationCreationRule::GetUsedMemory() const
 	lUsedMemory += livViewModeSourceAttributeLoadIndexes.GetUsedMemory() - sizeof(KWLoadIndexVector);
 	lUsedMemory += livViewModeTargetAttributeLoadIndexes.GetUsedMemory() - sizeof(KWLoadIndexVector);
 	lUsedMemory += ivViewModeTargetAttributeTypes.GetUsedMemory() - sizeof(IntVector);
+	lUsedMemory += livViewModeSourceBlockLoadIndexes.GetUsedMemory() - sizeof(KWLoadIndexVector);
+	lUsedMemory += livViewModeTargetBlockLoadIndexes.GetUsedMemory() - sizeof(KWLoadIndexVector);
+	lUsedMemory += ivViewModeTargetBlockTypes.GetUsedMemory() - sizeof(IntVector);
 	return lUsedMemory;
 }
 
@@ -1196,6 +1419,54 @@ void KWDRRelationCreationRule::WriteUsedRuleOperands(ostream& ost) const
 	}
 }
 
+void KWDRRelationCreationRule::CollectUsedInputOperands(const IntVector* ivUsedOutputOperands,
+							IntVector* ivUsedInputOperands) const
+{
+	int nOutputOperand;
+
+	require(ivUsedOutputOperands != NULL);
+	require(ivUsedOutputOperands->GetSize() == GetOutputOperandNumber());
+	require(ivUsedInputOperands != NULL);
+	require(ivUsedInputOperands->GetSize() == GetOperandNumber());
+
+	// Collecte des operandes en entree obligatoires
+	CollectMandatoryInputOperands(ivUsedInputOperands);
+
+	// Collecte des operandes en entree specifiques par operande en sortie
+	for (nOutputOperand = 0; nOutputOperand < GetOutputOperandNumber(); nOutputOperand++)
+	{
+		if (ivUsedOutputOperands->GetAt(nOutputOperand) == 1)
+			CollectSpecificInputOperandsAt(nOutputOperand, ivUsedInputOperands);
+	}
+}
+
+void KWDRRelationCreationRule::CollectMandatoryInputOperands(IntVector* ivUsedInputOperands) const
+{
+	int nInputOperand;
+
+	require(ivUsedInputOperands != NULL);
+	require(ivUsedInputOperands->GetSize() == GetOperandNumber());
+	require(GetOperandNumber() >= GetOutputOperandNumber());
+
+	// Par defaut, les operandes en entree du debut de liste spont obligatoires
+	for (nInputOperand = 0; nInputOperand < GetOperandNumber() - GetOutputOperandNumber(); nInputOperand++)
+		ivUsedInputOperands->SetAt(nInputOperand, 1);
+}
+
+void KWDRRelationCreationRule::CollectSpecificInputOperandsAt(int nOutputOperand, IntVector* ivUsedInputOperands) const
+{
+	int nInputOperand;
+
+	require(0 <= nOutputOperand and nOutputOperand < GetOutputOperandNumber());
+	require(ivUsedInputOperands != NULL);
+	require(ivUsedInputOperands->GetSize() == GetOperandNumber());
+	require(GetOperandNumber() >= GetOutputOperandNumber());
+
+	// Par defaut, on utilie l'operande en entree correspondant a l'operande en sortie
+	nInputOperand = GetOperandNumber() - GetOutputOperandNumber() + nOutputOperand;
+	ivUsedInputOperands->SetAt(nInputOperand, 1);
+}
+
 void KWDRRelationCreationRule::InternalCompleteTypeInfo(const KWClass* kwcOwnerClass,
 							NumericKeyDictionary* nkdCompletedAttributes)
 {
@@ -1226,6 +1497,21 @@ void KWDRRelationCreationRule::InternalCompleteTypeInfo(const KWClass* kwcOwnerC
 	}
 }
 
+void KWDRRelationCreationRule::AddViewModeError(const KWClass* kwcSourceClass, const KWClass* kwcTargetClass,
+						const KWAttribute* targetAttribute, const ALString& sLabel) const
+{
+	require(kwcSourceClass != NULL);
+	require(kwcTargetClass != NULL);
+	require(targetAttribute != NULL);
+	require(IsValidOutputOperandType(targetAttribute->GetType()));
+	require(kwcTargetClass->LookupAttribute(targetAttribute->GetName()) == targetAttribute);
+
+	// Message d'erreur, avec partie generique
+	AddError("In the " + kwcTargetClass->GetName() + " output dictionary, the " + targetAttribute->GetTypeLabel() +
+		 " variable " + targetAttribute->GetName() + " " + sLabel + " in the " + kwcSourceClass->GetName() +
+		 " input dictionary of the first operand" + " of the rule");
+}
+
 boolean KWDRRelationCreationRule::IsViewModeActivated() const
 {
 	return true;
@@ -1237,9 +1523,14 @@ void KWDRRelationCreationRule::FillViewModeTargetAttributes(const KWObject* kwoS
 	ObjectArray* oaSourceObjectArray;
 	ObjectArray* oaTargetObjectArray;
 	int nAttribute;
+	int nBlock;
 	int nType;
 	KWLoadIndex liSource;
 	KWLoadIndex liTarget;
+	KWDerivationRule* valueBlockRule;
+	KWContinuousValueBlock* targetContinuousValueBlock;
+	KWSymbolValueBlock* targetSymbolValueBlock;
+	KWAttributeBlock* targetAttributeBlock;
 
 	require(IsCompiled());
 	require(kwoSourceObject != NULL);
@@ -1248,6 +1539,7 @@ void KWDRRelationCreationRule::FillViewModeTargetAttributes(const KWObject* kwoS
 	// Alimentation des attributs de l'objet cible avec les valeurs provenant de l'objet source
 	for (nAttribute = 0; nAttribute < ivViewModeTargetAttributeTypes.GetSize(); nAttribute++)
 	{
+		// Acces aux informations issues de la compilation
 		nType = ivViewModeTargetAttributeTypes.GetAt(nAttribute);
 		liSource = livViewModeSourceAttributeLoadIndexes.GetAt(nAttribute);
 		liTarget = livViewModeTargetAttributeLoadIndexes.GetAt(nAttribute);
@@ -1294,6 +1586,39 @@ void KWDRRelationCreationRule::FillViewModeTargetAttributes(const KWObject* kwoS
 			break;
 		}
 	}
+
+	// Alimentation des blocs d'attributs de l'objet cible avec les valeurs provenant de l'objet source
+	for (nBlock = 0; nBlock < ivViewModeTargetBlockTypes.GetSize(); nBlock++)
+	{
+		// Acces aux informations issues de la compilation
+		nType = ivViewModeTargetBlockTypes.GetAt(nBlock);
+		liSource = livViewModeSourceBlockLoadIndexes.GetAt(nBlock);
+		liTarget = livViewModeTargetBlockLoadIndexes.GetAt(nBlock);
+		valueBlockRule = cast(KWDerivationRule*, oaViewModeCopyBlockRules.GetAt(nBlock));
+
+		// Acces au bloc cible
+		targetAttributeBlock = kwoTargetObject->GetClass()->GetAttributeBlockAtLoadIndex(liTarget);
+
+		// Recopie de la valeur selon le type
+		switch (nType)
+		{
+		case KWType::Symbol:
+			// Calcul et memorisation de la valeur du bloc cible
+			targetSymbolValueBlock = valueBlockRule->ComputeSymbolValueBlockResult(
+			    kwoSourceObject, targetAttributeBlock->GetLoadedAttributesIndexedKeyBlock());
+			kwoTargetObject->SetSymbolValueBlockAt(liTarget, targetSymbolValueBlock);
+			break;
+		case KWType::Continuous:
+			// Calcul et memorisation de la valeur du bloc cible
+			targetContinuousValueBlock = valueBlockRule->ComputeContinuousValueBlockResult(
+			    kwoSourceObject, targetAttributeBlock->GetLoadedAttributesIndexedKeyBlock());
+			kwoTargetObject->SetContinuousValueBlockAt(liTarget, targetContinuousValueBlock);
+			break;
+		default:
+			assert(false);
+			break;
+		}
+	}
 }
 
 void KWDRRelationCreationRule::FillComputeModeTargetAttributesForVariableOperandNumber(const KWObject* kwoSourceObject,
@@ -1315,8 +1640,9 @@ void KWDRRelationCreationRule::FillComputeModeTargetAttributesForVariableOperand
 	require(GetVariableOperandNumber());
 	require(GetVariableOutputOperandNumber());
 
-	// Recherche de l'index du premier operand en entree correspondant
+	// Recherche de l'index du premier operande en entree correspondant
 	// aux valeurs servant a alimenter les attributs en sortie
+	// En effet, les operande en sortie sont alimentes par les derniers operandes en entree
 	nStartInputOperandIndex = GetOperandNumber() - GetOutputOperandNumber();
 
 	// Alimentation des attributs de l'objet cible avec les valeurs provenant des operandes en sortie
@@ -1325,6 +1651,15 @@ void KWDRRelationCreationRule::FillComputeModeTargetAttributesForVariableOperand
 		nType = ivComputeModeTargetAttributeTypes.GetAt(nAttribute);
 		liTarget = livComputeModeTargetAttributeLoadIndexes.GetAt(nAttribute);
 		nInputOperandIndex = nStartInputOperandIndex + nAttribute;
+
+		// On ignore les attribut cible non valide, qui correspondes aux attributs cibles non charges en memoire
+		if (not liTarget.IsValid())
+		{
+			assert(not kwoTargetObject->GetClass()
+				       ->LookupAttribute(GetOutputOperandAt(nAttribute)->GetAttributeName())
+				       ->GetLoaded());
+			continue;
+		}
 
 		// Recopie de la valeur selon le type
 		switch (nType)

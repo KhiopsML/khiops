@@ -318,8 +318,8 @@ public:
 	// Deplacement d'un bloc et de tous ses attributs vers la fin de la classe
 	void MoveAttributeBlockToClassTail(KWAttributeBlock* attributeBlock);
 
-	///////////////////////////////////////////////////////////
-	// Services divers
+	///////////////////////////////////////////////////////////////////
+	// Services lies a la compilation d'une classe
 
 	// Compilation d'une classe (et indexation)
 	// Il s'agit de la compilation de ses regles de derivation,
@@ -343,6 +343,9 @@ public:
 	int GetFreshness() const;
 	void UpdateFreshness();
 
+	// Completion eventuelle des attributs avec les informations de type de leur regle de derivation
+	void CompleteTypeInfo();
+
 	// Acces au domaine de classe contenant la classe
 	KWClassDomain* GetDomain() const;
 
@@ -350,16 +353,75 @@ public:
 	const ALString BuildAttributeName(const ALString& sPrefix);
 	const ALString BuildAttributeBlockName(const ALString& sPrefix);
 
+	///////////////////////////////////////////////////////////////////
+	// Services exploitant les resultats de compilation d'une classe
+	// pour extraire des information
+
 	// Simplification d'une classe en supprimant les attributs derives
 	// non utilises directement ou indirectement, y compris dans une
 	// autre classe du domaine.
+	// On supprime egalement les classes non utilisees su diomaines, qui sinon pourraient perdre
+	// leur integrite structurelle (par exemple en referencant des attributs supprimes d'autres classes)
+	// On garde par contre les attributs natifs des classes nettoyeers, pour eviter les warning
+	// lors des lectures de fichier de donnee.
+	//
 	// Si le domaine de reference n'est pas NULL, les attributs doivent
-	// etre absent de ce dernier pour etre supprimes
+	// etre absent de ce dernier pour etre supprimes.
+	// Attention, si le domaine de reference est nul, cela peut impacter le mapping  dans le
+	// cas multi-table, et les bases doivent actualiser ce mapping avec le dictionnaire simplifie.
+	//
 	// Prerequis: la classe doit etre compilee (elle ne le sera plus apres)
 	void DeleteUnusedDerivedAttributes(const KWClassDomain* referenceDomain);
 
-	// Completion eventuelle des attributs avec les informations de type de leur regle de derivation
-	void CompleteTypeInfo();
+	// Calcul de l'ensemble de tous les attributs utilises, Used et Loaded, par analyse recursive
+	// du graphe de calcul, avec en complement des info sur les classes utilises, par type d'usage
+	// Parametres:
+	// - nkdAllUsedAttributes
+	//   - contient tous les attributs utilises recursivement
+	//   - peut etre initialement non vide pour specifier des attributs a utiliser
+	//     meme s'ils ne sont pas Used, comme par exemple un attribut de selection
+	// - nkdAllUsedClasses
+	//   - contient toutes les classes utilisees recursivement, deduites des attributs utilises
+	// - nkdAllLoadedClasses
+	//   - contient toutes les classes chargees explicitement, sans tenir compte des besoins des attributs derives
+	// - nkdAllNativeClasses
+	//   - contient toutes les classes natives, quelle soient utilisees ou non
+	//
+	// Les principe de l'algorithme sont resumes ci-dessous.
+	//
+	// La premiere etape consiste en
+	// - initialisation avec l'ensemble des attributs utilises et de leur classe
+	// - analyse des regles de derivation de ces attributs par la methode BuildAllUsedAttributes
+	//   pour en deduire tous les attributs utilises en operandes des regles, meme s'il ne sont
+	//   pas utilises (Used) directement dans les attributs des classes
+	//
+	// Il est a noter que certaines regles ont un comportement special
+	// - regle produisant un bloc en sortie, a partir d'un bloc en entree
+	//   - on deduit des attributs utilises du bloc en sortie les attribut a utiliser dans le bloc en entree
+	// - regle de creation de table de type vue
+	//   - on deduit des attributs utilises de la table en sortie les attributs a utiliser dans la table en entree
+	// - regle de creation de table avec operandes en sortie
+	//   - on deduit des attributs utilises de la table en sortie les operandes de la regle a analyser pour le calcul
+	//     des valeurs des attributs en sortie
+	//
+	// Il est egalement a noter le traitement de la partie native du schema de donnees, c'est a dire les classes utilisees
+	// par des attributs non derives de type relation, ou des tables externes.
+	// Pour les classes natives utilisees, il faut implicitement utiliser les attributs de la cle des classes, necessaire
+	// pour la lecture des donnees.
+	// Ce n'est pas necessaire pour des classes utilisees uniquement en sortie de regles de creation de table.
+	//
+	// Une deuxieme passe est necessaire pour decouvrir tous les attributs utilises, car par exemple, on ne peut connaitre
+	// la liste des attributs utilises d'une vue qu'apres avoir analyse tout le graphe de calcul.
+	// Cette deuxieme passe est reiteree tant que l'on decrouvre de nouveaux attributs utilises
+	void BuildAllUsedAttributes(NumericKeyDictionary* nkdAllUsedAttributes, NumericKeyDictionary* nkdAllUsedClasses,
+				    NumericKeyDictionary* nkdAllLoadedClasses,
+				    NumericKeyDictionary* nkdAllNativeClasses) const;
+
+	// Finalisation du calcul de l'ensemble de tous les attributs utilises, pour le cas ou on dispose deja
+	// d'un ensemble d'attributs utilises de depart
+	// Methode interne utilisee pour effectuer la deuxieme passe de la methode BuildAllUsedAttributes
+	void FinalizeBuildAllUsedAttributes(NumericKeyDictionary* nkdAllUsedAttributes,
+					    NumericKeyDictionary* nkdAllUsedClasses) const;
 
 	// Calcul de l'ensemble des classes utilisees recursivement par les attributs de la classe courante
 	// (y compris la classe courante)
@@ -367,17 +429,35 @@ public:
 	// Memoire: le tableau du code retour appartient a l'appelant, et contient des references aux classes utilisees
 	void BuildAllUsedClasses(ObjectArray* oaUsedClasses) const;
 
+	// Calcul de l'ensemble des classes natives utilisees recursivement par les attributs de la classe courante
+	// (y compris la classe courante)
+	// Prerequis: la classe doit etre compilee
+	// Memoire: le tableau du code retour appartient a l'appelant, et contient des references aux classes utilisees
+	void BuildAllNativeClasses(ObjectArray* oaNativeClasses) const;
+
+	// Calcul de l'ensemble des classes chargees (Loaded) utilisees recursivement par les attributs de la classe courante
+	// (y compris la classe courante)
+	// Prerequis: la classe doit etre compilee
+	// Memoire: le tableau du code retour appartient a l'appelant, et contient des references aux classes utilisees
+	void BuildAllLoadedClasses(ObjectArray* oaLoadedClasses) const;
+
 	// Export des noms des champs natifs (stockes et non calcules, utilises ou non), dans l'ordre du dictionnaire
 	// (utile pour constituer une ligne de header)
 	// Il peut s'agir d'attributs denses natifs ou de blocs d'attributs  non calcules
 	void ExportNativeFieldNames(StringVector* svNativeFieldNames) const;
 
-	// Export des noms des champs stockes (et loades), dans l'ordre du dictionnaire (utile pour constituer une ligne
-	// de header) Il peut s'agir d'attributs denses ou de blocs d'attributs
-	void ExportStoredFieldNames(StringVector* svStoredFieldNames) const;
+	// Export des noms des champs stockes (et loades), dans l'ordre du dictionnaire
+	// Utile pour constituer une ligne de header
+	// En mode de sortie standard, il peut agit des attributs denses ou des blocs d'attributs
+	// En mode de sortie dense, il s'agit de tous les attributs denses ou sparse, en ignorant
+	// l'appartenance ou non aux blocs d'attributs
+	void ExportStoredFieldNames(StringVector* svStoredFieldNames, boolean bDenseOutputFormat) const;
 
 	// Export des noms des attributs cles dans l'ordre des cles
 	void ExportKeyAttributeNames(StringVector* svAttributedNames) const;
+
+	////////////////////////////////////////////////////////
+	// Services standard
 
 	// Recopie, uniquemet a partir d'une classe vide
 	// Toute la description (attributs, derivations sont dupliques,
