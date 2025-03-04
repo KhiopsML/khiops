@@ -27,6 +27,7 @@ void KWDRRegisterStringRules()
 	KWDerivationRule::RegisterDerivationRule(new KWDRConcat);
 	KWDerivationRule::RegisterDerivationRule(new KWDRHash);
 	KWDerivationRule::RegisterDerivationRule(new KWDREncrypt);
+	KWDerivationRule::RegisterDerivationRule(new KWDRBuildKey);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -1287,6 +1288,78 @@ Symbol KWDRConcat::ComputeSymbolResult(const KWObject* kwoObject) const
 	return StringToSymbol(sResult);
 }
 
+//////////////////////////////////////////////////////////////////////////////////////
+
+KWDRBuildKey::KWDRBuildKey()
+{
+	SetName("BuildKey");
+	SetLabel("Build a unique key value, provided that the set of input values is unique.");
+	SetType(KWType::Symbol);
+	SetOperandNumber(1);
+	SetVariableOperandNumber(true);
+	GetFirstOperand()->SetType(KWType::Symbol);
+}
+
+KWDRBuildKey::~KWDRBuildKey() {}
+
+KWDerivationRule* KWDRBuildKey::Create() const
+{
+	return new KWDRBuildKey;
+}
+
+Symbol KWDRBuildKey::ComputeSymbolResult(const KWObject* kwoObject) const
+{
+	ALString sResult;
+	ALString sValue;
+	int i;
+	boolean bOk;
+	char c;
+	int j;
+
+	require(IsCompiled());
+
+	// Calcul de la concatenation
+	for (i = 0; i < GetOperandNumber(); i++)
+	{
+		// Ajout du separateur de type '|' a partir du second operande
+		if (i > 0)
+			sResult += '|';
+		sValue = GetGenericSymbolValue(GetOperandAt(i), kwoObject);
+
+		// Cas d'un champ qui contient une '|' ou qui commence par un quote
+		bOk = (sValue.GetLength() > 0);
+		if (bOk)
+		{
+			c = sValue.GetAt(0);
+			bOk = (c != '|' and c != '\'');
+			j = 1;
+			while (bOk and j < sValue.GetLength())
+			{
+				c = sValue.GetAt(j);
+				bOk = c != '|';
+				j++;
+			}
+		}
+
+		// Concatenation
+		if (not bOk)
+		{
+			// Ecriture avec delimiteurs quotes, avec doublement des quotes internes
+			sResult += '\'';
+			for (j = 0; j < sValue.GetLength(); j++)
+			{
+				c = sValue.GetAt(j);
+				sResult += c;
+				if (c == '\'')
+					sResult += '\'';
+			}
+			sResult += '\'';
+		}
+		else
+			sResult += sValue;
+	}
+	return StringToSymbol(sResult);
+}
 //////////////////////////////////////////////////////////////////////////////////////
 
 KWDRHash::KWDRHash()

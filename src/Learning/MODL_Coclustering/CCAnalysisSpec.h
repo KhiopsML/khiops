@@ -5,7 +5,6 @@
 #pragma once
 
 #include "CCCoclusteringSpec.h"
-#include "CCVarPartCoclusteringSpec.h"
 #include "KWDataGridOptimizerParameters.h"
 
 ////////////////////////////////////////////////////////////
@@ -26,9 +25,6 @@ public:
 
 	// Parametrage du coclustering
 	CCCoclusteringSpec* GetCoclusteringSpec();
-
-	// Parametrage du coclustering VarPart instances x variables
-	CCVarPartCoclusteringSpec* GetVarPartCoclusteringSpec();
 
 	// Libelles correspondant aux type de coclustering
 	// pour les cas VartPart (coclustering instances x variables) ou standard (coclustering de variables)
@@ -51,6 +47,5 @@ protected:
 	// Attributs de la classe
 	boolean bVarPartCoclustering;
 	CCCoclusteringSpec coclusteringSpec;
-	CCVarPartCoclusteringSpec varPartCoclusteringSpec;
 	KWDataGridOptimizerParameters optimizationParameters;
 };

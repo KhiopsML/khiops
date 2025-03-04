@@ -17,7 +17,6 @@ class CCCoclusteringBuilder;
 #include "CCAnalysisSpec.h"
 #include "CCCoclusteringReport.h"
 #include "CCCoclusteringSpec.h"
-#include "CCVarPartCoclusteringSpec.h"
 
 /////////////////////////////////////////////////////////////////////////////////
 // Construction et services autour du coclustering

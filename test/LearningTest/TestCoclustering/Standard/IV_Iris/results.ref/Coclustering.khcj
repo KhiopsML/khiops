@@ -1,6 +1,6 @@
 {
 	"tool": "Khiops Coclustering",
-	"version": "10.5.6-b.0",
+	"version": "10.6.1-b.0",
 	"shortDescription": "",
 	"coclusteringReport": {
 		"summary": {
@@ -20,7 +20,7 @@
 		},
 		"dimensionSummaries": [
 			{
-				"name": "Identifier",
+				"name": "Instance index",
 				"type": "Categorical",
 				"parts": 3,
 				"initialParts": 3,
@@ -41,7 +41,7 @@
 		],
 		"dimensionPartitions": [
 			{
-				"name": "Identifier",
+				"name": "Instance index",
 				"type": "Categorical",
 				"valueGroups": [
 					{
@@ -248,7 +248,7 @@
 		],
 		"dimensionHierarchies": [
 			{
-				"name": "Identifier",
+				"name": "Instance index",
 				"type": "Categorical",
 				"clusters": [
 					{

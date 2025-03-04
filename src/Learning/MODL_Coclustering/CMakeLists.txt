@@ -18,7 +18,6 @@ set_khiops_options(MODL_Coclustering_DLL)
 
 # Generate cpp files from dd file
 # cmake-format: off
- generate_gui_add_view(CCVarPartCoclusteringSpec "Instances Variables coclustering parameters" CCVarPartCoclusteringSpec.dd CCVarPartCoclusteringSpec.dd.log -noarrayview)
  generate_gui_add_view(CCCoclusteringSpec "Coclustering parameters" CCCoclusteringSpec.dd CCCoclusteringSpec.dd.log -noarrayview)
  generate_gui_add_view(CCPostProcessingSpec "Simplification parameters" CCPostProcessingSpec.dd CCPostProcessingSpec.dd.log -noarrayview)
  generate_gui_add_view(CCPostProcessedAttribute "Coclustering variable" CCPostProcessedAttribute.dd CCPostProcessedAttribute.dd.log)
