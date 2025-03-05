@@ -607,6 +607,9 @@ def evaluate_tool_on_test_dir(
                 exception,
             )
 
+        # Nettoyage de toute reference a la version des fichiers de resultats
+        check.clean_version_from_results(results_dir)
+
     # Restore initial path
     if os.name == "nt":
         os.environ["path"] = initial_path
@@ -615,7 +618,6 @@ def evaluate_tool_on_test_dir(
 
     # Comparaison des resultats
     os.chdir(suite_dir)
-    test_dir = os.path.join(suite_dir, test_dir_name)
     check.check_results(test_dir)
 
 
