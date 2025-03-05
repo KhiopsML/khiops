@@ -194,6 +194,157 @@ def analyse_comparison_log(test_dir):
     return error_number, warning_number, summary_infos, files_infos
 
 
+def clean_version_from_results(results_dir):
+    """
+    Nettoyage de toute reference a la version des fichiers de resultats, quelque soit leur nature
+    (.kdic, .xls, json...) en remplacant la version par 'VERSION', et en memorisant la version dans
+    la deuxieme ligne du fichier time.log
+    L'objectif est de minimiser les difference entre resultats et resultats de references, de facon
+    a minimiser le volume necessaire pour memoriser tout LearningTest sur un repo git.
+
+    :param results_dir: sous-repertoire de resultats d'un repertoire de test
+    """
+
+    def read_bytes(path):
+        """Lecture du contenu d'un fichier sous formes de bytes"""
+        data = []
+        with open(path, "rb") as file:
+            data = file.read()
+        return data
+
+    def write_bytes(path, data):
+        """Ecriture du contenu d'un fichier sous formes de bytes"""
+        with open(path, "wb") as file:
+            file.write(data)
+
+    def extract_data_head_as_text(data):
+        """Retourne le debut d'un bloc de bytes sous forme de texte,
+        en ayant remplace les fine de ligne par des blancs"""
+        data_head = data[0:1000]
+        data_head_text = data_head.decode("latin-1")
+        return data_head_text
+
+    def remove_version_in_data(data, pos_version, version):
+        """Remplace la version a la position donnees par une valeur constante"""
+        assert pos_version > 0
+        data_head_text = extract_data_head_as_text(data)
+        new_data_head_text = (
+            data_head_text[:pos_version]
+            + "VERSION"
+            + data_head_text[pos_version + len(version) :]
+        )
+        new_data_dead = new_data_head_text.encode("latin-1")
+        new_data = new_data_dead + data[len(data_head) :]
+        return new_data
+
+    def trace(file_name, pos_version, version, data, new_data):
+        """Message de trace"""
+        _, file_extension = os.path.splitext(file_name)
+        print(
+            "\t"
+            + file_extension
+            + " "
+            + file_name
+            + "\t"
+            + str(pos_version)
+            + " "
+            + version
+            + " "
+            + str(len(data))
+            + " "
+            + str(len(new_data) - len(data))
+        )
+
+    # Verification que l'on est sur un jeu de test
+    trace_on = False
+    utils.check_test_dir(os.path.join(results_dir, ".."))
+
+    # Nettoyage du contenu du repertoire uniquement s'il existe un fichier de temps
+    time_file_path = os.path.join(results_dir, kht.TIME_LOG)
+    if not os.path.isfile(time_file_path):
+        return
+
+    # Acces aux fichiers du repertoire
+    if trace_on:
+        print("clean_version_from_results: " + results_dir)
+    version_key = "VERSION"
+    found_version = ""
+    file_names = os.listdir(results_dir)
+    for file_name in file_names:
+        _, file_extension = os.path.splitext(file_name)
+        file_path = os.path.join(results_dir, file_name)
+        # Cas d'un fichier de dictionnaire ou excel
+        if file_extension == ".kdic" or file_extension == ".xls":
+            # Recherche de la version si elle n'a pas ete trouvee
+            data = read_bytes(file_path)
+            if len(data) > 0:
+                data_head_text = extract_data_head_as_text(data)
+                pos = utils.find_pattern_in_line(data_head_text, ["#", " "])
+                if pos >= 0:
+                    fields = (
+                        data_head_text[pos:]
+                        .replace("\r", " ")
+                        .replace("\n", " ")
+                        .split(" ")
+                    )
+                    if len(fields) >= 2:
+                        version = fields[1]
+                        if version != "" and version != version_key:
+                            if found_version == "":
+                                found_version = version
+                            pos_version = pos + data_head_text[pos:].find(version)
+                            new_data = remove_version_in_data(
+                                data, pos_version, version
+                            )
+                            write_bytes(file_path, new_data)
+                            if trace_on:
+                                trace(file_name, pos_version, version, data, new_data)
+        # Cas d'un fichier json
+        elif is_file_with_json_extension(file_name):
+            # Recherche de la version si elle n'a pas ete trouvee
+            data = read_bytes(file_path)
+            if len(data) > 0:
+                data_head_text = extract_data_head_as_text(data)
+                pos = utils.find_pattern_in_line(data_head_text, ['"version": '])
+                if pos >= 0:
+                    fields = (
+                        data_head_text[pos:]
+                        .replace("\r", " ")
+                        .replace("\n", " ")
+                        .split('"')
+                    )
+                    if len(fields) >= 4:
+                        version = fields[3]
+                        if version != "" and version != version_key:
+                            if found_version == "":
+                                found_version = version
+                            pos_version = pos + data_head_text[pos:].find(version)
+                            new_data = remove_version_in_data(
+                                data, pos_version, version
+                            )
+                            write_bytes(file_path, new_data)
+                            if trace_on:
+                                trace(file_name, pos_version, version, data, new_data)
+    # Mise a jour du fichier de temps en ajoutant une deuxième ligne contenant la version
+    if found_version != "":
+        time_file = open(time_file_path, "r", errors="ignore")
+        lines = time_file.readlines()
+        time_file.close()
+        try:
+            with open(
+                os.path.join(results_dir, kht.TIME_LOG),
+                "w",
+                errors="ignore",
+            ) as time_file:
+                time_file.write(lines[0])
+                time_file.write("version: " + found_version + "\n")
+        except Exception as exception:
+            print(
+                "Enable to write file " + kht.TIME_LOG + " in " + kht.RESULTS + " dir ",
+                exception,
+            )
+
+
 def check_results(test_dir, forced_context=None):
     """
     Fonction principale de comparaison des resultats de test et de reference
@@ -201,7 +352,7 @@ def check_results(test_dir, forced_context=None):
      dans un fichier de log, avec un resume en fin de fichier, facile a parser
     On retourne True s'il n'y a aucune erreur
 
-    Le parametrage d'un contexte force en entree permete d'effectuer la comparaison avec
+    Le parametrage d'un contexte force en entree permet d'effectuer la comparaison avec
     un contexte (parallel|sequential, platform) alternatif. Dans ce cas:
     - l'objectif est essentiellement de renvoyer un indicateur global de succes de la comparaison
     - on n'ecrit pas de fichier de comparaison
