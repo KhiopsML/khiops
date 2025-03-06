@@ -438,6 +438,8 @@ boolean KWKeyPositionSampleExtractorTask::MasterFinalize(boolean bProcessEndedCo
 	int i;
 	int j;
 	ALString sTmp;
+	ALString sObjectLabel;
+	ALString sOtherObjectLabel;
 
 	// Test si arret utilisateur
 	bOk = bProcessEndedCorrectly;
@@ -510,11 +512,13 @@ boolean KWKeyPositionSampleExtractorTask::MasterFinalize(boolean bProcessEndedCo
 					// Erreur si cles non ordonnees
 					else if (nCompareKey > 0)
 					{
+						// Creation de libelles utilisateurs distincts pour les deux cles
+						firstNextKeyPosition->GetKey()->BuildDistinctObjectLabels(
+						    lastPreviousKeyPosition->GetKey(), sObjectLabel, sOtherObjectLabel);
 						AddError(sTmp + "Unsorted record " +
 							 LongintToString(firstNextKeyPosition->GetLineIndex()) +
-							 " : key " + firstNextKeyPosition->GetKey()->GetObjectLabel() +
-							 " inferior to preceding key " +
-							 lastPreviousKeyPosition->GetKey()->GetObjectLabel());
+							 " with key " + sObjectLabel + " inferior to preceding key " +
+							 sOtherObjectLabel);
 						bOk = false;
 						break;
 					}
@@ -584,6 +588,8 @@ boolean KWKeyPositionSampleExtractorTask::SlaveProcess()
 	int nCumulatedLineNumber;
 	boolean bIsLineOK;
 	ALString sTmp;
+	ALString sObjectLabel;
+	ALString sOtherObjectLabel;
 
 	// Specification de la portion du fichier a traiter
 	lBeginPos = input_lFilePos;
@@ -682,10 +688,12 @@ boolean KWKeyPositionSampleExtractorTask::SlaveProcess()
 				// Erreur si cles non ordonnees
 				else
 				{
+					// Creation de libelles utilisateurs distincts pour les deux cles
+					recordKeyPosition->GetKey()->BuildDistinctObjectLabels(
+					    previousRecordKeyPosition->GetKey(), sObjectLabel, sOtherObjectLabel);
 					AddLocalError(
-					    "unsorted key " + recordKeyPosition->GetKey()->GetObjectLabel() +
-						" inferior to preceding key " +
-						previousRecordKeyPosition->GetKey()->GetObjectLabel() + " found " +
+					    "unsorted record with key " + sObjectLabel + " inferior to preceding key " +
+						sOtherObjectLabel + " found " +
 						LongintToReadableString(recordKeyPosition->GetLineIndex() -
 									previousRecordKeyPosition->GetLineIndex()) +
 						" lines before",

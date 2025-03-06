@@ -224,6 +224,24 @@ const ALString KWObjectKey::GetObjectLabel() const
 	return sObjectLabel;
 }
 
+void KWObjectKey::BuildDistinctObjectLabels(const KWObjectKey* otherObjectKey, ALString& sObjectLabel,
+					    ALString& sOtherObjectLabel)
+{
+	KWKey key;
+	KWKey otherKey;
+	int i;
+
+	// Initialisation des deux cles
+	key.SetSize(GetSize());
+	otherKey.SetSize(otherObjectKey->GetSize());
+	for (i = 0; i < key.GetSize(); i++)
+		key.SetAt(i, GetAt(i).GetValue());
+	for (i = 0; i < otherKey.GetSize(); i++)
+		otherKey.SetAt(i, otherObjectKey->GetAt(i).GetValue());
+
+	key.BuildDistinctObjectLabels(&otherKey, sObjectLabel, sOtherObjectLabel);
+}
+
 void KWObjectKey::Test()
 {
 	KWObjectKey key1;

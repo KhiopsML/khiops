@@ -569,6 +569,8 @@ boolean KWKeyPositionFinderTask::MasterAggregateResults()
 	KWKeyPosition* keyPosition1;
 	KWKeyPosition* keyPosition2;
 	ALString sTmp;
+	ALString sObjectLabel;
+	ALString sOtherObjectLabel;
 
 	// Test si interruption
 	if (TaskProgression::IsInterruptionRequested())
@@ -625,11 +627,14 @@ boolean KWKeyPositionFinderTask::MasterAggregateResults()
 			{
 				if (keyPosition1->Compare(keyPosition2) > 0)
 				{
+					// Creation de libelles utilisateurs distincts pour les deux cles
+					keyPosition2->GetKey()->BuildDistinctObjectLabels(
+					    keyPosition1->GetKey(), sObjectLabel, sOtherObjectLabel);
 					// On renonce a preciser le numero de ligne, car il faudrait cumuler les nombre
 					// de lignes lues pour les esclaves precedents, et tous n'ont peut-etre pas
 					// termine
-					AddError(sTmp + "Record with key " + keyPosition2->GetKey()->GetObjectLabel() +
-						 " inferior to key " + keyPosition1->GetKey()->GetObjectLabel() +
+					AddError(sTmp + "Unsorted record with key " + sObjectLabel +
+						 " inferior to key " + sOtherObjectLabel +
 						 " of a record found previously");
 					bOk = false;
 				}
@@ -652,16 +657,19 @@ boolean KWKeyPositionFinderTask::MasterAggregateResults()
 			keyPosition1 = cast(KWKeyPosition*, oaAllSlaveLastKeyPositions.GetAt(GetTaskIndex()));
 			keyPosition2 = cast(KWKeyPosition*, oaAllSlaveFirstKeyPositions.GetAt(GetTaskIndex() + 1));
 
-			// Comparaison s'il elle ont ete extraites
+			// Comparaison si elles ont ete extraites
 			if (keyPosition1->GetLineIndex() != 0 and keyPosition2->GetLineIndex() != 0)
 			{
 				if (keyPosition1->Compare(keyPosition2) > 0)
 				{
-					// On renonce a preciser le numeroid de ligne, car il faudrait cimuler les
+					// Creation de libelles utilisateurs distincts pour les deux cles
+					keyPosition2->GetKey()->BuildDistinctObjectLabels(
+					    keyPosition1->GetKey(), sObjectLabel, sOtherObjectLabel);
+					// On renonce a preciser le numero de ligne, car il faudrait cumuler les
 					// nombre de lignes lues pour les esclaves precedents, et tous n'ont peut-etre
 					// pas termine
-					AddError(sTmp + "Record with key " + keyPosition2->GetKey()->GetObjectLabel() +
-						 " inferior to key " + keyPosition1->GetKey()->GetObjectLabel() +
+					AddError(sTmp + "Unsorted record with key " + sObjectLabel +
+						 " inferior to key " + sOtherObjectLabel +
 						 " of a record found previously");
 					bOk = false;
 				}
@@ -767,11 +775,12 @@ boolean KWKeyPositionFinderTask::MasterFinalize(boolean bProcessEndedCorrectly)
 					if (nCompareKey > 0)
 					{
 						// On connait la position du probleme, la cle recherchee correspondant,
-						// mais pas la la cle touvee (non memorisee), d'ou un message
+						// mais pas la cle trouvee (non memorisee), d'ou un message
 						// entierement explicite
-						AddError(sTmp + "Record " +
+						AddError(sTmp + "Unsorted record " +
 							 LongintToString(firstNextKeyPosition->GetLineIndex()) +
-							 " : key " + firstNextKeyPosition->GetKey()->GetObjectLabel() +
+							 " with key " +
+							 firstNextKeyPosition->GetKey()->GetObjectLabel() +
 							 " inferior to a key found previously, beyond record " +
 							 LongintToString(lastPreviousKeyPosition->GetLineIndex()));
 						bOk = false;
@@ -993,6 +1002,8 @@ boolean KWKeyPositionFinderTask::SlaveProcess()
 	int nCumulatedLineNumber;
 	boolean bIsLineOK;
 	ALString sTmp;
+	ALString sObjectLabel;
+	ALString sOtherObjectLabel;
 
 	require(inputFile.IsOpened());
 	require(output_lLineNumber == (longint)0);
@@ -1115,8 +1126,9 @@ boolean KWKeyPositionFinderTask::SlaveProcess()
 				// Erreur si cle non ordonnees
 				if (nCompareKey > 0)
 				{
-					AddLocalError("key " + key->GetObjectLabel() + " inferior to key " +
-							  previousKey->GetObjectLabel() + " of previous record",
+					key->BuildDistinctObjectLabels(previousKey, sObjectLabel, sOtherObjectLabel);
+					AddLocalError("Unsorted record with key " + sObjectLabel + " inferior to key " +
+							  sOtherObjectLabel + " of previous record",
 						      nCumulatedLineNumber + inputFile.GetCurrentLineIndex() - 1);
 					bOk = false;
 					break;

@@ -525,6 +525,8 @@ boolean KWFileKeyExtractorTask::SlaveProcess()
 	int nCumulatedLineNumber;
 	boolean bIsLineOK;
 	ALString sTmp;
+	ALString sObjectLabel;
+	ALString sOtherObjectLabel;
 
 	// Initialisation du resultat
 	output_lExtractedKeyNumber = 0;
@@ -641,9 +643,11 @@ boolean KWFileKeyExtractorTask::SlaveProcess()
 					// Si la clef extraite est plus petite que la precedente => erreur
 					if (nCompareKey > 0)
 					{
-						AddLocalError(sTmp + "key " + key->GetObjectLabel() +
-								  " inferior to previous key " +
-								  previousKey->GetObjectLabel(),
+						// Creation de libelles utilisateurs distincts pour les deux cles
+						key->BuildDistinctObjectLabels(previousKey, sObjectLabel,
+									       sOtherObjectLabel);
+						AddLocalError(sTmp + "Unsorted record with key " + sObjectLabel +
+								  " inferior to previous key " + sOtherObjectLabel,
 							      nCumulatedLineNumber + inputFile.GetCurrentLineIndex());
 						bOk = false;
 						break;
