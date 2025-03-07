@@ -60,9 +60,6 @@ KWLearningProblemActionView::KWLearningProblemActionView()
 	GetActionAt("EvaluatePredictors")
 	    ->SetHelpText("Open a dialog box allowing to specify an evaluation report, an evaluation database"
 			  "\n and to choose the predictor(s) to evaluate.");
-	GetActionAt("EvaluatePredictors")
-	    ->SetHelpText("Open a dialog box allowing to specify an evaluation report, an evaluation database"
-			  "\n and to choose the predictor(s) to evaluate.");
 	GetActionAt("InterpretPredictor")
 	    ->SetHelpText("Open a dialog box allowing to specify and build an interpretation dictionary for a "
 			  "predictor to interpret.");

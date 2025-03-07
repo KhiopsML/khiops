@@ -105,6 +105,26 @@ ALString CCLearningProblem::GetDatabaseName() const
 
 /////////////////////////////////////////////////////////////////////////////
 
+void CCLearningProblem::CheckData()
+{
+	KWDatabaseCheckTask databaseCheckTask;
+
+	require(CheckClass());
+	require(CheckDatabaseName());
+	require(GetDatabase()->CheckSelectionValue(GetDatabase()->GetSelectionValue()));
+
+	// Demarage du suivi de la tache
+	TaskProgression::SetTitle("Check database " + GetDatabase()->GetDatabaseName());
+	TaskProgression::Start();
+
+	// Verification de la base d'apprentissage
+	AddSimpleMessage("Check database " + GetDatabase()->GetDatabaseName());
+	databaseCheckTask.CheckDatabase(GetDatabase());
+
+	// Fin du suivi de la tache
+	TaskProgression::Stop();
+}
+
 void CCLearningProblem::BuildCoclustering()
 {
 	KWClass* kwcClass;

@@ -17,6 +17,9 @@
 #include "KWClassAttributeHelpList.h"
 #include "KWDatabaseAttributeValuesHelpList.h"
 #include "KWLearningProblemHelpCard.h"
+#include "KWDataTableSorterView.h"
+#include "KWDataTableKeyExtractorView.h"
+#include "KWDatabaseTransferView.h"
 
 ////////////////////////////////////////////////////////////
 // Classe CCLearningProblemView
@@ -38,6 +41,9 @@ public:
 	void EventRefresh(Object* object) override;
 
 	// Actions disponibles
+	void CheckData();
+	void SortDataTableByKey();
+	void TransferDatabase();
 	void BuildCoclustering();
 
 	// Acces au probleme d'apprentissage
