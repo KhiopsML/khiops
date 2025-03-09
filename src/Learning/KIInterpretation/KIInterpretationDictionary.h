@@ -6,6 +6,7 @@
 #define PT_INTERPRETATION_DICTIONARY_H
 
 #include "KWClass.h"
+#include "KWDRNBPredictor.h"
 
 class ISAnalysisSpec;
 class ISModelingSpec;
@@ -38,7 +39,7 @@ public:
 	const SymbolVector& GetTargetValues() const;
 
 	/// Acces au tableau des noms variables predictives
-	ObjectArray* GetPredictiveAttributeNamesArray();
+	StringVector* GetPredictiveAttributeNamesArray();
 
 	/// creer des meta-tags dans le dictionnaire, pour reperer les variables levier potentielles
 	void PrepareInterpretationClass();
@@ -145,11 +146,11 @@ protected:
 
 	SymbolVector sTargetValues;
 
-	/* tableau de noms de variables partitionnees */
-	ObjectArray oaPartitionedPredictiveAttributeNames;
+	// Noms des variables partitionnees
+	StringVector svPartitionedPredictiveAttributeNames;
 
-	/* tableau de noms de variables natives */
-	ObjectArray oaNativePredictiveAttributeNames;
+	// Noms des variables natives
+	StringVector svNativePredictiveAttributeNames;
 };
 
 inline KWClassDomain* KIInterpretationDictionary::GetInterpretationDomain() const
