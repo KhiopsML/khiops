@@ -7,7 +7,6 @@
 #include "KIDRPredictor.h"
 
 #include "KWTrainedPredictor.h"
-#include "KWDRNBPredictor.h"
 
 KIInterpretationDictionary::KIInterpretationDictionary(KIInterpretationSpec* spec)
 {
@@ -27,12 +26,12 @@ void KIInterpretationDictionary::CleanImport()
 	sTargetValues.SetSize(0);
 
 	// Nettoyage du tableau de noms de variables partitionnees
-	oaPartitionedPredictiveAttributeNames.DeleteAll();
-	oaPartitionedPredictiveAttributeNames.SetSize(0);
+
+	svPartitionedPredictiveAttributeNames.SetSize(0);
 
 	// Nettoyage du tableau de noms de variables natives
-	oaNativePredictiveAttributeNames.DeleteAll();
-	oaNativePredictiveAttributeNames.SetSize(0);
+
+	svNativePredictiveAttributeNames.SetSize(0);
 
 	if (kwcdInterpretationDomain != NULL)
 	{
@@ -263,7 +262,6 @@ boolean KIInterpretationDictionary::CreateContributionAttributesForClass(const A
 			variableImportancePartitionAttribute->CompleteTypeInfo(kwcInterpretation);
 			kwcInterpretation->InsertAttribute(variableImportancePartitionAttribute);
 		}
-
 		KWAttribute* variableImportanceValueAttribute = CreateContributionValueAtAttribute(
 		    scoreInterpretationAttribute, kwcInterpretation, sTargetClass, nAttributeIndex + 1);
 		variableImportanceValueAttribute->CompleteTypeInfo(kwcInterpretation);
@@ -333,24 +331,24 @@ KWAttribute* KIInterpretationDictionary::CreateContributionValueAtAttribute(
 	assert(rule->Check());
 
 	// attibut natif de la regle
-	StringObject* soNativeAttributeName = cast(StringObject*, oaNativePredictiveAttributeNames.GetAt(nIndex - 1));
+	ALString soNativeAttributeName = svNativePredictiveAttributeNames.GetAt(nIndex - 1);
 
 	// creation de l'attribut, et affectation de la regle de derivation
 	KWAttribute* contributionClassAttribute = new KWAttribute;
 	sValue = GetWhyTypeShortLabel(interpretationSpec->GetWhyType());
 	contributionClassAttribute->SetName(kwcInterpretation->BuildAttributeName(
-	    sValue + ALString("_") + sTargetClass + ALString("_") + soNativeAttributeName->GetString()));
+	    sValue + ALString("_") + sTargetClass + ALString("_") + soNativeAttributeName));
 	contributionClassAttribute->SetType(KWType::Continuous);
 
 	contributionClassAttribute->SetDerivationRule(rule);
 	//contributionClassAttribute->GetMetaData()->SetNoValueAt(INTERPRETATION_ATTRIBUTE_META_TAG);
 
-	if (interpretationSpec->GetWhyAttributesNumber() == oaNativePredictiveAttributeNames.GetSize() and
+	if (interpretationSpec->GetWhyAttributesNumber() == svNativePredictiveAttributeNames.GetSize() and
 	    interpretationSpec->GetSortWhyResults() == false)
 	{
 
 		contributionClassAttribute->GetMetaData()->SetStringValueAt("ContributionVariable",
-									    soNativeAttributeName->GetString());
+									    soNativeAttributeName);
 		//		    "ContributionValue" + ALString(IntToString(nIndex)), soNativeAttributeName->GetString());
 		contributionClassAttribute->GetMetaData()->SetStringValueAt("Target", sTargetClass);
 	}
@@ -359,6 +357,9 @@ KWAttribute* KIInterpretationDictionary::CreateContributionValueAtAttribute(
 		contributionClassAttribute->GetMetaData()->SetDoubleValueAt("ContributionValueRank", nIndex);
 		//		    "ContributionValue" + ALString(IntToString(nIndex)), soNativeAttributeName->GetString());
 		contributionClassAttribute->GetMetaData()->SetStringValueAt("Target", sTargetClass);
+		contributionClassAttribute->GetMetaData()->SetStringValueAt("Method", sValue);
+		contributionClassAttribute->SetName(kwcInterpretation->BuildAttributeName(
+		    "ContributionValue" + ALString(IntToString(nIndex)) + "_" + sTargetClass));
 	}
 	return contributionClassAttribute;
 }
@@ -389,7 +390,7 @@ KWAttribute* KIInterpretationDictionary::CreateContributionNameAtAttribute(
 	//attribute->GetMetaData()->SetNoValueAt(INTERPRETATION_ATTRIBUTE_META_TAG);
 	attribute->GetMetaData()->SetStringValueAt("ContributionVariableRank", ALString(IntToString(nIndex)));
 	attribute->GetMetaData()->SetStringValueAt("Target", sTargetClass);
-	if (interpretationSpec->GetWhyAttributesNumber() == oaNativePredictiveAttributeNames.GetSize() and
+	if (interpretationSpec->GetWhyAttributesNumber() == svNativePredictiveAttributeNames.GetSize() and
 	    interpretationSpec->GetSortWhyResults() == false)
 	{
 		//		StringObject* soNativeAttributeName =
@@ -429,7 +430,7 @@ KWAttribute* KIInterpretationDictionary::CreateContributionPartitionAtAttribute(
 	attribute->GetMetaData()->SetDoubleValueAt("ContributionPartRank", nIndex);
 	attribute->GetMetaData()->SetStringValueAt("Target", sTargetClass);
 
-	if (interpretationSpec->GetWhyAttributesNumber() == oaNativePredictiveAttributeNames.GetSize() and
+	if (interpretationSpec->GetWhyAttributesNumber() == svNativePredictiveAttributeNames.GetSize() and
 	    interpretationSpec->GetSortWhyResults() == false)
 	{
 		//		StringObject* soNativeAttributeName =
@@ -777,9 +778,9 @@ const SymbolVector& KIInterpretationDictionary::GetTargetValues() const
 	return sTargetValues;
 }
 
-ObjectArray* KIInterpretationDictionary::GetPredictiveAttributeNamesArray()
+StringVector* KIInterpretationDictionary::GetPredictiveAttributeNamesArray()
 {
-	return &oaPartitionedPredictiveAttributeNames;
+	return &svPartitionedPredictiveAttributeNames;
 }
 
 boolean KIInterpretationDictionary::TestGroupTargetValues(KWClass* inputClassifier)
@@ -831,7 +832,6 @@ boolean KIInterpretationDictionary::ImportClassifier(KWClass* inputClassifier)
 	KWAttribute* attribute;
 	KWAttribute* nativeAttribute;
 	KWDRNBClassifier* classifierRule;
-	KWDerivationRuleOperand* operand;
 	KWDRNBClassifier referenceNBRule;
 	KWDRSNBClassifier referenceSNBRule;
 
@@ -844,9 +844,9 @@ boolean KIInterpretationDictionary::ImportClassifier(KWClass* inputClassifier)
 
 	int nAttributeNaiveBayes;
 	int nAttributeSelectiveNaiveBayes;
-	int nOperandIndex;
-	int nFirstOperandIndex = 0;
 	int nAttributeIndex;
+	const KWDRDataGridStats refDataGridStatsRule;
+	const KWDRDataGridStatsBlock refDataGridStatsBlockRule;
 
 	// reinitialisation d'une precedente importation
 	CleanImport();
@@ -953,56 +953,21 @@ boolean KIInterpretationDictionary::ImportClassifier(KWClass* inputClassifier)
 				    KWDRNBClassifier*,
 				    inputClassifier->LookupAttribute(sAttributePredictorName)->GetDerivationRule());
 
-				if (nAttributeNaiveBayes == 1)
-					nFirstOperandIndex = 0;
-				else if (nAttributeSelectiveNaiveBayes == 1)
-					nFirstOperandIndex = 1;
+				//initilisation des listes d'attributs native et calcule du NB et SNB
+				classifierRule->ExportAttributeNames(&svPartitionedPredictiveAttributeNames,
+								     &svNativePredictiveAttributeNames);
 
-				// Parcours des operandes pour identifier les noms des attributs explicatifs et des attributs natifs associes
-				// La derniere operande n'est pas parcouru car reserve a l'attribut des valeurs cibles
-				for (nOperandIndex = nFirstOperandIndex;
-				     nOperandIndex < classifierRule->GetOperandNumber() - 1; nOperandIndex++)
-				{
-					operand = classifierRule->GetOperandAt(nOperandIndex);
-
-					// Extraction du nom de la variable explicative
-					sAttributeName =
-					    operand->GetDerivationRule()->GetFirstOperand()->GetAttributeName();
-
-					// Creation d'un StringObject pour memoriser ce nom de variable
-					StringObject* soAttributeName = new StringObject;
-					soAttributeName->SetString(sAttributeName);
-
-					// Memorisation du nom de la variable pour la synchronisation
-					// avec le tableau oaPartitionIntervals
-					oaPartitionedPredictiveAttributeNames.Add(soAttributeName);
-
-					// Extraction du nom de la variable native
-					sAttributeName =
-					    operand->GetDerivationRule()->GetSecondOperand()->GetAttributeName();
-
-					// Creation d'un StringObject pour memoriser ce nom de variable
-					soAttributeName = new StringObject;
-					soAttributeName->SetString(sAttributeName);
-
-					// Memorisation du nom de la variable pour la synchronisation
-					// avec le tableau oaPartitionIntervals
-					oaNativePredictiveAttributeNames.Add(soAttributeName);
-				}
-
-				if (oaNativePredictiveAttributeNames.GetSize() == 0)
+				if (svNativePredictiveAttributeNames.GetSize() == 0)
 					bOk = false;
 
 				// Parcours des attributs explicatifs recenses
 				for (nAttributeIndex = 0;
-				     nAttributeIndex < oaPartitionedPredictiveAttributeNames.GetSize();
+				     nAttributeIndex < svPartitionedPredictiveAttributeNames.GetSize();
 				     nAttributeIndex++)
 				{
 					// Extraction de l'attribut explicatif courant
 					attribute = inputClassifier->LookupAttribute(
-					    cast(StringObject*,
-						 oaPartitionedPredictiveAttributeNames.GetAt(nAttributeIndex))
-						->GetString());
+					    svPartitionedPredictiveAttributeNames.GetAt(nAttributeIndex));
 
 					// Cas ou l'attribut partitionne n'est pas present dans le dictionnaire
 					if (attribute == NULL)
@@ -1010,8 +975,7 @@ boolean KIInterpretationDictionary::ImportClassifier(KWClass* inputClassifier)
 
 					// Extraction de l'attribut natif
 					nativeAttribute = inputClassifier->LookupAttribute(
-					    cast(StringObject*, oaNativePredictiveAttributeNames.GetAt(nAttributeIndex))
-						->GetString());
+					    svNativePredictiveAttributeNames.GetAt(nAttributeIndex));
 
 					// Cas ou l'attribut natif n'est pas present dans le dictionnaire
 					if (nativeAttribute == NULL)
@@ -1059,17 +1023,16 @@ void KIInterpretationDictionary::PrepareInterpretationClass()
 	ALString sNativeVariableName;
 	int nAttributeIndex;
 
-	if (oaPartitionedPredictiveAttributeNames.GetSize() == 0)
+	if (svPartitionedPredictiveAttributeNames.GetSize() == 0)
 		return;
 
 	assert(kwcInterpretationMainClass != NULL);
 	assert(kwcdInterpretationDomain != NULL);
 
 	// tagguer les attributs explicatifs contribuant au predicteur, et pouvant etre utilisees eventuellement comme leviers
-	for (nAttributeIndex = 0; nAttributeIndex < oaPartitionedPredictiveAttributeNames.GetSize(); nAttributeIndex++)
+	for (nAttributeIndex = 0; nAttributeIndex < svPartitionedPredictiveAttributeNames.GetSize(); nAttributeIndex++)
 	{
-		sNativeVariableName =
-		    cast(StringObject*, oaNativePredictiveAttributeNames.GetAt(nAttributeIndex))->GetString();
+		sNativeVariableName = svNativePredictiveAttributeNames.GetAt(nAttributeIndex);
 
 		// Extraction de l'attribut natif
 		nativeAttribute = kwcInterpretationMainClass->LookupAttribute(sNativeVariableName);

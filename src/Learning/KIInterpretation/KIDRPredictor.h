@@ -90,6 +90,9 @@ protected:
 	/// conditionnellement a une classe donnee
 	Continuous ExtractLogPosteriorProba(int nClassIndex, int nAttributeIndex, int nModalityIndex) const;
 
+	// Test que kwcOwnerClass est bien un NB ou un SNB avec les bons orepands
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const;
+
 	///////////////// variables membres //////////////////
 
 	/** probas du modele, par modalite cible (donc, valables quel que soit l'instance traitee) :
@@ -103,11 +106,11 @@ protected:
 	Valeur = pointeur sur objet KIPartitionedAttributeProbas	*/
 	mutable ObjectArray* oaInstanceProbabilities;
 
-	/* tableau de noms de variables partitionnees */
-	mutable ObjectArray oaPartitionedPredictiveAttributeNames;
+	// Noms des variables partitionnees
+	mutable StringVector svPartitionedPredictiveAttributeNames;
 
-	/* tableau de noms de variables natives */
-	ObjectArray oaNativePredictiveAttributeNames;
+	// Noms des variables natives
+	StringVector svNativePredictiveAttributeNames;
 
 	/*	cle = modalite cible
 		valeur = entier dans un StringObject *, qui renvoie a l'entree correspondante dans le tableau oaModelProbabilities */
@@ -512,8 +515,8 @@ inline int KICompareContributionImportanceValue(const void* elem1, const void* e
 	assert(dataAttribute2->Check());
 
 	// Comparaison selon la precision du type Continuous, pour eviter les differences a epsilon pres
-	nCompare = -KWContinuous::CompareIndicatorValue(dataAttribute1->cReinforcementNewScore,
-							dataAttribute2->cReinforcementNewScore);
+	nCompare = -KWContinuous::CompareIndicatorValue(dataAttribute1->cContributionImportanceValue,
+							dataAttribute2->cContributionImportanceValue);
 
 	// Comparaison sur le nom en cas d'egalite du level (sort value)
 	if (nCompare == 0)

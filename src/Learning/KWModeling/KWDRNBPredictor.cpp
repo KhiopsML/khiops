@@ -1045,6 +1045,120 @@ longint KWDRNBClassifier::GetUsedMemory() const
 	return lUsedMemory;
 }
 
+void KWDRNBClassifier::ExportAttributeNames(StringVector* oaPartitionedPredictiveAttributeNames,
+					    StringVector* oaNativePredictiveAttributeNames) const
+{
+	KWAttribute* attribute;
+	KWDerivationRuleOperand* operand;
+	KWDRNBClassifier referenceNBRule;
+	KWDRSNBClassifier referenceSNBRule;
+	ObjectArray oaClasses;
+	ALString sAttributeName;
+	ALString sAttributePredictorName;
+	int nOperandIndex;
+	KWDRSymbolValueSet* symbolVarKeyRule;
+	const KWDRDataGridStats refDataGridStatsRule;
+	const KWDRDataGridStatsBlock refDataGridStatsBlockRule;
+	KWDRDataGridStatsBlock* dataGridStatsBlockRule;
+	KWDRDataGridBlock* dataGridBlockRule;
+	KWAttributeBlock* attributeBlock;
+	KWDRContinuousValueSet* continuousValueSetRule;
+	int nVarKeyNumber;
+	int nVarKey;
+	int nIndex;
+	int nUncheckedVarKeyType;
+
+	// Parcours des operandes pour identifier les noms des attributs explicatifs et des attributs natifs associes
+	// Le dernier operande n'est pas parcouru car reserve a l'attribut des valeurs cibles
+	// Le nFirstDataGridOperand est ici utilise pour s'adapter au cas NB ou SNB
+	// NB : nFirstDataGridOperand=0
+	// SNB : nFirstDataGridOperand=1 (avec vecteur de poids en premier operande)
+	for (nOperandIndex = nFirstDataGridOperand; nOperandIndex < GetOperandNumber() - 1; nOperandIndex++)
+	{
+
+		operand = GetOperandAt(nOperandIndex);
+		assert(operand->GetType() == KWType::Structure);
+
+		if (operand->GetStructureName() == refDataGridStatsRule.GetName())
+		{
+
+			// Extraction du nom de la variable explicative
+			sAttributeName = operand->GetDerivationRule()->GetFirstOperand()->GetAttributeName();
+
+			// Memorisation du nom de la variable pour la synchronisation
+			// avec le tableau oaPartitionIntervals
+			oaPartitionedPredictiveAttributeNames->Add(sAttributeName);
+
+			// Extraction du nom de la variable native
+			sAttributeName = operand->GetDerivationRule()->GetSecondOperand()->GetAttributeName();
+
+			// Memorisation du nom de la variable pour la synchronisation
+			// avec le tableau oaPartitionIntervals
+			oaNativePredictiveAttributeNames->Add(sAttributeName);
+		}
+		else
+		{
+			assert(operand->GetStructureName() == refDataGridStatsBlockRule.GetName());
+			dataGridStatsBlockRule = cast(KWDRDataGridStatsBlock*, operand->GetDerivationRule());
+			dataGridBlockRule =
+			    cast(KWDRDataGridBlock*,
+				 dataGridStatsBlockRule->GetFirstOperand()->GetOriginAttribute()->GetDerivationRule());
+			attributeBlock = dataGridStatsBlockRule->GetSecondOperand()->GetOriginAttributeBlock();
+			// Recherche du type de bloc
+			nUncheckedVarKeyType = dataGridBlockRule->GetUncheckedDataGridVarKeyType();
+			continuousValueSetRule = NULL;
+			symbolVarKeyRule = NULL;
+			if (nUncheckedVarKeyType == KWType::Continuous)
+			{
+				continuousValueSetRule = cast(
+				    KWDRContinuousValueSet*, dataGridBlockRule->GetFirstOperand()->GetDerivationRule());
+				nVarKeyNumber = continuousValueSetRule->GetValueNumber();
+			}
+			else
+			{
+				assert(nUncheckedVarKeyType == KWType::Symbol);
+				symbolVarKeyRule = cast(KWDRSymbolValueSet*,
+							dataGridBlockRule->GetFirstOperand()->GetDerivationRule());
+				nVarKeyNumber = symbolVarKeyRule->GetValueNumber();
+			}
+			// Parcours generique des VarKey du bloc
+			for (nIndex = 0; nIndex < nVarKeyNumber; nIndex++)
+			{
+				if (nUncheckedVarKeyType == KWType::Continuous)
+				{
+					assert(continuousValueSetRule != NULL);
+					nVarKey = int(floor(continuousValueSetRule->GetValueAt(nIndex) + 0.5));
+					attribute = attributeBlock->LookupAttributeByContinuousVarKey(nVarKey);
+				}
+				else
+				{
+					assert(symbolVarKeyRule != NULL);
+					attribute = attributeBlock->LookupAttributeBySymbolVarKey(
+					    symbolVarKeyRule->GetValueAt(nIndex));
+				}
+
+				if (attribute != NULL)
+				{
+					// Extraction du nom de la variable explicative
+					sAttributeName = attribute->GetName();
+
+					// Memorisation du nom de la variable pour la synchronisation
+					// avec le tableau oaPartitionIntervals
+					oaNativePredictiveAttributeNames->Add(sAttributeName);
+
+					// Extraction du nom de la variable native
+					sAttributeName =
+					    dataGridBlockRule->GetOperandAt(nIndex + 1)->GetAttributeName();
+
+					// Memorisation du nom de la variable pour la synchronisation
+					// avec le tableau oaPartitionIntervals
+					oaPartitionedPredictiveAttributeNames->Add(sAttributeName);
+				}
+			}
+		}
+	}
+}
+
 void KWDRNBClassifier::ComputeTargetProbs() const
 {
 	const KWDRDataGridStats* dataGridStatsRule;
