@@ -227,7 +227,9 @@ def clean_version_from_results(results_dir):
     def remove_version_in_data(data, pos_version, version):
         """Remplace la version a la position donnees par une valeur constante"""
         assert pos_version > 0
-        data_head_text = extract_data_head_as_text(data)
+        # On doit avoir acces a la fois a la version byte et a la version texte
+        data_head = data[0:1000]
+        data_head_text = data_head.decode("latin-1")
         new_data_head_text = (
             data_head_text[:pos_version]
             + "VERSION"
