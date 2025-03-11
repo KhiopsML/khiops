@@ -18,6 +18,7 @@
 #include "CCCoclusteringBuilder.h"
 #include "CCCoclusteringReport.h"
 #include "KWDRString.h"
+#include "KWDatabaseCheckTask.h"
 
 ////////////////////////////////////////////////////////////
 // Classe CCLearningProblem
@@ -80,6 +81,9 @@ public:
 
 	//////////////////////////////////////////////////////////////
 	// Fonctionnalites disponibles
+
+	// Verification des donnees
+	void CheckData();
 
 	// Analyse de la base par coclustering
 	void BuildCoclustering();

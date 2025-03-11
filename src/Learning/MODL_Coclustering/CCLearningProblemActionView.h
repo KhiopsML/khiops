@@ -34,10 +34,13 @@ public:
 	void EventRefresh(Object* object) override;
 
 	// Actions disponibles
+	void CheckData();
+	void SortDataTableByKey();
 	void BuildCoclustering();
 	void PostProcessCoclustering();
 	void ExtractClusters();
 	void PrepareDeployment();
+	void TransferDatabase();
 
 	// Acces au probleme d'apprentissage
 	CCLearningProblem* GetLearningProblem();

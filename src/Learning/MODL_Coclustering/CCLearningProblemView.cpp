@@ -177,6 +177,27 @@ void CCLearningProblemView::EventRefresh(Object* object)
 
 //////////////////////////////////////////////////////////////////////////
 
+void CCLearningProblemView::CheckData()
+{
+	// OK si nom du fichier renseigne et classe correcte
+	if (FileService::CreateApplicationTmpDir() and GetLearningProblem()->CheckDatabaseName() and
+	    GetLearningProblem()->GetDatabase()->Check() and GetLearningProblem()->CheckClass())
+		GetLearningProblem()->CheckData();
+
+	// Ligne de separation dans le log
+	AddSimpleMessage("");
+}
+
+void CCLearningProblemView::SortDataTableByKey()
+{
+	KWDataTableSorterView dataTableSorterView;
+	// Initialisation a partir de la base d'apprentissage
+	dataTableSorterView.InitializeSourceDataTable(GetLearningProblem()->GetDatabase());
+
+	// Ouverture
+	dataTableSorterView.Open();
+}
+
 void CCLearningProblemView::BuildCoclustering()
 {
 	boolean bOk;
@@ -199,6 +220,18 @@ void CCLearningProblemView::BuildCoclustering()
 
 	// Ligne de separation dans le log
 	AddSimpleMessage("");
+}
+
+void CCLearningProblemView::TransferDatabase()
+{
+	KWDatabaseTransferView databaseTransferView;
+
+	// Initialisation a partir de la base d'apprentissage
+	databaseTransferView.InitializeSourceDatabase(GetLearningProblem()->GetDatabase(),
+						      GetLearningProblem()->GetClassFileName());
+
+	// Ouverture
+	databaseTransferView.Open();
 }
 
 void CCLearningProblemView::SetObject(Object* object)
