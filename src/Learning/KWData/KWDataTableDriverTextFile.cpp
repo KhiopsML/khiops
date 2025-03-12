@@ -1531,7 +1531,7 @@ void KWDataTableDriverTextFile::WriteSymbolBlockUsingDenseFormat(KWAttributeBloc
 
 	require(bWriteMode);
 	require(attributeBlock != NULL);
-	require(attributeBlock->GetType() == KWType::Continuous);
+	require(attributeBlock->GetType() == KWType::Symbol);
 	require(valueBlock != NULL);
 
 	// Initialisation d'un vecteur de valeurs dense avec uniquement les valeurs par defaut
